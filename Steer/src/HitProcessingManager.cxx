@@ -29,7 +29,7 @@ bool HitProcessingManager::setupChain()
 {
   if (mBackgroundFileNames.size() == 0 && mSignalFileNames.size() == 0) {
     // there are no files to be analysed/processed;
-    LOG(WARNING) << "No files to be analysed";
+    LOG(warning) << "No files to be analysed";
     return false;
   }
 
@@ -41,9 +41,9 @@ bool HitProcessingManager::setupChain()
     maxsourceid = std::max(pair.first, maxsourceid);
   }
   if (maxsourceid != sourcecounter) {
-    LOG(WARNING) << "max source id " << maxsourceid << " vs " << sourcecounter;
+    LOG(warning) << "max source id " << maxsourceid << " vs " << sourcecounter;
   }
-  LOG(INFO) << "setting up " << maxsourceid + 1 << " chains";
+  LOG(info) << "setting up " << maxsourceid + 1 << " chains";
   mSimChains.resize(maxsourceid + 1);
 
   // allocate chains
@@ -86,7 +86,7 @@ void HitProcessingManager::setupRun(int ncollisions)
     mNumberOfCollisions = ncollisions;
   } else {
     mNumberOfCollisions = mSimChains[0]->GetEntries();
-    LOG(INFO) << "Automatic deduction of number of collisions ... will just take number of background entries "
+    LOG(info) << "Automatic deduction of number of collisions ... will just take number of background entries "
               << mNumberOfCollisions;
   }
   mDigitizationContext.setNCollisions(mNumberOfCollisions);
@@ -117,7 +117,7 @@ bool HitProcessingManager::setupRunFromExistingContext(const char* filename)
     mDigitizationContext = *context;
     return true;
   }
-  LOG(WARN) << "NO DIGITIZATIONCONTEXT FOUND";
+  LOG(warn) << "NO DIGITIZATIONCONTEXT FOUND";
   return false;
 }
 

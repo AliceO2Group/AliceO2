@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(CompressedClustersTest)
     rofr.setNEntries(int(cclusVec.size()) - rofr.getFirstEntry());
   }
   sw.Stop();
-  LOG(INFO) << "Generated " << cclusVec.size() << " in " << rofRecVec.size() << " ROFs in " << sw.CpuTime() << " s";
+  LOG(info) << "Generated " << cclusVec.size() << " in " << rofRecVec.size() << " ROFs in " << sw.CpuTime() << " s";
 
   sw.Start();
   std::vector<o2::ctf::BufferType> vec;
@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE(CompressedClustersTest)
     coder.encode(vec, rofRecVec, cclusVec, pattVec); // compress
   }
   sw.Stop();
-  LOG(INFO) << "Compressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Compressed in " << sw.CpuTime() << " s";
 
   // writing
   {
@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(CompressedClustersTest)
     ctfImage->appendToTree(ctfTree, "ITS");
     ctfTree.Write();
     sw.Stop();
-    LOG(INFO) << "Wrote to tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Wrote to tree in " << sw.CpuTime() << " s";
   }
 
   // reading
@@ -99,7 +99,7 @@ BOOST_AUTO_TEST_CASE(CompressedClustersTest)
     BOOST_CHECK(tree);
     o2::itsmft::CTF::readFromTree(vec, *(tree.get()), "ITS");
     sw.Stop();
-    LOG(INFO) << "Read back from tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Read back from tree in " << sw.CpuTime() << " s";
   }
 
   std::vector<ROFRecord> rofRecVecD;
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(CompressedClustersTest)
     coder.decode(ctfImage, rofRecVecD, cclusVecD, pattVecD, nullptr, clPattLookup); // decompress
   }
   sw.Stop();
-  LOG(INFO) << "Decompressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Decompressed in " << sw.CpuTime() << " s";
 
   //
   // check

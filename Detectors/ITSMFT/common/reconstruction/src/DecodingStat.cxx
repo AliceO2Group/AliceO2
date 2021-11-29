@@ -107,7 +107,7 @@ void GBTLinkDecodingStat::print(bool skipNoErr) const
     rep += fmt::format(" | Decoding errors: {}", nErr);
     for (int i = 0; i < NErrorsDefined; i++) {
       if (!skipNoErr || errorCounts[i]) {
-        rep += fmt::format("{<}: {}", ErrNames[i].data(), errorCounts[i]);
+        rep += fmt::format(" [{}: {}]", ErrNames[i].data(), errorCounts[i]);
       }
     }
     LOG(important) << rep;

@@ -76,7 +76,7 @@ bool DigitizationContext::initSimChains(o2::detectors::DetID detid, std::vector<
   // QED part
   if (mEventRecordsWithQED.size() > 0) {
     if (mSimPrefixes.size() >= QEDSOURCEID) {
-      LOG(FATAL) << "Too many signal chains; crashes with QED source ID";
+      LOG(fatal) << "Too many signal chains; crashes with QED source ID";
     }
 
     // it might be better to use an unordered_map for the simchains but this requires interface changes
@@ -162,7 +162,7 @@ bool DigitizationContext::checkVertexCompatibility(bool verbose) const
         for (auto& p : vertices) {
           text << p << " ";
         }
-        LOG(ERROR) << text.str();
+        LOG(error) << text.str();
       }
       consistent &= thiscollision;
     }
@@ -213,7 +213,7 @@ void DigitizationContext::fillQED(std::string_view QEDprefix, std::vector<o2::In
   TFile f(qedKinematicsName.c_str(), "OPEN");
   auto t = (TTree*)f.Get("o2sim");
   if (!t) {
-    LOG(ERROR) << "No QED kinematics found";
+    LOG(error) << "No QED kinematics found";
     throw std::runtime_error("No QED kinematics found");
   }
   auto numberQEDevents = t->GetEntries();

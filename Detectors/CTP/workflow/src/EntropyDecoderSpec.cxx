@@ -48,16 +48,18 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto& digits = pc.outputs().make<std::vector<CTPDigit>>(OutputRef{"digits"});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
-  const auto ctfImage = o2::ctp::CTF::getImage(buff.data());
-  mCTFCoder.decode(ctfImage, digits);
+  if (buff.size()) {
+    const auto ctfImage = o2::ctp::CTF::getImage(buff.data());
+    mCTFCoder.decode(ctfImage, digits);
+  }
 
   mTimer.Stop();
-  LOG(INFO) << "Decoded " << digits.size() << " CTP digits in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Decoded " << digits.size() << " CTP digits in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "CTP Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "CTP Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

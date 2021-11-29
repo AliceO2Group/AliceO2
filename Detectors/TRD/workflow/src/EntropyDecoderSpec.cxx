@@ -67,16 +67,18 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto& digits = pc.outputs().make<std::vector<Digit>>(OutputRef{"digits"});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
-  const auto ctfImage = o2::trd::CTF::getImage(buff.data());
-  mCTFCoder.decode(ctfImage, triggers, tracklets, digits);
+  if (buff.size()) {
+    const auto ctfImage = o2::trd::CTF::getImage(buff.data());
+    mCTFCoder.decode(ctfImage, triggers, tracklets, digits);
+  }
 
   mTimer.Stop();
-  LOG(INFO) << "Decoded " << tracklets.size() << " TRD tracklets and " << digits.size() << " digits in " << triggers.size() << " triggers in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Decoded " << tracklets.size() << " TRD tracklets and " << digits.size() << " digits in " << triggers.size() << " triggers in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "TRD Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "TRD Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

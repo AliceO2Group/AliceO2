@@ -38,7 +38,7 @@ class GRPObject
   using DetID = o2::detectors::DetID;
 
  public:
-  using timePoint = std::time_t;
+  using timePoint = uint64_t; // std::time_t;
 
   enum ROMode : int { ABSENT = 0,
                       PRESENT = 0x1,
@@ -140,7 +140,7 @@ class GRPObject
   /// print itself
   void print() const;
 
-  static GRPObject* loadFrom(const std::string& grpFileName = "", const std::string& grpName = "GRP");
+  static GRPObject* loadFrom(const std::string& grpFileName = "");
 
  private:
   timePoint mTimeStart = 0;      ///< DAQ_time_start entry from DAQ logbook
@@ -169,7 +169,7 @@ class GRPObject
   std::string mDataPeriod = ""; ///< name of the period
   std::string mLHCState = "";   ///< machine state
 
-  ClassDefNV(GRPObject, 6);
+  ClassDefNV(GRPObject, 7);
 };
 
 //______________________________________________

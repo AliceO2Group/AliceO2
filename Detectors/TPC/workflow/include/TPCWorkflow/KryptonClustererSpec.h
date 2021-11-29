@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   RawToDigitsSpec.h
+/// @file   KryptonClustererSpec.h
 /// @author Jens Wiechula
 /// @since  2021-02-26
 /// @brief  Processor spec for running TPC Krypton cluster finder

@@ -140,7 +140,7 @@ void TrackFinder::init(float l3Current, float dipoleCurrent)
 }
 
 //_________________________________________________________________________________________________
-const std::list<Track>& TrackFinder::findTracks(const std::unordered_map<int, std::list<Cluster>>& clusters)
+const std::list<Track>& TrackFinder::findTracks(const std::unordered_map<int, std::list<const Cluster*>>& clusters)
 {
   /// Run the track finder algorithm
 
@@ -626,9 +626,9 @@ std::list<Track>::iterator TrackFinder::findTrackCandidates(int plane1, int plan
       continue;
     }
 
-    for (const auto& cluster1 : *de1.second) {
+    for (const auto cluster1 : *de1.second) {
 
-      double z1 = cluster1.getZ();
+      double z1 = cluster1->getZ();
 
       for (auto& de2 : mClusters[plane2]) {
 
@@ -637,28 +637,28 @@ std::list<Track>::iterator TrackFinder::findTrackCandidates(int plane1, int plan
           continue;
         }
 
-        for (const auto& cluster2 : *de2.second) {
+        for (const auto cluster2 : *de2.second) {
 
           // skip combinations of clusters already part of a track if requested
-          if (skipUsedPairs && itTrack != mTracks.end() && areUsed(cluster1, cluster2, itFirstTrack, std::next(itTrack))) {
+          if (skipUsedPairs && itTrack != mTracks.end() && areUsed(*cluster1, *cluster2, itFirstTrack, std::next(itTrack))) {
             continue;
           }
 
-          double z2 = cluster2.getZ();
+          double z2 = cluster2->getZ();
           double dZ = z1 - z2;
 
           // check if non bending impact parameter is within tolerances
-          double nonBendingSlope = (cluster1.getX() - cluster2.getX()) / dZ;
-          double nonBendingImpactParam = TMath::Abs(cluster1.getX() - cluster1.getZ() * nonBendingSlope);
+          double nonBendingSlope = (cluster1->getX() - cluster2->getX()) / dZ;
+          double nonBendingImpactParam = TMath::Abs(cluster1->getX() - cluster1->getZ() * nonBendingSlope);
           double nonBendingImpactParamErr = TMath::Sqrt((z1 * z1 * mChamberResolutionX2 + z2 * z2 * mChamberResolutionX2) / dZ / dZ + impactMCS2);
           if ((nonBendingImpactParam - trackerParam.sigmaCutForTracking * nonBendingImpactParamErr) > (3. * trackerParam.nonBendingVertexDispersion)) {
             continue;
           }
 
-          double bendingSlope = (cluster1.getY() - cluster2.getY()) / dZ;
+          double bendingSlope = (cluster1->getY() - cluster2->getY()) / dZ;
           if (TrackExtrap::isFieldON()) { // depending whether the field is ON or OFF
             // check if bending momentum is within tolerances
-            double bendingImpactParam = cluster1.getY() - cluster1.getZ() * bendingSlope;
+            double bendingImpactParam = cluster1->getY() - cluster1->getZ() * bendingSlope;
             double bendingImpactParamErr2 = (z1 * z1 * mChamberResolutionY2 + z2 * z2 * mChamberResolutionY2) / dZ / dZ + impactMCS2;
             double bendingMomentum = TMath::Abs(TrackExtrap::getBendingMomentumFromImpactParam(bendingImpactParam));
             double bendingMomentumErr = TMath::Sqrt((mBendingVertexDispersion2 + bendingImpactParamErr2) / bendingImpactParam / bendingImpactParam + 0.01) * bendingMomentum;
@@ -667,7 +667,7 @@ std::list<Track>::iterator TrackFinder::findTrackCandidates(int plane1, int plan
             }
           } else {
             // or check if bending impact parameter is within tolerances
-            double bendingImpactParam = TMath::Abs(cluster1.getY() - cluster1.getZ() * bendingSlope);
+            double bendingImpactParam = TMath::Abs(cluster1->getY() - cluster1->getZ() * bendingSlope);
             double bendingImpactParamErr = TMath::Sqrt((z1 * z1 * mChamberResolutionY2 + z2 * z2 * mChamberResolutionY2) / dZ / dZ + impactMCS2);
             if ((bendingImpactParam - trackerParam.sigmaCutForTracking * bendingImpactParamErr) > (3. * trackerParam.bendingVertexDispersion)) {
               continue;
@@ -675,7 +675,7 @@ std::list<Track>::iterator TrackFinder::findTrackCandidates(int plane1, int plan
           }
 
           // create a new track candidate
-          createTrack(cluster1, cluster2);
+          createTrack(*cluster1, *cluster2);
         }
       }
     }
@@ -720,16 +720,16 @@ std::list<Track>::iterator TrackFinder::followTrackInOverlapDE(const std::list<T
     }
 
     // look for cluster candidate in this DE
-    for (const auto& cluster : *de.second) {
+    for (const auto cluster : *de.second) {
 
       // try to add the current cluster
-      if (!isCompatible(currentParam, cluster, paramAtCluster)) {
+      if (!isCompatible(currentParam, *cluster, paramAtCluster)) {
         continue;
       }
 
       // duplicate the track and add the new cluster
       itNewTrack = mTracks.emplace(itNewTrack, *itTrack);
-      print("followTrackInOverlapDE: duplicating candidate at position #", getTrackIndex(itNewTrack), " to add cluster ", cluster.getIdAsString());
+      print("followTrackInOverlapDE: duplicating candidate at position #", getTrackIndex(itNewTrack), " to add cluster ", cluster->getIdAsString());
       itNewTrack->addParamAtCluster(paramAtCluster);
 
       // tag the track as removable (if it is not already the case) if it is out of limits
@@ -904,20 +904,20 @@ std::list<Track>::iterator TrackFinder::followTrackInChamber(std::list<Track>::i
     bool hasExcludedClusters = (itExcludedClusters != excludedClusters.end());
 
     // look for cluster candidate in this DE
-    for (const auto& cluster1 : *de1.second) {
+    for (const auto cluster1 : *de1.second) {
 
       // skip excluded clusters
-      if (hasExcludedClusters && itExcludedClusters->second.count(cluster1.getUniqueId()) > 0) {
+      if (hasExcludedClusters && itExcludedClusters->second.count(cluster1->uid) > 0) {
         continue;
       }
 
       // try to add the current cluster
-      if (!isCompatible(paramAtChamber, cluster1, paramAtCluster1)) {
+      if (!isCompatible(paramAtChamber, *cluster1, paramAtCluster1)) {
         continue;
       }
 
       // add it to the list of excluded clusters for this candidate
-      excludedClusters[de1.first].emplace(cluster1.getUniqueId());
+      excludedClusters[de1.first].emplace(cluster1->uid);
 
       // skip tracks out of limits, but after checking for overlaps
       bool isAcceptableAtCluster1 = isAcceptable(paramAtCluster1);
@@ -942,17 +942,17 @@ std::list<Track>::iterator TrackFinder::followTrackInChamber(std::list<Track>::i
         }
 
         // look for cluster candidate in this DE
-        for (const auto& cluster2 : *de2.second) {
+        for (const auto cluster2 : *de2.second) {
 
           // try to add the current cluster
-          if (!isCompatible(currentParamAtCluster1, cluster2, paramAtCluster2)) {
+          if (!isCompatible(currentParamAtCluster1, *cluster2, paramAtCluster2)) {
             continue;
           }
 
           cluster2Found = true;
 
           // add it to the list of excluded clusters for this candidate
-          excludedClusters[de2.first].emplace(cluster2.getUniqueId());
+          excludedClusters[de2.first].emplace(cluster2->uid);
 
           // skip tracks out of limits
           if (!isAcceptableAtCluster1 || !isAcceptable(paramAtCluster2)) {
@@ -997,20 +997,20 @@ std::list<Track>::iterator TrackFinder::followTrackInChamber(std::list<Track>::i
     bool hasExcludedClusters = (itExcludedClusters != excludedClusters.end());
 
     // look for cluster candidate in this DE
-    for (const auto& cluster2 : *de2.second) {
+    for (const auto cluster2 : *de2.second) {
 
       // skip excluded clusters (in particular the ones already attached together with a cluster on plane1)
-      if (hasExcludedClusters && itExcludedClusters->second.count(cluster2.getUniqueId()) > 0) {
+      if (hasExcludedClusters && itExcludedClusters->second.count(cluster2->uid) > 0) {
         continue;
       }
 
       // try to add the current cluster
-      if (!isCompatible(paramAtChamber, cluster2, paramAtCluster2)) {
+      if (!isCompatible(paramAtChamber, *cluster2, paramAtCluster2)) {
         continue;
       }
 
       // add it to the list of excluded clusters for this candidate
-      excludedClusters[de2.first].emplace(cluster2.getUniqueId());
+      excludedClusters[de2.first].emplace(cluster2->uid);
 
       // skip tracks out of limits
       if (!isAcceptable(paramAtCluster2)) {
@@ -1207,7 +1207,7 @@ void TrackFinder::removeConnectedTracks(int stMin, int stMax)
         previousCh = ch;
       }
       if (ch >= chMin && ch <= chMax) {
-        ClIds[nPlane * iTrack + 2 * (ch - chMin) + itParam->getClusterPtr()->getDEId() % 2] = itParam->getClusterPtr()->getUniqueId();
+        ClIds[nPlane * iTrack + 2 * (ch - chMin) + itParam->getClusterPtr()->getDEId() % 2] = itParam->getClusterPtr()->uid;
       }
     }
   }
@@ -1468,7 +1468,7 @@ void TrackFinder::excludeClustersFromIdenticalTracks(const std::list<Track>::ite
       for (auto itParam = itTrack2->rbegin(); itParam != itTrack2->rend(); ++itParam) {
         const Cluster* cluster = itParam->getClusterPtr();
         if (cluster->getChamberId() > 7) {
-          excludedClusters[cluster->getDEId()].emplace(cluster->getUniqueId());
+          excludedClusters[cluster->getDEId()].emplace(cluster->uid);
         } else {
           break;
         }
@@ -1662,22 +1662,22 @@ void TrackFinder::print(Args... args) const
 void TrackFinder::printStats() const
 {
   /// print the timers
-  LOG(INFO) << "number of candidates tracked = " << mNCandidates;
+  LOG(info) << "number of candidates tracked = " << mNCandidates;
   TrackExtrap::printNCalls();
-  LOG(INFO) << "number of times tryOneClusterFast() is called = " << mNCallTryOneClusterFast;
-  LOG(INFO) << "number of times tryOneCluster() is called = " << mNCallTryOneCluster;
+  LOG(info) << "number of times tryOneClusterFast() is called = " << mNCallTryOneClusterFast;
+  LOG(info) << "number of times tryOneCluster() is called = " << mNCallTryOneCluster;
 }
 
 //_________________________________________________________________________________________________
 void TrackFinder::printTimers() const
 {
   /// print the timers
-  LOG(INFO) << "findTrackCandidates duration = " << mTimeFindCandidates.count() << " s";
-  LOG(INFO) << "findMoreTrackCandidates duration = " << mTimeFindMoreCandidates.count() << " s";
-  LOG(INFO) << "followTracks duration = " << mTimeFollowTracks.count() << " s";
-  LOG(INFO) << "improveTracks duration = " << mTimeImproveTracks.count() << " s";
-  LOG(INFO) << "removeConnectedTracks duration = " << mTimeCleanTracks.count() << " s";
-  LOG(INFO) << "refineTracks duration = " << mTimeRefineTracks.count() << " s";
+  LOG(info) << "findTrackCandidates duration = " << mTimeFindCandidates.count() << " s";
+  LOG(info) << "findMoreTrackCandidates duration = " << mTimeFindMoreCandidates.count() << " s";
+  LOG(info) << "followTracks duration = " << mTimeFollowTracks.count() << " s";
+  LOG(info) << "improveTracks duration = " << mTimeImproveTracks.count() << " s";
+  LOG(info) << "removeConnectedTracks duration = " << mTimeCleanTracks.count() << " s";
+  LOG(info) << "refineTracks duration = " << mTimeRefineTracks.count() << " s";
 }
 
 } // namespace mch

@@ -226,8 +226,10 @@ struct EPNstderrMonitor : fair::mq::Device {
 
     std::string partition = "";
     try {
-      fConfig->GetProperty<std::string>("environment_id", "");
+      partition = fConfig->GetProperty<std::string>("environment_id", "");
+      printf("Got environment_id: %s\n", partition.c_str());
     } catch (...) {
+      printf("Error getting environment_id\n");
     }
 
     gEPNMonitor = std::make_unique<EPNMonitor>(path, infoLogger, 0, partition);
@@ -237,7 +239,9 @@ struct EPNstderrMonitor : fair::mq::Device {
     int runNumber = 0;
     try {
       runNumber = atoi(fConfig->GetProperty<std::string>("runNumber", "").c_str());
+      printf("Got runNumber: %d\n", runNumber);
     } catch (...) {
+      printf("Error getting runNumber\n");
     }
     gEPNMonitor->setRunNr(runNumber);
   }

@@ -71,4 +71,6 @@
 
 #pragma link C++ class o2::dataformats::IOMCTruthContainerView + ;
 
+#pragma link C++ class o2::mcutils::MCTrackNavigator + ;
+
 #endif

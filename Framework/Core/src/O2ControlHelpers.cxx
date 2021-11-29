@@ -81,12 +81,12 @@ void dumpRawChannelConnect(std::ostream& dumpOut, const RawChannel& channel, boo
   dumpOut << indLevel << indScheme << "transport: " << channel.transport << "\n";
   if (preserveRawChannels) {
     dumpOut << indLevel << indScheme << "target: \"" << channel.address << "\"\n";
-    LOG(INFO) << "This topology will connect to the channel '" << channel.name << "', which is most likely bound outside."
+    LOG(info) << "This topology will connect to the channel '" << channel.name << "', which is most likely bound outside."
               << " Please make sure it is available under the address '" << channel.address
               << "' in the mother workflow or another subworkflow.";
   } else {
     auto channelRef = rawChannelReference(channel.name, isUniqueChannel);
-    LOG(INFO) << "This topology will connect to the channel '" << channel.name << "', which is most likely bound outside."
+    LOG(info) << "This topology will connect to the channel '" << channel.name << "', which is most likely bound outside."
               << " Please make sure it is declared in the global channel space under the name '" << channelRef
               << "' in the mother workflow or another subworkflow.";
     dumpOut << indLevel << indScheme << "target: \"::" << channelRef << "\"\n";
@@ -102,14 +102,14 @@ void dumpRawChannelBind(std::ostream& dumpOut, const RawChannel& channel, bool i
   dumpOut << indLevel << indScheme << "addressing: " << (channel.address.find("ipc") != std::string_view::npos ? "ipc" : "tcp") << "\n";
   dumpOut << indLevel << indScheme << "rateLogging: \"{{ fmq_rate_logging }}\"\n";
   if (preserveRawChannels) {
-    LOG(INFO) << "This topology will bind a dangling channel '" << channel.name << "'"
+    LOG(info) << "This topology will bind a dangling channel '" << channel.name << "'"
               << " with the address '" << channel.address << "'."
               << " Please make sure that another device connects to this channel elsewhere."
               << " Also, don't mind seeing the message twice, it will be addressed in future releases.";
     dumpOut << indLevel << indScheme << "target: \"" << channel.address << "\"\n";
   } else {
     auto channelRef = rawChannelReference(channel.name, isUniqueChannel);
-    LOG(INFO) << "This topology will bind a dangling channel '" << channel.name << "'"
+    LOG(info) << "This topology will bind a dangling channel '" << channel.name << "'"
               << " and declare it in the global channel space under the name '" << channelRef << "'."
               << " Please make sure that another device connects to this channel elsewhere."
               << " Also, don't mind seeing the message twice, it will be addressed in future releases.";
@@ -316,14 +316,14 @@ void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecuti
   dumpOut << indLevel << indScheme << "log_task_output: none\n";
 
   if (bfs::path(execution.args[0]).filename().string() != execution.args[0]) {
-    LOG(WARNING) << "The workflow template generation was started with absolute or relative executables paths."
+    LOG(warning) << "The workflow template generation was started with absolute or relative executables paths."
                     " Please use the symlinks exported by the build infrastructure or remove the paths manually in the generated templates,"
                     " unless you really need executables within concrete directories";
   }
   dumpOut << indLevel << indScheme << "_module_cmdline: >-\n";
   dumpOut << indLevel << indScheme << indScheme << "source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&\n";
   dumpOut << indLevel << indScheme << indScheme << "{{ dpl_command }} | " << execution.args[0] << "\n";
-  dumpOut << indLevel << indScheme << "_plain_cmdline: \"source /etc/profile.d/o2.sh && {{ dpl_command }} | " << execution.args[0] << "\"\n";
+  dumpOut << indLevel << indScheme << "_plain_cmdline: \"source /etc/profile.d/o2.sh && {{ len(extra_env_vars)>0 ? 'export ' + extra_env_vars + ' &&' : '' }} {{ dpl_command }} | " << execution.args[0] << "\"\n";
 
   dumpOut << indLevel << "control:\n";
   dumpOut << indLevel << indScheme << "mode: \"fairmq\"\n";
@@ -390,16 +390,16 @@ void dumpDeviceSpec2O2Control(std::string workflowName,
   const char* tasksDirectory = "tasks";
   const char* workflowsDirectory = "workflows";
 
-  LOG(INFO) << "Dumping the workflow configuration for AliECS.";
+  LOG(info) << "Dumping the workflow configuration for AliECS.";
 
-  LOG(INFO) << "Creating directories '" << workflowsDirectory << "' and '" << tasksDirectory << "'.";
+  LOG(info) << "Creating directories '" << workflowsDirectory << "' and '" << tasksDirectory << "'.";
   std::filesystem::create_directory(workflowsDirectory);
   std::filesystem::create_directory(tasksDirectory);
-  LOG(INFO) << "... created.";
+  LOG(info) << "... created.";
 
   assert(specs.size() == executions.size());
 
-  LOG(INFO) << "Creating a workflow dump '" + workflowName + "'.";
+  LOG(info) << "Creating a workflow dump '" + workflowName + "'.";
   std::string wfDumpPath = std::string(workflowsDirectory) + bfs::path::preferred_separator + workflowName + ".yaml";
   std::ofstream wfDump(wfDumpPath);
   dumpWorkflow(wfDump, specs, executions, commandInfo, workflowName, "");
@@ -409,13 +409,13 @@ void dumpDeviceSpec2O2Control(std::string workflowName,
     auto& spec = specs[di];
     auto& execution = executions[di];
 
-    LOG(INFO) << "Creating a task dump for '" + spec.id + "'.";
+    LOG(info) << "Creating a task dump for '" + spec.id + "'.";
     std::string taskName = implementation::taskName(workflowName, spec.id);
     std::string taskDumpPath = std::string(tasksDirectory) + bfs::path::preferred_separator + taskName + ".yaml";
     std::ofstream taskDump(taskDumpPath);
     dumpTask(taskDump, spec, execution, taskName, "");
     taskDump.close();
-    LOG(INFO) << "...created.";
+    LOG(info) << "...created.";
   }
 }
 

@@ -101,6 +101,11 @@ struct Str {
     return (ending.size() > s.size()) ? false : std::equal(ending.rbegin(), ending.rend(), s.rbegin());
   }
 
+  static inline bool beginsWith(const std::string& s, const std::string& start)
+  {
+    return (start.size() > s.size()) ? false : std::equal(start.begin(), start.end(), s.begin());
+  }
+
   // return vector of tokens from the string with provided delimiter. If requested, trim the spaces from tokens
   static std::vector<std::string> tokenize(const std::string& src, char delim, bool trimToken = true);
 

@@ -148,7 +148,7 @@ class CalDetMergerPublisherSpec : public o2::framework::Task
       w.setStartValidityTimestamp(timeStart);
       w.setEndValidityTimestamp(timeEnd);
 
-      LOG(INFO) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
+      LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
                 << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
 
       o2::header::DataHeader::SubSpecificationType subSpec{(o2::header::DataHeader::SubSpecificationType)type};
@@ -175,8 +175,8 @@ o2::framework::DataProcessorSpec o2::tpc::getCalDetMergerPublisherSpec(uint32_t 
 {
   std::vector<OutputSpec> outputs;
   if (!skipCCDB) {
-    outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "TPC_CALIB"});
-    outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "TPC_CALIB"});
+    outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "TPC_CALIB"}, Lifetime::Sporadic);
+    outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "TPC_CALIB"}, Lifetime::Sporadic);
   }
 
   std::vector<InputSpec> inputs;

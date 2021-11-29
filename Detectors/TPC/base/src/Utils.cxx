@@ -22,6 +22,7 @@
 #include "TH1.h"
 #include "TFile.h"
 #include "TChain.h"
+#include "TGrid.h"
 
 #include "Framework/Logger.h"
 #include "TPCBase/Mapper.h"
@@ -243,6 +244,9 @@ TChain* utils::buildChain(std::string_view command, std::string_view treeName, s
   for (const auto o : *arrFiles) {
     LOGP(info, "Adding file '{}'", o->GetName());
     c->AddFile(o->GetName());
+    if (std::string_view(o->GetName()).find("alien") == 0) {
+      TGrid::Connect("alien");
+    }
   }
 
   return c;

@@ -45,7 +45,7 @@ class DataSamplingConditionNConsecutive : public DataSamplingCondition
     mSamplesNumber = config.get<size_t>("samplesNumber");
     mCycleSize = config.get<size_t>("cycleSize");
     if (mSamplesNumber > mCycleSize) {
-      LOG(WARN) << "Consecutive number of samples is higher than cycle size.";
+      LOG(warn) << "Consecutive number of samples is higher than cycle size.";
     }
   };
   /// \brief Makes a positive decision if 'timeslice ID % cycleSize < samplesNumber' is true

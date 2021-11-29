@@ -14,6 +14,9 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+#include "DataFormatsTRD/Digit.h"
+#include "DataFormatsTRD/TriggerRecord.h"
+#include <SimulationDataFormat/IOMCTruthContainerView.h>
 
 #include "TFile.h"
 #include "TTree.h"
@@ -35,12 +38,18 @@ class TRDDigitReaderSpec : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) override;
 
  private:
+  void connectTree();
   bool mUseMC = false;
-  std::unique_ptr<TFile> mFile = nullptr;
+  std::unique_ptr<TFile> mFile;
+  std::unique_ptr<TTree> mTreeDigits;
+  std::string mFileName = "trddigits.root";
   std::string mDigitTreeName = "o2sim";
   std::string mDigitBranchName = "TRDDigit";
   std::string mTriggerRecordBranchName = "TriggerRecord";
   std::string mMCLabelsBranchName = "TRDMCLabels";
+  std::vector<o2::trd::Digit> mDigits, *mDigitsPtr = &mDigits;
+  std::vector<o2::trd::TriggerRecord> mTriggerRecords, *mTriggerRecordsPtr = &mTriggerRecords;
+  o2::dataformats::IOMCTruthContainerView* mLabels = nullptr;
 };
 
 o2::framework::DataProcessorSpec getTRDDigitReaderSpec(bool useMC);

@@ -335,9 +335,9 @@ FairLogger.
 #include "Framework/Logger.h"
 ...
 
-LOG(INFO) << "some message";      // streamer based API
-LOGF(INFO, "%s", "some message"); // printf based API
-LOGP(INFO, "{}", "some message"); // python / fmt based API
+LOG(info) << "some message";      // streamer based API
+LOGF(info, "%s", "some message"); // printf based API
+LOGP(info, "{}", "some message"); // python / fmt based API
 O2INFO("{}", "some message);      // same but with less typing.
 ```
 
@@ -451,24 +451,27 @@ By default the Input and Outputs are matched solely by the signature of the data
 
 At the moment the configuration of a topology is done by compiling a declarative description of the computation done in C++, and by running the resulting executable. This is however an implementation detail and the datamodel for the configuration description is meant to be agnostic from the language. We foresee both using interpreted configurations (e.g. via ROOT / cling) or configurations done through another language (e.g. go, javascript).
 
-# Current Demonstrator
+# Folder Organization
 
-A demonstrator illustrating a possible implementation of the design described above is now found in the dev branch of AliceO2, in the Framework folder.
+DPL related classes are fully contained in the `Framework` folder of [O2](https://github.com/AliceO2Group/AliceO2/).
 
 In particular:
 
-- `Framework/Core` folder contains the `DataProcessorSpec` class and related.
-- `Framework/Core/test` folder contains a few unit test and simple example workflows.
-- `Framework/TestWorkflows` folder contains a few example workflows.
-- `Framework/DebugGUI` folder contains the core GUI functionalities.
-- `Framework/Utils` folder contains utilities and helpers for the creation of workflows.
+- `Framework/Core` contains the main classes associated to DPL and the implementation of the DataProcessingDevice and the Driver.
+- `Framework/Core/test` contains a few unit test and simple example workflows.
+- `Framework/TestWorkflows` contains a few example workflows.
+- `Framework/GUISupport` contains the core GUI functionalities.
+- `Framework/AnalysisSupport` contains some Analysis Framework specific components.
+- `Framework/Foundation` contains some header only utility classes, in particular for what concerns cross platform compatibility. 
+- `Framework/Utils` contains utilities and helpers for the creation of workflows and in particular to interface with the rest of non-DPL utilities.
 
-There is also a few demonstrator available in particular:
+# Nomenclature:
 
-  - https://github.com/AliceO2Group/AliceO2/tree/dev/Detectors/TPC/workflow demonstrates the usage of DPL for TPC clusterisation and track reconstruction.
-  - https://github.com/AliceO2Group/AliceO2/blob/dev/Framework/TestWorkflows/src/o2SyncReconstructionDummy.cxx provides a skeleton for the synchronous reconstruction.
-  - https://github.com/AliceO2Group/AliceO2/tree/dev/Steer/DigitizerWorkflow provides a workflow than can do TPC digitisation.
+A class ending in `Spec` represents a Specification, i.e. a description how a given entity behaves. E.g. InputSpec is a specification for one of the Inputs.
 
+A class ending in `Info` represents runtime Information regarding an entity. E.g. `DeviceInfo` represent runtime information about a Device. 
+
+A class ending in `Context` holds the state of a given phase. E.g. `InitContext` holds the state in which the Init callback happens.
 
 ## Interesting reads
 

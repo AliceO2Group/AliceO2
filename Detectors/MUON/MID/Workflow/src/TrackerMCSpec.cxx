@@ -48,8 +48,8 @@ class TrackerMCDeviceDPL
 
     mTracker = std::make_unique<Tracker>(createTransformationFromManager(gGeoManager));
 
-    if (!mTracker->init()) {
-      LOG(ERROR) << "Initialization of MID tracker device failed";
+    if (!mTracker->init(true)) {
+      LOG(error) << "Initialization of MID tracker device failed";
     }
   }
 
@@ -67,19 +67,19 @@ class TrackerMCDeviceDPL
     mTrackLabeler.process(mTracker->getClusters(), mTracker->getTracks(), *labels);
 
     pc.outputs().snapshot(of::Output{"MID", "TRACKS", 0, of::Lifetime::Timeframe}, mTracker->getTracks());
-    LOG(DEBUG) << "Sent " << mTracker->getTracks().size() << " tracks.";
+    LOG(debug) << "Sent " << mTracker->getTracks().size() << " tracks.";
     pc.outputs().snapshot(of::Output{"MID", "TRACKCLUSTERS", 0, of::Lifetime::Timeframe}, mTracker->getClusters());
-    LOG(DEBUG) << "Sent " << mTracker->getClusters().size() << " track clusters.";
+    LOG(debug) << "Sent " << mTracker->getClusters().size() << " track clusters.";
 
     pc.outputs().snapshot(of::Output{"MID", "TRACKROFS", 0, of::Lifetime::Timeframe}, mTracker->getTrackROFRecords());
-    LOG(DEBUG) << "Sent " << mTracker->getTrackROFRecords().size() << " ROFs.";
+    LOG(debug) << "Sent " << mTracker->getTrackROFRecords().size() << " ROFs.";
     pc.outputs().snapshot(of::Output{"MID", "TRCLUSROFS", 0, of::Lifetime::Timeframe}, mTracker->getClusterROFRecords());
-    LOG(DEBUG) << "Sent " << mTracker->getClusterROFRecords().size() << " ROFs.";
+    LOG(debug) << "Sent " << mTracker->getClusterROFRecords().size() << " ROFs.";
 
     pc.outputs().snapshot(of::Output{"MID", "TRACKLABELS", 0, of::Lifetime::Timeframe}, mTrackLabeler.getTracksLabels());
-    LOG(DEBUG) << "Sent " << mTrackLabeler.getTracksLabels().getIndexedSize() << " indexed tracks.";
+    LOG(debug) << "Sent " << mTrackLabeler.getTracksLabels().getIndexedSize() << " indexed tracks.";
     pc.outputs().snapshot(of::Output{"MID", "TRCLUSLABELS", 0, of::Lifetime::Timeframe}, mTrackLabeler.getTrackClustersLabels());
-    LOG(DEBUG) << "Sent " << mTrackLabeler.getTrackClustersLabels().getIndexedSize() << " indexed track clusters.";
+    LOG(debug) << "Sent " << mTrackLabeler.getTrackClustersLabels().getIndexedSize() << " indexed track clusters.";
   }
 
  private:

@@ -8,6 +8,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include <boost/test/tools/old/interface.hpp>
 #define BOOST_TEST_MODULE Test Framework WorkflowHelpers
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
@@ -18,6 +19,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/SimpleOptionsRetriever.h"
+#include "Framework/LifetimeHelpers.h"
 #include "../src/WorkflowHelpers.h"
 #include <boost/test/unit_test.hpp>
 #include <boost/test/tools/detail/per_element_manip.hpp>
@@ -207,6 +209,7 @@ BOOST_AUTO_TEST_CASE(TestSimpleConnection)
   std::vector<InputSpec> expectedInputs = {InputSpec{"y", "TST", "A"}};
   std::vector<OutputSpec> expectedOutputs = {
     OutputSpec{"TST", "A"},
+    OutputSpec{"DPL", "SUMMARY", compile_time_hash("A"), Lifetime::Timeframe},
     OutputSpec{"DPL", "ENUM", 0, Lifetime::Enumeration}};
   WorkflowSpec workflow{
     {"A",
@@ -221,23 +224,30 @@ BOOST_AUTO_TEST_CASE(TestSimpleConnection)
   BOOST_REQUIRE(result == WorkflowParsingState::Valid);
   auto context = makeEmptyConfigContext();
   WorkflowHelpers::injectServiceDevices(workflow, *context);
-  BOOST_CHECK_EQUAL(workflow.size(), 3);
+  // The fourth one is the dummy sink for the
+  // timeframe reporting messages
+  BOOST_CHECK_EQUAL(workflow.size(), 4);
   WorkflowHelpers::constructGraph(workflow, logicalEdges,
                                   outputs,
                                   availableForwardsInfo);
   std::vector<DeviceConnectionEdge> expectedEdges{
-    {2, 0, 0, 0, 1, 0, false, ConnectionKind::Out},
+    {2, 0, 0, 0, 2, 0, false, ConnectionKind::Out},
     {0, 1, 0, 0, 0, 0, false, ConnectionKind::Out},
+    {1, 3, 0, 1, 1, 0, false, ConnectionKind::Out},
   };
   BOOST_REQUIRE_EQUAL(expectedOutputs.size(), outputs.size());
   for (size_t oi = 0, oe = expectedOutputs.size(); oi != oe; ++oi) {
-    BOOST_CHECK(expectedOutputs[oi].lifetime == outputs[oi].lifetime);
+    BOOST_TEST_INFO("With parameter oi = " << oi);
+    BOOST_CHECK_EQUAL(expectedOutputs[oi].lifetime, outputs[oi].lifetime);
   }
   BOOST_REQUIRE_EQUAL(expectedEdges.size(), logicalEdges.size());
   for (size_t ei = 0, ee = expectedEdges.size(); ei != ee; ++ei) {
-    BOOST_CHECK_EQUAL(expectedEdges[ei].consumer, logicalEdges[ei].consumer);
-    BOOST_CHECK_EQUAL(expectedEdges[ei].producer, logicalEdges[ei].producer);
-    BOOST_CHECK_EQUAL(expectedEdges[ei].outputGlobalIndex, logicalEdges[ei].outputGlobalIndex);
+    BOOST_TEST_CONTEXT("With parameter ei = " << ei)
+    {
+      BOOST_CHECK_EQUAL(expectedEdges[ei].consumer, logicalEdges[ei].consumer);
+      BOOST_CHECK_EQUAL(expectedEdges[ei].producer, logicalEdges[ei].producer);
+      BOOST_CHECK_EQUAL(expectedEdges[ei].outputGlobalIndex, logicalEdges[ei].outputGlobalIndex);
+    }
   }
 }
 
@@ -250,7 +260,12 @@ BOOST_AUTO_TEST_CASE(TestSimpleConnection)
 BOOST_AUTO_TEST_CASE(TestSimpleForward)
 {
   std::vector<InputSpec> expectedInputs = {InputSpec{"y", "TST", "A"}};
-  std::vector<OutputSpec> expectedOutputs = {OutputSpec{"TST", "A"}, OutputSpec{"DPL", "TIMER", 0, Lifetime::Timer}};
+  std::vector<OutputSpec> expectedOutputs = {
+    OutputSpec{"TST", "A"},
+    OutputSpec{"DPL", "SUMMARY", compile_time_hash("B"), Lifetime::Timeframe},
+    OutputSpec{"DPL", "SUMMARY", compile_time_hash("C"), Lifetime::Timeframe},
+    OutputSpec{"DPL", "SUMMARY", compile_time_hash("D"), Lifetime::Timeframe},
+    OutputSpec{"DPL", "TIMER", 0, Lifetime::Timer}};
   WorkflowSpec workflow{
     {"A", {}, Outputs{expectedOutputs[0]}},
     {"B", {expectedInputs[0]}},
@@ -267,18 +282,25 @@ BOOST_AUTO_TEST_CASE(TestSimpleForward)
                                   availableForwardsInfo);
 
   std::vector<DeviceConnectionEdge> expectedEdges{
-    {4, 0, 0, 0, 1, 0, false, ConnectionKind::Out},
+    {4, 0, 0, 0, 4, 0, false, ConnectionKind::Out},
     {0, 1, 0, 0, 0, 0, false, ConnectionKind::Out},
     {1, 2, 0, 0, 0, 0, true, ConnectionKind::Out},
     {2, 3, 0, 0, 0, 0, true, ConnectionKind::Out},
+
+    {1, 5, 0, 0, 1, 0, true, ConnectionKind::Out},
+    {2, 5, 0, 0, 2, 1, true, ConnectionKind::Out},
+    {3, 5, 0, 0, 3, 2, true, ConnectionKind::Out},
   };
   BOOST_REQUIRE_EQUAL(expectedOutputs.size(), outputs.size());
   BOOST_REQUIRE_EQUAL(expectedEdges.size(), logicalEdges.size());
   for (size_t ei = 0, ee = expectedEdges.size(); ei != ee; ++ei) {
-    BOOST_CHECK_EQUAL(expectedEdges[ei].consumer, logicalEdges[ei].consumer);
-    BOOST_CHECK_EQUAL(expectedEdges[ei].producer, logicalEdges[ei].producer);
-    BOOST_CHECK_EQUAL(expectedEdges[ei].outputGlobalIndex, logicalEdges[ei].outputGlobalIndex);
-    BOOST_CHECK_EQUAL(expectedEdges[ei].consumerInputIndex, logicalEdges[ei].consumerInputIndex);
+    BOOST_TEST_CONTEXT("with ei: " << ei)
+    {
+      BOOST_CHECK_EQUAL(expectedEdges[ei].consumer, logicalEdges[ei].consumer);
+      BOOST_CHECK_EQUAL(expectedEdges[ei].producer, logicalEdges[ei].producer);
+      BOOST_CHECK_EQUAL(expectedEdges[ei].outputGlobalIndex, logicalEdges[ei].outputGlobalIndex);
+      BOOST_CHECK_EQUAL(expectedEdges[ei].consumerInputIndex, logicalEdges[ei].consumerInputIndex);
+    }
   }
 }
 
@@ -298,7 +320,7 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
     timePipeline({"C", Inputs{InputSpec{"c", "TST", "B"}}}, 2)};
 
   std::vector<DeviceConnectionEdge> expected{
-    {3, 0, 0, 0, 2, 0, false, ConnectionKind::Out},
+    {3, 0, 0, 0, 3, 0, false, ConnectionKind::Out},
     {0, 1, 0, 0, 0, 0, false, ConnectionKind::Out},
     {0, 1, 1, 0, 0, 0, false, ConnectionKind::Out},
     {0, 1, 2, 0, 0, 0, false, ConnectionKind::Out},
@@ -307,7 +329,11 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
     {1, 2, 0, 2, 1, 0, false, ConnectionKind::Out},
     {1, 2, 1, 0, 1, 0, false, ConnectionKind::Out},
     {1, 2, 1, 1, 1, 0, false, ConnectionKind::Out},
-    {1, 2, 1, 2, 1, 0, false, ConnectionKind::Out}};
+    {1, 2, 1, 2, 1, 0, false, ConnectionKind::Out},
+
+    {2, 4, 0, 0, 2, 0, false, ConnectionKind::Out}, // DPL/SUMMARY routes
+    {2, 4, 0, 1, 2, 0, false, ConnectionKind::Out},
+  };
   std::list<LogicalOutputInfo> availableOutputsInfo;
   std::vector<DeviceConnectionEdge> logicalEdges;
   std::vector<LogicalForwardInfo> availableForwardsInfo;
@@ -325,32 +351,42 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
   std::vector<ConcreteDataMatcher> expectedMatchers = {
     ConcreteDataMatcher{"TST", "A", 0},
     ConcreteDataMatcher{"TST", "B", 0},
-    ConcreteDataMatcher{"DPL", "ENUM", compile_time_hash("A")}, // Enums value
+    ConcreteDataMatcher{"DPL", "SUMMARY", compile_time_hash("C")}, // Summary value
+    ConcreteDataMatcher{"DPL", "ENUM", compile_time_hash("A")},    // Enums value
   };
 
   std::vector<Lifetime> expectedLifetimes = {
     Lifetime::Timeframe,
     Lifetime::Timeframe,
-    Lifetime::Enumeration};
+    Lifetime::Timeframe,
+    Lifetime::Enumeration,
+  };
 
   BOOST_REQUIRE_EQUAL(expectedMatchers.size(), expectedLifetimes.size());
   BOOST_CHECK_EQUAL(outputs.size(), expectedMatchers.size()); // FIXME: Is this what we actually want? We need
                                                               // different matchers depending on the different timeframe ID.
 
   for (size_t i = 0; i < outputs.size(); ++i) {
-    auto concrete = DataSpecUtils::asConcreteDataMatcher(outputs[i]);
-    BOOST_CHECK_EQUAL(concrete.origin.as<std::string>(), expectedMatchers[i].origin.as<std::string>());
-    BOOST_CHECK_EQUAL(concrete.description.as<std::string>(), expectedMatchers[i].description.as<std::string>());
-    BOOST_CHECK_EQUAL(concrete.subSpec, expectedMatchers[i].subSpec);
-    BOOST_CHECK_EQUAL(static_cast<int>(outputs[i].lifetime), static_cast<int>(expectedLifetimes[i]));
+    BOOST_TEST_CONTEXT("with i: " << i)
+    {
+      auto concrete = DataSpecUtils::asConcreteDataMatcher(outputs[i]);
+      BOOST_CHECK_EQUAL(concrete.origin.as<std::string>(), expectedMatchers[i].origin.as<std::string>());
+      BOOST_CHECK_EQUAL(concrete.description.as<std::string>(), expectedMatchers[i].description.as<std::string>());
+      BOOST_CHECK_EQUAL(concrete.subSpec, expectedMatchers[i].subSpec);
+      BOOST_CHECK_EQUAL(outputs[i].lifetime, expectedLifetimes[i]);
+    }
   }
 
+  BOOST_REQUIRE_EQUAL(expected.size(), logicalEdges.size());
   for (size_t i = 0; i < logicalEdges.size(); ++i) {
-    BOOST_CHECK_EQUAL(logicalEdges[i].producer, expected[i].producer);
-    BOOST_CHECK_EQUAL(logicalEdges[i].consumer, expected[i].consumer);
-    BOOST_CHECK_EQUAL(logicalEdges[i].timeIndex, expected[i].timeIndex);
-    BOOST_CHECK_EQUAL(logicalEdges[i].producerTimeIndex, expected[i].producerTimeIndex);
-    BOOST_CHECK_EQUAL(logicalEdges[i].outputGlobalIndex, expected[i].outputGlobalIndex);
+    BOOST_TEST_CONTEXT("with i: " << i)
+    {
+      BOOST_CHECK_EQUAL(logicalEdges[i].producer, expected[i].producer);
+      BOOST_CHECK_EQUAL(logicalEdges[i].consumer, expected[i].consumer);
+      BOOST_CHECK_EQUAL(logicalEdges[i].timeIndex, expected[i].timeIndex);
+      BOOST_CHECK_EQUAL(logicalEdges[i].producerTimeIndex, expected[i].producerTimeIndex);
+      BOOST_CHECK_EQUAL(logicalEdges[i].outputGlobalIndex, expected[i].outputGlobalIndex);
+    }
   }
 
   std::vector<size_t> inIndex;
@@ -359,20 +395,16 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
   // Notice that zero is at the end because the first edge in the topological
   // sort is the timer and that gets added last.
   std::vector<size_t> expectedOutIndex{
-    1, 2, 3, 4, 7, 5, 8, 6, 9, 0};
+    1, 2, 3, 4, 7, 5, 8, 6, 9, 10, 11, 0};
 
   std::vector<size_t> expectedInIndex{
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
 
-  BOOST_CHECK_EQUAL(expectedOutIndex.size(), outIndex.size());
-  BOOST_CHECK_EQUAL(expectedInIndex.size(), inIndex.size());
+  BOOST_CHECK_EQUAL_COLLECTIONS(expectedOutIndex.begin(), expectedOutIndex.end(),
+                                outIndex.begin(), outIndex.end());
+  BOOST_CHECK_EQUAL_COLLECTIONS(expectedInIndex.begin(), expectedInIndex.end(),
+                                inIndex.begin(), inIndex.end());
 
-  for (size_t i = 0; i < outIndex.size(); ++i) {
-    BOOST_CHECK_EQUAL(expectedOutIndex[i], outIndex[i]);
-  }
-  for (size_t i = 0; i < inIndex.size(); ++i) {
-    BOOST_CHECK_EQUAL(expectedInIndex[i], inIndex[i]);
-  }
   auto actions = WorkflowHelpers::computeOutEdgeActions(logicalEdges,
                                                         outIndex);
 
@@ -387,6 +419,8 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
     EdgeAction{false, true},
     EdgeAction{false, true},
     EdgeAction{false, true},
+    EdgeAction{true, true},
+    EdgeAction{true, true},
   };
 
   BOOST_REQUIRE_EQUAL(expectedActionsOut.size(), actions.size());
@@ -405,6 +439,8 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
     EdgeAction{false, true},
     EdgeAction{true, true},
     EdgeAction{false, true},
+    EdgeAction{false, true},
+    EdgeAction{true, true},
     EdgeAction{false, true},
   };
   auto inActions = WorkflowHelpers::computeInEdgeActions(logicalEdges,
@@ -513,7 +549,11 @@ BOOST_AUTO_TEST_CASE(TEST_SELECT)
 BOOST_AUTO_TEST_CASE(TestOriginWildcard)
 {
   std::vector<InputSpec> expectedInputs = {InputSpec{"x", DataSpecUtils::dataDescriptorMatcherFrom(o2::header::DataOrigin{"A"})}};
-  std::vector<OutputSpec> expectedOutputs = {OutputSpec{"A", "1"}, OutputSpec{"A", "2"}, OutputSpec{"DPL", "TIMER", 0, Lifetime::Timer}};
+  std::vector<OutputSpec> expectedOutputs = {
+    OutputSpec{"A", "1"},
+    OutputSpec{"A", "2"},
+    OutputSpec{"DPL", "TIMER", 0, Lifetime::Timer},
+    OutputSpec{"DPL", "SUMMARY", compile_time_hash("B"), Lifetime::Timeframe}};
   WorkflowSpec workflow{
     {"A", {}, {expectedOutputs[0], expectedOutputs[1]}},
     {"B", expectedInputs, {}},
@@ -525,12 +565,13 @@ BOOST_AUTO_TEST_CASE(TestOriginWildcard)
   BOOST_REQUIRE(WorkflowHelpers::verifyWorkflow(workflow) == WorkflowParsingState::Valid);
   auto context = makeEmptyConfigContext();
   WorkflowHelpers::injectServiceDevices(workflow, *context);
-  BOOST_CHECK_EQUAL(workflow.size(), 3);
-  BOOST_REQUIRE(workflow.size() >= 3);
+  BOOST_CHECK_EQUAL(workflow.size(), 4);
+  BOOST_REQUIRE(workflow.size() >= 4);
   BOOST_CHECK_EQUAL(workflow[0].name, "A");
   BOOST_CHECK_EQUAL(workflow[1].name, "B");
   BOOST_CHECK_EQUAL(workflow[2].name, "internal-dpl-clock");
-  for (size_t wi = 3; wi < workflow.size(); ++wi) {
+  BOOST_CHECK_EQUAL(workflow[3].name, "internal-dpl-injected-dummy-sink");
+  for (size_t wi = 4; wi < workflow.size(); ++wi) {
     BOOST_CHECK_EQUAL(workflow[wi].name, "");
   }
   WorkflowHelpers::constructGraph(workflow, logicalEdges,
@@ -538,16 +579,19 @@ BOOST_AUTO_TEST_CASE(TestOriginWildcard)
                                   availableForwardsInfo);
 
   std::vector<DeviceConnectionEdge> expectedEdges{
-    {2, 0, 0, 0, 2, 0, false, ConnectionKind::Out},
+    {2, 0, 0, 0, 3, 0, false, ConnectionKind::Out},
     {0, 1, 0, 0, 0, 0, false, ConnectionKind::Out},
     {0, 1, 0, 0, 1, 0, false, ConnectionKind::Out},
+    {1, 3, 0, 0, 2, 0, false, ConnectionKind::Out},
   };
 
-  std::vector<size_t> expectedOutEdgeIndex = {1, 2, 0};
+  std::vector<size_t> expectedOutEdgeIndex = {1, 2, 3, 0};
+  std::vector<size_t> expectedInEdgeIndex = {0, 1, 2, 3};
   std::vector<EdgeAction> expectedActions = {
-    {true, true},  // to go from timer to A (new channel and new device)
-    {true, true},  // to go from A/1 to B (new channel and new device)
-    {false, false} // to go from A/2 to B (device is the same as A/1, device is the same as B?)
+    {true, true},   // to go from timer to A (new channel and new device)
+    {true, true},   // to go from A/1 to B (new channel and new device)
+    {false, false}, // to go from A/2 to B (device is the same as A/1, device is the same as B?)
+    {true, true}    // to go from B to sink
   };
 
   // Not sure I understand...
@@ -555,31 +599,38 @@ BOOST_AUTO_TEST_CASE(TestOriginWildcard)
     {true, true},
     {true, true},
     {false, false},
+    {true, true} // to go from B to sink
   };
 
   BOOST_REQUIRE_EQUAL(expectedOutputs.size(), outputs.size());
   BOOST_REQUIRE_EQUAL(expectedEdges.size(), logicalEdges.size());
   for (size_t ei = 0, ee = expectedEdges.size(); ei != ee; ++ei) {
-    BOOST_CHECK_EQUAL(expectedEdges[ei].consumer, logicalEdges[ei].consumer);
-    BOOST_CHECK_EQUAL(expectedEdges[ei].producer, logicalEdges[ei].producer);
-    BOOST_CHECK_EQUAL(expectedEdges[ei].outputGlobalIndex, logicalEdges[ei].outputGlobalIndex);
-    BOOST_CHECK_EQUAL(expectedEdges[ei].consumerInputIndex, logicalEdges[ei].consumerInputIndex);
+    BOOST_TEST_CONTEXT("ei : " << ei)
+    {
+      BOOST_CHECK_EQUAL(expectedEdges[ei].consumer, logicalEdges[ei].consumer);
+      BOOST_CHECK_EQUAL(expectedEdges[ei].producer, logicalEdges[ei].producer);
+      BOOST_CHECK_EQUAL(expectedEdges[ei].outputGlobalIndex, logicalEdges[ei].outputGlobalIndex);
+      BOOST_CHECK_EQUAL(expectedEdges[ei].consumerInputIndex, logicalEdges[ei].consumerInputIndex);
+    }
   }
 
   std::vector<size_t> inEdgeIndex;
   std::vector<size_t> outEdgeIndex;
   WorkflowHelpers::sortEdges(inEdgeIndex, outEdgeIndex, logicalEdges);
-  BOOST_REQUIRE_EQUAL(inEdgeIndex.size(), 3);
-  BOOST_REQUIRE_EQUAL(outEdgeIndex.size(), 3);
-  for (size_t ei = 0; ei < outEdgeIndex.size(); ++ei) {
-    BOOST_CHECK_EQUAL(outEdgeIndex[ei], expectedOutEdgeIndex[ei]);
-  }
+  BOOST_CHECK_EQUAL_COLLECTIONS(outEdgeIndex.begin(), outEdgeIndex.end(),
+                                expectedOutEdgeIndex.begin(), expectedOutEdgeIndex.end());
+  BOOST_CHECK_EQUAL_COLLECTIONS(inEdgeIndex.begin(), inEdgeIndex.end(),
+                                expectedInEdgeIndex.begin(), expectedInEdgeIndex.end());
+  BOOST_REQUIRE_EQUAL(inEdgeIndex.size(), 4);
 
   std::vector<EdgeAction> outActions = WorkflowHelpers::computeOutEdgeActions(logicalEdges, outEdgeIndex);
   BOOST_REQUIRE_EQUAL(outActions.size(), expectedActions.size());
   for (size_t ai = 0; ai < outActions.size(); ++ai) {
-    BOOST_CHECK_EQUAL(outActions[ai].requiresNewDevice, expectedActions[ai].requiresNewDevice);
-    BOOST_CHECK_EQUAL(outActions[ai].requiresNewChannel, expectedActions[ai].requiresNewChannel);
+    BOOST_TEST_CONTEXT("ai : " << ai)
+    {
+      BOOST_CHECK_EQUAL(outActions[ai].requiresNewDevice, expectedActions[ai].requiresNewDevice);
+      BOOST_CHECK_EQUAL(outActions[ai].requiresNewChannel, expectedActions[ai].requiresNewChannel);
+    }
   }
 
   // Crete the connections on the inverse map for all of them
@@ -587,7 +638,10 @@ BOOST_AUTO_TEST_CASE(TestOriginWildcard)
   std::vector<EdgeAction> inActions = WorkflowHelpers::computeInEdgeActions(logicalEdges, inEdgeIndex);
   BOOST_REQUIRE_EQUAL(inActions.size(), expectedInActions.size());
   for (size_t ai = 0; ai < inActions.size(); ++ai) {
-    BOOST_CHECK_EQUAL(inActions[ai].requiresNewDevice, expectedInActions[ai].requiresNewDevice);
-    BOOST_CHECK_EQUAL(inActions[ai].requiresNewChannel, expectedInActions[ai].requiresNewChannel);
+    BOOST_TEST_CONTEXT("ai : " << ai)
+    {
+      BOOST_CHECK_EQUAL(inActions[ai].requiresNewDevice, expectedInActions[ai].requiresNewDevice);
+      BOOST_CHECK_EQUAL(inActions[ai].requiresNewChannel, expectedInActions[ai].requiresNewChannel);
+    }
   }
 }

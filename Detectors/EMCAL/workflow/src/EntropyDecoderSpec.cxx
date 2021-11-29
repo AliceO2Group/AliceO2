@@ -50,16 +50,17 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto& cells = pc.outputs().make<std::vector<Cell>>(OutputRef{"cells"});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
-  const auto ctfImage = o2::emcal::CTF::getImage(buff.data());
-  mCTFCoder.decode(ctfImage, triggers, cells);
-
+  if (buff.size()) {
+    const auto ctfImage = o2::emcal::CTF::getImage(buff.data());
+    mCTFCoder.decode(ctfImage, triggers, cells);
+  }
   mTimer.Stop();
-  LOG(INFO) << "Decoded " << cells.size() << " EMCAL cells in " << triggers.size() << " triggers in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Decoded " << cells.size() << " EMCAL cells in " << triggers.size() << " triggers in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "EMCAL Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "EMCAL Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

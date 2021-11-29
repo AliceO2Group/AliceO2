@@ -44,14 +44,14 @@ inline void TrackletsParser::swapByteOrder(unsigned int& ui)
 int TrackletsParser::Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data,
                            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start,
                            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end,
-                           TRDFeeID feeid, int robside, int detector, int stack, int layer,
+                           TRDFeeID feeid, int halfchamberside, int detector, int stack, int layer,
                            EventRecord* eventrecord, EventStorage* eventrecords, std::bitset<16> options, bool cleardigits, int usetracklethcheader)
 {
   mStartParse = start;
   mEndParse = end;
   mDetector = detector;
   mFEEID = feeid;
-  mRobSide = robside;
+  mHalfChamberSide = halfchamberside;
   mStack = stack;
   mLayer = layer;
   mOptions = options;
@@ -183,6 +183,12 @@ int TrackletsParser::Parse()
         incParsingError(TRDParsingTrackletBit11NotSetInTrackletHCHeader);
         continue; //go back to the start of loop, walk the data till the above code of the tracklet end marker is hit, padding is hit or we get to the end of the data.
       }
+      //fix to missing bit on supermodule 16 and 17, to set the uniquely identifying bit.
+      if (mState == StateTrackletHCHeader) {
+        if ((mFEEID.supermodule > 15) && mOptions[TRDFixSM1617Bit] && mTrackletHCHeaderState == 2) {
+          *word |= 1 << 11; //flip bit eleven for the tracklethcheader for the last 2 supermodules (bug/misconfiguration/broken/other) not sure why its like this yet, but it is.
+        }
+      }
       //now for Tracklet hc header
       if ((((*word) & (0x1 << 11)) != 0) && !mIgnoreTrackletHCHeader && mState == StateTrackletHCHeader) { //TrackletHCHeader has bit 11 set to 1 always. Check for state because raw data can have bit 11 set!
         if (mState != StateTrackletHCHeader) {
@@ -278,12 +284,12 @@ int TrackletsParser::Parse()
             int col = mTrackletMCMHeader->col;
             int pos = mTrackletMCMData->pos;
             int slope = mTrackletMCMData->slope;
-            int hcid = mDetector * 2 + mRobSide;
-            if (mDataVerbose) {
+            int hcid = mDetector * 2 + mHalfChamberSide;
+            if (mHeaderVerbose) {
               if (mTrackletHCHeaderState) {
-                LOG(info) << "Tracklet HCID : " << hcid << " mDetector:" << mDetector << " robside:" << mRobSide << " " << mTrackletMCMHeader->padrow << ":" << mTrackletMCMHeader->col << " ---- " << mTrackletHCHeader->supermodule << ":" << mTrackletHCHeader->stack << ":" << mTrackletHCHeader->layer << ":" << mTrackletHCHeader->side << " rawhcheader : 0x" << std::hex << std::hex << mTrackletHCHeader->word;
+                LOG(info) << "Tracklet HCID : " << hcid << " mDetector:" << mDetector << " robside:" << mHalfChamberSide << " " << mTrackletMCMHeader->padrow << ":" << mTrackletMCMHeader->col << " ---- " << mTrackletHCHeader->supermodule << ":" << mTrackletHCHeader->stack << ":" << mTrackletHCHeader->layer << ":" << mTrackletHCHeader->side << " rawhcheader : 0x" << std::hex << std::hex << mTrackletHCHeader->word;
               } else {
-                LOG(info) << "Tracklet HCID : " << hcid << " mDetector:" << mDetector << " robside:" << mRobSide << " " << mTrackletMCMHeader->padrow << ":" << mTrackletMCMHeader->col;
+                LOG(info) << "Tracklet HCID : " << hcid << " mDetector:" << mDetector << " robside:" << mHalfChamberSide << " " << mTrackletMCMHeader->padrow << ":" << mTrackletMCMHeader->col;
               }
             }
             //TODO cross reference hcid to somewhere for a check. mDetector is assigned at the time of parser init.

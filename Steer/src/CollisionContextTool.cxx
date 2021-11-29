@@ -101,7 +101,7 @@ InteractionSpec parseInteractionSpec(std::string const& specifier, std::vector<I
       }
       collisionsavail = std::atoi(m[3].str().c_str());
     } else {
-      LOG(ERROR) << "Could not parse " << mctoken << " as MCNUMBERSTRING";
+      LOG(error) << "Could not parse " << mctoken << " as MCNUMBERSTRING";
       exit(1);
     }
   }
@@ -120,7 +120,7 @@ InteractionSpec parseInteractionSpec(std::string const& specifier, std::vector<I
         auto modevalue = std::atof(m[3].str().c_str());
 
         if (crossindex > existingPatterns.size()) {
-          LOG(ERROR) << "Reference to non-existent interaction spec";
+          LOG(error) << "Reference to non-existent interaction spec";
           exit(1);
         }
         synconto = std::pair<int, float>(crossindex, modevalue);
@@ -134,11 +134,11 @@ InteractionSpec parseInteractionSpec(std::string const& specifier, std::vector<I
         }
         return InteractionSpec{name, rate, synconto, lockMode, collisionsasked, collisionsavail, randomizeorder};
       } else {
-        LOG(ERROR) << "Could not parse " << interactionToken << " as INTERACTIONSTRING";
+        LOG(error) << "Could not parse " << interactionToken << " as INTERACTIONSTRING";
         exit(1);
       }
     } catch (std::regex_error e) {
-      LOG(ERROR) << "Exception during regular expression match " << e.what();
+      LOG(error) << "Exception during regular expression match " << e.what();
       exit(1);
     }
   } else {

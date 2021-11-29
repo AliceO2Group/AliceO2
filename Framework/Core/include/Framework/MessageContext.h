@@ -15,9 +15,11 @@
 #include "Framework/FairMQDeviceProxy.h"
 #include "Framework/RuntimeError.h"
 #include "Framework/TMessageSerializer.h"
+#include "Framework/DataProcessingHeader.h"
 #include "Framework/TypeTraits.h"
 
 #include "Headers/DataHeader.h"
+#include "Headers/Stack.h"
 #include "MemoryResources/MemoryResources.h"
 
 #include <fairmq/FairMQMessage.h>
@@ -112,6 +114,23 @@ class MessageContext
         return nullptr;
       }
       return o2::header::get<o2::header::DataHeader*>(mParts.At(0)->GetData());
+    }
+
+    o2::framework::DataProcessingHeader const* dataProcessingHeader()
+    {
+      if (empty() || mParts.At(0) == nullptr) {
+        return nullptr;
+      }
+      return o2::header::get<o2::framework::DataProcessingHeader*>(mParts.At(0)->GetData());
+    }
+
+    o2::header::Stack const* headerStack()
+    {
+      // we would expect this function to be const but the FairMQParts API does not allow this
+      if (empty() || mParts.At(0) == nullptr) {
+        return nullptr;
+      }
+      return o2::header::get<o2::header::DataHeader*>(mParts.At(0)->GetData()) ? reinterpret_cast<o2::header::Stack*>(mParts.At(0)->GetData()) : nullptr;
     }
 
    protected:
@@ -539,9 +558,11 @@ class MessageContext
   FairMQMessagePtr createMessage(const std::string& channel, int index, size_t size);
   FairMQMessagePtr createMessage(const std::string& channel, int index, void* data, size_t size, fairmq_free_fn* ffn, void* hint);
 
-  /// return the header of the 1st (from the end) matching message checking first in
-  /// mMessages then in mScheduledMessages
+  /// return the headers of the 1st (from the end) matching message checking first in mMessages then in mScheduledMessages
   o2::header::DataHeader* findMessageHeader(const Output& spec);
+  o2::header::Stack* findMessageHeaderStack(const Output& spec);
+  o2::framework::DataProcessingHeader* findMessageDataProcessingHeader(const Output& spec);
+  std::pair<o2::header::DataHeader*, o2::framework::DataProcessingHeader*> findMessageHeaders(const Output& spec);
 
  private:
   FairMQDeviceProxy mProxy;

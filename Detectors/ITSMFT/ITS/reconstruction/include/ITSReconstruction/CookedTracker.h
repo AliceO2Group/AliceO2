@@ -63,7 +63,7 @@ class CookedTracker
   void setConfigParams()
   {
     const auto& par = CookedConfigParam::Instance();
-    LOG(INFO) << " Setting configurable parameters...";
+    LOG(info) << " Setting configurable parameters...";
 
     gzWin = par.zWin;
     gminPt = par.minPt;

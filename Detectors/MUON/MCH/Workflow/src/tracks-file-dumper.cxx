@@ -12,7 +12,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
-#include "DataFormatsMCH/ClusterBlock.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "MCHBase/TrackBlock.h"
 #include "TrackAtVtxStruct.h"
 #include "TrackTreeReader.h"
@@ -28,7 +28,7 @@
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
 
-using o2::mch::ClusterStruct;
+using o2::mch::Cluster;
 using o2::mch::ROFRecord;
 using o2::mch::TrackAtVtxStruct;
 using o2::mch::TrackMCH;
@@ -103,7 +103,7 @@ int dumpBinary(std::string inputFile)
                              nofTracks, nofTracksAtVertex, nofAttachedClusters);
     std::vector<TrackAtVtxStruct> tracksAtVertex;
     std::vector<TrackMCH> tracks;
-    std::vector<ClusterStruct> clusters;
+    std::vector<Cluster> clusters;
     // read the tracks, tracks at vertex and clusters (mind the reverse order of tracks
     // compared to the numbers above)
     if (!readBinaryStruct<TrackAtVtxStruct>(in, nofTracksAtVertex, tracksAtVertex, "TracksAtVertex")) {
@@ -112,7 +112,7 @@ int dumpBinary(std::string inputFile)
     if (!readBinaryStruct<TrackMCH>(in, nofTracks, tracks, "Tracks")) {
       return -1;
     }
-    if (!readBinaryStruct<ClusterStruct>(in, nofAttachedClusters, clusters, "AttachedClusters")) {
+    if (!readBinaryStruct<Cluster>(in, nofAttachedClusters, clusters, "AttachedClusters")) {
       return -1;
     }
 
@@ -130,7 +130,7 @@ int dumpRoot(std::string inputFile)
 
   ROFRecord rof;
   std::vector<TrackMCH> tracks;
-  std::vector<ClusterStruct> clusters;
+  std::vector<Cluster> clusters;
   std::vector<o2::MCCompLabel> labels;
 
   while (tr.next(rof, tracks, clusters, labels)) {

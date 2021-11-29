@@ -24,7 +24,10 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::parameters::GRPObject + ;
-#pragma link C++ class o2::parameters::LHCIFData + ;
+#pragma link C++ class o2::parameters::GRPLHCIFData + ;
 #pragma link C++ class std::pair < long, std::string> + ;
+#pragma link C++ class o2::parameters::GRPECSObject + ;
+#pragma link C++ class o2::parameters::GRPMagField + ;
+#pragma link C++ class std::unordered_map < unsigned int, unsigned int> + ;
 
 #endif

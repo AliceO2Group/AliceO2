@@ -38,8 +38,8 @@ GeneratorPythia8::GeneratorPythia8() : Generator("ALICEo2", "ALICEo2 Pythia8 Gen
   mInterfaceName = "pythia8";
 
   auto& param = GeneratorPythia8Param::Instance();
-  LOG(INFO) << "Instance \'Pythia8\' generator with following parameters";
-  LOG(INFO) << param;
+  LOG(info) << "Instance \'Pythia8\' generator with following parameters";
+  LOG(info) << param;
 
   setConfig(param.config);
   setHooksFileName(param.hooksFileName);
@@ -71,9 +71,9 @@ Bool_t GeneratorPythia8::Init()
     std::string config;
     while (getline(ss, config, ' ')) {
       config = gSystem->ExpandPathName(config.c_str());
-      LOG(INFO) << "Reading configuration from file: " << config;
+      LOG(info) << "Reading configuration from file: " << config;
       if (!mPythia.readFile(config, true)) {
-        LOG(FATAL) << "Failed to init \'Pythia8\': problems with configuration file "
+        LOG(fatal) << "Failed to init \'Pythia8\': problems with configuration file "
                    << config;
         return false;
       }
@@ -82,10 +82,10 @@ Bool_t GeneratorPythia8::Init()
 
   /** user hooks via configuration macro **/
   if (!mHooksFileName.empty()) {
-    LOG(INFO) << "Applying \'Pythia8\' user hooks: " << mHooksFileName << " -> " << mHooksFuncName;
+    LOG(info) << "Applying \'Pythia8\' user hooks: " << mHooksFileName << " -> " << mHooksFuncName;
     auto hooks = o2::conf::GetFromMacro<Pythia8::UserHooks*>(mHooksFileName, mHooksFuncName, "Pythia8::UserHooks*", "pythia8_user_hooks");
     if (!hooks) {
-      LOG(FATAL) << "Failed to init \'Pythia8\': problem with user hooks configuration ";
+      LOG(fatal) << "Failed to init \'Pythia8\': problem with user hooks configuration ";
       return false;
     }
     setUserHooks(hooks);
@@ -105,7 +105,7 @@ Bool_t GeneratorPythia8::Init()
 
   /** initialise **/
   if (!mPythia.init()) {
-    LOG(FATAL) << "Failed to init \'Pythia8\': init returned with error";
+    LOG(fatal) << "Failed to init \'Pythia8\': init returned with error";
     return false;
   }
 
@@ -419,7 +419,7 @@ void GeneratorPythia8::getNremn(const Pythia8::Event& event, int& nProtonProj, i
   } // end of particle loop
 
   if (nNucRem > 2) {
-    LOG(WARNING) << " GeneratorPythia8: found more than two nuclear remnants (weird)";
+    LOG(warning) << " GeneratorPythia8: found more than two nuclear remnants (weird)";
   }
 }
 

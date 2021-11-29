@@ -26,7 +26,7 @@
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "DataFormatsTOF/CalibLHCphaseTOF.h"
 #include "DataFormatsTOF/CalibTimeSlewingParamTOF.h"
-#include "TOFCalibration/CalibTOFapi.h"
+#include "TOFBase/CalibTOFapi.h"
 #include "SimConfig/DigiParams.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
 
@@ -41,12 +41,11 @@ namespace tof
 class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
  public:
-  TOFDPLDigitizerTask(bool useCCDB) : mUseCCDB{useCCDB},
-                                      o2::base::BaseDPLDigitizer(o2::base::InitServices::FIELD | o2::base::InitServices::GEOM){};
+  TOFDPLDigitizerTask(bool useCCDB, std::string ccdb_url) : mUseCCDB{useCCDB}, mCCDBurl(ccdb_url), o2::base::BaseDPLDigitizer(o2::base::InitServices::FIELD | o2::base::InitServices::GEOM){};
 
   void initDigitizerTask(framework::InitContext& ic) override
   {
-    LOG(INFO) << "Initializing TOF digitization";
+    LOG(info) << "Initializing TOF digitization";
 
     mSimChains = std::move(std::make_unique<std::vector<TChain*>>());
 
@@ -59,10 +58,10 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     // init digitizer
     mDigitizer->init();
     const bool isContinuous = ic.options().get<int>("pileup");
-    LOG(INFO) << "CONTINUOUS " << isContinuous;
+    LOG(info) << "CONTINUOUS " << isContinuous;
     mDigitizer->setContinuous(isContinuous);
     mDigitizer->setMCTruthContainer(mLabels.get());
-    LOG(INFO) << "TOF initialization done";
+    LOG(info) << "TOF initialization done";
   }
 
   void run(framework::ProcessingContext& pc)
@@ -77,7 +76,7 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
     auto& timesview = context->getEventRecords();
-    LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
+    LOG(debug) << "GOT " << timesview.size() << " COLLISSION TIMES";
 
     context->initSimChains(o2::detectors::DetID::TOF, *mSimChains.get());
 
@@ -89,11 +88,12 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     TStopwatch timer;
     timer.Start();
 
-    LOG(INFO) << " CALLING TOF DIGITIZATION ";
+    LOG(info) << " CALLING TOF DIGITIZATION ";
     o2::dataformats::CalibLHCphaseTOF lhcPhaseObj;
     o2::dataformats::CalibTimeSlewingParamTOF channelCalibObj;
 
-    if (mUseCCDB) { // read calibration objects from ccdb
+    /* 
+   if (mUseCCDB) { // read calibration objects from ccdb
       // check LHC phase
       auto lhcPhase = pc.inputs().get<o2::dataformats::CalibLHCphaseTOF*>("tofccdbLHCphase");
       auto channelCalib = pc.inputs().get<o2::dataformats::CalibTimeSlewingParamTOF*>("tofccdbChannelCalib");
@@ -115,9 +115,17 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         channelCalibObj.setFractionUnderPeak(sector, channelInSector, 1);
       }
     }
+*/
 
     o2::tof::CalibTOFapi calibapi(long(0), &lhcPhaseObj, &channelCalibObj);
     mDigitizer->setCalibApi(&calibapi);
+
+    if (mUseCCDB) {
+      calibapi.setURL(mCCDBurl.c_str());
+      calibapi.setTimeStamp(0);
+      calibapi.readTimeSlewingParam();
+      calibapi.readDiagnosticFrequencies();
+    }
 
     static std::vector<o2::tof::HitType> hits;
 
@@ -137,7 +145,7 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         hits.clear();
         context->retrieveHits(*mSimChains.get(), "TOFHit", part.sourceID, part.entryID, &hits);
 
-        //        LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
+        //        LOG(info) << "For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
 
         // call actual digitization procedure
         mLabels->clear();
@@ -155,7 +163,7 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     std::vector<ReadoutWindowData>* readoutwindow = mDigitizer->getReadoutWindowData();
     std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* mcLabVecOfVec = mDigitizer->getMCTruthPerTimeFrame();
 
-    LOG(INFO) << "Post " << digitsVector->size() << " digits in " << readoutwindow->size() << " RO windows";
+    LOG(info) << "Post " << digitsVector->size() << " digits in " << readoutwindow->size() << " RO windows";
 
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, *digitsVector);
@@ -165,17 +173,17 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, *readoutwindow);
 
     // send empty pattern from digitizer (it may change in future)
-    static std::vector<uint32_t> patterns;
+    std::vector<uint8_t>& patterns = mDigitizer->getPatterns();
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe}, patterns);
 
     DigitHeader& digitH = mDigitizer->getDigitHeader();
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITHEADER", 0, Lifetime::Timeframe}, digitH);
 
-    LOG(INFO) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
+    LOG(info) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}, roMode);
 
     timer.Stop();
-    LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
+    LOG(info) << "Digitization took " << timer.CpuTime() << "s";
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().endOfStream();
@@ -189,9 +197,10 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   std::unique_ptr<std::vector<o2::tof::Digit>> mDigits;
   std::unique_ptr<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mLabels;
   bool mUseCCDB = false;
+  std::string mCCDBurl;
 };
 
-DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB, bool mctruth)
+DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB, bool mctruth, std::string ccdb_url)
 {
   // create the full data processor spec using
   //  a name identifier
@@ -200,10 +209,10 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB, bool mctruth)
   //  options that can be used for this processor (here: input file names where to take the hits)
   std::vector<InputSpec> inputs;
   inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
-  if (useCCDB) {
-    inputs.emplace_back("tofccdbLHCphase", o2::header::gDataOriginTOF, "LHCphase");
-    inputs.emplace_back("tofccdbChannelCalib", o2::header::gDataOriginTOF, "ChannelCalib");
-  }
+  //  if (useCCDB) {
+  //    inputs.emplace_back("tofccdbLHCphase", o2::header::gDataOriginTOF, "LHCphase");
+  //    inputs.emplace_back("tofccdbChannelCalib", o2::header::gDataOriginTOF, "ChannelCalib");
+  //  }
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITHEADER", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
@@ -217,7 +226,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB, bool mctruth)
     "TOFDigitizer",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TOFDPLDigitizerTask>(useCCDB)},
+    AlgorithmSpec{adaptFromTask<TOFDPLDigitizerTask>(useCCDB, ccdb_url)},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}
     // I can't use VariantType::Bool as it seems to have a problem
   };

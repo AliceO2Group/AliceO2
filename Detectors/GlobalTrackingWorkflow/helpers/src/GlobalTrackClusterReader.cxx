@@ -9,15 +9,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/ConfigParamSpec.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "Framework/CallbacksPolicy.h"
+#include "Framework/ConfigContext.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
 using namespace o2::dataformats;
+
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
@@ -27,9 +33,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"cluster-types", VariantType::String, std::string{GlobalTrackID::NONE}, {"comma-separated list of cluster sources to read"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable reading root files, essentially making this workflow void, but needed for compatibility"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
-
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
-
   std::swap(workflowOptions, options);
 }
 

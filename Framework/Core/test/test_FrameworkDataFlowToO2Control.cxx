@@ -130,7 +130,7 @@ defaults:
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
     {{ dpl_command }} | bcsadc/foo
-  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ dpl_command }} | bcsadc/foo"
+  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ len(extra_env_vars)>0 ? 'export ' + extra_env_vars + ' &&' : '' }} {{ dpl_command }} | bcsadc/foo"
 control:
   mode: "fairmq"
 wants:
@@ -192,6 +192,8 @@ command:
     - "'false'"
     - "--stacktrace-on-signal"
     - "'all'"
+    - "--timeframes-rate-limit"
+    - "'0'"
 )EXPECTED",
   R"EXPECTED(name: B
 defaults:
@@ -199,7 +201,7 @@ defaults:
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
     {{ dpl_command }} | foo
-  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ dpl_command }} | foo"
+  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ len(extra_env_vars)>0 ? 'export ' + extra_env_vars + ' &&' : '' }} {{ dpl_command }} | foo"
 control:
   mode: "fairmq"
 wants:
@@ -261,6 +263,8 @@ command:
     - "'false'"
     - "--stacktrace-on-signal"
     - "'all'"
+    - "--timeframes-rate-limit"
+    - "'0'"
 )EXPECTED",
   R"EXPECTED(name: C
 defaults:
@@ -268,7 +272,7 @@ defaults:
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
     {{ dpl_command }} | foo
-  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ dpl_command }} | foo"
+  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ len(extra_env_vars)>0 ? 'export ' + extra_env_vars + ' &&' : '' }} {{ dpl_command }} | foo"
 control:
   mode: "fairmq"
 wants:
@@ -330,6 +334,8 @@ command:
     - "'false'"
     - "--stacktrace-on-signal"
     - "'all'"
+    - "--timeframes-rate-limit"
+    - "'0'"
 )EXPECTED",
   R"EXPECTED(name: D
 defaults:
@@ -337,7 +343,7 @@ defaults:
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
     {{ dpl_command }} | foo
-  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ dpl_command }} | foo"
+  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ len(extra_env_vars)>0 ? 'export ' + extra_env_vars + ' &&' : '' }} {{ dpl_command }} | foo"
 control:
   mode: "fairmq"
 wants:
@@ -400,6 +406,8 @@ command:
     - "'false'"
     - "--stacktrace-on-signal"
     - "'all'"
+    - "--timeframes-rate-limit"
+    - "'0'"
     - "--a-param"
     - "'1'"
     - "--b-param"
@@ -453,10 +461,13 @@ BOOST_AUTO_TEST_CASE(TestO2ControlDump)
     auto& execution = executions[di];
     auto& expected = expectedTasks[di];
 
-    ss.str({});
-    ss.clear();
-    dumpTask(ss, devices[di], executions[di], devices[di].name, "");
-    BOOST_REQUIRE_EQUAL(strdiffchr(ss.str().data(), expected), strdiffchr(expected, ss.str().data()));
-    BOOST_CHECK_EQUAL(ss.str(), expected);
+    BOOST_TEST_CONTEXT("Device " << spec.name)
+    {
+      ss.str({});
+      ss.clear();
+      dumpTask(ss, devices[di], executions[di], devices[di].name, "");
+      BOOST_REQUIRE_EQUAL(strdiffchr(ss.str().data(), expected), strdiffchr(expected, ss.str().data()));
+      BOOST_CHECK_EQUAL(ss.str(), expected);
+    }
   }
 }

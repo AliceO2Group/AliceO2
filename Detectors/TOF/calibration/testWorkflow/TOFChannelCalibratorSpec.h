@@ -44,7 +44,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
   using LHCphase = o2::dataformats::CalibLHCphaseTOF;
 
  public:
-  explicit TOFChannelCalibDevice(bool useCCDB, bool attachChannelOffsetToLHCphase, bool isCosmics, bool perstrip = false) : mUseCCDB(useCCDB), mAttachToLHCphase(attachChannelOffsetToLHCphase), mCosmics(isCosmics), mDoPerStrip(perstrip) {}
+  explicit TOFChannelCalibDevice(bool useCCDB, bool attachChannelOffsetToLHCphase, bool isCosmics, bool perstrip = false, bool safe = false) : mUseCCDB(useCCDB), mAttachToLHCphase(attachChannelOffsetToLHCphase), mCosmics(isCosmics), mDoPerStrip(perstrip), mSafeMode(safe) {}
   void init(o2::framework::InitContext& ic) final
   {
 
@@ -60,6 +60,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
     mCalibrator = std::make_unique<o2::tof::TOFChannelCalibrator<T>>(minEnt, nb, range);
 
     mCalibrator->doPerStrip(mDoPerStrip);
+    mCalibrator->doSafeMode(mSafeMode);
 
     // default behaviour is to have only 1 slot at a time, accepting everything for it till the
     // minimum statistics is reached;
@@ -151,25 +152,25 @@ class TOFChannelCalibDevice : public o2::framework::Task
       startTimeChCalib = 0;
     }
 
-    LOG(DEBUG) << "startTimeLHCphase = " << startTimeLHCphase << ",  startTimeChCalib = " << startTimeChCalib;
+    LOG(debug) << "startTimeLHCphase = " << startTimeLHCphase << ",  startTimeChCalib = " << startTimeChCalib;
 
     mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), &mPhase, &mTimeSlewing); // TODO: should we replace long(0) with tfcounter defined at the beginning of the method? we need the timestamp of the TF
 
     mCalibrator->setCalibTOFapi(mcalibTOFapi);
 
     if ((tfcounter - startTimeChCalib) > 60480000) { // number of TF in 1 week: 7*24*3600/10e-3 - with TF = 10 ms
-      LOG(INFO) << "Enlarging the range of the booked histogram since the latest CCDB entry is too old";
+      LOG(info) << "Enlarging the range of the booked histogram since the latest CCDB entry is too old";
       mCalibrator->setRange(mCalibrator->getRange() * 10); // we enlarge the range for the calibration in case the last valid object is too old (older than 1 week)
     }
 
     if (!mCosmics) {
       auto data = pc.inputs().get<gsl::span<T>>("input");
-      LOG(INFO) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
+      LOG(info) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
       mCalibrator->process(tfcounter, data);
       sendOutput(pc.outputs());
     } else {
       auto data = pc.inputs().get<gsl::span<T>>("input");
-      LOG(INFO) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
+      LOG(info) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
       mCalibrator->process(tfcounter, data);
       sendOutput(pc.outputs());
     }
@@ -191,6 +192,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
   bool mAttachToLHCphase = false; // whether to use or not previously defined LHCphase
   bool mCosmics = false;
   bool mDoPerStrip = false;
+  bool mSafeMode = false;
 
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
@@ -205,7 +207,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
     for (uint32_t i = 0; i < payloadVec.size(); i++) {
       auto& w = infoVec[i];
       auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
-      LOG(INFO) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
+      LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
                 << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
 
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_CHANCALIB", i}, *image.get()); // vector<char>
@@ -223,15 +225,15 @@ namespace framework
 {
 
 template <class T>
-DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB, bool attachChannelOffsetToLHCphase = false, bool isCosmics = false, bool perstrip = false)
+DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB, bool attachChannelOffsetToLHCphase = false, bool isCosmics = false, bool perstrip = false, bool safe = false)
 {
   constexpr int64_t INFINITE_TF_int64 = std::numeric_limits<long>::max();
   using device = o2::calibration::TOFChannelCalibDevice<T>;
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_CHANCALIB"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_CHANCALIB"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_CHANCALIB"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_CHANCALIB"}, Lifetime::Sporadic);
 
   std::vector<InputSpec> inputs;
   if (!isCosmics) {
@@ -251,7 +253,7 @@ DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB, bool attachChannelO
     "calib-tofchannel-calibration",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>(useCCDB, attachChannelOffsetToLHCphase, isCosmics, perstrip)},
+    AlgorithmSpec{adaptFromTask<device>(useCCDB, attachChannelOffsetToLHCphase, isCosmics, perstrip, safe)},
     Options{
       {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit channel histos"}},
       {"nbins", VariantType::Int, 1000, {"number of bins for t-texp"}},

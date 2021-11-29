@@ -89,6 +89,7 @@ enum OptionBits {
   TRDIgnoreDigitHCHeaderBit,
   TRDIgnoreTrackletHCHeaderBit,
   TRDEnableRootOutputBit,
+  TRDFixSM1617Bit,
   TRDGenerateStats
 };
 

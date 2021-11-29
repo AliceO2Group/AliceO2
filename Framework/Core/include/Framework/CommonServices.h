@@ -63,6 +63,7 @@ struct CommonServices {
   static ServiceSpec callbacksSpec();
   static ServiceSpec timesliceIndex();
   static ServiceSpec dataRelayer();
+  static ServiceSpec dataSender();
   static ServiceSpec tracingSpec();
   static ServiceSpec threadPool(int numWorkers);
   static ServiceSpec dataProcessingStats();

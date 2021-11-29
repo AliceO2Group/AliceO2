@@ -20,11 +20,17 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "Framework/CallbacksPolicy.h"
 #include "Framework/Logger.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "TRDWorkflowIO/TRDTrackletWriterSpec.h"
 #include "TRDWorkflowIO/TRDDigitWriterSpec.h"
 #include "DataFormatsTRD/RawDataStats.h"
+
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 // add workflow options, note that customization needs to be declared before
 // including Framework/runDataProcessing
@@ -46,13 +52,12 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"halfchamberwords", VariantType::Int, 0, {"Fix half chamber for when it is version is 0.0 integer value of additional header words, ignored if version is not 0.0"}},
     {"halfchambermajor", VariantType::Int, 0, {"Fix half chamber for when it is version is 0.0 integer value of major version, ignored if version is not 0.0"}},
     {"ignore-digithcheader", VariantType::Bool, false, {"Ignore the digithalf chamber header for cross referencing, take rdh/cru as authorative."}},
+    {"fixsm1617", VariantType::Bool, false, {"Fix the missing bit in the tracklet hc header of supermodules 16 and 17. Requires option tracklethcheader 2"}},
     {"tracklethcheader", VariantType::Int, 2, {"Status of TrackletHalfChamberHeader 0 off always, 1 iff tracklet data, 2 on always"}},
     {"histogramsfile", VariantType::String, "histos.root", {"Name of the histogram file, so one can run multiple per node"}},
     //{"generate-stats", VariantType::Bool, true, {"Generate the state message sent to qc"}},
     {"trd-datareader-enablebyteswapdata", VariantType::Bool, false, {"byteswap the incoming data, raw data needs it and simulation does not."}}};
-
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
-
   std::swap(workflowOptions, options);
 }
 
@@ -98,6 +103,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   binaryoptions[o2::trd::TRDIgnoreTrackletHCHeaderBit] = cfgc.options().get<bool>("ignore-tracklethcheader");
   binaryoptions[o2::trd::TRDEnableRootOutputBit] = cfgc.options().get<bool>("enable-root-output");
   binaryoptions[o2::trd::TRDByteSwapBit] = cfgc.options().get<bool>("trd-datareader-enablebyteswapdata");
+  binaryoptions[o2::trd::TRDFixSM1617Bit] = cfgc.options().get<bool>("fixsm1617");
   //binaryoptions[o2::trd::TRDGenerateStats] = cfgc.options().get<bool>("generate-stats");
   binaryoptions[o2::trd::TRDGenerateStats] = true; //cfgc.options().get<bool>("generate-stats");
 

@@ -41,17 +41,19 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
 
   auto& compclusters = pc.outputs().make<std::vector<char>>(OutputRef{"output"});
-  const auto ctfImage = o2::tpc::CTF::getImage(buff.data());
-  mCTFCoder.decode(ctfImage, compclusters);
+  if (buff.size()) {
+    const auto ctfImage = o2::tpc::CTF::getImage(buff.data());
+    mCTFCoder.decode(ctfImage, compclusters);
+  }
 
   mTimer.Stop();
-  LOG(INFO) << "Decoded " << buff.size() * sizeof(o2::ctf::BufferType) << " encoded bytes to "
+  LOG(info) << "Decoded " << buff.size() * sizeof(o2::ctf::BufferType) << " encoded bytes to "
             << compclusters.size() << " bytes in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "TPC Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "TPC Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

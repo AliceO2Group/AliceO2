@@ -66,7 +66,7 @@ GeometryTGeo::GeometryTGeo(Bool_t build, Int_t loadTrans) : o2::itsmft::Geometry
   // default c-tor, if build is true, the structures will be filled and the transform matrices
   // will be cached
   if (sInstance) {
-    LOG(FATAL) << "Invalid use of public constructor: o2::mft::GeometryTGeo instance exists";
+    LOG(fatal) << "Invalid use of public constructor: o2::mft::GeometryTGeo instance exists";
     // throw std::runtime_error("Invalid use of public constructor: o2::mft::GeometryTGeo instance exists");
   }
 
@@ -80,13 +80,13 @@ GeometryTGeo::GeometryTGeo(Bool_t build, Int_t loadTrans) : o2::itsmft::Geometry
 void GeometryTGeo::Build(Int_t loadTrans)
 {
   if (isBuilt()) {
-    LOG(WARNING) << "Already built";
+    LOG(warning) << "Already built";
     return; // already initialized
   }
 
   if (!gGeoManager) {
     // RSTODO: in future there will be a method to load matrices from the CDB
-    LOG(FATAL) << "Geometry is not loaded";
+    LOG(fatal) << "Geometry is not loaded";
   }
 
   mNumberOfHalves = extractNumberOfHalves();
@@ -94,13 +94,13 @@ void GeometryTGeo::Build(Int_t loadTrans)
     return;
   }
 
-  // LOG(INFO) << "Number of halves " << mNumberOfHalves;
+  // LOG(info) << "Number of halves " << mNumberOfHalves;
   mNumberOfDisks.resize(mNumberOfHalves);
 
   mTotalNumberOfSensors = 0;
   for (Int_t i = 0; i < mNumberOfHalves; i++) {
     mNumberOfDisks[i] = extractNumberOfDisks(i);
-    // LOG(INFO) << "Number of disks " << mNumberOfDisks[i] << " in half " << i;
+    // LOG(info) << "Number of disks " << mNumberOfDisks[i] << " in half " << i;
 
     // use one half only
     if (i == 0) {
@@ -117,7 +117,7 @@ void GeometryTGeo::Build(Int_t loadTrans)
         Int_t numberOfLadders = 0;
         for (Int_t nSensor = MinSensorsPerLadder; nSensor <= MaxSensorsPerLadder; nSensor++) {
           mNumberOfLadders[j][nSensor] = extractNumberOfLadders(i, j, nSensor);
-          // LOG(INFO) << "Number of ladders with " << nSensor << " sensors is " << mNumberOfLadders[j][nSensor] << " in
+          // LOG(info) << "Number of ladders with " << nSensor << " sensors is " << mNumberOfLadders[j][nSensor] << " in
           // disk " << j;
 
           numberOfLadders += mNumberOfLadders[j][nSensor];
@@ -138,7 +138,7 @@ void GeometryTGeo::Build(Int_t loadTrans)
           Int_t n = extractNumberOfLadders(i, j, nSensor, nL);
         } // nSensor
 
-        LOG(DEBUG) << "MFT: Disk " << j << " has " << mNumberOfSensorsPerDisk[j] << " sensors ";
+        LOG(debug) << "MFT: Disk " << j << " has " << mNumberOfSensorsPerDisk[j] << " sensors ";
 
       } // disk
 
@@ -147,7 +147,7 @@ void GeometryTGeo::Build(Int_t loadTrans)
   } // halves
 
   mTotalNumberOfSensors *= mNumberOfHalves;
-  LOG(DEBUG) << "MFT: Total number of sensors " << mTotalNumberOfSensors << " in " << mNumberOfHalves << " detector halves";
+  LOG(debug) << "MFT: Total number of sensors " << mTotalNumberOfSensors << " in " << mNumberOfHalves << " detector halves";
 
   mSensorIndexToLayer.resize(mTotalNumberOfSensors + 1);
   mLayerMedianZ.resize(mNumberOfDisks[0] + 1);
@@ -165,7 +165,7 @@ void GeometryTGeo::Build(Int_t loadTrans)
   }
   for (Int_t j = 0; j < mNumberOfDisks[0]; j++) {
     mLayerMedianZ[j] = 0.5 * (zLay0[j] + zLay1[j]);
-    // LOG(INFO) << "Disk " << j << " has median z " << mLayerMedianZ[j];
+    // LOG(info) << "Disk " << j << " has median z " << mLayerMedianZ[j];
   }
   for (Int_t i = 0; i < mTotalNumberOfSensors; i++) {
     TGeoHMatrix* hm = extractMatrixSensor(i);
@@ -176,7 +176,7 @@ void GeometryTGeo::Build(Int_t loadTrans)
     } else {
       mSensorIndexToLayer[i] = 2 * disk + 1;
     }
-    // LOG(INFO) << "Sensor " << i << " is in layer " << mSensorIndexToLayer[i] << " translation z " << trans[2] <<
+    // LOG(info) << "Sensor " << i << " is in layer " << mSensorIndexToLayer[i] << " translation z " << trans[2] <<
     // FairLogger::endl;
   }
   /*
@@ -186,11 +186,11 @@ void GeometryTGeo::Build(Int_t loadTrans)
     Int_t disk = getDisk(i);
     Int_t half = getHalf(i);
     Int_t ladderID = mLadderIndex2Id[disk][ladder];
-    LOG(INFO) << "Index " << i << " half " << half << " disk " << disk << " ladder " << ladder << " geomap " << ladderID
+    LOG(info) << "Index " << i << " half " << half << " disk " << disk << " ladder " << ladder << " geomap " << ladderID
 ;
   }
   */
-  LOG(INFO) << "MFT GeometryTGeo::Build total number of sensors " << mTotalNumberOfSensors;
+  LOG(info) << "MFT GeometryTGeo::Build total number of sensors " << mTotalNumberOfSensors;
   setSize(mTotalNumberOfSensors);
 
   fillMatrixCache(loadTrans);
@@ -204,7 +204,7 @@ void GeometryTGeo::Build(Int_t loadTrans)
         Int_t nS = extractNumberOfSensorsPerLadder(iH,iD,iL);
         for (Int_t iS = 0; iS < nS; iS++) {
           index = getSensorIndex(iH,iD,iL,iS);
-          LOG(INFO) << "Half " << iH << " disk " << iD << " ladder " << ladder << " ladderID " << iL << " sensor " << iS
+          LOG(info) << "Half " << iH << " disk " << iD << " ladder " << ladder << " ladderID " << iL << " sensor " << iS
   << " index " << index;
         } // sensor
       } // ladder
@@ -221,12 +221,12 @@ Int_t GeometryTGeo::extractNumberOfSensorsPerLadder(Int_t half, Int_t disk, Int_
   snprintf(laddername, 30, "%s_%d_%d_%d", getMFTLadderPattern(), half, disk, ladder);
   TGeoVolume* volLadder = gGeoManager->GetVolume(laddername);
   if (!volLadder) {
-    LOG(FATAL) << "can't find volume " << laddername;
+    LOG(fatal) << "can't find volume " << laddername;
   }
   // Loop on all ladder nodes, count sensor volumes by checking names
   Int_t nNodes = volLadder->GetNodes()->GetEntries();
   for (int j = 0; j < nNodes; j++) {
-    // LOG(INFO) << "GeometryTGeo::extractNumberOfSensorsPerLadder " << half << " " << disk << " " << ladder << " " <<
+    // LOG(info) << "GeometryTGeo::extractNumberOfSensorsPerLadder " << half << " " << disk << " " << ladder << " " <<
     // volLadder->GetNodes()->At(j)->GetName();
     if (strstr(volLadder->GetNodes()->At(j)->GetName(), getMFTChipPattern())) {
       numberOfSensors++;
@@ -244,7 +244,7 @@ Int_t GeometryTGeo::extractNumberOfLadders(Int_t half, Int_t disk, Int_t nsensor
   snprintf(diskname, 30, "%s_%d_%d", getMFTDiskPattern(), half, disk);
   TGeoVolume* volDisk = gGeoManager->GetVolume(diskname);
   if (!volDisk) {
-    LOG(FATAL) << "can't find volume " << diskname;
+    LOG(fatal) << "can't find volume " << diskname;
   }
   // Loop on all disk nodes, count ladder volumes by checking names
   TObjArray* nodes = volDisk->GetNodes();
@@ -272,7 +272,7 @@ Int_t GeometryTGeo::extractNumberOfLadders(Int_t half, Int_t disk, Int_t nsensor
   snprintf(diskname, 30, "%s_%d_%d", getMFTDiskPattern(), half, disk);
   TGeoVolume* volDisk = gGeoManager->GetVolume(diskname);
   if (!volDisk) {
-    LOG(FATAL) << "can't find volume " << diskname;
+    LOG(fatal) << "can't find volume " << diskname;
   }
   // Loop on all disk nodes, count ladder volumes by checking names
   TObjArray* nodes = volDisk->GetNodes();
@@ -287,7 +287,7 @@ Int_t GeometryTGeo::extractNumberOfLadders(Int_t half, Int_t disk, Int_t nsensor
         // map the new index with the one from the geometry
         mLadderIndex2Id[disk][nL] = ladderID;
         mLadderId2Index[disk][ladderID] = nL;
-        // LOG(INFO) << "In disk " << disk << " ladder with " << nsensor << " sensors has matrix index " << nL << " and
+        // LOG(info) << "In disk " << disk << " ladder with " << nsensor << " sensors has matrix index " << nL << " and
         // geometry index " << mLadderIndex2Id[disk][nL];
         nL++;
         //
@@ -307,7 +307,7 @@ Int_t GeometryTGeo::extractNumberOfDisks(Int_t half) const
   snprintf(halfname, 30, "%s_%d", getMFTHalfPattern(), half);
   TGeoVolume* volHalf = gGeoManager->GetVolume(halfname);
   if (!volHalf) {
-    LOG(FATAL) << "can't find " << halfname << " volume";
+    LOG(fatal) << "can't find " << halfname << " volume";
     return -1;
   }
 
@@ -329,7 +329,7 @@ Int_t GeometryTGeo::extractNumberOfHalves()
 
   TGeoVolume* volMFT = gGeoManager->GetVolume(getMFTVolPattern());
   if (!volMFT) {
-    LOG(FATAL) << "MFT volume " << getMFTVolPattern() << " is not in the geometry";
+    LOG(fatal) << "MFT volume " << getMFTVolPattern() << " is not in the geometry";
   }
 
   // Loop on all MFT nodes and count half detector volumes by checking names
@@ -344,7 +344,7 @@ Int_t GeometryTGeo::extractNumberOfHalves()
     if (strstr(name, getMFTHalfPattern())) {
       numberOfHalves++;
       if ((halfID = extractVolumeCopy(name, getMFTHalfPattern())) < 0) {
-        LOG(FATAL) << "Failed to extract half ID from the " << name;
+        LOG(fatal) << "Failed to extract half ID from the " << name;
         exit(1);
       }
     }
@@ -374,21 +374,21 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(Int_t index) const
   Int_t half, disk, ladder, sensor, ladderID;
   getSensorID(index, half, disk, ladder, sensor);
   ladderID = mLadderIndex2Id[disk][ladder];
-  // LOG(INFO) << "extractMatrixSensor index " << index << " half " << half << " disk " << disk << " ladder " << ladder
+  // LOG(info) << "extractMatrixSensor index " << index << " half " << half << " disk " << disk << " ladder " << ladder
   // << " ladderID " << ladderID;
 
   TString path = Form("/cave_1/barrel_1/%s_0/", getMFTVolPattern());
   path += Form("%s_%d_%d/%s_%d_%d_%d/%s_%d_%d_%d_%d/%s_%d_%d_%d_%d/%s_1", getMFTHalfPattern(), half, half,
                getMFTDiskPattern(), half, disk, disk, getMFTLadderPattern(), half, disk, ladderID, ladderID,
                getMFTChipPattern(), half, disk, ladderID, sensor, getMFTSensorPattern());
-  // LOG(INFO) << "Volume path is " << path.Data();
+  // LOG(info) << "Volume path is " << path.Data();
 
   static TGeoHMatrix matTmp;
   gGeoManager->PushPath();
 
   if (!gGeoManager->cd(path.Data())) {
     gGeoManager->PopPath();
-    LOG(ERROR) << "Error in cd-ing to " << path.Data();
+    LOG(error) << "Error in cd-ing to " << path.Data();
     return nullptr;
   } // end if !gGeoManager
 
@@ -411,15 +411,15 @@ void GeometryTGeo::fillMatrixCache(Int_t mask)
   // populate matrix cache for requested transformations
   //
   if (mSize < 1) {
-    LOG(WARNING) << "The method Build was not called yet";
+    LOG(warning) << "The method Build was not called yet";
     Build(mask);
     return;
   }
-  // LOG(INFO) << "mask " << mask << " o2::math_utils::bit2Mask " << o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G) <<
+  // LOG(info) << "mask " << mask << " o2::math_utils::bit2Mask " << o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G) <<
   // FairLogger::endl;
   // build matrices
   if ((mask & o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G)) && !getCacheL2G().isFilled()) {
-    LOG(INFO) << "Loading MFT L2G matrices from TGeo";
+    LOG(info) << "Loading MFT L2G matrices from TGeo";
     auto& cacheL2G = getCacheL2G();
     cacheL2G.setSize(mSize);
     for (Int_t i = 0; i < mSize; i++) {
@@ -430,7 +430,7 @@ void GeometryTGeo::fillMatrixCache(Int_t mask)
 
   if ((mask & o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L)) && !getCacheT2L().isFilled()) {
     // matrices for Tracking to Local frame transformation
-    LOG(INFO) << "Loading MFT T2L matrices from TGeo";
+    LOG(info) << "Loading MFT T2L matrices from TGeo";
     auto& cacheT2L = getCacheT2L();
     cacheT2L.setSize(mSize);
     for (int i = 0; i < mSize; i++) {
@@ -441,7 +441,7 @@ void GeometryTGeo::fillMatrixCache(Int_t mask)
 
   if ((mask & o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2G)) && !getCacheT2G().isFilled()) {
     // matrices for Tracking to Global frame transformation
-    LOG(INFO) << "Loading MFT T2G matrices from TGeo";
+    LOG(info) << "Loading MFT T2G matrices from TGeo";
     auto& cacheT2G = getCacheT2G();
     cacheT2G.setSize(mSize);
     for (int i = 0; i < mSize; i++) {

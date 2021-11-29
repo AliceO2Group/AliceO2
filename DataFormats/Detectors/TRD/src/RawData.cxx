@@ -202,14 +202,14 @@ std::ostream& operator<<(std::ostream& stream, const TrackletMCMData& tracklet)
 }
 void printTrackletMCMData(o2::trd::TrackletMCMData& tracklet)
 {
-  LOGF(INFO, "TrackletMCMData: Raw:0x%08x pos:%d slope:%d pid:0x%08x checkbit:0x%02x",
+  LOGF(info, "TrackletMCMData: Raw:0x%08x pos:%d slope:%d pid:0x%08x checkbit:0x%02x",
        tracklet.word, tracklet.pos, tracklet.slope, tracklet.pid, tracklet.checkbit);
 }
 
 void printTrackletMCMHeader(o2::trd::TrackletMCMHeader& mcmhead)
 {
   LOG(info) << " about to print mcm raw header";
-  LOGF(INFO, "MCMRawHeader: Raw:0x%08x 1:%d padrow: 0x%02x col: 0x%01x pid2 0x%02x pid1: 0x%02x pid0: 0x%02x 1:%d",
+  LOGF(info, "MCMRawHeader: Raw:0x%08x 1:%d padrow: 0x%02x col: 0x%01x pid2 0x%02x pid1: 0x%02x pid0: 0x%02x 1:%d",
        mcmhead.word, mcmhead.onea, mcmhead.padrow, mcmhead.col,
        mcmhead.pid2, mcmhead.pid1, mcmhead.pid0, mcmhead.oneb);
   LOG(info) << " printed mcm raw header";
@@ -226,20 +226,20 @@ std::ostream& operator<<(std::ostream& stream, const TrackletMCMHeader& mcmhead)
 
 void printHalfChamber(o2::trd::TrackletHCHeader& halfchamber)
 {
-  LOGF(INFO, "TrackletHCHeader: Raw:0x%08x SM : %d stack %d layer %d side : %d MCLK: 0x%0x Format: 0x%0x Always1:0x%0x",
+  LOGF(info, "TrackletHCHeader: Raw:0x%08x SM : %d stack %d layer %d side : %d MCLK: 0x%0x Format: 0x%0x Always1:0x%0x",
        halfchamber.supermodule, halfchamber.stack, halfchamber.layer, halfchamber.side, halfchamber.MCLK, halfchamber.format, halfchamber.one);
 }
 
 void printDigitMCMHeader(o2::trd::DigitMCMHeader& mcmhead)
 {
-  LOGF(INFO, "DigitMCMRawHeader: Raw:0x%08x res(0xc):0x%02x mcm: 0x%03x rob: 0x%03x eventcount 0x%05x year(>2007?): 0x%02x ",
+  LOGF(info, "DigitMCMRawHeader: Raw:0x%08x res(0xc):0x%02x mcm: 0x%03x rob: 0x%03x eventcount 0x%05x year(>2007?): 0x%02x ",
        mcmhead.word, mcmhead.res, mcmhead.mcm, mcmhead.rob, mcmhead.eventcount,
        mcmhead.yearflag);
 }
 
 void dumpHalfChamber(o2::trd::TrackletHCHeader const& halfchamber)
 {
-  LOGF(INFO, "HalfChamber : 0x%08x", halfchamber.word);
+  LOGF(info, "HalfChamber : 0x%08x", halfchamber.word);
 }
 
 void printHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru)
@@ -248,14 +248,14 @@ void printHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru)
   std::array<uint32_t, 15> errorflags;
   getlinkdatasizes(halfcru, sizes);
   getlinkerrorflags(halfcru, errorflags);
-  LOGF(INFO, "V:%d BC:%d SB:%d EType:%d", halfcru.HeaderVersion, halfcru.BunchCrossing,
+  LOGF(info, "V:%d BC:%d SB:%d EType:%d", halfcru.HeaderVersion, halfcru.BunchCrossing,
        halfcru.StopBit, halfcru.EventType);
   for (int i = 0; i < 15; i++) {
-    LOGF(INFO, "Link %d size: %ul eflag: 0x%02x", i, sizes[i], errorflags[i]);
+    LOGF(info, "Link %d size: %ul eflag: 0x%02x", i, sizes[i], errorflags[i]);
   }
-  LOG(INFO) << "Raw: " << std::hex << halfcru.word0 << " " << halfcru.word12[0] << " " << halfcru.word12[1] << " " << halfcru.word3 << " " << halfcru.word47[0] << " " << halfcru.word47[1] << " " << halfcru.word47[2] << " " << halfcru.word47[3];
+  LOG(info) << "Raw: " << std::hex << halfcru.word0 << " " << halfcru.word12[0] << " " << halfcru.word12[1] << " " << halfcru.word3 << " " << halfcru.word47[0] << " " << halfcru.word47[1] << " " << halfcru.word47[2] << " " << halfcru.word47[3];
   for (int i = 0; i < 15; i++) {
-    LOGF(INFO, "Raw: %d word: %ul x", i, sizes[i], errorflags[i]);
+    LOGF(info, "Raw: %d word: %ul x", i, sizes[i], errorflags[i]);
   }
 }
 
@@ -265,7 +265,7 @@ void dumpHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru)
   memcpy(&raw[0], &halfcru, sizeof(halfcru));
   for (int i = 0; i < 2; i++) {
     int index = 4 * i;
-    LOGF(INFO, "[1/2CRUHeader %d] 0x%08x 0x%08x 0x%08x 0x%08x", i, raw[index + 3], raw[index + 2],
+    LOGF(info, "[1/2CRUHeader %d] 0x%08x 0x%08x 0x%08x 0x%08x", i, raw[index + 3], raw[index + 2],
          raw[index + 1], raw[index + 0]);
   }
 }
@@ -427,7 +427,7 @@ int getDigitHCHeaderWordType(uint32_t word)
 }
 void printDigitHCHeader(o2::trd::DigitHCHeader& header, uint32_t headers[3])
 {
-  LOGF(INFO, "Digit HalfChamber Header: Raw:0x%08x reserve:0x%01x side:0x%01x stack:0x%02x layer:0x%02x supermod:0x%02x numberHCW:0x%02x minor:0x%03x major:0x%03x version(>2007):0x%01x",
+  LOGF(info, "Digit HalfChamber Header: Raw:0x%08x reserve:0x%01x side:0x%01x stack:0x%02x layer:0x%02x supermod:0x%02x numberHCW:0x%02x minor:0x%03x major:0x%03x version(>2007):0x%01x",
        header.word, header.res, header.side, header.stack, header.layer, header.supermodule,
        header.numberHCW, header.minor, header.major, header.version);
   int countheaderwords = header.numberHCW;
@@ -438,27 +438,27 @@ void printDigitHCHeader(o2::trd::DigitHCHeader& header, uint32_t headers[3])
         DigitHCHeader1 header1;
         header1.word = headers[countheaderwords];
         if (header1.res != 0x1) {
-          LOGF(INFO, "*Corrupt* Digit HalfChamber Header1 Raw:0x%08x reserve:0x%02x pretriggercount=0x%02x pretriggerphase=0x%02x bunchxing:0x%05x number of timebins : 0x%03x", header1.word, header1.res, header1.ptrigcount, header1.ptrigphase, header1.bunchcrossing, header1.numtimebins);
+          LOGF(info, "*Corrupt* Digit HalfChamber Header1 Raw:0x%08x reserve:0x%02x pretriggercount=0x%02x pretriggerphase=0x%02x bunchxing:0x%05x number of timebins : 0x%03x", header1.word, header1.res, header1.ptrigcount, header1.ptrigphase, header1.bunchcrossing, header1.numtimebins);
         } else {
-          LOGF(INFO, "Digit HalfChamber Header1 Raw:0x%08x reserve:0x%02x pretriggercount=0x%02x pretriggerphase=0x%02x bunchxing:0x%05x number of timebins : 0x%03x", header1.word, header1.res, header1.ptrigcount, header1.ptrigphase, header1.bunchcrossing, header1.numtimebins);
+          LOGF(info, "Digit HalfChamber Header1 Raw:0x%08x reserve:0x%02x pretriggercount=0x%02x pretriggerphase=0x%02x bunchxing:0x%05x number of timebins : 0x%03x", header1.word, header1.res, header1.ptrigcount, header1.ptrigphase, header1.bunchcrossing, header1.numtimebins);
         }
         break;
       case 2:
         DigitHCHeader2 header2;
         header2.word = headers[countheaderwords];
         if (header2.res != 0b110001) {
-          LOGF(INFO, "*Corrupt* Digit HalfChamber Header2 Raw:0x%08x reserve:0x%08x PedestalFilter:0x%01x GainFilter:0x%01x TailFilter:0x%01x CrosstalkFilter:0x%01x Non-linFilter:0x%01x RawDataBypassFilter:0x%01x DigitFilterCommonAdditive:0x%02x ", header2.word, header2.res, header2.dfilter, header2.rfilter, header2.nlfilter, header2.xtfilter, header2.tfilter, header2.gfilter, header2.pfilter);
+          LOGF(info, "*Corrupt* Digit HalfChamber Header2 Raw:0x%08x reserve:0x%08x PedestalFilter:0x%01x GainFilter:0x%01x TailFilter:0x%01x CrosstalkFilter:0x%01x Non-linFilter:0x%01x RawDataBypassFilter:0x%01x DigitFilterCommonAdditive:0x%02x ", header2.word, header2.res, header2.dfilter, header2.rfilter, header2.nlfilter, header2.xtfilter, header2.tfilter, header2.gfilter, header2.pfilter);
         } else {
-          LOGF(INFO, "Digit HalfChamber Header2 Raw:0x%08x reserve:0x%08x PedestalFilter:0x%01x GainFilter:0x%01x TailFilter:0x%01x CrosstalkFilter:0x%01x Non-linFilter:0x%01x RawDataBypassFilter:0x%01x DigitFilterCommonAdditive:0x%02x ", header2.word, header2.res, header2.dfilter, header2.rfilter, header2.nlfilter, header2.xtfilter, header2.tfilter, header2.gfilter, header2.pfilter);
+          LOGF(info, "Digit HalfChamber Header2 Raw:0x%08x reserve:0x%08x PedestalFilter:0x%01x GainFilter:0x%01x TailFilter:0x%01x CrosstalkFilter:0x%01x Non-linFilter:0x%01x RawDataBypassFilter:0x%01x DigitFilterCommonAdditive:0x%02x ", header2.word, header2.res, header2.dfilter, header2.rfilter, header2.nlfilter, header2.xtfilter, header2.tfilter, header2.gfilter, header2.pfilter);
         }
         break;
       case 3:
         DigitHCHeader3 header3;
         header3.word = headers[countheaderwords];
         if (header3.res != 0b110101) {
-          LOGF(INFO, "*Corrupt*Digit HalfChamber Header3: Raw:0x%08x reserve:0x%08x readout program revision:0x%08x assembler program version:0x%01x", header3.word, header3.res, header3.svnrver, header3.svnver);
+          LOGF(info, "*Corrupt*Digit HalfChamber Header3: Raw:0x%08x reserve:0x%08x readout program revision:0x%08x assembler program version:0x%01x", header3.word, header3.res, header3.svnrver, header3.svnver);
         } else {
-          LOGF(INFO, "Digit HalfChamber Header3: Raw:0x%08x reserve:0x%08x readout program revision:0x%08x assembler program version:0x%01x", header3.word, header3.res, header3.svnrver, header3.svnver);
+          LOGF(info, "Digit HalfChamber Header3: Raw:0x%08x reserve:0x%08x readout program revision:0x%08x assembler program version:0x%01x", header3.word, header3.res, header3.svnrver, header3.svnver);
         }
         break;
     }

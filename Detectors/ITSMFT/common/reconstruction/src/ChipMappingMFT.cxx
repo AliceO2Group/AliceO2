@@ -1716,7 +1716,7 @@ ChipMappingMFT::ChipMappingMFT()
 
         if ((layer == iLayer) && ((zone + half * (NZonesPerLayer / 2)) == iZone)) {
           if ((ruType != ruInfo.ruType)) {
-            LOG(INFO) << "Wrong RU type for same layer and zone!"
+            LOG(info) << "Wrong RU type for same layer and zone!"
                       << "\n";
             continue;
           }

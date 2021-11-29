@@ -14,6 +14,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"
 #include "DataFormatsTOF/CalibInfoCluster.h"
+#include "TOFBase/Utils.h"
 using namespace o2::framework;
 
 // we need to add workflow options before including Framework/runDataProcessing
@@ -26,6 +27,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"attach-channel-offset-to-lhcphase", o2::framework::VariantType::Bool, false, {"do TOF channel offset calibration using the LHCphase previously calculated in the same workflow"}});
   workflowOptions.push_back(ConfigParamSpec{"cosmics", o2::framework::VariantType::Bool, false, {"for cosmics data"}});
   workflowOptions.push_back(ConfigParamSpec{"perstrip", o2::framework::VariantType::Bool, false, {"offsets per strip"}});
+  workflowOptions.push_back(ConfigParamSpec{"safe-mode", o2::framework::VariantType::Bool, false, {"require safe mode (discard strange TF)"}});
 }
 
 // ------------------------------------------------------------------
@@ -41,29 +43,30 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto attachChannelOffsetToLHCphase = configcontext.options().get<bool>("attach-channel-offset-to-lhcphase");
   auto isCosmics = configcontext.options().get<bool>("cosmics");
   auto perstrip = configcontext.options().get<bool>("perstrip");
+  auto safe = configcontext.options().get<bool>("safe-mode");
 
   if (isCosmics) {
-    LOG(INFO) << "Cosmics set!!!! No LHC phase, Yes channel offset";
+    LOG(info) << "Cosmics set!!!! No LHC phase, Yes channel offset";
     doChannelOffsetCalib = true;
     doLHCcalib = false;
   }
 
   if (!doLHCcalib && attachChannelOffsetToLHCphase) {
-    LOG(INFO) << "Over-writing attachChannelOffsetToLHCphase because we are not doing the LHCphase calibration";
+    LOG(info) << "Over-writing attachChannelOffsetToLHCphase because we are not doing the LHCphase calibration";
     attachChannelOffsetToLHCphase = false;
   }
 
-  LOG(INFO) << "TOF Calibration workflow: options";
-  LOG(INFO) << "doLHCcalib = " << doLHCcalib;
-  LOG(INFO) << "doChannelOffsetCalib = " << doChannelOffsetCalib;
-  LOG(INFO) << "useCCDB = " << useCCDB;
-  LOG(INFO) << "attachChannelOffsetToLHCphase = " << attachChannelOffsetToLHCphase;
+  LOG(info) << "TOF Calibration workflow: options";
+  LOG(info) << "doLHCcalib = " << doLHCcalib;
+  LOG(info) << "doChannelOffsetCalib = " << doChannelOffsetCalib;
+  LOG(info) << "useCCDB = " << useCCDB;
+  LOG(info) << "attachChannelOffsetToLHCphase = " << attachChannelOffsetToLHCphase;
   if (doLHCcalib) {
     specs.emplace_back(getLHCClockCalibDeviceSpec());
   }
   if (doChannelOffsetCalib) {
     if (!isCosmics) {
-      specs.emplace_back(getTOFChannelCalibDeviceSpec<o2::dataformats::CalibInfoTOF>(useCCDB, attachChannelOffsetToLHCphase, isCosmics, perstrip));
+      specs.emplace_back(getTOFChannelCalibDeviceSpec<o2::dataformats::CalibInfoTOF>(useCCDB, attachChannelOffsetToLHCphase, isCosmics, perstrip, safe));
     } else {
       specs.emplace_back(getTOFChannelCalibDeviceSpec<o2::tof::CalibInfoCluster>(useCCDB, attachChannelOffsetToLHCphase, isCosmics));
     }

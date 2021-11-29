@@ -134,7 +134,7 @@ AlignableVolume::AlignableVolume(const char* symname, int iid, Controller* ctr) 
 {
   // def c-tor
   if (!ctr) {
-    LOG(FATAL) << "Controller has to be provided :" << symname;
+    LOG(fatal) << "Controller has to be provided :" << symname;
   }
   setVolID(0); // volumes have no VID, unless it is sensor
   setNDOFs(kNDOFGeom);
@@ -298,19 +298,19 @@ void AlignableVolume::prepareMatrixL2G(bool reco)
   if (gGeoManager->GetAlignableEntry(path)) {
     const TGeoHMatrix* l2g = base::GeometryManager::getMatrix(path);
     if (!l2g) {
-      LOG(FATAL) << "Failed to find L2G matrix for alignable " << path;
+      LOG(fatal) << "Failed to find L2G matrix for alignable " << path;
     }
     reco ? setMatrixL2GReco(*l2g) : setMatrixL2G(*l2g);
   } else { // extract from path
     if (!gGeoManager->CheckPath(path)) {
-      LOG(FATAL) << "Volume path " << path << " is not valid!";
+      LOG(fatal) << "Volume path " << path << " is not valid!";
     }
     TGeoPhysicalNode* node = (TGeoPhysicalNode*)gGeoManager->GetListOfPhysicalNodes()->FindObject(path);
     TGeoHMatrix l2g;
     if (!node) {
-      LOG(WARNING) << "volume " << path << " was not misaligned, extracting original matrix";
+      LOG(warning) << "volume " << path << " was not misaligned, extracting original matrix";
       if (!base::GeometryManager::getOriginalMatrix(path, l2g)) {
-        LOG(FATAL) << "Failed to find ideal L2G matrix for " << path;
+        LOG(fatal) << "Failed to find ideal L2G matrix for " << path;
       }
     } else {
       l2g = *node->GetMatrix();
@@ -325,7 +325,7 @@ void AlignableVolume::prepareMatrixL2GIdeal()
   // extract from geometry ideal L2G matrix
   TGeoHMatrix mtmp;
   if (!base::GeometryManager::getOriginalMatrix(getSymName(), mtmp)) {
-    LOG(FATAL) << "Failed to find ideal L2G matrix for " << getSymName();
+    LOG(fatal) << "Failed to find ideal L2G matrix for " << getSymName();
   }
   setMatrixL2GIdeal(mtmp);
 }
@@ -383,7 +383,7 @@ void AlignableVolume::setTrackingFrame()
   // Define tracking frame of the sensor
   // This method should be implemented for sensors, which receive the T2L
   // matrix from the geometry
-  LOG(ERROR) << "Volume " << GetName() << " was supposed to implement its own method";
+  LOG(error) << "Volume " << GetName() << " was supposed to implement its own method";
 }
 
 //__________________________________________________________________
@@ -413,7 +413,7 @@ void AlignableVolume::initDOFs()
   //
   // Do we need this strict condition?
   if (getInitDOFsDone()) {
-    LOG(FATAL) << "DOFs are already initialized for " << GetName();
+    LOG(fatal) << "DOFs are already initialized for " << GetName();
   }
   auto pars = getParVals();
   auto errs = getParErrs();
@@ -803,7 +803,7 @@ void AlignableVolume::updateL2GRecoMatrices(const TClonesArray* algArr, const TG
   }
   TGeoHMatrix delta;
   if (!par) {
-    LOG(INFO) << "Alignment for " << getSymName() << " is absent in Reco-Time alignment object";
+    LOG(info) << "Alignment for " << getSymName() << " is absent in Reco-Time alignment object";
   } else {
     delta = par->createMatrix();
   }

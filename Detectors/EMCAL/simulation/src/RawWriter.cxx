@@ -111,14 +111,14 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
     // by the length of the time sample
     auto timesample = int(dig.getTimeStamp() / emcal::constants::EMCAL_TIMESAMPLE);
     if (timesample >= mNADCSamples) {
-      LOG(ERROR) << "Digit time sample " << timesample << " outside range [0," << mNADCSamples << "]";
+      LOG(error) << "Digit time sample " << timesample << " outside range [0," << mNADCSamples << "]";
       continue;
     }
     (*bunchDigits)[timesample] = &dig;
   }
 
   // Create and fill DMA pages for each channel
-  LOG(DEBUG) << "encode data";
+  LOG(debug) << "encode data";
   for (auto srucont : mSRUdata) {
 
     std::vector<char> payload; // this must be initialized per SRU, becuase pages are per SRU, therefore the payload was not reset.
@@ -135,7 +135,7 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
       int nbunches = 0;
       for (auto& bunch : findBunches(channel.mDigits)) {
         if (!bunch.mADCs.size()) {
-          LOG(ERROR) << "Found bunch with without ADC entries - skipping ...";
+          LOG(error) << "Found bunch with without ADC entries - skipping ...";
           continue;
         }
         rawbunches.push_back(bunch.mADCs.size() + 2); // add 2 words for header information
@@ -146,10 +146,10 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
         nbunches++;
       }
       if (!rawbunches.size()) {
-        LOG(DEBUG) << "No bunch selected";
+        LOG(debug) << "No bunch selected";
         continue;
       }
-      LOG(DEBUG) << "Selected " << nbunches << " bunches";
+      LOG(debug) << "Selected " << nbunches << " bunches";
 
       auto encodedbunches = encodeBunchData(rawbunches);
       auto chanhead = createChannelHeader(hwaddress, rawbunches.size(), false); /// bad channel status eventually to be added later
@@ -160,13 +160,13 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
         uint32_t payloadsizeRead = ((*testheader >> 16) & 0x3FF);
         uint32_t nwordsRead = (payloadsizeRead + 2) / 3;
         if (encodedbunches.size() != nwordsRead) {
-          LOG(ERROR) << "Mismatch in number of 32-bit words, encoded " << encodedbunches.size() << ", recalculated " << nwordsRead << std::endl;
-          LOG(ERROR) << "Payload size: " << payloadsizeRead << ", number of words: " << rawbunches.size() << ", encodeed words " << encodedbunches.size() << ", calculated words " << nwordsRead << std::endl;
+          LOG(error) << "Mismatch in number of 32-bit words, encoded " << encodedbunches.size() << ", recalculated " << nwordsRead << std::endl;
+          LOG(error) << "Payload size: " << payloadsizeRead << ", number of words: " << rawbunches.size() << ", encodeed words " << encodedbunches.size() << ", calculated words " << nwordsRead << std::endl;
         } else {
-          LOG(DEBUG) << "Matching number of payload 32-bit words, encoded " << encodedbunches.size() << ", decoded " << nwordsRead;
+          LOG(debug) << "Matching number of payload 32-bit words, encoded " << encodedbunches.size() << ", decoded " << nwordsRead;
         }
       } else {
-        LOG(ERROR) << "Header without header bit detected ..." << std::endl;
+        LOG(error) << "Header without header bit detected ..." << std::endl;
       }
       for (int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
         payload.emplace_back(chanheadwords[iword]);
@@ -180,9 +180,9 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
     if (!payload.size()) {
       // [EMCAL-699] No payload found in SRU
       // Still the link is not completely ignored but a trailer with 0-payloadsize is added
-      LOG(DEBUG) << "Payload buffer has size 0 - only write empty trailer" << std::endl;
+      LOG(debug) << "Payload buffer has size 0 - only write empty trailer" << std::endl;
     }
-    LOG(DEBUG) << "Payload buffer has size " << payload.size();
+    LOG(debug) << "Payload buffer has size " << payload.size();
 
     // Create RCU trailer
     auto trailerwords = createRCUTrailer(payload.size() / 4, 100., trg.getBCData().toLong(), srucont.mSRUid);
@@ -193,10 +193,10 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
     // register output data
     auto ddlid = srucont.mSRUid;
     auto [crorc, link] = mGeometry->getLinkAssignment(ddlid);
-    LOG(DEBUG1) << "Adding payload with size " << payload.size() << " (" << payload.size() / 4 << " ALTRO words)";
+    LOG(debug1) << "Adding payload with size " << payload.size() << " (" << payload.size() / 4 << " ALTRO words)";
     mRawWriter->addData(ddlid, crorc, link, 0, trg.getBCData(), payload, false, trg.getTriggerBits());
   }
-  LOG(DEBUG) << "Done";
+  LOG(debug) << "Done";
   return true;
 }
 
@@ -263,7 +263,7 @@ std::vector<int> RawWriter::encodeBunchData(const std::vector<int>& data)
   int wordnumber = 0;
   for (auto adc : data) {
     if (adc > 0x3FF) {
-      LOG(ERROR) << "Exceeding max ADC count for 10 bit ALTRO word: " << adc << " (max: 1023)" << std::endl;
+      LOG(error) << "Exceeding max ADC count for 10 bit ALTRO word: " << adc << " (max: 1023)" << std::endl;
     }
     switch (wordnumber) {
       case 0:

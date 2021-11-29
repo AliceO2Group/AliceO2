@@ -44,7 +44,7 @@ DataProcessorSpec getTrackWriterSpec(bool useMC)
     *tracksSize = tracks.size();
   };
   auto logger = [tracksSize](std::vector<o2::itsmft::ROFRecord> const& rofs) {
-    LOG(DEBUG) << "MFTTrackWriter pulled " << *tracksSize << " tracks, in " << rofs.size() << " RO frames";
+    LOG(debug) << "MFTTrackWriter pulled " << *tracksSize << " tracks, in " << rofs.size() << " RO frames";
   };
   return MakeRootTreeWriterSpec("mft-track-writer",
                                 "mfttracks.root",

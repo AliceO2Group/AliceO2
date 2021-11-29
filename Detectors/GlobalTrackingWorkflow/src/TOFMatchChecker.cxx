@@ -104,7 +104,7 @@ void TOFMatchChecker::checkMatching(GID gid)
   float y = mTOFClustersArrayInp[tofcl].getY();
   float z = mTOFClustersArrayInp[tofcl].getZ();
   int sector = mTOFClustersArrayInp[tofcl].getSector();
-  LOG(INFO) << "trkSource=" << sources[trksource] << " -- cl=" << tofcl << " - trk=" << trIndex << " - chi2 =" << chi2 << " - time=" << ttof << " - coordinates (to be rotated, sector=" << sector << ") = (" << x << "," << y << "," << z << ")";
+  LOG(info) << "trkSource=" << sources[trksource] << " -- cl=" << tofcl << " - trk=" << trIndex << " - chi2 =" << chi2 << " - time=" << ttof << " - coordinates (to be rotated, sector=" << sector << ") = (" << x << "," << y << "," << z << ")";
 
   // digit coordinates
   int mainCh = mTOFClustersArrayInp[tofcl].getMainContributingChannel();
@@ -113,7 +113,7 @@ void TOFMatchChecker::checkMatching(GID gid)
   float pos[3];
   o2::tof::Geo::getVolumeIndices(mainCh, det);
   o2::tof::Geo::getPos(det, pos);
-  LOG(DEBUG) << "Cluster mult = " << mTOFClustersArrayInp[tofcl].getNumOfContributingChannels() << " - main channel (" << mainCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
+  LOG(debug) << "Cluster mult = " << mTOFClustersArrayInp[tofcl].getNumOfContributingChannels() << " - main channel (" << mainCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
 
   // top->+48, bottom->-48, left->-1, right->+1
   if (mTOFClustersArrayInp[tofcl].getNumOfContributingChannels() > 1) {
@@ -121,53 +121,53 @@ void TOFMatchChecker::checkMatching(GID gid)
       addCh = mainCh + 48 + 1;
       o2::tof::Geo::getVolumeIndices(addCh, det);
       o2::tof::Geo::getPos(det, pos);
-      LOG(DEBUG) << "top right (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
+      LOG(debug) << "top right (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
     }
     if (mTOFClustersArrayInp[tofcl].isAdditionalChannelSet(o2::tof::Cluster::kUp)) {
       addCh = mainCh + 48;
       o2::tof::Geo::getVolumeIndices(addCh, det);
       o2::tof::Geo::getPos(det, pos);
-      LOG(DEBUG) << "top (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
+      LOG(debug) << "top (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
     }
     if (mTOFClustersArrayInp[tofcl].isAdditionalChannelSet(o2::tof::Cluster::kUpLeft)) {
       addCh = mainCh + 48 - 1;
       o2::tof::Geo::getVolumeIndices(addCh, det);
       o2::tof::Geo::getPos(det, pos);
-      LOG(DEBUG) << "top left (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
+      LOG(debug) << "top left (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
     }
     if (mTOFClustersArrayInp[tofcl].isAdditionalChannelSet(o2::tof::Cluster::kRight)) {
       addCh = mainCh + 1;
       o2::tof::Geo::getVolumeIndices(addCh, det);
       o2::tof::Geo::getPos(det, pos);
-      LOG(DEBUG) << "right (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
+      LOG(debug) << "right (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
     }
     if (mTOFClustersArrayInp[tofcl].isAdditionalChannelSet(o2::tof::Cluster::kLeft)) {
       addCh = mainCh - 1;
       o2::tof::Geo::getVolumeIndices(addCh, det);
       o2::tof::Geo::getPos(det, pos);
-      LOG(DEBUG) << "left (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
+      LOG(debug) << "left (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
     }
     if (mTOFClustersArrayInp[tofcl].isAdditionalChannelSet(o2::tof::Cluster::kDownRight)) {
       addCh = mainCh - 48 + 1;
       o2::tof::Geo::getVolumeIndices(addCh, det);
       o2::tof::Geo::getPos(det, pos);
-      LOG(DEBUG) << "down right (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
+      LOG(debug) << "down right (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
     }
     if (mTOFClustersArrayInp[tofcl].isAdditionalChannelSet(o2::tof::Cluster::kDown)) {
       addCh = mainCh - 48;
       o2::tof::Geo::getVolumeIndices(addCh, det);
       o2::tof::Geo::getPos(det, pos);
-      LOG(DEBUG) << "down (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
+      LOG(debug) << "down (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
     }
     if (mTOFClustersArrayInp[tofcl].isAdditionalChannelSet(o2::tof::Cluster::kDownLeft)) {
       addCh = mainCh - 48 - 1;
       o2::tof::Geo::getVolumeIndices(addCh, det);
       o2::tof::Geo::getPos(det, pos);
-      LOG(DEBUG) << "down left (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
+      LOG(debug) << "down left (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
     }
   }
 
-  LOG(DEBUG) << "";
+  LOG(debug) << "";
 }
 
 void TOFMatchChecker::init(InitContext& ic)
@@ -193,11 +193,11 @@ void TOFMatchChecker::run(ProcessingContext& pc)
 
   mTOFClustersArrayInp = mRecoData.getTOFClusters();
 
-  LOG(DEBUG) << "isTrackSourceLoaded: TPC -> " << mIsTPC << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTOF) << ")";
-  LOG(DEBUG) << "isTrackSourceLoaded: ITSTPC -> " << mIsITSTPC << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTOF) << ")";
-  LOG(DEBUG) << "isTrackSourceLoaded: TPCTRD -> " << mIsTPCTRD << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRDTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRDTOF) << ")";
-  LOG(DEBUG) << "isTrackSourceLoaded: ITSTPCTRD -> " << mIsITSTPCTRD << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRDTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRDTOF) << ")";
-  LOG(DEBUG) << "TOF cluster size = " << mTOFClustersArrayInp.size();
+  LOG(debug) << "isTrackSourceLoaded: TPC -> " << mIsTPC << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTOF) << ")";
+  LOG(debug) << "isTrackSourceLoaded: ITSTPC -> " << mIsITSTPC << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTOF) << ")";
+  LOG(debug) << "isTrackSourceLoaded: TPCTRD -> " << mIsTPCTRD << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRDTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRDTOF) << ")";
+  LOG(debug) << "isTrackSourceLoaded: ITSTPCTRD -> " << mIsITSTPCTRD << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRDTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRDTOF) << ")";
+  LOG(debug) << "TOF cluster size = " << mTOFClustersArrayInp.size();
 
   if (!mTOFClustersArrayInp.size()) {
     return;
@@ -214,7 +214,7 @@ void TOFMatchChecker::run(ProcessingContext& pc)
 
 void TOFMatchChecker::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(DEBUG, "TOF matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(debug, "TOF matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

@@ -152,6 +152,7 @@ struct GBTLink {
   ErrorType checkErrorsLanesStops() const { return NoError; }
   ErrorType checkErrorsDiagnosticWord(const GBTDiagnostic* gbtD) const { return NoError; }
   ErrorType checkErrorsCalibrationWord(const GBTCalibration* gbtCal) const { return NoError; }
+  ErrorType checkErrorsCableID(const GBTData* gbtD, uint8_t cableSW) const { return NoError; }
 #else
   ErrorType checkErrorsRDH(const RDH& rdh);
   ErrorType checkErrorsRDHStop(const RDH& rdh);
@@ -166,6 +167,7 @@ struct GBTLink {
   ErrorType checkErrorsLanesStops();
   ErrorType checkErrorsDiagnosticWord(const GBTDiagnostic* gbtD);
   ErrorType checkErrorsCalibrationWord(const GBTCalibration* gbtCal);
+  ErrorType checkErrorsCableID(const GBTData* gbtD, uint8_t cableSW);
 #endif
   ErrorType checkErrorsGBTDataID(const GBTData* dbtD);
 
@@ -182,6 +184,8 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
   status = None;
   auto* currRawPiece = rawData.currentPiece();
   GBTLink::ErrorType errRes = GBTLink::NoError;
+  bool expectPacketDone = false;
+  ir.clear();
   while (currRawPiece) { // we may loop over multiple CRU page
     if (dataOffset >= currRawPiece->size) {
       dataOffset = 0;                              // start of the RDH
@@ -256,6 +260,9 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
       }
       lanesStop = 0;
       lanesWithData = 0;
+      ir.bc = gbtTrg->bc;
+      ir.orbit = gbtTrg->orbit;
+      trigger = gbtTrg->triggerType;
     }
     if (format == NewFormat) { // at the moment just check if calibration word is there
       auto gbtC = reinterpret_cast<const o2::itsmft::GBTCalibration*>(&currRawPiece->data[dataOffset]);
@@ -264,11 +271,12 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
           printCalibrationWord(gbtC);
         }
         dataOffset += GBTPaddedWordLength;
+        LOGP(debug, "SetCalibData for RU:{} at bc:{}/orb:{} : [{}/{}]", ruPtr->ruSWID, gbtTrg->bc, gbtTrg->orbit, gbtC->calibCounter, gbtC->calibUserField);
         ruPtr->calibData = {gbtC->calibCounter, gbtC->calibUserField};
       }
     }
     auto gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(&currRawPiece->data[dataOffset]);
-
+    expectPacketDone = true;
     while (!gbtD->isDataTrailer()) { // start reading real payload
       nw++;
       if (verbosity >= VerboseData) {
@@ -277,11 +285,14 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
       GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsGBTDataID(gbtD));
       if (errRes != GBTLink::Skip) {
         int cableHW = gbtD->getCableID(), cableSW = chmap.cableHW2SW(ruPtr->ruInfo->ruType, cableHW);
-        GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsGBTData(chmap.cableHW2Pos(ruPtr->ruInfo->ruType, cableHW)));
-        ruPtr->cableData[cableSW].add(gbtD->getW8(), 9);
-        ruPtr->cableHWID[cableSW] = cableHW;
-        ruPtr->cableLinkID[cableSW] = idInRU;
-        ruPtr->cableLinkPtr[cableSW] = this;
+        GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsCableID(gbtD, cableSW));
+        if (errRes != GBTLink::Skip) {
+          GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsGBTData(chmap.cableHW2Pos(ruPtr->ruInfo->ruType, cableHW)));
+          ruPtr->cableData[cableSW].add(gbtD->getW8(), 9);
+          ruPtr->cableHWID[cableSW] = cableHW;
+          ruPtr->cableLinkID[cableSW] = idInRU;
+          ruPtr->cableLinkPtr[cableSW] = this;
+        }
       }
       dataOffset += GBTPaddedWordLength;
       gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(&currRawPiece->data[dataOffset]);
@@ -303,12 +314,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
     }
     // accumulate packet states
     statistics.packetStates[gbtT->getPacketState()]++;
-    // before quitting, store the trigger and IR
-    if (format == NewFormat) {
-      ir.bc = gbtTrg->bc;
-      ir.orbit = gbtTrg->orbit;
-      trigger = gbtTrg->triggerType;
-    } else {
+    if (format != NewFormat) {
       ir = RDHUtils::getTriggerIR(*lastRDH);
       trigger = RDHUtils::getTriggerType(*lastRDH);
     }
@@ -316,6 +322,10 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
     return (status = DataSeen);
   }
 
+  if (expectPacketDone) { // no trailer with packet done was encountered, register error
+    GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsPacketDoneMissing(nullptr, false));
+    return (status = DataSeen);
+  }
   return (status = StoppedOnEndOfData);
 }
 

@@ -51,16 +51,16 @@ class LHCClockCalibDevice : public o2::framework::Task
   {
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
     auto data = pc.inputs().get<gsl::span<o2::dataformats::CalibInfoTOF>>("input");
-    LOG(INFO) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
+    LOG(info) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
     mCalibrator->process(tfcounter, data);
     sendOutput(pc.outputs());
     const auto& infoVec = mCalibrator->getLHCphaseInfoVector();
-    LOG(INFO) << "Created " << infoVec.size() << " objects for TF " << tfcounter;
+    LOG(info) << "Created " << infoVec.size() << " objects for TF " << tfcounter;
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
-    LOG(INFO) << "Finalizing calibration";
+    LOG(info) << "Finalizing calibration";
     constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
     mCalibrator->checkSlotsToFinalize(INFINITE_TF);
     sendOutput(ec.outputs());
@@ -82,7 +82,7 @@ class LHCClockCalibDevice : public o2::framework::Task
     for (uint32_t i = 0; i < payloadVec.size(); i++) {
       auto& w = infoVec[i];
       auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
-      LOG(INFO) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
+      LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
                 << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_LHCphase", i}, *image.get()); // vector<char>
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_LHCphase", i}, w);            // root-serialized
@@ -104,8 +104,8 @@ DataProcessorSpec getLHCClockCalibDeviceSpec()
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_LHCphase"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_LHCphase"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_LHCphase"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_LHCphase"}, Lifetime::Sporadic);
   return DataProcessorSpec{
     "calib-lhcclock-calibration",
     Inputs{{"input", "TOF", "CALIBDATA"}},

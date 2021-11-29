@@ -253,7 +253,7 @@ class MCTrackT
   // such as part of mProp (process) or mPDG
   Int_t mStatusCode = 0;
 
-  ClassDefNV(MCTrackT, 4);
+  ClassDefNV(MCTrackT, 5);
 };
 
 template <typename T>
@@ -355,7 +355,7 @@ inline MCTrackT<T>::MCTrackT(const TParticle& part)
 template <typename T>
 inline void MCTrackT<T>::Print(Int_t trackId) const
 {
-  // LOG(DEBUG) << "Track " << trackId << ", mother : " << mMotherTrackId << ", Type " << mPdgCode << ", momentum ("
+  // LOG(debug) << "Track " << trackId << ", mother : " << mMotherTrackId << ", Type " << mPdgCode << ", momentum ("
   //           << mStartVertexMomentumX << ", " << mStartVertexMomentumY << ", " << mStartVertexMomentumZ << ") GeV"
   //          ;
 }

@@ -8,23 +8,23 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_COMPLETIONPOLICY_H
-#define FRAMEWORK_COMPLETIONPOLICY_H
+#ifndef O2_FRAMEWORK_COMPLETIONPOLICY_H_
+#define O2_FRAMEWORK_COMPLETIONPOLICY_H_
 
 #include "Framework/DataRef.h"
+#include "Framework/InputSpec.h"
 
 #include <functional>
 #include <string>
 #include <vector>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 struct DeviceSpec;
 struct InputRecord;
 struct InputSpan;
+struct DataRelayer;
 
 /// Policy to describe what to do for a matching DeviceSpec
 /// whenever a new message arrives. The InputRecord being passed to
@@ -57,6 +57,17 @@ struct CompletionPolicy {
   using Matcher = std::function<bool(DeviceSpec const& device)>;
   using InputSetElement = DataRef;
   using Callback = std::function<CompletionOp(InputSpan const&)>;
+  using CallbackFull = std::function<CompletionOp(InputSpan const&, std::vector<InputSpec> const&)>;
+  using CallbackConfigureRelayer = std::function<void(DataRelayer&)>;
+
+  /// Constructor
+  CompletionPolicy()
+    : name(), matcher(), callback() {}
+  /// Constructor for emplace_back
+  CompletionPolicy(std::string _name, Matcher _matcher, Callback _callback)
+    : name(_name), matcher(_matcher), callback(_callback), callbackFull{nullptr} {}
+  CompletionPolicy(std::string _name, Matcher _matcher, CallbackFull _callback)
+    : name(_name), matcher(_matcher), callback(nullptr), callbackFull{_callback} {}
 
   /// Name of the policy itself.
   std::string name = "";
@@ -65,21 +76,18 @@ struct CompletionPolicy {
   Matcher matcher = nullptr;
   /// Actual policy which decides what to do with a partial InputRecord.
   Callback callback = nullptr;
+  /// Actual policy which decides what to do with a partial InputRecord, extended version
+  CallbackFull callbackFull = nullptr;
+  /// A callback which allows you to configure the behavior of the data relayer associated
+  /// to the matching device.
+  CallbackConfigureRelayer configureRelayer = nullptr;
 
   /// Helper to create the default configuration.
   static std::vector<CompletionPolicy> createDefaultPolicies();
-
-  /// Constructor
-  CompletionPolicy()
-    : name(), matcher(), callback() {}
-  /// Constructor for emplace_back
-  CompletionPolicy(std::string _name, Matcher _matcher, Callback _callback)
-    : name(_name), matcher(_matcher), callback(_callback) {}
 };
 
 std::ostream& operator<<(std::ostream& oss, CompletionPolicy::CompletionOp const& val);
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_COMPLETIONPOLICY_H
+#endif // O2_FRAMEWORK_COMPLETIONPOLICY_H_

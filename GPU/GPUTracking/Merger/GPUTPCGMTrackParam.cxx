@@ -327,7 +327,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
             qtot = cl.qTot;
             qmax = cl.qMax;
           }
-          dEdx.fillCluster(qtot, qmax, clusters[ihit].row, mP[2], mP[3], param, merger->GetConstantMem()->calibObjects.dEdxSplines, zz);
+          dEdx.fillCluster(qtot, qmax, clusters[ihit].row, clusters[ihit].slice, mP[2], mP[3], param, merger->GetConstantMem()->calibObjects, zz);
         }
       } else if (retVal == 2) { // cluster far away form the track
         if (allowModification) {

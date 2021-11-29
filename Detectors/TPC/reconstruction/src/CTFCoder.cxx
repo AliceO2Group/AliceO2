@@ -104,7 +104,7 @@ void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::
   }
   const CTF::container_t* ctf = CTF::get(buff.data());
   mCombineColumns = ctf->getHeader().flags & CTFHeader::CombinedColumns;
-  LOG(INFO) << "TPC CTF Columns Combining " << (mCombineColumns ? "ON" : "OFF");
+  LOG(info) << "TPC CTF Columns Combining " << (mCombineColumns ? "ON" : "OFF");
 
   const CompressedClusters cc; // just to get member types
   if (mCombineColumns) {
@@ -163,7 +163,7 @@ void CTFCoder::checkDataDictionaryConsistency(const CTFHeader& h)
     }
   } else {
     setCombineColumns(h.flags & CTFHeader::CombinedColumns);
-    LOG(INFO) << "CTF with stored dictionaries, columns combining " << (mCombineColumns ? "ON" : "OFF");
+    LOG(info) << "CTF with stored dictionaries, columns combining " << (mCombineColumns ? "ON" : "OFF");
   }
 }
 
@@ -201,6 +201,6 @@ size_t CTFCoder::estimateCompressedSize(const CompressedClusters& ccl)
   sz += ESTSIZE(CTF::BLCnSliceRowClusters, ccl.nSliceRowClusters, ccl.nSliceRows);
   // clang-format on
   sz *= 2. / 3; // if needed, will be autoexpanded
-  LOG(INFO) << "Estimated output size is " << sz << " bytes";
+  LOG(info) << "Estimated output size is " << sz << " bytes";
   return sz;
 }

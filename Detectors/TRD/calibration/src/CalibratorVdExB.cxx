@@ -147,14 +147,15 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
     auto fitResult = fitter.Result();
     laFitResults[iDet] = fitResult.Parameter(ParamIndex::LA);
     vdFitResults[iDet] = fitResult.Parameter(ParamIndex::VD);
-    LOGF(DEBUG, "Fit result for chamber %i: vd=%f, la=%f", iDet, vdFitResults[iDet], laFitResults[iDet] * TMath::RadToDeg());
+    LOGF(debug, "Fit result for chamber %i: vd=%f, la=%f", iDet, vdFitResults[iDet], laFitResults[iDet] * TMath::RadToDeg());
   }
   timer.Stop();
-  LOGF(INFO, "Done fitting angular residual histograms. CPU time: %f, real time: %f", timer.CpuTime(), timer.RealTime());
+  LOGF(info, "Done fitting angular residual histograms. CPU time: %f, real time: %f", timer.CpuTime(), timer.RealTime());
 
   // write results to CCDB
   o2::ccdb::CcdbApi ccdb;
   ccdb.init("http://ccdb-test.cern.ch:8080");
+  // ccdb.init("http://localhost:8080");
   std::map<std::string, std::string> metadata; // TODO: do we want to store any meta data?
   CalVdriftExB calObject;
   for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
@@ -164,7 +165,9 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
     calObject.setExB(iDet, laFitResults[iDet]);
   }
   auto timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-  ccdb.storeAsTFileAny(&calObject, "TRD/Calib/CalVdriftExB", metadata, timeStamp);
+  auto timeStampEnd = timeStamp;
+  timeStampEnd += 1e3 * 60 * 60 * 24 * 7; // set validity of 7 days
+  ccdb.storeAsTFileAny(&calObject, "TRD/Calib/CalVdriftExB", metadata, timeStamp, timeStampEnd);
 }
 
 Slot& CalibratorVdExB::emplaceNewSlot(bool front, uint64_t tStart, uint64_t tEnd)

@@ -19,7 +19,7 @@
 #include "DataFormatsTOF/CalibLHCphaseTOF.h"
 #include "TOFBase/Geo.h"
 #include "CCDB/CcdbObjectInfo.h"
-#include "TOFCalibration/CalibTOFapi.h"
+#include "TOFBase/CalibTOFapi.h"
 
 #include <array>
 #include <boost/histogram.hpp>
@@ -36,6 +36,13 @@
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CcdbApi.h"
 #include <boost/format.hpp>
+
+//#define DEBUGGING
+
+#ifdef DEBUGGING
+#include "TProfile.h"
+#include "TH2F.h"
+#endif
 
 using o2::math_utils::fitGaus;
 
@@ -56,10 +63,14 @@ class TOFChannelData
 
   TOFChannelData()
   {
-    LOG(INFO) << "Default c-tor, not to be used";
+    LOG(info) << "Default c-tor, not to be used";
   }
 
-  TOFChannelData(int nb, float r, CalibTOFapi* cta, int nElsPerSector = o2::tof::Geo::NPADSXSECTOR, bool perstrip = false) : mNBins(nb), mRange(r), mCalibTOFapi(cta), mNElsPerSector(nElsPerSector), mPerStrip(perstrip)
+#ifndef DEBUGGING
+  TOFChannelData(int nb, float r, CalibTOFapi* cta, int nElsPerSector = o2::tof::Geo::NPADSXSECTOR, bool perstrip = false, bool safe = false) : mNBins(nb), mRange(r), mCalibTOFapi(cta), mNElsPerSector(nElsPerSector), mPerStrip(perstrip), mSafeMode(safe)
+#else
+  TOFChannelData(int nb, float r, CalibTOFapi* cta, int nElsPerSector = o2::tof::Geo::NPADSXSECTOR, bool perstrip = false, bool safe = false, TH2F* h = nullptr) : mNBins(nb), mRange(r), mCalibTOFapi(cta), mNElsPerSector(nElsPerSector), mPerStrip(perstrip), mSafeMode(safe), mChannelDist(h)
+#endif
   {
     if (r <= 0. || nb < 1) {
       throw std::runtime_error("Wrong initialization of the histogram");
@@ -102,6 +113,7 @@ class TOFChannelData
   std::vector<int> getEntriesPerChannel() const { return mEntries; }
 
   void doPerStrip(bool val = true) { mPerStrip = val; }
+  void doSafeMode(bool val = true) { mSafeMode = val; }
 
  private:
   float mRange = o2::tof::Geo::BC_TIME_INPS * 0.5;
@@ -110,10 +122,15 @@ class TOFChannelData
   std::array<boostHisto, 18> mHisto;
   std::vector<int> mEntries; // vector containing number of entries per channel
 
+#ifdef DEBUGGING
+  TH2F* mChannelDist;
+#endif
+
   CalibTOFapi* mCalibTOFapi = nullptr; // calibTOFapi to correct the t-text
   int mNElsPerSector = o2::tof::Geo::NPADSXSECTOR;
 
   bool mPerStrip = false;
+  bool mSafeMode = false;
 
   ClassDefNV(TOFChannelData, 1);
 };
@@ -129,11 +146,17 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
   using CcdbObjectInfoVector = std::vector<CcdbObjectInfo>;
   using TimeSlewingVector = std::vector<TimeSlewing>;
 
+#ifdef DEBUGGING
+  TProfile* mFitCal;  //("fitCal",";channel;offset (ps)",13104,0,157248);
+  TH2F* mChannelDist; //("channelDist",";channel; t - t_{exp}^{#pi} (ps)",13104,0,157248,1000,-100000,100000);
+#endif
+
  protected:
   std::deque<o2::calibration::TimeSlot<o2::tof::TOFChannelData>>& getSlots() { return o2::calibration::TimeSlotCalibration<T, o2::tof::TOFChannelData>::getSlots(); }
 
  public:
   void doPerStrip(bool val = true) { mPerStrip = val; }
+  void doSafeMode(bool val = true) { mSafeMode = val; }
 
   static double FuncDeltaOffset(double* x, double* params)
   {
@@ -155,7 +178,7 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
                                                              // since at max we parallelize the processing of the sectors,
                                                              // the number if sectors is what we use
 
-  TOFChannelCalibrator(int minEnt = 500, int nb = 1000, float r = 24400, bool perstrip = false) : mMinEntries(minEnt), mNBins(nb), mRange(r), mPerStrip(perstrip)
+  TOFChannelCalibrator(int minEnt = 500, int nb = 1000, float r = 24400, bool perstrip = false, bool safe = false) : mMinEntries(minEnt), mNBins(nb), mRange(r), mPerStrip(perstrip), mSafeMode(safe)
   {
     setStripFunction();
     for (int i = 0; i < NMAXTHREADS; ++i) {
@@ -163,6 +186,10 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
       mLinFitters[i].SetDim(3);
       mLinFitters[i].SetFormula("pol2");
     }
+#ifdef DEBUGGING
+    mFitCal = new TProfile("fitCal", ";channel;offset (ps)", 157248, 0, 157248);
+    mChannelDist = new TH2F("channelDist", ";channel; t - t_{exp}^{#pi} (ps)", 157248, 0, 157248, 1000, -100000, 100000);
+#endif
   }
 
   ~TOFChannelCalibrator() final = default;
@@ -172,7 +199,7 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
     // Checking if all channels have enough data to do calibration.
     // Delegating this to TOFChannelData
     const o2::tof::TOFChannelData* c = slot.getContainer();
-    LOG(DEBUG) << "Checking statistics";
+    LOG(debug) << "Checking statistics";
     return (mTest ? true : c->hasEnoughData(mMinEntries));
   }
 
@@ -199,7 +226,12 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
     auto& cont = getSlots();
     auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
     int nElements = mCalibWithCosmics ? NCOMBINSTRIP * Geo::NSTRIPXSECTOR : Geo::NPADSXSECTOR; // if we calibrate with cosmics, we pass the number of possible combinations per sector; otherwise, the number of pads per sector
-    slot.setContainer(std::make_unique<TOFChannelData>(mNBins, mRange, mCalibTOFapi, nElements, mPerStrip));
+#ifndef DEBUGGING
+    slot.setContainer(std::make_unique<TOFChannelData>(mNBins, mRange, mCalibTOFapi, nElements, mPerStrip, mSafeMode));
+#else
+    slot.setContainer(std::make_unique<TOFChannelData>(mNBins, mRange, mCalibTOFapi, nElements, mPerStrip, mSafeMode, mChannelDist));
+#endif
+
     return slot;
   }
 
@@ -268,6 +300,7 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
   float mRange = 0.;   // range of the histogram with the t-text per channel
   bool mTest = false;  // flag to be used when running in test mode: it simplify the processing (e.g. does not go through all channels)
   bool mPerStrip = false;
+  bool mSafeMode = false;
 
   CalibTOFapi* mCalibTOFapi = nullptr; // CalibTOFapi needed to get the previous calibrations read from CCDB (do we need that it is a pointer?)
 

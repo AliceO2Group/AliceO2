@@ -43,11 +43,11 @@ class CPVPedestalCalibDevice : public o2::framework::Task
       mCalibrator->setUpdateAtTheEndOfRunOnly();
     }
     mCalibrator->setCheckIntervalInfiniteSlot(updateInterval);
-    LOG(INFO) << "CPVPedestalCalibDevice initialized";
-    LOG(INFO) << "tf-per-slot = " << slotL;
-    LOG(INFO) << "max-delay = " << delay;
-    LOG(INFO) << "updateInterval = " << updateInterval;
-    LOG(INFO) << "updateAtTheEndOfRunOnly = " << updateAtTheEndOfRunOnly;
+    LOG(info) << "CPVPedestalCalibDevice initialized";
+    LOG(info) << "tf-per-slot = " << slotL;
+    LOG(info) << "max-delay = " << delay;
+    LOG(info) << "updateInterval = " << updateInterval;
+    LOG(info) << "updateAtTheEndOfRunOnly = " << updateAtTheEndOfRunOnly;
   }
   //_________________________________________________________________
   void run(o2::framework::ProcessingContext& pc) final
@@ -55,7 +55,7 @@ class CPVPedestalCalibDevice : public o2::framework::Task
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("digits").header)->startTime;
     auto&& digits = pc.inputs().get<gsl::span<o2::cpv::Digit>>("digits");
     auto&& trigrecs = pc.inputs().get<gsl::span<o2::cpv::TriggerRecord>>("trigrecs");
-    LOG(INFO) << "Processing TF " << tfcounter << " with " << digits.size() << " digits in " << trigrecs.size() << " trigger records.";
+    LOG(info) << "Processing TF " << tfcounter << " with " << digits.size() << " digits in " << trigrecs.size() << " trigger records.";
     auto& slotTF = mCalibrator->getSlotForTF(tfcounter);
 
     for (auto trigrec = trigrecs.begin(); trigrec != trigrecs.end(); trigrec++) { //event loop
@@ -63,7 +63,7 @@ class CPVPedestalCalibDevice : public o2::framework::Task
       // and when last event is reached we call mCalibrator->process() to finalize the TimeSlot
       auto&& digitsInOneEvent = digits.subspan((*trigrec).getFirstEntry(), (*trigrec).getNumberOfObjects());
       if ((trigrec + 1) == trigrecs.end()) { //last event in current TF, let's process corresponding TimeSlot
-        //LOG(INFO) << "last event, I call mCalibrator->process()";
+        //LOG(info) << "last event, I call mCalibrator->process()";
         mCalibrator->process(tfcounter, digitsInOneEvent); //fill TimeSlot with digits from 1 event and check slots for finalization
       } else {
         slotTF.getContainer()->fill(digitsInOneEvent); //fill TimeSlot with digits from 1 event
@@ -73,7 +73,7 @@ class CPVPedestalCalibDevice : public o2::framework::Task
     auto infoVecSize = mCalibrator->getCcdbInfoPedestalsVector().size();
     auto pedsVecSize = mCalibrator->getPedestalsVector().size();
     if (infoVecSize > 0) {
-      LOG(INFO) << "Created " << infoVecSize << " ccdb infos and " << pedsVecSize << " pedestal objects for TF " << tfcounter;
+      LOG(info) << "Created " << infoVecSize << " ccdb infos and " << pedsVecSize << " pedestal objects for TF " << tfcounter;
     }
     sendOutput(pc.outputs());
   }
@@ -97,7 +97,7 @@ class CPVPedestalCalibDevice : public o2::framework::Task
     for (uint32_t i = 0; i < payloadVec.size(); i++) {
       auto& w = infoVec[i];
       auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
-      LOG(INFO) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
+      LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
                 << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_Pedestals", i}, *image.get()); // vector<char>
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_Pedestals", i}, w);            // root-serialized
@@ -125,7 +125,7 @@ class CPVPedestalCalibDevice : public o2::framework::Task
     for (uint32_t i = 0; i < payloadVec.size(); i++) {
       auto& w = infoVec[i];
       auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
-      LOG(INFO) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
+      LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
                 << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, what, i}, *image.get()); // vector<char>
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, what, i}, w);            // root-serialized
@@ -143,16 +143,16 @@ DataProcessorSpec getCPVPedestalCalibDeviceSpec()
 
   std::vector<OutputSpec> outputs;
   // Length of data description ("CPV_Pedestals") must be < 16 characters.
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_Pedestals"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_Pedestals"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_FEEThrs"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_FEEThrs"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_PedEffs"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_PedEffs"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_DeadChnls"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_DeadChnls"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_HighThrs"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_HighThrs"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_Pedestals"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_Pedestals"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_FEEThrs"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_FEEThrs"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_PedEffs"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_PedEffs"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_DeadChnls"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_DeadChnls"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_HighThrs"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_HighThrs"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "cpv-pedestal-calibration",

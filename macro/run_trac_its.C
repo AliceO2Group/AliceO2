@@ -62,15 +62,15 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   //-------- init geometry and field --------//
   const auto grp = o2::parameters::GRPObject::loadFrom(path + inputGRP);
   if (!grp) {
-    LOG(FATAL) << "Cannot run w/o GRP object";
+    LOG(fatal) << "Cannot run w/o GRP object";
   }
   bool isITS = grp->isDetReadOut(o2::detectors::DetID::ITS);
   if (!isITS) {
-    LOG(WARNING) << "ITS is not in the readoute";
+    LOG(warning) << "ITS is not in the readoute";
     return;
   }
   bool isContITS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS);
-  LOG(INFO) << "ITS is in " << (isContITS ? "CONTINUOS" : "TRIGGERED") << " readout mode";
+  LOG(info) << "ITS is in " << (isContITS ? "CONTINUOS" : "TRIGGERED") << " readout mode";
 
   o2::base::GeometryManager::loadGeometry(inputGeom);
   auto gman = o2::its::GeometryTGeo::Instance();
@@ -79,7 +79,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   o2::base::Propagator::initFieldFromGRP(grp);
   auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
   if (!field) {
-    LOG(FATAL) << "Failed to load ma";
+    LOG(fatal) << "Failed to load ma";
   }
 
   //>>>---------- attach input data --------------->>>
@@ -87,31 +87,31 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   itsClusters.AddFile((path + inputClustersITS).data());
 
   if (!itsClusters.GetBranch("ITSClusterComp")) {
-    LOG(FATAL) << "Did not find ITS clusters branch ITSClusterComp in the input tree";
+    LOG(fatal) << "Did not find ITS clusters branch ITSClusterComp in the input tree";
   }
   std::vector<o2::itsmft::CompClusterExt>* cclusters = nullptr;
   itsClusters.SetBranchAddress("ITSClusterComp", &cclusters);
 
   if (!itsClusters.GetBranch("ITSClusterPatt")) {
-    LOG(FATAL) << "Did not find ITS cluster patterns branch ITSClusterPatt in the input tree";
+    LOG(fatal) << "Did not find ITS cluster patterns branch ITSClusterPatt in the input tree";
   }
   std::vector<unsigned char>* patterns = nullptr;
   itsClusters.SetBranchAddress("ITSClusterPatt", &patterns);
 
   MCLabCont* labels = nullptr;
   if (!itsClusters.GetBranch("ITSClusterMCTruth")) {
-    LOG(WARNING) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree";
+    LOG(warning) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree";
   } else {
     itsClusters.SetBranchAddress("ITSClusterMCTruth", &labels);
   }
 
   if (!itsClusters.GetBranch("ITSClustersROF")) {
-    LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
+    LOG(fatal) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
   }
 
   std::vector<o2::itsmft::MC2ROFRecord>* mc2rofs = nullptr;
   if (!itsClusters.GetBranch("ITSClustersMC2ROF")) {
-    LOG(WARNING) << "Did not find ITSClustersMC2ROF branch in the input tree";
+    LOG(warning) << "Did not find ITSClustersMC2ROF branch in the input tree";
   }
   itsClusters.SetBranchAddress("ITSClustersMC2ROF", &mc2rofs);
 
@@ -122,14 +122,14 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
 
   o2::itsmft::TopologyDictionary dict;
   if (dictfile.empty()) {
-    dictfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "", "bin");
+    dictfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "");
   }
   std::ifstream file(dictfile.c_str());
   if (file.good()) {
-    LOG(INFO) << "Running with dictionary: " << dictfile.c_str();
-    dict.readBinaryFile(dictfile);
+    LOG(info) << "Running with dictionary: " << dictfile.c_str();
+    dict.readFromFile(dictfile);
   } else {
-    LOG(INFO) << "Running without dictionary !";
+    LOG(info) << "Running without dictionary !";
   }
 
   //>>>--------- create/attach output ------------->>>

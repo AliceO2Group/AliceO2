@@ -63,7 +63,7 @@ class O2MCApplication : public O2MCApplicationBase
       det->EndOfEvent();
     }
     fStack->Reset();
-    LOG(INFO) << "This event/chunk did " << mStepCounter << " steps";
+    LOG(info) << "This event/chunk did " << mStepCounter << " steps";
   }
 
   /** Define actions at the end of run */
@@ -75,7 +75,7 @@ class O2MCApplication : public O2MCApplicationBase
   void GeneratePrimaries() override
   {
     // ordinarily we would call the event generator ...
-    LOG(DEBUG) << "O2MCApplication: Init primaries from external buffer " << mPrimaries.size();
+    LOG(debug) << "O2MCApplication: Init primaries from external buffer " << mPrimaries.size();
     GetStack()->Reset();
     // but here we init the stack from
     // a vector of particles that someone sets externally

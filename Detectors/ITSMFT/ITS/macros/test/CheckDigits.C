@@ -103,7 +103,7 @@ void CheckDigits(std::string digifile = "itsdigits.root", std::string hitfile = 
       int irof = mc2rof.rofRecordID + irfd;
 
       if (irof >= nROFRec) {
-        LOG(ERROR) << "ROF=" << irof << " from MC2ROF record is >= N ROFs=" << nROFRec;
+        LOG(error) << "ROF=" << irof << " from MC2ROF record is >= N ROFs=" << nROFRec;
       }
       if (mcEvMin[irof] > imc) {
         mcEvMin[irof] = imc;
@@ -172,7 +172,7 @@ void CheckDigits(std::string digifile = "itsdigits.root", std::string hitfile = 
 
         if (hitEntry == mc2hit->end()) {
 
-          LOG(ERROR) << "Failed to find MC hit entry for Tr" << trID << " chipID" << chipID;
+          LOG(error) << "Failed to find MC hit entry for Tr" << trID << " chipID" << chipID;
           continue;
         }
 

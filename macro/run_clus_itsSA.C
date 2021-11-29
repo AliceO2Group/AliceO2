@@ -42,14 +42,14 @@ void run_clus_itsSA(std::string inputfile = "rawits.bin", // input file name
   clus->setMaxROframe(2 << 21); // about 3 cluster files per a raw data chunk
 
   if (dictionaryfile.empty()) {
-    dictionaryfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "", "bin");
+    dictionaryfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "");
   }
   std::ifstream file(dictionaryfile.c_str());
   if (file.good()) {
-    LOG(INFO) << "Running with dictionary: " << dictionaryfile.c_str();
+    LOG(info) << "Running with dictionary: " << dictionaryfile.c_str();
     clus->loadDictionary(dictionaryfile.c_str());
   } else {
-    LOG(INFO) << "Running without dictionary !";
+    LOG(info) << "Running without dictionary !";
   }
 
   // Mask fired pixels separated by <= this number of BCs (for overflow pixels).

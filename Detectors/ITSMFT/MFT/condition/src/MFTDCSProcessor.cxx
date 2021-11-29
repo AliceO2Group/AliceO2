@@ -29,10 +29,10 @@ ClassImp(o2::mft::MFTDCSinfo);
 
 void MFTDCSinfo::print() const
 {
-  LOG(INFO) << "First Value: timestamp = " << firstValue.first << ", value = " << firstValue.second;
-  LOG(INFO) << "Last Value:  timestamp = " << lastValue.first << ", value = " << lastValue.second;
-  LOG(INFO) << "Mid Value:   timestamp = " << midValue.first << ", value = " << midValue.second;
-  LOG(INFO) << "Max Change:  timestamp = " << maxChange.first << ", value = " << maxChange.second;
+  LOG(info) << "First Value: timestamp = " << firstValue.first << ", value = " << firstValue.second;
+  LOG(info) << "Last Value:  timestamp = " << lastValue.first << ", value = " << lastValue.second;
+  LOG(info) << "Mid Value:   timestamp = " << midValue.first << ", value = " << midValue.second;
+  LOG(info) << "Max Change:  timestamp = " << maxChange.first << ", value = " << maxChange.second;
 }
 
 //__________________________________________________________________
@@ -56,7 +56,7 @@ int MFTDCSProcessor::process(const gsl::span<const DPCOM> dps)
   // first we check which DPs are missing - if some are, it means that
   // the delta map was sent
   if (mVerbose) {
-    LOG(INFO) << "\n\n\nProcessing new TF\n-----------------";
+    LOG(info) << "\n\n\nProcessing new TF\n-----------------";
   }
   if (!mStartTFset) {
     mStartTF = mTF;
@@ -70,9 +70,9 @@ int MFTDCSProcessor::process(const gsl::span<const DPCOM> dps)
   for (auto& it : mPids) {
     const auto& el = mapin.find(it.first);
     if (el == mapin.end()) {
-      LOG(DEBUG) << "DP " << it.first << " not found in map";
+      LOG(debug) << "DP " << it.first << " not found in map";
     } else {
-      LOG(DEBUG) << "DP " << it.first << " found in map";
+      LOG(debug) << "DP " << it.first << " found in map";
     }
   }
 
@@ -81,7 +81,7 @@ int MFTDCSProcessor::process(const gsl::span<const DPCOM> dps)
     // we process only the DPs defined in the configuration
     const auto& el = mPids.find(it.id);
     if (el == mPids.end()) {
-      LOG(INFO) << "DP " << it.id << " not found in MFTDCSProcessor, we will not process it";
+      LOG(info) << "DP " << it.id << " not found in MFTDCSProcessor, we will not process it";
       continue;
     }
     /*
@@ -113,11 +113,11 @@ int MFTDCSProcessor::processDP(const DPCOM& dpcom)
   auto& val = dpcom.data;
   if (mVerbose) {
     if (type == RAW_DOUBLE) {
-      LOG(INFO);
-      LOG(INFO) << "Processing DP = " << dpcom << ", with value = " << o2::dcs::getValue<double>(dpcom);
+      LOG(info);
+      LOG(info) << "Processing DP = " << dpcom << ", with value = " << o2::dcs::getValue<double>(dpcom);
     } else if (type == RAW_INT) {
-      LOG(INFO);
-      LOG(INFO) << "Processing DP = " << dpcom << ", with value = " << o2::dcs::getValue<int32_t>(dpcom);
+      LOG(info);
+      LOG(info) << "Processing DP = " << dpcom << ", with value = " << o2::dcs::getValue<int32_t>(dpcom);
     }
   }
 
@@ -127,7 +127,7 @@ int MFTDCSProcessor::processDP(const DPCOM& dpcom)
   if (type == RAW_DOUBLE) {
     // for these DPs, we will store the first, last, mid value, plus the value where the maximum variation occurred
     auto& dvect = mDpsdoublesmap[dpid];
-    LOG(INFO) << "mDpsdoublesmap[dpid].size() = " << dvect.size();
+    LOG(info) << "mDpsdoublesmap[dpid].size() = " << dvect.size();
     auto etime = val.get_epoch_time();
     if (dvect.size() == 0 || etime != dvect.back().get_epoch_time()) { // we check
                                                                        // that we did not get the
@@ -146,7 +146,7 @@ void MFTDCSProcessor::updateDPsCCDB()
 {
 
   // here we create the object to then be sent to CCDB
-  LOG(INFO) << "Finalizing";
+  LOG(info) << "Finalizing";
   union Converter {
     uint64_t raw_data;
     double double_value;
@@ -206,7 +206,7 @@ void MFTDCSProcessor::updateDPsCCDB()
         }
       }
       if (mVerbose) {
-        LOG(INFO) << "PID = " << it.first.get_alias();
+        LOG(info) << "PID = " << it.first.get_alias();
         mftdcs.print();
       }
     }

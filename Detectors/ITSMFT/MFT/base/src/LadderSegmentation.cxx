@@ -89,7 +89,7 @@ void LadderSegmentation::createSensors(TXMLEngine* xml, XMLNodePointer_t node)
       if (!attrName.CompareTo("ichip")) {
         ichip = attrVal.Atoi();
         if (ichip >= getNSensors() || ichip < 0) {
-          LOG(FATAL) << "Wrong chip number : " << ichip;
+          LOG(fatal) << "Wrong chip number : " << ichip;
         }
       } else if (!attrName.CompareTo("xpos")) {
         pos[0] = attrVal.Atof();
@@ -104,7 +104,7 @@ void LadderSegmentation::createSensors(TXMLEngine* xml, XMLNodePointer_t node)
       } else if (!attrName.CompareTo("psi")) {
         ang[2] = attrVal.Atof();
       } else {
-        LOG(ERROR) << "Unknwon Attribute name " << xml->GetAttrName(attr);
+        LOG(error) << "Unknwon Attribute name " << xml->GetAttrName(attr);
       }
       attr = xml->GetNextAttr(attr);
     }

@@ -204,7 +204,7 @@ ExpirationHandler::Checker
     if (waitForCTP == false || dataTakingContext.source == OrbitResetTimeSource::CTP) {
       return true;
     }
-    LOG(INFO) << "CTP is not there, fetching.";
+    LOG(info) << "CTP is not there, fetching.";
     std::vector<char> buffer;
     CURL* curl = curl_easy_init();
     if (curl == nullptr) {
@@ -213,7 +213,7 @@ ExpirationHandler::Checker
     CURLcode res;
     std::string path = "CTP/Calib/OrbitReset";
     auto url = fmt::format("{}/{}/{}", serverUrl, path, timestamp / 1000);
-    LOG(INFO) << "Fetching CTP from " << url;
+    LOG(info) << "Fetching CTP from " << url;
 
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buffer);
@@ -247,7 +247,7 @@ ExpirationHandler::Checker
     }
     memFile.Close();
     std::vector<Long64_t>* ctp = (std::vector<Long64_t>*)result;
-    LOG(INFO) << "Orbit reset time now at " << (*ctp)[0];
+    LOG(info) << "Orbit reset time now at " << (*ctp)[0];
     dataTakingContext.orbitResetTime = (*ctp)[0];
     dataTakingContext.source = OrbitResetTimeSource::CTP;
     return true;
@@ -437,7 +437,7 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     dh.tfCounter = timestamp;
     dh.firstTForbit = timestamp * orbitMultiplier + orbitOffset;
     DataProcessingHeader dph{timestamp, 1};
-    services.get<CallbackService>()(CallbackService::Id::NewTimeslice, dh);
+    services.get<CallbackService>()(CallbackService::Id::NewTimeslice, dh, dph);
 
     variables.put({data_matcher::FIRSTTFORBIT_POS, dh.firstTForbit});
     variables.put({data_matcher::TFCOUNTER_POS, dh.tfCounter});
@@ -504,21 +504,21 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
 
 // Life is too short. LISP rules.
 #define STREAM_ENUM(x) \
-  case x:              \
+  case Lifetime::x:    \
     oss << #x;         \
     break;
 std::ostream& operator<<(std::ostream& oss, Lifetime const& val)
 {
   switch (val) {
-    STREAM_ENUM(Lifetime::Timeframe)
-    STREAM_ENUM(Lifetime::Condition)
-    STREAM_ENUM(Lifetime::QA)
-    STREAM_ENUM(Lifetime::Transient)
-    STREAM_ENUM(Lifetime::Timer)
-    STREAM_ENUM(Lifetime::Enumeration)
-    STREAM_ENUM(Lifetime::Signal)
-    STREAM_ENUM(Lifetime::Optional)
-    STREAM_ENUM(Lifetime::OutOfBand)
+    STREAM_ENUM(Timeframe)
+    STREAM_ENUM(Condition)
+    STREAM_ENUM(QA)
+    STREAM_ENUM(Transient)
+    STREAM_ENUM(Timer)
+    STREAM_ENUM(Enumeration)
+    STREAM_ENUM(Signal)
+    STREAM_ENUM(Optional)
+    STREAM_ENUM(OutOfBand)
   };
   return oss;
 }

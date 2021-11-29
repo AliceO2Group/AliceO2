@@ -47,13 +47,13 @@ void VertexTrackMatcher::updateTimeDependentParams()
     std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
     const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
     mITSROFrameLengthMUS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS) ? alpParams.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingMUS : alpParams.roFrameLengthTrig * 1.e-3;
-    LOG(INFO) << "VertexTrackMatcher::ITSROFrameLengthMUS = " << mITSROFrameLengthMUS;
+    LOG(info) << "VertexTrackMatcher::ITSROFrameLengthMUS = " << mITSROFrameLengthMUS;
   }
   if (mMFTROFrameLengthMUS == 0) {
     std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
     const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
     mMFTROFrameLengthMUS = grp->isDetContinuousReadOut(o2::detectors::DetID::MFT) ? alpParams.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingMUS : alpParams.roFrameLengthTrig * 1.e-3;
-    LOG(INFO) << "VertexTrackMatcher::MFTROFrameLengthMUS = " << mMFTROFrameLengthMUS;
+    LOG(info) << "VertexTrackMatcher::MFTROFrameLengthMUS = " << mMFTROFrameLengthMUS;
   }
 }
 
@@ -86,8 +86,8 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
     }
     const auto& vtx = vertices[iv];
     const auto& vto = vtxOrdBrack.emplace_back(VtxTBracket{
-      {float((vtx.getIRMin().differenceInBC(recoData.startIR) - 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS),
-       float((vtx.getIRMax().differenceInBC(recoData.startIR) + 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS)},
+      {float((vtx.getIRMin().differenceInBC(recoData.startIR) - 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS - mPVParams->timeMarginVertexTime),
+       float((vtx.getIRMax().differenceInBC(recoData.startIR) + 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS + mPVParams->timeMarginVertexTime)},
       iv});
     if (vto.tBracket.delta() > maxVtxSpan) {
       maxVtxSpan = vto.tBracket.delta();
@@ -168,9 +168,9 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
       vr.setFirstEntryOfSource(oldSrc, trackIndex.size());
     }
     vr.setEnd(trackIndex.size());
-    LOG(INFO) << vr;
+    LOG(info) << vr;
   }
-  LOG(INFO) << "Assigned " << nAssigned << " (" << nAmbiguous << " ambiguously) out of " << mTBrackets.size() << " non-contributor tracks + " << vcont.size() << " contributors";
+  LOG(info) << "Assigned " << nAssigned << " (" << nAmbiguous << " ambiguously) out of " << mTBrackets.size() << " non-contributor tracks + " << vcont.size() << " contributors";
 }
 
 //________________________________________________________
@@ -196,9 +196,12 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
       terr *= this->mMFTROFrameLengthMUS;
     } else if constexpr (isGlobalFwdTrack<decltype(_tr)>()) {
       t0 = _tr.getTimeMUS().getTimeStamp();
-      terr = _tr.getTimeMUS().getTimeStampError();
+      terr = _tr.getTimeMUS().getTimeStampError() * mPVParams->nSigmaTimeTrack; // gaussian errors must be scaled by requested n-sigma
+    } else {
+      terr *= mPVParams->nSigmaTimeTrack; // gaussian errors must be scaled by requested n-sigma
     }
     // for all other tracks the time is in \mus with gaussian error
+    terr += mPVParams->timeMarginTrackTime;
     mTBrackets.emplace_back(TrackTBracket{{t0 - terr, t0 + terr}, _origID});
     return true;
   };
@@ -208,5 +211,5 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
   // sort in increasing min.time
   std::sort(mTBrackets.begin(), mTBrackets.end(), [](const TrackTBracket& a, const TrackTBracket& b) { return a.tBracket.getMin() < b.tBracket.getMin(); });
 
-  LOG(INFO) << "collected " << mTBrackets.size() << " non-contributor and " << vcont.size() << " contributor seeds";
+  LOG(info) << "collected " << mTBrackets.size() << " non-contributor and " << vcont.size() << " contributor seeds";
 }

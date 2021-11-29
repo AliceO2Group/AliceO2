@@ -29,7 +29,7 @@ GlobalOffsetsContainer::GlobalOffsetsContainer(std::size_t minEntries)
 
 bool GlobalOffsetsContainer::hasEnoughEntries() const
 {
-  LOG(DEBUG) << "@@@ GlobalOffsetsContainer::hasEnoughEntries " << *std::min_element(mEntriesCollTime.begin(), mEntriesCollTime.end());
+  LOG(debug) << "@@@ GlobalOffsetsContainer::hasEnoughEntries " << *std::min_element(mEntriesCollTime.begin(), mEntriesCollTime.end());
   return *std::min_element(mEntriesCollTime.begin(), mEntriesCollTime.end()) > mMinEntries;
 }
 void GlobalOffsetsContainer::fill(const gsl::span<const o2::ft0::RecoCalibInfoObject>& data)
@@ -43,14 +43,14 @@ void GlobalOffsetsContainer::fill(const gsl::span<const o2::ft0::RecoCalibInfoOb
       ++mEntriesCollTime[1];
       ++mEntriesCollTime[2];
     } else {
-      LOG(DEBUG) << "empty  data A " << entry.getT0A() << " C " << entry.getT0C();
+      LOG(debug) << "empty  data A " << entry.getT0A() << " C " << entry.getT0C();
     }
   }
 }
 
 void GlobalOffsetsContainer::merge(GlobalOffsetsContainer* prev)
 {
-  LOG(DEBUG) << "@@@ GlobalOffsetsContainer::merge";
+  LOG(debug) << "@@@ GlobalOffsetsContainer::merge";
   for (int ihist = 0; ihist < 3; ++ihist) {
     mHistogram[ihist]->Add(prev->mHistogram[ihist], mHistogram[ihist], 1, 1);
   }
@@ -67,23 +67,23 @@ int16_t GlobalOffsetsContainer::getMeanGaussianFitValue(std::size_t side) const
 
   TFitResultPtr returnCode = mHistogram[side]->Fit("gaus", "SQ");
   if (returnCode < 0) {
-    LOG(ERROR) << "Gaussian fit error!";
+    LOG(error) << "Gaussian fit error!";
     return 0;
   }
   double meanfit = 0;
   if ((Int_t)returnCode == 0) {
     meanfit = returnCode->Parameter(1);
   }
-  LOG(DEBUG) << " @@@ MeanGaussianFitValue " << meanfit;
+  LOG(debug) << " @@@ MeanGaussianFitValue " << meanfit;
   return meanfit;
 }
 
 void GlobalOffsetsContainer::print() const
 {
   for (int ihist = 0; ihist < 3; ++ihist) {
-    LOG(INFO) << "Container keep data for global offsets calibration:";
-    LOG(INFO) << "Gaussian mean time A side " << getMeanGaussianFitValue(0) << " based on" << mEntriesCollTime[0] << " entries";
-    LOG(INFO) << "Gaussian mean time C side " << getMeanGaussianFitValue(1) << " based on" << mEntriesCollTime[1] << " entries";
-    LOG(INFO) << "Gaussian mean time AC side " << getMeanGaussianFitValue(2) << " based on" << mEntriesCollTime[2] << " entries";
+    LOG(info) << "Container keep data for global offsets calibration:";
+    LOG(info) << "Gaussian mean time A side " << getMeanGaussianFitValue(0) << " based on" << mEntriesCollTime[0] << " entries";
+    LOG(info) << "Gaussian mean time C side " << getMeanGaussianFitValue(1) << " based on" << mEntriesCollTime[1] << " entries";
+    LOG(info) << "Gaussian mean time AC side " << getMeanGaussianFitValue(2) << " based on" << mEntriesCollTime[2] << " entries";
   }
 }

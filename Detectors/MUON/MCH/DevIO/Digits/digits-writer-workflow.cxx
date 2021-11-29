@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /**
- * o2-mch-digits-writer-workflow dumps to a file on disk the digits received 
+ * o2-mch-digits-writer-workflow dumps to a file on disk the digits received
  * via DPL, mainly in binary format (but txt is possible as well).
  */
 
@@ -55,7 +55,7 @@ class DigitsSinkTask : public io::DigitIOBaseTask
   //_________________________________________________________________________________________________
   void init(InitContext& ic)
   {
-    /** 
+    /**
      * init e.g. the options that are common to reading and writing
      * like max number of timeframes to process, first time frame to process, etc...
      */
@@ -133,13 +133,15 @@ class DigitsSinkTask : public io::DigitIOBaseTask
 };
 
 /**
- * Add workflow options. Note that customization needs to be declared 
+ * Add workflow options. Note that customization needs to be declared
  * before including Framework/runDataProcessing.
  */
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.emplace_back(OPTNAME_WITHOUT_ORBITS, VariantType::Bool, true,
                                ConfigParamSpec::HelpString{"do not expect, in addition to digits and rofs, to get Orbits at the input"});
+  workflowOptions.emplace_back(ConfigParamSpec{"input-digits-data-description", VariantType::String, "DIGITS", {"description string for the input digits data"}});
+  workflowOptions.emplace_back(ConfigParamSpec{"input-digitrofs-data-description", VariantType::String, "DIGITROFS", {"description string for the input digit rofs data"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -150,10 +152,12 @@ WorkflowSpec defineDataProcessing(const ConfigContext& cc)
 
   bool withOrbits = not cc.options().get<bool>(OPTNAME_WITHOUT_ORBITS);
 
-  std::string inputConfig = fmt::format("digits:MCH/DIGITS/0");
-  inputConfig += ";rofs:MCH/DIGITROFS/0";
+  std::string input =
+    fmt::format("digits:MCH/{};rofs:MCH/{}",
+                cc.options().get<std::string>("input-digits-data-description"),
+                cc.options().get<std::string>("input-digitrofs-data-description"));
   if (withOrbits) {
-    inputConfig += ";orbits:MCH/ORBITS/0";
+    input += ";orbits:MCH/ORBITS";
   }
 
   auto commonOptions = o2::mch::io::getCommonOptions();
@@ -167,7 +171,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext& cc)
 
   DataProcessorSpec producer{
     "mch-digits-writer",
-    Inputs{o2::framework::select(inputConfig.c_str())},
+    Inputs{o2::framework::select(input.c_str())},
     Outputs{},
     AlgorithmSpec{adaptFromTask<DigitsSinkTask>(withOrbits)},
     options};

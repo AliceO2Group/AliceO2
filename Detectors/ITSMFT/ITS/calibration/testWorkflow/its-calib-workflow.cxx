@@ -44,8 +44,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto doNoise = configcontext.options().get<bool>("doNoise");
 
-  LOG(INFO) << "ITS calibration workflow options";
-  LOG(INFO) << "Generate noisy-pixel maps: " << doNoise;
+  LOG(info) << "ITS calibration workflow options";
+  LOG(info) << "Generate noisy-pixel maps: " << doNoise;
 
   if (doNoise) {
     specs.emplace_back(o2::its::getNoiseCalibratorSpec());

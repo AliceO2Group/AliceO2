@@ -70,7 +70,7 @@ class TopologyDictionary
   /// Default constructor
   TopologyDictionary();
   /// Constructor
-  TopologyDictionary(std::string fileName);
+  TopologyDictionary(const std::string& fileName);
 
   /// constexpr for the definition of the groups of rare topologies.
   /// The attritbution of the group ID is stringly dependent on the following parameters: it must be a power of 2.
@@ -82,9 +82,12 @@ class TopologyDictionary
   /// Prints the dictionary
   friend std::ostream& operator<<(std::ostream& os, const TopologyDictionary& dictionary);
   /// Prints the dictionary in a binary file
-  void writeBinaryFile(std::string outputFile);
+  void writeBinaryFile(const std::string& outputFile);
   /// Reads the dictionary from a binary file
-  int readBinaryFile(std::string fileName);
+  int readBinaryFile(const std::string& fileName);
+
+  int readFromFile(const std::string& fileName);
+
   /// Returns the x position of the COG for the n_th element
   inline float getXCOG(int n) const
   {
@@ -160,6 +163,8 @@ class TopologyDictionary
   math_utils::Point3D<float> getClusterCoordinates(const CompCluster& cl) const;
   ///Returns the local position of a compact cluster
   static math_utils::Point3D<float> getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt, bool isGroup = true);
+
+  static TopologyDictionary* loadFrom(const std::string& fileName = "", const std::string& objName = "ccdb_object");
 
   friend BuildTopologyDictionary;
   friend LookUp;

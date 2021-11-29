@@ -44,7 +44,7 @@ void PHOSTurnonCalibDevice::run(o2::framework::ProcessingContext& pc)
   auto clusters = pc.inputs().get<gsl::span<Cluster>>("clusters");
   auto cluTR = pc.inputs().get<gsl::span<TriggerRecord>>("clusterTriggerRecords");
 
-  LOG(INFO) << "[PHOSTurnonCalibDevice - run]  Received " << cells.size() << " cells and " << clusters.size() << " clusters, running calibration";
+  LOG(info) << "[PHOSTurnonCalibDevice - run]  Received " << cells.size() << " cells and " << clusters.size() << " clusters, running calibration";
 
   mCalibrator->process(tfcounter, cells, cellTR, clusters, cluTR);
 }
@@ -63,7 +63,7 @@ void PHOSTurnonCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
     info.setMetaData(md);
     auto image = o2::ccdb::CcdbApi::createObjectImage(mTriggerMap.get(), &info);
 
-    LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName()
+    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
               << " of size " << image->size()
               << " bytes, valid for " << info.getStartValidityTimestamp()
               << " : " << info.getEndValidityTimestamp();
@@ -72,7 +72,7 @@ void PHOSTurnonCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
     ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_Tunron", subSpec}, *image.get());
     ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_Tunron", subSpec}, info);
   } else {
-    LOG(ERROR) << "Incorrect fit results";
+    LOG(error) << "Incorrect fit results";
   }
   // //Send result to QC
   // ec.outputs().snapshot(o2::framework::Output{"PHS", "TRIGMAPDIFF", 0, o2::framework::Lifetime::Timeframe}, mTrigMapDiff);
@@ -91,9 +91,9 @@ o2::framework::DataProcessorSpec o2::phos::getPHOSTurnonCalibDeviceSpec(bool use
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(
-    ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_Tunron"});
+    ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_Tunron"}, Lifetime::Sporadic);
   outputs.emplace_back(
-    ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_Tunron"});
+    ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_Tunron"}, Lifetime::Sporadic);
   //stream for QC data
   //outputs.emplace_back("PHS", "TRIGGERQC", 0, o2::framework::Lifetime::Timeframe);
 

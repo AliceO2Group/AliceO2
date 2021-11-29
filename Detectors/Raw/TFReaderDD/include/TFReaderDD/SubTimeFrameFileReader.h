@@ -15,6 +15,7 @@
 #define ALICEO2_SUBTIMEFRAME_FILE_READER_RAWDD_H_
 
 #include <Headers/DataHeader.h>
+#include <Headers/STFHeader.h>
 #include "DetectorsCommonDataFormats/DetID.h"
 #include <Headers/Stack.h>
 #include <fairmq/FairMQParts.h>
@@ -42,12 +43,6 @@ using MessagesPerRoute = std::unordered_map<std::string, std::unique_ptr<FairMQP
 class SubTimeFrameFileReader
 {
  public:
-  static constexpr o2::header::DataDescription gDataDescSubTimeFrame{"DISTSUBTIMEFRAME"};
-  struct STFHeader { // fake header to mimic DD SubTimeFrame::Header sent with DISTSUBTIMEFRAME message
-    uint64_t id = uint64_t(-1);
-    uint32_t firstOrbit = uint32_t(-1);
-    std::uint32_t runNumber = 0;
-  };
 
   SubTimeFrameFileReader() = delete;
   SubTimeFrameFileReader(const std::string& pFileName, o2::detectors::DetID::mask_t detMask);
@@ -93,9 +88,9 @@ class SubTimeFrameFileReader
     const std::uint64_t lToRead = std::min(pLen, mFileSize - mFileMapOffset);
 
     if (lToRead != pLen) {
-      LOGP(ERROR, "FileReader: request to read beyond the file end. pos={} size={} len={}",
+      LOGP(error, "FileReader: request to read beyond the file end. pos={} size={} len={}",
            mFileMapOffset, mFileSize, pLen);
-      LOGP(ERROR, "Closing the file {}. The read data is invalid.", mFileName);
+      LOGP(error, "Closing the file {}. The read data is invalid.", mFileName);
       mFileMap.close();
       mFileMapOffset = 0;
       mFileSize = 0;
@@ -117,9 +112,9 @@ class SubTimeFrameFileReader
   {
     const std::size_t lToIgnore = std::min(pLen, std::size_t(mFileSize - mFileMapOffset));
     if (pLen != lToIgnore) {
-      LOGP(ERROR, "FileReader: request to ignore bytes beyond the file end. pos={} size={} len={}",
+      LOGP(error, "FileReader: request to ignore bytes beyond the file end. pos={} size={} len={}",
            mFileMapOffset, mFileSize, pLen);
-      LOGP(ERROR, "Closing the file {}. The read data is invalid.", mFileName);
+      LOGP(error, "Closing the file {}. The read data is invalid.", mFileName);
       mFileMap.close();
       mFileMapOffset = 0;
       mFileSize = 0;

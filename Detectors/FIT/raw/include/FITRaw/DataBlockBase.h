@@ -128,7 +128,7 @@ struct DataBlockWrapper {
   {
     const uint8_t* srcAddress = (uint8_t*)mData;
     if (nWords == 0 || nWords > MaxNwords || vecBytes.size() - destPos < nWords * SIZE_WORD) {
-      LOG(INFO) << "Warning! Incorrect serialisation procedure!";
+      LOG(info) << "Warning! Incorrect serialisation procedure!";
       return;
     }
     gsl::span<char> serializedBytes(vecBytes);
@@ -323,17 +323,17 @@ struct DataBlockWrapper {
   //Printing LookupTables
   static void printLUT()
   {
-    LOG(INFO) << "-------------------------------------------";
-    LOG(INFO) << "kNELEMENTS|kNSTEPS|kISPARTED";
+    LOG(info) << "-------------------------------------------";
+    LOG(info) << "kNELEMENTS|kNSTEPS|kISPARTED";
     for (int i = 0; i < MaxNwords + 1; i++) {
-      LOG(INFO) << std::get<kNELEMENTS>(sReadingLookupTable[i]) << "|"
+      LOG(info) << std::get<kNELEMENTS>(sReadingLookupTable[i]) << "|"
                 << std::get<kNSTEPS>(sReadingLookupTable[i]) << "|"
                 << std::get<kISPARTED>(sReadingLookupTable[i]);
     }
-    LOG(INFO) << "-------------------------------------------";
-    LOG(INFO) << "kELEMENTINDEX|kWORDINDEX|kNBYTES|kSRCBYTEPOS|kDESTBYTEPOS";
+    LOG(info) << "-------------------------------------------";
+    LOG(info) << "kELEMENTINDEX|kWORDINDEX|kNBYTES|kSRCBYTEPOS|kDESTBYTEPOS";
     for (int i = 0; i < getNsteps(); i++) {
-      LOG(INFO) << std::get<kELEMENTINDEX>(sByteLookupTable[i]) << "|"
+      LOG(info) << std::get<kELEMENTINDEX>(sByteLookupTable[i]) << "|"
                 << std::get<kWORDINDEX>(sByteLookupTable[i]) << "|"
                 << std::get<kNBYTES>(sByteLookupTable[i]) << "|"
                 << std::get<kSRCBYTEPOS>(sByteLookupTable[i]) << "|"
@@ -344,7 +344,7 @@ struct DataBlockWrapper {
   {
     assert(mNelements <= Data_t::MaxNelements);
     for (int i = 0; i < mNelements; i++) {
-      LOG(INFO) << "Printing element number: " << i;
+      LOG(info) << "Printing element number: " << i;
       mData[i].print();
     }
   }
@@ -375,9 +375,9 @@ class DataBlockBase : public boost::mpl::inherit<DataBlockWrapper<Header>, DataB
 
   void print() const
   {
-    LOG(INFO) << "HEADER";
+    LOG(info) << "HEADER";
     DataBlockWrapper<Header>::print();
-    LOG(INFO) << "DATA";
+    LOG(info) << "DATA";
     (static_cast<void>(DataBlockWrapper<DataStructures>::print()), ...);
   }
 

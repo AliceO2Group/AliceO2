@@ -28,6 +28,7 @@
 #include "DataProcessingStatus.h"
 #include "DataRelayerHelpers.h"
 #include "InputRouteHelpers.h"
+#include "Framework/LifetimeHelpers.h"
 
 #include "Headers/DataHeaderHelpers.h"
 
@@ -35,6 +36,7 @@
 #include <Monitoring/Monitoring.h>
 
 #include <fmt/format.h>
+#include <fmt/ostream.h>
 #include <gsl/span>
 #include <numeric>
 #include <string>
@@ -66,7 +68,11 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
-  setPipelineLength(DEFAULT_PIPELINE_LENGTH);
+  if (policy.configureRelayer == nullptr) {
+    setPipelineLength(DEFAULT_PIPELINE_LENGTH);
+  } else {
+    policy.configureRelayer(*this);
+  }
 
   // The queries are all the same, so we only have width 1
   auto numInputTypes = mDistinctRoutesIndex.size();
@@ -77,9 +83,10 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
     sQueriesMetricsNames[i] = std::string("data_queries/") + std::to_string(i);
     char buffer[128];
     assert(mDistinctRoutesIndex[i] < routes.size());
+    mInputs.push_back(routes[mDistinctRoutesIndex[i]].matcher);
     auto& matcher = routes[mDistinctRoutesIndex[i]].matcher;
     DataSpecUtils::describe(buffer, 127, matcher);
-    mMetrics.send({std::string{buffer}, sQueriesMetricsNames[i], Verbosity::Debug});
+    mMetrics.send({fmt::format("{} ({})", buffer, mInputs.back().lifetime), sQueriesMetricsNames[i], Verbosity::Debug});
   }
 }
 
@@ -289,8 +296,7 @@ DataRelayer::RelayChoice
     cachedStateMetrics[cacheIdx] = CacheEntryStatus::PENDING;
     // TODO: make sure that multiple parts can only be added within the same call of
     // DataRelayer::relay
-    assert(nPayloads == 1);
-    assert(nMessages % 2 == 0);
+    assert(nPayloads > 0);
     for (size_t mi = 0; mi < nMessages; ++mi) {
       assert(mi + nPayloads < nMessages);
       target.add([&messages, &mi](size_t i) -> FairMQMessagePtr& { return messages[mi + i]; }, nPayloads + 1);
@@ -395,7 +401,7 @@ DataRelayer::RelayChoice
   };
 
   if (input == INVALID_INPUT) {
-    LOG(ERROR) << "Could not match incoming data to any input route: " << DataHeaderInfo();
+    LOG(error) << "Could not match incoming data to any input route: " << DataHeaderInfo();
     mStats.malformedInputs++;
     mStats.droppedIncomingMessages++;
     for (size_t pi = 0; pi < nMessages; ++pi) {
@@ -405,7 +411,7 @@ DataRelayer::RelayChoice
   }
 
   if (TimesliceId::isValid(timeslice) == false) {
-    LOG(ERROR) << "Could not determine the timeslice for input: " << DataHeaderInfo();
+    LOG(error) << "Could not determine the timeslice for input: " << DataHeaderInfo();
     mStats.malformedInputs++;
     mStats.droppedIncomingMessages++;
     for (size_t pi = 0; pi < nMessages; ++pi) {
@@ -426,14 +432,14 @@ DataRelayer::RelayChoice
       static std::atomic<size_t> obsoleteCount = 0;
       static std::atomic<size_t> mult = 1;
       if ((obsoleteCount++ % (1 * mult)) == 0) {
-        LOGP(WARNING, "Over {} incoming messages are already obsolete, not relaying.", obsoleteCount);
+        LOGP(warning, "Over {} incoming messages are already obsolete, not relaying.", obsoleteCount);
         if (obsoleteCount > mult * 10) {
           mult = mult * 10;
         }
       }
       return Dropped;
     case TimesliceIndex::ActionTaken::DropInvalid:
-      LOG(WARNING) << "Incoming data is invalid, not relaying.";
+      LOG(warning) << "Incoming data is invalid, not relaying.";
       mStats.malformedInputs++;
       mStats.droppedIncomingMessages++;
       for (size_t pi = 0; pi < nMessages; ++pi) {
@@ -507,10 +513,13 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
     auto partial = getPartialRecord(li);
     // TODO: get the data ref from message model
     auto getter = [&partial](size_t idx, size_t part) {
-      if (partial[idx].size() > 0 && partial[idx].header(part) && partial[idx].payload(part)) {
+      if (partial[idx].size() > 0 && partial[idx].header(part).get()) {
+        auto header = partial[idx].header(part).get();
+        auto payload = partial[idx].payload(part).get();
         return DataRef{nullptr,
-                       reinterpret_cast<const char*>(partial[idx].header(part)->GetData()),
-                       reinterpret_cast<const char*>(partial[idx].payload(part)->GetData())};
+                       reinterpret_cast<const char*>(header->GetData()),
+                       reinterpret_cast<char const*>(payload ? payload->GetData() : nullptr),
+                       payload ? payload->GetSize() : 0};
       }
       return DataRef{};
     };
@@ -518,7 +527,14 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
       return partial[idx].size();
     };
     InputSpan span{getter, nPartsGetter, static_cast<size_t>(partial.size())};
-    auto action = mCompletionPolicy.callback(span);
+    CompletionPolicy::CompletionOp action;
+    if (mCompletionPolicy.callback) {
+      action = mCompletionPolicy.callback(span);
+    } else if (mCompletionPolicy.callbackFull) {
+      action = mCompletionPolicy.callbackFull(span, mInputs);
+    } else {
+      throw std::runtime_error("No completion policy found");
+    }
     switch (action) {
       case CompletionPolicy::CompletionOp::Consume:
       case CompletionPolicy::CompletionOp::ConsumeExisting:
@@ -554,7 +570,7 @@ void DataRelayer::updateCacheStatus(TimesliceSlot slot, CacheEntryStatus oldStat
   }
 }
 
-std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(TimesliceSlot slot)
+std::vector<o2::framework::MessageSet> DataRelayer::consumeAllInputsForTimeslice(TimesliceSlot slot)
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
@@ -605,6 +621,50 @@ std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(Timesl
     moveHeaderPayloadToOutput(slot, ai);
   }
   invalidateCacheFor(slot);
+
+  return std::move(messages);
+}
+
+std::vector<o2::framework::MessageSet> DataRelayer::consumeExistingInputsForTimeslice(TimesliceSlot slot)
+{
+  std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
+
+  const auto numInputTypes = mDistinctRoutesIndex.size();
+  // State of the computation
+  std::vector<MessageSet> messages(numInputTypes);
+  auto& cache = mCache;
+  auto& index = mTimesliceIndex;
+  auto& metrics = mMetrics;
+
+  // Nothing to see here, this is just to make the outer loop more understandable.
+  auto jumpToCacheEntryAssociatedWith = [](TimesliceSlot) {
+    return;
+  };
+
+  // We move ownership so that the cache can be reused once the computation is
+  // finished. We mark the given cache slot invalid, so that it can be reused
+  // This means we can still handle old messages if there is still space in the
+  // cache where to put them.
+  auto copyHeaderPayloadToOutput = [&messages,
+                                    &cachedStateMetrics = mCachedStateMetrics,
+                                    &cache, &index, &numInputTypes, &metrics](TimesliceSlot s, size_t arg) {
+    auto cacheId = s.index * numInputTypes + arg;
+    cachedStateMetrics[cacheId] = CacheEntryStatus::RUNNING;
+    // TODO: in the original implementation of the cache, there have been only two messages per entry,
+    // check if the 2 above corresponds to the number of messages.
+    for (size_t pi = 0; pi < cache[cacheId].size(); pi++) {
+      auto& header = cache[cacheId].header(pi);
+      auto&& newHeader = header->GetTransport()->CreateMessage();
+      newHeader->Copy(*header);
+      messages[arg].add(PartRef{std::move(newHeader), std::move(cache[cacheId].payload(pi))});
+    }
+  };
+
+  // Outer loop here.
+  jumpToCacheEntryAssociatedWith(slot);
+  for (size_t ai = 0, ae = numInputTypes; ai != ae; ++ai) {
+    copyHeaderPayloadToOutput(slot, ai);
+  }
 
   return std::move(messages);
 }
@@ -698,6 +758,12 @@ uint32_t DataRelayer::getRunNumberForSlot(TimesliceSlot slot)
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
   return VariableContextHelpers::getRunNumber(mTimesliceIndex.getVariablesForSlot(slot));
+}
+
+uint64_t DataRelayer::getCreationTimeForSlot(TimesliceSlot slot)
+{
+  std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
+  return VariableContextHelpers::getCreationTime(mTimesliceIndex.getVariablesForSlot(slot));
 }
 
 void DataRelayer::sendContextState()

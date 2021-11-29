@@ -67,34 +67,34 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   float eMinLGTime = configcontext.options().get<float>("eminlgtime");
 
   if (doPedestals && doHgLgRatio) {
-    LOG(FATAL) << "Can not run pedestal and HG/LG calibration simulteneously";
+    LOG(fatal) << "Can not run pedestal and HG/LG calibration simulteneously";
   }
 
-  LOG(INFO) << "PHOS Calibration workflow: options";
-  LOG(INFO) << "useCCDB = " << useCCDB;
+  LOG(info) << "PHOS Calibration workflow: options";
+  LOG(info) << "useCCDB = " << useCCDB;
   if (doPedestals) {
-    LOG(INFO) << "pedestals ";
+    LOG(info) << "pedestals ";
     specs.emplace_back(o2::phos::getPedestalCalibSpec(useCCDB, forceUpdate, path));
   } else {
     if (doHgLgRatio) {
-      LOG(INFO) << "hglgratio ";
+      LOG(info) << "hglgratio ";
       specs.emplace_back(o2::phos::getHGLGRatioCalibSpec(useCCDB, forceUpdate, path));
     }
   }
   if (doEnergy) {
-    LOG(INFO) << "Filling tree for energy and time calibration ";
+    LOG(info) << "Filling tree for energy and time calibration ";
     specs.emplace_back(o2::phos::getPHOSEnergyCalibDeviceSpec(useCCDB, path, dpath, ptMin, eMinHGTime, eMinLGTime));
   }
   if (doTurnOn) {
-    LOG(INFO) << "TurnOn curves calculation";
+    LOG(info) << "TurnOn curves calculation";
     specs.emplace_back(o2::phos::getPHOSTurnonCalibDeviceSpec(useCCDB, path));
   }
   if (doRunbyrun) {
-    LOG(INFO) << "Run by run correction calculation on ";
+    LOG(info) << "Run by run correction calculation on ";
     specs.emplace_back(o2::phos::getPHOSRunbyrunCalibDeviceSpec(useCCDB, path));
   }
   if (doBadMap) {
-    LOG(INFO) << "bad map calculation ";
+    LOG(info) << "bad map calculation ";
     short m = 0;
     // specs.emplace_back(o2::phos::getBadMapCalibSpec(useCCDB,forceUpdate,path,m));
   }

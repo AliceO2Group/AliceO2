@@ -80,12 +80,12 @@ void GlobalFwdMatchingDPL::init(InitContext& ic)
   mMatching.setBunchFilling(bcfill);
 
   std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath, "bin");
+  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath);
   if (o2::utils::Str::pathExists(dictFile)) {
-    mMFTDict.readBinaryFile(dictFile);
-    LOG(INFO) << "Forward track-matching is running with a provided MFT dictionary: " << dictFile;
+    mMFTDict.readFromFile(dictFile);
+    LOG(info) << "Forward track-matching is running with a provided MFT dictionary: " << dictFile;
   } else {
-    LOG(INFO) << "Dictionary " << dictFile << " is absent, Matching expects MFT cluster patterns";
+    LOG(info) << "Dictionary " << dictFile << " is absent, Matching expects MFT cluster patterns";
   }
   mMatching.setMFTDictionary(&mMFTDict);
   float matchPlaneZ = ic.options().get<float>("matchPlaneZ");
@@ -99,7 +99,7 @@ void GlobalFwdMatchingDPL::init(InitContext& ic)
 void GlobalFwdMatchingDPL::run(ProcessingContext& pc)
 {
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
-  LOG(INFO) << " startOrbit: " << dh->firstTForbit;
+  LOG(info) << " startOrbit: " << dh->firstTForbit;
   mTimer.Start(false);
 
   RecoContainer recoData;
@@ -116,7 +116,7 @@ void GlobalFwdMatchingDPL::run(ProcessingContext& pc)
 
 void GlobalFwdMatchingDPL::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "Forward matcher total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "Forward matcher total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

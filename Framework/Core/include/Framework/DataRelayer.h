@@ -107,7 +107,8 @@ class DataRelayer
   /// Returns an input registry associated to the given timeslice and gives
   /// ownership to the caller. This is because once the inputs are out of the
   /// DataRelayer they need to be deleted once the processing is concluded.
-  std::vector<MessageSet> getInputsForTimeslice(TimesliceSlot id);
+  std::vector<MessageSet> consumeAllInputsForTimeslice(TimesliceSlot id);
+  std::vector<MessageSet> consumeExistingInputsForTimeslice(TimesliceSlot id);
 
   /// Returns how many timeslices we can handle in parallel
   size_t getParallelTimeslices() const;
@@ -136,6 +137,8 @@ class DataRelayer
   uint32_t getFirstTFCounterForSlot(TimesliceSlot slot);
   /// Get the runNumber associated to a given slot
   uint32_t getRunNumberForSlot(TimesliceSlot slot);
+  /// Get the creation time associated to a given slot
+  uint64_t getCreationTimeForSlot(TimesliceSlot slot);
   /// Remove all pending messages
   void clear();
 
@@ -154,6 +157,7 @@ class DataRelayer
 
   CompletionPolicy mCompletionPolicy;
   std::vector<size_t> mDistinctRoutesIndex;
+  std::vector<InputSpec> mInputs;
   std::vector<data_matcher::DataDescriptorMatcher> mInputMatchers;
   std::vector<data_matcher::VariableContext> mVariableContextes;
   std::vector<CacheEntryStatus> mCachedStateMetrics;

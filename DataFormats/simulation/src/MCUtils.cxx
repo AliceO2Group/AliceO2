@@ -15,10 +15,43 @@
 
 #include <SimulationDataFormat/MCUtils.h>
 
-using namespace o2::mcutils;
+namespace o2::mcutils
+{
+
+o2::MCTrack const* MCTrackNavigator::getMother(const o2::MCTrack& p, const std::vector<o2::MCTrack>& pcontainer)
+{
+  const auto mid = p.getMotherTrackId();
+  if (mid < 0 or mid > pcontainer.size()) {
+    return nullptr;
+  }
+  return &(pcontainer[mid]);
+}
+
+o2::MCTrack const* MCTrackNavigator::getDaughter(const o2::MCTrack& p, const std::vector<o2::MCTrack>& pcontainer)
+{
+  const auto did = p.getFirstDaughterTrackId();
+  if (did < 0 or did > pcontainer.size()) {
+    return nullptr;
+  }
+  return &(pcontainer[did]);
+}
+
+o2::MCTrack const& MCTrackNavigator::getFirstPrimary(const o2::MCTrack& p, const std::vector<o2::MCTrack>& pcontainer)
+{
+  if (p.isPrimary()) {
+    return p;
+  }
+  o2::MCTrack const* ptr = &p;
+  while (true) {
+    ptr = getMother(*ptr, pcontainer);
+    if (ptr->isPrimary()) {
+      return *ptr;
+    }
+  }
+}
 
 // taken from AliRoot and adapted to use of o2::MCTrack class
-bool isPhysicalPrimary(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer)
+bool MCTrackNavigator::isPhysicalPrimary(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer)
 {
   // Test if a particle is a physical primary according to the following definition:
   // Particles produced in the collision including products of strong and
@@ -50,20 +83,18 @@ bool isPhysicalPrimary(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pco
     // Particle produced by generator
     // Solution for K0L decayed by Pythia6
     // ->
-    const int ipm = p.getMotherTrackId();
-    if (ipm > -1) {
-      const auto& ppm = pcontainer[ipm];
-      if (std::abs(ppm.GetPdgCode()) == 130) {
+    const auto ipm = getMother(p, pcontainer);
+    if (ipm != nullptr) {
+      if (std::abs(ipm->GetPdgCode()) == 130) {
         return false;
       }
     }
     // <-
     // check for direct photon in parton shower
     // ->
-    const int ipd = p.getFirstDaughterTrackId();
-    if (pdg == 22 && ipd > -1) {
-      const auto& ppd = pcontainer[ipd];
-      if (ppd.GetPdgCode() == 22) {
+    if (pdg == 22) {
+      const auto ipd = getDaughter(p, pcontainer);
+      if (ipd && ipd->GetPdgCode() == 22) {
         return false;
       }
     }
@@ -74,8 +105,7 @@ bool isPhysicalPrimary(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pco
     // Particle produced during transport
     //
 
-    int imo = p.getMotherTrackId();
-    auto pm = &(pcontainer[imo]);
+    auto pm = getMother(p, pcontainer);
     int mpdg = std::abs(pm->GetPdgCode());
     // Check for Sigma0
     if ((mpdg == 3212) && pm->isPrimary()) {
@@ -106,8 +136,7 @@ bool isPhysicalPrimary(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pco
     // To be sure that heavy flavor has not been produced in a secondary interaction
     // Loop back to the generated mother
     while (!pm->isPrimary()) {
-      imo = pm->getMotherTrackId();
-      pm = &(pcontainer[imo]);
+      pm = getMother(*pm, pcontainer);
     }
     mpdg = std::abs(pm->GetPdgCode());
     mfl = int(mpdg / std::pow(10, int(std::log10(mpdg))));
@@ -119,3 +148,5 @@ bool isPhysicalPrimary(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pco
     }
   } // end else branch produced by generator
 }
+
+} // namespace o2::mcutils

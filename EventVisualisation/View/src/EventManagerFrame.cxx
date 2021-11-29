@@ -155,10 +155,7 @@ namespace o2
     }
     UInt_t width = 3840;
     UInt_t height = 2160;
-    UInt_t font_size = 30;
-    UInt_t text_leading = 40;
-    const char* fontColor = "#FFFFFF";
-    const char* backgroundColor = "#19324b";
+    const char* backgroundColor = "#000000"; // "#19324b";
     const char* outDirectory = "Screenshots";
 
     std::string runString = "Run:";
@@ -174,7 +171,6 @@ namespace o2
     filepath << outDirectory << "/Screenshot_" << time_str << ".png";
 
     TASImage image(width, height);
-
     image.FillRectangle(backgroundColor, 0, 0, width, height);
 
     TImage* view3dImage = MultiView::getInstance()->getView(MultiView::EViews::View3d)->GetGLViewer()->GetPictureUsingBB();
@@ -189,16 +185,56 @@ namespace o2
     viewZrhoImage->Scale(width * 0.3, height * 0.45);
     CopyImage(&image, (TASImage*)viewZrhoImage, width * 0.68, height * 0.525, 0, 0, viewZrhoImage->GetWidth(), viewZrhoImage->GetHeight());
 
-    image.DrawText(10, height - 4 * text_leading, runString.c_str(), font_size, fontColor);
-    image.DrawText(10, height - 3 * text_leading, timestampString.c_str(), font_size, fontColor);
-    image.DrawText(10, height - 2 * text_leading, collidingsystemString.c_str(), font_size, fontColor);
-    image.DrawText(10, height - 1 * text_leading, energyString.c_str(), font_size, fontColor);
+    bool logo = true;
+    if (logo) {
+      TASImage* aliceLogo = new TASImage("Alice.png");
+      if (aliceLogo) {
+        double ratio = 1434. / 1939.;
+        aliceLogo->Scale(0.08 * width, 0.08 * width / ratio);
+        image.Merge(aliceLogo, "alphablend", 20, 20);
+        delete aliceLogo;
+      }
+    }
+
+    int fontSize = 0.015 * height;
+    int textX;
+    int textLineHeight = 0.015 * height;
+    int textY;
+
+    if (logo) {
+      TASImage* o2Logo = new TASImage("o2.png");
+      if (o2Logo) {
+        double ratio = o2Logo->GetWidth() / o2Logo->GetHeight();
+        int o2LogoX = 0.01 * width;
+        int o2LogoY = 0.01 * width;
+        int o2LogoSize = 0.04 * width;
+        o2Logo->Scale(o2LogoSize, o2LogoSize / ratio);
+        image.Merge(o2Logo, "alphablend", o2LogoX, height - o2LogoSize / ratio - o2LogoY);
+        textX = o2LogoX + o2LogoSize + o2LogoX;
+        textY = height - o2LogoSize / ratio - o2LogoY;
+        delete o2Logo;
+      }
+    }
+
+    std::vector<std::string> lines;
+    std::ifstream input("screenshot.txt");
+    if (input.is_open()) {
+      for (std::string line; getline(input, line);) {
+        lines.push_back(line);
+      }
+    }
+
+    image.BeginPaint();
+    for (int i = 0; i < 4; i++) {
+      lines.push_back("");
+      image.DrawText(textX, textY + i * textLineHeight, lines[i].c_str(), fontSize, "#BBBBBB", "FreeSansBold.otf");
+    }
+    image.EndPaint();
 
     if (!std::filesystem::is_directory(outDirectory)) {
       std::filesystem::create_directory(outDirectory);
     }
     image.WriteImage(filepath.str().c_str(), TImage::kPng);
-
     clearInTick();
   }
 
@@ -214,9 +250,9 @@ namespace o2
         fclose(f);
         if (success == 1) {       // properly readed
           size = 4 * size / 1024; // in MB
-          LOG(INFO) << "Memory used: " << size << " memory allowed: " << memoryLimit;
+          LOG(info) << "Memory used: " << size << " memory allowed: " << memoryLimit;
           if (size > memoryLimit) {
-            LOG(ERROR) << "Memory used: " << size << " exceeds memory allowed: "
+            LOG(error) << "Memory used: " << size << " exceeds memory allowed: "
                        << memoryLimit;
             exit(-1);
           }

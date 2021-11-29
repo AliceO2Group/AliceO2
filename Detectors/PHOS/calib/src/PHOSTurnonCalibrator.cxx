@@ -53,7 +53,7 @@ void PHOSTurnonSlot::print() const
       sumAll += all[i];
       sumTr += tr[i];
     }
-    LOG(INFO) << "DDL " << ddl << " total entries " << sumAll << " trigger clusters " << sumTr;
+    LOG(info) << "DDL " << ddl << " total entries " << sumAll << " trigger clusters " << sumTr;
   }
 }
 void PHOSTurnonSlot::fill(const gsl::span<const Cell>& cells, const gsl::span<const TriggerRecord>& cellTR,
@@ -68,7 +68,7 @@ void PHOSTurnonSlot::fill(const gsl::span<const Cell>& cells, const gsl::span<co
     // DataProcessingHeader::
     //
     if (ctr->getBCData() != clutr->getBCData()) {
-      LOG(ERROR) << "Different TrigRecords for cells:" << ctr->getBCData() << " and clusters:" << clutr->getBCData();
+      LOG(error) << "Different TrigRecords for cells:" << ctr->getBCData() << " and clusters:" << clutr->getBCData();
       //TODO: Try to recover by increasing smaller TR?
     }
     scanClusters(cells, *ctr, clusters, *clutr);
@@ -136,7 +136,7 @@ void PHOSTurnonCalibrator::finalizeSlot(Slot& slot)
     mTurnOnHistos.reset(new TurnOnHistos());
   }
   PHOSTurnonSlot* c = slot.getContainer();
-  LOG(INFO) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
+  LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
   //Add histos
   for (int mod = 0; mod < 8; mod++) {
     mTurnOnHistos->merge(c->getCollectedHistos());

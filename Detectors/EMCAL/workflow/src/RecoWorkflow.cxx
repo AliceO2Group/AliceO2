@@ -140,7 +140,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
       try {
         specs.emplace_back(o2::emcal::reco_workflow::getEmcalDigitsPrinterSpec("digits"));
       } catch (std::runtime_error& e) {
-        LOG(ERROR) << "Cannot create digits printer spec: " << e.what();
+        LOG(error) << "Cannot create digits printer spec: " << e.what();
       }
     }
   } else if (inputType == InputType::Cells) {
@@ -162,7 +162,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
       try {
         specs.emplace_back(o2::emcal::reco_workflow::getEmcalDigitsPrinterSpec("cells"));
       } catch (std::runtime_error& e) {
-        LOG(ERROR) << "Cannot create digits printer spec: " << e.what();
+        LOG(error) << "Cannot create digits printer spec: " << e.what();
       }
     }
   }
@@ -279,7 +279,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
   }
   */
   if (isEnabled(OutputType::Cells) && !disableRootOutput) {
-    if (inputType == InputType::Digits) {
+    if ((inputType == InputType::Digits) || (inputType == InputType::Cells)) {
       using DigitOutputType = std::vector<o2::emcal::Cell>;
       using TriggerOutputType = std::vector<o2::emcal::TriggerRecord>;
       specs.push_back(makeWriterSpec("emcal-cells-writer", "emccells.root", "o2sim",

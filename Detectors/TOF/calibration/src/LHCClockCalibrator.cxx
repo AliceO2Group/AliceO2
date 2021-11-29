@@ -29,7 +29,7 @@ using clbUtils = o2::calibration::Utils;
 //_____________________________________________
 LHCClockDataHisto::LHCClockDataHisto()
 {
-  LOG(INFO) << "Default c-tor, not to be used";
+  LOG(info) << "Default c-tor, not to be used";
 }
 
 //_____________________________________________
@@ -59,7 +59,7 @@ void LHCClockDataHisto::merge(const LHCClockDataHisto* prev)
 //_____________________________________________
 void LHCClockDataHisto::print() const
 {
-  LOG(INFO) << entries << " entries";
+  LOG(info) << entries << " entries";
 }
 
 //===================================================================
@@ -78,15 +78,15 @@ void LHCClockCalibrator::finalizeSlot(Slot& slot)
 {
   // Extract results for the single slot
   o2::tof::LHCClockDataHisto* c = slot.getContainer();
-  LOG(INFO) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with "
+  LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with "
             << c->getEntries() << " entries";
   std::vector<float> fitValues;
   float* array = &c->histo[0];
   double fitres = fitGaus(c->nbins, array, -(c->range), c->range, fitValues);
   if (fitres >= 0) {
-    LOG(INFO) << "Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
+    LOG(info) << "Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
   } else {
-    LOG(ERROR) << "Fit failed with result = " << fitres;
+    LOG(error) << "Fit failed with result = " << fitres;
   }
 
   // TODO: the timestamp is now given with the TF index, but it will have

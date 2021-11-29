@@ -51,8 +51,10 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   std::array<std::vector<o2::mid::ColumnData>, NEvTypes> cols{};
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
-  const auto ctfImage = o2::mid::CTF::getImage(buff.data());
-  mCTFCoder.decode(ctfImage, rofs, cols);
+  if (buff.size()) {
+    const auto ctfImage = o2::mid::CTF::getImage(buff.data());
+    mCTFCoder.decode(ctfImage, rofs, cols);
+  }
 
   for (uint32_t it = 0; it < NEvTypes; it++) {
     pc.outputs().snapshot(Output{o2::header::gDataOriginMID, "DATA", it, Lifetime::Timeframe}, cols[it]);
@@ -60,14 +62,14 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   }
 
   mTimer.Stop();
-  LOG(INFO) << "Decoded {" << cols[0].size() << ',' << cols[1].size() << ',' << cols[2].size()
+  LOG(info) << "Decoded {" << cols[0].size() << ',' << cols[1].size() << ',' << cols[2].size()
             << "} MID columns for {" << rofs[0].size() << ',' << rofs[1].size() << ',' << rofs[2].size()
             << "} ROFRecords in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "MID Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "MID Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

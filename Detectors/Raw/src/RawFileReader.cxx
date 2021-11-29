@@ -38,7 +38,7 @@ namespace o2h = o2::header;
 //____________________________________________
 void RawFileReader::LinkBlock::print(const std::string& pref) const
 {
-  LOGF(INFO, "%sfile:%3d offs:%10zu size:%8d newSP:%d newTF:%d newHB:%d endHB:%d | Orbit %u TF %u",
+  LOGF(info, "%sfile:%3d offs:%10zu size:%8d newSP:%d newTF:%d newHB:%d endHB:%d | Orbit %u TF %u",
        pref, fileID, offset, size, testFlag(StartSP), testFlag(StartTF), testFlag(StartHB),
        testFlag(EndHB), ir.orbit, tfID);
 }
@@ -58,7 +58,7 @@ std::string RawFileReader::LinkData::describe() const
 //____________________________________________
 void RawFileReader::LinkData::print(bool verbose, const std::string& pref) const
 {
-  LOGF(INFO, "%s %s FEE:0x%04x CRU:%4d Lnk:%3d EP:%d RDHv%d Src:%s | SPages:%4d Pages:%6d TFs:%6d with %6d HBF in %4d blocks (%d err)",
+  LOGF(info, "%s %s FEE:0x%04x CRU:%4d Lnk:%3d EP:%d RDHv%d Src:%s | SPages:%4d Pages:%6d TFs:%6d with %6d HBF in %4d blocks (%d err)",
        pref, describe(), int(RDHUtils::getFEEID(rdhl)), int(RDHUtils::getCRUID(rdhl)), int(RDHUtils::getLinkID(rdhl)),
        int(RDHUtils::getEndPointID(rdhl)), int(RDHUtils::getVersion(rdhl)),
        RDHUtils::getVersion(rdhl) > 5 ? o2h::DAQID::DAQtoO2(RDHUtils::getSourceID(rdhl)).str : "N/A",
@@ -136,7 +136,7 @@ size_t RawFileReader::LinkData::readNextHBF(char* buff)
     } else {
       auto fl = reader->mFiles[blc.fileID];
       if (fseek(fl, blc.offset, SEEK_SET) || fread(buff + sz, 1, blc.size, fl) != blc.size) {
-        LOGF(ERROR, "Failed to read for the %s a bloc:", describe());
+        LOGF(error, "Failed to read for the %s a bloc:", describe());
         blc.print();
         error = true;
       } else if (reader->mCacheData) { // need to fill the cache at 1st reading
@@ -234,7 +234,7 @@ bool RawFileReader::LinkData::rewindToTF(uint32_t tf)
   if (tf < tfStartBlock.size()) {
     nextBlock2Read = tfStartBlock[tf].first;
   } else {
-    LOG(WARNING) << "No TF " << tf << " for " << describe();
+    LOG(warning) << "No TF " << tf << " for " << describe();
     nextBlock2Read = -1;
     return false;
   }
@@ -290,7 +290,7 @@ size_t RawFileReader::LinkData::readNextSuperPage(char* buff, const RawFileReade
     } else {
       auto fl = reader->mFiles[blocks[nextBlock2Read].fileID];
       if (fseek(fl, blocks[nextBlock2Read].offset, SEEK_SET) || fread(buff, 1, sz, fl) != sz) {
-        LOGF(ERROR, "Failed to read for the %s a bloc:", describe());
+        LOGF(error, "Failed to read for the %s a bloc:", describe());
         blocks[nextBlock2Read].print();
         error = true;
       } else if (reader->mCacheData) { // cache after 1st reading
@@ -346,10 +346,10 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
   const auto& HBU = HBFUtils::Instance();
 
   if (RDHUtils::getFEEID(rdh) != RDHUtils::getFEEID(rdhl)) { // make sure links with different FEEID were not assigned same subspec
-    LOGF(ERROR, "Same SubSpec is found for %s with different RDH.feeId", describe());
-    LOGF(ERROR, "old RDH assigned SubSpec=0x%-8d:", subspec);
+    LOGF(error, "Same SubSpec is found for %s with different RDH.feeId", describe());
+    LOGF(error, "old RDH assigned SubSpec=0x%-8d:", subspec);
     RDHUtils::dumpRDH(rdhl);
-    LOGF(ERROR, "new RDH assigned SubSpec=0x%-8d:", subspec);
+    LOGF(error, "new RDH assigned SubSpec=0x%-8d:", subspec);
     RDHUtils::dumpRDH(rdh);
     throw std::runtime_error("Conflicting SubSpecs are provided");
     ok = false;
@@ -369,7 +369,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
         irOfSOX = ir;
       } else {
         if (reader->mCheckErrors & (0x1 << ErrNoSOX)) {
-          LOG(ERROR) << ErrNames[ErrNoSOX];
+          LOG(error) << ErrNames[ErrNoSOX];
           ok = false;
           nErrors++;
         }
@@ -383,7 +383,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
       newTF = (triggerType & o2::trigger::TF);
       newHB = (triggerType & (o2::trigger::ORBIT | o2::trigger::HB)) == (o2::trigger::ORBIT | o2::trigger::HB);
       if (newTFCalc != newTF && (reader->mCheckErrors & (0x1 << ErrMismatchTF))) {
-        LOG(ERROR) << ErrNames[ErrMismatchTF];
+        LOG(error) << ErrNames[ErrMismatchTF];
         ok = false;
         nErrors++;
       }
@@ -403,7 +403,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
   } else if (reader->mCheckErrors & (0x1 << ErrWrongPageCounterIncrement)) {
     // check increasing pageCnt
     if (nCRUPages && (pageCnt != (RDHUtils::getPageCounter(rdhl) + 1))) { // skip for very 1st page
-      LOG(ERROR) << ErrNames[ErrWrongPageCounterIncrement]
+      LOG(error) << ErrNames[ErrWrongPageCounterIncrement]
                  << " old=" << int(pageCnt) << " new=" << int(RDHUtils::getPageCounter(rdhl));
       ok = false;
       nErrors++;
@@ -417,7 +417,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
       auto packetCounterL = RDHUtils::getPacketCounter(rdhl);
       if ((packetCounter != ((packetCounterL + 1) & 0xff)) &&
           (reader->mCheckErrors & (0x1 << ErrWrongPacketCounterIncrement))) { // skip for very 1st page
-        LOG(ERROR) << ErrNames[ErrWrongPacketCounterIncrement]
+        LOG(error) << ErrNames[ErrWrongPacketCounterIncrement]
                    << " new=" << int(packetCounter) << " old=" << int(packetCounterL);
         ok = false;
         nErrors++;
@@ -426,7 +426,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
       if (newTF) {
         if (nHBFinTF != HBFUtils::Instance().getNOrbitsPerTF() &&
             (reader->mCheckErrors & (0x1 << ErrWrongHBFsPerTF)) && cruDetector) {
-          LOG(ERROR) << ErrNames[ErrWrongHBFsPerTF] << ": "
+          LOG(error) << ErrNames[ErrWrongHBFsPerTF] << ": "
                      << nHBFinTF << " instead of " << HBFUtils::Instance().getNOrbitsPerTF();
           ok = false;
           nErrors++;
@@ -437,7 +437,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
     } else { // make sure data starts with TF and HBF
       if ((!newTF || !newHB || pageCnt != 0) &&
           (reader->mCheckErrors & (0x1 << ErrWrongFirstPage) && cruDetector)) {
-        LOG(ERROR) << ErrNames[ErrWrongFirstPage];
+        LOG(error) << ErrNames[ErrWrongFirstPage];
         ok = false;
         nErrors++;
       }
@@ -449,12 +449,12 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
     if (reader->mCheckErrors) {
       nHBFinTF++;
       if (stop && (reader->mCheckErrors & (0x1 << ErrHBFStopOnFirstPage))) {
-        LOG(ERROR) << ErrNames[ErrHBFStopOnFirstPage] << " @ HBF#" << nHBFrames;
+        LOG(error) << ErrNames[ErrHBFStopOnFirstPage] << " @ HBF#" << nHBFrames;
         ok = false;
         nErrors++;
       }
       if (openHB && (reader->mCheckErrors & (0x1 << ErrHBFNoStop)) && cruDetector) {
-        LOG(ERROR) << ErrNames[ErrHBFNoStop] << " @ HBF#" << nHBFrames;
+        LOG(error) << ErrNames[ErrHBFNoStop] << " @ HBF#" << nHBFrames;
         ok = false;
         nErrors++;
       }
@@ -462,7 +462,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
           (nCRUPages && // skip this check for the very 1st RDH
            !(hbIR.bc == hblIR.bc && hbIR.orbit == hblIR.orbit + 1)) &&
           cruDetector) {
-        LOG(ERROR) << ErrNames[ErrHBFJump] << " @ HBF#" << nHBFrames << " New HB orbit/bc=" << hbIR.orbit << '/' << int(hbIR.bc)
+        LOG(error) << ErrNames[ErrHBFJump] << " @ HBF#" << nHBFrames << " New HB orbit/bc=" << hbIR.orbit << '/' << int(hbIR.bc)
                    << " is not incremented by 1 orbit wrt Old HB orbit/bc=" << hblIR.orbit << '/' << int(hblIR.bc);
         ok = false;
         nErrors++;
@@ -494,7 +494,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
       bl.setFlag(LinkBlock::StartTF);
       if (reader->mCheckErrors & (0x1 << ErrNoSuperPageForTF) && cruDetector) {
         if (reader->mMultiLinkFile && !newSPage) {
-          LOG(ERROR) << ErrNames[ErrNoSuperPageForTF] << " @ TF#" << nTimeFrames;
+          LOG(error) << ErrNames[ErrNoSuperPageForTF] << " @ TF#" << nTimeFrames;
           ok = false;
           nErrors++;
         }
@@ -514,7 +514,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
   rdhl = rdh;
   nCRUPages++;
   if (!ok) {
-    LOG(ERROR) << " ^^^Problem(s) was encountered at offset " << reader->mPosInFile << " of file " << reader->mCurrentFileID;
+    LOG(error) << " ^^^Problem(s) was encountered at offset " << reader->mPosInFile << " of file " << reader->mCurrentFileID;
     RDHUtils::printRDH(rdh);
   } else if (reader->mVerbosity > 1) {
     if (reader->mVerbosity > 2) {
@@ -522,7 +522,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
     } else {
       RDHUtils::printRDH(rdh);
     }
-    LOG(INFO) << "--------------- reader tags: newTF: " << newTF << " newHBF/Trigger: " << newHB << " newSPage: " << newSPage;
+    LOG(info) << "--------------- reader tags: newTF: " << newTF << " newHBF/Trigger: " << newHB << " newSPage: " << newSPage;
   }
   return true;
 }
@@ -616,7 +616,7 @@ bool RawFileReader::preprocessFile(int ifl)
       }
     }
   }
-  LOGF(INFO, "File %3d : %9li bytes scanned, %6d RDH read for %4d links from %s",
+  LOGF(info, "File %3d : %9li bytes scanned, %6d RDH read for %4d links from %s",
        mCurrentFileID, mPosInFile, nRDHread, int(mLinkEntries.size()), mFileNames[mCurrentFileID]);
   return nRDHread > 0;
 }
@@ -654,7 +654,7 @@ void RawFileReader::clear()
 bool RawFileReader::addFile(const std::string& sname, o2::header::DataOrigin origin, o2::header::DataDescription desc, ReadoutCardType t)
 {
   if (mInitDone) {
-    LOG(ERROR) << "Cannot add new files after initialization";
+    LOG(error) << "Cannot add new files after initialization";
     return false;
   }
   bool ok = true;
@@ -662,17 +662,17 @@ bool RawFileReader::addFile(const std::string& sname, o2::header::DataOrigin ori
   mFileBuffers.push_back(std::make_unique<char[]>(mBufferSize));
   auto inFile = fopen(sname.c_str(), "rb");
   if (!inFile) {
-    LOG(ERROR) << "Failed to open input file " << sname;
+    LOG(error) << "Failed to open input file " << sname;
     return false;
   }
   setvbuf(inFile, mFileBuffers.back().get(), _IOFBF, mBufferSize);
 
   if (origin == o2h::gDataOriginInvalid) {
-    LOG(ERROR) << "Invalid data origin " << origin.as<std::string>() << " for file " << sname;
+    LOG(error) << "Invalid data origin " << origin.as<std::string>() << " for file " << sname;
     ok = false;
   }
   if (desc == o2h::gDataDescriptionInvalid) {
-    LOG(ERROR) << "Invalid data description " << desc.as<std::string>() << " for file " << sname;
+    LOG(error) << "Invalid data description " << desc.as<std::string>() << " for file " << sname;
     ok = false;
   }
   if (!ok) {
@@ -692,11 +692,11 @@ bool RawFileReader::init()
 
   for (int i = 0; i < NErrorsDefined; i++) {
     if (mCheckErrors & (0x1 << i)) {
-      LOGF(INFO, "%s check for /%s/", (mCheckErrors & (0x1 << i)) ? "perform" : "ignore ", ErrNames[i].data());
+      LOGF(info, "%s check for /%s/", (mCheckErrors & (0x1 << i)) ? "perform" : "ignore ", ErrNames[i].data());
     }
   }
   if (mMaxTFToRead < 0xffffffff) {
-    LOGF(INFO, "at most %u TF will be processed", mMaxTFToRead);
+    LOGF(info, "at most %u TF will be processed", mMaxTFToRead);
   }
 
   int nf = mFiles.size();
@@ -718,7 +718,7 @@ bool RawFileReader::init()
 
   size_t maxSP = 0, maxTF = 0;
 
-  LOGF(INFO, "Summary of preprocessing:");
+  LOGF(info, "Summary of preprocessing:");
   for (int i = 0; i < int(mLinksData.size()); i++) {
     auto& link = getLink(i);
     auto msp = link.getLargestSuperPage();
@@ -733,7 +733,7 @@ bool RawFileReader::init()
     counts << "Lnk" << std::setw(4) << std::left << i << "| ";
     link.print(mVerbosity, counts.str());
     if (msp > mNominalSPageSize) {
-      LOGF(DEBUG, "       Attention: largest superpage %zu B exceeds expected %d B",
+      LOGF(debug, "       Attention: largest superpage %zu B exceeds expected %d B",
            msp, mNominalSPageSize);
     }
     // min max orbits
@@ -747,14 +747,14 @@ bool RawFileReader::init()
       link.tfStartBlock.emplace_back(0, 0);
     }
     if ((mCheckErrors & (0x1 << ErrWrongNumberOfTF)) && (mNTimeFrames != link.nTimeFrames)) {
-      LOGF(ERROR, "%s for %s: %u TFs while %u were seen for other links", ErrNames[ErrWrongNumberOfTF],
+      LOGF(error, "%s for %s: %u TFs while %u were seen for other links", ErrNames[ErrWrongNumberOfTF],
            link.describe(), link.nTimeFrames, mNTimeFrames);
     }
   }
-  LOGF(INFO, "First orbit: %u, Last orbit: %u", mOrbitMin, mOrbitMax);
-  LOGF(INFO, "Largest super-page: %zu B, largest TF: %zu B", maxSP, maxTF);
+  LOGF(info, "First orbit: %u, Last orbit: %u", mOrbitMin, mOrbitMax);
+  LOGF(info, "Largest super-page: %zu B, largest TF: %zu B", maxSP, maxTF);
   if (!mCheckErrors) {
-    LOGF(INFO, "Detailed data format check was disabled");
+    LOGF(info, "Detailed data format check was disabled");
   }
   mInitDone = true;
 
@@ -861,7 +861,7 @@ RawFileReader::InputsMap RawFileReader::parseInput(const std::string& confUri)
     }
 
     entries[{defDataOrigin, defDataDescription, defCardType}]; // insert
-    LOG(DEBUG) << "Setting default dataOrigin/Description/CardType " << defDataOrigin.as<std::string>() << '/' << defDataDescription.as<std::string>() << '/' << CardNames[defCardType];
+    LOG(debug) << "Setting default dataOrigin/Description/CardType " << defDataOrigin.as<std::string>() << '/' << defDataDescription.as<std::string>() << '/' << CardNames[defCardType];
 
     for (auto flsect : ConfigFileBrowser(&cfg, "input-")) {
       std::string flNameStr, defs{""};
@@ -870,7 +870,7 @@ RawFileReader::InputsMap RawFileReader::parseInput(const std::string& confUri)
       cfg.getOptionalValue<std::string>(flsect + ".filePath", flNameStr, defs);
       cfg.getOptionalValue<std::string>(flsect + ".readoutCard", cardStr, std::string{CardNames[CRU]});
       if (flNameStr.empty()) {
-        LOG(DEBUG) << "Skipping incomplete input " << flsect;
+        LOG(debug) << "Skipping incomplete input " << flsect;
         continue;
       }
       auto dataOrigin = getDataOrigin(origStr);
@@ -893,7 +893,7 @@ RawFileReader::InputsMap RawFileReader::parseInput(const std::string& confUri)
       }
 
       entries[{dataOrigin, dataDescription, cardType}].push_back(flNameStr);
-      LOG(DEBUG) << "adding file " << flNameStr << " to dataOrigin/Description " << dataOrigin.as<std::string>() << '/' << dataDescription.as<std::string>();
+      LOG(debug) << "adding file " << flNameStr << " to dataOrigin/Description " << dataOrigin.as<std::string>() << '/' << dataDescription.as<std::string>();
     }
   } catch (std::string& e) { // to catch exceptions from the parser
     throw std::runtime_error(std::string("Aborting due to the exception: ") + e);
@@ -909,7 +909,7 @@ void RawFileReader::imposeFirstTF(uint32_t orbit)
   }
   auto& hbu = o2::raw::HBFUtils::Instance();
   o2::raw::HBFUtils::setValue("HBFUtils", "orbitFirst", orbit);
-  LOG(INFO) << "Imposed data-driven TF start";
+  LOG(info) << "Imposed data-driven TF start";
   mFirstTFAutodetect = FirstTFDetection::Done;
   hbu.printKeyValues();
 }

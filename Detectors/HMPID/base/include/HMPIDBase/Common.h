@@ -76,22 +76,22 @@ class ExecutionTimer
     return;
   };
 
-  /// logMes : Out a message on the LOG(INFO) with extra execution time info
+  /// logMes : Out a message on the LOG(info) with extra execution time info
   /// @param[in] message : the message to print
   void logMes(std::string const message)
   {
-    LOG(INFO) << message << " Execution time = " << (mTimer.CpuTime() - mStartTime);
+    LOG(info) << message << " Execution time = " << (mTimer.CpuTime() - mStartTime);
     mTimer.Continue();
     return;
   };
 
-  /// elapseMes : Out a message on the LOG(INFO) with extra execution time info
+  /// elapseMes : Out a message on the LOG(info) with extra execution time info
   ///             is the set interval was reached
   /// @param[in] message : the message to print
   void elapseMes(std::string const message)
   {
     if (mTimer.CpuTime() - mLastLogTime > mElapseLogTime) {
-      LOG(INFO) << message << " Execution time = " << (mTimer.CpuTime() - mStartTime);
+      LOG(info) << message << " Execution time = " << (mTimer.CpuTime() - mStartTime);
       mLastLogTime = mTimer.CpuTime();
     }
     mTimer.Continue();

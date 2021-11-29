@@ -209,8 +209,8 @@ void WorkflowHelpers::addMissingOutputsToBuilder(std::vector<InputSpec>&& reques
 void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx)
 {
   auto fakeCallback = AlgorithmSpec{[](InitContext& ic) {
-    LOG(INFO) << "This is not a real device, merely a placeholder for external inputs";
-    LOG(INFO) << "To be hidden / removed at some point.";
+    LOG(info) << "This is not a real device, merely a placeholder for external inputs";
+    LOG(info) << "To be hidden / removed at some point.";
     // mark this dummy process as ready-to-quit
     ic.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 
@@ -295,6 +295,28 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       processor.options.push_back(ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}});
       processor.options.push_back(ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}});
       processor.options.push_back(ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}});
+    }
+    bool hasTimeframeInputs = false;
+    for (auto& input : processor.inputs) {
+      if (input.lifetime == Lifetime::Timeframe) {
+        hasTimeframeInputs = true;
+        break;
+      }
+    }
+    bool hasTimeframeOutputs = false;
+    for (auto& output : processor.outputs) {
+      if (output.lifetime == Lifetime::Timeframe) {
+        hasTimeframeOutputs = true;
+        break;
+      }
+    }
+    // A timeframeSink consumes timeframes without creating new
+    // timeframe data.
+    bool timeframeSink = hasTimeframeInputs && !hasTimeframeOutputs;
+    if (std::stoi(ctx.options().get<std::string>("timeframes-rate-limit-ipcid")) != -1) {
+      if (timeframeSink && processor.name != "internal-dpl-injected-dummy-sink") {
+        processor.outputs.push_back(OutputSpec{{"dpl-summary"}, ConcreteDataMatcher{"DPL", "SUMMARY", static_cast<DataAllocator::SubSpecificationType>(compile_time_hash(processor.name.c_str()))}});
+      }
     }
     bool hasConditionOption = false;
     for (size_t ii = 0; ii < processor.inputs.size(); ++ii) {
@@ -437,7 +459,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     result = uv_dlopen("libO2FrameworkAnalysisSupport.so", &supportLib);
 #endif
     if (result == -1) {
-      LOG(FATAL) << uv_dlerror(&supportLib);
+      LOG(fatal) << uv_dlerror(&supportLib);
       return;
     }
     void* callback = nullptr;
@@ -445,11 +467,11 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
     result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
     if (result == -1) {
-      LOG(FATAL) << uv_dlerror(&supportLib);
+      LOG(fatal) << uv_dlerror(&supportLib);
       return;
     }
     if (dpl_plugin_callback == nullptr) {
-      LOG(FATAL) << "Could not find the AnalysisSupport plugin.";
+      LOG(fatal) << "Could not find the AnalysisSupport plugin.";
       return;
     }
     DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
@@ -477,20 +499,20 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   extraSpecs.clear();
 
   /// Analyze all ouputs
-  //  outputTypes = isAOD*2 + isdangling*1 + 0
-  auto [outputsInputs, outputTypes] = analyzeOutputs(workflow);
+  auto [outputsInputs, isDangling] = analyzeOutputs(workflow);
 
   // create DataOutputDescriptor
-  std::shared_ptr<DataOutputDirector> dod = getDataOutputDirector(ctx.options(), outputsInputs, outputTypes);
+  std::shared_ptr<DataOutputDirector> dod = getDataOutputDirector(ctx.options(), outputsInputs, isDangling);
 
   // select outputs of type AOD which need to be saved
   // ATTENTION: if there are dangling outputs the getGlobalAODSink
   // has to be created in any case!
   std::vector<InputSpec> outputsInputsAOD;
+  auto isAOD = [](InputSpec const& spec) { return DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")); };
   for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
-    if ((outputTypes[ii] & ANALYSIS) == ANALYSIS) {
+    if (isAOD(outputsInputs[ii])) {
       auto ds = dod->getDataOutputDescriptors(outputsInputs[ii]);
-      if (ds.size() > 0 || (outputTypes[ii] & DANGLING) == DANGLING) {
+      if (ds.size() > 0 || isDangling[ii]) {
         outputsInputsAOD.emplace_back(outputsInputs[ii]);
       }
     }
@@ -507,7 +529,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       return DataSpecUtils::partialMatch(spec, o2::header::DataOrigin("TFN"));
     });
     size_t ii = std::distance(outputsInputs.begin(), it);
-    outputTypes[ii] &= ~((char)OutputType::DANGLING);
+    isDangling[ii] = false;
   }
 
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
@@ -521,11 +543,11 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     }
     // We forward to the output proxy all the inputs only if they are dangling
     // or if the forwarding policy is "proxy".
-    if (!(outputTypes[ii] & DANGLING) && (ctx.options().get<std::string>("forwarding-policy") != "all")) {
+    if (!isDangling[ii] && (ctx.options().get<std::string>("forwarding-policy") != "all")) {
       continue;
     }
     // AODs are skipped in any case.
-    if ((outputTypes[ii] & ANALYSIS)) {
+    if (isAOD(outputsInputs[ii])) {
       continue;
     }
     redirectedOutputsInputs.emplace_back(outputsInputs[ii]);
@@ -547,15 +569,53 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   if (unmatched.size() > 0 || redirectedOutputsInputs.size() > 0) {
     std::vector<InputSpec> ignored = unmatched;
     ignored.insert(ignored.end(), redirectedOutputsInputs.begin(), redirectedOutputsInputs.end());
-    extraSpecs.push_back(CommonDataProcessors::getDummySink(ignored));
+    int rateLimitingIPCID = std::stoi(ctx.options().get<std::string>("timeframes-rate-limit-ipcid"));
+    extraSpecs.push_back(CommonDataProcessors::getDummySink(ignored, rateLimitingIPCID));
   }
 
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
   extraSpecs.clear();
 }
 
-void WorkflowHelpers::adjustServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx)
+void WorkflowHelpers::adjustTopology(WorkflowSpec& workflow, ConfigContext const& ctx)
 {
+  for (auto& spec : workflow) {
+    auto& inputs = spec.inputs;
+    bool allSporadic = true;
+    bool hasTimer = false;
+    bool hasSporadic = false;
+    for (size_t ii = 0; ii < inputs.size(); ++ii) {
+      auto& input = inputs[ii];
+      // Timers are sporadic only when they are not
+      // alone.
+      if (input.lifetime == Lifetime::Timer) {
+        hasTimer = true;
+        continue;
+      }
+      if (input.lifetime == Lifetime::Sporadic) {
+        hasSporadic = true;
+      } else {
+        allSporadic = false;
+      }
+    }
+    // If they are not all sporadic (excluding timers)
+    // we leave things as they are.
+    if (allSporadic == false) {
+      continue;
+    }
+    // A timer alone is not sporadic.
+    if (hasSporadic == false) {
+      continue;
+    }
+    /// If we get here all the inputs are sporadic and
+    /// there is at least one sporadic input apart from
+    /// the timers.
+    for (auto& output : spec.outputs) {
+      if (output.lifetime == Lifetime::Timeframe) {
+        output.lifetime = Lifetime::Sporadic;
+      }
+    }
+  }
 }
 
 void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
@@ -866,7 +926,7 @@ struct DataMatcherId {
   size_t id;
 };
 
-std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(ConfigParamRegistry const& options, std::vector<InputSpec> const& OutputsInputs, std::vector<unsigned char> const& outputTypes)
+std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(ConfigParamRegistry const& options, std::vector<InputSpec> const& OutputsInputs, std::vector<bool> const& isDangling)
 {
   std::shared_ptr<DataOutputDirector> dod = std::make_shared<DataOutputDirector>();
 
@@ -913,6 +973,7 @@ std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(Confi
     }
   }
   // parse the keepString
+  auto isAOD = [](InputSpec const& spec) { return DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")); };
   if (options.isSet("aod-writer-keep")) {
     auto keepString = options.get<std::string>("aod-writer-keep");
     if (!keepString.empty()) {
@@ -924,7 +985,7 @@ std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(Confi
         // use the dangling outputs
         std::vector<InputSpec> danglingOutputs;
         for (auto ii = 0; ii < OutputsInputs.size(); ii++) {
-          if ((outputTypes[ii] & 2) == 2 && (outputTypes[ii] & 1) == 1) {
+          if (isAOD(OutputsInputs[ii]) && isDangling[ii]) {
             danglingOutputs.emplace_back(OutputsInputs[ii]);
           }
         }
@@ -944,7 +1005,7 @@ std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(Confi
   return dod;
 }
 
-std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::analyzeOutputs(WorkflowSpec const& workflow)
+std::tuple<std::vector<InputSpec>, std::vector<bool>> WorkflowHelpers::analyzeOutputs(WorkflowSpec const& workflow)
 {
   // compute total number of input/output
   size_t totalInputs = 0;
@@ -960,9 +1021,9 @@ std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::
   outputs.reserve(totalOutputs);
 
   std::vector<InputSpec> results;
-  std::vector<unsigned char> outputTypes;
+  std::vector<bool> isDangling;
   results.reserve(totalOutputs);
-  outputTypes.reserve(totalOutputs);
+  isDangling.reserve(totalOutputs);
 
   /// Prepare an index to do the iterations quickly.
   for (size_t wi = 0, we = workflow.size(); wi != we; ++wi) {
@@ -979,14 +1040,6 @@ std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::
     auto& output = outputs[oi];
     auto& outputSpec = workflow[output.workflowId].outputs[output.id];
 
-    // compute output type
-    unsigned char outputType = UNKNOWN;
-
-    // is AOD?
-    if (DataSpecUtils::partialMatch(outputSpec, header::DataOrigin("AOD"))) {
-      outputType |= ANALYSIS;
-    }
-
     // is dangling output?
     bool matched = false;
     for (size_t ii = 0, ie = inputs.size(); ii != ie; ++ii) {
@@ -1001,11 +1054,7 @@ std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::
         break;
       }
     }
-    if (!matched) {
-      outputType |= DANGLING;
-    }
 
-    // update results and outputTypes
     auto input = DataSpecUtils::matchingInput(outputSpec);
     char buf[64];
     input.binding = (snprintf(buf, 63, "output_%zu_%zu", output.workflowId, output.id), buf);
@@ -1013,23 +1062,22 @@ std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::
     // make sure that entries are unique
     if (std::find(results.begin(), results.end(), input) == results.end()) {
       results.emplace_back(input);
-      outputTypes.emplace_back(outputType);
+      isDangling.emplace_back(matched == false);
     }
   }
 
   // make sure that results is unique
-
-  return std::make_tuple(results, outputTypes);
+  return std::make_tuple(results, isDangling);
 }
 
 std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec const& workflow)
 {
 
-  auto [outputsInputs, outputTypes] = analyzeOutputs(workflow);
+  auto [outputsInputs, isDangling] = analyzeOutputs(workflow);
 
   std::vector<InputSpec> results;
   for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
-    if (outputTypes[ii] & DANGLING) {
+    if (isDangling[ii]) {
       results.emplace_back(outputsInputs[ii]);
     }
   }
@@ -1037,5 +1085,5 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
   return results;
 }
 
-#pragma GCC diagnostic pop
+#pragma diagnostic pop
 } // namespace o2::framework

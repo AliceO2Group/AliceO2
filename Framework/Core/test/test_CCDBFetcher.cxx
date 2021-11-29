@@ -33,7 +33,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           DataRef condition = inputs.get("somecondition");
           auto payloadSize = DataRefUtils::getPayloadSize(condition);
           if (payloadSize != 2048) {
-            LOGP(ERROR, "Wrong size for condition payload (expected {}, found {}", 2048, payloadSize);
+            LOGP(error, "Wrong size for condition payload (expected {}, found {}", 2048, payloadSize);
           }
           payloadSize;
           control.readyToQuit(QuitRequest::All);

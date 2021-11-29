@@ -54,14 +54,14 @@ void MatchITSTPCQC::deleteHistograms()
 
 void MatchITSTPCQC::reset()
 {
-  mPtTPC->Reset();
   mPt->Reset();
-  mPhiTPC->Reset();
+  mPtTPC->Reset();
   mPhi->Reset();
-  mPtTPCPhysPrim->Reset();
+  mPhiTPC->Reset();
   mPtPhysPrim->Reset();
-  mPhiTPCPhysPrim->Reset();
+  mPtTPCPhysPrim->Reset();
   mPhiPhysPrim->Reset();
+  mPhiTPCPhysPrim->Reset();
   mEta->Reset();
   mChi2Matching->Reset();
   mChi2Refit->Reset();
@@ -139,8 +139,8 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
   mTPCTracks = mRecoCont.getTPCTracks();
   mITSTPCTracks = mRecoCont.getTPCITSTracks();
 
-  LOG(DEBUG) << "****** Number of found ITSTPC tracks = " << mITSTPCTracks.size();
-  LOG(DEBUG) << "****** Number of found TPC    tracks = " << mTPCTracks.size();
+  LOG(debug) << "****** Number of found ITSTPC tracks = " << mITSTPCTracks.size();
+  LOG(debug) << "****** Number of found TPC    tracks = " << mTPCTracks.size();
 
   // cache selection for TPC tracks
   for (auto itrk = 0; itrk < mTPCTracks.size(); ++itrk) {
@@ -173,7 +173,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
         }
       }
     }
-    LOG(INFO) << "number of entries in map for nominator (without duplicates) = " << mMapLabels.size();
+    LOG(info) << "number of entries in map for nominator (without duplicates) = " << mMapLabels.size();
     // now we use only the tracks in the map to fill the histograms (--> tracks have passed the
     // track selection and there are no duplicated tracks wrt the same MC label)
     for (auto const& el : mMapLabels) {
@@ -197,7 +197,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
 
   for (auto const& trk : mITSTPCTracks) {
     if (trk.getRefTPC().getIndex() >= mTPCTracks.size()) {
-      LOG(FATAL) << "******************** ATTENTION! idx = " << trk.getRefTPC().getIndex() << ", size of container = " << mTPCTracks.size() << " in TF " << evCount;
+      LOG(fatal) << "******************** ATTENTION! idx = " << trk.getRefTPC().getIndex() << ", size of container = " << mTPCTracks.size() << " in TF " << evCount;
       continue;
     }
     auto const& trkTpc = mTPCTracks[trk.getRefTPC()];
@@ -211,7 +211,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       mChi2Matching->Fill(trk.getChi2Match());
       mChi2Refit->Fill(trk.getChi2Refit());
       mTimeResVsPt->Fill(trkTpc.getPt(), trk.getTimeMUS().getTimeStampError());
-      LOG(DEBUG) << "*** chi2Matching = " << trk.getChi2Match() << ", chi2refit = " << trk.getChi2Refit() << ", timeResolution = " << trk.getTimeMUS().getTimeStampError();
+      LOG(debug) << "*** chi2Matching = " << trk.getChi2Match() << ", chi2refit = " << trk.getChi2Refit() << ", timeResolution = " << trk.getTimeMUS().getTimeStampError();
       ++mNITSTPCSelectedTracks;
     }
   }
@@ -244,7 +244,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
         }
       }
     }
-    LOG(INFO) << "number of entries in map for denominator (without duplicates) = " << mMapTPCLabels.size() + mMapLabels.size();
+    LOG(info) << "number of entries in map for denominator (without duplicates) = " << mMapTPCLabels.size() + mMapLabels.size();
     // now we use only the tracks in the map to fill the histograms (--> tracks have passed the
     // track selection and there are no duplicated tracks wrt the same MC label)
     for (auto const& el : mMapTPCLabels) {
@@ -304,32 +304,33 @@ void MatchITSTPCQC::finalize()
 
   for (int i = 0; i < mPtTPC->GetNbinsX(); ++i) {
     if (mPtTPC->GetBinContent(i + 1) < mPt->GetBinContent(i + 1)) {
-      LOG(ERROR) << "bin " << i + 1 << ": mPtTPC[i] = " << mPtTPC->GetBinContent(i + 1) << ", mPt[i] = " << mPt->GetBinContent(i + 1);
+      LOG(error) << "bin " << i + 1 << ": mPtTPC[i] = " << mPtTPC->GetBinContent(i + 1) << ", mPt[i] = " << mPt->GetBinContent(i + 1);
     }
   }
   for (int i = 0; i < mPhiTPC->GetNbinsX(); ++i) {
     if (mPhiTPC->GetBinContent(i + 1) < mPhi->GetBinContent(i + 1)) {
-      LOG(ERROR) << "bin " << i + 1 << ": mPhiTPC[i] = " << mPhiTPC->GetBinContent(i + 1) << ", mPhi[i] = " << mPhi->GetBinContent(i + 1);
+      LOG(error) << "bin " << i + 1 << ": mPhiTPC[i] = " << mPhiTPC->GetBinContent(i + 1) << ", mPhi[i] = " << mPhi->GetBinContent(i + 1);
     }
   }
 
-  if (!mFractionITSTPCmatch->SetTotalHistogram(*mPtTPC, "") ||
+  // we need to force to replace the total histogram, otherwise it will compare it to the previous passed one, and it might get an error of inconsistency in the bin contents
+  if (!mFractionITSTPCmatch->SetTotalHistogram(*mPtTPC, "f") ||
       !mFractionITSTPCmatch->SetPassedHistogram(*mPt, "")) {
-    LOG(FATAL) << "Something went wrong when defining the efficiency histograms vs Pt!";
+    LOG(fatal) << "Something went wrong when defining the efficiency histograms vs Pt!";
   }
-  if (!mFractionITSTPCmatchPhi->SetTotalHistogram(*mPhiTPC, "") ||
+  if (!mFractionITSTPCmatchPhi->SetTotalHistogram(*mPhiTPC, "f") ||
       !mFractionITSTPCmatchPhi->SetPassedHistogram(*mPhi, "")) {
-    LOG(FATAL) << "Something went wrong when defining the efficiency histograms vs Phi!";
+    LOG(fatal) << "Something went wrong when defining the efficiency histograms vs Phi!";
   }
 
   if (mUseMC) {
-    if (!mFractionITSTPCmatchPhysPrim->SetTotalHistogram(*mPtTPCPhysPrim, "") ||
+    if (!mFractionITSTPCmatchPhysPrim->SetTotalHistogram(*mPtTPCPhysPrim, "f") ||
         !mFractionITSTPCmatchPhysPrim->SetPassedHistogram(*mPtPhysPrim, "")) {
-      LOG(FATAL) << "Something went wrong when defining the efficiency histograms vs Pt (PhysPrim)!";
+      LOG(fatal) << "Something went wrong when defining the efficiency histograms vs Pt (PhysPrim)!";
     }
-    if (!mFractionITSTPCmatchPhiPhysPrim->SetTotalHistogram(*mPhiTPCPhysPrim, "") ||
+    if (!mFractionITSTPCmatchPhiPhysPrim->SetTotalHistogram(*mPhiTPCPhysPrim, "f") ||
         !mFractionITSTPCmatchPhiPhysPrim->SetPassedHistogram(*mPhiPhysPrim, "")) {
-      LOG(FATAL) << "Something went wrong when defining the efficiency histograms vs Phi (PhysPrim)!";
+      LOG(fatal) << "Something went wrong when defining the efficiency histograms vs Phi (PhysPrim)!";
     }
   }
 

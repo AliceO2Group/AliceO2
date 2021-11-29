@@ -33,6 +33,7 @@ void TrackReader::init(InitContext& ic)
 {
   mInputFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
                                                  ic.options().get<std::string>("infile"));
+  mSkipClusRefs = ic.options().get<bool>("skip-clusref");
   connectTree(mInputFileName);
 }
 
@@ -90,7 +91,7 @@ void TrackReader::accumulate(int from, int n)
       }
     }
   }
-  LOG(INFO) << "TPCTrackReader pushes " << mTracksOut.size() << " tracks from entries " << from << " : " << from + n - 1;
+  LOG(info) << "TPCTrackReader pushes " << mTracksOut.size() << " tracks from entries " << from << " : " << from + n - 1;
 }
 
 void TrackReader::connectTree(const std::string& filename)
@@ -106,17 +107,21 @@ void TrackReader::connectTree(const std::string& filename)
   }
 
   mTree->SetBranchAddress(mTrackBranchName.c_str(), &mTracksInp);
-  mTree->SetBranchAddress(mClusRefBranchName.c_str(), &mCluRefVecInp);
+  if (!mSkipClusRefs) {
+    mTree->SetBranchAddress(mClusRefBranchName.c_str(), &mCluRefVecInp);
+  } else {
+    mCluRefVecInp = new std::vector<o2::tpc::TPCClRefElem>;
+  }
   if (mUseMC) {
     if (mTree->GetBranch(mTrackMCTruthBranchName.c_str())) {
       mTree->SetBranchAddress(mTrackMCTruthBranchName.c_str(), &mMCTruthInp);
-      LOG(INFO) << "Will use MC-truth from " << mTrackMCTruthBranchName;
+      LOG(info) << "Will use MC-truth from " << mTrackMCTruthBranchName;
     } else {
-      LOG(INFO) << "MC-truth is missing";
+      LOG(info) << "MC-truth is missing";
       mUseMC = false;
     }
   }
-  LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
+  LOG(info) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getTPCTrackReaderSpec(bool useMC)
@@ -135,7 +140,8 @@ DataProcessorSpec getTPCTrackReaderSpec(bool useMC)
     AlgorithmSpec{adaptFromTask<TrackReader>(useMC)},
     Options{
       {"infile", VariantType::String, "tpctracks.root", {"Name of the input track file"}},
-      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
+      {"input-dir", VariantType::String, "none", {"Input directory"}},
+      {"skip-clusref", VariantType::Bool, false, {"Skip reading cluster references"}}}};
 }
 
 } // namespace tpc

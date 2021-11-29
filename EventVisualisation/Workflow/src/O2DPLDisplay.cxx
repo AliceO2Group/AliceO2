@@ -32,7 +32,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMCH/ROFRecord.h"
-#include "DataFormatsMCH/ClusterBlock.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "MCHTracking/TrackParam.h"
 #include <unistd.h>
 #include <climits>
@@ -67,7 +67,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h" // main method must be included here (otherwise customize not used)
 void O2DPLDisplaySpec::init(InitContext& ic)
 {
-  LOG(INFO) << "------------------------    O2DPLDisplay::init version " << this->mWorkflowVersion << "    ------------------------------------";
+  LOG(info) << "------------------------    O2DPLDisplay::init version " << this->mWorkflowVersion << "    ------------------------------------";
   const auto grp = o2::parameters::GRPObject::loadFrom();
   o2::base::GeometryManager::loadGeometry();
   o2::base::Propagator::initFieldFromGRP();
@@ -83,22 +83,22 @@ void O2DPLDisplaySpec::init(InitContext& ic)
   mConfig->configCalib.trdGeometry = mTrdGeo.get();
 
   std::string dictFileITS = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  dictFileITS = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictFileITS, "bin");
+  dictFileITS = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictFileITS);
   if (o2::utils::Str::pathExists(dictFileITS)) {
-    mITSDict.readBinaryFile(dictFileITS);
-    LOG(INFO) << "Running with provided ITS clusters dictionary: " << dictFileITS;
+    mITSDict.readFromFile(dictFileITS);
+    LOG(info) << "Running with provided ITS clusters dictionary: " << dictFileITS;
   } else {
-    LOG(INFO) << "Dictionary " << dictFileITS << " is absent, ITS expects cluster patterns for all clusters";
+    LOG(info) << "Dictionary " << dictFileITS << " is absent, ITS expects cluster patterns for all clusters";
   }
   mConfig->configCalib.itsPatternDict = &mITSDict;
 
   std::string dictFileMFT = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-  dictFileMFT = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictFileMFT, "bin");
+  dictFileMFT = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictFileMFT);
   if (o2::utils::Str::pathExists(dictFileMFT)) {
-    mMFTDict.readBinaryFile(dictFileMFT);
-    LOG(INFO) << "Running with provided MFT clusters dictionary: " << dictFileMFT;
+    mMFTDict.readFromFile(dictFileMFT);
+    LOG(info) << "Running with provided MFT clusters dictionary: " << dictFileMFT;
   } else {
-    LOG(INFO) << "Dictionary " << dictFileMFT << " is absent, MFT expects cluster patterns for all clusters";
+    LOG(info) << "Dictionary " << dictFileMFT << " is absent, MFT expects cluster patterns for all clusters";
   }
   mConfig->configCalib.mftPatternDict = &mMFTDict;
 
@@ -118,7 +118,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   if (!this->mEveHostNameMatch) {
     return;
   }
-  LOG(INFO) << "------------------------    O2DPLDisplay::run version " << this->mWorkflowVersion << "    ------------------------------------";
+  LOG(info) << "------------------------    O2DPLDisplay::run version " << this->mWorkflowVersion << "    ------------------------------------";
   // filtering out any run which occur before reaching next time interval
   auto currentTime = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = currentTime - this->mTimeStamp;
@@ -137,7 +137,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   helper.draw(this->mJsonPath, this->mNumberOfFiles, this->mNumberOfTracks, this->mTrkMask, this->mClMask, this->mWorkflowVersion);
   const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
   auto endTime = std::chrono::high_resolution_clock::now();
-  LOGP(INFO, "Visualization of TF:{} at orbit {} took {} s.", dh->tfCounter, dh->firstTForbit, std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
+  LOGP(info, "Visualization of TF:{} at orbit {} took {} s.", dh->tfCounter, dh->firstTForbit, std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
 }
 
 void O2DPLDisplaySpec::endOfStream(EndOfStreamContext& ec)
@@ -146,7 +146,7 @@ void O2DPLDisplaySpec::endOfStream(EndOfStreamContext& ec)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  LOG(INFO) << "------------------------    defineDataProcessing " << O2DPLDisplaySpec::mWorkflowVersion << "    ------------------------------------";
+  LOG(info) << "------------------------    defineDataProcessing " << O2DPLDisplaySpec::mWorkflowVersion << "    ------------------------------------";
 
   WorkflowSpec specs;
 

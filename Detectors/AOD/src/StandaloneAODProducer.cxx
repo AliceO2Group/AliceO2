@@ -111,9 +111,9 @@ void fillCollisionAndTrackTable()
   auto tpctracks = fetchTracks<o2::tpc::TrackTPC>("tpctracks.root", "tpcrec", "TPCTracks");
   auto itstracks = fetchTracks<o2::its::TrackITS>("o2trac_its.root", "o2sim", "ITSTrack");
   auto itstpctracks = fetchTracks<o2::dataformats::TrackTPCITS>("o2match_itstpc.root", "matchTPCITS", "TPCITS");
-  LOG(INFO) << "FOUND " << tpctracks->size() << " TPC tracks";
-  LOG(INFO) << "FOUND " << itstracks->size() << " ITS tracks";
-  LOG(INFO) << "FOUND " << itstpctracks->size() << " ITCTPC tracks";
+  LOG(info) << "FOUND " << tpctracks->size() << " TPC tracks";
+  LOG(info) << "FOUND " << itstracks->size() << " ITS tracks";
+  LOG(info) << "FOUND " << itstpctracks->size() << " ITCTPC tracks";
 
   if (t) {
     auto br = t->GetBranch("PrimaryVertex");
@@ -138,7 +138,7 @@ void fillCollisionAndTrackTable()
       auto collCursor = collBuilder.cursor<o2::aod::Collisions>();
 
       TableBuilder trackBuilder;
-      auto trackCursor = trackBuilder.cursor<o2::aod::Tracks>();
+      auto trackCursor = trackBuilder.cursor<o2::aod::StoredTracks>();
 
       int index = 0;
       for (auto& v : *vertices) {
@@ -173,7 +173,7 @@ void fillCollisionAndTrackTable()
           } else if (source == o2::dataformats::VtxTrackIndex::Source::ITSTPC) {
             track = &((*itstpctracks)[trackindex.getIndex()]);
           } else {
-            LOG(WARNING) << "Unsupported track source";
+            LOG(warning) << "Unsupported track source";
           }
 
           //DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK:PAR",
@@ -190,7 +190,7 @@ void fillCollisionAndTrackTable()
           std::array<float, 3> pxpypz;
           track->getPxPyPzGlo(pxpypz);
           trackCursor(0, index, 0 /* CORRECT THIS */, track->getX(), track->getAlpha(), track->getY(), track->getZ(), track->getSnp(), track->getTgl(),
-                      track->getPt() /*CHECK!!*/, track->getPhi(), pxpypz[0], pxpypz[1], pxpypz[2]);
+                      track->getPt() /*CHECK!!*/);
         }
         index++;
       }

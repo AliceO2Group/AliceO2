@@ -55,7 +55,7 @@ void TrackerDPL::init(InitContext& ic)
     auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
 
     Bool_t continuous = mGRP->isDetContinuousReadOut("MFT");
-    LOG(INFO) << "MFTTracker RO: continuous=" << continuous;
+    LOG(info) << "MFTTracker RO: continuous=" << continuous;
 
     o2::base::GeometryManager::loadGeometry();
     o2::mft::GeometryTGeo* geom = o2::mft::GeometryTGeo::Instance();
@@ -69,13 +69,13 @@ void TrackerDPL::init(InitContext& ic)
     double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
     auto Bz = field->getBz(centerMFT);
     if (Bz == 0 || trackingParam.forceZeroField) {
-      LOG(INFO) << "Starting MFT Linear tracker: Field is off!";
+      LOG(info) << "Starting MFT Linear tracker: Field is off!";
       mFieldOn = false;
       mTrackerL = std::make_unique<o2::mft::Tracker<TrackLTFL>>(mUseMC);
       mTrackerL->initConfig(trackingParam, true);
       mTrackerL->initialize(trackingParam.FullClusterScan);
     } else {
-      LOG(INFO) << "Starting MFT tracker: Field is on!";
+      LOG(info) << "Starting MFT tracker: Field is on!";
       mFieldOn = true;
       mTracker = std::make_unique<o2::mft::Tracker<TrackLTF>>(mUseMC);
       mTracker->setBz(Bz);
@@ -87,12 +87,12 @@ void TrackerDPL::init(InitContext& ic)
   }
 
   std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath, "bin");
+  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath);
   if (o2::utils::Str::pathExists(dictFile)) {
-    mDict.readBinaryFile(dictFile);
-    LOG(INFO) << "Tracker running with a provided dictionary: " << dictFile;
+    mDict.readFromFile(dictFile);
+    LOG(info) << "Tracker running with a provided dictionary: " << dictFile;
   } else {
-    LOG(INFO) << "Dictionary " << dictFile << " is absent, Tracker expects cluster patterns";
+    LOG(info) << "Dictionary " << dictFile << " is absent, Tracker expects cluster patterns";
   }
 }
 
@@ -110,7 +110,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto rofsinput = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
   auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"MFT", "MFTTrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
 
-  LOG(INFO) << "MFTTracker pulled " << compClusters.size() << " compressed clusters in "
+  LOG(info) << "MFTTracker pulled " << compClusters.size() << " compressed clusters in "
             << rofsinput.size() << " RO frames";
 
   const dataformats::MCTruthContainer<MCCompLabel>* labels = mUseMC ? pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("labels").release() : nullptr;
@@ -118,7 +118,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   if (mUseMC) {
     // get the array as read-only span, a snapshot of the object is sent forward
     mc2rofs = pc.inputs().get<gsl::span<itsmft::MC2ROFRecord>>("MC2ROframes");
-    LOG(INFO) << labels->getIndexedSize() << " MC label objects , in "
+    LOG(info) << labels->getIndexedSize() << " MC label objects , in "
               << mc2rofs.size() << " MC events";
   }
 
@@ -156,7 +156,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       if (nclUsed) {
         event.setROFrameId(roFrame);
         event.initialize(trackingParam.FullClusterScan);
-        LOG(DEBUG) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
+        LOG(debug) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
         mTracker->setROFrame(roFrame);
         mTracker->clustersToTracks(event);
         tracks.swap(event.getTracks());
@@ -169,7 +169,7 @@ void TrackerDPL::run(ProcessingContext& pc)
           trackLabels.clear();
         }
 
-        LOG(DEBUG) << "Found MFT tracks: " << tracks.size();
+        LOG(debug) << "Found MFT tracks: " << tracks.size();
         int first = allTracksMFT.size();
         int number = tracks.size();
         rof.setFirstEntry(first);
@@ -203,7 +203,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       if (nclUsed) {
         event.setROFrameId(roFrame);
         event.initialize(trackingParam.FullClusterScan);
-        LOG(DEBUG) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
+        LOG(debug) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
         mTrackerL->setROFrame(roFrame);
         mTrackerL->clustersToTracks(event);
         tracksL.swap(event.getTracks());
@@ -216,7 +216,7 @@ void TrackerDPL::run(ProcessingContext& pc)
           trackLabels.clear();
         }
 
-        LOG(DEBUG) << "Found MFT tracks: " << tracks.size();
+        LOG(debug) << "Found MFT tracks: " << tracks.size();
         int first = allTracksMFT.size();
         int number = tracksL.size();
         rof.setFirstEntry(first);
@@ -226,7 +226,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       roFrame++;
     }
   }
-  LOG(INFO) << "MFTTracker pushed " << allTracksMFT.size() << " tracks";
+  LOG(info) << "MFTTracker pushed " << allTracksMFT.size() << " tracks";
 
   if (mUseMC) {
     pc.outputs().snapshot(Output{"MFT", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
@@ -237,7 +237,7 @@ void TrackerDPL::run(ProcessingContext& pc)
 
 void TrackerDPL::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "MFT Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "MFT Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

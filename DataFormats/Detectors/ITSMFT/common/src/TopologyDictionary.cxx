@@ -16,12 +16,13 @@
 
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/ClusterTopology.h"
-#include <iostream>
 #include "ITSMFTBase/SegmentationAlpide.h"
+#include "CommonUtils/StringUtils.h"
+#include <TFile.h>
+#include <iostream>
 
 using std::cout;
 using std::endl;
-using std::string;
 using std::unordered_map;
 using std::vector;
 
@@ -34,9 +35,9 @@ namespace itsmft
 
 TopologyDictionary::TopologyDictionary() : mSmallTopologiesLUT{-1} {}
 
-TopologyDictionary::TopologyDictionary(std::string fileName)
+TopologyDictionary::TopologyDictionary(const std::string& fileName)
 {
-  readBinaryFile(fileName);
+  readFromFile(fileName);
 }
 
 std::ostream& operator<<(std::ostream& os, const TopologyDictionary& dict)
@@ -51,7 +52,7 @@ std::ostream& operator<<(std::ostream& os, const TopologyDictionary& dict)
   return os;
 }
 
-void TopologyDictionary::writeBinaryFile(string outputfile)
+void TopologyDictionary::writeBinaryFile(const std::string& outputfile)
 {
   std::ofstream file_output(outputfile, std::ios::out | std::ios::binary);
   for (auto& p : mVectorOfIDs) {
@@ -71,7 +72,20 @@ void TopologyDictionary::writeBinaryFile(string outputfile)
   file_output.close();
 }
 
-int TopologyDictionary::readBinaryFile(string fname)
+int TopologyDictionary::readFromFile(const std::string& fname)
+{
+  if (o2::utils::Str::endsWith(fname, ".root")) {
+    std::unique_ptr<TopologyDictionary> d{loadFrom(fname)};
+    *this = *d;
+  } else if (o2::utils::Str::endsWith(fname, ".bin")) {
+    readBinaryFile(fname);
+  } else {
+    throw std::runtime_error(fmt::format("Unrecognized format {}", fname));
+  }
+  return 0;
+}
+
+int TopologyDictionary::readBinaryFile(const std::string& fname)
 {
   mVectorOfIDs.clear();
   mCommonMap.clear();
@@ -82,7 +96,7 @@ int TopologyDictionary::readBinaryFile(string fname)
   GroupStruct gr;
   int groupID = 0;
   if (!in.is_open()) {
-    LOG(ERROR) << "The file " << fname << " coud not be opened";
+    LOG(error) << "The file " << fname << " coud not be opened";
     throw std::runtime_error("The file coud not be opened");
   } else {
     while (in.read(reinterpret_cast<char*>(&gr.mHash), sizeof(unsigned long))) {
@@ -149,6 +163,21 @@ math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const CompC
   math_utils::Point3D<float> locCl;
   o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
   return locCl;
+}
+
+//_______________________________________________
+TopologyDictionary* TopologyDictionary::loadFrom(const std::string& fname, const std::string& objName)
+{
+  // load object from file
+  TFile fl(fname.c_str());
+  if (fl.IsZombie()) {
+    throw std::runtime_error(fmt::format("Failed to open {} file", fname));
+  }
+  auto dict = reinterpret_cast<o2::itsmft::TopologyDictionary*>(fl.GetObjectChecked(objName.c_str(), o2::itsmft::TopologyDictionary::Class()));
+  if (!dict) {
+    throw std::runtime_error(fmt::format("Failed to load {} from {}", objName, fname));
+  }
+  return dict;
 }
 
 } // namespace itsmft

@@ -38,7 +38,7 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>& hits,
                         o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>& labels)
 {
   // loop over all hits and produce digits
-  //LOG(INFO) << "Processing IR = " << mIntRecord << " | NHits = " << hits.size();
+  //LOG(info) << "Processing IR = " << mIntRecord << " | NHits = " << hits.size();
 
   flush(digitsBC, digitsCh, digitsTrig, labels); // flush cached signal which cannot be affect by new event
 
@@ -46,14 +46,14 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>& hits,
   std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::fdd::Hit const& a, o2::fdd::Hit const& b) {
     return a.GetTrackID() < b.GetTrackID();
   });
-  //LOG(INFO) << "Pulse";
+  //LOG(info) << "Pulse";
   //Conversion of hits to the analogue pulse shape
   for (auto& hit : sorted_hits) {
     if (hit.GetTime() > 20e3) {
       const int maxWarn = 10;
       static int warnNo = 0;
       if (warnNo < maxWarn) {
-        LOG(WARNING) << "Ignoring hit with time_in_event = " << hit.GetTime() << " ns"
+        LOG(warning) << "Ignoring hit with time_in_event = " << hit.GetTime() << " ns"
                      << ((++warnNo < maxWarn) ? "" : " (suppressing further warnings)");
       }
       continue;
@@ -99,7 +99,7 @@ void Digitizer::createPulse(int nPhE, int parID, double timeHit, std::array<o2::
     timeDiff += parameters.TimeDelayFDA;
   }
 
-  //LOG(INFO) <<"Ch = "<<channel<<" NphE = " << nPhE <<" timeDiff "<<timeDiff;
+  //LOG(info) <<"Ch = "<<channel<<" NphE = " << nPhE <<" timeDiff "<<timeDiff;
   float charge = TMath::Qe() * parameters.PmGain * mBinSize / (mPmtTimeIntegral * ChargePerADC);
 
   Bool_t added[nCachedIR];
@@ -112,14 +112,14 @@ void Digitizer::createPulse(int nPhE, int parID, double timeHit, std::array<o2::
     float tPhE = timeDiff + mRndSignalShape.getNextValue();
     int const firstBin = roundVc(TMath::Max((int)0, (int)((tPhE - PMTransitTime) * BinSizeInv)));
     int const lastBin = TMath::Min((int)NBC2Cache * NTimeBinsPerBC - 1, (int)((tPhE + 2.0 * PMTransitTime) * BinSizeInv));
-    //LOG(INFO) << "firstBin = "<<firstBin<<" lastbin "<<lastBin;
+    //LOG(info) << "firstBin = "<<firstBin<<" lastbin "<<lastBin;
 
     float const tempT = mBinSize * (0.5f + firstBin) - tPhE;
     long iStart = std::lround((tempT + 2.0f * PMTransitTime) * BinSizeInv);
     float const offset = tempT + 2.0f * PMTransitTime - float(iStart) * mBinSize;
     long const iOffset = std::lround(offset * BinSizeInv * float(parameters.NResponseTables - 1));
     if (iStart < 0) { // this should not happen
-      LOG(ERROR) << "FDDDigitizer: table lookup failure";
+      LOG(error) << "FDDDigitizer: table lookup failure";
     }
     iStart = roundVc(std::max(long(0), iStart));
 
@@ -168,21 +168,21 @@ void Digitizer::flush(std::vector<o2::fdd::Digit>& digitsBC,
     return;
   }
   if (mIntRecord.differenceInBC(mCache.back()) > -BCCacheMin) {
-    LOG(DEBUG) << "Generating new pedestal BL fluct. for BC range " << mCache.front() << " : " << mCache.back();
+    LOG(debug) << "Generating new pedestal BL fluct. for BC range " << mCache.front() << " : " << mCache.back();
     //generatePedestal();
   } else {
     return;
   }
   //o2::InteractionRecord ir0(mCache.front());
   //int cacheSpan = 1 + mCache.back().differenceInBC(ir0);
-  //LOG(INFO) << "Cache spans " << cacheSpan << " with " << nCached << " BCs cached";
+  //LOG(info) << "Cache spans " << cacheSpan << " with " << nCached << " BCs cached";
 
   for (int ibc = 0; ibc < nCached; ibc++) { // digitize BCs which might not be affected by future events
     auto& bc = mCache[ibc];
     storeBC(bc, digitsBC, digitsCh, digitsTrig, labels);
   }
   // clean cache for BCs which are not needed anymore
-  //LOG(INFO) << "Cleaning cache";
+  //LOG(info) << "Cleaning cache";
   mCache.erase(mCache.begin(), mCache.end());
 }
 //_____________________________________________________________________________
@@ -191,7 +191,7 @@ void Digitizer::storeBC(const BCCache& bc,
                         std::vector<o2::fdd::DetTrigInput>& digitsTrig,
                         o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>& labels)
 {
-  //LOG(INFO) << "Storing BC " << bc;
+  //LOG(info) << "Storing BC " << bc;
 
   int first = digitsCh.size(), nStored = 0;
   for (int ic = 0; ic < Nchannels; ic++) {
@@ -227,7 +227,7 @@ float Digitizer::integrateCharge(const ChannelBCDataF& pulse)
     chargeADC = 4095;
   }
 
-  //LOG(INFO) <<" Charge " << chargeADC;
+  //LOG(info) <<" Charge " << chargeADC;
   return std::lround(chargeADC);
 }
 //_____________________________________________________________________________
@@ -251,7 +251,7 @@ float Digitizer::simulateTimeCFD(const ChannelBCDataF& pulse)
       break;
     }
   }
-  //LOG(INFO) <<" Time " << timeCFD;
+  //LOG(info) <<" Time " << timeCFD;
   timeCFD *= TimePerTDC; //ns -> counts
   return std::lround(timeCFD);
 }

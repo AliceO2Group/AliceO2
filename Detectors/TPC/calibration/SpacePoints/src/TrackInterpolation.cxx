@@ -34,9 +34,9 @@ using DetID = o2::detectors::DetID;
 void TrackInterpolation::init()
 {
   // perform initialization
-  LOG(INFO) << "Start initializing TrackInterpolation";
+  LOG(info) << "Start initializing TrackInterpolation";
   if (mInitDone) {
-    LOG(ERROR) << "Initialization already performed.";
+    LOG(error) << "Initialization already performed.";
     return;
   }
 
@@ -50,17 +50,12 @@ void TrackInterpolation::init()
   mGeoTRD = o2::trd::Geometry::instance();
 
   mInitDone = true;
-  LOG(INFO) << "Done initializing TrackInterpolation";
+  LOG(info) << "Done initializing TrackInterpolation";
 }
 
 void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, const std::vector<GTrackID>& gids, const std::vector<o2::globaltracking::RecoContainer::GlobalIDSet>& gidTables, std::vector<o2::track::TrackParCov>& seeds, const std::vector<float>& trkTimes)
 {
   // main processing function
-#ifdef TPC_RUN2
-  // processing will not work if the run 2 geometry is defined in the parameter class SpacePointsCalibParam.h
-  LOG(FATAL) << "Run 2 parameters compiled for the TPC geometry. Creating residual trees from Run 3 data will not work. Aborting...";
-  return;
-#endif
 
   if (!mInitDone) {
     LOG(error) << "Initialization not yet done. Aborting...";
@@ -91,7 +86,7 @@ void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, c
     }
   }
 
-  LOG(INFO) << "Could process " << mTrackData.size() << " tracks successfully";
+  LOG(info) << "Could process " << mTrackData.size() << " tracks successfully";
 }
 
 void TrackInterpolation::interpolateTrack(int iSeed)
@@ -117,7 +112,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     float clTPCX;
     std::array<float, 2> clTPCYZ;
     mFastTransform->TransformIdeal(sector, row, clTPC.getPad(), clTPC.getTime(), clTPCX, clTPCYZ[0], clTPCYZ[1], clusterTimeBinOffset);
-    sector %= SECTORSPERSIDE;
+    mCache[row].clSec = sector;
     mCache[row].clAvailable = 1;
     mCache[row].clY = clTPCYZ[0];
     mCache[row].clZ = clTPCYZ[1];
@@ -130,11 +125,11 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       continue;
     }
     if (!trkWork.rotate(mCache[iRow].clAngle)) {
-      LOG(DEBUG) << "Failed to rotate track during first extrapolation";
+      LOG(debug) << "Failed to rotate track during first extrapolation";
       return;
     }
     if (!propagator->PropagateToXBxByBz(trkWork, param::RowX[iRow], mMaxSnp, mMaxStep, mMatCorr)) {
-      LOG(DEBUG) << "Failed on first extrapolation";
+      LOG(debug) << "Failed on first extrapolation";
       return;
     }
     mCache[iRow].y[ExtOut] = trkWork.getY();
@@ -149,30 +144,30 @@ void TrackInterpolation::interpolateTrack(int iSeed)
 
   // start from outermost cluster with outer refit and back propagation
   if (gidTable[GTrackID::TOF].isIndexSet()) {
-    LOG(DEBUG) << "TOF point available";
+    LOG(debug) << "TOF point available";
     const auto& clTOF = mRecoCont->getTOFClusters()[gidTable[GTrackID::TOF]];
     const int clTOFSec = clTOF.getCount();
     const float clTOFAlpha = o2::math_utils::sector2Angle(clTOFSec);
     if (!trkWork.rotate(clTOFAlpha)) {
-      LOG(DEBUG) << "Failed to rotate into TOF cluster sector frame";
+      LOG(debug) << "Failed to rotate into TOF cluster sector frame";
       return;
     }
     float clTOFX = clTOF.getX();
     std::array<float, 2> clTOFYZ{clTOF.getY(), clTOF.getZ()};
     std::array<float, 3> clTOFCov{mSigYZ2TOF, 0.f, mSigYZ2TOF}; // assume no correlation between y and z and equal cluster error sigma^2 = (3cm)^2 / 12
     if (!propagator->PropagateToXBxByBz(trkWork, clTOFX, mMaxSnp, mMaxStep, mMatCorr)) {
-      LOG(DEBUG) << "Failed final propagation to TOF radius";
+      LOG(debug) << "Failed final propagation to TOF radius";
       return;
     }
     // TODO: check if reset of covariance matrix is needed here (or, in case TOF point is not available at outermost TRD layer)
     if (!trkWork.update(clTOFYZ, clTOFCov)) {
-      LOG(DEBUG) << "Failed to update extrapolated ITS track with TOF cluster";
-      //LOGF(INFO, "trkWork.y=%f, cl.y=%f, trkWork.z=%f, cl.z=%f", trkWork.getY(), clTOFYZ[0], trkWork.getZ(), clTOFYZ[1]);
+      LOG(debug) << "Failed to update extrapolated ITS track with TOF cluster";
+      //LOGF(info, "trkWork.y=%f, cl.y=%f, trkWork.z=%f, cl.z=%f", trkWork.getY(), clTOFYZ[0], trkWork.getZ(), clTOFYZ[1]);
       return;
     }
   }
   if (gidTable[GTrackID::TRD].isIndexSet()) {
-    LOG(DEBUG) << "TRD available";
+    LOG(debug) << "TRD available";
     const auto& trkTRD = mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::TRD]);
     for (int iLayer = o2::trd::constants::NLAYER - 1; iLayer >= 0; --iLayer) {
       int trkltIdx = trkTRD.getTrackletIndex(iLayer);
@@ -186,12 +181,12 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       auto trkltSec = trkltDet / (o2::trd::constants::NLAYER * o2::trd::constants::NSTACK);
       if (trkltSec != o2::math_utils::angle2Sector(trkWork.getAlpha())) {
         if (!trkWork.rotate(o2::math_utils::sector2Angle(trkltSec))) {
-          LOG(DEBUG) << "Track could not be rotated in TRD tracklet coordinate system in layer " << iLayer;
+          LOG(debug) << "Track could not be rotated in TRD tracklet coordinate system in layer " << iLayer;
           return;
         }
       }
       if (!propagator->PropagateToXBxByBz(trkWork, trdSP.getX(), mMaxSnp, mMaxStep, mMatCorr)) {
-        LOG(DEBUG) << "Failed propagation to TRD layer " << iLayer;
+        LOG(debug) << "Failed propagation to TRD layer " << iLayer;
         return;
       }
 
@@ -207,7 +202,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       std::array<float, 3> trkltTRDCov;
       mRecoParam.recalcTrkltCov(tilt, trkWork.getSnp(), pad->getRowSize(trdTrklt.getPadRow()), trkltTRDCov);
       if (!trkWork.update(trkltTRDYZ, trkltTRDCov)) {
-        LOG(DEBUG) << "Failed to update track at TRD layer " << iLayer;
+        LOG(debug) << "Failed to update track at TRD layer " << iLayer;
         return;
       }
     }
@@ -219,11 +214,11 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       continue;
     }
     if (!trkWork.rotate(mCache[iRow].clAngle)) {
-      LOG(DEBUG) << "Failed to rotate track during back propagation";
+      LOG(debug) << "Failed to rotate track during back propagation";
       return;
     }
     if (!propagator->PropagateToXBxByBz(trkWork, param::RowX[iRow], mMaxSnp, mMaxStep, mMatCorr)) {
-      LOG(DEBUG) << "Failed on back propagation";
+      LOG(debug) << "Failed on back propagation";
       //printf("trkX(%.2f), clX(%.2f), clY(%.2f), clZ(%.2f), alphaTOF(%.2f)\n", trkWork.getX(), param::RowX[iRow], clTOFYZ[0], clTOFYZ[1], clTOFAlpha);
       return;
     }
@@ -260,7 +255,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     res.setZ(mCache[iRow].z[Int]);
     res.setPhi(mCache[iRow].phi[Int]);
     res.setTgl(mCache[iRow].tgl[Int]);
-    res.sec = o2::math_utils::angle2Sector(mCache[iRow].clAngle);
+    res.sec = mCache[iRow].clSec;
     res.dRow = deltaRow;
     res.row = iRow;
     mClRes.push_back(std::move(res));
@@ -316,7 +311,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     res.setZ(trkWork.getZ());
     res.setPhi(trkWork.getSnp());
     res.setTgl(trkWork.getTgl());
-    res.sec = o2::math_utils::angle2Sector(trkWork.getAlpha());
+    res.sec = sector;
     res.dRow = row - rowPrev;
     res.row = row;
     rowPrev = row;

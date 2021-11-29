@@ -39,7 +39,7 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
 {
   // Extract results for the single slot
   o2::calibration::MeanVertexData* c = slot.getContainer();
-  LOG(INFO) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with "
+  LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with "
             << c->getEntries() << " entries";
   mTmpMVobjDqTime.emplace_back(slot.getTFStart(), slot.getTFEnd());
 
@@ -50,9 +50,9 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
     float* array = &c->histoX[0];
     double fitres = fitGaus(c->nbinsX, array, -(c->rangeX), c->rangeX, fitValues);
     if (fitres >= 0) {
-      LOG(INFO) << "X: Fit result (of single Slot) => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
+      LOG(info) << "X: Fit result (of single Slot) => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
     } else {
-      LOG(ERROR) << "X: Fit failed with result = " << fitres;
+      LOG(error) << "X: Fit failed with result = " << fitres;
     }
     mvo.setX(fitValues[1]);
     mvo.setSigmaX(fitValues[2]);
@@ -61,9 +61,9 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
     array = &c->histoY[0];
     fitres = fitGaus(c->nbinsY, array, -(c->rangeY), c->rangeY, fitValues);
     if (fitres >= 0) {
-      LOG(INFO) << "Y: Fit result (of single Slot) => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
+      LOG(info) << "Y: Fit result (of single Slot) => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
     } else {
-      LOG(ERROR) << "Y: Fit failed with result = " << fitres;
+      LOG(error) << "Y: Fit failed with result = " << fitres;
     }
     mvo.setY(fitValues[1]);
     mvo.setSigmaY(fitValues[2]);
@@ -72,9 +72,9 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
     array = &c->histoZ[0];
     fitres = fitGaus(c->nbinsZ, array, -(c->rangeZ), c->rangeZ, fitValues);
     if (fitres >= 0) {
-      LOG(INFO) << "Z: Fit result (of single Slot) => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
+      LOG(info) << "Z: Fit result (of single Slot) => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
     } else {
-      LOG(ERROR) << "Z: Fit failed with result = " << fitres;
+      LOG(error) << "Z: Fit failed with result = " << fitres;
     }
     mvo.setZ(fitValues[1]);
     mvo.setSigmaZ(fitValues[2]);
@@ -97,17 +97,17 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
     doSimpleMovingAverage(mTmpMVobjDq, mSMAMVobj);
   } else {
     // now we need to fit, on the merged data
-    LOG(DEBUG) << "**** Printing content of SMA MVData object for x coordinate";
+    LOG(debug) << "**** Printing content of SMA MVData object for x coordinate";
     for (int i = 0; i < mSMAdata.nbinsX; i++) {
-      LOG(DEBUG) << "i = " << i << ", content of histogram = " << mSMAdata.histoX[i];
+      LOG(debug) << "i = " << i << ", content of histogram = " << mSMAdata.histoX[i];
     }
     std::vector<float> fitValues;
     float* array = &mSMAdata.histoX[0];
     double fitres = fitGaus(mSMAdata.nbinsX, array, -(mSMAdata.rangeX), mSMAdata.rangeX, fitValues);
     if (fitres >= 0) {
-      LOG(INFO) << "X: Fit result (of merged Slots) => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
+      LOG(info) << "X: Fit result (of merged Slots) => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
     } else {
-      LOG(ERROR) << "X: Fit failed with result = " << fitres;
+      LOG(error) << "X: Fit failed with result = " << fitres;
     }
     mSMAMVobj.setX(fitValues[1]);
     mSMAMVobj.setSigmaX(fitValues[2]);
@@ -116,9 +116,9 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
     array = &mSMAdata.histoY[0];
     fitres = fitGaus(mSMAdata.nbinsY, array, -(mSMAdata.rangeY), mSMAdata.rangeY, fitValues);
     if (fitres >= 0) {
-      LOG(INFO) << "Y: Fit result (of merged Slots) => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
+      LOG(info) << "Y: Fit result (of merged Slots) => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
     } else {
-      LOG(ERROR) << "Y: Fit failed with result = " << fitres;
+      LOG(error) << "Y: Fit failed with result = " << fitres;
     }
     mSMAMVobj.setY(fitValues[1]);
     mSMAMVobj.setSigmaY(fitValues[2]);
@@ -127,9 +127,9 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
     array = &mSMAdata.histoZ[0];
     fitres = fitGaus(mSMAdata.nbinsZ, array, -(mSMAdata.rangeZ), mSMAdata.rangeZ, fitValues);
     if (fitres >= 0) {
-      LOG(INFO) << "Z: Fit result (of merged Slots) => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
+      LOG(info) << "Z: Fit result (of merged Slots) => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
     } else {
-      LOG(ERROR) << "Z: Fit failed with result = " << fitres;
+      LOG(error) << "Z: Fit failed with result = " << fitres;
     }
     mSMAMVobj.setZ(fitValues[1]);
     mSMAMVobj.setSigmaZ(fitValues[2]);
@@ -142,11 +142,11 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
     mTmpMVobjDqTime.pop_front();
   }
   TFType startValidity = (mTmpMVobjDqTime.front().getMin() + mTmpMVobjDqTime.back().getMax()) / 2; // will be rounded to uint64_t
-  LOG(INFO) << "start validity = " << startValidity;
+  LOG(info) << "start validity = " << startValidity;
   std::map<std::string, std::string> md;
   auto clName = o2::utils::MemFileHelper::getClassName(mSMAMVobj);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-  mInfoVector.emplace_back("GRP/MeanVertex", clName, flName, md, startValidity, 99999999999999);
+  mInfoVector.emplace_back("GLO/Calib/MeanVertex", clName, flName, md, startValidity, 99999999999999);
   mMeanVertexVector.emplace_back(mSMAMVobj);
 
   slot.print();

@@ -80,7 +80,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     std::sregex_token_iterator it(detectorList.begin(), detectorList.end(), re, -1);
     std::sregex_token_iterator reg_end;
     for (; it != reg_end; ++it) {
-      LOG(INFO) << "DCS DPs configured for detector " << it->str();
+      LOG(info) << "DCS DPs configured for detector " << it->str();
       std::unordered_map<DPID, std::string>* dpid2Det = mgr.getForTimeStamp<std::unordered_map<DPID, std::string>>(it->str() + "/Config/DCSDPconfig", ts);
       for (auto& el : *dpid2Det) {
         o2::header::DataDescription tmpd;

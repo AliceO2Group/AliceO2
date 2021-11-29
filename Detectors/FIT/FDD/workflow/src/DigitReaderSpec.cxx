@@ -44,12 +44,12 @@ void DigitReader::init(InitContext& ic)
 
   mFile = std::make_unique<TFile>(mInputFileName.c_str(), "OLD");
   if (!mFile->IsOpen()) {
-    LOG(ERROR) << "Cannot open the " << mInputFileName.c_str() << " file !";
+    LOG(error) << "Cannot open the " << mInputFileName.c_str() << " file !";
     throw std::runtime_error("cannot open input digits file");
   }
   mTree.reset((TTree*)mFile->Get("o2sim"));
   if (!mTree) {
-    LOG(ERROR) << "Did not find o2sim tree in " << mInputFileName.c_str();
+    LOG(error) << "Did not find o2sim tree in " << mInputFileName.c_str();
     throw std::runtime_error("Did not fine o2sim file in FDD digits tree");
   }
 }
@@ -70,17 +70,18 @@ void DigitReader::run(ProcessingContext& pc)
   if (mUseMC) {
     if (mTree->GetBranch(mDigitMCTruthBranchName.c_str())) {
       mTree->SetBranchAddress(mDigitMCTruthBranchName.c_str(), &mcTruthRootBuffer);
-      LOG(INFO) << "Will use MC-truth from " << mDigitMCTruthBranchName;
+      LOG(info) << "Will use MC-truth from " << mDigitMCTruthBranchName;
     } else {
-      LOG(INFO) << "MC-truth is missing";
+      LOG(info) << "MC-truth is missing";
       mUseMC = false;
+
     }
   }
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
 
-  LOG(INFO) << "FDD DigitReader pushes " << digitsBC->size() << " digits";
+  LOG(info) << "FDD DigitReader pushes " << digitsBC->size() << " digits";
   pc.outputs().snapshot(Output{mOrigin, "DIGITSBC", 0, Lifetime::Timeframe}, *digitsBC);
   pc.outputs().snapshot(Output{mOrigin, "DIGITSCH", 0, Lifetime::Timeframe}, *digitsCh);
 

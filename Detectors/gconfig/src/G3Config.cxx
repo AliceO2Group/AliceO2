@@ -29,7 +29,7 @@ namespace g3config
 
 void G3Config()
 {
-  LOG(INFO) << "Setting up G3 sim from library code";
+  LOG(info) << "Setting up G3 sim from library code";
   Config();
 }
 } // namespace g3config

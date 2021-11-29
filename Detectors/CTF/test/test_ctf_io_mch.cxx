@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(CTFTest, *boost::unit_test::enabled())
     coder.encode(vec, rofs, digs); // compress
   }
   sw.Stop();
-  LOG(INFO) << "Compressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Compressed in " << sw.CpuTime() << " s";
 
   // writing
   {
@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(CTFTest, *boost::unit_test::enabled())
     ctfImage->appendToTree(ctfTree, "MCH");
     ctfTree.Write();
     sw.Stop();
-    LOG(INFO) << "Wrote to tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Wrote to tree in " << sw.CpuTime() << " s";
   }
 
   // reading
@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(CTFTest, *boost::unit_test::enabled())
     BOOST_CHECK(tree);
     o2::mch::CTF::readFromTree(vec, *(tree.get()), "MCH");
     sw.Stop();
-    LOG(INFO) << "Read back from tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Read back from tree in " << sw.CpuTime() << " s";
   }
 
   std::vector<ROFRecord> rofsD;
@@ -99,9 +99,9 @@ BOOST_AUTO_TEST_CASE(CTFTest, *boost::unit_test::enabled())
     coder.decode(ctfImage, rofsD, digsD); // decompress
   }
   sw.Stop();
-  LOG(INFO) << "Decompressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Decompressed in " << sw.CpuTime() << " s";
 
-  LOG(INFO) << " BOOST_CHECK rofsD.size() " << rofsD.size() << " rofs.size() " << rofs.size()
+  LOG(info) << " BOOST_CHECK rofsD.size() " << rofsD.size() << " rofs.size() " << rofs.size()
             << " BOOST_CHECK(digsD.size() " << digsD.size() << " digs.size()) " << digs.size();
 
   BOOST_TEST(rofs == rofsD, boost::test_tools::per_element());

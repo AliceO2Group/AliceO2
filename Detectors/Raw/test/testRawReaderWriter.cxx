@@ -168,7 +168,7 @@ struct TestRawWriter { // simple class to create detector payload for multiple l
     int bytesLeft = data.size() - (ptr - &data[0]);
     bool lastPage = bytesLeft <= maxSize;
     if (verboseCount++ < 100) {
-      LOG(INFO) << "Carry-over method for chunk of size " << bytesLeft << " is called, MaxSize = " << maxSize << (lastPage ? " : last chunk being processed!" : "");
+      LOG(info) << "Carry-over method for chunk of size " << bytesLeft << " is called, MaxSize = " << maxSize << (lastPage ? " : last chunk being processed!" : "");
     }
     // here we simply copy the header/trailer of the payload to every CRU page of this payload
     header.resize(RDHUtils::GBTWord);

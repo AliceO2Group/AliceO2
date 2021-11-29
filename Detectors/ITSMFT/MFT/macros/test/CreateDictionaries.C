@@ -104,7 +104,7 @@ void CreateDictionaries(bool saveDeltas = false,
       }
     }
     if (nHadro < hitTree->GetEntries()) {
-      LOG(FATAL) << "N=" << nHadro << " hadronic events < "
+      LOG(fatal) << "N=" << nHadro << " hadronic events < "
                  << " N=" << hitTree->GetEntries() << " Hit enties.";
     }
   }
@@ -194,8 +194,8 @@ void CreateDictionaries(bool saveDeltas = false,
       const auto& cluster = (*clusArr)[clEntry];
 
       if (cluster.getPatternID() != CompCluster::InvalidPatternID) {
-        LOG(WARNING) << "Encountered patternID = " << cluster.getPatternID() << " != " << CompCluster::InvalidPatternID;
-        LOG(WARNING) << "Clusters have already been generated with a dictionary! Quitting";
+        LOG(warning) << "Encountered patternID = " << cluster.getPatternID() << " != " << CompCluster::InvalidPatternID;
+        LOG(warning) << "Clusters have already been generated with a dictionary! Quitting";
         return;
       }
 
@@ -259,7 +259,7 @@ void CreateDictionaries(bool saveDeltas = false,
 
   completeDictionary.setThreshold(0.0001);
   completeDictionary.groupRareTopologies();
-  completeDictionary.printDictionaryBinary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "", "bin"));
+  completeDictionary.printDictionaryBinary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, ""));
   completeDictionary.printDictionary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "", ".txt"));
   completeDictionary.saveDictionaryRoot(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "", "root"));
 
@@ -282,12 +282,12 @@ void CreateDictionaries(bool saveDeltas = false,
   if (clusLabArr) {
     noiseDictionary.setThreshold(0.0001);
     noiseDictionary.groupRareTopologies();
-    noiseDictionary.printDictionaryBinary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "noiseClusTopo", "bin"));
+    noiseDictionary.printDictionaryBinary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "noiseClusTopo"));
     noiseDictionary.printDictionary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "noiseClusTopo", ".txt"));
     noiseDictionary.saveDictionaryRoot(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "noiseClusTop", "root"));
     signalDictionary.setThreshold(0.0001);
     signalDictionary.groupRareTopologies();
-    signalDictionary.printDictionaryBinary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "signal", "bin"));
+    signalDictionary.printDictionaryBinary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "signal"));
     signalDictionary.printDictionary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "signal", ".txt"));
     signalDictionary.saveDictionaryRoot(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "signal", "root"));
     cNoise = new TCanvas("cNoise", "Distribution of noise topologies");

@@ -87,13 +87,13 @@ void CosmicsMatchingSpec::init(InitContext& ic)
   }
   //
   std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(DetID::ITS, dictPath, "bin");
+  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(DetID::ITS, dictPath);
   auto itsDict = std::make_unique<o2::itsmft::TopologyDictionary>();
   if (o2::utils::Str::pathExists(dictFile)) {
-    itsDict->readBinaryFile(dictFile);
-    LOG(INFO) << "Matching is running with a provided ITS dictionary: " << dictFile;
+    itsDict->readFromFile(dictFile);
+    LOG(info) << "Matching is running with a provided ITS dictionary: " << dictFile;
   } else {
-    LOG(INFO) << "Dictionary " << dictFile << " is absent, Matching expects ITS cluster patterns";
+    LOG(info) << "Dictionary " << dictFile << " is absent, Matching expects ITS cluster patterns";
   }
   o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2GRot) | o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L));
   mMatching.setITSDict(itsDict);
@@ -104,9 +104,9 @@ void CosmicsMatchingSpec::init(InitContext& ic)
   if (o2::utils::Str::pathExists(matLUTFile)) {
     auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
     o2::base::Propagator::Instance()->setMatLUT(lut);
-    LOG(INFO) << "Loaded material LUT from " << matLUTFile;
+    LOG(info) << "Loaded material LUT from " << matLUTFile;
   } else {
-    LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+    LOG(info) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
   }
 
   mMatching.setDebugFlag(ic.options().get<int>("debug-tree-flags"));
@@ -134,7 +134,7 @@ void CosmicsMatchingSpec::run(ProcessingContext& pc)
 void CosmicsMatchingSpec::endOfStream(EndOfStreamContext& ec)
 {
   mMatching.end();
-  LOGF(INFO, "Cosmics matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "Cosmics matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

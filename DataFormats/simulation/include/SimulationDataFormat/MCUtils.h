@@ -23,10 +23,41 @@ namespace o2
 {
 namespace mcutils
 {
-/// Function to determine if a MC track/particle p is a primary according to physics criteria.
-/// Needs the particle as input, as well as the whole navigable container of particles
-/// (of which p needs to be a part itself). The container can be fetched via MCKinematicsReader.
-bool isPhysicalPrimary(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer);
+/// A couple of functions to query on MC tracks ( that needs navigation within the global container
+/// of available tracks. It is a class so as to make it available for interactive ROOT more easily.
+class MCTrackNavigator
+{
+ public:
+  /// Function to determine if a MC track/particle p is a primary according to physics criteria.
+  /// Needs the particle as input, as well as the whole navigable container of particles
+  /// (of which p needs to be a part itself). The container can be fetched via MCKinematicsReader.
+  static bool isPhysicalPrimary(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer);
+
+  // some convenience functions for navigation
+
+  /// Given an MCTrack p; Return the first primary mother particle in the upward parent chain (follow
+  /// only first mothers). The first primary mother may have further parent (put by the generator).
+  /// Return p itself if p is a primary.
+  static o2::MCTrack const& getFirstPrimary(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer);
+
+  /// Given an MCTrack p; Return it's direct mother or nullptr. (we follow only first mother)
+  static o2::MCTrack const* getMother(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer);
+
+  /// Given an MCTrack p; Return it's direct daughter or nullptr. (we follow only first daughter)
+  static o2::MCTrack const* getDaughter(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer);
+
+  /// Given an MCTrack p; Fill the complete parent chain (ancestorchain) up to the most fundamental particle (follow only
+  /// first mothers).
+  // static void getParentChain(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer, std::vector<o2::MCTrack> &ancestorchain);
+
+  /// query if a track is a direct **or** indirect daughter of a parentID
+  /// if trackid is same as parentid it returns true
+  /// bool isTrackDaughterOf(int /*trackid*/, int /*parentid*/) const;
+  /// we can think about offering some visitor like patterns executing a
+  /// user hook on nodes
+
+  ClassDefNV(MCTrackNavigator, 1);
+};
 
 /// Determine if a particle (identified by pdg) is stable
 inline bool isStable(int pdg)

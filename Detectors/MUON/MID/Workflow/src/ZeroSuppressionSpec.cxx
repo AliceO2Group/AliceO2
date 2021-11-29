@@ -25,6 +25,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "MIDRaw/ColumnDataToLocalBoard.h"
 #include "MIDRaw/DecodedDataAggregator.h"
+#include "MIDRaw/ROBoardResponse.h"
 #include "MIDSimulation/MCLabel.h"
 
 namespace of = o2::framework;
@@ -58,10 +59,8 @@ class ZeroSuppressionDeviceDPL
     for (auto& rof : inROFRecords) {
       mConverter.process(patterns.subspan(rof.firstEntry, rof.nEntries));
       if (!mConverter.getData().empty()) {
-        std::vector<ROBoard> decodedData;
-        for (auto& item : mConverter.getData()) {
-          decodedData.insert(decodedData.end(), item.second.begin(), item.second.end());
-        }
+        std::vector<ROBoard> decodedData = mConverter.getData();
+        mResponse.applyZeroSuppression(decodedData);
         tmpROFs.front().interactionRecord = rof.interactionRecord;
         tmpROFs.front().eventType = rof.eventType;
         tmpROFs.front().firstEntry = 0;
@@ -96,6 +95,7 @@ class ZeroSuppressionDeviceDPL
  private:
   ColumnDataToLocalBoard mConverter{};
   DecodedDataAggregator mAggregator{};
+  ROBoardResponse mResponse{};
   bool mUseMC{true};
 };
 

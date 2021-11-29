@@ -129,6 +129,9 @@ struct DataSpecUtils {
   /// Same as the other describe, but uses a buffer to reduce memory churn.
   static void describe(char* buffer, size_t size, InputSpec const& spec);
 
+  /// Same as the other describe, but uses a buffer to reduce memory churn.
+  static void describe(char* buffer, size_t size, OutputSpec const& spec);
+
   /// If possible extract the ConcreteDataMatcher from an InputSpec. This
   /// can be done either if the InputSpec is defined in terms for a ConcreteDataMatcher
   /// or if the query can be uniquely assigned to a ConcreteDataMatcher.

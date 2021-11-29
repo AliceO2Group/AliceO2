@@ -23,7 +23,7 @@
 
 #include "Framework/Logger.h"
 
-#include "MCHTracking/Cluster.h"
+#include "DataFormatsMCH/Cluster.h"
 
 namespace o2
 {
@@ -423,7 +423,7 @@ Bool_t TrackParam::isCompatibleTrackParam(const TrackParam& trackParam, Double_t
 
   // ckeck covariance matrices
   if (!mCovariances && !trackParam.mCovariances) {
-    LOG(ERROR) << "Covariance matrix must exist for at least one set of parameters";
+    LOG(error) << "Covariance matrix must exist for at least one set of parameters";
     return kFALSE;
   }
 
@@ -431,7 +431,7 @@ Bool_t TrackParam::isCompatibleTrackParam(const TrackParam& trackParam, Double_t
 
   // check Z parameters
   if (mZ != trackParam.mZ) {
-    LOG(WARN) << "Parameters are given at different Z position (" << mZ << " : " << trackParam.mZ
+    LOG(warn) << "Parameters are given at different Z position (" << mZ << " : " << trackParam.mZ
               << "): results are meaningless";
   }
 
@@ -449,7 +449,7 @@ Bool_t TrackParam::isCompatibleTrackParam(const TrackParam& trackParam, Double_t
 
   // invert the error matrix to get the parameter weights if possible
   if (weight.Determinant() == 0) {
-    LOG(ERROR) << "Cannot compute the compatibility chi2";
+    LOG(error) << "Cannot compute the compatibility chi2";
     return kFALSE;
   }
   weight.Invert();

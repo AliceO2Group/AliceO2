@@ -21,22 +21,22 @@ void InteractionSampler::init()
 
   int nBCSet = mBCFilling.getNBunches();
   if (!nBCSet) {
-    LOG(WARNING) << "No bunch filling provided, impose default one";
+    LOG(warning) << "No bunch filling provided, impose default one";
     mBCFilling.setDefault();
     nBCSet = mBCFilling.getNBunches();
   }
 
   if (mMuBC < 0. && mIntRate < 0.) {
-    LOG(WARNING) << "No IR or muBC is provided, setting default IR";
+    LOG(warning) << "No IR or muBC is provided, setting default IR";
     mIntRate = DefIntRate;
   }
 
   if (mMuBC > 0.) {
     mIntRate = mMuBC * nBCSet * o2::constants::lhc::LHCRevFreq;
-    LOG(INFO) << "Deducing IR=" << mIntRate << "Hz from " << nBCSet << " BCs at mu=" << mMuBC;
+    LOG(info) << "Deducing IR=" << mIntRate << "Hz from " << nBCSet << " BCs at mu=" << mMuBC;
   } else {
     mMuBC = mIntRate / (nBCSet * o2::constants::lhc::LHCRevFreq);
-    LOG(INFO) << "Deducing mu=" << mMuBC << " per BC from IR=" << mIntRate << " with " << nBCSet << " BCs";
+    LOG(info) << "Deducing mu=" << mMuBC << " per BC from IR=" << mIntRate << " with " << nBCSet << " BCs";
   }
 
   mInteractingBCs.clear();
@@ -85,12 +85,12 @@ void InteractionSampler::init()
 void InteractionSampler::print() const
 {
   if (mIntRate < 0) {
-    LOG(ERROR) << "not yet initialized";
+    LOG(error) << "not yet initialized";
     return;
   }
-  LOG(INFO) << "InteractionSampler with " << mInteractingBCs.size() << " colliding BCs, mu(BC)= "
+  LOG(info) << "InteractionSampler with " << mInteractingBCs.size() << " colliding BCs, mu(BC)= "
             << getMuPerBC() << " -> total IR= " << getInteractionRate();
-  LOG(INFO) << "Current " << mIR << '(' << mIntBCCache << " coll left)";
+  LOG(info) << "Current " << mIR << '(' << mIntBCCache << " coll left)";
 }
 
 //_________________________________________________
@@ -136,7 +136,7 @@ void InteractionSampler::setBunchFilling(const std::string& bcFillingFile)
   // load bunch filling from the file
   auto* bc = o2::BunchFilling::loadFrom(bcFillingFile);
   if (!bc) {
-    LOG(FATAL) << "Failed to load bunch filling from " << bcFillingFile;
+    LOG(fatal) << "Failed to load bunch filling from " << bcFillingFile;
   }
   mBCFilling = *bc;
   delete bc;

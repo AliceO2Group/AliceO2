@@ -11,6 +11,7 @@
 
 #include "RawFileReaderWorkflow.h"
 #include "DetectorsRaw/RawFileReader.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/Logger.h"
 #include <string>
@@ -38,6 +39,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"calculate-tf-start", VariantType::Bool, false, {"calculate TF start instead of using TType"}});
   options.push_back(ConfigParamSpec{"drop-tf", VariantType::String, "none", {"Drop each TFid%(1)==(2) of detector, e.g. ITS,2,4;TPC,4[,0];..."}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings"}});
+  options.push_back(ConfigParamSpec{"hbfutils-config", VariantType::String, std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE), {"configKeyValues ini file for HBFUtils (used if exists)"}});
   // options for error-check suppression
 
   for (int i = 0; i < RawFileReader::NErrorsDefined; i++) {
@@ -76,6 +78,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-
+  auto hbfini = configcontext.options().get<std::string>("hbfutils-config");
+  if (!hbfini.empty() && o2::utils::Str::pathExists(hbfini)) {
+    o2::conf::ConfigurableParam::updateFromFile(hbfini, "HBFUtils", true); // update only those values which were not touched yet (provenance == kCODE)
+  }
   return std::move(o2::raw::getRawFileReaderWorkflow(rinp));
 }

@@ -118,7 +118,7 @@ TGeoVolume* V3Services::createInnerBarrelSupports(const TGeoManager* mgr)
   for (Int_t j = 0; j < 3; j++) {
     layerVol = mgr->GetVolume(Form("%s%d", o2::its3::GeometryTGeo::getITSLayerPattern(), j));
     if (!layerVol) { // Should really never happen
-      LOG(FATAL) << "While building services: ITSU Layer " << j << " does not exist";
+      LOG(fatal) << "While building services: ITSU Layer " << j << " does not exist";
     }
     layerSh = (TGeoTube*)layerVol->GetShape();
     rmin = layerSh->GetRmax();
@@ -128,7 +128,7 @@ TGeoVolume* V3Services::createInnerBarrelSupports(const TGeoManager* mgr)
     } else {
       layerVol = mgr->GetVolume(Form("%s%d", o2::its3::GeometryTGeo::getITSLayerPattern(), j + 1));
       if (!layerVol) { // Should really never happen
-        LOG(FATAL) << "While building services: ITSU Layer " << j + 1 << " does not exist";
+        LOG(fatal) << "While building services: ITSU Layer " << j + 1 << " does not exist";
       }
       layerSh = (TGeoTube*)layerVol->GetShape();
       rmax = layerSh->GetRmin();

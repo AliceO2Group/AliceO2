@@ -88,9 +88,9 @@ int main(int argc, const char** argv)
   // if needed, create output directory
   if (!std::filesystem::exists(outputdir)) {
     if (!std::filesystem::create_directories(outputdir)) {
-      LOG(FATAL) << "could not create output directory " << outputdir;
+      LOG(fatal) << "could not create output directory " << outputdir;
     } else {
-      LOG(INFO) << "created output directory " << outputdir;
+      LOG(info) << "created output directory " << outputdir;
     }
   }
 
@@ -118,10 +118,10 @@ int main(int argc, const char** argv)
 
   // Loop over all entries in the tree, where each tree entry corresponds to a time frame
   for (auto en : *treereader) {
-    LOG(DEBUG) << "RawCreator::main() : I call rawwriter.digitsToRaw(). "
+    LOG(debug) << "RawCreator::main() : I call rawwriter.digitsToRaw(). "
                << "Sending following tree: ";
     for (int i = 0; i < (*triggerbranch).size(); i++) {
-      LOG(DEBUG) << (*triggerbranch)[i];
+      LOG(debug) << (*triggerbranch)[i];
     }
     rawwriter.digitsToRaw(*digitbranch, *triggerbranch);
   }

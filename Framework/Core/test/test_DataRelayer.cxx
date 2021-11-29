@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE(TestNoWait)
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
   BOOST_CHECK_EQUAL(header.get(), nullptr);
   BOOST_CHECK_EQUAL(payload.get(), nullptr);
-  auto result = relayer.getInputsForTimeslice(ready[0].slot);
+  auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
   // one MessageSet with one PartRef with header and payload
   BOOST_REQUIRE_EQUAL(result.size(), 1);
   BOOST_REQUIRE_EQUAL(result.at(0).size(), 1);
@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE(TestNoWaitMatcher)
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
   BOOST_CHECK_EQUAL(header.get(), nullptr);
   BOOST_CHECK_EQUAL(payload.get(), nullptr);
-  auto result = relayer.getInputsForTimeslice(ready[0].slot);
+  auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
   // one MessageSet with one PartRef with header and payload
   BOOST_REQUIRE_EQUAL(result.size(), 1);
   BOOST_REQUIRE_EQUAL(result.at(0).size(), 1);
@@ -199,7 +199,7 @@ BOOST_AUTO_TEST_CASE(TestRelay)
   BOOST_CHECK_EQUAL(ready[0].slot.index, 0);
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
 
-  auto result = relayer.getInputsForTimeslice(ready[0].slot);
+  auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
   // two MessageSets, each with one PartRef
   BOOST_REQUIRE_EQUAL(result.size(), 2);
   BOOST_REQUIRE_EQUAL(result.at(0).size(), 1);
@@ -288,14 +288,14 @@ BOOST_AUTO_TEST_CASE(TestRelayBug)
   BOOST_REQUIRE_EQUAL(ready.size(), 1);
   BOOST_CHECK_EQUAL(ready[0].slot.index, 0);
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
-  auto result = relayer.getInputsForTimeslice(ready[0].slot);
+  auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
   createMessage(dh2, 1);
   ready.clear();
   relayer.getReadyToProcess(ready);
   BOOST_REQUIRE_EQUAL(ready.size(), 1);
   BOOST_CHECK_EQUAL(ready[0].slot.index, 1);
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
-  result = relayer.getInputsForTimeslice(ready[0].slot);
+  result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
 }
 
 // This tests a simple cache pruning, where a single input is shifted out of
@@ -351,7 +351,7 @@ BOOST_AUTO_TEST_CASE(TestCache)
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
   BOOST_CHECK_EQUAL(ready[1].op, CompletionPolicy::CompletionOp::Consume);
   for (size_t i = 0; i < ready.size(); ++i) {
-    auto result = relayer.getInputsForTimeslice(ready[i].slot);
+    auto result = relayer.consumeAllInputsForTimeslice(ready[i].slot);
   }
 
   // This fills the cache and makes 2 obsolete.
@@ -362,8 +362,8 @@ BOOST_AUTO_TEST_CASE(TestCache)
   relayer.getReadyToProcess(ready);
   BOOST_REQUIRE_EQUAL(ready.size(), 2);
 
-  auto result1 = relayer.getInputsForTimeslice(ready[0].slot);
-  auto result2 = relayer.getInputsForTimeslice(ready[1].slot);
+  auto result1 = relayer.consumeAllInputsForTimeslice(ready[0].slot);
+  auto result2 = relayer.consumeAllInputsForTimeslice(ready[1].slot);
   // One for the header, one for the payload
   BOOST_REQUIRE_EQUAL(result1.size(), 1);
   BOOST_REQUIRE_EQUAL(result2.size(), 1);
@@ -610,4 +610,124 @@ BOOST_AUTO_TEST_CASE(SplitParts)
   BOOST_CHECK_EQUAL(action, DataRelayer::Backpressured);
   BOOST_CHECK_NE(header2.get(), nullptr);
   BOOST_CHECK_NE(payload2.get(), nullptr);
+}
+
+BOOST_AUTO_TEST_CASE(SplitPayloadPairs)
+{
+  Monitoring metrics;
+  InputSpec spec1{"clusters", "TPC", "CLUSTERS"};
+
+  std::vector<InputRoute> inputs = {
+    InputRoute{spec1, 0, "Fake1", 0},
+  };
+
+  std::vector<ForwardRoute> forwards;
+  TimesliceIndex index{1};
+
+  auto policy = CompletionPolicyHelpers::consumeWhenAny();
+  DataRelayer relayer(policy, inputs, metrics, index);
+  relayer.setPipelineLength(4);
+
+  DataHeader dh{"CLUSTERS", "TPC", 0};
+
+  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
+  size_t timeslice = 0;
+
+  const int nSplitParts = 100;
+  std::vector<std::unique_ptr<FairMQMessage>> splitParts;
+  splitParts.reserve(2 * nSplitParts);
+
+  for (size_t i = 0; i < nSplitParts; ++i) {
+    dh.splitPayloadIndex = i;
+    dh.splitPayloadParts = nSplitParts;
+
+    FairMQMessagePtr header = o2::pmr::getMessage(Stack{channelAlloc, dh, DataProcessingHeader{timeslice, 1}});
+    FairMQMessagePtr payload = transport->CreateMessage(100);
+
+    splitParts.emplace_back(std::move(header));
+    splitParts.emplace_back(std::move(payload));
+  }
+  BOOST_REQUIRE_EQUAL(splitParts.size(), 2 * nSplitParts);
+
+  relayer.relay(splitParts[0]->GetData(), splitParts.data(), splitParts.size());
+  std::vector<RecordAction> ready;
+  relayer.getReadyToProcess(ready);
+  BOOST_REQUIRE_EQUAL(ready.size(), 1);
+  BOOST_REQUIRE_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
+  auto messageSet = relayer.consumeAllInputsForTimeslice(ready[0].slot);
+  // we have one input route and thus one message set containing pairs for all
+  // payloads
+  BOOST_REQUIRE_EQUAL(messageSet.size(), 1);
+  BOOST_CHECK_EQUAL(messageSet[0].size(), nSplitParts);
+  BOOST_CHECK_EQUAL(messageSet[0].getNumberOfPayloads(0), 1);
+}
+
+BOOST_AUTO_TEST_CASE(SplitPayloadSequence)
+{
+  Monitoring metrics;
+  InputSpec spec1{"clusters", "TST", "COUNTER"};
+
+  std::vector<InputRoute> inputs = {
+    InputRoute{spec1, 0, "Fake1", 0},
+  };
+
+  std::vector<ForwardRoute> forwards;
+  TimesliceIndex index{1};
+
+  auto policy = CompletionPolicyHelpers::consumeWhenAny();
+  DataRelayer relayer(policy, inputs, metrics, index);
+  relayer.setPipelineLength(4);
+
+  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  size_t timeslice = 0;
+
+  std::vector<size_t> sequenceSize;
+  size_t nTotalPayloads = 0;
+
+  auto createSequence = [&nTotalPayloads, &timeslice, &sequenceSize, &transport, &relayer](size_t nPayloads) -> void {
+    auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
+    std::vector<std::unique_ptr<FairMQMessage>> messages;
+    messages.reserve(nPayloads + 1);
+    DataHeader dh{"COUNTER", "TST", 0};
+
+    // one header with index set to the number of split parts indicates sequence
+    // of payloads without additional headers
+    dh.splitPayloadIndex = nPayloads;
+    dh.splitPayloadParts = nPayloads;
+    FairMQMessagePtr header = o2::pmr::getMessage(Stack{channelAlloc, dh, DataProcessingHeader{timeslice, 1}});
+    messages.emplace_back(std::move(header));
+
+    for (size_t i = 0; i < nPayloads; ++i) {
+      messages.emplace_back(transport->CreateMessage(100));
+      *(reinterpret_cast<size_t*>(messages.back()->GetData())) = nTotalPayloads;
+      ++nTotalPayloads;
+    }
+    BOOST_CHECK_EQUAL(messages.size(), nPayloads + 1);
+    relayer.relay(messages[0]->GetData(), messages.data(), messages.size(), nPayloads);
+    sequenceSize.emplace_back(nPayloads);
+  };
+  createSequence(100);
+  createSequence(1);
+  createSequence(42);
+
+  std::vector<RecordAction> ready;
+  relayer.getReadyToProcess(ready);
+  BOOST_REQUIRE_EQUAL(ready.size(), 1);
+  BOOST_REQUIRE_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
+  auto messageSet = relayer.consumeAllInputsForTimeslice(ready[0].slot);
+  // we have one input route
+  BOOST_REQUIRE_EQUAL(messageSet.size(), 1);
+  // one message set containing number of added sequences of messages
+  BOOST_REQUIRE_EQUAL(messageSet[0].size(), sequenceSize.size());
+  size_t counter = 0;
+  for (auto seqid = 0; seqid < sequenceSize.size(); ++seqid) {
+    BOOST_CHECK_EQUAL(messageSet[0].getNumberOfPayloads(seqid), sequenceSize[seqid]);
+    for (auto pi = 0; pi < messageSet[0].getNumberOfPayloads(seqid); ++pi) {
+      BOOST_REQUIRE(messageSet[0].payload(seqid, pi));
+      auto const* data = messageSet[0].payload(seqid, pi)->GetData();
+      BOOST_CHECK_EQUAL(*(reinterpret_cast<size_t const*>(data)), counter);
+      ++counter;
+    }
+  }
 }

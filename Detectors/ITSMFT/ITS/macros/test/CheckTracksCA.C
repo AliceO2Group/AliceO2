@@ -46,7 +46,7 @@ struct ParticleInfo {
 
 #pragma link C++ class ParticleInfo + ;
 
-void CheckTracksCA(bool doFakeClStud = true, std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string kinefile = "o2sim_Kine.root")
+void CheckTracksCA(bool doFakeClStud = false, std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string kinefile = "o2sim_Kine.root")
 {
 
   using namespace o2::itsmft;

@@ -48,7 +48,7 @@ class TrackMatcherTask
   /// prepare the track matching
   void init(InitContext& ic)
   {
-    LOG(INFO) << "initializing track matching";
+    LOG(info) << "initializing track matching";
 
     auto config = ic.options().get<std::string>("mch-config");
     if (!config.empty()) {
@@ -57,7 +57,7 @@ class TrackMatcherTask
     mTrackMatcher.init();
 
     auto stop = [this]() {
-      LOG(INFO) << "track matching duration = " << mElapsedTime.count() << " s";
+      LOG(info) << "track matching duration = " << mElapsedTime.count() << " s";
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
   }

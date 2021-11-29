@@ -50,7 +50,7 @@ void CPVBadMapCalibDevice::run(o2::framework::ProcessingContext& ctx)
       spectra = static_cast<TH2F*>(f.Get("Gains"));
     }
     if (!spectra) {
-      LOG(ERROR) << "ERROR: can not read histo Gains from file " << filename.data();
+      LOG(error) << "ERROR: can not read histo Gains from file " << filename.data();
       return;
     }
     float meanOccupancy = spectra->Integral() / spectra->GetNbinsX();
@@ -90,7 +90,7 @@ void CPVBadMapCalibDevice::run(o2::framework::ProcessingContext& ctx)
       pedestals = static_cast<TH2F*>(f.Get("Mean"));
     }
     if (!pedestals) {
-      LOG(ERROR) << "ERROR: can not read histo Mean from file " << filename.data();
+      LOG(error) << "ERROR: can not read histo Mean from file " << filename.data();
       return;
     }
     TH1D* proj = pedestals->ProjectionY("m");
@@ -142,7 +142,7 @@ void CPVBadMapCalibDevice::run(o2::framework::ProcessingContext& ctx)
 void CPVBadMapCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
 
-  LOG(INFO) << "[CPVBadMapCalibDevice - endOfStream]";
+  LOG(info) << "[CPVBadMapCalibDevice - endOfStream]";
   //calculate stuff here
 }
 
@@ -167,7 +167,7 @@ void CPVBadMapCalibDevice::sendOutput(DataAllocator& output)
     std::map<std::string, std::string> md;
     info.setMetaData(md);
 
-    LOG(INFO) << "Sending object CPV/Calib/BadChannelMap";
+    LOG(info) << "Sending object CPV/Calib/BadChannelMap";
 
     header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_BadChanMap", subSpec}, *image.get());
@@ -206,10 +206,10 @@ o2::framework::DataProcessorSpec o2::cpv::getBadMapCalibSpec(bool useCCDB, bool 
 {
 
   std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_BadChanMap"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_BadChanMap"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_BadChanMap"}, o2::framework::Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_BadChanMap"}, o2::framework::Lifetime::Sporadic);
 
-  outputs.emplace_back("CPV", "BADMAPCHANGE", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("CPV", "BADMAPCHANGE", 0, o2::framework::Lifetime::Sporadic);
 
   return o2::framework::DataProcessorSpec{"BadMapCalibSpec",
                                           Inputs{},

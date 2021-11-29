@@ -50,13 +50,11 @@ class Detector : public o2::base::DetImpl<Detector>
     kVac = 3,
     kCeramic = 4,
     kGlass = 6,
-    //   kOpAir = 7,
     kAl = 15,
     kOpGlass = 16,
     kOptAl = 17,
     kOptBlack = 18,
     kOpGlassCathode = 19,
-    //   kSensAir = 22,
     kCable = 23,
     kMCPwalls = 25
   }; // materials
@@ -148,6 +146,8 @@ class Detector : public o2::base::DetImpl<Detector>
   std::vector<Double_t> mAbsBlackPaper;
   std::vector<Double_t> mEffBlackPaper;
   std::vector<Double_t> mReflFrontWindow;
+  std::vector<Double_t> mEffFrontWindow;
+  std::vector<Double_t> mRindexFrontWindow;
 
   // Define the aluminium frame for the detector
   TGeoVolume* constructFrameGeometry();
@@ -270,7 +270,7 @@ class Detector : public o2::base::DetImpl<Detector>
   Double_t mPosModuleCz[Geometry::NCellsC];
   Float_t mStartC[3] = {20., 20, 5.5};
   Float_t mStartA[3] = {20., 20., 5};
-  Float_t mInStart[3] = {2.9491, 2.9491, 2.5};
+  Float_t mInStart[3] = {2.9491, 2.9491, 2.6};
 
   ClassDefOverride(Detector, 5);
 };

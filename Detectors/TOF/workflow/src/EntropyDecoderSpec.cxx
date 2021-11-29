@@ -53,8 +53,10 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   //  auto& diagnostic = pc.outputs().make<o2::tof::Diagnostic>(OutputRef{"diafreq"});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
-  const auto ctfImage = o2::tof::CTF::getImage(buff.data());
-  mCTFCoder.decode(ctfImage, row, digits, patterns);
+  if (buff.size()) {
+    const auto ctfImage = o2::tof::CTF::getImage(buff.data());
+    mCTFCoder.decode(ctfImage, row, digits, patterns);
+  }
 
   // fill diagnostic frequencies
   mFiller.clearCounts();
@@ -67,12 +69,12 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIAFREQ", 0, Lifetime::Timeframe}, diagnostic);
 
   mTimer.Stop();
-  LOG(INFO) << "Decoded " << digits.size() << " digits in " << row.size() << " ROF in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Decoded " << digits.size() << " digits in " << row.size() << " ROF in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "TOF Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "TOF Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

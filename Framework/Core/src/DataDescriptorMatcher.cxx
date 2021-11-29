@@ -15,6 +15,7 @@
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/VariantHelpers.h"
 #include "Framework/RuntimeError.h"
+#include "Headers/Stack.h"
 #include <iostream>
 
 namespace o2::framework::data_matcher
@@ -106,6 +107,8 @@ bool StartTimeValueMatcher::match(header::DataHeader const& dh, DataProcessingHe
       return (dph.startTime / mScale) == *value;
     }
     context.put({ref->index, dph.startTime / mScale});
+    // We always put in 12 the creation time
+    context.put({CREATIONTIME_POS, dph.creation});
     // We always put in 13 the runNumber
     context.put({RUNNUMBER_POS, dh.runNumber});
     // We always put in 14 the tfCounter

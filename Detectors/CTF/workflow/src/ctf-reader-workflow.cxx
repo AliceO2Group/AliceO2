@@ -53,10 +53,11 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"max-tf", VariantType::Int, -1, {"max CTFs to process (<= 0 : infinite)"}});
   options.push_back(ConfigParamSpec{"loop", VariantType::Int, 0, {"loop N times (infinite for N<0)"}});
   options.push_back(ConfigParamSpec{"delay", VariantType::Float, 0.f, {"delay in seconds between consecutive TFs sending"}});
-  options.push_back(ConfigParamSpec{"copy-cmd", VariantType::String, "XrdSecPROTOCOL=sss,unix xrdcp -N root://eosaliceo2.cern.ch/?src ?dst", {"copy command for remote files or no-copy to avoid copying"}});
+  options.push_back(ConfigParamSpec{"copy-cmd", VariantType::String, "alien_cp ?src file://?dst", {"copy command for remote files or no-copy to avoid copying"}}); // Use "XrdSecPROTOCOL=sss,unix xrdcp -N root://eosaliceo2.cern.ch/?src ?dst" for direct EOS access
   options.push_back(ConfigParamSpec{"ctf-file-regex", VariantType::String, ".*o2_ctf_run.+\\.root$", {"regex string to identify CTF files"}});
-  options.push_back(ConfigParamSpec{"remote-regex", VariantType::String, "^/eos/aliceo2/.+", {"regex string to identify remote files"}});
+  options.push_back(ConfigParamSpec{"remote-regex", VariantType::String, "^(alien://|)/alice/data/.+", {"regex string to identify remote files"}}); // Use "^/eos/aliceo2/.+" for direct EOS access
   options.push_back(ConfigParamSpec{"max-cached-files", VariantType::Int, 3, {"max CTF files queued (copied for remote source)"}});
+  options.push_back(ConfigParamSpec{"allow-missing-detectors", VariantType::Bool, false, {"send empty message if detector is missing in the CTF (otherwise throw)"}});
   options.push_back(ConfigParamSpec{"ctf-reader-verbosity", VariantType::Int, 0, {"verbosity level (0: summary per detector, 1: summary per block"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
   //
@@ -75,7 +76,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::ctf::CTFReaderInp ctfInput;
 
   WorkflowSpec specs;
-
+  std::string allowedDetectors = "ITS,TPC,TRD,TOF,PHS,CPV,EMC,HMP,MFT,MCH,MID,ZDC,FT0,FV0,FDD,CTP"; // FIXME: explicit list to avoid problem with upgrade detectors
   auto mskOnly = DetID::getMask(configcontext.options().get<std::string>("onlyDet"));
   auto mskSkip = DetID::getMask(configcontext.options().get<std::string>("skipDet"));
   if (mskOnly.any()) {
@@ -83,6 +84,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   } else {
     ctfInput.detMask ^= mskSkip;
   }
+  ctfInput.detMask &= DetID::getMask(allowedDetectors);
   ctfInput.inpdata = configcontext.options().get<std::string>("ctf-input");
   if (ctfInput.inpdata.empty() || ctfInput.inpdata == "none") {
     if (!configcontext.helpOnCommandLine()) {
@@ -107,6 +109,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   ctfInput.copyCmd = configcontext.options().get<std::string>("copy-cmd");
   ctfInput.tffileRegex = configcontext.options().get<std::string>("ctf-file-regex");
   ctfInput.remoteRegex = configcontext.options().get<std::string>("remote-regex");
+  ctfInput.allowMissingDetectors = configcontext.options().get<bool>("allow-missing-detectors");
 
   specs.push_back(o2::ctf::getCTFReaderSpec(ctfInput));
   int verbosity = configcontext.options().get<int>("ctf-reader-verbosity");

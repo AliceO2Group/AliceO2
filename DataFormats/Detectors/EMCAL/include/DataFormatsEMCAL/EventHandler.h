@@ -292,7 +292,7 @@ class EventHandler
 
   ///
   int getNumberOfEvents() const;
-  const InteractionRecord& getInteractionRecordForEvent(int eventID) const;
+  InteractionRecord getInteractionRecordForEvent(int eventID) const;
 
   /// \brief Get range of clusters belonging to the given event
   /// \param eventID ID of the event

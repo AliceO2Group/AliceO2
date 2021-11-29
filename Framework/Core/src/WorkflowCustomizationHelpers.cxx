@@ -43,6 +43,9 @@ std::vector<ConfigParamSpec> WorkflowCustomizationHelpers::requiredWorkflowOptio
                                        ConfigParamSpec{"labels", VariantType::String, "", {"add labels to dataprocessors"}},
                                        ConfigParamSpec{"workflow-suffix", VariantType::String, "", {"suffix to add to all dataprocessors"}},
 
+                                       // options for TF rate limiting
+                                       ConfigParamSpec{"timeframes-rate-limit-ipcid", VariantType::String, "-1", {"Suffix for IPC channel for metrix-feedback, -1 = disable"}},
+
                                        // options for AOD rate limiting
                                        ConfigParamSpec{"aod-memory-rate-limit", VariantType::Int64, 0LL, {"Rate limit AOD processing based on memory"}},
 

@@ -32,7 +32,7 @@
 
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
-#include "DataFormatsMCH/ClusterBlock.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "MCHBase/TrackBlock.h"
 #include "TrackAtVtxStruct.h"
 
@@ -51,7 +51,7 @@ class TrackSamplerTask
   void init(framework::InitContext& ic)
   {
     /// Get the input file from the context
-    LOG(INFO) << "initializing track sampler";
+    LOG(info) << "initializing track sampler";
 
     auto inputFileName = ic.options().get<std::string>("infile");
     mInputFile.open(inputFileName, ios::binary);
@@ -69,7 +69,7 @@ class TrackSamplerTask
 
     auto stop = [this]() {
       /// close the input file
-      LOG(INFO) << "stop track sampler";
+      LOG(info) << "stop track sampler";
       this->mInputFile.close();
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
@@ -85,14 +85,14 @@ class TrackSamplerTask
     // reached eof
     if (mInputFile.peek() == EOF) {
       pc.services().get<ControlService>().endOfStream();
-      //pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+      // pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
       return;
     }
 
     // create the output messages
     auto& rofs = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"rofs"});
     auto& tracks = pc.outputs().make<std::vector<TrackMCH>>(OutputRef{"tracks"});
-    auto& clusters = pc.outputs().make<std::vector<ClusterStruct>>(OutputRef{"clusters"});
+    auto& clusters = pc.outputs().make<std::vector<Cluster>>(OutputRef{"clusters"});
 
     // loop over the requested number of events (or until eof) and fill the messages
     for (int iEvt = 0; iEvt < mNEventsPerTF && mInputFile.peek() != EOF; ++iEvt) {
@@ -103,7 +103,7 @@ class TrackSamplerTask
 
   //_________________________________________________________________________________________________
   int readOneEvent(std::vector<TrackMCH, o2::pmr::polymorphic_allocator<TrackMCH>>& tracks,
-                   std::vector<ClusterStruct, o2::pmr::polymorphic_allocator<ClusterStruct>>& clusters)
+                   std::vector<Cluster, o2::pmr::polymorphic_allocator<Cluster>>& clusters)
   {
     /// fill the output messages with the tracks and attached clusters of the current event
     /// modify the references to the attached clusters according to their position in the global vector
@@ -153,7 +153,7 @@ class TrackSamplerTask
       // read the attached clusters
       int clusterOffset = clusters.size();
       clusters.resize(clusterOffset + nClusters);
-      mInputFile.read(reinterpret_cast<char*>(&clusters[clusterOffset]), nClusters * sizeof(ClusterStruct));
+      mInputFile.read(reinterpret_cast<char*>(&clusters[clusterOffset]), nClusters * sizeof(Cluster));
       if (mInputFile.fail()) {
         throw length_error("invalid input");
       }

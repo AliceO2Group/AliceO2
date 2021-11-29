@@ -17,6 +17,7 @@
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/ClusterNative.h"
+#include "DataFormatsTPC/Defs.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "DataFormatsTRD/TrackTRD.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -45,16 +46,17 @@ void TPCInterpolationDPL::init(InitContext& ic)
   mTimer.Stop();
   mTimer.Reset();
   mInterpolation.init();
-  //mResidualProcessor.init(); // FIXME: add this once the track refits are implemented in the global tracking workflows
+  mResidualProcessor.init(false, o2::base::Propagator::Instance()->getNominalBz()); // initialize but skip the binning which is needed only later
 }
 
 void TPCInterpolationDPL::run(ProcessingContext& pc)
 {
-  LOG(INFO) << "TPC Interpolation Workflow initialized. Start processing...";
+  LOG(info) << "TPC Interpolation Workflow initialized. Start processing...";
   mTimer.Start(false);
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
 
+  // load the input tracks
   std::vector<o2::globaltracking::RecoContainer::GlobalIDSet> gidTables;
   std::vector<o2::track::TrackParCov> seeds;
   std::vector<float> trkTimes;
@@ -106,8 +108,7 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
     }
   };
   recoData.createTracksVariadic(creator); // create track sample considered for interpolation
-
-  LOG(INFO) << "Created " << seeds.size() << " seeds.";
+  LOG(info) << "Created " << seeds.size() << " seeds.";
 
   if (mUseMC) {
     // possibly MC labels will be used to check filtering procedure performance before interpolation
@@ -116,42 +117,51 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
 
   mInterpolation.process(recoData, gids, gidTables, seeds, trkTimes);
   mTimer.Stop();
-  LOGF(INFO, "TPC insterpolation timing: Cpu: %.3e Real: %.3e s", mTimer.CpuTime(), mTimer.RealTime());
-  mTimer.Start(0);
-  //mResidualProcessor.setInputData(mInterpolation.getReferenceTracks(), mInterpolation.getClusterResiduals());
-  //mResidualProcessor.convertToLocalResiduals(); // FIXME this will create one output file per TPC sector with local residuals. TODO Add filtering of residuals
+  LOGF(info, "TPC insterpolation timing: Cpu: %.3e Real: %.3e s", mTimer.CpuTime(), mTimer.RealTime());
+  mTimer.Start(true);
+  mResidualProcessor.setInputData(mInterpolation.getReferenceTracks(), mInterpolation.getClusterResiduals());
+  // in the following step one can create one output file per TPC sector with local residuals and statistics
+  mResidualProcessor.doOutlierRejection(false); // if parameter is 'true', then the unbinned filtered residuals will be written to a debug file
+  mTimer.Stop();
+  LOGF(info, "TPC outlier filtering and local residual extraction timing: Cpu: %.3e Real: %.3e s", mTimer.CpuTime(), mTimer.RealTime());
 
-  pc.outputs().snapshot(Output{"GLO", "TPCINT_TRK", 0, Lifetime::Timeframe}, mInterpolation.getReferenceTracks());
-  pc.outputs().snapshot(Output{"GLO", "TPCINT_RES", 0, Lifetime::Timeframe}, mInterpolation.getClusterResiduals());
+  if (mWriteResiduals) {
+    pc.outputs().snapshot(Output{"GLO", "TPCINT_TRK", 0, Lifetime::Timeframe}, mInterpolation.getReferenceTracks());
+    pc.outputs().snapshot(Output{"GLO", "TPCINT_RES", 0, Lifetime::Timeframe}, mInterpolation.getClusterResiduals());
+  }
+  pc.outputs().snapshot(Output{"GLO", "UNBINNEDRES", 0, Lifetime::Timeframe}, mResidualProcessor.getUnbinnedResiduals());
   mTimer.Stop();
 }
 
 void TPCInterpolationDPL::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "TPC residuals extraction total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "TPC residuals extraction total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool processITSTPConly)
+DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool processITSTPConly, bool writeResiduals)
 {
   auto dataRequest = std::make_shared<DataRequest>();
   std::vector<OutputSpec> outputs;
 
   if (useMC) {
-    LOG(FATAL) << "MC usage must be disabled for this workflow, since it is not yet implemented";
+    LOG(fatal) << "MC usage must be disabled for this workflow, since it is not yet implemented";
   }
 
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestClusters(src, useMC);
 
-  outputs.emplace_back("GLO", "TPCINT_TRK", 0, Lifetime::Timeframe);
-  outputs.emplace_back("GLO", "TPCINT_RES", 0, Lifetime::Timeframe);
+  if (writeResiduals) {
+    outputs.emplace_back("GLO", "TPCINT_TRK", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "TPCINT_RES", 0, Lifetime::Timeframe);
+  }
+  outputs.emplace_back("GLO", "UNBINNEDRES", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "tpc-track-interpolation",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(dataRequest, useMC, processITSTPConly)},
+    AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(dataRequest, useMC, processITSTPConly, writeResiduals)},
     Options{}};
 }
 
