@@ -25,6 +25,6 @@ std::string CTFDictHeader::asString() const
   std::time_t temp = dictTimeStamp;
   std::tm* t = std::gmtime(&temp);
   std::stringstream ss;
-  ss << "Dict. v" << int(majorVersion) << '.' << int(minorVersion) << " from " << std::put_time(t, "%Y-%m-%d %I:%M:%S %p");
+  ss << "CTF Dict for " << det.getName() << ", v" << int(majorVersion) << '.' << int(minorVersion) << " from " << std::put_time(t, "%Y-%m-%d %I:%M:%S %p");
   return ss.str();
 }

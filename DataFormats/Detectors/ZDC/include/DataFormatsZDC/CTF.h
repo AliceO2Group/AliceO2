@@ -37,7 +37,7 @@ struct CTFHeader : public o2::ctf::CTFDictHeader {
   uint32_t firstOrbitEOData = 0;                 /// orbit of 1st end-of-orbit data
   uint16_t firstBC = 0;                          /// bc of 1st trigger
   std::array<uint16_t, NChannels> firstScaler{}; // inital scaler values
-  ClassDefNV(CTFHeader, 2);
+  ClassDefNV(CTFHeader, 3);
 };
 
 /// wrapper for the Entropy-encoded triggers and cells of the TF

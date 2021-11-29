@@ -45,7 +45,7 @@ class CTFHelper
 
   CTFHeader createHeader()
   {
-    CTFHeader h{0, 1, 0, // dummy timestamp, version 1.0
+    CTFHeader h{o2::detectors::DetID::MID, 0, 1, 0, // dummy timestamp, version 1.0
                 uint32_t(mTFData.rofDataRefs.size()), uint32_t(mTFData.colDataRefs.size()), 0, 0};
     if (h.nROFs) {
       auto id0 = mTFData.rofDataRefs.front();

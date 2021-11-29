@@ -57,7 +57,6 @@ o2_target_root_dictionary(
           include/TPCReconstruction/HardwareClusterDecoder.h
           include/TPCReconstruction/DigitalCurrentClusterIntegrator.h
           include/TPCReconstruction/TPCFastTransformHelperO2.h
-          include/TPCReconstruction/CTFCoder.h
           include/TPCReconstruction/RawProcessingHelpers.h)
 
 o2_add_executable(read-gbtframes

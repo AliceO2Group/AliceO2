@@ -36,7 +36,7 @@ void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
   std::string dictPath = ic.options().get<std::string>("ctf-dict");
   mCTFCoder.setMemMarginFactor(ic.options().get<float>("mem-factor"));
   if (!dictPath.empty() && dictPath != "none") {
-    mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Encoder);
+    mCTFCoder.createCodersFromFile<CTF>(dictPath, o2::ctf::CTFCoderBase::OpType::Encoder);
   }
 }
 

@@ -45,7 +45,6 @@ o2_target_root_dictionary(DetectorsBase
                                   include/DetectorsBase/MatCell.h
                                   include/DetectorsBase/MatLayerCyl.h
                                   include/DetectorsBase/MatLayerCylSet.h
-                                  include/DetectorsBase/CTFCoderBase.h
                                   include/DetectorsBase/Aligner.h)
 
 if(BUILD_SIMULATION)

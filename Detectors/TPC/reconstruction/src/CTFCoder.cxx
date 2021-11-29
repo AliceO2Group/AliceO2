@@ -90,67 +90,58 @@ void CTFCoder::setCompClusAddresses(CompressedClusters& c, void*& buff)
 }
 
 ///________________________________
-void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op)
+void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op)
 {
   using namespace detail;
-
-  bool mayFail = true; // RS FIXME if the dictionary file is not there, do not produce exception
-  auto buff = readDictionaryFromFile<CTF>(dictPath, mayFail);
-  if (!buff.size()) {
-    if (mayFail) {
-      return;
-    }
-    throw std::runtime_error("Failed to create CTF dictionaty");
-  }
-  const CTF::container_t* ctf = CTF::get(buff.data());
-  mCombineColumns = ctf->getHeader().flags & CTFHeader::CombinedColumns;
+  const CTF::container_t ctf = CTF::getImage(bufVec.data());
+  mCombineColumns = ctf.getHeader().flags & CTFHeader::CombinedColumns;
   LOG(info) << "TPC CTF Columns Combining " << (mCombineColumns ? "ON" : "OFF");
 
   const CompressedClusters cc; // just to get member types
   if (mCombineColumns) {
-    buildCoder<combinedType_t<CTF::NBitsQTot, CTF::NBitsQMax>>(op, *ctf, CTF::BLCqTotA);
+    buildCoder<combinedType_t<CTF::NBitsQTot, CTF::NBitsQMax>>(op, ctf, CTF::BLCqTotA);
   } else {
-    buildCoder<std::remove_pointer_t<decltype(cc.qTotA)>>(op, *ctf, CTF::BLCqTotA);
+    buildCoder<std::remove_pointer_t<decltype(cc.qTotA)>>(op, ctf, CTF::BLCqTotA);
   }
-  buildCoder<std::remove_pointer_t<decltype(cc.qMaxA)>>(op, *ctf, CTF::BLCqMaxA);
-  buildCoder<std::remove_pointer_t<decltype(cc.flagsA)>>(op, *ctf, CTF::BLCflagsA);
+  buildCoder<std::remove_pointer_t<decltype(cc.qMaxA)>>(op, ctf, CTF::BLCqMaxA);
+  buildCoder<std::remove_pointer_t<decltype(cc.flagsA)>>(op, ctf, CTF::BLCflagsA);
   if (mCombineColumns) {
-    buildCoder<combinedType_t<CTF::NBitsRowDiff, CTF::NBitsSliceLegDiff>>(op, *ctf, CTF::BLCrowDiffA); // merged rowDiffA and sliceLegDiffA
+    buildCoder<combinedType_t<CTF::NBitsRowDiff, CTF::NBitsSliceLegDiff>>(op, ctf, CTF::BLCrowDiffA); // merged rowDiffA and sliceLegDiffA
 
   } else {
-    buildCoder<std::remove_pointer_t<decltype(cc.rowDiffA)>>(op, *ctf, CTF::BLCrowDiffA);
+    buildCoder<std::remove_pointer_t<decltype(cc.rowDiffA)>>(op, ctf, CTF::BLCrowDiffA);
   }
-  buildCoder<std::remove_pointer_t<decltype(cc.sliceLegDiffA)>>(op, *ctf, CTF::BLCsliceLegDiffA);
-  buildCoder<std::remove_pointer_t<decltype(cc.padResA)>>(op, *ctf, CTF::BLCpadResA);
-  buildCoder<std::remove_pointer_t<decltype(cc.timeResA)>>(op, *ctf, CTF::BLCtimeResA);
+  buildCoder<std::remove_pointer_t<decltype(cc.sliceLegDiffA)>>(op, ctf, CTF::BLCsliceLegDiffA);
+  buildCoder<std::remove_pointer_t<decltype(cc.padResA)>>(op, ctf, CTF::BLCpadResA);
+  buildCoder<std::remove_pointer_t<decltype(cc.timeResA)>>(op, ctf, CTF::BLCtimeResA);
   if (mCombineColumns) {
-    buildCoder<combinedType_t<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>>(op, *ctf, CTF::BLCsigmaPadA); // merged sigmaPadA and sigmaTimeA
+    buildCoder<combinedType_t<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>>(op, ctf, CTF::BLCsigmaPadA); // merged sigmaPadA and sigmaTimeA
   } else {
-    buildCoder<std::remove_pointer_t<decltype(cc.sigmaPadA)>>(op, *ctf, CTF::BLCsigmaPadA);
+    buildCoder<std::remove_pointer_t<decltype(cc.sigmaPadA)>>(op, ctf, CTF::BLCsigmaPadA);
   }
-  buildCoder<std::remove_pointer_t<decltype(cc.sigmaTimeA)>>(op, *ctf, CTF::BLCsigmaTimeA);
-  buildCoder<std::remove_pointer_t<decltype(cc.qPtA)>>(op, *ctf, CTF::BLCqPtA);
-  buildCoder<std::remove_pointer_t<decltype(cc.rowA)>>(op, *ctf, CTF::BLCrowA);
-  buildCoder<std::remove_pointer_t<decltype(cc.sliceA)>>(op, *ctf, CTF::BLCsliceA);
-  buildCoder<std::remove_pointer_t<decltype(cc.timeA)>>(op, *ctf, CTF::BLCtimeA);
-  buildCoder<std::remove_pointer_t<decltype(cc.padA)>>(op, *ctf, CTF::BLCpadA);
+  buildCoder<std::remove_pointer_t<decltype(cc.sigmaTimeA)>>(op, ctf, CTF::BLCsigmaTimeA);
+  buildCoder<std::remove_pointer_t<decltype(cc.qPtA)>>(op, ctf, CTF::BLCqPtA);
+  buildCoder<std::remove_pointer_t<decltype(cc.rowA)>>(op, ctf, CTF::BLCrowA);
+  buildCoder<std::remove_pointer_t<decltype(cc.sliceA)>>(op, ctf, CTF::BLCsliceA);
+  buildCoder<std::remove_pointer_t<decltype(cc.timeA)>>(op, ctf, CTF::BLCtimeA);
+  buildCoder<std::remove_pointer_t<decltype(cc.padA)>>(op, ctf, CTF::BLCpadA);
   if (mCombineColumns) {
-    buildCoder<combinedType_t<CTF::NBitsQTot, CTF::NBitsQMax>>(op, *ctf, CTF::BLCqTotU); // merged qTotU and qMaxU
+    buildCoder<combinedType_t<CTF::NBitsQTot, CTF::NBitsQMax>>(op, ctf, CTF::BLCqTotU); // merged qTotU and qMaxU
   } else {
-    buildCoder<std::remove_pointer_t<decltype(cc.qTotU)>>(op, *ctf, CTF::BLCqTotU);
+    buildCoder<std::remove_pointer_t<decltype(cc.qTotU)>>(op, ctf, CTF::BLCqTotU);
   }
-  buildCoder<std::remove_pointer_t<decltype(cc.qMaxU)>>(op, *ctf, CTF::BLCqMaxU);
-  buildCoder<std::remove_pointer_t<decltype(cc.flagsU)>>(op, *ctf, CTF::BLCflagsU);
-  buildCoder<std::remove_pointer_t<decltype(cc.padDiffU)>>(op, *ctf, CTF::BLCpadDiffU);
-  buildCoder<std::remove_pointer_t<decltype(cc.timeDiffU)>>(op, *ctf, CTF::BLCtimeDiffU);
+  buildCoder<std::remove_pointer_t<decltype(cc.qMaxU)>>(op, ctf, CTF::BLCqMaxU);
+  buildCoder<std::remove_pointer_t<decltype(cc.flagsU)>>(op, ctf, CTF::BLCflagsU);
+  buildCoder<std::remove_pointer_t<decltype(cc.padDiffU)>>(op, ctf, CTF::BLCpadDiffU);
+  buildCoder<std::remove_pointer_t<decltype(cc.timeDiffU)>>(op, ctf, CTF::BLCtimeDiffU);
   if (mCombineColumns) {
-    buildCoder<combinedType_t<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>>(op, *ctf, CTF::BLCsigmaPadU); // merged sigmaPadU and sigmaTimeU
+    buildCoder<combinedType_t<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>>(op, ctf, CTF::BLCsigmaPadU); // merged sigmaPadU and sigmaTimeU
   } else {
-    buildCoder<std::remove_pointer_t<decltype(cc.sigmaPadU)>>(op, *ctf, CTF::BLCsigmaPadU);
+    buildCoder<std::remove_pointer_t<decltype(cc.sigmaPadU)>>(op, ctf, CTF::BLCsigmaPadU);
   }
-  buildCoder<std::remove_pointer_t<decltype(cc.sigmaTimeU)>>(op, *ctf, CTF::BLCsigmaTimeU);
-  buildCoder<std::remove_pointer_t<decltype(cc.nTrackClusters)>>(op, *ctf, CTF::BLCnTrackClusters);
-  buildCoder<std::remove_pointer_t<decltype(cc.nSliceRowClusters)>>(op, *ctf, CTF::BLCnSliceRowClusters);
+  buildCoder<std::remove_pointer_t<decltype(cc.sigmaTimeU)>>(op, ctf, CTF::BLCsigmaTimeU);
+  buildCoder<std::remove_pointer_t<decltype(cc.nTrackClusters)>>(op, ctf, CTF::BLCnTrackClusters);
+  buildCoder<std::remove_pointer_t<decltype(cc.nSliceRowClusters)>>(op, ctf, CTF::BLCnSliceRowClusters);
 }
 
 /// make sure loaded dictionaries (if any) are consistent with data
@@ -176,27 +167,27 @@ size_t CTFCoder::estimateCompressedSize(const CompressedClusters& ccl)
 #define ESTSIZE(slot, ptr, n) mCoders[int(slot)] ? \
     rans::calculateMaxBufferSize(n, reinterpret_cast<const o2::rans::LiteralEncoder64<std::remove_pointer<decltype(ptr)>::type>*>(mCoders[int(slot)].get())->getAlphabetRangeBits(), \
                                  sizeof(std::remove_pointer<decltype(ptr)>::type)) : n*sizeof(std::remove_pointer<decltype(ptr)>)
-  sz += ESTSIZE(CTF::BLCqTotA,	           ccl.qTotA,  	          ccl.nAttachedClusters);
-  sz += ESTSIZE(CTF::BLCqMaxA,	           ccl.qMaxA,  	          ccl.nAttachedClusters);
-  sz += ESTSIZE(CTF::BLCflagsA,	           ccl.flagsA, 	          ccl.nAttachedClusters);
-  sz += ESTSIZE(CTF::BLCrowDiffA,	   ccl.rowDiffA,	  ccl.nAttachedClustersReduced);
+  sz += ESTSIZE(CTF::BLCqTotA,            ccl.qTotA,             ccl.nAttachedClusters);
+  sz += ESTSIZE(CTF::BLCqMaxA,            ccl.qMaxA,             ccl.nAttachedClusters);
+  sz += ESTSIZE(CTF::BLCflagsA,            ccl.flagsA,            ccl.nAttachedClusters);
+  sz += ESTSIZE(CTF::BLCrowDiffA,    ccl.rowDiffA,   ccl.nAttachedClustersReduced);
   sz += ESTSIZE(CTF::BLCsliceLegDiffA,     ccl.sliceLegDiffA,     ccl.nAttachedClustersReduced);
-  sz += ESTSIZE(CTF::BLCpadResA,	   ccl.padResA,	          ccl.nAttachedClustersReduced);
-  sz += ESTSIZE(CTF::BLCtimeResA,	   ccl.timeResA,	  ccl.nAttachedClustersReduced);
-  sz += ESTSIZE(CTF::BLCsigmaPadA,	   ccl.sigmaPadA,	  ccl.nAttachedClusters);
-  sz += ESTSIZE(CTF::BLCsigmaTimeA,	   ccl.sigmaTimeA,	  ccl.nAttachedClusters);
-  sz += ESTSIZE(CTF::BLCqPtA, 	           ccl.qPtA,		  ccl.nTracks);
-  sz += ESTSIZE(CTF::BLCrowA, 	           ccl.rowA,		  ccl.nTracks);
-  sz += ESTSIZE(CTF::BLCsliceA,	           ccl.sliceA, 	          ccl.nTracks);
-  sz += ESTSIZE(CTF::BLCtimeA,	           ccl.timeA,  	          ccl.nTracks);
-  sz += ESTSIZE(CTF::BLCpadA, 	           ccl.padA,		  ccl.nTracks);
-  sz += ESTSIZE(CTF::BLCqTotU,	           ccl.qTotU,  	          ccl.nUnattachedClusters);
-  sz += ESTSIZE(CTF::BLCqMaxU,	           ccl.qMaxU,  	          ccl.nUnattachedClusters);
-  sz += ESTSIZE(CTF::BLCflagsU,	           ccl.flagsU, 	          ccl.nUnattachedClusters);
-  sz += ESTSIZE(CTF::BLCpadDiffU,	   ccl.padDiffU,	  ccl.nUnattachedClusters);
-  sz += ESTSIZE(CTF::BLCtimeDiffU,	   ccl.timeDiffU,	  ccl.nUnattachedClusters);
-  sz += ESTSIZE(CTF::BLCsigmaPadU,	   ccl.sigmaPadU,	  ccl.nUnattachedClusters);
-  sz += ESTSIZE(CTF::BLCsigmaTimeU,	   ccl.sigmaTimeU,	  ccl.nUnattachedClusters);
+  sz += ESTSIZE(CTF::BLCpadResA,    ccl.padResA,           ccl.nAttachedClustersReduced);
+  sz += ESTSIZE(CTF::BLCtimeResA,    ccl.timeResA,   ccl.nAttachedClustersReduced);
+  sz += ESTSIZE(CTF::BLCsigmaPadA,    ccl.sigmaPadA,   ccl.nAttachedClusters);
+  sz += ESTSIZE(CTF::BLCsigmaTimeA,    ccl.sigmaTimeA,   ccl.nAttachedClusters);
+  sz += ESTSIZE(CTF::BLCqPtA,             ccl.qPtA,    ccl.nTracks);
+  sz += ESTSIZE(CTF::BLCrowA,             ccl.rowA,    ccl.nTracks);
+  sz += ESTSIZE(CTF::BLCsliceA,            ccl.sliceA,            ccl.nTracks);
+  sz += ESTSIZE(CTF::BLCtimeA,            ccl.timeA,             ccl.nTracks);
+  sz += ESTSIZE(CTF::BLCpadA,             ccl.padA,    ccl.nTracks);
+  sz += ESTSIZE(CTF::BLCqTotU,            ccl.qTotU,             ccl.nUnattachedClusters);
+  sz += ESTSIZE(CTF::BLCqMaxU,            ccl.qMaxU,             ccl.nUnattachedClusters);
+  sz += ESTSIZE(CTF::BLCflagsU,            ccl.flagsU,            ccl.nUnattachedClusters);
+  sz += ESTSIZE(CTF::BLCpadDiffU,    ccl.padDiffU,   ccl.nUnattachedClusters);
+  sz += ESTSIZE(CTF::BLCtimeDiffU,    ccl.timeDiffU,   ccl.nUnattachedClusters);
+  sz += ESTSIZE(CTF::BLCsigmaPadU,    ccl.sigmaPadU,   ccl.nUnattachedClusters);
+  sz += ESTSIZE(CTF::BLCsigmaTimeU,    ccl.sigmaTimeU,   ccl.nUnattachedClusters);
   sz += ESTSIZE(CTF::BLCnTrackClusters,    ccl.nTrackClusters,    ccl.nTracks);
   sz += ESTSIZE(CTF::BLCnSliceRowClusters, ccl.nSliceRowClusters, ccl.nSliceRows);
   // clang-format on
