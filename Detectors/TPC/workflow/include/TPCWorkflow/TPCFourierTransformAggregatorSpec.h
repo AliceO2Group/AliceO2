@@ -74,8 +74,8 @@ class TPCFourierTransformAggregatorSpec : public o2::framework::Task
     }
 
     if (mProcessedTFs == mTimeFrames) {
-      mTFRange[1] = getCurrentTF(pc); // set the TF for last aggregated TF
-      mProcessedTFs = 0;              // reset processed TFs for next aggregation interval
+      mTFRange[1] = getCurrentTF(pc) + 1; // set the TF for last aggregated TF
+      mProcessedTFs = 0;                  // reset processed TFs for next aggregation interval
 
       // perform fourier transform of 1D-IDCs
       auto intervals = mOneDIDCAggregator.getIntegrationIntervalsPerTF();

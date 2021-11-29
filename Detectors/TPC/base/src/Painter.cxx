@@ -437,9 +437,9 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const std::string_view fileNa
 }
 
 //______________________________________________________________________________
-TH2Poly* painter::makeSectorHist(const std::string_view name, const std::string_view title)
+TH2Poly* painter::makeSectorHist(const std::string_view name, const std::string_view title, const float xMin, const float xMax, const float yMin, const float yMax)
 {
-  auto poly = new TH2Poly(name.data(), title.data(), 83.65, 247.7, -43.7, 43.7);
+  auto poly = new TH2Poly(name.data(), title.data(), xMin, xMax, yMin, yMax);
 
   auto coords = painter::getPadCoordinatesSector();
   for (const auto& coord : coords) {
