@@ -115,7 +115,11 @@ template <class T>
 TH2* getHistogram2D(const CalArray<T>& calArray);
 
 /// make a sector-wise histogram with correct pad corners
-TH2Poly* makeSectorHist(const std::string_view name = "hSector", const std::string_view title = "Sector;local #it{x} (cm);local #it{y} (cm)");
+/// \param xMin minimum x coordinate of the histogram
+/// \param xMax maximum x coordinate of the histogram
+/// \param yMin minimum y coordinate of the histogram
+/// \param yMax maximum y coordinate of the histogram
+TH2Poly* makeSectorHist(const std::string_view name = "hSector", const std::string_view title = "Sector;local #it{x} (cm);local #it{y} (cm)", const float xMin = 83.65f, const float xMax = 247.7f, const float yMin = -43.7f, const float yMax = 43.7f);
 
 /// make a side-wise histogram with correct pad corners
 TH2Poly* makeSideHist(Side side);

@@ -38,7 +38,7 @@ void o2::tpc::IDCGroup::dumpToTree(const char* outname) const
 void o2::tpc::IDCGroup::draw(const unsigned int integrationInterval, const std::string filename) const
 {
   std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> idcFunc = [this, integrationInterval](const unsigned int, const unsigned int region, const unsigned int irow, const unsigned int pad) {
-    return (*this)(getGroupedRow(irow), getGroupedPad(pad, irow), integrationInterval);
+    return this->getValUngrouped(irow, pad, integrationInterval);
   };
 
   IDCDrawHelper::IDCDraw drawFun;
