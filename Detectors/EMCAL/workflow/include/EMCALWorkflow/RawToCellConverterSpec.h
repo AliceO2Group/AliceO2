@@ -103,6 +103,15 @@ class RawToCellConverterSpec : public framework::Task
     int mHWAddressHG;          ///< HW address of HG (for monitoring)
   };
   bool isLostTimeframe(framework::ProcessingContext& ctx) const;
+
+  /// \brief Send data to output channels
+  /// \param cells Container with output cells for timeframe
+  /// \param triggers Container with trigger records for timeframe
+  /// \param decodingErrors Container with decoding errors for timeframe
+  ///
+  /// Send data to all output channels for the given subspecification. The subspecification
+  /// is determined on the fly in the run method and therefore used as parameter. Consumers
+  /// must use wildcard subspecification via ConcreteDataTypeMatcher.
   void sendData(framework::ProcessingContext& ctx, const std::vector<o2::emcal::Cell>& cells, const std::vector<o2::emcal::TriggerRecord>& triggers, const std::vector<ErrorTypeFEE>& decodingErrors) const;
 
   header::DataHeader::SubSpecificationType mSubspecification = 0;    ///< Subspecification for output channels

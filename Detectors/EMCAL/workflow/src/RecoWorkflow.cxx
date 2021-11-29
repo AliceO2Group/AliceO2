@@ -17,7 +17,6 @@
 
 #include "Algorithm/RangeTokenizer.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
-#include "DataFormatsEMCAL/EMCALBlockHeader.h"
 #include "DataFormatsEMCAL/Cell.h"
 #include "DataFormatsEMCAL/Digit.h"
 #include "DataFormatsEMCAL/Cluster.h"
@@ -187,75 +186,50 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
     specs.emplace_back(o2::emcal::reco_workflow::getAnalysisClusterSpec(inputType == InputType::Digits));
   }
 
-  // check if the process is ready to quit
-  // this is decided upon the meta information in the EMCAL block header, the operation is set
-  // value kNoPayload in case of no data or no operation
-  // see also PublisherSpec.cxx
-  // in this workflow, the EOD is sent after the last real data, and all inputs will receive EOD,
-  // so it is enough to check on the first occurence
-  // FIXME: this will be changed once DPL can propagate control events like EOD
-  auto checkReady = [](o2::framework::DataRef const& ref) {
-    auto const* emcalheader = o2::framework::DataRefUtils::getHeader<o2::emcal::EMCALBlockHeader*>(ref);
-    // sector number -1 indicates end-of-data
-    if (emcalheader != nullptr) {
-      // indicate normal processing if not ready and skip if ready
-      if (!emcalheader->mHasPayload) {
-        return std::make_tuple(o2::framework::MakeRootTreeWriterSpec::TerminationCondition::Action::SkipProcessing, true);
-      }
-    }
-    return std::make_tuple(o2::framework::MakeRootTreeWriterSpec::TerminationCondition::Action::DoProcessing, false);
-  };
-
-  auto makeWriterSpec = [propagateMC, checkReady](const char* processName, const char* defaultFileName, const char* defaultTreeName,
-                                                  auto&& databranch, auto&& triggerbranch, auto&& mcbranch) {
+  auto makeWriterSpec = [propagateMC](const char* processName, const char* defaultFileName, const char* defaultTreeName,
+                                      auto&& databranch, auto&& triggerbranch, auto&& mcbranch) {
     // depending on the MC propagation flag, the RootTreeWriter spec is created with two
     // or one branch definition
     if (propagateMC) {
       return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
-                                                             o2::framework::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
                                                              std::move(databranch),
                                                              std::move(triggerbranch),
                                                              std::move(mcbranch)));
     }
     return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
-                                                           o2::framework::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
                                                            std::move(databranch),
                                                            std::move(triggerbranch)));
   };
 
   // TODO: Write comment in push comment @matthiasrichter
-  auto makeWriterSpec_Cluster = [checkReady](const char* processName, const char* defaultFileName, const char* defaultTreeName,
-                                             auto&& clusterbranch, auto&& digitindicesbranch, auto&& clustertriggerbranch, auto&& indicestriggerbranch) {
+  auto makeWriterSpec_Cluster = [](const char* processName, const char* defaultFileName, const char* defaultTreeName,
+                                   auto&& clusterbranch, auto&& digitindicesbranch, auto&& clustertriggerbranch, auto&& indicestriggerbranch) {
     // RootTreeWriter spec is created with one branch definition
     return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
-                                                           o2::framework::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
                                                            std::move(clusterbranch),
                                                            std::move(digitindicesbranch),
                                                            std::move(clustertriggerbranch),
                                                            std::move(indicestriggerbranch)));
   };
 
-  auto makeWriterSpec_AnalysisCluster = [checkReady](const char* processName, const char* defaultFileName, const char* defaultTreeName,
-                                                     auto&& analysisclusterbranch) {
+  auto makeWriterSpec_AnalysisCluster = [](const char* processName, const char* defaultFileName, const char* defaultTreeName,
+                                           auto&& analysisclusterbranch) {
     // RootTreeWriter spec is created with one branch definition
     return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
-                                                           o2::framework::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
                                                            std::move(analysisclusterbranch)));
   };
 
-  auto makeWriterSpec_CellsTR = [disableDecodingErrors, checkReady](const char* processName, const char* defaultFileName, const char* defaultTreeName,
-                                                                    auto&& CellsBranch, auto&& TriggerRecordBranch, auto&& DecoderErrorsBranch) {
+  auto makeWriterSpec_CellsTR = [disableDecodingErrors](const char* processName, const char* defaultFileName, const char* defaultTreeName,
+                                                        auto&& CellsBranch, auto&& TriggerRecordBranch, auto&& DecoderErrorsBranch) {
     return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
-                                                           o2::framework::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
                                                            std::move(CellsBranch),
                                                            std::move(TriggerRecordBranch),
                                                            std::move(DecoderErrorsBranch)));
   };
 
-  auto makeWriterSpec_CellsTR_noerrors = [checkReady](const char* processName, const char* defaultFileName, const char* defaultTreeName,
-                                                      auto&& CellsBranch, auto&& TriggerRecordBranch) {
+  auto makeWriterSpec_CellsTR_noerrors = [](const char* processName, const char* defaultFileName, const char* defaultTreeName,
+                                            auto&& CellsBranch, auto&& TriggerRecordBranch) {
     return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
-                                                           o2::framework::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
                                                            std::move(CellsBranch),
                                                            std::move(TriggerRecordBranch)));
   };

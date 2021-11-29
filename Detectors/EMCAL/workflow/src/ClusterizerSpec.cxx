@@ -14,7 +14,6 @@
 
 #include "DataFormatsEMCAL/Digit.h"
 #include "DataFormatsEMCAL/Cluster.h"
-#include "DataFormatsEMCAL/EMCALBlockHeader.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "EMCALWorkflow/ClusterizerSpec.h"
 #include "Framework/ControlService.h"
