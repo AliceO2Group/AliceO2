@@ -421,9 +421,9 @@ std::shared_ptr<gandiva::Projector>
   return createProjector(Schema, createOperations(p), std::move(result));
 }
 
-Selection createSelection(std::shared_ptr<arrow::Table> const& table, std::shared_ptr<gandiva::Filter> gfilter)
+gandiva::Selection createSelection(std::shared_ptr<arrow::Table> const& table, std::shared_ptr<gandiva::Filter> const& gfilter)
 {
-  Selection selection;
+  gandiva::Selection selection;
   auto s = gandiva::SelectionVector::MakeInt64(table->num_rows(),
                                                arrow::default_memory_pool(),
                                                &selection);
@@ -452,8 +452,8 @@ Selection createSelection(std::shared_ptr<arrow::Table> const& table, std::share
   return selection;
 }
 
-Selection createSelection(std::shared_ptr<arrow::Table> const& table,
-                          Filter const& expression)
+gandiva::Selection createSelection(std::shared_ptr<arrow::Table> const& table,
+                                   Filter const& expression)
 {
   return createSelection(table, createFilter(table->schema(), createOperations(std::move(expression))));
 }
