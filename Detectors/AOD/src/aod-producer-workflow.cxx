@@ -21,6 +21,7 @@
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
 using DetID = o2::detectors::DetID;
+using producer = o2::aodproducer::AODProducerWorkflowDPL;
 
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
@@ -35,6 +36,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation"}},
     {"disable-secondary-vertices", o2::framework::VariantType::Bool, false, {"disable filling secondary vertices"}},
+    {"fill-tables", VariantType::String, std::string{producer::tablesFillAll}, {"comma-separated list of tables to fill"}},
     {"info-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -48,12 +50,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto resFile = configcontext.options().get<std::string>("aod-writer-resfile");
-  bool enableSV = !configcontext.options().get<bool>("disable-secondary-vertices");
+  auto enableSV = !configcontext.options().get<bool>("disable-secondary-vertices");
+  auto tablesList = configcontext.options().get<std::string_view>("fill-tables");
   GID::mask_t allowedSrc = GID::getSourcesMask("ITS,MFT,MCH,TPC,ITS-TPC,ITS-TPC-TOF,TPC-TOF,MFT-MCH,FT0,FV0,FDD,TPC-TRD,ITS-TPC-TRD,FT0,FV0,FDD,ZDC,CTP");
   GID::mask_t src = allowedSrc & GID::getSourcesMask(configcontext.options().get<std::string>("info-sources"));
 
   WorkflowSpec specs;
-  specs.emplace_back(o2::aodproducer::getAODProducerWorkflowSpec(src, enableSV, useMC, resFile));
+  specs.emplace_back(o2::aodproducer::getAODProducerWorkflowSpec(src, tablesList, enableSV, useMC, resFile));
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, useMC, src);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);

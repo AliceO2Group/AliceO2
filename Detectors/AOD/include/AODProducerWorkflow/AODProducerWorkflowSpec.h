@@ -199,6 +199,91 @@ class AODProducerWorkflowDPL : public Task
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
 
+  static constexpr std::string_view tablesFillAll{"all"};
+  static constexpr std::string_view tablesFillNone{"none"};
+
+  enum Table : uint8_t {
+    O2bc,
+    O2cascade,
+    O2collision,
+    O2fdd,
+    O2ft0,
+    O2fv0a,
+    O2fv0c,
+    O2fwdtrack,
+    O2fwdtrackcov,
+    O2mccollision,
+    O2mccollisionlabel,
+    O2mcmfttracklabel,
+    O2mcfwdtracklabel,
+    O2mcparticle,
+    O2mctracklabel,
+    O2mfttrack,
+    O2track,
+    O2trackcov,
+    O2trackextra,
+    O2v0,
+    O2zdc,
+    O2caloCell,
+    O2caloCellTRGR,
+    //
+    numTables
+  };
+
+  static constexpr const std::string_view tablesNames[] = {
+    "O2bc",
+    "O2cascade",
+    "O2collision",
+    "O2fdd",
+    "O2ft0",
+    "O2fv0a",
+    "O2fv0c",
+    "O2fwdtrack",
+    "O2fwdtrackcov",
+    "O2mccollision",
+    "O2mccollisionlabel",
+    "O2mcmfttracklabel",
+    "O2mcfwdtracklabel",
+    "O2mcparticle",
+    "O2mctracklabel",
+    "O2mfttrack",
+    "O2track",
+    "O2trackcov",
+    "O2trackextra",
+    "O2v0",
+    "O2zdc",
+    "O2caloCell",
+    "O2caloCellTRGR"};
+
+  static constexpr const char* tablesDesc[] = {
+    "BC",
+    "CASCADE",
+    "COLLISION",
+    "FDD",
+    "FT0",
+    "FV0A",
+    "FV0C",
+    "FWDTRACK",
+    "FWDTRACKCOV",
+    "MCCOLLISION",
+    "MCCOLLISIONLABEL",
+    "MCMFTTRACKLABEL",
+    "MCFWDTRACKLABEL",
+    "MCPARTICLE",
+    "MCTRACKLABEL",
+    "MFTTRACK",
+    "TRACK",
+    "TRACKCOV",
+    "TRACKEXTRA",
+    "V0",
+    "ZDC",
+    "CALO",
+    "CALOTRIGGER"};
+
+  static bool tablesToFill[numTables];
+
+  static void parseTablesList(const std::string_view& tablesList);
+
  private:
   // takes a local vertex timing in NS and converts to a global BC information using the orbit offset from the simulation
   uint64_t relativeTime_to_GlobalBC(double relativeTimeStampInNS)
@@ -381,7 +466,7 @@ class AODProducerWorkflowDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool useMC, std::string resFile);
+framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, std::string_view tablesList, bool enableSV, bool useMC, std::string resFile);
 
 } // namespace o2::aodproducer
 
