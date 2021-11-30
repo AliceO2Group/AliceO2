@@ -70,7 +70,7 @@ class CathodeSegmentation
       mDetElemId{detElemId},
       mIsBendingPlane{isBendingPlane}
   {
-    if (&mchCathodeSegmentationConstruct == NULL) {
+    if (&mchCathodeSegmentationConstruct == nullptr) {
       throw std::runtime_error("no mch mapping implementaion found : did you forget to link with an actual implementation library (e.g. O2MCHMappingImpl4) ? ");
     }
     mImpl = mchCathodeSegmentationConstruct(detElemId, isBendingPlane);
