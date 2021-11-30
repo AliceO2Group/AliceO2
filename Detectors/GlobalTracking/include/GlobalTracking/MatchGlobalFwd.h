@@ -78,6 +78,11 @@ struct TrackLocMCH : public o2::dataformats::GlobalFwdTrack {
   ClassDefNV(TrackLocMCH, 0);
 };
 
+using o2::dataformats::GlobalFwdTrack;
+using o2::track::TrackParCovFwd;
+typedef std::function<double(const GlobalFwdTrack& mchtrack, const TrackParCovFwd& mfttrack)> MatchingFunc_t;
+typedef std::function<bool(const GlobalFwdTrack& mchtrack, const TrackParCovFwd& mfttrack)> CutFunc_t;
+
 class MatchGlobalFwd
 {
  public:
@@ -99,13 +104,13 @@ class MatchGlobalFwd
 
   enum MatchingType : uint8_t { ///< MFT-MCH matching modes
     MATCHINGFUNC,               ///< Matching function-based MFT-MCH track matching
-    MATCHINGMCLABEL,            ///< Monte Carlo label-based MFT-MCH track matching
-    MATCHINGUPSTREAM            ///< MFT-MCH track matching loaded from input file
+    MATCHINGUPSTREAM,           ///< MFT-MCH track matching loaded from input file
+    MATCHINGUNDEFINED
   };
 
   static constexpr Double_t sLastMFTPlaneZ = o2::mft::constants::mft::LayerZCoordinate()[9];
 
-  MatchGlobalFwd() = default;
+  MatchGlobalFwd();
   ~MatchGlobalFwd() = default;
 
   void run(const o2::globaltracking::RecoContainer& inp);
@@ -133,6 +138,7 @@ class MatchGlobalFwd
 
  private:
   void updateTimeDependentParams();
+  void fillBuiltinFunctions();
 
   bool prepareMCHData();
   bool prepareMFTData();
@@ -148,8 +154,9 @@ class MatchGlobalFwd
   ///< Matches MFT tracks in one MFT ROFrame with all MCH tracks in the overlapping MCH ROFrames
   template <bool saveAllMode = false>
   void ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId);
-  void fitTracks();                                          // Fit all matched tracks
-  void fitGlobalMuonTrack(o2::dataformats::GlobalFwdTrack&); // Kalman filter fit global Forward track by attaching MFT clusters
+
+  void fitTracks();                                          ///< Fit all matched tracks
+  void fitGlobalMuonTrack(o2::dataformats::GlobalFwdTrack&); ///< Kalman filter fit global Forward track by attaching MFT clusters
   bool computeCluster(o2::dataformats::GlobalFwdTrack& track, const MFTCluster& cluster, int& startingLayerID);
 
   template <typename T>
@@ -223,76 +230,27 @@ class MatchGlobalFwd
     return true;
   }
 
-  void configMatching(const std::string& matchingFcn, const std::string& cutFcn);
-  double matchingEval(const TrackLocMCH& mchTrack, const TrackLocMFT& mftTrack);
-  bool matchingCut(const TrackLocMCH&, const TrackLocMFT&);
-  double (MatchGlobalFwd::*mMatchFunc)(const TrackLocMCH& mchTrack, const TrackLocMFT& mftTrack) = &MatchGlobalFwd::noMatchFcn;
-  void setMatchingFunction(double (MatchGlobalFwd::*func)(const TrackLocMCH&, const TrackLocMFT&))
-  {
-    mMatchFunc = func;
-  }
-  bool (MatchGlobalFwd::*mCutFunc)(const TrackLocMCH& mchTrack, const TrackLocMFT& mftTrack);
-
-  void setCutFunction(bool (MatchGlobalFwd::*func)(const TrackLocMCH&, const TrackLocMFT&))
-  {
-    mCutFunc = func;
-  }
-  /// Matching methods
-  /// Position
-  double matchMFT_MCH_TracksXY(const TrackLocMCH& mchTrack, const TrackLocMFT& mftTrack);
-  /// Position & Angles
-  double matchMFT_MCH_TracksXYPhiTanl(const TrackLocMCH& mchTrack, const TrackLocMFT& mftTrack);
-  /// Position, Angles & Charged Momentum
-  double matchMFT_MCH_TracksAllParam(const TrackLocMCH& mchTrack, const TrackLocMFT& mftTrack);
-  /// Hiroshima's Matching
-  double matchHiroshima(const TrackLocMCH& mchTrack, const TrackLocMFT& mftTrack);
-  /// MC label matching
-  double noMatchFcn(const TrackLocMCH& mchTrack, const TrackLocMFT& mftTrack)
-  {
-    throw std::runtime_error("noMatchFcn function must not be called!");
-  }
-
-  /// Cut functions
-  bool cutDisabled(const TrackLocMCH& mchTrack, const TrackLocMFT& mftTrack) { return true; };
-
-  bool matchCut3Sigma(const TrackLocMCH& mchTrack, const TrackLocMFT& mftTrack)
-  {
-    auto dx = mchTrack.getX() - mftTrack.getX();
-    auto dy = mchTrack.getY() - mftTrack.getY();
-    auto dPhi = mchTrack.getPhi() - mftTrack.getPhi();
-    auto dTanl = TMath::Abs(mchTrack.getTanl() - mftTrack.getTanl());
-    auto dInvQPt = TMath::Abs(mchTrack.getInvQPt() - mftTrack.getInvQPt());
-    auto distanceSq = dx * dx + dy * dy;
-    auto cutDistanceSq = 9 * (mchTrack.getSigma2X() + mchTrack.getSigma2Y());
-    auto cutPhiSq = 9 * (mchTrack.getSigma2Phi() + mftTrack.getSigma2Phi());
-    auto cutTanlSq = 9 * (mchTrack.getSigma2Tanl() + mftTrack.getSigma2Tanl());
-    auto cutInvQPtSq = 9 * (mchTrack.getSigma2InvQPt() + mftTrack.getSigma2InvQPt());
-    return (distanceSq < cutDistanceSq) and (dPhi * dPhi < cutPhiSq) and (dTanl * dTanl < cutTanlSq) and (dInvQPt * dInvQPt < cutInvQPtSq);
+  MatchingFunc_t mMatchFunc = [](const GlobalFwdTrack& mchtrack, const TrackParCovFwd& mfttrack) -> double {
+    throw std::runtime_error("MatchGlobalFwd: matching function not configured!");
   };
 
-  bool matchCut3SigmaXYAngles(const TrackLocMCH& mchTrack, const TrackLocMFT& mftTrack)
-  {
-    auto dx = mchTrack.getX() - mftTrack.getX();
-    auto dy = mchTrack.getY() - mftTrack.getY();
-    auto dPhi = mchTrack.getPhi() - mftTrack.getPhi();
-    auto dTanl = TMath::Abs(mchTrack.getTanl() - mftTrack.getTanl());
-    auto distanceSq = dx * dx + dy * dy;
-    auto cutDistanceSq = 9 * (mchTrack.getSigma2X() + mchTrack.getSigma2Y());
-    auto cutPhiSq = 9 * (mchTrack.getSigma2Phi() + mftTrack.getSigma2Phi());
-    auto cutTanlSq = 9 * (mchTrack.getSigma2Tanl() + mftTrack.getSigma2Tanl());
-    return (distanceSq < cutDistanceSq) and (dPhi * dPhi < cutPhiSq) and (dTanl * dTanl < cutTanlSq);
+  CutFunc_t mCutFunc = [](const GlobalFwdTrack& mchtrack, const TrackParCovFwd& mfttrack) -> bool {
+    throw std::runtime_error("MatchGlobalFwd: track pair candidate cut function not configured!");
   };
 
   /// Converts mchTrack parameters to Forward coordinate system
   o2::dataformats::GlobalFwdTrack MCHtoFwd(const o2::mch::TrackParam& mchTrack);
 
   float mBz = -5.f;                       ///< nominal Bz in kGauss
-  float mMatchingPlaneZ = sLastMFTPlaneZ; ///< MCH-MFT matching plane Z position TODO: Make configurable
+  float mMatchingPlaneZ = sLastMFTPlaneZ; ///< MCH-MFT matching plane Z position
   Float_t mMFTDiskThicknessInX0 = 0.042 / 5;
   o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
   int mMFTROFrameLengthInBC = 0;        ///< MFT RO frame in BC (for MFT cont. mode only)
   float mMFTROFrameLengthMUS = -1.;     ///< MFT RO frame in \mus
   float mMFTROFrameLengthMUSInv = -1.;  ///< MFT RO frame in \mus inverse
+
+  std::map<std::string, MatchingFunc_t> mMatchingFunctionMap; ///< MFT-MCH Matching function
+  std::map<std::string, CutFunc_t> mCutFunctionMap;           ///< MFT-MCH Candidate cut function
 
   o2::BunchFilling mBunchFilling;
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchAbove; // closest filled bunch from above
@@ -329,7 +287,7 @@ class MatchGlobalFwd
   bool mMCTruthON = false;      ///< Flag availability of MC truth
   bool mUseMIDMCHMatch = false; ///< Flag for using MCHMID matches (TrackMCHMID)
   bool mSaveAll = false;        ///< Flag to save all MCH-MFT matching pairs
-  MatchingType mMatchingType = MATCHINGFUNC;
+  MatchingType mMatchingType = MATCHINGUNDEFINED;
   TGeoManager* mGeoManager;
 };
 
