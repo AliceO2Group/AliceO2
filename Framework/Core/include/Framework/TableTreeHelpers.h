@@ -20,10 +20,6 @@
 // =============================================================================
 namespace o2::framework
 {
-namespace TableTreeHelpers
-{
-static constexpr char const* sizeBranchsuffix = "_size";
-}
 
 // -----------------------------------------------------------------------------
 // TableToTree allows to save the contents of a given arrow::Table into
@@ -61,24 +57,24 @@ auto basicROOTTypeFromArrow(arrow::Type::type id);
 class BranchToColumn
 {
  public:
-  BranchToColumn(TBranch* branch, bool VLA, std::string name, EDataType type, int listSize, arrow::MemoryPool* pool);
-  //  BranchToColumn(TBranch* branch, TBranch* sizeBranch, std::string name, EDataType type, arrow::MemoryPool* pool);
+  BranchToColumn(TBranch* branch, const char* name, EDataType type, int listSize, arrow::MemoryPool* pool);
   ~BranchToColumn() = default;
   TBranch* branch();
 
   std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> read(TBuffer* buffer);
 
  private:
+  arrow::Status appendValues(unsigned char const* buffer, int numEntries);
+  arrow::Status finish(std::shared_ptr<arrow::Array>* array);
+  arrow::Status reserve(int numEntries);
   TBranch* mBranch = nullptr;
-  bool mVLA = false;
   std::string mColumnName;
   EDataType mType;
   std::shared_ptr<arrow::DataType> mArrowType;
   arrow::ArrayBuilder* mValueBuilder = nullptr;
-  std::unique_ptr<arrow::ArrayBuilder> mListBuilder = nullptr;
+  std::unique_ptr<arrow::FixedSizeListBuilder> mListBuilder = nullptr;
   int mListSize = 1;
   std::unique_ptr<arrow::ArrayBuilder> mBuilder = nullptr;
-  arrow::MemoryPool* mPool = nullptr;
 };
 
 class ColumnToBranch
@@ -90,21 +86,24 @@ class ColumnToBranch
   void at(const int64_t* pos);
 
  private:
-  void accessChunk();
+  auto getCurrentBuffer();
+  void resetBuffer();
+  void accessChunk(int64_t at);
   void nextChunk();
 
   std::string mBranchName;
+  std::string mLeafList;
   TBranch* mBranch = nullptr;
-  TBranch* mSizeBranch = nullptr;
   arrow::ChunkedArray* mColumn = nullptr;
+  int64_t const* mCurrentPos = nullptr;
   int64_t mFirstIndex = 0;
   int mCurrentChunk = 0;
   int mListSize = 1;
-  ROOTTypeInfo mElementType;
-  arrow::Type::type mFieldType;
+  ROOTTypeInfo mType;
   std::vector<uint8_t> cache;
-  std::shared_ptr<arrow::Array> mCurrentArray = nullptr;
-  int64_t mChunkLength;
+  uint8_t const* mCurrent = nullptr;
+  uint8_t const* mLast = nullptr;
+  bool allocated = false;
 };
 
 class TableToTree
@@ -138,7 +137,7 @@ class TreeToTable
   std::string mTableLabel;
   std::shared_ptr<arrow::Table> mTable;
 
-  void addReader(TBranch* branch, std::string const& name, bool VLA);
+  void addReader(TBranch* branch, const char* name);
 };
 
 // -----------------------------------------------------------------------------
