@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file MatchGlobalFwd.h
-/// \brief Class to perform MCH MFT matching
+/// \brief Class to perform MFT MCH (and MID) matching
 /// \author rafael.pezzi@cern.ch
 
 #ifndef ALICEO2_GLOBTRACKING_MATCHGLOBALFWD_
@@ -23,6 +23,7 @@
 #include <gsl/span>
 #include <TStopwatch.h>
 #include "CommonConstants/LHCConstants.h"
+#include "CommonUtils/ConfigurationMacroHelper.h"
 #include "CommonDataFormat/BunchFilling.h"
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 #include "MCHTracking/TrackExtrap.h"
@@ -83,25 +84,25 @@ using o2::track::TrackParCovFwd;
 typedef std::function<double(const GlobalFwdTrack& mchtrack, const TrackParCovFwd& mfttrack)> MatchingFunc_t;
 typedef std::function<bool(const GlobalFwdTrack& mchtrack, const TrackParCovFwd& mfttrack)> CutFunc_t;
 
+using MFTCluster = o2::BaseCluster<float>;
+using BracketF = o2::math_utils::Bracket<float>;
+using SMatrix55Std = ROOT::Math::SMatrix<double, 5>;
+using SMatrix55Sym = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
+
+using SVector2 = ROOT::Math::SVector<double, 2>;
+using SVector4 = ROOT::Math::SVector<double, 4>;
+using SVector5 = ROOT::Math::SVector<double, 5>;
+
+using SMatrix44 = ROOT::Math::SMatrix<double, 4>;
+using SMatrix45 = ROOT::Math::SMatrix<double, 4, 5>;
+using SMatrix54 = ROOT::Math::SMatrix<double, 5, 4>;
+using SMatrix22 = ROOT::Math::SMatrix<double, 2>;
+using SMatrix25 = ROOT::Math::SMatrix<double, 2, 5>;
+using SMatrix52 = ROOT::Math::SMatrix<double, 5, 2>;
+
 class MatchGlobalFwd
 {
  public:
-  using MFTCluster = o2::BaseCluster<float>;
-  using BracketF = o2::math_utils::Bracket<float>;
-  using SMatrix55Std = ROOT::Math::SMatrix<double, 5>;
-  using SMatrix55Sym = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
-
-  using SVector2 = ROOT::Math::SVector<double, 2>;
-  using SVector4 = ROOT::Math::SVector<double, 4>;
-  using SVector5 = ROOT::Math::SVector<double, 5>;
-
-  using SMatrix44 = ROOT::Math::SMatrix<double, 4>;
-  using SMatrix45 = ROOT::Math::SMatrix<double, 4, 5>;
-  using SMatrix54 = ROOT::Math::SMatrix<double, 5, 4>;
-  using SMatrix22 = ROOT::Math::SMatrix<double, 2>;
-  using SMatrix25 = ROOT::Math::SMatrix<double, 2, 5>;
-  using SMatrix52 = ROOT::Math::SMatrix<double, 5, 2>;
-
   enum MatchingType : uint8_t { ///< MFT-MCH matching modes
     MATCHINGFUNC,               ///< Matching function-based MFT-MCH track matching
     MATCHINGUPSTREAM,           ///< MFT-MCH track matching loaded from input file
@@ -237,6 +238,22 @@ class MatchGlobalFwd
   CutFunc_t mCutFunc = [](const GlobalFwdTrack& mchtrack, const TrackParCovFwd& mfttrack) -> bool {
     throw std::runtime_error("MatchGlobalFwd: track pair candidate cut function not configured!");
   };
+
+  bool loadExternalMatchingFunction()
+  {
+    // Loads MFTMCH Matching function from external file
+
+    auto& matchingParam = GlobalFwdMatchingParam::Instance();
+
+    const auto& extFuncMacroFile = matchingParam.extMatchFuncFile;
+    const auto& extFuncName = matchingParam.extMatchFuncName;
+
+    LOG(info) << "Loading external MFTMCH matching function: function name = " << extFuncName << " ; Filename = " << extFuncMacroFile;
+
+    auto func = o2::conf::GetFromMacro<MatchingFunc_t*>(extFuncMacroFile.c_str(), extFuncName.c_str(), "o2::globaltracking::MatchingFunc_t*", "mtcFcn");
+    mMatchFunc = (*func);
+    return true;
+  }
 
   /// Converts mchTrack parameters to Forward coordinate system
   o2::dataformats::GlobalFwdTrack MCHtoFwd(const o2::mch::TrackParam& mchTrack);

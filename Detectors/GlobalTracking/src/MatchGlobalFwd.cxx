@@ -30,6 +30,9 @@ void MatchGlobalFwd::init()
   if (matchingParam.isMatchUpstream()) {
     LOG(info) << "  ==> Setting Upstream matching.";
     mMatchingType = MATCHINGUPSTREAM;
+  } else if (matchingParam.matchingExternalFunction()) {
+    loadExternalMatchingFunction();
+    mMatchingType = MATCHINGFUNC;
   } else {
     if (mMatchingFunctionMap.find(matchingFcnStr) != mMatchingFunctionMap.end()) {
       mMatchFunc = mMatchingFunctionMap[matchingFcnStr];
