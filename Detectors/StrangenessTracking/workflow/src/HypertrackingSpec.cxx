@@ -11,7 +11,7 @@
 
 /// @file   HyperWorkflow.cxx
 
-#include "StrangenessTrackingWorkflow/HypertrackingWorkflow.h"
+#include "StrangenessTrackingWorkflow/HypertrackingSpec.h"
 
 namespace o2
 {

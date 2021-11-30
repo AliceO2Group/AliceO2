@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "StrangenessTrackingWorkflow/HypertrackingWorkflow.h"
+#include "StrangenessTrackingWorkflow/HypertrackingSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 // #include "ITStracking/TrackingConfigParam.h"
 // #include "ITStracking/Configuration.h"

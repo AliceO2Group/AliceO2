@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(StrangenessTrackingWorkflow
-               SOURCES src/HypertrackingWorkflow.cxx
+               SOURCES src/HypertrackingSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework)
 
 o2_add_executable(hypertracking-workflow
