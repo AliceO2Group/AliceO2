@@ -36,10 +36,6 @@ o2_add_dpl_workflow(parallel-workflow
                   SOURCES src/o2ParallelWorkflow.cxx
                   COMPONENT_NAME TestWorkflows)
 
-o2_add_dpl_workflow(flp-qualification
-                  SOURCES src/flpQualification.cxx
-                  COMPONENT_NAME TestWorkflows)
-
 o2_add_dpl_workflow(sync-reconstruction-dummy
                   SOURCES src/o2SyncReconstructionDummy.cxx
                   COMPONENT_NAME TestWorkflows)
