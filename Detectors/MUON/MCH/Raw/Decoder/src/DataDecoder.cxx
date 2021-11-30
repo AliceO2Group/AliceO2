@@ -154,31 +154,81 @@ bool DataDecoder::RawDigit::operator==(const DataDecoder::RawDigit& other) const
   return digit == other.digit && info == other.info;
 }
 
-void DataDecoder::TimeFrameStartRecord::update(uint32_t orbit, uint32_t bunchCrossing)
+bool DataDecoder::TimeFrameStartRecord::update(uint32_t orbit, uint32_t bunchCrossing, bool verbose)
 {
-  mOrbitPrev = mOrbit;
-  mBunchCrossingPrev = mBunchCrossing;
+  if (verbose) {
+    std::cout<< fmt::format("[TimeFrameStartRecord::update()] orbit {}  current {}  prev {}  valid {}",
+        orbit, mOrbit, mOrbitPrev, mValid) << std::endl;
+  }
 
-  mOrbit = orbit;
-  mBunchCrossing = bunchCrossing;
+  // if this is the first occurence, simply initialize the orbit and binch crossing and mark the start recortd as valid
+  if (mOrbit < 0) {
+    mOrbit = orbit;
+    mBunchCrossing = bunchCrossing;
+
+    mValid = true;
+    return true;
+  }
+
+  if (mOrbit == orbit) {
+    if (mValid) {
+      // there is already one valid record for this orbit, so the current one is discarded
+      return false;
+    } else {
+      // there is already one record for this orbit, but it is invalid
+      // check if the current one is compatible with the previous, if yes replace the existing one
+      if (check(orbit, bunchCrossing, verbose)) {
+        mOrbit = orbit;
+        mBunchCrossing = bunchCrossing;
+
+        mValid = true;
+      }
+    }
+  } else {
+    bool valid = check(orbit, bunchCrossing, verbose);
+
+    bool replace = valid || (mOrbitPrev < 0) || (mValid == false);
+
+    if (replace) {
+      mOrbitPrev = mOrbit;
+      mBunchCrossingPrev = mBunchCrossing;
+
+      mOrbit = orbit;
+      mBunchCrossing = bunchCrossing;
+
+      mValid = valid;
+    }
+  }
+
+  if (verbose)
+    std::cout<< fmt::format("[TimeFrameStartRecord::update()] set to {}/{}  prev {}/{}  valid {}",
+        mOrbit, mBunchCrossing, mOrbitPrev, mBunchCrossingPrev, mValid) << std::endl;
+
+  return mValid;
 }
 
-bool DataDecoder::TimeFrameStartRecord::check()
+bool DataDecoder::TimeFrameStartRecord::check(int32_t orbit, uint32_t bunchCrossing, bool verbose)
 {
+  if (verbose)
+    std::cout << fmt::format("[TimeFrameStartRecord::check()] current {}/{}  prev {}/{}",
+        orbit, bunchCrossing, mOrbitPrev, mBunchCrossingPrev) << std::endl;
+
   if (mOrbitPrev < 0) {
     return true;
   }
 
-  if (mOrbit < mOrbitPrev) {
-    return false;
-  }
-
-  uint64_t dOrbit = mOrbit - mOrbitPrev;
-  uint64_t bcExpected = dOrbit * bcInOrbit + mBunchCrossingPrev;
+  int64_t dOrbit = orbit - mOrbitPrev;
+  int64_t bcExpected = dOrbit * bcInOrbit + mBunchCrossingPrev;
 
   uint64_t bcExpected20bits = bcExpected & twentyBitsAtOne;
 
-  return (bcExpected20bits == mBunchCrossing);
+  bool result = (bcExpected20bits == bunchCrossing);
+
+  if (verbose)
+    std::cout << fmt::format("  dOrbit {}  expected {}  expected20bits {}  bc {}  valid {}",
+        dOrbit, bcExpected, bcExpected20bits, bunchCrossing, result) << std::endl;
+
+  return result;
 }
 
 //_________________________________________________________________________________________________
@@ -501,18 +551,18 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
 
     uint32_t bcTF = subtractBcOffset(bunchCrossing, mSampaTimeOffset);
 
-    updateTimeFrameStartRecord(chipId, mFirstOrbitInTF, bcTF);
-
     if (mDebug) {
       auto s = asString(dsElecId);
       LOGP(info, "HeartBeat: {}-CHIP{} -> {}/{} offset {} -> bcTF {}",
            s, chip, mFirstOrbitInTF, bunchCrossing, mSampaTimeOffset, bcTF);
     }
 
-    if (!mTimeFrameStartRecords[chipId].check()) {
+    if (chipId >= DataDecoder::sReadoutChipsNum) { return; }
+
+    if (!mTimeFrameStartRecords[chipId].update(mFirstOrbitInTF, bcTF)) {
       if (mErrorCount < MCH_DECODER_MAX_ERROR_COUNT) {
         auto s = asString(dsElecId);
-        LOGP(warning, "Inconsistent HeartBeat packet received: {}-CHIP{} {}/{} (last {}/{})",
+        LOGP(warning, "Bad HeartBeat packet received: {}-CHIP{} {}/{} (last {}/{})",
              s, chip, mFirstOrbitInTF, bcTF, mTimeFrameStartRecords[chipId].mOrbitPrev, mTimeFrameStartRecords[chipId].mBunchCrossingPrev);
         mErrorCount += 1;
       }
@@ -637,6 +687,13 @@ bool DataDecoder::getTimeFrameStartRecord(const RawDigit& digit, uint32_t& orbit
     return false;
   }
 
+  if (tfStart.mValid == false) {
+    if (mErrorCount < MCH_DECODER_MAX_ERROR_COUNT) {
+      LOGP(warning, "Invalid TF start record for S{}-J{}-DS{}-CHIP{}", info.solar, info.ds / 5 + 1, info.ds % 5, info.chip);
+      mErrorCount += 1;
+    }
+  }
+
   // orbit and BC from the last received HB packet
   uint32_t orbitHBP = tfStart.mOrbit;
   // SAMPA BC at the beginning of the current TF
@@ -661,9 +718,22 @@ bool DataDecoder::getTimeFrameStartRecord(const RawDigit& digit, uint32_t& orbit
 void DataDecoder::computeDigitsTime()
 {
   static constexpr int32_t timeInvalid = DataDecoder::tfTimeInvalid;
+  constexpr int BCINORBIT = o2::constants::lhc::LHCMaxBunches;
 
   auto setDigitTime = [&](Digit& d, int32_t tfTime) {
     d.setTime(tfTime);
+    auto firstOrbit = mFirstOrbitInTF;
+
+    // make sure the interaction record is not initialized with negative BC values
+    while (tfTime < 0) {
+      tfTime += BCINORBIT;
+      firstOrbit -= 1;
+    }
+
+    uint32_t orbit = tfTime / BCINORBIT + firstOrbit;
+    int32_t bc = tfTime % BCINORBIT;
+    d.setOrbit(orbit);
+    d.setBunchCrossing(bc);
   };
 
   for (auto& digit : mDigits) {
