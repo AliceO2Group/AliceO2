@@ -58,6 +58,7 @@ struct ExpressionInfo {
   gandiva::NodePtr tree;
   gandiva::FilterPtr filter;
   gandiva::Selection selection;
+  bool resetSelection = false;
 };
 
 namespace o2::framework::expressions
