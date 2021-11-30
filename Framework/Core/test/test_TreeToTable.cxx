@@ -18,16 +18,14 @@
 #include "Framework/CommonDataProcessors.h"
 #include "Framework/TableTreeHelpers.h"
 #include "Framework/Logger.h"
-#include "Framework/TableBuilder.h"
 
 #include <TTree.h>
 #include <TRandom.h>
 #include <arrow/table.h>
 
-using namespace o2::framework;
-
 BOOST_AUTO_TEST_CASE(TreeToTableConversion)
 {
+  using namespace o2::framework;
   /// Create a simple TTree
   Int_t ndp = 17;
 
@@ -156,64 +154,4 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
   BOOST_REQUIRE_EQUAL(br->GetEntries(), ndp);
 
   f2->Close();
-}
-
-namespace o2::aod
-{
-DECLARE_SOA_STORE();
-namespace cols
-{
-DECLARE_SOA_COLUMN(Ivec, ivec, std::vector<int>);
-DECLARE_SOA_COLUMN(Fvec, fvec, std::vector<float>);
-DECLARE_SOA_COLUMN(Dvec, dvec, std::vector<double>);
-} // namespace cols
-
-DECLARE_SOA_TABLE(Vectors, "AOD", "VECS", o2::soa::Index<>, cols::Ivec, cols::Fvec, cols::Dvec);
-} // namespace o2::aod
-
-BOOST_AUTO_TEST_CASE(VariableLists)
-{
-  TableBuilder b;
-  auto writer = b.cursor<o2::aod::Vectors>();
-  std::vector<int> iv;
-  std::vector<float> fv;
-  std::vector<double> dv;
-  for (auto i = 1; i < 11; ++i) {
-    iv.clear();
-    fv.clear();
-    dv.clear();
-    for (auto j = 0; j < i; ++j) {
-      iv.push_back(j + 2);
-      fv.push_back((j + 2) * 0.2134f);
-      dv.push_back((j + 4) * 0.192873819237);
-    }
-    writer(0, iv, fv, dv);
-  }
-  auto table = b.finalize();
-
-  auto* f = TFile::Open("variable_lists.root", "RECREATE");
-  TableToTree ta2tr(table, f, "lists");
-  ta2tr.addAllBranches();
-  auto tree = ta2tr.process();
-  f->Close();
-
-  auto* f2 = TFile::Open("variable_lists.root", "READ");
-  auto* treeptr = static_cast<TTree*>(f2->Get("lists;1"));
-  TreeToTable tr2ta;
-  tr2ta.addAllColumns(treeptr);
-  tr2ta.fill(treeptr);
-  auto ta = tr2ta.finalize();
-  o2::aod::Vectors v{ta};
-  int i = 1;
-  for (auto& row : v) {
-    auto iv = row.ivec();
-    auto fv = row.fvec();
-    auto dv = row.dvec();
-    for (auto j = 0; j < i; ++j) {
-      BOOST_CHECK_EQUAL(iv[j], j + 2);
-      BOOST_CHECK_EQUAL(fv[j], (j + 2) * 0.2134f);
-      BOOST_CHECK_EQUAL(dv[j], (j + 4) * 0.192873819237);
-    }
-    ++i;
-  }
 }

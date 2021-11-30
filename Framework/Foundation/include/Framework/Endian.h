@@ -15,16 +15,10 @@
 // Lookup file for __BYTE_ORDER
 #ifdef __APPLE__
 #include <machine/endian.h>
-#define swap16_ ntohs
-#define swap32_ ntohl
-#define swap64_ ntohll
 #else
 #include <endian.h>
-#define swap16_ be16toh
-#define swap32_ be32toh
 #define ntohll be64toh
 #define htonll htobe64
-#define swap64_ ntohll
 #endif
 #define O2_HOST_BYTE_ORDER __BYTE_ORDER
 #define O2_BIG_ENDIAN __BIG_ENDIAN
