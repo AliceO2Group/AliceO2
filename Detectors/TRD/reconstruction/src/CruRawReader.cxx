@@ -542,7 +542,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
       ** DIGITS NOW ***
       *****************/
       // Check if we have a calibration trigger ergo we do actually have digits data. check if we are now at the end of the data due to bugs, i.e. if trackletparsing read padding words.
-      if (linkstart != linkend && mCurrentHalfCRUHeader.EventType == o2::trd::constants::ETYPECALIBRATIONTRIGGER) { // calibration trigger
+      if (linkstart != linkend && (mCurrentHalfCRUHeader.EventType == o2::trd::constants::ETYPECALIBRATIONTRIGGER || mOptions[TRDIgnore2StageTrigger])) { // calibration trigger
         if (mHeaderVerbose) {
           LOG(info) << "*** Digit Parsing : starting at " << std::hex << linkstart << " at hbfoffset: " << std::dec << mHBFoffset32 << " linkhbf start pos:" << hbfoffsetatstartoflink;
         }
