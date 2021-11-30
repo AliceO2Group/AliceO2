@@ -17,6 +17,10 @@
 #include <TBufferFile.h>
 
 #include <utility>
+namespace TableTreeHelpers
+{
+static constexpr char const* sizeBranchSuffix = "_size";
+}
 
 namespace o2::framework
 {
@@ -310,8 +314,8 @@ ColumnToBranch::ColumnToBranch(TTree* tree, std::shared_ptr<arrow::ChunkedArray>
     case arrow::Type::LIST:
       arrowType = arrowType->field(0)->type();
       mElementType = basicROOTTypeFromArrow(arrowType->id());
-      leafList = mBranchName + "[" + mBranchName + TableTreeHelpers::sizeBranchsuffix + "]" + mElementType.suffix;
-      sizeLeafList = mBranchName + TableTreeHelpers::sizeBranchsuffix + "/I";
+      leafList = mBranchName + "[" + mBranchName + TableTreeHelpers::sizeBranchSuffix + "]" + mElementType.suffix;
+      sizeLeafList = mBranchName + TableTreeHelpers::sizeBranchSuffix + "/I";
       break;
     default:
       mElementType = basicROOTTypeFromArrow(arrowType->id());
@@ -319,9 +323,9 @@ ColumnToBranch::ColumnToBranch(TTree* tree, std::shared_ptr<arrow::ChunkedArray>
       break;
   }
   if (!sizeLeafList.empty()) {
-    mSizeBranch = tree->GetBranch((mBranchName + TableTreeHelpers::sizeBranchsuffix).c_str());
+    mSizeBranch = tree->GetBranch((mBranchName + TableTreeHelpers::sizeBranchSuffix).c_str());
     if (mSizeBranch == nullptr) {
-      mSizeBranch = tree->Branch((mBranchName + TableTreeHelpers::sizeBranchsuffix).c_str(), (char*)nullptr, sizeLeafList.c_str());
+      mSizeBranch = tree->Branch((mBranchName + TableTreeHelpers::sizeBranchSuffix).c_str(), (char*)nullptr, sizeLeafList.c_str());
     }
   }
   mBranch = tree->GetBranch(mBranchName.c_str());
@@ -478,7 +482,7 @@ void TreeToTable::addAllColumns(TTree* tree, std::vector<std::string>&& names)
   for (auto i = 0; i < n; ++i) {
     auto branch = static_cast<TBranch*>(branches->At(i));
     auto name = std::string{branch->GetName()};
-    auto pos = name.find(TableTreeHelpers::sizeBranchsuffix);
+    auto pos = name.find(TableTreeHelpers::sizeBranchSuffix);
     if (pos != std::string::npos) {
       name.erase(pos);
       branchInfos.emplace_back(BranchInfo{name, (TBranch*)nullptr, true});
