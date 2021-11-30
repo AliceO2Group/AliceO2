@@ -49,7 +49,7 @@ typedef void (*MchPadHandler)(void* clientData, int catPadIndex);
 MchCathodeSegmentationHandle mchCathodeSegmentationConstruct(int detElemId, bool isBendingPlane) __attribute__((weak));
 
 /// Delete a segmentation handle.
-void mchCathodeSegmentationDestruct(MchCathodeSegmentationHandle segHandle);
+void mchCathodeSegmentationDestruct(MchCathodeSegmentationHandle segHandle) __attribute__((weak));
 ///@}
 
 /** @name Pad Unique Identifier
@@ -62,7 +62,7 @@ void mchCathodeSegmentationDestruct(MchCathodeSegmentationHandle segHandle);
 ///@{
 
 /// Return > 0 if catPadIndex is a valid one or <= 1 if not
-int mchCathodeSegmentationIsPadValid(MchCathodeSegmentationHandle segHandle, int catPadIndex);
+int mchCathodeSegmentationIsPadValid(MchCathodeSegmentationHandle segHandle, int catPadIndex) __attribute__((weak));
 ///@}
 
 /** @name Pad finding.
@@ -75,10 +75,10 @@ int mchCathodeSegmentationIsPadValid(MchCathodeSegmentationHandle segHandle, int
 ///@{
 
 /// Find the pad at position (x,y) (in cm).
-int mchCathodeSegmentationFindPadByPosition(MchCathodeSegmentationHandle segHandle, double x, double y);
+int mchCathodeSegmentationFindPadByPosition(MchCathodeSegmentationHandle segHandle, double x, double y) __attribute__((weak));
 
 /// Find the pad connected to the given channel of the given dual sampa.
-int mchCathodeSegmentationFindPadByFEE(MchCathodeSegmentationHandle segHandle, int dualSampaId, int dualSampaChannel);
+int mchCathodeSegmentationFindPadByFEE(MchCathodeSegmentationHandle segHandle, int dualSampaId, int dualSampaChannel) __attribute__((weak));
 ///@}
 
 /** @name Pad information retrieval.
@@ -90,39 +90,39 @@ int mchCathodeSegmentationFindPadByFEE(MchCathodeSegmentationHandle segHandle, i
  * If catPadIndex is invalid, you are on your own.
  */
 /// @{
-double mchCathodeSegmentationPadPositionX(MchCathodeSegmentationHandle segHandle, int catPadIndex);
+double mchCathodeSegmentationPadPositionX(MchCathodeSegmentationHandle segHandle, int catPadIndex) __attribute__((weak));
 
-double mchCathodeSegmentationPadPositionY(MchCathodeSegmentationHandle segHandle, int catPadIndex);
+double mchCathodeSegmentationPadPositionY(MchCathodeSegmentationHandle segHandle, int catPadIndex) __attribute__((weak));
 
-double mchCathodeSegmentationPadSizeX(MchCathodeSegmentationHandle segHandle, int catPadIndex);
+double mchCathodeSegmentationPadSizeX(MchCathodeSegmentationHandle segHandle, int catPadIndex) __attribute__((weak));
 
-double mchCathodeSegmentationPadSizeY(MchCathodeSegmentationHandle segHandle, int catPadIndex);
+double mchCathodeSegmentationPadSizeY(MchCathodeSegmentationHandle segHandle, int catPadIndex) __attribute__((weak));
 
-int mchCathodeSegmentationPadDualSampaId(MchCathodeSegmentationHandle segHandle, int catPadIndex);
+int mchCathodeSegmentationPadDualSampaId(MchCathodeSegmentationHandle segHandle, int catPadIndex) __attribute__((weak));
 
-int mchCathodeSegmentationPadDualSampaChannel(MchCathodeSegmentationHandle segHandle, int catPadIndex);
+int mchCathodeSegmentationPadDualSampaChannel(MchCathodeSegmentationHandle segHandle, int catPadIndex) __attribute__((weak));
 ///@}
 
 /** @name ForEach methods.
  * Functions to loop over some items : detection elements, dual sampas, and pads.
  */
 ///@{
-void mchCathodeSegmentationForEachDetectionElement(MchDetectionElementHandler handler, void* clientData);
+void mchCathodeSegmentationForEachDetectionElement(MchDetectionElementHandler handler, void* clientData) __attribute__((weak));
 
-void mchCathodeSegmentationForOneDetectionElementOfEachSegmentationType(MchDetectionElementHandler handler, void* clientData);
+void mchCathodeSegmentationForOneDetectionElementOfEachSegmentationType(MchDetectionElementHandler handler, void* clientData) __attribute__((weak));
 
-void mchCathodeSegmentationForEachDualSampa(MchCathodeSegmentationHandle segHandle, MchDualSampaHandler handler, void* clientData);
+void mchCathodeSegmentationForEachDualSampa(MchCathodeSegmentationHandle segHandle, MchDualSampaHandler handler, void* clientData) __attribute__((weak));
 
 void mchCathodeSegmentationForEachPadInDualSampa(MchCathodeSegmentationHandle segHandle, int dualSampaId, MchPadHandler handler,
-                                                 void* clientData);
+                                                 void* clientData) __attribute__((weak));
 
 void mchCathodeSegmentationForEachPadInArea(MchCathodeSegmentationHandle segHandle, double xmin, double ymin, double xmax,
-                                            double ymax, MchPadHandler handler, void* clientData);
+                                            double ymax, MchPadHandler handler, void* clientData) __attribute__((weak));
 
-void mchCathodeSegmentationForEachPad(MchCathodeSegmentationHandle segHandle, MchPadHandler handler, void* clientData);
+void mchCathodeSegmentationForEachPad(MchCathodeSegmentationHandle segHandle, MchPadHandler handler, void* clientData) __attribute__((weak));
 
 void mchCathodeSegmentationForEachNeighbouringPad(MchCathodeSegmentationHandle segHandle, int catPadIndex, MchPadHandler handler,
-                                                  void* userData);
+                                                  void* userData) __attribute__((weak));
 ///@}
 
 #ifdef __cplusplus
