@@ -17,6 +17,15 @@
 
 namespace o2::soa
 {
+SelectionVector selectionToVector(gandiva::Selection const& sel)
+{
+  SelectionVector rows;
+  rows.resize(sel->GetNumSlots());
+  for (auto i = 0; i < sel->GetNumSlots(); ++i) {
+    rows[i] = sel->GetIndex(i);
+  }
+  return rows;
+}
 
 std::shared_ptr<arrow::Table> ArrowHelpers::joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables)
 {
