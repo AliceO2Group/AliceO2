@@ -1470,21 +1470,25 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   // helper map for fast search of a corresponding class mask for a bc
   std::unordered_map<uint64_t, uint64_t> bcToClassMask;
-  for (auto& ctpDigit : ctpDigits) {
-    uint64_t bc = ctpDigit.intRecord.toLong();
-    uint64_t classMask = ctpDigit.CTPClassMask.to_ulong();
-    bcToClassMask[bc] = classMask;
+  if (mInputSources[GID::CTP]) {
+    for (auto& ctpDigit : ctpDigits) {
+      uint64_t bc = ctpDigit.intRecord.toLong();
+      uint64_t classMask = ctpDigit.CTPClassMask.to_ulong();
+      bcToClassMask[bc] = classMask;
+    }
   }
 
   // filling BC table
-  uint64_t triggerMask;
+  uint64_t triggerMask = 0;
   for (auto& item : bcsMap) {
     uint64_t bc = item.first;
-    auto bcClassPair = bcToClassMask.find(bc);
-    if (bcClassPair != bcToClassMask.end()) {
-      triggerMask = bcClassPair->second;
-    } else {
-      triggerMask = 0;
+    if (mInputSources[GID::CTP]) {
+      auto bcClassPair = bcToClassMask.find(bc);
+      if (bcClassPair != bcToClassMask.end()) {
+        triggerMask = bcClassPair->second;
+      } else {
+        triggerMask = 0;
+      }
     }
     bcCursor(0,
              runNumber,
@@ -1543,7 +1547,10 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
 
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertertices(useMC);
-  dataRequest->requestCTPDigits(useMC);
+  if (src[GID::CTP]) {
+    LOGF(info, "Requesting CTP digits");
+    dataRequest->requestCTPDigits(useMC);
+  }
   if (enableSV) {
     dataRequest->requestSecondaryVertertices(useMC);
   }
