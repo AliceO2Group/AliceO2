@@ -1350,3 +1350,32 @@ BOOST_AUTO_TEST_CASE(CombinationsHelpers)
   }
   BOOST_CHECK_EQUAL(count, expectedStrictlyUpperTriples.size());
 }
+
+BOOST_AUTO_TEST_CASE(ConstructorsWithoutTables)
+{
+  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
+
+  int count = 0;
+  for (auto& [t0, t1] : pairCombinations<TestA>()) {
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, 0);
+
+  count = 0;
+  for (auto& [t0, t1, t2] : tripleCombinations<TestA>()) {
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, 0);
+
+  count = 0;
+  for (auto& [c0, c1] : selfPairCombinations<TestA>("y", 2, -1)) {
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, 0);
+
+  count = 0;
+  for (auto& [c0, c1, c2] : selfTripleCombinations<TestA>("y", 2, -1)) {
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, 0);
+}
