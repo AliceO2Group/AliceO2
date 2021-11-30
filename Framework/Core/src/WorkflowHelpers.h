@@ -139,11 +139,6 @@ struct TopoIndexInfo {
   friend std::ostream& operator<<(std::ostream& out, TopoIndexInfo const& info);
 };
 
-struct OutputObj {
-  InputSpec spec;
-  bool isdangling;
-};
-
 enum struct WorkflowParsingState : int {
   Valid,
   Empty,

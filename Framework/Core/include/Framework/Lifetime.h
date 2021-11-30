@@ -42,7 +42,11 @@ enum struct Lifetime {
   Optional = 7,
   /// An input which is materialised with the contents of some out of band
   /// FairMQ channel.
-  OutOfBand = 8
+  OutOfBand = 8,
+  /// An input / output which is actually dangling. End-users should not need
+  /// to know about this, however this will be used by DPL to mark channels
+  /// which at the end of the topological sort result dangling.
+  Dangling = 9
 };
 
 } // namespace o2::framework

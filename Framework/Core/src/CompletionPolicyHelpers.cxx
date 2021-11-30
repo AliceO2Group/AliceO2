@@ -125,12 +125,12 @@ CompletionPolicy CompletionPolicyHelpers::consumeExistingWhenAny(const char* nam
       size_t i = 0;
       for (auto& input : inputs) {
         auto& spec = specs[i++];
-        if (spec.lifetime == Lifetime::Sporadic) {
+        if (spec.lifetime == Lifetime::Sporadic || spec.lifetime == Lifetime::Dangling) {
           maxSporadic++;
         }
         if (input.header != nullptr) {
           present++;
-          if (spec.lifetime == Lifetime::Sporadic) {
+          if (spec.lifetime == Lifetime::Sporadic || spec.lifetime == Lifetime::Dangling) {
             sporadic++;
           }
         }

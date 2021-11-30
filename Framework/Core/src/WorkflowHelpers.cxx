@@ -359,6 +359,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
             processor.options.push_back(ConfigParamSpec{"out-of-band-channel-name-" + input.binding, VariantType::String, "out-of-band", {"channel to listen for out of band data"}});
           }
         } break;
+        case Lifetime::Dangling:
         case Lifetime::QA:
         case Lifetime::Transient:
         case Lifetime::Timeframe:
@@ -551,6 +552,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       continue;
     }
     redirectedOutputsInputs.emplace_back(outputsInputs[ii]);
+    if (isDangling[ii] && (DataSpecUtils::match(outputsInputs[ii], ConcreteDataTypeMatcher{"DPL", "SUMMARY"}) == false)) {
+      redirectedOutputsInputs.back().lifetime = Lifetime::Dangling;
+    }
   }
 
   std::vector<InputSpec> unmatched;

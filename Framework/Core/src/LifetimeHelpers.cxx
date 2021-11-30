@@ -519,6 +519,7 @@ std::ostream& operator<<(std::ostream& oss, Lifetime const& val)
     STREAM_ENUM(Signal)
     STREAM_ENUM(Optional)
     STREAM_ENUM(OutOfBand)
+    STREAM_ENUM(Dangling)
   };
   return oss;
 }
