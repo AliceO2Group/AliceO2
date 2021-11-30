@@ -11,16 +11,7 @@
 
 /// @file   HyperWorkflow.cxx
 
-#include "HyperTrackingWorkflow/HyperWorkflow.h"
-// #include "ITSWorkflow/RecoWorkflow.h"
-// #include "ITSWorkflow/ClustererSpec.h"
-// #include "ITSWorkflow/ClusterWriterSpec.h"
-// #include "ITSWorkflow/IRFrameWriterSpec.h"
-// #include "ITSWorkflow/TrackerSpec.h"
-// #include "ITSWorkflow/CookedTrackerSpec.h"
-// #include "ITSWorkflow/TrackWriterSpec.h"
-// #include "ITSMFTWorkflow/EntropyEncoderSpec.h"
-// #include "ITSMFTWorkflow/DigitReaderSpec.h"
+#include "HyperTrackingWorkflow/HypertrackingWorkflow.h"
 
 namespace o2
 {

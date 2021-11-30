@@ -10,8 +10,8 @@
 // or submit itself to any jurisdiction.
 /// @file   HyperWorkflow.h
 
-#ifndef O2_STRANGENESS_HYPERWORKFLOW_H
-#define O2_STRANGENESS_HYPERWORKFLOW_H
+#ifndef O2_STRANGENESS_HYPERTRACKING_WORKFLOW_H
+#define O2_STRANGENESS_HYPERTRACKING_WORKFLOW_H
 
 #include "Framework/WorkflowSpec.h"
 namespace o2
@@ -26,4 +26,4 @@ framework::WorkflowSpec getWorkflow();
 }
 } // namespace strangeness
 } // namespace o2
-#endif // O2_STRANGENESS_HYPERWORKFLOW_H
+#endif

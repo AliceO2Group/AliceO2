@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(HyperWorkflow
-               SOURCES src/HyperWorkflow.cxx
+               SOURCES src/HypertrackingWorkflow.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework)
 
 o2_add_executable(hypertracking-workflow
