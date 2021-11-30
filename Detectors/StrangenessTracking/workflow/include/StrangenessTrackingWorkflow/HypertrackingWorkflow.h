@@ -16,14 +16,15 @@
 #include "Framework/WorkflowSpec.h"
 namespace o2
 {
-namespace strangeness
-{
-namespace hyper_workflow
+namespace stangeness_tracking
 {
 
-framework::WorkflowSpec getWorkflow();
-
+framework::WorkflowSpec getWorkflow()
+{
+  framework::WorkflowSpec specs;
+  return specs;
 }
-} // namespace strangeness
+
+} // namespace stangeness_tracking
 } // namespace o2
 #endif

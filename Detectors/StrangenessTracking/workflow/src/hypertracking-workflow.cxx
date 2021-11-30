@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "HyperTrackingWorkflow/HyperWorkflow.h"
+#include "StrangenessTrackingWorkflow/HypertrackingWorkflow.h"
 #include "CommonUtils/ConfigurableParam.h"
 // #include "ITStracking/TrackingConfigParam.h"
 // #include "ITStracking/Configuration.h"
@@ -68,7 +68,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
-  auto wf = o2::strangeness::hyper_workflow::getWorkflow();
+  auto wf = o2::stangeness_tracking::getWorkflow();
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   // o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);

@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Strangeness/HyperTracker.h"
+#include "StrangenessTracking/HyperTracker.h"
 namespace o2
 {
 namespace tracking

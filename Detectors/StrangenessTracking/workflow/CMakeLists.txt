@@ -9,10 +9,10 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_library(HyperWorkflow
+o2_add_library(StrangenessTrackingWorkflow
                SOURCES src/HypertrackingWorkflow.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework)
 
 o2_add_executable(hypertracking-workflow
                   SOURCES src/hypertracking-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::HyperWorkflow)
+                  PUBLIC_LINK_LIBRARIES O2::StrangenessTrackingWorkflow)

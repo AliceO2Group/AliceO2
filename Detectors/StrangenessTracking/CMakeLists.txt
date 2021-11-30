@@ -10,4 +10,5 @@
 # or submit itself to any jurisdiction.
 
 add_subdirectory(workflow)
-add_subdirectory(strangeness)
+add_subdirectory(tracking)
+add_subdirectory(macros)

@@ -11,22 +11,14 @@
 
 /// @file   HyperWorkflow.cxx
 
-#include "HyperTrackingWorkflow/HypertrackingWorkflow.h"
+#include "StrangenessTrackingWorkflow/HypertrackingWorkflow.h"
 
 namespace o2
 {
-namespace strangeness
+
+namespace strangeness_tracking
 {
 
-namespace hyper_workflow
-{
 
-framework::WorkflowSpec getWorkflow()
-{
-  framework::WorkflowSpec specs;
-  return specs;
-}
-
-} // namespace reco_workflow
-} // namespace its
+} // namespace strangeness_tracking
 } // namespace o2
