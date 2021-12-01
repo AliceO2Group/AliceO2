@@ -75,10 +75,11 @@ using SMatrix55Sym = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<dou
 namespace o2::aodproducer
 {
 
-bool AODProducerWorkflowDPL::tablesToFill[AODProducerWorkflowDPL::numTables] = {true};
-void AODProducerWorkflowDPL::parseTablesList(const std::string_view& tablesList)
+bool AODProducerWorkflowDPL::tablesToFill[AODProducerWorkflowDPL::numTables] = {false};
+void AODProducerWorkflowDPL::parseTablesList(std::string tablesList)
 {
   std::string ss(tablesList);
+  LOGF(info, "Input tables list = %s", tablesList);
   std::string sname{};
 
   if (ss.find(tablesFillAll) != std::string::npos) {
@@ -107,7 +108,80 @@ void AODProducerWorkflowDPL::parseTablesList(const std::string_view& tablesList)
       throw std::runtime_error(fmt::format("Wrong entry {:s} in tables list {:s}", sname, tablesList));
     }
   }
-  return;
+}
+
+void AODProducerWorkflowDPL::checkTablesDeps(bool useMC)
+{
+  // explicitly mark MC tables as unused if data is an input
+  if (!useMC) {
+    tablesToFill[O2mcparticle] = false;
+    tablesToFill[O2mcfwdtracklabel] = false;
+    tablesToFill[O2mcmfttracklabel] = false;
+    tablesToFill[O2mccollisionlabel] = false;
+    tablesToFill[O2mccollision] = false;
+    tablesToFill[O2mctracklabel] = false;
+  }
+
+  // checking dependencies between tables
+
+  // filling all barrel tracks tables if found any -- for consistency
+  bool needTracks = tablesToFill[O2track] || tablesToFill[O2trackcov] || tablesToFill[O2trackextra];
+  if (needTracks) {
+    tablesToFill[O2track] = true;
+    tablesToFill[O2trackcov] = true;
+    tablesToFill[O2trackextra] = true;
+  }
+
+  // filling all fwd tracks tables if found any -- for consistency
+  bool needFwdTracks = tablesToFill[O2fwdtrack] || tablesToFill[O2fwdtrackcov];
+  if (needFwdTracks) {
+    tablesToFill[O2fwdtrack] = true;
+    tablesToFill[O2fwdtrackcov] = true;
+  }
+
+  // tracks are filled per collision, so O2collision have to be processed
+  bool needAnyTracks = needTracks || needFwdTracks || tablesToFill[O2mfttrack];
+  if (needAnyTracks) {
+    tablesToFill[O2collision] = true;
+  }
+
+  // secondary vertices and cascades depend on barrel tracks
+  bool needSVtxOrCasc = tablesToFill[O2v0] || tablesToFill[O2cascade];
+  if (needSVtxOrCasc) {
+    tablesToFill[O2track] = true;
+    tablesToFill[O2trackcov] = true;
+    tablesToFill[O2trackextra] = true;
+  }
+
+  // filling all calo tables if found any -- for consistency
+  bool needCalo = tablesToFill[O2caloCell] || tablesToFill[O2caloCellTRGR];
+  if (needCalo) {
+    tablesToFill[O2caloCell] = true;
+    tablesToFill[O2caloCellTRGR] = true;
+  }
+
+  bool needAnyTrackLabels = tablesToFill[O2mcfwdtracklabel] || tablesToFill[O2mcmfttracklabel] || tablesToFill[O2mctracklabel];
+  if (needAnyTrackLabels) {
+    // O2collision is needed for accessing reco tracks and filtering
+    // O2mccollision is needed for correct mcCollisionIDs
+    tablesToFill[O2collision] = true;
+    tablesToFill[O2mccollision] = true;
+    if (tablesToFill[O2mctracklabel]) {
+      tablesToFill[O2track] = true;
+      tablesToFill[O2trackcov] = true;
+      tablesToFill[O2trackextra] = true;
+    }
+    if (tablesToFill[O2mcmfttracklabel]) {
+      tablesToFill[O2mfttrack] = true;
+    }
+    if (tablesToFill[O2mcfwdtracklabel]) {
+      tablesToFill[O2fwdtrack] = true;
+      tablesToFill[O2fwdtrackcov] = true;
+    }
+  }
+
+  // O2bc is always needed (?)
+  tablesToFill[O2bc] = true;
 }
 
 void AODProducerWorkflowDPL::collectBCs(o2::globaltracking::RecoContainer& data,
@@ -1061,6 +1135,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
 
+  bool foundFatal = false;
+
   o2::globaltracking::RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest);
   mStartIR = recoData.startIR;
@@ -1147,73 +1223,79 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   float dummyTime = 0.f;
   uint8_t dummyTriggerMask = 0;
 
-  int nFV0ChannelsAside = o2::fv0::Geometry::getNumberOfReadoutChannels();
-  std::vector<float> vFV0Amplitudes(nFV0ChannelsAside, 0.);
-  for (auto& fv0RecPoint : fv0RecPoints) {
-    const auto channelData = fv0RecPoint.getBunchChannelData(fv0ChData);
-    for (auto& channel : channelData) {
-      vFV0Amplitudes[channel.channel] = channel.charge; // amplitude, mV
+  if (mInputSources[GID::FV0] && tablesToFill[O2fv0a]) {
+    int nFV0ChannelsAside = o2::fv0::Geometry::getNumberOfReadoutChannels();
+    std::vector<float> vFV0Amplitudes(nFV0ChannelsAside, 0.);
+    for (auto& fv0RecPoint : fv0RecPoints) {
+      const auto channelData = fv0RecPoint.getBunchChannelData(fv0ChData);
+      for (auto& channel : channelData) {
+        vFV0Amplitudes[channel.channel] = channel.charge; // amplitude, mV
+      }
+      float aAmplitudesA[nFV0ChannelsAside];
+      for (int i = 0; i < nFV0ChannelsAside; i++) {
+        aAmplitudesA[i] = truncateFloatFraction(vFV0Amplitudes[i], mV0Amplitude);
+      }
+      uint64_t bc = fv0RecPoint.getInteractionRecord().toLong();
+      auto item = bcsMap.find(bc);
+      int bcID = -1;
+      if (item != bcsMap.end()) {
+        bcID = item->second;
+      } else {
+        LOG(fatal) << "Error: could not find a corresponding BC ID for a FV0 rec. point; BC = " << bc;
+      }
+      fv0aCursor(0,
+                 bcID,
+                 aAmplitudesA,
+                 truncateFloatFraction(fv0RecPoint.getCollisionGlobalMeanTime() * 1E-3, mV0Time), // ps to ns
+                 fv0RecPoint.getTrigger().triggerSignals);
     }
-    float aAmplitudesA[nFV0ChannelsAside];
-    for (int i = 0; i < nFV0ChannelsAside; i++) {
-      aAmplitudesA[i] = truncateFloatFraction(vFV0Amplitudes[i], mV0Amplitude);
-    }
-    uint64_t bc = fv0RecPoint.getInteractionRecord().toLong();
-    auto item = bcsMap.find(bc);
-    int bcID = -1;
-    if (item != bcsMap.end()) {
-      bcID = item->second;
-    } else {
-      LOG(fatal) << "Error: could not find a corresponding BC ID for a FV0 rec. point; BC = " << bc;
-    }
-    fv0aCursor(0,
-               bcID,
-               aAmplitudesA,
-               truncateFloatFraction(fv0RecPoint.getCollisionGlobalMeanTime() * 1E-3, mV0Time), // ps to ns
-               fv0RecPoint.getTrigger().triggerSignals);
   }
 
-  float dummyFV0AmplC[32] = {0.};
-  fv0cCursor(0,
-             dummyBC,
-             dummyFV0AmplC,
-             dummyTime);
+  if (mInputSources[GID::FV0] && tablesToFill[O2fv0c]) {
+    float dummyFV0AmplC[32] = {0.};
+    fv0cCursor(0,
+               dummyBC,
+               dummyFV0AmplC,
+               dummyTime);
+  }
 
-  float dummyEnergyZEM1 = 0;
-  float dummyEnergyZEM2 = 0;
-  float dummyEnergyCommonZNA = 0;
-  float dummyEnergyCommonZNC = 0;
-  float dummyEnergyCommonZPA = 0;
-  float dummyEnergyCommonZPC = 0;
-  float dummyEnergySectorZNA[4] = {0.};
-  float dummyEnergySectorZNC[4] = {0.};
-  float dummyEnergySectorZPA[4] = {0.};
-  float dummyEnergySectorZPC[4] = {0.};
-  zdcCursor(0,
-            dummyBC,
-            dummyEnergyZEM1,
-            dummyEnergyZEM2,
-            dummyEnergyCommonZNA,
-            dummyEnergyCommonZNC,
-            dummyEnergyCommonZPA,
-            dummyEnergyCommonZPC,
-            dummyEnergySectorZNA,
-            dummyEnergySectorZNC,
-            dummyEnergySectorZPA,
-            dummyEnergySectorZPC,
-            dummyTime,
-            dummyTime,
-            dummyTime,
-            dummyTime,
-            dummyTime,
-            dummyTime);
+  if (mInputSources[GID::ZDC] && tablesToFill[O2zdc]) {
+    float dummyEnergyZEM1 = 0;
+    float dummyEnergyZEM2 = 0;
+    float dummyEnergyCommonZNA = 0;
+    float dummyEnergyCommonZNC = 0;
+    float dummyEnergyCommonZPA = 0;
+    float dummyEnergyCommonZPC = 0;
+    float dummyEnergySectorZNA[4] = {0.};
+    float dummyEnergySectorZNC[4] = {0.};
+    float dummyEnergySectorZPA[4] = {0.};
+    float dummyEnergySectorZPC[4] = {0.};
+    zdcCursor(0,
+              dummyBC,
+              dummyEnergyZEM1,
+              dummyEnergyZEM2,
+              dummyEnergyCommonZNA,
+              dummyEnergyCommonZNC,
+              dummyEnergyCommonZPA,
+              dummyEnergyCommonZPC,
+              dummyEnergySectorZNA,
+              dummyEnergySectorZNC,
+              dummyEnergySectorZPA,
+              dummyEnergySectorZPC,
+              dummyTime,
+              dummyTime,
+              dummyTime,
+              dummyTime,
+              dummyTime,
+              dummyTime);
+  }
 
   // keep track event/source id for each mc-collision
   // using map and not unordered_map to ensure
   // correct ordering when iterating over container elements
   std::map<std::pair<int, int>, int> mcColToEvSrc;
 
-  if (mUseMC) {
+  if (mUseMC && tablesToFill[O2mccollision]) {
     // TODO: figure out collision weight
     float mcColWeight = 1.;
     // filling mcCollision table
@@ -1254,82 +1336,97 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     }
   }
 
-  // vector of FDD amplitudes
-  int nFDDChannels = o2::fdd::Nchannels;
-  std::vector<float> vFDDAmplitudes(nFDDChannels, 0.);
-  // filling FDD table
-  for (const auto& fddRecPoint : fddRecPoints) {
-    const auto channelData = fddRecPoint.getBunchChannelData(fddChData);
-    // TODO: switch to calibrated amplitude
-    for (const auto& channel : channelData) {
-      vFDDAmplitudes[channel.mPMNumber] = channel.mChargeADC; // amplitude, mV
-    }
-    float aFDDAmplitudesA[int(nFDDChannels * 0.5)];
-    float aFDDAmplitudesC[int(nFDDChannels * 0.5)];
-    for (int i = 0; i < nFDDChannels; i++) {
-      if (i < nFDDChannels * 0.5) {
-        aFDDAmplitudesC[i] = truncateFloatFraction(vFDDAmplitudes[i], mFDDAmplitude);
-      } else {
-        aFDDAmplitudesA[i - int(nFDDChannels * 0.5)] = truncateFloatFraction(vFDDAmplitudes[i], mFDDAmplitude);
+  if (mInputSources[GID::FDD] && tablesToFill[O2fdd]) {
+    // vector of FDD amplitudes
+    int nFDDChannels = o2::fdd::Nchannels;
+    std::vector<float> vFDDAmplitudes(nFDDChannels, 0.);
+    // filling FDD table
+    for (const auto& fddRecPoint : fddRecPoints) {
+      const auto channelData = fddRecPoint.getBunchChannelData(fddChData);
+      // TODO: switch to calibrated amplitude
+      for (const auto& channel : channelData) {
+        vFDDAmplitudes[channel.mPMNumber] = channel.mChargeADC; // amplitude, mV
       }
+      float aFDDAmplitudesA[int(nFDDChannels * 0.5)];
+      float aFDDAmplitudesC[int(nFDDChannels * 0.5)];
+      for (int i = 0; i < nFDDChannels; i++) {
+        if (i < nFDDChannels * 0.5) {
+          aFDDAmplitudesC[i] = truncateFloatFraction(vFDDAmplitudes[i], mFDDAmplitude);
+        } else {
+          aFDDAmplitudesA[i - int(nFDDChannels * 0.5)] = truncateFloatFraction(vFDDAmplitudes[i], mFDDAmplitude);
+        }
+      }
+      uint64_t globalBC = fddRecPoint.getInteractionRecord().toLong();
+      uint64_t bc = globalBC;
+      auto item = bcsMap.find(bc);
+      int bcID = -1;
+      if (item != bcsMap.end()) {
+        bcID = item->second;
+      } else {
+        LOG(fatal) << "Error: could not find a corresponding BC ID for a FDD rec. point; BC = " << bc;
+      }
+      fddCursor(0,
+                bcID,
+                aFDDAmplitudesA,
+                aFDDAmplitudesC,
+                truncateFloatFraction(fddRecPoint.getCollisionTimeA() * 1E-3, mFDDTime), // ps to ns
+                truncateFloatFraction(fddRecPoint.getCollisionTimeC() * 1E-3, mFDDTime), // ps to ns
+                fddRecPoint.getTrigger().triggersignals);
     }
-    uint64_t globalBC = fddRecPoint.getInteractionRecord().toLong();
-    uint64_t bc = globalBC;
-    auto item = bcsMap.find(bc);
-    int bcID = -1;
-    if (item != bcsMap.end()) {
-      bcID = item->second;
-    } else {
-      LOG(fatal) << "Error: could not find a corresponding BC ID for a FDD rec. point; BC = " << bc;
-    }
-    fddCursor(0,
-              bcID,
-              aFDDAmplitudesA,
-              aFDDAmplitudesC,
-              truncateFloatFraction(fddRecPoint.getCollisionTimeA() * 1E-3, mFDDTime), // ps to ns
-              truncateFloatFraction(fddRecPoint.getCollisionTimeC() * 1E-3, mFDDTime), // ps to ns
-              fddRecPoint.getTrigger().triggersignals);
   }
 
-  // vector of FT0 amplitudes
-  int nFT0Channels = o2::ft0::Geometry::Nsensors;
-  int nFT0ChannelsAside = o2::ft0::Geometry::NCellsA * 4;
-  std::vector<float> vAmplitudes(nFT0Channels, 0.);
-  // filling FT0 table
-  for (auto& ft0RecPoint : ft0RecPoints) {
-    const auto channelData = ft0RecPoint.getBunchChannelData(ft0ChData);
-    // TODO: switch to calibrated amplitude
-    for (auto& channel : channelData) {
-      vAmplitudes[channel.ChId] = channel.QTCAmpl; // amplitude, mV
-    }
-    float aAmplitudesA[nFT0ChannelsAside];
-    float aAmplitudesC[nFT0Channels - nFT0ChannelsAside];
-    for (int i = 0; i < nFT0Channels; i++) {
-      if (i < nFT0ChannelsAside) {
-        aAmplitudesA[i] = truncateFloatFraction(vAmplitudes[i], mT0Amplitude);
-      } else {
-        aAmplitudesC[i - nFT0ChannelsAside] = truncateFloatFraction(vAmplitudes[i], mT0Amplitude);
+  if (mInputSources[GID::FT0] && tablesToFill[O2ft0]) {
+    // vector of FT0 amplitudes
+    int nFT0Channels = o2::ft0::Geometry::Nsensors;
+    int nFT0ChannelsAside = o2::ft0::Geometry::NCellsA * 4;
+    std::vector<float> vAmplitudes(nFT0Channels, 0.);
+    // filling FT0 table
+    for (auto& ft0RecPoint : ft0RecPoints) {
+      const auto channelData = ft0RecPoint.getBunchChannelData(ft0ChData);
+      // TODO: switch to calibrated amplitude
+      for (auto& channel : channelData) {
+        vAmplitudes[channel.ChId] = channel.QTCAmpl; // amplitude, mV
       }
+      float aAmplitudesA[nFT0ChannelsAside];
+      float aAmplitudesC[nFT0Channels - nFT0ChannelsAside];
+      for (int i = 0; i < nFT0Channels; i++) {
+        if (i < nFT0ChannelsAside) {
+          aAmplitudesA[i] = truncateFloatFraction(vAmplitudes[i], mT0Amplitude);
+        } else {
+          aAmplitudesC[i - nFT0ChannelsAside] = truncateFloatFraction(vAmplitudes[i], mT0Amplitude);
+        }
+      }
+      uint64_t globalBC = ft0RecPoint.getInteractionRecord().toLong();
+      uint64_t bc = globalBC;
+      auto item = bcsMap.find(bc);
+      int bcID = -1;
+      if (item != bcsMap.end()) {
+        bcID = item->second;
+      } else {
+        LOG(fatal) << "Error: could not find a corresponding BC ID for a FT0 rec. point; BC = " << bc;
+      }
+      ft0Cursor(0,
+                bcID,
+                aAmplitudesA,
+                aAmplitudesC,
+                truncateFloatFraction(ft0RecPoint.getCollisionTimeA() * 1E-3, mT0Time), // ps to ns
+                truncateFloatFraction(ft0RecPoint.getCollisionTimeC() * 1E-3, mT0Time), // ps to ns
+                ft0RecPoint.getTrigger().triggersignals);
     }
-    uint64_t globalBC = ft0RecPoint.getInteractionRecord().toLong();
-    uint64_t bc = globalBC;
-    auto item = bcsMap.find(bc);
-    int bcID = -1;
-    if (item != bcsMap.end()) {
-      bcID = item->second;
-    } else {
-      LOG(fatal) << "Error: could not find a corresponding BC ID for a FT0 rec. point; BC = " << bc;
-    }
-    ft0Cursor(0,
-              bcID,
-              aAmplitudesA,
-              aAmplitudesC,
-              truncateFloatFraction(ft0RecPoint.getCollisionTimeA() * 1E-3, mT0Time), // ps to ns
-              truncateFloatFraction(ft0RecPoint.getCollisionTimeC() * 1E-3, mT0Time), // ps to ns
-              ft0RecPoint.getTrigger().triggersignals);
   }
 
-  if (mUseMC) {
+  if (mUseMC && tablesToFill[O2mccollisionlabel]) {
+    if (!tablesToFill[O2mccollision]) {
+      LOG(warn) << "O2mccollisionlabel is dependent on O2mccollision: add it to the tables list";
+      foundFatal = true;
+    }
+    if (!tablesToFill[O2collision]) {
+      LOG(warn) << "O2mccollisionlabel is dependent on O2collision: add it to the tables list";
+      foundFatal = true;
+    }
+    if (foundFatal) {
+      LOG(fatal) << "Found fatal error! See warnings above";
+    }
     // filling MC collision labels
     for (auto& label : primVerLabels) {
       auto it = mcColToEvSrc.find(std::pair<int, int>(label.getEventID(), label.getSourceID()));
@@ -1339,86 +1436,121 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     }
   }
 
-  // filling unassigned tracks first
-  // so that all unassigned tracks are stored in the beginning of the table together
-  auto& trackRef = primVer2TRefs.back(); // references to unassigned tracks are at the end
-  // fixme: interaction time is undefined for unassigned tracks (?)
-  fillTrackTablesPerCollision(-1, -1, trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, mftTracksCursor, fwdTracksCursor, fwdTracksCovCursor, dataformats::PrimaryVertex{});
-
-  // filling collisions and tracks into tables
-  int collisionID = 0;
-  for (auto& vertex : primVertices) {
-    auto& cov = vertex.getCov();
-    auto& timeStamp = vertex.getTimeStamp();                       // this is a relative time
-    const double interactionTime = timeStamp.getTimeStamp() * 1E3; // mus to ns
-    uint64_t globalBC = relativeTime_to_GlobalBC(interactionTime);
-    uint64_t localBC = relativeTime_to_LocalBC(interactionTime);
-    LOG(debug) << "global BC " << globalBC << " local BC " << localBC << " relative interaction time " << interactionTime;
-    // collision timestamp in ns wrt the beginning of collision BC
-    const float relInteractionTime = static_cast<float>(localBC * o2::constants::lhc::LHCBunchSpacingNS - interactionTime);
-    auto item = bcsMap.find(globalBC);
-    int bcID = -1;
-    if (item != bcsMap.end()) {
-      bcID = item->second;
-    } else {
-      LOG(fatal) << "Error: could not find a corresponding BC ID for a collision; BC = " << globalBC << ", collisionID = " << collisionID;
+  bool needTracks = tablesToFill[O2track] || tablesToFill[O2trackcov] || tablesToFill[O2trackextra];
+  bool needMFTTracks = tablesToFill[O2mfttrack];
+  bool needFwdTracks = tablesToFill[O2fwdtrack] || tablesToFill[O2fwdtrackcov];
+  bool needAnyTracks = needTracks || needMFTTracks || needFwdTracks;
+  if (needAnyTracks) {
+    if (!tablesToFill[O2collision]) {
+      LOG(warn) << "Tracks tables are dependent on O2collision: add it to the tables list";
+      foundFatal = true;
     }
-    collisionsCursor(0,
-                     bcID,
-                     truncateFloatFraction(vertex.getX(), mCollisionPosition),
-                     truncateFloatFraction(vertex.getY(), mCollisionPosition),
-                     truncateFloatFraction(vertex.getZ(), mCollisionPosition),
-                     truncateFloatFraction(cov[0], mCollisionPositionCov),
-                     truncateFloatFraction(cov[1], mCollisionPositionCov),
-                     truncateFloatFraction(cov[2], mCollisionPositionCov),
-                     truncateFloatFraction(cov[3], mCollisionPositionCov),
-                     truncateFloatFraction(cov[4], mCollisionPositionCov),
-                     truncateFloatFraction(cov[5], mCollisionPositionCov),
-                     vertex.getFlags(),
-                     truncateFloatFraction(vertex.getChi2(), mCollisionPositionCov),
-                     vertex.getNContributors(),
-                     truncateFloatFraction(relInteractionTime, mCollisionPosition),
-                     truncateFloatFraction(timeStamp.getTimeStampError() * 1E3, mCollisionPositionCov));
-    auto& trackRef = primVer2TRefs[collisionID];
-    // passing interaction time in [ps]
-    fillTrackTablesPerCollision(collisionID, interactionTime, trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, mftTracksCursor, fwdTracksCursor, fwdTracksCovCursor, vertex);
-    collisionID++;
+    if (foundFatal) {
+      LOG(fatal) << "Found fatal error! See warnings above";
+    }
+    // filling unassigned tracks first
+    // so that all unassigned tracks are stored in the beginning of the table together
+    auto& trackRef = primVer2TRefs.back(); // references to unassigned tracks are at the end
+    // fixme: interaction time is undefined for unassigned tracks (?)
+    fillTrackTablesPerCollision(-1, -1, trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, mftTracksCursor, fwdTracksCursor, fwdTracksCovCursor, dataformats::PrimaryVertex{});
+  }
+
+  if (tablesToFill[O2collision]) {
+    // filling collisions and tracks into tables
+    int collisionID = 0;
+    for (auto& vertex : primVertices) {
+      auto& cov = vertex.getCov();
+      auto& timeStamp = vertex.getTimeStamp();                       // this is a relative time
+      const double interactionTime = timeStamp.getTimeStamp() * 1E3; // mus to ns
+      uint64_t globalBC = relativeTime_to_GlobalBC(interactionTime);
+      uint64_t localBC = relativeTime_to_LocalBC(interactionTime);
+      LOG(debug) << "global BC " << globalBC << " local BC " << localBC << " relative interaction time " << interactionTime;
+      // collision timestamp in ns wrt the beginning of collision BC
+      const float relInteractionTime = static_cast<float>(localBC * o2::constants::lhc::LHCBunchSpacingNS - interactionTime);
+      auto item = bcsMap.find(globalBC);
+      int bcID = -1;
+      if (item != bcsMap.end()) {
+        bcID = item->second;
+      } else {
+        LOG(fatal) << "Error: could not find a corresponding BC ID for a collision; BC = " << globalBC << ", collisionID = " << collisionID;
+      }
+      collisionsCursor(0,
+                       bcID,
+                       truncateFloatFraction(vertex.getX(), mCollisionPosition),
+                       truncateFloatFraction(vertex.getY(), mCollisionPosition),
+                       truncateFloatFraction(vertex.getZ(), mCollisionPosition),
+                       truncateFloatFraction(cov[0], mCollisionPositionCov),
+                       truncateFloatFraction(cov[1], mCollisionPositionCov),
+                       truncateFloatFraction(cov[2], mCollisionPositionCov),
+                       truncateFloatFraction(cov[3], mCollisionPositionCov),
+                       truncateFloatFraction(cov[4], mCollisionPositionCov),
+                       truncateFloatFraction(cov[5], mCollisionPositionCov),
+                       vertex.getFlags(),
+                       truncateFloatFraction(vertex.getChi2(), mCollisionPositionCov),
+                       vertex.getNContributors(),
+                       truncateFloatFraction(relInteractionTime, mCollisionPosition),
+                       truncateFloatFraction(timeStamp.getTimeStampError() * 1E3, mCollisionPositionCov));
+      auto& trackRef = primVer2TRefs[collisionID];
+      // passing interaction time in [ps]
+      if (needAnyTracks) {
+        fillTrackTablesPerCollision(collisionID, interactionTime, trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, mftTracksCursor, fwdTracksCursor, fwdTracksCovCursor, vertex);
+      }
+      collisionID++;
+    }
   }
 
   // filling v0s table
-  for (auto& svertex : secVertices) {
-    auto trPosID = svertex.getProngID(0);
-    auto trNegID = svertex.getProngID(1);
-    int posTableIdx = -1;
-    int negTableIdx = -1;
-    auto item = mGIDToTableID.find(trPosID);
-    if (item != mGIDToTableID.end()) {
-      posTableIdx = item->second;
-    } else {
-      LOG(warn) << "Could not find a positive track index for prong ID " << trPosID;
+  if (tablesToFill[O2v0]) {
+    if (!needTracks) {
+      LOG(warn) << "O2v0 is dependent on barrel tracks: add them to the tables list";
+      foundFatal = true;
     }
-    item = mGIDToTableID.find(trNegID);
-    if (item != mGIDToTableID.end()) {
-      negTableIdx = item->second;
-    } else {
-      LOG(warn) << "Could not find a negative track index for prong ID " << trNegID;
+    if (foundFatal) {
+      LOG(fatal) << "Found fatal error! See warnings above";
     }
-    if (posTableIdx != -1 and negTableIdx != -1) {
-      v0sCursor(0, posTableIdx, negTableIdx);
+    for (auto& svertex : secVertices) {
+      auto trPosID = svertex.getProngID(0);
+      auto trNegID = svertex.getProngID(1);
+      int posTableIdx = -1;
+      int negTableIdx = -1;
+      auto item = mGIDToTableID.find(trPosID);
+      if (item != mGIDToTableID.end()) {
+        posTableIdx = item->second;
+      } else {
+        LOG(warn) << "Could not find a positive track index for prong ID " << trPosID;
+      }
+      item = mGIDToTableID.find(trNegID);
+      if (item != mGIDToTableID.end()) {
+        negTableIdx = item->second;
+      } else {
+        LOG(warn) << "Could not find a negative track index for prong ID " << trNegID;
+      }
+      if (posTableIdx != -1 and negTableIdx != -1) {
+        v0sCursor(0, posTableIdx, negTableIdx);
+      }
     }
   }
 
   // filling cascades table
-  for (auto& cascade : cascades) {
-    auto bachelorID = cascade.getBachelorID();
-    int bachTableIdx = -1;
-    auto item = mGIDToTableID.find(bachelorID);
-    if (item != mGIDToTableID.end()) {
-      bachTableIdx = item->second;
-    } else {
-      LOG(warn) << "Could not find a bachelor track index";
+  if (tablesToFill[O2cascade]) {
+    if (!needTracks) {
+      LOG(warn) << "O2v0 is dependent on barrel tracks: add them to the tables list";
+      foundFatal = true;
     }
-    cascadesCursor(0, cascade.getV0ID(), bachTableIdx);
+    if (foundFatal) {
+      LOG(fatal) << "Found fatal error! See warnings above";
+    }
+    for (auto& cascade : cascades) {
+      auto bachelorID = cascade.getBachelorID();
+      int bachTableIdx = -1;
+      auto item = mGIDToTableID.find(bachelorID);
+      if (item != mGIDToTableID.end()) {
+        bachTableIdx = item->second;
+      } else {
+        LOG(warn) << "Could not find a bachelor track index";
+      }
+      cascadesCursor(0, cascade.getV0ID(), bachTableIdx);
+    }
   }
 
   mTableTrID = 0;
@@ -1454,7 +1586,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   bcToClassMask.clear();
 
-  if (mInputSources[GIndex::EMC]) {
+  if (mInputSources[GIndex::EMC] && tablesToFill[O2caloCell] && tablesToFill[O2caloCellTRGR]) {
     // fill EMC cells to tables
     // TODO handle MC info
     fillCaloTable(caloEMCCells, caloEMCCellsTRGR, caloCellsCursor, caloCellsTRGTableCursor, bcsMap);
@@ -1464,12 +1596,27 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   if (mUseMC) {
     // filling mc particles table
-    fillMCParticlesTable(*mcReader,
-                         mcParticlesCursor,
-                         primVer2TRefs,
-                         primVerGIs,
-                         recoData,
-                         mcColToEvSrc);
+    if (tablesToFill[O2mcparticle]) {
+      // reconstructed tracks accessed via collisions -- needed for filtering
+      if (!tablesToFill[O2collision]) {
+        LOG(warn) << "O2mcparticle is dependent on O2collision: add it to the tables list";
+        foundFatal = true;
+      }
+      // correct mc collision ids can be assigned only if O2mccollision is processed
+      if (!tablesToFill[O2mccollision]) {
+        LOG(warn) << "O2mcparticle is dependent on O2mccollision: add it to the tables list";
+        foundFatal = true;
+      }
+      if (foundFatal) {
+        LOG(fatal) << "Found fatal error! See warnings above";
+      }
+      fillMCParticlesTable(*mcReader,
+                           mcParticlesCursor,
+                           primVer2TRefs,
+                           primVerGIs,
+                           recoData,
+                           mcColToEvSrc);
+    }
 
     mcColToEvSrc.clear();
 
@@ -1477,10 +1624,13 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     // filling track labels
 
     // need to go through labels in the same order as for tracks
-    fillMCTrackLabelsTable(mcTrackLabelCursor, mcMFTTrackLabelCursor, mcFwdTrackLabelCursor, primVer2TRefs.back(), primVerGIs, recoData);
-    for (int iref = 0; iref < primVer2TRefs.size() - 1; iref++) {
-      auto& trackRef = primVer2TRefs[iref];
-      fillMCTrackLabelsTable(mcTrackLabelCursor, mcMFTTrackLabelCursor, mcFwdTrackLabelCursor, trackRef, primVerGIs, recoData);
+    bool needAnyTrackLabels = tablesToFill[O2mcfwdtracklabel] || tablesToFill[O2mcmfttracklabel] || tablesToFill[O2mctracklabel];
+    if (needAnyTrackLabels) {
+      fillMCTrackLabelsTable(mcTrackLabelCursor, mcMFTTrackLabelCursor, mcFwdTrackLabelCursor, primVer2TRefs.back(), primVerGIs, recoData);
+      for (int iref = 0; iref < primVer2TRefs.size() - 1; iref++) {
+        auto& trackRef = primVer2TRefs[iref];
+        fillMCTrackLabelsTable(mcTrackLabelCursor, mcMFTTrackLabelCursor, mcFwdTrackLabelCursor, trackRef, primVerGIs, recoData);
+      }
     }
   }
   mToStore.clear();
@@ -1488,7 +1638,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   // pushing requested tables into outputs
   for (int it = 0; it < numTables; it++) {
     if (tablesToFill[it]) {
-      pc.outputs().adopt(OutputRef{(string)tablesNames[it]}, &tables[it]);
+      auto& table = pc.outputs().make<TableBuilder>(Output{"AOD", tablesDesc[it]});
+      std::swap(table, tables[it]);
     }
   }
   pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, tfNumber);
@@ -1504,20 +1655,14 @@ void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, std::string_view tablesList, bool enableSV, bool useMC, std::string resFile)
+DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, std::string tablesList, bool enableSV, bool useMC, std::string resFile)
 {
   using producer = o2::aodproducer::AODProducerWorkflowDPL;
+  // parse list of tables and mark tables to be stored
   producer::parseTablesList(tablesList);
 
-  // explicitly mark MC tables as unused if data is an input
-  if (!useMC) {
-    producer::tablesToFill[producer::O2mcparticle] = false;
-    producer::tablesToFill[producer::O2mcfwdtracklabel] = false;
-    producer::tablesToFill[producer::O2mcmfttracklabel] = false;
-    producer::tablesToFill[producer::O2mccollisionlabel] = false;
-    producer::tablesToFill[producer::O2mccollision] = false;
-    producer::tablesToFill[producer::O2mctracklabel] = false;
-  }
+  // check dependencies between tables
+  producer::checkTablesDeps(useMC);
 
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
@@ -1540,9 +1685,11 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, std::string_view t
     dataRequest->requestEMCALCells(useMC);
   }
 
+  LOGF(info, "Tables to be stored:");
   for (int it = 0; it < producer::numTables; it++) {
     if (producer::tablesToFill[it]) {
-      outputs.emplace_back(OutputLabel{(string)producer::tablesNames[it]}, "AOD", 0, Lifetime::Timeframe);
+      LOGF(info, "%s", producer::tablesNames[it]);
+      outputs.emplace_back(OutputLabel{(string)producer::tablesNames[it]}, "AOD", producer::tablesDesc[it], Lifetime::Timeframe);
     }
   }
 
