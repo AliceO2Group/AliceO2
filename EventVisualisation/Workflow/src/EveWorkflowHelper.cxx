@@ -287,7 +287,7 @@ void EveWorkflowHelper::drawAOD(EveWorkflowHelper::AODFullTrack const& track)
   // TODO: obtain also PID for the track
   auto const tr = o2::track::TrackParCov(track.x(), track.alpha(), arraypar);//, covpar);
 
-  addTrackToEvent(tr, GID::ITSTPCTRDTOF, 0.f, 0.f, GID::ITSTPCTRDTOF);
+  addTrackToEvent(tr, GID::ITSTPCTRD, 0.f, 0.f, GID::ITSTPCTRD);
 }
 
 void EveWorkflowHelper::drawTOFClusters(GID gid, float trackTime)

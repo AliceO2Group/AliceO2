@@ -89,13 +89,21 @@ void AO2DConverter::init(o2::framework::InitContext& ic)
 
 void AO2DConverter::process(EveWorkflowHelper::AODFullTracks const& tracks)
 {
-  EveWorkflowHelper helper;
+  std::unordered_map<std::size_t, std::vector<EveWorkflowHelper::AODFullTrack>> colTracks;
 
   for (auto& track : tracks) {
-    helper.drawAOD(track);
+    colTracks.try_emplace(track.collisionId(), std::vector<EveWorkflowHelper::AODFullTrack>());
+
+    colTracks[track.collisionId()].push_back(track);
   }
 
-  helper.save(jsonPath, 1, {}, {}, mWorkflowVersion);
+  for (auto const& p : colTracks) {
+    EveWorkflowHelper helper;
+    for(auto const &track: p.second) {
+      helper.drawAOD(track);
+    }
+    helper.save(jsonPath, colTracks.size(), {}, {}, mWorkflowVersion);
+  }
 }
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
