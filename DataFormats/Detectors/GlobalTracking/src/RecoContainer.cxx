@@ -470,7 +470,7 @@ void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC)
     requestTRDTracklets(useMC);
   }
   if (GTrackID::includesDet(DetID::CTP, src)) {
-    requestCTPDigits(false); // RS FIXME: at the moment does not support MC
+    requestCTPDigits(false); // RS FIXME: at the moment does not support MC.
   }
   if (GTrackID::includesDet(DetID::CPV, src)) {
     requestCPVClusters(useMC);
