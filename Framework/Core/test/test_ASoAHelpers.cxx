@@ -224,7 +224,7 @@ BOOST_AUTO_TEST_CASE(CombinationsGeneratorConstruction)
   BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(*(combItFiltered))).getIterator().mCurrentPos), 5);
   BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(*(combItFiltered))).getIterator().mCurrentChunk, 0);
 
-  auto comb2Filter = combinations(CombinationsStrictlyUpperIndexPolicy(testsA, testsA), filter, testsA, testsA);
+  auto comb2Filter = combinations(CombinationsStrictlyUpperIndexPolicy<TestA, TestA>(), filter, testsA, testsA);
 
   static_assert(std::is_same_v<decltype(comb2Filter.begin()), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<Filtered<TestA>, Filtered<TestA>>>::CombinationsIterator>, "Wrong iterator type");
   static_assert(std::is_same_v<decltype(*(comb2Filter.begin())), CombinationsStrictlyUpperIndexPolicy<Filtered<TestA>, Filtered<TestA>>::CombinationType&>, "Wrong combination type");
@@ -432,7 +432,7 @@ BOOST_AUTO_TEST_CASE(Combinations)
   count = 0;
   i = 4;
   j = 5;
-  for (auto& [t0, t1] : combinations(CombinationsStrictlyUpperIndexPolicy(testsA, testsA), pairsFilter, testsA, testsA)) {
+  for (auto& [t0, t1] : combinations(CombinationsStrictlyUpperIndexPolicy<TestA, TestA>(), pairsFilter, testsA, testsA)) {
     BOOST_CHECK_EQUAL(t0.x(), i);
     BOOST_CHECK_EQUAL(t1.x(), j);
     count++;
