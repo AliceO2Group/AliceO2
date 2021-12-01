@@ -56,6 +56,8 @@ class MatchInfoFwd
   const auto& getMCHTrackID() const { return mMCHTrackID; }
   void setMFTTrackID(int ID) { mMFTTrackID = ID; }
   const auto& getMFTTrackID() const { return mMFTTrackID; }
+  void setMIDTrackID(int ID) { mMIDTrackID = ID; }
+  const auto& getMIDTrackID() const { return mMIDTrackID; }
 
   const timeEst& getTimeMUS() const { return mTimeMUS; }
   timeEst& getTimeMUS() { return mTimeMUS; }
@@ -71,6 +73,7 @@ class MatchInfoFwd
   float mMCHMIDMatchingChi2 = -1.0;                         ///< MCH-MID Matching Chi2
   int mMFTTrackID = -1;                                     ///< Track ID of best MFT-match
   int mMCHTrackID = -1;                                     ///< MCH Track ID
+  int mMIDTrackID = -1;                                     ///< MID Track ID
   int mNMFTCandidates = 0;                                  ///< Number of MFT candidates within search cut
   bool mCloseMatch = false;                                 ///< Close match = correct MFT pair tested (MC-only)
   timeEst mTimeMUS;                                         ///< time estimate in ns

@@ -172,11 +172,13 @@ bool MatchGlobalFwd::processMCHMIDMatches()
 
     for (const auto& MIDMatch : mMCHMIDMatches) {
       const auto& MCHId = MIDMatch.getMCHRef().getIndex();
+      const auto& MIDId = MIDMatch.getMIDRef().getIndex();
       auto& thisMuonTrack = mMCHWork[MCHId];
       const auto& IR = MIDMatch.getIR();
       int nBC = IR.differenceInBC(mStartIR);
       float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
       float tMax = tMin + o2::constants::lhc::LHCBunchSpacingMUS;
+      thisMuonTrack.setMIDTrackID(MIDId);
       thisMuonTrack.tBracket.set(tMin, tMax);
       thisMuonTrack.setMIDMatchingChi2(MIDMatch.getMatchChi2OverNDF());
     }
