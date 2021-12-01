@@ -280,29 +280,74 @@ inline Node npow(Node left, T right)
   return Node{OpNode{BasicOp::Power}, std::move(left), LiteralNode{right}};
 }
 
-template <typename L, typename R>
-inline Node atan2(L left, R right)
-{
-  return Node{OpNode{BasicOp::Atan2}, LiteralNode{left}, LiteralNode{right}};
-}
+#define BINARY_FUNC_NODES(_func_, _node_)                                          \
+  template <typename L, typename R>                                                \
+  inline Node _node_(L left, R right)                                              \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, LiteralNode{left}, LiteralNode{right}};   \
+  }                                                                                \
+                                                                                   \
+  template <>                                                                      \
+  inline Node _node_(Node left, Node right)                                        \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, std::move(left), std::move(right)};       \
+  }                                                                                \
+                                                                                   \
+  template <typename T>                                                            \
+  inline Node _node_(Node left, T right)                                           \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, std::move(left), LiteralNode{right}};     \
+  }                                                                                \
+                                                                                   \
+  template <typename T>                                                            \
+  inline Node _node_(T left, Node right)                                           \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, LiteralNode{left}, std::move(right)};     \
+  }                                                                                \
+                                                                                   \
+  template <>                                                                      \
+  inline Node _node_(Node left, BindingNode right)                                 \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, std::move(left), right};                  \
+  }                                                                                \
+                                                                                   \
+  template <>                                                                      \
+  inline Node _node_(BindingNode left, BindingNode right)                          \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, left, right};                             \
+  }                                                                                \
+                                                                                   \
+  template <>                                                                      \
+  inline Node _node_(BindingNode left, Node right)                                 \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, left, std::move(right)};                  \
+  }                                                                                \
+                                                                                   \
+  template <typename T>                                                            \
+  inline Node _node_(Node left, Configurable<T> right)                             \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, std::move(left), PlaceholderNode{right}}; \
+  }                                                                                \
+                                                                                   \
+  template <typename T>                                                            \
+  inline Node _node_(Configurable<T> left, Node right)                             \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, PlaceholderNode{left}, std::move(right)}; \
+  }                                                                                \
+                                                                                   \
+  template <typename T>                                                            \
+  inline Node _node_(BindingNode left, Configurable<T> right)                      \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, left, PlaceholderNode{right}};            \
+  }                                                                                \
+                                                                                   \
+  template <typename T>                                                            \
+  inline Node _node_(Configurable<T> left, BindingNode right)                      \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, PlaceholderNode{left}, right};            \
+  }
 
-template <>
-inline Node atan2(Node left, Node right)
-{
-  return Node{OpNode{BasicOp::Atan2}, std::move(left), std::move(right)};
-}
-
-template <typename T>
-inline Node atan2(Node left, T right)
-{
-  return Node{OpNode{BasicOp::Atan2}, std::move(left), LiteralNode{right}};
-}
-
-template <typename T>
-inline Node atan2(T left, Node right)
-{
-  return Node{OpNode{BasicOp::Atan2}, LiteralNode{left}, std::move(right)};
-}
+BINARY_FUNC_NODES(Atan2, natan2);
 
 /// unary functions on nodes
 inline Node nsqrt(Node left)
