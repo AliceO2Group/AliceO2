@@ -1368,13 +1368,13 @@ BOOST_AUTO_TEST_CASE(ConstructorsWithoutTables)
   BOOST_CHECK_EQUAL(count, 0);
 
   count = 0;
-  for (auto& [c0, c1] : selfPairCombinations<TestA>("y", 2, -1)) {
+  for (auto& [c0, c1] : selfPairCombinations<int, TestA>("y", 2, -1)) {
     count++;
   }
   BOOST_CHECK_EQUAL(count, 0);
 
   count = 0;
-  for (auto& [c0, c1, c2] : selfTripleCombinations<TestA>("y", 2, -1)) {
+  for (auto& [c0, c1, c2] : selfTripleCombinations<int, TestA>("y", 2, -1)) {
     count++;
   }
   BOOST_CHECK_EQUAL(count, 0);
