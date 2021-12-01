@@ -87,7 +87,7 @@ class DigitFilteringTask
           if (isGoodDigit(d)) {
             oDigits.emplace_back(d);
             if (iLabels) {
-              oLabels->addElements(oLabels->getIndexedSize(), iLabels->getLabels(i));
+              oLabels->addElements(oLabels->getIndexedSize(), iLabels->getLabels(i + cursor));
             }
           }
         }
