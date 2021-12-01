@@ -39,4 +39,3 @@ o2_add_executable(emcal-channel-calib-workflow
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                         O2::EMCALCalibration
                                         O2::DetectorsCalibration)
-

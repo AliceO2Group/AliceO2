@@ -29,15 +29,15 @@ struct Bar {
 
 /// Largest supported struct
 struct FooMax {
-  int foo1 = 1;
-  int foo2 = 2;
-  int foo3 = 3;
-  int foo4 = 4;
-  int foo5 = 5;
-  int foo6 = 6;
-  int foo7 = 7;
-  int foo8 = 8;
-  int foo9 = 9;
+  int foo01 = 1;
+  int foo02 = 2;
+  int foo03 = 3;
+  int foo04 = 4;
+  int foo05 = 5;
+  int foo06 = 6;
+  int foo07 = 7;
+  int foo08 = 8;
+  int foo09 = 9;
   int foo10 = 10;
   int foo11 = 11;
   int foo12 = 12;
@@ -68,6 +68,45 @@ struct FooMax {
   int foo37 = 37;
   int foo38 = 38;
   int foo39 = 39;
+  int foo101 = 1;
+  int foo102 = 2;
+  int foo103 = 3;
+  int foo104 = 4;
+  int foo105 = 5;
+  int foo106 = 6;
+  int foo107 = 7;
+  int foo108 = 8;
+  int foo109 = 9;
+  int foo110 = 10;
+  int foo111 = 11;
+  int foo112 = 12;
+  int foo113 = 13;
+  int foo114 = 14;
+  int foo115 = 15;
+  int foo116 = 16;
+  int foo117 = 17;
+  int foo118 = 18;
+  int foo119 = 19;
+  int foo120 = 20;
+  int foo121 = 21;
+  int foo122 = 22;
+  int foo123 = 23;
+  int foo124 = 24;
+  int foo125 = 25;
+  int foo126 = 26;
+  int foo127 = 27;
+  int foo128 = 28;
+  int foo129 = 29;
+  int foo130 = 30;
+  int foo131 = 31;
+  int foo132 = 32;
+  int foo133 = 33;
+  int foo134 = 34;
+  int foo135 = 35;
+  int foo136 = 36;
+  int foo137 = 37;
+  int foo138 = 38;
+  int foo139 = 39;
 };
 
 BOOST_AUTO_TEST_CASE(TestStructToTuple)
