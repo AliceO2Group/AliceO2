@@ -13,7 +13,11 @@
 #include <ITSMFTReconstruction/PixelData.h>
 #include <ITSMFTReconstruction/RawPixelDecoder.h> //o2::itsmft::RawPixelDecoder
 #include "DataFormatsITSMFT/GBTCalibData.h"
-
+#include "DetectorsCalibration/TimeSlotCalibration.h"
+#include "DetectorsCalibration/TimeSlot.h"
+#include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITSMFT/NoiseMap.h"
+#include "gsl/span"
 // ROOT includes
 #include "TH2D.h"
 
@@ -40,8 +44,9 @@ class ITSCalibrator : public Task
         ~ITSCalibrator(); // override = default;
 
         using ChipPixelData = o2::itsmft::ChipPixelData;
+		o2::itsmft::ChipMappingITS mp;
 
-        void init(InitContext& ic) final;
+		void init(InitContext& ic) final;
         void run(ProcessingContext& pc) final;
         void endOfStream(EndOfStreamContext& ec) final;
 
@@ -86,7 +91,7 @@ class ITSCalibrator : public Task
         int16_t partID = 0;
 
         int mTimeFrameId = 0;
-        std::unique_ptr<RawPixelDecoder<Mapping>> mDecoder;
+        //std::unique_ptr<RawPixelDecoder<Mapping>> mDecoder;
         ChipPixelData* mChipDataBuffer = nullptr;
         int mHitNumberOfChip[7][48][2][14][14] = { { { { { 0 } } } } }; //layer, stave, substave, hic, chip
         std::vector<ChipPixelData> mChipsBuffer;  // currently processed ROF's chips data
