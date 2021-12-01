@@ -52,7 +52,7 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
                                                inChData[ich].ChainQTC};
 
     //  only signals with amplitude participate in collision time
-    if (outChData[ich].QTCAmpl > 0) {
+    if (outChData[ich].QTCAmpl > 0 && std::abs(outChData[ich].CFDTime) < 2000) {
       if (outChData[ich].ChId < nMCPsA) {
         sideAtime += outChData[ich].CFDTime;
         ndigitsA++;
