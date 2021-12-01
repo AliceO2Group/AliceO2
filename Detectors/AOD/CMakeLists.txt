@@ -30,6 +30,7 @@ target_link_libraries(
           O2::SimulationDataFormat
           O2::Steer
           O2::TPCWorkflow
+        O2::ZDCBase
 )
 
 target_include_directories(AODProducerWorkflow INTERFACE include)
@@ -48,21 +49,22 @@ o2_add_executable(
         COMPONENT_NAME reco
         SOURCES src/StandaloneAODProducer.cxx
         PUBLIC_LINK_LIBRARIES
-          O2::DataFormatsTPC
-          O2::DataFormatsITSMFT
-          O2::DataFormatsITS
-          O2::DataFormatsFT0
-          O2::DataFormatsFDD
-          O2::DataFormatsFV0
-          O2::DataFormatsTOF
-          O2::ITSReconstruction
-          O2::FT0Reconstruction
-          O2::TPCFastTransformation
-          O2::TPCBase
-          O2::TPCReconstruction
-          O2::TOFBase
-          O2::TOFCalibration
-          O2::SimConfig
-          O2::DataFormatsFT0
-          O2::Steer
+        O2::DataFormatsTPC
+        O2::DataFormatsITSMFT
+        O2::DataFormatsITS
+        O2::DataFormatsFT0
+        O2::DataFormatsFDD
+        O2::DataFormatsFV0
+        O2::DataFormatsTOF
+        O2::ITSReconstruction
+        O2::FT0Reconstruction
+        O2::TPCFastTransformation
+        O2::TPCBase
+        O2::TPCReconstruction
+        O2::TOFBase
+        O2::TOFCalibration
+        O2::SimConfig
+        O2::DataFormatsFT0
+        O2::Steer
+        O2::ZDCBase
 )
