@@ -55,7 +55,6 @@ struct AnalysisTask {
 
 // Helper struct which builds a DataProcessorSpec from
 // the contents of an AnalysisTask...
-
 struct AnalysisDataProcessorBuilder {
   template <typename T>
   static ConfigParamSpec getSpec()
@@ -262,6 +261,8 @@ struct AnalysisDataProcessorBuilder {
       // single argument to process
       homogeneous_apply_refs([&groupingTable](auto& x) {
         PartitionManager<std::decay_t<decltype(x)>>::bindExternalIndices(x, &groupingTable);
+        PartitionManager<std::decay_t<decltype(x)>>::getBoundToExternalIndices(x, groupingTable);
+        GroupedCombinationManager<std::decay_t<decltype(x)>>::setGroupedCombination(x, groupingTable);
         return true;
       },
                              task);
@@ -309,6 +310,15 @@ struct AnalysisDataProcessorBuilder {
           (binder(x), ...);
         },
         associatedTables);
+
+      // GroupedCombinations bound separately, as they should be set once for all associated tables
+      auto hashes = std::get<0>(associatedTables);
+      auto realAssociated = tuple_tail(associatedTables);
+      homogeneous_apply_refs([&groupingTable, &hashes, &realAssociated](auto& t) {
+        GroupedCombinationManager<std::decay_t<decltype(t)>>::setGroupedCombination(t, hashes, groupingTable, realAssociated);
+        return true;
+      },
+                             task);
 
       if constexpr (soa::is_soa_iterator_t<std::decay_t<G>>::value) {
         // grouping case
