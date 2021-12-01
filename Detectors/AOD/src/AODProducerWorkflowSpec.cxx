@@ -21,6 +21,7 @@
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsTPC/TrackTPC.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CommonConstants/PhysicsConstants.h"
@@ -137,10 +138,9 @@ uint64_t AODProducerWorkflowDPL::getTFNumber(const o2::InteractionRecord& tfStar
   o2::ccdb::CcdbApi ccdb_api;
   const std::string rct_path = "RCT/RunInformation/";
   const std::string start_orbit_path = "Trigger/StartOrbit";
-  const std::string url = "http://ccdb-test.cern.ch:8080";
 
-  mgr.setURL(url);
-  ccdb_api.init(url);
+  mgr.setURL(o2::base::NameConf::getCCDBServer());
+  ccdb_api.init(o2::base::NameConf::getCCDBServer());
 
   std::map<int, int>* mapStartOrbit = mgr.get<std::map<int, int>>(start_orbit_path);
   int64_t ts = 0;

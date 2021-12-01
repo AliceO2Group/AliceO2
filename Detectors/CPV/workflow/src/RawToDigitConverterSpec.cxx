@@ -24,6 +24,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "CPVBase/Geometry.h"
 #include "CommonUtils/VerbosityConfig.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::cpv::reco_workflow;
 
@@ -284,7 +285,7 @@ o2::framework::DataProcessorSpec o2::cpv::reco_workflow::getRawToDigitConverterS
                                           o2::framework::adaptFromTask<o2::cpv::reco_workflow::RawToDigitConverterSpec>(),
                                           o2::framework::Options{
                                             {"pedestal", o2::framework::VariantType::Bool, false, {"do not subtract pedestals from digits"}},
-                                            {"ccdb-url", o2::framework::VariantType::String, "http://ccdb-test.cern.ch:8080", {"CCDB Url"}},
+                                            {"ccdb-url", o2::framework::VariantType::String, o2::base::NameConf::getCCDBServer(), {"CCDB Url"}},
                                             {"no-gain-calibration", o2::framework::VariantType::Bool, false, {"do not apply gain calibration"}},
                                             {"no-bad-channel-map", o2::framework::VariantType::Bool, false, {"do not mask bad channels"}},
                                           }};

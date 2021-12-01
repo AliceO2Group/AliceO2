@@ -58,7 +58,6 @@ int main(int argc, char** argv)
     add_option("input-file,i", bpo::value<std::string>()->default_value("zdcdigits.root"), "input ZDC digits file");
     add_option("file-for,f", bpo::value<std::string>()->default_value("all"), "single file per: all,flp,cru,link");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
-    add_option("ccdb-url,c", bpo::value<std::string>()->default_value(""), "url of the ccdb repository");
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
     add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
@@ -88,7 +87,7 @@ int main(int argc, char** argv)
   }
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
 
-  std::string ccdb_url = vm["ccdb-url"].as<std::string>();
+  std::string ccdb_url = o2::base::NameConf::getCCDBServer();
   auto& dopt = o2::conf::DigiParams::Instance();
   std::string ccdbHost = dopt.ccdb;
   if (ccdb_url.length() > 0) {

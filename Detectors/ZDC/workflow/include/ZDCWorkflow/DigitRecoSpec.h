@@ -21,6 +21,7 @@
 #include "Framework/Task.h"
 #include "ZDCReconstruction/DigiReco.h"
 #include <TStopwatch.h>
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 namespace o2
 {
@@ -39,7 +40,7 @@ class DigitRecoSpec : public o2::framework::Task
 
  private:
   DigiReco mDR;                                           // Reconstruction object
-  std::string mccdbHost{"http://ccdb-test.cern.ch:8080"}; // Alternative ccdb server
+  std::string mccdbHost{o2::base::NameConf::getCCDBServer()}; // Alternative ccdb server
   int mVerbosity = 0;                                     // Verbosity level during recostruction
   bool mDebugOut = false;                                 // Save temporary reconstruction structures on root file
   bool mInitialized = false;                              // Connect once to CCDB during initialization

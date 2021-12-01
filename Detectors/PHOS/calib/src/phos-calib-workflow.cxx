@@ -16,6 +16,7 @@
 #include "PHOSCalibWorkflow/PHOSRunbyrunCalibDevice.h"
 #include "Framework/DataProcessorSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 
@@ -33,7 +34,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   //
   workflowOptions.push_back(ConfigParamSpec{"not-use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb phos calibration objects"}});
   workflowOptions.push_back(ConfigParamSpec{"forceupdate", o2::framework::VariantType::Bool, false, {"update ccdb even difference to previous object large"}});
-  workflowOptions.push_back(ConfigParamSpec{"ccdbpath", o2::framework::VariantType::String, "http://ccdb-test.cern.ch:8080", {"CCDB address to get current objects"}});
   workflowOptions.push_back(ConfigParamSpec{"digitspath", o2::framework::VariantType::String, "./CalibDigits.root", {"path and name of file to store calib. digits"}});
 
   workflowOptions.push_back(ConfigParamSpec{"ptminmgg", o2::framework::VariantType::Float, 1.5f, {"minimal pt to fill mgg calib histos"}});
@@ -59,8 +59,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto doBadMap = configcontext.options().get<bool>("badmap");
   auto useCCDB = !configcontext.options().get<bool>("not-use-ccdb");
   auto forceUpdate = configcontext.options().get<bool>("forceupdate");
-  auto path = configcontext.options().get<std::string>("ccdbpath");
   auto dpath = configcontext.options().get<std::string>("digitspath");
+  auto path = o2::base::NameConf::getCCDBServer();
 
   float ptMin = configcontext.options().get<float>("ptminmgg");
   float eMinHGTime = configcontext.options().get<float>("eminhgtime");
