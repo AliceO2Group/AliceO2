@@ -112,3 +112,9 @@ std::string NameConf::getTFIDInfoFileName(const std::string_view prefix)
 {
   return buildFileName(prefix, "_", "o2", TFIDINFO, ROOT_EXT_STRING, Instance().mDirTFIDINFO);
 }
+
+// Default CCDB server
+std::string NameConf::getCCDBServer()
+{
+  return Instance().mCCDBServer;
+}

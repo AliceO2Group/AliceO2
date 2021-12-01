@@ -125,6 +125,9 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
     return o2::utils::Str::concat_string(d.getName(), "/", ALIGNPATH);
   }
 
+  // Default CCDB server
+  static std::string getCCDBServer();
+
  private:
   // helper method to build filenames
   static std::string buildFileName(const std::string_view prefix, const std::string_view delimiter, const std::string_view defPrefix, const std::string_view defName,
@@ -161,6 +164,7 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   std::string mDirMatLUT = "none"; // directory for material LUT
   std::string mDirCollContext = "none"; // directory for collision context
   std::string mDirTFIDINFO = "none";    // directory for TFIDInfo vector
+  std::string mCCDBServer = "http://alice-ccdb.cern.ch/"; // default CCDB server
 
   O2ParamDef(NameConf, "NameConf");
 };
