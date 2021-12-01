@@ -280,6 +280,30 @@ inline Node npow(Node left, T right)
   return Node{OpNode{BasicOp::Power}, std::move(left), LiteralNode{right}};
 }
 
+template <typename L, typename R>
+inline Node atan2(L left, R right)
+{
+  return Node{OpNode{BasicOp::Atan2}, LiteralNode{left}, LiteralNode{right}};
+}
+
+template <>
+inline Node atan2(Node left, Node right)
+{
+  return Node{OpNode{BasicOp::Atan2}, std::move(left), std::move(right)};
+}
+
+template <typename T>
+inline Node atan2(Node left, T right)
+{
+  return Node{OpNode{BasicOp::Atan2}, std::move(left), LiteralNode{right}};
+}
+
+template <typename T>
+inline Node atan2(T left, Node right)
+{
+  return Node{OpNode{BasicOp::Atan2}, LiteralNode{left}, std::move(right)};
+}
+
 /// unary functions on nodes
 inline Node nsqrt(Node left)
 {
