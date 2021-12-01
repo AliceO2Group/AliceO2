@@ -13,6 +13,7 @@
 
 #include "ZDCWorkflow/ZDCDataReaderDPLSpec.h"
 #include "CommonUtils/VerbosityConfig.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 
@@ -103,7 +104,7 @@ framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawRead
     inputSpec,
     outputSpec,
     adaptFromTask<ZDCDataReaderDPLSpec>(rawReader, verifyTrigger),
-    Options{{"ccdb-url", o2::framework::VariantType::String, "http://ccdb-test.cern.ch:8080", {"CCDB Url"}}}};
+    Options{{"ccdb-url", o2::framework::VariantType::String, o2::base::NameConf::getCCDBServer(), {"CCDB Url"}}}};
 }
 } // namespace zdc
 } // namespace o2

@@ -28,7 +28,7 @@
 #include "DataFormatsZDC/OrbitData.h"
 #include "DataFormatsZDC/RecEvent.h"
 #include "ZDCBase/ModuleConfig.h"
-
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "ZDCReconstruction/RecoConfigZDC.h"
@@ -232,7 +232,7 @@ framework::DataProcessorSpec getDigitRecoSpec(const int verbosity = 0, const boo
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<DigitRecoSpec>(verbosity, enableDebugOut)},
-    o2::framework::Options{{"ccdb-url", o2::framework::VariantType::String, "http://ccdb-test.cern.ch:8080", {"CCDB Url"}}}};
+    o2::framework::Options{{"ccdb-url", o2::framework::VariantType::String, o2::base::NameConf::getCCDBServer(), {"CCDB Url"}}}};
 }
 
 } // namespace zdc

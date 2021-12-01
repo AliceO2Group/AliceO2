@@ -21,6 +21,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "FT0Base/Geometry.h"
 #include "TStopwatch.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 
@@ -42,7 +43,7 @@ class ReconstructionDPL : public Task
 
  private:
   bool mUseMC = false;
-  const std::string mCCDBpath = "http://alice-ccdb.cern.ch";
+  const std::string mCCDBpath = o2::base::NameConf::getCCDBServer();
   std::vector<o2::ft0::RecPoints> mRecPoints;
   std::vector<o2::ft0::ChannelDataFloat> mRecChData;
   o2::ft0::CollisionTimeRecoTask mReco;
