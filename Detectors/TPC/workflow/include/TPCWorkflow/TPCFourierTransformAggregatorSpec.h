@@ -30,6 +30,7 @@
 #include "TPCWorkflow/TPCDistributeIDCSpec.h"
 #include "TPCBase/CRU.h"
 #include "Framework/WorkflowSpec.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 using o2::header::gDataOriginTPC;
@@ -144,7 +145,7 @@ DataProcessorSpec getTPCFourierTransformAggregatorSpec(const std::vector<uint32_
     inputSpecs,
     outputSpecs,
     AlgorithmSpec{adaptFromTask<TPCFourierTransformAggregatorSpec>(crus, timeframes, nFourierCoefficientsStore, rangeIDC, debug, senddebug)},
-    Options{{"ccdb-uri", VariantType::String, "http://ccdb-test.cern.ch:8080", {"URI for the CCDB access."}}}}; // end DataProcessorSpec
+    Options{{"ccdb-uri", VariantType::String, o2::base::NameConf::getCCDBServer(), {"URI for the CCDB access."}}}}; // end DataProcessorSpec
 }
 
 } // namespace o2::tpc

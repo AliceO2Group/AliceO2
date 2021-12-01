@@ -15,6 +15,7 @@
 /// @file   TOFChannelCalibratorSpec.h
 /// @brief  Device to calibrate TOF channles (offsets)
 
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include "TOFCalibration/TOFChannelCalibrator.h"
 #include "DetectorsCalibration/Utils.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"
@@ -259,7 +260,7 @@ DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB, bool attachChannelO
       {"nbins", VariantType::Int, 1000, {"number of bins for t-texp"}},
       {"range", VariantType::Float, 24000.f, {"range for t-text"}},
       {"do-TOF-channel-calib-in-test-mode", VariantType::Bool, false, {"to run in test mode for simplification"}},
-      {"ccdb-path", VariantType::String, "http://ccdb-test.cern.ch:8080", {"Path to CCDB"}},
+      {"ccdb-path", VariantType::String, o2::base::NameConf::getCCDBServer(), {"Path to CCDB"}},
       {"update-at-end-of-run-only", VariantType::Bool, false, {"to update the CCDB only at the end of the run; has priority over calibrating in time slots"}},
       {"tf-per-slot", VariantType::Int64, INFINITE_TF_int64, {"number of TFs per calibration time slot"}},
       {"max-delay", VariantType::Int64, 0ll, {"number of slots in past to consider"}},

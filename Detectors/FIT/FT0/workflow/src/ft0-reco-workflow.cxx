@@ -13,6 +13,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include <string>
 
 using namespace o2::framework;
@@ -29,7 +30,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
-    {"ccdb-path-ft0", o2::framework::VariantType::String, "http://o2-ccdb.internal/", {"CCDB path"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
@@ -52,7 +52,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::writeINI("o2-ft0-recoflow_configuration.ini");
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
-  auto ccdbpath = configcontext.options().get<std::string>("ccdb-path-ft0");
+  auto ccdbpath = o2::base::NameConf::getCCDBServer();
   auto disableRootInp =
     configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");

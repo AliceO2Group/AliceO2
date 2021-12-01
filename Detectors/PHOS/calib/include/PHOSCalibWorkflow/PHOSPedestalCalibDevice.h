@@ -52,7 +52,7 @@ class PHOSPedestalCalibDevice : public o2::framework::Task
   bool mUpdateCCDB = true;                                          /// set is close to current and can update it
   static constexpr short kMinorChange = 10;                         /// ignore if number of channels changed smaller than...
   long mRunStartTime = 0;                                           /// start time of the run (sec)
-  std::string mCCDBPath{"http://ccdb-test.cern.ch:8080"};           /// CCDB path to retrieve current CCDB objects for comparison
+  std::string mCCDBPath{"http://alice-ccdb.cern.ch"};               /// CCDB path to retrieve current CCDB objects for comparison
   std::unique_ptr<Pedestals> mPedestals;                            //! Final calibration object
   std::unique_ptr<Pedestals> mOldPed;                               //! Pedestals currently stored in CCDB for comparisoin
   std::unique_ptr<TH2F> mMeanHG;                                    //! Mean values in High Gain channels

@@ -14,6 +14,7 @@
 #ifndef O2_ZDCDATAREADERDPLSPEC_H
 #define O2_ZDCDATAREADERDPLSPEC_H
 
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "Framework/DataProcessorSpec.h"
@@ -53,7 +54,7 @@ class ZDCDataReaderDPLSpec : public Task
   void run(ProcessingContext& pc) final;
 
  private:
-  std::string mccdbHost = "http://ccdb-test.cern.ch:8080";
+  std::string mccdbHost = o2::base::NameConf::getCCDBServer();
   bool mVerifyTrigger = true;
   RawReaderZDC mRawReader;
 };
