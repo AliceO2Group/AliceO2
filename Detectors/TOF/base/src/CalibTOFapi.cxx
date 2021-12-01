@@ -47,7 +47,8 @@ void CalibTOFapi::readLHCphase()
   // getting the LHCphase calibration
 
   auto& mgr = CcdbManager::instance();
-  mLHCphase = mgr.getForTimeStamp<LhcPhase>("TOF/Calib/LHCphase", mTimeStamp);
+  long timems = long(mTimeStamp) * 1000;
+  mLHCphase = mgr.getForTimeStamp<LhcPhase>("TOF/Calib/LHCphase", timems);
   if (mLHCphase) {
     LOG(info) << "read LHCphase for TOF " << mLHCphase->getLHCphase(mTimeStamp);
   } else {
@@ -64,7 +65,8 @@ void CalibTOFapi::readTimeSlewingParam()
   // it includes also offset and information on problematic
 
   auto& mgr = CcdbManager::instance();
-  mSlewParam = mgr.getForTimeStamp<SlewParam>("TOF/Calib/ChannelCalib", mTimeStamp);
+  long timems = long(mTimeStamp) * 1000;
+  mSlewParam = mgr.getForTimeStamp<SlewParam>("TOF/Calib/ChannelCalib", timems);
   if (mSlewParam) {
     LOG(info) << "read TimeSlewingParam for TOF";
   } else {
@@ -81,7 +83,8 @@ void CalibTOFapi::readDiagnosticFrequencies()
   // needed for simulation
 
   auto& mgr = CcdbManager::instance();
-  mDiaFreq = mgr.getForTimeStamp<Diagnostic>("TOF/Calib/Diagnostic", mTimeStamp);
+  long timems = long(mTimeStamp) * 1000;
+  mDiaFreq = mgr.getForTimeStamp<Diagnostic>("TOF/Calib/Diagnostic", timems);
 
   //  mDiaFreq->print();
 
