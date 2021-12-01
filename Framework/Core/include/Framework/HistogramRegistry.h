@@ -233,7 +233,8 @@ void HistFiller::fillHistAny(std::shared_ptr<R> hist, const T& table, const o2::
     LOGF(fatal, "Table filling is not (yet?) supported for StepTHn.");
     return;
   }
-  auto filtered = o2::soa::Filtered<T>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)};
+  auto s = o2::framework::expressions::createSelection(table.asArrowTable(), filter);
+  auto filtered = o2::soa::Filtered<T>{{table.asArrowTable()}, s};
   for (auto& t : filtered) {
     fillHistAny(hist, (*(static_cast<Cs>(t).getIterator()))...);
   }

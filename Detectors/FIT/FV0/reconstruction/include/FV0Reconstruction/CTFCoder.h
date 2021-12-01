@@ -78,7 +78,9 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& digitVec, const 
 
     MD::EENCODE, // BLC_idChan
     MD::EENCODE, // BLC_time
-    MD::EENCODE  // BLC_charge
+    MD::EENCODE, // BLC_charge
+    // extra slot was added in the end
+    MD::EENCODE // BLC_trigger
   };
   CompressedDigits cd;
   compress(cd, digitVec, channelVec);
@@ -104,6 +106,9 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& digitVec, const 
   ENCODEFV0(cd.idChan ,   CTF::BLC_idChan,   0);
   ENCODEFV0(cd.time,      CTF::BLC_time,     0);
   ENCODEFV0(cd.charge,    CTF::BLC_charge,   0);
+  //
+  // extra slot was added in the end
+  ENCODEFV0(cd.trigger,   CTF::BLC_trigger,  0);
   // clang-format on
   CTF::get(buff.data())->print(getPrefix(), mVerbosity);
 }
@@ -125,6 +130,13 @@ void CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec)
   DECODEFV0(cd.idChan,    CTF::BLC_idChan);
   DECODEFV0(cd.time,      CTF::BLC_time);
   DECODEFV0(cd.charge,    CTF::BLC_charge);
+
+  // extra slot was added in the end
+  DECODEFV0(cd.trigger,   CTF::BLC_trigger);
+  // triggers were added later, in old data they are absent:
+  if (cd.trigger.empty()) {
+    cd.trigger.resize(cd.header.nTriggers);
+  }
   // clang-format on
   //
   decompress(cd, digitVec, channelVec);
@@ -157,7 +169,8 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
       auto icc = channelVec.size();
       const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.time[icc], cd.charge[icc]);
     }
-    Triggers triggers; // TODO: Actual values are not set
+    Triggers triggers;
+    triggers.triggerSignals = cd.trigger[idig];
     digitVec.emplace_back(firstEntry, cd.nChan[idig], ir, triggers);
   }
 }

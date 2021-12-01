@@ -13,11 +13,13 @@ o2_add_library(SpacePoints
                SOURCES src/SpacePointsCalibParam.cxx
                        src/TrackResiduals.cxx
                        src/TrackInterpolation.cxx
+                       src/ResidualAggregator.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
                                      O2::TPCBase
                                      O2::TRDBase
                                      O2::TPCReconstruction
                                      O2::TPCFastTransformation
+                                     O2::DetectorsCalibration
                                      O2::DataFormatsITS
                                      O2::DataFormatsITSMFT
                                      O2::DataFormatsTRD
@@ -27,4 +29,5 @@ o2_add_library(SpacePoints
 o2_target_root_dictionary(SpacePoints
                           HEADERS include/SpacePoints/TrackResiduals.h
                                   include/SpacePoints/TrackInterpolation.h
+                                  include/SpacePoints/ResidualAggregator.h
                           LINKDEF src/SpacePointCalibLinkDef.h)

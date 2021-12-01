@@ -45,7 +45,8 @@ BOOST_AUTO_TEST_CASE(CTFTest)
       cells.emplace_back(tower, en, timeCell, (ChannelType_t)stat);
       tower += 1 + gRandom->Integer(100);
     }
-    triggers.emplace_back(ir, start, cells.size() - start);
+    uint32_t trigBits = gRandom->Integer(0xffff); // we store only 16 bits
+    triggers.emplace_back(ir, trigBits, start, cells.size() - start);
   }
 
   sw.Start();
@@ -107,7 +108,8 @@ BOOST_AUTO_TEST_CASE(CTFTest)
 
     BOOST_CHECK(dor.getBCData() == ddc.getBCData());
     BOOST_CHECK(dor.getNumberOfObjects() == ddc.getNumberOfObjects());
-    BOOST_CHECK(dor.getFirstEntry() == dor.getFirstEntry());
+    BOOST_CHECK(dor.getFirstEntry() == ddc.getFirstEntry());
+    BOOST_CHECK(dor.getTriggerBits() == ddc.getTriggerBits());
   }
 
   for (size_t i = 0; i < cells.size(); i++) {

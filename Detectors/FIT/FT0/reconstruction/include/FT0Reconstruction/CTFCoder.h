@@ -79,7 +79,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const g
     MD::EENCODE, // BLC_bcInc
     MD::EENCODE, // BLC_orbitInc
     MD::EENCODE, // BLC_nChan
-    MD::EENCODE, // BLC_flags
+    MD::EENCODE, // BLC_status
     MD::EENCODE, // BLC_idChan
     MD::EENCODE, // BLC_qtcChain
     MD::EENCODE, // BLC_cfdTime
@@ -102,15 +102,15 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const g
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
 #define ENCODEFT0(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
   // clang-format off
-  ENCODEFT0(cd.trigger,   CTF::BLC_trigger,  0);
-  ENCODEFT0(cd.bcInc,     CTF::BLC_bcInc,    0);
-  ENCODEFT0(cd.orbitInc,  CTF::BLC_orbitInc, 0);
-  ENCODEFT0(cd.nChan,     CTF::BLC_nChan,    0);
-  ENCODEFT0(cd.eventFlags, CTF::BLC_flags,    0);
-  ENCODEFT0(cd.idChan ,   CTF::BLC_idChan,   0);
-  ENCODEFT0(cd.qtcChain,  CTF::BLC_qtcChain, 0);
-  ENCODEFT0(cd.cfdTime,   CTF::BLC_cfdTime,  0);
-  ENCODEFT0(cd.qtcAmpl,   CTF::BLC_qtcAmpl,  0);
+  ENCODEFT0(cd.trigger,     CTF::BLC_trigger,  0);
+  ENCODEFT0(cd.bcInc,       CTF::BLC_bcInc,    0);
+  ENCODEFT0(cd.orbitInc,    CTF::BLC_orbitInc, 0);
+  ENCODEFT0(cd.nChan,       CTF::BLC_nChan,    0);
+  ENCODEFT0(cd.eventStatus, CTF::BLC_status,   0);
+  ENCODEFT0(cd.idChan ,     CTF::BLC_idChan,   0);
+  ENCODEFT0(cd.qtcChain,    CTF::BLC_qtcChain, 0);
+  ENCODEFT0(cd.cfdTime,     CTF::BLC_cfdTime,  0);
+  ENCODEFT0(cd.qtcAmpl,     CTF::BLC_qtcAmpl,  0);
   // clang-format on
   CTF::get(buff.data())->print(getPrefix(), mVerbosity);
 }
@@ -125,15 +125,15 @@ void CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec)
   ec.print(getPrefix(), mVerbosity);
 #define DECODEFT0(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
-  DECODEFT0(cd.trigger,   CTF::BLC_trigger);
-  DECODEFT0(cd.bcInc,     CTF::BLC_bcInc);
-  DECODEFT0(cd.orbitInc,  CTF::BLC_orbitInc);
-  DECODEFT0(cd.nChan,     CTF::BLC_nChan);
-  DECODEFT0(cd.eventFlags,     CTF::BLC_flags);
-  DECODEFT0(cd.idChan,    CTF::BLC_idChan);
-  DECODEFT0(cd.qtcChain,  CTF::BLC_qtcChain);
-  DECODEFT0(cd.cfdTime,   CTF::BLC_cfdTime);
-  DECODEFT0(cd.qtcAmpl,   CTF::BLC_qtcAmpl);
+  DECODEFT0(cd.trigger,     CTF::BLC_trigger);
+  DECODEFT0(cd.bcInc,       CTF::BLC_bcInc);
+  DECODEFT0(cd.orbitInc,    CTF::BLC_orbitInc);
+  DECODEFT0(cd.nChan,       CTF::BLC_nChan);
+  DECODEFT0(cd.eventStatus, CTF::BLC_status);
+  DECODEFT0(cd.idChan,      CTF::BLC_idChan);
+  DECODEFT0(cd.qtcChain,    CTF::BLC_qtcChain);
+  DECODEFT0(cd.cfdTime,     CTF::BLC_cfdTime);
+  DECODEFT0(cd.qtcAmpl,     CTF::BLC_qtcAmpl);
   // clang-format on
   //
   decompress(cd, digitVec, channelVec);
@@ -191,7 +191,8 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
       trig.timeC = timeC / trig.nChanC;
       trig.amplC = amplC / 8;
     }
-    digitVec.emplace_back(firstEntry, cd.nChan[idig], ir, trig, idig);
+    auto& d = digitVec.emplace_back(firstEntry, cd.nChan[idig], ir, trig, idig);
+    d.setEventStatus(cd.eventStatus[idig]);
   }
 }
 

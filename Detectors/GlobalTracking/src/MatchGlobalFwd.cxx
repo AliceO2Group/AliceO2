@@ -14,10 +14,68 @@
 using namespace o2::globaltracking;
 
 //_________________________________________________________
-void MatchGlobalFwd::init(std::string matchFcn, std::string cutFcn)
+void MatchGlobalFwd::init()
 {
 
-  configMatching(matchFcn, cutFcn);
+  LOG(info) << "Initializing Global Forward Matcher";
+
+  auto& matchingParam = GlobalFwdMatchingParam::Instance();
+
+  mMatchingPlaneZ = matchingParam.matchPlaneZ;
+  LOG(info) << "MFTMCH matchingPlaneZ = " << mMatchingPlaneZ;
+
+  auto& matchingFcn = matchingParam.matchFcn;
+  LOG(info) << "Match function string = " << matchingFcn;
+
+  if (matchingFcn.find("matchMC") < matchingFcn.length()) {
+    LOG(info) << "  ==> Setting MC Label matching: " << matchingFcn;
+    LOG(info) << "        MC Label matching: Matching scores defaults to matchMFT_MCH_TracksAllParam, unless another function is explictly specified.";
+    mMatchingType = MATCHINGMCLABEL;
+    setMatchingFunction(&MatchGlobalFwd::matchMFT_MCH_TracksAllParam);
+    if (!mMCTruthON) {
+      LOG(fatal) << "Label matching requries MC Labels!";
+    }
+  }
+
+  if (matchingFcn.find("matchALL") < matchingFcn.length()) {
+    LOG(info) << "  ==> Setting MatchingFunction matchALL.";
+    setMatchingFunction(&MatchGlobalFwd::matchMFT_MCH_TracksAllParam);
+  } else if (matchingFcn.find("matchPhiTanlXY") < matchingFcn.length()) {
+    LOG(info) << "  ==> Setting MatchingFunction matchPhiTanlXY.";
+    setMatchingFunction(&MatchGlobalFwd::matchMFT_MCH_TracksXYPhiTanl);
+  } else if (matchingFcn.find("matchXY") < matchingFcn.length()) {
+    LOG(info) << "  ==> Setting MatchingFunction matchXY.";
+    setMatchingFunction(&MatchGlobalFwd::matchMFT_MCH_TracksXY);
+  } else if (matchingFcn.find("matchHiroshima") < matchingFcn.length()) {
+    LOG(info) << "  ==> Setting MatchingFunction Hiroshima.";
+    setMatchingFunction(&MatchGlobalFwd::matchHiroshima);
+  } else if (matchingParam.isMatchUpstream()) {
+    LOG(info) << "  ==> Setting Upstream matching.";
+    setMatchingFunction(&MatchGlobalFwd::noMatchFcn);
+    mMatchingType = MATCHINGUPSTREAM;
+  }
+
+  auto& cutFcn = matchingParam.cutFcn;
+  LOG(info) << "MFTMCH pair candidate cut function string = " << cutFcn;
+
+  if (cutFcn.find("cutDisabled") < cutFcn.length()) {
+    LOG(info) << "  ==> Setting CutFunction: cutDisabled";
+    setCutFunction(&MatchGlobalFwd::cutDisabled);
+  } else if (cutFcn.find("matchCut3Sigma") < cutFcn.length()) {
+    LOG(info) << "  ==> Setting MatchingFunction matchCut3Sigma";
+    setCutFunction(&MatchGlobalFwd::matchCut3Sigma);
+  } else if (cutFcn.find("matchCut3SigmaXYAngles") < cutFcn.length()) {
+    LOG(info) << "  ==> Setting MatchingFunction matchCut3SigmaXYAngles: ";
+    setCutFunction(&MatchGlobalFwd::matchCut3SigmaXYAngles);
+  } else {
+    throw std::invalid_argument("Invalid cut function! Aborting...");
+  }
+
+  mUseMIDMCHMatch = matchingParam.useMIDMatch;
+  LOG(info) << "UseMIDMCH Matching = " << (mUseMIDMCHMatch ? "true" : "false");
+
+  mSaveAll = matchingParam.saveAll;
+  LOG(info) << "Save all MFTMCH candidates = " << (mSaveAll ? "true" : "false");
 }
 
 //_________________________________________________________
@@ -28,41 +86,26 @@ void MatchGlobalFwd::run(const o2::globaltracking::RecoContainer& inp)
 
   clear();
 
-  if (!prepareMFTData() || !prepareMCHData()) {
+  if (!prepareMFTData() || !prepareMCHData() || !processMCHMIDMatches()) {
     return;
   }
 
-  doMatching();
+  switch (mMatchingType) {
+    case MATCHINGFUNC:
+      mSaveAll ? doMatching<true>() : doMatching<false>();
+      break;
+    case MATCHINGUPSTREAM:
+      loadMatches();
+      break;
+    case MATCHINGMCLABEL:
+      doMCMatching();
+      break;
+    default:
+      LOG(fatal) << "Invalid MFTMCH matching mode";
+  }
+
   fitTracks();
   finalize();
-}
-
-//_________________________________________________________
-void MatchGlobalFwd::configMatching(const std::string& matchingFcn, const std::string& cutFcn)
-{
-
-  if (matchingFcn.find("matchALL") < matchingFcn.length()) {
-    LOG(info) << " Setting MatchingFunction matchALL: " << matchingFcn;
-    setMatchingFunction(&MatchGlobalFwd::matchMFT_MCH_TracksAllParam);
-  } else if (matchingFcn.find("matchPhiTanlXY") < matchingFcn.length()) {
-    LOG(info) << " Setting MatchingFunction matchPhiTanlXY: " << matchingFcn;
-    setMatchingFunction(&MatchGlobalFwd::matchMFT_MCH_TracksXYPhiTanl);
-  } else if (matchingFcn.find("matchXY") < matchingFcn.length()) {
-    LOG(info) << " Setting MatchingFunction matchXY: " << matchingFcn;
-    setMatchingFunction(&MatchGlobalFwd::matchMFT_MCH_TracksXY);
-  } else if (matchingFcn.find("matchHiroshima") < matchingFcn.length()) {
-    LOG(info) << " Setting MatchingFunction Hiroshima: " << matchingFcn;
-    setMatchingFunction(&MatchGlobalFwd::matchHiroshima);
-  } else {
-    throw std::invalid_argument("Invalid matching function! Aborting...");
-  }
-
-  if (cutFcn.find("cutDisabled") < cutFcn.length()) {
-    LOG(info) << " Setting CutFunction: " << cutFcn;
-    setCutFunction(&MatchGlobalFwd::cutDisabled);
-  } else {
-    throw std::invalid_argument("Invalid cut function! Aborting...");
-  }
 }
 
 //_________________________________________________________
@@ -82,6 +125,7 @@ void MatchGlobalFwd::clear()
   mMatchedTracks.clear();
   mMatchLabels.clear();
   mMFTTrackROFContMapping.clear();
+  mMatchingInfo.clear();
 }
 
 //_________________________________________________________
@@ -130,6 +174,31 @@ bool MatchGlobalFwd::prepareMCHData()
 }
 
 //_________________________________________________________
+bool MatchGlobalFwd::processMCHMIDMatches()
+{
+  if (mUseMIDMCHMatch) {
+    const auto& inp = *mRecoCont;
+
+    // Load MCHMID matches
+    mMCHMIDMatches = inp.getMCHMIDMatches();
+
+    LOG(info) << "Loaded " << mMCHMIDMatches.size() << " MCHMID matches";
+
+    for (const auto& MIDMatch : mMCHMIDMatches) {
+      const auto& MCHId = MIDMatch.getMCHRef().getIndex();
+      auto& thisMuonTrack = mMCHWork[MCHId];
+      const auto& IR = MIDMatch.getIR();
+      int nBC = IR.differenceInBC(mStartIR);
+      float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
+      float tMax = tMin + o2::constants::lhc::LHCBunchSpacingMUS;
+      thisMuonTrack.tBracket.set(tMin, tMax);
+      thisMuonTrack.setMIDMatchingChi2(MIDMatch.getMatchChi2OverNDF());
+    }
+  }
+  return true;
+}
+
+//_________________________________________________________
 bool MatchGlobalFwd::prepareMFTData()
 {
   const auto& inp = *mRecoCont;
@@ -148,12 +217,12 @@ bool MatchGlobalFwd::prepareMFTData()
 
   // Load MFT tracks
   mMFTTracks = inp.getMFTTracks();
-
   mMFTTrackROFRec = inp.getMFTTracksROFRecords();
   if (mMCTruthON) {
     mMFTTrkLabels = inp.getMFTTracksMCLabels();
   }
   int nROFs = mMFTTrackROFRec.size();
+
   LOG(info) << "Loaded " << mMFTTracks.size() << " MFT Tracks in " << nROFs << " ROFs";
   if (mMFTTracks.empty()) {
     return false;
@@ -191,6 +260,44 @@ bool MatchGlobalFwd::prepareMFTData()
 }
 
 //_________________________________________________________
+void MatchGlobalFwd::loadMatches()
+{
+
+  const auto& inp = *mRecoCont;
+  int nFakes = 0, nTrue = 0;
+
+  // Load MFT-MCH matching info
+  mMatchingInfoUpstream = inp.getMFTMCHMatches();
+
+  LOG(info) << "Loaded " << mMatchingInfoUpstream.size() << " MFTMCH Matches";
+
+  for (const auto& match : mMatchingInfoUpstream) {
+    auto MFTId = match.getMFTTrackID();
+    auto MCHId = match.getMCHTrackID();
+    LOG(debug) << "     ==> MFTId = " << MFTId << " MCHId =  " << MCHId << std::endl;
+
+    auto& thisMCHTrack = mMCHWork[MCHId];
+    thisMCHTrack.setMFTTrackID(match.getMFTTrackID());
+    thisMCHTrack.setMCHTrackID(match.getMCHTrackID());
+    thisMCHTrack.setMFTMCHMatchingChi2(match.getMFTMCHMatchingChi2());
+    thisMCHTrack.setCloseMatch(match.isCloseMatch());
+    thisMCHTrack.setNMFTCandidates(match.getNMFTCandidates());
+    mMatchedTracks.emplace_back((thisMCHTrack));
+
+    if (mMCTruthON) {
+      mMatchLabels.push_back(computeLabel(MCHId, MFTId));
+      mMatchLabels.back().isFake() ? nFakes++ : nTrue++;
+    }
+  }
+
+  LOG(info) << " Done matching from upstream " << mMFTWork.size() << " MFT tracks with " << mMCHWork.size() << "  MCH Tracks.";
+  if (mMCTruthON) {
+    LOG(info) << "   nFakes = " << nFakes << " nTrue = " << nTrue;
+  }
+}
+
+//_________________________________________________________
+template <bool saveAllMode>
 void MatchGlobalFwd::doMatching()
 {
   // Range of compatible MCH ROFS for the first MFT track
@@ -232,12 +339,13 @@ void MatchGlobalFwd::doMatching()
       LOG(debug) << "No compatible MCH ROF with MFT ROF " << MFTROFId << std::endl;
     }
     if (mchROFMatchFirst >= 0) {
-      ROFMatch(MFTROFId, mchROFMatchFirst, mchROFMatchLast);
+      ROFMatch<saveAllMode>(MFTROFId, mchROFMatchFirst, mchROFMatchLast);
     }
   }
 }
 
 //_________________________________________________________
+template <bool saveAllMode>
 void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
 {
   /// Matches MFT tracks on a given ROF with MCH tracks in a range of ROFs
@@ -259,68 +367,122 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
   LOG(debug) << "   firstMCHTrackID = " << firstMCHTrackID << " ; lastMCHTrackID = " << lastMCHTrackID << std::endl;
 
   // loop over all MCH tracks
-  for (auto MCHid = firstMCHTrackID; MCHid <= lastMCHTrackID; MCHid++) {
-    auto& thisMCHTrack = mMCHWork[MCHid];
+  for (auto MCHId = firstMCHTrackID; MCHId <= lastMCHTrackID; MCHId++) {
+    auto& thisMCHTrack = mMCHWork[MCHId];
     o2::MCCompLabel matchLabel;
-    const o2::MCCompLabel* thisMCHLabel;
-    const o2::MCCompLabel* thisMFTLabel;
-    if (mMCTruthON) {
-      thisMCHLabel = &mMCHTrkLabels[MCHid];
-      matchLabel = *thisMCHLabel;
-    }
-    for (auto MFTid = firstMFTTrackID; MFTid <= lastMFTTrackID; MFTid++) {
-      auto& thisMFTTrack = mMFTWork[MFTid];
+    for (auto MFTId = firstMFTTrackID; MFTId <= lastMFTTrackID; MFTId++) {
+      auto& thisMFTTrack = mMFTWork[MFTId];
       if (mMCTruthON) {
-        thisMFTLabel = &mMFTTrkLabels[MFTid];
+        matchLabel = computeLabel(MCHId, MFTId);
       }
       if (matchingCut(thisMCHTrack, thisMFTTrack)) {
-        thisMCHTrack.countCandidate();
+        thisMCHTrack.countMFTCandidate();
         if (mMCTruthON) {
-          if ((*thisMFTLabel) == (*thisMCHLabel)) {
+          if (matchLabel.isCorrect()) {
             thisMCHTrack.setCloseMatch();
           }
         }
         auto chi2 = matchingEval(thisMCHTrack, thisMFTTrack);
-        if (chi2 < thisMCHTrack.getMatchingChi2()) {
-          thisMCHTrack.setMFTTrackID(MFTid);
-          ;
-          thisMCHTrack.setMatchingChi2(chi2);
+        if (chi2 < thisMCHTrack.getMFTMCHMatchingChi2()) {
+          thisMCHTrack.setMFTTrackID(MFTId);
+          thisMCHTrack.setMFTMCHMatchingChi2(chi2);
+        }
+        if constexpr (saveAllMode) { // In saveAllmode save all pairs to output container
+          thisMCHTrack.setMFTTrackID(MFTId);
+          thisMCHTrack.setTimeMUS(thisMCHTrack.tBracket.getMin(), thisMCHTrack.tBracket.delta());
+          mMatchedTracks.emplace_back((thisMCHTrack));
+          mMatchingInfo.emplace_back(MCHId, MFTId, thisMCHTrack.getMFTMCHMatchingChi2());
+          if (mMCTruthON) {
+            mMatchLabels.push_back(matchLabel);
+            mMatchLabels.back().isFake() ? nFakes++ : nTrue++;
+          }
         }
       }
     }
     auto bestMatchID = thisMCHTrack.getMFTTrackID();
-    LOG(debug) << "       Matching MCHid = " << MCHid << " ==> bestMatchID = " << thisMCHTrack.getMFTTrackID() << " ; thisMCHTrack.getMatchingChi2() =  " << thisMCHTrack.getMatchingChi2();
+    LOG(debug) << "       Matching MCHId = " << MCHId << " ==> bestMatchID = " << thisMCHTrack.getMFTTrackID() << " ; thisMCHTrack.getMFTMCHMatchingChi2() =  " << thisMCHTrack.getMFTMCHMatchingChi2();
     LOG(debug) << "         MCH COV<X,X> = " << thisMCHTrack.getSigma2X() << " ; COV<Y,Y> = " << thisMCHTrack.getSigma2Y() << " ; pt = " << thisMCHTrack.getPt();
 
-    if (bestMatchID >= 0) { // If there is a match, add to output container
-
-      if (mMCTruthON) {
-        thisMFTLabel = &mMFTTrkLabels[bestMatchID];
-        bool trueMatch = ((*thisMFTLabel) == (*thisMCHLabel));
-        matchLabel.setFakeFlag(!trueMatch);
-        if (thisMFTLabel->isFake() || thisMCHLabel->isFake()) {
-          matchLabel.setFakeFlag(false);
+    if constexpr (!saveAllMode) { // In saveAllMode output container is filled above
+      if (bestMatchID >= 0) {     // If there is a match, add to output container
+        if (mMCTruthON) {
+          mMatchLabels.push_back(computeLabel(MCHId, bestMatchID));
+          mMatchLabels.back().isFake() ? nFakes++ : nTrue++;
         }
-        LOG(debug) << "          MCHTruth = " << *thisMCHLabel << "; MFTTruth = " << *thisMFTLabel << " MatchTruth = " << matchLabel;
 
-        matchLabel.isFake() ? nFakes++ : nTrue++;
-      }
+        thisMCHTrack.setMFTTrackID(bestMatchID);
+        thisMCHTrack.setTimeMUS(thisMCHTrack.tBracket.getMin(), thisMCHTrack.tBracket.delta());
+        LOG(debug) << "    thisMCHTrack.getMFTTrackID() = " << thisMCHTrack.getMFTTrackID()
+                   << "; thisMCHTrack.getMFTMCHMatchingChi2() = " << thisMCHTrack.getMFTMCHMatchingChi2();
 
-      thisMCHTrack.setMFTTrackID(bestMatchID);
-      thisMCHTrack.setTimeMUS(thisMCHTrack.tBracket.getMin(), thisMCHTrack.tBracket.delta());
-      LOG(debug) << "    thisMCHTrack.getMFTTrackID() = " << thisMCHTrack.getMFTTrackID()
-                 << "; thisMCHTrack.getMatchingChi2() = " << thisMCHTrack.getMatchingChi2();
-
-      mMatchedTracks.emplace_back((thisMCHTrack));
-
-      if (mMCTruthON) {
-        mMatchLabels.push_back(matchLabel);
-        LOG(debug) << "   Label: " << matchLabel;
+        mMatchedTracks.emplace_back((thisMCHTrack));
+        mMatchingInfo.emplace_back(MCHId, bestMatchID, thisMCHTrack.getMFTMCHMatchingChi2());
       }
     }
 
   } // /loop over MCH tracks seeds
-  LOG(debug) << " Done matching MFT ROF " << MFTROFId << " with " << nMFTTracks << " MFT tracks with " << nMCHTracks << "  MCH Tracks. nFakes = " << nFakes << " nTrue = " << nTrue;
+
+  LOG(info) << "Finished matching MFT ROF " << MFTROFId << ": " << nMFTTracks << " MFT tracks and " << nMCHTracks << "  MCH Tracks.";
+  if (mMCTruthON) {
+    LOG(info) << "   nFakes = " << nFakes << " nTrue = " << nTrue;
+  }
+}
+
+//_________________________________________________________
+o2::MCCompLabel MatchGlobalFwd::computeLabel(const int MCHId, const int MFTId)
+{
+  const auto& mchlabel = mMCHTrkLabels[MCHId];
+  const auto& mftlabel = mMFTTrkLabels[MFTId];
+  o2::MCCompLabel matchLabel = mchlabel;
+  matchLabel.setFakeFlag(mftlabel.compare(mchlabel) != 1);
+
+  LOG(debug) << "     Computing MFTMCH matching label:   MFTTruth = " << mftlabel << "  ;  MCHTruth = " << mchlabel << "  ;   Computed label = " << matchLabel;
+
+  return matchLabel;
+}
+
+//_________________________________________________________
+void MatchGlobalFwd::doMCMatching()
+{
+  int nFakes = 0, nTrue = 0;
+
+  // loop over all MCH tracks
+  for (auto MCHId = 0; MCHId < mMCHWork.size(); MCHId++) {
+    auto& thisMCHTrack = mMCHWork[MCHId];
+    const o2::MCCompLabel& thisMCHLabel = mMCHTrkLabels[MCHId];
+
+    LOG(debug) << "   MCH Track # " << MCHId << " Label: " << thisMCHLabel;
+    if (!((thisMCHLabel).isSet())) {
+      continue;
+    }
+    for (auto MFTId = 0; MFTId < mMFTWork.size(); MFTId++) {
+      auto& thisMFTTrack = mMFTWork[MFTId];
+      o2::MCCompLabel matchLabel = computeLabel(MCHId, MFTId);
+
+      if (matchLabel.isCorrect()) {
+        nTrue++;
+        thisMCHTrack.setCloseMatch();
+        auto chi2 = matchingEval(thisMCHTrack, thisMFTTrack);
+        thisMCHTrack.setMFTTrackID(MFTId);
+        thisMCHTrack.setMFTMCHMatchingChi2(chi2);
+        thisMCHTrack.setTimeMUS(thisMCHTrack.tBracket.getMin(), thisMCHTrack.tBracket.delta());
+        mMatchedTracks.emplace_back((thisMCHTrack));
+        mMatchingInfo.emplace_back(MCHId, MFTId, chi2);
+        mMatchLabels.push_back(matchLabel);
+        auto bestMatchID = thisMCHTrack.getMFTTrackID();
+        LOG(debug) << "       Matching MCHId = " << MCHId << " ==> bestMatchID = " << thisMCHTrack.getMFTTrackID() << " ; thisMCHTrack.getMFTMCHMatchingChi2() =  " << thisMCHTrack.getMFTMCHMatchingChi2();
+        LOG(debug) << "         MCH COV<X,X> = " << thisMCHTrack.getSigma2X() << " ; COV<Y,Y> = " << thisMCHTrack.getSigma2Y() << " ; pt = " << thisMCHTrack.getPt();
+        LOG(debug) << "   Label: " << matchLabel;
+        break;
+      }
+    }
+
+  } // /loop over MCH tracks seeds
+
+  auto nMFTTracks = mMFTWork.size();
+  auto nMCHTracks = mMCHWork.size();
+
+  LOG(info) << " Done MC matching of " << nMFTTracks << " MFT tracks with " << nMCHTracks << "  MCH Tracks. nFakes = " << nFakes << " nTrue = " << nTrue;
 }
 
 //_________________________________________________________________________________________________

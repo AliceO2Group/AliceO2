@@ -46,6 +46,6 @@
 
 #pragma link C++ struct o2::emcal::CTFHeader + ;
 #pragma link C++ struct o2::emcal::CTF + ;
-#pragma link C++ class o2::ctf::EncodedBlocks < o2::emcal::CTFHeader, 7, uint32_t> + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::emcal::CTFHeader, 8, uint32_t> + ;
 
 #endif

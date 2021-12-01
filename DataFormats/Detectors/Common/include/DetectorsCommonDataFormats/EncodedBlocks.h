@@ -19,6 +19,7 @@
 #undef NDEBUG
 #include <cassert>
 #include <type_traits>
+#include <cstddef>
 #include <Rtypes.h>
 #include "rANS/rans.h"
 #include "rANS/utils.h"
@@ -138,9 +139,9 @@ struct Metadata {
 
 /// registry struct for the buffer start and offsets of writable space
 struct Registry {
-  char* head = nullptr;
+  char* head = nullptr;     //! pointer on the head of the CTF
   int nFilledBlocks = 0;    // number of filled blocks = next block to fill (must be strictly consecutive)
-  size_t offsFreeStart = 0; // offset of the start of the writable space (wrt head), in bytes!!!
+  size_t offsFreeStart = 0; //! offset of the start of the writable space (wrt head), in bytes!!!
   size_t size = 0;          // full size in bytes!!!
 
   /// calculate the pointer of the head of the writable space
@@ -341,6 +342,8 @@ class EncodedBlocks
   H& getHeader() { return mHeader; }
   std::shared_ptr<H> cloneHeader() const { return std::shared_ptr<H>(new H(mHeader)); } // for dictionary creation
 
+  const auto& getRegistry() const { return mRegistry; }
+
   const auto& getMetadata() const { return mMetadata; }
 
   auto& getMetadata(int i) const
@@ -448,7 +451,7 @@ class EncodedBlocks
  protected:
   static_assert(N > 0, "number of encoded blocks < 1");
 
-  Registry mRegistry;                //! not stored
+  Registry mRegistry;                //
   ANSHeader mANSHeader;              //  ANS header
   H mHeader;                         //  detector specific header
   std::array<Metadata, N> mMetadata; //  compressed block's details
@@ -479,9 +482,9 @@ class EncodedBlocks
 
   /// read single branch
   template <typename D>
-  static void readTreeBranch(TTree& tree, const std::string& brname, D& dt, int ev = 0);
+  static bool readTreeBranch(TTree& tree, const std::string& brname, D& dt, int ev = 0);
 
-  ClassDefNV(EncodedBlocks, 1);
+  ClassDefNV(EncodedBlocks, 2);
 };
 
 ///_____________________________________________________________________________
@@ -502,7 +505,9 @@ template <typename VD>
 void EncodedBlocks<H, N, W>::readFromTree(VD& vec, TTree& tree, const std::string& name, int ev)
 {
   auto tmp = create(vec);
-  readTreeBranch(tree, o2::utils::Str::concat_string(name, "_wrapper."), *tmp, ev);
+  if (!readTreeBranch(tree, o2::utils::Str::concat_string(name, "_wrapper."), *tmp, ev)) {
+    throw std::runtime_error(fmt::format("Failed to read CTF header for {}", name));
+  }
   tmp = tmp->expand(vec, tmp->estimateSizeFromMetadata());
   const auto& meta = tmp->getMetadata();
   for (int i = 0; i < N; i++) {
@@ -534,14 +539,18 @@ size_t EncodedBlocks<H, N, W>::appendToTree(TTree& tree, const std::string& name
 /// read single branch
 template <typename H, int N, typename W>
 template <typename D>
-inline void EncodedBlocks<H, N, W>::readTreeBranch(TTree& tree, const std::string& brname, D& dt, int ev)
+bool EncodedBlocks<H, N, W>::readTreeBranch(TTree& tree, const std::string& brname, D& dt, int ev)
 {
   auto* br = tree.GetBranch(brname.c_str());
-  assert(br);
+  if (!br) {
+    LOG(debug) << "Branch " << brname << " is absent";
+    return false;
+  }
   auto* ptr = &dt;
   br->SetAddress(&ptr);
   br->GetEntry(ev);
   br->ResetAddress();
+  return true;
 }
 
 ///_____________________________________________________________________________

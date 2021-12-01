@@ -222,7 +222,7 @@ BOOST_AUTO_TEST_CASE(TestPartitionIteration)
   BOOST_CHECK_EQUAL(i, 4);
 
   expressions::Filter f1 = aod::test::x < 4.0f;
-  FilteredTest filtered{{testA.asArrowTable()}, expressions::createSelection(testA.asArrowTable(), f1)};
+  FilteredTest filtered{{testA.asArrowTable()}, o2::soa::selectionToVector(expressions::createSelection(testA.asArrowTable(), f1))};
   PartitionFilteredTest p2 = aod::test::y > 9.0f;
   p2.setTable(filtered);
 

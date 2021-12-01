@@ -67,7 +67,9 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData,
     MD::EENCODE, // BLC_towerID
     MD::EENCODE, // BLC_time
     MD::EENCODE, // BLC_energy
-    MD::EENCODE  // BLC_status
+    MD::EENCODE, // BLC_status
+    // extra slot was added in the end
+    MD::EENCODE // BLC_trigger
   };
 
   CTFHelper helper(trigData, cellData);
@@ -94,6 +96,8 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData,
   ENCODEEMC(helper.begin_time(),        helper.end_time(),         CTF::BLC_time,        0);
   ENCODEEMC(helper.begin_energy(),      helper.end_energy(),       CTF::BLC_energy,      0);
   ENCODEEMC(helper.begin_status(),      helper.end_status(),       CTF::BLC_status,      0);
+  // extra slot was added in the end
+  ENCODEEMC(helper.begin_trigger(),  helper.end_trigger(),         CTF::BLC_trigger,     0);
   // clang-format on
   CTF::get(buff.data())->print(getPrefix(), mVerbosity);
 }
@@ -105,7 +109,7 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& cellVec)
   const auto& header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
   ec.print(getPrefix(), mVerbosity);
-  std::vector<uint16_t> bcInc, entries, energy, cellTime, tower;
+  std::vector<uint16_t> bcInc, entries, energy, cellTime, tower, trigger;
   std::vector<uint32_t> orbitInc;
   std::vector<uint8_t> status;
 
@@ -119,6 +123,13 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& cellVec)
   DECODEEMCAL(cellTime,    CTF::BLC_time);
   DECODEEMCAL(energy,      CTF::BLC_energy);
   DECODEEMCAL(status,      CTF::BLC_status);
+  // extra slot was added in the end
+  DECODEEMCAL(trigger,     CTF::BLC_trigger);
+  // triggers were added later, in old data they are absent:
+  if (trigger.empty()) {
+    trigger.resize(header.nTriggers);
+  }
+  //
   // clang-format on
   //
   trigVec.clear();
@@ -145,7 +156,8 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& cellVec)
       cellVec.emplace_back(cell);
       cellCount++;
     }
-    trigVec.emplace_back(ir, firstEntry, entries[itrig]);
+    uint32_t trigBits = trigger[itrig];
+    trigVec.emplace_back(ir, trigBits, firstEntry, entries[itrig]);
   }
   assert(cellCount == header.nCells);
 }

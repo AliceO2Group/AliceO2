@@ -18,7 +18,7 @@ namespace o2::framework
 {
 struct any_type {
   template <class T>
-  constexpr operator T();  // non explicit
+  constexpr operator T(); // non explicit
 };
 
 template <class T, typename... Args>
@@ -32,6 +32,97 @@ std::false_type
 template <class T, typename... Args>
 struct is_braces_constructible : decltype(test<T, Args...>(0)) {
 };
+
+#define DPL_REPEAT_0(x)
+#define DPL_REPEAT_1(x) x
+#define DPL_REPEAT_2(x) x, x
+#define DPL_REPEAT_3(x) x, x, x
+#define DPL_REPEAT_4(x) x, x, x, x
+#define DPL_REPEAT_5(x) x, x, x, x, x
+#define DPL_REPEAT_6(x) x, x, x, x, x, x
+#define DPL_REPEAT_7(x) x, x, x, x, x, x, x
+#define DPL_REPEAT_8(x) x, x, x, x, x, x, x, x
+#define DPL_REPEAT_9(x) x, x, x, x, x, x, x, x, x
+#define DPL_REPEAT_10(x) x, x, x, x, x, x, x, x, x, x
+#define DPL_REPEAT(x, d, u) DPL_REPEAT_##d(DPL_REPEAT_10(x)), DPL_REPEAT_##u(x)
+
+#define DPL_ENUM_0(pre, post)
+#define DPL_ENUM_1(pre, post) pre##0##post
+#define DPL_ENUM_2(pre, post) pre##0##post, pre##1##post
+#define DPL_ENUM_3(pre, post) pre##0##post, pre##1##post, pre##2##post
+#define DPL_ENUM_4(pre, post) pre##0##post, pre##1##post, pre##2##post, pre##3##post
+#define DPL_ENUM_5(pre, post) pre##0##post, pre##1##post, pre##2##post, pre##3##post, pre##4##post
+#define DPL_ENUM_6(pre, post) pre##0##post, pre##1##post, pre##2##post, pre##3##post, pre##4##post, pre##5##post
+#define DPL_ENUM_7(pre, post) pre##0##post, pre##1##post, pre##2##post, pre##3##post, pre##4##post, pre##5##post, pre##6##post
+#define DPL_ENUM_8(pre, post) pre##0##post, pre##1##post, pre##2##post, pre##3##post, pre##4##post, pre##5##post, pre##6##post, pre##7##post
+#define DPL_ENUM_9(pre, post) pre##0##post, pre##1##post, pre##2##post, pre##3##post, pre##4##post, pre##5##post, pre##6##post, pre##7##post, pre##8##post
+#define DPL_ENUM_10(pre, post) pre##0##post, pre##1##post, pre##2##post, pre##3##post, pre##4##post, pre##5##post, pre##6##post, pre##7##post, pre##8##post, pre##9##post
+
+#define DPL_ENUM_20(pre, post) DPL_ENUM_10(pre, post), DPL_ENUM_10(pre##1, post)
+#define DPL_ENUM_30(pre, post) DPL_ENUM_20(pre, post), DPL_ENUM_10(pre##2, post)
+#define DPL_ENUM_40(pre, post) DPL_ENUM_30(pre, post), DPL_ENUM_10(pre##3, post)
+#define DPL_ENUM_50(pre, post) DPL_ENUM_40(pre, post), DPL_ENUM_10(pre##4, post)
+#define DPL_ENUM_60(pre, post) DPL_ENUM_50(pre, post), DPL_ENUM_10(pre##5, post)
+#define DPL_ENUM_70(pre, post) DPL_ENUM_60(pre, post), DPL_ENUM_10(pre##6, post)
+#define DPL_ENUM_80(pre, post) DPL_ENUM_70(pre, post), DPL_ENUM_10(pre##7, post)
+#define DPL_ENUM_90(pre, post) DPL_ENUM_80(pre, post), DPL_ENUM_10(pre##8, post)
+#define DPL_ENUM_100(pre, post) DPL_ENUM_90(pre, post), DPL_ENUM_10(pre##9, post)
+
+#define DPL_ENUM(pre, post, d, u) DPL_ENUM_##d##0(pre, post), DPL_ENUM_##u(pre##d, post)
+
+#define DPL_FENUM_0(f, pre, post)
+#define DPL_FENUM_1(f, pre, post) f(pre##0##post)
+#define DPL_FENUM_2(f, pre, post) f(pre##0##post), f(pre##1##post)
+#define DPL_FENUM_3(f, pre, post) f(pre##0##post), f(pre##1##post), f(pre##2##post)
+#define DPL_FENUM_4(f, pre, post) f(pre##0##post), f(pre##1##post), f(pre##2##post), f(pre##3##post)
+#define DPL_FENUM_5(f, pre, post) f(pre##0##post), f(pre##1##post), f(pre##2##post), f(pre##3##post), f(pre##4##post)
+#define DPL_FENUM_6(f, pre, post) f(pre##0##post), f(pre##1##post), f(pre##2##post), f(pre##3##post), f(pre##4##post), f(pre##5##post)
+#define DPL_FENUM_7(f, pre, post) f(pre##0##post), f(pre##1##post), f(pre##2##post), f(pre##3##post), f(pre##4##post), f(pre##5##post), f(pre##6##post)
+#define DPL_FENUM_8(f, pre, post) f(pre##0##post), f(pre##1##post), f(pre##2##post), f(pre##3##post), f(pre##4##post), f(pre##5##post), f(pre##6##post), f(pre##7##post)
+#define DPL_FENUM_9(f, pre, post) f(pre##0##post), f(pre##1##post), f(pre##2##post), f(pre##3##post), f(pre##4##post), f(pre##5##post), f(pre##6##post), f(pre##7##post), f(pre##8##post)
+#define DPL_FENUM_10(f, pre, post) f(pre##0##post), f(pre##1##post), f(pre##2##post), f(pre##3##post), f(pre##4##post), f(pre##5##post), f(pre##6##post), f(pre##7##post), f(pre##8##post), f(pre##9##post)
+
+#define DPL_FENUM_20(f, pre, post) DPL_FENUM_10(f, pre, post), DPL_FENUM_10(f, pre##1, post)
+#define DPL_FENUM_30(f, pre, post) DPL_FENUM_20(f, pre, post), DPL_FENUM_10(f, pre##2, post)
+#define DPL_FENUM_40(f, pre, post) DPL_FENUM_30(f, pre, post), DPL_FENUM_10(f, pre##3, post)
+#define DPL_FENUM_50(f, pre, post) DPL_FENUM_40(f, pre, post), DPL_FENUM_10(f, pre##4, post)
+#define DPL_FENUM_60(f, pre, post) DPL_FENUM_50(f, pre, post), DPL_FENUM_10(f, pre##5, post)
+#define DPL_FENUM_70(f, pre, post) DPL_FENUM_60(f, pre, post), DPL_FENUM_10(f, pre##6, post)
+#define DPL_FENUM_80(f, pre, post) DPL_FENUM_70(f, pre, post), DPL_FENUM_10(f, pre##7, post)
+#define DPL_FENUM_90(f, pre, post) DPL_FENUM_80(f, pre, post), DPL_FENUM_10(f, pre##8, post)
+#define DPL_FENUM_100(f, pre, post) DPL_FENUM_90(f, pre, post), DPL_FENUM_10(f, pre##9, post)
+
+#define DPL_FENUM(f, pre, post, d, u) DPL_FENUM_##d##0(f, pre, post), DPL_FENUM_##u(f, pre##d, post)
+
+#define DPL_10_As DPL_REPEAT_10(A)
+#define DPL_20_As DPL_10_As, DPL_10_As
+#define DPL_30_As DPL_20_As, DPL_10_As
+#define DPL_40_As DPL_30_As, DPL_10_As
+#define DPL_50_As DPL_40_As, DPL_10_As
+#define DPL_60_As DPL_50_As, DPL_10_As
+#define DPL_70_As DPL_60_As, DPL_10_As
+#define DPL_80_As DPL_70_As, DPL_10_As
+#define DPL_90_As DPL_80_As, DPL_10_As
+#define DPL_100_As DPL_90_As, DPL_10_As
+
+#define DPL_0_9(pre, po) pre##0##po, pre##1##po, pre##2##po, pre##3##po, pre##4##po, pre##5##po, pre##6##po, pre##7##po, pre##8##po, pre##9##po
+
+#define BRACE_CONSTRUCTIBLE_ENTRY_LOW(u)                        \
+  constexpr(is_braces_constructible<type, DPL_REPEAT_##u(A)>{}) \
+  {                                                             \
+    return u;                                                   \
+  }
+#define BRACE_CONSTRUCTIBLE_ENTRY(d, u)                           \
+  constexpr(is_braces_constructible<type, DPL_REPEAT(A, d, u)>{}) \
+  {                                                               \
+    return d##u;                                                  \
+  }
+
+#define BRACE_CONSTRUCTIBLE_ENTRY_TENS(d)                   \
+  constexpr(is_braces_constructible<type, DPL_##d##0_As>{}) \
+  {                                                         \
+    return d##0;                                            \
+  }
 
 #if __cplusplus >= 202002L
 struct UniversalType {
@@ -55,222 +146,245 @@ constexpr long brace_constructible_size()
 {
   using A = any_type;
   using type = std::decay_t<T>;
-  if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 40;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 39;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 38;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 37;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 36;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 35;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 34;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 33;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 32;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 31;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 30;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 29;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 28;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 27;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 26;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 25;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 24;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 23;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 22;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 21;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 20;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 19;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 18;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 17;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 16;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 15;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 14;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 13;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 12;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 11;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A>{}) {
-    return 10;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A>{}) {
-    return 9;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A>{}) {
-    return 8;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A>{}) {
-    return 7;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A>{}) {
-    return 6;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A, A>{}) {
-    return 5;
-  } else if constexpr (is_braces_constructible<type, A, A, A, A>{}) {
-    return 4;
-  } else if constexpr (is_braces_constructible<type, A, A, A>{}) {
-    return 3;
-  } else if constexpr (is_braces_constructible<type, A, A>{}) {
-    return 2;
-  } else if constexpr (is_braces_constructible<type, A>{}) {
-    return 1;
-  } else {
-    return 0;
-  }
+  // clang-format off
+
+  if BRACE_CONSTRUCTIBLE_ENTRY (9, 9)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (9, 8)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (9, 7)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (9, 6)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (9, 5)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (9, 4)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (9, 3)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (9, 2)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (9, 1)
+  else if BRACE_CONSTRUCTIBLE_ENTRY_TENS (9)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (8, 9)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (8, 8)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (8, 7)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (8, 6)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (8, 5)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (8, 4)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (8, 3)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (8, 2)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (8, 1)
+  else if BRACE_CONSTRUCTIBLE_ENTRY_TENS (8)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (7, 9)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (7, 8)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (7, 7)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (7, 6)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (7, 5)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (7, 4)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (7, 3)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (7, 2)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (7, 1)
+  else if BRACE_CONSTRUCTIBLE_ENTRY_TENS (7)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (6, 9)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (6, 8)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (6, 7)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (6, 6)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (6, 5)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (6, 4)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (6, 3)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (6, 2)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (6, 1)
+  else if BRACE_CONSTRUCTIBLE_ENTRY_TENS (6)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (5, 9)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (5, 8)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (5, 7)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (5, 6)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (5, 5)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (5, 4)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (5, 3)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (5, 2)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (5, 1)
+  else if BRACE_CONSTRUCTIBLE_ENTRY_TENS (5)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (4, 9)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (4, 8)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (4, 7)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (4, 6)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (4, 5)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (4, 4)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (4, 3)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (4, 2)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (4, 1)
+  else if BRACE_CONSTRUCTIBLE_ENTRY_TENS (4)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (3, 9)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (3, 8)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (3, 7)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (3, 6)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (3, 5)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (3, 4)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (3, 3)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (3, 2)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (3, 1)
+  else if BRACE_CONSTRUCTIBLE_ENTRY_TENS (3)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (2, 9)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (2, 8)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (2, 7)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (2, 6)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (2, 5)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (2, 4)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (2, 3)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (2, 2)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (2, 1)
+  else if BRACE_CONSTRUCTIBLE_ENTRY_TENS (2)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (1, 9)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (1, 8)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (1, 7)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (1, 6)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (1, 5)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (1, 4)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (1, 3)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (1, 2)
+  else if BRACE_CONSTRUCTIBLE_ENTRY (1, 1)
+  else if BRACE_CONSTRUCTIBLE_ENTRY_TENS (1)
+  else if BRACE_CONSTRUCTIBLE_ENTRY_LOW (9)
+  else if BRACE_CONSTRUCTIBLE_ENTRY_LOW (8)
+  else if BRACE_CONSTRUCTIBLE_ENTRY_LOW (7)
+  else if BRACE_CONSTRUCTIBLE_ENTRY_LOW (6)
+  else if BRACE_CONSTRUCTIBLE_ENTRY_LOW (5)
+  else if BRACE_CONSTRUCTIBLE_ENTRY_LOW (4)
+  else if BRACE_CONSTRUCTIBLE_ENTRY_LOW (3)
+  else if BRACE_CONSTRUCTIBLE_ENTRY_LOW (2)
+  else if BRACE_CONSTRUCTIBLE_ENTRY_LOW (1)
+  else
+    {
+      return 0;
+    }
+  // clang-format on
 }
 #endif
+
+#define DPL_HOMOGENEOUS_APPLY_ENTRY_LOW(u)                      \
+  constexpr(numElements == u)                                   \
+  {                                                             \
+    auto&& [DPL_ENUM_##u(p, )] = object;                        \
+    return std::vector<decltype(l(p0))>{DPL_FENUM_##u(l, p, )}; \
+  }
+
+#define DPL_HOMOGENEOUS_APPLY_ENTRY(d, u)                         \
+  constexpr(numElements == d##u)                                  \
+  {                                                               \
+    auto&& [DPL_ENUM(p, , d, u)] = object;                        \
+    return std::vector<decltype(l(p0))>{DPL_FENUM(l, p, , d, u)}; \
+  }
+
+#define DPL_HOMOGENEOUS_APPLY_ENTRY_TENS(d)                        \
+  constexpr(numElements == d##0)                                   \
+  {                                                                \
+    auto&& [DPL_ENUM_##d##0(p, )] = object;                        \
+    return std::vector<decltype(l(p0))>{DPL_FENUM_##d##0(l, p, )}; \
+  }
 
 template <typename L, class T>
 auto constexpr homogeneous_apply_refs(L l, T&& object)
 {
   using type = std::decay_t<T>;
   constexpr unsigned long numElements = brace_constructible_size<T>();
-  if constexpr (numElements == 40) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18), l(p19), l(p20), l(p21), l(p22), l(p23), l(p24), l(p25), l(p26), l(p27), l(p28), l(p29), l(p30), l(p31), l(p32), l(p33), l(p34), l(p35), l(p36), l(p37), l(p38), l(p39)};
-  } else if constexpr (numElements == 39) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18), l(p19), l(p20), l(p21), l(p22), l(p23), l(p24), l(p25), l(p26), l(p27), l(p28), l(p29), l(p30), l(p31), l(p32), l(p33), l(p34), l(p35), l(p36), l(p37), l(p38)};
-  } else if constexpr (numElements == 38) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18), l(p19), l(p20), l(p21), l(p22), l(p23), l(p24), l(p25), l(p26), l(p27), l(p28), l(p29), l(p30), l(p31), l(p32), l(p33), l(p34), l(p35), l(p36), l(p37)};
-  } else if constexpr (numElements == 37) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18), l(p19), l(p20), l(p21), l(p22), l(p23), l(p24), l(p25), l(p26), l(p27), l(p28), l(p29), l(p30), l(p31), l(p32), l(p33), l(p34), l(p35), l(p36)};
-  } else if constexpr (numElements == 36) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18), l(p19), l(p20), l(p21), l(p22), l(p23), l(p24), l(p25), l(p26), l(p27), l(p28), l(p29), l(p30), l(p31), l(p32), l(p33), l(p34), l(p35)};
-  } else if constexpr (numElements == 35) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18), l(p19), l(p20), l(p21), l(p22), l(p23), l(p24), l(p25), l(p26), l(p27), l(p28), l(p29), l(p30), l(p31), l(p32), l(p33), l(p34)};
-  } else if constexpr (numElements == 34) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18), l(p19), l(p20), l(p21), l(p22), l(p23), l(p24), l(p25), l(p26), l(p27), l(p28), l(p29), l(p30), l(p31), l(p32), l(p33)};
-  } else if constexpr (numElements == 33) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18), l(p19), l(p20), l(p21), l(p22), l(p23), l(p24), l(p25), l(p26), l(p27), l(p28), l(p29), l(p30), l(p31), l(p32)};
-  } else if constexpr (numElements == 32) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18), l(p19), l(p20), l(p21), l(p22), l(p23), l(p24), l(p25), l(p26), l(p27), l(p28), l(p29), l(p30), l(p31)};
-  } else if constexpr (numElements == 31) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18), l(p19), l(p20), l(p21), l(p22), l(p23), l(p24), l(p25), l(p26), l(p27), l(p28), l(p29), l(p30)};
-  } else if constexpr (numElements == 30) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18), l(p19), l(p20), l(p21), l(p22), l(p23), l(p24), l(p25), l(p26), l(p27), l(p28), l(p29)};
-  } else if constexpr (numElements == 29) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18), l(p19), l(p20), l(p21), l(p22), l(p23), l(p24), l(p25), l(p26), l(p27), l(p28)};
-  } else if constexpr (numElements == 28) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18), l(p19), l(p20), l(p21), l(p22), l(p23), l(p24), l(p25), l(p26), l(p27)};
-  } else if constexpr (numElements == 27) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18), l(p19), l(p20), l(p21), l(p22), l(p23), l(p24), l(p25), l(p26)};
-  } else if constexpr (numElements == 26) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18), l(p19), l(p20), l(p21), l(p22), l(p23), l(p24), l(p25)};
-  } else if constexpr (numElements == 25) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18), l(p19), l(p20), l(p21), l(p22), l(p23), l(p24)};
-  } else if constexpr (numElements == 24) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18), l(p19), l(p20), l(p21), l(p22), l(p23)};
-  } else if constexpr (numElements == 23) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18), l(p19), l(p20), l(p21), l(p22)};
-  } else if constexpr (numElements == 22) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18), l(p19), l(p20), l(p21)};
-  } else if constexpr (numElements == 21) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18), l(p19), l(p20)};
-  } else if constexpr (numElements == 20) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18), l(p19)};
-  } else if constexpr (numElements == 19) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17), l(p18)};
-  } else if constexpr (numElements == 18) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16), l(p17)};
-  } else if constexpr (numElements == 17) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15), l(p16)};
-  } else if constexpr (numElements == 16) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14), l(p15)};
-  } else if constexpr (numElements == 15) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13), l(p14)};
-  } else if constexpr (numElements == 14) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12), l(p13)};
-  } else if constexpr (numElements == 13) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11), l(p12)};
-  } else if constexpr (numElements == 12) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10), l(p11)};
-  } else if constexpr (numElements == 11) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9), l(p10)};
-  } else if constexpr (numElements == 10) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8), l(p9)};
-  } else if constexpr (numElements == 9) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7), l(p8)};
-  } else if constexpr (numElements == 8) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6, p7] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6), l(p7)};
-  } else if constexpr (numElements == 7) {
-    auto&& [p0, p1, p2, p3, p4, p5, p6] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5), l(p6)};
-  } else if constexpr (numElements == 6) {
-    auto&& [p0, p1, p2, p3, p4, p5] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4), l(p5)};
-  } else if constexpr (numElements == 5) {
-    auto&& [p0, p1, p2, p3, p4] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3), l(p4)};
-  } else if constexpr (numElements == 4) {
-    auto&& [p0, p1, p2, p3] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2), l(p3)};
-  } else if constexpr (numElements == 3) {
-    auto&& [p0, p1, p2] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1), l(p2)};
-  } else if constexpr (numElements == 2) {
-    auto&& [p0, p1] = object;
-    return std::vector<decltype(l(p0))>{l(p0), l(p1)};
-  } else if constexpr (numElements == 1) {
-    auto&& [p0] = object;
-    return std::vector<decltype(l(p0))>{l(p0)};
-  } else {
-    return false;
-  }
+  // clang-format off
+  if DPL_HOMOGENEOUS_APPLY_ENTRY (9, 9)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (9, 8)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (9, 7)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (9, 6)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (9, 5)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (9, 4)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (9, 3)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (9, 2)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (9, 1)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY_TENS (9)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (8, 9)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (8, 8)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (8, 7)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (8, 6)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (8, 5)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (8, 4)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (8, 3)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (8, 2)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (8, 1)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY_TENS (8)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (7, 9)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (7, 8)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (7, 7)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (7, 6)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (7, 5)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (7, 4)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (7, 3)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (7, 2)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (7, 1)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY_TENS (7)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (6, 9)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (6, 8)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (6, 7)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (6, 6)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (6, 5)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (6, 4)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (6, 3)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (6, 2)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (6, 1)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY_TENS (6)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (5, 9)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (5, 8)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (5, 7)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (5, 6)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (5, 5)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (5, 4)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (5, 3)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (5, 2)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (5, 1)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY_TENS (5)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (4, 9)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (4, 8)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (4, 7)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (4, 6)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (4, 5)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (4, 4)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (4, 3)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (4, 2)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (4, 1)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY_TENS (4)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (3, 9)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (3, 8)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (3, 7)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (3, 6)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (3, 5)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (3, 4)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (3, 3)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (3, 2)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (3, 1)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY_TENS (3)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (2, 9)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (2, 8)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (2, 7)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (2, 6)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (2, 5)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (2, 4)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (2, 3)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (2, 2)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (2, 1)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY_TENS (2)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (1, 9)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (1, 8)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (1, 7)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (1, 6)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (1, 5)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (1, 4)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (1, 3)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (1, 2)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY (1, 1)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY_TENS (1)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY_LOW (9)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY_LOW (8)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY_LOW (7)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY_LOW (6)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY_LOW (5)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY_LOW (4)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY_LOW (3)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY_LOW (2)
+  else if DPL_HOMOGENEOUS_APPLY_ENTRY_LOW (1)
+  else { return false; }
+  // clang-format on
 }
 
-}  // namespace o2::framework
+} // namespace o2::framework
 
-#endif  // O2_FRAMEWORK_STRUCTTOTUPLE_H_
+#endif // O2_FRAMEWORK_STRUCTTOTUPLE_H_

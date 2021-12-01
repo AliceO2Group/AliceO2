@@ -20,6 +20,7 @@
 
 #include "EMCALCalibration/EMCALTimeCalibData.h"
 #include "EMCALCalibration/EMCALChannelData.h"
+#include "EMCALCalibration/EMCALCalibExtractor.h"
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
 #include "DataFormatsEMCAL/Cell.h"
@@ -68,10 +69,14 @@ class EMCALChannelCalibrator : public o2::calibration::TimeSlotCalibration<o2::e
   void setIsTest(bool isTest) { mTest = isTest; }
   bool isTest() const { return mTest; }
 
+  // Configure the calibrator
+  EMCALCalibExtractor* getCalibExtractor() const { return mCalibrator.get(); }
+
  private:
   int mNBins = 0;     ///< bins of the histogram for passing
   float mRange = 0.;  ///< range of the histogram for passing
   bool mTest = false; ///< flag to be used when running in test mode: it simplify the processing (e.g. does not go through all channels)
+  std::shared_ptr<EMCALCalibExtractor> mCalibrator;
 
   // output
   CcdbObjectInfoVector mInfoVector; // vector of CCDB Infos , each element is filled with the CCDB description of the accompanying TimeSlewing object
@@ -105,11 +110,14 @@ void EMCALChannelCalibrator<DataInput, HistContainer>::finalizeSlot(o2::calibrat
   DataInput* c = slot.getContainer();
   LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
 
+  if constexpr (std::is_same<DataInput, o2::emcal::EMCALChannelData>::value) {
+    auto bcm = mCalibrator->calibrateBadChannels(c->getHisto());
+  } else if constexpr (std::is_same<DataInput, o2::emcal::EMCALTimeCalibData>::value) {
+    auto tcd = mCalibrator->calibrateTime(c->getHisto());
+  }
+
   // for the CCDB entry
   std::map<std::string, std::string> md;
-
-  //auto clName = o2::utils::MemFileHelper::getClassName(tm);
-  //auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   mInfoVector.emplace_back("EMCAL/ChannelCalib", "clname", "flname", md, slot.getTFStart(), 99999999999999);
 }
 
