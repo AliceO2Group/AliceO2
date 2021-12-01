@@ -497,7 +497,7 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     chi2 = track.getTrackChi2();
     // nClusters = track.getNumberOfPoints();
     chi2matchmchmid = track.getMIDMatchingChi2();
-    chi2matchmchmft = track.getMatchingChi2();
+    chi2matchmchmft = track.getMFTMCHMatchingChi2();
     matchmfttrackid = track.getMFTTrackID();
     matchmchtrackid = track.getMCHTrackID();
 

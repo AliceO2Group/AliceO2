@@ -9,13 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   GlobalFwdMatchingSpec.h
+/// @file   MatchedMCHMIDReaderSpec.h
 
-#ifndef O2_MATCHING_GLOBALFWD_SPEC
-#define O2_MATCHING_GLOBALFWD_SPEC
+#ifndef O2_GLOBAL_MATCHMCHMIDREADER
+#define O2_GLOBAL_MATCHMCHMIDREADER
 
-#include "ReconstructionDataFormats/GlobalTrackID.h"
-#include "GlobalTracking/MatchGlobalFwdParam.h"
+#include "Framework/DataProcessorSpec.h"
 
 using namespace o2::framework;
 
@@ -23,10 +22,11 @@ namespace o2
 {
 namespace globaltracking
 {
+
 /// create a processor spec
-framework::DataProcessorSpec getGlobalFwdMatchingSpec(bool useMC, bool matchRootOutput);
+framework::DataProcessorSpec getMCHMIDMatchedReaderSpec(bool useMC);
 
 } // namespace globaltracking
 } // namespace o2
 
-#endif /* O2_MATCHING_MCHMFT_SPEC */
+#endif /* O2_GLOBAL_MATCHMCHMIDREADER */
