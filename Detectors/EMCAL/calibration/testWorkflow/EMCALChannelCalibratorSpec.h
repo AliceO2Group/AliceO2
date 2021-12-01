@@ -49,6 +49,9 @@ class EMCALChannelCalibDevice : public o2::framework::Task
     mCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::ChannelCalibInitParams>>();
     mCalibrator->setUpdateAtTheEndOfRunOnly();
     mCalibrator->setIsTest(isTest);
+    if (ic.options().get<bool>("useScaledHistoForBadChannelMap")) {
+      mCalibrator->getCalibExtractor()->setUseScaledHistoForBadChannels(true);
+    }
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -125,7 +128,8 @@ DataProcessorSpec getEMCALChannelCalibDeviceSpec()
     AlgorithmSpec{adaptFromTask<device>()},
     Options{
       {"do-EMCAL-channel-calib-in-test-mode", VariantType::Bool, false, {"to run in test mode for simplification"}},
-      {"ccdb-path", VariantType::String, "http://ccdb-test.cern.ch:8080", {"Path to CCDB"}}}};
+      {"ccdb-path", VariantType::String, "http://ccdb-test.cern.ch:8080", {"Path to CCDB"}},
+      {"useScaledHistoForBadChannelMap", VariantType::Bool, false, {"Use scaled histogram for bad channel extraction"}}}};
 }
 
 } // namespace framework
