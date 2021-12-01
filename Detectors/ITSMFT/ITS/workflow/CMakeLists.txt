@@ -33,7 +33,13 @@ o2_add_library(ITSWorkflow
                                      O2::ITSReconstruction
                                      O2::ITSMFTReconstruction
                                      O2::ITSMFTWorkflow
+                                     O2::DetectorsCalibration
+                                     O2::CCDB
                                      O2::GPUTracking)
+
+#o2_target_root_dictionary(ITSWorkflow
+#    HEADERS include/ITSWorkflow/CalibratorSpec.h)
+                          #                          LINKDEF src/ITSWorkflowLinkDef.h)
 
 o2_add_executable(reco-workflow
                   SOURCES src/its-reco-workflow.cxx
