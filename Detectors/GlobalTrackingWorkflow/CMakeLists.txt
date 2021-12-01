@@ -26,6 +26,7 @@ o2_add_library(GlobalTrackingWorkflow
                        src/TOFMatchChecker.cxx
                        src/TOFEventTimeChecker.cxx
                        src/GlobalFwdTrackWriterSpec.cxx
+                       src/MatchedMFTMCHWriterSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                      O2::GlobalTrackingWorkflowReaders
                                      O2::GlobalTrackingWorkflowHelpers

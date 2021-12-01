@@ -65,6 +65,8 @@ class GlobalTrackID : public AbstractRef<25, 5, 2>
     ITSAB,        // ITS AfterBurner tracklets
     CTP,
     //
+    MCHMID, // Temporary ordering
+    //
     NSources
   };
 
@@ -73,8 +75,8 @@ class GlobalTrackID : public AbstractRef<25, 5, 2>
   typedef o2::gpu::gpustd::bitset<32> mask_t;
 
 #ifndef GPUCA_GPUCODE
-  static constexpr std::string_view NONE{"none"};                        ///< keywork for no sources
-  static constexpr std::string_view ALL{"all"};                          ///< keywork for all sources
+  static constexpr std::string_view NONE{"none"}; ///< keywork for no sources
+  static constexpr std::string_view ALL{"all"};   ///< keywork for all sources
 #endif
   static constexpr mask_t MASK_ALL = (1u << NSources) - 1;
   static constexpr mask_t MASK_NONE = 0;
@@ -87,7 +89,10 @@ class GlobalTrackID : public AbstractRef<25, 5, 2>
 
   // methods for source level manipulations
 #ifndef GPUCA_GPUCODE
-  static auto getSourceName(int s) { return DetID::getNames(getSourceDetectorsMask(s), '-'); }
+  static auto getSourceName(int s)
+  {
+    return DetID::getNames(getSourceDetectorsMask(s), '-');
+  }
   static mask_t getSourcesMask(const std::string_view srcList);
   static std::string getSourcesNames(mask_t srcm);
   auto getSourceName() const { return getSourceName(getSource()); }
@@ -140,16 +145,21 @@ GPUconstexpr() DetID::mask_t SourceDetectorsMasks[GlobalTrackID::NSources] = {
   DetID::mask_t(DetID::getMask(DetID::MFT) | DetID::getMask(DetID::MCH) | DetID::getMask(DetID::MID)),
   DetID::mask_t(DetID::getMask(DetID::ITS) | DetID::getMask(DetID::TPC) | DetID::getMask(DetID::TRD) | DetID::getMask(DetID::TOF)),
   DetID::mask_t(DetID::getMask(DetID::ITS)),
-  DetID::mask_t(DetID::getMask(DetID::CTP))};
+  DetID::mask_t(DetID::getMask(DetID::CTP)),
+  DetID::mask_t(DetID::getMask(DetID::MCH) | DetID::getMask(DetID::MID)) // Temporary ordering
+};
 
 GPUconstexpr() GlobalTrackID::mask_t sMasks[GlobalTrackID::NSources] = ///< detector masks
-  {GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITS)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TPC)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TRD)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::PHS)),
-   GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::CPV)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::EMC)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::HMP)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MFT)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MCH)),
-   GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MID)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ZDC)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::FT0)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::FV0)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::FDD)),
-   GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSTPC)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TPCTOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TPCTRD)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MFTMCH)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSTPCTRD)),
-   GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSTPCTOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TPCTRDTOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSTPCTRDTOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MFTMCHMID)),
-   GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSAB)),
-   GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::CTP))};
+  {
+    GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITS)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TPC)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TRD)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::PHS)),
+    GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::CPV)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::EMC)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::HMP)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MFT)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MCH)),
+    GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MID)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ZDC)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::FT0)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::FV0)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::FDD)),
+    GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSTPC)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TPCTOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TPCTRD)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MFTMCH)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSTPCTRD)),
+    GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSTPCTOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TPCTRDTOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSTPCTRDTOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MFTMCHMID)),
+    GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSAB)),
+    GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::CTP)),
+    GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MCHMID)) // Temporary ordering
+};
 } // namespace globaltrackid_internal
 
 GPUdi() constexpr GlobalTrackID::DetID::mask_t GlobalTrackID::getSourceDetectorsMask(int i) { return globaltrackid_internal::SourceDetectorsMasks[i]; }
