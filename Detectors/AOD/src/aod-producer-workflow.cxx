@@ -51,13 +51,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   bool enableSV = !configcontext.options().get<bool>("disable-secondary-vertices");
   GID::mask_t allowedSrc = GID::getSourcesMask("ITS,MFT,MCH,TPC,ITS-TPC,ITS-TPC-TOF,TPC-TOF,MFT-MCH,FT0,FV0,FDD,TPC-TRD,ITS-TPC-TRD,FT0,FV0,FDD,ZDC,CTP");
   GID::mask_t src = allowedSrc & GID::getSourcesMask(configcontext.options().get<std::string>("info-sources"));
+  GID::mask_t srcCl = GID::getSourcesMask("none"); // only TOF clusters might be needed, will be fetched automatically if needed
 
   WorkflowSpec specs;
   specs.emplace_back(o2::aodproducer::getAODProducerWorkflowSpec(src, enableSV, useMC, resFile));
 
   auto srcMtc = src & ~GID::getSourceMask(GID::MFTMCH); // Do not request MFTMCH matches
 
-  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, srcMtc, src, useMC, src);
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCl, srcMtc, src, useMC, src);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
   if (enableSV) {
     o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);

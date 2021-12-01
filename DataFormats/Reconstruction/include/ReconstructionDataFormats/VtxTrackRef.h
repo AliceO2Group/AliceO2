@@ -85,7 +85,7 @@ class VtxTrackRef : public RangeReference<int, int>
   int mVtxID = -1; // vertex ID. The reference for unassigned tracks will have it negative!
   std::array<int, VtxTrackIndex::Source::NSources - 1> mFirstEntrySource{0};
 
-  ClassDefNV(VtxTrackRef, 2);
+  ClassDefNV(VtxTrackRef, 3);
 };
 
 std::ostream& operator<<(std::ostream& os, const o2::dataformats::VtxTrackRef& v);

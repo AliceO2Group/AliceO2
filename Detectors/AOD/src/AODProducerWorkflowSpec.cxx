@@ -1486,18 +1486,8 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
 
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertertices(useMC);
-  if (src[GID::CTP]) {
-    LOGF(info, "Requesting CTP digits");
-    dataRequest->requestCTPDigits(useMC);
-  }
   if (enableSV) {
     dataRequest->requestSecondaryVertertices(useMC);
-  }
-  if (src[GID::TPC]) {
-    dataRequest->requestClusters(GIndex::getSourcesMask("TPC"), false); // TOF clusters are requested with TOF tracks
-  }
-  if (src[GID::EMC]) {
-    dataRequest->requestEMCALCells(useMC);
   }
 
   outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
