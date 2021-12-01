@@ -36,6 +36,15 @@
 #include <DPLUtils/RawParser.h>
 #include <DPLUtils/DPLRawParser.h>
 
+
+// Insert Digit stuff here
+#include "DataFormatsITSMFT/Digit.h"
+#include "DataFormatsITSMFT/ClusterPattern.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
+
+#include "DetectorsCalibration/TimeSlotCalibration.h"
+#include "DetectorsCalibration/TimeSlot.h"
+
 using namespace o2::framework;
 using namespace o2::itsmft;
 using namespace o2::header;
@@ -76,10 +85,10 @@ void ITSCalibrator<Mapping>::init(InitContext& ic)
     // Initialize text file to save some processing output
     this->thrfile.open("thrfile.txt");
 
-    mDecoder = std::make_unique<RawPixelDecoder<ChipMappingITS>>();
+/*    mDecoder = std::make_unique<RawPixelDecoder<ChipMappingITS>>();
     mDecoder->init();
     mDecoder->setFormat(GBTLink::NewFormat);    //Using RDHv6 (NewFormat)
-    mDecoder->setVerbosity(0);
+    mDecoder->setVerbosity(0);*/
     //mChipsBuffer.resize(2);
     mChipsBuffer.resize(mGeom->getNumberOfChips());
 
@@ -276,152 +285,190 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc)
     std::vector<UShort_t> mRows;
     std::vector<UShort_t> mChipids;
 
-    int lay, sta, ssta, mod, chip; //layer, stave, sub stave, module, chip
+    int lay, sta, ssta, mod, chip,chipInMod; //layer, stave, sub stave, module, chip
 
-    mDecoder->startNewTF(pc.inputs());
+    //mDecoder->startNewTF(pc.inputs());
     auto orig = Mapping::getOrigin();
+
+    const auto calib = pc.inputs().get<gsl::span<o2::itsmft::GBTCalibData>>("calib");
+    const auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
+    const auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("digitsROF");
+    const auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("digitsROF").header)->startTime;
+
+//    static int nTF = 0;
+//    calibration::TFType nTF = rofs[0].getBCData().orbit / 256;
+    LOG(INFO) << "Processing TF# " << tfcounter;
+
+//    auto& slotTF = getSlotForTF(nTF);
+//    auto& noiseMap = *(slotTF.getContainer());
+
+    for (const auto& rof : rofs) {
+        auto digitsInFrame = rof.getROFData(digits);
+        for (const auto& d : digitsInFrame) {
+            auto id = d.getChipIndex();
+            auto row = d.getRow();
+            auto col = d.getColumn();
+            mp.expandChipInfoHW(id, lay,sta, ssta, mod,  chipInMod);
+            LOG(INFO) << "Stave  " << sta << " Halfstave  " << ssta << " Module  " << mod << " Chip Id  " << id << "  Row  " << row << "  Col  " << col  << "\n";
+        }
+    }
+        int CHARGE;
+//        std::vector<GBTCalibData> calVec;
+//        auto calVec.resize(Mapping::getNRUs());
+        for (int i=0;i<calib.size();i++){
+            if (calib[i].calibUserField != 0){
+                CHARGE = calib[i].calibUserField/65536;
+                LOG(INFO) << " calib size  " << calib.size() << " Index  " << i << " calib Vec Counter   " << calib[i].calibCounter << "  CHARGE  " << CHARGE << "\n";
+            }         
+        }
+
+        
+        
     //mDecoder->setDecodeNextAuto(false);
 
     //std::vector<GBTCalibData> calVec;
-    mDecoder->setDecodeNextAuto(true);
+    //mDecoder->setDecodeNextAuto(true);
 
-    while(mDecoder->decodeNextTrigger()) {
-
-        std::vector<GBTCalibData> calVec;
-        mDecoder->fillCalibData(calVec);
-
-        //LOG(INFO) << "mTFCounter: " << mTFCounter << ", TriggerCounter in TF: " << TriggerId << ".";
-        LOG(INFO) << "getNChipsFiredROF: " << mDecoder->getNChipsFiredROF() << ", getNPixelsFiredROF: " << mDecoder->getNPixelsFiredROF();
-        LOG(INFO) << "getNChipsFired: " << mDecoder->getNChipsFired() << ", getNPixelsFired: " << mDecoder->getNPixelsFired();
-
-        while((mChipDataBuffer = mDecoder->getNextChipData(mChipsBuffer))) {
-            if(mChipDataBuffer){
-                chipID = mChipDataBuffer->getChipID();
-                // Ignore everything that isn't an IB stave for now
-                if (chipID > 431) { continue; }
-                LOG(INFO) << "getChipID: " << chipID << ", getROFrame: " << mChipDataBuffer->getROFrame() << ", getTrigger: " << mChipDataBuffer->getTrigger();
-                mChipids.push_back(chipID);
-                const auto& pixels = mChipDataBuffer->getData();
-                int CHARGE;
-                mRows.push_back(pixels[0].getRow());//row
-
-                // Get the injected charge for this row of pixels
-                bool updated = false;
-                for(int loopi = 0; loopi < calVec.size(); loopi++){
-                    if(calVec[loopi].calibUserField != 0){
-                        CHARGE = 170 - calVec[loopi].calibUserField / 65536;  //16^4 -> Get VPULSE_LOW (VPULSE_HIGH is fixed to 170)
-                        mCharge.push_back(CHARGE);
-                        LOG(INFO) << "Charge: " << CHARGE;
-                        updated = true;
-                        break;
-                    }
-                }
-                // If a charge was not found, throw an error and continue
-                if (!updated) {
-                    LOG(INFO) << "Charge not updated on chipID " << chipID << '\n';
-                    thrfile   << "Charge not updated on chipID " << chipID << '\n';
-                    continue;
-                }
-                if (CHARGE == 0) {
-                    LOG(INFO) << "CHARGE == 0 on chipID " << chipID << '\n';
-                    thrfile   << "CHARGE == 0 on chipID " << chipID << '\n';
-                    continue;
-                }
-
-                // Check if chip hasn't appeared before
-                if (this->currentRow.find(chipID) == this->currentRow.end()) {
-                    // Update the current row
-                    this->currentRow[chipID] = pixels[0].getRow();
-
-                    // Create a 2D vector to store hits
-                    std::vector< std::vector<int> > hitmap(get_nCol(chipID), std::vector<int> (len_x, 0));  // Outer dim = column, inner dim = charge
-                    this->pixelHits[chipID] = hitmap;     // new entry in pixelHits for new chip at current charge
-
-                    // Create a TH2 to save the threshold info
-                    std::string th_name = ("thresh_chipID" + std::to_string(chipID));
-                    const char*th_ChipID = th_name.c_str();
-                  
-                    
-                    int nRow, nCol;
-                    double* row_arr; double* col_arr;
-                    get_row_col_arr(chipID, nRow, &row_arr, nCol, &col_arr);
-                   //LOG(INFO)<<row_arr[400];
-                    TH2D* th = new TH2D(th_ChipID,th_ChipID,nCol-1,col_arr,nRow-1,row_arr);  // x = rows, y = columns
-                    this->thresholds[chipID] = th;
-                    delete[] row_arr, col_arr;
-
-                } else {
-                    if (this->currentRow[chipID] != pixels[0].getRow()) { // if chip is moving on to next row
-                        // add something to check that the row switch is for real
-                        // run S-curve code on completed row
-                        LOG(INFO) << "time to run S-curve stuff!";
-                        for (int col = 0; col < get_nCol(chipID); col++) {
-                            int cur_row = this->currentRow[chipID];
-
-                            double threshold, noise, chi2;
-                            // Convert counts to C array for the fitting function
-                            const int* data = &(this->pixelHits[chipID][col][0]);
-
-                            // Do the threshold fit
-                            try { GetThreshold(data, x, len_x, &threshold, &noise, &chi2); }
-
-                            // Print helpful info to output file for debugging
-                            // col+1 because of ROOT 1-indexing (I think cur_row already has the +1)
-                            catch (int i) {
-                                thrfile << "ERROR: start-finding unsuccessful for chipID " << chipID
-                                        << " row " << cur_row << " column " << (col+1) << '\n';
-                                continue;
-                            }
-                            catch (int* i) {
-                                thrfile << "ERROR: start-finding unsuccessful for chipID " << chipID
-                                        << " row " << cur_row << " column " << (col+1) << '\n';
-                                continue;
-                            }
-
-                            thrfile << chipID << " " << cur_row << " " << (col+1) << " ::  th: "
-                                    << threshold << ", noise: " << noise << ", chi2: " << chi2 << '\n';
-
-                            // Update ROOT histograms
-                            this->thresholds[chipID]->SetBinContent(col+1,cur_row, threshold);
-                            this->thresholds[chipID]->SetBinError(col+1,cur_row,noise);
-                            // TODO: store the chi2 info somewhere useful
-                        }
-                        // Initialize ROOT output file
-                        TFile* tf = new TFile("threshold_scan.root", "UPDATE");
-
-                        // Update the ROOT file with most recent histo
-                        tf->cd();
-                        this->thresholds[chipID]->Write(0, TObject::kOverwrite);
-
-                        // Close file and clean up memory
-                        tf->Close();
-                        delete tf;
-
-                        // update current row of chip
-                        this->currentRow[chipID] = pixels[0].getRow();
-
-                        // reset pixel hit counts for the chip, new empty hitvec for current charge
-                        std::vector< std::vector<int> > hitmap(get_nCol(chipID), std::vector<int> (len_x, 0));  // Outer dim = column, inner dim = charge
-                        this->pixelHits[chipID] = hitmap;
-                    }
-                }
-
-                for (auto& pixel : pixels) {
-                    if (pixel.getRow() == this->currentRow[chipID]) {     // no weird row switches
-                        this->pixelHits[chipID][pixel.getCol()][CHARGE-1]++;
-                        /*if (chipID == 5451) {
-                            LOG(INFO) << "pixel col: " << pixel.getCol() << ", pixel row: " << pixel.getRow() << ", currentRow: " << currentRow[chipID] << ", CHARGE: " << CHARGE << ", no row switch>
-                        }*/
-                    } //else {
-                       // LOG(INFO) << "pixel col: " << pixel.getCol() << ", pixel row: " << pixel.getRow() << ", currentRow: " << currentRow[chipID] << ", CHARGE: " << CHARGE << ", oops row switch>
-                    //}
-                }
-            }
-        } //end loop on chips
-        LOG(INFO) << ">>>>>>> END LOOP ON CHIP";
-
-        TriggerId++;
-    }
+//    while(mDecoder->decodeNextTrigger()) {
+//
+//        std::vector<GBTCalibData> calVec;
+//        mDecoder->fillCalibData(calVec);
+//
+//        LOG(INFO) << "mTFCounter: " << mTFCounter << ", TriggerCounter in TF: " << TriggerId << ".";
+//        LOG(INFO) << "getNChipsFiredROF: " << mDecoder->getNChipsFiredROF() << ", getNPixelsFiredROF: " << mDecoder->getNPixelsFiredROF();
+//        LOG(INFO) << "getNChipsFired: " << mDecoder->getNChipsFired() << ", getNPixelsFired: " << mDecoder->getNPixelsFired();
+//
+//        while((mChipDataBuffer = mDecoder->getNextChipData(mChipsBuffer))) {
+//            if(mChipDataBuffer){
+//                chipID = mChipDataBuffer->getChipID();
+//                mp.expandChipInfoHW(chipID, lay,sta, ssta, mod,  chipInMod);
+//                LOG(INFO) << " ChipID:  " << chipID << "Layer:  " << lay << "Stave:  " << sta << "HalfStave:  " << ssta << "Module:  " << mod << "Chip Position:  " << chipInMod;   
+//
+//                // Ignore everything that isn't an IB stave for now
+//                if (chipID > 431) { continue; }
+//                LOG(INFO) << "getChipID: " << chipID << ", getROFrame: " << mChipDataBuffer->getROFrame() << ", getTrigger: " << mChipDataBuffer->getTrigger();
+//                mChipids.push_back(chipID);
+//                const auto& pixels = mChipDataBuffer->getData();
+//                int CHARGE;
+//                mRows.push_back(pixels[0].getRow());//row
+//
+//                // Get the injected charge for this row of pixels
+//                bool updated = false;
+//                for(int loopi = 0; loopi < calVec.size(); loopi++){
+//                    if(calVec[loopi].calibUserField != 0){
+//                        CHARGE = 170 - calVec[loopi].calibUserField / 65536;  //16^4 -> Get VPULSE_LOW (VPULSE_HIGH is fixed to 170)
+//                        mCharge.push_back(CHARGE);
+//                        LOG(INFO) << "Charge: " << CHARGE;
+//                        updated = true;
+//                        break;
+//                    }
+//                }
+//                // If a charge was not found, throw an error and continue
+//                if (!updated) {
+//                    LOG(INFO) << "Charge not updated on chipID " << chipID << '\n';
+//                    thrfile   << "Charge not updated on chipID " << chipID << '\n';
+//                    continue;
+//                }
+//                if (CHARGE == 0) {
+//                    LOG(INFO) << "CHARGE == 0 on chipID " << chipID << '\n';
+//                    thrfile   << "CHARGE == 0 on chipID " << chipID << '\n';
+//                    continue;
+//                }
+//
+//                // Check if chip hasn't appeared before
+//                if (this->currentRow.find(chipID) == this->currentRow.end()) {
+//                    // Update the current row
+//                    this->currentRow[chipID] = pixels[0].getRow();
+//
+//                    // Create a 2D vector to store hits
+//                    std::vector< std::vector<int> > hitmap(get_nCol(chipID), std::vector<int> (len_x, 0));  // Outer dim = column, inner dim = charge
+//                    this->pixelHits[chipID] = hitmap;     // new entry in pixelHits for new chip at current charge
+//
+//                    // Create a TH2 to save the threshold info
+//                    std::string th_name = ("thresh_chipID" + std::to_string(chipID));
+//                    const char*th_ChipID = th_name.c_str();
+//                  
+//                    
+//                    int nRow, nCol;
+//                    double* row_arr; double* col_arr;
+//                    get_row_col_arr(chipID, nRow, &row_arr, nCol, &col_arr);
+//                   //LOG(INFO)<<row_arr[400];
+//                    TH2D* th = new TH2D(th_ChipID,th_ChipID,nCol-1,col_arr,nRow-1,row_arr);  // x = rows, y = columns
+//                    this->thresholds[chipID] = th;
+//                    delete[] row_arr, col_arr;
+//
+//                } else {
+//                    if (this->currentRow[chipID] != pixels[0].getRow()) { // if chip is moving on to next row
+//                        // add something to check that the row switch is for real
+//                        // run S-curve code on completed row
+//                        LOG(INFO) << "time to run S-curve stuff!";
+//                        for (int col = 0; col < get_nCol(chipID); col++) {
+//                            int cur_row = this->currentRow[chipID];
+//
+//                            double threshold, noise, chi2;
+//                            // Convert counts to C array for the fitting function
+//                            const int* data = &(this->pixelHits[chipID][col][0]);
+//
+//                            // Do the threshold fit
+//                            try { GetThreshold(data, x, len_x, &threshold, &noise, &chi2); }
+//
+//                            // Print helpful info to output file for debugging
+//                            // col+1 because of ROOT 1-indexing (I think cur_row already has the +1)
+//                            catch (int i) {
+//                                thrfile << "ERROR: start-finding unsuccessful for chipID " << chipID
+//                                        << " row " << cur_row << " column " << (col+1) << '\n';
+//                                continue;
+//                            }
+//                            catch (int* i) {
+//                                thrfile << "ERROR: start-finding unsuccessful for chipID " << chipID
+//                                        << " row " << cur_row << " column " << (col+1) << '\n';
+//                                continue;
+//                            }
+//
+//                            thrfile << chipID << " " << cur_row << " " << (col+1) << " ::  th: "
+//                                    << threshold << ", noise: " << noise << ", chi2: " << chi2 << '\n';
+//
+//                            // Update ROOT histograms
+//                            this->thresholds[chipID]->SetBinContent(col+1,cur_row, threshold);
+//                            this->thresholds[chipID]->SetBinError(col+1,cur_row,noise);
+//                            // TODO: store the chi2 info somewhere useful
+//                        }
+//                        // Initialize ROOT output file
+//                        TFile* tf = new TFile("threshold_scan.root", "UPDATE");
+//
+//                        // Update the ROOT file with most recent histo
+//                        tf->cd();
+//                        this->thresholds[chipID]->Write(0, TObject::kOverwrite);
+//
+//                        // Close file and clean up memory
+//                        tf->Close();
+//                        delete tf;
+//
+//                        // update current row of chip
+//                        this->currentRow[chipID] = pixels[0].getRow();
+//
+//                        // reset pixel hit counts for the chip, new empty hitvec for current charge
+//                        std::vector< std::vector<int> > hitmap(get_nCol(chipID), std::vector<int> (len_x, 0));  // Outer dim = column, inner dim = charge
+//                        this->pixelHits[chipID] = hitmap;
+//                    }
+//                }
+//
+//                for (auto& pixel : pixels) {
+//                    if (pixel.getRow() == this->currentRow[chipID]) {     // no weird row switches
+//                        this->pixelHits[chipID][pixel.getCol()][CHARGE-1]++;
+//                        /*if (chipID == 5451) {
+//                            LOG(INFO) << "pixel col: " << pixel.getCol() << ", pixel row: " << pixel.getRow() << ", currentRow: " << currentRow[chipID] << ", CHARGE: " << CHARGE << ", no row switch>
+//                        }*/
+//                    } //else {
+//                       // LOG(INFO) << "pixel col: " << pixel.getCol() << ", pixel row: " << pixel.getRow() << ", currentRow: " << currentRow[chipID] << ", CHARGE: " << CHARGE << ", oops row switch>
+//                    //}
+//                }
+//            }
+//        } //end loop on chips
+//        LOG(INFO) << ">>>>>>> END LOOP ON CHIP";
+//
+//        TriggerId++;
+//    }*/
 
     TriggerId = 0;
     mTFCounter++;
@@ -433,15 +480,19 @@ template <class Mapping>
 void ITSCalibrator<Mapping>::endOfStream(EndOfStreamContext& ec)
 {
     LOGF(INFO, "endOfStream report:", mSelfName);
-    if (mDecoder) {
-        mDecoder->printReport(true, true);
-    }
+//    if (mDecoder) {
+//        mDecoder->printReport(true, true);
+//    }
 }
 
 DataProcessorSpec getITSCalibratorSpec()
 {
+    o2::header::DataOrigin detOrig = o2::header::gDataOriginITS;
     std::vector<InputSpec> inputs;
-    inputs.emplace_back("RAWDATA", ConcreteDataTypeMatcher{"ITS", "RAWDATA"}, Lifetime::Timeframe);
+    //inputs.emplace_back("RAWDATA", ConcreteDataTypeMatcher{"ITS", "RAWDATA"}, Lifetime::Timeframe);
+    inputs.emplace_back("digits", detOrig, "DIGITS", 0, Lifetime::Timeframe);
+    inputs.emplace_back("digitsROF", detOrig, "DIGITSROF", 0, Lifetime::Timeframe);
+    inputs.emplace_back("calib", detOrig, "GBTCALIB", 0, Lifetime::Timeframe);
 
     std::vector<OutputSpec> outputs;
     outputs.emplace_back("ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
