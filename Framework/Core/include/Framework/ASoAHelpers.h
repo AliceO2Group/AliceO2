@@ -203,9 +203,10 @@ struct CombinationsIndexPolicyBase {
   using IndicesType = typename NTupleType<uint64_t, sizeof...(Ts)>::type;
 
   CombinationsIndexPolicyBase() : mIsEnd(true) {}
-  CombinationsIndexPolicyBase(const Ts&... tables) : mIsEnd(false),
-                                                     mMaxOffset(tables.end().index...),
-                                                     mCurrent(tables.begin()...)
+  template <typename... Tss>
+  CombinationsIndexPolicyBase(const Tss&... tables) : mIsEnd(false),
+                                                      mMaxOffset(tables.end().index...),
+                                                      mCurrent(tables.begin()...)
   {
     if (((tables.size() == 0) || ...)) {
       this->mIsEnd = true;
