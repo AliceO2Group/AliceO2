@@ -36,6 +36,24 @@ o2::MCTrack const* MCTrackNavigator::getDaughter(const o2::MCTrack& p, const std
   return &(pcontainer[did]);
 }
 
+o2::MCTrack const* MCTrackNavigator::getDaughter0(const o2::MCTrack& p, const std::vector<o2::MCTrack>& pcontainer)
+{
+  const auto did = p.getFirstDaughterTrackId();
+  if (did < 0 or did > pcontainer.size()) {
+    return nullptr;
+  }
+  return &(pcontainer[did]);
+}
+
+o2::MCTrack const* MCTrackNavigator::getDaughter1(const o2::MCTrack& p, const std::vector<o2::MCTrack>& pcontainer)
+{
+  const auto did = p.getLastDaughterTrackId();
+  if (did < 0 or did > pcontainer.size()) {
+    return nullptr;
+  }
+  return &(pcontainer[did]);
+}
+
 o2::MCTrack const& MCTrackNavigator::getFirstPrimary(const o2::MCTrack& p, const std::vector<o2::MCTrack>& pcontainer)
 {
   if (p.isPrimary()) {
