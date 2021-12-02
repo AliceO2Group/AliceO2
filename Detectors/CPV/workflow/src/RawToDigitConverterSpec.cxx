@@ -24,7 +24,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "CPVBase/Geometry.h"
 #include "CommonUtils/VerbosityConfig.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::cpv::reco_workflow;
 

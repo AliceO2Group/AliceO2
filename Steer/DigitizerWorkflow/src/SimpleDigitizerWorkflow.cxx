@@ -21,7 +21,7 @@
 #include "Algorithm/RangeTokenizer.h"
 #include "SimReaderSpec.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtils.h"
 

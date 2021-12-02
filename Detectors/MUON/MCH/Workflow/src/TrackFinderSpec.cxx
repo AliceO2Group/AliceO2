@@ -26,7 +26,7 @@
 #include <gsl/span>
 
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"

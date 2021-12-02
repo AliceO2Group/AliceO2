@@ -15,7 +15,7 @@
 #include "GPUTRDGeometry.h"
 
 // O2 header
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "CommonConstants/LHCConstants.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"

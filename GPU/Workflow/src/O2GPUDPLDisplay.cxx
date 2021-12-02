@@ -13,7 +13,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "TRDBase/GeometryFlat.h"
 #include "TRDBase/Geometry.h"

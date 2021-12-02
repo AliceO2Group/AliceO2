@@ -28,7 +28,7 @@
 #include "DataFormatsZDC/OrbitData.h"
 #include "DataFormatsZDC/RecEvent.h"
 #include "ZDCBase/ModuleConfig.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "ZDCReconstruction/RecoConfigZDC.h"

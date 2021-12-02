@@ -23,7 +23,7 @@
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include <gsl/span>
 #include "TStopwatch.h"
 

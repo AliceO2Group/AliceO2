@@ -21,7 +21,7 @@
 #include "Framework/Variant.h"
 #include "MIDWorkflow/DigitReaderSpec.h"
 #include "MIDWorkflow/RawWriterSpec.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 

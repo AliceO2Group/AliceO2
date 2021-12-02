@@ -44,7 +44,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsRaw/HBFUtils.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "TPCBase/RDHUtils.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUO2InterfaceQA.h"

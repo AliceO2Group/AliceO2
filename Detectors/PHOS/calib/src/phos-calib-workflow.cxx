@@ -16,7 +16,7 @@
 #include "PHOSCalibWorkflow/PHOSRunbyrunCalibDevice.h"
 #include "Framework/DataProcessorSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 

@@ -11,7 +11,7 @@
 
 #include <TSystem.h>
 #include <TTree.h>
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "Framework/Logger.h"
 #include "DataFormatsFDD/Digit.h"
 #include <TFile.h>

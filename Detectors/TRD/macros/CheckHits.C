@@ -24,7 +24,7 @@
 #include "TRDBase/Geometry.h"
 #include "TRDBase/Calibrations.h"
 #include "TRDSimulation/Detector.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #endif
 

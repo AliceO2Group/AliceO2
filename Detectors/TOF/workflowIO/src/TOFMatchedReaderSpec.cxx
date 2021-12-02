@@ -25,7 +25,7 @@
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
 #include "ReconstructionDataFormats/MatchingType.h"
 #include "CommonUtils/StringUtils.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 
 using namespace o2::framework;

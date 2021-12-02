@@ -17,7 +17,7 @@
 #include <TFile.h>
 #include "DataFormatsParameters/GRPECSObject.h"
 #include <cmath>
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::parameters;
 using o2::detectors::DetID;

@@ -32,7 +32,7 @@
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDSimulation/ColumnDataMC.h"
 #include "MIDSimulation/MCLabel.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "CommonUtils/StringUtils.h"
 
 using namespace o2::framework;

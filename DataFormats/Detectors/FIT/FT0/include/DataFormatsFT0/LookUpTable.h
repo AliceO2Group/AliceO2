@@ -23,7 +23,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "FT0Base/Constants.h"
 #include "DataFormatsFIT/LookUpTable.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include <Rtypes.h>
 #include <cassert>
 #include <exception>

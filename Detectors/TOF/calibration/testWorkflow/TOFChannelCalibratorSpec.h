@@ -15,7 +15,7 @@
 /// @file   TOFChannelCalibratorSpec.h
 /// @brief  Device to calibrate TOF channles (offsets)
 
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "TOFCalibration/TOFChannelCalibrator.h"
 #include "DetectorsCalibration/Utils.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"

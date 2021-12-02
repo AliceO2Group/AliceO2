@@ -17,7 +17,7 @@
 #include "DataFormatsTOF/CalibInfoTOF.h"
 #include "TOFBase/CalibTOFapi.h"
 #include "DataFormatsTOF/CalibLHCphaseTOF.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "TOFBase/Geo.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include <array>

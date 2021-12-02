@@ -18,7 +18,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include <cmath>
 #include "CommonConstants/PhysicsConstants.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::parameters;
 using namespace o2::constants::physics;

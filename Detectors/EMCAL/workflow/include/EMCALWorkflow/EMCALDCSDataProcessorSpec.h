@@ -33,7 +33,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 

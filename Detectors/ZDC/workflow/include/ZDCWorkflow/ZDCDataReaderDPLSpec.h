@@ -14,7 +14,7 @@
 #ifndef O2_ZDCDATAREADERDPLSPEC_H
 #define O2_ZDCDATAREADERDPLSPEC_H
 
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "Framework/DataProcessorSpec.h"

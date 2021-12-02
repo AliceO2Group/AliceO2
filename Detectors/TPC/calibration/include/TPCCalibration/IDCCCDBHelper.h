@@ -19,7 +19,7 @@
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/Sector.h"
 #include "CCDB/BasicCCDBManager.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "Rtypes.h"
 
 namespace o2::tpc

@@ -16,7 +16,7 @@
 #include "MIDSimulation/Hit.h"
 #include "DataFormatsCPV/Hit.h"
 #include "DataFormatsZDC/Hit.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
 #endif
 
@@ -357,7 +357,7 @@ TTree* getHitTree(o2::parameters::GRPObject const* grp, const char* filebase, o2
     return nullptr;
   }
 
-  std::string filename(o2::base::NameConf::getHitsFileName(detid, filebase).c_str());
+  std::string filename(o2::base::DetectorNameConf::getHitsFileName(detid, filebase).c_str());
 
   // shamefully leaking memory as the TTree cannot live without the file...
   TFile* file = new TFile(filename.c_str(), "OPEN");

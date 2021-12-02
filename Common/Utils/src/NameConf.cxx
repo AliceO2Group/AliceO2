@@ -9,14 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include <fmt/format.h>
 #include <memory>
 
 O2ParamImpl(o2::base::NameConf);
 
 using namespace o2::base;
-using DId = o2::detectors::DetID;
 
 std::string NameConf::buildFileName(const std::string_view prefix, const std::string_view delimiter, const std::string_view defPrefix, const std::string_view defName,
                                     const std::string_view extension, const std::string_view optDir)
@@ -77,18 +76,6 @@ std::string NameConf::getGRPMagFieldFileName(const std::string_view prefix)
 std::string NameConf::getCutProcFileName(std::string_view prefix)
 {
   return buildFileName(prefix, "_", STANDARDSIMPREFIX, CUT_FILE_STRING, DAT_EXT_STRING);
-}
-
-// Filename to store ITSMFT cluster dictionary
-std::string NameConf::getAlpideClusterDictionaryFileName(DId det, const std::string_view prefix, const std::string_view ext)
-{
-  return buildFileName(prefix, "", det.getName(), ALPIDECLUSDICTFILENAME, ext);
-}
-
-// Filename to store detector specific noise maps
-std::string NameConf::getNoiseFileName(DId det, const std::string_view prefix, const std::string_view ext)
-{
-  return buildFileName(prefix, "", det.getName(), NOISEFILENAME, ext);
 }
 
 // Filename to store material LUT file

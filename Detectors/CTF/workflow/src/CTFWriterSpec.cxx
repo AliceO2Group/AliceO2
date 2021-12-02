@@ -21,7 +21,7 @@
 
 #include "CTFWorkflow/CTFWriterSpec.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsCommonDataFormats/EncodedBlocks.h"
 #include "DetectorsCommonDataFormats/FileMetaData.h"
 #include "CommonUtils/StringUtils.h"

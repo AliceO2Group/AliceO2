@@ -25,7 +25,7 @@
 #endif
 #include <cassert>
 #include "FairLogger.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "ITSMFTSimulation/Hit.h"
 #include <unordered_map>
 
@@ -54,7 +54,7 @@ int main(int argc, char** argv)
   o2::steer::MCKinematicsReader mcreader(nameprefix, o2::steer::MCKinematicsReader::Mode::kMCKine);
 
   // when present we also read some hits for ITS to test consistency of trackID assignments
-  TFile hitf(o2::base::NameConf::getHitsFileName(o2::detectors::DetID::ITS, nameprefix).c_str());
+  TFile hitf(o2::base::DetectorNameConf::getHitsFileName(o2::detectors::DetID::ITS, nameprefix).c_str());
   auto hittr = (TTree*)hitf.Get("o2sim");
   auto hitbr = hittr ? hittr->GetBranch("ITSHit") : nullptr;
   std::vector<o2::itsmft::Hit>* hits = nullptr;
