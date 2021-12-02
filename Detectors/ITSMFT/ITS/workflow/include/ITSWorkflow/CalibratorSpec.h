@@ -100,7 +100,7 @@ class ITSCalibrator : public Task
         void update_output(const short int&);
 
         // Helper functions related to threshold extraction
-        void get_row_col_arr(const short int&, short int&, float**, short int&, float**);
+        void get_row_col_arr(const short int&, float**, float**);
         bool FindUpperLower (const short int*, const short int*, const short int&, short int&, short int&);
         float FindStart(const short int*, const short int*, const short int&);
         bool GetThreshold(const short int*, const short int*, const short int&, float*, float*, float*);

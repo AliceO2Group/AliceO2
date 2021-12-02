@@ -21,7 +21,7 @@ using namespace o2::framework;
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-    LOG(INFO) << "Initialising O2 ITS Calibration:-))))))";
+    LOG(info) << "Initializing O2 ITS Calibration:-))))))";
 
     return std::move(o2::its::calibration_workflow::getWorkflow());
 }
