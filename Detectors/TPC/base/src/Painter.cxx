@@ -153,12 +153,13 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
 
   // ===| Draw histograms |=====================================================
   gStyle->SetOptStat("mr");
-  gStyle->SetStatX(1. - gPad->GetRightMargin());
-  gStyle->SetStatY(1. - gPad->GetTopMargin());
   auto c = outputCanvas;
   if (!c) {
     c = new TCanvas(fmt::format("c_{}", name).data(), title.data(), 1000, 1000);
   }
+  gStyle->SetStatX(1. - gPad->GetRightMargin());
+  gStyle->SetStatY(1. - gPad->GetTopMargin());
+
   c->Clear();
   c->Divide(2, 2);
 

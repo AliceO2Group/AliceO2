@@ -173,6 +173,11 @@ o2_add_executable(track-and-cluster-filter
                   SOURCES src/track-and-cluster-filter.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
+o2_add_executable(calib-pad-gain-tracks
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-calib-pad-gain-tracks.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow O2::GlobalTracking)
+
 o2_add_test(workflow
             COMPONENT_NAME tpc
             LABELS tpc workflow
