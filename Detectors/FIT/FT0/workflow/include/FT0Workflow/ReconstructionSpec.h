@@ -21,7 +21,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "FT0Base/Geometry.h"
 #include "TStopwatch.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 

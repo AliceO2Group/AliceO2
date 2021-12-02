@@ -30,7 +30,7 @@
 #include "TPCWorkflow/TPCDistributeIDCSpec.h"
 #include "TPCBase/CRU.h"
 #include "Framework/WorkflowSpec.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 using o2::header::gDataOriginTPC;

@@ -27,7 +27,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 

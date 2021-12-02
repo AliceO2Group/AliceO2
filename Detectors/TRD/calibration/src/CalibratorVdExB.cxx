@@ -22,7 +22,7 @@
 #include <string>
 #include <map>
 #include <memory>
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::trd::constants;
 

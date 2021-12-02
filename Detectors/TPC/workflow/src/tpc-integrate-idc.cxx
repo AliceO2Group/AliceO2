@@ -18,7 +18,7 @@
 #include "Framework/CompletionPolicyHelpers.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "TPCWorkflow/TPCIntegrateIDCSpec.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "TPCSimulation/IDCSim.h"
 #include "TPCBase/Sector.h"

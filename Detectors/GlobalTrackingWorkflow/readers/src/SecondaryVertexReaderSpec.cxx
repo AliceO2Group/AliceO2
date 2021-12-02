@@ -17,7 +17,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "GlobalTrackingWorkflowReaders/SecondaryVertexReaderSpec.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/Cascade.h"

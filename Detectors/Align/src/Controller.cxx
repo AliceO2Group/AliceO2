@@ -50,7 +50,7 @@
 #include <TList.h>
 #include <cstdio>
 #include <TGeoGlobalMagField.h>
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
 
 using namespace TMath;

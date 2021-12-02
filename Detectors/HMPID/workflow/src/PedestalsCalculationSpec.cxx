@@ -52,7 +52,7 @@
 #include "HMPIDBase/Geo.h"
 #include "HMPIDReconstruction/HmpidDecoder2.h"
 #include "HMPIDWorkflow/PedestalsCalculationSpec.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 namespace o2
 {

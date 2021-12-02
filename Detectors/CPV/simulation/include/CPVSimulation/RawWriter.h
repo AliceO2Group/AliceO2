@@ -29,7 +29,7 @@
 #include "DataFormatsCPV/CalibParams.h"
 #include "DataFormatsCPV/Pedestals.h"
 #include "DataFormatsCPV/BadChannelMap.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 namespace o2
 {

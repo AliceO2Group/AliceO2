@@ -28,7 +28,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h"
 #include "Framework/Task.h"
 #include "CommonDataFormat/TFIDInfo.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include <vector>
 #include <TFile.h>
 

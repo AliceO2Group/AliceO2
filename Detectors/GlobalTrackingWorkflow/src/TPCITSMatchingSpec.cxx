@@ -38,7 +38,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "GlobalTracking/MatchTPCITSParams.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "Headers/DataHeader.h"
 #include "CommonDataFormat/BunchFilling.h"
@@ -100,7 +100,7 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   mMatching.setUseBCFilling(!ic.options().get<bool>("ignore-bc-check"));
   //
   std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
+  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
   if (o2::utils::Str::pathExists(dictFile)) {
     mITSDict.readFromFile(dictFile);
     LOG(info) << "Matching is running with a provided ITS dictionary: " << dictFile;

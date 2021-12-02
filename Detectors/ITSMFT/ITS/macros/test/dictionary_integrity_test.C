@@ -8,7 +8,7 @@
 #include "DataFormatsITSMFT/ClusterPattern.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "ITSMFTReconstruction/LookUp.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #endif
 
 using o2::itsmft::ClusterPattern;
@@ -20,7 +20,7 @@ void dictionary_integrity_test(std::string dictfile = "", std::string output_nam
 
   TopologyDictionary dict;
   if (dictfile.empty()) {
-    dictfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "");
+    dictfile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "");
   }
   dict.readFromFile(dictfile);
   LookUp finder(dictfile);

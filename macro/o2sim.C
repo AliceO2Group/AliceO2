@@ -28,7 +28,7 @@
 #include <Steer/O2RunSim.h>
 #include <DetectorsBase/MaterialManager.h>
 #include <CCDB/BasicCCDBManager.h>
-#include <DetectorsCommonDataFormats/NameConf.h>
+#include <CommonUtils/NameConf.h>
 #include "DetectorsBase/Aligner.h"
 #include <unistd.h>
 #include <sstream>

@@ -14,7 +14,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "CPVBase/Geometry.h"
 #include "DataFormatsCPV/Hit.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #endif
 
@@ -25,7 +25,7 @@ void plot_hit_cpv(int ievent = 0, std::string inputprefix = "o2sim")
   // macros to plot CPV hits
 
   // Hits
-  std::string inputfile(o2::base::NameConf::getHitsFileName(DetID::CPV, inputprefix));
+  std::string inputfile(o2::base::DetectorNameConf::getHitsFileName(DetID::CPV, inputprefix));
   TFile* file0 = TFile::Open(inputfile.c_str());
   std::cout << " Open hits file " << inputfile << std::endl;
   TTree* hitTree = (TTree*)gFile->Get("o2sim");

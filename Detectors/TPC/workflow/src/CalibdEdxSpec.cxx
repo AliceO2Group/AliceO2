@@ -18,7 +18,7 @@
 // o2 includes
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsCalibration/Utils.h"
 #include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"

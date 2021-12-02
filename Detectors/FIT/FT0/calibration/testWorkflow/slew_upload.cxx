@@ -21,7 +21,7 @@
 #include <iomanip>
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/ConfigurableParam.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CcdbApi.h"
 #include "FT0Calibration/FT0CalibTimeSlewing.h"

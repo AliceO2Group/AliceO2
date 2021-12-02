@@ -16,7 +16,7 @@
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/CTF.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "ITSMFTReconstruction/CTFCoder.h"
 #include "Framework/Logger.h"
 #include <TFile.h>

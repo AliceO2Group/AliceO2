@@ -21,7 +21,7 @@
 #include "Framework/Task.h"
 #include "ZDCReconstruction/DigiReco.h"
 #include <TStopwatch.h>
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 namespace o2
 {

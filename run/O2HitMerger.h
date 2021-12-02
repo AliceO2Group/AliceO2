@@ -24,7 +24,7 @@
 #include <SimulationDataFormat/Stack.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <DetectorsCommonDataFormats/DetID.h>
-#include <DetectorsCommonDataFormats/NameConf.h>
+#include <DetectorsCommonDataFormats/DetectorNameConf.h>
 #include <gsl/gsl>
 #include "TFile.h"
 #include "TMemFile.h"
@@ -575,7 +575,7 @@ class O2HitMerger : public FairMQDevice
       mDetectorOutFiles[detID]->Close();
       delete mDetectorOutFiles[detID];
     }
-    std::string name(o2::base::NameConf::getHitsFileName(detID, prefix));
+    std::string name(o2::base::DetectorNameConf::getHitsFileName(detID, prefix));
     mDetectorOutFiles[detID] = new TFile(name.c_str(), "RECREATE");
     mDetectorToTTreeMap[detID] = new TTree("o2sim", "o2sim");
     mDetectorToTTreeMap[detID]->SetDirectory(mDetectorOutFiles[detID]);

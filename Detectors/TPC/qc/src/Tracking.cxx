@@ -29,7 +29,7 @@
 #include "TPCQC/Tracking.h"
 #include "GPUO2InterfaceQA.h"
 #include "GPUO2InterfaceConfiguration.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
 
 ClassImp(o2::tpc::qc::Tracking);

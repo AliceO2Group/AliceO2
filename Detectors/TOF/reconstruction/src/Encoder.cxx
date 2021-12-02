@@ -19,7 +19,7 @@
 #include "TString.h"
 #include "FairLogger.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsRaw/RDHUtils.h"
 
 #include <array>

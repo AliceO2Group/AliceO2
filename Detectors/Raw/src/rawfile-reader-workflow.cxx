@@ -11,7 +11,7 @@
 
 #include "RawFileReaderWorkflow.h"
 #include "DetectorsRaw/RawFileReader.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/Logger.h"
 #include <string>

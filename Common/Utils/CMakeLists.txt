@@ -21,6 +21,7 @@ o2_add_library(CommonUtils
                        src/FileFetcher.cxx
                        src/VerbosityConfig.cxx
                        src/BoostHistogramUtils.cxx
+                       src/NameConf.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Hist ROOT::Tree Boost::iostreams O2::CommonDataFormat O2::Headers
                                      FairLogger::FairLogger)
 
@@ -41,7 +42,8 @@ o2_target_root_dictionary(CommonUtils
                                   include/CommonUtils/RootSerializableKeyValueStore.h
                                   include/CommonUtils/KeyValParam.h
                                   include/CommonUtils/VerbosityConfig.h
-                                  include/CommonUtils/FileFetcher.h)
+                                  include/CommonUtils/FileFetcher.h
+                                  include/CommonUtils/NameConf.h)
 
 o2_add_test(TreeStream
             COMPONENT_NAME CommonUtils

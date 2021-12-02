@@ -13,7 +13,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include <chrono>
 
 O2ParamImpl(o2::base::Aligner);
@@ -52,7 +52,7 @@ void Aligner::applyAlignment(long timestamp, DetID::mask_t addMask) const
     if (!msk[id] || (detGeoMask.any() && !detGeoMask[id])) {
       continue;
     }
-    std::string path = o2::base::NameConf::getAlignmentPath({id});
+    std::string path = o2::base::DetectorNameConf::getAlignmentPath({id});
     auto algV = ccdbmgr.get<std::vector<o2::detectors::AlignParam>>(path);
     if (!algV) {
       throw std::runtime_error(fmt::format("Failed to fetch alignment from {}:{}", o2::base::NameConf::getCCDBServer(), path));

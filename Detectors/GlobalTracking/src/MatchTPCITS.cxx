@@ -36,7 +36,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "ReconstructionDataFormats/Vertex.h"
 #include "GlobalTracking/MatchTPCITS.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
