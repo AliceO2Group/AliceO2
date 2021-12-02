@@ -37,7 +37,7 @@ template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 using CalibInfosType = std::vector<o2::dataformats::CalibInfoTOF>;
 using CalibDiaType = o2::tof::Diagnostic;
-DataProcessorSpec getTOFCalibWriterSpec(const char* outdef, bool toftpc)
+DataProcessorSpec getTOFCalibWriterSpec(const char* outdef, bool toftpc, bool addDia)
 {
   // A spectator for logging
   auto logger = [](CalibInfosType const& indata) {
@@ -60,7 +60,7 @@ DataProcessorSpec getTOFCalibWriterSpec(const char* outdef, bool toftpc)
                                 BranchDefinition<CalibDiaType>{InputSpec{"inputDia", o2::header::gDataOriginTOF, ddCalibDia, 0},
                                                                "TOFDiaInfo",
                                                                "calibdia-branch-name",
-                                                               1,
+                                                               addDia,
                                                                loggerDia})();
 }
 
