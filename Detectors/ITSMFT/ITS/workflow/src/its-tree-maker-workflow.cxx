@@ -21,7 +21,7 @@ using namespace o2::framework;
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-    LOG(INFO) << "Initializing O2 Tree Maker :-))))))";
+    LOG(info) << "Initializing O2 Tree Maker :-))))))";
 
     return std::move(o2::its::tree_maker_workflow::getWorkflow());
 }
