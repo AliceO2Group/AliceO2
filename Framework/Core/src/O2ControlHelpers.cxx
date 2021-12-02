@@ -42,6 +42,8 @@ void dumpChannelBind(std::ostream& dumpOut, const T& channel, std::string indLev
   dumpOut << indLevel << indScheme << "transport: " << (channel.protocol == ChannelProtocol::IPC ? "shmem" : "zeromq") << "\n";
   dumpOut << indLevel << indScheme << "addressing: " << (channel.protocol == ChannelProtocol::IPC ? "ipc" : "tcp") << "\n";
   dumpOut << indLevel << indScheme << "rateLogging: \"{{ fmq_rate_logging }}\"\n";
+  dumpOut << indLevel << indScheme << "sndBufSize: " << channel.sendBufferSize << "\n";
+  dumpOut << indLevel << indScheme << "rcvBufSize: " << channel.recvBufferSize << "\n";
 }
 
 template <typename T>
@@ -53,6 +55,8 @@ void dumpChannelConnect(std::ostream& dumpOut, const T& channel, const std::stri
   dumpOut << indLevel << indScheme << "transport: " << (channel.protocol == ChannelProtocol::IPC ? "shmem" : "zeromq") << "\n";
   dumpOut << indLevel << indScheme << "target: \"{{ Parent().Path }}." << binderName << ":" << channel.name << "\"\n";
   dumpOut << indLevel << indScheme << "rateLogging: \"{{ fmq_rate_logging }}\"\n";
+  dumpOut << indLevel << indScheme << "sndBufSize: " << channel.sendBufferSize << "\n";
+  dumpOut << indLevel << indScheme << "rcvBufSize: " << channel.recvBufferSize << "\n";
 }
 
 struct RawChannel {
@@ -62,6 +66,8 @@ struct RawChannel {
   std::string_view address;
   std::string_view rateLogging;
   std::string_view transport;
+  std::string_view sndBufSize;
+  std::string_view rcvBufSize;
 };
 
 std::string rawChannelReference(std::string_view channelName, bool isUniqueChannel)
@@ -81,17 +87,23 @@ void dumpRawChannelConnect(std::ostream& dumpOut, const RawChannel& channel, boo
   dumpOut << indLevel << indScheme << "transport: " << channel.transport << "\n";
   if (preserveRawChannels) {
     dumpOut << indLevel << indScheme << "target: \"" << channel.address << "\"\n";
-    LOG(info) << "This topology will connect to the channel '" << channel.name << "', which is most likely bound outside."
+    LOG(info) << "This workflow will connect to the channel '" << channel.name << "', which is most likely bound outside."
               << " Please make sure it is available under the address '" << channel.address
               << "' in the mother workflow or another subworkflow.";
   } else {
     auto channelRef = rawChannelReference(channel.name, isUniqueChannel);
-    LOG(info) << "This topology will connect to the channel '" << channel.name << "', which is most likely bound outside."
+    LOG(info) << "This workflow will connect to the channel '" << channel.name << "', which is most likely bound outside."
               << " Please make sure it is declared in the global channel space under the name '" << channelRef
               << "' in the mother workflow or another subworkflow.";
     dumpOut << indLevel << indScheme << "target: \"::" << channelRef << "\"\n";
   }
   dumpOut << indLevel << indScheme << "rateLogging: \"{{ fmq_rate_logging }}\"\n";
+  if (!channel.sndBufSize.empty()) {
+    dumpOut << indLevel << indScheme << "sndBufSize: " << channel.sndBufSize << "\n";
+  }
+  if (!channel.rcvBufSize.empty()) {
+    dumpOut << indLevel << indScheme << "rcvBufSize: " << channel.rcvBufSize << "\n";
+  }
 }
 
 void dumpRawChannelBind(std::ostream& dumpOut, const RawChannel& channel, bool isUniqueChannel, bool preserveRawChannels, std::string indLevel)
@@ -102,18 +114,24 @@ void dumpRawChannelBind(std::ostream& dumpOut, const RawChannel& channel, bool i
   dumpOut << indLevel << indScheme << "addressing: " << (channel.address.find("ipc") != std::string_view::npos ? "ipc" : "tcp") << "\n";
   dumpOut << indLevel << indScheme << "rateLogging: \"{{ fmq_rate_logging }}\"\n";
   if (preserveRawChannels) {
-    LOG(info) << "This topology will bind a dangling channel '" << channel.name << "'"
+    LOG(info) << "This workflow will bind a dangling channel '" << channel.name << "'"
               << " with the address '" << channel.address << "'."
               << " Please make sure that another device connects to this channel elsewhere."
               << " Also, don't mind seeing the message twice, it will be addressed in future releases.";
     dumpOut << indLevel << indScheme << "target: \"" << channel.address << "\"\n";
   } else {
     auto channelRef = rawChannelReference(channel.name, isUniqueChannel);
-    LOG(info) << "This topology will bind a dangling channel '" << channel.name << "'"
+    LOG(info) << "This workflow will bind a dangling channel '" << channel.name << "'"
               << " and declare it in the global channel space under the name '" << channelRef << "'."
               << " Please make sure that another device connects to this channel elsewhere."
               << " Also, don't mind seeing the message twice, it will be addressed in future releases.";
     dumpOut << indLevel << indScheme << "global: \"" << channelRef << "\"\n";
+  }
+  if (!channel.sndBufSize.empty()) {
+    dumpOut << indLevel << indScheme << "sndBufSize: " << channel.sndBufSize << "\n";
+  }
+  if (!channel.rcvBufSize.empty()) {
+    dumpOut << indLevel << indScheme << "rcvBufSize: " << channel.rcvBufSize << "\n";
   }
 }
 
@@ -158,7 +176,9 @@ std::vector<RawChannel> extractRawChannels(const DeviceSpec& spec, const DeviceE
                                extractValueFromChannelConfig(channelConfig, "method="),
                                extractValueFromChannelConfig(channelConfig, "address="),
                                extractValueFromChannelConfig(channelConfig, "rateLogging="),
-                               extractValueFromChannelConfig(channelConfig, "transport=")});
+                               extractValueFromChannelConfig(channelConfig, "transport="),
+                               extractValueFromChannelConfig(channelConfig, "sndBufSize="),
+                               extractValueFromChannelConfig(channelConfig, "rcvBufSize=")});
       }
     }
   }
