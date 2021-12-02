@@ -519,7 +519,11 @@ MpArea Mapping::stripByLocation(int strip, int cathode, int line, int column, in
     std::cout << "Warning: no non-bending strip " << strip << " in column " << column << " of DE " << deId << std::endl;
   }
 
-  return {x1, y1, x2, y2};
+  return {
+    static_cast<float>(x1),
+    static_cast<float>(y1),
+    static_cast<float>(x2),
+    static_cast<float>(y2)};
 }
 
 //______________________________________________________________________________

@@ -59,5 +59,5 @@ void DigitsWriteoutBuffer::forwardMarker(double eventTime)
 
 gsl::span<std::unordered_map<int, std::list<LabeledDigit>>> DigitsWriteoutBuffer::getLastNSamples(int nsamples)
 {
-  return {&mTimedDigits[int(mMarker.mPositionInBuffer - mTimedDigits.begin() - nsamples)], nsamples};
+  return {&mTimedDigits[int(mMarker.mPositionInBuffer - mTimedDigits.begin() - nsamples)], static_cast<std::size_t>(nsamples)};
 }

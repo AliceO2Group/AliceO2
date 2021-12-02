@@ -266,7 +266,9 @@ void displaySparks(
             auto histoData = reinterpret_cast<HistoData*>(hData);
             size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
             assert(pos >= 0 && pos < 1024);
-            return {histoData->time[pos], ((int*)(histoData->points))[pos]};
+            return {
+              static_cast<double>(histoData->time[pos]),
+              static_cast<double>(((int*)(histoData->points))[pos])};
           };
           ImPlot::PlotLineG("##plot", getter, &data, data.mod);
         } break;
@@ -277,7 +279,9 @@ void displaySparks(
             auto histoData = reinterpret_cast<HistoData*>(hData);
             size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
             assert(pos >= 0 && pos < 1024);
-            return {histoData->time[pos], ((uint64_t*)histoData->points)[pos]};
+            return {
+              static_cast<double>(histoData->time[pos]),
+              static_cast<double>(((uint64_t*)histoData->points)[pos])};
           };
           ImPlot::PlotLineG("##plot", getter, &data, data.mod, 0);
         } break;
@@ -288,7 +292,9 @@ void displaySparks(
             auto histoData = reinterpret_cast<HistoData*>(hData);
             size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
             assert(pos >= 0 && pos < 1024);
-            return {histoData->time[pos], ((float*)histoData->points)[pos]};
+            return {
+              static_cast<double>(histoData->time[pos]),
+              static_cast<double>(((float*)histoData->points)[pos])};
           };
           ImPlot::PlotLineG("##plot", getter, &data, data.mod, 0);
         } break;
