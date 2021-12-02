@@ -237,6 +237,6 @@ if [ "$doreco" == "1" ]; then
   echo "Return status of CPV reconstruction: $?"
 
   echo "Producing AOD"
-  taskwrapper aod.log o2-aod-producer-workflow --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE --aod-timeframe-id 1
+  taskwrapper aod.log o2-aod-producer-workflow $gloOpt --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE --aod-timeframe-id 1
   echo "Return status of AOD production: $?"
 fi
