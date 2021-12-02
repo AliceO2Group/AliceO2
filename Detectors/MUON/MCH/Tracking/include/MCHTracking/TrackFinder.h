@@ -91,7 +91,7 @@ class TrackFinder
   void setCurrentParam(Track& track, const TrackParam& param, int chamber, bool smoothed = false);
   bool propagateCurrentParam(Track& track, int chamber);
 
-  bool areUsed(const Cluster& cl1, const Cluster& cl2, const std::list<Track>::iterator& itFirstTrack, const std::list<Track>::iterator& itLastTrack);
+  bool areUsed(const Cluster& cl1, const Cluster& cl2, const std::vector<std::array<uint32_t, 4>>& usedClusters);
   void excludeClustersFromIdenticalTracks(const std::list<Track>::iterator& itTrack,
                                           std::unordered_map<int, std::unordered_set<uint32_t>>& excludedClusters,
                                           const std::list<Track>::iterator& itEndTrack);

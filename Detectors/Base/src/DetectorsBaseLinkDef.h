@@ -30,9 +30,6 @@
 #pragma link C++ class o2::base::MatBudget + ;
 #pragma link C++ class o2::base::MatLayerCyl + ;
 #pragma link C++ class o2::base::MatLayerCylSet + ;
-
-#pragma link C++ class o2::ctf::CTFCoderBase + ;
-
 #pragma link C++ class o2::base::Aligner + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::base::Aligner> + ;
 

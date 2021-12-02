@@ -47,7 +47,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   using RowColBuff = std::vector<PixelData>;
 
   CTFCoder(o2::detectors::DetID det) : o2::ctf::CTFCoderBase(CTF::getNBlocks(), det) {}
-  ~CTFCoder() = default;
+  ~CTFCoder() final = default;
 
   /// entropy-encode clusters to buffer with CTF
   template <typename VEC>
@@ -61,7 +61,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   template <typename VROF, typename VDIG>
   void decode(const CTF::base& ec, VROF& rofRecVec, VDIG& digVec, const NoiseMap* noiseMap, const LookUp& clPattLookup);
 
-  void createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op);
+  void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
  private:
   CompressedClusters decodeCompressedClusters(const CTF::base& ec);
@@ -80,8 +80,6 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   void appendToTree(TTree& tree, CTF& ec);
   void readFromTree(TTree& tree, int entry, std::vector<ROFRecord>& rofRecVec, std::vector<CompClusterExt>& cclusVec, std::vector<unsigned char>& pattVec, const NoiseMap* noiseMap, const LookUp& clPattLookup);
-
-  ClassDefNV(CTFCoder, 1);
 };
 
 /// entropy-encode clusters to buffer with CTF

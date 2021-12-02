@@ -27,6 +27,7 @@
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/TrackCosmics.h"
+#include "ReconstructionDataFormats/TrackMCHMID.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
 // FIXME: ideally, the data formats definition should be independent of the framework
 // collectData is using the input of ProcessingContext to extract the first valid
@@ -135,6 +136,18 @@ void DataRequest::requestGlobalFwdTracks(bool mc)
     addInput({"MCTruth", "GLO", "GLFWD_MC", 0, Lifetime::Timeframe});
   }
   requestMap["fwdtracks"] = mc;
+}
+
+void DataRequest::requestMFTMCHMatches(bool mc)
+{
+  addInput({"matchMFTMCH", "GLO", "MTC_MFTMCH", 0, Lifetime::Timeframe});
+  requestMap["matchMFTMCH"] = mc;
+}
+
+void DataRequest::requestMCHMIDMatches(bool mc)
+{
+  addInput({"matchMCHMID", "GLO", "MTC_MCHMID", 0, Lifetime::Timeframe});
+  requestMap["matchMCHMID"] = mc;
 }
 
 void DataRequest::requestTPCTOFTracks(bool mc)
@@ -504,6 +517,16 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
     addGlobalFwdTracks(pc, req->second);
   }
 
+  req = reqMap.find("matchMFTMCH");
+  if (req != reqMap.end()) {
+    addMFTMCHMatches(pc, req->second);
+  }
+
+  req = reqMap.find("matchMCHMID");
+  if (req != reqMap.end()) {
+    addMCHMIDMatches(pc, req->second);
+  }
+
   req = reqMap.find("trackITSTPCTRD");
   if (req != reqMap.end()) {
     addITSTPCTRDTracks(pc, req->second);
@@ -759,6 +782,18 @@ void RecoContainer::addGlobalFwdTracks(ProcessingContext& pc, bool mc)
   if (mc) {
     commonPool[GTrackID::MFTMCH].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("MCTruth"), MCLABELS);
   }
+}
+
+//__________________________________________________________
+void RecoContainer::addMFTMCHMatches(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::MFTMCH].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoFwd>>("matchMFTMCH"), MATCHES);
+}
+
+//__________________________________________________________
+void RecoContainer::addMCHMIDMatches(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::MCHMID].registerContainer(pc.inputs().get<gsl::span<o2d::TrackMCHMID>>("matchMCHMID"), MATCHES);
 }
 
 //__________________________________________________________

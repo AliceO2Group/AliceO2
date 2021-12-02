@@ -31,9 +31,7 @@ o2_target_root_dictionary(
   FT0Reconstruction
   HEADERS include/FT0Reconstruction/CollisionTimeRecoTask.h
           include/FT0Reconstruction/ReadRaw.h
-          include/FT0Reconstruction/CTFCoder.h
-          include/FT0Reconstruction/InteractionTag.h
-  )
+          include/FT0Reconstruction/InteractionTag.h)
 
 o2_add_executable(
   test-raw-conversion

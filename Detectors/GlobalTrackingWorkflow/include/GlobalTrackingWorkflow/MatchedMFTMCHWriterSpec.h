@@ -9,14 +9,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file  TrackInterpolationReaderSpec.cxx
+/// @file   MatchedMFTMCHWriterSpec.h
 
-#include "TPCInterpolationWorkflow/TrackInterpolationReaderSpec.h"
+#ifndef O2_GLOBAL_MATCHMFTMCH_WRITER
+#define O2_GLOBAL_MATCHMFTMCH_WRITER
+
+#include "Framework/DataProcessorSpec.h"
+
+using namespace o2::framework;
 
 namespace o2
 {
-namespace tpc
+namespace globaltracking
 {
 
-} // namespace tpc
+/// create a processor spec
+/// write MFTMCH matches to a root file
+framework::DataProcessorSpec getMFTMCHMatchesWriterSpec(bool useMC);
+
+} // namespace globaltracking
 } // namespace o2
+
+#endif /* O2_GLOBAL_MATCHMFTMCH_WRITER */

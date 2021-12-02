@@ -12,7 +12,7 @@
 o2_add_library(TOFReconstruction
                SOURCES src/DataReader.cxx src/Clusterer.cxx
                        src/ClustererTask.cxx src/Encoder.cxx
-               	       src/DecoderBase.cxx
+                       src/DecoderBase.cxx
                        src/Decoder.cxx
                        src/CTFCoder.cxx
                        src/CosmicProcessor.cxx
@@ -30,5 +30,4 @@ o2_target_root_dictionary(TOFReconstruction
                                   include/TOFReconstruction/Encoder.h
                                   include/TOFReconstruction/DecoderBase.h
                                   include/TOFReconstruction/Decoder.h
-                                  include/TOFReconstruction/CTFCoder.h
                                   include/TOFReconstruction/CosmicProcessor.h)

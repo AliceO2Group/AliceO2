@@ -12,7 +12,8 @@
 o2_add_library(TPCInterpolationWorkflow
                SOURCES src/TPCInterpolationSpec.cxx
                        src/TPCResidualWriterSpec.cxx
-                       src/TrackInterpolationReaderSpec.cxx
+                       src/TPCResidualReaderSpec.cxx
+                       include/TPCInterpolationWorkflow/TPCResidualAggregatorSpec.h
                PUBLIC_LINK_LIBRARIES O2::ITSWorkflow
                                      O2::SpacePoints
                                      O2::GlobalTrackingWorkflow
@@ -24,4 +25,14 @@ o2_add_library(TPCInterpolationWorkflow
 o2_add_executable(scdcalib-interpolation-workflow
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-interpolation-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCInterpolationWorkflow)
+
+o2_add_executable(residual-aggregator
+                  COMPONENT_NAME calibration
+                  SOURCES src/tpc-residual-aggregator.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsCalibration O2::TPCInterpolationWorkflow)
+
+o2_add_executable(static-map-creator
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-map-creator.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCInterpolationWorkflow)

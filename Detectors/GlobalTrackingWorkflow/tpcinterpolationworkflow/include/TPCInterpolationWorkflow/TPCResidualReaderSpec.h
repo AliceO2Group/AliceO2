@@ -9,19 +9,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TPC_INTERPOLATION_READER_H
-#define O2_TPC_INTERPOLATION_READER_H
+/// @file   TPCResidualReaderSpec
 
-/// @file   TrackInterpolationReaderSpec.h
+#ifndef O2_TPC_RESIDUALREADER
+#define O2_TPC_RESIDUALREADER
+
+#include "Framework/DataProcessorSpec.h"
+
+using namespace o2::framework;
 
 namespace o2
 {
 namespace tpc
 {
 
-// TODO add specification for reading TPC cluster residuals and reference tracks
+/// create a processor spec
+framework::DataProcessorSpec getTPCResidualReaderSpec();
 
 } // namespace tpc
 } // namespace o2
 
-#endif
+#endif /* O2_TPC_RESIDUALREADER */

@@ -33,7 +33,7 @@ class CTFHelper
 
   CTFHeader createHeader()
   {
-    CTFHeader h{0, 1, 0, // dummy timestamp, version 1.0
+    CTFHeader h{o2::detectors::DetID::EMC, 0, 1, 0, // dummy timestamp, version 1.0
                 uint32_t(mTrigData.size()), uint32_t(mCellData.size()), 0, 0};
     if (mTrigData.size()) {
       h.firstOrbit = mTrigData[0].getBCData().orbit;
@@ -130,6 +130,15 @@ class CTFHelper
   };
 
   //_______________________________________________
+  // Trigger word
+  class Iter_trigger : public _Iter<Iter_trigger, TriggerRecord, uint16_t>
+  {
+   public:
+    using _Iter<Iter_trigger, TriggerRecord, uint16_t>::_Iter;
+    value_type operator*() const { return mData[mIndex].getTriggerBitsCompressed(); }
+  };
+
+  //_______________________________________________
   class Iter_towerID : public _Iter<Iter_towerID, Cell, uint16_t>
   {
    public:
@@ -171,6 +180,9 @@ class CTFHelper
 
   Iter_entriesTrig begin_entriesTrig() const { return Iter_entriesTrig(mTrigData, false); }
   Iter_entriesTrig end_entriesTrig() const { return Iter_entriesTrig(mTrigData, true); }
+
+  Iter_trigger begin_trigger() const { return Iter_trigger(mTrigData, false); }
+  Iter_trigger end_trigger() const { return Iter_trigger(mTrigData, true); }
 
   Iter_towerID begin_towerID() const { return Iter_towerID(mCellData, false); }
   Iter_towerID end_towerID() const { return Iter_towerID(mCellData, true); }

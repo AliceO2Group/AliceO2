@@ -87,7 +87,7 @@ void EntropyDecoderSpec::updateTimeDependentParams(ProcessingContext& pc)
   if (!coderUpdated) {
     coderUpdated = true;
     if (!mCTFDictPath.empty() && mCTFDictPath != "none") {
-      mCTFCoder.createCoders(mCTFDictPath, o2::ctf::CTFCoderBase::OpType::Decoder);
+      mCTFCoder.createCodersFromFile<CTF>(mCTFDictPath, o2::ctf::CTFCoderBase::OpType::Decoder);
     }
 
     if (mMaskNoise) {
