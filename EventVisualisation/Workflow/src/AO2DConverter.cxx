@@ -92,7 +92,7 @@ void AO2DConverter::process(EveWorkflowHelper::AODFullTracks const& tracks)
   std::unordered_map<std::size_t, std::vector<EveWorkflowHelper::AODFullTrack>> colTracks;
 
   for (auto& track : tracks) {
-    colTracks.try_emplace(track.collisionId(), std::vector<EveWorkflowHelper::AODFullTrack>());
+    colTracks.try_emplace(track.collisionId(), decltype(colTracks)::mapped_type());
 
     colTracks[track.collisionId()].push_back(track);
   }
