@@ -237,7 +237,7 @@ struct GroupSlicer {
     GroupSlicerIterator operator+=(int64_t inc)
     {
       position += inc;
-      mGroupingElement = mGroupingElement + inc;
+      mGroupingElement += inc;
       return *this;
     }
 
