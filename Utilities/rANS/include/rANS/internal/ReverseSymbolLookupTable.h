@@ -21,6 +21,7 @@
 #include <type_traits>
 #include <fairlogger/Logger.h>
 
+#include "rANS/definitions.h"
 #include "rANS/internal/helper.h"
 #include "rANS/internal/SymbolStatistics.h"
 
@@ -34,12 +35,10 @@ namespace internal
 class ReverseSymbolLookupTable
 {
  public:
-  using symbol_t = SymbolStatistics::symbol_t;
-  using count_t = SymbolStatistics::count_t;
   using iterator_t = const symbol_t*;
 
-  //TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
-  ReverseSymbolLookupTable() noexcept {}; //NOLINT
+  // TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
+  ReverseSymbolLookupTable() noexcept {}; // NOLINT
 
   explicit ReverseSymbolLookupTable(const SymbolStatistics& symbolStats)
   {

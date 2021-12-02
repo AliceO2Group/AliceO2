@@ -78,7 +78,7 @@ std::ostream& operator<<(std::ostream& out, const FrequencyTable& fTable)
       << "minSymbol: " << fTable.getMinSymbol() << ", "
       << "maxSymbol: " << fTable.getMaxSymbol() << ", "
       << "sizeFrequencyTableB: " << fTable.size() << ", "
-      << "sizeFrequencyTableB: " << fTable.size() * sizeof(typename o2::rans::FrequencyTable::symbol_t) << ", "
+      << "sizeFrequencyTableB: " << fTable.size() * sizeof(typename rans::symbol_t) << ", "
       << "entropy: " << entropy << "}";
 
   return out;

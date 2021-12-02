@@ -835,7 +835,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
 
   // assert at compile time that output types align so that padding is not necessary.
   static_assert(std::is_same_v<storageBuffer_t, ransStream_t>);
-  static_assert(std::is_same_v<storageBuffer_t, typename rans::FrequencyTable::count_t>);
+  static_assert(std::is_same_v<storageBuffer_t, typename rans::count_t>);
 
   // fill a new block
   assert(slot == mRegistry.nFilledBlocks);

@@ -28,6 +28,7 @@
 
 #include <fairlogger/Logger.h>
 
+#include "rANS/definitions.h"
 #include "rANS/internal/helper.h"
 
 namespace o2
@@ -41,11 +42,8 @@ std::ostream& operator<<(std::ostream& out, const FrequencyTable& fTable);
 class FrequencyTable
 {
  public:
-  using symbol_t = int32_t;
-  using count_t = uint32_t;
   using iterator_t = count_t*;
   using constIterator_t = const count_t*;
-  using histogram_t = std::vector<count_t>;
 
   //TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
   FrequencyTable() noexcept {}; //NOLINT
