@@ -26,7 +26,7 @@
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "ITSMFTReconstruction/GBTLink.h"
 #include "ITSMFTWorkflow/STFDecoderSpec.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "DataFormatsITSMFT/CompCluster.h"
@@ -81,8 +81,8 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     mDictName = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
     mNoiseName = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().noiseFilePath;
   }
-  mNoiseName = o2::base::NameConf::getNoiseFileName(detID, mNoiseName, "root");
-  mDictName = o2::base::NameConf::getAlpideClusterDictionaryFileName(detID, mDictName);
+  mNoiseName = o2::base::DetectorNameConf::getNoiseFileName(detID, mNoiseName, "root");
+  mDictName = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(detID, mDictName);
 
   try {
     mNThreads = std::max(1, ic.options().get<int>("nthreads"));

@@ -22,7 +22,7 @@
 #include "GlobalTrackingWorkflowReaders/GlobalFwdTrackReaderSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "Framework/SerializationMethods.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include <fairlogger/Logger.h>
 
 using namespace o2::framework;

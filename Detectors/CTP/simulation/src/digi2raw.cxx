@@ -20,7 +20,7 @@
 #include <iomanip>
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/ConfigurableParam.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "CTPSimulation/Digits2Raw.h"
 #include "DataFormatsParameters/GRPObject.h"

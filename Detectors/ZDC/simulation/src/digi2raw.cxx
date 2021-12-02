@@ -23,7 +23,7 @@
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/ConfigurableParam.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "ZDCBase/Constants.h"
 #include "ZDCBase/ModuleConfig.h"

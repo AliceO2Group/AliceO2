@@ -21,7 +21,7 @@
 #include "FDDWorkflow/DigitReaderSpec.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include <vector>
 
 using namespace o2::framework;

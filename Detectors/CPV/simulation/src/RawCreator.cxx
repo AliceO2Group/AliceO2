@@ -27,7 +27,7 @@
 #include "DataFormatsCPV/TriggerRecord.h"
 #include "CPVBase/Geometry.h"
 #include "CPVSimulation/RawWriter.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
 
 namespace bpo = boost::program_options;

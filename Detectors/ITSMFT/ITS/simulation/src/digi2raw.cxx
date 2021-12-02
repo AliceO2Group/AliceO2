@@ -29,7 +29,7 @@
 #include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTSimulation/MC2RawEncoder.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtils.h"

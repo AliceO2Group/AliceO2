@@ -8,7 +8,7 @@
 
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 
 #include <string>
 #include <vector>
@@ -24,7 +24,7 @@ void compareTopologyDistributions(
   string output_file_name = "comparison.root")
 {
   if (dictionary_file_name.empty()) {
-    dictionary_file_name = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "");
+    dictionary_file_name = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "");
   }
   o2::itsmft::TopologyDictionary dict;
   dict.readFromFile(dictionary_file_name.c_str());

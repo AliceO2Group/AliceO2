@@ -27,7 +27,7 @@
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALSimulation/RawWriter.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 namespace bpo = boost::program_options;
 

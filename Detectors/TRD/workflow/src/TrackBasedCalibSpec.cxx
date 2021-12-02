@@ -19,7 +19,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "Headers/DataHeader.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"

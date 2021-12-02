@@ -15,7 +15,7 @@
 
 #include <FairLogger.h>
 #include "DataFormatsParameters/GRPMagField.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::parameters;
 

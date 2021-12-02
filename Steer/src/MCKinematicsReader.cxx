@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "Steer/MCKinematicsReader.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/TrackReference.h"

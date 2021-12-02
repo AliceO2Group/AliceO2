@@ -27,7 +27,7 @@
 #include <iomanip> // std::setfill, std::setw - for stream formating
 #include <Framework/Logger.h>
 #include "FDDBase/Constants.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 namespace o2
 {

@@ -43,7 +43,7 @@
 #include "TPCBase/ZeroSuppress.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "DetectorsRaw/RDHUtils.h"
 

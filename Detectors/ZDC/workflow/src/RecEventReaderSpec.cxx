@@ -17,7 +17,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"
 #include "ZDCWorkflow/RecEventReaderSpec.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 using namespace o2::zdc;

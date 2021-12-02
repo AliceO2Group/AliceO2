@@ -60,7 +60,7 @@
 #include "SimulationDataFormat/TrackReference.h"
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "Steer/MCKinematicsReader.h"
 #include "TPDGCode.h"
 #include "TParticlePDG.h"

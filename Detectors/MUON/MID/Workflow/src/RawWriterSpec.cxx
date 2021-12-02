@@ -30,7 +30,7 @@
 #include "MIDRaw/Encoder.h"
 #include "MIDRaw/FEEIdConfig.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 namespace of = o2::framework;
 

@@ -19,7 +19,7 @@
 #include "PHOSBase/Mapping.h"
 #include "PHOSBase/PHOSSimParams.h"
 #include "CCDB/CcdbApi.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::phos;
 

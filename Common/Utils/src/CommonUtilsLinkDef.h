@@ -34,4 +34,7 @@
 #pragma link C++ class o2::conf::VerbosityConfig + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::conf::VerbosityConfig> + ;
 
+#pragma link C++ class o2::base::NameConf + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::base::NameConf> + ;
+
 #endif

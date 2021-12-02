@@ -26,7 +26,7 @@
 #include "MathUtils/Cartesian.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "Framework/Logger.h"
 #include <unordered_map>
@@ -259,9 +259,9 @@ void CreateDictionaries(bool saveDeltas = false,
 
   completeDictionary.setThreshold(0.0001);
   completeDictionary.groupRareTopologies();
-  completeDictionary.printDictionaryBinary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, ""));
-  completeDictionary.printDictionary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "", "txt"));
-  completeDictionary.saveDictionaryRoot(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "", "root"));
+  completeDictionary.printDictionaryBinary(o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(dID, ""));
+  completeDictionary.printDictionary(o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(dID, "", "txt"));
+  completeDictionary.saveDictionaryRoot(o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(dID, "", "root"));
 
   TFile histogramOutput("histograms.root", "recreate");
   TCanvas* cComplete = new TCanvas("cComplete", "Distribution of all the topologies");
@@ -282,14 +282,14 @@ void CreateDictionaries(bool saveDeltas = false,
   if (clusLabArr) {
     noiseDictionary.setThreshold(0.0001);
     noiseDictionary.groupRareTopologies();
-    noiseDictionary.printDictionaryBinary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "noiseClusTopo"));
-    noiseDictionary.printDictionary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "noiseClusTopo", "txt"));
-    noiseDictionary.saveDictionaryRoot(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "noiseClusTopo", "root"));
+    noiseDictionary.printDictionaryBinary(o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(dID, "noiseClusTopo"));
+    noiseDictionary.printDictionary(o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(dID, "noiseClusTopo", "txt"));
+    noiseDictionary.saveDictionaryRoot(o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(dID, "noiseClusTopo", "root"));
     signalDictionary.setThreshold(0.0001);
     signalDictionary.groupRareTopologies();
-    signalDictionary.printDictionaryBinary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "signal"));
-    signalDictionary.printDictionary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "signal", "txt"));
-    signalDictionary.saveDictionaryRoot(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "signal", "root"));
+    signalDictionary.printDictionaryBinary(o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(dID, "signal"));
+    signalDictionary.printDictionary(o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(dID, "signal", "txt"));
+    signalDictionary.saveDictionaryRoot(o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(dID, "signal", "root"));
     cNoise = new TCanvas("cNoise", "Distribution of noise topologies");
     cNoise->cd();
     cNoise->SetLogy();

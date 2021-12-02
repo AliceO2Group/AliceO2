@@ -20,7 +20,7 @@
 #include "Framework/Logger.h"
 #include "TOFWorkflowIO/DigitReaderSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 using namespace o2::tof;

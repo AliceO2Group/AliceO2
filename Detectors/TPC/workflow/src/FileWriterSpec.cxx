@@ -32,7 +32,7 @@
 #include "Framework/InputRecordWalker.h"
 
 #include "Headers/DataHeader.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsCommonDataFormats/FileMetaData.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 

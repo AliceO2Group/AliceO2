@@ -17,7 +17,7 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/StringUtils.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"

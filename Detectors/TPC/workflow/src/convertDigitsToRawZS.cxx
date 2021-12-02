@@ -41,7 +41,7 @@
 #include "DataFormatsTPC/Digit.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsRaw/RDHUtils.h"
 
 namespace bpo = boost::program_options;

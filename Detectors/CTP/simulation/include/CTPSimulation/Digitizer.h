@@ -19,7 +19,7 @@
 #include "DataFormatsCTP/Digits.h"
 #include "DataFormatsCTP/Configuration.h"
 #include "CCDB/BasicCCDBManager.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include <gsl/span>
 
 namespace o2

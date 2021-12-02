@@ -1855,7 +1855,7 @@
               "edges": [
                 {
                   "node": {
-                    "path": "DataFormats/Detectors/Common/include/DetectorsCommonDataFormats/NameConf.h"
+                    "path": "DataFormats/Detectors/Common/include/CommonUtils/NameConf.h"
                   }
                 },
                 {

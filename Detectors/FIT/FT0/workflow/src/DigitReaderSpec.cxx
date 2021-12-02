@@ -23,7 +23,7 @@
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 

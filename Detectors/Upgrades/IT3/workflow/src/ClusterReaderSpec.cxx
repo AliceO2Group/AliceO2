@@ -20,7 +20,7 @@
 #include "Framework/Logger.h"
 #include "ITS3Workflow/ClusterReaderSpec.h"
 #include <cassert>
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 using namespace o2::itsmft;
