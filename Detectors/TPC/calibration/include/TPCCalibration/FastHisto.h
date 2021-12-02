@@ -37,6 +37,7 @@ namespace tpc
 /// e.g.: create an array with 7 bins + underflow bin + overflow bins
 /// bin range is from xmin=0.4f to xmax=34.6f
 /// the values which will be filled are of the type float
+/// #define FMT_HEADER_ONLY; // to avoid undefined reference when using root shel
 /// o2::tpc::FastHisto<float> histo(7,0.4f,34.6f,true,true);
 /// histo.fill(4.5);
 /// histo.fill(20.2,3);
@@ -76,6 +77,7 @@ class FastHisto
   /// this function resets the bin content in the histogram
   void reset()
   {
+    mBinCount = 0;
     std::fill(mBinCont.begin(), mBinCont.end(), 0);
   }
 
@@ -84,6 +86,7 @@ class FastHisto
   /// \param weight weight of the filled content
   void fillBin(int index, T weight)
   {
+    ++mBinCount;
     mBinCont[index] += weight;
   }
 
@@ -142,6 +145,9 @@ class FastHisto
     return mXmax;
   }
 
+  /// \return return number of entries in the histogram
+  unsigned int getEntries() const { return mBinCount; }
+
   /// \return returns if underflow bin is used in the histogram
   bool isUnderflowSet() const
   {
@@ -171,6 +177,7 @@ class FastHisto
   float mXmax{};             ///< maximum x value in the histogram (value not included)
   bool mUseUnderflow = true; ///< if true underflow bin used in the histogram
   bool mUseOverflow = true;  ///< if true overflow bin is used in the histogram
+  unsigned int mBinCount{0}; ///< number of values which are filled in the histogram
   std::vector<T> mBinCont{}; ///< histogram containing bin content
 };
 
@@ -189,7 +196,7 @@ template <class T>
 inline void FastHisto<T>::print(const int prec) const
 {
   const math_utils::StatisticsData data = getStatisticsData();
-  LOGP(info, "\n Entries: {}", std::accumulate(mBinCont.begin(), mBinCont.end(), 0));
+  LOGP(info, "\n Entries: {}", mBinCount);
   LOGP(info, "Truncated Mean: {}", data.mCOG);
   LOGP(info, "Standard Deviation: {}", data.mStdDev);
   LOGP(info, "sum of content: {}", data.mSum);

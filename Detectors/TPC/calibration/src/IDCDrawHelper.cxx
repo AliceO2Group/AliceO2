@@ -16,7 +16,7 @@
 #include "TCanvas.h"
 #include "TLatex.h"
 
-void o2::tpc::IDCDrawHelper::drawSector(const IDCDraw& idc, const unsigned int startRegion, const unsigned int endRegion, const unsigned int sector, const std::string zAxisTitle, const std::string filename)
+void o2::tpc::IDCDrawHelper::drawSector(const IDCDraw& idc, const unsigned int startRegion, const unsigned int endRegion, const unsigned int sector, const std::string zAxisTitle, const std::string filename, const float minZ, const float maxZ)
 {
   const auto coords = o2::tpc::painter::getPadCoordinatesSector();
   TH2Poly* poly = o2::tpc::painter::makeSectorHist("hSector", "Sector;local #it{x} (cm);local #it{y} (cm); #it{IDC}");
@@ -27,6 +27,10 @@ void o2::tpc::IDCDrawHelper::drawSector(const IDCDraw& idc, const unsigned int s
   poly->GetZaxis()->SetTitleOffset(1.3f);
   poly->SetStats(0);
   poly->GetZaxis()->SetTitle(zAxisTitle.data());
+  if (minZ < maxZ) {
+    poly->SetMinimum(minZ);
+    poly->SetMaximum(maxZ);
+  }
 
   TCanvas* can = new TCanvas("can", "can", 2000, 1400);
   can->SetRightMargin(0.14f);
@@ -56,7 +60,7 @@ void o2::tpc::IDCDrawHelper::drawSector(const IDCDraw& idc, const unsigned int s
   }
 }
 
-void o2::tpc::IDCDrawHelper::drawSide(const IDCDraw& idc, const o2::tpc::Side side, const std::string zAxisTitle, const std::string filename)
+void o2::tpc::IDCDrawHelper::drawSide(const IDCDraw& idc, const o2::tpc::Side side, const std::string zAxisTitle, const std::string filename, const float minZ, const float maxZ)
 {
   const auto coords = o2::tpc::painter::getPadCoordinatesSector();
   TH2Poly* poly = o2::tpc::painter::makeSideHist(side);
@@ -68,6 +72,10 @@ void o2::tpc::IDCDrawHelper::drawSide(const IDCDraw& idc, const o2::tpc::Side si
   poly->GetZaxis()->SetTitle(zAxisTitle.data());
   poly->GetZaxis()->SetMaxDigits(3); // force exponential axis
   poly->SetStats(0);
+  if (minZ < maxZ) {
+    poly->SetMinimum(minZ);
+    poly->SetMaximum(maxZ);
+  }
 
   TCanvas* can = new TCanvas("can", "can", 650, 600);
   can->SetTopMargin(0.04f);

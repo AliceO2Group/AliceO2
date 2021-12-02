@@ -44,14 +44,18 @@ class IDCDrawHelper
   /// \param sector sector which will be drawn
   /// \param zAxisTitle axis title of the z axis
   /// \param fileName name of the output file (if empty the canvas is drawn instead of writte to a file)
-  static void drawSector(const IDCDraw& idc, const unsigned int startRegion, const unsigned int endRegion, const unsigned int sector, const std::string zAxisTitle, const std::string filename);
+  /// \param minZ min z value for drawing (if minZ > maxZ automatic z axis)
+  /// \param maxZ max z value for drawing (if minZ > maxZ automatic z axis)
+  static void drawSector(const IDCDraw& idc, const unsigned int startRegion, const unsigned int endRegion, const unsigned int sector, const std::string zAxisTitle, const std::string filename, const float minZ = 0, const float maxZ = -1);
 
   /// draw side
   /// \param idc IDCDraw struct containing function to get the values which will be drawn
   /// \param side side which will be drawn
   /// \param zAxisTitle axis title of the z axis
   /// \param fileName name of the output file (if empty the canvas is drawn instead of writte to a file)
-  static void drawSide(const IDCDraw& idc, const o2::tpc::Side side, const std::string zAxisTitle, const std::string filename);
+  /// \param minZ min z value for drawing (if minZ > maxZ automatic z axis)
+  /// \param maxZ max z value for drawing (if minZ > maxZ automatic z axis)
+  static void drawSide(const IDCDraw& idc, const o2::tpc::Side side, const std::string zAxisTitle, const std::string filename, const float minZ = 0, const float maxZ = -1);
 
   /// \return returns z axis title
   /// \param type IDC type

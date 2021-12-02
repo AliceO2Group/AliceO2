@@ -107,10 +107,6 @@ o2_add_test_root_macro(macro/dumpDigits.C
                        PUBLIC_LINK_LIBRARIES O2::TPCCalibration
                        LABELS tpc
                        ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
-o2_add_test_root_macro(macro/extractGainMap.C
-                       PUBLIC_LINK_LIBRARIES O2::TPCCalibration
-                       LABELS tpc
-                       ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 o2_add_test_root_macro(macro/preparePedestalFiles.C
                        PUBLIC_LINK_LIBRARIES O2::TPCCalibration
                        LABELS tpc)
