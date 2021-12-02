@@ -22,6 +22,7 @@
 #include <cmath>
 #include <fairlogger/Logger.h>
 
+#include "rANS/definitions.h"
 #include "rANS/internal/SymbolStatistics.h"
 
 namespace o2
@@ -36,10 +37,8 @@ class SymbolTable
 {
 
  public:
-  using symbol_t = SymbolStatistics::symbol_t;
-
-  //TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
-  SymbolTable() noexcept {}; //NOLINT
+  // TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
+  SymbolTable() noexcept {}; // NOLINT
 
   explicit SymbolTable(const SymbolStatistics& symbolStats);
 
@@ -85,7 +84,7 @@ SymbolTable<T>::SymbolTable(const SymbolStatistics& symbolStats) : mMin{symbolSt
     }
   }
 
-  //escape symbol
+  // escape symbol
   mIndex.emplace_back(mEscapeSymbol.get());
 
 // advanced diagnostics for debug builds

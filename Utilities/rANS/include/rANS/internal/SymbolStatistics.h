@@ -29,7 +29,7 @@
 
 #include "rANS/internal/helper.h"
 #include "rANS/FrequencyTable.h"
-
+#include "rANS/definitions.h"
 #include "rANS/utils/iterators.h"
 
 namespace o2
@@ -59,8 +59,6 @@ class MergingFunctor
 class SymbolStatistics
 {
  public:
-  using count_t = FrequencyTable::count_t;
-  using symbol_t = FrequencyTable::symbol_t;
   using pair_t = std::tuple<count_t, count_t>;
   using histogram_t = std::vector<count_t>;
 
@@ -107,7 +105,7 @@ class SymbolStatistics
 };
 
 template <typename Source_IT,
-          std::enable_if_t<isCompatibleIter_v<typename SymbolStatistics::count_t, Source_IT>, bool>>
+          std::enable_if_t<isCompatibleIter_v<count_t, Source_IT>, bool>>
 inline SymbolStatistics::SymbolStatistics(Source_IT begin,
                                           Source_IT end,
                                           symbol_t min,
@@ -143,7 +141,7 @@ inline auto SymbolStatistics::end() const noexcept
 
 inline auto SymbolStatistics::operator[](symbol_t symbol) const -> pair_t
 {
-  //negative numbers cause overflow thus we get away with one comparison only
+  // negative numbers cause overflow thus we get away with one comparison only
   const size_t index = static_cast<size_t>(symbol - mMin);
   assert(index < size());
   return {mFrequencyTable[index], mCumulativeFrequencyTable[index]};

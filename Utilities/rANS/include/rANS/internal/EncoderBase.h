@@ -24,6 +24,7 @@
 #include <fairlogger/Logger.h>
 #include <stdexcept>
 
+#include "rANS/definitions.h"
 #include "rANS/internal/Encoder.h"
 #include "rANS/internal/EncoderSymbol.h"
 #include "rANS/internal/helper.h"
@@ -44,8 +45,6 @@ class EncoderBase
   using encoderSymbolTable_t = typename internal::SymbolTable<internal::EncoderSymbol<coder_T>>;
 
  public:
-  using symbol_t = typename FrequencyTable::symbol_t;
-
   using coder_t = coder_T;
   using stream_t = stream_T;
   using source_t = source_T;
