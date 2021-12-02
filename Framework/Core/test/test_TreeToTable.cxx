@@ -166,9 +166,10 @@ namespace cols
 DECLARE_SOA_COLUMN(Ivec, ivec, std::vector<int>);
 DECLARE_SOA_COLUMN(Fvec, fvec, std::vector<float>);
 DECLARE_SOA_COLUMN(Dvec, dvec, std::vector<double>);
+DECLARE_SOA_COLUMN(UIvec, uivec, std::vector<uint8_t>);
 } // namespace cols
 
-DECLARE_SOA_TABLE(Vectors, "AOD", "VECS", o2::soa::Index<>, cols::Ivec, cols::Fvec, cols::Dvec);
+DECLARE_SOA_TABLE(Vectors, "AOD", "VECS", o2::soa::Index<>, cols::Ivec, cols::Fvec, cols::Dvec, cols::UIvec);
 } // namespace o2::aod
 
 BOOST_AUTO_TEST_CASE(VariableLists)
@@ -178,16 +179,19 @@ BOOST_AUTO_TEST_CASE(VariableLists)
   std::vector<int> iv;
   std::vector<float> fv;
   std::vector<double> dv;
+  std::vector<uint8_t> ui;
   for (auto i = 1; i < 11; ++i) {
     iv.clear();
     fv.clear();
     dv.clear();
+    ui.clear();
     for (auto j = 0; j < i; ++j) {
       iv.push_back(j + 2);
       fv.push_back((j + 2) * 0.2134f);
       dv.push_back((j + 4) * 0.192873819237);
+      ui.push_back(j);
     }
-    writer(0, iv, fv, dv);
+    writer(0, iv, fv, dv, ui);
   }
   auto table = b.finalize();
 
@@ -209,10 +213,12 @@ BOOST_AUTO_TEST_CASE(VariableLists)
     auto iv = row.ivec();
     auto fv = row.fvec();
     auto dv = row.dvec();
+    auto uv = row.uivec();
     for (auto j = 0; j < i; ++j) {
       BOOST_CHECK_EQUAL(iv[j], j + 2);
       BOOST_CHECK_EQUAL(fv[j], (j + 2) * 0.2134f);
       BOOST_CHECK_EQUAL(dv[j], (j + 4) * 0.192873819237);
+      BOOST_CHECK_EQUAL(uv[j], j);
     }
     ++i;
   }
