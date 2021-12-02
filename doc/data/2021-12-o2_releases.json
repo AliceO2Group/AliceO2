@@ -1,0 +1,92 @@
+{
+  "repository": {
+    "releases": {
+      "edges": [
+        {
+          "node": {
+            "tagName": "v1.2.0",
+            "publishedAt": "2020-02-25T09:10:00Z"
+          }
+        },
+        {
+          "node": {
+            "tagName": "v1.3.0",
+            "publishedAt": "2020-09-22T07:21:04Z"
+          }
+        },
+        {
+          "node": {
+            "tagName": "v20.49",
+            "publishedAt": "2020-12-11T16:12:56Z"
+          }
+        },
+        {
+          "node": {
+            "tagName": "v21.01",
+            "publishedAt": "2021-01-05T16:47:05Z"
+          }
+        },
+        {
+          "node": {
+            "tagName": "v21.03",
+            "publishedAt": "2021-01-21T13:14:28Z"
+          }
+        },
+        {
+          "node": {
+            "tagName": "v21.05",
+            "publishedAt": "2021-02-10T21:53:36Z"
+          }
+        },
+        {
+          "node": {
+            "tagName": "v21.07",
+            "publishedAt": "2021-02-16T17:29:26Z"
+          }
+        },
+        {
+          "node": {
+            "tagName": "v21.09",
+            "publishedAt": "2021-03-03T06:17:35Z"
+          }
+        },
+        {
+          "node": {
+            "tagName": "v21.10",
+            "publishedAt": "2021-03-12T08:23:39Z"
+          }
+        },
+        {
+          "node": {
+            "tagName": "v21.11",
+            "publishedAt": "2021-03-17T07:01:20Z"
+          }
+        },
+        {
+          "node": {
+            "tagName": "v21.13",
+            "publishedAt": "2021-03-30T20:28:48Z"
+          }
+        },
+        {
+          "node": {
+            "tagName": "v21.14",
+            "publishedAt": "2021-04-11T15:52:11Z"
+          }
+        },
+        {
+          "node": {
+            "tagName": "v21.15",
+            "publishedAt": "2021-04-13T12:15:45Z"
+          }
+        },
+        {
+          "node": {
+            "tagName": "daily-20211028-1501",
+            "publishedAt": "2021-10-28T13:02:12Z"
+          }
+        }
+      ]
+    }
+  }
+}
