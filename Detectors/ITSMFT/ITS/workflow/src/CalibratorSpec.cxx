@@ -1,13 +1,14 @@
 /// @file   CalibratorSpec.cxx
 
 #include <vector>
+#include <assert.h>
 
 #include "TGeoGlobalMagField.h"
 
 // ROOT includes
 #include "TF1.h"
 #include "TGraph.h"
-#include "TH2D.h"
+#include "TH2F.h"
 
 #include "FairLogger.h"
 
@@ -56,11 +57,14 @@ namespace its
 
 using namespace o2::framework;
 
+
+//////////////////////////////////////////////////////////////////////////////
 // Define error function for ROOT fitting
-int NINJ = 50;
+const int NINJ = 50;
 double erf(double *xx, double *par) {
     return (NINJ / 2) * TMath::Erf((xx[0] - par[0]) / (sqrt(2) * par[1])) + (NINJ / 2);
 }
+
 
 //////////////////////////////////////////////////////////////////////////////
 // Default constructor
@@ -106,15 +110,15 @@ void ITSCalibrator<Mapping>::init(InitContext& ic) {
 //////////////////////////////////////////////////////////////////////////////
 // Initialize arrays of chip columns/rows for ROOT histograms
 template <class Mapping>
-void ITSCalibrator<Mapping>::get_row_col_arr(const short int & chipID, short int & nRow,
-        float** row_arr_old, short int & nCol, float** col_arr_old) {
+void ITSCalibrator<Mapping>::get_row_col_arr(const short int & chipID,
+        float** row_arr_old, float** col_arr_old) {
 
     // Set bin edges at the midpoints giving 1-indexing (0.5, 1.5, 2.5, ...)
     float* col_arr_new = new float[this->NCols];
     for (short int i = 0; i < this->NCols; i++) { col_arr_new[i] = i + 0.5; }
     *col_arr_old = col_arr_new;
 
-    float* row_arr_new = new float[nRow];
+    float* row_arr_new = new float[this->NRows];
     for (short int i = 0; i < this->NRows; i++) { row_arr_new[i] = i + 0.5; }
     *row_arr_old = row_arr_new;
 
@@ -277,11 +281,11 @@ void ITSCalibrator<Mapping>::init_chip_data(const short int& chipID) {
     // Create a TH2 to save the threshold info
     const char* th_ChipID = ("thresh_chipID" + std::to_string(chipID)).c_str();
 
-    short int nRow, nCol;
     float* row_arr; float* col_arr;
-    get_row_col_arr(chipID, nRow, &row_arr, nCol, &col_arr);
+    get_row_col_arr(chipID, &row_arr, &col_arr);
     //LOG(info)<<row_arr[400];
-    TH2F* th = new TH2F(th_ChipID, th_ChipID, nCol-1, col_arr, nRow-1, row_arr);  // x = rows, y = columns
+    // Create TH2 for visualizing thresholds with x = rows, y = columns
+    TH2F* th = new TH2F(th_ChipID, th_ChipID, (int)(this->NCols)-1, col_arr, (int)(this->NRows)-1, row_arr);
     this->thresholds[chipID] = th;
     delete[] row_arr, col_arr;
 }
@@ -306,13 +310,13 @@ void ITSCalibrator<Mapping>::extract_thresh_row(const short int& chipID, const s
         // Print helpful info to output file for debugging
         // col+1 because of ROOT 1-indexing (I think row already has the +1)
         catch (int i) {
-            this->thrfile << "ERROR: start-finding unsuccessful for chipID " << chipID
-                          << " row " << row << " column " << (col_i + 1) << '\n';
+            LOG(info) << "ERROR: start-finding unsuccessful for chipID " << chipID
+                      << " row " << row << " column " << (col_i + 1) << '\n';
             continue;
         }
         catch (int* i) {
-            this->thrfile << "ERROR: start-finding unsuccessful for chipID " << chipID
-                          << " row " << row << " column " << (col_i + 1) << '\n';
+            LOG(info) << "ERROR: start-finding unsuccessful for chipID " << chipID
+                      << " row " << row << " column " << (col_i + 1) << '\n';
             continue;
         }
 
@@ -356,13 +360,10 @@ void ITSCalibrator<Mapping>::update_output(const short int& chipID) {
 // Get info from previous stf decoder workflow, then loop over readout frames
 //     (ROFs) to count hits and extract thresholds
 template <class Mapping>
-void ITSCalibrator<Mapping>::run(ProcessingContext& pc)
-{
-    this->thrfile.open("thrfile.txt", std::ios_base::app);
+void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
 
     int TriggerId = 0;
 
-    //mDecoder->startNewTF(pc.inputs());
     auto orig = Mapping::getOrigin();
 
     // Calibration vector
@@ -393,8 +394,8 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc)
                 charge = (short int) (170 - calib.calibUserField / 65536);
                 // Last 16 bits should be the row (only uses up to 9 bits)
                 row = (short int) (calib.calibUserField & 0xffff);
-                //LOG(info) << "calib size: " << calib.size() << " | Index: " << i
-                //          << " | calib Vec Counter: " << calib.calibCounter << " | charge: " << charge;
+                LOG(info) << "calibs size: " << calibs.size() << " | ROF number: " << iROF
+                          << " | RU number: " << iRU << " | charge: " << charge << " | row: " << row;
                 //break;
             }
         }
@@ -410,13 +411,16 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc)
             //thrfile   << "WARNING: charge == 0" << '\n';
         } else {
 
+            //LOG(info) << "Length of digits: " << digitsInFrame.size();
             for (const auto& d : digitsInFrame) {
                 short int chipID = (short int) d.getChipIndex();
                 short int col = (short int) d.getColumn();
 
+                //LOG(info) << "Hit for chip ID: " << chipID << " | row: " << row << " | col: " << col;
+
                 // Row should be the same for the whole ROF so do not have to check here
-                // TODO test that this is working ok
-                //short int row = (short int) d.getRow();
+                // TODO: test that this is working ok
+                assert(row == (short int) d.getRow());
 
                 // Check if chip hasn't appeared before
                 if (this->currentRow.find(chipID) == this->currentRow.end()) {
@@ -445,8 +449,6 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc)
 
     TriggerId = 0;
     mTFCounter++;
-    delete[] x;
-    thrfile.close();
 }
 
 

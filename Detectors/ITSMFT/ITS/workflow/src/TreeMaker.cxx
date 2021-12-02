@@ -60,7 +60,7 @@ ITSTreeMaker<Mapping>::~ITSTreeMaker()
 template <class Mapping>
 void ITSTreeMaker<Mapping>::init(InitContext& ic)
 {
-    LOGF(INFO, "ITSTreeMaker init...", mSelfName);
+    LOGF(info, "ITSTreeMaker init...", mSelfName);
 
     o2::base::GeometryManager::loadGeometry();
     mGeom = o2::its::GeometryTGeo::Instance();
@@ -109,16 +109,16 @@ void ITSTreeMaker<Mapping>::run(ProcessingContext& pc)
         std::vector<GBTCalibData> calVec;
         mDecoder->fillCalibData(calVec);
 
-        //LOG(INFO) << "mTFCounter: " << mTFCounter << ", TriggerCounter in TF: " << TriggerId << ".";
-        LOG(INFO) << "getNChipsFiredROF: " << mDecoder->getNChipsFiredROF() << ", getNPixelsFiredROF: " << mDecoder->getNPixelsFiredROF();
-        LOG(INFO) << "getNChipsFired: " << mDecoder->getNChipsFired() << ", getNPixelsFired: " << mDecoder->getNPixelsFired();
+        //LOG(info) << "mTFCounter: " << mTFCounter << ", TriggerCounter in TF: " << TriggerId << ".";
+        LOG(info) << "getNChipsFiredROF: " << mDecoder->getNChipsFiredROF() << ", getNPixelsFiredROF: " << mDecoder->getNPixelsFiredROF();
+        LOG(info) << "getNChipsFired: " << mDecoder->getNChipsFired() << ", getNPixelsFired: " << mDecoder->getNPixelsFired();
 
         while((mChipDataBuffer = mDecoder->getNextChipData(mChipsBuffer))) {
             if(mChipDataBuffer){
                 chipID = mChipDataBuffer->getChipID();
                 // Ignore everything that isn't an IB stave for now
                 if (chipID > 431) { continue; }
-                LOG(INFO) << "getChipID: " << chipID << ", getROFrame: " << mChipDataBuffer->getROFrame() << ", getTrigger: " << mChipDataBuffer->getTrigger();
+                LOG(info) << "getChipID: " << chipID << ", getROFrame: " << mChipDataBuffer->getROFrame() << ", getTrigger: " << mChipDataBuffer->getTrigger();
 
                 mChipids.push_back(chipID);
                 const auto& pixels = mChipDataBuffer->getData();
@@ -131,19 +131,19 @@ void ITSTreeMaker<Mapping>::run(ProcessingContext& pc)
                     if(calVec[loopi].calibUserField != 0){
                         CHARGE = 170 - calVec[loopi].calibUserField / 65536;  //16^4 -> Get VPULSE_LOW (VPULSE_HIGH is fixed to 170)
                         mCharge.push_back(CHARGE);
-                        LOG(INFO) << "Charge: " << CHARGE;
+                        LOG(info) << "Charge: " << CHARGE;
                         updated = true;
                         break;
                     }
                 }
                 // If a charge was not found, throw an error and continue
                 if (!updated) {
-                    LOG(INFO) << "Charge not updated on chipID " << chipID << '\n';
+                    LOG(info) << "Charge not updated on chipID " << chipID << '\n';
                     thrfile   << "Charge not updated on chipID " << chipID << '\n';
                     continue;
                 }
                 if (CHARGE == 0) {
-                    LOG(INFO) << "CHARGE == 0 on chipID " << chipID << '\n';
+                    LOG(info) << "CHARGE == 0 on chipID " << chipID << '\n';
                     thrfile   << "CHARGE == 0 on chipID " << chipID << '\n';
                     continue;
                 }
@@ -202,7 +202,7 @@ void ITSTreeMaker<Mapping>::run(ProcessingContext& pc)
                 }
             }
         } //end loop on chips
-        LOG(INFO) << ">>>>>>> END LOOP ON CHIP";
+        LOG(info) << ">>>>>>> END LOOP ON CHIP";
 
         TriggerId++;
     }
@@ -216,7 +216,7 @@ void ITSTreeMaker<Mapping>::run(ProcessingContext& pc)
 template <class Mapping>
 void ITSTreeMaker<Mapping>::endOfStream(EndOfStreamContext& ec)
 {
-    LOGF(INFO, "endOfStream report:", mSelfName);
+    LOGF(info, "endOfStream report:", mSelfName);
     if (mDecoder) {
         mDecoder->printReport(true, true);
     }
