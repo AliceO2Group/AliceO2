@@ -1134,6 +1134,13 @@ RecoContainer::GlobalIDSet RecoContainer::getSingleDetectorRefs(GTrackID gidx) c
     const auto& parent0 = getTPCITSTrack(gidx);
     table[GTrackID::TPC] = parent0.getRefTPC();
     table[parent0.getRefITS().getSource()] = parent0.getRefITS(); // ITS source might be an ITS track or ITSAB tracklet
+  } else if (src == GTrackID::MFTMCH || src == GTrackID::MFTMCHMID) {
+    const auto& parent0 = getGlobalFwdTrack(gidx);
+    table[GTrackID::MFT] = parent0.getMFTTrackID();
+    table[GTrackID::MCH] = parent0.getMCHTrackID();
+    if (parent0.getMIDTrackID() != -1) {
+      table[GTrackID::MID] = parent0.getMIDTrackID();
+    }
   }
   return std::move(table);
 }

@@ -24,12 +24,16 @@ namespace globaltracking
 // ** Parameters for Global forward matching
 // **
 struct GlobalFwdMatchingParam : public o2::conf::ConfigurableParamHelper<GlobalFwdMatchingParam> {
-  bool useMIDMatch = false;
-  std::string matchFcn = "matchALL";  ///< MFT-MCH matching score evaluation
-  std::string cutFcn = "cutDisabled"; ///< MFT-MCH candicate cut function
-  double matchPlaneZ = -77.5;         ///< MFT-MCH matching plane z coordinate
+  bool useMIDMatch = false;                               ///< Use input from MCH-MID mathing
+  std::string matchFcn = "matchALL";                      ///< MFT-MCH matching score evaluation
+  std::string extMatchFuncFile = "FwdMatchFunc.C";        ///< File name for external input matching function
+  std::string extMatchFuncName = "getMatchingFunction()"; ///< Name of external matching function getter
+  std::string cutFcn = "cutDisabled";                     ///< MFT-MCH candicate cut function
+  bool MCMatching = false;                                ///< MFT-MCH matching computed from MCLabels
+  double matchPlaneZ = -77.5;                             ///< MFT-MCH matching plane z coordinate
 
   bool isMatchUpstream() const { return matchFcn.find("matchUpstream") < matchFcn.length(); }
+  bool matchingExternalFunction() const { return matchFcn.find("matchExternal") < matchFcn.length(); }
   bool saveAll = false; ///< Option to save all MFTMCH pair combinations.
 
   O2ParamDef(GlobalFwdMatchingParam, "FwdMatching");
