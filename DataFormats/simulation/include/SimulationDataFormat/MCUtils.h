@@ -46,6 +46,11 @@ class MCTrackNavigator
   /// Given an MCTrack p; Return it's direct daughter or nullptr. (we follow only first daughter)
   static o2::MCTrack const* getDaughter(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer);
 
+  /// Given an MCTrack p; Return it's first direct daughter or nullptr.
+  static o2::MCTrack const* getDaughter0(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer);
+  /// Given an MCTrack p; Return it's second direct daughter or nullptr.
+  static o2::MCTrack const* getDaughter1(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer);
+
   /// Given an MCTrack p; Fill the complete parent chain (ancestorchain) up to the most fundamental particle (follow only
   /// first mothers).
   // static void getParentChain(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer, std::vector<o2::MCTrack> &ancestorchain);
