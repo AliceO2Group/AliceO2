@@ -1309,6 +1309,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
               aAmplitudesC,
               truncateFloatFraction(ft0RecPoint.getCollisionTimeA() * 1E-3, mT0Time), // ps to ns
               truncateFloatFraction(ft0RecPoint.getCollisionTimeC() * 1E-3, mT0Time), // ps to ns
+              std::vector<int>(),
               ft0RecPoint.getTrigger().triggersignals);
   }
 

@@ -660,6 +660,7 @@ namespace ft0
 DECLARE_SOA_INDEX_COLUMN(BC, bc);                       //! BC index
 DECLARE_SOA_COLUMN(AmplitudeA, amplitudeA, float[96]);  //!
 DECLARE_SOA_COLUMN(AmplitudeC, amplitudeC, float[112]); //!
+DECLARE_SOA_COLUMN(AmplitudeAChannels, amplitudeAChannels, std::vector<int>); //!
 DECLARE_SOA_COLUMN(TimeA, timeA, float);                //!
 DECLARE_SOA_COLUMN(TimeC, timeC, float);                //!
 DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint8_t);  //!
@@ -672,6 +673,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(PosZ, posZ,                  //! Z position calculate
 DECLARE_SOA_TABLE(FT0s, "AOD", "FT0", //!
                   o2::soa::Index<>, ft0::BCId,
                   ft0::AmplitudeA, ft0::AmplitudeC, ft0::TimeA, ft0::TimeC,
+                  ft0::AmplitudeAChannels,
                   ft0::TriggerMask, ft0::PosZ<ft0::TimeA, ft0::TimeC>);
 using FT0 = FT0s::iterator;
 
