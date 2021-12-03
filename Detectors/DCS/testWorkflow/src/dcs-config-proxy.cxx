@@ -51,7 +51,6 @@ auto getDataOriginFromFilename(const std::string& filename)
   // assume the filename start with detector name
   auto dIDStr = filename.substr(0, 3);
   auto dID = DetID::nameToID(dIDStr.c_str(), DetID::First);
-  o2::header::DataOrigin dataOrigin;
   if (dID < 0) {
     for (auto& el : exceptionsDetID) {
       if (el.as<std::string>() == dIDStr) {
@@ -97,25 +96,19 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
 
     hdrN.tfCounter = *timesliceId; // this also
     hdrN.payloadSerializationMethod = o2::header::gSerializationMethodNone;
-    hdrN.splitPayloadParts = 2;
-    hdrN.splitPayloadIndex = 0;
+    hdrN.splitPayloadParts = 1;
+    hdrN.splitPayloadIndex = 1;
     hdrN.payloadSize = parts.At(0)->GetSize();
     hdrN.firstTForbit = 0; // this should be irrelevant for DCS
 
     hdrF.tfCounter = *timesliceId; // this also
     hdrF.payloadSerializationMethod = o2::header::gSerializationMethodNone;
-    hdrF.splitPayloadParts = 2;
+    hdrF.splitPayloadParts = 1;
     hdrF.splitPayloadIndex = 1;
     hdrF.payloadSize = filesize;
     hdrF.firstTForbit = 0; // this should be irrelevant for DCS
 
     auto fmqFactory = device.GetChannel(channel).Transport();
-
-    o2::header::Stack headerStackF{hdrF, DataProcessingHeader{*timesliceId, 0}};
-    auto hdMessageF = fmqFactory->CreateMessage(headerStackF.size(), fair::mq::Alignment{64});
-    auto plMessageF = fmqFactory->CreateMessage(hdrF.payloadSize, fair::mq::Alignment{64});
-    memcpy(hdMessageF->GetData(), headerStackF.data(), headerStackF.size());
-    memcpy(plMessageF->GetData(), parts.At(1)->GetData(), hdrF.payloadSize);
 
     o2::header::Stack headerStackN{hdrN, DataProcessingHeader{*timesliceId, 0}};
     auto hdMessageN = fmqFactory->CreateMessage(headerStackN.size(), fair::mq::Alignment{64});
@@ -123,11 +116,17 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     memcpy(hdMessageN->GetData(), headerStackN.data(), headerStackN.size());
     memcpy(plMessageN->GetData(), parts.At(0)->GetData(), hdrN.payloadSize);
 
+    o2::header::Stack headerStackF{hdrF, DataProcessingHeader{*timesliceId, 0}};
+    auto hdMessageF = fmqFactory->CreateMessage(headerStackF.size(), fair::mq::Alignment{64});
+    auto plMessageF = fmqFactory->CreateMessage(hdrF.payloadSize, fair::mq::Alignment{64});
+    memcpy(hdMessageF->GetData(), headerStackF.data(), headerStackF.size());
+    memcpy(plMessageF->GetData(), parts.At(1)->GetData(), hdrF.payloadSize);
+
     FairMQParts outParts;
-    outParts.AddPart(std::move(hdMessageF));
-    outParts.AddPart(std::move(plMessageF));
     outParts.AddPart(std::move(hdMessageN));
     outParts.AddPart(std::move(plMessageN));
+    outParts.AddPart(std::move(hdMessageF));
+    outParts.AddPart(std::move(plMessageF));
     sendOnChannel(device, outParts, channel);
 
     sendAnswer("OK", acknowledge, device);
