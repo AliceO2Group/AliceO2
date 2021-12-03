@@ -1,11 +1,13 @@
-
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 o2_add_library(TRDBase
                SOURCES src/PadPlane.cxx
@@ -16,17 +18,10 @@ o2_add_library(TRDBase
                        src/DiffAndTimeStructEstimator.cxx
                        src/SimParam.cxx
                        src/PadResponse.cxx
-                       src/CalDet.cxx
-                       src/CalROC.cxx
                        src/FeeParam.cxx
                        src/RecoParam.cxx
-                       src/PadStatus.cxx
-                       src/LocalVDrift.cxx
-                       src/LocalT0.cxx
-                       src/LocalGainFactor.cxx
                        src/ChamberStatus.cxx
                        src/Calibrations.cxx
-                       src/ChamberNoise.cxx
                        src/CalOnlineGainTables.cxx
                        src/Tracklet.cxx
                        src/TrackletTransformer.cxx
@@ -49,20 +44,14 @@ o2_target_root_dictionary(TRDBase
                                   include/TRDBase/Garfield.h
                                   include/TRDBase/CommonParam.h
                                   include/TRDBase/PadResponse.h
-                                  include/TRDBase/CalDet.h
-                                  include/TRDBase/CalROC.h
                                   include/TRDBase/FeeParam.h
                                   include/TRDBase/RecoParam.h
                                   include/TRDBase/PadParameters.h
                                   include/TRDBase/PadCalibrations.h
                                   include/TRDBase/ChamberCalibrations.h
-                                  include/TRDBase/PadStatus.h
-                                  include/TRDBase/LocalVDrift.h
-                                  include/TRDBase/LocalT0.h
-                                  include/TRDBase/LocalGainFactor.h
+                                  include/TRDBase/PadCalibrationsAliases.h
                                   include/TRDBase/ChamberStatus.h
                                   include/TRDBase/Calibrations.h
-                                  include/TRDBase/ChamberNoise.h
                                   include/TRDBase/CalOnlineGainTables.h
                                   include/TRDBase/Tracklet.h
                                   include/TRDBase/TrackletTransformer.h)
