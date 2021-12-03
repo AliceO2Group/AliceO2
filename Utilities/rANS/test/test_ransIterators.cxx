@@ -63,10 +63,21 @@ BOOST_FIXTURE_TEST_CASE(test_CombinedInputIteratorBase, test_CombninedIteratorFi
   // test not equal
   const o2::rans::utils::CombinedInputIterator second(++(a.begin()), ++(b.begin()), f);
   BOOST_CHECK_NE(iter, second);
+  // test smaller
+  BOOST_CHECK_LT(first, second);
+  // test greater
+  BOOST_CHECK_GT(second, first);
+  // test greater-equals
+  BOOST_CHECK_GE(second, first);
+  BOOST_CHECK_GE(first, first);
+  // test smaller-equals
+  BOOST_CHECK_LE(first, second);
+  BOOST_CHECK_LE(first, first);
+
   // test pre-increment
   ++iter;
   BOOST_CHECK_EQUAL(iter, second);
-  //test post-increment
+  // test post-increment
   iter = first;
   BOOST_CHECK_EQUAL(iter++, first);
   BOOST_CHECK_EQUAL(iter, second);
@@ -79,9 +90,33 @@ BOOST_FIXTURE_TEST_CASE(test_CombinedInputIteratorBase, test_CombninedIteratorFi
   BOOST_CHECK_EQUAL(iter--, second);
   BOOST_CHECK_EQUAL(iter, first);
 
-  //test deref
+  // test +=
+  iter = first;
+  iter += 1;
+  BOOST_CHECK_EQUAL(iter, second);
+  // test +
+  iter = first;
+  BOOST_CHECK_EQUAL(first + 1, second);
+  BOOST_CHECK_EQUAL(1 + first, second);
+
+  // check -=
+  iter = second;
+  iter -= 1;
+  BOOST_CHECK_EQUAL(iter, first);
+
+  // check -
+  BOOST_CHECK_EQUAL(second - 1, first);
+
+  // check -
+  BOOST_CHECK_EQUAL(second - first, 1);
+
+  // test deref
   const uint32_t val = first.operator*();
+
   BOOST_CHECK_EQUAL(val, aAndB.front());
+
+  // check []
+  BOOST_CHECK_EQUAL(first[1], *second);
 }
 
 BOOST_FIXTURE_TEST_CASE(test_CombinedOutputIteratorBase, test_CombninedIteratorFixture)
