@@ -60,10 +60,10 @@ class Diagnostic
     }
     return iter->first;
   }
-  int getSlot(ULong64_t pattern) const;
-  int getCrate(ULong64_t pattern) const;
-  int getChannel(ULong64_t pattern) const;
-  int getNoisyLevel(ULong64_t pattern) const;
+  static int getSlot(ULong64_t pattern);
+  static int getCrate(ULong64_t pattern);
+  static int getChannel(ULong64_t pattern);
+  static int getNoisyLevel(ULong64_t pattern);
 
   const std::map<ULong64_t, uint32_t>& getVector() const { return mVector; }
 

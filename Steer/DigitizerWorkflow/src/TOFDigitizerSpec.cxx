@@ -126,6 +126,7 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
       calibapi.setTimeStamp(ts);
       calibapi.readTimeSlewingParam();
       calibapi.readDiagnosticFrequencies();
+      //      calibapi.readActiveMap();
     }
 
     static std::vector<o2::tof::HitType> hits;
