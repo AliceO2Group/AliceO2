@@ -209,7 +209,6 @@ constexpr int DbgFull = 3;
 
 const std::string CCDBPathConfigSim = "ZDC/Config/Sim";
 const std::string CCDBPathConfigModule = "ZDC/Config/Module";
-const std::string CCDBPathConfigReco = "ZDC/Calib/RecoParam";
 const std::string CCDBPathRecoConfigZDC = "ZDC/Calib/RecoConfigZDC";
 const std::string CCDBPathTDCCalib = "ZDC/Calib/TDCCalib";
 const std::string CCDBPathEnergyCalib = "ZDC/Calib/EnergyCalib";
