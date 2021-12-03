@@ -66,13 +66,13 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     // Initialization from CCDB
     auto& mgr = o2::ccdb::BasicCCDBManager::instance();
     mgr.setURL(mccdbHost);
-    long timeStamp = 0;
+    /*long timeStamp = 0; // TIMESTAMP SHOULD NOT BE 0
     if (timeStamp == mgr.getTimestamp()) {
       return;
     }
-    mgr.setTimestamp(timeStamp);
+    mgr.setTimestamp(timeStamp);*/
 
-    std::string loadedConfFiles = "Loaded ZDC configuration files for timestamp " + std::to_string(timeStamp) + ":";
+    std::string loadedConfFiles = "Loaded ZDC configuration files for timestamp " + std::to_string(mgr.getTimestamp()) + ":";
     auto* moduleConfig = mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
     if (!moduleConfig) {
       LOG(fatal) << "Missing ModuleConfig ZDC configuration object";
@@ -81,7 +81,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
       loadedConfFiles += " ModuleConfig";
     }
     if (mVerbosity > DbgZero) {
-      LOG(info) << "Loaded ZDC module configuration for timestamp " << timeStamp;
+      LOG(info) << "Loaded ZDC module configuration for timestamp " << mgr.getTimestamp();
       moduleConfig->print();
     }
 
@@ -95,7 +95,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
       loadedConfFiles += " RecoConfigZDC";
     }
     if (mVerbosity > DbgZero) {
-      LOG(info) << "Loaded RecoConfigZDC for timestamp " << timeStamp;
+      LOG(info) << "Loaded RecoConfigZDC for timestamp " << mgr.getTimestamp();
       recoConfigZDC->print();
     }
 
@@ -109,7 +109,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
       loadedConfFiles += " ZDCTDCParam";
     }
     if (mVerbosity > DbgZero) {
-      LOG(info) << "Loaded TDC centering ZDCTDCParam for timestamp " << timeStamp;
+      LOG(info) << "Loaded TDC centering ZDCTDCParam for timestamp " << mgr.getTimestamp();
       tdcParam->print();
     }
 
@@ -120,7 +120,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     } else {
       loadedConfFiles += " ZDCEnergyParam";
       if (mVerbosity > DbgZero) {
-        LOG(info) << "Loaded Energy calibration ZDCEnergyParam for timestamp " << timeStamp;
+        LOG(info) << "Loaded Energy calibration ZDCEnergyParam for timestamp " << mgr.getTimestamp();
         energyParam->print();
       }
     }
@@ -132,7 +132,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     } else {
       loadedConfFiles += " ZDCTowerParam";
       if (mVerbosity > DbgZero) {
-        LOG(info) << "Loaded Tower calibration ZDCTowerParam for timestamp " << timeStamp;
+        LOG(info) << "Loaded Tower calibration ZDCTowerParam for timestamp " << mgr.getTimestamp();
         towerParam->print();
       }
     }

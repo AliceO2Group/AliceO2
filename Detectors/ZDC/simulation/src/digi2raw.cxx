@@ -109,27 +109,27 @@ int main(int argc, char** argv)
 
 void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, const std::string& fileFor, uint32_t rdhV, const std::string& ccdbHost, int superPageSizeInB)
 {
-  long timeStamp = 0;
   //std::string ccdbHost = "http://ccdb-test.cern.ch:8080";
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(ccdbHost);
+  /*long timeStamp = 0; // TIMESTAMP SHOULD NOT BE 0!
   if (timeStamp == mgr.getTimestamp()) {
     return;
   }
-  mgr.setTimestamp(timeStamp);
+  mgr.setTimestamp(timeStamp);*/
   auto moduleConfig = mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
   if (!moduleConfig) {
-    LOG(fatal) << "Cannot module configuratio for timestamp " << timeStamp;
+    LOG(fatal) << "Cannot module configuratio for timestamp " << mgr.getTimestamp();
     return;
   }
-  LOG(info) << "Loaded module configuration for timestamp " << timeStamp;
+  LOG(info) << "Loaded module configuration for timestamp " << mgr.getTimestamp();
 
   auto simCondition = mgr.get<o2::zdc::SimCondition>(o2::zdc::CCDBPathConfigSim);
   if (!simCondition) {
-    LOG(fatal) << "Cannot get simulation configuration for timestamp " << timeStamp;
+    LOG(fatal) << "Cannot get simulation configuration for timestamp " << mgr.getTimestamp();
     return;
   }
-  LOG(info) << "Loaded simulation configuration for timestamp " << timeStamp;
+  LOG(info) << "Loaded simulation configuration for timestamp " << mgr.getTimestamp();
   simCondition->print();
 
   const auto* ctx = o2::steer::DigitizationContext::loadFromFile("collisioncontext.root");
