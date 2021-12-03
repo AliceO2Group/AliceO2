@@ -49,41 +49,22 @@ class DecoderBase
   using ransDecoder_t = Decoder<coder_T, stream_T>;
 
  public:
-  // TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
-  DecoderBase() noexcept {}; // NOLINT
-  DecoderBase(const FrequencyTable& stats, size_t probabilityBits);
-
-  inline size_t getAlphabetRangeBits() const noexcept { return mSymbolTable.getAlphabetRangeBits(); }
-  inline size_t getSymbolTablePrecision() const noexcept { return mSymbolTablePrecission; }
-  inline int getMinSymbol() const noexcept { return mSymbolTable.getMinSymbol(); }
-  inline int getMaxSymbol() const noexcept { return mSymbolTable.getMaxSymbol(); }
-
   using coder_t = coder_T;
   using stream_t = stream_T;
   using source_t = source_T;
 
+  // TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
+  DecoderBase() noexcept {}; // NOLINT
+  explicit DecoderBase(const FrequencyTable& frequencyTable) : mSymbolTable{frequencyTable}, mReverseLUT{frequencyTable} {};
+
+  inline size_t getAlphabetRangeBits() const noexcept { return mSymbolTable.getAlphabetRangeBits(); }
+  inline size_t getSymbolTablePrecision() const noexcept { return mSymbolTable.getPrecision(); }
+  inline int getMinSymbol() const noexcept { return mSymbolTable.getMinSymbol(); }
+  inline int getMaxSymbol() const noexcept { return mSymbolTable.getMaxSymbol(); }
+
  protected:
-  size_t mSymbolTablePrecission{};
   decoderSymbolTable_t mSymbolTable{};
   reverseSymbolLookupTable_t mReverseLUT{};
-};
-
-template <typename coder_T, typename stream_T, typename source_T>
-DecoderBase<coder_T, stream_T, source_T>::DecoderBase(const FrequencyTable& frequencyTable, size_t symbolTablePrecision) : mSymbolTablePrecission{symbolTablePrecision}
-{
-  using namespace internal;
-
-  RANSTimer t;
-  t.start();
-  assert(pow2(symbolTablePrecision) == frequencyTable.getNumSamples());
-  assert(frequencyTable.isRenormed());
-  mSymbolTable = decoderSymbolTable_t{frequencyTable};
-  t.stop();
-  LOG(debug1) << "Decoder SymbolTable inclusive time (ms): " << t.getDurationMS();
-  t.start();
-  mReverseLUT = reverseSymbolLookupTable_t{frequencyTable};
-  t.stop();
-  LOG(debug1) << "ReverseSymbolLookupTable inclusive time (ms): " << t.getDurationMS();
 };
 } // namespace internal
 } // namespace rans

@@ -51,6 +51,7 @@ class SymbolTable
 
   inline size_t getAlphabetRangeBits() const noexcept { return numBitsForNSymbols(size()); };
   inline size_t getNUsedAlphabetSymbols() const noexcept { return mSymbols.size() + 1; /*all normal symbols plus escape symbol*/ };
+  inline size_t getPrecision() const noexcept { return mPrecision; };
   inline symbol_t getMinSymbol() const noexcept { return mOffset; };
   inline symbol_t getMaxSymbol() const noexcept { return getMinSymbol() + size() - 1; };
 
@@ -59,10 +60,11 @@ class SymbolTable
   std::vector<T> mSymbols{};
   std::unique_ptr<T> mEscapeSymbol{};
   symbol_t mOffset{};
+  size_t mPrecision{};
 };
 
 template <typename T>
-SymbolTable<T>::SymbolTable(const FrequencyTable& frequencyTable) : mOffset{frequencyTable.getMinSymbol()}
+SymbolTable<T>::SymbolTable(const FrequencyTable& frequencyTable) : mOffset{frequencyTable.getMinSymbol()}, mPrecision{frequencyTable.getRenormingBits()}
 {
   LOG(trace) << "start building symbol table";
 

@@ -119,12 +119,12 @@ int main(int argc, char* argv[])
     frequencies.addSamples(std::begin(tokens), std::end(tokens));
 
     std::vector<stream_t> encoderBuffer;
-    const o2::rans::Encoder64<source_t> encoder{frequencies, probabilityBits};
+    const o2::rans::Encoder64<source_t> encoder{frequencies};
     encoder.process(std::begin(tokens), std::end(tokens), std::back_inserter(encoderBuffer));
 
     std::vector<source_t> decoderBuffer(tokens.size());
     [&]() {
-      o2::rans::Decoder64<source_t> decoder{frequencies, probabilityBits};
+      o2::rans::Decoder64<source_t> decoder{frequencies};
       decoder.process(encoderBuffer.end(), decoderBuffer.begin(), std::distance(std::begin(tokens), std::end(tokens)));
     }();
 

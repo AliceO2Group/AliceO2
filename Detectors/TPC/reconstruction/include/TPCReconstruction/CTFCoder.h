@@ -155,7 +155,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 template <typename source_T>
 void CTFCoder::buildCoder(ctf::CTFCoderBase::OpType coderType, const CTF::container_t& ctf, CTF::Slots slot)
 {
-  this->createCoder<source_T>(coderType, ctf.getFrequencyTable(slot), ctf.getMetadata(slot).probabilityBits, static_cast<int>(slot));
+  this->createCoder<source_T>(coderType, ctf.getFrequencyTable(slot), static_cast<int>(slot));
 }
 
 /// entropy-encode clusters to buffer with CTF

@@ -43,6 +43,7 @@ class EncoderBase
 {
  protected:
   using encoderSymbolTable_t = typename internal::SymbolTable<internal::EncoderSymbol<coder_T>>;
+  using ransCoder_t = typename internal::Encoder<coder_T, stream_T>;
 
  public:
   using coder_t = coder_T;
@@ -51,37 +52,16 @@ class EncoderBase
 
   // TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
   EncoderBase() noexcept {}; // NOLINT
-  EncoderBase(encoderSymbolTable_t&& e, size_t symbolTablePrecission) noexcept;
-  EncoderBase(const FrequencyTable& frequencies, size_t symbolTablePrecission);
+  explicit EncoderBase(const FrequencyTable& frequencyTable) : mSymbolTable{frequencyTable} {};
 
-  inline size_t getSymbolTablePrecision() const noexcept { return mSymbolTablePrecission; }
-  inline size_t getAlphabetRangeBits() const noexcept { return mSymbolTable.getAlphabetRangeBits(); }
-  inline symbol_t getMinSymbol() const noexcept { return mSymbolTable.getMinSymbol(); }
-  inline symbol_t getMaxSymbol() const noexcept { return mSymbolTable.getMaxSymbol(); }
+  inline size_t getSymbolTablePrecision() const noexcept { return mSymbolTable.getPrecision(); };
+  inline size_t getAlphabetRangeBits() const noexcept { return mSymbolTable.getAlphabetRangeBits(); };
+  inline symbol_t getMinSymbol() const noexcept { return mSymbolTable.getMinSymbol(); };
+  inline symbol_t getMaxSymbol() const noexcept { return mSymbolTable.getMaxSymbol(); };
 
  protected:
   encoderSymbolTable_t mSymbolTable{};
-  size_t mSymbolTablePrecission{};
-
-  using ransCoder_t = typename internal::Encoder<coder_T, stream_T>;
 };
-
-template <typename coder_T, typename stream_T, typename source_T>
-EncoderBase<coder_T, stream_T, source_T>::EncoderBase(encoderSymbolTable_t&& e, size_t symbolTablePrecission) noexcept : mSymbolTable{std::move(e)}, mSymbolTablePrecission{symbolTablePrecission} {};
-
-template <typename coder_T, typename stream_T, typename source_T>
-EncoderBase<coder_T, stream_T, source_T>::EncoderBase(const FrequencyTable& frequencyTable,
-                                                      size_t symbolTablePrecission) : mSymbolTablePrecission{symbolTablePrecission}
-{
-  RANSTimer t;
-  t.start();
-  assert(frequencyTable.isRenormed());
-  mSymbolTablePrecission = frequencyTable.getRenormingBits();
-  mSymbolTable = encoderSymbolTable_t{frequencyTable};
-
-  t.stop();
-  LOG(debug1) << "Encoder SymbolTable inclusive time (ms): " << t.getDurationMS();
-}
 
 } // namespace internal
 } // namespace rans
