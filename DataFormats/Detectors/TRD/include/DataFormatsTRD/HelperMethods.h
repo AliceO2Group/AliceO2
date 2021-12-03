@@ -82,6 +82,11 @@ struct HelperMethods {
     return det % constants::NLAYER;
   }
 
+  static int getDetector(int layer, int stack, int sector)
+  {
+    return (layer + stack * constants::NLAYER + sector * constants::NLAYER * constants::NSTACK);
+  }
+
   static int getORIinSuperModule(int detector, int readoutboard)
   {
     //given a detector and readoutboard

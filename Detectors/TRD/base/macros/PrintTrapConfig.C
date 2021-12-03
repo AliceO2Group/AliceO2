@@ -66,12 +66,7 @@
 
 //#include "TRDBase/PadParameters.h"
 //#include "TRDBase/PadCalibrations.h"
-//#include "TRDBase/PadStatus.h"
-//#include "TRDBase/PadNoise.h"
-//#include "TRDBase/LocalVDrift.h"
-//#include "TRDBase/LocalT0.h"
-//#include "TRDBase/LocalGainFactor.h"
-//#include "TRDBase/PadNoise.h"
+//#include "TRDBase/PadCalibrationsAliases.h"
 //#include "TRDBase/ChamberCalibrations.h"
 //#include "TRDBase/ChamberStatus.h"
 //#include "TRDBase/ChamberNoise.h"

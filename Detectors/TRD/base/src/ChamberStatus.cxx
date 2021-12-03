@@ -16,9 +16,6 @@
 //  Most things were stored in AliTRDcalROC,AliTRDcalPad, AliTRDcalDet       //
 ///////////////////////////////////////////////////////////////////////////////
 
-//#include <vector>
-#include <array>
-
 #include "TRDBase/ChamberStatus.h"
 #include "TH2D.h"
 using namespace o2::trd;

@@ -22,10 +22,7 @@
 #include <array>
 
 #include "TRDBase/PadParameters.h"
-#include "TRDBase/SimParam.h"
 #include "DataFormatsTRD/Constants.h"
-
-class Geometry;
 
 namespace o2
 {
@@ -39,16 +36,13 @@ class PadCalibrations
   PadCalibrations();
   ~PadCalibrations() = default;
   //
-  int getNChannels(int roc) { return mreadOutChamber[roc].getNChannels(); }
-  PadParameters<T>& getChamberPads(int roc) { return mreadOutChamber[roc]; }
-  T getValue(int roc, int col, int row) { return mreadOutChamber[roc].getValue(col, row); }
-  T getPadValue(int roc, int col, int row) { return mreadOutChamber[roc].getValue(col, row); }
-  void setPadValue(int roc, int col, int row, T value) { mreadOutChamber[roc].setValue(col, row, value); }
-  void setPadValue(int roc, int channel, T value) { mreadOutChamber[roc].setValue(channel, value); }
-  void reset(int roc, int col, int row, std::vector<T>& data);
-  void init();
+  const PadParameters<T>& getChamberPads(int roc) { return mReadoutChamber[roc]; }
+  T getValue(int roc, int col, int row) const { return mReadoutChamber[roc].getValue(col, row); }
+  void setPadValue(int roc, int col, int row, T value) { mReadoutChamber[roc].setValue(col, row, value); }
+  void setPadValue(int roc, int channel, T value) { mReadoutChamber[roc].setValue(channel, value); }
+
  protected:
-  std::array<PadParameters<T>, constants::MAXCHAMBER> mreadOutChamber;
+  std::array<PadParameters<T>, constants::MAXCHAMBER> mReadoutChamber;
 };
 
 template <class T>
@@ -57,33 +51,15 @@ PadCalibrations<T>::PadCalibrations()
   //
   // CalPadStatus constructor
   //
-  //Geometry fgeom;
   int chamberindex = 0;
-  for (auto& roc : mreadOutChamber) { // Range-for!
+  for (auto& roc : mReadoutChamber) { // Range-for!
     roc.init(chamberindex++);
   }
 }
 
-template <class T>
-void PadCalibrations<T>::init()
-{
-  //
-  // CalPadStatus constructor
-  //
-  int chamberindex = 0;
-  for (auto& roc : mreadOutChamber) { // Range-for!
-    roc.init(chamberindex++);
-  }
-}
-
-template <class T>
-void PadCalibrations<T>::reset(int roc, int col, int row, std::vector<T>& data)
-{
-  //reset the readoutchamber
-  //primarily here for setting the values incoming from run2 ocdb, but might find other use cases.
-  // you need to send it the roc as it is used to calculate internal parameters.
-  mreadOutChamber[roc].reset(roc, col, row, data); // it *should* not actually matter as this *should* be set correctly via init.
-}
+// instantiate templates always needed
+template class PadCalibrations<float>; // for LocalT0, LocalVDrift, LocalGainFactor, PadNoise
+template class PadCalibrations<char>;  // for PadStatus
 
 } // namespace trd
 } // namespace o2

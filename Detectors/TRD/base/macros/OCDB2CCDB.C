@@ -66,15 +66,9 @@
 #include "CCDB/CcdbApi.h"
 #include "TRDBase/PadParameters.h"
 #include "TRDBase/PadCalibrations.h"
-#include "TRDBase/PadStatus.h"
-#include "TRDBase/PadNoise.h"
-#include "TRDBase/LocalVDrift.h"
-#include "TRDBase/LocalT0.h"
-#include "TRDBase/LocalGainFactor.h"
-#include "TRDBase/PadNoise.h"
+#include "TRDBase/PadCalibrationsAliases.h"
 #include "TRDBase/ChamberCalibrations.h"
 #include "TRDBase/ChamberStatus.h"
-#include "TRDBase/ChamberNoise.h"
 #include "TRDBase/CalOnlineGainTables.h"
 #include "TRDBase/FeeParam.h"
 #include "TRDSimulation/TrapConfig.h"
@@ -404,13 +398,15 @@ void OCDB2CCDB(TString ccdbPath = "http://localhost:8080", Int_t run = 297595, c
         int rows = rocstatus->GetNrows();
         int cols = rocstatus->GetNcols();
         for (int j = 0; j < rocstatus->GetNchannels(); j++) {
-          o2padstatus->setStatus(i, j, rocstatus->GetStatus(j));
+          o2padstatus->setPadValue(i, j, rocstatus->GetStatus(j));
         }
       }
       ccdb.storeAsTFileAny(o2padstatus, "TRD/Calib/PadStatus", metadata, Run, Run + 1);
     }
   }
 
+  /*
+  // OS: removed for now since nowhere used in O2 code
   AliTRDCalDet* chambernoise = 0;
   auto o2chambernoise = new o2::trd::ChamberNoise();
   if ((entry = GetCDBentry("TRD/Calib/DetNoise", 0))) {
@@ -422,6 +418,7 @@ void OCDB2CCDB(TString ccdbPath = "http://localhost:8080", Int_t run = 297595, c
     } else
       cout << "attempt to get object ChamberNoise from ocdb entry. Will not be writing ChamberNoise" << endl;
   }
+  */
 
   auto o2gtbl = new CalOnlineGainTables();
   std::string tablekey = "Krypton_2011-01";
