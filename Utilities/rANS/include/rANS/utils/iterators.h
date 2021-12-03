@@ -32,16 +32,53 @@ namespace rans
 namespace utils
 {
 
+template <typename IT, typename tag_T>
+struct hasIteratorTag : public std::bool_constant<std::is_same_v<typename std::iterator_traits<IT>::iterator_category, tag_T>> {
+};
+template <typename IT>
+inline constexpr bool isBidirectionalIterator_v = hasIteratorTag<IT, std::bidirectional_iterator_tag>::value;
+template <typename IT>
+inline constexpr bool isRandomAccessIterator_v = hasIteratorTag<IT, std::random_access_iterator_tag>::value;
+
+template <typename iterA_T, typename iterB_T>
+inline constexpr bool areBothRandomAccessIterators_v = std::bool_constant<isRandomAccessIterator_v<iterA_T> && isRandomAccessIterator_v<iterB_T>>::value;
+
+template <typename iterA_T, typename iterB_T>
+struct getIteratorTag {
+};
+
+template <>
+struct getIteratorTag<std::bidirectional_iterator_tag, std::bidirectional_iterator_tag> {
+  using value_type = std::bidirectional_iterator_tag;
+};
+
+template <>
+struct getIteratorTag<std::bidirectional_iterator_tag, std::random_access_iterator_tag> {
+  using value_type = std::bidirectional_iterator_tag;
+};
+
+template <>
+struct getIteratorTag<std::random_access_iterator_tag, std::bidirectional_iterator_tag> {
+  using value_type = std::bidirectional_iterator_tag;
+};
+
+template <>
+struct getIteratorTag<std::random_access_iterator_tag, std::random_access_iterator_tag> {
+  using value_type = std::random_access_iterator_tag;
+};
+
+template <typename iterA_T, typename iterB_T>
+using getIteratorTag_t = typename getIteratorTag<iterA_T, iterB_T>::value_type;
+
 template <class iterA_T, class iterB_T, class F>
 class CombinedInputIterator
 {
-
  public:
   using difference_type = std::ptrdiff_t;
   using value_type = std::invoke_result_t<F, iterA_T, iterB_T>;
   using pointer = value_type*;
   using reference = value_type&;
-  using iterator_category = std::bidirectional_iterator_tag;
+  using iterator_category = getIteratorTag_t<typename std::iterator_traits<iterA_T>::iterator_category, typename std::iterator_traits<iterB_T>::iterator_category>;
 
   CombinedInputIterator() = default;
   CombinedInputIterator(iterA_T iterA, iterB_T iterB, F functor);
@@ -51,18 +88,48 @@ class CombinedInputIterator
   CombinedInputIterator& operator=(CombinedInputIterator&& other) = default;
   ~CombinedInputIterator() = default;
 
-  //comparison
-  bool operator==(const CombinedInputIterator& other) const;
-  bool operator!=(const CombinedInputIterator& other) const;
-
-  //pointer arithmetics
+  // pointer arithmetics
   CombinedInputIterator& operator++();
   CombinedInputIterator operator++(int);
   CombinedInputIterator& operator--();
   CombinedInputIterator operator--(int);
 
+  template <std::enable_if_t<areBothRandomAccessIterators_v<iterA_T, iterB_T>, bool> = true>
+  CombinedInputIterator& operator+=(difference_type i);
+
+  template <std::enable_if_t<areBothRandomAccessIterators_v<iterA_T, iterB_T>, bool> = true>
+  CombinedInputIterator operator+(difference_type i) const;
+
+  template <std::enable_if_t<areBothRandomAccessIterators_v<iterA_T, iterB_T>, bool> = true>
+  CombinedInputIterator& operator-=(difference_type i);
+
+  template <std::enable_if_t<areBothRandomAccessIterators_v<iterA_T, iterB_T>, bool> = true>
+  CombinedInputIterator operator-(difference_type i) const;
+
+  template <std::enable_if_t<areBothRandomAccessIterators_v<iterA_T, iterB_T>, bool> = true>
+  difference_type operator-(const CombinedInputIterator& other) const;
+
+  // comparison
+  bool operator==(const CombinedInputIterator& other) const;
+  bool operator!=(const CombinedInputIterator& other) const;
+
+  template <std::enable_if_t<areBothRandomAccessIterators_v<iterA_T, iterB_T>, bool> = true>
+  bool operator<(const CombinedInputIterator& other) const;
+
+  template <std::enable_if_t<areBothRandomAccessIterators_v<iterA_T, iterB_T>, bool> = true>
+  bool operator>(const CombinedInputIterator& other) const;
+
+  template <std::enable_if_t<areBothRandomAccessIterators_v<iterA_T, iterB_T>, bool> = true>
+  bool operator>=(const CombinedInputIterator& other) const;
+
+  template <std::enable_if_t<areBothRandomAccessIterators_v<iterA_T, iterB_T>, bool> = true>
+  bool operator<=(const CombinedInputIterator& other) const;
+
   // dereference
   auto operator*() const;
+
+  template <std::enable_if_t<areBothRandomAccessIterators_v<iterA_T, iterB_T>, bool> = true>
+  value_type operator[](difference_type i) const;
 
  private:
   iterA_T mIterA{};
@@ -74,6 +141,11 @@ class CombinedInputIterator
   {
     o << "CombinedInputIterator{iterA: " << &(iter.mIterA) << ", iterB: " << &(iter.mIterB) << "}";
     return o;
+  }
+
+  friend CombinedInputIterator operator+(CombinedInputIterator::difference_type i, const CombinedInputIterator& iter)
+  {
+    return iter + i;
   }
 };
 
@@ -106,7 +178,7 @@ class CombinedOutputIterator
   CombinedOutputIterator& operator=(CombinedOutputIterator&& other) = default;
   ~CombinedOutputIterator() = default;
 
-  //pointer arithmetics
+  // pointer arithmetics
   CombinedOutputIterator& operator++();
   CombinedOutputIterator operator++(int);
 
@@ -151,18 +223,6 @@ auto CombinedInputIterator<iterA_T, iterB_T, F>::operator=(const CombinedInputIt
 }
 
 template <class iterA_T, class iterB_T, class F>
-inline bool CombinedInputIterator<iterA_T, iterB_T, F>::operator==(const CombinedInputIterator& other) const
-{
-  return (mIterA == other.mIterA) && (mIterB == other.mIterB);
-}
-
-template <class iterA_T, class iterB_T, class F>
-inline bool CombinedInputIterator<iterA_T, iterB_T, F>::operator!=(const CombinedInputIterator& other) const
-{
-  return !(*this == other);
-}
-
-template <class iterA_T, class iterB_T, class F>
 inline auto CombinedInputIterator<iterA_T, iterB_T, F>::operator++() -> CombinedInputIterator&
 {
   ++mIterA;
@@ -195,13 +255,103 @@ inline auto CombinedInputIterator<iterA_T, iterB_T, F>::operator--(int) -> Combi
 }
 
 template <class iterA_T, class iterB_T, class F>
+template <std::enable_if_t<areBothRandomAccessIterators_v<iterA_T, iterB_T>, bool>>
+inline auto CombinedInputIterator<iterA_T, iterB_T, F>::operator+=(difference_type i) -> CombinedInputIterator&
+{
+  mIterA += i;
+  mIterB += i;
+  return *this;
+}
+
+template <class iterA_T, class iterB_T, class F>
+template <std::enable_if_t<areBothRandomAccessIterators_v<iterA_T, iterB_T>, bool>>
+inline auto CombinedInputIterator<iterA_T, iterB_T, F>::operator+(difference_type i) const -> CombinedInputIterator
+{
+  auto tmp = *const_cast<CombinedInputIterator*>(this);
+  return tmp += i;
+}
+
+template <class iterA_T, class iterB_T, class F>
+template <std::enable_if_t<areBothRandomAccessIterators_v<iterA_T, iterB_T>, bool>>
+inline auto CombinedInputIterator<iterA_T, iterB_T, F>::operator-=(difference_type i) -> CombinedInputIterator&
+{
+  mIterA -= i;
+  mIterB -= i;
+  return *this;
+}
+
+template <class iterA_T, class iterB_T, class F>
+template <std::enable_if_t<areBothRandomAccessIterators_v<iterA_T, iterB_T>, bool>>
+inline auto CombinedInputIterator<iterA_T, iterB_T, F>::operator-(difference_type i) const -> CombinedInputIterator
+{
+  auto tmp = *const_cast<CombinedInputIterator*>(this);
+  return tmp -= i;
+}
+
+template <class iterA_T, class iterB_T, class F>
+template <std::enable_if_t<areBothRandomAccessIterators_v<iterA_T, iterB_T>, bool>>
+inline auto CombinedInputIterator<iterA_T, iterB_T, F>::operator-(const CombinedInputIterator& other) const -> difference_type
+{
+  return this->mIterA - other.mIterA;
+}
+
+template <class iterA_T, class iterB_T, class F>
+inline bool CombinedInputIterator<iterA_T, iterB_T, F>::operator==(const CombinedInputIterator& other) const
+{
+  return (mIterA == other.mIterA) && (mIterB == other.mIterB);
+}
+
+template <class iterA_T, class iterB_T, class F>
+inline bool CombinedInputIterator<iterA_T, iterB_T, F>::operator!=(const CombinedInputIterator& other) const
+{
+  return !(*this == other);
+}
+
+template <class iterA_T, class iterB_T, class F>
+template <std::enable_if_t<areBothRandomAccessIterators_v<iterA_T, iterB_T>, bool>>
+inline bool CombinedInputIterator<iterA_T, iterB_T, F>::operator<(const CombinedInputIterator& other) const
+{
+  return other - *this > 0;
+}
+
+template <class iterA_T, class iterB_T, class F>
+template <std::enable_if_t<areBothRandomAccessIterators_v<iterA_T, iterB_T>, bool>>
+inline bool CombinedInputIterator<iterA_T, iterB_T, F>::operator>(const CombinedInputIterator& other) const
+{
+  return other < *this;
+}
+
+template <class iterA_T, class iterB_T, class F>
+template <std::enable_if_t<areBothRandomAccessIterators_v<iterA_T, iterB_T>, bool>>
+inline bool CombinedInputIterator<iterA_T, iterB_T, F>::operator>=(const CombinedInputIterator& other) const
+{
+  return !(*this < other);
+}
+
+template <class iterA_T, class iterB_T, class F>
+template <std::enable_if_t<areBothRandomAccessIterators_v<iterA_T, iterB_T>, bool>>
+inline bool CombinedInputIterator<iterA_T, iterB_T, F>::operator<=(const CombinedInputIterator& other) const
+{
+  return !(*this > other);
+}
+
+template <class iterA_T, class iterB_T, class F>
 inline auto CombinedInputIterator<iterA_T, iterB_T, F>::operator*() const
 {
   return mFunctor(mIterA, mIterB);
 }
 
+template <class iterA_T, class iterB_T, class F>
+template <std::enable_if_t<areBothRandomAccessIterators_v<iterA_T, iterB_T>, bool>>
+inline auto CombinedInputIterator<iterA_T, iterB_T, F>::operator[](difference_type i) const -> value_type
+{
+  return *(*this + i);
+}
+
 template <typename input_T, class iterA_T, class iterB_T, class F>
-CombinedOutputIterator<input_T, iterA_T, iterB_T, F>::CombinedOutputIterator(iterA_T iterA, iterB_T iterB, F functor) : mIterA{iterA}, mIterB{iterB}, mFunctor{functor}
+CombinedOutputIterator<input_T, iterA_T, iterB_T, F>::CombinedOutputIterator(iterA_T iterA, iterB_T iterB, F functor) : mIterA{iterA},
+                                                                                                                        mIterB{iterB},
+                                                                                                                        mFunctor{functor}
 {
 }
 
