@@ -212,13 +212,16 @@ class SingleLUT : public LUT
  public:
   static constexpr char sDetectorName[] = "FV0";
   static constexpr char sDefaultLUTpath[] = "FV0/LookUpTable";
-  inline static std::string sCurrentCCDBpath = o2::base::NameConf::getCCDBServer();
+  inline static std::string sCurrentCCDBpath = "";
   inline static std::string sCurrentLUTpath = sDefaultLUTpath;
   //Before instance() call, setup url and path
   static void setCCDBurl(const std::string& url) { sCurrentCCDBpath = url; }
   static void setLUTpath(const std::string& path) { sCurrentLUTpath = path; }
   static SingleLUT& Instance()
   {
+    if (sCurrentCCDBpath == "") {
+      sCurrentCCDBpath = o2::base::NameConf::getCCDBServer();
+    }
     static SingleLUT instanceLUT(sCurrentCCDBpath, sCurrentLUTpath);
     return instanceLUT;
   }
