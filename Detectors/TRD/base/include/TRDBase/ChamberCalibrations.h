@@ -19,10 +19,8 @@
 //  Most things were stored in AliTRDcalROC,AliTRDcalPad, AliTRDcalDet       //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "TRDBase/SimParam.h"
 #include "DataFormatsTRD/Constants.h"
-//
-class Geometry;
+#include "DataFormatsTRD/HelperMethods.h"
 
 namespace o2
 {
@@ -34,24 +32,22 @@ class ChamberCalibrations
   ChamberCalibrations() = default;
   ~ChamberCalibrations() = default;
   //
-  float getVDrift(int p, int c, int s) const { return mVDrift[o2::trd::Geometry::getDetector(p, c, s)]; };
+  float getVDrift(int p, int c, int s) const { return mVDrift[HelperMethods::getDetector(p, c, s)]; };
   float getVDrift(int roc) const { return mVDrift[roc]; };
-  float getGainFactor(int p, int c, int s) const { return mGainFactor[Geometry::getDetector(p, c, s)]; };
+  float getGainFactor(int p, int c, int s) const { return mGainFactor[HelperMethods::getDetector(p, c, s)]; };
   float getGainFactor(int roc) const { return mGainFactor[roc]; };
-  float getT0(int p, int c, int s) const { return mT0[Geometry::getDetector(p, c, s)]; };
+  float getT0(int p, int c, int s) const { return mT0[HelperMethods::getDetector(p, c, s)]; };
   float getT0(int roc) const { return mT0[roc]; };
-  float getExB(int p, int c, int s) const { return mExB[Geometry::getDetector(p, c, s)]; };
+  float getExB(int p, int c, int s) const { return mExB[HelperMethods::getDetector(p, c, s)]; };
   float getExB(int roc) const { return mExB[roc]; };
-  void setVDrift(int p, int c, int s, float vdrift) { mVDrift[o2::trd::Geometry::getDetector(p, c, s)] = vdrift; };
+  void setVDrift(int p, int c, int s, float vdrift) { mVDrift[HelperMethods::getDetector(p, c, s)] = vdrift; };
   void setVDrift(int roc, float vdrift) { mVDrift[roc] = vdrift; };
-  void setGainFactor(int p, int c, int s, float gainfactor) { mGainFactor[Geometry::getDetector(p, c, s)] = gainfactor; };
+  void setGainFactor(int p, int c, int s, float gainfactor) { mGainFactor[HelperMethods::getDetector(p, c, s)] = gainfactor; };
   void setGainFactor(int roc, float gainfactor) { mGainFactor[roc] = gainfactor; };
-  void setT0(int p, int c, int s, float t0) { mT0[Geometry::getDetector(p, c, s)] = t0; };
+  void setT0(int p, int c, int s, float t0) { mT0[HelperMethods::getDetector(p, c, s)] = t0; };
   void setT0(int roc, float t0) { mT0[roc] = t0; };
-  void setExB(int p, int c, int s, float exb) { mExB[Geometry::getDetector(p, c, s)] = exb; };
+  void setExB(int p, int c, int s, float exb) { mExB[HelperMethods::getDetector(p, c, s)] = exb; };
   void setExB(int roc, float exb) { mExB[roc] = exb; };
-  //bulk gets ?
-  bool init(int run2run = 0);
 
  protected:
   std::array<float, constants::MAXCHAMBER> mVDrift{};     // mean drift velocity per chamber.
