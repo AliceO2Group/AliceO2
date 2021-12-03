@@ -789,6 +789,11 @@ bool CcdbApi::initTGrid() const
   if (!mAlienInstance) {
     if (mHaveAlienToken) {
       mAlienInstance = TGrid::Connect("alien");
+      static bool errorShown = false;
+      if (errorShown == false) {
+        LOG(error) << "TGrid::Connect returned nullptr despite token present";
+        errorShown = true;
+      }
     } else {
       LOG(warn) << "CCDB: Did not find an alien token; Cannot serve objects located on alien://";
     }
