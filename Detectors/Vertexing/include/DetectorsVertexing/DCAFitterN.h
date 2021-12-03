@@ -20,6 +20,7 @@
 #include "MathUtils/Cartesian.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "DetectorsVertexing/HelixHelper.h"
+#include "DetectorsBase/Propagator.h"
 
 namespace o2
 {
@@ -171,6 +172,11 @@ class DCAFitterN
   void setMinRelChi2Change(float r = 0.9) { mMinRelChi2Change = r > 0.1 ? r : 999.; }
   void setUseAbsDCA(bool v) { mUseAbsDCA = v; }
   void setMaxDistance2ToMerge(float v) { mMaxDist2ToMergeSeeds = v; }
+  void setMatCorrType(o2::base::Propagator::MatCorrType m = o2::base::Propagator::MatCorrType::USEMatCorrLUT) { mMatCorr = m; }
+  void setUsePropagator(bool v) { mUsePropagator = v; }
+  void setRefitWithMatCorr(bool v) { mRefitWithMatCorr = v; }
+  void setMaxSnp(float s) { mMaxSnp = s; }
+  void setMaxStep(float s) { mMaxStep = s; }
 
   int getNCandidates() const { return mCurHyp; }
   int getMaxIter() const { return mMaxIter; }
@@ -183,6 +189,11 @@ class DCAFitterN
   float getMaxDistance2ToMerge() const { return mMaxDist2ToMergeSeeds; }
   bool getUseAbsDCA() const { return mUseAbsDCA; }
   bool getPropagateToPCA() const { return mPropagateToPCA; }
+  o2::base::Propagator::MatCorrType getMatCorrType() const { return mMatCorr; }
+  bool getUsePropagator() const { return mUsePropagator; }
+  bool getRefitWithMatCorr() const { return mRefitWithMatCorr; }
+  float getMaxSnp() const { return mMaxSnp; }
+  float getMasStep() const { return mMaxStep; }
 
   template <class... Tr>
   int process(const Tr&... args);
@@ -207,8 +218,10 @@ class DCAFitterN
   bool minimizeChi2NoErr();
   bool roughDZCut() const;
   bool closerToAlternative() const;
-  static double getAbsMax(const VecND& v);
+  bool propagateToX(o2::track::TrackParCov& t, float x) const;
+  bool propagateParamToX(o2::track::TrackPar& t, float x) const;
 
+  static double getAbsMax(const VecND& v);
   ///< track param positions at V0 candidate (no check for the candidate validity)
   const Vec3D& getTrackPos(int i, int cand = 0) const { return mTrPos[mOrder[cand]][i]; }
 
@@ -290,6 +303,10 @@ class DCAFitterN
   bool mAllowAltPreference = true;  // if the fit converges to alternative PCA seed, abandon the current one
   bool mUseAbsDCA = false;          // use abs. distance minimization rather than chi2
   bool mPropagateToPCA = true;      // create tracks version propagated to PCA
+  bool mUsePropagator = false;      // use propagator with 3D B-field, set automatically if material correction is requested
+  bool mRefitWithMatCorr = false;   // when doing propagateTracksToVertex, propagate tracks to V0 with material corrections and rerun minimization again
+  o2::base::Propagator::MatCorrType mMatCorr = o2::base::Propagator::MatCorrType::USEMatCorrNONE; // material corrections type
+
   int mMaxIter = 20;                // max number of iterations
   float mBz = 0;                    // bz field, to be set by user
   float mMaxR2 = 200. * 200.;       // reject PCA's above this radius
@@ -299,6 +316,8 @@ class DCAFitterN
   float mMinRelChi2Change = 0.9;    // stop iterations is chi2/chi2old > this
   float mMaxChi2 = 100;             // abs cut on chi2 or abs distance
   float mMaxDist2ToMergeSeeds = 1.; // merge 2 seeds to their average if their distance^2 is below the threshold
+  float mMaxSnp = 0.95;             // Max snp for propagation with Propagator
+  float mMaxStep = 2.0;             // Max step for propagation with Propagator
 
   ClassDefNV(DCAFitterN, 1);
 };
@@ -714,16 +733,31 @@ bool DCAFitterN<N, Args...>::propagateTracksToVertex(int icand)
   if (mTrPropDone[ord]) {
     return true;
   }
-  const Vec3D& pca = mPCA[ord];
   for (int i = N; i--;) {
-    if (mUseAbsDCA) {
-      mCandTr[ord][i] = *mOrigTrPtr[i]; // fetch the track again, as mCandTr might have been propagated w/o errors
+    if (mUseAbsDCA || mUsePropagator || mMatCorr != o2::base::Propagator::MatCorrType::USEMatCorrNONE) {
+      mCandTr[ord][i] = *mOrigTrPtr[i]; // fetch the track again, as mCandTr might have been propagated w/o errors or material corrections might be wrong
     }
-    auto& trc = mCandTr[ord][i];
-    auto x = mTrAux[i].c * pca[0] + mTrAux[i].s * pca[1]; // X of PCA in the track frame
-    if (!trc.propagateTo(x, mBz)) {
+    auto x = mTrAux[i].c * mPCA[ord][0] + mTrAux[i].s * mPCA[ord][1]; // X of PCA in the track frame
+    if (!propagateToX(mCandTr[ord][i], x)) {
       return false;
     }
+  }
+  if (mRefitWithMatCorr) {
+    int curHypSav = mCurHyp; // save
+    mCurHyp = ord;
+    if (mUseAbsDCA ? minimizeChi2NoErr() : minimizeChi2()) { // do final propagation
+      for (int i = N; i--;) {
+        auto x = mTrAux[i].c * mPCA[ord][0] + mTrAux[i].s * mPCA[ord][1]; // X of PCA in the track frame
+        if (!propagateToX(mCandTr[ord][i], x)) {
+          mCurHyp = curHypSav; // restore
+          return false;
+        }
+      }
+    } else {
+      mCurHyp = curHypSav; // restore
+      return false;
+    }
+    mCurHyp = curHypSav; // restore
   }
   mTrPropDone[ord] = true;
   return true;
@@ -738,7 +772,7 @@ inline o2::track::TrackPar DCAFitterN<N, Args...>::getTrackParamAtPCA(int i, int
   o2::track::TrackPar trc(mCandTr[ord][i]);
   if (!mTrPropDone[ord]) {
     auto x = mTrAux[i].c * mPCA[ord][0] + mTrAux[i].s * mPCA[ord][1]; // X of PCA in the track frame
-    if (!trc.propagateParamTo(x, mBz)) {
+    if (!propagateParamToX(trc, x)) {
       trc.invalidate();
     }
   }
@@ -767,7 +801,7 @@ bool DCAFitterN<N, Args...>::minimizeChi2()
   for (int i = N; i--;) {
     mCandTr[mCurHyp][i] = *mOrigTrPtr[i];
     auto x = mTrAux[i].c * mPCA[mCurHyp][0] + mTrAux[i].s * mPCA[mCurHyp][1]; // X of PCA in the track frame
-    if (!mCandTr[mCurHyp][i].propagateTo(x, mBz)) {
+    if (!propagateToX(mCandTr[mCurHyp][i], x)) {
       return false;
     }
     setTrackPos(mTrPos[mCurHyp][i], mCandTr[mCurHyp][i]);      // prepare positions
@@ -825,7 +859,7 @@ bool DCAFitterN<N, Args...>::minimizeChi2NoErr()
   for (int i = N; i--;) {
     mCandTr[mCurHyp][i] = *mOrigTrPtr[i];
     auto x = mTrAux[i].c * mPCA[mCurHyp][0] + mTrAux[i].s * mPCA[mCurHyp][1]; // X of PCA in the track frame
-    if (!mCandTr[mCurHyp][i].propagateParamTo(x, mBz)) {
+    if (!propagateParamToX(mCandTr[mCurHyp][i], x)) {
       return false;
     }
     setTrackPos(mTrPos[mCurHyp][i], mCandTr[mCurHyp][i]); // prepare positions
@@ -960,6 +994,28 @@ o2::track::TrackPar DCAFitterN<N, Args...>::createParentTrackPar(int cand, bool 
   }
   const std::array<float, 3> vertex = {(float)wvtx[0], (float)wvtx[1], (float)wvtx[2]};
   return std::move(o2::track::TrackPar(vertex, pvecV, q, sectorAlpha));
+}
+
+//___________________________________________________________________
+template <int N, typename... Args>
+inline bool DCAFitterN<N, Args...>::propagateParamToX(o2::track::TrackPar& t, float x) const
+{
+  if (mUsePropagator || mMatCorr != o2::base::Propagator::MatCorrType::USEMatCorrNONE) {
+    return o2::base::Propagator::Instance()->PropagateToXBxByBz(t, x, mMaxSnp, mMaxStep, mMatCorr);
+  } else {
+    return t.propagateParamTo(x, mBz);
+  }
+}
+
+//___________________________________________________________________
+template <int N, typename... Args>
+inline bool DCAFitterN<N, Args...>::propagateToX(o2::track::TrackParCov& t, float x) const
+{
+  if (mUsePropagator || mMatCorr != o2::base::Propagator::MatCorrType::USEMatCorrNONE) {
+    return o2::base::Propagator::Instance()->PropagateToXBxByBz(t, x, mMaxSnp, mMaxStep, mMatCorr);
+  } else {
+    return t.propagateTo(x, mBz);
+  }
 }
 
 using DCAFitter2 = DCAFitterN<2, o2::track::TrackParCov>;
