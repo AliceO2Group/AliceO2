@@ -9,9 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file HyperTracker.h
+/// \file hyperTracker.h
 /// \brief hypertracker
-/// \author francesco.mazzaschi@cern.ch
+///
 
 #ifndef _ALICEO2_HYPER_TRACKER_
 #define _ALICEO2_HYPER_TRACKER_
@@ -20,17 +20,17 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ReconstructionDataFormats/Track.h"
-#include "DetectorsVertexing/DCAFitterN.h"
-
 #include <TLorentzVector.h>
 #include "TMath.h"
+#include "DetectorsVertexing/DCAFitterN.h"
+#include "DetectorsBase/Propagator.h"
 
 namespace o2
 {
 namespace tracking
 {
 
-class HyperTracker
+class hyperTracker
 {
  public:
   using PID = o2::track::PID;
@@ -38,18 +38,20 @@ class HyperTracker
   using ITSCluster = o2::BaseCluster<float>;
   using V0 = o2::dataformats::V0;
   using DCAFitter2 = o2::vertexing::DCAFitterN<2>;
+  using DCAFitter3 = o2::vertexing::DCAFitterN<3>;
 
-  HyperTracker() = default;
-  HyperTracker(const TrackITS& motherTrack, const V0& v0, const std::vector<ITSCluster>& motherClusters, o2::its::GeometryTGeo* gman, DCAFitter2& mFitterV0); //recompute V0 using hypertriton hypothesis
-  HyperTracker(const TrackITS& motherTrack, const V0& v0, const std::vector<ITSCluster>& motherClusters, o2::its::GeometryTGeo* gman);
+  hyperTracker() = default;
+  hyperTracker(const TrackITS& motherTrack, const V0& v0, const std::vector<ITSCluster>& motherClusters, o2::its::GeometryTGeo* gman, DCAFitter2& mFitterV0); // recompute V0 using hypertriton hypothesis
+  hyperTracker(const TrackITS& motherTrack, const V0& v0, const std::vector<ITSCluster>& motherClusters, o2::its::GeometryTGeo* gman);
 
   double getMatchingChi2();
   double calcV0alpha(const V0& v0);
   bool process();
   bool propagateToClus(const ITSCluster& clus, o2::track::TrackParCov& track);
-  int updateV0topology(const ITSCluster& clus, bool tryDaughter);
+  bool updateTrack(const ITSCluster& clus, o2::track::TrackParCov& track);
   bool recreateV0(const o2::track::TrackParCov& posTrack, const o2::track::TrackParCov& negTrack, const int posID, const int negID);
   V0& getV0() { return hypV0; };
+  bool Refit3Body();
 
   float getNclusMatching() const { return nClusMatching; }
   void setNclusMatching(float d) { nClusMatching = d; }
@@ -64,12 +66,16 @@ class HyperTracker
   TrackITS hyperTrack;                   // track of hypertriton mother
   V0 hypV0;                              // V0 of decay daughters
   std::vector<ITSCluster> hyperClusters; // clusters of hypertriton mother
-  o2::its::GeometryTGeo* geomITS;        //geometry for ITS clusters
+  o2::its::GeometryTGeo* geomITS;        // geometry for ITS clusters
   DCAFitter2 mFitterV0;                  // optional DCA Fitter for recreating V0 with hypertriton mass hypothesis
+  DCAFitter3 mFitter3Body;               // optional DCA Fitter for recreating V0 with hypertriton mass hypothesis
 
   int nClusMatching; // number of cluster to be matched to V0
+  float mInitR2;
   float mMaxChi2 = 40;
   float mBz = -5;
+
+  ClassDefNV(hyperTracker, 1);
 };
 
 } // namespace tracking
