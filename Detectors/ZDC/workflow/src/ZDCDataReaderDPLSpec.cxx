@@ -62,15 +62,15 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
 
   //>> update Time-dependent CCDB stuff, at the moment set the moduleconfig only once
   if (!mRawReader.getModuleConfig()) {
-    long timeStamp = 0;
+    /*long timeStamp = 0; // TIMESTAMP SHOULD NOT BE 0
+    mgr.setTimestamp(timeStamp);*/
     auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-    mgr.setTimestamp(timeStamp);
     auto moduleConfig = mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
     if (!moduleConfig) {
-      LOG(fatal) << "Cannot module configuratio for timestamp " << timeStamp;
+      LOG(fatal) << "Cannot module configuratio for timestamp " << mgr.getTimestamp();
       return;
     } else {
-      LOG(info) << "Loaded module configuration for timestamp " << timeStamp;
+      LOG(info) << "Loaded module configuration for timestamp " << mgr.getTimestamp();
     }
     mRawReader.setModuleConfig(moduleConfig);
     mRawReader.setTriggerMask();
