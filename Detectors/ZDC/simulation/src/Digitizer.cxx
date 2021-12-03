@@ -457,14 +457,9 @@ void Digitizer::refreshCCDB()
 {
   // fetch ccdb objects. TODO: decide if this stays here or goes to the Spec
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-  if (mTimeStamp == mgr.getTimestamp()) {
-    return;
-  }
-  mgr.setTimestamp(mTimeStamp);
-
   if (!mModuleConfig) { // load this only once
     mModuleConfig = mgr.get<ModuleConfig>(CCDBPathConfigModule);
-    LOG(info) << "Loaded module configuration for timestamp " << mTimeStamp;
+    LOG(info) << "Loaded module configuration for timestamp " << mgr.getTimestamp();
     // fetch trigger info
     mTriggerConfig.clear();
     mModConfAux.clear();
@@ -509,7 +504,7 @@ void Digitizer::refreshCCDB()
 
   if (!mSimCondition) { // load this only once
     mSimCondition = mgr.get<SimCondition>(CCDBPathConfigSim);
-    LOG(info) << "Loaded simulation configuration for timestamp " << mTimeStamp;
+    LOG(info) << "Loaded simulation configuration for timestamp " << mgr.getTimestamp();
     mSimCondition->print();
   }
 
