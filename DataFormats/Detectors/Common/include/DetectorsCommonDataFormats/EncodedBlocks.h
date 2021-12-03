@@ -786,9 +786,9 @@ void EncodedBlocks<H, N, W>::decode(D_IT dest,                    // iterator to
       const o2::rans::LiteralDecoder64<dest_t>* decoder = reinterpret_cast<const o2::rans::LiteralDecoder64<dest_t>*>(decoderExt);
       std::unique_ptr<o2::rans::LiteralDecoder64<dest_t>> decoderLoc;
       if (block.getNDict()) { // if dictionaty is saved, prefer it
-        o2::rans::FrequencyTable frequencies;
-        frequencies.addFrequencies(block.getDict(), block.getDict() + block.getNDict(), md.min, md.max);
-        decoderLoc = std::make_unique<o2::rans::LiteralDecoder64<dest_t>>(frequencies, md.probabilityBits);
+        rans::FrequencyTable frequencies{block.getDict(), block.getDict() + block.getNDict(), md.min};
+        frequencies = rans::renorm(std::move(frequencies), md.probabilityBits);
+        decoderLoc = std::make_unique<o2::rans::LiteralDecoder64<dest_t>>(frequencies);
         decoder = decoderLoc.get();
       } else { // verify that decoded corresponds to stored metadata
         if (md.min != decoder->getMinSymbol()) {
@@ -887,7 +887,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
         rans::FrequencyTable frequencyTable{};
         frequencyTable.addSamples(srcBegin, srcEnd);
         FrequencyTable renormedFrequencyTable = rans::renorm(frequencyTable, symbolTablePrecision);
-        return std::make_tuple(ransEncoder_t{renormedFrequencyTable, symbolTablePrecision}, frequencyTable);
+        return std::make_tuple(ransEncoder_t{renormedFrequencyTable}, frequencyTable);
       }
     }();
     ransEncoder_t const* const encoder = encoderExt ? reinterpret_cast<ransEncoder_t const* const>(encoderExt) : &inplaceEncoder;

@@ -39,7 +39,7 @@ class LiteralEncoder : public internal::EncoderBase<coder_T, stream_T, source_T>
 {
 
  public:
-  //inherit constructors;
+  // inherit constructors;
   using internal::EncoderBase<coder_T, stream_T, source_T>::EncoderBase;
 
   template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<source_T, source_IT>, bool> = true>
@@ -63,8 +63,8 @@ stream_IT LiteralEncoder<coder_T, stream_T, source_T>::process(source_IT inputBe
     return outputBegin;
   }
 
-  ransCoder_t rans0{this->mSymbolTablePrecission};
-  ransCoder_t rans1{this->mSymbolTablePrecission};
+  ransCoder_t rans0{this->mSymbolTable.getPrecision()};
+  ransCoder_t rans1{this->mSymbolTable.getPrecision()};
 
   stream_IT outputIter = outputBegin;
   source_IT inputIT = inputEnd;
@@ -108,7 +108,7 @@ stream_IT LiteralEncoder<coder_T, stream_T, source_T>::process(source_IT inputBe
               << "sourceTypeB: " << sizeof(source_T) << ", "
               << "streamTypeB: " << sizeof(stream_T) << ", "
               << "coderTypeB: " << sizeof(coder_T) << ", "
-              << "probabilityBits: " << this->mSymbolTablePrecission << ", "
+              << "symbolTablePrecision: " << this->mSymbolTable.getPrecision() << ", "
               << "inputBufferSizeB: " << inputBufferSizeB << "}";
 #endif
 

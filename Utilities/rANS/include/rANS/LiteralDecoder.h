@@ -83,8 +83,8 @@ void LiteralDecoder<coder_T, stream_T, source_T>::process(stream_IT inputEnd, so
   // make Iter point to the last last element
   --inputIter;
 
-  ransDecoder_t rans0{this->mSymbolTablePrecission};
-  ransDecoder_t rans1{this->mSymbolTablePrecission};
+  ransDecoder_t rans0{this->mSymbolTable.getPrecision()};
+  ransDecoder_t rans1{this->mSymbolTable.getPrecision()};
   inputIter = rans0.init(inputIter);
   inputIter = rans1.init(inputIter);
 
