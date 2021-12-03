@@ -65,11 +65,7 @@ class LHCClockCalibrator final : public o2::calibration::TimeSlotCalibration<o2:
   using LHCphaseVector = std::vector<LHCphase>;
 
  public:
-//<<<<<<< HEAD
-  LHCClockCalibrator(int minEnt = 500, int nb = 1000, float r = 24400, const std::string path = o2::base::NameConf::getCCDBServer()) : mMinEntries(minEnt), mNBins(nb), mRange(r) { mCalibTOFapi.setURL(path); }
-//=======
-//  LHCClockCalibrator(int minEnt = 500, int nb = 1000, float r = 24400) : mMinEntries(minEnt), mNBins(nb), mRange(r) {}
-//>>>>>>> fix lhc phase calibration
+  LHCClockCalibrator(int minEnt = 500, int nb = 1000, float r = 24400, const std::string path = o2::base::NameConf::getCCDBServer()) : mMinEntries(minEnt), mNBins(nb), mRange(r) { mCalibTOFapi->setURL(path); }
   ~LHCClockCalibrator() final = default;
   bool hasEnoughData(const Slot& slot) const final { return slot.getContainer()->entries >= mMinEntries; }
   void initOutput() final;

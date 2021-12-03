@@ -86,17 +86,17 @@ ULong64_t Diagnostic::getTRMKey(int crate, int trm)
   return key;
 }
 
-int Diagnostic::getSlot(ULong64_t pattern) const
+int Diagnostic::getSlot(ULong64_t pattern)
 {
   return (pattern & 68719476735) / 4294967296;
 }
 
-int Diagnostic::getCrate(ULong64_t pattern) const
+int Diagnostic::getCrate(ULong64_t pattern)
 {
   return (pattern & 8796093022207) / 68719476736;
 }
 
-int Diagnostic::getChannel(ULong64_t pattern) const
+int Diagnostic::getChannel(ULong64_t pattern)
 {
   if (getSlot(pattern) == 14) {
     return (pattern & 262143);
@@ -104,7 +104,7 @@ int Diagnostic::getChannel(ULong64_t pattern) const
   return -1;
 }
 
-int Diagnostic::getNoisyLevel(ULong64_t pattern) const
+int Diagnostic::getNoisyLevel(ULong64_t pattern)
 {
   if (getChannel(pattern)) {
     if (pattern & (1 << 20)) {

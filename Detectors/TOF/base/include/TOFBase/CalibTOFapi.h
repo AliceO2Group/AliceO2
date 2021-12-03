@@ -22,6 +22,7 @@
 #include "DataFormatsTOF/CalibTimeSlewingParamTOF.h"
 #include "TOFBase/Geo.h"
 #include "DataFormatsTOF/Diagnostic.h"
+#include "DataFormatsTOF/TOFFEElightInfo.h"
 
 namespace o2
 {
@@ -54,11 +55,14 @@ class CalibTOFapi
   void readLHCphase();
   void readTimeSlewingParam();
   void readDiagnosticFrequencies();
+  void readActiveMap();
   void writeLHCphase(LhcPhase* phase, std::map<std::string, std::string> metadataLHCphase, uint64_t minTimeSTamp, uint64_t maxTimeStamp);
   void writeTimeSlewingParam(SlewParam* param, std::map<std::string, std::string> metadataChannelCalib, uint64_t minTimeSTamp, uint64_t maxTimeStamp = 0);
   float getTimeCalibration(int ich, float tot);
   float getTimeDecalibration(int ich, float tot);
   bool isProblematic(int ich);
+  bool isNoisy(int ich);
+  bool isOff(int ich);
   float getFractionUnderPeak(int ich) const { return mSlewParam->getFractionUnderPeak(ich); }
 
   SlewParam* getSlewParam() { return mSlewParam; }
@@ -73,6 +77,11 @@ class CalibTOFapi
   const std::vector<std::pair<int, float>>& getTRMerrorProb() const { return mTRMerrorProb; }
   const std::vector<int>& getTRMmask() const { return mTRMmask; }
 
+  void resetTRMErrors();
+  void processError(int crate, int trm, int mask);
+  bool isChannelError(int channel) const;
+  bool checkTRMPolicy(int mask) const;
+
  private:
   long mTimeStamp;                 ///< timeStamp for queries
   LhcPhase* mLHCphase = nullptr;   ///< object for LHC phase
@@ -86,6 +95,11 @@ class CalibTOFapi
   std::vector<std::pair<int, float>> mNoisy;        ///< probTRMerror
   std::vector<std::pair<int, float>> mTRMerrorProb; ///< probTRMerror
   std::vector<int> mTRMmask;                        ///< mask error for TRM
+
+  bool mIsErrorCh[Geo::NCHANNELS];  ///< channels in error (TRM)
+  std::vector<int> mFillErrChannel; ///< last error channels filled
+  bool mIsOffCh[Geo::NCHANNELS];    ///< channels in error (TRM)
+  bool mIsNoisy[Geo::NCHANNELS];    ///< noisy channels
 
   ClassDefNV(CalibTOFapi, 1);
 };
