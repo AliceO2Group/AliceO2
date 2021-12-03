@@ -11,6 +11,7 @@
 
 o2_add_library(StrangenessTracking
                SOURCES src/HyperTracker.cxx
+                       src/HypertrackingConfigParam.cxx
                PUBLIC_LINK_LIBRARIES O2::MathUtils
                                              O2::ITSBase
                                              O2::ITSMFTReconstruction
@@ -21,3 +22,7 @@ o2_add_library(StrangenessTracking
                                              O2::DetectorsVertexing
                                              O2::ReconstructionDataFormats
                )
+
+o2_target_root_dictionary(StrangenessTracking
+               HEADERS include/StrangenessTracking/HypertrackingConfigParam.h
+               LINKDEF src/HypertrackingLinkDef.h)

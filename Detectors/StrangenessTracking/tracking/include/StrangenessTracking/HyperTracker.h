@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file hyperTracker.h
+/// \file HyperTracker.h
 /// \brief hypertracker
 ///
 
@@ -27,10 +27,10 @@
 
 namespace o2
 {
-namespace tracking
+namespace strangeness_tracking
 {
 
-class hyperTracker
+class HyperTracker
 {
  public:
   using PID = o2::track::PID;
@@ -40,9 +40,9 @@ class hyperTracker
   using DCAFitter2 = o2::vertexing::DCAFitterN<2>;
   using DCAFitter3 = o2::vertexing::DCAFitterN<3>;
 
-  hyperTracker() = default;
-  hyperTracker(const TrackITS& motherTrack, const V0& v0, const std::vector<ITSCluster>& motherClusters, o2::its::GeometryTGeo* gman, DCAFitter2& mFitterV0); // recompute V0 using hypertriton hypothesis
-  hyperTracker(const TrackITS& motherTrack, const V0& v0, const std::vector<ITSCluster>& motherClusters, o2::its::GeometryTGeo* gman);
+  HyperTracker() = default;
+  HyperTracker(const TrackITS& motherTrack, const V0& v0, const std::vector<ITSCluster>& motherClusters, o2::its::GeometryTGeo* gman, DCAFitter2& mFitterV0); // recompute V0 using hypertriton hypothesis
+  HyperTracker(const TrackITS& motherTrack, const V0& v0, const std::vector<ITSCluster>& motherClusters, o2::its::GeometryTGeo* gman);
 
   double getMatchingChi2();
   double calcV0alpha(const V0& v0);
@@ -75,7 +75,7 @@ class hyperTracker
   float mMaxChi2 = 40;
   float mBz = -5;
 
-  ClassDefNV(hyperTracker, 1);
+  ClassDefNV(HyperTracker, 1);
 };
 
 } // namespace tracking

@@ -9,17 +9,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "hyperTracker.h"
+#include "StrangenessTracking/HyperTracker.h"
 namespace o2
 {
-namespace tracking
+namespace strangeness_tracking
 {
 
-hyperTracker::hyperTracker(const TrackITS& motherTrack, const V0& v0, const std::vector<ITSCluster>& motherClusters, o2::its::GeometryTGeo* gman, DCAFitter2& mFitterV0)
+HyperTracker::HyperTracker(const TrackITS& motherTrack, const V0& v0, const std::vector<ITSCluster>& motherClusters, o2::its::GeometryTGeo* gman, DCAFitter2& mFitterV0)
   : hyperTrack{motherTrack}, hyperClusters{motherClusters}, geomITS{gman}, mFitterV0{mFitterV0}
 {
   mInitR2 = v0.calcR2();
-  LOG(INFO) << "Original V0 radius: " << v0.calcR2();
+  LOG(info) << "Original V0 radius: " << v0.calcR2();
 
   auto posTrack = v0.getProng(0);
   auto negTrack = v0.getProng(1);
@@ -29,19 +29,19 @@ hyperTracker::hyperTracker(const TrackITS& motherTrack, const V0& v0, const std:
   auto isRecr = recreateV0(posTrack, negTrack, v0.getProngID(0), v0.getProngID(1));
 
   if (!isRecr) {
-    LOG(INFO) << "V0 regeneration not successful, using default one";
+    LOG(info) << "V0 regeneration not successful, using default one";
     hypV0 = v0;
   }
   setNclusMatching(motherClusters.size());
 }
 
-hyperTracker::hyperTracker(const TrackITS& motherTrack, const V0& v0, const std::vector<ITSCluster>& motherClusters, o2::its::GeometryTGeo* gman)
+HyperTracker::HyperTracker(const TrackITS& motherTrack, const V0& v0, const std::vector<ITSCluster>& motherClusters, o2::its::GeometryTGeo* gman)
   : hyperTrack{motherTrack}, hypV0{v0}, hyperClusters{motherClusters}, geomITS{gman}
 {
   setNclusMatching(motherClusters.size());
 }
 
-double hyperTracker::getMatchingChi2()
+double HyperTracker::getMatchingChi2()
 {
   auto& outerClus = hyperClusters[0];
   float alpha = geomITS->getSensorRefAlpha(outerClus.getSensorID()), x = outerClus.getX();
@@ -60,9 +60,9 @@ double hyperTracker::getMatchingChi2()
   return -1;
 }
 
-bool hyperTracker::process()
+bool HyperTracker::process()
 {
-  std::vector<o2::tracking::hyperTracker::ITSCluster> ITSclusV0;
+  std::vector<o2::strangeness_tracking::HyperTracker::ITSCluster> ITSclusV0;
   int isProcessed = 0;
   bool tryDaughter = true;
 
@@ -73,7 +73,7 @@ bool hyperTracker::process()
     if (diffR2 > -4) {
       if (updateTrack(clus, hypV0)) {
         tryDaughter = false;
-        LOG(INFO) << "Attach cluster to V0 for layer: " << geomITS->getLayer(clus.getSensorID());
+        LOG(info) << "Attach cluster to V0 for layer: " << geomITS->getLayer(clus.getSensorID());
         isProcessed++;
         ITSclusV0.push_back(clus);
       }
@@ -85,7 +85,7 @@ bool hyperTracker::process()
       if (!updateTrack(clus, he3track))
         return false; // no V0 or He3 compatible clusters
       recreateV0(hypV0.getProng(0), hypV0.getProng(1), hypV0.getProngID(0), hypV0.getProngID(1));
-      LOG(INFO) << "Attach cluster to He3 for layer: " << geomITS->getLayer(clus.getSensorID());
+      LOG(info) << "Attach cluster to He3 for layer: " << geomITS->getLayer(clus.getSensorID());
       isProcessed++;
       continue;
     }
@@ -107,11 +107,11 @@ bool hyperTracker::process()
   auto finalRefit = Refit3Body();
   if (!finalRefit)
     return false;
-  LOG(INFO) << "Final V0 radius: " << hypV0.calcR2();
+  LOG(info) << "Final V0 radius: " << hypV0.calcR2();
   return isProcessed >= nClusMatching;
 }
 
-bool hyperTracker::updateTrack(const ITSCluster& clus, o2::track::TrackParCov& track)
+bool HyperTracker::updateTrack(const ITSCluster& clus, o2::track::TrackParCov& track)
 {
   int isUpdated = 0;
   float alpha = geomITS->getSensorRefAlpha(clus.getSensorID()), x = clus.getX();
@@ -131,7 +131,7 @@ bool hyperTracker::updateTrack(const ITSCluster& clus, o2::track::TrackParCov& t
   return false;
 }
 
-bool hyperTracker::recreateV0(const o2::track::TrackParCov& posTrack, const o2::track::TrackParCov& negTrack, const int posID, const int negID)
+bool HyperTracker::recreateV0(const o2::track::TrackParCov& posTrack, const o2::track::TrackParCov& negTrack, const int posID, const int negID)
 {
 
   int cand = 0; // best V0 candidate
@@ -161,7 +161,7 @@ bool hyperTracker::recreateV0(const o2::track::TrackParCov& posTrack, const o2::
   return true;
 }
 
-bool hyperTracker::Refit3Body()
+bool HyperTracker::Refit3Body()
 {
 
   int cand = 0; // best V0 candidate
@@ -190,7 +190,7 @@ bool hyperTracker::Refit3Body()
   return true;
 }
 
-double hyperTracker::calcV0alpha(const V0& v0)
+double HyperTracker::calcV0alpha(const V0& v0)
 {
   std::array<float, 3> fV0mom, fPmom, fNmom = {0, 0, 0};
   v0.getProng(0).getPxPyPzGlo(fPmom);

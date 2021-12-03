@@ -8,23 +8,42 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-/// @file   HyperWorkflow.h
 
-#ifndef O2_STRANGENESS_HYPERTRACKING_WORKFLOW_H
-#define O2_STRANGENESS_HYPERTRACKING_WORKFLOW_H
+#ifndef O2_HYPERTRACKING_SPEC_H
+#define O2_HYPERTRACKING_SPEC_H
 
 #include "Framework/WorkflowSpec.h"
+#include "Framework/DataProcessorSpec.h"
+#include "ITSMFTWorkflow/ClusterReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/SecondaryVertexReaderSpec.h"
+#include "Framework/Task.h"
+#include <fairlogger/Logger.h>
+
+#include "TStopwatch.h"
+
 namespace o2
 {
-namespace stangeness_tracking
+namespace strangeness_tracking
 {
 
-framework::WorkflowSpec getWorkflow()
+class HypertrackerDPL : public framework::Task
 {
-  framework::WorkflowSpec specs;
-  return specs;
-}
+ public:
+  HypertrackerDPL() = default;
+  ~HypertrackerDPL() override = default;
 
-} // namespace stangeness_tracking
+  void init(framework::InitContext& ic) final;
+  void run(framework::ProcessingContext& pc) final;
+  void endOfStream(framework::EndOfStreamContext& ec) final;
+
+ private:
+  TStopwatch mTimer;
+};
+
+framework::DataProcessorSpec getHyperTrackerSpec();
+
+framework::WorkflowSpec getWorkflow(bool upstreamClusters = false, bool upstreamV0s = false);
+
+} // namespace strangeness_tracking
 } // namespace o2
 #endif
