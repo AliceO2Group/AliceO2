@@ -46,7 +46,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   LOG(info) << "WorkflowSpec defineDataProcessing";
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  LOG(info) << " ccdbpath " << configcontext.options().get<std::string>("ccdb-path-ft0");
 
   // write the configuration used for the digitizer workflow
   o2::conf::ConfigurableParam::writeINI("o2-ft0-recoflow_configuration.ini");
