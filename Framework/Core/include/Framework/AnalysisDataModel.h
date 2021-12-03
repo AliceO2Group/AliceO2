@@ -657,13 +657,15 @@ using FV0C = FV0Cs::iterator;
 
 namespace ft0
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                       //! BC index
-DECLARE_SOA_COLUMN(AmplitudeA, amplitudeA, float[96]);  //!
-DECLARE_SOA_COLUMN(AmplitudeC, amplitudeC, float[112]); //!
-DECLARE_SOA_COLUMN(TimeA, timeA, float);                //!
-DECLARE_SOA_COLUMN(TimeC, timeC, float);                //!
-DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint8_t);  //!
-DECLARE_SOA_DYNAMIC_COLUMN(PosZ, posZ,                  //! Z position calculated from timeA and timeC in cm
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                               //! BC index
+DECLARE_SOA_COLUMN(AmplitudeA, amplitudeA, std::vector<float>); //! Amplitudes of non-zero channels on the A-side. The channel IDs are given in ChannelA (at the same index)
+DECLARE_SOA_COLUMN(ChannelA, channelA, std::vector<uint8_t>);   //! Channel IDs on the A side which had non-zero amplitudes
+DECLARE_SOA_COLUMN(AmplitudeC, amplitudeC, std::vector<float>); //! Amplitudes of non-zero channels on the C-side. The channel IDs are given in ChannelC (at the same index)
+DECLARE_SOA_COLUMN(ChannelC, channelC, std::vector<uint8_t>);   //! Channel IDs on the C side which had non-zero amplitudes
+DECLARE_SOA_COLUMN(TimeA, timeA, float);                        //! Average A-side time
+DECLARE_SOA_COLUMN(TimeC, timeC, float);                        //! Average C-side time
+DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint8_t);          //!
+DECLARE_SOA_DYNAMIC_COLUMN(PosZ, posZ,                          //! Z position calculated from timeA and timeC in cm
                            [](float t0A, float t0C) -> float {
                              return o2::constants::physics::LightSpeedCm2NS * (t0C - t0A) / 2;
                            });
@@ -671,7 +673,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(PosZ, posZ,                  //! Z position calculate
 
 DECLARE_SOA_TABLE(FT0s, "AOD", "FT0", //!
                   o2::soa::Index<>, ft0::BCId,
-                  ft0::AmplitudeA, ft0::AmplitudeC, ft0::TimeA, ft0::TimeC,
+                  ft0::AmplitudeA, ft0::ChannelA, ft0::AmplitudeC, ft0::ChannelC, ft0::TimeA, ft0::TimeC,
                   ft0::TriggerMask, ft0::PosZ<ft0::TimeA, ft0::TimeC>);
 using FT0 = FT0s::iterator;
 

@@ -1338,24 +1338,26 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
               fddRecPoint.getTrigger().triggersignals);
   }
 
-  // vector of FT0 amplitudes
-  int nFT0Channels = o2::ft0::Geometry::Nsensors;
-  int nFT0ChannelsAside = o2::ft0::Geometry::NCellsA * 4;
   // filling FT0 table
+  std::vector<float> aAmplitudesA, aAmplitudesC;
+  std::vector<uint8_t> aChannelsA, aChannelsC;
   for (auto& ft0RecPoint : ft0RecPoints) {
-    std::vector<float> vAmplitudes(nFT0Channels, 0.);
+    aAmplitudesA.clear();
+    aAmplitudesC.clear();
+    aChannelsA.clear();
+    aChannelsC.clear();
     const auto channelData = ft0RecPoint.getBunchChannelData(ft0ChData);
-    // TODO: switch to calibrated amplitude
     for (auto& channel : channelData) {
-      vAmplitudes[channel.ChId] = channel.QTCAmpl; // amplitude, mV
-    }
-    float aAmplitudesA[nFT0ChannelsAside];
-    float aAmplitudesC[nFT0Channels - nFT0ChannelsAside];
-    for (int i = 0; i < nFT0Channels; i++) {
-      if (i < nFT0ChannelsAside) {
-        aAmplitudesA[i] = truncateFloatFraction(vAmplitudes[i], mT0Amplitude);
-      } else {
-        aAmplitudesC[i - nFT0ChannelsAside] = truncateFloatFraction(vAmplitudes[i], mT0Amplitude);
+      // TODO: switch to calibrated amplitude
+      if (channel.QTCAmpl > 0) {
+        constexpr int nFT0ChannelsAside = o2::ft0::Geometry::NCellsA * 4;
+        if (channel.ChId < nFT0ChannelsAside) {
+          aChannelsA.push_back(channel.ChId);
+          aAmplitudesA.push_back(truncateFloatFraction(channel.QTCAmpl, mT0Amplitude));
+        } else {
+          aChannelsC.push_back(channel.ChId - nFT0ChannelsAside);
+          aAmplitudesC.push_back(truncateFloatFraction(channel.QTCAmpl, mT0Amplitude));
+        }
       }
     }
     uint64_t globalBC = ft0RecPoint.getInteractionRecord().toLong();
@@ -1370,7 +1372,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     ft0Cursor(0,
               bcID,
               aAmplitudesA,
+              aChannelsA,
               aAmplitudesC,
+              aChannelsC,
               truncateFloatFraction(ft0RecPoint.getCollisionTimeA() * 1E-3, mT0Time), // ps to ns
               truncateFloatFraction(ft0RecPoint.getCollisionTimeC() * 1E-3, mT0Time), // ps to ns
               ft0RecPoint.getTrigger().triggersignals);
