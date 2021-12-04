@@ -73,7 +73,7 @@ class SVertexer
   void setEnableCascades(bool v) { mEnableCascades = v; }
   void init();
   void process(const o2::globaltracking::RecoContainer& recoTracks); // accessor to various tracks
-
+  bool acceptTrack(GIndex gid, const o2::track::TrackParCov& trc) const;
   auto& getMeanVertex() const { return mMeanVertex; }
   void setMeanVertex(const o2d::VertexBase& v) { mMeanVertex = v; }
   void setNThreads(int n);
