@@ -273,21 +273,20 @@ void EveWorkflowHelper::drawTPCTOF(GID gid, float trackTime)
   drawTOFClusters(gid, trackTime);
 }
 
-void EveWorkflowHelper::drawAOD(EveWorkflowHelper::AODFullTrack const& track)
+void EveWorkflowHelper::drawAOD(EveWorkflowHelper::AODFullTrack const& track, float trackTime)
 {
   std::array<float, 5> const arraypar = {track.y(), track.z(), track.snp(),
                                    track.tgl(), track.signed1Pt()};
-  //  std::array<float, 15> const covpar = {track.cYY(), track.cZY(), track.cZZ(),
-  //                                  track.cSnpY(), track.cSnpZ(),
-  //                                  track.cSnpSnp(), track.cTglY(), track.cTglZ(),
-  //                                  track.cTglSnp(), track.cTglTgl(),
-  //                                  track.c1PtY(), track.c1PtZ(), track.c1PtSnp(),
-  //                                  track.c1PtTgl(), track.c1Pt21Pt2()};
+  std::array<float, 15> const covpar = {track.cYY(), track.cZY(), track.cZZ(),
+                                  track.cSnpY(), track.cSnpZ(),
+                                  track.cSnpSnp(), track.cTglY(), track.cTglZ(),
+                                  track.cTglSnp(), track.cTglTgl(),
+                                  track.c1PtY(), track.c1PtZ(), track.c1PtSnp(),
+                                  track.c1PtTgl(), track.c1Pt21Pt2()};
 
-  // TODO: obtain also PID for the track
-  auto const tr = o2::track::TrackParCov(track.x(), track.alpha(), arraypar);//, covpar);
+  auto const tr = o2::track::TrackParCov(track.x(), track.alpha(), arraypar, covpar);
 
-  addTrackToEvent(tr, GID::ITSTPCTRD, 0.f, 0.f, GID::ITSTPCTRD);
+  addTrackToEvent(tr, GID::ITSTPCTRDTOF, trackTime, 0., GID::ITSTPCTRD);
 }
 
 void EveWorkflowHelper::drawTOFClusters(GID gid, float trackTime)

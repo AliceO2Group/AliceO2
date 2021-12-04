@@ -62,9 +62,9 @@ void AO2DConverter::init(o2::framework::InitContext& ic)
   dictFileITS = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictFileITS);
   if (o2::utils::Str::pathExists(dictFileITS)) {
     mITSDict.readFromFile(dictFileITS);
-    LOG(INFO) << "Running with provided ITS clusters dictionary: " << dictFileITS;
+    LOG(info) << "Running with provided ITS clusters dictionary: " << dictFileITS;
   } else {
-    LOG(INFO) << "Dictionary " << dictFileITS << " is absent, ITS expects cluster patterns for all clusters";
+    LOG(info) << "Dictionary " << dictFileITS << " is absent, ITS expects cluster patterns for all clusters";
   }
   mConfig->configCalib.itsPatternDict = &mITSDict;
 
@@ -72,9 +72,9 @@ void AO2DConverter::init(o2::framework::InitContext& ic)
   dictFileMFT = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictFileMFT);
   if (o2::utils::Str::pathExists(dictFileMFT)) {
     mMFTDict.readFromFile(dictFileMFT);
-    LOG(INFO) << "Running with provided MFT clusters dictionary: " << dictFileMFT;
+    LOG(info) << "Running with provided MFT clusters dictionary: " << dictFileMFT;
   } else {
-    LOG(INFO) << "Dictionary " << dictFileMFT << " is absent, MFT expects cluster patterns for all clusters";
+    LOG(info) << "Dictionary " << dictFileMFT << " is absent, MFT expects cluster patterns for all clusters";
   }
   mConfig->configCalib.mftPatternDict = &mMFTDict;
 
@@ -87,27 +87,24 @@ void AO2DConverter::init(o2::framework::InitContext& ic)
                              o2::math_utils::TransformType::T2L));
 }
 
-void AO2DConverter::process(EveWorkflowHelper::AODFullTracks const& tracks)
+void AO2DConverter::process(o2::aod::Collisions const& collisions, EveWorkflowHelper::AODFullTracks const& tracks)
 {
-  std::unordered_map<std::size_t, std::vector<EveWorkflowHelper::AODFullTrack>> colTracks;
+  for (auto const &c : collisions) {
+    auto const tracksCol = tracks.sliceBy(aod::track::collisionId, c.globalIndex());
 
-  for (auto& track : tracks) {
-    // operator[] automatically adds a new entry to the map if not already present
-    colTracks[track.collisionId()].push_back(track);
-  }
-
-  for (auto const& p : colTracks) {
     EveWorkflowHelper helper;
-    for(auto const &track: p.second) {
-      helper.drawAOD(track);
+
+    for(auto const &track: tracksCol) {
+      helper.drawAOD(track, c.collisionTime());
     }
-    helper.save(jsonPath, colTracks.size(), {}, {}, mWorkflowVersion);
+
+    helper.save(jsonPath, collisions.size(), GlobalTrackID::MASK_ALL, GlobalTrackID::MASK_NONE, mWorkflowVersion);
   }
 }
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  LOG(INFO) << "------------------------    defineDataProcessing " << AO2DConverter::mWorkflowVersion << "    ------------------------------------";
+  LOG(info) << "------------------------    defineDataProcessing " << AO2DConverter::mWorkflowVersion << "    ------------------------------------";
 
   return WorkflowSpec{
     adaptAnalysisTask<AO2DConverter>(cfgc, TaskName{"o2-aodconverter"})

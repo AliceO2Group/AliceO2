@@ -97,7 +97,7 @@ class EveWorkflowHelper
   std::unique_ptr<gpu::TPCFastTransform> mTPCFastTransform;
 
  public:
-  using AODFullTracks = o2::aod::FullTracks; //o2::soa::Join<o2::aod::FullTracks, o2::aod::TracksCov>;
+  using AODFullTracks = soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra>;
   using AODFullTrack = AODFullTracks::iterator;
 
   EveWorkflowHelper();
@@ -118,7 +118,7 @@ class EveWorkflowHelper
   void drawTPCTRDTOF(GID gid, float trackTime);
   void drawTPCTRD(GID gid, float trackTime);
   void drawTPCTOF(GID gid, float trackTime);
-  void drawAOD(AODFullTrack const& track);
+  void drawAOD(AODFullTrack const& track, float trackTime);
   void drawITSClusters(GID gid, float trackTime);
   void drawTPCClusters(GID gid, float trackTime);
   void drawMFTClusters(GID gid, float trackTime);

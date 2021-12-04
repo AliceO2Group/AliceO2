@@ -46,7 +46,7 @@ struct AO2DConverter
   static constexpr float mWorkflowVersion = 1.00;
 
   void init(o2::framework::InitContext& ic);
-  void process(EveWorkflowHelper::AODFullTracks const& tracks);
+  void process(o2::aod::Collisions const& collisions, EveWorkflowHelper::AODFullTracks const& tracks);
 
   o2::itsmft::TopologyDictionary mITSDict;
   o2::itsmft::TopologyDictionary mMFTDict;
