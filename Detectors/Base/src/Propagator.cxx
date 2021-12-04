@@ -38,11 +38,6 @@ PropagatorImpl<value_T>::PropagatorImpl(bool uninitialized)
   }
   ///< construct checking if needed components were initialized
 
-  // we need the geoemtry loaded
-  if (!gGeoManager) {
-    LOG(fatal) << "No active geometry!";
-  }
-
   mField = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
   if (!mField) {
     LOG(warning) << "No Magnetic Field in TGeoGlobalMagField, checking legacy FairRunAna";

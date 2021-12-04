@@ -319,7 +319,9 @@ GeometryManager::MatBudgetExt GeometryManager::meanMaterialBudgetExt(float x0, f
   //
   //  Ported to O2: ruben.shahoyan@cern.ch
   //
-
+  if (!gGeoManager) {
+    throw std::runtime_error("meanMaterialBudgetExt requires geometry loaded");
+  }
   double length, startD[3] = {x0, y0, z0};
   double dir[3] = {x1 - x0, y1 - y0, z1 - z0};
   if ((length = dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]) < TGeoShape::Tolerance() * TGeoShape::Tolerance()) {
