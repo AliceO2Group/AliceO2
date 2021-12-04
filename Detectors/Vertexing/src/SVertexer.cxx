@@ -61,6 +61,9 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
 #ifdef WITH_OPENMP
       iThread = omp_get_thread_num();
 #endif
+      if (mSVParams->maxPVContributors < 2 && seedP.gid.isPVContributor() + seedN.gid.isPVContributor() > mSVParams->maxPVContributors) {
+        continue;
+      }
       checkV0(seedP, seedN, itp, itn, iThread);
     }
   }
@@ -155,18 +158,38 @@ void SVertexer::setupThreads()
 }
 
 //__________________________________________________________________
+bool SVertexer::acceptTrack(GIndex gid, const o2::track::TrackParCov& trc) const
+{
+  if (gid.isPVContributor() && mSVParams->maxPVContributors < 1) {
+    return false;
+  }
+  // DCA to mean vertex
+  if (mSVParams->minDCAToPV > 0.f) {
+    o2::track::TrackPar trp(trc);
+    auto* prop = o2::base::Propagator::Instance();
+    if (trp.getX() > mSVParams->minRFor3DField && !prop->PropagateToXBxByBz(trp, mSVParams->minRFor3DField, 0.95, 2., mSVParams->matCorr)) {
+      return true; // we don't need actually to propagate to the beam-line
+    }
+    gpu::gpustd::array<float, 2> dca;
+    if (!prop->propagateToDCA(mMeanVertex.getXYZ(), trp, prop->getNominalBz(), 2.f, mSVParams->matCorr, &dca)) {
+      return true;
+    }
+    if (std::abs(dca[0]) < mSVParams->minDCAToPV) {
+      return false;
+    }
+  }
+  return true;
+}
+
+//__________________________________________________________________
 void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // accessor to various tracks
 {
-  // build track->vertices from vertices->tracks, rejecting vertex contributors
+  // build track->vertices from vertices->tracks, rejecting vertex contributors if requested
   auto trackIndex = recoData.getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
   auto vtxRefs = recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
 
-  // track selector: at the moment reject prompt tracks contributing to vertex fit and unconstrained TPC tracks
-  auto selTrack = [&](GIndex gid) {
-    return (gid.isPVContributor() || !recoData.isTrackSourceLoaded(gid.getSource())) ? false : true;
-  };
-
   std::unordered_map<GIndex, std::pair<int, int>> tmap;
+  std::unordered_map<GIndex, bool> rejmap;
   int nv = vtxRefs.size() - 1; // The last entry is for unassigned tracks, ignore them
   for (int i = 0; i < 2; i++) {
     mTracksPool[i].clear();
@@ -179,18 +202,28 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
     int it = vtref.getFirstEntry(), itLim = it + vtref.getEntries();
     for (; it < itLim; it++) {
       auto tvid = trackIndex[it];
-      if (!selTrack(tvid)) {
+      if (!recoData.isTrackSourceLoaded(tvid.getSource())) {
         continue;
       }
       std::decay_t<decltype(tmap.find(tvid))> tref{};
-      if (tvid.isAmbiguous()) {
+      if (tvid.isAmbiguous()) { // was this track already processed?
         auto tref = tmap.find(tvid);
         if (tref != tmap.end()) {
           mTracksPool[tref->second.second][tref->second.first].vBracket.setMax(iv); // this track was already processed with other vertex, account the latter
           continue;
         }
+        // was it already rejected?
+        if (rejmap.find(tvid) != rejmap.end()) {
+          continue;
+        }
       }
       const auto& trc = recoData.getTrackParam(tvid);
+      if (!acceptTrack(tvid, trc)) {
+        if (tvid.isAmbiguous()) {
+          rejmap[tvid] = true;
+        }
+        continue;
+      }
       int posneg = trc.getSign() < 0 ? 1 : 0;
       float r = std::sqrt(trc.getX() * trc.getX() + trc.getY() * trc.getY());
       mTracksPool[posneg].emplace_back(TrackCand{trc, tvid, {iv, iv}, r});
