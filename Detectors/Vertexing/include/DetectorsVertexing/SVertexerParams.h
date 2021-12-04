@@ -19,6 +19,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
 #include "DetectorsVertexing/SVertexHypothesis.h"
+#include "DetectorsBase/Propagator.h"
 
 namespace o2
 {
@@ -34,8 +35,12 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float minRelChi2Change = 0.9; ///< stop when chi2 changes by less than this value
   float maxDZIni = 5.;          ///< don't consider as a seed (circles intersection) if Z distance exceeds this
   float maxRIni = 150;          ///< don't consider as a seed (circles intersection) if its R exceeds this
+  float minRFor3DField = 40;    ///< above this radius use 3D field
+  o2::base::Propagator::MatCorrType matCorr = o2::base::Propagator::MatCorrType::USEMatCorrLUT; // material correction to use
   bool useAbsDCA = true; ///< use abs dca minimization
   //
+  int maxPVContributors = 0;              ///< max number PV contributors to allow in SVertex
+  float minDCAToPV = 0.1;                 ///< min DCA to PV of single track to accept
   float minRToMeanVertex = 0.5;           ///< min radial distance of V0 from beam line (mean vertex)
   float maxDCAXYToMeanVertex = 0.2;       ///< max DCA of V0 from beam line (mean vertex) for prompt V0 candidates
   float maxDCAXYToMeanVertexV0Casc = 0.5; ///< max DCA of V0 from beam line (mean vertex) for cascade V0 candidates
