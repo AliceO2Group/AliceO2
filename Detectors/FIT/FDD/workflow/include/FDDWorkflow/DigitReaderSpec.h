@@ -15,6 +15,7 @@
 #define O2_FDD_DIGITREADER
 
 #include "TFile.h"
+#include "TTree.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -41,6 +42,8 @@ class DigitReader : public Task
   bool mTrigInp = true; // read trigger inputs
   bool mUseMC = true;   // use MC truth
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginFDD;
+  std::unique_ptr<TTree> mTree;
+  std::unique_ptr<TFile> mFile;
 
   std::string mInputFileName = "";
   std::string mDigitTreeName = "o2sim";

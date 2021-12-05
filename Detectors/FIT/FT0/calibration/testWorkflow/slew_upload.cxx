@@ -21,7 +21,7 @@
 #include <iomanip>
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/ConfigurableParam.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CcdbApi.h"
 #include "FT0Calibration/FT0CalibTimeSlewing.h"
@@ -54,6 +54,7 @@ int main(int argc, char** argv)
     add_option("input-file", bpo::value<std::string>()->default_value("collFT0.root"), "verbosity level");
     add_option("merged-file", bpo::value<std::string>()->default_value("FT0slewGraphs.root"), "input merged  file");
     add_option("number-of-files", bpo::value<int>()->default_value(1), "number of files to merge");
+    add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
     opt_all.add(opt_general).add(opt_hidden);
     bpo::store(bpo::command_line_parser(argc, argv).options(opt_all).positional(opt_pos).run(), vm);
@@ -73,6 +74,7 @@ int main(int argc, char** argv)
     std::cerr << e.what() << ", application will now exit" << std::endl;
     exit(2);
   }
+  o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
 
   //  o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
   slew_upload(vm["input-file"].as<std::string>(),
@@ -104,8 +106,8 @@ void slew_upload(const std::string& inFileName, const std::string& mergedFileNam
   gr.Print();
   CcdbApi api;
   std::map<std::string, std::string> metadata; // can be empty
-  api.init("http://ccdb-test.cern.ch:8080/");  // or http://localhost:8080 for a local installation
-                                               // store abitrary user object in strongly typed manner
+  api.init(o2::base::NameConf::getCCDBServer()); // or http://localhost:8080 for a local installation
+                                                 // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(&graphs, "FT0/SlewingCorr", metadata);
 
   //

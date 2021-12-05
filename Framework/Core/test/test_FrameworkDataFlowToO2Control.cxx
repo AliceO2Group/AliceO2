@@ -35,7 +35,7 @@ WorkflowSpec defineDataProcessing()
            Outputs{OutputSpec{"TST", "A1"}, OutputSpec{"TST", "A2"}}, // A1 will be consumed twice, A2 is dangling
            AlgorithmSpec{},                                           //
            {ConfigParamSpec{"channel-config", VariantType::String,    // raw input channel
-                            "name=into_dpl,type=pull,method=connect,address=ipc:///tmp/pipe-into-dpl,transport=shmem,rateLogging=10",
+                            "name=into_dpl,type=pull,method=connect,address=ipc:///tmp/pipe-into-dpl,transport=shmem,rateLogging=10,rcvBufSize=789",
                             {"Out-of-band channel config"}}}},
           {"B", // producer, no inputs
            Inputs{},
@@ -85,6 +85,7 @@ roles:
       transport: shmem
       target: "::into_dpl-{{ it }}"
       rateLogging: "{{ fmq_rate_logging }}"
+      rcvBufSize: 789
     task:
       load: testwf-A
   - name: "B"
@@ -98,11 +99,15 @@ roles:
       transport: shmem
       target: "{{ Parent().Path }}.A:from_A_to_C"
       rateLogging: "{{ fmq_rate_logging }}"
+      sndBufSize: 1
+      rcvBufSize: 1
     - name: from_B_to_C
       type: pull
       transport: shmem
       target: "{{ Parent().Path }}.B:from_B_to_C"
       rateLogging: "{{ fmq_rate_logging }}"
+      sndBufSize: 1
+      rcvBufSize: 1
     task:
       load: testwf-C
   - name: "D"
@@ -112,6 +117,8 @@ roles:
       transport: shmem
       target: "{{ Parent().Path }}.C:from_C_to_D"
       rateLogging: "{{ fmq_rate_logging }}"
+      sndBufSize: 1
+      rcvBufSize: 1
     bind:
     - name: outta_dpl
       type: push
@@ -142,6 +149,8 @@ bind:
     transport: shmem
     addressing: ipc
     rateLogging: "{{ fmq_rate_logging }}"
+    sndBufSize: 1
+    rcvBufSize: 1
 command:
   shell: true
   log: "{{ log_task_output }}"
@@ -213,6 +222,8 @@ bind:
     transport: shmem
     addressing: ipc
     rateLogging: "{{ fmq_rate_logging }}"
+    sndBufSize: 1
+    rcvBufSize: 1
 command:
   shell: true
   log: "{{ log_task_output }}"
@@ -284,6 +295,8 @@ bind:
     transport: shmem
     addressing: ipc
     rateLogging: "{{ fmq_rate_logging }}"
+    sndBufSize: 1
+    rcvBufSize: 1
 command:
   shell: true
   log: "{{ log_task_output }}"

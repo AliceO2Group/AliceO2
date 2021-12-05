@@ -26,6 +26,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 
@@ -180,7 +181,7 @@ DataProcessorSpec getMCHPedestalCalibSpec(const char* specName, const std::strin
       {"max-delay", VariantType::Int, 1, {"number of slots in past to consider"}},
       {"pedestal-threshold", VariantType::Float, 200.0f, {"maximum allowed pedestal value"}},
       {"noise-threshold", VariantType::Float, 2.0f, {"maximum allowed noise value"}},
-      {"ccdb-path", VariantType::String, "http://ccdb-test.cern.ch:8080", {"Path to CCDB"}}}};
+      {"ccdb-path", VariantType::String, o2::base::NameConf::getCCDBServer(), {"Path to CCDB"}}}};
 }
 
 } // namespace framework

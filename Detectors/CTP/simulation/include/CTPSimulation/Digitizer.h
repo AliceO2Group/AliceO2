@@ -19,6 +19,7 @@
 #include "DataFormatsCTP/Digits.h"
 #include "DataFormatsCTP/Configuration.h"
 #include "CCDB/BasicCCDBManager.h"
+#include "CommonUtils/NameConf.h"
 #include <gsl/span>
 
 namespace o2
@@ -36,7 +37,7 @@ class Digitizer
   void init();
  private:
   // CTP configuration
-  std::string mCCDBServer = "http://ccdb-test.cern.ch:8080";
+  std::string mCCDBServer = o2::base::NameConf::getCCDBServer();
   CTPConfiguration* mCTPConfiguration = nullptr;
   ClassDefNV(Digitizer, 2);
 };

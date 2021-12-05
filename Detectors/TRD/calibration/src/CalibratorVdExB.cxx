@@ -22,6 +22,7 @@
 #include <string>
 #include <map>
 #include <memory>
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::trd::constants;
 
@@ -154,7 +155,7 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
 
   // write results to CCDB
   o2::ccdb::CcdbApi ccdb;
-  ccdb.init("http://ccdb-test.cern.ch:8080");
+  ccdb.init(o2::base::NameConf::getCCDBServer());
   // ccdb.init("http://localhost:8080");
   std::map<std::string, std::string> metadata; // TODO: do we want to store any meta data?
   CalVdriftExB calObject;

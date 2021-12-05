@@ -116,15 +116,9 @@ void ClusterOriginal::sortPads(double precision)
 //_________________________________________________________________________________________________
 size_t ClusterOriginal::multiplicity(int plane) const
 {
-  /// return the number of pads associated to this cluster, in total or in the given plane
-  return (plane == 0 || plane == 1) ? mMultiplicity[plane] : mPads.size();
-}
-
-//_________________________________________________________________________________________________
-PadOriginal& ClusterOriginal::pad(size_t i)
-{
-  /// return the ith pad (no bound checking)
-  return mPads[i];
+  /// return the number of pads associated to this cluster in the given plane
+  assert(plane == 0 || plane == 1);
+  return mMultiplicity[plane];
 }
 
 //_________________________________________________________________________________________________

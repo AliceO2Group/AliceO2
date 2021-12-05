@@ -49,9 +49,13 @@ class ClusterOriginal
 
   void sortPads(double precision);
 
-  size_t multiplicity(int plane = -1) const;
+  /// return the total number of pads associated to this cluster
+  size_t multiplicity() const { return mPads.size(); }
+  size_t multiplicity(int plane) const;
 
-  PadOriginal& pad(size_t i);
+  /// return the ith pad (no bound checking)
+  PadOriginal& pad(size_t i) { return mPads[i]; }
+  const PadOriginal& pad(size_t i) const { return mPads[i]; }
 
   /// return begin/end iterators to be able to iterate over the pads without accessing the internal vector
   auto begin() { return mPads.begin(); }

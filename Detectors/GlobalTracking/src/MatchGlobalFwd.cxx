@@ -410,9 +410,9 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
 
   } // /loop over MCH tracks seeds
 
-  LOG(info) << "Finished matching MFT ROF " << MFTROFId << ": " << nMFTTracks << " MFT tracks and " << nMCHTracks << "  MCH Tracks.";
+  LOG(debug) << "Finished matching MFT ROF " << MFTROFId << ": " << nMFTTracks << " MFT tracks and " << nMCHTracks << "  MCH Tracks.";
   if (mMCTruthON) {
-    LOG(info) << "   nFakes = " << nFakes << " nTrue = " << nTrue;
+    LOG(debug) << "   nFakes = " << nFakes << " nTrue = " << nTrue;
   }
 }
 

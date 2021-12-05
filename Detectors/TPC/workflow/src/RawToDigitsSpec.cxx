@@ -26,7 +26,7 @@
 #include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "CCDB/BasicCCDBManager.h"
 
 #include "TPCQC/Clusters.h"

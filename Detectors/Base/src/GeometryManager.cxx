@@ -25,7 +25,7 @@
 
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsBase/Aligner.h"
 
 using namespace o2::detectors;

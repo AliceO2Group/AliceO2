@@ -33,6 +33,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 
@@ -204,7 +205,7 @@ DataProcessorSpec getEMCALDCSDataProcessorSpec()
     Inputs{{"input", "DCS", "EMCDATAPOINTS"}},
     outputs,
     AlgorithmSpec{adaptFromTask<o2::emcal::EMCALDCSDataProcessor>()},
-    Options{{"ccdb-path", VariantType::String, "http://ccdb-test.cern.ch:8080", {"Path to CCDB"}},
+    Options{{"ccdb-path", VariantType::String, o2::base::NameConf::getCCDBServer(), {"Path to CCDB"}},
             {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
             {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
             {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}}}};

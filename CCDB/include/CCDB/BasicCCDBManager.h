@@ -17,6 +17,7 @@
 
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CCDBTimeStampUtils.h"
+#include "CommonUtils/NameConf.h"
 #include <string>
 #include <map>
 #include <unordered_map>
@@ -186,6 +187,7 @@ class BasicCCDBManager : public CCDBManagerInstance
   static BasicCCDBManager& instance()
   {
     const std::string ccdbUrl{"http://ccdb-test.cern.ch:8080"};
+    //const std::string ccdbUrl{o2::base::NameConf::getCCDBServer()};
     static BasicCCDBManager inst{ccdbUrl};
     return inst;
   }

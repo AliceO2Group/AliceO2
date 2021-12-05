@@ -20,7 +20,7 @@
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "TRDBase/GeometryFlat.h"
@@ -83,7 +83,7 @@ void O2DPLDisplaySpec::init(InitContext& ic)
   mConfig->configCalib.trdGeometry = mTrdGeo.get();
 
   std::string dictFileITS = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  dictFileITS = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictFileITS);
+  dictFileITS = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictFileITS);
   if (o2::utils::Str::pathExists(dictFileITS)) {
     mITSDict.readFromFile(dictFileITS);
     LOG(info) << "Running with provided ITS clusters dictionary: " << dictFileITS;
@@ -93,7 +93,7 @@ void O2DPLDisplaySpec::init(InitContext& ic)
   mConfig->configCalib.itsPatternDict = &mITSDict;
 
   std::string dictFileMFT = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-  dictFileMFT = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictFileMFT);
+  dictFileMFT = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictFileMFT);
   if (o2::utils::Str::pathExists(dictFileMFT)) {
     mMFTDict.readFromFile(dictFileMFT);
     LOG(info) << "Running with provided MFT clusters dictionary: " << dictFileMFT;

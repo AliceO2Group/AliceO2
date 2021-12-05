@@ -11,7 +11,7 @@
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsMCH/Digit.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DigitTreeReader.h"
 #include "Framework/Logger.h"
 #include "MCHRawEncoderDigit/DigitRawEncoder.h"

@@ -49,6 +49,7 @@ enum class VariantType : int { Int = 0,
                                UInt32,
                                UInt64,
                                Empty,
+                               Dict,
                                Unknown };
 
 template <VariantType V>
@@ -351,6 +352,8 @@ class Variant
   VariantType mType;
   size_t mSize = 1;
 };
+
+inline Variant emptyDict() { return Variant(VariantType::Dict); }
 
 } // namespace o2::framework
 

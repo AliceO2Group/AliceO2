@@ -19,7 +19,7 @@
 #include "TPCReaderWorkflow/PublisherSpec.h"
 #include "Headers/DataHeader.h"
 #include "TPCBase/Sector.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include <memory> // for make_shared, make_unique, unique_ptr
 #include <array>

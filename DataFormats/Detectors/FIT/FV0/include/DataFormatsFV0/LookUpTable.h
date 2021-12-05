@@ -27,6 +27,7 @@
 #include <iomanip> // std::setfill, std::setw - for stream formating
 #include <Framework/Logger.h>
 #include "FV0Base/Constants.h"
+#include "CommonUtils/NameConf.h"
 
 namespace o2
 {
@@ -210,15 +211,17 @@ class SingleLUT : public LUT
 
  public:
   static constexpr char sDetectorName[] = "FV0";
-  static constexpr char sDefaultCCDBpath[] = "http://ccdb-test.cern.ch:8080/";
   static constexpr char sDefaultLUTpath[] = "FV0/LookUpTable";
-  inline static std::string sCurrentCCDBpath = sDefaultCCDBpath;
+  inline static std::string sCurrentCCDBpath = "";
   inline static std::string sCurrentLUTpath = sDefaultLUTpath;
   //Before instance() call, setup url and path
   static void setCCDBurl(const std::string& url) { sCurrentCCDBpath = url; }
   static void setLUTpath(const std::string& path) { sCurrentLUTpath = path; }
   static SingleLUT& Instance()
   {
+    if (sCurrentCCDBpath == "") {
+      sCurrentCCDBpath = o2::base::NameConf::getCCDBServer();
+    }
     static SingleLUT instanceLUT(sCurrentCCDBpath, sCurrentLUTpath);
     return instanceLUT;
   }

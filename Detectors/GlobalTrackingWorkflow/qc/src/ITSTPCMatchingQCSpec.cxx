@@ -17,7 +17,7 @@
 #include "GlobalTrackingWorkflowQC/ITSTPCMatchingQCSpec.h"
 #include "GlobalTracking/ITSTPCMatchingQCParams.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include <TFile.h>
 
 using namespace o2::framework;

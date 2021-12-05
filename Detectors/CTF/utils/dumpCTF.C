@@ -1,7 +1,7 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
 #include "DetectorsCommonDataFormats/EncodedBlocks.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "DataFormatsITSMFT/CTF.h"
 #include "DataFormatsTPC/CTF.h"

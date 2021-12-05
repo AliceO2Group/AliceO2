@@ -27,6 +27,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 
@@ -128,7 +129,7 @@ DataProcessorSpec getEMCALChannelCalibDeviceSpec()
     AlgorithmSpec{adaptFromTask<device>()},
     Options{
       {"do-EMCAL-channel-calib-in-test-mode", VariantType::Bool, false, {"to run in test mode for simplification"}},
-      {"ccdb-path", VariantType::String, "http://ccdb-test.cern.ch:8080", {"Path to CCDB"}},
+      {"ccdb-path", VariantType::String, o2::base::NameConf::getCCDBServer(), {"Path to CCDB"}},
       {"useScaledHistoForBadChannelMap", VariantType::Bool, false, {"Use scaled histogram for bad channel extraction"}}}};
 }
 

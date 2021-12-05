@@ -10,7 +10,7 @@
 
 //o2::ft0::HVchannel::HVBoard readHVBoard(std::string_view str);
 
-void uploadLookUpTable(const std::string url = "http://o2-ccdb.internal/")
+void uploadLookUpTable(const std::string url = "http://alice-ccdb.cern.ch/")
 {
   using o2::ccdb::BasicCCDBManager;
   using o2::ccdb::CcdbApi;

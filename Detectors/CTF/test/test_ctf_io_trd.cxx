@@ -13,7 +13,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "TRDReconstruction/CTFCoder.h"
 #include "DataFormatsTRD/CTF.h"
 #include "Framework/Logger.h"

@@ -26,7 +26,7 @@ namespace o2
 namespace ctp
 {
 /// Database constants
-const std::string CCDBPathCTPConfig = "CTP/Config";
+const std::string CCDBPathCTPConfig = "CTP/Config/Config";
 ///
 bool isDetector(o2::detectors::DetID& det);
 /// CTP Config items

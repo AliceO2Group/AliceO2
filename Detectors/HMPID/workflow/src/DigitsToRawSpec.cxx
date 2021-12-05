@@ -39,7 +39,7 @@
 #include "Framework/Logger.h"
 #include "Framework/InputRecordWalker.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 #include "TFile.h"
 #include "TTree.h"

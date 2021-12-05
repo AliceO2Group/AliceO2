@@ -13,7 +13,7 @@
 
 #include "TRDWorkflow/TRDGlobalTrackingSpec.h"
 #include "TRDBase/Geometry.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
@@ -86,7 +86,7 @@ void TRDGlobalTracking::init(InitContext& ic)
 
   // this is a hack to provide ITS dictionary from the local file, in general will be provided by the framework from CCDB
   auto dictFile = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictFile);
+  dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictFile);
   if (o2::utils::Str::pathExists(dictFile)) {
     mITSDict.readFromFile(dictFile);
     LOG(info) << "Matching is running with a provided ITS dictionary: " << dictFile;

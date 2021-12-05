@@ -17,7 +17,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "GlobalTrackingWorkflowReaders/PrimaryVertexReaderSpec.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "TFile.h"
 #include "TTree.h"
 #include "CommonDataFormat/TimeStamp.h"

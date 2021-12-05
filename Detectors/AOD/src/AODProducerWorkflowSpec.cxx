@@ -21,6 +21,7 @@
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsTPC/TrackTPC.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CommonConstants/PhysicsConstants.h"
@@ -137,10 +138,9 @@ uint64_t AODProducerWorkflowDPL::getTFNumber(const o2::InteractionRecord& tfStar
   o2::ccdb::CcdbApi ccdb_api;
   const std::string rct_path = "RCT/RunInformation/";
   const std::string start_orbit_path = "Trigger/StartOrbit";
-  const std::string url = "http://ccdb-test.cern.ch:8080";
 
-  mgr.setURL(url);
-  ccdb_api.init(url);
+  mgr.setURL(o2::base::NameConf::getCCDBServer());
+  ccdb_api.init(o2::base::NameConf::getCCDBServer());
 
   std::map<int, int>* mapStartOrbit = mgr.get<std::map<int, int>>(start_orbit_path);
   int64_t ts = 0;
@@ -1247,15 +1247,14 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     for (const auto& channel : channelData) {
       vFDDAmplitudes[channel.mPMNumber] = channel.mChargeADC; // amplitude, mV
     }
-    float aFDDAmplitudesA[int(nFDDChannels * 0.5)];
-    float aFDDAmplitudesC[int(nFDDChannels * 0.5)];
-    for (int i = 0; i < nFDDChannels; i++) {
-      if (i < nFDDChannels * 0.5) {
-        aFDDAmplitudesC[i] = truncateFloatFraction(vFDDAmplitudes[i], mFDDAmplitude);
-      } else {
-        aFDDAmplitudesA[i - int(nFDDChannels * 0.5)] = truncateFloatFraction(vFDDAmplitudes[i], mFDDAmplitude);
-      }
+
+    float aFDDAmplitudesA[4];
+    float aFDDAmplitudesC[4];
+    for (int i = 0; i < 4; i++) {
+      aFDDAmplitudesC[i] = truncateFloatFraction((vFDDAmplitudes[i] + vFDDAmplitudes[i + 4]) * 0.5, mFDDAmplitude);
+      aFDDAmplitudesA[i] = truncateFloatFraction((vFDDAmplitudes[i + 8] + vFDDAmplitudes[i + 12]) * 0.5, mFDDAmplitude);
     }
+
     uint64_t globalBC = fddRecPoint.getInteractionRecord().toLong();
     uint64_t bc = globalBC;
     auto item = bcsMap.find(bc);

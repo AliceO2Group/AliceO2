@@ -52,6 +52,7 @@
 #include "HMPIDBase/Geo.h"
 #include "HMPIDReconstruction/HmpidDecoder2.h"
 #include "HMPIDWorkflow/PedestalsCalculationSpec.h"
+#include "CommonUtils/NameConf.h"
 
 namespace o2
 {
@@ -334,7 +335,7 @@ o2::framework::DataProcessorSpec getPedestalsCalculationSpec(std::string inputSp
     AlgorithmSpec{adaptFromTask<PedestalsCalculationTask>()},
     Options{{"files-basepath", VariantType::String, "/tmp/hmpPedThr", {"Name of the Base Path of Pedestals/Thresholds files."}},
             {"use-ccdb", VariantType::Bool, false, {"Register the Pedestals/Threshold values into the CCDB"}},
-            {"ccdb-uri", VariantType::String, "http://ccdb-test.cern.ch:8080", {"URI for the CCDB access."}},
+            {"ccdb-uri", VariantType::String, o2::base::NameConf::getCCDBServer(), {"URI for the CCDB access."}},
             {"fast-decode", VariantType::Bool, false, {"Use the fast algorithm. (error 0.8%)"}},
             {"pedestals-tag", VariantType::String, "Latest", {"The tag applied to this set of pedestals/threshold values"}},
             {"sigmacut", VariantType::Float, 4.0f, {"Sigma values for the Thresholds calculation."}}}};
