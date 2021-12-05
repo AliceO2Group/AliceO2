@@ -215,7 +215,7 @@ class SingleLUT : public LUT
 
  public:
   static constexpr char sDetectorName[] = "FDD";
-  static constexpr char sDefaultLUTpath[] = "FDD/LookUpTable";
+  static constexpr char sDefaultLUTpath[] = "FDD/Config/LookupTable";
   inline static std::string sCurrentCCDBpath = "";
   inline static std::string sCurrentLUTpath = sDefaultLUTpath;
   //Before instance() call, setup url and path
@@ -233,7 +233,6 @@ class SingleLUT : public LUT
 } //namespace new_lut
 
 using SingleLUT = new_lut::SingleLUT<o2::fit::LookupTableBase<>>;
-//using SingleLUT = deprecated::SingleLUT;
 
 } // namespace fdd
 } // namespace o2
