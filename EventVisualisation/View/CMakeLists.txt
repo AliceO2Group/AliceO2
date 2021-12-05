@@ -10,8 +10,8 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(EventVisualisationView
-               SOURCES src/MultiView.cxx 
-                       src/Initializer.cxx 
+               SOURCES src/MultiView.cxx
+                       src/Initializer.cxx
                        src/EventManager.cxx
                        src/Options.cxx
                        src/EventManagerFrame.cxx
@@ -31,5 +31,3 @@ o2_add_executable(eve
                SOURCES src/main.cxx
                PUBLIC_LINK_LIBRARIES O2::EventVisualisationView
                )
-                  
-                  

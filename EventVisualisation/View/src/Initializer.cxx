@@ -59,15 +59,15 @@ void Initializer::setup()
 
   auto const options = Options::Instance();
 
-  if(options->online()) {
+  if (options->online()) {
     eventManager.setDataSource(new DataSourceOnline(options->dataFolder()));
   } else {
     eventManager.setDataSource(new DataSourceOffline(options->AODConverterPath(), options->dataFolder(), options->fileName(), options->hideDplGUI()));
   }
 
-  //if (Options::Instance()->json()) {
-  //  eventManager.getDataSource()->registerDetectorX(new DataReaderJSON(nullptr), EVisualisationGroup::JSON);
-  //}
+  // if (Options::Instance()->json()) {
+  //   eventManager.getDataSource()->registerDetectorX(new DataReaderJSON(nullptr), EVisualisationGroup::JSON);
+  // }
 
   eventManager.getDataSource()->registerReader(new DataReaderJSON());
 
@@ -98,7 +98,7 @@ void Initializer::setup()
   // Temporary:
   // Later this will be triggered by button, and finally moved to configuration.
   gEve->AddEvent(&EventManager::getInstance());
-  //eventManager.getDataSource()->refresh();
+  // eventManager.getDataSource()->refresh();
 
   if (Options::Instance()->online()) {
     frame->StartTimer();
@@ -118,7 +118,7 @@ void Initializer::setupGeometry()
   // get geometry from Geometry Manager and register in multiview
   auto multiView = MultiView::getInstance();
 
-  //auto geometry_enabled = GeometryManager::getInstance().getR2Geometry()? R2Visualisation:R3Visualisation;
+  // auto geometry_enabled = GeometryManager::getInstance().getR2Geometry()? R2Visualisation:R3Visualisation;
   for (int iDet = 0; iDet < NvisualisationGroups; ++iDet) {
     if (!R3Visualisation[iDet]) {
       continue;

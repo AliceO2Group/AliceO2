@@ -42,12 +42,12 @@ class TPCFastTransform;
 class DetectorData
 {
  public:
-    void init();
+  void init();
 
-    o2::itsmft::TopologyDictionary mITSDict;
-    o2::itsmft::TopologyDictionary mMFTDict;
-    std::unique_ptr<EveConfiguration> mConfig;
-    std::unique_ptr<o2::trd::GeometryFlat> mTrdGeo;
+  o2::itsmft::TopologyDictionary mITSDict;
+  o2::itsmft::TopologyDictionary mMFTDict;
+  std::unique_ptr<EveConfiguration> mConfig;
+  std::unique_ptr<o2::trd::GeometryFlat> mTrdGeo;
 };
 
 } // namespace o2::event_visualisation

@@ -43,4 +43,4 @@ class DataSourceOffline : public DataSourceOnline
 } // namespace event_visualisation
 } // namespace o2
 
-#endif //O2EVE_DATASOURCEOFFLINE_H
+#endif // O2EVE_DATASOURCEOFFLINE_H

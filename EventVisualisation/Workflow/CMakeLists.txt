@@ -76,6 +76,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2"
                 O2::TRDBase
                 O2::TRDWorkflowIO
                 O2::SpacePoints
-	)
+          )
   target_include_directories(${coverterTargetName} PUBLIC "include")
 endif()

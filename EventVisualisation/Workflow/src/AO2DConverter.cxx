@@ -41,12 +41,12 @@ void AO2DConverter::init(o2::framework::InitContext& ic)
 
 void AO2DConverter::process(o2::aod::Collisions const& collisions, EveWorkflowHelper::AODFullTracks const& tracks)
 {
-  for (auto const &c : collisions) {
+  for (auto const& c : collisions) {
     auto const tracksCol = tracks.sliceBy(aod::track::collisionId, c.globalIndex());
 
     EveWorkflowHelper helper;
 
-    for(auto const &track: tracksCol) {
+    for (auto const& track : tracksCol) {
       helper.drawAOD(track, c.collisionTime());
     }
 
@@ -59,6 +59,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   LOG(info) << "------------------------    defineDataProcessing " << AO2DConverter::mWorkflowVersion << "    ------------------------------------";
 
   return WorkflowSpec{
-    adaptAnalysisTask<AO2DConverter>(cfgc, TaskName{"o2-aodconverter"})
-  };
+    adaptAnalysisTask<AO2DConverter>(cfgc, TaskName{"o2-aodconverter"})};
 }

@@ -37,8 +37,7 @@ namespace o2::event_visualisation
 {
 class TPCFastTransform;
 
-struct AO2DConverter
-{
+struct AO2DConverter {
   o2::framework::Configurable<std::string> jsonPath{"jsons-folder", "./jsons", "name of the folder to store json files"};
 
   static constexpr float mWorkflowVersion = 1.00;
