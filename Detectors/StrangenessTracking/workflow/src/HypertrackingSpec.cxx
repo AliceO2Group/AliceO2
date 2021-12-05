@@ -13,15 +13,36 @@
 #include "ITSWorkflow/ClusterWriterSpec.h"
 #include "ITSWorkflow/TrackerSpec.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
+#include "ITSMFTWorkflow/ClusterReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/SecondaryVertexReaderSpec.h"
 
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include "DataFormatsITS/TrackITS.h"
+
+#include "StrangenessTracking/HyperTracker.h"
 
 namespace o2
 {
 using namespace o2::framework;
 namespace strangeness_tracking
 {
+
+class HypertrackerSpec : public framework::Task
+{
+ public:
+  HypertrackerSpec(bool isMC = false);
+  ~HypertrackerSpec() override = default;
+
+  void init(framework::InitContext& ic) final;
+  void run(framework::ProcessingContext& pc) final;
+  void endOfStream(framework::EndOfStreamContext& ec) final;
+
+ private:
+  bool mIsMC = false;
+  TStopwatch mTimer;
+  HyperTracker mTracker;
+};
 
 framework::WorkflowSpec getWorkflow(bool useMC, bool useRootInput)
 {
@@ -35,20 +56,31 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool useRootInput)
   return specs;
 }
 
-void HypertrackerDPL::init(framework::InitContext& ic)
+HypertrackerSpec::HypertrackerSpec(bool isMC) : mIsMC{isMC}
+{
+  // no ops
+}
+
+void HypertrackerSpec::init(framework::InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
 
-  LOG(info) << "Initialized HypertrackerDPL";
+  // load geometry
+  base::GeometryManager::loadGeometry();
+  auto gman = o2::its::GeometryTGeo::Instance();
+  gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
+
+  LOG(info) << "Initialized Hypertracker...";
 }
 
-void HypertrackerDPL::run(framework::ProcessingContext& pc)
+void HypertrackerSpec::run(framework::ProcessingContext& pc)
 {
   mTimer.Start(false);
-  LOG(info) << "Running HypertrackerDPL";
+  LOG(info) << "Running Hypertracker...";
   auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
-  gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
+  auto patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
+  auto itsTracks = pc.inputs().get<gsl::span<o2::its::TrackITS>>("ITSTrack");
 
   // code further down does assignment to the rofs and the altered object is used for output
   // we therefore need a copy of the vector rather than an object created directly on the input data,
@@ -58,7 +90,7 @@ void HypertrackerDPL::run(framework::ProcessingContext& pc)
   mTimer.Stop();
 }
 
-void HypertrackerDPL::endOfStream(framework::EndOfStreamContext& ec)
+void HypertrackerSpec::endOfStream(framework::EndOfStreamContext& ec)
 {
   LOGF(info, "Hypertracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
@@ -69,19 +101,21 @@ DataProcessorSpec getHyperTrackerSpec()
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ITSTrack", "ITS", "TRACKS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("asd1", "GLO", "V0S", 0, Lifetime::Timeframe);           // found V0s
-  inputs.emplace_back("asd2", "GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe);   // prim.vertex -> V0s refs
-  inputs.emplace_back("asd3", "GLO", "CASCS", 0, Lifetime::Timeframe);         // found Cascades
-  inputs.emplace_back("asd4", "GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe); // prim.vertex -> Cascades refs
-  // inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
-  // inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("vos", "GLO", "V0S", 0, Lifetime::Timeframe);                // found V0s
+  inputs.emplace_back("v02pvrf", "GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe);    // prim.vertex -> V0s refs
+  inputs.emplace_back("cascs", "GLO", "CASCS", 0, Lifetime::Timeframe);            // found Cascades
+  inputs.emplace_back("cas2pvrf", "GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe); // prim.vertex -> Cascades refs
+  inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
 
   return DataProcessorSpec{
     "hypertracker",
     inputs,
-    outputs};
+    outputs,
+    AlgorithmSpec{adaptFromTask<HypertrackerSpec>()},
+  };
 }
 
 } // namespace strangeness_tracking

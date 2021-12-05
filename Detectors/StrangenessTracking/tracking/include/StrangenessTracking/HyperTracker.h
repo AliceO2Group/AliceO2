@@ -74,8 +74,6 @@ class HyperTracker
   float mInitR2;
   float mMaxChi2 = 40;
   float mBz = -5;
-
-  ClassDefNV(HyperTracker, 1);
 };
 
 } // namespace tracking

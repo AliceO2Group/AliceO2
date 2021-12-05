@@ -14,35 +14,15 @@
 
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
-#include "ITSMFTWorkflow/ClusterReaderSpec.h"
-#include "GlobalTrackingWorkflowReaders/SecondaryVertexReaderSpec.h"
 #include "Framework/Task.h"
-#include <fairlogger/Logger.h>
-
-#include "TStopwatch.h"
 
 namespace o2
 {
 namespace strangeness_tracking
 {
 
-class HypertrackerDPL : public framework::Task
-{
- public:
-  HypertrackerDPL() = default;
-  ~HypertrackerDPL() override = default;
-
-  void init(framework::InitContext& ic) final;
-  void run(framework::ProcessingContext& pc) final;
-  void endOfStream(framework::EndOfStreamContext& ec) final;
-
- private:
-  TStopwatch mTimer;
-};
-
-framework::DataProcessorSpec getHyperTrackerSpec();
-
-framework::WorkflowSpec getWorkflow(bool upstreamClusters = false, bool upstreamV0s = false);
+o2::framework::DataProcessorSpec getHyperTrackerSpec();
+o2::framework::WorkflowSpec getWorkflow(bool upstreamClusters = false, bool upstreamV0s = false);
 
 } // namespace strangeness_tracking
 } // namespace o2
