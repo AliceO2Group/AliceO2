@@ -1720,8 +1720,12 @@ void MatchTPCITS::refitABWinners()
     if (!refitABTrack(mABTrackletRefs.size() - 1, ABSeed)) { // on failure, destroy added tracklet reference
       mABTrackletRefs.pop_back();
       mABTrackletClusterIDs.resize(start);
+      if (mMCTruthON) {
+        labelOccurence.clear();
+      }
       continue;
     }
+    clref.setEntries(ncl);
     if (mMCTruthON) {
       o2::MCCompLabel lab;
       int maxL = 0; // find most encountered label
@@ -1738,7 +1742,6 @@ void MatchTPCITS::refitABWinners()
       mABTrackletLabels.push_back(lab); // ITSAB tracklet label
       auto& lblGlo = mOutLabels.emplace_back(mTPCLblWork[ABSeed.tpcWID]);
       lblGlo.setFakeFlag(lab != lblGlo);
-
       LOG(debug) << "ABWinner ncl=" << ncl << " mcLBAB " << lab << " mcLBGlo " << lblGlo << " chi2=" << ABSeed.getLink(ABSeed.winLinkID).chi2Norm() << " pT = " << ABSeed.track.getPt();
     }
     // build MC label
