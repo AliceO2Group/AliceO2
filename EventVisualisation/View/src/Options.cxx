@@ -22,12 +22,18 @@
 #include <iostream>
 #include <string>
 
+#include <boost/program_options.hpp>
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/variables_map.hpp>
+
 namespace o2
 {
 namespace event_visualisation
 {
 
 Options Options::instance;
+
+namespace bpo = boost::program_options;
 
 std::string Options::printOptions()
 {
@@ -42,90 +48,55 @@ std::string Options::printOptions()
   return ss.str();
 }
 
-std::string Options::usage()
-{
-  std::stringstream ss;
-  ss << "usage:" << std::endl;
-  ss << "\t"
-     << "o2eve <options>" << std::endl;
-  ss << "\t\t"
-     << "where <options> are any from the following:" << std::endl;
-  ss << "\t\t"
-     << "-h             this help message" << std::endl;
-  ss << "\t\t"
-     << "-d name        name of the data folder" << std::endl;
-  ss << "\t\t"
-     << "-f name        name of the data file" << std::endl;
-  ss << "\t\t"
-     << "-j             use json files as a source" << std::endl;
-  ss << "\t\t"
-     << "-m limit       maximum size of the memory which do not cause exiting" << std::endl;
-  ss << "\t\t"
-     << "-o             use online json files as a source" << std::endl;
-  ss << "\t\t"
-     << "-p name        name of the options file" << std::endl;
-  ss << "\t\t"
-     << "-r             use random tracks" << std::endl;
-  ss << "\t\t"
-     << "-s name        name of the saved data folder" << std::endl;
-  ss << "\tdefault values are always taken from o2eve.json in current folder if present" << std::endl;
-  return ss.str();
-}
-
 bool Options::processCommandLine(int argc, char* argv[])
 {
-  int opt;
   bool save = false;
-  std::string optionsFileName = "o2eve.json"; // name with options to use
 
-  // put ':' in the starting of the
-  // string so that program can
-  //distinguish between '?' and ':'
-  while ((opt = getopt(argc, argv, ":d:f:hijm:op:rs:vt")) != -1) {
-    switch (opt) {
-      case 'd':
-        this->mDataFolder = optarg;
-        break;
-      case 'f':
-        this->mFileName = optarg;
-        break;
-      case 'h':
-        std::cout << usage() << std::endl;
-        return false;
-      case 'j':
-        this->mJSON = true;
-        break;
-      case 'm':
-        this->mMemoryLimit = std::stol(std::string(optarg));
-        break;
-      case 'o':
-        this->mOnline = true;
-        break;
-      case 'p':
-        optionsFileName = optarg;
-        break;
-      case 'r':
-        this->mRandomTracks = true;
-        break;
-      case 's':
-        this->mSavedDataFolder = optarg;
-        break;
-      case ':':
-        LOG(error) << "option needs a value: " << char(optopt);
-        LOG(info) << usage();
-        return false;
-      case '?':
-        LOG(error) << "unknown option: " << char(optopt);
-        LOG(info) << usage();
-        return false;
-    }
+  bpo::options_description eveOptions("o2Eve options");
+
+  eveOptions.add_options()(
+    "help,h", "produce help message")(
+    "datafolder,d", bpo::value<typeof(this->mDataFolder)>()->default_value("./"), "name of the data folder")(
+    "filename,f", bpo::value<typeof(this->mFileName)>()->default_value("data.root"), "name of the data file")(
+    "json,j", bpo::value<typeof(this->mJSON)>()->zero_tokens()->default_value(false), "use json files as a source")(
+    "memorylimit,m", bpo::value<typeof(this->mMemoryLimit)>()->default_value(-1), "memory usage limit (MB) - app will terminate if it is exceeded (pass -1 for no limit)")(
+    "online,o", bpo::value<typeof(this->mOnline)>()->zero_tokens()->default_value(false), "use online json files as a source")(
+    "optionsfilename,p", bpo::value<std::string>()->default_value("o2eve.json"), "name of the options file")(
+    "randomtracks,r", bpo::value<typeof(this->mRandomTracks)>()->zero_tokens()->default_value(false), "use random tracks")(
+    "saveddatafolder,s", bpo::value<typeof(this->mSavedDataFolder)>()->default_value(""), "name of the saved data folder");
+
+  using namespace bpo::command_line_style;
+  auto style = (allow_short | short_allow_adjacent | short_allow_next | allow_long | long_allow_adjacent | long_allow_next | allow_sticky | allow_dash_for_short);
+  bpo::variables_map varmap;
+  try {
+    bpo::store(
+      bpo::command_line_parser(argc, argv)
+        .options(eveOptions)
+        .style(style)
+        .run(),
+      varmap);
+  } catch (std::exception const& e) {
+    LOGP(error, "error parsing options of {}: {}", argv[0], e.what());
+    exit(1);
   }
 
-  // optind is for the extra arguments
-  // which are not parsed
-  for (; optind < argc; optind++) {
-    LOG(error) << "extra arguments: " << argv[optind];
-    LOG(info) << usage();
+  if (varmap.count("help")) {
+    LOG(info) << eveOptions << std::endl
+              << "  default values are always taken from o2eve.json in current folder if present" << std::endl;
+    return false;
+  }
+
+  this->mDataFolder = varmap["datafolder"].as<typeof(this->mDataFolder)>();
+  this->mFileName = varmap["filename"].as<typeof(this->mFileName)>();
+  this->mJSON = varmap["json"].as<typeof(this->mJSON)>();
+  this->mMemoryLimit = varmap["memorylimit"].as<typeof(this->mMemoryLimit)>();
+  this->mOnline = varmap["online"].as<typeof(this->mOnline)>();
+  auto optionsFileName = varmap["optionsfilename"].as<std::string>();
+  this->mRandomTracks = varmap["randomtracks"].as<typeof(this->mRandomTracks)>();
+  this->mSavedDataFolder = varmap["saveddatafolder"].as<typeof(this->mSavedDataFolder)>();
+
+  if (this->mOnline && varmap["datafolder"].defaulted()) {
+    LOGP(error, "If online mode is enabled, the --datafolder option must be specified!");
     return false;
   }
 
