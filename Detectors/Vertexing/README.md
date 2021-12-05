@@ -100,4 +100,13 @@ o2-primary-vertexing-workflow --run --configKeyValues "pvertexer.useMeanVertexCo
 
 ## Secondary Vertexing
 
-The workflow is `o2-secondary-vertexing-workflow`
+The workflow is `o2-secondary-vertexing-workflow`. At the moment the TPC tracks are not involved in secondary vertex search.
+The available options are:
+```
+--vertexing-sources arg (=all)        comma-separated list of sources to use in vertexing
+```
+```
+--disable-cascade-finder              do not run cascade finder
+```
+Plenty of options can be provided via ` --configKeyValues "svertexer.<key>=<value> `, see SVertexerParams class for details.
+Note the parameter `maxPVContributors` which tells how many primary vertex contributors can be used in V0 (in case of 0 the PV contributors are not included into the tracks pool). If `minDCAToPV` is positive, then only tracks having their DCA to `MeanVertex` (not the PV!) above this value will be used.
