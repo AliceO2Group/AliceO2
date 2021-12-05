@@ -15,10 +15,12 @@
 #include "ITSWorkflow/TrackReaderSpec.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/SecondaryVertexReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITS/TrackITS.h"
+#include "ReconstructionDataFormats/TrackTPCITS.h"
 
 #include "StrangenessTracking/HyperTracker.h"
 
@@ -51,6 +53,7 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool useRootInput)
     specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(useMC, true));
     specs.emplace_back(o2::its::getITSTrackReaderSpec(useMC));
     specs.emplace_back(o2::vertexing::getSecondaryVertexReaderSpec());
+    specs.emplace_back(o2::globaltracking::getTrackTPCITSReaderSpec(true));
   }
   specs.emplace_back(getHyperTrackerSpec());
   return specs;
@@ -81,12 +84,17 @@ void HypertrackerSpec::run(framework::ProcessingContext& pc)
   auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
   auto patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   auto itsTracks = pc.inputs().get<gsl::span<o2::its::TrackITS>>("ITSTrack");
+  auto tpcITSTracks = pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("trackTPCITS");
 
   // code further down does assignment to the rofs and the altered object is used for output
   // we therefore need a copy of the vector rather than an object created directly on the input data,
   // the output vector however is created directly inside the message memory thus avoiding copy by
   // snapshot
   auto rofsinput = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
+  auto v0s = pc.inputs().get<gsl::span<o2::dataformats::V0>>("v0s");
+
+  LOGF(info, "clus: %d, patterns: %d, itsTracks: %d, rofsinput: %d, v0s: %d, TPCITStracks: %d",
+   compClusters.size(), patterns.size(), itsTracks.size(), rofsinput.size(), v0s.size(), tpcITSTracks.size());
   mTimer.Stop();
 }
 
@@ -101,12 +109,13 @@ DataProcessorSpec getHyperTrackerSpec()
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ITSTrack", "ITS", "TRACKS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("vos", "GLO", "V0S", 0, Lifetime::Timeframe);                // found V0s
+  inputs.emplace_back("v0s", "GLO", "V0S", 0, Lifetime::Timeframe);                // found V0s
   inputs.emplace_back("v02pvrf", "GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe);    // prim.vertex -> V0s refs
   inputs.emplace_back("cascs", "GLO", "CASCS", 0, Lifetime::Timeframe);            // found Cascades
   inputs.emplace_back("cas2pvrf", "GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe); // prim.vertex -> Cascades refs
   inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("trackTPCITS", "GLO", "TPCITS", 0, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
 

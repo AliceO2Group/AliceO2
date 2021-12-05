@@ -32,8 +32,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC"}},
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}
-  };
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
 }
@@ -48,7 +47,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // Update the (declared) parameters if changed from the command line
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto useRootInput = !configcontext.options().get<bool>("disable-root-input");
-  
+
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
   auto wf = o2::strangeness_tracking::getWorkflow(useMC, useRootInput);

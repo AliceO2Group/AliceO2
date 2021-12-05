@@ -16,6 +16,7 @@ o2_add_library(StrangenessTrackingWorkflow
                                      O2::ITSWorkflow
                                      O2::StrangenessTracking
                                      O2::SimulationDataFormat
+                                     O2::ReconstructionDataFormats
                                      O2::Framework
                                      O2::DetectorsRaw)
 
