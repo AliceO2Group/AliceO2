@@ -31,7 +31,7 @@ namespace event_visualisation
 class DataSourceOffline : public DataSourceOnline
 {
  public:
-  DataSourceOffline(const std::string path, const std::string file, bool hideGui = false);
+  DataSourceOffline(std::string const aodCoverterPath, std::string const path, std::string const file, bool hideGui = false);
 
   ~DataSourceOffline() override = default;
   DataSourceOffline(DataSourceOffline const&) = delete;

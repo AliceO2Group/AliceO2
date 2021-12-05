@@ -57,10 +57,12 @@ void Initializer::setup()
   auto& eventManager = EventManager::getInstance();
   eventManager.setCdbPath(ocdbStorage);
 
-  if(Options::Instance()->online()) {
-    eventManager.setDataSource(new DataSourceOnline(Options::Instance()->dataFolder()));
+  auto const options = Options::Instance();
+
+  if(options->online()) {
+    eventManager.setDataSource(new DataSourceOnline(options->dataFolder()));
   } else {
-    eventManager.setDataSource(new DataSourceOffline(Options::Instance()->dataFolder(), Options::Instance()->fileName()));
+    eventManager.setDataSource(new DataSourceOffline(options->AODConverterPath(), options->dataFolder(), options->fileName(), options->hideDplGUI()));
   }
 
   //if (Options::Instance()->json()) {

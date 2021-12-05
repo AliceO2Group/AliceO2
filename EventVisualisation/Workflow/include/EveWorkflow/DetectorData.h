@@ -10,14 +10,16 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// \file   AO2DConverter.h
+/// \file   DetectorData.h
 /// \author p.nowakowski@cern.ch
 
-#ifndef ALICE_O2_EVENTVISUALISATION_WORKFLOW_AO2DCONVERTER_H
-#define ALICE_O2_EVENTVISUALISATION_WORKFLOW_AO2DCONVERTER_H
+#ifndef ALICE_O2_EVENTVISUALISATION_WORKFLOW_DETECTORDATA_H
+#define ALICE_O2_EVENTVISUALISATION_WORKFLOW_DETECTORDATA_H
 
+#include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "EveWorkflow/EveConfiguration.h"
 #include "EveWorkflow/EveWorkflowHelper.h"
-#include "EveWorkflow/DetectorData.h"
 #include "Framework/AnalysisTask.h"
 #include <memory>
 
@@ -37,16 +39,15 @@ namespace o2::event_visualisation
 {
 class TPCFastTransform;
 
-struct AO2DConverter
+class DetectorData
 {
-  o2::framework::Configurable<std::string> jsonPath{"jsons-folder", "./jsons", "name of the folder to store json files"};
+ public:
+    void init();
 
-  static constexpr float mWorkflowVersion = 1.00;
-
-  void init(o2::framework::InitContext& ic);
-  void process(o2::aod::Collisions const& collisions, EveWorkflowHelper::AODFullTracks const& tracks);
-
-  DetectorData mData;
+    o2::itsmft::TopologyDictionary mITSDict;
+    o2::itsmft::TopologyDictionary mMFTDict;
+    std::unique_ptr<EveConfiguration> mConfig;
+    std::unique_ptr<o2::trd::GeometryFlat> mTrdGeo;
 };
 
 } // namespace o2::event_visualisation

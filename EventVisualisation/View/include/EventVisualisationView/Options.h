@@ -34,6 +34,8 @@ class Options
   std::string mDataFolder; // -d './'
   std::string mSavedDataFolder; // -s './'
   long mMemoryLimit;            // -m 1500 (MB) = 1.5GB
+  bool mHideDplGUI;        // -hg
+  std::string mAODConverterPath;// -a 'o2-eve-aodconverter'
 
   // helper methods
   static Options instance;
@@ -53,6 +55,8 @@ class Options
   std::string fileName() { return this->mFileName; }
   bool randomTracks() { return this->mRandomTracks; }
   long memoryLimit() { return this->mMemoryLimit; }
+  bool hideDplGUI() { return this->mHideDplGUI; }
+  std::string AODConverterPath() { return this->mAODConverterPath; }
 };
 
 } // namespace event_visualisation

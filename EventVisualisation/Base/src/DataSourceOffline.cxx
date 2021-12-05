@@ -29,10 +29,10 @@ namespace o2
 {
 namespace event_visualisation
 {
-DataSourceOffline::DataSourceOffline(const std::string path, const std::string file, bool hideGui) : DataSourceOnline(path)
+DataSourceOffline::DataSourceOffline(std::string const aodCoverterPath, std::string const path, std::string const file, bool hideGui) : DataSourceOnline(path)
 {
   std::string const batch = hideGui ? "-b" : "";
-  std::string command = fmt::format("o2-aodconverter {} --aod-file {} --jsons-folder \"{}\"", batch, file, path);
+  std::string command = fmt::format("{} {} --aod-file {} --jsons-folder \"{}\"", aodCoverterPath, batch, file, path);
 
   std::system(command.c_str());
 }
