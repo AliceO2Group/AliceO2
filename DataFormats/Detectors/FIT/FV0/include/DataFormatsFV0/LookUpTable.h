@@ -211,7 +211,7 @@ class SingleLUT : public LUT
 
  public:
   static constexpr char sDetectorName[] = "FV0";
-  static constexpr char sDefaultLUTpath[] = "FV0/LookUpTable";
+  static constexpr char sDefaultLUTpath[] = "FV0/Config/LookupTable";
   inline static std::string sCurrentCCDBpath = "";
   inline static std::string sCurrentLUTpath = sDefaultLUTpath;
   //Before instance() call, setup url and path
