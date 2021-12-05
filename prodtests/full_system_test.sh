@@ -117,9 +117,9 @@ fi
 mkdir -p raw
 taskwrapper itsraw.log o2-its-digi2raw --file-for cru -o raw/ITS
 taskwrapper mftraw.log o2-mft-digi2raw --file-for link -o raw/MFT
-taskwrapper ft0raw.log o2-ft0-digi2raw --file-for cru -o raw/FT0 --configKeyValues "NameConf.mCCDBServer=http://ccdb-test.cern.ch:8080"
-taskwrapper fv0raw.log o2-fv0-digi2raw --file-for cru -o raw/FV0 --configKeyValues "NameConf.mCCDBServer=http://ccdb-test.cern.ch:8080"
-taskwrapper fddraw.log o2-fdd-digit2raw --file-for cru -o raw/FDD --configKeyValues "NameConf.mCCDBServer=http://ccdb-test.cern.ch:8080"
+taskwrapper ft0raw.log o2-ft0-digi2raw --file-for cru -o raw/FT0
+taskwrapper fv0raw.log o2-fv0-digi2raw --file-for cru -o raw/FV0
+taskwrapper fddraw.log o2-fdd-digit2raw --file-for cru -o raw/FDD
 taskwrapper tpcraw.log o2-tpc-digits-to-rawzs --file-for cru -i tpcdigits.root -o raw/TPC
 taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --file-for cru --output-type raw --tof-raw-outdir raw/TOF
 taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --file-for cru
