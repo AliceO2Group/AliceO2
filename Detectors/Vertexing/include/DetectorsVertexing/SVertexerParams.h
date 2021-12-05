@@ -30,16 +30,23 @@ namespace vertexing
 struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParams> {
 
   // parameters
+  bool useAbsDCA = true;        ///< use abs dca minimization
   float maxChi2 = 2.;           ///< max dca from prongs to vertex
   float minParamChange = 1e-3;  ///< stop when tracks X-params being minimized change by less that this value
   float minRelChi2Change = 0.9; ///< stop when chi2 changes by less than this value
   float maxDZIni = 5.;          ///< don't consider as a seed (circles intersection) if Z distance exceeds this
   float maxRIni = 150;          ///< don't consider as a seed (circles intersection) if its R exceeds this
-  float minRFor3DField = 40;    ///< above this radius use 3D field
-  o2::base::Propagator::MatCorrType matCorr = o2::base::Propagator::MatCorrType::USEMatCorrLUT; // material correction to use
-  bool useAbsDCA = true; ///< use abs dca minimization
   //
-  int maxPVContributors = 0;              ///< max number PV contributors to allow in SVertex
+  // propagation options
+  int matCorr = int(o2::base::Propagator::MatCorrType::USEMatCorrNONE); ///< material correction to use
+  float minRFor3DField = 40;                                            ///< above this radius use 3D field
+  float maxStep = 2.;                                                   ///< max step size when external propagator is used
+  float maxSnp = 0.95;                                                  ///< max snp when external propagator is used
+  float minXSeed = -1.;                                                 ///< minimal X of seed in prong frame (within the radial resolution track should not go to negative X)
+  bool usePropagator = false;                                           ///< use external propagator
+  bool refitWithMatCorr = false;                                        ///< refit V0 applying material corrections
+  //
+  int maxPVContributors = 2;              ///< max number PV contributors to allow in V0
   float minDCAToPV = 0.1;                 ///< min DCA to PV of single track to accept
   float minRToMeanVertex = 0.5;           ///< min radial distance of V0 from beam line (mean vertex)
   float maxDCAXYToMeanVertex = 0.2;       ///< max DCA of V0 from beam line (mean vertex) for prompt V0 candidates

@@ -143,6 +143,11 @@ void SVertexer::setupThreads()
     fitter.setMinRelChi2Change(mSVParams->minRelChi2Change);
     fitter.setMaxDZIni(mSVParams->maxDZIni);
     fitter.setMaxChi2(mSVParams->maxChi2);
+    fitter.setMatCorrType(mSVParams->matCorr);
+    fitter.setUsePropagator(mSVParams->usePropagator);
+    fitter.setRefitWithMatCorr(mSVParams->refitWithMatCorr);
+    fitter.setMaxStep(mSVParams->maxStep);
+    fitter.setMaxSnp(mSVParams->maxSnp);
   }
   mFitterCasc.resize(mNThreads);
   for (auto& fitter : mFitterCasc) {
@@ -154,6 +159,11 @@ void SVertexer::setupThreads()
     fitter.setMinRelChi2Change(mSVParams->minRelChi2Change);
     fitter.setMaxDZIni(mSVParams->maxDZIni);
     fitter.setMaxChi2(mSVParams->maxChi2);
+    fitter.setMatCorrType(mSVParams->matCorr);
+    fitter.setUsePropagator(mSVParams->usePropagator);
+    fitter.setRefitWithMatCorr(mSVParams->refitWithMatCorr);
+    fitter.setMaxStep(mSVParams->maxStep);
+    fitter.setMaxSnp(mSVParams->maxSnp);
   }
 }
 
@@ -166,13 +176,19 @@ bool SVertexer::acceptTrack(GIndex gid, const o2::track::TrackParCov& trc) const
   // DCA to mean vertex
   if (mSVParams->minDCAToPV > 0.f) {
     o2::track::TrackPar trp(trc);
+    std::array<float, 2> dca;
     auto* prop = o2::base::Propagator::Instance();
-    if (trp.getX() > mSVParams->minRFor3DField && !prop->PropagateToXBxByBz(trp, mSVParams->minRFor3DField, 0.95, 2., mSVParams->matCorr)) {
-      return true; // we don't need actually to propagate to the beam-line
-    }
-    gpu::gpustd::array<float, 2> dca;
-    if (!prop->propagateToDCA(mMeanVertex.getXYZ(), trp, prop->getNominalBz(), 2.f, mSVParams->matCorr, &dca)) {
-      return true;
+    if (mSVParams->usePropagator) {
+      if (trp.getX() > mSVParams->minRFor3DField && !prop->PropagateToXBxByBz(trp, mSVParams->minRFor3DField, mSVParams->maxSnp, mSVParams->maxStep, mSVParams->matCorr)) {
+        return true; // we don't need actually to propagate to the beam-line
+      }
+      if (!prop->propagateToDCA(mMeanVertex.getXYZ(), trp, prop->getNominalBz(), mSVParams->maxStep, mSVParams->matCorr, &dca)) {
+        return true;
+      }
+    } else {
+      if (!trp.propagateParamToDCA(mMeanVertex.getXYZ(), prop->getNominalBz(), &dca)) {
+        return true;
+      }
     }
     if (std::abs(dca[0]) < mSVParams->minDCAToPV) {
       return false;
