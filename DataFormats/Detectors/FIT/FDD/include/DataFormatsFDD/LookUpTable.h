@@ -233,7 +233,6 @@ class SingleLUT : public LUT
 } //namespace new_lut
 
 using SingleLUT = new_lut::SingleLUT<o2::fit::LookupTableBase<>>;
-//using SingleLUT = deprecated::SingleLUT;
 
 } // namespace fdd
 } // namespace o2
