@@ -585,7 +585,6 @@ struct AnalysisDataProcessorBuilder {
       // single argument to process
       homogeneous_apply_refs([&groupingTable](auto& x) {
         PartitionManager<std::decay_t<decltype(x)>>::bindExternalIndices(x, &groupingTable);
-        PartitionManager<std::decay_t<decltype(x)>>::getBoundToExternalIndices(x, groupingTable);
         return true;
       },
                              task);
@@ -621,7 +620,6 @@ struct AnalysisDataProcessorBuilder {
         homogeneous_apply_refs([&x](auto& t) {
           PartitionManager<std::decay_t<decltype(t)>>::setPartition(t, x);
           PartitionManager<std::decay_t<decltype(t)>>::bindExternalIndices(t, &x);
-          PartitionManager<std::decay_t<decltype(t)>>::getBoundToExternalIndices(t, x);
           return true;
         },
                                task);
@@ -650,7 +648,6 @@ struct AnalysisDataProcessorBuilder {
           // bind partitions and grouping table
           homogeneous_apply_refs([&groupingTable](auto& x) {
             PartitionManager<std::decay_t<decltype(x)>>::bindExternalIndices(x, &groupingTable);
-            PartitionManager<std::decay_t<decltype(x)>>::getBoundToExternalIndices(x, groupingTable);
             return true;
           },
                                  task);
@@ -663,7 +660,6 @@ struct AnalysisDataProcessorBuilder {
         // bind partitions and grouping table
         homogeneous_apply_refs([&groupingTable](auto& x) {
           PartitionManager<std::decay_t<decltype(x)>>::bindExternalIndices(x, &groupingTable);
-          PartitionManager<std::decay_t<decltype(x)>>::getBoundToExternalIndices(x, groupingTable);
           return true;
         },
                                task);
@@ -942,7 +938,6 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
         },
         *task.get());
 
-      homogeneous_apply_refs([](auto&& x) { PartitionManager<std::decay_t<decltype(x)>>::resetSelection(x); return true; }, *task.get());
       homogeneous_apply_refs([&pc](auto&& x) { return OutputManager<std::decay_t<decltype(x)>>::finalize(pc, x); }, *task.get());
     };
   }};
