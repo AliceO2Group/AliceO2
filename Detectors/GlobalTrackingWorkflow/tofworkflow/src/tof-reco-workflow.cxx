@@ -28,7 +28,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "FairLogger.h"
 #include "CommonUtils/ConfigurableParam.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
 
@@ -52,7 +52,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"tof-sectors", o2::framework::VariantType::String, "0-17", {"TOF sector range, e.g. 5-7,8,9 ,TBI"}},
     {"tof-lanes", o2::framework::VariantType::Int, 1, {"number of parallel lanes up to the matcher, TBI"}},
     {"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}},
-    {"ccdb-url-tof", o2::framework::VariantType::String, "http://ccdb-test.cern.ch:8080", {"CCDB Url"}},
     {"input-desc", o2::framework::VariantType::String, "CRAWDATA", {"Input specs description string"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}},
@@ -138,7 +137,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto isCalibFromCluster = cfgc.options().get<bool>("calib-cluster");
   auto isCosmics = cfgc.options().get<bool>("cosmics");
   auto ignoreDistStf = cfgc.options().get<bool>("ignore-dist-stf");
-  auto ccdb_url = cfgc.options().get<std::string>("ccdb-url-tof");
+  auto ccdb_url = o2::base::NameConf::getCCDBServer();
 
   LOG(debug) << "TOF RECO WORKFLOW configuration";
   LOG(debug) << "TOF input = " << cfgc.options().get<std::string>("input-type");
@@ -148,7 +147,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   LOG(debug) << "TOF lanes = " << cfgc.options().get<std::string>("tof-lanes");
   LOG(debug) << "TOF use-ccdb = " << cfgc.options().get<std::string>("use-ccdb");
   if (useCCDB) {
-    LOG(debug) << "CCDB url = " << cfgc.options().get<std::string>("ccdb-url-tof");
+    LOG(debug) << "CCDB url = " << ccdb_url;
   }
   LOG(debug) << "TOF disable-root-input = " << disableRootInput;
   LOG(debug) << "TOF disable-root-output = " << disableRootOutput;

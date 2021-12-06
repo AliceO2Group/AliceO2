@@ -11,7 +11,7 @@
 
 o2_add_library(DetectorsCommonDataFormats
                SOURCES src/DetID.cxx src/AlignParam.cxx src/DetMatrixCache.cxx
-                       src/NameConf.cxx
+                       src/DetectorNameConf.cxx
                        src/EncodedBlocks.cxx
                        src/CTFHeader.cxx
                        src/CTFDictHeader.cxx
@@ -32,7 +32,7 @@ o2_target_root_dictionary(
   HEADERS include/DetectorsCommonDataFormats/DetID.h
           include/DetectorsCommonDataFormats/SimTraits.h
           include/DetectorsCommonDataFormats/AlignParam.h
-          include/DetectorsCommonDataFormats/NameConf.h
+          include/DetectorsCommonDataFormats/DetectorNameConf.h
           include/DetectorsCommonDataFormats/EncodedBlocks.h
           include/DetectorsCommonDataFormats/CTFHeader.h
           include/DetectorsCommonDataFormats/CTFDictHeader.h

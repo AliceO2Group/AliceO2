@@ -46,6 +46,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"test-mode", VariantType::Bool, false, {"test mode"}});
   workflowOptions.push_back(ConfigParamSpec{"ccdb-url", VariantType::String, "http://ccdb-test.cern.ch:8080", {"url of CCDB to get the detectors DPs configuration"}});
   workflowOptions.push_back(ConfigParamSpec{"detector-list", VariantType::String, "TOF, MCH", {"list of detectors for which to process DCS"}});
+  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -55,8 +56,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   bool verbose = config.options().get<bool>("verbose");
   bool testMode = config.options().get<bool>("test-mode");
-  std::string url = config.options().get<std::string>("ccdb-url");
   std::string detectorList = config.options().get<std::string>("detector-list");
+  o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
+  std::string url = config.options().get<std::string>("ccdb-url");
 
   std::unordered_map<DPID, o2h::DataDescription> dpid2DataDesc;
 

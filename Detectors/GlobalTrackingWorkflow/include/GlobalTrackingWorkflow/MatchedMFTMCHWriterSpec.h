@@ -9,32 +9,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   FDDDigitWriterSpec.h
+/// @file   MatchedMFTMCHWriterSpec.h
 
-#ifndef O2_FDDDIGITWRITER_H
-#define O2_FDDDIGITWRITER_H
+#ifndef O2_GLOBAL_MATCHMFTMCH_WRITER
+#define O2_GLOBAL_MATCHMFTMCH_WRITER
 
 #include "Framework/DataProcessorSpec.h"
-#include "DPLUtils/MakeRootTreeWriterSpec.h"
-#include "Framework/InputSpec.h"
-#include "DataFormatsFDD/Digit.h"
-#include "DataFormatsFDD/ChannelData.h"
-#include "DataFormatsFDD/MCLabel.h"
-#include "SimulationDataFormat/IOMCTruthContainerView.h"
-#include "SimulationDataFormat/ConstMCTruthContainer.h"
-#include "SimulationDataFormat/MCCompLabel.h"
 
 using namespace o2::framework;
 
 namespace o2
 {
-namespace fdd
+namespace globaltracking
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getFDDDigitWriterSpec(bool mctruth = true, bool trigInp = true);
+/// write MFTMCH matches to a root file
+framework::DataProcessorSpec getMFTMCHMatchesWriterSpec(bool useMC);
 
-} // namespace fdd
+} // namespace globaltracking
 } // namespace o2
 
-#endif /* O2_FDDDIGITWRITER_H */
+#endif /* O2_GLOBAL_MATCHMFTMCH_WRITER */

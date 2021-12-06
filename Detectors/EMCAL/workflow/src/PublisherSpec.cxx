@@ -9,8 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DetectorsCommonDataFormats/NameConf.h"
-#include "DataFormatsEMCAL/EMCALBlockHeader.h"
+#include "CommonUtils/NameConf.h"
 #include "EMCALWorkflow/PublisherSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
@@ -67,9 +66,8 @@ o2::framework::DataProcessorSpec createPublisherSpec(PublisherConf const& config
       }
 
       auto publish = [&processAttributes, &pc, propagateMC]() {
-        o2::emcal::EMCALBlockHeader emcheader(true);
         if (processAttributes->reader->next()) {
-          (*processAttributes->reader)(pc, emcheader);
+          (*processAttributes->reader)(pc);
         } else {
           processAttributes->reader.reset();
           return false;

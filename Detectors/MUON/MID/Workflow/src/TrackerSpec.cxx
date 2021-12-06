@@ -27,7 +27,7 @@
 #include "DataFormatsMID/Track.h"
 #include "MIDTracking/Tracker.h"
 #include "DetectorsBase/GeometryManager.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 namespace of = o2::framework;
 

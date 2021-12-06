@@ -12,7 +12,6 @@
 #include "FairLogger.h"
 
 #include "DataFormatsEMCAL/Digit.h"
-#include "DataFormatsEMCAL/EMCALBlockHeader.h"
 #include "EMCALWorkflow/CellConverterSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"

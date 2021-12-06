@@ -20,7 +20,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "FairLogger.h"
 #include "CommonUtils/ConfigurableParam.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 #include <string>
 #include <stdexcept>

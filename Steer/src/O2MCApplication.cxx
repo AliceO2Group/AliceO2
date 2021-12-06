@@ -26,7 +26,7 @@
 #include <TGeoManager.h>
 #include <fstream>
 #include <FairVolume.h>
-#include <DetectorsCommonDataFormats/NameConf.h>
+#include <CommonUtils/NameConf.h>
 #include "SimConfig/SimUserDecay.h"
 
 namespace o2

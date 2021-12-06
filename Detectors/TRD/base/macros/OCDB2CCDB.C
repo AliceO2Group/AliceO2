@@ -30,6 +30,7 @@
 #include <fstream>
 #include <string>
 #include <exception>
+#include <chrono>
 #include "TError.h"
 #include "TVectorD.h"
 #include "TTreeStream.h"
@@ -66,15 +67,9 @@
 #include "CCDB/CcdbApi.h"
 #include "TRDBase/PadParameters.h"
 #include "TRDBase/PadCalibrations.h"
-#include "TRDBase/PadStatus.h"
-#include "TRDBase/PadNoise.h"
-#include "TRDBase/LocalVDrift.h"
-#include "TRDBase/LocalT0.h"
-#include "TRDBase/LocalGainFactor.h"
-#include "TRDBase/PadNoise.h"
+#include "TRDBase/PadCalibrationsAliases.h"
 #include "TRDBase/ChamberCalibrations.h"
 #include "TRDBase/ChamberStatus.h"
-#include "TRDBase/ChamberNoise.h"
 #include "TRDBase/CalOnlineGainTables.h"
 #include "TRDBase/FeeParam.h"
 #include "TRDSimulation/TrapConfig.h"
@@ -215,11 +210,21 @@ void UnpackGainTable(std::string& gainkey, CalOnlineGainTables* gtbl)
 
 // choose ccdbPath = "http://ccdb-test.cern.ch:8080" to write to the test CCDB at CERN
 //__________________________________________________________________________________________
-void OCDB2CCDB(TString ccdbPath = "http://localhost:8080", Int_t run = 297595, const Char_t* storageURI = "local:///cvmfs/alice-ocdb.cern.ch/calibration/data/2018/OCDB")
+void OCDB2CCDB(long timeStamp = -1, TString ccdbPath = "http://localhost:8080", Int_t run = 297595, const Char_t* storageURI = "local:///cvmfs/alice-ocdb.cern.ch/calibration/data/2018/OCDB")
 {
   //
   // Main function to steer the extraction of TRD OCDB information
   //
+
+  if (timeStamp < 0) {
+    timeStamp = run;
+  } else if (timeStamp == 1) {
+    // this is a hack to not have to pass current time in ms as argument
+    timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+  }
+
+  // if we don't use run number as time stamp set validity to 6 months, otherwise only for single run
+  long timeStampEnd = (timeStamp != run) ? timeStamp + 1e3 * 60 * 60 * 24 * 180 : timeStamp + 1;
 
   //std::string outFilename="CalibrationsForRun"+Run;
   TTimeStamp jobStartTime;
@@ -266,7 +271,7 @@ void OCDB2CCDB(TString ccdbPath = "http://localhost:8080", Int_t run = 297595, c
         o2chamberstatus->setRawStatus(i, a);
       }
       // store abitrary user object in strongly typed manner
-      ccdb.storeAsTFileAny(o2chamberstatus, "TRD/Calib/ChamberStatus", metadata, Run, Run + 1);
+      ccdb.storeAsTFileAny(o2chamberstatus, "TRD/Calib/ChamberStatus", metadata, timeStamp, timeStampEnd);
       // // read like this (you have to specify the type)
       //auto o2chamberstatusback = ccdb.retrieveFromTFileAny<o2::trd::ChamberStatus>("TRD/Calib/ChamberStatus", metadata);
     } else
@@ -315,7 +320,7 @@ void OCDB2CCDB(TString ccdbPath = "http://localhost:8080", Int_t run = 297595, c
 
   if (chamberGainFactor && chamberExB && chamberT0 && chamberVDrift) {
     //if all 4 mmebers of calibrations is here then write to ccdb.
-    ccdb.storeAsTFileAny(o2chambercalibrations, "TRD/Calib/ChamberCalibrations", metadata, Run, Run + 1);
+    ccdb.storeAsTFileAny(o2chambercalibrations, "TRD/Calib/ChamberCalibrations", metadata, timeStamp, timeStampEnd);
   } else
     cout << "something wrong with one of the members of ChamberCalibrations and not writing to ccdb, fix :: " << chamberGainFactor << "&&" << chamberExB << "&&" << chamberT0 << "&&" << chamberVDrift << endl;
 
@@ -335,7 +340,7 @@ void OCDB2CCDB(TString ccdbPath = "http://localhost:8080", Int_t run = 297595, c
         } else
           cout << "calroc is undefiend" << endl;
       }
-      ccdb.storeAsTFileAny(o2localvdrift, "TRD/Calib/LocalVDrift", metadata, Run, Run + 1);
+      ccdb.storeAsTFileAny(o2localvdrift, "TRD/Calib/LocalVDrift", metadata, timeStamp, timeStampEnd);
     } else
       cout << "attempt to get object LocalVdrift from ocdb entry. Will not be writing LocalVDritf" << endl;
   } else
@@ -353,7 +358,7 @@ void OCDB2CCDB(TString ccdbPath = "http://localhost:8080", Int_t run = 297595, c
           o2localt0->setPadValue(i, j, calroc->GetValue(j));
         }
       }
-      ccdb.storeAsTFileAny(o2localt0, "TRD/Calib/LocalT0", metadata, Run, Run + 1);
+      ccdb.storeAsTFileAny(o2localt0, "TRD/Calib/LocalT0", metadata, timeStamp, timeStampEnd);
     } else
       cout << "attempt to get object chamber LocalT0 from ocdb entry. Will not be writing LocalT0" << endl;
   } else
@@ -372,7 +377,7 @@ void OCDB2CCDB(TString ccdbPath = "http://localhost:8080", Int_t run = 297595, c
           o2padnoise->setPadValue(i, j, calroc->GetValue(j));
         }
       }
-      ccdb.storeAsTFileAny(o2padnoise, "TRD/Calib/PadNoise", metadata, Run, Run + 1);
+      ccdb.storeAsTFileAny(o2padnoise, "TRD/Calib/PadNoise", metadata, timeStamp, timeStampEnd);
     } else
       cout << "attempt to get object PadNoise from ocdb entry. Will not be writing PadNoise" << endl;
   }
@@ -389,7 +394,7 @@ void OCDB2CCDB(TString ccdbPath = "http://localhost:8080", Int_t run = 297595, c
           o2localgainfactor->setPadValue(i, j, calroc->GetValue(j));
         }
       }
-      ccdb.storeAsTFileAny(o2localgainfactor, "TRD/Calib/LocalGainFactor", metadata, Run, Run + 1);
+      ccdb.storeAsTFileAny(o2localgainfactor, "TRD/Calib/LocalGainFactor", metadata, timeStamp, timeStampEnd);
     } else
       cout << "attempt to get object LocalGainFactor from ocdb entry. Will not be writing LocalGainFactor" << endl;
   } else
@@ -404,13 +409,15 @@ void OCDB2CCDB(TString ccdbPath = "http://localhost:8080", Int_t run = 297595, c
         int rows = rocstatus->GetNrows();
         int cols = rocstatus->GetNcols();
         for (int j = 0; j < rocstatus->GetNchannels(); j++) {
-          o2padstatus->setStatus(i, j, rocstatus->GetStatus(j));
+          o2padstatus->setPadValue(i, j, rocstatus->GetStatus(j));
         }
       }
-      ccdb.storeAsTFileAny(o2padstatus, "TRD/Calib/PadStatus", metadata, Run, Run + 1);
+      ccdb.storeAsTFileAny(o2padstatus, "TRD/Calib/PadStatus", metadata, timeStamp, timeStampEnd);
     }
   }
 
+  /*
+  // OS: removed for now since nowhere used in O2 code
   AliTRDCalDet* chambernoise = 0;
   auto o2chambernoise = new o2::trd::ChamberNoise();
   if ((entry = GetCDBentry("TRD/Calib/DetNoise", 0))) {
@@ -422,6 +429,7 @@ void OCDB2CCDB(TString ccdbPath = "http://localhost:8080", Int_t run = 297595, c
     } else
       cout << "attempt to get object ChamberNoise from ocdb entry. Will not be writing ChamberNoise" << endl;
   }
+  */
 
   auto o2gtbl = new CalOnlineGainTables();
   std::string tablekey = "Krypton_2011-01";

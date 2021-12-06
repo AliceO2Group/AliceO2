@@ -18,7 +18,7 @@ o2-its-reco-workflow --entropy-encoding | o2-ctf-writer-workflow --onlyDet ITS
 
 For the storage optimization reason one can request multiple CTFs stored in the same output file (as entries of the `ctf` tree):
 ```bash
-o2-ctf-writer --min-file-size <min> --max-file-size <max> ...
+o2-ctf-writer-workflow --min-file-size <min> --max-file-size <max> ...
 ```
 will accumulate CTFs in entries of the same tree/file until its size fits exceeds `min` and does not exceed `max` (`max` check is disabled if `max<=min`) or EOS received.
 The `--max-file-size` limit will be ignored if the very first CTF already exceeds it.
@@ -41,6 +41,14 @@ By default only CTFs will written. If the upstream entropy compression is perfor
 In the dictionaries creation mode their data are accumulated over all CTFs procssed. User may request periodic (and incremental) saving of dictionaries after every `N` TFs processed by passing `--save-dict-after <N>` option.
 
 Option `--ctf-dict-dir <dir>` can be provided to indicate the (existing) directory where the dictionary will be stored.
+
+The external dictionaries created by the `o2-ctf-writer-workflow` containes a TTree (one for all participating detectos or single file per detector if `--dict-per-det` was provided). Since the TTrees cannot be used with CcdbAPI, one can
+run the macro `O2/Detectors/CTF/utils/CTFdict2CCDBfiles.C` (installed to $O2_ROOT/share/macro/CTFdict2CCDBfiles.C) which extracts the dictionary for every detector into separate file containing plain `vector<char>`. These files can be directly
+uploaded to CCDB and accessed via `CcdbAPI` (the reference of the vector should be provided to corresponding detector CTFCoder::createCoders method to build the run-time dictionary). These files can be also used as per-detector command-line
+parameters, on the same footing as tree-based dictionaries, e.g.
+```
+o2-ctf-reader-workflow --ctf-input input.lst --onlyDet ITS,TPC,TOF --its-entropy-decoder ' --ctf-dict ctfdict_ITS_v1.0_1626472046.root' --tpc-entropy-decoder ' --ctf-dict ctfdict_TPC_v1.0_1626472048.root' --tof-entropy-decoder  ' --ctf-dict ctfdict_TOF_v1.0_1626472048.root'
+```
 
 ## CTF reader workflow
 

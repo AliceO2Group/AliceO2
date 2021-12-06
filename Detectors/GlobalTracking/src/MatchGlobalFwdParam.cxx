@@ -9,7 +9,5 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <vector>
-#include <array>
-#include "TRDBase/PadStatus.h"
-using namespace o2::trd;
+#include "GlobalTracking/MatchGlobalFwdParam.h"
+O2ParamImpl(o2::globaltracking::GlobalFwdMatchingParam);

@@ -1,5 +1,5 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "Framework/Logger.h"

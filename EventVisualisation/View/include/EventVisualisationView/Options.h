@@ -39,18 +39,10 @@ class Options
   static Options instance;
   bool saveToJSON(std::string filename);   // stores options to current folder
   bool readFromJSON(std::string filename); // read options from option file
-  Options()
-  {
-    mFileName = "data.root";
-    mDataFolder = "./";    // current working directory
-    mSavedDataFolder = ""; // not use
-    mMemoryLimit = -1;     // not use
-  }
 
  public:
   static Options* Instance() { return &instance; }
   std::string printOptions();
-  std::string usage();
   bool processCommandLine(int argc, char* argv[]);
 
   // get access methods

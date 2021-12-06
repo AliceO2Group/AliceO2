@@ -86,8 +86,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::vertexing::getVertexTrackMatcherSpec(srcVT));
   }
 
+  auto srcMtc = srcComb & ~GID::getSourceMask(GID::MFTMCH); // Do not request MFTMCH matches
+
   // only TOF clusters are needed if TOF is involved, no clusters MC needed
-  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcClus, srcComb, srcComb, useMC, dummy);
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcClus, srcMtc, srcComb, useMC, dummy);
 
   if (!disableRootOut) {
     specs.emplace_back(o2::vertexing::getPrimaryVertexWriterSpec(srcVT.none(), useMC));

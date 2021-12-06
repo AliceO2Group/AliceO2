@@ -21,7 +21,6 @@
 #include "Framework/InputRecordWalker.h"
 #include "Framework/Logger.h"
 #include "Framework/WorkflowSpec.h"
-#include "DataFormatsEMCAL/EMCALBlockHeader.h"
 #include "DataFormatsEMCAL/Constants.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "DataFormatsEMCAL/ErrorTypeFEE.h"
@@ -499,12 +498,12 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         ncellsEvent++;
         mOutputCells.push_back(cell.mCellData);
       }
-      LOG(debug) << "Accepted " << ncellsEvent << " cells";
+      LOG(debug) << "Next event [Orbit " << bc.orbit << ", BC (" << bc.bc << "]: Accepted " << ncellsEvent << " cells";
     }
     mOutputTriggerRecords.emplace_back(bc, triggerBuffer[bc], eventstart, ncellsEvent);
   }
 
-  LOG(debug) << "[EMCALRawToCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
+  LOG(info) << "[EMCALRawToCellConverter - run] Writing " << mOutputCells.size() << " cells from " << mOutputTriggerRecords.size() << " events ...";
   sendData(ctx, mOutputCells, mOutputTriggerRecords, mOutputDecoderErrors);
 }
 

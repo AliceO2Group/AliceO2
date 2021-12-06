@@ -929,8 +929,8 @@ bool processSigChild(DeviceInfos& infos)
     if (pid > 0) {
       int es = WEXITSTATUS(status);
 
-      if (es) {
-        hasError = true;
+      if (WIFEXITED(status) == false || WEXITSTATUS(status) != 0) {
+        hasError |= true;
       }
       for (auto& info : infos) {
         if (info.pid == pid) {
@@ -1096,11 +1096,11 @@ void gui_callback(uv_timer_s* ctx)
       return;
     }
     draw_data = gui->plugin->pollGUIRender(gui->callback);
+    gui->plugin->pollGUIPostRender(gui->window, draw_data);
   } else {
     draw_data = gui->lastFrame;
   }
 
-  gui->plugin->pollGUIPostRender(gui->window, draw_data);
 
   if (frameLatency / 1000000 > 15) {
     uint64_t frameEnd = uv_hrtime();
@@ -1808,18 +1808,19 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           }
         }
         hasError = processSigChild(infos);
-        if (areAllChildrenGone(infos) == true &&
-            (guiQuitRequested || (checkIfCanExit(infos) == true) || graceful_exit)) {
+        bool allChildrenGone = areAllChildrenGone(infos);
+        bool canExit = checkIfCanExit(infos);
+        bool supposedToQuit = (guiQuitRequested || canExit || graceful_exit);
+
+        if (allChildrenGone && (supposedToQuit || driverInfo.processingPolicies.termination == TerminationPolicy::QUIT)) {
           // We move to the exit, regardless of where we were
           driverInfo.states.resize(0);
           driverInfo.states.push_back(DriverState::EXIT);
-        } else if (areAllChildrenGone(infos) == false &&
-                   (guiQuitRequested || checkIfCanExit(infos) == true || graceful_exit)) {
-          driverInfo.states.push_back(DriverState::HANDLE_CHILDREN);
-        } else if (hasError && driverInfo.processingPolicies.error == TerminationPolicy::QUIT &&
-                   !(guiQuitRequested || checkIfCanExit(infos) == true || graceful_exit)) {
+        } else if (hasError && driverInfo.processingPolicies.error == TerminationPolicy::QUIT && !supposedToQuit) {
           graceful_exit = 1;
           driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
+        } else if (allChildrenGone == false && supposedToQuit) {
+          driverInfo.states.push_back(DriverState::HANDLE_CHILDREN);
         } else {
         }
       } break;

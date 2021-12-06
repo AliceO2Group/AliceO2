@@ -19,6 +19,7 @@
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/Sector.h"
 #include "CCDB/BasicCCDBManager.h"
+#include "CommonUtils/NameConf.h"
 #include "Rtypes.h"
 
 namespace o2::tpc
@@ -51,7 +52,7 @@ class IDCCCDBHelper
  public:
   /// constructor
   /// \param uri path to CCDB
-  IDCCCDBHelper(const char* uri = "http://ccdb-test.cern.ch:8080") { mCCDBManager.setURL(uri); }
+  IDCCCDBHelper(const char* uri = o2::base::NameConf::getCCDBServer().c_str()) { mCCDBManager.setURL(uri); }
 
   /// update timestamp (time frame)
   void setTimeStamp(const long long timestamp) { mCCDBManager.setTimestamp(timestamp); }

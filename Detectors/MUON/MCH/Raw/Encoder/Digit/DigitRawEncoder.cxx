@@ -12,7 +12,7 @@
 #include "MCHRawEncoderDigit/DigitRawEncoder.h"
 
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "Framework/Logger.h"
 #include "Headers/DAQID.h"
 #include "MCHRawCommon/DataFormats.h"

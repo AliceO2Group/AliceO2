@@ -49,7 +49,7 @@ class PHOSEnergyCalibDevice : public o2::framework::Task
  private:
   static constexpr short kMaxCluInEvent = 64; /// maximal number of clusters per event to separate digits from them (6 bits in digit map)
   bool mUseCCDB = false;
-  std::string mCCDBPath{"http://ccdb-test.cern.ch:8080"}; ///< CCDB server path
+  std::string mCCDBPath{"http://alice-ccdb.cern.ch"}; ///< CCDB server path
   std::string mdigitsfilename = "./CalibDigits.root";
   bool mPostHistos = true; /// post colllected histos to ccdb
   long mRunStartTime = 0;  /// start time of the run (sec)

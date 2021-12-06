@@ -5,7 +5,7 @@
 #include "ITSMFTReconstruction/Clusterer.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "CommonConstants/LHCConstants.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "FairLogger.h"
 #endif
 
@@ -42,7 +42,7 @@ void run_clus_itsSA(std::string inputfile = "rawits.bin", // input file name
   clus->setMaxROframe(2 << 21); // about 3 cluster files per a raw data chunk
 
   if (dictionaryfile.empty()) {
-    dictionaryfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "");
+    dictionaryfile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "");
   }
   std::ifstream file(dictionaryfile.c_str());
   if (file.good()) {

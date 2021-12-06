@@ -21,7 +21,7 @@
 #include "Framework/Logger.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "CommonUtils/ConfigurableParam.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 

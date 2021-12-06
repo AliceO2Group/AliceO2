@@ -17,22 +17,24 @@
 #include <TBufferFile.h>
 
 #include <utility>
+namespace TableTreeHelpers
+{
+static constexpr char const* sizeBranchSuffix = "_size";
+}
 
 namespace o2::framework
 {
 auto arrowTypeFromROOT(EDataType type, int size)
 {
   auto typeGenerator = [](std::shared_ptr<arrow::DataType>&& type, int size) -> std::shared_ptr<arrow::DataType> {
-    if (size > 1) {
-      return arrow::fixed_size_list(type, size);
+    switch (size) {
+      case -1:
+        return arrow::list(type);
+      case 1:
+        return std::move(type);
+      default:
+        return arrow::fixed_size_list(type, size);
     }
-    if (size == 1) {
-      return std::move(type);
-    }
-    if (size == -1) {
-      return arrow::list(type);
-    }
-    O2_BUILTIN_UNREACHABLE();
   };
 
   switch (type) {
@@ -126,56 +128,51 @@ BranchToColumn::BranchToColumn(TBranch* branch, bool VLA, std::string name, EDat
   }
 }
 
-template <int Nbytes>
-void doSwapCopy(int size, char* source, unsigned char* dest)
+template <typename T>
+inline T doSwap(T)
 {
-  if constexpr (Nbytes == 1) {
-    std::memcpy(dest, source, size);
-    dest = dest + size;
-  } else if constexpr (Nbytes == 2) {
-    auto tdest = reinterpret_cast<uint16_t*>(dest);
-    auto tsrc = reinterpret_cast<uint16_t*>(source);
-    for (auto i = 0; i < size; ++i) {
-      tdest[i] = swap16_(tsrc[i]);
-    }
-    dest = dest + size * Nbytes;
-  } else if constexpr (Nbytes == 4) {
-    auto tdest = reinterpret_cast<uint32_t*>(dest);
-    auto tsrc = reinterpret_cast<uint32_t*>(source);
-    for (auto i = 0; i < size; ++i) {
-      tdest[i] = swap32_(tsrc[i]);
-    }
-    dest = dest + size * Nbytes;
-  } else if constexpr (Nbytes == 8) {
-    auto tdest = reinterpret_cast<uint64_t*>(dest);
-    auto tsrc = reinterpret_cast<uint64_t*>(source);
-    for (auto i = 0; i < size; ++i) {
-      tdest[i] = swap64_(tsrc[i]);
-    }
-    dest = dest + size * Nbytes;
+  static_assert(always_static_assert_v<T>, "Unsupported type");
+}
+
+template <>
+inline uint16_t doSwap(uint16_t x)
+{
+  return swap16_(x);
+}
+
+template <>
+inline uint32_t doSwap(uint32_t x)
+{
+  return swap32_(x);
+}
+
+template <>
+inline uint64_t doSwap(uint64_t x)
+{
+  return swap64_(x);
+}
+
+template <typename T>
+void doSwapCopy_(void* dest, void* source, int size) noexcept
+{
+  auto tdest = static_cast<T*>(dest);
+  auto tsrc = static_cast<T*>(source);
+  for (auto i = 0; i < size; ++i) {
+    tdest[i] = doSwap<T>(tsrc[i]);
   }
 }
 
-void swapCopy(int size, char* source, unsigned char* dest, EDataType type)
+void swapCopy(unsigned char* dest, char* source, int size, int typeSize) noexcept
 {
-  switch (type) {
-    case EDataType::kBool_t:
-    case EDataType::kUChar_t:
-    case EDataType::kChar_t:
-      return doSwapCopy<1>(size, source, dest);
-    case EDataType::kUShort_t:
-    case EDataType::kShort_t:
-      return doSwapCopy<2>(size, source, dest);
-    case EDataType::kUInt_t:
-    case EDataType::kInt_t:
-    case EDataType::kFloat_t:
-      return doSwapCopy<4>(size, source, dest);
-    case EDataType::kULong64_t:
-    case EDataType::kLong64_t:
-    case EDataType::kDouble_t:
-      return doSwapCopy<8>(size, source, dest);
-    default:
-      throw runtime_error("Unsupported branch type");
+  switch (typeSize) {
+    case 1:
+      return (void)std::memcpy(dest, source, size);
+    case 2:
+      return doSwapCopy_<uint16_t>(dest, source, size);
+    case 4:
+      return doSwapCopy_<uint32_t>(dest, source, size);
+    case 8:
+      return doSwapCopy_<uint64_t>(dest, source, size);
   }
 }
 
@@ -223,48 +220,68 @@ std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> B
     }
     std::shared_ptr<arrow::Buffer> arrowValuesBuffer = std::move(result).ValueUnsafe();
     auto ptr = arrowValuesBuffer->mutable_data();
+    if (ptr == nullptr) {
+      throw runtime_error("Invalid buffer");
+    }
 
+    auto typeSize = TDataType::GetDataType(mType)->Size();
+    std::unique_ptr<TBufferFile> offsetBuffer;
+
+    uint32_t offset = 0;
+    uint32_t lastOffset = offset;
+    int count = 0;
+    std::shared_ptr<arrow::Buffer> arrowOffsetBuffer;
+    unsigned char* ptrOffset;
+    int* tPtrOffset;
+    gsl::span<int> offsets;
+    uint32_t size = 0;
+    uint32_t totalSize = 0;
     if (mVLA) {
-      static TBufferFile offsetBuffer{TBuffer::EMode::kWrite, 4 * 1024 * 1024};
-
+      offsetBuffer.reset(new TBufferFile{TBuffer::EMode::kWrite, 4 * 1024 * 1024});
       result = arrow::AllocateResizableBuffer(totalEntries * sizeof(int), mPool);
       if (!result.ok()) {
         throw runtime_error("Cannot allocate offset buffer");
       }
-      std::shared_ptr<arrow::Buffer> arrowOffsetBuffer = std::move(result).ValueUnsafe();
-      auto ptrOffset = arrowOffsetBuffer->mutable_data();
-      auto tPtrOffset = reinterpret_cast<int*>(ptrOffset);
+      arrowOffsetBuffer = std::move(result).ValueUnsafe();
+      ptrOffset = arrowOffsetBuffer->mutable_data();
+      tPtrOffset = reinterpret_cast<int*>(ptrOffset);
+      offsets = gsl::span<int>{tPtrOffset, tPtrOffset + totalEntries};
+    }
 
-      uint32_t offset = 0;
-      gsl::span<int> offsets{tPtrOffset, tPtrOffset + mBranch->GetEntries()};
-      int count = 0;
-      while (readEntries < totalEntries) {
-        auto readLast = mBranch->GetBulkRead().GetEntriesSerialized(readEntries, *buffer, &offsetBuffer);
-        readEntries += readLast;
-        uint32_t lastOffset = offset;
+    while (readEntries < totalEntries) {
+      auto readLast = mBranch->GetBulkRead().GetEntriesSerialized(readEntries, *buffer, offsetBuffer.get());
+      readEntries += readLast;
+
+      if (mVLA) {
+        lastOffset = offset;
         for (auto i = 0; i < readLast; ++i) {
           offsets[count++] = (int)offset;
-          offset += swap32_(reinterpret_cast<uint32_t*>(offsetBuffer.GetCurrent())[i]);
+          offset += swap32_(reinterpret_cast<uint32_t*>(offsetBuffer->GetCurrent())[i]);
         }
-        //manually append to arrow buffer
-        swapCopy(offset - lastOffset, buffer->GetCurrent(), ptr, mType);
-      }
-      auto varray = std::make_shared<arrow::PrimitiveArray>(mArrowType->field(0)->type(), offset, arrowValuesBuffer);
-      array = std::make_shared<arrow::ListArray>(mArrowType, readEntries, arrowOffsetBuffer, varray);
-    } else {
-      while (readEntries < totalEntries) {
-        auto readLast = mBranch->GetBulkRead().GetEntriesSerialized(readEntries, *buffer, nullptr);
-        readEntries += readLast;
-
-        //manually append to arrow buffer
-        swapCopy(readLast * mListSize, buffer->GetCurrent(), ptr, mType);
-      }
-      if (mListSize == 1) {
-        array = std::make_shared<arrow::PrimitiveArray>(mArrowType, readEntries, arrowValuesBuffer);
+        size = offset - lastOffset;
       } else {
-        auto varray = std::make_shared<arrow::PrimitiveArray>(mArrowType->field(0)->type(), readEntries * mListSize, arrowValuesBuffer);
-        array = std::make_shared<arrow::FixedSizeListArray>(mArrowType, readEntries, varray);
+        size = readLast * mListSize;
       }
+      swapCopy(ptr, buffer->GetCurrent(), size, typeSize);
+      ptr += size * typeSize;
+    }
+    if (mVLA) {
+      totalSize = offset;
+    } else {
+      totalSize = readEntries * mListSize;
+    }
+    std::shared_ptr<arrow::PrimitiveArray> varray;
+    switch (mListSize) {
+      case -1:
+        varray = std::make_shared<arrow::PrimitiveArray>(mArrowType->field(0)->type(), totalSize, arrowValuesBuffer);
+        array = std::make_shared<arrow::ListArray>(mArrowType, readEntries, arrowOffsetBuffer, varray);
+        break;
+      case 1:
+        array = std::make_shared<arrow::PrimitiveArray>(mArrowType, readEntries, arrowValuesBuffer);
+        break;
+      default:
+        varray = std::make_shared<arrow::PrimitiveArray>(mArrowType->field(0)->type(), totalSize, arrowValuesBuffer);
+        array = std::make_shared<arrow::FixedSizeListArray>(mArrowType, readEntries, varray);
     }
   }
 
@@ -297,8 +314,8 @@ ColumnToBranch::ColumnToBranch(TTree* tree, std::shared_ptr<arrow::ChunkedArray>
     case arrow::Type::LIST:
       arrowType = arrowType->field(0)->type();
       mElementType = basicROOTTypeFromArrow(arrowType->id());
-      leafList = mBranchName + "[" + mBranchName + TableTreeHelpers::sizeBranchsuffix + "]" + mElementType.suffix;
-      sizeLeafList = mBranchName + TableTreeHelpers::sizeBranchsuffix + "/I";
+      leafList = mBranchName + "[" + mBranchName + TableTreeHelpers::sizeBranchSuffix + "]" + mElementType.suffix;
+      sizeLeafList = mBranchName + TableTreeHelpers::sizeBranchSuffix + "/I";
       break;
     default:
       mElementType = basicROOTTypeFromArrow(arrowType->id());
@@ -306,9 +323,9 @@ ColumnToBranch::ColumnToBranch(TTree* tree, std::shared_ptr<arrow::ChunkedArray>
       break;
   }
   if (!sizeLeafList.empty()) {
-    mSizeBranch = tree->GetBranch((mBranchName + TableTreeHelpers::sizeBranchsuffix).c_str());
+    mSizeBranch = tree->GetBranch((mBranchName + TableTreeHelpers::sizeBranchSuffix).c_str());
     if (mSizeBranch == nullptr) {
-      mSizeBranch = tree->Branch((mBranchName + TableTreeHelpers::sizeBranchsuffix).c_str(), (char*)nullptr, sizeLeafList.c_str());
+      mSizeBranch = tree->Branch((mBranchName + TableTreeHelpers::sizeBranchSuffix).c_str(), (char*)nullptr, sizeLeafList.c_str());
     }
   }
   mBranch = tree->GetBranch(mBranchName.c_str());
@@ -465,7 +482,7 @@ void TreeToTable::addAllColumns(TTree* tree, std::vector<std::string>&& names)
   for (auto i = 0; i < n; ++i) {
     auto branch = static_cast<TBranch*>(branches->At(i));
     auto name = std::string{branch->GetName()};
-    auto pos = name.find(TableTreeHelpers::sizeBranchsuffix);
+    auto pos = name.find(TableTreeHelpers::sizeBranchSuffix);
     if (pos != std::string::npos) {
       name.erase(pos);
       branchInfos.emplace_back(BranchInfo{name, (TBranch*)nullptr, true});

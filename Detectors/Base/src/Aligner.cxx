@@ -13,7 +13,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include <chrono>
 
 O2ParamImpl(o2::base::Aligner);
@@ -44,7 +44,7 @@ void Aligner::applyAlignment(long timestamp, DetID::mask_t addMask) const
   if (timestamp == 0) {
     timestamp = getTimeStamp();
   }
-  ccdbmgr.setURL(getCCDB());
+  ccdbmgr.setURL(o2::base::NameConf::getCCDBServer());
   ccdbmgr.setTimestamp(timestamp);
   DetID::mask_t done, skipped;
   DetID::mask_t detGeoMask(gGeoManager->GetUniqueID());
@@ -52,10 +52,10 @@ void Aligner::applyAlignment(long timestamp, DetID::mask_t addMask) const
     if (!msk[id] || (detGeoMask.any() && !detGeoMask[id])) {
       continue;
     }
-    std::string path = o2::base::NameConf::getAlignmentPath({id});
+    std::string path = o2::base::DetectorNameConf::getAlignmentPath({id});
     auto algV = ccdbmgr.get<std::vector<o2::detectors::AlignParam>>(path);
     if (!algV) {
-      throw std::runtime_error(fmt::format("Failed to fetch alignment from {}:{}", getCCDB(), path));
+      throw std::runtime_error(fmt::format("Failed to fetch alignment from {}:{}", o2::base::NameConf::getCCDBServer(), path));
     }
     if (!algV->empty()) {
       done.set(id);
@@ -64,7 +64,7 @@ void Aligner::applyAlignment(long timestamp, DetID::mask_t addMask) const
       skipped.set(id);
     }
   }
-  std::string log = fmt::format("Alignment from {} for timestamp {}: ", getCCDB(), timestamp);
+  std::string log = fmt::format("Alignment from {} for timestamp {}: ", o2::base::NameConf::getCCDBServer(), timestamp);
   if (done.any()) {
     log += fmt::format("applied to [{}]", DetID::getNames(done));
   }

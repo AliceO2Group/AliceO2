@@ -33,7 +33,7 @@
 #include "TFile.h"
 #include "TTree.h"
 #include <sys/types.h>
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "O2Version.h"
 #include <cstdio>

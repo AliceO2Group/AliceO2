@@ -51,7 +51,7 @@ void CTFCoder::compress(CompressedInfos& cc,
   int nrof = rofRecVec.size();
 
   LOGF(debug, "TOF compress %d ReadoutWindow with %ld digits", nrof, cdigVec.size());
-
+  cc.header.det = mDet;
   cc.header.nROFs = nrof;
   cc.header.firstOrbit = rofRec0.getBCData().orbit;
   cc.header.firstBC = rofRec0.getBCData().bc;
@@ -155,31 +155,11 @@ void CTFCoder::compress(CompressedInfos& cc,
 }
 
 ///________________________________
-void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op)
+void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op)
 {
-  bool mayFail = true; // RS FIXME if the dictionary file is not there, do not produce exception
-  auto buff = readDictionaryFromFile<CTF>(dictPath, mayFail);
-  if (!buff.size()) {
-    if (mayFail) {
-      return;
-    }
-    throw std::runtime_error("Failed to create CTF dictionaty");
-  }
-  const auto* ctf = CTF::get(buff.data());
-
-  auto getFreq = [ctf](CTF::Slots slot) -> o2::rans::FrequencyTable {
-    o2::rans::FrequencyTable ft;
-    auto bl = ctf->getBlock(slot);
-    auto md = ctf->getMetadata(slot);
-    ft.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min, md.max);
-    return std::move(ft);
-  };
-  auto getProbBits = [ctf](CTF::Slots slot) -> int {
-    return ctf->getMetadata(slot).probabilityBits;
-  };
-
+  const auto ctf = CTF::getImage(bufVec.data());
   CompressedInfos cc; // just to get member types
-#define MAKECODER(part, slot) createCoder<decltype(part)::value_type>(op, getFreq(slot), getProbBits(slot), int(slot))
+#define MAKECODER(part, slot) createCoder<decltype(part)::value_type>(op, ctf.getFrequencyTable(slot), ctf.getMetadata(slot).probabilityBits, int(slot))
   // clang-format off
   MAKECODER(cc.bcIncROF,     CTF::BLCbcIncROF);
   MAKECODER(cc.orbitIncROF,  CTF::BLCorbitIncROF);

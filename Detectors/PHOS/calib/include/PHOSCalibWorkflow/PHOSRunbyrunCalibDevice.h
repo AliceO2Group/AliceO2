@@ -46,7 +46,7 @@ class PHOSRunbyrunCalibDevice
  private:
   bool mUseCCDB = false;
   long mRunStartTime = 0;                                 /// start time of the run (sec)
-  std::string mCCDBPath{"http://ccdb-test.cern.ch:8080"}; /// CCDB path to retrieve current CCDB objects for comparison
+  std::string mCCDBPath{"http://alice-ccdb.cern.ch"};     /// CCDB path to retrieve current CCDB objects for comparison
   std::array<float, 8> mRunByRun;                         /// Final calibration object
   std::unique_ptr<PHOSRunbyrunCalibrator> mCalibrator;    /// Agregator of calibration TimeFrameSlots
 };

@@ -29,6 +29,7 @@
 #include "DataFormatsCPV/CalibParams.h"
 #include "DataFormatsCPV/Pedestals.h"
 #include "DataFormatsCPV/BadChannelMap.h"
+#include "CommonUtils/NameConf.h"
 
 namespace o2
 {
@@ -95,7 +96,7 @@ class RawWriter
   std::vector<padCharge> mPadCharge[kNcc][kNDilogic][kNGasiplex]; ///< list of signals per event
   FileFor_t mFileFor = FileFor_t::kFullDet;                       ///< Granularity of the output files
   std::string mOutputLocation = "./";                             ///< Rawfile name
-  std::string mCcdbUrl = "http://ccdb-test.cern.ch:8080";         ///< CCDB Url
+  std::string mCcdbUrl = o2::base::NameConf::getCCDBServer();     ///< CCDB Url
   CalibParams* mCalibParams = nullptr;                            ///< CPV calibration
   Pedestals* mPedestals = nullptr;                                ///< CPV pedestals
   BadChannelMap* mBadMap = nullptr;                               ///< CPV bad channel map

@@ -23,7 +23,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
 

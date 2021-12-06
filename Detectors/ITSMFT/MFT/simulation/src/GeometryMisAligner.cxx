@@ -59,7 +59,7 @@
 
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DetectorsBase/GeometryManager.h"
 
 #include "CCDB/CcdbApi.h"
@@ -492,7 +492,7 @@ void GeometryMisAligner::MisAlign(Bool_t verbose, const std::string& ccdbHost, l
   }
 
   if (!ccdbHost.empty()) {
-    std::string path = objectPath.empty() ? o2::base::NameConf::getAlignmentPath(o2::detectors::DetID::MFT) : objectPath;
+    std::string path = objectPath.empty() ? o2::base::DetectorNameConf::getAlignmentPath(o2::detectors::DetID::MFT) : objectPath;
     LOGP(info, "Storing alignment object on {}/{}", ccdbHost, path);
     o2::ccdb::CcdbApi api;
     std::map<std::string, std::string> metadata; // can be empty

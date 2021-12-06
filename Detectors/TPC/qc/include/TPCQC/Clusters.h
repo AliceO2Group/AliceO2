@@ -42,6 +42,8 @@ class Clusters
  public:
   Clusters() = default;
 
+  Clusters(std::string_view nclName) : mNClusters{nclName} {};
+
   template <class T>
   bool processCluster(const T& cluster, const o2::tpc::Sector sector, const int row);
 
@@ -55,7 +57,7 @@ class Clusters
 
   void reset();
 
-  void merge(const Clusters& clusters);
+  void merge(Clusters& clusters);
 
   void dumpToFile(std::string filename, int type = 0);
 

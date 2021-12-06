@@ -21,7 +21,7 @@
 
 #include "CTFWorkflow/CTFWriterSpec.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsCommonDataFormats/EncodedBlocks.h"
 #include "DetectorsCommonDataFormats/FileMetaData.h"
 #include "CommonUtils/StringUtils.h"
@@ -276,6 +276,7 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
       mHeaders[det] = ctfImage.cloneHeader();
       auto& hb = *static_cast<o2::ctf::CTFDictHeader*>(mHeaders[det].get());
       hb.dictTimeStamp = uint32_t(std::time(nullptr));
+      hb.det = det;
     }
     for (int ib = 0; ib < C::getNBlocks(); ib++) {
       const auto& bl = ctfImage.getBlock(ib);

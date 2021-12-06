@@ -15,6 +15,7 @@
 #define O2_MATCHING_GLOBALFWD_SPEC
 
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "GlobalTracking/MatchGlobalFwdParam.h"
 
 using namespace o2::framework;
 
@@ -23,7 +24,7 @@ namespace o2
 namespace globaltracking
 {
 /// create a processor spec
-framework::DataProcessorSpec getGlobalFwdMatchingSpec(bool useMC);
+framework::DataProcessorSpec getGlobalFwdMatchingSpec(bool useMC, bool matchRootOutput);
 
 } // namespace globaltracking
 } // namespace o2

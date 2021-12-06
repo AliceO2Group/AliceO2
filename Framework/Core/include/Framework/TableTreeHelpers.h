@@ -20,11 +20,6 @@
 // =============================================================================
 namespace o2::framework
 {
-namespace TableTreeHelpers
-{
-static constexpr char const* sizeBranchsuffix = "_size";
-}
-
 // -----------------------------------------------------------------------------
 // TableToTree allows to save the contents of a given arrow::Table into
 // a TTree

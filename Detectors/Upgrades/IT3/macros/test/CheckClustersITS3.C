@@ -23,7 +23,7 @@
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #endif
 
 void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hitfile = "o2sim_HitsIT3.root",
@@ -74,7 +74,7 @@ void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hit
     pattBranch->SetAddress(&patternsPtr);
   }
   if (dictfile.empty()) {
-    dictfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::IT3, "", ".bin");
+    dictfile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::IT3, "", ".bin");
   }
   o2::itsmft::TopologyDictionary dict2;
   std::ifstream file(dictfile.c_str());

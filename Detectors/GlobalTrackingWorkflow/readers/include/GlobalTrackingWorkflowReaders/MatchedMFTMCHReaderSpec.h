@@ -9,16 +9,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//                                                                           //
-//  TRD calibration class for parameters which are saved frequently(/run)    //
-//  2019 - Ported from various bits of AliRoot (SHTM)                        //
-//  Most things were stored in AliTRDcalROC,AliTRDcalPad, AliTRDcalDet       //
-///////////////////////////////////////////////////////////////////////////////
+/// @file   MatchedMFTMCHReaderSpec.h
 
-#include <array>
+#ifndef O2_GLOBAL_MATCHMFTMCHREADER
+#define O2_GLOBAL_MATCHMFTMCHREADER
 
-#include "TRDBase/Geometry.h"
-#include "TRDBase/ChamberNoise.h"
-#include "TH2D.h"
+#include "Framework/DataProcessorSpec.h"
 
-using namespace o2::trd;
+using namespace o2::framework;
+
+namespace o2
+{
+namespace globaltracking
+{
+
+/// create a processor spec
+framework::DataProcessorSpec getMFTMCHMatchedReaderSpec(bool useMC);
+
+} // namespace globaltracking
+} // namespace o2
+
+#endif /* O2_GLOBAL_MATCHMFTMCHREADER */

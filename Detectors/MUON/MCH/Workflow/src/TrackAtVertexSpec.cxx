@@ -28,7 +28,7 @@
 #include <TGeoGlobalMagField.h>
 
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"

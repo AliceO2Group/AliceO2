@@ -28,7 +28,6 @@ namespace base
 class Aligner : public o2::conf::ConfigurableParamHelper<Aligner>
 {
  public:
-  const std::string& getCCDB() const { return mCCDB; }
   const std::string& getDetectors() const { return mDetectors; }
   long getTimeStamp() const;
   o2::detectors::DetID::mask_t getDetectorsMask() const;
@@ -37,7 +36,6 @@ class Aligner : public o2::conf::ConfigurableParamHelper<Aligner>
   void applyAlignment(long timestamp = 0, o2::detectors::DetID::mask_t addMask = o2::detectors::DetID::FullMask) const;
 
  private:
-  std::string mCCDB = "http://ccdb-test.cern.ch:8080"; // URL for CCDB acces
   std::string mDetectors = "all";                      // comma-separated list of modules to align, "all" or "none"
   long mTimeStamp = 0;                                 // assigned TimeStamp or now() if 0
 

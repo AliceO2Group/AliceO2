@@ -11,7 +11,7 @@
 
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "SimulationDataFormat/MCEventHeader.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include <TChain.h>
 #include <TFile.h>
 #include <iostream>
@@ -65,12 +65,12 @@ bool DigitizationContext::initSimChains(o2::detectors::DetID detid, std::vector<
 
   simchains.emplace_back(new TChain("o2sim"));
   // add the main (background) file
-  simchains.back()->AddFile(o2::base::NameConf::getHitsFileName(detid, mSimPrefixes[0].data()).c_str());
+  simchains.back()->AddFile(o2::base::DetectorNameConf::getHitsFileName(detid, mSimPrefixes[0].data()).c_str());
 
   for (int source = 1; source < mSimPrefixes.size(); ++source) {
     simchains.emplace_back(new TChain("o2sim"));
     // add signal files
-    simchains.back()->AddFile(o2::base::NameConf::getHitsFileName(detid, mSimPrefixes[source].data()).c_str());
+    simchains.back()->AddFile(o2::base::DetectorNameConf::getHitsFileName(detid, mSimPrefixes[source].data()).c_str());
   }
 
   // QED part
@@ -82,7 +82,7 @@ bool DigitizationContext::initSimChains(o2::detectors::DetID detid, std::vector<
     // it might be better to use an unordered_map for the simchains but this requires interface changes
     simchains.resize(QEDSOURCEID + 1, nullptr);
     simchains[QEDSOURCEID] = new TChain("o2sim");
-    simchains[QEDSOURCEID]->AddFile(o2::base::NameConf::getHitsFileName(detid, mQEDSimPrefix).c_str());
+    simchains[QEDSOURCEID]->AddFile(o2::base::DetectorNameConf::getHitsFileName(detid, mQEDSimPrefix).c_str());
   }
 
   return true;

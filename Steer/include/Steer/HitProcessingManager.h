@@ -15,7 +15,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "Steer/InteractionSampler.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include <TGeoManager.h>
 #include <string>
 #include <vector>

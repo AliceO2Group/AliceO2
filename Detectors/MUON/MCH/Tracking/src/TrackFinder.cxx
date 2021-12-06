@@ -619,6 +619,24 @@ std::list<Track>::iterator TrackFinder::findTrackCandidates(int plane1, int plan
   // create an iterator to the last track of the list before adding new ones
   auto itTrack = mTracks.empty() ? mTracks.end() : std::prev(mTracks.end());
 
+  // list the cluster combinations used on the chambers corresponding to plane1 and plane2
+  int chamber2 = getChamberId(plane2);
+  std::vector<std::array<uint32_t, 4>> usedClusters{};
+  if (skipUsedPairs) {
+    usedClusters.reserve(mTracks.size());
+    for (auto itTrk = itFirstTrack; itTrk != mTracks.end(); ++itTrk) {
+      usedClusters.push_back({0, 0, 0, 0});
+      for (const auto& param : *itTrk) {
+        int ch = param.getClusterPtr()->getChamberId();
+        if (ch == chamber1) {
+          usedClusters.back()[param.getClusterPtr()->getDEId() % 2] = param.getClusterPtr()->uid;
+        } else if (ch == chamber2) {
+          usedClusters.back()[2 + param.getClusterPtr()->getDEId() % 2] = param.getClusterPtr()->uid;
+        }
+      }
+    }
+  }
+
   for (auto& de1 : mClusters[plane1]) {
 
     // skip DE without cluster
@@ -640,7 +658,7 @@ std::list<Track>::iterator TrackFinder::findTrackCandidates(int plane1, int plan
         for (const auto cluster2 : *de2.second) {
 
           // skip combinations of clusters already part of a track if requested
-          if (skipUsedPairs && itTrack != mTracks.end() && areUsed(*cluster1, *cluster2, itFirstTrack, std::next(itTrack))) {
+          if (skipUsedPairs && areUsed(*cluster1, *cluster2, usedClusters)) {
             continue;
           }
 
@@ -1427,32 +1445,16 @@ bool TrackFinder::propagateCurrentParam(Track& track, int chamber)
 }
 
 //_________________________________________________________________________________________________
-bool TrackFinder::areUsed(const Cluster& cl1, const Cluster& cl2, const std::list<Track>::iterator& itFirstTrack, const std::list<Track>::iterator& itLastTrack)
+bool TrackFinder::areUsed(const Cluster& cl1, const Cluster& cl2, const std::vector<std::array<uint32_t, 4>>& usedClusters)
 {
-  /// Return true if the 2 clusters are already part of a track between itFirstTrack and mTracks.end()
-
-  if (itFirstTrack == mTracks.end()) {
-    return false;
-  }
-
-  for (auto itTrack = itFirstTrack; itTrack != itLastTrack; ++itTrack) {
-
-    bool cl1Used(false), cl2Used(false);
-
-    for (auto itParam = itTrack->rbegin(); itParam != itTrack->rend(); ++itParam) {
-
-      if (itParam->getClusterPtr() == &cl1) {
-        cl1Used = true;
-      } else if (itParam->getClusterPtr() == &cl2) {
-        cl2Used = true;
-      }
-
-      if (cl1Used && cl2Used) {
-        return true;
-      }
+  /// Return true if the 2 clusters are already part of a track
+  int iCl1 = cl1.getDEId() % 2;
+  int iCl2 = 2 + cl2.getDEId() % 2;
+  for (const auto& clusters : usedClusters) {
+    if (clusters[iCl1] == cl1.uid && clusters[iCl2] == cl2.uid) {
+      return true;
     }
   }
-
   return false;
 }
 

@@ -28,7 +28,7 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #else
 #pragma cling load("libO2TPCReconstruction")
 #pragma cling load("libO2DataFormatsTPC")

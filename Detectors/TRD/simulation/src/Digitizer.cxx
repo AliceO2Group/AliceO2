@@ -162,7 +162,7 @@ void Digitizer::process(std::vector<Hit> const& hits)
     auto& signalsMap = mSignalsMapCollection[det];
     // Jump to the next detector if the detector is
     // switched off, not installed, etc
-    if (mCalib->isChamberNoData(det)) {
+    if (mCalib->getChamberStatus()->isNoData(det)) {
       continue;
     }
     if (!mGeo->chamberInGeometry(det)) {
@@ -424,18 +424,17 @@ bool Digitizer::convertSignalsToADC(SignalContainer& signalMapCont, DigitContain
     const int col = getColFromKey(key);
     // halfchamber masking
     int mcm = (int)(col / 18);               // current group of 18 col pads
-    int halfchamberside = (mcm > 3 ? 1 : 0); // 0=Aside, 1=Bside
+    int halfchamberside = (mcm > 3) ? 1 : 0; // 0=Aside, 1=Bside
 
     // Halfchambers that are switched off, masked by mCalib
-    /* Something is wrong with isHalfChamberNoData - deactivated for now
-    if (mCalib->isHalfChamberNoData(det, halfchamberside)) {
+    if ((halfchamberside == 0 && mCalib->getChamberStatus()->isNoDataSideA(det)) ||
+        (halfchamberside == 1 && mCalib->getChamberStatus()->isNoDataSideB(det))) {
       continue;
     }
-    */
 
     // Check whether pad is masked
     // Bridged pads are not considered yet!!!
-    if (mCalib->isPadMasked(det, col, row) || mCalib->isPadNotConnected(det, col, row)) {
+    if (mCalib->getPadStatus()->isMasked(det, col, row) || mCalib->getPadStatus()->isNotConnected(det, col, row)) {
       continue;
     }
 

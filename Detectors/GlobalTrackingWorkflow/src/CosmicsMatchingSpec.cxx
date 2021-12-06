@@ -35,7 +35,7 @@
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "Headers/DataHeader.h"
 #include "CommonDataFormat/InteractionRecord.h"
@@ -87,7 +87,7 @@ void CosmicsMatchingSpec::init(InitContext& ic)
   }
   //
   std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(DetID::ITS, dictPath);
+  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(DetID::ITS, dictPath);
   auto itsDict = std::make_unique<o2::itsmft::TopologyDictionary>();
   if (o2::utils::Str::pathExists(dictFile)) {
     itsDict->readFromFile(dictFile);

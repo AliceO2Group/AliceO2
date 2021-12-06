@@ -23,7 +23,7 @@
 #include "SimulationDataFormat/MCEventLabel.h"
 #include "CommonDataFormat/BunchFilling.h"
 #include "SimulationDataFormat/DigitizationContext.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsVertexing/SVertexer.h"
 #include "TStopwatch.h"
 
