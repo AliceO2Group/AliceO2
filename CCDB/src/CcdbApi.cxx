@@ -784,13 +784,13 @@ bool CcdbApi::checkAlienToken() const
   return returncode == 0;
 }
 
-bool CcdbApi::initTGrid() const
+bool CcdbApi::init() const
 {
   if (!mAlienInstance) {
     if (mHaveAlienToken) {
       mAlienInstance = TGrid::Connect("alien");
       static bool errorShown = false;
-      if (errorShown == false) {
+      if (!mAlienInstance && errorShown == false) {
         LOG(error) << "TGrid::Connect returned nullptr despite token present";
         errorShown = true;
       }
