@@ -22,6 +22,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <array>
+#include "Rtypes.h"
 #include "DataFormatsTRD/Constants.h"
 class TH2D;
 
@@ -64,8 +65,9 @@ class ChamberStatus
   TH2D* plotNoData(int sm, int rphi);        // Plot data status for sm and halfchamberside
   TH2D* plotBadCalibrated(int sm, int rphi); // Plot calibration status for sm and halfchamberside
   TH2D* plot(int sm);                        // Plot mStatus for sm
- protected:
+ private:
   std::array<char, constants::MAXCHAMBER> mStatus{};
+  ClassDefNV(ChamberStatus, 1);
 };
 } // namespace trd
 } // namespace o2

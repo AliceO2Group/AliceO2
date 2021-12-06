@@ -16,6 +16,7 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
+#include "TRDSimulation/SimParam.h"
 
 namespace o2
 {
@@ -30,6 +31,7 @@ struct TRDSimParams : public o2::conf::ConfigurableParamHelper<TRDSimParams> {
   int digithreads = 4;       // number of digitizer threads
   float maxMCStepSize = 0.1; // maximum size of MC steps
   bool doTR = true;          // switch for transition radiation
+  SimParam::GasMixture gas = SimParam::GasMixture::Xenon; // the gas mixture in the TRD
   O2ParamDef(TRDSimParams, "TRDSimParams");
 };
 

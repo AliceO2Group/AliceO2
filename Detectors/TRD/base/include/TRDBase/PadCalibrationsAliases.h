@@ -47,6 +47,9 @@ class PadStatus : public PadCalibrations<char>
   bool isBridgedLeft(int roc, int col, int row) const { return ((getValue(roc, col, row) & kPadBridgedLeft) ? true : false); };
   bool isBridgedRight(int roc, int col, int row) const { return ((getValue(roc, col, row) & kPadBridgedRight) ? true : false); };
   bool isNotConnected(int roc, int col, int row) const { return ((getValue(roc, col, row) & kNotConnected) ? true : false); };
+
+ private:
+  ClassDefNV(PadStatus, 1);
 };
 
 using LocalT0 = PadCalibrations<float>;

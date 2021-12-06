@@ -41,8 +41,9 @@ class PadCalibrations
   void setPadValue(int roc, int col, int row, T value) { mReadoutChamber[roc].setValue(col, row, value); }
   void setPadValue(int roc, int channel, T value) { mReadoutChamber[roc].setValue(channel, value); }
 
- protected:
+ private:
   std::array<PadParameters<T>, constants::MAXCHAMBER> mReadoutChamber;
+  ClassDefNV(PadCalibrations, 1);
 };
 
 template <class T>
@@ -56,10 +57,6 @@ PadCalibrations<T>::PadCalibrations()
     roc.init(chamberindex++);
   }
 }
-
-// instantiate templates always needed
-template class PadCalibrations<float>; // for LocalT0, LocalVDrift, LocalGainFactor, PadNoise
-template class PadCalibrations<char>;  // for PadStatus
 
 } // namespace trd
 } // namespace o2

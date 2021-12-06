@@ -96,6 +96,7 @@ class CalOnlineGainTables
   };
 
   std::array<MCMGain, 540 * 128> mGainTable;
+  ClassDefNV(CalOnlineGainTables, 1);
 };
 } // namespace trd
 } // namespace o2
