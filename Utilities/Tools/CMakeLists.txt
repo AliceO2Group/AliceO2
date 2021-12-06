@@ -13,4 +13,5 @@ add_subdirectory(cpulimit)
 
 install(PROGRAMS monitor-mem.sh DESTINATION share/scripts/)
 install(PROGRAMS jobutils.sh DESTINATION share/scripts/)
+install(PROGRAMS jobutils2.sh DESTINATION share/scripts/)
 install(PROGRAMS grid_submit.sh DESTINATION share/scripts/)
