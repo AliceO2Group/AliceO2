@@ -528,6 +528,11 @@ struct Partition {
     }
   }
 
+  void inline bindTable(T const& table)
+  {
+    setTable(table);
+  }
+
   void setTable(T const& table)
   {
     intializeCaches(table.asArrowTable()->schema());
