@@ -31,6 +31,8 @@ class DataSourceOnline : public DataSource
 {
  protected:
   FileWatcher mFileWatcher;
+  int mRunNumber;
+  std::string mCollisionTime;
 
  public:
   DataSourceOnline(const std::string path);
@@ -50,6 +52,10 @@ class DataSourceOnline : public DataSource
   std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> getVisualisationList(int no) override;
   void changeDataFolder(std::string newFolder) override { mFileWatcher.changeFolder(newFolder); };
   void saveCurrentEvent(std::string targetFolder) override { mFileWatcher.saveCurrentFileToFolder(targetFolder); };
+  int getRunNumber() const override { return this->mRunNumber; }
+  void setRunNumber(int runNumber) override { this->mRunNumber = runNumber; }
+  std::string getCollisionTime() const override { return this->mCollisionTime; }
+  void setCollisionTime(std::string collisionTime) override { this->mCollisionTime = collisionTime; }
 };
 
 } // namespace event_visualisation
