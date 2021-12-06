@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TRDBase/CommonParam.h"
-#include "TRDBase/DiffAndTimeStructEstimator.h"
+#include "TRDSimulation/SimParam.h"
+#include "TRDSimulation/DiffAndTimeStructEstimator.h"
 #include "TRDBase/Geometry.h"
 #include <cmath>
 
@@ -214,7 +214,7 @@ bool DiffusionAndTimeStructEstimator::getDiffCoeff(float& dl, float& dt, float v
   }
   mDiffLastVdrift = vdrift;
 
-  if (CommonParam::instance()->isXenon()) {
+  if (mGasMixture == SimParam::GasMixture::Xenon) {
     //
     // Vd and B-field dependent diffusion and Lorentz angle
     //
@@ -224,7 +224,7 @@ bool DiffusionAndTimeStructEstimator::getDiffCoeff(float& dl, float& dt, float v
 
     // If looking at compatibility with AliRoot:
     // ibL and ibT are calculated the same way so, just define ib = ibL = ibT
-    int ib = ((int)(10 * (CommonParam::instance()->getCachedField() - 0.15)));
+    int ib = ((int)(10 * (mBz - 0.15)));
     ib = std::max(0, ib);
     ib = std::min(kNb - 1, ib);
 
@@ -247,7 +247,7 @@ bool DiffusionAndTimeStructEstimator::getDiffCoeff(float& dl, float& dt, float v
     dl = mDiffusionL;
     dt = mDiffusionT;
     return true;
-  } else if (CommonParam::instance()->isArgon()) {
+  } else if (mGasMixture == SimParam::GasMixture::Argon) {
     //
     // Diffusion constants and Lorentz angle only for B = 0.5T
     //

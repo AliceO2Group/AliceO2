@@ -45,8 +45,9 @@ class PadParameters
   void setValue(int ich, T value) { mData[ich] = value; }
   void setValue(int col, int row, T value) { setValue(getChannel(col, row), value); }
 
- protected:
+ private:
   std::vector<T> mData{}; /// One element for each pad
+  ClassDefNV(PadParameters, 1);
 };
 
 template <class T>

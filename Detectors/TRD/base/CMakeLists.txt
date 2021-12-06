@@ -14,9 +14,6 @@ o2_add_library(TRDBase
                        src/GeometryBase.cxx
                        src/Geometry.cxx
                        src/GeometryFlat.cxx
-                       src/CommonParam.cxx
-                       src/DiffAndTimeStructEstimator.cxx
-                       src/SimParam.cxx
                        src/PadResponse.cxx
                        src/FeeParam.cxx
                        src/RecoParam.cxx
@@ -40,28 +37,18 @@ o2_target_root_dictionary(TRDBase
                                   include/TRDBase/GeometryBase.h
                                   include/TRDBase/Geometry.h
                                   include/TRDBase/GeometryFlat.h
-                                  include/TRDBase/SimParam.h
-                                  include/TRDBase/Garfield.h
-                                  include/TRDBase/CommonParam.h
                                   include/TRDBase/PadResponse.h
                                   include/TRDBase/FeeParam.h
                                   include/TRDBase/RecoParam.h
+                                  include/TRDBase/Calibrations.h
                                   include/TRDBase/PadParameters.h
                                   include/TRDBase/PadCalibrations.h
                                   include/TRDBase/ChamberCalibrations.h
                                   include/TRDBase/PadCalibrationsAliases.h
                                   include/TRDBase/ChamberStatus.h
-                                  include/TRDBase/Calibrations.h
                                   include/TRDBase/CalOnlineGainTables.h
                                   include/TRDBase/Tracklet.h
                                   include/TRDBase/TrackletTransformer.h)
-
-o2_add_test(DiffusionCoefficient
-            SOURCES test/testTRDDiffusionCoefficient.cxx
-            COMPONENT_NAME trd
-            PUBLIC_LINK_LIBRARIES O2::TRDBase
-            ENVIRONMENT VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/share
-            LABELS trd)
 
 o2_add_test(Geometry
             COMPONENT_NAME trd

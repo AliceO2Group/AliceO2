@@ -49,11 +49,12 @@ class ChamberCalibrations
   void setExB(int p, int c, int s, float exb) { mExB[HelperMethods::getDetector(p, c, s)] = exb; };
   void setExB(int roc, float exb) { mExB[roc] = exb; };
 
- protected:
+ private:
   std::array<float, constants::MAXCHAMBER> mVDrift{};     // mean drift velocity per chamber.
   std::array<float, constants::MAXCHAMBER> mGainFactor{}; // mean gas gain per chamber
   std::array<float, constants::MAXCHAMBER> mT0{};         // Min timeoffset in the chamber
   std::array<float, constants::MAXCHAMBER> mExB{};        //
+  ClassDefNV(ChamberCalibrations, 1);
 };
 } // namespace trd
 } // namespace o2
