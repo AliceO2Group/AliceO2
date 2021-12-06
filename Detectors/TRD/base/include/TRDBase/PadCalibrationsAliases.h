@@ -52,8 +52,6 @@ class PadStatus : public PadCalibrations<char>
   ClassDefNV(PadStatus, 1);
 };
 
-using LocalT0 = PadCalibrations<float>;
-using LocalVDrift = PadCalibrations<float>;
 using LocalGainFactor = PadCalibrations<float>;
 using PadNoise = PadCalibrations<float>;
 

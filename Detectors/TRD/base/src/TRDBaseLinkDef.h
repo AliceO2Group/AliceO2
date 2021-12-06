@@ -28,8 +28,6 @@
 #pragma link C++ class o2::trd::Calibrations + ;
 #pragma link C++ class o2::trd::ChamberCalibrations + ;
 #pragma link C++ class o2::trd::PadStatus + ;
-#pragma link C++ class o2::trd::LocalT0 + ;
-#pragma link C++ class o2::trd::LocalVDrift + ;
 #pragma link C++ class o2::trd::LocalGainFactor + ;
 #pragma link C++ class o2::trd::ChamberStatus + ;
 #pragma link C++ class o2::trd::CalOnlineGainTables + ;
