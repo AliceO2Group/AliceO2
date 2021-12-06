@@ -32,7 +32,7 @@ o2_add_library(DetectorsBase
                                      O2::DataFormatsParameters
                                      O2::SimConfig
                                      O2::CCDB
-                                     ROOT::VMC
+                                     MC::VMC
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger # Must not link to avoid cyclic dependency
                              )
 
