@@ -19,6 +19,8 @@
 #include "DataFormatsTPC/Defs.h"
 #include "functional"
 #include "TPCCalibration/IDCContainer.h"
+#include "TH2Poly.h"
+#include "TCanvas.h"
 
 namespace o2::tpc
 {
@@ -56,6 +58,10 @@ class IDCDrawHelper
   /// \param minZ min z value for drawing (if minZ > maxZ automatic z axis)
   /// \param maxZ max z value for drawing (if minZ > maxZ automatic z axis)
   static void drawSide(const IDCDraw& idc, const o2::tpc::Side side, const std::string zAxisTitle, const std::string filename, const float minZ = 0, const float maxZ = -1);
+  static TH2Poly* drawSide(const IDCDraw& idc, const o2::tpc::Side side, const std::string zAxisTitle);
+  static TH1F* drawSide(const IDCDraw& idc, std::string_view type, const o2::tpc::Side side, const int nbins1D, const float xMin1D, const float xMax1D);
+  static void drawRadialProfile(const IDCDraw& idc, TH2F& hist, const o2::tpc::Side side);
+  static void drawIDCZeroStackCanvas(const IDCDraw& idc, const o2::tpc::Side side, const std::string_view type, const int nbins1D, const float xMin1D, const float xMax1D, TCanvas& outputCanvas, int integrationInterval);
 
   /// \return returns z axis title
   /// \param type IDC type
