@@ -21,6 +21,8 @@
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsZDC/ZDCEnergy.h"
+#include "DataFormatsZDC/ZDCTDCData.h"
 #include "CommonUtils/NameConf.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "CCDB/BasicCCDBManager.h"
@@ -53,6 +55,7 @@
 #include "SimulationDataFormat/MCEventLabel.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "ZDCBase/Constants.h"
 #include "GPUTPCGMMergedTrackHit.h"
 #include "TOFBase/Utils.h"
 #include "O2Version.h"
@@ -64,6 +67,7 @@
 #include "TObjString.h"
 #include <map>
 #include <unordered_map>
+#include <string>
 #include <vector>
 
 using namespace o2::framework;
@@ -87,6 +91,7 @@ void AODProducerWorkflowDPL::collectBCs(o2::globaltracking::RecoContainer& data,
   const auto& fv0RecPoints = data.getFV0RecPoints();
   const auto& caloEMCCellsTRGR = data.getEMCALTriggers();
   const auto& ctpDigits = data.getCTPDigits();
+  const auto& zdcBCRecData = data.getZDCBCRecData();
 
   // collecting non-empty BCs and enumerating them
   for (auto& rec : mcRecords) {
@@ -106,6 +111,11 @@ void AODProducerWorkflowDPL::collectBCs(o2::globaltracking::RecoContainer& data,
 
   for (auto& fv0RecPoint : fv0RecPoints) {
     uint64_t globalBC = fv0RecPoint.getInteractionRecord().toLong();
+    bcsMap[globalBC] = 1;
+  }
+
+  for (auto& zdcRecData : zdcBCRecData) {
+    uint64_t globalBC = zdcRecData.ir.toLong();
     bcsMap[globalBC] = 1;
   }
 
@@ -992,6 +1002,12 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   // Needed by MCH track extrapolation
   o2::base::GeometryManager::loadGeometry();
 
+  // initialize zdc helper maps
+  for (auto& ChannelName : o2::zdc::ChannelNames) {
+    mZDCEnergyMap[(string)ChannelName] = 0;
+    mZDCTDCMap[(string)ChannelName] = 999;
+  }
+
   // writing metadata if it's not yet in AOD file
   // note: `--aod-writer-resmode "UPDATE"` has to be used,
   //       so that metadata is not overwritten
@@ -1045,6 +1061,10 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto ft0RecPoints = recoData.getFT0RecPoints();
   auto fv0ChData = recoData.getFV0ChannelsData();
   auto fv0RecPoints = recoData.getFV0RecPoints();
+
+  auto zdcEnergies = recoData.getZDCEnergy();
+  auto zdcBCRecData = recoData.getZDCBCRecData();
+  auto zdcTDCData = recoData.getZDCTDCData();
 
   // get calo information
   auto caloEMCCells = recoData.getEMCALCells();
@@ -1169,34 +1189,75 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
              dummyFV0AmplC,
              dummyTime);
 
-  float dummyEnergyZEM1 = 0;
-  float dummyEnergyZEM2 = 0;
-  float dummyEnergyCommonZNA = 0;
-  float dummyEnergyCommonZNC = 0;
-  float dummyEnergyCommonZPA = 0;
-  float dummyEnergyCommonZPC = 0;
-  float dummyEnergySectorZNA[4] = {0.};
-  float dummyEnergySectorZNC[4] = {0.};
-  float dummyEnergySectorZPA[4] = {0.};
-  float dummyEnergySectorZPC[4] = {0.};
-  zdcCursor(0,
-            dummyBC,
-            dummyEnergyZEM1,
-            dummyEnergyZEM2,
-            dummyEnergyCommonZNA,
-            dummyEnergyCommonZNC,
-            dummyEnergyCommonZPA,
-            dummyEnergyCommonZPC,
-            dummyEnergySectorZNA,
-            dummyEnergySectorZNC,
-            dummyEnergySectorZPA,
-            dummyEnergySectorZPC,
-            dummyTime,
-            dummyTime,
-            dummyTime,
-            dummyTime,
-            dummyTime,
-            dummyTime);
+  for (auto zdcRecData : zdcBCRecData) {
+    uint64_t bc = zdcRecData.ir.toLong();
+    auto item = bcsMap.find(bc);
+    int bcID = -1;
+    if (item != bcsMap.end()) {
+      bcID = item->second;
+    } else {
+      LOG(FATAL) << "Error: could not find a corresponding BC ID for a ZDC rec. point; BC = " << bc;
+    }
+    float energyZEM1 = 0;
+    float energyZEM2 = 0;
+    float energyCommonZNA = 0;
+    float energyCommonZNC = 0;
+    float energyCommonZPA = 0;
+    float energyCommonZPC = 0;
+    float energySectorZNA[4] = {0.};
+    float energySectorZNC[4] = {0.};
+    float energySectorZPA[4] = {0.};
+    float energySectorZPC[4] = {0.};
+    int fe, ne, ft, nt, fi, ni;
+    zdcRecData.getRef(fe, ne, ft, nt, fi, ni);
+    for (int ie = 0; ie < ne; ie++) {
+      auto& zdcEnergyData = zdcEnergies[fe + ie];
+      float energy = zdcEnergyData.energy();
+      string chName = o2::zdc::channelName(zdcEnergyData.ch());
+      mZDCEnergyMap.at(chName) = energy;
+    }
+    for (int it = 0; it < nt; it++) {
+      auto& tdc = zdcTDCData[ft + it];
+      float tdcValue = tdc.value();
+      int channelID = o2::zdc::TDCSignal[tdc.ch()];
+      auto channelName = o2::zdc::ChannelNames[channelID];
+      mZDCTDCMap.at((string)channelName) = tdcValue;
+    }
+    energySectorZNA[0] = mZDCEnergyMap.at("ZNA1");
+    energySectorZNA[1] = mZDCEnergyMap.at("ZNA2");
+    energySectorZNA[2] = mZDCEnergyMap.at("ZNA3");
+    energySectorZNA[3] = mZDCEnergyMap.at("ZNA4");
+    energySectorZNC[0] = mZDCEnergyMap.at("ZNC1");
+    energySectorZNC[1] = mZDCEnergyMap.at("ZNC2");
+    energySectorZNC[2] = mZDCEnergyMap.at("ZNC3");
+    energySectorZNC[3] = mZDCEnergyMap.at("ZNC4");
+    energySectorZPA[0] = mZDCEnergyMap.at("ZPA1");
+    energySectorZPA[1] = mZDCEnergyMap.at("ZPA2");
+    energySectorZPA[2] = mZDCEnergyMap.at("ZPA3");
+    energySectorZPA[3] = mZDCEnergyMap.at("ZPA4");
+    energySectorZPC[0] = mZDCEnergyMap.at("ZPC1");
+    energySectorZPC[1] = mZDCEnergyMap.at("ZPC2");
+    energySectorZPC[2] = mZDCEnergyMap.at("ZPC3");
+    energySectorZPC[3] = mZDCEnergyMap.at("ZPC4");
+    zdcCursor(0,
+              bcID,
+              mZDCEnergyMap.at("ZEM1"),
+              mZDCEnergyMap.at("ZEM2"),
+              mZDCEnergyMap.at("ZNAC"),
+              mZDCEnergyMap.at("ZNCC"),
+              mZDCEnergyMap.at("ZPAC"),
+              mZDCEnergyMap.at("ZPCC"),
+              energySectorZNA,
+              energySectorZNC,
+              energySectorZPA,
+              energySectorZPC,
+              mZDCTDCMap.at("ZEM1"),
+              mZDCTDCMap.at("ZEM2"),
+              mZDCTDCMap.at("ZNAC"),
+              mZDCTDCMap.at("ZNCC"),
+              mZDCTDCMap.at("ZPAC"),
+              mZDCTDCMap.at("ZPCC"));
+  }
 
   // keep track event/source id for each mc-collision
   // using map and not unordered_map to ensure
