@@ -34,32 +34,27 @@ namespace trd
 class ChamberStatus
 {
  public:
-  enum { kGood = 0,
-         kNoData = 1,
-         kNoDataHalfChamberSideA = 2,
-         kNoDataHalfChamberSideB = 3,
-         kBadCalibrated = 4,
-         kNotCalibrated = 5 };
-  enum { kGoodpat = 1,
-         kNoDatapat = 2,
-         kNoDataHalfChamberSideApat = 4,
-         kNoDataHalfChamberSideBpat = 8,
-         kBadCalibratedpat = 16,
-         kNotCalibratedpat = 32 }; // just 2^(line above)
+  enum {
+    Good = 1 << 0,
+    NoData = 1 << 1,
+    NoDataHalfChamberSideA = 1 << 2,
+    NoDataHalfChamberSideB = 1 << 3,
+    BadCalibrated = 1 << 4,
+    NotCalibrated = 1 << 5
+  };
 
   ChamberStatus() = default;
   ~ChamberStatus() = default;
   //
   char getStatus(int det) const { return mStatus[det]; }
-  void setStatus(int det, char status);
+  void setStatus(int det, char bit);
   void setRawStatus(int det, char status) { mStatus[det] = status; };
-  void unsetStatusBit(int det, char status);
-  bool isGood(int det) const { return (mStatus[det] & kGoodpat); }
-  bool isNoData(int det) const { return (mStatus[det] & kNoDatapat); }
-  bool isNoDataSideA(int det) const { return (mStatus[det] & kNoDataHalfChamberSideApat); }
-  bool isNoDataSideB(int det) const { return (mStatus[det] & kNoDataHalfChamberSideBpat); }
-  bool isBadCalibrated(int det) const { return (mStatus[det] & kBadCalibratedpat); }
-  bool isNotCalibrated(int det) const { return (mStatus[det] & kNotCalibratedpat); }
+  bool isGood(int det) const { return (mStatus[det] & Good); }
+  bool isNoData(int det) const { return (mStatus[det] & NoData); }
+  bool isNoDataSideA(int det) const { return (mStatus[det] & NoDataHalfChamberSideA); }
+  bool isNoDataSideB(int det) const { return (mStatus[det] & NoDataHalfChamberSideB); }
+  bool isBadCalibrated(int det) const { return (mStatus[det] & BadCalibrated); }
+  bool isNotCalibrated(int det) const { return (mStatus[det] & NotCalibrated); }
 
   TH2D* plot(int sm, int rphi);              // Plot mStatus for sm and halfchamberside
   TH2D* plotNoData(int sm, int rphi);        // Plot data status for sm and halfchamberside

@@ -18,9 +18,10 @@
 
 #include "TRDBase/ChamberStatus.h"
 #include "TH2D.h"
+
 using namespace o2::trd;
 
-void ChamberStatus::setStatus(int det, char status)
+void ChamberStatus::setStatus(int det, char bit)
 {
 
   //
@@ -28,83 +29,43 @@ void ChamberStatus::setStatus(int det, char status)
   //
   //
 
-  switch (status) {
-    case ChamberStatus::kGood:
-      mStatus[det] |= kGoodpat;
-      mStatus[det] &= !kNoDatapat;
-      mStatus[det] &= !kBadCalibratedpat;
+  switch (bit) {
+    case Good:
+      mStatus[det] = Good;
       break;
-    case ChamberStatus::kNoData:
-      mStatus[det] &= !kGoodpat;
-      mStatus[det] |= kNoDatapat;
-      mStatus[det] |= kNoDataHalfChamberSideApat;
-      mStatus[det] |= kNoDataHalfChamberSideBpat;
-      //      mStatus[det] |=  kBadCalibratedpat;
+    case NoData:
+      mStatus[det] &= !Good;
+      mStatus[det] |= NoData;
+      mStatus[det] |= NoDataHalfChamberSideA;
+      mStatus[det] |= NoDataHalfChamberSideB;
       break;
-    case ChamberStatus::kNoDataHalfChamberSideA:
-      mStatus[det] |= kNoDataHalfChamberSideApat;
-      if (mStatus[det] & kNoDataHalfChamberSideB) {
-        mStatus[det] |= kNoDatapat;
-        mStatus[det] &= !kGoodpat;
+    case NoDataHalfChamberSideA:
+      mStatus[det] |= NoDataHalfChamberSideA;
+      if (mStatus[det] & NoDataHalfChamberSideB) {
+        mStatus[det] |= NoData;
+        mStatus[det] &= !Good;
       }
       break;
-    case ChamberStatus::kNoDataHalfChamberSideB:
-      mStatus[det] |= kNoDataHalfChamberSideBpat;
-      if (mStatus[det] & kNoDataHalfChamberSideApat) {
-        mStatus[det] &= !kGoodpat;
-        mStatus[det] |= kNoDatapat;
+    case NoDataHalfChamberSideB:
+      mStatus[det] |= NoDataHalfChamberSideB;
+      if (mStatus[det] & NoDataHalfChamberSideA) {
+        mStatus[det] &= !Good;
+        mStatus[det] |= NoData;
       }
       break;
-    case ChamberStatus::kBadCalibrated:
-      mStatus[det] &= !kGoodpat;
-      mStatus[det] |= kBadCalibratedpat;
+    case BadCalibrated:
+      mStatus[det] &= !Good;
+      mStatus[det] |= BadCalibrated;
       break;
-    case ChamberStatus::kNotCalibrated:
-      mStatus[det] &= !kGoodpat;
-      mStatus[det] |= kNotCalibratedpat;
-      // mStatus[det] &= !kBadCalibratedpat;
-      break;
-    default:
-      mStatus[det] &= !kGoodpat;
-      mStatus[det] &= !kNoDatapat;
-      mStatus[det] &= !kNoDataHalfChamberSideApat;
-      mStatus[det] &= !kNoDataHalfChamberSideBpat;
-      mStatus[det] &= !kBadCalibratedpat;
-      mStatus[det] &= !kNotCalibratedpat;
-  }
-}
-//_____________________________________________________________________________
-void ChamberStatus::unsetStatusBit(int det, char status)
-{
-
-  //
-  // unset the chamber status bit
-  //
-  //
-
-  switch (status) {
-    case ChamberStatus::kGood:
-      mStatus[det] &= !kGoodpat;
-      break;
-    case ChamberStatus::kNoData:
-      mStatus[det] &= !kNoDatapat;
-      break;
-    case ChamberStatus::kNoDataHalfChamberSideA:
-      mStatus[det] &= !kNoDataHalfChamberSideApat;
-      break;
-    case ChamberStatus::kNoDataHalfChamberSideB:
-      mStatus[det] &= !kNoDataHalfChamberSideBpat;
-      break;
-    case ChamberStatus::kBadCalibrated:
-      mStatus[det] &= !kBadCalibratedpat;
-      break;
-    case ChamberStatus::kNotCalibrated:
-      mStatus[det] &= !kNotCalibratedpat;
+    case NotCalibrated:
+      mStatus[det] &= !Good;
+      mStatus[det] |= NotCalibrated;
       break;
     default:
-      mStatus[det] &= !(kGoodpat & kNoDatapat & kNoDataHalfChamberSideApat & kNoDataHalfChamberSideBpat & kBadCalibratedpat & kNotCalibratedpat);
+      mStatus[det] = 0;
   }
 }
+
 //_____________________________________________________________________________
 TH2D* ChamberStatus::plot(int sm, int rphi)
 {
@@ -128,11 +89,11 @@ TH2D* ChamberStatus::plot(int sm, int rphi)
     int status = getStatus(i);
     h2->Fill(stackn, layer, status);
     if (rphi == 0) {
-      if (!(mStatus[i] & kNoDataHalfChamberSideBpat)) {
+      if (!(mStatus[i] & NoDataHalfChamberSideB)) {
         h2->Fill(stackn, layer, status);
       }
     } else if (rphi == 1) {
-      if (!(mStatus[i] & kNoDataHalfChamberSideApat)) {
+      if (!(mStatus[i] & NoDataHalfChamberSideA)) {
         h2->Fill(stackn, layer, status);
       }
     }
@@ -161,17 +122,17 @@ TH2D* ChamberStatus::plotNoData(int sm, int rphi)
     int layer = i % 6;
     int stackn = static_cast<int>((i - start) / 6.);
     if (rphi == 0) {
-      if (mStatus[i] & kNoDataHalfChamberSideBpat) {
+      if (mStatus[i] & NoDataHalfChamberSideB) {
         h2->Fill(stackn, layer, 1);
       }
-      if (mStatus[i] & kNoDatapat) {
+      if (mStatus[i] & NoData) {
         h2->Fill(stackn, layer, 1);
       }
     } else if (rphi == 1) {
-      if (!(mStatus[i] & kNoDataHalfChamberSideApat)) {
+      if (!(mStatus[i] & NoDataHalfChamberSideA)) {
         h2->Fill(stackn, layer, 1);
       }
-      if (!(mStatus[i] & kNoDatapat)) {
+      if (!(mStatus[i] & NoData)) {
         h2->Fill(stackn, layer, 1);
       }
     }
@@ -200,11 +161,11 @@ TH2D* ChamberStatus::plotBadCalibrated(int sm, int rphi)
     int layer = i % 6;
     int stackn = static_cast<int>((i - start) / 6.);
     if (rphi == 0) {
-      if (mStatus[i] & kBadCalibratedpat) {
+      if (mStatus[i] & BadCalibrated) {
         h2->Fill(stackn, layer, 1);
       }
     } else if (rphi == 1) {
-      if (mStatus[i] & kBadCalibratedpat) {
+      if (mStatus[i] & BadCalibrated) {
         h2->Fill(stackn, layer, 1);
       }
     }
