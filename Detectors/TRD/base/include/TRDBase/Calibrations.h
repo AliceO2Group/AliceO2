@@ -77,8 +77,6 @@ class Calibrations
   long mTimeStamp; //run number of related to the current calibration.
 
   ChamberCalibrations* mChamberCalibrations; ///< from AliRoot: vDrift, T0, ExB and Gain for each chamber
-  LocalVDrift* mLocalVDrift;                 ///< vDrift value per readout pad
-  LocalT0* mLocalT0;                         ///< t0 value per readout pad
   LocalGainFactor* mLocalGainFactor;         ///< gain factor per readout pad
   PadNoise* mPadNoise;                       ///< noise value per readout pad
   ChamberStatus* mChamberStatus;             ///< status flag for each chamber
