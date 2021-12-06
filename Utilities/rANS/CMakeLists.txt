@@ -10,8 +10,7 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(rANS
-               SOURCES src/SymbolStatistics.cxx
-                       src/FrequencyTable.cxx
+               SOURCES src/FrequencyTable.cxx
                PUBLIC_LINK_LIBRARIES FairLogger::FairLogger)
 
 o2_add_test(Iterators
@@ -31,13 +30,6 @@ o2_add_test(HistogramView
 o2_add_test(FrequencyTable
             NAME FrequencyTable
             SOURCES test/test_ransFrequencyTable.cxx
-            PUBLIC_LINK_LIBRARIES O2::rANS
-            COMPONENT_NAME rANS
-            LABELS utils)
-
-o2_add_test(SymbolStatistics
-            NAME SymbolStatistics
-            SOURCES test/test_ransSymbolStatistics.cxx
             PUBLIC_LINK_LIBRARIES O2::rANS
             COMPONENT_NAME rANS
             LABELS utils)

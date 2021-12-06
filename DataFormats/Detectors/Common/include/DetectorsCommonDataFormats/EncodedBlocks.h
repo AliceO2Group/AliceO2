@@ -363,6 +363,9 @@ class EncodedBlocks
     const auto& block = getBlock(i);
     const auto& metadata = getMetadata(i);
     rans::FrequencyTable frequencyTable{block.getDict(), block.getDict() + block.getNDict(), metadata.min};
+    if (!frequencyTable.isRenormedTo(metadata.probabilityBits)) {
+      frequencyTable = rans::renorm(std::move(frequencyTable), metadata.probabilityBits);
+    }
     return frequencyTable;
   }
 
@@ -883,7 +886,8 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
       } else {
         rans::FrequencyTable frequencyTable{};
         frequencyTable.addSamples(srcBegin, srcEnd);
-        return std::make_tuple(ransEncoder_t{frequencyTable, symbolTablePrecision}, frequencyTable);
+        FrequencyTable renormedFrequencyTable = rans::renorm(frequencyTable, symbolTablePrecision);
+        return std::make_tuple(ransEncoder_t{renormedFrequencyTable, symbolTablePrecision}, frequencyTable);
       }
     }();
     ransEncoder_t const* const encoder = encoderExt ? reinterpret_cast<ransEncoder_t const* const>(encoderExt) : &inplaceEncoder;

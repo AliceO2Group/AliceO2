@@ -29,7 +29,7 @@
 #include "rANS/internal/ReverseSymbolLookupTable.h"
 #include "rANS/internal/SymbolTable.h"
 #include "rANS/internal/Decoder.h"
-#include "rANS/internal/SymbolStatistics.h"
+#include "rANS/FrequencyTable.h"
 #include "rANS/internal/helper.h"
 
 namespace o2
@@ -49,8 +49,8 @@ class DecoderBase
   using ransDecoder_t = Decoder<coder_T, stream_T>;
 
  public:
-  //TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
-  DecoderBase() noexcept {}; //NOLINT
+  // TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
+  DecoderBase() noexcept {}; // NOLINT
   DecoderBase(const FrequencyTable& stats, size_t probabilityBits);
 
   inline size_t getAlphabetRangeBits() const noexcept { return mSymbolTable.getAlphabetRangeBits(); }
@@ -69,20 +69,19 @@ class DecoderBase
 };
 
 template <typename coder_T, typename stream_T, typename source_T>
-DecoderBase<coder_T, stream_T, source_T>::DecoderBase(const FrequencyTable& frequencies, size_t probabilityBits) : mSymbolTablePrecission{probabilityBits}
+DecoderBase<coder_T, stream_T, source_T>::DecoderBase(const FrequencyTable& frequencyTable, size_t symbolTablePrecision) : mSymbolTablePrecission{symbolTablePrecision}
 {
   using namespace internal;
 
-  SymbolStatistics stats{frequencies, mSymbolTablePrecission};
-  mSymbolTablePrecission = stats.getSymbolTablePrecision();
-
   RANSTimer t;
   t.start();
-  mSymbolTable = decoderSymbolTable_t{stats};
+  assert(pow2(symbolTablePrecision) == frequencyTable.getNumSamples());
+  assert(frequencyTable.isRenormed());
+  mSymbolTable = decoderSymbolTable_t{frequencyTable};
   t.stop();
   LOG(debug1) << "Decoder SymbolTable inclusive time (ms): " << t.getDurationMS();
   t.start();
-  mReverseLUT = reverseSymbolLookupTable_t{stats};
+  mReverseLUT = reverseSymbolLookupTable_t{frequencyTable};
   t.stop();
   LOG(debug1) << "ReverseSymbolLookupTable inclusive time (ms): " << t.getDurationMS();
 };
