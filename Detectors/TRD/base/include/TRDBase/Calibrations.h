@@ -36,6 +36,7 @@
 
 #include <memory>
 #include <string>
+#include "Rtypes.h"
 #include "TRDBase/Geometry.h"
 #include "TRDBase/ChamberCalibrations.h"
 #include "TRDBase/ChamberStatus.h"
@@ -84,6 +85,7 @@ class Calibrations
   PadStatus* mPadStatus;                     ///< status flag for each readout pad
   CalOnlineGainTables* mCalOnlineGainTables; ///< online gain table (obtained from Kr calibration)
   //
+  ClassDefNV(Calibrations, 1);
 };
 } // namespace trd
 } // namespace o2
