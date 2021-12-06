@@ -368,11 +368,13 @@ BOOST_AUTO_TEST_CASE(test_renorm)
 {
   o2::rans::histogram_t frequencies{1, 1, 2, 2, 2, 2, 6, 8, 4, 10, 8, 14, 10, 19, 26, 30, 31, 35, 41, 45, 51, 44, 47, 39, 58, 52, 42, 53, 50, 34, 50, 30, 32, 24, 30, 20, 17, 12, 16, 6, 8, 5, 6, 4, 4, 2, 2, 2, 1};
   o2::rans::FrequencyTable frequencyTable{frequencies.begin(), frequencies.end(), 0};
+  BOOST_CHECK_EQUAL(frequencyTable.isRenormed(), false);
 
   const size_t scaleBits = 8;
 
   auto newFrequencyTable = o2::rans::renorm(std::move(frequencyTable), scaleBits);
   const o2::rans::histogram_t rescaledFrequencies{1, 1, 1, 2, 1, 2, 1, 2, 2, 2, 2, 3, 3, 4, 6, 7, 7, 9, 9, 11, 12, 10, 11, 9, 13, 12, 10, 13, 11, 8, 12, 7, 7, 6, 7, 4, 4, 3, 4, 1, 2, 1, 2, 2, 2, 1, 2, 1, 1};
+  BOOST_CHECK_EQUAL(newFrequencyTable.isRenormed(), true);
   BOOST_CHECK_EQUAL(newFrequencyTable.getNumSamples(), 1 << scaleBits);
   BOOST_CHECK_EQUAL(newFrequencyTable.getMinSymbol(), 0);
   BOOST_CHECK_EQUAL(newFrequencyTable.getMaxSymbol(), 48);
@@ -384,6 +386,7 @@ BOOST_AUTO_TEST_CASE(test_renormIncompressible)
 {
   o2::rans::histogram_t frequencies{1, 1, 2, 2, 2, 2, 6, 8, 4, 10, 8, 14, 10, 19, 26, 30, 31, 35, 41, 45, 51, 44, 47, 39, 58, 52, 42, 53, 50, 34, 50, 30, 32, 24, 30, 20, 17, 12, 16, 6, 8, 5, 6, 4, 4, 2, 2, 2, 1};
   o2::rans::FrequencyTable frequencyTable{frequencies.begin(), frequencies.end(), 0};
+  BOOST_CHECK_EQUAL(frequencyTable.isRenormed(), false);
 
   const size_t scaleBits = 8;
 

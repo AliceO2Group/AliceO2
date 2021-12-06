@@ -49,8 +49,8 @@ class EncoderBase
   using stream_t = stream_T;
   using source_t = source_T;
 
-  //TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
-  EncoderBase() noexcept {}; //NOLINT
+  // TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
+  EncoderBase() noexcept {}; // NOLINT
   EncoderBase(encoderSymbolTable_t&& e, size_t symbolTablePrecission) noexcept;
   EncoderBase(const FrequencyTable& frequencies, size_t symbolTablePrecission);
 
@@ -70,15 +70,15 @@ template <typename coder_T, typename stream_T, typename source_T>
 EncoderBase<coder_T, stream_T, source_T>::EncoderBase(encoderSymbolTable_t&& e, size_t symbolTablePrecission) noexcept : mSymbolTable{std::move(e)}, mSymbolTablePrecission{symbolTablePrecission} {};
 
 template <typename coder_T, typename stream_T, typename source_T>
-EncoderBase<coder_T, stream_T, source_T>::EncoderBase(const FrequencyTable& frequencies,
+EncoderBase<coder_T, stream_T, source_T>::EncoderBase(const FrequencyTable& frequencyTable,
                                                       size_t symbolTablePrecission) : mSymbolTablePrecission{symbolTablePrecission}
 {
-  SymbolStatistics stats{frequencies, mSymbolTablePrecission};
-  mSymbolTablePrecission = stats.getSymbolTablePrecision();
-
   RANSTimer t;
   t.start();
-  mSymbolTable = encoderSymbolTable_t{stats};
+  assert(frequencyTable.isRenormed());
+  mSymbolTablePrecission = frequencyTable.getRenormingBits();
+  mSymbolTable = encoderSymbolTable_t{frequencyTable};
+
   t.stop();
   LOG(debug1) << "Encoder SymbolTable inclusive time (ms): " << t.getDurationMS();
 }

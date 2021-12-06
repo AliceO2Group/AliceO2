@@ -31,7 +31,6 @@
 #include "rANS/internal/SymbolTable.h"
 #include "rANS/internal/Decoder.h"
 #include "rANS/internal/DecoderBase.h"
-#include "rANS/internal/SymbolStatistics.h"
 #include "rANS/internal/helper.h"
 
 namespace o2

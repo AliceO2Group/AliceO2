@@ -79,11 +79,12 @@ struct EncodeDecodeBase {
   {
     dictString_T source;
     std::string& s = source.data;
-    o2::rans::FrequencyTable frequencies;
-    frequencies.addSamples(std::begin(s), std::end(s));
+    o2::rans::FrequencyTable frequencyTable;
+    frequencyTable.addSamples(std::begin(s), std::end(s));
+    frequencyTable = o2::rans::renorm(std::move(frequencyTable), params_t::symbolTablePrecission);
 
-    encoder = decltype(encoder)(frequencies, params_t::symbolTablePrecission);
-    decoder = decltype(decoder)(frequencies, params_t::symbolTablePrecission);
+    encoder = decltype(encoder)(frequencyTable, params_t::symbolTablePrecission);
+    decoder = decltype(decoder)(frequencyTable, params_t::symbolTablePrecission);
 
     const auto [min, max] = [&s]() {
       const auto [minIter, maxIter] = std::minmax_element(s.begin(), s.end());
