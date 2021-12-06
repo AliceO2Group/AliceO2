@@ -36,7 +36,9 @@ using namespace o2::trd;
 void AO2DConverter::init(o2::framework::InitContext& ic)
 {
   LOG(info) << "------------------------    AO2DConverter::init version " << mWorkflowVersion << "    ------------------------------------";
+
   mData.init();
+  mHelper = std::make_shared<EveWorkflowHelper>();
 }
 
 void AO2DConverter::process(o2::aod::Collisions const& collisions, EveWorkflowHelper::AODFullTracks const& tracks)
@@ -44,20 +46,18 @@ void AO2DConverter::process(o2::aod::Collisions const& collisions, EveWorkflowHe
   for (auto const& c : collisions) {
     auto const tracksCol = tracks.sliceBy(aod::track::collisionId, c.globalIndex());
 
-    EveWorkflowHelper helper;
-
     for (auto const& track : tracksCol) {
-      helper.drawAOD(track, c.collisionTime());
+      mHelper->drawAOD(track, c.collisionTime());
     }
 
-    helper.save(jsonPath, collisions.size(), GlobalTrackID::MASK_ALL, GlobalTrackID::MASK_NONE, mWorkflowVersion);
+    mHelper->save(jsonPath, collisions.size(), GlobalTrackID::MASK_ALL, GlobalTrackID::MASK_NONE, mWorkflowVersion);
+    mHelper->clear();
   }
 }
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  LOG(info) << "------------------------    defineDataProcessing " << AO2DConverter::mWorkflowVersion << "    ------------------------------------";
-
   return WorkflowSpec{
-    adaptAnalysisTask<AO2DConverter>(cfgc, TaskName{"o2-aodconverter"})};
+    adaptAnalysisTask<AO2DConverter>(cfgc, TaskName{"o2-aodconverter"}),
+  };
 }

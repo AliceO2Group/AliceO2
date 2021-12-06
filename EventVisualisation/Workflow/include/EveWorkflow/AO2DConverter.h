@@ -46,6 +46,7 @@ struct AO2DConverter {
   void process(o2::aod::Collisions const& collisions, EveWorkflowHelper::AODFullTracks const& tracks);
 
   DetectorData mData;
+  std::shared_ptr<EveWorkflowHelper> mHelper;
 };
 
 } // namespace o2::event_visualisation

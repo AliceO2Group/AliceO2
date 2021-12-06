@@ -132,6 +132,7 @@ class EveWorkflowHelper
   void save(const std::string& jsonPath, int numberOfFiles,
             o2::dataformats::GlobalTrackID::mask_t trkMask, o2::dataformats::GlobalTrackID::mask_t clMask,
             float workflowVersion);
+  void clear() { mEvent.clear(); }
 
   o2::globaltracking::RecoContainer mRecoCont;
   o2::globaltracking::RecoContainer& getRecoContainer() { return mRecoCont; }

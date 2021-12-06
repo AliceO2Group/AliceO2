@@ -65,10 +65,6 @@ void Initializer::setup()
     eventManager.setDataSource(new DataSourceOffline(options->AODConverterPath(), options->dataFolder(), options->fileName(), options->hideDplGUI()));
   }
 
-  // if (Options::Instance()->json()) {
-  //   eventManager.getDataSource()->registerDetectorX(new DataReaderJSON(nullptr), EVisualisationGroup::JSON);
-  // }
-
   eventManager.getDataSource()->registerReader(new DataReaderJSON());
 
   setupGeometry();
