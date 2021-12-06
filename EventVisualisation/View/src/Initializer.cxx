@@ -51,7 +51,7 @@ void Initializer::setup()
   ConfigurationManager::getInstance().getConfig(settings);
 
   const bool fullscreen = settings.GetValue("fullscreen.mode", false);                           // hide left and bottom tabs
-  const string ocdbStorage = settings.GetValue("OCDB.default.path", "local://$ALICE_ROOT/OCDB"); // default path to OCDB
+  const string ocdbStorage = settings.GetValue("OCDB.default.path", o2::base::NameConf::getCCDBServer().c_str()); // default path to OCDB
   LOG(info) << "Initializer -- OCDB path:" << ocdbStorage;
 
   auto& eventManager = EventManager::getInstance();

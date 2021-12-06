@@ -39,7 +39,7 @@ void DetectorData::init()
   o2::base::GeometryManager::loadGeometry();
   o2::base::Propagator::initFieldFromGRP();
   mConfig.reset(new EveConfiguration);
-  mConfig->configGRP.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
+  mConfig->configGRP.solenoidBz = o2::base::Propagator::Instance()->getNominalBz();
   mConfig->configGRP.continuousMaxTimeBin = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC) ? -1 : 0; // Number of timebins in timeframe if continuous, 0 otherwise
   mConfig->ReadConfigurableParam();
 
