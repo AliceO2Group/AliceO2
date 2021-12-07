@@ -399,8 +399,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // update the digitization configuration with the right geometry file
   // we take the geometry from the first simPrefix (could actually check if they are
   // all compatible)
-  auto geomfilename = o2::base::NameConf::getGeomFileName(simPrefixes[0]);
-  ConfigurableParam::setValue("DigiParams.digitizationgeometry", geomfilename);
+  ConfigurableParam::setValue("DigiParams.digitizationgeometry_prefix", simPrefixes[0]);
   ConfigurableParam::setValue("DigiParams.grpfile", grpfile);
   LOG(info) << "MC-TRUTH " << !configcontext.options().get<bool>("disable-mc");
   bool mctruth = !configcontext.options().get<bool>("disable-mc");

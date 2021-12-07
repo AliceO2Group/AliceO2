@@ -29,7 +29,7 @@ void BaseDPLDigitizer::init(o2::framework::InitContext& ic)
   // init basic stuff when this was asked for
   if (mNeedGeom) {
     LOG(info) << "Initializing geometry service";
-    o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry);
+    o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry_prefix, true, true /* read from existing aligned file */);
   }
 
   if (mNeedField) {
