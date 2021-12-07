@@ -45,11 +45,14 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& cfg)
 {
   const bool useDigitsAsInput = cfg.options().get<bool>("use-digit-input");
-  const auto inputSpec = cfg.options().get<std::string>("input-spec");
+  auto inputSpec = cfg.options().get<std::string>("input-spec");
+  if (useDigitsAsInput) {
+    inputSpec = "tpcdigits:TPC/DIGITS";
+  }
 
   WorkflowSpec specs;
 
-  specs.emplace_back(o2::tpc::getMonitorWorkflowSpec(useDigitsAsInput, inputSpec));
+  specs.emplace_back(o2::tpc::getMonitorWorkflowSpec(inputSpec));
 
   return specs;
 }

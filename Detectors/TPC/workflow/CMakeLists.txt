@@ -68,9 +68,9 @@ o2_add_executable(raw-to-digits-workflow
                   SOURCES src/tpc-raw-to-digits-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
-o2_add_executable(calib-pedestal
+o2_add_executable(calib-pad-raw
                   COMPONENT_NAME tpc
-                  SOURCES src/tpc-calib-pedestal.cxx
+                  SOURCES src/tpc-calib-pad-raw.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_executable(laser-tracks-calibrator
