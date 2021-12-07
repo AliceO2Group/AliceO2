@@ -42,6 +42,12 @@ std::string NameConf::getGeomFileName(const std::string_view prefix)
   return buildFileName(prefix, "_", STANDARDSIMPREFIX, GEOM_FILE_STRING, ROOT_EXT_STRING, Instance().mDirGeom);
 }
 
+// Filename to store geometry file
+std::string NameConf::getAlignedGeomFileName(const std::string_view prefix)
+{
+  return buildFileName(prefix, "_", STANDARDSIMPREFIX, ALIGNEDGEOM_FILE_STRING, ROOT_EXT_STRING, Instance().mDirGeom);
+}
+
 // Filename to store general run parameters (GRP)
 std::string NameConf::getCollisionContextFileName(const std::string_view prefix)
 {
