@@ -58,7 +58,7 @@ const CalPad& CDBInterface::getPedestals()
     }
   } else {
     // return from CDB, assume that check for object existence are done there
-    return getObjectFromCDB<CalPad>(CDBTypeMap.at(CDBType::CalPedestal));
+    return getObjectFromCDB<CalPadMapType>(CDBTypeMap.at(CDBType::CalPedestalNoise)).at("Pedestals");
   }
 
   if (!mPedestals) {
@@ -82,7 +82,7 @@ const CalPad& CDBInterface::getNoise()
     }
   } else {
     // return from CDB, assume that check for object existence are done there
-    return getObjectFromCDB<CalPad>(CDBTypeMap.at(CDBType::CalNoise));
+    return getObjectFromCDB<CalPadMapType>(CDBTypeMap.at(CDBType::CalPedestalNoise)).at("Noise");
   }
 
   if (!mNoise) {
@@ -301,9 +301,9 @@ bool CDBStorage::checkMetaData(MetaData_t metaData) const
     "Optional"};
 
   const std::array<std::vector<std::string_view>, 3> tests{{
-    {"Responsible", "Reason", "Intervention"}, //errors
-    {"JIRA"},                                  //warnings
-    {"Comment"}                                //infos
+    {"Responsible", "Reason", "Intervention"}, // errors
+    {"JIRA"},                                  // warnings
+    {"Comment"}                                // infos
   }};
 
   std::array<int, 3> counts{};
@@ -346,8 +346,12 @@ void CDBStorage::uploadNoiseAndPedestal(std::string_view fileName, long first, l
     LOGP(fatal, "No valid noise object was loaded from file {}", fileName);
   }
 
-  storeObject(pedestals, CDBType::CalPedestal, first, last);
-  storeObject(noise, CDBType::CalNoise, first, last);
+  CDBInterface::CalPadMapType calib;
+
+  calib["Pedestals"] = *pedestals;
+  calib["Noise"] = *noise;
+
+  storeObject(&calib, CDBType::CalPedestalNoise, first, last);
 }
 
 //______________________________________________________________________________

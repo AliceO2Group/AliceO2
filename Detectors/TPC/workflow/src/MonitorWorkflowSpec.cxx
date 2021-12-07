@@ -161,12 +161,9 @@ class TPCMonitorDevice : public o2::framework::Task
   }
 };
 
-DataProcessorSpec getMonitorWorkflowSpec(bool useDigitsAsInput, std::string inputSpec)
+DataProcessorSpec getMonitorWorkflowSpec(std::string inputSpec)
 {
-  if (useDigitsAsInput) {
-    inputSpec = "tpcdigits:TPC/DIGITS";
-  }
-
+  const bool useDigitsAsInput = inputSpec.find("DIGITS") != std::string::npos;
   std::vector<OutputSpec> outputs;
 
   return DataProcessorSpec{

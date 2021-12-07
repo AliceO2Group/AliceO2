@@ -13,6 +13,7 @@
 /// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 
 #include "TSystem.h"
+#include "TGrid.h"
 #include "TObjString.h"
 #include "TObjArray.h"
 #include "TPCBase/RDHUtils.h"
@@ -28,8 +29,8 @@ void CalibRawBase::setupContainers(TString fileInfo, uint32_t verbosity, uint32_
   int iLink = 0;
   int iSampaVersion = -1;
 
-  //auto contPtr = std::unique_ptr<GBTFrameContainer>(new GBTFrameContainer(iSize,iCRU,iLink));
-  // input data
+  // auto contPtr = std::unique_ptr<GBTFrameContainer>(new GBTFrameContainer(iSize,iCRU,iLink));
+  //  input data
   TString rorcType = "cru";
   auto arrData = fileInfo.Tokenize("; ");
 
@@ -99,12 +100,20 @@ void CalibRawBase::setupContainers(TString fileInfo, uint32_t verbosity, uint32_
       }
       mRawReaderCRUManager.init();
     } else if (rorcType == "digits") {
-      TString files = gSystem->GetFromPipe(TString::Format("ls %s", arrDataInfo->At(0)->GetName()));
-      //const int timeBins = static_cast<TObjString*>(arrDataInfo->At(1))->String().Atoi();
+      const TString name = arrDataInfo->At(0)->GetName();
+      TString cmd = "ls";
+      if (name.EndsWith(".list")) {
+        cmd = "cat";
+      }
+      TString files = gSystem->GetFromPipe(TString::Format("%s %s", cmd.Data(), name.Data()));
+      // const int timeBins = static_cast<TObjString*>(arrDataInfo->At(1))->String().Atoi();
       std::unique_ptr<TObjArray> arr(files.Tokenize("\n"));
       mDigitTree = std::make_unique<TChain>("o2sim", "Digit chain");
-      //mDigitTree = new TChain("Digits","Digit chain");
+      // mDigitTree = new TChain("Digits","Digit chain");
       for (auto file : *arr) {
+        if (TString(file->GetName()).BeginsWith("alien://") && !gGrid) {
+          TGrid::Connect("alien");
+        }
         mDigitTree->AddFile(file->GetName());
       }
     } else if (arrDataInfo->GetEntriesFast() < 3) {
