@@ -180,16 +180,23 @@ BOOST_AUTO_TEST_CASE(VariableLists)
   std::vector<float> fv;
   std::vector<double> dv;
   std::vector<uint8_t> ui;
+
+  int empty[] = {3, 7, 10};
+  auto count = 0;
   for (auto i = 1; i < 11; ++i) {
     iv.clear();
     fv.clear();
     dv.clear();
     ui.clear();
-    for (auto j = 0; j < i; ++j) {
-      iv.push_back(j + 2);
-      fv.push_back((j + 2) * 0.2134f);
-      dv.push_back((j + 4) * 0.192873819237);
-      ui.push_back(j);
+    if (i != empty[count]) {
+      for (auto j = 0; j < i; ++j) {
+        iv.push_back(j + 2);
+        fv.push_back((j + 2) * 0.2134f);
+        dv.push_back((j + 4) * 0.192873819237);
+        ui.push_back(j);
+      }
+    } else {
+      count++;
     }
     writer(0, iv, fv, dv, ui);
   }
@@ -209,16 +216,25 @@ BOOST_AUTO_TEST_CASE(VariableLists)
   auto ta = tr2ta.finalize();
   o2::aod::Vectors v{ta};
   int i = 1;
+  count = 0;
   for (auto& row : v) {
     auto iv = row.ivec();
     auto fv = row.fvec();
     auto dv = row.dvec();
     auto uv = row.uivec();
-    for (auto j = 0; j < i; ++j) {
-      BOOST_CHECK_EQUAL(iv[j], j + 2);
-      BOOST_CHECK_EQUAL(fv[j], (j + 2) * 0.2134f);
-      BOOST_CHECK_EQUAL(dv[j], (j + 4) * 0.192873819237);
-      BOOST_CHECK_EQUAL(uv[j], j);
+    if (i != empty[count]) {
+      for (auto j = 0; j < i; ++j) {
+        BOOST_CHECK_EQUAL(iv[j], j + 2);
+        BOOST_CHECK_EQUAL(fv[j], (j + 2) * 0.2134f);
+        BOOST_CHECK_EQUAL(dv[j], (j + 4) * 0.192873819237);
+        BOOST_CHECK_EQUAL(uv[j], j);
+      }
+    } else {
+      BOOST_CHECK_EQUAL(iv.size(), 0);
+      BOOST_CHECK_EQUAL(fv.size(), 0);
+      BOOST_CHECK_EQUAL(dv.size(), 0);
+      BOOST_CHECK_EQUAL(uv.size(), 0);
+      count++;
     }
     ++i;
   }
