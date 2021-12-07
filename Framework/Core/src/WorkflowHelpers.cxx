@@ -901,8 +901,8 @@ WorkflowParsingState WorkflowHelpers::verifyWorkflow(const o2::framework::Workfl
     for (auto& option : spec.options) {
       if (option.defaultValue.type() != VariantType::Empty &&
           option.type != option.defaultValue.type()) {
-        ss << "Mismatch between declared option type and default value type"
-           << " for " << option.name << " in DataProcessorSpec of "
+        ss << "Mismatch between declared option type (" << (int)option.type << ") and default value type (" << (int)option.defaultValue.type()
+           << ") for " << option.name << " in DataProcessorSpec of "
            << spec.name;
         throw std::runtime_error(ss.str());
       }
