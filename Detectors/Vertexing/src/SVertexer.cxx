@@ -18,7 +18,7 @@
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsITS/TrackITS.h"
-
+#undef WITH_OPENMP
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif
@@ -143,11 +143,12 @@ void SVertexer::setupThreads()
     fitter.setMinRelChi2Change(mSVParams->minRelChi2Change);
     fitter.setMaxDZIni(mSVParams->maxDZIni);
     fitter.setMaxChi2(mSVParams->maxChi2);
-    fitter.setMatCorrType(mSVParams->matCorr);
+    fitter.setMatCorrType(o2::base::Propagator::MatCorrType(mSVParams->matCorr));
     fitter.setUsePropagator(mSVParams->usePropagator);
     fitter.setRefitWithMatCorr(mSVParams->refitWithMatCorr);
     fitter.setMaxStep(mSVParams->maxStep);
     fitter.setMaxSnp(mSVParams->maxSnp);
+    fitter.setMinXSeed(mSVParams->minXSeed);
   }
   mFitterCasc.resize(mNThreads);
   for (auto& fitter : mFitterCasc) {
@@ -159,11 +160,12 @@ void SVertexer::setupThreads()
     fitter.setMinRelChi2Change(mSVParams->minRelChi2Change);
     fitter.setMaxDZIni(mSVParams->maxDZIni);
     fitter.setMaxChi2(mSVParams->maxChi2);
-    fitter.setMatCorrType(mSVParams->matCorr);
+    fitter.setMatCorrType(o2::base::Propagator::MatCorrType(mSVParams->matCorr));
     fitter.setUsePropagator(mSVParams->usePropagator);
     fitter.setRefitWithMatCorr(mSVParams->refitWithMatCorr);
     fitter.setMaxStep(mSVParams->maxStep);
     fitter.setMaxSnp(mSVParams->maxSnp);
+    fitter.setMinXSeed(mSVParams->minXSeed);
   }
 }
 
@@ -179,10 +181,10 @@ bool SVertexer::acceptTrack(GIndex gid, const o2::track::TrackParCov& trc) const
     std::array<float, 2> dca;
     auto* prop = o2::base::Propagator::Instance();
     if (mSVParams->usePropagator) {
-      if (trp.getX() > mSVParams->minRFor3DField && !prop->PropagateToXBxByBz(trp, mSVParams->minRFor3DField, mSVParams->maxSnp, mSVParams->maxStep, mSVParams->matCorr)) {
+      if (trp.getX() > mSVParams->minRFor3DField && !prop->PropagateToXBxByBz(trp, mSVParams->minRFor3DField, mSVParams->maxSnp, mSVParams->maxStep, o2::base::Propagator::MatCorrType(mSVParams->matCorr))) {
         return true; // we don't need actually to propagate to the beam-line
       }
-      if (!prop->propagateToDCA(mMeanVertex.getXYZ(), trp, prop->getNominalBz(), mSVParams->maxStep, mSVParams->matCorr, &dca)) {
+      if (!prop->propagateToDCA(mMeanVertex.getXYZ(), trp, prop->getNominalBz(), mSVParams->maxStep, o2::base::Propagator::MatCorrType(mSVParams->matCorr), &dca)) {
         return true;
       }
     } else {
