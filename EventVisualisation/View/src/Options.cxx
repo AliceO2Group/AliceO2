@@ -56,14 +56,16 @@ bool Options::processCommandLine(int argc, char* argv[])
 
   eveOptions.add_options()(
     "help,h", "produce help message")(
-    "datafolder,d", bpo::value<typeof(this->mDataFolder)>()->default_value("./"), "name of the data folder")(
-    "filename,f", bpo::value<typeof(this->mFileName)>()->default_value("data.root"), "name of the data file")(
-    "json,j", bpo::value<typeof(this->mJSON)>()->zero_tokens()->default_value(false), "use json files as a source")(
-    "memorylimit,m", bpo::value<typeof(this->mMemoryLimit)>()->default_value(-1), "memory usage limit (MB) - app will terminate if it is exceeded (pass -1 for no limit)")(
-    "online,o", bpo::value<typeof(this->mOnline)>()->zero_tokens()->default_value(false), "use online json files as a source")(
+    "datafolder,d", bpo::value<decltype(this->mDataFolder)>()->default_value("./json"), "name of the data folder")(
+    "filename,f", bpo::value<decltype(this->mFileName)>()->default_value("data.root"), "name of the data file")(
+    "json,j", bpo::value<decltype(this->mJSON)>()->zero_tokens()->default_value(false), "use json files as a source")(
+    "memorylimit,m", bpo::value<decltype(this->mMemoryLimit)>()->default_value(-1), "memory usage limit (MB) - app will terminate if it is exceeded (pass -1 for no limit)")(
+    "online,o", bpo::value<decltype(this->mOnline)>()->zero_tokens()->default_value(false), "use online json files as a source")(
     "optionsfilename,p", bpo::value<std::string>()->default_value("o2eve.json"), "name of the options file")(
-    "randomtracks,r", bpo::value<typeof(this->mRandomTracks)>()->zero_tokens()->default_value(false), "use random tracks")(
-    "saveddatafolder,s", bpo::value<typeof(this->mSavedDataFolder)>()->default_value(""), "name of the saved data folder");
+    "randomtracks,r", bpo::value<decltype(this->mRandomTracks)>()->zero_tokens()->default_value(false), "use random tracks")(
+    "saveddatafolder,s", bpo::value<decltype(this->mSavedDataFolder)>()->default_value(""), "name of the saved data folder")(
+    "hidedplgui", bpo::value<decltype(this->mHideDplGUI)>()->zero_tokens()->default_value(false), "hide DPL GUI when processing AODs")(
+    "aodconverter,a", bpo::value<decltype(this->mAODConverterPath)>()->default_value("o2-eve-aodconverter"), "AOD converter path");
 
   using namespace bpo::command_line_style;
   auto style = (allow_short | short_allow_adjacent | short_allow_next | allow_long | long_allow_adjacent | long_allow_next | allow_sticky | allow_dash_for_short);
@@ -86,14 +88,16 @@ bool Options::processCommandLine(int argc, char* argv[])
     return false;
   }
 
-  this->mDataFolder = varmap["datafolder"].as<typeof(this->mDataFolder)>();
-  this->mFileName = varmap["filename"].as<typeof(this->mFileName)>();
-  this->mJSON = varmap["json"].as<typeof(this->mJSON)>();
-  this->mMemoryLimit = varmap["memorylimit"].as<typeof(this->mMemoryLimit)>();
-  this->mOnline = varmap["online"].as<typeof(this->mOnline)>();
+  this->mDataFolder = varmap["datafolder"].as<decltype(this->mDataFolder)>();
+  this->mFileName = varmap["filename"].as<decltype(this->mFileName)>();
+  this->mJSON = varmap["json"].as<decltype(this->mJSON)>();
+  this->mMemoryLimit = varmap["memorylimit"].as<decltype(this->mMemoryLimit)>();
+  this->mOnline = varmap["online"].as<decltype(this->mOnline)>();
   auto optionsFileName = varmap["optionsfilename"].as<std::string>();
-  this->mRandomTracks = varmap["randomtracks"].as<typeof(this->mRandomTracks)>();
-  this->mSavedDataFolder = varmap["saveddatafolder"].as<typeof(this->mSavedDataFolder)>();
+  this->mRandomTracks = varmap["randomtracks"].as<decltype(this->mRandomTracks)>();
+  this->mSavedDataFolder = varmap["saveddatafolder"].as<decltype(this->mSavedDataFolder)>();
+  this->mHideDplGUI = varmap["hidedplgui"].as<decltype(this->mHideDplGUI)>();
+  this->mAODConverterPath = varmap["aodconverter"].as<decltype(this->mAODConverterPath)>();
 
   if (this->mOnline && varmap["datafolder"].defaulted()) {
     LOGP(error, "If online mode is enabled, the --datafolder option must be specified!");

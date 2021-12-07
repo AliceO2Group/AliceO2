@@ -105,6 +105,13 @@ class VisualisationEvent
     return mTracks.size();
   }
 
+  // Clears event from stored data (tracks, collisions)
+  void clear()
+  {
+    mTracks.clear();
+    mClusters.clear();
+  }
+
   const VisualisationCluster& getCluster(int i) const { return mClusters[i]; };
   size_t getClusterCount() const { return mClusters.size(); } // Returns number of clusters
   void setWorkflowVersion(float workflowVersion) { this->mWorkflowVersion = workflowVersion; }
