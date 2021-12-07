@@ -54,10 +54,6 @@ struct PartitionManager {
   static void updatePlaceholders(ANY&, InitContext&)
   {
   }
-
-  static void resetSelection(ANY&)
-  {
-  }
 };
 
 template <typename T>
@@ -90,20 +86,9 @@ struct PartitionManager<Partition<T>> {
     }
   }
 
-  template <typename... Ts>
-  static void getBoundToExternalIndices(Partition<T>& partition, Ts&... tables)
-  {
-    partition.getBoundToExternalIndices(tables...);
-  }
-
   static void updatePlaceholders(Partition<T>& partition, InitContext& context)
   {
     partition.updatePlaceholders(context);
-  }
-
-  static void resetSelection(Partition<T>& partition)
-  {
-    partition.selection = nullptr;
   }
 };
 
