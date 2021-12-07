@@ -143,12 +143,9 @@ bool O2MCApplicationBase::MisalignGeometry()
     }
   }
 
-  // RS We want to store ideal geometry to be able to apply different alignments on the fly
-  // auto b = FairMCApplication::MisalignGeometry();
-
-  // we use this moment to stream our geometry (before other
-  // VMC engine dependent modifications are done)
-
+  // we stream out both unaligned geometry (to allow for
+  // dynamic post-alignment) as well as the aligned version
+  // which can be used by digitization etc. immediately
   auto& confref = o2::conf::SimConfig::Instance();
   auto geomfile = o2::base::NameConf::getGeomFileName(confref.getOutPrefix());
   // since in general the geometry is a CCDB object, it must be exported under the standard name
@@ -157,7 +154,11 @@ bool O2MCApplicationBase::MisalignGeometry()
 
   // apply alignment for included detectors AFTER exporting ideal geometry
   auto& aligner = o2::base::Aligner::Instance();
-  aligner.applyAlignment(0);
+  aligner.applyAlignment(confref.getTimestamp());
+
+  // export aligned geometry into different file
+  auto alignedgeomfile = o2::base::NameConf::getAlignedGeomFileName(confref.getOutPrefix());
+  gGeoManager->Export(alignedgeomfile.c_str());
 
   // return original return value of misalignment procedure
   return true;
