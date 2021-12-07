@@ -44,6 +44,15 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
     sampledData = false;
     break;
   }
+  // used for online monitor
+  if (sampledData) {
+    filter = {{"sampled-rawdata", ConcreteDataTypeMatcher{"DS2", "RAWDATA"}, Lifetime::Timeframe}};
+    for ([[maybe_unused]] auto const& ref : InputRecordWalker(inputs, filter)) {
+      sampledData = false;
+      break;
+    }
+  }
+  // used for QC
   if (sampledData) {
     filter = {{"sampled-rawdata", ConcreteDataTypeMatcher{"DS", "RAWDATA"}, Lifetime::Timeframe}};
     LOGP(info, "Using sampled data");
@@ -126,7 +135,7 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
           }
         }
 
-        //firstOrbit = RDHUtils::getHeartBeatOrbit(*rdhPtr);
+        // firstOrbit = RDHUtils::getHeartBeatOrbit(*rdhPtr);
         LOGP(info, "First orbit in present TF: {}", firstOrbit);
         readFirst = true;
       }
@@ -169,7 +178,7 @@ void processGBT(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU
 
     const auto size = it.size();
     auto data = it.data();
-    //LOGP(info, "Data size: {}", size);
+    // LOGP(info, "Data size: {}", size);
 
     int iFrame = 0;
     for (int i = 0; i < size; i += 16) {
@@ -198,9 +207,9 @@ void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReader
       throw std::runtime_error("could not get RDH from packet");
     }
     // workaround for MW2 data
-    //const bool useTimeBins = true;
-    //const auto cru = RDHUtils::getCRUID(*rdhPtr);
-    //const auto feeID = (RDHUtils::getFEEID(*rdhPtr) & 0x7f) | (cru << 7);
+    // const bool useTimeBins = true;
+    // const auto cru = RDHUtils::getCRUID(*rdhPtr);
+    // const auto feeID = (RDHUtils::getFEEID(*rdhPtr) & 0x7f) | (cru << 7);
 
     // skip all data that is not Link-base zero suppression
     const auto link = RDHUtils::getLinkID(*rdhPtr);
