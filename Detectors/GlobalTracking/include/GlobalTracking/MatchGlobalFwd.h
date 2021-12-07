@@ -255,6 +255,22 @@ class MatchGlobalFwd
     return true;
   }
 
+  bool loadExternalCutFunction()
+  {
+    // Loads MFTMCH cut function from external file
+
+    auto& matchingParam = GlobalFwdMatchingParam::Instance();
+
+    const auto& extFuncMacroFile = matchingParam.extMatchFuncFile;
+    const auto& extFuncName = matchingParam.extCutFuncName;
+
+    LOG(info) << "Loading external MFTMCH cut function: function name = " << extFuncName << " ; Filename = " << extFuncMacroFile;
+
+    auto func = o2::conf::GetFromMacro<CutFunc_t*>(extFuncMacroFile.c_str(), extFuncName.c_str(), "o2::globaltracking::CutFunc_t*", "cutFcn");
+    mCutFunc = (*func);
+    return true;
+  }
+
   /// Converts mchTrack parameters to Forward coordinate system
   o2::dataformats::GlobalFwdTrack MCHtoFwd(const o2::mch::TrackParam& mchTrack);
 
