@@ -177,6 +177,7 @@ class DCAFitterN
   void setRefitWithMatCorr(bool v) { mRefitWithMatCorr = v; }
   void setMaxSnp(float s) { mMaxSnp = s; }
   void setMaxStep(float s) { mMaxStep = s; }
+  void setMinXSeed(float x) { mMinXSeed = x; }
 
   int getNCandidates() const { return mCurHyp; }
   int getMaxIter() const { return mMaxIter; }
@@ -194,6 +195,7 @@ class DCAFitterN
   bool getRefitWithMatCorr() const { return mRefitWithMatCorr; }
   float getMaxSnp() const { return mMaxSnp; }
   float getMasStep() const { return mMaxStep; }
+  float getMinXSeed() const { return mMinXSeed; }
 
   template <class... Tr>
   int process(const Tr&... args);
@@ -306,10 +308,10 @@ class DCAFitterN
   bool mUsePropagator = false;      // use propagator with 3D B-field, set automatically if material correction is requested
   bool mRefitWithMatCorr = false;   // when doing propagateTracksToVertex, propagate tracks to V0 with material corrections and rerun minimization again
   o2::base::Propagator::MatCorrType mMatCorr = o2::base::Propagator::MatCorrType::USEMatCorrNONE; // material corrections type
-
   int mMaxIter = 20;                // max number of iterations
   float mBz = 0;                    // bz field, to be set by user
   float mMaxR2 = 200. * 200.;       // reject PCA's above this radius
+  float mMinXSeed = -50.;           // reject seed if it corresponds to X-param < mMinXSeed for one of candidates (e.g. X becomes strongly negative)
   float mMaxDZIni = 4.;             // reject (if>0) PCA candidate if tracks DZ exceeds threshold
   float mMaxDXYIni = 4.;            // reject (if>0) PCA candidate if tracks dXY exceeds threshold
   float mMinParamChange = 1e-3;     // stop iterations if largest change of any X is smaller than this
@@ -733,6 +735,20 @@ bool DCAFitterN<N, Args...>::propagateTracksToVertex(int icand)
   if (mTrPropDone[ord]) {
     return true;
   }
+
+  // need to refit taking as a seed already found vertex
+  if (mRefitWithMatCorr) {
+    int curHypSav = mCurHyp, curCrosIDAlt = mCrossIDAlt; // save
+    mCurHyp = ord;
+    mCrossIDAlt = -1; // disable alternative check
+    auto restore = [this, curHypSav, curCrosIDAlt]() { this->mCurHyp = curHypSav; this->mCrossIDAlt = curCrosIDAlt; };
+    if (!(mUseAbsDCA ? minimizeChi2NoErr() : minimizeChi2())) { // do final propagation
+      restore();
+      return false;
+    }
+    restore();
+  }
+
   for (int i = N; i--;) {
     if (mUseAbsDCA || mUsePropagator || mMatCorr != o2::base::Propagator::MatCorrType::USEMatCorrNONE) {
       mCandTr[ord][i] = *mOrigTrPtr[i]; // fetch the track again, as mCandTr might have been propagated w/o errors or material corrections might be wrong
@@ -742,23 +758,7 @@ bool DCAFitterN<N, Args...>::propagateTracksToVertex(int icand)
       return false;
     }
   }
-  if (mRefitWithMatCorr) {
-    int curHypSav = mCurHyp; // save
-    mCurHyp = ord;
-    if (mUseAbsDCA ? minimizeChi2NoErr() : minimizeChi2()) { // do final propagation
-      for (int i = N; i--;) {
-        auto x = mTrAux[i].c * mPCA[ord][0] + mTrAux[i].s * mPCA[ord][1]; // X of PCA in the track frame
-        if (!propagateToX(mCandTr[ord][i], x)) {
-          mCurHyp = curHypSav; // restore
-          return false;
-        }
-      }
-    } else {
-      mCurHyp = curHypSav; // restore
-      return false;
-    }
-    mCurHyp = curHypSav; // restore
-  }
+
   mTrPropDone[ord] = true;
   return true;
 }
@@ -801,7 +801,7 @@ bool DCAFitterN<N, Args...>::minimizeChi2()
   for (int i = N; i--;) {
     mCandTr[mCurHyp][i] = *mOrigTrPtr[i];
     auto x = mTrAux[i].c * mPCA[mCurHyp][0] + mTrAux[i].s * mPCA[mCurHyp][1]; // X of PCA in the track frame
-    if (!propagateToX(mCandTr[mCurHyp][i], x)) {
+    if (x < mMinXSeed || !propagateToX(mCandTr[mCurHyp][i], x)) {
       return false;
     }
     setTrackPos(mTrPos[mCurHyp][i], mCandTr[mCurHyp][i]);      // prepare positions
@@ -859,7 +859,7 @@ bool DCAFitterN<N, Args...>::minimizeChi2NoErr()
   for (int i = N; i--;) {
     mCandTr[mCurHyp][i] = *mOrigTrPtr[i];
     auto x = mTrAux[i].c * mPCA[mCurHyp][0] + mTrAux[i].s * mPCA[mCurHyp][1]; // X of PCA in the track frame
-    if (!propagateParamToX(mCandTr[mCurHyp][i], x)) {
+    if (x < mMinXSeed || !propagateParamToX(mCandTr[mCurHyp][i], x)) {
       return false;
     }
     setTrackPos(mTrPos[mCurHyp][i], mCandTr[mCurHyp][i]); // prepare positions
