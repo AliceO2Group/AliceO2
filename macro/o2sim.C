@@ -93,6 +93,9 @@ FairRunSim* o2sim_init(bool asservice)
   run->SetMCEventHeader(header);
 
   // construct geometry / including magnetic field
+  auto flg = TGeoManager::LockDefaultUnits(false);
+  TGeoManager::SetDefaultUnits(TGeoManager::kRootUnits);
+  TGeoManager::LockDefaultUnits(flg);
   build_geometry(run);
 
   // setup generator
