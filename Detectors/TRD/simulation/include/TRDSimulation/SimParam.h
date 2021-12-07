@@ -127,7 +127,7 @@ class SimParam
   float mInvTRFwid{static_cast<float>(mTRFbin) / (mTRFhi - mTRFlo)}; ///<  Inverse of the bin width of the integrated TRF and x-talk
   float mGasGain{4000.f};                                            ///< Gas gain
 
-  ClassDefNV(SimParam, 1); // The TRD simulation parameters
+  ClassDefNV(SimParam, 2); // The TRD simulation parameters
 };
 
 } // namespace trd

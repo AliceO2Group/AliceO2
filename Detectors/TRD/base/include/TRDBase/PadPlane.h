@@ -205,7 +205,7 @@ class PadPlane
   double mInverseWidthIPad; // 1 / mWidthIPad
   double mInverseWidthOPad; // 1 / mWidthOPad
 
-  ClassDefNV(PadPlane, 1); //  TRD ROC pad plane
+  ClassDefNV(PadPlane, 2); //  TRD ROC pad plane
 };
 } // namespace trd
 } // namespace o2
