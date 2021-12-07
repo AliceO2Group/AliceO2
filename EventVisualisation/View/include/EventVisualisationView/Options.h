@@ -27,13 +27,15 @@ class Options
 {
  private:
   // stored options
-  bool mJSON;              // -j
-  bool mOnline;            // -o (must specify -d!)
-  bool mRandomTracks;      // -r
-  std::string mFileName;   // -f 'data.root'
-  std::string mDataFolder; // -d './'
-  std::string mSavedDataFolder; // -s './'
-  long mMemoryLimit;            // -m 1500 (MB) = 1.5GB
+  bool mJSON;                    // -j
+  bool mOnline;                  // -o (must specify -d!)
+  bool mRandomTracks;            // -r
+  std::string mFileName;         // -f 'data.root'
+  std::string mDataFolder;       // -d './'
+  std::string mSavedDataFolder;  // -s './'
+  long mMemoryLimit;             // -m 1500 (MB) = 1.5GB
+  bool mHideDplGUI;              // -hg
+  std::string mAODConverterPath; // -a 'o2-eve-aodconverter'
 
   // helper methods
   static Options instance;
@@ -53,9 +55,11 @@ class Options
   std::string fileName() { return this->mFileName; }
   bool randomTracks() { return this->mRandomTracks; }
   long memoryLimit() { return this->mMemoryLimit; }
+  bool hideDplGUI() { return this->mHideDplGUI; }
+  std::string AODConverterPath() { return this->mAODConverterPath; }
 };
 
 } // namespace event_visualisation
 } // namespace o2
 
-#endif //ALICE_O2_EVENTVISUALISATION_VIEW_OPTIONS_H
+#endif // ALICE_O2_EVENTVISUALISATION_VIEW_OPTIONS_H
