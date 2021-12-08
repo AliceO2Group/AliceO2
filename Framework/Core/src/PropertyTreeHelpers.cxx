@@ -186,7 +186,7 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
           pt.put_child(key, array2DToBranch<double>(stringToArray2D<double>(vmap[key].as<std::string>())));
           break;
         case VariantType::Dict:
-          pt.put_child(key, boost::property_tree::ptree{});
+          pt.put_child(key, vmap[key].as<boost::property_tree::ptree>());
           break;
         case VariantType::Unknown:
         case VariantType::Empty:
