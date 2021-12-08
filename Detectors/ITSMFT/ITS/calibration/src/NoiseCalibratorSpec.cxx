@@ -22,7 +22,7 @@
 #include "FairLogger.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 
 using namespace o2::framework;
 
@@ -34,7 +34,7 @@ namespace its
 void NoiseCalibratorSpec::init(InitContext& ic)
 {
   std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
+  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
   if (o2::utils::Str::pathExists(dictFile)) {
     mCalibrator->loadDictionary(dictFile);
     LOG(info) << "ITS NoiseCalibrator is running with a provided dictionary: " << dictFile;

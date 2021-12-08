@@ -596,12 +596,33 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
 
   if (!std::filesystem::exists(fulltargetdir)) {
     if (!std::filesystem::create_directories(fulltargetdir)) {
-      std::cerr << "Could not create target directory " << fulltargetdir << "\n";
+      LOG(error) << "Could not create target directory " << fulltargetdir;
     }
   }
 
   // retrieveHeaders
   auto headers = retrieveHeaders(path, metadata, timestamp);
+
+  // extract unique ETag identifier
+  auto ETag_original = headers["ETag"];
+  // if there is no ETag ... something is wrong
+  if (ETag_original.size() == 0) {
+    LOG(error) << "No ETag found in header for path " << path << ". Aborting.";
+    return false;
+  }
+
+  // remove surrounding quotation marks
+  auto ETag = ETag_original.substr(1, ETag_original.size() - 2);
+
+  // extract location property of object
+  auto location = headers["Location"];
+  // See if this resource is on ALIEN or not.
+  // If this is the case, we can't follow the standard curl procedure further below. We'll
+  // have 2 choices:
+  // a) if we have a token --> copy the file from alien using TMemFile::cp (which internally uses the TGrid instance)
+  // b) if we don't have token or a) fails --> try to download from fallback https: resource if it exists
+  bool onAlien = location.find("alien:") != std::string::npos;
+
   // determine local filename --> use user given one / default -- or if empty string determine from content
   auto getFileName = [&headers, &path]() {
     auto& s = headers["Content-Disposition"];
@@ -618,77 +639,92 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
   };
   auto filename = localFileName.size() > 0 ? localFileName : getFileName();
   std::string targetpath = fulltargetdir + "/" + filename;
-  FILE* fp = fopen(targetpath.c_str(), "w");
-  if (!fp) {
-    std::cerr << " Could not open/create target file " << targetpath << "\n";
-    return false;
+
+  bool success = false;
+  // if resource on Alien and token ok
+  if (onAlien && mHaveAlienToken) {
+    if (initTGrid()) {
+      success = TFile::Cp(location.c_str(), targetpath.c_str());
+      if (!success) {
+        LOG(error) << "Object was marked an ALIEN resource but copy failed.\n";
+      }
+    }
   }
 
-  // Prepare CURL
-  CURL* curl_handle;
-  CURLcode res;
+  if (!success) {
+    FILE* fp = fopen(targetpath.c_str(), "w");
+    if (!fp) {
+      LOG(error) << " Could not open/create target file " << targetpath << "\n";
+      return false;
+    }
 
-  /* init the curl session */
-  curl_handle = curl_easy_init();
+    // Prepare CURL
+    CURL* curl_handle;
+    CURLcode res;
 
-  string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
+    /* init the curl session */
+    curl_handle = curl_easy_init();
 
-  /* specify URL to get */
-  curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
+    // we can construct download URL direclty from the headers obtained above
+    string fullUrl = mUrl + "/download/" + ETag; // getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
 
-  /* send all data to this function  */
-  curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteToFileCallback);
+    /* specify URL to get */
+    curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
 
-  /* we pass our file handle to the callback function */
-  curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void*)fp);
+    /* send all data to this function  */
+    curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteToFileCallback);
 
-  /* some servers don't like requests that are made without a user-agent
+    /* we pass our file handle to the callback function */
+    curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void*)fp);
+
+    /* some servers don't like requests that are made without a user-agent
          field, so we provide one */
-  curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+    curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
 
-  /* if redirected , we tell libcurl to follow redirection */
-  curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
+    /* if redirected , we tell libcurl to follow redirection */
+    curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
 
-  curlSetSSLOptions(curl_handle);
+    curlSetSSLOptions(curl_handle);
 
-  /* get it! */
-  res = curl_easy_perform(curl_handle);
+    /* get it! */
+    res = curl_easy_perform(curl_handle);
 
-  void* result = nullptr;
-  bool success = true;
-  if (res == CURLE_OK) {
-    long response_code;
-    res = curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
-    if ((res == CURLE_OK) && (response_code != 404)) {
+    void* result = nullptr;
+    success = true;
+    if (res == CURLE_OK) {
+      long response_code;
+      res = curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
+      if ((res == CURLE_OK) && (response_code != 404)) {
+      } else {
+        LOG(error) << "Invalid URL : " << fullUrl;
+        success = false;
+      }
     } else {
       LOG(error) << "Invalid URL : " << fullUrl;
       success = false;
     }
-  } else {
-    fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
-    success = false;
-  }
 
-  if (fp) {
-    fclose(fp);
+    if (fp) {
+      fclose(fp);
+    }
+    curl_easy_cleanup(curl_handle);
   }
-  curl_easy_cleanup(curl_handle);
 
   if (success) {
-    // trying to append metadata to the file so that it can be inspected WHERE/HOW/WHAT IT corresponds to
-    // Just a demonstrator for the moment
+    // append metadata (such as returned headers) to the file so that it can be inspected WHERE/HOW/WHAT IT corresponds to
     CCDBQuery querysummary(path, metadata, timestamp);
-
-    // If the blob is a ROOT file, we'll attach meta information inside, otherwise we leave the blob
-    // as it is. Let's find out via some heuristics
-    // a) The filename/if available ends with ROOT
-    // b) we find the ObjectType field in the headers
-    if (headers["Content-Disposition"].find(".root") != std::string::npos && headers["ObjectType"].size() > 0) {
+    {
       std::lock_guard<std::mutex> guard(gIOMutex);
+      auto oldlevel = gErrorIgnoreLevel;
+      gErrorIgnoreLevel = 6001; // ignoring error messages here (since we catch with IsZombie)
       TFile snapshotfile(targetpath.c_str(), "UPDATE");
-      snapshotfile.WriteObjectAny(&querysummary, TClass::GetClass(typeid(querysummary)), CCDBQUERY_ENTRY);
-      snapshotfile.WriteObjectAny(&headers, TClass::GetClass(typeid(metadata)), CCDBMETA_ENTRY);
-      snapshotfile.Close();
+      // The assumption is that the blob is a ROOT file
+      if (!snapshotfile.IsZombie()) {
+        snapshotfile.WriteObjectAny(&querysummary, TClass::GetClass(typeid(querysummary)), CCDBQUERY_ENTRY);
+        snapshotfile.WriteObjectAny(&headers, TClass::GetClass(typeid(metadata)), CCDBMETA_ENTRY);
+        snapshotfile.Close();
+      }
+      gErrorIgnoreLevel = oldlevel;
     }
   }
   return success;
@@ -789,6 +825,11 @@ bool CcdbApi::initTGrid() const
   if (!mAlienInstance) {
     if (mHaveAlienToken) {
       mAlienInstance = TGrid::Connect("alien");
+      static bool errorShown = false;
+      if (!mAlienInstance && errorShown == false) {
+        LOG(error) << "TGrid::Connect returned nullptr despite token present";
+        errorShown = true;
+      }
     } else {
       LOG(warn) << "CCDB: Did not find an alien token; Cannot serve objects located on alien://";
     }
@@ -1224,8 +1265,11 @@ std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& p
 
     // Perform the request, res will get the return code
     res = curl_easy_perform(curl);
-    if (res != CURLE_OK) {
-      fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+    if (res != CURLE_OK && res != CURLE_UNSUPPORTED_PROTOCOL) {
+      // We take out the unsupported protocol error because we are only querying
+      // header info which is returned in any case. Unsupported protocol error
+      // occurs sometimes because of redirection to alien for blobs.
+      LOG(error) << "curl_easy_perform() failed: " << curl_easy_strerror(res);
     }
     long http_code = 0;
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);

@@ -12,4 +12,4 @@
 o2_add_library(MCHPreClustering
         SOURCES src/PreClusterFinder.cxx
         src/PreClusterFinderMapping.cxx
-        PUBLIC_LINK_LIBRARIES O2::MCHMappingImpl4 O2::MCHBase O2::Framework)
+        PUBLIC_LINK_LIBRARIES O2::MCHMappingInterface O2::MCHBase O2::Framework)

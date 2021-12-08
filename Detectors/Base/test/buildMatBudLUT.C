@@ -17,7 +17,7 @@
 #include "DetectorsBase/MatLayerCyl.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include <TFile.h>
 #include <TSystem.h>
 #include <TStopwatch.h>

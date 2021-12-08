@@ -180,7 +180,6 @@ int DigitsParser::Parse(bool verbose)
         }
         if (mDigitMCMHeader->mcm < lastmcmread && mDigitMCMHeader->rob == lastrobread) {
           incParsingError(TRDParsingDigitMCMNotIncreasing);
-          printDigitMCMHeader(*mDigitMCMHeader);
         }
         lastmcmread = mDigitMCMHeader->mcm;
         lastrobread = mDigitMCMHeader->rob;
@@ -207,7 +206,6 @@ int DigitsParser::Parse(bool verbose)
           if (!digitMCMADCMaskSanityCheck(*mDigitMCMADCMask, bitsinmask)) {
             incParsingError(TRDParsingDigitADCMaskMismatch);
             mWordsDumped += std::distance(word, mEndParse) - 1;
-            // tryFindMCMHeaderAndDisplay(word);
             word = mEndParse;
           }
           overchannelcount = 0;
@@ -374,29 +372,5 @@ int DigitsParser::Parse(bool verbose)
   return mDataWordsParsed;
 }
 
-void DigitsParser::tryFindMCMHeaderAndDisplay(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator word)
-{
-  // given something has gone wrong, assume its a 16 bit shift and see if we can find a valid mcmheader,
-  // note the mcm and rob and output to log
-  // merely for debugging to see if we can find a pattern in where the 16 bit shifts/losses occur.
-  // maybe more recoverly logic later.
-  uint32_t current = *word;
-  uint32_t next = *(std::next(word, 1));
-  uint32_t previous = *(std::prev(word, 1));
-  DigitMCMHeader firstguess; // 16 bits somewhere before the mcmheader got dropped, manifesting as directly before.
-  DigitMCMHeader secondguess;
-  DigitMCMHeader thirdguess;
-  //first  last 16 bits of previous and first 16 bits of current
-  uint32_t a = previous & 0xffff << 16;
-  uint32_t b = current & 0xffff;
-  firstguess.word = a + b;
-  if (digitMCMHeaderSanityCheck(&firstguess)) {
-    //sanity check passed to prossibly correct.
-    //LOG(warn) << "***DigitMCMHeader GUESS ??? to follow";
-    printDigitMCMHeader(firstguess);
-  } else {
-    // LOG(warn) << "***DigitMCMHeader GUESS failed " << std::hex << firstguess.word << " words were 0x" << previous << " 0x" << current << " 0x" << next;
-  }
-}
 
 } // namespace o2::trd

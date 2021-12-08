@@ -21,6 +21,9 @@
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsZDC/ZDCEnergy.h"
+#include "DataFormatsZDC/ZDCTDCData.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CommonConstants/PhysicsConstants.h"
@@ -52,7 +55,10 @@
 #include "SimulationDataFormat/MCEventLabel.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCUtils.h"
+#include "ZDCBase/Constants.h"
 #include "GPUTPCGMMergedTrackHit.h"
+#include "TOFBase/Utils.h"
 #include "O2Version.h"
 #include "TMath.h"
 #include "MathUtils/Utils.h"
@@ -62,6 +68,7 @@
 #include "TObjString.h"
 #include <map>
 #include <unordered_map>
+#include <string>
 #include <vector>
 
 using namespace o2::framework;
@@ -85,6 +92,7 @@ void AODProducerWorkflowDPL::collectBCs(o2::globaltracking::RecoContainer& data,
   const auto& fv0RecPoints = data.getFV0RecPoints();
   const auto& caloEMCCellsTRGR = data.getEMCALTriggers();
   const auto& ctpDigits = data.getCTPDigits();
+  const auto& zdcBCRecData = data.getZDCBCRecData();
 
   // collecting non-empty BCs and enumerating them
   for (auto& rec : mcRecords) {
@@ -104,6 +112,11 @@ void AODProducerWorkflowDPL::collectBCs(o2::globaltracking::RecoContainer& data,
 
   for (auto& fv0RecPoint : fv0RecPoints) {
     uint64_t globalBC = fv0RecPoint.getInteractionRecord().toLong();
+    bcsMap[globalBC] = 1;
+  }
+
+  for (auto& zdcRecData : zdcBCRecData) {
+    uint64_t globalBC = zdcRecData.ir.toLong();
     bcsMap[globalBC] = 1;
   }
 
@@ -137,10 +150,9 @@ uint64_t AODProducerWorkflowDPL::getTFNumber(const o2::InteractionRecord& tfStar
   o2::ccdb::CcdbApi ccdb_api;
   const std::string rct_path = "RCT/RunInformation/";
   const std::string start_orbit_path = "Trigger/StartOrbit";
-  const std::string url = "http://ccdb-test.cern.ch:8080";
 
-  mgr.setURL(url);
-  ccdb_api.init(url);
+  mgr.setURL(o2::base::NameConf::getCCDBServer());
+  ccdb_api.init(o2::base::NameConf::getCCDBServer());
 
   std::map<int, int>* mapStartOrbit = mgr.get<std::map<int, int>>(start_orbit_path);
   int64_t ts = 0;
@@ -301,6 +313,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           // normal tracks table
           auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
           const auto& trackPar = data.getTrackParam(trackIndex);
+          extraInfoHolder.flags |= trackPar.getPID() << 28;
           if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
             int nClusters = itsTracks[contributorsGID[GIndex::ITS].getIndex()].getNClusters();
             float chi2 = itsTracks[contributorsGID[GIndex::ITS].getIndex()].getChi2();
@@ -326,10 +339,9 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             extraInfoHolder.tofChi2 = tofMatch.getChi2();
             const auto& tofInt = tofMatch.getLTIntegralOut();
             const float intLen = tofInt.getL();
+            double timeOrbit = static_cast<int>(tofMatch.getSignal() / o2::constants::lhc::LHCOrbitNS * 1E-3) * o2::constants::lhc::LHCOrbitNS * 1E3;
+            const float tofSignal = static_cast<float>(o2::tof::Utils::subtractInteractionBC(tofMatch.getSignal() - timeOrbit));
             extraInfoHolder.length = intLen;
-            if (interactionTime > 0) {
-              extraInfoHolder.tofSignal = static_cast<float>(tofMatch.getSignal() - interactionTime * 1E3);
-            }
             const float mass = o2::constants::physics::MassPionCharged; // default pid = pion
             if (tofInt.getTOF(o2::track::PID::Pion) > 0.f) {
               const float expBeta = (intLen / (tofInt.getTOF(o2::track::PID::Pion) * cSpeed));
@@ -339,8 +351,8 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             const double massZ = o2::track::PID::getMass2Z(trackPar.getPID());
             const double energy = sqrt((massZ * massZ) + (extraInfoHolder.tofExpMom * extraInfoHolder.tofExpMom));
             const double exp = extraInfoHolder.length * energy / (cSpeed * extraInfoHolder.tofExpMom);
-            extraInfoHolder.trackTime = static_cast<float>((tofMatch.getSignal() - exp) * 1e-3 - interactionTime); // tof time in \mus, FIXME: account for time of flight to R TOF
-            extraInfoHolder.trackTimeRes = 200e-3;                                                                 // FIXME: calculate actual resolution (if possible?)
+            extraInfoHolder.trackTime = static_cast<float>((tofSignal - exp) * 1e-3); // tof time in ns, taken from the definition of Ruben scaled by 1000 to convert from mus to ns to match the collisionTime
+            extraInfoHolder.trackTimeRes = 200e-3;                                    // FIXME: calculate actual resolution (if possible?)
           }
           if (src == GIndex::Source::TPCTRD || src == GIndex::Source::ITSTPCTRD) {
             const auto& trdOrig = data.getTrack<o2::trd::TrackTRD>(src, contributorsGID[src].getIndex());
@@ -453,7 +465,7 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     double pz = trackParamAtVertex.pz();
 
     double pt = std::sqrt(px * px + py * py);
-    double dphi = std::asin(py / pt);
+    double dphi = std::atan2(py, px);
     double dtanl = pz / pt;
     double dinvqpt = 1.0 / (trackParamAtVertex.getCharge() * pt);
     double dpdca = trackParamAtVertex.p() * dca;
@@ -622,6 +634,14 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       for (int particle = mcParticles.size() - 1; particle >= 0; particle--) {
         // we store all primary particles == particles put by generator
         if (mcParticles[particle].isPrimary()) {
+          mToStore[Triplet_t(source, event, particle)] = 1;
+          continue;
+        }
+        if (o2::mcutils::MCTrackNavigator::isPhysicalPrimary(mcParticles[particle], mcParticles)) {
+          mToStore[Triplet_t(source, event, particle)] = 1;
+          continue;
+        }
+        if (o2::mcutils::MCTrackNavigator::isKeepPhysics(mcParticles[particle], mcParticles)) {
           mToStore[Triplet_t(source, event, particle)] = 1;
           continue;
         }
@@ -991,6 +1011,12 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   // Needed by MCH track extrapolation
   o2::base::GeometryManager::loadGeometry();
 
+  // initialize zdc helper maps
+  for (auto& ChannelName : o2::zdc::ChannelNames) {
+    mZDCEnergyMap[(string)ChannelName] = 0;
+    mZDCTDCMap[(string)ChannelName] = 999;
+  }
+
   // writing metadata if it's not yet in AOD file
   // note: `--aod-writer-resmode "UPDATE"` has to be used,
   //       so that metadata is not overwritten
@@ -1044,6 +1070,10 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto ft0RecPoints = recoData.getFT0RecPoints();
   auto fv0ChData = recoData.getFV0ChannelsData();
   auto fv0RecPoints = recoData.getFV0RecPoints();
+
+  auto zdcEnergies = recoData.getZDCEnergy();
+  auto zdcBCRecData = recoData.getZDCBCRecData();
+  auto zdcTDCData = recoData.getZDCTDCData();
 
   // get calo information
   auto caloEMCCells = recoData.getEMCALCells();
@@ -1106,11 +1136,17 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto caloCellsCursor = caloCellsBuilder.cursor<o2::aod::Calos>();
   auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder.cursor<o2::aod::CaloTriggers>();
 
-  std::unique_ptr<o2::steer::MCKinematicsReader> mcReader;
-  if (mUseMC) {
-    mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
+  std::unique_ptr<o2::steer::MCKinematicsReader> mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
+  if (!o2::tof::Utils::hasFillScheme()) {
     LOG(debug) << "FOUND " << mcReader->getDigitizationContext()->getEventRecords().size()
                << " records" << mcReader->getDigitizationContext()->getEventParts().size() << " parts";
+    o2::BunchFilling bcf = mcReader->getDigitizationContext()->getBunchFilling();
+    std::bitset<3564> bs = bcf.getBCPattern();
+    for (int i = 0; i < bs.size(); i++) {
+      if (bs.test(i)) {
+        o2::tof::Utils::addInteractionBC(i);
+      }
+    }
   }
 
   std::map<uint64_t, int> bcsMap;
@@ -1162,34 +1198,75 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
              dummyFV0AmplC,
              dummyTime);
 
-  float dummyEnergyZEM1 = 0;
-  float dummyEnergyZEM2 = 0;
-  float dummyEnergyCommonZNA = 0;
-  float dummyEnergyCommonZNC = 0;
-  float dummyEnergyCommonZPA = 0;
-  float dummyEnergyCommonZPC = 0;
-  float dummyEnergySectorZNA[4] = {0.};
-  float dummyEnergySectorZNC[4] = {0.};
-  float dummyEnergySectorZPA[4] = {0.};
-  float dummyEnergySectorZPC[4] = {0.};
-  zdcCursor(0,
-            dummyBC,
-            dummyEnergyZEM1,
-            dummyEnergyZEM2,
-            dummyEnergyCommonZNA,
-            dummyEnergyCommonZNC,
-            dummyEnergyCommonZPA,
-            dummyEnergyCommonZPC,
-            dummyEnergySectorZNA,
-            dummyEnergySectorZNC,
-            dummyEnergySectorZPA,
-            dummyEnergySectorZPC,
-            dummyTime,
-            dummyTime,
-            dummyTime,
-            dummyTime,
-            dummyTime,
-            dummyTime);
+  for (auto zdcRecData : zdcBCRecData) {
+    uint64_t bc = zdcRecData.ir.toLong();
+    auto item = bcsMap.find(bc);
+    int bcID = -1;
+    if (item != bcsMap.end()) {
+      bcID = item->second;
+    } else {
+      LOG(fatal) << "Error: could not find a corresponding BC ID for a ZDC rec. point; BC = " << bc;
+    }
+    float energyZEM1 = 0;
+    float energyZEM2 = 0;
+    float energyCommonZNA = 0;
+    float energyCommonZNC = 0;
+    float energyCommonZPA = 0;
+    float energyCommonZPC = 0;
+    float energySectorZNA[4] = {0.};
+    float energySectorZNC[4] = {0.};
+    float energySectorZPA[4] = {0.};
+    float energySectorZPC[4] = {0.};
+    int fe, ne, ft, nt, fi, ni;
+    zdcRecData.getRef(fe, ne, ft, nt, fi, ni);
+    for (int ie = 0; ie < ne; ie++) {
+      auto& zdcEnergyData = zdcEnergies[fe + ie];
+      float energy = zdcEnergyData.energy();
+      string chName = o2::zdc::channelName(zdcEnergyData.ch());
+      mZDCEnergyMap.at(chName) = energy;
+    }
+    for (int it = 0; it < nt; it++) {
+      auto& tdc = zdcTDCData[ft + it];
+      float tdcValue = tdc.value();
+      int channelID = o2::zdc::TDCSignal[tdc.ch()];
+      auto channelName = o2::zdc::ChannelNames[channelID];
+      mZDCTDCMap.at((string)channelName) = tdcValue;
+    }
+    energySectorZNA[0] = mZDCEnergyMap.at("ZNA1");
+    energySectorZNA[1] = mZDCEnergyMap.at("ZNA2");
+    energySectorZNA[2] = mZDCEnergyMap.at("ZNA3");
+    energySectorZNA[3] = mZDCEnergyMap.at("ZNA4");
+    energySectorZNC[0] = mZDCEnergyMap.at("ZNC1");
+    energySectorZNC[1] = mZDCEnergyMap.at("ZNC2");
+    energySectorZNC[2] = mZDCEnergyMap.at("ZNC3");
+    energySectorZNC[3] = mZDCEnergyMap.at("ZNC4");
+    energySectorZPA[0] = mZDCEnergyMap.at("ZPA1");
+    energySectorZPA[1] = mZDCEnergyMap.at("ZPA2");
+    energySectorZPA[2] = mZDCEnergyMap.at("ZPA3");
+    energySectorZPA[3] = mZDCEnergyMap.at("ZPA4");
+    energySectorZPC[0] = mZDCEnergyMap.at("ZPC1");
+    energySectorZPC[1] = mZDCEnergyMap.at("ZPC2");
+    energySectorZPC[2] = mZDCEnergyMap.at("ZPC3");
+    energySectorZPC[3] = mZDCEnergyMap.at("ZPC4");
+    zdcCursor(0,
+              bcID,
+              mZDCEnergyMap.at("ZEM1"),
+              mZDCEnergyMap.at("ZEM2"),
+              mZDCEnergyMap.at("ZNAC"),
+              mZDCEnergyMap.at("ZNCC"),
+              mZDCEnergyMap.at("ZPAC"),
+              mZDCEnergyMap.at("ZPCC"),
+              energySectorZNA,
+              energySectorZNC,
+              energySectorZPA,
+              energySectorZPC,
+              mZDCTDCMap.at("ZEM1"),
+              mZDCTDCMap.at("ZEM2"),
+              mZDCTDCMap.at("ZNAC"),
+              mZDCTDCMap.at("ZNCC"),
+              mZDCTDCMap.at("ZPAC"),
+              mZDCTDCMap.at("ZPCC"));
+  }
 
   // keep track event/source id for each mc-collision
   // using map and not unordered_map to ensure
@@ -1247,15 +1324,14 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     for (const auto& channel : channelData) {
       vFDDAmplitudes[channel.mPMNumber] = channel.mChargeADC; // amplitude, mV
     }
-    float aFDDAmplitudesA[int(nFDDChannels * 0.5)];
-    float aFDDAmplitudesC[int(nFDDChannels * 0.5)];
-    for (int i = 0; i < nFDDChannels; i++) {
-      if (i < nFDDChannels * 0.5) {
-        aFDDAmplitudesC[i] = truncateFloatFraction(vFDDAmplitudes[i], mFDDAmplitude);
-      } else {
-        aFDDAmplitudesA[i - int(nFDDChannels * 0.5)] = truncateFloatFraction(vFDDAmplitudes[i], mFDDAmplitude);
-      }
+
+    float aFDDAmplitudesA[4];
+    float aFDDAmplitudesC[4];
+    for (int i = 0; i < 4; i++) {
+      aFDDAmplitudesC[i] = truncateFloatFraction((vFDDAmplitudes[i] + vFDDAmplitudes[i + 4]) * 0.5, mFDDAmplitude);
+      aFDDAmplitudesA[i] = truncateFloatFraction((vFDDAmplitudes[i + 8] + vFDDAmplitudes[i + 12]) * 0.5, mFDDAmplitude);
     }
+
     uint64_t globalBC = fddRecPoint.getInteractionRecord().toLong();
     uint64_t bc = globalBC;
     auto item = bcsMap.find(bc);

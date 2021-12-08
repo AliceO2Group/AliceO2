@@ -38,7 +38,6 @@ void ReconstructionDPL::init(InitContext& ic)
 void ReconstructionDPL::run(ProcessingContext& pc)
 {
   auto& mCCDBManager = o2::ccdb::BasicCCDBManager::instance();
-  //  mCCDBManager.setURL("http://ccdb-test.cern.ch:8080");
   mCCDBManager.setURL(mCCDBpath);
   LOG(debug) << " set-up CCDB " << mCCDBpath;
   mTimer.Start(false);

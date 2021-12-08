@@ -13,7 +13,7 @@
 /// \brief Implementation of the LHC InterFace data
 
 #include "DataFormatsParameters/GRPLHCIFData.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "CommonConstants/PhysicsConstants.h"
 #include <cmath>
 #include <FairLogger.h>

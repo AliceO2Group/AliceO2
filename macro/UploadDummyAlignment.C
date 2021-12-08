@@ -1,7 +1,7 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 //#define ENABLE_UPGRADES
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
 #include "CCDB/CcdbApi.h"
 #include "Framework/Logger.h"
@@ -27,7 +27,7 @@ void UploadDummyAlignment(const std::string& ccdbHost = "http://ccdb-test.cern.c
     map<string, string> metadata; // can be empty
     DetID det(id);
     metadata["comment"] = fmt::format("Empty alignment object for {}", det.getName());
-    api.storeAsTFileAny(&params, o2::base::NameConf::getAlignmentPath(det), metadata, tmin, tmax);
+    api.storeAsTFileAny(&params, o2::base::DetectorNameConf::getAlignmentPath(det), metadata, tmin, tmax);
     LOG(info) << "Uploaded dummy alignment for " << det.getName();
   }
 }

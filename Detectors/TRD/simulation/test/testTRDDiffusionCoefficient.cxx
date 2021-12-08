@@ -17,8 +17,8 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-#include "TRDBase/CommonParam.h"
-#include "TRDBase/DiffAndTimeStructEstimator.h"
+#include "TRDSimulation/SimParam.h"
+#include "TRDSimulation/DiffAndTimeStructEstimator.h"
 
 #include "Field/MagneticField.h"
 #include <TGeoGlobalMagField.h>
@@ -35,8 +35,9 @@ BOOST_AUTO_TEST_CASE(TRDDiffusionCoefficient_test1)
   TGeoGlobalMagField::Instance()->SetField(fld);
   TGeoGlobalMagField::Instance()->Lock();
 
-  auto commonParam = CommonParam::instance();
-  DiffusionAndTimeStructEstimator estimator;
+  SimParam param;
+  param.cacheMagField();
+  DiffusionAndTimeStructEstimator estimator(param.getGasMixture(), param.getCachedField());
   float dl = 0;
   float dt = 0;
   float vd = 1.48;
@@ -45,7 +46,6 @@ BOOST_AUTO_TEST_CASE(TRDDiffusionCoefficient_test1)
   BOOST_CHECK_CLOSE(dl, 0.0255211, 0.1);
   BOOST_CHECK_CLOSE(dt, 0.0179734, 0.1);
 }
-
 
 } // namespace trd
 } // namespace o2

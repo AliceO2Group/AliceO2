@@ -109,6 +109,9 @@ std::ostream& operator<<(std::ostream& oss, Variant const& val)
       break;
     case VariantType::Empty:
       break;
+    case VariantType::Dict:
+      oss << "{}";
+      break;
     default:
       oss << "undefined";
       break;

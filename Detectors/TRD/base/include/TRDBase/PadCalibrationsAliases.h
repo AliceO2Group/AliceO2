@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TRD_PADSTATUS_H
-#define O2_TRD_PADSTATUS_H
+#ifndef O2_TRD_PADCALIBALIASES_H
+#define O2_TRD_PADCALIBALIASES_H
 
 ///////////////////////////////////////////////////////////////////////////////
 // Store for the pad status across the entire TRD.
@@ -25,7 +25,9 @@
 //  higher up in the heirachy now.
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "TRDBase/PadParameters.h"
+/// \file PadCalibrationsAliases.h
+/// \brief Aliases for calibration values stored on a per-pad basis
+
 #include "TRDBase/PadCalibrations.h"
 
 namespace o2
@@ -36,31 +38,24 @@ namespace trd
 class PadStatus : public PadCalibrations<char>
 {
  public:
-  using PadCalibrations<char>::PadCalibrations;
-  ~PadStatus() = default;
-
   enum { kMasked = 2,
          kPadBridgedLeft = 4,
          kPadBridgedRight = 8,
          kReadSecond = 16,
          kNotConnected = 32 };
+  bool isMasked(int roc, int col, int row) const { return ((getValue(roc, col, row) & kMasked) ? true : false); };
+  bool isBridgedLeft(int roc, int col, int row) const { return ((getValue(roc, col, row) & kPadBridgedLeft) ? true : false); };
+  bool isBridgedRight(int roc, int col, int row) const { return ((getValue(roc, col, row) & kPadBridgedRight) ? true : false); };
+  bool isNotConnected(int roc, int col, int row) const { return ((getValue(roc, col, row) & kNotConnected) ? true : false); };
 
-  bool isMasked(int roc, int col, int row) const { return ((getStatus(roc, col, row) & kMasked) ? true : false); };
-  bool isBridgedLeft(int roc, int col, int row) const { return ((getStatus(roc, col, row) & kPadBridgedLeft) ? true : false); };
-  bool isBridgedRight(int roc, int col, int row) const { return ((getStatus(roc, col, row) & kPadBridgedRight) ? true : false); };
-  bool isNotConnected(int roc, int col, int row) const { return ((getStatus(roc, col, row) & kNotConnected) ? true : false); };
-  int getNrows(int roc) const { return mreadOutChamber[roc].getNrows(); };
-  int getNcols(int roc) const { return mreadOutChamber[roc].getNcols(); };
-
-  int getChannel(int roc, int col, int row) const { return row + col * mreadOutChamber[roc].getNrows(); }
-  int getNChannels(int roc) const { return getNChannels(roc); };
-  char getStatus(int roc, int ich) const { return mreadOutChamber[roc].getValue(ich); };
-  char getStatus(int roc, int col, int row) const { return mreadOutChamber[roc].getValue(getChannel(roc, col, row)); };
-
-  void setStatus(int roc, int ich, char vd) { mreadOutChamber[roc].setValue(ich, vd); };
-  void setStatus(int roc, int col, int row, char vd) { mreadOutChamber[roc].setValue(getChannel(roc, col, row), vd); };
+ private:
+  ClassDefNV(PadStatus, 1);
 };
+
+using LocalGainFactor = PadCalibrations<float>;
+using PadNoise = PadCalibrations<float>;
+
 } // namespace trd
 } // namespace o2
 
-#endif /* !PADSTATUS_H */
+#endif // O2_TRD_PADCALIBALIASES_H

@@ -16,7 +16,7 @@
 #include "DataFormatsTOF/CTF.h"
 #include "TOFBase/Geo.h"
 #include "TOFBase/Digit.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "TOFReconstruction/CTFCoder.h"
 #include "Framework/Logger.h"
 #include <TFile.h>

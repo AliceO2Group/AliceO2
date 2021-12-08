@@ -27,19 +27,18 @@ namespace trd
 class SimParam
 {
  public:
-  enum {
-    kNPadsInPadResponse = 3 ///< Number of pads included in the pad response
-  };
+  enum class GasMixture { Xenon,
+                          Argon };
 
-  /// For a singleton class copying and assigning is not allowed
+  SimParam();
   SimParam(const SimParam&) = delete;
   SimParam& operator=(const SimParam&) = delete;
 
-  /// Returns an instance of this class. A SimParam object is created upon the first call of this function
-  static SimParam* instance();
+  /// initialization based on configured gas mixture in TRDSimParams
+  void init();
 
-  /// After setting a new gas mixture the parameters need to be re-evaluated
-  void reInit();
+  // Cached magnetic field, to be called by the user before using DiffusionAndTimeStructEstimator::GetDiffCoeff
+  void cacheMagField();
 
   // Setters
   void setGasGain(float gasgain) { mGasGain = gasgain; }
@@ -57,6 +56,8 @@ class SimParam
   void setTimeCoupling(float v) { mTimeCoupling = v; }
   void setTimeStruct(bool flag = true) { mTimeStructOn = flag; }
   void setPadResponse(bool flag = true) { mPRFOn = flag; }
+  void setExB(bool flag = true) { mExBOn = flag; }
+  void setSamplingFrequency(float freq) { mSamplingFrequency = freq; }
 
   // Getters
   float getGasGain() const { return mGasGain; }
@@ -76,12 +77,19 @@ class SimParam
   bool ctOn() const { return mCTOn; }
   bool timeStructOn() const { return mTimeStructOn; }
   bool prfOn() const { return mPRFOn; }
-  const int getNumberOfPadsInPadResponse() const { return kNPadsInPadResponse; }
-  inline double timeResponse(double) const;
-  inline double crossTalk(double) const;
+  int getNumberOfPadsInPadResponse() const { return mNPadsInPadResponse; }
+  double timeResponse(double) const;
+  double crossTalk(double) const;
+  bool isExBOn() const { return mExBOn; }
+  bool isXenon() const { return (mGasMixture == GasMixture::Xenon); }
+  bool isArgon() const { return (mGasMixture == GasMixture::Argon); }
+  GasMixture getGasMixture() const { return mGasMixture; }
+  float getSamplingFrequency() const { return mSamplingFrequency; }
+  float getCachedField() const;
 
- protected:
-  static SimParam* mgInstance; ///<  Instance of this class (singleton implementation)
+ private:
+  /// Fill the arrays mTRDsmp and mCTsmp for the given gas mixture
+  void sampleTRF();
 
   float mNoise{1250.f};                 ///< Electronics noise
   float mChipGain{12.4f};               ///< Electronics gain
@@ -93,8 +101,16 @@ class SimParam
   float mElAttachProp{0.f};             ///< Propability for electron attachment (for 1m)
   bool mTRFOn{true};                    ///< Switch for the time response
   bool mCTOn{true};                     ///< Switch for cross talk
-  bool mPRFOn{true};                    ///<  Switch for the pad response
+  bool mPRFOn{true};                    ///< Switch for the pad response
+  int mNPadsInPadResponse{3};           ///< Number of pads included in the pad response
   static constexpr int mNBinsMax = 200; ///< Maximum number of bins for integrated time response and cross talk
+
+  // From CommonParam
+  GasMixture mGasMixture{GasMixture::Xenon};
+  bool mExBOn{true};              ///< Switch for the ExB effects
+  bool mFieldCached{false};       ///< flag if B-field has been cached already
+  float mField{0.};               ///< Cached magnetic field
+  float mSamplingFrequency{10.f}; ///< Sampling Frequency in MHz
 
   // Use 0.46, instead of the theroetical value 0.3, since it reproduces better
   // the test beam data, even tough it is not understood why.
@@ -111,49 +127,8 @@ class SimParam
   float mInvTRFwid{static_cast<float>(mTRFbin) / (mTRFhi - mTRFlo)}; ///<  Inverse of the bin width of the integrated TRF and x-talk
   float mGasGain{4000.f};                                            ///< Gas gain
 
- private:
-  /// This is a singleton, constructor is private!
-  SimParam();
-  ~SimParam() = default;
-
-  /// Fill the arrays mTRDsmp and mCTsmp for the given gas mixture
-  void sampleTRF();
-
-  ClassDefNV(SimParam, 1); // The TRD simulation parameters
+  ClassDefNV(SimParam, 2); // The TRD simulation parameters
 };
-
-inline double SimParam::timeResponse(double time) const
-{
-  //
-  // Applies the preamp shaper time response
-  // (We assume a signal rise time of 0.2us = fTRFlo/2.
-  //
-
-  double rt = (time - .5 * mTRFlo) * mInvTRFwid;
-  int iBin = (int)rt;
-  double dt = rt - iBin;
-  if ((iBin >= 0) && (iBin + 1 < mTRFbin)) {
-    return mTRFsmp[iBin] + (mTRFsmp[iBin + 1] - mTRFsmp[iBin]) * dt;
-  } else {
-    return 0.0;
-  }
-}
-
-inline double SimParam::crossTalk(double time) const
-{
-  //
-  // Applies the pad-pad capacitive cross talk
-  //
-
-  double rt = (time - mTRFlo) * mInvTRFwid;
-  int iBin = (int)rt;
-  double dt = rt - iBin;
-  if ((iBin >= 0) && (iBin + 1 < mTRFbin)) {
-    return mCTsmp[iBin] + (mCTsmp[iBin + 1] - mCTsmp[iBin]) * dt;
-  } else {
-    return 0.0;
-  }
-}
 
 } // namespace trd
 } // namespace o2

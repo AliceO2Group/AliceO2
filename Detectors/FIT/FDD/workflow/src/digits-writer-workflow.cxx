@@ -26,7 +26,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/WorkflowSpec.h"
-#include "FDDWorkflow/FDDDigitWriterSpec.h"
+#include "FDDWorkflow/DigitWriterSpec.h"
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {

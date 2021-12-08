@@ -1,7 +1,7 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 //#define ENABLE_UPGRADES
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "CCDB/CcdbApi.h"
@@ -41,7 +41,7 @@ void FT0Misaligner(const std::string& ccdbHost = "http://ccdb-test.cern.ch:8080"
   params.emplace_back(symNameC.c_str(), -1, pars[0], pars[1], pars[2], pars[3], pars[4], pars[5], glo);
 
   if (!ccdbHost.empty()) {
-    std::string path = objectPath.empty() ? o2::base::NameConf::getAlignmentPath(detFT0) : objectPath;
+    std::string path = objectPath.empty() ? o2::base::DetectorNameConf::getAlignmentPath(detFT0) : objectPath;
     LOGP(info, "Storing alignment object on {}/{}", ccdbHost, path);
     o2::ccdb::CcdbApi api;
     map<string, string> metadata; // can be empty

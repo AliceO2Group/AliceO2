@@ -50,7 +50,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   if (!cfgc.helpOnCommandLine() && srcTrk.none() && srcCl.none()) {
     throw std::runtime_error("no tracks or clusters requested");
   }
-  InputHelper::addInputSpecs(cfgc, specs, srcCl, srcTrk, srcTrk, useMC);
+
+  auto srcMtc = srcTrk & ~GlobalTrackID::getSourceMask(GlobalTrackID::MFTMCH); // Do not request MFTMCH matches
+
+  InputHelper::addInputSpecs(cfgc, specs, srcCl, srcMtc, srcTrk, useMC);
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);

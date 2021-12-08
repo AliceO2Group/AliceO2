@@ -33,6 +33,11 @@ class MCTrackNavigator
   /// (of which p needs to be a part itself). The container can be fetched via MCKinematicsReader.
   static bool isPhysicalPrimary(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer);
 
+  /// return true of particle is to be kept for physics analysis in any case
+  /// (follows logic used in particle stack class
+  static bool isKeepPhysics(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer);
+  static bool isFromPrimaryDecayChain(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer);
+
   // some convenience functions for navigation
 
   /// Given an MCTrack p; Return the first primary mother particle in the upward parent chain (follow
@@ -45,6 +50,11 @@ class MCTrackNavigator
 
   /// Given an MCTrack p; Return it's direct daughter or nullptr. (we follow only first daughter)
   static o2::MCTrack const* getDaughter(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer);
+
+  /// Given an MCTrack p; Return it's first direct daughter or nullptr.
+  static o2::MCTrack const* getDaughter0(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer);
+  /// Given an MCTrack p; Return it's second direct daughter or nullptr.
+  static o2::MCTrack const* getDaughter1(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer);
 
   /// Given an MCTrack p; Fill the complete parent chain (ancestorchain) up to the most fundamental particle (follow only
   /// first mothers).

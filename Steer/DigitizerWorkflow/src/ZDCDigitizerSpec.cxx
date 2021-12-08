@@ -52,7 +52,7 @@ class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
     auto& dopt = o2::conf::DigiParams::Instance();
 
-    mDigitizer.setCCDBServer(dopt.ccdb);
+    mDigitizer.setCCDBServer(o2::base::NameConf::getCCDBServer());
     auto enableHitInfo = ic.options().get<bool>("enable-hit-info");
     mDigitizer.setMaskTriggerBits(!enableHitInfo);
     mDigitizer.setSkipMCLabels(not mUseMC);

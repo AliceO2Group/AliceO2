@@ -11,7 +11,7 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <TTree.h>
-#include <DetectorsCommonDataFormats/NameConf.h>
+#include <DetectorsCommonDataFormats/DetectorNameConf.h>
 #include <DetectorsCommonDataFormats/DetID.h>
 #include <DetectorsCommonDataFormats/SimTraits.h>
 #endif
@@ -88,6 +88,6 @@ void migrateSimFiles(const char* filebase = "o2sim")
     }
     // fetch possible sim branches for this detector and copy them
     auto simbranches = o2::detectors::SimTraits::DETECTORBRANCHNAMES[detid];
-    copyBranch(originalfilename.c_str(), o2::base::NameConf::getHitsFileName(detid, filebase).c_str(), simbranches);
+    copyBranch(originalfilename.c_str(), o2::base::DetectorNameConf::getHitsFileName(detid, filebase).c_str(), simbranches);
   }
 }

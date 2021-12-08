@@ -19,6 +19,7 @@
 #include "PHOSBase/Mapping.h"
 #include "PHOSBase/PHOSSimParams.h"
 #include "CCDB/CcdbApi.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::phos;
 
@@ -68,7 +69,7 @@ void RawWriter::digitsToRaw(gsl::span<o2::phos::Digit> digitsbranch, gsl::span<o
       LOG(info) << "[RawWriter] getting calibration object from ccdb";
       o2::ccdb::CcdbApi ccdb;
       std::map<std::string, std::string> metadata;
-      ccdb.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
+      ccdb.init(o2::base::NameConf::getCCDBServer()); // or http://localhost:8080 for a local installation
       auto tr = triggerbranch.begin();
       double eventTime = -1;
       // if(tr!=triggerbranch.end()){

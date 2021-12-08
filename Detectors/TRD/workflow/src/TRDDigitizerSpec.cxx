@@ -31,6 +31,7 @@
 #include "TRDBase/Calibrations.h"
 #include "TRDSimulation/Digitizer.h"
 #include "TRDSimulation/Detector.h" // for the Hit type
+#include <chrono>
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -62,7 +63,8 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     bool mctruth = pc.outputs().isAllowed({"TRD", "LABELS", 0});
 
     Calibrations simcal;
-    simcal.getCCDBObjects(297595);
+    auto timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    simcal.getCCDBObjects(timeStamp);
     mDigitizer.setCalibrations(&simcal);
 
     // read collision context from input

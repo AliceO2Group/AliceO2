@@ -24,7 +24,7 @@
 #include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 

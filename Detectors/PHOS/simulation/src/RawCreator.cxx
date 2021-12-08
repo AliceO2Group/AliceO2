@@ -26,7 +26,7 @@
 #include "DataFormatsPHOS/TriggerRecord.h"
 #include "PHOSBase/Geometry.h"
 #include "PHOSSimulation/RawWriter.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 namespace bpo = boost::program_options;
 

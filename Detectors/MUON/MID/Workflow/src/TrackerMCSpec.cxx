@@ -29,7 +29,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DataFormatsMID/MCClusterLabel.h"
 #include "MIDSimulation/TrackLabeler.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 namespace of = o2::framework;
 

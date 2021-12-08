@@ -14,21 +14,21 @@
 
 #include <array>
 #include "DataFormatsTRD/Constants.h"
-#include "TRDBase/Garfield.h"
+#include "TRDSimulation/SimParam.h"
+#include "TRDSimulation/Garfield.h"
 
 namespace o2
 {
 namespace trd
 {
 
-
 /// A class to calculate diffusion and time structure values (GARFIELD model)
-/// (used in digitization). Class was split off trom CommonParam
-/// and is no longer a singleton so that we can use it in a multithreaded context.
+/// no longer a singleton so that we can use it in a multithreaded context.
 class DiffusionAndTimeStructEstimator
 {
  public:
-  DiffusionAndTimeStructEstimator() = default;
+  DiffusionAndTimeStructEstimator() = delete; // upon creation gas mixture and B-field must be provided
+  DiffusionAndTimeStructEstimator(SimParam::GasMixture gas, float bz) : mGasMixture(gas), mBz(bz) {}
 
   /// determines the diffusion coefficients as a function of drift velocity
   bool getDiffCoeff(float& dl, float& dt, float vdrift);
@@ -50,9 +50,12 @@ class DiffusionAndTimeStructEstimator
   float mDiffLastVdrift = -1.f;
   float mDiffusionL = -1.f;
   float mDiffusionT = -1.f;
+
+  SimParam::GasMixture mGasMixture;
+  float mBz;
 };
 
 } // namespace trd
 } // namespace o2
 
-#endif //O2_TRD_DIFFANDTIMESTRUCTESTIMATOR_H
+#endif // O2_TRD_DIFFANDTIMESTRUCTESTIMATOR_H

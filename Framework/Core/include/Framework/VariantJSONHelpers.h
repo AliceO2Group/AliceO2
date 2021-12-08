@@ -375,6 +375,8 @@ void writeVariant(std::ostream& o, Variant const& v)
       writeArray2D(v.get<Array2D<type>>());
     } else if constexpr (isLabeledArray<V>()) {
       writeLabeledArray(v.get<LabeledArray<type>>());
+    } else if constexpr (V == VariantType::Dict) {
+      // nothing to do for dicts
     }
     w.EndObject();
   }
@@ -435,6 +437,8 @@ struct VariantJSONHelpers {
       case VariantType::LabeledArrayDouble:
         writeVariant<VariantType::LabeledArrayDouble>(o, v);
         break;
+      case VariantType::Dict:
+        writeVariant<VariantType::Dict>(o, v);
       default:
         break;
     }

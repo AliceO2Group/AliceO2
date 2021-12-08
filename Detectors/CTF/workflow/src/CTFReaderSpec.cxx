@@ -23,7 +23,7 @@
 #include "CommonUtils/FileFetcher.h"
 #include "CTFWorkflow/CTFReaderSpec.h"
 #include "DetectorsCommonDataFormats/EncodedBlocks.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "Headers/STFHeader.h"
 #include "DataFormatsITSMFT/CTF.h"

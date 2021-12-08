@@ -61,7 +61,7 @@ auto arrowTypeFromROOT(EDataType type, int size)
     case EDataType::kDouble_t:
       return typeGenerator(arrow::float64(), size);
     default:
-      throw runtime_error("Unsupported branch type");
+      throw runtime_error_f("Unsupported branch type: %d", static_cast<int>(type));
   }
 }
 
@@ -236,14 +236,14 @@ std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> B
     uint32_t totalSize = 0;
     if (mVLA) {
       offsetBuffer.reset(new TBufferFile{TBuffer::EMode::kWrite, 4 * 1024 * 1024});
-      result = arrow::AllocateResizableBuffer(totalEntries * sizeof(int), mPool);
+      result = arrow::AllocateResizableBuffer((totalEntries + 1) * sizeof(int), mPool);
       if (!result.ok()) {
         throw runtime_error("Cannot allocate offset buffer");
       }
       arrowOffsetBuffer = std::move(result).ValueUnsafe();
       unsigned char* ptrOffset = arrowOffsetBuffer->mutable_data();
       auto* tPtrOffset = reinterpret_cast<int*>(ptrOffset);
-      offsets = gsl::span<int>{tPtrOffset, tPtrOffset + totalEntries};
+      offsets = gsl::span<int>{tPtrOffset, tPtrOffset + totalEntries + 1};
     }
 
     while (readEntries < totalEntries) {
@@ -264,6 +264,7 @@ std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> B
       ptr += size * typeSize;
     }
     if (mVLA) {
+      offsets[count] = offset;
       totalSize = offset;
     } else {
       totalSize = readEntries * mListSize;

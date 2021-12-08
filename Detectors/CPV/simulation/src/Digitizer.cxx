@@ -28,15 +28,14 @@ using namespace o2::cpv;
 //_______________________________________________________________________
 void Digitizer::init()
 {
-  LOG(info) << "CPVDigitizer::init() : CCDB Url = " << o2::cpv::CPVSimParams::Instance().mCCDBPath.data();
-  if (o2::cpv::CPVSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
+  LOG(info) << "CPVDigitizer::init() : CCDB Url = " << o2::base::NameConf::getCCDBServer();
+  if (o2::base::NameConf::getCCDBServer().compare("localtest") == 0) {
     mCalibParams = new CalibParams(1); // test default calibration
     mPedestals = new Pedestals(1);     // test default pedestals
     mBadMap = new BadChannelMap(1);    // test default bad channels
     LOG(info) << "[CPVDigitizer] No reading calibration from ccdb requested, set default";
   } else {
     auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
-    ccdbMgr.setURL(o2::cpv::CPVSimParams::Instance().mCCDBPath.data());
     bool isCcdbReachable = ccdbMgr.isHostReachable(); //if host is not reachable we can use only dummy calibration
     if (!isCcdbReachable) {
       LOG(fatal) << "[CPVDigitizer] CCDB Host is not reachable!!!";

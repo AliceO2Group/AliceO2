@@ -17,7 +17,6 @@ o2_add_library(FDDWorkflow
                        src/ReconstructorSpec.cxx
                        src/RecPointWriterSpec.cxx
                        src/RecPointReaderSpec.cxx
-                       src/FDDDigitWriterSpec.cxx
                        src/RawReaderFDD.cxx
 
                PUBLIC_LINK_LIBRARIES O2::DataFormatsFDD

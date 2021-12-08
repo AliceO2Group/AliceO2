@@ -20,7 +20,6 @@ o2_add_library(MCHRawDecoder
                 src/RDHManip.cxx
         PUBLIC_LINK_LIBRARIES O2::DetectorsRaw
                               O2::MCHBase
-                              O2::MCHMappingImpl4
                               O2::MCHMappingInterface
                               O2::MCHRawCommon
                               O2::MCHRawElecMap

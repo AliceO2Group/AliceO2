@@ -13,54 +13,84 @@
 //                                                                        //
 // Class containing constant simulation parameters                        //
 //                                                                        //
-// Request an instance with SimParam::Instance()                          //
-// Then request the needed values                                         //
-//                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
-#include "TRDBase/SimParam.h"
-#include "TRDBase/CommonParam.h"
+#include "TRDSimulation/SimParam.h"
+#include "TRDSimulation/TRDSimParams.h"
+#include "Field/MagneticField.h"
+#include <TGeoGlobalMagField.h>
 #include <FairLogger.h>
 
 using namespace o2::trd;
-ClassImp(SimParam);
 
-SimParam* SimParam::mgInstance = nullptr;
-
-//_ singleton implementation __________________________________________________
-SimParam* SimParam::instance()
-{
-  //
-  // Singleton implementation
-  // Returns an instance of this class, it is created if neccessary
-  //
-
-  if (mgInstance == nullptr) {
-    mgInstance = new SimParam();
-  }
-
-  return mgInstance;
-}
-
-//_____________________________________________________________________________
 SimParam::SimParam()
 {
-  //
-  // Default constructor
-  //
-  sampleTRF();
+  mGasMixture = TRDSimParams::Instance().gas;
+  init();
 }
 
+void SimParam::cacheMagField()
+{
+  // The magnetic field strength
+  const o2::field::MagneticField* fld = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+  if (!fld) {
+    LOG(fatal) << "Magnetic field is not initialized!";
+    return;
+  }
+  mField = 0.1 * fld->solenoidField(); // kGauss -> Tesla
+  mFieldCached = true;
+}
 
+float SimParam::getCachedField() const
+{
+  if (mFieldCached) {
+    return mField;
+  } else {
+    LOG(fatal) << "Magnetic field has not been cached yet";
+  }
+  return 0.f;
+}
 
-//_____________________________________________________________________________
-void SimParam::reInit()
+double SimParam::timeResponse(double time) const
 {
   //
-  // Reinitializes the parameter class after a change of the gas mixture
+  // Applies the preamp shaper time response
+  // (We assume a signal rise time of 0.2us = fTRFlo/2.
   //
 
-  if (CommonParam::instance()->isXenon()) {
+  double rt = (time - .5 * mTRFlo) * mInvTRFwid;
+  int iBin = (int)rt;
+  double dt = rt - iBin;
+  if ((iBin >= 0) && (iBin + 1 < mTRFbin)) {
+    return mTRFsmp[iBin] + (mTRFsmp[iBin + 1] - mTRFsmp[iBin]) * dt;
+  } else {
+    return 0.0;
+  }
+}
+
+double SimParam::crossTalk(double time) const
+{
+  //
+  // Applies the pad-pad capacitive cross talk
+  //
+
+  double rt = (time - mTRFlo) * mInvTRFwid;
+  int iBin = (int)rt;
+  double dt = rt - iBin;
+  if ((iBin >= 0) && (iBin + 1 < mTRFbin)) {
+    return mCTsmp[iBin] + (mCTsmp[iBin + 1] - mCTsmp[iBin]) * dt;
+  } else {
+    return 0.0;
+  }
+}
+
+void SimParam::init()
+{
+  //
+  // initializes the parameter class for a given gas mixture
+  //
+
+  if (isXenon()) {
     // The range and the binwidth for the sampled TRF
     mTRFbin = 200;
     // Start 0.2 mus before the signal
@@ -69,7 +99,7 @@ void SimParam::reInit()
     mTRFhi = 3.58;
     // Standard gas gain
     mGasGain = 4000.0;
-  } else if (CommonParam::instance()->isArgon()) {
+  } else if (isArgon()) {
     // The range and the binwidth for the sampled TRF
     mTRFbin = 50;
     // Start 0.2 mus before the signal
@@ -150,12 +180,11 @@ void SimParam::sampleTRF()
   xtalkAr[1] = 0.0;
   xtalkAr[2] = 0.0;
 
-
   for (int iBin = 0; iBin < mTRFbin; iBin++) {
-    if (CommonParam::instance()->isXenon()) {
+    if (isXenon()) {
       mTRFsmp[iBin] = signal[iBin];
       mCTsmp[iBin] = xtalk[iBin];
-    } else if (CommonParam::instance()->isArgon()) {
+    } else if (isArgon()) {
       mTRFsmp[iBin] = signalAr[iBin];
       mCTsmp[iBin] = xtalkAr[iBin];
     }
