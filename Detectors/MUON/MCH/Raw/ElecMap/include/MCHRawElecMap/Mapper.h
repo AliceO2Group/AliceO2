@@ -69,6 +69,18 @@ std::set<uint16_t> getSolarUIDs(int deid);
 template <typename T>
 std::set<uint16_t> getSolarUIDs();
 
+/// List of Solar Unique Ids for a given FeeId
+template <typename T>
+std::set<uint16_t> getSolarUIDsPerFeeId(uint16_t feeId);
+
+/// List of Dual Sampa handled by a given Solar
+template <typename T>
+std::set<DsDetId> getDualSampas(uint16_t solarId);
+
+/// List of Dual Sampa handled by a given FeeId
+template <typename T>
+std::set<DsDetId> getDualSampasPerFeeId(uint16_t feeId);
+
 /**@name Actual mapper types.
     */
 ///@{

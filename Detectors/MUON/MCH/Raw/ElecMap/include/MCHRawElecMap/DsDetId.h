@@ -30,6 +30,14 @@ class DsDetId
   /// note that dsId >= 1024 means a dual sampa on the non-bending plane
   uint16_t dsId() const { return mDsId; }
 
+  bool operator<(const DsDetId& rhs) const
+  {
+    if (mDeId < rhs.mDeId) {
+      return true;
+    }
+    return mDsId < rhs.mDsId;
+  }
+
  private:
   uint16_t mDeId;
   uint16_t mDsId;
