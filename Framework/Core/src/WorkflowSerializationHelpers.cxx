@@ -376,6 +376,9 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
         case VariantType::LabeledArrayDouble:
           opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::LabeledArrayDouble>(is), HelpString{optionHelp}, optionKind);
           break;
+        case VariantType::Dict:
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, emptyDict(), HelpString{optionHelp}, optionKind);
+          break;
         default:
           opt = std::make_unique<ConfigParamSpec>(optionName, optionType, optionDefault, HelpString{optionHelp}, optionKind);
       }
@@ -840,6 +843,7 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
         case VariantType::LabeledArrayInt:
         case VariantType::LabeledArrayFloat:
         case VariantType::LabeledArrayDouble:
+        case VariantType::Dict:
           VariantJSONHelpers::write(oss, option.defaultValue);
           break;
         default:
