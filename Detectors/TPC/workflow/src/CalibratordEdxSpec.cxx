@@ -21,14 +21,15 @@
 // o2 includes
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include "CommonUtils/NameConf.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "CommonUtils/NameConf.h"
 #include "DetectorsCalibration/Utils.h"
 #include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "TPCCalibration/CalibratordEdx.h"
+#include "TPCWorkflow/ProcessingHelpers.h"
 
 using namespace o2::framework;
 
@@ -40,22 +41,23 @@ class CalibratordEdxDevice : public Task
  public:
   void init(framework::InitContext& ic) final
   {
-    const int slotLength = ic.options().get<int>("tf-per-slot");
-    const int maxDelay = ic.options().get<int>("max-delay");
-    const int minEntries = ic.options().get<int>("min-entries");
+    const auto slotLength = ic.options().get<int>("tf-per-slot");
+    const auto maxDelay = ic.options().get<int>("max-delay");
+    const auto minEntries = ic.options().get<int>("min-entries");
 
-    const int minEntriesSector = ic.options().get<int>("min-entries-sector");
-    const int minEntries1D = ic.options().get<int>("min-entries-1d");
-    const int minEntries2D = ic.options().get<int>("min-entries-2d");
+    const auto minEntriesSector = ic.options().get<int>("min-entries-sector");
+    const auto minEntries1D = ic.options().get<int>("min-entries-1d");
+    const auto minEntries2D = ic.options().get<int>("min-entries-2d");
 
-    const int dEdxBins = ic.options().get<int>("dedxbins");
-    const int zBins = ic.options().get<int>("zbins");
-    const int angularBins = ic.options().get<int>("angularbins");
-    const float mindEdx = ic.options().get<float>("min-dedx");
-    const float maxdEdx = ic.options().get<float>("max-dedx");
+    const auto dEdxBins = ic.options().get<int>("dedxbins");
+    const auto mindEdx = ic.options().get<float>("min-dedx");
+    const auto maxdEdx = ic.options().get<float>("max-dedx");
+    const auto angularBins = ic.options().get<int>("angularbins");
+    const auto maxTgl = ic.options().get<float>("max-tgl");
+    const auto zBins = ic.options().get<int>("zbins");
 
-    const bool dumpData = ic.options().get<bool>("file-dump");
-    float field = ic.options().get<float>("field");
+    const auto dumpData = ic.options().get<bool>("file-dump");
+    auto field = ic.options().get<float>("field");
 
     if (field <= -10.f) {
       const auto inputGRP = o2::base::NameConf::getGRPFileName();
@@ -67,8 +69,9 @@ class CalibratordEdxDevice : public Task
     }
 
     mCalibrator = std::make_unique<tpc::CalibratordEdx>();
-    mCalibrator->setHistParams(mindEdx, maxdEdx, dEdxBins, zBins, angularBins);
+    mCalibrator->setHistParams(dEdxBins, mindEdx, maxdEdx, angularBins, maxTgl);
     mCalibrator->setApplyCuts(false);
+
     mCalibrator->setFitCuts({minEntriesSector, minEntries1D, minEntries2D});
     mCalibrator->setField(field);
     mCalibrator->setMinEntries(minEntries);
@@ -87,7 +90,7 @@ class CalibratordEdxDevice : public Task
     const auto tracks = pc.inputs().get<gsl::span<tpc::TrackTPC>>("tracks");
 
     LOGP(info, "Processing TF {} with {} tracks", tfcounter, tracks.size());
-
+    mRunNumber = processing_helpers::getRunNumber(pc);
     mCalibrator->process(tfcounter, tracks);
     sendOutput(pc.outputs());
 
@@ -124,6 +127,10 @@ class CalibratordEdxDevice : public Task
       info.setStartValidityTimestamp(intervals[i].first);
       info.setEndValidityTimestamp(timeEnd);
 
+      auto md = info.getMetaData();
+      md["runNumber"] = std::to_string(mRunNumber);
+      info.setMetaData(md);
+
       LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", info.getPath(), info.getFileName(), image->size(), info.getStartValidityTimestamp(), info.getEndValidityTimestamp());
 
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibdEdx", i}, *image.get()); // vector<char>
@@ -133,6 +140,7 @@ class CalibratordEdxDevice : public Task
   }
 
   std::unique_ptr<CalibratordEdx> mCalibrator;
+  uint64_t mRunNumber{0}; ///< processed run number
 };
 
 DataProcessorSpec getCalibratordEdxSpec()
@@ -153,15 +161,16 @@ DataProcessorSpec getCalibratordEdxSpec()
       {"max-delay", VariantType::Int, 3, {"number of slots in past to consider"}},
       {"min-entries", VariantType::Int, 50, {"minimum entries per stack to fit a single time slot"}},
 
-      {"min-entries-sector", VariantType::Int, 1000, {"bellow this number of entries per stack, higher dimensional fits will be perform only for GEM stacks types (IROC, OROC1, ...). The mean is still corrected for every stack"}},
+      {"min-entries-sector", VariantType::Int, 1000, {"bellow this number of entries per, stack higher dimensional fits will be perform only for GEM stacks types (IROC, OROC1, ...). The mean is still corrected for every stack"}},
       {"min-entries-1d", VariantType::Int, 500, {"minimum entries per stack to fit 1D correction"}},
       {"min-entries-2d", VariantType::Int, 2500, {"minimum entries per stack to fit 2D correction"}},
 
       {"dedxbins", VariantType::Int, 100, {"number of dEdx bins"}},
-      {"zbins", VariantType::Int, 20, {"number of Z bins"}},
-      {"angularbins", VariantType::Int, 18, {"number of bins for angular data, like Tgl and Snp"}},
-      {"min-dedx", VariantType::Float, 5.0f, {"minimum value for the dEdx histograms"}},
-      {"max-dedx", VariantType::Float, 100.0f, {"maximum value for the dEdx histograms"}},
+      {"min-dedx", VariantType::Float, 5.0f, {"minimum value for dEdx histograms"}},
+      {"max-dedx", VariantType::Float, 100.0f, {"maximum value for dEdx histograms"}},
+      {"angularbins", VariantType::Int, 18, {"number angular bins: Tgl and Snp"}},
+      {"max-tgl", VariantType::Float, 1.5f, {"maximum absolute value for Tgl histograms"}},
+      {"zbins", VariantType::Int, 20, {"number of Z bins. Not used for now"}},
 
       {"field", VariantType::Float, -100.f, {"magnetic field"}},
       {"file-dump", VariantType::Bool, false, {"directly dump calibration to file"}}}};

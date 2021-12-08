@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <array>
+#include <vector>
 #include <boost/histogram/algorithm/project.hpp>
 #include <cmath>
 #include <cstddef>
@@ -31,6 +32,7 @@
 // root includes
 #include "TFile.h"
 #include "TH2F.h"
+#include "THn.h"
 #include "TTree.h"
 #include "TLinearFitter.h"
 
@@ -41,14 +43,14 @@
 using namespace o2::tpc;
 namespace bh = boost::histogram;
 
-CalibdEdx::CalibdEdx(float mindEdx, float maxdEdx, int dEdxBins, int zBins, int angularBins)
+CalibdEdx::CalibdEdx(int dEdxBins, float mindEdx, float maxdEdx, int angularBins, float maxTgl)
 {
   constexpr float maxZ = 250;
   mHist = bh::make_histogram(
     FloatAxis(dEdxBins, mindEdx * mipScale, maxdEdx * mipScale, "dEdx"),
-    FloatAxis(zBins, 0, maxZ, "Z"),
-    FloatAxis(angularBins, -1, 1, "Tgl"),
-    // HistFloatAxis(angleBins, -1, 1, "Snp"),
+    FloatAxis(angularBins, -maxTgl, maxTgl, "Tgl"),
+    FloatAxis(angularBins, -1, 1, "Snp"),
+    // FloatAxis(zBins, 0, maxZ, "Z"),
     IntAxis(0, SECTORSPERSIDE * SIDES, "sector"),
     IntAxis(0, GEMSTACKSPERSECTOR, "stackType"),
     IntAxis(0, CHARGETYPES, "charge"));
@@ -79,14 +81,14 @@ void CalibdEdx::fill(const TrackTPC& track)
       continue;
     }
 
-    const float z = abs(cpTrack.getZ());
     const float tgl = cpTrack.getTgl();
-    // const float snp = cpTrack.getSnp();
+    const float snp = cpTrack.getSnp();
+    // const float z = abs(cpTrack.getZ());
     const float alpha = o2::math_utils::to02PiGen(cpTrack.getAlpha());
     const auto sector = static_cast<int>(alpha / SECPHIWIDTH) + sideOffset;
 
-    mHist(dEdxMax[stack] * mipScale, z, tgl, /* snp ,*/ sector, stack, ChargeType::Max);
-    mHist(dEdxTot[stack] * mipScale, z, tgl, /* snp ,*/ sector, stack, ChargeType::Tot);
+    mHist(dEdxMax[stack] * mipScale, tgl, snp, /* z ,*/ sector, stack, ChargeType::Max);
+    mHist(dEdxTot[stack] * mipScale, tgl, snp, /* z ,*/ sector, stack, ChargeType::Tot);
   }
 }
 
@@ -127,6 +129,7 @@ void fitHist(const Hist& hist, CalibdEdxCorrection& corr, TLinearFitter& fitter,
   auto entry = bh::indexed(hist).begin();
 
   for (int fit = 0; fit < fitCount; ++fit) {
+    int entries = 0;
     StackID id{};
     id.type = static_cast<GEMstack>(entry->bin(ax::Stack).center());
     const auto charge = static_cast<ChargeType>(entry->bin(ax::Charge).center());
@@ -136,11 +139,12 @@ void fitHist(const Hist& hist, CalibdEdxCorrection& corr, TLinearFitter& fitter,
 
       for (int bin = 0; bin < stackBins; ++bin, ++entry) {
         const float counts = *entry;
+        entries += counts;
         if (counts == 0) {
           continue;
         }
-        std::array<double, 2> values{entry->bin(1).center(),
-                                     entry->bin(2).center()};
+        double values[] = {entry->bin(1).center(),
+                           entry->bin(2).center()};
 
         double dEdx = entry->bin(ax::dEdx).center();
         // scale fit using the stacks mean
@@ -152,7 +156,7 @@ void fitHist(const Hist& hist, CalibdEdxCorrection& corr, TLinearFitter& fitter,
         // const double error = dEdx * dEdxResolution / sqrt(counts);
         const double error = 1. / sqrt(counts);
 
-        fitter.AddPoint(values.data(), dEdx, error);
+        fitter.AddPoint(values, dEdx, error);
       }
     }
     fitter.Eval();
@@ -176,10 +180,12 @@ void fitHist(const Hist& hist, CalibdEdxCorrection& corr, TLinearFitter& fitter,
         }
         corr.setParams(id, charge, scaledParams);
         corr.setChi2(id, charge, fitter.GetChisquare());
+        corr.setEntries(id, charge, entries);
       }
     } else {
       corr.setParams(id, charge, params);
       corr.setChi2(id, charge, fitter.GetChisquare());
+      corr.setEntries(id, charge, entries);
     }
     fitter.ClearPoints();
   }
@@ -223,15 +229,14 @@ void CalibdEdx::finalize()
   }
 }
 
-float CalibdEdx::minStackEntries() const
+int CalibdEdx::minStackEntries() const
 {
-  // sum over the dEdx bins to get the number of entries per stack
-  auto projection = bh::algorithm::project(mHist, std::vector<int>{Axis::Sector, Axis::Stack});
+  // sum over the dEdx amd tracks param bins to get the number of entries per stack and charge
+  auto projection = bh::algorithm::project(mHist, std::vector<int>{Axis::Sector, Axis::Stack, Axis::Charge});
   auto dEdxCounts = bh::indexed(projection);
   // find the stack with the least number of entries
   auto min_it = std::min_element(dEdxCounts.begin(), dEdxCounts.end());
-  // the count is doubled since we sum qMax and qTot entries
-  return static_cast<float>(*min_it / 2);
+  return *min_it;
 }
 
 bool CalibdEdx::hasEnoughData(float minEntries) const
@@ -239,40 +244,33 @@ bool CalibdEdx::hasEnoughData(float minEntries) const
   return minStackEntries() >= minEntries;
 }
 
-TH2F CalibdEdx::getRootHist(const std::vector<int>& projected_axis) const
+THnF* CalibdEdx::getRootHist() const
 {
-  const float lower = mHist.axis(0).begin()->lower();
-  const float upper = mHist.axis(0).end()->lower();
+  std::vector<int> bins{};
+  std::vector<double> axisMin{};
+  std::vector<double> axisMax{};
 
-  auto projectedHist = getHist(projected_axis);
+  const size_t histRank = mHist.rank();
 
-  const int nBins = mHist.axis(Axis::dEdx).size();
-  const int nHists = projectedHist.size() / nBins;
-
-  TH2F rootHist("hdEdxMIP", "MIP dEdx per GEM stack", nHists, 0, nHists, nBins, lower, upper);
-
-  int stack = 0;
-  float last_center = -1;
-  // fill TH2
-  for (auto&& x : bh::indexed(projectedHist)) {
-    const auto y = x.bin(0).center(); // current bin interval along dEdx axis
-    const auto w = *x;                // "dereference" to get the bin value
-    rootHist.Fill(stack, y, w);
-
-    if (y < last_center) {
-      stack++;
-    }
-    last_center = y;
+  for (size_t i = 0; i < histRank; ++i) {
+    const auto& ax = mHist.axis(i);
+    bins.push_back(ax.size());
+    axisMin.push_back(*ax.begin());
+    axisMax.push_back(*ax.end());
   }
 
-  return rootHist;
-}
-
-TH2F CalibdEdx::getRootHist() const
-{
-  std::vector<int> keep_all(Axis::Size);
-  std::iota(keep_all.begin(), keep_all.end(), 0);
-  return getRootHist(keep_all);
+  auto hn = new THnF("hdEdxMIP", "MIP dEdx per GEM stack", histRank, bins.data(), axisMin.data(), axisMax.data());
+  std::vector<double> xs(histRank);
+  for (auto&& entry : bh::indexed(mHist)) {
+    if (*entry == 0) {
+      continue;
+    }
+    for (int i = 0; i < histRank; ++i) {
+      xs[i] = entry.bin(i).center();
+    }
+    hn->Fill(xs.data(), *entry);
+  }
+  return hn;
 }
 
 void CalibdEdx::print() const
@@ -287,9 +285,9 @@ void CalibdEdx::writeTTree(std::string_view fileName) const
 
   TTree tree("hist", "Saving boost histogram to TTree");
 
+  // FIXME: infer axis type and remove the hardcoded float
   std::vector<float> row(mHist.rank());
   for (int i = 0; i < mHist.rank(); ++i) {
-    // FIXME: infer axis type and remove the hardcoded float
     tree.Branch(mHist.axis(i).metadata().c_str(), &row[i]);
   }
   float count = 0;

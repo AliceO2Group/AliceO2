@@ -16,16 +16,17 @@
 #include "TPCWorkflow/CalibdEdxSpec.h"
 
 // o2 includes
+#include "CCDB/CcdbApi.h"
+#include "CCDB/CcdbObjectInfo.h"
+#include "CommonUtils/NameConf.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "CommonUtils/NameConf.h"
 #include "DetectorsCalibration/Utils.h"
 #include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "TPCCalibration/CalibdEdx.h"
-#include "CCDB/CcdbApi.h"
-#include "CCDB/CcdbObjectInfo.h"
+#include "TPCWorkflow/ProcessingHelpers.h"
 
 using namespace o2::framework;
 
@@ -37,18 +38,19 @@ class CalibdEdxDevice : public Task
  public:
   void init(framework::InitContext& ic) final
   {
-    const int minEntriesSector = ic.options().get<int>("min-entries-sector");
-    const int minEntries1D = ic.options().get<int>("min-entries-1d");
-    const int minEntries2D = ic.options().get<int>("min-entries-2d");
+    const auto minEntriesSector = ic.options().get<int>("min-entries-sector");
+    const auto minEntries1D = ic.options().get<int>("min-entries-1d");
+    const auto minEntries2D = ic.options().get<int>("min-entries-2d");
 
-    const int dEdxBins = ic.options().get<int>("dedxbins");
-    const int zBins = ic.options().get<int>("zbins");
-    const int angularBins = ic.options().get<int>("angularbins");
-    const float mindEdx = ic.options().get<float>("min-dedx");
-    const float maxdEdx = ic.options().get<float>("max-dedx");
+    const auto dEdxBins = ic.options().get<int>("dedxbins");
+    const auto mindEdx = ic.options().get<float>("min-dedx");
+    const auto maxdEdx = ic.options().get<float>("max-dedx");
+    const auto angularBins = ic.options().get<int>("angularbins");
+    const auto maxTgl = ic.options().get<float>("max-tgl");
+    const auto zBins = ic.options().get<int>("zbins");
 
     mDumpToFile = ic.options().get<bool>("file-dump");
-    float field = ic.options().get<float>("field");
+    auto field = ic.options().get<float>("field");
 
     if (field <= -10.f) {
       const auto inputGRP = o2::base::NameConf::getGRPFileName();
@@ -59,7 +61,7 @@ class CalibdEdxDevice : public Task
       }
     }
 
-    mCalib = std::make_unique<CalibdEdx>(mindEdx, maxdEdx, dEdxBins, zBins, angularBins);
+    mCalib = std::make_unique<CalibdEdx>(dEdxBins, mindEdx, maxdEdx, angularBins, maxTgl);
     mCalib->setApplyCuts(false);
     mCalib->setFitCuts({minEntriesSector, minEntries1D, minEntries2D});
     mCalib->setField(field);
@@ -71,9 +73,9 @@ class CalibdEdxDevice : public Task
     const auto tracks = pc.inputs().get<gsl::span<TrackTPC>>("tracks");
 
     LOGP(info, "Processing TF {} with {} tracks", tfcounter, tracks.size());
-
+    mRunNumber = processing_helpers::getRunNumber(pc);
     mCalib->fill(tracks);
-    // sendOutput(pc.outputs());
+    sendOutput(pc.outputs());
   }
 
   void endOfStream(EndOfStreamContext& eos) final
@@ -104,6 +106,10 @@ class CalibdEdxDevice : public Task
     info.setStartValidityTimestamp(timeStart);
     info.setEndValidityTimestamp(timeEnd);
 
+    auto md = info.getMetaData();
+    md["runNumber"] = std::to_string(mRunNumber);
+    info.setMetaData(md);
+
     auto image = o2::ccdb::CcdbApi::createObjectImage(&corr, &info);
 
     LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", info.getPath(), info.getFileName(), image->size(), info.getStartValidityTimestamp(), info.getEndValidityTimestamp());
@@ -112,6 +118,7 @@ class CalibdEdxDevice : public Task
   }
 
   bool mDumpToFile{};
+  uint64_t mRunNumber{0}; ///< processed run number
   std::unique_ptr<CalibdEdx> mCalib;
 };
 
@@ -134,10 +141,11 @@ DataProcessorSpec getCalibdEdxSpec()
       {"min-entries-2d", VariantType::Int, 2500, {"minimum entries per stack to fit 2D correction"}},
 
       {"dedxbins", VariantType::Int, 100, {"number of dEdx bins"}},
-      {"zbins", VariantType::Int, 20, {"number of Z bins"}},
-      {"angularbins", VariantType::Int, 18, {"number of bins for angular data, like Tgl and Snp"}},
-      {"min-dedx", VariantType::Float, 5.0f, {"minimum value for the dEdx histograms"}},
-      {"max-dedx", VariantType::Float, 100.0f, {"maximum value for the dEdx histograms"}},
+      {"min-dedx", VariantType::Float, 5.0f, {"minimum value for dEdx histograms"}},
+      {"max-dedx", VariantType::Float, 100.0f, {"maximum value for dEdx histograms"}},
+      {"angularbins", VariantType::Int, 18, {"number angular bins: Tgl and Snp"}},
+      {"max-tgl", VariantType::Float, 1.5f, {"maximum absolute value for Tgl histograms"}},
+      {"zbins", VariantType::Int, 20, {"number of Z bins. Not used for now"}},
 
       {"field", VariantType::Float, -100.f, {"magnetic field"}},
       {"file-dump", VariantType::Bool, false, {"directly dump calibration to file"}}}};

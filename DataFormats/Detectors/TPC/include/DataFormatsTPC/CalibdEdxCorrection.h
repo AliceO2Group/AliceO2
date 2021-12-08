@@ -42,7 +42,7 @@ class CalibdEdxCorrection
 #endif
   ~CalibdEdxCorrection() CON_DEFAULT;
 
-  GPUd() float getCorrection(const StackID& stack, ChargeType charge, float z = 0, float tgl = 0) const
+  GPUd() float getCorrection(const StackID& stack, ChargeType charge, float tgl = 0, float snp = 0, float z = 0) const
   {
     // by default return 1 if no correction was loaded
     if (mDims < 0) {
@@ -53,24 +53,27 @@ class CalibdEdxCorrection
     float corr = p[0];
 
     if (mDims > 0) {
-      corr += p[1] * z + p[2] * z * z;
+      corr += p[1] * tgl + p[2] * tgl * tgl;
       if (mDims > 1) {
-        corr += p[3] * tgl + p[4] * z * tgl + p[5] * tgl * tgl;
+        corr += p[3] * snp + p[4] * tgl * snp + p[5] * snp * snp;
       }
     }
 
     return corr;
   }
 
-#if !defined(GPUCA_GPUCODE)
-  float getChi2(const StackID& stack, ChargeType charge) const
+#if !defined(GPUCA_ALIGPUCODE)
+  const float* getParams(const StackID& stack, ChargeType charge) const
   {
-    return mChi2[stackIndex(stack, charge)];
+    return mParams[stackIndex(stack, charge)];
   }
+  float getChi2(const StackID& stack, ChargeType charge) const { return mChi2[stackIndex(stack, charge)]; }
+  int getEntries(const StackID& stack, ChargeType charge) const { return mEntries[stackIndex(stack, charge)]; }
   int getDims() const { return mDims; }
 
   void setParams(const StackID& stack, ChargeType charge, const float* params) { std::copy(params, params + paramSize, mParams[stackIndex(stack, charge)]); }
   void setChi2(const StackID& stack, ChargeType charge, float chi2) { mChi2[stackIndex(stack, charge)] = chi2; }
+  void setEntries(const StackID& stack, ChargeType charge, int entries) { mEntries[stackIndex(stack, charge)] = entries; }
   void setDims(int dims) { mDims = dims; }
 
   void clear();
@@ -82,11 +85,12 @@ class CalibdEdxCorrection
  private:
   GPUd() static int stackIndex(const StackID& stack, ChargeType charge)
   {
-    return stack.index() + charge * SECTORSPERSIDE * SIDES * GEMSTACKSPERSECTOR;
+    return stack.getIndex() + charge * SECTORSPERSIDE * SIDES * GEMSTACKSPERSECTOR;
   }
 
   float mParams[fitSize][paramSize];
   float mChi2[fitSize];
+  int mEntries[fitSize];
   int mDims{-1}; ///< Fit dimension
 
   ClassDefNV(CalibdEdxCorrection, 1);

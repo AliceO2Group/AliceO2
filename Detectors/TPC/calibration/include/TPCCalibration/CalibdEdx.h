@@ -28,9 +28,7 @@
 
 // boost includes
 #include <boost/histogram.hpp>
-
-// forward declarations
-class TH2F;
+#include "THn.h"
 
 namespace o2::tpc
 {
@@ -44,9 +42,9 @@ class CalibdEdx
  public:
   enum Axis {
     dEdx,
-    Z,
     Tgl,
-    // Snp,
+    Snp,
+    // Z,
     Sector,
     Stack,
     Charge,
@@ -63,9 +61,9 @@ class CalibdEdx
   // and the HistAxis enum
   using AxesType = std::tuple<
     FloatAxis, // dEdx
-    FloatAxis, // Z
     FloatAxis, // Tgl
-    // FloatAxis, // Snp
+    FloatAxis, // Snp
+    // FloatAxis, // Z
     IntAxis, // sector
     IntAxis, // stackType
     IntAxis  // Charge
@@ -74,7 +72,7 @@ class CalibdEdx
   using Hist = boost::histogram::histogram<AxesType>;
   using FitCuts = std::array<int, 3>;
 
-  CalibdEdx(float mindEdx = 5, float maxdEdx = 70, int dEdxBins = 100, int zBins = 20, int angularBins = 18);
+  CalibdEdx(int dEdxBins = 100, float mindEdx = 5, float maxdEdx = 70, int angularBins = 18, float maxTgl = 1.5);
 
   void setCuts(const TrackCuts& cuts) { mCuts = cuts; }
   void setApplyCuts(bool apply) { mApplyCuts = apply; }
@@ -94,30 +92,20 @@ class CalibdEdx
   /// Add counts from other container.
   void merge(const CalibdEdx* other);
 
-  /// Compute MIP position from dEdx histograms, and save result in the calib container.
-  /// \param minEntries required to fit the mean, 1D and 2D functions.
+  /// Compute MIP position from dEdx histograms, and save result in the correction container.
   void finalize();
 
-  /// Return the full histogram.
+  /// Return calib data histogram
   const Hist& getHist() const { return mHist; }
-  /// Return the projected histogram, the projected axes are summed over.
-  auto getHist(const std::vector<int>& projected_axis) const
-  {
-    return boost::histogram::algorithm::project(mHist, projected_axis);
-  }
-
-  /// Return the projected histogram as a TH2F, the unkept axis are summed over.
-  TH2F getRootHist(const std::vector<int>& projected_axis) const;
-  /// Keep all axes
-  TH2F getRootHist() const;
+  /// Return calib data as a THn
+  THnF* getRootHist() const;
 
   const CalibdEdxCorrection& getCalib() const { return mCalib; }
 
   ///< Return the number of hist entries of the gem stack with less statistics
-  float minStackEntries() const;
+  int minStackEntries() const;
 
   /// \brief Check if there are enough data to compute the calibration.
-  /// \param minEntries in each histogram
   /// \return false if any of the GEM stacks has less entries than minEntries
   bool hasEnoughData(float minEntries) const;
 
@@ -136,9 +124,9 @@ class CalibdEdx
   float mField = -5;                ///< Magnetic field in kG, used for track propagation
   bool mApplyCuts{true};            ///< Wether or not to apply tracks cuts
   TrackCuts mCuts{0.4, 0.6, 60};    ///< Cut values
-  FitCuts mFitCuts{100, 500, 2500}; ///< Minimum entries per stack to perform a mean, 1D and 2D fit, for each GEM stack
+  FitCuts mFitCuts{100, 500, 2500}; ///< Minimum entries per stack to perform a sector, 1D and 2D fit, for each GEM stack
 
-  Hist mHist;                   ///< TotdEdx multidimensional histogram
+  Hist mHist;                   ///< dEdx multidimensional histogram
   CalibdEdxCorrection mCalib{}; ///< Calibration output
 
   ClassDefNV(CalibdEdx, 1);

@@ -44,13 +44,13 @@ class CalibratordEdx final : public o2::calibration::TimeSlotCalibration<o2::tpc
  public:
   CalibratordEdx() = default;
 
-  void setHistParams(float mindEdx, float maxdEdx, int dEdxBins, int zBins, int angularBins)
+  void setHistParams(int dEdxBins, float mindEdx, float maxdEdx, int angularBins, float maxTgl)
   {
+    mdEdxBins = dEdxBins;
     mMindEdx = mindEdx;
     mMaxdEdx = maxdEdx;
-    mdEdxBins = dEdxBins;
-    mZBins = zBins;
     mAngularBins = angularBins;
+    mMaxTgl = maxTgl;
   }
   void setCuts(const TrackCuts& cuts) { mCuts = cuts; }
   void setField(float field) { mField = field; }
@@ -92,10 +92,10 @@ class CalibratordEdx final : public o2::calibration::TimeSlotCalibration<o2::tpc
 
  private:
   int mdEdxBins{};               ///< Number of dEdx bins
-  int mZBins{};                  ///< Number of Z bins
-  int mAngularBins{};            ///< Number of bins for angular data, like Tgl and Snp
   float mMindEdx{};              ///< Minimum value for the dEdx histograms
   float mMaxdEdx{};              ///< Maximum value for the dEdx histograms
+  int mAngularBins{};            ///< Number of bins for angular data, like Tgl and Snp
+  float mMaxTgl{};               ///< maximum absolute value for Tgl histograms
   int mMinEntries{};             ///< Minimum amount of tracks in each time slot, to get enough statics
   CalibdEdx::FitCuts mFitCuts{}; ///< Minimum entries per stack to perform a 1D and 2D fit
   float mField{};                ///< Magnetic field

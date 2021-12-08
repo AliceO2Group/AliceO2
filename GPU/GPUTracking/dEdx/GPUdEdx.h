@@ -147,8 +147,8 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, unsigned
     slice,
     static_cast<tpc::GEMstack>(roc)};
 
-  const float qMaxResidualCorr = residualCalib->getCorrection(stack, tpc::ChargeType::Max, z, trackTgl);
-  const float qTotResidualCorr = residualCalib->getCorrection(stack, tpc::ChargeType::Tot, z, trackTgl);
+  const float qMaxResidualCorr = residualCalib->getCorrection(stack, tpc::ChargeType::Max, trackTgl, trackSnp, z);
+  const float qTotResidualCorr = residualCalib->getCorrection(stack, tpc::ChargeType::Tot, trackTgl, trackSnp, z);
   qmax /= qMaxResidualCorr;
   qtot /= qTotResidualCorr;
 

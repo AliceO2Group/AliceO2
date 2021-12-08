@@ -61,7 +61,7 @@ CalibratordEdx::Slot& CalibratordEdx::emplaceNewSlot(bool front, TFType tstart, 
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
 
-  auto container = std::make_unique<CalibdEdx>(mMindEdx, mMaxdEdx, mdEdxBins, mZBins, mAngularBins);
+  auto container = std::make_unique<CalibdEdx>(mdEdxBins, mMindEdx, mMaxdEdx, mAngularBins, mMaxTgl);
   container->setApplyCuts(mApplyCuts);
   container->setCuts(mCuts);
   container->setFitCuts(mFitCuts);
