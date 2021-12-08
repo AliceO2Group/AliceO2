@@ -18,7 +18,6 @@
 
 #include <EventVisualisationBase/DataSource.h>
 #include <EventVisualisationBase/DataReader.h>
-#include <EventVisualisationBase/DataSourceOnline.h>
 #include <EventVisualisationBase/FileWatcher.h>
 
 class TObject;
@@ -28,16 +27,32 @@ namespace o2
 namespace event_visualisation
 {
 
-class DataSourceOffline : public DataSourceOnline
+class DataSourceOffline : public DataSource
 {
+ private:
+  Int_t mCurrentEvent;
+  std::vector<VisualisationEvent> mEvents;
+
  public:
-  DataSourceOffline(std::string const aodCoverterPath, std::string const path, std::string const file, bool hideGui = false);
+  DataSourceOffline();
 
   ~DataSourceOffline() override = default;
   DataSourceOffline(DataSourceOffline const&) = delete;
 
   /// Deleted assigment operator
   void operator=(DataSourceOffline const&) = delete;
+
+  Int_t getCurrentEvent() override { return mCurrentEvent; };
+  void setCurrentEvent(Int_t currentEvent) override;
+  int getEventCount() override { return mEvents.size(); };
+  bool refresh() override { return false; }; // recompute
+
+  virtual std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> getVisualisationList(int no) override;
+
+  void addEvent(VisualisationEvent const& event);
+
+  void changeDataFolder(std::string /*newFolder*/) override {};
+  void saveCurrentEvent(std::string /*targetFolder*/) override {};
 };
 
 } // namespace event_visualisation

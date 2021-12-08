@@ -29,12 +29,38 @@ namespace o2
 {
 namespace event_visualisation
 {
-DataSourceOffline::DataSourceOffline(std::string const aodCoverterPath, std::string const path, std::string const file, bool hideGui) : DataSourceOnline(path)
+DataSourceOffline::DataSourceOffline() : mCurrentEvent(0)
 {
-  std::string const batch = hideGui ? "-b" : "";
-  std::string command = fmt::format("{} {} --aod-file {} --jsons-folder \"{}\"", aodCoverterPath, batch, file, path);
+}
 
-  std::system(command.c_str());
+void DataSourceOffline::setCurrentEvent(Int_t currentEvent)
+{
+  mCurrentEvent = currentEvent;
+}
+
+std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> DataSourceOffline::getVisualisationList(int no)
+{
+  std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> res;
+
+  if (no < getEventCount()) {
+    assert(no >= 0);
+
+    VisualisationEvent vEvent = mEvents.at(mCurrentEvent);
+
+    for(auto filter = EVisualisationGroup::ITS;
+         filter != EVisualisationGroup::NvisualisationGroups;
+         filter = static_cast<EVisualisationGroup>(static_cast<int>(filter) + 1)) {
+      auto filtered = VisualisationEvent(vEvent, filter);
+      res.push_back(std::make_pair(filtered, filter));  // we can switch on/off data
+    }
+  }
+
+  return res;
+}
+
+void DataSourceOffline::addEvent(VisualisationEvent const& event)
+{
+  mEvents.push_back(event);
 }
 
 } // namespace event_visualisation

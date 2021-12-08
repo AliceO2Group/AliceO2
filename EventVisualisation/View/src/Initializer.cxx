@@ -62,7 +62,7 @@ void Initializer::setup()
   if (options->online()) {
     eventManager.setDataSource(new DataSourceOnline(options->dataFolder()));
   } else {
-    eventManager.setDataSource(new DataSourceOffline(options->AODConverterPath(), options->dataFolder(), options->fileName(), options->hideDplGUI()));
+    eventManager.setDataSource(new DataSourceOffline());
   }
 
   eventManager.getDataSource()->registerReader(new DataReaderJSON());

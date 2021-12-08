@@ -78,4 +78,37 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2"
                 O2::SpacePoints
           )
   target_include_directories(${coverterTargetName} PUBLIC "include")
+
+  o2_add_executable(eve-dpl
+          COMPONENT_NAME eve
+          TARGETVARNAME evedplTargetName
+          SOURCES
+                src/O2DPLEve.cxx
+                src/DetectorData.cxx
+                src/FileProducer.cxx
+                src/EveWorkflowHelper.cxx
+                src/EveConfiguration.cxx
+          PUBLIC_LINK_LIBRARIES
+                O2::EventVisualisationBase
+                O2::EventVisualisationView
+                O2::DataFormatsGlobalTracking
+                O2::DetectorsRaw
+                O2::DetectorsVertexing
+                O2::EventVisualisationBase
+                O2::EventVisualisationDetectors
+                O2::FrameworkFoundation
+                O2::FT0Workflow
+                O2::GlobalTrackingWorkflowHelpers
+                O2::GlobalTrackingWorkflowReaders
+                O2::ITSMFTWorkflow
+                O2::MFTWorkflow
+                O2::TOFBase
+                O2::TOFWorkflowIO
+                O2::TPCReconstruction
+                O2::TPCWorkflow
+                O2::TRDBase
+                O2::TRDWorkflowIO
+                O2::SpacePoints
+          )
+  target_include_directories(${evedplTargetName} PUBLIC "include")
 endif()

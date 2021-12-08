@@ -134,6 +134,8 @@ class EveWorkflowHelper
             float workflowVersion);
   void clear() { mEvent.clear(); }
 
+  o2::event_visualisation::VisualisationEvent const& currentEvent() { return mEvent; }
+
   o2::globaltracking::RecoContainer mRecoCont;
   o2::globaltracking::RecoContainer& getRecoContainer() { return mRecoCont; }
   TracksSet mTrackSet;
