@@ -23,7 +23,7 @@ function(o2_add_header_only_library baseTargetName)
                         1
                         A
                         ""
-                        ""
+                        "TARGETVARNAME"
                         "INCLUDE_DIRECTORIES;INTERFACE_LINK_LIBRARIES")
 
   if(A_UNPARSED_ARGUMENTS)
@@ -41,6 +41,10 @@ function(o2_add_header_only_library baseTargetName)
   # O2::${baseTargetName} as well (assuming the export is installed with
   # namespace O2::)
   set_property(TARGET ${target} PROPERTY EXPORT_NAME ${baseTargetName})
+
+  if(A_TARGETVARNAME)
+    set(${A_TARGETVARNAME} ${target} PARENT_SCOPE)
+  endif()
 
   if(NOT A_INCLUDE_DIRECTORIES)
     get_filename_component(dir include ABSOLUTE)

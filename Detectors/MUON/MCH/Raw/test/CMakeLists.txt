@@ -21,4 +21,5 @@ o2_add_test(closure-codec-digit
                 SOURCES testClosureCoDecDigit.cxx
                 COMPONENT_NAME mchraw
                 LABELS "muon;mch;raw"
-                PUBLIC_LINK_LIBRARIES O2::MCHRawEncoderDigit O2::MCHRawDecoder)
+                PUBLIC_LINK_LIBRARIES O2::MCHRawEncoderDigit O2::MCHRawDecoder
+                O2::MCHMappingImpl4)

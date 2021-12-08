@@ -54,7 +54,7 @@ o2_add_executable(
         raw-to-digits-workflow
         SOURCES src/raw-to-digits-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHMappingImpl4)
 
 o2_add_executable(
         raw-debug-workflow
@@ -84,7 +84,7 @@ o2_add_executable(
         digits-to-preclusters-workflow
         SOURCES src/digits-to-preclusters-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHMappingImpl4)
 
 o2_add_executable(
         digits-reader-workflow
@@ -108,7 +108,7 @@ o2_add_executable(
         preclusters-to-clusters-original-workflow
         SOURCES src/preclusters-to-clusters-original-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHClustering)
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHClustering O2::MCHMappingImpl4)
 
 o2_add_executable(
         clusters-sink-workflow
@@ -219,6 +219,7 @@ o2_add_executable(
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES
             O2::MCHGeometryTransformer
+            O2::MCHMappingImpl4
             O2::MCHTracking
             O2::MCHWorkflow
             O2::SimulationDataFormat
