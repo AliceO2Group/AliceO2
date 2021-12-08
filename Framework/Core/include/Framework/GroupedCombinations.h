@@ -9,14 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef FRAMEWORK_PAIR_H
-#define FRAMEWORK_PAIR_H
+#ifndef FRAMEWORK_GROUPEDCOMBINATIONS_H
+#define FRAMEWORK_GROUPEDCOMBINATIONS_H
 
 #include "Framework/ASoAHelpers.h"
 #include "Framework/GroupSlicer.h"
 #include "Framework/StringHelpers.h"
-
-#include <iostream>
 
 namespace o2::framework
 {
@@ -25,14 +23,13 @@ namespace o2::framework
 // Base struct without specialization
 template <typename T1, typename T2>
 struct InterleavedTupleType {
-  using interleaved_pack_t = typename interleave_pack<T1>::template with<T2>::type;
   template <typename... Is>
   struct TupleType {
     using type = std::false_type;
   };
   template <std::size_t... Is>
   struct TupleType<std::index_sequence<Is...>> {
-    using type = std::tuple<pack_element_t<Is, interleaved_pack_t>...>;
+    using type = std::tuple<pack_element_t<Is, interleaved_pack_t<pack<T1>, pack<T2>>>...>;
   };
   using type = typename TupleType<std::make_index_sequence<2>>::type;
 };
@@ -40,14 +37,13 @@ struct InterleavedTupleType {
 // Proper specialization with tuples
 template <typename... T1s, typename... T2s>
 struct InterleavedTupleType<std::tuple<T1s...>, std::tuple<T2s...>> {
-  using interleaved_pack_t = typename interleave_pack<T1s...>::template with<T2s...>::type;
   template <typename... Is>
   struct TupleType {
     using type = std::false_type;
   };
   template <std::size_t... Is>
   struct TupleType<std::index_sequence<Is...>> {
-    using type = std::tuple<pack_element_t<Is, interleaved_pack_t>...>;
+    using type = std::tuple<pack_element_t<Is, interleaved_pack_t<pack<T1s...>, pack<T2s...>>>...>;
   };
   using type = typename TupleType<std::make_index_sequence<sizeof...(T1s) + sizeof...(T2s)>>::type;
 };
@@ -297,4 +293,4 @@ template <typename H, typename G, typename A, typename T1 = int, typename Groupi
 using SameKindTriple = GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<A>, A, A, A>;
 
 } // namespace o2::framework
-#endif // FRAMEWORK_PAIR_H_
+#endif // FRAMEWORK_GROUPEDCOMBINATIONS_H_
