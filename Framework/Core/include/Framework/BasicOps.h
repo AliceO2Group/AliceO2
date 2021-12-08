@@ -29,6 +29,7 @@ enum BasicOp : unsigned int {
   GreaterThanOrEqual,
   Equal,
   NotEqual,
+  Atan2,
   Power,
   Sqrt,
   Exp,
