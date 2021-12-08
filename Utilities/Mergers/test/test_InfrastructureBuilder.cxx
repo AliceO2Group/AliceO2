@@ -86,6 +86,9 @@ BOOST_AUTO_TEST_CASE(InfrastructureBuilderLayers)
     BOOST_CHECK_EQUAL(concrete.origin.str, "TST");
     BOOST_CHECK_EQUAL(concrete.description.str, "test");
     BOOST_CHECK_EQUAL(concrete.subSpec, 0);
+
+    BOOST_REQUIRE_EQUAL(mergersTopology[0].labels.size(), 1);
+    BOOST_CHECK_EQUAL(mergersTopology[0].labels[0].value, "merger");
   }
 
   {
