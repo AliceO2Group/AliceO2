@@ -9,4 +9,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_header_only_library(MCHMappingInterface)
+o2_add_header_only_library(MCHMappingInterface TARGETVARNAME target)
+if(APPLE)
+  target_link_options(${target} INTERFACE "LINKER:-undefined,dynamic_lookup")
+endif()

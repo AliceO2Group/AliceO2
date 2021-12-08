@@ -165,7 +165,7 @@ class Segmentation
 /// the Segmentation ctor simply, and ensure by yourself
 /// that you are only creating it once in order not to incur
 /// the (high) price of the construction time of that Segmentation.
-const Segmentation& segmentation(int detElemId);
+const Segmentation& segmentation(int detElemId) __attribute__((weak));
 
 } // namespace mapping
 } // namespace mch
