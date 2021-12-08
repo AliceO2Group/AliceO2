@@ -36,6 +36,7 @@ static std::array<std::string, BasicOp::Conditional + 1> basicOperationsMap = {
   "greater_than_or_equal_to",
   "equal",
   "not_equal",
+  "atan2f",
   "powerf",
   "sqrtf",
   "expf",
