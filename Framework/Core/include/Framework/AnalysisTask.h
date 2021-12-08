@@ -261,7 +261,6 @@ struct AnalysisDataProcessorBuilder {
       // single argument to process
       homogeneous_apply_refs([&groupingTable](auto& x) {
         PartitionManager<std::decay_t<decltype(x)>>::bindExternalIndices(x, &groupingTable);
-        PartitionManager<std::decay_t<decltype(x)>>::getBoundToExternalIndices(x, groupingTable);
         GroupedCombinationManager<std::decay_t<decltype(x)>>::setGroupedCombination(x, groupingTable);
         return true;
       },
