@@ -32,7 +32,7 @@
 #include "FDDWorkflow/EntropyDecoderSpec.h"
 #include "TOFWorkflowUtils/EntropyDecoderSpec.h"
 #include "MIDWorkflow/EntropyDecoderSpec.h"
-#include "MCHWorkflow/EntropyDecoderSpec.h"
+#include "MCHCTF/EntropyDecoderSpec.h"
 #include "EMCALWorkflow/EntropyDecoderSpec.h"
 #include "PHOSWorkflow/EntropyDecoderSpec.h"
 #include "CPVWorkflow/EntropyDecoderSpec.h"
