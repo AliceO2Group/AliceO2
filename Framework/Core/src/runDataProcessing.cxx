@@ -256,6 +256,13 @@ int calculateExitCode(DriverInfo& driverInfo, DeviceSpecs& deviceSpecs, DeviceIn
            std::regex_replace(info.firstSevereError, regexp, ""));
       return 1;
     }
+    if (info.exitStatus != 0) {
+      LOGP(error, "SEVERE: Device {} ({}) returned with {}",
+           spec.name,
+           info.pid,
+           info.exitStatus);
+      return info.exitStatus;
+    }
   }
   return 0;
 }
@@ -929,7 +936,9 @@ bool processSigChild(DeviceInfos& infos)
     if (pid > 0) {
       int es = WEXITSTATUS(status);
 
-      if (WIFEXITED(status) == false || WEXITSTATUS(status) != 0) {
+      if (WIFEXITED(status) == false || es != 0) {
+        es = WIFEXITED(status) ? es : 128 + es;
+        LOGP(error, "pid {} crashed with {}", pid, es);
         hasError |= true;
       }
       for (auto& info : infos) {
