@@ -257,7 +257,7 @@ struct HV {
     // the counting is GEM1 top, bottom, GEM2 top, bottom, ...
     const int electrode = 2 * (gem - 1) + !isTop;
     const StackID stackID{sector, stack};
-    const int index = stackID.index() * 2 * GEMSPERSTACK + electrode;
+    const int index = stackID.getIndex() * 2 * GEMSPERSTACK + electrode;
 
     const auto type = sensor.back();
     // LOGP(info, "Fill type: {}, index: {} (sec: {}, stack: {}, gem: {}, elec: {}), time: {}, value: {}", type, index, sector, stack, gem, electrode, time, value);
@@ -276,7 +276,7 @@ struct HV {
     const StackID stackID{sector, stack};
 
     // TODO: check value for validity
-    states[stackID.index()].fill(time, static_cast<StackState>(value));
+    states[stackID.getIndex()].fill(time, static_cast<StackState>(value));
   }
 
   void sortAndClean()
