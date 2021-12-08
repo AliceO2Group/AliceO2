@@ -467,7 +467,7 @@ workflow_has_parameter AOD && [[ ! -z "$AOD_INPUT" ]] && add_W o2-aod-producer-w
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Quality Control
-workflow_has_parameter QC && { source $O2DATAPROCESSING_ROOT/production/qc-workflow.sh; [[ $? != 0 ]] && exit 1; }
+workflow_has_parameter QC && { source $O2DPG_ROOT/DATA/production/qc-workflow.sh; [[ $? != 0 ]] && exit 1; }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # DPL run binary
