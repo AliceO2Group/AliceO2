@@ -57,9 +57,10 @@ class MergerBuilder
   /// \brief Configures mergers to consume any data immediately.
   static void customizeInfrastructure(std::vector<framework::CompletionPolicy>&);
 
+  static inline framework::DataProcessorLabel mergerLabel() { return {"merger"}; }
   static inline std::string mergerOutputBinding() { return "out"; };
   static inline std::string mergerIdString() { return "MERGER"; };
-  static inline header::DataOrigin mergerDataOrigin() { return header::DataOrigin("MRGR"); };
+  static inline header::DataOrigin mergerDataOrigin() { return {"MRGR"}; };
   static inline header::DataDescription mergerDataDescription(std::string name)
   {
     header::DataDescription description;
