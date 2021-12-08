@@ -23,8 +23,8 @@ ChannelConfigurationPolicy defaultDispatcherPolicy(ConfigContext const& configCo
   auto& options = configContext.options();
   FairMQChannelConfigSpec spec{
     .rateLogging = options.get<int>("fairmq-rate-logging"),
-    .recvBufferSize = options.isDefault("fairmq-recv-buffer-size") ? 128 : options.get<int>("fairmq-recv-buffer-size"),
-    .sendBufferSize = options.isDefault("fairmq-send-buffer-size") ? 128 : options.get<int>("fairmq-send-buffer-size"),
+    .recvBufferSize = options.isDefault("fairmq-recv-buffer-size") ? 256 : options.get<int>("fairmq-recv-buffer-size"),
+    .sendBufferSize = options.isDefault("fairmq-send-buffer-size") ? 256 : options.get<int>("fairmq-send-buffer-size"),
     .ipcPrefix = options.get<std::string>("fairmq-ipc-prefix"),
   };
 
