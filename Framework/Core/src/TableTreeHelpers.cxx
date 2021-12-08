@@ -61,7 +61,7 @@ auto arrowTypeFromROOT(EDataType type, int size)
     case EDataType::kDouble_t:
       return typeGenerator(arrow::float64(), size);
     default:
-      throw runtime_error("Unsupported branch type");
+      throw runtime_error_f("Unsupported branch type: %d", static_cast<int>(type));
   }
 }
 
