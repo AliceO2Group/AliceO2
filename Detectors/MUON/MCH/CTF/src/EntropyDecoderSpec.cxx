@@ -15,7 +15,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "MCHWorkflow/EntropyDecoderSpec.h"
+#include "MCHCTF/EntropyDecoderSpec.h"
 #include "Framework/Task.h"
 #include "MCHCTF/CTFCoder.h"
 #include <TStopwatch.h>

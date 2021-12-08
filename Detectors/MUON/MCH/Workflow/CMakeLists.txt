@@ -16,7 +16,6 @@ o2_add_library(MCHWorkflow
                    src/ClusterReaderSpec.cxx
                    src/ClusterWriterSpec.cxx
                    src/DataDecoderSpec.cxx
-                   src/EntropyDecoderSpec.cxx
                    src/TimeClusterFinderSpec.cxx
                    src/PreClusterFinderSpec.cxx
                    src/SanityCheck.cxx
