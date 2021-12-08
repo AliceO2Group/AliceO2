@@ -220,6 +220,10 @@ GPUd() bool TrackParametrization<value_T>::propagateParamTo(value_t xk, const di
     return false;
   }
   value_t crv = getCurvature(b[2]);
+  if (crv == 0.) {
+    return propagateParamTo(xk, 0.); // for the straight-line propagation use 1D field method
+  }
+
   value_t x2r = crv * dx;
   value_t f1 = getSnp(), f2 = f1 + x2r;
   if (math_utils::detail::abs<value_T>(f1) > constants::math::Almost1 || math_utils::detail::abs<value_T>(f2) > constants::math::Almost1) {

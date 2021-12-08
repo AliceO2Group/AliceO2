@@ -461,6 +461,9 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
     return false;
   }
   value_t crv = (gpu::CAMath::Abs(b[2]) < constants::math::Almost0) ? 0.f : this->getCurvature(b[2]);
+  if (gpu::CAMath::Abs(crv) < constants::math::Almost0) {
+    return propagateTo(xk, 0.);
+  }
   value_t x2r = crv * dx;
   value_t f1 = this->getSnp(), f2 = f1 + x2r;
   if ((gpu::CAMath::Abs(f1) > constants::math::Almost1) || (gpu::CAMath::Abs(f2) > constants::math::Almost1)) {
