@@ -37,6 +37,7 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
     "nruns,n", bpo::value<int>()->default_value(1), "Number of times each test is run.")(
     "outfile,o", bpo::value<std::string>()->default_value("benchmark_result"), "Output file name to store results.")(
     "prime,p", bpo::value<int>()->default_value(0), "Prime number to be used for the test.")(
+    "raw,r", "Display raw output.")(
     "streams,s", bpo::value<int>()->default_value(8), "Size of the pool of streams available for concurrent tests.")(
     "test,t", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"read", "write", "copy", "rread", "rwrite", "rcopy"}, "read write copy rread rwrite rcopy"), "Tests to be performed.")(
     "version,v", "Print version.")(
@@ -62,6 +63,10 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
 
     if (vm.count("inspect")) {
       conf.dumpChunks = true;
+    }
+
+    if (vm.count("raw")) {
+      conf.raw = true;
     }
 
     bpo::notify(vm);
