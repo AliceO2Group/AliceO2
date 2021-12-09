@@ -20,7 +20,7 @@
 namespace TableTreeHelpers
 {
 static constexpr char const* sizeBranchSuffix = "_size";
-}
+} // namespace TableTreeHelpers
 
 namespace o2::framework
 {
@@ -178,7 +178,7 @@ void swapCopy(unsigned char* dest, char* source, int size, int typeSize) noexcep
 
 std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> BranchToColumn::read(TBuffer* buffer)
 {
-  auto totalEntries = static_cast<int>(mBranch->GetEntries());
+  auto totalEntries = mBranch->GetEntries();
   arrow::Status status;
   int readEntries = 0;
   buffer->Reset();
@@ -228,13 +228,11 @@ std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> B
     std::unique_ptr<TBufferFile> offsetBuffer;
 
     uint32_t offset = 0;
-    uint32_t lastOffset = offset;
+    uint32_t lastOffset;
     int count = 0;
     std::shared_ptr<arrow::Buffer> arrowOffsetBuffer;
-    unsigned char* ptrOffset;
-    int* tPtrOffset;
     gsl::span<int> offsets;
-    uint32_t size = 0;
+    int size = 0;
     uint32_t totalSize = 0;
     if (mVLA) {
       offsetBuffer.reset(new TBufferFile{TBuffer::EMode::kWrite, 4 * 1024 * 1024});
@@ -243,8 +241,8 @@ std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> B
         throw runtime_error("Cannot allocate offset buffer");
       }
       arrowOffsetBuffer = std::move(result).ValueUnsafe();
-      ptrOffset = arrowOffsetBuffer->mutable_data();
-      tPtrOffset = reinterpret_cast<int*>(ptrOffset);
+      unsigned char* ptrOffset = arrowOffsetBuffer->mutable_data();
+      auto* tPtrOffset = reinterpret_cast<int*>(ptrOffset);
       offsets = gsl::span<int>{tPtrOffset, tPtrOffset + totalEntries + 1};
     }
 
