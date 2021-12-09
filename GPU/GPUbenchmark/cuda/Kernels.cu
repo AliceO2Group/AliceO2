@@ -540,7 +540,7 @@ float GPUbenchmark<chunk_t>::runDistributed(void (*kernel)(chunk_t**, size_t*, T
   }
 
   if (totComputedBlocks != nBlocks) {
-    std::cout << "   │   - \033[1;33mWarning: Sum of used blocks (" << totComputedBlocks
+    std::cerr << "   │   - \033[1;33mWarning: Sum of used blocks (" << totComputedBlocks
               << ") is different from requested one (" << nBlocks << ")!\e[0m"
               << std::endl;
   }
@@ -626,21 +626,27 @@ void GPUbenchmark<chunk_t>::globalInit()
     }
   }
 
-  std::cout << " ◈ Running on: \033[1;31m" << props.name << "\e[0m" << std::endl;
+  if (!mOptions.raw) {
+    std::cout << " ◈ Running on: \033[1;31m" << props.name << "\e[0m" << std::endl;
+  }
   // Allocate scratch on GPU
   GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&mState.scratchPtr), mState.scratchSize));
   GPUCHECK(cudaMemset(mState.scratchPtr, 0, mState.scratchSize))
 
-  std::cout << "   ├ Buffer type: \e[1m" << getType<chunk_t>() << "\e[0m" << std::endl
-            << "   ├ Allocated: " << std::setprecision(2) << bytesToGB(mState.scratchSize) << "/" << std::setprecision(2) << bytesToGB(mState.totalMemory)
-            << "(GB) [" << std::setprecision(3) << (100.f) * (mState.scratchSize / (float)mState.totalMemory) << "%]\n"
-            << "   └ Available streams: " << mState.getStreamsPoolSize() << "\n\n";
+  if (!mOptions.raw) {
+    std::cout << "   ├ Buffer type: \e[1m" << getType<chunk_t>() << "\e[0m" << std::endl
+              << "   ├ Allocated: " << std::setprecision(2) << bytesToGB(mState.scratchSize) << "/" << std::setprecision(2) << bytesToGB(mState.totalMemory)
+              << "(GB) [" << std::setprecision(3) << (100.f) * (mState.scratchSize / (float)mState.totalMemory) << "%]\n"
+              << "   └ Available streams: " << mState.getStreamsPoolSize() << "\n\n";
+  }
 }
 
 template <class chunk_t>
 void GPUbenchmark<chunk_t>::initTest(Test test)
 {
-  std::cout << " ◈ \033[1;33m" << getType<chunk_t>() << "\033[0m " << test << " benchmark with \e[1m" << mOptions.nTests << "\e[0m runs and \e[1m" << mOptions.kernelLaunches << "\e[0m kernel launches" << std::endl;
+  if (!mOptions.raw) {
+    std::cout << " ◈ \033[1;33m" << getType<chunk_t>() << "\033[0m " << test << " benchmark with \e[1m" << mOptions.nTests << "\e[0m runs and \e[1m" << mOptions.kernelLaunches << "\e[0m kernel launches" << std::endl;
+  }
   GPUCHECK(cudaSetDevice(mOptions.deviceId));
 }
 
@@ -729,11 +735,15 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
   }
 
   for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
-    std::cout << "   ├ " << mode << " " << test << " " << config << " block(s) (" << measurement + 1 << "/" << mOptions.nTests << "): \n"
-              << "   │   - blocks per kernel: " << nBlocks << "/" << dimGrid << "\n"
-              << "   │   - threads per block: " << (int)nThreads << "\n";
+    if (!mOptions.raw) {
+      std::cout << "   ├ " << mode << " " << test << " " << config << " block(s) (" << measurement + 1 << "/" << mOptions.nTests << "): \n"
+                << "   │   - blocks per kernel: " << nBlocks << "/" << dimGrid << "\n"
+                << "   │   - threads per block: " << (int)nThreads << "\n";
+    }
     if (mode == Mode::Sequential) {
-      std::cout << "   │   - per chunk throughput:\n";
+      if (!mOptions.raw) {
+        std::cout << "   │   - per chunk throughput:\n";
+      }
       for (auto iChunk{0}; iChunk < mState.testChunks.size(); ++iChunk) { // loop over single chunks separately
         auto& chunk = mState.testChunks[iChunk];
         float result{0.f};
@@ -751,14 +761,20 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
                                  nThreads,
                                  mOptions.prime);
         }
-        float chunkSize = getBufferCapacity<chunk_t>(chunk.second, mOptions.prime) * sizeof(chunk_t) / GB;
+        float chunkSize = (float)getBufferCapacity<chunk_t>(chunk.second, mOptions.prime) * sizeof(chunk_t) / (float)GB;
         auto throughput = computeThroughput(test, result, chunkSize, mState.getNKernelLaunches());
-        std::cout << "   │     " << ((mState.testChunks.size() - iChunk != 1) ? "├ " : "└ ") << iChunk + 1 << "/" << mState.testChunks.size()
-                  << ": [" << chunk.first << "-" << chunk.first + chunk.second << ") \e[1m" << throughput << " GB/s \e[0m(" << result * 1e-3 << " s)\n";
+        if (!mOptions.raw) {
+          std::cout << "   │     " << ((mState.testChunks.size() - iChunk != 1) ? "├ " : "└ ") << iChunk + 1 << "/" << mState.testChunks.size()
+                    << ": [" << chunk.first << "-" << chunk.first + chunk.second << ") \e[1m" << throughput << " GB/s \e[0m(" << result * 1e-3 << " s)\n";
+        } else {
+          std::cout << "" << measurement << "\t" << iChunk << "\t" << throughput << "\t" << chunkSize << "\t" << result << std::endl;
+        }
         mResultWriter.get()->storeBenchmarkEntry(test, iChunk, result, chunk.second, mState.getNKernelLaunches());
       }
     } else if (mode == Mode::Concurrent) {
-      std::cout << "   │   - per chunk throughput:\n";
+      if (!mOptions.raw) {
+        std::cout << "   │   - per chunk throughput:\n";
+      }
       std::vector<float> results;
       if (!is_random) {
         results = runConcurrent(kernel,
@@ -779,15 +795,21 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
       float sum{0};
       for (auto iChunk{0}; iChunk < mState.testChunks.size(); ++iChunk) {
         auto& chunk = mState.testChunks[iChunk];
-        float chunkSize = getBufferCapacity<chunk_t>(chunk.second, mOptions.prime) * sizeof(chunk_t) / GB;
+        float chunkSize = (float)getBufferCapacity<chunk_t>(chunk.second, mOptions.prime) * sizeof(chunk_t) / (float)GB;
         auto throughput = computeThroughput(test, results[iChunk], chunkSize, mState.getNKernelLaunches());
         sum += throughput;
-        std::cout << "   │     " << ((mState.testChunks.size() - iChunk != 1) ? "├ " : "└ ") << iChunk + 1 << "/" << mState.testChunks.size()
-                  << ": [" << chunk.first << "-" << chunk.first + chunk.second << ") \e[1m" << throughput << " GB/s \e[0m(" << results[iChunk] * 1e-3 << " s)\n";
+        if (!mOptions.raw) {
+          std::cout << "   │     " << ((mState.testChunks.size() - iChunk != 1) ? "├ " : "└ ") << iChunk + 1 << "/" << mState.testChunks.size()
+                    << ": [" << chunk.first << "-" << chunk.first + chunk.second << ") \e[1m" << throughput << " GB/s \e[0m(" << results[iChunk] * 1e-3 << " s)\n";
+        } else {
+          std::cout << "" << measurement << "\t" << iChunk << "\t" << throughput << "\t" << chunkSize << "\t" << results[iChunk] << std::endl;
+        }
         mResultWriter.get()->storeBenchmarkEntry(test, iChunk, results[iChunk], chunk.second, mState.getNKernelLaunches());
       }
       if (mState.testChunks.size() > 1) {
-        std::cout << "   │   - total throughput: \e[1m" << sum << " GB/s \e[0m" << std::endl;
+        if (!mOptions.raw) {
+          std::cout << "   │   - total throughput: \e[1m" << sum << " GB/s \e[0m" << std::endl;
+        }
       }
 
       // Add throughput computed via system time measurement
@@ -796,8 +818,10 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
         tot += chunk.second;
       }
 
-      std::cout << "   │   - total throughput with host time: \e[1m" << computeThroughput(test, results[mState.testChunks.size()], tot, mState.getNKernelLaunches())
-                << " GB/s \e[0m (" << std::setw(2) << results[mState.testChunks.size()] / 1000 << " s)" << std::endl;
+      if (!mOptions.raw) {
+        std::cout << "   │   - total throughput with host time: \e[1m" << computeThroughput(test, results[mState.testChunks.size()], tot, mState.getNKernelLaunches())
+                  << " GB/s \e[0m (" << std::setw(2) << results[mState.testChunks.size()] / 1000 << " s)" << std::endl;
+      }
     } else if (mode == Mode::Distributed) {
       float result{0.f};
       if (!is_random) {
@@ -816,11 +840,15 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
       }
       float tot{0};
       for (auto& chunk : mState.testChunks) {
-        float chunkSize = getBufferCapacity<chunk_t>(chunk.second, mOptions.prime) * sizeof(chunk_t) / GB;
+        float chunkSize = (float)getBufferCapacity<chunk_t>(chunk.second, mOptions.prime) * sizeof(chunk_t) / (float)GB;
         tot += chunkSize;
       }
       auto throughput = computeThroughput(test, result, tot, mState.getNKernelLaunches());
-      std::cout << "   │     └ throughput: \e[1m" << throughput << " GB/s \e[0m(" << result * 1e-3 << " s)\n";
+      if (!mOptions.raw) {
+        std::cout << "   │     └ throughput: \e[1m" << throughput << " GB/s \e[0m(" << result * 1e-3 << " s)\n";
+      } else {
+        std::cout << "" << measurement << "\t" << 0 << "\t" << throughput << "\t" << tot << "\t" << result << std::endl;
+      }
       mResultWriter.get()->storeBenchmarkEntry(test, 0, result, tot, mState.getNKernelLaunches());
     }
     mResultWriter.get()->snapshotBenchmark();
@@ -830,7 +858,9 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
 template <class chunk_t>
 void GPUbenchmark<chunk_t>::finalizeTest(Test test)
 {
-  std::cout << "   └\033[1;32m done\033[0m" << std::endl;
+  if (!mOptions.raw) {
+    std::cout << "   └\033[1;32m done\033[0m" << std::endl;
+  }
 }
 
 template <class chunk_t>
