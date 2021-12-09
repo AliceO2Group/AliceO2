@@ -47,8 +47,12 @@ jobs:
         # the branch we are merging into.
         BASE_COMMIT=$(git merge-base HEAD ${{ github.event.pull_request.base.sha }})
         echo "Running clang-format against branch ${{ github.event.pull_request.base.ref }}, with hash ${{ github.event.pull_request.base.sha }}"
-        COMMIT_FILES=$(git diff --diff-filter d --name-only $BASE_COMMIT | grep -ivE 'LinkDef|Utilities/PCG/')
-        [ "X$COMMIT_FILES" = X ] && { echo "No files to check" ; exit 0; }
+        COMMIT_FILES=$(git diff --diff-filter d --name-only "$BASE_COMMIT" -- ':!*LinkDef*' ':!Utilities/PCG/')
+        if [ -z "$COMMIT_FILES" ]; then
+          echo "No files to check" >&2
+          echo ::set-output name=clean::true
+          exit 0
+        fi
         RESULT_OUTPUT="$(git-clang-format --commit $BASE_COMMIT --diff --style file $COMMIT_FILES)"
 
         for x in $COMMIT_FILES; do
