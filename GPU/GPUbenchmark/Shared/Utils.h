@@ -171,7 +171,7 @@ inline float computeThroughput(Test test, float result, float chunkSizeGB, int n
   // https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html
   // Eff_bandwidth (GB/s) = (B_r + B_w) / (~1e9 * Time (s))
 
-  return 1e3 * chunkSizeGB * ntests / result;
+  return 1e3 * chunkSizeGB * (float)ntests / result;
 }
 
 template <class chunk_t>
@@ -222,6 +222,7 @@ struct benchmarkOpts {
   int numBlocks = -1;
   int kernelLaunches = 1;
   int nTests = 1;
+  bool raw = false;
   int streams = 8;
   int prime = 0;
   std::string outFileName = "benchmark_result";
