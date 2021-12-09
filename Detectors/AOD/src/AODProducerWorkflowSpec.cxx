@@ -1353,9 +1353,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   // vector of FT0 amplitudes
   int nFT0Channels = o2::ft0::Geometry::Nsensors;
   int nFT0ChannelsAside = o2::ft0::Geometry::NCellsA * 4;
-  std::vector<float> vAmplitudes(nFT0Channels, 0.);
   // filling FT0 table
   for (auto& ft0RecPoint : ft0RecPoints) {
+    std::vector<float> vAmplitudes(nFT0Channels, 0.);
     const auto channelData = ft0RecPoint.getBunchChannelData(ft0ChData);
     // TODO: switch to calibrated amplitude
     for (auto& channel : channelData) {
