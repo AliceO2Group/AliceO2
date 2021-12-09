@@ -16,7 +16,7 @@
 #include "EveWorkflow/EveWorkflowHelper.h"
 #include "DetectorsBase/Propagator.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "TRDBase/GeometryFlat.h"
 #include "TRDBase/Geometry.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
