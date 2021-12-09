@@ -1167,8 +1167,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   uint8_t dummyTriggerMask = 0;
 
   int nFV0ChannelsAside = o2::fv0::Geometry::getNumberOfReadoutChannels();
-  std::vector<float> vFV0Amplitudes(nFV0ChannelsAside, 0.);
   for (auto& fv0RecPoint : fv0RecPoints) {
+    std::vector<float> vFV0Amplitudes(nFV0ChannelsAside, 0.);
     const auto channelData = fv0RecPoint.getBunchChannelData(fv0ChData);
     for (auto& channel : channelData) {
       vFV0Amplitudes[channel.channel] = channel.charge; // amplitude, mV
@@ -1316,9 +1316,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   // vector of FDD amplitudes
   int nFDDChannels = o2::fdd::Nchannels;
-  std::vector<float> vFDDAmplitudes(nFDDChannels, 0.);
   // filling FDD table
   for (const auto& fddRecPoint : fddRecPoints) {
+    std::vector<float> vFDDAmplitudes(nFDDChannels, 0.);
     const auto channelData = fddRecPoint.getBunchChannelData(fddChData);
     // TODO: switch to calibrated amplitude
     for (const auto& channel : channelData) {
