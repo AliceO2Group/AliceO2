@@ -85,10 +85,19 @@ template <typename P1, typename P2, typename... Ps>
 constexpr auto concatenate_pack(P1 p1, P2 p2, Ps... ps)
 {
   return concatenate_pack(p1, concatenate_pack(p2, ps...));
-};
+}
 
 template <typename... Ps>
 using concatenated_pack_t = decltype(concatenate_pack(Ps{}...));
+
+template <typename... Args1, typename... Args2>
+constexpr auto interleave_pack(pack<Args1...>, pack<Args2...>)
+{
+  return concatenated_pack_t<pack<Args1, Args2>...>{};
+}
+
+template <typename P1, typename P2>
+using interleaved_pack_t = decltype(interleave_pack(P1{}, P2{}));
 
 /// Selects from the pack types that satisfy the Condition
 template <template <typename> typename Condition, typename Result>
@@ -247,6 +256,21 @@ constexpr auto concatenate_pack_unique(P1 p1, P2 p2, Ps... ps)
 
 template <typename... Ps>
 using concatenated_pack_unique_t = decltype(concatenate_pack_unique(Ps{}...));
+
+template <typename PT>
+constexpr auto unique_pack(pack<>, PT p2)
+{
+  return p2;
+}
+
+template <typename PT, typename T, typename... Ts>
+constexpr auto unique_pack(pack<T, Ts...>, PT p2)
+{
+  return unique_pack(pack<Ts...>{}, concatenate_pack_unique(pack<T>{}, p2));
+}
+
+template <typename P>
+using unique_pack_t = decltype(unique_pack(P{}, pack<>{}));
 
 } // namespace o2::framework
 
