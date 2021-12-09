@@ -17,7 +17,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "TRDBase/GeometryFlat.h"
