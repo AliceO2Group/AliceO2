@@ -85,7 +85,7 @@ template <typename P1, typename P2, typename... Ps>
 constexpr auto concatenate_pack(P1 p1, P2 p2, Ps... ps)
 {
   return concatenate_pack(p1, concatenate_pack(p2, ps...));
-};
+}
 
 template <typename... Ps>
 using concatenated_pack_t = decltype(concatenate_pack(Ps{}...));
@@ -96,8 +96,8 @@ constexpr auto interleave_pack(pack<Args1...>, pack<Args2...>)
   return concatenated_pack_t<pack<Args1, Args2>...>{};
 }
 
-template <typename... Ps>
-using interleaved_pack_t = decltype(interleave_pack(Ps{}...));
+template <typename P1, typename P2>
+using interleaved_pack_t = decltype(interleave_pack(P1{}, P2{}));
 
 /// Selects from the pack types that satisfy the Condition
 template <template <typename> typename Condition, typename Result>
@@ -257,24 +257,20 @@ constexpr auto concatenate_pack_unique(P1 p1, P2 p2, Ps... ps)
 template <typename... Ps>
 using concatenated_pack_unique_t = decltype(concatenate_pack_unique(Ps{}...));
 
-template <typename T, typename T2>
-struct add_type_impl;
-template <typename T, typename... Ts>
-struct add_type_impl<T, pack<Ts...>> {
-  using type = std::conditional_t<sizeof...(Ts) == 0, pack<T>, std::conditional_t<has_type_v<T, pack<Ts...>>, pack<Ts...>, pack<T, Ts...>>>;
-};
-template <typename T, typename T2>
-using add_type = typename add_type_impl<T, T2>::type;
+template <typename PT>
+constexpr auto unique_pack(pack<>, PT p2)
+{
+  return p2;
+}
 
-template <typename P, typename PT = pack<>>
-struct unique_types_impl {
-  using type = PT;
-};
 template <typename PT, typename T, typename... Ts>
-struct unique_types_impl<pack<T, Ts...>, PT> : unique_types_impl<pack<Ts...>, add_type<T, PT>> {
-};
+constexpr auto unique_pack(pack<T, Ts...>, PT p2)
+{
+  return unique_pack(pack<Ts...>{}, concatenate_pack_unique(pack<T>{}, p2));
+}
+
 template <typename P>
-using unique_types = typename unique_types_impl<P>::type;
+using unique_pack_t = decltype(unique_pack(P{}, pack<>{}));
 
 } // namespace o2::framework
 
