@@ -603,7 +603,6 @@ struct DeviceRef {
 struct DeviceStdioContext {
   int childstdin[2];
   int childstdout[2];
-  int childstderr[2];
 };
 
 void prepareStdio(std::vector<DeviceStdioContext>& deviceStdio)
@@ -611,7 +610,6 @@ void prepareStdio(std::vector<DeviceStdioContext>& deviceStdio)
   for (auto& context : deviceStdio) {
     createPipes(context.childstdin);
     createPipes(context.childstdout);
-    createPipes(context.childstderr);
   }
 }
 void handleSignals()
@@ -643,10 +641,8 @@ void handleChildrenStdio(uv_loop_t* loop,
   for (size_t i = 0; i < childFds.size(); ++i) {
     auto& childstdin = childFds[i].childstdin;
     auto& childstdout = childFds[i].childstdout;
-    auto& childstderr = childFds[i].childstderr;
     close(childstdin[0]);
     close(childstdout[1]);
-    close(childstderr[1]);
 
     uv_work_t* req = (uv_work_t*)malloc(sizeof(uv_work_t));
     req->data = new StreamConfigContext{forwardedStdin, childstdin[1]};
@@ -655,10 +651,6 @@ void handleChildrenStdio(uv_loop_t* loop,
     // Setting them to non-blocking to avoid haing the driver hang when
     // reading from child.
     int resultCode = fcntl(childstdout[0], F_SETFL, O_NONBLOCK);
-    if (resultCode == -1) {
-      LOGP(error, "Error while setting the socket to non-blocking: {}", strerror(errno));
-    }
-    resultCode = fcntl(childstderr[0], F_SETFL, O_NONBLOCK);
     if (resultCode == -1) {
       LOGP(error, "Error while setting the socket to non-blocking: {}", strerror(errno));
     }
@@ -678,7 +670,6 @@ void handleChildrenStdio(uv_loop_t* loop,
     };
 
     addPoller(i, childstdout[0]);
-    addPoller(i, childstderr[0]);
   }
 }
 
@@ -737,14 +728,11 @@ void spawnDevice(DeviceRef ref,
       if (childFds[ref.index].childstdout[1] == i) {
         continue;
       }
-      if (childFds[ref.index].childstderr[1] == i) {
-        continue;
-      }
       close(i);
     }
     dup2(childFds[ref.index].childstdin[0], STDIN_FILENO);
     dup2(childFds[ref.index].childstdout[1], STDOUT_FILENO);
-    dup2(childFds[ref.index].childstderr[1], STDERR_FILENO);
+    dup2(childFds[ref.index].childstdout[1], STDERR_FILENO);
 
     auto portS = std::to_string(driverInfo.tracyPort);
     setenv("TRACY_PORT", portS.c_str(), 1);
