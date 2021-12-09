@@ -726,20 +726,22 @@ void spawnDevice(DeviceRef ref,
     // For stdin, we close the write part of the pipe, the old descriptor,
     // and then we replace it with the read part of the pipe.
     // We also close all the filedescriptors for our sibilings.
-    for (size_t i = 0; i < childFds.size(); ++i) {
-      close(childFds[i].childstdin[1]);
-      close(childFds[i].childstdout[0]);
-      close(childFds[i].childstderr[0]);
-      if (i == ref.index) {
+    struct rlimit rlim;
+    getrlimit(RLIMIT_NOFILE, &rlim);
+    // We close all FD, but the one which are actually
+    // used to communicate with the driver.
+    for (size_t i = 0; i < rlim.rlim_cur; ++i) {
+      if (childFds[ref.index].childstdin[0] == i) {
         continue;
       }
-      close(childFds[i].childstdin[0]);
-      close(childFds[i].childstdout[1]);
-      close(childFds[i].childstderr[1]);
+      if (childFds[ref.index].childstdout[1] == i) {
+        continue;
+      }
+      if (childFds[ref.index].childstderr[1] == i) {
+        continue;
+      }
+      close(i);
     }
-    close(STDIN_FILENO);
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
     dup2(childFds[ref.index].childstdin[0], STDIN_FILENO);
     dup2(childFds[ref.index].childstdout[1], STDOUT_FILENO);
     dup2(childFds[ref.index].childstderr[1], STDERR_FILENO);
