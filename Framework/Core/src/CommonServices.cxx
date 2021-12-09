@@ -262,6 +262,9 @@ auto createInfoLoggerSinkHelper(InfoLogger* logger, InfoLoggerContext* ctx)
   };
 };
 
+struct MissingService {
+};
+
 o2::framework::ServiceSpec CommonServices::infologgerSpec()
 {
   return ServiceSpec{
@@ -270,6 +273,10 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
       auto infoLoggerMode = options.GetPropertyAsString("infologger-mode");
       if (infoLoggerMode != "") {
         setenv("O2_INFOLOGGER_MODE", infoLoggerMode.c_str(), 1);
+      }
+      char const* infoLoggerEnv = getenv("O2_INFOLOGGER_MODE");
+      if (infoLoggerEnv == nullptr || strcmp(infoLoggerEnv, "none") == 0) {
+        return ServiceHandle{TypeIdHelpers::uniqueId<MissingService>(), nullptr};
       }
       auto infoLoggerService = new InfoLogger;
       auto infoLoggerContext = &services.get<InfoLoggerContext>();
