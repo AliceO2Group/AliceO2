@@ -28,6 +28,7 @@ o2_add_library(ITSWorkflow
          PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::SimConfig
                                      O2::DataFormatsITS
+                                     O2::DataFormatsDCS
                                      O2::SimulationDataFormat
                                      O2::ITStracking
                                      O2::ITSReconstruction
