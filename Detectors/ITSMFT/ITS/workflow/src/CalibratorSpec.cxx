@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <assert.h>
+#include <bitset>
 
 #include "TGeoGlobalMagField.h"
 
@@ -14,12 +15,16 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/WorkflowSpec.h"
+#include "Framework/Task.h"
 #include "ITSWorkflow/TrackerSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include "CCDB/CcdbApi.h"
+#include "CommonUtils/MemFileHelper.h"
 
 #include "Field/MagneticField.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -43,12 +48,15 @@
 #include "DataFormatsITSMFT/ClusterPattern.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 
+#include "DetectorsCalibration/Utils.h"
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
+#include "DataFormatsDCS/DCSConfigObject.h"
 
 using namespace o2::framework;
 using namespace o2::itsmft;
 using namespace o2::header;
+using namespace o2::utils;
 
 namespace o2
 {
@@ -363,7 +371,8 @@ template <class Mapping>
 void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
 
     int TriggerId = 0;
-
+    int lay, sta, ssta, mod, chip,chipInMod,rofcount; //layer, stave, sub stave, module, chip
+    
     auto orig = Mapping::getOrigin();
 
     // Calibration vector
@@ -386,16 +395,20 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
         // Find the correct charge and row values for this ROF
         short int charge = -1;
         short int row = -1;
+        short int runtype = -1;
         for (short int iRU = 0; iRU < this->nRUs; iRU++) {
             const auto& calib = calibs[iROF * nRUs + iRU];
             if (calib.calibUserField != 0) {
                 if (charge >= 0) { LOG(info) << "WARNING: more than one charge detected!"; }
                 // Divide calibration word (24-bit) by 2^16 to get the first 8 bits
-                charge = (short int) (170 - calib.calibUserField / 65536);
+//                charge = (short int) (170 - calib.calibUserField / 65536);
+                charge = (short int) (170 - (calib.calibUserField>>16)&0xff);
                 // Last 16 bits should be the row (only uses up to 9 bits)
                 row = (short int) (calib.calibUserField & 0xffff);
+                // Run Type = calibword >> 24
+                runtype = (short int) (calib.calibUserField>>24);
                 LOG(info) << "calibs size: " << calibs.size() << " | ROF number: " << iROF
-                          << " | RU number: " << iRU << " | charge: " << charge << " | row: " << row;
+                          << " | RU number: " << iRU << " | charge: " << charge << " | row: " << row << " | runtype: " << runtype;
                 //break;
             }
         }
@@ -446,7 +459,6 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
 
         } // for (rofs)
     }
-
     TriggerId = 0;
     mTFCounter++;
 }
@@ -457,6 +469,45 @@ template <class Mapping>
 void ITSCalibrator<Mapping>::endOfStream(EndOfStreamContext& ec)
 {
     LOGF(info, "endOfStream report:", mSelfName);
+
+// Below is CCDB stuff
+    long tstart,tend;
+    tstart = o2::ccdb::getCurrentTimestamp();
+    constexpr long SECONDSPERYEAR = 365 * 24 * 60 * 60;
+    tend = o2::ccdb::getFutureTimestamp(SECONDSPERYEAR);
+    std::map<std::string, std::string> md;
+    o2::dcs::DCSconfigObject_t vcasn;
+    o2::dcs::addConfigItem(vcasn, "Stave", "L6_99");
+    o2::dcs::addConfigItem(vcasn, "Hs_pos", "U");
+    o2::dcs::addConfigItem(vcasn, "Hic_Pos", "1");
+    o2::dcs::addConfigItem(vcasn, "ChipId", "0");
+    o2::dcs::addConfigItem(vcasn, "VCASN", "59");
+    o2::dcs::addConfigItem(vcasn, "ITHR", "58");
+    o2::dcs::addConfigItem(vcasn, "Charge", "20");
+    o2::dcs::addConfigItem(vcasn, "Stave", "L2_99");
+    o2::dcs::addConfigItem(vcasn, "Hs_pos", "L");
+    o2::dcs::addConfigItem(vcasn, "Hic_Pos", "0");
+    o2::dcs::addConfigItem(vcasn, "ChipId", "0");
+    o2::dcs::addConfigItem(vcasn, "VCASN", "59");
+    o2::dcs::addConfigItem(vcasn, "ITHR", "52");
+    o2::dcs::addConfigItem(vcasn, "Charge", "22");
+
+    auto clName = o2::utils::MemFileHelper::getClassName(vcasn);
+//    This is just an initial test string for being saved to CCDB
+//    std::string const& vcasn = "Stave:L6_99,Hs_pos:U,Hic_Pos:1,ChipId:0,VCASN:55,ITHR:58,Charge:    20,Stave:L2_99,Hs_pos:L,Hic_Pos:0,ChipId:0,VCASN:57,ITHR:52,Charge:22,";
+    //
+    o2::ccdb::CcdbObjectInfo info("ITS/Calib/Vscan", clName, "", md, tstart, tend);
+    auto flName = o2::ccdb::CcdbApi::generateFileName("vcasn");
+    info.setFileName(flName);
+    LOG(info) << "Class Name  " << clName << " File Name " << flName ;
+    auto image = o2::ccdb::CcdbApi::createObjectImage(&vcasn, &info);
+    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
+              << " of size " << image->size() << " bytes, valid for "
+              << info.getStartValidityTimestamp() << " : "
+              << info.getEndValidityTimestamp();
+    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "VCASN", 0}, *image);
+    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "VCASN", 0}, info);
+
 //    if (mDecoder) {
 //        mDecoder->printReport(true, true);
 //    }
@@ -474,7 +525,9 @@ DataProcessorSpec getITSCalibratorSpec()
     inputs.emplace_back("calib", detOrig, "GBTCALIB", 0, Lifetime::Timeframe);
 
     std::vector<OutputSpec> outputs;
-    outputs.emplace_back("ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
+//    outputs.emplace_back("ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload,"VCASN"});
+    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper,"VCASN"});
 
     auto orig = o2::header::gDataOriginITS;
 
