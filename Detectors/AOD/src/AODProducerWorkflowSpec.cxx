@@ -1167,8 +1167,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   uint8_t dummyTriggerMask = 0;
 
   int nFV0ChannelsAside = o2::fv0::Geometry::getNumberOfReadoutChannels();
-  std::vector<float> vFV0Amplitudes(nFV0ChannelsAside, 0.);
   for (auto& fv0RecPoint : fv0RecPoints) {
+    std::vector<float> vFV0Amplitudes(nFV0ChannelsAside, 0.);
     const auto channelData = fv0RecPoint.getBunchChannelData(fv0ChData);
     for (auto& channel : channelData) {
       vFV0Amplitudes[channel.channel] = channel.charge; // amplitude, mV
@@ -1316,9 +1316,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   // vector of FDD amplitudes
   int nFDDChannels = o2::fdd::Nchannels;
-  std::vector<float> vFDDAmplitudes(nFDDChannels, 0.);
   // filling FDD table
   for (const auto& fddRecPoint : fddRecPoints) {
+    std::vector<float> vFDDAmplitudes(nFDDChannels, 0.);
     const auto channelData = fddRecPoint.getBunchChannelData(fddChData);
     // TODO: switch to calibrated amplitude
     for (const auto& channel : channelData) {
@@ -1353,9 +1353,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   // vector of FT0 amplitudes
   int nFT0Channels = o2::ft0::Geometry::Nsensors;
   int nFT0ChannelsAside = o2::ft0::Geometry::NCellsA * 4;
-  std::vector<float> vAmplitudes(nFT0Channels, 0.);
   // filling FT0 table
   for (auto& ft0RecPoint : ft0RecPoints) {
+    std::vector<float> vAmplitudes(nFT0Channels, 0.);
     const auto channelData = ft0RecPoint.getBunchChannelData(ft0ChData);
     // TODO: switch to calibrated amplitude
     for (auto& channel : channelData) {
@@ -1366,12 +1366,16 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     for (int i = 0; i < nFT0Channels; i++) {
       if (i < nFT0ChannelsAside) {
         aAmplitudesA[i] = truncateFloatFraction(vAmplitudes[i], mT0Amplitude);
+        LOG(debug) << i << " A " << aAmplitudesA[i];
       } else {
-        aAmplitudesC[i - nFT0ChannelsAside] = truncateFloatFraction(vAmplitudes[i], mT0Amplitude);
+        aAmplitudesC[i] = truncateFloatFraction(vAmplitudes[i], mT0Amplitude);
+        LOG(debug) << i << " C " << aAmplitudesC[i];
       }
     }
+
     uint64_t globalBC = ft0RecPoint.getInteractionRecord().toLong();
     uint64_t bc = globalBC;
+    LOG(debug) << " FT0 BC " << int(bc);
     auto item = bcsMap.find(bc);
     int bcID = -1;
     if (item != bcsMap.end()) {
@@ -1547,7 +1551,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, tfNumber);
 
   mTimer.Stop();
-}
+} // namespace o2::aodproducer
 
 void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
 {
