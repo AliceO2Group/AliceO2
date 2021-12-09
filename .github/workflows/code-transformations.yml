@@ -42,9 +42,12 @@ jobs:
         BASE_COMMIT=$(git merge-base HEAD ${{ github.event.pull_request.base.sha }})
         echo "Running refactoring against branch ${{ github.event.pull_request.base.ref }}, with hash ${{ github.event.pull_request.base.sha }}"
         COMMIT_FILES=$(git diff --diff-filter d --name-only $BASE_COMMIT)
-        [ "X$COMMIT_FILES" = X ] && { echo "No files to check" ; exit 0; }
+        if [ -z "$COMMIT_FILES" ]; then
+          echo "No files to check" >&2
+          echo ::set-output name=clean::true
+          exit 0
+        fi
         perl -p -i -e "${{ env.REFACTORING }}" $COMMIT_FILES
-        RESULT_OUTPUT="$(git diff)"
 
         if git diff --exit-code; then
           echo "Refactoring not needed."
