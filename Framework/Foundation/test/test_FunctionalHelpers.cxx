@@ -51,6 +51,9 @@ BOOST_AUTO_TEST_CASE(TestOverride)
   print_pack<p3>();
   static_assert(std::is_same_v<p3, pack<float, bool, int, double, char>>, "pack should not have duplicated types");
 
+  static_assert(std::is_same_v<unique_pack_t<pack<int, float, int, float, char, char>>, pack<char, float, int>>, "pack should not have duplicated types");
+  static_assert(std::is_same_v<interleaved_pack_t<pack<int, float, int>, pack<char, bool, char>>, pack<int, char, float, bool, int, char>>, "interleaved packs of the same size");
+
   struct ForwardDeclared;
   static_assert(is_type_complete_v<ForwardDeclared> == false, "This should not be complete because the struct is simply forward declared.");
 
