@@ -183,6 +183,30 @@ BunchFilling::Pattern BunchFilling::createPattern(const std::string& p)
 }
 
 //_________________________________________________
+std::string BunchFilling::buckets2PatternString(const std::vector<int>& buckets, int ibeam)
+{
+  // create bunches pattern string from filled buckets, in the format parsed by o2::BunchFilling::createPattern
+  Pattern patt;
+  std::string pattS;
+  for (int b : buckets) {
+    patt[o2::constants::lhc::LHCBunch2P2BC(b / 10, o2::constants::lhc::BeamDirection(ibeam))] = true;
+  }
+  int nh = 0;
+  for (int i = 0; i < o2::constants::lhc::LHCMaxBunches; i++) {
+    if (patt[i]) {
+      if (nh) {
+        pattS += fmt::format("{}L", nh);
+        nh = 0; // reset holes
+      }
+      pattS += "H";
+    } else {
+      nh++;
+    }
+  }
+  return pattS;
+}
+
+//_________________________________________________
 bool BunchFilling::parsePattern(const unsigned char*& input, BunchFilling::Pattern& patt, int& ibit, int& level)
 {
   // this is analog of AliTriggerBCMask::Bcm2Bits
