@@ -57,16 +57,15 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float causalityRTolerance = 1.; ///< V0 radius cannot exceed its contributors minR by more than this value
   float maxV0ToProngsRDiff = 50.; ///< V0 radius cannot be lower than this ammount wrt minR of contributors
 
-  float minCosPAXYMeanVertex = 0.85;      ///< min cos of PA to beam line (mean vertex) in tr. plane for prompt V0 candidates
+  float minCosPAXYMeanVertex = 0.95;      ///< min cos of PA to beam line (mean vertex) in tr. plane for prompt V0 candidates
   float minCosPAXYMeanVertexCascV0 = 0.8; ///< min cos of PA to beam line (mean vertex) in tr. plane for V0 of cascade cand.
 
   float maxRToMeanVertexCascV0 = 80; // don't consider as a cascade V0 seed if above this R
   float minCosPACascV0 = 0.8;        // min cos of pointing angle to PV for cascade V0 candidates
-
   float minCosPA = 0.9; ///< min cos of PA to PV for prompt V0 candidates
 
   float minRDiffV0Casc = 0.2; ///< cascade should be at least this radial distance below V0
-  float maxRIniCasc = 50.;    // don't consider as a cascade seed (circles/line intersection) if its R exceeds this
+  float maxRIniCasc = 90.;    // don't consider as a cascade seed (circles/line intersection) if its R exceeds this
 
   float maxDCAXYCasc = 0.3; // max DCA of cascade to PV in XY // TODO RS: shall we use real chi2 to vertex?
   float maxDCAZCasc = 0.3;  // max DCA of cascade to PV in Z
