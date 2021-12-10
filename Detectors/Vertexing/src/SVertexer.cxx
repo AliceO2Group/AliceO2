@@ -15,9 +15,8 @@
 
 #include "DetectorsVertexing/SVertexer.h"
 #include "DetectorsBase/Propagator.h"
-#include "ReconstructionDataFormats/TrackTPCITS.h"
-#include "DataFormatsTPC/TrackTPC.h"
-#include "DataFormatsITS/TrackITS.h"
+#include "TPCBase/ParameterGas.h"
+
 #undef WITH_OPENMP
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -122,6 +121,9 @@ void SVertexer::updateTimeDependentParams()
   for (auto& ft : mFitterCasc) {
     ft.setBz(bz);
   }
+
+  auto& gasParam = o2::tpc::ParameterGas::Instance();
+  mTPCBin2Z = gasParam.DriftV / mMUS2TPCBin;
 }
 
 //__________________________________________________________________
@@ -214,13 +216,17 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
     mVtxFirstTrack[i].clear();
     mVtxFirstTrack[i].resize(nv, -1);
   }
-
   for (int iv = 0; iv < nv; iv++) {
     const auto& vtref = vtxRefs[iv];
     int it = vtref.getFirstEntry(), itLim = it + vtref.getEntries();
     for (; it < itLim; it++) {
       auto tvid = trackIndex[it];
       if (!recoData.isTrackSourceLoaded(tvid.getSource())) {
+        continue;
+      }
+      // unconstrained TPC tracks require special treatment: there is no point in checking DCA to mean vertex since it is not precise,
+      // but we need to create a clone of TPC track constrained to this particular vertex time.
+      if (tvid.getSource() == GIndex::TPC && processTPCTrack(recoData.getTPCTrack(tvid), tvid, iv)) { // processTPCTrack may decide that this track does not need special treatment (e.g. it is constrained...)
         continue;
       }
       std::decay_t<decltype(tmap.find(tvid))> tref{};
@@ -495,4 +501,40 @@ void SVertexer::setNThreads(int n)
 #else
   mNThreads = 1;
 #endif
+}
+
+//______________________________________________
+bool SVertexer::processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int vtxid)
+{
+  // if TPC trackis unconstrained, try to create in the tracks pool a clone constrained to vtxid vertex time.
+  if (trTPC.hasBothSidesClusters()) { // this is effectively constrained track
+    return false;                     // let it be processed as such
+  }
+  const auto& vtx = mPVertices[vtxid];
+  auto twe = vtx.getTimeStamp();
+  int posneg = trTPC.getSign() < 0 ? 1 : 0;
+  auto trLoc = mTracksPool[posneg].emplace_back(TrackCand{trTPC, gid, {vtxid, vtxid}, 0.});
+  auto err = correctTPCTrack(trLoc, trTPC, twe.getTimeStamp(), twe.getTimeStampError());
+  if (err < 0) {
+    mTracksPool[posneg].pop_back(); // discard
+  }
+  trLoc.minR = std::sqrt(trLoc.getX() * trLoc.getX() + trLoc.getY() * trLoc.getY());
+  return true;
+}
+
+//______________________________________________
+float SVertexer::correctTPCTrack(o2::track::TrackParCov& trc, const o2::tpc::TrackTPC tTPC, float tmus, float tmusErr) const
+{
+  // Correct the track copy trc of the TPC track for the assumed interaction time
+  // return extra uncertainty in Z due to the interaction time uncertainty
+  // TODO: at the moment, apply simple shift, but with Z-dependent calibration we may
+  // need to do corrections on TPC cluster level and refit
+  // This is a clone of MatchTPCITS::correctTPCTrack
+  float dDrift = (tmus * mMUS2TPCBin - tTPC.getTime0()) * mTPCBin2Z;
+  float driftErr = tmusErr * mMUS2TPCBin * mTPCBin2Z;
+  // eventually should be refitted, at the moment we simply shift...
+  trc.setZ(tTPC.getZ() + (tTPC.hasASideClustersOnly() ? dDrift : -dDrift));
+  trc.setCov(trc.getSigmaZ2() + driftErr * driftErr, o2::track::kSigZ2);
+
+  return driftErr;
 }
