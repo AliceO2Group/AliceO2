@@ -1160,16 +1160,17 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     tfNumber = mTFNumber;
   }
 
-  int nFV0ChannelsAside = o2::fv0::Geometry::getNumberOfReadoutChannels();
+  std::vector<float> aAmplitudes;
+  std::vector<uint8_t> aChannels;
   for (auto& fv0RecPoint : fv0RecPoints) {
-    std::vector<float> vFV0Amplitudes(nFV0ChannelsAside, 0.);
+    aAmplitudes.clear();
+    aChannels.clear();
     const auto channelData = fv0RecPoint.getBunchChannelData(fv0ChData);
     for (auto& channel : channelData) {
-      vFV0Amplitudes[channel.channel] = channel.charge; // amplitude, mV
-    }
-    float aAmplitudesA[nFV0ChannelsAside];
-    for (int i = 0; i < nFV0ChannelsAside; i++) {
-      aAmplitudesA[i] = truncateFloatFraction(vFV0Amplitudes[i], mV0Amplitude);
+      if (channel.charge > 0) {
+        aAmplitudes.push_back(truncateFloatFraction(channel.charge, mV0Amplitude));
+        aChannels.push_back(channel.channel);
+      }
     }
     uint64_t bc = fv0RecPoint.getInteractionRecord().toLong();
     auto item = bcsMap.find(bc);
@@ -1181,7 +1182,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     }
     fv0aCursor(0,
                bcID,
-               aAmplitudesA,
+               aAmplitudes,
+               aChannels,
                truncateFloatFraction(fv0RecPoint.getCollisionGlobalMeanTime() * 1E-3, mV0Time), // ps to ns
                fv0RecPoint.getTrigger().triggerSignals);
   }

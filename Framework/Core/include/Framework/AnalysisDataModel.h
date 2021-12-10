@@ -633,35 +633,37 @@ using Zdc = Zdcs::iterator;
 
 namespace fv0a
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                      //! BC index
-DECLARE_SOA_COLUMN(Amplitude, amplitude, float[48]);   //! Amplitudes per cell
-DECLARE_SOA_COLUMN(Time, time, float);                 //! Time in ns
-DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint8_t); //!
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                             //! BC index
+DECLARE_SOA_COLUMN(Amplitude, amplitude, std::vector<float>); //! Amplitudes of non-zero channels. The channel IDs are given in Channel (at the same index)
+DECLARE_SOA_COLUMN(Channel, channel, std::vector<uint8_t>);   //! Channel IDs which had non-zero amplitudes. There are at maximum 48 channels.
+DECLARE_SOA_COLUMN(Time, time, float);                        //! Time in ns
+DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint8_t);        //!
 } // namespace fv0a
 
 DECLARE_SOA_TABLE(FV0As, "AOD", "FV0A", //!
-                  o2::soa::Index<>, fv0a::BCId, fv0a::Amplitude, fv0a::Time, fv0a::TriggerMask);
+                  o2::soa::Index<>, fv0a::BCId, fv0a::Amplitude, fv0a::Channel, fv0a::Time, fv0a::TriggerMask);
 using FV0A = FV0As::iterator;
 
 // V0C table for Run2 only
 namespace fv0c
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                    //! BC index
-DECLARE_SOA_COLUMN(Amplitude, amplitude, float[32]); //! Amplitudes per cell
-DECLARE_SOA_COLUMN(Time, time, float);               //! Time in ns
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                             //! BC index
+DECLARE_SOA_COLUMN(Amplitude, amplitude, std::vector<float>); //! Amplitudes of non-zero channels. The channel IDs are given in Channel (at the same index)
+DECLARE_SOA_COLUMN(Channel, channel, std::vector<uint8_t>);   //! Channel IDs which had non-zero amplitudes. There are at maximum 32 channels.
+DECLARE_SOA_COLUMN(Time, time, float);                        //! Time in ns
 } // namespace fv0c
 
 DECLARE_SOA_TABLE(FV0Cs, "AOD", "FV0C", //! Only for RUN 2 converted data: V0C table
-                  o2::soa::Index<>, fv0c::BCId, fv0c::Amplitude, fv0c::Time);
+                  o2::soa::Index<>, fv0c::BCId, fv0c::Amplitude, fv0a::Channel, fv0c::Time);
 using FV0C = FV0Cs::iterator;
 
 namespace ft0
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);                               //! BC index
 DECLARE_SOA_COLUMN(AmplitudeA, amplitudeA, std::vector<float>); //! Amplitudes of non-zero channels on the A-side. The channel IDs are given in ChannelA (at the same index)
-DECLARE_SOA_COLUMN(ChannelA, channelA, std::vector<uint8_t>);   //! Channel IDs on the A side which had non-zero amplitudes
+DECLARE_SOA_COLUMN(ChannelA, channelA, std::vector<uint8_t>);   //! Channel IDs on the A side which had non-zero amplitudes. There are at maximum 96 channels.
 DECLARE_SOA_COLUMN(AmplitudeC, amplitudeC, std::vector<float>); //! Amplitudes of non-zero channels on the C-side. The channel IDs are given in ChannelC (at the same index)
-DECLARE_SOA_COLUMN(ChannelC, channelC, std::vector<uint8_t>);   //! Channel IDs on the C side which had non-zero amplitudes
+DECLARE_SOA_COLUMN(ChannelC, channelC, std::vector<uint8_t>);   //! Channel IDs on the C side which had non-zero amplitudes. There are at maximum 112 channels.
 DECLARE_SOA_COLUMN(TimeA, timeA, float);                        //! Average A-side time
 DECLARE_SOA_COLUMN(TimeC, timeC, float);                        //! Average C-side time
 DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint8_t);          //!
