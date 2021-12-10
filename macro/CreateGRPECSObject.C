@@ -19,7 +19,7 @@
 
 #endif
 
-using timePoint = std::time_t;
+using timePoint = long;
 using DetID = o2::detectors::DetID;
 using CcdbApi = o2::ccdb::CcdbApi;
 using GRPECSObject = o2::parameters::GRPECSObject;
