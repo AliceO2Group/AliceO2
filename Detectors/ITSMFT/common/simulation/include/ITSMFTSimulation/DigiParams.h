@@ -90,7 +90,7 @@ class DigiParams
  private:
   static constexpr double infTime = 1e99;
   bool mIsContinuous = false;        ///< flag for continuous simulation
-  float mNoisePerPixel = 1.e-7;      ///< ALPIDE Noise per chip
+  float mNoisePerPixel = 1.e-8;      ///< ALPIDE Noise per chip
   int mROFrameLengthInBC = 0;        ///< ROF length in BC for continuos mode
   float mROFrameLength = 0;          ///< length of RO frame in ns
   float mStrobeDelay = 0.;           ///< strobe start (in ns) wrt ROF start
