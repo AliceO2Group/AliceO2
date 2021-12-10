@@ -298,6 +298,7 @@ void createPipes(int* pipes)
 volatile sig_atomic_t graceful_exit = false;
 volatile sig_atomic_t forceful_exit = false;
 volatile sig_atomic_t sigchld_requested = false;
+volatile sig_atomic_t double_sigint = false;
 
 static void handle_sigint(int)
 {
@@ -305,6 +306,13 @@ static void handle_sigint(int)
     graceful_exit = true;
   } else {
     forceful_exit = true;
+    // We keep track about forceful exiting via
+    // a double SIGINT, so that we do not print
+    // any extra message. This means that if the
+    // forceful_exit is set by the timer, we will
+    // get an error message about each child which
+    // did not gracefully exited.
+    double_sigint = true;
   }
 }
 
@@ -938,7 +946,14 @@ bool processSigChild(DeviceInfos& infos)
 
       if (WIFEXITED(status) == false || es != 0) {
         es = WIFEXITED(status) ? es : 128 + es;
-        LOGP(error, "pid {} crashed with {}", pid, es);
+        // No need to print anything if the user
+        // force quitted doing a double Ctrl-C.
+        if (double_sigint) {
+        } else if (forceful_exit) {
+          LOGP(error, "pid {} was forcefully terminated after being requested to quit", pid);
+        } else {
+          LOGP(error, "pid {} crashed with {}", pid, es);
+        }
         hasError |= true;
       }
       for (auto& info : infos) {
