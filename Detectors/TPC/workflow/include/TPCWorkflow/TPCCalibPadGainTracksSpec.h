@@ -9,11 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file   TPCCalibPadGainTracksSpec.h
+/// \author Matthias Kleiner, mkleiner@ikf.uni-frankfurt.de
+
 #ifndef O2_CALIBRATION_TPCCALIBPADGAINTRACKSSPEC_H
 #define O2_CALIBRATION_TPCCALIBPADGAINTRACKSSPEC_H
-
-/// @file   TPCCalibPadGainTracksSpec.h
-/// @brief  TPC gain map extraction using particle tracks
 
 #include "Framework/Task.h"
 #include "Framework/ControlService.h"
@@ -23,7 +23,6 @@
 #include "Framework/DeviceSpec.h"
 #include "TPCCalibration/CalibPadGainTracks.h"
 #include "CommonUtils/NameConf.h"
-#include "CCDB/CcdbApi.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "DataFormatsParameters/GRPObject.h"
 
@@ -41,7 +40,7 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
  public:
   TPCCalibPadGainTracksDevice(const uint32_t publishAfterTFs, const bool debug) : mPublishAfter(publishAfterTFs), mDebug(debug) {}
 
-  void init(o2::framework::InitContext& ic)
+  void init(o2::framework::InitContext& ic) final
   {
     // setting up the histogram ranges
     const auto nBins = ic.options().get<int>("nBins");
@@ -74,26 +73,10 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
     const auto momMax = ic.options().get<float>("momMax");
     LOGP(info, "Using particle tracks with {} GeV/c < p < {} GeV/c ", momMin, momMax);
     mPadGainTracks.setMomentumRange(momMin, momMax);
-
-    const auto lowTrunc = ic.options().get<float>("lowTrunc");
-    const auto upTrunc = ic.options().get<float>("upTrunc");
-    LOGP(info, "Lower truncation range {} and  Upper truncation range {}  ", lowTrunc, upTrunc);
-    mPadGainTracks.setTruncationRange(lowTrunc, upTrunc);
-
-    const auto minEntriesHist = ic.options().get<int>("minEntriesHist");
-    mPadGainTracks.setMinEntriesHis(minEntriesHist);
-
-    // setting up the CCDB
-    mDBapi.init(ic.options().get<std::string>("ccdb-uri")); // or http://localhost:8080 for a local installation
-    mWriteToDB = mDBapi.isHostReachable() ? true : false;
   }
 
-  void run(o2::framework::ProcessingContext& pc)
+  void run(o2::framework::ProcessingContext& pc) final
   {
-    if (mProcessedTFs == 0) {
-      mFirstTF = getCurrentTF(pc);
-    }
-
     auto tracks = pc.inputs().get<gsl::span<o2::tpc::TrackTPC>>("trackTPC");
     auto clRefs = pc.inputs().get<gsl::span<o2::tpc::TPCClRefElem>>("trackTPCClRefs");
     const auto& clusters = getWorkflowTPCInput(pc);
@@ -105,58 +88,54 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
     if ((mPublishAfter && (++mProcessedTFs % mPublishAfter) == 0)) {
       LOGP(info, "Publishing after {} TFs", mProcessedTFs);
       mProcessedTFs = 0;
-      mPadGainTracks.fillgainMap();
       if (mDebug) {
         mPadGainTracks.dumpToFile(fmt::format("calPadGain_TF{}.root", getCurrentTF(pc)).data());
       }
-      if (mWriteToDB) {
-        mDBapi.storeAsTFileAny<o2::tpc::CalPad>(&mPadGainTracks.getPadGainMap(), "TPC/Calib/PadGainTracks", mMetadata, mFirstTF, getCurrentTF(pc) + 1);
-      }
-      mPadGainTracks.resetHistos();
+      sendOutput(pc.outputs());
     }
   }
 
  private:
-  const uint32_t mPublishAfter{0};              ///< number of TFs after which to dump the calibration
-  const bool mDebug{false};                     ///< create debug output
-  uint32_t mProcessedTFs{0};                    ///< counter to keep track of the processed TFs
-  CalibPadGainTracks mPadGainTracks{};          ///< class for creating the pad-by-pad gain map
-  bool mWriteToDB{};                            ///< flag if writing to CCDB will be done
-  o2::ccdb::CcdbApi mDBapi;                     ///< API for storing the gain map in the CCDB
-  std::map<std::string, std::string> mMetadata; ///< meta data of the stored object in CCDB
-  uint32_t mFirstTF{};                          ///< storing of first TF used when setting the validity of the objects when writing to CCDB
+  const uint32_t mPublishAfter{0};          ///< number of TFs after which to dump the calibration
+  const bool mDebug{false};                 ///< create debug output
+  uint32_t mProcessedTFs{0};                ///< counter to keep track of the processed TFs
+  CalibPadGainTracks mPadGainTracks{false}; ///< class for creating the pad-by-pad gain map
 
   uint32_t getCurrentTF(o2::framework::ProcessingContext& pc) const { return o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->tfCounter; }
+
+  void sendOutput(DataAllocator& output)
+  {
+    output.snapshot(Output{"TPC", "TRACKGAINHISTOS", 0}, *mPadGainTracks.getHistos().get());
+    mPadGainTracks.resetHistos();
+  }
 };
 
 DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, const bool debug)
 {
   std::vector<InputSpec> inputs;
-  std::vector<OutputSpec> outputs;
   inputs.emplace_back("trackTPC", "TPC", "TRACKS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackTPCClRefs", "TPC", "CLUSREFS", 0, Lifetime::Timeframe);
   inputs.emplace_back("clusTPC", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}, Lifetime::Timeframe);
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("TPC", "TRACKGAINHISTOS", 0, o2::framework::Lifetime::Timeframe);
 
   return DataProcessorSpec{
-    "calib-tpc-pad-gain-tracks",
+    "calib-tpc-gainmap-tracks",
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TPCCalibPadGainTracksDevice>(publishAfterTFs, debug)},
     Options{
-      {"ccdb-uri", VariantType::String, o2::base::NameConf::getCCDBServer(), {"URI for the CCDB access."}},
-      {"nBins", VariantType::Int, 20, {"Number of bins per histogram."}},
-      {"reldEdxMin", VariantType::Int, 0, {"Minimum x coordinate of the histogram for Q/dEdx."}},
-      {"reldEdxMax", VariantType::Int, 3, {"Maximum x coordinate of the histogram for Q/dEdx."}},
-      {"underflowBin", VariantType::Bool, false, {"Using under flow bin."}},
-      {"overflowBin", VariantType::Bool, false, {"Using under flow bin."}},
-      {"field", VariantType::Float, -100.f, {"magnetic field"}},
+      {"ccdb-uri", VariantType::String, o2::base::NameConf::getCCDBServer(), {"URI for the CCDB access"}},
+      {"nBins", VariantType::Int, 20, {"Number of bins per histogram"}},
+      {"reldEdxMin", VariantType::Int, 0, {"Minimum x coordinate of the histogram for Q/(dE/dx)"}},
+      {"reldEdxMax", VariantType::Int, 3, {"Maximum x coordinate of the histogram for Q/(dE/dx)"}},
+      {"underflowBin", VariantType::Bool, false, {"Using under flow bin"}},
+      {"overflowBin", VariantType::Bool, false, {"Using under flow bin"}},
+      {"field", VariantType::Float, -100.f, {"Magnetic field in kG, need for track propagations, this value will be overwritten if a grp file is present"}},
       {"momMin", VariantType::Float, 0.1f, {"minimum momentum of the tracks which are used for the pad-by-pad gain map"}},
-      {"momMax", VariantType::Float, 5.f, {"minimum momentum of the tracks which are used for the pad-by-pad gain map"}},
+      {"momMax", VariantType::Float, 5.f, {"maximum momentum of the tracks which are used for the pad-by-pad gain map"}},
       {"etaMax", VariantType::Float, 1.f, {"maximum eta of the tracks which are used for the pad-by-pad gain map"}},
       {"minClusters", VariantType::Int, 50, {"minimum number of clusters of tracks which are used for the pad-by-pad gain map"}},
-      {"lowTrunc", VariantType::Float, 0.05f, {"lower truncation range for calculating the rel gain"}},
-      {"upTrunc", VariantType::Float, 0.6f, {"upper truncation range for calculating the rel gain"}},
-      {"minEntriesHist", VariantType::Int, 20, {"minimum number of entries in each histogram (if the number of entries are smaller, the gain value will be 0)"}},
     }}; // end DataProcessorSpec
 }
 
