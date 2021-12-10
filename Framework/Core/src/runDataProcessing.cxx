@@ -949,14 +949,14 @@ void doDPLException(RuntimeErrorRef& e, char const* processName)
 {
   auto& err = o2::framework::error_from_ref(e);
   if (err.maxBacktrace != 0) {
-    LOGP(error,
+    LOGP(fatal,
          "Unhandled o2::framework::runtime_error reached the top of main of {}, device shutting down."
          "\n Reason: "
          "\n Backtrace follow: \n",
          processName, err.what);
     backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
   } else {
-    LOGP(error,
+    LOGP(fatal,
          "Unhandled o2::framework::runtime_error reached the top of main of {}, device shutting down."
          "\n Reason: "
          "\n Recompile with DPL_ENABLE_BACKTRACE=1 to get more information.",
@@ -967,9 +967,9 @@ void doDPLException(RuntimeErrorRef& e, char const* processName)
 void doUnknownException(std::string const& s, char const* processName)
 {
   if (s.empty()) {
-    LOGP(error, "unknown error while setting up workflow in {}.", processName);
+    LOGP(fatal, "unknown error while setting up workflow in {}.", processName);
   } else {
-    LOGP(error, "error while setting up workflow in {}: {}", processName, s);
+    LOGP(fatal, "error while setting up workflow in {}: {}", processName, s);
   }
 }
 
