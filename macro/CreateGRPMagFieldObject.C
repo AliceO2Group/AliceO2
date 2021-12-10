@@ -19,7 +19,7 @@
 
 #endif
 
-using timePoint = std::time_t;
+using timePoint = long;
 using CcdbApi = o2::ccdb::CcdbApi;
 using GRPMagField = o2::parameters::GRPMagField;
 using current = o2::units::Current_t;
@@ -38,7 +38,7 @@ using current = o2::units::Current_t;
  CreateGRPMagFieldObject(l3, dipole, tStart, runNb, tEnd, isUniform)
 */
 
-void CreateGRPMagFieldObject(current l3, current dipole, timePoint start, int run, timePoint end = -1, bool isUniform = true, std::string ccdbPath = "http://ccdb-test.cern.ch:8080")
+void CreateGRPMagFieldObject(current l3, current dipole, timePoint start, timePoint end = -1, bool isUniform = true, std::string ccdbPath = "http://ccdb-test.cern.ch:8080")
 {
 
   GRPMagField grp;
@@ -50,7 +50,6 @@ void CreateGRPMagFieldObject(current l3, current dipole, timePoint start, int ru
   api.init(ccdbPath);
   std::map<std::string, std::string> metadata;
   metadata["responsible"] = "DCS";
-  metadata["run_number"] = std::to_string(run);
   //long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
   if (end < 0) {
     end = (start + 60 * 60 * 10) * 1000; // start + 10h, in ms
