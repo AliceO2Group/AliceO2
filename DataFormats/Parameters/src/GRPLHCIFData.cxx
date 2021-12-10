@@ -31,7 +31,7 @@ const std::unordered_map<unsigned int, unsigned int> GRPLHCIFData::mZtoA =
 void GRPLHCIFData::setBeamAZ(beamDirection beam)
 {
   // set both A and Z of the beam in direction 'beam'
-  if (beam == beamDirection::BeamClockWise) {
+  if (beam == beamDirection::BeamC) {
     auto atomicNum = mZtoA.find(getAtomicNumberB1());
     if (atomicNum == mZtoA.end()) {
       LOG(fatal) << "We don't know the Mass Number for Z = " << getAtomicNumberB1();
@@ -53,16 +53,16 @@ void GRPLHCIFData::setBeamAZ()
 {
 
   // setting A and Z for both beams
-  setBeamAZ(BeamClockWise);
-  setBeamAZ(BeamAntiClockWise);
+  setBeamAZ(BeamC);
+  setBeamAZ(BeamA);
 }
 
 //_______________________________________________
 float GRPLHCIFData::getSqrtS() const
 {
   // get center of mass energy
-  double e0 = getBeamEnergyPerNucleon(BeamClockWise);
-  double e1 = getBeamEnergyPerNucleon(BeamAntiClockWise);
+  double e0 = getBeamEnergyPerNucleon(BeamC);
+  double e1 = getBeamEnergyPerNucleon(BeamA);
   if (e0 <= MassProton || e1 <= MassProton) {
     return 0.f;
   }

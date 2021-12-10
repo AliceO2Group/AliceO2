@@ -49,6 +49,7 @@
 #pragma link C++ class o2::InteractionRecord + ;
 #pragma link C++ class o2::InteractionTimeRecord + ;
 #pragma link C++ class o2::BunchFilling + ;
+#pragma link C++ class std::pair < long, o2::BunchFilling> + ;
 
 #pragma link C++ class o2::math_utils::detail::Bracket < o2::InteractionRecord> + ;
 #pragma link C++ class o2::dataformats::IRFrame + ;
