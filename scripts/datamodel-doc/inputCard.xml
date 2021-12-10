@@ -64,7 +64,7 @@
     <delimPWGs>
       &lt;!-- Block with PWG tables --&gt;
     </delimPWGs>
-    
+
   </O2general>
   
   
@@ -92,6 +92,31 @@
           Framework/Core/include/Framework/AnalysisDataModel.h
         </fileName>
       </headerFiles>
+      
+      <categories>
+        <category name="General">
+          o2::aod::BCs, o2::aod::Timestamps, o2::aod::Collisions
+        </category>
+        <category name="Tracks">
+          o2::aod::Tracks, o2::aod::TracksCov, o2::aod::TracksExtra, o2::aod::StoredTracks, o2::aod::StoredTracksCov, o2::aod::StoredTracksExtra, o2::aod::MFTTracks, o2::aod::StoredMFTTracks, o2::aod::FwdTracks, o2::aod::FwdTracksCov, o2::aod::StoredFwdTracks, o2::aod::StoredFwdTracksCov, o2::aod::AmbiguousTracks, o2::aod::AmbiguousMFTTracks, o2::aod::AmbiguousFwdTracks
+        </category>
+        <category name="Detectors">
+          o2::aod::FV0As, o2::aod::FT0s, o2::aod::FDD, so2::aod::HMPIDs, o2::aod::Calos, o2::aod::CaloTriggers, o2::aod::Zdcs, o2::aod::FV0Cs
+        </category>
+        <category name="Strangeness">
+          o2::aod::TransientV0s, o2::aod::StoredV0s, o2::aod::TransientCascades, o2::aod::StoredCascades
+        </category>
+        <category name="Indices">
+          o2::aod::Run3MatchedExclusive, o2::aod::Run3MatchedSparse, o2::aod::MatchedBCCollisionsExclusive, o2::aod::MatchedBCCollisionsSparse, o2::aod::Run3MatchedToBCExclusive, o2::aod::Run3MatchedToBCSparse
+        </category>
+        <category name="MonteCarlo">
+          o2::aod::McCollisions, o2::aod::McParticles, o2::aod::StoredMcParticles, o2::aod::McTrackLabels, o2::aod::McMFTTrackLabels, o2::aod::McFwdTrackLabels, o2::aod::McCaloLabels, o2::aod::McCollisionLabels
+        </category>
+        <category name="Run2">
+          o2::aod::Run2BCInfos, o2::aod::Run2MatchedExclusive, o2::aod::Run2MatchedSparse, o2::aod::Run2MatchedToBCSparse
+        </category>
+      </categories>
+      
     </DataModel>
   
     <DataModel type="Helper" name="Helpers">
