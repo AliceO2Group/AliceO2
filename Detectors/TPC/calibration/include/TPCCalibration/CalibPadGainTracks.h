@@ -23,6 +23,7 @@
 #include "TPCBase/CalDet.h"
 #include "TPCBase/Mapper.h"
 #include "TPCCalibration/FastHisto.h"
+#include "TPCCalibration/CalibPadGainTracksBase.h"
 
 #include <vector>
 #include <gsl/span>
@@ -63,7 +64,7 @@ namespace tpc
 ///
 /// see also: extractGainMap.C macro
 
-class CalibPadGainTracks
+class CalibPadGainTracks : public CalibPadGainTracksBase
 {
 
  public:
@@ -74,34 +75,8 @@ class CalibPadGainTracks
   };
 
   /// default constructor
-  /// the member variables have to be set manually with setMembers()
-  CalibPadGainTracks() = default;
-
-  /// constructor
-  /// \param vTPCTracksArrayInp vector of tpc tracks
-  /// \param tpcTrackClIdxVecInput the TPCClRefElem of the track
-  /// \param clIndex clusternative access object
-  CalibPadGainTracks(gsl::span<const o2::tpc::TrackTPC>* vTPCTracksArrayInp, gsl::span<const o2::tpc::TPCClRefElem>* tpcTrackClIdxVecInput, const o2::tpc::ClusterNativeAccess& clIndex)
-    : mTracks(vTPCTracksArrayInp), mTPCTrackClIdxVecInput(tpcTrackClIdxVecInput), mClusterIndex(&clIndex)
-  {
-    initDefault();
-  };
-
-  /// constructor
-  /// \param vTPCTracksArrayInp vector of tpc tracks
-  /// \param tpcTrackClIdxVecInput the TPCClRefElem of the track
-  /// \param clIndex clusternative access object
-  /// \param nBins number of bins used in the histograms
-  /// \param xmin minimum value in histogram
-  /// \param xmax maximum value in histogram
-  /// \param useUnderflow set usage of underflow bin
-  /// \param useOverflow set usage of overflow bin
-  CalibPadGainTracks(gsl::span<const o2::tpc::TrackTPC>* vTPCTracksArrayInp, gsl::span<const o2::tpc::TPCClRefElem>* tpcTrackClIdxVecInput, const o2::tpc::ClusterNativeAccess& clIndex,
-                     const unsigned int nBins, const float xmin, const float xmax, const bool useUnderflow, const bool useOverflow)
-    : mTracks(vTPCTracksArrayInp), mTPCTrackClIdxVecInput(tpcTrackClIdxVecInput), mClusterIndex(&clIndex)
-  {
-    init(nBins, xmin, xmax, useUnderflow, useOverflow);
-  };
+  /// \param initCalPad initialisation of the calpad for the gain map (if the gainmap is not extracted it can be false to save some memory)
+  CalibPadGainTracks(const bool initCalPad = true) : CalibPadGainTracksBase(initCalPad) { reserveMemory(); }
 
   /// default destructor
   ~CalibPadGainTracks() = default;
@@ -127,7 +102,7 @@ class CalibPadGainTracks
   /// \param eta maximum accpeted eta of the tracks
   void setMaxEta(const float eta) { mEtaMax = eta; }
 
-  /// \param eta maximum accpeted eta of the tracks
+  /// \param nCl minimum number of clusters required of the tracks
   void setMinNClusters(const float nCl) { mMinClusters = nCl; }
 
   /// \param field magnetic field in kG, used for track propagation
@@ -142,91 +117,16 @@ class CalibPadGainTracks
   /// \return returns maximum eta of accepted tracks
   float getEtaMax() const { return mEtaMax; }
 
-  /// \return returns maximum eta of accepted tracks
+  /// \return returns minimum number of clusters required of the tracks
   float getMinNClusters() const { return mMinClusters; }
 
   /// \return returns magnetic field which is used for propagation of track parameters
   float getField() const { return mField; };
 
-  /// initialize the histograms with default parameters
-  void initDefault();
-
-  /// \param low lower truncation range for calculating the rel gain
-  /// \param high upper truncation range
-  void setTruncationRange(const float low = 0.05f, const float high = 0.6f);
-
-  /// \param minEntries minimum number of entries which are needed to extract the mean value
-  void setMinEntriesHis(const int minEntries) { mMinEntries = minEntries; }
-
-  /// initialize the histograms with custom parameters
-  /// \param nBins number of bins used in the histograms
-  /// \param xmin minimum value in histogram
-  /// \param xmax maximum value in histogram
-  /// \param useUnderflow set usage of underflow bin
-  /// \param useOverflow set usage of overflow bin
-  void init(const unsigned int nBins, const float xmin, const float xmax, const bool useUnderflow, const bool useOverflow);
-
-  /// dump the gain map to disk
-  /// \param fileName name of the output file
-  void dumpGainMap(const char* fileName = "GainMap.root") const;
-
   /// dump object to disc
   /// \param outFileName name of the output file
   /// \param outName name of the object in the output file
   void dumpToFile(const char* outFileName = "calPadGainTracks.root", const char* outName = "calPadGain") const;
-
-  /// dump histograms to tree for debugging
-  /// \param outFileName name of the output file
-  void dumpToTree(const char* outFileName = "GainMapTree.root") const;
-
-  /// get the truncated mean for each histogram and fill the extracted gainvalues in a CalPad object
-  void fillgainMap();
-
-  /// \return returns the gainmap object
-  const CalPad& getPadGainMap() const { return mGainMap; }
-
-  /// draw gain map sector
-  /// \param sector sector which will be drawn
-  /// \param filename name of the output file. If empty the canvas is drawn
-  /// \param minZ min z value for drawing (if minZ > maxZ automatic z axis)
-  /// \param maxZ max z value for drawing (if minZ > maxZ automatic z axis)
-  void drawExtractedGainMapSector(const int sector, const std::string filename = "GainMapSector.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(false, sector, filename, minZ, maxZ); }
-
-  /// draw gain map side
-  /// \param side side of the TPC which will be drawn
-  /// \param filename name of the output file. If empty the canvas is drawn
-  /// \param minZ min z value for drawing (if minZ > maxZ automatic z axis)
-  /// \param maxZ max z value for drawing (if minZ > maxZ automatic z axis)
-  void drawExtractedGainMapSide(const o2::tpc::Side side, const std::string filename = "GainMapSide.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(true, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), filename, minZ, maxZ); }
-
-  /// draw gain map using painter functionality
-  TCanvas* drawExtractedGainMapPainter() const;
-
-  /// \return return histogram which is used to extract the gain
-  /// \param sector sector of the TPC
-  /// \param region region of the TPC
-  /// \param lrow local row in region
-  /// \param pad pad in row
-  auto getHistogram(const int sector, const int region, const int lrow, const int pad) const { return mPadHistosDet->getValue(sector, Mapper::getGlobalPadNumber(lrow, pad, region)); }
-
-  /// \return return histogram which is used to extract the gain
-  /// \param sector sector of the TPC
-  /// \param grow global row in sector
-  /// \param pad pad in row
-  auto getHistogram(const int sector, const int grow, const int pad) const { return mPadHistosDet->getValue(sector, Mapper::GLOBALPADOFFSET[Mapper::REGION[grow]] + Mapper::OFFSETCRUGLOBAL[grow] + pad); }
-
-  /// divide the extracted gain map with a CalDet (can be usefull for comparing two gainmaps)
-  /// \param inpFile input file containing some caldet
-  /// \param mapName name of the caldet
-  void divideGainMap(const char* inpFile, const char* mapName);
-
-  /// setting a gain map from a file
-  /// \param inpFile input file containing some caldet
-  /// \param mapName name of the caldet
-  void setGainMap(const char* inpFile, const char* mapName);
-
-  /// resetting the histograms which are used for extraction of the gain map
-  void resetHistos();
 
  private:
   gsl::span<const TrackTPC>* mTracks{nullptr};                                        ///<! vector containing the tpc tracks which will be processed. Cant be const due to the propagate function
@@ -243,17 +143,12 @@ class CalibPadGainTracks
   std::vector<float> mDEdxOROC{};                                                     ///<! memory for dE/dx in OROC
   std::vector<o2::tpc::ClusterNative> mCLNat;                                         ///<! memory for clusters
   std::vector<std::tuple<unsigned char, unsigned char, unsigned char, float>> mClTrk; ///<! memory for cluster informations
-  std::unique_ptr<CalDet<FastHisto<float>>> mPadHistosDet;                            ///< Calibration object containing for each pad a histogram with normalized charge
-  CalPad mGainMap{"GainMap"};                                                         ///< Gain map object
-  float mLowTruncation{0.05f};                                                        ///< lower truncation range for calculating mean of the histograms
-  float mUpTruncation{0.6f};                                                          ///< upper truncation range for calculating mean of the histograms
-  int mMinEntries{20};                                                                ///< minimum number of entries which are needed to extract the mean value
 
   /// calculate truncated mean for track
   /// \param track input track which will be processed
   void processTrack(TrackTPC track);
 
-  /// get the index for given pad which is needed for the filling of the CalDet object
+  /// get the index (padnumber in ROC) for given pad which is needed for the filling of the CalDet object
   /// \param padSub pad subset type
   /// \param padSubsetNumber index of the pad subset
   /// \param row corresponding pad row
@@ -268,8 +163,8 @@ class CalibPadGainTracks
   /// \param high higher cluster cut of  0.6*nCluster
   float getTruncMean(std::vector<float>& vCharge, float low = 0.05f, float high = 0.6f) const;
 
-  /// Helper function for drawing the extracted gain map
-  void drawExtractedGainMapHelper(const bool type, const Sector sector, const std::string filename, const float minZ, const float maxZ) const;
+  /// reserve memory for members
+  void reserveMemory();
 };
 
 } // namespace tpc

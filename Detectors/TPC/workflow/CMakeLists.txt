@@ -173,9 +173,9 @@ o2_add_executable(track-and-cluster-filter
                   SOURCES src/track-and-cluster-filter.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
-o2_add_executable(calib-pad-gain-tracks
+o2_add_executable(calib-gainmap-tracks
                   COMPONENT_NAME tpc
-                  SOURCES src/tpc-calib-pad-gain-tracks.cxx
+                  SOURCES src/tpc-calib-gainmap-tracks.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow O2::GlobalTracking)
 
 o2_add_test(workflow
@@ -193,6 +193,11 @@ o2_add_executable(digits-to-rawzs
 o2_add_executable(monitor-workflow
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-monitor-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(calibrator-gainmap-tracks
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-calibrator-gainmap-tracks.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 add_subdirectory(readers)

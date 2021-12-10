@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file   tpc-calib-gainmap-tracks.cxx
+/// \author Matthias Kleiner, mkleiner@ikf.uni-frankfurt.de
+
 #include <vector>
 #include <string>
 #include "Framework/WorkflowSpec.h"
@@ -24,7 +27,7 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   using o2::framework::CompletionPolicy;
-  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-calib-pad-gain-tracks.*", CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-calib-gainmap-tracks.*", CompletionPolicy::CompletionOp::Consume));
 }
 
 // we need to add workflow options before including Framework/runDataProcessing
@@ -46,7 +49,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   // set up configuration
   o2::conf::ConfigurableParam::updateFromFile(config.options().get<std::string>("configFile"));
-  o2::conf::ConfigurableParam::writeINI("o2tpcpadgaintracks_configuration.ini");
+  o2::conf::ConfigurableParam::writeINI("o2tpcpadgaintrackscalibrator_configuration.ini");
 
   const auto debug = config.options().get<bool>("debug");
   const auto publishAfterTFs = (uint32_t)config.options().get<int>("publish-after-tfs");
