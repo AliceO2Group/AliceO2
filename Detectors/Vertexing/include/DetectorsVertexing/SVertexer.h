@@ -26,6 +26,7 @@
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "DetectorsVertexing/SVertexerParams.h"
 #include "DetectorsVertexing/SVertexHypothesis.h"
+#include "DataFormatsTPC/TrackTPC.h"
 #include <numeric>
 #include <algorithm>
 
@@ -73,11 +74,15 @@ class SVertexer
   void setEnableCascades(bool v) { mEnableCascades = v; }
   void init();
   void process(const o2::globaltracking::RecoContainer& recoTracks); // accessor to various tracks
-  bool acceptTrack(GIndex gid, const o2::track::TrackParCov& trc) const;
   auto& getMeanVertex() const { return mMeanVertex; }
   void setMeanVertex(const o2d::VertexBase& v) { mMeanVertex = v; }
   void setNThreads(int n);
   int getNThreads() const { return mNThreads; }
+  void setTPCTBin(int nbc)
+  {
+    // set TPC time bin in BCs
+    mMUS2TPCBin = 1.f / (nbc * o2::constants::lhc::LHCBunchSpacingMUS);
+  }
 
   template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCREFCONT>
   void extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CASCCONT& cascades, CASCREFCONT& vtx2CascRefs);
@@ -88,6 +93,9 @@ class SVertexer
   void setupThreads();
   void buildT2V(const o2::globaltracking::RecoContainer& recoTracks);
   void updateTimeDependentParams();
+  bool acceptTrack(GIndex gid, const o2::track::TrackParCov& trc) const;
+  bool processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int vtxid);
+  float correctTPCTrack(o2::track::TrackParCov& trc, const o2::tpc::TrackTPC tTPC, float tmus, float tmusErr) const;
 
   uint64_t getPairIdx(GIndex id1, GIndex id2) const
   {
@@ -116,6 +124,8 @@ class SVertexer
   float mMaxTgl2V0 = 2. * 2.;
   float mMinPt2Casc = 1e-4;
   float mMaxTgl2Casc = 2. * 2.;
+  float mMUS2TPCBin = 1.f / (8 * o2::constants::lhc::LHCBunchSpacingMUS);
+  float mTPCBin2Z = 0;
   bool mEnableCascades = true;
 };
 
