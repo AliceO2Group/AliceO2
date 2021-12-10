@@ -1118,7 +1118,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto fddCursor = fddBuilder.cursor<o2::aod::FDDs>();
   auto ft0Cursor = ft0Builder.cursor<o2::aod::FT0s>();
   auto fv0aCursor = fv0aBuilder.cursor<o2::aod::FV0As>();
-  auto fv0cCursor = fv0cBuilder.cursor<o2::aod::FV0Cs>();
   auto fwdTracksCursor = fwdTracksBuilder.cursor<o2::aodproducer::FwdTracksTable>();
   auto fwdTracksCovCursor = fwdTracksCovBuilder.cursor<o2::aodproducer::FwdTracksCovTable>();
   auto mcColLabelsCursor = mcColLabelsBuilder.cursor<o2::aod::McCollisionLabels>();
@@ -1162,10 +1161,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     tfNumber = mTFNumber;
   }
 
-  uint64_t dummyBC = 0;
-  float dummyTime = 0.f;
-  uint8_t dummyTriggerMask = 0;
-
   int nFV0ChannelsAside = o2::fv0::Geometry::getNumberOfReadoutChannels();
   for (auto& fv0RecPoint : fv0RecPoints) {
     std::vector<float> vFV0Amplitudes(nFV0ChannelsAside, 0.);
@@ -1191,12 +1186,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                truncateFloatFraction(fv0RecPoint.getCollisionGlobalMeanTime() * 1E-3, mV0Time), // ps to ns
                fv0RecPoint.getTrigger().triggerSignals);
   }
-
-  float dummyFV0AmplC[32] = {0.};
-  fv0cCursor(0,
-             dummyBC,
-             dummyFV0AmplC,
-             dummyTime);
 
   for (auto zdcRecData : zdcBCRecData) {
     uint64_t bc = zdcRecData.ir.toLong();
@@ -1582,7 +1571,6 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   outputs.emplace_back(OutputLabel{"O2fdd"}, "AOD", "FDD", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2ft0"}, "AOD", "FT0", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2fv0a"}, "AOD", "FV0A", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2fv0c"}, "AOD", "FV0C", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2fwdtrack"}, "AOD", "FWDTRACK", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2fwdtrackcov"}, "AOD", "FWDTRACKCOV", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2mccollision"}, "AOD", "MCCOLLISION", 0, Lifetime::Timeframe);
