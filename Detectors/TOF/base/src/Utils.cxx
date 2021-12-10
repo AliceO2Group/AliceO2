@@ -59,13 +59,9 @@ void Utils::init()
   memset(mBCmult, 0, o2::constants::lhc::LHCMaxBunches * sizeof(mBCmult[0]));
 }
 
-void Utils::addCalibTrack(float ctime, bool subLatency)
+void Utils::addCalibTrack(float ctime)
 {
-  if (!hasFillScheme()) { // skip if fill scheme missing
-    return;
-  }
-
-  mCalibTracks[mNCalibTracks].setDeltaTimePi(subtractInteractionBC(ctime, subLatency));
+  mCalibTracks[mNCalibTracks].setDeltaTimePi(ctime);
 
   mNCalibTracks++;
 

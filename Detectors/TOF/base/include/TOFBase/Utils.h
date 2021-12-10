@@ -47,7 +47,7 @@ class Utils
   static float subtractInteractionBC(float time, bool subLatency = false);
   static void init();
   static void printFillScheme();
-  static void addCalibTrack(float time, bool subLatency = false);
+  static void addCalibTrack(float time);
   static void computeLHCphase();
 
   // info can be tuned

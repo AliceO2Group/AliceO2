@@ -30,6 +30,8 @@
 #include "TStopwatch.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataRefUtils.h"
+#include "TOFBase/Utils.h"
+#include "Steer/MCKinematicsReader.h"
 
 #include <memory> // for make_shared, make_unique, unique_ptr
 #include <vector>
@@ -71,6 +73,19 @@ class TOFDPLClustererTask
 
     mClusterer.setCalibFromCluster(mIsCalib);
     mClusterer.setDeltaTforClustering(mTimeWin);
+
+    // initialize collision context
+    auto mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
+    auto context = mcReader->getDigitizationContext();
+    if (context) {
+      auto bcf = context->getBunchFilling();
+      std::bitset<3564> isInBC = bcf.getBCPattern();
+      for (unsigned int i = 0; i < isInBC.size(); i++) {
+        if (isInBC.test(i)) {
+          o2::tof::Utils::addInteractionBC(i, true);
+        }
+      }
+    }
   }
 
   void run(framework::ProcessingContext& pc)
@@ -154,7 +169,7 @@ class TOFDPLClustererTask
       mCosmicProcessor.clear();
     }
 
-    for (int i = 0; i < row.size(); i++) {
+    for (unsigned int i = 0; i < row.size(); i++) {
       //fill trm pattern but process them in clusterize since they are for readout windows
       calibapi.resetTRMErrors();
 

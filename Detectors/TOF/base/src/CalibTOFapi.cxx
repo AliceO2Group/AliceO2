@@ -58,7 +58,6 @@ void CalibTOFapi::readActiveMap()
       //printf("%d) Enabled= %d\n",ich,fee->mChannelEnabled[ich]);
       if (!fee->getChannelEnabled(ich)) {
         mIsOffCh[ich] = true;
-        printf("disable %d\n", ich);
       }
     }
   } else {
@@ -257,7 +256,7 @@ float CalibTOFapi::getTimeCalibration(int ich, float tot)
   }
   //  printf("LHC phase apply\n");
   // LHCphase
-  corr += mLHCphase->getLHCphase(int(mTimeStamp / 1000)); // timestamp that we use in LHCPhase is in seconds, but for CCDB we need it in ms
+  corr += mLHCphase->getLHCphase(mTimeStamp); // timestamp that we use in LHCPhase is in seconds
   // time slewing + channel offset
   //printf("eval time sleweing calibration: ch=%d   tot=%f (lhc phase = %f)\n",ich,tot,corr);
   corr += mSlewParam->evalTimeSlewing(ich, tot);

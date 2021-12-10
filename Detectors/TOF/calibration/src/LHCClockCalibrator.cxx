@@ -16,7 +16,6 @@
 #include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
 #include "DetectorsRaw/HBFUtils.h"
-#include "TOFBase/Utils.h"
 
 namespace o2
 {
@@ -44,13 +43,6 @@ void LHCClockDataHisto::fill(const gsl::span<const o2::dataformats::CalibInfoTOF
     auto tot = data[i].getTot();
     auto corr = calibApi->getTimeCalibration(ch, tot); // we take into account LHCphase, offsets and time slewing
     dt -= corr;
-
-    if (!Utils::hasFillScheme()) {
-      Utils::addBC(dt, true);
-
-      continue;
-    }
-    dt = Utils::subtractInteractionBC(dt, true);
 
     //    printf("ch=%d - tot=%f - corr=%f -> dtcorr = %f (range=%f, bin=%d)\n",ch,tot,corr,dt,range,int((dt+range)*v2Bin));
 

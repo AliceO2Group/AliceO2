@@ -29,20 +29,11 @@ struct TOFFEElightInfo {
   int mVersion = -1;   // version
   int mRunNumber = -1; // run number
   int mRunType = -1;   // run type
-  std::array<bool, NCHANNELS> mChannelEnabled;
-  std::array<int, NCHANNELS> mMatchingWindow;      // can it be int32_t?
-  std::array<int, NCHANNELS> mLatencyWindow;       // can it be int32_t?
-  std::array<uint64_t, NTRIGGERMAPS> mTriggerMask; // trigger mask, can it be uint32_t?
-  TOFFEElightInfo()
-  {
-    mVersion = -1;
-    mRunNumber = -1;
-    mRunType = -1;
-    mChannelEnabled.fill(false);
-    mMatchingWindow.fill(0);
-    mLatencyWindow.fill(0);
-    mTriggerMask.fill(0);
-  }
+  std::array<bool, NCHANNELS> mChannelEnabled{false};
+  std::array<int, NCHANNELS> mMatchingWindow{0};      // can it be int32_t?
+  std::array<int, NCHANNELS> mLatencyWindow{0};       // can it be int32_t?
+  std::array<uint64_t, NTRIGGERMAPS> mTriggerMask{0}; // trigger mask, can it be uint32_t?
+  TOFFEElightInfo() = default;
 
   void resetAll()
   {

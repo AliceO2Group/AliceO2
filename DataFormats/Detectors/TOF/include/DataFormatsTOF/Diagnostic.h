@@ -60,10 +60,28 @@ class Diagnostic
     }
     return iter->first;
   }
-  static int getSlot(ULong64_t pattern);
-  static int getCrate(ULong64_t pattern);
-  static int getChannel(ULong64_t pattern);
-  static int getNoisyLevel(ULong64_t pattern);
+  static int getSlot(ULong64_t pattern) { return (pattern & 68719476735) / 4294967296; }
+  static int getCrate(ULong64_t pattern) { return (pattern & 8796093022207) / 68719476736; }
+  static int getChannel(ULong64_t pattern)
+  {
+    if (getSlot(pattern) == 14) {
+      return (pattern & 262143);
+    }
+    return -1;
+  }
+  static int getNoisyLevel(ULong64_t pattern)
+  {
+    if (getChannel(pattern)) {
+      if (pattern & (1 << 20)) {
+        return 3;
+      } else if (pattern & (1 << 19)) {
+        return 2;
+      } else {
+        return 1;
+      }
+    }
+    return 0;
+  }
 
   const std::map<ULong64_t, uint32_t>& getVector() const { return mVector; }
 
@@ -74,7 +92,7 @@ class Diagnostic
   std::map<ULong64_t, uint32_t> mVector; // diagnostic frequency vector (key/pattern , frequency)
   int mTimestamp = 0;                    // timestamp in seconds
 
-  ClassDefNV(Diagnostic, 1);
+  ClassDefNV(Diagnostic, 2);
 };
 
 } // namespace tof

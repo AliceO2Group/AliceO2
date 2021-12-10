@@ -43,6 +43,7 @@
 
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
+#include "TOFBase/Utils.h"
 
 using namespace o2::globaltracking;
 using evGIdx = o2::dataformats::EvIndex<int, o2::dataformats::GlobalTrackID>;
@@ -1096,9 +1097,11 @@ void MatchTOF::selectBestMatches()
 
     // add also calibration infos
     if (sourceID == o2::dataformats::GlobalTrackID::ITSTPC) {
+      float deltat = o2::tof::Utils::subtractInteractionBC(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - t0info - intLT.getTOF(o2::track::PID::Pion), true);
+
       mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
                                  mTimestamp / 1000 + int(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E-12), // add time stamp
-                                 mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - t0info - intLT.getTOF(o2::track::PID::Pion),
+                                 deltat,
                                  mTOFClusWork[matchingPair.getTOFClIndex()].getTot());
     }
 
