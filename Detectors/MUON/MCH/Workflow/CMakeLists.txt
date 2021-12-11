@@ -9,6 +9,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+
+add_library(obj-mch-reco OBJECT)
+target_sources(obj-mch-reco PRIVATE src/TimeClusterFinderSpec.cxx)
+target_link_libraries(obj-mch-reco PUBLIC O2::Framework O2::MCHTimeClustering
+ O2::MCHTracking)
+
 # MCHWorkflow library is (at least) needed by Detectors/CTF/workflow
 o2_add_library(MCHWorkflow
                SOURCES
@@ -16,7 +22,6 @@ o2_add_library(MCHWorkflow
                    src/ClusterReaderSpec.cxx
                    src/ClusterWriterSpec.cxx
                    src/DataDecoderSpec.cxx
-                   src/TimeClusterFinderSpec.cxx
                    src/PreClusterFinderSpec.cxx
                    src/SanityCheck.cxx
                    src/TrackReaderSpec.cxx
@@ -31,7 +36,6 @@ o2_add_library(MCHWorkflow
                    O2::MCHCTF
                    O2::MCHClustering
                    O2::MCHPreClustering
-                   O2::MCHTimeClustering
                    O2::MCHRawCommon
                    O2::MCHRawDecoder
                )
@@ -71,7 +75,9 @@ o2_add_executable(
         digits-to-timeclusters-workflow
         SOURCES src/digits-to-timeclusters-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+        PUBLIC_LINK_LIBRARIES O2::MCHBase
+        TARGETVARNAME mch-time-cluster-finder)
+target_link_libraries(${mch-time-cluster-finder} PRIVATE obj-mch-reco)
 
 o2_add_executable(
         digits-filtering-workflow
@@ -223,7 +229,8 @@ o2_add_executable(
             O2::MCHWorkflow
             O2::SimulationDataFormat
             O2::Steer
-        )
+        TARGETVARNAME mch-reco-workflow)
+target_link_libraries(${mch-reco-workflow} PRIVATE obj-mch-reco)
 
 o2_add_executable(tracks-file-dumper
         SOURCES src/tracks-file-dumper.cxx
