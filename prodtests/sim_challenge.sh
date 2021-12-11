@@ -175,7 +175,7 @@ if [ "$doreco" == "1" ]; then
 
   echo "Running ITS-TPC matching flow"
   #needs results of o2-tpc-reco-workflow, o2-its-reco-workflow and o2-fit-reco-workflow
-  taskwrapper itstpcMatch.log o2-tpcits-match-workflow $gloOpt
+  taskwrapper itstpcMatch.log o2-tpcits-match-workflow --use-ft0 $gloOpt
   echo "Return status of itstpcMatch: $?"
 
   echo "Running TRD matching to ITS-TPC and TPC"
