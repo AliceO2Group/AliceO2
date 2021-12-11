@@ -284,10 +284,11 @@ using pack_to_tuple_t = decltype(pack_to_tuple(P{}));
 template <typename T, std::size_t N, typename... REST>
 constexpr auto repeat_type_pack(pack<REST...>)
 {
-  if constexpr (N == 0)
+  if constexpr (N == 0) {
     return pack<REST...>{};
-  else
+  } else {
     return repeat_type_pack<T, N - 1, REST...>(pack<T, REST...>{});
+  }
 }
 
 template <typename T, std::size_t N>
