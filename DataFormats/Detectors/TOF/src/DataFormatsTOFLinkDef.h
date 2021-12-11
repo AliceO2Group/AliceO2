@@ -15,6 +15,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 #pragma link C++ class o2::tof::Cluster + ;
+#pragma link C++ class o2::tof::TOFFEElightInfo + ;
 #pragma link C++ class o2::tof::CalibInfoCluster + ;
 #pragma link C++ class o2::tof::CosmicInfo + ;
 #pragma link C++ class o2::tof::CalibInfoTrackCl + ;

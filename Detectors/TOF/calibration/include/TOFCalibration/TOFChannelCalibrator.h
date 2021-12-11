@@ -36,6 +36,7 @@
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CcdbApi.h"
 #include <boost/format.hpp>
+#include "TOFBase/Utils.h"
 
 //#define DEBUGGING
 

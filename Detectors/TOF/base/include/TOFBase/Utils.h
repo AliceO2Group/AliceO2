@@ -15,6 +15,8 @@
 #include <iosfwd>
 #include "Rtypes.h"
 #include "TOFBase/Geo.h"
+#include "TOFBase/EventTimeMaker.h"
+#include "DataFormatsTOF/CalibInfoTOF.h"
 #include <vector>
 
 namespace o2
@@ -23,6 +25,13 @@ namespace tof
 {
 /// \class Utils
 /// \brief TOF utils
+
+template <typename trackType>
+bool filterCalib(const o2::dataformats::CalibInfoTOF& tr)
+{
+  return true;
+} // accept all
+
 class Utils
 {
  public:
@@ -32,12 +41,14 @@ class Utils
   static int getNinteractionBC();
   static void addBC(float toftime, bool subLatency = false);
   static void addBC(double toftime, bool subLatency = false) { addBC(float(toftime), subLatency); }
-  static void addInteractionBC(int bc, bool subLatency = false) { mFillScheme.push_back(bc); }
+  static void addInteractionBC(int bc, bool fromCollisonCotext = false);
   static int getInteractionBC(int ibc) { return mFillScheme[ibc]; }
   static double subtractInteractionBC(double time, bool subLatency = false);
   static float subtractInteractionBC(float time, bool subLatency = false);
   static void init();
   static void printFillScheme();
+  static void addCalibTrack(float time);
+  static void computeLHCphase();
 
   // info can be tuned
   static float mEventTimeSpread;
@@ -51,6 +62,15 @@ class Utils
   static int mNautodet;
   static int mMaxBC;
   static bool mIsInit;
+
+  // for LHCphase from calib infos
+  static constexpr int NTRACKS_REQUESTED = 1000;
+  static int mNCalibTracks;
+  static o2::dataformats::CalibInfoTOF mCalibTracks[NTRACKS_REQUESTED];
+  static int mNsample;
+  static int mIsample;
+  static float mPhases[100];
+
   ClassDefNV(Utils, 1);
 };
 

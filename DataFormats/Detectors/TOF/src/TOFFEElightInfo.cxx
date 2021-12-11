@@ -9,25 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TOFCalibWriterSpec.h
+/// \file CosmicInfo.cxx
+/// \brief Implementation of the TOF cluster calib info
 
-#ifndef TOFWORKFLOW_TOFCALIBWRITER_H_
-#define TOFWORKFLOW_TOFCALIBWRITER_H_
+#include "DataFormatsTOF/TOFFEElightInfo.h"
 
-#include "Framework/DataProcessorSpec.h"
-
-using namespace o2::framework;
-
-namespace o2
-{
-namespace tof
-{
-
-/// create a processor spec
-/// write TOF calbi info in a root file
-o2::framework::DataProcessorSpec getTOFCalibWriterSpec(const char* outdef = "o2calib_tof.root", bool toftpc = false, bool addDia = false);
-
-} // namespace tof
-} // namespace o2
-
-#endif /* TOFWORKFLOW_TOFCALIBWRITER_H_ */
+ClassImp(o2::tof::TOFFEElightInfo);

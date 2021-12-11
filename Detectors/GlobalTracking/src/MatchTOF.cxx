@@ -43,6 +43,7 @@
 
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
+#include "TOFBase/Utils.h"
 
 using namespace o2::globaltracking;
 using evGIdx = o2::dataformats::EvIndex<int, o2::dataformats::GlobalTrackID>;
@@ -676,7 +677,7 @@ void MatchTOF::doMatching(int sec)
           foundCluster = true;
           // set event indexes (to be checked)
           int eventIndexTOFCluster = mTOFClusSectIndexCache[indices[0]][itof];
-          mMatchedTracksPairs.emplace_back(cacheTrk[itrk], eventIndexTOFCluster, mTOFClusWork[cacheTOF[itof]].getTime(), chi2, trkLTInt[iPropagation], mTrackGid[type][cacheTrk[itrk]], type, trefTOF.getTime() - (minTrkTime + maxTrkTime) * 0.5, 0., resX, resZ); // TODO: check if this is correct!
+          mMatchedTracksPairs.emplace_back(cacheTrk[itrk], eventIndexTOFCluster, mTOFClusWork[cacheTOF[itof]].getTime(), chi2, trkLTInt[iPropagation], mTrackGid[type][cacheTrk[itrk]], type, (trefTOF.getTime() - (minTrkTime + maxTrkTime) * 0.5) * 1E-6, 0., resX, resZ); // TODO: check if this is correct!
         }
       }
     }
@@ -1096,9 +1097,11 @@ void MatchTOF::selectBestMatches()
 
     // add also calibration infos
     if (sourceID == o2::dataformats::GlobalTrackID::ITSTPC) {
+      float deltat = o2::tof::Utils::subtractInteractionBC(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - t0info - intLT.getTOF(o2::track::PID::Pion), true);
+
       mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
-                                 int(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E-12), // add time stamp
-                                 mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - t0info - intLT.getTOF(o2::track::PID::Pion),
+                                 mTimestamp / 1000 + int(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E-12), // add time stamp
+                                 deltat,
                                  mTOFClusWork[matchingPair.getTOFClIndex()].getTot());
     }
 
@@ -1185,6 +1188,8 @@ void MatchTOF::selectBestMatchesHP()
     }
     mMatchedTracks[trkTypeSplitted].push_back(matchingPair); // array of MatchInfoTOF
 
+    const o2::track::TrackLTIntegral& intLT = matchingPair.getLTIntegralOut();
+
     // get fit info
     double t0info = 0;
 
@@ -1195,15 +1200,20 @@ void MatchTOF::selectBestMatchesHP()
         o2::InteractionRecord ir = mFITRecPoints[index].getInteractionRecord();
         t0info = ir.bc2ns() * 1E3;
       }
+    } else { // move time to time in orbit to avoid loss of precision when truncating from double to float
+      int bcStarOrbit = int((mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - intLT.getTOF(o2::track::PID::Pion)) * o2::tof::Geo::BC_TIME_INPS_INV);
+      bcStarOrbit = (bcStarOrbit / o2::constants::lhc::LHCMaxBunches) * o2::constants::lhc::LHCMaxBunches; // truncation
+      t0info = bcStarOrbit * o2::tof::Geo::BC_TIME_INPS;
     }
 
-    const o2::track::TrackLTIntegral& intLT = matchingPair.getLTIntegralOut();
-
     // add also calibration infos
-    mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
-                               int(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E12), // add time stamp
-                               mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - intLT.getTOF(o2::track::PID::Pion) - t0info,
-                               mTOFClusWork[matchingPair.getTOFClIndex()].getTot());
+    if (sourceID == o2::dataformats::GlobalTrackID::ITSTPC) {
+      mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
+                                 mTimestamp / 1000 + int(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E-12), // add time stamp
+                                 mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - t0info - intLT.getTOF(o2::track::PID::Pion),
+                                 mTOFClusWork[matchingPair.getTOFClIndex()].getTot());
+    }
+
     if (mMCTruthON) {
       const auto& labelsTOF = mTOFClusLabels->getLabels(matchingPair.getTOFClIndex());
       auto& labelTrack = mTracksLblWork[trkType][itrk];
