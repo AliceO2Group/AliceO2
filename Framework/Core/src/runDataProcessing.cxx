@@ -613,13 +613,6 @@ struct DeviceStdioContext {
   int childstdout[2];
 };
 
-void prepareStdio(std::vector<DeviceStdioContext>& deviceStdio)
-{
-  for (auto& context : deviceStdio) {
-    createPipes(context.childstdin);
-    createPipes(context.childstdout);
-  }
-}
 void handleSignals()
 {
   struct sigaction sa_handle_int;
@@ -649,8 +642,6 @@ void handleChildrenStdio(uv_loop_t* loop,
   for (size_t i = 0; i < childFds.size(); ++i) {
     auto& childstdin = childFds[i].childstdin;
     auto& childstdout = childFds[i].childstdout;
-    close(childstdin[0]);
-    close(childstdout[1]);
 
     uv_work_t* req = (uv_work_t*)malloc(sizeof(uv_work_t));
     req->data = new StreamConfigContext{forwardedStdin, childstdin[1]};
@@ -759,6 +750,8 @@ void spawnDevice(DeviceRef ref,
     }
     execvp(execution.args[0], execution.args.data());
   }
+  close(childFds[ref.index].childstdin[0]);
+  close(childFds[ref.index].childstdout[1]);
   if (varmap.count("post-fork-command")) {
     auto templateCmd = varmap["post-fork-command"];
     auto cmd = fmt::format(templateCmd.as<std::string>(),
@@ -1695,8 +1688,10 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           callback(serviceRegistry, varmap);
         }
         childFds.resize(runningWorkflow.devices.size());
-        prepareStdio(childFds);
         for (int di = 0; di < runningWorkflow.devices.size(); ++di) {
+          auto& context = childFds[di];
+          createPipes(context.childstdin);
+          createPipes(context.childstdout);
           if (runningWorkflow.devices[di].resource.hostname != driverInfo.deployHostname) {
             spawnRemoteDevice(forwardedStdin.str(),
                               runningWorkflow.devices[di], controls[di], deviceExecutions[di], infos);
