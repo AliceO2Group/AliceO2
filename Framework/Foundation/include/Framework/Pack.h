@@ -272,6 +272,29 @@ constexpr auto unique_pack(pack<T, Ts...>, PT p2)
 template <typename P>
 using unique_pack_t = decltype(unique_pack(P{}, pack<>{}));
 
+template <typename P, typename Is>
+struct pack_to_tuple;
+
+template <typename P, std::size_t... Is>
+struct pack_to_tuple<P, std::index_sequence<Is...>> {
+  using type = std::tuple<pack_element_t<Is, P>...>;
+};
+
+template <typename P>
+using pack_to_tuple_t = typename pack_to_tuple<P, std::make_index_sequence<pack_size(P{})>>::type;
+
+template <typename T, std::size_t N, typename... REST>
+constexpr auto repeat_type_pack(pack<REST...>)
+{
+  if constexpr (N == 0)
+    return pack<REST...>{};
+  else
+    return repeat_type_pack<T, N - 1, REST...>(pack<T, REST...>{});
+}
+
+template <typename T, std::size_t N>
+using repeated_type_pack_t = decltype(repeat_type_pack<T, N>(pack<>{}));
+
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_PACK_H_

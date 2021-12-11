@@ -14,39 +14,10 @@
 
 #include "Framework/ASoAHelpers.h"
 #include "Framework/GroupSlicer.h"
-#include "Framework/StringHelpers.h"
+#include "Framework/Pack.h"
 
 namespace o2::framework
 {
-
-// Define the type of a tuple interleaved from 2 tuples
-// Base struct without specialization
-template <typename T1, typename T2>
-struct InterleavedTupleType {
-  template <typename... Is>
-  struct TupleType {
-    using type = std::false_type;
-  };
-  template <std::size_t... Is>
-  struct TupleType<std::index_sequence<Is...>> {
-    using type = std::tuple<pack_element_t<Is, interleaved_pack_t<pack<T1>, pack<T2>>>...>;
-  };
-  using type = typename TupleType<std::make_index_sequence<2>>::type;
-};
-
-// Proper specialization with tuples
-template <typename... T1s, typename... T2s>
-struct InterleavedTupleType<std::tuple<T1s...>, std::tuple<T2s...>> {
-  template <typename... Is>
-  struct TupleType {
-    using type = std::false_type;
-  };
-  template <std::size_t... Is>
-  struct TupleType<std::index_sequence<Is...>> {
-    using type = std::tuple<pack_element_t<Is, interleaved_pack_t<pack<T1s...>, pack<T2s...>>>...>;
-  };
-  using type = typename TupleType<std::make_index_sequence<sizeof...(T1s) + sizeof...(T2s)>>::type;
-};
 
 // Create an instance of a tuple interleaved from given tuples
 template <typename... T1s, typename... T2s, std::size_t... Is>
@@ -87,7 +58,7 @@ struct GroupedCombinationsGenerator {
 template <typename T1, typename GroupingPolicy, typename H, typename G, typename... Us, typename... As>
 struct GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<Us...>, As...> {
   using joinIterator = typename soa::Join<H, G>::table_t::iterator;
-  using GroupedIteratorType = typename InterleavedTupleType<typename o2::soa::NTupleType<joinIterator, sizeof...(As)>::type, typename std::tuple<As...>>::type;
+  using GroupedIteratorType = pack_to_tuple_t<interleaved_pack_t<repeated_type_pack_t<joinIterator, sizeof...(As)>, pack<As...>>>;
 
   struct GroupedIterator : public std::iterator<std::forward_iterator_tag, GroupedIteratorType>, public GroupingPolicy {
    public:
@@ -282,13 +253,13 @@ struct GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<Us...>, As...
 template <typename H, typename G>
 using joinedCollisions = typename soa::Join<H, G>::table_t;
 template <typename H, typename G, typename A1, typename A2, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<T1, joinedCollisions<H, G>, joinedCollisions<H, G>>>
-using Pair = GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, unique_types<pack<A1, A2>>, A1, A2>;
+using Pair = GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, unique_pack_t<pack<A1, A2>>>;
 template <typename H, typename G, typename A, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<T1, joinedCollisions<H, G>, joinedCollisions<H, G>>>
 using SameKindPair = GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<A>, A, A>;
 
 // Aliases for 3-particle correlations
 template <typename H, typename G, typename A1, typename A2, typename A3, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<T1, joinedCollisions<H, G>, joinedCollisions<H, G>, joinedCollisions<H, G>>>
-using Triple = GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, unique_types<pack<A1, A2, A3>>, A1, A2, A3>;
+using Triple = GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, unique_pack_t<pack<A1, A2, A3>>>;
 template <typename H, typename G, typename A, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<T1, joinedCollisions<H, G>, joinedCollisions<H, G>, joinedCollisions<H, G>>>
 using SameKindTriple = GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<A>, A, A, A>;
 
