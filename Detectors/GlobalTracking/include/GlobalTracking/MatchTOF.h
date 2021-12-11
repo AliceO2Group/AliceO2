@@ -178,6 +178,9 @@ class MatchTOF
     container.resize(nconstrained);
   }
 
+  void setTS(unsigned long creationTime) { mTimestamp = creationTime; }
+  unsigned long getTS() const { return mTimestamp; }
+
  private:
   bool prepareFITData();
   int prepareInteractionTimes();
@@ -232,6 +235,8 @@ class MatchTOF
   bool mIsTPCTRDused = false;
   bool mIsITSTPCTRDused = false;
   bool mSetHighPurity = false;
+
+  unsigned long mTimestamp = 0; ///< in ms
 
   // from ruben
   gsl::span<const o2::tpc::TrackTPC> mTPCTracksArray; ///< input TPC tracks span

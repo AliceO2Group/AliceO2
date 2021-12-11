@@ -74,6 +74,7 @@ class CompressedDecodingTask : public DecoderBase, public Task
   bool mRowFilter = false;
   bool mMaskNoise = false;
   int mNoiseRate = 1000;
+  unsigned long mCreationTime = 0;
   TStopwatch mTimer;
 };
 

@@ -25,7 +25,8 @@ o2_add_library(TOFCalibration
                                      O2::DetectorsCalibration
                                      O2::DetectorsDCS
                                      ROOT::Minuit
-                                     Microsoft.GSL::GSL)
+                                     Microsoft.GSL::GSL
+                                     O2::Steer)
 
 
 o2_target_root_dictionary(TOFCalibration

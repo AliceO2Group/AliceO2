@@ -27,6 +27,7 @@
 #include "Framework/CallbacksPolicy.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "TOFBase/Utils.h"
+#include "Steer/MCKinematicsReader.h"
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
@@ -97,6 +98,21 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       fillscheme.erase(0, next + 1);
     } else {
       fillscheme.clear();
+    }
+  }
+
+  if (!o2::tof::Utils::hasFillScheme()) {
+    // check collision context
+    auto mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
+    auto context = mcReader->getDigitizationContext();
+    if (!context) {
+      auto bcf = context->getBunchFilling();
+      std::bitset<3564> isInBC = bcf.getBCPattern();
+      for (int i = 0; i < isInBC.size(); i++) {
+        if (isInBC.test(i)) {
+          o2::tof::Utils::addInteractionBC(i, true);
+        }
+      }
     }
   }
 
