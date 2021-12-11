@@ -12,17 +12,17 @@
 #include "ClusterTransformerSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
-#include "Framework/CallbacksPolicy.h"
 #include "DigitFilteringSpec.h"
 #include "DigitReaderSpec.h"
+#include "Framework/CallbacksPolicy.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/Logger.h"
 #include "Framework/Variant.h"
 #include "Framework/WorkflowSpec.h"
 #include "MCHWorkflow/ClusterFinderOriginalSpec.h"
 #include "MCHWorkflow/PreClusterFinderSpec.h"
-#include "MCHWorkflow/TimeClusterFinderSpec.h"
 #include "MCHWorkflow/TrackWriterSpec.h"
+#include "TimeClusterFinderSpec.h"
 #include "TrackFinderSpec.h"
 #include "TrackFitterSpec.h"
 #include "TrackMCLabelFinderSpec.h"
@@ -70,6 +70,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
                                                     "DIGITLABELS", "F-DIGITLABELS"));
 
   specs.emplace_back(o2::mch::getTimeClusterFinderSpec("mch-time-cluster-finder",
+                                                       "F-DIGITS",
                                                        "F-DIGITROFS",
                                                        "TC-F-DIGITROFS"));
 
