@@ -272,16 +272,14 @@ constexpr auto unique_pack(pack<T, Ts...>, PT p2)
 template <typename P>
 using unique_pack_t = decltype(unique_pack(P{}, pack<>{}));
 
-template <typename P, typename Is>
-struct pack_to_tuple;
-
-template <typename P, std::size_t... Is>
-struct pack_to_tuple<P, std::index_sequence<Is...>> {
-  using type = std::tuple<pack_element_t<Is, P>...>;
-};
+template <typename... Ts>
+inline constexpr std::tuple<Ts...> pack_to_tuple(pack<Ts...>)
+{
+  return std::tuple<Ts...>{};
+}
 
 template <typename P>
-using pack_to_tuple_t = typename pack_to_tuple<P, std::make_index_sequence<pack_size(P{})>>::type;
+using pack_to_tuple_t = decltype(pack_to_tuple(P{}));
 
 template <typename T, std::size_t N, typename... REST>
 constexpr auto repeat_type_pack(pack<REST...>)
