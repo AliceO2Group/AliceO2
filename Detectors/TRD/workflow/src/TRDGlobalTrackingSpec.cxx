@@ -436,7 +436,7 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
     outerParam = recoCont->getTPCITSTrack(trk.getRefGlobalTrackId()); // start from the inner kinematics of ITS-TPC
     // refit
     for (int icl = 0; icl < nCl; icl++) {                                                                                  // clusters are stored from inner to outer layers
-      const auto& clus = mITSClustersArray[mITSABTrackClusIdx[clRefs[nCl - icl - 1] = mITSABTrackClusIdx[clEntry + icl]]]; // register in clRefs from outer to inner layer
+      const auto& clus = mITSClustersArray[clRefs[nCl - icl - 1] = mITSABTrackClusIdx[clEntry + icl]];                     // register in clRefs from outer to inner layer
       if (!outerParam.rotate(geom->getSensorRefAlpha(clus.getSensorID())) ||
           !propagator->propagateToX(outerParam, clus.getX(), propagator->getNominalBz(), o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, o2::base::Propagator::MatCorrType::USEMatCorrLUT)) {
         break;
