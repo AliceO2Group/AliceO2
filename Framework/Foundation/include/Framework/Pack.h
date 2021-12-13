@@ -281,18 +281,14 @@ inline constexpr std::tuple<Ts...> pack_to_tuple(pack<Ts...>)
 template <typename P>
 using pack_to_tuple_t = decltype(pack_to_tuple(P{}));
 
-template <typename T, std::size_t N, typename... REST>
-constexpr auto repeat_type_pack()
+template <typename T, std::size_t... Is>
+inline auto sequence_to_pack(std::integer_sequence<std::size_t, Is...>)
 {
-  if constexpr (N == 0) {
-    return pack<REST...>{};
-  } else {
-    return repeat_type_pack<T, N - 1, T, REST...>();
-  }
-}
+  return pack<decltype((Is, T{}))...>{};
+};
 
 template <typename T, std::size_t N>
-using repeated_type_pack_t = decltype(repeat_type_pack<T, N>());
+using repeated_type_pack_t = decltype(sequence_to_pack<T>(std::make_index_sequence<N>()));
 
 } // namespace o2::framework
 
