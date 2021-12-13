@@ -134,6 +134,7 @@ o2_add_test_root_macro(macro/createTPCSpaceChargeCorrection.C
                        LABELS tpc)
 
 o2_add_test_root_macro(macro/findKrBoxCluster.C
+                      COMPILE_ONLY
                       PUBLIC_LINK_LIBRARIES O2::TPCReconstruction
                       LABELS tpc)
 
