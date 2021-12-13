@@ -14,6 +14,7 @@
 #ifndef ALICEO2_SUBTIMEFRAME_FILE_READER_RAWDD_H_
 #define ALICEO2_SUBTIMEFRAME_FILE_READER_RAWDD_H_
 
+#include "TFReaderDD/SubTimeFrameFile.h"
 #include <Headers/DataHeader.h>
 #include <Headers/STFHeader.h>
 #include "DetectorsCommonDataFormats/DetID.h"

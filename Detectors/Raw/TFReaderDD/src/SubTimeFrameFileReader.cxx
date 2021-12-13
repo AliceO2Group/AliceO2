@@ -11,7 +11,6 @@
 
 // Adapthed with minimal changes from Gvozden Nescovic code to read sTFs files created by DataDistribution
 
-#include "TFReaderDD/SubTimeFrameFile.h"
 #include "TFReaderDD/SubTimeFrameFileReader.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "Framework/Logger.h"
