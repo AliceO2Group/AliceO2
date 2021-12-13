@@ -282,17 +282,17 @@ template <typename P>
 using pack_to_tuple_t = decltype(pack_to_tuple(P{}));
 
 template <typename T, std::size_t N, typename... REST>
-constexpr auto repeat_type_pack(pack<REST...>)
+constexpr auto repeat_type_pack()
 {
   if constexpr (N == 0) {
     return pack<REST...>{};
   } else {
-    return repeat_type_pack<T, N - 1, REST...>(pack<T, REST...>{});
+    return repeat_type_pack<T, N - 1, T, REST...>();
   }
 }
 
 template <typename T, std::size_t N>
-using repeated_type_pack_t = decltype(repeat_type_pack<T, N>(pack<>{}));
+using repeated_type_pack_t = decltype(repeat_type_pack<T, N>());
 
 } // namespace o2::framework
 
