@@ -17,6 +17,7 @@ if(NOT VMC_FOUND)
   set_target_properties(ROOT::VMC PROPERTIES IMPORTED_GLOBAL TRUE)
   add_library(MC::VMC ALIAS ROOT::VMC)
   set(VMC_FOUND TRUE)
+  return()
 endif()
 
 # Promote the imported target to global visibility
