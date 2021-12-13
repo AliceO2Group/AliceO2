@@ -13,6 +13,7 @@
 // Created by Sandro Wenzel on 2019-08-14.
 //
 #include "CCDB/BasicCCDBManager.h"
+#include "FairLogger.h"
 #include <string>
 
 namespace o2
@@ -23,6 +24,11 @@ namespace ccdb
 void CCDBManagerInstance::setURL(std::string const& url)
 {
   mCCDBAccessor.init(url);
+}
+
+void CCDBManagerInstance::reportFatal(std::string_view err)
+{
+  LOG(fatal) << err;
 }
 
 } // namespace ccdb

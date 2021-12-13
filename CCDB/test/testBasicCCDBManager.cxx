@@ -67,9 +67,11 @@ BOOST_AUTO_TEST_CASE(TestBasicCCDBManager)
   BOOST_CHECK(objA && (*objA) == hack); // make sure correct object is loaded
 
   // now check wrong object reading, 0 will be returned and cache will be cleaned
+  cdb.setFatalWhenNull(false);
   objA = cdb.getForTimeStamp<std::string>(pathA, start - (stop - start) / 2); // wrong time
   LOG(info) << "Read for wrong time, expect null: " << objA;
   BOOST_CHECK(objA == nullptr);
+  cdb.setFatalWhenNull(true);
   objA = cdb.get<std::string>(pathA); // cache again
   LOG(info) << "Reading of A from scratch after error: " << *objA;
   BOOST_CHECK(objA && (*objA) != hack); // make sure we did not get cached object
@@ -102,6 +104,7 @@ BOOST_AUTO_TEST_CASE(TestBasicCCDBManager)
 
   // get object in TimeMachine mode in the past
   cdb.setCreatedNotAfter(1);          // set upper object validity
+  cdb.setFatalWhenNull(false);
   objA = cdb.get<std::string>(pathA); // should not be loaded
   BOOST_CHECK(!objA);                 // make sure correct object is not loaded
   cdb.resetCreatedNotAfter();         // resetting upper validity limit
@@ -111,6 +114,7 @@ BOOST_AUTO_TEST_CASE(TestBasicCCDBManager)
   objA = cdb.get<std::string>(pathA);     // should not be loaded
   BOOST_CHECK(!objA);                     // make sure correct object is not loaded
   cdb.resetCreatedNotBefore();            // resetting upper validity limit
+  cdb.setFatalWhenNull(true);
 
   // disable cache at all (will also clean it)
   cdb.setCaching(false);
