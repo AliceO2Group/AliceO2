@@ -11,7 +11,12 @@
 
 find_package(VMC NO_MODULE)
 if(NOT VMC_FOUND)
-  return()
+  if(NOT ROOT_vmc_FOUND)
+    return()
+  endif()
+  set_target_properties(ROOT::VMC PROPERTIES IMPORTED_GLOBAL TRUE)
+  add_library(MC::VMC ALIAS ROOT::VMC)
+  set(VMC_FOUND TRUE)
 endif()
 
 # Promote the imported target to global visibility
