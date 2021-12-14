@@ -1434,7 +1434,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           };
           bool altered = false;
           for (auto& device : altered_workflow) {
-            LOGF(debug, "Adjusting device %s", device.name.c_str());
             // ignore internal devices
             if (device.name.find("internal") != std::string::npos) {
               continue;
@@ -1460,6 +1459,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
               continue;
             }
 
+            LOGP(debug, "Adjusting device {}", device.name.c_str());
+
             auto configStore = DeviceConfigurationHelpers::getConfiguration(serviceRegistry, device.name.c_str(), device.options);
             if (configStore != nullptr) {
               auto reg = std::make_unique<ConfigParamRegistry>(std::move(configStore));
@@ -1475,23 +1476,35 @@ int runStateMachine(DataProcessorSpecs const& workflow,
               }
             }
             /// FIXME: use commandline arguments as alternative
-            LOGF(debug, "Original inputs: ");
+            LOGP(debug, "Original inputs: ");
             for (auto& input : device.inputs) {
-              LOGF(debug, "-> %s", input.binding);
+              LOGP(debug, "-> {}", input.binding);
             }
             auto end = device.inputs.end();
             auto new_end = std::remove_if(device.inputs.begin(), device.inputs.end(), [](InputSpec& input) {
-              return !std::any_of(input.metadata.begin(), input.metadata.end(), [](ConfigParamSpec& param) {
-                if (param.type == VariantType::Bool && param.name.find("control:") != std::string::npos) {
-                  return param.defaultValue.get<bool>() == true;
+              auto requested = false;
+              auto hasControls = false;
+              for (auto& param : input.metadata) {
+                if (param.type != VariantType::Bool) {
+                  continue;
                 }
-                return true;
-              });
+                if (param.name.find("control:") != std::string::npos) {
+                  hasControls = true;
+                  if (param.defaultValue.get<bool>() == true) {
+                    requested = true;
+                    break;
+                  }
+                }
+              }
+              if (hasControls) {
+                return !requested;
+              }
+              return false;
             });
             device.inputs.erase(new_end, end);
-            LOGF(debug, "Adjusted inputs: ");
+            LOGP(debug, "Adjusted inputs: ");
             for (auto& input : device.inputs) {
-              LOGF(debug, "-> %s", input.binding);
+              LOGP(debug, "-> {}", input.binding);
             }
             altered = true;
           }
