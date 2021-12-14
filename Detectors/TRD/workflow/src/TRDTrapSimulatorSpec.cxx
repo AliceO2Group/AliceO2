@@ -30,8 +30,8 @@
 
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
-#include "TRDBase/Calibrations.h"
 #include "TRDSimulation/TRDSimParams.h"
+#include "TRDSimulation/TrapConfig.h"
 #include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 
