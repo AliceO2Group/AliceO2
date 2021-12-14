@@ -1606,6 +1606,9 @@ constexpr auto is_binding_compatible_v()
     auto _Getter_##_as() const                                                                                                    \
     {                                                                                                                             \
       assert(mBinding != nullptr);                                                                                                \
+      if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                                               \
+        throw o2::framework::runtime_error_f("Accessing invalid index for %s", #_Getter_);                                        \
+      }                                                                                                                           \
       return static_cast<T const*>(mBinding)->rawIteratorAt(*mColumnIterator);                                                    \
     }                                                                                                                             \
                                                                                                                                   \
@@ -1675,6 +1678,9 @@ constexpr auto is_binding_compatible_v()
     auto _Getter_##_as() const                                                                                          \
     {                                                                                                                   \
       assert(mBinding != nullptr);                                                                                      \
+      if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                                     \
+        throw o2::framework::runtime_error_f("Accessing invalid index for %s", #_Getter_);                              \
+      }                                                                                                                 \
       return static_cast<T const*>(mBinding)->rawIteratorAt(*mColumnIterator);                                          \
     }                                                                                                                   \
                                                                                                                         \
