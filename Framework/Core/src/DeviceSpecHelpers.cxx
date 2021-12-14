@@ -1182,9 +1182,9 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         if (preload == nullptr || strcmp(preload, "libSegFault.so") == 0) {
           tmpEnv.push_back("LD_PRELOAD=libSegFault.so");
         } else {
-          tmpEnv.push_back(fmt::format("LD_PRELOAD=\"{}:libSegFault.so\"", preload));
+          tmpEnv.push_back(fmt::format("LD_PRELOAD={}:libSegFault.so", preload));
         }
-        tmpEnv.push_back(fmt::format("SEGFAULT_SIGNALS=\"{}\"", varmap["stacktrace-on-signal"].as<std::string>()));
+        tmpEnv.push_back(fmt::format("SEGFAULT_SIGNALS={}", varmap["stacktrace-on-signal"].as<std::string>()));
       }
 
       // options can be grouped per processor spec, the group is entered by
