@@ -43,7 +43,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   using o2::framework::CompletionPolicy;
   policies.push_back(CompletionPolicyHelpers::defineByName("tpc-krypton-clusterer.*", CompletionPolicy::CompletionOp::Consume));
-  //policies.push_back(CompletionPolicyHelpers::defineByName("file-writer", CompletionPolicy::CompletionOp::Consume));
+  // policies.push_back(CompletionPolicyHelpers::defineByName("file-writer", CompletionPolicy::CompletionOp::Consume));
 
   // we customize the pipeline processors to consume data as it comes
   //
@@ -204,7 +204,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
                                                                             "TPCBoxCluster",
                                                                             "boxcluster-branch-name"}));
   } else if (writerType == WriterType::EPN) {
-    workflow.push_back(getFileWriterSpec("data:TPC/KRCLUSTERS"));
+    workflow.push_back(getFileWriterSpec<KrCluster>("data:TPC/KRCLUSTERS", BranchType::Krypton));
   }
 
   return workflow;
