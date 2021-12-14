@@ -18,17 +18,17 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+#include "TRDBase/Calibrations.h"
 #include "TRDSimulation/TrapSimulator.h"
-#include "TRDSimulation/TrapConfig.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/Constants.h"
-
-class Calibrations;
 
 namespace o2
 {
 namespace trd
 {
+
+class TrapConfig;
 
 class TRDDPLTrapSimulatorTask : public o2::framework::Task
 {

@@ -117,7 +117,7 @@ void ParseTrapConfigs(TrapConfig* trapconfig, AliTRDtrapConfig* run2config)
     //cout << "size is : " << run2config->fRegisterValue[regvalue].fSize << endl;
     //allocate will set the size of the arrays and resize them accordingly.
     //                cout<< "PROBLEM !! datacount " << datacount<<">="<<trapconfig->mRegisterValue.size() << " and run2 size is : "<< run2config->fRegisterValue[regvalue].fSize << " allocmode : "<< run2config->fRegisterValue[regvalue].fAllocMode << endl;
-    for (int datacount = 0; datacount < run2config->fRegisterValue[regvalue].fSize; datacount++) {
+    for (unsigned int datacount = 0; datacount < run2config->fRegisterValue[regvalue].fSize; datacount++) {
       if (datacount < trapconfig->mRegisterValue[regvalue].getDataSize()) {
         //      cout << " Writing :  " << run2config->fRegisterValue[regvalue].fData[datacount] << " :: with valid of " << run2config->fRegisterValue[regvalue].fValid[datacount] << endl;
         trapconfig->mRegisterValue[regvalue].setDataFromRun2(run2config->fRegisterValue[regvalue].fData[datacount], run2config->fRegisterValue[regvalue].fValid[datacount], datacount);
@@ -141,7 +141,7 @@ void ParseTrapConfigs(TrapConfig* trapconfig, AliTRDtrapConfig* run2config)
     trapconfig->mDmem[dmemwords].allocatei((int)run2config->fDmem[dmemwords].fAllocMode);
     //cout << "size is : " << run2config->fDmem[dmemwords].fSize << endl;
     //trapconfig->mDmem[dmemwords].mSize = run2config->fDmem[dmemwords].fSize;i// gets set via allocate method in line above
-    for (int datacount = 0; datacount < run2config->fDmem[dmemwords].fSize; datacount++) {
+    for (unsigned int datacount = 0; datacount < run2config->fDmem[dmemwords].fSize; datacount++) {
       if (datacount < trapconfig->mDmem[dmemwords].getDataSize()) {
         trapconfig->mDmem[dmemwords].setDataFromRun2(run2config->fDmem[dmemwords].fData[datacount], run2config->fDmem[dmemwords].fValid[datacount], datacount);
       } else
