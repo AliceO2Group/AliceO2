@@ -28,12 +28,13 @@ class MatchInfoFwd
 {
  public:
   MatchInfoFwd() = default;
-  MatchInfoFwd(int32_t MCHId, int32_t MFTId, float chi2)
-    : mMCHTrackID(MCHId), mMFTTrackID(MFTId), mMFTMCHMatchingChi2(chi2) {}
   ~MatchInfoFwd() = default;
 
   void setMFTMCHMatchingChi2(float chi2) { mMFTMCHMatchingChi2 = chi2; }
   const auto& getMFTMCHMatchingChi2() const { return mMFTMCHMatchingChi2; }
+
+  void setMFTMCHMatchingScore(float score) { mMFTMCH_MLScore = score; }
+  const auto& getMFTMCHMatchingScore() const { return mMFTMCH_MLScore; }
 
   void setMIDMatchingChi2(float chi2) { mMCHMIDMatchingChi2 = chi2; }
   const auto& getMIDMatchingChi2() const { return mMCHMIDMatchingChi2; }
@@ -45,11 +46,18 @@ class MatchInfoFwd
   void setCloseMatch(bool v = true) { mCloseMatch = v; }
   const auto& isCloseMatch() const { return mCloseMatch; }
 
-  void setMFTMCHMatch(uint32_t MCHId, uint32_t MFTId, float MFTMCHMatchChi2)
+  void setMatchInfo(const MatchInfoFwd& m)
   {
-    mMFTTrackID = MFTId;
-    mMCHTrackID = MCHId;
-    mMFTMCHMatchingChi2 = MFTMCHMatchChi2;
+
+    mMFTMCHMatchingChi2 = m.mMFTMCHMatchingChi2;
+    mMCHMIDMatchingChi2 = m.mMCHMIDMatchingChi2;
+    mMFTTrackID = m.mMFTTrackID;
+    mMCHTrackID = m.mMCHTrackID;
+    mMIDTrackID = m.mMIDTrackID;
+    mNMFTCandidates = m.mNMFTCandidates;
+    mCloseMatch = m.mCloseMatch;
+    mMFTMCH_MLScore = m.mMFTMCH_MLScore;
+    mTimeMUS = m.mTimeMUS;
   }
 
   void setMCHTrackID(int ID) { mMCHTrackID = ID; }
@@ -76,6 +84,7 @@ class MatchInfoFwd
   int mMIDTrackID = -1;                                     ///< MID Track ID
   int mNMFTCandidates = 0;                                  ///< Number of MFT candidates within search cut
   bool mCloseMatch = false;                                 ///< Close match = correct MFT pair tested (MC-only)
+  float mMFTMCH_MLScore = o2::constants::math::VeryBig;     ///< MCH-MFT Machine Learning Matching Score
   timeEst mTimeMUS;                                         ///< time estimate in ns
 
   ClassDefNV(MatchInfoFwd, 1);

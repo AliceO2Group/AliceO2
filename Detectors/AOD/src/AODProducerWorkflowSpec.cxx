@@ -510,8 +510,11 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     // nClusters = track.getNumberOfPoints();
     chi2matchmchmid = track.getMIDMatchingChi2();
     chi2matchmchmft = track.getMFTMCHMatchingChi2();
+    matchscoremchmft = track.getMFTMCHMatchingScore();
     matchmfttrackid = track.getMFTTrackID();
     matchmchtrackid = track.getMCHTrackID();
+    trackTime = track.getTimeMUS().getTimeStamp();
+    trackTimeRes = track.getTimeMUS().getTimeStampError();
 
     sigX = TMath::Sqrt(track.getCovariances()(0, 0));
     sigY = TMath::Sqrt(track.getCovariances()(1, 1));
