@@ -293,18 +293,6 @@ inline Node npow(Node left, T right)
     return Node{OpNode{BasicOp::_func_}, std::move(left), std::move(right)};       \
   }                                                                                \
                                                                                    \
-  template <typename T>                                                            \
-  inline Node _node_(Node left, T right)                                           \
-  {                                                                                \
-    return Node{OpNode{BasicOp::_func_}, std::move(left), LiteralNode{right}};     \
-  }                                                                                \
-                                                                                   \
-  template <typename T>                                                            \
-  inline Node _node_(T left, Node right)                                           \
-  {                                                                                \
-    return Node{OpNode{BasicOp::_func_}, LiteralNode{left}, std::move(right)};     \
-  }                                                                                \
-                                                                                   \
   template <>                                                                      \
   inline Node _node_(Node left, BindingNode right)                                 \
   {                                                                                \

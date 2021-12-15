@@ -541,17 +541,17 @@ DECLARE_SOA_SLICE_INDEX_COLUMN(BC, bc);       //! BC index (slice for 1 to N ent
 } // namespace ambiguous
 
 DECLARE_SOA_TABLE(AmbiguousTracks, "AOD", "AMBIGUOUSTRACK", //! Table for tracks which are not uniquely associated with a collision
-                  ambiguous::TrackId, ambiguous::BCIdSlice);
+                  o2::soa::Index<>, ambiguous::TrackId, ambiguous::BCIdSlice);
 
 using AmbiguousTrack = AmbiguousTracks::iterator;
 
 DECLARE_SOA_TABLE(AmbiguousMFTTracks, "AOD", "AMBIGUOUSMFTTR", //! Table for MFT tracks which are not uniquely associated with a collision
-                  ambiguous::MFTTrackId, ambiguous::BCIdSlice);
+                  o2::soa::Index<>, ambiguous::MFTTrackId, ambiguous::BCIdSlice);
 
 using AmbiguousMFTTrack = AmbiguousMFTTracks::iterator;
 
 DECLARE_SOA_TABLE(AmbiguousFwdTracks, "AOD", "AMBIGUOUSFWDTR", //! Table for Fwd tracks which are not uniquely associated with a collision
-                  ambiguous::FwdTrackId, ambiguous::BCIdSlice);
+                  o2::soa::Index<>, ambiguous::FwdTrackId, ambiguous::BCIdSlice);
 
 using AmbiguousFwdTrack = AmbiguousFwdTracks::iterator;
 
@@ -802,9 +802,7 @@ DECLARE_SOA_COLUMN(Vx, vx, float);                                              
 DECLARE_SOA_COLUMN(Vy, vy, float);                                                      //! Y production vertex in cm
 DECLARE_SOA_COLUMN(Vz, vz, float);                                                      //! Z production vertex in cm
 DECLARE_SOA_COLUMN(Vt, vt, float);                                                      //! Production time
-DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi,                                                    //! Phi
-                           [](float px, float py) -> float { return PI + std::atan2(-py, -px); });
-DECLARE_SOA_DYNAMIC_COLUMN(ProducedByGenerator, producedByGenerator, //! True if particle produced by the generator (==TMCProcess::kPrimary); False if by the transport code
+DECLARE_SOA_DYNAMIC_COLUMN(ProducedByGenerator, producedByGenerator,                    //! True if particle produced by the generator (==TMCProcess::kPrimary); False if by the transport code
                            [](uint8_t flags) -> bool { return (flags & o2::aod::mcparticle::enums::ProducedByTransport) == 0x0; });
 DECLARE_SOA_DYNAMIC_COLUMN(FromBackgroundEvent, fromBackgroundEvent, //! Particle from background event
                            [](uint8_t flags) -> bool { return (flags & o2::aod::mcparticle::enums::FromBackgroundEvent) == o2::aod::mcparticle::enums::FromBackgroundEvent; });
@@ -815,8 +813,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(GetGenStatusCode, getGenStatusCode, //! The status co
 DECLARE_SOA_DYNAMIC_COLUMN(IsPhysicalPrimary, isPhysicalPrimary, //! True if particle is considered a physical primary according to the ALICE definition
                            [](uint8_t flags) -> bool { return (flags & o2::aod::mcparticle::enums::PhysicalPrimary) == o2::aod::mcparticle::enums::PhysicalPrimary; });
 
-// DECLARE_SOA_EXPRESSION_COLUMN(Phi, phi, float, //! Phi: NOTE this waits that the atan2 function is defined for expression columns
-//                               PI + natan2(-aod::mcparticle::py, -aod::mcparticle::px));
+DECLARE_SOA_EXPRESSION_COLUMN(Phi, phi, float, //! Phi in the range [0, 2pi)
+                              PI + natan2(-1.0f * aod::mcparticle::py, -1.0f * aod::mcparticle::px));
 DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, //! Pseudorapidity, conditionally defined to avoid FPEs
                               ifnode((nsqrt(aod::mcparticle::px * aod::mcparticle::px +
                                             aod::mcparticle::py * aod::mcparticle::py +
@@ -852,7 +850,6 @@ DECLARE_SOA_TABLE_FULL(StoredMcParticles, "McParticles", "AOD", "MCPARTICLE", //
                        mcparticle::Daughter0Id, mcparticle::Daughter1Id, mcparticle::Weight,
                        mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
                        mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
-                       mcparticle::Phi<mcparticle::Px, mcparticle::Py>,
                        mcparticle::ProducedByGenerator<mcparticle::Flags>,
                        mcparticle::FromBackgroundEvent<mcparticle::Flags>,
                        mcparticle::GetGenStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
@@ -860,7 +857,7 @@ DECLARE_SOA_TABLE_FULL(StoredMcParticles, "McParticles", "AOD", "MCPARTICLE", //
                        mcparticle::IsPhysicalPrimary<mcparticle::Flags>);
 
 DECLARE_SOA_EXTENDED_TABLE(McParticles, StoredMcParticles, "MCPARTICLE", //! Basic MC particle properties
-                                                                         //  mcparticle::Phi,
+                           mcparticle::Phi,
                            mcparticle::Eta,
                            mcparticle::Pt,
                            mcparticle::P,
