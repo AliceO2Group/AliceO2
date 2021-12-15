@@ -38,7 +38,7 @@ set_package_properties(Vc PROPERTIES TYPE REQUIRED)
 find_package(ROOT 6.20.02)
 set_package_properties(ROOT PROPERTIES TYPE REQUIRED)
 
-find_package(VMC)
+find_package(VMC MODULE)
 
 find_package(fmt)
 set_package_properties(fmt PROPERTIES TYPE REQUIRED)
