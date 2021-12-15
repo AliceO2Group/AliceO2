@@ -40,6 +40,42 @@ o2_add_library(MCHWorkflow
                    O2::MCHRawDecoder
                )
 
+o2_add_library(MCHGEMWorkflow
+               SOURCES
+                   src/ClusterFinderOriginalSpec.cxx
+                   src/ClusterFinderGEMSpec.cxx
+                   src/ClusterReaderSpec.cxx
+                   src/ClusterWriterSpec.cxx
+                   src/DataDecoderSpec.cxx
+                   src/EntropyDecoderSpec.cxx
+                   src/TimeClusterFinderSpec.cxx
+                   src/PreClusterFinderSpec.cxx
+                   src/SanityCheck.cxx
+                   src/TrackReaderSpec.cxx
+                   src/TrackTreeReader.cxx
+                   src/TrackWriterSpec.cxx
+               PUBLIC_LINK_LIBRARIES
+                   O2::CommonUtils
+                   O2::DPLUtils
+                   O2::DataFormatsParameters
+                   O2::SimulationDataFormat
+                   O2::DetectorsRaw
+                   O2::MCHCTF
+                   O2::MCHClusteringGEM
+                   O2::MCHPreClustering
+                   O2::MCHTimeClustering
+                   O2::MCHRawCommon
+                   O2::MCHRawDecoder
+               )
+
+o2_add_library(MCHGEMWorkflow
+               SOURCES src/DataDecoderSpec.cxx src/PreClusterFinderSpec.cxx src/ClusterFinderGEMSpec.cxx
+               src/EntropyDecoderSpec.cxx
+               TARGETVARNAME targetName
+               PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::MCHRawDecoder Boost::program_options
+                                     O2::MCHRawImplHelpers RapidJSON::RapidJSON O2::MCHMappingInterface
+                                     O2::MCHPreClustering O2::MCHMappingImpl4 O2::MCHRawElecMap O2::MCHBase
+                                     O2::DataFormatsMCH O2::MCHClusteringGEM O2::MCHCTF)
 o2_add_executable(
         cru-page-reader-workflow
         SOURCES src/cru-page-reader-workflow.cxx
@@ -90,6 +126,7 @@ o2_add_executable(
         SOURCES src/digits-to-preclusters-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHMappingImpl4)
+        # PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHMappingImpl3)
 
 o2_add_executable(
         digits-reader-workflow
@@ -113,7 +150,20 @@ o2_add_executable(
         preclusters-to-clusters-original-workflow
         SOURCES src/preclusters-to-clusters-original-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHClustering O2::MCHMappingImpl4)
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHClustering O2::MCHMappingImp4)
+        # PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHClustering O2::MCHMappingImpl3)
+
+o2_add_executable(
+        preclusters-to-clusters-gem-workflow
+        SOURCES src/preclusters-to-clusters-GEM-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHGEMWorkflow O2::MCHClusteringGEM O2::MCHMappingImpl3)
+
+o2_add_executable(
+        preclusters-to-clusters-gem-workflow
+        SOURCES src/preclusters-to-clusters-GEM-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHGEMWorkflow)
 
 o2_add_executable(
         clusters-sink-workflow
