@@ -21,6 +21,7 @@
 
 // ROOT includes
 #include "TH2F.h"
+#include "TGraph.h"
 
 #include <ITSBase/GeometryTGeo.h>
 
@@ -104,8 +105,11 @@ class ITSCalibrator : public Task
         void get_row_col_arr(const short int&, float**, float**);
         bool FindUpperLower (const short int*, const short int*, const short int&, short int&, short int&);
         float FindStart(const short int*, const short int*, const short int&);
-        bool GetThreshold(const short int*, const short int*, const short int&, float*, float*, float*);
-        bool GetThresholdAlt(const short int*, const short int*, const short int&, float*, float*, float*);
+        bool GetThreshold(const short int*, const short int*, const short int&,
+                          float*, float*, float*);//, bool, TGraph**);
+        bool GetThreshold_Derivative(const short int*, const short int*, const short int&,
+                                     float*, float*, bool, TH1F**, float*);
+        bool GetThreshold_Hitcounting(const short int*, const short int*, const short int&, float*);
 
         std::string mSelfName;
         std::string mDictName;
