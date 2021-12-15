@@ -139,11 +139,7 @@ bool Detector::ProcessHits(FairVolume* v)
     // chamber that contains the momentum components of the particle
     fMC->TrackMomentum(px, py, pz, etot);
     fMC->TrackPosition(xp, yp, zp);
-    stack->addTrackReference(o2::TrackReference(xp, yp, zp, px, py, pz,
-                                                trackLength,
-                                                tof,
-                                                stack->GetCurrentTrackNumber(),
-                                                GetDetId()));
+    stack->addTrackReference(o2::TrackReference(*fMC, GetDetId()));
     // Update track status
     trkStat = 1;
     // Create the hits from TR photons if electron/positron is entering the drift volume
@@ -156,11 +152,7 @@ bool Detector::ProcessHits(FairVolume* v)
     // chamber that contains the momentum components of the particle
     fMC->TrackMomentum(px, py, pz, etot);
     fMC->TrackPosition(xp, yp, zp);
-    stack->addTrackReference(o2::TrackReference(xp, yp, zp, px, py, pz,
-                                                trackLength,
-                                                tof,
-                                                stack->GetCurrentTrackNumber(),
-                                                GetDetId()));
+    stack->addTrackReference(o2::TrackReference(*fMC, GetDetId()));
     // Update track status
     trkStat = 2;
   }
