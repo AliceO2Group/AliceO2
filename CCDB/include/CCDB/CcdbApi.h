@@ -322,6 +322,28 @@ class CcdbApi //: public DatabaseInterface
                              std::map<std::string, std::string>* headers, std::string const& etag,
                              const std::string& createdNotAfter, const std::string& createdNotBefore) const;
 
+  std::vector<char> loadFileToMemory(const std::string& path, std::map<std::string, std::string>* localHeaders = nullptr) const;
+  std::vector<char> loadFileToMemory(std::string const& path,
+                                     std::map<std::string, std::string> const& metadata, long timestamp,
+                                     std::map<std::string, std::string>* headers, std::string const& etag,
+                                     const std::string& createdNotAfter, const std::string& createdNotBefore) const;
+  std::vector<char> navigateURLsAndLoadFileToMemory(CURL* curl_handle, std::string const& url, std::map<string, string>* headers) const;
+
+  // the failure to load the file to memory is signaled by 0 size and non-0 capacity
+  static bool isMemoryFileInvalid(const std::vector<char>& v) { return v.size() == 0 && v.capacity() > 0; }
+
+  template <typename T>
+  static T* extractFromMemoryBlob(std::vector<char>& blob)
+  {
+    auto obj = static_cast<T*>(interpretAsTMemFileAndExtract(blob.data(), blob.size(), typeid(T)));
+    if constexpr (std::is_base_of<o2::conf::ConfigurableParam, T>::value) {
+      auto& param = const_cast<typename std::remove_const<T&>::type>(T::Instance());
+      param.syncCCDBandRegistry(obj);
+      obj = &param;
+    }
+    return obj;
+  }
+
  private:
   /**
    * Initialize in local mode; Objects will be retrieved from snapshot
@@ -413,7 +435,7 @@ class CcdbApi //: public DatabaseInterface
   void* navigateURLsAndRetrieveContent(CURL*, std::string const& url, std::type_info const& tinfo, std::map<std::string, std::string>* headers) const;
 
   // helper that interprets a content chunk as TMemFile and extracts the object therefrom
-  void* interpretAsTMemFileAndExtract(char* contentptr, size_t contentsize, std::type_info const& tinfo) const;
+  static void* interpretAsTMemFileAndExtract(char* contentptr, size_t contentsize, std::type_info const& tinfo);
 
   /**
    * Initialization of CURL
