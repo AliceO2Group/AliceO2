@@ -347,15 +347,14 @@ void on_signal_callback(uv_signal_t* handle, int signum)
 }
 
 /// Invoke the callbacks for the mPendingRegionInfos
-void handleRegionCallbacks(ServiceRegistry& registry, std::vector<FairMQRegionInfo>& infos)
+void DataProcessingDevice::handleRegionCallbacks()
 {
-  if (infos.empty() == false) {
-    std::vector<FairMQRegionInfo> toBeNotified;
-    toBeNotified.swap(infos); // avoid any MT issue.
-    for (auto const& info : toBeNotified) {
-      registry.get<CallbackService>()(CallbackService::Id::RegionInfoCallback, info);
-    }
+  int low = mLowRegionNotification.load(), hi = mHiRegionNotification.load();
+  for (int i = low; i < hi; ++i) {
+    auto& info = mPendingRegionInfos[i % DataProcessingDevice::MAX_REGION_INFOS];
+    mServiceRegistry.get<CallbackService>()(CallbackService::Id::RegionInfoCallback, info);
   }
+  mLowRegionNotification.store(mHiRegionNotification.load());
 }
 
 namespace
@@ -399,14 +398,14 @@ void DataProcessingDevice::InitTask()
                                                                &registry = mServiceRegistry,
                                                                &pendingRegionInfos = mPendingRegionInfos,
                                                                &regionInfoMutex = mRegionInfoMutex](FairMQRegionInfo info) {
-      std::lock_guard<std::mutex> lock(regionInfoMutex);
       LOG(debug) << ">>> Region info event" << info.event;
       LOG(debug) << "id: " << info.id;
       LOG(debug) << "ptr: " << info.ptr;
       LOG(debug) << "size: " << info.size;
       LOG(debug) << "flags: " << info.flags;
       context.expectedRegionCallbacks -= 1;
-      pendingRegionInfos.push_back(info);
+      pendingRegionInfos[mHiRegionNotification.load()] = info;
+      mHiRegionNotification++;
       // We always want to handle these on the main loop
       uv_async_send(registry.get<DeviceState>().awakeMainThread);
     });
@@ -517,11 +516,7 @@ void DataProcessingDevice::InitTask()
   /// on the main thread.
   /// * Wait for enough callbacks to be delivered before moving to START
   while (mDeviceContext.expectedRegionCallbacks > 0 && uv_run(mState.loop, UV_RUN_ONCE)) {
-    // Handle callbacks if any
-    {
-      std::lock_guard<std::mutex> lock(mRegionInfoMutex);
-      handleRegionCallbacks(mServiceRegistry, mPendingRegionInfos);
-    }
+    handleRegionCallbacks();
   }
 }
 
@@ -596,10 +591,7 @@ void DataProcessingDevice::Run()
   while (!NewStatePending()) {
     // Notify on the main thread the new region callbacks, making sure
     // no callback is issued if there is something still processing.
-    {
-      std::lock_guard<std::mutex> lock(mRegionInfoMutex);
-      handleRegionCallbacks(mServiceRegistry, mPendingRegionInfos);
-    }
+    handleRegionCallbacks();
     // This will block for the correct delay (or until we get data
     // on a socket). We also do not block on the first iteration
     // so that devices which do not have a timer can still start an
@@ -630,10 +622,7 @@ void DataProcessingDevice::Run()
     // the socket epolled, because otherwise we would end up serving
     // the callback after the first data arrives is the system is too
     // fast to transition from Init to Run.
-    {
-      std::lock_guard<std::mutex> lock(mRegionInfoMutex);
-      handleRegionCallbacks(mServiceRegistry, mPendingRegionInfos);
-    }
+    handleRegionCallbacks();
 
     assert(mStreams.size() == mHandles.size());
     /// Decide which task to use

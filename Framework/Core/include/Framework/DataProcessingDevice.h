@@ -133,12 +133,14 @@ class DataProcessingDevice : public FairMQDevice
   static void handleData(DataProcessorContext& context, InputChannelInfo&);
   static bool tryDispatchComputation(DataProcessorContext& context, std::vector<DataRelayer::RecordAction>& completed);
   std::vector<DataProcessorContext> mDataProcessorContexes;
+  constexpr static int MAX_REGION_INFOS = 2048; /// Maximum number of unhandled region info
 
  protected:
   void error(const char* msg);
   void fillContext(DataProcessorContext& context, DeviceContext& deviceContext);
 
  private:
+  void handleRegionCallbacks();
   DeviceContext mDeviceContext;
   /// The specification used to create the initial state of this device
   DeviceSpec const& mSpec;
@@ -164,7 +166,9 @@ class DataProcessingDevice : public FairMQDevice
   uint64_t mLastMetricFlushedTimestamp = 0;          /// The timestamp of the last time we actually flushed metrics
   uint64_t mBeginIterationTimestamp = 0;             /// The timestamp of when the current ConditionalRun was started
   DataProcessingStats mStats;                        /// Stats about the actual data processing.
-  std::vector<FairMQRegionInfo> mPendingRegionInfos; /// A list of the region infos not yet notified.
+  FairMQRegionInfo mPendingRegionInfos[MAX_REGION_INFOS]; /// Where the region info should be notified
+  std::atomic<int> mLowRegionNotification = 0;            /// First region info to notify, modulo MAX_REGION_INFO
+  std::atomic<int> mHiRegionNotification = 0;             /// Last region info to notify, modulo MAX_REGION_INFO
   std::mutex mRegionInfoMutex;
   ProcessingPolicies mProcessingPolicies;                        /// User policies related to data processing
   bool mWasActive = false;                                       /// Whether or not the device was active at last iteration.
