@@ -1124,6 +1124,12 @@ void single_step_callback(uv_timer_s* ctx)
   killChildren(*infos, SIGUSR1);
 }
 
+void force_exit_callback(uv_timer_s* ctx)
+{
+  DeviceInfos* infos = reinterpret_cast<DeviceInfos*>(ctx->data);
+  killChildren(*infos, SIGKILL);
+}
+
 void dumpMetricsCallback(uv_timer_t* handle)
 {
   DriverServerContext* context = (DriverServerContext*)handle->data;
@@ -1305,6 +1311,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
   uv_timer_t force_step_timer;
   uv_timer_init(loop, &force_step_timer);
+  uv_timer_t force_exit_timer;
+  uv_timer_init(loop, &force_exit_timer);
 
   bool guiDeployedOnce = false;
   bool once = false;
@@ -1840,6 +1848,10 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           driverInfo.states.push_back(DriverState::EXIT);
         } else if (hasError && driverInfo.processingPolicies.error == TerminationPolicy::QUIT && !supposedToQuit) {
           graceful_exit = 1;
+          force_exit_timer.data = &infos;
+          if (uv_timer_get_due_in(&force_exit_timer) == 0) {
+            uv_timer_start(&force_exit_timer, force_exit_callback, 15000, 3000);
+          }
           driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
         } else if (allChildrenGone == false && supposedToQuit) {
           driverInfo.states.push_back(DriverState::HANDLE_CHILDREN);
