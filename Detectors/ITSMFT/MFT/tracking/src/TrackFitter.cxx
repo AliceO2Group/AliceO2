@@ -105,20 +105,20 @@ bool TrackFitter<T>::initTrack(T& track, bool outward)
     track.setInvQPt(invQPt0);
 
     /// Compute the initial track parameters to seed the Kalman filter
-    int first_cls, last_cls;
+    int first_cls, next_cls;
     if (outward) { // MCH matching
-      first_cls = 1;
-      last_cls = 0;
+      first_cls = 0;
+      next_cls = nPoints - 1;
     } else { // Vertexing
       first_cls = nPoints - 1;
-      last_cls = nPoints - 2;
+      next_cls = 0;
     }
 
     auto x0 = track.getXCoordinates()[first_cls];
     auto y0 = track.getYCoordinates()[first_cls];
     auto z0 = track.getZCoordinates()[first_cls];
 
-    //Compute tanl using first two clusters
+    // Compute tanl using first two clusters
     auto deltaX = track.getXCoordinates()[1] - track.getXCoordinates()[0];
     auto deltaY = track.getYCoordinates()[1] - track.getYCoordinates()[0];
     auto deltaZ = track.getZCoordinates()[1] - track.getZCoordinates()[0];
@@ -127,11 +127,14 @@ bool TrackFitter<T>::initTrack(T& track, bool outward)
                  TMath::Sqrt(TMath::Sqrt((invQPt0 * deltaR * k) * (invQPt0 * deltaR * k) + 1) + 1);
 
     // Compute phi at the last cluster using two last clusters
-    deltaX = track.getXCoordinates()[first_cls] - track.getXCoordinates()[last_cls];
-    deltaY = track.getYCoordinates()[first_cls] - track.getYCoordinates()[last_cls];
-    deltaZ = track.getZCoordinates()[first_cls] - track.getZCoordinates()[last_cls];
+    deltaX = track.getXCoordinates()[first_cls] - track.getXCoordinates()[next_cls];
+    deltaY = track.getYCoordinates()[first_cls] - track.getYCoordinates()[next_cls];
+    deltaZ = track.getZCoordinates()[first_cls] - track.getZCoordinates()[next_cls];
     deltaR = TMath::Sqrt(deltaX * deltaX + deltaY * deltaY);
-    auto phi0 = TMath::ATan2(deltaY, deltaX) - 0.5 * Hz * invQPt0 * deltaZ * k / tanl0;
+    auto phi0 = TMath::ATan2(deltaY, deltaX) - 0.5 * Hz * invQPt0 * std::abs(deltaZ) * k / tanl0;
+    if (outward) {
+      phi0 += TMath::Pi();
+    }
 
     track.setX(x0);
     track.setY(y0);
@@ -140,7 +143,7 @@ bool TrackFitter<T>::initTrack(T& track, bool outward)
     track.setTanl(tanl0);
 
     if (mVerbose) {
-      std::cout << " Init " << (track.isCA() ? "CA Track " : "LTF Track") << std::endl;
+      std::cout << " Init " << (track.isCA() ? "CA Track " : "LTF Track") << (outward ? " (outward)" : " (inward)") << std::endl;
       auto model = (mTrackModel == Helix) ? "Helix" : (mTrackModel == Quadratic) ? "Quadratic"
                                                     : (mTrackModel == Optimized) ? "Optimized"
                                                                                  : "Linear";
@@ -179,25 +182,29 @@ bool TrackFitter<T>::initTrack(T& track, bool outward)
     track.setInvQPt(invQPt0);
 
     /// Compute the initial track parameters to seed the Kalman filter
-    int first_cls, last_cls;
+    outward = !outward; // Temporary fix for misaligned detector.
+    int first_cls, next_cls;
     if (outward) { // MCH matching
-      first_cls = nPoints - 1;
-      last_cls = 0;
+      first_cls = 0;
+      next_cls = nPoints - 1;
     } else { // Vertexing
       first_cls = nPoints - 1;
-      last_cls = 0;
+      next_cls = 0;
     }
 
     auto x0 = track.getXCoordinates()[first_cls];
     auto y0 = track.getYCoordinates()[first_cls];
     auto z0 = track.getZCoordinates()[first_cls];
 
-    auto deltaX = track.getXCoordinates()[first_cls] - track.getXCoordinates()[last_cls];
-    auto deltaY = track.getYCoordinates()[first_cls] - track.getYCoordinates()[last_cls];
-    auto deltaZ = track.getZCoordinates()[first_cls] - track.getZCoordinates()[last_cls];
+    auto deltaX = track.getXCoordinates()[first_cls] - track.getXCoordinates()[next_cls];
+    auto deltaY = track.getYCoordinates()[first_cls] - track.getYCoordinates()[next_cls];
+    auto deltaZ = track.getZCoordinates()[first_cls] - track.getZCoordinates()[next_cls];
     auto deltaR = TMath::Sqrt(deltaX * deltaX + deltaY * deltaY);
-    auto tanl0 = deltaZ / deltaR;
+    auto tanl0 = -std::abs(deltaZ) / deltaR;
     auto phi0 = TMath::ATan2(deltaY, deltaX);
+    if (outward) {
+      phi0 += TMath::Pi();
+    }
 
     track.setX(x0);
     track.setY(y0);
@@ -206,7 +213,7 @@ bool TrackFitter<T>::initTrack(T& track, bool outward)
     track.setTanl(tanl0);
 
     if (mVerbose) {
-      std::cout << " Init " << (track.isCA() ? "CA Track " : "LTF Track") << std::endl;
+      std::cout << " Init " << (track.isCA() ? "CA Track " : "LTF Track") << (outward ? " (outward)" : " (inward)") << std::endl;
       auto model = "Linear";
       std::cout << "Track Model: " << model << std::endl;
       std::cout << "  initTrack: X = " << x0 << " Y = " << y0 << " Z = " << z0 << " Tgl = " << tanl0 << "  Phi = " << phi0 << " pz = " << track.getPz() << " q/pt = " << track.getInvQPt() << std::endl;
