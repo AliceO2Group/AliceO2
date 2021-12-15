@@ -76,7 +76,7 @@ class CCDBPopulator : public o2::framework::Task
 namespace framework
 {
 
-DataProcessorSpec getCCDBPopulatorDeviceSpec()
+DataProcessorSpec getCCDBPopulatorDeviceSpec(const std::string& defCCDB)
 {
   using clbUtils = o2::calibration::Utils;
   std::vector<InputSpec> inputs = {{"clbPayload", "CLP"}, {"clbWrapper", "CLW"}};
@@ -87,7 +87,7 @@ DataProcessorSpec getCCDBPopulatorDeviceSpec()
     Outputs{},
     AlgorithmSpec{adaptFromTask<o2::calibration::CCDBPopulator>()},
     Options{
-      {"ccdb-path", VariantType::String, "http://ccdb-test.cern.ch:8080", {"Path to CCDB"}}}};
+      {"ccdb-path", VariantType::String, defCCDB, {"Path to CCDB"}}}};
 }
 
 } // namespace framework

@@ -12,6 +12,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "CCDBPopulatorSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 
@@ -42,6 +43,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  specs.emplace_back(getCCDBPopulatorDeviceSpec());
+  specs.emplace_back(getCCDBPopulatorDeviceSpec(o2::base::NameConf::getCCDBServer()));
   return specs;
 }
