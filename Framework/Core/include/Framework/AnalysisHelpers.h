@@ -536,7 +536,10 @@ struct Partition {
   void setTable(T const& table)
   {
     intializeCaches(table.asArrowTable()->schema());
-    mFiltered = getTableFromFilter(table, soa::selectionToVector(framework::expressions::createSelection(table.asArrowTable(), gfilter)));
+    if (dataframeChanged) {
+      mFiltered = getTableFromFilter(table, soa::selectionToVector(framework::expressions::createSelection(table.asArrowTable(), gfilter)));
+      dataframeChanged = false;
+    }
   }
 
   template <typename... Ts>
@@ -567,10 +570,16 @@ struct Partition {
     expressions::updatePlaceholders(filter, context);
   }
 
+  o2::soa::Filtered<T>* operator->()
+  {
+    return mFiltered.get();
+  }
+
   expressions::Filter filter;
   std::unique_ptr<o2::soa::Filtered<T>> mFiltered = nullptr;
   gandiva::NodePtr tree = nullptr;
   gandiva::FilterPtr gfilter = nullptr;
+  bool dataframeChanged = true;
 
   using iterator = typename o2::soa::Filtered<T>::iterator;
   using const_iterator = typename o2::soa::Filtered<T>::const_iterator;

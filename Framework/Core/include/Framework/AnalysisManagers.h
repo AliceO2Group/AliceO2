@@ -78,6 +78,11 @@ struct PartitionManager {
   static void updatePlaceholders(ANY&, InitContext&)
   {
   }
+
+  static bool newDataframe(ANY&)
+  {
+    return false;
+  }
 };
 
 template <typename T>
@@ -113,6 +118,12 @@ struct PartitionManager<Partition<T>> {
   static void updatePlaceholders(Partition<T>& partition, InitContext& context)
   {
     partition.updatePlaceholders(context);
+  }
+
+  static bool newDataframe(Partition<T>& partition)
+  {
+    partition.dataframeChanged = true;
+    return true;
   }
 };
 
