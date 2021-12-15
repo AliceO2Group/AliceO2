@@ -30,7 +30,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "ITSBase/GeometryTGeo.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 #include "ITSWorkflow/CalibratorSpec.h"
 #include <sstream>
@@ -188,10 +188,11 @@ float ITSCalibrator<Mapping>::FindStart (const short int* data,
 // data is the number of trigger counts per charge injected;
 // x is the array of charge injected values;
 // NPoints is the length of both arrays.
-// Final three pointers are updated with results from the fit
+// thresh, noise, chi2 pointers are updated with results from the fit
 template <class Mapping>
 bool ITSCalibrator<Mapping>::GetThreshold(const short int* data, const short int* x,
     const short int & NPoints, float *thresh, float *noise, float *chi2) {
+    //bool fSave, TGraph** SCurve) {
 
   TGraph *g      = new TGraph(NPoints, (int*) x, (int*) data);
   TF1    *fitfcn = new TF1("fitfcn", erf, 0, 1500, 2);
@@ -217,6 +218,8 @@ bool ITSCalibrator<Mapping>::GetThreshold(const short int* data, const short int
   *thresh = fitfcn->GetParameter(0);
   *chi2 = fitfcn->GetChisquare() / fitfcn->GetNDF();
 
+  //if (fSave) { *SCurve = (TGraph*) g->Clone(); }
+
   g->Delete();
   fitfcn->Delete();
   return true;
@@ -228,10 +231,10 @@ bool ITSCalibrator<Mapping>::GetThreshold(const short int* data, const short int
 // data is the number of trigger counts per charge injected;
 // x is the array of charge injected values;
 // NPoints is the length of both arrays.
-// Final three pointers are updated with results from the fit
 template <class Mapping>
-bool ITSCalibrator<Mapping>::GetThresholdAlt(const short int* data, const short int* x,
-    const short int & NPoints, float *thresh, float *noise, float *chi2) {
+bool ITSCalibrator<Mapping>::GetThreshold_Derivative(const short int* data,
+    const short int* x, const short int & NPoints, float *thresh, float *noise,
+    bool fSave, TH1F** Gauss, float* mean) {
 
   // Find lower & upper values of the S-curve region
   int Lower, Upper;
@@ -243,27 +246,44 @@ bool ITSCalibrator<Mapping>::GetThresholdAlt(const short int* data, const short 
 
   int deriv_size = Upper - Lower;
   float* deriv = new float[deriv_size]; // Maybe better way without ROOT?
+  double xfx = 0, fx = 0;
   TH1F* h_deriv = new TH1F("h_deriv", "h_deriv", deriv_size, x[Lower], x[Upper]);
 
   // Fill array with derivatives
   for (int i = 0; i + Lower < Upper; i++) {
     deriv[i] = (data[i+Lower+1] - data[i+Lower]) / (x[i+Lower+1] - x[i+Lower]);
     h_deriv->SetBinContent(i+1, deriv[i]);  // i+1 because of 1-indexing in ROOT
+    xfx += x[i+Lower] * deriv[i];
+    fx += deriv[i];
   }
 
-  // Find the mean of the derivative distribution
-  TF1* fit = new TF1("fit", "gaus", x[Lower], x[Upper]);
-  h_deriv->Fit(fit);
+  *mean = xfx / fx; //to check
+  //to implement mean and noise calculation on a vector instead of histo
+  *noise = h_deriv->GetRMS();
+  *thresh = h_deriv->GetMean();
 
-  // Parameter 0 = normalization factor
-  // Parameter 1 = mean (mu)
-  // Parameter 2 = standard deviation (sigma)
-  *noise = fit->GetParameter(2);
-  *thresh = fit->GetParameter(1);
-  *chi2 = fit->GetChisquare() / fit->GetNDF();
+  if (fSave) { *Gauss = (TH1F*) h_deriv->Clone(); }
 
   delete[] deriv;
   delete h_deriv;
+  return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Use ROOT to find the threshold and noise via derivative method
+// data is the number of trigger counts per charge injected;
+// x is the array of charge injected values;
+// NPoints is the length of both arrays.
+template <class Mapping>
+bool ITSCalibrator<Mapping>::GetThreshold_Hitcounting(const short int* data, const short int* x,
+    const short int & NPoints, float* thresh) {
+
+  unsigned short int number_of_hits = 0;
+  for (unsigned short int i = 0; i < NPoints; i++) {
+    number_of_hits += data[i];
+  }
+  *thresh = 50 - number_of_hits / 50.;
   return true;
 }
 
@@ -372,7 +392,7 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
 
     int TriggerId = 0;
     int lay, sta, ssta, mod, chip,chipInMod,rofcount; //layer, stave, sub stave, module, chip
-    
+
     auto orig = Mapping::getOrigin();
 
     // Calibration vector
@@ -382,15 +402,17 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
     const auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("digitsROF").header)->startTime;
 
     // Store some lengths for convenient looping
-    const short int nROF = (short int) ROFs.size();
+    const unsigned int nROF = (unsigned int) ROFs.size();
     //const short int nCals = (short int) calibs.size();
 
     LOG(info) << "Processing TF# " << tfcounter;
 
     // Loop over readout frames (usually only 1, sometimes 2)
-    short int iROF = 0;  // keep track of which ROF we are looking at
-    for (const auto& rof : ROFs) {
-        auto digitsInFrame = rof.getROFData(digits);
+    for (unsigned int iROF = 0; iROF < nROF; iROF++) {
+        //auto rof = ROFs[i]
+        //auto digitsInFrame = rof.getROFData(digits);
+        unsigned int rofIndex = ROFs[iROF].getFirstEntry();
+        unsigned int rofNEntries = ROFs[iROF].getNEntries();
 
         // Find the correct charge and row values for this ROF
         short int charge = -1;
@@ -401,19 +423,17 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
             if (calib.calibUserField != 0) {
                 if (charge >= 0) { LOG(info) << "WARNING: more than one charge detected!"; }
                 // Divide calibration word (24-bit) by 2^16 to get the first 8 bits
-//                charge = (short int) (170 - calib.calibUserField / 65536);
-                charge = (short int) (170 - (calib.calibUserField>>16)&0xff);
+                // charge = (short int) (170 - calib.calibUserField / 65536);
+                charge = (short int) (170 - (calib.calibUserField >> 16) & 0xff);
                 // Last 16 bits should be the row (only uses up to 9 bits)
                 row = (short int) (calib.calibUserField & 0xffff);
                 // Run Type = calibword >> 24
-                runtype = (short int) (calib.calibUserField>>24);
+                runtype = (short int) (calib.calibUserField >> 24);
                 LOG(info) << "calibs size: " << calibs.size() << " | ROF number: " << iROF
                           << " | RU number: " << iRU << " | charge: " << charge << " | row: " << row << " | runtype: " << runtype;
                 //break;
             }
         }
-        // Update iROF for the next charge if necessary
-        iROF++;
 
         // If a charge was not found, throw an error and skip this ROF
         if (charge < 0) {
@@ -425,7 +445,8 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
         } else {
 
             //LOG(info) << "Length of digits: " << digitsInFrame.size();
-            for (const auto& d : digitsInFrame) {
+            for(unsigned int idig = rofIndex; idig < rofIndex + rofNEntries; idig++) { //for (const auto& d : digitsInFrame) {
+                auto & d = digits[idig];
                 short int chipID = (short int) d.getChipIndex();
                 short int col = (short int) d.getColumn();
 
