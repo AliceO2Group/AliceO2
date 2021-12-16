@@ -27,6 +27,8 @@ struct RuntimeErrorRef {
   int index = 0;
 };
 
+void demangled_backtrace_symbols(void** backtrace, unsigned int total, int fd);
+
 RuntimeErrorRef runtime_error(const char*);
 RuntimeErrorRef runtime_error_f(const char*, ...);
 RuntimeError& error_from_ref(RuntimeErrorRef);

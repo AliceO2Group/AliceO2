@@ -15,7 +15,10 @@
 #include <atomic>
 #include <cstdarg>
 #include <execinfo.h>
+#include <unistd.h>
+#include <cstdlib>
 #include <cstring>
+#include <cxxabi.h>
 
 namespace o2::framework
 {
@@ -82,6 +85,62 @@ RuntimeErrorRef runtime_error(const char* s)
 void throw_error(RuntimeErrorRef ref)
 {
   throw ref;
+}
+
+void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int fd)
+{
+  char** stackStrings;
+  stackStrings = backtrace_symbols(stackTrace, stackDepth);
+  for (size_t i = 1; i < stackDepth; i++) {
+
+    size_t sz = 64000; // 64K ought to be enough for our templates...
+    char* function = static_cast<char*>(malloc(sz));
+    char *begin = 0, *end = 0;
+    // find the last space and address offset surrounding the mangled name
+#if __APPLE__
+    for (char* j = stackStrings[i]; *j; ++j) {
+      if (*j == ' ' && *(j + 1) != '+') {
+        begin = j;
+      } else if (*j == ' ' && *(j + 1) == '+') {
+        end = j;
+        break;
+      }
+    }
+#else
+    for (char* j = stackStrings[i]; *j; ++j) {
+      if (*j == '(') {
+        begin = j;
+      } else if (*j == '+') {
+        end = j;
+        break;
+      }
+    }
+#endif
+    if (begin && end) {
+      *begin++ = '\0';
+      *end = '\0';
+      // found our mangled name, now in [begin, end)
+
+      int status;
+      char* ret = abi::__cxa_demangle(begin, function, &sz, &status);
+      if (ret) {
+        // return value may be a realloc() of the input
+        function = ret;
+      } else {
+        // demangling failed, just pretend it's a C function with no args
+        std::strncpy(function, begin, sz);
+        std::strncat(function, "()", sz);
+        function[sz - 1] = '\0';
+      }
+      dprintf(fd, "    %s: %s\n", stackStrings[i], function);
+    } else {
+      // didn't find the mangled name, just print the whole line
+      dprintf(fd, "    %s\n", stackStrings[i]);
+    }
+    free(function);
+  }
+  free(stackStrings); // malloc()ed by backtrace_symbols
+  fsync(fd);
 }
 
 } // namespace o2::framework

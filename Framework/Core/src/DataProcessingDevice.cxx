@@ -114,7 +114,7 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
       ZoneScopedN("Error handling");
       auto& err = error_from_ref(e);
       LOGP(error, "Exception caught: {} ", err.what);
-      backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+      demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
       serviceRegistry.get<DataProcessingStats>().exceptionCount++;
       ErrorContext errorContext{record, serviceRegistry, e};
       errorCallback(errorContext);
@@ -125,7 +125,7 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
       ZoneScopedN("Error handling");
       auto& err = error_from_ref(e);
       LOGP(error, "Exception caught: {} ", err.what);
-      backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+      demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
       serviceRegistry.get<DataProcessingStats>().exceptionCount++;
       switch (errorPolicy) {
         case TerminationPolicy::QUIT:
