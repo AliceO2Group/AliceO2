@@ -25,6 +25,7 @@
 #include "CCDB/CcdbApi.h"
 #include "TPCBase/CalDet.h"
 #include "DataFormatsTPC/LtrCalibData.h"
+#include "CommonUtils/NameConf.h"
 
 namespace o2::tpc
 {
@@ -312,7 +313,7 @@ class CDBStorage
 
   void setRunNumber(int run)
   {
-    mMetaData["runNumber"] = std::to_string(run);
+    mMetaData[o2::base::NameConf::CCDBRunTag.data()] = std::to_string(run);
   }
 
   template <typename T>
