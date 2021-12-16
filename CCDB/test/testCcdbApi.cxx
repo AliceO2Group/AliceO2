@@ -176,6 +176,7 @@ BOOST_AUTO_TEST_CASE(store_retrieve_TMemFile_templated_test, *utf::precondition(
   // std::filesystem does not yet provide boost::filesystem::unique_path() equivalent, and usin tmpnam generate a warning
   auto ph = o2::utils::Str::create_unique_path(std::filesystem::temp_directory_path().native());
   std::filesystem::create_directories(ph);
+  std::cout << "Creating snapshot at " << ph << "\n";
   f.api.snapshot(basePath, ph, o2::ccdb::getCurrentTimestamp());
   std::cout << "Creating snapshot at " << ph << "\n";
 
