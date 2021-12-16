@@ -12,6 +12,7 @@
 #include "TPCCalibration/IDCGroupingParameter.h"
 #include "Framework/Logger.h"
 #include "Algorithm/RangeTokenizer.h"
+#include <stdexcept>
 
 using namespace o2::tpc;
 O2ParamImpl(o2::tpc::ParameterIDCGroup);
@@ -54,4 +55,37 @@ void o2::tpc::ParameterIDCGroup::setGroupingParameterFromString(const std::strin
     o2::conf::ConfigurableParam::setValue<unsigned char>("TPCIDCGroupParam", fmt::format("groupLastRowsThreshold[{}]", i).data(), vgroupLastRowsThreshold[i]);
     o2::conf::ConfigurableParam::setValue<unsigned char>("TPCIDCGroupParam", fmt::format("groupLastPadsThreshold[{}]", i).data(), vgroupLastPadsThreshold[i]);
   }
+}
+
+unsigned int o2::tpc::ParameterIDCGroup::getTotalGroupPadsSectorEdgesHelper(unsigned int groupPadsSectorEdges)
+{
+  if (groupPadsSectorEdges == 0) {
+    return 0;
+  }
+  return (groupPadsSectorEdges % 10) + getTotalGroupPadsSectorEdgesHelper(groupPadsSectorEdges / 10);
+}
+
+unsigned int o2::tpc::ParameterIDCGroup::getGroupedPadsSectorEdgesHelper(unsigned int groupPadsSectorEdges)
+{
+  if (groupPadsSectorEdges == 0) {
+    return 0;
+  }
+  return 1 + getGroupedPadsSectorEdgesHelper(groupPadsSectorEdges / 10);
+}
+
+EdgePadGroupingMethod o2::tpc::ParameterIDCGroup::getEdgePadGroupingType(unsigned int groupPadsSectorEdges)
+{
+  const auto groupPadsSectorEdgesTmp = groupPadsSectorEdges % 10;
+  switch (groupPadsSectorEdgesTmp) {
+    case static_cast<unsigned int>(EdgePadGroupingMethod::NO):
+    case static_cast<unsigned int>(EdgePadGroupingMethod::ROWS):
+      return static_cast<EdgePadGroupingMethod>(groupPadsSectorEdgesTmp);
+    default:
+      throw std::invalid_argument("Wrong type for EdgePadGroupingMethod can either be NO or ROWS");
+  }
+}
+
+unsigned int o2::tpc::ParameterIDCGroup::getPadsInGroupSectorEdgesHelper(unsigned int groupPadsSectorEdges, const unsigned int group)
+{
+  return groupPadsSectorEdges / static_cast<int>(std::pow(10, group)) % 10;
 }

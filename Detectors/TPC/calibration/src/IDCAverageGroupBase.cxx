@@ -71,3 +71,8 @@ void o2::tpc::IDCAverageGroupBase<o2::tpc::IDCAverageGroupTPC>::setIDCs(IDCDelta
   mIDCsUngrouped = std::move(idcs);
   resizeGroupedIDCs();
 }
+
+void o2::tpc::IDCAverageGroupBase<o2::tpc::IDCAverageGroupTPC>::resetGroupedIDCs(const Side side)
+{
+  std::fill(mIDCsGrouped.getIDCDelta(side).begin(), mIDCsGrouped.getIDCDelta(side).end(), 0);
+}

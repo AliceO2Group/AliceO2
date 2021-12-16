@@ -14,54 +14,68 @@
 #include "TPCCalibration/IDCGroupHelperSector.h"
 #include "TPCCalibration/IDCContainer.h"
 #include "TPCBase/Mapper.h"
+#include "CommonUtils/TreeStreamRedirector.h"
+
+template <typename DataT>
+unsigned int o2::tpc::IDCCCDBHelper<DataT>::getNIntegrationIntervalsIDCDelta(const o2::tpc::Side side) const
+{
+  return (mIDCDelta && mHelperSector) ? mIDCDelta->getNIDCs(side) / (mHelperSector->getNIDCsPerSector() * SECTORSPERSIDE) : 0;
+}
+
+template <typename DataT>
+unsigned int o2::tpc::IDCCCDBHelper<DataT>::getNIntegrationIntervalsIDCOne(const o2::tpc::Side side) const
+{
+  return mIDCOne ? mIDCOne->getNIDCs(side) : 0;
+}
 
 template <typename DataT>
 void o2::tpc::IDCCCDBHelper<DataT>::loadIDCDelta()
 {
-  mIDCDelta = mCCDBManager.get<o2::tpc::IDCDelta<DataT>>("TPC/Calib/IDC/IDCDELTA");
+  mIDCDelta = get<o2::tpc::IDCDelta<DataT>>("TPC/Calib/IDC/IDCDELTA");
 }
 
 template <typename DataT>
 void o2::tpc::IDCCCDBHelper<DataT>::loadIDCZero()
 {
-  mIDCZero = mCCDBManager.get<o2::tpc::IDCZero>("TPC/Calib/IDC/IDC0");
+  mIDCZero = get<o2::tpc::IDCZero>("TPC/Calib/IDC/IDC0");
 }
 
 template <typename DataT>
 void o2::tpc::IDCCCDBHelper<DataT>::loadIDCOne()
 {
-  mIDCOne = mCCDBManager.get<o2::tpc::IDCOne>("TPC/Calib/IDC/IDC1");
+  mIDCOne = get<o2::tpc::IDCOne>("TPC/Calib/IDC/IDC1");
 }
 
 template <typename DataT>
 float o2::tpc::IDCCCDBHelper<DataT>::getIDCZeroVal(const unsigned int sector, const unsigned int region, unsigned int urow, unsigned int upad) const
 {
   /// if the number of pads of the IDC0 corresponds to the number of pads of one TPC side, then no grouping was applied
-  return mIDCZero->getNIDC0(Sector(sector).side()) == Mapper::getNumberOfPadsPerSide() ? mIDCZero->getValueIDCZero(Sector(sector).side(), getUngroupedIndexGlobal(sector, region, urow, upad, 0)) : mIDCZero->getValueIDCZero(Sector(sector).side(), mHelperSector->getIndexUngrouped(sector, region, urow, upad, 0));
+  return !mIDCZero ? -1 : mIDCZero->getNIDC0(Sector(sector).side()) == Mapper::getNumberOfPadsPerSide() ? mIDCZero->getValueIDCZero(Sector(sector).side(), getUngroupedIndexGlobal(sector, region, urow, upad, 0))
+                                                                                                        : mIDCZero->getValueIDCZero(Sector(sector).side(), mHelperSector->getIndexUngrouped(sector, region, urow, upad, 0));
 }
 
 template <typename DataT>
-float o2::tpc::IDCCCDBHelper<DataT>::getIDCDeltaVal(const unsigned int sector, const unsigned int region, unsigned int urow, unsigned int upad, unsigned int localintegrationInterval) const
+float o2::tpc::IDCCCDBHelper<DataT>::getIDCDeltaVal(const unsigned int sector, const unsigned int region, unsigned int urow, unsigned int upad, unsigned int integrationInterval) const
 {
-  return mIDCDelta->getValue(Sector(sector).side(), mHelperSector->getIndexUngrouped(sector, region, urow, upad, localintegrationInterval));
+  return (!mIDCDelta || !mHelperSector) ? -1 : mIDCDelta->getValue(Sector(sector).side(), mHelperSector->getIndexUngrouped(sector, region, urow, upad, integrationInterval));
 }
 
 template <typename DataT>
-float o2::tpc::IDCCCDBHelper<DataT>::getIDCOneVal(const o2::tpc::Side side, const unsigned int localintegrationInterval) const
+float o2::tpc::IDCCCDBHelper<DataT>::getIDCOneVal(const o2::tpc::Side side, const unsigned int integrationInterval) const
 {
-  return mIDCOne->getValueIDCOne(side, localintegrationInterval);
+  return !mIDCOne ? -1 : mIDCOne->getValueIDCOne(side, integrationInterval);
 }
 
 template <typename DataT>
-float o2::tpc::IDCCCDBHelper<DataT>::getIDCVal(const unsigned int sector, const unsigned int region, unsigned int urow, unsigned int upad, unsigned int localintegrationInterval) const
+float o2::tpc::IDCCCDBHelper<DataT>::getIDCVal(const unsigned int sector, const unsigned int region, unsigned int urow, unsigned int upad, unsigned int integrationInterval) const
 {
-  return (getIDCDeltaVal(sector, region, urow, upad, localintegrationInterval) + 1.f) * getIDCZeroVal(sector, region, urow, upad) * getIDCOneVal(Sector(sector).side(), localintegrationInterval);
+  return (getIDCDeltaVal(sector, region, urow, upad, integrationInterval) + 1.f) * getIDCZeroVal(sector, region, urow, upad) * getIDCOneVal(Sector(sector).side(), integrationInterval);
 }
 
 template <typename DataT>
 void o2::tpc::IDCCCDBHelper<DataT>::loadGroupingParameter()
 {
-  mHelperSector = std::make_unique<IDCGroupHelperSector>(IDCGroupHelperSector{*mCCDBManager.get<o2::tpc::ParameterIDCGroupCCDB>("TPC/Calib/IDC/GROUPINGPAR")});
+  mHelperSector = std::make_unique<IDCGroupHelperSector>(IDCGroupHelperSector{*get<o2::tpc::ParameterIDCGroupCCDB>("TPC/Calib/IDC/GROUPINGPAR")});
 }
 
 template <typename DataT>
@@ -117,6 +131,75 @@ template <typename DataT>
 unsigned int o2::tpc::IDCCCDBHelper<DataT>::getUngroupedIndexGlobal(const unsigned int sector, const unsigned int region, unsigned int urow, unsigned int upad, unsigned int integrationInterval) const
 {
   return IDCGroupHelperSector::getUngroupedIndexGlobal(sector, region, urow, upad, integrationInterval);
+}
+
+template <typename DataT>
+void o2::tpc::IDCCCDBHelper<DataT>::dumpToTree(int integrationIntervals, const char* outFileName) const
+{
+  const Mapper& mapper = Mapper::instance();
+  o2::utils::TreeStreamRedirector pcstream(outFileName, "RECREATE");
+  pcstream.GetFile()->cd();
+
+  if (integrationIntervals <= 0) {
+    integrationIntervals = std::min(getNIntegrationIntervalsIDCDelta(Side::A), getNIntegrationIntervalsIDCDelta(Side::C));
+  }
+
+  for (unsigned int integrationInterval = 0; integrationInterval < integrationIntervals; ++integrationInterval) {
+    const unsigned int nIDCsSector = Mapper::getPadsInSector() * Mapper::NSECTORS;
+    std::vector<int> vRow(nIDCsSector);
+    std::vector<int> vPad(nIDCsSector);
+    std::vector<float> vXPos(nIDCsSector);
+    std::vector<float> vYPos(nIDCsSector);
+    std::vector<float> vGlobalXPos(nIDCsSector);
+    std::vector<float> vGlobalYPos(nIDCsSector);
+    std::vector<float> idcs(nIDCsSector);
+    std::vector<float> idcsZero(nIDCsSector);
+    std::vector<float> idcsDelta(nIDCsSector);
+    std::vector<unsigned int> sectorv(nIDCsSector);
+
+    unsigned int index = 0;
+    for (unsigned int sector = 0; sector < Mapper::NSECTORS; ++sector) {
+      for (unsigned int region = 0; region < Mapper::NREGIONS; ++region) {
+        for (unsigned int irow = 0; irow < Mapper::ROWSPERREGION[region]; ++irow) {
+          for (unsigned int ipad = 0; ipad < Mapper::PADSPERROW[region][irow]; ++ipad) {
+            const auto padNum = Mapper::getGlobalPadNumber(irow, ipad, region);
+            const auto padTmp = (sector < SECTORSPERSIDE) ? ipad : (Mapper::PADSPERROW[region][irow] - ipad - 1); // C-Side is mirrored
+            const auto& padPosLocal = mapper.padPos(padNum);
+            vRow[index] = padPosLocal.getRow();
+            vPad[index] = padPosLocal.getPad();
+            vXPos[index] = mapper.getPadCentre(padPosLocal).X();
+            vYPos[index] = mapper.getPadCentre(padPosLocal).Y();
+            const GlobalPosition2D globalPos = mapper.LocalToGlobal(LocalPosition2D(vXPos[index], vYPos[index]), Sector(sector));
+            vGlobalXPos[index] = globalPos.X();
+            vGlobalYPos[index] = globalPos.Y();
+            idcs[index] = getIDCVal(sector, region, irow, padTmp, integrationInterval);
+            idcsZero[index] = getIDCZeroVal(sector, region, irow, padTmp);
+            idcsDelta[index] = getIDCDeltaVal(sector, region, irow, padTmp, integrationInterval);
+            sectorv[index++] = sector;
+          }
+        }
+      }
+    }
+    float idcOneA = getIDCOneVal(Side::A, integrationInterval);
+    float idcOneC = getIDCOneVal(Side::C, integrationInterval);
+
+    pcstream << "tree"
+             << "integrationInterval=" << integrationInterval
+             << "IDC.=" << idcs
+             << "IDC0.=" << idcsZero
+             << "IDC1A=" << idcOneA
+             << "IDC1C=" << idcOneC
+             << "IDCDelta.=" << idcsDelta
+             << "pad.=" << vPad
+             << "row.=" << vRow
+             << "lx.=" << vXPos
+             << "ly.=" << vYPos
+             << "gx.=" << vGlobalXPos
+             << "gy.=" << vGlobalYPos
+             << "sector.=" << sectorv
+             << "\n";
+  }
+  pcstream.Close();
 }
 
 template class o2::tpc::IDCCCDBHelper<float>;

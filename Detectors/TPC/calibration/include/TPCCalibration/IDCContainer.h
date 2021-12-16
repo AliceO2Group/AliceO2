@@ -109,6 +109,10 @@ struct IDCDelta {
   /// \param side side of the TPC
   auto getCompressionFactor(const o2::tpc::Side side) const { return mCompressionFactor.mFactors[side]; }
 
+  /// \return returns number of stored IDCs for given side
+  /// \param side side of the TPC
+  auto getNIDCs(const o2::tpc::Side side) const { return getIDCDelta(side).size(); }
+
   IDCDeltaContainer<DataT> mIDCDelta{};            ///< storage for Delta IDCs
   IDCDeltaCompressionFactors mCompressionFactor{}; ///< compression factor for Delta IDCs
   ClassDefNV(IDCDelta, 1)
@@ -146,7 +150,13 @@ struct IDCDelta<float> {
   /// \param val value of IDCDelta which will be stored
   void setIDCDelta(const o2::tpc::Side side, const unsigned int index, const float val) { mIDCDelta.mIDCDeltaCont[side][index] = val; }
 
+  /// resize the container
+  /// \param size new size of the container
   void resize(const o2::tpc::Side side, const unsigned int size) { mIDCDelta.mIDCDeltaCont[side].resize(size); }
+
+  /// \return returns number of stored IDCs for given side
+  /// \param side side of the TPC
+  auto getNIDCs(const o2::tpc::Side side) const { return getIDCDelta(side).size(); }
 
   IDCDeltaContainer<float> mIDCDelta{}; ///< storage for uncompressed Delta IDCs
   ClassDefNV(IDCDelta, 1)
@@ -262,6 +272,10 @@ struct IDCOne {
   /// \param side side of the TPC
   /// \param index index in the storage
   float getValueIDCOne(const o2::tpc::Side side, const unsigned int index) const { return mIDCOne[side][index]; }
+
+  /// \return returns number of stored IDCs for given side
+  /// \param side side of the TPC
+  auto getNIDCs(const o2::tpc::Side side) const { return mIDCOne[side].size(); }
 
   /// clear values
   void clear()

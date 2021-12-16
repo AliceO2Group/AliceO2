@@ -37,13 +37,7 @@ unsigned int o2::tpc::IDCGroupHelperSector::getLastRow(const unsigned int region
 // TODO MAKE STATIC AND MOVE TO REGION HELPER
 unsigned int o2::tpc::IDCGroupHelperSector::getLastPad(const unsigned int region, const unsigned int ulrow) const
 {
-  const unsigned int nPads = Mapper::PADSPERROW[region][ulrow] / 2 - mGroupingPar.groupPadsSectorEdges;
-  const unsigned int padsRemainder = nPads % mGroupingPar.groupPads[region];
-  int unsigned lastPad = (padsRemainder == 0) ? nPads - mGroupingPar.groupPads[region] : nPads - padsRemainder;
-  if (padsRemainder && padsRemainder <= mGroupingPar.groupLastPadsThreshold[region]) {
-    lastPad -= mGroupingPar.groupPads[region];
-  }
-  return lastPad;
+  return IDCGroupHelperRegion::getLastPad(ulrow, region, mGroupingPar.groupPads[region], mGroupingPar.groupLastPadsThreshold[region], mGroupingPar.groupPadsSectorEdges);
 }
 
 void o2::tpc::IDCGroupHelperSector::initIDCGroupHelperSector()

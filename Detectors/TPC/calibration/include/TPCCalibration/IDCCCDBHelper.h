@@ -34,7 +34,7 @@ class IDCDelta;
 /*
  Usage
  o2::tpc::IDCCCDBHelper<short> helper("http://localhost:8080");
- helper.setTimeStamp(0);
+ helper.setTimestamp(0);
  helper.loadAll();
  const unsigned int sector = 10;
  const unsigned int integrationInterval = 0;
@@ -47,15 +47,12 @@ class IDCDelta;
 
 /// \tparam DataT the data type for the IDCDelta which are stored in the CCDB (short, char, float)
 template <typename DataT = short>
-class IDCCCDBHelper
+class IDCCCDBHelper : public o2::ccdb::BasicCCDBManager
 {
  public:
   /// constructor
   /// \param uri path to CCDB
-  IDCCCDBHelper(const char* uri = o2::base::NameConf::getCCDBServer().c_str()) { mCCDBManager.setURL(uri); }
-
-  /// update timestamp (time frame)
-  void setTimeStamp(const long long timestamp) { mCCDBManager.setTimestamp(timestamp); }
+  IDCCCDBHelper(const char* uri = o2::base::NameConf::getCCDBServer().c_str()) : o2::ccdb::BasicCCDBManager(o2::ccdb::BasicCCDBManager::instance()) { setURL(uri); }
 
   /// load IDC-Delta, 0D-IDCs, grouping parameter needed for access
   void loadAll();
@@ -72,6 +69,12 @@ class IDCCCDBHelper
   /// load/update grouping parameter
   void loadGroupingParameter();
 
+  /// \return returns the number of integration intervals for IDCDelta
+  unsigned int getNIntegrationIntervalsIDCDelta(const o2::tpc::Side side) const;
+
+  /// \return returns the number of integration intervals for IDCOne
+  unsigned int getNIntegrationIntervalsIDCOne(const o2::tpc::Side side) const;
+
   /// \return returns the stored IDC0 value for local ungrouped pad row and ungrouped pad
   /// \param sector sector
   /// \param region region
@@ -84,23 +87,21 @@ class IDCCCDBHelper
   /// \param region region
   /// \param urow row of the ungrouped IDCs
   /// \param upad pad number of the ungrouped IDCs
-  /// \param chunk chunk of the Delta IDC (can be obtained with getLocalIntegrationInterval())
-  /// \param localintegrationInterval local integration interval for chunk (can be obtained with getLocalIntegrationInterval())
-  float getIDCDeltaVal(const unsigned int sector, const unsigned int region, unsigned int urow, unsigned int upad, unsigned int localintegrationInterval) const;
+  /// \param integrationInterval integration interval
+  float getIDCDeltaVal(const unsigned int sector, const unsigned int region, unsigned int urow, unsigned int upad, unsigned int integrationInterval) const;
 
   /// \return returns IDCOne value
   /// \param side side of the TPC
-  /// \param localintegrationInterval local integration interval for chunk (can be obtained with getLocalIntegrationInterval())
-  float getIDCOneVal(const o2::tpc::Side side, const unsigned int localintegrationInterval) const;
+  /// \param integrationInterval integration interval
+  float getIDCOneVal(const o2::tpc::Side side, const unsigned int integrationInterval) const;
 
   /// \return returns the IDC value which is calculated with: (IDCDelta + 1) * IDCOne * IDCZero
   /// \param sector sector
   /// \param region region
   /// \param urow row of the ungrouped IDCs
   /// \param upad pad number of the ungrouped IDCs
-  /// \param chunk chunk of the Delta IDC (can be obtained with getLocalIntegrationInterval())
-  /// \param localintegrationInterval local integration interval for chunk (can be obtained with getLocalIntegrationInterval())
-  float getIDCVal(const unsigned int sector, const unsigned int region, unsigned int urow, unsigned int upad, unsigned int localintegrationInterval) const;
+  /// \param integrationInterval integration interval
+  float getIDCVal(const unsigned int sector, const unsigned int region, unsigned int urow, unsigned int upad, unsigned int integrationInterval) const;
 
   /// draw IDC zero I_0(r,\phi) = <I(r,\phi,t)>_t
   /// \param side side which will be drawn
@@ -136,12 +137,16 @@ class IDCCCDBHelper
   /// \param filename name of the output file. If empty the canvas is drawn.
   void drawIDCSector(const unsigned int sector, const unsigned int integrationInterval, const std::string filename = "IDCSector.pdf") const { drawIDCHelper(false, Sector(sector), integrationInterval, filename); }
 
+  /// dumping the loaded IDCs to a tree for debugging
+  /// \param integrationIntervals number of integration intervals which will be dumped to the tree (-1: all integration intervalls)
+  /// \param outFileName name of the output file
+  void dumpToTree(int integrationIntervals = -1, const char* outFileName = "IDCCCDBTree.root") const;
+
  private:
-  IDCZero* mIDCZero = nullptr;                                                      ///< 0D-IDCs: ///< I_0(r,\phi) = <I(r,\phi,t)>_t
-  IDCDelta<DataT>* mIDCDelta = nullptr;                                             ///< compressed or uncompressed Delta IDC: \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
-  IDCOne* mIDCOne = nullptr;                                                        ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
-  std::unique_ptr<IDCGroupHelperSector> mHelperSector{};                            ///< helper for accessing IDC0 and IDC-Delta
-  o2::ccdb::BasicCCDBManager mCCDBManager = o2::ccdb::BasicCCDBManager::instance(); ///< CCDB manager for loading objects
+  IDCZero* mIDCZero = nullptr;                           ///< 0D-IDCs: ///< I_0(r,\phi) = <I(r,\phi,t)>_t
+  IDCDelta<DataT>* mIDCDelta = nullptr;                  ///< compressed or uncompressed Delta IDC: \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
+  IDCOne* mIDCOne = nullptr;                             ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
+  std::unique_ptr<IDCGroupHelperSector> mHelperSector{}; ///< helper for accessing IDC0 and IDC-Delta
 
   /// helper function for drawing IDCZero
   /// \param sector sector which will be drawn
