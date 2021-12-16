@@ -28,6 +28,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include "CommonUtils/NameConf.h"
 
 using CcdbManager = o2::ccdb::BasicCCDBManager;
 
@@ -54,15 +55,27 @@ class CCDBPopulator : public o2::framework::Task
   {
     int nSlots = pc.inputs().getNofParts(0);
     assert(pc.inputs().getNofParts(1) == nSlots);
+    auto runNoFromDH = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->runNumber;
+    std::string runNoStr;
+    if (runNoFromDH > 0) {
+      runNoStr = std::to_string(runNoFromDH);
+    }
 
+    std::map<std::string, std::string> metadata;
     for (int isl = 0; isl < nSlots; isl++) {
       const auto wrp = pc.inputs().get<CcdbObjectInfo*>("clbWrapper", isl);
       const auto pld = pc.inputs().get<gsl::span<char>>("clbPayload", isl); // this is actually an image of TMemFile
+      const auto* md = &wrp->getMetaData();
+      if (runNoFromDH > 0 && md->find(o2::base::NameConf::CCDBRunTag.data()) == md->end()) { // if valid run number is provided and it is not filled in the metadata, add it to the clone
+        metadata = *md;                                                                      // clone since the md from the message is const
+        metadata[o2::base::NameConf::CCDBRunTag.data()] = runNoStr;
+        md = &metadata;
+      }
 
       LOG(info) << "Storing in ccdb " << wrp->getPath() << "/" << wrp->getFileName() << " of size " << pld.size()
                 << " Valid for " << wrp->getStartValidityTimestamp() << " : " << wrp->getEndValidityTimestamp();
       mAPI.storeAsBinaryFile(&pld[0], pld.size(), wrp->getFileName(), wrp->getObjectType(), wrp->getPath(),
-                             wrp->getMetaData(), wrp->getStartValidityTimestamp(), wrp->getEndValidityTimestamp());
+                             *md, wrp->getStartValidityTimestamp(), wrp->getEndValidityTimestamp());
     }
   }
 
