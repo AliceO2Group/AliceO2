@@ -24,6 +24,7 @@
 #include <TH2.h>
 #include <TFile.h>
 
+#include "Framework/Logger.h"
 #include "Rtypes.h"
 #include "TLinearFitter.h"
 #include "TVectorD.h"
@@ -42,6 +43,9 @@
 #include <boost/histogram/axis.hpp>
 #include <boost/histogram/make_histogram.hpp>
 #include <boost/histogram/accumulators/mean.hpp>
+
+using boostHisto2d = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
+using boostHisto1d = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
 
 namespace o2
 {
@@ -215,24 +219,24 @@ std::string createErrorMessage(o2::utils::FitGausError_t errorcode);
 /// \param first begin iterator of the histogram
 /// \param last end iterator of the histogram
 /// \param axisFirst axis iterator over the bin centers
-/// \param ignoreUnderOerflowBin switch to disable taking under and overflow bin into fit
+/// \param ignoreUnderOverflowBin switch to disable taking under and overflow bin into fit
 /// \return result
 ///      result is of the type fitResult, which contains 4 parameters (0-Constant, 1-Mean, 2-Sigma,  3-Sum)
 ///
 /// ** Temp Note: For now we forgo the templated struct in favor of a std::vector in order to
 /// have this compile while we are working out the details
 template <typename T, typename Iterator, typename BinCenterView>
-std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfirst, const bool ignoreUnderOerflowBin = true)
+std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfirst, const bool ignoreUnderOverflowBin = true)
 {
 
-  if (ignoreUnderOerflowBin) {
+  if (ignoreUnderOverflowBin) {
     first++;
     last--;
   }
 
-  TLinearFitter fitter(3, "pol2");
-  TMatrixD mat(3, 3);
-  Double_t kTol = mat.GetTol();
+  static TLinearFitter fitter(3, "pol2");
+  static TMatrixD mat(3, 3);
+  static Double_t kTol = mat.GetTol();
   fitter.StoreData(kFALSE);
   fitter.ClearPoints();
   TVectorD par(3);
@@ -261,14 +265,16 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
     }
   }
 
-  // TODO: Check why this is needed
   if (*xMax < 4) {
+    LOG(error) << "Gaus fit failed! xMax < 4";
     throw FitGausError_t::FIT_ERROR;
   }
   if (entries < 12) {
+    LOG(error) << "Gaus fit failed! entries < 12";
     throw FitGausError_t::FIT_ERROR;
   }
   if (rms < kTol) {
+    LOG(error) << "Gaus fit failed! rms < kTol";
     throw FitGausError_t::FIT_ERROR;
   }
 
@@ -330,12 +336,12 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
     }
 
     if (TMath::Abs(par[1]) < kTol) {
+      LOG(error) << "Gaus fit failed! TMath::Abs(par[1]) < kTol";
       throw FitGausError_t::FIT_ERROR;
-      ;
     }
     if (TMath::Abs(par[2]) < kTol) {
+      LOG(error) << "Gaus fit failed! TMath::Abs(par[2]) < kTol";
       throw FitGausError_t::FIT_ERROR;
-      ;
     }
 
     // calculate parameters for gaus from pol2 fit
@@ -344,8 +350,10 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
     result.at(2) = T(1. / TMath::Sqrt(TMath::Abs(-2. * par[2])));
     auto lnparam0 = par[0] - par[1] * par[1] / (4 * par[2]);
     if (lnparam0 > 307) {
+      LOG(error) << "Gaus fit failed! lnparam0 > 307";
       throw FitGausError_t::FIT_ERROR;
     }
+
     result.at(0) = T(TMath::Exp(lnparam0));
     return result;
   }
@@ -378,6 +386,7 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
     result.at(2) = binWidth / TMath::Sqrt(12);
     result.at(4) = -1;
   }
+
   return result;
 }
 
@@ -388,10 +397,10 @@ std::vector<double> fitBoostHistoWithGaus(boost::histogram::histogram<axes...>& 
 }
 
 /// \brief Convert a 1D root histogram to a Boost histogram
-decltype(auto) boosthistoFromRoot_1D(TH1D* inHist1D);
+boostHisto1d boosthistoFromRoot_1D(TH1D* inHist1D);
 
 // \brief Convert a 2D root histogram to a Boost histogram
-decltype(auto) boostHistoFromRoot_2D(TH2D* inHist2D);
+boostHisto2d boostHistoFromRoot_2D(TH2D* inHist2D);
 
 /// \brief Function to project 2d boost histogram onto x-axis
 /// \param hist2d 2d boost histogram
