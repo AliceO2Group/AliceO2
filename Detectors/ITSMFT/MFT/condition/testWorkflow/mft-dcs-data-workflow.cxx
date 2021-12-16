@@ -28,6 +28,9 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
+  std::vector<o2::framework::ConfigParamSpec> options{
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+  std::swap(workflowOptions, options);
 }
 
 // ------------------------------------------------------------------
@@ -37,6 +40,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   specs.emplace_back(getMFTDCSDataProcessorSpec());
   return specs;
 }

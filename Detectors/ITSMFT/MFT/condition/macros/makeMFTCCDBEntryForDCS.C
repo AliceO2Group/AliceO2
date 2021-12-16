@@ -22,13 +22,10 @@
 
 using DPID = o2::dcs::DataPointIdentifier;
 
-int makeMFTCCDBEntryForDCS(const std::string url = "http://ccdb-test.cern.ch:8080")
+int makeMFTCCDBEntryForDCS(std::string ccdb_path = o2::base::NameConf::getCCDBServer())
 {
 
-  //  std::string url(argv[0]);
-  // macro to populate CCDB for TOF with the configuration for DCS
   std::unordered_map<DPID, std::string> dpid2DataDesc;
-
   std::vector<std::string> aliases = {"MFT_PSU_ZONE/H[0..1]/D[0..4]/F[0..1]/Z[0..3]/Current/Analog",
                                       "MFT_PSU_ZONE/H[0..1]/D[0..4]/F[0..1]/Z[0..3]/Current/BackBias",
                                       "MFT_PSU_ZONE/H[0..1]/D[0..4]/F[0..1]/Z[0..3]/Current/Digital",
@@ -63,7 +60,7 @@ int makeMFTCCDBEntryForDCS(const std::string url = "http://ccdb-test.cern.ch:808
   }
 
   o2::ccdb::CcdbApi api;
-  api.init(url); // or http://localhost:8080 for a local installation
+  api.init(ccdb_path);
   std::map<std::string, std::string> md;
   long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
   api.storeAsTFileAny(&dpid2DataDesc, "MFT/Config/DCSDPconfig", md, ts);
