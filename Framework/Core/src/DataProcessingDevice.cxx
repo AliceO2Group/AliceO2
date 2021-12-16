@@ -354,7 +354,7 @@ void DataProcessingDevice::handleRegionCallbacks()
     auto& info = mPendingRegionInfos[i % DataProcessingDevice::MAX_REGION_INFOS];
     mServiceRegistry.get<CallbackService>()(CallbackService::Id::RegionInfoCallback, info);
   }
-  mLowRegionNotification.store(mHiRegionNotification.load());
+  mLowRegionNotification.store(hi);
 }
 
 namespace
