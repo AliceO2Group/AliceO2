@@ -23,14 +23,14 @@
 #include <bitset>
 #endif
 
-void readMFTDCSentries(long ts = 9999999999000, const char* ccdb = "http://ccdb-test.cern.ch:8080")
+void readMFTDCSentries(long ts = 9999999999000, std::string ccdb_path = o2::base::NameConf::getCCDBServer())
 {
 
   o2::mft::DCSNameResolver namer;
   namer.init();
 
   o2::ccdb::CcdbApi api;
-  api.init(ccdb); // or http://ccdb-test.cern.ch:8080
+  api.init(ccdb_path); // or http://ccdb-test.cern.ch:8080
   std::map<std::string, std::string> metadata;
   if (ts == 9999999999000) {
     ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
