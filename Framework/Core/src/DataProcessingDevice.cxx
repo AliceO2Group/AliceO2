@@ -404,8 +404,8 @@ void DataProcessingDevice::InitTask()
       LOG(debug) << "size: " << info.size;
       LOG(debug) << "flags: " << info.flags;
       context.expectedRegionCallbacks -= 1;
-      pendingRegionInfos[mHiRegionNotification.load()] = info;
-      mHiRegionNotification++;
+      pendingRegionInfos[mHiRegionNotification.load() % DataProcessingDevice::MAX_REGION_INFOS] = info;
+      ++mHiRegionNotification;
       // We always want to handle these on the main loop
       uv_async_send(registry.get<DeviceState>().awakeMainThread);
     });
