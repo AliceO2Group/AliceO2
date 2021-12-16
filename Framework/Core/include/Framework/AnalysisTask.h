@@ -601,6 +601,8 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
     }
 
     return [task, expressionInfos](ProcessingContext& pc) mutable {
+      // reset partitions once per dataframe
+      homogeneous_apply_refs([](auto&& x) { return PartitionManager<std::decay_t<decltype(x)>>::newDataframe(x); }, *task.get());
       // reset selections for the next dataframe
       for (auto& info : expressionInfos) {
         info.resetSelection = true;
