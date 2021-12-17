@@ -58,6 +58,11 @@ void LiteralDecoder<coder_T, stream_T, source_T>::process(stream_IT inputEnd, so
   using namespace internal;
   LOG(trace) << "start decoding";
   RANSTimer t;
+
+#ifdef O2_RANS_PRINT_PROCESSED_DATA
+  JSONArrayLogger<source_T> arrayLogger{};
+#endif
+
   t.start();
 
   if (messageLength == 0) {
@@ -76,6 +81,10 @@ void LiteralDecoder<coder_T, stream_T, source_T>::process(stream_IT inputEnd, so
       symbol = literals.back();
       literals.pop_back();
     }
+
+#ifdef O2_RANS_PRINT_PROCESSED_DATA
+    arrayLogger << symbol;
+#endif
 
     return std::make_tuple(symbol, decoder.advanceSymbol(inputIter, (this->mSymbolTable)[streamSymbol]));
   };
@@ -98,6 +107,11 @@ void LiteralDecoder<coder_T, stream_T, source_T>::process(stream_IT inputEnd, so
     std::tie(*it++, inputIter) = decode(rans0);
   }
   t.stop();
+
+#ifdef O2_RANS_PRINT_PROCESSED_DATA
+  LOG(info) << "decoderOutput:" << arrayLogger;
+#endif
+
   LOG(debug1) << "Decoder::" << __func__ << " { DecodedSymbols: " << messageLength << ","
               << "processedBytes: " << messageLength * sizeof(source_T) << ","
               << " inclusiveTimeMS: " << t.getDurationMS() << ","

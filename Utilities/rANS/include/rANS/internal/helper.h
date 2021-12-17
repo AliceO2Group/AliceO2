@@ -22,6 +22,8 @@
 #include <chrono>
 #include <type_traits>
 #include <iterator>
+#include <sstream>
+#include <vector>
 
 namespace o2
 {
@@ -100,6 +102,44 @@ class RANSTimer
  private:
   std::chrono::time_point<std::chrono::high_resolution_clock> mStart;
   std::chrono::time_point<std::chrono::high_resolution_clock> mStop;
+};
+
+template <class T>
+class JSONArrayLogger
+{
+ public:
+  explicit JSONArrayLogger(bool reverse = false) : mReverse{reverse} {};
+  inline JSONArrayLogger& operator<<(const T& elem)
+  {
+    mElems.emplace_back(elem);
+    return *this;
+  };
+
+  friend std::ostream& operator<<(std::ostream& os, const JSONArrayLogger& logger)
+  {
+    auto printSymbols = [&](auto begin, auto end) {
+      --end;
+      for (auto it = begin; it != end; ++it) {
+        os << +static_cast<T>(*it) << " ,";
+      }
+      os << +static_cast<T>(*end);
+    };
+
+    os << "[";
+    if (!logger.mElems.empty()) {
+      if (logger.mReverse) {
+        printSymbols(logger.mElems.rbegin(), logger.mElems.rend());
+      } else {
+        printSymbols(logger.mElems.begin(), logger.mElems.end());
+      }
+    }
+    os << "]";
+    return os;
+  }
+
+ private:
+  std::vector<T> mElems{};
+  bool mReverse{false};
 };
 
 template <typename T, typename IT>
