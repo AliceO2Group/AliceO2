@@ -75,7 +75,7 @@ double erf(double *xx, double *par) {
 
 // ITHR erf is reversed
 double erf_ithr(double *xx, double *par) {
-    return (NINJ / 2) * (1 - TMath::Erf((xx[0] - par[0]) / (sqrt(2) *par[1])));
+    return (NINJ / 2) * (1 - TMath::Erf((xx[0] - par[0]) / (sqrt(2) * par[1]))) + (NINJ / 2);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -93,7 +93,7 @@ ITSCalibrator<Mapping>::~ITSCalibrator() {
     // Clear dynamic memory
 
     // Delete all the dynamically created TH2F for each chip
-    for (auto const& th : this->thresholds) { delete th.second; }
+    //for (auto const& th : this->thresholds) { delete th.second; }
 
     delete[] this->x;
 }
@@ -202,7 +202,7 @@ bool ITSCalibrator<Mapping>::FindUpperLower (const short int* data, const short 
 // Main GetThreshold function which calls one of the three methods
 template <class Mapping>
 bool ITSCalibrator<Mapping>::GetThreshold(const short int* data, const short int* x,
-    const short int & NPoints, float *thresh, float *noise, float *chi2) {
+        const short int & NPoints, float *thresh, float *noise) {
 
     bool success = false;
 
@@ -232,17 +232,17 @@ template <class Mapping>
 bool ITSCalibrator<Mapping>::GetThreshold_Fit(const short int* data, const short int* x,
         const short int & NPoints, float *thresh, float *noise) {
 
-    bool flip = (this->nRange == this->nITHR);
+    bool flip = (*(this->nRange) == this->nITHR);
 
     //TGraph *g = new TGraph(NPoints, (int*) x, (int*) data);
-    TH1F* g = new TH1F("", "", this->nRange, x[0], x[this->nRange - 1]);
+    TH1F* g = new TH1F("", "", *(this->nRange), x[0], x[*(this->nRange) - 1]);
     TF1* fitfcn = flip ? new TF1("fitfcn", erf_ithr, 0, 1500, 2) : new TF1("fitfcn", erf, 0, 1500, 2);
     for (int i = 0; i < NPoints; i++) {
         g->SetBinContent(i + 1, data[i]);
     }
 
     // Find lower & upper values of the S-curve region
-    int Lower, Upper;
+    short int Lower, Upper;
     if (!this->FindUpperLower(data, x, NPoints, Lower, Upper, flip) || Lower == Upper) {
         LOG(error) << "Start-finding unsuccessful";
         return false;
@@ -267,11 +267,11 @@ bool ITSCalibrator<Mapping>::GetThreshold_Fit(const short int* data, const short
 
     *noise = fitfcn->GetParameter(1);
     *thresh = fitfcn->GetParameter(0);
-    *chi2 = fitfcn->GetChisquare() / fitfcn->GetNDF();
+    float chi2 = fitfcn->GetChisquare() / fitfcn->GetNDF();
 
     g->Delete();
     fitfcn->Delete();
-    return (*chi2 < 5);
+    return (chi2 < 5);
 }
 
 
@@ -285,8 +285,8 @@ bool ITSCalibrator<Mapping>::GetThreshold_Derivative(const short int* data,
         const short int* x, const short int & NPoints, float *thresh, float *noise) {
 
     // Find lower & upper values of the S-curve region
-    int Lower, Upper;
-    bool flip = (this->nRange == this->nITHR);
+    short int Lower, Upper;
+    bool flip = (*(this->nRange) == this->nITHR);
     if (!this->FindUpperLower(data, x, NPoints, Lower, Upper, flip) || Lower == Upper) {
         LOG(error) << "Start-finding unsuccessful";
         return false;
@@ -306,10 +306,10 @@ bool ITSCalibrator<Mapping>::GetThreshold_Derivative(const short int* data,
     *thresh = xfx / fx;
     float stddev = 0;
     for (int i = Lower; i < Upper; i++) {
-        stddev += std::pow(x[i] - *mean, 2) * deriv[i];
+        stddev += std::pow(x[i] - *thresh, 2) * deriv[i];
     }
     stddev /= (deriv_size) + 1;
-    *noise = std:sqrt(stddev);
+    *noise = std::sqrt(stddev);
 
     delete[] deriv;
     return true;
@@ -330,14 +330,14 @@ bool ITSCalibrator<Mapping>::GetThreshold_Hitcounting(const short int* data,
         number_of_hits += data[i];
     }
 
-    if (this->nRange == this->nCharge) {
-        *thresh = x[this->nRange - 1] - number_of_hits / this->nInj;
-    } else if (this->nRange == this->nVCASN) {
-        *thresh = (x[this->nRange - 1] * this->nInj - number_of_hits) / this->nInj;
-    } else if (this->nRange == this->nITHR) {
+    if (*(this->nRange) == this->nCharge) {
+        *thresh = x[*(this->nRange) - 1] - number_of_hits / this->nInj;
+    } else if (*(this->nRange) == this->nVCASN) {
+        *thresh = (x[*(this->nRange) - 1] * this->nInj - number_of_hits) / this->nInj;
+    } else if (*(this->nRange) == this->nITHR) {
         *thresh = (number_of_hits - this->nInj * x[0]) / this->nInj;
     } else {
-        LOG(error) << "Unexpected runtype encountered in GetThreshold_Hitcounting()"
+        LOG(error) << "Unexpected runtype encountered in GetThreshold_Hitcounting()";
         return false;
     }
     return true;
@@ -356,7 +356,7 @@ void ITSCalibrator<Mapping>::reset_row_hitmap(const short int& chipID, const sho
     // Create a 2D vector to store hits
     // Outer dim = column, inner dim = charge
     this->pixelHits[chipID] = std::vector<std::vector<short int>> (
-        this->NCols, std::vector<short int> (this->nRange, 0));
+        this->NCols, std::vector<short int> (*(this->nRange), 0));
 }
 
 
@@ -366,16 +366,18 @@ template <class Mapping>
 void ITSCalibrator<Mapping>::init_chip_data(const short int& chipID) {
 
     // Create a TH2 to save the threshold info
-    std::string th_ChipID_str = "thresh_chipID" + std::to_string(chipID)
-    char* th_ChipID = th_ChipID_str.c_str();
+    //std::string th_ChipID_str = "thresh_chipID" + std::to_string(chipID)
+    //char* th_ChipID = th_ChipID_str.c_str();
 
-    float* row_arr; float* col_arr;
-    get_row_col_arr(chipID, &row_arr, &col_arr);
+    //float* row_arr; float* col_arr;
+    //get_row_col_arr(chipID, &row_arr, &col_arr);
     //LOG(info)<<row_arr[400];
     // Create TH2 for visualizing thresholds with x = rows, y = columns
-    TH2F* th = new TH2F(th_ChipID, th_ChipID, (int)(this->NCols)-1, col_arr, (int)(this->NRows)-1, row_arr);
-    this->thresholds[chipID] = th;
-    delete[] row_arr, col_arr;
+    //TH2F* th = new TH2F(th_ChipID, th_ChipID, (int)(this->NCols)-1, col_arr, (int)(this->NRows)-1, row_arr);
+    //this->thresholds[chipID] = th;
+    //delete[] row_arr, col_arr;
+
+    return;
 }
 
 
@@ -392,7 +394,7 @@ void ITSCalibrator<Mapping>::extract_thresh_row(const short int& chipID, const s
 
         // Do the threshold fit
         bool success = false;
-        try { success = this->GetThreshold(data, this->x, this->nRange, &threshold, &noise); }
+        try { success = this->GetThreshold(data, this->x, *(this->nRange), &threshold, &noise); }
 
         // Print helpful info to output file for debugging
         // col+1 because of ROOT 1-indexing (I think row already has the +1)
@@ -415,12 +417,14 @@ void ITSCalibrator<Mapping>::extract_thresh_row(const short int& chipID, const s
         //this->thresholds[chipID]->SetBinError( ((int) col_i) + 1, (int) row, noise);
 
         // Saves threshold information to internal memory
-        this->save_threshold(chipID, row, col, &threshold, &noise, &chi2, success)
+        this->save_threshold(chipID, row, (col_i + 1), &threshold, &noise, success);
 
         // TODO use this info when writing to CCDB
+        int lay, sta, ssta, mod, chipInMod; // layer, stave, sub stave, module, chip
+        this->mp.expandChipInfoHW((int) chipID, lay, sta, ssta, mod, chipInMod);
         LOG(info) << "Stave: " << sta << " | Half-stave: " << ssta << " | Module: " << mod
                   << " | Chip ID: " << chipID << " | Row: " << row << " | Col: " << (col_i + 1)
-                  << " | Threshold: " << threshold << " | Noise: " << noise << " | Chi^2: " << chi2;
+                  << " | Threshold: " << threshold << " | Noise: " << noise << " | Success: " << success;
     }
 }
 
@@ -430,7 +434,11 @@ template <class Mapping>
 void ITSCalibrator<Mapping>::save_threshold(const short int& chipID, const short int& row,
          const short int& col, float* thresh, float* noise, bool success) {
 
-    threshold_obj t = threshold_obj(row, col, threshold, noise, success)
+    // Cast as short int to save memory
+    short int _threshold = (short int) (*thresh * 10);
+    short int _noise = (short int) (*noise * 10);
+
+    threshold_obj t = threshold_obj(row, col, _threshold, _noise, success);
     this->thresholds[chipID].push_back(t);
     return;
 }
@@ -474,27 +482,27 @@ void ITSCalibrator<Mapping>::set_run_type(const short int& runtype) {
     if (runtype == 42) {
         // full_threshold-scan -- just extract thresholds and send to CCDB for each pixel
         // 512 rows per chip
-        this->nRange = this->nCharge;
+        this->nRange = &(this->nCharge);
         min = 0;  max = 50;
 
     } else if (runtype == 43 || runtype == 101 || runtype == 102) {
         // threshold_scan_short -- just extract thresholds and send to CCDB for each pixel
         // 10 rows per chip
-        this->nRange = this->nCharge;
+        this->nRange = &(this->nCharge);
         min = 0;  max = 50;
 
     } else if (runtype == 61 || runtype == 103 || runtype == 81) {
         // VCASN tuning for different target thresholds
         // Store average VCASN for each chip into CCDB
         // 4 rows per chip
-        this->nRange = this->nVCASN;
+        this->nRange = &(this->nVCASN);
         min = 30;  max = 70;
 
     } else if (runtype == 62 || runtype == 82 || runtype == 104) {
         // ITHR tuning  -- average ITHR per chip
         // S-curve is backwards from VCASN case, otherwise same
         // 4 rows per chip
-        this->nRange = this->nITHR;
+        this->nRange = &(this->nITHR);
         min = 30;  max = 100;
 
     //} else if (runtype == 0) {
@@ -508,7 +516,7 @@ void ITSCalibrator<Mapping>::set_run_type(const short int& runtype) {
         throw runtype;
     }
 
-    this->x = new int[nRange];
+    this->x = new short int[*(this->nRange)];
     for (short int i = min; i <= max; i++) { this->x[i] = i; }
 
     return;
@@ -523,7 +531,7 @@ template <class Mapping>
 void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
 
     int TriggerId = 0;
-    int lay, sta, ssta, mod, chip,chipInMod,rofcount; //layer, stave, sub stave, module, chip
+    int lay, sta, ssta, mod, chip, chipInMod, rofcount; //layer, stave, sub stave, module, chip
 
     auto orig = Mapping::getOrigin();
 
@@ -596,7 +604,7 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
                     // Update the current row and hit map
                     this->reset_row_hitmap(chipID, row);
                     // Create data structures to hold the threshold info
-                    this->init_chip_data(chipID);
+                    //this->init_chip_data(chipID);
 
                 // Check if we have a new row on an already existing chip
                 } else if (this->currentRow[chipID] != row) {
@@ -627,7 +635,7 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
 template <class Mapping>
 float ITSCalibrator<Mapping>::find_average(const std::vector<threshold_obj>& data) {
     float sum = 0;
-    for (threshold_obj t : this->thresholds) {
+    for (threshold_obj t : data) {
         if (t.success) { sum += t.threshold; }
     }
     return sum / data.size();
@@ -636,7 +644,7 @@ float ITSCalibrator<Mapping>::find_average(const std::vector<threshold_obj>& dat
 
 //////////////////////////////////////////////////////////////////////////////
 template <class Mapping>
-void ITSCalibrator<Mapping>::add_db_entry(const short int& chipID, const std::string& name,
+void ITSCalibrator<Mapping>::add_db_entry(const short int& chipID, const std::string * name,
         const short int& avg, bool status) {
 
     // Obtain specific chip information from the chip ID (layer, stave, ...)
@@ -649,7 +657,7 @@ void ITSCalibrator<Mapping>::add_db_entry(const short int& chipID, const std::st
     o2::dcs::addConfigItem(this->tuning, "Hs_pos", std::to_string(ssta));
     o2::dcs::addConfigItem(this->tuning, "Hic_Pos", std::to_string(mod));
     o2::dcs::addConfigItem(this->tuning, "ChipID", std::to_string(chipInMod));
-    o2::dcs::addConfigItem(this->tuning, name, std::to_string(avg));
+    o2::dcs::addConfigItem(this->tuning, *name, std::to_string(avg));
     o2::dcs::addConfigItem(this->tuning, "Status", std::to_string(status)); // pass or fail
 }
 
@@ -681,38 +689,40 @@ void ITSCalibrator<Mapping>::endOfStream(EndOfStreamContext& ec)
     std::map<std::string, std::string> md;
 
     // Add configuration item to output strings for CCDB
-    const std::string name;
-    if (this->nRange == this->nVCASN) {
+    const std::string * name;
+    if (*(this->nRange) == this->nVCASN) {
         // Loop over each chip in the thresholds data
-        name = "VCASN";
-        for (auto const& [chipID, t] : this->thresholds) {
+        name = new std::string("VCASN");
+        for (auto const& [chipID, t_vec] : this->thresholds) {
             // Casting float to short int to save memory
-            short int avg = (short int) this->find_average(t);
-            bool status = (this->x[0] < avg && avg < this->x[this->nRange - 1])
-            this->add_db_entry(chipID, name, avg, status)
+            short int avg = (short int) this->find_average(t_vec);
+            bool status = (this->x[0] < avg && avg < this->x[*(this->nRange) - 1]);
+            this->add_db_entry(chipID, name, avg, status);
         }
-    } else if (this->nRange == this->nITHR) {
+    } else if (*(this->nRange) == this->nITHR) {
         // Loop over each chip in the thresholds data
-        name = "ITHR";
-        for (auto const& [chipID, t] : this->thresholds) {
+        name = new std::string("ITHR");
+        for (auto const& [chipID, t_vec] : this->thresholds) {
             // Casting float to short int to save memory
-            short int avg = (short int) this->find_average(t);
-            bool status = (this->x[0] < avg && avg < this->x[this->nRange - 1])
-            this->add_db_entry(chipID, name, avg, status)
+            short int avg = (short int) this->find_average(t_vec);
+            bool status = (this->x[0] < avg && avg < this->x[*(this->nRange) - 1]);
+            this->add_db_entry(chipID, name, avg, status);
         }
-    } else if (this->nRange == this->nCharge) {
+    } else if (*(this->nRange) == this->nCharge) {
         // No averaging required for these runs
-        name = "Threshold"
-        for (auto const& [chipID, t] : this->thresholds) {
-            this->add_db_entry(chipID, t)
+        name = new std::string("Threshold");
+        for (auto const& [chipID, t_vec] : this->thresholds) {
+            for (auto const& t : t_vec) {
+                this->add_db_entry(chipID, t);
+            }
         }
     }
 
     auto clName = o2::utils::MemFileHelper::getClassName(this->tuning);
 
     std::string path = "ITS/Calib/";
-    o2::ccdb::CcdbObjectInfo info((path + name), clName, "", md, tstart, tend);
-    auto flName = o2::ccdb::CcdbApi::generateFileName(name);
+    o2::ccdb::CcdbObjectInfo info((path + *name), clName, "", md, tstart, tend);
+    auto flName = o2::ccdb::CcdbApi::generateFileName(*name);
     info.setFileName(flName);
     LOG(info) << "Class Name  " << clName << " File Name " << flName ;
     auto image = o2::ccdb::CcdbApi::createObjectImage(&(this->tuning), &info);
@@ -721,8 +731,10 @@ void ITSCalibrator<Mapping>::endOfStream(EndOfStreamContext& ec)
               << info.getStartValidityTimestamp() << " : "
               << info.getEndValidityTimestamp();
 
-    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, name, 0}, *image);
-    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, name, 0}, info);
+    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, name->c_str(), 0}, *image);
+    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, name->c_str(), 0}, info);
+
+    delete name;
 
     return;
 }
