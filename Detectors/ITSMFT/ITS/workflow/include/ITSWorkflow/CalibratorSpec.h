@@ -38,7 +38,7 @@ namespace o2
 namespace its
 {
 
-typedef struct threshold_obj {
+struct threshold_obj {
     public:
 
         threshold_obj(short _row, short _col, short _threshold, short _noise, bool _success) :
@@ -96,7 +96,7 @@ class ITSCalibrator : public Task
         // Number of in a ITHR tuning (from 30 to 100 inclusive)
         const short int nITHR = 71;
         // Refernce to one of the above values; updated during runtime
-        const short int & nRange;
+        const short int * nRange;
 
         // The x-axis of the correct data fit chosen above
         short int* x;
@@ -132,8 +132,8 @@ class ITSCalibrator : public Task
 
         // Helper functions related to threshold extraction
         void get_row_col_arr(const short int&, float**, float**);
-        bool FindUpperLower (const short int*, const short int*, const short int&, short int&, short int&);
-        bool GetThreshold(const short int*, const short int*, const short int&, float*, float*, float*);
+        bool FindUpperLower (const short int*, const short int*, const short int&, short int&, short int&, bool);
+        bool GetThreshold(const short int*, const short int*, const short int&, float*, float*);
         bool GetThreshold_Fit(const short int*, const short int*, const short int&, float*, float*);
         bool GetThreshold_Derivative(const short int*, const short int*, const short int&, float*, float*);
         bool GetThreshold_Hitcounting(const short int*, const short int*, const short int&, float*);
@@ -141,7 +141,7 @@ class ITSCalibrator : public Task
         void save_threshold(const short int&, const short int&, const short int&, float*, float*, bool);
 
         // Helper functions for writing to the database
-        void add_db_entry(const short int&, const std::string&, const short int&, bool);
+        void add_db_entry(const short int&, const std::string *, const short int&, bool);
         void add_db_entry(const short int&, const threshold_obj&);
 
         std::string mSelfName;
