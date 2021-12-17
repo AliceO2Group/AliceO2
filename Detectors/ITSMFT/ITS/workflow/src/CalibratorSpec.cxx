@@ -51,7 +51,6 @@
 #include "DetectorsCalibration/Utils.h"
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
-#include "DataFormatsDCS/DCSConfigObject.h"
 
 using namespace o2::framework;
 using namespace o2::itsmft;
@@ -645,7 +644,7 @@ float ITSCalibrator<Mapping>::find_average(const std::vector<threshold_obj>& dat
 //////////////////////////////////////////////////////////////////////////////
 template <class Mapping>
 void ITSCalibrator<Mapping>::add_db_entry(const short int& chipID, const std::string * name,
-        const short int& avg, bool status) {
+        const short int& avg, bool status, o2::dcs::DCSconfigObject_t& tuning) {
 
     // Obtain specific chip information from the chip ID (layer, stave, ...)
     int lay, sta, ssta, mod, chipInMod; // layer, stave, sub stave, module, chip
@@ -653,25 +652,26 @@ void ITSCalibrator<Mapping>::add_db_entry(const short int& chipID, const std::st
 
     std::string stave = 'L' + std::to_string(lay) + '_' + std::to_string(sta);
 
-    o2::dcs::addConfigItem(this->tuning, "Stave", stave);
-    o2::dcs::addConfigItem(this->tuning, "Hs_pos", std::to_string(ssta));
-    o2::dcs::addConfigItem(this->tuning, "Hic_Pos", std::to_string(mod));
-    o2::dcs::addConfigItem(this->tuning, "ChipID", std::to_string(chipInMod));
-    o2::dcs::addConfigItem(this->tuning, *name, std::to_string(avg));
-    o2::dcs::addConfigItem(this->tuning, "Status", std::to_string(status)); // pass or fail
+    o2::dcs::addConfigItem(tuning, "Stave", stave);
+    o2::dcs::addConfigItem(tuning, "Hs_pos", std::to_string(ssta));
+    o2::dcs::addConfigItem(tuning, "Hic_Pos", std::to_string(mod));
+    o2::dcs::addConfigItem(tuning, "ChipID", std::to_string(chipInMod));
+    o2::dcs::addConfigItem(tuning, *name, std::to_string(avg));
+    o2::dcs::addConfigItem(tuning, "Status", std::to_string(status)); // pass or fail
 }
 
 
 //////////////////////////////////////////////////////////////////////////////
 template <class Mapping>
-void ITSCalibrator<Mapping>::add_db_entry(const short int& chipID, const threshold_obj& t) {
+void ITSCalibrator<Mapping>::add_db_entry(const short int& chipID, const threshold_obj& t,
+        o2::dcs::DCSconfigObject_t& tuning) {
 
-    o2::dcs::addConfigItem(this->tuning, "ChipID", chipID);
-    o2::dcs::addConfigItem(this->tuning, "row", std::to_string(t.row));
-    o2::dcs::addConfigItem(this->tuning, "col", std::to_string(t.col));
-    o2::dcs::addConfigItem(this->tuning, "Threshold", std::to_string(t.threshold));
-    o2::dcs::addConfigItem(this->tuning, "Noise", std::to_string(t.noise));
-    o2::dcs::addConfigItem(this->tuning, "Status", std::to_string(t.success)); // pass or fail
+    o2::dcs::addConfigItem(tuning, "ChipID", chipID);
+    o2::dcs::addConfigItem(tuning, "row", std::to_string(t.row));
+    o2::dcs::addConfigItem(tuning, "col", std::to_string(t.col));
+    o2::dcs::addConfigItem(tuning, "Threshold", std::to_string(t.threshold));
+    o2::dcs::addConfigItem(tuning, "Noise", std::to_string(t.noise));
+    o2::dcs::addConfigItem(tuning, "Status", std::to_string(t.success)); // pass or fail
 }
 
 
@@ -688,8 +688,11 @@ void ITSCalibrator<Mapping>::endOfStream(EndOfStreamContext& ec)
     tend = o2::ccdb::getFutureTimestamp(SECONDSPERYEAR);
     std::map<std::string, std::string> md;
 
+    // DCS formatted data object for VCASN and ITHR tuning
+    o2::dcs::DCSconfigObject_t tuning;
+
     // Add configuration item to output strings for CCDB
-    const std::string * name;
+    std::string * name;
     if (*(this->nRange) == this->nVCASN) {
         // Loop over each chip in the thresholds data
         name = new std::string("VCASN");
@@ -697,7 +700,7 @@ void ITSCalibrator<Mapping>::endOfStream(EndOfStreamContext& ec)
             // Casting float to short int to save memory
             short int avg = (short int) this->find_average(t_vec);
             bool status = (this->x[0] < avg && avg < this->x[*(this->nRange) - 1]);
-            this->add_db_entry(chipID, name, avg, status);
+            this->add_db_entry(chipID, name, avg, status, tuning);
         }
     } else if (*(this->nRange) == this->nITHR) {
         // Loop over each chip in the thresholds data
@@ -706,33 +709,41 @@ void ITSCalibrator<Mapping>::endOfStream(EndOfStreamContext& ec)
             // Casting float to short int to save memory
             short int avg = (short int) this->find_average(t_vec);
             bool status = (this->x[0] < avg && avg < this->x[*(this->nRange) - 1]);
-            this->add_db_entry(chipID, name, avg, status);
+            this->add_db_entry(chipID, name, avg, status, tuning);
         }
     } else if (*(this->nRange) == this->nCharge) {
         // No averaging required for these runs
         name = new std::string("Threshold");
         for (auto const& [chipID, t_vec] : this->thresholds) {
             for (auto const& t : t_vec) {
-                this->add_db_entry(chipID, t);
+                this->add_db_entry(chipID, t, tuning);
             }
         }
     }
 
-    auto clName = o2::utils::MemFileHelper::getClassName(this->tuning);
+    auto clName = o2::utils::MemFileHelper::getClassName(tuning);
 
     std::string path = "ITS/Calib/";
     o2::ccdb::CcdbObjectInfo info((path + *name), clName, "", md, tstart, tend);
     auto flName = o2::ccdb::CcdbApi::generateFileName(*name);
     info.setFileName(flName);
     LOG(info) << "Class Name  " << clName << " File Name " << flName ;
-    auto image = o2::ccdb::CcdbApi::createObjectImage(&(this->tuning), &info);
+    auto image = o2::ccdb::CcdbApi::createObjectImage(&tuning, &info);
     LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
               << " of size " << image->size() << " bytes, valid for "
               << info.getStartValidityTimestamp() << " : "
               << info.getEndValidityTimestamp();
 
-    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, name->c_str(), 0}, *image);
-    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, name->c_str(), 0}, info);
+    if (*(this->nRange) == this->nVCASN) {
+        ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "VCASN", 0}, *image);
+        ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "VCASN", 0}, info);
+    } else if (*(this->nRange) == this->nITHR) {
+        ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ITHR", 0}, *image);
+        ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ITHR", 0}, info);
+    } else if (*(this->nRange) == this->nCharge) {
+        ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "Threshold", 0}, *image);
+        ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "Threshold", 0}, info);
+    }
 
     delete name;
 
@@ -770,8 +781,8 @@ DataProcessorSpec getITSCalibratorSpec()
         outputs,
         AlgorithmSpec{adaptFromTask<ITSCalibrator<ChipMappingITS>>()},
         // here I assume ''calls'' init, run, endOfStream sequentially...
-        Options{"fittype", VariantType::String, "derivative",
-                {"Fit type to extract thresholds, with options: fit, derivative (default), hitcounting"}}
+        Options{{"fittype", VariantType::String, "derivative",
+                {"Fit type to extract thresholds, with options: fit, derivative (default), hitcounting"}}}
     };
 }
 } // namespace its
