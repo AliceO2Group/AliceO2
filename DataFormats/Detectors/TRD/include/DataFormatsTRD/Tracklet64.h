@@ -98,6 +98,7 @@ class Tracklet64
   GPUd() int getMCM() const { return 4 * (getPadRow() % 4) + getColumn(); }                                 // returns MCM position on ROB [0..15]
   GPUd() int getROB() const { return (getHCID() % 2) ? (getPadRow() / 4) * 2 + 1 : (getPadRow() / 4) * 2; } // returns ROB number [0..5] for C0 chamber and [0..7] for C1 chamber
   GPUd() int getPositionBinSigned() const;
+  GPUd() int getSlopeBinSigned() const;
   GPUd() float getUncalibratedY() const;                                                                    // translate local position into global y (in cm) not taking into account calibrations (ExB, vDrift, t0)
   GPUd() float getUncalibratedDy(float nTbDrift = 19.4f) const;                                             // translate local slope into dy/dx with dx=3m (drift length) and default drift time in time bins (19.4 timebins / 3cm)
 
@@ -196,18 +197,23 @@ GPUdi() float Tracklet64::getUncalibratedY() const
   return (offset + padLocal * constants::GRANULARITYTRKLPOS) * padWidth;
 }
 
+GPUdi() int Tracklet64::getSlopeBinSigned() const
+{
+  int slopeBin = getSlope();
+  int slope = 0;
+  if (slopeBin & (1 << (constants::NBITSTRKLSLOPE - 1))) {
+    slope = -((~(slopeBin - 1)) & ((1 << constants::NBITSTRKLSLOPE) - 1));
+  } else {
+    slope = slopeBin & ((1 << constants::NBITSTRKLSLOPE) - 1);
+  }
+  return slope;
+}
+
 GPUdi() float Tracklet64::getUncalibratedDy(float nTbDrift) const
 {
-  float dy;
-  int dyLocalBin = getSlope();
-  if (dyLocalBin & (1 << (constants::NBITSTRKLSLOPE - 1))) {
-    dy = (~(dyLocalBin - 1)) & ((1 << constants::NBITSTRKLSLOPE) - 1);
-    dy *= -1.f;
-  } else {
-    dy = dyLocalBin & ((1 << constants::NBITSTRKLSLOPE) - 1);
-  }
+  int slope = getSlopeBinSigned();
   float padWidth = 0.635f + 0.03f * (getDetector() % constants::NLAYER);
-  return dy * constants::GRANULARITYTRKLSLOPE * padWidth * nTbDrift;
+  return slope * constants::GRANULARITYTRKLSLOPE * padWidth * nTbDrift;
 }
 
 #ifndef GPUCA_GPUCODE_DEVICE
