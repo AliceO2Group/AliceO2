@@ -10,8 +10,10 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(rANS
+               TARGETVARNAME targetName
                SOURCES src/FrequencyTable.cxx
                PUBLIC_LINK_LIBRARIES FairLogger::FairLogger)
+#target_compile_definitions(${targetName} PUBLIC O2_RANS_PRINT_PROCESSED_DATA)
 
 o2_add_test(Iterators
             NAME Iterators

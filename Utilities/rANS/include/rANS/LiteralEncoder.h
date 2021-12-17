@@ -56,6 +56,11 @@ stream_IT LiteralEncoder<coder_T, stream_T, source_T>::process(source_IT inputBe
   using namespace internal;
   LOG(trace) << "start encoding";
   RANSTimer t;
+
+#ifdef O2_RANS_PRINT_PROCESSED_DATA
+  JSONArrayLogger<source_T> arrayLogger{true};
+#endif
+
   t.start();
 
   if (inputBegin == inputEnd) {
@@ -71,12 +76,17 @@ stream_IT LiteralEncoder<coder_T, stream_T, source_T>::process(source_IT inputBe
 
   const auto inputBufferSize = std::distance(inputBegin, inputEnd);
 
-  auto encode = [&literals, this](source_IT symbolIter, stream_IT outputIter, ransCoder_t& coder) {
+  auto encode = [&, this](source_IT symbolIter, stream_IT outputIter, ransCoder_t& coder) {
     const source_T symbol = *symbolIter;
     const auto& encoderSymbol = (this->mSymbolTable)[symbol];
     if (this->mSymbolTable.isEscapeSymbol(symbol)) {
       literals.push_back(symbol);
     }
+
+#ifdef O2_RANS_PRINT_PROCESSED_DATA
+    arrayLogger << symbol;
+#endif
+
     return coder.putSymbol(outputIter, encoderSymbol);
   };
 
@@ -95,6 +105,11 @@ stream_IT LiteralEncoder<coder_T, stream_T, source_T>::process(source_IT inputBe
   ++outputIter;
 
   t.stop();
+
+#ifdef O2_RANS_PRINT_PROCESSED_DATA
+  LOG(info) << "encoderInput:" << arrayLogger;
+#endif
+
   LOG(debug1) << "Encoder::" << __func__ << " {ProcessedBytes: " << inputBufferSize * sizeof(source_T) << ","
               << " inclusiveTimeMS: " << t.getDurationMS() << ","
               << " BandwidthMiBPS: " << std::fixed << std::setprecision(2) << (inputBufferSize * sizeof(source_T) * 1.0) / (t.getDurationS() * 1.0 * (1 << 20)) << "}";

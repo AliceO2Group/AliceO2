@@ -102,6 +102,15 @@ SymbolTable<T>::SymbolTable(const FrequencyTable& frequencyTable) : mOffset{freq
               << "sizeB: " << mSymbols.size() * sizeof(T) + mIndex.size() * sizeof(T*) << "}";
 #endif
 
+#ifdef O2_RANS_PRINT_PROCESSED_DATA
+  JSONArrayLogger<count_t> arrayLogger;
+  for (auto f : frequencyTable) {
+    arrayLogger << f;
+  }
+  arrayLogger << frequencyTable.getIncompressibleSymbolFrequency();
+  LOG(info) << "symbolTableFrequencies:" << arrayLogger;
+#endif
+
   LOG(trace) << "done building symbol table";
 }
 
