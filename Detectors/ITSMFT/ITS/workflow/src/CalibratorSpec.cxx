@@ -57,6 +57,7 @@ using namespace o2::itsmft;
 using namespace o2::header;
 using namespace o2::utils;
 
+
 namespace o2
 {
 namespace its
@@ -201,20 +202,23 @@ bool ITSCalibrator<Mapping>::FindUpperLower (const short int* data, const short 
 // Main GetThreshold function which calls one of the three methods
 template <class Mapping>
 bool ITSCalibrator<Mapping>::GetThreshold(const short int* data, const short int* x,
-        const short int & NPoints, float *thresh, float *noise) {
+        const short int & NPoints, float& thresh, float& noise) {
 
     bool success = false;
 
     switch (this->fit_type) {
         case 0:  // Derivative method
             success = this->GetThreshold_Derivative(data, x, NPoints, thresh, noise);
+            break;
 
         case 1:  // Fit method
             success = this->GetThreshold_Fit(data, x, NPoints, thresh, noise);
+            break;
 
         case 2:  // Hit-counting method
             success = this->GetThreshold_Hitcounting(data, x, NPoints, thresh);
-            *noise = -1;
+            noise = -1;
+            break;
     }
 
     return success;
@@ -229,7 +233,7 @@ bool ITSCalibrator<Mapping>::GetThreshold(const short int* data, const short int
 // thresh, noise, chi2 pointers are updated with results from the fit
 template <class Mapping>
 bool ITSCalibrator<Mapping>::GetThreshold_Fit(const short int* data, const short int* x,
-        const short int & NPoints, float *thresh, float *noise) {
+        const short int & NPoints, float& thresh, float& noise) {
 
     bool flip = (*(this->nRange) == this->nITHR);
 
@@ -264,8 +268,8 @@ bool ITSCalibrator<Mapping>::GetThreshold_Fit(const short int* data, const short
     //g->Draw("AP");
     g->Fit("fitfcn", "Q");
 
-    *noise = fitfcn->GetParameter(1);
-    *thresh = fitfcn->GetParameter(0);
+    noise = fitfcn->GetParameter(1);
+    thresh = fitfcn->GetParameter(0);
     float chi2 = fitfcn->GetChisquare() / fitfcn->GetNDF();
 
     g->Delete();
@@ -281,7 +285,7 @@ bool ITSCalibrator<Mapping>::GetThreshold_Fit(const short int* data, const short
 // NPoints is the length of both arrays.
 template <class Mapping>
 bool ITSCalibrator<Mapping>::GetThreshold_Derivative(const short int* data,
-        const short int* x, const short int & NPoints, float *thresh, float *noise) {
+        const short int* x, const short int & NPoints, float& thresh, float& noise) {
 
     // Find lower & upper values of the S-curve region
     short int Lower, Upper;
@@ -297,18 +301,19 @@ bool ITSCalibrator<Mapping>::GetThreshold_Derivative(const short int* data,
 
     // Fill array with derivatives
     for (int i = Lower; i < Upper; i++) {
-        deriv[i] = (data[i+1] - data[i]) / (x[i+1] - x[i]);
-        xfx += x[i] * deriv[i];
-        fx += deriv[i];
+        deriv[i - Lower] = (float) (data[i+1] - data[i]) / (float) (x[i+1] - x[i]);
+        xfx += x[i] * deriv[i - Lower];
+        fx += deriv[i - Lower];
     }
 
-    *thresh = xfx / fx;
+    thresh = xfx / fx;
     float stddev = 0;
     for (int i = Lower; i < Upper; i++) {
-        stddev += std::pow(x[i] - *thresh, 2) * deriv[i];
+        stddev += std::pow(x[i] - thresh, 2) * deriv[i - Lower];
     }
+
     stddev /= (deriv_size) + 1;
-    *noise = std::sqrt(stddev);
+    noise = std::sqrt(stddev);
 
     delete[] deriv;
     return true;
@@ -322,7 +327,7 @@ bool ITSCalibrator<Mapping>::GetThreshold_Derivative(const short int* data,
 // NPoints is the length of both arrays.
 template <class Mapping>
 bool ITSCalibrator<Mapping>::GetThreshold_Hitcounting(const short int* data,
-         const short int* x, const short int & NPoints, float* thresh) {
+         const short int* x, const short int & NPoints, float& thresh) {
 
     unsigned short int number_of_hits = 0;
     for (unsigned short int i = 0; i < NPoints; i++) {
@@ -330,11 +335,11 @@ bool ITSCalibrator<Mapping>::GetThreshold_Hitcounting(const short int* data,
     }
 
     if (*(this->nRange) == this->nCharge) {
-        *thresh = x[*(this->nRange) - 1] - number_of_hits / this->nInj;
+        thresh = x[*(this->nRange) - 1] - number_of_hits / (float) this->nInj;
     } else if (*(this->nRange) == this->nVCASN) {
-        *thresh = (x[*(this->nRange) - 1] * this->nInj - number_of_hits) / this->nInj;
+        thresh = (x[*(this->nRange) - 1] * this->nInj - number_of_hits) / (float) this->nInj;
     } else if (*(this->nRange) == this->nITHR) {
-        *thresh = (number_of_hits - this->nInj * x[0]) / this->nInj;
+        thresh = (number_of_hits - this->nInj * x[0]) / (float) this->nInj;
     } else {
         LOG(error) << "Unexpected runtype encountered in GetThreshold_Hitcounting()";
         return false;
@@ -387,13 +392,13 @@ void ITSCalibrator<Mapping>::extract_thresh_row(const short int& chipID, const s
 
     for (short int col_i = 0; col_i < this->NCols; col_i++) {
 
-        float threshold, noise;
+        float thresh = 0., noise = 0.;
         // Convert counts to C array for the fitting function
         const short int* data = &(this->pixelHits[chipID][col_i][0]);
 
         // Do the threshold fit
         bool success = false;
-        try { success = this->GetThreshold(data, this->x, *(this->nRange), &threshold, &noise); }
+        try { success = this->GetThreshold(data, this->x, *(this->nRange), thresh, noise); }
 
         // Print helpful info to output file for debugging
         // col+1 because of ROOT 1-indexing (I think row already has the +1)
@@ -416,14 +421,14 @@ void ITSCalibrator<Mapping>::extract_thresh_row(const short int& chipID, const s
         //this->thresholds[chipID]->SetBinError( ((int) col_i) + 1, (int) row, noise);
 
         // Saves threshold information to internal memory
-        this->save_threshold(chipID, row, (col_i + 1), &threshold, &noise, success);
+        this->save_threshold(chipID, row, (col_i + 1), &thresh, &noise, success);
 
         // TODO use this info when writing to CCDB
         int lay, sta, ssta, mod, chipInMod; // layer, stave, sub stave, module, chip
         this->mp.expandChipInfoHW((int) chipID, lay, sta, ssta, mod, chipInMod);
         LOG(info) << "Stave: " << sta << " | Half-stave: " << ssta << " | Module: " << mod
                   << " | Chip ID: " << chipID << " | Row: " << row << " | Col: " << (col_i + 1)
-                  << " | Threshold: " << threshold << " | Noise: " << noise << " | Success: " << success;
+                  << " | Threshold: " << thresh << " | Noise: " << noise << " | Success: " << success;
     }
 }
 

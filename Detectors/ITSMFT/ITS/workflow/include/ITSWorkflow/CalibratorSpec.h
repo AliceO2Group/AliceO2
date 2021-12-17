@@ -134,10 +134,10 @@ class ITSCalibrator : public Task
         // Helper functions related to threshold extraction
         void get_row_col_arr(const short int&, float**, float**);
         bool FindUpperLower (const short int*, const short int*, const short int&, short int&, short int&, bool);
-        bool GetThreshold(const short int*, const short int*, const short int&, float*, float*);
-        bool GetThreshold_Fit(const short int*, const short int*, const short int&, float*, float*);
-        bool GetThreshold_Derivative(const short int*, const short int*, const short int&, float*, float*);
-        bool GetThreshold_Hitcounting(const short int*, const short int*, const short int&, float*);
+        bool GetThreshold(const short int*, const short int*, const short int&, float&, float&);
+        bool GetThreshold_Fit(const short int*, const short int*, const short int&, float&, float&);
+        bool GetThreshold_Derivative(const short int*, const short int*, const short int&, float&, float&);
+        bool GetThreshold_Hitcounting(const short int*, const short int*, const short int&, float&);
         float find_average(const std::vector<threshold_obj>&);
         void save_threshold(const short int&, const short int&, const short int&, float*, float*, bool);
 
