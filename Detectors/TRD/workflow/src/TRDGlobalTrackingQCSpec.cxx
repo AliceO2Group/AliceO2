@@ -70,7 +70,7 @@ void TRDGlobalTrackingQC::endOfStream(EndOfStreamContext& ec)
 {
   // for now just dump the results to a file, should become an option to be used in debugging mode
   auto fOut = std::make_unique<TFile>("trdQC.root", "recreate");
-  auto tree = std::make_unique<TTree>("trdtrackingqc", "Track based QC for TRD");
+  auto tree = std::make_unique<TTree>("qc", "Track based QC for TRD");
   auto vec = mQC.getTrackQC();
   auto vecPtr = &vec;
   tree->Branch("trackQC", &vecPtr);
