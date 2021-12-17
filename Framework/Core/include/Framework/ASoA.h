@@ -1258,7 +1258,7 @@ class Table
     return arrow::Status::OK();
   }
 
- protected:
+ public:
   arrow::Status getSliceFor(int value, const char* key, std::shared_ptr<arrow::Table>& output, uint64_t& offset)
   {
     arrow::Status status;
