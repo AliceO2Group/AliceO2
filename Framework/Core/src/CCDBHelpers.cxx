@@ -23,12 +23,13 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         if (route.matcher.lifetime != Lifetime::Condition) {
           continue;
         }
-        LOGP(INFO, "The following route is a condition {}", route.matcher);
+        LOGP(info, "The following route is a condition {}", route.matcher);
+        for (auto& metadata : route.matcher.metadata) {
+          LOGP(info, "- {}", metadata.name);
+        }
       }
       
       return adaptStateless([](DataAllocator& ctx) {
-          LOG(INFO) << "each time";
-
                               }); });
 }
 
