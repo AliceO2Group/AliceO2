@@ -19,6 +19,8 @@
 #include "DataFormatsITSMFT/NoiseMap.h"
 #include "gsl/span"
 
+#include "DataFormatsDCS/DCSConfigObject.h"
+
 // ROOT includes
 #include "TH2F.h"
 #include "TGraph.h"
@@ -32,6 +34,8 @@ using namespace o2::framework;
 using namespace o2::itsmft;
 using namespace o2::header;
 //using namespace o2::ccdb;
+
+
 
 namespace o2
 {
@@ -119,9 +123,6 @@ class ITSCalibrator : public Task
         std::map< short int, std::vector<threshold_obj> > thresholds;
         //std::unordered_map<unsigned int, int> mHitPixelID_Hash[7][48][2][14][14]; //layer, stave, substave, hic, chip
 
-        // DCS formatted data object for VCASN and ITHR tuning
-        o2::dcs::DCSconfigObject_t tuning;
-
         // Some private helper functions
         // Helper functions related to the running over data
         void reset_row_hitmap(const short int&, const short int&);
@@ -141,8 +142,9 @@ class ITSCalibrator : public Task
         void save_threshold(const short int&, const short int&, const short int&, float*, float*, bool);
 
         // Helper functions for writing to the database
-        void add_db_entry(const short int&, const std::string *, const short int&, bool);
-        void add_db_entry(const short int&, const threshold_obj&);
+        void add_db_entry(const short int&, const std::string *, const short int&, bool,
+                          o2::dcs::DCSconfigObject_t &);
+        void add_db_entry(const short int&, const threshold_obj&, o2::dcs::DCSconfigObject_t &);
 
         std::string mSelfName;
         std::string mDictName;
