@@ -23,8 +23,6 @@
 #include <unordered_map>
 #include <memory>
 
-// #include <FairLogger.h>
-
 class TGeoManager; // we need to forward-declare those classes which should not be cleaned up
 
 namespace o2::ccdb
@@ -90,7 +88,6 @@ class CCDBManagerInstance
   template <typename T>
   T* get(std::string const& path)
   {
-    // TODO: add some error info/handling when failing
     return getForTimeStamp<T>(path, mTimestamp);
   }
 
@@ -138,7 +135,15 @@ class CCDBManagerInstance
   /// reset the object upper validity limit
   void resetCreatedNotBefore() { mCreatedNotBefore = 0; }
 
+  /// get the fatalWhenNull state
+  bool getFatalWhenNull() const { return mFatalWhenNull; }
+  /// set the fatal property (when false; nullptr object responses will not abort)
+  void setFatalWhenNull(bool b) { mFatalWhenNull = b; }
+
  private:
+  // method to print (fatal) error
+  void reportFatal(std::string_view s);
+
   // we access the CCDB via the CURL based C++ API
   o2::ccdb::CcdbApi mCCDBAccessor;
   std::unordered_map<std::string, CachedObject> mCache; //! map for {path, CachedObject} associations
@@ -150,15 +155,20 @@ class CCDBManagerInstance
   bool mCheckObjValidityEnabled = false;                // wether the validity of cached object is checked before proceeding to a CCDB API query
   long mCreatedNotAfter = 0;                            // upper limit for object creation timestamp (TimeMachine mode) - If-Not-After HTTP header
   long mCreatedNotBefore = 0;                           // lower limit for object creation timestamp (TimeMachine mode) - If-Not-Before HTTP header
+  bool mFatalWhenNull = true;                           // if nullptr blob replies should be treated as fatal (can be set by user)
 };
 
 template <typename T>
 T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp)
 {
   if (!isCachingEnabled()) {
-    return mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, nullptr, "",
-                                                 mCreatedNotAfter ? std::to_string(mCreatedNotAfter) : "",
-                                                 mCreatedNotBefore ? std::to_string(mCreatedNotBefore) : "");
+    auto ptr = mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, nullptr, "",
+                                                     mCreatedNotAfter ? std::to_string(mCreatedNotAfter) : "",
+                                                     mCreatedNotBefore ? std::to_string(mCreatedNotBefore) : "");
+    if (!ptr && mFatalWhenNull) {
+      reportFatal(std::string("Got nullptr from CCDB for path ") + path + std::string(" and timestamp ") + std::to_string(timestamp));
+    }
+    return ptr;
   }
   auto& cached = mCache[path];
   if (mCheckObjValidityEnabled && cached.isValid(timestamp)) {
@@ -184,6 +194,9 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp)
   }
   mHeaders.clear();
   mMetaData.clear();
+  if (!ptr && mFatalWhenNull) {
+    reportFatal(std::string("Got nullptr from CCDB for path ") + path + std::string(" and timestamp ") + std::to_string(timestamp));
+  }
   return ptr;
 }
 
