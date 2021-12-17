@@ -52,11 +52,7 @@ void TRDCalibReader::run(ProcessingContext& pc)
   auto currEntry = mTree->GetReadEntry() + 1;
   assert(currEntry < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(currEntry);
-  if (mAngResids.size() > 0) {
-    LOG(info) << "Pushing angular residual histograms filled with " << mAngResids.at(0).getNEntries() << " entries at tree entry " << currEntry;
-  } else {
-    LOG(warning) << "No TRD calibration data available in the tree";
-  }
+  LOG(info) << "Pushing angular residual histograms filled with " << mAngResids.getNEntries() << " entries at tree entry " << currEntry;
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe}, mAngResids);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {

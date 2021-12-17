@@ -20,6 +20,7 @@
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/CalibratedTracklet.h"
 #include "DataFormatsTRD/AngularResidHistos.h"
+#include "DataFormatsTRD/NoiseCalibration.h"
 #include "DetectorsBase/Propagator.h"
 #include "TRDBase/RecoParam.h"
 
@@ -53,6 +54,9 @@ class TrackBasedCalib
   /// Initialize the input arrays
   void setInput(const o2::globaltracking::RecoContainer& input);
 
+  /// Reset the output
+  void reset();
+
   /// Main processing function for creating angular residual histograms for vDrift and ExB calibration
   void calculateAngResHistos();
 
@@ -74,6 +78,7 @@ class TrackBasedCalib
   MatCorrType mMatCorr{MatCorrType::USEMatCorrNONE}; ///< if material correction should be done
   RecoParam mRecoParam;                              ///< parameters required for TRD reconstruction
   AngularResidHistos mAngResHistos;                  ///< aggregated data for the track based calibration
+  NoiseStatusMCM* mNoiseCalib{nullptr};              ///< CCDB object with information of noisy MCMs
   // input arrays which should not be modified since they are provided externally
   gsl::span<const TrackTRD> mTracksInITSTPCTRD;        ///< TRD tracks reconstructed from TPC or ITS-TPC seeds
   gsl::span<const TrackTRD> mTracksInTPCTRD;           ///< TRD tracks reconstructed from TPC or TPC seeds

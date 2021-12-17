@@ -39,7 +39,7 @@ class VdAndExBCalibDevice : public o2::framework::Task
  public:
   void init(o2::framework::InitContext& ic) final
   {
-    int minEnt = std::max(100'000, ic.options().get<int>("min-entries"));
+    int minEnt = ic.options().get<int>("min-entries");
     int slotL = ic.options().get<int>("tf-per-slot");
     int delay = ic.options().get<int>("max-delay");
     mCalibrator = std::make_unique<o2::trd::CalibratorVdExB>(minEnt);
@@ -50,8 +50,8 @@ class VdAndExBCalibDevice : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final
   {
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
-    auto data = pc.inputs().get<gsl::span<o2::trd::AngularResidHistos>>("input");
-    LOG(info) << "Processing TF " << tfcounter << " with " << data.size() << " AngularResidHistos objects";
+    auto data = pc.inputs().get<o2::trd::AngularResidHistos>("input");
+    LOG(info) << "Processing TF " << tfcounter << " with " << data.getNEntries() << " AngularResidHistos entries";
     mCalibrator->process(tfcounter, data);
     sendOutput(pc.outputs());
   }
