@@ -186,7 +186,8 @@ if [ "$doreco" == "1" ]; then
 
   echo "Running MFT-MCH-MID matching flow"
   #needs results of o2-mch-reco-workflow, o2-mft-reco-workflow and o2-muon-tracks-matcher-workflow
-  taskwrapper mftmchMatch.log o2-globalfwd-matcher-workflow $gloOpt
+  FwdMatchOpt=" --configKeyValues \"FwdMatching.useMIDMatch=true;\""
+  taskwrapper mftmchMatch.log o2-globalfwd-matcher-workflow $gloOpt $FwdMatchOpt
   echo "Return status of globalfwdMatch: $?"
 
   echo "Running TOF reco flow to produce clusters"
