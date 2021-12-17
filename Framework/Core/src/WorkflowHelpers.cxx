@@ -154,7 +154,7 @@ void WorkflowHelpers::addMissingOutputsToReader(std::vector<OutputSpec> const& p
     }
 
     auto concrete = DataSpecUtils::asConcreteDataMatcher(requested);
-    publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
+    publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, requested.lifetime});
   }
 }
 
