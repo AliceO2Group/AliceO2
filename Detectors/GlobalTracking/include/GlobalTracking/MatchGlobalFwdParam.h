@@ -31,7 +31,7 @@ struct GlobalFwdMatchingParam : public o2::conf::ConfigurableParamHelper<GlobalF
   std::string cutFcn = "cutDisabled";                     ///< MFT-MCH candicate cut function
   bool MCMatching = false;                                ///< MFT-MCH matching computed from MCLabels
   double matchPlaneZ = -77.5;                             ///< MFT-MCH matching plane z coordinate
-  bool useMIDMatch = true;                                ///< Use input from MCH-MID matching
+  bool useMIDMatch = false;                               ///< Use input from MCH-MID matching
   bool saveAll = false;                                   ///< Option to save all MFTMCH pair combinations.
 
   bool isMatchUpstream() const { return matchFcn.find("matchUpstream") < matchFcn.length(); }
