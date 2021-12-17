@@ -2122,7 +2122,7 @@ class FilteredBase : public T
   {
     uint64_t offset = 0;
     std::shared_ptr<arrow::Table> result = nullptr;
-    auto status = ((table_t)this)->getSliceFor(value, node.name.c_str(), result, offset);
+    auto status = ((table_t*)this)->getSliceFor(value, node.name.c_str(), result, offset);
     if (status.ok()) {
       auto start = offset;
       auto end = start + result->num_rows();
