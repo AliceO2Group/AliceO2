@@ -25,6 +25,7 @@
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/Plugins.h"
 #include "ArrowSupport.h"
+#include "CCDBHelpers.h"
 
 #include "Headers/DataHeader.h"
 #include <algorithm>
@@ -224,7 +225,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     "internal-dpl-ccdb-backend",
     {},
     {},
-    AlgorithmSpec::dummyAlgorithm()};
+    CCDBHelpers::fetchFromCCDB()};
   DataProcessorSpec transientStore{"internal-dpl-transient-store",
                                    {},
                                    {},
