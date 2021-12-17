@@ -31,7 +31,7 @@ o2::framework::DataProcessorSpec getTRDCalibWriterSpec()
   return MakeRootTreeWriterSpec("TRDCalibWriter",
                                 "trdangreshistos.root",
                                 "calibdata",
-                                BranchDefinition<std::vector<o2::trd::AngularResidHistos>>{InputSpec{"calibdata", "TRD", "ANGRESHISTS"}, "AngularResids"})();
+                                BranchDefinition<o2::trd::AngularResidHistos>{InputSpec{"calibdata", "TRD", "ANGRESHISTS"}, "AngularResids"})();
 };
 
 } // end namespace trd

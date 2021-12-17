@@ -40,7 +40,7 @@ class TRDCalibReader : public o2::framework::Task
   std::unique_ptr<TTree> mTree;
   std::string mInFileName{"trdangreshistos.root"};
   std::string mInTreeName{"calibdata"};
-  std::vector<o2::trd::AngularResidHistos> mAngResids, *mAngResidPtr = &mAngResids;
+  o2::trd::AngularResidHistos mAngResids, *mAngResidPtr = &mAngResids;
 };
 
 /// create a processor spec

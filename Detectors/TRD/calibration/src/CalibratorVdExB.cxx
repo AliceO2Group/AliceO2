@@ -101,7 +101,7 @@ void CalibratorVdExB::initProcessing()
   mFitFunctor.lowerBoundAngleFit = 80 * TMath::DegToRad();
   mFitFunctor.upperBoundAngleFit = 100 * TMath::DegToRad();
   mFitFunctor.vdPreCorr = 1.546;    // TODO: will be taken from CCDB in the future
-  mFitFunctor.laPreCorr = -0.16133; // TODO: will be taken from CCDB in the future
+  mFitFunctor.laPreCorr = 0.;       // TODO: will be taken from CCDB in the future
   for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
     mFitFunctor.profiles[iDet] = std::make_unique<TProfile>(Form("profAngleDiff_%i", iDet), Form("profAngleDiff_%i", iDet), NBINSANGLEDIFF, -MAXIMPACTANGLE, MAXIMPACTANGLE);
   }
@@ -130,7 +130,7 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
     }
     ROOT::Fit::Fitter fitter;
     double paramsStart[2];
-    paramsStart[ParamIndex::LA] = -7.5 * TMath::DegToRad();
+    paramsStart[ParamIndex::LA] = 0. * TMath::DegToRad();
     paramsStart[ParamIndex::VD] = 1.;
     fitter.SetFCN<FitFunctor>(2, mFitFunctor, paramsStart);
     fitter.Config().ParSettings(ParamIndex::LA).SetLimits(-0.7, 0.7);

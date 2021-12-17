@@ -31,12 +31,14 @@ class AngularResidHistos
   AngularResidHistos() = default;
   AngularResidHistos(const AngularResidHistos&) = default;
   ~AngularResidHistos() = default;
+  void reset();
   bool addEntry(float deltaAlpha, float impactAngle, int chamberId);
   float getHistogramEntry(int index) const { return mHistogramEntries[index]; }
   int getBinCount(int index) const { return mNEntriesPerBin[index]; }
   size_t getNEntries() const { return mNEntriesTotal; }
 
-  void fill(const gsl::span<const AngularResidHistos> input);
+  void fill(const AngularResidHistos& input);
+  void fill(const gsl::span<const AngularResidHistos> input); // dummy!
   void merge(const AngularResidHistos* prev);
   void print();
 
