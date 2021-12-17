@@ -63,8 +63,12 @@ struct TrackQC {
   std::array<float, constants::NLAYER> trackletY{};     ///< y-position of tracklet used for track update (including correction)
   std::array<float, constants::NLAYER> trackletZ{};     ///< z-position of tracklet used for track update (including correction)
   std::array<float, constants::NLAYER> trackletDy{};    ///< tracklet deflection over drift length obtained from CalibratedTracklet
-  std::array<float, constants::NLAYER> trackletSlope{}; ///< the raw slope from Tracklet64
-  std::array<float, constants::NLAYER> trackletDet{};   ///< the chamber of the tracklet
+  std::array<int, constants::NLAYER> trackletSlope{};   ///< the raw slope from Tracklet64 (signed integer)
+  std::array<int, constants::NLAYER> trackletDet{};     ///< the chamber of the tracklet
+  // some tracklet details to identify its global MCM number to check if it is from noisy MCM
+  std::array<int, constants::NLAYER> trackletHCId{};    ///< the half-chamber ID of the tracklet
+  std::array<int, constants::NLAYER> trackletRob{};     ///< the ROB number of the tracklet
+  std::array<int, constants::NLAYER> trackletMcm{};     ///< the MCM number of the tracklet
   std::array<float, constants::NLAYER> trackletChi2{};  ///< estimated chi2 for the update of the track with the given tracklet
   ClassDefNV(TrackQC, 1);
 };
