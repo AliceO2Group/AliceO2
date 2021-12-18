@@ -95,7 +95,7 @@ void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int
 
     size_t sz = 64000; // 64K ought to be enough for our templates...
     char* function = static_cast<char*>(malloc(sz));
-    char *begin = 0, *end = 0;
+    char *begin = nullptr, *end = nullptr;
     // find the last space and address offset surrounding the mangled name
 #if __APPLE__
     for (char* j = stackStrings[i]; *j; ++j) {
