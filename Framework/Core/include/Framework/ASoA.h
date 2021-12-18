@@ -1182,6 +1182,20 @@ class Table
     return t;
   }
 
+  auto sliceByCached(framework::expressions::BindingNode const& node, int value)
+  {
+    uint64_t offset = 0;
+    std::shared_ptr<arrow::Table> result = nullptr;
+    auto status = this->getSliceFor(value, node.name.c_str(), result, offset);
+    if (status.ok()) {
+      auto t = table_t({result}, offset);
+      copyIndexBindings(t);
+      return t;
+    }
+    o2::framework::throw_error(o2::framework::runtime_error("Failed to slice table"));
+    O2_BUILTIN_UNREACHABLE();
+  }
+
   auto sliceBy(framework::expressions::BindingNode const& node, int value) const
   {
     auto t = o2::soa::sliceBy(*this, node, value);
@@ -1226,6 +1240,44 @@ class Table
   unfiltered_iterator mBegin;
   /// Cached end iterator for this table.
   RowViewSentinel mEnd;
+  std::string mCurrentKey;
+  std::shared_ptr<arrow::NumericArray<arrow::Int32Type>> mValues = nullptr;
+  std::shared_ptr<arrow::NumericArray<arrow::Int64Type>> mCounts = nullptr;
+
+  arrow::Status initializeSliceCaches(char const* key)
+  {
+    mCurrentKey = key;
+    arrow::Datum value_counts;
+    auto options = arrow::compute::ScalarAggregateOptions::Defaults();
+    ARROW_ASSIGN_OR_RAISE(value_counts,
+                          arrow::compute::CallFunction("value_counts", {mTable->GetColumnByName(key)},
+                                                       &options));
+    auto pair = static_cast<arrow::StructArray>(value_counts.array());
+    mValues = std::make_shared<arrow::NumericArray<arrow::Int32Type>>(pair.field(0)->data());
+    mCounts = std::make_shared<arrow::NumericArray<arrow::Int64Type>>(pair.field(1)->data());
+    return arrow::Status::OK();
+  }
+
+ public:
+  arrow::Status getSliceFor(int value, const char* key, std::shared_ptr<arrow::Table>& output, uint64_t& offset)
+  {
+    arrow::Status status;
+    if (mCurrentKey != key) {
+      status = initializeSliceCaches(key);
+    }
+    if (!status.ok()) {
+      return status;
+    }
+    for (auto slice = 0; slice < mValues->length(); ++slice) {
+      if (mValues->Value(slice) == value) {
+        output = mTable->Slice(offset, mCounts->Value(slice));
+        return arrow::Status::OK();
+      }
+      offset += mCounts->Value(slice);
+    }
+    output = mTable->Slice(offset, 0);
+    return arrow::Status::OK();
+  }
 };
 
 template <typename T>
@@ -2064,6 +2116,29 @@ class FilteredBase : public T
   auto rawSliceBy(framework::expressions::BindingNode const& node, int value) const
   {
     return (table_t)this->sliceBy(node, value);
+  }
+
+  auto sliceByCached(framework::expressions::BindingNode const& node, int value)
+  {
+    uint64_t offset = 0;
+    std::shared_ptr<arrow::Table> result = nullptr;
+    auto status = ((table_t*)this)->getSliceFor(value, node.name.c_str(), result, offset);
+    if (status.ok()) {
+      auto start = offset;
+      auto end = start + result->num_rows();
+      auto start_iterator = std::lower_bound(mSelectedRows.begin(), mSelectedRows.end(), start);
+      auto stop_iterator = std::lower_bound(start_iterator, mSelectedRows.end(), end);
+      SelectionVector slicedSelection{start_iterator, stop_iterator};
+      std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
+                     [&](int64_t idx) {
+                       return idx - static_cast<int64_t>(start);
+                     });
+      self_t fresult{{result}, std::move(slicedSelection), start};
+      copyIndexBindings(fresult);
+      return fresult;
+    }
+    o2::framework::throw_error(o2::framework::runtime_error("Failed to slice table"));
+    O2_BUILTIN_UNREACHABLE();
   }
 
   auto sliceBy(framework::expressions::BindingNode const& node, int value) const
