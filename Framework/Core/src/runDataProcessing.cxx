@@ -1849,7 +1849,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         } else if (hasError && driverInfo.processingPolicies.error == TerminationPolicy::QUIT && !supposedToQuit) {
           graceful_exit = 1;
           force_exit_timer.data = &infos;
-          if (uv_timer_get_due_in(&force_exit_timer) == 0) {
+          static bool forceful_timer_started = false;
+          if (forceful_timer_started == false) {
+            forceful_timer_started = true;
             uv_timer_start(&force_exit_timer, force_exit_callback, 15000, 3000);
           }
           driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
