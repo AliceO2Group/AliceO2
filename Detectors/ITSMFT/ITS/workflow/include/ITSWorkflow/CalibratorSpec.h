@@ -24,6 +24,7 @@
 // ROOT includes
 #include "TH2F.h"
 #include "TGraph.h"
+#include "TTree.h"
 
 #include <ITSBase/GeometryTGeo.h>
 
@@ -56,6 +57,20 @@ struct threshold_obj {
         // Whether or not the fit is good
         bool success = false;
 };
+
+
+// Object for storing chip info in TTree
+typedef struct {
+    short int chipID, row, col;
+} PIXEL;
+
+
+class threshold_map {
+    public:
+        threshold_map(const std::map< short int, std::vector<threshold_obj> > & t) : thresholds(t) { };
+        std::map< short int, std::vector<threshold_obj> > thresholds;
+};
+
 
 template <class Mapping>
 class ITSCalibrator : public Task
@@ -123,6 +138,13 @@ class ITSCalibrator : public Task
         std::map< short int, std::vector<threshold_obj> > thresholds;
         //std::unordered_map<unsigned int, int> mHitPixelID_Hash[7][48][2][14][14]; //layer, stave, substave, hic, chip
 
+        // Tree to save threshold info in full threshold scan case
+        TTree* threshold_tree = new TTree("ITS_calib_tree", "ITS_calib_tree");
+        PIXEL tree_pixel;
+        // Save charge & counts as char (8-bit) to save memory, since values are always < 256
+        unsigned char threshold = 0, noise = 0;
+        bool success = false;
+
         // Some private helper functions
         // Helper functions related to the running over data
         void reset_row_hitmap(const short int&, const short int&);
@@ -144,7 +166,7 @@ class ITSCalibrator : public Task
         // Helper functions for writing to the database
         void add_db_entry(const short int&, const std::string *, const short int&, bool,
                           o2::dcs::DCSconfigObject_t &);
-        void add_db_entry(const short int&, const threshold_obj&, o2::dcs::DCSconfigObject_t &);
+        void send_to_ccdb(std::string *, o2::dcs::DCSconfigObject_t&, EndOfStreamContext&);
 
         std::string mSelfName;
         std::string mDictName;
