@@ -96,6 +96,7 @@ ITSCalibrator<Mapping>::~ITSCalibrator() {
     //for (auto const& th : this->thresholds) { delete th.second; }
 
     delete[] this->x;
+    delete this->threshold_tree;
 }
 
 
@@ -121,6 +122,12 @@ void ITSCalibrator<Mapping>::init(InitContext& ic) {
         LOG(error) << "fittype " << fittype << "not recognized, please use \'derivative\', \'fit\', or \'hitcounting\'";
         throw fittype;
     }
+
+    // Initialize output TTree branches
+    this->threshold_tree->Branch("pixel", &(this->tree_pixel), "chipID/S:row/S:col/S");
+    this->threshold_tree->Branch("threshold", &(this->threshold), "threshold/b");
+    if (this->fit_type != 2) this->threshold_tree->Branch("noise", &(this->noise), "noise/b");
+    this->threshold_tree->Branch("success", &(this->success), "success/O");
 }
 
 
@@ -217,7 +224,7 @@ bool ITSCalibrator<Mapping>::GetThreshold(const short int* data, const short int
 
         case 2:  // Hit-counting method
             success = this->GetThreshold_Hitcounting(data, x, NPoints, thresh);
-            noise = -1;
+            //noise = 0;
             break;
     }
 
@@ -238,7 +245,7 @@ bool ITSCalibrator<Mapping>::GetThreshold_Fit(const short int* data, const short
     bool flip = (*(this->nRange) == this->nITHR);
 
     //TGraph *g = new TGraph(NPoints, (int*) x, (int*) data);
-    TH1F* g = new TH1F("", "", *(this->nRange), x[0], x[*(this->nRange) - 1]);
+    TH1F* g = new TH1F("fit_hist", "fit_hist", *(this->nRange), x[0], x[*(this->nRange) - 1]);
     TF1* fitfcn = flip ? new TF1("fitfcn", erf_ithr, 0, 1500, 2) : new TF1("fitfcn", erf, 0, 1500, 2);
     for (int i = 0; i < NPoints; i++) {
         g->SetBinContent(i + 1, data[i]);
@@ -272,9 +279,24 @@ bool ITSCalibrator<Mapping>::GetThreshold_Fit(const short int* data, const short
     thresh = fitfcn->GetParameter(0);
     float chi2 = fitfcn->GetChisquare() / fitfcn->GetNDF();
 
+    /*  // Testing code to create one S-curve in a ROOT file and then exit
+    // Initialize ROOT output file
+    TFile* tf = new TFile("threshold_scan.root", "UPDATE");
+
+    // Update the ROOT file with most recent histo
+    tf->cd();
+    g->Write(0, TObject::kOverwrite);
+    fitfcn->Write(0, TObject::kOverwrite);
+
+    // Close file and clean up memory
+    tf->Close();
+    delete tf;
+    exit(1);
+    */
+
     g->Delete();
     fitfcn->Delete();
-    return (chi2 < 5);
+    return (chi2 < 5 && noise < 15);
 }
 
 
@@ -298,10 +320,12 @@ bool ITSCalibrator<Mapping>::GetThreshold_Derivative(const short int* data,
     int deriv_size = Upper - Lower;
     float* deriv = new float[deriv_size]; // Maybe better way without ROOT?
     float xfx = 0, fx = 0;
+    float nCounts = 0;
 
     // Fill array with derivatives
     for (int i = Lower; i < Upper; i++) {
         deriv[i - Lower] = (float) (data[i+1] - data[i]) / (float) (x[i+1] - x[i]);
+        nCounts += deriv[i - Lower];
         xfx += x[i] * deriv[i - Lower];
         fx += deriv[i - Lower];
     }
@@ -312,11 +336,11 @@ bool ITSCalibrator<Mapping>::GetThreshold_Derivative(const short int* data,
         stddev += std::pow(x[i] - thresh, 2) * deriv[i - Lower];
     }
 
-    stddev /= (deriv_size) + 1;
+    stddev /= nCounts;
     noise = std::sqrt(stddev);
 
     delete[] deriv;
-    return true;
+    return (noise < 15);
 }
 
 
@@ -334,6 +358,9 @@ bool ITSCalibrator<Mapping>::GetThreshold_Hitcounting(const short int* data,
         number_of_hits += data[i];
     }
 
+    // If not enough counts return a failure
+    if (number_of_hits < this->nInj) return false;
+
     if (*(this->nRange) == this->nCharge) {
         thresh = x[*(this->nRange) - 1] - number_of_hits / (float) this->nInj;
     } else if (*(this->nRange) == this->nVCASN) {
@@ -344,6 +371,7 @@ bool ITSCalibrator<Mapping>::GetThreshold_Hitcounting(const short int* data,
         LOG(error) << "Unexpected runtype encountered in GetThreshold_Hitcounting()";
         return false;
     }
+
     return true;
 }
 
@@ -426,9 +454,9 @@ void ITSCalibrator<Mapping>::extract_thresh_row(const short int& chipID, const s
         // TODO use this info when writing to CCDB
         int lay, sta, ssta, mod, chipInMod; // layer, stave, sub stave, module, chip
         this->mp.expandChipInfoHW((int) chipID, lay, sta, ssta, mod, chipInMod);
-        LOG(info) << "Stave: " << sta << " | Half-stave: " << ssta << " | Module: " << mod
-                  << " | Chip ID: " << chipID << " | Row: " << row << " | Col: " << (col_i + 1)
-                  << " | Threshold: " << thresh << " | Noise: " << noise << " | Success: " << success;
+        //LOG(info) << "Stave: " << sta << " | Half-stave: " << ssta << " | Module: " << mod
+        //          << " | Chip ID: " << chipID << " | Row: " << row << " | Col: " << (col_i + 1)
+        //          << " | Threshold: " << thresh << " | Noise: " << noise << " | Success: " << success;
     }
 }
 
@@ -436,14 +464,37 @@ void ITSCalibrator<Mapping>::extract_thresh_row(const short int& chipID, const s
 //////////////////////////////////////////////////////////////////////////////
 template <class Mapping>
 void ITSCalibrator<Mapping>::save_threshold(const short int& chipID, const short int& row,
-         const short int& col, float* thresh, float* noise, bool success) {
+         const short int& col, float* thresh, float* noise, bool _success) {
 
-    // Cast as short int to save memory
-    short int _threshold = (short int) (*thresh * 10);
-    short int _noise = (short int) (*noise * 10);
+    // In the case of a full threshold scan, write to TTree
+    if (*(this->nRange) == this->nCharge) {
 
-    threshold_obj t = threshold_obj(row, col, _threshold, _noise, success);
-    this->thresholds[chipID].push_back(t);
+        // Cast as unsigned char to save memory
+        if (*thresh > 255 || *noise > 255) {
+            *thresh = 0;
+            *noise = 0;
+            _success = false;
+        }
+        unsigned char _threshold = (unsigned char) (*thresh * 10);
+        unsigned char _noise = (unsigned char) (*noise * 10);
+
+        this->tree_pixel.chipID = chipID;
+        this->tree_pixel.row = (short int) this->currentRow[chipID];
+        this->tree_pixel.col = (short int) col;
+        this->threshold = _threshold;
+        if (this->fit_type != 2) { this->noise = _noise; } // Don't save noise in hitcounting case
+        this->success = _success;
+        this->threshold_tree->Fill();
+
+    } else {  // VCASN or ITHR scan
+        short int _threshold = (short int) (*thresh);
+        short int _noise = (short int) (*noise);
+
+        // Save info in a struct for later averaging
+        threshold_obj t = threshold_obj(row, col, _threshold, _noise, _success);
+        this->thresholds[chipID].push_back(t);
+    }
+
     return;
 }
 
@@ -452,21 +503,20 @@ void ITSCalibrator<Mapping>::save_threshold(const short int& chipID, const short
 template <class Mapping>
 void ITSCalibrator<Mapping>::update_output(const short int& chipID) {
 
-    /*
-    // Initialize ROOT output file
-    TFile* tf = new TFile("threshold_scan.root", "UPDATE");
+    // In the case of a full threshold scan, write to TTree
+    if (*(this->nRange) == this->nCharge) {
 
-    // Update the ROOT file with most recent histo
-    tf->cd();
-    this->thresholds[chipID]->Write(0, TObject::kOverwrite);
+        // Initialize ROOT output file
+        TFile* tf = new TFile("threshold_tree.root", "UPDATE");
 
-    // Close file and clean up memory
-    tf->Close();
-    delete tf;
-    */
+        // Update the ROOT file with most recent histo
+        tf->cd();
+        this->threshold_tree->Write(0, TObject::kOverwrite);
 
-    // TODO
-    // One could check for threshold averaging here etc
+        // Close file and clean up memory
+        tf->Close();
+        delete tf;
+    }
 
     return;
 }
@@ -509,7 +559,7 @@ void ITSCalibrator<Mapping>::set_run_type(const short int& runtype) {
         this->nRange = &(this->nITHR);
         min = 30;  max = 100;
 
-    //} else if (runtype == 0) {
+    } else if (runtype == 0) {
         // Trigger end-of-stream method to do averaging and save data to CCDB
         // TODO :: test this. In theory end-of-stream should be called automatically
         // but we could use a check on this->run_type
@@ -576,8 +626,9 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
                 runtype = (short int) (calib.calibUserField >> 24);
                 if (this->run_type == -1) { this->set_run_type(runtype); }
 
-                LOG(info) << "calibs size: " << calibs.size() << " | ROF number: " << iROF
-                          << " | RU number: " << iRU << " | charge: " << charge << " | row: " << row << " | runtype: " << runtype;
+                //LOG(info) << "calibs size: " << calibs.size() << " | ROF number: " << iROF
+                //          << " | RU number: " << iRU << " | charge: " << charge << " | row: "
+                //          << row << " | runtype: " << runtype;
                 //break;
             }
         }
@@ -586,8 +637,8 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
         if (charge < 0) {
             LOG(info) << "WARNING: Charge not updated" << '\n';
             //thrfile   << "WARNING: Charge not updated" << '\n';
-        } else if (charge == 0) {
-            LOG(info) << "WARNING: charge == 0" << '\n';
+        //} else if (charge == 0) {
+            //LOG(info) << "WARNING: charge == 0" << '\n';
             //thrfile   << "WARNING: charge == 0" << '\n';
         } else {
 
@@ -612,7 +663,8 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
 
                 // Check if we have a new row on an already existing chip
                 } else if (this->currentRow[chipID] != row) {
-                    LOG(info) << "Extracting threshold values from previous row";
+                    LOG(info) << "Extracting threshold values for row " << this->currentRow[chipID]
+                              << " on chipID " << chipID;
                     this->extract_thresh_row(chipID, this->currentRow[chipID]);
                     // Write thresholds to output data structures
                     this->update_output(chipID);
@@ -621,7 +673,7 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
                 }
 
                 // Increment the number of counts for this pixel
-                this->pixelHits[chipID][col][charge-1]++;
+                this->pixelHits[chipID][col][charge]++;
 
             } // for (digits)
 
@@ -668,71 +720,40 @@ void ITSCalibrator<Mapping>::add_db_entry(const short int& chipID, const std::st
 
 //////////////////////////////////////////////////////////////////////////////
 template <class Mapping>
-void ITSCalibrator<Mapping>::add_db_entry(const short int& chipID, const threshold_obj& t,
-        o2::dcs::DCSconfigObject_t& tuning) {
-
-    o2::dcs::addConfigItem(tuning, "ChipID", chipID);
-    o2::dcs::addConfigItem(tuning, "row", std::to_string(t.row));
-    o2::dcs::addConfigItem(tuning, "col", std::to_string(t.col));
-    o2::dcs::addConfigItem(tuning, "Threshold", std::to_string(t.threshold));
-    o2::dcs::addConfigItem(tuning, "Noise", std::to_string(t.noise));
-    o2::dcs::addConfigItem(tuning, "Status", std::to_string(t.success)); // pass or fail
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-template <class Mapping>
-void ITSCalibrator<Mapping>::endOfStream(EndOfStreamContext& ec)
-{
-    LOGF(info, "endOfStream report:", mSelfName);
+void ITSCalibrator<Mapping>::send_to_ccdb(std::string * name,
+        o2::dcs::DCSconfigObject_t& tuning, EndOfStreamContext& ec) {
 
     // Below is CCDB stuff
     long tstart, tend;
     tstart = o2::ccdb::getCurrentTimestamp();
     constexpr long SECONDSPERYEAR = 365 * 24 * 60 * 60;
     tend = o2::ccdb::getFutureTimestamp(SECONDSPERYEAR);
-    std::map<std::string, std::string> md;
 
-    // DCS formatted data object for VCASN and ITHR tuning
-    o2::dcs::DCSconfigObject_t tuning;
+    auto class_name = o2::utils::MemFileHelper::getClassName(tuning);
 
-    // Add configuration item to output strings for CCDB
-    std::string * name;
-    if (*(this->nRange) == this->nVCASN) {
-        // Loop over each chip in the thresholds data
-        name = new std::string("VCASN");
-        for (auto const& [chipID, t_vec] : this->thresholds) {
-            // Casting float to short int to save memory
-            short int avg = (short int) this->find_average(t_vec);
-            bool status = (this->x[0] < avg && avg < this->x[*(this->nRange) - 1]);
-            this->add_db_entry(chipID, name, avg, status, tuning);
-        }
-    } else if (*(this->nRange) == this->nITHR) {
-        // Loop over each chip in the thresholds data
-        name = new std::string("ITHR");
-        for (auto const& [chipID, t_vec] : this->thresholds) {
-            // Casting float to short int to save memory
-            short int avg = (short int) this->find_average(t_vec);
-            bool status = (this->x[0] < avg && avg < this->x[*(this->nRange) - 1]);
-            this->add_db_entry(chipID, name, avg, status, tuning);
-        }
-    } else if (*(this->nRange) == this->nCharge) {
-        // No averaging required for these runs
-        name = new std::string("Threshold");
-        for (auto const& [chipID, t_vec] : this->thresholds) {
-            for (auto const& t : t_vec) {
-                this->add_db_entry(chipID, t, tuning);
-            }
-        }
+    // Create metadata for database object
+    std::string * ft;
+    switch (this->fit_type) {
+        case 0:
+            ft = new std::string("derivative");
+            break;
+        case 1:
+            ft = new std::string("fit");
+            break;
+        case 2:
+            ft = new std::string("hitcounting");
+            break;
     }
-
-    auto clName = o2::utils::MemFileHelper::getClassName(tuning);
+    std::map<std::string, std::string> md = { {"fittype", *ft}, {"runtype", std::to_string(this->run_type)} };
+    delete ft;
 
     std::string path = "ITS/Calib/";
-    o2::ccdb::CcdbObjectInfo info((path + *name), clName, "", md, tstart, tend);
-    auto flName = o2::ccdb::CcdbApi::generateFileName(*name);
-    info.setFileName(flName);
-    LOG(info) << "Class Name  " << clName << " File Name " << flName ;
+    //o2::ccdb::CcdbObjectInfo info((path + *name), class_name, "", md, tstart, tend);
+    o2::ccdb::CcdbObjectInfo info((path + *name), "threshold_map", "calib_scan.root", md, tstart, tend);
+    //auto file_name = o2::ccdb::CcdbApi::generateFileName(*name);
+    std::string file_name = "calib_scan.root";
+    info.setFileName(file_name);
+    LOG(info) << "Class Name  " << class_name << " File Name " << file_name;
     auto image = o2::ccdb::CcdbApi::createObjectImage(&tuning, &info);
     LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
               << " of size " << image->size() << " bytes, valid for "
@@ -745,16 +766,63 @@ void ITSCalibrator<Mapping>::endOfStream(EndOfStreamContext& ec)
     } else if (*(this->nRange) == this->nITHR) {
         ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ITHR", 0}, *image);
         ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ITHR", 0}, info);
-    } else if (*(this->nRange) == this->nCharge) {
-        ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "Threshold", 0}, *image);
-        ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "Threshold", 0}, info);
+    // Not saving threshold scan info to CCDB
+    //} else if (*(this->nRange) == this->nCharge) {
+        //ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "Threshold", 0}, *image);
+        //ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "Threshold", 0}, info);
     }
-
-    delete name;
 
     return;
 }
 
+
+//////////////////////////////////////////////////////////////////////////////
+template <class Mapping>
+void ITSCalibrator<Mapping>::endOfStream(EndOfStreamContext& ec) {
+
+    LOGF(info, "endOfStream report:", mSelfName);
+
+    // DCS formatted data object for VCASN and ITHR tuning
+    o2::dcs::DCSconfigObject_t tuning;
+
+    // Add configuration item to output strings for CCDB
+    std::string * name;
+    bool push_to_ccdb = false;
+    if (*(this->nRange) == this->nVCASN) {
+        // Loop over each chip in the thresholds data
+        name = new std::string("VCASN");
+        for (auto const& [chipID, t_vec] : this->thresholds) {
+            // Casting float to short int to save memory
+            short int avg = (short int) this->find_average(t_vec);
+            bool status = (this->x[0] < avg && avg < this->x[*(this->nRange) - 1]);
+            this->add_db_entry(chipID, name, avg, status, tuning);
+            push_to_ccdb = true;
+        }
+    } else if (*(this->nRange) == this->nITHR) {
+        // Loop over each chip in the thresholds data
+        name = new std::string("ITHR");
+        for (auto const& [chipID, t_vec] : this->thresholds) {
+            // Casting float to short int to save memory
+            short int avg = (short int) this->find_average(t_vec);
+            bool status = (this->x[0] < avg && avg < this->x[*(this->nRange) - 1]);
+            this->add_db_entry(chipID, name, avg, status, tuning);
+            push_to_ccdb = true;
+        }
+    } else if (*(this->nRange) == this->nCharge) {
+        // No averaging required for these runs
+        name = new std::string("Threshold");
+        for (auto const& [chipID, hits_vec] : this->pixelHits) {
+            this->extract_thresh_row(chipID, this->currentRow[chipID]);
+            // Write thresholds to output data structures
+            this->update_output(chipID);
+        }
+    }
+
+    if (push_to_ccdb) this->send_to_ccdb(name, tuning, ec);
+    delete name;
+
+    return;
+}
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -775,8 +843,8 @@ DataProcessorSpec getITSCalibratorSpec()
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ITHR"});
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ITHR"});
 
-    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "Threshold"});
-    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "Threshold"});
+    //outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "Threshold"});
+    //outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "Threshold"});
 
     auto orig = o2::header::gDataOriginITS;
 
