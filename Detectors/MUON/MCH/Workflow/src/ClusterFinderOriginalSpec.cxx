@@ -65,6 +65,8 @@ class ClusterFinderOriginalTask
     bool run2Config = ic.options().get<bool>("run2-config");
     mClusterFinder.init(run2Config);
 
+    mAttachInitalPrecluster = ic.options().get<bool>("attach-initial-precluster");
+
     /// Print the timer and clear the clusterizer when the processing is over
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, [this]() {
       LOG(info) << "cluster finder duration = " << mTimeClusterFinder.count() << " s";
@@ -82,8 +84,6 @@ class ClusterFinderOriginalTask
     auto preClusters = pc.inputs().get<gsl::span<PreCluster>>("preclusters");
     auto digits = pc.inputs().get<gsl::span<Digit>>("digits");
 
-    // LOG(info) << "received time frame with " << preClusterROFs.size() << " interactions";
-
     // create the output messages for clusters and attached digits
     auto& clusterROFs = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"clusterrofs"});
     auto& clusters = pc.outputs().make<std::vector<Cluster>>(OutputRef{"clusters"});
@@ -92,21 +92,35 @@ class ClusterFinderOriginalTask
     clusterROFs.reserve(preClusterROFs.size());
     for (const auto& preClusterROF : preClusterROFs) {
 
-      // LOG(info) << "processing interaction: " << preClusterROF.getBCData() << "...";
-
-      // clusterize every preclusters
-      auto tStart = std::chrono::high_resolution_clock::now();
+      // prepare to clusterize the current ROF
+      auto clusterOffset = clusters.size();
       mClusterFinder.reset();
-      for (const auto& preCluster : preClusters.subspan(preClusterROF.getFirstIdx(), preClusterROF.getNEntries())) {
-        mClusterFinder.findClusters(digits.subspan(preCluster.firstDigit, preCluster.nDigits));
-      }
-      auto tEnd = std::chrono::high_resolution_clock::now();
-      mTimeClusterFinder += tEnd - tStart;
 
-      // fill the ouput messages
-      clusterROFs.emplace_back(preClusterROF.getBCData(), clusters.size(), mClusterFinder.getClusters().size(),
+      for (const auto& preCluster : preClusters.subspan(preClusterROF.getFirstIdx(), preClusterROF.getNEntries())) {
+
+        auto preclusterDigits = digits.subspan(preCluster.firstDigit, preCluster.nDigits);
+        auto firstClusterIdx = mClusterFinder.getClusters().size();
+
+        // clusterize the current precluster
+        auto tStart = std::chrono::high_resolution_clock::now();
+        mClusterFinder.findClusters(preclusterDigits);
+        auto tEnd = std::chrono::high_resolution_clock::now();
+        mTimeClusterFinder += tEnd - tStart;
+
+        if (mAttachInitalPrecluster) {
+          // store the new clusters and associate them to all the digits of the precluster
+          writeClusters(preclusterDigits, firstClusterIdx, clusters, usedDigits);
+        }
+      }
+
+      if (!mAttachInitalPrecluster) {
+        // store all the clusters of the current ROF and the associated digits actually used in the clustering
+        writeClusters(clusters, usedDigits);
+      }
+
+      // create the cluster ROF
+      clusterROFs.emplace_back(preClusterROF.getBCData(), clusterOffset, clusters.size() - clusterOffset,
                                preClusterROF.getBCWidth());
-      writeClusters(clusters, usedDigits);
     }
 
     LOGP(info, "Found {:4d} clusters from {:4d} preclusters in {:2d} ROFs",
@@ -114,6 +128,30 @@ class ClusterFinderOriginalTask
   }
 
  private:
+  //_________________________________________________________________________________________________
+  void writeClusters(const gsl::span<const Digit>& preclusterDigits, size_t firstClusterIdx,
+                     std::vector<Cluster, o2::pmr::polymorphic_allocator<Cluster>>& clusters,
+                     std::vector<Digit, o2::pmr::polymorphic_allocator<Digit>>& usedDigits) const
+  {
+    /// fill the output messages with the new clusters and all the digits from the corresponding precluster
+    /// modify the references to the attached digits according to their position in the global vector
+
+    if (firstClusterIdx == mClusterFinder.getClusters().size()) {
+      return;
+    }
+
+    auto clusterOffset = clusters.size();
+    clusters.insert(clusters.end(), mClusterFinder.getClusters().begin() + firstClusterIdx, mClusterFinder.getClusters().end());
+
+    auto digitOffset = usedDigits.size();
+    usedDigits.insert(usedDigits.end(), preclusterDigits.begin(), preclusterDigits.end());
+
+    for (auto itCluster = clusters.begin() + clusterOffset; itCluster < clusters.end(); ++itCluster) {
+      itCluster->firstDigit = digitOffset;
+      itCluster->nDigits = preclusterDigits.size();
+    }
+  }
+
   //_________________________________________________________________________________________________
   void writeClusters(std::vector<Cluster, o2::pmr::polymorphic_allocator<Cluster>>& clusters,
                      std::vector<Digit, o2::pmr::polymorphic_allocator<Digit>>& usedDigits) const
@@ -132,6 +170,7 @@ class ClusterFinderOriginalTask
     }
   }
 
+  bool mAttachInitalPrecluster = false;               ///< attach all digits of initial precluster to cluster
   ClusterFinderOriginal mClusterFinder{};             ///< clusterizer
   std::chrono::duration<double> mTimeClusterFinder{}; ///< timer
 };
@@ -149,7 +188,8 @@ o2::framework::DataProcessorSpec getClusterFinderOriginalSpec(const char* specNa
             OutputSpec{{"clusterdigits"}, "MCH", "CLUSTERDIGITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<ClusterFinderOriginalTask>()},
     Options{{"mch-config", VariantType::String, "", {"JSON or INI file with clustering parameters"}},
-            {"run2-config", VariantType::Bool, false, {"setup for run2 data"}}}};
+            {"run2-config", VariantType::Bool, false, {"setup for run2 data"}},
+            {"attach-initial-precluster", VariantType::Bool, false, {"attach all digits of initial precluster to cluster"}}}};
 }
 
 } // end namespace mch
