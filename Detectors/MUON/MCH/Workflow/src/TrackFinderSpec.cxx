@@ -41,6 +41,7 @@
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMCH/Cluster.h"
+#include "DataFormatsMCH/Digit.h"
 #include "MCHTracking/TrackParam.h"
 #include "MCHTracking/Track.h"
 #include "MCHTracking/TrackFinder.h"
@@ -57,6 +58,9 @@ using namespace o2::framework;
 class TrackFinderTask
 {
  public:
+  //_________________________________________________________________________________________________
+  TrackFinderTask(bool digits = false) : mDigits(digits) {}
+
   //_________________________________________________________________________________________________
   void init(framework::InitContext& ic)
   {
@@ -105,17 +109,21 @@ class TrackFinderTask
     auto clusterROFs = pc.inputs().get<gsl::span<ROFRecord>>("clusterrofs");
     auto clustersIn = pc.inputs().get<gsl::span<Cluster>>("clusters");
 
-    // LOG(info) << "received time frame with " << clusterROFs.size() << " interactions";
-
     // create the output messages for tracks and attached clusters
     auto& trackROFs = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"trackrofs"});
     auto& mchTracks = pc.outputs().make<std::vector<TrackMCH>>(OutputRef{"tracks"});
     auto& usedClusters = pc.outputs().make<std::vector<Cluster>>(OutputRef{"trackclusters"});
 
+    // prepare to send the associated digits if requested
+    gsl::span<const Digit> digitsIn{};
+    std::vector<Digit, o2::pmr::polymorphic_allocator<Digit>>* usedDigits(nullptr);
+    if (mDigits) {
+      digitsIn = pc.inputs().get<gsl::span<Digit>>("clusterdigits");
+      usedDigits = &pc.outputs().make<std::vector<Digit>>(OutputRef{"trackdigits"});
+    }
+
     trackROFs.reserve(clusterROFs.size());
     for (const auto& clusterROF : clusterROFs) {
-
-      // LOG(info) << "processing interaction: " << clusterROF.getBCData() << "...";
 
       // sort the input clusters of the current event per DE
       std::unordered_map<int, std::list<const Cluster*>> clusters{};
@@ -131,7 +139,7 @@ class TrackFinderTask
 
       // fill the ouput messages
       int trackOffset(mchTracks.size());
-      writeTracks(tracks, mchTracks, usedClusters);
+      writeTracks(tracks, mchTracks, usedClusters, digitsIn, usedDigits);
       trackROFs.emplace_back(clusterROF.getBCData(), trackOffset, mchTracks.size() - trackOffset,
                              clusterROF.getBCWidth());
     }
@@ -144,9 +152,14 @@ class TrackFinderTask
   //_________________________________________________________________________________________________
   void writeTracks(const std::list<Track>& tracks,
                    std::vector<TrackMCH, o2::pmr::polymorphic_allocator<TrackMCH>>& mchTracks,
-                   std::vector<Cluster, o2::pmr::polymorphic_allocator<Cluster>>& usedClusters) const
+                   std::vector<Cluster, o2::pmr::polymorphic_allocator<Cluster>>& usedClusters,
+                   const gsl::span<const Digit>& digitsIn,
+                   std::vector<Digit, o2::pmr::polymorphic_allocator<Digit>>* usedDigits) const
   {
-    /// fill the output messages with tracks and attached clusters
+    /// fill the output messages with tracks and attached clusters and digits if requested
+
+    // map the location of the attached digits between the digitsIn and the usedDigits lists
+    std::unordered_map<uint32_t, uint32_t> digitLocMap{};
 
     for (const auto& track : tracks) {
 
@@ -162,26 +175,55 @@ class TrackFinderTask
                              paramAtMID.getZ(), paramAtMID.getParameters(), paramAtMID.getCovariances());
 
       for (const auto& param : track) {
+
         usedClusters.emplace_back(*param.getClusterPtr());
+
+        if (mDigits) {
+
+          // map the location of the digits associated to this cluster in the usedDigits list, if not already done
+          auto& cluster = usedClusters.back();
+          auto digitLoc = digitLocMap.emplace(cluster.firstDigit, usedDigits->size());
+
+          // add the digits associated to this cluster if not already there
+          if (digitLoc.second) {
+            auto itFirstDigit = digitsIn.begin() + cluster.firstDigit;
+            usedDigits->insert(usedDigits->end(), itFirstDigit, itFirstDigit + cluster.nDigits);
+          }
+
+          // make the cluster point to the associated digits in the usedDigits list
+          cluster.firstDigit = digitLoc.first->second;
+        }
       }
     }
   }
 
+  bool mDigits = false;                         ///< send to associated digits
   TrackFinder mTrackFinder{};                   ///< track finder
   std::chrono::duration<double> mElapsedTime{}; ///< timer
 };
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getTrackFinderSpec(const char* specName)
+o2::framework::DataProcessorSpec getTrackFinderSpec(const char* specName, bool digits)
 {
+  std::vector<InputSpec> inputSpecs{};
+  inputSpecs.emplace_back(InputSpec{"clusterrofs", "MCH", "CLUSTERROFS", 0, Lifetime::Timeframe});
+  inputSpecs.emplace_back(InputSpec{"clusters", "MCH", "GLOBALCLUSTERS", 0, Lifetime::Timeframe});
+
+  std::vector<OutputSpec> outputSpecs{};
+  outputSpecs.emplace_back(OutputSpec{{"trackrofs"}, "MCH", "TRACKROFS", 0, Lifetime::Timeframe});
+  outputSpecs.emplace_back(OutputSpec{{"tracks"}, "MCH", "TRACKS", 0, Lifetime::Timeframe});
+  outputSpecs.emplace_back(OutputSpec{{"trackclusters"}, "MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe});
+
+  if (digits) {
+    inputSpecs.emplace_back(InputSpec{"clusterdigits", "MCH", "CLUSTERDIGITS", 0, Lifetime::Timeframe});
+    outputSpecs.emplace_back(OutputSpec{{"trackdigits"}, "MCH", "TRACKDIGITS", 0, Lifetime::Timeframe});
+  }
+
   return DataProcessorSpec{
     specName,
-    Inputs{InputSpec{"clusterrofs", "MCH", "CLUSTERROFS", 0, Lifetime::Timeframe},
-           InputSpec{"clusters", "MCH", "GLOBALCLUSTERS", 0, Lifetime::Timeframe}},
-    Outputs{OutputSpec{{"trackrofs"}, "MCH", "TRACKROFS", 0, Lifetime::Timeframe},
-            OutputSpec{{"tracks"}, "MCH", "TRACKS", 0, Lifetime::Timeframe},
-            OutputSpec{{"trackclusters"}, "MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<TrackFinderTask>()},
+    inputSpecs,
+    outputSpecs,
+    AlgorithmSpec{adaptFromTask<TrackFinderTask>(digits)},
     Options{{"l3Current", VariantType::Float, -30000.0f, {"L3 current"}},
             {"dipoleCurrent", VariantType::Float, -6000.0f, {"Dipole current"}},
             {"grp-file", VariantType::String, o2::base::NameConf::getGRPFileName(), {"Name of the grp file"}},
