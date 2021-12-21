@@ -28,17 +28,38 @@ namespace mft
 //_____________________________________________________________
 void MFTAssessmentSpec::init(InitContext& ic)
 {
-  mMFTAssessment = std::make_unique<o2::mft::MFTAssessment>();
-  mMFTAssessment->init();
-  if (mUseMC) {
-    mMFTAssessment->setUseMC(mUseMC);
+
+  for (int sw = 0; sw < NStopWatches; sw++) {
+    mTimer[sw].Stop();
+    mTimer[sw].Reset();
   }
+
+  mTimer[SWTot].Start(false);
+  mMFTAssessment = std::make_unique<o2::mft::MFTAssessment>(mUseMC);
+  mMFTAssessment->init();
 }
 
 //_____________________________________________________________
 void MFTAssessmentSpec::run(o2::framework::ProcessingContext& pc)
 {
-  mMFTAssessment->run(pc);
+  mTimer[SWQCAsync].Start(false);
+  mMFTAssessment->runASyncQC(pc);
+  mTimer[SWQCAsync].Stop();
+
+  if (mUseMC) {
+
+    mTimer[SWTrackables].Start(false);
+    mMFTAssessment->processTrackables();
+    mTimer[SWTrackables].Stop();
+
+    mTimer[SWGenerated].Start(false);
+    mMFTAssessment->processGeneratedTracks();
+    mTimer[SWGenerated].Stop();
+
+    mTimer[SWRecoAndTrue].Start(false);
+    mMFTAssessment->processRecoAndTrueTracks();
+    mTimer[SWRecoAndTrue].Stop();
+  }
 }
 
 //_____________________________________________________________
@@ -46,6 +67,11 @@ void MFTAssessmentSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
   mMFTAssessment->finalize();
   sendOutput(ec.outputs());
+  mTimer[SWTot].Stop();
+
+  for (int i = 0; i < NStopWatches; i++) {
+    LOGF(info, "Timing %18s: Cpu: %.3e s; Real: %.3e s in %d slots", TimerName[i], mTimer[i].CpuTime(), mTimer[i].RealTime(), mTimer[i].Counter() - 1);
+  }
 }
 
 //_____________________________________________________________

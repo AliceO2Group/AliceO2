@@ -17,6 +17,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "MFTAssessment/MFTAssessment.h"
+#include "TStopwatch.h"
 
 using namespace o2::framework;
 
@@ -36,6 +37,18 @@ class MFTAssessmentSpec : public Task
   void sendOutput(DataAllocator& output);
   std::unique_ptr<o2::mft::MFTAssessment> mMFTAssessment;
   bool mUseMC = true;
+  enum TimerIDs { SWTot,
+                  SWQCAsync,
+                  SWTrackables,
+                  SWGenerated,
+                  SWRecoAndTrue,
+                  NStopWatches };
+  static constexpr std::string_view TimerName[] = {"Total",
+                                                   "ProcessAsync",
+                                                   "ProcessTrackables",
+                                                   "ProcessGenerated",
+                                                   "ProcessRecoAndTrue"};
+  TStopwatch mTimer[NStopWatches];
 };
 
 DataProcessorSpec getMFTAssessmentSpec(bool useMC);
