@@ -177,6 +177,7 @@ class ITSCalibrator : public Task
         int16_t partID = 0;
 
         short int run_type = -1;
+        short int min = -1, max = -1;
 
         // Get threshold method (fit == 1, derivative == 0, or hitcounting == 2)
         char fit_type = -1;
