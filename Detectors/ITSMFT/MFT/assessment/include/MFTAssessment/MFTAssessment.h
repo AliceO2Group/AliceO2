@@ -26,6 +26,7 @@
 #include "DataFormatsMFT/TrackMFT.h"
 #include <DataFormatsITSMFT/ROFRecord.h>
 #include <DataFormatsITSMFT/CompCluster.h>
+#include "ITSMFTReconstruction/ChipMappingMFT.h"
 #include "Steer/MCKinematicsReader.h"
 #include <unordered_map>
 #include <vector>
@@ -36,19 +37,33 @@ namespace o2
 namespace mft
 {
 
+enum mMFTTrackTypes { kReco,
+                      kGen,
+                      kTrackable,
+                      kRecoTrue,
+                      kNumberOfTrackTypes };
+
+using ClusterLabelsType = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+using TrackLabelsType = std::vector<o2::MCCompLabel>;
+using MCTrack = o2::MCTrackT<float>;
+
 class MFTAssessment
 {
  public:
-  MFTAssessment() = default;
+  MFTAssessment() = delete;
+  MFTAssessment(bool useMC) : mUseMC(useMC){};
   ~MFTAssessment() = default;
 
   bool init();
-  void run(o2::framework::ProcessingContext& ctx);
+  void runASyncQC(o2::framework::ProcessingContext& ctx);
+  void processTrackables();
+  void processGeneratedTracks();
+  void processRecoAndTrueTracks();
+  void addMCParticletoHistos(const MCTrack* mcTr, const int TrackType, const o2::dataformats::MCEventHeader& evH);
   void finalize();
   void reset();
 
   void getHistos(TObjArray& objar);
-  void setUseMC(bool b) { mUseMC = b; }
   void deleteHistograms();
   void setBz(float bz) { mBz = bz; }
 
@@ -63,11 +78,15 @@ class MFTAssessment
   gsl::span<const o2::itsmft::CompClusterExt> mMFTClusters;
   gsl::span<const o2::itsmft::ROFRecord> mMFTClustersROF;
 
+  // MC Labels
   bool mUseMC = false;
-  float mBz = 0; ///< nominal Bz
+
+  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mMFTClusterLabels;
+  gsl::span<const o2::MCCompLabel> mMFTTrackLabels;
 
   o2::steer::MCKinematicsReader mcReader; // reader of MC information
 
+  // Histos for reconstructed tracks
   std::unique_ptr<TH1F> mTrackNumberOfClusters = nullptr;
   std::unique_ptr<TH1F> mCATrackNumberOfClusters = nullptr;
   std::unique_ptr<TH1F> mLTFTrackNumberOfClusters = nullptr;
@@ -96,8 +115,29 @@ class MFTAssessment
   std::unique_ptr<TH1F> mClusterSensorIndex = nullptr;
   std::unique_ptr<TH1F> mClusterPatternIndex = nullptr;
 
+  // Histos and data for MC analysis
+
+  std::vector<std::string> mNameOfTrackTypes = {"Rec",
+                                                "Gen",
+                                                "Trackable",
+                                                "RecoTrue"};
+
+  std::unique_ptr<TH2F> mHistPhiRecVsPhiGen = nullptr;
+  std::unique_ptr<TH2F> mHistEtaRecVsEtaGen = nullptr;
+
+  std::array<std::unique_ptr<TH2F>, kNumberOfTrackTypes> mHistPhiVsEta;
+  std::array<std::unique_ptr<TH2F>, kNumberOfTrackTypes> mHistPtVsEta;
+  std::array<std::unique_ptr<TH2F>, kNumberOfTrackTypes> mHistPhiVsPt;
+  std::array<std::unique_ptr<TH2F>, kNumberOfTrackTypes> mHistZvtxVsEta;
+  std::array<std::unique_ptr<TH2F>, kNumberOfTrackTypes> mHistRVsZ;
+
+  std::unordered_map<o2::MCCompLabel, bool> mMFTTrackables;
+
   static constexpr std::array<short, 7> sMinNClustersList = {4, 5, 6, 7, 8, 9, 10};
   uint32_t mRefOrbit = 0; // Reference orbit used in relative time calculation
+  float mBz = 0;
+
+  o2::itsmft::ChipMappingMFT mMFTChipMapper;
 
   ClassDefNV(MFTAssessment, 1);
 };
