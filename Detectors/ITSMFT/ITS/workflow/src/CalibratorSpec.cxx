@@ -529,35 +529,33 @@ template <class Mapping>
 void ITSCalibrator<Mapping>::set_run_type(const short int& runtype) {
 
     // Save run type info for future evaluation
-    this->run_type == runtype;
-
-    short int min, max;
+    this->run_type = runtype;
 
     if (runtype == 42) {
         // full_threshold-scan -- just extract thresholds and send to CCDB for each pixel
         // 512 rows per chip
         this->nRange = &(this->nCharge);
-        min = 0;  max = 50;
+        this->min = 0;  this->max = 50;
 
     } else if (runtype == 43 || runtype == 101 || runtype == 102) {
         // threshold_scan_short -- just extract thresholds and send to CCDB for each pixel
         // 10 rows per chip
         this->nRange = &(this->nCharge);
-        min = 0;  max = 50;
+        this->min = 0;  this->max = 50;
 
     } else if (runtype == 61 || runtype == 103 || runtype == 81) {
         // VCASN tuning for different target thresholds
         // Store average VCASN for each chip into CCDB
         // 4 rows per chip
         this->nRange = &(this->nVCASN);
-        min = 30;  max = 70;
+        this->min = 30;  this->max = 70;
 
     } else if (runtype == 62 || runtype == 82 || runtype == 104) {
         // ITHR tuning  -- average ITHR per chip
         // S-curve is backwards from VCASN case, otherwise same
         // 4 rows per chip
         this->nRange = &(this->nITHR);
-        min = 30;  max = 100;
+        this->min = 30;  this->max = 100;
 
     } else if (runtype == 0) {
         // Trigger end-of-stream method to do averaging and save data to CCDB
@@ -611,20 +609,27 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
         // Find the correct charge and row values for this ROF
         short int charge = -1;
         short int row = -1;
-        short int runtype = -1;
         for (short int iRU = 0; iRU < this->nRUs; iRU++) {
             const auto& calib = calibs[iROF * nRUs + iRU];
             if (calib.calibUserField != 0) {
                 if (charge >= 0) { LOG(info) << "WARNING: more than one charge detected!"; }
-                // Divide calibration word (24-bit) by 2^16 to get the first 8 bits
-                // charge = (short int) (170 - calib.calibUserField / 65536);
-                charge = (short int) (170 - (calib.calibUserField >> 16) & 0xff);
-                // Last 16 bits should be the row (only uses up to 9 bits)
-                row = (short int) (calib.calibUserField & 0xffff);
 
                 // Run Type = calibword >> 24
-                runtype = (short int) (calib.calibUserField >> 24);
-                if (this->run_type == -1) { this->set_run_type(runtype); }
+                if (this->run_type == -1) {
+                    short int runtype = (short int) (calib.calibUserField >> 24);
+                    this->set_run_type(runtype);
+                }
+
+                // Divide calibration word (24-bit) by 2^16 to get the first 8 bits
+                if (*(this->nRange) == this->nCharge) {
+                    // For threshold scan have to subtract from 170 to get charge value
+                    charge = (short int) (170 - (calib.calibUserField >> 16) & 0xff);
+                } else {  // VCASN or ITHR tuning
+                    charge = (short int) ((calib.calibUserField >> 16) & 0xff);
+                }
+
+                // Last 16 bits should be the row (only uses up to 9 bits)
+                row = (short int) (calib.calibUserField & 0xffff);
 
                 //LOG(info) << "calibs size: " << calibs.size() << " | ROF number: " << iROF
                 //          << " | RU number: " << iRU << " | charge: " << charge << " | row: "
@@ -651,8 +656,7 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
                 //LOG(info) << "Hit for chip ID: " << chipID << " | row: " << row << " | col: " << col;
 
                 // Row should be the same for the whole ROF so do not have to check here
-                // TODO: test that this is working ok
-                assert(row == (short int) d.getRow());
+                //assert(row == (short int) d.getRow());
 
                 // Check if chip hasn't appeared before
                 if (this->currentRow.find(chipID) == this->currentRow.end()) {
@@ -673,7 +677,12 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
                 }
 
                 // Increment the number of counts for this pixel
-                this->pixelHits[chipID][col][charge]++;
+                if (charge > this->max || charge < this->min) {
+                    LOG(error) << "charge value " << charge << " out of range for min " << this->min
+                               << " and max " << this->max << " (range: " << *(this->nRange) << ")";
+                    exit(1);
+                }
+                this->pixelHits[chipID][col][charge - this->min]++;
 
             } // for (digits)
 
