@@ -38,13 +38,9 @@ class MFTAssessmentSpec : public Task
   bool mUseMC = true;
 };
 
-} // namespace mft
-
-namespace framework
-{
 DataProcessorSpec getMFTAssessmentSpec(bool useMC);
 
-} // namespace framework
+} // namespace mft
 } // namespace o2
 
 #endif

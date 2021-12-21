@@ -57,7 +57,7 @@ void TrackerDPL::init(InitContext& ic)
     Bool_t continuous = mGRP->isDetContinuousReadOut("MFT");
     LOG(info) << "MFTTracker RO: continuous=" << continuous;
 
-    o2::base::GeometryManager::loadGeometry();
+    o2::base::GeometryManager::loadGeometry("", true, true);
     o2::mft::GeometryTGeo* geom = o2::mft::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
                                                    o2::math_utils::TransformType::T2G));

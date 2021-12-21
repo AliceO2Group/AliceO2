@@ -39,6 +39,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useMC = !configcontext.options().get<bool>("disable-mc");
 
   WorkflowSpec specs;
-  specs.emplace_back(getMFTAssessmentSpec(useMC));
+  specs.emplace_back(o2::mft::getMFTAssessmentSpec(useMC));
   return specs;
 }

@@ -33,21 +33,17 @@ void MFTAssessmentSpec::init(InitContext& ic)
   if (mUseMC) {
     mMFTAssessment->setUseMC(mUseMC);
   }
-  mMFTAssessment->setGRPFileName(o2::base::NameConf::getGRPFileName());
-  mMFTAssessment->setGeomFileName(o2::base::NameConf::getGeomFileName());
 }
 
 //_____________________________________________________________
 void MFTAssessmentSpec::run(o2::framework::ProcessingContext& pc)
 {
-
   mMFTAssessment->run(pc);
 }
 
 //_____________________________________________________________
 void MFTAssessmentSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
-
   mMFTAssessment->finalize();
   sendOutput(ec.outputs());
 }
@@ -55,25 +51,19 @@ void MFTAssessmentSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
 //_____________________________________________________________
 void MFTAssessmentSpec::sendOutput(DataAllocator& output)
 {
-
   TObjArray objar;
   mMFTAssessment->getHistos(objar);
 
   output.snapshot(Output{"MFT", "MFTASSESSMENT", 0, Lifetime::Timeframe}, objar);
 
   TFile* f = new TFile(Form("MFTAssessment.root"), "RECREATE");
-  objar.Write("ObjArray", TObject::kSingleKey);
+  objar.Write("MFTAssessment", TObject::kSingleKey);
   f->Close();
 }
-} // namespace mft
-
-namespace framework
-{
 
 //_____________________________________________________________
 DataProcessorSpec getMFTAssessmentSpec(bool useMC)
 {
-
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   inputs.emplace_back("patterns", "MFT", "PATTERNS", 0, Lifetime::Timeframe);
@@ -83,9 +73,7 @@ DataProcessorSpec getMFTAssessmentSpec(bool useMC)
 
   if (useMC) {
     inputs.emplace_back("clslabels", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("MCCls2ROF", "MFT", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
     inputs.emplace_back("trklabels", "MFT", "TRACKSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("MCTrk2ROF", "MFT", "TRACKSMC2ROF", 0, Lifetime::Timeframe);
   }
 
   std::vector<OutputSpec> outputs;
@@ -99,5 +87,5 @@ DataProcessorSpec getMFTAssessmentSpec(bool useMC)
     Options{{}}};
 }
 
-} // namespace framework
+} // namespace mft
 } // namespace o2
