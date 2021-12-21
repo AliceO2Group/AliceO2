@@ -50,8 +50,6 @@ class MFTAssessment
   void getHistos(TObjArray& objar);
   void setUseMC(bool b) { mUseMC = b; }
   void deleteHistograms();
-  void setGRPFileName(std::string fn) { mGRPFileName = fn; }
-  void setGeomFileName(std::string fn) { mGeomFileName = fn; }
   void setBz(float bz) { mBz = bz; }
 
   double orbitToSeconds(uint32_t orbit, uint32_t refOrbit)
@@ -66,8 +64,6 @@ class MFTAssessment
   gsl::span<const o2::itsmft::ROFRecord> mMFTClustersROF;
 
   bool mUseMC = false;
-  std::string mGRPFileName = "o2sim_grp.root";
-  std::string mGeomFileName = "o2sim_geometry.root";
   float mBz = 0; ///< nominal Bz
 
   o2::steer::MCKinematicsReader mcReader; // reader of MC information
