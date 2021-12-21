@@ -43,6 +43,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not write output root files"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"digits", VariantType::Bool, false, {"Write digits associated to tracks"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -56,6 +57,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
   auto disableRootInput = configcontext.options().get<bool>("disable-root-input");
+  auto digits = configcontext.options().get<bool>("digits");
   auto useMC = !configcontext.options().get<bool>("disable-mc");
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
@@ -79,7 +81,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
                                                       "TC-F-DIGITROFS"));
   specs.emplace_back(o2::mch::getClusterFinderOriginalSpec("mch-cluster-finder"));
   specs.emplace_back(o2::mch::getClusterTransformerSpec());
-  specs.emplace_back(o2::mch::getTrackFinderSpec("mch-track-finder"));
+  specs.emplace_back(o2::mch::getTrackFinderSpec("mch-track-finder", digits));
   if (useMC) {
     specs.emplace_back(o2::mch::getTrackMCLabelFinderSpec("mch-track-mc-label-finder",
                                                           "TC-F-DIGITROFS",
@@ -87,7 +89,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   if (!disableRootOutput) {
-    specs.emplace_back(o2::mch::getTrackWriterSpec(useMC, "mch-track-writer", "mchtracks.root"));
+    specs.emplace_back(o2::mch::getTrackWriterSpec(useMC, "mch-track-writer", "mchtracks.root", digits));
   }
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
