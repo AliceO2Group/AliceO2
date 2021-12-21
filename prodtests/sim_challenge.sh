@@ -42,6 +42,7 @@ tpcLanes=""
 Usage()
 {
   echo "Usage: ${0##*/} [-s system /pp[Def] or pbpb/] [-r IR(kHz) /Def = $intRatePP(pp)/$intRatePbPb(pbpb)] [-n Number of events /Def = $nevPP(pp) or $nevPbPb(pbpb)/] [-e TGeant3|TGeant4] [-f fromstage sim|digi|reco /Def = sim]"
+  echo "Warning: This code is deprecated. Consider using 'O2DPG/MC/bin/o2dpg_sim_workflow.py' instead."
   exit
 }
 
@@ -111,7 +112,9 @@ fi
 if [ "$dodigi" == "1" ]; then
   echo "Running digitization for $intRate kHz interaction rate"
   intRate=$((1000*(intRate)));
-  taskwrapper digi.log o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate $tpcLanes
+  taskwrapper digi_TPC.log o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate $tpcLanes --onlyDet TPC
+  taskwrapper digi_TRD.log o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate $tpcLanes --onlyDet TRD
+  taskwrapper digi_REST.log o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate $tpcLanes --skipDet TPC,TRD
   echo "Return status of digitization: $?"
   # existing checks
   #root -b -q O2/Detectors/ITSMFT/ITS/macros/test/CheckDigits.C+
