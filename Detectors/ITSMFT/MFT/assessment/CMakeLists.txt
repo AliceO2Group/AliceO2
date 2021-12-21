@@ -9,13 +9,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(simulation)
-add_subdirectory(macros)
-add_subdirectory(tracking)
-add_subdirectory(workflow)
-add_subdirectory(calibration)
-add_subdirectory(condition)
-add_subdirectory(assessment)
+o2_add_library(MFTAssessment
+               SOURCES src/MFTAssessment.cxx
+               PUBLIC_LINK_LIBRARIES O2::MFTBase
+                                     O2::MFTTracking
+                                     O2::DataFormatsITSMFT
+                                     O2::Steer)
 
-o2_data_file(COPY data DESTINATION Detectors/Geometry/MFT/)
+o2_target_root_dictionary(MFTAssessment
+                          HEADERS include/MFTAssessment/MFTAssessment.h)
