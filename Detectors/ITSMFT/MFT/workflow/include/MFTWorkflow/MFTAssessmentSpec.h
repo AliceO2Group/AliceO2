@@ -28,7 +28,7 @@ namespace mft
 class MFTAssessmentSpec : public Task
 {
  public:
-  MFTAssessmentSpec(bool useMC) : mUseMC(useMC){};
+  MFTAssessmentSpec(bool useMC, bool processGen) : mUseMC(useMC), mProcessGen(processGen){};
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
@@ -37,6 +37,7 @@ class MFTAssessmentSpec : public Task
   void sendOutput(DataAllocator& output);
   std::unique_ptr<o2::mft::MFTAssessment> mMFTAssessment;
   bool mUseMC = true;
+  bool mProcessGen = false;
   enum TimerIDs { SWTot,
                   SWQCAsync,
                   SWTrackables,
@@ -51,7 +52,7 @@ class MFTAssessmentSpec : public Task
   TStopwatch mTimer[NStopWatches];
 };
 
-DataProcessorSpec getMFTAssessmentSpec(bool useMC);
+DataProcessorSpec getMFTAssessmentSpec(bool useMC, bool processGen);
 
 } // namespace mft
 } // namespace o2

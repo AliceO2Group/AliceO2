@@ -18,6 +18,8 @@
 
 #include <TH1F.h>
 #include <TH2F.h>
+#include <TH3F.h>
+#include <TCanvas.h>
 #include <TEfficiency.h>
 #include <TObjArray.h>
 #include "Framework/ProcessingContext.h"
@@ -116,7 +118,6 @@ class MFTAssessment
   std::unique_ptr<TH1F> mClusterPatternIndex = nullptr;
 
   // Histos and data for MC analysis
-
   std::vector<std::string> mNameOfTrackTypes = {"Rec",
                                                 "Gen",
                                                 "Trackable",
@@ -130,6 +131,177 @@ class MFTAssessment
   std::array<std::unique_ptr<TH2F>, kNumberOfTrackTypes> mHistPhiVsPt;
   std::array<std::unique_ptr<TH2F>, kNumberOfTrackTypes> mHistZvtxVsEta;
   std::array<std::unique_ptr<TH2F>, kNumberOfTrackTypes> mHistRVsZ;
+
+  // Histos for reconstruction assessment
+
+  std::unique_ptr<TEfficiency> mChargeMatchEff = nullptr;
+
+  enum TH3HistosCodes {
+    kTH3TrackDeltaXDeltaYEta,
+    kTH3TrackDeltaXDeltaYPt,
+    kTH3TrackDeltaXVertexPtEta,
+    kTH3TrackDeltaYVertexPtEta,
+    kTH3TrackInvQPtResolutionPtEta,
+    kTH3TrackInvQPtResSeedPtEta,
+    kTH3TrackXPullPtEta,
+    kTH3TrackYPullPtEta,
+    kTH3TrackPhiPullPtEta,
+    kTH3TrackTanlPullPtEta,
+    kTH3TrackInvQPtPullPtEta,
+    kTH3TrackReducedChi2PtEta,
+    kNTH3Histos
+  };
+
+  std::array<std::unique_ptr<TH3F>, kNTH3Histos> mTH3Histos;
+  void TH3Slicer(std::unique_ptr<TCanvas>& canvas, std::unique_ptr<TH3F>& histo3D, std::vector<float> list, double window, int iPar, float marker_size = 1.5);
+
+  std::map<int, const char*> TH3Names{
+    {kTH3TrackDeltaXDeltaYEta, "TH3TrackDeltaXDeltaYEta"},
+    {kTH3TrackDeltaXDeltaYPt, "TH3TrackDeltaXDeltaYPt"},
+    {kTH3TrackDeltaXVertexPtEta, "TH3TrackDeltaXVertexPtEta"},
+    {kTH3TrackDeltaYVertexPtEta, "TH3TrackDeltaYVertexPtEta"},
+    {kTH3TrackInvQPtResolutionPtEta, "TH3TrackInvQPtResolutionPtEta"},
+    {kTH3TrackInvQPtResSeedPtEta, "TH3TrackInvQPtResSeedPtEta"},
+    {kTH3TrackXPullPtEta, "TH3TrackXPullPtEta"},
+    {kTH3TrackYPullPtEta, "TH3TrackYPullPtEta"},
+    {kTH3TrackPhiPullPtEta, "TH3TrackPhiPullPtEta"},
+    {kTH3TrackTanlPullPtEta, "TH3TrackTanlPullPtEta"},
+    {kTH3TrackInvQPtPullPtEta, "TH3TrackInvQPtPullPtEta"},
+    {kTH3TrackReducedChi2PtEta, "TH3TrackReducedChi2PtEta"}};
+
+  std::map<int, const char*> TH3Titles{
+    {kTH3TrackDeltaXDeltaYEta, "TH3TrackDeltaXDeltaYEta"},
+    {kTH3TrackDeltaXDeltaYPt, "TH3TrackDeltaXDeltaYPt"},
+    {kTH3TrackDeltaXVertexPtEta, "TH3TrackDeltaXVertexPtEta"},
+    {kTH3TrackDeltaYVertexPtEta, "TH3TrackDeltaYVertexPtEta"},
+    {kTH3TrackInvQPtResolutionPtEta, "TH3TrackInvQPtResolutionPtEta"},
+    {kTH3TrackInvQPtResSeedPtEta, "TH3TrackInvQPtResSeedPtEta"},
+    {kTH3TrackXPullPtEta, "TH3TrackXPullPtEta"},
+    {kTH3TrackYPullPtEta, "TH3TrackYPullPtEta"},
+    {kTH3TrackPhiPullPtEta, "TH3TrackPhiPullPtEta"},
+    {kTH3TrackTanlPullPtEta, "TH3TrackTanlPullPtEta"},
+    {kTH3TrackInvQPtPullPtEta, "TH3TrackInvQPtPullPtEta"},
+    {kTH3TrackReducedChi2PtEta, "TH3TrackReducedChi2PtEta"}};
+
+  std::map<int, std::array<double, 9>> TH3Binning{
+    {kTH3TrackDeltaXDeltaYEta, {16, 2.2, 3.8, 1000, -1000, 1000, 1000, -1000, 1000}},
+    {kTH3TrackDeltaXDeltaYPt, {100, 0, 20, 1000, -1000, 1000, 1000, -1000, 1000}},
+    {kTH3TrackDeltaYVertexPtEta, {100, 0, 20, 16, 2.2, 3.8, 1000, -1000, 1000}},
+    {kTH3TrackDeltaXVertexPtEta, {100, 0, 20, 16, 2.2, 3.8, 1000, -1000, 1000}},
+    {kTH3TrackInvQPtResolutionPtEta, {100, 0, 20, 16, 2.2, 3.8, 1000, -50, 50}},
+    {kTH3TrackInvQPtResSeedPtEta, {100, 0, 20, 16, 2.2, 3.8, 1000, -50, 50}},
+    {kTH3TrackXPullPtEta, {100, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
+    {kTH3TrackYPullPtEta, {100, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
+    {kTH3TrackPhiPullPtEta, {100, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
+    {kTH3TrackTanlPullPtEta, {100, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
+    {kTH3TrackInvQPtPullPtEta, {100, 0, 20, 16, 2.2, 3.8, 200, -50, 50}},
+    {kTH3TrackReducedChi2PtEta, {100, 0, 20, 16, 2.2, 3.8, 1000, 0, 100}}};
+
+  std::map<int, const char*> TH3XaxisTitles{
+    {kTH3TrackDeltaXDeltaYEta, "\\eta"},
+    {kTH3TrackDeltaXDeltaYPt, "p_t"},
+    {kTH3TrackDeltaXVertexPtEta, "p_t"},
+    {kTH3TrackDeltaYVertexPtEta, "p_t"},
+    {kTH3TrackInvQPtResolutionPtEta, "p_t"},
+    {kTH3TrackInvQPtResSeedPtEta, "p_t"},
+    {kTH3TrackXPullPtEta, "p_t"},
+    {kTH3TrackYPullPtEta, "p_t"},
+    {kTH3TrackPhiPullPtEta, "p_t"},
+    {kTH3TrackTanlPullPtEta, "p_t"},
+    {kTH3TrackInvQPtPullPtEta, "p_t"},
+    {kTH3TrackReducedChi2PtEta, "p_t"}};
+
+  std::map<int, const char*> TH3YaxisTitles{
+    {kTH3TrackDeltaXDeltaYEta, "X residual at vertex (um)"},
+    {kTH3TrackDeltaXDeltaYPt, "X residual at vertex (um)"},
+    {kTH3TrackDeltaXVertexPtEta, "\\eta"},
+    {kTH3TrackDeltaYVertexPtEta, "\\eta"},
+    {kTH3TrackInvQPtResolutionPtEta, "\\eta"},
+    {kTH3TrackInvQPtResSeedPtEta, "\\eta"},
+    {kTH3TrackXPullPtEta, "\\eta"},
+    {kTH3TrackYPullPtEta, "\\eta"},
+    {kTH3TrackPhiPullPtEta, "\\eta"},
+    {kTH3TrackTanlPullPtEta, "\\eta"},
+    {kTH3TrackInvQPtPullPtEta, "\\eta"},
+    {kTH3TrackReducedChi2PtEta, "\\eta"}};
+
+  std::map<int, const char*> TH3ZaxisTitles{
+    {kTH3TrackDeltaXDeltaYEta, "Y residual at vertex (um)"},
+    {kTH3TrackDeltaXDeltaYPt, "Y residual at vertex (um)"},
+    {kTH3TrackDeltaXVertexPtEta, "X residual at vertex (um)"},
+    {kTH3TrackDeltaYVertexPtEta, "Y residual at vertex (um)"},
+    {kTH3TrackInvQPtResolutionPtEta, "(q/p_t residual)/(q/pt)"},
+    {kTH3TrackInvQPtResSeedPtEta, "(q/p_t residual)/(q/pt)"},
+    {kTH3TrackXPullPtEta, "\\Delta X/\\sigma_{X}"},
+    {kTH3TrackYPullPtEta, "\\Delta Y/\\sigma_{Y}"},
+    {kTH3TrackPhiPullPtEta, "\\Delta \\phi/\\sigma_{\\phi}"},
+    {kTH3TrackTanlPullPtEta, "\\Delta tan\\lambda/\\sigma_{tan\\lambda}"},
+    {kTH3TrackInvQPtPullPtEta, "(\\Delta q/p_t)/\\sigma_{q/pt}"},
+    {kTH3TrackReducedChi2PtEta, "\\chi^2/d.f."}};
+
+  enum TH3SlicedCodes {
+    kDeltaXVertexVsEta,
+    kDeltaXVertexVsPt,
+    kDeltaYVertexVsEta,
+    kDeltaYVertexVsPt,
+    kXPullVsEta,
+    kXPullVsPt,
+    kYPullVsEta,
+    kYPullVsPt,
+    kInvQPtResVsEta,
+    kInvQPtResVsPt,
+    kInvQPtResSeedVsEta,
+    kInvQPtResSeedVsPt,
+    kPhiPullVsEta,
+    kPhiPullVsPt,
+    kTanlPullVsEta,
+    kTanlPullVsPt,
+    kInvQPtPullVsEta,
+    kInvQPtPullVsPt,
+    kNSlicedTH3
+  };
+
+  std::map<int, const char*> TH3SlicedNames{
+    {kDeltaXVertexVsEta, "DeltaXVertexVsEta"},
+    {kDeltaXVertexVsPt, "DeltaXVertexVsPt"},
+    {kDeltaYVertexVsEta, "DeltaYVertexVsEta"},
+    {kDeltaYVertexVsPt, "DeltaYVertexVsPt"},
+    {kXPullVsEta, "XPullVsEta"},
+    {kXPullVsPt, "XPullVsPt"},
+    {kYPullVsEta, "YPullVsEta"},
+    {kYPullVsPt, "YPullVsPt"},
+    {kInvQPtResVsEta, "InvQPtResVsEta"},
+    {kInvQPtResVsPt, "InvQPtResVsPt"},
+    {kInvQPtResSeedVsEta, "InvQPtResSeedVsEta"},
+    {kInvQPtResSeedVsPt, "InvQPtResSeedVsPt"},
+    {kPhiPullVsEta, "PhiPullVsEta"},
+    {kPhiPullVsPt, "PhiPullVsPt"},
+    {kTanlPullVsEta, "TanlPullVsEta"},
+    {kTanlPullVsPt, "TanlPullVsPt"},
+    {kInvQPtPullVsEta, "InvQPtPullVsEta"},
+    {kInvQPtPullVsPt, "InvQPtPullVsPt"}};
+
+  std::map<int, int> TH3SlicedMap{
+    {kDeltaXVertexVsEta, kTH3TrackDeltaXVertexPtEta},
+    {kDeltaXVertexVsPt, kTH3TrackDeltaXVertexPtEta},
+    {kDeltaYVertexVsEta, kTH3TrackDeltaYVertexPtEta},
+    {kDeltaYVertexVsPt, kTH3TrackDeltaYVertexPtEta},
+    {kXPullVsEta, kTH3TrackXPullPtEta},
+    {kXPullVsPt, kTH3TrackXPullPtEta},
+    {kYPullVsEta, kTH3TrackYPullPtEta},
+    {kYPullVsPt, kTH3TrackYPullPtEta},
+    {kInvQPtResVsEta, kTH3TrackInvQPtResolutionPtEta},
+    {kInvQPtResVsPt, kTH3TrackInvQPtResolutionPtEta},
+    {kInvQPtResSeedVsEta, kTH3TrackInvQPtResSeedPtEta},
+    {kInvQPtResSeedVsPt, kTH3TrackInvQPtResSeedPtEta},
+    {kPhiPullVsEta, kTH3TrackPhiPullPtEta},
+    {kPhiPullVsPt, kTH3TrackPhiPullPtEta},
+    {kTanlPullVsEta, kTH3TrackTanlPullPtEta},
+    {kTanlPullVsPt, kTH3TrackTanlPullPtEta},
+    {kInvQPtPullVsEta, kTH3TrackInvQPtPullPtEta},
+    {kInvQPtPullVsPt, kTH3TrackInvQPtPullPtEta}};
+
+  std::array<std::unique_ptr<TCanvas>, kNSlicedTH3> mSlicedCanvas;
 
   std::unordered_map<o2::MCCompLabel, bool> mMFTTrackables;
 

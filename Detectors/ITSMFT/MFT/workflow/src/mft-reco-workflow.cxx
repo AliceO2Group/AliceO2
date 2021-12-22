@@ -31,6 +31,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not write output root files"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"run-assessment", o2::framework::VariantType::Bool, false, {"run MFT assessment workflow"}},
+    {"disable-process-gen", o2::framework::VariantType::Bool, false, {"disable processing of all generated tracks (depends on --run-assessment)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -50,8 +51,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto extClusters = configcontext.options().get<bool>("clusters-from-upstream");
   auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
   auto runAssessment = configcontext.options().get<bool>("run-assessment");
+  auto processGen = !configcontext.options().get<bool>("disable-process-gen");
 
-  auto wf = o2::mft::reco_workflow::getWorkflow(useMC, extDigits, extClusters, disableRootOutput, runAssessment);
+  auto wf = o2::mft::reco_workflow::getWorkflow(useMC, extDigits, extClusters, disableRootOutput, runAssessment, processGen);
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);
