@@ -20,4 +20,5 @@
 #pragma link C++ class o2::ccdb::CCDBQuery + ;
 #pragma link C++ class o2::ccdb::CcdbObjectInfo + ;
 #pragma link C++ class o2::ccdb::BasicCCDBManager + ;
+#pragma link C++ class o2::ccdb::CCDBManagerInstance + ;
 #endif
