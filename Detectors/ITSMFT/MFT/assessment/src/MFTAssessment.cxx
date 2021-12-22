@@ -13,6 +13,9 @@
 #include "Framework/InputSpec.h"
 #include "DetectorsBase/GeometryManager.h"
 #include <Framework/InputRecord.h>
+#include <TPaveText.h>
+#include <TLegend.h>
+#include <TStyle.h>
 
 using namespace o2::mft;
 
@@ -60,6 +63,15 @@ void MFTAssessment::reset()
       if (trackType == kGen || trackType == kTrackable) {
         mHistRVsZ[trackType]->Reset();
       }
+    }
+
+    auto h = mChargeMatchEff->GetCopyTotalHisto();
+    h->Reset();
+    mChargeMatchEff->SetTotalHistogram(*h, "");
+    mChargeMatchEff->SetPassedHistogram(*h, "");
+
+    for (auto& h : mTH3Histos) {
+      h->Reset();
     }
   }
 }
@@ -143,7 +155,7 @@ bool MFTAssessment::init()
       throw std::invalid_argument("initialization of MCKinematicsReader failed");
     }
 
-    mHistPhiRecVsPhiGen = std::make_unique<TH2F>("mc/mHistPhiRecVsPhiGen", "Phi Rec Vs Phi Gen of true reco tracks ", 24, -0.5 * TMath::Pi(), 0.5 * TMath::Pi(), 24, -0.5 * TMath::Pi(), 0.5 * TMath::Pi());
+    mHistPhiRecVsPhiGen = std::make_unique<TH2F>("mc/mHistPhiRecVsPhiGen", "Phi Rec Vs Phi Gen of true reco tracks ", 24, -2 * TMath::Pi(), 2 * TMath::Pi(), 24, -2 * TMath::Pi(), 2 * TMath::Pi());
     mHistPhiRecVsPhiGen->SetXTitle((std::string("#phi of ") + mNameOfTrackTypes[kGen]).c_str());
     mHistPhiRecVsPhiGen->SetYTitle((std::string("#phi of ") + mNameOfTrackTypes[kRecoTrue]).c_str());
     mHistPhiRecVsPhiGen->Sumw2();
@@ -157,7 +169,7 @@ bool MFTAssessment::init()
 
     for (int trackType = 0; trackType < kNumberOfTrackTypes; trackType++) {
       // mHistPhiVsEta
-      mHistPhiVsEta[trackType] = std::make_unique<TH2F>((std::string("mc/mHistPhiVsEta") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Phi Vs Eta of ") + mNameOfTrackTypes[trackType]).c_str(), 35, 1.0, 4.5, 24, -0.5 * TMath::Pi(), 0.5 * TMath::Pi());
+      mHistPhiVsEta[trackType] = std::make_unique<TH2F>((std::string("mc/mHistPhiVsEta") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Phi Vs Eta of ") + mNameOfTrackTypes[trackType]).c_str(), 35, 1.0, 4.5, 24, -2 * TMath::Pi(), 2 * TMath::Pi());
       mHistPhiVsEta[trackType]->SetXTitle((std::string("#eta of ") + mNameOfTrackTypes[trackType]).c_str());
       mHistPhiVsEta[trackType]->SetYTitle((std::string("#phi of ") + mNameOfTrackTypes[trackType]).c_str());
       mHistPhiVsEta[trackType]->Sumw2();
@@ -171,7 +183,7 @@ bool MFTAssessment::init()
       mHistPtVsEta[trackType]->SetOption("COLZ");
 
       // mHistPhiVsPt
-      mHistPhiVsPt[trackType] = std::make_unique<TH2F>((std::string("mc/mHistPhiVsPt") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Phi Vs Pt of ") + mNameOfTrackTypes[trackType]).c_str(), 40, 0., 10., 24, -0.5 * TMath::Pi(), 0.5 * TMath::Pi());
+      mHistPhiVsPt[trackType] = std::make_unique<TH2F>((std::string("mc/mHistPhiVsPt") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Phi Vs Pt of ") + mNameOfTrackTypes[trackType]).c_str(), 40, 0., 10., 24, -2 * TMath::Pi(), 2 * TMath::Pi());
       mHistPhiVsPt[trackType]->SetXTitle((std::string("p_{T} (GeV/c) of ") + mNameOfTrackTypes[trackType]).c_str());
       mHistPhiVsPt[trackType]->SetYTitle((std::string("#phi of ") + mNameOfTrackTypes[trackType]).c_str());
       mHistPhiVsPt[trackType]->Sumw2();
@@ -193,6 +205,29 @@ bool MFTAssessment::init()
         mHistRVsZ[trackType]->Sumw2();
         mHistRVsZ[trackType]->SetOption("COLZ");
       }
+    }
+
+    // Histos for Reconstruction assessment
+
+    mChargeMatchEff = std::make_unique<TEfficiency>("QMatchEff", "Charge Match;p_t [GeV];#epsilon", 50, 0, 20);
+
+    const int nTH3Histos = TH3Names.size();
+    auto n3Histo = 0;
+    for (auto& h : mTH3Histos) {
+      h = std::make_unique<TH3F>(TH3Names[n3Histo], TH3Titles[n3Histo],
+                                 (int)TH3Binning[n3Histo][0],
+                                 TH3Binning[n3Histo][1],
+                                 TH3Binning[n3Histo][2],
+                                 (int)TH3Binning[n3Histo][3],
+                                 TH3Binning[n3Histo][4],
+                                 TH3Binning[n3Histo][5],
+                                 (int)TH3Binning[n3Histo][6],
+                                 TH3Binning[n3Histo][7],
+                                 TH3Binning[n3Histo][8]);
+      h->GetXaxis()->SetTitle(TH3XaxisTitles[n3Histo]);
+      h->GetYaxis()->SetTitle(TH3YaxisTitles[n3Histo]);
+      h->GetZaxis()->SetTitle(TH3ZaxisTitles[n3Histo]);
+      ++n3Histo;
     }
   }
 
@@ -355,30 +390,77 @@ void MFTAssessment::addMCParticletoHistos(const MCTrack* mcTr, const int TrackTy
 void MFTAssessment::processRecoAndTrueTracks()
 {
   auto trkId = 0;
-  for (auto& mftTrack : mMFTTracks) {
-    auto pt = mftTrack.getPt();
-    auto eta = -1 * mftTrack.getEta();
-    auto phi = mftTrack.getPhi();
+  for (auto mftTrack : mMFTTracks) {
+    auto pt_Rec = mftTrack.getPt();
+    auto invQPt_Rec = mftTrack.getInvQPt();
+    auto invQPt_Seed = mftTrack.getInvQPtSeed();
+    auto eta_Rec = std::abs(mftTrack.getEta());
+    auto phi_Rec = mftTrack.getPhi();
+    auto nClusters = mftTrack.getNumberOfPoints();
+    auto Chi2_Rec = mftTrack.getTrackChi2();
+    int Q_Rec = mftTrack.getCharge();
+
     auto TrackType = kReco;
-    mHistPtVsEta[TrackType]->Fill(eta, pt);
-    mHistPhiVsEta[TrackType]->Fill(eta, phi);
-    mHistPhiVsPt[TrackType]->Fill(pt, phi);
+    mHistPtVsEta[TrackType]->Fill(eta_Rec, pt_Rec);
+    mHistPhiVsEta[TrackType]->Fill(eta_Rec, phi_Rec);
+    mHistPhiVsPt[TrackType]->Fill(pt_Rec, phi_Rec);
 
     auto trackLabel = mMFTTrackLabels[trkId];
     if (trackLabel.isCorrect()) {
       TrackType = kRecoTrue;
       auto evH = mcReader.getMCEventHeader(trackLabel.getSourceID(), trackLabel.getEventID());
       auto zVtx = evH.GetZ();
-      mHistPtVsEta[TrackType]->Fill(eta, pt);
-      mHistPhiVsEta[TrackType]->Fill(eta, phi);
-      mHistPhiVsPt[TrackType]->Fill(pt, phi);
-      mHistZvtxVsEta[TrackType]->Fill(eta, zVtx);
 
       auto const* mcParticle = mcReader.getTrack(trackLabel);
-      auto etaGen = -1 * mcParticle->GetEta();
-      auto phiGen = mcParticle->GetPhi();
-      mHistPhiRecVsPhiGen->Fill(phiGen, phi); // This should be at same Z
-      mHistEtaRecVsEtaGen->Fill(etaGen, eta);
+      auto etaGen = std::abs(mcParticle->GetEta());
+      auto phiGen = TMath::ATan2(mcParticle->Py(), mcParticle->Px());
+      auto ptGen = mcParticle->GetPt();
+      auto vxGen = mcParticle->GetStartVertexCoordinatesX();
+      auto vyGen = mcParticle->GetStartVertexCoordinatesY();
+      auto vzGen = mcParticle->GetStartVertexCoordinatesZ();
+      auto tanlGen = mcParticle->Pz() / mcParticle->GetPt();
+
+      auto pdgcode_MC = mcParticle->GetPdgCode();
+      int Q_Gen;
+      if (TDatabasePDG::Instance()->GetParticle(pdgcode_MC)) {
+        Q_Gen = TDatabasePDG::Instance()->GetParticle(pdgcode_MC)->Charge() / 3;
+      } else {
+        continue;
+      }
+      auto invQPtGen = 1.0 * Q_Gen / ptGen;
+      mftTrack.propagateToZ(vzGen, mBz);
+
+      // Residuals at vertex
+      auto x_res = mftTrack.getX() - vxGen;
+      auto y_res = mftTrack.getY() - vyGen;
+      auto eta_res = mftTrack.getEta() - etaGen;
+      auto phi_res = mftTrack.getPhi() - phiGen;
+      auto tanl_res = mftTrack.getTanl() - tanlGen;
+      auto invQPt_res = invQPt_Rec - invQPtGen;
+      mHistPtVsEta[TrackType]->Fill(eta_Rec, pt_Rec);
+      mHistPhiVsEta[TrackType]->Fill(eta_Rec, phi_Rec);
+      mHistPhiVsPt[TrackType]->Fill(pt_Rec, phi_Rec);
+      mHistZvtxVsEta[TrackType]->Fill(eta_Rec, zVtx);
+
+      mHistPhiRecVsPhiGen->Fill(phiGen, phi_Rec);
+      mHistEtaRecVsEtaGen->Fill(etaGen, eta_Rec);
+
+      /// Reco assessment histos
+      auto d_Charge = Q_Rec - Q_Gen;
+      mChargeMatchEff->Fill(!d_Charge, ptGen);
+
+      mTH3Histos[kTH3TrackDeltaXVertexPtEta]->Fill(ptGen, etaGen, 1e4 * x_res);
+      mTH3Histos[kTH3TrackDeltaYVertexPtEta]->Fill(ptGen, etaGen, 1e4 * y_res);
+      mTH3Histos[kTH3TrackDeltaXDeltaYEta]->Fill(etaGen, 1e4 * x_res, 1e4 * y_res);
+      mTH3Histos[kTH3TrackDeltaXDeltaYPt]->Fill(ptGen, 1e4 * x_res, 1e4 * y_res);
+      mTH3Histos[kTH3TrackXPullPtEta]->Fill(ptGen, etaGen, x_res / sqrt(mftTrack.getCovariances()(0, 0)));
+      mTH3Histos[kTH3TrackYPullPtEta]->Fill(ptGen, etaGen, y_res / sqrt(mftTrack.getCovariances()(1, 1)));
+      mTH3Histos[kTH3TrackPhiPullPtEta]->Fill(ptGen, etaGen, phi_res / sqrt(mftTrack.getCovariances()(2, 2)));
+      mTH3Histos[kTH3TrackTanlPullPtEta]->Fill(ptGen, etaGen, tanl_res / sqrt(mftTrack.getCovariances()(3, 3)));
+      mTH3Histos[kTH3TrackInvQPtPullPtEta]->Fill(ptGen, etaGen, invQPt_res / sqrt(mftTrack.getCovariances()(4, 4)));
+      mTH3Histos[kTH3TrackInvQPtResolutionPtEta]->Fill(ptGen, etaGen, (invQPt_Rec - invQPtGen) / invQPtGen);
+      mTH3Histos[kTH3TrackInvQPtResSeedPtEta]->Fill(ptGen, etaGen, (invQPt_Seed - invQPtGen) / invQPtGen);
+      mTH3Histos[kTH3TrackReducedChi2PtEta]->Fill(ptGen, etaGen, Chi2_Rec / (2 * nClusters - 5)); // 5: number of fitting parameters
     }
     trkId++;
   }
@@ -387,6 +469,26 @@ void MFTAssessment::processRecoAndTrueTracks()
 //__________________________________________________________
 void MFTAssessment::finalize()
 {
+
+  std::vector<float> ptList({.5, 1.5, 5., 10., 15., 18.0});
+  float ptWindow = 0.4;
+  std::vector<float> etaList({2.5, 2.8, 3.1});
+  float etaWindow = 0.2;
+
+  std::vector<float> sliceList;
+  float sliceWindow;
+
+  for (int nCanvas = 0; nCanvas < kNSlicedTH3; nCanvas++) {
+    if (nCanvas % 2) {
+      sliceList = etaList;
+      sliceWindow = etaWindow;
+    } else {
+      sliceList = ptList;
+      sliceWindow = ptWindow;
+    }
+    mSlicedCanvas[nCanvas] = std::make_unique<TCanvas>(TH3SlicedNames[nCanvas], TH3SlicedNames[nCanvas], 1080, 1080);
+    TH3Slicer(mSlicedCanvas[nCanvas], mTH3Histos[TH3SlicedMap[nCanvas]], sliceList, sliceWindow, 2);
+  }
 }
 
 //__________________________________________________________
@@ -431,5 +533,104 @@ void MFTAssessment::getHistos(TObjArray& objar)
         objar.Add(mHistRVsZ[TrackType].get());
       }
     }
+
+    // Histos for Reconstruction assessment
+
+    for (auto& h : mTH3Histos) {
+      objar.Add(h.get());
+    }
+
+    objar.Add(mChargeMatchEff.get());
+
+    for (int slicedCanvas = 0; slicedCanvas < kNSlicedTH3; slicedCanvas++) {
+      objar.Add(mSlicedCanvas[slicedCanvas].get());
+    }
+  }
+}
+
+//__________________________________________________________
+void MFTAssessment::TH3Slicer(std::unique_ptr<TCanvas>& canvas, std::unique_ptr<TH3F>& histo3D, std::vector<float> list, double window, int iPar, float marker_size)
+{
+  gStyle->SetOptTitle(kFALSE);
+  gStyle->SetOptStat(0); // Remove title of first histogram from canvas
+  gStyle->SetMarkerStyle(kFullCircle);
+  gStyle->SetMarkerSize(marker_size);
+  canvas->UseCurrentStyle();
+  canvas->cd();
+  std::string cname = canvas->GetName();
+  std::string ctitle = cname;
+  std::string option;
+  std::string option2 = "PLC PMC same";
+
+  TObjArray aSlices;
+  histo3D->GetYaxis()->SetRange(0, 0);
+  histo3D->GetXaxis()->SetRange(0, 0);
+  bool first = true;
+  if (cname.find("VsEta") < cname.length()) {
+    for (auto ptmin : list) {
+      auto ptmax = ptmin + window;
+      histo3D->GetXaxis()->SetRangeUser(ptmin, ptmax);
+
+      std::string ytitle = "\\sigma (";
+      ytitle += histo3D->GetZaxis()->GetTitle();
+      ytitle += ")";
+      auto title = Form("_%1.2f_%1.2f_yz", ptmin, ptmax);
+      auto aDBG = (TH2F*)histo3D->Project3D(title);
+      aDBG->GetXaxis()->SetRangeUser(0, 0);
+
+      aDBG->FitSlicesX(0, 0, -1, 3, "QNR", &aSlices);
+      auto th1DBG = (TH1F*)aSlices[iPar];
+      th1DBG->SetTitle(Form("%1.2f < p_t < %1.2f", ptmin, ptmax));
+      th1DBG->SetStats(0);
+      th1DBG->SetYTitle(ytitle.c_str());
+      if (first) {
+        option = "PLC PMC";
+      } else {
+        option = "SAME PLC PMC";
+      }
+      first = false;
+      th1DBG->DrawClone(option.c_str());
+    }
+  } else if (cname.find("VsPt") < cname.length()) {
+    for (auto etamin : list) {
+      auto etamax = etamin + window;
+      histo3D->GetYaxis()->SetRangeUser(etamin, etamax);
+      std::string ytitle = "\\sigma (" + std::string(histo3D->GetZaxis()->GetTitle()) + ")";
+      auto title = Form("_%1.2f_%1.2f_xz", etamin, etamax);
+      auto aDBG = (TH2F*)histo3D->Project3D(title);
+      aDBG->FitSlicesX(0, 0, -1, 3, "QNR", &aSlices);
+      auto th1DBG = (TH1F*)aSlices[iPar];
+      th1DBG->SetTitle(Form("%1.2f < \\eta < %1.2f", etamin, etamax));
+      th1DBG->SetStats(0);
+      th1DBG->SetYTitle(ytitle.c_str());
+      if (first) {
+        option = "PLC PMC";
+      } else {
+        option = "SAME PLC PMC";
+      }
+      first = false;
+      th1DBG->DrawClone(option.c_str());
+    }
+  } else {
+    std::cout << " Could not made Histograms Vs Pt/Eta. Please check canvas name.\n";
+    exit(1);
+  }
+
+  histo3D->GetYaxis()->SetRange(0, 0);
+  histo3D->GetXaxis()->SetRange(0, 0);
+
+  TPaveText* t = new TPaveText(0.2223748, 0.9069355, 0.7776252, 0.965, "brNDC"); // left-up
+  t->SetBorderSize(0);
+  t->SetFillColor(gStyle->GetTitleFillColor());
+  t->AddText(ctitle.c_str());
+  t->Draw();
+
+  canvas->BuildLegend();
+  canvas->SetTicky();
+  canvas->SetGridy();
+  canvas->Draw();
+  if (0) {
+    cname += ".png";
+    canvas->Print(cname.c_str());
   }
 }

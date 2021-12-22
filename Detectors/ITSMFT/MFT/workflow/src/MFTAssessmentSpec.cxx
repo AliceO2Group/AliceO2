@@ -15,6 +15,9 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "MFTWorkflow/MFTAssessmentSpec.h"
+#include "DetectorsBase/Propagator.h"
+#include "Field/MagneticField.h"
+#include "TGeoGlobalMagField.h"
 #include "CommonUtils/NameConf.h"
 #include <TFile.h>
 
@@ -28,6 +31,16 @@ namespace mft
 //_____________________________________________________________
 void MFTAssessmentSpec::init(InitContext& ic)
 {
+  mMFTAssessment = std::make_unique<o2::mft::MFTAssessment>(mUseMC);
+  auto filename = o2::base::NameConf::getGRPFileName();
+  const auto grp = o2::parameters::GRPObject::loadFrom(filename.c_str());
+  if (grp) {
+    o2::base::Propagator::initFieldFromGRP(grp);
+    auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+    double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
+    auto Bz = field->getBz(centerMFT);
+    mMFTAssessment->setBz(Bz);
+  }
 
   for (int sw = 0; sw < NStopWatches; sw++) {
     mTimer[sw].Stop();
@@ -35,7 +48,6 @@ void MFTAssessmentSpec::init(InitContext& ic)
   }
 
   mTimer[SWTot].Start(false);
-  mMFTAssessment = std::make_unique<o2::mft::MFTAssessment>(mUseMC);
   mMFTAssessment->init();
 }
 
@@ -52,10 +64,11 @@ void MFTAssessmentSpec::run(o2::framework::ProcessingContext& pc)
     mMFTAssessment->processTrackables();
     mTimer[SWTrackables].Stop();
 
-    mTimer[SWGenerated].Start(false);
-    mMFTAssessment->processGeneratedTracks();
-    mTimer[SWGenerated].Stop();
-
+    if (mProcessGen) {
+      mTimer[SWGenerated].Start(false);
+      mMFTAssessment->processGeneratedTracks();
+      mTimer[SWGenerated].Stop();
+    }
     mTimer[SWRecoAndTrue].Start(false);
     mMFTAssessment->processRecoAndTrueTracks();
     mTimer[SWRecoAndTrue].Stop();
@@ -88,7 +101,7 @@ void MFTAssessmentSpec::sendOutput(DataAllocator& output)
 }
 
 //_____________________________________________________________
-DataProcessorSpec getMFTAssessmentSpec(bool useMC)
+DataProcessorSpec getMFTAssessmentSpec(bool useMC, bool processGen)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
@@ -104,12 +117,11 @@ DataProcessorSpec getMFTAssessmentSpec(bool useMC)
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("MFT", "MFTASSESSMENT", 0, Lifetime::Timeframe);
-
   return DataProcessorSpec{
     "mft-assessment",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::mft::MFTAssessmentSpec>(useMC)},
+    AlgorithmSpec{adaptFromTask<o2::mft::MFTAssessmentSpec>(useMC, processGen)},
     Options{{}}};
 }
 
