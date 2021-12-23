@@ -16,8 +16,16 @@
 #include <TPaveText.h>
 #include <TLegend.h>
 #include <TStyle.h>
+#include <TFile.h>
 
 using namespace o2::mft;
+
+//__________________________________________________________
+void MFTAssessment::init(bool finalizeAnalysis)
+{
+  mFinalizeAnalysis = finalizeAnalysis;
+  createHistos();
+}
 
 //__________________________________________________________
 void MFTAssessment::reset()
@@ -77,7 +85,7 @@ void MFTAssessment::reset()
 }
 
 //__________________________________________________________
-bool MFTAssessment::init()
+void MFTAssessment::createHistos()
 {
   auto MaxClusterROFSize = 5000;
   auto MaxTrackROFSize = 1000;
@@ -88,64 +96,64 @@ bool MFTAssessment::init()
   auto NofTimeBins = static_cast<int>(MaxDuration / TimeBinSize);
 
   // Creating data-only histos
-  mTrackNumberOfClusters = std::make_unique<TH1F>("tracks/mMFTTrackNumberOfClusters",
+  mTrackNumberOfClusters = std::make_unique<TH1F>("mMFTTrackNumberOfClusters",
                                                   "Number Of Clusters Per Track; # clusters; # entries", 10, 0.5, 10.5);
 
-  mCATrackNumberOfClusters = std::make_unique<TH1F>("tracks/CA/mMFTCATrackNumberOfClusters",
+  mCATrackNumberOfClusters = std::make_unique<TH1F>("mMFTCATrackNumberOfClusters",
                                                     "Number Of Clusters Per CA Track; # clusters; # tracks", 10, 0.5, 10.5);
 
-  mLTFTrackNumberOfClusters = std::make_unique<TH1F>("tracks/LTF/mMFTLTFTrackNumberOfClusters",
+  mLTFTrackNumberOfClusters = std::make_unique<TH1F>("mMFTLTFTrackNumberOfClusters",
                                                      "Number Of Clusters Per LTF Track; # clusters; # entries", 10, 0.5, 10.5);
 
-  mTrackOnvQPt = std::make_unique<TH1F>("tracks/mMFTTrackOnvQPt", "Track q/p_{T}; q/p_{T} [1/GeV]; # entries", 50, -2, 2);
+  mTrackOnvQPt = std::make_unique<TH1F>("mMFTTrackOnvQPt", "Track q/p_{T}; q/p_{T} [1/GeV]; # entries", 50, -2, 2);
 
-  mTrackChi2 = std::make_unique<TH1F>("tracks/mMFTTrackChi2", "Track #chi^{2}; #chi^{2}; # entries", 21, -0.5, 20.5);
+  mTrackChi2 = std::make_unique<TH1F>("mMFTTrackChi2", "Track #chi^{2}; #chi^{2}; # entries", 21, -0.5, 20.5);
 
-  mTrackCharge = std::make_unique<TH1F>("tracks/mMFTTrackCharge", "Track Charge; q; # entries", 3, -1.5, 1.5);
+  mTrackCharge = std::make_unique<TH1F>("mMFTTrackCharge", "Track Charge; q; # entries", 3, -1.5, 1.5);
 
-  mTrackPhi = std::make_unique<TH1F>("tracks/mMFTTrackPhi", "Track #phi; #phi; # entries", 100, -3.2, 3.2);
+  mTrackPhi = std::make_unique<TH1F>("mMFTTrackPhi", "Track #phi; #phi; # entries", 100, -3.2, 3.2);
 
-  mPositiveTrackPhi = std::make_unique<TH1F>("tracks/mMFTPositiveTrackPhi", "Positive Track #phi; #phi; # entries", 100, -3.2, 3.2);
+  mPositiveTrackPhi = std::make_unique<TH1F>("mMFTPositiveTrackPhi", "Positive Track #phi; #phi; # entries", 100, -3.2, 3.2);
 
-  mNegativeTrackPhi = std::make_unique<TH1F>("tracks/mMFTNegativeTrackPhi", "Negative Track #phi; #phi; # entries", 100, -3.2, 3.2);
+  mNegativeTrackPhi = std::make_unique<TH1F>("mMFTNegativeTrackPhi", "Negative Track #phi; #phi; # entries", 100, -3.2, 3.2);
 
-  mTrackEta = std::make_unique<TH1F>("tracks/mMFTTrackEta", "Track #eta; #eta; # entries", 50, -4, -2);
+  mTrackEta = std::make_unique<TH1F>("mMFTTrackEta", "Track #eta; #eta; # entries", 50, -4, -2);
 
   for (auto minNClusters : sMinNClustersList) {
     auto nHisto = minNClusters - sMinNClustersList[0];
-    mTrackEtaNCls[nHisto] = std::make_unique<TH1F>(Form("tracks/mMFTTrackEta_%d_MinClusters", minNClusters), Form("Track #eta (NCls >= %d); #eta; # entries", minNClusters), 50, -4, -2);
+    mTrackEtaNCls[nHisto] = std::make_unique<TH1F>(Form("mMFTTrackEta_%d_MinClusters", minNClusters), Form("Track #eta (NCls >= %d); #eta; # entries", minNClusters), 50, -4, -2);
 
-    mTrackPhiNCls[nHisto] = std::make_unique<TH1F>(Form("tracks/mMFTTrackPhi_%d_MinClusters", minNClusters), Form("Track #phi (NCls >= %d); #phi; # entries", minNClusters), 100, -3.2, 3.2);
+    mTrackPhiNCls[nHisto] = std::make_unique<TH1F>(Form("mMFTTrackPhi_%d_MinClusters", minNClusters), Form("Track #phi (NCls >= %d); #phi; # entries", minNClusters), 100, -3.2, 3.2);
 
-    mTrackXYNCls[nHisto] = std::make_unique<TH2F>(Form("tracks/mMFTTrackXY_%d_MinClusters", minNClusters), Form("Track Position (NCls >= %d); x; y", minNClusters), 320, -16, 16, 320, -16, 16);
+    mTrackXYNCls[nHisto] = std::make_unique<TH2F>(Form("mMFTTrackXY_%d_MinClusters", minNClusters), Form("Track Position (NCls >= %d); x; y", minNClusters), 320, -16, 16, 320, -16, 16);
     mTrackXYNCls[nHisto]->SetOption("COLZ");
 
-    mTrackEtaPhiNCls[nHisto] = std::make_unique<TH2F>(Form("tracks/mMFTTrackEtaPhi_%d_MinClusters", minNClusters), Form("Track #eta , #phi (NCls >= %d); #eta; #phi", minNClusters), 50, -4, -2, 100, -3.2, 3.2);
+    mTrackEtaPhiNCls[nHisto] = std::make_unique<TH2F>(Form("mMFTTrackEtaPhi_%d_MinClusters", minNClusters), Form("Track #eta , #phi (NCls >= %d); #eta; #phi", minNClusters), 50, -4, -2, 100, -3.2, 3.2);
     mTrackEtaPhiNCls[nHisto]->SetOption("COLZ");
   }
 
-  mCATrackEta = std::make_unique<TH1F>("tracks/CA/mMFTCATrackEta", "CA Track #eta; #eta; # entries", 50, -4, -2);
+  mCATrackEta = std::make_unique<TH1F>("mMFTCATrackEta", "CA Track #eta; #eta; # entries", 50, -4, -2);
 
-  mLTFTrackEta = std::make_unique<TH1F>("tracks/LTF/mMFTLTFTrackEta", "LTF Track #eta; #eta; # entries", 50, -4, -2);
+  mLTFTrackEta = std::make_unique<TH1F>("mMFTLTFTrackEta", "LTF Track #eta; #eta; # entries", 50, -4, -2);
 
-  mTrackTanl = std::make_unique<TH1F>("tracks/mMFTTrackTanl", "Track tan #lambda; tan #lambda; # entries", 100, -25, 0);
+  mTrackTanl = std::make_unique<TH1F>("mMFTTrackTanl", "Track tan #lambda; tan #lambda; # entries", 100, -25, 0);
 
-  mClusterROFNEntries = std::make_unique<TH1F>("clusters/mMFTClustersROFSize", "MFT Cluster ROFs size; ROF Size; # entries", MaxClusterROFSize, 0, MaxClusterROFSize);
+  mClusterROFNEntries = std::make_unique<TH1F>("mMFTClustersROFSize", "MFT Cluster ROFs size; ROF Size; # entries", MaxClusterROFSize, 0, MaxClusterROFSize);
 
-  mTrackROFNEntries = std::make_unique<TH1F>("tracks/mMFTTrackROFSize", "MFT Track ROFs size; ROF Size; # entries", MaxTrackROFSize, 0, MaxTrackROFSize);
+  mTrackROFNEntries = std::make_unique<TH1F>("mMFTTrackROFSize", "MFT Track ROFs size; ROF Size; # entries", MaxTrackROFSize, 0, MaxTrackROFSize);
 
-  mTracksBC = std::make_unique<TH1F>("tracks/mMFTTracksBC", "Tracks per BC (sum over orbits); BCid; # entries", ROFsPerOrbit, 0, o2::constants::lhc::LHCMaxBunches);
+  mTracksBC = std::make_unique<TH1F>("mMFTTracksBC", "Tracks per BC (sum over orbits); BCid; # entries", ROFsPerOrbit, 0, o2::constants::lhc::LHCMaxBunches);
   mTracksBC->SetMinimum(0.1);
 
-  mNOfTracksTime = std::make_unique<TH1F>("tracks/mNOfTracksTime", "Number of tracks per time bin; time (s); # entries", NofTimeBins, 0, MaxDuration);
+  mNOfTracksTime = std::make_unique<TH1F>("mNOfTracksTime", "Number of tracks per time bin; time (s); # entries", NofTimeBins, 0, MaxDuration);
   mNOfTracksTime->SetMinimum(0.1);
 
-  mNOfClustersTime = std::make_unique<TH1F>("clusters/mNOfClustersTime", "Number of clusters per time bin; time (s); # entries", NofTimeBins, 0, MaxDuration);
+  mNOfClustersTime = std::make_unique<TH1F>("mNOfClustersTime", "Number of clusters per time bin; time (s); # entries", NofTimeBins, 0, MaxDuration);
   mNOfClustersTime->SetMinimum(0.1);
 
-  mClusterSensorIndex = std::make_unique<TH1F>("clusters/mMFTClusterSensorIndex", "Chip Cluster Occupancy;Chip ID;#Entries", 936, -0.5, 935.5);
+  mClusterSensorIndex = std::make_unique<TH1F>("mMFTClusterSensorIndex", "Chip Cluster Occupancy;Chip ID;#Entries", 936, -0.5, 935.5);
 
-  mClusterPatternIndex = std::make_unique<TH1F>("clusters/mMFTClusterPatternIndex", "Cluster Pattern ID;Pattern ID;#Entries", 300, -0.5, 299.5);
+  mClusterPatternIndex = std::make_unique<TH1F>("mMFTClusterPatternIndex", "Cluster Pattern ID;Pattern ID;#Entries", 300, -0.5, 299.5);
 
   // Creating MC-based histos
   if (mUseMC) {
@@ -155,13 +163,13 @@ bool MFTAssessment::init()
       throw std::invalid_argument("initialization of MCKinematicsReader failed");
     }
 
-    mHistPhiRecVsPhiGen = std::make_unique<TH2F>("mc/mHistPhiRecVsPhiGen", "Phi Rec Vs Phi Gen of true reco tracks ", 24, -2 * TMath::Pi(), 2 * TMath::Pi(), 24, -2 * TMath::Pi(), 2 * TMath::Pi());
+    mHistPhiRecVsPhiGen = std::make_unique<TH2F>("mHistPhiRecVsPhiGen", "Phi Rec Vs Phi Gen of true reco tracks ", 24, -2 * TMath::Pi(), 2 * TMath::Pi(), 24, -2 * TMath::Pi(), 2 * TMath::Pi());
     mHistPhiRecVsPhiGen->SetXTitle((std::string("#phi of ") + mNameOfTrackTypes[kGen]).c_str());
     mHistPhiRecVsPhiGen->SetYTitle((std::string("#phi of ") + mNameOfTrackTypes[kRecoTrue]).c_str());
     mHistPhiRecVsPhiGen->Sumw2();
     mHistPhiRecVsPhiGen->SetOption("COLZ");
 
-    mHistEtaRecVsEtaGen = std::make_unique<TH2F>("mc/mHistEtaRecVsEtaGen", "Eta Rec Vs Eta Gen of true reco tracks ", 35, 1.0, 4.5, 35, 1.0, 4.5);
+    mHistEtaRecVsEtaGen = std::make_unique<TH2F>("mHistEtaRecVsEtaGen", "Eta Rec Vs Eta Gen of true reco tracks ", 35, 1.0, 4.5, 35, 1.0, 4.5);
     mHistEtaRecVsEtaGen->SetXTitle((std::string("#eta of ") + mNameOfTrackTypes[kGen]).c_str());
     mHistEtaRecVsEtaGen->SetYTitle((std::string("#eta of ") + mNameOfTrackTypes[kRecoTrue]).c_str());
     mHistEtaRecVsEtaGen->Sumw2();
@@ -169,21 +177,21 @@ bool MFTAssessment::init()
 
     for (int trackType = 0; trackType < kNumberOfTrackTypes; trackType++) {
       // mHistPhiVsEta
-      mHistPhiVsEta[trackType] = std::make_unique<TH2F>((std::string("mc/mHistPhiVsEta") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Phi Vs Eta of ") + mNameOfTrackTypes[trackType]).c_str(), 35, 1.0, 4.5, 24, -2 * TMath::Pi(), 2 * TMath::Pi());
+      mHistPhiVsEta[trackType] = std::make_unique<TH2F>((std::string("mHistPhiVsEta") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Phi Vs Eta of ") + mNameOfTrackTypes[trackType]).c_str(), 35, 1.0, 4.5, 24, -2 * TMath::Pi(), 2 * TMath::Pi());
       mHistPhiVsEta[trackType]->SetXTitle((std::string("#eta of ") + mNameOfTrackTypes[trackType]).c_str());
       mHistPhiVsEta[trackType]->SetYTitle((std::string("#phi of ") + mNameOfTrackTypes[trackType]).c_str());
       mHistPhiVsEta[trackType]->Sumw2();
       mHistPhiVsEta[trackType]->SetOption("COLZ");
 
       // mHistPtVsEta
-      mHistPtVsEta[trackType] = std::make_unique<TH2F>((std::string("mc/mHistPtVsEta") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Pt Vs Eta of ") + mNameOfTrackTypes[trackType]).c_str(), 35, 1.0, 4.5, 40, 0., 10.);
+      mHistPtVsEta[trackType] = std::make_unique<TH2F>((std::string("mHistPtVsEta") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Pt Vs Eta of ") + mNameOfTrackTypes[trackType]).c_str(), 35, 1.0, 4.5, 40, 0., 10.);
       mHistPtVsEta[trackType]->SetXTitle((std::string("#eta of ") + mNameOfTrackTypes[trackType]).c_str());
       mHistPtVsEta[trackType]->SetYTitle((std::string("p_{T} (GeV/c) of ") + mNameOfTrackTypes[trackType]).c_str());
       mHistPtVsEta[trackType]->Sumw2();
       mHistPtVsEta[trackType]->SetOption("COLZ");
 
       // mHistPhiVsPt
-      mHistPhiVsPt[trackType] = std::make_unique<TH2F>((std::string("mc/mHistPhiVsPt") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Phi Vs Pt of ") + mNameOfTrackTypes[trackType]).c_str(), 40, 0., 10., 24, -2 * TMath::Pi(), 2 * TMath::Pi());
+      mHistPhiVsPt[trackType] = std::make_unique<TH2F>((std::string("mHistPhiVsPt") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Phi Vs Pt of ") + mNameOfTrackTypes[trackType]).c_str(), 40, 0., 10., 24, -2 * TMath::Pi(), 2 * TMath::Pi());
       mHistPhiVsPt[trackType]->SetXTitle((std::string("p_{T} (GeV/c) of ") + mNameOfTrackTypes[trackType]).c_str());
       mHistPhiVsPt[trackType]->SetYTitle((std::string("#phi of ") + mNameOfTrackTypes[trackType]).c_str());
       mHistPhiVsPt[trackType]->Sumw2();
@@ -191,7 +199,7 @@ bool MFTAssessment::init()
 
       if (trackType != kReco) {
         // mHistZvtxVsEta
-        mHistZvtxVsEta[trackType] = std::make_unique<TH2F>((std::string("mc/mHistZvtxVsEta") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Z_{vtx} Vs Eta of ") + mNameOfTrackTypes[trackType]).c_str(), 35, 1.0, 4.5, 15, -15, 15);
+        mHistZvtxVsEta[trackType] = std::make_unique<TH2F>((std::string("mHistZvtxVsEta") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Z_{vtx} Vs Eta of ") + mNameOfTrackTypes[trackType]).c_str(), 35, 1.0, 4.5, 15, -15, 15);
         mHistZvtxVsEta[trackType]->SetXTitle((std::string("#eta of ") + mNameOfTrackTypes[trackType]).c_str());
         mHistZvtxVsEta[trackType]->SetYTitle((std::string("z_{vtx} (cm) of ") + mNameOfTrackTypes[trackType]).c_str());
         mHistZvtxVsEta[trackType]->Sumw2();
@@ -199,7 +207,7 @@ bool MFTAssessment::init()
       }
       // mHistRVsZ]
       if (trackType == kGen || trackType == kTrackable) {
-        mHistRVsZ[trackType] = std::make_unique<TH2F>((std::string("mc/mHistRVsZ") + mNameOfTrackTypes[trackType]).c_str(), (std::string("R Vs Z of ") + mNameOfTrackTypes[trackType]).c_str(), 400, -80., 20., 400, 0., 80.);
+        mHistRVsZ[trackType] = std::make_unique<TH2F>((std::string("mHistRVsZ") + mNameOfTrackTypes[trackType]).c_str(), (std::string("R Vs Z of ") + mNameOfTrackTypes[trackType]).c_str(), 400, -80., 20., 400, 0., 80.);
         mHistRVsZ[trackType]->SetXTitle((std::string("z (cm) origin of ") + mNameOfTrackTypes[trackType]).c_str());
         mHistRVsZ[trackType]->SetYTitle((std::string("R (cm) radius of origin of ") + mNameOfTrackTypes[trackType]).c_str());
         mHistRVsZ[trackType]->Sumw2();
@@ -230,8 +238,6 @@ bool MFTAssessment::init()
       ++n3Histo;
     }
   }
-
-  return true;
 }
 
 //__________________________________________________________
@@ -467,31 +473,6 @@ void MFTAssessment::processRecoAndTrueTracks()
 }
 
 //__________________________________________________________
-void MFTAssessment::finalize()
-{
-
-  std::vector<float> ptList({.5, 1.5, 5., 10., 15., 18.0});
-  float ptWindow = 0.4;
-  std::vector<float> etaList({2.5, 2.8, 3.1});
-  float etaWindow = 0.2;
-
-  std::vector<float> sliceList;
-  float sliceWindow;
-
-  for (int nCanvas = 0; nCanvas < kNSlicedTH3; nCanvas++) {
-    if (nCanvas % 2) {
-      sliceList = etaList;
-      sliceWindow = etaWindow;
-    } else {
-      sliceList = ptList;
-      sliceWindow = ptWindow;
-    }
-    mSlicedCanvas[nCanvas] = std::make_unique<TCanvas>(TH3SlicedNames[nCanvas], TH3SlicedNames[nCanvas], 1080, 1080);
-    TH3Slicer(mSlicedCanvas[nCanvas], mTH3Histos[TH3SlicedMap[nCanvas]], sliceList, sliceWindow, 2);
-  }
-}
-
-//__________________________________________________________
 void MFTAssessment::getHistos(TObjArray& objar)
 {
   objar.Add(mTrackNumberOfClusters.get());
@@ -542,14 +523,16 @@ void MFTAssessment::getHistos(TObjArray& objar)
 
     objar.Add(mChargeMatchEff.get());
 
-    for (int slicedCanvas = 0; slicedCanvas < kNSlicedTH3; slicedCanvas++) {
-      objar.Add(mSlicedCanvas[slicedCanvas].get());
+    if (mFinalizeAnalysis) {
+      for (int slicedCanvas = 0; slicedCanvas < kNSlicedTH3; slicedCanvas++) {
+        objar.Add(mSlicedCanvas[slicedCanvas]);
+      }
     }
   }
 }
 
 //__________________________________________________________
-void MFTAssessment::TH3Slicer(std::unique_ptr<TCanvas>& canvas, std::unique_ptr<TH3F>& histo3D, std::vector<float> list, double window, int iPar, float marker_size)
+void MFTAssessment::TH3Slicer(TCanvas* canvas, std::unique_ptr<TH3F>& histo3D, std::vector<float> list, double window, int iPar, float marker_size)
 {
   gStyle->SetOptTitle(kFALSE);
   gStyle->SetOptStat(0); // Remove title of first histogram from canvas
@@ -578,7 +561,7 @@ void MFTAssessment::TH3Slicer(std::unique_ptr<TCanvas>& canvas, std::unique_ptr<
       auto aDBG = (TH2F*)histo3D->Project3D(title);
       aDBG->GetXaxis()->SetRangeUser(0, 0);
 
-      aDBG->FitSlicesX(0, 0, -1, 3, "QNR", &aSlices);
+      aDBG->FitSlicesX(nullptr, 0, -1, 4, "QNR", &aSlices);
       auto th1DBG = (TH1F*)aSlices[iPar];
       th1DBG->SetTitle(Form("%1.2f < p_t < %1.2f", ptmin, ptmax));
       th1DBG->SetStats(0);
@@ -598,7 +581,7 @@ void MFTAssessment::TH3Slicer(std::unique_ptr<TCanvas>& canvas, std::unique_ptr<
       std::string ytitle = "\\sigma (" + std::string(histo3D->GetZaxis()->GetTitle()) + ")";
       auto title = Form("_%1.2f_%1.2f_xz", etamin, etamax);
       auto aDBG = (TH2F*)histo3D->Project3D(title);
-      aDBG->FitSlicesX(0, 0, -1, 3, "QNR", &aSlices);
+      aDBG->FitSlicesX(nullptr, 0, -1, 4, "QNR", &aSlices);
       auto th1DBG = (TH1F*)aSlices[iPar];
       th1DBG->SetTitle(Form("%1.2f < \\eta < %1.2f", etamin, etamax));
       th1DBG->SetStats(0);
@@ -612,7 +595,6 @@ void MFTAssessment::TH3Slicer(std::unique_ptr<TCanvas>& canvas, std::unique_ptr<
       th1DBG->DrawClone(option.c_str());
     }
   } else {
-    std::cout << " Could not made Histograms Vs Pt/Eta. Please check canvas name.\n";
     exit(1);
   }
 
@@ -628,9 +610,133 @@ void MFTAssessment::TH3Slicer(std::unique_ptr<TCanvas>& canvas, std::unique_ptr<
   canvas->BuildLegend();
   canvas->SetTicky();
   canvas->SetGridy();
-  canvas->Draw();
   if (0) {
     cname += ".png";
     canvas->Print(cname.c_str());
+  }
+}
+
+//__________________________________________________________
+bool MFTAssessment::loadHistos()
+{
+  if (mFinalizeAnalysis) {
+    throw std::runtime_error("MFTAssessment error: data already loaded");
+  }
+  mFinalizeAnalysis = true;
+
+  TObjArray* objar;
+
+  TFile* f = new TFile(Form("MFTAssessment.root"));
+
+  mTrackNumberOfClusters = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTTrackNumberOfClusters"));
+
+  mCATrackNumberOfClusters = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTCATrackNumberOfClusters"));
+
+  mLTFTrackNumberOfClusters = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTLTFTrackNumberOfClusters"));
+
+  mTrackOnvQPt = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTTrackOnvQPt"));
+
+  mTrackChi2 = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTTrackChi2"));
+
+  mTrackCharge = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTTrackCharge"));
+
+  mTrackPhi = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTTrackPhi"));
+
+  mPositiveTrackPhi = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTPositiveTrackPhi"));
+
+  mNegativeTrackPhi = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTNegativeTrackPhi"));
+
+  mTrackEta = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTTrackEta"));
+
+  for (auto minNClusters : sMinNClustersList) {
+    auto nHisto = minNClusters - sMinNClustersList[0];
+    mTrackEtaNCls[nHisto] = std::unique_ptr<TH1F>((TH1F*)f->Get(Form("mMFTTrackEta_%d_MinClusters", minNClusters)));
+
+    mTrackPhiNCls[nHisto] = std::unique_ptr<TH1F>((TH1F*)f->Get(Form("mMFTTrackPhi_%d_MinClusters", minNClusters)));
+
+    mTrackXYNCls[nHisto] = std::unique_ptr<TH2F>((TH2F*)f->Get(Form("mMFTTrackXY_%d_MinClusters", minNClusters)));
+
+    mTrackEtaPhiNCls[nHisto] = std::unique_ptr<TH2F>((TH2F*)f->Get(Form("mMFTTrackEtaPhi_%d_MinClusters", minNClusters)));
+  }
+
+  mCATrackEta = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTCATrackEta"));
+
+  mLTFTrackEta = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTLTFTrackEta"));
+
+  mTrackTanl = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTTrackTanl"));
+
+  mClusterROFNEntries = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTClustersROFSize"));
+
+  mTrackROFNEntries = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTTrackROFSize"));
+
+  mTracksBC = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTTracksBC"));
+
+  mNOfTracksTime = std::unique_ptr<TH1F>((TH1F*)f->Get("mNOfTracksTime"));
+
+  mNOfClustersTime = std::unique_ptr<TH1F>((TH1F*)f->Get("mNOfClustersTime"));
+
+  mClusterSensorIndex = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTClusterSensorIndex"));
+
+  mClusterPatternIndex = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTClusterPatternIndex"));
+
+  // Creating MC-based histos
+  if (mUseMC) {
+
+    mHistPhiRecVsPhiGen = std::unique_ptr<TH2F>((TH2F*)f->Get("mHistPhiRecVsPhiGen"));
+
+    mHistEtaRecVsEtaGen = std::unique_ptr<TH2F>((TH2F*)f->Get("mHistEtaRecVsEtaGen"));
+
+    for (int trackType = 0; trackType < kNumberOfTrackTypes; trackType++) {
+      mHistPhiVsEta[trackType] = std::unique_ptr<TH2F>((TH2F*)f->Get((std::string("mHistPhiVsEta") + mNameOfTrackTypes[trackType]).c_str()));
+
+      mHistPtVsEta[trackType] = std::unique_ptr<TH2F>((TH2F*)f->Get((std::string("mHistPtVsEta") + mNameOfTrackTypes[trackType]).c_str()));
+
+      mHistPhiVsPt[trackType] = std::unique_ptr<TH2F>((TH2F*)f->Get((std::string("mHistPhiVsPt") + mNameOfTrackTypes[trackType]).c_str()));
+
+      if (trackType != kReco) {
+        mHistZvtxVsEta[trackType] = std::unique_ptr<TH2F>((TH2F*)f->Get((std::string("mHistZvtxVsEta") + mNameOfTrackTypes[trackType]).c_str()));
+      }
+      if (trackType == kGen || trackType == kTrackable) {
+        mHistRVsZ[trackType] = std::unique_ptr<TH2F>((TH2F*)f->Get((std::string("mHistRVsZ") + mNameOfTrackTypes[trackType]).c_str()));
+      }
+    }
+
+    // Histos for Reconstruction assessment
+    mChargeMatchEff = std::unique_ptr<TEfficiency>((TEfficiency*)f->Get("QMatchEff"));
+
+    const int nTH3Histos = TH3Names.size();
+    auto n3Histo = 0;
+    for (auto& h : mTH3Histos) {
+      h = std::unique_ptr<TH3F>((TH3F*)f->Get(TH3Names[n3Histo]));
+      ++n3Histo;
+    }
+  }
+  return true;
+}
+
+//__________________________________________________________
+void MFTAssessment::finalizeAnalysis()
+{
+
+  if (mFinalizeAnalysis) {
+    std::vector<float> ptList({.5, 1.5, 5., 10., 15., 18.0});
+    float ptWindow = 0.4;
+    std::vector<float> etaList({2.5, 2.8, 3.1});
+    float etaWindow = 0.2;
+
+    std::vector<float> sliceList;
+    float sliceWindow;
+
+    for (int nCanvas = 0; nCanvas < kNSlicedTH3; nCanvas++) {
+      if (nCanvas % 2) {
+        sliceList = etaList;
+        sliceWindow = etaWindow;
+      } else {
+        sliceList = ptList;
+        sliceWindow = ptWindow;
+      }
+      mSlicedCanvas[nCanvas] = new TCanvas(TH3SlicedNames[nCanvas], TH3SlicedNames[nCanvas], 1080, 1080);
+      TH3Slicer(mSlicedCanvas[nCanvas], mTH3Histos[TH3SlicedMap[nCanvas]], sliceList, sliceWindow, 2);
+    }
   }
 }

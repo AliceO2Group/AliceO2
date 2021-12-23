@@ -48,12 +48,13 @@ void MFTAssessmentSpec::init(InitContext& ic)
   }
 
   mTimer[SWTot].Start(false);
-  mMFTAssessment->init();
+  mMFTAssessment->init(mFinalizeAnalysis);
 }
 
 //_____________________________________________________________
 void MFTAssessmentSpec::run(o2::framework::ProcessingContext& pc)
 {
+
   mTimer[SWQCAsync].Start(false);
   mMFTAssessment->runASyncQC(pc);
   mTimer[SWQCAsync].Stop();
@@ -78,7 +79,12 @@ void MFTAssessmentSpec::run(o2::framework::ProcessingContext& pc)
 //_____________________________________________________________
 void MFTAssessmentSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
-  mMFTAssessment->finalize();
+  if (mFinalizeAnalysis) {
+    mTimer[SWAnalysis].Start(false);
+    mMFTAssessment->finalizeAnalysis();
+    mTimer[SWAnalysis].Stop();
+  }
+
   sendOutput(ec.outputs());
   mTimer[SWTot].Stop();
 
@@ -96,14 +102,16 @@ void MFTAssessmentSpec::sendOutput(DataAllocator& output)
   output.snapshot(Output{"MFT", "MFTASSESSMENT", 0, Lifetime::Timeframe}, objar);
 
   TFile* f = new TFile(Form("MFTAssessment.root"), "RECREATE");
-  objar.Write("MFTAssessment", TObject::kSingleKey);
+  objar.Write();
   f->Close();
 }
 
 //_____________________________________________________________
-DataProcessorSpec getMFTAssessmentSpec(bool useMC, bool processGen)
+DataProcessorSpec getMFTAssessmentSpec(bool useMC, bool processGen, bool finalizeAnalysis)
 {
   std::vector<InputSpec> inputs;
+  std::vector<OutputSpec> outputs;
+
   inputs.emplace_back("compClusters", "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   inputs.emplace_back("patterns", "MFT", "PATTERNS", 0, Lifetime::Timeframe);
   inputs.emplace_back("clustersrofs", "MFT", "CLUSTERSROF", 0, Lifetime::Timeframe);
@@ -115,13 +123,13 @@ DataProcessorSpec getMFTAssessmentSpec(bool useMC, bool processGen)
     inputs.emplace_back("trklabels", "MFT", "TRACKSMCTR", 0, Lifetime::Timeframe);
   }
 
-  std::vector<OutputSpec> outputs;
   outputs.emplace_back("MFT", "MFTASSESSMENT", 0, Lifetime::Timeframe);
+
   return DataProcessorSpec{
     "mft-assessment",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::mft::MFTAssessmentSpec>(useMC, processGen)},
+    AlgorithmSpec{adaptFromTask<o2::mft::MFTAssessmentSpec>(useMC, processGen, finalizeAnalysis)},
     Options{{}}};
 }
 

@@ -22,6 +22,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable use of MC information even if available"}},
     {"disable-process-gen", o2::framework::VariantType::Bool, false, {"disable processing of all generated tracks"}},
+    {"finalize-analysis", o2::framework::VariantType::Bool, false, {"Process collected assssment data"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   std::swap(workflowOptions, options);
 }
@@ -36,11 +37,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the workflow
   o2::conf::ConfigurableParam::writeINI("o2-mft-assessment.ini");
-  LOG(info) << "MFT Assessment: disable-mc = " << configcontext.options().get<std::string>("disable-mc");
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto processGen = !configcontext.options().get<bool>("disable-process-gen");
+  auto finalizeAnalysis = configcontext.options().get<bool>("finalize-analysis");
+
+  LOG(info) << "MFT Assessment: disable-mc = " << configcontext.options().get<std::string>("disable-mc");
+  LOG(info) << "MFT Assessment: disable-process-gen = " << configcontext.options().get<std::string>("disable-process-gen");
+  LOG(info) << "MFT Assessment: finalize-analysis = " << configcontext.options().get<std::string>("finalize-analysis");
 
   WorkflowSpec specs;
-  specs.emplace_back(o2::mft::getMFTAssessmentSpec(useMC, processGen));
+  specs.emplace_back(o2::mft::getMFTAssessmentSpec(useMC, processGen, finalizeAnalysis));
   return specs;
 }
