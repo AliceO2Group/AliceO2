@@ -56,14 +56,17 @@ class MFTAssessment
   MFTAssessment(bool useMC) : mUseMC(useMC){};
   ~MFTAssessment() = default;
 
-  bool init();
+  void init(bool finalizeAnalysis);
+  void createHistos();
   void runASyncQC(o2::framework::ProcessingContext& ctx);
   void processTrackables();
   void processGeneratedTracks();
   void processRecoAndTrueTracks();
   void addMCParticletoHistos(const MCTrack* mcTr, const int TrackType, const o2::dataformats::MCEventHeader& evH);
-  void finalize();
   void reset();
+
+  bool loadHistos();
+  void finalizeAnalysis();
 
   void getHistos(TObjArray& objar);
   void deleteHistograms();
@@ -152,9 +155,6 @@ class MFTAssessment
     kNTH3Histos
   };
 
-  std::array<std::unique_ptr<TH3F>, kNTH3Histos> mTH3Histos;
-  void TH3Slicer(std::unique_ptr<TCanvas>& canvas, std::unique_ptr<TH3F>& histo3D, std::vector<float> list, double window, int iPar, float marker_size = 1.5);
-
   std::map<int, const char*> TH3Names{
     {kTH3TrackDeltaXDeltaYEta, "TH3TrackDeltaXDeltaYEta"},
     {kTH3TrackDeltaXDeltaYPt, "TH3TrackDeltaXDeltaYPt"},
@@ -198,46 +198,46 @@ class MFTAssessment
     {kTH3TrackReducedChi2PtEta, {100, 0, 20, 16, 2.2, 3.8, 1000, 0, 100}}};
 
   std::map<int, const char*> TH3XaxisTitles{
-    {kTH3TrackDeltaXDeltaYEta, "\\eta"},
-    {kTH3TrackDeltaXDeltaYPt, "p_t"},
-    {kTH3TrackDeltaXVertexPtEta, "p_t"},
-    {kTH3TrackDeltaYVertexPtEta, "p_t"},
-    {kTH3TrackInvQPtResolutionPtEta, "p_t"},
-    {kTH3TrackInvQPtResSeedPtEta, "p_t"},
-    {kTH3TrackXPullPtEta, "p_t"},
-    {kTH3TrackYPullPtEta, "p_t"},
-    {kTH3TrackPhiPullPtEta, "p_t"},
-    {kTH3TrackTanlPullPtEta, "p_t"},
-    {kTH3TrackInvQPtPullPtEta, "p_t"},
-    {kTH3TrackReducedChi2PtEta, "p_t"}};
+    {kTH3TrackDeltaXDeltaYEta, R"(\\eta)"},
+    {kTH3TrackDeltaXDeltaYPt, R"(p_{t})"},
+    {kTH3TrackDeltaXVertexPtEta, R"(p_{t})"},
+    {kTH3TrackDeltaYVertexPtEta, R"(p_{t})"},
+    {kTH3TrackInvQPtResolutionPtEta, R"(p_{t})"},
+    {kTH3TrackInvQPtResSeedPtEta, R"(p_{t})"},
+    {kTH3TrackXPullPtEta, R"(p_{t})"},
+    {kTH3TrackYPullPtEta, R"(p_{t})"},
+    {kTH3TrackPhiPullPtEta, R"(p_{t})"},
+    {kTH3TrackTanlPullPtEta, R"(p_{t})"},
+    {kTH3TrackInvQPtPullPtEta, R"(p_{t})"},
+    {kTH3TrackReducedChi2PtEta, R"(p_{t})"}};
 
   std::map<int, const char*> TH3YaxisTitles{
-    {kTH3TrackDeltaXDeltaYEta, "X residual at vertex (um)"},
-    {kTH3TrackDeltaXDeltaYPt, "X residual at vertex (um)"},
-    {kTH3TrackDeltaXVertexPtEta, "\\eta"},
-    {kTH3TrackDeltaYVertexPtEta, "\\eta"},
-    {kTH3TrackInvQPtResolutionPtEta, "\\eta"},
-    {kTH3TrackInvQPtResSeedPtEta, "\\eta"},
-    {kTH3TrackXPullPtEta, "\\eta"},
-    {kTH3TrackYPullPtEta, "\\eta"},
-    {kTH3TrackPhiPullPtEta, "\\eta"},
-    {kTH3TrackTanlPullPtEta, "\\eta"},
-    {kTH3TrackInvQPtPullPtEta, "\\eta"},
-    {kTH3TrackReducedChi2PtEta, "\\eta"}};
+    {kTH3TrackDeltaXDeltaYEta, R"(X_{residual \rightarrow vtx} (\mu m))"},
+    {kTH3TrackDeltaXDeltaYPt, R"(X_{residual \rightarrow vtx} (\mu m))"},
+    {kTH3TrackDeltaXVertexPtEta, R"(\eta)"},
+    {kTH3TrackDeltaYVertexPtEta, R"(\eta)"},
+    {kTH3TrackInvQPtResolutionPtEta, R"(\eta)"},
+    {kTH3TrackInvQPtResSeedPtEta, R"(\eta)"},
+    {kTH3TrackXPullPtEta, R"(\eta)"},
+    {kTH3TrackYPullPtEta, R"(\eta)"},
+    {kTH3TrackPhiPullPtEta, R"(\eta)"},
+    {kTH3TrackTanlPullPtEta, R"(\eta)"},
+    {kTH3TrackInvQPtPullPtEta, R"(\eta)"},
+    {kTH3TrackReducedChi2PtEta, R"(\eta)"}};
 
   std::map<int, const char*> TH3ZaxisTitles{
-    {kTH3TrackDeltaXDeltaYEta, "Y residual at vertex (um)"},
-    {kTH3TrackDeltaXDeltaYPt, "Y residual at vertex (um)"},
-    {kTH3TrackDeltaXVertexPtEta, "X residual at vertex (um)"},
-    {kTH3TrackDeltaYVertexPtEta, "Y residual at vertex (um)"},
-    {kTH3TrackInvQPtResolutionPtEta, "(q/p_t residual)/(q/pt)"},
-    {kTH3TrackInvQPtResSeedPtEta, "(q/p_t residual)/(q/pt)"},
-    {kTH3TrackXPullPtEta, "\\Delta X/\\sigma_{X}"},
-    {kTH3TrackYPullPtEta, "\\Delta Y/\\sigma_{Y}"},
-    {kTH3TrackPhiPullPtEta, "\\Delta \\phi/\\sigma_{\\phi}"},
-    {kTH3TrackTanlPullPtEta, "\\Delta tan\\lambda/\\sigma_{tan\\lambda}"},
-    {kTH3TrackInvQPtPullPtEta, "(\\Delta q/p_t)/\\sigma_{q/pt}"},
-    {kTH3TrackReducedChi2PtEta, "\\chi^2/d.f."}};
+    {kTH3TrackDeltaXDeltaYEta, R"(Y_{residual \rightarrow vtx} (\mu m))"},
+    {kTH3TrackDeltaXDeltaYPt, R"(Y_{residual \rightarrow vtx} (\mu m))"},
+    {kTH3TrackDeltaXVertexPtEta, R"(X_{residual \rightarrow vtx} (\mu m))"},
+    {kTH3TrackDeltaYVertexPtEta, R"(Y_{residual \rightarrow vtx} (\mu m))"},
+    {kTH3TrackInvQPtResolutionPtEta, R"((q/p_{t})_{residual}/(q/p_{t}))"},
+    {kTH3TrackInvQPtResSeedPtEta, R"((q/p_{t})_{residual}/(q/p_{t}))"},
+    {kTH3TrackXPullPtEta, R"(\Delta X/\sigma_{X})"},
+    {kTH3TrackYPullPtEta, R"(\Delta Y/\sigma_{Y})"},
+    {kTH3TrackPhiPullPtEta, R"(\Delta \phi/\sigma_{\phi})"},
+    {kTH3TrackTanlPullPtEta, R"(\Delta \tan(\lambda)/\sigma_{tan(\lambda)})"},
+    {kTH3TrackInvQPtPullPtEta, R"((\Delta q/p_t)/\sigma_{q/p_{t}})"},
+    {kTH3TrackReducedChi2PtEta, R"(\chi^2/d.f.)"}};
 
   enum TH3SlicedCodes {
     kDeltaXVertexVsEta,
@@ -301,13 +301,16 @@ class MFTAssessment
     {kInvQPtPullVsEta, kTH3TrackInvQPtPullPtEta},
     {kInvQPtPullVsPt, kTH3TrackInvQPtPullPtEta}};
 
-  std::array<std::unique_ptr<TCanvas>, kNSlicedTH3> mSlicedCanvas;
+  std::array<std::unique_ptr<TH3F>, kNTH3Histos> mTH3Histos;
+  std::array<TCanvas*, kNSlicedTH3> mSlicedCanvas;
+  void TH3Slicer(TCanvas* canvas, std::unique_ptr<TH3F>& histo3D, std::vector<float> list, double window, int iPar, float marker_size = 1.5);
 
   std::unordered_map<o2::MCCompLabel, bool> mMFTTrackables;
 
   static constexpr std::array<short, 7> sMinNClustersList = {4, 5, 6, 7, 8, 9, 10};
   uint32_t mRefOrbit = 0; // Reference orbit used in relative time calculation
   float mBz = 0;
+  bool mFinalizeAnalysis = false;
 
   o2::itsmft::ChipMappingMFT mMFTChipMapper;
 
