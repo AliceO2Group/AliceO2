@@ -21,6 +21,7 @@
 #include "DataFormatsFT0/ChannelData.h"
 #include "Rtypes.h"
 #include <boost/histogram.hpp>
+#include <TH1F.h>
 
 namespace o2::ft0
 {
@@ -29,13 +30,13 @@ class FT0ChannelTimeTimeSlotContainer final
 {
 
   //ranges to be discussed
-  static constexpr int HISTOGRAM_RANGE = 2000;
-  static constexpr unsigned int NUMBER_OF_HISTOGRAM_BINS = 2 * HISTOGRAM_RANGE;
-
+  static constexpr int HISTOGRAM_RANGE = 500;
+  static constexpr unsigned int NUMBER_OF_HISTOGRAM_BINS =  HISTOGRAM_RANGE;
+  /*
   using BoostHistogramType = boost::histogram::histogram<std::tuple<boost::histogram::axis::integer<>,
                                                                     boost::histogram::axis::integer<>>,
                                                          boost::histogram::unlimited_storage<std::allocator<char>>>;
-
+  */
  public:
   explicit FT0ChannelTimeTimeSlotContainer(std::size_t minEntries);
   [[nodiscard]] bool hasEnoughEntries() const;
@@ -46,11 +47,11 @@ class FT0ChannelTimeTimeSlotContainer final
   static int sGausFitBins;
 
  private:
-  std::size_t mMinEntries;
+  std::size_t mMinEntries=1000;
   std::array<uint64_t, o2::ft0::Geometry::Nchannels> mEntriesPerChannel{};
-  BoostHistogramType mHistogram;
-
-  ClassDefNV(FT0ChannelTimeTimeSlotContainer, 1);
+  //  BoostHistogramType mHistogram;
+   TH1F *mHistogram[208];
+  ClassDefNV(FT0ChannelTimeTimeSlotContainer, 2);
 };
 
 } // namespace o2::ft0
