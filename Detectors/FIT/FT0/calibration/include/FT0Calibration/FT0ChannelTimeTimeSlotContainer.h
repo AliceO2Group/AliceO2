@@ -31,7 +31,7 @@ class FT0ChannelTimeTimeSlotContainer final
 
   //ranges to be discussed
   static constexpr int HISTOGRAM_RANGE = 500;
-  static constexpr unsigned int NUMBER_OF_HISTOGRAM_BINS =  HISTOGRAM_RANGE;
+  static constexpr unsigned int NUMBER_OF_HISTOGRAM_BINS = HISTOGRAM_RANGE;
   /*
   using BoostHistogramType = boost::histogram::histogram<std::tuple<boost::histogram::axis::integer<>,
                                                                     boost::histogram::axis::integer<>>,
@@ -47,10 +47,10 @@ class FT0ChannelTimeTimeSlotContainer final
   static int sGausFitBins;
 
  private:
-  std::size_t mMinEntries=1000;
+  std::size_t mMinEntries = 1000;
   std::array<uint64_t, o2::ft0::Geometry::Nchannels> mEntriesPerChannel{};
   //  BoostHistogramType mHistogram;
-   TH1F *mHistogram[208];
+  TH1F* mHistogram[208];
   ClassDefNV(FT0ChannelTimeTimeSlotContainer, 2);
 };
 

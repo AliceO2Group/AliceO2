@@ -81,11 +81,8 @@ int16_t FT0ChannelTimeTimeSlotContainer::getMeanGaussianFitValue(std::size_t cha
     outputGaussianFitValues = int(r->Parameters()[1]);
     sigma = int(r->Parameters()[2]);
   };
-  if (r != 0 || std::abs(outputGaussianFitValues - mHistogram[channelID]->GetMean()) > 20
-      || mHistogram[channelID]->GetRMS() < 3 || sigma > 30) {
-    LOG(info) << "!!! Bad gauss fit " << outputGaussianFitValues << " sigma " << sigma <<
-      " mean " << mHistogram[channelID]->GetMean() <<
-      " RMS " << mHistogram[channelID]->GetRMS();
+  if (r != 0 || std::abs(outputGaussianFitValues - mHistogram[channelID]->GetMean()) > 20 || mHistogram[channelID]->GetRMS() < 3 || sigma > 30) {
+    LOG(info) << "!!! Bad gauss fit " << outputGaussianFitValues << " sigma " << sigma << " mean " << mHistogram[channelID]->GetMean() << " RMS " << mHistogram[channelID]->GetRMS();
     outputGaussianFitValues = mHistogram[channelID]->GetMean();
   }
 

@@ -34,7 +34,7 @@ class FT0TFProcessor final : public o2::framework::Task
     auto& calib_data = pc.outputs().make<std::vector<o2::ft0::FT0CalibrationInfoObject>>(o2::framework::OutputRef{"calib", 0});
     calib_data.reserve(channels.size());
     for (const auto& channel : channels) {
-      if (channel.QTCAmpl > 14) {
+      if (channel.QTCAmpl > 14 && std::abs(channel.CFDTime) < 100) {
         calib_data.emplace_back(channel.ChId, channel.CFDTime, channel.QTCAmpl);
       }
     }
@@ -64,7 +64,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   }
   DataProcessorSpec dataProcessorSpec{
     "FT0TFProcessor",
-     inputs,
+    inputs,
     Outputs{
       {{"calib"}, "FT0", "CALIB_INFO"}},
     AlgorithmSpec{adaptFromTask<o2::ft0::FT0TFProcessor>()},
