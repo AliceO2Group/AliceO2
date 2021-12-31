@@ -43,6 +43,7 @@ class CookedTrackerDPL : public Task
   int mState = 0;
   bool mUseMC = true;
   bool mRunVertexer = true;
+  std::string mMode = "async";
   o2::itsmft::TopologyDictionary mDict;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
   o2::its::CookedTracker mTracker;

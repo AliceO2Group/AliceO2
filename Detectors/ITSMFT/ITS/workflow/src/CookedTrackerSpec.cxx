@@ -49,13 +49,8 @@ namespace its
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
-CookedTrackerDPL::CookedTrackerDPL(bool useMC, const std::string& trMode) : mUseMC(useMC)
+CookedTrackerDPL::CookedTrackerDPL(bool useMC, const std::string& trMode) : mUseMC(useMC), mMode(trMode)
 {
-  if (trMode == "cosmics") {
-    LOG(info) << "Tracking mode \"cosmics\"";
-    mTracker.setParametersCosmics();
-    mRunVertexer = false;
-  }
   mVertexerTraitsPtr = std::make_unique<VertexerTraits>();
   mVertexerPtr = std::make_unique<Vertexer>(mVertexerTraitsPtr.get());
 }
@@ -82,6 +77,12 @@ void CookedTrackerDPL::init(InitContext& ic)
     mTracker.setGeometry(geom);
 
     mTracker.setConfigParams();
+    LOG(info) << "Tracking mode " << mMode;
+    if (mMode == "cosmics") {
+      LOG(info) << "Setting cosmics parameters...";
+      mTracker.setParametersCosmics();
+      mRunVertexer = false;
+    }
 
     double origD[3] = {0., 0., 0.};
     mTracker.setBz(field->getBz(origD));
