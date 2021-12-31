@@ -323,8 +323,17 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
           }
         }
         auto& tracker = processAttributes->tracker;
+        std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
+        if (confParam.benchmarkMemoryRegistration) {
+          start = std::chrono::high_resolution_clock::now();
+        }
         if (tracker->registerMemoryForGPU(info.ptr, info.size)) {
           throw std::runtime_error("Error registering memory for GPU");
+        }
+        if (confParam.benchmarkMemoryRegistration) {
+          end = std::chrono::high_resolution_clock::now();
+          std::chrono::duration<double> elapsed_seconds = end - start;
+          LOG(info) << "Memory registration time (0x" << info.ptr << ", " << info.size << " bytes): " << elapsed_seconds.count() << " s";
         }
         if (confParam.mutexMemReg) {
           if (lockf(fd, F_ULOCK, 0)) {
