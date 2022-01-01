@@ -17,6 +17,8 @@
 #include "Framework/Pack.h"
 #include <optional>
 
+#include <iostream>
+
 namespace o2::framework
 {
 
@@ -83,6 +85,7 @@ struct GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<Us...>, As...
 
     void setTables(const H& hashes, const G& grouping, std::shared_ptr<GroupSlicer<G, Us...>> slicer_ptr)
     {
+      std::cout << "Setting tables" << std::endl;
       mGrouping = std::make_shared<G>(std::vector{grouping.asArrowTable()});
       mSlicer = slicer_ptr;
       setMultipleGroupingTables<sizeof...(As)>(join(hashes, grouping));
@@ -94,6 +97,7 @@ struct GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<Us...>, As...
     template <std::size_t N, typename T, typename... Args>
     void setMultipleGroupingTables(const T& param, const Args&... args)
     {
+      std::cout << "Setting grouping tables" << std::endl;
       if constexpr (N == 1) {
         GroupingPolicy::setTables(param, args...);
       } else {
@@ -139,6 +143,7 @@ struct GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<Us...>, As...
    private:
     std::tuple<As...> getAssociatedTables()
     {
+      std::cout << "Getting associated tables" << std::endl;
       auto& currentGrouping = GroupingPolicy::mCurrent;
       constexpr auto k = sizeof...(As);
       auto slicerIterators = functionToTuple<k>(&GroupSlicer<G, Us...>::begin, *mSlicer);
@@ -171,6 +176,7 @@ struct GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<Us...>, As...
 
     void setCurrentGroupedCombination()
     {
+      std::cout << "Setting grouped combination" << std::endl;
       std::tuple<As...> initAssociatedTables = getAssociatedTables();
       constexpr auto k = sizeof...(As);
       bool moveForward = false;
@@ -193,11 +199,14 @@ struct GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<Us...>, As...
 
       if (!this->mIsEnd) {
         auto& currentGrouping = GroupingPolicy::mCurrent;
+        std::cout << "Received current grouping" << std::endl;
         o2::soa::for_<k>([&](auto i) {
           std::get<i.value>(associatedTables).bindExternalIndices(mGrouping.get());
         });
+        std::cout << "Bound associated tables" << std::endl;
 
         mCurrentGrouped.emplace(interleaveTuples(currentGrouping, associatedTables));
+        std::cout << "Interleaved tuples" << std::endl;
       }
     }
 
@@ -235,10 +244,13 @@ struct GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<Us...>, As...
 
   void setTables(H& hashes, G& grouping, std::tuple<Us...>& associated)
   {
-    std::shared_ptr slicer_ptr = std::make_shared<GroupSlicer<G, Us...>>(grouping, associated);
-    mBegin.setTables(hashes, grouping, slicer_ptr);
-    mEnd.setTables(hashes, grouping, slicer_ptr);
-    mEnd.moveToEnd();
+    std::cout << "Setting tables in generator" << std::endl;
+    if (mSlicer == nullptr) {
+      mSlicer = std::make_shared<GroupSlicer<G, Us...>>(grouping, associated);
+      mBegin.setTables(hashes, grouping, mSlicer);
+      mEnd.setTables(hashes, grouping, mSlicer);
+      mEnd.moveToEnd();
+    }
   }
 
  private:
@@ -247,6 +259,7 @@ struct GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<Us...>, As...
   const char* mCategory;
   const int mCatNeighbours;
   const T1 mOutsider;
+  std::shared_ptr<GroupSlicer<G, Us...>> mSlicer = nullptr;
 };
 
 // Aliases for 2-particle correlations
