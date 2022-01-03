@@ -57,6 +57,7 @@ install(FILES CheckDigits_mft.C
               CreateCTPOrbitResetObject.C
               CreateGRPECSObject.C
               CreateGRPMagFieldObject.C
+              CreateGRPLHCIFObject.C
         DESTINATION share/macro/)
 
 # FIXME: a lot of macros that are here should really be elsewhere. Those which
@@ -356,6 +357,12 @@ o2_add_test_root_macro(CreateGRPECSObject.C
 o2_add_test_root_macro(CreateGRPMagFieldObject.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsParameters
                                              O2::CommonTypes
+                                             O2::CCDB)
+
+o2_add_test_root_macro(CreateGRPLHCIFObject.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsParameters
+                                             O2::CommonTypes
+                                             O2::CommonDataFormat
                                              O2::CCDB)
 
 o2_add_test_root_macro(UploadMatBudLUT.C

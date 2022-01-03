@@ -183,6 +183,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
   // option to use/not use CCDB for TOF
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-tof", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
+  workflowOptions.push_back(ConfigParamSpec{"timestamp-tof", o2::framework::VariantType::Int, 0, {"timestamp in seconds"}});
 
   // option to use or not use the Trap Simulator after digitisation (debate of digitization or reconstruction is for others)
   workflowOptions.push_back(ConfigParamSpec{"disable-trd-trapsim", VariantType::Bool, false, {"disable the trap simulation of the TRD"}});
@@ -399,8 +400,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // update the digitization configuration with the right geometry file
   // we take the geometry from the first simPrefix (could actually check if they are
   // all compatible)
-  auto geomfilename = o2::base::NameConf::getGeomFileName(simPrefixes[0]);
-  ConfigurableParam::setValue("DigiParams.digitizationgeometry", geomfilename);
+  ConfigurableParam::setValue("DigiParams.digitizationgeometry_prefix", simPrefixes[0]);
   ConfigurableParam::setValue("DigiParams.grpfile", grpfile);
   LOG(info) << "MC-TRUTH " << !configcontext.options().get<bool>("disable-mc");
   bool mctruth = !configcontext.options().get<bool>("disable-mc");
@@ -515,9 +515,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (isEnabled(o2::detectors::DetID::TOF)) {
     auto useCCDB = configcontext.options().get<bool>("use-ccdb-tof");
     auto ccdb_url_tof = o2::base::NameConf::getCCDBServer();
+    auto timestamp = configcontext.options().get<int>("timestamp-tof");
     detList.emplace_back(o2::detectors::DetID::TOF);
     // connect the TOF digitization
-    specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB, mctruth, ccdb_url_tof.c_str()));
+    specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB, mctruth, ccdb_url_tof.c_str(), timestamp));
     // add TOF digit writer
     specs.emplace_back(o2::tof::getTOFDigitWriterSpec(mctruth));
   }

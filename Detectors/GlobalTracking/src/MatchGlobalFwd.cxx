@@ -46,7 +46,9 @@ void MatchGlobalFwd::init()
   auto& cutFcnStr = matchingParam.cutFcn;
   LOG(info) << "MFTMCH pair candidate cut function string = " << cutFcnStr;
 
-  if (mCutFunctionMap.find(cutFcnStr) != mCutFunctionMap.end()) {
+  if (matchingParam.cutExternalFunction()) {
+    loadExternalCutFunction();
+  } else if (mCutFunctionMap.find(cutFcnStr) != mCutFunctionMap.end()) {
     mCutFunc = mCutFunctionMap[cutFcnStr];
     LOG(info) << "  Found built-in cut function " << cutFcnStr;
   } else {
@@ -534,7 +536,7 @@ void MatchGlobalFwd::fitGlobalMuonTrack(o2::dataformats::GlobalFwdTrack& gTrack)
   lastParamCov(1, 1) = 10000. * mftTrackOut.getCovariances()(1, 1); // <Y,X>
   lastParamCov(2, 2) = 10000. * mftTrackOut.getCovariances()(2, 2); // TMath::Pi() * TMath::Pi() / 16 // <PHI,X>
   lastParamCov(3, 3) = 10000. * mftTrackOut.getCovariances()(3, 3); // 100. * tanlsigma * tanlsigma;  // mftTrack.getCovariances()(3, 3);     // <TANL,X>
-  lastParamCov(4, 4) = gTrack.getCovariances()(4, 4);               //100. * qptsigma * qptsigma;  // <INVQPT,X>
+  lastParamCov(4, 4) = gTrack.getCovariances()(4, 4);               // 100. * qptsigma * qptsigma;  // <INVQPT,X>
 
   gTrack.setCovariances(lastParamCov);
 

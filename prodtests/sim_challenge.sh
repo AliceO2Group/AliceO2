@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# chain of algorithms from MC and reco
-
+# A simple chain of algorithms from MC to reco (and analysis)
 
 # ------------ LOAD UTILITY FUNCTIONS ----------------------------
 . ${O2_ROOT}/share/scripts/jobutils.sh
@@ -175,7 +174,7 @@ if [ "$doreco" == "1" ]; then
 
   echo "Running ITS-TPC matching flow"
   #needs results of o2-tpc-reco-workflow, o2-its-reco-workflow and o2-fit-reco-workflow
-  taskwrapper itstpcMatch.log o2-tpcits-match-workflow $gloOpt
+  taskwrapper itstpcMatch.log o2-tpcits-match-workflow --use-ft0 $gloOpt
   echo "Return status of itstpcMatch: $?"
 
   echo "Running TRD matching to ITS-TPC and TPC"
@@ -239,4 +238,12 @@ if [ "$doreco" == "1" ]; then
   echo "Producing AOD"
   taskwrapper aod.log o2-aod-producer-workflow $gloOpt --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE --aod-timeframe-id 1
   echo "Return status of AOD production: $?"
+
+  # let's do some very basic analysis tests (mainly to enlarge coverage in full CI) and enabled when SIM_CHALLENGE_ANATESTING=ON
+  if [[ ${O2DPG_ROOT} && ${SIM_CHALLENGE_ANATESTING} ]]; then
+    for t in ${ANATESTLIST:-o2-analysistutorial-mc-histograms o2-analysis-validation o2-analysis-qa-efficiency o2-analysis-pid-tof o2-analysis-pid-tpc}; do
+      ${O2DPG_ROOT}/MC/analysis_testing/analysis_test.sh ${t}
+      echo "Return status of ${t}: ${RC}"
+    done
+  fi
 fi

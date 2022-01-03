@@ -21,7 +21,7 @@ o2_add_library(MCHRawEncoderPayload
         O2::CommonDataFormat
         O2::DetectorsRaw
         O2::MCHBase
-        O2::MCHMappingImpl4
+        O2::MCHMappingInterface
         O2::MCHRawCommon
         O2::MCHRawElecMap
         PRIVATE_LINK_LIBRARIES O2::MCHRawImplHelpers)

@@ -117,6 +117,7 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITHEADER", 0, Lifetime::Timeframe}, digitH);
 
   auto diagnosticFrequency = mDecoder.getDiagnosticFrequency();
+  diagnosticFrequency.setTimeStamp(mCreationTime / 1000);
   //diagnosticFrequency.print();
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIAFREQ", 0, Lifetime::Timeframe}, diagnosticFrequency);
 
@@ -130,6 +131,8 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
 void CompressedDecodingTask::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
+
+  mCreationTime = std::chrono::high_resolution_clock::now().time_since_epoch().count() / 1000000;
 
   //RS set the 1st orbit of the TF from the O2 header, relying on rdhHandler is not good (in fact, the RDH might be eliminated in the derived data)
   const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));

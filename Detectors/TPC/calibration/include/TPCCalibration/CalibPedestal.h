@@ -15,8 +15,10 @@
 /// \file   CalibPedestal.h
 /// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 
+#include <string>
 #include <vector>
 #include <memory>
+#include <unordered_map>
 
 #include "Rtypes.h"
 
@@ -45,10 +47,10 @@ class CalibPedestal : public CalibRawBase
  public:
   using vectorType = std::vector<float>;
 
-  //enum class StatisticsType {
-  //GausFit,   ///< Use Gaus fit for pedestal and noise
-  //MeanStdDev ///< Use mean and standard deviation
-  //};
+  // enum class StatisticsType {
+  // GausFit,   ///< Use Gaus fit for pedestal and noise
+  // MeanStdDev ///< Use mean and standard deviation
+  // };
 
   /// default constructor
   CalibPedestal(PadSubset padSubset = PadSubset::ROC);
@@ -99,15 +101,17 @@ class CalibPedestal : public CalibRawBase
   /// Get the pedestal calibration object
   ///
   /// \return pedestal calibration object
-  const CalPad& getPedestal() const { return mPedestal; }
+  const CalPad& getPedestal() const { return mCalDets.at("Pedestals"); }
 
   /// Get the noise calibration object
   ///
   /// \return noise calibration object
-  const CalPad& getNoise() const { return mNoise; }
+  const CalPad& getNoise() const { return mCalDets.at("Noise"); }
+
+  const auto& getCalDets() const { return mCalDets; }
 
   /// return all pad clibrations as vector
-  const std::vector<const o2::tpc::CalDet<float>*> getCalDets() const { return std::vector<const o2::tpc::CalDet<float>*>{&mPedestal, &mNoise}; }
+  // const std::vector<const o2::tpc::CalDet<float>*> getCalDets() const { return std::vector<const o2::tpc::CalDet<float>*>{&mCalDets.at("Pedestals"), &mCalDets.at("Noise")}; }
 
   /// Get the statistics type
   StatisticsType getStatisticsType() const { return mStatisticsType; }
@@ -122,14 +126,13 @@ class CalibPedestal : public CalibRawBase
   TH2* createControlHistogram(ROC roc);
 
  private:
-  int mFirstTimeBin;              ///< first time bin used in analysis
-  int mLastTimeBin;               ///< first time bin used in analysis
-  int mADCMin;                    ///< minimum adc value
-  int mADCMax;                    ///< maximum adc value
-  int mNumberOfADCs;              ///< number of adc values (mADCMax-mADCMin+1)
-  StatisticsType mStatisticsType; ///< statistics type to be used for pedestal and noise evaluation
-  CalPad mPedestal;               ///< CalDet object with pedestal information
-  CalPad mNoise;                  ///< CalDet object with noise
+  int mFirstTimeBin;                                ///< first time bin used in analysis
+  int mLastTimeBin;                                 ///< first time bin used in analysis
+  int mADCMin;                                      ///< minimum adc value
+  int mADCMax;                                      ///< maximum adc value
+  int mNumberOfADCs;                                ///< number of adc values (mADCMax-mADCMin+1)
+  StatisticsType mStatisticsType;                   ///< statistics type to be used for pedestal and noise evaluation
+  std::unordered_map<std::string, CalPad> mCalDets; ///< CalDet objects for pedestal and noise
 
   std::vector<std::unique_ptr<vectorType>> mADCdata; //!< ADC data to calculate noise and pedestal
 

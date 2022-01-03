@@ -27,6 +27,9 @@ void CalibTOFapi::resetDia()
 CalibTOFapi::CalibTOFapi()
 {
   resetDia();
+  memset(mIsErrorCh, false, Geo::NCHANNELS);
+  memset(mIsOffCh, false, Geo::NCHANNELS);
+  memset(mIsNoisy, false, Geo::NCHANNELS);
 }
 
 //______________________________________________________________________
@@ -41,13 +44,42 @@ CalibTOFapi::CalibTOFapi(const std::string url)
 
 //______________________________________________________________________
 
+void CalibTOFapi::readActiveMap()
+{
+  // getting the active TOF map
+  memset(mIsOffCh, false, Geo::NCHANNELS);
+
+  auto& mgr = CcdbManager::instance();
+  long timems = long(mTimeStamp) * 1000;
+  auto fee = mgr.getForTimeStamp<TOFFEElightInfo>("TOF/Calib/FEELIGHT", timems);
+  if (mLHCphase) {
+    LOG(info) << "read Active map (TOFFEELIGHT) for TOF ";
+    for (int ich = 0; ich < TOFFEElightInfo::NCHANNELS; ich++) {
+      //printf("%d) Enabled= %d\n",ich,fee->mChannelEnabled[ich]);
+      if (!fee->getChannelEnabled(ich)) {
+        mIsOffCh[ich] = true;
+      }
+    }
+  } else {
+    LOG(info) << "Active map (TOFFEELIGHT) not available in ccdb";
+  }
+}
+
+//______________________________________________________________________
+
 void CalibTOFapi::readLHCphase()
 {
 
   // getting the LHCphase calibration
 
   auto& mgr = CcdbManager::instance();
-  mLHCphase = mgr.getForTimeStamp<LhcPhase>("TOF/Calib/LHCphase", mTimeStamp);
+  long timems = long(mTimeStamp) * 1000;
+  mLHCphase = mgr.getForTimeStamp<LhcPhase>("TOF/Calib/LHCphase", timems);
+  if (mLHCphase) {
+    LOG(info) << "read LHCphase for TOF " << mLHCphase->getLHCphase(mTimeStamp);
+  } else {
+    LOG(info) << "LHC phase not available in ccdb";
+  }
 }
 
 //______________________________________________________________________
@@ -59,7 +91,13 @@ void CalibTOFapi::readTimeSlewingParam()
   // it includes also offset and information on problematic
 
   auto& mgr = CcdbManager::instance();
-  mSlewParam = mgr.getForTimeStamp<SlewParam>("TOF/Calib/ChannelCalib", mTimeStamp);
+  long timems = long(mTimeStamp) * 1000;
+  mSlewParam = mgr.getForTimeStamp<SlewParam>("TOF/Calib/ChannelCalib", timems);
+  if (mSlewParam) {
+    LOG(info) << "read TimeSlewingParam for TOF";
+  } else {
+    LOG(info) << "TimeSlewingParam for TOF not available in ccdb";
+  }
 }
 
 //______________________________________________________________________
@@ -70,8 +108,13 @@ void CalibTOFapi::readDiagnosticFrequencies()
   // getting the Diagnostic Frequency calibration
   // needed for simulation
 
+  memset(mIsNoisy, false, Geo::NCHANNELS);
+
   auto& mgr = CcdbManager::instance();
-  mDiaFreq = mgr.getForTimeStamp<Diagnostic>("TOF/Calib/Diagnostic", mTimeStamp);
+  long timems = long(mTimeStamp) * 1000;
+  mDiaFreq = mgr.getForTimeStamp<Diagnostic>("TOF/Calib/Diagnostic", timems);
+
+  //  mDiaFreq->print();
 
   resetDia();
 
@@ -112,7 +155,8 @@ void CalibTOFapi::readDiagnosticFrequencies()
     int channel = mDiaFreq->getChannel(key);
     if (channel > -1) { // noisy
       int crate = channel / NCH_PER_CRATE;
-      mNoisy.push_back(std::make_pair(channel, pair.second / (nrow - ncrate[crate])));
+      float prob = pair.second / (nrow - ncrate[crate]);
+      mNoisy.push_back(std::make_pair(channel, prob));
       continue;
     }
   }
@@ -124,6 +168,23 @@ void CalibTOFapi::readDiagnosticFrequencies()
   std::sort(mNoisy.begin(), mNoisy.end(), [](const auto& a, const auto& b) {
     return a.first < b.first;
   });
+
+  int ich = -1;
+  float prob = 0;
+  for (auto [ch, p] : mNoisy) {
+    if (ch != ich) { // new channel
+      if (ich != -1 && prob > 0.5) {
+        mIsNoisy[ich] = true;
+      }
+      ich = ch;
+      prob = p;
+    } else {
+      prob += p;
+    }
+  }
+  if (ich != -1 && prob > 0.5) {
+    mIsNoisy[ich] = true;
+  }
 }
 
 //______________________________________________________________________
@@ -163,7 +224,22 @@ bool CalibTOFapi::isProblematic(int ich)
 
   // method to know if the channel was problematic or not
 
-  return mSlewParam->isProblematic(ich);
+  return (mSlewParam->getFractionUnderPeak(ich) < 0.5 || mSlewParam->getSigmaPeak(ich) > 1000);
+  //  return mSlewParam->isProblematic(ich);
+}
+
+//______________________________________________________________________
+
+bool CalibTOFapi::isNoisy(int ich)
+{
+  return mIsNoisy[ich];
+}
+
+//______________________________________________________________________
+
+bool CalibTOFapi::isOff(int ich)
+{
+  return mIsOffCh[ich];
 }
 
 //______________________________________________________________________
@@ -180,7 +256,7 @@ float CalibTOFapi::getTimeCalibration(int ich, float tot)
   }
   //  printf("LHC phase apply\n");
   // LHCphase
-  corr += mLHCphase->getLHCphase(int(mTimeStamp / 1000)); // timestamp that we use in LHCPhase is in seconds, but for CCDB we need it in ms
+  corr += mLHCphase->getLHCphase(mTimeStamp); // timestamp that we use in LHCPhase is in seconds
   // time slewing + channel offset
   //printf("eval time sleweing calibration: ch=%d   tot=%f (lhc phase = %f)\n",ich,tot,corr);
   corr += mSlewParam->evalTimeSlewing(ich, tot);
@@ -196,4 +272,47 @@ float CalibTOFapi::getTimeDecalibration(int ich, float tot)
   // time decalibration for simulation (it is just the opposite of the calibration)
 
   return -getTimeCalibration(ich, tot);
+}
+
+//______________________________________________________________________
+
+void CalibTOFapi::resetTRMErrors()
+{
+  for (auto index : mFillErrChannel) {
+    mIsErrorCh[index] = false;
+  }
+
+  mFillErrChannel.clear();
+}
+
+//______________________________________________________________________
+
+void CalibTOFapi::processError(int crate, int trm, int mask)
+{
+  if (checkTRMPolicy(mask)) { // check the policy of TRM -> true=good TRM
+    return;
+  }
+  int ech = (crate << 12) + ((trm - 3) << 8);
+  for (int i = ech; i < ech + 256; i++) {
+    int channel = Geo::getCHFromECH(i);
+    if (channel == -1) {
+      continue;
+    }
+    mIsErrorCh[channel] = true;
+    mFillErrChannel.push_back(channel);
+  }
+}
+
+//______________________________________________________________________
+
+bool CalibTOFapi::checkTRMPolicy(int mask) const
+{
+  return false;
+}
+
+//______________________________________________________________________
+
+bool CalibTOFapi::isChannelError(int channel) const
+{
+  return mIsErrorCh[channel];
 }

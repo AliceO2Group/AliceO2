@@ -13,7 +13,9 @@ o2_add_library(TRDSimulation
                TARGETVARNAME targetName
                SOURCES src/Detector.cxx
                        src/TRsim.cxx
+                       src/DiffAndTimeStructEstimator.cxx
                        src/Digitizer.cxx
+                       src/SimParam.cxx
                        src/TRDSimParams.cxx
                        src/TrapConfig.cxx
                        src/TrapConfigHandler.cxx
@@ -26,6 +28,8 @@ o2_target_root_dictionary(TRDSimulation
                           HEADERS include/TRDSimulation/Detector.h
                                   include/TRDSimulation/TRsim.h
                                   include/TRDSimulation/Digitizer.h
+                                  include/TRDSimulation/Garfield.h
+                                  include/TRDSimulation/SimParam.h
                                   include/TRDSimulation/TRDSimParams.h
                                   include/TRDSimulation/TrapConfig.h
                                   include/TRDSimulation/TrapConfigHandler.h
@@ -55,4 +59,11 @@ o2_add_test(PileupTool
             COMPONENT_NAME trd
             PUBLIC_LINK_LIBRARIES O2::TRDSimulation
             ENVIRONMENT VMCWORKDIR=${CMAKE_BINARY_DIR}/stage
+            LABELS trd)
+
+o2_add_test(DiffusionCoefficient
+            SOURCES test/testTRDDiffusionCoefficient.cxx
+            COMPONENT_NAME trd
+            PUBLIC_LINK_LIBRARIES O2::TRDSimulation
+            ENVIRONMENT VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/share
             LABELS trd)

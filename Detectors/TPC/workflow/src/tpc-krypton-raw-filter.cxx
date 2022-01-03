@@ -223,7 +223,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
                                                                    "TPCDigit",
                                                                    "digit-branch-name"}));
   } else if (writerType == WriterType::EPN) {
-    workflow.push_back(getFileWriterSpec("data:TPC/FILTERDIG", "digits"));
+    workflow.push_back(getFileWriterSpec<Digit>("data:TPC/FILTERDIG", BranchType::Digits));
   }
 
   return workflow;

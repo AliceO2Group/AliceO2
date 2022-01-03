@@ -36,15 +36,11 @@
 
 #include <memory>
 #include <string>
+#include "Rtypes.h"
 #include "TRDBase/Geometry.h"
 #include "TRDBase/ChamberCalibrations.h"
-#include "TRDBase/LocalVDrift.h"
-#include "TRDBase/LocalT0.h"
-#include "TRDBase/LocalGainFactor.h"
 #include "TRDBase/ChamberStatus.h"
-#include "TRDBase/ChamberNoise.h"
-#include "TRDBase/PadNoise.h"
-#include "TRDBase/PadStatus.h"
+#include "TRDBase/PadCalibrationsAliases.h"
 #include "TRDBase/CalOnlineGainTables.h"
 
 namespace o2
@@ -63,59 +59,31 @@ class Calibrations
   void getCCDBObjects(long timestamp);
   void setOnlineGainTables(std::string& tablename);
   //
-  double getVDrift(int roc, int col, int row) const;
-  double getT0(int roc, int col, int row) const;
-  double getExB(int roc) const;
-  double getGainFactor(int roc, int col, int row) const;
-  double getPadGainFactor(int roc, int col, int row) const;
+  float getVDrift(int roc, int col, int row) const;
+  float getT0(int roc, int col, int row) const;
+  float getExB(int roc) const;
+  float getGainFactor(int roc, int col, int row) const;
+  float getPadGainFactor(int roc, int col, int row) const;
 
-  //methods extracted from PadStatus
-  bool isPadMasked(int det, int col, int row) const { return mPadStatus->isMasked(det, col, row); }
-  bool isPadBridgedLeft(int det, int col, int row) const { return mPadStatus->isBridgedLeft(det, col, row); }
-  bool isPadBridgedRight(int det, int col, int row) const { return mPadStatus->isBridgedRight(det, col, row); }
-  bool isPadNotConnected(int det, int col, int row) const { return mPadStatus->isNotConnected(det, col, row); };
-
-  //methods extracted from ChamberStatus
-  bool isChamberGood(int det) const { return mChamberStatus->isGood(det); }
-  bool isChamberNoData(int det) const { return mChamberStatus->isNoData(det); };
-  bool isHalfChamberNoData(int det, int side) const { return side > 0 ? isNoDataSideA(det) : isNoDataSideB(det); };
-  bool isNoDataSideA(int det) const { return mChamberStatus->isNoDataSideA(det); }
-  bool isNoDataSideB(int det) const { return mChamberStatus->isNoDataSideB(det); }
-  bool isChamberBadlyCalibrated(int det) const { return mChamberStatus->isBadCalibrated(det); }
-  bool isChamberNotCalibrated(int det) const { return mChamberStatus->isNotCalibrated(det); }
-  char getChamberStatusRaw(int det) const { return mChamberStatus->getStatus(det); }
+  const PadStatus* getPadStatus() const { return mPadStatus; }
+  const ChamberStatus* getChamberStatus() const { return mChamberStatus; }
 
   //online gain tables.
-  double getOnlineGainAdcdac(int det, int row, int mcm) const;
-  double getOnlineGainFGAN(int det, int row, int mcm, int adc) const;
-  double getOnlineGainFGFN(int det, int row, int mcm, int adc) const;
+  float getOnlineGainAdcdac(int det, int row, int mcm) const;
+  float getOnlineGainFGAN(int det, int row, int mcm, int adc) const;
+  float getOnlineGainFGFN(int det, int row, int mcm, int adc) const;
 
  protected:
   long mTimeStamp; //run number of related to the current calibration.
-  // here we have pointers to all the incoming calibrations, not all of them will be valid
-  // this will be dictated by the DPL and what it provides. (if I understand things correctly)
-  // pointers to relevant incoming classes will sit here and thereby provide the correct api
-  // abstracting all the tedious details from users. Most importantly we can change things with
-  // out the users knowing.
-  // I assume at some point the ccdb will provide shared pointers, but for now its raw pointers.
-  /* std::shared_ptr<ChamberCalibrations> mChamberCalibrations;
-  std::shared_ptr<LocalVDrift> mLocalVDrift;
-  std::shared_ptr<LocalT0> mLocalT0;
-  std::shared_ptr<LocalGainFactor> mLocalGainFactor;
-  std::shared_ptr<PadNoise> mPadNoise;
-  std::shared_ptr<ChamberStatus> mChamberStatus;
-  std::shared_ptr<PadStatus> mPadStatus;
-  std::shared_ptr<ChamberNoise> mChamberNoise; */
-  ChamberCalibrations* mChamberCalibrations;
-  LocalVDrift* mLocalVDrift;
-  LocalT0* mLocalT0;
-  LocalGainFactor* mLocalGainFactor;
-  PadNoise* mPadNoise;
-  ChamberStatus* mChamberStatus;
-  PadStatus* mPadStatus;
-  ChamberNoise* mChamberNoise;
-  CalOnlineGainTables* mCalOnlineGainTables;
+
+  ChamberCalibrations* mChamberCalibrations; ///< from AliRoot: vDrift, T0, ExB and Gain for each chamber
+  LocalGainFactor* mLocalGainFactor;         ///< gain factor per readout pad
+  PadNoise* mPadNoise;                       ///< noise value per readout pad
+  ChamberStatus* mChamberStatus;             ///< status flag for each chamber
+  PadStatus* mPadStatus;                     ///< status flag for each readout pad
+  CalOnlineGainTables* mCalOnlineGainTables; ///< online gain table (obtained from Kr calibration)
   //
+  ClassDefNV(Calibrations, 1);
 };
 } // namespace trd
 } // namespace o2

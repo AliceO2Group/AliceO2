@@ -26,6 +26,7 @@ o2_add_library(DetectorsVertexing
                                      O2::DataFormatsParameters
                                      O2::DataFormatsTPC
                                      O2::DataFormatsITS
+                                     O2::DetectorsBase
                                      O2::TPCBase
                                      O2::SimulationDataFormat
                                      O2::FT0Reconstruction

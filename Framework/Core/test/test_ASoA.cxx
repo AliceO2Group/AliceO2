@@ -35,7 +35,7 @@ DECLARE_SOA_COLUMN_FULL(X, x, int32_t, "x");
 DECLARE_SOA_COLUMN_FULL(Y, y, int32_t, "y");
 DECLARE_SOA_COLUMN_FULL(Z, z, int32_t, "z");
 DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](int32_t x, int32_t y) { return x + y; });
-DECLARE_SOA_EXPRESSION_COLUMN(ESum, esum, int32_t, 1 * test::x + test::y);
+DECLARE_SOA_EXPRESSION_COLUMN(ESum, esum, int32_t, test ::x + test::y);
 } // namespace test
 
 DECLARE_SOA_TABLE(Points, "TST", "POINTS", test::X, test::Y);
@@ -703,7 +703,7 @@ BOOST_AUTO_TEST_CASE(TestIndexToFiltered)
 
 namespace test
 {
-DECLARE_SOA_ARRAY_INDEX_COLUMN(Points3D, pointGroup, 3);
+DECLARE_SOA_ARRAY_INDEX_COLUMN(Points3D, pointGroup);
 DECLARE_SOA_SLICE_INDEX_COLUMN(Points3D, pointSlice);
 DECLARE_SOA_SELF_INDEX_COLUMN(OtherPoint, otherPoint);
 } // namespace test
@@ -716,18 +716,18 @@ BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
   TableBuilder b1;
   auto pwriter = b1.cursor<Points3Ds>();
   for (auto i = 0; i < 20; ++i) {
-    pwriter(0, -1 * i, 0.5 * i, 2 * i);
+    pwriter(0, -1 * i, (int)(i / 2), 2 * i);
   }
   auto t1 = b1.finalize();
 
   TableBuilder b2;
   auto prwriter = b2.cursor<PointsRef>();
   auto a = std::array{0, 1};
-  auto aa = std::array{2, 3, 4};
-  prwriter(0, &a[0], &aa[0]);
+  auto aa = std::vector{2, 3, 4};
+  prwriter(0, &a[0], aa);
   a = {4, 10};
   aa = {12, 2, 19};
-  prwriter(0, &a[0], &aa[0]);
+  prwriter(0, &a[0], aa);
   auto t2 = b2.finalize();
 
   auto pt = Points3Ds{t1};

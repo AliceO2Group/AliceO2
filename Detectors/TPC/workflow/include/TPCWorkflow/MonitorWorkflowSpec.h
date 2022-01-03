@@ -24,7 +24,7 @@ namespace o2::tpc
 
 /// create a processor spec
 /// read simulated TPC clusters from file and publish
-o2::framework::DataProcessorSpec getMonitorWorkflowSpec(bool useDigitsAsInput, std::string inputSpec = "tpcraw:TPC/RAWDATA");
+o2::framework::DataProcessorSpec getMonitorWorkflowSpec(std::string inputSpec = "tpcraw:TPC/RAWDATA");
 
 } // namespace o2::tpc
 

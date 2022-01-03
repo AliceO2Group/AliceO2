@@ -15,10 +15,9 @@
 
 #include "DetectorsVertexing/SVertexer.h"
 #include "DetectorsBase/Propagator.h"
-#include "ReconstructionDataFormats/TrackTPCITS.h"
-#include "DataFormatsTPC/TrackTPC.h"
-#include "DataFormatsITS/TrackITS.h"
+#include "TPCBase/ParameterGas.h"
 
+#undef WITH_OPENMP
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif
@@ -61,6 +60,9 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
 #ifdef WITH_OPENMP
       iThread = omp_get_thread_num();
 #endif
+      if (mSVParams->maxPVContributors < 2 && seedP.gid.isPVContributor() + seedN.gid.isPVContributor() > mSVParams->maxPVContributors) {
+        continue;
+      }
       checkV0(seedP, seedN, itp, itn, iThread);
     }
   }
@@ -119,6 +121,9 @@ void SVertexer::updateTimeDependentParams()
   for (auto& ft : mFitterCasc) {
     ft.setBz(bz);
   }
+
+  auto& gasParam = o2::tpc::ParameterGas::Instance();
+  mTPCBin2Z = gasParam.DriftV / mMUS2TPCBin;
 }
 
 //__________________________________________________________________
@@ -140,6 +145,12 @@ void SVertexer::setupThreads()
     fitter.setMinRelChi2Change(mSVParams->minRelChi2Change);
     fitter.setMaxDZIni(mSVParams->maxDZIni);
     fitter.setMaxChi2(mSVParams->maxChi2);
+    fitter.setMatCorrType(o2::base::Propagator::MatCorrType(mSVParams->matCorr));
+    fitter.setUsePropagator(mSVParams->usePropagator);
+    fitter.setRefitWithMatCorr(mSVParams->refitWithMatCorr);
+    fitter.setMaxStep(mSVParams->maxStep);
+    fitter.setMaxSnp(mSVParams->maxSnp);
+    fitter.setMinXSeed(mSVParams->minXSeed);
   }
   mFitterCasc.resize(mNThreads);
   for (auto& fitter : mFitterCasc) {
@@ -151,46 +162,92 @@ void SVertexer::setupThreads()
     fitter.setMinRelChi2Change(mSVParams->minRelChi2Change);
     fitter.setMaxDZIni(mSVParams->maxDZIni);
     fitter.setMaxChi2(mSVParams->maxChi2);
+    fitter.setMatCorrType(o2::base::Propagator::MatCorrType(mSVParams->matCorr));
+    fitter.setUsePropagator(mSVParams->usePropagator);
+    fitter.setRefitWithMatCorr(mSVParams->refitWithMatCorr);
+    fitter.setMaxStep(mSVParams->maxStep);
+    fitter.setMaxSnp(mSVParams->maxSnp);
+    fitter.setMinXSeed(mSVParams->minXSeed);
   }
+}
+
+//__________________________________________________________________
+bool SVertexer::acceptTrack(GIndex gid, const o2::track::TrackParCov& trc) const
+{
+  if (gid.isPVContributor() && mSVParams->maxPVContributors < 1) {
+    return false;
+  }
+  // DCA to mean vertex
+  if (mSVParams->minDCAToPV > 0.f) {
+    o2::track::TrackPar trp(trc);
+    std::array<float, 2> dca;
+    auto* prop = o2::base::Propagator::Instance();
+    if (mSVParams->usePropagator) {
+      if (trp.getX() > mSVParams->minRFor3DField && !prop->PropagateToXBxByBz(trp, mSVParams->minRFor3DField, mSVParams->maxSnp, mSVParams->maxStep, o2::base::Propagator::MatCorrType(mSVParams->matCorr))) {
+        return true; // we don't need actually to propagate to the beam-line
+      }
+      if (!prop->propagateToDCA(mMeanVertex.getXYZ(), trp, prop->getNominalBz(), mSVParams->maxStep, o2::base::Propagator::MatCorrType(mSVParams->matCorr), &dca)) {
+        return true;
+      }
+    } else {
+      if (!trp.propagateParamToDCA(mMeanVertex.getXYZ(), prop->getNominalBz(), &dca)) {
+        return true;
+      }
+    }
+    if (std::abs(dca[0]) < mSVParams->minDCAToPV) {
+      return false;
+    }
+  }
+  return true;
 }
 
 //__________________________________________________________________
 void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // accessor to various tracks
 {
-  // build track->vertices from vertices->tracks, rejecting vertex contributors
+  // build track->vertices from vertices->tracks, rejecting vertex contributors if requested
   auto trackIndex = recoData.getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
   auto vtxRefs = recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
 
-  // track selector: at the moment reject prompt tracks contributing to vertex fit and unconstrained TPC tracks
-  auto selTrack = [&](GIndex gid) {
-    return (gid.isPVContributor() || !recoData.isTrackSourceLoaded(gid.getSource())) ? false : true;
-  };
-
   std::unordered_map<GIndex, std::pair<int, int>> tmap;
+  std::unordered_map<GIndex, bool> rejmap;
   int nv = vtxRefs.size() - 1; // The last entry is for unassigned tracks, ignore them
   for (int i = 0; i < 2; i++) {
     mTracksPool[i].clear();
     mVtxFirstTrack[i].clear();
     mVtxFirstTrack[i].resize(nv, -1);
   }
-
   for (int iv = 0; iv < nv; iv++) {
     const auto& vtref = vtxRefs[iv];
     int it = vtref.getFirstEntry(), itLim = it + vtref.getEntries();
     for (; it < itLim; it++) {
       auto tvid = trackIndex[it];
-      if (!selTrack(tvid)) {
+      if (!recoData.isTrackSourceLoaded(tvid.getSource())) {
+        continue;
+      }
+      // unconstrained TPC tracks require special treatment: there is no point in checking DCA to mean vertex since it is not precise,
+      // but we need to create a clone of TPC track constrained to this particular vertex time.
+      if (tvid.getSource() == GIndex::TPC && processTPCTrack(recoData.getTPCTrack(tvid), tvid, iv)) { // processTPCTrack may decide that this track does not need special treatment (e.g. it is constrained...)
         continue;
       }
       std::decay_t<decltype(tmap.find(tvid))> tref{};
-      if (tvid.isAmbiguous()) {
+      if (tvid.isAmbiguous()) { // was this track already processed?
         auto tref = tmap.find(tvid);
         if (tref != tmap.end()) {
           mTracksPool[tref->second.second][tref->second.first].vBracket.setMax(iv); // this track was already processed with other vertex, account the latter
           continue;
         }
+        // was it already rejected?
+        if (rejmap.find(tvid) != rejmap.end()) {
+          continue;
+        }
       }
       const auto& trc = recoData.getTrackParam(tvid);
+      if (!acceptTrack(tvid, trc)) {
+        if (tvid.isAmbiguous()) {
+          rejmap[tvid] = true;
+        }
+        continue;
+      }
       int posneg = trc.getSign() < 0 ? 1 : 0;
       float r = std::sqrt(trc.getX() * trc.getX() + trc.getY() * trc.getY());
       mTracksPool[posneg].emplace_back(TrackCand{trc, tvid, {iv, iv}, r});
@@ -444,4 +501,40 @@ void SVertexer::setNThreads(int n)
 #else
   mNThreads = 1;
 #endif
+}
+
+//______________________________________________
+bool SVertexer::processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int vtxid)
+{
+  // if TPC trackis unconstrained, try to create in the tracks pool a clone constrained to vtxid vertex time.
+  if (trTPC.hasBothSidesClusters()) { // this is effectively constrained track
+    return false;                     // let it be processed as such
+  }
+  const auto& vtx = mPVertices[vtxid];
+  auto twe = vtx.getTimeStamp();
+  int posneg = trTPC.getSign() < 0 ? 1 : 0;
+  auto trLoc = mTracksPool[posneg].emplace_back(TrackCand{trTPC, gid, {vtxid, vtxid}, 0.});
+  auto err = correctTPCTrack(trLoc, trTPC, twe.getTimeStamp(), twe.getTimeStampError());
+  if (err < 0) {
+    mTracksPool[posneg].pop_back(); // discard
+  }
+  trLoc.minR = std::sqrt(trLoc.getX() * trLoc.getX() + trLoc.getY() * trLoc.getY());
+  return true;
+}
+
+//______________________________________________
+float SVertexer::correctTPCTrack(o2::track::TrackParCov& trc, const o2::tpc::TrackTPC tTPC, float tmus, float tmusErr) const
+{
+  // Correct the track copy trc of the TPC track for the assumed interaction time
+  // return extra uncertainty in Z due to the interaction time uncertainty
+  // TODO: at the moment, apply simple shift, but with Z-dependent calibration we may
+  // need to do corrections on TPC cluster level and refit
+  // This is a clone of MatchTPCITS::correctTPCTrack
+  float dDrift = (tmus * mMUS2TPCBin - tTPC.getTime0()) * mTPCBin2Z;
+  float driftErr = tmusErr * mMUS2TPCBin * mTPCBin2Z;
+  // eventually should be refitted, at the moment we simply shift...
+  trc.setZ(tTPC.getZ() + (tTPC.hasASideClustersOnly() ? dDrift : -dDrift));
+  trc.setCov(trc.getSigmaZ2() + driftErr * driftErr, o2::track::kSigZ2);
+
+  return driftErr;
 }

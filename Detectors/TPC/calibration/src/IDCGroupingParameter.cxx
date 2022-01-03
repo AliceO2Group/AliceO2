@@ -10,7 +10,48 @@
 // or submit itself to any jurisdiction.
 
 #include "TPCCalibration/IDCGroupingParameter.h"
+#include "Framework/Logger.h"
+#include "Algorithm/RangeTokenizer.h"
 
 using namespace o2::tpc;
 O2ParamImpl(o2::tpc::ParameterIDCGroup);
 O2ParamImpl(o2::tpc::ParameterIDCCompression);
+
+void o2::tpc::ParameterIDCGroup::setGroupingParameterFromString(const std::string sgroupPads, const std::string sgroupRows, const std::string sgroupLastRowsThreshold, const std::string sgroupLastPadsThreshold)
+{
+  auto vgroupPads = o2::RangeTokenizer::tokenize<int>(sgroupPads);
+  auto vgroupRows = o2::RangeTokenizer::tokenize<int>(sgroupRows);
+  auto vgroupLastRowsThreshold = o2::RangeTokenizer::tokenize<int>(sgroupLastRowsThreshold);
+  auto vgroupLastPadsThreshold = o2::RangeTokenizer::tokenize<int>(sgroupLastPadsThreshold);
+
+  if (vgroupPads.size() == 1) {
+    vgroupPads = std::vector<int>(Mapper::NREGIONS, vgroupPads.front());
+  } else if (vgroupPads.size() != Mapper::NREGIONS) {
+    LOGP(error, "wrong number of parameters inserted for groupPads (n={}). Number should be 1 or {}", vgroupPads.size(), Mapper::NREGIONS);
+  }
+
+  if (vgroupRows.size() == 1) {
+    vgroupRows = std::vector<int>(Mapper::NREGIONS, vgroupRows.front());
+  } else if (vgroupRows.size() != Mapper::NREGIONS) {
+    LOGP(error, "wrong number of parameters inserted for groupRows (n={}). Number should be 1 or {}", vgroupRows.size(), Mapper::NREGIONS);
+  }
+
+  if (vgroupLastRowsThreshold.size() == 1) {
+    vgroupLastRowsThreshold = std::vector<int>(Mapper::NREGIONS, vgroupLastRowsThreshold.front());
+  } else if (vgroupLastRowsThreshold.size() != Mapper::NREGIONS) {
+    LOGP(error, "wrong number of parameters inserted for groupLastRowsThreshold (n={}). Number should be 1 or {}", vgroupLastRowsThreshold.size(), Mapper::NREGIONS);
+  }
+
+  if (vgroupLastPadsThreshold.size() == 1) {
+    vgroupLastPadsThreshold = std::vector<int>(Mapper::NREGIONS, vgroupLastPadsThreshold.front());
+  } else if (vgroupLastPadsThreshold.size() != Mapper::NREGIONS) {
+    LOGP(error, "wrong number of parameters inserted for groupLastPadsThreshold (n={}). Number should be 1 or {}", vgroupLastPadsThreshold.size(), Mapper::NREGIONS);
+  }
+
+  for (int i = 0; i < Mapper::NREGIONS; ++i) {
+    o2::conf::ConfigurableParam::setValue<unsigned char>("TPCIDCGroupParam", fmt::format("groupPads[{}]", i).data(), vgroupPads[i]);
+    o2::conf::ConfigurableParam::setValue<unsigned char>("TPCIDCGroupParam", fmt::format("groupRows[{}]", i).data(), vgroupRows[i]);
+    o2::conf::ConfigurableParam::setValue<unsigned char>("TPCIDCGroupParam", fmt::format("groupLastRowsThreshold[{}]", i).data(), vgroupLastRowsThreshold[i]);
+    o2::conf::ConfigurableParam::setValue<unsigned char>("TPCIDCGroupParam", fmt::format("groupLastPadsThreshold[{}]", i).data(), vgroupLastPadsThreshold[i]);
+  }
+}

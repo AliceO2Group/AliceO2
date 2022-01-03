@@ -35,6 +35,7 @@ def mainDataModel(DMs, initCard, todo=0):
         if todo == 1:
           print("  name: ", fileName)
         dm = O2IF.datamodel(mainProducer, ["", "", mainProducer, ptype, dmname], fileName, initCard)
+        dm.setCategories(subDM)
         break
 
   return dm

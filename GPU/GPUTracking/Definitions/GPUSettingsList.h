@@ -404,8 +404,9 @@ AddOption(synchronousProcessing, bool, false, "", 0, "Apply performance shortcut
 AddOption(dump, int, 0, "", 0, "Dump events for standalone benchmark: 1 = dump events, 2 = dump events and skip processing in workflow")
 AddOption(display, bool, false, "", 0, "Enable standalone gpu tracking visualizaion")
 AddOption(rundEdx, int, -1, "", 0, "Enable/disable dEdx processing (-1 for autoselect)")
-AddOption(dEdxFile, std::string, "", "", 0, "File name of dEdx Splines file")
+AddOption(dEdxSplineTopologyCorrFile, std::string, "", "", 0, "File name of the dE/dx spline track topology correction file")
 AddOption(dEdxCorrFile, std::string, "", "", 0, "File name of dEdx residual correction file")
+AddOption(dEdxPolTopologyCorrFile, std::string, "", "", 0, "File name of the dE/dx polynomial track topology correction")
 AddOption(transformationFile, std::string, "", "", 0, "File name of TPC fast transformation map")
 AddOption(matLUTFile, std::string, "", "", 0, "File name of material LUT file")
 AddOption(gainCalibFile, std::string, "", "", 0, "File name of TPC pad gain calibration")
@@ -414,6 +415,7 @@ AddOption(outputBufferSize, unsigned long, 200000000ul, "", 0, "Size of the outp
 AddOption(mutexMemReg, bool, false, "", 0, "Global mutex to serialize GPU memory registration")
 AddOption(printSettings, int, 0, "", 0, "Print all settings", def(1))
 AddOption(gpuDisplayfilterMacro, std::string, "", "", 0, "File name of ROOT macro for GPU display filter")
+AddOption(benchmarkMemoryRegistration, bool, false, "", 0, "Time-benchmark for memory registration")
 EndConfig()
 #endif // GPUCA_O2_LIB
 #endif // !GPUCA_GPUCODE_DEVICE

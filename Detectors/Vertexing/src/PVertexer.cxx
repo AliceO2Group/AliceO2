@@ -39,7 +39,6 @@ int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl:
   std::vector<V2TRef> v2tRefsLoc;
   std::vector<float> validationTimes;
   std::vector<o2::MCEventLabel> lblVtxLoc;
-
   for (auto tc : mTimeZClusters) {
     VertexingInput inp;
     inp.idRange = gsl::span<int>(tc.trackIDs);
@@ -269,6 +268,7 @@ void PVertexer::accountTrack(TrackVF& trc, VertexSeed& vtxSeed) const
     trc.wgh = 0.f;
     return;
   }
+  wghT *= wghT;
   float syyI(trc.sig2YI), szzI(trc.sig2ZI), syzI(trc.sigYZI);
 
   auto timeErrorFromTB = [&trc]() {

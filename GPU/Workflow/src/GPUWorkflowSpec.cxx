@@ -36,8 +36,7 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DataFormatsTPC/Digit.h"
 #include "TPCFastTransform.h"
-#include "TPCdEdxCalibrationSplines.h"
-#include "DataFormatsTPC/CalibdEdxCorrection.h"
+#include "DataFormatsTPC/CalibdEdxContainer.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "DPLUtils/DPLRawPageSequencer.h"
 #include "DetectorsBase/MatLayerCylSet.h"
@@ -107,9 +106,8 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
     std::unique_ptr<GPUO2Interface> tracker;
     std::unique_ptr<GPUDisplayBackend> displayBackend;
     std::unique_ptr<TPCFastTransform> fastTransform;
-    std::unique_ptr<TPCdEdxCalibrationSplines> dEdxSplines;
     std::unique_ptr<TPCPadGainCalib> tpcPadGainCalib;
-    std::unique_ptr<o2::tpc::CalibdEdxCorrection> dEdxCorrection;
+    std::unique_ptr<o2::tpc::CalibdEdxContainer> dEdxCalibContainer;
     std::unique_ptr<o2::trd::GeometryFlat> trdGeometry;
     std::unique_ptr<GPUO2InterfaceConfiguration> config;
     int qaTaskMask = 0;
@@ -254,20 +252,23 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       }
 
       // load from file
-      if (confParam.dEdxFile.size()) {
-        processAttributes->dEdxSplines.reset(new TPCdEdxCalibrationSplines(confParam.dEdxFile.c_str()));
+      if (!confParam.dEdxPolTopologyCorrFile.empty() || !confParam.dEdxCorrFile.empty() || !confParam.dEdxSplineTopologyCorrFile.empty()) {
+        processAttributes->dEdxCalibContainer.reset(new o2::tpc::CalibdEdxContainer());
+        if (!confParam.dEdxPolTopologyCorrFile.empty()) {
+          LOGP(info, "Loading dE/dx polynomial track topology correction from file: {}", confParam.dEdxPolTopologyCorrFile);
+          processAttributes->dEdxCalibContainer->loadPolTopologyCorrectionFromFile(confParam.dEdxPolTopologyCorrFile);
+        } else if (!confParam.dEdxSplineTopologyCorrFile.empty()) {
+          LOGP(info, "Loading dE/dx spline track topology correction from file: {}", confParam.dEdxSplineTopologyCorrFile);
+          processAttributes->dEdxCalibContainer->loadSplineTopologyCorrectionFromFile(confParam.dEdxSplineTopologyCorrFile);
+        }
+        if (!confParam.dEdxCorrFile.empty()) {
+          LOGP(info, "Loading dEdx correction from file: {}", confParam.dEdxCorrFile);
+          processAttributes->dEdxCalibContainer->loadResidualCorrectionFromFile(confParam.dEdxCorrFile);
+        }
       } else {
-        processAttributes->dEdxSplines.reset(new TPCdEdxCalibrationSplines);
+        processAttributes->dEdxCalibContainer.reset(new o2::tpc::CalibdEdxContainer());
       }
-      config.configCalib.dEdxSplines = processAttributes->dEdxSplines.get();
-
-      if (!confParam.dEdxCorrFile.empty()) {
-        LOGP(info, "Loading dEdx correction file: {}", confParam.dEdxCorrFile);
-        processAttributes->dEdxCorrection.reset(new o2::tpc::CalibdEdxCorrection(confParam.dEdxCorrFile));
-      } else {
-        processAttributes->dEdxCorrection.reset(new o2::tpc::CalibdEdxCorrection());
-      }
-      config.configCalib.dEdxCorrection = processAttributes->dEdxCorrection.get();
+      config.configCalib.dEdxCalibContainer = processAttributes->dEdxCalibContainer.get();
 
       if (std::filesystem::exists(confParam.gainCalibFile)) {
         LOG(info) << "Loading tpc gain correction from file " << confParam.gainCalibFile;
@@ -322,8 +323,17 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
           }
         }
         auto& tracker = processAttributes->tracker;
+        std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
+        if (confParam.benchmarkMemoryRegistration) {
+          start = std::chrono::high_resolution_clock::now();
+        }
         if (tracker->registerMemoryForGPU(info.ptr, info.size)) {
           throw std::runtime_error("Error registering memory for GPU");
+        }
+        if (confParam.benchmarkMemoryRegistration) {
+          end = std::chrono::high_resolution_clock::now();
+          std::chrono::duration<double> elapsed_seconds = end - start;
+          LOG(info) << "Memory registration time (0x" << info.ptr << ", " << info.size << " bytes): " << elapsed_seconds.count() << " s";
         }
         if (confParam.mutexMemReg) {
           if (lockf(fd, F_ULOCK, 0)) {

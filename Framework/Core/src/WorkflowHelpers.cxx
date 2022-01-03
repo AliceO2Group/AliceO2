@@ -25,6 +25,7 @@
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/Plugins.h"
 #include "ArrowSupport.h"
+#include "CCDBHelpers.h"
 
 #include "Headers/DataHeader.h"
 #include <algorithm>
@@ -153,7 +154,7 @@ void WorkflowHelpers::addMissingOutputsToReader(std::vector<OutputSpec> const& p
     }
 
     auto concrete = DataSpecUtils::asConcreteDataMatcher(requested);
-    publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
+    publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, requested.lifetime, requested.metadata});
   }
 }
 
@@ -224,7 +225,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     "internal-dpl-ccdb-backend",
     {},
     {},
-    AlgorithmSpec::dummyAlgorithm()};
+    CCDBHelpers::fetchFromCCDB()};
   DataProcessorSpec transientStore{"internal-dpl-transient-store",
                                    {},
                                    {},
@@ -901,8 +902,8 @@ WorkflowParsingState WorkflowHelpers::verifyWorkflow(const o2::framework::Workfl
     for (auto& option : spec.options) {
       if (option.defaultValue.type() != VariantType::Empty &&
           option.type != option.defaultValue.type()) {
-        ss << "Mismatch between declared option type and default value type"
-           << " for " << option.name << " in DataProcessorSpec of "
+        ss << "Mismatch between declared option type (" << (int)option.type << ") and default value type (" << (int)option.defaultValue.type()
+           << ") for " << option.name << " in DataProcessorSpec of "
            << spec.name;
         throw std::runtime_error(ss.str());
       }

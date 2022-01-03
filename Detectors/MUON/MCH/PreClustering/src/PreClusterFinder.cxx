@@ -125,13 +125,22 @@ void PreClusterFinder::loadDigit(const Digit& digit)
 {
   /// fill the Mapping::MpDE structure with fired pad
 
-  int deIndex = mDEIndices[digit.getDetID()];
-  assert(deIndex >= 0 && deIndex < SNDEs);
+  int deIndex = mDEIndices.at(digit.getDetID());
 
   DetectionElement& de(*(mDEs[deIndex]));
 
+  if (digit.getPadID() < 0 || digit.getPadID() >= de.mapping->nPads[0] + de.mapping->nPads[1]) {
+    throw out_of_range("invalid pad index");
+  }
+
   uint16_t iPad = digit.getPadID();
   int iPlane = (iPad < de.mapping->nPads[0]) ? 0 : 1;
+
+  // check that the pad is not already fired
+  if (de.mapping->pads[iPad].useMe) {
+    LOG(error) << "multiple digits on the same pad (DE " << digit.getDetID() << ", pad " << iPad << ")";
+    return;
+  }
 
   // register this digit
   uint16_t iDigit = de.nFiredPads[0] + de.nFiredPads[1];

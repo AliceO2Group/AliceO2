@@ -87,13 +87,7 @@ int main(int argc, char** argv)
   }
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
 
-  std::string ccdb_url = o2::base::NameConf::getCCDBServer();
-  auto& dopt = o2::conf::DigiParams::Instance();
-  std::string ccdbHost = dopt.ccdb;
-  if (ccdb_url.length() > 0) {
-    ccdbHost = ccdb_url;
-    LOG(info) << "CCDB url set to " << ccdb_url;
-  }
+  std::string ccdbHost = o2::base::NameConf::getCCDBServer();
   LOG(info) << "CCDB url " << ccdbHost;
   digi2raw(vm["input-file"].as<std::string>(),
            vm["output-dir"].as<std::string>(),

@@ -49,6 +49,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}},
     {"strict-matching", o2::framework::VariantType::Bool, false, {"High purity preliminary matching"}},
     {"output-type", o2::framework::VariantType::String, "matching-info,calib-info", {"matching-info, calib-info"}},
+    {"enable-dia", o2::framework::VariantType::Bool, false, {"to require diagnostic freq and then write to calib outputs"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -73,6 +74,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useFIT = configcontext.options().get<bool>("use-fit");
   auto useCCDB = configcontext.options().get<bool>("use-ccdb");
   auto strict = configcontext.options().get<bool>("strict-matching");
+  auto diagnostic = configcontext.options().get<bool>("enable-dia");
 
   bool writematching = 0;
   bool writecalib = 0;
@@ -137,7 +139,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       }
     }
     if (writecalib) {
-      specs.emplace_back(o2::tof::getTOFCalibWriterSpec("o2calib_tof.root", 0));
+      specs.emplace_back(o2::tof::getTOFCalibWriterSpec("o2calib_tof.root", 0, diagnostic));
     }
   }
 

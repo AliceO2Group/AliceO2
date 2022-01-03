@@ -319,7 +319,9 @@ GeometryManager::MatBudgetExt GeometryManager::meanMaterialBudgetExt(float x0, f
   //
   //  Ported to O2: ruben.shahoyan@cern.ch
   //
-
+  if (!gGeoManager) {
+    throw std::runtime_error("meanMaterialBudgetExt requires geometry loaded");
+  }
   double length, startD[3] = {x0, y0, z0};
   double dir[3] = {x1 - x0, y1 - y0, z1 - z0};
   if ((length = dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]) < TGeoShape::Tolerance() * TGeoShape::Tolerance()) {
@@ -497,19 +499,27 @@ void GeometryManager::applyMisalignent(bool applyMisalignment)
 }
 
 //_________________________________
-void GeometryManager::loadGeometry(std::string_view geomFileName, bool applyMisalignment)
+void GeometryManager::loadGeometry(std::string_view simPrefix, bool applyMisalignment, bool preferAlignedFile)
 {
-  ///< load geometry from file
-  std::string fname = o2::base::NameConf::getGeomFileName(geomFileName);
-  LOG(info) << "Loading geometry from " << fname;
-  TFile flGeom(fname.data());
-  if (flGeom.IsZombie()) {
-    LOG(fatal) << "Failed to open file " << fname;
+  auto loadGeom = [](const std::string_view fname) {
+    LOG(info) << "Loading geometry from " << fname;
+    TFile flGeom(fname.data());
+    if (flGeom.IsZombie()) {
+      LOG(fatal) << "Failed to open file " << fname;
+    }
+    // try under the standard CCDB name
+    if (!flGeom.Get(std::string(o2::base::NameConf::CCDBOBJECT).c_str()) &&
+        !flGeom.Get(std::string(o2::base::NameConf::GEOMOBJECTNAME_FAIR).c_str())) {
+      LOG(fatal) << "Did not find geometry named " << o2::base::NameConf::CCDBOBJECT << " or " << o2::base::NameConf::GEOMOBJECTNAME_FAIR;
+    }
+  };
+
+  if (preferAlignedFile) {
+    ///< load directly from aligned file and apply alignment on top
+    loadGeom(o2::base::NameConf::getAlignedGeomFileName(simPrefix));
+  } else {
+    ///< load geometry from unaligned file and apply alignment on top
+    loadGeom(o2::base::NameConf::getGeomFileName(simPrefix));
+    applyMisalignent(applyMisalignment);
   }
-  // try under the standard CCDB name
-  if (!flGeom.Get(std::string(o2::base::NameConf::CCDBOBJECT).c_str()) &&
-      !flGeom.Get(std::string(o2::base::NameConf::GEOMOBJECTNAME_FAIR).c_str())) {
-    LOG(fatal) << "Did not find geometry named " << o2::base::NameConf::CCDBOBJECT << " or " << o2::base::NameConf::GEOMOBJECTNAME_FAIR;
-  }
-  applyMisalignent(applyMisalignment);
 }

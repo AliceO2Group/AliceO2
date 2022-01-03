@@ -167,4 +167,44 @@ bool MCTrackNavigator::isPhysicalPrimary(o2::MCTrack const& p, std::vector<o2::M
   } // end else branch produced by generator
 }
 
+bool MCTrackNavigator::isFromPrimaryDecayChain(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer)
+{
+  /** check if the particle is from the
+      decay chain of a primary particle **/
+
+  /** check if from decay **/
+  if (p.getProcess() != kPDecay) {
+    return false;
+  }
+  /** check if mother is primary **/
+  auto mother = getMother(p, pcontainer);
+  if (!mother || mother->isPrimary()) {
+    return true;
+  }
+  /** else check if mother is from primary decay **/
+  return isFromPrimaryDecayChain(*mother, pcontainer);
+}
+
+bool MCTrackNavigator::isKeepPhysics(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer)
+{
+  auto isFromPrimaryPairProduction = [&pcontainer](const MCTrack& part) {
+    /** check if the particle is from
+        pair production from a particle
+        belonging to the primary decay chain **/
+
+    /** check if from pair production **/
+    if (part.getProcess() != kPPair) {
+      return false;
+    }
+    auto mother = getMother(part, pcontainer);
+    if (!mother || mother->isPrimary()) {
+      return true;
+    }
+    /** else check if mother is from primary decay **/
+    return isFromPrimaryDecayChain(*mother, pcontainer);
+  };
+  //
+  return p.isPrimary() || isFromPrimaryPairProduction(p) || isFromPrimaryDecayChain(p, pcontainer);
+}
+
 } // namespace o2::mcutils

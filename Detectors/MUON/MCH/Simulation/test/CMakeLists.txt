@@ -22,6 +22,7 @@ o2_add_test(digitizer
                               O2::MCHBase
                               O2::MCHGeometryTest
                               O2::MCHSimulation
+                              O2::MCHMappingImpl4
         LABELS muon mch long sim)
 
 # o2_add_test(response

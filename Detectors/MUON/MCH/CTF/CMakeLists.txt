@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(MCHCTF
-               SOURCES src/CTFCoder.cxx src/CTFHelper.cxx
+               SOURCES src/CTFCoder.cxx src/CTFHelper.cxx src/EntropyDecoderSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsMCH
                                      O2::MCHBase
                                      O2::DetectorsBase

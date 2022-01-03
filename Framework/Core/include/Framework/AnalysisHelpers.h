@@ -492,30 +492,25 @@ struct Service {
 };
 
 template <typename T>
-o2::soa::Filtered<T>* getTableFromFilter(const T& table, gandiva::Selection& selection)
+auto getTableFromFilter(const T& table, soa::SelectionVector&& selection)
 {
   if constexpr (soa::is_soa_filtered_t<std::decay_t<T>>::value) {
-    return new o2::soa::Filtered<T>{{table}, selection};
+    return std::make_unique<o2::soa::Filtered<T>>(std::vector{table}, std::forward<soa::SelectionVector>(selection));
   } else {
-    return new o2::soa::Filtered<T>{{table.asArrowTable()}, selection};
+    return std::make_unique<o2::soa::Filtered<T>>(std::vector{table.asArrowTable()}, std::forward<soa::SelectionVector>(selection));
   }
 }
 
 template <typename T>
 struct Partition {
-  Partition(expressions::Node&& filter_) : filter{std::move(filter_)}
+  Partition(expressions::Node&& filter_) : filter{std::forward<expressions::Node>(filter_)}
   {
   }
 
-  void bindTable(T& table)
+  Partition(expressions::Node&& filter_, T const& table)
+    : filter{std::forward<expressions::Node>(filter_)}
   {
-    if (selection == nullptr) {
-      intializeCaches(table.asArrowTable()->schema());
-      selection = framework::expressions::createSelection(table.asArrowTable(), gfilter);
-    }
-    mFiltered.reset(getTableFromFilter(table, selection));
-    bindExternalIndices(&table);
-    getBoundToExternalIndices(table);
+    setTable(table);
   }
 
   void intializeCaches(std::shared_ptr<arrow::Schema> const& schema)
@@ -533,13 +528,18 @@ struct Partition {
     }
   }
 
-  void setTable(const T& table)
+  void inline bindTable(T const& table)
   {
-    if (selection == nullptr) {
-      intializeCaches(table.asArrowTable()->schema());
-      selection = framework::expressions::createSelection(table.asArrowTable(), gfilter);
+    setTable(table);
+  }
+
+  void setTable(T const& table)
+  {
+    intializeCaches(table.asArrowTable()->schema());
+    if (dataframeChanged) {
+      mFiltered = getTableFromFilter(table, soa::selectionToVector(framework::expressions::createSelection(table.asArrowTable(), gfilter)));
+      dataframeChanged = false;
     }
-    mFiltered.reset(getTableFromFilter(table, selection));
   }
 
   template <typename... Ts>
@@ -565,24 +565,21 @@ struct Partition {
     }
   }
 
-  template <typename T2>
-  void getBoundToExternalIndices(T2& table)
-  {
-    if (mFiltered != nullptr) {
-      table.bindExternalIndices(mFiltered.get());
-    }
-  }
-
   void updatePlaceholders(InitContext& context)
   {
     expressions::updatePlaceholders(filter, context);
+  }
+
+  o2::soa::Filtered<T>* operator->()
+  {
+    return mFiltered.get();
   }
 
   expressions::Filter filter;
   std::unique_ptr<o2::soa::Filtered<T>> mFiltered = nullptr;
   gandiva::NodePtr tree = nullptr;
   gandiva::FilterPtr gfilter = nullptr;
-  gandiva::Selection selection = nullptr;
+  bool dataframeChanged = true;
 
   using iterator = typename o2::soa::Filtered<T>::iterator;
   using const_iterator = typename o2::soa::Filtered<T>::const_iterator;

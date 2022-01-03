@@ -47,7 +47,7 @@ struct SimConfigData {
   int mSimWorkers = 1;                       // number of parallel sim workers (when it applies)
   bool mFilterNoHitEvents = false;           // whether to filter out events not leaving any response
   std::string mCCDBUrl;                      // the URL where to find CCDB
-  long mTimestamp;                           // timestamp to anchor transport simulation to
+  uint64_t mTimestamp;                       // timestamp in ms to anchor transport simulation to
   int mField;                                // L3 field setting in kGauss: +-2,+-5 and 0
   bool mUniformField = false;                // uniform magnetic field
   bool mAsService = false;                   // if simulation should be run as service/deamon (does not exit after run)
@@ -115,6 +115,7 @@ class SimConfig
   int getNSimWorkers() const { return mConfigData.mSimWorkers; }
   bool isFilterOutNoHitEvents() const { return mConfigData.mFilterNoHitEvents; }
   bool asService() const { return mConfigData.mAsService; }
+  uint64_t getTimestamp() const { return mConfigData.mTimestamp; }
 
  private:
   SimConfigData mConfigData; //!

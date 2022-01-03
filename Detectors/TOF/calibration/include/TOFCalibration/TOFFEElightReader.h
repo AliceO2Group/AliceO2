@@ -13,6 +13,7 @@
 #define DETECTOR_TOFFEELIGHTREADER_H_
 
 #include "Rtypes.h"
+#include "DataFormatsTOF/TOFFEElightInfo.h"
 #include "TOFCalibration/TOFFEElightConfig.h"
 #include "TOFBase/Geo.h"
 #include <gsl/span>
@@ -26,48 +27,6 @@ namespace tof
 {
 
 using namespace o2::tof;
-
-struct TOFFEElightInfo {
-
-  int mVersion = -1;   // version
-  int mRunNumber = -1; // run number
-  int mRunType = -1;   // run type
-  std::array<bool, Geo::NCHANNELS> mChannelEnabled;
-  std::array<int, Geo::NCHANNELS> mMatchingWindow;                    // can it be int32_t?
-  std::array<int, Geo::NCHANNELS> mLatencyWindow;                     // can it be int32_t?
-  std::array<uint64_t, TOFFEElightConfig::NTRIGGERMAPS> mTriggerMask; // trigger mask, can it be uint32_t?
-  TOFFEElightInfo()
-  {
-    mVersion = -1;
-    mRunNumber = -1;
-    mRunType = -1;
-    mChannelEnabled.fill(false);
-    mMatchingWindow.fill(0);
-    mLatencyWindow.fill(0);
-    mTriggerMask.fill(0);
-  }
-
-  void resetAll()
-  {
-    mVersion = -1;
-    mRunNumber = -1;
-    mRunType = -1;
-    mChannelEnabled.fill(false);
-    mMatchingWindow.fill(0);
-    mLatencyWindow.fill(0);
-    mTriggerMask.fill(0);
-  }
-
-  int getVersion() const { return mVersion; }
-  int getRunNumber() const { return mRunNumber; }
-  int getRunType() const { return mRunType; }
-  bool getChannelEnabled(int idx) const { return idx < Geo::NCHANNELS ? mChannelEnabled[idx] : false; }
-  int getMatchingWindow(int idx) const { return idx < Geo::NCHANNELS ? mMatchingWindow[idx] : 0; }
-  int getLatencyWindow(int idx) const { return idx < Geo::NCHANNELS ? mLatencyWindow[idx] : 0; }
-  uint64_t getTriggerMask(int ddl) const { return ddl < TOFFEElightConfig::NTRIGGERMAPS ? mTriggerMask[ddl] : 0; }
-
-  ClassDefNV(TOFFEElightInfo, 1);
-};
 
 class TOFFEElightReader
 {

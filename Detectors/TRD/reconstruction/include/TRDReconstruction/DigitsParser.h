@@ -71,8 +71,6 @@ class DigitsParser
   void clear() { mDigits.clear(); }
   uint64_t getDumpedDataCount() { return mWordsDumped; }
   uint64_t getDataWordsParsed() { return mDataWordsParsed; }
-  void tryFindMCMHeaderAndDisplay(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse);
-  //void tryFindMCMHeaderAndDisplay(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse);
   void OutputIncomingData();
   void setParsingHisto(TH1F* parsingerrors, TList* parsingerrors2d)
   {

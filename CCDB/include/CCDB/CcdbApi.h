@@ -26,6 +26,7 @@
 #include "CCDB/CcdbObjectInfo.h"
 #include <CommonUtils/ConfigurableParam.h>
 #include <type_traits>
+#include <vector>
 
 #if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
 #include <TJAlienCredentials.h>
@@ -62,9 +63,10 @@ class CcdbApi //: public DatabaseInterface
   /**
    * Initialize connection to CCDB
    *
-   * @param host The URL to the CCDB (e.g. "ccdb-test.cern.ch:8080" or to a local snapshot "file:///tmp/CCDBSnapshot")
+   * @param hosts The URLs to the CCDB (e.g. "ccdb-test.cern.ch:8080" or to a local snapshot "file:///tmp/CCDBSnapshot"),
+   * separated with "," or ";" ("https://localhost:8080,https://ccdb-test.cern.ch:8080")
    */
-  void init(std::string const& host);
+  void init(std::string const& hosts);
 
   /**
    * Query current URL
@@ -73,7 +75,7 @@ class CcdbApi //: public DatabaseInterface
   std::string const& getURL() const { return mUrl; }
 
   /**
-   * Create a binary image of the arbitrary type object, if CcdbObjectInfo pointer is provided, register there 
+   * Create a binary image of the arbitrary type object, if CcdbObjectInfo pointer is provided, register there
    *
    * the assigned object class name and the filename
    * @param obj: Raw pointer to the object to store.
@@ -86,7 +88,7 @@ class CcdbApi //: public DatabaseInterface
   }
 
   /**
-   * Create a binary image of the TObject, if CcdbObjectInfo pointer is provided, register there 
+   * Create a binary image of the TObject, if CcdbObjectInfo pointer is provided, register there
    *
    * the assigned object class name and the filename
    * @param obj: Raw pointer to the object to store.
@@ -95,7 +97,7 @@ class CcdbApi //: public DatabaseInterface
   static std::unique_ptr<std::vector<char>> createObjectImage(const TObject* obj, CcdbObjectInfo* info = nullptr);
 
   /**
-   * Create a binary image of the object, if CcdbObjectInfo pointer is provided, register there 
+   * Create a binary image of the object, if CcdbObjectInfo pointer is provided, register there
    *
    * the assigned object class name and the filename
    * @param obj: Raw pointer to the object to store.
@@ -271,7 +273,7 @@ class CcdbApi //: public DatabaseInterface
    */
   static void* extractFromTFile(TFile& file, TClass const* cl);
 
-  /** Get headers associated to a given CCDBEntry on the server. 
+  /** Get headers associated to a given CCDBEntry on the server.
    * @param url the url which refers to the objects
    * @param etag of the previous reply
    * @param headers the headers found in the request. Will be emptied when we return false.
@@ -320,6 +322,28 @@ class CcdbApi //: public DatabaseInterface
                              std::map<std::string, std::string>* headers, std::string const& etag,
                              const std::string& createdNotAfter, const std::string& createdNotBefore) const;
 
+  std::vector<char> loadFileToMemory(const std::string& path, std::map<std::string, std::string>* localHeaders = nullptr) const;
+  std::vector<char> loadFileToMemory(std::string const& path,
+                                     std::map<std::string, std::string> const& metadata, long timestamp,
+                                     std::map<std::string, std::string>* headers, std::string const& etag,
+                                     const std::string& createdNotAfter, const std::string& createdNotBefore) const;
+  std::vector<char> navigateURLsAndLoadFileToMemory(CURL* curl_handle, std::string const& url, std::map<string, string>* headers) const;
+
+  // the failure to load the file to memory is signaled by 0 size and non-0 capacity
+  static bool isMemoryFileInvalid(const std::vector<char>& v) { return v.size() == 0 && v.capacity() > 0; }
+
+  template <typename T>
+  static T* extractFromMemoryBlob(std::vector<char>& blob)
+  {
+    auto obj = static_cast<T*>(interpretAsTMemFileAndExtract(blob.data(), blob.size(), typeid(T)));
+    if constexpr (std::is_base_of<o2::conf::ConfigurableParam, T>::value) {
+      auto& param = const_cast<typename std::remove_const<T&>::type>(T::Instance());
+      param.syncCCDBandRegistry(obj);
+      obj = &param;
+    }
+    return obj;
+  }
+
  private:
   /**
    * Initialize in local mode; Objects will be retrieved from snapshot
@@ -351,7 +375,7 @@ class CcdbApi //: public DatabaseInterface
    */
   std::string getFullUrlForStorage(CURL* curl, const std::string& path, const std::string& objtype,
                                    const std::map<std::string, std::string>& metadata,
-                                   long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
+                                   long startValidityTimestamp = -1, long endValidityTimestamp = -1, int hostIndex = 0) const;
 
   /**
    * Build the full url to store an object.
@@ -361,7 +385,7 @@ class CcdbApi //: public DatabaseInterface
    * @return The full url to store an object (url / startValidity / endValidity / [metadata &]* )
    */
   std::string getFullUrlForRetrieval(CURL* curl, const std::string& path, const std::map<std::string, std::string>& metadata,
-                                     long timestamp = -1) const;
+                                     long timestamp = -1, int hostIndex = 0) const;
 
  public:
   /**
@@ -411,7 +435,7 @@ class CcdbApi //: public DatabaseInterface
   void* navigateURLsAndRetrieveContent(CURL*, std::string const& url, std::type_info const& tinfo, std::map<std::string, std::string>* headers) const;
 
   // helper that interprets a content chunk as TMemFile and extracts the object therefrom
-  void* interpretAsTMemFileAndExtract(char* contentptr, size_t contentsize, std::type_info const& tinfo) const;
+  static void* interpretAsTMemFileAndExtract(char* contentptr, size_t contentsize, std::type_info const& tinfo);
 
   /**
    * Initialization of CURL
@@ -421,8 +445,39 @@ class CcdbApi //: public DatabaseInterface
   // convert type_info to TClass, throw on failure
   static TClass* tinfo2TClass(std::type_info const& tinfo);
 
+  // split string on delimiters and return tokens as vector
+  std::vector<std::string> splitString(std::string string, const char* delimiters);
+
+  typedef size_t (*CurlWriteCallback)(void*, size_t, size_t, void*);
+
+  void initCurlOptionsForRetrieve(CURL* curlHandle, void* pointer, CurlWriteCallback writeCallback, bool followRedirect = true) const;
+
+  void initHeadersForRetrieve(CURL* curlHandle, long timestamp, std::map<std::string, std::string>* headers, std::string const& etag,
+                              const std::string& createdNotAfter, const std::string& createdNotBefore) const;
+
+  bool receiveToFile(FILE* fileHandle, std::string const& path, std::map<std::string, std::string> const& metadata,
+                     long timestamp, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
+                     const std::string& createdNotAfter = "", const std::string& createdNotBefore = "", bool followRedirect = true) const;
+
+  bool receiveToMemory(void* chunk, std::string const& path, std::map<std::string, std::string> const& metadata,
+                       long timestamp, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
+                       const std::string& createdNotAfter = "", const std::string& createdNotBefore = "", bool followRedirect = true) const;
+
+  bool receiveObject(void* dataHolder, std::string const& path, std::map<std::string, std::string> const& metadata,
+                     long timestamp, std::map<std::string, std::string>* headers, std::string const& etag,
+                     const std::string& createdNotAfter, const std::string& createdNotBefore, bool followRedirect, CurlWriteCallback writeCallback) const;
+
+  /**
+  * Initialize hostsPool
+  * @param hosts string with hosts separated by "," or ";"
+  */
+  void initHostsPool(std::string hosts);
+
+  std::string getHostUrl(int hostIndex) const;
+
   /// Base URL of the CCDB (with port)
   std::string mUrl{};
+  std::vector<std::string> hostsPool{};
   std::string mSnapshotTopPath{};
   bool mInSnapshotMode = false;
   mutable TGrid* mAlienInstance = nullptr;                       // a cached connection to TGrid (needed for Alien locations)

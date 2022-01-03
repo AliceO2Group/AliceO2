@@ -19,7 +19,7 @@
 
 #endif
 
-using timePoint = std::time_t;
+using timePoint = long;
 using DetID = o2::detectors::DetID;
 using CcdbApi = o2::ccdb::CcdbApi;
 using GRPECSObject = o2::parameters::GRPECSObject;
@@ -56,7 +56,7 @@ void CreateGRPECSObject(timePoint start, uint32_t nHBPerTF, DetID::mask_t detsRe
   api.init(ccdbPath);
   std::map<std::string, std::string> metadata;
   metadata["responsible"] = "ECS";
-  metadata["run_number"] = std::to_string(run);
+  metadata[o2::base::NameConf::CCDBRunTag.data()] = std::to_string(run);
   //long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
   if (end < 0) {
     end = (start + 60 * 60 * 10) * 1000; // start + 10h, in ms

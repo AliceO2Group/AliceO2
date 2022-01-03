@@ -68,6 +68,8 @@ class RawReaderSpecs : public o2f::Task
   uint32_t mDelayUSec = 0;        // Delay in microseconds between TFs
   uint32_t mMinTFID = 0;          // 1st TF to extract
   uint32_t mMaxTFID = 0xffffffff; // last TF to extrct
+  int mVerbosity = 0;
+  bool mPreferCalcTF = false;
   size_t mLoopsDone = 0;
   size_t mSentSize = 0;
   size_t mSentMessages = 0;
@@ -85,7 +87,7 @@ class RawReaderSpecs : public o2f::Task
 
 //___________________________________________________________
 RawReaderSpecs::RawReaderSpecs(const ReaderInp& rinp)
-  : mLoop(rinp.loop < 0 ? INT_MAX : (rinp.loop < 1 ? 1 : rinp.loop)), mDelayUSec(rinp.delay_us), mMinTFID(rinp.minTF), mMaxTFID(rinp.maxTF), mPartPerSP(rinp.partPerSP), mReader(std::make_unique<o2::raw::RawFileReader>(rinp.inifile, 0, rinp.bufferSize)), mRawChannelName(rinp.rawChannelConfig)
+  : mLoop(rinp.loop < 0 ? INT_MAX : (rinp.loop < 1 ? 1 : rinp.loop)), mDelayUSec(rinp.delay_us), mMinTFID(rinp.minTF), mMaxTFID(rinp.maxTF), mPartPerSP(rinp.partPerSP), mReader(std::make_unique<o2::raw::RawFileReader>(rinp.inifile, rinp.verbosity, rinp.bufferSize)), mRawChannelName(rinp.rawChannelConfig), mVerbosity(rinp.verbosity), mPreferCalcTF(rinp.preferCalcTF)
 {
   mReader->setCheckErrors(rinp.errMap);
   mReader->setMaxTFToRead(rinp.maxTF);
@@ -234,7 +236,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
     if (!mDropTFMap.empty()) { // some TFs should be dropped
       auto res = mDropTFMap.find(link.origin.str);
       if (res != mDropTFMap.end() && (mTFCounter % res->second.first) == res->second.second) {
-        LOG(info) << "Droppint " << mTFCounter << " for " << link.origin.str << "/" << link.description.str << "/" << link.subspec;
+        LOG(info) << "Dropping " << mTFCounter << " for " << link.origin.str << "/" << link.description.str << "/" << link.subspec;
         continue; // drop the data
       }
     }
@@ -247,7 +249,9 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
     hdrTmpl.payloadSerializationMethod = o2h::gSerializationMethodNone;
     hdrTmpl.splitPayloadParts = nParts;
     hdrTmpl.tfCounter = mTFCounter;
-
+    if (mVerbosity > 1) {
+      LOG(info) << link.describe() << " will read " << nParts << " HBFs starting from block " << link.nextBlock2Read;
+    }
     const auto fmqChannel = findOutputChannel(hdrTmpl);
     if (fmqChannel.empty()) { // no output channel
       continue;
@@ -269,7 +273,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
       if (hdrTmpl.splitPayloadIndex == 0) {
         auto ir = o2::raw::RDHUtils::getHeartBeatIR(plMessage->GetData());
         auto tfid = hbfU.getTF(ir);
-        firstOrbit = hdrTmpl.firstTForbit = hbfU.getIRTF(tfid).orbit; // will be picked for the following parts
+        firstOrbit = hdrTmpl.firstTForbit = (mPreferCalcTF || !link.cruDetector) ? hbfU.getIRTF(tfid).orbit : ir.orbit; // will be picked for the following parts
         creationTime = hbfU.getTFTimeStamp({0, firstOrbit});
       }
       o2::header::Stack headerStack{hdrTmpl, o2::framework::DataProcessingHeader{mTFCounter, 1, creationTime}};

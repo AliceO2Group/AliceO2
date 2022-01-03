@@ -66,9 +66,11 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   static constexpr std::string_view CCDBOBJECT = "ccdb_object"; // hardcoded
   static constexpr std::string_view CCDBMETA = "ccdb_meta";     // hardcoded
   static constexpr std::string_view CCDBQUERY = "ccdb_query";   // hardcoded
+  static constexpr std::string_view CCDBRunTag = "runNumber";
 
   // Filename to store geometry file
   static std::string getGeomFileName(const std::string_view prefix = "");
+  static std::string getAlignedGeomFileName(const std::string_view prefix = "");
 
   // Filename to store material LUT file
   static std::string getMatLUTFileName(const std::string_view prefix = "");
@@ -116,6 +118,7 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   static constexpr std::string_view KINE_STRING = "Kine";               // hardcoded
   static constexpr std::string_view MCHEADER_STRING = "MCHeader";       // hardcoded
   static constexpr std::string_view GEOM_FILE_STRING = "geometry";
+  static constexpr std::string_view ALIGNEDGEOM_FILE_STRING = "geometry-aligned";
   static constexpr std::string_view CUT_FILE_STRING = "proc-cut";
   static constexpr std::string_view CONFIG_STRING = "configuration";
   static constexpr std::string_view ROOT_EXT_STRING = "root";

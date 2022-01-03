@@ -13,7 +13,14 @@ o2_add_library(MCHBase
          SOURCES
            src/PreCluster.cxx
            src/TrackBlock.cxx
+           src/Trackable.cxx
          PUBLIC_LINK_LIBRARIES O2::DataFormatsMCH)
 
 o2_target_root_dictionary(MCHBase
   HEADERS include/MCHBase/DecoderError.h)
+
+o2_add_test(trackable
+            SOURCES src/testTrackable.cxx
+            COMPONENT_NAME mch
+            PUBLIC_LINK_LIBRARIES O2::MCHBase
+            LABELS muon;mch)

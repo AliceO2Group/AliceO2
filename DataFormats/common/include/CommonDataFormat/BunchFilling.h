@@ -28,7 +28,7 @@ class BunchFilling
   using Pattern = std::bitset<o2::constants::lhc::LHCMaxBunches>;
 
   BunchFilling() = default;
-  BunchFilling(const std::string& beamA, const std::string& beanC);
+  BunchFilling(const std::string& beamA, const std::string& beamC);
   BunchFilling(const std::string& interactingBC);
 
   // this is a pattern creator similar to Run1/2 AliTriggerBCMask
@@ -38,16 +38,19 @@ class BunchFilling
   //  - spaces, new lines are white characters
   static Pattern createPattern(const std::string& p);
 
+  // create pattern string from filled bucket
+  static std::string buckets2PatternString(const std::vector<int>& buckets, int ibeam);
+
   // get interacting bunches pattern (B)
   const auto& getBCPattern() const { return mPattern; }
 
-  // get pattern or clockwise (1, A) and anticlockwise (0, C) beams at P2
+  // get pattern or clockwise (0, A) and anticlockwise (1, C) beams at P2
   const auto& getBeamPattern(int beam) const { return mBeamAC[beam]; }
 
   // get pattern of interacting BCs (-1) or beams filled BCs at P2 (0,1)
   const auto& getPattern(int dir = -1) const { return dir < 0 ? getBCPattern() : getBeamPattern(dir); }
 
-  // get number of interacting bunches (-1) and number of filled bunches for clockwise (1, A) and anticlockwise (0, C) beams
+  // get number of interacting bunches (-1) and number of filled bunches for clockwise (0, A) and anticlockwise (1, C) beams
   int getNBunches(int dir = -1) const { return dir < 0 ? mPattern.count() : mBeamAC[dir].count(); }
 
   // test interacting bunch
@@ -56,7 +59,7 @@ class BunchFilling
   // test bean bunch
   bool testBeamBunch(int bcID, int dir) const { return mBeamAC[dir][bcID]; }
 
-  // test interacting (-1) or clockwise (1, A) and anticlockwise (0, C) beams bunch
+  // test interacting (-1) or clockwise (0, A) and anticlockwise (1, C) beams bunch
   bool testBC(int bcID, int dir = -1) const { return dir < 0 ? testInteractingBC(bcID) : testBeamBunch(bcID, dir); }
 
   // BC setters, dir=-1 is for interacting bunches pattern, 0, 1 for clockwise (C) and anticlockwise (A) beams
@@ -94,7 +97,7 @@ class BunchFilling
   static bool parsePattern(const unsigned char*& input, Pattern& patt, int& ibit, int& level);
 
   Pattern mPattern{};                                                 // Pattern of interacting BCs at P2
-  std::array<Pattern, o2::constants::lhc::NBeamDirections> mBeamAC{}; // pattern of 2 beam bunches at P2, 0 for C, 1 for A beam
+  std::array<Pattern, o2::constants::lhc::NBeamDirections> mBeamAC{}; // pattern of 2 beam bunches at P2, 0 for A, 1 for C beam
 
   ClassDefNV(BunchFilling, 2);
 };
