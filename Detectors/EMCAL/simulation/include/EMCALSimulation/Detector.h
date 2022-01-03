@@ -202,12 +202,13 @@ class Detector : public o2::base::DetImpl<Detector>
   Int_t mCurrentPrimaryID; //!<! ID of the current primary
   Int_t mCurrentParentID;  //!<! ID of the current parent
 
-  Double_t mSampleWidth; //!<! sample width = double(g->GetECPbRadThick()+g->GetECScintThick());
-  Double_t mSmodPar0;    //!<! x size of super module
-  Double_t mSmodPar1;    //!<! y size of super module
-  Double_t mSmodPar2;    //!<! z size of super module
-  Double_t mInnerEdge;   //!<! Inner edge of DCAL super module
-  Double_t mParEMOD[5];  //!<! parameters of EMCAL module (TRD1,2)
+  Double_t mSampleWidth;  //!<! sample width = double(g->GetECPbRadThick()+g->GetECScintThick());
+  Double_t mSmodPar0;     //!<! x size of super module
+  Double_t mSmodPar1;     //!<! y size of super module
+  Double_t mSmodPar2;     //!<! z size of super module
+  Double_t mInnerEdge;    //!<! Inner edge of DCAL super module
+  Double_t mDCALInnerGap; //!<! Gap added to inner part of the DCAL supermodule in order to prevent extruding due to tower tilting
+  Double_t mParEMOD[5];   //!<! parameters of EMCAL module (TRD1,2)
 
   template <typename Det>
   friend class o2::base::DetImpl;
