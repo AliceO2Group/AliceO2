@@ -183,7 +183,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
   // option to use/not use CCDB for TOF
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-tof", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
-  workflowOptions.push_back(ConfigParamSpec{"timestamp-tof", o2::framework::VariantType::Int, 0, {"timestamp in seconds"}});
+  workflowOptions.push_back(ConfigParamSpec{"timestamp-tof", o2::framework::VariantType::Int, -1, {"timestamp in seconds"}});
 
   // option to use or not use the Trap Simulator after digitisation (debate of digitization or reconstruction is for others)
   workflowOptions.push_back(ConfigParamSpec{"disable-trd-trapsim", VariantType::Bool, false, {"disable the trap simulation of the TRD"}});
@@ -516,6 +516,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     auto useCCDB = configcontext.options().get<bool>("use-ccdb-tof");
     auto ccdb_url_tof = o2::base::NameConf::getCCDBServer();
     auto timestamp = configcontext.options().get<int>("timestamp-tof");
+
+    if (timestamp < 0) {
+      timestamp = o2::raw::HBFUtils::Instance().startTime / 1000;
+    }
+
     detList.emplace_back(o2::detectors::DetID::TOF);
     // connect the TOF digitization
     specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB, mctruth, ccdb_url_tof.c_str(), timestamp));
