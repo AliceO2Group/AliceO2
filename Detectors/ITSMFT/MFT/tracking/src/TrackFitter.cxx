@@ -131,10 +131,13 @@ bool TrackFitter<T>::initTrack(T& track, bool outward)
     deltaY = track.getYCoordinates()[first_cls] - track.getYCoordinates()[next_cls];
     deltaZ = track.getZCoordinates()[first_cls] - track.getZCoordinates()[next_cls];
     deltaR = TMath::Sqrt(deltaX * deltaX + deltaY * deltaY);
-    auto phi0 = TMath::ATan2(deltaY, deltaX) - 0.5 * Hz * invQPt0 * std::abs(deltaZ) * k / tanl0;
+    double phi0;
     if (outward) {
-      phi0 += TMath::Pi();
+      phi0 = TMath::ATan2(-deltaY, -deltaX) - 0.5 * Hz * invQPt0 * deltaZ * k / tanl0;
+    } else {
+      phi0 = TMath::ATan2(deltaY, deltaX) - 0.5 * Hz * invQPt0 * deltaZ * k / tanl0;
     }
+    // The low momentum phi0 correction may be irrelevant and may require a call to o2::math_utils::bringToPMPiGend(phi0);
 
     track.setX(x0);
     track.setY(y0);
@@ -201,9 +204,11 @@ bool TrackFitter<T>::initTrack(T& track, bool outward)
     auto deltaZ = track.getZCoordinates()[first_cls] - track.getZCoordinates()[next_cls];
     auto deltaR = TMath::Sqrt(deltaX * deltaX + deltaY * deltaY);
     auto tanl0 = -std::abs(deltaZ) / deltaR;
-    auto phi0 = TMath::ATan2(deltaY, deltaX);
+    double phi0;
     if (outward) {
-      phi0 += TMath::Pi();
+      phi0 = TMath::ATan2(-deltaY, -deltaX);
+    } else {
+      phi0 = TMath::ATan2(deltaY, deltaX);
     }
 
     track.setX(x0);
