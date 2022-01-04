@@ -416,6 +416,7 @@ AddOption(mutexMemReg, bool, false, "", 0, "Global mutex to serialize GPU memory
 AddOption(printSettings, int, 0, "", 0, "Print all settings", def(1))
 AddOption(gpuDisplayfilterMacro, std::string, "", "", 0, "File name of ROOT macro for GPU display filter")
 AddOption(benchmarkMemoryRegistration, bool, false, "", 0, "Time-benchmark for memory registration")
+AddOption(registerSelectedSegmentIds, int, -1, "", 0, "Register only a specific managed shm segment id (-1 = all)")
 EndConfig()
 #endif // GPUCA_O2_LIB
 #endif // !GPUCA_GPUCODE_DEVICE
