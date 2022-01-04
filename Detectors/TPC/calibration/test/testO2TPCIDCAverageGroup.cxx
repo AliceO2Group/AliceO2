@@ -88,7 +88,7 @@ std::vector<float> getIDCsSide()
 
 BOOST_AUTO_TEST_CASE(AverageGroupSector_test)
 {
-  srand(time(0));
+  std::srand(std::time(nullptr));
 
   const static auto& paramIDCGroup = ParameterIDCGroup::Instance();
   BOOST_CHECK(paramIDCGroup.method == AveragingMethod::FAST);
