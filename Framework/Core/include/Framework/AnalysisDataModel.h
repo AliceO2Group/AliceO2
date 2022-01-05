@@ -735,11 +735,21 @@ namespace soa
 {
 extern template struct Join<aod::TransientCascades, aod::StoredCascades>;
 }
+
 namespace aod
 {
-
 using Cascades = soa::Join<TransientCascades, StoredCascades>;
 using Cascade = Cascades::iterator;
+
+namespace origin
+{
+DECLARE_SOA_COLUMN(DataframeID, dataframeID, uint64_t); //! Data frame ID (what is usually found in directory name in the AO2D.root, i.e. DF_XXX)
+} // namespace origin
+
+DECLARE_SOA_TABLE(Origins, "AOD", "ORIGIN", //! Table which contains the IDs of all dataframes merged into this dataframe
+                  o2::soa::Index<>, origin::DataframeID);
+
+using Origin = Origins::iterator;
 
 // ---- Run 2 tables ----
 namespace run2
