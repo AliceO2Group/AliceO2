@@ -314,7 +314,40 @@ std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> B
       mSizeBranch->Reset();
       mSizeBranch->GetTransientBuffer(0)->Expand(0);
 
-      delete[] ptr;
+      switch (mType) {
+        case EDataType::kUChar_t:
+          delete[] static_cast<uint8_t*>(ptr);
+          break;
+        case EDataType::kUShort_t:
+          delete[] static_cast<uint16_t*>(ptr);
+          break;
+        case EDataType::kUInt_t:
+          delete[] static_cast<uint32_t*>(ptr);
+          break;
+        case EDataType::kULong64_t:
+          delete[] static_cast<uint64_t*>(ptr);
+          break;
+        case EDataType::kChar_t:
+          delete[] static_cast<int8_t*>(ptr);
+          break;
+        case EDataType::kShort_t:
+          delete[] static_cast<int16_t*>(ptr);
+          break;
+        case EDataType::kInt_t:
+          delete[] static_cast<int32_t*>(ptr);
+          break;
+        case EDataType::kLong64_t:
+          delete[] static_cast<int64_t*>(ptr);
+          break;
+        case EDataType::kFloat_t:
+          delete[] static_cast<float*>(ptr);
+          break;
+        case EDataType::kDouble_t:
+          delete[] static_cast<double*>(ptr);
+          break;
+        default:
+          throw runtime_error("Unsupported branch type");
+      }
     } else {
       auto&& result = arrow::AllocateResizableBuffer(mBranch->GetTotBytes(), mPool);
       if (!result.ok()) {
