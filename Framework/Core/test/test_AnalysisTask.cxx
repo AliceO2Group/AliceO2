@@ -129,6 +129,16 @@ struct JTask {
   }
 };
 
+struct KTask {
+  struct : public ConfigurableGroup {
+    Configurable<int> anInt{"someConfigurable", {}, "Some Configurable Object"};
+    Configurable<int> anotherInt{"someOtherConfigurable", {}, "Some Configurable Object"};
+  } foo;
+  Configurable<int> anThirdInt{"someThirdConfigurable", {}, "Some Configurable Object"};
+  std::unique_ptr<int> someInt;
+  std::shared_ptr<int> someSharedInt;
+};
+
 BOOST_AUTO_TEST_CASE(AdaptorCompilation)
 {
   auto cfgc = makeEmptyConfigContext();
@@ -182,6 +192,9 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
   BOOST_CHECK_EQUAL(task9.inputs.size(), 4);
 
   auto task10 = adaptAnalysisTask<JTask>(*cfgc, TaskName{"test10"});
+
+  auto task11 = adaptAnalysisTask<KTask>(*cfgc, TaskName{"test11"});
+  BOOST_CHECK_EQUAL(task11.options.size(), 3);
 }
 
 BOOST_AUTO_TEST_CASE(TestPartitionIteration)

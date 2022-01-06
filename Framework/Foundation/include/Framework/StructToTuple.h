@@ -276,11 +276,12 @@ constexpr long brace_constructible_size()
     return std::vector<decltype(l(p0))>{DPL_FENUM_##d##0(l, p, )}; \
   }
 
-template <typename L, class T>
-auto constexpr homogeneous_apply_refs(L l, T&& object)
+template <bool B = false, typename L, class T>
+auto homogeneous_apply_refs(L l, T&& object)
 {
   using type = std::decay_t<T>;
-  constexpr unsigned long numElements = brace_constructible_size<T>();
+  constexpr int nesting = B ? 1 : 0;
+  constexpr unsigned long numElements = brace_constructible_size<T>() - nesting;
   // clang-format off
   if DPL_HOMOGENEOUS_APPLY_ENTRY (9, 9)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY (9, 8)

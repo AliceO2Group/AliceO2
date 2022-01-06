@@ -411,15 +411,26 @@ struct ServiceManager<Service<T>> {
 template <typename T>
 struct OptionManager {
   template <typename ANY>
-  static bool appendOption(std::vector<ConfigParamSpec>&, ANY&)
+  static bool appendOption(std::vector<ConfigParamSpec>& options, ANY& x)
   {
-    return false;
+    /// Recurse, in case we are brace constructible
+    if constexpr (std::is_base_of_v<ConfigurableGroup, ANY>) {
+      homogeneous_apply_refs<true>([&options](auto& y) { return OptionManager<std::decay_t<decltype(y)>>::appendOption(options, y); }, x);
+      return true;
+    } else {
+      return false;
+    }
   }
 
   template <typename ANY>
-  static bool prepare(InitContext&, ANY&)
+  static bool prepare(InitContext& ic, ANY& x)
   {
-    return false;
+    if constexpr (std::is_base_of_v<ConfigurableGroup, ANY>) {
+      homogeneous_apply_refs<true>([&ic](auto&& y) { return OptionManager<std::decay_t<decltype(y)>>::prepare(ic, y); }, x);
+      return true;
+    } else {
+      return false;
+    }
   }
 };
 
