@@ -67,6 +67,7 @@ class GloFwdAssessment
 
   void runBasicQC(o2::framework::ProcessingContext& ctx);
   void processPairables();
+  void processGeneratedTracks();
   void processRecoAndTrueTracks();
   void addMCParticletoHistos(const MCTrack* mcTr, const int TrackType, const o2::dataformats::MCEventHeader& evH);
 
@@ -128,6 +129,10 @@ class GloFwdAssessment
   // Histos for reconstruction assessment
 
   std::unique_ptr<TEfficiency> mChargeMatchEff = nullptr;
+  std::unique_ptr<TEfficiency> mPurityPt = nullptr;
+  std::unique_ptr<TEfficiency> mPurityPtInner = nullptr;
+  std::unique_ptr<TEfficiency> mPurityPtOuter = nullptr;
+  std::unique_ptr<TH2D> mPairingEtaPt = nullptr;
 
   enum TH3HistosCodes {
     kTH3GMTrackDeltaXDeltaYEta,
@@ -135,12 +140,20 @@ class GloFwdAssessment
     kTH3GMTrackDeltaXVertexPtEta,
     kTH3GMTrackDeltaYVertexPtEta,
     kTH3GMTrackInvQPtResolutionPtEta,
+    kTH3GMTrackInvQPtResMCHPtEta,
     kTH3GMTrackXPullPtEta,
     kTH3GMTrackYPullPtEta,
     kTH3GMTrackPhiPullPtEta,
     kTH3GMTrackTanlPullPtEta,
     kTH3GMTrackInvQPtPullPtEta,
     kTH3GMTrackReducedChi2PtEta,
+    kTH3GMTrackPtEtaChi2,
+    kTH3GMTrackPtEtaMatchScore,
+    kTH3GMTruePtEtaChi2,
+    kTH3GMTruePtEtaMatchScore,
+    kTH3GMCloseMatchPtEtaChi2,
+    kTH3GMCloseMatchPtEtaMatchScore,
+    kTH3GMPairablePtEtaZ,
     kNTH3Histos
   };
 
@@ -150,12 +163,20 @@ class GloFwdAssessment
     {kTH3GMTrackDeltaXVertexPtEta, "TH3GMTrackDeltaXVertexPtEta"},
     {kTH3GMTrackDeltaYVertexPtEta, "TH3GMTrackDeltaYVertexPtEta"},
     {kTH3GMTrackInvQPtResolutionPtEta, "TH3GMTrackInvQPtResolutionPtEta"},
+    {kTH3GMTrackInvQPtResMCHPtEta, "TH3GMTrackInvQPtResMCHPtEta"},
     {kTH3GMTrackXPullPtEta, "TH3GMTrackXPullPtEta"},
     {kTH3GMTrackYPullPtEta, "TH3GMTrackYPullPtEta"},
     {kTH3GMTrackPhiPullPtEta, "TH3GMTrackPhiPullPtEta"},
     {kTH3GMTrackTanlPullPtEta, "TH3GMTrackTanlPullPtEta"},
     {kTH3GMTrackInvQPtPullPtEta, "TH3GMTrackInvQPtPullPtEta"},
-    {kTH3GMTrackReducedChi2PtEta, "TH3GMTrackReducedChi2PtEta"}};
+    {kTH3GMTrackReducedChi2PtEta, "TH3GMTrackReducedChi2PtEta"},
+    {kTH3GMCloseMatchPtEtaChi2, "TH3GMCloseMatchPtEtaChi2"},
+    {kTH3GMCloseMatchPtEtaMatchScore, "TH3GMCloseMatchPtEtaMatchScore"},
+    {kTH3GMPairablePtEtaZ, "TH3GMPairablePtEtaZ"},
+    {kTH3GMTrackPtEtaChi2, "TH3GMTrackPtEtaChi2"},
+    {kTH3GMTrackPtEtaMatchScore, "TH3GMTrackPtEtaMatchScore"},
+    {kTH3GMTruePtEtaChi2, "TH3GMTruePtEtaChi2"},
+    {kTH3GMTruePtEtaMatchScore, "TH3GMTruePtEtaMatchScore"}};
 
   std::map<int, const char*> TH3Titles{
     {kTH3GMTrackDeltaXDeltaYEta, "TH3GMTrackDeltaXDeltaYEta"},
@@ -163,51 +184,83 @@ class GloFwdAssessment
     {kTH3GMTrackDeltaXVertexPtEta, "TH3GMTrackDeltaXVertexPtEta"},
     {kTH3GMTrackDeltaYVertexPtEta, "TH3GMTrackDeltaYVertexPtEta"},
     {kTH3GMTrackInvQPtResolutionPtEta, "TH3GMTrackInvQPtResolutionPtEta"},
+    {kTH3GMTrackInvQPtResMCHPtEta, "TH3GMTrackInvQPtResMCHPtEta"},
     {kTH3GMTrackXPullPtEta, "TH3GMTrackXPullPtEta"},
     {kTH3GMTrackYPullPtEta, "TH3GMTrackYPullPtEta"},
     {kTH3GMTrackPhiPullPtEta, "TH3GMTrackPhiPullPtEta"},
     {kTH3GMTrackTanlPullPtEta, "TH3GMTrackTanlPullPtEta"},
     {kTH3GMTrackInvQPtPullPtEta, "TH3GMTrackInvQPtPullPtEta"},
-    {kTH3GMTrackReducedChi2PtEta, "TH3GMTrackReducedChi2PtEta"}};
+    {kTH3GMTrackReducedChi2PtEta, "TH3GMTrackReducedChi2PtEta"},
+    {kTH3GMCloseMatchPtEtaChi2, "TH3GMCloseMatchPtEtaChi2"},
+    {kTH3GMCloseMatchPtEtaMatchScore, "TH3GMCloseMatchPtEtaMatchScore"},
+    {kTH3GMPairablePtEtaZ, "TH3GMPairablePtEtaZ"},
+    {kTH3GMTrackPtEtaChi2, "TH3GMTrackPtEtaChi2"},
+    {kTH3GMTrackPtEtaMatchScore, "TH3GMTrackPtEtaMatchScore"},
+    {kTH3GMTruePtEtaChi2, "TH3GMTruePtEtaChi2"},
+    {kTH3GMTruePtEtaMatchScore, "TH3GMTruePtEtaMatchScore"}};
 
   std::map<int, std::array<double, 9>> TH3Binning{
     {kTH3GMTrackDeltaXDeltaYEta, {16, 2.2, 3.8, 1000, -1000, 1000, 1000, -1000, 1000}},
-    {kTH3GMTrackDeltaXDeltaYPt, {100, 0, 20, 1000, -1000, 1000, 1000, -1000, 1000}},
-    {kTH3GMTrackDeltaYVertexPtEta, {100, 0, 20, 16, 2.2, 3.8, 1000, -1000, 1000}},
-    {kTH3GMTrackDeltaXVertexPtEta, {100, 0, 20, 16, 2.2, 3.8, 1000, -1000, 1000}},
-    {kTH3GMTrackInvQPtResolutionPtEta, {100, 0, 20, 16, 2.2, 3.8, 1000, -50, 50}},
-    {kTH3GMTrackXPullPtEta, {100, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
-    {kTH3GMTrackYPullPtEta, {100, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
-    {kTH3GMTrackPhiPullPtEta, {100, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
-    {kTH3GMTrackTanlPullPtEta, {100, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
-    {kTH3GMTrackInvQPtPullPtEta, {100, 0, 20, 16, 2.2, 3.8, 200, -50, 50}},
-    {kTH3GMTrackReducedChi2PtEta, {100, 0, 20, 16, 2.2, 3.8, 1000, 0, 100}}};
+    {kTH3GMTrackDeltaXDeltaYPt, {40, 0, 20, 1000, -1000, 1000, 1000, -1000, 1000}},
+    {kTH3GMTrackDeltaYVertexPtEta, {40, 0, 20, 16, 2.2, 3.8, 1000, -1000, 1000}},
+    {kTH3GMTrackDeltaXVertexPtEta, {40, 0, 20, 16, 2.2, 3.8, 1000, -1000, 1000}},
+    {kTH3GMTrackInvQPtResolutionPtEta, {40, 0, 20, 16, 2.2, 3.8, 1000, -5, 5}},
+    {kTH3GMTrackInvQPtResMCHPtEta, {40, 0, 20, 16, 2.2, 3.8, 1000, -5, 5}},
+    {kTH3GMTrackXPullPtEta, {40, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
+    {kTH3GMTrackYPullPtEta, {40, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
+    {kTH3GMTrackPhiPullPtEta, {40, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
+    {kTH3GMTrackTanlPullPtEta, {40, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
+    {kTH3GMTrackInvQPtPullPtEta, {40, 0, 20, 16, 2.2, 3.8, 200, -50, 50}},
+    {kTH3GMTrackReducedChi2PtEta, {40, 0, 20, 16, 2.2, 3.8, 1000, 0, 100}},
+    {kTH3GMCloseMatchPtEtaChi2, {40, 0, 20, 16, 2.2, 3.8, 1000, 0, 100}},
+    {kTH3GMCloseMatchPtEtaMatchScore, {40, 0, 20, 16, 2.2, 3.8, 2000, 0, 20.0}},
+    {kTH3GMPairablePtEtaZ, {40, 0, 20, 16, 2.2, 3.8, 30, -15, 15}},
+    {kTH3GMTrackPtEtaChi2, {40, 0, 20, 16, 2.2, 3.8, 1000, 0, 100}},
+    {kTH3GMTrackPtEtaMatchScore, {40, 0, 20, 16, 2.2, 3.8, 2000, 0, 20.0}},
+    {kTH3GMTruePtEtaChi2, {40, 0, 20, 16, 2.2, 3.8, 1000, 0, 100}},
+    {kTH3GMTruePtEtaMatchScore, {40, 0, 20, 16, 2.2, 3.8, 2000, 0, 20.0}}};
 
   std::map<int, const char*> TH3XaxisTitles{
-    {kTH3GMTrackDeltaXDeltaYEta, R"(\\eta)"},
-    {kTH3GMTrackDeltaXDeltaYPt, R"(p_{t})"},
-    {kTH3GMTrackDeltaXVertexPtEta, R"(p_{t})"},
-    {kTH3GMTrackDeltaYVertexPtEta, R"(p_{t})"},
-    {kTH3GMTrackInvQPtResolutionPtEta, R"(p_{t})"},
-    {kTH3GMTrackXPullPtEta, R"(p_{t})"},
-    {kTH3GMTrackYPullPtEta, R"(p_{t})"},
-    {kTH3GMTrackPhiPullPtEta, R"(p_{t})"},
-    {kTH3GMTrackTanlPullPtEta, R"(p_{t})"},
-    {kTH3GMTrackInvQPtPullPtEta, R"(p_{t})"},
-    {kTH3GMTrackReducedChi2PtEta, R"(p_{t})"}};
+    {kTH3GMTrackDeltaXDeltaYEta, R"(\\eta_{MC})"},
+    {kTH3GMTrackDeltaXDeltaYPt, R"(p_{t}_{MC})"},
+    {kTH3GMTrackDeltaXVertexPtEta, R"(p_{t}_{MC})"},
+    {kTH3GMTrackDeltaYVertexPtEta, R"(p_{t}_{MC})"},
+    {kTH3GMTrackInvQPtResolutionPtEta, R"(p_{t}_{MC})"},
+    {kTH3GMTrackInvQPtResMCHPtEta, R"(p_{t}_{MC})"},
+    {kTH3GMTrackXPullPtEta, R"(p_{t}_{MC})"},
+    {kTH3GMTrackYPullPtEta, R"(p_{t}_{MC})"},
+    {kTH3GMTrackPhiPullPtEta, R"(p_{t}_{MC})"},
+    {kTH3GMTrackTanlPullPtEta, R"(p_{t}_{MC})"},
+    {kTH3GMTrackInvQPtPullPtEta, R"(p_{t}_{MC})"},
+    {kTH3GMTrackReducedChi2PtEta, R"(p_{t}_{MC})"},
+    {kTH3GMCloseMatchPtEtaChi2, R"(p_{t}_{Fit}_{MC})"},
+    {kTH3GMCloseMatchPtEtaMatchScore, R"(p_{t}_{Fit}_{MC})"},
+    {kTH3GMPairablePtEtaZ, R"(p_{t}_{Fit}_{MC})"},
+    {kTH3GMTrackPtEtaChi2, R"(p_{t}_{Fit}_{MC})"},
+    {kTH3GMTrackPtEtaMatchScore, R"(p_{t}_{Fit}_{MC})"},
+    {kTH3GMTruePtEtaChi2, R"(p_{t}_{Fit}_{MC})"},
+    {kTH3GMTruePtEtaMatchScore, R"(p_{t}_{Fit}_{MC})"}};
 
   std::map<int, const char*> TH3YaxisTitles{
     {kTH3GMTrackDeltaXDeltaYEta, R"(X_{residual \rightarrow vtx} (\mu m))"},
     {kTH3GMTrackDeltaXDeltaYPt, R"(X_{residual \rightarrow vtx} (\mu m))"},
-    {kTH3GMTrackDeltaXVertexPtEta, R"(\eta)"},
-    {kTH3GMTrackDeltaYVertexPtEta, R"(\eta)"},
-    {kTH3GMTrackInvQPtResolutionPtEta, R"(\eta)"},
-    {kTH3GMTrackXPullPtEta, R"(\eta)"},
-    {kTH3GMTrackYPullPtEta, R"(\eta)"},
-    {kTH3GMTrackPhiPullPtEta, R"(\eta)"},
-    {kTH3GMTrackTanlPullPtEta, R"(\eta)"},
-    {kTH3GMTrackInvQPtPullPtEta, R"(\eta)"},
-    {kTH3GMTrackReducedChi2PtEta, R"(\eta)"}};
+    {kTH3GMTrackDeltaXVertexPtEta, R"(\eta_{MC}v)"},
+    {kTH3GMTrackDeltaYVertexPtEta, R"(\eta_{MC})"},
+    {kTH3GMTrackInvQPtResolutionPtEta, R"(\eta_{MC})"},
+    {kTH3GMTrackInvQPtResMCHPtEta, R"(\eta_{MC})"},
+    {kTH3GMTrackXPullPtEta, R"(\eta_{MC})"},
+    {kTH3GMTrackYPullPtEta, R"(\eta_{MC})"},
+    {kTH3GMTrackPhiPullPtEta, R"(\eta_{MC})"},
+    {kTH3GMTrackTanlPullPtEta, R"(\eta_{MC})"},
+    {kTH3GMTrackInvQPtPullPtEta, R"(\eta_{MC})"},
+    {kTH3GMTrackReducedChi2PtEta, R"(\eta_{MC})"},
+    {kTH3GMCloseMatchPtEtaChi2, R"(\eta_{Fit})"},
+    {kTH3GMCloseMatchPtEtaMatchScore, R"(\eta_{Fit})"},
+    {kTH3GMPairablePtEtaZ, R"(\eta_{MC})"},
+    {kTH3GMTrackPtEtaChi2, R"(\eta_{Fit})"},
+    {kTH3GMTrackPtEtaMatchScore, R"(\eta_{Fit})"},
+    {kTH3GMTruePtEtaChi2, R"(\eta_{Fit})"},
+    {kTH3GMTruePtEtaMatchScore, R"(\eta_{Fit})"}};
 
   std::map<int, const char*> TH3ZaxisTitles{
     {kTH3GMTrackDeltaXDeltaYEta, R"(Y_{residual \rightarrow vtx} (\mu m))"},
@@ -215,12 +268,20 @@ class GloFwdAssessment
     {kTH3GMTrackDeltaXVertexPtEta, R"(X_{residual \rightarrow vtx} (\mu m))"},
     {kTH3GMTrackDeltaYVertexPtEta, R"(Y_{residual \rightarrow vtx} (\mu m))"},
     {kTH3GMTrackInvQPtResolutionPtEta, R"((q/p_{t})_{residual}/(q/p_{t}))"},
+    {kTH3GMTrackInvQPtResMCHPtEta, R"((q/p_{t})_{residual}/(q/p_{t}))"},
     {kTH3GMTrackXPullPtEta, R"(\Delta X/\sigma_{X})"},
     {kTH3GMTrackYPullPtEta, R"(\Delta Y/\sigma_{Y})"},
     {kTH3GMTrackPhiPullPtEta, R"(\Delta \phi/\sigma_{\phi})"},
     {kTH3GMTrackTanlPullPtEta, R"(\Delta \tan(\lambda)/\sigma_{tan(\lambda)})"},
     {kTH3GMTrackInvQPtPullPtEta, R"((\Delta q/p_t)/\sigma_{q/p_{t}})"},
-    {kTH3GMTrackReducedChi2PtEta, R"(\chi^2/d.f.)"}};
+    {kTH3GMTrackReducedChi2PtEta, R"(\chi^2/d.f.)"},
+    {kTH3GMCloseMatchPtEtaChi2, R"(Match \chi^2)"},
+    {kTH3GMCloseMatchPtEtaMatchScore, R"(Matching Score)"},
+    {kTH3GMPairablePtEtaZ, R"(z_{vtx})"},
+    {kTH3GMTrackPtEtaChi2, R"(Match \chi^2)"},
+    {kTH3GMTrackPtEtaMatchScore, R"(Matching Score)"},
+    {kTH3GMTruePtEtaChi2, R"(Match \chi^2)"},
+    {kTH3GMTruePtEtaMatchScore, R"(Matching Score)"}};
 
   enum TH3SlicedCodes {
     kDeltaXVertexVsEta,
@@ -233,8 +294,8 @@ class GloFwdAssessment
     kYPullVsPt,
     kInvQPtResVsEta,
     kInvQPtResVsPt,
-    kInvQPtResSeedVsEta,
-    kInvQPtResSeedVsPt,
+    kInvQPtResMCHVsEta,
+    kInvQPtResMCHVsPt,
     kPhiPullVsEta,
     kPhiPullVsPt,
     kTanlPullVsEta,
@@ -255,8 +316,8 @@ class GloFwdAssessment
     {kYPullVsPt, "YPullVsPt"},
     {kInvQPtResVsEta, "InvQPtResVsEta"},
     {kInvQPtResVsPt, "InvQPtResVsPt"},
-    {kInvQPtResSeedVsEta, "InvQPtResSeedVsEta"},
-    {kInvQPtResSeedVsPt, "InvQPtResSeedVsPt"},
+    {kInvQPtResMCHVsEta, "InvQPtResMCHVsEta"},
+    {kInvQPtResMCHVsPt, "InvQPtResMCHVsPt"},
     {kPhiPullVsEta, "PhiPullVsEta"},
     {kPhiPullVsPt, "PhiPullVsPt"},
     {kTanlPullVsEta, "TanlPullVsEta"},
@@ -275,6 +336,8 @@ class GloFwdAssessment
     {kYPullVsPt, kTH3GMTrackYPullPtEta},
     {kInvQPtResVsEta, kTH3GMTrackInvQPtResolutionPtEta},
     {kInvQPtResVsPt, kTH3GMTrackInvQPtResolutionPtEta},
+    {kInvQPtResMCHVsEta, kTH3GMTrackInvQPtResMCHPtEta},
+    {kInvQPtResMCHVsPt, kTH3GMTrackInvQPtResMCHPtEta},
     {kPhiPullVsEta, kTH3GMTrackPhiPullPtEta},
     {kPhiPullVsPt, kTH3GMTrackPhiPullPtEta},
     {kTanlPullVsEta, kTH3GMTrackTanlPullPtEta},
