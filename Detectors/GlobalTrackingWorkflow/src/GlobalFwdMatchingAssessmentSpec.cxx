@@ -71,7 +71,7 @@ void GlobalFwdAssessmentSpec::run(o2::framework::ProcessingContext& pc)
 
     if (mProcessGen) {
       mTimer[SWGenerated].Start(false);
-      // mGloFwdAssessment->processGeneratedTracks();
+      mGloFwdAssessment->processGeneratedTracks();
       mTimer[SWGenerated].Stop();
     }
     mTimer[SWRecoAndTrue].Start(false);

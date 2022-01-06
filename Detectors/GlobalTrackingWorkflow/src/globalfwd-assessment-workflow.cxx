@@ -23,7 +23,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable use of MC information even if available"}},
     {"disable-process-gen", o2::framework::VariantType::Bool, false, {"disable processing of all generated tracks"}},
     {"disable-MID-filter", o2::framework::VariantType::Bool, false, {"disable MID filter"}},
-    {"finalize-analysis", o2::framework::VariantType::Bool, false, {"Process collected assssment data"}},
+    {"finalize-analysis", o2::framework::VariantType::Bool, false, {"Process collected assment data"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   std::swap(workflowOptions, options);
 }
