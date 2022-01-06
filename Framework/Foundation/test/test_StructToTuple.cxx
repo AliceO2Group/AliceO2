@@ -109,6 +109,18 @@ struct FooMax {
   int foo139 = 39;
 };
 
+struct FooNested {
+  int foo;
+};
+
+struct Foo2 {
+  FooNested foo{
+    .foo = 100};
+  FooNested foo2{
+    .foo = 20};
+  int foo3 = 40;
+};
+
 BOOST_AUTO_TEST_CASE(TestStructToTuple)
 {
   FooMax fooMax;
@@ -117,4 +129,14 @@ BOOST_AUTO_TEST_CASE(TestStructToTuple)
   BOOST_CHECK_EQUAL(t5[0], false);
   BOOST_CHECK_EQUAL(t5[19], false);
   BOOST_CHECK_EQUAL(t5[20], true);
+  Foo2 nestedFoo;
+  auto t6 = o2::framework::homogeneous_apply_refs([](auto e) -> bool {
+    if constexpr (std::is_same_v<decltype(e), FooNested>) {
+      o2::framework::homogeneous_apply_refs([](auto n) -> bool { return n > 20; }, e);
+      return true;
+    } else {
+      return e > 20;
+    }
+  },
+                                                  nestedFoo);
 }
