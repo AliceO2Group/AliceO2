@@ -20,7 +20,7 @@ V0::V0(const std::array<float, 3>& xyz, const std::array<float, 3>& pxyz, const 
 {
   std::array<float, 21> covV{}, covN{};
   trPos.getCovXYZPxPyPzGlo(covV);
-  trPos.getCovXYZPxPyPzGlo(covN);
+  trNeg.getCovXYZPxPyPzGlo(covN);
   for (int i = 0; i < 21; i++) {
     covV[i] += covN[i];
   }
