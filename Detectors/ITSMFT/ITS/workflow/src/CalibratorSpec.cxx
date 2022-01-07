@@ -244,13 +244,6 @@ bool ITSCalibrator<Mapping>::GetThreshold_Fit(const short int* data, const short
 
     bool flip = (*(this->nRange) == this->nITHR);
 
-    //TGraph *g = new TGraph(NPoints, (int*) x, (int*) data);
-    TH1F* g = new TH1F("fit_hist", "fit_hist", *(this->nRange), x[0], x[*(this->nRange) - 1]);
-    TF1* fitfcn = flip ? new TF1("fitfcn", erf_ithr, 0, 1500, 2) : new TF1("fitfcn", erf, 0, 1500, 2);
-    for (int i = 0; i < NPoints; i++) {
-        g->SetBinContent(i + 1, data[i]);
-    }
-
     // Find lower & upper values of the S-curve region
     short int Lower, Upper;
     if (!this->FindUpperLower(data, x, NPoints, Lower, Upper, flip) || Lower == Upper) {
@@ -262,6 +255,13 @@ bool ITSCalibrator<Mapping>::GetThreshold_Fit(const short int* data, const short
     if (Start < 0) {
         LOG(error) << "Start-finding unsuccessful";
         return false;
+    }
+
+    //TGraph *g = new TGraph(NPoints, (int*) x, (int*) data);
+    TH1F* g = new TH1F("fit_hist", "fit_hist", *(this->nRange), x[0], x[*(this->nRange) - 1]);
+    TF1* fitfcn = flip ? new TF1("fitfcn", erf_ithr, 0, 1500, 2) : new TF1("fitfcn", erf, 0, 1500, 2);
+    for (int i = 0; i < NPoints; i++) {
+        g->SetBinContent(i + 1, data[i]);
     }
 
     // Initialize starting parameters
@@ -279,7 +279,7 @@ bool ITSCalibrator<Mapping>::GetThreshold_Fit(const short int* data, const short
     thresh = fitfcn->GetParameter(0);
     float chi2 = fitfcn->GetChisquare() / fitfcn->GetNDF();
 
-    /*  // Testing code to create one S-curve in a ROOT file and then exit
+      // Testing code to create one S-curve in a ROOT file and then exit
     // Initialize ROOT output file
     TFile* tf = new TFile("threshold_scan.root", "UPDATE");
 
@@ -291,11 +291,10 @@ bool ITSCalibrator<Mapping>::GetThreshold_Fit(const short int* data, const short
     // Close file and clean up memory
     tf->Close();
     delete tf;
-    exit(1);
-    */
+    //exit(1);
 
-    g->Delete();
-    fitfcn->Delete();
+    delete g;
+    delete fitfcn;
     return (chi2 < 5 && noise < 15);
 }
 
@@ -317,6 +316,8 @@ bool ITSCalibrator<Mapping>::GetThreshold_Derivative(const short int* data,
         return false;
     }
 
+    LOG(info) << "Lower: " << Lower << " | x(Lower): " << x[Lower] <<
+                 " | Upper: " << Upper << " | x(Upper): " << x[Upper];
     int deriv_size = Upper - Lower;
     float* deriv = new float[deriv_size]; // Maybe better way without ROOT?
     float xfx = 0, fx = 0;
@@ -331,6 +332,7 @@ bool ITSCalibrator<Mapping>::GetThreshold_Derivative(const short int* data,
     }
 
     thresh = xfx / fx;
+    LOG(info) << "threshold: " << thresh;
     float stddev = 0;
     for (int i = Lower; i < Upper; i++) {
         stddev += std::pow(x[i] - thresh, 2) * deriv[i - Lower];
@@ -381,14 +383,17 @@ bool ITSCalibrator<Mapping>::GetThreshold_Hitcounting(const short int* data,
 template <class Mapping>
 void ITSCalibrator<Mapping>::reset_row_hitmap(const short int& chipID, const short int& row) {
 
+    LOG(info) << "inside";
     // Update current row of chip
     this->currentRow[chipID] = row;
 
+    LOG(info) << "middle";
     // Reset pixel hit counts for the chip, new empty hitvec
     // Create a 2D vector to store hits
     // Outer dim = column, inner dim = charge
     this->pixelHits[chipID] = std::vector<std::vector<short int>> (
         this->NCols, std::vector<short int> (*(this->nRange), 0));
+    LOG(info) << "exiting";
 }
 
 
@@ -633,7 +638,7 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
 
                 //LOG(info) << "calibs size: " << calibs.size() << " | ROF number: " << iROF
                 //          << " | RU number: " << iRU << " | charge: " << charge << " | row: "
-                //          << row << " | runtype: " << runtype;
+                //          << row << " | runtype: " << this->run_type;
                 //break;
             }
         }
@@ -647,13 +652,13 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
             //thrfile   << "WARNING: charge == 0" << '\n';
         } else {
 
-            //LOG(info) << "Length of digits: " << digitsInFrame.size();
+            LOG(info) << "Length of digits: " << digits.size();
             for(unsigned int idig = rofIndex; idig < rofIndex + rofNEntries; idig++) { //for (const auto& d : digitsInFrame) {
                 auto & d = digits[idig];
                 short int chipID = (short int) d.getChipIndex();
                 short int col = (short int) d.getColumn();
 
-                //LOG(info) << "Hit for chip ID: " << chipID << " | row: " << row << " | col: " << col;
+                LOG(info) << "Hit for chip ID: " << chipID << " | row: " << row << " | col: " << col;
 
                 // Row should be the same for the whole ROF so do not have to check here
                 //assert(row == (short int) d.getRow());
@@ -661,6 +666,7 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
                 // Check if chip hasn't appeared before
                 if (this->currentRow.find(chipID) == this->currentRow.end()) {
                     // Update the current row and hit map
+                    LOG(info) << "New chip detected: " << chipID;
                     this->reset_row_hitmap(chipID, row);
                     // Create data structures to hold the threshold info
                     //this->init_chip_data(chipID);
@@ -676,13 +682,20 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
                     this->reset_row_hitmap(chipID, row);
                 }
 
+                LOG(info) << "hello";
+
                 // Increment the number of counts for this pixel
                 if (charge > this->max || charge < this->min) {
                     LOG(error) << "charge value " << charge << " out of range for min " << this->min
                                << " and max " << this->max << " (range: " << *(this->nRange) << ")";
                     exit(1);
                 }
+                //LOG(info) << "before";
                 this->pixelHits[chipID][col][charge - this->min]++;
+
+                LOG(info) << "charge value " << charge << " min " << this->min
+                          << " and max " << this->max << " (range: " << *(this->nRange) << ")"
+                          << " N hits " << this->pixelHits[chipID][col][charge - this->min];
 
             } // for (digits)
 
