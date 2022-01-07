@@ -80,13 +80,15 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   mAccumulatedDigits.clear();
   int trigID = 0;
   int indexStart = mAccumulatedDigits.size();
+
+  bool preTriggerColl = false;
   // loop over all composite collisions given from context
   // (aka loop over all the interaction records)
   for (int collID = 0; collID < timesview.size(); ++collID) {
 
     mDigitizer.setEventTime(timesview[collID].getTimeNS());
 
-    if (!mDigitizer.isEmpty() && (o2::emcal::SimParam::Instance().isDisablePileup() || !mDigitizer.isLive())) {
+    if (!mDigitizer.isEmpty() && (o2::emcal::SimParam::Instance().isDisablePileup() || !mDigitizer.isLive()) && !preTriggerColl) {
       // copy digits into accumulator
       mDigits.clear();
       mLabels.clear();
@@ -101,7 +103,33 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
     }
 
     if (!mDigitizer.isLive()) {
+      // Take collisions that occurs 600 ns before the readout window is open
+      if (mDigitizer.preTriggerCollision()) {
+        for (auto& part : eventParts[collID]) {
+          mSumDigitizer.setCurrEvID(part.entryID);
+          mSumDigitizer.setCurrSrcID(part.sourceID);
+
+          // get the hits for this event and this source
+          mHits.clear();
+          context->retrieveHits(mSimChains, "EMCHit", part.sourceID, part.entryID, &mHits);
+
+          LOG(info) << "For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
+
+          std::vector<o2::emcal::LabeledDigit> summedDigits = mSumDigitizer.process(mHits);
+
+          // call actual digitization procedure
+          mDigitizer.process(summedDigits);
+
+          preTriggerColl = true;
+        }
+      }
       continue;
+    } else {
+      preTriggerColl = false;
+      // Discard collisions that occurs 900 ns after the readout window is open
+      if (mDigitizer.afterTriggerCollision()) {
+        continue;
+      }
     }
 
     if (mDigitizer.isEmpty()) {

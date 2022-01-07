@@ -70,8 +70,8 @@ std::vector<o2::emcal::LabeledDigit> SDigitizer::process(const std::vector<Hit>&
       if (digit.getAmplitude() == 0) {
         label.setAmplitudeFraction(0);
       }
-
       LabeledDigit d(digit, label);
+
       digitsPerTower[tower].push_back(d);
 
     } catch (InvalidPositionException& e) {
@@ -86,11 +86,8 @@ std::vector<o2::emcal::LabeledDigit> SDigitizer::process(const std::vector<Hit>&
 
     o2::emcal::LabeledDigit Sdigit = std::accumulate(std::next(labeledDigits.begin()), labeledDigits.end(), labeledDigits.front());
 
-    // Check whether the Sdigit is high gain or low gain
-    if (Sdigit.getAmplitude() > constants::EMCAL_HGLGTRANSITION * constants::EMCAL_ADCENERGY) {
-      Sdigit.setLowGain();
-    } else {
-      Sdigit.setHighGain();
+    if (Sdigit.getAmplitude() < __DBL_EPSILON__) {
+      continue;
     }
 
     digitsVector.push_back(Sdigit);
