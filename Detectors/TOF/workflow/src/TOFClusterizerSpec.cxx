@@ -186,6 +186,11 @@ class TOFDPLClustererTask
             }
             slot = patterns[kw] - 28;
             eword = 0;
+
+            if (slot < 3 || slot > 12) { // not a valid slot -> don't fill otherwise mapping fails (slot 1 crate 0 is a bad condition)
+              slot = -1;
+              //              LOG(info) << "not a valid slot in diagnostic words: slot  = " << slot << " for crate " << crate;
+            }
           } else if (slot > -1) { // process error in this slot
             eword += 1 << patterns[kw];
           }

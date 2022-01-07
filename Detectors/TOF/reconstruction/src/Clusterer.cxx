@@ -51,6 +51,7 @@ void Clusterer::calibrateStrip()
   for (int idig = 0; idig < mStripData.digits.size(); idig++) {
     //    LOG(debug) << "Checking digit " << idig;
     Digit* dig = &mStripData.digits[idig];
+    //    LOG(info) << "channel = " << dig->getChannel();
     dig->setBC(dig->getBC() - mBCOffset); // RS Don't use raw BC, always start from the beginning of the TF
     double calib = mCalibApi->getTimeCalibration(dig->getChannel(), dig->getTOT() * Geo::TOTBIN_NS);
     //printf("channel %d) isProblematic = %d, fractionUnderPeak = %f\n",dig->getChannel(),mCalibApi->isProblematic(dig->getChannel()),mCalibApi->getFractionUnderPeak(dig->getChannel())); // toberem
