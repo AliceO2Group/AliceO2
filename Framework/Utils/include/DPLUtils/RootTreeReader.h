@@ -510,7 +510,7 @@ class GenericRootTreeReader
       mPublishingMode = def;
     } else if constexpr (std::is_same<U, SpecialPublishHook*>::value) {
       mPublishHook = def;
-    } else if constexpr (is_specialization<U, BranchDefinition>::value) {
+    } else if constexpr (is_specialization_v<U, BranchDefinition>) {
       cargs.emplace_back(key_type(def.key), def.name);
       using type = BranchConfigurationElement<typename U::type, BASE>;
       return std::move(createBranchConfiguration<0, type>(std::move(cargs), std::forward<Args>(args)...));

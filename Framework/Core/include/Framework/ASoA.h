@@ -896,7 +896,7 @@ using is_soa_iterator_t = typename framework::is_base_of_template<RowViewCore, T
 template <typename T>
 constexpr bool is_soa_iterator_v()
 {
-  return is_soa_iterator_t<T>::value || framework::is_specialization<T, RowViewCore>::value;
+  return is_soa_iterator_t<T>::value || framework::is_specialization_v<T, RowViewCore>;
 }
 
 template <typename T>
@@ -1991,10 +1991,10 @@ struct Concat : ConcatBase<T1, T2> {
 };
 
 template <typename T>
-using is_soa_join_t = typename framework::is_specialization<T, soa::Join>;
+inline constexpr bool is_soa_join_v = framework::is_specialization_v<T, soa::Join>;
 
 template <typename T>
-using is_soa_concat_t = typename framework::is_specialization<T, soa::Concat>;
+inline constexpr bool is_soa_concat_v = framework::is_specialization_v<T, soa::Concat>;
 
 template <typename T>
 class FilteredBase : public T

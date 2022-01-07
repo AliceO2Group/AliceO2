@@ -27,6 +27,9 @@ template <template <typename...> class Ref, typename... Args>
 struct is_specialization<Ref<Args...>, Ref> : std::true_type {
 };
 
+template <typename T, template <typename...> class Ref>
+inline constexpr bool is_specialization_v = is_specialization<T, Ref>::value;
+
 template <typename A, typename B>
 struct is_overriding : public std::bool_constant<std::is_same_v<A, B> == false && std::is_member_function_pointer_v<A> && std::is_member_function_pointer_v<B>> {
 };

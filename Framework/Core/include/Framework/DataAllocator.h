@@ -104,7 +104,7 @@ class DataAllocator
   template <typename T, typename... Args>
   decltype(auto) make(const Output& spec, Args... args)
   {
-    if constexpr (is_specialization<T, UninitializedVector>::value) {
+    if constexpr (is_specialization_v<T, UninitializedVector>) {
       // plain buffer as polymorphic spectator std::vector, which does not run constructors / destructors
       using ValueType = typename T::value_type;
       auto& timingInfo = mRegistry->get<TimingInfo>();
@@ -116,7 +116,7 @@ class DataAllocator
       return context.add<MessageContext::VectorObject<ValueType, MessageContext::ContainerRefObject<std::vector<ValueType, o2::pmr::NoConstructAllocator<ValueType>>>>>(
                       std::move(headerMessage), channel, 0, std::forward<Args>(args)...)
         .get();
-    } else if constexpr (is_specialization<T, std::vector>::value && has_messageable_value_type<T>::value) {
+    } else if constexpr (is_specialization_v<T, std::vector> && has_messageable_value_type<T>::value) {
       // this catches all std::vector objects with messageable value type before checking if is also
       // has a root dictionary, so non-serialized transmission is preferred
       using ValueType = typename T::value_type;
@@ -160,9 +160,9 @@ class DataAllocator
       constexpr bool isBoostSerializable = framework::is_boost_serializable<T>::value;
       if constexpr (is_messageable<T>::value == true) {
         return *reinterpret_cast<T*>(newChunk(spec, sizeof(T)).data());
-      } else if constexpr (is_specialization<T, BoostSerialized>::value == true) {
+      } else if constexpr (is_specialization_v<T, BoostSerialized> == true) {
         return make_boost<typename T::wrapped_type>(std::move(spec));
-      } else if constexpr (is_specialization<T, BoostSerialized>::value == false && isBoostSerializable == true && std::is_base_of<std::string, T>::value == false) {
+      } else if constexpr (is_specialization_v<T, BoostSerialized> == false && isBoostSerializable == true && std::is_base_of<std::string, T>::value == false) {
         return make_boost<T>(std::move(spec));
       } else {
         static_assert(always_static_assert_v<T>, ERROR_STRING);
@@ -187,7 +187,7 @@ class DataAllocator
           create(spec, &writer, schema);
           return writer;
         }
-      } else if constexpr (is_specialization<T, BoostSerialized>::value) {
+      } else if constexpr (is_specialization_v<T, BoostSerialized>) {
         return make_boost<FirstArg>(std::move(spec));
       } else {
         static_assert(always_static_assert_v<T>, ERROR_STRING);
@@ -227,7 +227,7 @@ class DataAllocator
   /// Adopt a raw buffer in the framework and serialize / send
   /// it to the consumers of @a spec once done.
   template <typename T>
-  typename std::enable_if<is_specialization<T, BoostSerialized>::value == true, void>::type
+  typename std::enable_if<is_specialization_v<T, BoostSerialized> == true, void>::type
     adopt(const Output& spec, T* ptr)
   {
     adopt_boost(std::move(spec), std::move(ptr()));
@@ -289,7 +289,7 @@ class DataAllocator
       memcpy(payloadMessage->GetData(), &object, sizeof(T));
 
       serializationType = o2::header::gSerializationMethodNone;
-    } else if constexpr (is_specialization<T, std::vector>::value == true ||
+    } else if constexpr (is_specialization_v<T, std::vector> == true ||
                          (gsl::details::is_span<T>::value && has_messageable_value_type<T>::value)) {
       using ElementType = typename std::remove_pointer<typename T::value_type>::type;
       if constexpr (is_messageable<ElementType>::value) {
@@ -324,10 +324,10 @@ class DataAllocator
                       "\n - pointers to those"
                       "\n - types with ROOT dictionary and implementing ROOT ClassDef interface");
       }
-    } else if constexpr (has_root_dictionary<T>::value == true || is_specialization<T, ROOTSerialized>::value == true) {
+    } else if constexpr (has_root_dictionary<T>::value == true || is_specialization_v<T, ROOTSerialized> == true) {
       // Serialize a snapshot of an object with root dictionary
       payloadMessage = proxy.createMessage();
-      if constexpr (is_specialization<T, ROOTSerialized>::value == true) {
+      if constexpr (is_specialization_v<T, ROOTSerialized> == true) {
         // Explicitely ROOT serialize a snapshot of object.
         // An object wrapped into type `ROOTSerialized` is explicitely marked to be ROOT serialized
         // and is expected to have a ROOT dictionary. Availability can not be checked at compile time
