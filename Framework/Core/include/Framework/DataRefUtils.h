@@ -119,7 +119,7 @@ struct DataRefUtils {
       });
 
       return std::move(result);
-    } else if constexpr (is_specialization<T, ROOTSerialized>::value == true) {
+    } else if constexpr (is_specialization_v<T, ROOTSerialized> == true) {
       // See above. SFINAE allows us to use this to extract a ROOT-serialized object
       // with a somewhat uniform API. ROOT serialization method is enforced by using
       // type wrapper @a ROOTSerialized
@@ -151,7 +151,7 @@ struct DataRefUtils {
         }
       });
       return std::move(result);
-    } else if constexpr (is_specialization<T, CCDBSerialized>::value == true) {
+    } else if constexpr (is_specialization_v<T, CCDBSerialized> == true) {
       using wrapped = typename T::wrapped_type;
       using DataHeader = o2::header::DataHeader;
       std::unique_ptr<wrapped> result(static_cast<wrapped*>(DataRefUtils::decodeCCDB(ref, typeid(wrapped))));

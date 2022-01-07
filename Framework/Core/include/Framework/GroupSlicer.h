@@ -73,7 +73,7 @@ struct GroupSlicer {
       constexpr auto index = framework::has_type_at_v<std::decay_t<T>>(associated_pack_t{});
       if constexpr (relatedByIndex<std::decay_t<G>, std::decay_t<T>>()) {
         auto name = getLabelFromType<std::decay_t<T>>();
-        if constexpr (!framework::is_specialization<std::decay_t<T>, soa::SmallGroups>::value) {
+        if constexpr (!framework::is_specialization_v<std::decay_t<T>, soa::SmallGroups>) {
           if (table.size() == 0) {
             return;
           }
@@ -279,7 +279,7 @@ struct GroupSlicer {
         } else {
           pos = position;
         }
-        if constexpr (!framework::is_specialization<std::decay_t<A1>, soa::SmallGroups>::value) {
+        if constexpr (!framework::is_specialization_v<std::decay_t<A1>, soa::SmallGroups>) {
           if (originalTable.size() == 0) {
             return originalTable;
           }

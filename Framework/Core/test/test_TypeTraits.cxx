@@ -36,12 +36,12 @@ BOOST_AUTO_TEST_CASE(TestIsSpecialization)
   std::list<int> c;
   int d;
 
-  bool test1 = is_specialization<decltype(a), std::vector>::value;
-  bool test2 = is_specialization<decltype(b), std::vector>::value;
-  bool test3 = is_specialization<decltype(b), std::list>::value;
-  bool test4 = is_specialization<decltype(c), std::list>::value;
-  bool test5 = is_specialization<decltype(c), std::vector>::value;
-  bool test6 = is_specialization<decltype(d), std::vector>::value;
+  bool test1 = is_specialization_v<decltype(a), std::vector>;
+  bool test2 = is_specialization_v<decltype(b), std::vector>;
+  bool test3 = is_specialization_v<decltype(b), std::list>;
+  bool test4 = is_specialization_v<decltype(c), std::list>;
+  bool test5 = is_specialization_v<decltype(c), std::vector>;
+  bool test6 = is_specialization_v<decltype(d), std::vector>;
   BOOST_REQUIRE_EQUAL(test1, true);
   BOOST_REQUIRE_EQUAL(test2, true);
   BOOST_REQUIRE_EQUAL(test3, false);
@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(TestIsSpecialization)
   BOOST_REQUIRE_EQUAL(test6, false);
 
   ROOTSerialized<decltype(d)> e(d);
-  bool test7 = is_specialization<decltype(e), ROOTSerialized>::value;
+  bool test7 = is_specialization_v<decltype(e), ROOTSerialized>;
   BOOST_REQUIRE_EQUAL(test7, true);
 }
 
