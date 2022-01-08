@@ -35,7 +35,7 @@ FT0ChannelTimeTimeSlotContainer::FT0ChannelTimeTimeSlotContainer(FT0ChannelTimeT
   : mMinEntries(other.mMinEntries)
 {
   for (int ich = 0; ich < NCHANNELS; ++ich) {
-    mHistogram[ich].reset(static_cast<TH1F*>(other.mHistogram[ich]->Clone()));
+    mHistogram[ich].reset(new TH1F(*other.mHistogram[ich]));
   }
 }
 
@@ -43,7 +43,7 @@ FT0ChannelTimeTimeSlotContainer& FT0ChannelTimeTimeSlotContainer::operator=(FT0C
 {
   mMinEntries = other.mMinEntries;
   for (int ich = 0; ich < NCHANNELS; ++ich) {
-    mHistogram[ich].reset(static_cast<TH1F*>(other.mHistogram[ich]->Clone()));
+    mHistogram[ich].reset(new TH1F(*other.mHistogram[ich]));
   }
   return *this;
 }
