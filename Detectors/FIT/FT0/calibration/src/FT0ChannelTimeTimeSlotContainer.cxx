@@ -26,13 +26,26 @@ int FT0ChannelTimeTimeSlotContainer::sGausFitBins = 999; // NOT USED
 FT0ChannelTimeTimeSlotContainer::FT0ChannelTimeTimeSlotContainer(std::size_t minEntries)
   : mMinEntries(minEntries)
 {
-  for (int ich = 0; ich < 208; ++ich) {
-    //   if (mHistogram[ich]) {
-    //      mHistogram[ich]->Reset();
-    //    } else {
-    mHistogram[ich] = new TH1F(Form("hTime%i", ich), "time", NUMBER_OF_HISTOGRAM_BINS, -HISTOGRAM_RANGE, HISTOGRAM_RANGE);
-    //    }
+  for (int ich = 0; ich < NCHANNELS; ++ich) {
+    mHistogram[ich].reset(new TH1F(Form("hTime%i", ich), "time", NUMBER_OF_HISTOGRAM_BINS, -HISTOGRAM_RANGE, HISTOGRAM_RANGE));
   }
+}
+
+FT0ChannelTimeTimeSlotContainer::FT0ChannelTimeTimeSlotContainer(FT0ChannelTimeTimeSlotContainer const& other)
+  : mMinEntries(other.mMinEntries)
+{
+  for (int ich = 0; ich < NCHANNELS; ++ich) {
+    mHistogram[ich].reset(static_cast<TH1F*>(other.mHistogram[ich]->Clone()));
+  }
+}
+
+FT0ChannelTimeTimeSlotContainer& FT0ChannelTimeTimeSlotContainer::operator=(FT0ChannelTimeTimeSlotContainer const& other)
+{
+  mMinEntries = other.mMinEntries;
+  for (int ich = 0; ich < NCHANNELS; ++ich) {
+    mHistogram[ich].reset(static_cast<TH1F*>(other.mHistogram[ich]->Clone()));
+  }
+  return *this;
 }
 
 bool FT0ChannelTimeTimeSlotContainer::hasEnoughEntries() const
@@ -46,7 +59,7 @@ void FT0ChannelTimeTimeSlotContainer::fill(const gsl::span<const FT0CalibrationI
 
     const auto chID = entry.getChannelIndex();
     const auto chTime = entry.getTime();
-    if (chID < o2::ft0::Geometry::Nchannels) {
+    if (chID < NCHANNELS) {
       mHistogram[chID]->Fill(chTime);
       ++mEntriesPerChannel[chID];
       LOG(debug) << "entries " << mEntriesPerChannel[chID] << " chID " << int(chID) << " time " << chTime;
@@ -58,11 +71,10 @@ void FT0ChannelTimeTimeSlotContainer::fill(const gsl::span<const FT0CalibrationI
 
 void FT0ChannelTimeTimeSlotContainer::merge(FT0ChannelTimeTimeSlotContainer* prev)
 {
-  LOG(info) << ":merge  ";
-  for (unsigned int iCh = 0; iCh < o2::ft0::Geometry::Nchannels; ++iCh) {
-    mHistogram[iCh]->Add(prev->mHistogram[iCh], mHistogram[iCh], 1, 1);
+  for (unsigned int iCh = 0; iCh < NCHANNELS; ++iCh) {
+    mHistogram[iCh]->Add(prev->mHistogram[iCh].get(), 1);
     mEntriesPerChannel[iCh] += prev->mEntriesPerChannel[iCh];
-    LOG(info) << " entries " << mEntriesPerChannel[iCh] << " " << prev->mEntriesPerChannel[iCh];
+    LOG(debug) << " entries " << mEntriesPerChannel[iCh] << " " << prev->mEntriesPerChannel[iCh];
   }
 }
 
