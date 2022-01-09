@@ -71,20 +71,23 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
                                                     "DIGITROFS", "F-DIGITROFS",
                                                     "DIGITLABELS", "F-DIGITLABELS"));
 
-  specs.emplace_back(o2::mch::getTimeClusterFinderSpec("mch-time-cluster-finder",
-                                                       "F-DIGITS",
-                                                       "F-DIGITROFS",
-                                                       "TC-F-DIGITROFS"));
+  if (!useMC) {
+    specs.emplace_back(o2::mch::getTimeClusterFinderSpec("mch-time-cluster-finder",
+                                                         "F-DIGITS",
+                                                         "F-DIGITROFS",
+                                                         "TC-F-DIGITROFS"));
+  }
 
   specs.emplace_back(o2::mch::getPreClusterFinderSpec("mch-precluster-finder",
                                                       "F-DIGITS",
-                                                      "TC-F-DIGITROFS"));
+                                                      useMC ? "F-DIGITROFS" : "TC-F-DIGITROFS"));
+
   specs.emplace_back(o2::mch::getClusterFinderOriginalSpec("mch-cluster-finder"));
   specs.emplace_back(o2::mch::getClusterTransformerSpec());
   specs.emplace_back(o2::mch::getTrackFinderSpec("mch-track-finder", digits));
   if (useMC) {
     specs.emplace_back(o2::mch::getTrackMCLabelFinderSpec("mch-track-mc-label-finder",
-                                                          "TC-F-DIGITROFS",
+                                                          "F-DIGITROFS",
                                                           "F-DIGITLABELS"));
   }
 
