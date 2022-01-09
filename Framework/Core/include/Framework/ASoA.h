@@ -1991,10 +1991,16 @@ struct Concat : ConcatBase<T1, T2> {
 };
 
 template <typename T>
-inline constexpr bool is_soa_join_v = framework::is_specialization_v<T, soa::Join>;
+using is_soa_join_t = framework::is_specialization<T, soa::Join>;
 
 template <typename T>
-inline constexpr bool is_soa_concat_v = framework::is_specialization_v<T, soa::Concat>;
+using is_soa_concat_t = framework::is_specialization<T, soa::Concat>;
+
+template <typename T>
+inline constexpr bool is_soa_join_v = is_soa_join_t<T>::value;
+
+template <typename T>
+inline constexpr bool is_soa_concat_v = is_soa_concat_t<T>::value;
 
 template <typename T>
 class FilteredBase : public T
