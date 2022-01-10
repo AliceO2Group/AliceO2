@@ -29,24 +29,6 @@ unsigned int o2::tpc::IDCCCDBHelper<DataT>::getNIntegrationIntervalsIDCOne(const
 }
 
 template <typename DataT>
-void o2::tpc::IDCCCDBHelper<DataT>::loadIDCDelta()
-{
-  mIDCDelta = get<o2::tpc::IDCDelta<DataT>>("TPC/Calib/IDC/IDCDELTA");
-}
-
-template <typename DataT>
-void o2::tpc::IDCCCDBHelper<DataT>::loadIDCZero()
-{
-  mIDCZero = get<o2::tpc::IDCZero>("TPC/Calib/IDC/IDC0");
-}
-
-template <typename DataT>
-void o2::tpc::IDCCCDBHelper<DataT>::loadIDCOne()
-{
-  mIDCOne = get<o2::tpc::IDCOne>("TPC/Calib/IDC/IDC1");
-}
-
-template <typename DataT>
 float o2::tpc::IDCCCDBHelper<DataT>::getIDCZeroVal(const unsigned int sector, const unsigned int region, unsigned int urow, unsigned int upad) const
 {
   /// if the number of pads of the IDC0 corresponds to the number of pads of one TPC side, then no grouping was applied
@@ -70,12 +52,6 @@ template <typename DataT>
 float o2::tpc::IDCCCDBHelper<DataT>::getIDCVal(const unsigned int sector, const unsigned int region, unsigned int urow, unsigned int upad, unsigned int integrationInterval) const
 {
   return (getIDCDeltaVal(sector, region, urow, upad, integrationInterval) + 1.f) * getIDCZeroVal(sector, region, urow, upad) * getIDCOneVal(Sector(sector).side(), integrationInterval);
-}
-
-template <typename DataT>
-void o2::tpc::IDCCCDBHelper<DataT>::loadGroupingParameter()
-{
-  mHelperSector = std::make_unique<IDCGroupHelperSector>(IDCGroupHelperSector{*get<o2::tpc::ParameterIDCGroupCCDB>("TPC/Calib/IDC/GROUPINGPAR")});
 }
 
 template <typename DataT>
@@ -115,16 +91,6 @@ void o2::tpc::IDCCCDBHelper<DataT>::drawIDCHelper(const bool type, const Sector 
   drawFun.mIDCFunc = idcFunc;
   const std::string zAxisTitle = IDCDrawHelper::getZAxisTitle(IDCType::IDC);
   type ? IDCDrawHelper::drawSide(drawFun, sector.side(), zAxisTitle, filename) : IDCDrawHelper::drawSector(drawFun, 0, Mapper::NREGIONS, sector, zAxisTitle, filename);
-}
-
-/// load IDC-Delta, 0D-IDCs, grouping parameter
-template <typename DataT>
-void o2::tpc::IDCCCDBHelper<DataT>::loadAll()
-{
-  loadIDCDelta();
-  loadIDCZero();
-  loadIDCOne();
-  loadGroupingParameter();
 }
 
 template <typename DataT>

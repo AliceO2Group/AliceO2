@@ -18,7 +18,6 @@
 
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/Sector.h"
-#include "CCDB/BasicCCDBManager.h"
 #include "CommonUtils/NameConf.h"
 #include "Rtypes.h"
 
@@ -26,16 +25,20 @@ namespace o2::tpc
 {
 
 class IDCGroupHelperSector;
-class IDCZero;
-class IDCOne;
+struct IDCZero;
+struct IDCOne;
 template <typename DataT>
-class IDCDelta;
+struct IDCDelta;
 
 /*
  Usage
- o2::tpc::IDCCCDBHelper<short> helper("http://localhost:8080");
- helper.setTimestamp(0);
- helper.loadAll();
+ o2::tpc::IDCCCDBHelper<short> helper;
+ // setting the IDC members manually
+ helper.setIDCDelta(IDCDelta<DataT>* idcDelta);
+ helper.setIDCZero(IDCZero* idcZero);
+ helper.setIDCOne(IDCOne* idcOne);
+ helper.setGroupingParameter(IDCGroupHelperSector* helperSector);
+ // draw or access the IDCs
  const unsigned int sector = 10;
  const unsigned int integrationInterval = 0;
  helper.drawIDCZeroSide(o2::tpc::Side::A);
@@ -47,27 +50,23 @@ class IDCDelta;
 
 /// \tparam DataT the data type for the IDCDelta which are stored in the CCDB (short, char, float)
 template <typename DataT = short>
-class IDCCCDBHelper : public o2::ccdb::BasicCCDBManager
+class IDCCCDBHelper
 {
  public:
   /// constructor
-  /// \param uri path to CCDB
-  IDCCCDBHelper(const char* uri = o2::base::NameConf::getCCDBServer().c_str()) : o2::ccdb::BasicCCDBManager(o2::ccdb::BasicCCDBManager::instance()) { setURL(uri); }
+  IDCCCDBHelper() = default;
 
-  /// load IDC-Delta, 0D-IDCs, grouping parameter needed for access
-  void loadAll();
+  /// setting the IDCDelta class member
+  void setIDCDelta(IDCDelta<DataT>* idcDelta) { mIDCDelta = idcDelta; }
 
-  /// load/update IDCDelta
-  void loadIDCDelta();
+  /// setting the 0D-IDCs
+  void setIDCZero(IDCZero* idcZero) { mIDCZero = idcZero; }
 
-  /// load/update 0D-IDCs
-  void loadIDCZero();
+  /// setting the 1D-IDCs
+  void setIDCOne(IDCOne* idcOne) { mIDCOne = idcOne; }
 
-  /// load/update 0D-IDCs
-  void loadIDCOne();
-
-  /// load/update grouping parameter
-  void loadGroupingParameter();
+  /// setting the grouping parameters
+  void setGroupingParameter(IDCGroupHelperSector* helperSector) { mHelperSector = helperSector; }
 
   /// \return returns the number of integration intervals for IDCDelta
   unsigned int getNIntegrationIntervalsIDCDelta(const o2::tpc::Side side) const;
@@ -143,10 +142,10 @@ class IDCCCDBHelper : public o2::ccdb::BasicCCDBManager
   void dumpToTree(int integrationIntervals = -1, const char* outFileName = "IDCCCDBTree.root") const;
 
  private:
-  IDCZero* mIDCZero = nullptr;                           ///< 0D-IDCs: ///< I_0(r,\phi) = <I(r,\phi,t)>_t
-  IDCDelta<DataT>* mIDCDelta = nullptr;                  ///< compressed or uncompressed Delta IDC: \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
-  IDCOne* mIDCOne = nullptr;                             ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
-  std::unique_ptr<IDCGroupHelperSector> mHelperSector{}; ///< helper for accessing IDC0 and IDC-Delta
+  IDCZero* mIDCZero = nullptr;                   ///< 0D-IDCs: ///< I_0(r,\phi) = <I(r,\phi,t)>_t
+  IDCDelta<DataT>* mIDCDelta = nullptr;          ///< compressed or uncompressed Delta IDC: \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
+  IDCOne* mIDCOne = nullptr;                     ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
+  IDCGroupHelperSector* mHelperSector = nullptr; ///< helper for accessing IDC0 and IDC-Delta
 
   /// helper function for drawing IDCZero
   /// \param sector sector which will be drawn
