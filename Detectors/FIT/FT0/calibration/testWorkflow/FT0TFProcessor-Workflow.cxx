@@ -33,10 +33,10 @@ class FT0TFProcessor final : public o2::framework::Task
     auto digits = pc.inputs().get<gsl::span<o2::ft0::Digit>>("digits");
     auto& calib_data = pc.outputs().make<std::vector<o2::ft0::FT0CalibrationInfoObject>>(o2::framework::OutputRef{"calib", 0});
     calib_data.reserve(channels.size());
-
     for (const auto& channel : channels) {
-      calib_data.emplace_back(channel.ChId, channel.CFDTime, channel.QTCAmpl);
-      //    calib_data.emplace_back(channel.getChannelID(), channel.getTime(), channel.getAmp());
+      if (channel.QTCAmpl > 14 && std::abs(channel.CFDTime) < 100) {
+        calib_data.emplace_back(channel.ChId, channel.CFDTime, channel.QTCAmpl);
+      }
     }
   }
 };
@@ -64,12 +64,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   }
   DataProcessorSpec dataProcessorSpec{
     "FT0TFProcessor",
-    /*
-    Inputs{
-      {{"channels"}, "FT0", "DIGITSCH"},
-      {{"digits"}, "FT0", "DIGITSBC"},
-    },
-*/
     inputs,
     Outputs{
       {{"calib"}, "FT0", "CALIB_INFO"}},
