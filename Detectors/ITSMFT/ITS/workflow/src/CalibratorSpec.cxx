@@ -574,7 +574,7 @@ void ITSCalibrator<Mapping>::set_run_type(const short int& runtype) {
     }
 
     this->x = new short int[*(this->nRange)];
-    for (short int i = min; i <= max; i++) { this->x[i] = i; }
+    for (short int i = min; i <= max; i++) { this->x[i-min] = i; }
 
     return;
 }
@@ -639,17 +639,17 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
                 //LOG(info) << "calibs size: " << calibs.size() << " | ROF number: " << iROF
                 //          << " | RU number: " << iRU << " | charge: " << charge << " | row: "
                 //          << row << " | runtype: " << this->run_type;
-                //break;
+                break;
             }
         }
 
         // If a charge was not found, throw an error and skip this ROF
         if (charge < 0) {
-            LOG(info) << "WARNING: Charge not updated" << '\n';
-            //thrfile   << "WARNING: Charge not updated" << '\n';
+            LOG(info) << "WARNING: Charge not updated\n";
+            //thrfile   << "WARNING: Charge not updated\n";
         //} else if (charge == 0) {
-            //LOG(info) << "WARNING: charge == 0" << '\n';
-            //thrfile   << "WARNING: charge == 0" << '\n';
+            //LOG(info) << "WARNING: charge == 0\n";
+            //thrfile   << "WARNING: charge == 0\n";
         } else {
 
             LOG(info) << "Length of digits: " << digits.size();
@@ -712,11 +712,17 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
 // Calculate the average threshold given a vector of threshold objects
 template <class Mapping>
 float ITSCalibrator<Mapping>::find_average(const std::vector<threshold_obj>& data) {
+
     float sum = 0;
-    for (threshold_obj t : data) {
-        if (t.success) { sum += t.threshold; }
+    unsigned int counts = 0;
+    for (const threshold_obj& t : data) {
+        if (t.success) {
+            sum += t.threshold;
+            counts++;
+        }
     }
-    return sum / data.size();
+    if (counts) return (sum / counts);
+    return -1;
 }
 
 
@@ -773,11 +779,11 @@ void ITSCalibrator<Mapping>::send_to_ccdb(std::string * name,
     //o2::ccdb::CcdbObjectInfo info((path + *name), class_name, "", md, tstart, tend);
     o2::ccdb::CcdbObjectInfo info((path + *name), "threshold_map", "calib_scan.root", md, tstart, tend);
     //auto file_name = o2::ccdb::CcdbApi::generateFileName(*name);
+    auto image = o2::ccdb::CcdbApi::createObjectImage(&tuning, &info);
     std::string file_name = "calib_scan.root";
     info.setFileName(file_name);
-    LOG(info) << "Class Name  " << class_name << " File Name " << file_name;
-    auto image = o2::ccdb::CcdbApi::createObjectImage(&tuning, &info);
-    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
+    LOG(info) << "Class Name: " << class_name << " | File Name: " << file_name
+              << "\nSending object " << info.getPath() << "/" << info.getFileName()
               << " of size " << image->size() << " bytes, valid for "
               << info.getStartValidityTimestamp() << " : "
               << info.getEndValidityTimestamp();
