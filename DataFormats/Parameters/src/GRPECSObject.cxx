@@ -27,7 +27,7 @@ void GRPECSObject::print() const
 {
   // print itself
   std::time_t t = mTimeStart; // system_clock::to_time_t(mTimeStart);
-  printf("Start: %s", std::ctime(&t));
+  printf("Start: %s, isMC: %d", std::ctime(&t), isMC());
   printf("Detectors: Cont.RO Triggers\n");
   for (auto i = DetID::First; i <= DetID::Last; i++) {
     if (!isDetReadOut(DetID(i))) {
