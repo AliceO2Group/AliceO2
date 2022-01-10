@@ -1212,9 +1212,10 @@ void TrackFinder::removeConnectedTracks(int stMin, int stMax)
   int chMax = 2 * stMax + 1;
   int nPlane = 2 * (chMax - chMin + 1);
 
-  // first loop to fill the arrays of cluster Ids and number of fired chambers
+  // first loop to fill the arrays of cluster Ids, number of fired chambers and normalized chi2
   std::vector<uint32_t> ClIds(nPlane * mTracks.size());
   std::vector<uint8_t> nFiredCh(mTracks.size());
+  std::vector<double> nChi2(mTracks.size());
   int previousCh(-1);
   int iTrack(0);
   for (auto itTrack = mTracks.begin(); itTrack != mTracks.end(); ++itTrack, ++iTrack) {
@@ -1228,23 +1229,22 @@ void TrackFinder::removeConnectedTracks(int stMin, int stMax)
         ClIds[nPlane * iTrack + 2 * (ch - chMin) + itParam->getClusterPtr()->getDEId() % 2] = itParam->getClusterPtr()->uid;
       }
     }
+    nChi2[iTrack] = itTrack->first().getTrackChi2() / (itTrack->getNDF() - 1);
   }
 
   // second loop to tag the tracks to remove
-  int iTrack1 = mTracks.size() - 1;
+  std::vector<bool> remove(mTracks.size(), false);
   int iindex = ClIds.size() - 1;
-  for (auto itTrack1 = mTracks.rbegin(); itTrack1 != mTracks.rend(); ++itTrack1, iindex -= nPlane, --iTrack1) {
-    int iTrack2 = iTrack1 - 1;
+  for (int iTrack1 = mTracks.size() - 1; iTrack1 > -1; --iTrack1, iindex -= nPlane) {
     int jindex = iindex - nPlane;
-    for (auto itTrack2 = std::next(itTrack1); itTrack2 != mTracks.rend(); ++itTrack2, --iTrack2) {
+    for (int iTrack2 = iTrack1 - 1; iTrack2 > -1; --iTrack2) {
       for (int iPlane = nPlane; iPlane > 0; --iPlane) {
-        if (ClIds[iindex] > 0 && ClIds[iindex] == ClIds[jindex]) {
-          if ((nFiredCh[iTrack2] > nFiredCh[iTrack1]) ||
-              ((nFiredCh[iTrack2] == nFiredCh[iTrack1]) &&
-               (itTrack2->first().getTrackChi2() / (itTrack2->getNDF() - 1) < itTrack1->first().getTrackChi2() / (itTrack1->getNDF() - 1)))) {
-            itTrack1->connected();
+        if (ClIds[iindex] == ClIds[jindex] && ClIds[iindex] > 0) {
+          if (nFiredCh[iTrack2] > nFiredCh[iTrack1] ||
+              (nFiredCh[iTrack2] == nFiredCh[iTrack1] && nChi2[iTrack2] < nChi2[iTrack1])) {
+            remove[iTrack1] = true;
           } else {
-            itTrack2->connected();
+            remove[iTrack2] = true;
           }
           iindex -= iPlane;
           jindex -= iPlane;
@@ -1258,8 +1258,9 @@ void TrackFinder::removeConnectedTracks(int stMin, int stMax)
   }
 
   // third loop to remove them. That way all combinations are tested.
-  for (auto itTrack = mTracks.begin(); itTrack != mTracks.end();) {
-    if (itTrack->isConnected()) {
+  iTrack = 0;
+  for (auto itTrack = mTracks.begin(); itTrack != mTracks.end(); ++iTrack) {
+    if (remove[iTrack]) {
       print("removeConnectedTracks: removing candidate at position #", getTrackIndex(itTrack));
       itTrack = mTracks.erase(itTrack);
     } else {
