@@ -26,13 +26,7 @@ namespace rans
 namespace internal
 {
 
-SymbolStatistics::SymbolStatistics(symbol_t min,
-                                   size_t scaleBits,
-                                   size_t nUsedAlphabetSymbols,
-                                   histogram_t&& frequencies) : mFrequencyTable{std::move(frequencies)},
-                                                                mMin{min},
-                                                                mSymbolTablePrecission{scaleBits},
-                                                                mNUsedAlphabetSymbols{nUsedAlphabetSymbols}
+SymbolStatistics::SymbolStatistics(FrequencyTable frequencyTable, size_t scaleBits)
 {
 
   using namespace internal;
@@ -40,37 +34,19 @@ SymbolStatistics::SymbolStatistics(symbol_t min,
   RANSTimer t;
   t.start();
 
-  // calculate reonormalization size.
-  mSymbolTablePrecission = [&, this]() {
-    const size_t minScale = MIN_SCALE;
-    const size_t maxScale = MAX_SCALE;
-    size_t calculated = mSymbolTablePrecission > 0 ? mSymbolTablePrecission : static_cast<size_t>(3 * numBitsForNSymbols(this->getNUsedAlphabetSymbols()) / 2 + 2);
-    calculated = std::max(minScale, std::min(maxScale, calculated));
-    if (mSymbolTablePrecission > 0 && calculated != mSymbolTablePrecission) {
-      LOG(warning) << fmt::format("Normalization interval for rANS SymbolTable of {} Bits is outside of allowed range of {} - {} Bits. Setting to {} Bits",
-                                  mSymbolTablePrecission, minScale, maxScale, calculated);
-    }
-    return calculated;
-  }();
+  frequencyTable = renorm(std::move(frequencyTable), scaleBits);
+  assert(frequencyTable.isRenormed());
+  count_t incompressibleSymbolFrequency = frequencyTable.getIncompressibleSymbolFrequency();
 
-  //add a special symbol for incompressible data;
-  [this]() {
-    mFrequencyTable.push_back(1);
-    ++mNUsedAlphabetSymbols;
-  }();
-
-  // range check
-  if (numBitsForNSymbols(mFrequencyTable.size()) > numSymbolsWithNBits(MAX_RANGE)) {
-    const std::string errmsg = fmt::format("Alphabet Range of {} Bits of the source message surpasses maximal allowed range of {} Bits.",
-                                           numBitsForNSymbols(mFrequencyTable.size()), MAX_RANGE);
-    LOG(error) << errmsg;
-    throw std::runtime_error(errmsg);
-  }
-
-  buildCumulativeFrequencyTable();
-  rescale();
+  mMin = frequencyTable.getMinSymbol();
+  mSymbolTablePrecission = frequencyTable.getRenormingBits();
+  mNUsedAlphabetSymbols = frequencyTable.getNUsedAlphabetSymbols();
+  mFrequencyTable = std::move(frequencyTable).release();
+  mFrequencyTable.push_back(incompressibleSymbolFrequency);
 
   assert(mFrequencyTable.size() > 0);
+
+  buildCumulativeFrequencyTable();
   assert(mCumulativeFrequencyTable.size() == mFrequencyTable.size());
 
   t.stop();
@@ -89,89 +65,6 @@ SymbolStatistics::SymbolStatistics(symbol_t min,
   }
 
   LOG(trace) << "done building symbol statistics";
-}
-
-void SymbolStatistics::rescale()
-{
-
-  // temporarily extend cumulative frequency Table to obtain total number of entries
-  mCumulativeFrequencyTable.push_back(mCumulativeFrequencyTable.back() + mFrequencyTable.back());
-
-  auto getFrequency = [this](count_t i) { return mCumulativeFrequencyTable[i + 1] - mCumulativeFrequencyTable[i]; };
-
-  using namespace internal;
-  LOG(trace) << "start rescaling frequency table";
-  RANSTimer t;
-  t.start();
-
-  if (mFrequencyTable.empty()) {
-    LOG(warning) << "rescaling Frequency Table for empty message";
-  }
-
-  const auto sortIdx = [&, this]() {
-    std::vector<size_t> indices;
-    indices.reserve(getNUsedAlphabetSymbols());
-
-    // we will sort only those memorize only those entries which can be used
-    for (size_t i = 0; i < mFrequencyTable.size(); i++) {
-      if (mFrequencyTable[i] != 0) {
-        indices.push_back(i);
-      }
-    }
-    std::sort(indices.begin(), indices.end(), [&](count_t i, count_t j) { return getFrequency(i) < getFrequency(j); });
-
-    return indices;
-  }();
-
-  // resample distribution based on cumulative frequencies
-  const count_t newCumulatedFrequency = pow2(mSymbolTablePrecission);
-  assert(newCumulatedFrequency >= this->getNUsedAlphabetSymbols());
-  const count_t cumulatedFrequencies = mCumulativeFrequencyTable.back();
-  size_t needsShift = 0;
-  for (size_t i = 0; i < sortIdx.size(); i++) {
-    if (static_cast<count_t>(getFrequency(sortIdx[i])) * (newCumulatedFrequency - needsShift) / cumulatedFrequencies >= 1) {
-      break;
-    }
-    needsShift++;
-  }
-
-  size_t shift = 0;
-  auto beforeUpdate = mCumulativeFrequencyTable[0];
-  for (size_t i = 0; i < mFrequencyTable.size(); i++) {
-    if (mFrequencyTable[i] && static_cast<uint64_t>(mCumulativeFrequencyTable[i + 1] - beforeUpdate) * (newCumulatedFrequency - needsShift) / cumulatedFrequencies < 1) {
-      shift++;
-    }
-    beforeUpdate = mCumulativeFrequencyTable[i + 1];
-    mCumulativeFrequencyTable[i + 1] = (static_cast<uint64_t>(newCumulatedFrequency - needsShift) * mCumulativeFrequencyTable[i + 1]) / cumulatedFrequencies + shift;
-  }
-  assert(shift == needsShift);
-
-  //verify
-#if !defined(NDEBUG)
-  assert(mCumulativeFrequencyTable.front() == 0 &&
-         mCumulativeFrequencyTable.back() == newCumulatedFrequency);
-  for (size_t i = 0; i < mFrequencyTable.size(); i++) {
-    if (mFrequencyTable[i] == 0) {
-      assert(mCumulativeFrequencyTable[i + 1] == mCumulativeFrequencyTable[i]);
-    } else {
-      assert(mCumulativeFrequencyTable[i + 1] > mCumulativeFrequencyTable[i]);
-    }
-  }
-#endif
-
-  // calculate updated frequencies
-  for (size_t i = 0; i < mFrequencyTable.size(); i++) {
-    mFrequencyTable[i] = getFrequency(i);
-  }
-
-  // remove added entry to cumulative Frequency table:
-  mCumulativeFrequencyTable.pop_back();
-  assert(mFrequencyTable.size() == mCumulativeFrequencyTable.size());
-
-  t.stop();
-  LOG(debug1) << __func__ << " inclusive time (ms): " << t.getDurationMS();
-
-  LOG(trace) << "done rescaling frequency table";
 }
 
 void SymbolStatistics::buildCumulativeFrequencyTable()

@@ -27,6 +27,9 @@ namespace rans
 using symbol_t = int32_t;
 using count_t = uint32_t;
 using histogram_t = std::vector<count_t>;
+
+inline constexpr uint8_t MinRenormThreshold = 10;
+inline constexpr uint8_t MaxRenormThreshold = 20;
 } // namespace rans
 } // namespace o2
 
