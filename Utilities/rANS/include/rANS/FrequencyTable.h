@@ -30,14 +30,43 @@
 
 #include "rANS/definitions.h"
 #include "rANS/internal/helper.h"
+#include "rANS/utils/HistogramView.h"
 
 namespace o2
 {
 namespace rans
 {
+
 class FrequencyTable;
 
-std::ostream& operator<<(std::ostream& out, const FrequencyTable& fTable);
+namespace detail
+{
+
+template <typename value_T, typename functor_T, typename predicate_T>
+class ExpirableProxy
+{
+ public:
+  ExpirableProxy() = default;
+  explicit ExpirableProxy(value_T value, predicate_T predicate, functor_T functor = {}) : mValue{std::move(value)}, mPredicate{std::move(predicate)}, mFunctor{functor} {};
+  template <class... Args>
+  count_t& operator()(Args... args)
+  {
+    if (mPredicate()) {
+      mValue = mFunctor(args...);
+    }
+    return mValue;
+  };
+
+ protected:
+  value_T mValue;
+  functor_T mFunctor;
+  predicate_T mPredicate;
+};
+
+} // namespace detail
+
+std::ostream&
+  operator<<(std::ostream& out, const FrequencyTable& fTable);
 
 class FrequencyTable
 {
@@ -45,25 +74,55 @@ class FrequencyTable
   using iterator_t = count_t*;
   using constIterator_t = const count_t*;
 
-  //TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
-  FrequencyTable() noexcept {}; //NOLINT
+ private:
+  class NUsedAlphabetSymbolsCounter
+  {
+   public:
+    count_t operator()(const FrequencyTable& frequencyTable) const
+    {
+      return std::count_if(frequencyTable.begin(), frequencyTable.end(), [](count_t count) { return count > 0; }) + frequencyTable.hasIncompressibleSymbols();
+    };
+  };
 
-  FrequencyTable(symbol_t min, symbol_t max) : mMin{min}, mMax{max}, mFrequencyTable(max - min + 1, 0) { assert(mMax >= mMin); };
+  class NUsedAlphabetSymbolsPredicate
+  {
+   public:
+    NUsedAlphabetSymbolsPredicate(FrequencyTable* frequencyTable) : mFrequencyTable{frequencyTable} {};
 
-  template <typename Source_IT, std::enable_if_t<internal::isIntegralIter_v<Source_IT>, bool> = true>
-  void addSamples(Source_IT begin, Source_IT end);
+    bool operator()()
+    {
+      const count_t newNumSamples = mFrequencyTable->getNumSamples();
+      const count_t newIncompressibleSymbolFrequency = mFrequencyTable->getIncompressibleSymbolFrequency();
+      const bool hasSameNumSamples = newNumSamples == mOldNumSamples;
+      const bool hasSameIncompressibleSymbolFrequency = newIncompressibleSymbolFrequency == mOldIncompressibleSymbolFrequency;
+      mOldIncompressibleSymbolFrequency = newIncompressibleSymbolFrequency;
+      return !(hasSameNumSamples && hasSameIncompressibleSymbolFrequency);
+    };
 
-  template <typename Source_IT, std::enable_if_t<internal::isIntegralIter_v<Source_IT>, bool> = true>
-  void addSamples(Source_IT begin, Source_IT end, symbol_t min, symbol_t max);
+   private:
+    FrequencyTable* mFrequencyTable;
+    count_t mOldNumSamples{};
+    count_t mOldIncompressibleSymbolFrequency{};
+  };
+
+  using NUsedAlphabetSymbolsProxy_t = detail::ExpirableProxy<count_t, NUsedAlphabetSymbolsCounter, NUsedAlphabetSymbolsPredicate>;
+
+ public:
+  // Constructors
+
+  // TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
+  FrequencyTable() noexcept {}; // NOLINT
+
+  FrequencyTable(symbol_t min, symbol_t max) : mFrequencyTable(max - min + 1, 0), mOffset{min} { assert(max >= min); };
 
   template <typename Freq_IT, std::enable_if_t<internal::isIntegralIter_v<Freq_IT>, bool> = true>
-  void addFrequencies(Freq_IT begin, Freq_IT end, symbol_t min, symbol_t max);
+  FrequencyTable(Freq_IT begin, Freq_IT end, symbol_t min, count_t incompressibleSymbolFrequency = 0);
+
+  // accessors
 
   inline count_t operator[](symbol_t symbol) const { return getSymbol(symbol); };
 
   count_t at(size_t index) const;
-
-  inline size_t size() const { return mFrequencyTable.size(); };
 
   inline const count_t* data() const noexcept { return mFrequencyTable.data(); };
 
@@ -79,45 +138,108 @@ class FrequencyTable
 
   inline iterator_t end() noexcept { return const_cast<iterator_t>(cend()); };
 
+  inline size_t size() const noexcept { return mFrequencyTable.size(); };
+
+  inline bool empty() const noexcept { return mFrequencyTable.empty(); };
+
+  inline size_t getNUsedAlphabetSymbols() const { return mNUsedAlphabetSymbols(*this); };
+
+  inline size_t getAlphabetRangeBits() const noexcept { return internal::numBitsForNSymbols(size() + this->hasIncompressibleSymbols()); };
+
+  inline symbol_t getMinSymbol() const noexcept { return mOffset; };
+  inline symbol_t getMaxSymbol() const noexcept { return mOffset + std::max(0l, static_cast<int32_t>(mFrequencyTable.size()) - 1l); };
+
+  inline count_t getIncompressibleSymbolFrequency() const noexcept { return mIncompressibleSymbolFrequency; };
+
+  inline size_t getNumSamples() const noexcept { return mNumSamples + this->getIncompressibleSymbolFrequency(); };
+
+  inline bool isRenormed() const noexcept { return this->hasIncompressibleSymbols() && internal::isPow2(this->getNumSamples()); };
+
+  size_t getRenormingBits() const;
+
+  bool isRenormedTo(size_t nBits) const noexcept;
+
+  // operations
+  template <typename Source_IT, std::enable_if_t<internal::isIntegralIter_v<Source_IT>, bool> = true>
+  FrequencyTable& addSamples(Source_IT begin, Source_IT end, bool extendTable = true);
+
+  template <typename Source_IT, std::enable_if_t<internal::isIntegralIter_v<Source_IT>, bool> = true>
+  FrequencyTable& addSamples(Source_IT begin, Source_IT end, symbol_t min, symbol_t max, bool extendTable = true);
+
+  template <typename Freq_IT, std::enable_if_t<internal::isIntegralIter_v<Freq_IT>, bool> = true>
+  FrequencyTable& addFrequencies(Freq_IT begin, Freq_IT end, symbol_t min, bool extendTable = true);
+
   FrequencyTable& operator+(FrequencyTable& other);
 
-  inline histogram_t&& release() && noexcept;
+  histogram_t release() && noexcept;
 
-  inline symbol_t getMinSymbol() const noexcept { return mNumSamples == 0 ? 0 : mMin; };
-  inline symbol_t getMaxSymbol() const noexcept { return mNumSamples == 0 ? 0 : mMax; };
+  FrequencyTable& resize(symbol_t min, symbol_t max, bool truncate = false);
 
-  inline size_t getAlphabetRangeBits() const noexcept { return internal::numBitsForNSymbols(mFrequencyTable.size()); };
+  inline FrequencyTable& resize(size_t newSize, bool truncate = false) { return resize(this->getMinSymbol(), this->getMinSymbol() + newSize, truncate); };
 
-  inline size_t getNumSamples() const noexcept { return mNumSamples; };
+  FrequencyTable& trim();
 
-  size_t getNUsedAlphabetSymbols() const noexcept;
+  inline bool hasIncompressibleSymbols() const noexcept { return this->getIncompressibleSymbolFrequency() > 0; };
 
  private:
-  void resizeFrequencyTable(symbol_t min, symbol_t max);
-
   const count_t& getSymbol(symbol_t symbol) const;
   count_t& getSymbol(symbol_t symbol);
 
+  count_t frequencyCountingDecorator(count_t frequency) noexcept;
+
+  symbol_t sampleCountingDecorator(symbol_t sample) noexcept;
+
   histogram_t mFrequencyTable{};
-  symbol_t mMin{std::numeric_limits<symbol_t>::max()};
-  symbol_t mMax{std::numeric_limits<symbol_t>::min()};
+  symbol_t mOffset{};
   size_t mNumSamples{};
+  mutable NUsedAlphabetSymbolsProxy_t mNUsedAlphabetSymbols{0ul, NUsedAlphabetSymbolsPredicate(this)};
+  count_t mIncompressibleSymbolFrequency{};
 };
 
-template <typename Source_IT, std::enable_if_t<internal::isIntegralIter_v<Source_IT>, bool>>
-void FrequencyTable::addSamples(Source_IT begin, Source_IT end)
+template <typename IT>
+double_t computeEntropy(IT begin, IT end, symbol_t min);
+
+double_t computeEntropy(const FrequencyTable& table);
+
+count_t computeRenormingPrecision(const FrequencyTable& frequencyTable);
+
+FrequencyTable renorm(FrequencyTable oldTable, size_t newPrecision = 0);
+
+FrequencyTable renormCutoffIncompressible(FrequencyTable oldTable, uint8_t newPrecision = 0, uint8_t lowProbabilityCutoffBits = 3);
+
+} // namespace rans
+} // namespace o2
+
+// IMPL
+///////////////////////////////////////////////////////////////////////////////////////////
+
+namespace o2
 {
-  if (begin != end) {
-    const auto& [minIter, maxIter] = std::minmax_element(begin, end);
-    addSamples(begin, end, *minIter, *maxIter);
-  } else {
-    LOG(warning) << "Passed empty message to " << __func__; // RS this is ok for empty columns
-    return;
-  }
+namespace rans
+{
+
+template <typename Freq_IT, std::enable_if_t<internal::isIntegralIter_v<Freq_IT>, bool>>
+FrequencyTable::FrequencyTable(Freq_IT begin, Freq_IT end, symbol_t min, count_t incompressibleSymbolFrequency)
+{
+  auto histogram = utils::HistogramView{begin, end, min};
+  this->addFrequencies(histogram.begin(), histogram.end(), histogram.getMin(), true);
+  mIncompressibleSymbolFrequency = incompressibleSymbolFrequency;
 }
 
 template <typename Source_IT, std::enable_if_t<internal::isIntegralIter_v<Source_IT>, bool>>
-void FrequencyTable::addSamples(Source_IT begin, Source_IT end, symbol_t min, symbol_t max)
+inline FrequencyTable& FrequencyTable::addSamples(Source_IT begin, Source_IT end, bool extendTable)
+{
+  if (begin != end) {
+    const auto& [minIter, maxIter] = std::minmax_element(begin, end);
+    addSamples(begin, end, *minIter, *maxIter, extendTable);
+  } else {
+    LOG(warning) << "Passed empty message to " << __func__; // RS this is ok for empty columns
+  }
+  return *this;
+}
+
+template <typename Source_IT, std::enable_if_t<internal::isIntegralIter_v<Source_IT>, bool>>
+FrequencyTable& FrequencyTable::addSamples(Source_IT begin, Source_IT end, symbol_t min, symbol_t max, bool extendTable)
 {
   LOG(trace) << "start adding samples";
   internal::RANSTimer t;
@@ -125,15 +247,22 @@ void FrequencyTable::addSamples(Source_IT begin, Source_IT end, symbol_t min, sy
 
   if (begin == end) {
     LOG(warning) << "Passed empty message to " << __func__; // RS this is ok for empty columns
-    return;
+  } else {
+    if (extendTable) {
+      this->resize(min, max);
+      // add new symbols
+      std::for_each(begin, end, [this](symbol_t symbol) { ++this->getSymbol(this->sampleCountingDecorator(symbol)); });
+    } else {
+      // add new symbols but all that are out of range are set to incompressible
+      std::for_each(begin, end, [this](symbol_t symbol) {
+        if (this->empty() || symbol < this->getMinSymbol() || symbol > this->getMaxSymbol()) {
+          ++this->mIncompressibleSymbolFrequency;
+        } else {
+          ++this->getSymbol(this->sampleCountingDecorator(symbol));
+        }
+      });
+    }
   }
-
-  resizeFrequencyTable(min, max);
-
-  // add new symbols
-  std::for_each(begin, end, [this](symbol_t symbol) { ++this->getSymbol(symbol); });
-
-  mNumSamples += std::distance(begin, end);
 
   t.stop();
   LOG(debug1) << __func__ << " inclusive time (ms): " << t.getDurationMS();
@@ -142,36 +271,78 @@ void FrequencyTable::addSamples(Source_IT begin, Source_IT end, symbol_t min, sy
   LOG(debug2) << *this;
 #endif
   LOG(trace) << "done adding samples";
+  return *this;
 }
 
 template <typename Freq_IT, std::enable_if_t<internal::isIntegralIter_v<Freq_IT>, bool>>
-void FrequencyTable::addFrequencies(Freq_IT begin, Freq_IT end, symbol_t min, symbol_t max)
+FrequencyTable& FrequencyTable::addFrequencies(Freq_IT begin, Freq_IT end, symbol_t min, bool extendTable)
 {
-  static_assert(std::is_integral<typename std::iterator_traits<Freq_IT>::value_type>::value);
-
   LOG(trace) << "start adding frequencies";
   internal::RANSTimer t;
   t.start();
 
-  if (begin == end) {
+  auto thisHistogram = utils::HistogramView{mFrequencyTable.begin(), mFrequencyTable.end(), mOffset};
+  auto addedHistogram = utils::trim(utils::HistogramView{begin, end, min});
+  if (addedHistogram.empty()) {
     LOG(warning) << "Passed empty FrequencyTable to " << __func__; // RS this is ok for empty columns
-    return;
+  } else {
+
+    const symbol_t newMin = std::min(thisHistogram.getMin(), addedHistogram.getMin());
+    const symbol_t newMax = std::max(thisHistogram.getMax(), addedHistogram.getMax());
+
+    // resize table
+    const bool needsExtend = thisHistogram.empty() || (newMin < thisHistogram.getMin()) || (newMax > thisHistogram.getMax());
+
+    if (needsExtend && extendTable) {
+
+      if (thisHistogram.empty()) {
+        mFrequencyTable = histogram_t(addedHistogram.size());
+        std::transform(addedHistogram.begin(), addedHistogram.end(), mFrequencyTable.begin(), [this](count_t frequency) {
+          return this->frequencyCountingDecorator(frequency);
+        });
+        mOffset = addedHistogram.getOffset();
+      } else {
+        const symbol_t newSize = newMax - newMin + 1;
+        histogram_t newFreequencyTable(newSize, 0);
+        auto newHistogram = utils::HistogramView{newFreequencyTable.begin(), newFreequencyTable.end(), newMin};
+        auto histogramOverlap = utils::intersection(newHistogram, thisHistogram);
+        assert(!histogramOverlap.empty());
+        assert(histogramOverlap.size() == thisHistogram.size());
+        std::copy(thisHistogram.begin(), thisHistogram.end(), histogramOverlap.begin());
+
+        histogramOverlap = utils::intersection(newHistogram, addedHistogram);
+        assert(!histogramOverlap.empty());
+        assert(histogramOverlap.size() == addedHistogram.size());
+        std::transform(addedHistogram.begin(), addedHistogram.end(), histogramOverlap.begin(), histogramOverlap.begin(), [this](const count_t& a, const count_t& b) { return this->frequencyCountingDecorator(a) + b; });
+
+        this->mFrequencyTable = std::move(newFreequencyTable);
+        this->mOffset = newHistogram.getOffset();
+      }
+    } else {
+      thisHistogram = utils::HistogramView{mFrequencyTable.begin(), mFrequencyTable.end(), mOffset};
+
+      // left incompressible tail
+      auto leftTail = utils::leftTail(addedHistogram, thisHistogram);
+      if (!leftTail.empty()) {
+        mIncompressibleSymbolFrequency += std::accumulate(leftTail.begin(), leftTail.end(), 0);
+      }
+
+      // intersection
+      auto overlapAdded = utils::intersection(addedHistogram, thisHistogram);
+      auto overlapThis = utils::intersection(thisHistogram, addedHistogram);
+      if (!overlapAdded.empty()) {
+        assert(overlapAdded.getMin() == overlapThis.getMin());
+        assert(overlapAdded.size() == overlapThis.size());
+        std::transform(overlapAdded.begin(), overlapAdded.end(), overlapThis.begin(), overlapThis.begin(), [this](const count_t& a, const count_t& b) { return this->frequencyCountingDecorator(a) + b; });
+      }
+
+      // right incompressible tail
+      auto rightTail = utils::rightTail(addedHistogram, thisHistogram);
+      if (!rightTail.empty()) {
+        mIncompressibleSymbolFrequency += std::accumulate(rightTail.begin(), rightTail.end(), 0);
+      }
+    }
   }
-
-  // ensure correct size of frequency table and grow it if necessary
-  resizeFrequencyTable(min, max);
-
-  // either 0 or offset from array start.
-  const size_t offset = std::abs(mMin - min);
-
-  // ftableA[i] += fTableB[i+offset]
-  std::transform(begin, end,
-                 mFrequencyTable.begin() + offset,
-                 mFrequencyTable.begin() + offset,
-                 [this](typename std::iterator_traits<Freq_IT>::value_type first, count_t second) {
-    mNumSamples += first;
-    return first + second; });
-
   t.stop();
   LOG(debug1) << __func__ << " inclusive time (ms): " << t.getDurationMS();
 
@@ -180,6 +351,7 @@ void FrequencyTable::addFrequencies(Freq_IT begin, Freq_IT end, symbol_t min, sy
 #endif
 
   LOG(trace) << "done adding frequencies";
+  return *this;
 }
 
 inline auto FrequencyTable::at(size_t index) const -> count_t
@@ -190,27 +362,22 @@ inline auto FrequencyTable::at(size_t index) const -> count_t
 
 inline FrequencyTable& FrequencyTable::operator+(FrequencyTable& other)
 {
-  addFrequencies(other.cbegin(), other.cend(), other.getMinSymbol(), other.getMaxSymbol());
+  addFrequencies(other.cbegin(), other.cend(), other.getMinSymbol(), true);
   return *this;
 }
 
-inline auto FrequencyTable::release() && noexcept -> histogram_t&&
+inline auto FrequencyTable::release() && noexcept -> histogram_t
 {
-  mMin = 0;
-  mMax = 0;
-  mNumSamples = 0;
-  return std::move(mFrequencyTable);
-};
+  auto frequencies = std::move(mFrequencyTable);
+  *this = FrequencyTable();
 
-inline size_t FrequencyTable::getNUsedAlphabetSymbols() const noexcept
-{
-  return std::count_if(cbegin(), cend(), [](count_t count) { return count > 0; });
-}
+  return frequencies;
+};
 
 inline auto FrequencyTable::getSymbol(symbol_t symbol) const -> const count_t&
 {
-  //negative numbers cause overflow thus we get away with one comparison only
-  const size_t index = static_cast<size_t>(symbol - mMin);
+  // negative numbers cause overflow thus we get away with one comparison only
+  const size_t index = static_cast<size_t>(symbol - this->getMinSymbol());
   assert(index < mFrequencyTable.size());
   return mFrequencyTable[index];
 }
@@ -219,6 +386,29 @@ inline auto FrequencyTable::getSymbol(symbol_t symbol) -> count_t&
 {
   return const_cast<count_t&>(static_cast<const FrequencyTable&>(*this).getSymbol(symbol));
 }
+
+inline count_t FrequencyTable::frequencyCountingDecorator(count_t frequency) noexcept
+{
+  mNumSamples += frequency;
+  return frequency;
+};
+
+inline symbol_t FrequencyTable::sampleCountingDecorator(symbol_t sample) noexcept
+{
+  ++mNumSamples;
+  return sample;
+};
+
+template <typename IT>
+double_t computeEntropy(IT begin, IT end, symbol_t min)
+{
+  double_t numSamples = std::accumulate(begin, end, 0);
+  return std::accumulate(begin, end, 0, [numSamples](double_t entropy, count_t frequency) {
+    const double_t p = static_cast<double_t>(frequency) / static_cast<double_t>(numSamples);
+    const double_t length = p == 0 ? 0 : std::log2(p);
+    return entropy -= p * length;
+  });
+};
 
 } // namespace rans
 } // namespace o2

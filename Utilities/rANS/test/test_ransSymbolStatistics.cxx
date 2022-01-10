@@ -31,15 +31,14 @@ size_t getNUniqueSymbols(const T& container)
 
 BOOST_AUTO_TEST_CASE(test_empty)
 {
-  const std::vector<uint32_t> A{};
-  o2::rans::internal::SymbolStatistics symbolStats{A.begin(), A.end(), 0, 0u, 0u};
+  o2::rans::internal::SymbolStatistics symbolStats{o2::rans::FrequencyTable{}, 0u};
 
   BOOST_CHECK_EQUAL(symbolStats.getMinSymbol(), 0);
   BOOST_CHECK_EQUAL(symbolStats.getMaxSymbol(), 0);
   BOOST_CHECK_EQUAL(symbolStats.size(), 1);
   BOOST_CHECK_EQUAL(symbolStats.getAlphabetRangeBits(), 1);
   BOOST_CHECK_EQUAL(symbolStats.getNUsedAlphabetSymbols(), 1);
-  BOOST_CHECK_EQUAL(symbolStats.getSymbolTablePrecision(), o2::rans::internal::MIN_SCALE);
+  BOOST_CHECK_EQUAL(symbolStats.getSymbolTablePrecision(), o2::rans::MinRenormThreshold);
 
   BOOST_CHECK(symbolStats.begin() != symbolStats.end());
 
@@ -59,31 +58,7 @@ struct SymbolStatsFromFrequencyTable {
   };
 };
 
-struct SymbolStatsFromFrequencyTableRvalue {
-  static auto makeStats(const std::vector<int>& samples, size_t scaleBits)
-  {
-    o2::rans::FrequencyTable f;
-    f.addSamples(std::begin(samples), std::end(samples));
-    return o2::rans::internal::SymbolStatistics{std::move(f), scaleBits};
-  };
-};
-
-struct SymbolStatsFromIterator {
-  static auto makeStats(const std::vector<int>& samples, size_t scaleBits)
-  {
-    o2::rans::FrequencyTable f;
-    f.addSamples(std::begin(samples), std::end(samples));
-    return o2::rans::internal::SymbolStatistics{f.begin(),
-                                                f.end(),
-                                                f.getMinSymbol(),
-                                                scaleBits,
-                                                f.getNUsedAlphabetSymbols()};
-  };
-};
-
-using SymbolStats_t = boost::mpl::vector<SymbolStatsFromFrequencyTable,
-                                         SymbolStatsFromFrequencyTableRvalue,
-                                         SymbolStatsFromIterator>;
+using SymbolStats_t = boost::mpl::vector<SymbolStatsFromFrequencyTable>;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_buildSymbolStats, Stats_T, SymbolStats_t)
 {

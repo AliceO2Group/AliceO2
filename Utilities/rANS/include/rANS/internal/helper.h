@@ -41,7 +41,19 @@ inline constexpr size_t pow2(size_t n) noexcept
   return 1 << n;
 }
 
-inline constexpr size_t numSymbolsWithNBits(size_t bits) noexcept
+inline constexpr uint32_t log2UInt(uint32_t x) noexcept
+{
+  return x > 0 ? sizeof(int) * 8 - __builtin_clz(x) - 1 : 0;
+}
+
+template <typename T, std::enable_if_t<std::is_unsigned_v<T>, bool> = true>
+inline constexpr bool isPow2(T x) noexcept
+{
+  return x > 0 && (x & (x - 1)) == 0;
+}
+
+inline constexpr size_t
+  numSymbolsWithNBits(size_t bits) noexcept
 {
   return (1 << (bits + 1)) - 1;
 }

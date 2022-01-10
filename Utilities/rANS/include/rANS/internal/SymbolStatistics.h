@@ -39,9 +39,6 @@ namespace rans
 namespace internal
 {
 
-inline constexpr size_t MIN_SCALE = 16;
-inline constexpr size_t MAX_SCALE = 27;
-
 namespace detail
 {
 class MergingFunctor
@@ -62,15 +59,7 @@ class SymbolStatistics
   using pair_t = std::tuple<count_t, count_t>;
   using histogram_t = std::vector<count_t>;
 
-  SymbolStatistics(const FrequencyTable& frequencyTable, size_t scaleBits = 0);
-  SymbolStatistics(FrequencyTable&& frequencyTable, size_t scaleBits = 0);
-
-  template <typename Source_IT, std::enable_if_t<isCompatibleIter_v<count_t, Source_IT>, bool> = true>
-  SymbolStatistics(Source_IT begin,
-                   Source_IT end,
-                   symbol_t min,
-                   size_t scaleBits,
-                   size_t nUsedAlphabetSymbols);
+  SymbolStatistics(FrequencyTable frequencyTable, size_t scaleBits = 0);
 
   pair_t operator[](symbol_t symbol) const;
   pair_t at(size_t index) const;
@@ -103,32 +92,6 @@ class SymbolStatistics
 
   static constexpr size_t MAX_RANGE = 26;
 };
-
-template <typename Source_IT,
-          std::enable_if_t<isCompatibleIter_v<count_t, Source_IT>, bool>>
-inline SymbolStatistics::SymbolStatistics(Source_IT begin,
-                                          Source_IT end,
-                                          symbol_t min,
-                                          size_t scaleBits,
-                                          size_t nUsedAlphabetSymbols) : SymbolStatistics{
-                                                                           min,
-                                                                           scaleBits,
-                                                                           nUsedAlphabetSymbols,
-                                                                           histogram_t{begin, end}}
-{
-}
-
-inline SymbolStatistics::SymbolStatistics(const FrequencyTable& frequencyTable, size_t scaleBits) : SymbolStatistics{
-                                                                                                      frequencyTable.getMinSymbol(),
-                                                                                                      scaleBits,
-                                                                                                      frequencyTable.getNUsedAlphabetSymbols(),
-                                                                                                      histogram_t(frequencyTable.begin(), frequencyTable.end())} {};
-
-inline SymbolStatistics::SymbolStatistics(FrequencyTable&& frequencyTable, size_t scaleBits) : SymbolStatistics{
-                                                                                                 frequencyTable.getMinSymbol(),
-                                                                                                 scaleBits,
-                                                                                                 frequencyTable.getNUsedAlphabetSymbols(),
-                                                                                                 std::move(frequencyTable).release()} {};
 
 inline auto SymbolStatistics::begin() const noexcept
 {
