@@ -383,17 +383,14 @@ bool ITSCalibrator<Mapping>::GetThreshold_Hitcounting(const short int* data,
 template <class Mapping>
 void ITSCalibrator<Mapping>::reset_row_hitmap(const short int& chipID, const short int& row) {
 
-    LOG(info) << "inside";
     // Update current row of chip
     this->currentRow[chipID] = row;
 
-    LOG(info) << "middle";
     // Reset pixel hit counts for the chip, new empty hitvec
     // Create a 2D vector to store hits
     // Outer dim = column, inner dim = charge
     this->pixelHits[chipID] = std::vector<std::vector<short int>> (
         this->NCols, std::vector<short int> (*(this->nRange), 0));
-    LOG(info) << "exiting";
 }
 
 
@@ -652,13 +649,13 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
             //thrfile   << "WARNING: charge == 0\n";
         } else {
 
-            LOG(info) << "Length of digits: " << digits.size();
+            //LOG(info) << "Length of digits: " << digits.size();
             for(unsigned int idig = rofIndex; idig < rofIndex + rofNEntries; idig++) { //for (const auto& d : digitsInFrame) {
                 auto & d = digits[idig];
                 short int chipID = (short int) d.getChipIndex();
                 short int col = (short int) d.getColumn();
 
-                LOG(info) << "Hit for chip ID: " << chipID << " | row: " << row << " | col: " << col;
+                //LOG(info) << "Hit for chip ID: " << chipID << " | row: " << row << " | col: " << col;
 
                 // Row should be the same for the whole ROF so do not have to check here
                 //assert(row == (short int) d.getRow());
@@ -681,8 +678,6 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
                     // Reset row & hitmap for the new row
                     this->reset_row_hitmap(chipID, row);
                 }
-
-                LOG(info) << "hello";
 
                 // Increment the number of counts for this pixel
                 if (charge > this->max || charge < this->min) {
