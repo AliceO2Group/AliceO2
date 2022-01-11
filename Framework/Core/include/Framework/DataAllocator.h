@@ -54,9 +54,7 @@ class RecordBatchWriter;
 } // namespace ipc
 } // namespace arrow
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 class ServiceRegistry;
 
@@ -418,27 +416,31 @@ class DataAllocator
     return o2::vector<T>{targetResource, std::forward<Args>(args)...};
   }
 
-  //adopt container (if PMR is used with the appropriate memory resource in container it is ZERO-copy)
+  struct CacheId {
+    int64_t value;
+  };
+
   template <typename ContainerT>
-  void adoptContainer(const Output& spec, ContainerT& container) = delete; //only bind to moved-from containers
-  template <typename ContainerT>
-  void adoptContainer(const Output& spec, ContainerT&& container)
+  CacheId adoptContainer(const Output& spec, ContainerT& container, bool cache = false)
   {
-    // Find a matching channel, extract the message for it form the container
-    // and put it in the queue to be sent at the end of the processing
-    auto& timingInfo = mRegistry->get<TimingInfo>();
-    std::string const& channel = matchDataHeader(spec, timingInfo.timeslice);
-
-    auto& context = mRegistry->get<MessageContext>();
-    FairMQMessagePtr payloadMessage = o2::pmr::getMessage(std::forward<ContainerT>(container), *context.proxy().getTransport(channel));
-
-    FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel,                        //
-                                                             o2::header::gSerializationMethodNone, //
-                                                             payloadMessage->GetSize()             //
-    );
-
-    context.add<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), channel);
+    static_assert(always_static_assert_v<ContainerT>, "Container cannot be moved. Please make sure it is backed by a FairMQMemoryResource");
+    return {0};
   }
+
+  /// Adopt a PMR container. Notice that the container must be moveable and
+  /// eventually backed / by a FairMQMemoryResource.
+  /// @a spec where to send the message
+  /// @a container the container whose resource needs to be sent
+  /// @a cache: if true, the messages being sent are shallow copies of a cached
+  ///           copy. The entry in the cache can be subsequently be sent using
+  ///           the returned CacheId.
+  /// @return a unique id of the adopted message which can be used to resend the
+  ///         message or can be pruned via the DataAllocator::prune() method.
+  template <typename ContainerT>
+  CacheId adoptContainer(const Output& spec, ContainerT&& container, bool cache = false);
+
+  /// Adopt an already cached message, using an already provided CacheId.
+  void adoptFromCache(Output const& spec, CacheId id);
 
   /// snapshot object and route to output specified by OutputRef
   /// Framework makes a (serialized) copy of object content.
@@ -490,7 +492,34 @@ class DataAllocator
                         o2::header::SerializationMethod serializationMethod);
 };
 
-} // namespace framework
-} // namespace o2
+template <typename ContainerT>
+DataAllocator::CacheId DataAllocator::adoptContainer(const Output& spec, ContainerT&& container, bool cache)
+{
+  // Find a matching channel, extract the message for it form the container
+  // and put it in the queue to be sent at the end of the processing
+  auto& timingInfo = mRegistry->get<TimingInfo>();
+  std::string const& channel = matchDataHeader(spec, timingInfo.timeslice);
+
+  auto& context = mRegistry->get<MessageContext>();
+  FairMQMessagePtr payloadMessage = o2::pmr::getMessage(std::forward<ContainerT>(container), *context.proxy().getTransport(channel));
+
+  FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel,                        //
+                                                           o2::header::gSerializationMethodNone, //
+                                                           payloadMessage->GetSize()             //
+  );
+
+  CacheId cacheId{0}; //
+  if (cache) {
+    // The message will be shallow cloned in the cache. Since the
+    // clone is indistinguishable from the original, we can keep sending
+    // the original.
+    cacheId.value = context.addToCache(payloadMessage);
+  }
+
+  context.add<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), channel);
+  return cacheId;
+}
+
+} // namespace o2::framework
 
 #endif //FRAMEWORK_DATAALLOCATOR_H
