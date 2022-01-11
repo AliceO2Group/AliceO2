@@ -87,7 +87,7 @@ void o2::tpc::IDCDrawHelper::drawSide(const IDCDraw& idc, const o2::tpc::Side si
           coordinate.rotate(angDeg);
           const float yPos = static_cast<float>(coordinate.yVals[0] + coordinate.yVals[1] + coordinate.yVals[2] + coordinate.yVals[3]) / 4;
           const float xPos = static_cast<float>(coordinate.xVals[0] + coordinate.xVals[1] + coordinate.xVals[2] + coordinate.xVals[3]) / 4;
-          const auto padTmp = (side == Side::A) ? ipad : (Mapper::PADSPERROW[region][irow] - ipad); // C-Side is mirrored
+          const auto padTmp = (side == Side::A) ? ipad : (Mapper::PADSPERROW[region][irow] - ipad - 1); // C-Side is mirrored
           poly->Fill(xPos, yPos, idc.getIDC(sector, region, irow, padTmp));
         }
       }
