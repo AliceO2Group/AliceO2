@@ -41,52 +41,52 @@ auto createSchemaFromColumns(framework::pack<C...>)
 using SelectionVector = std::vector<int64_t>;
 
 template <typename, typename = void>
-constexpr bool is_index_column_v = false;
+inline constexpr bool is_index_column_v = false;
 
 template <typename T>
-constexpr bool is_index_column_v<T, std::void_t<decltype(sizeof(typename T::binding_t))>> = true;
+inline constexpr bool is_index_column_v<T, std::void_t<decltype(sizeof(typename T::binding_t))>> = true;
 
 template <typename, typename = void>
-constexpr bool is_type_with_originals_v = false;
+inline constexpr bool is_type_with_originals_v = false;
 
 template <typename T>
-constexpr bool is_type_with_originals_v<T, std::void_t<decltype(sizeof(typename T::originals))>> = true;
+inline constexpr bool is_type_with_originals_v<T, std::void_t<decltype(sizeof(typename T::originals))>> = true;
 
 template <typename T, typename = void>
-constexpr bool is_type_with_parent_v = false;
+inline constexpr bool is_type_with_parent_v = false;
 
 template <typename T>
-constexpr bool is_type_with_parent_v<T, std::void_t<decltype(sizeof(typename T::parent_t))>> = true;
+inline constexpr bool is_type_with_parent_v<T, std::void_t<decltype(sizeof(typename T::parent_t))>> = true;
 
 template <typename, typename = void>
-constexpr bool is_type_with_metadata_v = false;
+inline constexpr bool is_type_with_metadata_v = false;
 
 template <typename T>
-constexpr bool is_type_with_metadata_v<T, std::void_t<decltype(sizeof(typename T::metadata))>> = true;
+inline constexpr bool is_type_with_metadata_v<T, std::void_t<decltype(sizeof(typename T::metadata))>> = true;
 
 template <typename, typename = void>
-constexpr bool is_type_with_binding_v = false;
+inline constexpr bool is_type_with_binding_v = false;
 
 template <typename T>
-constexpr bool is_type_with_binding_v<T, std::void_t<decltype(sizeof(typename T::binding_t))>> = true;
+inline constexpr bool is_type_with_binding_v<T, std::void_t<decltype(sizeof(typename T::binding_t))>> = true;
 
 template <typename, typename = void>
-constexpr bool is_type_spawnable_v = false;
+inline constexpr bool is_type_spawnable_v = false;
 
 template <typename T>
-constexpr bool is_type_spawnable_v<T, std::void_t<decltype(sizeof(typename T::spawnable_t))>> = true;
+inline constexpr bool is_type_spawnable_v<T, std::void_t<decltype(sizeof(typename T::spawnable_t))>> = true;
 
 template <typename T, typename = void>
-constexpr bool is_index_table_v = false;
+inline constexpr bool is_index_table_v = false;
 
 template <typename T>
-constexpr bool is_index_table_v<T, std::void_t<decltype(sizeof(typename T::indexing_t))>> = true;
+inline constexpr bool is_index_table_v<T, std::void_t<decltype(sizeof(typename T::indexing_t))>> = true;
 
 template <typename, typename = void>
-constexpr bool is_self_index_column_v = false;
+inline constexpr bool is_self_index_column_v = false;
 
 template <typename T>
-constexpr bool is_self_index_column_v<T, std::void_t<decltype(sizeof(typename T::self_index_t))>> = true;
+inline constexpr bool is_self_index_column_v<T, std::void_t<decltype(sizeof(typename T::self_index_t))>> = true;
 
 template <typename T, typename TLambda>
 void call_if_has_originals(TLambda&& lambda)
