@@ -56,29 +56,12 @@ InjectorFunction incrementalConverter(OutputSpec const& spec, uint64_t startTime
 /// multipart ensemble.
 InjectorFunction o2DataModelAdaptor(OutputSpec const& spec, uint64_t startTime, uint64_t step);
 
-/// @struct DPLModelAdapterConfig
-/// Configuration object for dplModelAdaptor
-struct DPLModelAdapterConfig {
-  /// throw runtime error if an input message is not matched by filter rules
-  bool throwOnUnmatchedInputs = true;
-  /// do all kinds of consistency checks
-  bool paranoid = false;
-  /// blindly forward on one channel
-  bool blindForward = false;
-};
-
 /// This is to be used when the input data is already formatted like DPL
 /// expects it, i.e. with the DataProcessingHeader in the header stack
 /// The list of specs is used as a filter list, all incoming data matching an entry
 /// in the list will be send through the corresponding channel
 InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& specs = {{header::gDataOriginAny, header::gDataDescriptionAny}},
-                                 DPLModelAdapterConfig config = DPLModelAdapterConfig{});
-
-/// legacy function
-inline InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& specs, bool throwOnUnmatchedInputs)
-{
-  return dplModelAdaptor(specs, DPLModelAdapterConfig{throwOnUnmatchedInputs});
-}
+                                 bool throwOnUnmatchedInputs = true);
 
 /// The default connection method for the custom source
 static auto gDefaultConverter = incrementalConverter(OutputSpec{"TST", "TEST", 0}, 0, 1);
