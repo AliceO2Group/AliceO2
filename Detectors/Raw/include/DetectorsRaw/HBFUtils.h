@@ -83,7 +83,7 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
   ///< calculate TF timestamp in ms
   uint64_t getTFTimeStamp(const IR& rec) const
   {
-    return startTime + (getFirstIRofTF(rec).orbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS;
+    return startTime + (getFirstIRofTF(rec).orbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
   }
 
   ///< create RDH for given IR
