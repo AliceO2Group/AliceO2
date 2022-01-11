@@ -291,4 +291,22 @@ bool DataAllocator::isAllowed(Output const& query)
   return false;
 }
 
+void DataAllocator::adoptFromCache(const Output& spec, CacheId id)
+{
+  // Find a matching channel, extract the message for it form the container
+  // and put it in the queue to be sent at the end of the processing
+  auto& timingInfo = mRegistry->get<TimingInfo>();
+  std::string const& channel = matchDataHeader(spec, timingInfo.timeslice);
+
+  auto& context = mRegistry->get<MessageContext>();
+  FairMQMessagePtr payloadMessage = context.cloneFromCache(id.value);
+
+  FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel,                        //
+                                                           o2::header::gSerializationMethodNone, //
+                                                           payloadMessage->GetSize()             //
+  );
+
+  context.add<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), channel);
+}
+
 } // namespace o2::framework
