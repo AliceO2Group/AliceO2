@@ -92,10 +92,6 @@ class ITSCalibrator : public Task
     private:
 
         TStopwatch mTimer;
-        size_t mTFCounter = 0;
-
-        // Output log file for debugging / parsing
-        std::ofstream thrfile;
 
         //detector information
         static constexpr short int NCols = 1024; //column number in Alpide chip
@@ -151,7 +147,11 @@ class ITSCalibrator : public Task
         void init_chip_data(const short int&);
         void extract_thresh_row(const short int&, const short int&);
         void update_output(const short int&);
+        void finalize_output();
         void set_run_type(const short int&);
+        void update_env_id(ProcessingContext&);
+        void update_run_id(ProcessingContext&);
+        void update_LHC_period(ProcessingContext&);
 
         // Helper functions related to threshold extraction
         void get_row_col_arr(const short int&, float**, float**);
@@ -172,7 +172,12 @@ class ITSCalibrator : public Task
         std::string mDictName;
         std::string mNoiseName;
 
-        std::string mRunID;
+        std::string LHC_period;
+        std::string EnvironmentID;
+        std::string output_dir;
+        std::string metafile_dir = "/dev/null";
+        int run_number = -1;
+        int tfcounter = -1;
 
         int16_t partID = 0;
 

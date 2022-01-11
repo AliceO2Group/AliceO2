@@ -1,5 +1,6 @@
 /// @file   CalibratorSpec.cxx
 
+#include <filesystem>
 #include <vector>
 #include <assert.h>
 #include <bitset>
@@ -15,13 +16,17 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/RawDeviceService.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Task.h"
+#include <FairMQDevice.h>
+
 #include "ITSWorkflow/TrackerSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DetectorsCommonDataFormats/FileMetaData.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "CCDB/CcdbApi.h"
 #include "CommonUtils/MemFileHelper.h"
@@ -105,12 +110,6 @@ template <class Mapping>
 void ITSCalibrator<Mapping>::init(InitContext& ic) {
     LOGF(info, "ITSCalibrator init...", mSelfName);
 
-    // Initialize text file to save some processing output
-    this->thrfile.open("thrfile.txt");
-
-    //outfile.open("thrfile.txt");
-    //outfile << "ChipID Row nHits Charge(DAC)\n";
-
     std::string fittype = ic.options().get<std::string>("fittype");
     if (fittype == "derivative") {
         this->fit_type = 0;
@@ -128,6 +127,29 @@ void ITSCalibrator<Mapping>::init(InitContext& ic) {
     this->threshold_tree->Branch("threshold", &(this->threshold), "threshold/b");
     if (this->fit_type != 2) this->threshold_tree->Branch("noise", &(this->noise), "noise/b");
     this->threshold_tree->Branch("success", &(this->success), "success/O");
+
+    // Get metafile directory from input
+    try {
+        this->metafile_dir = ic.options().get<std::string>("meta-output-dir");
+    } catch  (std::exception const& e) {
+        LOG(warning) << "Unable to access meta-output-dir, reason:\n" << e.what()
+                     << "\n*** Setting metafile output directory to /dev/null";
+    }
+    if (this->metafile_dir != "/dev/null") {
+        this->metafile_dir = o2::utils::Str::rectifyDirectory(this->metafile_dir);
+    }
+
+    // Get ROOT output directory from input
+    try {
+        this->output_dir = o2::utils::Str::rectifyDirectory(
+            ic.options().get<std::string>("output-dir"));
+    } catch (std::exception const& e) {
+        LOG(warning) << "Unable to access output-dir, reason:\n" << e.what()
+                     << "\n*** Setting ROOT output directory to ./";
+    }
+    this->output_dir = "./";
+
+    return;
 }
 
 
@@ -247,13 +269,13 @@ bool ITSCalibrator<Mapping>::GetThreshold_Fit(const short int* data, const short
     // Find lower & upper values of the S-curve region
     short int Lower, Upper;
     if (!this->FindUpperLower(data, x, NPoints, Lower, Upper, flip) || Lower == Upper) {
-        LOG(error) << "Start-finding unsuccessful";
+        LOG(warning) << "Start-finding unsuccessful";
         return false;
     }
     float Start = (x[Upper] + x[Lower]) / 2;
 
     if (Start < 0) {
-        LOG(error) << "Start-finding unsuccessful";
+        LOG(warning) << "Start-finding unsuccessful";
         return false;
     }
 
@@ -356,12 +378,19 @@ bool ITSCalibrator<Mapping>::GetThreshold_Hitcounting(const short int* data,
          const short int* x, const short int & NPoints, float& thresh) {
 
     unsigned short int number_of_hits = 0;
+    bool is50 = false;
     for (unsigned short int i = 0; i < NPoints; i++) {
         number_of_hits += data[i];
+        if (data[i] == this->nInj)
+            is50 = true;
     }
 
     // If not enough counts return a failure
-    if (number_of_hits < this->nInj) return false;
+    //if (number_of_hits < this->nInj) return false;
+    if (!is50) {
+        LOG(warning) << "Too few hits, skipping this pixel";
+        return false;
+    }
 
     if (*(this->nRange) == this->nCharge) {
         thresh = x[*(this->nRange) - 1] - number_of_hits / (float) this->nInj;
@@ -443,9 +472,6 @@ void ITSCalibrator<Mapping>::extract_thresh_row(const short int& chipID, const s
             continue;
         }
 
-        //this->thrfile << chipID << " " << row << " " << (col_i + 1) << " ::  th: "
-        //              << threshold << ", noise: " << noise << ", chi2: " << chi2 << '\n';
-
         // Update ROOT histograms
         //this->thresholds[chipID]->SetBinContent( ((int) col_i) + 1, (int) row, threshold);
         //this->thresholds[chipID]->SetBinError( ((int) col_i) + 1, (int) row, noise);
@@ -508,8 +534,25 @@ void ITSCalibrator<Mapping>::update_output(const short int& chipID) {
     // In the case of a full threshold scan, write to TTree
     if (*(this->nRange) == this->nCharge) {
 
+        // Create output directory to store output
+        std::string dir = this->output_dir.empty() ?
+            o2::utils::Str::rectifyDirectory("./") : this->output_dir;
+        dir += fmt::format("{}_{}/", this->EnvironmentID, this->run_number);
+        if (!std::filesystem::exists(dir)) {
+            if (!std::filesystem::create_directories(dir)) {
+                throw std::runtime_error("Failed to create " + dir + " directory");
+            } else {
+                LOG(info) << "Created " << dir << " directory for threshold output";
+            }
+        }
+
         // Initialize ROOT output file
-        TFile* tf = new TFile("threshold_tree.root", "UPDATE");
+        std::string filename = std::to_string(this->run_number) + '_' +
+            std::to_string(this->tfcounter);
+        std::string filename_full = dir + filename;
+        // to prevent premature external usage, use temporary name
+        TFile* tf = TFile::Open((filename_full + ".root.part").c_str(), "recreate");
+        //TFile* tf = new TFile("threshold_tree.root", "UPDATE");
 
         // Update the ROOT file with most recent histo
         tf->cd();
@@ -517,11 +560,67 @@ void ITSCalibrator<Mapping>::update_output(const short int& chipID) {
 
         // Close file and clean up memory
         tf->Close();
-        delete tf;
+        //delete tf;
     }
 
     return;
 }
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Perform final operations on output objects (e.g. remove temp names)
+template <class Mapping>
+void ITSCalibrator<Mapping>::finalize_output() {
+
+    // In the case of a full threshold scan, rename ROOT file and
+    // create metadata file for writing to EOS
+    if (*(this->nRange) == this->nCharge) {
+
+        // Check that expected output directory exists
+        std::string dir = this->output_dir.empty() ?
+            o2::utils::Str::rectifyDirectory("./") : this->output_dir;
+        dir += fmt::format("{}_{}/", this->EnvironmentID, this->run_number);
+        if (!std::filesystem::exists(dir)) {
+            LOG(error) << "Cannot find expected output directory " << dir;
+            return;
+        }
+
+        // Expected ROOT output filename
+        std::string filename = std::to_string(this->run_number) + '_' +
+            std::to_string(this->tfcounter);
+        std::string filename_full = dir + filename;
+        try {
+            std::rename( (filename_full + ".root.part").c_str(),
+                         (filename_full + ".root").c_str() );
+        } catch (std::exception const& e) {
+            LOG(error) << "Failed to rename ROOT file " << filename_full
+                       << ".root.part, reason: " << e.what();
+        }
+
+        // Create metadata file
+        o2::dataformats::FileMetaData* md_file = new o2::dataformats::FileMetaData();
+        md_file->fillFileData(filename_full);
+        md_file->run = this->run_number;
+        md_file->LHCPeriod = this->LHC_period;
+        md_file->type = "calibration";
+        md_file->priority = "high";
+        auto metaFileNameTmp = fmt::format("{}{}.tmp", this->metafile_dir, filename);
+        auto metaFileName = fmt::format("{}{}.done", this->metafile_dir, filename);
+        try {
+            std::ofstream metaFileOut(metaFileNameTmp);
+            metaFileOut << md_file->asString() << '\n';
+            metaFileOut.close();
+            std::filesystem::rename(metaFileNameTmp, metaFileName);
+        } catch (std::exception const& e) {
+            LOG(error) << "Failed to create threshold metadata file "
+                       << metaFileName << ", reason: " << e.what();
+        }
+        delete md_file;
+    } // threshold scan
+
+    return;
+
+} // finalize_output
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -578,22 +677,70 @@ void ITSCalibrator<Mapping>::set_run_type(const short int& runtype) {
 
 
 //////////////////////////////////////////////////////////////////////////////
+template <class Mapping>
+void ITSCalibrator<Mapping>::update_LHC_period(ProcessingContext& pc) {
+
+    const std::string LHCPeriodStr = pc.services().get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("LHCPeriod", "");
+    if (!(LHCPeriodStr.empty())) { this->LHC_period = LHCPeriodStr; }
+    else {
+        const char* months[12] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+                                  "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
+        time_t now = std::time(nullptr);
+        auto ltm = std::gmtime(&now);
+        this->LHC_period = months[ltm->tm_mon];
+        LOG(warning) << "LHCPeriod is not available, using current month " << this->LHC_period;
+    }
+
+    return;
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
+template <class Mapping>
+void ITSCalibrator<Mapping>::update_env_id(ProcessingContext& pc) {
+
+    const std::string envN = pc.services().get<RawDeviceService>().device()->
+        fConfig->GetProperty<std::string>("environment_id", "");
+    if (!(envN.empty())) { this->EnvironmentID = envN; }
+
+    return;
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
+template <class Mapping>
+void ITSCalibrator<Mapping>::update_run_id(ProcessingContext& pc) {
+
+    const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(
+        pc.inputs().getFirstValid(true));
+    if (dh->runNumber != 0) { this->run_number = dh->runNumber; }
+
+    return;
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
 // Main running function
 // Get info from previous stf decoder workflow, then loop over readout frames
 //     (ROFs) to count hits and extract thresholds
 template <class Mapping>
 void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
 
-    int TriggerId = 0;
     int lay, sta, ssta, mod, chip, chipInMod, rofcount; //layer, stave, sub stave, module, chip
 
     auto orig = Mapping::getOrigin();
+
+    // Save environment ID and run number if needed
+    if (this->EnvironmentID.empty()) { this->update_env_id(pc); }
+    if (this->run_number == -1) { this->update_run_id(pc); }
+    if (this->LHC_period.empty()) {this->update_LHC_period(pc); }
 
     // Calibration vector
     const auto calibs = pc.inputs().get<gsl::span<o2::itsmft::GBTCalibData>>("calib");
     const auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
     const auto ROFs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("digitsROF");
-    const auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("digitsROF").header)->startTime;
+    this->tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(
+        pc.inputs().get("digitsROF").header)->startTime;
 
     // Store some lengths for convenient looping
     const unsigned int nROF = (unsigned int) ROFs.size();
@@ -643,10 +790,8 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
         // If a charge was not found, throw an error and skip this ROF
         if (charge < 0) {
             LOG(info) << "WARNING: Charge not updated\n";
-            //thrfile   << "WARNING: Charge not updated\n";
         //} else if (charge == 0) {
             //LOG(info) << "WARNING: charge == 0\n";
-            //thrfile   << "WARNING: charge == 0\n";
         } else {
 
             //LOG(info) << "Length of digits: " << digits.size();
@@ -688,18 +833,12 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
                 //LOG(info) << "before";
                 this->pixelHits[chipID][col][charge - this->min]++;
 
-                LOG(info) << "charge value " << charge << " min " << this->min
-                          << " and max " << this->max << " (range: " << *(this->nRange) << ")"
-                          << " N hits " << this->pixelHits[chipID][col][charge - this->min];
-
             } // for (digits)
 
         } // for (RUs)
 
     } // for (ROFs)
 
-    TriggerId = 0;
-    mTFCounter++;
 }
 
 
@@ -767,8 +906,11 @@ void ITSCalibrator<Mapping>::send_to_ccdb(std::string * name,
             ft = new std::string("hitcounting");
             break;
     }
-    std::map<std::string, std::string> md = { {"fittype", *ft}, {"runtype", std::to_string(this->run_type)} };
+    std::map<std::string, std::string> md = {
+        {"fittype", *ft}, {"runtype", std::to_string(this->run_type)}
+    };
     delete ft;
+    if (!(this->LHC_period.empty())) { md.insert({"LHC_period", this->LHC_period}); }
 
     std::string path = "ITS/Calib/";
     //o2::ccdb::CcdbObjectInfo info((path + *name), class_name, "", md, tstart, tend);
@@ -794,6 +936,8 @@ void ITSCalibrator<Mapping>::send_to_ccdb(std::string * name,
         //ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "Threshold", 0}, *image);
         //ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "Threshold", 0}, info);
     }
+
+    this->finalize_output();
 
     return;
 }
