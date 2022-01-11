@@ -36,7 +36,7 @@ There are multiple options :
                                         input Trapsim digits file, empty string to have no digits.
 - -t [ --input-file-tracklets ] default of trdtracklets.root
                                         input Trapsim tracklets file
--   -l [ --fileper ] how to distrbute the data into raw files.
+-   -l [ --file-per ] how to distrbute the data into raw files.
     - all : 1 raw file
     - halfcru : 1 file per cru end point, so 2 files per cru.
     - cru : one file per cru
