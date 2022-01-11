@@ -25,13 +25,15 @@ namespace ccdb
 CCDBManagerInstance::BLOB* CCDBManagerInstance::createBlob(std::string const& path, MD const& metadata, long timestamp, MD* headers, std::string const& etag,
                                                            const std::string& createdNotAfter, const std::string& createdNotBefore)
 {
-  auto v = mCCDBAccessor.loadFileToMemory(path, metadata, timestamp, headers, etag, createdNotAfter, createdNotBefore);
+  o2::vector<char> v;
+  mCCDBAccessor.loadFileToMemory(v, path, metadata, timestamp, headers, etag, createdNotAfter, createdNotBefore);
   if ((headers && headers->count("Error")) || !v.size()) {
     return nullptr;
   }
-  // temporary return a pointer on the vector, in the final version will return FairMQ message
+  // Do a copy to avoid changing the API of createBlob, at least for now.
   BLOB* b = new BLOB();
-  b->swap(v);
+  b->reserve(v.size());
+  std::copy(v.begin(), v.end(), b->end());
   return b;
 }
 

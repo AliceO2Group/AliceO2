@@ -18,6 +18,7 @@
 #include "CCDB/CCDBQuery.h"
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/MemFileHelper.h"
+#include "MemoryResources/MemoryResources.h"
 #include <chrono>
 #include <sstream>
 #include <TFile.h>
@@ -1403,10 +1404,10 @@ std::string CcdbApi::getHostUrl(int hostIndex) const
   return hostsPool.at(hostIndex);
 }
 
-std::vector<char> CcdbApi::loadFileToMemory(std::string const& path,
-                                            std::map<std::string, std::string> const& metadata, long timestamp,
-                                            std::map<std::string, std::string>* headers, std::string const& etag,
-                                            const std::string& createdNotAfter, const std::string& createdNotBefore) const
+void CcdbApi::loadFileToMemory(o2::vector<char>& dest, std::string const& path,
+                               std::map<std::string, std::string> const& metadata, long timestamp,
+                               std::map<std::string, std::string>* headers, std::string const& etag,
+                               const std::string& createdNotAfter, const std::string& createdNotBefore) const
 {
   // The environment option ALICEO2_CCDB_LOCALCACHE allows
   // to reduce the number of queries to the server, by collecting the objects in a local
@@ -1458,7 +1459,7 @@ std::vector<char> CcdbApi::loadFileToMemory(std::string const& path,
         boost::interprocess::named_semaphore::remove(semhashedstring.c_str());
       }
     }
-    return loadFileToMemory(snapshotfile, headers);
+    return loadFileToMemory(dest, snapshotfile, headers);
   }
 
   // normal mode follows
@@ -1467,24 +1468,24 @@ std::vector<char> CcdbApi::loadFileToMemory(std::string const& path,
   string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
   // if we are in snapshot mode we can simply open the file; extract the object and return
   if (mInSnapshotMode) {
-    return loadFileToMemory(fullUrl, headers);
+    return loadFileToMemory(dest, fullUrl, headers);
   }
 
   initHeadersForRetrieve(curl_handle, timestamp, headers, etag, createdNotAfter, createdNotBefore);
 
-  auto memfile = navigateURLsAndLoadFileToMemory(curl_handle, fullUrl, headers);
+  navigateURLsAndLoadFileToMemory(dest, curl_handle, fullUrl, headers);
 
-  for (int hostIndex = 1; hostIndex < hostsPool.size() && isMemoryFileInvalid(memfile); hostIndex++) {
+  for (int hostIndex = 1; hostIndex < hostsPool.size() && isMemoryFileInvalid(dest); hostIndex++) {
     fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp, hostIndex);
-    memfile = loadFileToMemory(fullUrl, headers);
+    loadFileToMemory(dest, fullUrl, headers);
   }
 
   curl_easy_cleanup(curl_handle);
-  return memfile;
+  return;
 }
 
 // navigate sequence of URLs until TFile content is found; object is extracted and returned
-std::vector<char> CcdbApi::navigateURLsAndLoadFileToMemory(CURL* curl_handle, std::string const& url, std::map<string, string>* headers) const
+void CcdbApi::navigateURLsAndLoadFileToMemory(o2::vector<char>& dest, CURL* curl_handle, std::string const& url, std::map<string, string>* headers) const
 {
   // a global internal data structure that can be filled with HTTP header information
   // static --> to avoid frequent alloc/dealloc as optimization
@@ -1493,18 +1494,17 @@ std::vector<char> CcdbApi::navigateURLsAndLoadFileToMemory(CURL* curl_handle, st
 
   // let's see first of all if the url is something specific that curl cannot handle
   if (url.find("alien:/", 0) != std::string::npos) {
-    return loadFileToMemory(url);
+    return loadFileToMemory(dest, url);
   }
   // otherwise make an HTTP/CURL request
   bool errorflag = false;
-  std::vector<char> chunk;
-  auto signalError = [&chunk, &errorflag]() {
+  auto signalError = [&chunk = dest, &errorflag]() {
     chunk.clear();
     chunk.reserve(1);
     errorflag = true;
   };
   auto writeCallBack = [](void* contents, size_t size, size_t nmemb, void* chunkptr) {
-    std::vector<char>& chunk = *static_cast<std::vector<char>*>(chunkptr);
+    o2::vector<char>& chunk = *static_cast<o2::vector<char>*>(chunkptr);
     size_t realsize = size * nmemb;
     try {
       chunk.reserve(chunk.size() + realsize);
@@ -1519,7 +1519,7 @@ std::vector<char> CcdbApi::navigateURLsAndLoadFileToMemory(CURL* curl_handle, st
 
   // specify URL to get
   curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
-  initCurlOptionsForRetrieve(curl_handle, (void*)&chunk, writeCallBack, false);
+  initCurlOptionsForRetrieve(curl_handle, (void*)&dest, writeCallBack, false);
   curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback<decltype(headerData)>);
   headerData.clear();
   curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, (void*)&headerData);
@@ -1574,9 +1574,8 @@ std::vector<char> CcdbApi::navigateURLsAndLoadFileToMemory(CURL* curl_handle, st
       for (auto& l : locs) {
         if (l.size() > 0) {
           LOG(debug) << "Trying content location " << l;
-          auto vec = navigateURLsAndLoadFileToMemory(curl_handle, l, nullptr);
-          if (vec.size()) { /* or other success marker in future */
-            chunk.swap(vec);
+          navigateURLsAndLoadFileToMemory(dest, curl_handle, l, nullptr);
+          if (dest.size()) { /* or other success marker in future */
             break;
           }
         }
@@ -1595,14 +1594,13 @@ std::vector<char> CcdbApi::navigateURLsAndLoadFileToMemory(CURL* curl_handle, st
   if (errorflag && headers) {
     (*headers)["Error"] = "An error occurred during retrieval";
   }
-  return chunk;
+  return;
 }
 
-std::vector<char> CcdbApi::loadFileToMemory(const std::string& path, std::map<std::string, std::string>* localHeaders) const
+void CcdbApi::loadFileToMemory(o2::vector<char>& dest, const std::string& path, std::map<std::string, std::string>* localHeaders) const
 {
   // Read file to memory as vector. For special case of the locally cached file retriev metadata stored directly in the file
   constexpr size_t MaxCopySize = 0x1L << 25;
-  std::vector<char> dest;
   auto signalError = [&dest, localHeaders]() {
     dest.clear();
     dest.reserve(1);
@@ -1612,7 +1610,7 @@ std::vector<char> CcdbApi::loadFileToMemory(const std::string& path, std::map<st
   };
   if (path.find("alien:/") == 0 && !initTGrid()) {
     signalError();
-    return dest;
+    return;
   }
   std::string fname(path);
   if (fname.find("?filetype=raw") == std::string::npos) {
@@ -1622,7 +1620,7 @@ std::vector<char> CcdbApi::loadFileToMemory(const std::string& path, std::map<st
   if (!sfile || sfile->IsZombie()) {
     LOG(error) << "Failed to open file " << fname;
     signalError();
-    return dest;
+    return;
   }
   size_t totalread = 0, fsize = sfile->GetSize(), b00 = sfile->GetBytesRead();
   dest.resize(fsize);
@@ -1641,7 +1639,7 @@ std::vector<char> CcdbApi::loadFileToMemory(const std::string& path, std::map<st
     if (failed || nread < 0) {
       LOG(error) << "failed to copy file " << fname << " to memory buffer";
       signalError();
-      return dest;
+      return;
     }
     dptr += nread;
     totalread += nread;
@@ -1654,7 +1652,7 @@ std::vector<char> CcdbApi::loadFileToMemory(const std::string& path, std::map<st
       delete storedmeta;
     }
   }
-  return dest;
+  return;
 }
 
 } // namespace ccdb
