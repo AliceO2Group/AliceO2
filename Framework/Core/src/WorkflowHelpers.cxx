@@ -223,9 +223,20 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   DataProcessorSpec ccdbBackend{
     "internal-dpl-ccdb-backend",
+    {InputSpec{"enumeration",
+               "DPL",
+               "ENUM",
+               static_cast<DataAllocator::SubSpecificationType>(compile_time_hash("internal-dpl-ccdb-backend")),
+               Lifetime::Enumeration}},
     {},
-    {},
-    CCDBHelpers::fetchFromCCDB()};
+    CCDBHelpers::fetchFromCCDB(),
+    {ConfigParamSpec{"condition-backend", VariantType::String, "http://alice-ccdb.cern.ch", {"URL for CCDB"}},
+     ConfigParamSpec{"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},
+     ConfigParamSpec{"orbit-multiplier-enumeration", VariantType::Int64, 0ll, {"multiplier to get the orbit from the counter"}},
+     ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
+     ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}},
+     ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}},
+  };
   DataProcessorSpec transientStore{"internal-dpl-transient-store",
                                    {},
                                    {},
@@ -434,6 +445,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   if (ccdbBackend.outputs.empty() == false) {
     extraSpecs.push_back(ccdbBackend);
+    auto concrete = DataSpecUtils::asConcreteDataMatcher(ccdbBackend.inputs[0]);
+    timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
   }
   if (transientStore.outputs.empty() == false) {
     extraSpecs.push_back(transientStore);
