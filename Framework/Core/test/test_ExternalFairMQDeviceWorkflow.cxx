@@ -72,7 +72,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
       "number-of-events,n", VariantType::Int, 10, {"number of events to process"}});
   workflowOptions.push_back(
     ConfigParamSpec{
-      "proxy-mode", VariantType::String, "skip-output", {"proxy mode: all, skip-output, only-output, skip-all"}});
+      "proxy-mode", VariantType::String, "all", {"proxy mode: all, skip-output, only-output, skip-all"}});
 }
 
 #include "Framework/runDataProcessing.h"
