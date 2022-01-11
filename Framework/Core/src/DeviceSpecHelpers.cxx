@@ -46,6 +46,9 @@
 #include <sys/resource.h>
 #include <csignal>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+
 namespace bpo = boost::program_options;
 
 using namespace o2::framework;
@@ -712,16 +715,16 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     switch (consumer.inputs[edge.consumerInputIndex].lifetime) {
       case Lifetime::OutOfBand:
         route.configurator = {
-          ExpirationHandlerHelpers::fairmqDrivenConfiguration(inputSpec, consumerDevice.inputTimesliceId, consumerDevice.maxInputTimeslices),
-          ExpirationHandlerHelpers::danglingOutOfBandConfigurator(),
-          ExpirationHandlerHelpers::expiringOutOfBandConfigurator(inputSpec)};
+          .creatorConfigurator = ExpirationHandlerHelpers::fairmqDrivenConfiguration(inputSpec, consumerDevice.inputTimesliceId, consumerDevice.maxInputTimeslices),
+          .danglingConfigurator = ExpirationHandlerHelpers::danglingOutOfBandConfigurator(),
+          .expirationConfigurator = ExpirationHandlerHelpers::expiringOutOfBandConfigurator(inputSpec)};
         break;
-      case Lifetime::Condition:
-        route.configurator = {
-          ExpirationHandlerHelpers::dataDrivenConfigurator(),
-          ExpirationHandlerHelpers::danglingConditionConfigurator(),
-          ExpirationHandlerHelpers::expiringConditionConfigurator(inputSpec, sourceChannel)};
-        break;
+        //      case Lifetime::Condition:
+        //        route.configurator = {
+        //          ExpirationHandlerHelpers::dataDrivenConfigurator(),
+        //          ExpirationHandlerHelpers::danglingConditionConfigurator(),
+        //          ExpirationHandlerHelpers::expiringConditionConfigurator(inputSpec, sourceChannel)};
+        //        break;
       case Lifetime::QA:
         route.configurator = {
           ExpirationHandlerHelpers::dataDrivenConfigurator(),

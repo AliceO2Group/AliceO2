@@ -300,8 +300,6 @@ void DataProcessingDevice::Init()
     auto& name = mSpec.inputChannels[ci].name;
     if (name.find(mSpec.channelPrefix + "from_internal-dpl-clock") == 0) {
       mState.inputChannelInfos[ci].state = InputChannelState::Pull;
-    } else if (name.find(mSpec.channelPrefix + "from_internal-dpl-ccdb-backend") == 0) {
-      mState.inputChannelInfos[ci].state = InputChannelState::Pull;
     }
   }
 
@@ -424,7 +422,10 @@ void DataProcessingDevice::InitTask()
   // We add a timer only in case a channel poller is not there.
   if ((mStatefulProcess != nullptr) || (mStatelessProcess != nullptr)) {
     for (auto& x : fChannels) {
-      if ((x.first.rfind("from_internal-dpl", 0) == 0) && (x.first.rfind("from_internal-dpl-aod", 0) != 0) && (x.first.rfind("from_internal-dpl-injected", 0)) != 0) {
+      if ((x.first.rfind("from_internal-dpl", 0) == 0) &&
+          (x.first.rfind("from_internal-dpl-aod", 0) != 0) &&
+          (x.first.rfind("from_internal-dpl-ccdb-backend", 0) != 0) &&
+          (x.first.rfind("from_internal-dpl-injected", 0)) != 0) {
         LOG(debug) << x.first << " is an internal channel. Skipping as no input will come from there." << std::endl;
         continue;
       }
