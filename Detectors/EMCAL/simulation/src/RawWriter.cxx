@@ -50,23 +50,22 @@ void RawWriter::init()
     }
 
     auto [crorc, link] = mGeometry->getLinkAssignment(iddl);
+    auto flpID = (iddl <= 23) ? 146 : 147;
     std::string rawfilename = mOutputLocation;
     switch (mFileFor) {
       case FileFor_t::kFullDet:
         rawfilename += "/emcal.raw";
         break;
-      case FileFor_t::kSubDet: {
-        std::string detstring;
-        if (iddl < 22) {
-          detstring = "emcal";
-        } else {
-          detstring = "dcal";
-        }
-        rawfilename += fmt::format("/{:s}.raw", detstring.data());
+      case FileFor_t::kSubDet:
+        rawfilename += fmt::format("/EMC_alio2-cr1-flp{:d}.raw", flpID);
         break;
-      };
+      case FileFor_t::kCRORC:
+        rawfilename += fmt::format("/EMC_alio2-cr1-flp{:d}_cru{:d}.raw", flpID, crorc);
+        break;
       case FileFor_t::kLink:
-        rawfilename += fmt::format("/emcal_{:d}_{:d}.raw", crorc, link);
+        // Pileup simulation based on DigitsWriteoutBuffer (EMCAL-681) - AliceO2 – H. Hassan
+        rawfilename += fmt::format("/EMC_alio2-cr1-flp{:d}_cru{:d}_lnk{:d}.raw", flpID, crorc, link);
+        break;
     }
     mRawWriter->registerLink(iddl, crorc, link, 0, rawfilename.data());
   }

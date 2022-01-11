@@ -77,6 +77,7 @@ class RawWriter
   enum class FileFor_t {
     kFullDet, ///< Full detector (EMCAL + DCAL)
     kSubDet,  ///< Subdetector (EMCAL/DCAL separate)
+    kCRORC,   ///< C-RORC card
     kLink     ///< Per link
   };
 
