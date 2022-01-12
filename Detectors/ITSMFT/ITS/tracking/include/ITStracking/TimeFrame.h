@@ -22,6 +22,9 @@
 #include <numeric>
 #include <cassert>
 #include <gsl/gsl>
+#include <numeric>
+#include <iostream>
+#include <algorithm>
 
 #include "DataFormatsITS/TrackITS.h"
 
@@ -68,8 +71,14 @@ class TimeFrame final
   int loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const itsmft::Cluster> clusters,
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
 
-  int loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt,
-                      const itsmft::TopologyDictionary* dict, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
+  int loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
+                      gsl::span<const itsmft::CompClusterExt> clusters,
+                      gsl::span<const unsigned char>::iterator& pattIt,
+                      const itsmft::TopologyDictionary* dict,
+                      const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr,
+                      float cutMultClusLow = 0.f,
+                      float cutMultClusHigh = 0.f);
+
   int getTotalClusters() const;
   bool empty() const;
 
@@ -121,10 +130,15 @@ class TimeFrame final
 
   bool checkMemory(unsigned long max) { return getArtefactsMemory() < max; }
   unsigned long getArtefactsMemory();
+  int getROfCutClusterMult() const { return mCutClusterMult; };
+  int getROfCutVertexMult() const { return mCutVertexMult; };
+  int getROfCutAllMult() const { return mCutClusterMult + mCutVertexMult; }
 
   // Vertexer
+  void computeTrackletsScans();
   std::vector<int>& getIndexTableL0(int tf);
-  std::array<std::vector<int>, 2>& getNFoundTracklets(int tf);
+  std::array<std::vector<int>, 2>& getNTrackletsCluster(int tf);
+  int& getNTrackletsROf(int combId, int tf);
   std::vector<Line>& getLines(int tf);
   std::vector<ClusterLines>& getTrackletClusters(int tf);
   gsl::span<const Tracklet> getFoundTracklets(int rofId, int combId) const;
@@ -194,12 +208,14 @@ class TimeFrame final
   std::vector<std::vector<int>> mTrackletsLookupTable;
 
   std::vector<std::pair<unsigned long long, bool>> mRoadLabels;
-
+  int mCutClusterMult;
+  int mCutVertexMult;
   // Vertexer
-  std::vector<std::array<std::vector<int>, 2>> mNFoundTracklets;
+  std::vector<std::array<std::vector<int>, 2>> mNTrackletsPerCluster; // TODO: remove in favour of mNTrackletsPerROf
+  std::vector<std::vector<int>> mNTrackletsPerROf;
   std::vector<std::vector<Line>> mLines;
   std::vector<std::vector<ClusterLines>> mTrackletClusters;
-  std::vector<std::vector<int>> mROframesTrackletsVert;
+  std::vector<std::vector<int>> mTrackletsIndexROf;
 };
 
 inline const Vertex& TimeFrame::getPrimaryVertex(const int vertexIndex) const { return mPrimaryVertices[vertexIndex]; }
@@ -371,9 +387,14 @@ inline const unsigned long long& TimeFrame::getRoadLabel(int i) const
   return mRoadLabels[i].first;
 }
 
-inline std::array<std::vector<int>, 2>& TimeFrame::getNFoundTracklets(int tf)
+inline std::array<std::vector<int>, 2>& TimeFrame::getNTrackletsCluster(int tf)
 {
-  return mNFoundTracklets[tf];
+  return mNTrackletsPerCluster[tf];
+}
+
+inline int& TimeFrame::getNTrackletsROf(int combId, int tf)
+{
+  return mNTrackletsPerROf[combId][tf];
 }
 
 inline bool TimeFrame::isRoadFake(int i) const
@@ -410,8 +431,8 @@ inline gsl::span<const Tracklet> TimeFrame::getFoundTracklets(int rofId, int com
   if (rofId < 0 || rofId >= mNrof) {
     return gsl::span<const Tracklet>();
   }
-  int startIdx{mROframesTrackletsVert[combId][rofId]};
-  return {&mTracklets[combId][startIdx], static_cast<gsl::span<Tracklet>::size_type>(mROframesTrackletsVert[combId][rofId + 1] - startIdx)};
+  auto startIdx{mNTrackletsPerROf[combId][rofId]};
+  return {&mTracklets[combId][startIdx], static_cast<gsl::span<Tracklet>::size_type>(mNTrackletsPerROf[combId][rofId + 1] - startIdx)};
 }
 
 } // namespace its

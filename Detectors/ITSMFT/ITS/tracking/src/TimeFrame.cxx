@@ -22,6 +22,9 @@
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITStracking/TrackingConfigParam.h"
 
+#include "ITSReconstruction/FastMultEstConfig.h"
+#include "ITSReconstruction/FastMultEst.h"
+
 #include <iostream>
 
 namespace
@@ -66,7 +69,7 @@ TimeFrame::TimeFrame(int nLayers)
   mClusterExternalIndices.resize(nLayers);
   mUsedClusters.resize(nLayers);
   mROframesClusters.resize(nLayers, {0}); ///TBC: if resetting the timeframe is required, then this has to be done
-  mROframesTrackletsVert.resize(2, {0});
+  mTrackletsIndexROf.resize(2, {0});
 }
 
 void TimeFrame::addPrimaryVertices(const std::vector<Vertex>& vertices)
@@ -108,7 +111,7 @@ int TimeFrame::loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const
   for (unsigned int iL{0}; iL < mUnsortedClusters.size(); ++iL) {
     mROframesClusters[iL].push_back(mUnsortedClusters[iL].size());
     if (iL < 2) {
-      mROframesTrackletsVert[iL].push_back(mUnsortedClusters[1].size()); // Tracklets used in vertexer are always computed wrt clusters on the second layer
+      mTrackletsIndexROf[iL].push_back(mUnsortedClusters[1].size()); // Tracklets used in vertexer are always computed wrt clusters on the second layer
     }
   }
   if (mcLabels) {
@@ -118,7 +121,13 @@ int TimeFrame::loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const
   return clusters_in_frame.size();
 }
 
-int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary* dict, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
+int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
+                               gsl::span<const itsmft::CompClusterExt> clusters,
+                               gsl::span<const unsigned char>::iterator& pattIt,
+                               const itsmft::TopologyDictionary* dict,
+                               const dataformats::MCTruthContainer<MCCompLabel>* mcLabels,
+                               float cutMultClusLow,
+                               float cutMultClusHigh)
 {
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
@@ -163,7 +172,7 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs, gsl::span<
       for (unsigned int iL{0}; iL < mUnsortedClusters.size(); ++iL) {
         mROframesClusters[iL].push_back(mUnsortedClusters[iL].size());
         if (iL < 2) {
-          mROframesTrackletsVert[iL].push_back(mUnsortedClusters[1].size()); // Tracklets used in vertexer are always computed wrt clusters on the second layer
+          mTrackletsIndexROf[iL].push_back(mUnsortedClusters[1].size()); // Tracklets used in vertexer are always computed wrt clusters on the second layer
         }
       }
       mNrof++;
@@ -172,6 +181,27 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs, gsl::span<
   if (mcLabels) {
     mClusterLabels = mcLabels;
   }
+
+  // Apply selections on clusters multiplicity here
+  mCutClusterMult = 0;
+  mCutVertexMult = 0;
+
+  const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
+  FastMultEst multEst;  
+  for (auto& rof : rofs) {
+    bool multCut = (cutMultClusLow <= 0 && cutMultClusHigh <= 0); // cut was requested
+    if (!multCut) {
+      float mult = multEst.process(rof.getROFData(clusters));
+      multCut = mult >= cutMultClusLow && mult <= cutMultClusHigh;
+      if (multCut) {
+        LOG(debug) << fmt::format("ROF {} rejected by the cluster multiplicity selection [{},{}]", mMultiplicityCutMask.size(), cutMultClusLow, cutMultClusHigh);
+      }
+      mCutClusterMult += !multCut;
+    }
+    mMultiplicityCutMask.push_back(multCut);
+  }
+  //
+
   return mNrof;
 }
 
@@ -220,7 +250,8 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
     mIndexTablesL0.resize(mNrof, std::vector<int>(trkParam.ZBins * trkParam.PhiBins + 1, 0));
     mLines.resize(mNrof);
     mTrackletClusters.resize(mNrof);
-    mNFoundTracklets.resize(mNrof);
+    mNTrackletsPerROf.resize(2, std::vector<int>(mNrof + 1, 0));
+    mNTrackletsPerCluster.resize(mNrof);
 
     std::vector<ClusterHelper> cHelper;
     std::vector<int> clsPerBin(trkParam.PhiBins * trkParam.ZBins, 0);
@@ -445,6 +476,12 @@ void TimeFrame::printROFoffsets()
     }
     std::cout << std::endl;
   }
+}
+
+void TimeFrame::computeTrackletsScans()
+{
+  std::exclusive_scan(mNTrackletsPerROf[0].begin(), mNTrackletsPerROf[0].end(), mNTrackletsPerROf[0].begin(), 0);
+  std::exclusive_scan(mNTrackletsPerROf[1].begin(), mNTrackletsPerROf[1].end(), mNTrackletsPerROf[1].begin(), 0);
 }
 
 } // namespace its
