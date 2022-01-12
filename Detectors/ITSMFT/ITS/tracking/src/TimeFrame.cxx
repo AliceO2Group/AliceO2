@@ -22,6 +22,9 @@
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITStracking/TrackingConfigParam.h"
 
+#include "ITSReconstruction/FastMultEstConfig.h"
+#include "ITSReconstruction/FastMultEst.h"
+
 #include <iostream>
 
 namespace

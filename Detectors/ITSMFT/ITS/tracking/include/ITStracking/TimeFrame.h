@@ -144,8 +144,10 @@ class TimeFrame final
   // \Vertexer
 
   // Vertexer
+  void computeTrackletsScans();
   std::vector<int>& getIndexTableL0(int tf);
-  std::array<std::vector<int>, 2>& getNFoundTracklets(int tf);
+  std::array<std::vector<int>, 2>& getNTrackletsCluster(int tf);
+  int& getNTrackletsROf(int combId, int tf);
   std::vector<Line>& getLines(int tf);
   std::vector<ClusterLines>& getTrackletClusters(int tf);
   gsl::span<const Tracklet> getFoundTracklets(int rofId, int combId) const;
