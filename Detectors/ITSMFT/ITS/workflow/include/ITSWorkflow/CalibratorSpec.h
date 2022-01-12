@@ -34,7 +34,7 @@
 using namespace o2::framework;
 using namespace o2::itsmft;
 using namespace o2::header;
-//using namespace o2::ccdb;
+// using namespace o2::ccdb;
 
 namespace o2
 {
@@ -70,7 +70,7 @@ template <class Mapping>
 class ITSCalibrator : public Task
 {
  public:
-  //using Mapping=ChipMappingITS;
+  // using Mapping=ChipMappingITS;
   ITSCalibrator();
   ~ITSCalibrator(); // override = default;
 
@@ -84,15 +84,11 @@ class ITSCalibrator : public Task
   //////////////////////////////////////////////////////////////////
  private:
   TStopwatch mTimer;
-  size_t mTFCounter = 0;
 
-  // Output log file for debugging / parsing
-  std::ofstream thrfile;
-
-  //detector information
-  static constexpr short int NCols = 1024; //column number in Alpide chip
-  static constexpr short int NRows = 512;  //row number in Alpide chip
-  static constexpr short int NLayer = 7;   //layer number in ITS detector
+  // detector information
+  static constexpr short int NCols = 1024; // column number in Alpide chip
+  static constexpr short int NRows = 512;  // row number in Alpide chip
+  static constexpr short int NLayer = 7;   // layer number in ITS detector
   static constexpr short int NLayerIB = 3;
 
   const short int nRUs = o2::itsmft::ChipMappingITS::getNRUs();
@@ -103,7 +99,7 @@ class ITSCalibrator : public Task
   // Number of charges in a threshold scan (from 0 - 50 inclusive)
   const short int nCharge = 51;
   // Number of points in a VCASN tuning (from 30 - 70 inclusive)
-  const short int nVCASN = 41;
+  const short int nVCASN = 51;
   // Number of in a ITHR tuning (from 30 to 100 inclusive)
   const short int nITHR = 71;
   // Refernce to one of the above values; updated during runtime
@@ -116,19 +112,19 @@ class ITSCalibrator : public Task
   const short int NStaves[NLayer] = {12, 16, 20, 24, 30, 42, 48};
   const short int nHicPerStave[NLayer] = {1, 1, 1, 8, 8, 14, 14};
   const short int nChipsPerHic[NLayer] = {9, 9, 9, 14, 14, 14, 14};
-  //const short int ChipBoundary[NLayer + 1] = { 0, 108, 252, 432, 3120, 6480, 14712, 24120 };
+  // const short int ChipBoundary[NLayer + 1] = { 0, 108, 252, 432, 3120, 6480, 14712, 24120 };
   const short int StaveBoundary[NLayer + 1] = {0, 12, 28, 48, 72, 102, 144, 192};
-  const short int ReduceFraction = 1; //TODO: move to Config file to define this number
+  const short int ReduceFraction = 1; // TODO: move to Config file to define this number
 
   std::array<bool, NLayer> mEnableLayers = {false};
 
   // Hash tables to store the hit and threshold information per pixel
   std::map<short int, short int> currentRow;
   std::map<short int, std::vector<std::vector<short int>>> pixelHits;
-  //std::map< short int, TH2F* > thresholds;
-  // Unordered vector for saving info to the output
+  // std::map< short int, TH2F* > thresholds;
+  //  Unordered vector for saving info to the output
   std::map<short int, std::vector<threshold_obj>> thresholds;
-  //std::unordered_map<unsigned int, int> mHitPixelID_Hash[7][48][2][14][14]; //layer, stave, substave, hic, chip
+  // std::unordered_map<unsigned int, int> mHitPixelID_Hash[7][48][2][14][14]; //layer, stave, substave, hic, chip
 
   // Tree to save threshold info in full threshold scan case
   TTree* threshold_tree = new TTree("ITS_calib_tree", "ITS_calib_tree");
@@ -140,10 +136,16 @@ class ITSCalibrator : public Task
   // Some private helper functions
   // Helper functions related to the running over data
   void reset_row_hitmap(const short int&, const short int&);
-  void init_chip_data(const short int&);
+
+  void extract_and_update(const short int&);
   void extract_thresh_row(const short int&, const short int&);
-  void update_output(const short int&);
+  void update_output(const short int&, bool);
+  void finalize_output();
+
   void set_run_type(const short int&);
+  void update_env_id(ProcessingContext&);
+  void update_run_id(ProcessingContext&);
+  void update_LHC_period(ProcessingContext&);
 
   // Helper functions related to threshold extraction
   void get_row_col_arr(const short int&, float**, float**);
@@ -152,23 +154,36 @@ class ITSCalibrator : public Task
   bool GetThreshold_Fit(const short int*, const short int*, const short int&, float&, float&);
   bool GetThreshold_Derivative(const short int*, const short int*, const short int&, float&, float&);
   bool GetThreshold_Hitcounting(const short int*, const short int*, const short int&, float&);
-  float find_average(const std::vector<threshold_obj>&);
+  bool scan_is_finished(const short int&);
+  void find_average(const std::vector<threshold_obj>&, float&, float&);
   void save_threshold(const short int&, const short int&, const short int&, float*, float*, bool);
 
   // Helper functions for writing to the database
-  void add_db_entry(const short int&, const std::string*, const short int&, bool,
-                    o2::dcs::DCSconfigObject_t&);
+  void add_db_entry(const short int&, const std::string*, const short int&,
+                    const float&, bool, o2::dcs::DCSconfigObject_t&);
   void send_to_ccdb(std::string*, o2::dcs::DCSconfigObject_t&, EndOfStreamContext&);
 
   std::string mSelfName;
   std::string mDictName;
   std::string mNoiseName;
 
-  std::string mRunID;
+  std::string LHC_period;
+  std::string EnvironmentID;
+  std::string output_dir;
+  std::string metafile_dir = "/dev/null";
+  int run_number = -1;
+  int tfcounter = -1;
+
+  // How many rows before starting new ROOT file
+  unsigned int file_number = 0;
+  const unsigned int n_rows_per_file = 10000;
+  unsigned int row_counter = 0;
 
   int16_t partID = 0;
 
   short int run_type = -1;
+  // Either "T" for threshold, "V" for VCASN, or "I" for ITHR
+  const char* scan_type;
   short int min = -1, max = -1;
 
   // Get threshold method (fit == 1, derivative == 0, or hitcounting == 2)
@@ -176,11 +191,11 @@ class ITSCalibrator : public Task
 
   int mTimeFrameId = 0;
 
-  //output file (temp solution)
+  // output file (temp solution)
   std::ofstream outfile;
 };
 
-//using ITSCalibrator = ITSCalibrator<ChipMappingITS>;
+// using ITSCalibrator = ITSCalibrator<ChipMappingITS>;
 
 // Create a processor spec
 o2::framework::DataProcessorSpec getITSCalibratorSpec();
