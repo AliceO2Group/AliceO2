@@ -136,6 +136,7 @@ class ITSCalibrator : public Task
 
         // Tree to save threshold info in full threshold scan case
         TTree* threshold_tree = new TTree("ITS_calib_tree", "ITS_calib_tree");
+        unsigned int last_tf_written = -1;
         PIXEL tree_pixel;
         // Save charge & counts as char (8-bit) to save memory, since values are always < 256
         unsigned char threshold = 0, noise = 0;
@@ -145,9 +146,12 @@ class ITSCalibrator : public Task
         // Helper functions related to the running over data
         void reset_row_hitmap(const short int&, const short int&);
         void init_chip_data(const short int&);
+
+        void extract_and_update(const short int&);
         void extract_thresh_row(const short int&, const short int&);
-        void update_output(const short int&);
+        void update_output(const short int&, bool);
         void finalize_output();
+
         void set_run_type(const short int&);
         void update_env_id(ProcessingContext&);
         void update_run_id(ProcessingContext&);
@@ -160,6 +164,7 @@ class ITSCalibrator : public Task
         bool GetThreshold_Fit(const short int*, const short int*, const short int&, float&, float&);
         bool GetThreshold_Derivative(const short int*, const short int*, const short int&, float&, float&);
         bool GetThreshold_Hitcounting(const short int*, const short int*, const short int&, float&);
+        bool scan_is_finished(const short int&);
         float find_average(const std::vector<threshold_obj>&);
         void save_threshold(const short int&, const short int&, const short int&, float*, float*, bool);
 

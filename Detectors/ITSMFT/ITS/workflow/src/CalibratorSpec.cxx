@@ -1,5 +1,6 @@
 /// @file   CalibratorSpec.cxx
 
+#include <sys/stat.h>
 #include <filesystem>
 #include <vector>
 #include <assert.h>
@@ -334,12 +335,10 @@ bool ITSCalibrator<Mapping>::GetThreshold_Derivative(const short int* data,
     short int Lower, Upper;
     bool flip = (*(this->nRange) == this->nITHR);
     if (!this->FindUpperLower(data, x, NPoints, Lower, Upper, flip) || Lower == Upper) {
-        LOG(error) << "Start-finding unsuccessful";
+        LOG(warning) << "Start-finding unsuccessful";
         return false;
     }
 
-    LOG(info) << "Lower: " << Lower << " | x(Lower): " << x[Lower] <<
-                 " | Upper: " << Upper << " | x(Upper): " << x[Upper];
     int deriv_size = Upper - Lower;
     float* deriv = new float[deriv_size]; // Maybe better way without ROOT?
     float xfx = 0, fx = 0;
@@ -354,7 +353,6 @@ bool ITSCalibrator<Mapping>::GetThreshold_Derivative(const short int* data,
     }
 
     thresh = xfx / fx;
-    LOG(info) << "threshold: " << thresh;
     float stddev = 0;
     for (int i = Lower; i < Upper; i++) {
         stddev += std::pow(x[i] - thresh, 2) * deriv[i - Lower];
@@ -529,7 +527,7 @@ void ITSCalibrator<Mapping>::save_threshold(const short int& chipID, const short
 //////////////////////////////////////////////////////////////////////////////
 // Write to any desired output objects after saving threshold info in memory
 template <class Mapping>
-void ITSCalibrator<Mapping>::update_output(const short int& chipID) {
+void ITSCalibrator<Mapping>::update_output(const short int& chipID, bool recreate) {
 
     // In the case of a full threshold scan, write to TTree
     if (*(this->nRange) == this->nCharge) {
@@ -546,21 +544,27 @@ void ITSCalibrator<Mapping>::update_output(const short int& chipID) {
             }
         }
 
-        // Initialize ROOT output file
-        std::string filename = std::to_string(this->run_number) + '_' +
-            std::to_string(this->tfcounter);
-        std::string filename_full = dir + filename;
-        // to prevent premature external usage, use temporary name
-        TFile* tf = TFile::Open((filename_full + ".root.part").c_str(), "recreate");
-        //TFile* tf = new TFile("threshold_tree.root", "UPDATE");
+        std::string filename = dir + std::to_string(this->run_number)
+            + '_' + std::to_string(this->tfcounter) + ".root.part";
 
-        // Update the ROOT file with most recent histo
+        // Check if file already exists
+        struct stat buffer;
+        if (recreate && stat(filename.c_str(), &buffer) == 0) {
+            LOG(warning) << "File " << filename << " already exists, recreating";
+        }
+
+        // Initialize ROOT output file
+        // to prevent premature external usage, use temporary name
+        const char* option = recreate ? "RECREATE" : "UPDATE";
+        TFile* tf = TFile::Open(filename.c_str(), option);
+
+        // Update the ROOT file with most recent TTree
         tf->cd();
         this->threshold_tree->Write(0, TObject::kOverwrite);
 
         // Close file and clean up memory
         tf->Close();
-        //delete tf;
+        this->threshold_tree->Reset();
     }
 
     return;
@@ -587,7 +591,7 @@ void ITSCalibrator<Mapping>::finalize_output() {
 
         // Expected ROOT output filename
         std::string filename = std::to_string(this->run_number) + '_' +
-            std::to_string(this->tfcounter);
+            std::to_string(this->last_tf_written);
         std::string filename_full = dir + filename;
         try {
             std::rename( (filename_full + ".root.part").c_str(),
@@ -671,6 +675,40 @@ void ITSCalibrator<Mapping>::set_run_type(const short int& runtype) {
 
     this->x = new short int[*(this->nRange)];
     for (short int i = min; i <= max; i++) { this->x[i-min] = i; }
+
+    return;
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Check if scan has finished for extracting thresholds
+template <class Mapping>
+bool ITSCalibrator<Mapping>::scan_is_finished(const short int & chipID) {
+    // Require that the last entry has at least half the number of expected hits
+    short int col = 0;  // Doesn't matter which column
+    return (pixelHits[chipID][col][*(this->nRange)-1] > (this->nInj / 2.));
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Extract thresholds and update memory
+template <class Mapping>
+void ITSCalibrator<Mapping>::extract_and_update(const short int & chipID) {
+
+    // In threshold scan case, reset threshold_tree before writing to a new file
+    bool recreate = false;
+    if (this->tfcounter != this->last_tf_written) {
+        // Reset threshold_tree before writing to a new file
+        this->threshold_tree->Reset();
+        this->finalize_output();
+        this->last_tf_written = this->tfcounter;
+        recreate = true;
+    }
+
+    // Extract threshold values and save to memory
+    this->extract_thresh_row(chipID, this->currentRow[chipID]);
+    // Write thresholds to output data structures
+    this->update_output(chipID, recreate);
 
     return;
 }
@@ -817,9 +855,7 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
                 } else if (this->currentRow[chipID] != row) {
                     LOG(info) << "Extracting threshold values for row " << this->currentRow[chipID]
                               << " on chipID " << chipID;
-                    this->extract_thresh_row(chipID, this->currentRow[chipID]);
-                    // Write thresholds to output data structures
-                    this->update_output(chipID);
+                    this->extract_and_update(chipID);
                     // Reset row & hitmap for the new row
                     this->reset_row_hitmap(chipID, row);
                 }
@@ -937,8 +973,6 @@ void ITSCalibrator<Mapping>::send_to_ccdb(std::string * name,
         //ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "Threshold", 0}, info);
     }
 
-    this->finalize_output();
-
     return;
 }
 
@@ -959,30 +993,37 @@ void ITSCalibrator<Mapping>::endOfStream(EndOfStreamContext& ec) {
         // Loop over each chip in the thresholds data
         name = new std::string("VCASN");
         for (auto const& [chipID, t_vec] : this->thresholds) {
-            // Casting float to short int to save memory
-            short int avg = (short int) this->find_average(t_vec);
-            bool status = (this->x[0] < avg && avg < this->x[*(this->nRange) - 1]);
-            this->add_db_entry(chipID, name, avg, status, tuning);
-            push_to_ccdb = true;
+            if (this->scan_is_finished(chipID)) {
+                // Casting float to short int to save memory
+                short int avg = (short int) this->find_average(t_vec);
+                bool status = (this->x[0] < avg && avg < this->x[*(this->nRange) - 1]);
+                this->add_db_entry(chipID, name, avg, status, tuning);
+                push_to_ccdb = true;
+            }
         }
     } else if (*(this->nRange) == this->nITHR) {
         // Loop over each chip in the thresholds data
         name = new std::string("ITHR");
         for (auto const& [chipID, t_vec] : this->thresholds) {
-            // Casting float to short int to save memory
-            short int avg = (short int) this->find_average(t_vec);
-            bool status = (this->x[0] < avg && avg < this->x[*(this->nRange) - 1]);
-            this->add_db_entry(chipID, name, avg, status, tuning);
-            push_to_ccdb = true;
+            if (this->scan_is_finished(chipID)) {
+                // Casting float to short int to save memory
+                short int avg = (short int) this->find_average(t_vec);
+                bool status = (this->x[0] < avg && avg < this->x[*(this->nRange) - 1]);
+                this->add_db_entry(chipID, name, avg, status, tuning);
+                push_to_ccdb = true;
+            }
         }
     } else if (*(this->nRange) == this->nCharge) {
         // No averaging required for these runs
         name = new std::string("Threshold");
         for (auto const& [chipID, hits_vec] : this->pixelHits) {
-            this->extract_thresh_row(chipID, this->currentRow[chipID]);
-            // Write thresholds to output data structures
-            this->update_output(chipID);
+            // Check that we have received all the data for this row
+            // Require that the last charge value has at least half counts
+            if (this->scan_is_finished(chipID)) {
+                this->extract_and_update(chipID);
+            }
         }
+        this->finalize_output();
     }
 
     if (push_to_ccdb) this->send_to_ccdb(name, tuning, ec);
