@@ -107,7 +107,7 @@ class ITSCalibrator : public Task
         // Number of charges in a threshold scan (from 0 - 50 inclusive)
         const short int nCharge = 51;
         // Number of points in a VCASN tuning (from 30 - 70 inclusive)
-        const short int nVCASN = 41;
+        const short int nVCASN = 51;
         // Number of in a ITHR tuning (from 30 to 100 inclusive)
         const short int nITHR = 71;
         // Refernce to one of the above values; updated during runtime
@@ -190,6 +190,8 @@ class ITSCalibrator : public Task
         int16_t partID = 0;
 
         short int run_type = -1;
+        // Either "T" for threshold, "V" for VCASN, or "I" for ITHR
+        const char * scan_type;
         short int min = -1, max = -1;
 
         // Get threshold method (fit == 1, derivative == 0, or hitcounting == 2)

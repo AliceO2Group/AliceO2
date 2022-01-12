@@ -103,6 +103,7 @@ ITSCalibrator<Mapping>::~ITSCalibrator() {
 
     delete[] this->x;
     delete this->threshold_tree;
+    delete this->scan_type;
 }
 
 
@@ -265,7 +266,7 @@ template <class Mapping>
 bool ITSCalibrator<Mapping>::GetThreshold_Fit(const short int* data, const short int* x,
         const short int & NPoints, float& thresh, float& noise) {
 
-    bool flip = (*(this->nRange) == this->nITHR);
+    bool flip = (*(this->scan_type) == 'I');
 
     // Find lower & upper values of the S-curve region
     short int Lower, Upper;
@@ -335,7 +336,7 @@ bool ITSCalibrator<Mapping>::GetThreshold_Derivative(const short int* data,
 
     // Find lower & upper values of the S-curve region
     short int Lower, Upper;
-    bool flip = (*(this->nRange) == this->nITHR);
+    bool flip = (*(this->scan_type) == 'I');
     if (!this->FindUpperLower(data, x, NPoints, Lower, Upper, flip) || Lower == Upper) {
         LOG(warning) << "Start-finding unsuccessful: (Lower, Upper) = ("
                      << Lower << ", " << Upper << ")";
@@ -392,11 +393,11 @@ bool ITSCalibrator<Mapping>::GetThreshold_Hitcounting(const short int* data,
         return false;
     }
 
-    if (*(this->nRange) == this->nCharge) {
+    if (*(this->scan_type) == 'T') {
         thresh = x[*(this->nRange) - 1] - number_of_hits / (float) this->nInj;
-    } else if (*(this->nRange) == this->nVCASN) {
+    } else if (*(this->scan_type) == 'V') {
         thresh = (x[*(this->nRange) - 1] * this->nInj - number_of_hits) / (float) this->nInj;
-    } else if (*(this->nRange) == this->nITHR) {
+    } else if (*(this->scan_type) == 'I') {
         thresh = (number_of_hits - this->nInj * x[0]) / (float) this->nInj;
     } else {
         LOG(error) << "Unexpected runtype encountered in GetThreshold_Hitcounting()";
@@ -471,7 +472,7 @@ void ITSCalibrator<Mapping>::save_threshold(const short int& chipID, const short
          const short int& col, float* thresh, float* noise, bool _success) {
 
     // In the case of a full threshold scan, write to TTree
-    if (*(this->nRange) == this->nCharge) {
+    if (*(this->scan_type) == 'T') {
 
         // Cast as unsigned char to save memory
         if (*thresh > 255 || *noise > 255) {
@@ -508,7 +509,7 @@ template <class Mapping>
 void ITSCalibrator<Mapping>::update_output(const short int& chipID, bool recreate) {
 
     // In the case of a full threshold scan, write to TTree
-    if (*(this->nRange) == this->nCharge) {
+    if (*(this->scan_type) == 'T') {
 
         // Create output directory to store output
         std::string dir = this->output_dir.empty() ?
@@ -555,7 +556,7 @@ void ITSCalibrator<Mapping>::finalize_output() {
 
     // In the case of a full threshold scan, rename ROOT file and
     // create metadata file for writing to EOS
-    if (*(this->nRange) == this->nCharge) {
+    if (*(this->scan_type) == 'T') {
 
         // Check that expected output directory exists
         std::string dir = this->output_dir.empty() ?
@@ -620,12 +621,14 @@ void ITSCalibrator<Mapping>::set_run_type(const short int& runtype) {
         // full_threshold-scan -- just extract thresholds and send to CCDB for each pixel
         // 512 rows per chip
         this->nRange = &(this->nCharge);
+        this->scan_type = new const char('T');
         this->min = 0;  this->max = 50;
 
     } else if (runtype == 43 || runtype == 101 || runtype == 102) {
         // threshold_scan_short -- just extract thresholds and send to CCDB for each pixel
         // 10 rows per chip
         this->nRange = &(this->nCharge);
+        this->scan_type = new const char('T');
         this->min = 0;  this->max = 50;
 
     } else if (runtype == 61 || runtype == 103 || runtype == 81) {
@@ -633,13 +636,15 @@ void ITSCalibrator<Mapping>::set_run_type(const short int& runtype) {
         // Store average VCASN for each chip into CCDB
         // 4 rows per chip
         this->nRange = &(this->nVCASN);
-        this->min = 30;  this->max = 70;
+        this->scan_type = new const char('V');
+        this->min = 30;  this->max = 80;
 
     } else if (runtype == 62 || runtype == 82 || runtype == 104) {
         // ITHR tuning  -- average ITHR per chip
         // S-curve is backwards from VCASN case, otherwise same
         // 4 rows per chip
         this->nRange = &(this->nITHR);
+        this->scan_type = new const char('I');
         this->min = 30;  this->max = 100;
 
     } else if (runtype == 0) {
@@ -788,7 +793,7 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
                 }
 
                 // Divide calibration word (24-bit) by 2^16 to get the first 8 bits
-                if (*(this->nRange) == this->nCharge) {
+                if (*(this->scan_type) == 'T') {
                     // For threshold scan have to subtract from 170 to get charge value
                     charge = (short int) (170 - (calib.calibUserField >> 16) & 0xff);
                 } else {  // VCASN or ITHR tuning
@@ -943,16 +948,12 @@ void ITSCalibrator<Mapping>::send_to_ccdb(std::string * name,
               << info.getStartValidityTimestamp() << " : "
               << info.getEndValidityTimestamp();
 
-    if (*(this->nRange) == this->nVCASN) {
+    if (*(this->scan_type) == 'V') {
         ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "VCASN", 0}, *image);
         ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "VCASN", 0}, info);
-    } else if (*(this->nRange) == this->nITHR) {
+    } else if (*(this->scan_type) == 'I') {
         ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ITHR", 0}, *image);
         ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ITHR", 0}, info);
-    // Not saving threshold scan info to CCDB
-    //} else if (*(this->nRange) == this->nCharge) {
-        //ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "Threshold", 0}, *image);
-        //ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "Threshold", 0}, info);
     }
 
     return;
@@ -968,46 +969,43 @@ void ITSCalibrator<Mapping>::endOfStream(EndOfStreamContext& ec) {
     // DCS formatted data object for VCASN and ITHR tuning
     o2::dcs::DCSconfigObject_t tuning;
 
+    for (auto const& [chipID, hits_vec] : this->pixelHits) {
+        // Check that we have received all the data for this row
+        // Require that the last charge value has at least half counts
+        if (this->scan_is_finished(chipID)) {
+            this->extract_and_update(chipID);
+        }
+    }
+    this->finalize_output();
+
     // Add configuration item to output strings for CCDB
     std::string * name;
     bool push_to_ccdb = false;
-    if (*(this->nRange) == this->nVCASN) {
+    if (*(this->scan_type) == 'V') {
         // Loop over each chip in the thresholds data
         name = new std::string("VCASN");
         for (auto const& [chipID, t_vec] : this->thresholds) {
-            if (this->scan_is_finished(chipID)) {
-                // Casting float to short int to save memory
-                float avg, rms = 0;
-                this->find_average(t_vec, avg, rms);
-                bool status = (this->x[0] < avg && avg < this->x[*(this->nRange) - 1]);
-                this->add_db_entry(chipID, name, (short int) avg, rms, status, tuning);
-                push_to_ccdb = true;
-            }
+            // Casting float to short int to save memory
+            float avg, rms = 0;
+            this->find_average(t_vec, avg, rms);
+            bool status = (this->x[0] < avg && avg < this->x[*(this->nRange) - 1]);
+            this->add_db_entry(chipID, name, (short int) avg, rms, status, tuning);
+            push_to_ccdb = true;
         }
-    } else if (*(this->nRange) == this->nITHR) {
+    } else if (*(this->scan_type) == 'I') {
         // Loop over each chip in the thresholds data
         name = new std::string("ITHR");
         for (auto const& [chipID, t_vec] : this->thresholds) {
-            if (this->scan_is_finished(chipID)) {
-                // Casting float to short int to save memory
-                float avg, rms = 0;
-                this->find_average(t_vec, avg, rms);
-                bool status = (this->x[0] < avg && avg < this->x[*(this->nRange) - 1]);
-                this->add_db_entry(chipID, name, (short int) avg, rms, status, tuning);
-                push_to_ccdb = true;
-            }
+            // Casting float to short int to save memory
+            float avg, rms = 0;
+            this->find_average(t_vec, avg, rms);
+            bool status = (this->x[0] < avg && avg < this->x[*(this->nRange) - 1]);
+            this->add_db_entry(chipID, name, (short int) avg, rms, status, tuning);
+            push_to_ccdb = true;
         }
-    } else if (*(this->nRange) == this->nCharge) {
+    } else if (*(this->scan_type) == 'T') {
         // No averaging required for these runs
         name = new std::string("Threshold");
-        for (auto const& [chipID, hits_vec] : this->pixelHits) {
-            // Check that we have received all the data for this row
-            // Require that the last charge value has at least half counts
-            if (this->scan_is_finished(chipID)) {
-                this->extract_and_update(chipID);
-            }
-        }
-        this->finalize_output();
     }
 
     if (push_to_ccdb) this->send_to_ccdb(name, tuning, ec);
