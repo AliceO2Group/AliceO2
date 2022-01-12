@@ -19,6 +19,7 @@
 #include "Rtypes.h"
 #include "FITCalibration/FITCalibrationObjectProducer.h"
 #include "FITCalibration/FITCalibrationApi.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 namespace o2::fit
 {
@@ -34,16 +35,13 @@ class FITCalibrator final : public o2::calibration::TimeSlotCalibration<InputCal
 {
 
   //probably will be set via run parameter
-  static constexpr unsigned int DEFAULT_MIN_ENTRIES = 100;
-
-  //temp param for testing
-  static constexpr bool DEFAULT_TEST_MODE = true;
+  static constexpr unsigned int DEFAULT_MIN_ENTRIES = 1000;
 
   using TFType = uint64_t;
   using Slot = o2::calibration::TimeSlot<TimeSlotStorageType>;
 
  public:
-  explicit FITCalibrator(unsigned int minimumEntries = DEFAULT_MIN_ENTRIES, bool testMode = DEFAULT_TEST_MODE);
+  explicit FITCalibrator(unsigned int minimumEntries = DEFAULT_MIN_ENTRIES);
 
   ~FITCalibrator() final = default;
 
@@ -55,37 +53,28 @@ class FITCalibrator final : public o2::calibration::TimeSlotCalibration<InputCal
   [[nodiscard]] const std::vector<std::pair<o2::ccdb::CcdbObjectInfo, std::unique_ptr<std::vector<char>>>>& getStoredCalibrationObjects() const { return mStoredCalibrationObjects; }
 
  private:
-  [[nodiscard]] bool _isTestModeEnabled() const { return mTestMode; }
-
- private:
   std::vector<std::pair<o2::ccdb::CcdbObjectInfo, std::unique_ptr<std::vector<char>>>> mStoredCalibrationObjects{};
   const unsigned int mMinEntries;
-  const bool mTestMode;
 };
 
 FIT_CALIBRATOR_TEMPLATES
-FIT_CALIBRATOR_TYPE::FITCalibrator(unsigned int minimumEntries, bool testMode)
-  : mMinEntries(minimumEntries), mTestMode(testMode)
+FIT_CALIBRATOR_TYPE::FITCalibrator(unsigned int minimumEntries)
+  : mMinEntries(minimumEntries)
 {
+  LOG(info) << "FITCalibrator ";
 }
 
 FIT_CALIBRATOR_TEMPLATES
 bool FIT_CALIBRATOR_TYPE::hasEnoughData(const Slot& slot) const
 {
-  if (_isTestModeEnabled()) {
-    static unsigned int testCounter = 0;
-    ++testCounter;
-    if (!(testCounter % 1000)) {
-      return true;
-    }
-  }
-
+  LOG(info)<<"FIT_CALIBRATOR_TYPE::hasEnoughData";
   return slot.getContainer()->hasEnoughEntries();
 }
 
 FIT_CALIBRATOR_TEMPLATES
 void FIT_CALIBRATOR_TYPE::initOutput()
 {
+  LOG(info)<<"FIT_CALIBRATOR_TYPE::initOutput";
   mStoredCalibrationObjects.clear();
 }
 
@@ -94,9 +83,13 @@ void FIT_CALIBRATOR_TYPE::finalizeSlot(Slot& slot)
 {
   static std::map<std::string, std::string> md;
   const auto& container = slot.getContainer();
+  static const double TFlength = 1E-3 * o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCOrbitMUS; // in ms
+  uint64_t starting = slot.getTFStart() * TFlength;
+  uint64_t stopping = slot.getTFEnd() * TFlength;
+  LOG(info) << " TFstart " << slot.getTFStart() << " TFend " << slot.getTFEnd() << "starting = " << starting << " - stopping = " << stopping;
 
   auto calibrationObject = FITCalibrationObjectProducer::generateCalibrationObject<CalibrationObjectType>(*container);
-  auto preparedCalibObjects = FITCalibrationApi::prepareCalibrationObjectToSend(calibrationObject);
+  auto preparedCalibObjects = FITCalibrationApi::prepareCalibrationObjectToSend(calibrationObject, starting, stopping);
 
   mStoredCalibrationObjects.insert(mStoredCalibrationObjects.end(),
                                    std::make_move_iterator(preparedCalibObjects.begin()),
@@ -107,6 +100,7 @@ FIT_CALIBRATOR_TEMPLATES
 typename FIT_CALIBRATOR_TYPE::Slot& FIT_CALIBRATOR_TYPE::emplaceNewSlot(
   bool front, TFType tstart, TFType tend)
 {
+  LOG(info)<<"FIT_CALIBRATOR_TYPE::emplaceNewSlot";
   auto& cont = o2::calibration::TimeSlotCalibration<InputCalibrationInfoType, TimeSlotStorageType>::getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
   slot.setContainer(std::make_unique<TimeSlotStorageType>(mMinEntries));

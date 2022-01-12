@@ -15,7 +15,8 @@ o2_add_library(FT0Calibration
         src/FT0ChannelTimeCalibrationObject.cxx
         src/FT0CalibTimeSlewing.cxx
         src/FT0CalibCollector.cxx
-        src/RecoCalibInfoWorkflow.cxx
+        src/LHCClockDataHisto.cxx
+        src/LHCphaseCalibrationObject.cxx
          PUBLIC_LINK_LIBRARIES
          O2::CCDB
          O2::MathUtils
@@ -33,8 +34,9 @@ o2_add_library(FT0Calibration
         include/FT0Calibration/FT0DummyCalibrationObject.h
         include/FT0Calibration/FT0CalibTimeSlewing.h
         include/FT0Calibration/FT0CalibCollector.h
-        include/FT0Calibration/RecoCalibInfoWorkflow.h
-        )
+        include/FT0Calibration/LHCClockDataHisto.h
+        include/FT0Calibration/LHCphaseCalibrationObject.h
+          )
       o2_add_executable(ft0-channel-offset-calibration
         COMPONENT_NAME calibration
         SOURCES testWorkflow/FT0ChannelTimeCalibration-Workflow.cxx
@@ -66,23 +68,18 @@ o2_add_library(FT0Calibration
         PUBLIC_LINK_LIBRARIES
         O2::FITCalibration  O2::DetectorsCalibration
         )
-      o2_add_executable(ft0-collect-global-offsets
-        COMPONENT_NAME calibration
-        SOURCES testWorkflow/calib-global-offsets.cxx
-        PUBLIC_LINK_LIBRARIES
-        O2::DetectorsCalibration  O2::FITCalibration O2::GlobalTrackingWorkflowHelpers
-        )
-      o2_add_executable(ft0-calib-ft0-zero-time
+      o2_add_executable(ft0-global-offsets
         COMPONENT_NAME calibration
         SOURCES testWorkflow/GlobalOffsetsCalibrationWorkflow.cxx
         PUBLIC_LINK_LIBRARIES
         O2::DetectorsCalibration  O2::FITCalibration
         )
-
-      o2_add_executable(ft0-dummy-example
+     o2_add_executable(ft0-collect-global-offsets-workflow
         COMPONENT_NAME calibration
-        SOURCES testWorkflow/FT0CalibrationDummy-Workflow.cxx
+        SOURCES testWorkflow/GlobalOffsetsCollectWorkflow.cxx
         PUBLIC_LINK_LIBRARIES
-        O2::DataFormatsFT0 O2::FITCalibration
+        O2::DataFormatsFT0 O2::DetectorsCalibration  O2::FITCalibration
         )
+
+
 o2_data_file(COPY files DESTINATION Detectors/FT0/)

@@ -17,7 +17,7 @@
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/Digit.h"
 #include "FT0Calibration/FT0CalibrationInfoObject.h"
-
+#include "Framework/Logger.h"
 using namespace o2::framework;
 
 namespace o2::ft0

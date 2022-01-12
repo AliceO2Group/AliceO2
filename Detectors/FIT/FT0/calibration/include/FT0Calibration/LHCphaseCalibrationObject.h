@@ -9,31 +9,34 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_GLOBALOFFSETSINFOOBJECT_H
-#define O2_GLOBALOFFSETSINFOOBJECT_H
+/// \file CalibLHCphaseFT0.h
+/// \brief Class to store the output of the matching to TOF for calibration
 
+#ifndef ALICEO2_LHCPHASE_CALIBRATION_OBJECT_H
+#define ALICEO2_LHCPHASE_CALIBRATION_OBJECT_H
+
+#include <vector>
 #include "Rtypes.h"
+#include "DataFormatsFT0/RawEventData.h"
 
 namespace o2
 {
 namespace ft0
 {
-class GlobalOffsetsInfoObject
+struct LHCphaseCalibrationObject {
+  // LHCphase calibration
+  int mLHCphase; ///< <LHCphase>
+
+  ClassDefNV(LHCphaseCalibrationObject, 1);
+};
+
+class LHCClockDataHisto;
+class LHCphaseCalibrationObjectAlgorithm
 {
  public:
-  GlobalOffsetsInfoObject(short t0AC) : mT0AC(t0AC) {};
-  GlobalOffsetsInfoObject() = default;
-  ~GlobalOffsetsInfoObject() = default;
-
-  void setT0AC(short t0AC) { mT0AC = t0AC; }
-   [[nodiscard]] short getT0AC() const { return mT0AC; }
-
- private:
-  short mT0AC;
-
-  ClassDefNV(GlobalOffsetsInfoObject, 1);
+  [[nodiscard]] static LHCphaseCalibrationObject generateCalibrationObject(const o2::ft0::LHCClockDataHisto& container);
 };
+
 } // namespace ft0
 } // namespace o2
-
-#endif //O2_GLOBALOFFSETSINFOOBJECT_H
+#endif

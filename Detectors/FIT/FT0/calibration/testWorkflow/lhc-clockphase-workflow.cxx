@@ -9,20 +9,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "GlobalOffsetsCalibrationSpec.h"
+#include "Framework/DataProcessorSpec.h"
+#include "LHCClockCalibratorSpec.h"
 
+using namespace o2::framework;
+
+// we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  //probably some option will be added
+  // option allowing to set parameters
 }
+
+// ------------------------------------------------------------------
 
 #include "Framework/runDataProcessing.h"
 
-using namespace o2::framework;
-WorkflowSpec defineDataProcessing(ConfigContext const& config)
+WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-
-  WorkflowSpec workflow;
-  workflow.emplace_back(o2::ft0::getGlobalOffsetsCalibrationSpec());
-  return workflow;
+  WorkflowSpec specs;
+  specs.emplace_back(o2::ft0::getLHCClockCalibDeviceSpec());
+  return specs;
 }

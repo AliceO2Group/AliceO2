@@ -12,8 +12,7 @@
 #ifndef O2_GLOBALOFFSETSCONTAINER_H
 #define O2_GLOBALOFFSETSCONTAINER_H
 
-#include "DataFormatsFT0/RecoCalibInfoObject.h"
-#include "DataFormatsFT0/GlobalOffsetsCalibrationObject.h"
+#include "DataFormatsFT0/GlobalOffsetsInfoObject.h"
 #include "Rtypes.h"
 #include <TH1F.h>
 #include <array>
@@ -24,21 +23,26 @@ namespace o2::ft0
 {
 class GlobalOffsetsContainer final
 {
-  static constexpr int HISTOGRAM_RANGE = 1000;
-  static constexpr unsigned int NUMBER_OF_HISTOGRAM_BINS = 0.5 * HISTOGRAM_RANGE;
+  static constexpr int RANGE = 1000;
+  static constexpr unsigned int NBINS = 2* RANGE;
 
  public:
-  explicit GlobalOffsetsContainer(std::size_t minEntries);
+  explicit GlobalOffsetsContainer(std::size_t minEntries)
+  {
+    //    mHisto.resize(NBINS, 0.);
+  }
+
   bool hasEnoughEntries() const;
-  void fill(const gsl::span<const o2::ft0::RecoCalibInfoObject>& data);
-  short getMeanGaussianFitValue(std::size_t side) const;
+  void fill(const gsl::span<const GlobalOffsetsInfoObject>& data);
+  int getMeanGaussianFitValue() const;
   void merge(GlobalOffsetsContainer* prev);
   void print() const;
 
  private:
   std::size_t mMinEntries;
-  std::array<uint64_t, 3> mEntriesCollTime{};
-  TH1F* mHistogram[3];
+  std::array<int, NBINS> mHisto{};
+  int mEntries = 0;
+
   ClassDefNV(GlobalOffsetsContainer, 1);
 };
 

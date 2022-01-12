@@ -9,20 +9,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "GlobalOffsetsCalibrationSpec.h"
+/// \file LHCphaseCalibrationObject.cxx
+/// \brief Class to store the output of the matching to TOF for calibration
 
-void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+#include <algorithm>
+#include <cstdio>
+#include "FT0Calibration/LHCphaseCalibrationObject.h"
+#include "FT0Calibration/LHCClockDataHisto.h"
+
+using namespace o2::ft0;
+LHCphaseCalibrationObject LHCphaseCalibrationObjectAlgorithm::generateCalibrationObject(const LHCClockDataHisto& container)
 {
-  //probably some option will be added
-}
+  LHCphaseCalibrationObject calibrationObject;
 
-#include "Framework/runDataProcessing.h"
+  calibrationObject.mLHCphase = container.getGaus();
 
-using namespace o2::framework;
-WorkflowSpec defineDataProcessing(ConfigContext const& config)
-{
-
-  WorkflowSpec workflow;
-  workflow.emplace_back(o2::ft0::getGlobalOffsetsCalibrationSpec());
-  return workflow;
+  return calibrationObject;
 }

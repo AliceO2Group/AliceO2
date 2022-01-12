@@ -16,18 +16,18 @@
 /// @brief  Device to calibrate LHC clock phase using FT0 data
 
 #include "Framework/DataProcessorSpec.h"
-#include "DataFormatsFT0/GlobalOffsetsContainer.h"
-#include "DataFormatsFT0/GlobalOffsetsCalibrationObject.h"
-#include "DataFormatsFT0/GlobalOffsetsInfoObject.h"
+#include "FT0Calibration/LHCClockDataHisto.h"
+#include "FT0Calibration/LHCphaseCalibrationObject.h"
+#include "FT0Calibration/FT0CalibrationInfoObject.h"
 #include "FITCalibration/FITCalibrationDevice.h"
 
 using namespace o2::framework;
 namespace o2::ft0
 {
-o2::framework::DataProcessorSpec getGlobalOffsetsCalibrationSpec()
+o2::framework::DataProcessorSpec getLHCClockCalibDeviceSpec()
 {
-  using CalibrationDeviceType = o2::fit::FITCalibrationDevice<o2::ft0::GlobalOffsetsInfoObject, o2::ft0::GlobalOffsetsContainer, o2::ft0::GlobalOffsetsCalibrationObject>;
-  LOG(info)<<" getGlobalOffsetsCalibrationSpec()";
+  using CalibrationDeviceType = o2::fit::FITCalibrationDevice<o2::ft0::FT0CalibrationInfoObject, o2::ft0::LHCClockDataHisto, o2::ft0::LHCphaseCalibrationObject>;
+
   constexpr const char* DEFAULT_INPUT_LABEL = "calib";
 
   std::vector<o2::framework::InputSpec> inputs;
@@ -37,12 +37,12 @@ o2::framework::DataProcessorSpec getGlobalOffsetsCalibrationSpec()
   outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "FIT_CALIB"}, o2::framework::Lifetime::Sporadic);
   outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "FIT_CALIB"}, o2::framework::Lifetime::Sporadic);
   return o2::framework::DataProcessorSpec{
-    "ft0-global-offsets",
+    "ft0-lhcphase-calibration",
     inputs, //o2::framework::Inputs{{"input", "FT0", "CALIBDATA"}},
     outputs,
     o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<CalibrationDeviceType>(DEFAULT_INPUT_LABEL)},
     Options{
-      {"tf-per-slot", VariantType::Int, 55000, {"number of TFs per calibration time slot"}},
+      {"tf-per-slot", VariantType::Int, 26000, {"number of TFs per calibration time slot"}},
       {"max-delay", VariantType::Int, 3, {"number of slots in past to consider"}},
       {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit single time slot"}}}};
 }

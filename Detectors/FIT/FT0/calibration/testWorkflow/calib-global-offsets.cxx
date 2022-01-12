@@ -10,17 +10,15 @@
 // or submit itself to any jurisdiction.
 
 /// @file  calib-global-offsets.cxx
-#include "FT0Calibration/RecoCalibInfoWorkflow.h"
+
+#include "FT0Calibration/GlobalOffsetsCalibInfoWorkflow.h"
 #include "Framework/CompletionPolicy.h"
-#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include <vector>
 
 using namespace o2::framework;
-using GID = o2::dataformats::GlobalTrackID;
-using DetID = o2::detectors::DetID;
 
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
@@ -41,15 +39,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto useMC = !configcontext.options().get<bool>("disable-mc");
 
-  GID::mask_t allowedSrc = GID::getSourcesMask("ITS,TPC,ITS-TPC,FT0");
-  GID::mask_t src = allowedSrc & GID::getSourcesMask(configcontext.options().get<std::string>("info-sources"));
-
   WorkflowSpec specs;
-  specs.emplace_back(o2::ft0::getRecoCalibInfoWorkflow(src, useMC));
+  specs.emplace_back(o2::ft0::getRecoCalibInfoWorkflow( useMC));
 
-  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, false, src);
-  o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, false);
-  o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);
-
+  
   return std::move(specs);
 }

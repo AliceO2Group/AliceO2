@@ -16,6 +16,8 @@
 #include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
 #include "FT0Calibration/FT0ChannelTimeTimeSlotContainer.h"
 #include "FT0Calibration/FT0CalibTimeSlewing.h"
+#include "FT0Calibration/LHCphaseCalibrationObject.h"
+#include "FT0Calibration/LHCClockDataHisto.h"
 #include "FV0Calibration/FV0ChannelTimeCalibrationObject.h"
 #include "FV0Calibration/FV0ChannelTimeTimeSlotContainer.h"
 #include "FITCalibration/FITCalibrationObjectProducer.h"
@@ -35,6 +37,7 @@ class FITCalibrationObjectProducer
 template <typename CalibrationObjectType, typename TimeSlotContainerType>
 CalibrationObjectType FITCalibrationObjectProducer::generateCalibrationObject(const TimeSlotContainerType& container)
 {
+  LOG(info)<<" FITCalibrationObjectProducer::generateCalibrationObject";
   static_assert(sizeof(CalibrationObjectType) == 0, "[FITCalibrationObjectProducer] Cannot find specialization provided Calibration Object Type");
   return {};
 }
@@ -44,13 +47,20 @@ CalibrationObjectType FITCalibrationObjectProducer::generateCalibrationObject(co
 template <>
 o2::ft0::FT0ChannelTimeCalibrationObject FITCalibrationObjectProducer::generateCalibrationObject<o2::ft0::FT0ChannelTimeCalibrationObject, o2::ft0::FT0ChannelTimeTimeSlotContainer>(const o2::ft0::FT0ChannelTimeTimeSlotContainer& container)
 {
+  LOG(info)<<"FITCalibrationObjectProducer::generateCalibrationObject";
   return o2::ft0::FT0TimeChannelOffsetCalibrationObjectAlgorithm::generateCalibrationObject(container);
+}
+template <>
+o2::ft0::LHCphaseCalibrationObject FITCalibrationObjectProducer::generateCalibrationObject<o2::ft0::LHCphaseCalibrationObject, o2::ft0::LHCClockDataHisto>(const o2::ft0::LHCClockDataHisto& container)
+{
+  return o2::ft0::LHCphaseCalibrationObjectAlgorithm::generateCalibrationObject(container);
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <>
 o2::ft0::GlobalOffsetsCalibrationObject FITCalibrationObjectProducer::generateCalibrationObject<o2::ft0::GlobalOffsetsCalibrationObject, o2::ft0::GlobalOffsetsContainer>(const o2::ft0::GlobalOffsetsContainer& container)
 {
+  LOG(info)<<"  FITCalibrationObjectProducer::generateCalibrationObject";
   return o2::ft0::GlobalOffsetsCalibrationObjectAlgorithm::generateCalibrationObject(container);
 }
 

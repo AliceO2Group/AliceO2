@@ -43,7 +43,7 @@ namespace o2::ft0
 class RecoCalibInfoWorkflow final : public o2::framework::Task
 {
  public:
-  RecoCalibInfoWorkflow(GID::mask_t src, std::shared_ptr<DataRequest> const& dataRequest) : mInputSources(src), mDataRequest(dataRequest) {}
+  RecoCalibInfoWorkflow() {}
   void run(o2::framework::ProcessingContext& pc) final;
   void init(InitContext& ic) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
@@ -54,7 +54,7 @@ class RecoCalibInfoWorkflow final : public o2::framework::Task
   GID::mask_t mInputSources;
   TStopwatch mTimer;
 };
-framework::DataProcessorSpec getRecoCalibInfoWorkflow(GID::mask_t src, bool useMC);
+framework::DataProcessorSpec getRecoCalibInfoWorkflow( bool useMC);
 
 } // namespace o2::ft0
 
