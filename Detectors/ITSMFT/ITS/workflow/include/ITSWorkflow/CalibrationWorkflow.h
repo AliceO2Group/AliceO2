@@ -23,7 +23,7 @@ namespace its
 namespace calibration_workflow
 {
 
-    framework::WorkflowSpec getWorkflow();
+framework::WorkflowSpec getWorkflow();
 
 }
 

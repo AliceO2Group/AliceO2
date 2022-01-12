@@ -18,12 +18,12 @@ namespace calibration_workflow
 {
 framework::WorkflowSpec getWorkflow()
 {
-    framework::WorkflowSpec specs;
+  framework::WorkflowSpec specs;
 
-    specs.emplace_back(o2::its::getITSCalibratorSpec());
+  specs.emplace_back(o2::its::getITSCalibratorSpec());
 
-    return specs;
+  return specs;
 }
-}
-} // namespace itsmft
+} // namespace calibration_workflow
+} // namespace its
 } // namespace o2
