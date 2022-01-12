@@ -1,4 +1,4 @@
-/// @file   CalibratorSpec.cxx
+// @file   CalibratorSpec.cxx
 
 #include <sys/stat.h>
 #include <filesystem>
@@ -270,13 +270,14 @@ bool ITSCalibrator<Mapping>::GetThreshold_Fit(const short int* data, const short
     // Find lower & upper values of the S-curve region
     short int Lower, Upper;
     if (!this->FindUpperLower(data, x, NPoints, Lower, Upper, flip) || Lower == Upper) {
-        LOG(warning) << "Start-finding unsuccessful";
+        LOG(warning) << "Start-finding unsuccessful: (Lower, Upper) = ("
+                     << Lower << ", " << Upper << ")";
         return false;
     }
     float Start = (x[Upper] + x[Lower]) / 2;
 
     if (Start < 0) {
-        LOG(warning) << "Start-finding unsuccessful";
+        LOG(warning) << "Start-finding unsuccessful: Start = " << Start;
         return false;
     }
 
@@ -296,13 +297,13 @@ bool ITSCalibrator<Mapping>::GetThreshold_Fit(const short int* data, const short
 
     //g->SetMarkerStyle(20);
     //g->Draw("AP");
-    g->Fit("fitfcn", "Q");
+    g->Fit("fitfcn", "QL");
 
     noise = fitfcn->GetParameter(1);
     thresh = fitfcn->GetParameter(0);
     float chi2 = fitfcn->GetChisquare() / fitfcn->GetNDF();
 
-      // Testing code to create one S-curve in a ROOT file and then exit
+    /* Testing code to create one S-curve in a ROOT file and then exit
     // Initialize ROOT output file
     TFile* tf = new TFile("threshold_scan.root", "UPDATE");
 
@@ -314,7 +315,8 @@ bool ITSCalibrator<Mapping>::GetThreshold_Fit(const short int* data, const short
     // Close file and clean up memory
     tf->Close();
     delete tf;
-    //exit(1);
+    exit(1);
+    */
 
     delete g;
     delete fitfcn;
@@ -335,19 +337,19 @@ bool ITSCalibrator<Mapping>::GetThreshold_Derivative(const short int* data,
     short int Lower, Upper;
     bool flip = (*(this->nRange) == this->nITHR);
     if (!this->FindUpperLower(data, x, NPoints, Lower, Upper, flip) || Lower == Upper) {
-        LOG(warning) << "Start-finding unsuccessful";
+        LOG(warning) << "Start-finding unsuccessful: (Lower, Upper) = ("
+                     << Lower << ", " << Upper << ")";
         return false;
     }
 
     int deriv_size = Upper - Lower;
     float* deriv = new float[deriv_size]; // Maybe better way without ROOT?
     float xfx = 0, fx = 0;
-    float nCounts = 0;
 
     // Fill array with derivatives
     for (int i = Lower; i < Upper; i++) {
         deriv[i - Lower] = (float) (data[i+1] - data[i]) / (float) (x[i+1] - x[i]);
-        nCounts += deriv[i - Lower];
+        if (deriv[i - Lower] < 0) { deriv[i - Lower] = 0.; }
         xfx += x[i] * deriv[i - Lower];
         fx += deriv[i - Lower];
     }
@@ -358,7 +360,7 @@ bool ITSCalibrator<Mapping>::GetThreshold_Derivative(const short int* data,
         stddev += std::pow(x[i] - thresh, 2) * deriv[i - Lower];
     }
 
-    stddev /= nCounts;
+    stddev /= fx;
     noise = std::sqrt(stddev);
 
     delete[] deriv;
@@ -422,27 +424,6 @@ void ITSCalibrator<Mapping>::reset_row_hitmap(const short int& chipID, const sho
 
 
 //////////////////////////////////////////////////////////////////////////////
-// Initialize any desired output objects for writing threshold info per-chip
-template <class Mapping>
-void ITSCalibrator<Mapping>::init_chip_data(const short int& chipID) {
-
-    // Create a TH2 to save the threshold info
-    //std::string th_ChipID_str = "thresh_chipID" + std::to_string(chipID)
-    //char* th_ChipID = th_ChipID_str.c_str();
-
-    //float* row_arr; float* col_arr;
-    //get_row_col_arr(chipID, &row_arr, &col_arr);
-    //LOG(info)<<row_arr[400];
-    // Create TH2 for visualizing thresholds with x = rows, y = columns
-    //TH2F* th = new TH2F(th_ChipID, th_ChipID, (int)(this->NCols)-1, col_arr, (int)(this->NRows)-1, row_arr);
-    //this->thresholds[chipID] = th;
-    //delete[] row_arr, col_arr;
-
-    return;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
 // Run threshold extraction on completed row and update memory
 template <class Mapping>
 void ITSCalibrator<Mapping>::extract_thresh_row(const short int& chipID, const short int& row) {
@@ -460,12 +441,12 @@ void ITSCalibrator<Mapping>::extract_thresh_row(const short int& chipID, const s
         // Print helpful info to output file for debugging
         // col+1 because of ROOT 1-indexing (I think row already has the +1)
         catch (int i) {
-            LOG(info) << "ERROR: start-finding unsuccessful for chipID " << chipID
+            LOG(warning) << "Start-finding unsuccessful for chipID " << chipID
                       << " row " << row << " column " << (col_i + 1) << '\n';
             continue;
         }
         catch (int* i) {
-            LOG(info) << "ERROR: start-finding unsuccessful for chipID " << chipID
+            LOG(warning) << "Start-finding unsuccessful for chipID " << chipID
                       << " row " << row << " column " << (col_i + 1) << '\n';
             continue;
         }
@@ -480,9 +461,6 @@ void ITSCalibrator<Mapping>::extract_thresh_row(const short int& chipID, const s
         // TODO use this info when writing to CCDB
         int lay, sta, ssta, mod, chipInMod; // layer, stave, sub stave, module, chip
         this->mp.expandChipInfoHW((int) chipID, lay, sta, ssta, mod, chipInMod);
-        //LOG(info) << "Stave: " << sta << " | Half-stave: " << ssta << " | Module: " << mod
-        //          << " | Chip ID: " << chipID << " | Row: " << row << " | Col: " << (col_i + 1)
-        //          << " | Threshold: " << thresh << " | Noise: " << noise << " | Success: " << success;
     }
 }
 
@@ -608,6 +586,7 @@ void ITSCalibrator<Mapping>::finalize_output() {
         md_file->LHCPeriod = this->LHC_period;
         md_file->type = "calibration";
         md_file->priority = "high";
+        md_file->lurl = filename_full + ".root";
         auto metaFileNameTmp = fmt::format("{}{}.tmp", this->metafile_dir, filename);
         auto metaFileName = fmt::format("{}{}.done", this->metafile_dir, filename);
         try {
@@ -784,7 +763,7 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
     const unsigned int nROF = (unsigned int) ROFs.size();
     //const short int nCals = (short int) calibs.size();
 
-    LOG(info) << "Processing TF# " << tfcounter;
+    //LOG(info) << "Processing TF# " << tfcounter;
 
     // Loop over readout frames (usually only 1, sometimes 2)
     for (unsigned int iROF = 0; iROF < nROF; iROF++) {
@@ -799,7 +778,7 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
         for (short int iRU = 0; iRU < this->nRUs; iRU++) {
             const auto& calib = calibs[iROF * nRUs + iRU];
             if (calib.calibUserField != 0) {
-                if (charge >= 0) { LOG(info) << "WARNING: more than one charge detected!"; }
+                if (charge >= 0) { LOG(warning) << "More than one charge detected!"; }
 
                 // Run Type = calibword >> 24
                 if (this->run_type == -1) {
@@ -818,27 +797,21 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
                 // Last 16 bits should be the row (only uses up to 9 bits)
                 row = (short int) (calib.calibUserField & 0xffff);
 
-                //LOG(info) << "calibs size: " << calibs.size() << " | ROF number: " << iROF
-                //          << " | RU number: " << iRU << " | charge: " << charge << " | row: "
-                //          << row << " | runtype: " << this->run_type;
                 break;
             }
         }
 
         // If a charge was not found, throw an error and skip this ROF
         if (charge < 0) {
-            LOG(info) << "WARNING: Charge not updated\n";
+            LOG(warning) << "Charge not updated\n";
         //} else if (charge == 0) {
-            //LOG(info) << "WARNING: charge == 0\n";
+            //LOG(warning) << "charge == 0\n";
         } else {
 
-            //LOG(info) << "Length of digits: " << digits.size();
             for(unsigned int idig = rofIndex; idig < rofIndex + rofNEntries; idig++) { //for (const auto& d : digitsInFrame) {
                 auto & d = digits[idig];
                 short int chipID = (short int) d.getChipIndex();
                 short int col = (short int) d.getColumn();
-
-                //LOG(info) << "Hit for chip ID: " << chipID << " | row: " << row << " | col: " << col;
 
                 // Row should be the same for the whole ROF so do not have to check here
                 //assert(row == (short int) d.getRow());
@@ -846,15 +819,12 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
                 // Check if chip hasn't appeared before
                 if (this->currentRow.find(chipID) == this->currentRow.end()) {
                     // Update the current row and hit map
-                    LOG(info) << "New chip detected: " << chipID;
                     this->reset_row_hitmap(chipID, row);
-                    // Create data structures to hold the threshold info
-                    //this->init_chip_data(chipID);
 
                 // Check if we have a new row on an already existing chip
                 } else if (this->currentRow[chipID] != row) {
-                    LOG(info) << "Extracting threshold values for row " << this->currentRow[chipID]
-                              << " on chipID " << chipID;
+                    //LOG(info) << "Extracting threshold values for row " << this->currentRow[chipID]
+                    //          << " on chipID " << chipID;
                     this->extract_and_update(chipID);
                     // Reset row & hitmap for the new row
                     this->reset_row_hitmap(chipID, row);
@@ -881,7 +851,8 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
 //////////////////////////////////////////////////////////////////////////////
 // Calculate the average threshold given a vector of threshold objects
 template <class Mapping>
-float ITSCalibrator<Mapping>::find_average(const std::vector<threshold_obj>& data) {
+void ITSCalibrator<Mapping>::find_average(const std::vector<threshold_obj>& data,
+        float& avg, float& rms) {
 
     float sum = 0;
     unsigned int counts = 0;
@@ -891,15 +862,24 @@ float ITSCalibrator<Mapping>::find_average(const std::vector<threshold_obj>& dat
             counts++;
         }
     }
-    if (counts) return (sum / counts);
-    return -1;
+
+    avg = (!counts) ? 0. : sum / (float)counts;
+    sum = 0.;
+    for (const threshold_obj& t : data) {
+        if (t.success) {
+            sum += (avg - (float)t.threshold) * (avg - (float)t.threshold);
+        }
+     }
+    rms = (!counts) ? 0. : std::sqrt(sum / (float)counts);
+
+    return;
 }
 
 
 //////////////////////////////////////////////////////////////////////////////
 template <class Mapping>
 void ITSCalibrator<Mapping>::add_db_entry(const short int& chipID, const std::string * name,
-        const short int& avg, bool status, o2::dcs::DCSconfigObject_t& tuning) {
+        const short int& avg, const float & rms, bool status, o2::dcs::DCSconfigObject_t& tuning) {
 
     // Obtain specific chip information from the chip ID (layer, stave, ...)
     int lay, sta, ssta, mod, chipInMod; // layer, stave, sub stave, module, chip
@@ -912,6 +892,7 @@ void ITSCalibrator<Mapping>::add_db_entry(const short int& chipID, const std::st
     o2::dcs::addConfigItem(tuning, "Hic_Pos", std::to_string(mod));
     o2::dcs::addConfigItem(tuning, "ChipID", std::to_string(chipInMod));
     o2::dcs::addConfigItem(tuning, *name, std::to_string(avg));
+    o2::dcs::addConfigItem(tuning, "Rms", std::to_string(rms));
     o2::dcs::addConfigItem(tuning, "Status", std::to_string(status)); // pass or fail
 }
 
@@ -953,7 +934,7 @@ void ITSCalibrator<Mapping>::send_to_ccdb(std::string * name,
     o2::ccdb::CcdbObjectInfo info((path + *name), "threshold_map", "calib_scan.root", md, tstart, tend);
     //auto file_name = o2::ccdb::CcdbApi::generateFileName(*name);
     auto image = o2::ccdb::CcdbApi::createObjectImage(&tuning, &info);
-    std::string file_name = "calib_scan.root";
+    std::string file_name = "calib_scan_" + *name + ".root";
     info.setFileName(file_name);
     LOG(info) << "Class Name: " << class_name << " | File Name: " << file_name
               << "\nSending object " << info.getPath() << "/" << info.getFileName()
@@ -995,9 +976,10 @@ void ITSCalibrator<Mapping>::endOfStream(EndOfStreamContext& ec) {
         for (auto const& [chipID, t_vec] : this->thresholds) {
             if (this->scan_is_finished(chipID)) {
                 // Casting float to short int to save memory
-                short int avg = (short int) this->find_average(t_vec);
+                float avg, rms = 0;
+                this->find_average(t_vec, avg, rms);
                 bool status = (this->x[0] < avg && avg < this->x[*(this->nRange) - 1]);
-                this->add_db_entry(chipID, name, avg, status, tuning);
+                this->add_db_entry(chipID, name, (short int) avg, rms, status, tuning);
                 push_to_ccdb = true;
             }
         }
@@ -1007,9 +989,10 @@ void ITSCalibrator<Mapping>::endOfStream(EndOfStreamContext& ec) {
         for (auto const& [chipID, t_vec] : this->thresholds) {
             if (this->scan_is_finished(chipID)) {
                 // Casting float to short int to save memory
-                short int avg = (short int) this->find_average(t_vec);
+                float avg, rms = 0;
+                this->find_average(t_vec, avg, rms);
                 bool status = (this->x[0] < avg && avg < this->x[*(this->nRange) - 1]);
-                this->add_db_entry(chipID, name, avg, status, tuning);
+                this->add_db_entry(chipID, name, (short int) avg, rms, status, tuning);
                 push_to_ccdb = true;
             }
         }
@@ -1063,7 +1046,9 @@ DataProcessorSpec getITSCalibratorSpec()
         AlgorithmSpec{adaptFromTask<ITSCalibrator<ChipMappingITS>>()},
         // here I assume ''calls'' init, run, endOfStream sequentially...
         Options{{"fittype", VariantType::String, "derivative",
-                {"Fit type to extract thresholds, with options: fit, derivative (default), hitcounting"}}}
+                {"Fit type to extract thresholds, with options: fit, derivative (default), hitcounting"}},
+                {"output-dir", VariantType::String, "./", {"ROOT output directory"}},
+                {"meta-output-dir", VariantType::String, "/dev/null", {"metadata output directory"}}}
     };
 }
 } // namespace its
