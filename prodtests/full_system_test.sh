@@ -116,7 +116,7 @@ fi
 
 mkdir -p raw
 taskwrapper itsraw.log o2-its-digi2raw --file-for cru -o raw/ITS
-taskwrapper mftraw.log o2-mft-digi2raw --file-for link -o raw/MFT
+taskwrapper mftraw.log o2-mft-digi2raw --file-for cru -o raw/MFT
 taskwrapper ft0raw.log o2-ft0-digi2raw --file-for cru -o raw/FT0
 taskwrapper fv0raw.log o2-fv0-digi2raw --file-for cru -o raw/FV0
 taskwrapper fddraw.log o2-fdd-digit2raw --file-for cru -o raw/FDD
