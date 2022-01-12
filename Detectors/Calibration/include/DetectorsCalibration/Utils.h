@@ -22,16 +22,40 @@
 #include "Headers/DataHeader.h"
 #include "CommonUtils/StringUtils.h"
 #include "CCDB/CCDBTimeStampUtils.h"
+#include "CCDB/CcdbObjectInfo.h"
+#include "CommonUtils/MemFileHelper.h"
+#include "CCDB/CcdbApi.h"
 
 namespace o2
 {
 namespace calibration
 {
 
+using TFType = uint64_t;
+
 struct Utils {
   static constexpr o2::header::DataOrigin gDataOriginCDBPayload{"CLP"}; // generic DataOrigin for calibrations payload
   static constexpr o2::header::DataOrigin gDataOriginCDBWrapper{"CLW"}; // generic DataOrigin for calibrations wrapper
+  template <typename T>
+  static void prepareCCDBobjectInfo(T& obj, o2::ccdb::CcdbObjectInfo& info, const std::string& path, TFType tf,
+                                    const std::map<std::string, std::string>& md);
 };
+
+template <typename T>
+void Utils::prepareCCDBobjectInfo(T& obj, o2::ccdb::CcdbObjectInfo& info, const std::string& path, TFType tf,
+                                  const std::map<std::string, std::string>& md)
+{
+
+  // prepare all info to be sent to CCDB for object obj
+  auto clName = o2::utils::MemFileHelper::getClassName(obj);
+  auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
+  info.setPath(path);
+  info.setObjectType(clName);
+  info.setFileName(flName);
+  info.setStartValidityTimestamp(tf);
+  info.setEndValidityTimestamp(99999999999999);
+  info.setMetaData(md);
+}
 
 } // namespace calibration
 } // namespace o2

@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include <TOFCalibration/TOFDCSProcessor.h>
+#include "DetectorsCalibration/Utils.h"
 #include "Rtypes.h"
 #include <deque>
 #include <string>
@@ -392,7 +393,7 @@ void TOFDCSProcessor::updateDPsCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  prepareCCDBobjectInfo(mTOFDCS, mccdbDPsInfo, "TOF/Calib/DCSDPs", mTF, md);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mTOFDCS, mccdbDPsInfo, "TOF/Calib/DCSDPs", mTF, md);
 
   return;
 }
@@ -409,7 +410,7 @@ void TOFDCSProcessor::updateFEACCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  prepareCCDBobjectInfo(mFeac, mccdbLVInfo, "TOF/Calib/LVStatus", mTF, md);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mFeac, mccdbLVInfo, "TOF/Calib/LVStatus", mTF, md);
   return;
 }
 
@@ -425,7 +426,7 @@ void TOFDCSProcessor::updateHVCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  prepareCCDBobjectInfo(mHV, mccdbHVInfo, "TOF/Calib/HVStatus", mTF, md);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mHV, mccdbHVInfo, "TOF/Calib/HVStatus", mTF, md);
   return;
 }
 
