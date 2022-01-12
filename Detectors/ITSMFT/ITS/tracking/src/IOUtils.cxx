@@ -95,7 +95,7 @@ void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clu
 
 void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters,
                             gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
-                            const dataformats::MCTruthContainer<MCCompLabel>* clsLabels, HalfBarrel ignBarrel)
+                            const dataformats::MCTruthContainer<MCCompLabel>* clsLabels, int ignBarrel)
 {
   if (clusters.empty()) {
     std::cerr << "Missing clusters." << std::endl;
@@ -107,8 +107,8 @@ void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterE
   int clusterId{0};
 
   for (auto& c : clusters) {
-    if (geom->getHalfBarrel(c.getSensorID()) == (int)ignBarrel) { // Top barrel Id: 0, Bot: 1, never ignored otherwise
-      LOG(info) << "Ignoring cluster with half barrel id: " << geom->getHalfBarrel(c.getSensorID());
+    if (geom->getHalfBarrel(c.getSensorID()) == ignBarrel) { // Top barrel Id: 0, Bot: 1, never ignored otherwise
+      LOG(debug) << "Ignoring cluster with half barrel id: " << geom->getHalfBarrel(c.getSensorID());
       continue;
     }
 
@@ -151,7 +151,7 @@ void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterE
 }
 
 int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
-                             const dataformats::MCTruthContainer<MCCompLabel>* mcLabels, HalfBarrel ignBarrel)
+                             const dataformats::MCTruthContainer<MCCompLabel>* mcLabels, int ignBarrel)
 {
   event.clear();
   GeometryTGeo* geom = GeometryTGeo::Instance();
@@ -161,8 +161,8 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
   auto first = rof.getFirstEntry();
   auto clusters_in_frame = rof.getROFData(clusters);
   for (auto& c : clusters_in_frame) {
-    if (geom->getHalfBarrel(c.getSensorID()) == (int)ignBarrel) { // Top barrel Id: 0, Bot: 1, never ignored otherwise
-      LOG(info) << "Ignoring cluster with half barrel id: " << geom->getHalfBarrel(c.getSensorID());
+    if (geom->getHalfBarrel(c.getSensorID()) == ignBarrel) { // Top barrel Id: 0, Bot: 1, never ignored otherwise
+      LOG(debug) << "Ignoring cluster with half barrel id: " << geom->getHalfBarrel(c.getSensorID());
       continue;
     }
 

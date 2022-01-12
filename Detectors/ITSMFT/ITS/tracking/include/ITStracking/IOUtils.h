@@ -64,10 +64,10 @@ enum class HalfBarrel { Top,
 
 void loadEventData(ROframe& events, gsl::span<const itsmft::CompClusterExt> clusters,
                    gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
-                   const dataformats::MCTruthContainer<MCCompLabel>* clsLabels = nullptr, HalfBarrel ignBarrel = HalfBarrel::None);
+                   const dataformats::MCTruthContainer<MCCompLabel>* clsLabels = nullptr, int ignBarrel = 2);
 int loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& events, gsl::span<const itsmft::CompClusterExt> clusters,
                     gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
-                    const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr, HalfBarrel ignBarrel = HalfBarrel::None);
+                    const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr, int ignBarrel = 2);
 
 void convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
                             gsl::span<const unsigned char>::iterator& pattIt,

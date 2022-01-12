@@ -76,6 +76,7 @@ void Vertexer::getGlobalConfiguration()
   verPar.tanLambdaCut = vc.tanLambdaCut;
   verPar.clusterContributorsCut = vc.clusterContributorsCut;
   verPar.phiSpan = vc.phiSpan;
+  verPar.ignoreHalfBarrel = vc.ignoreHalfBarrel;
 
   mTraits->updateVertexingParameters(verPar);
 }

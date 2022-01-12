@@ -32,6 +32,7 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   int clusterContributorsCut = 16;
   int phiSpan = -1;
   int zSpan = -1;
+  int ignoreHalfBarrel = 2;
 
   O2ParamDef(VertexerParamConfig, "ITSVertexerParam");
 };

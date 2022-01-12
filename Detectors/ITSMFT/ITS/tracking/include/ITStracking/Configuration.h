@@ -107,6 +107,7 @@ struct VertexingParameters {
   int clusterContributorsCut = 16;
   int phiSpan = -1;
   int zSpan = -1;
+  int ignoreHalfBarrel = 2;
 };
 
 struct VertexerHistogramsConfiguration {

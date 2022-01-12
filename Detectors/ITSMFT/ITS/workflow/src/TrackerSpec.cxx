@@ -230,7 +230,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   std::vector<bool> processingMask;
   int cutClusterMult{0}, cutVertexMult{0}, cutTotalMult{0};
   for (auto& rof : rofspan) {
-    nclUsed += ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels);
+    nclUsed += ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels, mVertexer->getVertParameters().ignoreHalfBarrel);
     // prepare in advance output ROFRecords, even if this ROF to be rejected
     int first = allTracks.size();
 
