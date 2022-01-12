@@ -46,7 +46,7 @@ namespace itsmft
 {
 class CompClusterExt;
 class TopologyDictionary;
-}
+} // namespace itsmft
 
 namespace its
 {
@@ -58,12 +58,16 @@ constexpr float DefClusErrorCol = o2::itsmft::SegmentationAlpide::PitchCol * 0.5
 constexpr float DefClusError2Row = DefClusErrorRow * DefClusErrorRow;
 constexpr float DefClusError2Col = DefClusErrorCol * DefClusErrorCol;
 
+enum class HalfBarrel { Top,
+                        Bottom,
+                        None };
+
 void loadEventData(ROframe& events, gsl::span<const itsmft::CompClusterExt> clusters,
                    gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
-                   const dataformats::MCTruthContainer<MCCompLabel>* clsLabels = nullptr);
+                   const dataformats::MCTruthContainer<MCCompLabel>* clsLabels = nullptr, HalfBarrel ignBarrel = HalfBarrel::None);
 int loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& events, gsl::span<const itsmft::CompClusterExt> clusters,
                     gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
-                    const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);
+                    const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr, HalfBarrel ignBarrel = HalfBarrel::None);
 
 void convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
                             gsl::span<const unsigned char>::iterator& pattIt,

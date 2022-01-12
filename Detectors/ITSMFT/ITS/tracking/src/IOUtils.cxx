@@ -95,7 +95,7 @@ void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clu
 
 void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters,
                             gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
-                            const dataformats::MCTruthContainer<MCCompLabel>* clsLabels)
+                            const dataformats::MCTruthContainer<MCCompLabel>* clsLabels, HalfBarrel ignBarrel)
 {
   if (clusters.empty()) {
     std::cerr << "Missing clusters." << std::endl;
@@ -107,8 +107,12 @@ void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterE
   int clusterId{0};
 
   for (auto& c : clusters) {
-    int layer = geom->getLayer(c.getSensorID());
+    if (geom->getHalfBarrel(c.getSensorID()) == (int)ignBarrel) { // Top barrel Id: 0, Bot: 1, never ignored otherwise
+      LOG(info) << "Ignoring cluster with half barrel id: " << geom->getHalfBarrel(c.getSensorID());
+      continue;
+    }
 
+    int layer = geom->getLayer(c.getSensorID());
     auto pattID = c.getPatternID();
     o2::math_utils::Point3D<float> locXYZ;
     float sigmaY2 = ioutils::DefClusError2Row, sigmaZ2 = ioutils::DefClusError2Col, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
@@ -147,7 +151,7 @@ void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterE
 }
 
 int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
-                             const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
+                             const dataformats::MCTruthContainer<MCCompLabel>* mcLabels, HalfBarrel ignBarrel)
 {
   event.clear();
   GeometryTGeo* geom = GeometryTGeo::Instance();
@@ -157,8 +161,12 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
   auto first = rof.getFirstEntry();
   auto clusters_in_frame = rof.getROFData(clusters);
   for (auto& c : clusters_in_frame) {
-    int layer = geom->getLayer(c.getSensorID());
+    if (geom->getHalfBarrel(c.getSensorID()) == (int)ignBarrel) { // Top barrel Id: 0, Bot: 1, never ignored otherwise
+      LOG(info) << "Ignoring cluster with half barrel id: " << geom->getHalfBarrel(c.getSensorID());
+      continue;
+    }
 
+    int layer = geom->getLayer(c.getSensorID());
     auto pattID = c.getPatternID();
     o2::math_utils::Point3D<float> locXYZ;
     float sigmaY2 = ioutils::DefClusError2Row, sigmaZ2 = ioutils::DefClusError2Col, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
