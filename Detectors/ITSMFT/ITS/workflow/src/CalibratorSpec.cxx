@@ -523,7 +523,7 @@ void ITSCalibrator<Mapping>::update_output(const short int& chipID, bool recreat
         }
 
         std::string filename = dir + std::to_string(this->run_number)
-            + '_' + std::to_string(this->tfcounter) + ".root.part";
+            + '_' + std::to_string(this->file_number) + ".root.part";
 
         // Check if file already exists
         struct stat buffer;
@@ -542,7 +542,6 @@ void ITSCalibrator<Mapping>::update_output(const short int& chipID, bool recreat
 
         // Close file and clean up memory
         tf->Close();
-        this->threshold_tree->Reset();
     }
 
     return;
@@ -569,7 +568,7 @@ void ITSCalibrator<Mapping>::finalize_output() {
 
         // Expected ROOT output filename
         std::string filename = std::to_string(this->run_number) + '_' +
-            std::to_string(this->last_tf_written);
+            std::to_string(this->file_number);
         std::string filename_full = dir + filename;
         try {
             std::rename( (filename_full + ".root.part").c_str(),
@@ -600,6 +599,8 @@ void ITSCalibrator<Mapping>::finalize_output() {
         }
         delete md_file;
     } // threshold scan
+
+    this->file_number++;
 
     return;
 
@@ -676,11 +677,11 @@ void ITSCalibrator<Mapping>::extract_and_update(const short int & chipID) {
 
     // In threshold scan case, reset threshold_tree before writing to a new file
     bool recreate = false;
-    if (this->tfcounter != this->last_tf_written) {
+    if ((this->row_counter)++ == n_rows_per_file) {
         // Reset threshold_tree before writing to a new file
         this->threshold_tree->Reset();
         this->finalize_output();
-        this->last_tf_written = this->tfcounter;
+        this->row_counter = 1;
         recreate = true;
     }
 
@@ -756,7 +757,7 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc) {
     const auto calibs = pc.inputs().get<gsl::span<o2::itsmft::GBTCalibData>>("calib");
     const auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
     const auto ROFs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("digitsROF");
-    this->tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(
+    const auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(
         pc.inputs().get("digitsROF").header)->startTime;
 
     // Store some lengths for convenient looping

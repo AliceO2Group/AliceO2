@@ -107,7 +107,7 @@ class ITSCalibrator : public Task
         // Number of charges in a threshold scan (from 0 - 50 inclusive)
         const short int nCharge = 51;
         // Number of points in a VCASN tuning (from 30 - 70 inclusive)
-        const short int nVCASN = 51;
+        const short int nVCASN = 41;
         // Number of in a ITHR tuning (from 30 to 100 inclusive)
         const short int nITHR = 71;
         // Refernce to one of the above values; updated during runtime
@@ -136,7 +136,6 @@ class ITSCalibrator : public Task
 
         // Tree to save threshold info in full threshold scan case
         TTree* threshold_tree = new TTree("ITS_calib_tree", "ITS_calib_tree");
-        unsigned int last_tf_written = -1;
         PIXEL tree_pixel;
         // Save charge & counts as char (8-bit) to save memory, since values are always < 256
         unsigned char threshold = 0, noise = 0;
@@ -182,6 +181,11 @@ class ITSCalibrator : public Task
         std::string metafile_dir = "/dev/null";
         int run_number = -1;
         int tfcounter = -1;
+
+        // How many rows before starting new ROOT file
+        unsigned int file_number = 0;
+        const unsigned int n_rows_per_file = 10000;
+        unsigned int row_counter = 0;
 
         int16_t partID = 0;
 
