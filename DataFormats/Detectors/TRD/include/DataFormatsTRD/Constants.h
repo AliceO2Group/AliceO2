@@ -27,6 +27,7 @@ constexpr int NSTACK = 5;          // the number of stacks per sector
 constexpr int NLAYER = 6;          // the number of layers
 constexpr int NCHAMBERPERSEC = 30; // the number of chambers per sector
 constexpr int MAXCHAMBER = 540;    // the maximum number of installed chambers
+constexpr int MAXHALFCHAMBER = 1080; // the maximum number of installed half-chambers
 constexpr int NCHAMBER = 521;      // the number of chambers actually installed
 constexpr int NHALFCRU = 72;       // the number of half cru (link bundles)
 constexpr int NLINKSPERHALFCRU = 15; // the number of links per half cru or cru end point.
@@ -50,7 +51,7 @@ constexpr int NCOLMCM = 18;     // the number of pads per MCM
 
 constexpr int NBITSTRKLPOS = 11;                   // number of bits for position in tracklet64 word
 constexpr int NBITSTRKLSLOPE = 8;                  // number of bits for slope in tracklet64 word
-constexpr float PADGRANULARITYTRKLPOS = 80.f;
+constexpr float PADGRANULARITYTRKLPOS = 40.f;      // TODO this should come out of the trapconfig.
 constexpr float PADGRANULARITYTRKLSLOPE = 1000.f;
 constexpr float GRANULARITYTRKLPOS = 1.f / PADGRANULARITYTRKLPOS;     // granularity of position in tracklet64 word in pad-widths
 constexpr float GRANULARITYTRKLSLOPE = 1.f / PADGRANULARITYTRKLSLOPE; // granularity of slope in tracklet64 word in pads/timebin
@@ -76,6 +77,9 @@ constexpr int MAXEVENTCOUNTERSEPERATION = 200; // how far appart can subsequent 
 constexpr int MAXMCMCOUNT = 69120;             // at most mcm count maxchamber x nrobc1 nmcmrob
 constexpr int MAXLINKERRORHISTOGRAMS = 10;     // size of the array holding the link error plots from the raw reader
 constexpr int MAXPARSEERRORHISTOGRAMS = 60;    // size of the array holding the parsing error plots from the raw reader
+constexpr int ETYPEPHYSICSTRIGGER = 0x2;       // CRU Half Chamber header eventtype definition
+constexpr int ETYPECALIBRATIONTRIGGER = 0x3;   // CRU Half Chamber header eventtype definition
+
 } //namespace constants
 } // namespace trd
 } // namespace o2

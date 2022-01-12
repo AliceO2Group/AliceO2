@@ -18,6 +18,7 @@
 
 #include <array>
 #include <vector>
+#include <map>
 #include <chrono>
 #include <gsl/gsl>
 #include "Framework/ConfigParamRegistry.h"
@@ -28,7 +29,9 @@
 #include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDRaw/ColumnDataToLocalBoard.h"
+#include "MIDRaw/ROBoardConfigHandler.h"
 #include "MIDFiltering/ChannelMasksHandler.h"
+#include "MIDFiltering/MaskMaker.h"
 
 namespace of = o2::framework;
 
@@ -43,6 +46,8 @@ class MaskHandlerDeviceDPL
   void init(o2::framework::InitContext& ic)
   {
 
+    mOutFilename = ic.options().get<std::string>("mid-mask-outfile");
+
     auto stop = [this]() {
       printSummary();
     };
@@ -53,30 +58,43 @@ class MaskHandlerDeviceDPL
   {
     std::string name = "calib";
     o2::mid::ColumnDataToLocalBoard colToBoard;
-    colToBoard.setDebugMode(true);
+    o2::mid::ROBoardConfigHandler roBoardCfgHandler;
 
     for (auto& masks : mMasksHandlers) {
       auto maskVec = masks.getMasks();
+      colToBoard.process(maskVec);
+      auto roMasks = colToBoard.getData();
       if (maskVec.empty()) {
-        LOG(INFO) << "No problematic digit found in " << name << " events";
+        LOG(info) << "No problematic digit found in " << name << " events";
       } else {
-        LOG(INFO) << "Problematic digits found in " << name << " events. Corresponding masks:";
+        LOG(info) << "Problematic digits found in " << name << " events. Corresponding masks:";
         for (auto& mask : maskVec) {
-          LOG(INFO) << mask;
+          LOG(info) << mask;
         }
         std::cout << "\nCorresponding boards masks:" << std::endl;
-        colToBoard.process(maskVec);
-        for (auto& mapIt : colToBoard.getData()) {
-          for (auto& board : mapIt.second) {
-            std::cout << board << std::endl;
-          }
+        for (auto& board : roMasks) {
+          std::cout << board << std::endl;
         }
       }
+
+      if (!mOutFilename.empty()) {
+        auto idx = mOutFilename.find_last_of("/");
+        auto insertIdx = (idx == std::string::npos) ? 0 : idx + 1;
+        std::string outFilename = mOutFilename;
+        outFilename.insert(insertIdx, "_");
+        outFilename.insert(insertIdx, name.c_str());
+        auto fullMasks = masks.getMasksFull(o2::mid::makeDefaultMasks());
+        colToBoard.process(fullMasks);
+        roBoardCfgHandler.updateMasks(colToBoard.getData());
+        roBoardCfgHandler.write(outFilename.c_str());
+      }
+
       name = "FET";
     }
   }
 
-  void run(o2::framework::ProcessingContext& pc)
+  void
+    run(o2::framework::ProcessingContext& pc)
   {
     auto tStart = std::chrono::high_resolution_clock::now();
 
@@ -112,6 +130,7 @@ class MaskHandlerDeviceDPL
   std::array<ChannelMasksHandler, 2> mMasksHandlers{}; ///< Output masks
   std::chrono::duration<double> mTimer{0};             ///< full timer
   std::chrono::duration<double> mTimerMaskHandler{0};  ///< mask handler timer
+  std::string mOutFilename{};                          ///< output filename
 };
 
 framework::DataProcessorSpec getMaskHandlerSpec()
@@ -124,7 +143,9 @@ framework::DataProcessorSpec getMaskHandlerSpec()
     "MIDMaskHandler",
     {inputSpecs},
     {},
-    of::AlgorithmSpec{of::adaptFromTask<o2::mid::MaskHandlerDeviceDPL>()}};
+    of::AlgorithmSpec{of::adaptFromTask<o2::mid::MaskHandlerDeviceDPL>()},
+    of::Options{
+      {"mid-mask-outfile", of::VariantType::String, "", {"Output filename"}}}};
 }
 } // namespace mid
 } // namespace o2

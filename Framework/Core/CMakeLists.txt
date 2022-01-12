@@ -17,6 +17,7 @@ o2_add_library(Framework
                        src/AnalysisHelpers.cxx
                        src/AnalysisDataModelHelpers.cxx
                        src/BoostOptionsRetriever.cxx
+                       src/CallbacksPolicy.cxx
                        src/ChannelConfigurationPolicy.cxx
                        src/ChannelMatching.cxx
                        src/ChannelConfigurationPolicyHelpers.cxx
@@ -35,6 +36,7 @@ o2_add_library(Framework
                        src/ControlService.cxx
                        src/ControlServiceHelpers.cxx
                        src/DispatchPolicy.cxx
+                       src/DataSender.cxx
                        src/ProcessingPoliciesHelpers.cxx
                        src/ConfigParamStore.cxx
                        src/ConfigParamsHelper.cxx
@@ -45,6 +47,8 @@ o2_add_library(Framework
                        src/DataProcessingDevice.cxx
                        src/DataProcessingHeader.cxx
                        src/DataProcessingHelpers.cxx
+                       src/DataProcessorSpecHelpers.cxx
+                       src/DataProcessorMatchers.cxx
                        src/DataRefUtils.cxx
                        src/SourceInfoHeader.cxx
                        src/DataProcessor.cxx
@@ -89,11 +93,13 @@ o2_add_library(Framework
                        src/OutputSpec.cxx
                        src/PropertyTreeHelpers.cxx
                        src/Plugins.cxx
+                       src/RateLimiter.cxx
                        src/RCombinedDS.cxx
                        src/ReadoutAdapter.cxx
                        src/ResourcesMonitoringHelper.cxx
                        src/ResourcePolicy.cxx
                        src/ResourcePolicyHelpers.cxx
+                       src/SendingPolicy.cxx
                        src/ServiceRegistry.cxx
                        src/SimpleResourceManager.cxx
                        src/SimpleRawDeviceService.cxx
@@ -302,6 +308,7 @@ foreach(w
         SingleDataSource
         Task
         ExternalFairMQDeviceWorkflow
+        VariablePayloadSequenceWorkflow
         )
   o2_add_test(${w} NAME test_Framework_test_${w}
               SOURCES test/test_${w}.cxx

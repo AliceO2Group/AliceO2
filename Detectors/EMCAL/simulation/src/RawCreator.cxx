@@ -27,7 +27,7 @@
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALSimulation/RawWriter.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 namespace bpo = boost::program_options;
 
@@ -89,9 +89,9 @@ int main(int argc, const char** argv)
   // if needed, create output directory
   if (!std::filesystem::exists(outputdir)) {
     if (!std::filesystem::create_directories(outputdir)) {
-      LOG(FATAL) << "could not create output directory " << outputdir;
+      LOG(fatal) << "could not create output directory " << outputdir;
     } else {
-      LOG(INFO) << "created output directory " << outputdir;
+      LOG(info) << "created output directory " << outputdir;
     }
   }
 

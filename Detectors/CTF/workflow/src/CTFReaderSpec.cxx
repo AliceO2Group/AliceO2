@@ -23,8 +23,9 @@
 #include "CommonUtils/FileFetcher.h"
 #include "CTFWorkflow/CTFReaderSpec.h"
 #include "DetectorsCommonDataFormats/EncodedBlocks.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
+#include "Headers/STFHeader.h"
 #include "DataFormatsITSMFT/CTF.h"
 #include "DataFormatsTPC/CTF.h"
 #include "DataFormatsTRD/CTF.h"
@@ -77,15 +78,23 @@ class CTFReaderSpec : public o2::framework::Task
  private:
   void openCTFFile(const std::string& flname);
   void processTF(ProcessingContext& pc);
-  void stop();
+  void checkTreeEntries();
+  void stopReader();
+  template <typename C>
+  void processDetector(DetID det, const CTFHeader& ctfHeader, ProcessingContext& pc) const;
+  void setMessageHeader(const CTFHeader& ctfHeader, const std::string& lbl, ProcessingContext& pc) const;
+  void tryToFixCTFHeader(CTFHeader& ctfHeader) const;
   CTFReaderInp mInput{};
   std::unique_ptr<o2::utils::FileFetcher> mFileFetcher;
   std::unique_ptr<TFile> mCTFFile;
   std::unique_ptr<TTree> mCTFTree;
   bool mRunning = false;
   int mCTFCounter = 0;
+  int mNFailedFiles = 0;
+  int mFilesRead = 0;
   long mLastSendTime = 0L;
   long mCurrTreeEntry = 0;
+  size_t mSelIDEntry = 0; // next CTFID to select from the mInput.ctfIDs (if non-empty)
   TStopwatch mTimer;
 };
 
@@ -99,17 +108,17 @@ CTFReaderSpec::CTFReaderSpec(const CTFReaderInp& inp) : mInput(inp)
 ///_______________________________________
 CTFReaderSpec::~CTFReaderSpec()
 {
-  stop();
+  stopReader();
 }
 
 ///_______________________________________
-void CTFReaderSpec::stop()
+void CTFReaderSpec::stopReader()
 {
   if (!mFileFetcher) {
     return;
   }
-  LOG(INFO) << "CTFReader stops processing";
-  LOGP(INFO, "CTF reading total timing: Cpu: {:.3f} Real: {:.3f} s for {} TFs in {} loops",
+  LOGP(info, "CTFReader stops processing, {} files read, {} files failed", mFilesRead - mNFailedFiles, mNFailedFiles);
+  LOGP(info, "CTF reading total timing: Cpu: {:.3f} Real: {:.3f} s for {} TFs in {} loops",
        mTimer.CpuTime(), mTimer.RealTime(), mCTFCounter, mFileFetcher->getNLoops());
   mRunning = false;
   mFileFetcher->stop();
@@ -124,6 +133,7 @@ void CTFReaderSpec::stop()
 ///_______________________________________
 void CTFReaderSpec::init(InitContext& ic)
 {
+  mInput.ctfIDs = o2::RangeTokenizer::tokenize<int>(ic.options().get<std::string>("select-ctf-ids"));
   mRunning = true;
   mFileFetcher = std::make_unique<o2::utils::FileFetcher>(mInput.inpdata, mInput.tffileRegex, mInput.remoteRegex, mInput.copyCmd);
   mFileFetcher->setMaxFilesInQueue(mInput.maxFileCache);
@@ -134,14 +144,24 @@ void CTFReaderSpec::init(InitContext& ic)
 ///_______________________________________
 void CTFReaderSpec::openCTFFile(const std::string& flname)
 {
-  mCTFFile.reset(TFile::Open(flname.c_str()));
-  if (!mCTFFile->IsOpen() || mCTFFile->IsZombie()) {
-    LOG(ERROR) << "Failed to open file " << flname;
-    throw std::runtime_error("failed to open CTF file");
-  }
-  mCTFTree.reset((TTree*)mCTFFile->Get(std::string(o2::base::NameConf::CTFTREENAME).c_str()));
-  if (!mCTFTree) {
-    throw std::runtime_error("failed to load CTF tree");
+  try {
+    mFilesRead++;
+    mCTFFile.reset(TFile::Open(flname.c_str()));
+    if (!mCTFFile || !mCTFFile->IsOpen() || mCTFFile->IsZombie()) {
+      throw std::runtime_error("failed to open CTF file");
+    }
+    mCTFTree.reset((TTree*)mCTFFile->Get(std::string(o2::base::NameConf::CTFTREENAME).c_str()));
+    if (!mCTFTree) {
+      throw std::runtime_error("failed to load CTF tree from");
+    }
+  } catch (const std::exception& e) {
+    LOG(error) << "Cannot process " << flname << ", reason: " << e.what();
+    mCTFTree.reset();
+    mCTFFile.reset();
+    mNFailedFiles++;
+    if (mFileFetcher) {
+      mFileFetcher->popFromQueue(mInput.maxLoops < 1);
+    }
   }
   mCurrTreeEntry = 0;
 }
@@ -149,16 +169,31 @@ void CTFReaderSpec::openCTFFile(const std::string& flname)
 ///_______________________________________
 void CTFReaderSpec::run(ProcessingContext& pc)
 {
+
+  if (!mCTFCounter) { // RS FIXME: this is a temporary hack to avoid late-starting devices to lose the input
+    LOG(warning) << "This is a hack, sleeping 5 s at startup";
+    usleep(1000000);
+  }
+
   std::string tfFileName;
-  if (mCTFCounter >= mInput.maxTFs) { // done
+  if (mCTFCounter >= mInput.maxTFs || (!mInput.ctfIDs.empty() && mSelIDEntry >= mInput.ctfIDs.size())) { // done
+    LOG(info) << "All CTFs from selected range were injected, stopping";
     mRunning = false;
   }
 
   while (mRunning) {
     if (mCTFTree) { // there is a tree open with multiple CTF
-      LOG(INFO) << "TF " << mCTFCounter << " of " << mInput.maxTFs << " loop " << mFileFetcher->getNLoops();
-      processTF(pc);
-      break;
+      if (mInput.ctfIDs.empty() || mInput.ctfIDs[mSelIDEntry] == mCTFCounter) { // no selection requested or matching CTF ID is found
+        LOG(debug) << "TF " << mCTFCounter << " of " << mInput.maxTFs << " loop " << mFileFetcher->getNLoops();
+        mSelIDEntry++;
+        processTF(pc);
+        break;
+      } else { // explict CTF ID selection list was provided and current entry is not selected
+        LOGP(info, "Skipping CTF${} ({} of {} in {})", mCTFCounter, mCurrTreeEntry, mCTFTree->GetEntries(), mCTFFile->GetName());
+        checkTreeEntries();
+        mCTFCounter++;
+        continue;
+      }
     }
     //
     tfFileName = mFileFetcher->getNextFileInQueue();
@@ -170,14 +205,14 @@ void CTFReaderSpec::run(ProcessingContext& pc)
       usleep(5000); // wait 5ms for the files cache to be filled
       continue;
     }
-    LOG(INFO) << "Reading CTF input " << ' ' << tfFileName;
+    LOG(info) << "Reading CTF input " << ' ' << tfFileName;
     openCTFFile(tfFileName);
   }
 
   if (!mRunning) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-    stop();
+    stopReader();
   }
 }
 
@@ -191,145 +226,44 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   if (!readFromTree(*(mCTFTree.get()), "CTFHeader", ctfHeader, mCurrTreeEntry)) {
     throw std::runtime_error("did not find CTFHeader");
   }
-  LOG(INFO) << ctfHeader;
+  if (ctfHeader.creationTime == 0) { // try to repair header with ad hoc data
+    tryToFixCTFHeader(ctfHeader);
+  }
 
-  auto setFirstTFOrbit = [&pc, &ctfHeader, this](const std::string& label) {
-    auto* hd = pc.outputs().findMessageHeader({label});
-    if (!hd) {
-      throw std::runtime_error(o2::utils::Str::concat_string("failed to find output message header for ", label));
-    }
-    hd->firstTForbit = ctfHeader.firstTForbit;
-    hd->tfCounter = this->mCTFCounter;
-  };
+  LOG(info) << ctfHeader;
 
   // send CTF Header
   pc.outputs().snapshot({"header"}, ctfHeader);
-  setFirstTFOrbit("header");
+  setMessageHeader(ctfHeader, "header", pc);
 
-  DetID::mask_t detsTF = mInput.detMask & ctfHeader.detectors;
-  DetID det;
+  processDetector<o2::itsmft::CTF>(DetID::ITS, ctfHeader, pc);
+  processDetector<o2::itsmft::CTF>(DetID::MFT, ctfHeader, pc);
+  processDetector<o2::emcal::CTF>(DetID::EMC, ctfHeader, pc);
+  processDetector<o2::hmpid::CTF>(DetID::HMP, ctfHeader, pc);
+  processDetector<o2::phos::CTF>(DetID::PHS, ctfHeader, pc);
+  processDetector<o2::tpc::CTF>(DetID::TPC, ctfHeader, pc);
+  processDetector<o2::trd::CTF>(DetID::TRD, ctfHeader, pc);
+  processDetector<o2::ft0::CTF>(DetID::FT0, ctfHeader, pc);
+  processDetector<o2::fv0::CTF>(DetID::FV0, ctfHeader, pc);
+  processDetector<o2::fdd::CTF>(DetID::FDD, ctfHeader, pc);
+  processDetector<o2::tof::CTF>(DetID::TOF, ctfHeader, pc);
+  processDetector<o2::mid::CTF>(DetID::MID, ctfHeader, pc);
+  processDetector<o2::mch::CTF>(DetID::MCH, ctfHeader, pc);
+  processDetector<o2::cpv::CTF>(DetID::CPV, ctfHeader, pc);
+  processDetector<o2::zdc::CTF>(DetID::ZDC, ctfHeader, pc);
+  processDetector<o2::ctp::CTF>(DetID::CTP, ctfHeader, pc);
 
-  det = DetID::ITS;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::itsmft::CTF));
-    o2::itsmft::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::MFT;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::itsmft::CTF));
-    o2::itsmft::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::TPC;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::tpc::CTF));
-    o2::tpc::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::TRD;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::trd::CTF));
-    o2::trd::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::FT0;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::ft0::CTF));
-    o2::ft0::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::FV0;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::fv0::CTF));
-    o2::fv0::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::FDD;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::fdd::CTF));
-    o2::fdd::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::TOF;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::tof::CTF));
-    o2::tof::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::MID;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::mid::CTF));
-    o2::mid::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::MCH;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::mch::CTF));
-    o2::mch::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::EMC;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::emcal::CTF));
-    o2::emcal::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::PHS;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::phos::CTF));
-    o2::phos::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::CPV;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::cpv::CTF));
-    o2::cpv::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::ZDC;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::zdc::CTF));
-    o2::zdc::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::HMP;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::hmpid::CTF));
-    o2::hmpid::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::CTP;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::ctp::CTF));
-    o2::ctp::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
+  // send sTF acknowledge message
+  {
+    auto& stfDist = pc.outputs().make<o2::header::STFHeader>({"STFDist"});
+    stfDist.id = uint64_t(mCurrTreeEntry);
+    stfDist.firstOrbit = ctfHeader.firstTForbit;
+    stfDist.runNumber = uint32_t(ctfHeader.run);
+    setMessageHeader(ctfHeader, "STFDist", pc);
   }
 
   auto entryStr = fmt::format("({} of {} in {})", mCurrTreeEntry, mCTFTree->GetEntries(), mCTFFile->GetName());
-  if (++mCurrTreeEntry >= mCTFTree->GetEntries()) { // this file is done, check if there are other files
-    mCTFTree.reset();
-    mCTFFile->Close();
-    mCTFFile.reset();
-    if (mFileFetcher) {
-      mFileFetcher->popFromQueue(mFileFetcher->getNLoops() >= mInput.maxLoops);
-    }
-  }
+  checkTreeEntries();
   mTimer.Stop();
   // do we need to way to respect the delay ?
   long tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
@@ -342,9 +276,101 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
     mLastSendTime = tNow;
   }
   tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
-  LOGP(INFO, "Read CTF#{} {} in {:.3f} s, {:.4f} s elapsed from previous CTF", mCTFCounter, entryStr, mTimer.CpuTime() - cput, 1e-6 * (tNow - mLastSendTime));
+  LOGP(info, "Read CTF#{} {} in {:.3f} s, {:.4f} s elapsed from previous CTF", mCTFCounter, entryStr, mTimer.CpuTime() - cput, 1e-6 * (tNow - mLastSendTime));
   mLastSendTime = tNow;
   mCTFCounter++;
+}
+
+///_______________________________________
+void CTFReaderSpec::checkTreeEntries()
+{
+  // check if the tree has entries left, if needed, close current tree/file
+  if (++mCurrTreeEntry >= mCTFTree->GetEntries()) { // this file is done, check if there are other files
+    mCTFTree.reset();
+    mCTFFile->Close();
+    mCTFFile.reset();
+    if (mFileFetcher) {
+      mFileFetcher->popFromQueue(mInput.maxLoops < 1);
+    }
+  }
+}
+
+///_______________________________________
+void CTFReaderSpec::setMessageHeader(const CTFHeader& ctfHeader, const std::string& lbl, ProcessingContext& pc) const
+{
+  auto* stack = pc.outputs().findMessageHeaderStack({lbl});
+  if (!stack) {
+    throw std::runtime_error(fmt::format("failed to find output message header stack for {}", lbl));
+  }
+  auto dh = const_cast<o2::header::DataHeader*>(o2::header::get<o2::header::DataHeader*>(stack));
+  dh->firstTForbit = ctfHeader.firstTForbit;
+  dh->tfCounter = mCTFCounter;
+  dh->runNumber = uint32_t(ctfHeader.run);
+  auto dph = const_cast<o2::framework::DataProcessingHeader*>(o2::header::get<o2::framework::DataProcessingHeader*>(stack));
+  dph->creation = ctfHeader.creationTime;
+}
+
+///_______________________________________
+template <typename C>
+void CTFReaderSpec::processDetector(DetID det, const CTFHeader& ctfHeader, ProcessingContext& pc) const
+{
+  if (mInput.detMask[det]) {
+    const auto lbl = det.getName();
+    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({lbl}, ctfHeader.detectors[det] ? sizeof(C) : 0);
+    if (ctfHeader.detectors[det]) {
+      C::readFromTree(bufVec, *(mCTFTree.get()), lbl, mCurrTreeEntry);
+    } else if (!mInput.allowMissingDetectors) {
+      throw std::runtime_error(fmt::format("Requested detector {} is missing in the CTF", lbl));
+    }
+    setMessageHeader(ctfHeader, lbl, pc);
+  }
+}
+
+///_______________________________________
+void CTFReaderSpec::tryToFixCTFHeader(CTFHeader& ctfHeader) const
+{
+  // HACK: fix CTFHeader for the pilot beam runs, where the TF creation time was not recorded
+  struct RunStartData {
+    uint32_t run = 0;
+    uint32_t firstTForbit = 0;
+    uint64_t tstampMS0 = 0;
+  };
+  const std::vector<RunStartData> tf0Data{
+    {505207, 133875, 1635322620830},
+    {505217, 14225007, 1635328375618},
+    {505278, 1349340, 1635376882079},
+    {505285, 1488862, 1635378517248},
+    {505303, 2615411, 1635392586314},
+    {505397, 5093945, 1635454778123},
+    {505404, 19196217, 1635456032855},
+    {505405, 28537913, 1635456862913},
+    {505406, 41107641, 1635457980628},
+    {505413, 452530, 1635460562613},
+    {505440, 13320708, 1635472436927},
+    {505443, 26546564, 1635473613239},
+    {505446, 177711, 1635477270241},
+    {505548, 88037114, 1635544414050},
+    {505582, 295044346, 1635562822389},
+    {505600, 417241082, 1635573688564},
+    {505623, 10445984, 1635621310460},
+    {505629, 126979, 1635623289756},
+    {505637, 338969, 1635630909893},
+    {505645, 188222, 1635634560881},
+    {505658, 81044, 1635645404694},
+    {505669, 328291, 1635657807147},
+    {505673, 30988, 1635659148972},
+    {505713, 620506, 1635725054798},
+    {505720, 5359903, 1635730673978}};
+  if (ctfHeader.run >= tf0Data.front().run && ctfHeader.run <= tf0Data.back().run) {
+    for (const auto& tf0 : tf0Data) {
+      if (ctfHeader.run == tf0.run) {
+        ctfHeader.creationTime = tf0.tstampMS0;
+        int64_t offset = std::ceil((ctfHeader.firstTForbit - tf0.firstTForbit) * o2::constants::lhc::LHCOrbitMUS * 1e-3);
+        ctfHeader.creationTime += offset > 0 ? offset : 0;
+        break;
+      }
+    }
+  }
 }
 
 ///_______________________________________
@@ -359,12 +385,14 @@ DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
       outputs.emplace_back(OutputLabel{det.getName()}, det.getDataOrigin(), "CTFDATA", 0, Lifetime::Timeframe);
     }
   }
+  outputs.emplace_back(OutputSpec{{"STFDist"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0});
+
   return DataProcessorSpec{
     "ctf-reader",
     Inputs{},
     outputs,
     AlgorithmSpec{adaptFromTask<CTFReaderSpec>(inp)},
-    Options{}};
+    Options{{"select-ctf-ids", VariantType::String, "", {"comma-separated list CTF IDs to inject (from cumulative counter of CTFs seen)"}}}};
 }
 
 } // namespace ctf

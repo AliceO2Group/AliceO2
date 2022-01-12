@@ -21,8 +21,9 @@ o2_add_library(EMCALWorkflow
                        src/RawToCellConverterSpec.cxx
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
+                       src/StandaloneAODProducerSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsEMCAL O2::EMCALSimulation O2::Steer
-                                     O2::DPLUtils O2::EMCALBase O2::EMCALReconstruction O2::Algorithm)
+                                     O2::DPLUtils O2::EMCALBase O2::EMCALReconstruction O2::Algorithm O2::MathUtils)
 
 o2_add_executable(reco-workflow
                   COMPONENT_NAME emcal
@@ -46,3 +47,12 @@ o2_add_executable(emc-dcs-sim-workflow
                   COMPONENT_NAME calibration
                   SOURCES src/emc-dcs-sim-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::DCStestWorkflow)
+
+o2_add_executable(cell-writer-workflow
+                  COMPONENT_NAME emcal
+                  SOURCES src/cell-writer-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::EMCALWorkflow)
+o2_add_executable(standalone-aod-producer-workflow
+                  COMPONENT_NAME emcal
+                  SOURCES src/standalone-aod-producer-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::EMCALWorkflow)

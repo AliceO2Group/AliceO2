@@ -25,7 +25,7 @@
 #include "Framework/InputRecordWalker.h"
 #include "Headers/DataHeader.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "TPCWorkflow/TPCAverageGroupIDCSpec.h"
+#include "TPCWorkflow/TPCFLPIDCSpec.h"
 #include "TPCBase/CRU.h"
 #include "MemoryResources/MemoryResources.h"
 
@@ -65,11 +65,11 @@ class TPCDistributeIDCSpec : public o2::framework::Task
         const auto key = dynamic_cast<TKey*>(keyAsObj);
         LOGP(info, "Key name: {} Type: {}", key->GetName(), key->GetClassName());
 
-        if (std::strcmp(o2::tpc::IDCAverageGroup::Class()->GetName(), key->GetClassName()) != 0) {
+        if (std::strcmp(o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupCRU>::Class()->GetName(), key->GetClassName()) != 0) {
           LOGP(info, "skipping object. wrong class.");
           continue;
         }
-        IDCAverageGroup* idcavg = (IDCAverageGroup*)fInp.Get(key->GetName());
+        IDCAverageGroup<IDCAverageGroupCRU>* idcavg = (IDCAverageGroup<IDCAverageGroupCRU>*)fInp.Get(key->GetName());
         unsigned int cru = idcavg->getSector() * Mapper::NREGIONS + idcavg->getRegion();
         const std::vector<float>& idcData = idcavg->getIDCGroup().getData();
         const std::vector<float>& idc1D = idcavg->getIDCGroup().get1DIDCs();
@@ -113,7 +113,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
         auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
         const int cru = tpcCRUHeader->subSpecification >> 7;
         const auto descr = tpcCRUHeader->dataDescription;
-        if (TPCAverageGroupIDCDevice::getDataDescriptionIDCGroup() == descr) {
+        if (TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescriptionIDCGroup() == descr) {
           mIDCs[currentBuffer][cru][relTF] = std::move(pc.inputs().get<pmr::vector<float>>(ref));
         } else {
           mOneDIDCs[currentBuffer][cru][relTF] = std::move(pc.inputs().get<pmr::vector<float>>(ref));
@@ -153,10 +153,10 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   static constexpr header::DataDescription getDataDescription1DIDC() { return header::DataDescription{"1IDCAGG"}; }
 
  private:
-  const std::vector<uint32_t> mCRUs{}; ///< CRUs to process in this instance
-  const unsigned int mTimeFrames{};    ///< number of TFs per aggregation interval
-  const unsigned int mOutLanes{};      ///< number of output lanes
-  const bool mLoadFromFile{};
+  const std::vector<uint32_t> mCRUs{};                                                 ///< CRUs to process in this instance
+  const unsigned int mTimeFrames{};                                                    ///< number of TFs per aggregation interval
+  const unsigned int mOutLanes{};                                                      ///< number of output lanes
+  const bool mLoadFromFile{};                                                          ///< if true data will be loaded from root file
   std::array<int, 2> mProcessedTFs{{0, 0}};                                            ///< number of processed time frames to keep track of when the writing to CCDB will be done
   std::array<std::array<std::vector<pmr::vector<float>>, CRU::MaxCRU>, 2> mIDCs{};     ///< grouped and integrated IDCs for the whole TPC. CRU -> time frame -> IDCs. Buffer used in case one FLP delivers the TF after the last TF for the current aggregation interval faster then the other FLPs the last TF.
   std::array<std::array<std::vector<pmr::vector<float>>, CRU::MaxCRU>, 2> mOneDIDCs{}; ///< 1D IDCs for the whole TPC. CRU -> time frame -> IDCs. Buffer used in case one FLP delivers the TF after the last TF for the current aggregation interval faster then the other FLPs the last TF.
@@ -165,8 +165,8 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   std::array<uint32_t, 2> mTFEnd{};                                                    ///< storing of last TF used when setting the validity of the objects when writing to CCDB
   unsigned int mCurrentOutLane{0};                                                     ///< index for keeping track of the current output lane
   bool mBuffer{false};                                                                 ///< buffer index
-  const std::vector<InputSpec> mFilter = {{"idcsgroup", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCAverageGroupIDCDevice::getDataDescriptionIDCGroup()}, Lifetime::Timeframe},
-                                          {"1didc", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCAverageGroupIDCDevice::getDataDescription1DIDC()}, Lifetime::Timeframe}}; ///< filter for looping over input data
+  const std::vector<InputSpec> mFilter = {{"idcsgroup", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescriptionIDCGroup()}, Lifetime::Timeframe},
+                                          {"1didc", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescription1DIDC()}, Lifetime::Timeframe}}; ///< filter for looping over input data
 
   /// \return returns TF of current processed data
   uint32_t getCurrentTF(o2::framework::ProcessingContext& pc) const { return o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->tfCounter; }
@@ -192,8 +192,8 @@ DataProcessorSpec getTPCDistributeIDCSpec(const std::vector<uint32_t>& crus, con
 {
   std::vector<InputSpec> inputSpecs;
   if (!loadFromFile) {
-    inputSpecs.emplace_back(InputSpec{"idcsgroup", ConcreteDataTypeMatcher{gDataOriginTPC, TPCAverageGroupIDCDevice::getDataDescriptionIDCGroup()}, Lifetime::Timeframe});
-    inputSpecs.emplace_back(InputSpec{"1didc", ConcreteDataTypeMatcher{gDataOriginTPC, TPCAverageGroupIDCDevice::getDataDescription1DIDC()}, Lifetime::Timeframe});
+    inputSpecs.emplace_back(InputSpec{"idcsgroup", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescriptionIDCGroup()}, Lifetime::Timeframe});
+    inputSpecs.emplace_back(InputSpec{"1didc", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescription1DIDC()}, Lifetime::Timeframe});
   }
 
   std::vector<OutputSpec> outputSpecs;

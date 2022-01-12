@@ -69,6 +69,7 @@ DataSamplingPolicy DataSamplingPolicy::fromConfiguration(const ptree& config)
     }
     for (const auto& outputAsInputSpec : outputsAsInputSpecs) {
       outputSpecs.emplace_back(DataSpecUtils::asOutputSpec(outputAsInputSpec));
+      outputSpecs.back().lifetime = Lifetime::QA;
     }
   } else { // otherwise default format will be used
     for (const auto& inputSpec : inputSpecs) {
@@ -78,12 +79,12 @@ DataSamplingPolicy DataSamplingPolicy::fromConfiguration(const ptree& config)
           createPolicyDataOrigin(),
           createPolicyDataDescription(name, outputId++),
           DataSpecUtils::getOptionalSubSpec(inputSpec).value(),
-          inputSpec.lifetime});
+          Lifetime::QA});
       } else {
         outputSpecs.emplace_back(OutputSpec{
           {inputSpec.binding},
           {createPolicyDataOrigin(), createPolicyDataDescription(name, outputId++)},
-          inputSpec.lifetime});
+          Lifetime::QA});
       }
     }
   }
@@ -177,7 +178,7 @@ header::DataDescription DataSamplingPolicy::createPolicyDataDescription(std::str
   }
 
   if (policyName.size() > 14) {
-    LOG(WARNING) << "DataSamplingPolicy name '" << policyName << "' is longer than 14 characters, we have to trim it. "
+    LOG(warning) << "DataSamplingPolicy name '" << policyName << "' is longer than 14 characters, we have to trim it. "
                  << "Use a shorter policy name to avoid potential output name conflicts.";
     policyName.resize(14);
   }

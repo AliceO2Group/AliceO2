@@ -6,10 +6,12 @@
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "DataFormatsCPV/Pedestals.h"
 #include "CPVBase/Geometry.h"
+#include "CPVBase/CPVSimParams.h"
 #include <iostream>
+#include <fstream>
 #endif
 
-o2::cpv::Pedestals* readPedestalsFromCCDB(long timeStamp = 0, const char* ccdbURI = "http://ccdb-test.cern.ch:8080")
+o2::cpv::Pedestals* readPedestalsFromCCDB(const char* ccdbURI = "http://ccdb-test.cern.ch:8080", long timeStamp = 0)
 {
   auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
   ccdbMgr.setURL(ccdbURI);
@@ -63,5 +65,22 @@ o2::cpv::Pedestals* readPedestalsFromCCDB(long timeStamp = 0, const char* ccdbUR
     can->cd(4);
     hPedSigmas1D[iMod]->Draw();
   }
+
+  // write pedestal thresholds to text file for electronics
+  std::ofstream pededstalsTxt;
+  float nSigmas = o2::cpv::CPVSimParams::Instance().mZSnSigmas;
+  pededstalsTxt.open("pedestals.txt");
+  for (unsigned short iCh = 0; iCh < 23040; iCh++) {
+    short threshold = peds->getPedestal(iCh) + std::floor(peds->getPedSigma(iCh) * nSigmas) + 1;
+    if ((threshold <= 0) || (threshold > 511)) {
+      threshold = 511; // set maximum threshold for suspisious channels
+    }
+    short ccId, dil, gas, pad;
+    geo.absIdToHWaddress(iCh, ccId, dil, gas, pad);
+    unsigned short addr = ccId * 4 * 5 * 64 + dil * 5 * 64 + gas * 64 + pad;
+    pededstalsTxt << addr << " " << threshold << std::endl;
+  }
+  pededstalsTxt.close();
+
   return peds;
 }

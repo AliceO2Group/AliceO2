@@ -673,7 +673,7 @@ int TRsim::locate(double* xv, int n, double xval, int& kl, double& dx)
   if ((xval < xv[kl]) ||
       (xval > xv[kl + 1]) ||
       (kl >= n - 1)) {
-    LOG(FATAL) << Form("locate failed xv[%d] %f xval %f xv[%d] %f!!!\n", kl, xv[kl], xval, kl + 1, xv[kl + 1]);
+    LOG(fatal) << Form("locate failed xv[%d] %f xval %f xv[%d] %f!!!\n", kl, xv[kl], xval, kl + 1, xv[kl + 1]);
     exit(1);
   }
   dx = xval - xv[kl];

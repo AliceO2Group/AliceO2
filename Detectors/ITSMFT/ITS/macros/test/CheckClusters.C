@@ -19,7 +19,7 @@
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #endif
 
 void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim_HitsITS.root",
@@ -70,15 +70,15 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
     pattBranch->SetAddress(&patternsPtr);
   }
   if (dictfile.empty()) {
-    dictfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "", "bin");
+    dictfile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "");
   }
   o2::itsmft::TopologyDictionary dict;
   std::ifstream file(dictfile.c_str());
   if (file.good()) {
-    LOG(INFO) << "Running with dictionary: " << dictfile.c_str();
-    dict.readBinaryFile(dictfile);
+    LOG(info) << "Running with dictionary: " << dictfile.c_str();
+    dict.readFromFile(dictfile);
   } else {
-    LOG(INFO) << "Running without dictionary !";
+    LOG(info) << "Running without dictionary !";
   }
 
   // ROFrecords
@@ -109,7 +109,7 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
     for (int irfd = mc2rof.maxROF - mc2rof.minROF + 1; irfd--;) {
       int irof = mc2rof.rofRecordID + irfd;
       if (irof >= nROFRec) {
-        LOG(ERROR) << "ROF=" << irof << " from MC2ROF record is >= N ROFs=" << nROFRec;
+        LOG(error) << "ROF=" << irof << " from MC2ROF record is >= N ROFs=" << nROFRec;
       }
       if (mcEvMin[irof] > imc) {
         mcEvMin[irof] = imc;
@@ -178,7 +178,7 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
       uint64_t key = (uint64_t(trID) << 32) + chipID;
       auto hitEntry = mc2hit.find(key);
       if (hitEntry == mc2hit.end()) {
-        LOG(ERROR) << "Failed to find MC hit entry for Tr" << trID << " chipID" << chipID;
+        LOG(error) << "Failed to find MC hit entry for Tr" << trID << " chipID" << chipID;
         continue;
       }
       const auto& hit = (*hitArray)[hitEntry->second];

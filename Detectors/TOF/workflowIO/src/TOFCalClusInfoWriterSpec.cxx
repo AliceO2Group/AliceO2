@@ -34,16 +34,16 @@ DataProcessorSpec getTOFCalClusInfoWriterSpec(bool isCosmics)
 {
   // Spectators for logging
   auto logger = [](OutputType const& indata) {
-    LOG(DEBUG) << "RECEIVED CLUS CAL INFO SIZE " << indata.size();
+    LOG(debug) << "RECEIVED CLUS CAL INFO SIZE " << indata.size();
   };
   auto loggerCosmics = [](OutputCosmicType const& indata) {
-    LOG(DEBUG) << "RECEIVED COSMICS INFO SIZE " << indata.size();
+    LOG(debug) << "RECEIVED COSMICS INFO SIZE " << indata.size();
   };
   auto loggerTracks = [](OutputTrackType const& indata) {
-    LOG(DEBUG) << "RECEIVED COSMICS TRACK CLUSTERS INFO SIZE " << indata.size();
+    LOG(debug) << "RECEIVED COSMICS TRACK CLUSTERS INFO SIZE " << indata.size();
   };
   auto loggerTracksSize = [](OutputTrackSizeType const& indata) {
-    LOG(DEBUG) << "RECEIVED COSMICS TRACK INFO SIZE " << indata.size();
+    LOG(debug) << "RECEIVED COSMICS TRACK INFO SIZE " << indata.size();
   };
 
   return MakeRootTreeWriterSpec("TOFCalClusInfoWriter",

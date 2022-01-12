@@ -14,16 +14,21 @@
 #include "ITStracking/TrackingConfigParam.h"
 #include "ITStracking/Configuration.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "Framework/CallbacksPolicy.h"
+#include "Framework/ConfigContext.h"
 
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
 #include "GPUChainITS.h"
+#include <vector>
 
 using namespace o2::framework;
 
-// ------------------------------------------------------------------
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
-// we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
@@ -37,9 +42,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"entropy-encoding", o2::framework::VariantType::Bool, false, {"produce entropy encoded data"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"gpuDevice", o2::framework::VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}}};
-
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
-
   std::swap(workflowOptions, options);
 }
 

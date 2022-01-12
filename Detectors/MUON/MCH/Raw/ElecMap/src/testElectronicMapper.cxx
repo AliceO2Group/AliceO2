@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "ElectronicMapperImplHelper.h"
 #define BOOST_TEST_MODULE Test MCHRaw CRUEncoder
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
@@ -100,7 +101,7 @@ std::set<int> nofDualSampasFromMapper(gsl::span<int> deids)
   return ds;
 }
 
-BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
+//BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH1R, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH1R);
@@ -109,7 +110,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH1R, T, testTypes)
   BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
 }
 
-BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH1L, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH1L);
@@ -118,7 +118,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH1L, T, testTypes)
   BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
 }
 
-BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH2R, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH2R);
@@ -127,7 +126,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH2R, T, testTypes)
   BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
 }
 
-BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH2L, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH2L);
@@ -136,7 +134,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH2L, T, testTypes)
   BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
 }
 
-BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH3R, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH3R);
@@ -145,7 +142,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH3R, T, testTypes)
   BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
 }
 
-BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH3L, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH3L);
@@ -154,7 +150,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH3L, T, testTypes)
   BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
 }
 
-BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH4R, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH4R);
@@ -163,7 +158,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH4R, T, testTypes)
   BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
 }
 
-BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH4L, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH4L);
@@ -250,7 +244,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH10R, T, testTypes)
   BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
 }
 
-BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH10L, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH10L);
@@ -472,13 +465,13 @@ int expectedNumberOfDs();
 template <>
 int expectedNumberOfDs<ElectronicMapperDummy>()
 {
-  return 16828;
+  return 16820;
 }
 
 template <>
 int expectedNumberOfDs<ElectronicMapperGenerated>()
 {
-  return 16420; // 16828 for all
+  return 16820;
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(AllSolarsMustGetAFeeLinkAndTheReverse, T, testTypes)
@@ -523,4 +516,167 @@ BOOST_AUTO_TEST_CASE(SpotCheck)
   auto f2s = o2::mch::raw::createFeeLink2SolarMapper<ElectronicMapperGenerated>();
   auto s = f2s(id);
   BOOST_CHECK_EQUAL(s.has_value(), true);
+}
+
+BOOST_AUTO_TEST_CASE(NumberOfSolarsPerFeeId)
+{
+  using elecmap = ElectronicMapperGenerated;
+
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(0).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(1).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(2).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(3).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(4).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(5).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(6).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(7).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(8).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(9).size(), 12);
+
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(10).size(), 0);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(11).size(), 0);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(12).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(13).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(14).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(15).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(16).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(17).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(18).size(), 11);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(19).size(), 9);
+
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(20).size(), 6);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(21).size(), 11);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(22).size(), 9);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(23).size(), 6);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(24).size(), 9);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(25).size(), 6);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(26).size(), 11);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(27).size(), 9);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(28).size(), 6);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(29).size(), 11);
+
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(30).size(), 5);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(31).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(32).size(), 10);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(33).size(), 11);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(34).size(), 5);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(35).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(36).size(), 5);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(37).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(38).size(), 10);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(39).size(), 11);
+
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(40).size(), 5);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(41).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(42).size(), 10);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(43).size(), 11);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(44).size(), 11);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(45).size(), 11);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(46).size(), 11);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(47).size(), 11);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(48).size(), 10);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(49).size(), 11);
+
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(50).size(), 11);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(51).size(), 11);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(52).size(), 11);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(53).size(), 11);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(54).size(), 11);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(55).size(), 11);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(56).size(), 11);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(57).size(), 11);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(58).size(), 0);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(59).size(), 0);
+
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(60).size(), 11);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(61).size(), 11);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(62).size(), 11);
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(63).size(), 11);
+
+  BOOST_CHECK_EQUAL(getSolarUIDsPerFeeId<elecmap>(64).size(), 0);
+}
+
+BOOST_AUTO_TEST_CASE(NumberOfDualSampasPerFeeId)
+{
+  using elecmap = ElectronicMapperGenerated;
+
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(0).size(), 451);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(1).size(), 451);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(2).size(), 451);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(3).size(), 451);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(4).size(), 451);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(5).size(), 451);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(6).size(), 451);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(7).size(), 451);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(8).size(), 442);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(9).size(), 442);
+
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(10).size(), 0);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(11).size(), 0);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(12).size(), 442);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(13).size(), 442);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(14).size(), 442);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(15).size(), 442);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(16).size(), 442);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(17).size(), 442);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(18).size(), 263);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(19).size(), 204);
+
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(20).size(), 137);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(21).size(), 263);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(22).size(), 204);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(23).size(), 137);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(24).size(), 225);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(25).size(), 122);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(26).size(), 267);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(27).size(), 225);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(28).size(), 122);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(29).size(), 267);
+
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(30).size(), 97);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(31).size(), 290);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(32).size(), 250);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(33).size(), 223);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(34).size(), 97);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(35).size(), 290);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(36).size(), 97);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(37).size(), 290);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(38).size(), 250);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(39).size(), 223);
+
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(40).size(), 97);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(41).size(), 290);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(42).size(), 250);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(43).size(), 223);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(44).size(), 181);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(45).size(), 293);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(46).size(), 298);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(47).size(), 178);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(48).size(), 250);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(49).size(), 223);
+
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(50).size(), 181);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(51).size(), 293);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(52).size(), 298);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(53).size(), 178);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(54).size(), 181);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(55).size(), 293);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(56).size(), 298);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(57).size(), 178);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(58).size(), 0);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(59).size(), 0);
+
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(60).size(), 181);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(61).size(), 293);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(62).size(), 298);
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(63).size(), 178);
+
+  BOOST_CHECK_EQUAL(getDualSampasPerFeeId<elecmap>(64).size(), 0);
+
+  int n{0};
+  for (uint16_t feeId = 0; feeId <= 64; feeId++) {
+    n += getDualSampasPerFeeId<elecmap>(feeId).size();
+  }
+
+  BOOST_CHECK_EQUAL(n, 16820);
 }

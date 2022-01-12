@@ -15,18 +15,17 @@
 
 #include "TPCWorkflow/CalibdEdxSpec.h"
 
-#include <vector>
-#include <memory>
-
 // o2 includes
-#include "CCDB/CcdbApi.h"
-#include "CCDB/CcdbObjectInfo.h"
 #include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsCalibration/Utils.h"
 #include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "TPCCalibration/CalibdEdx.h"
+#include "CCDB/CcdbApi.h"
+#include "CCDB/CcdbObjectInfo.h"
 
 using namespace o2::framework;
 
@@ -38,86 +37,89 @@ class CalibdEdxDevice : public Task
  public:
   void init(framework::InitContext& ic) final
   {
-    const int slotLength = ic.options().get<int>("tf-per-slot");
-    const int maxDelay = ic.options().get<int>("max-delay");
-    const int minEntries = std::max(50, ic.options().get<int>("min-entries"));
-    const int nbins = std::max(10, ic.options().get<int>("nbins"));
-    const bool applyCuts = ic.options().get<bool>("apply-cuts");
-    const float minP = ic.options().get<float>("min-momentum");
-    const float maxP = ic.options().get<float>("max-momentum");
-    const int minClusters = std::max(10, ic.options().get<int>("min-clusters"));
-    const bool dumpData = ic.options().get<bool>("direct-file-dump");
+    const int minEntriesSector = ic.options().get<int>("min-entries-sector");
+    const int minEntries1D = ic.options().get<int>("min-entries-1d");
+    const int minEntries2D = ic.options().get<int>("min-entries-2d");
 
-    assert(minP < maxP);
+    const int dEdxBins = ic.options().get<int>("dedxbins");
+    const int zBins = ic.options().get<int>("zbins");
+    const int angularBins = ic.options().get<int>("angularbins");
+    const float mindEdx = ic.options().get<float>("min-dedx");
+    const float maxdEdx = ic.options().get<float>("max-dedx");
 
-    mCalibrator = std::make_unique<tpc::CalibdEdx>(nbins, minEntries, minP, maxP, minClusters);
-    mCalibrator->setApplyCuts(applyCuts);
+    mDumpToFile = ic.options().get<bool>("file-dump");
+    float field = ic.options().get<float>("field");
 
-    mCalibrator->setSlotLength(slotLength);
-    mCalibrator->setMaxSlotsDelay(maxDelay);
-
-    if (dumpData) {
-      mCalibrator->enableDebugOutput("calib_dEdx.root");
+    if (field <= -10.f) {
+      const auto inputGRP = o2::base::NameConf::getGRPFileName();
+      const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
+      if (grp != nullptr) {
+        field = 5.00668f * grp->getL3Current() / 30000.;
+        LOGP(info, "Using GRP file to set the magnetic field to {} kG", field);
+      }
     }
+
+    mCalib = std::make_unique<CalibdEdx>(mindEdx, maxdEdx, dEdxBins, zBins, angularBins);
+    mCalib->setApplyCuts(false);
+    mCalib->setFitCuts({minEntriesSector, minEntries1D, minEntries2D});
+    mCalib->setField(field);
   }
 
   void run(ProcessingContext& pc) final
   {
     const auto tfcounter = o2::header::get<DataProcessingHeader*>(pc.inputs().get("tracks").header)->startTime;
-    const auto tracks = pc.inputs().get<gsl::span<tpc::TrackTPC>>("tracks");
+    const auto tracks = pc.inputs().get<gsl::span<TrackTPC>>("tracks");
 
-    LOG(INFO) << "Processing TF " << tfcounter << " with " << tracks.size() << " tracks";
+    LOGP(info, "Processing TF {} with {} tracks", tfcounter, tracks.size());
 
-    mCalibrator->process(tfcounter, tracks);
-    sendOutput(pc.outputs());
-
-    const auto& infoVec = mCalibrator->getInfoVector();
-    LOG(INFO) << "Created " << infoVec.size() << " objects for TF " << tfcounter;
+    mCalib->fill(tracks);
+    // sendOutput(pc.outputs());
   }
 
   void endOfStream(EndOfStreamContext& eos) final
   {
-    LOG(INFO) << "Finalizing calibration";
-    constexpr calibration::TFType INFINITE_TF = 0xffffffffffffffff;
-    mCalibrator->checkSlotsToFinalize(INFINITE_TF);
+    LOGP(info, "Finalizing calibration");
+    mCalib->finalize();
+    mCalib->print();
     sendOutput(eos.outputs());
 
-    if (mCalibrator->hasDebugOutput()) {
-      mCalibrator->finalizeDebugOutput();
+    if (mDumpToFile) {
+      mCalib->getCalib().writeToFile("calibdEdx.root");
     }
   }
 
  private:
   void sendOutput(DataAllocator& output)
   {
-    // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
     using clbUtils = o2::calibration::Utils;
-    const auto& payloadVec = mCalibrator->getMIPVector();
-    auto& infoVec = mCalibrator->getInfoVector(); // use non-const version as we update it
-    assert(payloadVec.size() == infoVec.size());
+    const auto& corr = mCalib->getCalib();
 
-    // FIXME: not sure about this
-    for (unsigned int i = 0; i < payloadVec.size(); i++) {
-      auto& entry = infoVec[i];
-      auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &entry);
-      LOG(INFO) << "Sending object " << entry.getPath() << "/" << entry.getFileName() << " of size " << image->size()
-                << " bytes, valid for " << entry.getStartValidityTimestamp() << " : " << entry.getEndValidityTimestamp();
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_MIPS", i}, *image.get()); // vector<char>
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_MIPS", i}, entry);        // root-serialized
-    }
-    if (!payloadVec.empty()) {
-      mCalibrator->initOutput(); // reset the outputs once they are already sent
-    }
+    o2::ccdb::CcdbObjectInfo info;
+
+    const auto now = std::chrono::system_clock::now();
+    const long timeStart = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    const long timeEnd = 99999999999999;
+
+    info.setPath("TPC/Calib/dEdx");
+    info.setStartValidityTimestamp(timeStart);
+    info.setEndValidityTimestamp(timeEnd);
+
+    auto image = o2::ccdb::CcdbApi::createObjectImage(&corr, &info);
+
+    LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", info.getPath(), info.getFileName(), image->size(), info.getStartValidityTimestamp(), info.getEndValidityTimestamp());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibdEdx", 0}, *image.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibdEdx", 0}, info);
   }
 
-  std::unique_ptr<CalibdEdx> mCalibrator;
+  bool mDumpToFile{};
+  std::unique_ptr<CalibdEdx> mCalib;
 };
 
 DataProcessorSpec getCalibdEdxSpec()
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_MIPS"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_MIPS"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibdEdx"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibdEdx"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "tpc-calib-dEdx",
@@ -127,15 +129,18 @@ DataProcessorSpec getCalibdEdxSpec()
     outputs,
     adaptFromTask<CalibdEdxDevice>(),
     Options{
-      {"tf-per-slot", VariantType::Int, 100, {"number of TFs per calibration time slot"}},
-      {"max-delay", VariantType::Int, 3, {"number of slots in past to consider"}},
-      {"min-entries", VariantType::Int, 100, {"minimum number of entries to fit single time slot"}},
-      {"apply-cuts", VariantType::Bool, false, {"enable tracks filter using cut values passed as options"}},
-      {"min-momentum", VariantType::Float, 0.4f, {"minimum momentum cut"}},
-      {"max-momentum", VariantType::Float, 0.6f, {"maximum momentum cut"}},
-      {"min-clusters", VariantType::Int, 60, {"minimum number of clusters in a track"}},
-      {"nbins", VariantType::Int, 200, {"number of bins for stored"}},
-      {"direct-file-dump", VariantType::Bool, false, {"directly dump calibration to file"}}}};
+      {"min-entries-sector", VariantType::Int, 1000, {"bellow this number of entries per, stack higher dimensional fits will be perform only for GEM stacks types (IROC, OROC1, ...). The mean is still corrected for every stack"}},
+      {"min-entries-1d", VariantType::Int, 500, {"minimum entries per stack to fit 1D correction"}},
+      {"min-entries-2d", VariantType::Int, 2500, {"minimum entries per stack to fit 2D correction"}},
+
+      {"dedxbins", VariantType::Int, 100, {"number of dEdx bins"}},
+      {"zbins", VariantType::Int, 20, {"number of Z bins"}},
+      {"angularbins", VariantType::Int, 18, {"number of bins for angular data, like Tgl and Snp"}},
+      {"min-dedx", VariantType::Float, 5.0f, {"minimum value for the dEdx histograms"}},
+      {"max-dedx", VariantType::Float, 100.0f, {"maximum value for the dEdx histograms"}},
+
+      {"field", VariantType::Float, -100.f, {"magnetic field"}},
+      {"file-dump", VariantType::Bool, false, {"directly dump calibration to file"}}}};
 }
 
 } // namespace o2::tpc

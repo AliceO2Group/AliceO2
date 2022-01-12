@@ -121,7 +121,7 @@ class PedestalsTask
 
   void initElec2DetMapper(std::string filename)
   {
-    LOG(INFO) << "[initElec2DetMapper] filename=" << filename;
+    LOG(info) << "[initElec2DetMapper] filename=" << filename;
     if (filename.empty()) {
       mElec2Det = createElec2DetMapper<ElectronicMapperGenerated>();
     } else {
@@ -132,7 +132,7 @@ class PedestalsTask
 
   void initFee2SolarMapper(std::string filename)
   {
-    LOG(INFO) << "[initFee2SolarMapper] filename=" << filename;
+    LOG(info) << "[initFee2SolarMapper] filename=" << filename;
     if (filename.empty()) {
       mFee2Solar = createFeeLink2SolarMapper<ElectronicMapperGenerated>();
     } else {
@@ -144,7 +144,7 @@ class PedestalsTask
   //_________________________________________________________________________________________________
   void init(framework::InitContext& ic)
   {
-    mDebug = ic.options().get<bool>("debug");
+    mDebug = ic.options().get<bool>("mch-debug");
     mLoggingInterval = ic.options().get<int>("logging-interval") * 1000;
 
     auto mapCRUfile = ic.options().get<std::string>("cru-map");
@@ -153,7 +153,7 @@ class PedestalsTask
     initElec2DetMapper(mMapFECfile);
     auto stop = [this]() {
       if (mTFcount > 0) {
-        LOG(INFO) << "time spent for decoding (ms): min=" << mTimeDecoderMin->count() << ", max="
+        LOG(info) << "time spent for decoding (ms): min=" << mTimeDecoderMin->count() << ", max="
                   << mTimeDecoderMax->count() << ", mean=" << mTimeDecoder.count() / mTFcount;
       }
     };
@@ -311,7 +311,7 @@ class PedestalsTask
     loggerEnd = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> loggerElapsed = loggerEnd - loggerStart;
     if (loggerElapsed.count() > mLoggingInterval) {
-      LOG(INFO) << "Processed " << nDigits << " digits in " << nTF << " time frames";
+      LOG(info) << "Processed " << nDigits << " digits in " << nTF << " time frames";
       nDigits = 0;
       nTF = 0;
       loggerStart = std::chrono::high_resolution_clock::now();
@@ -419,7 +419,7 @@ o2::framework::DataProcessorSpec getMCHPedestalDecodingSpec(const char* specName
     Outputs{OutputSpec{header::gDataOriginMCH, "PDIGITS", 0, Lifetime::Timeframe},
             OutputSpec{header::gDataOriginMCH, "ERRORS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<o2::mch::raw::PedestalsTask>(inputSpec)},
-    Options{{"debug", VariantType::Bool, false, {"enable verbose output"}},
+    Options{{"mch-debug", VariantType::Bool, false, {"enable verbose output"}},
             {"logging-interval", VariantType::Int, 0, {"time interval in seconds between logging messages (set to zero to disable)"}},
             {"noise-threshold", VariantType::Float, (float)2.0, {"maximum acceptable noise value"}},
             {"pedestal-threshold", VariantType::Float, (float)150, {"maximum acceptable pedestal value"}},

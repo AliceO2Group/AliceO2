@@ -16,6 +16,7 @@
 #include "Framework/Logger.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/ServiceRegistry.h"
+#include "Framework/CallbackService.h"
 #include "Framework/TimesliceIndex.h"
 #include "Framework/VariableContextHelpers.h"
 #include "Framework/DataTakingContext.h"
@@ -203,16 +204,16 @@ ExpirationHandler::Checker
     if (waitForCTP == false || dataTakingContext.source == OrbitResetTimeSource::CTP) {
       return true;
     }
-    LOG(INFO) << "CTP is not there, fetching.";
+    LOG(info) << "CTP is not there, fetching.";
     std::vector<char> buffer;
     CURL* curl = curl_easy_init();
     if (curl == nullptr) {
       throw runtime_error("fetchFromCCDBCache: Unable to initialise CURL");
     }
     CURLcode res;
-    std::string path = "CTP/OrbitReset";
+    std::string path = "CTP/Calib/OrbitReset";
     auto url = fmt::format("{}/{}/{}", serverUrl, path, timestamp / 1000);
-    LOG(INFO) << "Fetching CTP from " << url;
+    LOG(info) << "Fetching CTP from " << url;
 
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buffer);
@@ -246,7 +247,7 @@ ExpirationHandler::Checker
     }
     memFile.Close();
     std::vector<Long64_t>* ctp = (std::vector<Long64_t>*)result;
-    LOG(INFO) << "Orbit reset time now at " << (*ctp)[0];
+    LOG(info) << "Orbit reset time now at " << (*ctp)[0];
     dataTakingContext.orbitResetTime = (*ctp)[0];
     dataTakingContext.source = OrbitResetTimeSource::CTP;
     return true;
@@ -332,7 +333,7 @@ ExpirationHandler::Handler
     } else {
       url = fmt::format("{}/{}/{}/runNumber={}", serverUrl, path, timestamp, dataTakingContext.runNumber);
     }
-    LOG(INFO) << "fetchFromCCDBCache: Fetching " << url;
+    LOG(debug) << "fetchFromCCDBCache: Fetching " << url;
 
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &payloadBuffer);
@@ -371,6 +372,24 @@ ExpirationHandler::Handler
     ref.payload = std::move(payload);
 
     return;
+  };
+}
+
+ExpirationHandler::Handler
+  LifetimeHelpers::fetchFromFairMQ(InputSpec const& spec,
+                                   std::string const& channelName)
+{
+  return [spec, channelName](ServiceRegistry& services, PartRef& ref, data_matcher::VariableContext& variables) -> void {
+    auto& rawDeviceService = services.get<RawDeviceService>();
+    auto device = rawDeviceService.device();
+
+    // Receive parts and put them in the PartRef
+    // we know this is not blocking because we were polled
+    // on the channel.
+    FairMQParts parts;
+    device->Receive(parts, channelName, 0);
+    ref.header = std::move(parts.At(0));
+    ref.payload = std::move(parts.At(1));
   };
 }
 
@@ -417,10 +436,11 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     dh.payloadSerializationMethod = gSerializationMethodNone;
     dh.tfCounter = timestamp;
     dh.firstTForbit = timestamp * orbitMultiplier + orbitOffset;
+    DataProcessingHeader dph{timestamp, 1};
+    services.get<CallbackService>()(CallbackService::Id::NewTimeslice, dh, dph);
+
     variables.put({data_matcher::FIRSTTFORBIT_POS, dh.firstTForbit});
     variables.put({data_matcher::TFCOUNTER_POS, dh.tfCounter});
-
-    DataProcessingHeader dph{timestamp, 1};
 
     auto&& transport = rawDeviceService.device()->GetChannel(sourceChannel, 0).Transport();
     auto channelAlloc = o2::pmr::getTransportAllocator(transport);
@@ -480,6 +500,27 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
     ref.payload = std::move(payload);
   };
   return f;
+}
+
+// Life is too short. LISP rules.
+#define STREAM_ENUM(x) \
+  case Lifetime::x:    \
+    oss << #x;         \
+    break;
+std::ostream& operator<<(std::ostream& oss, Lifetime const& val)
+{
+  switch (val) {
+    STREAM_ENUM(Timeframe)
+    STREAM_ENUM(Condition)
+    STREAM_ENUM(QA)
+    STREAM_ENUM(Transient)
+    STREAM_ENUM(Timer)
+    STREAM_ENUM(Enumeration)
+    STREAM_ENUM(Signal)
+    STREAM_ENUM(Optional)
+    STREAM_ENUM(OutOfBand)
+  };
+  return oss;
 }
 
 } // namespace o2::framework

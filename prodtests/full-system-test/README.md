@@ -72,7 +72,7 @@ The `dpl-workflow.sh` can run both the synchronous and the asynchronous workflow
 All settings are configured via environment variables.
 The default settings (if no env variable is exported) are defined in `setenv.sh` which is sourced by all other scripts.
 (Please note that `start_tmux.sh` overrides a couple of options with EPN defaults).
-The environment variables are documented here: https://github.com/AliceO2Group/O2DataProcessing/blob/dev/common/README.md
+The environment variables are documented here: https://github.com/AliceO2Group/O2DPG/blob/master/DATA/common/README.md
 
 ## Files produced / required by the full system test
 

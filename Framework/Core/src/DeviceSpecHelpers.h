@@ -27,6 +27,8 @@
 #include "Framework/ProcessingPolicies.h"
 #include "ResourceManager.h"
 #include "WorkflowHelpers.h"
+
+#include <FairMQDevice.h>
 #include <boost/program_options.hpp>
 
 #include <vector>
@@ -38,6 +40,7 @@ namespace o2::framework
 {
 struct InputChannelSpec;
 struct OutputChannelSpec;
+struct ConfigContext;
 
 struct DeviceSpecHelpers {
   /// Helper to convert from an abstract dataflow specification, @a workflow,
@@ -48,9 +51,12 @@ struct DeviceSpecHelpers {
     std::vector<CompletionPolicy> const& completionPolicies,
     std::vector<DispatchPolicy> const& dispatchPolicies,
     std::vector<ResourcePolicy> const& resourcePolicies,
+    std::vector<CallbacksPolicy> const& callbacksPolicies,
+    std::vector<SendingPolicy> const& sendingPolicy,
     std::vector<DeviceSpec>& devices,
     ResourceManager& resourceManager,
     std::string const& uniqueWorkflowId,
+    ConfigContext const& configContext,
     bool optimizeTopology = false,
     unsigned short resourcesMonitoringInterval = 0,
     std::string const& channelPrefix = "");
@@ -59,18 +65,22 @@ struct DeviceSpecHelpers {
     const WorkflowSpec& workflow,
     std::vector<ChannelConfigurationPolicy> const& channelPolicies,
     std::vector<CompletionPolicy> const& completionPolicies,
+    std::vector<CallbacksPolicy> const& callbacksPolicies,
     std::vector<DeviceSpec>& devices,
     ResourceManager& resourceManager,
     std::string const& uniqueWorkflowId,
+    ConfigContext const& configContext,
     bool optimizeTopology = false,
     unsigned short resourcesMonitoringInterval = 0,
     std::string const& channelPrefix = "")
   {
     std::vector<DispatchPolicy> dispatchPolicies = DispatchPolicy::createDefaultPolicies();
     std::vector<ResourcePolicy> resourcePolicies = ResourcePolicy::createDefaultPolicies();
+    std::vector<SendingPolicy> sendingPolicies = SendingPolicy::createDefaultPolicies();
     dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies,
-                                   dispatchPolicies, resourcePolicies, devices,
-                                   resourceManager, uniqueWorkflowId, optimizeTopology,
+                                   dispatchPolicies, resourcePolicies, callbacksPolicies,
+                                   sendingPolicies, devices,
+                                   resourceManager, uniqueWorkflowId, configContext, optimizeTopology,
                                    resourcesMonitoringInterval, channelPrefix);
   }
 
@@ -153,6 +163,8 @@ struct DeviceSpecHelpers {
   /// return a description of all options to be forwarded to the device
   /// by default
   static boost::program_options::options_description getForwardedDeviceOptions();
+  /// @return whether a give DeviceSpec @a spec has a label @a label
+  static bool hasLabel(DeviceSpec const& spec, char const* label);
 };
 
 } // namespace o2::framework

@@ -30,13 +30,14 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"max-tf", VariantType::Int, -1, {"max TF ID to process (<= 0 : infinite)"}});
   options.push_back(ConfigParamSpec{"loop", VariantType::Int, 0, {"loop N times (-1 = infinite)"}});
   options.push_back(ConfigParamSpec{"delay", VariantType::Float, 0.f, {"delay in seconds between consecutive TFs sending"}});
-  options.push_back(ConfigParamSpec{"copy-cmd", VariantType::String, "XrdSecPROTOCOL=sss,unix xrdcp -N root://eosaliceo2.cern.ch/?src ?dst", {"copy command for remote files"}});
+  options.push_back(ConfigParamSpec{"copy-cmd", VariantType::String, "alien_cp ?src file://?dst", {"copy command for remote files"}}); // Use "XrdSecPROTOCOL=sss,unix xrdcp -N root://eosaliceo2.cern.ch/?src ?dst" for direct EOS access
   options.push_back(ConfigParamSpec{"tf-file-regex", VariantType::String, ".+\\.tf$", {"regex string to identify TF files"}});
-  options.push_back(ConfigParamSpec{"remote-regex", VariantType::String, "^/eos/aliceo2/.+", {"regex string to identify remote files"}});
+  options.push_back(ConfigParamSpec{"remote-regex", VariantType::String, "^(alien://|)/alice/data/.+", {"regex string to identify remote files"}}); // Use "^/eos/aliceo2/.+" for direct EOS access
   options.push_back(ConfigParamSpec{"max-cached-tf", VariantType::Int, 3, {"max TFs to cache in memory"}});
   options.push_back(ConfigParamSpec{"max-cached-files", VariantType::Int, 3, {"max TF files queued (copied for remote source)"}});
   options.push_back(ConfigParamSpec{"tf-reader-verbosity", VariantType::Int, 0, {"verbosity level (1 or 2: check RDH, print DH/DPH for 1st or all slices, >2 print RDH)"}});
   options.push_back(ConfigParamSpec{"raw-channel-config", VariantType::String, "", {"optional raw FMQ channel for non-DPL output"}});
+  options.push_back(ConfigParamSpec{"disable-dummy-output", VariantType::Bool, false, {"Disable sending empty output if corresponding data is not found in the data"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings"}});
   // options for error-check suppression
 
@@ -65,6 +66,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   rinp.copyCmd = configcontext.options().get<std::string>("copy-cmd");
   rinp.tffileRegex = configcontext.options().get<std::string>("tf-file-regex");
   rinp.remoteRegex = configcontext.options().get<std::string>("remote-regex");
+  rinp.sendDummyForMissing = !configcontext.options().get<bool>("disable-dummy-output");
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
   WorkflowSpec specs;

@@ -23,8 +23,10 @@ bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv
 {
   options.add_options()(
     "host", bpo::value<std::string>()->default_value("ccdb-test.cern.ch:8080"), "CCDB server")(
-    "path,p", bpo::value<std::string>(), "CCDB path")(
-    "dest,d", bpo::value<std::string>(), "destination path")(
+    "path,p", bpo::value<std::string>(), "CCDB path (identifies the object)")(
+    "dest,d", bpo::value<std::string>()->default_value("./"), "destination path")(
+    "no-preserve-path", "Do not preserve path structure. If not set, the full path structure -- reflecting the '--path' argument will be put.")(
+    "outfile,o", bpo::value<std::string>()->default_value("snapshot.root"), "Name of output file. If set to \"\", the name will be determined from the uploaded content.")(
     "timestamp,t", bpo::value<long>()->default_value(-1), "timestamp - default -1 = now")(
     "help,h", "Produce help message.");
 
@@ -54,7 +56,7 @@ int main(int argc, char* argv[])
   bpo::options_description options("Allowed options");
   bpo::variables_map vm;
   if (!initOptionsAndParse(options, argc, argv, vm)) {
-    return -1;
+    return 1;
   }
 
   o2::ccdb::CcdbApi api;
@@ -70,7 +72,9 @@ int main(int argc, char* argv[])
   auto dest = vm["dest"].as<std::string>();
 
   std::cout << "Querying host " << host << " for path " << path << " and timestamp " << timestamp << "\n";
-  api.retrieveBlob(path, dest, filter, timestamp);
+  bool no_preserve_path = vm.count("no-preserve-path") == 0;
+  auto filename = vm["outfile"].as<std::string>();
+  auto success = api.retrieveBlob(path, dest, filter, timestamp, no_preserve_path, filename);
 
-  return 0;
+  return success ? 0 : 1;
 }

@@ -23,6 +23,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "FT0Base/Constants.h"
 #include "DataFormatsFIT/LookUpTable.h"
+#include "CommonUtils/NameConf.h"
 #include <Rtypes.h>
 #include <cassert>
 #include <exception>
@@ -138,7 +139,7 @@ class LookUpTable
   void printFullMap() const
   {
     for (size_t channel = 0; channel < mTopoVector.size(); ++channel) {
-      LOG(INFO) << channel << "\t :  PM \t" << mTopoVector[channel].mPM
+      LOG(info) << channel << "\t :  PM \t" << mTopoVector[channel].mPM
                 << " MCP \t" << mTopoVector[channel].mMCP << " EP \t " << mTopoVector[channel].mEP;
     }
   }
@@ -148,7 +149,7 @@ class LookUpTable
     if ((ep == 0 && (link > 7 && link < 11 && link != 9)) ||
         (ep == 1 && link == 8 && mcp > 8) ||
         (ep == 1 && link == 9 && mcp > 8)) {
-      LOG(INFO) << " channel is not conneted "
+      LOG(info) << " channel is not conneted "
                 << " ep " << ep << " link " << link << " channel " << mcp;
     }
     return mInvTopo[getIdx(link, mcp, ep)];
@@ -214,7 +215,7 @@ class LookUpTable
 
     std::vector<o2::ft0::Topo> lut_data;
     auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-    mgr.setURL("http://ccdb-test.cern.ch:8080");
+    mgr.setURL(o2::base::NameConf::getCCDBServer());
     auto hvch = mgr.get<std::vector<o2::ft0::HVchannel>>("FT0/LookUpTable");
     size_t max = 0;
     for (auto const& chan : *hvch) {
@@ -227,7 +228,7 @@ class LookUpTable
       o2::ft0::Topo topo = chan.pm;
       lut_data[chan.channel] = topo;
     }
-    LOG(INFO) << "lut_data.size " << lut_data.size();
+    LOG(info) << "lut_data.size " << lut_data.size();
     return o2::ft0::LookUpTable{lut_data};
   }
   bool isTCM(int link, int ep) const { return getChannel(link, 1, ep) == TCM_channel; }
@@ -244,7 +245,7 @@ class LookUpTable
     /* if ((ep == 0 && (link > 7 && link < 11)) || */
     /*     (ep == 1 && link == 8 && mcp > 8) || */
     /*     (ep == 1 && link == 9 && mcp > 8)) { */
-    /*   LOG(INFO)<<" channel is not conneted "<<" ep "<<ep<<" link "<<link<<" channel "<<mcp; */
+    /*   LOG(info)<<" channel is not conneted "<<" ep "<<ep<<" link "<<link<<" channel "<<mcp; */
     /*   return 255; */
     /* } */
     return (link + ep * 16) * NUMBER_OF_MCPs + mcp;
@@ -348,7 +349,7 @@ class SingleLUT : public LookUpTable
           RDHhelper::setCRUID(&rdhObj, cruID);
         }
       } else {
-        LOG(INFO) << "WARNING! CHECK LUT! TCM METADATA IS INCORRECT!";
+        LOG(info) << "WARNING! CHECK LUT! TCM METADATA IS INCORRECT!";
       }
     }
     assert(mapResult.size() > 0);
@@ -371,15 +372,17 @@ class SingleLUT : public LUT
 
  public:
   static constexpr char sDetectorName[] = "FT0";
-  static constexpr char sDefaultCCDBpath[] = "http://ccdb-test.cern.ch:8080/";
-  static constexpr char sDefaultLUTpath[] = "FT0/LookUpTableNew";
-  inline static std::string sCurrentCCDBpath = sDefaultCCDBpath;
+  static constexpr char sDefaultLUTpath[] = "FT0/Config/LookupTable";
+  inline static std::string sCurrentCCDBpath = "";
   inline static std::string sCurrentLUTpath = sDefaultLUTpath;
   //Before instance() call, setup url and path
   static void setCCDBurl(const std::string& url) { sCurrentCCDBpath = url; }
   static void setLUTpath(const std::string& path) { sCurrentLUTpath = path; }
   static SingleLUT& Instance()
   {
+    if (sCurrentCCDBpath == "") {
+      sCurrentCCDBpath = o2::base::NameConf::getCCDBServer();
+    }
     static SingleLUT instanceLUT(sCurrentCCDBpath, sCurrentLUTpath);
     return instanceLUT;
   }

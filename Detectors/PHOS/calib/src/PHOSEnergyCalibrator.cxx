@@ -26,10 +26,25 @@ PHOSEnergySlot::PHOSEnergySlot()
   mBuffer.reset(new RingBuffer());
   mGeom = Geometry::GetInstance();
 }
+PHOSEnergySlot::PHOSEnergySlot(const PHOSEnergySlot& other)
+{
+  mRunStartTime = other.mRunStartTime;
+  mBuffer.reset(new RingBuffer());
+  mCalibParams.reset(new CalibParams(*(other.mCalibParams)));
+  mBadMap.reset(new BadChannelsMap(*(other.mBadMap)));
+  mEvBC = other.mEvBC;
+  mEvOrbit = other.mEvOrbit;
+  mEvent = 0;
+  mPtMin = other.mPtMin;
+  mEminHGTime = other.mEminHGTime;
+  mEminLGTime = other.mEminLGTime;
+  mDigits.clear();
+  mHistos.reset();
+}
 
 void PHOSEnergySlot::print() const
 {
-  LOG(INFO) << "Collected " << mDigits.size() << " CalibDigits";
+  LOG(info) << "Collected " << mDigits.size() << " CalibDigits";
 }
 
 void PHOSEnergySlot::fill(const gsl::span<const Cluster>& clusters, const gsl::span<const CluElement>& cluelements, const gsl::span<const TriggerRecord>& cluTR)
@@ -54,9 +69,10 @@ void PHOSEnergySlot::fill(const gsl::span<const Cluster>& clusters, const gsl::s
     mBuffer->startNewEvent(); // mark stored clusters to be used for Mixing
     for (int i = firstCluInEvent; i < lastCluInEvent; i++) {
       const Cluster& clu = clusters[i];
-
+      if (clu.getEnergy() < 1.e-4) { //There was problem in unfolding and cluster parameters not calculated
+        continue;
+      }
       fillTimeMassHisto(clu, cluelements);
-      // bool isGood = checkCluster(clu);
 
       uint32_t firstCE = clu.getFirstCluEl();
       uint32_t lastCE = clu.getLastCluEl();
@@ -77,7 +93,7 @@ void PHOSEnergySlot::fill(const gsl::span<const Cluster>& clusters, const gsl::s
         mDigits.push_back(d.mDataWord);
         if (i - firstCluInEvent > kMaxCluInEvent) {
           //Normally this is not critical as indexes are used "locally", i.e. are compared to previous/next
-          LOG(INFO) << "Too many clusters per event:" << i - firstCluInEvent << ", apply more strict selection; clusters with same indexes will appear";
+          LOG(info) << "Too many clusters per event:" << i - firstCluInEvent << ", apply more strict selection; clusters with same indexes will appear";
         }
       }
     }
@@ -173,22 +189,7 @@ using Slot = o2::calibration::TimeSlot<o2::phos::PHOSEnergySlot>;
 PHOSEnergyCalibrator::PHOSEnergyCalibrator()
 {
   // create final histos
-  mHistos.reset();
-}
-PHOSEnergySlot::PHOSEnergySlot(const PHOSEnergySlot& other)
-{
-  mRunStartTime = other.mRunStartTime;
-  mBuffer.reset(new RingBuffer());
-  mCalibParams.reset(new CalibParams(*(other.mCalibParams)));
-  mBadMap.reset(new BadChannelsMap(*(other.mBadMap)));
-  mEvBC = other.mEvBC;
-  mEvOrbit = other.mEvOrbit;
-  mEvent = 0;
-  mPtMin = other.mPtMin;
-  mEminHGTime = other.mEminHGTime;
-  mEminLGTime = other.mEminLGTime;
-  mDigits.clear();
-  mHistos.reset();
+  mHistos.reset(new ETCalibHistos());
 }
 
 void PHOSEnergyCalibrator::finalizeSlot(Slot& slot)
@@ -196,18 +197,18 @@ void PHOSEnergyCalibrator::finalizeSlot(Slot& slot)
 
   // Extract results for the single slot
   es* c = slot.getContainer();
-  LOG(INFO) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
+  LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
   //Add histos
-  mHistos.merge(c->getCollectedHistos());
+  mHistos->merge(c->getCollectedHistos());
   //Add collected Digits
   auto tmpD = c->getCollectedDigits();
   //Add to list or write to file directly?
   if (!mFout) { //not open yet?
-    LOG(INFO) << "Writing CalibDigits to file " << mdigitsfilename.data();
+    LOG(info) << "Writing CalibDigits to file " << mdigitsfilename.data();
     mFout.reset(TFile::Open(mdigitsfilename.data(), "recreate"));
   }
   int nbites = mFout->WriteObjectAny(&tmpD, "std::vector<uint32_t>", Form("Digits%d", mChank++));
-  LOG(INFO) << "Writing " << tmpD.size() << " CalibDigits, wrote " << nbites << "bytes";
+  LOG(info) << "Writing " << tmpD.size() << " CalibDigits, wrote " << nbites << "bytes";
   c->clear();
 }
 

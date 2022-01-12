@@ -767,13 +767,13 @@ void FwdDCAFitterN<N, Args...>::findZatXY_mid(int mCurHyp)
 {
   // look into dXY of T0 - T1 between 2 points(0,40cm); the one with the highest dXY is moved to mid
 
-  double startPoint = 0.;
-  double endPoint = 20.; // first disk
+  double startPoint = -40.;
+  double endPoint = 50.;
   double midPoint = 0.5 * (startPoint + endPoint);
 
   double z[2][2] = {{startPoint, endPoint}, {startPoint, endPoint}}; // z for tracks 0/1 on starting poing and endpoint
 
-  double DeltaZ = endPoint - startPoint;
+  double DeltaZ = std::abs(endPoint - startPoint);
 
   double newX[2][2];
   double newY[2][2];
@@ -810,7 +810,7 @@ void FwdDCAFitterN<N, Args...>::findZatXY_mid(int mCurHyp)
     dstXY[1] = (newX[0][1] - newX[1][1]) * (newX[0][1] - newX[1][1]) +
                (newY[0][1] - newY[1][1]) * (newY[0][1] - newY[1][1]);
 
-    DeltaZ = endPoint - startPoint;
+    DeltaZ = std::abs(endPoint - startPoint);
 
     if (DeltaZ < epsilon) {
       finalZ = 0.5 * (startPoint + endPoint);
@@ -1197,7 +1197,6 @@ bool FwdDCAFitterN<N, Args...>::minimizeChi2NoErr()
       return false;
     }
     VecND dz = mD2Chi2Dz2 * mDChi2Dz;
-    std::cout << "the dz: " << dz << std::endl;
 
     if (!FwdcorrectTracks(dz)) {
       return false;
@@ -1252,10 +1251,10 @@ bool FwdDCAFitterN<N, Args...>::closerToAlternative() const
 template <int N, typename... Args>
 void FwdDCAFitterN<N, Args...>::print() const
 {
-  LOG(INFO) << N << "-prong vertex fitter in " << (mUseAbsDCA ? "abs." : "weighted") << " distance minimization mode";
-  LOG(INFO) << "Bz: " << mBz << " MaxIter: " << mMaxIter << " MaxChi2: " << mMaxChi2;
-  LOG(INFO) << "Stopping condition: Max.param change < " << mMinParamChange << " Rel.Chi2 change > " << mMinRelChi2Change;
-  LOG(INFO) << "Discard candidates for : Rvtx > " << getMaxR() << " DZ between tracks > " << mMaxDXIni;
+  LOG(info) << N << "-prong vertex fitter in " << (mUseAbsDCA ? "abs." : "weighted") << " distance minimization mode";
+  LOG(info) << "Bz: " << mBz << " MaxIter: " << mMaxIter << " MaxChi2: " << mMaxChi2;
+  LOG(info) << "Stopping condition: Max.param change < " << mMinParamChange << " Rel.Chi2 change > " << mMinRelChi2Change;
+  LOG(info) << "Discard candidates for : Rvtx > " << getMaxR() << " DZ between tracks > " << mMaxDXIni;
 }
 
 using FwdDCAFitter2 = FwdDCAFitterN<2, o2::track::TrackParCovFwd>;

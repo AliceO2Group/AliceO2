@@ -39,7 +39,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
   CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks(), o2::detectors::DetID::MCH) {}
-  ~CTFCoder() = default;
+  ~CTFCoder() final = default;
 
   /// entropy-encode data to buffer with CTF
   template <typename VEC>
@@ -49,7 +49,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   template <typename VROF, typename VCOL>
   void decode(const CTF::base& ec, VROF& rofVec, VCOL& digVec);
 
-  void createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op);
+  void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
  private:
   void appendToTree(TTree& tree, CTF& ec);
@@ -87,7 +87,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofData, cons
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
-#define ENCODEMCH(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get());
+#define ENCODEMCH(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
   // clang-format off
   ENCODEMCH(helper.begin_bcIncROF(),    helper.end_bcIncROF(),     CTF::BLC_bcIncROF,     0);
   ENCODEMCH(helper.begin_orbitIncROF(), helper.end_orbitIncROF(),  CTF::BLC_orbitIncROF,  0);
@@ -100,7 +100,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofData, cons
   ENCODEMCH(helper.begin_padID(),       helper.end_padID(),        CTF::BLC_padID,        0);
   ENCODEMCH(helper.begin_ADC()  ,       helper.end_ADC(),          CTF::BLC_ADC,          0);
   // clang-format on
-  //  CTF::get(buff.data())->print(getPrefix());
+  CTF::get(buff.data())->print(getPrefix(), mVerbosity);
 }
 
 /// decode entropy-encoded clusters to standard compact clusters
@@ -109,7 +109,7 @@ void CTFCoder::decode(const CTF::base& ec, VROF& rofVec, VCOL& digVec)
 {
   auto header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
-  ec.print(getPrefix());
+  ec.print(getPrefix(), mVerbosity);
 
   std::vector<uint16_t> bcInc, nSamples;
   std::vector<uint32_t> orbitInc, ADC, nDigits;

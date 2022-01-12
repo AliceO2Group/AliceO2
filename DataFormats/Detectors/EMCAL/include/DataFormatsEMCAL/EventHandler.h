@@ -84,7 +84,7 @@ class EventHandler
  public:
   using TriggerRange = gsl::span<const TriggerRecord>;
   using ClusterRange = gsl::span<const Cluster>;
-  using CellIndexRange = gsl::span<int>;
+  using CellIndexRange = gsl::span<const int>;
   using CellRange = gsl::span<const CellInputType>;
 
   /// \class RangeException
@@ -292,7 +292,7 @@ class EventHandler
 
   ///
   int getNumberOfEvents() const;
-  const InteractionRecord& getInteractionRecordForEvent(int eventID) const;
+  InteractionRecord getInteractionRecordForEvent(int eventID) const;
 
   /// \brief Get range of clusters belonging to the given event
   /// \param eventID ID of the event

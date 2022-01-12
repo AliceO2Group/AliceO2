@@ -13,7 +13,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "ZDCReconstruction/CTFCoder.h"
 #include "DataFormatsZDC/CTF.h"
 #include "Framework/Logger.h"
@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     coder.encode(vec, bcdata, chandata, pedsdata); // compress
   }
   sw.Stop();
-  LOG(INFO) << "Compressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Compressed in " << sw.CpuTime() << " s";
 
   // writing
   {
@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     ctfImage->appendToTree(ctfTree, "ZDC");
     ctfTree.Write();
     sw.Stop();
-    LOG(INFO) << "Wrote to tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Wrote to tree in " << sw.CpuTime() << " s";
   }
 
   // reading
@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     BOOST_CHECK(tree);
     o2::zdc::CTF::readFromTree(vec, *(tree.get()), "ZDC");
     sw.Stop();
-    LOG(INFO) << "Read back from tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Read back from tree in " << sw.CpuTime() << " s";
   }
 
   std::vector<BCData> bcdataD;
@@ -122,9 +122,9 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     coder.decode(ctfImage, bcdataD, chandataD, pedsdataD); // decompress
   }
   sw.Stop();
-  LOG(INFO) << "Decompressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Decompressed in " << sw.CpuTime() << " s";
 
-  LOG(INFO) << "Testing BCData: BOOST_CHECK bcdataD.size() " << bcdataD.size() << " bcdata.size() " << bcdata.size();
+  LOG(info) << "Testing BCData: BOOST_CHECK bcdataD.size() " << bcdataD.size() << " bcdata.size() " << bcdata.size();
   BOOST_CHECK(bcdataD.size() == bcdata.size());
   for (size_t i = 0; i < bcdata.size(); i++) {
     bool cmpBCData = (bcdata[i].ir == bcdataD[i].ir &&
@@ -135,32 +135,32 @@ BOOST_AUTO_TEST_CASE(CTFTest)
                       bcdata[i].ext_triggers == bcdataD[i].ext_triggers);
 
     if (!cmpBCData) {
-      LOG(ERROR) << "Mismatch in BC data " << i;
+      LOG(error) << "Mismatch in BC data " << i;
       bcdata[i].print();
       bcdataD[i].print();
     }
     BOOST_CHECK(cmpBCData);
   }
 
-  LOG(INFO) << "Testing ChannelData: BOOST_CHECK(chandataD.size() " << chandataD.size() << " chandata.size()) " << chandata.size();
+  LOG(info) << "Testing ChannelData: BOOST_CHECK(chandataD.size() " << chandataD.size() << " chandata.size()) " << chandata.size();
   BOOST_CHECK(chandataD.size() == chandata.size());
 
   for (size_t i = 0; i < chandata.size(); i++) {
     bool cmpChData = chandata[i].id == chandataD[i].id && chandata[i].data == chandataD[i].data;
     if (!cmpChData) {
-      LOG(ERROR) << "Mismatch in ChannelData " << i;
+      LOG(error) << "Mismatch in ChannelData " << i;
       chandata[i].print();
       chandataD[i].print();
     }
     BOOST_CHECK(cmpChData);
   }
 
-  LOG(INFO) << "Testing OrbitData: BOOST_CHECK(pedsdataD.size() " << pedsdataD.size() << " pedsdata.size()) " << pedsdata.size();
+  LOG(info) << "Testing OrbitData: BOOST_CHECK(pedsdataD.size() " << pedsdataD.size() << " pedsdata.size()) " << pedsdata.size();
   BOOST_CHECK(pedsdataD.size() == pedsdata.size());
   for (size_t i = 0; i < pedsdata.size(); i++) {
     bool cmpPdData = pedsdata[i].ir == pedsdataD[i].ir && pedsdata[i].data == pedsdataD[i].data && pedsdata[i].scaler == pedsdataD[i].scaler;
     if (!cmpPdData) {
-      LOG(ERROR) << "Mismatch in OrbitData " << i;
+      LOG(error) << "Mismatch in OrbitData " << i;
       pedsdata[i].print();
       pedsdataD[i].print();
     }

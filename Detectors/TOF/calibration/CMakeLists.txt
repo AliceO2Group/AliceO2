@@ -11,8 +11,7 @@
 
 o2_add_library(TOFCalibration
                TARGETVARNAME targetName
-               SOURCES src/CalibTOFapi.cxx
-                       src/CalibTOF.cxx
+               SOURCES src/CalibTOF.cxx
                        src/CollectCalibInfoTOF.cxx
                        src/LHCClockCalibrator.cxx
                        src/TOFChannelCalibrator.cxx
@@ -26,12 +25,12 @@ o2_add_library(TOFCalibration
                                      O2::DetectorsCalibration
                                      O2::DetectorsDCS
                                      ROOT::Minuit
-                                     Microsoft.GSL::GSL)
+                                     Microsoft.GSL::GSL
+                                     O2::Steer)
 
 
 o2_target_root_dictionary(TOFCalibration
-                          HEADERS include/TOFCalibration/CalibTOFapi.h
-                                  include/TOFCalibration/CalibTOF.h
+                          HEADERS include/TOFCalibration/CalibTOF.h
                                   include/TOFCalibration/LHCClockCalibrator.h
                                   include/TOFCalibration/TOFChannelCalibrator.h
                                   include/TOFCalibration/TOFCalibCollector.h

@@ -26,6 +26,7 @@
 #include "PHOSBase/Hit.h"
 #include "PHOSSimulation/Detector.h"
 #include "PHOSSimulation/GeometryParams.h"
+#include "PHOSBase/PHOSSimParams.h"
 
 #include "DetectorsBase/GeometryManager.h"
 #include "SimulationDataFormat/Stack.h"
@@ -78,7 +79,6 @@ void Detector::FinishEvent()
 {
   // Sort Hits
   // Add duplicates if any and remove them
-  // TODO: Apply Poisson smearing of light production
   if (!mHits || mHits->size() == 0) {
     return;
   }
@@ -104,14 +104,14 @@ void Detector::FinishEvent()
 
   mHits->erase(itr, mHits->end());
 
-  /*
-        std::ostream stream(nullptr);
-        stream.rdbuf(std::cout.rdbuf()); // uses cout's buffer
-  //      stream.rdbuf(LOG(DEBUG2));
-      for (int i = 0; i < mHits->size(); i++) {
-         mHits->at(i).PrintStream(stream);
-        }
-  */
+  //Apply Poisson smearing of light production
+  first = mHits->begin();
+  last = mHits->end();
+  while (first != last) {
+    float light = gRandom->Poisson(first->GetEnergyLoss() * o2::phos::PHOSSimParams::Instance().mLightYieldPerGeV);
+    first->SetEnergyLoss(light / o2::phos::PHOSSimParams::Instance().mLightYieldPerGeV);
+    first++;
+  }
 }
 void Detector::Reset()
 {
@@ -219,7 +219,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 Hit* Detector::addHit(Int_t trackID, Int_t detID, const math_utils::Point3D<float>& pos, const math_utils::Vector3D<float>& mom, Double_t totE,
                       Double_t time, Double_t eLoss)
 {
-  LOG(DEBUG4) << "Adding hit for track " << trackID << " with position (" << pos.X() << ", " << pos.Y() << ", "
+  LOG(debug4) << "Adding hit for track " << trackID << " with position (" << pos.X() << ", " << pos.Y() << ", "
               << pos.Z() << ") and momentum (" << mom.X() << ", " << mom.Y() << ", " << mom.Z() << ")  with energy "
               << totE << " loosing " << eLoss << std::endl;
   mHits->emplace_back(trackID, detID, pos, mom, totE, time, eLoss);
@@ -231,13 +231,13 @@ void Detector::ConstructGeometry()
   // Create geometry description of PHOS depector for Geant simulations.
 
   using boost::algorithm::contains;
-  LOG(DEBUG) << "Creating PHOS geometry\n";
+  LOG(debug) << "Creating PHOS geometry\n";
 
   phos::GeometryParams* geom = phos::GeometryParams::GetInstance("Run2");
   Geometry::GetInstance("Run2");
 
   if (!geom) {
-    LOG(ERROR) << "ConstructGeometry: PHOS Geometry class has not been set up.\n";
+    LOG(error) << "ConstructGeometry: PHOS Geometry class has not been set up.\n";
   }
 
   if (!fMC) {
@@ -889,7 +889,7 @@ void Detector::ConstructSupportGeometry()
   fMC->Gspos("PCRE", 1, "PCRA", 0.0, 0.0, 0.0, 0, "ONLY");
 
   for (i = 0; i < 2; i++) {
-    z0 = (2 * i - 1) * (geom->getOuterBoxSize(2) + geom->getCradleWall(2)) / 2.0;
+    z0 = (2 * i - 1) * (geom->getOuterBoxSize(2) + geom->getCradleWall(2) + 2. * geom->getModuleCraddleGap()) / 2.0;
     fMC->Gspos("PCRA", i, "barrel", 0.0, 30.0, z0, 0, "ONLY");
   }
 
@@ -902,7 +902,7 @@ void Detector::ConstructSupportGeometry()
 
   y0 = -(geom->getRailsDistanceFromIP() - geom->getRailRoadSize(1) - geom->getCradleWheel(1) / 2);
   for (i = 0; i < 2; i++) {
-    z0 = (2 * i - 1) * ((geom->getOuterBoxSize(2) + geom->getCradleWheel(2)) / 2.0 + geom->getCradleWall(2));
+    z0 = (2 * i - 1) * ((geom->getOuterBoxSize(2) + geom->getCradleWheel(2) + 2. * geom->getModuleCraddleGap()) / 2.0 + geom->getCradleWall(2));
     for (j = 0; j < 2; j++) {
       copy = 2 * i + j;
       x0 = (2 * j - 1) * geom->getDistanceBetwRails() / 2.0;
@@ -919,7 +919,7 @@ void Detector::defineSensitiveVolumes()
     if (vsense) {
       AddSensitiveVolume(vsense);
     } else {
-      LOG(ERROR) << "PHOS Sensitive volume PXTL not found ... No hit creation!\n";
+      LOG(error) << "PHOS Sensitive volume PXTL not found ... No hit creation!\n";
     }
   }
 }
@@ -956,23 +956,23 @@ void Detector::addAlignableVolumes() const
 
     int modUID = o2::base::GeometryManager::getSensID(idPHOS, iModule);
 
-    LOG(DEBUG) << "--------------------------------------------"
+    LOG(debug) << "--------------------------------------------"
                << "\n";
-    LOG(DEBUG) << "Alignable object" << iModule << "\n";
-    LOG(DEBUG) << "volPath=" << volPath << "\n";
-    LOG(DEBUG) << "symName=" << symName << "\n";
-    LOG(DEBUG) << "--------------------------------------------"
+    LOG(debug) << "Alignable object" << iModule << "\n";
+    LOG(debug) << "volPath=" << volPath << "\n";
+    LOG(debug) << "symName=" << symName << "\n";
+    LOG(debug) << "--------------------------------------------"
                << "\n";
-    LOG(DEBUG) << "Check for alignable entry: " << symName;
+    LOG(debug) << "Check for alignable entry: " << symName;
 
     if (!gGeoManager->SetAlignableEntry(symName.Data(), volPath.Data(), modUID)) {
-      LOG(ERROR) << "Alignable entry " << symName << " NOT set";
+      LOG(error) << "Alignable entry " << symName << " NOT set";
     }
-    LOG(DEBUG) << "Alignable entry " << symName << " set";
+    LOG(debug) << "Alignable entry " << symName << " set";
 
     // Create the Tracking to Local transformation matrix for PHOS modules
     TGeoPNEntry* alignableEntry = gGeoManager->GetAlignableEntryByUID(modUID);
-    LOG(DEBUG) << "Got TGeoPNEntry " << alignableEntry;
+    LOG(debug) << "Got TGeoPNEntry " << alignableEntry;
     if (alignableEntry) {
       alignableEntry->SetMatrix(Geometry::GetInstance()->getAlignmentMatrix(iModule));
     }

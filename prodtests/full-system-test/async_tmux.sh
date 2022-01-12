@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MYDIR="$(dirname $(readlink -f $0))"
+MYDIR="$(dirname $(realpath $0))"
 source $MYDIR/setenv.sh
 
 # This sets up the hardcoded configuration to run the async full system test workflow on the EPN
@@ -35,7 +35,7 @@ export NTIMEFRAMES=$((($NTIMEFRAMES + 1) / 2))
 
 rm -f /dev/shm/*fmq*
 
-tmux \
+tmux -L ASYNC \
     new-session  "sleep 0; NUMAID=0 $MYDIR/dpl-workflow.sh $LOGCMD0; $ENDCMD" \; \
     split-window "sleep 2; NUMAID=1 $MYDIR/dpl-workflow.sh $LOGCMD1; $ENDCMD" \; \
     select-layout even-vertical

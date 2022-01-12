@@ -13,6 +13,7 @@
 
 #include "ZDCWorkflow/ZDCDataReaderDPLSpec.h"
 #include "CommonUtils/VerbosityConfig.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 
@@ -46,7 +47,7 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
       if (dh->payloadSize == 0) {
         auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
         if (++contDeadBeef <= maxWarn) {
-          LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+          LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
                dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,
                contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
         }
@@ -61,20 +62,20 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
 
   //>> update Time-dependent CCDB stuff, at the moment set the moduleconfig only once
   if (!mRawReader.getModuleConfig()) {
-    long timeStamp = 0;
+    /*long timeStamp = 0; // TIMESTAMP SHOULD NOT BE 0
+    mgr.setTimestamp(timeStamp);*/
     auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-    mgr.setTimestamp(timeStamp);
     auto moduleConfig = mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
     if (!moduleConfig) {
-      LOG(FATAL) << "Cannot module configuratio for timestamp " << timeStamp;
+      LOG(fatal) << "Cannot module configuratio for timestamp " << mgr.getTimestamp();
       return;
     } else {
-      LOG(INFO) << "Loaded module configuration for timestamp " << timeStamp;
+      LOG(info) << "Loaded module configuration for timestamp " << mgr.getTimestamp();
     }
     mRawReader.setModuleConfig(moduleConfig);
     mRawReader.setTriggerMask();
     mRawReader.setVerifyTrigger(mVerifyTrigger);
-    LOG(INFO) << "Check of trigger condition during conversion is " << (mVerifyTrigger ? "ON" : "OFF");
+    LOG(info) << "Check of trigger condition during conversion is " << (mVerifyTrigger ? "ON" : "OFF");
   }
   uint64_t count = 0;
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
@@ -84,14 +85,14 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
     gsl::span<const uint8_t> payload(it.data(), it.size());
     mRawReader.processBinaryData(payload, rdhPtr->linkID);
   }
-  LOG(INFO) << "Pages: " << count;
+  LOG(info) << "Pages: " << count;
   mRawReader.accumulateDigits();
   mRawReader.makeSnapshot(pc);
 }
 
 framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const bool verifyTrigger, const bool askSTFDist)
 {
-  LOG(INFO) << "DataProcessorSpec initDataProcSpec() for RawReaderZDC";
+  LOG(info) << "DataProcessorSpec initDataProcSpec() for RawReaderZDC";
   std::vector<OutputSpec> outputSpec;
   RawReaderZDC::prepareOutputSpec(outputSpec);
   std::vector<InputSpec> inputSpec{{"STF", ConcreteDataTypeMatcher{o2::header::gDataOriginZDC, "RAWDATA"}, Lifetime::Optional}};
@@ -103,7 +104,7 @@ framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawRead
     inputSpec,
     outputSpec,
     adaptFromTask<ZDCDataReaderDPLSpec>(rawReader, verifyTrigger),
-    Options{{"ccdb-url", o2::framework::VariantType::String, "http://ccdb-test.cern.ch:8080", {"CCDB Url"}}}};
+    Options{{"ccdb-url", o2::framework::VariantType::String, o2::base::NameConf::getCCDBServer(), {"CCDB Url"}}}};
 }
 } // namespace zdc
 } // namespace o2

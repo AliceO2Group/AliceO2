@@ -21,7 +21,7 @@
 #include "FDDWorkflow/DigitReaderSpec.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include <vector>
 
 using namespace o2::framework;
@@ -41,6 +41,17 @@ void DigitReader::init(InitContext& ic)
 {
   mInputFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
                                                  ic.options().get<std::string>("fdd-digits-infile"));
+
+  mFile = std::make_unique<TFile>(mInputFileName.c_str(), "OLD");
+  if (!mFile->IsOpen()) {
+    LOG(error) << "Cannot open the " << mInputFileName.c_str() << " file !";
+    throw std::runtime_error("cannot open input digits file");
+  }
+  mTree.reset((TTree*)mFile->Get("o2sim"));
+  if (!mTree) {
+    LOG(error) << "Did not find o2sim tree in " << mInputFileName.c_str();
+    throw std::runtime_error("Did not fine o2sim file in FDD digits tree");
+  }
 }
 
 void DigitReader::run(ProcessingContext& pc)
@@ -50,38 +61,26 @@ void DigitReader::run(ProcessingContext& pc)
   std::vector<o2::fdd::DetTrigInput>* digitsTrig = nullptr;
   o2::dataformats::IOMCTruthContainerView* mcTruthRootBuffer = nullptr;
 
-  { // load data from files
-    TFile digFile(mInputFileName.c_str(), "read");
-    if (digFile.IsZombie()) {
-      LOG(FATAL) << "Failed to open FDD digits file " << mInputFileName;
-    }
-    TTree* digTree = (TTree*)digFile.Get(mDigitTreeName.c_str());
-    if (!digTree) {
-      LOG(FATAL) << "Failed to load FDD digits tree " << mDigitTreeName << " from " << mInputFileName;
-    }
-    LOG(INFO) << "Loaded FDD digits tree " << mDigitTreeName << " from " << mInputFileName;
-
-    digTree->SetBranchAddress(mDigitBCBranchName.c_str(), &digitsBC);
-
-    digTree->SetBranchAddress(mTriggerBranchName.c_str(), &digitsTrig);
-    if (mUseMC) {
-      if (digTree->GetBranch(mDigitChBranchName.c_str())) {
-        digTree->SetBranchAddress(mDigitChBranchName.c_str(), &digitsCh);
-      }
-      if (digTree->GetBranch(mDigitMCTruthBranchName.c_str())) {
-        digTree->SetBranchAddress(mDigitMCTruthBranchName.c_str(), &mcTruthRootBuffer);
-        LOG(INFO) << "Will use MC-truth from " << mDigitMCTruthBranchName;
-      } else {
-        LOG(INFO) << "MC-truth is missing";
-        mUseMC = false;
-      }
-    }
-    digTree->GetEntry(0);
-    delete digTree;
-    digFile.Close();
+  mTree->SetBranchAddress(mDigitBCBranchName.c_str(), &digitsBC);
+  mTree->SetBranchAddress(mDigitChBranchName.c_str(), &digitsCh);
+  if (mTree->GetBranch(mTriggerBranchName.c_str())) {
+    mTree->SetBranchAddress(mTriggerBranchName.c_str(), &digitsTrig);
   }
 
-  LOG(INFO) << "FDD DigitReader pushes " << digitsBC->size() << " digits";
+  if (mUseMC) {
+    if (mTree->GetBranch(mDigitMCTruthBranchName.c_str())) {
+      mTree->SetBranchAddress(mDigitMCTruthBranchName.c_str(), &mcTruthRootBuffer);
+      LOG(info) << "Will use MC-truth from " << mDigitMCTruthBranchName;
+    } else {
+      LOG(info) << "MC-truth is missing";
+      mUseMC = false;
+    }
+  }
+  auto ent = mTree->GetReadEntry() + 1;
+  assert(ent < mTree->GetEntries()); // this should not happen
+  mTree->GetEntry(ent);
+
+  LOG(info) << "FDD DigitReader pushes " << digitsBC->size() << " digits";
   pc.outputs().snapshot(Output{mOrigin, "DIGITSBC", 0, Lifetime::Timeframe}, *digitsBC);
   pc.outputs().snapshot(Output{mOrigin, "DIGITSCH", 0, Lifetime::Timeframe}, *digitsCh);
 
@@ -95,9 +94,10 @@ void DigitReader::run(ProcessingContext& pc)
     mcTruth.restore_from(flatbuffer.data(), flatbuffer.size());
     pc.outputs().snapshot(Output{mOrigin, "DIGITLBL", 0, Lifetime::Timeframe}, mcTruth);
   }
-
-  pc.services().get<ControlService>().endOfStream();
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  }
 }
 
 DataProcessorSpec getFDDDigitReaderSpec(bool useMC)

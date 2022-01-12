@@ -149,7 +149,7 @@ int PadPlane::getPadColNumber(double rphi) const
 void PadPlane::setNcols(int n)
 {
   if (n > MAXCOLS) {
-    LOG(FATAL) << "MAXCOLS exceeded " << n << " > " << MAXCOLS;
+    LOG(fatal) << "MAXCOLS exceeded " << n << " > " << MAXCOLS;
   }
   mNcols = n;
 };
@@ -157,7 +157,7 @@ void PadPlane::setNcols(int n)
 void PadPlane::setNrows(int n)
 {
   if (n > MAXROWS) {
-    LOG(FATAL) << "MAXROWS exceeded " << n << " > " << MAXROWS;
+    LOG(fatal) << "MAXROWS exceeded " << n << " > " << MAXROWS;
   }
   mNrows = n;
 };

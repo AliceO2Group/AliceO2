@@ -18,7 +18,7 @@
 
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
-#include "EveWorkflow/EveConfiguration.h"
+#include "EveWorkflow/DetectorData.h"
 #include "Framework/Task.h"
 #include <memory>
 
@@ -46,6 +46,7 @@ class TPCFastTransform;
 class O2DPLDisplaySpec : public o2::framework::Task
 {
  public:
+  static constexpr float mWorkflowVersion = 1.02; // helps recognizing version of workflow which produce data
   O2DPLDisplaySpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t trkMask,
                    o2::dataformats::GlobalTrackID::mask_t clMask,
                    std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, std::string jsonPath,
@@ -70,10 +71,7 @@ class O2DPLDisplaySpec : public o2::framework::Task
 
   o2::dataformats::GlobalTrackID::mask_t mTrkMask;
   o2::dataformats::GlobalTrackID::mask_t mClMask;
-  o2::itsmft::TopologyDictionary mITSDict;
-  o2::itsmft::TopologyDictionary mMFTDict;
-  std::unique_ptr<EveConfiguration> mConfig;
-  std::unique_ptr<o2::trd::GeometryFlat> mTrdGeo;
+  DetectorData mData;
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;
 };
 

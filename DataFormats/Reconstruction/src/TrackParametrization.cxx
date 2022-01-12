@@ -182,7 +182,7 @@ GPUd() bool TrackParametrization<value_T>::rotateParam(value_t alpha)
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
   if ((csp * ca + snp * sa) < 0) {
-    //LOGF(WARNING,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
+    //LOGF(warning,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
     return false;
   }
   //
@@ -220,6 +220,10 @@ GPUd() bool TrackParametrization<value_T>::propagateParamTo(value_t xk, const di
     return false;
   }
   value_t crv = getCurvature(b[2]);
+  if (crv == 0.) {
+    return propagateParamTo(xk, 0.); // for the straight-line propagation use 1D field method
+  }
+
   value_t x2r = crv * dx;
   value_t f1 = getSnp(), f2 = f1 + x2r;
   if (math_utils::detail::abs<value_T>(f1) > constants::math::Almost1 || math_utils::detail::abs<value_T>(f2) > constants::math::Almost1) {
@@ -746,6 +750,19 @@ GPUd() bool TrackParametrization<value_T>::correctForELoss(value_t xrho, bool an
   }
 
   return true;
+}
+
+//______________________________________________
+template <typename value_T>
+GPUd() typename o2::track::TrackParametrization<value_T>::yzerr_t TrackParametrization<value_T>::getVertexInTrackFrame(const o2::dataformats::VertexBase& v) const
+{
+  // rotate vertex to track frame and return parameters used by getPredictedChi2 and update of TrackParametrizationWithError
+  value_t sn, cs;
+  math_utils::detail::sincos(-mAlpha, sn, cs); // use -alpha since we rotate from lab to tracking frame
+  value_t sn2 = sn * sn, cs2 = cs * cs, sncs = sn * cs;
+  value_t dsxysncs = 2. * v.getSigmaXY() * sncs;
+  return {{/*v.getX()*cs-v.getY()*sn,*/ v.getX() * sn + v.getY() * cs, v.getZ()},
+          {v.getSigmaX2() * sn2 + dsxysncs + v.getSigmaY2() * cs2, (sn + cs) * v.getSigmaYZ(), v.getSigmaZ2()}};
 }
 
 namespace o2::track

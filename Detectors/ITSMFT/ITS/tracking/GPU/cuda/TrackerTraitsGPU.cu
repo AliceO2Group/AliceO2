@@ -240,7 +240,7 @@ GPUd() void computeLayerCells(DeviceStoreNV& devStore, const int layerIndex,
 
                 cellsVector.emplace(currentIndex, currentTracklet.firstClusterIndex,
                                     nextTracklet.firstClusterIndex, nextTracklet.secondClusterIndex, currentTrackletIndex,
-                                    iNextLayerTracklet, normalizedPlaneVector, 1.0f / cellTrajectoryRadius);
+                                    iNextLayerTracklet, averageTanLambda);
                 ++trackletCellsNum;
               }
             }

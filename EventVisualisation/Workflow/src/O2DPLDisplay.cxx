@@ -20,7 +20,7 @@
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "TRDBase/GeometryFlat.h"
@@ -32,7 +32,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMCH/ROFRecord.h"
-#include "DataFormatsMCH/ClusterBlock.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "MCHTracking/TrackParam.h"
 #include <unistd.h>
 #include <climits>
@@ -67,49 +67,10 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h" // main method must be included here (otherwise customize not used)
 void O2DPLDisplaySpec::init(InitContext& ic)
 {
-  const auto grp = o2::parameters::GRPObject::loadFrom();
-  o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP();
-  mConfig.reset(new EveConfiguration);
-  mConfig->configGRP.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
-  mConfig->configGRP.continuousMaxTimeBin = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC) ? -1 : 0; // Number of timebins in timeframe if continuous, 0 otherwise
-  mConfig->ReadConfigurableParam();
+  LOG(info) << "------------------------    O2DPLDisplay::init version " << this->mWorkflowVersion << "    ------------------------------------";
+  mData.init();
 
-  auto gm = o2::trd::Geometry::instance();
-  gm->createPadPlaneArray();
-  gm->createClusterMatrixArray();
-  mTrdGeo.reset(new o2::trd::GeometryFlat(*gm));
-  mConfig->configCalib.trdGeometry = mTrdGeo.get();
-
-  std::string dictFileITS = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  dictFileITS = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictFileITS, "bin");
-  if (o2::utils::Str::pathExists(dictFileITS)) {
-    mITSDict.readBinaryFile(dictFileITS);
-    LOG(INFO) << "Running with provided ITS clusters dictionary: " << dictFileITS;
-  } else {
-    LOG(INFO) << "Dictionary " << dictFileITS << " is absent, ITS expects cluster patterns for all clusters";
-  }
-  mConfig->configCalib.itsPatternDict = &mITSDict;
-
-  std::string dictFileMFT = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-  dictFileMFT = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictFileMFT, "bin");
-  if (o2::utils::Str::pathExists(dictFileMFT)) {
-    mMFTDict.readBinaryFile(dictFileMFT);
-    LOG(INFO) << "Running with provided MFT clusters dictionary: " << dictFileMFT;
-  } else {
-    LOG(INFO) << "Dictionary " << dictFileMFT << " is absent, MFT expects cluster patterns for all clusters";
-  }
-  mConfig->configCalib.mftPatternDict = &mMFTDict;
-
-  mConfig->configProcessing.runMC = mUseMC;
-
-  o2::tof::Geo::Init();
-
-  o2::its::GeometryTGeo::Instance()->fillMatrixCache(
-    o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2GRot,
-                             o2::math_utils::TransformType::T2G,
-                             o2::math_utils::TransformType::L2G,
-                             o2::math_utils::TransformType::T2L));
+  mData.mConfig->configProcessing.runMC = mUseMC;
 }
 
 void O2DPLDisplaySpec::run(ProcessingContext& pc)
@@ -117,7 +78,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   if (!this->mEveHostNameMatch) {
     return;
   }
-
+  LOG(info) << "------------------------    O2DPLDisplay::run version " << this->mWorkflowVersion << "    ------------------------------------";
   // filtering out any run which occur before reaching next time interval
   auto currentTime = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = currentTime - this->mTimeStamp;
@@ -127,18 +88,16 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   this->mTimeStamp = currentTime;
 
   EveWorkflowHelper helper;
-
   helper.getRecoContainer().collectData(pc, *mDataRequest);
+  helper.selectTracks(&(mData.mConfig->configCalib), mClMask, mTrkMask, mTrkMask);
 
-  helper.selectTracks(&(mConfig->configCalib), mClMask, mTrkMask, mTrkMask);
+  helper.prepareITSClusters(mData.mITSDict);
+  helper.prepareMFTClusters(mData.mMFTDict);
 
-  helper.prepareITSClusters(mITSDict);
-  helper.prepareMFTClusters(mMFTDict);
-
-  helper.draw(this->mJsonPath, this->mNumberOfFiles, this->mNumberOfTracks);
+  helper.draw(this->mJsonPath, this->mNumberOfFiles, this->mNumberOfTracks, this->mTrkMask, this->mClMask, this->mWorkflowVersion);
   const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
   auto endTime = std::chrono::high_resolution_clock::now();
-  LOGP(INFO, "Visualization of TF:{} at orbit {} took {} s.", dh->tfCounter, dh->firstTForbit, std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
+  LOGP(info, "Visualization of TF:{} at orbit {} took {} s.", dh->tfCounter, dh->firstTForbit, std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
 }
 
 void O2DPLDisplaySpec::endOfStream(EndOfStreamContext& ec)
@@ -147,6 +106,8 @@ void O2DPLDisplaySpec::endOfStream(EndOfStreamContext& ec)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
+  LOG(info) << "------------------------    defineDataProcessing " << O2DPLDisplaySpec::mWorkflowVersion << "    ------------------------------------";
+
   WorkflowSpec specs;
 
   std::string jsonFolder = cfgc.options().get<std::string>("jsons-folder");
@@ -174,8 +135,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   int numberOfFiles = cfgc.options().get<int>("number-of_files");
   int numberOfTracks = cfgc.options().get<int>("number-of_tracks");
 
-  GID::mask_t allowedTracks = GID::getSourcesMask("ITS,TPC,MFT,MCH,ITS-TPC,ITS-TPC-TOF");
-  GID::mask_t allowedClusters = GID::getSourcesMask("ITS,TPC,MFT,MCH");
+  GID::mask_t allowedTracks = GID::getSourcesMask("ITS,TPC,MFT,MCH,ITS-TPC,ITS-TPC-TOF,TPC-TRD,ITS-TPC-TRD,MID");
+  GID::mask_t allowedClusters = GID::getSourcesMask("ITS,TPC,MFT,MCH,TRD,TOF,MID,TRD");
 
   GlobalTrackID::mask_t srcTrk = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-tracks")) & allowedTracks;
   GlobalTrackID::mask_t srcCl = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-clusters")) & allowedClusters;

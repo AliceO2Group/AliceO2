@@ -15,7 +15,6 @@
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/RuntimeError.h"
 #include "Headers/DataHeader.h"
-#include "Headers/Stack.h"
 
 #include <array>
 #include <cstdint>
@@ -25,6 +24,12 @@
 #include <variant>
 #endif
 #include <vector>
+#include <ostream>
+
+namespace o2::header
+{
+struct Stack;
+}
 
 namespace o2::framework::data_matcher
 {
@@ -47,7 +52,8 @@ enum ContextPos {
   STARTTIME_POS = 0,     /// The DataProcessingHeader::startTime associated to the timeslice
   TFCOUNTER_POS = 14,    /// The DataHeader::tfCounter associated to the timeslice
   FIRSTTFORBIT_POS = 15, /// The DataHeader::firstTFOrbit associated to the timeslice
-  RUNNUMBER_POS = 13     /// The DataHeader::runNumber associated to the timeslice
+  RUNNUMBER_POS = 13,    /// The DataHeader::runNumber associated to the timeslice
+  CREATIONTIME_POS = 12  /// The DataProcessingHeader::creation associated to the timeslice
 };
 
 /// An element of the matching context. Context itself is really a vector of

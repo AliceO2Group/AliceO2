@@ -38,11 +38,11 @@
 #include "DetectorsBase/Propagator.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "GlobalTracking/MatchTPCITSParams.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "Headers/DataHeader.h"
 #include "CommonDataFormat/BunchFilling.h"
-#include "CommonDataFormat/FlatHisto2D.h"
+#include "CommonDataFormat/Pair.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 
@@ -97,14 +97,15 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   mMatching.setUseFT0(mUseFT0);
   mMatching.setVDriftCalib(mCalibMode);
   mMatching.setNThreads(std::max(1, ic.options().get<int>("nthreads")));
+  mMatching.setUseBCFilling(!ic.options().get<bool>("ignore-bc-check"));
   //
   std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, "bin");
+  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
   if (o2::utils::Str::pathExists(dictFile)) {
-    mITSDict.readBinaryFile(dictFile);
-    LOG(INFO) << "Matching is running with a provided ITS dictionary: " << dictFile;
+    mITSDict.readFromFile(dictFile);
+    LOG(info) << "Matching is running with a provided ITS dictionary: " << dictFile;
   } else {
-    LOG(INFO) << "Dictionary " << dictFile << " is absent, Matching expects ITS cluster patterns";
+    LOG(info) << "Dictionary " << dictFile << " is absent, Matching expects ITS cluster patterns";
   }
   mMatching.setITSDictionary(&mITSDict);
 
@@ -114,19 +115,20 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   if (o2::utils::Str::pathExists(matLUTFile)) {
     auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
     o2::base::Propagator::Instance()->setMatLUT(lut);
-    LOG(INFO) << "Loaded material LUT from " << matLUTFile;
+    LOG(info) << "Loaded material LUT from " << matLUTFile;
   } else {
-    LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+    LOG(info) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
   }
 
   int dbgFlags = ic.options().get<int>("debug-tree-flags");
   mMatching.setDebugFlag(dbgFlags);
 
   // set bunch filling. Eventually, this should come from CCDB
-  const auto* digctx = o2::steer::DigitizationContext::loadFromFile();
-  const auto& bcfill = digctx->getBunchFilling();
-  mMatching.setBunchFilling(bcfill);
-
+  if (mMatching.getUseBCFilling()) {
+    const auto* digctx = o2::steer::DigitizationContext::loadFromFile();
+    const auto& bcfill = digctx->getBunchFilling();
+    mMatching.setBunchFilling(bcfill);
+  }
   mMatching.init();
   //
 }
@@ -134,7 +136,7 @@ void TPCITSMatchingDPL::init(InitContext& ic)
 void TPCITSMatchingDPL::run(ProcessingContext& pc)
 {
   const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
-  LOG(INFO) << " startOrbit: " << dh->firstTForbit;
+  LOG(info) << " startOrbit: " << dh->firstTForbit;
   mTimer.Start(false);
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
@@ -146,13 +148,11 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{"GLO", "TPCITSAB_CLID", 0, Lifetime::Timeframe}, mMatching.getABTrackletClusterIDs());
   if (mUseMC) {
     pc.outputs().snapshot(Output{"GLO", "TPCITS_MC", 0, Lifetime::Timeframe}, mMatching.getMatchLabels());
-    pc.outputs().snapshot(Output{"GLO", "TPCITSAB_MC", 0, Lifetime::Timeframe}, mMatching.getMatchLabels());
+    pc.outputs().snapshot(Output{"GLO", "TPCITSAB_MC", 0, Lifetime::Timeframe}, mMatching.getABTrackletLabels());
   }
 
   if (mCalibMode) {
-    auto* hdtgl = mMatching.getHistoDTgl();
-    pc.outputs().snapshot(Output{"GLO", "TPCITS_VDHDTGL", 0, Lifetime::Timeframe}, (*hdtgl).getBase());
-    hdtgl->clear();
+    pc.outputs().snapshot(Output{"GLO", "TPCITS_VDTGL", 0, Lifetime::Timeframe}, mMatching.getTglITSTPC());
   }
   mTimer.Stop();
 }
@@ -160,7 +160,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
 void TPCITSMatchingDPL::endOfStream(EndOfStreamContext& ec)
 {
   mMatching.end();
-  LOGF(INFO, "TPC-ITS matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "TPC-ITS matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
@@ -183,7 +183,7 @@ DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool 
   outputs.emplace_back("GLO", "TPCITSAB_CLID", 0, Lifetime::Timeframe); // cluster indices of ITS tracklets attached by the AfterBurner
 
   if (calib) {
-    outputs.emplace_back("GLO", "TPCITS_VDHDTGL", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "TPCITS_VDTGL", 0, Lifetime::Timeframe);
   }
 
   if (useMC) {
@@ -199,6 +199,7 @@ DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool 
     Options{
       {"nthreads", VariantType::Int, 1, {"Number of afterburner threads"}},
       {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},
+      {"ignore-bc-check", VariantType::Bool, false, {"Do not check match candidate against BC filling"}},
       {"debug-tree-flags", VariantType::Int, 0, {"DebugFlagTypes bit-pattern for debug tree"}}}};
 }
 

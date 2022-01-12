@@ -44,25 +44,25 @@ RawPixelDecoder<Mapping>::RawPixelDecoder()
 template <class Mapping>
 void RawPixelDecoder<Mapping>::printReport(bool decstat, bool skipNoErr) const
 {
-  LOGF(INFO, "%s Decoded %zu hits in %zu non-empty chips in %u ROFs with %d threads", mSelfName, mNPixelsFired, mNChipsFired, mROFCounter, mNThreads);
   double cpu = 0, real = 0;
   auto& tmrS = const_cast<TStopwatch&>(mTimerTFStart);
-  LOGF(INFO, "%s Timing Start TF:  CPU = %.3e Real = %.3e in %d slots", mSelfName, tmrS.CpuTime(), tmrS.RealTime(), tmrS.Counter() - 1);
+  LOGF(info, "%s Timing Start TF:  CPU = %.3e Real = %.3e in %d slots", mSelfName, tmrS.CpuTime(), tmrS.RealTime(), tmrS.Counter() - 1);
   cpu += tmrS.CpuTime();
   real += tmrS.RealTime();
   auto& tmrD = const_cast<TStopwatch&>(mTimerDecode);
-  LOGF(INFO, "%s Timing Decode:    CPU = %.3e Real = %.3e in %d slots", mSelfName, tmrD.CpuTime(), tmrD.RealTime(), tmrD.Counter() - 1);
+  LOGF(info, "%s Timing Decode:    CPU = %.3e Real = %.3e in %d slots", mSelfName, tmrD.CpuTime(), tmrD.RealTime(), tmrD.Counter() - 1);
   cpu += tmrD.CpuTime();
   real += tmrD.RealTime();
   auto& tmrF = const_cast<TStopwatch&>(mTimerFetchData);
-  LOGF(INFO, "%s Timing FetchData: CPU = %.3e Real = %.3e in %d slots", mSelfName, tmrF.CpuTime(), tmrF.RealTime(), tmrF.Counter() - 1);
+  LOGF(info, "%s Timing FetchData: CPU = %.3e Real = %.3e in %d slots", mSelfName, tmrF.CpuTime(), tmrF.RealTime(), tmrF.Counter() - 1);
   cpu += tmrF.CpuTime();
   real += tmrF.RealTime();
-  LOGF(INFO, "%s Timing Total:     CPU = %.3e Real = %.3e in %d slots in %s mode", mSelfName, cpu, real, tmrS.Counter() - 1,
+  LOGF(info, "%s Timing Total:     CPU = %.3e Real = %.3e in %d slots in %s mode", mSelfName, cpu, real, tmrS.Counter() - 1,
        mDecodeNextAuto ? "AutoDecode" : "ExternalCall");
 
+  LOGF(important, "%s Decoded %zu hits in %zu non-empty chips in %u ROFs with %d threads", mSelfName, mNPixelsFired, mNChipsFired, mROFCounter, mNThreads);
   if (decstat) {
-    LOG(INFO) << "GBT Links decoding statistics" << (skipNoErr ? " (only links with errors are reported)" : "");
+    LOG(important) << "GBT Links decoding statistics" << (skipNoErr ? " (only links with errors are reported)" : "");
     for (auto& lnk : mGBTLinks) {
       lnk.statistics.print(skipNoErr);
       lnk.chipStat.print(skipNoErr);
@@ -185,7 +185,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       if (dh->payloadSize == 0) {
         auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
         if (++contDeadBeef <= maxWarn) {
-          LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+          LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
                dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,
                contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
         }
@@ -209,7 +209,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       getCreateRUDecode(mMAP.FEEId2RUSW(RDHUtils::getFEEID(rdh))); // make sure there is a RU for this link
       lnk.verbosity = GBTLink::Verbosity(mVerbosity);
       lnk.format = mFormat;
-      LOG(INFO) << mSelfName << " registered new link " << lnk.describe() << " RUSW=" << int(mMAP.FEEId2RUSW(lnk.feeID));
+      LOG(info) << mSelfName << " registered new link " << lnk.describe() << " RUSW=" << int(mMAP.FEEId2RUSW(lnk.feeID));
       linksAdded++;
     }
     auto& link = mGBTLinks[lnkref.entry];
@@ -222,7 +222,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
 
   if (linksAdded) { // new links were added, update link<->RU mapping, usually is done for 1st TF only
     if (nLinks) {
-      LOG(WARNING) << mSelfName << " New links appeared although the initialization was already done";
+      LOG(warning) << mSelfName << " New links appeared although the initialization was already done";
       for (auto& ru : mRUDecodeVec) { // reset RU->link references since they may have been changed
         memset(&ru.links[0], -1, RUDecodeData::MaxLinksPerRU * sizeof(int));
       }
@@ -241,7 +241,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       uint16_t lr, ruOnLr, linkInRU;
       mMAP.expandFEEId(link.feeID, lr, ruOnLr, linkInRU);
       if (newLinkAdded) {
-        LOG(INFO) << mSelfName << " Attaching " << link.describe() << " to RU#" << int(mMAP.FEEId2RUSW(link.feeID))
+        LOG(info) << mSelfName << " Attaching " << link.describe() << " to RU#" << int(mMAP.FEEId2RUSW(link.feeID))
                   << " (stave " << ruOnLr << " of layer " << lr << ')';
       }
       link.idInRU = linkInRU;
@@ -263,7 +263,7 @@ RUDecodeData& RawPixelDecoder<Mapping>::getCreateRUDecode(int ruSW)
     ru.ruInfo = mMAP.getRUInfoSW(ruSW); // info on the stave/RU
     ru.chipsData.resize(mMAP.getNChipsOnRUType(ru.ruInfo->ruType));
     ru.verbosity = mVerbosity;
-    LOG(INFO) << mSelfName << " Defining container for RU " << ruSW << " at slot " << mRUEntry[ruSW];
+    LOG(info) << mSelfName << " Defining container for RU " << ruSW << " at slot " << mRUEntry[ruSW];
   }
   return mRUDecodeVec[mRUEntry[ruSW]];
 }
@@ -385,7 +385,7 @@ void RawPixelDecoder<Mapping>::setNThreads(int n)
 #ifdef WITH_OPENMP
   mNThreads = n > 0 ? n : 1;
 #else
-  LOG(WARNING) << mSelfName << " Multithreading is not supported, imposing single thread";
+  LOG(warning) << mSelfName << " Multithreading is not supported, imposing single thread";
   mNThreads = 1;
 #endif
 }

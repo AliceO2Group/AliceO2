@@ -168,7 +168,14 @@ struct DataRefUtils {
     if (!header) {
       return 0;
     }
-    return header->payloadSize;
+    // in case of an O2 message with multiple payloads, the size of the message stored
+    // in DataRef is returned,
+    // as a prototype solution we are using splitPayloadIndex == splitPayloadParts to
+    // indicate that there are splitPayloadParts payloads following the header
+    if (header->splitPayloadParts > 1 && header->splitPayloadIndex == header->splitPayloadParts) {
+      return ref.payloadSize;
+    }
+    return header->payloadSize < ref.payloadSize || ref.payloadSize == 0 ? header->payloadSize : ref.payloadSize;
   }
 
   template <typename T>

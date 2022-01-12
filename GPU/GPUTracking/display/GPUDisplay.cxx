@@ -2391,7 +2391,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     }
   }
 
-  if (!mCfgH.clustersOnly && !mCfgL.excludeClusters) {
+  if (!mCfgH.clustersOnly && mCfgL.excludeClusters != 1) {
     if (mCfgL.drawTPC) {
       if (mCfgL.drawInitLinks) {
         SetColorInitLinks();

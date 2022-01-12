@@ -17,7 +17,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "DetectorsBase/CTFCoderBase.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 
@@ -26,17 +26,18 @@ namespace o2
 namespace mid
 {
 
-EntropyDecoderSpec::EntropyDecoderSpec()
+EntropyDecoderSpec::EntropyDecoderSpec(int verbosity)
 {
   mTimer.Stop();
   mTimer.Reset();
+  mCTFCoder.setVerbosity(verbosity);
 }
 
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
 {
   std::string dictPath = ic.options().get<std::string>("ctf-dict");
   if (!dictPath.empty() && dictPath != "none") {
-    mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Decoder);
+    mCTFCoder.createCodersFromFile<CTF>(dictPath, o2::ctf::CTFCoderBase::OpType::Decoder);
   }
 }
 
@@ -50,8 +51,10 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   std::array<std::vector<o2::mid::ColumnData>, NEvTypes> cols{};
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
-  const auto ctfImage = o2::mid::CTF::getImage(buff.data());
-  mCTFCoder.decode(ctfImage, rofs, cols);
+  if (buff.size()) {
+    const auto ctfImage = o2::mid::CTF::getImage(buff.data());
+    mCTFCoder.decode(ctfImage, rofs, cols);
+  }
 
   for (uint32_t it = 0; it < NEvTypes; it++) {
     pc.outputs().snapshot(Output{o2::header::gDataOriginMID, "DATA", it, Lifetime::Timeframe}, cols[it]);
@@ -59,18 +62,18 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   }
 
   mTimer.Stop();
-  LOG(INFO) << "Decoded {" << cols[0].size() << ',' << cols[1].size() << ',' << cols[2].size()
+  LOG(info) << "Decoded {" << cols[0].size() << ',' << cols[1].size() << ',' << cols[2].size()
             << "} MID columns for {" << rofs[0].size() << ',' << rofs[1].size() << ',' << rofs[2].size()
             << "} ROFRecords in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "MID Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "MID Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec()
+DataProcessorSpec getEntropyDecoderSpec(int verbosity)
 {
   std::vector<OutputSpec> outputs;
   for (o2::header::DataHeader::SubSpecificationType subSpec = 0; subSpec < NEvTypes; ++subSpec) {
@@ -82,7 +85,7 @@ DataProcessorSpec getEntropyDecoderSpec()
     "mid-entropy-decoder",
     Inputs{InputSpec{"ctf", "MID", "CTFDATA", 0, Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>()},
+    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
     Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};
 }
 

@@ -41,17 +41,28 @@ class FV0TFProcessor final : public o2::framework::Task
 
 } // namespace o2::fv0
 
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+{
+  std::vector<ConfigParamSpec> options;
+  options.push_back(ConfigParamSpec{"dispatcher-mode", VariantType::Bool, false, {"Dispatcher mode (FV0/SUB_DIGITSCH and FV0/SUB_DIGITSBC DPL channels should be applied as dispatcher output)."}});
+  std::swap(workflowOptions, options);
+}
+
 #include "Framework/runDataProcessing.h"
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-
+  Inputs inputs{};
+  if (cfgc.options().get<bool>("dispatcher-mode")) {
+    inputs.push_back(InputSpec{{"channels"}, "FV0", "SUB_DIGITSCH"});
+    inputs.push_back(InputSpec{{"digits"}, "FV0", "SUB_DIGITSBC"});
+  } else {
+    inputs.push_back(InputSpec{{"channels"}, "FV0", "DIGITSCH"});
+    inputs.push_back(InputSpec{{"digits"}, "FV0", "DIGITSBC"});
+  }
   DataProcessorSpec dataProcessorSpec{
     "FV0TFProcessor",
-    Inputs{
-      {{"channels"}, "FV0", "DIGITSCH"},
-      {{"digits"}, "FV0", "DIGITSBC"},
-    },
+    inputs,
     Outputs{
       {{"calib"}, "FV0", "CALIB_INFO"}},
     AlgorithmSpec{adaptFromTask<o2::fv0::FV0TFProcessor>()},

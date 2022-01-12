@@ -155,7 +155,7 @@ void DataReaderTask::buildHistograms()
 }
 void DataReaderTask::init(InitContext& ic)
 {
-  LOG(INFO) << "o2::trd::DataReadTask init";
+  LOG(info) << "o2::trd::DataReadTask init";
 
   auto finishFunction = [this]() {
     mReader.checkSummary();
@@ -208,7 +208,7 @@ void DataReaderTask::endOfStream(o2::framework::EndOfStreamContext& ec)
 void DataReaderTask::sendData(ProcessingContext& pc, bool blankframe)
 {
   if (!blankframe) {
-    mReader.buildDPLOutputs(pc, mDataVerbose);
+    mReader.buildDPLOutputs(pc);
   } else {
     //ensure the objects we are sending back are indeed blank.
     //TODO maybe put this in buildDPLOutputs so sending all done in 1 place, not now though.
@@ -235,7 +235,7 @@ bool DataReaderTask::isTimeFrameEmpty(ProcessingContext& pc)
     if (dh->payloadSize == 0) {
       auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
       if (++contDeadBeef <= maxWarn) {
-        LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+        LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
              dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,
              contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
       }
@@ -301,8 +301,8 @@ void DataReaderTask::run(ProcessingContext& pc)
   if (mRootOutput) {
     mTimeFrameTime->Fill((int)std::chrono::duration_cast<std::chrono::milliseconds>(dataReadTime).count());
   }
-  LOGP(info, "Digits: {}, Tracklets: {}, DataRead in: {}, Rejected: {} bytes for TF {} in {} ms",
-       mReader.getDigitsFound(), mReader.getTrackletsFound(), mWordsRead * 4, mWordsRejected * 4, tfCount,
+  LOGP(info, "Digits: {}, Tracklets: {}, DataRead in: {:.3f} MB, Rejected: {:.3f} MB for TF {} in {} ms",
+       mReader.getDigitsFound(), mReader.getTrackletsFound(), (float)mWordsRead * 4 / 1024.0 / 1024.0, (float)mWordsRejected * 4 / 1024.0 / 1024.0, tfCount,
        std::chrono::duration_cast<std::chrono::milliseconds>(dataReadTime).count());
 }
 

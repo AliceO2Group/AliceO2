@@ -19,6 +19,7 @@
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataOutputDirector.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DataProcessingStats.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/TableBuilder.h"
 #include "Framework/EndOfStreamContext.h"
@@ -26,6 +27,7 @@
 #include "Framework/InputSpec.h"
 #include "Framework/Logger.h"
 #include "Framework/OutputSpec.h"
+#include "Framework/RawDeviceService.h"
 #include "Framework/Variant.h"
 #include "../../../Algorithm/include/Algorithm/HeaderStack.h"
 #include "Framework/OutputObjHeader.h"
@@ -34,6 +36,7 @@
 #include "Framework/ChannelSpec.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/RuntimeError.h"
+#include <Monitoring/Monitoring.h>
 
 #include "TFile.h"
 #include "TTree.h"
@@ -42,6 +45,8 @@
 #include <ROOT/RDataFrame.hxx>
 #include <ROOT/RArrowDS.hxx>
 #include <ROOT/RVec.hxx>
+
+#include <FairMQDevice.h>
 #include <chrono>
 #include <fstream>
 #include <functional>
@@ -53,9 +58,10 @@ template class std::vector<o2::framework::OutputObjectInfo>;
 template class std::vector<o2::framework::OutputTaskInfo>;
 using namespace o2::framework::data_matcher;
 
-namespace o2
-{
-namespace framework
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+
+namespace o2::framework
 {
 
 struct InputObjectRoute {
@@ -84,9 +90,9 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
     auto inputObjects = std::make_shared<std::vector<std::pair<InputObjectRoute, InputObject>>>();
 
     auto endofdatacb = [inputObjects](EndOfStreamContext& context) {
-      LOG(DEBUG) << "Writing merged objects and histograms to file";
+      LOG(debug) << "Writing merged objects and histograms to file";
       if (inputObjects->empty()) {
-        LOG(ERROR) << "Output object map is empty!";
+        LOG(error) << "Output object map is empty!";
         context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
         return;
       }
@@ -153,7 +159,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
           f[i]->Close();
         }
       }
-      LOG(DEBUG) << "All outputs merged in their respective target files";
+      LOG(debug) << "All outputs merged in their respective target files";
       context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     };
 
@@ -161,22 +167,22 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
     return [inputObjects, objmap, tskmap](ProcessingContext& pc) mutable -> void {
       auto const& ref = pc.inputs().get("x");
       if (!ref.header) {
-        LOG(ERROR) << "Header not found";
+        LOG(error) << "Header not found";
         return;
       }
       if (!ref.payload) {
-        LOG(ERROR) << "Payload not found";
+        LOG(error) << "Payload not found";
         return;
       }
       auto datah = o2::header::get<o2::header::DataHeader*>(ref.header);
       if (!datah) {
-        LOG(ERROR) << "No data header in stack";
+        LOG(error) << "No data header in stack";
         return;
       }
 
       auto objh = o2::header::get<o2::framework::OutputObjHeader*>(ref.header);
       if (!objh) {
-        LOG(ERROR) << "No output object header in stack";
+        LOG(error) << "No output object header in stack";
         return;
       }
 
@@ -197,18 +203,18 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
       obj.name = named->GetName();
       auto hpos = std::find_if(tskmap.begin(), tskmap.end(), [&](auto&& x) { return x.id == hash; });
       if (hpos == tskmap.end()) {
-        LOG(ERROR) << "No task found for hash " << hash;
+        LOG(error) << "No task found for hash " << hash;
         return;
       }
       auto taskname = hpos->name;
       auto opos = std::find_if(objmap.begin(), objmap.end(), [&](auto&& x) { return x.id == hash; });
       if (opos == objmap.end()) {
-        LOG(ERROR) << "No object list found for task " << taskname << " (hash=" << hash << ")";
+        LOG(error) << "No object list found for task " << taskname << " (hash=" << hash << ")";
         return;
       }
       auto objects = opos->bindings;
       if (std::find(objects.begin(), objects.end(), obj.name) == objects.end()) {
-        LOG(ERROR) << "No object " << obj.name << " in map for task " << taskname;
+        LOG(error) << "No object " << obj.name << " in map for task " << taskname;
         return;
       }
       auto nameHash = compile_time_hash(obj.name.c_str());
@@ -220,7 +226,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
       }
       auto merger = existing->second.kind->GetMerge();
       if (!merger) {
-        LOG(ERROR) << "Already one unmergeable object found for " << obj.name;
+        LOG(error) << "Already one unmergeable object found for " << obj.name;
         return;
       }
 
@@ -230,12 +236,12 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
     };
   };
 
+  char const* name = "internal-dpl-aod-global-analysis-file-sink";
   DataProcessorSpec spec{
-    "internal-dpl-aod-global-analysis-file-sink",
-    {InputSpec("x", DataSpecUtils::dataDescriptorMatcherFrom(header::DataOrigin{"ATSK"}))},
-    Outputs{},
-    AlgorithmSpec(writerFunction),
-    {}};
+    .name = name,
+    .inputs = {InputSpec("x", DataSpecUtils::dataDescriptorMatcherFrom(header::DataOrigin{"ATSK"}))},
+    .algorithm = {writerFunction},
+  };
 
   return spec;
 }
@@ -252,7 +258,7 @@ DataProcessorSpec
 {
 
   auto writerFunction = [dod, outputInputs](InitContext& ic) -> std::function<void(ProcessingContext&)> {
-    LOGP(DEBUG, "======== getGlobalAODSink::Init ==========");
+    LOGP(debug, "======== getGlobalAODSink::Init ==========");
 
     // find out if any table needs to be saved
     bool hasOutputsToWrite = false;
@@ -270,7 +276,7 @@ DataProcessorSpec
       return [](ProcessingContext&) mutable -> void {
         static bool once = false;
         if (!once) {
-          LOG(INFO) << "No AODs to be saved.";
+          LOG(info) << "No AODs to be saved.";
           once = true;
         }
       };
@@ -290,12 +296,12 @@ DataProcessorSpec
 
     // this functor is called once per time frame
     return [dod, tfNumbers](ProcessingContext& pc) mutable -> void {
-      LOGP(DEBUG, "======== getGlobalAODSink::processing ==========");
-      LOGP(DEBUG, " processing data set with {} entries", pc.inputs().size());
+      LOGP(debug, "======== getGlobalAODSink::processing ==========");
+      LOGP(debug, " processing data set with {} entries", pc.inputs().size());
 
       // return immediately if pc.inputs() is empty. This should never happen!
       if (pc.inputs().size() == 0) {
-        LOGP(INFO, "No inputs available!");
+        LOGP(info, "No inputs available!");
         return;
       }
 
@@ -312,7 +318,7 @@ DataProcessorSpec
       // loop over the DataRefs which are contained in pc.inputs()
       for (const auto& ref : pc.inputs()) {
         if (!ref.spec) {
-          LOGP(DEBUG, "Invalid input will be skipped!");
+          LOGP(debug, "Invalid input will be skipped!");
           continue;
         }
 
@@ -335,24 +341,24 @@ DataProcessorSpec
         if (it != tfNumbers.end()) {
           tfNumber = (it->second / dod->getNumberTimeFramesToMerge()) * dod->getNumberTimeFramesToMerge();
         } else {
-          LOGP(FATAL, "No time frame number found for output with start time {}", startTime);
+          LOGP(fatal, "No time frame number found for output with start time {}", startTime);
           throw std::runtime_error("Processing is stopped!");
         }
 
         // get the TableConsumer and corresponding arrow table
         auto msg = pc.inputs().get(ref.spec->binding);
         if (msg.header == nullptr) {
-          LOGP(ERROR, "No header for message {}:{}", ref.spec->binding, *ref.spec);
+          LOGP(error, "No header for message {}:{}", ref.spec->binding, *ref.spec);
           continue;
         }
         auto s = pc.inputs().get<TableConsumer>(ref.spec->binding);
         auto table = s->asArrowTable();
         if (!table->Validate().ok()) {
-          LOGP(WARNING, "The table \"{}\" is not valid and will not be saved!", tableName);
+          LOGP(warning, "The table \"{}\" is not valid and will not be saved!", tableName);
           continue;
         }
         if (table->schema()->fields().empty()) {
-          LOGP(DEBUG, "The table \"{}\" is empty but will be saved anyway!", tableName);
+          LOGP(debug, "The table \"{}\" is empty but will be saved anyway!", tableName);
         }
 
         // loop over all DataOutputDescriptors
@@ -420,7 +426,7 @@ DataProcessorSpec
       return [](ProcessingContext&) mutable -> void {
         static bool once = false;
         if (!once) {
-          LOG(DEBUG) << "No dangling output to be dumped.";
+          LOG(debug) << "No dangling output to be dumped.";
           once = true;
         }
       };
@@ -428,9 +434,9 @@ DataProcessorSpec
     auto output = std::make_shared<std::ofstream>(filename.c_str(), std::ios_base::binary);
     return [output, matcher = outputMatcher](ProcessingContext& pc) mutable -> void {
       VariableContext matchingContext;
-      LOG(DEBUG) << "processing data set with " << pc.inputs().size() << " entries";
+      LOG(debug) << "processing data set with " << pc.inputs().size() << " entries";
       for (const auto& entry : pc.inputs()) {
-        LOG(DEBUG) << "  " << *(entry.spec);
+        LOG(debug) << "  " << *(entry.spec);
         auto header = DataRefUtils::getHeader<header::DataHeader*>(entry);
         auto dataProcessingHeader = DataRefUtils::getHeader<DataProcessingHeader*>(entry);
         if (matcher->match(*header, matchingContext) == false) {
@@ -439,7 +445,7 @@ DataProcessorSpec
         output->write(reinterpret_cast<char const*>(header), sizeof(header::DataHeader));
         output->write(reinterpret_cast<char const*>(dataProcessingHeader), sizeof(DataProcessingHeader));
         output->write(entry.payload, o2::framework::DataRefUtils::getPayloadSize(entry));
-        LOG(DEBUG) << "wrote data, size " << o2::framework::DataRefUtils::getPayloadSize(entry);
+        LOG(debug) << "wrote data, size " << o2::framework::DataRefUtils::getPayloadSize(entry);
       }
     };
   };
@@ -495,14 +501,36 @@ DataProcessorSpec CommonDataProcessors::getGlobalFairMQSink(std::vector<InputSpe
   return specifyFairMQDeviceOutputProxy("internal-dpl-injected-output-proxy", danglingOutputInputs, defaultChannelConfig.c_str());
 }
 
-DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> const& danglingOutputInputs)
+DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> const& danglingOutputInputs, int rateLimitingIPCID)
 {
   return DataProcessorSpec{
-    "internal-dpl-injected-dummy-sink",
-    danglingOutputInputs,
-    Outputs{},
-    AlgorithmSpec([](ProcessingContext& ctx) {})};
+    .name = "internal-dpl-injected-dummy-sink",
+    .inputs = danglingOutputInputs,
+    .algorithm = AlgorithmSpec{adaptStateful([](CallbackService& callbacks) {
+      auto dataConsumed = [](ServiceRegistry& services) {
+        services.get<DataProcessingStats>().consumedTimeframes++;
+        auto device = services.get<RawDeviceService>().device();
+        auto channel = device->fChannels.find("metric-feedback");
+        if (channel != device->fChannels.end()) {
+          FairMQMessagePtr payload(device->NewMessage());
+          int64_t* consumed = (int64_t*)malloc(sizeof(int64_t));
+          *consumed = services.get<DataProcessingStats>().consumedTimeframes;
+          payload->Rebuild(consumed, sizeof(int64_t), nullptr, nullptr);
+          channel->second[0].Send(payload);
+        }
+      };
+      callbacks.set(CallbackService::Id::DataConsumed, dataConsumed);
+
+      return adaptStateless([]() {
+      });
+    })},
+    .options = rateLimitingIPCID != -1 ? std::vector<ConfigParamSpec>{{"channel-config", VariantType::String, // raw input channel
+                                                                       "name=metric-feedback,type=push,method=bind,address=ipc://@metric-feedback-" + std::to_string(rateLimitingIPCID) + ",transport=shmem,rateLogging=0",
+                                                                       {"Out-of-band channel config"}}}
+                                       : std::vector<ConfigParamSpec>()
+
+  };
 }
 
-} // namespace framework
-} // namespace o2
+#pragma GCC diagnostic pop
+} // namespace o2::framework

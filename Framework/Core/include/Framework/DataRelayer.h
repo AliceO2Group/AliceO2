@@ -88,20 +88,18 @@ class DataRelayer
 
   /// This is to relay a whole set of FairMQMessages, all which are part
   /// of the same set of split parts.
-  /// @a firstHeader is the first message of such set
-  /// @a restOfParts is a pointer to the rest of the messages
-  /// @a restSize is how many messages are there in restOfParts
-  /// is the header which is common across all subsequent elements.
+  /// @a rawHeader raw header pointer
+  /// @a messages pointer to array of messages
+  /// @a nMessages size of the array
+  /// @a nPayloads number of payploads in the message sequence, default is 1
+  ///              which is the standard header-payload message pair, in this
+  ///              case nMessages / 2 pairs will be inserted and considered
+  ///              separate parts
   /// Notice that we expect that the header is an O2 Header Stack
-  RelayChoice relay(std::unique_ptr<FairMQMessage>& firstHeader,
-                    std::unique_ptr<FairMQMessage>* restOfParts,
-                    size_t restSize);
-
-  /// This is used to ask for relaying a given (header,payload) pair.
-  /// Notice that we expect that the header is an O2 Header Stack
-  /// with a DataProcessingHeader inside so that we can assess time.
-  RelayChoice relay(std::unique_ptr<FairMQMessage>& header,
-                    std::unique_ptr<FairMQMessage>& payload);
+  RelayChoice relay(void const* rawHeader,
+                    std::unique_ptr<FairMQMessage>* messages,
+                    size_t nMessages,
+                    size_t nPayloads = 1);
 
   /// @returns the actions ready to be performed.
   void getReadyToProcess(std::vector<RecordAction>& completed);
@@ -109,7 +107,8 @@ class DataRelayer
   /// Returns an input registry associated to the given timeslice and gives
   /// ownership to the caller. This is because once the inputs are out of the
   /// DataRelayer they need to be deleted once the processing is concluded.
-  std::vector<MessageSet> getInputsForTimeslice(TimesliceSlot id);
+  std::vector<MessageSet> consumeAllInputsForTimeslice(TimesliceSlot id);
+  std::vector<MessageSet> consumeExistingInputsForTimeslice(TimesliceSlot id);
 
   /// Returns how many timeslices we can handle in parallel
   size_t getParallelTimeslices() const;
@@ -138,6 +137,8 @@ class DataRelayer
   uint32_t getFirstTFCounterForSlot(TimesliceSlot slot);
   /// Get the runNumber associated to a given slot
   uint32_t getRunNumberForSlot(TimesliceSlot slot);
+  /// Get the creation time associated to a given slot
+  uint64_t getCreationTimeForSlot(TimesliceSlot slot);
   /// Remove all pending messages
   void clear();
 
@@ -156,6 +157,7 @@ class DataRelayer
 
   CompletionPolicy mCompletionPolicy;
   std::vector<size_t> mDistinctRoutesIndex;
+  std::vector<InputSpec> mInputs;
   std::vector<data_matcher::DataDescriptorMatcher> mInputMatchers;
   std::vector<data_matcher::VariableContext> mVariableContextes;
   std::vector<CacheEntryStatus> mCachedStateMetrics;

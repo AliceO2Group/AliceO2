@@ -9,8 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DetectorsCommonDataFormats/NameConf.h"
-#include "DataFormatsEMCAL/EMCALBlockHeader.h"
+#include "CommonUtils/NameConf.h"
 #include "EMCALWorkflow/PublisherSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
@@ -67,9 +66,8 @@ o2::framework::DataProcessorSpec createPublisherSpec(PublisherConf const& config
       }
 
       auto publish = [&processAttributes, &pc, propagateMC]() {
-        o2::emcal::EMCALBlockHeader emcheader(true);
         if (processAttributes->reader->next()) {
-          (*processAttributes->reader)(pc, emcheader);
+          (*processAttributes->reader)(pc);
         } else {
           processAttributes->reader.reset();
           return false;
@@ -108,7 +106,7 @@ o2::framework::DataProcessorSpec createPublisherSpec(PublisherConf const& config
     {createOutputSpecs()},
     o2::framework::AlgorithmSpec(initFunction),
     o2::framework::Options{
-      {"infile", o2::framework::VariantType::String, "", {"Name of the input file"}},
+      {"infile", o2::framework::VariantType::String, config.defaultFileName, {"Name of the input file"}},
       {"input-dir", o2::framework::VariantType::String, "none", {"Input directory"}},
       {"treename", o2::framework::VariantType::String, config.defaultTreeName.c_str(), {"Name of input tree"}},
       {dtb.option.c_str(), o2::framework::VariantType::String, dtb.defval.c_str(), {dtb.help.c_str()}},

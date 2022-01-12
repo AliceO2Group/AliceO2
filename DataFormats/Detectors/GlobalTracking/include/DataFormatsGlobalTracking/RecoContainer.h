@@ -47,7 +47,7 @@ class Tracklet64;
 class CalibratedTracklet;
 class TriggerRecord;
 class TrackTriggerRecord;
-//class TrackTRD;
+// class TrackTRD;
 struct RecoInputContainer;
 } // namespace o2::trd
 
@@ -71,7 +71,7 @@ namespace o2::mch
 {
 class TrackMCH;
 class ROFRecord;
-class ClusterStruct;
+class Cluster;
 } // namespace o2::mch
 
 namespace o2::mid
@@ -157,6 +157,8 @@ class V0;
 class Cascade;
 class TrackCosmics;
 class GlobalFwdTrack;
+class MatchInfoFwd;
+class TrackMCHMID;
 class IRFrame;
 } // namespace o2::dataformats
 
@@ -195,10 +197,12 @@ struct DataRequest {
   void requestTPCTracks(bool mc);
   void requestITSTPCTracks(bool mc);
   void requestGlobalFwdTracks(bool mc);
+  void requestMFTMCHMatches(bool mc);
+  void requestMCHMIDMatches(bool mc);
   void requestTPCTOFTracks(bool mc);
   void requestITSTPCTRDTracks(bool mc);
   void requestTPCTRDTracks(bool mc);
-  void requestTOFMatches(bool mc);
+  void requestTOFMatches(o2::dataformats::GlobalTrackID::mask_t src, bool mc);
   void requestFT0RecPoints(bool mc);
   void requestFV0RecPoints(bool mc);
   void requestFDDRecPoints(bool mc);
@@ -315,7 +319,11 @@ struct RecoContainer {
   void addITSTPCTracks(o2::framework::ProcessingContext& pc, bool mc);
   void addGlobalFwdTracks(o2::framework::ProcessingContext& pc, bool mc);
   void addTPCTOFTracks(o2::framework::ProcessingContext& pc, bool mc);
-  void addTOFMatches(o2::framework::ProcessingContext& pc, bool mc);
+  void addTOFMatchesITSTPC(o2::framework::ProcessingContext& pc, bool mc);
+  void addTOFMatchesTPCTRD(o2::framework::ProcessingContext& pc, bool mc);
+  void addTOFMatchesITSTPCTRD(o2::framework::ProcessingContext& pc, bool mc);
+  void addMFTMCHMatches(o2::framework::ProcessingContext& pc, bool mc);
+  void addMCHMIDMatches(o2::framework::ProcessingContext& pc, bool mc);
 
   void addITSClusters(o2::framework::ProcessingContext& pc, bool mc);
   void addMFTClusters(o2::framework::ProcessingContext& pc, bool mc);
@@ -405,9 +413,9 @@ struct RecoContainer {
 
   o2::MCCompLabel getTrackMCLabel(GTrackID id) const
   {
-    //RS FIXME: THIS IS TEMPORARY: some labels are still not implemented: in this case return dummy label
+    // RS FIXME: THIS IS TEMPORARY: some labels are still not implemented: in this case return dummy label
     return commonPool[id.getSource()].getSize(MCLABELS) ? getObject<o2::MCCompLabel>(id, MCLABELS) : o2::MCCompLabel{};
-    //return getObject<o2::MCCompLabel>(id, MCLABELS);
+    // return getObject<o2::MCCompLabel>(id, MCLABELS);
   }
 
   //--------------------------------------------
@@ -450,7 +458,7 @@ struct RecoContainer {
   const o2::mch::TrackMCH& getMCHTrack(GTrackID gid) const { return getTrack<o2::mch::TrackMCH>(gid); }
   auto getMCHTracks() const { return getTracks<o2::mch::TrackMCH>(GTrackID::MCH); }
   auto getMCHTracksROFRecords() const { return getSpan<o2::mch::ROFRecord>(GTrackID::MCH, TRACKREFS); }
-  auto getMCHTrackClusters() const { return getSpan<o2::mch::ClusterStruct>(GTrackID::MCH, CLUSREFS); }
+  auto getMCHTrackClusters() const { return getSpan<o2::mch::Cluster>(GTrackID::MCH, CLUSREFS); }
   auto getMCHTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::MCH, MCLABELS); }
 
   // MID
@@ -480,7 +488,11 @@ struct RecoContainer {
   // MFT-MCH
   const o2::dataformats::GlobalFwdTrack& getGlobalFwdTrack(GTrackID gid) const { return getTrack<o2::dataformats::GlobalFwdTrack>(gid); }
   auto getGlobalFwdTracks() const { return getTracks<o2::dataformats::GlobalFwdTrack>(GTrackID::MFTMCH); }
+  auto getMFTMCHMatches() const { return getSpan<o2::dataformats::MatchInfoFwd>(GTrackID::MFTMCH, MATCHES); }
   auto getGlobalFwdTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::MFTMCH, MCLABELS); }
+
+  // MCH
+  auto getMCHMIDMatches() const { return getSpan<o2::dataformats::TrackMCHMID>(GTrackID::MCHMID, MATCHES); }
 
   // ITS-TPC-TRD, since the TrackTRD track is just an alias, forward-declaring it does not work, need to keep template
   template <class U>

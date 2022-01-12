@@ -18,7 +18,7 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "TRDBase/SimParam.h"
+#include "TRDSimulation/SimParam.h"
 #include "TRDBase/Geometry.h"
 #include "TRDBase/FeeParam.h"
 #include "TRDBase/CalOnlineGainTables.h"
@@ -2028,11 +2028,13 @@ void TrapSimulator::fitTracklet()
         }
 
         slope = slope & 0xff; // 8 bit
+        slope = slope ^ 0x80; // TODO temporary hack to compensate for XOR in Tracklet64::getSlope() as per data coming off the trap chips
 
         if (position > 0x3ff || position < -0x400) {
           LOG(warning) << "Overflow in position with position of " << position << " in hex 0x" << std::hex << position;
         }
         position = position & 0x7ff; // 11 bits
+        position = position ^ 0x80;  //TODO temporary hack to compensate for XOR in Tracklet64::getPosition() as per data coming off the trap chips
 
         // assemble and store the tracklet word
         TrackletMCMData trackletword;

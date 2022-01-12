@@ -86,14 +86,14 @@ void Detector::InitializeO2Detector()
 
   vol = gGeoManager->GetVolume("FDApad");
   if (!vol) {
-    LOG(FATAL) << "can't find volume FDApad";
+    LOG(fatal) << "can't find volume FDApad";
   } else {
     AddSensitiveVolume(vol);
   }
 
   vol = gGeoManager->GetVolume("FDCpad");
   if (!vol) {
-    LOG(FATAL) << "can't find volume FDCpad";
+    LOG(fatal) << "can't find volume FDCpad";
   } else {
     AddSensitiveVolume(vol);
   }
@@ -176,7 +176,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 //_____________________________________________________________________________
 Hit* Detector::addHit(int trackID, unsigned short detID, const TVector3& Pos, double Time, double eLoss, int nPhot)
 {
-  //LOG(INFO) << "FDD hit "<<trackID<<" "<<detID<<" "<<Time<<" "<<eLoss<<" "<<nPhot;
+  //LOG(info) << "FDD hit "<<trackID<<" "<<detID<<" "<<Time<<" "<<eLoss<<" "<<nPhot;
   mHits->emplace_back(trackID, detID, Pos, Time, eLoss, nPhot);
   auto stack = (o2::data::Stack*)fMC->GetStack();
   stack->addHit(GetDetId());

@@ -15,6 +15,8 @@
 #include "TRDBase/Geometry.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/CalibratedTracklet.h"
+#include "DataFormatsTRD/CalVdriftExB.h"
+#include "CCDB/BasicCCDBManager.h"
 
 namespace o2
 {
@@ -37,21 +39,26 @@ class TrackletTransformer
   void setXDrift(float x) { mXDrift = x; }
   void setXtb0(float x) { mXtb0 = x; }
 
+  bool hasCalibration() { return mCalibration != nullptr; }
+
   void loadPadPlane(int hcid);
+
+  // use 555555 for default calibration values
+  void loadCalibrationParameters(int timestamp);
 
   float calculateY(int hcid, int column, int position);
 
   float calculateZ(int padrow);
 
-  float calculateDy(int slope, double lorentzAngle, double driftVRatio);
+  float calculateDy(int hcid, int slope);
 
-  float calibrateX(double x, double t0Correction);
+  float calibrateX(double x);
 
   std::array<float, 3> transformL2T(int hcid, std::array<double, 3> spacePoint);
 
   CalibratedTracklet transformTracklet(Tracklet64 tracklet);
 
-  double getTimebin(double x);
+  double getTimebin(int detector, double x);
 
  private:
   o2::trd::Geometry* mGeo;
@@ -62,9 +69,7 @@ class TrackletTransformer
   float mXDrift;
   float mXtb0;
 
-  float mt0Correction;
-  float mLorentzAngle;
-  float mDriftVRatio;
+  o2::trd::CalVdriftExB* mCalibration;
 };
 
 } // namespace trd

@@ -65,7 +65,7 @@ class RawReaderBase
       refDataBlock.decodeBlock(binaryPayload, srcPos);
       srcPos += refDataBlock.mSize;
       if (!refDataBlock.isCorrect()) {
-        LOG(WARNING) << "INCORRECT DATA BLOCK! Byte position: " << srcPos - refDataBlock.mSize << " | Payload size: " << binaryPayload.size() << " | DataBlock size: " << refDataBlock.mSize;
+        LOG(warning) << "INCORRECT DATA BLOCK! Byte position: " << srcPos - refDataBlock.mSize << " | Payload size: " << binaryPayload.size() << " | DataBlock size: " << refDataBlock.mSize;
         refDataBlock.print();
         vecDataBlocks.pop_back();
         return srcPos;
@@ -97,7 +97,7 @@ class RawReaderBase
       dataBlock.decodeBlock(payload, srcPos);
       srcPos += dataBlock.mSize;
       if (!dataBlock.isCorrect()) {
-        LOG(WARNING) << "INCORRECT DATA BLOCK! Byte position: " << srcPos << " | Payload size: " << payload.size() << " | DataBlock size: " << dataBlock.mSize;
+        LOG(warning) << "INCORRECT DATA BLOCK! Byte position: " << srcPos << " | Payload size: " << payload.size() << " | DataBlock size: " << dataBlock.mSize;
         //dataBlock.print();
         return;
       }

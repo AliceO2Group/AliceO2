@@ -13,7 +13,7 @@
 #include <FairEventHeader.h>
 #include <FairGeoParSet.h>
 #include <FairLogger.h>
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 
 #include "SimulationDataFormat/MCEventHeader.h"
 
@@ -78,13 +78,13 @@ void run_trac_ca_its(bool cosmics = false,
   //-------- init geometry and field --------//
   const auto grp = o2::parameters::GRPObject::loadFrom(path + inputGRP);
   if (!grp) {
-    LOG(FATAL) << "Cannot run w/o GRP object";
+    LOG(fatal) << "Cannot run w/o GRP object";
   }
   o2::base::GeometryManager::loadGeometry(path);
   o2::base::Propagator::initFieldFromGRP(grp);
   auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
   if (!field) {
-    LOG(FATAL) << "Failed to load ma";
+    LOG(fatal) << "Failed to load ma";
   }
   double origD[3] = {0., 0., 0.};
 
@@ -92,11 +92,11 @@ void run_trac_ca_its(bool cosmics = false,
 
   bool isITS = grp->isDetReadOut(o2::detectors::DetID::ITS);
   if (!isITS) {
-    LOG(WARNING) << "ITS is not in the readout";
+    LOG(warning) << "ITS is not in the readout";
     return;
   }
   bool isContITS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS);
-  LOG(INFO) << "ITS is in " << (isContITS ? "CONTINUOS" : "TRIGGERED") << " readout mode";
+  LOG(info) << "ITS is in " << (isContITS ? "CONTINUOS" : "TRIGGERED") << " readout mode";
 
   auto gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
@@ -107,31 +107,31 @@ void run_trac_ca_its(bool cosmics = false,
   itsClusters.AddFile((path + inputClustersITS).data());
 
   if (!itsClusters.GetBranch("ITSClusterComp")) {
-    LOG(FATAL) << "Did not find ITS clusters branch ITSClusterComp in the input tree";
+    LOG(fatal) << "Did not find ITS clusters branch ITSClusterComp in the input tree";
   }
   std::vector<o2::itsmft::CompClusterExt>* cclusters = nullptr;
   itsClusters.SetBranchAddress("ITSClusterComp", &cclusters);
 
   if (!itsClusters.GetBranch("ITSClusterPatt")) {
-    LOG(FATAL) << "Did not find ITS cluster patterns branch ITSClusterPatt in the input tree";
+    LOG(fatal) << "Did not find ITS cluster patterns branch ITSClusterPatt in the input tree";
   }
   std::vector<unsigned char>* patterns = nullptr;
   itsClusters.SetBranchAddress("ITSClusterPatt", &patterns);
 
   MCLabCont* labels = nullptr;
   if (!itsClusters.GetBranch("ITSClusterMCTruth")) {
-    LOG(WARNING) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree";
+    LOG(warning) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree";
   } else {
     itsClusters.SetBranchAddress("ITSClusterMCTruth", &labels);
   }
 
   if (!itsClusters.GetBranch("ITSClustersROF")) {
-    LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
+    LOG(fatal) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
   }
 
   std::vector<o2::itsmft::MC2ROFRecord>* mc2rofs = nullptr;
   if (!itsClusters.GetBranch("ITSClustersMC2ROF")) {
-    LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
+    LOG(fatal) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
   }
   itsClusters.SetBranchAddress("ITSClustersMC2ROF", &mc2rofs);
 
@@ -144,14 +144,14 @@ void run_trac_ca_its(bool cosmics = false,
 
   o2::itsmft::TopologyDictionary dict;
   if (dictfile.empty()) {
-    dictfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "", "bin");
+    dictfile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "");
   }
   std::ifstream file(dictfile.c_str());
   if (file.good()) {
-    LOG(INFO) << "Running with dictionary: " << dictfile.c_str();
-    dict.readBinaryFile(dictfile);
+    LOG(info) << "Running with dictionary: " << dictfile.c_str();
+    dict.readFromFile(dictfile);
   } else {
-    LOG(INFO) << "Running without dictionary !";
+    LOG(info) << "Running without dictionary !";
   }
 
   //-------------------------------------------------
@@ -173,7 +173,7 @@ void run_trac_ca_its(bool cosmics = false,
   outTree.Branch("Vertices", &verticesPtr);
   outTree.Branch("VerticesROF", &vertROFvecPtr);
   if (!itsClusters.GetBranch("ITSClustersROF")) {
-    LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
+    LOG(fatal) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
   }
 
   o2::its::VertexerTraits* traits = o2::its::createVertexerTraits();
@@ -192,18 +192,13 @@ void run_trac_ca_its(bool cosmics = false,
   std::vector<TrackingParameters> trackParams(1);
   std::vector<MemoryParameters> memParams(1);
   if (cosmics) {
-    trackParams[0].MinTrackLength = 3;
-    trackParams[0].TrackletMaxDeltaPhi = o2::its::constants::math::Pi * 0.5f;
-    for (int iLayer = 0; iLayer < o2::its::constants::its2::TrackletsPerRoad; iLayer++) {
-      trackParams[0].TrackletMaxDeltaZ[iLayer] = o2::its::constants::its2::LayersZCoordinate()[iLayer + 1];
-      memParams[0].TrackletsMemoryCoefficients[iLayer] = 0.5f;
-      // trackParams[0].TrackletMaxDeltaZ[iLayer] = 10.f;
-    }
-    for (int iLayer = 0; iLayer < o2::its::constants::its2::CellsPerRoad; iLayer++) {
-      trackParams[0].CellMaxDCA[iLayer] = 10000.f;    //cm
-      trackParams[0].CellMaxDeltaZ[iLayer] = 10000.f; //cm
-      memParams[0].CellsMemoryCoefficients[iLayer] = 0.001f;
-    }
+    trackParams[0].MinTrackLength = 4;
+    trackParams[0].CellDeltaTanLambdaSigma *= 400;
+    trackParams[0].PhiBins = 4;
+    trackParams[0].ZBins = 16;
+    trackParams[0].PVres = 1.e5f;
+    trackParams[0].FitIterationMaxChi2[0] = 1.e28;
+    trackParams[0].FitIterationMaxChi2[1] = 1.e28;
   } else {
     // PbPb tracking params
     // ----
@@ -218,24 +213,12 @@ void run_trac_ca_its(bool cosmics = false,
     // memParams.resize(3);
     // ---
     // Uncomment for pp
-    trackParams.resize(2);
-    std::array<const float, 5> kmaxDCAxy1 = {1.f * 2.0, 0.4f * 2.0, 0.4f * 2.0, 2.0f * 2.0, 3.f * 2.0};
-    std::array<const float, 5> kmaxDCAz1 = {1.f * 2.0, 0.4f * 2.0, 0.4f * 2.0, 2.0f * 2.0, 3.f * 2.0};
-    std::array<const float, 4> kmaxDN1 = {0.005f * 2.0, 0.0035f * 2.0, 0.009f * 2.0, 0.03f * 2.0};
-    std::array<const float, 4> kmaxDP1 = {0.02f * 2.0, 0.005f * 2.0, 0.006f * 2.0, 0.007f * 2.0};
-    std::array<const float, 6> kmaxDZ1 = {1.f * 2.0, 1.f * 2.0, 2.0f * 2.0, 2.0f * 2.0, 2.0f * 2.0, 2.0f * 2.0};
-    const float kDoublTanL1 = 0.05f * 5.;
-    const float kDoublPhi1 = 0.2f * 5.;
-    trackParams[1].MinTrackLength = 4;
-    trackParams[1].TrackletMaxDeltaPhi = 0.3;
-    trackParams[1].CellMaxDeltaPhi = 0.2 * 2;
-    trackParams[1].CellMaxDeltaTanLambda = 0.05 * 2;
-    std::copy(kmaxDZ1.begin(), kmaxDZ1.end(), trackParams[1].TrackletMaxDeltaZ.begin());
-    std::copy(kmaxDCAxy1.begin(), kmaxDCAxy1.end(), trackParams[1].CellMaxDCA.begin());
-    std::copy(kmaxDCAz1.begin(), kmaxDCAz1.end(), trackParams[1].CellMaxDeltaZ.begin());
-    std::copy(kmaxDP1.begin(), kmaxDP1.end(), trackParams[1].NeighbourMaxDeltaCurvature.begin());
-    std::copy(kmaxDN1.begin(), kmaxDN1.end(), trackParams[1].NeighbourMaxDeltaN.begin());
-    memParams.resize(2);
+    trackParams.resize(3);
+    trackParams[1].TrackletMinPt = 0.2f;
+    trackParams[2].TrackletMinPt = 0.1f;
+    trackParams[2].DeltaROF = 1;
+    trackParams[2].MinTrackLength = 4;
+    memParams.resize(3);
     // ---
   }
 
@@ -298,9 +281,9 @@ void run_trac_ca_its(bool cosmics = false,
   }
 
   if (tracker.isMatLUT()) {
-    LOG(INFO) << "Loaded material LUT from " << matLUTFile;
+    LOG(info) << "Loaded material LUT from " << matLUTFile;
   } else {
-    LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+    LOG(info) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
   }
 
   tracker.setBz(field->getBz(origD));

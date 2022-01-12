@@ -23,7 +23,6 @@ foreach(impl RANGE 3 4)
                 COMPONENT_NAME mchmapping
                 COMMAND_LINE_ARGS --filepattern ${CMAKE_CURRENT_LIST_DIR}/data/test_pad_indices_de{}.json
                 --de 100
-                --de 300
                 --de 500
                 --de 501
                 --de 502
@@ -43,6 +42,23 @@ foreach(impl RANGE 3 4)
                 --de 903
                 --de 904
                 --de 905
+                PUBLIC_LINK_LIBRARIES O2::MCHMappingImpl${impl} O2::MCHMappingSegContour
+                RapidJSON::RapidJSON Boost::program_options
+                NO_BOOST_TEST
+                LABELS "muon;mch;long")
+
+# station2 is a bit special as it lost one front-end card between Run2
+# and Run3
+        set(run _run2)
+        if (${impl} EQUAL "4")
+            set(run _run3)
+        endif()
+        o2_add_test(PadIndices${impl}St2
+                NAME o2-test-mchmapping-pad-indices-impl${impl}-st2${run}
+                SOURCES src/testPadIndices.cxx
+                COMPONENT_NAME mchmapping
+                COMMAND_LINE_ARGS --filepattern ${CMAKE_CURRENT_LIST_DIR}/data/test_pad_indices_de{}${run}.json
+                --de 300
                 PUBLIC_LINK_LIBRARIES O2::MCHMappingImpl${impl} O2::MCHMappingSegContour
                 RapidJSON::RapidJSON Boost::program_options
                 NO_BOOST_TEST
@@ -70,7 +86,10 @@ o2_add_test(StressTest4
         PUBLIC_LINK_LIBRARIES O2::MCHMappingImpl4 O2::MCHMappingSegContour
         RapidJSON::RapidJSON
         CONFIGURATIONS RelWithDebInfo Release MinSizeRel
-        LABELS "muon;mch;long")
+        LABELS "muon;mch;long"
+        TARGETVARNAME targetName)
+
+target_compile_definitions(${targetName} PRIVATE MCH_MAPPING_RUN3_AND_ABOVE)
 
 if(benchmark_FOUND)
         o2_add_executable(segmentation4

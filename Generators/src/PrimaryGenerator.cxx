@@ -53,11 +53,11 @@ Bool_t PrimaryGenerator::Init()
 {
   /** init **/
 
-  LOG(INFO) << "Initialising primary generator";
+  LOG(info) << "Initialising primary generator";
 
   /** embedding **/
   if (mEmbedTree) {
-    LOG(INFO) << "Embedding into: " << mEmbedFile->GetName()
+    LOG(info) << "Embedding into: " << mEmbedFile->GetName()
               << " (" << mEmbedEntries << " events)";
     return FairPrimaryGenerator::Init();
   }
@@ -126,7 +126,7 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
                                 Int_t daughter1, Int_t daughter2,
                                 Bool_t wanttracking,
                                 Double_t e, Double_t tof,
-                                Double_t weight, TMCProcess proc)
+                                Double_t weight, TMCProcess proc, Int_t generatorStatus)
 {
   /** add track **/
 
@@ -138,7 +138,7 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
   /** check if particle to be tracked exists in PDG database **/
   auto particlePDG = TDatabasePDG::Instance()->GetParticle(pdgid);
   if (wanttracking && !particlePDG) {
-    LOG(WARN) << "Particle to be tracked is not defined in PDG: pdg = " << pdgid;
+    LOG(warn) << "Particle to be tracked is not defined in PDG: pdg = " << pdgid;
     wanttracking = false;
   }
 
@@ -152,7 +152,7 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
   Double_t poly = 0.;
   Double_t polz = 0.;
   Int_t ntr = 0;    // Track number; to be filled by the stack
-  Int_t status = 0; // Generation status
+  Int_t status = generatorStatus; // Generation status
 
   // correct for tracks which are in list before generator is called
   if (mother1 != -1) {
@@ -177,7 +177,7 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
       is not done for the time being.
   **/
   if (abs(pdgid) == 311 && doTracking) {
-    LOG(WARN) << "K0/antiK0 requested for tracking: converting into K0s/K0L";
+    LOG(warn) << "K0/antiK0 requested for tracking: converting into K0s/K0L";
     pdgid = gRandom->Uniform() < 0.5 ? 310 : 130;
   }
 
@@ -190,7 +190,7 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
   /** add track to stack **/
   auto stack = dynamic_cast<o2::data::Stack*>(fStack);
   if (!stack) {
-    LOG(FATAL) << "Stack must be an o2::data:Stack";
+    LOG(fatal) << "Stack must be an o2::data:Stack";
     return; // must be the o2 stack
   }
   stack->PushTrack(doTracking, mother1, pdgid, px, py, pz,
@@ -206,9 +206,9 @@ void PrimaryGenerator::setInteractionDiamond(const Double_t* xyz, const Double_t
 {
   /** set interaction diamond **/
 
-  LOG(INFO) << "Setting interaction diamond: position = {"
+  LOG(info) << "Setting interaction diamond: position = {"
             << xyz[0] << "," << xyz[1] << "," << xyz[2] << "} cm";
-  LOG(INFO) << "Setting interaction diamond: width = {"
+  LOG(info) << "Setting interaction diamond: width = {"
             << sigmaxyz[0] << "," << sigmaxyz[1] << "," << sigmaxyz[2] << "} cm";
   SetBeam(xyz[0], xyz[1], sigmaxyz[0], sigmaxyz[1]);
   SetTarget(xyz[2], sigmaxyz[2]);
@@ -225,7 +225,7 @@ void PrimaryGenerator::setInteractionDiamond(const Double_t* xyz, const Double_t
     SmearGausVertexXY(true);
     SmearGausVertexZ(true);
   } else {
-    LOG(ERROR) << "PrimaryGenerator: Unsupported vertex distribution";
+    LOG(error) << "PrimaryGenerator: Unsupported vertex distribution";
   }
 }
 
@@ -252,28 +252,28 @@ Bool_t PrimaryGenerator::embedInto(TString fname)
 
   /** check if a file is already open **/
   if (mEmbedFile && mEmbedFile->IsOpen()) {
-    LOG(ERROR) << "Another embedding file is currently open";
+    LOG(error) << "Another embedding file is currently open";
     return kFALSE;
   }
 
   /** open file **/
   mEmbedFile = TFile::Open(fname);
   if (!mEmbedFile || !mEmbedFile->IsOpen()) {
-    LOG(ERROR) << "Cannot open file for embedding: " << fname;
+    LOG(error) << "Cannot open file for embedding: " << fname;
     return kFALSE;
   }
 
   /** get tree **/
   mEmbedTree = (TTree*)mEmbedFile->Get("o2sim");
   if (!mEmbedTree) {
-    LOG(ERROR) << R"(Cannot find "o2sim" tree for embedding in )" << fname;
+    LOG(error) << R"(Cannot find "o2sim" tree for embedding in )" << fname;
     return kFALSE;
   }
 
   /** get entries **/
   mEmbedEntries = mEmbedTree->GetEntries();
   if (mEmbedEntries <= 0) {
-    LOG(ERROR) << "Invalid number of entries found in tree for embedding: " << mEmbedEntries;
+    LOG(error) << "Invalid number of entries found in tree for embedding: " << mEmbedEntries;
     return kFALSE;
   }
 

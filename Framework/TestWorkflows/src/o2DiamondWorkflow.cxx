@@ -16,15 +16,15 @@
 #include "Framework/ControlService.h"
 #include "Framework/Configurable.h"
 #include "Framework/RunningWorkflowInfo.h"
+#include "Framework/CallbackService.h"
 #include <FairMQDevice.h>
-#include <InfoLogger/InfoLogger.hxx>
 
+#include <iostream>
 #include <chrono>
 #include <thread>
 #include <vector>
 
 using namespace o2::framework;
-using namespace AliceO2::InfoLogger;
 
 struct WorkflowOptions {
   Configurable<int> anInt{"anInt", 1, ""};
@@ -34,13 +34,32 @@ struct WorkflowOptions {
   Configurable<bool> aBool{"aBool", true, {"a boolean option"}};
 };
 
+void customize(std::vector<CallbacksPolicy>& policies)
+{
+  policies.push_back(CallbacksPolicy{
+    .matcher = DeviceMatchers::matchByName("A"),
+    .policy = [](CallbackService& service, InitContext&) {
+      service.set(CallbackService::Id::Start, []() { LOG(info) << "invoked at start"; });
+    }});
+}
+
+void customize(std::vector<SendingPolicy>& policies)
+{
+  policies.push_back(SendingPolicy{
+    .matcher = DeviceMatchers::matchByName("A"),
+    .send = [](FairMQDevice& device, FairMQParts& parts, std::string const& channel) {
+      LOG(info) << "A custom policy for sending invoked!";
+      device.Send(parts, channel, 0);
+    }});
+}
+
 #include "Framework/runDataProcessing.h"
 
 AlgorithmSpec simplePipe(std::string const& what, int minDelay)
 {
   return AlgorithmSpec{adaptStateful([what, minDelay](RunningWorkflowInfo const& runningWorkflow) {
     srand(getpid());
-    LOG(INFO) << "There are " << runningWorkflow.devices.size() << "  devices in the workflow";
+    LOG(info) << "There are " << runningWorkflow.devices.size() << "  devices in the workflow";
     return adaptStateless([what, minDelay](DataAllocator& outputs, RawDeviceService& device) {
       device.device()->WaitFor(std::chrono::milliseconds(minDelay));
       auto& bData = outputs.make<int>(OutputRef{what}, 1);
@@ -57,11 +76,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
      {OutputSpec{{"a1"}, "TST", "A1"},
       OutputSpec{{"a2"}, "TST", "A2"}},
      AlgorithmSpec{adaptStateless(
-       [](DataAllocator& outputs, InfoLogger& logger, RawDeviceService& device, DataTakingContext& context) {
+       [](DataAllocator& outputs, RawDeviceService& device, DataTakingContext& context) {
          device.device()->WaitFor(std::chrono::seconds(rand() % 2));
          auto& aData = outputs.make<int>(OutputRef{"a1"}, 1);
          auto& bData = outputs.make<int>(OutputRef{"a2"}, 1);
-         logger.log("This goes to infologger");
        })},
      {ConfigParamSpec{"some-device-param", VariantType::Int, 1, {"Some device parameter"}}}},
     {"B",
@@ -82,6 +100,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
      AlgorithmSpec{adaptStateless([](InputRecord& inputs) {
        auto ref = inputs.get("b");
        auto header = o2::header::get<const DataProcessingHeader*>(ref.header);
-       LOG(INFO) << header->startTime;
+       LOG(info) << header->startTime;
      })}}};
 }

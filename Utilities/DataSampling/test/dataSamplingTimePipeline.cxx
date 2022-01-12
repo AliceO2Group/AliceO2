@@ -110,7 +110,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
             break;
           }
         }
-        LOG(INFO) << "qcTaskTPC - received data is " << (dataGood ? "correct" : "wrong");
+        LOG(info) << "qcTaskTPC - received data is " << (dataGood ? "correct" : "wrong");
       }
     }
   };

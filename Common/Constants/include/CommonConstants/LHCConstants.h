@@ -23,9 +23,11 @@ namespace constants
 namespace lhc
 {
 // LHC Beam1 and Beam2 definitions
-enum BeamDirection : int { BeamClockWise,
-                           BeamAntiClockWise,
-                           NBeamDirections };
+enum BeamDirection : int { BeamA, // beamA = beam 0,
+                           BeamC, // beamC = beam 1
+                           NBeamDirections,
+                           InteractingBC = -1 // as used in the BunchFilling class
+};
 constexpr int LHCMaxBunches = 3564;                              // max N bunches
 constexpr double LHCRFFreq = 400.789e6;                          // LHC RF frequency in Hz
 constexpr double LHCBunchSpacingNS = 10 * 1.e9 / LHCRFFreq;      // bunch spacing in ns (10 RFbuckets)
@@ -35,8 +37,8 @@ constexpr double LHCBunchSpacingMUS = LHCBunchSpacingNS * 1e-3;  // bunch spacin
 constexpr double LHCOrbitMUS = LHCOrbitNS * 1e-3;                // orbit duration in \mus
 constexpr unsigned int MaxNOrbits = 0xffffffff;
 
-// Offsets of clockwise and anticlockwise beam bunches at P2
-constexpr int BunchOffsetsP2[2] = {346, 3019};
+// Offsets of A, C beam bunches at P2
+constexpr int BunchOffsetsP2[2] = {344, 3017};
 
 // convert LHC bunch ID to BC for 2 beam directions
 constexpr int LHCBunch2P2BC(int bunch, BeamDirection dir)

@@ -36,6 +36,7 @@ class Digit
   ~Digit() = default;
 
   bool operator==(const Digit&) const;
+  bool operator<(const Digit&) const;
 
   // time in bunch crossing units, relative to the beginning of the TimeFrame
   void setTime(int32_t t) { mTFtime = t; }

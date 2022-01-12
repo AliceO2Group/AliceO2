@@ -48,11 +48,11 @@ class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
   void initDigitizerTask(framework::InitContext& ic) override
   {
-    LOG(INFO) << "Initializing ZDC digitization";
+    LOG(info) << "Initializing ZDC digitization";
 
     auto& dopt = o2::conf::DigiParams::Instance();
 
-    mDigitizer.setCCDBServer(dopt.ccdb);
+    mDigitizer.setCCDBServer(o2::base::NameConf::getCCDBServer());
     auto enableHitInfo = ic.options().get<bool>("enable-hit-info");
     mDigitizer.setMaskTriggerBits(!enableHitInfo);
     mDigitizer.setSkipMCLabels(not mUseMC);
@@ -62,7 +62,7 @@ class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
   void run(framework::ProcessingContext& pc)
   {
-    LOG(INFO) << "Doing ZDC digitization";
+    LOG(info) << "Doing ZDC digitization";
 
     // TODO: this should eventually come from the framework and depend on the TF timestamp
     mDigitizer.refreshCCDB();
@@ -93,7 +93,7 @@ class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
       for (auto& part : eventParts[collID]) {
 
         context->retrieveHits(mSimChains, "ZDCHit", part.sourceID, part.entryID, &hits);
-        LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found ZDC " << hits.size() << " hits ";
+        LOG(info) << "For collision " << collID << " eventID " << part.entryID << " found ZDC " << hits.size() << " hits ";
 
         mDigitizer.setEventID(part.entryID);
         mDigitizer.setSrcID(part.sourceID);
@@ -131,7 +131,7 @@ class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
       pc.outputs().snapshot(Output{"ZDC", "DIGITSLBL", 0, Lifetime::Timeframe}, mLabels);
     }
 
-    LOG(INFO) << "ZDC: Sending ROMode= " << mROMode << " to GRPUpdater";
+    LOG(info) << "ZDC: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"ZDC", "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
     // we should be only called once; tell DPL that this process is ready to exit

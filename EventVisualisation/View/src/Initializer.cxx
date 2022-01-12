@@ -22,11 +22,12 @@
 #include "EventVisualisationBase/GeometryManager.h"
 #include "EventVisualisationView/EventManager.h"
 #include "EventVisualisationView/MultiView.h"
-#include "EventVisualisationBase/VisualisationConstants.h"
-#include "EventVisualisationBase/DataSourceOffline.h"
+#include "EventVisualisationDataConverter/VisualisationConstants.h"
 #include "EventVisualisationView/EventManagerFrame.h"
 #include "EventVisualisationView/Options.h"
 #include "EventVisualisationDetectors/DataReaderJSON.h"
+#include "EventVisualisationBase/DataSourceOnline.h"
+#include "EventVisualisationBase/DataSourceOffline.h"
 
 #include "FairLogger.h"
 #include <TGTab.h>
@@ -35,6 +36,7 @@
 #include <TEveManager.h>
 #include <TRegexp.h>
 #include <TSystem.h>
+#include <TApplication.h>
 #include <TEveWindowManager.h>
 using namespace std;
 
@@ -49,22 +51,23 @@ void Initializer::setup()
   ConfigurationManager::getInstance().getConfig(settings);
 
   const bool fullscreen = settings.GetValue("fullscreen.mode", false);                           // hide left and bottom tabs
-  const string ocdbStorage = settings.GetValue("OCDB.default.path", "local://$ALICE_ROOT/OCDB"); // default path to OCDB
-  LOG(INFO) << "Initializer -- OCDB path:" << ocdbStorage;
+  const string ocdbStorage = settings.GetValue("OCDB.default.path", o2::base::NameConf::getCCDBServer().c_str()); // default path to OCDB
+  LOG(info) << "Initializer -- OCDB path:" << ocdbStorage;
 
   auto& eventManager = EventManager::getInstance();
   eventManager.setCdbPath(ocdbStorage);
 
-  eventManager.setDataSourceType(o2::event_visualisation::EventManager::SourceOnline);
-  eventManager.Open();
+  auto const options = Options::Instance();
 
-  if (Options::Instance()->json()) {
-    eventManager.getDataSource()->registerDetector(new DataReaderJSON(nullptr), EVisualisationGroup::JSON);
+  if (options->online()) {
+    eventManager.setDataSource(new DataSourceOnline(options->dataFolder()));
+  } else {
+    eventManager.setDataSource(new DataSourceOffline(options->AODConverterPath(), options->dataFolder(), options->fileName(), options->hideDplGUI()));
   }
 
-  GeometryManager::getInstance().setR2Geometry(std::string(settings.GetValue("simple.geom.default", "R3")).compare("R2") == 0);
-  setupGeometry();
+  eventManager.getDataSource()->registerReader(new DataReaderJSON());
 
+  setupGeometry();
   gSystem->ProcessEvents();
   gEve->Redraw3D(true);
 
@@ -91,13 +94,15 @@ void Initializer::setup()
   // Temporary:
   // Later this will be triggered by button, and finally moved to configuration.
   gEve->AddEvent(&EventManager::getInstance());
-  eventManager.getDataSource()->refresh();
+  // eventManager.getDataSource()->refresh();
 
   if (Options::Instance()->online()) {
     frame->StartTimer();
   } else {
+    eventManager.getDataSource()->refresh();
     frame->DoFirstEvent();
   }
+  gApplication->Connect("TEveBrowser", "CloseWindow()", "o2::event_visualisation::EventManagerFrame", frame, "DoTerminate()");
 }
 
 void Initializer::setupGeometry()
@@ -109,18 +114,14 @@ void Initializer::setupGeometry()
   // get geometry from Geometry Manager and register in multiview
   auto multiView = MultiView::getInstance();
 
-  //auto geometry_enabled = GeometryManager::getInstance().getR2Geometry()? R2Visualisation:R3Visualisation;
+  // auto geometry_enabled = GeometryManager::getInstance().getR2Geometry()? R2Visualisation:R3Visualisation;
   for (int iDet = 0; iDet < NvisualisationGroups; ++iDet) {
-
-    if (!GeometryManager::getInstance().getR2Geometry()) {
-      if (!R3Visualisation[iDet]) {
-        continue;
-      }
+    if (!R3Visualisation[iDet]) {
+      continue;
     }
-
     EVisualisationGroup det = static_cast<EVisualisationGroup>(iDet);
     string detName = gVisualisationGroupName[det];
-    LOG(INFO) << detName;
+    LOG(info) << detName;
 
     if (settings.GetValue((detName + ".draw").c_str(), false)) {
       if (detName == "TPC" || detName == "MCH" || detName == "MID" || detName == "MFT") { // don't load MUON+MFT and AD and standard TPC to R-Phi view

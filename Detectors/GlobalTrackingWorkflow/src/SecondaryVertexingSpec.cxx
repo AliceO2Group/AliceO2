@@ -23,7 +23,7 @@
 #include "SimulationDataFormat/MCEventLabel.h"
 #include "CommonDataFormat/BunchFilling.h"
 #include "SimulationDataFormat/DigitizationContext.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsVertexing/SVertexer.h"
 #include "TStopwatch.h"
 
@@ -74,9 +74,9 @@ void SecondaryVertexingSpec::init(InitContext& ic)
   if (o2::utils::Str::pathExists(matLUTFile)) {
     auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
     o2::base::Propagator::Instance()->setMatLUT(lut);
-    LOG(INFO) << "Loaded material LUT from " << matLUTFile;
+    LOG(info) << "Loaded material LUT from " << matLUTFile;
   } else {
-    LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+    LOG(info) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
   }
   mVertexer.setEnableCascades(mEnableCascades);
   mVertexer.setNThreads(ic.options().get<int>("threads"));
@@ -102,13 +102,13 @@ void SecondaryVertexingSpec::run(ProcessingContext& pc)
   mVertexer.extractSecondaryVertices(v0s, v0Refs, cascs, cascRefs);
 
   mTimer.Stop();
-  LOG(INFO) << "Found " << v0s.size() << " V0s and " << cascs.size() << " cascades, timing: CPU: "
+  LOG(info) << "Found " << v0s.size() << " V0s and " << cascs.size() << " cascades, timing: CPU: "
             << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0 << " s";
 }
 
 void SecondaryVertexingSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "Secondary vertexing total timing: Cpu: %.3e Real: %.3e s in %d slots, nThreads = %d",
+  LOGF(info, "Secondary vertexing total timing: Cpu: %.3e Real: %.3e s in %d slots, nThreads = %d",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1, mVertexer.getNThreads());
 }
 

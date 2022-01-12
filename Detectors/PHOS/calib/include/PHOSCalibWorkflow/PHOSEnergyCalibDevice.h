@@ -34,7 +34,8 @@ namespace phos
 class PHOSEnergyCalibDevice : public o2::framework::Task
 {
  public:
-  explicit PHOSEnergyCalibDevice(bool useCCDB, std::string path, std::string digitspath) : mUseCCDB(useCCDB), mCCDBPath(path), mdigitsfilename(digitspath) {}
+  explicit PHOSEnergyCalibDevice(bool useCCDB, std::string path, std::string digitspath,
+                                 float ptMin, float eMinHGTime, float eMinLGTime) : mUseCCDB(useCCDB), mCCDBPath(path), mdigitsfilename(digitspath), mPtMin(ptMin), mEminHGTime(eMinHGTime), mEminLGTime(eMinLGTime) {}
 
   void init(o2::framework::InitContext& ic) final;
 
@@ -43,13 +44,16 @@ class PHOSEnergyCalibDevice : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  protected:
+  void postHistosCCDB(o2::framework::EndOfStreamContext& ec);
+
  private:
   static constexpr short kMaxCluInEvent = 64; /// maximal number of clusters per event to separate digits from them (6 bits in digit map)
   bool mUseCCDB = false;
-  std::string mCCDBPath{"http://ccdb-test.cern.ch:8080"}; ///< CCDB server path
+  std::string mCCDBPath{"http://alice-ccdb.cern.ch"}; ///< CCDB server path
   std::string mdigitsfilename = "./CalibDigits.root";
-  long mRunStartTime = 0; /// start time of the run (sec)
-  float mPtMin = 1.5;     /// minimal energy to fill inv. mass histo
+  bool mPostHistos = true; /// post colllected histos to ccdb
+  long mRunStartTime = 0;  /// start time of the run (sec)
+  float mPtMin = 1.5;      /// minimal energy to fill inv. mass histo
   float mEminHGTime = 1.5;
   float mEminLGTime = 5.;
   std::unique_ptr<PHOSEnergyCalibrator> mCalibrator; /// Agregator of calibration TimeFrameSlots
@@ -58,7 +62,7 @@ class PHOSEnergyCalibDevice : public o2::framework::Task
   ClassDefNV(PHOSEnergyCalibDevice, 1);
 };
 
-o2::framework::DataProcessorSpec getPHOSEnergyCalibDeviceSpec(bool useCCDB, std::string path, std::string digitspath);
+o2::framework::DataProcessorSpec getPHOSEnergyCalibDeviceSpec(bool useCCDB, std::string path, std::string digitspath, float ptMin, float eMinHGTime, float eMinLGTime);
 } // namespace phos
 } // namespace o2
 

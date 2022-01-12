@@ -44,9 +44,6 @@ using DPVAL = o2::dcs::DataPointValue;
 using DPMAP = std::unordered_map<DPID, std::vector<DPVAL>>;
 
 using namespace o2::calibration;
-std::vector<o2::framework::OutputSpec> calibrationOutputs{
-  o2::framework::ConcreteDataTypeMatcher{Utils::gDataOriginCDBPayload, CCDBOBJ},
-  o2::framework::ConcreteDataTypeMatcher{Utils::gDataOriginCDBWrapper, CCDBOBJ}};
 
 /*
 * Create a default CCDB Object Info that will be used as a template.
@@ -104,7 +101,7 @@ void sendOutput(const DPMAP& dpmap, o2::framework::DataAllocator& output, o2::cc
   md["upload reason"] = reason;
   info.setMetaData(md);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&dpmap, &info);
-  LOG(INFO) << "Sending object " << info.getPath() << "/"
+  LOG(info) << "Sending object " << info.getPath() << "/"
             << info.getFileName() << " of size " << image->size()
             << " bytes, valid for " << info.getStartValidityTimestamp()
             << " : " << info.getEndValidityTimestamp()
@@ -120,7 +117,7 @@ void sendOutput(const DPMAP& dpmap, o2::framework::DataAllocator& output, o2::cc
 */
 void endOfStream(o2::framework::EndOfStreamContext& eosc)
 {
-  LOG(DEBUG) << "This is the end. Must write what we have left ?\n";
+  LOG(debug) << "This is the end. Must write what we have left ?\n";
   for (auto i = 0; i < NOBJECTS; i++) {
     sendOutput(dataPoints[i], eosc.outputs(), info[i], "end of stream");
   }
@@ -375,7 +372,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   };
 #endif
-  dcsProcessor.outputs = calibrationOutputs;
+  dcsProcessor.outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{Utils::gDataOriginCDBPayload, CCDBOBJ}, o2::framework::Lifetime::Sporadic);
+  dcsProcessor.outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{Utils::gDataOriginCDBWrapper, CCDBOBJ}, o2::framework::Lifetime::Sporadic);
   dcsProcessor.algorithm = algo;
   dcsProcessor.options = {
 #if defined(MUON_SUBSYSTEM_MCH)

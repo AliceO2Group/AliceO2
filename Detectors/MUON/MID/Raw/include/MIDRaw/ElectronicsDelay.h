@@ -26,8 +26,8 @@ namespace mid
 
 struct ElectronicsDelay {
   // The delays are in local clocks, and correspond to the LHC clocks (aka BCs)
-  uint16_t calibToFET{9};
-  uint16_t BCToLocal{0};
+  uint16_t calibToFET{19};
+  uint16_t BCToLocal{93};
   uint16_t regToLocal{6};
 };
 

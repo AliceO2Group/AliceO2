@@ -314,7 +314,7 @@ uint32_t Trap2CRU::buildHalfCRUHeader(HalfCRUHeader& header, const uint32_t bc, 
 {
   int bunchcrossing = bc;
   int stopbits = 0x01; // do we care about this and eventtype in simulations?
-  int eventtype = 0x01;
+  int eventtype = o2::trd::constants::ETYPECALIBRATIONTRIGGER;
   int crurdhversion = 6;
   int feeid = 0;
   int cruid = 0;

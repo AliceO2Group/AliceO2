@@ -26,6 +26,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 
@@ -75,7 +76,7 @@ class PedestalCalibDevice : public o2::framework::Task
     loggerEnd = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> loggerElapsed = loggerEnd - loggerStart;
     if (loggerElapsed.count() > 1000) {
-      LOG(INFO) << "received " << nDigits << " digits in " << nTF << " time frames";
+      LOG(info) << "received " << nDigits << " digits in " << nTF << " time frames";
       nDigits = 0;
       nTF = 0;
       loggerStart = std::chrono::high_resolution_clock::now();
@@ -103,7 +104,7 @@ class PedestalCalibDevice : public o2::framework::Task
     constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
     mCalibrator->checkSlotsToFinalize(INFINITE_TF);
     mCalibrator->endOfStream();
-    LOG(INFO) << "End of stream reached, sending output to CCDB";
+    LOG(info) << "End of stream reached, sending output to CCDB";
     sendOutput(ec.outputs());
   }
 
@@ -138,7 +139,7 @@ class PedestalCalibDevice : public o2::framework::Task
     const auto& payload = mCalibrator->getBadChannelsVector();
     auto& info = mCalibrator->getBadChannelsInfo(); // use non-const version as we update it
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-    LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
+    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
               << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "MCH_BADCHAN", 0}, *image.get());
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "MCH_BADCHAN", 0}, info); // root-serialized
@@ -165,9 +166,9 @@ DataProcessorSpec getMCHPedestalCalibSpec(const char* specName, const std::strin
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "MCH_BADCHAN"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "MCH_BADCHAN"});
-  outputs.emplace_back(OutputSpec{"MCH", "PEDESTALS", 0, Lifetime::Timeframe});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "MCH_BADCHAN"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "MCH_BADCHAN"}, Lifetime::Sporadic);
+  outputs.emplace_back(OutputSpec{"MCH", "PEDESTALS", 0, Lifetime::Sporadic});
 
   return DataProcessorSpec{
     specName,
@@ -180,7 +181,7 @@ DataProcessorSpec getMCHPedestalCalibSpec(const char* specName, const std::strin
       {"max-delay", VariantType::Int, 1, {"number of slots in past to consider"}},
       {"pedestal-threshold", VariantType::Float, 200.0f, {"maximum allowed pedestal value"}},
       {"noise-threshold", VariantType::Float, 2.0f, {"maximum allowed noise value"}},
-      {"ccdb-path", VariantType::String, "http://ccdb-test.cern.ch:8080", {"Path to CCDB"}}}};
+      {"ccdb-path", VariantType::String, o2::base::NameConf::getCCDBServer(), {"Path to CCDB"}}}};
 }
 
 } // namespace framework

@@ -13,6 +13,7 @@
 #include <iostream>
 #include <fmt/format.h>
 #include <boost/program_options.hpp>
+#include <stdexcept>
 
 namespace po = boost::program_options;
 
@@ -42,6 +43,19 @@ void dumpPad(const o2::mch::mapping::Segmentation& seg, int dsId, int dsCh)
 
 void dumpDualSampa(const o2::mch::mapping::Segmentation& seg, int dualSampaId)
 {
+  bool existingDualSampa{false};
+  seg.forEachDualSampa([&existingDualSampa, dualSampaId](int dsId) {
+    if (dsId == dualSampaId) {
+      existingDualSampa = true;
+    }
+  });
+
+  if (!existingDualSampa) {
+    std::cout << fmt::format("DE {:4d} DS {:4d} does not exist\n",
+                             seg.detElemId(), dualSampaId);
+    return;
+  }
+
   for (auto ch = 0; ch < 64; ch++) {
     dumpPad(seg, dualSampaId, ch);
   }

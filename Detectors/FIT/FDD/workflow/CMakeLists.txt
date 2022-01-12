@@ -41,6 +41,11 @@ o2_add_executable(digit-reader-workflow
                   COMPONENT_NAME fdd
                   PUBLIC_LINK_LIBRARIES O2::FDDWorkflow)
 
+o2_add_executable(digits-writer-workflow
+                  SOURCES src/digits-writer-workflow.cxx
+                  COMPONENT_NAME fdd
+                  PUBLIC_LINK_LIBRARIES O2::FDDWorkflow)
+
 o2_add_executable(flp-dpl-workflow
                   COMPONENT_NAME fdd
                   SOURCES src/fdd-flp-workflow.cxx

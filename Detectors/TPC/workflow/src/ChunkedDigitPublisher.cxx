@@ -97,7 +97,7 @@ void copyHelper<MCTruthContainer>(MCTruthContainer const& origin, MCTruthContain
 template <typename T>
 auto makePublishBuffer(framework::ProcessingContext& pc, int sector, uint64_t activeSectors)
 {
-  LOG(INFO) << "PUBLISHING SECTOR " << sector;
+  LOG(info) << "PUBLISHING SECTOR " << sector;
 
   o2::tpc::TPCSectorHeader header{sector};
   header.activeSectors = activeSectors;
@@ -121,7 +121,7 @@ template <>
 void publishBuffer<MCTruthContainer>(framework::ProcessingContext& pc, int sector, uint64_t activeSectors, MCTruthContainer* accum)
 {
 
-  LOG(INFO) << "PUBLISHING MC LABELS " << accum->getNElements();
+  LOG(info) << "PUBLISHING MC LABELS " << accum->getNElements();
   o2::tpc::TPCSectorHeader header{sector};
   header.activeSectors = activeSectors;
   using LabelType = std::decay_t<decltype(pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{"", "", 0}))>;
@@ -190,12 +190,12 @@ void publishMergedTimeframes(std::vector<int> const& lanes, std::vector<int> con
   auto digitfilelist = o2::utils::listFiles("tpc_driftime_digits_lane.*.root$");
 #ifdef WITH_OPENMP
   omp_set_num_threads(std::min(lanes.size(), digitfilelist.size()));
-  LOG(INFO) << "Running digit publisher with OpenMP enabled";
+  LOG(info) << "Running digit publisher with OpenMP enabled";
 #pragma omp parallel for schedule(dynamic)
 #endif
   for (size_t fi = 0; fi < digitfilelist.size(); ++fi) {
     auto& filename = digitfilelist[fi];
-    LOG(DEBUG) << "MERGING CHUNKED DIGITS FROM FILE " << filename;
+    LOG(debug) << "MERGING CHUNKED DIGITS FROM FILE " << filename;
     auto originfile = new TFile(filename.c_str(), "OPEN");
     assert(originfile);
 
@@ -220,7 +220,7 @@ class Task
 
   void run(framework::ProcessingContext& pc)
   {
-    LOG(INFO) << "Preparing digits (from digit chunks) for reconstruction";
+    LOG(info) << "Preparing digits (from digit chunks) for reconstruction";
 
     TStopwatch w;
     w.Start();
@@ -229,7 +229,7 @@ class Task
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 
-    LOG(INFO) << "DIGIT PUBLISHING TOOK " << w.RealTime();
+    LOG(info) << "DIGIT PUBLISHING TOOK " << w.RealTime();
     return;
   }
 

@@ -21,7 +21,6 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/Logger.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "Framework/InputRecordWalker.h"
 #include "Framework/Monitoring.h"
 #include "Framework/DataRefUtils.h"
 
@@ -44,8 +43,7 @@ Dispatcher::~Dispatcher() = default;
 
 void Dispatcher::init(InitContext& ctx)
 {
-  LOG(DEBUG) << "Reading Data Sampling Policies...";
-
+  LOG(debug) << "Reading Data Sampling Policies...";
   boost::property_tree::ptree policiesTree;
 
   if (mReconfigurationSource.empty() == false) {
@@ -64,10 +62,10 @@ void Dispatcher::init(InitContext& ctx)
     try {
       mPolicies.emplace_back(std::make_shared<DataSamplingPolicy>(DataSamplingPolicy::fromConfiguration(policyConfig.second)));
     } catch (std::exception& ex) {
-      LOG(WARN) << "Could not load the Data Sampling Policy '"
+      LOG(warn) << "Could not load the Data Sampling Policy '"
                 << policyConfig.second.get_optional<std::string>("id").value_or("") << "', because: " << ex.what();
     } catch (...) {
-      LOG(WARN) << "Could not load the Data Sampling Policy '"
+      LOG(warn) << "Could not load the Data Sampling Policy '"
                 << policyConfig.second.get_optional<std::string>("id").value_or("") << "'";
     }
   }
@@ -137,8 +135,8 @@ void Dispatcher::reportStats(Monitoring& monitoring) const
     dispatcherTotalAcceptedMessages += policy->getTotalAcceptedMessages();
   }
 
-  monitoring.send({dispatcherTotalEvaluatedMessages, "Dispatcher_messages_evaluated"});
-  monitoring.send({dispatcherTotalAcceptedMessages, "Dispatcher_messages_passed"});
+  monitoring.send(Metric{dispatcherTotalEvaluatedMessages, "Dispatcher_messages_evaluated"}.addTag(tags::Key::Subsystem, tags::Value::DataSampling));
+  monitoring.send(Metric{dispatcherTotalAcceptedMessages, "Dispatcher_messages_passed"}.addTag(tags::Key::Subsystem, tags::Value::DataSampling));
 }
 
 DataSamplingHeader Dispatcher::prepareDataSamplingHeader(const DataSamplingPolicy& policy)

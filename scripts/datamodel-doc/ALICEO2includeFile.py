@@ -317,6 +317,7 @@ class datamodel:
       self.namespaces = list()
       if initCard != None:
         self.initCard = initCard
+      self.categories = list()
 
       # read the file
       lines_in_file = file.readlines()
@@ -325,6 +326,14 @@ class datamodel:
       # parse datamodel
       self.parseContent(hfile, content, "", self)
       # self.synchronize()
+  
+  # extract the categories definition
+  def setCategories(self, DMxml):
+    cats = DMxml.find('categories')
+    for cat in cats:
+      catName = cat.attrib['name']
+      catTables = "".join(cat.text.split()).split(",")
+      self.categories.append(tableCategory(catName,catTables))
 
   # A namespace is contained between "namespace 'name' {" and "}"
   # Be aware that namespaces can be nested!
@@ -498,82 +507,138 @@ class datamodel:
     for ns in self.namespaces:
       ns.print()
 
-  def printProducerTables(self, href2u, path2u, tabs, uses, CER, tabs2u):
+  def printSingleTable(self, href2u, path2u, tabs, uses, tab2u):
+    # print the table header
+    tab2u.printHeaderHTML()
+
+    # print table comment
+    print("    <div>")
+    print("      ", tab2u.comment)
+    print("    </div>")
+
+    # print header file
+    hf2u = O2DMT.block(tab2u.hfile.split(path2u)[
+                 1:], False).strip().lstrip("/")
+    print("    <div>")
+    print("      Header file: <a href=\""+href2u +
+          "/"+hf2u+"\" target=\"_blank\">"+hf2u+"</a>")
+    print("    </div>")
+
+    # print extends
+    if tab2u.kind == 2 or tab2u.kind == 5:
+      print("    <div>Extends:")
+      print("      <ul>")
+      print("        ", tab2u.toExtendWith)
+      print("      </ul>")
+      print("    </div>")
+
+    # find all usings with tab2u
+    useTable = list()
+    for use in uses:
+      if tab2u.tname in use.joiners:
+        useTable.append(use)
+      elif tab2u.tname == use.master:
+        useTable.append(use)
+
+    # print these usings
+    if len(useTable) > 0:
+      print("    <div>Is used in:")
+      print("      <ul>")
+      for use in useTable:
+        use.printHTML()
+      print("      </ul>")
+      print("    </div>")
+
+    # print the table header
+    tab2u.printSubHeaderHTML()
+
+    # EXTENDED_TABLE and EXTENDED_TABLE_USER are extended
+    if tab2u.kind == 2 or tab2u.kind == 5:
+      # this table has to be extended, find the extending table and
+      # print all of its columns
+      einds = [i for i, x in enumerate(tabs) if x.tname == tab2u.toExtendWith]
+      for ind in einds:
+        for col in tabs[ind].columns:
+          col.printHTML()
+
+    # print the remaining columns
+    for col in tab2u.columns:
+      col.printHTML()
+
+    # print the table footer
+    tab2u.printFooterHTML()
+      
+
+  def printTables(self, DMtype, href2u, path2u, tabs, uses, CER, tabs2u):
     print("")
     print("#### ", CER[2])
-
+    
     # add source code information if available
-    if CER[1] != "":
+    if DMtype == 1:
       if href2u != "":
         print("Code file: <a href=\""+href2u+"/"+CER[0].split(path2u)[1] +
               "/"+CER[1]+"\" target=\"_blank\">"+CER[1]+"</a>")
       else:
         print("Code file: "+CER[0]+"/"+CER[1])
 
+    tabInCat = list()
+    others = list()
+    if DMtype == 0:  
+      # Analyze the tables and categories
+      tabInCat = [False]*len(tabs2u)
+      for cat in self.categories:
+        for i in range(0,len(tabs2u)):
+          if tabs2u[i].tname in cat.members:
+            tabInCat[i] = True
+      others = [i for i, x in enumerate(tabInCat) if x == False]
+
+      # print available categories
+      txt2print = "For better overview the tables are grouped into the following categories: |"
+      for cat in self.categories:
+        txt2print = txt2print+' ['+cat.name+'](#cat_'+cat.name+') |'
+      if len(others) > 0:
+        txt2print = txt2print+' [Others](#cat_Others) |'
+      print(txt2print)
+      print()
+
     print("<div>")
     print("")
+    
+    # loop over all table categories
+    if DMtype == 0:
+      for cat in self.categories:
+        txt2print = '<h4 id="cat_'+cat.name+'">'+cat.name+'</h4>'
+        print(txt2print)
+        print("<div>")
+        
+        # print tables of of given category
+        for tname in cat.members:
+          for tab in tabs2u:
+            if tab.tname == tname:
+              print()
+              self.printSingleTable(href2u, path2u, tabs, uses, tab)
+              continue
+        print("</div>")
+        
+        #for tab in tabs2u:
+        #  if tab.tname in cat.members:
+        #    print()
+        #    self.printSingleTable(href2u, path2u, tabs, uses, tab)
+        #print("</div>")
 
-    # print all tables of given producer
-    for tab in tabs2u:
-      # print the table header
-      tab.printHeaderHTML()
-
-      # print table comment
-      print("    <div>")
-      print("      ", tab.comment)
-      print("    </div>")
-
-      # print header file
-      hf2u = O2DMT.block(tab.hfile.split(path2u)[
-                   1:], False).strip().lstrip("/")
-      print("    <div>")
-      print("      Header file: <a href=\""+href2u +
-            "/"+hf2u+"\" target=\"_blank\">"+hf2u+"</a>")
-      print("    </div>")
-
-      # print extends
-      if tab.kind == 2 or tab.kind == 5:
-        print("    <div>Extends:")
-        print("      <ul>")
-        print("        ", tab.toExtendWith)
-        print("      </ul>")
-        print("    </div>")
-
-      # find all usings with tab
-      useTable = list()
-      for use in uses:
-        if tab.tname in use.joiners:
-          useTable.append(use)
-        elif tab.tname == use.master:
-          useTable.append(use)
-
-      # print these usings
-      if len(useTable) > 0:
-        print("    <div>Is used in:")
-        print("      <ul>")
-        for use in useTable:
-          use.printHTML()
-        print("      </ul>")
-        print("    </div>")
-
-      # print the table header
-      tab.printSubHeaderHTML()
-
-      # EXTENDED_TABLE and EXTENDED_TABLE_USER are extended
-      if tab.kind == 2 or tab.kind == 5:
-        # this table has to be extended, find the extending table and
-        # print all of its columns
-        einds = [i for i, x in enumerate(tabs) if x.tname == tab.toExtendWith]
-        for ind in einds:
-          for col in tabs[ind].columns:
-            col.printHTML()
-
-      # print the remaining columns
-      for col in tab.columns:
-        col.printHTML()
-
-      # print the table footer
-      tab.printFooterHTML()
+      # print non-categorized tables
+      if len(others) > 0:
+        print('<h4 id="cat_Others">Others</h4>')
+        print("<div>")
+        for i in others:
+          print()
+          self.printSingleTable(href2u, path2u, tabs, uses, tabs2u[i])
+        print("</div>")
+        
+    else:
+      # print all tables of given producer
+      for tab in tabs2u:
+        self.printSingleTable(href2u, path2u, tabs, uses, tab)
 
     print("</div>")
 
@@ -647,10 +712,14 @@ class datamodel:
     print(delimAO2D)
     inds = [i for i, x in enumerate(self.CErelations) if x[3] == 'Main']
     CER2u = [self.CErelations[i] for i in inds]
+    # only one Main CER should be available
+    if len(CER2u) != 1:
+      sys.exit('<datamodel.printHTML> Exacly 1 DataModel of type Main is expected. We found '+len(CER2u)+'! EXIT -->')
+    
     for CER in CER2u:
       inds = [i for i, x in enumerate(tabs) if CER in x.CErelations]
       tabs2u = [tabs[i] for i in inds]
-      self.printProducerTables(O2href, O2path, tabs, uses, CER, tabs2u)
+      self.printTables(0, O2href, O2path, tabs, uses, CER, tabs2u)
     print(delimAO2D)
 
     # 2. helper tasks
@@ -661,7 +730,7 @@ class datamodel:
     for CER in CER2u:
       inds = [i for i, x in enumerate(tabs) if CER in x.CErelations]
       tabs2u = [tabs[i] for i in inds]
-      self.printProducerTables(O2Physicshref, O2Physicspath, tabs, uses, CER, tabs2u)
+      self.printTables(1, O2Physicshref, O2Physicspath, tabs, uses, CER, tabs2u)
     print(delimHelpers)
 
     # 3. PWG tasks
@@ -672,17 +741,17 @@ class datamodel:
 
     # PWG data model names
     dmnames = [CERsPWG[i][4] for i in list(range(0, len(CERsPWG)))]
-    dmnames = list(set(dmnames))
+    dmnames = np.unique(dmnames)
     for dmname in dmnames:
       print("")
-      print("##", dmname)
+      print("##", 'PWG-'+dmname)
 
       inds = [i for i, x in enumerate(CERsPWG) if x[4] == dmname]
       CER2u = [CERsPWG[i] for i in inds]
       for CER in CER2u:
         inds = [i for i, x in enumerate(tabs) if CER in x.CErelations]
         tabs2u = [tabs[i] for i in inds]
-        self.printProducerTables(O2Physicshref, O2Physicspath, tabs, uses, CER, tabs2u)
+        self.printTables(1, O2Physicshref, O2Physicspath, tabs, uses, CER, tabs2u)
 
     print(delimPWGs)
     print("")
@@ -1002,7 +1071,11 @@ class CERelations:
       idef = [ind for ind, x in enumerate(
           content[0]) if x.txt == self.CEdeclarationString]
       for ind in idef:
-        ename = self.exePreamble + content[0][ind+2].txt
+        # PWG needs extra treatment
+        if ptype == "PWG":
+          ename = self.exePreamble + dmname.lower() + "-" + content[0][ind+2].txt
+        else:
+          ename = self.exePreamble + content[0][ind+2].txt
         cname = content[0][ind+4].txt
         if len(cname.split(".")) < 2:
           cname += ".cxx"
@@ -1035,4 +1108,16 @@ class CERelations:
       print("   type:", relation[3])
       print("   name:", relation[4])
 
+# -----------------------------------------------------------------------------
+class tableCategory:
+  def __init__(self, catName, catMembers):
+    self.name = catName
+    self.members = catMembers
+    
+  def blongsTo(self, tableName):
+    if tableName in catMembers:
+      return true
+    else:
+      return false
+  
 # -----------------------------------------------------------------------------

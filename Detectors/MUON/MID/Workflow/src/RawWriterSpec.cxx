@@ -30,7 +30,7 @@
 #include "MIDRaw/Encoder.h"
 #include "MIDRaw/FEEIdConfig.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 namespace of = o2::framework;
 
@@ -47,9 +47,9 @@ class RawWriterDeviceDPL
     auto fileFor = ic.options().get<std::string>("file-for");
     if (!std::filesystem::exists(dirname)) {
       if (!std::filesystem::create_directories(dirname)) {
-        LOG(FATAL) << "could not create output directory " << dirname;
+        LOG(fatal) << "could not create output directory " << dirname;
       } else {
-        LOG(INFO) << "created output directory " << dirname;
+        LOG(info) << "created output directory " << dirname;
       }
     }
 

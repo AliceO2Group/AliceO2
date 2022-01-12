@@ -39,7 +39,7 @@ void rawStat(const std::string& conf)
     if (hbfSize) {
       strm << "hbfs"
            << "sz=" << hbfSize << "\n";
-      LOG(INFO) << "hb " << cnt++ << " size: " << hbfSize << " in " << nonEmpty << " non-empty links";
+      LOG(info) << "hb " << cnt++ << " size: " << hbfSize << " in " << nonEmpty << " non-empty links";
     }
   } while (hbfSize);
 

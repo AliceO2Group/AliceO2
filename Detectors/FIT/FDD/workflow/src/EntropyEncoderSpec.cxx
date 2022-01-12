@@ -34,8 +34,9 @@ EntropyEncoderSpec::EntropyEncoderSpec()
 void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
 {
   std::string dictPath = ic.options().get<std::string>("ctf-dict");
+  mCTFCoder.setMemMarginFactor(ic.options().get<float>("mem-factor"));
   if (!dictPath.empty() && dictPath != "none") {
-    mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Encoder);
+    mCTFCoder.createCodersFromFile<CTF>(dictPath, o2::ctf::CTFCoderBase::OpType::Encoder);
   }
 }
 
@@ -52,12 +53,12 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   eeb->compactify();                  // eliminate unnecessary padding
   buffer.resize(eeb->size());         // shrink buffer to strictly necessary size
   mTimer.Stop();
-  LOG(INFO) << "Created encoded data of size " << eeb->size() << " for FDD in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Created encoded data of size " << eeb->size() << " for FDD in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "FDD Entropy Encoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "FDD Entropy Encoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
@@ -72,7 +73,8 @@ DataProcessorSpec getEntropyEncoderSpec()
     inputs,
     Outputs{{"FDD", "CTFDATA", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>()},
-    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF encoding dictionary"}}}};
+    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF encoding dictionary"}},
+            {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
 }
 
 } // namespace fdd

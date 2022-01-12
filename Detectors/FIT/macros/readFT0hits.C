@@ -6,7 +6,7 @@
 #include <TH2F.h>
 #include <TTree.h>
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 
 void readFT0hits()
 {
@@ -28,12 +28,12 @@ void readFT0hits()
   gDirectory = cwd;
 
   using namespace o2::detectors;
-  TFile* fhit = new TFile(o2::base::NameConf::getHitsFileName(DetID::FT0, "o2sim").c_str());
+  TFile* fhit = new TFile(o2::base::DetectorNameConf::getHitsFileName(DetID::FT0, "o2sim").c_str());
   TTree* hitTree = (TTree*)fhit->Get("o2sim");
 
   o2::dataformats::MCEventHeader* mcHeader = nullptr;
   /*  if (!hitTree->GetBranch("MCEventHeader.")) {
-    LOG(FATAL) << "Did not find MC event header in the input header file." <<
+    LOG(fatal) << "Did not find MC event header in the input header file." <<
     FairLogger::endl;
     }*/
   hitTree->SetBranchAddress("MCEventHeader.", &mcHeader);

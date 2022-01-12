@@ -13,6 +13,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/VariantStringHelpers.h"
 #include "Framework/VariantPropertyTreeHelpers.h"
+#include "Framework/RuntimeError.h"
 
 #include <boost/program_options/variables_map.hpp>
 
@@ -63,6 +64,9 @@ void PropertyTreeHelpers::populateDefaults(std::vector<ConfigParamSpec> const& s
         case VariantType::Bool:
           pt.put(key, spec.defaultValue.get<bool>());
           break;
+        case VariantType::Dict:
+          pt.put_child(key, boost::property_tree::ptree{});
+          break;
         case VariantType::ArrayInt:
           pt.put_child(key, vectorToBranch(spec.defaultValue.get<int*>(), spec.defaultValue.size()));
           break;
@@ -99,7 +103,7 @@ void PropertyTreeHelpers::populateDefaults(std::vector<ConfigParamSpec> const& s
         case VariantType::Unknown:
         case VariantType::Empty:
         default:
-          throw std::runtime_error("Unknown variant type");
+          throw runtime_error_f("Unknown variant type", spec.type);
       }
       provenance.put(key, "default");
     } catch (std::runtime_error& re) {
@@ -181,10 +185,13 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
         case VariantType::Array2DDouble:
           pt.put_child(key, array2DToBranch<double>(stringToArray2D<double>(vmap[key].as<std::string>())));
           break;
+        case VariantType::Dict:
+          pt.put_child(key, vmap[key].as<boost::property_tree::ptree>());
+          break;
         case VariantType::Unknown:
         case VariantType::Empty:
         default:
-          throw std::runtime_error("Unknown variant type");
+          throw runtime_error("Unknown variant type");
       }
       provenance.put(key, "fairmq");
     } catch (std::runtime_error& re) {
@@ -260,6 +267,7 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
         case VariantType::Bool:
           pt.put(key, (*it).get_value<bool>());
           break;
+        case VariantType::Dict:
         case VariantType::ArrayInt:
         case VariantType::ArrayFloat:
         case VariantType::ArrayDouble:

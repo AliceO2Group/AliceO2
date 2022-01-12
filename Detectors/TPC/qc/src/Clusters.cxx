@@ -9,6 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <string>
+
 //root includes
 #include "TH1.h"
 #include "TH2.h"
@@ -132,31 +134,71 @@ void Clusters::reset()
 }
 
 //______________________________________________________________________________
-void Clusters::dumpToFile(std::string filename)
+void Clusters::merge(Clusters& clusters)
+{
+  const bool isThisNormalized = mIsNormalized;
+  const bool isOtherNormalized = clusters.mIsNormalized;
+
+  if (isThisNormalized) {
+    denormalize();
+  }
+  if (isOtherNormalized) {
+    clusters.denormalize();
+  }
+
+  mNClusters += clusters.mNClusters;
+  mQMax += clusters.mQMax;
+  mQTot += clusters.mQTot;
+  mSigmaTime += clusters.mSigmaTime;
+  mSigmaPad += clusters.mSigmaPad;
+  mTimeBin += clusters.mTimeBin;
+
+  if (isThisNormalized) {
+    normalize();
+  }
+  if (isOtherNormalized) {
+    clusters.normalize();
+  }
+}
+
+//______________________________________________________________________________
+void Clusters::dumpToFile(std::string filename, int type)
 {
   if (filename.find(".root") != std::string::npos) {
     filename.resize(filename.size() - 5);
   }
 
-  std::string canvasFile = filename + "_canvas.root";
-  auto f = std::unique_ptr<TFile>(TFile::Open(canvasFile.c_str(), "recreate"));
-  f->WriteObject(o2::tpc::painter::draw(mNClusters), mNClusters.getName().data());
-  f->WriteObject(o2::tpc::painter::draw(mQMax), mQMax.getName().data());
-  f->WriteObject(o2::tpc::painter::draw(mQTot), mQTot.getName().data());
-  f->WriteObject(o2::tpc::painter::draw(mSigmaTime), mSigmaTime.getName().data());
-  f->WriteObject(o2::tpc::painter::draw(mSigmaPad), mSigmaPad.getName().data());
-  f->WriteObject(o2::tpc::painter::draw(mTimeBin), mTimeBin.getName().data());
-  f->Close();
+  if (type == 0) {
+    const std::string canvasFile = filename + "_canvas.root";
+    auto f = std::unique_ptr<TFile>(TFile::Open(canvasFile.c_str(), "recreate"));
+    f->WriteObject(o2::tpc::painter::draw(mNClusters), mNClusters.getName().data());
+    f->WriteObject(o2::tpc::painter::draw(mQMax), mQMax.getName().data());
+    f->WriteObject(o2::tpc::painter::draw(mQTot), mQTot.getName().data());
+    f->WriteObject(o2::tpc::painter::draw(mSigmaTime), mSigmaTime.getName().data());
+    f->WriteObject(o2::tpc::painter::draw(mSigmaPad), mSigmaPad.getName().data());
+    f->WriteObject(o2::tpc::painter::draw(mTimeBin), mTimeBin.getName().data());
+    f->Close();
+  }
 
-  std::string calPadFile = filename + ".root";
-  auto g = std::unique_ptr<TFile>(TFile::Open(calPadFile.c_str(), "recreate"));
-  g->WriteObject(&mNClusters, mNClusters.getName().data());
-  g->WriteObject(&mQMax, mQMax.getName().data());
-  g->WriteObject(&mQTot, mQTot.getName().data());
-  g->WriteObject(&mSigmaTime, mSigmaTime.getName().data());
-  g->WriteObject(&mSigmaPad, mSigmaPad.getName().data());
-  g->WriteObject(&mTimeBin, mTimeBin.getName().data());
-  g->Close();
+  if (type == 0 || type == 1) {
+    const std::string calPadFile = filename + ".root";
+    auto f = std::unique_ptr<TFile>(TFile::Open(calPadFile.c_str(), "recreate"));
+    TNamed nTFs("processedTFs", std::to_string(mProcessedTFs).data());
+    f->WriteObject(&mNClusters, mNClusters.getName().data());
+    f->WriteObject(&mQMax, mQMax.getName().data());
+    f->WriteObject(&mQTot, mQTot.getName().data());
+    f->WriteObject(&mSigmaTime, mSigmaTime.getName().data());
+    f->WriteObject(&mSigmaPad, mSigmaPad.getName().data());
+    f->WriteObject(&mTimeBin, mTimeBin.getName().data());
+    nTFs.Write();
+    f->Close();
+  }
+
+  if (type == 2) {
+    const std::string calPadFile = filename + ".root";
+    auto f = std::unique_ptr<TFile>(TFile::Open(calPadFile.c_str(), "recreate"));
+    f->WriteObject(this, "ClusterQC");
+  }
 }
 
 // ===| explicit instantiations |===============================================

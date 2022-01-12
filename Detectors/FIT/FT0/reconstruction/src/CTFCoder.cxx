@@ -47,6 +47,7 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
     return;
   }
   const auto& dig0 = digitVec[0];
+  cd.header.det = mDet;
   cd.header.nTriggers = digitVec.size();
   cd.header.firstOrbit = dig0.getOrbit();
   cd.header.firstBC = dig0.getBC();
@@ -55,7 +56,7 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
   cd.trigger.resize(cd.header.nTriggers);
   cd.bcInc.resize(cd.header.nTriggers);
   cd.orbitInc.resize(cd.header.nTriggers);
-  cd.eventFlags.resize(cd.header.nTriggers);
+  cd.eventStatus.resize(cd.header.nTriggers);
   cd.nChan.resize(cd.header.nTriggers);
 
   cd.idChan.resize(channelVec.size());
@@ -72,7 +73,7 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
 
     // fill trigger info
     cd.trigger[idig] = digit.getTriggers().triggersignals;
-    cd.eventFlags[idig] = digit.getEventStatusWord();
+    cd.eventStatus[idig] = digit.getEventStatusWord();
     if (prevOrbit == digit.getOrbit()) {
       cd.bcInc[idig] = digit.getBC() - prevBC;
       cd.orbitInc[idig] = 0;
@@ -102,41 +103,21 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
 }
 
 ///________________________________
-void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op)
+void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op)
 {
-  bool mayFail = true; // RS FIXME if the dictionary file is not there, do not produce exception
-  auto buff = readDictionaryFromFile<CTF>(dictPath, mayFail);
-  if (!buff.size()) {
-    if (mayFail) {
-      return;
-    }
-    throw std::runtime_error("Failed to create CTF dictionaty");
-  }
-  const auto* ctf = CTF::get(buff.data());
-
-  auto getFreq = [ctf](CTF::Slots slot) -> o2::rans::FrequencyTable {
-    o2::rans::FrequencyTable ft;
-    auto bl = ctf->getBlock(slot);
-    auto md = ctf->getMetadata(slot);
-    ft.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min, md.max);
-    return std::move(ft);
-  };
-  auto getProbBits = [ctf](CTF::Slots slot) -> int {
-    return ctf->getMetadata(slot).probabilityBits;
-  };
-
+  const auto ctf = CTF::getImage(bufVec.data());
   CompressedDigits cd; // just to get member types
-#define MAKECODER(part, slot) createCoder<decltype(part)::value_type>(op, getFreq(slot), getProbBits(slot), int(slot))
+#define MAKECODER(part, slot) createCoder<decltype(part)::value_type>(op, ctf.getFrequencyTable(slot), ctf.getMetadata(slot).probabilityBits, int(slot))
   // clang-format off
-  MAKECODER(cd.trigger,   CTF::BLC_trigger);
-  MAKECODER(cd.bcInc,     CTF::BLC_bcInc);
-  MAKECODER(cd.orbitInc,  CTF::BLC_orbitInc);
-  MAKECODER(cd.nChan,     CTF::BLC_nChan);
-  MAKECODER(cd.eventFlags,  CTF::BLC_flags);
-  MAKECODER(cd.idChan,    CTF::BLC_idChan);
-  MAKECODER(cd.qtcChain,  CTF::BLC_qtcChain);
-  MAKECODER(cd.cfdTime,   CTF::BLC_cfdTime);
-  MAKECODER(cd.qtcAmpl,   CTF::BLC_qtcAmpl);
+  MAKECODER(cd.trigger,      CTF::BLC_trigger);
+  MAKECODER(cd.bcInc,        CTF::BLC_bcInc);
+  MAKECODER(cd.orbitInc,     CTF::BLC_orbitInc);
+  MAKECODER(cd.nChan,        CTF::BLC_nChan);
+  MAKECODER(cd.eventStatus,  CTF::BLC_status);
+  MAKECODER(cd.idChan,       CTF::BLC_idChan);
+  MAKECODER(cd.qtcChain,     CTF::BLC_qtcChain);
+  MAKECODER(cd.cfdTime,      CTF::BLC_cfdTime);
+  MAKECODER(cd.qtcAmpl,      CTF::BLC_qtcAmpl);
   // clang-format on
 }
 
@@ -149,17 +130,17 @@ size_t CTFCoder::estimateCompressedSize(const CompressedDigits& cd)
 #define VTP(vec) typename std::remove_reference<decltype(vec)>::type::value_type
 #define ESTSIZE(vec, slot) mCoders[int(slot)] ?                         \
   rans::calculateMaxBufferSize(vec.size(), reinterpret_cast<const o2::rans::LiteralEncoder64<VTP(vec)>*>(mCoders[int(slot)].get())->getAlphabetRangeBits(), sizeof(VTP(vec)) ) : vec.size()*sizeof(VTP(vec))
-  sz += ESTSIZE(cd.trigger,   CTF::BLC_trigger);
-  sz += ESTSIZE(cd.bcInc,     CTF::BLC_bcInc);
-  sz += ESTSIZE(cd.orbitInc,  CTF::BLC_orbitInc);
-  sz += ESTSIZE(cd.nChan,     CTF::BLC_nChan);
-  sz += ESTSIZE(cd.eventFlags,     CTF::BLC_flags);
-  sz += ESTSIZE(cd.idChan,    CTF::BLC_idChan);
-  sz += ESTSIZE(cd.qtcChain,  CTF::BLC_qtcChain);
-  sz += ESTSIZE(cd.cfdTime,   CTF::BLC_cfdTime);
-  sz += ESTSIZE(cd.qtcAmpl,   CTF::BLC_qtcAmpl);
+  sz += ESTSIZE(cd.trigger,      CTF::BLC_trigger);
+  sz += ESTSIZE(cd.bcInc,        CTF::BLC_bcInc);
+  sz += ESTSIZE(cd.orbitInc,     CTF::BLC_orbitInc);
+  sz += ESTSIZE(cd.nChan,        CTF::BLC_nChan);
+  sz += ESTSIZE(cd.eventStatus,  CTF::BLC_status);
+  sz += ESTSIZE(cd.idChan,       CTF::BLC_idChan);
+  sz += ESTSIZE(cd.qtcChain,     CTF::BLC_qtcChain);
+  sz += ESTSIZE(cd.cfdTime,      CTF::BLC_cfdTime);
+  sz += ESTSIZE(cd.qtcAmpl,      CTF::BLC_qtcAmpl);
   // clang-format on
 
-  LOG(INFO) << "Estimated output size is " << sz << " bytes";
+  LOG(info) << "Estimated output size is " << sz << " bytes";
   return sz;
 }

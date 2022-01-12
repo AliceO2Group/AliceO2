@@ -9,7 +9,7 @@
 
 using namespace std;
 
-void CreateBCPattern(const std::string& outFileName = "bcPattern.root", const string& objName = "ccdb_object")
+void CreateBCPattern(const std::string& outFileName = "bcPattern.root", const string& objName = "")
 {
   // example of interacting BC pattern creation
 
@@ -43,8 +43,8 @@ void CreateBCPattern(const std::string& outFileName = "bcPattern.root", const st
   pattern.print();
 
   if (!outFileName.empty()) {
-    std::string nm = objName.empty() ? objName : o2::BunchFilling::Class()->GetName();
-    LOG(INFO) << "Storing pattern with name " << nm << " in a file " << outFileName;
+    std::string nm = !objName.empty() ? objName : o2::BunchFilling::Class()->GetName();
+    LOG(info) << "Storing pattern with name " << nm << " in a file " << outFileName;
     TFile outf(outFileName.c_str(), "update");
     outf.WriteObjectAny(&pattern, pattern.Class(), nm.c_str());
     outf.Close();

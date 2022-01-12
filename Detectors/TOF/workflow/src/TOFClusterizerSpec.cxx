@@ -26,10 +26,12 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsTOF/CalibLHCphaseTOF.h"
 #include "DataFormatsTOF/CalibTimeSlewingParamTOF.h"
-#include "TOFCalibration/CalibTOFapi.h"
+#include "TOFBase/CalibTOFapi.h"
 #include "TStopwatch.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataRefUtils.h"
+#include "TOFBase/Utils.h"
+#include "Steer/MCKinematicsReader.h"
 
 #include <memory> // for make_shared, make_unique, unique_ptr
 #include <vector>
@@ -54,9 +56,10 @@ class TOFDPLClustererTask
   bool mIsCalib = false;
   bool mIsCosmic = false;
   int mTimeWin = 5000;
+  std::string mCCDBurl;
 
  public:
-  explicit TOFDPLClustererTask(bool useMC, bool useCCDB, bool doCalib, bool isCosmic) : mUseMC(useMC), mUseCCDB(useCCDB), mIsCalib(doCalib), mIsCosmic(isCosmic) {}
+  explicit TOFDPLClustererTask(bool useMC, bool useCCDB, bool doCalib, bool isCosmic, std::string ccdb_url) : mUseMC(useMC), mUseCCDB(useCCDB), mIsCalib(doCalib), mIsCosmic(isCosmic), mCCDBurl(ccdb_url) {}
   void init(framework::InitContext& ic)
   {
     // nothing special to be set up
@@ -64,12 +67,25 @@ class TOFDPLClustererTask
     mTimer.Reset();
 
     mTimeWin = ic.options().get<int>("cluster-time-window");
-    LOG(INFO) << "Is calibration from cluster on? " << mIsCalib;
-    LOG(INFO) << "DeltaTime for clusterization = " << mTimeWin << " ps";
-    LOG(INFO) << "Is cosmics? " << mIsCosmic;
+    LOG(debug) << "Is calibration from cluster on? " << mIsCalib;
+    LOG(debug) << "DeltaTime for clusterization = " << mTimeWin << " ps";
+    LOG(debug) << "Is cosmics? " << mIsCosmic;
 
     mClusterer.setCalibFromCluster(mIsCalib);
     mClusterer.setDeltaTforClustering(mTimeWin);
+
+    // initialize collision context
+    auto mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
+    auto context = mcReader->getDigitizationContext();
+    if (context) {
+      auto bcf = context->getBunchFilling();
+      std::bitset<3564> isInBC = bcf.getBCPattern();
+      for (unsigned int i = 0; i < isInBC.size(); i++) {
+        if (isInBC.test(i)) {
+          o2::tof::Utils::addInteractionBC(i, true);
+        }
+      }
+    }
   }
 
   void run(framework::ProcessingContext& pc)
@@ -78,6 +94,8 @@ class TOFDPLClustererTask
     // get digit data
     auto digits = pc.inputs().get<gsl::span<o2::tof::Digit>>("tofdigits");
     auto row = pc.inputs().get<gsl::span<o2::tof::ReadoutWindowData>>("readoutwin");
+    auto dia = pc.inputs().get<o2::tof::Diagnostic*>("diafreq");
+    auto patterns = pc.inputs().get<vector<unsigned char>>("patterns");
 
     const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
     mClusterer.setFirstOrbit(dh->firstTForbit);
@@ -93,6 +111,7 @@ class TOFDPLClustererTask
     o2::dataformats::CalibLHCphaseTOF lhcPhaseObj;
     auto channelCalibObj = std::make_unique<o2::dataformats::CalibTimeSlewingParamTOF>();
 
+    /*
     if (mUseCCDB) { // read calibration objects from ccdb
       // check LHC phase
       auto lhcPhase = pc.inputs().get<o2::dataformats::CalibLHCphaseTOF*>("tofccdbLHCphase");
@@ -105,20 +124,40 @@ class TOFDPLClustererTask
       lhcPhaseObj = lhcPhaseObjTmp;
       *channelCalibObj = channelCalibObjTmp;
     } else { // calibration objects set to zero
-      lhcPhaseObj.addLHCphase(0, 0);
-      lhcPhaseObj.addLHCphase(2000000000, 0);
+*/
+    lhcPhaseObj.addLHCphase(0, 0);
+    lhcPhaseObj.addLHCphase(2000000000, 0);
 
-      for (int ich = 0; ich < o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELS; ich++) {
-        channelCalibObj->addTimeSlewingInfo(ich, 0, 0);
-        int sector = ich / o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
-        int channelInSector = ich % o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
-        channelCalibObj->setFractionUnderPeak(sector, channelInSector, 1);
-      }
+    for (int ich = 0; ich < o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELS; ich++) {
+      channelCalibObj->addTimeSlewingInfo(ich, 0, 0);
+      int sector = ich / o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
+      int channelInSector = ich % o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
+      channelCalibObj->setFractionUnderPeak(sector, channelInSector, 1);
     }
+    //    }
 
     o2::tof::CalibTOFapi calibapi(long(0), &lhcPhaseObj, channelCalibObj.get());
 
+    if (mUseCCDB) {
+      calibapi.setURL(mCCDBurl.c_str());
+      auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
+      calibapi.setTimeStamp(creationTime / 1000);
+      LOG(info) << "CCDB required from TOF clusterizer with timestamp " << creationTime / 1000 << " from URL " << mCCDBurl.c_str();
+
+      LOG(info) << "read LHCphase";
+      calibapi.readLHCphase();
+      LOG(info) << "read time slewing";
+      calibapi.readTimeSlewingParam();
+      LOG(info) << "read daignostic";
+      calibapi.readDiagnosticFrequencies();
+    } else {
+      LOG(info) << "No CCDB requested by TOF";
+    }
+
     mClusterer.setCalibApi(&calibapi);
+
+    mClusterer.clearDiagnostic();
+    mClusterer.addDiagnostic(*dia);
 
     // call actual clustering routine
     mClustersArray.clear();
@@ -130,7 +169,29 @@ class TOFDPLClustererTask
       mCosmicProcessor.clear();
     }
 
-    for (int i = 0; i < row.size(); i++) {
+    for (unsigned int i = 0; i < row.size(); i++) {
+      //fill trm pattern but process them in clusterize since they are for readout windows
+      calibapi.resetTRMErrors();
+
+      // loop over crates
+      int kw = 0;
+      for (int crate = 0; crate < 72; crate++) {
+        int slot = -1;
+        int nwords = kw + row[i].getDiagnosticInCrate(crate);
+        int eword;
+        for (; kw < nwords; kw++) {
+          if (patterns[kw] > 28) { // new slot
+            if (slot > -1) {       // fill previous
+              calibapi.processError(crate, slot, eword);
+            }
+            slot = patterns[kw] - 28;
+            eword = 0;
+          } else if (slot > -1) { // process error in this slot
+            eword += 1 << patterns[kw];
+          }
+        }
+      } // end crate loop
+
       //printf("# TOF readout window for clusterization = %d/%lu (N digits = %d)\n", i, row.size(), row[i].size());
       auto digitsRO = row[i].getBunchChannelData(digits);
       mReader.setDigitArray(&digitsRO);
@@ -145,7 +206,7 @@ class TOFDPLClustererTask
         mClusterer.process(mReader, mClustersArray, nullptr);
       }
     }
-    LOG(DEBUG) << "TOF CLUSTERER : TRANSFORMED " << digits.size()
+    LOG(debug) << "TOF CLUSTERER : TRANSFORMED " << digits.size()
                << " DIGITS TO " << mClustersArray.size() << " CLUSTERS";
 
     // send clusters
@@ -174,7 +235,7 @@ class TOFDPLClustererTask
 
   void endOfStream(EndOfStreamContext& ec)
   {
-    LOGF(INFO, "TOF Clusterer total timing: Cpu: %.3e Real: %.3e s in %d slots",
+    LOGF(debug, "TOF Clusterer total timing: Cpu: %.3e Real: %.3e s in %d slots",
          mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
   }
 
@@ -189,15 +250,18 @@ class TOFDPLClustererTask
   std::vector<CalibInfoCluster> mClusterCalInfo; ///< Array of clusters
 };
 
-o2::framework::DataProcessorSpec getTOFClusterizerSpec(bool useMC, bool useCCDB, bool doCalib, bool isCosmic)
+o2::framework::DataProcessorSpec getTOFClusterizerSpec(bool useMC, bool useCCDB, bool doCalib, bool isCosmic, std::string ccdb_url)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("tofdigits", o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("readoutwin", o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe);
-  if (useCCDB) {
-    inputs.emplace_back("tofccdbLHCphase", o2::header::gDataOriginTOF, "LHCphase");
-    inputs.emplace_back("tofccdbChannelCalib", o2::header::gDataOriginTOF, "ChannelCalib");
-  }
+  inputs.emplace_back("diafreq", o2::header::gDataOriginTOF, "DIAFREQ", 0, Lifetime::Timeframe);
+  inputs.emplace_back("patterns", o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe);
+
+  //  if (useCCDB) {
+  //    inputs.emplace_back("tofccdbLHCphase", o2::header::gDataOriginTOF, "LHCphase");
+  //    inputs.emplace_back("tofccdbChannelCalib", o2::header::gDataOriginTOF, "ChannelCalib");
+  //  }
   if (useMC) {
     inputs.emplace_back("tofdigitlabels", o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
@@ -221,7 +285,7 @@ o2::framework::DataProcessorSpec getTOFClusterizerSpec(bool useMC, bool useCCDB,
     "TOFClusterer",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TOFDPLClustererTask>(useMC, useCCDB, doCalib, isCosmic)},
+    AlgorithmSpec{adaptFromTask<TOFDPLClustererTask>(useMC, useCCDB, doCalib, isCosmic, ccdb_url)},
     Options{{"cluster-time-window", VariantType::Int, 5000, {"time window for clusterization in ps"}}}};
 }
 

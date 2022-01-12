@@ -27,6 +27,7 @@
 #include <iomanip> // std::setfill, std::setw - for stream formating
 #include <Framework/Logger.h>
 #include "FDDBase/Constants.h"
+#include "CommonUtils/NameConf.h"
 
 namespace o2
 {
@@ -59,7 +60,7 @@ class LookUpTable
       mInvTopo(mTopoVector.size(), 0)
   {
     if (fillLinearly) {
-      LOG(INFO) << "Mapping of global channel and (PM, PM channel) pair";
+      LOG(info) << "Mapping of global channel and (PM, PM channel) pair";
       for (int link = 0; link < Nmodules; ++link) {
         for (int ch = 0; ch < NChPerMod; ++ch) {
           mTopoVector[link * NChPerMod + ch] = o2::fdd::Topo{link, ch};
@@ -67,7 +68,7 @@ class LookUpTable
       }
     } else {
       // TODO: If needed: implement more realistic splitting: 1 ring -> 1 PM instead of linear
-      LOG(WARNING) << "Don't use it - not implemented yet.";
+      LOG(warning) << "Don't use it - not implemented yet.";
     }
 
     // Fill inverted LUT - matters only if LUT is not linear
@@ -86,13 +87,13 @@ class LookUpTable
   std::size_t getNchannels() const { return mTopoVector.size(); } //get number of global PM channels
   void printFullMap() const
   {
-    LOG(INFO) << "o2::fdd::LookUpTable::printFullMap(): mTopoVector: [globalCh  link  modCh]";
+    LOG(info) << "o2::fdd::LookUpTable::printFullMap(): mTopoVector: [globalCh  link  modCh]";
     for (size_t channel = 0; channel < mTopoVector.size(); ++channel) {
-      LOG(INFO) << "  " << channel << "  " << mTopoVector[channel].modLink << "  " << mTopoVector[channel].modCh;
+      LOG(info) << "  " << channel << "  " << mTopoVector[channel].modLink << "  " << mTopoVector[channel].modCh;
     }
-    LOG(INFO) << "o2::fdd::LookUpTable::printFullMap(): mInvTopo: [idx  globalCh    link  modCh]";
+    LOG(info) << "o2::fdd::LookUpTable::printFullMap(): mInvTopo: [idx  globalCh    link  modCh]";
     for (size_t idx = 0; idx < mInvTopo.size(); ++idx) {
-      LOG(INFO) << "  " << idx << "  " << mInvTopo[idx] << "    " << getLinkFromIdx(mInvTopo[idx]) << "  " << getModChannelFromIdx(mInvTopo[idx]);
+      LOG(info) << "  " << idx << "  " << mInvTopo[idx] << "    " << getLinkFromIdx(mInvTopo[idx]) << "  " << getModChannelFromIdx(mInvTopo[idx]);
     }
   }
 
@@ -192,7 +193,7 @@ class SingleLUT : public LookUpTable
           RDHhelper::setCRUID(&rdhObj, cruID);
         }
       } else {
-        LOG(INFO) << "WARNING! CHECK LUT! TCM METADATA IS INCORRECT!";
+        LOG(info) << "WARNING! CHECK LUT! TCM METADATA IS INCORRECT!";
       }
     }
     assert(mapResult.size() > 0);
@@ -214,15 +215,17 @@ class SingleLUT : public LUT
 
  public:
   static constexpr char sDetectorName[] = "FDD";
-  static constexpr char sDefaultCCDBpath[] = "http://ccdb-test.cern.ch:8080/";
-  static constexpr char sDefaultLUTpath[] = "FDD/LookUpTable";
-  inline static std::string sCurrentCCDBpath = sDefaultCCDBpath;
+  static constexpr char sDefaultLUTpath[] = "FDD/Config/LookupTable";
+  inline static std::string sCurrentCCDBpath = "";
   inline static std::string sCurrentLUTpath = sDefaultLUTpath;
   //Before instance() call, setup url and path
   static void setCCDBurl(const std::string& url) { sCurrentCCDBpath = url; }
   static void setLUTpath(const std::string& path) { sCurrentLUTpath = path; }
   static SingleLUT& Instance()
   {
+    if (sCurrentCCDBpath == "") {
+      sCurrentCCDBpath = o2::base::NameConf::getCCDBServer();
+    }
     static SingleLUT instanceLUT(sCurrentCCDBpath, sCurrentLUTpath);
     return instanceLUT;
   }
@@ -230,7 +233,6 @@ class SingleLUT : public LUT
 } //namespace new_lut
 
 using SingleLUT = new_lut::SingleLUT<o2::fit::LookupTableBase<>>;
-//using SingleLUT = deprecated::SingleLUT;
 
 } // namespace fdd
 } // namespace o2

@@ -42,6 +42,8 @@ class Clusters
  public:
   Clusters() = default;
 
+  Clusters(std::string_view nclName) : mNClusters{nclName} {};
+
   template <class T>
   bool processCluster(const T& cluster, const o2::tpc::Sector sector, const int row);
 
@@ -55,7 +57,9 @@ class Clusters
 
   void reset();
 
-  void dumpToFile(std::string filename);
+  void merge(Clusters& clusters);
+
+  void dumpToFile(std::string filename, int type = 0);
 
   const CalPad& getNClusters() const { return mNClusters; }
   const CalPad& getQMax() const { return mQMax; }
@@ -71,6 +75,10 @@ class Clusters
   CalPad& getSigmaPad() { return mSigmaPad; }
   CalPad& getTimeBin() { return mTimeBin; }
 
+  void endTF() { ++mProcessedTFs; }
+
+  size_t getProcessedTFs() { return mProcessedTFs; }
+
  private:
   CalPad mNClusters{"N_Clusters"};
   CalPad mQMax{"Q_Max"};
@@ -78,6 +86,7 @@ class Clusters
   CalPad mSigmaTime{"Sigma_Time"};
   CalPad mSigmaPad{"Sigma_Pad"};
   CalPad mTimeBin{"Time_Bin"};
+  size_t mProcessedTFs{0};
   bool mIsNormalized{false};
 
   ClassDefNV(Clusters, 1)

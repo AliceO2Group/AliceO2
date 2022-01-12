@@ -18,7 +18,6 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/DataRefUtils.h"
-#include "DataFormatsEMCAL/EMCALBlockHeader.h"
 #include "DataFormatsEMCAL/Cell.h"
 #include "DataFormatsEMCAL/Digit.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
@@ -35,14 +34,14 @@ template <class InputType>
 void DigitsPrinterSpec<InputType>::run(framework::ProcessingContext& pc)
 {
   // Get the EMCAL block header and check whether it contains digits
-  LOG(DEBUG) << "[EMCALDigitsPrinter - process] called";
+  LOG(debug) << "[EMCALDigitsPrinter - process] called";
   std::string objectbranch;
   if constexpr (std::is_same<InputType, o2::emcal::Digit>::value) {
     objectbranch = "digits";
   } else if constexpr (std::is_same<InputType, o2::emcal::Cell>::value) {
     objectbranch = "cells";
   } else {
-    LOG(ERROR) << "Unsupported input type ... ";
+    LOG(error) << "Unsupported input type ... ";
     return;
   }
 

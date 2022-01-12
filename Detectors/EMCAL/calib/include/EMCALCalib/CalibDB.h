@@ -282,9 +282,38 @@ class CalibDB
     mInit = false;
   }
 
+  /// \brief Get CDB path for the bad channel map
+  /// \return Path of the bad channel map in the CCDB
+  static const char* getCDBPathBadChannelMap() { return "EMC/Calib/BadChannelMap"; }
+
+  /// \brief Get CDB path for the time calibration
+  /// \return Path of the time calibration in the CCDB
+  static const char* getCDBPathTimeCalibrationParams() { return "EMC/Calib/TimeCalibParams"; }
+
+  /// \brief Get CDB path for the L1 Phase
+  /// \return Path of the L1 phase in the CCDB
+  static const char* getCDBPathL1Phase() { return "EMC/Calib/TimeCalibParamsL1Phase"; }
+
+  /// \brief Get CDB path for the temperature calibration
+  /// \return Path of the temperature calibration in the CCDB
+  static const char* getCDBPathTemperatureCalibrationParams() { return "EMC/Calib/TempCalibParams"; }
+
+  /// \brief Get CDB path for the SM-dependent temperature calibration
+  /// \return Path of the SM-dependent temperature calibration in the CCDB
+  static const char* getCDBPathTemperatureCalibrationParamsSM() { return "EMC/Calib/TempCalibParamsSM"; }
+
+  /// \brief Get CDB path for the gain calibration
+  /// \return Path of the gain calibration in the CCDB
+  static const char* getCDBPathGainCalibrationParams() { return "EMC/Calib/GainCalibFactors"; }
+
+  /// \brief Get CDB path for the trigger DCS settings
+  /// \return Path of the trigger DCS settings in the CCDB
+  static const char* getCDBPathTriggerDCS() { return "EMC/Calib/TriggerDCS"; }
+
  private:
   /// \brief Initialize CCDB server (when new object is created or the server URL changes)
-  void init();
+  void
+    init();
 
   ccdb::CcdbApi mCCDBManager;                       ///< Handler for queries of the CCDB content
   std::string mCCDBServer = "emcccdb-test.cern.ch"; ///< Name of the CCDB server

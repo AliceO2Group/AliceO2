@@ -26,7 +26,7 @@ o2::framework::DataProcessorSpec getFT0DigitWriterSpec(bool mctruth, bool trigIn
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
   // Spectators for logging
   auto logger = [](std::vector<o2::ft0::Digit> const& vecDigits) {
-    LOG(INFO) << "FT0DigitWriter pulled " << vecDigits.size() << " digits";
+    LOG(debug) << "FT0DigitWriter pulled " << vecDigits.size() << " digits";
   };
   // the callback to be set as hook for custom action when the writer is closed
   auto finishWriting = [](TFile* outputfile, TTree* outputtree) {
@@ -35,7 +35,7 @@ o2::framework::DataProcessorSpec getFT0DigitWriterSpec(bool mctruth, bool trigIn
     for (const auto* brc : *brArr) {
       int64_t n = ((const TBranch*)brc)->GetEntries();
       if (nent && (nent != n)) {
-        LOG(ERROR) << "Branches have different number of entries";
+        LOG(error) << "Branches have different number of entries";
       }
       nent = n;
     }

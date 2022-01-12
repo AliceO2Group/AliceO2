@@ -57,7 +57,11 @@ BOOST_AUTO_TEST_CASE(CheckNofPads)
   //
   // Sorted by decreasing number of pads.
   BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(100).nofPads(), 28672);
+#ifdef MCH_MAPPING_RUN3_AND_ABOVE
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(300).nofPads(), 27873);
+#else
   BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(300).nofPads(), 27933);
+#endif
   BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(902).nofPads(), 7616);
   BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(702).nofPads(), 7072);
   BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(701).nofPads(), 6976);
@@ -85,7 +89,11 @@ BOOST_AUTO_TEST_CASE(TotalNofFECInSegTypesIs2265)
   forOneDetectionElementOfEachSegmentationType([&](int detElemId) {
     n += o2::mch::mapping::segmentation(detElemId).nofDualSampas();
   });
+#ifdef MCH_MAPPING_RUN3_AND_ABOVE
+  BOOST_CHECK_EQUAL(n, 2264);
+#else
   BOOST_CHECK_EQUAL(n, 2265);
+#endif
 }
 
 BOOST_AUTO_TEST_CASE(CheckBoundingBoxesAreAsExpected)
@@ -115,7 +123,11 @@ BOOST_AUTO_TEST_CASE(CheckBoundingBoxesAreAsExpected)
 BOOST_AUTO_TEST_CASE(CheckNofBendingFEC)
 {
   BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(100).nofDualSampas(), 451);
+#ifdef MCH_MAPPING_RUN3_AND_ABOVE
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(300).nofDualSampas(), 442);
+#else
   BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(300).nofDualSampas(), 443);
+#endif
   BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(902).nofDualSampas(), 120);
   BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(702).nofDualSampas(), 111);
   BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(701).nofDualSampas(), 110);
@@ -143,7 +155,11 @@ BOOST_AUTO_TEST_CASE(PadCountInSegmentationTypesMustBe143469)
   forOneDetectionElementOfEachSegmentationType([&n](int detElemId) {
     n += o2::mch::mapping::segmentation(detElemId).nofPads();
   });
+#ifdef MCH_MAPPING_RUN3_AND_ABOVE
+  BOOST_CHECK_EQUAL(n, 143409);
+#else
   BOOST_CHECK_EQUAL(n, 143469);
+#endif
 }
 
 BOOST_AUTO_TEST_CASE(PadCountInAllSegmentationsMustBe1064008)
@@ -152,7 +168,11 @@ BOOST_AUTO_TEST_CASE(PadCountInAllSegmentationsMustBe1064008)
   forEachDetectionElement([&n](int detElemId) {
     n += o2::mch::mapping::segmentation(detElemId).nofPads();
   });
+#ifdef MCH_MAPPING_RUN3_AND_ABOVE
+  BOOST_CHECK_EQUAL(n, 1063528);
+#else
   BOOST_CHECK_EQUAL(n, 1064008);
+#endif
 }
 
 BOOST_AUTO_TEST_CASE(NumberOfSegmentationsMustBe21)

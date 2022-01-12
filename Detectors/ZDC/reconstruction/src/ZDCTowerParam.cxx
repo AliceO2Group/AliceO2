@@ -26,7 +26,7 @@ void ZDCTowerParam::setTowerCalib(uint32_t ich, float val)
   if (in_list) {
     tower_calib[ich] = val;
   } else {
-    LOG(FATAL) << __func__ << " channel " << ich << " not in allowed range";
+    LOG(fatal) << __func__ << " channel " << ich << " not in allowed range";
     for (int il = 0; il < ChTowerCalib.size(); il++) {
       LOG(info) << __func__ << " channel " << ChTowerCalib[il] << " " << ChannelNames[ChTowerCalib[il]];
     }
@@ -38,7 +38,7 @@ float ZDCTowerParam::getTowerCalib(uint32_t ich) const
   if (ich >= 0 && ich < NChannels) {
     return tower_calib[ich];
   } else {
-    LOG(FATAL) << __func__ << " channel " << ich << " not in allowed range";
+    LOG(fatal) << __func__ << " channel " << ich << " not in allowed range";
     return 0;
   }
 }
@@ -47,7 +47,7 @@ void ZDCTowerParam::print()
 {
   for (Int_t ich = 0; ich < NChannels; ich++) {
     if (tower_calib[ich] > 0) {
-      LOG(INFO) << ChannelNames[ich] << " calibration factor = " << tower_calib[ich];
+      LOG(info) << ChannelNames[ich] << " calibration factor = " << tower_calib[ich];
     }
   }
 }

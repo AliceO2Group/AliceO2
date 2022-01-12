@@ -78,6 +78,7 @@ class GeometryParams final : public TNamed
   float getDistanceBetwRails() const { return mDistanceBetwRails; }
   float getRailsDistanceFromIP() const { return mRailsDistanceFromIP; }
   float getRailRoadSize(int index) const { return mRailRoadSize[index]; }
+  float getModuleCraddleGap() const { return mModuleCraddleGap; }
   float getCradleWallThickness() const { return mCradleWallThickness; }
   float getCradleWall(int index) const { return mCradleWall[index]; }
   float getCradleWheel(int index) const { return mCradleWheel[index]; }
@@ -256,6 +257,7 @@ class GeometryParams final : public TNamed
   float mRailsDistanceFromIP; ///< Distance of rails from IP
   float mRailRoadSize[3];     ///< Outer size of the dummy box with rails
   float mCradleWallThickness; ///< PHOS cradle wall thickness
+  float mModuleCraddleGap;    ///< gap between PHOS module and craddle inner wall
   float mCradleWall[5];       ///< Size of the wall of the PHOS cradle (shape TUBS)
   float mCradleWheel[3];      ///< "Wheels" by which the cradle rolls over the rails
 

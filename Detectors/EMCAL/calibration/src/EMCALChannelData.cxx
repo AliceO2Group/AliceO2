@@ -10,17 +10,19 @@
 // or submit itself to any jurisdiction.
 
 #include "EMCALCalibration/EMCALChannelData.h"
-#include "Framework/Logger.h"
-#include "CommonUtils/MemFileHelper.h"
-#include "CCDB/CcdbApi.h"
-#include "DetectorsCalibration/Utils.h"
-#include <boost/histogram.hpp>
-#include <boost/histogram/ostream.hpp>
-#include <boost/format.hpp>
-#include <cassert>
-#include <iostream>
-#include <sstream>
-#include <TStopwatch.h>
+#include "EMCALCalibration/EMCALCalibExtractor.h"
+#include "CommonUtils/BoostHistogramUtils.h"
+// #include "Framework/Logger.h"
+// #include "CommonUtils/MemFileHelper.h"
+// #include "CCDB/CcdbApi.h"
+// #include "DetectorsCalibration/Utils.h"
+// #include <boost/histogram.hpp>
+// #include <boost/histogram/ostream.hpp>
+// #include <boost/format.hpp>
+// #include <cassert>
+// #include <iostream>
+// #include <sstream>
+// #include <TStopwatch.h>
 
 namespace o2
 {
@@ -28,7 +30,6 @@ namespace emcal
 {
 
 using Slot = o2::calibration::TimeSlot<o2::emcal::EMCALChannelData>;
-using clbUtils = o2::calibration::Utils;
 using boost::histogram::indexed;
 
 //===================================================================
@@ -49,14 +50,14 @@ void EMCALChannelData::fill(const gsl::span<const o2::emcal::Cell> data)
   for (auto cell : data) {
     Double_t cellEnergy = cell.getEnergy();
     Int_t id = cell.getTower();
-    LOG(DEBUG) << "inserting in cell ID " << id << ": energy = " << cellEnergy;
+    LOG(debug) << "inserting in cell ID " << id << ": energy = " << cellEnergy;
     mHisto(cellEnergy, id);
   }
 }
 //_____________________________________________
 void EMCALChannelData::print()
 {
-  LOG(DEBUG) << *this;
+  LOG(debug) << *this;
 }
 //_____________________________________________
 void EMCALChannelData::merge(const EMCALChannelData* prev)
@@ -82,6 +83,13 @@ bool EMCALChannelData::hasEnoughData() const
 
   return enough;
 }
+
+//_____________________________________________
+void EMCALChannelData::analyzeSlot()
+{
+  mOutputBCM = mCalibExtractor->calibrateBadChannels(mEsumHisto);
+}
+//____________________________________________
 
 } // end namespace emcal
 } // end namespace o2

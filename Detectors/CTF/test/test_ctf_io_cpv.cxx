@@ -13,9 +13,10 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "CPVReconstruction/CTFCoder.h"
 #include "DataFormatsCPV/CTF.h"
+#include "DataFormatsCPV/Cluster.h"
 #include "Framework/Logger.h"
 #include <TFile.h>
 #include <TRandom.h>
@@ -40,11 +41,11 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     int n = 1 + gRandom->Poisson(100);
     for (int i = n; i--;) {
       char mult = gRandom->Integer(30);
-      char mod = 1 + gRandom->Integer(3);
+      char mod = 2 + gRandom->Integer(3); // there are M2, M3 and M4
       char exMax = gRandom->Integer(3);
       float x = 72.3 * 2. * (gRandom->Rndm() - 0.5);
       float z = 63.3 * 2. * (gRandom->Rndm() - 0.5);
-      float e = 254. * gRandom->Rndm();
+      float e = 10000. * gRandom->Rndm(); // we need high energy range
       clusters.emplace_back(mult, mod, exMax, x, z, e);
     }
     triggers.emplace_back(ir, start, clusters.size() - start);
@@ -57,7 +58,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     coder.encode(vec, triggers, clusters); // compress
   }
   sw.Stop();
-  LOG(INFO) << "Compressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Compressed in " << sw.CpuTime() << " s";
 
   // writing
   {
@@ -69,12 +70,12 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     ctfImage->appendToTree(ctfTree, "CPV");
     ctfTree.Write();
     sw.Stop();
-    LOG(INFO) << "Wrote to tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Wrote to tree in " << sw.CpuTime() << " s";
   }
 
   // reading
   vec.clear();
-  LOG(INFO) << "Start reading from tree ";
+  LOG(info) << "Start reading from tree ";
   {
     sw.Start();
     TFile flIn("test_ctf_cpv.root");
@@ -82,7 +83,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     BOOST_CHECK(tree);
     o2::cpv::CTF::readFromTree(vec, *(tree.get()), "CPV");
     sw.Stop();
-    LOG(INFO) << "Read back from tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Read back from tree in " << sw.CpuTime() << " s";
   }
 
   std::vector<TriggerRecord> triggersD;
@@ -95,18 +96,18 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     coder.decode(ctfImage, triggersD, clustersD); // decompress
   }
   sw.Stop();
-  LOG(INFO) << "Decompressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Decompressed in " << sw.CpuTime() << " s";
 
   BOOST_CHECK(triggersD.size() == triggers.size());
   BOOST_CHECK(clustersD.size() == clusters.size());
-  LOG(INFO) << " BOOST_CHECK triggersD.size() " << triggersD.size() << " triggers.size() " << triggers.size()
+  LOG(info) << " BOOST_CHECK triggersD.size() " << triggersD.size() << " triggers.size() " << triggers.size()
             << " BOOST_CHECK(clustersD.size() " << clustersD.size() << " clusters.size()) " << clusters.size();
 
   for (size_t i = 0; i < triggers.size(); i++) {
     const auto& dor = triggers[i];
     const auto& ddc = triggersD[i];
-    LOG(DEBUG) << " Orig.TriggerRecord " << i << " " << dor.getBCData() << " " << dor.getFirstEntry() << " " << dor.getNumberOfObjects();
-    LOG(DEBUG) << " Deco.TriggerRecord " << i << " " << ddc.getBCData() << " " << ddc.getFirstEntry() << " " << ddc.getNumberOfObjects();
+    LOG(debug) << " Orig.TriggerRecord " << i << " " << dor.getBCData() << " " << dor.getFirstEntry() << " " << dor.getNumberOfObjects();
+    LOG(debug) << " Deco.TriggerRecord " << i << " " << ddc.getBCData() << " " << ddc.getFirstEntry() << " " << ddc.getNumberOfObjects();
 
     BOOST_CHECK(dor.getBCData() == ddc.getBCData());
     BOOST_CHECK(dor.getNumberOfObjects() == ddc.getNumberOfObjects());
@@ -118,7 +119,12 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     const auto& cdc = clustersD[i];
     BOOST_CHECK(cor.getMultiplicity() == cdc.getMultiplicity());
     BOOST_CHECK(cor.getModule() == cdc.getModule());
-    BOOST_CHECK(TMath::Abs(cor.getEnergy() - cdc.getEnergy()) < 1.);
+    if (cor.getEnergy() < 100.) {
+      BOOST_CHECK(TMath::Abs(cor.getEnergy() - cdc.getEnergy()) < 1.);
+    } else {
+      float eTr = cor.getEnergy();
+      BOOST_CHECK(TMath::Abs(eTr - cdc.getEnergy()) <= eTr * (exp(kStepE * eTr) - 1.)); // increasing discretisation step size
+    }
     float xCor, zCor, xCdc, zCdc;
     cor.getLocalPosition(xCor, zCor);
     cdc.getLocalPosition(xCdc, zCdc);

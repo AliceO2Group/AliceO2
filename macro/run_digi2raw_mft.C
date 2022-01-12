@@ -37,14 +37,14 @@ void run_digi2raw_mft(std::string outName = "rawmft.bin",                       
 
   std::vector<o2::itsmft::Digit> digiVec, *digiVecP = &digiVec;
   if (!digTree.GetBranch(digBranchName.c_str())) {
-    LOG(FATAL) << "Failed to find the branch " << digBranchName << " in the tree " << digTreeName;
+    LOG(fatal) << "Failed to find the branch " << digBranchName << " in the tree " << digTreeName;
   }
   digTree.SetBranchAddress(digBranchName.c_str(), &digiVecP);
 
   // ROF record entries in the digit tree
   ROFRVEC rofRecVec, *rofRecVecP = &rofRecVec;
   if (!digTree.GetBranch(rofRecName.c_str())) {
-    LOG(FATAL) << "Failed to find the branch " << rofRecName << " in the tree " << digTreeName;
+    LOG(fatal) << "Failed to find the branch " << rofRecName << " in the tree " << digTreeName;
   }
   digTree.SetBranchAddress(rofRecName.c_str(), &rofRecVecP);
   ///-------< input
@@ -52,14 +52,14 @@ void run_digi2raw_mft(std::string outName = "rawmft.bin",                       
   ///-------> output
   if (outName.empty()) {
     outName = "raw" + digBranchName + ".raw";
-    LOG(INFO) << "Output file name is not provided, set to " << outName;
+    LOG(info) << "Output file name is not provided, set to " << outName;
   }
   auto outFl = fopen(outName.c_str(), "wb");
   if (!outFl) {
-    LOG(FATAL) << "failed to open raw data output file " << outName;
+    LOG(fatal) << "failed to open raw data output file " << outName;
     ;
   } else {
-    LOG(INFO) << "opened raw data output file " << outName;
+    LOG(info) << "opened raw data output file " << outName;
   }
   o2::itsmft::PayLoadCont outBuffer;
   ///-------< output
@@ -75,14 +75,14 @@ void run_digi2raw_mft(std::string outName = "rawmft.bin",                       
   // during encoding.
   // If the links of the container are not defined, a single link readout will be assigned
   const auto& mp = rawReader.getMapping();
-  LOG(INFO) << "Number of RUs = " << mp.getNRUs();
+  LOG(info) << "Number of RUs = " << mp.getNRUs();
   for (int ir = 0; ir < mp.getNRUs(); ir++) {
     auto& ru = rawReader.getCreateRUDecode(ir);               // create RU container
     uint32_t lanes = mp.getCablesOnRUType(ru.ruInfo->ruType); // lanes patter of this RU
     ru.links[0] = rawReader.addGBTLink();
     auto* link = rawReader.getGBTLink(ru.links[0]);
     link->lanes = lanes; // single link reads all lanes
-    LOG(INFO) << "RU " << std::setw(3) << ir << " type " << int(ru.ruInfo->ruType) << " on lr" << int(ru.ruInfo->layer)
+    LOG(info) << "RU " << std::setw(3) << ir << " type " << int(ru.ruInfo->ruType) << " on lr" << int(ru.ruInfo->layer)
               << " : FEEId 0x" << std::hex << std::setfill('0') << std::setw(6) << mp.RUSW2FEEId(ir, int(ru.ruInfo->layer))
               << " reads lanes " << std::bitset<25>(link->lanes);
   }
@@ -94,23 +94,23 @@ void run_digi2raw_mft(std::string outName = "rawmft.bin",                       
     for (const auto& rofRec : rofRecVec) {
       int rofEntry = rofRec.getFirstEntry();
       int nDigROF = rofRec.getNEntries();
-      LOG(INFO) << "Processing ROF:" << rofRec.getROFrame() << " with " << nDigROF << " entries";
+      LOG(info) << "Processing ROF:" << rofRec.getROFrame() << " with " << nDigROF << " entries";
       rofRec.print();
       if (!nDigROF) {
-        LOG(INFO) << "Frame is empty"; // ??
+        LOG(info) << "Frame is empty"; // ??
         continue;
       }
       int maxDigIndex = rofEntry + nDigROF;
-      LOG(INFO) << "BV===== 1stEntry " << rofEntry << " maxDigIndex " << maxDigIndex << "\n";
+      LOG(info) << "BV===== 1stEntry " << rofEntry << " maxDigIndex " << maxDigIndex << "\n";
 
       int nPagesCached = rawReader.digits2raw(digiVec, rofEntry, nDigROF, rofRec.getBCData(),
                                               ruSWMin, ruSWMax);
-      LOG(INFO) << "Pages chached " << nPagesCached << " superpage: " << int(superPageSize);
+      LOG(info) << "Pages chached " << nPagesCached << " superpage: " << int(superPageSize);
       if (nPagesCached >= superPageSize) {
         int nPagesFlushed = rawReader.flushSuperPages(superPageSize, outBuffer);
         fwrite(outBuffer.data(), 1, outBuffer.getSize(), outFl); //write to file
         outBuffer.clear();
-        LOG(INFO) << "Flushed " << nPagesFlushed << " CRU pages";
+        LOG(info) << "Flushed " << nPagesFlushed << " CRU pages";
       }
       //printf("BV===== stop after the first ROF!\n");
       //break;
@@ -123,7 +123,7 @@ void run_digi2raw_mft(std::string outName = "rawmft.bin",                       
     flushed = rawReader.flushSuperPages(superPageSize, outBuffer, false);
     fwrite(outBuffer.data(), 1, outBuffer.getSize(), outFl); //write to file
     if (flushed) {
-      LOG(INFO) << "Flushed final " << flushed << " CRU pages";
+      LOG(info) << "Flushed final " << flushed << " CRU pages";
     }
     outBuffer.clear();
   } while (flushed);

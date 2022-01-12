@@ -26,10 +26,9 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
   std::string mCCDBPath = "localtest"; ///< use "localtest" to avoid connecting ccdb server, otherwise use ccdb-test.cern.ch
 
   //Parameters used in conversion of deposited energy to APD response
-  float mLightYieldMean = 47000;                                  // Average number of photoelectrons per GeV
-  float mIntrinsicAPDEfficiency = 0.02655;                        // APD efficiency including geometric coverage
-  float mLightFactor = mLightYieldMean * mIntrinsicAPDEfficiency; // Average number of photons collected by APD per GeV deposited energy
-  float mAPDFactor = (13.418 / mLightYieldMean / 100.) * 300.;    // factor relating light yield and APD response
+  float mLightYieldPerGeV = 526.;                 ///< Average number of photoelectrons per GeV: 1.983 gamma/MeV * 0.2655 PDE eff of APD
+  std::string mDigitizationCalibPath = "default"; ///< use "default" to use default calibration or use ccdb.cern.ch
+  std::string mDigitizationTrigPath = "default";  ///< use "default" to use default map and turn-on or use ccdb.cern.ch
 
   //Parameters used in electronic noise calculation and thresholds (Digitizer)
   float mReadoutTime = 5.;           ///< Read-out time in ns for default simulaionts
@@ -48,12 +47,12 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
   float mCellNonLineaityB = 0.109;   ///< Energy scale of cel non-linearity
   float mCellNonLineaityC = 1.;      ///< Overall calibration
 
-  short mZSthreshold = 1;        ///< Zero Suppression threshold
-  float mTimeResolutionA = 2.;   ///< Time resolution parameter A (in ns)
-  float mTimeResolutionB = 2.;   ///< Time resolution parameter B (in ns/GeV)
-  float mTimeResThreshold = 0.5; ///< threshold for time resolution calculation (in GeV)
-  float mMinNoiseTime = -200.;   ///< minimum time in noise channels (in ns)
-  float mMaxNoiseTime = 2000.;   ///< minimum time in noise channels (in ns)
+  short mZSthreshold = 1;         ///< Zero Suppression threshold
+  float mTimeResolutionA = 2.e-9; ///< Time resolution parameter A (in sec)
+  float mTimeResolutionB = 2.e-9; ///< Time resolution parameter B (in sec/GeV)
+  float mTimeResThreshold = 0.5;  ///< threshold for time resolution calculation (in GeV)
+  float mMinNoiseTime = -200.e-9; ///< minimum time in noise channels (in sec)
+  float mMaxNoiseTime = 2000.e-9; ///< minimum time in noise channels (in sec)
 
   float mTrig2x2MinThreshold = 800.; ///< threshold to simulate 2x2 trigger turn-on curve (in ADC counts~0.005 GeV/count!)
   float mTrig4x4MinThreshold = 900.; ///< threshold to simulate 4x4 trigger turn-on curve (in ADC counts!)

@@ -10,10 +10,16 @@
 // or submit itself to any jurisdiction.
 
 #include "FT0ChannelTimeCalibrationSpec.h"
+#include "FT0Calibration/FT0ChannelTimeTimeSlotContainer.h"
+
+using namespace o2::framework;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   //probably some option will be added
+  std::vector<o2::framework::ConfigParamSpec> options;
+  options.push_back(ConfigParamSpec{"time-calib-fitting-nbins", VariantType::Int, 2, {""}});
+  std::swap(workflowOptions, options);
 }
 
 #include "Framework/runDataProcessing.h"
@@ -22,6 +28,7 @@ using namespace o2::framework;
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
   WorkflowSpec workflow;
+  o2::ft0::FT0ChannelTimeTimeSlotContainer::sGausFitBins = config.options().get<int>("time-calib-fitting-nbins");
   workflow.emplace_back(o2::ft0::getFT0ChannelTimeCalibrationSpec());
   return workflow;
 }

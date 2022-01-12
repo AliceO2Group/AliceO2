@@ -15,6 +15,29 @@
 namespace o2::framework
 {
 
+void AxisSpec::makeLogaritmic()
+{
+  if (binEdges.size() > 2) {
+    LOG(fatal) << "Cannot make a variabled bin width axis logaritmic";
+  }
+
+  const double min = binEdges[0];
+  const double max = binEdges[1];
+  binEdges.clear();
+  const double logmin = std::log10(min);
+  const double logmax = std::log10(max);
+  const int nbins = nBins.value();
+  const double logdelta = (logmax - logmin) / (static_cast<double>(nbins));
+  const double log10 = std::log10(10.);
+  LOG(debug) << "Making a logaritmic binning from " << min << " to " << max << " with " << nbins << " bins";
+  for (int i = 0; i < nbins + 1; i++) {
+    const auto nextEdge = std::pow(10, logmin + i * logdelta);
+    LOG(debug) << i << "/" << nbins - 1 << ": " << nextEdge;
+    binEdges.push_back(nextEdge);
+  }
+  nBins = std::nullopt;
+}
+
 // main function for creating arbirtary histograms
 template <typename T>
 std::unique_ptr<T> HistFactory::createHist(const HistogramSpec& histSpec)
@@ -22,7 +45,7 @@ std::unique_ptr<T> HistFactory::createHist(const HistogramSpec& histSpec)
   constexpr std::size_t MAX_DIM{10};
   const std::size_t nAxes{histSpec.config.axes.size()};
   if (nAxes == 0 || nAxes > MAX_DIM) {
-    LOGF(FATAL, "The histogram specification contains no (or too many) axes.");
+    LOGF(fatal, "The histogram specification contains no (or too many) axes.");
     return nullptr;
   }
 
@@ -40,7 +63,7 @@ std::unique_ptr<T> HistFactory::createHist(const HistogramSpec& histSpec)
   // create histogram
   std::unique_ptr<T> hist{generateHist<T>(histSpec.name, histSpec.title, nAxes, nBins, lowerBounds, upperBounds, histSpec.config.nSteps)};
   if (!hist) {
-    LOGF(FATAL, "The number of dimensions specified for histogram %s does not match the type.", histSpec.name);
+    LOGF(fatal, "The number of dimensions specified for histogram %s does not match the type.", histSpec.name);
     return nullptr;
   }
 
@@ -62,7 +85,7 @@ std::unique_ptr<T> HistFactory::createHist(const HistogramSpec& histSpec)
       // move the bin edges in case a variable binning was requested
       if (!histSpec.config.axes[i].nBins) {
         if (!std::is_sorted(std::begin(histSpec.config.axes[i].binEdges), std::end(histSpec.config.axes[i].binEdges))) {
-          LOGF(FATAL, "The bin edges in histogram %s are not in increasing order!", histSpec.name);
+          LOGF(fatal, "The bin edges in histogram %s are not in increasing order!", histSpec.name);
           return nullptr;
         }
         axis->Set(nBins[i], histSpec.config.axes[i].binEdges.data());

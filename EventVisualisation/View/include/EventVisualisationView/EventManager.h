@@ -18,8 +18,7 @@
 #ifndef ALICE_O2_EVENTVISUALISATION_VIEW_EVENTMANAGER_H
 #define ALICE_O2_EVENTVISUALISATION_VIEW_EVENTMANAGER_H
 
-#include "EventVisualisationBase/VisualisationConstants.h"
-#include "EventVisualisationBase/DataInterpreter.h"
+#include "EventVisualisationDataConverter/VisualisationConstants.h"
 #include "EventVisualisationBase/DataReader.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CcdbApi.h"
@@ -47,17 +46,9 @@ class DataSource;
 class EventManager final : public TEveEventManager, public TQObject
 {
  public:
-  enum EDataSource {
-    SourceOnline,  ///< Online reconstruction is a source of events
-    SourceOffline, ///< Local files are the source of events
-    SourceHLT      ///< HLT reconstruction is a source of events
-  };
-
   /// Returns an instance of EventManager
   static EventManager& getInstance();
 
-  /// Setter of the current data source type
-  inline void setDataSourceType(EDataSource source) { mCurrentDataSourceType = source; }
   /// Setter of the current data source path
   inline void setDataSourcePath(const TString& path) { dataPath = path; }
   /// Sets the CDB path in CCDB Manager
@@ -69,7 +60,6 @@ class EventManager final : public TEveEventManager, public TQObject
   DataSource* getDataSource() { return dataSource; }
   void setDataSource(DataSource* dataSource) { this->dataSource = dataSource; }
 
-  void Open() override;
   void GotoEvent(Int_t /*event*/) override;
   void NextEvent() override;
   void PrevEvent() override;
@@ -88,7 +78,6 @@ class EventManager final : public TEveEventManager, public TQObject
   static EventManager* instance;
   o2::ccdb::CcdbApi ccdbApi;
   TEveElementList* dataTypeLists[EVisualisationDataType::NdataTypes];
-  EDataSource mCurrentDataSourceType = EDataSource::SourceOffline;
   DataSource* dataSource = nullptr;
   TString dataPath = "";
 

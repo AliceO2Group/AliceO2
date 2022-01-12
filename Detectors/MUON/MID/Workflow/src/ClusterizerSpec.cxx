@@ -44,17 +44,17 @@ class ClusterizerDeviceDPL
   void init(o2::framework::InitContext& ic)
   {
     if (!mPreClusterizer.init()) {
-      LOG(ERROR) << "Initialization of MID pre-clusterizer device failed";
+      LOG(error) << "Initialization of MID pre-clusterizer device failed";
     }
 
     if (!mClusterizer.init()) {
-      LOG(ERROR) << "Initialization of MID clusterizer device failed";
+      LOG(error) << "Initialization of MID clusterizer device failed";
     }
 
     auto stop = [this]() {
-      LOG(INFO) << "Capacities: ROFRecords: " << mClusterizer.getROFRecords().capacity() << "  preclusters: " << mPreClusterizer.getPreClusters().capacity() << "  clusters: " << mClusterizer.getClusters().capacity();
+      LOG(info) << "Capacities: ROFRecords: " << mClusterizer.getROFRecords().capacity() << "  preclusters: " << mPreClusterizer.getPreClusters().capacity() << "  clusters: " << mClusterizer.getClusters().capacity();
       double scaleFactor = 1.e6 / mNROFs;
-      LOG(INFO) << "Processing time / " << mNROFs << " ROFs: full: " << mTimer.count() * scaleFactor << " us  pre-clustering: " << mTimerPreCluster.count() * scaleFactor << " us  clustering: " << mTimerCluster.count() * scaleFactor << " us";
+      LOG(info) << "Processing time / " << mNROFs << " ROFs: full: " << mTimer.count() * scaleFactor << " us  pre-clustering: " << mTimerPreCluster.count() * scaleFactor << " us  clustering: " << mTimerCluster.count() * scaleFactor << " us";
     };
     ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);
   }
@@ -73,7 +73,7 @@ class ClusterizerDeviceDPL
     auto tAlgoStart = std::chrono::high_resolution_clock::now();
     mPreClusterizer.process(patterns, inROFRecords);
     mTimerPreCluster += std::chrono::high_resolution_clock::now() - tAlgoStart;
-    LOG(DEBUG) << "Generated " << mPreClusterizer.getPreClusters().size() << " PreClusters";
+    LOG(debug) << "Generated " << mPreClusterizer.getPreClusters().size() << " PreClusters";
 
     // Clustering
     tAlgoStart = std::chrono::high_resolution_clock::now();
@@ -81,9 +81,9 @@ class ClusterizerDeviceDPL
     mTimerCluster += std::chrono::high_resolution_clock::now() - tAlgoStart;
 
     pc.outputs().snapshot(of::Output{"MID", "CLUSTERS", 0, of::Lifetime::Timeframe}, mClusterizer.getClusters());
-    LOG(DEBUG) << "Sent " << mClusterizer.getClusters().size() << " clusters";
+    LOG(debug) << "Sent " << mClusterizer.getClusters().size() << " clusters";
     pc.outputs().snapshot(of::Output{"MID", "CLUSTERSROF", 0, of::Lifetime::Timeframe}, mClusterizer.getROFRecords());
-    LOG(DEBUG) << "Sent " << mClusterizer.getROFRecords().size() << " ROF";
+    LOG(debug) << "Sent " << mClusterizer.getROFRecords().size() << " ROF";
 
     mTimer += std::chrono::high_resolution_clock::now() - tStart;
     mNROFs += inROFRecords.size();

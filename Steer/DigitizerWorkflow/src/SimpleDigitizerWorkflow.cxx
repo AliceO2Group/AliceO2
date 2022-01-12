@@ -21,8 +21,9 @@
 #include "Algorithm/RangeTokenizer.h"
 #include "SimReaderSpec.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 // for TPC
 #include "TPCDigitizerSpec.h"
@@ -182,6 +183,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
   // option to use/not use CCDB for TOF
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-tof", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
+  workflowOptions.push_back(ConfigParamSpec{"timestamp-tof", o2::framework::VariantType::Int, 0, {"timestamp in seconds"}});
 
   // option to use or not use the Trap Simulator after digitisation (debate of digitization or reconstruction is for others)
   workflowOptions.push_back(ConfigParamSpec{"disable-trd-trapsim", VariantType::Bool, false, {"disable the trap simulation of the TRD"}});
@@ -208,7 +210,7 @@ int getNumTPCLanes(std::vector<int> const& sectors, ConfigContext const& configc
   auto lanes = configcontext.options().get<int>("tpc-lanes");
   if (lanes < 0) {
     if (gIsMaster) {
-      LOG(FATAL) << "tpc-lanes needs to be positive\n";
+      LOG(fatal) << "tpc-lanes needs to be positive\n";
     }
     return 0;
   }
@@ -231,11 +233,11 @@ void initTPC()
   streamthis << "TPCGEMINIT_PID" << getpid();
   streamparent << "TPCGEMINIT_PID" << getppid();
   if (getenv(streamparent.str().c_str())) {
-    LOG(DEBUG) << "GEM ALREADY INITIALIZED ... SKIPPING HERE";
+    LOG(debug) << "GEM ALREADY INITIALIZED ... SKIPPING HERE";
     return;
   }
 
-  LOG(DEBUG) << "INITIALIZING TPC GEMAmplification";
+  LOG(debug) << "INITIALIZING TPC GEMAmplification";
   setenv(streamthis.str().c_str(), "ON", 1);
 
   auto& cdb = o2::tpc::CDBInterface::instance();
@@ -251,7 +253,7 @@ std::shared_ptr<o2::parameters::GRPObject> readGRP(std::string inputGRP)
 {
   auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
   if (!grp) {
-    LOG(ERROR) << "This workflow needs a valid GRP file to start";
+    LOG(error) << "This workflow needs a valid GRP file to start";
     return nullptr;
   }
   if (gIsMaster) {
@@ -378,6 +380,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // Note: In the future this should be done only on a dedicated processor managing
   // the parameters and then propagated automatically to all devices
   ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+  const auto& hbfu = o2::raw::HBFUtils::Instance();
 
   // which sim productions to overlay and digitize
   auto simPrefixes = splitString(configcontext.options().get<std::string>("sims"), ',');
@@ -388,16 +391,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     if (!grp) {
       return WorkflowSpec{};
     }
+    if (!hbfu.startTime) { // HBFUtils.startTime was not set from the command line, set it from GRP
+      hbfu.setValue("HBFUtils.startTime", std::to_string(grp->getTimeStart()));
+    }
   }
   auto grpfile = o2::base::NameConf::getGRPFileName(simPrefixes[0]);
 
   // update the digitization configuration with the right geometry file
   // we take the geometry from the first simPrefix (could actually check if they are
   // all compatible)
-  auto geomfilename = o2::base::NameConf::getGeomFileName(simPrefixes[0]);
-  ConfigurableParam::setValue("DigiParams.digitizationgeometry", geomfilename);
+  ConfigurableParam::setValue("DigiParams.digitizationgeometry_prefix", simPrefixes[0]);
   ConfigurableParam::setValue("DigiParams.grpfile", grpfile);
-  LOG(INFO) << "MC-TRUTH " << !configcontext.options().get<bool>("disable-mc");
+  LOG(info) << "MC-TRUTH " << !configcontext.options().get<bool>("disable-mc");
   bool mctruth = !configcontext.options().get<bool>("disable-mc");
   ConfigurableParam::setValue("DigiParams", "mctruth", mctruth);
 
@@ -438,7 +443,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     auto accepted = accept(id);
     bool is_ingrp = grp->isDetReadOut(id);
     if (gIsMaster) {
-      LOG(INFO) << id.getName()
+      LOG(info) << id.getName()
                 << " is in grp? " << (is_ingrp ? "yes" : "no") << ";"
                 << " is skipped? " << (!accepted ? "yes" : "no");
     }
@@ -509,9 +514,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // the TOF part
   if (isEnabled(o2::detectors::DetID::TOF)) {
     auto useCCDB = configcontext.options().get<bool>("use-ccdb-tof");
+    auto ccdb_url_tof = o2::base::NameConf::getCCDBServer();
+    auto timestamp = configcontext.options().get<int>("timestamp-tof");
     detList.emplace_back(o2::detectors::DetID::TOF);
     // connect the TOF digitization
-    specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB, mctruth));
+    specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB, mctruth, ccdb_url_tof.c_str(), timestamp));
     // add TOF digit writer
     specs.emplace_back(o2::tof::getTOFDigitWriterSpec(mctruth));
   }

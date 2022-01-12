@@ -17,7 +17,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "GlobalTrackingWorkflowReaders/PrimaryVertexReaderSpec.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "TFile.h"
 #include "TTree.h"
 #include "CommonDataFormat/TimeStamp.h"
@@ -81,7 +81,7 @@ void PrimaryVertexReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(INFO) << "Pushing " << mVerticesPtr->size() << " vertices at entry " << ent;
+  LOG(info) << "Pushing " << mVerticesPtr->size() << " vertices at entry " << ent;
 
   pc.outputs().snapshot(Output{"GLO", "PVTX", 0, Lifetime::Timeframe}, mVertices);
   pc.outputs().snapshot(Output{"GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe}, mPV2MatchIdx);
@@ -98,22 +98,22 @@ void PrimaryVertexReader::run(ProcessingContext& pc)
       if (mUseMC) {
         lb = mLabels[cnt];
       }
-      LOG(INFO) << "#" << cnt << " " << vtx << " | MC:" << lb;
-      LOG(INFO) << "References: " << mPV2MatchIdxRef[cnt];
+      LOG(info) << "#" << cnt << " " << vtx << " | MC:" << lb;
+      LOG(info) << "References: " << mPV2MatchIdxRef[cnt];
       for (int is = 0; is < GIndex::NSources; is++) {
-        LOG(INFO) << GIndex::getSourceName(is) << " : " << mPV2MatchIdxRef[cnt].getEntriesOfSource(is) << " attached:";
+        LOG(info) << GIndex::getSourceName(is) << " : " << mPV2MatchIdxRef[cnt].getEntriesOfSource(is) << " attached:";
         int idMin = mPV2MatchIdxRef[cnt].getFirstEntryOfSource(is), idMax = idMin + mPV2MatchIdxRef[cnt].getEntriesOfSource(is);
         std::string trIDs;
         int cntT = 0;
         for (int i = idMin; i < idMax; i++) {
           trIDs += mPV2MatchIdx[i].asString() + " ";
           if (!((++cntT) % 15)) {
-            LOG(INFO) << trIDs;
+            LOG(info) << trIDs;
             trIDs = "";
           }
         }
         if (!trIDs.empty()) {
-          LOG(INFO) << trIDs;
+          LOG(info) << trIDs;
         }
       }
       cnt++;
@@ -146,7 +146,7 @@ void PrimaryVertexReader::connectTree()
     mTree->SetBranchAddress(mVertexLabelsBranchName.c_str(), &mLabelsPtr);
   }
 
-  LOG(INFO) << "Loaded " << mVertexTreeName << " tree from " << mFileName << " with " << mTree->GetEntries() << " entries";
+  LOG(info) << "Loaded " << mVertexTreeName << " tree from " << mFileName << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getPrimaryVertexReaderSpec(bool useMC)

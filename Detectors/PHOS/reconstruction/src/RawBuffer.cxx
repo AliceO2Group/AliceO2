@@ -33,7 +33,7 @@ void RawBuffer::readFromStream(std::istream& in, uint32_t payloadsize)
     in.read(address, sizeof(word));
     nbyte += sizeof(word);
     if ((word & 0xFFFFFF) == 0x1d3082) {
-      LOG(ERROR) << "Found stop word" << std::endl;
+      LOG(error) << "Found stop word" << std::endl;
       // Termination word
       // should normally not be decoded in case the payload size
       // is determined correctly
@@ -58,20 +58,4 @@ void RawBuffer::readFromMemoryBuffer(const gsl::span<const char> rawmemory)
     // }
     mDataWords[mNDataWords++] = address[iword];
   }
-}
-
-uint32_t RawBuffer::getWord(int index) const
-{
-  if (index >= mNDataWords) {
-    throw std::runtime_error("Index out of range");
-  }
-  return mDataWords[index];
-}
-
-uint32_t RawBuffer::getNextDataWord()
-{
-  if (!hasNext()) {
-    throw std::runtime_error("No more data words in buffer");
-  }
-  return mDataWords[mCurrentDataWord++];
 }

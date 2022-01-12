@@ -18,7 +18,7 @@
 #include "EventVisualisationBase/ConfigurationManager.h"
 #include "EventVisualisationView/EventManager.h"
 #include "EventVisualisationBase/GeometryManager.h"
-#include "EventVisualisationBase/VisualisationConstants.h"
+#include "EventVisualisationDataConverter/VisualisationConstants.h"
 
 #include <TBrowser.h>
 #include <TEnv.h>
@@ -162,7 +162,7 @@ void MultiView::drawGeometryForDetector(string detectorName, bool threeD, bool r
 void MultiView::registerGeometry(TEveGeoShape* geom, bool threeD, bool rPhi, bool zRho)
 {
   if (!geom) {
-    LOG(ERROR) << "MultiView::registerGeometry -- geometry is NULL!";
+    LOG(error) << "MultiView::registerGeometry -- geometry is NULL!";
     exit(-1);
   }
   //mGeomVector.push_back(geom);
@@ -211,7 +211,9 @@ void MultiView::registerElement(TEveElement* event)
 
 void MultiView::destroyAllEvents()
 {
-  gEve->GetCurrentEvent()->RemoveElements();
+  if (gEve->GetCurrentEvent()) {
+    gEve->GetCurrentEvent()->RemoveElements();
+  }
   getScene(SceneRphiEvent)->DestroyElements();
   getScene(SceneZrhoEvent)->DestroyElements();
 }

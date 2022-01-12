@@ -40,6 +40,7 @@ o2_target_root_dictionary(
                           EMCALReconstruction
                           HEADERS include/EMCALReconstruction/RawReaderMemory.h
                                   include/EMCALReconstruction/AltroDecoder.h
+                                  include/EMCALReconstruction/AltroHelper.h
                                   include/EMCALReconstruction/RawPayload.h
                                   include/EMCALReconstruction/Bunch.h
                                   include/EMCALReconstruction/Channel.h

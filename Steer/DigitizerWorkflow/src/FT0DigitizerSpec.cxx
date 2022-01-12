@@ -75,7 +75,7 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     TStopwatch timer;
     timer.Start();
 
-    LOG(INFO) << "CALLING FT0 DIGITIZATION";
+    LOG(info) << "CALLING FT0 DIGITIZATION";
 
     static std::vector<o2::ft0::HitType> hits;
     // o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> labelAccum;
@@ -87,14 +87,14 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
       mDigitizer.setInteractionRecord(timesview[collID]);
-      LOG(DEBUG) << " setInteractionRecord " << timesview[collID] << " bc " << mDigitizer.getBC() << " orbit " << mDigitizer.getOrbit();
+      LOG(debug) << " setInteractionRecord " << timesview[collID] << " bc " << mDigitizer.getBC() << " orbit " << mDigitizer.getOrbit();
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
         // get the hits for this event and this source
         hits.clear();
         context->retrieveHits(mSimChains, "FT0Hit", part.sourceID, part.entryID, &hits);
-        LOG(DEBUG) << "For collision " << collID << " eventID " << part.entryID << " source ID " << part.sourceID << " found " << hits.size() << " hits ";
+        LOG(debug) << "For collision " << collID << " eventID " << part.entryID << " source ID " << part.sourceID << " found " << hits.size() << " hits ";
         if (hits.size() > 0) {
           // call actual digitization procedure
           mDigitizer.setEventID(part.entryID);
@@ -112,11 +112,11 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     if (pc.outputs().isAllowed({"FT0", "DIGITSMCTR", 0})) {
       pc.outputs().snapshot(Output{"FT0", "DIGITSMCTR", 0, Lifetime::Timeframe}, labels);
     }
-    LOG(INFO) << "FT0: Sending ROMode= " << mROMode << " to GRPUpdater";
+    LOG(info) << "FT0: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"FT0", "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
     timer.Stop();
-    LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
+    LOG(info) << "Digitization took " << timer.CpuTime() << "s";
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);

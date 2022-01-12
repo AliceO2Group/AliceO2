@@ -178,9 +178,21 @@ struct WorkflowHelpers {
   // @a ctx the context for the configuration phase
   static void injectServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx);
 
-  // Re-adjust service devices if the inputs of other devices were modified
-  // @a workflow to analyze
-  static void adjustServiceDevices(WorkflowSpec& workflow);
+  /// Helper functions to add AOD related internal devices.
+  /// FIXME: moved here until we have proper plugin based amendment
+  ///        of device injection
+  static void addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
+                                        std::vector<InputSpec> requestedInputs,
+                                        DataProcessorSpec& publisher);
+  static void addMissingOutputsToSpawner(std::vector<InputSpec>&& requestedDYNs,
+                                         std::vector<InputSpec>& requestedAODs,
+                                         DataProcessorSpec& publisher);
+  static void addMissingOutputsToBuilder(std::vector<InputSpec>&& requestedIDXs,
+                                         std::vector<InputSpec>& requestedAODs,
+                                         DataProcessorSpec& publisher);
+
+  // Final adjustments to @a workflow after service devices have been injected.
+  static void adjustTopology(WorkflowSpec& workflow, ConfigContext const& ctx);
 
   static void constructGraph(const WorkflowSpec& workflow,
                              std::vector<DeviceConnectionEdge>& logicalEdges,
@@ -201,16 +213,14 @@ struct WorkflowHelpers {
     const std::vector<DeviceConnectionEdge>& edges,
     const std::vector<size_t>& index);
 
-  static std::shared_ptr<DataOutputDirector> getDataOutputDirector(ConfigParamRegistry const& options, std::vector<InputSpec> const& OutputsInputs, std::vector<unsigned char> const& outputTypes);
+  static std::shared_ptr<DataOutputDirector> getDataOutputDirector(ConfigParamRegistry const& options, std::vector<InputSpec> const& OutputsInputs, std::vector<bool> const& outputTypes);
 
   /// Given @a workflow it gathers all the OutputSpec and in addition provides
   /// the information whether and output is dangling and/or of type AOD
   /// An Output is dangling if it does not have a corresponding InputSpec.
-  /// The type of the output is encoded in an unsigend char whichs values are defined by
-  /// 0 + isdangling*1 + isAOD*2
-  /// @return a vector of InputSpec of all outputs and a vector of unsigned char
-  /// with the encoded output type
-  static std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> analyzeOutputs(WorkflowSpec const& workflow);
+  /// @return a vector of InputSpec of all outputs and a vector of bool
+  /// wether the output is dangling
+  static std::tuple<std::vector<InputSpec>, std::vector<bool>> analyzeOutputs(WorkflowSpec const& workflow);
 
   /// returns only dangling outputs
   static std::vector<InputSpec> computeDanglingOutputs(WorkflowSpec const& workflow);

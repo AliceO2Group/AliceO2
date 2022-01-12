@@ -66,6 +66,12 @@ struct LifetimeHelpers {
                                                        std::string const& overrideTimestamp,
                                                        std::string const& sourceChannel);
 
+  /// Build a fetcher for an object from an out of band FairMQ channel whenever the record is expired.
+  /// @a spec is the associated InputSpec
+  /// @a channelName the channel we should Receive data from
+  static ExpirationHandler::Handler fetchFromFairMQ(InputSpec const& spec,
+                                                    std::string const& channelName);
+
   /// Create an entry in the registry for histograms on the first
   /// FIXME: actually implement this
   /// FIXME: provide a way to customise the histogram from the configuration.
@@ -89,6 +95,8 @@ struct LifetimeHelpers {
   /// as content of the payload.
   static ExpirationHandler::Handler dummy(ConcreteDataMatcher const& spec, std::string const& sourceChannel);
 };
+
+std::ostream& operator<<(std::ostream& oss, Lifetime const& val);
 
 } // namespace o2::framework
 

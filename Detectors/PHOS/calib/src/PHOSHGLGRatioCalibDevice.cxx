@@ -45,7 +45,7 @@ void PHOSHGLGRatioCalibDevice::run(o2::framework::ProcessingContext& ctx)
   }
 
   auto cells = ctx.inputs().get<gsl::span<o2::phos::Cell>>("cells");
-  LOG(DEBUG) << "[PHOSHGLGRatioCalibDevice - run]  Received " << cells.size() << " cells, running calibration ...";
+  LOG(debug) << "[PHOSHGLGRatioCalibDevice - run]  Received " << cells.size() << " cells, running calibration ...";
   auto cellsTR = ctx.inputs().get<gsl::span<o2::phos::TriggerRecord>>("cellTriggerRecords");
   for (const auto& tr : cellsTR) {
     int firstCellInEvent = tr.getFirstEntry();
@@ -81,7 +81,7 @@ void PHOSHGLGRatioCalibDevice::run(o2::framework::ProcessingContext& ctx)
 void PHOSHGLGRatioCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
 
-  LOG(INFO) << "[PHOSHGLGRatioCalibDevice - endOfStream]";
+  LOG(info) << "[PHOSHGLGRatioCalibDevice - endOfStream]";
   //calculate stuff here
   calculateRatios();
   checkRatios();
@@ -102,13 +102,13 @@ void PHOSHGLGRatioCalibDevice::fillRatios()
 void PHOSHGLGRatioCalibDevice::calculateRatios()
 {
   // Calculate mean of the ratio
-  int n = o2::phos::Mapping::NCHANNELS;
+  short n = o2::phos::Mapping::NCHANNELS - 1792;
   if (mhRatio->Integral() > 2 * minimalStatistics * n) { //average per channel
 
     TF1* fitFunc = new TF1("fitFunc", "gaus", 0., 4000.);
     fitFunc->SetParameters(1., 200., 60.);
     fitFunc->SetParLimits(1, 10., 2000.);
-    for (short i = o2::phos::Mapping::NCHANNELS; i > 1792; i--) {
+    for (short i = n; i > 0; i--) {
       TH1D* tmp = mhRatio->ProjectionY(Form("channel%d", i), i, i);
       fitFunc->SetParameters(tmp->Integral(), tmp->GetMean(), tmp->GetRMS());
       if (tmp->Integral() < minimalStatistics) {
@@ -117,7 +117,7 @@ void PHOSHGLGRatioCalibDevice::calculateRatios()
       }
       tmp->Fit(fitFunc, "QL0", "", 0., 20.);
       float a = fitFunc->GetParameter(1);
-      mCalibParams->setHGLGRatio(i, a); //absId starts from 0
+      mCalibParams->setHGLGRatio(i + 1792, a); //absId starts from 0
       tmp->Delete();
     }
   }
@@ -128,9 +128,15 @@ void PHOSHGLGRatioCalibDevice::checkRatios()
   //Compare ratios to current ones stored in CCDB
   if (!mUseCCDB) {
     mUpdateCCDB = true;
+    //Set default values for gain and time
+    for (short i = o2::phos::Mapping::NCHANNELS; i > 1792; i--) {
+      mCalibParams->setGain(i, 0.005);
+      mCalibParams->setHGTimeCalib(i, 0.);
+      mCalibParams->setLGTimeCalib(i, 0.);
+    }
     return;
   }
-  LOG(INFO) << "Retrieving current HG/LG ratio from CCDB";
+  LOG(info) << "Retrieving current HG/LG ratio from CCDB";
   //Read current padestals for comarison
   o2::ccdb::CcdbApi ccdb;
   ccdb.init(mCCDBPath); // or http://localhost:8080 for a local installation
@@ -139,11 +145,11 @@ void PHOSHGLGRatioCalibDevice::checkRatios()
 
   if (!currentCalibParams) { //was not read from CCDB, but expected
     mUpdateCCDB = true;
-    LOG(ERROR) << "Can not read current CalibParams from ccdb";
+    LOG(error) << "Can not read current CalibParams from ccdb";
     return;
   }
 
-  LOG(INFO) << "Got current calibration from CCDB";
+  LOG(info) << "Got current calibration from CCDB";
   //Compare to current
   int nChanged = 0;
   for (short i = o2::phos::Mapping::NCHANNELS; i > 1792; i--) {
@@ -164,11 +170,11 @@ void PHOSHGLGRatioCalibDevice::checkRatios()
     mCalibParams->setHGTimeCalib(i, currentCalibParams->getHGTimeCalib(i));
     mCalibParams->setLGTimeCalib(i, currentCalibParams->getLGTimeCalib(i));
   }
-  LOG(INFO) << nChanged << "channels changed more than 10 %";
+  LOG(info) << nChanged << "channels changed more than 10 %";
   if (nChanged > kMinorChange) { //serious change, do not update CCDB automatically, use "force" option to overwrite
-    LOG(ERROR) << "too many channels changed: " << nChanged << " (threshold " << kMinorChange << ")";
+    LOG(error) << "too many channels changed: " << nChanged << " (threshold " << kMinorChange << ")";
     if (!mForceUpdate) {
-      LOG(ERROR) << "you may use --forceupdate option to force updating ccdb";
+      LOG(error) << "you may use --forceupdate option to force updating ccdb";
     }
     mUpdateCCDB = false;
   } else {
@@ -188,7 +194,7 @@ void PHOSHGLGRatioCalibDevice::sendOutput(DataAllocator& output)
     info.setMetaData(md);
     auto image = o2::ccdb::CcdbApi::createObjectImage(mCalibParams.get(), &info);
 
-    LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName()
+    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
               << " of size " << image->size()
               << " bytes, valid for " << info.getStartValidityTimestamp()
               << " : " << info.getEndValidityTimestamp();
@@ -198,7 +204,7 @@ void PHOSHGLGRatioCalibDevice::sendOutput(DataAllocator& output)
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_HGLGratio", subSpec}, info);
   }
   //Anyway send change to QC
-  LOG(INFO) << "[PHOSHGLGRatioCalibDevice - sendOutput] Sending QC ";
+  LOG(info) << "[PHOSHGLGRatioCalibDevice - sendOutput] Sending QC ";
   output.snapshot(o2::framework::Output{"PHS", "CALIBDIFF", 0, o2::framework::Lifetime::Timeframe}, mRatioDiff);
 }
 
@@ -211,9 +217,9 @@ DataProcessorSpec o2::phos::getHGLGRatioCalibSpec(bool useCCDB, bool forceUpdate
 
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(o2::header::gDataOriginPHS, "CALIBDIFF", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_HGLGratio"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_HGLGratio"});
+  outputs.emplace_back(o2::header::gDataOriginPHS, "CALIBDIFF", 0, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_HGLGratio"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_HGLGratio"}, Lifetime::Sporadic);
   return o2::framework::DataProcessorSpec{"HGLGRatioCalibSpec",
                                           inputs,
                                           outputs,

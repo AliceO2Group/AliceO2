@@ -70,7 +70,7 @@ class RawEventData
     if (!tcm) {
       std::memcpy(out, &mEventHeader, sPayloadSize);
       out += sPayloadSize;
-      LOG(DEBUG) << "      Write PM header: nWords: " << (int)mEventHeader.nGBTWords
+      LOG(debug) << "      Write PM header: nWords: " << (int)mEventHeader.nGBTWords
                  << "  orbit: " << int(mEventHeader.orbit)
                  << "  BC: " << int(mEventHeader.bc)
                  << "  size: " << result.size();
@@ -80,12 +80,12 @@ class RawEventData
       for (uint64_t i = 0; i < mEventHeader.nGBTWords; ++i) {
         std::memcpy(out, &mEventData[2 * i], sPayloadSizeFirstWord);
         out += sPayloadSizeFirstWord;
-        LOG(DEBUG) << "        1st word: Ch: " << std::setw(2) << mEventData[2 * i].channelID
+        LOG(debug) << "        1st word: Ch: " << std::setw(2) << mEventData[2 * i].channelID
                    << "  charge: " << std::setw(4) << mEventData[2 * i].charge
                    << "  time: " << std::setw(4) << mEventData[2 * i].time;
         std::memcpy(out, &mEventData[2 * i + 1], sPayloadSizeSecondWord);
         out += sPayloadSizeSecondWord;
-        LOG(DEBUG) << "        2nd word: Ch: " << std::setw(2) << mEventData[2 * i + 1].channelID
+        LOG(debug) << "        2nd word: Ch: " << std::setw(2) << mEventData[2 * i + 1].channelID
                    << "  charge: " << std::setw(4) << mEventData[2 * i + 1].charge
                    << "  time: " << std::setw(4) << mEventData[2 * i + 1].time;
 
@@ -96,7 +96,7 @@ class RawEventData
       // TCM data
       std::memcpy(out, &mEventHeader, sPayloadSize);
       out += sPayloadSize;
-      LOG(DEBUG) << "      Write TCM header: nWords: " << (int)mEventHeader.nGBTWords
+      LOG(debug) << "      Write TCM header: nWords: " << (int)mEventHeader.nGBTWords
                  << "  orbit: " << int(mEventHeader.orbit)
                  << "  BC: " << int(mEventHeader.bc)
                  << "  size: " << result.size();

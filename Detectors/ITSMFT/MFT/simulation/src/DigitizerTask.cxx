@@ -47,13 +47,13 @@ InitStatus DigitizerTask::Init()
 {
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
-    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ...";
+    LOG(error) << "Could not instantiate FairRootManager. Exiting ...";
     return kERROR;
   }
 
   mHitsArray = mgr->InitObjectAs<const std::vector<o2::itsmft::Hit>*>("MFTHit");
   if (!mHitsArray) {
-    LOG(ERROR) << "MFT hits not registered in the FairRootManager. Exiting ...";
+    LOG(error) << "MFT hits not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
 
@@ -90,7 +90,7 @@ void DigitizerTask::Exec(Option_t* option)
   //
   mDigitizer.setEventTime(tEvent);
   // the type of digitization is steered by the DigiParams object of the Digitizer
-  LOG(DEBUG) << "Running digitization on new event " << mEventID << " from source " << mSourceID;
+  LOG(debug) << "Running digitization on new event " << mEventID << " from source " << mSourceID;
 
   mDigitizer.process(mHitsArray, mEventID, mSourceID);
 
@@ -144,7 +144,7 @@ void DigitizerTask::setQEDInput(TBranch* qed, float timebin, UChar_t srcID)
   // assign the branch containing hits from QED electrons, whith every entry integrating
   // timebin ns of collisions
 
-  LOG(INFO) << "Attaching QED ITS hits as sourceID=" << int(srcID) << ", entry integrates "
+  LOG(info) << "Attaching QED ITS hits as sourceID=" << int(srcID) << ", entry integrates "
             << timebin << " ns";
 
   mQEDBranch = qed;

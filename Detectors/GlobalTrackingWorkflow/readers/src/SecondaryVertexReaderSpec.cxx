@@ -17,7 +17,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "GlobalTrackingWorkflowReaders/SecondaryVertexReaderSpec.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/Cascade.h"
@@ -76,7 +76,7 @@ void SecondaryVertexReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(INFO) << "Pushing " << mV0s.size() << " V0s and " << mCascs.size() << " cascades at entry " << ent;
+  LOG(info) << "Pushing " << mV0s.size() << " V0s and " << mCascs.size() << " cascades at entry " << ent;
 
   pc.outputs().snapshot(Output{"GLO", "V0S", 0, Lifetime::Timeframe}, mV0s);
   pc.outputs().snapshot(Output{"GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe}, mPV2V0Ref);
@@ -106,7 +106,7 @@ void SecondaryVertexReader::connectTree()
   mTree->SetBranchAddress(mCascBranchName.c_str(), &mCascsPtr);
   mTree->SetBranchAddress(mPVertex2CascRefBranchName.c_str(), &mPV2CascRefPtr);
 
-  LOG(INFO) << "Loaded " << mSVertexTreeName << " tree from " << mFileName << " with " << mTree->GetEntries() << " entries";
+  LOG(info) << "Loaded " << mSVertexTreeName << " tree from " << mFileName << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getSecondaryVertexReaderSpec()

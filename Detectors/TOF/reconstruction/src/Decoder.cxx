@@ -127,8 +127,8 @@ void Decoder::InsertDigit(int icrate, int itrm, int itdc, int ichain, int channe
 {
   DigitInfo digitInfo;
 
-  if (icrate % 2 == 1 && itrm == 3 && itdc / 3 > 0) { // Signal not coming from a TOF pad but -probably- from a TOF OR signal
-    // add operation on LTM (Trigger) if needed (not used)
+  if (itrm == 3 && ((icrate % 2 == 0) || (itdc / 3 > 0))) { // Signal not coming from a TOF pad but -probably- from a TOF OR signal
+    // add operation on LTM (Trigger) if needed (not used) if (crate % 2 == 1)
     return;
   }
 
@@ -238,7 +238,7 @@ void Decoder::fromRawHit2Digit(int icrate, int itrm, int itdc, int ichain, int c
   dinfo.channel = Geo::getCHFromECH(echannel);
 
   if (dinfo.channel < 0) { // it should not happen!
-    LOG(ERROR) << "No valid channel for icrate = " << icrate << ", itrm = " << itrm << ", ichain = " << ichain << ", itdc = " << itdc << ", channel = " << channel;
+    LOG(error) << "No valid channel for icrate = " << icrate << ", itrm = " << itrm << ", ichain = " << ichain << ", itdc = " << itdc << ", channel = " << channel;
   }
 
   dinfo.tot = tot;

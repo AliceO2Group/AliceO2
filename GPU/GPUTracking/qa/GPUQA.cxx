@@ -60,7 +60,7 @@
 #include "SimulationDataFormat/TrackReference.h"
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "Steer/MCKinematicsReader.h"
 #include "TPDGCode.h"
 #include "TParticlePDG.h"
@@ -143,10 +143,10 @@ static const constexpr float LOG_PT_MIN = -1.;
 
 static constexpr float Y_MAX = 40;
 static constexpr float Z_MAX = 100;
-static constexpr float PT_MIN = GPUCA_MIN_TRACK_PT_DEFAULT;
+static constexpr float PT_MIN = GPUCA_MIN_TRACK_PTB5_DEFAULT;
 static constexpr float PT_MIN2 = 0.1;
 static constexpr float PT_MIN_PRIM = 0.1;
-static constexpr float PT_MIN_CLUST = GPUCA_MIN_TRACK_PT_DEFAULT;
+static constexpr float PT_MIN_CLUST = GPUCA_MIN_TRACK_PTB5_DEFAULT;
 static constexpr float PT_MAX = 20;
 static constexpr float ETA_MAX = 1.5;
 static constexpr float ETA_MAX2 = 0.9;
@@ -1377,7 +1377,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
             int hitId = mTracking->mIOPtrs.mergedTrackHits[track.FirstClusterRef() + k].num;
             float totalWeight = 0.;
             for (int j = 0; j < GetMCLabelNID(hitId); j++) {
-              if (GetMCLabelID(hitId, j) >= 0 && GetMCTrackObj(mMCParam, GetMCLabel(hitId, j)).pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
+              if (GetMCLabelID(hitId, j) >= 0 && GetMCTrackObj(mMCParam, GetMCLabel(hitId, j)).pt > GPUCA_MIN_TRACK_PTB5_DEFAULT) {
                 totalWeight += GetMCLabelWeight(hitId, j);
               }
             }
@@ -1387,7 +1387,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
               float weight = 1.f / (totalWeight * (mClusterParam[hitId].attached + mClusterParam[hitId].fakeAttached));
               for (int j = 0; j < GetMCLabelNID(hitId); j++) {
                 mcLabelI_t label = GetMCLabel(hitId, j);
-                if (!label.isFake() && GetMCTrackObj(mMCParam, label).pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
+                if (!label.isFake() && GetMCTrackObj(mMCParam, label).pt > GPUCA_MIN_TRACK_PTB5_DEFAULT) {
                   float pt = GetMCTrackObj(mMCParam, label).pt;
                   if (pt < PT_MIN_CLUST) {
                     pt = PT_MIN_CLUST;
@@ -1476,7 +1476,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
             float totalWeight = 0.;
             for (int j = 0; j < GetMCLabelNID(i); j++) {
               mcLabelI_t labelT = GetMCLabel(i, j);
-              if (!labelT.isFake() && GetMCTrackObj(mMCParam, labelT).pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
+              if (!labelT.isFake() && GetMCTrackObj(mMCParam, labelT).pt > GPUCA_MIN_TRACK_PTB5_DEFAULT) {
                 totalWeight += GetMCLabelWeight(i, j);
               }
             }
@@ -1484,7 +1484,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
             if (totalWeight > 0) {
               for (int j = 0; j < GetMCLabelNID(i); j++) {
                 mcLabelI_t labelT = GetMCLabel(i, j);
-                if (!labelT.isFake() && GetMCTrackObj(mMCParam, labelT).pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
+                if (!labelT.isFake() && GetMCTrackObj(mMCParam, labelT).pt > GPUCA_MIN_TRACK_PTB5_DEFAULT) {
                   float pt = GetMCTrackObj(mMCParam, labelT).pt;
                   if (pt < PT_MIN_CLUST) {
                     pt = PT_MIN_CLUST;
@@ -1534,14 +1534,14 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           float totalWeight = 0.;
           for (int j = 0; j < GetMCLabelNID(i); j++) {
             mcLabelI_t labelT = GetMCLabel(i, j);
-            if (!labelT.isFake() && GetMCTrackObj(mMCParam, labelT).pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
+            if (!labelT.isFake() && GetMCTrackObj(mMCParam, labelT).pt > GPUCA_MIN_TRACK_PTB5_DEFAULT) {
               totalWeight += GetMCLabelWeight(i, j);
             }
           }
           if (totalWeight > 0) {
             for (int j = 0; j < GetMCLabelNID(i); j++) {
               mcLabelI_t label = GetMCLabel(i, j);
-              if (!label.isFake() && GetMCTrackObj(mMCParam, label).pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
+              if (!label.isFake() && GetMCTrackObj(mMCParam, label).pt > GPUCA_MIN_TRACK_PTB5_DEFAULT) {
                 float pt = GetMCTrackObj(mMCParam, label).pt;
                 if (pt < PT_MIN_CLUST) {
                   pt = PT_MIN_CLUST;

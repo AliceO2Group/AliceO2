@@ -49,6 +49,7 @@ void CTFCoder::compress(CompressedClusters& cc,
     return;
   }
   const auto& rofRec0 = rofRecVec[0];
+  cc.header.det = mDet;
   cc.header.nROFs = rofRecVec.size();
   cc.header.firstOrbit = rofRec0.getBCData().orbit;
   cc.header.firstBC = rofRec0.getBCData().bc;
@@ -79,7 +80,7 @@ void CTFCoder::compress(CompressedClusters& cc,
       cc.orbitIncROF[irof] = 0;
 #ifdef _CHECK_INCREMENTES_
       if (intRec.bc < prevBC) {
-        LOG(WARNING) << "Negative BC increment " << intRec.bc << " -> " << prevBC;
+        LOG(warning) << "Negative BC increment " << intRec.bc << " -> " << prevBC;
       }
 #endif
       cc.bcIncROF[irof] = intRec.bc - prevBC; // store increment of BC if in the same orbit
@@ -87,7 +88,7 @@ void CTFCoder::compress(CompressedClusters& cc,
       cc.orbitIncROF[irof] = intRec.orbit - prevOrbit;
 #ifdef _CHECK_INCREMENTES_
       if (intRec.orbit < prevOrbit) {
-        LOG(WARNING) << "Negative Orbit increment " << intRec.orbit << " -> " << prevOrbit;
+        LOG(warning) << "Negative Orbit increment " << intRec.orbit << " -> " << prevOrbit;
       }
 #endif
       cc.bcIncROF[irof] = intRec.bc; // otherwise, store absolute bc
@@ -117,7 +118,7 @@ void CTFCoder::compress(CompressedClusters& cc,
         cc.chipMul.back()++; // this is the version with chipInc stored once per new chip
 #ifdef _CHECK_INCREMENTES_   // RS FIXME with current clusterization column increment can be slightly negative
 //        if (cl.getCol() < prevCol) {
-//          LOG(WARNING) << "Negative Column increment " << cl.getCol() << " -> " << prevCol << " in chip " << prevChip << " of ROF " << irof;
+//          LOG(warning) << "Negative Column increment " << cl.getCol() << " -> " << prevCol << " in chip " << prevChip << " of ROF " << irof;
 //        }
 #endif
         cc.colInc[icl] = cl.getCol() - prevCol;
@@ -127,7 +128,7 @@ void CTFCoder::compress(CompressedClusters& cc,
         cc.chipInc.push_back(cl.getChipID() - prevChip); // this is the version with chipInc stored once per new chip
 #ifdef _CHECK_INCREMENTES_
         if (cl.getChipID() < prevChip) {
-          LOG(WARNING) << "Negative Chip increment " << cl.getChipID() << " -> " << prevChip;
+          LOG(warning) << "Negative Chip increment " << cl.getChipID() << " -> " << prevChip;
         }
 #endif
         cc.chipMul.push_back(1);                         // this is the version with chipInc stored once per new chip
@@ -142,31 +143,11 @@ void CTFCoder::compress(CompressedClusters& cc,
 }
 
 ///________________________________
-void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op)
+void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op)
 {
-  bool mayFail = true; // RS FIXME if the dictionary file is not there, do not produce exception
-  auto buff = readDictionaryFromFile<CTF>(dictPath, mayFail);
-  if (!buff.size()) {
-    if (mayFail) {
-      return;
-    }
-    throw std::runtime_error("Failed to create CTF dictionaty");
-  }
-  const auto* ctf = CTF::get(buff.data());
-
-  auto getFreq = [ctf](CTF::Slots slot) -> o2::rans::FrequencyTable {
-    o2::rans::FrequencyTable ft;
-    auto bl = ctf->getBlock(slot);
-    auto md = ctf->getMetadata(slot);
-    ft.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min, md.max);
-    return std::move(ft);
-  };
-  auto getProbBits = [ctf](CTF::Slots slot) -> int {
-    return ctf->getMetadata(slot).probabilityBits;
-  };
-
+  const auto ctf = CTF::getImage(bufVec.data());
   CompressedClusters cc; // just to get member types
-#define MAKECODER(part, slot) createCoder<decltype(part)::value_type>(op, getFreq(slot), getProbBits(slot), int(slot))
+#define MAKECODER(part, slot) createCoder<decltype(part)::value_type>(op, ctf.getFrequencyTable(slot), ctf.getMetadata(slot).probabilityBits, int(slot))
   // clang-format off
   MAKECODER(cc.firstChipROF, CTF::BLCfirstChipROF);
   MAKECODER(cc.bcIncROF,     CTF::BLCbcIncROF    );
@@ -205,7 +186,7 @@ size_t CTFCoder::estimateCompressedSize(const CompressedClusters& cc)
 
   // clang-format on
   sz *= 2. / 3; // if needed, will be autoexpanded
-  LOG(INFO) << "Estimated output size is " << sz << " bytes";
+  LOG(info) << "Estimated output size is " << sz << " bytes";
   return sz;
 }
 
@@ -215,7 +196,7 @@ CompressedClusters CTFCoder::decodeCompressedClusters(const CTF::base& ec)
   CompressedClusters cc;
   cc.header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(cc.header));
-  ec.print(getPrefix());
+  ec.print(getPrefix(), mVerbosity);
 #define DECODEITSMFT(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
   DECODEITSMFT(cc.firstChipROF, CTF::BLCfirstChipROF);

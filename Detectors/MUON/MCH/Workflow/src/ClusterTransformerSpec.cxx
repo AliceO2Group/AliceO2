@@ -12,7 +12,7 @@
 #include "ClusterTransformerSpec.h"
 
 #include "DetectorsBase/GeometryManager.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
@@ -22,7 +22,7 @@
 #include "Framework/Output.h"
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
-#include "DataFormatsMCH/ClusterBlock.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "MCHGeometryTransformer/Transformations.h"
 #include "MathUtils/Cartesian.h"
 #include <algorithm>
@@ -40,8 +40,8 @@ namespace o2::mch
 
 // convert all clusters from local to global reference frames
 void local2global(geo::TransformationCreator transformation,
-                  gsl::span<const ClusterStruct> localClusters,
-                  std::vector<ClusterStruct, o2::pmr::polymorphic_allocator<ClusterStruct>>& globalClusters)
+                  gsl::span<const Cluster> localClusters,
+                  std::vector<Cluster, o2::pmr::polymorphic_allocator<Cluster>>& globalClusters)
 {
   int i{0};
   globalClusters.insert(globalClusters.end(), localClusters.begin(), localClusters.end());
@@ -86,10 +86,10 @@ class ClusterTransformerTask
   void run(ProcessingContext& pc)
   {
     // get the input clusters
-    auto localClusters = pc.inputs().get<gsl::span<ClusterStruct>>("clusters");
+    auto localClusters = pc.inputs().get<gsl::span<Cluster>>("clusters");
 
     // create the output message
-    auto& globalClusters = pc.outputs().make<std::vector<ClusterStruct>>(OutputRef{"globalclusters"});
+    auto& globalClusters = pc.outputs().make<std::vector<Cluster>>(OutputRef{"globalclusters"});
 
     local2global(transformation, localClusters, globalClusters);
   }

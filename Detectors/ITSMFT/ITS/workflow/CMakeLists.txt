@@ -21,15 +21,24 @@ o2_add_library(ITSWorkflow
                        src/IRFrameReaderSpec.cxx
                        src/TrackReaderSpec.cxx
                        src/VertexReaderSpec.cxx
+                       src/CalibrationWorkflow.cxx
+                       src/CalibratorSpec.cxx
          PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::SimConfig
                                      O2::DataFormatsITS
+                                     O2::DataFormatsDCS
                                      O2::SimulationDataFormat
                                      O2::ITStracking
                                      O2::ITSReconstruction
                                      O2::ITSMFTReconstruction
                                      O2::ITSMFTWorkflow
+                                     O2::DetectorsCalibration
+                                     O2::CCDB
                                      O2::GPUTracking)
+
+#o2_target_root_dictionary(ITSWorkflow
+#                          HEADERS include/ITSWorkflow/CalibratorSpec.h)
+#                          LINKDEF src/ITSWorkflowLinkDef.h)
 
 o2_add_executable(reco-workflow
                   SOURCES src/its-reco-workflow.cxx
@@ -46,3 +55,7 @@ o2_add_executable(cluster-reader-workflow
                   COMPONENT_NAME its
                   PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
 
+o2_add_executable(threshold-cali-workflow
+                  SOURCES src/its-calibration-workflow.cxx
+                  COMPONENT_NAME its
+                  PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)

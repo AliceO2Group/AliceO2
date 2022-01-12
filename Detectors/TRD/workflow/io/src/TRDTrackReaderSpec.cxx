@@ -40,12 +40,12 @@ void TRDTrackReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(INFO) << "Pushing " << mTracks.size() << " tracks and " << mTrigRec.size() << " trigger records at entry " << ent;
+  LOG(info) << "Pushing " << mTracks.size() << " tracks and " << mTrigRec.size() << " trigger records at entry " << ent;
   if (mUseMC) {
     if (mLabelsTrd.size() != mLabelsMatch.size()) {
-      LOG(ERROR) << "The number of labels for matches and for TRD tracks is different. " << mLabelsTrd.size() << " TRD labels vs. " << mLabelsMatch.size() << " match labels";
+      LOG(error) << "The number of labels for matches and for TRD tracks is different. " << mLabelsTrd.size() << " TRD labels vs. " << mLabelsMatch.size() << " match labels";
     }
-    LOG(INFO) << "Pushing " << mLabelsTrd.size() << " MC labels at entry " << ent;
+    LOG(info) << "Pushing " << mLabelsTrd.size() << " MC labels at entry " << ent;
   }
 
   if (mMode == Mode::TPCTRD) {
@@ -84,7 +84,7 @@ void TRDTrackReader::connectTree(const std::string& filename)
     mTree->SetBranchAddress("labels", &mLabelsMatchPtr);
     mTree->SetBranchAddress("labelsTRD", &mLabelsTrdPtr);
   }
-  LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
+  LOG(info) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getTRDTPCTrackReaderSpec(bool useMC, bool subSpecStrict)

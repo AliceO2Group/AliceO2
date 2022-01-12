@@ -20,7 +20,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "FairLogger.h"
 #include "CommonUtils/ConfigurableParam.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 #include <string>
 #include <stdexcept>
@@ -77,7 +77,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     specs.emplace_back(o2::tof::getCalibInfoReaderSpec(i, ninstances, stringTBP, toftpc));
   }
 
-  LOG(INFO) << "Number of active devices = " << specs.size();
+  LOG(info) << "Number of active devices = " << specs.size();
 
   return std::move(specs);
 }

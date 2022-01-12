@@ -24,6 +24,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 using namespace o2::framework;
 
@@ -46,16 +47,22 @@ class TOFDiagnosticCalibDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
+
+    static const double TFlengthInv = 1E6 / o2::raw::HBFUtils::Instance().getNOrbitsPerTF() / o2::constants::lhc::LHCOrbitMUS;
+
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
+
     auto const data = pc.inputs().get<o2::tof::Diagnostic*>("input");
-    LOG(INFO) << "Processing TF " << tfcounter;
+    tfcounter = uint64_t(data->getTimeStamp() * TFlengthInv);
+
+    LOG(info) << "Processing TF " << tfcounter;
     mCalibrator->process<o2::tof::Diagnostic>(tfcounter, *data);
     sendOutput(pc.outputs());
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
-    LOG(INFO) << "Finalizing calibration";
+    LOG(info) << "Finalizing calibration";
     constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
     mCalibrator->checkSlotsToFinalize(INFINITE_TF);
     sendOutput(ec.outputs());
@@ -76,7 +83,7 @@ class TOFDiagnosticCalibDevice : public o2::framework::Task
     for (uint32_t i = 0; i < payloadVec.size(); i++) {
       auto& w = infoVec[i];
       auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
-      LOG(INFO) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
+      LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
                 << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_Diagnostic", i}, *image.get()); // vector<char>
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_Diagnostic", i}, w);            // root-serialized
@@ -98,11 +105,11 @@ DataProcessorSpec getTOFDiagnosticCalibDeviceSpec()
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_Diagnostic"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_Diagnostic"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_Diagnostic"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_Diagnostic"}, Lifetime::Sporadic);
   return DataProcessorSpec{
     "tof-diagnostic-calibration",
-    Inputs{{"input", "TOF", "DIAGNOSTIC"}},
+    Inputs{{"input", "TOF", "DIAFREQ"}},
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},
     Options{

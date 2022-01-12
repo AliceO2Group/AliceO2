@@ -35,7 +35,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "CommonDataFormat/IRFrame.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 
 #include "ITSReconstruction/FastMultEstConfig.h"
 #include "ITSReconstruction/FastMultEst.h"
@@ -57,6 +57,11 @@ void TrackerDPL::init(InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
+
+  auto* chainITS = mRecChain->AddChain<o2::gpu::GPUChainITS>();
+  mVertexer = std::make_unique<Vertexer>(chainITS->GetITSVertexerTraits());
+  mTracker = std::make_unique<Tracker>(new TrackerTraitsCPU);
+
   auto filename = ic.options().get<std::string>("grp-file");
   const auto grp = parameters::GRPObject::loadFrom(filename);
   if (grp) {
@@ -74,14 +79,11 @@ void TrackerDPL::init(InitContext& ic)
     if (o2::utils::Str::pathExists(matLUTFile)) {
       auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
       o2::base::Propagator::Instance()->setMatLUT(lut);
+      mTracker->setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
       LOG(info) << "Loaded material LUT from " << matLUTFile;
     } else {
-      LOG(info) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+      LOG(info) << "Material LUT " << matLUTFile << " file is absent, only heuristic material correction can be used";
     }
-
-    auto* chainITS = mRecChain->AddChain<o2::gpu::GPUChainITS>();
-    mVertexer = std::make_unique<Vertexer>(chainITS->GetITSVertexerTraits());
-    mTracker = std::make_unique<Tracker>(new TrackerTraitsCPU);
 
     std::vector<TrackingParameters> trackParams;
     std::vector<MemoryParameters> memParams;
@@ -89,43 +91,54 @@ void TrackerDPL::init(InitContext& ic)
     mRunVertexer = true;
     if (mMode == "async") {
 
-      trackParams.resize(3);
-      trackParams[0].TrackletMaxDeltaPhi = 0.05f;
-      trackParams[0].DeltaROF = 0;
-      trackParams[1].CopyCuts(trackParams[0], 2.);
-      trackParams[1].DeltaROF = 0;
-      trackParams[2].CopyCuts(trackParams[1], 2.);
-      trackParams[2].DeltaROF = 1;
-      trackParams[2].MinTrackLength = 4;
-      memParams.resize(3);
+      trackParams.resize(2);
+      trackParams[1].TrackletMinPt = 0.2f;
+      trackParams[1].CellDeltaTanLambdaSigma *= 2.;
+      trackParams[1].MinTrackLength = 4;
+      memParams.resize(2);
       LOG(info) << "Initializing tracker in async. phase reconstruction with " << trackParams.size() << " passes";
 
-    } else if (mMode == "sync") {
+    } else if (mMode == "sync_misaligned") {
 
       trackParams.resize(1);
+      trackParams[0].PhiBins = 32;
+      trackParams[0].ZBins = 64;
+      trackParams[0].CellDeltaTanLambdaSigma *= 10;
+      trackParams[0].LayerMisalignment[0] = 3.e-2;
+      trackParams[0].LayerMisalignment[1] = 3.e-2;
+      trackParams[0].LayerMisalignment[2] = 3.e-2;
+      trackParams[0].LayerMisalignment[3] = 1.e-1;
+      trackParams[0].LayerMisalignment[4] = 1.e-1;
+      trackParams[0].LayerMisalignment[5] = 1.e-1;
+      trackParams[0].LayerMisalignment[6] = 1.e-1;
+      trackParams[0].FitIterationMaxChi2[0] = 100.;
+      trackParams[0].FitIterationMaxChi2[1] = 50.;
+      trackParams[0].MinTrackLength = 4;
       memParams.resize(1);
-      LOG(info) << "Initializing tracker in sync. phase reconstruction with " << trackParams.size() << " passes";
+      LOG(info) << "Initializing tracker in misaligned sync. phase reconstruction with " << trackParams.size() << " passes";
 
+    } else if (mMode == "sync") {
+      memParams.resize(1);
+      trackParams.resize(1);
+      LOG(info) << "Initializing tracker in sync. phase reconstruction with " << trackParams.size() << " passes";
     } else if (mMode == "cosmics") {
       mRunVertexer = false;
       trackParams.resize(1);
       memParams.resize(1);
       trackParams[0].MinTrackLength = 4;
-      trackParams[0].TrackletMaxDeltaPhi = o2::its::constants::math::Pi * 0.5f;
-      trackParams[0].CellMaxDeltaTanLambda = 0.3;
-      trackParams[0].CellMaxDeltaPhi = 0.3;
+      trackParams[0].CellDeltaTanLambdaSigma *= 10;
       trackParams[0].PhiBins = 4;
       trackParams[0].ZBins = 16;
-      for (int iLayer = 0; iLayer < o2::its::constants::its2::TrackletsPerRoad; iLayer++) {
-        trackParams[0].TrackletMaxDeltaZ[iLayer] = o2::its::constants::its2::LayersZCoordinate()[iLayer + 1];
-        memParams[0].TrackletsMemoryCoefficients[iLayer] = 0.5f;
-        // trackParams[0].TrackletMaxDeltaZ[iLayer] = 10.f;
-      }
-      for (int iLayer = 0; iLayer < o2::its::constants::its2::CellsPerRoad; iLayer++) {
-        trackParams[0].CellMaxDCA[iLayer] = 10000.f;    //cm
-        trackParams[0].CellMaxDeltaZ[iLayer] = 10000.f; //cm
-        memParams[0].CellsMemoryCoefficients[iLayer] = 0.001f;
-      }
+      trackParams[0].PVres = 1.e5f;
+      trackParams[0].LayerMisalignment[0] = 3.e-2;
+      trackParams[0].LayerMisalignment[1] = 3.e-2;
+      trackParams[0].LayerMisalignment[2] = 3.e-2;
+      trackParams[0].LayerMisalignment[3] = 1.e-1;
+      trackParams[0].LayerMisalignment[4] = 1.e-1;
+      trackParams[0].LayerMisalignment[5] = 1.e-1;
+      trackParams[0].LayerMisalignment[6] = 1.e-1;
+      trackParams[0].FitIterationMaxChi2[0] = 100.;
+      trackParams[0].FitIterationMaxChi2[1] = 50.;
       LOG(info) << "Initializing tracker in reconstruction for cosmics with " << trackParams.size() << " passes";
 
     } else {
@@ -138,15 +151,15 @@ void TrackerDPL::init(InitContext& ic)
     LOG(info) << Form("Using %s for material budget approximation", (mTracker->isMatLUT() ? "lookup table" : "TGeometry"));
 
     double origD[3] = {0., 0., 0.};
-    mTracker->setBz(field->getBz(origD));
+    mBz = field->getBz(origD);
   } else {
     throw std::runtime_error(o2::utils::Str::concat_string("Cannot retrieve GRP from the ", filename));
   }
 
   std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, "bin");
+  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
   if (o2::utils::Str::pathExists(dictFile)) {
-    mDict.readBinaryFile(dictFile);
+    mDict.readFromFile(dictFile);
     LOG(info) << "Tracker running with a provided dictionary: " << dictFile;
   } else {
     LOG(info) << "Dictionary " << dictFile << " is absent, Tracker expects cluster patterns";
@@ -202,6 +215,7 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   TimeFrame mTimeFrame;
   mTracker->adoptTimeFrame(mTimeFrame);
+  mTracker->setBz(mBz);
 
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
 
@@ -212,6 +226,9 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto logger = [&](std::string s) { LOG(info) << s; };
   float vertexerElapsedTime{0.f};
   int nclUsed = 0;
+
+  std::vector<bool> processingMask;
+  int cutClusterMult{0}, cutVertexMult{0}, cutTotalMult{0};
   for (auto& rof : rofspan) {
     nclUsed += ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels);
     // prepare in advance output ROFRecords, even if this ROF to be rejected
@@ -222,14 +239,39 @@ void TrackerDPL::run(ProcessingContext& pc)
     vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
     vtxROF.setNEntries(0);
 
-    std::vector<Vertex> vtxVecLoc;
-    if (mRunVertexer) {
-      vertexerElapsedTime += mVertexer->clustersToVertices(event, false, logger);
-      vtxVecLoc = mVertexer->exportVertices();
-    } else {
-      vtxVecLoc.emplace_back(Vertex());
-      vtxVecLoc.back().setNContributors(1);
+    bool multCut = (multEstConf.cutMultClusLow <= 0 && multEstConf.cutMultClusHigh <= 0); // cut was requested
+    if (!multCut) {
+      float mult = multEst.process(rof.getROFData(compClusters));
+      multCut = mult >= multEstConf.cutMultClusLow && mult <= multEstConf.cutMultClusHigh;
+      LOG(debug) << fmt::format("ROF {} rejected by the cluster multiplicity selection [{},{}]", processingMask.size(), multEstConf.cutMultClusLow, multEstConf.cutMultClusHigh);
+      cutClusterMult += !multCut;
     }
+
+    std::vector<Vertex> vtxVecLoc;
+    if (multCut) {
+      if (mRunVertexer) {
+        vertexerElapsedTime += mVertexer->clustersToVertices(event, false, logger);
+        auto allVerts = mVertexer->exportVertices();
+        multCut = allVerts.size() == 0;
+        for (const auto& vtx : allVerts) {
+          if (vtx.getNContributors() < multEstConf.cutMultVtxLow || (multEstConf.cutMultVtxHigh > 0 && vtx.getNContributors() > multEstConf.cutMultVtxHigh)) {
+            continue; // skip vertex of unwanted multiplicity
+          }
+          multCut = true; // At least one passes the selection
+          vtxVecLoc.push_back(vtx);
+        }
+      } else {
+        vtxVecLoc.emplace_back(Vertex());
+        vtxVecLoc.back().setNContributors(1);
+      }
+
+      if (!multCut) {
+        LOG(debug) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]", processingMask.size(), multEstConf.cutMultVtxLow, multEstConf.cutMultVtxHigh);
+        cutVertexMult++;
+      }
+    }
+    cutTotalMult += !multCut;
+    processingMask.push_back(multCut);
     mTimeFrame.addPrimaryVertices(vtxVecLoc);
 
     vtxROF.setNEntries(vtxVecLoc.size());
@@ -239,8 +281,18 @@ void TrackerDPL::run(ProcessingContext& pc)
     savedROF.push_back(roFrame);
     roFrame++;
   }
-  LOG(info) << " - Vertex seeding total elapsed time: " << vertexerElapsedTime << " ms for " << nclUsed << " clusters in " << rofspan.size() << " ROFs";
+
+  LOG(info) << fmt::format(" - In total, multiplicity selection rejected {}/{} ROFs", cutTotalMult, rofspan.size());
+  LOG(info) << fmt::format("\t - Cluster multiplicity selection rejected {}/{} ROFs", cutClusterMult, rofspan.size());
+  LOG(info) << fmt::format("\t - Vertex multiplicity selection rejected {}/{} ROFs", cutVertexMult, rofspan.size());
+  LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} clusters in {} ROFs", vertexerElapsedTime, nclUsed, rofspan.size());
+  LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", mTimeFrame.getBeamX(), mTimeFrame.getBeamY());
+
+  mTimeFrame.setMultiplicityCutMask(processingMask);
   mTracker->clustersToTracks(logger);
+  if (mTimeFrame.hasBogusClusters()) {
+    LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", mTimeFrame.hasBogusClusters());
+  }
 
   for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
 

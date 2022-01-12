@@ -37,7 +37,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
   CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks(), o2::detectors::DetID::CPV) {}
-  ~CTFCoder() = default;
+  ~CTFCoder() final = default;
 
   /// entropy-encode data to buffer with CTF
   template <typename VEC>
@@ -47,7 +47,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   template <typename VTRG, typename VCLUSTER>
   void decode(const CTF::base& ec, VTRG& trigVec, VCLUSTER& cluVec);
 
-  void createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op);
+  void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
  private:
   void appendToTree(TTree& tree, CTF& ec);
@@ -84,7 +84,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData,
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
-#define ENCODECPV(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get());
+#define ENCODECPV(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
   // clang-format off
   ENCODECPV(helper.begin_bcIncTrig(),    helper.end_bcIncTrig(),     CTF::BLC_bcIncTrig,    0);
   ENCODECPV(helper.begin_orbitIncTrig(), helper.end_orbitIncTrig(),  CTF::BLC_orbitIncTrig, 0);
@@ -95,7 +95,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData,
   ENCODECPV(helper.begin_energy(),      helper.end_energy(),         CTF::BLC_energy,       0);
   ENCODECPV(helper.begin_status(),      helper.end_status(),         CTF::BLC_status,       0);
   // clang-format on
-  CTF::get(buff.data())->print(getPrefix());
+  CTF::get(buff.data())->print(getPrefix(), mVerbosity);
 }
 
 /// decode entropy-encoded clusters to standard compact clusters
@@ -104,7 +104,7 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCLUSTER& cluVec)
 {
   auto header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
-  ec.print(getPrefix());
+  ec.print(getPrefix(), mVerbosity);
   std::vector<uint16_t> bcInc, entries, posX, posZ;
   std::vector<uint32_t> orbitInc;
   std::vector<uint8_t> energy, status;

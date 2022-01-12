@@ -31,6 +31,7 @@
 #include "TRDBase/Calibrations.h"
 #include "TRDSimulation/Digitizer.h"
 #include "TRDSimulation/Detector.h" // for the Hit type
+#include <chrono>
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -47,7 +48,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
   void initDigitizerTask(framework::InitContext& ic) override
   {
-    LOG(INFO) << "initializing TRD digitization";
+    LOG(info) << "initializing TRD digitization";
     mDigitizer.init();
   }
 
@@ -57,12 +58,13 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     if (finished) {
       return;
     }
-    LOG(INFO) << "Doing TRD digitization";
+    LOG(info) << "Doing TRD digitization";
 
     bool mctruth = pc.outputs().isAllowed({"TRD", "LABELS", 0});
 
     Calibrations simcal;
-    simcal.getCCDBObjects(297595);
+    auto timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    simcal.getCCDBObjects(timeStamp);
     mDigitizer.setCalibrations(&simcal);
 
     // read collision context from input
@@ -71,7 +73,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     auto& irecords = context->getEventRecords();
 
     for (auto& record : irecords) {
-      LOG(DEBUG) << "TRD TIME RECEIVED " << record.getTimeNS();
+      LOG(debug) << "TRD TIME RECEIVED " << record.getTimeNS();
     }
 
     auto& eventParts = context->getEventParts();
@@ -146,21 +148,21 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     if (mctruth) {
       labelsAccum.mergeAtBack(labels);
     }
-    LOGF(INFO, "List of TRD chambers with at least one drift velocity out of range: %s", mDigitizer.dumpFlaggedChambers());
+    LOGF(info, "List of TRD chambers with at least one drift velocity out of range: %s", mDigitizer.dumpFlaggedChambers());
     timer.Stop();
-    LOGF(INFO, "TRD digitization timing: Cpu: %.3e Real: %.3e s", timer.CpuTime(), timer.RealTime());
+    LOGF(info, "TRD digitization timing: Cpu: %.3e Real: %.3e s", timer.CpuTime(), timer.RealTime());
 
-    LOG(INFO) << "TRD: Sending " << digitsAccum.size() << " digits";
+    LOG(info) << "TRD: Sending " << digitsAccum.size() << " digits";
     pc.outputs().snapshot(Output{"TRD", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
     if (mctruth) {
-      LOG(INFO) << "TRD: Sending " << labelsAccum.getNElements() << " labels";
+      LOG(info) << "TRD: Sending " << labelsAccum.getNElements() << " labels";
       // we are flattening the labels and write to managed shared memory container for further communication
       auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{"TRD", "LABELS", 0, Lifetime::Timeframe});
       labelsAccum.flatten_to(sharedlabels);
     }
-    LOG(INFO) << "TRD: Sending ROMode= " << mROMode << " to GRPUpdater";
+    LOG(info) << "TRD: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"TRD", "ROMode", 0, Lifetime::Timeframe}, mROMode);
-    LOG(INFO) << "TRD: Sending trigger records";
+    LOG(info) << "TRD: Sending trigger records";
     pc.outputs().snapshot(Output{"TRD", "TRGRDIG", 0, Lifetime::Timeframe}, triggers);
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);

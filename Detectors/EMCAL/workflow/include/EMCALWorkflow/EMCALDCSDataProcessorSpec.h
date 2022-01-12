@@ -33,6 +33,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 
@@ -59,12 +60,12 @@ class EMCALDCSDataProcessor : public o2::framework::Task
     std::vector<DPID> vect;
     mDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval");
     if (mDPsUpdateInterval == 0) {
-      LOG(ERROR) << "EMC DPs update interval set to zero seconds --> changed to 60";
+      LOG(error) << "EMC DPs update interval set to zero seconds --> changed to 60";
       mDPsUpdateInterval = 60;
     }
     bool useCCDBtoConfigure = ic.options().get<bool>("use-ccdb-to-configure");
     if (useCCDBtoConfigure) {
-      LOG(INFO) << "Configuring via CCDB";
+      LOG(info) << "Configuring via CCDB";
       std::string ccdbpath = ic.options().get<std::string>("ccdb-path");
       auto& mgr = CcdbManager::instance();
       mgr.setURL(ccdbpath);
@@ -76,7 +77,7 @@ class EMCALDCSDataProcessor : public o2::framework::Task
         vect.push_back(i.first);
       }
     } else {
-      LOG(INFO) << "Configuring via hardcoded strings";
+      LOG(info) << "Configuring via hardcoded strings";
 
       std::vector<std::string> aliasesTEMP = {"EMC_PT_[00..83]/Temperature", "EMC_PT_[88..91]/Temperature", "EMC_PT_[96..159]/Temperature"};
       std::vector<std::string> aliasesUINT = {"EMC_DDL_LIST[0..1]", "EMC_SRU[00..19]_CFG", "EMC_SRU[00..19]_FMVER",
@@ -104,14 +105,14 @@ class EMCALDCSDataProcessor : public o2::framework::Task
       }
     }
 
-    LOG(INFO) << "Listing Data Points for EMC:";
+    LOG(info) << "Listing Data Points for EMC:";
     for (auto& i : vect) {
-      LOG(INFO) << i;
+      LOG(info) << i;
     }
 
     mProcessor = std::make_unique<o2::emcal::EMCDCSProcessor>();
     bool useVerboseMode = ic.options().get<bool>("use-verbose-mode");
-    LOG(INFO) << " ************************* Verbose? " << useVerboseMode;
+    LOG(info) << " ************************* Verbose? " << useVerboseMode;
     if (useVerboseMode) {
       mProcessor->useVerboseMode();
     }
@@ -156,7 +157,7 @@ class EMCALDCSDataProcessor : public o2::framework::Task
     const auto& payload = mProcessor->getELMBdata();
     auto& info = mProcessor->getccdbELMBinfo();
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-    LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
+    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
               << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_ELMB", 0}, *image.get());
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_ELMB", 0}, info);
@@ -173,7 +174,7 @@ class EMCALDCSDataProcessor : public o2::framework::Task
       const auto& payload = mProcessor->getFeeDCSdata();
       auto& info = mProcessor->getccdbFeeDCSinfo();
       auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-      LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
+      LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
                 << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_FeeDCS", 0}, *image.get());
@@ -193,18 +194,18 @@ DataProcessorSpec getEMCALDCSDataProcessorSpec()
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_ELMB"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_ELMB"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_ELMB"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_ELMB"}, Lifetime::Sporadic);
 
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_FeeDCS"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_FeeDCS"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_FeeDCS"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_FeeDCS"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "emc-dcs-data-processor",
     Inputs{{"input", "DCS", "EMCDATAPOINTS"}},
     outputs,
     AlgorithmSpec{adaptFromTask<o2::emcal::EMCALDCSDataProcessor>()},
-    Options{{"ccdb-path", VariantType::String, "http://ccdb-test.cern.ch:8080", {"Path to CCDB"}},
+    Options{{"ccdb-path", VariantType::String, o2::base::NameConf::getCCDBServer(), {"Path to CCDB"}},
             {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
             {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
             {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}}}};

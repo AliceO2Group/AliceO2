@@ -78,6 +78,9 @@ class TimeFrame final
 
   float getMinR(int layer) const { return mMinR[layer]; }
   float getMaxR(int layer) const { return mMaxR[layer]; }
+  float getMSangle(int layer) const { return mMSangles[layer]; }
+  float getPhiCut(int layer) const { return mPhiCuts[layer]; }
+  float getPositionResolution(int layer) const { return mPositionResolution[layer]; }
 
   gsl::span<Cluster> getClustersOnLayer(int rofId, int layerId);
   gsl::span<const Cluster> getClustersOnLayer(int rofId, int layerId) const;
@@ -117,6 +120,12 @@ class TimeFrame final
   const unsigned long long& getRoadLabel(int i) const;
   bool isRoadFake(int i) const;
 
+  void setMultiplicityCutMask(std::vector<bool> cutMask) { mMultiplicityCutMask.swap(cutMask); }
+
+  int hasBogusClusters() const { return std::accumulate(mBogusClusters.begin(), mBogusClusters.end(), 0); }
+
+  void setBz(float bz) { mBz = bz; }
+
   /// Debug and printing
   void checkTrackletLUTs();
   void printROFoffsets();
@@ -135,11 +144,16 @@ class TimeFrame final
   void addTrackingFrameInfoToLayer(int layer, T&&... args);
   void addClusterExternalIndexToLayer(int layer, const int idx);
 
+  float mBz = 5.;
   int mNrof = 0;
   int mBeamPosWeight = 0;
   float mBeamPos[2] = {0.f, 0.f};
   std::vector<float> mMinR;
   std::vector<float> mMaxR;
+  std::vector<float> mMSangles;
+  std::vector<float> mPhiCuts;
+  std::vector<float> mPositionResolution;
+  std::vector<bool> mMultiplicityCutMask;
   std::vector<int> mROframesPV = {0};
   std::vector<std::vector<int>> mROframesClusters;
   std::vector<Vertex> mPrimaryVertices;
@@ -157,6 +171,7 @@ class TimeFrame final
   std::vector<Road> mRoads;
   std::vector<std::vector<MCCompLabel>> mTracksLabel;
   std::vector<std::vector<TrackITSExt>> mTracks;
+  std::vector<int> mBogusClusters; /// keep track of clusters with wild coordinates
 
   std::vector<index_table_t> mIndexTables;
   std::vector<std::vector<Tracklet>> mTracklets;

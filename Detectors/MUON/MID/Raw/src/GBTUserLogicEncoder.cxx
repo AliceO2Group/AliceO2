@@ -23,11 +23,12 @@ namespace o2
 namespace mid
 {
 
-void GBTUserLogicEncoder::setGBTUniqueId(uint16_t gbtUniqueId)
+void GBTUserLogicEncoder::setConfig(uint16_t gbtUniqueId, const std::vector<ROBoardConfig>& configurations)
 {
   /// Sets the information associated to the GBT unique ID
   mCrateId = crateparams::getCrateIdFromGBTUniqueId(gbtUniqueId);
   mOffset = 8 * crateparams::getGBTIdInCrate(gbtUniqueId);
+  mResponse.set(configurations);
 }
 
 void GBTUserLogicEncoder::addShort(std::vector<char>& buffer, uint16_t shortWord) const
@@ -41,52 +42,31 @@ void GBTUserLogicEncoder::processTrigger(const InteractionRecord& ir, uint8_t tr
 {
   /// Adds the information in triggered mode
   auto& vec = mBoards[ir];
-  for (uint8_t ireg = 0; ireg < 2; ++ireg) {
-    uint8_t firedLoc = (mMask >> (4 * ireg)) & 0xF;
-    vec.push_back({raw::sSTARTBIT, triggerWord, static_cast<uint8_t>(ireg + mOffset), firedLoc});
-  }
-  for (uint8_t iloc = 0; iloc < 8; ++iloc) {
-    if (mMask & (1 << iloc)) {
-      vec.push_back({raw::sSTARTBIT | raw::sCARDTYPE, triggerWord, static_cast<uint8_t>(iloc + mOffset), 0});
-      if (triggerWord & (raw::sSOX | raw::sEOX)) {
-        /// Write masks
-        for (int ich = 0; ich < 4; ++ich) {
-          vec.back().patternsBP[ich] = 0xFFFF;
-          vec.back().patternsNBP[ich] = 0xFFFF;
-        }
-      }
-    }
-  }
-}
-
-void GBTUserLogicEncoder::addRegionalBoards(uint8_t activeBoards, InteractionRecord ir)
-{
-  /// Adds the regional board information
-  ir += mElectronicsDelay.regToLocal;
-  auto& vec = mBoards[ir];
-  for (uint8_t ireg = 0; ireg < 2; ++ireg) {
-    uint8_t firedLoc = (activeBoards >> (4 * ireg)) & 0xF;
-    if (firedLoc > 0) {
-      vec.push_back({raw::sSTARTBIT, 0, static_cast<uint8_t>(ireg + mOffset), firedLoc});
-    }
-  }
+  auto boards = mResponse.getTriggerResponse(triggerWord);
+  vec.insert(vec.end(), boards.begin(), boards.end());
 }
 
 void GBTUserLogicEncoder::process(gsl::span<const ROBoard> data, InteractionRecord ir)
 {
   /// Encode data
   ir += mElectronicsDelay.BCToLocal;
-  auto& vec = mBoards[ir];
-  uint8_t activeBoards = 0;
+
+  // Apply zero suppression
+  std::vector<ROBoard> zsLocs;
   for (auto& loc : data) {
-    for (int ich = 0; ich < 4; ++ich) {
-      if (loc.patternsBP[ich] && loc.patternsNBP[ich]) {
-        activeBoards |= (1 << (raw::getLocId(loc.boardId) % 8));
-      }
+    if (!mResponse.isZeroSuppressed(loc)) {
+      zsLocs.emplace_back(loc);
     }
-    vec.emplace_back(loc);
   }
-  addRegionalBoards(activeBoards, ir);
+
+  auto& vec = mBoards[ir];
+  vec.insert(vec.end(), zsLocs.begin(), zsLocs.end());
+
+  // Get regional response
+  auto irReg = ir + mElectronicsDelay.regToLocal;
+  auto regs = mResponse.getRegionalResponse(zsLocs);
+  auto& vecReg = mBoards[irReg];
+  vecReg.insert(vecReg.end(), regs.begin(), regs.end());
 }
 
 void GBTUserLogicEncoder::flush(std::vector<char>& buffer, const InteractionRecord& ir)

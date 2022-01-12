@@ -27,7 +27,7 @@ namespace o2
 namespace benchmark
 {
 
-template <class chunk_type>
+template <class chunk_t>
 class GPUbenchmark final
 {
  public:
@@ -39,15 +39,33 @@ class GPUbenchmark final
   template <typename... T>
   float measure(void (GPUbenchmark::*)(T...), const char*, T&&... args);
 
-  // Single stream synchronous (sequential kernels) execution
+  // Single stream (sequential kernels) execution
   template <typename... T>
-  float benchmarkSync(void (*kernel)(T...),
-                      int nLaunches, int blocks, int threads, T&... args);
+  float runSequential(void (*kernel)(chunk_t*, size_t, T...),
+                      std::pair<float, float>& chunkRanges,
+                      int nLaunches,
+                      int dimGrid,
+                      int dimBlock,
+                      T&... args);
 
-  // Multi-streams asynchronous executions on whole memory
+  // Multi-streams asynchronous executions
   template <typename... T>
-  std::vector<float> benchmarkAsync(void (*kernel)(int, T...),
-                                    int nStreams, int nLaunches, int blocks, int threads, T&... args);
+  std::vector<float> runConcurrent(void (*kernel)(chunk_t*, size_t, T...),
+                                   std::vector<std::pair<float, float>>& chunkRanges,
+                                   int nLaunches,
+                                   int dimStreams,
+                                   int nBlocks,
+                                   int nThreads,
+                                   T&... args);
+
+  // Single stream executions on all chunks at a time by same kernel
+  template <typename... T>
+  float runDistributed(void (*kernel)(chunk_t**, size_t*, T...),
+                       std::vector<std::pair<float, float>>& chunkRanges,
+                       int nLaunches,
+                       int nBlocks,
+                       int nThreads,
+                       T&... args);
 
   // Main interface
   void globalInit();     // Allocate scratch buffers and compute runtime parameters
@@ -56,27 +74,14 @@ class GPUbenchmark final
   void printDevices();   // Dump info
 
   // Initializations/Finalizations of tests. Not to be measured, in principle used for report
-  void readInit();
-  void readFinalize();
+  void initTest(Test);
+  void finalizeTest(Test);
 
-  void writeInit();
-  void writeFinalize();
-
-  void copyInit();
-  void copyFinalize();
-
-  // Kernel calling wrappers
-  void readSequential(SplitLevel sl);
-  void readConcurrent(SplitLevel sl, int nRegions = 2);
-
-  void writeSequential(SplitLevel sl);
-  void writeConcurrent(SplitLevel sl, int nRegions = 2);
-
-  void copySequential(SplitLevel sl);
-  void copyConcurrent(SplitLevel sl, int nRegions = 2);
+  // Kernel calling wrapper
+  void runTest(Test, Mode, KernelConfig);
 
  private:
-  gpuState<chunk_type> mState;
+  gpuState<chunk_t> mState;
   std::shared_ptr<ResultWriter> mResultWriter;
   benchmarkOpts mOptions;
 };

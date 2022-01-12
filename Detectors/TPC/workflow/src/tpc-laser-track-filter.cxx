@@ -60,7 +60,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     // a spectator callback which will be invoked by the tree writer with the extracted object
     // we are using it for printing a log message
     auto logger = BranchDefinition<TrackOutputType>::Spectator([](TrackOutputType const& tracks) {
-      LOG(INFO) << "writing " << tracks.size() << " track(s)";
+      LOG(info) << "writing " << tracks.size() << " track(s)";
     });
     auto tracksdef = BranchDefinition<TrackOutputType>{InputSpec{"inputTracks", "TPC", "LASERTRACKS", 0}, //
                                                        "TPCTracks", "track-branch-name",                  //

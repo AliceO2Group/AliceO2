@@ -61,6 +61,21 @@ class WindowFiller
   std::vector<ReadoutWindowData>* getReadoutWindowDataFiltered() { return &mReadoutWindowDataFiltered; }
   DigitHeader& getDigitHeader() { return mDigitHeader; }
 
+  template <typename VROF, typename VPAT>
+  void setReadoutWindowData(const VROF& row, const VPAT& pattern)
+  {
+    // copy rowdata info needed to call fillDiagonsticFrequency when reading frm file (digits/ctf). Not needed when digitizing or decoding
+    mPatterns.clear();
+    mReadoutWindowData.clear();
+    for (const auto crow : row) {
+      mReadoutWindowData.push_back(crow);
+    }
+
+    for (const auto dia : pattern) {
+      mPatterns.push_back(dia);
+    }
+  }
+
   void fillOutputContainer(std::vector<Digit>& digits);
   void flushOutputContainer(std::vector<Digit>& digits); // flush all residual buffered data
   void setContinuous(bool value = true) { mContinuous = value; }
@@ -82,7 +97,9 @@ class WindowFiller
   std::vector<uint8_t>& getPatterns() { return mPatterns; }
   void addPattern(const uint32_t val, int icrate, int orbit, int bc) { mCratePatterns.emplace_back(val, icrate, orbit * 3 + (bc + 100) / Geo::BC_IN_WINDOW); }
   void addCrateHeaderData(unsigned long orbit, int crate, int32_t bc, uint32_t eventCounter);
-  Diagnostic getDiagnosticFrequency() { return mDiagnosticFrequency; }
+  Diagnostic& getDiagnosticFrequency() { return mDiagnosticFrequency; }
+
+  void addCount(int channel) { mChannelCounts[channel]++; }
 
  protected:
   // info TOF timewindow
@@ -94,7 +111,7 @@ class WindowFiller
   bool mFutureToBeSorted = false;
 
   // only needed from Decoder
-  int mMaskNoiseRate = -999999999;
+  int mMaskNoiseRate = -11;
   int mChannelCounts[o2::tof::Geo::NCHANNELS]; // count of channel hits in the current TF (if MaskNoiseRate enabled)
 
   // digit info

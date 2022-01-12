@@ -13,7 +13,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "MIDCTF/CTFCoder.h"
 #include "DataFormatsMID/CTF.h"
 #include "Framework/Logger.h"
@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     coder.encode(vec, tfData); // compress
   }
   sw.Stop();
-  LOG(INFO) << "Compressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Compressed in " << sw.CpuTime() << " s";
 
   // writing
   {
@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     ctfImage->appendToTree(ctfTree, "MID");
     ctfTree.Write();
     sw.Stop();
-    LOG(INFO) << "Wrote to tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Wrote to tree in " << sw.CpuTime() << " s";
   }
 
   // reading
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     BOOST_CHECK(tree);
     o2::mid::CTF::readFromTree(vec, *(tree.get()), "MID");
     sw.Stop();
-    LOG(INFO) << "Read back from tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Read back from tree in " << sw.CpuTime() << " s";
   }
 
   std::array<std::vector<ColumnData>, NEvTypes> colDataD{};
@@ -111,24 +111,24 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     coder.decode(ctfImage, rofDataD, colDataD); // decompress
   }
   sw.Stop();
-  LOG(INFO) << "Decompressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Decompressed in " << sw.CpuTime() << " s";
 
   for (uint32_t it = 0; it < NEvTypes; it++) {
     const auto& rofsD = rofDataD[it];
     const auto& rofs = rofData[it];
     const auto& colsD = colDataD[it];
     const auto& cols = colData[it];
-    LOG(INFO) << "Test for event type " << it;
+    LOG(info) << "Test for event type " << it;
     BOOST_CHECK(rofsD.size() == rofs.size());
     BOOST_CHECK(colsD.size() == cols.size());
-    LOG(INFO) << " BOOST_CHECK rofsD.size() " << rofsD.size() << " rofs.size() " << rofData[0].size()
+    LOG(info) << " BOOST_CHECK rofsD.size() " << rofsD.size() << " rofs.size() " << rofData[0].size()
               << " BOOST_CHECK(colsD.size() " << colsD.size() << " cols.size()) " << colData[0].size();
 
     for (size_t i = 0; i < rofs.size(); i++) {
       const auto& dor = rofs[i];
       const auto& ddc = rofsD[i];
-      LOG(DEBUG) << " Orig.ROFRecord " << i << " " << dor.interactionRecord << " " << dor.firstEntry << " " << dor.nEntries;
-      LOG(DEBUG) << " Deco.ROFRecord " << i << " " << ddc.interactionRecord << " " << ddc.firstEntry << " " << ddc.nEntries;
+      LOG(debug) << " Orig.ROFRecord " << i << " " << dor.interactionRecord << " " << dor.firstEntry << " " << dor.nEntries;
+      LOG(debug) << " Deco.ROFRecord " << i << " " << ddc.interactionRecord << " " << ddc.firstEntry << " " << ddc.nEntries;
 
       BOOST_CHECK(dor.interactionRecord == ddc.interactionRecord);
       BOOST_CHECK(dor.firstEntry == ddc.firstEntry);
@@ -142,7 +142,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
       BOOST_CHECK(cor.columnId == cdc.columnId);
       for (int j = 0; j < 5; j++) {
         BOOST_CHECK(cor.patterns[j] == cdc.patterns[j]);
-        LOG(DEBUG) << "col " << i << " pat " << j << " : " << cor.patterns[j] << " : " << cdc.patterns[j];
+        LOG(debug) << "col " << i << " pat " << j << " : " << cor.patterns[j] << " : " << cdc.patterns[j];
       }
     }
   }

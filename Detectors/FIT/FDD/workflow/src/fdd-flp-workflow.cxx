@@ -60,12 +60,13 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-  LOG(INFO) << "WorkflowSpec defineDataProcessing";
+  LOG(info) << "WorkflowSpec defineDataProcessing";
   auto dumpReader = configcontext.options().get<bool>("dump-blocks-reader");
   auto isExtendedMode = configcontext.options().get<bool>("tcm-extended-mode");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto askSTFDist = !configcontext.options().get<bool>("ignore-dist-stf");
-  LOG(INFO) << "WorkflowSpec FLPWorkflow";
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+  LOG(info) << "WorkflowSpec FLPWorkflow";
   //Type aliases
   //using RawReaderFDDtrgInput = o2::fit::RawReaderFIT<o2::fdd::RawReaderFV0BaseNorm,true>;
   using RawReaderFDD = o2::fit::RawReaderFIT<o2::fdd::RawReaderFDDBaseNorm, false>;

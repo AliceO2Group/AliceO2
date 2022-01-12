@@ -357,6 +357,7 @@ class AlpideCoder
             if (dataC) { // padding is over, make 1 step back in the buffer
               auto currPtr = buffer.getPtr();
               buffer.setPtr(--currPtr);
+              break;
             }
           }
         }
@@ -489,7 +490,7 @@ class AlpideCoder
   ///< error message on unexpected EOF
   static int unexpectedEOF(const std::string& message)
   {
-    LOG(DEBUG) << message;
+    LOG(debug) << message;
     return Error;
   }
 

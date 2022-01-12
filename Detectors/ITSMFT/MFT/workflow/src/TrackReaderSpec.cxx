@@ -17,7 +17,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "MFTWorkflow/TrackReaderSpec.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 using namespace o2::mft;
@@ -44,7 +44,7 @@ void TrackReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(INFO) << "Pushing " << mTracks.size() << " track in " << mROFRec.size() << " ROFs at entry " << ent;
+  LOG(info) << "Pushing " << mTracks.size() << " track in " << mROFRec.size() << " ROFs at entry " << ent;
   pc.outputs().snapshot(Output{mOrigin, "MFTTrackROF", 0, Lifetime::Timeframe}, mROFRec);
   pc.outputs().snapshot(Output{mOrigin, "TRACKS", 0, Lifetime::Timeframe}, mTracks);
   pc.outputs().snapshot(Output{mOrigin, "TRACKCLSID", 0, Lifetime::Timeframe}, mClusInd);
@@ -75,10 +75,10 @@ void TrackReader::connectTree(const std::string& filename)
     if (mTree->GetBranch(mTrackMCTruthBranchName.c_str())) {
       mTree->SetBranchAddress(mTrackMCTruthBranchName.c_str(), &mMCTruthInp);
     } else {
-      LOG(WARNING) << "MC-truth is missing, message will be empty";
+      LOG(warning) << "MC-truth is missing, message will be empty";
     }
   }
-  LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
+  LOG(info) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getMFTTrackReaderSpec(bool useMC)

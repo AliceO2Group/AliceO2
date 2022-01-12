@@ -33,11 +33,14 @@ class IDCGroupHelperRegion
   /// \param groupLastRowsThreshold minimum number of pads in row direction for the last group in row direction
   /// \param groupLastPadsThreshold minimum number of pads in pad direction for the last group in pad direction
   /// \param region region of the TPC
-  IDCGroupHelperRegion(const unsigned char groupPads = 4, const unsigned char groupRows = 4, const unsigned char groupLastRowsThreshold = 2, const unsigned char groupLastPadsThreshold = 2, const unsigned int region = 0)
-    : mGroupPads{groupPads}, mGroupRows{groupRows}, mGroupLastRowsThreshold{groupLastRowsThreshold}, mGroupLastPadsThreshold{groupLastPadsThreshold}, mRegion{region}
+  IDCGroupHelperRegion(const unsigned char groupPads, const unsigned char groupRows, const unsigned char groupLastRowsThreshold, const unsigned char groupLastPadsThreshold, const unsigned char groupNotnPadsSectorEdges, const unsigned int region)
+    : mGroupPads{groupPads}, mGroupRows{groupRows}, mGroupLastRowsThreshold{groupLastRowsThreshold}, mGroupLastPadsThreshold{groupLastPadsThreshold}, mGroupPadsSectorEdges{groupNotnPadsSectorEdges}, mRegion{region}
   {
     initIDCGroupHelperRegion();
   }
+
+  /// default constructor for ROOT I/O
+  IDCGroupHelperRegion() = default;
 
   /// \return returns number of grouped rows
   unsigned int getNRows() const { return mRows; }
@@ -64,6 +67,9 @@ class IDCGroupHelperRegion
   /// \return returns threshold for grouping the last group in pad direction
   unsigned int getGroupLastPadsThreshold() const { return mGroupLastPadsThreshold; }
 
+  /// \return returns the number of pads at the sector edges which are not grouped
+  unsigned int getGroupPadsSectorEdges() const { return mGroupPadsSectorEdges; }
+
   /// \return returns the region for which the IDCs are stored
   unsigned int getRegion() const { return mRegion; }
 
@@ -88,12 +94,12 @@ class IDCGroupHelperRegion
   /// \param groupRows grouping parameter for number of pads in row direction which are grouped
   /// \param groupedrows number of grouped rows
   /// \param padsPerRow vector containing the number of pads per row
-  static unsigned int getGroupedPad(const unsigned int upad, const unsigned int ulrow, const unsigned int region, const unsigned int groupPads, const unsigned int groupRows, const unsigned int groupedrows, const std::vector<unsigned int>& padsPerRow);
+  static unsigned int getGroupedPad(const unsigned int upad, const unsigned int ulrow, const unsigned int region, const unsigned int groupPads, const unsigned int groupRows, const unsigned int groupedrows, const unsigned int groupPadsSectorEdges, const std::vector<unsigned int>& padsPerRow);
 
   /// \return returns the grouped pad index from ungrouped pad and row
   /// \param pad ungrouped pad
   /// \param lrow local ungrouped row in a region
-  unsigned int getGroupedPad(const unsigned int pad, const unsigned int ulrow) const { return getGroupedPad(pad, ulrow, mRegion, mGroupPads, mGroupRows, mRows, mPadsPerRow); };
+  unsigned int getGroupedPad(const unsigned int pad, const unsigned int ulrow) const { return getGroupedPad(pad, ulrow, mRegion, mGroupPads, mGroupRows, mRows, mGroupPadsSectorEdges, mPadsPerRow); };
 
   /// \return returns index to the data
   /// \param row local row of the grouped IDCs
@@ -102,10 +108,26 @@ class IDCGroupHelperRegion
   unsigned int getIndex(const unsigned int glrow, const unsigned int pad, unsigned int integrationInterval) const { return mNIDCsPerCRU * integrationInterval + mOffsRow[glrow] + pad; }
 
   /// \return returns index to the data
-  /// \param urow local ungrouped row
+  /// \param ulrow local ungrouped row
   /// \param upad ungrouped pad
   /// \param integrationInterval integration interval
-  unsigned int getIndexUngrouped(const unsigned int ulrow, const unsigned int upad, unsigned int integrationInterval) const { return getIndex(getGroupedRow(ulrow), getGroupedPad(upad, ulrow), integrationInterval); }
+  unsigned int getIndexUngrouped(const unsigned int ulrow, const unsigned int upad, unsigned int integrationInterval) const { return getIndex(getGroupedRow(ulrow), getGroupedPad(upad, ulrow), integrationInterval) + getOffsetForEdgePad(upad, ulrow); }
+
+  /// \return returns offset of the index for a pad which is not grouped (in the region where mGroupPadsSectorEdges is true).
+  /// returns for pads near local pad number = 0 negative value and for pads near local pad number = max value positive value
+  static int getOffsetForEdgePad(const unsigned int upad, const unsigned int ulrow, const unsigned int groupRows, const unsigned int groupPadsSectorEdges, const unsigned int region, const int lastRow);
+
+  /// \return returns offset of the index for a pad which is not grouped (in the region where mGroupPadsSectorEdges is true).
+  /// returns for pads near local pad number = 0 negative value and for pads near local pad number = max value positive value
+  int getOffsetForEdgePad(const unsigned int upad, const unsigned int ulrow) const { return (isSectorEdgePad(upad, ulrow, mRegion, mGroupPadsSectorEdges)) ? getOffsetForEdgePad(upad, ulrow, mGroupRows, mGroupPadsSectorEdges, mRegion, getLastRow()) : 0; }
+
+  static bool isSectorEdgePad(const unsigned int upad, const unsigned int ulrow, const unsigned int region, const unsigned int groupPadsSectorEdges);
+
+  /// \return returns index to the data
+  /// \param ugrow global ungrouped row
+  /// \param upad ungrouped pad
+  /// \param integrationInterval integration interval
+  unsigned int getIndexUngroupedGlob(const unsigned int ugrow, const unsigned int upad, unsigned int integrationInterval) const;
 
   /// \return returns the global pad number for given local pad row and pad
   /// \param ulrow local ungrouped row in a region
@@ -115,7 +137,7 @@ class IDCGroupHelperRegion
   /// \return returns last ungrouped row
   unsigned int getLastRow() const;
 
-  /// \return returns last ungrouped pad for given global row
+  /// \return returns last ungrouped pad for given local row
   /// \param row local ungrouped row
   unsigned int getLastPad(const unsigned int ulrow) const;
 
@@ -129,6 +151,7 @@ class IDCGroupHelperRegion
   const unsigned char mGroupRows{};              ///< grouping parameter in pad direction (how many pads in pad direction are grouped)
   const unsigned char mGroupLastRowsThreshold{}; ///< if the last group (region edges) consists in row direction less then mGroupLastRowsThreshold pads then it will be grouped into the previous group
   const unsigned char mGroupLastPadsThreshold{}; ///< if the last group (sector edges) consists in pad direction less then mGroupLastPadsThreshold pads then it will be grouped into the previous group
+  const unsigned char mGroupPadsSectorEdges{};   ///< number of pads at the sector edges which are not grouped
   const unsigned int mRegion{};                  ///< region of input IDCs
   unsigned int mNIDCsPerCRU{};                   ///< total number of IDCs per CRU per integration interval
   unsigned int mRows{};                          ///< number of grouped rows

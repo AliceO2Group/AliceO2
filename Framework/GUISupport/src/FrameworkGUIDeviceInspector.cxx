@@ -49,11 +49,11 @@ struct ChannelsTableHelper {
   }
 };
 
-void deviceInfoTable(DeviceInfo const& info, DeviceMetricsInfo const& metrics)
+void deviceInfoTable(char const* label, Metric2DViewIndex const& index, DeviceMetricsInfo const& metrics)
 {
-  if (info.queriesViewIndex.indexes.empty() == false && ImGui::CollapsingHeader("Inputs:", ImGuiTreeNodeFlags_DefaultOpen)) {
-    for (size_t i = 0; i < info.queriesViewIndex.indexes.size(); ++i) {
-      auto& metric = metrics.metrics[info.queriesViewIndex.indexes[i]];
+  if (index.indexes.empty() == false && ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen)) {
+    for (size_t i = 0; i < index.indexes.size(); ++i) {
+      auto& metric = metrics.metrics[index.indexes[i]];
       ImGui::Text("%zu: %s", i, metrics.stringMetrics[metric.storeIdx][0].data);
       if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
@@ -250,7 +250,7 @@ void displayDeviceInspector(DeviceSpec const& spec,
 #else
     setenv("O2DPLPROFILE", "xterm -hold -e perf record -a -g -p $O2PROFILEDPID > perf-$O2PROFILEDPID.data &", 0);
 #endif
-    LOG(ERROR) << getenv("O2DPLPROFILE");
+    LOG(error) << getenv("O2DPLPROFILE");
     int retVal = system(getenv("O2DPLPROFILE"));
     (void)retVal;
   }
@@ -271,10 +271,8 @@ void displayDeviceInspector(DeviceSpec const& spec,
     }
   }
 
-  deviceInfoTable(info, metrics);
-  for (auto& option : info.currentConfig) {
-    ImGui::Text("%s: %s", option.first.c_str(), option.second.data().c_str());
-  }
+  deviceInfoTable("Inputs:", info.queriesViewIndex, metrics);
+  deviceInfoTable("Outputs:", info.outputsViewIndex, metrics);
   configurationTable(info.currentConfig, info.currentProvenance);
   optionsTable("Workflow Options", metadata.workflowOptions, control);
   servicesTable("Services", spec.services);

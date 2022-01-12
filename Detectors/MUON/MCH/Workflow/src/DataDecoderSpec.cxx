@@ -80,12 +80,14 @@ class DataDecoderTask
 
     auto ds2manu = ic.options().get<bool>("ds2manu");
     auto sampaBcOffset = CoDecParam::Instance().sampaBcOffset;
-    mDebug = ic.options().get<bool>("debug");
+    mDebug = ic.options().get<bool>("mch-debug");
     mCheckROFs = ic.options().get<bool>("check-rofs");
     mDummyROFs = ic.options().get<bool>("dummy-rofs");
     auto mapCRUfile = ic.options().get<std::string>("cru-map");
     auto mapFECfile = ic.options().get<std::string>("fec-map");
     auto useDummyElecMap = ic.options().get<bool>("dummy-elecmap");
+    mErrorLogFrequency = ic.options().get<int>("error-log-frequency");
+
     mDecoder = new DataDecoder(channelHandler, rdhHandler, sampaBcOffset, mapCRUfile, mapFECfile, ds2manu, mDebug,
                                useDummyElecMap);
 
@@ -106,7 +108,7 @@ class DataDecoderTask
     mDecoder->setFirstOrbitInTF(mFirstTForbit);
 
     if (mDebug) {
-      LOG(INFO) << "[DataDecoderSpec::run] first TF orbit is " << mFirstTForbit;
+      LOG(info) << "[DataDecoderSpec::run] first TF orbit is " << mFirstTForbit;
     }
 
     // get the input buffer
@@ -181,7 +183,7 @@ class DataDecoderTask
       if (dh->payloadSize == 0) {
         auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
         if (++contDeadBeef <= maxWarn) {
-          LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+          LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
                dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,
                contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
         }
@@ -284,6 +286,11 @@ class DataDecoderTask
     pc.outputs().adoptChunk(Output{header::gDataOriginMCH, "ORBITS", 0}, orbitsBuffer, orbitsSize, freefct, nullptr);
 
     mTFcount += 1;
+    if (mErrorLogFrequency) {
+      if (mTFcount == 1 || mTFcount % mErrorLogFrequency == 0) {
+        mDecoder->logErrorMap(mTFcount);
+      }
+    }
   }
 
  private:
@@ -295,6 +302,7 @@ class DataDecoderTask
   DataDecoder* mDecoder = {nullptr}; /// pointer to the data decoder instance
 
   uint32_t mTFcount{0};
+  uint32_t mErrorLogFrequency; /// error map is logged at that frequency (use 0 to disable) (in TF unit)
 
   std::chrono::duration<double, std::milli> mTimeDecoding{};  ///< timer
   std::chrono::duration<double, std::milli> mTimeROFFinder{}; ///< timer
@@ -323,13 +331,14 @@ o2::framework::DataProcessorSpec getDecodingSpec(const char* specName, std::stri
             OutputSpec{header::gDataOriginMCH, "DIGITROFS", 0, Lifetime::Timeframe},
             OutputSpec{header::gDataOriginMCH, "ORBITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<DataDecoderTask>(std::move(task))},
-    Options{{"debug", VariantType::Bool, false, {"enable verbose output"}},
+    Options{{"mch-debug", VariantType::Bool, false, {"enable verbose output"}},
             {"cru-map", VariantType::String, "", {"custom CRU mapping"}},
             {"fec-map", VariantType::String, "", {"custom FEC mapping"}},
             {"dummy-elecmap", VariantType::Bool, false, {"use dummy electronic mapping (for debug, temporary)"}},
             {"ds2manu", VariantType::Bool, false, {"convert channel numbering from Run3 to Run1-2 order"}},
             {"check-rofs", VariantType::Bool, false, {"perform consistency checks on the output ROFs"}},
-            {"dummy-rofs", VariantType::Bool, false, {"disable the ROFs finding algorithm"}}}};
+            {"dummy-rofs", VariantType::Bool, false, {"disable the ROFs finding algorithm"}},
+            {"error-log-frequency", VariantType::Int, 6000, {"log the error map at this frequency (in TF unit) (first TF is always logged, unless frequency is zero)"}}}};
 }
 
 } // namespace raw

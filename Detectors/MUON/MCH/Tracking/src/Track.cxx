@@ -72,7 +72,7 @@ void Track::addParamAtCluster(const TrackParam& param)
 
   const Cluster* cluster = param.getClusterPtr();
   if (cluster == nullptr) {
-    LOG(ERROR) << "The TrackParam must be associated with a cluster --> not added";
+    LOG(error) << "The TrackParam must be associated with a cluster --> not added";
     return;
   }
 
@@ -112,7 +112,7 @@ int Track::getNClustersInCommon(const Track& track, int stMin, int stMax) const
         continue;
       }
 
-      if (param1.getClusterPtr()->getUniqueId() == param2.getClusterPtr()->getUniqueId()) {
+      if (param1.getClusterPtr()->uid == param2.getClusterPtr()->uid) {
         ++nClustersInCommon;
         break;
       }

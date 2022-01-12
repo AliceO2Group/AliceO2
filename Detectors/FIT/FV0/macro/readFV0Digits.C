@@ -71,13 +71,13 @@ void readFV0Digits(std::string digiFName = "fv0digits.root", bool printAllToTerm
 
   std::unique_ptr<TFile> digiFile(TFile::Open(digiFName.c_str()));
   if (!digiFile || digiFile->IsZombie()) {
-    LOG(ERROR) << "Failed to open input digits file " << digiFName;
+    LOG(error) << "Failed to open input digits file " << digiFName;
     return;
   }
 
   TTree* digiTree = (TTree*)digiFile->Get("o2sim");
   if (!digiTree) {
-    LOG(ERROR) << "Failed to get digits tree";
+    LOG(error) << "Failed to get digits tree";
     return;
   }
 

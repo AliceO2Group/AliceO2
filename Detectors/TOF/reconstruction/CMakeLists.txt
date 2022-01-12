@@ -12,17 +12,16 @@
 o2_add_library(TOFReconstruction
                SOURCES src/DataReader.cxx src/Clusterer.cxx
                        src/ClustererTask.cxx src/Encoder.cxx
-               	       src/DecoderBase.cxx
+                       src/DecoderBase.cxx
                        src/Decoder.cxx
                        src/CTFCoder.cxx
-                       src/EventTimeMaker.cxx
                        src/CosmicProcessor.cxx
                PUBLIC_LINK_LIBRARIES O2::TOFBase O2::DataFormatsTOF
                                      O2::SimulationDataFormat
                                      O2::CommonDataFormat
                                      O2::DataFormatsTOF
                                      O2::rANS O2::DPLUtils
-                                     O2::TOFCalibration O2::DetectorsRaw)
+                                     O2::DetectorsRaw)
 
 o2_target_root_dictionary(TOFReconstruction
                           HEADERS include/TOFReconstruction/DataReader.h
@@ -31,6 +30,4 @@ o2_target_root_dictionary(TOFReconstruction
                                   include/TOFReconstruction/Encoder.h
                                   include/TOFReconstruction/DecoderBase.h
                                   include/TOFReconstruction/Decoder.h
-                                  include/TOFReconstruction/CTFCoder.h
-                                  include/TOFReconstruction/EventTimeMaker.h
                                   include/TOFReconstruction/CosmicProcessor.h)

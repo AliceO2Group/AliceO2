@@ -23,7 +23,6 @@
 
 #include "Mergers/MergerBuilder.h"
 #include "Mergers/IntegratingMerger.h"
-#include "Mergers/FullHistoryMerger.h"
 
 using namespace o2::framework;
 
@@ -94,14 +93,20 @@ framework::DataProcessorSpec MergerBuilder::buildSpec()
 
   merger.inputs.push_back({"timer-publish", "MRGR", mergerDataDescription("timer-" + mName), mergerSubSpec(mLayer, mId), framework::Lifetime::Timer});
   merger.options.push_back({"period-timer-publish", framework::VariantType::Int, static_cast<int>(mConfig.publicationDecision.param * 1000000), {"timer period"}});
+  merger.labels.push_back(mergerLabel());
 
   return std::move(merger);
 }
 
 void MergerBuilder::customizeInfrastructure(std::vector<framework::CompletionPolicy>& policies)
 {
-  // each merger's name contains the common ID string and should always consume
-  policies.push_back(CompletionPolicyHelpers::defineByName(".*" + MergerBuilder::mergerIdString() + ".*", CompletionPolicy::CompletionOp::Consume));
+  // each merger's name contains the common label and should always consume
+  policies.emplace_back(
+    "MergerCompletionPolicy",
+    [label = mergerLabel()](framework::DeviceSpec const& device) {
+      return std::find(device.labels.begin(), device.labels.end(), label) != device.labels.end();
+    },
+    CompletionPolicyHelpers::consumeWhenAny().callback);
 }
 
 } // namespace o2::mergers

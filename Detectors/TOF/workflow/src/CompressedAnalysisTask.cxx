@@ -39,20 +39,20 @@ void CompressedAnalysisTask::init(InitContext& ic)
   auto function = ic.options().get<std::string>("tof-compressed-analysis-function");
 
   if (filename.empty()) {
-    LOG(ERROR) << "No analysis filename defined";
+    LOG(error) << "No analysis filename defined";
     mStatus = true;
     return;
   }
 
   if (function.empty()) {
-    LOG(ERROR) << "No analysis function defined";
+    LOG(error) << "No analysis function defined";
     mStatus = true;
     return;
   }
 
   mAnalysis = GetFromMacro<CompressedAnalysis*>(filename, function, "o2::tof::CompressedAnalysis*", "compressed_analysis");
   if (!mAnalysis) {
-    LOG(ERROR) << "Could not retrieve analysis from file: " << filename;
+    LOG(error) << "Could not retrieve analysis from file: " << filename;
     mStatus = true;
     return;
   }
@@ -61,7 +61,7 @@ void CompressedAnalysisTask::init(InitContext& ic)
   mAnalysis->initialize();
 
   auto finishFunction = [this]() {
-    LOG(INFO) << "CompressedBaseTask finish";
+    LOG(debug) << "CompressedBaseTask finish";
     mAnalysis->finalize();
   };
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);

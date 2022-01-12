@@ -15,8 +15,9 @@
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"
-#include "TOFCalibration/CalibTOFapi.h"
+#include "TOFBase/CalibTOFapi.h"
 #include "DataFormatsTOF/CalibLHCphaseTOF.h"
+#include "CommonUtils/NameConf.h"
 #include "TOFBase/Geo.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include <array>
@@ -31,11 +32,12 @@ struct LHCClockDataHisto {
   int nbins = 1000;
   float v2Bin = nbins / (2 * range);
   int entries = 0;
+  o2::tof::CalibTOFapi* calibApi;
   std::vector<float> histo{0};
 
   LHCClockDataHisto();
 
-  LHCClockDataHisto(int nb, float r) : nbins(nb), range(r), v2Bin(0)
+  LHCClockDataHisto(int nb, float r, o2::tof::CalibTOFapi* api) : nbins(nb), range(r), v2Bin(0), calibApi(api)
   {
     if (r <= 0. || nb < 1) {
       throw std::runtime_error("Wrong initialization of the histogram");
@@ -63,7 +65,7 @@ class LHCClockCalibrator final : public o2::calibration::TimeSlotCalibration<o2:
   using LHCphaseVector = std::vector<LHCphase>;
 
  public:
-  LHCClockCalibrator(int minEnt = 500, int nb = 1000, float r = 24400, const std::string path = "http://ccdb-test.cern.ch:8080") : mMinEntries(minEnt), mNBins(nb), mRange(r) { mCalibTOFapi.setURL(path); }
+  LHCClockCalibrator(int minEnt = 500, int nb = 1000, float r = 24400, const std::string path = o2::base::NameConf::getCCDBServer()) : mMinEntries(minEnt), mNBins(nb), mRange(r) { mCalibTOFapi->setURL(path); }
   ~LHCClockCalibrator() final = default;
   bool hasEnoughData(const Slot& slot) const final { return slot.getContainer()->entries >= mMinEntries; }
   void initOutput() final;
@@ -74,11 +76,14 @@ class LHCClockCalibrator final : public o2::calibration::TimeSlotCalibration<o2:
   const CcdbObjectInfoVector& getLHCphaseInfoVector() const { return mInfoVector; }
   CcdbObjectInfoVector& getLHCphaseInfoVector() { return mInfoVector; }
 
+  void setCalibTOFapi(CalibTOFapi* api) { mCalibTOFapi = api; }
+  CalibTOFapi* getCalibTOFapi() const { return mCalibTOFapi; }
+
  private:
   int mMinEntries = 0;
   int mNBins = 0;
   float mRange = 0.;
-  CalibTOFapi mCalibTOFapi;
+  CalibTOFapi* mCalibTOFapi = nullptr;
   CcdbObjectInfoVector mInfoVector; // vector of CCDB Infos , each element is filled with the CCDB description of the accompanying LHCPhase
   LHCphaseVector mLHCphaseVector;   // vector of LhcPhase, each element is filled in "process" when we finalize one slot (multiple can be finalized during the same "process", which is why we have a vector. Each element is to be considered the output of the device, and will go to the CCDB
 

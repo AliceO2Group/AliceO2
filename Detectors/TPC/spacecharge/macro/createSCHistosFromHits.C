@@ -328,8 +328,8 @@ void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, 
           }
 
           // Primary ionization
+          const Side side = getSide(posHit.Z());
           if (std::signbit(zIonsPI) == std::signbit(posHit.Z())) {
-            const Side side = getSide(posHit.Z());
             const auto binPhi = hisSCRandom[side].GetXaxis()->FindBin(phiHit);
             const auto binR = hisSCRandom[side].GetYaxis()->FindBin(rHit);
             const auto binZ = hisSCRandom[side].GetZaxis()->FindBin(zIonsPI);
@@ -341,6 +341,9 @@ void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, 
           // apply distortion of electron if specified
           if (distortionType == 1) {
             spacecharge.distortElectron(posHit);
+            if (side != getSide(posHit.Z())) {
+              posHit.SetZ(side == Side::A ? 0.1f : -0.1f);
+            }
           }
 
           // IBF: Place r-phi projection of hits randomly in z
@@ -829,7 +832,7 @@ float get1DIDCs(const CalPad& calPad, const o2::tpc::Side side)
       const int npads = mapper.getNumberOfPadsInRowROC(roc, irow);
       for (int ipad = 0; ipad < npads; ++ipad) {
         const auto idc = calPad.getValue(roc, irow, ipad);
-        mean += idc * o2::tpc::Mapper::PADAREA[region]; //PADAREA[NREGIONS] = inverse pad area
+        mean += idc * o2::tpc::Mapper::INVPADAREA[region]; //PADAREA[NREGIONS] = inverse pad area
         ++ww;
       }
     }

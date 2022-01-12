@@ -19,6 +19,7 @@
 #undef NDEBUG
 #include <cassert>
 #include <type_traits>
+#include <cstddef>
 #include <Rtypes.h>
 #include "rANS/rans.h"
 #include "rANS/utils.h"
@@ -109,6 +110,7 @@ struct Metadata {
   };
   size_t messageLength = 0;
   size_t nLiterals = 0;
+  uint8_t messageWordSize = 0;
   uint8_t coderType = 0;
   uint8_t streamSize = 0;
   uint8_t probabilityBits = 0;
@@ -123,6 +125,7 @@ struct Metadata {
   {
     min = max = 0;
     messageLength = 0;
+    messageWordSize = 0;
     nLiterals = 0;
     coderType = 0;
     streamSize = 0;
@@ -131,14 +134,14 @@ struct Metadata {
     nDataWords = 0;
     nLiteralWords = 0;
   }
-  ClassDefNV(Metadata, 1);
+  ClassDefNV(Metadata, 2);
 };
 
 /// registry struct for the buffer start and offsets of writable space
 struct Registry {
-  char* head = nullptr;
+  char* head = nullptr;     //! pointer on the head of the CTF
   int nFilledBlocks = 0;    // number of filled blocks = next block to fill (must be strictly consecutive)
-  size_t offsFreeStart = 0; // offset of the start of the writable space (wrt head), in bytes!!!
+  size_t offsFreeStart = 0; //! offset of the start of the writable space (wrt head), in bytes!!!
   size_t size = 0;          // full size in bytes!!!
 
   /// calculate the pointer of the head of the writable space
@@ -177,6 +180,10 @@ struct Block {
   inline W* getCreateDict() { return payload ? payload : getCreatePayload(); }
   inline W* getCreateData() { return payload ? (payload + nDict) : getCreatePayload(); }
   inline W* getCreateLiterals() { return payload ? payload + (nDict + nData) : getCreatePayload(); }
+
+  inline auto getOffsDict() { return reinterpret_cast<std::uintptr_t>(getCreateDict()) - reinterpret_cast<std::uintptr_t>(registry->head); }
+  inline auto getOffsData() { return reinterpret_cast<std::uintptr_t>(getCreateData()) - reinterpret_cast<std::uintptr_t>(registry->head); }
+  inline auto getOffsLiterals() { return reinterpret_cast<std::uintptr_t>(getCreateLiterals()) - reinterpret_cast<std::uintptr_t>(registry->head); }
 
   inline void setNDict(int _ndict)
   {
@@ -335,6 +342,8 @@ class EncodedBlocks
   H& getHeader() { return mHeader; }
   std::shared_ptr<H> cloneHeader() const { return std::shared_ptr<H>(new H(mHeader)); } // for dictionary creation
 
+  const auto& getRegistry() const { return mRegistry; }
+
   const auto& getMetadata() const { return mMetadata; }
 
   auto& getMetadata(int i) const
@@ -347,6 +356,15 @@ class EncodedBlocks
   {
     assert(i < N);
     return mBlocks[i];
+  }
+
+  auto getFrequencyTable(int i) const
+  {
+    o2::rans::FrequencyTable ft;
+    const auto& bl = getBlock(i);
+    const auto& md = getMetadata(i);
+    ft.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min, md.max);
+    return ft;
   }
 
   void setANSHeader(const ANSHeader& h) { mANSHeader = h; }
@@ -415,14 +433,14 @@ class EncodedBlocks
 
   /// encode vector src to bloc at provided slot
   template <typename VE, typename buffer_T>
-  inline void encode(const VE& src, int slot, uint8_t symbolTablePrecision, Metadata::OptStore opt, buffer_T* buffer = nullptr, const void* encoderExt = nullptr)
+  inline void encode(const VE& src, int slot, uint8_t symbolTablePrecision, Metadata::OptStore opt, buffer_T* buffer = nullptr, const void* encoderExt = nullptr, float memfc = 1.f)
   {
-    encode(std::begin(src), std::end(src), slot, symbolTablePrecision, opt, buffer, encoderExt);
+    encode(std::begin(src), std::end(src), slot, symbolTablePrecision, opt, buffer, encoderExt, memfc);
   }
 
   /// encode vector src to bloc at provided slot
   template <typename input_IT, typename buffer_T>
-  void encode(const input_IT srcBegin, const input_IT srcEnd, int slot, uint8_t symbolTablePrecision, Metadata::OptStore opt, buffer_T* buffer = nullptr, const void* encoderExt = nullptr);
+  void encode(const input_IT srcBegin, const input_IT srcEnd, int slot, uint8_t symbolTablePrecision, Metadata::OptStore opt, buffer_T* buffer = nullptr, const void* encoderExt = nullptr, float memfc = 1.f);
 
   /// decode block at provided slot to destination vector (will be resized as needed)
   template <class container_T, class container_IT = typename container_T::iterator>
@@ -436,12 +454,13 @@ class EncodedBlocks
   static std::vector<char> createDictionaryBlocks(const std::vector<o2::rans::FrequencyTable>& vfreq, const std::vector<Metadata>& prbits);
 
   /// print itself
-  void print(const std::string& prefix = "") const;
+  void print(const std::string& prefix = "", int verbosity = 1) const;
+  void dump(const std::string& prefix = "", int ncol = 20) const;
 
  protected:
   static_assert(N > 0, "number of encoded blocks < 1");
 
-  Registry mRegistry;                //! not stored
+  Registry mRegistry;                //
   ANSHeader mANSHeader;              //  ANS header
   H mHeader;                         //  detector specific header
   std::array<Metadata, N> mMetadata; //  compressed block's details
@@ -456,7 +475,7 @@ class EncodedBlocks
   /// DPL input), in this case we create a wrapper, which points on these const data
   static void relocate(const char* oldHead, char* newHead, char* wrapper, size_t newsize = 0);
 
-  /// Estimate size of the buffer needed to store all compressed data in a contiguos block of memory, accounting for alignment
+  /// Estimate size of the buffer needed to store all compressed data in a contiguous block of memory, accounting for the alignment
   /// This method is to be called after reading object from the tree as a non-flat object!
   size_t estimateSize() const;
 
@@ -472,9 +491,9 @@ class EncodedBlocks
 
   /// read single branch
   template <typename D>
-  static void readTreeBranch(TTree& tree, const std::string& brname, D& dt, int ev = 0);
+  static bool readTreeBranch(TTree& tree, const std::string& brname, D& dt, int ev = 0);
 
-  ClassDefNV(EncodedBlocks, 1);
+  ClassDefNV(EncodedBlocks, 2);
 };
 
 ///_____________________________________________________________________________
@@ -495,7 +514,9 @@ template <typename VD>
 void EncodedBlocks<H, N, W>::readFromTree(VD& vec, TTree& tree, const std::string& name, int ev)
 {
   auto tmp = create(vec);
-  readTreeBranch(tree, o2::utils::Str::concat_string(name, "_wrapper."), *tmp, ev);
+  if (!readTreeBranch(tree, o2::utils::Str::concat_string(name, "_wrapper."), *tmp, ev)) {
+    throw std::runtime_error(fmt::format("Failed to read CTF header for {}", name));
+  }
   tmp = tmp->expand(vec, tmp->estimateSizeFromMetadata());
   const auto& meta = tmp->getMetadata();
   for (int i = 0; i < N; i++) {
@@ -527,14 +548,18 @@ size_t EncodedBlocks<H, N, W>::appendToTree(TTree& tree, const std::string& name
 /// read single branch
 template <typename H, int N, typename W>
 template <typename D>
-inline void EncodedBlocks<H, N, W>::readTreeBranch(TTree& tree, const std::string& brname, D& dt, int ev)
+bool EncodedBlocks<H, N, W>::readTreeBranch(TTree& tree, const std::string& brname, D& dt, int ev)
 {
   auto* br = tree.GetBranch(brname.c_str());
-  assert(br);
+  if (!br) {
+    LOG(debug) << "Branch " << brname << " is absent";
+    return false;
+  }
   auto* ptr = &dt;
   br->SetAddress(&ptr);
   br->GetEntry(ev);
   br->ResetAddress();
+  return true;
 }
 
 ///_____________________________________________________________________________
@@ -703,13 +728,25 @@ inline auto EncodedBlocks<H, N, W>::create(VD& v)
 ///_____________________________________________________________________________
 /// print itself
 template <typename H, int N, typename W>
-void EncodedBlocks<H, N, W>::print(const std::string& prefix) const
+void EncodedBlocks<H, N, W>::print(const std::string& prefix, int verbosity) const
 {
-  LOG(INFO) << prefix << "Container of " << N << " blocks, size: " << size() << " bytes, unused: " << getFreeSize();
-  for (int i = 0; i < N; i++) {
-    LOG(INFO) << "Block " << i << " for " << mMetadata[i].messageLength << " message words |"
-              << " NDictWords: " << mBlocks[i].getNDict() << " NDataWords: " << mBlocks[i].getNData()
-              << " NLiteralWords: " << mBlocks[i].getNLiterals();
+  if (verbosity > 0) {
+    LOG(info) << prefix << "Container of " << N << " blocks, size: " << size() << " bytes, unused: " << getFreeSize();
+    for (int i = 0; i < N; i++) {
+      LOG(info) << "Block " << i << " for " << mMetadata[i].messageLength << " message words of " << mMetadata[i].messageWordSize << " bytes |"
+                << " NDictWords: " << mBlocks[i].getNDict() << " NDataWords: " << mBlocks[i].getNData()
+                << " NLiteralWords: " << mBlocks[i].getNLiterals();
+    }
+  } else if (verbosity == 0) {
+    size_t inpSize = 0, ndict = 0, ndata = 0, nlit = 0;
+    for (int i = 0; i < N; i++) {
+      inpSize += mMetadata[i].messageLength * mMetadata[i].messageWordSize;
+      ndict += mBlocks[i].getNDict();
+      ndata += mBlocks[i].getNData();
+      nlit += mBlocks[i].getNLiterals();
+    }
+    LOG(info) << prefix << N << " blocks, input size: " << inpSize << ", output size: " << size()
+              << " NDictWords: " << ndict << " NDataWords: " << ndata << " NLiteralWords: " << nlit;
   }
 }
 
@@ -741,7 +778,7 @@ void EncodedBlocks<H, N, W>::decode(D_IT dest,                    // iterator to
   if (block.getNStored()) {
     if (md.opt == Metadata::OptStore::EENCODE) {
       if (!decoderExt && !block.getNDict()) {
-        LOG(ERROR) << "Dictionaty is not saved for slot " << slot << " and no external decoder is provided";
+        LOG(error) << "Dictionaty is not saved for slot " << slot << " and no external decoder is provided";
         throw std::runtime_error("Dictionary is not saved and no external decoder provided");
       }
       const o2::rans::LiteralDecoder64<dest_t>* decoder = reinterpret_cast<const o2::rans::LiteralDecoder64<dest_t>*>(decoderExt);
@@ -753,7 +790,7 @@ void EncodedBlocks<H, N, W>::decode(D_IT dest,                    // iterator to
         decoder = decoderLoc.get();
       } else { // verify that decoded corresponds to stored metadata
         if (md.min != decoder->getMinSymbol() || md.max != decoder->getMaxSymbol()) {
-          LOG(ERROR) << "Mismatch between min=" << md.min << "/" << md.max << " symbols in metadata and those in external decoder "
+          LOG(error) << "Mismatch between min=" << md.min << "/" << md.max << " symbols in metadata and those in external decoder "
                      << decoder->getMinSymbol() << "/" << decoder->getMaxSymbol() << " for slot " << slot;
           throw std::runtime_error("Mismatch between min/max symbols in metadata and those in external decoder");
         }
@@ -786,7 +823,8 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
                                     uint8_t symbolTablePrecision, // encoding into
                                     Metadata::OptStore opt,       // option for data compression
                                     buffer_T* buffer,             // optional buffer (vector) providing memory for encoded blocks
-                                    const void* encoderExt)       // optional external encoder
+                                    const void* encoderExt,       // optional external encoder
+                                    float memfc)                  // memory allocation margin factor
 {
 
   using storageBuffer_t = W;
@@ -811,7 +849,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
 
   // case 1: empty source message
   if (messageLength == 0) {
-    mMetadata[slot] = Metadata{0, 0, sizeof(ransState_t), sizeof(ransStream_t), symbolTablePrecision, Metadata::OptStore::NODATA, 0, 0, 0, 0, 0};
+    mMetadata[slot] = Metadata{0, 0, sizeof(input_t), sizeof(ransState_t), sizeof(ransStream_t), symbolTablePrecision, Metadata::OptStore::NODATA, 0, 0, 0, 0, 0};
     return;
   }
 
@@ -823,7 +861,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
     auto* const blockHead = get(thisBlock->registry->head);                         // extract pointer from the block, as "this" might be invalid
     const size_t additionalSize = blockHead->estimateBlockSize(additionalElements); // size in bytes!!!
     if (additionalSize >= thisBlock->registry->getFreeSize()) {
-      LOG(INFO) << "Slot " << slot << ": free size: " << thisBlock->registry->getFreeSize() << ", need " << additionalSize << " for " << additionalElements << " words";
+      LOG(debug) << "Slot " << slot << ": free size: " << thisBlock->registry->getFreeSize() << ", need " << additionalSize << " for " << additionalElements << " words";
       if (buffer) {
         blockHead->expand(*buffer, blockHead->size() + (additionalSize - blockHead->getFreeSize()));
         thisMetadata = &(get(buffer->data())->mMetadata[slot]);
@@ -838,7 +876,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
   if (opt == Metadata::OptStore::EENCODE) {
     // build symbol statistics
     constexpr size_t SizeEstMarginAbs = 10 * 1024;
-    constexpr float SizeEstMarginRel = 1.05;
+    const float SizeEstMarginRel = 1.5 * memfc;
 
     const auto [inplaceEncoder, frequencyTable] = [&]() {
       if (encoderExt) {
@@ -859,6 +897,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
     //store dictionary first
     if (frequencyTable.size()) {
       thisBlock->storeDict(frequencyTable.size(), frequencyTable.data());
+      LOGP(debug, "StoreDict {} bytes, offs: {}:{}", frequencyTable.size() * sizeof(W), thisBlock->getOffsDict(), thisBlock->getOffsDict() + frequencyTable.size() * sizeof(W));
     }
     // vector of incompressible literal symbols
     std::vector<input_t> literals;
@@ -866,10 +905,11 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
     storageBuffer_t* const blockBufferBegin = thisBlock->getCreateData();
     const size_t maxBufferSize = thisBlock->registry->getFreeSize(); // note: "this" might be not valid after expandStorage call!!!
     const auto encodedMessageEnd = encoder->process(srcBegin, srcEnd, blockBufferBegin, literals);
-    rans::utils::checkBounds(encodedMessageEnd, blockBufferBegin + maxBufferSize);
+    rans::utils::checkBounds(encodedMessageEnd, blockBufferBegin + maxBufferSize / sizeof(W));
     dataSize = encodedMessageEnd - thisBlock->getDataPointer();
     thisBlock->setNData(dataSize);
     thisBlock->realignBlock();
+    LOGP(debug, "StoreData {} bytes, offs: {}:{}", dataSize * sizeof(W), thisBlock->getOffsData(), thisBlock->getOffsData() + dataSize * sizeof(W));
     // update the size claimed by encode message directly inside the block
 
     // store incompressible symbols if any
@@ -884,6 +924,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
         const size_t nLiteralStorageElems = calculateNDestTElements<input_t, storageBuffer_t>(nSymbols);
         expandStorage(nLiteralStorageElems);
         thisBlock->storeLiterals(nLiteralStorageElems, reinterpret_cast<const storageBuffer_t*>(literals.data()));
+        LOGP(debug, "StoreLiterals {} bytes, offs: {}:{}", nLiteralStorageElems * sizeof(W), thisBlock->getOffsLiterals(), thisBlock->getOffsLiterals() + nLiteralStorageElems * sizeof(W));
         return nLiteralStorageElems;
       }
       return size_t(0);
@@ -891,6 +932,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
 
     *thisMetadata = Metadata{messageLength,
                              nLiteralSymbols,
+                             sizeof(input_t),
                              sizeof(ransState_t),
                              sizeof(ransStream_t),
                              static_cast<uint8_t>(encoder->getSymbolTablePrecision()),
@@ -913,7 +955,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
     expandStorage(nBufferElems);
     thisBlock->storeData(thisMetadata->nDataWords, reinterpret_cast<const storageBuffer_t*>(tmp.data()));
 
-    *thisMetadata = Metadata{messageLength, 0, sizeof(ransState_t), sizeof(storageBuffer_t), symbolTablePrecision, opt, 0, 0, 0, static_cast<int>(nBufferElems), 0};
+    *thisMetadata = Metadata{messageLength, 0, sizeof(input_t), sizeof(ransState_t), sizeof(storageBuffer_t), symbolTablePrecision, opt, 0, 0, 0, static_cast<int>(nBufferElems), 0};
   }
 }
 
@@ -932,7 +974,7 @@ std::vector<char> EncodedBlocks<H, N, W>::createDictionaryBlocks(const std::vect
   auto dictBlocks = create(vdict.data(), sz);
   for (int ib = 0; ib < N; ib++) {
     if (vfreq[ib].size()) {
-      LOG(INFO) << "adding dictionary of " << vfreq[ib].size() << " words for block " << ib << ", min/max= " << vfreq[ib].getMinSymbol() << "/" << vfreq[ib].getMaxSymbol();
+      LOG(info) << "adding dictionary of " << vfreq[ib].size() << " words for block " << ib << ", min/max= " << vfreq[ib].getMinSymbol() << "/" << vfreq[ib].getMaxSymbol();
       dictBlocks->mBlocks[ib].storeDict(vfreq[ib].size(), vfreq[ib].data());
       dictBlocks = get(vdict.data()); // !!! rellocation might have invalidated dictBlocks pointer
       dictBlocks->mMetadata[ib] = vmd[ib];
@@ -944,6 +986,57 @@ std::vector<char> EncodedBlocks<H, N, W>::createDictionaryBlocks(const std::vect
     dictBlocks->mRegistry.nFilledBlocks++;
   }
   return std::move(vdict);
+}
+
+template <typename H, int N, typename W>
+void EncodedBlocks<H, N, W>::dump(const std::string& prefix, int ncol) const
+{
+  for (int ibl = 0; ibl < getNBlocks(); ibl++) {
+    const auto& blc = getBlock(ibl);
+    std::string ss;
+    LOGP(info, "{} Bloc:{} Dict: {} words", prefix, ibl, blc.getNDict());
+    const auto* ptr = blc.getDict();
+    for (int i = 0; i < blc.getNDict(); i++) {
+      if (i && (i % ncol) == 0) {
+        LOG(info) << ss;
+        ss.clear();
+      }
+      ss += fmt::format(" {:#010x}", ptr[i]);
+    }
+    if (!ss.empty()) {
+      LOG(info) << ss;
+      ss.clear();
+    }
+    LOG(info) << "\n";
+    LOGP(info, "{} Bloc:{} Data: {} words", prefix, ibl, blc.getNData());
+    ptr = blc.getData();
+    for (int i = 0; i < blc.getNData(); i++) {
+      if (i && (i % ncol) == 0) {
+        LOG(info) << ss;
+        ss.clear();
+      }
+      ss += fmt::format(" {:#010x}", ptr[i]);
+    }
+    if (!ss.empty()) {
+      LOG(info) << ss;
+      ss.clear();
+    }
+    LOG(info) << "\n";
+    LOGP(info, "{} Bloc:{} Literals: {} words", prefix, ibl, blc.getNLiterals());
+    ptr = blc.getData();
+    for (int i = 0; i < blc.getNLiterals(); i++) {
+      if (i && (i % 20) == 0) {
+        LOG(info) << ss;
+        ss.clear();
+      }
+      ss += fmt::format(" {:#010x}", ptr[i]);
+    }
+    if (!ss.empty()) {
+      LOG(info) << ss;
+      ss.clear();
+    }
+    LOG(info) << "\n";
+  }
 }
 
 } // namespace ctf

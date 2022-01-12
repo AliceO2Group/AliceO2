@@ -31,7 +31,7 @@
 #include "TF1.h"
 #include "TFile.h"
 #include "TGraphErrors.h"
-#include "TOFCalibration/CalibTOFapi.h"
+#include "TOFBase/CalibTOFapi.h"
 
 class TTree;
 
@@ -138,7 +138,7 @@ class CalibTOF
 
   bool mInitDone = false;                                  ///< flag init already done
   bool mFillCCDB = false;                                  ///< flag init already doneto decide whether to fill or not the CCDB
-  std::string mCCDBpath = "http://ccdb-test.cern.ch:8080"; ///< path to CCDB
+  std::string mCCDBpath = "http://alice-ccdb.cern.ch";     ///< path to CCDB
 
   ///========== Parameters to be set externally, e.g. from CCDB ====================
 

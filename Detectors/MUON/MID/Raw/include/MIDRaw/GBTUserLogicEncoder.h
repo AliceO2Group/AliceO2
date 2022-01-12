@@ -20,9 +20,10 @@
 #include <map>
 #include <gsl/gsl>
 #include "CommonDataFormat/InteractionRecord.h"
+#include "DataFormatsMID/ROBoard.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDRaw/ElectronicsDelay.h"
-#include "DataFormatsMID/ROBoard.h"
+#include "MIDRaw/ROBoardResponse.h"
 
 namespace o2
 {
@@ -39,23 +40,22 @@ class GBTUserLogicEncoder
   // Encoder has no data left
   bool isEmpty() { return mBoards.empty(); }
 
-  /// Sets the mask
-  void setMask(uint8_t mask) { mMask = mask; }
-
-  void setGBTUniqueId(uint16_t gbtUniqueId);
+  /// Sets the local board configuration
+  /// \param gbtUniqueId GBT unique ID
+  /// \param configurations Vector of configurations for the local boards in the GBT link
+  void setConfig(uint16_t gbtUniqueId, const std::vector<ROBoardConfig>& configurations);
 
   /// Sets the delay in the electronics
   void setElectronicsDelay(const ElectronicsDelay& electronicsDelay) { mElectronicsDelay = electronicsDelay; }
 
  private:
-  void addRegionalBoards(uint8_t activeBoards, InteractionRecord ir);
   void addShort(std::vector<char>& buffer, uint16_t shortWord) const;
 
   std::map<InteractionRecord, std::vector<ROBoard>> mBoards{}; /// Vector with boards
   uint8_t mCrateId{0};                                         /// Crate ID
   uint8_t mOffset{0};                                          /// GBT ID offset
-  uint8_t mMask{0xFF};                                         /// GBT mask
   ElectronicsDelay mElectronicsDelay;                          /// Delays in the electronics
+  ROBoardResponse mResponse;                                   /// Board response
 };
 } // namespace mid
 } // namespace o2

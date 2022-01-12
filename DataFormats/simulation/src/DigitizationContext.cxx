@@ -11,7 +11,7 @@
 
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "SimulationDataFormat/MCEventHeader.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include <TChain.h>
 #include <TFile.h>
 #include <iostream>
@@ -65,24 +65,24 @@ bool DigitizationContext::initSimChains(o2::detectors::DetID detid, std::vector<
 
   simchains.emplace_back(new TChain("o2sim"));
   // add the main (background) file
-  simchains.back()->AddFile(o2::base::NameConf::getHitsFileName(detid, mSimPrefixes[0].data()).c_str());
+  simchains.back()->AddFile(o2::base::DetectorNameConf::getHitsFileName(detid, mSimPrefixes[0].data()).c_str());
 
   for (int source = 1; source < mSimPrefixes.size(); ++source) {
     simchains.emplace_back(new TChain("o2sim"));
     // add signal files
-    simchains.back()->AddFile(o2::base::NameConf::getHitsFileName(detid, mSimPrefixes[source].data()).c_str());
+    simchains.back()->AddFile(o2::base::DetectorNameConf::getHitsFileName(detid, mSimPrefixes[source].data()).c_str());
   }
 
   // QED part
   if (mEventRecordsWithQED.size() > 0) {
     if (mSimPrefixes.size() >= QEDSOURCEID) {
-      LOG(FATAL) << "Too many signal chains; crashes with QED source ID";
+      LOG(fatal) << "Too many signal chains; crashes with QED source ID";
     }
 
     // it might be better to use an unordered_map for the simchains but this requires interface changes
     simchains.resize(QEDSOURCEID + 1, nullptr);
     simchains[QEDSOURCEID] = new TChain("o2sim");
-    simchains[QEDSOURCEID]->AddFile(o2::base::NameConf::getHitsFileName(detid, mQEDSimPrefix).c_str());
+    simchains[QEDSOURCEID]->AddFile(o2::base::DetectorNameConf::getHitsFileName(detid, mQEDSimPrefix).c_str());
   }
 
   return true;
@@ -162,7 +162,7 @@ bool DigitizationContext::checkVertexCompatibility(bool verbose) const
         for (auto& p : vertices) {
           text << p << " ";
         }
-        LOG(ERROR) << text.str();
+        LOG(error) << text.str();
       }
       consistent &= thiscollision;
     }
@@ -213,7 +213,7 @@ void DigitizationContext::fillQED(std::string_view QEDprefix, std::vector<o2::In
   TFile f(qedKinematicsName.c_str(), "OPEN");
   auto t = (TTree*)f.Get("o2sim");
   if (!t) {
-    LOG(ERROR) << "No QED kinematics found";
+    LOG(error) << "No QED kinematics found";
     throw std::runtime_error("No QED kinematics found");
   }
   auto numberQEDevents = t->GetEntries();

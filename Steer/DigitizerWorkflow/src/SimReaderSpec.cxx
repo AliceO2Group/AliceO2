@@ -69,7 +69,7 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
     // the first 36 channel numbers are reserved for the TPC, now publish the remaining
     // channels
     for (int subchannel = range.min; subchannel < range.max; ++subchannel) {
-      LOG(INFO) << "SENDING SOMETHING TO OTHERS";
+      LOG(info) << "SENDING SOMETHING TO OTHERS";
       pc.outputs().snapshot(
         OutputRef{"collisioncontext", static_cast<SubSpecificationType>(subchannel)},
         context);
@@ -91,9 +91,9 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
     gRandom->SetSeed(0);
 
     if (simprefixes.size() == 0) {
-      LOG(ERROR) << "No simulation prefix available";
+      LOG(error) << "No simulation prefix available";
     } else {
-      LOG(INFO) << "adding " << simprefixes[0] << "\n";
+      LOG(info) << "adding " << simprefixes[0] << "\n";
       mgr.addInputFile(simprefixes[0]);
       for (int part = 1; part < simprefixes.size(); ++part) {
         mgr.addInputSignalFile(simprefixes[part]);
@@ -102,11 +102,11 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
 
     // do we start from an existing context
     auto incontextstring = ctx.options().get<std::string>("incontext");
-    LOG(INFO) << "INCONTEXTSTRING " << incontextstring;
+    LOG(info) << "INCONTEXTSTRING " << incontextstring;
     if (incontextstring.size() > 0) {
       auto success = mgr.setupRunFromExistingContext(incontextstring.c_str());
       if (!success) {
-        LOG(FATAL) << "Could not read collision context from " << incontextstring;
+        LOG(fatal) << "Could not read collision context from " << incontextstring;
       }
     } else {
 
@@ -114,7 +114,7 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
       if (intRate < 1.f) {
         intRate = 1.f;
       }
-      LOG(INFO) << "Imposing hadronic interaction rate " << intRate << "Hz";
+      LOG(info) << "Imposing hadronic interaction rate " << intRate << "Hz";
       mgr.getInteractionSampler().setInteractionRate(intRate);
       o2::raw::HBFUtils::Instance().print();
       o2::raw::HBFUtils::Instance().checkConsistency();
@@ -162,19 +162,19 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
         }
         const float hadronicrate = ctx.options().get<float>("interactionRate");
         const float qedrate = ratio * hadronicrate;
-        LOG(INFO) << "QED RATE " << qedrate;
+        LOG(info) << "QED RATE " << qedrate;
         qedInteractionSampler.setInteractionRate(qedrate);
         qedInteractionSampler.setFirstIR(first);
         qedInteractionSampler.init();
         qedInteractionSampler.print();
         std::vector<o2::InteractionTimeRecord> qedinteractionrecords;
         o2::InteractionTimeRecord t;
-        LOG(INFO) << "GENERATING COL TIMES";
+        LOG(info) << "GENERATING COL TIMES";
         t = qedInteractionSampler.generateCollisionTime();
         while ((t = qedInteractionSampler.generateCollisionTime()) < last) {
           qedinteractionrecords.push_back(t);
         }
-        LOG(INFO) << "DONE GENERATING COL TIMES";
+        LOG(info) << "DONE GENERATING COL TIMES";
 
         // get digitization context and add QED stuff
         mgr.getDigitizationContext().fillQED(qedprefix, qedinteractionrecords);
@@ -182,8 +182,8 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
       }
       // --- end addition of QED contributions
 
-      LOG(INFO) << "Initializing Spec ... have " << mgr.getDigitizationContext().getEventRecords().size() << " times ";
-      LOG(INFO) << "Serializing Context for later reuse";
+      LOG(info) << "Initializing Spec ... have " << mgr.getDigitizationContext().getEventRecords().size() << " times ";
+      LOG(info) << "Serializing Context for later reuse";
       mgr.writeDigitizationContext(ctx.options().get<std::string>("outcontext").c_str());
     }
 

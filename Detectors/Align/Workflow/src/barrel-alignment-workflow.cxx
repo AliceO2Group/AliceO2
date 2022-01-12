@@ -28,12 +28,18 @@
 
 #include "Algorithm/RangeTokenizer.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "Framework/CallbacksPolicy.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
 using GID = o2::dataformats::GlobalTrackID;
 // ------------------------------------------------------------------
+
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
@@ -45,9 +51,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
     {"detectors", VariantType::String, std::string{"ITS,TPC,TRD,TOF"}, {"comma-separated list of detectors"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
-
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
-
   std::swap(workflowOptions, options);
 }
 

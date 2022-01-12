@@ -159,6 +159,10 @@ class CalibRawBase
   /// set external digits
   void setDigits(std::array<std::vector<Digit>, Sector::MAXSECTOR>* digits) { mExternalDigits = digits; }
 
+  virtual void resetEvent() = 0;
+  virtual void endEvent() = 0;
+  virtual void endReader(){};
+
  protected:
   const Mapper& mMapper; //!< TPC mapper
   int mDebugLevel;       //!< debug level
@@ -177,10 +181,6 @@ class CalibRawBase
 
   std::unique_ptr<TChain> mDigitTree{};                                        //!< Chain of digit inputs
   std::array<std::vector<Digit>, Sector::MAXSECTOR>* mExternalDigits{nullptr}; //!< TPC digits
-
-  virtual void resetEvent() = 0;
-  virtual void endEvent() = 0;
-  virtual void endReader(){};
 
   /// call filling function using digits
   template <typename T>
@@ -292,7 +292,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventGBT()
           }
 
           // modify row depending on the calibration type used
-          const int timeBin = i; //digi.getTimeStamp();
+          const int timeBin = i; // digi.getTimeStamp();
           const float signal = digi.getChargeFloat();
 
           updateCRU(cru, row, pad, timeBin, signal);
@@ -399,8 +399,8 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReader(int event
 
         // modify row depending on the calibration type used
         const float signal = float(signalI);
-        //const FECInfo& fecInfo = mTPCmapper.getFECInfo(PadSecPos(roc, row, pad));
-        //printf("Call update: %d, %d, %d, %d (%d), %.3f -- reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", roc, row, pad, timeBin, i, signal, cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
+        // const FECInfo& fecInfo = mTPCmapper.getFECInfo(PadSecPos(roc, row, pad));
+        // printf("Call update: %d, %d, %d, %d (%d), %.3f -- reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", roc, row, pad, timeBin, i, signal, cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
         updateCRU(cru, row, pad, timeBin, signal);
         updateROC(roc, row + rowOffset, pad, timeBin, signal);
         ++timeBin;
@@ -485,9 +485,9 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int ev
     }
   }
 
-  LOG(INFO) << "Present event number : " << mPresentEventNumber << (skipEvent ? " (skipped, incomplete)" : "");
-  LOG(INFO) << "Last event           : " << lastEvent;
-  LOG(INFO) << "Status               : " << int(status);
+  LOG(info) << "Present event number : " << mPresentEventNumber << (skipEvent ? " (skipped, incomplete)" : "");
+  LOG(info) << "Last event           : " << lastEvent;
+  LOG(info) << "Status               : " << int(status);
 
   return status;
 }
@@ -523,7 +523,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventDigitTree(int event
       mPresentEventNumber = numberOfEvents - 1;
     }
   }
-  LOG(INFO) << "Processing event number " << mPresentEventNumber << " (" << mNevents << ")";
+  LOG(info) << "Processing event number " << mPresentEventNumber << " (" << mNevents << ")";
 
   // set up branches
   static std::array<std::vector<Digit>*, Sector::MAXSECTOR> digits{};
@@ -533,12 +533,18 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventDigitTree(int event
     }
   }
 
+  for (auto vec : digits) {
+    if (vec) {
+      vec->clear();
+    }
+  }
+
   // loop over digits for selected event
   mDigitTree->GetEntry(mPresentEventNumber);
 
   const bool hasData = fillFromDigits(digits);
 
-  LOG(INFO) << "Found time bins: " << mProcessedTimeBins << "\n";
+  LOG(info) << "Found time bins: " << mProcessedTimeBins << "\n";
   // set status, don't overwrite decision
   if (!hasData) {
     return ProcessStatus::NoMoreData;
@@ -550,9 +556,9 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventDigitTree(int event
   endReader();
   ++mNevents;
 
-  LOG(INFO) << "Present event number : " << mPresentEventNumber;
-  LOG(INFO) << "Last event           : " << lastEvent;
-  LOG(INFO) << "Status               : " << int(status);
+  LOG(info) << "Present event number : " << mPresentEventNumber;
+  LOG(info) << "Last event           : " << lastEvent;
+  LOG(info) << "Status               : " << int(status);
 
   return status;
 }
@@ -568,7 +574,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processExternalDigits()
 
   const bool hasData = fillFromDigits(*mExternalDigits);
 
-  LOG(INFO) << "Found time bins: " << mProcessedTimeBins << "\n";
+  LOG(info) << "Found time bins: " << mProcessedTimeBins << "\n";
   // set status, don't overwrite decision
   if (!hasData) {
     return ProcessStatus::NoMoreData;
@@ -584,7 +590,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processExternalDigits()
 //______________________________________________________________________________
 inline Int_t CalibRawBase::update(const PadROCPos& padROCPos, const CRU& cru, const gsl::span<const uint32_t> data)
 {
-  //LOG(INFO) << "  Found ADC values: " << data.size();
+  // LOG(info) << "  Found ADC values: " << data.size();
   const int row = padROCPos.getRow();
   const int pad = padROCPos.getPad();
   if (row == 255 || pad == 255) {
@@ -612,15 +618,15 @@ inline Int_t CalibRawBase::update(const PadROCPos& padROCPos, const CRU& cru, co
     }
   }
 
-  //const FECInfo& fecInfo = mMapper.getFECInfo(padROCPos);
+  // const FECInfo& fecInfo = mMapper.getFECInfo(padROCPos);
   const int roc = padROCPos.getROC();
   int timeBin = 0;
-  //for (const auto& signalI : data) {
-  //for the moment data of all 16 channels are passed, starting with the present channel
+  // for (const auto& signalI : data) {
+  // for the moment data of all 16 channels are passed, starting with the present channel
   for (int i = 0; i < data.size(); i += 16) {
     const float signal = float(data[i]);
-    //printf("Call update: %d, %d (%d), %d, %d, %.3f -- cru: %03d, reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", roc, row, rowOffset, pad, timeBin, signal, cru.number(), cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
-    // TODO: To be implemented
+    // printf("Call update: %d, %d (%d), %d, %d, %.3f -- cru: %03d, reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", roc, row, rowOffset, pad, timeBin, signal, cru.number(), cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
+    //  TODO: To be implemented
     updateCRU(cru, rowInRegion, pad, timeBin, signal);
     updateROC(roc, row + rowOffset, pad, timeBin, signal);
     ++timeBin;
@@ -678,8 +684,8 @@ bool CalibRawBase::fillFromDigits(std::array<T, Sector::MAXSECTOR>& digits)
 
       // modify row depending on the calibration type used
       const float signal = digit.getChargeFloat();
-      //const FECInfo& fecInfo = mMapper.getFECInfo(PadROCPos(roc, row, pad));
-      //printf("Call update: %d, %d (%d), %d, %d, %.3f -- cru: %03d, reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", roc, row, rowOffset, pad, timeBin, signal, cru.number(), cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
+      // const FECInfo& fecInfo = mMapper.getFECInfo(PadROCPos(roc, row, pad));
+      // printf("Call update: %d, %d (%d), %d, %d, %.3f -- cru: %03d, reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", roc, row, rowOffset, pad, timeBin, signal, cru.number(), cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
       updateCRU(cru, row, pad, timeBin, signal);
       updateROC(roc, row + rowOffset, pad, timeBin, signal);
       hasData = true;

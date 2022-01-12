@@ -76,7 +76,6 @@ struct GPUReconstructionPipelineContext {
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-constexpr const char* const GPUReconstruction::DEVICE_TYPE_NAMES[];
 constexpr const char* const GPUReconstruction::GEOMETRY_TYPE_NAMES[];
 constexpr const char* const GPUReconstruction::IOTYPENAMES[];
 constexpr GPUReconstruction::GeometryType GPUReconstruction::geometryType;
@@ -1037,9 +1036,7 @@ void GPUReconstruction::SetSettings(float solenoidBz, const GPURecoStepConfigura
 #ifdef GPUCA_O2_LIB
   GPUO2InterfaceConfiguration config;
   config.ReadConfigurableParam_internal();
-  if (config.configGRP.solenoidBz <= -1e6f) {
-    config.configGRP.solenoidBz = solenoidBz;
-  }
+  config.configGRP.solenoidBz = solenoidBz;
   SetSettings(&config.configGRP, &config.configReconstruction, &config.configProcessing, workflow);
 #else
   GPUSettingsGRP grp;
@@ -1123,15 +1120,15 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const GPUSettingsDeviceBack
 
   if (retVal == nullptr) {
     if (cfg.forceDeviceType) {
-      GPUError("Error: Could not load GPUReconstruction for specified device: %s (%u)", DEVICE_TYPE_NAMES[type], type);
+      GPUError("Error: Could not load GPUReconstruction for specified device: %s (%u)", GPUDataTypes::DEVICE_TYPE_NAMES[type], type);
     } else {
-      GPUError("Could not load GPUReconstruction for device type %s (%u), falling back to CPU version", DEVICE_TYPE_NAMES[type], type);
+      GPUError("Could not load GPUReconstruction for device type %s (%u), falling back to CPU version", GPUDataTypes::DEVICE_TYPE_NAMES[type], type);
       GPUSettingsDeviceBackend cfg2 = cfg;
       cfg2.deviceType = DeviceType::CPU;
       retVal = CreateInstance(cfg2);
     }
   } else {
-    GPUInfo("Created GPUReconstruction instance for device type %s (%u) %s", DEVICE_TYPE_NAMES[type], type, cfg.master ? " (slave)" : "");
+    GPUInfo("Created GPUReconstruction instance for device type %s (%u) %s", GPUDataTypes::DEVICE_TYPE_NAMES[type], type, cfg.master ? " (slave)" : "");
   }
 
   return retVal;
@@ -1139,22 +1136,12 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const GPUSettingsDeviceBack
 
 GPUReconstruction* GPUReconstruction::CreateInstance(const char* type, bool forceType, GPUReconstruction* master)
 {
-  DeviceType t = GetDeviceType(type);
+  DeviceType t = GPUDataTypes::GetDeviceType(type);
   if (t == DeviceType::INVALID_DEVICE) {
     GPUError("Invalid device type: %s", type);
     return nullptr;
   }
   return CreateInstance(t, forceType, master);
-}
-
-GPUReconstruction::DeviceType GPUReconstruction::GetDeviceType(const char* type)
-{
-  for (unsigned int i = 1; i < sizeof(DEVICE_TYPE_NAMES) / sizeof(DEVICE_TYPE_NAMES[0]); i++) {
-    if (strcmp(DEVICE_TYPE_NAMES[i], type) == 0) {
-      return (DeviceType)i;
-    }
-  }
-  return DeviceType::INVALID_DEVICE;
 }
 
 #ifdef _WIN32

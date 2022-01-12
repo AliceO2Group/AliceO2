@@ -27,6 +27,7 @@
 #include <iomanip> // std::setfill, std::setw - for stream formating
 #include <Framework/Logger.h>
 #include "FV0Base/Constants.h"
+#include "CommonUtils/NameConf.h"
 
 namespace o2
 {
@@ -59,7 +60,7 @@ class LookUpTable
       mInvTopo(mTopoVector.size(), 0)
   {
     if (fillLinearly) {
-      LOG(INFO) << "Mapping of global channel and (PM, PM channel) pair";
+      LOG(info) << "Mapping of global channel and (PM, PM channel) pair";
       for (int link = 0; link < Constants::nPms; ++link) {
         for (int ch = 0; ch < Constants::nChannelsPerPm; ++ch) {
           mTopoVector[link * Constants::nChannelsPerPm + ch] = o2::fv0::Topo{link, ch};
@@ -67,7 +68,7 @@ class LookUpTable
       }
     } else {
       // TODO: If needed: implement more realistic splitting: 1 ring -> 1 PM instead of linear
-      LOG(WARNING) << "Don't use it - not implemented yet.";
+      LOG(warning) << "Don't use it - not implemented yet.";
     }
 
     // Fill inverted LUT - matters only if LUT is not linear
@@ -86,13 +87,13 @@ class LookUpTable
   std::size_t getNchannels() const { return mTopoVector.size(); } //get number of global PM channels
   void printFullMap() const
   {
-    LOG(INFO) << "o2::fv0::LookUpTable::printFullMap(): mTopoVector: [globalCh  link  pmCh]";
+    LOG(info) << "o2::fv0::LookUpTable::printFullMap(): mTopoVector: [globalCh  link  pmCh]";
     for (size_t channel = 0; channel < mTopoVector.size(); ++channel) {
-      LOG(INFO) << channel << "  " << mTopoVector[channel].pmLink << "  " << mTopoVector[channel].pmCh;
+      LOG(info) << channel << "  " << mTopoVector[channel].pmLink << "  " << mTopoVector[channel].pmCh;
     }
-    LOG(INFO) << "o2::fv0::LookUpTable::printFullMap(): mInvTopo: [idx  globalCh    link  pmCh]";
+    LOG(info) << "o2::fv0::LookUpTable::printFullMap(): mInvTopo: [idx  globalCh    link  pmCh]";
     for (size_t idx = 0; idx < mInvTopo.size(); ++idx) {
-      LOG(INFO) << idx << "  " << mInvTopo[idx] << "    " << getLinkFromIdx(mInvTopo[idx]) << "  " << getPmChannelFromIdx(mInvTopo[idx]);
+      LOG(info) << idx << "  " << mInvTopo[idx] << "    " << getLinkFromIdx(mInvTopo[idx]) << "  " << getPmChannelFromIdx(mInvTopo[idx]);
     }
   }
 
@@ -187,7 +188,7 @@ class SingleLUT : public LookUpTable
           RDHhelper::setCRUID(&rdhObj, cruID);
         }
       } else {
-        LOG(INFO) << "WARNING! CHECK LUT! TCM METADATA IS INCORRECT!";
+        LOG(info) << "WARNING! CHECK LUT! TCM METADATA IS INCORRECT!";
       }
     }
     assert(mapResult.size() > 0);
@@ -210,15 +211,17 @@ class SingleLUT : public LUT
 
  public:
   static constexpr char sDetectorName[] = "FV0";
-  static constexpr char sDefaultCCDBpath[] = "http://ccdb-test.cern.ch:8080/";
-  static constexpr char sDefaultLUTpath[] = "FV0/LookUpTable";
-  inline static std::string sCurrentCCDBpath = sDefaultCCDBpath;
+  static constexpr char sDefaultLUTpath[] = "FV0/Config/LookupTable";
+  inline static std::string sCurrentCCDBpath = "";
   inline static std::string sCurrentLUTpath = sDefaultLUTpath;
   //Before instance() call, setup url and path
   static void setCCDBurl(const std::string& url) { sCurrentCCDBpath = url; }
   static void setLUTpath(const std::string& path) { sCurrentLUTpath = path; }
   static SingleLUT& Instance()
   {
+    if (sCurrentCCDBpath == "") {
+      sCurrentCCDBpath = o2::base::NameConf::getCCDBServer();
+    }
     static SingleLUT instanceLUT(sCurrentCCDBpath, sCurrentLUTpath);
     return instanceLUT;
   }

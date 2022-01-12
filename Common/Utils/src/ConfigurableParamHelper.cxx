@@ -84,18 +84,18 @@ void loopOverMembers(TClass* cl, void* obj,
     }
 
     if (dm->IsaPointer()) {
-      LOG(WARNING) << "Pointer types not supported in ConfigurableParams: " << dm->GetFullTypeName() << " " << dm->GetName();
+      LOG(warning) << "Pointer types not supported in ConfigurableParams: " << dm->GetFullTypeName() << " " << dm->GetName();
       continue;
     }
     if (!dm->IsBasic() && !isValidComplex()) {
-      LOG(WARNING) << "Generic complex types not supported in ConfigurableParams: " << dm->GetFullTypeName() << " " << dm->GetName();
+      LOG(warning) << "Generic complex types not supported in ConfigurableParams: " << dm->GetFullTypeName() << " " << dm->GetName();
       continue;
     }
 
     const auto dim = dm->GetArrayDim();
     // we support very simple vectored data in 1D for now
     if (dim > 1) {
-      LOG(WARNING) << "We support at most 1 dimensional arrays in ConfigurableParams: " << dm->GetFullTypeName() << " " << dm->GetName();
+      LOG(warning) << "We support at most 1 dimensional arrays in ConfigurableParams: " << dm->GetFullTypeName() << " " << dm->GetName();
       continue;
     }
 
@@ -132,7 +132,7 @@ size_t getSizeOfUnderlyingType(const TDataMember& dm)
     if (strcmp(tname, "string") == 0 || strcmp(tname, "std::string")) {
       return sizeof(std::string);
     }
-    LOG(ERROR) << "ENCOUNTERED AN UNSUPPORTED TYPE " << tname << "IN A CONFIGURABLE PARAMETER";
+    LOG(error) << "ENCOUNTERED AN UNSUPPORTED TYPE " << tname << "IN A CONFIGURABLE PARAMETER";
   }
   return 0;
 }
@@ -182,7 +182,7 @@ std::string asString(TDataMember const& dm, char* pointer)
   }
   // potentially other cases to be added here
 
-  LOG(ERROR) << "COULD NOT REPRESENT AS STRING";
+  LOG(error) << "COULD NOT REPRESENT AS STRING";
   return nullptr;
 }
 
@@ -273,7 +273,7 @@ std::type_info const& nameToTypeInfo(const char* tname, TDataType const* dt)
   if (strcmp(tname, "string") == 0 || strcmp(tname, "std::string")) {
     return typeid(std::string);
   }
-  LOG(ERROR) << "ENCOUNTERED AN UNSUPPORTED TYPE " << tname << "IN A CONFIGURABLE PARAMETER";
+  LOG(error) << "ENCOUNTERED AN UNSUPPORTED TYPE " << tname << "IN A CONFIGURABLE PARAMETER";
   return typeid("ERROR");
 }
 
@@ -357,7 +357,7 @@ void _ParamHelper::assignmentImpl(std::string const& mainkey, TClass* cl, void* 
       if (iter != provmap->end()) {
         iter->second = ConfigurableParam::EParamProvenance::kCCDB; // TODO: change to "current STATE"??
       } else {
-        LOG(WARN) << "KEY " << key << " NOT FOUND WHILE UPDATING PARAMETER PROVENANCE";
+        LOG(warn) << "KEY " << key << " NOT FOUND WHILE UPDATING PARAMETER PROVENANCE";
       }
     };
 
@@ -434,6 +434,6 @@ void _ParamHelper::syncCCDBandRegistry(const std::string& mainkey, TClass* cl, v
 
 void _ParamHelper::printWarning(std::type_info const& tinfo)
 {
-  LOG(WARNING) << "Registered parameter class with name " << tinfo.name()
+  LOG(warning) << "Registered parameter class with name " << tinfo.name()
                << " has no ROOT dictionary and will not be available in the configurable parameter system";
 }

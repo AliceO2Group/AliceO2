@@ -85,6 +85,7 @@ class Strip
   void fillOutputContainer(std::vector<o2::tof::Digit>& digits);
 
   static int mDigitMerged;
+  std::map<ULong64_t, o2::tof::Digit>& getDigitMap() { return mDigits; }
 
  protected:
   Int_t mStripIndex = -1;                      ///< Strip ID

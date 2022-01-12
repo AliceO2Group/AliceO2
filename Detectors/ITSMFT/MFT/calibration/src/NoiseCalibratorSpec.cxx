@@ -39,7 +39,7 @@ NoiseCalibratorSpec::NoiseCalibratorSpec(bool useDigits)
 void NoiseCalibratorSpec::init(InitContext& ic)
 {
   auto probT = ic.options().get<float>("prob-threshold");
-  LOG(INFO) << "Setting the probability threshold to " << probT;
+  LOG(info) << "Setting the probability threshold to " << probT;
 
   mPath = ic.options().get<std::string>("path");
   mMeta = ic.options().get<std::string>("meta");
@@ -57,7 +57,7 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
     const auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("digitsROF").header)->startTime;
 
     if (mCalibrator->processTimeFrame(tfcounter, digits, rofs)) {
-      LOG(INFO) << "Minimum number of noise counts has been reached !";
+      LOG(info) << "Minimum number of noise counts has been reached !";
       sendOutput(pc.outputs());
       pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
     }
@@ -68,7 +68,7 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
     const auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("ROframes").header)->startTime;
 
     if (mCalibrator->processTimeFrame(tfcounter, compClusters, patterns, rofs)) {
-      LOG(INFO) << "Minimum number of noise counts has been reached !";
+      LOG(info) << "Minimum number of noise counts has been reached !";
       sendOutput(pc.outputs());
       pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
     }
@@ -94,7 +94,7 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
     for (auto& token : tokens) {
       auto keyval = Str::tokenize(token, '=', false);
       if (keyval.size() != 2) {
-        LOG(ERROR) << "Illegal command-line key/value string: " << token;
+        LOG(error) << "Illegal command-line key/value string: " << token;
         continue;
       }
       Str::trim(keyval[1]);
@@ -112,7 +112,7 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
   auto flName = o2::ccdb::CcdbApi::generateFileName("noise");
   auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
   info.setFileName(flName);
-  LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName()
+  LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
             << " of size " << image->size()
             << " bytes, valid for " << info.getStartValidityTimestamp()
             << " : " << info.getEndValidityTimestamp();
@@ -142,8 +142,8 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useDigits)
 
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "MFT_NoiseMap"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "MFT_NoiseMap"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "MFT_NoiseMap"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "MFT_NoiseMap"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "mft-noise-calibrator",

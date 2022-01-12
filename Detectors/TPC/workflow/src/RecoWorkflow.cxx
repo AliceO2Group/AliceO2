@@ -67,6 +67,7 @@ template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 
 const std::unordered_map<std::string, InputType> InputMap{
+  {"pass-through", InputType::PassThrough},
   {"digitizer", InputType::Digitizer},
   {"digits", InputType::Digits},
   {"clustershardware", InputType::ClustersHardware},
@@ -121,7 +122,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     zsOnTheFly = false;
     propagateMC = false;
   }
-  if (inputType == InputType::ClustersHardware || inputType == InputType::Clusters) {
+  if (inputType == InputType::PassThrough || inputType == InputType::ClustersHardware || inputType == InputType::Clusters) {
     caClusterer = false;
   }
   if (!caClusterer) {
@@ -154,14 +155,14 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
       auto storedlabels = reinterpret_cast<o2::dataformats::IOMCTruthContainerView const*>(data);
       o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel> flatlabels;
       storedlabels->copyandflatten(flatlabels);
-      //LOG(INFO) << "PUBLISHING CONST LABELS " << flatlabels.getNElements();
+      //LOG(info) << "PUBLISHING CONST LABELS " << flatlabels.getNElements();
       context.outputs().snapshot(output, flatlabels);
       return true;
     }
     return false;
   }};
 
-  if (!disableRootInput) {
+  if (!disableRootInput || inputType == InputType::PassThrough) {
     // The OutputSpec of the PublisherSpec is configured depending on the input
     // type. Note that the configuration of the dispatch trigger in the main file
     // needs to be done in accordance. This means, if a new input option is added
@@ -235,6 +236,10 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   bool outRaw = inputType == InputType::Digits && isEnabled(OutputType::ZSRaw) && !isEnabled(OutputType::DisableWriter);
   //bool runZSDecode = inputType == InputType::ZSRaw;
   bool zsToDigit = inputType == InputType::ZSRaw && isEnabled(OutputType::Digits);
+
+  if (inputType == InputType::PassThrough) {
+    runTracker = runHWDecoder = runClusterer = runClusterEncoder = zsToDigit = false;
+  }
 
   WorkflowSpec parallelProcessors;
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -398,7 +403,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
                                    BranchDefinition<std::vector<char>>{InputSpec{"mc", ConcreteDataTypeMatcher{"TPC", "CLNATIVEMCLBL"}},
                                                                        "TPCClusterNativeMCTruth",
                                                                        "mcbranch", fillLabels},
-                                   (caClusterer || decompressTPC) && !isEnabled(OutputType::SendClustersPerSector)));
+                                   (caClusterer || decompressTPC || inputType == InputType::PassThrough) && !isEnabled(OutputType::SendClustersPerSector)));
   }
 
   if (zsOnTheFly) {
@@ -462,7 +467,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     // a spectator callback which will be invoked by the tree writer with the extracted object
     // we are using it for printing a log message
     auto logger = BranchDefinition<TrackOutputType>::Spectator([](TrackOutputType const& tracks) {
-      LOG(INFO) << "writing " << tracks.size() << " track(s)";
+      LOG(info) << "writing " << tracks.size() << " track(s)";
     });
     auto tracksdef = BranchDefinition<TrackOutputType>{InputSpec{"inputTracks", "TPC", "TRACKS", 0},           //
                                                        "TPCTracks", "track-branch-name",                       //

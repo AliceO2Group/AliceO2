@@ -47,7 +47,7 @@ int convertElec2Det(uint16_t solarId, uint8_t groupId, uint8_t indexId)
     auto elec2det = createElec2DetMapper<ELECMAP>();
     auto dsDetId = elec2det(dsElecId);
     if (!dsDetId.has_value()) {
-      std::cout << asString(dsElecId) << " is not (yet?) known to the electronic mapper\n";
+      std::cout << asString(dsElecId) << " is not known to the electronic mapper\n";
       return 3;
     }
     return dump<ELECMAP>(dsElecId, dsDetId.value());
@@ -65,7 +65,7 @@ int convertDet2Elec(int deId, int dsId)
     auto det2elec = createDet2ElecMapper<ELECMAP>();
     auto dsElecId = det2elec(dsDetId);
     if (!dsElecId.has_value()) {
-      std::cout << asString(dsDetId) << " is not (yet?) known to the electronic mapper\n";
+      std::cout << asString(dsDetId) << " is not known to the electronic mapper\n";
       return 3;
     }
     return dump<ELECMAP>(dsElecId.value(), dsDetId);

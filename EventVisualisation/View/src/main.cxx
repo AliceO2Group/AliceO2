@@ -17,8 +17,6 @@
 
 #include "EventVisualisationView/Initializer.h"
 #include "EventVisualisationBase/ConfigurationManager.h"
-
-#include "EventVisualisationBase/DataInterpreter.h"
 #include "EventVisualisationView/Options.h"
 
 #include "FairLogger.h"
@@ -35,7 +33,7 @@ using namespace o2::event_visualisation;
 
 int main(int argc, char** argv)
 {
-  LOG(INFO) << "Welcome in O2 event visualisation tool";
+  LOG(info) << "Welcome in O2 event visualisation tool (v1.02)";
 
   if (!Options::Instance()->processCommandLine(argc, argv)) {
     exit(-1);
@@ -56,11 +54,12 @@ int main(int argc, char** argv)
 
   // create ROOT application environment
   TApplication* app = new TApplication("o2eve", &argc, argv);
-  app->Connect("TEveBrowser", "CloseWindow()", "TApplication", app, "Terminate()");
+  gApplication = app;
+  //app->Connect("TEveBrowser", "CloseWindow()", "TApplication", app, "Terminate()");
 
-  LOG(INFO) << "Initializing TEveManager";
+  LOG(info) << "Initializing TEveManager";
   if (!TEveManager::Create(kTRUE, "FI")) {
-    LOG(FATAL) << "Could not create TEveManager!!";
+    LOG(fatal) << "Could not create TEveManager!!";
     exit(0);
   }
 
@@ -72,11 +71,10 @@ int main(int argc, char** argv)
   // Start the application
   app->Run(kTRUE);
 
-  //DataInterpreter::removeInstances();
   // Terminate application
   TEveManager::Terminate();
   app->Terminate(0);
 
-  LOG(INFO) << "O2 event visualisation tool terminated properly";
+  LOG(info) << "O2 event visualisation tool terminated properly";
   return 0;
 }

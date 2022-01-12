@@ -52,7 +52,7 @@ void MatLayerCylSet::addLayer(float rmin, float rmax, float zmax, float dz, floa
   for (int il = 0; il < nlr; il++) {
     const auto& lr = getLayer(il);
     if (lr.getRMax() > rmin && rmax > lr.getRMin()) {
-      LOG(FATAL) << "new layer overlaps with layer " << il;
+      LOG(fatal) << "new layer overlaps with layer " << il;
     }
   }
   auto* oldLayers = o2::gpu::resizeArray(get()->mLayers, nlr, nlr + 1);
@@ -78,11 +78,11 @@ void MatLayerCylSet::populateFromTGeo(int ntrPerCell)
 
   int nlr = getNLayers();
   if (!nlr) {
-    LOG(ERROR) << "The LUT is not yet initialized";
+    LOG(error) << "The LUT is not yet initialized";
     return;
   }
   if (get()->mR2Intervals) {
-    LOG(ERROR) << "The LUT is already populated";
+    LOG(error) << "The LUT is already populated";
     return;
   }
   for (int i = 0; i < nlr; i++) {
@@ -116,7 +116,7 @@ void MatLayerCylSet::populateFromTGeo(int ntrPerCell)
 }
 
 //________________________________________________________________________________
-void MatLayerCylSet::dumpToTree(const std::string outName) const
+void MatLayerCylSet::dumpToTree(const std::string& outName) const
 {
   /// dump per cell info to the tree
 
@@ -157,7 +157,7 @@ void MatLayerCylSet::dumpToTree(const std::string outName) const
 }
 
 //________________________________________________________________________________
-void MatLayerCylSet::writeToFile(std::string outFName, std::string name)
+void MatLayerCylSet::writeToFile(const std::string& outFName)
 {
   /// store to file
 
@@ -165,30 +165,34 @@ void MatLayerCylSet::writeToFile(std::string outFName, std::string name)
   if (outf.IsZombie()) {
     return;
   }
-  if (name.empty()) {
-    name = "matBud";
-  }
-  outf.WriteObjectAny(this, Class(), name.data());
+  outf.WriteObjectAny(this, Class(), "ccdb_object");
   outf.Close();
 }
 
 //________________________________________________________________________________
-MatLayerCylSet* MatLayerCylSet::loadFromFile(std::string inpFName, std::string name)
+MatLayerCylSet* MatLayerCylSet::loadFromFile(const std::string& inpFName)
 {
-  if (name.empty()) {
-    name = "MatBud";
-  }
   TFile inpf(inpFName.data());
   if (inpf.IsZombie()) {
-    LOG(ERROR) << "Failed to open input file " << inpFName;
+    LOG(error) << "Failed to open input file " << inpFName;
     return nullptr;
   }
-  MatLayerCylSet* mb = reinterpret_cast<MatLayerCylSet*>(inpf.GetObjectChecked(name.data(), Class()));
-  if (!mb) {
-    LOG(ERROR) << "Failed to load " << name << " from " << inpFName;
+  MatLayerCylSet* mb = reinterpret_cast<MatLayerCylSet*>(inpf.GetObjectChecked("ccdb_object", Class()));
+  if (!mb && !(mb = reinterpret_cast<MatLayerCylSet*>(inpf.GetObjectChecked("MatBud", Class())))) { // for old objects
+    LOG(error) << "Failed to load mat.LUT from " << inpFName;
+    return nullptr;
   }
-  mb->fixPointers();
-  return mb;
+  return rectifyPtrFromFile(mb);
+}
+
+//________________________________________________________________________________
+MatLayerCylSet* MatLayerCylSet::rectifyPtrFromFile(MatLayerCylSet* ptr)
+{
+  // rectify object loaded from file
+  if (ptr && !ptr->get()) {
+    ptr->fixPointers();
+  }
+  return ptr;
 }
 
 //________________________________________________________________________________
@@ -211,7 +215,7 @@ void MatLayerCylSet::print(bool data) const
     return;
   }
   if (mConstructionMask != Constructed) {
-    LOG(WARNING) << "Object is not yet flattened";
+    LOG(warning) << "Object is not yet flattened";
   }
   for (int i = 0; i < getNLayers(); i++) {
     printf("#%3d | ", i);

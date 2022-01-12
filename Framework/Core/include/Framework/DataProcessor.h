@@ -22,15 +22,15 @@ class ArrowContext;
 class RawBufferContext;
 class ServiceRegistry;
 class DeviceState;
+class DataSender;
 
 /// Helper class to send messages from a contex at the end
 /// of a computation.
 struct DataProcessor {
-  static void doSend(FairMQDevice&, MessageContext&, ServiceRegistry&);
-  static void doSend(FairMQDevice&, StringContext&, ServiceRegistry&);
-  static void doSend(FairMQDevice&, ArrowContext&, ServiceRegistry&);
-  static void doSend(FairMQDevice&, RawBufferContext&, ServiceRegistry&);
-  static void doSend(FairMQDevice&, FairMQParts&&, const char*, unsigned int);
+  static void doSend(DataSender&, MessageContext&, ServiceRegistry&);
+  static void doSend(DataSender&, StringContext&, ServiceRegistry&);
+  static void doSend(DataSender&, ArrowContext&, ServiceRegistry&);
+  static void doSend(DataSender&, RawBufferContext&, ServiceRegistry&);
 };
 
 } // namespace o2::framework

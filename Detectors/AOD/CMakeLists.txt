@@ -9,10 +9,11 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_library(
+add_library(AODProducerWorkflow INTERFACE)
+
+target_link_libraries(
         AODProducerWorkflow
-        SOURCES src/AODProducerWorkflowSpec.cxx
-        PUBLIC_LINK_LIBRARIES
+        INTERFACE
           O2::DetectorsVertexing
           O2::FT0Workflow
           O2::FDDWorkflow
@@ -29,33 +30,41 @@ o2_add_library(
           O2::SimulationDataFormat
           O2::Steer
           O2::TPCWorkflow
+          O2::ZDCBase
 )
+
+target_include_directories(AODProducerWorkflow INTERFACE include)
+
+add_library(internal::AODProducerWorkflow ALIAS AODProducerWorkflow)
+
 o2_add_executable(
   workflow
   COMPONENT_NAME aod-producer
-  SOURCES src/aod-producer-workflow.cxx
-  PUBLIC_LINK_LIBRARIES O2::AODProducerWorkflow
+  SOURCES src/aod-producer-workflow.cxx src/AODProducerWorkflowSpec.cxx
+  PUBLIC_LINK_LIBRARIES internal::AODProducerWorkflow O2::Version
 )
+
 o2_add_executable(
         standalone-aod-producer
         COMPONENT_NAME reco
         SOURCES src/StandaloneAODProducer.cxx
         PUBLIC_LINK_LIBRARIES
-          O2::DataFormatsTPC
-          O2::DataFormatsITSMFT
-          O2::DataFormatsITS
-          O2::DataFormatsFT0
-          O2::DataFormatsFDD
-          O2::DataFormatsFV0
-          O2::DataFormatsTOF
-          O2::ITSReconstruction
-          O2::FT0Reconstruction
-          O2::TPCFastTransformation
-          O2::TPCBase
-          O2::TPCReconstruction
-          O2::TOFBase
-          O2::TOFCalibration
-          O2::SimConfig
-          O2::DataFormatsFT0
-          O2::Steer
+        O2::DataFormatsTPC
+        O2::DataFormatsITSMFT
+        O2::DataFormatsITS
+        O2::DataFormatsFT0
+        O2::DataFormatsFDD
+        O2::DataFormatsFV0
+        O2::DataFormatsTOF
+        O2::ITSReconstruction
+        O2::FT0Reconstruction
+        O2::TPCFastTransformation
+        O2::TPCBase
+        O2::TPCReconstruction
+        O2::TOFBase
+        O2::TOFCalibration
+        O2::SimConfig
+        O2::DataFormatsFT0
+        O2::Steer
+        O2::ZDCBase
 )

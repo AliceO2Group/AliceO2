@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(FEEBoardToDE)
       }
       bool exceptionReceived = false;
       try {
-        crateMapper.roLocalBoardToDE(icrate, iboard);
+        crateMapper.roLocalBoardToDE(o2::mid::raw::makeUniqueLocID(icrate, iboard));
       } catch (std::runtime_error except) {
         exceptionReceived = true;
       }
@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(Consistency)
       for (int iline = mapping.getFirstBoardBP(icol, ide); iline <= mapping.getLastBoardBP(icol, ide); ++iline) {
         auto uniqueLocId = crateMapper.deLocalBoardToRO(ide, icol, iline);
         auto crateId = o2::mid::raw::getCrateId(uniqueLocId);
-        auto deBoardId = crateMapper.roLocalBoardToDE(crateId, o2::mid::raw::getLocId(uniqueLocId));
+        auto deBoardId = crateMapper.roLocalBoardToDE(uniqueLocId);
         BOOST_TEST(static_cast<int>(crateMapper.getColumnId(deBoardId)) == icol);
         BOOST_TEST(static_cast<int>(crateMapper.getLineId(deBoardId)) == iline);
         int rpcLineId = crateMapper.getRPCLine(deBoardId);

@@ -58,7 +58,7 @@ void CPVGainCalibDevice::run(o2::framework::ProcessingContext& ctx)
       try {
         rawreader.next();
       } catch (RawErrorType_t e) {
-        LOG(ERROR) << "Raw decoding error " << (int)e;
+        LOG(error) << "Raw decoding error " << (int)e;
         //if problem in header, abandon this page
         if (e == RawErrorType_t::kRDH_DECODING) {
           break;
@@ -89,7 +89,7 @@ void CPVGainCalibDevice::run(o2::framework::ProcessingContext& ctx)
 void CPVGainCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
 
-  LOG(INFO) << "[CPVGainCalibDevice - endOfStream]";
+  LOG(info) << "[CPVGainCalibDevice - endOfStream]";
   //calculate stuff here
   calculateGains();
   checkGains();
@@ -117,7 +117,7 @@ void CPVGainCalibDevice::sendOutput(DataAllocator& output)
     std::map<std::string, std::string> md;
     info.setMetaData(md);
 
-    LOG(INFO) << "Sending object CPV/Calib/CalibParams";
+    LOG(info) << "Sending object CPV/Calib/CalibParams";
 
     header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
 
@@ -131,13 +131,13 @@ void CPVGainCalibDevice::sendOutput(DataAllocator& output)
     time_t now = time(nullptr);
     tm* ltm = localtime(&now);
     filename += TString::Format("_%d%d%d%d%d.root", 1 + ltm->tm_min, 1 + ltm->tm_hour, ltm->tm_mday, 1 + ltm->tm_mon, 1970 + ltm->tm_year);
-    LOG(DEBUG) << "opening file " << filename.data();
+    LOG(debug) << "opening file " << filename.data();
     TFile fout(filename.data(), "RECREATE");
     mMean->Write();
     fout.Close();
   } else {
     std::string filename = mPath + "CPVGains.root";
-    LOG(INFO) << "statistics not sufficient yet: " << mMean->Integral() / mMean->GetNbinsX() << ", writing file " << filename;
+    LOG(info) << "statistics not sufficient yet: " << mMean->Integral() / mMean->GetNbinsX() << ", writing file " << filename;
     TFile fout(filename.data(), "RECREATE");
     mMean->Write();
     fout.Close();
@@ -214,10 +214,10 @@ o2::framework::DataProcessorSpec o2::cpv::getGainCalibSpec(bool useCCDB, bool fo
 {
 
   std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_CalibParams"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_CalibParams"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_CalibParams"}, o2::framework::Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_CalibParams"}, o2::framework::Lifetime::Sporadic);
 
-  outputs.emplace_back("CPV", "GAINDIFF", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("CPV", "GAINDIFF", 0, o2::framework::Lifetime::Sporadic);
 
   return o2::framework::DataProcessorSpec{"GainCalibSpec",
                                           o2::framework::select("A:CPV/RAWDATA"),

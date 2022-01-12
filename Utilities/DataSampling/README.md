@@ -73,11 +73,13 @@ The [o2-datasampling-pod-and-root](https://github.com/AliceO2Group/AliceO2/blob/
 
 The following sampling conditions are available. When more than one is used, a positive decision is taken when all the conditions are fulfilled.
 - **DataSamplingConditionRandom** - pseudo-randomly accepts specified fraction of incoming messages. Use seed "0" to have it randomly selected.
+  The "timesliceId" parameter selects the header value that is used to select the message, the available options are "startTime" (default), "tfCounter" and "firstTForbit".
 ```json
 {
   "condition": "random",
   "fraction": "0.1",
-  "seed": "22222"
+  "seed": "22222",
+  "timesliceId": "startTime"
 }
 ```
 - **DataSamplingConditionNConsecutive** - approves n consecutive samples in defined cycle. It assumes that timesliceID always increments by one.

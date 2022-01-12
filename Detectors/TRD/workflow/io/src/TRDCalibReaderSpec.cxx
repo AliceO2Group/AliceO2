@@ -16,7 +16,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "fairlogger/Logger.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 
@@ -28,7 +28,7 @@ namespace trd
 void TRDCalibReader::init(InitContext& ic)
 {
   // get the option from the init context
-  LOG(INFO) << "Init TRD tracklet reader!";
+  LOG(info) << "Init TRD tracklet reader!";
   mInFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
                                               ic.options().get<std::string>("trd-calib-infile"));
   mInTreeName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
@@ -44,7 +44,7 @@ void TRDCalibReader::connectTree()
   mTree.reset((TTree*)mFile->Get(mInTreeName.c_str()));
   assert(mTree);
   mTree->SetBranchAddress("AngularResids", &mAngResidPtr);
-  LOG(INFO) << "Loaded tree from " << mInFileName << " with " << mTree->GetEntries() << " entries";
+  LOG(info) << "Loaded tree from " << mInFileName << " with " << mTree->GetEntries() << " entries";
 }
 
 void TRDCalibReader::run(ProcessingContext& pc)
@@ -53,9 +53,9 @@ void TRDCalibReader::run(ProcessingContext& pc)
   assert(currEntry < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(currEntry);
   if (mAngResids.size() > 0) {
-    LOG(INFO) << "Pushing angular residual histograms filled with " << mAngResids.at(0).getNEntries() << " entries at tree entry " << currEntry;
+    LOG(info) << "Pushing angular residual histograms filled with " << mAngResids.at(0).getNEntries() << " entries at tree entry " << currEntry;
   } else {
-    LOG(WARNING) << "No TRD calibration data available in the tree";
+    LOG(warning) << "No TRD calibration data available in the tree";
   }
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe}, mAngResids);
 

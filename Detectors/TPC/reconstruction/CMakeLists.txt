@@ -57,7 +57,6 @@ o2_target_root_dictionary(
           include/TPCReconstruction/HardwareClusterDecoder.h
           include/TPCReconstruction/DigitalCurrentClusterIntegrator.h
           include/TPCReconstruction/TPCFastTransformHelperO2.h
-          include/TPCReconstruction/CTFCoder.h
           include/TPCReconstruction/RawProcessingHelpers.h)
 
 o2_add_executable(read-gbtframes
@@ -135,6 +134,7 @@ o2_add_test_root_macro(macro/createTPCSpaceChargeCorrection.C
                        LABELS tpc)
 
 o2_add_test_root_macro(macro/findKrBoxCluster.C
+                      COMPILE_ONLY
                       PUBLIC_LINK_LIBRARIES O2::TPCReconstruction
                       LABELS tpc)
 

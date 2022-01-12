@@ -32,15 +32,14 @@ void ReconstructionDPL::init(InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
-  LOG(INFO) << "ReconstructionDPL::init";
+  LOG(info) << "ReconstructionDPL::init";
 }
 
 void ReconstructionDPL::run(ProcessingContext& pc)
 {
   auto& mCCDBManager = o2::ccdb::BasicCCDBManager::instance();
-  //  mCCDBManager.setURL("http://ccdb-test.cern.ch:8080");
   mCCDBManager.setURL(mCCDBpath);
-  LOG(INFO) << " set-up CCDB " << mCCDBpath;
+  LOG(debug) << " set-up CCDB " << mCCDBpath;
   mTimer.Start(false);
   mRecPoints.clear();
   auto digits = pc.inputs().get<gsl::span<o2::fv0::BCData>>("digits");
@@ -51,24 +50,24 @@ void ReconstructionDPL::run(ProcessingContext& pc)
   if (mUseMC) {
     //   labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>*>("labels");
     // lblPtr = labels.get();
-    LOG(INFO) << "Ignoring MC info";
+    LOG(debug) << "Ignoring MC info";
   }
   auto caliboffsets = mCCDBManager.get<o2::fv0::FV0ChannelTimeCalibrationObject>("FV0/Calibration/ChannelTimeOffset");
   mReco.setChannelOffset(caliboffsets);
   int nDig = digits.size();
-  LOG(INFO) << " nDig " << nDig << " | ndigch " << digch.size();
+  LOG(debug) << " nDig " << nDig << " | ndigch " << digch.size();
   mRecPoints.reserve(nDig);
   mRecChData.resize(digch.size());
   for (int id = 0; id < nDig; id++) {
     const auto& digit = digits[id];
-    LOG(INFO) << " ndig " << id << " bc " << digit.getIntRecord().bc << " orbit " << digit.getIntRecord().orbit;
+    LOG(debug) << " ndig " << id << " bc " << digit.getIntRecord().bc << " orbit " << digit.getIntRecord().orbit;
     auto channels = digit.getBunchChannelData(digch);
     gsl::span<o2::fv0::ChannelDataFloat> out_ch(mRecChData);
     out_ch = out_ch.subspan(digit.ref.getFirstEntry(), digit.ref.getEntries());
     mRecPoints.emplace_back(mReco.process(digit, channels, out_ch));
   }
 
-  LOG(DEBUG) << "FV0 reconstruction pushes " << mRecPoints.size() << " RecPoints";
+  LOG(debug) << "FV0 reconstruction pushes " << mRecPoints.size() << " RecPoints";
   pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, mRecPoints);
   pc.outputs().snapshot(Output{mOrigin, "RECCHDATA", 0, Lifetime::Timeframe}, mRecChData);
 
@@ -77,7 +76,7 @@ void ReconstructionDPL::run(ProcessingContext& pc)
 
 void ReconstructionDPL::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "FV0 reconstruction total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "FV0 reconstruction total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
@@ -88,7 +87,7 @@ DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath)
   inputSpec.emplace_back("digits", o2::header::gDataOriginFV0, "DIGITSBC", 0, Lifetime::Timeframe);
   inputSpec.emplace_back("digch", o2::header::gDataOriginFV0, "DIGITSCH", 0, Lifetime::Timeframe);
   if (useMC) {
-    LOG(INFO) << "Currently Reconstruction does not consume and provide MC truth";
+    LOG(info) << "Currently Reconstruction does not consume and provide MC truth";
     inputSpec.emplace_back("labels", o2::header::gDataOriginFV0, "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
   outputSpec.emplace_back(o2::header::gDataOriginFV0, "RECPOINTS", 0, Lifetime::Timeframe);

@@ -44,10 +44,10 @@ DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef, bool w
 {
   // spectators for logging
   auto loggerMatched = [](MatchInfo const& indata) {
-    LOG(INFO) << "RECEIVED MATCHED SIZE " << indata.size();
+    LOG(debug) << "RECEIVED MATCHED SIZE " << indata.size();
   };
   auto loggerTofLabels = [](LabelsType const& labeltof) {
-    LOG(INFO) << "TOF LABELS GOT " << labeltof.size() << " LABELS ";
+    LOG(debug) << "TOF LABELS GOT " << labeltof.size() << " LABELS ";
   };
   //  o2::header::DataDescription ddMatchInfo{"MTC_ITSTPC"}, ddMatchInfo_tpc{"MTC_TPC"},
   //    ddMCMatchTOF{"MCMTC_ITSTPC"}, ddMCMatchTOF_tpc{"MCMTC_TPC"};

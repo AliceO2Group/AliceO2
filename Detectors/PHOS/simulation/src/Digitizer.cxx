@@ -28,31 +28,7 @@ using namespace o2::phos;
 //_______________________________________________________________________
 void Digitizer::init()
 {
-  if (!mCalibParams) {
-    if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-      mCalibParams.reset(new CalibParams(1)); // test default calibration
-      LOG(INFO) << "[PHOSDigitizer] No reading calibration from ccdb requested, set default";
-    } else {
-      LOG(ERROR) << "[PHOSDigitizer] can not get calibration object from ccdb yet";
-      // o2::ccdb::CcdbApi ccdb;
-      // std::map<std::string, std::string> metadata; // do we want to store any meta data?
-      // ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
-      // mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, mEventTime);
-      // if (!mCalibParams) {
-      //   LOG(FATAL) << "[PHOSDigitizer] can not get calibration object from ccdb";
-      // }
-    }
-  }
-  if (!mTrigUtils) {
-    if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-      mTrigUtils.reset(new TriggerMap(0)); // test default calibration
-      LOG(INFO) << "[PHOSDigitizer] No reading trigger map from ccdb requested, set default";
-    } else {
-      LOG(ERROR) << "[PHOSDigitizer] can not get trigger map object from ccdb yet";
-    }
-  }
 }
-
 //_______________________________________________________________________
 void Digitizer::finish() {}
 
@@ -65,10 +41,51 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
   // Add hits with energy deposition in same cell and same time
   // Add energy corrections
   // Apply time smearing
-  // //Despite sorting in Detector::EndEvent(), hits still can be unsorted due to splitting of processing different bunches of primary
+
+  if (!mCalibParams) {
+    //By default MC simulations are performed with realistic but not real calibration parameters
+    //This allows to account digitization detorioration and revert energy assuming ideal calibration
+    //or one can use modified calibration in clusterer to emulate inaccuracy of calibration.
+    //However, one can request digitization with special calibration parameters, e.g. real ones
+    //by pointing to proper CCDB
+    if (o2::phos::PHOSSimParams::Instance().mDigitizationCalibPath.compare("default") == 0) {
+      //Use default calibration
+      mCalibParams.reset(new CalibParams(1)); // test default calibration
+      LOG(info) << "Use default calibration";
+    } else {
+      o2::ccdb::CcdbApi ccdb;
+      std::map<std::string, std::string> metadata;
+      ccdb.init(o2::phos::PHOSSimParams::Instance().mDigitizationCalibPath);
+      mCalibParams.reset(ccdb.retrieveFromTFileAny<CalibParams>("PHS/Calib/CalibParams", metadata, mRunStartTime));
+      if (mCalibParams) {
+        LOG(info) << "Use calibration from CCDB " << o2::phos::PHOSSimParams::Instance().mDigitizationCalibPath;
+      } else {
+        LOG(fatal) << "Can not get calibration object from ccdb " << o2::phos::PHOSSimParams::Instance().mDigitizationCalibPath;
+      }
+    }
+  }
+  if (!mTrigUtils) {
+    if (o2::phos::PHOSSimParams::Instance().mDigitizationTrigPath.compare("default") == 0) {
+      mTrigUtils.reset(new TriggerMap(0)); // test default calibration
+      LOG(info) << "Use default trigger map and turn-on curves";
+    } else {
+      o2::ccdb::CcdbApi ccdb;
+      std::map<std::string, std::string> metadata;
+      ccdb.init(o2::phos::PHOSSimParams::Instance().mDigitizationTrigPath);
+      mTrigUtils.reset(ccdb.retrieveFromTFileAny<TriggerMap>("PHS/Calib/Trigger", metadata, mRunStartTime));
+      if (mTrigUtils) {
+        LOG(info) << "Use trigger map and turn-on curves from " << o2::phos::PHOSSimParams::Instance().mDigitizationTrigPath;
+      } else {
+        LOG(fatal) << "Can not get trigger object from ccdb " << o2::phos::PHOSSimParams::Instance().mDigitizationTrigPath;
+      }
+    }
+  }
+
+  //Despite sorting in Detector::EndEvent(), hits still can be unsorted due to splitting of processing different bunches of primary
   for (int i = NCHANNELS; i--;) {
     mArrayD[i].reset();
   }
+  int nBgTrigFirst = digitsOut.size(); //Bg trigger digits will be directly copied to output
 
   if (digitsBg.size() == 0) { // no digits provided: try simulate noise
     for (int i = NCHANNELS; i--;) {
@@ -83,7 +100,11 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
     }
   } else {                       //if digits exist, no noise should be added
     for (auto& dBg : digitsBg) { //digits are sorted and unique
-      mArrayD[dBg.getAbsId() - OFFSET] = dBg;
+      if (dBg.isTRU()) {
+        digitsOut.emplace_back(dBg); //tileId, sum2x2[ix][iz], tt, true, -1);
+      } else {
+        mArrayD[dBg.getAbsId() - OFFSET] = dBg;
+      }
     }
   }
 
@@ -159,6 +180,7 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
     }
   }
   //Calculate trigger tiles 2*2 and 4*4
+  int nBgTrig = digitsOut.size(); //Number of trigger digits copied to output from background
   bool mL0Fired = false;
   const int nDDL = 14;
   const int nxTRU = 8;
@@ -204,7 +226,24 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
           if (sum2x2[ix][iz] > PHOSSimParams::Instance().mTrig2x2MinThreshold) { //do not test (slow) probability function with soft tiles
             mL0Fired |= mTrigUtils->isFiredMC2x2(sum2x2[ix][iz], iTRU, short(ix), short(iz));
             //add TRU digit. Note that only tiles with E>mTrigMinThreshold added!
-            digitsOut.emplace_back(tileId, sum2x2[ix][iz], tt, true, -1);
+            //Check that this tile does not exist yet in Bg
+            //Number of trigger tiles is small, plain loop is OK
+            bool added = false;
+            for (int ibgTr = nBgTrigFirst; ibgTr < nBgTrig; ibgTr++) {
+              Digit& bgTr = digitsOut[ibgTr];
+              if (bgTr.getTRUId() == tileId && bgTr.is2x2Tile()) {
+                //assign time to the larger tile
+                if (sum2x2[ix][iz] > bgTr.getAmplitude()) {
+                  bgTr.setTime(tt);
+                }
+                bgTr.setAmplitude(bgTr.getAmplitude() + sum2x2[ix][iz]);
+                added = true;
+                break;
+              }
+            }
+            if (!added) {
+              digitsOut.emplace_back(tileId, sum2x2[ix][iz], tt, true, -1);
+            }
           }
         }
       }
@@ -235,7 +274,24 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
             if (sum2x2[ix + 1][iz + 1] > ampMax) {
               tt = sum2x2[ix][iz + 1];
             }
-            digitsOut.emplace_back(tileId, sum4x4, tt, false, -1);
+            //Check that this tile does not exist yet in Bg
+            //Number of trigger tiles is small, plain loop is OK
+            bool added = false;
+            for (int ibgTr = nBgTrigFirst; ibgTr < nBgTrig; ibgTr++) {
+              Digit& bgTr = digitsOut[ibgTr];
+              if (bgTr.getTRUId() == tileId && !bgTr.is2x2Tile()) {
+                //assign time to the larger tile
+                if (sum2x2[ix][iz] > bgTr.getAmplitude()) {
+                  bgTr.setTime(tt);
+                }
+                bgTr.setAmplitude(bgTr.getAmplitude() + sum4x4);
+                added = true;
+                break;
+              }
+            }
+            if (!added) {
+              digitsOut.emplace_back(tileId, sum4x4, tt, false, -1);
+            }
           }
         }
       }

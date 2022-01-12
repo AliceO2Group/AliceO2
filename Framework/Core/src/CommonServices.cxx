@@ -16,6 +16,7 @@
 #include "Framework/ServiceSpec.h"
 #include "Framework/TimesliceIndex.h"
 #include "Framework/DataTakingContext.h"
+#include "Framework/DataSender.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/LocalRootFileService.h"
@@ -27,6 +28,7 @@
 #include "InputRouteHelpers.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/RawDeviceService.h"
+#include "Framework/RunningWorkflowInfo.h"
 #include "Framework/Tracing.h"
 #include "Framework/Monitoring.h"
 #include "TextDriverClient.h"
@@ -43,6 +45,7 @@
 #include <InfoLogger/InfoLogger.hxx>
 
 #include <FairMQDevice.h>
+#include <fairmq/shmem/Monitor.h>
 #include <options/FairMQProgOptions.h>
 
 #include <cstdlib>
@@ -94,18 +97,34 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
       service = monitoring;
       monitoring->enableBuffering(MONITORING_QUEUE_SIZE);
       assert(registry.get<DeviceSpec const>().name.empty() == false);
-      monitoring->addGlobalTag("dataprocessor_id", registry.get<DeviceSpec const>().name);
-      try {
-        auto run = registry.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
-        monitoring->setRunNumber(stoul(run));
-      } catch (...) {
-      }
+      monitoring->addGlobalTag("dataprocessor_id", registry.get<DeviceSpec const>().id);
+      monitoring->addGlobalTag("dataprocessor_name", registry.get<DeviceSpec const>().name);
       return ServiceHandle{TypeIdHelpers::uniqueId<Monitoring>(), service};
     },
     .configure = noConfiguration(),
+    .start = [](ServiceRegistry& services, void* service) {
+      o2::monitoring::Monitoring* monitoring = (o2::monitoring::Monitoring *) service;
+      auto& context = services.get<DataTakingContext>();
+
+      try {
+        monitoring->setRunNumber(std::stoul(context.runNumber.c_str()));
+      } catch (...) {
+      } },
     .exit = [](ServiceRegistry& registry, void* service) {
                        Monitoring* monitoring = reinterpret_cast<Monitoring*>(service);
                        delete monitoring; },
+    .kind = ServiceKind::Serial};
+}
+
+// Make it a service so that it can be used easily from the analysis
+// FIXME: Moreover, it makes sense that this will be duplicated on a per thread
+// basis when we get to it.
+o2::framework::ServiceSpec CommonServices::timingInfoSpec()
+{
+  return ServiceSpec{
+    .name = "timing-info",
+    .init = simpleServiceInit<TimingInfo, TimingInfo>(),
+    .configure = noConfiguration(),
     .kind = ServiceKind::Serial};
 }
 
@@ -132,7 +151,7 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
         if (!dph) {
           continue;
         }
-        LOGP(DEBUG, "Orbit reset time from data: {} ", dph->creation);
+        LOGP(debug, "Orbit reset time from data: {} ", dph->creation);
         context.orbitResetTime = dph->creation;
         break;
       } },
@@ -238,9 +257,12 @@ auto createInfoLoggerSinkHelper(InfoLogger* logger, InfoLoggerContext* ctx)
       atoi(metadata.line.c_str())};
 
     if (logger) {
-      logger->log(opt, *ctx, "DPL: %s", content.c_str());
+      logger->log(opt, *ctx, "%s", content.c_str());
     }
   };
+};
+
+struct MissingService {
 };
 
 o2::framework::ServiceSpec CommonServices::infologgerSpec()
@@ -251,6 +273,10 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
       auto infoLoggerMode = options.GetPropertyAsString("infologger-mode");
       if (infoLoggerMode != "") {
         setenv("O2_INFOLOGGER_MODE", infoLoggerMode.c_str(), 1);
+      }
+      char const* infoLoggerEnv = getenv("O2_INFOLOGGER_MODE");
+      if (infoLoggerEnv == nullptr || strcmp(infoLoggerEnv, "none") == 0) {
+        return ServiceHandle{TypeIdHelpers::uniqueId<MissingService>(), nullptr};
       }
       auto infoLoggerService = new InfoLogger;
       auto infoLoggerContext = &services.get<InfoLoggerContext>();
@@ -381,6 +407,19 @@ o2::framework::ServiceSpec CommonServices::dataRelayer()
     .kind = ServiceKind::Serial};
 }
 
+o2::framework::ServiceSpec CommonServices::dataSender()
+{
+  return ServiceSpec{
+    .name = "datasender",
+    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+      auto& spec = services.get<DeviceSpec const>();
+      return ServiceHandle{TypeIdHelpers::uniqueId<DataSender>(),
+                           new DataSender(services, spec.sendingPolicy)};
+    },
+    .configure = noConfiguration(),
+    .kind = ServiceKind::Serial};
+}
+
 struct TracingInfrastructure {
   int processingCount;
 };
@@ -433,9 +472,27 @@ namespace
 /// 5 seconds, in order to avoid overloading the system.
 auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -> void
 {
-  if (stats.beginIterationTimestamp - stats.lastSlowMetricSentTimestamp < 5000) {
+  auto timeSinceLastUpdate = stats.beginIterationTimestamp - stats.lastSlowMetricSentTimestamp;
+  auto timeSinceLastLongUpdate = stats.beginIterationTimestamp - stats.lastVerySlowMetricSentTimestamp;
+  if (timeSinceLastUpdate < 5000) {
     return;
   }
+  // Derive the amount of shared memory used
+  auto& runningWorkflow = registry.get<RunningWorkflowInfo const>();
+  using namespace fair::mq::shmem;
+  auto& spec = registry.get<DeviceSpec const>();
+
+  // FIXME: Ugly, but we do it only every 5 seconds...
+  if (spec.name == "readout-proxy") {
+    auto device = registry.get<RawDeviceService>().device();
+    try {
+      stats.availableManagedShm.store(Monitor::GetFreeMemory(SessionId{device->fConfig->GetProperty<std::string>("session")}, runningWorkflow.shmSegmentId));
+    } catch (...) {
+    }
+  }
+
+  auto performedComputationsSinceLastUpdate = stats.performedComputations - stats.lastReportedPerformedComputations;
+
   ZoneScopedN("send metrics");
   auto& relayerStats = registry.get<DataRelayer>().getStats();
   auto& monitoring = registry.get<Monitoring>();
@@ -467,17 +524,59 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
                     .addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{(stats.lastProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "input_rate_mb_s"}
                     .addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{((float)performedComputationsSinceLastUpdate / (float)timeSinceLastUpdate) * 1000, "processing_rate_hz"}.addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{(uint64_t)stats.performedComputations, "performed_computations"}.addTag(Key::Subsystem, Value::DPL));
+
+  if (stats.availableManagedShm) {
+    monitoring.send(Metric{(uint64_t)stats.availableManagedShm, fmt::format("available_managed_shm_{}", runningWorkflow.shmSegmentId)}.addTag(Key::Subsystem, Value::DPL));
+  }
+
+  if (stats.consumedTimeframes) {
+    monitoring.send(Metric{(uint64_t)stats.consumedTimeframes, "consumed-timeframes"}.addTag(Key::Subsystem, Value::DPL));
+  }
 
   stats.lastSlowMetricSentTimestamp.store(stats.beginIterationTimestamp.load());
+  stats.lastReportedPerformedComputations.store(stats.performedComputations.load());
   O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
+
+  auto device = registry.get<RawDeviceService>().device();
+
+  uint64_t lastTotalBytesIn = stats.totalBytesIn.exchange(0);
+  uint64_t lastTotalBytesOut = stats.totalBytesOut.exchange(0);
+  uint64_t totalBytesIn = 0;
+  uint64_t totalBytesOut = 0;
+
+  for (auto& channel : device->fChannels) {
+    totalBytesIn += channel.second[0].GetBytesRx();
+    totalBytesOut += channel.second[0].GetBytesTx();
+  }
+
+  monitoring.send(Metric{(float)(totalBytesOut - lastTotalBytesOut) / 1000000.f / (timeSinceLastUpdate / 1000.f), "total_rate_out_mb_s"}
+                    .addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{(float)(totalBytesIn - lastTotalBytesIn) / 1000000.f / (timeSinceLastUpdate / 1000.f), "total_rate_in_mb_s"}
+                    .addTag(Key::Subsystem, Value::DPL));
+  stats.totalBytesIn.store(totalBytesIn);
+  stats.totalBytesOut.store(totalBytesOut);
+  // Things which we report every 30s
+  if (timeSinceLastLongUpdate < 30000) {
+    return;
+  }
+  stats.lastVerySlowMetricSentTimestamp.store(stats.beginIterationTimestamp.load());
 };
 
 /// This will flush metrics only once every second.
 auto flushMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -> void
 {
-  if (stats.beginIterationTimestamp - stats.lastMetricFlushedTimestamp < 1000) {
-    return;
+  auto timeSinceLastUpdate = stats.beginIterationTimestamp - stats.lastMetricFlushedTimestamp;
+  static int counter = 0;
+  if (timeSinceLastUpdate < 1000) {
+    if (counter++ > 10) {
+      return;
+    }
+  } else {
+    counter = 0;
   }
+
   ZoneScopedN("flush metrics");
   auto& monitoring = registry.get<Monitoring>();
   auto& relayer = registry.get<DataRelayer>();
@@ -507,6 +606,9 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
       return ServiceHandle{TypeIdHelpers::uniqueId<DataProcessingStats>(), stats};
     },
     .configure = noConfiguration(),
+    .postProcessing = [](ProcessingContext& context, void* service) {
+      DataProcessingStats* stats = (DataProcessingStats*)service;
+      stats->performedComputations++; },
     .preDangling = [](DanglingContext& context, void* service) {
       DataProcessingStats* stats = (DataProcessingStats*)service;
       sendRelayerMetrics(context.services(), *stats);
@@ -525,10 +627,11 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
 std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
 {
   std::vector<ServiceSpec> specs{
+    timingInfoSpec(),
     timesliceIndex(),
     driverClientSpec(),
-    monitoringSpec(),
     datatakingContextSpec(),
+    monitoringSpec(),
     infologgerContextSpec(),
     infologgerSpec(),
     configurationSpec(),
@@ -537,6 +640,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     parallelSpec(),
     callbacksSpec(),
     dataRelayer(),
+    dataSender(),
     dataProcessingStats(),
     CommonMessageBackends::fairMQBackendSpec(),
     ArrowSupport::arrowBackendSpec(),

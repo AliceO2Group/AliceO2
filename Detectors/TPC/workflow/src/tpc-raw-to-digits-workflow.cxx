@@ -52,6 +52,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"tpc-lanes", VariantType::Int, defaultlanes, {laneshelp}},
     {"tpc-sectors", VariantType::String, sectorDefault.c_str(), {sectorshelp}},
     {"tpc-reco-output", VariantType::String, "", {tpcrthelp}},
+    {"send-ce-digits", VariantType::Bool, false, {"filter CE digits and publish them for analysis on a separate stream"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCCalibPedestal.FirstTimeBin=10;...')"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}}};
 
@@ -67,7 +68,7 @@ int getNumTPCLanes(std::vector<int> const& sectors, ConfigContext const& configc
 {
   auto lanes = configcontext.options().get<int>("tpc-lanes");
   if (lanes < 0) {
-    LOG(FATAL) << "tpc-lanes needs to be positive\n";
+    LOG(fatal) << "tpc-lanes needs to be positive\n";
     return 0;
   }
   // crosscheck with sectors
@@ -86,11 +87,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // for the moment no parallel workflow, so just one lane hard coded
   auto tpcSectors = o2::RangeTokenizer::tokenize<int>(configcontext.options().get<std::string>("tpc-sectors"));
-  auto lanes = 1; //getNumTPCLanes(tpcSectors, configcontext);
+  auto lanes = 1; // getNumTPCLanes(tpcSectors, configcontext);
+  const bool sendCEdigits = configcontext.options().get<bool>("send-ce-digits");
 
   int fanoutsize = 0;
   for (int l = 0; l < lanes; ++l) {
-    specs.emplace_back(o2::tpc::getRawToDigitsSpec(fanoutsize, configcontext.options().get<std::string>("input-spec"), tpcSectors));
+    specs.emplace_back(o2::tpc::getRawToDigitsSpec(fanoutsize, configcontext.options().get<std::string>("input-spec"), tpcSectors, sendCEdigits));
     fanoutsize++;
   }
 

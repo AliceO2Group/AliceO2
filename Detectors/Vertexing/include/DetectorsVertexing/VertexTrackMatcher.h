@@ -59,7 +59,6 @@ class VertexTrackMatcher
  private:
   void updateTimeDependentParams();
   void extractTracks(const o2::globaltracking::RecoContainer& data, const std::unordered_map<GIndex, bool>& vcont);
-
   std::vector<TrackTBracket> mTBrackets;
   float mITSROFrameLengthMUS = 0;       ///< ITS RO frame in mus
   float mMFTROFrameLengthMUS = 0;       ///< MFT RO frame in mus

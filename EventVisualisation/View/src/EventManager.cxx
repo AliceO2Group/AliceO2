@@ -18,8 +18,6 @@
 #include "EventVisualisationView/MultiView.h"
 #include "EventVisualisationView/Options.h"
 #include "EventVisualisationDataConverter/VisualisationEvent.h"
-#include "EventVisualisationBase/DataInterpreter.h"
-#include <EventVisualisationBase/DataSourceOffline.h>
 #include <EventVisualisationBase/DataSourceOnline.h>
 
 #include <TEveManager.h>
@@ -52,32 +50,16 @@ EventManager& EventManager::getInstance()
 
 EventManager::EventManager() : TEveEventManager("Event", "")
 {
-  LOG(INFO) << "Initializing TEveManager";
+  LOG(info) << "Initializing TEveManager";
   for (unsigned int i = 0; i < elemof(dataTypeLists); i++) {
     dataTypeLists[i] = nullptr;
   }
 }
 
-void EventManager::Open()
-{
-  switch (mCurrentDataSourceType) {
-    case SourceOnline: {
-      DataSourceOnline* source = new DataSourceOnline(Options::Instance()->dataFolder());
-      setDataSource(source);
-    } break;
-    case SourceOffline: {
-      DataSourceOffline* source = new DataSourceOffline();
-      setDataSource(source);
-    } break;
-    case SourceHLT:
-      break;
-  }
-}
-
 void EventManager::displayCurrentEvent()
 {
-  MultiView::getInstance()->destroyAllEvents();
   if (getDataSource()->getEventCount() > 0) {
+    MultiView::getInstance()->destroyAllEvents();
     int no = getDataSource()->getCurrentEvent();
 
     for (int i = 0; i < EVisualisationDataType::NdataTypes; ++i) {
@@ -86,7 +68,7 @@ void EventManager::displayCurrentEvent()
 
     auto displayList = getDataSource()->getVisualisationList(no);
     for (auto it = displayList.begin(); it != displayList.end(); ++it) {
-      displayVisualisationEvent(it->first, it->second);
+      displayVisualisationEvent(it->first, gVisualisationGroupName[it->second]);
     }
 
     for (int i = 0; i < EVisualisationDataType::NdataTypes; ++i) {
@@ -164,10 +146,17 @@ void EventManager::DropEvent()
 
 void EventManager::displayVisualisationEvent(VisualisationEvent& event, const std::string& detectorName)
 {
+  double eta = 0.1;
   size_t trackCount = event.getTrackCount();
-
+  LOG(info) << "displayVisualisationEvent: " << trackCount << " detector: " << detectorName;
+  // tracks
   auto* list = new TEveTrackList(detectorName.c_str());
   list->IncDenyDestroy();
+  // clusters
+  size_t clusterCount = 0;
+  auto* point_list = new TEvePointSet(detectorName.c_str());
+  point_list->IncDenyDestroy(); // don't delete if zero parent
+  point_list->SetMarkerColor(kBlue);
 
   for (size_t i = 0; i < trackCount; ++i) {
     VisualisationTrack track = event.getTrack(i);
@@ -177,33 +166,51 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
     t.fSign = track.getCharge() > 0 ? 1 : -1;
     auto* vistrack = new TEveTrack(&t, &TEveTrackPropagator::fgDefault);
     vistrack->SetLineColor(kMagenta);
+    //vistrack->SetName(detectorName + " track: " + i);
+    vistrack->SetName(track.getGIDAsString().c_str());
     size_t pointCount = track.getPointCount();
     vistrack->Reset(pointCount);
 
+    int points = 0;
     for (size_t j = 0; j < pointCount; ++j) {
       auto point = track.getPoint(j);
-      vistrack->SetNextPoint(point[0], point[1], point[2]);
+      if (point[2] > eta || point[2] < -1 * eta) {
+        vistrack->SetNextPoint(point[0], point[1], point[2]);
+        points++;
+      }
     }
-    list->AddElement(vistrack);
+    if (points > 0) {
+      list->AddElement(vistrack);
+    }
+
+    // clusters connected with track
+    for (size_t i = 0; i < track.getClusterCount(); ++i) {
+      VisualisationCluster cluster = track.getCluster(i);
+      if (cluster.Z() > eta || cluster.Z() < -1 * eta) { // temporary remove eta=0 artefacts
+        point_list->SetNextPoint(cluster.X(), cluster.Y(), cluster.Z());
+        clusterCount++;
+      }
+    }
   }
 
   if (trackCount != 0) {
-    dataTypeLists[EVisualisationDataType::ESD]->AddElement(list);
+    dataTypeLists[EVisualisationDataType::Tracks]->AddElement(list);
   }
 
-  size_t clusterCount = event.getClusterCount();
-  auto* point_list = new TEvePointSet(detectorName.c_str());
-  point_list->IncDenyDestroy();
-  point_list->SetMarkerColor(kBlue);
-
-  for (size_t i = 0; i < clusterCount; ++i) {
+  // global clusters (with no connection information)
+  for (size_t i = 0; i < event.getClusterCount(); ++i) {
     VisualisationCluster cluster = event.getCluster(i);
-    point_list->SetNextPoint(cluster.X(), cluster.Y(), cluster.Z());
+    if (cluster.Z() > eta || cluster.Z() < -1 * eta) { // temporary remove eta=0 artefacts
+      point_list->SetNextPoint(cluster.X(), cluster.Y(), cluster.Z());
+      clusterCount++;
+    }
   }
 
   if (clusterCount != 0) {
     dataTypeLists[EVisualisationDataType::Clusters]->AddElement(point_list);
   }
+  LOG(info) << "tracks: " << trackCount << " detector: " << detectorName << ":" << dataTypeLists[EVisualisationDataType::Tracks]->NumChildren();
+  LOG(info) << "clusters: " << clusterCount << " detector: " << detectorName << ":" << dataTypeLists[EVisualisationDataType::Clusters]->NumChildren();
 }
 
 } // namespace event_visualisation

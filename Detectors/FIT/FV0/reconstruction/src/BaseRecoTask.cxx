@@ -36,7 +36,7 @@ RP BaseRecoTask::process(o2::fv0::BCData const& bcd,
                          gsl::span<const o2::fv0::ChannelData> inChData,
                          gsl::span<o2::fv0::ChannelDataFloat> outChData)
 {
-  LOG(INFO) << "Running reconstruction on new event";
+  LOG(debug) << "Running reconstruction on new event";
 
   Float_t sideAtimeFirst = 1e10;
   Int_t ndigitsA = 0;
@@ -46,12 +46,12 @@ RP BaseRecoTask::process(o2::fv0::BCData const& bcd,
 
   auto timeStamp = o2::InteractionRecord::bc2ns(bcd.getIntRecord().bc, bcd.getIntRecord().orbit);
 
-  LOG(INFO) << " event time " << timeStamp << " orbit " << bcd.getIntRecord().orbit << " bc " << bcd.getIntRecord().bc;
+  LOG(debug) << " event time " << timeStamp << " orbit " << bcd.getIntRecord().orbit << " bc " << bcd.getIntRecord().bc;
 
   int nch = inChData.size();
   for (int ich = 0; ich < nch; ich++) {
-    LOG(INFO) << "  channel " << ich << " / " << nch;
-    int offsetChannel = getChannelOffset(ich);
+    LOG(debug) << "  channel " << ich << " / " << nch;
+    int offsetChannel = getChannelOffset(inChData[ich].pmtNumber);
 
     outChData[ich] = o2::fv0::ChannelDataFloat{inChData[ich].pmtNumber,
                                                (inChData[ich].time - offsetChannel) * DigitizationConstant::TIME_PER_TDCCHANNEL,

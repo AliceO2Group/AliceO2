@@ -36,21 +36,21 @@ void ConfigurationManager::getConfig(TEnv& settings) const
 {
   TString fileName;
   if (settings.ReadFile(fileName = ".o2eve_config", kEnvUser) < 0) {
-    LOG(WARN) << "could not find .o2eve_config in working directory! Trying .o2eve_config in home directory";
+    LOG(warn) << "could not find .o2eve_config in working directory! Trying .o2eve_config in home directory";
     if (settings.ReadFile(fileName = Form("%s/.o2eve_config", gSystem->Getenv("HOME")), kEnvUser) < 0) {
-      LOG(WARN) << "could not find .o2eve_config in home directory! Trying o2eve_config in home directory";
+      LOG(warn) << "could not find .o2eve_config in home directory! Trying o2eve_config in home directory";
       if (settings.ReadFile(fileName = Form("%s/o2eve_config", gSystem->Getenv("HOME")), kEnvUser) < 0) {
-        LOG(WARN) << "could not find o2eve_config in home directory! Trying o2eve_config in O2/EventVisualisation";
+        LOG(warn) << "could not find o2eve_config in home directory! Trying o2eve_config in O2/EventVisualisation";
         if (settings.ReadFile(fileName = Form("%s/EventVisualisation/o2eve_config",
                                               gSystem->Getenv("ALICEO2_INSTALL_PATH")),
                               kEnvUser) < 0) {
-          LOG(FATAL) << "could not find .o2eve_config or o2eve_config file!.";
+          LOG(fatal) << "could not find .o2eve_config or o2eve_config file!.";
           exit(0);
         }
       }
     }
   }
-  LOG(INFO) << Form("using %s config settings", fileName.Data());
+  LOG(info) << Form("using %s config settings", fileName.Data());
 }
 
 } // namespace event_visualisation

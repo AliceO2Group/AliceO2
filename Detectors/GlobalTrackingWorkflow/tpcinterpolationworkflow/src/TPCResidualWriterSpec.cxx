@@ -42,7 +42,7 @@ DataProcessorSpec getTPCResidualWriterSpec(bool useMC)
   };
   // A spectator for logging
   auto residualsLogger = [tracksSize](std::vector<TPCClusterResiduals> const& residuals) {
-    LOG(INFO) << "ResidualWriterTPC pulled " << *tracksSize << " reference tracks and " << residuals.size() << " TPC cluster residuals";
+    LOG(info) << "ResidualWriterTPC pulled " << *tracksSize << " reference tracks and " << residuals.size() << " TPC cluster residuals";
   };
   return MakeRootTreeWriterSpec("tpc-residuals-writer",
                                 "o2residuals_tpc.root",

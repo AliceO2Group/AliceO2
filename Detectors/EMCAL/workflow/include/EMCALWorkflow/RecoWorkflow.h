@@ -60,7 +60,8 @@ framework::WorkflowSpec getWorkflow(bool propagateMC = true,
                                     std::string const& cfgInput = "digits",
                                     std::string const& cfgOutput = "clusters",
                                     bool disableRootInput = false,
-                                    bool disableRootOutput = false);
+                                    bool disableRootOutput = false,
+                                    bool disableDecodingErrors = false);
 } // namespace reco_workflow
 
 } // namespace emcal

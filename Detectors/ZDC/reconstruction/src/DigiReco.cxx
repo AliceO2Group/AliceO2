@@ -21,14 +21,14 @@ namespace zdc
 
 void DigiReco::init()
 {
-  LOG(INFO) << "Initialization of ZDC reconstruction";
+  LOG(info) << "Initialization of ZDC reconstruction";
   // Load configuration parameters
   auto& sopt = ZDCSimParam::Instance();
   mIsContinuous = sopt.continuous;
   mNBCAHead = mIsContinuous ? sopt.nBCAheadCont : sopt.nBCAheadTrig;
 
   if (!mModuleConfig) {
-    LOG(FATAL) << "Missing ModuleConfig configuration object";
+    LOG(fatal) << "Missing ModuleConfig configuration object";
     return;
   }
 
@@ -50,7 +50,7 @@ void DigiReco::init()
 
   if (mTreeDbg) {
     // Open debug file
-    LOG(INFO) << "ZDC DigiReco: opening debug output";
+    LOG(info) << "ZDC DigiReco: opening debug output";
     mDbg = std::make_unique<TFile>("ZDCRecoDbg.root", "recreate");
     mTDbg = std::make_unique<TTree>("zdcr", "ZDCReco");
     mTDbg->Branch("zdcr", "RecEventAux", &mRec);
@@ -80,8 +80,10 @@ void DigiReco::init()
       }
     }
   next_itdc:;
-    LOG(INFO) << "TDC " << itdc << "(" << ChannelNames[TDCSignal[itdc]] << ")"
-              << " mod " << ropt.tmod[itdc] << " ch " << ropt.tch[itdc];
+    if (mVerbosity > DbgZero) {
+      LOG(info) << "TDC " << itdc << "(" << ChannelNames[TDCSignal[itdc]] << ")"
+                << " mod " << ropt.tmod[itdc] << " ch " << ropt.tch[itdc];
+    }
   }
 
   // TDC calibration
@@ -91,20 +93,22 @@ void DigiReco::init()
     if (fval < 0) {
       // Check if calibration object is present
       if (!mTDCParam) {
-        LOG(FATAL) << "TDC " << itdc << " missing configuration object and no manual override";
+        LOG(fatal) << "TDC " << itdc << " missing configuration object and no manual override";
       } else {
         fval = mTDCParam->getShift(itdc) / FTDCVal;
       }
     }
     auto val = std::nearbyint(fval);
     if (val < kMinShort) {
-      LOG(FATAL) << "Shift for TDC " << itdc << " " << val << " is out of range";
+      LOG(fatal) << "Shift for TDC " << itdc << " " << val << " is out of range";
     }
     if (val > kMaxShort) {
-      LOG(FATAL) << "Shift for TDC " << itdc << " " << val << " is out of range";
+      LOG(fatal) << "Shift for TDC " << itdc << " " << val << " is out of range";
     }
     tdc_shift[itdc] = val;
-    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " shift= " << tdc_shift[itdc] << " i.s. = " << val * FTDCVal << " ns";
+    if (mVerbosity > DbgZero) {
+      LOG(info) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " shift= " << tdc_shift[itdc] << " i.s. = " << val * FTDCVal << " ns";
+    }
   }
 
   // TDC search zone
@@ -112,31 +116,37 @@ void DigiReco::init()
     // If the reconstruction parameters were not manually set
     if (ropt.tdc_search[itdc] <= 0) {
       if (!mRecoConfigZDC) {
-        LOG(FATAL) << "Search zone for TDC " << itdc << " missing configuration object and no manual override";
+        LOG(fatal) << "Search zone for TDC " << itdc << " missing configuration object and no manual override";
       } else {
         ropt.tdc_search[itdc] = mRecoConfigZDC->tdc_search[itdc];
       }
     }
-    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << ropt.tdc_search[itdc] << " i.s. = " << ropt.tdc_search[itdc] * FTDCVal << " ns";
+    if (mVerbosity > DbgZero) {
+      LOG(info) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << ropt.tdc_search[itdc] << " i.s. = " << ropt.tdc_search[itdc] * FTDCVal << " ns";
+    }
   }
 
   // Energy calibration
   for (int il = 0; il < ChEnergyCalib.size(); il++) {
     if (ropt.energy_calib[ChEnergyCalib[il]] > 0) {
-      LOG(INFO) << "Energy Calibration from command line " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
+      LOG(info) << "Energy Calibration from command line " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
     } else if (mEnergyParam && mEnergyParam->energy_calib[ChEnergyCalib[il]] > 0) {
       ropt.energy_calib[ChEnergyCalib[il]] = mEnergyParam->energy_calib[ChEnergyCalib[il]];
-      LOG(INFO) << "Energy Calibration from CCDB " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
+      if (mVerbosity > DbgZero) {
+        LOG(info) << "Energy Calibration from CCDB " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
+      }
     } else {
       if (ChEnergyCalib[il] == CaloCommonPM[ChEnergyCalib[il]]) {
         // Is a common PM or a ZEM
         ropt.energy_calib[ChEnergyCalib[il]] = 1;
-        LOG(WARNING) << "Default Energy Calibration  " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
+        LOG(warning) << "Default Energy Calibration  " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
       } else {
         // Is one of the analog sums -> same calibration as common PM
         // N.B. the calibration for common has already been set in the loop
         ropt.energy_calib[ChEnergyCalib[il]] = ropt.energy_calib[CaloCommonPM[il]];
-        LOG(INFO) << "SUM Energy Calibration  " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
+        if (mVerbosity > DbgZero) {
+          LOG(info) << "SUM Energy Calibration  " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
+        }
       }
     }
   }
@@ -144,23 +154,27 @@ void DigiReco::init()
   // Tower calibration
   for (int il = 0; il < ChTowerCalib.size(); il++) {
     if (ropt.tower_calib[ChTowerCalib[il]] > 0) {
-      LOG(INFO) << "Tower Calibration from command line " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
+      LOG(info) << "Tower Calibration from command line " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
     } else if (mTowerParam && mTowerParam->tower_calib[ChTowerCalib[il]] > 0) {
       ropt.tower_calib[ChTowerCalib[il]] = mTowerParam->tower_calib[ChTowerCalib[il]];
-      LOG(INFO) << "Tower Calibration from CCDB " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
+      if (mVerbosity > DbgZero) {
+        LOG(info) << "Tower Calibration from CCDB " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
+      }
     } else {
       ropt.tower_calib[ChTowerCalib[il]] = 1;
-      LOG(WARNING) << "Default Tower Calibration  " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
+      LOG(warning) << "Default Tower Calibration  " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
     }
   }
 
   // Tower energy calibration
   for (int il = 0; il < ChTowerCalib.size(); il++) {
     if (ropt.energy_calib[ChTowerCalib[il]] > 0) {
-      LOG(INFO) << "Tower Energy Calibration from command line " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.energy_calib[ChTowerCalib[il]];
+      LOG(info) << "Tower Energy Calibration from command line " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.energy_calib[ChTowerCalib[il]];
     } else {
       ropt.energy_calib[ChTowerCalib[il]] = ropt.tower_calib[ChTowerCalib[il]] * ropt.energy_calib[CaloCommonPM[ChTowerCalib[il]]];
-      LOG(INFO) << "Tower Energy Calibration " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.energy_calib[ChTowerCalib[il]];
+      if (mVerbosity > DbgZero) {
+        LOG(info) << "Tower Energy Calibration " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.energy_calib[ChTowerCalib[il]];
+      }
     }
   }
 
@@ -179,7 +193,9 @@ void DigiReco::init()
       }
     }
   next_ich:;
-    LOG(INFO) << "ADC " << ich << "(" << ChannelNames[ich] << ") mod " << ropt.amod[ich] << " ch " << ropt.ach[ich];
+    if (mVerbosity > DbgZero) {
+      LOG(info) << "ADC " << ich << "(" << ChannelNames[ich] << ") mod " << ropt.amod[ich] << " ch " << ropt.ach[ich];
+    }
   }
 
   // Integration ranges
@@ -187,7 +203,7 @@ void DigiReco::init()
     // If the reconstruction parameters were not manually set
     if (ropt.beg_int[ich] == DummyIntRange || ropt.end_int[ich] == DummyIntRange) {
       if (!mRecoConfigZDC) {
-        LOG(FATAL) << "Integration for signal " << ich << " missing configuration object and no manual override";
+        LOG(fatal) << "Integration for signal " << ich << " missing configuration object and no manual override";
       } else {
         ropt.beg_int[ich] = mRecoConfigZDC->beg_int[ich];
         ropt.end_int[ich] = mRecoConfigZDC->end_int[ich];
@@ -195,13 +211,15 @@ void DigiReco::init()
     }
     if (ropt.beg_ped_int[ich] == DummyIntRange || ropt.end_ped_int[ich] == DummyIntRange) {
       if (!mRecoConfigZDC) {
-        LOG(ERROR) << "Integration for pedestal " << ich << " missing configuration object and no manual override";
+        LOG(error) << "Integration for pedestal " << ich << " missing configuration object and no manual override";
       } else {
         ropt.beg_ped_int[ich] = mRecoConfigZDC->beg_ped_int[ich];
         ropt.end_ped_int[ich] = mRecoConfigZDC->end_ped_int[ich];
       }
     }
-    LOG(INFO) << ChannelNames[ich] << " integration: signal=[" << ropt.beg_int[ich] << ":" << ropt.end_int[ich] << "] pedestal=[" << ropt.beg_ped_int[ich] << ":" << ropt.end_ped_int[ich] << "]";
+    if (mVerbosity > DbgZero) {
+      LOG(info) << ChannelNames[ich] << " integration: signal=[" << ropt.beg_int[ich] << ":" << ropt.end_int[ich] << "] pedestal=[" << ropt.beg_ped_int[ich] << ":" << ropt.end_ped_int[ich] << "]";
+    }
   }
 } // init
 
@@ -216,12 +234,12 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
   mOrbit.clear();
   int norb = mOrbitData.size();
   if (mVerbosity >= DbgFull) {
-    LOG(INFO) << "Dump of pedestal data lookup table";
+    LOG(info) << "Dump of pedestal data lookup table";
   }
   for (int iorb = 0; iorb < norb; iorb++) {
     mOrbit[mOrbitData[iorb].ir.orbit] = iorb;
     if (mVerbosity >= DbgFull) {
-      LOG(INFO) << "mOrbitData[" << mOrbitData[iorb].ir.orbit << "] = " << iorb;
+      LOG(info) << "mOrbitData[" << mOrbitData[iorb].ir.orbit << "] = " << iorb;
     }
   }
   mNBC = mBCData.size();
@@ -273,12 +291,12 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
   // account for signals that do not span the entire reange)
   int seq_beg = 0;
   int seq_end = 0;
-  LOG(INFO) << "ZDC reconstruction for " << mNBC << " bunch crossings";
+  LOG(info) << "Processing ZDC reconstruction for " << mNBC << " bunch crossings";
   for (int ibc = 0; ibc < mNBC; ibc++) {
     auto& ir = mBCData[seq_end].ir;
     auto bcd = mBCData[ibc].ir.differenceInBC(ir);
     if (bcd < 0) {
-      LOG(FATAL) << "Orbit number is not increasing " << mBCData[seq_end].ir.orbit << "." << mBCData[seq_end].ir.bc << " followed by " << mBCData[ibc].ir.orbit << "." << mBCData[ibc].ir.bc;
+      LOG(fatal) << "Orbit number is not increasing " << mBCData[seq_end].ir.orbit << "." << mBCData[seq_end].ir.bc << " followed by " << mBCData[ibc].ir.orbit << "." << mBCData[ibc].ir.bc;
       return __LINE__;
     } else if (bcd > 1) {
       // Detected a gap
@@ -308,13 +326,13 @@ int DigiReco::reconstruct(int ibeg, int iend)
       mNLastLonely++;
     } else {
       mNLonely++;
-      LOG(INFO) << "Lonely bunch " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc;
+      LOG(info) << "Lonely bunch " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc;
     }
     return 0;
   }
 
   if (mVerbosity >= DbgFull) {
-    LOG(INFO) << __func__ << "(" << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
+    LOG(info) << __func__ << "(" << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
   }
 
   // Get reconstruction parameters
@@ -369,7 +387,7 @@ int DigiReco::reconstruct(int ibeg, int iend)
       rec.pattern[itdc] = 0;
       for (int32_t i = 0; i < rec.ntdc[itdc]; i++) {
 #ifdef O2_ZDC_DEBUG
-        LOG(INFO) << "tdc " << i << " [" << ChannelNames[TDCSignal[itdc]] << "] " << rec.TDCAmp[itdc][i] << " @ " << rec.TDCVal[itdc][i];
+        LOG(info) << "tdc " << i << " [" << ChannelNames[TDCSignal[itdc]] << "] " << rec.TDCAmp[itdc][i] << " @ " << rec.TDCVal[itdc][i];
 #endif
         // There is a TDC value in the search zone around main-main position
         if (std::abs(rec.TDCVal[itdc][i]) < ropt.tdc_search[itdc]) {
@@ -377,7 +395,7 @@ int DigiReco::reconstruct(int ibeg, int iend)
         }
 #ifdef O2_ZDC_DEBUG
         else {
-          LOG(INFO) << rec.TDCVal[itdc][i] << " " << ropt.tdc_search[itdc];
+          LOG(info) << rec.TDCVal[itdc][i] << " " << ropt.tdc_search[itdc];
         }
 #endif
       }
@@ -480,10 +498,10 @@ int DigiReco::reconstruct(int ibeg, int iend)
             }
             rec.ezdc[ich] = sum * ropt.energy_calib[ich];
           } else {
-            LOGF(WARN, "%d.%-4d CH %2d %s missing pedestal", rec.ir.orbit, rec.ir.bc, ich, ChannelNames[ich].data());
+            LOGF(warn, "%d.%-4d CH %2d %s missing pedestal", rec.ir.orbit, rec.ir.bc, ich, ChannelNames[ich].data());
           }
         } else {
-          LOG(FATAL) << "Serious mess in reconstruction code";
+          LOG(fatal) << "Serious mess in reconstruction code";
           rec.err[ich] = true;
         }
       }
@@ -532,10 +550,10 @@ void DigiReco::updateOffsets(int ibun)
 
   for (int ich = 0; ich < NChannels; ich++) {
     if (mSource[ich] == PedND) {
-      LOGF(ERROR, "Missing pedestal for ch %2d %s orbit %u ", ich, ChannelNames[ich], mOffsetOrbit);
+      LOGF(error, "Missing pedestal for ch %2d %s orbit %u ", ich, ChannelNames[ich], mOffsetOrbit);
     }
 #ifdef O2_ZDC_DEBUG
-    LOGF(INFO, "Pedestal for ch %2d %s orbit %u %s: %f", ich, ChannelNames[ich], mOffsetOrbit, mSource[ich] == PedOr ? "OR" : (mSource[ich] == PedQC ? "QC" : "??"), mOffset[ich]);
+    LOGF(info, "Pedestal for ch %2d %s orbit %u %s: %f", ich, ChannelNames[ich], mOffsetOrbit, mSource[ich] == PedOr ? "OR" : (mSource[ich] == PedQC ? "QC" : "??"), mOffset[ich]);
 #endif
   }
 } // updateOffsets
@@ -543,7 +561,7 @@ void DigiReco::updateOffsets(int ibun)
 void DigiReco::processTrigger(int itdc, int ibeg, int iend)
 {
 #ifdef O2_ZDC_DEBUG
-  LOG(INFO) << __func__ << "(itdc=" << itdc << "[" << ChannelNames[TDCSignal[itdc]] << "] ," << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
+  LOG(info) << __func__ << "(itdc=" << itdc << "[" << ChannelNames[TDCSignal[itdc]] << "] ," << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
 #endif
   // Get reconstruction parameters
   auto& ropt = RecoParamZDC::Instance();
@@ -578,7 +596,7 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
     auto ref_s = mReco[b2].ref[TDCSignal[itdc]]; // reference to subtrahend
     // Check data consistency before computing difference
     if (ref_m == ZDCRefInitVal || ref_s == ZDCRefInitVal) {
-      LOG(FATAL) << "Missing information for bunch crossing";
+      LOG(fatal) << "Missing information for bunch crossing";
       return;
     }
     // TODO: More checks that bunch crossings are indeed consecutive
@@ -595,7 +613,7 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
         // signal peak position
         mReco[b2].fired[itdc] |= mMask[s2];
 #ifdef O2_ZDC_DEBUG
-        LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " Fired @ " << mReco[b2].ir.orbit << "." << mReco[b2].ir.bc << ".s" << s2
+        LOG(info) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " Fired @ " << mReco[b2].ir.orbit << "." << mReco[b2].ir.bc << ".s" << s2
                   << " (" << m[2] << " - (" << s[2] << ")) = " << (m[2] - s[2]) << " > " << thr
                   << " && (" << m[1] << " - (" << s[1] << ")) = " << (m[1] - s[1]) << " > " << thr
                   << " && (s" << s1 << ":" << m[0] << " - (s" << s2 << ":" << s[0] << ")) = " << diff << " > " << thr;
@@ -619,7 +637,7 @@ O2_ZDC_DIGIRECO_FLT DigiReco::getPoint(int itdc, int ibeg, int iend, int i)
 {
   constexpr int nsbun = TSN * NTimeBinsPerBC; // Total number of interpolated points per bunch crossing
   if (i >= mNtot || i < 0) {
-    LOG(FATAL) << "Error addressing TDC itdc=" << itdc << " i=" << i << " mNtot=" << mNtot;
+    LOG(fatal) << "Error addressing TDC itdc=" << itdc << " i=" << i << " mNtot=" << mNtot;
     return std::numeric_limits<float>::infinity();
   }
   // Constant extrapolation at the beginning and at the end of the array
@@ -640,7 +658,7 @@ O2_ZDC_DIGIRECO_FLT DigiReco::getPoint(int itdc, int ibeg, int iend, int i)
       int ip = (i / TSN) % NTimeBinsPerBC;
       int ib = ibeg + (i / TSN) / NTimeBinsPerBC;
       if (ib != ibun) {
-        LOG(FATAL) << "ib=" << ib << " ibun=" << ibun;
+        LOG(fatal) << "ib=" << ib << " ibun=" << ibun;
         return std::numeric_limits<float>::infinity();
       }
       return mChData[mReco[ibun].ref[TDCSignal[itdc]]].data[ip];
@@ -676,7 +694,7 @@ void DigiReco::setPoint(int itdc, int ibeg, int iend, int i)
 {
   constexpr int nsbun = TSN * NTimeBinsPerBC; // Total number of interpolated points per bunch crossing
   if (i >= mNtot || i < 0) {
-    LOG(FATAL) << "Error addressing TDC itdc=" << itdc << " i=" << i << " mNtot=" << mNtot;
+    LOG(fatal) << "Error addressing TDC itdc=" << itdc << " i=" << i << " mNtot=" << mNtot;
     return;
   }
   // Constant extrapolation at the beginning and at the end of the array
@@ -699,7 +717,7 @@ void DigiReco::setPoint(int itdc, int ibeg, int iend, int i)
       int ip = (i / TSN) % NTimeBinsPerBC;
       int ib = ibeg + (i / TSN) / NTimeBinsPerBC;
       if (ib != ibun) {
-        LOG(FATAL) << "ib=" << ib << " ibun=" << ibun;
+        LOG(fatal) << "ib=" << ib << " ibun=" << ibun;
         return;
       }
       mReco[ibun].inter[itdc][isam] = mChData[mReco[ibun].ref[TDCSignal[itdc]]].data[ip];
@@ -734,7 +752,7 @@ void DigiReco::setPoint(int itdc, int ibeg, int iend, int i)
 void DigiReco::interpolate(int itdc, int ibeg, int iend)
 {
 #ifdef O2_ZDC_DEBUG
-  LOG(INFO) << __func__ << "(itdc=" << itdc << "[" << ChannelNames[TDCSignal[itdc]] << "] ," << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
+  LOG(info) << __func__ << "(itdc=" << itdc << "[" << ChannelNames[TDCSignal[itdc]] << "] ," << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
 #endif
   // TODO: get data from preceding time frame
   constexpr int MaxTimeBin = NTimeBinsPerBC - 1; //< number of samples per BC
@@ -753,7 +771,7 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
   for (int ibun = ibeg; ibun <= iend; ibun++) {
     auto ref = mReco[ibun].ref[TDCSignal[itdc]];
     if (ref == ZDCRefInitVal) {
-      LOG(FATAL) << "Missing information for bunch crossing";
+      LOG(fatal) << "Missing information for bunch crossing";
     }
   }
 
@@ -895,7 +913,7 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
         if (mSource[ich] != PedND) {
           amp = mOffset[ich] - amp;
         } else {
-          LOGF(ERROR, "%u.%-4d Missing pedestal for TDC %d %s ", mBCData[ibun].ir.orbit, mBCData[ibun].ir.bc, itdc, ChannelNames[TDCSignal[itdc]]);
+          LOGF(error, "%u.%-4d Missing pedestal for TDC %d %s ", mBCData[ibun].ir.orbit, mBCData[ibun].ir.bc, itdc, ChannelNames[TDCSignal[itdc]]);
           amp = std::numeric_limits<float>::infinity();
         }
         int tdc = isam_amp % nsbun;
@@ -930,7 +948,7 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
       if (mSource[ich] != PedND) {
         amp = mOffset[ich] - amp;
       } else {
-        LOGF(ERROR, "%u.%-4d Missing pedestal for TDC %d %s ", mBCData[ibun].ir.orbit, mBCData[ibun].ir.bc, itdc, ChannelNames[TDCSignal[itdc]]);
+        LOGF(error, "%u.%-4d Missing pedestal for TDC %d %s ", mBCData[ibun].ir.orbit, mBCData[ibun].ir.bc, itdc, ChannelNames[TDCSignal[itdc]]);
         amp = std::numeric_limits<float>::infinity();
       }
       int tdc = isam_amp % nsbun;
@@ -958,11 +976,11 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
     tdc_cor = tdc_cor - nsbun;
   }
   if (tdc_cor < kMinShort) {
-    LOG(ERROR) << "TDC " << itdc << " " << tdc_cor << " is out of range";
+    LOG(error) << "TDC " << itdc << " " << tdc_cor << " is out of range";
     tdc_cor = kMinShort;
   }
   if (tdc_cor > kMaxShort) {
-    LOG(ERROR) << "TDC " << itdc << " " << tdc_cor << " is out of range";
+    LOG(error) << "TDC " << itdc << " " << tdc_cor << " is out of range";
     tdc_cor = kMaxShort;
   }
 
@@ -978,7 +996,7 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
     rec.tdcVal[itdc][ihit] = tdc_cor;
     rec.tdcAmp[itdc][ihit] = myamp;
   } else {
-    LOG(ERROR) << rec.ir.orbit << "." << rec.ir.bc << " "
+    LOG(error) << rec.ir.orbit << "." << rec.ir.bc << " "
                << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp * FTDCAmp << " OVERFLOW";
   }
 #endif
@@ -995,7 +1013,7 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
     rec.tdcPedMissing[ich] = true;
   }
 #ifdef O2_ZDC_DEBUG
-  LOG(INFO) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc
+  LOG(info) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc
             << " ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp << " -> " << myamp
             << " pedSrc = " << mSource[ich];
 #endif

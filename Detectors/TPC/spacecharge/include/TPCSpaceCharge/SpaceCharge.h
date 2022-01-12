@@ -173,8 +173,9 @@ class SpaceCharge
 
   /// step 5: calculate global distortions by using the electric field or the local distortions (SLOW)
   /// \param formulaStruct struct containing a method to evaluate the electric field Er, Ez, Ephi or the local distortions
+  /// \param maxIterations maximum steps which are are performed to reach the central electrode (in general this is not necessary, but in case of problems this value aborts the calculation)
   template <typename Fields = AnalyticalFields<DataT>>
-  void calcGlobalDistortions(const Fields& formulaStruct);
+  void calcGlobalDistortions(const Fields& formulaStruct, const int maxIterations = 3 * sSteps * mParamGrid.NZVertices);
 
   void init();
 
@@ -766,6 +767,13 @@ class SpaceCharge
   inline static auto& mParamGrid = ParameterSpaceCharge::Instance(); ///< parameters of the grid on which the calculations are performed
   inline static int sNThreads{omp_get_max_threads()};                ///< number of threads which are used during the calculations
 
+  /// check if the addition of two values are close to zero.
+  /// This avoids errors during the integration of the electric fields when the sum of the nominal electric with the electric field from the space charge is close to 0 (usually this is not the case!).
+  bool isCloseToZero(const DataT valA, const DataT valB) const
+  {
+    return std::abs(valA + valB) < static_cast<DataT>(0.01);
+  }
+
   inline static IntegrationStrategy sNumericalIntegrationStrategy{IntegrationStrategy::SimpsonIterative}; ///< numerical integration strategy of integration of the E-Field: 0: trapezoidal, 1: Simpson, 2: Root (only for analytical formula case)
   inline static int sSimpsonNIteratives{3};                                                               ///< number of iterations which are performed in the iterative simpson calculation of distortions/corrections
   inline static int sSteps{1};                                                                            ///< during the calculation of the corrections/distortions it is assumed that the electron drifts on a line from deltaZ = z0 -> z1. The value sets the deltaZ width: 1: deltaZ=zBin/1, 5: deltaZ=zBin/5
@@ -909,7 +917,7 @@ class SpaceCharge
   }
 
   /// dump the created electron tracks with calculateElectronDriftPath function to a tree
-  void dumpElectronTracksToTree(const std::vector<std::vector<GlobalPosition3D>>& electronTracks, const int nSamplingPoints, const char* outFile) const;
+  void dumpElectronTracksToTree(const std::vector<std::pair<std::vector<o2::math_utils::Point3D<float>>, std::array<DataT, 3>>>& electronTracks, const int nSamplingPoints, const char* outFile) const;
 };
 
 ///
@@ -932,8 +940,8 @@ void SpaceCharge<DataT>::integrateEFieldsTrapezoidal(const DataT p1r, const Data
   const DataT fieldephi1 = formulaStruct.evalEphi(p2z, p1r, p1phi);
 
   const DataT ezField = getEzField(formulaStruct.getSide());
-  const DataT eZ0 = (ezField + fieldez0) == 0 ? 0 : 1. / (ezField + fieldez0);
-  const DataT eZ1 = (ezField + fieldez1) == 0 ? 0 : 1. / (ezField + fieldez1);
+  const DataT eZ0 = isCloseToZero(ezField, fieldez0) ? 0 : 1. / (ezField + fieldez0);
+  const DataT eZ1 = isCloseToZero(ezField, fieldez1) ? 0 : 1. / (ezField + fieldez1);
 
   const DataT deltaX = 0.5 * (p2z - p1z);
   localIntErOverEz = deltaX * (fielder0 * eZ0 + fielder1 * eZ1);
@@ -958,12 +966,12 @@ void SpaceCharge<DataT>::integrateEFieldsSimpson(const DataT p1r, const DataT p1
   const DataT ezField = getEzField(formulaStruct.getSide());
   const DataT xk2N = (p2z - static_cast<DataT>(0.5) * deltaX);
   const DataT ezField2 = formulaStruct.evalEz(xk2N, p1r, p1phi);
-  const DataT ezField2Denominator = (ezField + ezField2) == 0 ? 0 : 1. / (ezField + ezField2);
+  const DataT ezField2Denominator = isCloseToZero(ezField, ezField2) ? 0 : 1. / (ezField + ezField2);
   const DataT fieldSum2ErOverEz = formulaStruct.evalEr(xk2N, p1r, p1phi) * ezField2Denominator;
   const DataT fieldSum2EphiOverEz = formulaStruct.evalEphi(xk2N, p1r, p1phi) * ezField2Denominator;
 
-  const DataT eZ0 = (ezField + fieldez0) == 0 ? 0 : 1. / (ezField + fieldez0);
-  const DataT eZ1 = (ezField + fieldez1) == 0 ? 0 : 1. / (ezField + fieldez1);
+  const DataT eZ0 = isCloseToZero(ezField, fieldez0) ? 0 : 1. / (ezField + fieldez0);
+  const DataT eZ1 = isCloseToZero(ezField, fieldez1) ? 0 : 1. / (ezField + fieldez1);
 
   const DataT deltaXSimpsonSixth = deltaX / 6.;
   localIntErOverEz = deltaXSimpsonSixth * (4. * fieldSum2ErOverEz + fielder0 * eZ0 + fielder1 * eZ1);
@@ -988,15 +996,15 @@ void SpaceCharge<DataT>::integrateEFieldsSimpsonIterative(const DataT p1r, const
   const DataT fieldez1 = formulaStruct.evalEz(p2z, p2r, p2phiSave);
   const DataT fieldephi1 = formulaStruct.evalEphi(p2z, p2r, p2phiSave);
 
-  const DataT eZ0Inv = (ezField + fieldez0) == 0 ? 0 : 1. / (ezField + fieldez0);
-  const DataT eZ1Inv = (ezField + fieldez1) == 0 ? 0 : 1. / (ezField + fieldez1);
+  const DataT eZ0Inv = isCloseToZero(ezField, fieldez0) ? 0 : 1. / (ezField + fieldez0);
+  const DataT eZ1Inv = isCloseToZero(ezField, fieldez1) ? 0 : 1. / (ezField + fieldez1);
 
   const DataT pHalfZ = 0.5 * (p1z + p2z);                              // dont needs to be regulated since p1z and p2z are already regulated
   const DataT pHalfPhiSave = regulatePhi(0.5 * (p1phi + p2phi), side); // needs to be regulated since p2phi is not regulated
   const DataT pHalfR = 0.5 * (p1r + p2r);
 
   const DataT ezField2 = formulaStruct.evalEz(pHalfZ, pHalfR, pHalfPhiSave);
-  const DataT eZHalfInv = (ezField + ezField2) == 0 ? 0 : 1. / (ezField + ezField2);
+  const DataT eZHalfInv = (isCloseToZero(ezField, ezField2) | isCloseToZero(ezField, fieldez0) | isCloseToZero(ezField, fieldez1)) ? 0 : 1. / (ezField + ezField2);
   const DataT fieldSum2ErOverEz = formulaStruct.evalEr(pHalfZ, pHalfR, pHalfPhiSave);
   const DataT fieldSum2EphiOverEz = formulaStruct.evalEphi(pHalfZ, pHalfR, pHalfPhiSave);
 

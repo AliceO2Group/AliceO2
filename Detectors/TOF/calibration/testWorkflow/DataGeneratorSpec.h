@@ -50,7 +50,7 @@ class TFDispatcher : public o2::framework::Task
     for (auto& input : pc.inputs()) {
       auto tfid = header::get<o2::framework::DataProcessingHeader*>(input.header)->startTime;
       if (tfid >= mMaxTF - 1) {
-        LOG(INFO) << "Data generator reached TF " << tfid << ", stopping";
+        LOG(info) << "Data generator reached TF " << tfid << ", stopping";
         pc.services().get<o2::framework::ControlService>().endOfStream();
         pc.services().get<o2::framework::ControlService>().readyToQuit(o2::framework::QuitRequest::Me);
         if (!acceptTF(tfid)) {
@@ -74,10 +74,10 @@ class TFDispatcher : public o2::framework::Task
 
     int targetSlot = (tfid / mNLanes) % mNGen;
     if (targetSlot != mSlot) {
-      LOG(INFO) << "tfid = " << tfid << ", mNLanes = " << mNLanes << ", mNGen = " << mNGen << ", mSlot = " << mSlot << " target slot = " << targetSlot << ": discarded";
+      LOG(info) << "tfid = " << tfid << ", mNLanes = " << mNLanes << ", mNGen = " << mNGen << ", mSlot = " << mSlot << " target slot = " << targetSlot << ": discarded";
       return false;
     }
-    LOG(INFO) << "tfid = " << tfid << ", mNLanes = " << mNLanes << ", mNGen = " << mNGen << ", mSlot = " << mSlot << " target slot = " << targetSlot << ": accepted";
+    LOG(info) << "tfid = " << tfid << ", mNLanes = " << mNLanes << ", mNGen = " << mNGen << ", mSlot = " << mSlot << " target slot = " << targetSlot << ": accepted";
     return true;
   }
 
@@ -101,7 +101,7 @@ class TFProcessorCalibInfoTOF : public o2::framework::Task
     gRandom->SetSeed(mDevCopy);
     mTOFChannelCalib = ic.options().get<bool>("do-TOF-channel-calib");
     mTOFChannelCalibInTestMode = ic.options().get<bool>("do-TOF-channel-calib-in-test-mode");
-    LOG(INFO) << "TFProcessorCalibInfoTOFCopy: " << mDevCopy << " MeanLatency: " << mMeanLatency << " LatencyRMS: " << mLatencyRMS << " DoTOFChannelCalib: " << mTOFChannelCalib
+    LOG(info) << "TFProcessorCalibInfoTOFCopy: " << mDevCopy << " MeanLatency: " << mMeanLatency << " LatencyRMS: " << mLatencyRMS << " DoTOFChannelCalib: " << mTOFChannelCalib
               << " DoTOFChannelCalibInTestMode: " << mTOFChannelCalibInTestMode;
 
     for (int i = 0; i < o2::tof::Geo::NCHANNELS; i++) {
@@ -114,7 +114,7 @@ class TFProcessorCalibInfoTOF : public o2::framework::Task
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
     // introduceDelay
     uint32_t delay = std::abs(gRandom->Gaus(mMeanLatency, mLatencyRMS));
-    LOG(INFO) << "TFProcessorCalibInfoTOFCopy: " << mDevCopy << " Simulate latency of " << delay << " mcs for TF " << tfcounter;
+    LOG(info) << "TFProcessorCalibInfoTOFCopy: " << mDevCopy << " Simulate latency of " << delay << " mcs for TF " << tfcounter;
     usleep(delay);
 
     // push dummy output
@@ -155,7 +155,7 @@ class TFProcessorDiagnostic : public o2::framework::Task
 
     mDevCopy = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
     gRandom->SetSeed(mDevCopy);
-    LOG(INFO) << "TFProcessorDiagnosticCopy: " << mDevCopy;
+    LOG(info) << "TFProcessorDiagnosticCopy: " << mDevCopy;
 
     auto size = ic.options().get<int>("n-diag-words"); // number of diagnostic words that we want to simulate; only these will then be present
     mProb.resize(size);
@@ -180,7 +180,7 @@ class TFProcessorDiagnostic : public o2::framework::Task
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
     // introduceDelay
     uint32_t delay = std::abs(gRandom->Gaus(mMeanLatency, mLatencyRMS));
-    LOG(INFO) << "TFProcessorDiagnosticCopy: " << mDevCopy << " Simulate latency of " << delay << " mcs for TF " << tfcounter;
+    LOG(info) << "TFProcessorDiagnosticCopy: " << mDevCopy << " Simulate latency of " << delay << " mcs for TF " << tfcounter;
     usleep(delay);
 
     // push dummy output
@@ -195,7 +195,7 @@ class TFProcessorDiagnostic : public o2::framework::Task
         }
       }
     }
-    LOG(DEBUG) << "diagnostic for TF " << tfcounter << " --> ";
+    LOG(debug) << "diagnostic for TF " << tfcounter << " --> ";
     outputDiagnostic.print();
   }
 
@@ -243,7 +243,7 @@ DataProcessorSpec getTFProcessorDiagnosticSpec(int latency, int latencyRMS)
   return DataProcessorSpec{
     "calib-tf-data-processor",
     Inputs{{"input", "TOF", "DATASIZE"}},
-    Outputs{{{"output"}, "TOF", "DIAGNOSTIC"}},
+    Outputs{{{"output"}, "TOF", "DIAFREQ"}},
     AlgorithmSpec{adaptFromTask<o2::calibration::TFProcessorDiagnostic>(latency, latencyRMS)},
     Options{
       {"n-diag-words", VariantType::Int, 20, {"number of diagnostic words to simulate"}}}};

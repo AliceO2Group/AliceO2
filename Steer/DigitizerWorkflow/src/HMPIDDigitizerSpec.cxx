@@ -55,7 +55,7 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     if (finished) {
       return;
     }
-    LOG(INFO) << "Doing HMPID digitization";
+    LOG(info) << "Doing HMPID digitization";
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
@@ -64,7 +64,7 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
     auto& irecords = context->getEventRecords();
     for (auto& record : irecords) {
-      LOG(INFO) << "HMPID TIME RECEIVED " << record.getTimeNS();
+      LOG(info) << "HMPID TIME RECEIVED " << record.getTimeNS();
     }
 
     auto& eventParts = context->getEventParts();
@@ -77,14 +77,14 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
       mDigits.clear();
       mLabels.clear();
       mDigitizer.flush(mDigits);
-      LOG(INFO) << "HMPID flushed " << mDigits.size() << " digits at this time ";
-      LOG(INFO) << "NUMBER OF LABEL OBTAINED " << mLabels.getNElements();
+      LOG(info) << "HMPID flushed " << mDigits.size() << " digits at this time ";
+      LOG(info) << "NUMBER OF LABEL OBTAINED " << mLabels.getNElements();
       int32_t first = digitsAccum.size(); // this is the first
       std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(digitsAccum));
       labelAccum.mergeAtBack(mLabels);
 
       // save info for the triggers accepted
-      LOG(INFO) << "Trigger  Orbit :" << mDigitizer.getOrbit() << "  BC:" << mDigitizer.getBc();
+      LOG(info) << "Trigger  Orbit :" << mDigitizer.getOrbit() << "  BC:" << mDigitizer.getBc();
       mIntRecord.push_back(o2::hmpid::Trigger(o2::InteractionRecord(mDigitizer.getBc(), mDigitizer.getOrbit()), first, digitsAccum.size() - first));
     };
 
@@ -107,7 +107,7 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
           // get the hits for this event and this source
           std::vector<o2::hmpid::HitType> hits;
           context->retrieveHits(mSimChains, "HMPHit", part.sourceID, part.entryID, &hits);
-          LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found HMP " << hits.size() << " hits ";
+          LOG(info) << "For collision " << collID << " eventID " << part.entryID << " found HMP " << hits.size() << " hits ";
 
           mDigitizer.setLabelContainer(&mLabels);
           mLabels.clear();
@@ -117,7 +117,7 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         }
 
       } else {
-        LOG(INFO) << "COLLISION " << collID << "FALLS WITHIN A DEAD TIME";
+        LOG(info) << "COLLISION " << collID << "FALLS WITHIN A DEAD TIME";
       }
     }
     // final flushing step; getting everything not yet written out
@@ -129,7 +129,7 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     if (pc.outputs().isAllowed({"HMP", "DIGITLBL", 0})) {
       pc.outputs().snapshot(Output{"HMP", "DIGITLBL", 0, Lifetime::Timeframe}, labelAccum);
     }
-    LOG(INFO) << "HMP: Sending ROMode= " << mROMode << " to GRPUpdater";
+    LOG(info) << "HMP: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"HMP", "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
     // we should be only called once; tell DPL that this process is ready to exit

@@ -18,7 +18,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include <cmath>
 #include "CommonConstants/PhysicsConstants.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::parameters;
 using namespace o2::constants::physics;
@@ -29,8 +29,8 @@ using o2::detectors::DetID;
 float GRPObject::getSqrtS() const
 {
   // get center of mass energy
-  double e0 = getBeamEnergyPerNucleon(BeamClockWise);
-  double e1 = getBeamEnergyPerNucleon(BeamAntiClockWise);
+  double e0 = getBeamEnergyPerNucleon(BeamC);
+  double e1 = getBeamEnergyPerNucleon(BeamA);
   if (e0 <= MassProton || e1 <= MassProton) {
     return 0.f;
   }
@@ -53,10 +53,10 @@ void GRPObject::print() const
   t = mTimeEnd; // system_clock::to_time_t(mTimeEnd);
   printf("End  : %s", std::ctime(&t));
   printf("1st orbit: %u, %u orbits per TF\n", mFirstOrbit, mNHBFPerTF);
-  printf("Beam0: Z:A = %3d:%3d, Energy = %.3f\n", getBeamZ(BeamClockWise), getBeamA(BeamClockWise),
-         getBeamEnergyPerNucleon(BeamClockWise));
-  printf("Beam1: Z:A = %3d:%3d, Energy = %.3f\n", getBeamZ(BeamAntiClockWise), getBeamA(BeamAntiClockWise),
-         getBeamEnergyPerNucleon(BeamAntiClockWise));
+  printf("Beam0: Z:A = %3d:%3d, Energy = %.3f\n", getBeamZ(BeamC), getBeamA(BeamC),
+         getBeamEnergyPerNucleon(BeamC));
+  printf("Beam1: Z:A = %3d:%3d, Energy = %.3f\n", getBeamZ(BeamA), getBeamA(BeamA),
+         getBeamEnergyPerNucleon(BeamA));
   printf("sqrt[s]    = %.3f\n", getSqrtS());
   printf("crossing angle (radian) = %e\n", getCrossingAngle());
   printf("magnet currents (A) L3 = %.3f, Dipole = %.f\n", getL3Current(), getDipoleCurrent());
@@ -111,20 +111,18 @@ GRPObject::ROMode GRPObject::getDetROMode(o2::detectors::DetID id) const
 }
 
 //_______________________________________________
-GRPObject* GRPObject::loadFrom(const std::string& grpFileName, const std::string& grpName)
+GRPObject* GRPObject::loadFrom(const std::string& grpFileName)
 {
   // load object from file
   auto fname = o2::base::NameConf::getGRPFileName(grpFileName);
   TFile flGRP(fname.c_str());
   if (flGRP.IsZombie()) {
-    LOG(ERROR) << "Failed to open " << fname;
+    LOG(error) << "Failed to open " << fname;
     throw std::runtime_error("Failed to open GRP file");
   }
-  auto grp = reinterpret_cast<o2::parameters::GRPObject*>(
-    flGRP.GetObjectChecked(grpName.data(), o2::parameters::GRPObject::Class()));
-  if (!grp) {
-    LOG(ERROR) << "Did not find GRP object named " << grpName;
-    throw std::runtime_error("Failed to load GRP object");
+  auto grp = reinterpret_cast<o2::parameters::GRPObject*>(flGRP.GetObjectChecked(o2::base::NameConf::CCDBOBJECT.data(), Class()));
+  if (!grp && !(grp = reinterpret_cast<o2::parameters::GRPObject*>(flGRP.GetObjectChecked("GRP", Class())))) { // for BWD compatibility
+    throw std::runtime_error(fmt::format("Failed to load GRP object from {}", fname));
   }
   return grp;
 }

@@ -10,12 +10,12 @@
 # or submit itself to any jurisdiction.
 
 o2_add_test_root_macro(checkRotation.C
-                       PUBLIC_LINK_LIBRARIES O2::TOFBase
+                       PUBLIC_LINK_LIBRARIES O2::TOFBase O2::DetectorsBase
                        LABELS tof)
 
 o2_add_test_root_macro(convertTreeTo02object.C
                        PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
-		       			     O2::DataFormatsTOF 
+                                             O2::DataFormatsTOF
                        LABELS tof)
 
 o2_add_test_root_macro(drawTOFgeometry.C
@@ -43,14 +43,19 @@ o2_add_test_root_macro(findTOFclusterFromLabel.C
 
 o2_add_test_root_macro(checkTS.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF
-		       LABELS tof)
+                       LABELS tof)
 
 o2_add_test_root_macro(testCCDB.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF
-		       			     O2::TOFCalibration
-		       LABELS tof)
+                                             O2::TOFCalibration
+                       LABELS tof)
 
 o2_add_test_root_macro(checkChannelMapping.C
                        PUBLIC_LINK_LIBRARIES O2::TOFBase
                        LABELS tof)
 
+
+o2_add_test_root_macro(macroEvTime.C
+                       PUBLIC_LINK_LIBRARIES O2::TOFBase
+                                             O2::TOFReconstruction
+                       LABELS tof)

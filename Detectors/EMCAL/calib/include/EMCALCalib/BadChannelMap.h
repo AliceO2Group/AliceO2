@@ -8,6 +8,9 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#ifndef ALICEO2_EMCAL_BADCHANNELMAP
+#define ALICEO2_EMCAL_BADCHANNELMAP
+
 #include <iosfwd>
 #include <bitset>
 #include <Rtypes.h>
@@ -176,3 +179,5 @@ std::ostream& operator<<(std::ostream& in, const BadChannelMap::MaskType_t& mask
 } // namespace emcal
 
 } // namespace o2
+
+#endif

@@ -45,7 +45,7 @@ void PHOSPedestalCalibDevice::run(o2::framework::ProcessingContext& ctx)
   }
 
   auto cells = ctx.inputs().get<gsl::span<o2::phos::Cell>>("cells");
-  LOG(DEBUG) << "[PHOSPedestalCalibDevice - run]  Received " << cells.size() << " cells, running calibration ...";
+  LOG(debug) << "[PHOSPedestalCalibDevice - run]  Received " << cells.size() << " cells, running calibration ...";
   auto cellsTR = ctx.inputs().get<gsl::span<o2::phos::TriggerRecord>>("cellTriggerRecords");
   for (const auto& tr : cellsTR) {
     int firstCellInEvent = tr.getFirstEntry();
@@ -66,7 +66,7 @@ void PHOSPedestalCalibDevice::run(o2::framework::ProcessingContext& ctx)
 void PHOSPedestalCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
 
-  LOG(INFO) << "[PHOSPedestalCalibDevice - endOfStream]";
+  LOG(info) << "[PHOSPedestalCalibDevice - endOfStream]";
   //calculate stuff here
   calculatePedestals();
   checkPedestals();
@@ -85,7 +85,7 @@ void PHOSPedestalCalibDevice::sendOutput(DataAllocator& output)
     info.setMetaData(md);
     auto image = o2::ccdb::CcdbApi::createObjectImage(mPedestals.get(), &info);
 
-    LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName()
+    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
               << " of size " << image->size()
               << " bytes, valid for " << info.getStartValidityTimestamp()
               << " : " << info.getEndValidityTimestamp();
@@ -95,7 +95,7 @@ void PHOSPedestalCalibDevice::sendOutput(DataAllocator& output)
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_Pedestal", subSpec}, info);
   }
   //Anyway send change to QC
-  LOG(INFO) << "[PHOSPedestalCalibDevice - run] Sending QC ";
+  LOG(info) << "[PHOSPedestalCalibDevice - run] Sending QC ";
   output.snapshot(o2::framework::Output{"PHS", "CALIBDIFF", 0, o2::framework::Lifetime::Timeframe}, mPedDiff);
 }
 
@@ -131,8 +131,8 @@ void PHOSPedestalCalibDevice::checkPedestals()
     mUpdateCCDB = true;
     return;
   }
-  LOG(INFO) << "Retrieving current Pedestals from CCDB";
-  //Read current padestals for comarison
+  LOG(info) << "Retrieving current Pedestals from CCDB";
+  //Read current pedestals for comparison
   o2::ccdb::CcdbApi ccdb;
   ccdb.init(mCCDBPath); // or http://localhost:8080 for a local installation
   std::map<std::string, std::string> metadata;
@@ -143,7 +143,7 @@ void PHOSPedestalCalibDevice::checkPedestals()
     return;
   }
 
-  LOG(INFO) << "Got current Pedestals from CCDB";
+  LOG(info) << "Got current Pedestals from CCDB";
 
   //Compare to current
   int nChanged = 0;
@@ -159,11 +159,11 @@ void PHOSPedestalCalibDevice::checkPedestals()
       nChanged++;
     }
   }
-  LOG(INFO) << nChanged << " channels changed more that 1 ADC channel";
+  LOG(info) << nChanged << " channels changed more that 1 ADC channel";
   if (nChanged > kMinorChange) { //serious change, do not update CCDB automatically, use "force" option to overwrite
-    LOG(ERROR) << "too many channels changed: " << nChanged << " (threshold not more than " << kMinorChange << ")";
+    LOG(error) << "too many channels changed: " << nChanged << " (threshold not more than " << kMinorChange << ")";
     if (!mForceUpdate) {
-      LOG(ERROR) << "you may use --forceupdate option to force updating ccdb";
+      LOG(error) << "you may use --forceupdate option to force updating ccdb";
     }
     mUpdateCCDB = false;
   } else {
@@ -180,9 +180,9 @@ o2::framework::DataProcessorSpec o2::phos::getPedestalCalibSpec(bool useCCDB, bo
 
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(o2::header::gDataOriginPHS, "CALIBDIFF", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_Pedestal"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_Pedestal"});
+  outputs.emplace_back(o2::header::gDataOriginPHS, "CALIBDIFF", 0, o2::framework::Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_Pedestal"}, o2::framework::Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_Pedestal"}, o2::framework::Lifetime::Sporadic);
   return o2::framework::DataProcessorSpec{"PedestalCalibSpec",
                                           inputs,
                                           outputs,

@@ -30,6 +30,7 @@
 #include "TPCWorkflow/TPCDistributeIDCSpec.h"
 #include "TPCBase/CRU.h"
 #include "Framework/WorkflowSpec.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 using o2::header::gDataOriginTPC;
@@ -73,8 +74,8 @@ class TPCFourierTransformAggregatorSpec : public o2::framework::Task
     }
 
     if (mProcessedTFs == mTimeFrames) {
-      mTFRange[1] = getCurrentTF(pc); // set the TF for last aggregated TF
-      mProcessedTFs = 0;              // reset processed TFs for next aggregation interval
+      mTFRange[1] = getCurrentTF(pc) + 1; // set the TF for last aggregated TF
+      mProcessedTFs = 0;                  // reset processed TFs for next aggregation interval
 
       // perform fourier transform of 1D-IDCs
       auto intervals = mOneDIDCAggregator.getIntegrationIntervalsPerTF();
@@ -144,7 +145,7 @@ DataProcessorSpec getTPCFourierTransformAggregatorSpec(const std::vector<uint32_
     inputSpecs,
     outputSpecs,
     AlgorithmSpec{adaptFromTask<TPCFourierTransformAggregatorSpec>(crus, timeframes, nFourierCoefficientsStore, rangeIDC, debug, senddebug)},
-    Options{{"ccdb-uri", VariantType::String, "http://ccdb-test.cern.ch:8080", {"URI for the CCDB access."}}}}; // end DataProcessorSpec
+    Options{{"ccdb-uri", VariantType::String, o2::base::NameConf::getCCDBServer(), {"URI for the CCDB access."}}}}; // end DataProcessorSpec
 }
 
 } // namespace o2::tpc

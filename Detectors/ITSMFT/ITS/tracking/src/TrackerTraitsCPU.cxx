@@ -27,6 +27,14 @@
 
 #include "GPUCommonMath.h"
 
+namespace
+{
+float Sq(float q)
+{
+  return q * q;
+}
+} // namespace
+
 namespace o2
 {
 namespace its
@@ -38,8 +46,15 @@ void TrackerTraitsCPU::computeLayerTracklets()
 {
   TimeFrame* tf = mTimeFrame;
 
+#ifdef OPTIMISATION_OUTPUT
+  static int iteration{0};
+  std::ofstream off(fmt::format("tracklets{}.txt", iteration++));
+#endif
+
+  const Vertex diamondVert({mTrkParams.Diamond[0], mTrkParams.Diamond[1], mTrkParams.Diamond[2]}, {25.e-6f, 0.f, 0.f, 25.e-6f, 0.f, 36.f}, 1, 1.f);
+  gsl::span<const Vertex> diamondSpan(&diamondVert, 1);
   for (int rof0{0}; rof0 < tf->getNrof(); ++rof0) {
-    gsl::span<const Vertex> primaryVertices = tf->getPrimaryVertices(rof0);
+    gsl::span<const Vertex> primaryVertices = mTrkParams.UseDiamond ? diamondSpan : tf->getPrimaryVertices(rof0);
     int minRof = (rof0 >= mTrkParams.DeltaROF) ? rof0 - mTrkParams.DeltaROF : 0;
     int maxRof = (rof0 == tf->getNrof() - mTrkParams.DeltaROF) ? rof0 : rof0 + mTrkParams.DeltaROF;
     for (int iLayer{0}; iLayer < mTrkParams.TrackletsPerRoad(); ++iLayer) {
@@ -47,6 +62,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
       if (layer0.empty()) {
         continue;
       }
+      float meanDeltaR{mTrkParams.LayerRadii[iLayer + 1] - mTrkParams.LayerRadii[iLayer]};
 
       const int currentLayerClustersNum{static_cast<int>(layer0.size())};
       for (int iCluster{0}; iCluster < currentLayerClustersNum; ++iCluster) {
@@ -56,15 +72,21 @@ void TrackerTraitsCPU::computeLayerTracklets()
         if (tf->isClusterUsed(iLayer, currentCluster.clusterId)) {
           continue;
         }
+        const float inverseR0{1.f / currentCluster.radius};
 
         for (auto& primaryVertex : primaryVertices) {
-          const float tanLambda{(currentCluster.zCoordinate - primaryVertex.getZ()) / currentCluster.radius};
+          const float resolution = std::sqrt(Sq(mTrkParams.PVres) / primaryVertex.getNContributors() + Sq(tf->getPositionResolution(iLayer)));
+
+          const float tanLambda{(currentCluster.zCoordinate - primaryVertex.getZ()) * inverseR0};
 
           const float zAtRmin{tanLambda * (tf->getMinR(iLayer + 1) - currentCluster.radius) + currentCluster.zCoordinate};
           const float zAtRmax{tanLambda * (tf->getMaxR(iLayer + 1) - currentCluster.radius) + currentCluster.zCoordinate};
 
+          const float sqInverseDeltaZ0{1.f / (Sq(currentCluster.zCoordinate - primaryVertex.getZ()) + 2.e-8f)}; ///protecting from overflows adding the detector resolution
+          const float sigmaZ{std::sqrt(Sq(resolution) * Sq(tanLambda) * ((Sq(inverseR0) + sqInverseDeltaZ0) * Sq(meanDeltaR) + 1.f) + Sq(meanDeltaR * tf->getMSangle(iLayer)))};
+
           const int4 selectedBinsRect{getBinsRect(currentCluster, iLayer, zAtRmin, zAtRmax,
-                                                  mTrkParams.TrackletMaxDeltaZ[iLayer], mTrkParams.TrackletMaxDeltaPhi)};
+                                                  sigmaZ * mTrkParams.NSigmaCut, tf->getPhiCut(iLayer))};
 
           if (selectedBinsRect.x == 0 && selectedBinsRect.y == 0 && selectedBinsRect.z == 0 && selectedBinsRect.w == 0) {
             continue;
@@ -89,7 +111,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
               if constexpr (debugLevel) {
                 if (firstBinIndex < 0 || firstBinIndex > tf->getIndexTables(rof1)[iLayer].size() ||
                     maxBinIndex < 0 || maxBinIndex > tf->getIndexTables(rof1)[iLayer].size()) {
-                  std::cout << iLayer << "\t" << iCluster << "\t" << zAtRmin << "\t" << zAtRmax << "\t" << mTrkParams.TrackletMaxDeltaZ[iLayer] << "\t" << mTrkParams.TrackletMaxDeltaPhi << std::endl;
+                  std::cout << iLayer << "\t" << iCluster << "\t" << zAtRmin << "\t" << zAtRmax << "\t" << sigmaZ * mTrkParams.NSigmaCut << "\t" << tf->getPhiCut(iLayer) << std::endl;
                   std::cout << currentCluster.zCoordinate << "\t" << primaryVertex.getZ() << "\t" << currentCluster.radius << std::endl;
                   std::cout << tf->getMinR(iLayer + 1) << "\t" << currentCluster.radius << "\t" << currentCluster.zCoordinate << std::endl;
                   std::cout << "Illegal access to IndexTable " << firstBinIndex << "\t" << maxBinIndex << "\t" << selectedBinsRect.z << "\t" << selectedBinsRect.x << std::endl;
@@ -109,18 +131,39 @@ void TrackerTraitsCPU::computeLayerTracklets()
                   continue;
                 }
 
+                const float deltaPhi{gpu::GPUCommonMath::Abs(currentCluster.phi - nextCluster.phi)};
                 const float deltaZ{gpu::GPUCommonMath::Abs(tanLambda * (nextCluster.radius - currentCluster.radius) +
                                                            currentCluster.zCoordinate - nextCluster.zCoordinate)};
-                const float deltaPhi{gpu::GPUCommonMath::Abs(currentCluster.phi - nextCluster.phi)};
 
-                if (deltaZ < mTrkParams.TrackletMaxDeltaZ[iLayer] &&
-                    (deltaPhi < mTrkParams.TrackletMaxDeltaPhi ||
-                     gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < mTrkParams.TrackletMaxDeltaPhi)) {
+#ifdef OPTIMISATION_OUTPUT
+                MCCompLabel label;
+                int currentId{currentCluster.clusterId};
+                int nextId{nextCluster.clusterId};
+                for (auto& lab1 : tf->getClusterLabels(iLayer, currentId)) {
+                  for (auto& lab2 : tf->getClusterLabels(iLayer + 1, nextId)) {
+                    if (lab1 == lab2 && lab1.isValid()) {
+                      label = lab1;
+                      break;
+                    }
+                  }
+                  if (label.isValid()) {
+                    break;
+                  }
+                }
+                off << fmt::format("{}\t{:d}\t{}\t{}\t{}\t{}", iLayer, label.isValid(), (tanLambda * (nextCluster.radius - currentCluster.radius) + currentCluster.zCoordinate - nextCluster.zCoordinate) / sigmaZ, tanLambda, resolution, sigmaZ) << std::endl;
+#endif
+
+                if (deltaZ / sigmaZ < mTrkParams.NSigmaCut &&
+                    (deltaPhi < tf->getPhiCut(iLayer) ||
+                     gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < tf->getPhiCut(iLayer))) {
                   if (iLayer > 0) {
                     tf->getTrackletsLookupTable()[iLayer - 1][currentSortedIndex]++;
                   }
-                  tf->getTracklets()[iLayer].emplace_back(currentSortedIndex, tf->getSortedIndex(rof1, iLayer + 1, iNextCluster), currentCluster,
-                                                          nextCluster, rof0, rof1);
+                  const float phi{o2::gpu::GPUCommonMath::ATan2(currentCluster.yCoordinate - nextCluster.yCoordinate,
+                                                                currentCluster.xCoordinate - nextCluster.xCoordinate)};
+                  const float tanL{(currentCluster.zCoordinate - nextCluster.zCoordinate) /
+                                   (currentCluster.radius - nextCluster.radius)};
+                  tf->getTracklets()[iLayer].emplace_back(currentSortedIndex, tf->getSortedIndex(rof1, iLayer + 1, iNextCluster), tanL, phi, rof0, rof1);
                 }
               }
             }
@@ -181,7 +224,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
         int currentId{tf->getClusters()[iLayer][trk.firstClusterIndex].clusterId};
         int nextId{tf->getClusters()[iLayer + 1][trk.secondClusterIndex].clusterId};
         for (auto& lab1 : tf->getClusterLabels(iLayer, currentId)) {
-          for (auto& lab2 : tf->getClusterLabels(iLayer, nextId)) {
+          for (auto& lab2 : tf->getClusterLabels(iLayer + 1, nextId)) {
             if (lab1 == lab2 && lab1.isValid()) {
               label = lab1;
               break;
@@ -199,6 +242,12 @@ void TrackerTraitsCPU::computeLayerTracklets()
 
 void TrackerTraitsCPU::computeLayerCells()
 {
+
+#ifdef OPTIMISATION_OUTPUT
+  static int iteration{0};
+  std::ofstream off(fmt::format("cells{}.txt", iteration++));
+#endif
+
   TimeFrame* tf = mTimeFrame;
   for (int iLayer{0}; iLayer < mTrkParams.CellsPerRoad(); ++iLayer) {
 
@@ -206,6 +255,9 @@ void TrackerTraitsCPU::computeLayerCells()
         tf->getTracklets()[iLayer].empty()) {
       continue;
     }
+
+    float resolution{std::sqrt(Sq(mTrkParams.LayerMisalignment[iLayer]) + Sq(mTrkParams.LayerMisalignment[iLayer + 1]) + Sq(mTrkParams.LayerMisalignment[iLayer + 2])) / mTrkParams.LayerResolution[iLayer]};
+    resolution = resolution > 1.e-12 ? resolution : 1.f;
 
     const int currentLayerTrackletsNum{static_cast<int>(tf->getTracklets()[iLayer].size())};
 
@@ -222,86 +274,29 @@ void TrackerTraitsCPU::computeLayerCells()
         continue;
       }
 
-      const Cluster& cellClus0{tf->getClusters()[iLayer][currentTracklet.firstClusterIndex]};
-      const Cluster& cellClus1{
-        tf->getClusters()[iLayer + 1][currentTracklet.secondClusterIndex]};
-      const float cellClus0R2{cellClus0.radius * cellClus0.radius};
-      const float cellClus1R2{cellClus1.radius * cellClus1.radius};
-      const float3 firstDeltaVector{cellClus1.xCoordinate - cellClus0.xCoordinate,
-                                    cellClus1.yCoordinate - cellClus0.yCoordinate,
-                                    cellClus1R2 - cellClus0R2};
-
       for (int iNextTracklet{nextLayerFirstTrackletIndex}; iNextTracklet < nextLayerLastTrackletIndex; ++iNextTracklet) {
         if (tf->getTracklets()[iLayer + 1][iNextTracklet].firstClusterIndex != nextLayerClusterIndex) {
           break;
         }
         const Tracklet& nextTracklet{tf->getTracklets()[iLayer + 1][iNextTracklet]};
         const float deltaTanLambda{std::abs(currentTracklet.tanLambda - nextTracklet.tanLambda)};
-        const float deltaPhi{std::abs(currentTracklet.phi - nextTracklet.phi)};
+        const float tanLambda{(currentTracklet.tanLambda + nextTracklet.tanLambda) * 0.5f};
 
-        if (deltaTanLambda < mTrkParams.CellMaxDeltaTanLambda &&
-            (deltaPhi < mTrkParams.CellMaxDeltaPhi ||
-             std::abs(deltaPhi - constants::math::TwoPi) < mTrkParams.CellMaxDeltaPhi)) {
+#ifdef OPTIMISATION_OUTPUT
+        bool good{tf->getTrackletsLabel(iLayer)[iTracklet] == tf->getTrackletsLabel(iLayer + 1)[iNextTracklet]};
+        float signedDelta{currentTracklet.tanLambda - nextTracklet.tanLambda};
+        off << fmt::format("{}\t{:d}\t{}\t{}\t{}\t{}", iLayer, good, signedDelta, signedDelta / (mTrkParams.CellDeltaTanLambdaSigma), tanLambda, resolution) << std::endl;
+#endif
 
-          const float averageTanLambda{0.5f * (currentTracklet.tanLambda + nextTracklet.tanLambda)};
-          const float directionZIntersection{-averageTanLambda * cellClus0.radius +
-                                             cellClus0.zCoordinate};
+        if (deltaTanLambda / mTrkParams.CellDeltaTanLambdaSigma < mTrkParams.NSigmaCut) {
 
-          unsigned short romin = std::min(std::min(currentTracklet.rof[0], currentTracklet.rof[1]), nextTracklet.rof[1]);
-          unsigned short romax = std::max(std::max(currentTracklet.rof[0], currentTracklet.rof[1]), nextTracklet.rof[1]);
-          bool deltaZflag{false};
-          gsl::span<const Vertex> primaryVertices{tf->getPrimaryVertices(romin, romax)};
-          for (const auto& primaryVertex : primaryVertices) {
-            deltaZflag |= std::abs(directionZIntersection - primaryVertex.getZ()) < mTrkParams.CellMaxDeltaZ[iLayer];
+          if (iLayer > 0 && tf->getCellsLookupTable()[iLayer - 1].size() <= iTracklet) {
+            tf->getCellsLookupTable()[iLayer - 1].resize(iTracklet + 1, tf->getCells()[iLayer].size());
           }
 
-          if (deltaZflag) {
-
-            const Cluster& thirdCellCluster{
-              tf->getClusters()[iLayer + 2][nextTracklet.secondClusterIndex]};
-
-            const float thirdCellClusterR2{thirdCellCluster.radius *
-                                           thirdCellCluster.radius};
-
-            const float3 secondDeltaVector{thirdCellCluster.xCoordinate - cellClus0.xCoordinate,
-                                           thirdCellCluster.yCoordinate - cellClus0.yCoordinate,
-                                           thirdCellClusterR2 - cellClus0R2};
-
-            float3 cellPlaneNormalVector{math_utils::crossProduct(firstDeltaVector, secondDeltaVector)};
-
-            const float vectorNorm{std::hypot(cellPlaneNormalVector.x, cellPlaneNormalVector.y, cellPlaneNormalVector.z)};
-
-            if (vectorNorm < constants::math::FloatMinThreshold ||
-                std::abs(cellPlaneNormalVector.z) < constants::math::FloatMinThreshold) {
-              continue;
-            }
-
-            const float inverseVectorNorm{1.0f / vectorNorm};
-            const float3 normVect{cellPlaneNormalVector.x * inverseVectorNorm,
-                                  cellPlaneNormalVector.y * inverseVectorNorm,
-                                  cellPlaneNormalVector.z * inverseVectorNorm};
-            const float planeDistance{-normVect.x * (cellClus1.xCoordinate - tf->getBeamX()) - normVect.y * (cellClus1.yCoordinate - tf->getBeamY()) - normVect.z * cellClus1R2};
-            const float normVectZsquare{normVect.z * normVect.z};
-            const float cellRadius{std::sqrt(
-              (1.0f - normVectZsquare - 4.0f * planeDistance * normVect.z) /
-              (4.0f * normVectZsquare))};
-            const float2 circleCenter{-0.5f * normVect.x / normVect.z,
-                                      -0.5f * normVect.y / normVect.z};
-            const float dca{std::abs(cellRadius - std::hypot(circleCenter.x, circleCenter.y))};
-
-            if (dca > mTrkParams.CellMaxDCA[iLayer]) {
-              continue;
-            }
-
-            const float cellTrajectoryCurvature{1.0f / cellRadius};
-            if (iLayer > 0 && tf->getCellsLookupTable()[iLayer - 1].size() <= iTracklet) {
-              tf->getCellsLookupTable()[iLayer - 1].resize(iTracklet + 1, tf->getCells()[iLayer].size());
-            }
-
-            tf->getCells()[iLayer].emplace_back(
-              currentTracklet.firstClusterIndex, nextTracklet.firstClusterIndex, nextTracklet.secondClusterIndex,
-              iTracklet, iNextTracklet, normVect, cellTrajectoryCurvature);
-          }
+          tf->getCells()[iLayer].emplace_back(
+            currentTracklet.firstClusterIndex, nextTracklet.firstClusterIndex, nextTracklet.secondClusterIndex,
+            iTracklet, iNextTracklet, tanLambda);
         }
       }
     }

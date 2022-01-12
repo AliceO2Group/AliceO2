@@ -17,7 +17,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "ITSWorkflow/VertexReaderSpec.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 using namespace o2::its;
@@ -39,7 +39,7 @@ void VertexReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(INFO) << "Pushing " << mVerticesPtr->size() << " vertices in " << mVerticesROFRecPtr->size()
+  LOG(info) << "Pushing " << mVerticesPtr->size() << " vertices in " << mVerticesROFRecPtr->size()
             << " ROFs at entry " << ent;
   pc.outputs().snapshot(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe}, mVertices);
   pc.outputs().snapshot(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe}, mVerticesROFRec);
@@ -61,7 +61,7 @@ void VertexReader::connectTree(const std::string& filename)
   assert(mTree->GetBranch(mVertexROFBranchName.c_str()));
   mTree->SetBranchAddress(mVertexBranchName.c_str(), &mVerticesPtr);
   mTree->SetBranchAddress(mVertexROFBranchName.c_str(), &mVerticesROFRecPtr);
-  LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
+  LOG(info) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getITSVertexReaderSpec()

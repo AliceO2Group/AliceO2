@@ -21,6 +21,7 @@
 
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "ConversionConstants.h"
+#include "VisualisationCluster.h"
 #include "rapidjson/document.h"
 
 #include <iosfwd>
@@ -61,10 +62,14 @@ class VisualisationTrack
     float startXYZ[3];
     float phi = 0;
     float theta = 0;
+    float eta = 0;
+    std::string gid = "";
     o2::dataformats::GlobalTrackID::Source source;
   };
   // Constructor with properties initialisation
   VisualisationTrack(const VisualisationTrackVO& vo);
+
+  VisualisationTrack(const VisualisationTrack& src);
 
   // Add child particle (coming from decay of this particle)
   void addChild(int childID);
@@ -76,10 +81,23 @@ class VisualisationTrack
   int getCharge() const { return mCharge; }
   // PID (particle identification code) getter
   int getPID() const { return mPID; }
+  // GID  getter
+  std::string getGIDAsString() const { return mGID; }
+  // Source Getter
+  o2::dataformats::GlobalTrackID::Source getSource() const { return mSource; }
+  // Phi  getter
+  float getPhi() const { return mPhi; }
+  // Theta  getter
+  float getTheta() const { return mTheta; }
+  //
+  const float* getStartCoordinates() const { return mStartCoordinates; }
 
   size_t getPointCount() const { return mPolyX.size(); }
   std::array<float, 3> getPoint(size_t i) const { return std::array<float, 3>{mPolyX[i], mPolyY[i], mPolyZ[i]}; }
 
+  VisualisationCluster& addCluster(float pos[]);
+  const VisualisationCluster& getCluster(int i) const { return mClusters[i]; };
+  size_t getClusterCount() const { return mClusters.size(); } // Returns number of clusters
  private:
   // Set coordinates of the beginning of the track
   void addStartCoordinates(const float xyz[3]);
@@ -88,11 +106,13 @@ class VisualisationTrack
   int mCharge;                 /// Charge of the particle
 
   int mPID;                    /// PDG code of the particle
+  std::string mGID;            /// String representation of gid
 
-  double mStartCoordinates[3]; /// Vector of track's start coordinates
+  float mStartCoordinates[3]; /// Vector of track's start coordinates
 
-  double mTheta;               /// An angle from Z-axis to the radius vector pointing to the particle
-  double mPhi;                 /// An angle from X-axis to the radius vector pointing to the particle
+  float mTheta; /// An angle from Z-axis to the radius vector pointing to the particle
+  float mPhi;   /// An angle from X-axis to the radius vector pointing to the particle
+  float mEta;
 
   //  std::vector<int> mChildrenIDs; /// Uniqe IDs of children particles
   o2::dataformats::GlobalTrackID::Source mSource; /// data source of the track (debug)
@@ -101,6 +121,8 @@ class VisualisationTrack
   std::vector<float> mPolyX;
   std::vector<float> mPolyY;
   std::vector<float> mPolyZ;
+
+  std::vector<VisualisationCluster> mClusters; /// an array of visualisation clusters belonging to track
 };
 
 } // namespace event_visualisation

@@ -21,6 +21,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "FT0Base/Geometry.h"
 #include "TStopwatch.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 
@@ -42,7 +43,7 @@ class ReconstructionDPL : public Task
 
  private:
   bool mUseMC = false;
-  const std::string mCCDBpath = "http://o2-ccdb.internal/";
+  const std::string mCCDBpath = o2::base::NameConf::getCCDBServer();
   std::vector<o2::ft0::RecPoints> mRecPoints;
   std::vector<o2::ft0::ChannelDataFloat> mRecChData;
   o2::ft0::CollisionTimeRecoTask mReco;
@@ -51,7 +52,7 @@ class ReconstructionDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getReconstructionSpec(bool useMC = false, const std::string ccdbpath = "http://o2-ccdb.internal/");
+framework::DataProcessorSpec getReconstructionSpec(bool useMC = false, const std::string ccdbpath = "http://alice-ccdb.cern.ch");
 
 } // namespace ft0
 } // namespace o2

@@ -205,7 +205,9 @@ void RawPixelDecoder<Mapping>::fillCalibData(CalibContainer& calib)
   if (!mInteractionRecord.isDummy()) {
     auto curSize = calib.size();
     calib.resize(curSize + Mapping::getNRUs());
+    //LOG(INFO) << "Size of mRUDecodeVec: "<<mRUDecodeVec.size();
     for (unsigned int iru = 0; iru < mRUDecodeVec.size(); iru++) {
+      //LOG(INFO) << "iru: "<< iru << " --> Filling calibData in position: "<<curSize + mRUDecodeVec[iru].ruSWID ;
       calib[curSize + mRUDecodeVec[iru].ruSWID] = mRUDecodeVec[iru].calibData;
     }
   }

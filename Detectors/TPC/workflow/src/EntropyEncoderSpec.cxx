@@ -30,9 +30,10 @@ namespace tpc
 void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
 {
   mCTFCoder.setCombineColumns(!ic.options().get<bool>("no-ctf-columns-combining"));
+  mCTFCoder.setMemMarginFactor(ic.options().get<float>("mem-factor"));
   std::string dictPath = ic.options().get<std::string>("ctf-dict");
   if (!dictPath.empty() && dictPath != "none") {
-    mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Encoder);
+    mCTFCoder.createCodersFromFile<CTF>(dictPath, o2::ctf::CTFCoderBase::OpType::Encoder);
   }
 }
 
@@ -43,14 +44,14 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   if (mFromFile) {
     auto tmp = pc.inputs().get<CompressedClustersROOT*>("input");
     if (tmp == nullptr) {
-      LOG(ERROR) << "invalid input";
+      LOG(error) << "invalid input";
       return;
     }
     clusters = *tmp;
   } else {
     auto tmp = pc.inputs().get<CompressedClustersFlat*>("input");
     if (tmp == nullptr) {
-      LOG(ERROR) << "invalid input";
+      LOG(error) << "invalid input";
       return;
     }
     clusters = *tmp;
@@ -65,12 +66,12 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   buffer.resize(encodedBlocks->size());         // shrink buffer to strictly necessary size
   // encodedBlocks->print();
   mTimer.Stop();
-  LOG(INFO) << "Created encoded data of size " << encodedBlocks->size() << " for TPC in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Created encoded data of size " << encodedBlocks->size() << " for TPC in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "TPC Entropy Encoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "TPC Entropy Encoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
@@ -84,7 +85,8 @@ DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile)
     Outputs{{"TPC", "CTFDATA", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(inputFromFile)},
     Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF encoding dictionary"}},
-            {"no-ctf-columns-combining", VariantType::Bool, false, {"Do not combine correlated columns in CTF"}}}};
+            {"no-ctf-columns-combining", VariantType::Bool, false, {"Do not combine correlated columns in CTF"}},
+            {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
 }
 
 } // namespace tpc

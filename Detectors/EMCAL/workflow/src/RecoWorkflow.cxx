@@ -17,7 +17,6 @@
 
 #include "Algorithm/RangeTokenizer.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
-#include "DataFormatsEMCAL/EMCALBlockHeader.h"
 #include "DataFormatsEMCAL/Cell.h"
 #include "DataFormatsEMCAL/Digit.h"
 #include "DataFormatsEMCAL/Cluster.h"
@@ -52,7 +51,8 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                         std::string const& cfgInput,
                                         std::string const& cfgOutput,
                                         bool disableRootInput,
-                                        bool disableRootOutput)
+                                        bool disableRootOutput,
+                                        bool disableDecodingErrors)
 {
 
   const std::unordered_map<std::string, InputType> InputMap{
@@ -125,6 +125,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
       specs.emplace_back(o2::emcal::getPublisherSpec<digitInputType>(PublisherConf{
                                                                        "emcal-digit-reader",
                                                                        "o2sim",
+                                                                       "emcdigits.root",
                                                                        {"digitbranch", "EMCALDigit", "Digit branch"},
                                                                        {"digittriggerbranch", "EMCALDigitTRGR", "Trigger record branch"},
                                                                        {"mcbranch", "EMCALDigitMCTruth", "MC label branch"},
@@ -138,7 +139,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
       try {
         specs.emplace_back(o2::emcal::reco_workflow::getEmcalDigitsPrinterSpec("digits"));
       } catch (std::runtime_error& e) {
-        LOG(ERROR) << "Cannot create digits printer spec: " << e.what();
+        LOG(error) << "Cannot create digits printer spec: " << e.what();
       }
     }
   } else if (inputType == InputType::Cells) {
@@ -147,6 +148,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
       specs.emplace_back(o2::emcal::getPublisherSpec<cellInputType>(PublisherConf{
                                                                       "emcal-cell-reader",
                                                                       "o2sim",
+                                                                      "emccells.root",
                                                                       {"cellbranch", "EMCALCell", "Cell branch"},
                                                                       {"celltriggerbranch", "EMCALCellTRGR", "Trigger record branch"},
                                                                       {"mcbranch", "EMCALCellMCTruth", "MC label branch"},
@@ -159,7 +161,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
       try {
         specs.emplace_back(o2::emcal::reco_workflow::getEmcalDigitsPrinterSpec("cells"));
       } catch (std::runtime_error& e) {
-        LOG(ERROR) << "Cannot create digits printer spec: " << e.what();
+        LOG(error) << "Cannot create digits printer spec: " << e.what();
       }
     }
   }
@@ -184,69 +186,52 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
     specs.emplace_back(o2::emcal::reco_workflow::getAnalysisClusterSpec(inputType == InputType::Digits));
   }
 
-  // check if the process is ready to quit
-  // this is decided upon the meta information in the EMCAL block header, the operation is set
-  // value kNoPayload in case of no data or no operation
-  // see also PublisherSpec.cxx
-  // in this workflow, the EOD is sent after the last real data, and all inputs will receive EOD,
-  // so it is enough to check on the first occurence
-  // FIXME: this will be changed once DPL can propagate control events like EOD
-  auto checkReady = [](o2::framework::DataRef const& ref) {
-    auto const* emcalheader = o2::framework::DataRefUtils::getHeader<o2::emcal::EMCALBlockHeader*>(ref);
-    // sector number -1 indicates end-of-data
-    if (emcalheader != nullptr) {
-      // indicate normal processing if not ready and skip if ready
-      if (!emcalheader->mHasPayload) {
-        return std::make_tuple(o2::framework::MakeRootTreeWriterSpec::TerminationCondition::Action::SkipProcessing, true);
-      }
-    }
-    return std::make_tuple(o2::framework::MakeRootTreeWriterSpec::TerminationCondition::Action::DoProcessing, false);
-  };
-
-  auto makeWriterSpec = [propagateMC, checkReady](const char* processName, const char* defaultFileName, const char* defaultTreeName,
-                                                  auto&& databranch, auto&& triggerbranch, auto&& mcbranch) {
+  auto makeWriterSpec = [propagateMC](const char* processName, const char* defaultFileName, const char* defaultTreeName,
+                                      auto&& databranch, auto&& triggerbranch, auto&& mcbranch) {
     // depending on the MC propagation flag, the RootTreeWriter spec is created with two
     // or one branch definition
     if (propagateMC) {
       return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
-                                                             o2::framework::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
                                                              std::move(databranch),
                                                              std::move(triggerbranch),
                                                              std::move(mcbranch)));
     }
     return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
-                                                           o2::framework::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
                                                            std::move(databranch),
                                                            std::move(triggerbranch)));
   };
 
   // TODO: Write comment in push comment @matthiasrichter
-  auto makeWriterSpec_Cluster = [checkReady](const char* processName, const char* defaultFileName, const char* defaultTreeName,
-                                             auto&& clusterbranch, auto&& digitindicesbranch, auto&& clustertriggerbranch, auto&& indicestriggerbranch) {
+  auto makeWriterSpec_Cluster = [](const char* processName, const char* defaultFileName, const char* defaultTreeName,
+                                   auto&& clusterbranch, auto&& digitindicesbranch, auto&& clustertriggerbranch, auto&& indicestriggerbranch) {
     // RootTreeWriter spec is created with one branch definition
     return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
-                                                           o2::framework::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
                                                            std::move(clusterbranch),
                                                            std::move(digitindicesbranch),
                                                            std::move(clustertriggerbranch),
                                                            std::move(indicestriggerbranch)));
   };
 
-  auto makeWriterSpec_AnalysisCluster = [checkReady](const char* processName, const char* defaultFileName, const char* defaultTreeName,
-                                                     auto&& analysisclusterbranch) {
+  auto makeWriterSpec_AnalysisCluster = [](const char* processName, const char* defaultFileName, const char* defaultTreeName,
+                                           auto&& analysisclusterbranch) {
     // RootTreeWriter spec is created with one branch definition
     return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
-                                                           o2::framework::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
                                                            std::move(analysisclusterbranch)));
   };
 
-  auto makeWriterSpec_CellsTR = [checkReady](const char* processName, const char* defaultFileName, const char* defaultTreeName,
-                                             auto&& CellsBranch, auto&& TriggerRecordBranch, auto&& DecoderErrorsBranch) {
+  auto makeWriterSpec_CellsTR = [disableDecodingErrors](const char* processName, const char* defaultFileName, const char* defaultTreeName,
+                                                        auto&& CellsBranch, auto&& TriggerRecordBranch, auto&& DecoderErrorsBranch) {
     return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
-                                                           o2::framework::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
                                                            std::move(CellsBranch),
                                                            std::move(TriggerRecordBranch),
                                                            std::move(DecoderErrorsBranch)));
+  };
+
+  auto makeWriterSpec_CellsTR_noerrors = [](const char* processName, const char* defaultFileName, const char* defaultTreeName,
+                                            auto&& CellsBranch, auto&& TriggerRecordBranch) {
+    return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
+                                                           std::move(CellsBranch),
+                                                           std::move(TriggerRecordBranch)));
   };
   /*
     // RS getting input digits and outputing them under the same outputspec will create dependency loop when piping the workflows
@@ -268,7 +253,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
   }
   */
   if (isEnabled(OutputType::Cells) && !disableRootOutput) {
-    if (inputType == InputType::Digits) {
+    if ((inputType == InputType::Digits) || (inputType == InputType::Cells)) {
       using DigitOutputType = std::vector<o2::emcal::Cell>;
       using TriggerOutputType = std::vector<o2::emcal::TriggerRecord>;
       specs.push_back(makeWriterSpec("emcal-cells-writer", "emccells.root", "o2sim",
@@ -284,19 +269,32 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
     } else {
       using CellsDataType = std::vector<o2::emcal::Cell>;
       using TriggerRecordDataType = std::vector<o2::emcal::TriggerRecord>;
-      using DecoderErrorsDataType = std::vector<o2::emcal::ErrorTypeFEE>;
-      specs.push_back(makeWriterSpec_CellsTR("emcal-cells-writer",
-                                             "emccells.root",
-                                             "o2sim",
-                                             BranchDefinition<CellsDataType>{o2::framework::InputSpec{"data", "EMC", "CELLS", 0},
-                                                                             "EMCALCell",
-                                                                             "cell-branch-name"},
-                                             BranchDefinition<TriggerRecordDataType>{o2::framework::InputSpec{"trigger", "EMC", "CELLSTRGR", 0},
-                                                                                     "EMCALCellTRGR",
-                                                                                     "celltrigger-branch-name"},
-                                             BranchDefinition<DecoderErrorsDataType>{o2::framework::InputSpec{"errors", "EMC", "DECODERERR", 0},
-                                                                                     "EMCALDECODERERR",
-                                                                                     "decodererror-branch-name"})());
+      if (disableDecodingErrors) {
+        specs.push_back(makeWriterSpec_CellsTR_noerrors("emcal-cells-writer",
+                                                        "emccells.root",
+                                                        "o2sim",
+                                                        BranchDefinition<CellsDataType>{o2::framework::InputSpec{"data", "EMC", "CELLS", 0},
+                                                                                        "EMCALCell",
+                                                                                        "cell-branch-name"},
+                                                        BranchDefinition<TriggerRecordDataType>{o2::framework::InputSpec{"trigger", "EMC", "CELLSTRGR", 0},
+                                                                                                "EMCALCellTRGR",
+                                                                                                "celltrigger-branch-name"})());
+
+      } else {
+        using DecoderErrorsDataType = std::vector<o2::emcal::ErrorTypeFEE>;
+        specs.push_back(makeWriterSpec_CellsTR("emcal-cells-writer",
+                                               "emccells.root",
+                                               "o2sim",
+                                               BranchDefinition<CellsDataType>{o2::framework::InputSpec{"data", "EMC", "CELLS", 0},
+                                                                               "EMCALCell",
+                                                                               "cell-branch-name"},
+                                               BranchDefinition<TriggerRecordDataType>{o2::framework::InputSpec{"trigger", "EMC", "CELLSTRGR", 0},
+                                                                                       "EMCALCellTRGR",
+                                                                                       "celltrigger-branch-name"},
+                                               BranchDefinition<DecoderErrorsDataType>{o2::framework::InputSpec{"errors", "EMC", "DECODERERR", 0},
+                                                                                       "EMCALDECODERERR",
+                                                                                       "decodererror-branch-name"})());
+      }
     }
   }
 

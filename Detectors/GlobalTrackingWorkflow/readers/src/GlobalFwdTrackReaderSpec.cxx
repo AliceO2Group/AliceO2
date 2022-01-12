@@ -22,7 +22,7 @@
 #include "GlobalTrackingWorkflowReaders/GlobalFwdTrackReaderSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "Framework/SerializationMethods.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include <fairlogger/Logger.h>
 
 using namespace o2::framework;
@@ -63,7 +63,7 @@ void GlobalFwdTrackReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(INFO) << "Pushing " << mTracks.size() << " Global Forward tracks at entry " << ent;
+  LOG(info) << "Pushing " << mTracks.size() << " Global Forward tracks at entry " << ent;
 
   pc.outputs().snapshot(Output{"GLO", "GLFWD", 0, Lifetime::Timeframe}, mTracks);
   if (mUseMC) {
@@ -87,7 +87,7 @@ void GlobalFwdTrackReader::connectTree(const std::string& filename)
   if (mUseMC) {
     mTree->SetBranchAddress("MCTruth", &mLabelsPtr);
   }
-  LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
+  LOG(info) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getGlobalFwdTrackReaderSpec(bool useMC)

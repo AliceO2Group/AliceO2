@@ -112,7 +112,7 @@ void AlignableDetector::acknowledgeNewRun(int run)
 //_________________________________________________________
 void AlignableDetector::updateL2GRecoMatrices()
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  LOG(fatal) << __PRETTY_FUNCTION__ << " is disabled";
   //FIXME(milettri): needs OCDB
   //  // Update L2G matrices used for data reconstruction
   //  //
@@ -134,7 +134,7 @@ void AlignableDetector::updateL2GRecoMatrices()
 void AlignableDetector::applyAlignmentFromMPSol()
 {
   // apply alignment from millepede solution array to reference alignment level
-  LOG(INFO) << "Applying alignment from Millepede solution";
+  LOG(info) << "Applying alignment from Millepede solution";
   for (int isn = getNSensors(); isn--;) {
     getSensor(isn)->applyAlignmentFromMPSol();
   }
@@ -143,7 +143,7 @@ void AlignableDetector::applyAlignmentFromMPSol()
 //_________________________________________________________
 void AlignableDetector::cacheReferenceOCDB()
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  LOG(fatal) << __PRETTY_FUNCTION__ << " is disabled";
   //FIXME(milettri): needs OCDB
   //  // if necessary, detector may fetch here some reference OCDB data
   //  //
@@ -193,7 +193,7 @@ void AlignableDetector::addVolume(AlignableVolume* vol)
 {
   // add volume
   if (getVolume(vol->getSymName())) {
-    LOG(FATAL) << "Volume " << vol->GetName() << " was already added to " << mDetID.getName();
+    LOG(fatal) << "Volume " << vol->GetName() << " was already added to " << mDetID.getName();
   }
   mVolumes.AddLast(vol);
   if (vol->isSensor()) {
@@ -247,7 +247,7 @@ void AlignableDetector::sortSensors()
   // build local tables for internal numbering
   mNSensors = mSensors.GetEntriesFast();
   if (!mNSensors) {
-    LOG(WARNING) << "No sensors defined";
+    LOG(warning) << "No sensors defined";
     return;
   }
   mSensors.Sort();
@@ -312,7 +312,7 @@ void AlignableDetector::initDOFs()
 {
   // initialize free parameters
   if (getInitDOFsDone()) {
-    LOG(FATAL) << "DOFs are already initialized for " << mDetID.getName();
+    LOG(fatal) << "DOFs are already initialized for " << mDetID.getName();
   }
   //
   auto pars = getParVals();
@@ -396,7 +396,7 @@ void AlignableDetector::Print(const Option_t* opt) const
 void AlignableDetector::setAddError(double sigy, double sigz)
 {
   // add syst error to all sensors
-  LOG(INFO) << "Adding sys.error " << std::fixed << std::setprecision(4) << sigy << " " << sigz << " to all sensors";
+  LOG(info) << "Adding sys.error " << std::fixed << std::setprecision(4) << sigy << " " << sigz << " to all sensors";
   mAddError[0] = sigy;
   mAddError[1] = sigz;
   for (int isn = getNSensors(); isn--;) {
@@ -409,7 +409,7 @@ void AlignableDetector::setAddError(double sigy, double sigz)
 void AlignableDetector::setUseErrorParam(int v)
 {
   // set type of points error parameterization
-  LOG(FATAL) << "setUseErrorParam is not implemented for this detector";
+  LOG(fatal) << "setUseErrorParam is not implemented for this detector";
   //
 }
 
@@ -417,14 +417,14 @@ void AlignableDetector::setUseErrorParam(int v)
 void AlignableDetector::updatePointByTrackInfo(AlignmentPoint* pnt, const trackParam_t* t) const
 {
   // update point using specific error parameterization
-  LOG(FATAL) << "If needed, this method has to be implemented for specific detector";
+  LOG(fatal) << "If needed, this method has to be implemented for specific detector";
 }
 
 //____________________________________________
 void AlignableDetector::defineVolumes()
 {
   // define alignment volumes
-  LOG(FATAL) << "defineVolumes method has to be implemented for specific detector";
+  LOG(fatal) << "defineVolumes method has to be implemented for specific detector";
 }
 
 //____________________________________________
@@ -464,7 +464,7 @@ void AlignableDetector::writeCalibrationResults() const
 //______________________________________________________
 void AlignableDetector::writeAlignmentResults() const
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  LOG(fatal) << __PRETTY_FUNCTION__ << " is disabled";
   //FIXME(lettrich): needs OCDB
   //  // store updated alignment
   //  TClonesArray* arr = new TClonesArray("AliAlignObjParams", 10);
@@ -669,7 +669,7 @@ void AlignableDetector::constrainOrphans(const double* sigma, const char* match)
   }
   //
   if (!constr->getNChildren()) {
-    LOG(INFO) << "No volume passed filter " << match;
+    LOG(info) << "No volume passed filter " << match;
     delete constr;
   } else {
     ((TObjArray*)mController->getConstraints())->Add(constr);
@@ -681,7 +681,7 @@ void AlignableDetector::setFreeDOF(int dof)
 {
   // set detector free dof
   if (dof >= kNMaxKalibDOF) {
-    LOG(FATAL) << "Detector CalibDOFs limited to " << kNMaxKalibDOF << ", requested " << dof;
+    LOG(fatal) << "Detector CalibDOFs limited to " << kNMaxKalibDOF << ", requested " << dof;
   }
   mCalibDOF |= 0x1 << dof;
   calcFree();
@@ -692,7 +692,7 @@ void AlignableDetector::fixDOF(int dof)
 {
   // fix detector dof
   if (dof >= kNMaxKalibDOF) {
-    LOG(FATAL) << "Detector CalibDOFs limited to " << kNMaxKalibDOF << ", requested " << dof;
+    LOG(fatal) << "Detector CalibDOFs limited to " << kNMaxKalibDOF << ", requested " << dof;
   }
   mCalibDOF &= ~(0x1 << dof);
   calcFree();

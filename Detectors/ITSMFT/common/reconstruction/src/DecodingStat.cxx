@@ -38,7 +38,7 @@ void ChipStat::addErrors(uint32_t mask, uint16_t chID, int verbosity)
     for (int i = NErrorsDefined; i--;) {
       if (mask & (0x1 << i)) {
         if (verbosity > -1 && (!errorCounts[i] || verbosity > 1)) {
-          LOGP(ERROR, "New error registered on the FEEID:{:#04x}: chip#{}: {}", feeID, chID, ErrNames[i]);
+          LOGP(important, "New error registered on the FEEID:{:#04x}: chip#{}: {}", feeID, chID, ErrNames[i]);
         }
         errorCounts[i]++;
       }
@@ -54,7 +54,7 @@ void ChipStat::addErrors(const ChipPixelData& d, int verbosity)
     for (int i = NErrorsDefined; i--;) {
       if (d.getErrorFlags() & (0x1 << i)) {
         if (verbosity > -1 && (!errorCounts[i] || verbosity > 1)) {
-          LOGP(ERROR, "New error registered on the FEEID:{:#04x} chip#{}: {}{}", feeID, int16_t(d.getChipID()), ErrNames[i], d.getErrorDetails(i));
+          LOGP(important, "New error registered on the FEEID:{:#04x} chip#{}: {}{}", feeID, int16_t(d.getChipID()), ErrNames[i], d.getErrorDetails(i));
         }
         errorCounts[i]++;
       }
@@ -71,12 +71,13 @@ void ChipStat::print(bool skipNoErr, const std::string& pref) const
     nErr += errorCounts[i];
   }
   if (!skipNoErr || nErr) {
-    LOGP(INFO, "{}#{:x} NHits: {}  errors: {}", pref.c_str(), feeID, nHits, nErr);
+    std::string rep = fmt::format("{}#{:#04x} NHits: {}  errors: {}", pref.c_str(), feeID, nHits, nErr);
     for (int i = 0; i < NErrorsDefined; i++) {
       if (!skipNoErr || errorCounts[i]) {
-        LOGP(INFO, "Err.: {}: {}", ErrNames[i].data(), errorCounts[i]);
+        rep += fmt::format(" | Err.: {}: {}", ErrNames[i].data(), errorCounts[i]);
       }
     }
+    LOG(important) << rep;
   }
 }
 
@@ -89,18 +90,26 @@ void GBTLinkDecodingStat::print(bool skipNoErr) const
     nErr += errorCounts[i];
   }
   if (!skipNoErr || nErr) {
-    LOGP(INFO, "FEEID#{%s} Packet States Statistics (total packets: {}, triggers: {})", ruLinkID, nPackets, nTriggers);
+    std::string rep = fmt::format("FEEID#{:#04x} Packet States Statistics (total packets: {}, triggers: {})", ruLinkID, nPackets, nTriggers);
+    bool countsSeen = false;
     for (int i = 0; i < GBTDataTrailer::MaxStateCombinations; i++) {
       if (packetStates[i]) {
+        if (!countsSeen) {
+          countsSeen = true;
+          rep += " | counts for triggers: ";
+        } else {
+          rep += ", ";
+        }
         std::bitset<GBTDataTrailer::NStatesDefined> patt(i);
-        LOGP(INFO, "counts for triggers B{:s}: {}", patt.to_string().c_str(), packetStates[i]);
+        rep += fmt::format("b{:s}: {}", patt.to_string().c_str(), packetStates[i]);
       }
     }
-    LOGP(INFO, "Decoding errors: {}", nErr);
+    rep += fmt::format(" | Decoding errors: {}", nErr);
     for (int i = 0; i < NErrorsDefined; i++) {
       if (!skipNoErr || errorCounts[i]) {
-        LOGF(INFO, "{<}: {}", ErrNames[i].data(), errorCounts[i]);
+        rep += fmt::format(" [{}: {}]", ErrNames[i].data(), errorCounts[i]);
       }
     }
+    LOG(important) << rep;
   }
 }

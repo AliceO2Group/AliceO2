@@ -26,7 +26,7 @@
 #include <TGeoManager.h>
 #include <fstream>
 #include <FairVolume.h>
-#include <DetectorsCommonDataFormats/NameConf.h>
+#include <CommonUtils/NameConf.h>
 #include "SimConfig/SimUserDecay.h"
 
 namespace o2
@@ -143,19 +143,22 @@ bool O2MCApplicationBase::MisalignGeometry()
     }
   }
 
-  // RS We want to store ideal geometry to be able to apply different alignments on the fly
-  // auto b = FairMCApplication::MisalignGeometry();
-
-  // we use this moment to stream our geometry (before other
-  // VMC engine dependent modifications are done)
-
+  // we stream out both unaligned geometry (to allow for
+  // dynamic post-alignment) as well as the aligned version
+  // which can be used by digitization etc. immediately
   auto& confref = o2::conf::SimConfig::Instance();
   auto geomfile = o2::base::NameConf::getGeomFileName(confref.getOutPrefix());
+  // since in general the geometry is a CCDB object, it must be exported under the standard name
+  gGeoManager->SetName(std::string(o2::base::NameConf::CCDBOBJECT).c_str());
   gGeoManager->Export(geomfile.c_str());
 
   // apply alignment for included detectors AFTER exporting ideal geometry
   auto& aligner = o2::base::Aligner::Instance();
-  aligner.applyAlignment(0);
+  aligner.applyAlignment(confref.getTimestamp());
+
+  // export aligned geometry into different file
+  auto alignedgeomfile = o2::base::NameConf::getAlignedGeomFileName(confref.getOutPrefix());
+  gGeoManager->Export(alignedgeomfile.c_str());
 
   // return original return value of misalignment procedure
   return true;
@@ -163,7 +166,7 @@ bool O2MCApplicationBase::MisalignGeometry()
 
 void O2MCApplicationBase::finishEventCommon()
 {
-  LOG(INFO) << "This event/chunk did " << mStepCounter << " steps";
+  LOG(info) << "This event/chunk did " << mStepCounter << " steps";
 
   auto header = static_cast<o2::dataformats::MCEventHeader*>(fMCEventHeader);
   header->getMCEventStats().setNSteps(mStepCounter);
@@ -179,7 +182,7 @@ void O2MCApplicationBase::FinishEvent()
   auto& confref = o2::conf::SimConfig::Instance();
 
   if (confref.isFilterOutNoHitEvents() && header->getMCEventStats().getNHits() == 0) {
-    LOG(INFO) << "Discarding current event due to no hits";
+    LOG(info) << "Discarding current event due to no hits";
     SetSaveCurrentEvent(false);
   }
 
@@ -205,8 +208,8 @@ void O2MCApplicationBase::AddParticles()
   FairMCApplication::AddParticles();
 
   auto& param = o2::conf::SimUserDecay::Instance();
-  LOG(INFO) << "Printing \'SimUserDecay\' parameters";
-  LOG(INFO) << param;
+  LOG(info) << "Printing \'SimUserDecay\' parameters";
+  LOG(info) << param;
 
   // check if there are PDG codes requested for user decay
   if (param.pdglist.empty()) {
@@ -217,7 +220,7 @@ void O2MCApplicationBase::AddParticles()
   std::stringstream ss(param.pdglist);
   int pdg;
   while (ss >> pdg) {
-    LOG(INFO) << "Setting user decay for PDG " << pdg;
+    LOG(info) << "Setting user decay for PDG " << pdg;
     TVirtualMC::GetMC()->SetUserDecay(pdg);
   }
 }
@@ -246,7 +249,7 @@ const T* attachBranch(std::string const& name, FairMQChannel& channel, FairMQPar
   auto mgr = FairRootManager::Instance();
   // check if branch is present
   if (mgr->GetBranchId(name) == -1) {
-    LOG(ERROR) << "Branch " << name << " not found";
+    LOG(error) << "Branch " << name << " not found";
     return nullptr;
   }
   auto data = mgr->InitObjectAs<const T*>(name.c_str());
@@ -281,7 +284,7 @@ void O2MCApplication::SendData()
       ((o2::base::Detector*)det)->attachHits(*mSimDataChannel, simdataparts);
     }
   }
-  LOG(INFO) << "sending message with " << simdataparts.Size() << " parts";
+  LOG(info) << "sending message with " << simdataparts.Size() << " parts";
   mSimDataChannel->Send(simdataparts);
 }
 } // namespace steer

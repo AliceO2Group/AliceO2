@@ -22,13 +22,13 @@ void readZDCDigits(std::string digiFName = "zdcdigits.root")
 
   std::unique_ptr<TFile> digiFile(TFile::Open(digiFName.c_str()));
   if (!digiFile || digiFile->IsZombie()) {
-    LOG(ERROR) << "Failed to open input digits file " << digiFName;
+    LOG(error) << "Failed to open input digits file " << digiFName;
     return;
   }
 
   TTree* digiTree = (TTree*)digiFile->Get("o2sim");
   if (!digiTree) {
-    LOG(ERROR) << "Failed to get digits tree";
+    LOG(error) << "Failed to get digits tree";
     return;
   }
 
@@ -45,15 +45,15 @@ void readZDCDigits(std::string digiFName = "zdcdigits.root")
   for (int ient = 0; ient < digiTree->GetEntries(); ient++) {
     digiTree->GetEntry(ient);
     int nbc = zdcBCData.size();
-    LOG(INFO) << "Entry " << ient << " : " << nbc << " BCs stored";
+    LOG(info) << "Entry " << ient << " : " << nbc << " BCs stored";
     int itrig = 0;
 
     for (int ibc = 0; ibc < nbc; ibc++) {
       const auto& bcd = zdcBCData[ibc];
       if (bcd.triggers) {
-        LOG(INFO) << "Triggered BC " << itrig++;
+        LOG(info) << "Triggered BC " << itrig++;
       } else {
-        LOG(INFO) << "Non-Triggered BC ";
+        LOG(info) << "Non-Triggered BC ";
       }
       bcd.print();
       //

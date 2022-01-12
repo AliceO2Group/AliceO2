@@ -12,11 +12,13 @@
 #define FRAMEWORK_RUN_DATA_PROCESSING_H
 
 #include "Framework/ChannelConfigurationPolicy.h"
+#include "Framework/CallbacksPolicy.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/ConfigurableHelpers.h"
 #include "Framework/DispatchPolicy.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataAllocator.h"
+#include "Framework/SendingPolicy.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/BoostOptionsRetriever.h"
@@ -95,6 +97,9 @@ void defaultConfiguration(std::vector<o2::framework::ServiceSpec>& services)
   }
 }
 
+void defaultConfiguration(std::vector<o2::framework::CallbacksPolicy>& callbacksPolicies) {}
+void defaultConfiguration(std::vector<o2::framework::SendingPolicy>& callbacksPolicies) {}
+
 /// Workflow options which are required by DPL in order to work.
 std::vector<o2::framework::ConfigParamSpec> requiredWorkflowOptions();
 
@@ -137,6 +142,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& specs,
            std::vector<o2::framework::CompletionPolicy> const& completionPolicies,
            std::vector<o2::framework::DispatchPolicy> const& dispatchPolicies,
            std::vector<o2::framework::ResourcePolicy> const& resourcePolicies,
+           std::vector<o2::framework::CallbacksPolicy> const& callbacksPolicies,
+           std::vector<o2::framework::SendingPolicy> const& sendingPolicies,
            std::vector<o2::framework::ConfigParamSpec> const& workflowOptions,
            o2::framework::ConfigContext& configContext);
 
@@ -179,6 +186,16 @@ int mainNoCatch(int argc, char** argv)
   auto defaultResourcePolicies = ResourcePolicy::createDefaultPolicies();
   resourcePolicies.insert(std::end(resourcePolicies), std::begin(defaultResourcePolicies), std::end(defaultResourcePolicies));
 
+  std::vector<CallbacksPolicy> callbacksPolicies;
+  UserCustomizationsHelper::userDefinedCustomization(callbacksPolicies, 0);
+  auto defaultCallbacksPolicies = CallbacksPolicy::createDefaultPolicies();
+  callbacksPolicies.insert(std::end(callbacksPolicies), std::begin(defaultCallbacksPolicies), std::end(defaultCallbacksPolicies));
+
+  std::vector<SendingPolicy> sendingPolicies;
+  UserCustomizationsHelper::userDefinedCustomization(sendingPolicies, 0);
+  auto defaultSendingPolicies = SendingPolicy::createDefaultPolicies();
+  sendingPolicies.insert(std::end(sendingPolicies), std::begin(defaultSendingPolicies), std::end(defaultSendingPolicies));
+
   std::vector<std::unique_ptr<ParamRetriever>> retrievers;
   std::unique_ptr<ParamRetriever> retriever{new BoostOptionsRetriever(true, argc, argv)};
   retrievers.emplace_back(std::move(retriever));
@@ -198,7 +215,9 @@ int mainNoCatch(int argc, char** argv)
   UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
   auto defaultChannelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(configContext);
   channelPolicies.insert(std::end(channelPolicies), std::begin(defaultChannelPolicies), std::end(defaultChannelPolicies));
-  return doMain(argc, argv, specs, channelPolicies, completionPolicies, dispatchPolicies, resourcePolicies, workflowOptions, configContext);
+  return doMain(argc, argv, specs,
+                channelPolicies, completionPolicies, dispatchPolicies,
+                resourcePolicies, callbacksPolicies, sendingPolicies, workflowOptions, configContext);
 }
 
 int main(int argc, char** argv)

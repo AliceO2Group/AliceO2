@@ -27,6 +27,7 @@ fi
 export LC_NUMERIC=C
 export LC_ALL=C
 
+BEAMTYPE=${BEAMTYPE:-PbPb}
 NEvents=${NEvents:-10} #550 for full TF (the number of PbPb events)
 NEventsQED=${NEventsQED:-1000} #35000 for full TF
 NCPUS=$(getNumberOfPhysicalCPUCores)
@@ -44,7 +45,13 @@ SPLITTRDDIGI=${SPLITTRDDIGI:-1}
 NHBPERTF=${NHBPERTF:-128}
 RUNFIRSTORBIT=${RUNFIRSTORBIT:-0}
 FIRSTSAMPLEDORBIT=${FIRSTSAMPLEDORBIT:-0}
-FST_GENERATOR=${FST_GENERATOR:-pythia8hi}
+if [ $BEAMTYPE == "PbPb" ]; then
+  FST_GENERATOR=${FST_GENERATOR:-pythia8hi}
+  FST_COLRATE=${FST_COLRATE:-50000}
+else
+  FST_GENERATOR=${FST_GENERATOR:-pythia8pp}
+  FST_COLRATE=${FST_COLRATE:-400000}
+fi
 FST_MC_ENGINE=${FST_MC_ENGINE:-TGeant4}
 
 [ "$FIRSTSAMPLEDORBIT" -lt "$RUNFIRSTORBIT" ] && FIRSTSAMPLEDORBIT=$RUNFIRSTORBIT
@@ -71,13 +78,18 @@ HBFUTILPARAMS="HBFUtils.nHBFPerTF=${NHBPERTF};HBFUtils.orbitFirst=${RUNFIRSTORBI
 
 ulimit -n 4096 # Make sure we can open sufficiently many files
 [ $? == 0 ] || (echo Failed setting ulimit && exit 1)
-mkdir -p qed
-cd qed
-PbPbXSec="8."
-taskwrapper qedsim.log o2-sim --seed $O2SIMSEED -j $NJOBS -n $NEventsQED -m PIPE ITS MFT FT0 FV0 FDD -g extgen -e ${FST_MC_ENGINE} --configKeyValues '"GeneratorExternal.fileName=$O2_ROOT/share/Generators/external/QEDLoader.C;QEDGenParam.yMin=-7;QEDGenParam.yMax=7;QEDGenParam.ptMin=0.001;QEDGenParam.ptMax=1.;Diamond.width[2]=6."'
-QED2HAD=$(awk "BEGIN {printf \"%.2f\",`grep xSectionQED qedgenparam.ini | cut -d'=' -f 2`/$PbPbXSec}")
-echo "Obtained ratio of QED to hadronic x-sections = $QED2HAD" >> qedsim.log
-cd ..
+
+DIGIQED=
+if [ $BEAMTYPE == "PbPb" ]; then
+  mkdir -p qed
+  cd qed
+  PbPbXSec="8."
+  taskwrapper qedsim.log o2-sim --seed $O2SIMSEED -j $NJOBS -n $NEventsQED -m PIPE ITS MFT FT0 FV0 FDD -g extgen -e ${FST_MC_ENGINE} --configKeyValues '"GeneratorExternal.fileName=$O2_ROOT/share/Generators/external/QEDLoader.C;QEDGenParam.yMin=-7;QEDGenParam.yMax=7;QEDGenParam.ptMin=0.001;QEDGenParam.ptMax=1.;Diamond.width[2]=6."'
+  QED2HAD=$(awk "BEGIN {printf \"%.2f\",`grep xSectionQED qedgenparam.ini | cut -d'=' -f 2`/$PbPbXSec}")
+  echo "Obtained ratio of QED to hadronic x-sections = $QED2HAD" >> qedsim.log
+  cd ..
+  DIGIQED="--simPrefixQED qed/o2sim --qed-x-section-ratio ${QED2HAD}"
+fi
 
 DIGITRDOPTREAL="--configKeyValues \"${HBFUTILPARAMS};TRDSimParams.digithreads=${NJOBS}\" "
 if [ $SPLITTRDDIGI == "1" ]; then
@@ -86,8 +98,8 @@ else
   DIGITRDOPT=$DIGITRDOPTREAL
 fi
 
-taskwrapper sim.log o2-sim --seed $O2SIMSEED -n $NEvents --configKeyValues "Diamond.width[2]=6." -g ${FST_GENERATOR} -e ${FST_MC_ENGINE} -j $NJOBS
-taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents --simPrefixQED qed/o2sim --qed-x-section-ratio ${QED2HAD} ${NOMCLABELS} --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITRDOPT}
+taskwrapper sim.log o2-sim ${FST_BFIELD+--field=}${FST_BFIELD} --seed $O2SIMSEED -n $NEvents --configKeyValues "Diamond.width[2]=6." -g ${FST_GENERATOR} -e ${FST_MC_ENGINE} -j $NJOBS
+taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents ${DIGIQED} ${NOMCLABELS} --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITRDOPT} --interactionRate $FST_COLRATE
 [ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --onlyDet TRD --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root ${DIGITRDOPTREAL}
 touch digiTRD.log_done
 
@@ -118,7 +130,7 @@ taskwrapper cpvraw.log o2-cpv-digi2raw --file-for cru -o raw/CPV
 taskwrapper zdcraw.log o2-zdc-digi2raw --file-for cru -o raw/ZDC
 taskwrapper hmpraw.log o2-hmpid-digits-to-raw-workflow --file-for cru --outdir raw/HMP
 taskwrapper trdraw.log o2-trd-trap2raw -o raw/TRD --fileper halfcru
-taskwrapper ctpraw.log o2-ctp-digi2raw -o raw/CTP --file-per-link
+taskwrapper ctpraw.log o2-ctp-digi2raw -o raw/CTP --file-for cru
 
 cat raw/*/*.cfg > rawAll.cfg
 
@@ -142,27 +154,27 @@ for STAGE in $STAGES; do
 
   ARGS_ALL="--session default"
   DICTCREATION=""
+  export WORKFLOW_PARAMETERS=
   if [[ "$STAGE" = "WITHGPU" ]]; then
     export CREATECTFDICT=0
     export GPUTYPE=CUDA
     export HOSTMEMSIZE=1000000000
     export SYNCMODE=1
     export CTFINPUT=0
-    export SAVECTF=0
   elif [[ "$STAGE" = "ASYNC" ]]; then
     export CREATECTFDICT=0
     export GPUTYPE=CPU
     export SYNCMODE=0
     export HOSTMEMSIZE=$TPCTRACKERSCRATCHMEMORY
     export CTFINPUT=1
-    export SAVECTF=0
+    export WORKFLOW_PARAMETERS="${WORKFLOW_PARAMETERS},AOD"
   else
     export CREATECTFDICT=$SYNCMODEDOCTFDICT
     export GPUTYPE=CPU
     export SYNCMODE=1
     export HOSTMEMSIZE=$TPCTRACKERSCRATCHMEMORY
     export CTFINPUT=0
-    export SAVECTF=1
+    export WORKFLOW_PARAMETERS="${WORKFLOW_PARAMETERS},CTF"
     unset JOBUTILS_JOB_SKIPCREATEDONE
   fi
   export SHMSIZE
@@ -186,7 +198,7 @@ for STAGE in $STAGES; do
     echo "walltime_${STAGE},${TAG} value=${walltime}" >> ${METRICFILE}
 
     # GPU reconstruction (also in CPU version) processing time
-    gpurecotime=`grep "gpu-reconstruction" reco_NOGPU.log | grep -e "Total Wall Time:" | awk '//{printf "%f", $6/1000000}'`
+    gpurecotime=`grep -a "gpu-reconstruction" ${logfile} | grep -e "Total Wall Time:" | awk '//{printf "%f", $6/1000000}'`
     echo "gpurecotime_${STAGE},${TAG} value=${gpurecotime}" >> ${METRICFILE}
 
     # memory
@@ -196,9 +208,9 @@ for STAGE in $STAGES; do
     echo "avgmem_${STAGE},${TAG} value=${avgmem}" >> ${METRICFILE}
 
     # some physics quantities
-    tpctracks=`grep "gpu-reconstruction" ${logfile} | grep -e "found.*track" | awk '//{print $4}'`
+    tpctracks=`grep -a "gpu-reconstruction" ${logfile} | grep -e "found.*track" | awk '//{print $4}'`
     echo "tpctracks_${STAGE},${TAG} value=${tpctracks}" >> ${METRICFILE}
-    tpcclusters=`grep -e "Event has.*TPC Clusters" ${logfile} | awk '//{print $5}'`
+    tpcclusters=`grep -a -e "Event has.*TPC Clusters" ${logfile} | awk '//{print $5}'`
     echo "tpcclusters_${STAGE},${TAG} value=${tpcclusters}" >> ${METRICFILE}
   fi
 done

@@ -25,6 +25,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 using namespace o2::framework;
 
@@ -35,6 +36,9 @@ namespace calibration
 
 class LHCClockCalibDevice : public o2::framework::Task
 {
+  using TimeSlewing = o2::dataformats::CalibTimeSlewingParamTOF;
+  using LHCphase = o2::dataformats::CalibLHCphaseTOF;
+
  public:
   void init(o2::framework::InitContext& ic) final
   {
@@ -45,28 +49,64 @@ class LHCClockCalibDevice : public o2::framework::Task
     mCalibrator = std::make_unique<o2::tof::LHCClockCalibrator>(minEnt, nb);
     mCalibrator->setSlotLength(slotL);
     mCalibrator->setMaxSlotsDelay(delay);
+
+    // calibration objects set to zero
+    mPhase.addLHCphase(0, 0);
+    mPhase.addLHCphase(2000000000, 0);
+
+    TFile* fsleewing = TFile::Open("localTimeSlewing.root");
+    if (fsleewing) {
+      TimeSlewing* ob = (TimeSlewing*)fsleewing->Get("ccdb_object");
+      mTimeSlewing = *ob;
+      return;
+    }
+
+    for (int ich = 0; ich < TimeSlewing::NCHANNELS; ich++) {
+      mTimeSlewing.addTimeSlewingInfo(ich, 0, 0);
+      int sector = ich / TimeSlewing::NCHANNELXSECTOR;
+      int channelInSector = ich % TimeSlewing::NCHANNELXSECTOR;
+      mTimeSlewing.setFractionUnderPeak(sector, channelInSector, 1);
+    }
   }
 
   void run(o2::framework::ProcessingContext& pc) final
   {
+    static const double TFlengthInv = 1E6 / o2::raw::HBFUtils::Instance().getNOrbitsPerTF() / o2::constants::lhc::LHCOrbitMUS;
+
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
     auto data = pc.inputs().get<gsl::span<o2::dataformats::CalibInfoTOF>>("input");
-    LOG(INFO) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
+
+    if (!mcalibTOFapi) {
+      mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), &mPhase, &mTimeSlewing); // TODO: should we replace long(0) with tfcounter defined at the beginning of the method? we need the timestamp of the TF
+      mCalibrator->setCalibTOFapi(mcalibTOFapi);
+    }
+
+    if (data.size() == 0) {
+      return;
+    }
+
+    tfcounter = uint64_t(data[0].getTimestamp() * TFlengthInv);
+    mcalibTOFapi->setTimeStamp(data[0].getTimestamp());
+
+    LOG(info) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
     mCalibrator->process(tfcounter, data);
     sendOutput(pc.outputs());
     const auto& infoVec = mCalibrator->getLHCphaseInfoVector();
-    LOG(INFO) << "Created " << infoVec.size() << " objects for TF " << tfcounter;
+    LOG(info) << "Created " << infoVec.size() << " objects for TF " << tfcounter;
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
-    LOG(INFO) << "Finalizing calibration";
+    LOG(info) << "Finalizing calibration";
     constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
     mCalibrator->checkSlotsToFinalize(INFINITE_TF);
     sendOutput(ec.outputs());
   }
 
  private:
+  o2::tof::CalibTOFapi* mcalibTOFapi = nullptr;
+  LHCphase mPhase;
+  TimeSlewing mTimeSlewing;
   std::unique_ptr<o2::tof::LHCClockCalibrator> mCalibrator;
 
   //________________________________________________________________
@@ -82,7 +122,7 @@ class LHCClockCalibDevice : public o2::framework::Task
     for (uint32_t i = 0; i < payloadVec.size(); i++) {
       auto& w = infoVec[i];
       auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
-      LOG(INFO) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
+      LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
                 << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_LHCphase", i}, *image.get()); // vector<char>
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_LHCphase", i}, w);            // root-serialized
@@ -104,8 +144,8 @@ DataProcessorSpec getLHCClockCalibDeviceSpec()
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_LHCphase"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_LHCphase"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_LHCphase"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_LHCphase"}, Lifetime::Sporadic);
   return DataProcessorSpec{
     "calib-lhcclock-calibration",
     Inputs{{"input", "TOF", "CALIBDATA"}},

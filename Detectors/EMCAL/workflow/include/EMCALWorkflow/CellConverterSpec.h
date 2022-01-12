@@ -15,6 +15,9 @@
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+#include "EMCALBase/Geometry.h"
+#include "EMCALReconstruction/CaloRawFitter.h"
+#include "EMCALReconstruction/AltroHelper.h"
 
 namespace o2
 {
@@ -68,8 +71,15 @@ class CellConverterSpec : public framework::Task
   /// Output MC-truth: {"EMC", "CELLSMCTR", 0, Lifetime::Timeframe}
   void run(framework::ProcessingContext& ctx) final;
 
+ protected:
+  std::vector<o2::emcal::SRUBunchContainer> digitsToBunches(gsl::span<const o2::emcal::Digit> digits);
+
+  std::vector<AltroBunch> findBunches(const std::vector<const o2::emcal::Digit*>& channelDigits);
+
  private:
   bool mPropagateMC = false;                             ///< Switch whether to process MC true labels
+  o2::emcal::Geometry* mGeometry = nullptr;              ///!<! Geometry pointer
+  std::unique_ptr<o2::emcal::CaloRawFitter> mRawFitter;  ///!<! Raw fitter
   std::vector<o2::emcal::Cell> mOutputCells;             ///< Container with output cells
   std::vector<o2::emcal::TriggerRecord> mOutputTriggers; ///< Container with output trigger records
 };

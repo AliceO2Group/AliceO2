@@ -65,7 +65,7 @@ std::ostream& o2::dataformats::operator<<(std::ostream& os, const o2::dataformat
 
 void GlobalTrackID::print() const
 {
-  LOG(INFO) << asString();
+  LOG(info) << asString();
 }
 
 std::string GlobalTrackID::getSourcesNames(GlobalTrackID::mask_t srcm)

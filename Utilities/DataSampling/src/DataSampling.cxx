@@ -40,7 +40,7 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
 {
   std::unique_ptr<ConfigurationInterface> cfg = ConfigurationFactory::getConfiguration(policiesSource);
   if (cfg->getRecursive("").count("dataSamplingPolicies") == 0) {
-    LOG(WARN) << "No \"dataSamplingPolicies\" structure found in the config file. If no Data Sampling is expected, then it is completely fine.";
+    LOG(warn) << "No \"dataSamplingPolicies\" structure found in the config file. If no Data Sampling is expected, then it is completely fine.";
     return;
   }
   auto policiesTree = cfg->getRecursive("dataSamplingPolicies");
@@ -56,7 +56,7 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const boost::p
 
 void DataSampling::DoGenerateInfrastructure(Dispatcher& dispatcher, WorkflowSpec& workflow, const boost::property_tree::ptree& policiesTree, size_t threads, const std::string& host)
 {
-  LOG(DEBUG) << "Generating Data Sampling infrastructure...";
+  LOG(debug) << "Generating Data Sampling infrastructure...";
 
   for (auto&& policyConfig : policiesTree) {
 
@@ -73,11 +73,11 @@ void DataSampling::DoGenerateInfrastructure(Dispatcher& dispatcher, WorkflowSpec
         dispatcher.registerPolicy(std::make_unique<DataSamplingPolicy>(std::move(policy)));
       }
     } catch (const std::exception& ex) {
-      LOG(WARN) << "Could not load the Data Sampling Policy '"
+      LOG(warn) << "Could not load the Data Sampling Policy '"
                 << policyConfig.second.get_optional<std::string>("id").value_or("") << "', because: " << ex.what();
       continue;
     } catch (...) {
-      LOG(WARN) << "Could not load the Data Sampling Policy '"
+      LOG(warn) << "Could not load the Data Sampling Policy '"
                 << policyConfig.second.get_optional<std::string>("id").value_or("") << "'";
       continue;
     }
@@ -95,7 +95,7 @@ void DataSampling::DoGenerateInfrastructure(Dispatcher& dispatcher, WorkflowSpec
 
     workflow.emplace_back(std::move(spec));
   } else {
-    LOG(DEBUG) << "No input to this dispatcher, it won't be added to the workflow.";
+    LOG(debug) << "No input to this dispatcher, it won't be added to the workflow.";
   }
 }
 

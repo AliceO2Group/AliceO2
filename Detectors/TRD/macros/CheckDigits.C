@@ -22,7 +22,7 @@
 #include <TLegend.h>
 
 #include "FairLogger.h"
-#include "TRDBase/SimParam.h"
+#include "TRDSimulation/SimParam.h"
 #include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/Constants.h"
 #endif
@@ -62,8 +62,8 @@ void CheckDigits(std::string digifile = "trddigits.root",
                                         Form("ADC distribution for chamber %d for each time bin;Time bin;ADC", d),
                                         31, -0.5, 30.5);
   }
-
-  LOG(INFO) << nev << " entries found";
+  SimParam simParam;
+  LOG(info) << nev << " entries found";
   for (int iev = 0; iev < nev; ++iev) {
     digitTree->GetEvent(iev);
     for (const auto& digit : *digitCont) {
@@ -76,8 +76,8 @@ void CheckDigits(std::string digifile = "trddigits.root",
       hPad->Fill(col);
       for (int tb = 0; tb < o2::trd::constants::TIMEBINS; ++tb) {
         ADC_t adc = adcs[tb];
-        if (adc == (ADC_t)SimParam::instance()->getADCoutRange()) {
-          // LOG(INFO) << "Out of range ADC " << adc;
+        if (adc == (ADC_t)simParam.getADCoutRange()) {
+          // LOG(info) << "Out of range ADC " << adc;
           continue;
         }
         hADC[det]->Fill(adc);

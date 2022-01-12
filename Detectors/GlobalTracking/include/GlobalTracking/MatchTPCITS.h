@@ -37,6 +37,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "CommonDataFormat/BunchFilling.h"
+#include "CommonDataFormat/Pair.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "DataFormatsITSMFT/Cluster.h"
@@ -49,9 +50,9 @@
 #include "TPCFastTransform.h"
 #include "GPUO2InterfaceRefit.h"
 #include "GlobalTracking/MatchTPCITSParams.h"
-#include "CommonDataFormat/FlatHisto2D.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
+#include "ITSMFTReconstruction/ChipMappingITS.h"
 
 class TTree;
 
@@ -325,6 +326,9 @@ class MatchTPCITS
   void setUseFT0(bool v) { mUseFT0 = v; }
   bool getUseFT0() const { return mUseFT0; }
 
+  void setUseBCFilling(bool v) { mUseBCFilling = v; }
+  bool getUseBCFilling() const { return mUseBCFilling; }
+
   ///< set ITS ROFrame duration in microseconds
   void setITSROFrameLengthMUS(float fums);
   ///< set ITS ROFrame duration in BC (continuous mode only)
@@ -345,9 +349,6 @@ class MatchTPCITS
     mVDriftCalibOn = v;
   }
 
-  ///< get histo for tgl differences for VDrift calibration
-  auto getHistoDTgl() const { return mHistoDTgl.get(); }
-
   ///< print settings
   void print() const;
   void printCandidatesTPC() const;
@@ -358,6 +359,7 @@ class MatchTPCITS
   const MCLabContTr& getABTrackletLabels() const { return mABTrackletLabels; }
   const std::vector<int>& getABTrackletClusterIDs() const { return mABTrackletClusterIDs; }
   const std::vector<o2::itsmft::TrkClusRef>& getABTrackletRefs() const { return mABTrackletRefs; }
+  const std::vector<o2::dataformats::Pair<float, float>>& getTglITSTPC() const { return mTglITSTPC; }
 
   //>>> ====================== options =============================>>>
   void setUseMatCorrFlag(MatCorrType f) { mUseMatCorrFlag = f; }
@@ -392,7 +394,7 @@ class MatchTPCITS
   const std::string& getDebugTreeFileName() const { return mDebugTreeFileName; }
 
   ///< fill matching debug tree
-  void fillTPCITSmatchTree(int itsID, int tpcID, int rejFlag, float chi2 = -1.);
+  void fillTPCITSmatchTree(int itsID, int tpcID, int rejFlag, float chi2 = -1., float tCorr = 0.);
   void dumpWinnerMatches();
 #endif
 
@@ -517,7 +519,7 @@ class MatchTPCITS
   const o2::ft0::InteractionTag* mFT0Params = nullptr;
 
   MatCorrType mUseMatCorrFlag = MatCorrType::USEMatCorrTGeo;
-
+  bool mUseBCFilling = true;  ///< use BC filling for candidates validation
   bool mSkipTPCOnly = false;  ///< for test only: don't use TPC only tracks, use only external ones
   bool mITSTriggered = false; ///< ITS readout is triggered
   bool mUseFT0 = false;       ///< FT0 information is available
@@ -549,7 +551,6 @@ class MatchTPCITS
   float mMinITSTrackPtInv = 999.; ///< cutoff on ITS track inverse pT
 
   bool mVDriftCalibOn = false;                                ///< flag to produce VDrift calibration data
-  std::unique_ptr<o2::dataformats::FlatHisto2D_f> mHistoDTgl; ///< histo for VDrift calibration data
 
   std::unique_ptr<TPCTransform> mTPCTransform;         ///< TPC cluster transformation
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter; ///< TPC refitter used for TPC tracks refit during the reconstruction
@@ -557,6 +558,8 @@ class MatchTPCITS
   o2::BunchFilling mBunchFilling;
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchAbove; // closest filled bunch from above
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchBelow; // closest filled bunch from below
+
+  const o2::itsmft::ChipMappingITS ITSChMap{};
 
   const o2::globaltracking::RecoContainer* mRecoCont = nullptr;
   ///>>>------ these are input arrays which should not be modified by the matching code
@@ -624,6 +627,9 @@ class MatchTPCITS
   ///< outputs tracks container
   std::vector<o2::dataformats::TrackTPCITS> mMatchedTracks;
   MCLabContTr mOutLabels; ///< Labels: = TPC labels with flag isFake set in case of fake matching
+
+  ///< container for <tglITS, tglTPC> pairs for vdrift calibration
+  std::vector<o2::dataformats::Pair<float, float>> mTglITSTPC;
 
   o2::its::RecoGeomHelper mRGHelper; ///< helper for cluster and geometry access
 

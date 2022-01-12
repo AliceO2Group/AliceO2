@@ -85,8 +85,8 @@ class Tracklet64
   GPUd() uint64_t getHCID() const { return ((mtrackletWord & hcidmask) >> hcidbs); };       // no units 0..1077
   GPUd() uint64_t getPadRow() const { return ((mtrackletWord & padrowmask) >> padrowbs); }; // pad row number [0..15]
   GPUd() uint64_t getColumn() const { return ((mtrackletWord & colmask) >> colbs); };       // column refers to MCM position in column direction on readout board [0..3]
-  GPUd() uint64_t getPosition() const { return ((mtrackletWord & posmask) >> posbs); };     // in units of 1/80 pads, 11 bit granularity [-12.8..12.8] relative to MCM center
-  GPUd() uint64_t getSlope() const { return ((mtrackletWord & slopemask) >> slopebs); };    // in units of 1/1000 pads/timebin, 8 bit granularity [-0.128 to 0.128]
+  GPUd() uint64_t getPosition() const { return ((mtrackletWord & posmask) >> posbs) ^ 0x80; };  // in units of 1/80 pads, 11 bit granularity [-12.8..12.8] relative to MCM center
+  GPUd() uint64_t getSlope() const { return ((mtrackletWord & slopemask) >> slopebs) ^ 0x80; }; // in units of 1/1000 pads/timebin, 8 bit granularity [-0.128 to 0.128]
   GPUd() uint64_t getPID() const { return ((mtrackletWord & PIDmask)); };                   // no unit, all 3 charge windows combined
   GPUd() uint64_t getQ0() const { return ((mtrackletWord & Q0mask) >> Q0bs); };             // no unit
   GPUd() uint64_t getQ1() const { return ((mtrackletWord & Q1mask) >> Q1bs); };             // no unit
@@ -97,6 +97,7 @@ class Tracklet64
   // ----- Getters for tracklet information -----
   GPUd() int getMCM() const { return 4 * (getPadRow() % 4) + getColumn(); }                                 // returns MCM position on ROB [0..15]
   GPUd() int getROB() const { return (getHCID() % 2) ? (getPadRow() / 4) * 2 + 1 : (getPadRow() / 4) * 2; } // returns ROB number [0..5] for C0 chamber and [0..7] for C1 chamber
+  GPUd() int getPositionBinSigned() const;
   GPUd() float getUncalibratedY() const;                                                                    // translate local position into global y (in cm) not taking into account calibrations (ExB, vDrift, t0)
   GPUd() float getUncalibratedDy(float nTbDrift = 19.4f) const;                                             // translate local slope into dy/dx with dx=3m (drift length) and default drift time in time bins (19.4 timebins / 3cm)
 
@@ -172,7 +173,7 @@ class Tracklet64
   ClassDefNV(Tracklet64, 1);
 };
 
-GPUdi() float Tracklet64::getUncalibratedY() const
+GPUdi() int Tracklet64::getPositionBinSigned() const
 {
   int padLocalBin = getPosition();
   int padLocal = 0;
@@ -181,7 +182,15 @@ GPUdi() float Tracklet64::getUncalibratedY() const
   } else {
     padLocal = padLocalBin & ((1 << constants::NBITSTRKLPOS) - 1);
   }
+  return padLocal;
+}
+
+GPUdi() float Tracklet64::getUncalibratedY() const
+{
+  int padLocal = getPositionBinSigned();
   int mcmCol = (getMCM() % constants::NMCMROBINCOL) + constants::NMCMROBINCOL * (getROB() % 2);
+  // one pad column has 144 pads, the offset of -63 is the center of the first MCM in that column
+  // which is connected to the pads -63 - 9 = -72 to -63 + 9 = -54
   float offset = -63.f + ((float)constants::NCOLMCM) * mcmCol;
   float padWidth = 0.635f + 0.03f * (getDetector() % constants::NLAYER);
   return (offset + padLocal * constants::GRANULARITYTRKLPOS) * padWidth;

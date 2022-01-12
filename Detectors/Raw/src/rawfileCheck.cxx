@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
   }
 
   RawFileReader::RDH rdh;
-  LOG(INFO) << "RawDataHeader v" << int(rdh.version) << " is assumed";
+  LOG(info) << "RawDataHeader v" << int(rdh.version) << " is assumed";
 
   RawFileReader::ReadoutCardType rocard = vm.count("rorc") ? o2::raw::RawFileReader::ReadoutCardType::RORC : o2::raw::RawFileReader::ReadoutCardType::CRU;
 
@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
     if (vm.count(RawFileReader::nochk_opt(ei).c_str())) { // toggle
       errmap ^= 0x1 << i;
     }
-    LOG(INFO) << ((errmap & (0x1 << i)) ? "apply " : "ignore") << " check for " << RawFileReader::ErrNames[i].data();
+    LOG(info) << ((errmap & (0x1 << i)) ? "apply " : "ignore") << " check for " << RawFileReader::ErrNames[i].data();
   }
 
   if (!config.empty()) {

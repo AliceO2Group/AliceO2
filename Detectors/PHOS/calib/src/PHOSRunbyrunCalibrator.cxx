@@ -56,24 +56,24 @@ void PHOSRunbyrunSlot::print() const
   for (int mod = 0; mod < 4; mod++) {
     s[mod] = boost::histogram::algorithm::sum(mReMi[2 * mod]);
   }
-  LOG(INFO) << "Total number of entries in pi0 region: " << s[0] << "," << s[1] << "," << s[2] << "," << s[3];
+  LOG(info) << "Total number of entries in pi0 region: " << s[0] << "," << s[1] << "," << s[2] << "," << s[3];
 }
 
 void PHOSRunbyrunSlot::fill(const gsl::span<const Cluster>& clusters, const gsl::span<const TriggerRecord>& trs)
 {
   if (!mBadMap) {
     if (mUseCCDB) {
-      LOG(INFO) << "Retrieving BadMap from CCDB";
+      LOG(info) << "Retrieving BadMap from CCDB";
       o2::ccdb::CcdbApi ccdb;
       ccdb.init(mCCDBPath); // or http://localhost:8080 for a local installation
       std::map<std::string, std::string> metadata;
       mBadMap.reset(ccdb.retrieveFromTFileAny<BadChannelsMap>("PHS/Calib/BadChannels", metadata, mRunStartTime));
 
       if (!mBadMap) { //was not read from CCDB, but expected
-        LOG(FATAL) << "Can not read BadMap from CCDB, you may use --not-use-ccdb option to create default bad map";
+        LOG(fatal) << "Can not read BadMap from CCDB, you may use --not-use-ccdb option to create default bad map";
       }
     } else {
-      LOG(INFO) << "Do not use CCDB, create default BadMap";
+      LOG(info) << "Do not use CCDB, create default BadMap";
       mBadMap.reset(new BadChannelsMap());
     }
   }
@@ -122,6 +122,9 @@ void PHOSRunbyrunSlot::merge(const PHOSRunbyrunSlot* prev)
 }
 bool PHOSRunbyrunSlot::checkCluster(const Cluster& clu)
 {
+  if (clu.getEnergy() > 1.e-4) {
+    return false;
+  }
   //First check BadMap
   float posX, posZ;
   clu.getLocalPosition(posX, posZ);
@@ -173,7 +176,7 @@ void PHOSRunbyrunCalibrator::finalizeSlot(Slot& slot)
 
   // Extract results for the single slot
   PHOSRunbyrunSlot* c = slot.getContainer();
-  LOG(INFO) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
+  LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
   //Add histos
   for (int mod = 0; mod < 8; mod++) {
     PHOSRunbyrunSlot::boostHisto& tmp = c->getCollectedHistos(mod);
@@ -201,7 +204,7 @@ bool PHOSRunbyrunCalibrator::process(uint64_t tf, const gsl::span<const Cluster>
   //   int maxDelay = mMaxSlotsDelay * mSlotLength;
   //   //  if (tf<mLastClosedTF || (!mSlots.empty() && getSlot(0).getTFStart() > tf + maxDelay)) { // ignore TF
   //   if (maxDelay != 0 && (tf < mLastClosedTF || (!mSlots.empty() && getLastSlot().getTFStart() > tf + maxDelay))) { // ignore TF
-  //     LOG(INFO) << "Ignoring TF " << tf;
+  //     LOG(info) << "Ignoring TF " << tf;
   //     return false;
   //   }
 

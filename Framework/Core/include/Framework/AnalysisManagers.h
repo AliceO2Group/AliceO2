@@ -12,6 +12,7 @@
 #ifndef FRAMEWORK_ANALYSISMANAGERS_H
 #define FRAMEWORK_ANALYSISMANAGERS_H
 #include "Framework/AnalysisHelpers.h"
+#include "Framework/GroupedCombinations.h"
 #include "Framework/Kernels.h"
 #include "Framework/ASoA.h"
 #include "Framework/ProcessingContext.h"
@@ -28,6 +29,29 @@
 
 namespace o2::framework
 {
+
+template <typename ANY>
+struct GroupedCombinationManager {
+  template <typename TG, typename... T2s>
+  static void setGroupedCombination(ANY&, TG&, T2s&...)
+  {
+  }
+};
+
+template <typename T1, typename GroupingPolicy, typename H, typename G, typename... Us, typename... As>
+struct GroupedCombinationManager<GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<Us...>, As...>> {
+  template <typename TH, typename TG, typename... T2s>
+  static void setGroupedCombination(GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<Us...>, As...>& comb, TH& hashes, TG& grouping, std::tuple<T2s...>& associated)
+  {
+    static_assert(sizeof...(T2s) > 0, "There must be associated tables in process() for a correct pair");
+    static_assert(!soa::is_soa_iterator_t<std::decay_t<H>>::value, "Only full tables can be in process(), no grouping");
+    if constexpr (std::conjunction_v<std::is_same<G, TG>, std::is_same<H, TH>>) {
+      // Take respective unique associated tables for grouping
+      auto associatedTuple = std::tuple<Us...>(std::get<Us>(associated)...);
+      comb.setTables(hashes, grouping, associatedTuple);
+    }
+  }
+};
 
 template <typename ANY>
 struct PartitionManager {
@@ -84,12 +108,6 @@ struct PartitionManager<Partition<T>> {
     if constexpr (o2::soa::is_binding_compatible_v<T, std::decay_t<E>>()) {
       partition.bindInternalIndicesTo(table);
     }
-  }
-
-  template <typename... Ts>
-  static void getBoundToExternalIndices(Partition<T>& partition, Ts&... tables)
-  {
-    partition.getBoundToExternalIndices(tables...);
   }
 
   static void updatePlaceholders(Partition<T>& partition, InitContext& context)
@@ -299,28 +317,28 @@ static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingConte
   return std::make_tuple(extractTypedOriginal<Os>(pc)...);
 }
 
-template <typename T, typename P>
-struct OutputManager<Builds<T, P>> {
-  static bool appendOutput(std::vector<OutputSpec>& outputs, Builds<T, P>& what, uint32_t)
+template <typename T>
+struct OutputManager<Builds<T>> {
+  static bool appendOutput(std::vector<OutputSpec>& outputs, Builds<T>& what, uint32_t)
   {
     outputs.emplace_back(what.spec());
     return true;
   }
 
-  static bool prepare(ProcessingContext& pc, Builds<T, P>& what)
+  static bool prepare(ProcessingContext& pc, Builds<T>& what)
   {
     return what.build(what.pack(),
-                      extractTypedOriginal<typename Builds<T, P>::Key>(pc),
+                      extractTypedOriginal<typename Builds<T>::Key>(pc),
                       extractOriginalsTuple(what.originals_pack(), pc));
   }
 
-  static bool finalize(ProcessingContext& pc, Builds<T, P>& what)
+  static bool finalize(ProcessingContext& pc, Builds<T>& what)
   {
     pc.outputs().adopt(what.output(), what.asArrowTable());
     return true;
   }
 
-  static bool postRun(EndOfStreamContext&, Builds<T, P>&)
+  static bool postRun(EndOfStreamContext&, Builds<T>&)
   {
     return true;
   }
@@ -492,9 +510,9 @@ struct IndexManager {
   static bool requestInputs(std::vector<InputSpec>&, T const&) { return false; };
 };
 
-template <typename IDX, typename P>
-struct IndexManager<Builds<IDX, P>> {
-  static bool requestInputs(std::vector<InputSpec>& inputs, Builds<IDX, P>& builds)
+template <typename IDX>
+struct IndexManager<Builds<IDX>> {
+  static bool requestInputs(std::vector<InputSpec>& inputs, Builds<IDX>& builds)
   {
     auto base_specs = builds.base_specs();
     for (auto& base_spec : base_specs) {

@@ -293,7 +293,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
           dataProcessors.back().inputs.push_back(InputSpec(binding, {origin, description}, lifetime, inputOptions));
         }
       } else {
-        LOG(ERROR) << "Input w/o description but with subspec is not supported";
+        LOG(error) << "Input w/o description but with subspec is not supported";
       }
 
       inputOptions.clear();
@@ -375,6 +375,9 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
           break;
         case VariantType::LabeledArrayDouble:
           opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::LabeledArrayDouble>(is), HelpString{optionHelp}, optionKind);
+          break;
+        case VariantType::Dict:
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, emptyDict(), HelpString{optionHelp}, optionKind);
           break;
         default:
           opt = std::make_unique<ConfigParamSpec>(optionName, optionType, optionDefault, HelpString{optionHelp}, optionKind);
@@ -700,7 +703,7 @@ bool WorkflowSerializationHelpers::import(std::istream& s,
       }
       std::cout << buf << std::endl;
     } else {
-      LOG(ERROR) << buf;
+      LOG(error) << buf;
     }
   }
   if (hasFatalImportError) {
@@ -840,6 +843,7 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
         case VariantType::LabeledArrayInt:
         case VariantType::LabeledArrayFloat:
         case VariantType::LabeledArrayDouble:
+        case VariantType::Dict:
           VariantJSONHelpers::write(oss, option.defaultValue);
           break;
         default:

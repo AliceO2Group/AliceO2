@@ -99,7 +99,7 @@ std::vector<uint32_t> CTPRunScalers::getClassIndexes() const
 }
 int CTPRunScalers::readScalers(const std::string& rawscalers)
 {
-  LOG(INFO) << "Loading CTP scalers.";
+  LOG(info) << "Loading CTP scalers.";
   std::istringstream iss(rawscalers);
   int ret = 0;
   int level = 0;
@@ -114,12 +114,12 @@ int CTPRunScalers::readScalers(const std::string& rawscalers)
     nlines++;
   }
   if (nlines < 4) {
-    LOG(ERROR) << "Input string seems too small:\n"
+    LOG(error) << "Input string seems too small:\n"
                << rawscalers;
     return 6;
   }
   if (nclasses != 0) {
-    LOG(ERROR) << "Wrong number of classes in final record";
+    LOG(error) << "Wrong number of classes in final record";
     return 6;
   }
   return 0;
@@ -142,7 +142,7 @@ int CTPRunScalers::processScalerLine(const std::string& line, int& level, int& n
   // Version
   if (level == 0) {
     if (ntokens != 1) {
-      LOG(ERROR) << "Expected version in the first line";
+      LOG(error) << "Expected version in the first line";
       return 1;
     } else {
       mVersion = std::stoi(tokens[0]);
@@ -153,13 +153,13 @@ int CTPRunScalers::processScalerLine(const std::string& line, int& level, int& n
   // Run Number N Classes [class indexes]
   if (level == 1) {
     if (ntokens < 3) {
-      LOG(ERROR) << "Wrong syntax of second line in CTP scalers";
+      LOG(error) << "Wrong syntax of second line in CTP scalers";
       return 2;
     } else {
       mRunNumber = std::stol(tokens[0]);
       int numofclasses = std::stoi(tokens[1]);
       if ((numofclasses + 2) != ntokens) {
-        LOG(ERROR) << "Wrong syntax of second line in CTP scalers";
+        LOG(error) << "Wrong syntax of second line in CTP scalers";
         return 3;
       }
       mClassMask.reset();
@@ -175,7 +175,7 @@ int CTPRunScalers::processScalerLine(const std::string& line, int& level, int& n
   // Time stamp: orbit bcid linuxtime
   if (level == 2) {
     if (ntokens != 4) {
-      LOG(ERROR) << "Wrong syntax of time stamp line in CTP scalers";
+      LOG(error) << "Wrong syntax of time stamp line in CTP scalers";
       return 4;
     } else {
       CTPScalerRecordRaw rec;
@@ -190,7 +190,7 @@ int CTPRunScalers::processScalerLine(const std::string& line, int& level, int& n
   }
   if (level == 3) {
     if (ntokens != 6) {
-      LOG(ERROR) << "Wrong syntax of counters line in CTP scalers";
+      LOG(error) << "Wrong syntax of counters line in CTP scalers";
       return 5;
     } else {
       //std::cout << "nclasses:" << nclasses << std::endl;
@@ -243,7 +243,7 @@ int CTPRunScalers::convertRawToO2()
 int CTPRunScalers::copyRawToO2ScalerRecord(const CTPScalerRecordRaw& rawrec, CTPScalerRecordO2& o2rec, overflows_t& classesoverflows)
 {
   if (rawrec.scalers.size() != (mClassMask.count())) {
-    LOG(ERROR) << "Inconsistent scaler record size:" << rawrec.scalers.size() << " Expected:" << mClassMask.count();
+    LOG(error) << "Inconsistent scaler record size:" << rawrec.scalers.size() << " Expected:" << mClassMask.count();
     return 1;
   }
   o2rec.scalers.clear();
@@ -264,50 +264,50 @@ int CTPRunScalers::checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2&
   int ret = 0;
   // Scaler should never decrease
   if (scal0.lmBefore > scal1.lmBefore) {
-    LOG(ERROR) << "Scaler decreasing: Class:" << scal0.classIndex << " lmBefore 0:" << scal0.lmBefore << " lmBefore :" << scal1.lmBefore;
+    LOG(error) << "Scaler decreasing: Class:" << scal0.classIndex << " lmBefore 0:" << scal0.lmBefore << " lmBefore :" << scal1.lmBefore;
     ret++;
   }
   if (scal0.l0Before > scal1.l0Before) {
-    LOG(ERROR) << "Scaler decreasing: Class:" << scal0.classIndex << " lmBefore 0:" << scal0.l0Before << " lmBefore :" << scal1.l0Before;
+    LOG(error) << "Scaler decreasing: Class:" << scal0.classIndex << " lmBefore 0:" << scal0.l0Before << " lmBefore :" << scal1.l0Before;
     ret++;
   }
   if (scal0.l1Before > scal1.l1Before) {
-    LOG(ERROR) << "Scaler decreasing: Class:" << scal0.classIndex << " lmBefore 0:" << scal0.l1Before << " lmBefore :" << scal1.l1Before;
+    LOG(error) << "Scaler decreasing: Class:" << scal0.classIndex << " lmBefore 0:" << scal0.l1Before << " lmBefore :" << scal1.l1Before;
     ret++;
   }
   if (scal0.lmAfter > scal1.lmAfter) {
-    LOG(ERROR) << "Scaler decreasing: Class:" << scal0.classIndex << " lmAfter 0:" << scal0.lmAfter << " lmAfter :" << scal1.lmAfter;
+    LOG(error) << "Scaler decreasing: Class:" << scal0.classIndex << " lmAfter 0:" << scal0.lmAfter << " lmAfter :" << scal1.lmAfter;
     ret++;
   }
   if (scal0.l0After > scal1.l0After) {
-    LOG(ERROR) << "Scaler decreasing: Class:" << scal0.classIndex << " lmAfter 0:" << scal0.l0After << " lmAfter :" << scal1.l0After;
+    LOG(error) << "Scaler decreasing: Class:" << scal0.classIndex << " lmAfter 0:" << scal0.l0After << " lmAfter :" << scal1.l0After;
     ret++;
   }
   if (scal0.l1After > scal1.l1After) {
-    LOG(ERROR) << "Scaler decreasing: Class:" << scal0.classIndex << " lmAfter 0:" << scal0.l1After << " lmAfter :" << scal1.l1After;
+    LOG(error) << "Scaler decreasing: Class:" << scal0.classIndex << " lmAfter 0:" << scal0.l1After << " lmAfter :" << scal1.l1After;
     ret++;
   }
   //
   // LMB >= LMA >= L0B >= L0A >= L1B >= L1A: 5 relations
   //
   if ((scal1.lmAfter - scal0.lmAfter) > (scal1.lmBefore - scal0.lmBefore)) {
-    LOG(ERROR) << "LMA > LMB eerror";
+    LOG(error) << "LMA > LMB eerror";
     ret++;
   }
   if ((scal1.l0After - scal0.l0After) > (scal1.l0Before - scal0.l0Before)) {
-    LOG(ERROR) << "L0A > L0B error";
+    LOG(error) << "L0A > L0B error";
     ret++;
   }
   if ((scal1.l1After - scal0.l1After) > (scal1.l1Before - scal0.l1Before)) {
-    LOG(ERROR) << "L1A > L1B error";
+    LOG(error) << "L1A > L1B error";
     ret++;
   }
   if ((scal1.l0Before - scal0.l0Before) > (scal1.lmAfter - scal0.lmAfter)) {
-    LOG(ERROR) << "L0B > LMA error.";
+    LOG(error) << "L0B > LMA error.";
     ret++;
   }
   if ((scal1.l1Before - scal0.l1Before) > (scal1.l0After - scal0.l0After)) {
-    LOG(ERROR) << "L1B > L0A Before error.";
+    LOG(error) << "L1B > L0A Before error.";
     ret++;
   }
   //
@@ -320,7 +320,7 @@ int CTPRunScalers::checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2&
 int CTPRunScalers::updateOverflows(const CTPScalerRecordRaw& rec0, const CTPScalerRecordRaw& rec1, overflows_t& classesoverflows) const
 {
   if (rec1.scalers.size() != mClassMask.count()) {
-    LOG(ERROR) << "Inconsistent scaler record size:" << rec1.scalers.size() << " Expected:" << mClassMask.count();
+    LOG(error) << "Inconsistent scaler record size:" << rec1.scalers.size() << " Expected:" << mClassMask.count();
     return 1;
   }
   for (int i = 0; i < rec0.scalers.size(); i++) {

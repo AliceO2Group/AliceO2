@@ -32,9 +32,8 @@
 
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
-#include "DataFormatsMCH/ClusterBlock.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "MCHTracking/TrackParam.h"
-#include "MCHTracking/Cluster.h"
 #include "MCHTracking/Track.h"
 #include "MCHTracking/TrackExtrap.h"
 #include "MCHTracking/TrackFitter.h"
@@ -54,7 +53,7 @@ class TrackFitterTask
   void init(framework::InitContext& ic)
   {
     /// Prepare the track extrapolation tools
-    LOG(INFO) << "initializing track fitter";
+    LOG(info) << "initializing track fitter";
     auto l3Current = ic.options().get<float>("l3Current");
     auto dipoleCurrent = ic.options().get<float>("dipoleCurrent");
     mTrackFitter.initField(l3Current, dipoleCurrent);
@@ -70,12 +69,12 @@ class TrackFitterTask
     // get the input ROFs, tracks and attached clusters
     auto rofsIn = pc.inputs().get<gsl::span<ROFRecord>>("rofsin");
     auto tracksIn = pc.inputs().get<gsl::span<TrackMCH>>("tracksin");
-    auto clustersIn = pc.inputs().get<gsl::span<ClusterStruct>>("clustersin");
+    auto clustersIn = pc.inputs().get<gsl::span<Cluster>>("clustersin");
 
     // create the output messages for ROFs, refitted tracks and attached clusters
     auto& rofsOut = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"rofsout"});
     auto& tracksOut = pc.outputs().make<std::vector<TrackMCH>>(OutputRef{"tracksout"});
-    auto& clustersOut = pc.outputs().make<std::vector<ClusterStruct>>(OutputRef{"clustersout"});
+    auto& clustersOut = pc.outputs().make<std::vector<Cluster>>(OutputRef{"clustersout"});
 
     rofsOut.reserve(rofsIn.size());
     for (const auto& rof : rofsIn) {
@@ -89,24 +88,22 @@ class TrackFitterTask
 
         // create the internal track
         Track track{};
-        std::list<Cluster> clusters{};
         for (const auto& cluster : trackClusters) {
-          clusters.emplace_back(cluster);
-          track.createParamAtCluster(clusters.back());
+          track.createParamAtCluster(cluster);
         }
 
         // refit the track
         try {
           mTrackFitter.fit(track);
         } catch (exception const& e) {
-          LOG(ERROR) << "Track fit failed: " << e.what();
+          LOG(error) << "Track fit failed: " << e.what();
           continue;
         }
 
         // propagate the parameters to the MID
         TrackParam paramAtMID(track.last());
         if (!TrackExtrap::extrapToMID(paramAtMID)) {
-          LOG(ERROR) << "propagation to MID failed --> track discarded";
+          LOG(error) << "propagation to MID failed --> track discarded";
           continue;
         }
 

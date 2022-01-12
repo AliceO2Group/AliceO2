@@ -15,6 +15,10 @@
 #include "MathUtils/Utils.h"
 #include <cmath>
 #include "Framework/DataTypes.h"
+#include "CommonConstants/MathConstants.h"
+#include "CommonConstants/PhysicsConstants.h"
+
+using namespace o2::constants::math;
 
 namespace o2
 {
@@ -88,33 +92,23 @@ using Collision = Collisions::iterator;
 namespace track
 {
 // TRACKPAR TABLE definition
-DECLARE_SOA_INDEX_COLUMN(Collision, collision); //! Collision to which this track belongs
-// TODO change to TrackTypeEnum when enums are supported
-DECLARE_SOA_COLUMN(TrackType, trackType, uint8_t);   //! Type of track. See enum TrackTypeEnum
-DECLARE_SOA_COLUMN(X, x, float);                     //!
-DECLARE_SOA_COLUMN(Alpha, alpha, float);             //!
-DECLARE_SOA_COLUMN(Y, y, float);                     //!
-DECLARE_SOA_COLUMN(Z, z, float);                     //!
-DECLARE_SOA_COLUMN(Snp, snp, float);                 //!
-DECLARE_SOA_COLUMN(Tgl, tgl, float);                 //!
-DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);     //! (sign of charge)/Pt in c/GeV. Use pt() and sign() instead
-DECLARE_SOA_EXPRESSION_COLUMN(RawPhi, phiraw, float, //! Raw Phi (not folded onto [0, 2pi)). Use phi() instead
-                              nasin(aod::track::snp) + aod::track::alpha);
-// FIXME: make expression column when conditional nodes are supported in Gandiva
-DECLARE_SOA_DYNAMIC_COLUMN(NormalizedPhi, phi, //! Phi of the track, in radians within [0, 2pi)
-                           [](float phi) -> float {
-                             constexpr float twopi = 2.0f * static_cast<float>(M_PI);
-                             if (phi < 0)
-                               phi += twopi;
-                             if (phi > twopi)
-                               phi -= twopi;
-                             return phi;
-                           });
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);    //! Collision to which this track belongs
+DECLARE_SOA_COLUMN(TrackType, trackType, uint8_t); //! Type of track. See enum TrackTypeEnum
+DECLARE_SOA_COLUMN(X, x, float);                   //!
+DECLARE_SOA_COLUMN(Alpha, alpha, float);           //!
+DECLARE_SOA_COLUMN(Y, y, float);                   //!
+DECLARE_SOA_COLUMN(Z, z, float);                   //!
+DECLARE_SOA_COLUMN(Snp, snp, float);               //!
+DECLARE_SOA_COLUMN(Tgl, tgl, float);               //!
+DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);   //! (sign of charge)/Pt in c/GeV. Use pt() and sign() instead
+DECLARE_SOA_EXPRESSION_COLUMN(Phi, phi, float,     //! Phi of the track, in radians within [0, 2pi)
+                              ifnode(nasin(aod::track::snp) + aod::track::alpha < 0.0f, nasin(aod::track::snp) + aod::track::alpha + TwoPI,
+                                     ifnode(nasin(aod::track::snp) + aod::track::alpha > TwoPI, nasin(aod::track::snp) + aod::track::alpha - TwoPI,
+                                            nasin(aod::track::snp) + aod::track::alpha)));
 DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, //! Pseudorapidity
-                              -1.f * nlog(ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::track::tgl))));
+                              -1.f * nlog(ntan(PIQuarter - 0.5f * natan(aod::track::tgl))));
 DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, //! Transverse momentum of the track in GeV/c
                               nabs(1.f / aod::track::signed1Pt));
-
 DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign, //! Charge: positive: 1, negative: -1
                            [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px, //! Momentum in x-direction in GeV/c
@@ -140,7 +134,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //! Momentum in z-direction in GeV/c
                            });
 
 DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, //! Momentum in Gev/c
-                              0.5f * (ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::track::tgl)) + 1.f / ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::track::tgl))) / nabs(aod::track::signed1Pt));
+                              0.5f * (ntan(PIQuarter - 0.5f * natan(aod::track::tgl)) + 1.f / ntan(PIQuarter - 0.5f * natan(aod::track::tgl))) / nabs(aod::track::signed1Pt));
 
 // TRACKPARCOV TABLE definition
 DECLARE_SOA_COLUMN(SigmaY, sigmaY, float);        //! Covariance matrix
@@ -224,6 +218,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(HasTRD, hasTRD, //! Flag to check if track has a TRD 
                            [](uint8_t detectorMap) -> bool { return detectorMap & o2::aod::track::TRD; });
 DECLARE_SOA_DYNAMIC_COLUMN(HasTOF, hasTOF, //! Flag to check if track has a TOF measurement
                            [](uint8_t detectorMap) -> bool { return detectorMap & o2::aod::track::TOF; });
+DECLARE_SOA_DYNAMIC_COLUMN(IsPVContributor, isPVContributor, //! Has this track contributed to the collision vertex fit
+                           [](uint8_t flags) -> bool { return (flags & o2::aod::track::PVContributor) == o2::aod::track::PVContributor; });
 DECLARE_SOA_DYNAMIC_COLUMN(PIDForTracking, pidForTracking, //! PID hypothesis used during tracking. See the constants in the class PID in PID.h
                            [](uint32_t flags) -> uint32_t { return flags >> 28; });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, //! Number of found TPC clusters
@@ -275,7 +271,6 @@ DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK", //! On disk versi
                        track::X, track::Alpha,
                        track::Y, track::Z, track::Snp, track::Tgl,
                        track::Signed1Pt,
-                       track::NormalizedPhi<track::RawPhi>,
                        track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Pz<track::Signed1Pt, track::Tgl>,
@@ -285,7 +280,7 @@ DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACK", //! Basic track proper
                            aod::track::Pt,
                            aod::track::P,
                            aod::track::Eta,
-                           aod::track::RawPhi);
+                           aod::track::Phi);
 
 DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACKCOV", //! On disk version of the TracksCov table
                        track::SigmaY, track::SigmaZ, track::SigmaSnp, track::SigmaTgl, track::Sigma1Pt,
@@ -316,6 +311,7 @@ DECLARE_SOA_TABLE_FULL(StoredTracksExtra, "TracksExtra", "AOD", "TRACKEXTRA", //
                        track::TPCChi2NCl, track::TRDChi2, track::TOFChi2,
                        track::TPCSignal, track::TRDSignal, track::Length, track::TOFExpMom,
                        track::PIDForTracking<track::Flags>,
+                       track::IsPVContributor<track::Flags>,
                        track::HasITS<track::DetectorMap>, track::HasTPC<track::DetectorMap>,
                        track::HasTRD<track::DetectorMap>, track::HasTOF<track::DetectorMap>,
                        track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
@@ -336,12 +332,13 @@ using TrackExtra = TracksExtra::iterator;
 } // namespace aod
 namespace soa
 {
+extern template struct soa::Join<aod::Tracks, aod::TracksExtra>;
 extern template struct soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra>;
 extern template struct soa::Join<aod::TracksExtension, aod::StoredTracks>;
 } // namespace soa
 namespace aod
 {
-using FullTracks = soa::Join<Tracks, TracksCov, TracksExtra>;
+using FullTracks = soa::Join<Tracks, TracksExtra>;
 using FullTrack = FullTracks::iterator;
 
 namespace fwdtrack
@@ -371,11 +368,11 @@ DECLARE_SOA_COLUMN(TrackTimeRes, trackTimeRes, float);                          
 DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign,                                                       //! Sign of the track eletric charge
                            [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
 DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, //!
-                              -1.f * nlog(ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::fwdtrack::tgl))));
+                              -1.f * nlog(ntan(PIQuarter - 0.5f * natan(aod::fwdtrack::tgl))));
 DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, //!
-                              nabs(1.f / aod::fwdtrack::signed1Pt));
+                              ifnode(nabs(aod::fwdtrack::signed1Pt) < o2::constants::math::Almost0, o2::constants::math::VeryBig, nabs(1.f / aod::fwdtrack::signed1Pt)));
 DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, //!
-                              0.5f * (ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::fwdtrack::tgl)) + 1.f / ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::fwdtrack::tgl))) / nabs(aod::fwdtrack::signed1Pt));
+                              ifnode(nabs(aod::fwdtrack::signed1Pt) < o2::constants::math::Almost0, o2::constants::math::VeryBig, 0.5f * (ntan(PIQuarter - 0.5f * natan(aod::fwdtrack::tgl)) + 1.f / ntan(PIQuarter - 0.5f * natan(aod::fwdtrack::tgl))) / nabs(aod::fwdtrack::signed1Pt)));
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px, //!
                            [](float pt, float phi) -> float {
                              return pt * std::cos(phi);
@@ -666,12 +663,16 @@ DECLARE_SOA_COLUMN(AmplitudeC, amplitudeC, float[112]); //!
 DECLARE_SOA_COLUMN(TimeA, timeA, float);                //!
 DECLARE_SOA_COLUMN(TimeC, timeC, float);                //!
 DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint8_t);  //!
+DECLARE_SOA_DYNAMIC_COLUMN(PosZ, posZ,                  //! Z position calculated from timeA and timeC in cm
+                           [](float t0A, float t0C) -> float {
+                             return o2::constants::physics::LightSpeedCm2NS * (t0C - t0A) / 2;
+                           });
 } // namespace ft0
 
 DECLARE_SOA_TABLE(FT0s, "AOD", "FT0", //!
                   o2::soa::Index<>, ft0::BCId,
                   ft0::AmplitudeA, ft0::AmplitudeC, ft0::TimeA, ft0::TimeC,
-                  ft0::TriggerMask);
+                  ft0::TriggerMask, ft0::PosZ<ft0::TimeA, ft0::TimeC>);
 using FT0 = FT0s::iterator;
 
 namespace fdd
@@ -786,8 +787,8 @@ namespace mcparticle
 {
 DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision);                                     //! MC collision of this particle
 DECLARE_SOA_COLUMN(PdgCode, pdgCode, int);                                              //! PDG code
-DECLARE_SOA_COLUMN(StatusCode, statusCode, int);                                        //! Status code directly from the generator
-DECLARE_SOA_COLUMN(Flags, flags, uint8_t);                                              //! ALICE specific flags. Do not use directly. Use the dynamic columns, e.g. producedByGenerator()
+DECLARE_SOA_COLUMN(StatusCode, statusCode, int);                                        //! Generators status code or physics process. Do not use directly. Use dynamic columns getGenStatusCode() or getProcess()
+DECLARE_SOA_COLUMN(Flags, flags, uint8_t);                                              //! ALICE specific flags, see MCParticleFlags. Do not use directly. Use the dynamic columns, e.g. producedByGenerator()
 DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Mother0, mother0, int, "McParticles_Mother0");       //! Track index of the first mother
 DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Mother1, mother1, int, "McParticles_Mother1");       //! Track index of the last mother
 DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Daughter0, daughter0, int, "McParticles_Daughter0"); //! Track index of the first daugther
@@ -802,12 +803,20 @@ DECLARE_SOA_COLUMN(Vy, vy, float);                                              
 DECLARE_SOA_COLUMN(Vz, vz, float);                                                      //! Z production vertex in cm
 DECLARE_SOA_COLUMN(Vt, vt, float);                                                      //! Production time
 DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi,                                                    //! Phi
-                           [](float px, float py) -> float { return static_cast<float>(M_PI) + std::atan2(-py, -px); });
-DECLARE_SOA_DYNAMIC_COLUMN(ProducedByGenerator, producedByGenerator, //! Particle produced by the generator or by the transport code
-                           [](uint8_t flags) -> bool { return (flags & 0x1) == 0x0; });
+                           [](float px, float py) -> float { return PI + std::atan2(-py, -px); });
+DECLARE_SOA_DYNAMIC_COLUMN(ProducedByGenerator, producedByGenerator, //! True if particle produced by the generator (==TMCProcess::kPrimary); False if by the transport code
+                           [](uint8_t flags) -> bool { return (flags & o2::aod::mcparticle::enums::ProducedByTransport) == 0x0; });
+DECLARE_SOA_DYNAMIC_COLUMN(FromBackgroundEvent, fromBackgroundEvent, //! Particle from background event
+                           [](uint8_t flags) -> bool { return (flags & o2::aod::mcparticle::enums::FromBackgroundEvent) == o2::aod::mcparticle::enums::FromBackgroundEvent; });
+DECLARE_SOA_DYNAMIC_COLUMN(GetProcess, getProcess, //! The VMC physics code (as int) that generated this particle (see header TMCProcess.h in ROOT)
+                           [](uint8_t flags, int statusCode) -> int { if ((flags & o2::aod::mcparticle::enums::ProducedByTransport) == 0x0) { return 0 /*TMCProcess::kPrimary*/; } else { return statusCode; } });
+DECLARE_SOA_DYNAMIC_COLUMN(GetGenStatusCode, getGenStatusCode, //! The status code put by the generator, or -1 if a particle produced during transport
+                           [](uint8_t flags, int statusCode) -> int { if ((flags & o2::aod::mcparticle::enums::ProducedByTransport) == 0x0) { return statusCode; } else { return -1; } });
+DECLARE_SOA_DYNAMIC_COLUMN(IsPhysicalPrimary, isPhysicalPrimary, //! True if particle is considered a physical primary according to the ALICE definition
+                           [](uint8_t flags) -> bool { return (flags & o2::aod::mcparticle::enums::PhysicalPrimary) == o2::aod::mcparticle::enums::PhysicalPrimary; });
 
 // DECLARE_SOA_EXPRESSION_COLUMN(Phi, phi, float, //! Phi: NOTE this waits that the atan2 function is defined for expression columns
-//                               static_cast<float>(M_PI) + natan2(-aod::mcparticle::py, -aod::mcparticle::px));
+//                               PI + natan2(-aod::mcparticle::py, -aod::mcparticle::px));
 DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, //! Pseudorapidity, conditionally defined to avoid FPEs
                               ifnode((nsqrt(aod::mcparticle::px * aod::mcparticle::px +
                                             aod::mcparticle::py * aod::mcparticle::py +
@@ -844,8 +853,11 @@ DECLARE_SOA_TABLE_FULL(StoredMcParticles, "McParticles", "AOD", "MCPARTICLE", //
                        mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
                        mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
                        mcparticle::Phi<mcparticle::Px, mcparticle::Py>,
-                       //  mcparticle::Eta<mcparticle::Px, mcparticle::Py, mcparticle::Pz>,
-                       mcparticle::ProducedByGenerator<mcparticle::Flags>);
+                       mcparticle::ProducedByGenerator<mcparticle::Flags>,
+                       mcparticle::FromBackgroundEvent<mcparticle::Flags>,
+                       mcparticle::GetGenStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
+                       mcparticle::GetProcess<mcparticle::Flags, mcparticle::StatusCode>,
+                       mcparticle::IsPhysicalPrimary<mcparticle::Flags>);
 
 DECLARE_SOA_EXTENDED_TABLE(McParticles, StoredMcParticles, "MCPARTICLE", //! Basic MC particle properties
                                                                          //  mcparticle::Phi,

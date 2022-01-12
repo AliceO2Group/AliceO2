@@ -28,7 +28,7 @@ bool FileMetaData::fillFileData(const std::string& fname)
     md5 = md5ptr->AsString();
     ctime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
   } catch (std::exception const& e) {
-    LOG(ERROR) << "Failed to fill metadata for file " << fname << ", reason: " << e.what();
+    LOG(error) << "Failed to fill metadata for file " << fname << ", reason: " << e.what();
     return false;
   }
   return true;

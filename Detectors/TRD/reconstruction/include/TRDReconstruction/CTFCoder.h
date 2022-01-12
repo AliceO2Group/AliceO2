@@ -37,7 +37,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
   CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks(), o2::detectors::DetID::TRD) {}
-  ~CTFCoder() = default;
+  ~CTFCoder() final = default;
 
   /// entropy-encode data to buffer with CTF
   template <typename VEC>
@@ -47,7 +47,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   template <typename VTRG, typename VTRK, typename VDIG>
   void decode(const CTF::base& ec, VTRG& trigVec, VTRK& trkVec, VDIG& digVec);
 
-  void createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op);
+  void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
  private:
   void appendToTree(TTree& tree, CTF& ec);
@@ -92,7 +92,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData,
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
-#define ENCODETRD(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get());
+#define ENCODETRD(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
   // clang-format off
   ENCODETRD(helper.begin_bcIncTrig(),    helper.end_bcIncTrig(),     CTF::BLC_bcIncTrig,    0);
   ENCODETRD(helper.begin_orbitIncTrig(), helper.end_orbitIncTrig(),  CTF::BLC_orbitIncTrig, 0);
@@ -113,7 +113,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData,
   ENCODETRD(helper.begin_ADCDig(),       helper.end_ADCDig(),        CTF::BLC_ADCDig,       0);
 
   // clang-format on
-  CTF::get(buff.data())->print(getPrefix());
+  CTF::get(buff.data())->print(getPrefix(), mVerbosity);
 }
 
 /// decode entropy-encoded data to tracklets and digits
@@ -122,7 +122,7 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VTRK& trkVec, VDIG& di
 {
   auto header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
-  ec.print(getPrefix());
+  ec.print(getPrefix(), mVerbosity);
   std::vector<uint16_t> bcInc, HCIDTrk, posTrk, CIDDig, ADCDig;
   std::vector<uint32_t> orbitInc, entriesTrk, entriesDig, pidTrk;
   std::vector<uint8_t> padrowTrk, colTrk, slopeTrk, ROBDig, MCMDig, chanDig;

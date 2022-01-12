@@ -15,10 +15,9 @@
 
 #include "DetectorsVertexing/SVertexer.h"
 #include "DetectorsBase/Propagator.h"
-#include "ReconstructionDataFormats/TrackTPCITS.h"
-#include "DataFormatsTPC/TrackTPC.h"
-#include "DataFormatsITS/TrackITS.h"
+#include "TPCBase/ParameterGas.h"
 
+#undef WITH_OPENMP
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif
@@ -47,14 +46,23 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
 #endif
   for (int itp = 0; itp < ntrP; itp++) {
     auto& seedP = mTracksPool[POS][itp];
-    for (int itn = mVtxFirstTrack[NEG][seedP.vBracket.getMin()]; itn < ntrN; itn++) { // start from the 1st negative track of lowest-ID vertex of positive
+    int firstN = mVtxFirstTrack[NEG][seedP.vBracket.getMin()];
+    if (firstN < 0) {
+      LOG(debug) << "No partner is found for pos.track " << itp << " out of " << ntrP;
+      continue;
+    }
+    for (int itn = firstN; itn < ntrN; itn++) { // start from the 1st negative track of lowest-ID vertex of positive
       auto& seedN = mTracksPool[NEG][itn];
       if (seedN.vBracket > seedP.vBracket) { // all vertices compatible with seedN are in future wrt that of seedP
+        LOG(debug) << "Brackets do not match";
         break;
       }
 #ifdef WITH_OPENMP
       iThread = omp_get_thread_num();
 #endif
+      if (mSVParams->maxPVContributors < 2 && seedP.gid.isPVContributor() + seedN.gid.isPVContributor() > mSVParams->maxPVContributors) {
+        continue;
+      }
       checkV0(seedP, seedN, itp, itn, iThread);
     }
   }
@@ -69,7 +77,7 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
     mCascadesTmp[i].clear();
   }
 #endif
-  LOG(INFO) << "DONE : " << mV0sTmp[0].size() << " " << mCascadesTmp[0].size();
+  LOG(debug) << "DONE : " << mV0sTmp[0].size() << " " << mCascadesTmp[0].size();
 }
 
 //__________________________________________________________________
@@ -113,6 +121,9 @@ void SVertexer::updateTimeDependentParams()
   for (auto& ft : mFitterCasc) {
     ft.setBz(bz);
   }
+
+  auto& gasParam = o2::tpc::ParameterGas::Instance();
+  mTPCBin2Z = gasParam.DriftV / mMUS2TPCBin;
 }
 
 //__________________________________________________________________
@@ -134,6 +145,12 @@ void SVertexer::setupThreads()
     fitter.setMinRelChi2Change(mSVParams->minRelChi2Change);
     fitter.setMaxDZIni(mSVParams->maxDZIni);
     fitter.setMaxChi2(mSVParams->maxChi2);
+    fitter.setMatCorrType(o2::base::Propagator::MatCorrType(mSVParams->matCorr));
+    fitter.setUsePropagator(mSVParams->usePropagator);
+    fitter.setRefitWithMatCorr(mSVParams->refitWithMatCorr);
+    fitter.setMaxStep(mSVParams->maxStep);
+    fitter.setMaxSnp(mSVParams->maxSnp);
+    fitter.setMinXSeed(mSVParams->minXSeed);
   }
   mFitterCasc.resize(mNThreads);
   for (auto& fitter : mFitterCasc) {
@@ -145,46 +162,92 @@ void SVertexer::setupThreads()
     fitter.setMinRelChi2Change(mSVParams->minRelChi2Change);
     fitter.setMaxDZIni(mSVParams->maxDZIni);
     fitter.setMaxChi2(mSVParams->maxChi2);
+    fitter.setMatCorrType(o2::base::Propagator::MatCorrType(mSVParams->matCorr));
+    fitter.setUsePropagator(mSVParams->usePropagator);
+    fitter.setRefitWithMatCorr(mSVParams->refitWithMatCorr);
+    fitter.setMaxStep(mSVParams->maxStep);
+    fitter.setMaxSnp(mSVParams->maxSnp);
+    fitter.setMinXSeed(mSVParams->minXSeed);
   }
+}
+
+//__________________________________________________________________
+bool SVertexer::acceptTrack(GIndex gid, const o2::track::TrackParCov& trc) const
+{
+  if (gid.isPVContributor() && mSVParams->maxPVContributors < 1) {
+    return false;
+  }
+  // DCA to mean vertex
+  if (mSVParams->minDCAToPV > 0.f) {
+    o2::track::TrackPar trp(trc);
+    std::array<float, 2> dca;
+    auto* prop = o2::base::Propagator::Instance();
+    if (mSVParams->usePropagator) {
+      if (trp.getX() > mSVParams->minRFor3DField && !prop->PropagateToXBxByBz(trp, mSVParams->minRFor3DField, mSVParams->maxSnp, mSVParams->maxStep, o2::base::Propagator::MatCorrType(mSVParams->matCorr))) {
+        return true; // we don't need actually to propagate to the beam-line
+      }
+      if (!prop->propagateToDCA(mMeanVertex.getXYZ(), trp, prop->getNominalBz(), mSVParams->maxStep, o2::base::Propagator::MatCorrType(mSVParams->matCorr), &dca)) {
+        return true;
+      }
+    } else {
+      if (!trp.propagateParamToDCA(mMeanVertex.getXYZ(), prop->getNominalBz(), &dca)) {
+        return true;
+      }
+    }
+    if (std::abs(dca[0]) < mSVParams->minDCAToPV) {
+      return false;
+    }
+  }
+  return true;
 }
 
 //__________________________________________________________________
 void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // accessor to various tracks
 {
-  // build track->vertices from vertices->tracks, rejecting vertex contributors
+  // build track->vertices from vertices->tracks, rejecting vertex contributors if requested
   auto trackIndex = recoData.getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
   auto vtxRefs = recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
 
-  // track selector: at the moment reject prompt tracks contributing to vertex fit and unconstrained TPC tracks
-  auto selTrack = [&](GIndex gid) {
-    return (gid.isPVContributor() || !recoData.isTrackSourceLoaded(gid.getSource())) ? false : true;
-  };
-
   std::unordered_map<GIndex, std::pair<int, int>> tmap;
+  std::unordered_map<GIndex, bool> rejmap;
   int nv = vtxRefs.size() - 1; // The last entry is for unassigned tracks, ignore them
   for (int i = 0; i < 2; i++) {
     mTracksPool[i].clear();
     mVtxFirstTrack[i].clear();
     mVtxFirstTrack[i].resize(nv, -1);
   }
-
   for (int iv = 0; iv < nv; iv++) {
     const auto& vtref = vtxRefs[iv];
     int it = vtref.getFirstEntry(), itLim = it + vtref.getEntries();
     for (; it < itLim; it++) {
       auto tvid = trackIndex[it];
-      if (!selTrack(tvid)) {
+      if (!recoData.isTrackSourceLoaded(tvid.getSource())) {
+        continue;
+      }
+      // unconstrained TPC tracks require special treatment: there is no point in checking DCA to mean vertex since it is not precise,
+      // but we need to create a clone of TPC track constrained to this particular vertex time.
+      if (tvid.getSource() == GIndex::TPC && processTPCTrack(recoData.getTPCTrack(tvid), tvid, iv)) { // processTPCTrack may decide that this track does not need special treatment (e.g. it is constrained...)
         continue;
       }
       std::decay_t<decltype(tmap.find(tvid))> tref{};
-      if (tvid.isAmbiguous()) {
+      if (tvid.isAmbiguous()) { // was this track already processed?
         auto tref = tmap.find(tvid);
         if (tref != tmap.end()) {
           mTracksPool[tref->second.second][tref->second.first].vBracket.setMax(iv); // this track was already processed with other vertex, account the latter
           continue;
         }
+        // was it already rejected?
+        if (rejmap.find(tvid) != rejmap.end()) {
+          continue;
+        }
       }
       const auto& trc = recoData.getTrackParam(tvid);
+      if (!acceptTrack(tvid, trc)) {
+        if (tvid.isAmbiguous()) {
+          rejmap[tvid] = true;
+        }
+        continue;
+      }
       int posneg = trc.getSign() < 0 ? 1 : 0;
       float r = std::sqrt(trc.getX() * trc.getX() + trc.getY() * trc.getY());
       mTracksPool[posneg].emplace_back(TrackCand{trc, tvid, {iv, iv}, r});
@@ -206,7 +269,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
     }
   }
 
-  LOG(INFO) << "Collected " << mTracksPool[POS].size() << " positive and " << mTracksPool[NEG].size() << " negative seeds";
+  LOG(info) << "Collected " << mTracksPool[POS].size() << " positive and " << mTracksPool[NEG].size() << " negative seeds";
 }
 
 //__________________________________________________________________
@@ -227,6 +290,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   float rv0 = std::sqrt(r2v0), drv0P = rv0 - seedP.minR, drv0N = rv0 - seedN.minR;
   if (drv0P > mSVParams->causalityRTolerance || drv0P < -mSVParams->maxV0ToProngsRDiff ||
       drv0N > mSVParams->causalityRTolerance || drv0N < -mSVParams->maxV0ToProngsRDiff) {
+    LOG(debug) << "RejCausality " << drv0P << " " << drv0N;
     return false;
   }
 
@@ -246,9 +310,11 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   std::array<float, 3> pV0 = {pP[0] + pN[0], pP[1] + pN[1], pP[2] + pN[2]};
   float pt2V0 = pV0[0] * pV0[0] + pV0[1] * pV0[1], prodXYv0 = dxv0 * pV0[0] + dyv0 * pV0[1], tDCAXY = prodXYv0 / pt2V0;
   if (pt2V0 < mMinPt2V0) { // pt cut
+    LOG(debug) << "RejPt2 " << pt2V0;
     return false;
   }
   if (pV0[2] * pV0[2] / pt2V0 > mMaxTgl2V0) { // tgLambda cut
+    LOG(debug) << "RejTgL " << pV0[2] * pV0[2] / pt2V0;
     return false;
   }
   float p2V0 = pt2V0 + pV0[2] * pV0[2], ptV0 = std::sqrt(pt2V0);
@@ -262,17 +328,19 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
       goodHyp = hypCheckStatus[ipid] = true;
     }
   }
-  if (!goodHyp) {
+  if (!goodHyp && mSVParams->checkV0Hypothesis) {
+    LOG(debug) << "RejHypo";
     return false;
   }
 
-  bool checkForCascade = mEnableCascades && r2v0 < mMaxR2ToMeanVertexCascV0 && (hypCheckStatus[HypV0::Lambda] || hypCheckStatus[HypV0::AntiLambda]);
+  bool checkForCascade = mEnableCascades && r2v0 < mMaxR2ToMeanVertexCascV0 && (!mSVParams->checkV0Hypothesis || (hypCheckStatus[HypV0::Lambda] || hypCheckStatus[HypV0::AntiLambda]));
   bool rejectIfNotCascade = false;
   float dcaX = dxv0 - pV0[0] * tDCAXY, dcaY = dyv0 - pV0[1] * tDCAXY, dca2 = dcaX * dcaX + dcaY * dcaY;
   float cosPAXY = prodXYv0 / std::sqrt(r2v0 * pt2V0);
 
   if (checkForCascade) { // use loser cuts for cascade v0 candidates
     if (dca2 > mMaxDCAXY2ToMeanVertexV0Casc || cosPAXY < mSVParams->minCosPAXYMeanVertexCascV0) {
+      LOG(debug) << "Rej for cascade DCAXY2: " << dca2 << " << cosPAXY: " << cosPAXY;
       return false;
     }
   }
@@ -294,6 +362,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
     float dx = v0XYZ[0] - pv.getX(), dy = v0XYZ[1] - pv.getY(), dz = v0XYZ[2] - pv.getZ(), prodXYZv0 = dx * pV0[0] + dy * pV0[1] + dz * pV0[2];
     float cosPA = prodXYZv0 / std::sqrt((dx * dx + dy * dy + dz * dz) * p2V0);
     if (cosPA < bestCosPA) {
+      LOG(debug) << "Rej. cosPA: " << cosPA;
       continue;
     }
     if (!added) {
@@ -314,10 +383,10 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   // check cascades
   if (checkForCascade) {
     int nCascAdded = 0;
-    if (hypCheckStatus[HypV0::Lambda]) {
+    if (hypCheckStatus[HypV0::Lambda] || !mSVParams->checkCascadeHypothesis) {
       nCascAdded += checkCascades(rv0, pV0, p2V0, iN, NEG, ithread);
     }
-    if (hypCheckStatus[HypV0::AntiLambda]) {
+    if (hypCheckStatus[HypV0::AntiLambda] || !mSVParams->checkCascadeHypothesis) {
       nCascAdded += checkCascades(rv0, pV0, p2V0, iP, POS, ithread);
     }
     if (!nCascAdded && rejectIfNotCascade) { // v0 would be accepted only if it creates a cascade
@@ -339,7 +408,11 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
   const auto& pv = mPVertices[v0.getVertexID()];
   int nCascIni = mCascadesTmp[ithread].size();
   // start from the 1st track compatible with V0's primary vertex
-  for (unsigned it = mVtxFirstTrack[posneg][v0.getVertexID()]; it < tracks.size(); it++) {
+  int firstTr = mVtxFirstTrack[posneg][v0.getVertexID()], nTr = tracks.size();
+  if (firstTr < 0) {
+    firstTr = nTr;
+  }
+  for (int it = firstTr; it < nTr; it++) {
     if (it == avoidTrackID) {
       continue; // skip the track used by V0
     }
@@ -348,7 +421,7 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
       break; // all other bachelor candidates will be also not compatible with this PV
     }
     if (bach.vBracket.isOutside(v0.getVertexID())) {
-      LOG(ERROR) << "Incompatible bachelor: PV " << bach.vBracket.asString() << " vs V0 " << v0.getVertexID();
+      LOG(error) << "Incompatible bachelor: PV " << bach.vBracket.asString() << " vs V0 " << v0.getVertexID();
     }
     if (bach.minR > rv0 + mSVParams->causalityRTolerance) {
       continue;
@@ -388,7 +461,7 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
     if (pCasc[2] * pCasc[2] / pt2Casc > mMaxTgl2Casc) { // tgLambda cut
       continue;
     }
-    //    LOG(INFO) << "ptcasc2 " << pt2Casc << " tglcasc2 " << pCasc[2]*pCasc[2] / pt2Casc << " cut " << mMaxTgl2Casc;
+    //    LOG(info) << "ptcasc2 " << pt2Casc << " tglcasc2 " << pCasc[2]*pCasc[2] / pt2Casc << " cut " << mMaxTgl2Casc;
     float cosPA = (pCasc[0] * dxc + pCasc[1] * dyc + pCasc[2] * dzc) / std::sqrt(p2Casc * (r2casc + dzc * dzc));
     if (cosPA < mSVParams->minCosPACasc) {
       continue;
@@ -428,4 +501,40 @@ void SVertexer::setNThreads(int n)
 #else
   mNThreads = 1;
 #endif
+}
+
+//______________________________________________
+bool SVertexer::processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int vtxid)
+{
+  // if TPC trackis unconstrained, try to create in the tracks pool a clone constrained to vtxid vertex time.
+  if (trTPC.hasBothSidesClusters()) { // this is effectively constrained track
+    return false;                     // let it be processed as such
+  }
+  const auto& vtx = mPVertices[vtxid];
+  auto twe = vtx.getTimeStamp();
+  int posneg = trTPC.getSign() < 0 ? 1 : 0;
+  auto trLoc = mTracksPool[posneg].emplace_back(TrackCand{trTPC, gid, {vtxid, vtxid}, 0.});
+  auto err = correctTPCTrack(trLoc, trTPC, twe.getTimeStamp(), twe.getTimeStampError());
+  if (err < 0) {
+    mTracksPool[posneg].pop_back(); // discard
+  }
+  trLoc.minR = std::sqrt(trLoc.getX() * trLoc.getX() + trLoc.getY() * trLoc.getY());
+  return true;
+}
+
+//______________________________________________
+float SVertexer::correctTPCTrack(o2::track::TrackParCov& trc, const o2::tpc::TrackTPC tTPC, float tmus, float tmusErr) const
+{
+  // Correct the track copy trc of the TPC track for the assumed interaction time
+  // return extra uncertainty in Z due to the interaction time uncertainty
+  // TODO: at the moment, apply simple shift, but with Z-dependent calibration we may
+  // need to do corrections on TPC cluster level and refit
+  // This is a clone of MatchTPCITS::correctTPCTrack
+  float dDrift = (tmus * mMUS2TPCBin - tTPC.getTime0()) * mTPCBin2Z;
+  float driftErr = tmusErr * mMUS2TPCBin * mTPCBin2Z;
+  // eventually should be refitted, at the moment we simply shift...
+  trc.setZ(tTPC.getZ() + (tTPC.hasASideClustersOnly() ? dDrift : -dDrift));
+  trc.setCov(trc.getSigmaZ2() + driftErr * driftErr, o2::track::kSigZ2);
+
+  return driftErr;
 }

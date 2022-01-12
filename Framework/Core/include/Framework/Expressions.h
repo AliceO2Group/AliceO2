@@ -43,6 +43,11 @@ class Filter;
 #include <memory>
 #include <typeinfo>
 #include <set>
+namespace gandiva
+{
+using Selection = std::shared_ptr<gandiva::SelectionVector>;
+using FilterPtr = std::shared_ptr<gandiva::Filter>;
+} // namespace gandiva
 
 using atype = arrow::Type;
 struct ExpressionInfo {
@@ -51,6 +56,9 @@ struct ExpressionInfo {
   std::set<size_t> hashes;
   gandiva::SchemaPtr schema;
   gandiva::NodePtr tree;
+  gandiva::FilterPtr filter;
+  gandiva::Selection selection;
+  bool resetSelection = false;
 };
 
 namespace o2::framework::expressions
@@ -272,6 +280,75 @@ inline Node npow(Node left, T right)
   return Node{OpNode{BasicOp::Power}, std::move(left), LiteralNode{right}};
 }
 
+#define BINARY_FUNC_NODES(_func_, _node_)                                          \
+  template <typename L, typename R>                                                \
+  inline Node _node_(L left, R right)                                              \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, LiteralNode{left}, LiteralNode{right}};   \
+  }                                                                                \
+                                                                                   \
+  template <>                                                                      \
+  inline Node _node_(Node left, Node right)                                        \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, std::move(left), std::move(right)};       \
+  }                                                                                \
+                                                                                   \
+  template <typename T>                                                            \
+  inline Node _node_(Node left, T right)                                           \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, std::move(left), LiteralNode{right}};     \
+  }                                                                                \
+                                                                                   \
+  template <typename T>                                                            \
+  inline Node _node_(T left, Node right)                                           \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, LiteralNode{left}, std::move(right)};     \
+  }                                                                                \
+                                                                                   \
+  template <>                                                                      \
+  inline Node _node_(Node left, BindingNode right)                                 \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, std::move(left), right};                  \
+  }                                                                                \
+                                                                                   \
+  template <>                                                                      \
+  inline Node _node_(BindingNode left, BindingNode right)                          \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, left, right};                             \
+  }                                                                                \
+                                                                                   \
+  template <>                                                                      \
+  inline Node _node_(BindingNode left, Node right)                                 \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, left, std::move(right)};                  \
+  }                                                                                \
+                                                                                   \
+  template <typename T>                                                            \
+  inline Node _node_(Node left, Configurable<T> right)                             \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, std::move(left), PlaceholderNode{right}}; \
+  }                                                                                \
+                                                                                   \
+  template <typename T>                                                            \
+  inline Node _node_(Configurable<T> left, Node right)                             \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, PlaceholderNode{left}, std::move(right)}; \
+  }                                                                                \
+                                                                                   \
+  template <typename T>                                                            \
+  inline Node _node_(BindingNode left, Configurable<T> right)                      \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, left, PlaceholderNode{right}};            \
+  }                                                                                \
+                                                                                   \
+  template <typename T>                                                            \
+  inline Node _node_(Configurable<T> left, BindingNode right)                      \
+  {                                                                                \
+    return Node{OpNode{BasicOp::_func_}, PlaceholderNode{left}, right};            \
+  }
+
+BINARY_FUNC_NODES(Atan2, natan2);
+
 /// unary functions on nodes
 inline Node nsqrt(Node left)
 {
@@ -406,11 +483,10 @@ struct Filter {
 
 using Projector = Filter;
 
-using Selection = std::shared_ptr<gandiva::SelectionVector>;
 /// Function for creating gandiva selection from our internal filter tree
-Selection createSelection(std::shared_ptr<arrow::Table> const& table, Filter const& expression);
+gandiva::Selection createSelection(std::shared_ptr<arrow::Table> const& table, Filter const& expression);
 /// Function for creating gandiva selection from prepared gandiva expressions tree
-Selection createSelection(std::shared_ptr<arrow::Table> const& table, std::shared_ptr<gandiva::Filter> gfilter);
+gandiva::Selection createSelection(std::shared_ptr<arrow::Table> const& table, std::shared_ptr<gandiva::Filter> const& gfilter);
 
 struct ColumnOperationSpec;
 using Operations = std::vector<ColumnOperationSpec>;

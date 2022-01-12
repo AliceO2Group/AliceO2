@@ -115,6 +115,7 @@ class SimConfig
   int getNSimWorkers() const { return mConfigData.mSimWorkers; }
   bool isFilterOutNoHitEvents() const { return mConfigData.mFilterNoHitEvents; }
   bool asService() const { return mConfigData.mAsService; }
+  long getTimestamp() const { return mConfigData.mTimestamp; }
 
  private:
   SimConfigData mConfigData; //!

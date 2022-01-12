@@ -26,7 +26,8 @@ namespace mch
 
 o2::framework::DataProcessorSpec
   getTrackMCLabelFinderSpec(const char* specName = "TrackMCLabelFinder",
-                            const char* digitRofDataDescription = "DIGITROFS");
+                            const char* digitRofDataDescription = "DIGITROFS",
+                            const char* digitLabelDataDescription = "DIGITLABELS");
 
 } // end namespace mch
 } // end namespace o2

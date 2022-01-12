@@ -49,7 +49,7 @@ class FV0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
   void initDigitizerTask(framework::InitContext& ic) override
   {
-    LOG(DEBUG) << "FV0DPLDigitizerTask:init";
+    LOG(debug) << "FV0DPLDigitizerTask:init";
     mDigitizer.init();
     mDisableQED = ic.options().get<bool>("disable-qed"); //TODO: QED implementation to be tested
   }
@@ -59,7 +59,7 @@ class FV0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     if (mFinished) {
       return;
     }
-    LOG(DEBUG) << "FV0DPLDigitizerTask:run";
+    LOG(debug) << "FV0DPLDigitizerTask:run";
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
@@ -83,14 +83,14 @@ class FV0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
       for (auto& part : eventParts[collID]) {
         hits.clear();
         context->retrieveHits(mSimChains, "FV0Hit", part.sourceID, part.entryID, &hits);
-        LOG(DEBUG) << "[FV0] For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
+        LOG(debug) << "[FV0] For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
 
         // call actual digitization procedure
         mDigitizer.setEventId(part.entryID);
         mDigitizer.setSrcId(part.sourceID);
         mDigitizer.process(hits, mDigitsBC, mDigitsCh, mDigitsTrig, mLabels);
       }
-      LOG(DEBUG) << "[FV0] Has " << mDigitsBC.size() << " BC elements,   " << mDigitsCh.size() << " mDigitsCh elements";
+      LOG(debug) << "[FV0] Has " << mDigitsBC.size() << " BC elements,   " << mDigitsCh.size() << " mDigitsCh elements";
     }
 
     o2::InteractionTimeRecord terminateIR;
@@ -99,7 +99,7 @@ class FV0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     mDigitizer.flush(mDigitsBC, mDigitsCh, mDigitsTrig, mLabels);
 
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-    LOG(INFO) << "FV0: Sending " << mDigitsBC.size() << " digitsBC and " << mDigitsCh.size() << " digitsCh.";
+    LOG(info) << "FV0: Sending " << mDigitsBC.size() << " digitsBC and " << mDigitsCh.size() << " digitsCh.";
 
     // send out to next stage
     pc.outputs().snapshot(Output{"FV0", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
@@ -108,7 +108,7 @@ class FV0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     if (pc.outputs().isAllowed({"FV0", "DIGITLBL", 0})) {
       pc.outputs().snapshot(Output{"FV0", "DIGITLBL", 0, Lifetime::Timeframe}, mLabels);
     }
-    LOG(INFO) << "FV0: Sending ROMode= " << mROMode << " to GRPUpdater";
+    LOG(info) << "FV0: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"FV0", "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
     // we should be only called once; tell DPL that this process is ready to exit

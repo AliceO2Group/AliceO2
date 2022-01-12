@@ -17,12 +17,15 @@
 
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CCDBTimeStampUtils.h"
+#include "CommonUtils/NameConf.h"
 #include <string>
 #include <map>
 #include <unordered_map>
 #include <memory>
 
 // #include <FairLogger.h>
+
+class TGeoManager; // we need to forward-declare those classes which should not be cleaned up
 
 namespace o2::ccdb
 {
@@ -41,6 +44,7 @@ class CCDBManagerInstance
 {
   struct CachedObject {
     std::shared_ptr<void> objPtr;
+    void* noCleanupPtr = nullptr; // if assigned instead of objPtr, no cleanup will be done on exit (for global objects cleaned up by the root, e.g. gGeoManager)
     std::string uuid;
     long startvalidity = 0;
     long endvalidity = 0;
@@ -52,7 +56,6 @@ class CCDBManagerInstance
   {
     mCCDBAccessor.init(path);
   }
-
   /// set a URL to query from
   void setURL(const std::string& url);
 
@@ -159,21 +162,25 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp)
   }
   auto& cached = mCache[path];
   if (mCheckObjValidityEnabled && cached.isValid(timestamp)) {
-    return reinterpret_cast<T*>(cached.objPtr.get());
+    return reinterpret_cast<T*>(cached.noCleanupPtr ? cached.noCleanupPtr : cached.objPtr.get());
   }
 
   T* ptr = mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, &mHeaders, cached.uuid,
                                                  mCreatedNotAfter ? std::to_string(mCreatedNotAfter) : "",
                                                  mCreatedNotBefore ? std::to_string(mCreatedNotBefore) : "");
   if (ptr) { // new object was shipped, old one (if any) is not valid anymore
-    cached.objPtr.reset(ptr);
+    if constexpr (std::is_same<TGeoManager, T>::value) { // some special objects cannot be cached to shared_ptr since root may delete their raw global pointer
+      cached.noCleanupPtr = ptr;
+    } else {
+      cached.objPtr.reset(ptr);
+    }
     cached.uuid = mHeaders["ETag"];
     cached.startvalidity = std::stol(mHeaders["Valid-From"]);
     cached.endvalidity = std::stol(mHeaders["Valid-Until"]);
   } else if (mHeaders.count("Error")) { // in case of errors the pointer is 0 and headers["Error"] should be set
     clearCache(path);                   // in case of any error clear cache for this object
   } else {                              // the old object is valid
-    ptr = reinterpret_cast<T*>(cached.objPtr.get());
+    ptr = reinterpret_cast<T*>(cached.noCleanupPtr ? cached.noCleanupPtr : cached.objPtr.get());
   }
   mHeaders.clear();
   mMetaData.clear();
@@ -185,7 +192,7 @@ class BasicCCDBManager : public CCDBManagerInstance
  public:
   static BasicCCDBManager& instance()
   {
-    const std::string ccdbUrl{"http://ccdb-test.cern.ch:8080"};
+    const std::string ccdbUrl{o2::base::NameConf::getCCDBServer()};
     static BasicCCDBManager inst{ccdbUrl};
     return inst;
   }

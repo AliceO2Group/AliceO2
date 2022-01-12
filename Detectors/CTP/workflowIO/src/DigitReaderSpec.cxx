@@ -16,7 +16,7 @@
 #include "DataFormatsCTP/Digits.h"
 #include "Headers/DataHeader.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Framework/ControlService.h"
@@ -55,7 +55,7 @@ class DigitReader : public Task
 DigitReader::DigitReader(bool useMC)
 {
   if (useMC) {
-    LOG(INFO) << "CTP does not support MC truth at the moment";
+    LOG(info) << "CTP does not support MC truth at the moment";
   }
 }
 
@@ -72,7 +72,7 @@ void DigitReader::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
 
   mTree->GetEntry(ent);
-  LOG(INFO) << "DigitReader pushes " << mDigits.size() << " digits at entry " << ent;
+  LOG(info) << "DigitReader pushes " << mDigits.size() << " digits at entry " << ent;
   pc.outputs().snapshot(Output{"CTP", "DIGITS", 0, Lifetime::Timeframe}, mDigits);
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
@@ -88,7 +88,7 @@ void DigitReader::connectTree(const std::string& filename)
   mTree.reset((TTree*)mFile->Get(mDigTreeName.c_str()));
   assert(mTree);
   mTree->SetBranchAddress(mDigitBranchName.c_str(), &mDigitsPtr);
-  LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
+  LOG(info) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getDigitsReaderSpec(bool useMC)

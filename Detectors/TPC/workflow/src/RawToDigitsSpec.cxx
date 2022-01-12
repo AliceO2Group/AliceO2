@@ -9,6 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <string_view>
+#include <unordered_map>
 #include <vector>
 #include <string>
 #include "fmt/format.h"
@@ -25,7 +27,8 @@
 #include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
+#include "CCDB/BasicCCDBManager.h"
 
 #include "TPCQC/Clusters.h"
 #include "TPCBase/Mapper.h"
@@ -43,7 +46,7 @@ namespace tpc
 class TPCDigitDumpDevice : public o2::framework::Task
 {
  public:
-  TPCDigitDumpDevice(const std::vector<int>& sectors) : mSectors(sectors) {}
+  TPCDigitDumpDevice(const std::vector<int>& sectors, bool sendCEdigits) : mSectors(sectors), mSendCEdigits(sendCEdigits) {}
 
   void init(o2::framework::InitContext& ic) final
   {
@@ -54,7 +57,11 @@ class TPCDigitDumpDevice : public o2::framework::Task
     mForceQuit = ic.options().get<bool>("force-quit");
     mCheckDuplicates = ic.options().get<bool>("check-for-duplicates");
     mRemoveDuplicates = ic.options().get<bool>("remove-duplicates");
-    mRemoveCEdigits = ic.options().get<bool>("remove-ce-digits");
+    if (mSendCEdigits) {
+      mRemoveCEdigits = true;
+    } else {
+      mRemoveCEdigits = ic.options().get<bool>("remove-ce-digits");
+    }
 
     if (mUseOldSubspec) {
       LOGP(info, "Using old subspecification (CruId << 16) | ((LinkId + 1) << (CruEndPoint == 1 ? 8 : 0))");
@@ -63,21 +70,43 @@ class TPCDigitDumpDevice : public o2::framework::Task
     // set up ADC value filling
     mRawReader.createReader("");
 
-    const auto inputGRP = o2::base::NameConf::getGRPFileName();
-    const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
-    if (grp) {
-      const auto nhbf = (int)grp->getNHBFPerTF();
-      const int lastTimeBin = nhbf * 891 / 2;
-      mDigitDump.setTimeBinRange(0, lastTimeBin);
-      LOGP(info, "Using GRP NHBF = {} to set last time bin to {}, might be overwritte via --configKeyValues", nhbf, lastTimeBin);
+    if (!ic.options().get<bool>("ignore-grp")) {
+      const auto inputGRP = o2::base::NameConf::getGRPFileName();
+      const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
+      if (grp) {
+        const auto nhbf = (int)grp->getNHBFPerTF();
+        const int lastTimeBin = nhbf * 891 / 2;
+        mDigitDump.setTimeBinRange(0, lastTimeBin);
+        LOGP(info, "Using GRP NHBF = {} to set last time bin to {}, might be overwritte via --configKeyValues", nhbf, lastTimeBin);
+      }
     }
 
     mDigitDump.init();
     mDigitDump.setInMemoryOnly();
-    const auto pedestalFile = ic.options().get<std::string>("pedestal-file");
+    const auto pedestalFile = ic.options().get<std::string>("pedestal-url");
     if (pedestalFile.length()) {
-      LOGP(info, "Setting pedestal file: {}", pedestalFile);
-      mDigitDump.setPedestalAndNoiseFile(pedestalFile);
+      if (pedestalFile.find("ccdb") != std::string::npos) {
+        LOGP(info, "Loading pedestals from ccdb: {}", pedestalFile);
+        auto& cdb = o2::ccdb::BasicCCDBManager::instance();
+        cdb.setURL(pedestalFile);
+        if (cdb.isHostReachable()) {
+          auto pedestalNoise = cdb.get<std::unordered_map<std::string, CalPad>>("TPC/Calib/PedestalNoise");
+          CalPad* pedestal = nullptr;
+          if (pedestalNoise) {
+            pedestal = &pedestalNoise->at("Pedestals");
+          }
+          if (pedestal) {
+            mDigitDump.setPedestals(pedestal);
+          } else {
+            LOGP(error, "could not load pedestals from {}", pedestalFile);
+          }
+        } else {
+          LOGP(error, "ccdb access to {} requested, but host is not reachable. Cannot load Pedestals", pedestalFile);
+        }
+      } else {
+        LOGP(info, "Setting pedestal file: {}", pedestalFile);
+        mDigitDump.setPedestalAndNoiseFile(pedestalFile);
+      }
     }
 
     // set up cluster qc if requested
@@ -113,6 +142,9 @@ class TPCDigitDumpDevice : public o2::framework::Task
     mActiveSectors = calib_processing_helper::processRawData(pc.inputs(), reader, mUseOldSubspec);
 
     mDigitDump.incrementNEvents();
+    if (mClusterQC) {
+      mClusterQC->endTF();
+    }
     LOGP(info, "Number of processed events: {} ({})", mDigitDump.getNumberOfProcessedEvents(), mMaxEvents);
 
     snapshotDigits(pc.outputs());
@@ -124,7 +156,7 @@ class TPCDigitDumpDevice : public o2::framework::Task
         pc.services().get<ControlService>().endOfStream();
         pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
       } else {
-        //pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+        // pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
       }
     }
   }
@@ -154,6 +186,7 @@ class TPCDigitDumpDevice : public o2::framework::Task
   bool mCheckDuplicates{false};
   bool mRemoveDuplicates{false};
   bool mRemoveCEdigits{false};
+  bool mSendCEdigits{false};
   uint64_t mActiveSectors{0};  ///< bit mask of active sectors
   std::vector<int> mSectors{}; ///< tpc sector configuration
 
@@ -167,8 +200,9 @@ class TPCDigitDumpDevice : public o2::framework::Task
       mDigitDump.sortDigits();
     }
 
+    std::array<std::vector<Digit>, Sector::MAXSECTOR> ceDigits;
     if (mRemoveCEdigits) {
-      mDigitDump.removeCEdigits();
+      mDigitDump.removeCEdigits(10, 100, &ceDigits);
     }
 
     for (auto isector : mSectors) {
@@ -177,6 +211,10 @@ class TPCDigitDumpDevice : public o2::framework::Task
       // digit for now are transported per sector, not per lane
       output.snapshot(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(isector), Lifetime::Timeframe, header},
                       mDigitDump.getDigits(isector));
+      if (mSendCEdigits) {
+        output.snapshot(Output{"TPC", "CEDIGITS", static_cast<SubSpecificationType>(isector), Lifetime::Timeframe, header},
+                        ceDigits[isector]);
+      }
     }
     mDigitDump.clearDigits();
     mActiveSectors = 0;
@@ -186,33 +224,37 @@ class TPCDigitDumpDevice : public o2::framework::Task
   void dumpClusterQC()
   {
     mClusterQC->normalize();
-    mClusterQC->dumpToFile("ClusterQC.root");
+    mClusterQC->dumpToFile("ClusterQC.root", 2);
   }
 };
 
-DataProcessorSpec getRawToDigitsSpec(int channel, const std::string inputSpec, std::vector<int> const& tpcSectors)
+DataProcessorSpec getRawToDigitsSpec(int channel, const std::string inputSpec, std::vector<int> const& tpcSectors, bool sendCEdigits)
 {
   using device = o2::tpc::TPCDigitDumpDevice;
 
   std::vector<OutputSpec> outputs;
   for (auto isector : tpcSectors) {
     outputs.emplace_back("TPC", "DIGITS", static_cast<SubSpecificationType>(isector), Lifetime::Timeframe);
+    if (sendCEdigits) {
+      outputs.emplace_back("TPC", "CEDIGITS", static_cast<SubSpecificationType>(isector), Lifetime::Timeframe);
+    }
   }
 
   return DataProcessorSpec{
     fmt::format("tpc-raw-to-digits-{}", channel),
     select(inputSpec.data()),
     outputs,
-    AlgorithmSpec{adaptFromTask<device>(tpcSectors)},
+    AlgorithmSpec{adaptFromTask<device>(tpcSectors, sendCEdigits)},
     Options{
       {"max-events", VariantType::Int, 0, {"maximum number of events to process"}},
       {"use-old-subspec", VariantType::Bool, false, {"use old subsecifiation definition"}},
       {"force-quit", VariantType::Bool, false, {"force quit after max-events have been reached"}},
-      {"pedestal-file", VariantType::String, "", {"file with pedestals and noise for zero suppression"}},
+      {"pedestal-url", VariantType::String, "", {"file with pedestals and noise or ccdb url for zero suppression"}},
       {"create-occupancy-maps", VariantType::Bool, false, {"create occupancy maps and store them to local root file for debugging"}},
       {"check-for-duplicates", VariantType::Bool, false, {"check if duplicate digits exist and only report them"}},
       {"remove-duplicates", VariantType::Bool, false, {"check if duplicate digits exist and remove them"}},
       {"remove-ce-digits", VariantType::Bool, false, {"find CE position and remove digits around it"}},
+      {"ignore-grp", VariantType::Bool, false, {"ignore GRP file"}},
     } // end Options
   };  // end DataProcessorSpec
 }

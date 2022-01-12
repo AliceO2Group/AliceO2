@@ -18,7 +18,7 @@ o2-its-reco-workflow --entropy-encoding | o2-ctf-writer-workflow --onlyDet ITS
 
 For the storage optimization reason one can request multiple CTFs stored in the same output file (as entries of the `ctf` tree):
 ```bash
-o2-ctf-writer --min-file-size <min> --max-file-size <max> ...
+o2-ctf-writer-workflow --min-file-size <min> --max-file-size <max> ...
 ```
 will accumulate CTFs in entries of the same tree/file until its size fits exceeds `min` and does not exceed `max` (`max` check is disabled if `max<=min`) or EOS received.
 The `--max-file-size` limit will be ignored if the very first CTF already exceeds it.
@@ -41,6 +41,14 @@ By default only CTFs will written. If the upstream entropy compression is perfor
 In the dictionaries creation mode their data are accumulated over all CTFs procssed. User may request periodic (and incremental) saving of dictionaries after every `N` TFs processed by passing `--save-dict-after <N>` option.
 
 Option `--ctf-dict-dir <dir>` can be provided to indicate the (existing) directory where the dictionary will be stored.
+
+The external dictionaries created by the `o2-ctf-writer-workflow` containes a TTree (one for all participating detectos or single file per detector if `--dict-per-det` was provided). Since the TTrees cannot be used with CcdbAPI, one can
+run the macro `O2/Detectors/CTF/utils/CTFdict2CCDBfiles.C` (installed to $O2_ROOT/share/macro/CTFdict2CCDBfiles.C) which extracts the dictionary for every detector into separate file containing plain `vector<char>`. These files can be directly
+uploaded to CCDB and accessed via `CcdbAPI` (the reference of the vector should be provided to corresponding detector CTFCoder::createCoders method to build the run-time dictionary). These files can be also used as per-detector command-line
+parameters, on the same footing as tree-based dictionaries, e.g.
+```
+o2-ctf-reader-workflow --ctf-input input.lst --onlyDet ITS,TPC,TOF --its-entropy-decoder ' --ctf-dict ctfdict_ITS_v1.0_1626472046.root' --tpc-entropy-decoder ' --ctf-dict ctfdict_TPC_v1.0_1626472048.root' --tof-entropy-decoder  ' --ctf-dict ctfdict_TOF_v1.0_1626472048.root'
+```
 
 ## CTF reader workflow
 
@@ -111,6 +119,13 @@ There is a possibility to read remote root files directly, w/o caching them loca
 2) provide proper regex to define remote files, e.g. for the example above: `--remote-regex "^root://.+/eos/aliceo2/.+"`.
 3) pass an option `--copy-cmd no-copy`.
 
+```
+--select-ctf-ids <id's of CTFs to select>
+```
+This is a `ctf-reader` device local option allowing selective reading of particular CTFs. It is useful when dealing with CTF files containing multiple TFs. The comma-separated list of increasing CTFs indices must be provided in the format parsed by the `RangeTokenizer<int>`, e.g. `1,4-6,...`.
+Note that the index corresponds not to the entry of the TF in the CTF tree but to the reader own counter incremented throught all input files (e.g. if the 10 CTF files with 20 TFs each are provided for the input and the selection of TFs
+`0,2,22,66` is provided, the reader will inject to the DPL the TFs at entries 0 and 2 from the 1st CTF file, entry 5 of the second file, entry 6 of the 3d and will finish the job.
+
 For the ITS and MFT entropy decoding one can request either to decompose clusters to digits and send them instead of clusters (via `o2-ctf-reader-workflow` global options `--its-digits` and `--mft-digits` respectively)
 or to apply the noise mask to decoded clusters (or decoded digits). If the masking (e.g. via option `--its-entropy-decoder " --mask-noise "`) is requested, user should provide to the entropy decoder the noise mask file (eventually will be loaded from CCDB) and cluster patterns decoding dictionary (if the clusters were encoded with patterns IDs).
 For example,
@@ -123,6 +138,8 @@ o2-ctf-reader-workflow --ctf-input <ctfFiles> --onlyDet ITS,MFT --mft-digits --m
 ```
 will send decompose clusters to digits and send ben out after masking the noise for the MFT, while ITS clusters will be sent as decoded.
 Note that the necessary cluster topology dictionary and noise mask file paths need to be provided via corresponding `o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>.dictFilePath` and `o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>.noiseFilePath` configurables (same for the MFT).
+
+By default an exception will be thrown if detector is requested but missing in the CTF. To enable injection of the empty output in such case one should use option `--allow-missing-detectors`.
 
 ## Support for externally provided encoding dictionaries
 

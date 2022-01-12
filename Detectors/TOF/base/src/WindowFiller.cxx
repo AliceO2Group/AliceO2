@@ -203,7 +203,7 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
       }
 
       if (it->row - initrow < mReadoutWindowCurrent) { // this should not happen
-        LOG(ERROR) << "One pattern skipped because appears to occur early of the current row " << it->row << " < " << mReadoutWindowCurrent << " ?!";
+        LOG(error) << "One pattern skipped because appears to occur early of the current row " << it->row << " < " << mReadoutWindowCurrent << " ?!";
       } else {
         uint32_t cpatt = it->pattern;
         auto dpatt = reinterpret_cast<compressed::Diagnostic_t*>(&cpatt);
@@ -345,7 +345,7 @@ void WindowFiller::checkIfReuseFutureDigits()
     int isnext = Int_t(timestamp * Geo::READOUTWINDOW_INV) - (mReadoutWindowCurrent + 1);    // to be replaced with uncalibrated time
 
     if (isnext < 0) { // we jump too ahead in future, digit will be not stored
-      LOG(DEBUG) << "Digit lost because we jump too ahead in future. Current RO window=" << isnext << "\n";
+      LOG(debug) << "Digit lost because we jump too ahead in future. Current RO window=" << isnext << "\n";
 
       // remove digit from array in the future
       int labelremoved = digit->getLabel();
@@ -414,7 +414,7 @@ void WindowFiller::checkIfReuseFutureDigitsRO() // the same but using readout in
     int isnext = row - mReadoutWindowCurrent;
 
     if (isnext < 0) { // we jump too ahead in future, digit will be not stored
-      LOG(DEBUG) << "Digit lost because we jump too ahead in future. Current RO window=" << isnext << "\n";
+      LOG(debug) << "Digit lost because we jump too ahead in future. Current RO window=" << isnext << "\n";
 
       // remove digit from array in the future
       int labelremoved = digit->getLabel();
@@ -447,6 +447,7 @@ void WindowFiller::checkIfReuseFutureDigitsRO() // the same but using readout in
 
 void WindowFiller::fillDiagnosticFrequency()
 {
+  bool isTOFempty = true;
   // fill diagnostic frequency
   for (int j = 0; j < mReadoutWindowData.size(); j++) {
     mDiagnosticFrequency.fillROW();
@@ -455,27 +456,33 @@ void WindowFiller::fillDiagnosticFrequency()
       int slot = 0;
       if (mReadoutWindowData[j].isEmptyCrate(ic)) {
         mDiagnosticFrequency.fillEmptyCrate(ic);
-      }
-      if (dia) {
-        int fd = mReadoutWindowData[j].firstDia();
-        int lastdia = fd + dia;
+        if (dia) {
+          int fd = mReadoutWindowData[j].firstDia();
+          int lastdia = fd + dia;
 
-        ULong64_t key;
-        for (int dd = fd; dd < lastdia; dd++) {
-          if (mPatterns[dd] >= 28) {
-            slot = mPatterns[dd] - 28;
-            key = (ULong64_t(slot) << 32) + (ULong64_t(ic) << 36);
-            continue;
-          }
+          ULong64_t key;
+          for (int dd = fd; dd < lastdia; dd++) {
+            if (mPatterns[dd] >= 28) {
+              slot = mPatterns[dd] - 28;
+              key = mDiagnosticFrequency.getTRMKey(ic, slot);
+              continue;
+            }
 
-          key += (1 << mPatterns[dd]);
+            key += (1 << mPatterns[dd]);
 
-          if (dd + 1 == lastdia || mPatterns[dd + 1] >= 28) {
-            mDiagnosticFrequency.fill(key);
+            if (dd + 1 == lastdia || mPatterns[dd + 1] >= 28) {
+              mDiagnosticFrequency.fill(key);
+            }
           }
         }
+      } else {
+        isTOFempty = false;
       }
     }
+  }
+
+  if (isTOFempty) {
+    mDiagnosticFrequency.fillEmptyTOF();
   }
 
   // fill also noise diagnostic if the counts within the TF is larger than a threashold (default >=11, -> 1 kHZ)
@@ -486,8 +493,17 @@ void WindowFiller::fillDiagnosticFrequency()
 
   for (int i = 0; i < Geo::NCHANNELS; i++) {
     if (mChannelCounts[i] >= masknoise) {
+      int additionalMask = 0;
+
+      if (mChannelCounts[i] >= masknoise * 10) {
+        additionalMask += (1 << 19); // > 10 kHZ (if masknoise = 1 kHz)
+        if (mChannelCounts[i] >= masknoise * 100) {
+          additionalMask += (1 << 20); // > 100 kHZ (if masknoise = 1 kHz)
+        }
+      }
+
       //Fill noisy in diagnostic
-      mDiagnosticFrequency.fillNoisy(i);
+      mDiagnosticFrequency.fillNoisy(i + additionalMask, mReadoutWindowData.size());
     }
   }
 }

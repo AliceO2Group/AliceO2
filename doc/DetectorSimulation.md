@@ -169,12 +169,12 @@ o2-sim --embedIntoFile o2sim.background.root
 
 Background events are sampled one-by-one until all events have been used. At that point the events start to be reused.
 
-#### 5. **How can I obtain detailed stepping information?**
+#### 5. **How can I obtain detailed stepping information?** <a name="MCStepLoggerSection"></a>
 Run the simulation (currently only supported in combination with `o2-sim-serial`) with a preloaded library:
 ```
-MCSTEPLOG_TTREE=1 LD_PRELOAD=$O2_ROOT/lib/libMCStepLogger.so o2-sim-serial -j 1 -n 10
+MCSTEPLOG_TTREE=1 LD_PRELOAD=$MCSTEPLOGGER_ROOT/lib/libMCStepLoggerInterceptSteps.so o2-sim-serial -j 1 -n 10
 ```
-This will produce a file `MCStepLoggerOutput.root` containing detailed information about steps and processes (where, what, ...). The file can be analysed using a special analysis framework. See https://github.com/AliceO2Group/AliceO2/blob/dev/Utilities/MCStepLogger/README.md for more documentation.
+This will produce a file `MCStepLoggerOutput.root` containing detailed information about steps and processes (where, what, ...). The file can be analysed using a special analysis framework. See https://github.com/AliceO2Group/VMCStepLogger/blob/master/README.md for more documentation.
 
 #### 6. **How can I add a trigger to the event generator?**
 All event generator interfaces that comply with the `o2::eventgen::Generator` protocol can be triggered.
@@ -219,7 +219,19 @@ Notice that in this case the user is presented with a pointer to the event-gener
 For the sake of generality, a `void*` has to be used in order to pass any possible types of event-generators, that are
 normally othogonal one to another. The name encodes a string to identify what generator has been passed and perform the correct cast to use it.
 
+### Replaying steps and optimising full sim parameters
 
+The `MCReplay` engine can be used to replay a simulation based on steps logged by the `MCStepLogger` (see also a more [in-depth documentation](https://github.com/AliceO2Group/VMCStepLogger/tree/v0.2.0/MCReplay)).
+
+To run it with O2, first follow the steps as explained in [MCStepLoggerSection](#MCStepLoggerSection) to produce a file containing logged steps. To replay, do
+```bash
+o2-sim-serial -n <ref_nevents> -e MCReplay -g extkinO2 --extKinFile o2sim_Kine.root -o replay
+```
+It is advisory to use another output prefix as done in this case since otherwise the hit files would be overwritten which might contain exactly the information one is interested in. Make sure to use/exclude the same modules as used in the reference run (`-m` and `--skipModules` flags). In case the reference run was done with another prefix, the kinematics file name is different, namely `<prefix>_Kine.root`.
+
+If the name of the step log file is different, it can be passed with `--configKeyValues="MCReplayParam.stepFilename=<path/step/file/name>"`. It is also possible to set a minimum energy (in units of GeV) cut particles have to have when produced. For that, use `--configKeyValues="MCReplayParam.energyCut=0.1"` if everything produced below `0.1 GeV` should be dropped.
+
+Comparing the produced hits with those from the reference run it is possible to omit steps/particle production which have a negligible impact on the hits and hence on digits. As a result, the detector simulation can be tuned to be faster and more efficient.
 
 ### Deep triggers
 Deep triggers is just a name to a new functionality that allows the user to define custom functions that will have a direct handle on the event generator interface. The functionality follows the schema of the previous point, with the user providing a custom lambda function that will receive from the framework a pointer to the internal event-generator interface object (i.e. for Pythia8, a pointer to the Pythia object) and a tagname to identify the interface. This functionality might be useful to users who want to provide triggers based on information beyond the stack of the generated particles, based on more internal counters/information in the event generator machinery.
@@ -240,7 +252,7 @@ o2::eventgen::DeepTrigger
       auto py8 = reinterpret_cast<Pythia8::Pythia*>(interface);
       return py8->info.nMPI() >= mpiMin;
     }
-    LOG(FATAL) << "Cannot define MPI for generator interface \'" << name << "\'";
+    LOG(fatal) << "Cannot define MPI for generator interface \'" << name << "\'";
     return false;
   };
 }
@@ -313,7 +325,7 @@ o2::eventgen::DeepTrigger
       nMPI = py6->GetMSTI(31);
     }
     else
-      LOG(FATAL) << "Cannot define MPI for generator interface \'" << name << "\'";
+      LOG(fatal) << "Cannot define MPI for generator interface \'" << name << "\'";
     return nMPI >= mpiMin;
   };
 }

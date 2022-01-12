@@ -182,7 +182,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::rotate(value_t alpha)
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
   if ((csp * ca + snp * sa) < 0) {
-    //LOGP(WARNING,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
+    //LOGP(warning,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
     return false;
   }
   //
@@ -456,11 +456,14 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
   }
   // Do not propagate tracks outside the ALICE detector
   if (gpu::CAMath::Abs(dx) > 1e5 || gpu::CAMath::Abs(this->getY()) > 1e5 || gpu::CAMath::Abs(this->getZ()) > 1e5) {
-    LOGP(WARNING, "Anomalous track, target X:{:f}", xk);
+    LOGP(warning, "Anomalous track, target X:{:f}", xk);
     //    print();
     return false;
   }
   value_t crv = (gpu::CAMath::Abs(b[2]) < constants::math::Almost0) ? 0.f : this->getCurvature(b[2]);
+  if (gpu::CAMath::Abs(crv) < constants::math::Almost0) {
+    return propagateTo(xk, 0.);
+  }
   value_t x2r = crv * dx;
   value_t f1 = this->getSnp(), f2 = f1 + x2r;
   if ((gpu::CAMath::Abs(f1) > constants::math::Almost1) || (gpu::CAMath::Abs(f2) > constants::math::Almost1)) {
@@ -755,16 +758,16 @@ auto TrackParametrizationWithError<value_T>::getPredictedChi2(const TrackParamet
   // Supplied non-initialized covToSet matrix is filled by inverse combined matrix for further use
 
   if (gpu::CAMath::Abs(this->getAlpha() - rhs.getAlpha()) > FLT_EPSILON) {
-    LOG(ERROR) << "The reference Alpha of the tracks differ: " << this->getAlpha() << " : " << rhs.getAlpha();
+    LOG(error) << "The reference Alpha of the tracks differ: " << this->getAlpha() << " : " << rhs.getAlpha();
     return 2.f * HugeF;
   }
   if (gpu::CAMath::Abs(this->getX() - rhs.getX()) > FLT_EPSILON) {
-    LOG(ERROR) << "The reference X of the tracks differ: " << this->getX() << " : " << rhs.getX();
+    LOG(error) << "The reference X of the tracks differ: " << this->getX() << " : " << rhs.getX();
     return 2.f * HugeF;
   }
   buildCombinedCovMatrix(rhs, covToSet);
   if (!covToSet.Invert()) {
-    LOG(WARNING) << "Cov.matrix inversion failed: " << covToSet;
+    LOG(warning) << "Cov.matrix inversion failed: " << covToSet;
     return 2.f * HugeF;
   }
   double chi2diag = 0., chi2ndiag = 0., diff[kNParams];
@@ -788,11 +791,11 @@ bool TrackParametrizationWithError<value_T>::update(const TrackParametrizationWi
 
   // consider skipping this check, since it is usually already done upstream
   if (gpu::CAMath::Abs(this->getAlpha() - rhs.getAlpha()) > FLT_EPSILON) {
-    LOG(ERROR) << "The reference Alpha of the tracks differ: " << this->getAlpha() << " : " << rhs.getAlpha();
+    LOG(error) << "The reference Alpha of the tracks differ: " << this->getAlpha() << " : " << rhs.getAlpha();
     return false;
   }
   if (gpu::CAMath::Abs(this->getX() - rhs.getX()) > FLT_EPSILON) {
-    LOG(ERROR) << "The reference X of the tracks differ: " << this->getX() << " : " << rhs.getX();
+    LOG(error) << "The reference X of the tracks differ: " << this->getX() << " : " << rhs.getX();
     return false;
   }
 
@@ -856,7 +859,7 @@ bool TrackParametrizationWithError<value_T>::update(const TrackParametrizationWi
   MatrixDSym5 covI; // perform matrix operations in double!
   buildCombinedCovMatrix(rhs, covI);
   if (!covI.Invert()) {
-    LOG(WARNING) << "Cov.matrix inversion failed: " << covI;
+    LOG(warning) << "Cov.matrix inversion failed: " << covI;
     return false;
   }
   return update(rhs, covI);
@@ -933,6 +936,17 @@ GPUd() bool TrackParametrizationWithError<value_T>::update(const value_t* p, con
   checkCovariance();
 
   return true;
+}
+
+//______________________________________________
+template <typename value_T>
+GPUd() value_T TrackParametrizationWithError<value_T>::update(const o2::dataformats::VertexBase& vtx, value_T maxChi2)
+{
+  // Update track with vertex if the track-vertex chi2 does not exceed maxChi2. Track must be already propagated to the DCA to vertex
+  // return update chi2 or -chi2 if chi2 if chi2 exceeds maxChi2
+  auto vtLoc = this->getVertexInTrackFrame(vtx);
+  value_T chi2 = getPredictedChi2(vtLoc.yz, vtLoc.yzerr);
+  return chi2 < maxChi2 && update(vtLoc.yz, vtLoc.yzerr) ? chi2 : -chi2;
 }
 
 //______________________________________________

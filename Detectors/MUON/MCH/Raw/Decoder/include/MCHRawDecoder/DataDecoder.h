@@ -176,6 +176,9 @@ class DataDecoder
   /// Initialize the digits from an external vector. To be only used for unit tests.
   void setDigits(const RawDigitVector& digits) { mDigits = digits; }
 
+  /// send all messages from our error map to the infologger
+  void logErrorMap(int tfcount) const;
+
  private:
   void initElec2DetMapper(std::string filename);
   void initFee2SolarMapper(std::string filename);
@@ -230,6 +233,7 @@ class DataDecoder
   bool mDs2manu{false};
   uint32_t mOrbit{0};
   bool mUseDummyElecMap{false};
+  std::map<std::string, uint64_t> mErrorMap; // counts for error messages
 };
 
 bool operator<(const DataDecoder::RawDigit& d1, const DataDecoder::RawDigit& d2);

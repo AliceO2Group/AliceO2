@@ -28,7 +28,7 @@ namespace tof
 
 void CalibClusReader::init(InitContext& ic)
 {
-  LOG(INFO) << "Init Cluster reader!";
+  LOG(debug) << "Init Cluster reader!";
   auto filename = ic.options().get<std::string>("tof-calclus-infile");
   connectTree(filename);
 }
@@ -38,11 +38,11 @@ void CalibClusReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(DEBUG) << "Pushing " << mPclusInfos->size() << " TOF clusters calib info at entry " << ent;
+  LOG(debug) << "Pushing " << mPclusInfos->size() << " TOF clusters calib info at entry " << ent;
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOCALCLUS", 0, Lifetime::Timeframe}, mClusInfos);
 
   if (mIsCosmics) {
-    LOG(DEBUG) << "Pushing " << mPcosmicInfo->size() << " TOF cosmics info at entry " << ent;
+    LOG(debug) << "Pushing " << mPcosmicInfo->size() << " TOF cosmics info at entry " << ent;
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOCOSMICS", 0, Lifetime::Timeframe}, mCosmicInfo);
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOTRACKCOS", 0, Lifetime::Timeframe}, mCosmicTrack);
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOTRACKSIZE", 0, Lifetime::Timeframe}, mCosmicTrackSize);
@@ -67,7 +67,7 @@ void CalibClusReader::connectTree(const std::string& filename)
     mTree->SetBranchAddress("TOFTracks", &mPcosmicTrack);
     mTree->SetBranchAddress("TOFTracksSize", &mPcosmicTrackSize);
   }
-  LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
+  LOG(debug) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getCalibClusReaderSpec(bool isCosmics)

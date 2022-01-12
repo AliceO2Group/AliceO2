@@ -33,7 +33,7 @@ class CTFHelper
 
   CTFHeader createHeader()
   {
-    CTFHeader h{0, 1, 0, // dummy timestamp, version 1.0
+    CTFHeader h{o2::detectors::DetID::CPV, 0, 1, 0, // dummy timestamp, version 1.0
                 uint32_t(mTrigData.size()), uint32_t(mCluData.size()), 0, 0};
     if (mTrigData.size()) {
       h.firstOrbit = mTrigData[0].getBCData().orbit;

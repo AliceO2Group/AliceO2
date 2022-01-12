@@ -12,6 +12,7 @@
 /// \file   DigitDump.cxx
 /// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 
+#include <cstddef>
 #include "TTree.h"
 #include "TString.h"
 
@@ -140,13 +141,13 @@ void DigitDump::endEvent()
 void DigitDump::loadNoiseAndPedestal()
 {
   if (!mPedestalAndNoiseFile.size()) {
-    LOG(WARNING) << "No pedestal and noise file name set";
+    LOG(warning) << "No pedestal and noise file name set";
     return;
   }
 
   std::unique_ptr<TFile> f(TFile::Open(mPedestalAndNoiseFile.data()));
   if (!f || !f->IsOpen() || f->IsZombie()) {
-    LOG(FATAL) << "Could not open pedestal file: " << mPedestalAndNoiseFile;
+    LOG(fatal) << "Could not open pedestal file: " << mPedestalAndNoiseFile;
   }
 
   CalPad* pedestal{nullptr};
@@ -155,8 +156,8 @@ void DigitDump::loadNoiseAndPedestal()
   f->GetObject("Pedestals", pedestal);
   f->GetObject("Noise", noise);
 
-  mPedestal = std::move(std::unique_ptr<CalPad>(pedestal));
-  mNoise = std::move(std::unique_ptr<CalPad>(noise));
+  mPedestal = std::move(std::unique_ptr<const CalPad>(pedestal));
+  mNoise = std::move(std::unique_ptr<const CalPad>(noise));
 }
 
 //______________________________________________________________________________
@@ -213,7 +214,16 @@ void DigitDump::checkDuplicates(bool removeDuplicates)
       }
     }
     if (nDuplicates) {
-      LOGP(warning, "{} {} duplicate digits in sector {}", removeDuplicates ? "removed" : "found", nDuplicates, iSec);
+      static std::array<size_t, Sector::MAXSECTOR> nWarning{};
+      static std::array<size_t, Sector::MAXSECTOR> suppression{};
+      if (nWarning[iSec] < 5 || nWarning[iSec] == suppression[iSec]) {
+        LOGP(warning, "{} {} duplicate digits in sector {}, warned {} times in this sector", removeDuplicates ? "removed" : "found", nDuplicates, iSec, nWarning[iSec]);
+        if (nWarning[iSec] == 4) {
+          suppression[iSec] = 10;
+        }
+        suppression[iSec] *= 10;
+      }
+      ++nWarning[iSec];
     }
   }
 }

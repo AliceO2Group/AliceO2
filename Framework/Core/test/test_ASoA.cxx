@@ -333,8 +333,8 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   using FilteredTest = Filtered<TestA>;
   using namespace o2::framework;
   expressions::Filter testf = (test::x == 1) || (test::x == 3);
-  expressions::Selection selection;
-  auto status = gandiva::SelectionVector::MakeInt32(tests.size(), arrow::default_memory_pool(), &selection);
+  gandiva::Selection selection;
+  auto status = gandiva::SelectionVector::MakeInt64(tests.size(), arrow::default_memory_pool(), &selection);
   BOOST_REQUIRE(status.ok());
 
   auto fptr = tableA->schema()->GetFieldByName("x");
@@ -363,7 +363,7 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   auto st = filter->Evaluate(*batch, selection);
   BOOST_REQUIRE_EQUAL(st.ToString(), "OK");
 
-  expressions::Selection selection_f = expressions::createSelection(tableA, testf);
+  gandiva::Selection selection_f = expressions::createSelection(tableA, testf);
 
   TestA testA{tableA};
   FilteredTest filtered{{testA.asArrowTable()}, selection_f};
@@ -381,8 +381,8 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   // Hardcode a selection for the first 5 odd numbers
   using FilteredConcatTest = Filtered<ConcatTest::table_t>;
   using namespace o2::framework;
-  expressions::Selection selectionConcat;
-  status = gandiva::SelectionVector::MakeInt32(tests.size(), arrow::default_memory_pool(), &selectionConcat);
+  gandiva::Selection selectionConcat;
+  status = gandiva::SelectionVector::MakeInt64(tests.size(), arrow::default_memory_pool(), &selectionConcat);
   BOOST_CHECK_EQUAL(status.ok(), true);
   selectionConcat->SetIndex(0, 0);
   selectionConcat->SetIndex(1, 5);
@@ -411,8 +411,8 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
 
   // Test with a Joined table
   using FilteredJoinTest = Filtered<JoinedTest::table_t>;
-  expressions::Selection selectionJoin;
-  status = gandiva::SelectionVector::MakeInt32(tests.size(), arrow::default_memory_pool(), &selectionJoin);
+  gandiva::Selection selectionJoin;
+  status = gandiva::SelectionVector::MakeInt64(tests.size(), arrow::default_memory_pool(), &selectionJoin);
   BOOST_CHECK_EQUAL(status.ok(), true);
   selectionJoin->SetIndex(0, 0);
   selectionJoin->SetIndex(1, 2);
@@ -536,11 +536,13 @@ BOOST_AUTO_TEST_CASE(TestFilteredOperators)
   expressions::Filter f2 = test::y > 13;
 
   TestA testA{tableA};
-  FilteredTest filtered1{{testA.asArrowTable()}, expressions::createSelection(testA.asArrowTable(), f1)};
+  auto s1 = expressions::createSelection(testA.asArrowTable(), f1);
+  FilteredTest filtered1{{testA.asArrowTable()}, s1};
   BOOST_CHECK_EQUAL(4, filtered1.size());
   BOOST_CHECK(filtered1.begin() != filtered1.end());
 
-  FilteredTest filtered2{{testA.asArrowTable()}, expressions::createSelection(testA.asArrowTable(), f2)};
+  auto s2 = expressions::createSelection(testA.asArrowTable(), f2);
+  FilteredTest filtered2{{testA.asArrowTable()}, s2};
   BOOST_CHECK_EQUAL(2, filtered2.size());
   BOOST_CHECK(filtered2.begin() != filtered2.end());
 
@@ -568,7 +570,8 @@ BOOST_AUTO_TEST_CASE(TestFilteredOperators)
   BOOST_CHECK_EQUAL(i, 0);
 
   expressions::Filter f3 = test::x < 3;
-  FilteredTest filtered3{{testA.asArrowTable()}, expressions::createSelection(testA.asArrowTable(), f3)};
+  auto s3 = expressions::createSelection(testA.asArrowTable(), f3);
+  FilteredTest filtered3{{testA.asArrowTable()}, s3};
   BOOST_CHECK_EQUAL(3, filtered3.size());
   BOOST_CHECK(filtered3.begin() != filtered3.end());
 
@@ -611,11 +614,13 @@ BOOST_AUTO_TEST_CASE(TestNestedFiltering)
   expressions::Filter f3 = test::x < 3;
 
   TestA testA{tableA};
-  FilteredTest filtered{{testA.asArrowTable()}, expressions::createSelection(testA.asArrowTable(), f1)};
+  auto s1 = expressions::createSelection(testA.asArrowTable(), f1);
+  FilteredTest filtered{{testA.asArrowTable()}, s1};
   BOOST_CHECK_EQUAL(4, filtered.size());
   BOOST_CHECK(filtered.begin() != filtered.end());
 
-  NestedFilteredTest nestedFiltered{{filtered}, expressions::createSelection(filtered.asArrowTable(), f2)};
+  auto s2 = expressions::createSelection(filtered.asArrowTable(), f2);
+  NestedFilteredTest nestedFiltered{{filtered}, s2};
   BOOST_CHECK_EQUAL(2, nestedFiltered.size());
   auto i = 0;
   for (auto& f : nestedFiltered) {
@@ -626,7 +631,8 @@ BOOST_AUTO_TEST_CASE(TestNestedFiltering)
   }
   BOOST_CHECK_EQUAL(i, 2);
 
-  TripleNestedFilteredTest tripleFiltered{{nestedFiltered}, expressions::createSelection(nestedFiltered.asArrowTable(), f3)};
+  auto s3 = expressions::createSelection(nestedFiltered.asArrowTable(), f3);
+  TripleNestedFilteredTest tripleFiltered{{nestedFiltered}, s3};
   BOOST_CHECK_EQUAL(1, tripleFiltered.size());
   i = 0;
   for (auto& f : tripleFiltered) {
@@ -824,5 +830,36 @@ BOOST_AUTO_TEST_CASE(TestListColumns)
       BOOST_CHECK_EQUAL(i[j], j + 10);
     }
     ++s;
+  }
+}
+
+BOOST_AUTO_TEST_CASE(TestSliceBy)
+{
+  TableBuilder b;
+  auto writer = b.cursor<Origins>();
+  for (auto i = 0; i < 20; ++i) {
+    writer(0, i, i % 3 == 0);
+  }
+  auto origins = b.finalize();
+  Origins o{origins};
+
+  TableBuilder w;
+  auto writer_w = w.cursor<References>();
+  auto step = -1;
+  for (auto i = 0; i < 5 * 20; ++i) {
+    if (i % 5 == 0) {
+      ++step;
+    }
+    writer_w(0, step);
+  }
+  auto refs = w.finalize();
+  References r{refs};
+
+  for (auto& oi : o) {
+    auto slice = r.sliceBy(test::originId, oi.globalIndex());
+    BOOST_CHECK_EQUAL(slice.size(), 5);
+    for (auto& ri : slice) {
+      BOOST_CHECK_EQUAL(ri.originId(), oi.globalIndex());
+    }
   }
 }

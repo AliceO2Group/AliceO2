@@ -51,7 +51,7 @@ void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRe
   for (const auto& tr : dtr) {
     int indexStart = clusters.size(); //final out list of clusters
 
-    LOG(DEBUG) << "Starting clusteriztion digits from " << mFirstElememtInEvent << " to " << mLastElementInEvent;
+    LOG(debug) << "Starting clusteriztion digits from " << mFirstElememtInEvent << " to " << mLastElementInEvent;
     //Convert digits to cluelements
     int firstDigitInEvent = tr.getFirstEntry();
     int lastDigitInEvent = firstDigitInEvent + tr.getNumberOfObjects();
@@ -77,12 +77,12 @@ void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRe
       mCluEl.emplace_back(absId, digitSeed.isHighGain(), energy, calibrateT(digitSeed.getTime(), absId, digitSeed.isHighGain()),
                           x, z, digitSeed.getLabel(), 1.);
     }
-    mLastElementInEvent = mCluEl.size();
+    mLastElementInEvent = cluelements.size();
 
     // Collect digits to clusters
     makeClusters(clusters, cluelements);
 
-    LOG(DEBUG) << "Found clusters from " << indexStart << " to " << clusters.size();
+    LOG(debug) << "Found clusters from " << indexStart << " to " << clusters.size();
     trigRec.emplace_back(tr.getBCData(), indexStart, clusters.size() - indexStart);
   }
   if (mProcessMC) {
@@ -106,7 +106,7 @@ void Clusterer::processCells(gsl::span<const Cell> cells, gsl::span<const Trigge
     int firstCellInEvent = tr.getFirstEntry();
     int lastCellInEvent = firstCellInEvent + tr.getNumberOfObjects();
     int indexStart = clusters.size(); //final out list of clusters
-    LOG(DEBUG) << "Starting clusteriztion cells from " << firstCellInEvent << " to " << lastCellInEvent;
+    LOG(debug) << "Starting clusteriztion cells from " << firstCellInEvent << " to " << lastCellInEvent;
     //convert cells to cluelements
     mFirstElememtInEvent = cluelements.size();
     mCluEl.clear();
@@ -134,7 +134,7 @@ void Clusterer::processCells(gsl::span<const Cell> cells, gsl::span<const Trigge
 
     makeClusters(clusters, cluelements);
 
-    LOG(DEBUG) << "Found clusters from " << indexStart << " to " << clusters.size();
+    LOG(debug) << "Found clusters from " << indexStart << " to " << clusters.size();
     trigRec.emplace_back(tr.getBCData(), indexStart, clusters.size() - indexStart);
   }
   if (mProcessMC) {
@@ -374,7 +374,7 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
   }
 
   // Iterations finished, put first new cluster into place of mother one, others to the end of list
-  for (int iclu = nMax; iclu--;) {
+  for (int iclu = 0; iclu < nMax; iclu++) {
     //copy cluElements to the final list
     int start = cluelements.size();
     int nce = 0;
@@ -657,7 +657,7 @@ char Clusterer::getNumberOfLocalMax(Cluster& clu, std::vector<CluElement>& cluel
       mMaxAt[iDigitN] = i + iFirst;
       iDigitN++;
       if (iDigitN >= NLOCMAX) { // Note that size of output arrays is limited:
-        LOG(ERROR) << "Too many local maxima, cluster multiplicity " << mIsLocalMax.size();
+        LOG(error) << "Too many local maxima, cluster multiplicity " << mIsLocalMax.size();
         return -2;
       }
     }

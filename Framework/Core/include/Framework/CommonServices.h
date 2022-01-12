@@ -63,9 +63,11 @@ struct CommonServices {
   static ServiceSpec callbacksSpec();
   static ServiceSpec timesliceIndex();
   static ServiceSpec dataRelayer();
+  static ServiceSpec dataSender();
   static ServiceSpec tracingSpec();
   static ServiceSpec threadPool(int numWorkers);
   static ServiceSpec dataProcessingStats();
+  static ServiceSpec timingInfoSpec();
 
   static std::vector<ServiceSpec> defaultServices(int numWorkers = 0);
   static std::vector<ServiceSpec> requiredServices();

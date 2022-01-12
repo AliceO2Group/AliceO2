@@ -5,7 +5,7 @@ if [ "0$1" == "0" ]; then
   exit 1
 fi
 
-MYDIR="$(dirname $(readlink -f $0))"
+MYDIR="$(dirname $(realpath $0))"
 source $MYDIR/setenv.sh
 
 # This sets up the hardcoded configuration to run the full system workflow on the EPN
@@ -20,6 +20,7 @@ export EPNPIPELINES=1
 export SYNCMODE=1
 export SHMTHROW=0
 export SEVERITY=error
+export IS_SIMULATED_DATA=1
 
 if [ $1 == "dd" ]; then
   export CMD=datadistribution.sh
@@ -48,8 +49,12 @@ if [ "0$FST_TMUX_LOGPREFIX" != "0" ]; then
 fi
 
 rm -f /dev/shm/*fmq*
+if [[ `ls /dev/shm/*fmq* 2> /dev/null | wc -l` != "0" ]]; then
+  echo "FMQ SHM files left which cannot be deleted, please clean up!"
+  exit 1
+fi
 
-tmux \
+tmux -L FST \
     new-session  "sleep  0; NUMAID=0 $MYDIR/dpl-workflow.sh $LOGCMD0; $ENDCMD" \; \
     split-window "sleep 45; NUMAID=1 $MYDIR/dpl-workflow.sh $LOGCMD1; $ENDCMD" \; \
     split-window "sleep 90; SEVERITY=debug numactl --interleave=all $MYDIR/$CMD; $KILLCMD $ENDCMD" \; \

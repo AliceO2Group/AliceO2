@@ -41,7 +41,7 @@
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "GPUHostDataTypes.h"
 #include "DataFormatsTPC/Digit.h"
-#include "TPCdEdxCalibrationSplines.h"
+#include "DataFormatsTPC/CalibdEdxContainer.h"
 #else
 #include "GPUO2FakeClasses.h"
 #endif
@@ -286,10 +286,10 @@ void GPUChainTracking::DumpSettings(const char* dir)
     DumpStructToFile(processors()->calibObjects.tpcPadGain, f.c_str());
   }
 #ifdef GPUCA_HAVE_O2HEADERS
-  if (processors()->calibObjects.dEdxSplines != nullptr) {
+  if (processors()->calibObjects.dEdxCalibContainer != nullptr) {
     f = dir;
-    f += "dedxsplines.dump";
-    DumpFlatObjectToFile(processors()->calibObjects.dEdxSplines, f.c_str());
+    f += "dEdxCalibContainer.dump";
+    DumpStructToFile(processors()->calibObjects.dEdxCalibContainer, f.c_str());
   }
   if (processors()->calibObjects.matLUT != nullptr) {
     f = dir;
@@ -318,11 +318,11 @@ void GPUChainTracking::ReadSettings(const char* dir)
   processors()->calibObjects.tpcPadGain = mTPCPadGainCalibU.get();
 #ifdef GPUCA_HAVE_O2HEADERS
   f = dir;
-  f += "dedxsplines.dump";
-  mdEdxSplinesU = ReadFlatObjectFromFile<TPCdEdxCalibrationSplines>(f.c_str());
-  processors()->calibObjects.dEdxSplines = mdEdxSplinesU.get();
-  f = dir;
   f += "matlut.dump";
+  f += "dEdxCalibContainer.dump";
+  mdEdxCalibContainerU = ReadStructFromFile<o2::tpc::CalibdEdxContainer>(f.c_str());
+  processors()->calibObjects.dEdxCalibContainer = mdEdxCalibContainerU.get();
+  f = dir;
   mMatLUTU = ReadFlatObjectFromFile<o2::base::MatLayerCylSet>(f.c_str());
   processors()->calibObjects.matLUT = mMatLUTU.get();
   f = dir;

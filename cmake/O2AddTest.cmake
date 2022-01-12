@@ -72,7 +72,7 @@ function(o2_add_test)
     1
     A
     "INSTALL;NO_BOOST_TEST"
-    "COMPONENT_NAME;TIMEOUT;WORKING_DIRECTORY;NAME"
+    "COMPONENT_NAME;TIMEOUT;WORKING_DIRECTORY;NAME;TARGETVARNAME"
     "SOURCES;PUBLIC_LINK_LIBRARIES;COMMAND_LINE_ARGS;LABELS;CONFIGURATIONS;ENVIRONMENT"
     )
 
@@ -108,6 +108,11 @@ function(o2_add_test)
                     PUBLIC_LINK_LIBRARIES ${linkLibraries}
                     COMPONENT_NAME ${A_COMPONENT_NAME}
                     IS_TEST ${noInstall} TARGETVARNAME targetName)
+
+
+  if(A_TARGETVARNAME)
+    set(${A_TARGETVARNAME} ${targetName} PARENT_SCOPE)
+  endif()
 
   # create a test for the executable above
   set(name "")

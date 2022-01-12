@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import sys
+import regex as re
 import numpy as np
 import nltk
 
@@ -88,7 +89,7 @@ class define:
           for ind1 in range(len(self.vars)):
             for ind2 in range(len(words)):
               if self.vars[ind1].strip() in words[ind2]:
-                words[ind2] = vars[ind1].strip()
+                words[ind2] = re.sub(self.vars[ind1].strip(), vars[ind1].strip(), words[ind2])
           expandedLine = block(words)
 
       # remove ##, which connects two strings
@@ -172,10 +173,10 @@ def countBrackets(obr, cbr, line):
 # find text in closed brackets
 # number of closing brackets matches the number of previously opening brackets
 #   obr/cbr: openening/closing brackets
-#            brackets can include more than on character
+#            brackets can include more than one character
 #   line: string
-#   withheader: all textfrom the beginning  until closing brackets match
-# return modified line and int stat
+#   withheader: all text from the beginning until closing brackets match
+# return begin/end position of brackets
 
 def findInBrackets(obr, cbr, line):
   newline = ''

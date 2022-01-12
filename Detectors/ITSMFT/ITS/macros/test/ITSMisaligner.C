@@ -1,7 +1,7 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 //#define ENABLE_UPGRADES
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "CCDB/CcdbApi.h"
@@ -75,8 +75,8 @@ void ITSMisaligner(const std::string& ccdbHost = "http://localhost:8080", long t
   }
 
   if (!ccdbHost.empty()) {
-    std::string path = objectPath.empty() ? o2::base::NameConf::getAlignmentPath(detITS) : objectPath;
-    LOGP(INFO, "Storing alignment object on {}/{}", ccdbHost, path);
+    std::string path = objectPath.empty() ? o2::base::DetectorNameConf::getAlignmentPath(detITS) : objectPath;
+    LOGP(info, "Storing alignment object on {}/{}", ccdbHost, path);
     o2::ccdb::CcdbApi api;
     map<string, string> metadata; // can be empty
     api.init(ccdbHost.c_str());   // or http://localhost:8080 for a local installation
@@ -85,7 +85,7 @@ void ITSMisaligner(const std::string& ccdbHost = "http://localhost:8080", long t
   }
 
   if (!fileName.empty()) {
-    LOGP(INFO, "Storing ITS alignment in local file {}", fileName);
+    LOGP(info, "Storing ITS alignment in local file {}", fileName);
     TFile algFile(fileName.c_str(), "recreate");
     algFile.WriteObjectAny(&params, "std::vector<o2::detectors::AlignParam>", "alignment");
     algFile.Close();

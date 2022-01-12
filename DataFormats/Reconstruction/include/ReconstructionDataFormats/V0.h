@@ -52,7 +52,7 @@ class V0 : public o2::track::TrackParCov
   void setVertexID(int id) { mVertexID = id; }
 
   float calcMass2() const { return calcMass2(mProngs[0].getPID(), mProngs[1].getPID()); }
-  float calcMass2(PID pidPos, PID pidNeg) const { return calcMass2(PID::getMass2(pidPos), PID::getMass2(pidNeg)); }
+  float calcMass2(PID pidPos, PID pidNeg) const { return calcMass2(pidPos.getMass2(), pidNeg.getMass2()); }
   float calcMass2(float massPos2, float massNeg2) const;
 
   float calcR2() const { return getX() * getX() + getY() * getY(); }

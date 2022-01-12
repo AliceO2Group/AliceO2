@@ -97,6 +97,9 @@ void Tracker::computeCells()
 
 void Tracker::findCellsNeighbours(int& iteration)
 {
+#ifdef OPTIMISATION_OUTPUT
+  std::ofstream off(fmt::format("cellneighs{}.txt", iteration));
+#endif
   for (int iLayer{0}; iLayer < mTrkParams[iteration].CellsPerRoad() - 1; ++iLayer) {
 
     if (mTimeFrame->getCells()[iLayer + 1].empty() ||
@@ -114,35 +117,26 @@ void Tracker::findCellsNeighbours(int& iteration)
       const int nextLayerTrackletIndex{currentCell.getSecondTrackletIndex()};
       const int nextLayerFirstCellIndex{mTimeFrame->getCellsLookupTable()[iLayer][nextLayerTrackletIndex]};
       const int nextLayerLastCellIndex{mTimeFrame->getCellsLookupTable()[iLayer][nextLayerTrackletIndex + 1]};
-      for (int iNextLayerCell{nextLayerFirstCellIndex}; iNextLayerCell < nextLayerLastCellIndex; ++iNextLayerCell) {
+      for (int iNextCell{nextLayerFirstCellIndex}; iNextCell < nextLayerLastCellIndex; ++iNextCell) {
 
-        Cell& nextCell{mTimeFrame->getCells()[iLayer + 1][iNextLayerCell]};
+        Cell& nextCell{mTimeFrame->getCells()[iLayer + 1][iNextCell]};
         if (nextCell.getFirstTrackletIndex() != nextLayerTrackletIndex) {
           break;
         }
 
-        const float3 currentCellNormalVector{currentCell.getNormalVectorCoordinates()};
-        const float3 nextCellNormalVector{nextCell.getNormalVectorCoordinates()};
-        const float3 normalVectorsDeltaVector{currentCellNormalVector.x - nextCellNormalVector.x,
-                                              currentCellNormalVector.y - nextCellNormalVector.y,
-                                              currentCellNormalVector.z - nextCellNormalVector.z};
+#ifdef OPTIMISATION_OUTPUT
+        bool good{mTimeFrame->getCellsLabel(iLayer)[iCell] == mTimeFrame->getCellsLabel(iLayer + 1)[iNextCell]};
+        float signedDelta{currentCell.getTanLambda() - nextCell.getTanLambda()};
+        off << fmt::format("{}\t{:d}\t{}\t{}", iLayer, good, signedDelta, signedDelta / mTrkParams[iteration].CellDeltaTanLambdaSigma) << std::endl;
+#endif
+        mTimeFrame->getCellsNeighbours()[iLayer][iNextCell].push_back(iCell);
 
-        const float deltaNormalVectorsModulus{(normalVectorsDeltaVector.x * normalVectorsDeltaVector.x) +
-                                              (normalVectorsDeltaVector.y * normalVectorsDeltaVector.y) +
-                                              (normalVectorsDeltaVector.z * normalVectorsDeltaVector.z)};
-        const float deltaCurvature{std::abs(currentCell.getCurvature() - nextCell.getCurvature())};
+        const int currentCellLevel{currentCell.getLevel()};
 
-        if (deltaNormalVectorsModulus < mTrkParams[iteration].NeighbourMaxDeltaN[iLayer] &&
-            deltaCurvature < mTrkParams[iteration].NeighbourMaxDeltaCurvature[iLayer]) {
-
-          mTimeFrame->getCellsNeighbours()[iLayer][iNextLayerCell].push_back(iCell);
-
-          const int currentCellLevel{currentCell.getLevel()};
-
-          if (currentCellLevel >= nextCell.getLevel()) {
-            nextCell.setLevel(currentCellLevel + 1);
-          }
+        if (currentCellLevel >= nextCell.getLevel()) {
+          nextCell.setLevel(currentCellLevel + 1);
         }
+        // }
       }
     }
   }
@@ -283,7 +277,7 @@ void Tracker::findTracks()
     const auto& cluster3_tf = mTimeFrame->getTrackingFrameInfoOnLayer(lastCellLevel).at(clusters[lastCellLevel]);
 
     /// FIXME!
-    TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf)};
+    TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf, mTimeFrame->getPositionResolution(lastCellLevel))};
     for (size_t iC = 0; iC < clusters.size(); ++iC) {
       temporaryTrack.setExternalClusterIndex(iC, clusters[iC], clusters[iC] != constants::its::UnusedIndex);
     }
@@ -376,12 +370,23 @@ bool Tracker::fitTrack(TrackITSExt& track, int start, int end, int step, const f
       return false;
     }
 
-    auto predChi2{track.getPredictedChi2(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
+    if (mCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
+      float radl = 9.36f; // Radiation length of Si [cm]
+      float rho = 2.33f;  // Density of Si [g/cm^3]
+      if (!track.correctForMaterial(mTrkParams[0].LayerxX0[iLayer], mTrkParams[0].LayerxX0[iLayer] * radl * rho, true)) {
+        continue;
+      }
+    }
+
+    GPUArray<float, 3> cov{trackingHit.covarianceTrackingFrame};
+    cov[0] = std::hypot(cov[0], mTrkParams[0].LayerMisalignment[iLayer]);
+    cov[2] = std::hypot(cov[2], mTrkParams[0].LayerMisalignment[iLayer]);
+    auto predChi2{track.getPredictedChi2(trackingHit.positionTrackingFrame, cov)};
     if (nCl >= 3 && predChi2 > chi2cut * (nCl * 2 - 5)) {
       return false;
     }
     track.setChi2(track.getChi2() + predChi2);
-    if (!track.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
+    if (!track.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, cov)) {
       return false;
     }
     nCl++;
@@ -608,7 +613,7 @@ void Tracker::rectifyClusterIndices()
 /// whereas the others are referred to the global frame. This function is almost a clone of CookSeed, adapted to return
 /// a TrackParCov
 track::TrackParCov Tracker::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2,
-                                           const Cluster& cluster3, const TrackingFrameInfo& tf3)
+                                           const Cluster& cluster3, const TrackingFrameInfo& tf3, float resolution)
 {
   const float ca = std::cos(tf3.alphaTrackingFrame), sa = std::sin(tf3.alphaTrackingFrame);
   const float x1 = cluster1.xCoordinate * ca + cluster1.yCoordinate * sa;
@@ -628,14 +633,17 @@ track::TrackParCov Tracker::buildTrackSeed(const Cluster& cluster1, const Cluste
 
   const float fy = 1. / (cluster2.radius - cluster3.radius);
   const float& tz = fy;
-  const float cy = (math_utils::computeCurvature(x1, y1, x2, y2 + constants::its::Resolution, x3, y3) - crv) /
-                   (constants::its::Resolution * getBz() * o2::constants::math::B2C) *
-                   20.f; // FIXME: MS contribution to the cov[14] (*20 added)
-  constexpr float s2 = constants::its::Resolution * constants::its::Resolution;
+  float cy = 1.e15f;
+  if (std::abs(getBz()) > o2::constants::math::Almost0) {
+    cy = (math_utils::computeCurvature(x1, y1, x2, y2 + resolution, x3, y3) - crv) /
+         (resolution * getBz() * o2::constants::math::B2C) *
+         20.f; // FIXME: MS contribution to the cov[14] (*20 added)
+  }
+  const float s2 = resolution;
 
   return track::TrackParCov(tf3.xTrackingFrame, tf3.alphaTrackingFrame,
                             {y3, z3, crv * (x3 - x0), 0.5f * (tgl12 + tgl23),
-                             std::abs(getBz()) < o2::constants::math::Almost0 ? o2::constants::math::Almost0
+                             std::abs(getBz()) < o2::constants::math::Almost0 ? 1.f / o2::track::kMostProbablePt
                                                                               : crv / (getBz() * o2::constants::math::B2C)},
                             {s2, 0.f, s2, s2 * fy, 0.f, s2 * fy * fy, 0.f, s2 * tz, 0.f, s2 * tz * tz, s2 * cy, 0.f,
                              s2 * fy * cy, 0.f, s2 * cy * cy});
@@ -647,12 +655,35 @@ void Tracker::getGlobalConfiguration()
   if (tc.useMatCorrTGeo) {
     setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrTGeo);
   }
+  for (auto& params : mTrkParams) {
+    if (params.NLayers == 7) {
+      for (int i{0}; i < 7; ++i) {
+        params.LayerMisalignment[i] = tc.sysErrZ2[i] > 0 ? std::sqrt(tc.sysErrZ2[i]) : params.LayerMisalignment[i];
+      }
+    }
+    params.PhiBins = tc.LUTbinsPhi > 0 ? tc.LUTbinsPhi : params.PhiBins;
+    params.ZBins = tc.LUTbinsZ > 0 ? tc.LUTbinsZ : params.ZBins;
+    params.PVres = tc.pvRes > 0 ? tc.pvRes : params.PVres;
+    params.NSigmaCut *= tc.nSigmaCut > 0 ? tc.nSigmaCut : 1.f;
+    params.CellDeltaTanLambdaSigma *= tc.deltaTanLres > 0 ? tc.deltaTanLres : 1.f;
+    params.TrackletMinPt *= tc.minPt > 0 ? tc.minPt : 1.f;
+    for (int iD{0}; iD < 3; ++iD) {
+      params.Diamond[iD] = tc.diamondPos[iD];
+    }
+    params.UseDiamond = tc.useDiamond;
+  }
 }
 
 void Tracker::adoptTimeFrame(TimeFrame& tf)
 {
   mTimeFrame = &tf;
   mTraits->adoptTimeFrame(&tf);
+}
+
+void Tracker::setBz(float bz)
+{
+  mBz = bz;
+  mTimeFrame->setBz(bz);
 }
 
 } // namespace its

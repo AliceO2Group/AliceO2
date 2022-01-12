@@ -23,6 +23,7 @@
 #include "TLine.h"
 #include "TLatex.h"
 #include "TStyle.h"
+#include "TPaveText.h"
 
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/ROC.h"
@@ -32,6 +33,7 @@
 #include "TPCBase/CalArray.h"
 #include "TPCBase/Painter.h"
 #include "TPCBase/Utils.h"
+#include "DataFormatsTPC/LaserTrack.h"
 
 // for conversion CalDet to TH3
 #include <deque>
@@ -107,10 +109,10 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
   TH1::SetDefaultBufferSize(Sector::MAXSECTOR * mapper.getPadsInSector());
 
   auto hAside1D = new TH1F(fmt::format("h_Aside_1D_{}", name).data(), fmt::format("{} (A-Side)", title).data(),
-                           nbins1D, xMin1D, xMax1D); //TODO: modify ranges
+                           nbins1D, xMin1D, xMax1D); // TODO: modify ranges
 
   auto hCside1D = new TH1F(fmt::format("h_Cside_1D_{}", name).data(), fmt::format("{} (C-Side)", title).data(),
-                           nbins1D, xMin1D, xMax1D); //TODO: modify ranges
+                           nbins1D, xMin1D, xMax1D); // TODO: modify ranges
 
   auto hAside2D = new TH2F(fmt::format("h_Aside_2D_{}", name).data(), fmt::format("{} (A-Side);#it{{x}} (cm);#it{{y}} (cm)", title).data(),
                            330, -270, 270, 330, -270, 270);
@@ -385,7 +387,7 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const CalDet<T>& calDet, int 
     }
 
     // ===| 1D histogram |===
-    auto h1D = new TH1F(fmt::format("h_{}_{:02d}", calName, iroc).data(), fmt::format("{} distribution ROC {:02d} ({});ADC value", calName, iroc, getROCTitle(iroc)).data(), nbins1D, xMin1D, xMax1D);
+    auto h1D = new TH1F(fmt::format("h1_{}_{:02d}", calName, iroc).data(), fmt::format("{} distribution ROC {:02d} ({});ADC value", calName, iroc, getROCTitle(iroc)).data(), nbins1D, xMin1D, xMax1D);
     for (const auto& val : roc.getData()) {
       h1D->Fill(val);
     }
@@ -435,9 +437,9 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const std::string_view fileNa
 }
 
 //______________________________________________________________________________
-TH2Poly* painter::makeSectorHist(const std::string_view name, const std::string_view title)
+TH2Poly* painter::makeSectorHist(const std::string_view name, const std::string_view title, const float xMin, const float xMax, const float yMin, const float yMax)
 {
-  auto poly = new TH2Poly(name.data(), title.data(), 83.65, 247.7, -43.7, 43.7);
+  auto poly = new TH2Poly(name.data(), title.data(), xMin, xMax, yMin, yMax);
 
   auto coords = painter::getPadCoordinatesSector();
   for (const auto& coord : coords) {
@@ -748,7 +750,7 @@ TH3F painter::convertCalDetToTH3(const std::vector<CalDet<DataT>>& calDet, const
                 continue;
               }
               const double area = boost::geometry::area(output.front());
-              const double fac = area * Mapper::PADAREA[region];
+              const double fac = area * Mapper::INVPADAREA[region];
 
               for (int iSide = 0; iSide < 2; ++iSide) {
                 const Side side = iSide == 0 ? Side::C : Side::A;
@@ -777,6 +779,116 @@ TH3F painter::convertCalDetToTH3(const std::vector<CalDet<DataT>>& calDet, const
   }
 
   return histConvSum;
+}
+
+std::vector<TCanvas*> painter::makeSummaryCanvases(const LtrCalibData& ltr, std::vector<TCanvas*>* outputCanvases)
+{
+  std::vector<TCanvas*> vecCanvases;
+
+  // ===| set up canvases |===
+  TCanvas* cLtrCoverage = nullptr;
+  TCanvas* cCalibValues = nullptr;
+
+  const auto size = 1400;
+  if (outputCanvases) {
+    if (outputCanvases->size() < 2) {
+      LOGP(error, "At least 2 canvases are needed to fill the output, only {} given", outputCanvases->size());
+      return vecCanvases;
+    }
+
+    cLtrCoverage = outputCanvases->at(0);
+    cCalibValues = outputCanvases->at(1);
+    cLtrCoverage->Clear();
+    cCalibValues->Clear();
+    cLtrCoverage->SetCanvasSize(size, 2. * size * 7 / 24 * 1.1);
+    cCalibValues->SetCanvasSize(size, 2. * size * 7 / 24 * 1.1);
+  } else {
+    cLtrCoverage = new TCanvas("cLtrCoverage", "laser track coverage", size, 2. * size * 7 / 24 * 1.1);
+    cCalibValues = new TCanvas("cCalibValues", "calibration values", size, 2. * size * 7 / 24 * 1.1);
+
+    // TODO: add cCalibValues
+  }
+
+  auto getLtrStatHist = [](Side side) -> TH2F* {
+    auto sideName = (side == Side::A) ? "A" : "C";
+    auto hltrCoverage = new TH2F(fmt::format("hltrCoverage_{}", sideName).data(), ";Bundle ID;Track in bundle;fraction of matches per trigger", 24, 0, 24, 7, 0, 7);
+    hltrCoverage->SetBit(TObject::kCanDelete);
+    hltrCoverage->SetStats(0);
+    hltrCoverage->GetXaxis()->SetNdivisions(406, false);
+    hltrCoverage->GetYaxis()->SetNdivisions(107, false);
+    hltrCoverage->SetLabelSize(0.05, "XY");
+    hltrCoverage->SetTitleSize(0.06, "X");
+    hltrCoverage->SetTitleSize(0.07, "Y");
+    hltrCoverage->SetTitleOffset(0.8, "X");
+    hltrCoverage->SetTitleOffset(0.4, "Y");
+    return hltrCoverage;
+  };
+
+  auto drawNames = [](Side side) {
+    const std::array<const std::string_view, 6> namesA{"A01/02", "A04/05", "A07/08", "A10/11", "A13/14", "A16/17"};
+    const std::array<const std::string_view, 6> namesC{"C00/01", "C03/04", "C06/07", "C09/10", "C12/13", "C15/16"};
+    const auto& names = (side == Side::A) ? namesA : namesC;
+
+    TLatex lat;
+    lat.SetTextAlign(22);
+    lat.SetTextSize(0.06);
+
+    for (int i = 0; i < 6; ++i) {
+      lat.DrawLatex(2.f + i * 4.f, 7.5, names[i].data());
+    }
+  };
+
+  auto hltrCoverageA = getLtrStatHist(Side::A);
+  auto hltrCoverageC = getLtrStatHist(Side::C);
+
+  for (const auto id : ltr.matchedLtrIDs) {
+    const auto trackID = id % LaserTrack::TracksPerBundle;
+    const auto bundleID = (id / LaserTrack::TracksPerBundle) % (LaserTrack::RodsPerSide * LaserTrack::BundlesPerRod);
+
+    auto hltrCoverage = (id < (LaserTrack::NumberOfTracks / 2)) ? hltrCoverageA : hltrCoverageC;
+
+    hltrCoverage->Fill(bundleID, trackID);
+  }
+  // hltrCoverage->Scale(1.f/float(ltr->processedTFs));
+
+  cLtrCoverage->Divide(1, 2);
+
+  // A-Side
+  cLtrCoverage->cd(1);
+  gPad->SetGridx(1);
+  gPad->SetGridy(1);
+  gPad->SetRightMargin(0.01);
+  hltrCoverageA->Draw("col text");
+  drawNames(Side::A);
+
+  // C-Side
+  cLtrCoverage->cd(2);
+  gPad->SetGridx(1);
+  gPad->SetGridy(1);
+  gPad->SetRightMargin(0.01);
+  hltrCoverageC->Draw("col text");
+  drawNames(Side::C);
+
+  // ===| calibration value canvas |===
+  // TODO: Implement
+  auto calibValMsg = new TPaveText(0.1, 0.1, 0.9, 0.9, "NDC");
+  calibValMsg->SetFillColor(0);
+  calibValMsg->SetBorderSize(0);
+  calibValMsg->AddText(fmt::format("processedTFs: {}", ltr.processedTFs).data());
+  calibValMsg->AddText(fmt::format("dvCorrectionA: {}", ltr.dvCorrectionA).data());
+  calibValMsg->AddText(fmt::format("dvCorrectionC: {}", ltr.dvCorrectionC).data());
+  calibValMsg->AddText(fmt::format("dvCorrection: {}", ltr.getDriftVCorrection()).data());
+  calibValMsg->AddText(fmt::format("dvOffsetA: {}", ltr.dvOffsetA).data());
+  calibValMsg->AddText(fmt::format("dvOffsetC: {}", ltr.dvOffsetC).data());
+  calibValMsg->AddText(fmt::format("nTracksA: {}", ltr.nTracksA).data());
+  calibValMsg->AddText(fmt::format("nTracksC: {}", ltr.nTracksC).data());
+
+  cCalibValues->cd();
+  calibValMsg->Draw();
+
+  vecCanvases.emplace_back(cLtrCoverage);
+  vecCanvases.emplace_back(cCalibValues);
+  return vecCanvases;
 }
 
 // ===| explicit instantiations |===============================================

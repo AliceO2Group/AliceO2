@@ -27,16 +27,23 @@ AltroDecoderError::ErrorType_t AltroDecoder::decode(RawReaderMemory& rawreader, 
   mOutputHWErrors.clear();
   mOutputFitChi.clear();
 
-  auto& header = rawreader.getRawHeader();
-  mddl = o2::raw::RDHUtils::getFEEID(header);
-
+  try {
+    auto& header = rawreader.getRawHeader();
+    mddl = o2::raw::RDHUtils::getFEEID(header);
+  } catch (...) {
+    return AltroDecoderError::RCU_TRAILER_ERROR;
+  }
   const std::vector<uint32_t>& payloadwords = rawreader.getPayload().getPayloadWords();
+
+  if (payloadwords.size() == 0) {
+    return AltroDecoderError::kOK;
+  }
 
   try {
     gsl::span<const uint32_t> tmp(payloadwords.data(), payloadwords.size());
     mRCUTrailer.constructFromRawPayload(tmp);
   } catch (RCUTrailer::Error& e) {
-    // LOG(ERROR) << "RCU trailer error" << (int)e.getErrorType();
+    LOG(error) << "RCU trailer error " << (int)e.getErrorType();
     mOutputHWErrors.emplace_back(mddl, kGeneralSRUErr, static_cast<char>(e.getErrorType())); //assign general SRU header errors to non-existing FEE 15
     return AltroDecoderError::RCU_TRAILER_ERROR;
   }
@@ -45,7 +52,7 @@ AltroDecoderError::ErrorType_t AltroDecoder::decode(RawReaderMemory& rawreader, 
   try {
     readChannels(payloadwords, rawFitter, currentCellContainer, currentTRUContainer);
   } catch (AltroDecoderError::ErrorType_t e) {
-    // LOG(ERROR) << "Altro decoding error " << e;
+    LOG(error) << "Altro decoding error " << e;
     mOutputHWErrors.emplace_back(mddl, kGeneralTRUErr, static_cast<char>(e)); //assign general SRU header errors to non-existing FEE 16
     return e;
   }
@@ -63,7 +70,7 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
     ChannelHeader header = {currentword};
     if (header.mMark != 1) {
       if (currentword != 0) {
-        LOG(ERROR) << "Channel header mark not found, header word " << currentword;
+        LOG(error) << "Channel header mark not found, header word " << currentword;
         short fec = header.mHardwareAddress >> 7 & 0xf; //try to extract FEE number from header
         short branch = header.mHardwareAddress >> 11 & 0x1;
         if (fec > 14) {
@@ -77,7 +84,7 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
     /// decode all words for channel
     int numberofwords = (header.mPayloadSize + 2) / 3;
     if (numberofwords > payloadend - currentpos) {
-      LOG(ERROR) << "Channel payload " << numberofwords << " larger than left in total " << payloadend - currentpos;
+      LOG(error) << "Channel payload " << numberofwords << " larger than left in total " << payloadend - currentpos;
       short fec = header.mHardwareAddress >> 7 & 0xf; //try to extract FEE number from header
       short branch = header.mHardwareAddress >> 11 & 0x1;
       if (fec > 14) {
@@ -92,7 +99,7 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
     while (isample < header.mPayloadSize) {
       currentword = buffer[currentpos++];
       if ((currentword >> 30) != 0) {
-        LOG(ERROR) << "Unexpected end of payload in altro channel payload! FEE=" << mddl
+        LOG(error) << "Unexpected end of payload in altro channel payload! FEE=" << mddl
                    << ", Address=0x" << std::hex << header.mHardwareAddress << ", word=0x" << currentword << std::dec;
         currentpos--;
         short fec = header.mHardwareAddress >> 7 & 0xf; //try to extract FEE number from header
@@ -171,11 +178,11 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
           if (!mPedestalRun) {
             if (caloFlag == Mapping::kHighGain && !rawFitter->isOverflow()) {
               currentCellContainer.emplace_back(absId, rawFitter->getAmp(),
-                                                (rawFitter->getTime() + starttime) * o2::phos::PHOSSimParams::Instance().mTimeTick, (ChannelType_t)caloFlag);
+                                                (rawFitter->getTime() + starttime) * o2::phos::PHOSSimParams::Instance().mTimeTick * 1.e-9, (ChannelType_t)caloFlag);
             }
             if (caloFlag == Mapping::kLowGain) {
               currentCellContainer.emplace_back(absId, rawFitter->getAmp(),
-                                                (rawFitter->getTime() + starttime) * o2::phos::PHOSSimParams::Instance().mTimeTick, (ChannelType_t)caloFlag);
+                                                (rawFitter->getTime() + starttime) * o2::phos::PHOSSimParams::Instance().mTimeTick * 1.e-9, (ChannelType_t)caloFlag);
             }
           } else { //pedestal, to store RMS, scale in by 1.e-7 to fit range
             currentCellContainer.emplace_back(absId, rawFitter->getAmp(), 1.e-7 * rawFitter->getTime(), (ChannelType_t)caloFlag);

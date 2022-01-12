@@ -29,7 +29,7 @@
 #pragma link C++ class std::vector < o2::tpc::ClusterHardwareContainerFixedSize < 8192>> + ;
 #pragma link C++ class std::vector < o2::tpc::ClusterHardwareContainer8kb> + ;
 #pragma link C++ class std::vector < o2::tpc::Digit> + ;
-#pragma link C++ class std::vector < o2::tpc::ZeroSuppressedContainer8kb > +;
+#pragma link C++ class std::vector < o2::tpc::ZeroSuppressedContainer8kb > + ;
 #pragma link C++ class o2::tpc::TrackTPC + ;
 #pragma link C++ class o2::tpc::LaserTrack + ;
 #pragma link C++ class o2::tpc::LaserTrackContainer + ;
@@ -55,5 +55,9 @@
 #pragma link C++ class std::vector<o2::tpc::KrCluster> + ;
 #pragma link C++ class o2::tpc::LtrCalibData +;
 #pragma link C++ class std::vector<o2::tpc::LtrCalibData> +;
+#pragma link C++ class o2::tpc::CalibdEdxCorrection + ;
+#pragma link C++ class o2::tpc::CalibdEdxTrackTopologyPol + ;
+#pragma link C++ class o2::tpc::CalibdEdxTrackTopologySpline + ;
+#pragma link C++ class o2::tpc::CalibdEdxContainer + ;
 
 #endif

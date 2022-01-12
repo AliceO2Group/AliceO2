@@ -95,7 +95,7 @@ struct AxisSpec {
       name(name_)
   {
     if (binMin_ > binMax_) {
-      LOG(FATAL) << "Defined ill-defined axis";
+      LOG(fatal) << "Defined ill-defined axis";
     }
   }
 
@@ -117,21 +117,7 @@ struct AxisSpec {
   }
 
   /// Function to make the axis logartitmic
-  void makeLogaritmic()
-  {
-    if (binEdges.size() > 2) {
-      LOG(FATAL) << "Cannot make a variabled bin width axis logaritmic";
-    }
-
-    const double min = binEdges[0];
-    const double width = (binEdges[1] - binEdges[0]) / nBins.value();
-    binEdges.clear();
-    binEdges.resize(0);
-    for (int i = 0; i < nBins.value() + 1; i++) {
-      binEdges.push_back(std::pow(10., min + i * width));
-    }
-    nBins = std::nullopt;
-  }
+  void makeLogaritmic();
 
   /// Data members
   std::optional<int> nBins{};         /// Number of bins (only used for fixed bin width axis)

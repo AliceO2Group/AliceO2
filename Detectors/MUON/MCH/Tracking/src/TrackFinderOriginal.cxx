@@ -68,12 +68,12 @@ void TrackFinderOriginal::init(float l3Current, float dipoleCurrent)
 }
 
 //_________________________________________________________________________________________________
-const std::list<Track>& TrackFinderOriginal::findTracks(const std::array<std::list<Cluster>, 10>* clusters)
+const std::list<Track>& TrackFinderOriginal::findTracks(const std::array<std::list<const Cluster*>, 10>& clusters)
 {
   /// Run the original track finder algorithm
 
   print("\n------------------ Start the original track finder ------------------");
-  mClusters = clusters;
+  mClusters = &clusters;
   mTracks.clear();
 
   // Use the chamber resolution when fitting the tracks during the tracking
@@ -306,32 +306,32 @@ std::list<Track>::iterator TrackFinderOriginal::findTrackCandidates(int ch1, int
   // create an iterator to the last track of the list before adding new ones
   auto itTrack = mTracks.empty() ? mTracks.end() : std::prev(mTracks.end());
 
-  for (const auto& cluster1 : mClusters->at(ch1)) {
+  for (const auto cluster1 : mClusters->at(ch1)) {
 
-    double z1 = cluster1.getZ();
+    double z1 = cluster1->getZ();
 
-    for (const auto& cluster2 : mClusters->at(ch2)) {
+    for (const auto cluster2 : mClusters->at(ch2)) {
 
       // skip combinations of clusters already part of a track if requested
-      if (skipUsedPairs && areUsed(cluster1, cluster2)) {
+      if (skipUsedPairs && areUsed(*cluster1, *cluster2)) {
         continue;
       }
 
-      double z2 = cluster2.getZ();
+      double z2 = cluster2->getZ();
       double dZ = z1 - z2;
 
       // check if non bending impact parameter is within tolerances
-      double nonBendingSlope = (cluster1.getX() - cluster2.getX()) / dZ;
-      double nonBendingImpactParam = TMath::Abs(cluster1.getX() - cluster1.getZ() * nonBendingSlope);
+      double nonBendingSlope = (cluster1->getX() - cluster2->getX()) / dZ;
+      double nonBendingImpactParam = TMath::Abs(cluster1->getX() - cluster1->getZ() * nonBendingSlope);
       double nonBendingImpactParamErr = TMath::Sqrt((z1 * z1 * mChamberResolutionX2 + z2 * z2 * mChamberResolutionX2) / dZ / dZ + impactMCS2);
       if ((nonBendingImpactParam - trackerParam.sigmaCutForTracking * nonBendingImpactParamErr) > (3. * trackerParam.nonBendingVertexDispersion)) {
         continue;
       }
 
-      double bendingSlope = (cluster1.getY() - cluster2.getY()) / dZ;
+      double bendingSlope = (cluster1->getY() - cluster2->getY()) / dZ;
       if (TrackExtrap::isFieldON()) { // depending whether the field is ON or OFF
         // check if bending momentum is within tolerances
-        double bendingImpactParam = cluster1.getY() - cluster1.getZ() * bendingSlope;
+        double bendingImpactParam = cluster1->getY() - cluster1->getZ() * bendingSlope;
         double bendingImpactParamErr2 = (z1 * z1 * mChamberResolutionY2 + z2 * z2 * mChamberResolutionY2) / dZ / dZ + impactMCS2;
         double bendingMomentum = TMath::Abs(TrackExtrap::getBendingMomentumFromImpactParam(bendingImpactParam));
         double bendingMomentumErr = TMath::Sqrt((mBendingVertexDispersion2 + bendingImpactParamErr2) / bendingImpactParam / bendingImpactParam + 0.01) * bendingMomentum;
@@ -340,7 +340,7 @@ std::list<Track>::iterator TrackFinderOriginal::findTrackCandidates(int ch1, int
         }
       } else {
         // or check if bending impact parameter is within tolerances
-        double bendingImpactParam = TMath::Abs(cluster1.getY() - cluster1.getZ() * bendingSlope);
+        double bendingImpactParam = TMath::Abs(cluster1->getY() - cluster1->getZ() * bendingSlope);
         double bendingImpactParamErr = TMath::Sqrt((z1 * z1 * mChamberResolutionY2 + z2 * z2 * mChamberResolutionY2) / dZ / dZ + impactMCS2);
         if ((bendingImpactParam - trackerParam.sigmaCutForTracking * bendingImpactParamErr) > (3. * trackerParam.bendingVertexDispersion)) {
           continue;
@@ -348,7 +348,7 @@ std::list<Track>::iterator TrackFinderOriginal::findTrackCandidates(int ch1, int
       }
 
       // create a new track candidate
-      createTrack(cluster1, cluster2);
+      createTrack(*cluster1, *cluster2);
     }
   }
 
@@ -713,15 +713,15 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
   std::vector<bool> clusterCh1Used(mClusters->at(ch1).size(), false);
 
   // Look for cluster candidates in chamber 2
-  for (const auto& clusterCh2 : mClusters->at(ch2)) {
+  for (const auto clusterCh2 : mClusters->at(ch2)) {
 
     // Fast try to add the current cluster
-    if (!tryOneClusterFast(extrapTrackParamAtCh, clusterCh2)) {
+    if (!tryOneClusterFast(extrapTrackParamAtCh, *clusterCh2)) {
       continue;
     }
 
     // Try to add the current cluster accurately
-    if (tryOneCluster(extrapTrackParamAtCh, clusterCh2, extrapTrackParamAtCluster2,
+    if (tryOneCluster(extrapTrackParamAtCh, *clusterCh2, extrapTrackParamAtCluster2,
                       mTrackFitter.isSmootherEnabled()) >= mMaxChi2ForTracking) {
       continue;
     }
@@ -759,17 +759,17 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
 
       // look for second cluster candidates in chamber 1
       int iCluster1(-1);
-      for (const auto& clusterCh1 : mClusters->at(ch1)) {
+      for (const auto clusterCh1 : mClusters->at(ch1)) {
 
         ++iCluster1;
 
         // Fast try to add the current cluster
-        if (!tryOneClusterFast(extrapTrackParam, clusterCh1)) {
+        if (!tryOneClusterFast(extrapTrackParam, *clusterCh1)) {
           continue;
         }
 
         // Try to add the current cluster accurately
-        if (tryOneCluster(extrapTrackParam, clusterCh1, extrapTrackParamAtCluster1,
+        if (tryOneCluster(extrapTrackParam, *clusterCh1, extrapTrackParamAtCluster1,
                           mTrackFitter.isSmootherEnabled()) >= mMaxChi2ForTracking) {
           continue;
         }
@@ -821,7 +821,7 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
 
   // look for cluster candidates not already used in chamber 1
   int iCluster1(-1);
-  for (const auto& clusterCh1 : mClusters->at(ch1)) {
+  for (const auto clusterCh1 : mClusters->at(ch1)) {
 
     ++iCluster1;
     if (clusterCh1Used[iCluster1]) {
@@ -829,12 +829,12 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
     }
 
     // Fast try to add the current cluster
-    if (!tryOneClusterFast(extrapTrackParamAtCh, clusterCh1)) {
+    if (!tryOneClusterFast(extrapTrackParamAtCh, *clusterCh1)) {
       continue;
     }
 
     // Try to add the current cluster accurately
-    if (tryOneCluster(extrapTrackParamAtCh, clusterCh1, extrapTrackParamAtCluster1,
+    if (tryOneCluster(extrapTrackParamAtCh, *clusterCh1, extrapTrackParamAtCluster1,
                       mTrackFitter.isSmootherEnabled()) >= mMaxChi2ForTracking) {
       continue;
     }
@@ -888,19 +888,19 @@ std::list<Track>::iterator TrackFinderOriginal::followLinearTrackInChamber(const
   TrackExtrap::addMCSEffect(trackParam, SChamberThicknessInX0[trackParam.getClusterPtr()->getChamberId()], -1.);
 
   // Look for cluster candidates in the next chamber
-  for (const auto& cluster : mClusters->at(nextChamber)) {
+  for (const auto cluster : mClusters->at(nextChamber)) {
 
     // Fast try to add the current cluster
-    if (!tryOneClusterFast(trackParam, cluster)) {
+    if (!tryOneClusterFast(trackParam, *cluster)) {
       continue;
     }
 
     // propagate linearly the track to the z position of the current cluster
     extrapTrackParamAtCluster = trackParam;
-    TrackExtrap::linearExtrapToZCov(extrapTrackParamAtCluster, cluster.getZ());
+    TrackExtrap::linearExtrapToZCov(extrapTrackParamAtCluster, cluster->getZ());
 
     // Try to add the current cluster accurately
-    if (tryOneCluster(extrapTrackParamAtCluster, cluster, extrapTrackParamAtCluster, false) >= mMaxChi2ForTracking) {
+    if (tryOneCluster(extrapTrackParamAtCluster, *cluster, extrapTrackParamAtCluster, false) >= mMaxChi2ForTracking) {
       continue;
     }
 
@@ -1122,20 +1122,20 @@ bool TrackFinderOriginal::completeTracks()
       // Look for a second cluster candidate in the same chamber
       int deId = itParam->getClusterPtr()->getDEId();
       double bestChi2AtCluster = mTrackFitter.getMaxChi2();
-      for (const auto& cluster : mClusters->at(itParam->getClusterPtr()->getChamberId())) {
+      for (const auto cluster : mClusters->at(itParam->getClusterPtr()->getChamberId())) {
 
         // In another detection element
-        if (cluster.getDEId() == deId) {
+        if (cluster->getDEId() == deId) {
           continue;
         }
 
         // Fast try to add the current cluster
-        if (!tryOneClusterFast(*itParam, cluster)) {
+        if (!tryOneClusterFast(*itParam, *cluster)) {
           continue;
         }
 
         // Try to add the current cluster accurately
-        if (tryOneCluster(*param, cluster, paramAtCluster, false) >= mMaxChi2ForTracking) {
+        if (tryOneCluster(*param, *cluster, paramAtCluster, false) >= mMaxChi2ForTracking) {
           continue;
         }
 
@@ -1196,7 +1196,7 @@ void TrackFinderOriginal::improveTracks()
 
   // The smoother must be enabled to compute the local chi2 at each cluster
   if (!mTrackFitter.isSmootherEnabled()) {
-    LOG(ERROR) << "Smoother disabled --> tracks cannot be improved";
+    LOG(error) << "Smoother disabled --> tracks cannot be improved";
     return;
   }
 
@@ -1299,7 +1299,7 @@ void TrackFinderOriginal::finalize()
 
   // The smoother must be enabled to compute the final parameters at each cluster
   if (!mTrackFitter.isSmootherEnabled()) {
-    LOG(ERROR) << "Smoother disabled --> tracks cannot be finalized";
+    LOG(error) << "Smoother disabled --> tracks cannot be finalized";
     return;
   }
 
@@ -1389,23 +1389,23 @@ void TrackFinderOriginal::print(Args... args) const
 void TrackFinderOriginal::printStats() const
 {
   /// print the timers
-  LOG(INFO) << "number of candidates tracked = " << mNCandidates;
+  LOG(info) << "number of candidates tracked = " << mNCandidates;
   TrackExtrap::printNCalls();
-  LOG(INFO) << "number of times tryOneClusterFast() is called = " << mNCallTryOneClusterFast;
-  LOG(INFO) << "number of times tryOneCluster() is called = " << mNCallTryOneCluster;
+  LOG(info) << "number of times tryOneClusterFast() is called = " << mNCallTryOneClusterFast;
+  LOG(info) << "number of times tryOneCluster() is called = " << mNCallTryOneCluster;
 }
 
 //_________________________________________________________________________________________________
 void TrackFinderOriginal::printTimers() const
 {
   /// print the timers
-  LOG(INFO) << "findTrackCandidates duration = " << mTimeFindCandidates.count() << " s";
-  LOG(INFO) << "findMoreTrackCandidates duration = " << mTimeFindMoreCandidates.count() << " s";
-  LOG(INFO) << "followTracks duration = " << mTimeFollowTracks.count() << " s";
-  LOG(INFO) << "completeTracks duration = " << mTimeCompleteTracks.count() << " s";
-  LOG(INFO) << "improveTracks duration = " << mTimeImproveTracks.count() << " s";
-  LOG(INFO) << "removeConnectedTracks duration = " << mTimeCleanTracks.count() << " s";
-  LOG(INFO) << "refineTracks duration = " << mTimeRefineTracks.count() << " s";
+  LOG(info) << "findTrackCandidates duration = " << mTimeFindCandidates.count() << " s";
+  LOG(info) << "findMoreTrackCandidates duration = " << mTimeFindMoreCandidates.count() << " s";
+  LOG(info) << "followTracks duration = " << mTimeFollowTracks.count() << " s";
+  LOG(info) << "completeTracks duration = " << mTimeCompleteTracks.count() << " s";
+  LOG(info) << "improveTracks duration = " << mTimeImproveTracks.count() << " s";
+  LOG(info) << "removeConnectedTracks duration = " << mTimeCleanTracks.count() << " s";
+  LOG(info) << "refineTracks duration = " << mTimeRefineTracks.count() << " s";
 }
 
 } // namespace mch

@@ -32,7 +32,7 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
                                                   gsl::span<const o2::ft0::ChannelData> inChData,
                                                   gsl::span<o2::ft0::ChannelDataFloat> outChData)
 {
-  LOG(DEBUG) << "Running reconstruction on new event";
+  LOG(debug) << "Running reconstruction on new event";
 
   Int_t ndigitsC = 0, ndigitsA = 0;
 
@@ -45,20 +45,20 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
   int nch = inChData.size();
   const auto parInv = DigitizationParameters::Instance().mMV_2_NchannelsInverse;
   for (int ich = 0; ich < nch; ich++) {
-    int offsetChannel = getOffset(ich, inChData[ich].QTCAmpl);
-
+    int offsetChannel = getOffset(int(inChData[ich].ChId), inChData[ich].QTCAmpl);
     outChData[ich] = o2::ft0::ChannelDataFloat{inChData[ich].ChId,
                                                (inChData[ich].CFDTime - offsetChannel) * Geometry::ChannelWidth,
-                                               (float)inChData[ich].QTCAmpl * parInv,
+                                               (float)inChData[ich].QTCAmpl,
                                                inChData[ich].ChainQTC};
 
     //  only signals with amplitude participate in collision time
-    if (outChData[ich].QTCAmpl > 0) {
+    if (outChData[ich].QTCAmpl > 0 && std::abs(outChData[ich].CFDTime) < 2000) {
       if (outChData[ich].ChId < nMCPsA) {
         sideAtime += outChData[ich].CFDTime;
         ndigitsA++;
       } else {
         sideCtime += outChData[ich].CFDTime;
+        LOG(debug) << "cfd " << outChData[ich].ChId << " dig " << 13.2 * inChData[ich].CFDTime << " rec " << outChData[ich].CFDTime << " amp " << (float)inChData[ich].QTCAmpl << " offset " << offsetChannel;
         ndigitsC++;
       }
     }
@@ -75,7 +75,7 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
   } else {
     mCollisionTime[TimeMean] = std::min(mCollisionTime[TimeA], mCollisionTime[TimeC]);
   }
-  LOG(DEBUG) << " Nch " << nch << " Collision time " << mCollisionTime[TimeA] << " " << mCollisionTime[TimeC] << " " << mCollisionTime[TimeMean] << " " << mCollisionTime[Vertex];
+  LOG(debug) << " Nch " << nch << " Collision time " << mCollisionTime[TimeA] << " " << mCollisionTime[TimeC] << " " << mCollisionTime[TimeMean] << " " << mCollisionTime[Vertex];
   return RecPoints{
     mCollisionTime, bcd.ref.getFirstEntry(), bcd.ref.getEntries(), bcd.mIntRecord, bcd.mTriggers};
 }
@@ -97,6 +97,6 @@ int CollisionTimeRecoTask::getOffset(int channel, int amp)
     TGraph& gr = mCalibSlew->at(channel);
     slewoffset = gr.Eval(amp);
   }
-  LOG(DEBUG) << "CollisionTimeRecoTask::getOffset(int channel, int amp) " << channel << " " << amp << " " << offsetChannel << " " << slewoffset;
+  LOG(debug) << "CollisionTimeRecoTask::getOffset(int channel, int amp) " << channel << " " << amp << " " << offsetChannel << " " << slewoffset;
   return offsetChannel + int(slewoffset);
 }

@@ -53,8 +53,8 @@ void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", bool only1p
   try {
     calib.loadDictionary(dict.data());
   } catch (std::runtime_error) {
-    LOG(ERROR) << "Cannot load the dictionary file: " << dict << " !";
-    LOG(INFO) << "Assuming that cluster shapes are not encoded...";
+    LOG(error) << "Cannot load the dictionary file: " << dict << " !";
+    LOG(info) << "Assuming that cluster shapes are not encoded...";
   }
 
   auto nevents = clusTree->GetEntries();

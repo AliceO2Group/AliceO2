@@ -66,6 +66,8 @@ struct DeviceInfo {
   Metric2DViewIndex variablesViewIndex;
   /// Index for the queries of each input route.
   Metric2DViewIndex queriesViewIndex;
+  /// Index for the queries of each input route.
+  Metric2DViewIndex outputsViewIndex;
   /// Current configuration for the device
   boost::property_tree::ptree currentConfig;
   /// Current provenance for the configuration keys

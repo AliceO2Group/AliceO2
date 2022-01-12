@@ -39,7 +39,7 @@
 #include "Framework/Logger.h"
 #include "Framework/InputRecordWalker.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 #include "TFile.h"
 #include "TTree.h"
@@ -67,7 +67,7 @@ using RDH = o2::header::RDHAny;
 // Data decoder
 void DigitsToRawSpec::init(framework::InitContext& ic)
 {
-  LOG(INFO) << "HMPID Write Raw File From Root sim Digits vector - init()";
+  LOG(info) << "HMPID Write Raw File From Root sim Digits vector - init()";
   mDigitsReceived = 0;
   mEventsReceived = 0;
   mBaseRootFileName = ic.options().get<std::string>("in-file");
@@ -80,9 +80,9 @@ void DigitsToRawSpec::init(framework::InitContext& ic)
   // if needed, create output directory
   if (!std::filesystem::exists(mDirectoryName)) {
     if (!std::filesystem::create_directories(mDirectoryName)) {
-      LOG(FATAL) << "could not create output directory " << mDirectoryName;
+      LOG(fatal) << "could not create output directory " << mDirectoryName;
     } else {
-      LOG(INFO) << "created output directory " << mDirectoryName;
+      LOG(info) << "created output directory " << mDirectoryName;
     }
   }
 
@@ -99,7 +99,7 @@ void DigitsToRawSpec::init(framework::InitContext& ic)
   // Open the ROOT file
   TFile* fdig = TFile::Open(mBaseRootFileName.data());
   assert(fdig != nullptr);
-  LOG(INFO) << "Open Root digits file " << mBaseRootFileName.data();
+  LOG(info) << "Open Root digits file " << mBaseRootFileName.data();
   mDigTree = (TTree*)fdig->Get("o2sim");
 
   // Ready to operate
@@ -115,24 +115,24 @@ void DigitsToRawSpec::readRootFile()
 
   // Keeps the Interactions !
   mDigTree->SetBranchAddress("InteractionRecords", &interactionsPtr);
-  LOG(INFO) << "Number of Interaction Records vectors in the simulation file :" << mDigTree->GetEntries();
+  LOG(info) << "Number of Interaction Records vectors in the simulation file :" << mDigTree->GetEntries();
   for (int ient = 0; ient < mDigTree->GetEntries(); ient++) {
     mDigTree->GetEntry(ient);
-    LOG(INFO) << "Interactions records in simulation :" << interactions.size();
+    LOG(info) << "Interactions records in simulation :" << interactions.size();
     for (auto a : interactions) {
-      LOG(INFO) << a;
+      LOG(info) << a;
     }
   }
 
   mDigTree->SetBranchAddress("HMPDigit", &hmpBCDataPtr);
-  LOG(DEBUG) << "Number of entries in the simulation file :" << mDigTree->GetEntries();
+  LOG(debug) << "Number of entries in the simulation file :" << mDigTree->GetEntries();
 
   // Loops in the Entry of ROOT Branch
   for (int ient = 0; ient < mDigTree->GetEntries(); ient++) {
     mDigTree->GetEntry(ient);
     int nbc = digits.size();
     if (nbc == 0) { // exit for empty
-      LOG(INFO) << "The Entry :" << ient << " doesn't have digits !";
+      LOG(info) << "The Entry :" << ient << " doesn't have digits !";
       continue;
     }
     if (mDumpDigits) { // we want the dump of digits ?
@@ -147,22 +147,22 @@ void DigitsToRawSpec::readRootFile()
       dumpfile.close();
     }
     // ready to operate
-    LOG(INFO) << "For the entry = " << ient << " there are " << nbc << " DIGITS stored.";
+    LOG(info) << "For the entry = " << ient << " there are " << nbc << " DIGITS stored.";
     for (o2::hmpid::Trigger& e : interactions) {
       mEventsReceived++;
       digitsPerEvent.clear();
       for (int i = e.getFirstEntry(); i <= e.getLastEntry(); i++) {
         digitsPerEvent.push_back(digits[i]);
       }
-      LOG(DEBUG) << "Orbit =" << e.getOrbit() << " BC =" << e.getBc() << "  Digits =" << digitsPerEvent.size();
+      LOG(debug) << "Orbit =" << e.getOrbit() << " BC =" << e.getBc() << "  Digits =" << digitsPerEvent.size();
       if (digitsPerEvent.size() == 0) {
-        LOG(INFO) << "Empty event !" << e;
+        LOG(info) << "Empty event !" << e;
       }
       mCod->codeEventChunkDigits(digitsPerEvent, e.getIr());
       mDigitsReceived += digitsPerEvent.size();
     }
     if (mDigitsReceived != digits.size()) {
-      LOG(WARNING) << "Digits outside the events defined !";
+      LOG(warning) << "Digits outside the events defined !";
     }
   }
   mExTimer.logMes("End of Write raw file Job !");

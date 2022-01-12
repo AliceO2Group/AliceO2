@@ -59,12 +59,12 @@ class TOFDCSDataProcessor : public o2::framework::Task
     std::vector<DPID> vect;
     mDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval");
     if (mDPsUpdateInterval == 0) {
-      LOG(ERROR) << "TOF DPs update interval set to zero seconds --> changed to 60";
+      LOG(error) << "TOF DPs update interval set to zero seconds --> changed to 60";
       mDPsUpdateInterval = 60;
     }
     bool useCCDBtoConfigure = ic.options().get<bool>("use-ccdb-to-configure");
     if (useCCDBtoConfigure) {
-      LOG(INFO) << "Configuring via CCDB";
+      LOG(info) << "Configuring via CCDB";
       std::string ccdbpath = ic.options().get<std::string>("ccdb-path");
       auto& mgr = CcdbManager::instance();
       mgr.setURL(ccdbpath);
@@ -76,7 +76,7 @@ class TOFDCSDataProcessor : public o2::framework::Task
         vect.push_back(i.first);
       }
     } else {
-      LOG(INFO) << "Configuring via hardcoded strings";
+      LOG(info) << "Configuring via hardcoded strings";
       std::vector<std::string> aliases = {"tof_hv_vp_[00..89]", "tof_hv_vn_[00..89]", "tof_hv_ip_[00..89]", "tof_hv_in_[00..89]"};
       std::vector<std::string> aliasesInt = {"TOF_FEACSTATUS_[00..71]"};
       std::vector<std::string> expaliases = o2::dcs::expandAliases(aliases);
@@ -89,14 +89,14 @@ class TOFDCSDataProcessor : public o2::framework::Task
       }
     }
 
-    LOG(INFO) << "Listing Data Points for TOF:";
+    LOG(info) << "Listing Data Points for TOF:";
     for (auto& i : vect) {
-      LOG(INFO) << i;
+      LOG(info) << i;
     }
 
     mProcessor = std::make_unique<o2::tof::TOFDCSProcessor>();
     bool useVerboseMode = ic.options().get<bool>("use-verbose-mode");
-    LOG(INFO) << " ************************* Verbose?" << useVerboseMode;
+    LOG(info) << " ************************* Verbose?" << useVerboseMode;
     if (useVerboseMode) {
       mProcessor->useVerboseMode();
     }
@@ -138,7 +138,7 @@ class TOFDCSDataProcessor : public o2::framework::Task
     const auto& payload = mProcessor->getTOFDPsInfo();
     auto& info = mProcessor->getccdbDPsInfo();
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-    LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
+    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
               << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_DCSDPs", 0}, *image.get());
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_DCSDPs", 0}, info);
@@ -154,7 +154,7 @@ class TOFDCSDataProcessor : public o2::framework::Task
       const auto& payload = mProcessor->getLVStatus();
       auto& info = mProcessor->getccdbLVInfo();
       auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-      LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
+      LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
                 << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_LVStatus", 0}, *image.get());
@@ -164,7 +164,7 @@ class TOFDCSDataProcessor : public o2::framework::Task
       const auto& payload = mProcessor->getHVStatus();
       auto& info = mProcessor->getccdbHVInfo();
       auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-      LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
+      LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
                 << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_HVStatus", 0}, *image.get());
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_HVStatus", 0}, info);
@@ -183,14 +183,14 @@ DataProcessorSpec getTOFDCSDataProcessorSpec()
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_LVStatus"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_LVStatus"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_LVStatus"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_LVStatus"}, Lifetime::Sporadic);
 
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_HVStatus"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_HVStatus"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_HVStatus"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_HVStatus"}, Lifetime::Sporadic);
 
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_DCSDPs"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_DCSDPs"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_DCSDPs"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_DCSDPs"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "tof-dcs-data-processor",

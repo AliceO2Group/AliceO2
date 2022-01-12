@@ -591,7 +591,7 @@ void Detector::defineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax, Doubl
 {
   // set parameters of id-th wrapper volume
   if (id >= sNumberOfWrapperVolumes || id < 0) {
-    LOG(FATAL) << "id " << id << " of wrapper volume is not in 0-" << sNumberOfWrapperVolumes - 1 << " range";
+    LOG(fatal) << "id " << id << " of wrapper volume is not in 0-" << sNumberOfWrapperVolumes - 1 << " range";
   }
 
   mWrapperMinRadius[id] = rmin;
@@ -619,11 +619,11 @@ void Detector::defineLayer(Int_t nlay, double phi0, Double_t r, Int_t nstav, Int
   // Return:
   //   none.
 
-  LOG(INFO) << "L# " << nlay << " Phi:" << phi0 << " R:" << r << " Nst:" << nstav << " Nunit:" << nunit
+  LOG(info) << "L# " << nlay << " Phi:" << phi0 << " R:" << r << " Nst:" << nstav << " Nunit:" << nunit
             << " Lthick:" << lthick << " Dthick:" << dthick << " DetID:" << dettypeID << " B:" << buildLevel;
 
   if (nlay >= mTotalNumberOfLayers || nlay < 0) {
-    LOG(ERROR) << "Wrong layer number " << nlay;
+    LOG(error) << "Wrong layer number " << nlay;
     return;
   }
 
@@ -654,11 +654,11 @@ void Detector::defineInnerLayerTRK(Int_t nlay, Double_t r, Double_t zlen,
   // Return:
   //   none.
 
-  LOG(INFO) << "L# " << nlay << " with TRK geo R:" << r
+  LOG(info) << "L# " << nlay << " with TRK geo R:" << r
             << " Dthick:" << dthick << " DetID:" << dettypeID << " B:" << buildLevel;
 
   if (nlay >= mTotalNumberOfLayers || nlay < 0) {
-    LOG(ERROR) << "Wrong layer number " << nlay;
+    LOG(error) << "Wrong layer number " << nlay;
     return;
   }
 
@@ -669,7 +669,7 @@ void Detector::defineInnerLayerTRK(Int_t nlay, Double_t r, Double_t zlen,
   mDetectorThickness[nlay] = dthick;
   mChipTypeID[nlay] = dettypeID;
   mBuildLevel[nlay] = buildLevel;
-  LOG(INFO) << "Added layer: " << nlay << std::endl;
+  LOG(info) << "Added layer: " << nlay << std::endl;
 }
 
 void Detector::getLayerParameters(Int_t nlay, Double_t& phi0, Double_t& r, Int_t& nstav, Int_t& nmod, Double_t& width,
@@ -693,7 +693,7 @@ void Detector::getLayerParameters(Int_t nlay, Double_t& phi0, Double_t& r, Int_t
   //   none.
 
   if (nlay >= mTotalNumberOfLayers || nlay < 0) {
-    LOG(ERROR) << "Wrong layer number " << nlay;
+    LOG(error) << "Wrong layer number " << nlay;
     return;
   }
 
@@ -721,7 +721,7 @@ TGeoVolume* Detector::createWrapperVolume(Int_t id)
   const Double_t suppRingsRmin[3] = {23.35, 20.05, 35.4};
 
   if (mWrapperMinRadius[id] < 0 || mWrapperMaxRadius[id] < 0 || mWrapperZSpan[id] < 0) {
-    LOG(FATAL) << "Wrapper volume " << id << " was requested but not defined";
+    LOG(fatal) << "Wrapper volume " << id << " was requested but not defined";
   }
 
   // Now create the actual shape and volume
@@ -791,7 +791,7 @@ void Detector::constructDetectorGeometry()
   TGeoVolume* vALIC = geoManager->GetVolume("barrel");
 
   if (!vALIC) {
-    LOG(FATAL) << "Could not find the top volume";
+    LOG(fatal) << "Could not find the top volume";
   }
   new TGeoVolumeAssembly(GeometryTGeo::getITSVolPattern());
   TGeoVolume* vITSV = geoManager->GetVolume(GeometryTGeo::getITSVolPattern());
@@ -804,34 +804,34 @@ void Detector::constructDetectorGeometry()
   // Check that we have all needed parameters
   for (Int_t j = 0; j < mTotalNumberOfLayers; j++) {
     if (mLayerRadii[j] <= 0) {
-      LOG(FATAL) << "Wrong layer radius for layer " << j << "(" << mLayerRadii[j] << ")";
+      LOG(fatal) << "Wrong layer radius for layer " << j << "(" << mLayerRadii[j] << ")";
     }
     if (mStavePerLayer[j] <= 0 && !mTRKLayer[j]) {
-      LOG(FATAL) << "Wrong number of staves for layer " << j << "(" << mStavePerLayer[j] << ")";
+      LOG(fatal) << "Wrong number of staves for layer " << j << "(" << mStavePerLayer[j] << ")";
     }
     if (mUnitPerStave[j] <= 0 && !mTRKLayer[j]) {
-      LOG(FATAL) << "Wrong number of chips for layer " << j << "(" << mUnitPerStave[j] << ")";
+      LOG(fatal) << "Wrong number of chips for layer " << j << "(" << mUnitPerStave[j] << ")";
     }
     if (mChipThickness[j] < 0 && !mTRKLayer[j]) {
-      LOG(FATAL) << "Wrong chip thickness for layer " << j << "(" << mChipThickness[j] << ")";
+      LOG(fatal) << "Wrong chip thickness for layer " << j << "(" << mChipThickness[j] << ")";
     }
     if (mTurboLayer[j] && mStaveWidth[j] <= 0) {
-      LOG(FATAL) << "Wrong stave width for layer " << j << "(" << mStaveWidth[j] << ")";
+      LOG(fatal) << "Wrong stave width for layer " << j << "(" << mStaveWidth[j] << ")";
     }
     if (mDetectorThickness[j] < 0) {
-      LOG(FATAL) << "Wrong Sensor thickness for layer " << j << "(" << mDetectorThickness[j] << ")";
+      LOG(fatal) << "Wrong Sensor thickness for layer " << j << "(" << mDetectorThickness[j] << ")";
     }
 
     if (j > 0 && // Always check IB, check OB only if present
         ((j < mNumberOfInnerLayers) || mCreateOuterBarrel)) {
       if (mLayerRadii[j] <= mLayerRadii[j - 1]) {
-        LOG(FATAL) << "Layer " << j << " radius (" << mLayerRadii[j] << ") is smaller than layer " << j - 1
+        LOG(fatal) << "Layer " << j << " radius (" << mLayerRadii[j] << ") is smaller than layer " << j - 1
                    << " radius (" << mLayerRadii[j - 1] << ")";
       }
     }
 
     if (mChipThickness[j] == 0 && !mTRKLayer[j]) {
-      LOG(INFO) << "Chip thickness for layer " << j << " not set, using default";
+      LOG(info) << "Chip thickness for layer " << j << " not set, using default";
     }
   }
 
@@ -882,7 +882,7 @@ void Detector::constructDetectorGeometry()
       mGeometry[j]->setStaveModel(mStaveModelOuterBarrel);
     }
 
-    LOG(DEBUG1) << "mBuildLevel: " << mBuildLevel[j];
+    LOG(debug1) << "mBuildLevel: " << mBuildLevel[j];
 
     if (mChipThickness[j] != 0) {
       mGeometry[j]->setChipThick(mChipThickness[j]);
@@ -894,7 +894,7 @@ void Detector::constructDetectorGeometry()
     if (mCreateOuterBarrel && j >= mNumberOfInnerLayers) {
       for (int iw = 0; iw < sNumberOfWrapperVolumes; iw++) {
         if (mLayerRadii[j] > mWrapperMinRadius[iw] && mLayerRadii[j] < mWrapperMaxRadius[iw]) {
-          LOG(DEBUG) << "Will embed layer " << j << " in wrapper volume " << iw;
+          LOG(debug) << "Will embed layer " << j << " in wrapper volume " << iw;
 
           dest = wrapVols[iw];
           mWrapperLayerId[j] = iw;
@@ -1064,20 +1064,20 @@ void Detector::addAlignableVolumes() const
   // Created:      06 Mar 2018  Mario Sitta First version (mainly ported from AliRoot)
   //
 
-  LOG(INFO) << "Add ITS alignable volumes";
+  LOG(info) << "Add ITS alignable volumes";
 
   if (!gGeoManager) {
-    LOG(FATAL) << "TGeoManager doesn't exist !";
+    LOG(fatal) << "TGeoManager doesn't exist !";
     return;
   }
 
   TString path = Form("/cave_1/barrel_1/%s_2", GeometryTGeo::getITSVolPattern());
   TString sname = GeometryTGeo::composeSymNameTRK();
 
-  LOG(DEBUG) << sname << " <-> " << path;
+  LOG(debug) << sname << " <-> " << path;
 
   if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
-    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+    LOG(fatal) << "Unable to set alignable entry ! " << sname << " : " << path;
   }
 
   Int_t lastUID = 0;
@@ -1106,10 +1106,10 @@ void Detector::addAlignableVolumesLayer(int lr, TString& parent, Int_t& lastUID)
   }
   TString sname = GeometryTGeo::composeSymNameLayer(lr);
 
-  LOG(DEBUG) << "Add " << sname << " <-> " << path;
+  LOG(debug) << "Add " << sname << " <-> " << path;
 
   if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
-    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+    LOG(fatal) << "Unable to set alignable entry ! " << sname << " : " << path;
   }
 
   const V3Layer* lrobj = mGeometry[lr];
@@ -1131,10 +1131,10 @@ void Detector::addAlignableVolumesStave(Int_t lr, Int_t st, TString& parent, Int
   TString path = Form("%s/%s%d_%d", parent.Data(), GeometryTGeo::getITSStavePattern(), lr, st);
   TString sname = GeometryTGeo::composeSymNameStave(lr, st);
 
-  LOG(DEBUG) << "Add " << sname << " <-> " << path;
+  LOG(debug) << "Add " << sname << " <-> " << path;
 
   if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
-    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+    LOG(fatal) << "Unable to set alignable entry ! " << sname << " : " << path;
   }
 
   const V3Layer* lrobj = mGeometry[lr];
@@ -1160,10 +1160,10 @@ void Detector::addAlignableVolumesHalfStave(Int_t lr, Int_t st, Int_t hst, TStri
     path = Form("%s/%s%d_%d", parent.Data(), GeometryTGeo::getITSHalfStavePattern(), lr, hst);
     TString sname = GeometryTGeo::composeSymNameHalfStave(lr, st, hst);
 
-    LOG(DEBUG) << "Add " << sname << " <-> " << path;
+    LOG(debug) << "Add " << sname << " <-> " << path;
 
     if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
-      LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+      LOG(fatal) << "Unable to set alignable entry ! " << sname << " : " << path;
     }
   }
 
@@ -1190,10 +1190,10 @@ void Detector::addAlignableVolumesModule(Int_t lr, Int_t st, Int_t hst, Int_t md
     path = Form("%s/%s%d_%d", parent.Data(), GeometryTGeo::getITSModulePattern(), lr, md);
     TString sname = GeometryTGeo::composeSymNameModule(lr, st, hst, md);
 
-    LOG(DEBUG) << "Add " << sname << " <-> " << path;
+    LOG(debug) << "Add " << sname << " <-> " << path;
 
     if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
-      LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+      LOG(fatal) << "Unable to set alignable entry ! " << sname << " : " << path;
     }
   }
 
@@ -1219,10 +1219,10 @@ void Detector::addAlignableVolumesChip(Int_t lr, Int_t st, Int_t hst, Int_t md, 
   TString sname = GeometryTGeo::composeSymNameChip(lr, st, hst, md, ch);
   Int_t modUID = chipVolUID(lastUID++);
 
-  LOG(DEBUG) << "Add " << sname << " <-> " << path;
+  LOG(debug) << "Add " << sname << " <-> " << path;
 
   if (!gGeoManager->SetAlignableEntry(sname, path.Data(), modUID)) {
-    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+    LOG(fatal) << "Unable to set alignable entry ! " << sname << " : " << path;
   }
 
   return;

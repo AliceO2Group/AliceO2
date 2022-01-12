@@ -28,7 +28,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include "DataFormatsTRD/Constants.h"
-
+#include "Rtypes.h"
 #include <array>
 #include <vector>
 
@@ -133,7 +133,7 @@ class FeeParam
   float getPhi(int det, int rob, int mcm, int ch) const;
   float getPerp(int det, int rob, int mcm, int ch) const;
 
- protected:
+ private:
   static FeeParam* mgInstance; // Singleton instance
 
   std::array<short, constants::NCOLUMN> mLUTPadNumbering; // Lookup table mapping Pad to MCM
@@ -189,8 +189,8 @@ class FeeParam
   bool mTiltCorr{false};           // enable tilt correction
   bool mPidGainCorr{false};        // enable MCM gain correction factor for PID
 
- private:
   FeeParam();
+  ClassDefNV(FeeParam, 1);
 };
 
 } //namespace trd

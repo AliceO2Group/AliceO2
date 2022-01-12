@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(TestConfigParamRegistry)
     ConfigParamSpec{"aNested.x", VariantType::Int, 2, {"an int option, nested in an object"}},
     ConfigParamSpec{"aNested.y", VariantType::Float, 3.f, {"a float option, nested in an object"}},
     ConfigParamSpec{"aNested.z", VariantType::Float, 4.f, {"a float option, nested in an object"}},
-  };
+    ConfigParamSpec{"aDict", VariantType::Dict, emptyDict(), {"A dictionary"}}};
 
   std::vector<std::unique_ptr<ParamRetriever>> retrievers;
   std::unique_ptr<ParamRetriever> fairmqRetriver{new FairOptionsRetriever(options)};
@@ -106,6 +106,7 @@ BOOST_AUTO_TEST_CASE(TestConfigParamRegistry)
   BOOST_CHECK_EQUAL(registry.get<float>("aNested.z"), 4.f);
   // We can get nested objects also via their top-level ptree.
   auto pt = registry.get<boost::property_tree::ptree>("aNested");
+  auto pt2 = registry.get<boost::property_tree::ptree>("aDict");
   BOOST_CHECK_EQUAL(pt.get<int>("x"), 1);
   BOOST_CHECK_EQUAL(pt.get<float>("y"), 2.f);
   // And we can get it as a generic object as well.

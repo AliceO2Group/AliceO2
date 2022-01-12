@@ -48,16 +48,16 @@ class TrackMatcherTask
   /// prepare the track matching
   void init(InitContext& ic)
   {
-    LOG(INFO) << "initializing track matching";
+    LOG(info) << "initializing track matching";
 
-    auto config = ic.options().get<std::string>("config");
+    auto config = ic.options().get<std::string>("mch-config");
     if (!config.empty()) {
       conf::ConfigurableParam::updateFromFile(config, "MUONMatching", true);
     }
     mTrackMatcher.init();
 
     auto stop = [this]() {
-      LOG(INFO) << "track matching duration = " << mElapsedTime.count() << " s";
+      LOG(info) << "track matching duration = " << mElapsedTime.count() << " s";
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
   }
@@ -91,11 +91,11 @@ DataProcessorSpec getTrackMatcherSpec(const char* name)
     name,
     Inputs{InputSpec{"mchrofs", "MCH", "TRACKROFS", 0, Lifetime::Timeframe},
            InputSpec{"mchtracks", "MCH", "TRACKS", 0, Lifetime::Timeframe},
-           InputSpec{"midrofs", "MID", "TRACKSROF", 0, Lifetime::Timeframe},
+           InputSpec{"midrofs", "MID", "TRACKROFS", 0, Lifetime::Timeframe},
            InputSpec{"midtracks", "MID", "TRACKS", 0, Lifetime::Timeframe}},
     Outputs{OutputSpec{{"muontracks"}, "GLO", "MCHMID", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<TrackMatcherTask>()},
-    Options{{"config", VariantType::String, "", {"JSON or INI file with matching parameters"}}}};
+    Options{{"mch-config", VariantType::String, "", {"JSON or INI file with matching parameters"}}}};
 }
 
 } // namespace muon

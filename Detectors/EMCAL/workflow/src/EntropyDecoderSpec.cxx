@@ -24,17 +24,18 @@ namespace o2
 namespace emcal
 {
 
-EntropyDecoderSpec::EntropyDecoderSpec()
+EntropyDecoderSpec::EntropyDecoderSpec(int verbosity)
 {
   mTimer.Stop();
   mTimer.Reset();
+  mCTFCoder.setVerbosity(verbosity);
 }
 
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
 {
   std::string dictPath = ic.options().get<std::string>("ctf-dict");
   if (!dictPath.empty() && dictPath != "none") {
-    mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Decoder);
+    mCTFCoder.createCodersFromFile<CTF>(dictPath, o2::ctf::CTFCoderBase::OpType::Decoder);
   }
 }
 
@@ -49,20 +50,21 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto& cells = pc.outputs().make<std::vector<Cell>>(OutputRef{"cells"});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
-  const auto ctfImage = o2::emcal::CTF::getImage(buff.data());
-  mCTFCoder.decode(ctfImage, triggers, cells);
-
+  if (buff.size()) {
+    const auto ctfImage = o2::emcal::CTF::getImage(buff.data());
+    mCTFCoder.decode(ctfImage, triggers, cells);
+  }
   mTimer.Stop();
-  LOG(INFO) << "Decoded " << cells.size() << " EMCAL cells in " << triggers.size() << " triggers in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Decoded " << cells.size() << " EMCAL cells in " << triggers.size() << " triggers in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "EMCAL Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "EMCAL Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec()
+DataProcessorSpec getEntropyDecoderSpec(int verbosity)
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"triggers"}, "EMC", "CELLSTRGR", 0, Lifetime::Timeframe},
@@ -72,7 +74,7 @@ DataProcessorSpec getEntropyDecoderSpec()
     "emcal-entropy-decoder",
     Inputs{InputSpec{"ctf", "EMC", "CTFDATA", 0, Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>()},
+    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
     Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};
 }
 

@@ -22,6 +22,8 @@
 #include "TPCWorkflow/ClusterSharingMapSpec.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/GlobalFwdTrackReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/MatchedMFTMCHReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/MatchedMCHMIDReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/PrimaryVertexReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/SecondaryVertexReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/TrackCosmicsReaderSpec.h"
@@ -92,13 +94,25 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
     specs.emplace_back(o2::globaltracking::getTrackTPCITSReaderSpec(maskTracksMC[GID::ITSTPC] || maskTracksMC[GID::ITSTPCTOF]));
   }
   if (maskMatches[GID::ITSTPCTOF] || maskTracks[GID::ITSTPCTOF]) {
-    specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::ITSTPCTOF], false, /*maskTracks[GID::ITSTPCTOF]*/ false)); // ITSTPCTOF does not provide tracks, only matchInfo
+    specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::ITSTPCTOF], 1, /*maskTracks[GID::ITSTPCTOF]*/ false)); // ITSTPCTOF does not provide tracks, only matchInfo
+  }
+  if (maskMatches[GID::MFTMCH]) {
+    specs.emplace_back(o2::globaltracking::getMFTMCHMatchedReaderSpec(maskTracksMC[GID::MFTMCH])); // MFTMCH matches does not provide tracks, only matchInfo
+  }
+  if (maskMatches[GID::MCHMID]) {
+    specs.emplace_back(o2::globaltracking::getMCHMIDMatchedReaderSpec(maskTracksMC[GID::MCHMID])); // MCHMID matches does not provide tracks, only matchInfo
+  }
+  if (maskMatches[GID::ITSTPCTRDTOF] || maskTracks[GID::ITSTPCTRDTOF]) {
+    specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::ITSTPCTRDTOF], 3, /*maskTracks[GID::ITSTPCTOF]*/ false)); // ITSTPCTOF does not provide tracks, only matchInfo
+  }
+  if (maskMatches[GID::TPCTRDTOF] || maskTracks[GID::TPCTRDTOF]) {
+    specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::TPCTRDTOF], 2, /*maskTracks[GID::ITSTPCTOF]*/ false)); // ITSTPCTOF does not provide tracks, only matchInfo
   }
   if (maskClusters[GID::TOF] || maskTracks[GID::ITSTPCTOF]) { // Note: maskTracks[GID::ITSTPCTOF] is only here to match the behavior of RecoContainer::requestTracks
     specs.emplace_back(o2::tof::getClusterReaderSpec(maskClustersMC[GID::TOF]));
   }
   if (maskMatches[GID::TPCTOF]) {
-    specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::TPCTOF], true, maskTracks[GID::TPCTOF], subSpecStrict));
+    specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::TPCTOF], 0, maskTracks[GID::TPCTOF], subSpecStrict));
   }
   if (maskTracks[GID::FT0] || maskClusters[GID::FT0]) {
     specs.emplace_back(o2::ft0::getRecPointReaderSpec(maskTracksMC[GID::FT0] || maskClustersMC[GID::FT0]));
@@ -116,10 +130,10 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   if (maskClusters[GID::TRD]) {
     specs.emplace_back(o2::trd::getTRDTrackletReaderSpec(maskClustersMC[GID::TRD], true));
   }
-  if (maskTracks[GID::ITSTPCTRD]) {
+  if (maskTracks[GID::ITSTPCTRD] || maskTracks[GID::ITSTPCTRDTOF]) {
     specs.emplace_back(o2::trd::getTRDGlobalTrackReaderSpec(maskTracksMC[GID::ITSTPCTRD]));
   }
-  if (maskTracks[GID::TPCTRD]) {
+  if (maskTracks[GID::TPCTRD] || maskTracks[GID::TPCTRDTOF]) {
     specs.emplace_back(o2::trd::getTRDTPCTrackReaderSpec(maskTracksMC[GID::TPCTRD], subSpecStrict));
   }
   if (maskTracks[GID::MFTMCH]) {

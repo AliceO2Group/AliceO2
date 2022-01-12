@@ -18,6 +18,7 @@
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/ConfigParamRegistry.h"
 
 namespace o2::fit
 {
@@ -55,7 +56,16 @@ class FITCalibrationDevice : public o2::framework::Task
 FIT_CALIBRATION_DEVICE_TEMPLATES
 void FIT_CALIBRATION_DEVICE_TYPE::init(o2::framework::InitContext& context)
 {
+  int slotL = context.options().get<int>("tf-per-slot");
+  int delay = context.options().get<int>("max-delay");
+  int updateInterval = context.options().get<int64_t>("updateInterval");
+
   mCalibrator = std::make_unique<CalibratorType>();
+
+  mCalibrator->setSlotLength(slotL);
+  mCalibrator->setMaxSlotsDelay(delay);
+  mCalibrator->setCheckIntervalInfiniteSlot(updateInterval);
+
   FITCalibrationApi::init();
 }
 

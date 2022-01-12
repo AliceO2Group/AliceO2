@@ -28,18 +28,17 @@ using namespace o2::cpv;
 //_______________________________________________________________________
 void Digitizer::init()
 {
-  LOG(INFO) << "CPVDigitizer::init() : CCDB Url = " << o2::cpv::CPVSimParams::Instance().mCCDBPath.data();
-  if (o2::cpv::CPVSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
+  LOG(info) << "CPVDigitizer::init() : CCDB Url = " << o2::base::NameConf::getCCDBServer();
+  if (o2::base::NameConf::getCCDBServer().compare("localtest") == 0) {
     mCalibParams = new CalibParams(1); // test default calibration
     mPedestals = new Pedestals(1);     // test default pedestals
     mBadMap = new BadChannelMap(1);    // test default bad channels
-    LOG(INFO) << "[CPVDigitizer] No reading calibration from ccdb requested, set default";
+    LOG(info) << "[CPVDigitizer] No reading calibration from ccdb requested, set default";
   } else {
     auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
-    ccdbMgr.setURL(o2::cpv::CPVSimParams::Instance().mCCDBPath.data());
     bool isCcdbReachable = ccdbMgr.isHostReachable(); //if host is not reachable we can use only dummy calibration
     if (!isCcdbReachable) {
-      LOG(FATAL) << "[CPVDigitizer] CCDB Host is not reachable!!!";
+      LOG(fatal) << "[CPVDigitizer] CCDB Host is not reachable!!!";
       return;
     }
     ccdbMgr.setCaching(true);                     //make local cache of remote objects
@@ -48,28 +47,28 @@ void Digitizer::init()
     //TODO: setup timestam according to anchors
     ccdbMgr.setTimestamp(o2::ccdb::getCurrentTimestamp());
 
-    LOG(INFO) << "CCDB: Reading o2::cpv::CalibParams from CPV/Calib/Gains";
+    LOG(info) << "CCDB: Reading o2::cpv::CalibParams from CPV/Calib/Gains";
     mCalibParams = ccdbMgr.get<o2::cpv::CalibParams>("CPV/Calib/Gains");
     if (!mCalibParams) {
-      LOG(ERROR) << "Cannot get o2::cpv::CalibParams from CCDB. using dummy calibration!";
+      LOG(error) << "Cannot get o2::cpv::CalibParams from CCDB. using dummy calibration!";
       mCalibParams = new CalibParams(1);
     }
 
-    LOG(INFO) << "CCDB: Reading o2::cpv::Pedestals from CPV/Calib/Pedestals";
+    LOG(info) << "CCDB: Reading o2::cpv::Pedestals from CPV/Calib/Pedestals";
     mPedestals = ccdbMgr.get<o2::cpv::Pedestals>("CPV/Calib/Pedestals");
     if (!mPedestals) {
-      LOG(ERROR) << "Cannot get o2::cpv::Pedestals from CCDB. using dummy calibration!";
+      LOG(error) << "Cannot get o2::cpv::Pedestals from CCDB. using dummy calibration!";
       mPedestals = new Pedestals(1);
     }
 
-    LOG(INFO) << "CCDB: Reading o2::cpv::BadChannelMap from CPV/Calib/BadChannelMap";
+    LOG(info) << "CCDB: Reading o2::cpv::BadChannelMap from CPV/Calib/BadChannelMap";
     mBadMap = ccdbMgr.get<o2::cpv::BadChannelMap>("CPV/Calib/BadChannelMap");
     if (!mBadMap) {
-      LOG(ERROR) << "Cannot get o2::cpv::BadChannelMap from CCDB. using dummy calibration!";
+      LOG(error) << "Cannot get o2::cpv::BadChannelMap from CCDB. using dummy calibration!";
       mBadMap = new BadChannelMap(1);
     }
 
-    LOG(INFO) << "Task configuration is done.";
+    LOG(info) << "Task configuration is done.";
   }
 
   //signal thresolds for digits
@@ -92,37 +91,41 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
   // Add hits with ampl deposition in same pad and same time
   // Add ampl corrections
   // Apply time smearing
-  // //Despite sorting in Detector::EndEvent(), hits still can be unsorted due to splitting of processing different bunches of primary
+  // Despite sorting in Detector::EndEvent(), hits still can be unsorted due to splitting of processing different bunches of primary
   for (int i = NCHANNELS; i--;) {
     mArrayD[i].reset();
   }
 
+  // First, add pedestal noise and BG digits
   if (digitsBg.size() == 0) { // no digits provided: try simulate pedestal noise (do it only once)
     for (int i = NCHANNELS; i--;) {
       float amplitude = simulatePedestalNoise(i);
-      mArrayD[i].setAmplitude(amplitude);
-      mArrayD[i].setAbsId(i);
+      if (amplitude > mDigitThresholds[i]) { //add noise digit if its signal > threshold
+        mArrayD[i].setAmplitude(simulatePedestalNoise(i));
+        mArrayD[i].setAbsId(i);
+        // mArrayD[i].setLabel(-1); // noise marking (not needed to set as all mArrayD[i] elements are just resetted)
+      }
     }
-  } else {                       //if digits exist, no noise should be added
+  } else {                       //if digits exist, noise is already added
     for (auto& dBg : digitsBg) { //digits are sorted and unique
       mArrayD[dBg.getAbsId()] = dBg;
     }
   }
 
-  //add Hits
+  //Second, add Hits
   for (auto& h : *hits) {
     int i = h.GetDetectorID();
     if (mArrayD[i].getAmplitude() > 0) {
-      mArrayD[i].setAmplitude(mArrayD[i].getAmplitude() + h.GetEnergyLoss());
+      mArrayD[i].setAmplitude(mArrayD[i].getAmplitude() + h.GetEnergyLoss()); //if amplitude > 0 then pedestal noise is already added
     } else {
-      mArrayD[i].setAmplitude(h.GetEnergyLoss());
       mArrayD[i].setAbsId(i);
+      mArrayD[i].setAmplitude(h.GetEnergyLoss() + simulatePedestalNoise(i)); //if not then add pedestal noise to signal
     }
     if (mArrayD[i].getAmplitude() > mDigitThresholds[i]) {
       int labelIndex = mArrayD[i].getLabel();
-      if (labelIndex == -1) { //no digit or noisy
+      if (labelIndex == -1) { // noise
         labelIndex = labels.getIndexedSize();
-        o2::MCCompLabel label(h.GetTrackID(), collId, source, true);
+        o2::MCCompLabel label(true); // noise label
         labels.addElement(labelIndex, label);
         mArrayD[i].setLabel(labelIndex);
       } else { //check if lable already exist
@@ -135,7 +138,7 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
           }
         }
         if (!found) {
-          o2::MCCompLabel label(h.GetTrackID(), collId, source, true);
+          o2::MCCompLabel label(h.GetTrackID(), collId, source);
           //Highly inefficient management of Labels: commenting  line below reeduces WHOLE digitization time by factor ~30
           labels.addElementRandomAccess(labelIndex, label);
         }

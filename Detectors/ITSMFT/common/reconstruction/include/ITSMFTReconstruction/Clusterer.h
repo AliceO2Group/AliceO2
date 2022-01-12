@@ -74,6 +74,7 @@ class Clusterer
 
  public:
   static constexpr int MaxLabels = 10;
+  static constexpr int MaxHugeClusWarn = 5; // max number of warnings for HugeCluster
 
   struct BBox {
     uint16_t chipID = 0xffff;
@@ -235,6 +236,7 @@ class Clusterer
   ///< mask continuosly fired pixels in frames separated by less than this amount of BCs (fired from hit in prev. ROF)
   int mMaxBCSeparationToMask = 6000. / o2::constants::lhc::LHCBunchSpacingNS + 10;
   int mMaxRowColDiffToMask = 0; ///< provide their difference in col/row is <= than this
+  int mNHugeClus = 0;           ///< number of encountered huge clusters
 
   std::vector<std::unique_ptr<ClustererThread>> mThreads; // buffers for threads
   std::vector<ChipPixelData> mChips;                      // currently processed ROF's chips data

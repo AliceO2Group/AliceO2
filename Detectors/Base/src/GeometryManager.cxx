@@ -25,7 +25,7 @@
 
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsBase/Aligner.h"
 
 using namespace o2::detectors;
@@ -41,16 +41,16 @@ Bool_t GeometryManager::getOriginalMatrix(const char* symname, TGeoHMatrix& m)
 {
   m.Clear();
   if (!gGeoManager || !gGeoManager->IsClosed()) {
-    LOG(ERROR) << "No active geometry or geometry not yet closed!";
+    LOG(error) << "No active geometry or geometry not yet closed!";
     ;
     return kFALSE;
   }
   std::lock_guard<std::mutex> guard(sTGMutex);
   if (!gGeoManager->GetListOfPhysicalNodes()) {
-    LOG(WARNING) << "gGeoManager doesn't contain any aligned nodes!";
+    LOG(warning) << "gGeoManager doesn't contain any aligned nodes!";
 
     if (!gGeoManager->cd(symname)) {
-      LOG(ERROR) << "Volume path " << symname << " not valid!";
+      LOG(error) << "Volume path " << symname << " not valid!";
       return kFALSE;
     } else {
       m = *gGeoManager->GetCurrentMatrix();
@@ -65,7 +65,7 @@ Bool_t GeometryManager::getOriginalMatrix(const char* symname, TGeoHMatrix& m)
     m = *pne->GetGlobalOrig();
     return kTRUE;
   } else {
-    LOG(WARNING) << "The symbolic volume name " << symname
+    LOG(warning) << "The symbolic volume name " << symname
                  << "does not correspond to a physical entry. Using it as a volume path!";
     path = symname;
   }
@@ -79,12 +79,12 @@ Bool_t GeometryManager::getOriginalMatrixFromPath(const char* path, TGeoHMatrix&
   m.Clear();
 
   if (!gGeoManager || !gGeoManager->IsClosed()) {
-    LOG(ERROR) << "Can't get the original global matrix! gGeoManager doesn't exist or it is still opened!";
+    LOG(error) << "Can't get the original global matrix! gGeoManager doesn't exist or it is still opened!";
     return kFALSE;
   }
   std::lock_guard<std::mutex> guard(sTGMutex);
   if (!gGeoManager->CheckPath(path)) {
-    LOG(ERROR) << "Volume path " << path << " not valid!";
+    LOG(error) << "Volume path " << path << " not valid!";
     return kFALSE;
   }
 
@@ -126,7 +126,7 @@ TGeoHMatrix* GeometryManager::getMatrix(TGeoPNEntry* pne)
   // by quering the TGeoManager
 
   if (!gGeoManager || !gGeoManager->IsClosed()) {
-    LOG(ERROR) << "Can't get the global matrix! gGeoManager doesn't exist or it is still opened!";
+    LOG(error) << "Can't get the global matrix! gGeoManager doesn't exist or it is still opened!";
     return nullptr;
   }
 
@@ -148,7 +148,7 @@ TGeoHMatrix* GeometryManager::getMatrix(const char* symname)
   //  identified by its symbolic name 'symname' by quering the TGeoManager
 
   if (!gGeoManager || !gGeoManager->IsClosed()) {
-    LOG(ERROR) << "No active geometry or geometry not yet closed!";
+    LOG(error) << "No active geometry or geometry not yet closed!";
     return nullptr;
   }
 
@@ -169,7 +169,7 @@ const char* GeometryManager::getSymbolicName(DetID detid, int sensid)
   int id = getSensID(detid, sensid);
   TGeoPNEntry* pne = gGeoManager->GetAlignableEntryByUID(id);
   if (!pne) {
-    LOG(ERROR) << "Failed to find alignable entry with index " << id << ": Det" << detid << " Sens.Vol:" << sensid << ") !";
+    LOG(error) << "Failed to find alignable entry with index " << id << ": Det" << detid << " Sens.Vol:" << sensid << ") !";
     return nullptr;
   }
   return pne->GetName();
@@ -183,7 +183,7 @@ TGeoPNEntry* GeometryManager::getPNEntry(DetID detid, Int_t sensid)
   int id = getSensID(detid, sensid);
   TGeoPNEntry* pne = gGeoManager->GetAlignableEntryByUID(id);
   if (!pne) {
-    LOG(ERROR) << "The sens.vol " << sensid << " of det " << detid << " does not correspond to a physical entry!";
+    LOG(error) << "The sens.vol " << sensid << " of det " << detid << " does not correspond to a physical entry!";
   }
   return pne;
 }
@@ -209,7 +209,7 @@ TGeoHMatrix* GeometryManager::getMatrix(DetID detid, Int_t sensid)
   gGeoManager->PushPath(); // Preserve the modeler state.
   if (!gGeoManager->cd(path)) {
     gGeoManager->PopPath();
-    LOG(ERROR) << "Volume path " << path << " not valid!";
+    LOG(error) << "Volume path " << path << " not valid!";
     return nullptr;
   }
   matTmp = *gGeoManager->GetCurrentMatrix();
@@ -258,7 +258,7 @@ bool GeometryManager::applyAlignment(const std::vector<o2::detectors::AlignParam
   for (int i = 0; i < nvols; i++) {
     if (!algPars[ord[i]].applyToGeometry()) {
       res = false;
-      LOG(ERROR) << "Error applying alignment object for volume" << algPars[ord[i]].getSymName();
+      LOG(error) << "Error applying alignment object for volume" << algPars[ord[i]].getSymName();
     }
   }
   return res;
@@ -319,7 +319,9 @@ GeometryManager::MatBudgetExt GeometryManager::meanMaterialBudgetExt(float x0, f
   //
   //  Ported to O2: ruben.shahoyan@cern.ch
   //
-
+  if (!gGeoManager) {
+    throw std::runtime_error("meanMaterialBudgetExt requires geometry loaded");
+  }
   double length, startD[3] = {x0, y0, z0};
   double dir[3] = {x1 - x0, y1 - y0, z1 - z0};
   if ((length = dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]) < TGeoShape::Tolerance() * TGeoShape::Tolerance()) {
@@ -334,7 +336,7 @@ GeometryManager::MatBudgetExt GeometryManager::meanMaterialBudgetExt(float x0, f
   // Initialize start point and direction
   TGeoNode* currentnode = gGeoManager->InitTrack(startD, dir);
   if (!currentnode) {
-    LOG(ERROR) << "start point out of geometry: " << x0 << ':' << y0 << ':' << z0;
+    LOG(error) << "start point out of geometry: " << x0 << ':' << y0 << ':' << z0;
     return MatBudgetExt(); // return empty struct
   }
 
@@ -426,7 +428,7 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
   // Initialize start point and direction
   TGeoNode* currentnode = gGeoManager->InitTrack(startD, dir);
   if (!currentnode) {
-    LOG(ERROR) << "start point out of geometry: " << x0 << ':' << y0 << ':' << z0;
+    LOG(error) << "start point out of geometry: " << x0 << ':' << y0 << ':' << z0;
     return o2::base::MatBudget(); // return empty struct
   }
 
@@ -484,20 +486,40 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
 }
 
 //_________________________________
-void GeometryManager::loadGeometry(std::string_view geomFileName, bool applyMisalignment)
+void GeometryManager::applyMisalignent(bool applyMisalignment)
 {
   ///< load geometry from file
-  std::string fname = o2::base::NameConf::getGeomFileName(geomFileName);
-  LOG(INFO) << "Loading geometry " << o2::base::NameConf::GEOMOBJECTNAME << " from " << fname;
-  TFile flGeom(fname.data());
-  if (flGeom.IsZombie()) {
-    LOG(FATAL) << "Failed to open file " << fname;
-  }
-  if (!flGeom.Get(std::string(o2::base::NameConf::GEOMOBJECTNAME).c_str())) {
-    LOG(FATAL) << "Did not find geometry named " << o2::base::NameConf::GEOMOBJECTNAME;
+  if (!isGeometryLoaded()) {
+    LOG(fatal) << "geometry is not loaded";
   }
   if (applyMisalignment) {
     auto& aligner = Aligner::Instance();
     aligner.applyAlignment();
+  }
+}
+
+//_________________________________
+void GeometryManager::loadGeometry(std::string_view simPrefix, bool applyMisalignment, bool preferAlignedFile)
+{
+  auto loadGeom = [](const std::string_view fname) {
+    LOG(info) << "Loading geometry from " << fname;
+    TFile flGeom(fname.data());
+    if (flGeom.IsZombie()) {
+      LOG(fatal) << "Failed to open file " << fname;
+    }
+    // try under the standard CCDB name
+    if (!flGeom.Get(std::string(o2::base::NameConf::CCDBOBJECT).c_str()) &&
+        !flGeom.Get(std::string(o2::base::NameConf::GEOMOBJECTNAME_FAIR).c_str())) {
+      LOG(fatal) << "Did not find geometry named " << o2::base::NameConf::CCDBOBJECT << " or " << o2::base::NameConf::GEOMOBJECTNAME_FAIR;
+    }
+  };
+
+  if (preferAlignedFile) {
+    ///< load directly from aligned file and apply alignment on top
+    loadGeom(o2::base::NameConf::getAlignedGeomFileName(simPrefix));
+  } else {
+    ///< load geometry from unaligned file and apply alignment on top
+    loadGeom(o2::base::NameConf::getGeomFileName(simPrefix));
+    applyMisalignent(applyMisalignment);
   }
 }

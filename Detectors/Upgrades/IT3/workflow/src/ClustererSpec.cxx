@@ -28,7 +28,7 @@
 #include "ITSMFTReconstruction/DigitPixelReader.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "CommonConstants/LHCConstants.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 
 using namespace o2::framework;
 
@@ -48,7 +48,7 @@ void ClustererDPL::init(InitContext& ic)
   if (grp) {
     mClusterer->setContinuousReadOut(grp->isDetContinuousReadOut("IT3"));
   } else {
-    LOG(ERROR) << "Cannot retrieve GRP from the " << filenameGRP.c_str() << " file !";
+    LOG(error) << "Cannot retrieve GRP from the " << filenameGRP.c_str() << " file !";
     mState = 0;
     return;
   }
@@ -65,12 +65,12 @@ void ClustererDPL::init(InitContext& ic)
   mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
 
   std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
-  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
+  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
   if (o2::utils::Str::pathExists(dictFile)) {
     mClusterer->loadDictionary(dictFile);
-    LOG(INFO) << "ITS3Clusterer running with a provided dictionary: " << dictFile;
+    LOG(info) << "ITS3Clusterer running with a provided dictionary: " << dictFile;
   } else {
-    LOG(INFO) << "Dictionary " << dictFile << " is absent, ITSClusterer expects cluster patterns";
+    LOG(info) << "Dictionary " << dictFile << " is absent, ITSClusterer expects cluster patterns";
   }
   mState = 1;
   mClusterer->print();
@@ -89,9 +89,9 @@ void ClustererDPL::run(ProcessingContext& pc)
   }
   o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> labels(labelbuffer);
 
-  LOG(INFO) << "ITSClusterer pulled " << digits.size() << " digits, in "
+  LOG(info) << "ITSClusterer pulled " << digits.size() << " digits, in "
             << rofs.size() << " RO frames";
-  LOG(INFO) << "ITSClusterer pulled " << labels.getNElements() << " labels ";
+  LOG(info) << "ITSClusterer pulled " << labels.getNElements() << " labels ";
 
   o2::itsmft::DigitPixelReader reader;
   reader.setDigits(digits);
@@ -126,7 +126,7 @@ void ClustererDPL::run(ProcessingContext& pc)
 
   // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF
   // -> consider recalculationg maxROF
-  LOG(INFO) << "ITSClusterer pushed " << clusCompVec.size() << " clusters, in " << clusROFVec.size() << " RO frames";
+  LOG(info) << "ITSClusterer pushed " << clusCompVec.size() << " clusters, in " << clusROFVec.size() << " RO frames";
 }
 
 DataProcessorSpec getClustererSpec(bool useMC)

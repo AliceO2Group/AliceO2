@@ -24,6 +24,7 @@
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"
 #include "DataFormatsTOF/Cluster.h"
+#include "DataFormatsTOF/Diagnostic.h"
 
 using namespace o2::framework;
 
@@ -35,13 +36,19 @@ namespace tof
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 using CalibInfosType = std::vector<o2::dataformats::CalibInfoTOF>;
-DataProcessorSpec getTOFCalibWriterSpec(const char* outdef, bool toftpc)
+using CalibDiaType = o2::tof::Diagnostic;
+DataProcessorSpec getTOFCalibWriterSpec(const char* outdef, bool toftpc, bool addDia)
 {
   // A spectator for logging
   auto logger = [](CalibInfosType const& indata) {
-    LOG(INFO) << "RECEIVED MATCHED SIZE " << indata.size();
+    LOG(debug) << "RECEIVED MATCHED SIZE " << indata.size();
+  };
+  // A spectator for logging
+  auto loggerDia = [](CalibDiaType const& indata) {
+    LOG(debug) << "DIAGNOSTIC WORD SIZE " << indata.size();
   };
   o2::header::DataDescription ddCalib{"CALIBDATA"};
+  o2::header::DataDescription ddCalibDia{"DIAFREQ"};
   return MakeRootTreeWriterSpec("TOFCalibWriter",
                                 outdef,
                                 "calibTOF",
@@ -49,7 +56,12 @@ DataProcessorSpec getTOFCalibWriterSpec(const char* outdef, bool toftpc)
                                                                  "TOFCalibInfo",
                                                                  "calibinfo-branch-name",
                                                                  1,
-                                                                 logger})();
+                                                                 logger},
+                                BranchDefinition<CalibDiaType>{InputSpec{"inputDia", o2::header::gDataOriginTOF, ddCalibDia, 0},
+                                                               "TOFDiaInfo",
+                                                               "calibdia-branch-name",
+                                                               addDia,
+                                                               loggerDia})();
 }
 
 } // namespace tof

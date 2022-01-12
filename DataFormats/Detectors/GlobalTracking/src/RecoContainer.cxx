@@ -27,6 +27,7 @@
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/TrackCosmics.h"
+#include "ReconstructionDataFormats/TrackMCHMID.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
 // FIXME: ideally, the data formats definition should be independent of the framework
 // collectData is using the input of ProcessingContext to extract the first valid
@@ -61,7 +62,7 @@ void DataRequest::requestITSTracks(bool mc)
 {
   addInput({"trackITS", "ITS", "TRACKS", 0, Lifetime::Timeframe});
   addInput({"trackITSROF", "ITS", "ITSTrackROF", 0, Lifetime::Timeframe});
-  addInput({"trackClIdx", "ITS", "TRACKCLSID", 0, Lifetime::Timeframe});
+  addInput({"trackITSClIdx", "ITS", "TRACKCLSID", 0, Lifetime::Timeframe});
   if (mc) {
     addInput({"trackITSMCTR", "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe});
   }
@@ -72,7 +73,7 @@ void DataRequest::requestMFTTracks(bool mc)
 {
   addInput({"trackMFT", "MFT", "TRACKS", 0, Lifetime::Timeframe});
   addInput({"trackMFTROF", "MFT", "MFTTrackROF", 0, Lifetime::Timeframe});
-  addInput({"trackClIdx", "MFT", "TRACKCLSID", 0, Lifetime::Timeframe});
+  addInput({"trackMFTClIdx", "MFT", "TRACKCLSID", 0, Lifetime::Timeframe});
   if (mc) {
     addInput({"trackMFTMCTR", "MFT", "TRACKSMCTR", 0, Lifetime::Timeframe});
   }
@@ -93,7 +94,7 @@ void DataRequest::requestMCHTracks(bool mc)
 void DataRequest::requestMIDTracks(bool mc)
 {
   addInput({"trackMIDROF", "MID", "TRACKROFS", 0, Lifetime::Timeframe});
-  addInput({"trackClMIDROF", "MID", "TRCLUSROF", 0, Lifetime::Timeframe});
+  addInput({"trackClMIDROF", "MID", "TRCLUSROFS", 0, Lifetime::Timeframe});
   addInput({"trackMID", "MID", "TRACKS", 0, Lifetime::Timeframe});
   addInput({"trackMIDTRACKCLUSTERS", "MID", "TRACKCLUSTERS", 0, Lifetime::Timeframe});
   if (mc) {
@@ -137,13 +138,25 @@ void DataRequest::requestGlobalFwdTracks(bool mc)
   requestMap["fwdtracks"] = mc;
 }
 
+void DataRequest::requestMFTMCHMatches(bool mc)
+{
+  addInput({"matchMFTMCH", "GLO", "MTC_MFTMCH", 0, Lifetime::Timeframe});
+  requestMap["matchMFTMCH"] = mc;
+}
+
+void DataRequest::requestMCHMIDMatches(bool mc)
+{
+  addInput({"matchMCHMID", "GLO", "MTC_MCHMID", 0, Lifetime::Timeframe});
+  requestMap["matchMCHMID"] = mc;
+}
+
 void DataRequest::requestTPCTOFTracks(bool mc)
 {
   auto ss = getMatchingInputSubSpec();
   addInput({"matchTPCTOF", "TOF", "MTC_TPC", ss, Lifetime::Timeframe});
   addInput({"trackTPCTOF", "TOF", "TOFTRACKS_TPC", ss, Lifetime::Timeframe});
   if (mc) {
-    addInput({"clsTOF_TPC_MCTR", "TOF", "MCMATCHTOF_TPC", ss, Lifetime::Timeframe});
+    addInput({"clsTOF_TPC_MCTR", "TOF", "MCMTC_TPC", ss, Lifetime::Timeframe});
   }
   requestMap["trackTPCTOF"] = mc;
 }
@@ -171,13 +184,29 @@ void DataRequest::requestTPCTRDTracks(bool mc)
   requestMap["trackTPCTRD"] = mc;
 }
 
-void DataRequest::requestTOFMatches(bool mc)
+void DataRequest::requestTOFMatches(o2::dataformats::GlobalTrackID::mask_t src, bool mc)
 {
-  addInput({"matchITSTPCTOF", "TOF", "MTC_ITSTPC", 0, Lifetime::Timeframe});
-  if (mc) {
-    addInput({"clsTOF_GLO_MCTR", "TOF", "MCMATCHTOF", 0, Lifetime::Timeframe});
+  if (src[GTrackID::ITSTPCTOF]) {
+    addInput({"matchITSTPCTOF", "TOF", "MTC_ITSTPC", 0, Lifetime::Timeframe});
+    if (mc) {
+      addInput({"clsTOF_GLO_MCTR", "TOF", "MCMTC_ITSTPC", 0, Lifetime::Timeframe});
+    }
+    requestMap["matchTOF_ITSTPC"] = mc;
   }
-  requestMap["matchTOF"] = mc;
+  if (src[GTrackID::TPCTRDTOF]) {
+    addInput({"matchTPCTRDTOF", "TOF", "MTC_TPCTRD", 0, Lifetime::Timeframe});
+    if (mc) {
+      addInput({"clsTOF_GLO2_MCTR", "TOF", "MCMTC_TPCTRD", 0, Lifetime::Timeframe});
+    }
+    requestMap["matchTOF_TPCTRD"] = mc;
+  }
+  if (src[GTrackID::ITSTPCTRDTOF]) {
+    addInput({"matchITSTPCTRDTOF", "TOF", "MTC_ITSTPCTRD", 0, Lifetime::Timeframe});
+    if (mc) {
+      addInput({"clsTOF_GLO3_MCTR", "TOF", "MCMTC_ITSTPCTRD", 0, Lifetime::Timeframe});
+    }
+    requestMap["matchTOF_ITSTPCTRD"] = mc;
+  }
 }
 
 void DataRequest::requestITSClusters(bool mc)
@@ -240,7 +269,7 @@ void DataRequest::requestFT0RecPoints(bool mc)
   addInput({"ft0recpoints", "FT0", "RECPOINTS", 0, Lifetime::Timeframe});
   addInput({"ft0channels", "FT0", "RECCHDATA", 0, Lifetime::Timeframe});
   if (mc) {
-    LOG(ERROR) << "FT0 RecPoint does not support MC truth";
+    LOG(error) << "FT0 RecPoint does not support MC truth";
   }
   requestMap["FT0"] = false;
 }
@@ -250,7 +279,7 @@ void DataRequest::requestFV0RecPoints(bool mc)
   addInput({"fv0recpoints", "FV0", "RECPOINTS", 0, Lifetime::Timeframe});
   addInput({"fv0channels", "FV0", "RECCHDATA", 0, Lifetime::Timeframe});
   if (mc) {
-    LOG(ERROR) << "FV0 RecPoint does not support MC truth";
+    LOG(error) << "FV0 RecPoint does not support MC truth";
   }
   requestMap["FV0"] = false;
 }
@@ -260,7 +289,7 @@ void DataRequest::requestFDDRecPoints(bool mc)
   addInput({"fddrecpoints", "FDD", "RECPOINTS", 0, Lifetime::Timeframe});
   addInput({"fddchannels", "FDD", "RECCHDATA", 0, Lifetime::Timeframe});
   if (mc) {
-    LOG(ERROR) << "FDD RecPoint does not support MC truth";
+    LOG(error) << "FDD RecPoint does not support MC truth";
   }
   requestMap["FDD"] = false;
 }
@@ -272,7 +301,7 @@ void DataRequest::requestZDCRecEvents(bool mc)
   addInput({"zdctdcdata", "ZDC", "TDCDATA", 0, Lifetime::Timeframe});
   addInput({"zdcinfo", "ZDC", "INFO", 0, Lifetime::Timeframe});
   if (mc) {
-    LOG(ERROR) << "ZDC RecEvent does not support MC truth";
+    LOG(error) << "ZDC RecEvent does not support MC truth";
   }
   requestMap["ZDC"] = false;
 }
@@ -321,8 +350,8 @@ void DataRequest::requestCTPDigits(bool mc)
 {
   addInput({"CTPDigits", "CTP", "DIGITS", 0, Lifetime::Timeframe});
   if (mc) {
-    LOG(WARNING) << "MC truth not implemented for CTP";
-    //addInput({"CTPDigitsMC", "CTP", "DIGITSMCTR", 0, Lifetime::Timeframe});
+    LOG(warning) << "MC truth not implemented for CTP";
+    // addInput({"CTPDigitsMC", "CTP", "DIGITSMCTR", 0, Lifetime::Timeframe});
   }
   requestMap["CTPDigits"] = false;
 }
@@ -350,7 +379,7 @@ void DataRequest::requestPHOSCells(bool mc)
 void DataRequest::requestEMCALCells(bool mc)
 {
   addInput({"EMCCells", "EMC", "CELLS", 0, Lifetime::Timeframe});
-  addInput({"EMCTriggers", "EMC", "CELLTRIGREC", 0, Lifetime::Timeframe});
+  addInput({"EMCTriggers", "EMC", "CELLSTRGR", 0, Lifetime::Timeframe});
   if (mc) {
     addInput({"EMCCellsMC", "EMC", "CELLSMCTR", 0, Lifetime::Timeframe});
   }
@@ -384,18 +413,16 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
   if (src[GTrackID::TPCTOF]) {
     requestTPCTOFTracks(useMC);
   }
-  if (src[GTrackID::ITSTPCTOF]) {
-    requestTOFMatches(useMC);
-    requestTOFClusters(false); // RSTODO Needed just to set the time of ITSTPC track, consider moving to MatchInfoTOF
-                               // NOTE: Getting TOF Clusters is carried over to InputHelper::addInputSpecs. If changed here, please fix there.
-  }
-  if (src[GTrackID::ITSTPCTRD]) {
-    requestITSTPCTRDTracks(useMC);
-  }
-  if (src[GTrackID::TPCTRD]) {
+  if (src[GTrackID::TPCTRD] || src[GTrackID::TPCTRDTOF]) {
     requestTPCTRDTracks(useMC);
   }
-
+  if (src[GTrackID::ITSTPCTRD] || src[GTrackID::ITSTPCTRDTOF]) {
+    requestITSTPCTRDTracks(useMC);
+  }
+  if (src[GTrackID::ITSTPCTRDTOF] || src[GTrackID::ITSTPCTOF] || src[GTrackID::TPCTRDTOF]) {
+    requestTOFMatches(src, useMC);
+    requestTOFClusters(false);
+  }
   if (src[GTrackID::FT0]) {
     requestFT0RecPoints(false); // RS FIXME: at the moment does not support MC
   }
@@ -490,6 +517,16 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
     addGlobalFwdTracks(pc, req->second);
   }
 
+  req = reqMap.find("matchMFTMCH");
+  if (req != reqMap.end()) {
+    addMFTMCHMatches(pc, req->second);
+  }
+
+  req = reqMap.find("matchMCHMID");
+  if (req != reqMap.end()) {
+    addMCHMIDMatches(pc, req->second);
+  }
+
   req = reqMap.find("trackITSTPCTRD");
   if (req != reqMap.end()) {
     addITSTPCTRDTracks(pc, req->second);
@@ -505,9 +542,19 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
     addTPCTOFTracks(pc, req->second);
   }
 
-  req = reqMap.find("matchTOF");
+  req = reqMap.find("matchTOF_ITSTPC");
   if (req != reqMap.end()) {
-    addTOFMatches(pc, req->second);
+    addTOFMatchesITSTPC(pc, req->second);
+  }
+
+  req = reqMap.find("matchTOF_TPCTRD");
+  if (req != reqMap.end()) {
+    addTOFMatchesTPCTRD(pc, req->second);
+  }
+
+  req = reqMap.find("matchTOF_ITSTPCTRD");
+  if (req != reqMap.end()) {
+    addTOFMatchesITSTPCTRD(pc, req->second);
   }
 
   req = reqMap.find("clusITS");
@@ -652,7 +699,7 @@ void RecoContainer::addCosmicTracks(ProcessingContext& pc, bool mc)
 void RecoContainer::addITSTracks(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::its::TrackITS>>("trackITS"), TRACKS);
-  commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<int>>("trackClIdx"), INDICES);
+  commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<int>>("trackITSClIdx"), INDICES);
   commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("trackITSROF"), TRACKREFS);
   if (mc) {
     commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSMCTR"), MCLABELS);
@@ -669,7 +716,7 @@ void RecoContainer::addIRFramesITS(ProcessingContext& pc)
 void RecoContainer::addMFTTracks(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::mft::TrackMFT>>("trackMFT"), TRACKS);
-  commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<int>>("trackClIdx"), INDICES);
+  commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<int>>("trackMFTClIdx"), INDICES);
   commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("trackMFTROF"), TRACKREFS);
   if (mc) {
     commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackMFTMCTR"), MCLABELS);
@@ -681,7 +728,7 @@ void RecoContainer::addMCHTracks(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::mch::TrackMCH>>("trackMCH"), TRACKS);
   commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::mch::ROFRecord>>("trackMCHROF"), TRACKREFS);
-  commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::mch::ClusterStruct>>("trackMCHTRACKCLUSTERS"), CLUSREFS);
+  commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::mch::Cluster>>("trackMCHTRACKCLUSTERS"), CLUSREFS);
   if (mc) {
     commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackMCHMCTR"), MCLABELS);
   }
@@ -738,6 +785,18 @@ void RecoContainer::addGlobalFwdTracks(ProcessingContext& pc, bool mc)
 }
 
 //__________________________________________________________
+void RecoContainer::addMFTMCHMatches(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::MFTMCH].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoFwd>>("matchMFTMCH"), MATCHES);
+}
+
+//__________________________________________________________
+void RecoContainer::addMCHMIDMatches(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::MCHMID].registerContainer(pc.inputs().get<gsl::span<o2d::TrackMCHMID>>("matchMCHMID"), MATCHES);
+}
+
+//__________________________________________________________
 void RecoContainer::addITSTPCTRDTracks(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::ITSTPCTRD].registerContainer(pc.inputs().get<gsl::span<o2::trd::TrackTRD>>("trackITSTPCTRD"), TRACKS);
@@ -770,14 +829,29 @@ void RecoContainer::addTPCTOFTracks(ProcessingContext& pc, bool mc)
 }
 
 //__________________________________________________________
-void RecoContainer::addTOFMatches(ProcessingContext& pc, bool mc)
+void RecoContainer::addTOFMatchesITSTPC(ProcessingContext& pc, bool mc)
 {
-  commonPool[GTrackID::ITSTPCTOF].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoTOF>>("matchITSTPCTOF"), MATCHES); //only ITS/TPC : TOF match info, no real tracks
+  commonPool[GTrackID::ITSTPCTOF].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoTOF>>("matchITSTPCTOF"), MATCHES); // only ITS/TPC : TOF match info, no real tracks
   if (mc) {
     commonPool[GTrackID::ITSTPCTOF].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("clsTOF_GLO_MCTR"), MCLABELS);
   }
 }
-
+//__________________________________________________________
+void RecoContainer::addTOFMatchesTPCTRD(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::TPCTRDTOF].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoTOF>>("matchTPCTRDTOF"), MATCHES); // only ITS/TPC : TOF match info, no real tracks
+  if (mc) {
+    commonPool[GTrackID::TPCTRDTOF].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("clsTOF_GLO2_MCTR"), MCLABELS);
+  }
+}
+//__________________________________________________________
+void RecoContainer::addTOFMatchesITSTPCTRD(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::ITSTPCTRDTOF].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoTOF>>("matchITSTPCTRDTOF"), MATCHES); // only ITS/TPC : TOF match info, no real tracks
+  if (mc) {
+    commonPool[GTrackID::ITSTPCTRDTOF].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("clsTOF_GLO3_MCTR"), MCLABELS);
+  }
+}
 //__________________________________________________________
 void RecoContainer::addITSClusters(ProcessingContext& pc, bool mc)
 {
@@ -867,7 +941,7 @@ void RecoContainer::addFT0RecPoints(ProcessingContext& pc, bool mc)
   commonPool[GTrackID::FT0].registerContainer(pc.inputs().get<gsl::span<o2::ft0::ChannelDataFloat>>("ft0channels"), CLUSTERS);
 
   if (mc) {
-    LOG(ERROR) << "FT0 RecPoint does not support MC truth";
+    LOG(error) << "FT0 RecPoint does not support MC truth";
   }
 }
 
@@ -878,7 +952,7 @@ void RecoContainer::addFV0RecPoints(ProcessingContext& pc, bool mc)
   commonPool[GTrackID::FV0].registerContainer(pc.inputs().get<gsl::span<o2::fv0::ChannelDataFloat>>("fv0channels"), CLUSTERS);
 
   if (mc) {
-    LOG(ERROR) << "FV0 RecPoint does not support MC truth";
+    LOG(error) << "FV0 RecPoint does not support MC truth";
   }
 }
 
@@ -889,7 +963,7 @@ void RecoContainer::addFDDRecPoints(ProcessingContext& pc, bool mc)
   commonPool[GTrackID::FDD].registerContainer(pc.inputs().get<gsl::span<o2::fdd::ChannelDataFloat>>("fddchannels"), CLUSTERS);
 
   if (mc) {
-    LOG(ERROR) << "FDD RecPoint does not support MC truth";
+    LOG(error) << "FDD RecPoint does not support MC truth";
   }
 }
 
@@ -902,7 +976,7 @@ void RecoContainer::addZDCRecEvents(ProcessingContext& pc, bool mc)
   commonPool[GTrackID::ZDC].registerContainer(pc.inputs().get<gsl::span<uint16_t>>("zdcinfo"), PATTERNS);
 
   if (mc) {
-    LOG(ERROR) << "ZDC RecEvent does not support MC truth";
+    LOG(error) << "ZDC RecEvent does not support MC truth";
   }
 }
 
@@ -965,6 +1039,18 @@ bool RecoContainer::isTrackSourceLoaded(int src) const
     }
     src = GTrackID::ITSTPC;
   }
+  if (src == GTrackID::TPCTRDTOF) {
+    if (!isMatchSourceLoaded(src)) { // the physical tracks are in ITS-TPC, need to get reference from match info
+      return false;
+    }
+    src = GTrackID::TPCTRD;
+  }
+  if (src == GTrackID::ITSTPCTRDTOF) {
+    if (!isMatchSourceLoaded(src)) { // the physical tracks are in ITS-TPC, need to get reference from match info
+      return false;
+    }
+    src = GTrackID::ITSTPCTRD;
+  }
   return commonPool[src].isLoaded(TRACKS);
 }
 
@@ -973,7 +1059,7 @@ const o2::track::TrackParCov& RecoContainer::getTrackParam(GTrackID gidx) const
 {
   // get base track
   auto trSrc = gidx.getSource();
-  if (trSrc == GTrackID::ITSTPCTOF) { // the physical tracks are in ITS-TPC, need to get reference from match info
+  if (trSrc == GTrackID::ITSTPCTOF || trSrc == GTrackID::TPCTRDTOF || trSrc == GTrackID::ITSTPCTRDTOF) { // the physical tracks are in ITS-TPC, need to get reference from match info
     gidx = getTOFMatch(gidx).getTrackRef();
   }
   return getObject<o2::track::TrackParCov>(gidx, TRACKS);
@@ -1025,20 +1111,36 @@ RecoContainer::GlobalIDSet RecoContainer::getSingleDetectorRefs(GTrackID gidx) c
     table[GTrackID::TRD] = gidx; // there is no standalone TRD track, so use the index for the ITSTPCTRD track array
   }
   if (src == GTrackID::ITSTPCTOF) {
-    const auto& parent0 = getTOFMatch(gidx); //ITS/TPC : TOF
+    const auto& parent0 = getTOFMatch(gidx); // ITS/TPC : TOF
     const auto& parent1 = getTPCITSTrack(parent0.getTrackRef());
     table[GTrackID::ITSTPC] = parent0.getTrackRef();
     table[GTrackID::TOF] = {unsigned(parent0.getIdxTOFCl()), GTrackID::TOF};
     table[GTrackID::TPC] = parent1.getRefTPC();
     table[parent1.getRefITS().getSource()] = parent1.getRefITS(); // ITS source might be an ITS track or ITSAB tracklet
+  } else if (src == GTrackID::ITSTPCTRDTOF) {
+    const auto& parent0 = getTOFMatch(gidx); // ITS/TPC : TOF
+    const auto& parent1 = getITSTPCTRDTrack<o2::trd::TrackTRD>(parent0.getTrackRef());
+    const auto& parent2 = getTPCITSTrack(parent1.getRefGlobalTrackId());
+    table[GTrackID::ITSTPCTRD] = parent0.getTrackRef();
+    table[GTrackID::ITSTPC] = parent1.getRefGlobalTrackId();
+    table[GTrackID::TOF] = {unsigned(parent0.getIdxTOFCl()), GTrackID::TOF};
+    table[GTrackID::TPC] = parent2.getRefTPC();
+    table[parent2.getRefITS().getSource()] = parent2.getRefITS(); // ITS source might be an ITS track or ITSAB tracklet
   } else if (src == GTrackID::TPCTOF) {
-    const auto& parent0 = getTPCTOFMatch(gidx); //TPC : TOF
+    const auto& parent0 = getTPCTOFMatch(gidx); // TPC : TOF
     table[GTrackID::TOF] = {unsigned(parent0.getIdxTOFCl()), GTrackID::TOF};
     table[GTrackID::TPC] = parent0.getTrackRef();
   } else if (src == GTrackID::ITSTPC) {
     const auto& parent0 = getTPCITSTrack(gidx);
     table[GTrackID::TPC] = parent0.getRefTPC();
     table[parent0.getRefITS().getSource()] = parent0.getRefITS(); // ITS source might be an ITS track or ITSAB tracklet
+  } else if (src == GTrackID::MFTMCH || src == GTrackID::MFTMCHMID) {
+    const auto& parent0 = getGlobalFwdTrack(gidx);
+    table[GTrackID::MFT] = parent0.getMFTTrackID();
+    table[GTrackID::MCH] = parent0.getMCHTrackID();
+    if (parent0.getMIDTrackID() != -1) {
+      table[GTrackID::MID] = parent0.getMIDTrackID();
+    }
   }
   return std::move(table);
 }
@@ -1054,11 +1156,16 @@ GTrackID RecoContainer::getTPCContributorGID(GTrackID gidx) const
     const auto& parent1 = getTPCITSTrack(parent0.getRefGlobalTrackId());
     return parent1.getRefTPC();
   } else if (src == GTrackID::ITSTPCTOF) {
-    const auto& parent0 = getTOFMatch(gidx); //ITS/TPC : TOF
+    const auto& parent0 = getTOFMatch(gidx); // ITS/TPC : TOF
     const auto& parent1 = getTPCITSTrack(parent0.getTrackRef());
     return parent1.getRefTPC();
+  } else if (src == GTrackID::ITSTPCTRDTOF) {
+    const auto& parent0 = getTOFMatch(gidx); // ITS/TPC/TRD : TOF
+    const auto& parent1 = getITSTPCTRDTrack<o2::trd::TrackTRD>(parent0.getTrackRef());
+    const auto& parent2 = getTPCITSTrack(parent1.getRefGlobalTrackId());
+    return parent2.getRefTPC();
   } else if (src == GTrackID::TPCTOF) {
-    const auto& parent0 = getTPCTOFMatch(gidx); //TPC : TOF
+    const auto& parent0 = getTPCTOFMatch(gidx); // TPC : TOF
     return parent0.getTrackRef();
   } else if (src == GTrackID::ITSTPC) {
     const auto& parent0 = getTPCITSTrack(gidx);
@@ -1078,9 +1185,14 @@ GTrackID RecoContainer::getITSContributorGID(GTrackID gidx) const
     const auto& parent1 = getTPCITSTrack(parent0.getRefGlobalTrackId());
     return parent1.getRefITS();
   } else if (src == GTrackID::ITSTPCTOF) {
-    const auto& parent0 = getTOFMatch(gidx); //ITS/TPC : TOF
+    const auto& parent0 = getTOFMatch(gidx); // ITS/TPC : TOF
     const auto& parent1 = getTPCITSTrack(parent0.getTrackRef());
     return parent1.getRefITS();
+  } else if (src == GTrackID::ITSTPCTRDTOF) {
+    const auto& parent0 = getTOFMatch(gidx); // ITS/TPC : TOF
+    const auto& parent1 = getITSTPCTRDTrack<o2::trd::TrackTRD>(parent0.getTrackRef());
+    const auto& parent2 = getTPCITSTrack(parent1.getRefGlobalTrackId());
+    return parent2.getRefITS();
   } else if (src == GTrackID::ITSTPC) {
     const auto& parent0 = getTPCITSTrack(gidx);
     return parent0.getRefITS();

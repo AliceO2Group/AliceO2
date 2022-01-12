@@ -58,11 +58,11 @@ const CalPad& CDBInterface::getPedestals()
     }
   } else {
     // return from CDB, assume that check for object existence are done there
-    return getObjectFromCDB<CalPad>(CDBTypeMap.at(CDBType::CalPedestal));
+    return getObjectFromCDB<CalPadMapType>(CDBTypeMap.at(CDBType::CalPedestalNoise)).at("Pedestals");
   }
 
   if (!mPedestals) {
-    LOG(FATAL) << "No valid pedestal object was loaded";
+    LOG(fatal) << "No valid pedestal object was loaded";
   }
 
   return *mPedestals;
@@ -82,11 +82,11 @@ const CalPad& CDBInterface::getNoise()
     }
   } else {
     // return from CDB, assume that check for object existence are done there
-    return getObjectFromCDB<CalPad>(CDBTypeMap.at(CDBType::CalNoise));
+    return getObjectFromCDB<CalPadMapType>(CDBTypeMap.at(CDBType::CalPedestalNoise)).at("Noise");
   }
 
   if (!mNoise) {
-    LOG(FATAL) << "No valid noise object was loaded";
+    LOG(fatal) << "No valid noise object was loaded";
   }
 
   return *mNoise;
@@ -110,7 +110,7 @@ const CalPad& CDBInterface::getGainMap()
   }
 
   if (!mGainMap) {
-    LOG(FATAL) << "No valid gain object was loaded";
+    LOG(fatal) << "No valid gain object was loaded";
   }
 
   return *mGainMap;
@@ -176,17 +176,17 @@ void CDBInterface::loadNoiseAndPedestalFromFile()
   file->GetObject("Noise", noise);
 
   if (!pedestals) {
-    LOG(FATAL) << "No valid pedestal object was loaded";
+    LOG(fatal) << "No valid pedestal object was loaded";
   }
 
   if (!noise) {
-    LOG(FATAL) << "No valid noise object was loaded";
+    LOG(fatal) << "No valid noise object was loaded";
   }
 
   mPedestals.reset(pedestals);
   mNoise.reset(noise);
 
-  LOG(INFO) << "Loaded Noise and pedestal from file '" << mPedestalNoiseFileName << "'";
+  LOG(info) << "Loaded Noise and pedestal from file '" << mPedestalNoiseFileName << "'";
 }
 
 //______________________________________________________________________________
@@ -197,12 +197,12 @@ void CDBInterface::loadGainMapFromFile()
   file->GetObject("GainMap", gain);
 
   if (!gain) {
-    LOG(FATAL) << "No valid gain map object was loaded";
+    LOG(fatal) << "No valid gain map object was loaded";
   }
 
   mGainMap.reset(gain);
 
-  LOG(INFO) << "Loaded gain map from file '" << mGainMapFileName << "'";
+  LOG(info) << "Loaded gain map from file '" << mGainMapFileName << "'";
 }
 //______________________________________________________________________________
 void CDBInterface::createDefaultPedestals()
@@ -301,9 +301,9 @@ bool CDBStorage::checkMetaData(MetaData_t metaData) const
     "Optional"};
 
   const std::array<std::vector<std::string_view>, 3> tests{{
-    {"Responsible", "Reason", "Intervention"}, //errors
-    {"JIRA"},                                  //warnings
-    {"Comment"}                                //infos
+    {"Responsible", "Reason", "Intervention"}, // errors
+    {"JIRA"},                                  // warnings
+    {"Comment"}                                // infos
   }};
 
   std::array<int, 3> counts{};
@@ -346,8 +346,12 @@ void CDBStorage::uploadNoiseAndPedestal(std::string_view fileName, long first, l
     LOGP(fatal, "No valid noise object was loaded from file {}", fileName);
   }
 
-  storeObject(pedestals, CDBType::CalPedestal, first, last);
-  storeObject(noise, CDBType::CalNoise, first, last);
+  CDBInterface::CalPadMapType calib;
+
+  calib["Pedestals"] = *pedestals;
+  calib["Noise"] = *noise;
+
+  storeObject(&calib, CDBType::CalPedestalNoise, first, last);
 }
 
 //______________________________________________________________________________
@@ -358,7 +362,7 @@ void CDBStorage::uploadGainMap(std::string_view fileName, bool isFull, long firs
   file->GetObject("GainMap", gain);
 
   if (!gain) {
-    LOG(FATAL) << "No valid gain map object was loaded";
+    LOG(fatal) << "No valid gain map object was loaded";
   }
 
   storeObject(gain, isFull ? CDBType::CalPadGainFull : CDBType::CalPadGainResidual, first, last);

@@ -13,7 +13,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "FDDReconstruction/CTFCoder.h"
 #include "FDDBase/Constants.h"
 #include "Framework/Logger.h"
@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     digits.emplace_back(start, end - start, ir, trig);
   }
 
-  LOG(INFO) << "Generated " << channels.size() << " channels in " << digits.size() << " digits " << sw.CpuTime() << " s";
+  LOG(info) << "Generated " << channels.size() << " channels in " << digits.size() << " digits " << sw.CpuTime() << " s";
 
   sw.Start();
   std::vector<o2::ctf::BufferType> vec;
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     coder.encode(vec, digits, channels); // compress
   }
   sw.Stop();
-  LOG(INFO) << "Compressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Compressed in " << sw.CpuTime() << " s";
 
   // writing
   {
@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     ctfImage->appendToTree(ctfTree, "FDD");
     ctfTree.Write();
     sw.Stop();
-    LOG(INFO) << "Wrote to tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Wrote to tree in " << sw.CpuTime() << " s";
   }
 
   // reading
@@ -104,7 +104,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     BOOST_CHECK(tree);
     o2::fdd::CTF::readFromTree(vec, *(tree.get()), "FDD");
     sw.Stop();
-    LOG(INFO) << "Read back from tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Read back from tree in " << sw.CpuTime() << " s";
   }
 
   std::vector<Digit> digitsD;
@@ -117,11 +117,11 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     coder.decode(ctfImage, digitsD, channelsD); // decompress
   }
   sw.Stop();
-  LOG(INFO) << "Decompressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Decompressed in " << sw.CpuTime() << " s";
 
   BOOST_CHECK(digitsD.size() == digits.size());
   BOOST_CHECK(channelsD.size() == channels.size());
-  LOG(INFO) << "  BOOST_CHECK digitsD.size() " << digitsD.size() << " digits.size() " << digits.size() << " BOOST_CHECK(channelsD.size()  " << channelsD.size() << " channels.size()) " << channels.size();
+  LOG(info) << "  BOOST_CHECK digitsD.size() " << digitsD.size() << " digits.size() " << digits.size() << " BOOST_CHECK(channelsD.size()  " << channelsD.size() << " channels.size()) " << channels.size();
 
   for (int i = digits.size(); i--;) {
     const auto& dor = digits[i];

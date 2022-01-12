@@ -95,6 +95,9 @@ void ConfigParamsHelper::populateBoostProgramOptions(
       case VariantType::LabeledArrayInt:
       case VariantType::LabeledArrayFloat:
       case VariantType::LabeledArrayDouble:
+      // FIXME: for  Dict we should probably allow parsing stuff
+      //        provided on the command line
+      case VariantType::Dict:
       case VariantType::Unknown:
       case VariantType::Empty:
         break;
@@ -102,14 +105,24 @@ void ConfigParamsHelper::populateBoostProgramOptions(
   }
 }
 
-void ConfigParamsHelper::addOptionIfMissing(std::vector<ConfigParamSpec>& specs, ConfigParamSpec spec)
+/// Check if option is defined
+bool ConfigParamsHelper::hasOption(const std::vector<ConfigParamSpec>& specs, const std::string& optName)
 {
   for (auto& old : specs) {
-    if (old.name == spec.name) {
-      return;
+    if (old.name == optName) {
+      return true;
     }
   }
-  specs.push_back(spec);
+  return false;
+}
+
+/// Add the ConfigParamSpec @a spec to @a specs if there is no parameter with
+/// the same name already.
+void ConfigParamsHelper::addOptionIfMissing(std::vector<ConfigParamSpec>& specs, const ConfigParamSpec& spec)
+{
+  if (!hasOption(specs, spec.name)) {
+    specs.push_back(spec);
+  }
 }
 
 /// populate boost program options making all options of type string

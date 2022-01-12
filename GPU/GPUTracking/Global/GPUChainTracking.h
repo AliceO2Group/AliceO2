@@ -37,6 +37,7 @@ namespace tpc
 {
 struct ClusterNativeAccess;
 struct ClusterNative;
+class CalibdEdxContainer;
 } // namespace tpc
 } // namespace o2
 
@@ -59,7 +60,6 @@ class GPUQA;
 class GPUTPCClusterStatistics;
 class GPUTRDGeometry;
 class TPCFastTransform;
-class TPCdEdxCalibrationSplines;
 class GPUTrackingInputProvider;
 struct GPUChainTrackingFinalContext;
 struct GPUTPCCFChainContext;
@@ -166,17 +166,17 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   // Getters / setters for parameters
   const TPCFastTransform* GetTPCTransform() const { return processors()->calibObjects.fastTransform; }
   const TPCPadGainCalib* GetTPCPadGainCalib() const { return processors()->calibObjects.tpcPadGain; }
-  const TPCdEdxCalibrationSplines* GetdEdxSplines() const { return processors()->calibObjects.dEdxSplines; }
+  const o2::tpc::CalibdEdxContainer* GetdEdxCalibContainer() const { return processors()->calibObjects.dEdxCalibContainer; }
   const o2::base::MatLayerCylSet* GetMatLUT() const { return processors()->calibObjects.matLUT; }
   const GPUTRDGeometry* GetTRDGeometry() const { return (GPUTRDGeometry*)processors()->calibObjects.trdGeometry; }
   const o2::base::Propagator* GetO2Propagator() const { return processors()->calibObjects.o2Propagator; }
   void SetTPCFastTransform(std::unique_ptr<TPCFastTransform>&& tpcFastTransform);
-  void SetdEdxSplines(std::unique_ptr<TPCdEdxCalibrationSplines>&& dEdxSplines);
+  void SetdEdxCalibContainer(std::unique_ptr<o2::tpc::CalibdEdxContainer>&& dEdxCalibContainer);
   void SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut);
   void SetTRDGeometry(std::unique_ptr<o2::trd::GeometryFlat>&& geo);
   void SetTPCFastTransform(const TPCFastTransform* tpcFastTransform) { processors()->calibObjects.fastTransform = tpcFastTransform; }
   void SetTPCPadGainCalib(const TPCPadGainCalib* tpcPadGainCalib) { processors()->calibObjects.tpcPadGain = tpcPadGainCalib; }
-  void SetdEdxSplines(const TPCdEdxCalibrationSplines* dEdxSplines) { processors()->calibObjects.dEdxSplines = dEdxSplines; }
+  void SetdEdxCalibContainer(const o2::tpc::CalibdEdxContainer* dEdxCalibContainer) { processors()->calibObjects.dEdxCalibContainer = dEdxCalibContainer; }
   void SetMatLUT(const o2::base::MatLayerCylSet* lut) { processors()->calibObjects.matLUT = lut; }
   void SetTRDGeometry(const o2::trd::GeometryFlat* geo) { processors()->calibObjects.trdGeometry = geo; }
   void SetO2Propagator(const o2::base::Propagator* prop) { processors()->calibObjects.o2Propagator = prop; }
@@ -250,11 +250,11 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   std::unique_ptr<GPUTPCClusterStatistics> mCompressionStatistics;
 
   // Ptr to detector / calibration objects
-  std::unique_ptr<TPCFastTransform> mTPCFastTransformU;     // Global TPC fast transformation object
-  std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalibU;       // TPC gain calibration and cluster finder parameters
-  std::unique_ptr<TPCdEdxCalibrationSplines> mdEdxSplinesU; // TPC dEdx calibration splines
-  std::unique_ptr<o2::base::MatLayerCylSet> mMatLUTU;       // Material Lookup Table
-  std::unique_ptr<o2::trd::GeometryFlat> mTRDGeometryU;     // TRD Geometry
+  std::unique_ptr<TPCFastTransform> mTPCFastTransformU;              // Global TPC fast transformation object
+  std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalibU;                // TPC gain calibration and cluster finder parameters
+  std::unique_ptr<o2::tpc::CalibdEdxContainer> mdEdxCalibContainerU; // TPC dEdx calibration container
+  std::unique_ptr<o2::base::MatLayerCylSet> mMatLUTU;                // Material Lookup Table
+  std::unique_ptr<o2::trd::GeometryFlat> mTRDGeometryU;              // TRD Geometry
 
   // Ptrs to internal buffers
   std::unique_ptr<o2::tpc::ClusterNativeAccess> mClusterNativeAccess;

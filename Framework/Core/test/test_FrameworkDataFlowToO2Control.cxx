@@ -35,7 +35,7 @@ WorkflowSpec defineDataProcessing()
            Outputs{OutputSpec{"TST", "A1"}, OutputSpec{"TST", "A2"}}, // A1 will be consumed twice, A2 is dangling
            AlgorithmSpec{},                                           //
            {ConfigParamSpec{"channel-config", VariantType::String,    // raw input channel
-                            "name=into_dpl,type=pull,method=connect,address=ipc:///tmp/pipe-into-dpl,transport=shmem,rateLogging=10",
+                            "name=into_dpl,type=pull,method=connect,address=ipc:///tmp/pipe-into-dpl,transport=shmem,rateLogging=10,rcvBufSize=789",
                             {"Out-of-band channel config"}}}},
           {"B", // producer, no inputs
            Inputs{},
@@ -85,6 +85,7 @@ roles:
       transport: shmem
       target: "::into_dpl-{{ it }}"
       rateLogging: "{{ fmq_rate_logging }}"
+      rcvBufSize: 789
     task:
       load: testwf-A
   - name: "B"
@@ -98,11 +99,15 @@ roles:
       transport: shmem
       target: "{{ Parent().Path }}.A:from_A_to_C"
       rateLogging: "{{ fmq_rate_logging }}"
+      sndBufSize: 1
+      rcvBufSize: 1
     - name: from_B_to_C
       type: pull
       transport: shmem
       target: "{{ Parent().Path }}.B:from_B_to_C"
       rateLogging: "{{ fmq_rate_logging }}"
+      sndBufSize: 1
+      rcvBufSize: 1
     task:
       load: testwf-C
   - name: "D"
@@ -112,6 +117,8 @@ roles:
       transport: shmem
       target: "{{ Parent().Path }}.C:from_C_to_D"
       rateLogging: "{{ fmq_rate_logging }}"
+      sndBufSize: 1
+      rcvBufSize: 1
     bind:
     - name: outta_dpl
       type: push
@@ -130,7 +137,7 @@ defaults:
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
     {{ dpl_command }} | bcsadc/foo
-  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ dpl_command }} | bcsadc/foo"
+  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ len(extra_env_vars)>0 ? 'export ' + extra_env_vars + ' &&' : '' }} {{ dpl_command }} | bcsadc/foo"
 control:
   mode: "fairmq"
 wants:
@@ -142,6 +149,8 @@ bind:
     transport: shmem
     addressing: ipc
     rateLogging: "{{ fmq_rate_logging }}"
+    sndBufSize: 1
+    rcvBufSize: 1
 command:
   shell: true
   log: "{{ log_task_output }}"
@@ -180,6 +189,8 @@ command:
     - "'1'"
     - "--severity"
     - "'info'"
+    - "--shm-allocation"
+    - "'rbtree_best_fit'"
     - "--shm-mlock-segment"
     - "'false'"
     - "--shm-mlock-segment-on-creation"
@@ -190,6 +201,8 @@ command:
     - "'false'"
     - "--stacktrace-on-signal"
     - "'all'"
+    - "--timeframes-rate-limit"
+    - "'0'"
 )EXPECTED",
   R"EXPECTED(name: B
 defaults:
@@ -197,7 +210,7 @@ defaults:
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
     {{ dpl_command }} | foo
-  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ dpl_command }} | foo"
+  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ len(extra_env_vars)>0 ? 'export ' + extra_env_vars + ' &&' : '' }} {{ dpl_command }} | foo"
 control:
   mode: "fairmq"
 wants:
@@ -209,6 +222,8 @@ bind:
     transport: shmem
     addressing: ipc
     rateLogging: "{{ fmq_rate_logging }}"
+    sndBufSize: 1
+    rcvBufSize: 1
 command:
   shell: true
   log: "{{ log_task_output }}"
@@ -247,6 +262,8 @@ command:
     - "'1'"
     - "--severity"
     - "'info'"
+    - "--shm-allocation"
+    - "'rbtree_best_fit'"
     - "--shm-mlock-segment"
     - "'false'"
     - "--shm-mlock-segment-on-creation"
@@ -257,6 +274,8 @@ command:
     - "'false'"
     - "--stacktrace-on-signal"
     - "'all'"
+    - "--timeframes-rate-limit"
+    - "'0'"
 )EXPECTED",
   R"EXPECTED(name: C
 defaults:
@@ -264,7 +283,7 @@ defaults:
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
     {{ dpl_command }} | foo
-  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ dpl_command }} | foo"
+  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ len(extra_env_vars)>0 ? 'export ' + extra_env_vars + ' &&' : '' }} {{ dpl_command }} | foo"
 control:
   mode: "fairmq"
 wants:
@@ -276,6 +295,8 @@ bind:
     transport: shmem
     addressing: ipc
     rateLogging: "{{ fmq_rate_logging }}"
+    sndBufSize: 1
+    rcvBufSize: 1
 command:
   shell: true
   log: "{{ log_task_output }}"
@@ -314,6 +335,8 @@ command:
     - "'1'"
     - "--severity"
     - "'info'"
+    - "--shm-allocation"
+    - "'rbtree_best_fit'"
     - "--shm-mlock-segment"
     - "'false'"
     - "--shm-mlock-segment-on-creation"
@@ -324,6 +347,8 @@ command:
     - "'false'"
     - "--stacktrace-on-signal"
     - "'all'"
+    - "--timeframes-rate-limit"
+    - "'0'"
 )EXPECTED",
   R"EXPECTED(name: D
 defaults:
@@ -331,7 +356,7 @@ defaults:
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
     {{ dpl_command }} | foo
-  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ dpl_command }} | foo"
+  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ len(extra_env_vars)>0 ? 'export ' + extra_env_vars + ' &&' : '' }} {{ dpl_command }} | foo"
 control:
   mode: "fairmq"
 wants:
@@ -382,6 +407,8 @@ command:
     - "'1'"
     - "--severity"
     - "'info'"
+    - "--shm-allocation"
+    - "'rbtree_best_fit'"
     - "--shm-mlock-segment"
     - "'false'"
     - "--shm-mlock-segment-on-creation"
@@ -392,6 +419,8 @@ command:
     - "'false'"
     - "--stacktrace-on-signal"
     - "'all'"
+    - "--timeframes-rate-limit"
+    - "'0'"
     - "--a-param"
     - "'1'"
     - "--b-param"
@@ -410,7 +439,8 @@ BOOST_AUTO_TEST_CASE(TestO2ControlDump)
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm, "workflow-id", true);
+  auto callbacksPolicies = CallbacksPolicy::createDefaultPolicies();
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext, true);
   std::vector<DeviceControl> controls;
   std::vector<DeviceExecution> executions;
   controls.resize(devices.size());
@@ -444,10 +474,13 @@ BOOST_AUTO_TEST_CASE(TestO2ControlDump)
     auto& execution = executions[di];
     auto& expected = expectedTasks[di];
 
-    ss.str({});
-    ss.clear();
-    dumpTask(ss, devices[di], executions[di], devices[di].name, "");
-    BOOST_REQUIRE_EQUAL(strdiffchr(ss.str().data(), expected), strdiffchr(expected, ss.str().data()));
-    BOOST_CHECK_EQUAL(ss.str(), expected);
+    BOOST_TEST_CONTEXT("Device " << spec.name)
+    {
+      ss.str({});
+      ss.clear();
+      dumpTask(ss, devices[di], executions[di], devices[di].name, "");
+      BOOST_REQUIRE_EQUAL(strdiffchr(ss.str().data(), expected), strdiffchr(expected, ss.str().data()));
+      BOOST_CHECK_EQUAL(ss.str(), expected);
+    }
   }
 }

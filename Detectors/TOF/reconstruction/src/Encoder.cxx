@@ -19,7 +19,7 @@
 #include "TString.h"
 #include "FairLogger.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsRaw/RDHUtils.h"
 
 #include <array>
@@ -183,7 +183,7 @@ void Encoder::encodeTRM(const std::vector<Digit>& summary, Int_t icrate, Int_t i
       int hittimeTDC = (summary[istart].getBC() - mEventCounter * Geo::BC_IN_WINDOW) * 1024 + summary[istart].getTDC(); // time in TDC bin within the TOF WINDOW
 
       if (hittimeTDC < 0) {
-        LOG(ERROR) << "Negative hit encoded " << hittimeTDC << ", something went wrong in filling readout window";
+        LOG(error) << "Negative hit encoded " << hittimeTDC << ", something went wrong in filling readout window";
         printf("%llu %d %d\n", (unsigned long long)summary[istart].getBC(), mEventCounter * Geo::BC_IN_WINDOW, summary[istart].getTDC());
       }
       // leading time
@@ -355,7 +355,7 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
 
     // check that all digits were used
     if (icurrentdigit < summary.size()) {
-      LOG(ERROR) << "Not all digits are been used : only " << icurrentdigit << " of " << summary.size();
+      LOG(error) << "Not all digits are been used : only " << icurrentdigit << " of " << summary.size();
     }
   }
 

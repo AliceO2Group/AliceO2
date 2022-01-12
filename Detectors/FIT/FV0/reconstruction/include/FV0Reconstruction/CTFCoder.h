@@ -38,7 +38,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
   CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks(), o2::detectors::DetID::FV0) {}
-  ~CTFCoder() = default;
+  ~CTFCoder() final = default;
 
   /// entropy-encode digits to buffer with CTF
   template <typename VEC>
@@ -48,7 +48,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   template <typename VDIG, typename VCHAN>
   void decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec);
 
-  void createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op);
+  void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
  private:
   /// compres digits clusters to CompressedDigits
@@ -61,8 +61,6 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   void appendToTree(TTree& tree, CTF& ec);
   void readFromTree(TTree& tree, int entry, std::vector<BCData>& digitVec, std::vector<ChannelData>& channelVec);
-
-  ClassDefNV(CTFCoder, 1);
 };
 
 /// entropy-encode clusters to buffer with CTF
@@ -78,7 +76,9 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& digitVec, const 
 
     MD::EENCODE, // BLC_idChan
     MD::EENCODE, // BLC_time
-    MD::EENCODE  // BLC_charge
+    MD::EENCODE, // BLC_charge
+    // extra slot was added in the end
+    MD::EENCODE // BLC_trigger
   };
   CompressedDigits cd;
   compress(cd, digitVec, channelVec);
@@ -95,7 +95,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& digitVec, const 
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
-#define ENCODEFV0(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get());
+#define ENCODEFV0(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
   // clang-format off
   ENCODEFV0(cd.bcInc,     CTF::BLC_bcInc,    0);
   ENCODEFV0(cd.orbitInc,  CTF::BLC_orbitInc, 0);
@@ -104,8 +104,11 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& digitVec, const 
   ENCODEFV0(cd.idChan ,   CTF::BLC_idChan,   0);
   ENCODEFV0(cd.time,      CTF::BLC_time,     0);
   ENCODEFV0(cd.charge,    CTF::BLC_charge,   0);
+  //
+  // extra slot was added in the end
+  ENCODEFV0(cd.trigger,   CTF::BLC_trigger,  0);
   // clang-format on
-  CTF::get(buff.data())->print(getPrefix());
+  CTF::get(buff.data())->print(getPrefix(), mVerbosity);
 }
 
 /// decode entropy-encoded clusters to standard compact clusters
@@ -115,7 +118,7 @@ void CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec)
   CompressedDigits cd;
   cd.header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(cd.header));
-  ec.print(getPrefix());
+  ec.print(getPrefix(), mVerbosity);
 #define DECODEFV0(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
   DECODEFV0(cd.bcInc,     CTF::BLC_bcInc);
@@ -125,6 +128,13 @@ void CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec)
   DECODEFV0(cd.idChan,    CTF::BLC_idChan);
   DECODEFV0(cd.time,      CTF::BLC_time);
   DECODEFV0(cd.charge,    CTF::BLC_charge);
+
+  // extra slot was added in the end
+  DECODEFV0(cd.trigger,   CTF::BLC_trigger);
+  // triggers were added later, in old data they are absent:
+  if (cd.trigger.empty()) {
+    cd.trigger.resize(cd.header.nTriggers);
+  }
   // clang-format on
   //
   decompress(cd, digitVec, channelVec);
@@ -157,7 +167,8 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
       auto icc = channelVec.size();
       const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.time[icc], cd.charge[icc]);
     }
-    Triggers triggers; // TODO: Actual values are not set
+    Triggers triggers;
+    triggers.triggerSignals = cd.trigger[idig];
     digitVec.emplace_back(firstEntry, cd.nChan[idig], ir, triggers);
   }
 }

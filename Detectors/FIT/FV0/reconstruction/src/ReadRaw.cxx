@@ -21,7 +21,7 @@ ClassImp(ReadRaw);
 
 ReadRaw::ReadRaw(bool doConversionToDigits, const std::string inputRawFilePath, const std::string outputDigitsFilePath)
 {
-  LOG(INFO) << "o2::fv0::ReadRaw::ReadRaw(): Read Raw file: " << inputRawFilePath.data() << " and convert to: " << outputDigitsFilePath.data();
+  LOG(info) << "o2::fv0::ReadRaw::ReadRaw(): Read Raw file: " << inputRawFilePath.data() << " and convert to: " << outputDigitsFilePath.data();
   mRawFileIn.exceptions(std::ios_base::failbit | std::ios_base::badbit);
   mRawFileIn.open(inputRawFilePath, std::fstream::in | std::fstream::binary);
   LookUpTable lut(true);
@@ -31,7 +31,7 @@ ReadRaw::ReadRaw(bool doConversionToDigits, const std::string inputRawFilePath, 
 
 void ReadRaw::readRawData(const LookUpTable& lut)
 {
-  LOG(INFO) << "o2::fv0::ReadRaw::readRawData():Start.";
+  LOG(info) << "o2::fv0::ReadRaw::readRawData():Start.";
   constexpr int CRUWordSize = 16;
   o2::header::RAWDataHeader mRDH;
   ChannelData chData;                             // output to store digits
@@ -63,7 +63,7 @@ void ReadRaw::readRawData(const LookUpTable& lut)
       while (posPayload < nwords) {
         mRawFileIn.read(reinterpret_cast<char*>(&eventHeader), sizeof(eventHeader));
         posPayload += sizeof(eventHeader);
-        LOG(DEBUG) << "  Read internal EventHeader for link: " << link
+        LOG(debug) << "  Read internal EventHeader for link: " << link
                    << "  nWords: " << (int)eventHeader.nGBTWords
                    << "  orbit: " << int(eventHeader.orbit)
                    << "  BC: " << int(eventHeader.bc)
@@ -74,7 +74,7 @@ void ReadRaw::readRawData(const LookUpTable& lut)
         if (link == lut.getTcmLink()) { // is TCM payload
           mRawFileIn.read(reinterpret_cast<char*>(&mTCMdata), sizeof(mTCMdata));
           posPayload += sizeof(mTCMdata);
-          LOG(DEBUG) << "    Read TCM: posPayload: " << posPayload
+          LOG(debug) << "    Read TCM: posPayload: " << posPayload
                      << " posInFile: " << posInFile;
         } else {                                                           // is PM payload
           posPayload += CRUWordSize - o2::fv0::RawEventData::sPayloadSize; // padding is enabled
@@ -85,7 +85,7 @@ void ReadRaw::readRawData(const LookUpTable& lut)
                       Float_t(eventData[2 * i].time),
                       Short_t(eventData[2 * i].charge)};
             mDigitAccum[intrec].emplace_back(chData);
-            LOG(DEBUG) << "    Read 1st half-word: (PMchannel, globalChannel, Q, T, posPayload) =  "
+            LOG(debug) << "    Read 1st half-word: (PMchannel, globalChannel, Q, T, posPayload) =  "
                        << std::setw(3) << int(eventData[2 * i].channelID)
                        << std::setw(4) << lut.getChannel(link, int(eventData[2 * i].channelID))
                        << std::setw(5) << int(eventData[2 * i].charge)
@@ -105,7 +105,7 @@ void ReadRaw::readRawData(const LookUpTable& lut)
               continue;
             }
             mDigitAccum[intrec].emplace_back(chData);
-            LOG(DEBUG) << "    Read 2nd half-word: (PMchannel, globalChannel, Q, T, posPayload) =  "
+            LOG(debug) << "    Read 2nd half-word: (PMchannel, globalChannel, Q, T, posPayload) =  "
                        << std::setw(3) << int(eventData[2 * i + 1].channelID)
                        << std::setw(4) << lut.getChannel(link, int(eventData[2 * i + 1].channelID))
                        << std::setw(5) << int(eventData[2 * i + 1].charge)
@@ -117,7 +117,7 @@ void ReadRaw::readRawData(const LookUpTable& lut)
     }
   }
   close();
-  LOG(INFO) << "o2::fv0::ReadRaw::readRawData():Finished.";
+  LOG(info) << "o2::fv0::ReadRaw::readRawData():Finished.";
 }
 
 void ReadRaw::close()
@@ -131,19 +131,19 @@ void ReadRaw::writeDigits(const std::string& outputDigitsFilePath)
 {
   TFile* outFile = new TFile(outputDigitsFilePath.data(), "RECREATE");
   if (!outFile || outFile->IsZombie()) {
-    LOG(ERROR) << "Failed to open " << outputDigitsFilePath << " output file";
+    LOG(error) << "Failed to open " << outputDigitsFilePath << " output file";
   } else {
-    LOG(INFO) << "o2::fv0::ReadRaw::writeDigits(): Opened output file: " << outputDigitsFilePath;
+    LOG(info) << "o2::fv0::ReadRaw::writeDigits(): Opened output file: " << outputDigitsFilePath;
   }
   TTree* outTree = new TTree("o2sim", "o2sim");
   std::vector<ChannelData> chDataVecTree;
   std::vector<BCData> chBcVecTree;
 
   for (auto& digit : mDigitAccum) {
-    LOG(DEBUG) << " IR (" << digit.first << ")   (i, PMT, Q, T):";
+    LOG(debug) << " IR (" << digit.first << ")   (i, PMT, Q, T):";
     for (uint16_t i = 0; i < digit.second.size(); i++) {
       ChannelData* chd = &(digit.second.at(i));
-      LOG(DEBUG) << "  " << std::setw(3) << i
+      LOG(debug) << "  " << std::setw(3) << i
                  << std::setw(4) << chd->pmtNumber
                  << std::setw(5) << chd->chargeAdc
                  << std::setw(5) << chd->time;
@@ -166,5 +166,5 @@ void ReadRaw::writeDigits(const std::string& outputDigitsFilePath)
   outFile->cd();
   outTree->Write();
   outFile->Close();
-  LOG(INFO) << "o2::fv0::ReadRaw::writeDigits(): Finished converting " << chBcVecTree.size() << " events.";
+  LOG(info) << "o2::fv0::ReadRaw::writeDigits(): Finished converting " << chBcVecTree.size() << " events.";
 }

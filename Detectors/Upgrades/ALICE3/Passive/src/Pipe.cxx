@@ -93,7 +93,7 @@ void Alice3Pipe::ConstructGeometry()
   TGeoVolume* top = gGeoManager->GetVolume("cave");
   TGeoVolume* barrel = gGeoManager->GetVolume("barrel");
   if (!barrel) {
-    LOG(FATAL) << "Could not find the top volume";
+    LOG(fatal) << "Could not find the top volume";
   }
 
   //---------------- Outermost Be pipe around the IP ----------
@@ -126,9 +126,9 @@ void Alice3Pipe::ConstructGeometry()
         subtractorsFormula += Form("+TRKLAYER_%dsh", iLayer);
       }
     }
-    LOG(DEBUG) << "Subtractors formula before: " << subtractorsFormula;
+    LOG(debug) << "Subtractors formula before: " << subtractorsFormula;
     subtractorsFormula = Form("-(%s)", subtractorsFormula.Data());
-    LOG(DEBUG) << "Subtractors formula after: " << subtractorsFormula;
+    LOG(debug) << "Subtractors formula after: " << subtractorsFormula;
 
     outerBerylliumTubeVacuumComposite = new TGeoCompositeShape("OUT_PIPEVACUUMsh", (compositeFormula + subtractorsFormula).Data());
     outerBerylliumTubeVacuumVolume = new TGeoVolume("OUT_PIPEVACUUM", outerBerylliumTubeVacuumComposite, kMedVac);

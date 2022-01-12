@@ -17,7 +17,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"
 #include "FT0Workflow/RecPointReaderSpec.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 using namespace o2::ft0;
@@ -31,7 +31,7 @@ RecPointReader::RecPointReader(bool useMC)
 {
   mUseMC = useMC;
   if (useMC) {
-    LOG(WARNING) << "FT0 RecPoint reader at the moment does not process MC";
+    LOG(warning) << "FT0 RecPoint reader at the moment does not process MC";
   }
 }
 
@@ -48,7 +48,7 @@ void RecPointReader::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
 
-  LOG(INFO) << "FT0 RecPointReader pushes " << mRecPoints->size() << " recpoints with " << mChannelData->size() << " channels at entry " << ent;
+  LOG(info) << "FT0 RecPointReader pushes " << mRecPoints->size() << " recpoints with " << mChannelData->size() << " channels at entry " << ent;
   pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, *mRecPoints);
   pc.outputs().snapshot(Output{mOrigin, "RECCHDATA", 0, Lifetime::Timeframe}, *mChannelData);
 
@@ -69,11 +69,11 @@ void RecPointReader::connectTree(const std::string& filename)
   mTree->SetBranchAddress(mRecPointBranchName.c_str(), &mRecPoints);
   mTree->SetBranchAddress(mChannelDataBranchName.c_str(), &mChannelData);
   if (mUseMC) {
-    LOG(WARNING) << "MC-truth is not supported for FT0 recpoints currently";
+    LOG(warning) << "MC-truth is not supported for FT0 recpoints currently";
     mUseMC = false;
   }
 
-  LOG(INFO) << "Loaded FT0 RecPoints tree from " << filename << " with " << mTree->GetEntries() << " entries";
+  LOG(info) << "Loaded FT0 RecPoints tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getRecPointReaderSpec(bool useMC)
@@ -82,7 +82,7 @@ DataProcessorSpec getRecPointReaderSpec(bool useMC)
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECCHDATA", 0, Lifetime::Timeframe);
   if (useMC) {
-    LOG(WARNING) << "MC-truth is not supported for FT0 recpoints currently";
+    LOG(warning) << "MC-truth is not supported for FT0 recpoints currently";
   }
 
   return DataProcessorSpec{

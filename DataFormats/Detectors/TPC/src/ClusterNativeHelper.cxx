@@ -37,23 +37,23 @@ void ClusterNativeHelper::convert(const char* fromFile, const char* toFile, cons
   int result = 0;
   int nClusters = 0;
   for (size_t entry = 0; entry < nEntries; ++entry) {
-    LOG(INFO) << "converting entry " << entry;
+    LOG(info) << "converting entry " << entry;
     reader.read(entry);
     result = reader.fillIndex(clusterIndex, clusterBuffer, mcBuffer);
     if (result >= 0) {
-      LOG(INFO) << "added " << result << " clusters to index";
+      LOG(info) << "added " << result << " clusters to index";
     } else {
-      LOG(ERROR) << "filling of clusters index failed with " << result;
+      LOG(error) << "filling of clusters index failed with " << result;
     }
     result = writer.fillFrom(clusterIndex);
     if (result >= 0) {
-      LOG(INFO) << "wrote " << result << " clusters to tree";
+      LOG(info) << "wrote " << result << " clusters to tree";
       nClusters += result;
     } else {
-      LOG(ERROR) << "filling of tree failed with " << result;
+      LOG(error) << "filling of tree failed with " << result;
     }
   }
-  LOG(INFO) << "... done, converted " << nClusters << " clusters";
+  LOG(info) << "... done, converted " << nClusters << " clusters";
   writer.close();
 }
 
@@ -65,7 +65,7 @@ std::unique_ptr<ClusterNativeAccess> ClusterNativeHelper::createClusterNativeInd
   memset(retVal.get(), 0, sizeof(*retVal));
   for (int i = 0; i < clusters.size(); i++) {
     if (retVal->nClusters[clusters[i].sector][clusters[i].globalPadRow]) {
-      LOG(ERROR) << "Received two containers for the same sector / row";
+      LOG(error) << "Received two containers for the same sector / row";
       return std::unique_ptr<ClusterNativeAccess>();
     }
     retVal->nClusters[clusters[i].sector][clusters[i].globalPadRow] = clusters[i].clusters.size();
@@ -112,7 +112,7 @@ void ClusterNativeHelper::Reader::init(const char* filename, const char* treenam
   }
   mTree = reinterpret_cast<TTree*>(mFile->GetObjectUnchecked(mTreeName.c_str()));
   if (!mTree) {
-    LOG(ERROR) << "can not find tree " << mTreeName << " in file " << filename;
+    LOG(error) << "can not find tree " << mTreeName << " in file " << filename;
     return;
   }
 
@@ -130,7 +130,7 @@ void ClusterNativeHelper::Reader::init(const char* filename, const char* treenam
         sizebranch->SetAddress(&mSectorRawSize[sector]);
         ++nofDataBranches;
       } else {
-        LOG(ERROR) << "can not find corresponding 'Size' branch for data branch " << branchname << ", skipping it";
+        LOG(error) << "can not find corresponding 'Size' branch for data branch " << branchname << ", skipping it";
       }
     }
     branchname = singleBranch ? mMCBranchName : mMCBranchName + "_" + std::to_string(sector);
@@ -144,7 +144,7 @@ void ClusterNativeHelper::Reader::init(const char* filename, const char* treenam
       break;
     }
   }
-  LOG(INFO) << "reading " << nofDataBranches << " data branch(es) and " << nofMCBranches << " mc branch(es)";
+  LOG(info) << "reading " << nofDataBranches << " data branch(es) and " << nofMCBranches << " mc branch(es)";
 }
 
 void ClusterNativeHelper::Reader::read(size_t entry)
@@ -177,7 +177,7 @@ int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex, st
   for (size_t index = 0; index < mSectorRaw.size(); ++index) {
     if (mSectorRaw[index]) {
       if (mSectorRaw[index]->size() != mSectorRawSize[index]) {
-        LOG(ERROR) << "inconsistent raw size for sector " << index << ": " << mSectorRaw[index]->size() << " v.s. " << mSectorRawSize[index];
+        LOG(error) << "inconsistent raw size for sector " << index << ": " << mSectorRaw[index]->size() << " v.s. " << mSectorRawSize[index];
         mSectorRaw[index]->clear();
       } else {
         clustersTPC.emplace_back(mSectorRaw[index]->data(), mSectorRawSize[index]);
@@ -280,8 +280,9 @@ int ClusterNativeHelper::TreeWriter::fillFrom(int sector, int padrow, ClusterNat
   if (!mTree) {
     return -1;
   }
-  mStoreClusters.resize(nClusters, BranchData{sector, padrow});
+  mStoreClusters.resize(nClusters);
   if (clusters != nullptr && nClusters > 0) {
+    std::fill(mStoreClusters.begin(), mStoreClusters.end(), BranchData{sector, padrow});
     std::copy(clusters, clusters + nClusters, mStoreClusters.begin());
     mTree->Fill();
   }

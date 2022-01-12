@@ -19,13 +19,26 @@
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
 #include "Framework/Task.h"
-#include "Framework/runDataProcessing.h"
-#include "MCHWorkflow/TimeClusterFinderSpec.h"
+#include "TimeClusterFinderSpec.h"
 
 using namespace o2;
 using namespace o2::framework;
 
-WorkflowSpec defineDataProcessing(const ConfigContext&)
+void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  return {o2::mch::getTimeClusterFinderSpec()};
+  workflowOptions.push_back(ConfigParamSpec{"input-digits-data-description", VariantType::String, "F-DIGITS", {"description string for the input digit data"}});
+  workflowOptions.push_back(ConfigParamSpec{"input-digitrofs-data-description", VariantType::String, "F-DIGITROFS", {"description string for the input digit rofs data"}});
+  workflowOptions.push_back(ConfigParamSpec{"output-digitrofs-data-description", VariantType::String, "TC-F-DIGITROFS", {"description string for the output digit rofs data"}});
+}
+
+#include "Framework/runDataProcessing.h"
+
+WorkflowSpec defineDataProcessing(const ConfigContext& cc)
+{
+  return {
+    o2::mch::getTimeClusterFinderSpec(
+      "mch-time-clustering",
+      cc.options().get<std::string>("input-digits-data-description"),
+      cc.options().get<std::string>("input-digitrofs-data-description"),
+      cc.options().get<std::string>("output-digitrofs-data-description"))};
 }

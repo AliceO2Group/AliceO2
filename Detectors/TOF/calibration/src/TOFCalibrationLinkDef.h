@@ -15,7 +15,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::tof::CalibTOFapi + ;
 #pragma link C++ class o2::globaltracking::CalibTOF + ;
 #pragma link C++ class o2::globaltracking::CollectCalibInfoTOF + ;
 
@@ -42,7 +41,6 @@
 #pragma link C++ struct o2::tof::TOFDCSinfo + ;
 #pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, o2::tof::TOFDCSinfo> + ;
 
-#pragma link C++ struct TOFFEElightInfo + ;
 #pragma link C++ struct TOFFEEchannelConfig + ;
 #pragma link C++ struct TOFFEEtriggerConfig + ;
 #pragma link C++ struct TOFFEElightConfig + ;

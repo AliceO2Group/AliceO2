@@ -184,4 +184,22 @@ std::set<DsElecId> getAllDs<ElectronicMapperGenerated>()
   return impl::getAllDs<ElectronicMapperGenerated>();
 }
 
+template <>
+std::set<uint16_t> getSolarUIDsPerFeeId<ElectronicMapperGenerated>(uint16_t feeid)
+{
+  return impl::getSolarUIDsPerFeeId<ElectronicMapperGenerated>(feeid);
+}
+
+template <>
+std::set<DsDetId> getDualSampas<ElectronicMapperGenerated>(uint16_t solarId)
+{
+  return impl::getDualSampas<ElectronicMapperGenerated>(solarId);
+}
+
+template <>
+std::set<DsDetId> getDualSampasPerFeeId<ElectronicMapperGenerated>(uint16_t feeId)
+{
+  return impl::getDualSampasPerFeeId<ElectronicMapperGenerated>(feeId);
+}
+
 } // namespace o2::mch::raw

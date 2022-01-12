@@ -141,7 +141,8 @@ if [ "$doreco" == "1" ]; then
 
   echo "Running MFT reco flow"
   #needs MFT digitized data
-  taskwrapper mftreco.log  o2-mft-reco-workflow  $gloOpt
+  MFTRecOpt=" --configKeyValues \"MFTTracking.forceZeroField=false;MFTTracking.LTFclsRCut=0.0100;\""
+  taskwrapper mftreco.log  o2-mft-reco-workflow  $gloOpt $MFTRecOpt
   echo "Return status of mftreco: $?"
 
   echo "Running MCH reco flow"
@@ -168,9 +169,13 @@ if [ "$doreco" == "1" ]; then
   taskwrapper midreco.log "o2-mid-digits-reader-workflow | o2-mid-reco-workflow $gloOpt"
   echo "Return status of midreco: $?"
 
+  echo "Running MCH-MID matching flow"
+  taskwrapper mchmidMatch.log "o2-mch-tracks-reader-workflow | o2-mid-tracks-reader-workflow | o2-muon-tracks-matcher-workflow | o2-muon-tracks-writer-workflow $gloOpt"
+  echo "Return status of mchmidmatch: $?"
+
   echo "Running ITS-TPC matching flow"
   #needs results of o2-tpc-reco-workflow, o2-its-reco-workflow and o2-fit-reco-workflow
-  taskwrapper itstpcMatch.log o2-tpcits-match-workflow $gloOpt
+  taskwrapper itstpcMatch.log o2-tpcits-match-workflow --use-ft0 $gloOpt
   echo "Return status of itstpcMatch: $?"
 
   echo "Running TRD matching to ITS-TPC and TPC"
@@ -180,10 +185,11 @@ if [ "$doreco" == "1" ]; then
   taskwrapper trdMatch.log o2-trd-global-tracking $gloOpt
   echo "Return status of trdTracker: $?"
 
-  echo "Running MFT-MCH matching flow"
-  #needs results of o2-mch-reco-workflow and o2-mft-reco-workflow
-  taskwrapper mftmchMatch.log o2-globalfwd-matcher-workflow $gloOpt
-  echo "Return status of mftmchMatch: $?"
+  echo "Running MFT-MCH-MID matching flow"
+  #needs results of o2-mch-reco-workflow, o2-mft-reco-workflow and o2-muon-tracks-matcher-workflow
+  FwdMatchOpt=" --configKeyValues \"FwdMatching.useMIDMatch=true;\""
+  taskwrapper mftmchMatch.log o2-globalfwd-matcher-workflow $gloOpt $FwdMatchOpt
+  echo "Return status of globalfwdMatch: $?"
 
   echo "Running TOF reco flow to produce clusters"
   #needs results of TOF digitized data and results of o2-tpcits-match-workflow
@@ -215,7 +221,22 @@ if [ "$doreco" == "1" ]; then
   taskwrapper zdcreco.log o2-zdc-digits-reco $gloOpt
   echo "Return status of ZDC reconstruction: $?"
 
+  echo "Running EMC reconstruction"
+  #need EMC digits
+  taskwrapper emcreco.log o2-emcal-reco-workflow --infile emcaldigits.root $gloOpt
+  echo "Return status of EMC reconstruction: $?"
+
+  echo "Running PHS reconstruction"
+  #need PHS digits
+  taskwrapper phsreco.log o2-phos-reco-workflow $gloOpt
+  echo "Return status of PHS reconstruction: $?"
+
+  echo "Running CPV reconstruction"
+  #need CPV digits
+  taskwrapper cpvreco.log o2-cpv-reco-workflow $gloOpt
+  echo "Return status of CPV reconstruction: $?"
+
   echo "Producing AOD"
-  taskwrapper aod.log o2-aod-producer-workflow --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE --aod-timeframe-id 1
+  taskwrapper aod.log o2-aod-producer-workflow $gloOpt --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE --aod-timeframe-id 1
   echo "Return status of AOD production: $?"
 fi

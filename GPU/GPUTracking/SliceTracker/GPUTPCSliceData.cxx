@@ -118,7 +118,7 @@ GPUd() void GPUTPCSliceData::GetMaxNBins(GPUconstantref() const MEM_CONSTANT(GPU
 
 GPUd() unsigned int GPUTPCSliceData::GetGridSize(unsigned int nHits, unsigned int nRows)
 {
-  return 30 * nRows + 4 * nHits;
+  return 128 * nRows + 4 * nHits;
 }
 
 GPUdi() void GPUTPCSliceData::CreateGrid(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, GPUTPCRow* GPUrestrict() row, float yMin, float yMax, float zMin, float zMax)

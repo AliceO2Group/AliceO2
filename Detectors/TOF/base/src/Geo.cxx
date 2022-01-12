@@ -42,10 +42,10 @@ void Geo::Init()
   if (!mToBeInit) {
     return;
   }
-  LOG(INFO) << "tof::Geo: Initialization of TOF rotation parameters";
+  LOG(info) << "tof::Geo: Initialization of TOF rotation parameters";
 
   if (!gGeoManager) {
-    LOG(INFO) << " no TGeo! Loading it";
+    LOG(info) << " no TGeo! Loading it";
     o2::base::GeometryManager::loadGeometry();
   }
 
@@ -356,14 +356,14 @@ Int_t Geo::getStripNumberPerSM(Int_t iplate, Int_t istrip)
                    (iplate != 2 && (istrip < 0 || istrip >= NSTRIPC))));
 
   if (iplate < 0 || iplate >= NPLATES) {
-    LOG(ERROR) << "getStripNumberPerSM : "
+    LOG(error) << "getStripNumberPerSM : "
                << "Wrong plate number in TOF (" << iplate << ")!\n";
   }
 
   if (
     (iplate == 2 && (istrip < 0 || istrip >= NSTRIPA)) ||
     (iplate != 2 && (istrip < 0 || istrip >= NSTRIPC))) {
-    LOG(ERROR) << "getStripNumberPerSM : "
+    LOG(error) << "getStripNumberPerSM : "
                << " Wrong strip number in TOF (strip=" << istrip << " in the plate= " << iplate << ")!\n";
   }
 
@@ -396,7 +396,7 @@ Int_t Geo::getStripNumberPerSM(Int_t iplate, Int_t istrip)
 void Geo::fromGlobalToSector(Float_t* pos, Int_t isector)
 {
   if (isector == -1) {
-    //LOG(ERROR) << "Sector Index not valid (-1)\n";
+    //LOG(error) << "Sector Index not valid (-1)\n";
     return;
   }
 

@@ -11,6 +11,7 @@
 #ifndef O2_FRAMEWORK_DATAPROCESSINGSTATS_H_
 #define O2_FRAMEWORK_DATAPROCESSINGSTATS_H_
 
+#include "Framework/ServiceSpec.h"
 #include <atomic>
 #include <cstdint>
 
@@ -36,10 +37,20 @@ struct DataProcessingStats {
   std::atomic<int> lastProcessedSize = 0;
   std::atomic<int> totalProcessedSize = 0;
   std::atomic<int> totalSigusr1 = 0;
+  std::atomic<int> consumedTimeframes = 0;
+  std::atomic<uint64_t> availableManagedShm = 0; /// Available shared memory in bytes.
 
   std::atomic<uint64_t> lastSlowMetricSentTimestamp = 0; /// The timestamp of the last time we sent slow metrics
+  std::atomic<uint64_t> lastVerySlowMetricSentTimestamp = 0; /// The timestamp of the last time we sent very slow metrics
   std::atomic<uint64_t> lastMetricFlushedTimestamp = 0;  /// The timestamp of the last time we actually flushed metrics
   std::atomic<uint64_t> beginIterationTimestamp = 0;     /// The timestamp of when the current ConditionalRun was started
+
+  std::atomic<uint64_t> performedComputations = 0;             // The number of computations which have completed so far
+  std::atomic<uint64_t> lastReportedPerformedComputations = 0; // The number of computations which have completed until lastSlowMetricSentTimestamp
+
+  std::atomic<uint64_t> totalBytesOut; // How many outgoing bytes from the device
+  std::atomic<uint64_t> totalBytesIn;  // How many incoming bytes from the device
+
   InputLatency lastLatency = {0, 0};
 
   std::atomic<int> relayerState[MAX_RELAYER_STATES];

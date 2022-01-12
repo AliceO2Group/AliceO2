@@ -17,7 +17,9 @@
 #define O2_MID_CRATEMAPPER_H
 
 #include <cstdint>
+#include <vector>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace o2
 {
@@ -39,12 +41,27 @@ class CrateMapper
   static uint8_t getLineId(uint16_t deBoardId) { return (deBoardId >> 7) & 0x3; }
   uint8_t deLocalBoardToRO(uint8_t deId, uint8_t columnId, uint8_t lineId) const;
 
-  uint16_t roLocalBoardToDE(uint8_t crateId, uint8_t boardId) const;
+  uint16_t roLocalBoardToDE(uint8_t uniqueLocId) const;
+
+  /// Checks if local board ID has direct input from FEE y strips
+  bool hasDirectInputY(uint8_t uniqueLocId) const { return mLocIdsWithDirectInputY.find(getROBoardIdRight(uniqueLocId)) != mLocIdsWithDirectInputY.end(); }
+
+  /// Gets the local boards with a direct input from FEE y strips
+  std::unordered_set<uint8_t> getLocalBoardsWithDirectInputY() const { return mLocIdsWithDirectInputY; }
+
+  /// Returns the list of readout local board IDs
+  /// \param gbtUniqueId Limit the query to the links belonging to the specified gbtUniqueId. If gbtUniqueId is 0xFFFF, return all
+  /// \return Sorted vector of local board unique IDs
+  std::vector<uint8_t> getROBoardIds(uint16_t gbtUniqueId = 0xFFFF) const;
 
  private:
+  /// Initializes the crate mapping
   void init();
-  std::unordered_map<uint8_t, uint16_t> mROToDEMap; /// Correspondence between RO and DE board
-  std::unordered_map<uint16_t, uint8_t> mDEToROMap; /// Correspondence between DE and RO board
+  /// Returns the unique Loc ID in the right side
+  uint8_t getROBoardIdRight(uint8_t uniqueLocId) const { return uniqueLocId % 0x80; }
+  std::unordered_map<uint8_t, uint16_t> mROToDEMap;    /// Correspondence between RO and DE board
+  std::unordered_map<uint16_t, uint8_t> mDEToROMap;    /// Correspondence between DE and RO board
+  std::unordered_set<uint8_t> mLocIdsWithDirectInputY; /// IDs of the local board with direct input from FEE y strips
 };
 } // namespace mid
 } // namespace o2

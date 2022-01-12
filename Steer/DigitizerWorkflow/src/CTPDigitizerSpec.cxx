@@ -54,7 +54,7 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     std::vector<o2::ctp::CTPInputDigit> finputs;
     TStopwatch timer;
     timer.Start();
-    LOG(INFO) << "CALLING CTP DIGITIZATION";
+    LOG(info) << "CALLING CTP DIGITIZATION";
     // Input order: T0, V0, ... but O need also poisition of inputs DETInputs
     for (const auto& inp : ft0inputs) {
       finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FT0});
@@ -65,12 +65,12 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     gsl::span<CTPInputDigit> ginputs(finputs);
     auto digits = mDigitizer.process(ginputs);
     // send out to next stage
-    LOG(INFO) << "CTP DIGITS being sent.";
+    LOG(info) << "CTP DIGITS being sent.";
     pc.outputs().snapshot(Output{"CTP", "DIGITS", 0, Lifetime::Timeframe}, digits);
-    LOG(INFO) << "CTP PRESENT being sent.";
+    LOG(info) << "CTP PRESENT being sent.";
     pc.outputs().snapshot(Output{"CTP", "ROMode", 0, Lifetime::Timeframe}, mROMode);
     timer.Stop();
-    LOG(INFO) << "CTP Digitization took " << timer.CpuTime() << "s";
+    LOG(info) << "CTP Digitization took " << timer.CpuTime() << "s";
   }
 
  protected:

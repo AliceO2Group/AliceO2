@@ -41,7 +41,7 @@ class CalDet
   using CalType = CalArray<T>;
 
  public:
-  CalDet() = default;
+  CalDet() { initData(); }
   CalDet(CalDet const&) = default;
   CalDet& operator=(CalDet const&) = default;
   ~CalDet() = default;
@@ -97,9 +97,9 @@ class CalDet
   friend CalDet<U> operator-(const CalDet<U>&, const CalDet<U>&);
 
  private:
-  std::string mName;          ///< name of the object
-  std::vector<CalType> mData; ///< internal CalArrays
-  PadSubset mPadSubset;       ///< Pad subset granularity
+  std::string mName;                     ///< name of the object
+  std::vector<CalType> mData;            ///< internal CalArrays
+  PadSubset mPadSubset = PadSubset::ROC; ///< Pad subset granularity
 
   /// initialize the data array depending on what is set as PadSubset
   void initData();
@@ -240,7 +240,7 @@ inline const CalDet<T>& CalDet<T>::operator+=(const CalDet& other)
   // make sure the calibration objects have the same substructure
   // TODO: perhaps make it independed of this
   if (mPadSubset != other.mPadSubset) {
-    LOG(ERROR) << "Pad subste type of the objects it not compatible";
+    LOG(error) << "Pad subste type of the objects it not compatible";
     return *this;
   }
 
@@ -257,7 +257,7 @@ inline const CalDet<T>& CalDet<T>::operator-=(const CalDet& other)
   // make sure the calibration objects have the same substructure
   // TODO: perhaps make it independed of this
   if (mPadSubset != other.mPadSubset) {
-    LOG(ERROR) << "Pad subste type of the objects it not compatible";
+    LOG(error) << "Pad subste type of the objects it not compatible";
     return *this;
   }
 
@@ -274,7 +274,7 @@ inline const CalDet<T>& CalDet<T>::operator*=(const CalDet& other)
   // make sure the calibration objects have the same substructure
   // TODO: perhaps make it independed of this
   if (mPadSubset != other.mPadSubset) {
-    LOG(ERROR) << "Pad subste type of the objects it not compatible";
+    LOG(error) << "Pad subste type of the objects it not compatible";
     return *this;
   }
 
@@ -291,7 +291,7 @@ inline const CalDet<T>& CalDet<T>::operator/=(const CalDet& other)
   // make sure the calibration objects have the same substructure
   // TODO: perhaps make it independed of this
   if (mPadSubset != other.mPadSubset) {
-    LOG(ERROR) << "Pad subste type of the objects it not compatible";
+    LOG(error) << "Pad subste type of the objects it not compatible";
     return *this;
   }
 

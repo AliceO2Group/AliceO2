@@ -126,6 +126,11 @@ class TrackParametrization
   using dim3_t = gpu::gpustd::array<value_t, 3>;
   using params_t = gpu::gpustd::array<value_t, kNParams>;
 
+  struct yzerr_t { // 2 measurement with error
+    dim2_t yz;
+    dim3_t yzerr;
+  };
+
 #ifndef GPUCA_GPUCODE_DEVICE
   static_assert(std::is_floating_point_v<value_t>);
 #endif
@@ -224,6 +229,8 @@ class TrackParametrization
   GPUd() void updateParam(value_t delta, int i);
   GPUd() void updateParams(const params_t& delta);
   GPUd() void updateParams(const value_t* delta);
+
+  GPUd() yzerr_t getVertexInTrackFrame(const o2::dataformats::VertexBase& vtx) const;
 
  private:
   //

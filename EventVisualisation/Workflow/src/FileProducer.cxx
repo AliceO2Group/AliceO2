@@ -61,7 +61,7 @@ std::string FileProducer::newFileName() const
   result.replace(result.find(pholder), pholder.length(), stamp);
   auto files = this->load(this->mPath);
   std::sort(files.begin(), files.end());
-  while (files.size() > this->mFilesInFolder) {
+  while (files.size() >= this->mFilesInFolder) {
     string front = files.front();
     files.pop_front();
     std::remove((this->mPath + "/" + front).c_str()); // delete file

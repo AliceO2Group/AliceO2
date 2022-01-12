@@ -48,21 +48,6 @@ class Configuration : public Param
 
 struct TrackingParameters {
   TrackingParameters& operator=(const TrackingParameters& t) = default;
-  void CopyCuts(TrackingParameters& other, float scale = 1.)
-  {
-    TrackletMaxDeltaPhi = other.TrackletMaxDeltaPhi * scale;
-    for (unsigned int ii{0}; ii < TrackletMaxDeltaZ.size(); ++ii) {
-      TrackletMaxDeltaZ[ii] = other.TrackletMaxDeltaZ[ii] * scale;
-    }
-    CellMaxDeltaTanLambda = other.CellMaxDeltaTanLambda * scale;
-    for (unsigned int ii{0}; ii < CellMaxDCA.size(); ++ii) {
-      CellMaxDCA[ii] = other.CellMaxDCA[ii] * scale;
-    }
-    for (unsigned int ii{0}; ii < NeighbourMaxDeltaCurvature.size(); ++ii) {
-      NeighbourMaxDeltaCurvature[ii] = other.NeighbourMaxDeltaCurvature[ii] * scale;
-      NeighbourMaxDeltaN[ii] = other.NeighbourMaxDeltaN[ii] * scale;
-    }
-  }
 
   int CellMinimumLevel();
   int CellsPerRoad() const { return NLayers - 2; }
@@ -72,26 +57,26 @@ struct TrackingParameters {
   int DeltaROF = 0;
   std::vector<float> LayerZ = {16.333f + 1, 16.333f + 1, 16.333f + 1, 42.140f + 1, 42.140f + 1, 73.745f + 1, 73.745f + 1};
   std::vector<float> LayerRadii = {2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f};
+  std::vector<float> LayerxX0 = {5.e-3f, 5.e-3f, 5.e-3f, 1.e-2f, 1.e-2f, 1.e-2f, 1.e-2f};
+  std::vector<float> LayerResolution = {5.e-4f, 5.e-4f, 5.e-4f, 5.e-4f, 5.e-4f, 5.e-4f, 5.e-4f};
+  std::vector<float> LayerMisalignment = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
   int ZBins{256};
   int PhiBins{128};
+  bool UseDiamond = false;
+  float Diamond[3] = {0.f, 0.f, 0.f};
 
   /// General parameters
   int ClusterSharing = 0;
   int MinTrackLength = 7;
+  float NSigmaCut = 5;
+  float PVres = 1.e-2f;
   /// Trackleting cuts
-  float TrackletMaxDeltaPhi = 0.3f;
-  std::vector<float> TrackletMaxDeltaZ = {0.1f, 0.1f, 0.3f, 0.3f, 0.3f, 0.3f};
+  float TrackletMinPt = 0.3f;
   /// Cell finding cuts
-  float CellMaxDeltaTanLambda = 0.025f;
-  std::vector<float> CellMaxDCA = {0.05f, 0.04f, 0.05f, 0.2f, 0.4f};
-  float CellMaxDeltaPhi = 0.14f;
-  std::vector<float> CellMaxDeltaZ = {0.2f, 0.4f, 0.5f, 0.6f, 3.0f};
-  /// Neighbour finding cuts
-  std::vector<float> NeighbourMaxDeltaCurvature = {0.008f, 0.0025f, 0.003f, 0.0035f};
-  std::vector<float> NeighbourMaxDeltaN = {0.002f, 0.0090f, 0.002f, 0.005f};
+  float CellDeltaTanLambdaSigma = 0.007f;
   /// Fitter parameters
   bool UseMatBudLUT = false;
-  std::array<float, 2> FitIterationMaxChi2 = {100, 50};
+  std::array<float, 2> FitIterationMaxChi2 = {50, 20};
 };
 
 struct MemoryParameters {

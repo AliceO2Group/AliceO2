@@ -75,29 +75,29 @@ bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const&
 
   auto summarizeWhatHappended = [](bool enough, std::vector<int> const& result, ComputingQuotaOffer const& totalOffer, QuotaEvaluatorStats& stats) -> bool {
     if (result.size() == 1 && result[0] == 0) {
-      //      LOG(INFO) << "No particular resource was requested, so we schedule task anyways";
+      //      LOG(info) << "No particular resource was requested, so we schedule task anyways";
       return enough;
     }
     if (enough) {
-      LOGP(INFO, "{} offers were selected for a total of: cpu {}, memory {}, shared memory {}", result.size(), totalOffer.cpu, totalOffer.memory, totalOffer.sharedMemory);
-      LOGP(INFO, "  The following offers were selected for computation: {} ", fmt::join(result, ","));
+      LOGP(info, "{} offers were selected for a total of: cpu {}, memory {}, shared memory {}", result.size(), totalOffer.cpu, totalOffer.memory, totalOffer.sharedMemory);
+      LOGP(info, "  The following offers were selected for computation: {} ", fmt::join(result, ","));
     } else {
-      LOG(INFO) << "No offer was selected";
+      LOG(info) << "No offer was selected";
       if (result.size()) {
-        LOGP(INFO, "  The following offers were selected for computation but not enough: {} ", fmt::join(result, ","));
+        LOGP(info, "  The following offers were selected for computation but not enough: {} ", fmt::join(result, ","));
       }
     }
     if (stats.invalidOffers.size()) {
-      LOGP(INFO, "  The following offers were invalid: {}", fmt::join(stats.invalidOffers, ", "));
+      LOGP(info, "  The following offers were invalid: {}", fmt::join(stats.invalidOffers, ", "));
     }
     if (stats.otherUser.size()) {
-      LOGP(INFO, "  The following offers were owned by other users: {}", fmt::join(stats.otherUser, ", "));
+      LOGP(info, "  The following offers were owned by other users: {}", fmt::join(stats.otherUser, ", "));
     }
     if (stats.expired.size()) {
-      LOGP(INFO, "  The following offers are expired: {}", fmt::join(stats.expired, ", "));
+      LOGP(info, "  The following offers are expired: {}", fmt::join(stats.expired, ", "));
     }
     if (stats.unexpiring.size() > 1) {
-      LOGP(INFO, "  The following offers will never expire: {}", fmt::join(stats.unexpiring, ", "));
+      LOGP(info, "  The following offers will never expire: {}", fmt::join(stats.unexpiring, ", "));
     }
 
     return enough;
@@ -126,12 +126,12 @@ bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const&
     if (offer.runtime < 0) {
       stats.unexpiring.push_back(i);
     } else if (offer.runtime + info.received < now) {
-      LOGP(INFO, "Offer {} expired since {} milliseconds and holds {}MB", i, now - offer.runtime - info.received, offer.sharedMemory / 1000000);
+      LOGP(info, "Offer {} expired since {} milliseconds and holds {}MB", i, now - offer.runtime - info.received, offer.sharedMemory / 1000000);
       mExpiredOffers.push_back(ComputingQuotaOfferRef{i});
       stats.expired.push_back(i);
       continue;
     } else {
-      LOGP(INFO, "Offer {} still valid for {} milliseconds, providing {}MB", i, offer.runtime + info.received - now, offer.sharedMemory / 1000000);
+      LOGP(info, "Offer {} still valid for {} milliseconds, providing {}MB", i, offer.runtime + info.received - now, offer.sharedMemory / 1000000);
     }
     /// We then check if the offer is suitable
     assert(offer.sharedMemory >= 0);
@@ -218,12 +218,12 @@ void ComputingQuotaEvaluator::handleExpired(std::function<void(ComputingQuotaOff
 {
   static int nothingToDoCount = mExpiredOffers.size();
   if (mExpiredOffers.size()) {
-    LOGP(INFO, "Handling {} expired offers", mExpiredOffers.size());
+    LOGP(info, "Handling {} expired offers", mExpiredOffers.size());
     nothingToDoCount = 0;
   } else {
     if (nothingToDoCount == 0) {
       nothingToDoCount++;
-      LOGP(INFO, "No expired offers");
+      LOGP(info, "No expired offers");
     }
   }
   /// Whenever an offer is expired, we give back the resources
@@ -231,15 +231,15 @@ void ComputingQuotaEvaluator::handleExpired(std::function<void(ComputingQuotaOff
   for (auto& ref : mExpiredOffers) {
     auto& offer = mOffers[ref.index];
     if (offer.sharedMemory < 0) {
-      LOGP(INFO, "Offer {} does not have any more memory. Marking it as invalid.", ref.index);
+      LOGP(info, "Offer {} does not have any more memory. Marking it as invalid.", ref.index);
       offer.valid = false;
       offer.score = OfferScore::Unneeded;
       continue;
     }
     // FIXME: offers should go through the driver client, not the monitoring
     // api.
-    LOGP(INFO, "Offer {} expired. Giving back {}MB and {} cores", ref.index, offer.sharedMemory / 1000000, offer.cpu);
-    assert(offer.sharedMemory > 0);
+    LOGP(info, "Offer {} expired. Giving back {}MB and {} cores", ref.index, offer.sharedMemory / 1000000, offer.cpu);
+    assert(offer.sharedMemory >= 0);
     mStats.totalExpiredBytes += offer.sharedMemory;
     mStats.totalExpiredOffers++;
     expirator(offer, mStats);

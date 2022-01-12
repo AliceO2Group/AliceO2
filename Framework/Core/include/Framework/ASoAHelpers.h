@@ -71,7 +71,7 @@ std::vector<std::pair<uint64_t, uint64_t>> doGroupTable(const T& table, const st
 
   uint64_t ind = 0;
   uint64_t selInd = 0;
-  soa::SelectionVector selectedRows;
+  gsl::span<int64_t const> selectedRows;
   std::vector<std::pair<uint64_t, uint64_t>> groupedIndices;
 
   // Separate check to account for Filtered size different from arrow table
@@ -202,11 +202,44 @@ struct CombinationsIndexPolicyBase {
   using CombinationType = std::tuple<typename Ts::iterator...>;
   using IndicesType = typename NTupleType<uint64_t, sizeof...(Ts)>::type;
 
-  CombinationsIndexPolicyBase(const Ts&... tables) : mIsEnd(false),
-                                                     mMaxOffset(tables.end().index...),
-                                                     mCurrent(tables.begin()...)
+  CombinationsIndexPolicyBase() : mIsEnd(true) {}
+  template <typename... Tss>
+  CombinationsIndexPolicyBase(const Tss&... tables) : mIsEnd(false),
+                                                      mMaxOffset(tables.end().index...),
+                                                      mCurrent(tables.begin()...)
   {
     if (((tables.size() == 0) || ...)) {
+      this->mIsEnd = true;
+    }
+  }
+  template <typename... Tss>
+  CombinationsIndexPolicyBase(Tss&&... tables) : mTables(std::make_shared<std::tuple<Tss...>>(std::make_tuple(std::move(tables)...))),
+                                                 mIsEnd(false)
+  {
+    std::apply([&](auto&&... x) mutable { mMaxOffset = IndicesType{x.end().index...}; mCurrent = CombinationType{x.begin()...}; }, *mTables);
+    if (
+      std::apply([](auto&&... x) -> bool { return ((x.size() == 0) || ...); }, *mTables)) {
+      this->mIsEnd = true;
+    }
+  }
+
+  void setTables(const Ts&... tables)
+  {
+    mIsEnd = false;
+    mMaxOffset = IndicesType(tables.end().index...);
+    mCurrent = CombinationType(tables.begin()...);
+    if (((tables.size() == 0) || ...)) {
+      this->mIsEnd = true;
+    }
+  }
+  template <typename... Tss>
+  void setTables(Tss&&... tables)
+  {
+    mIsEnd = false;
+    mTables = std::make_shared<std::tuple<Tss...>>(std::make_tuple(std::move(tables)...));
+    std::apply([&](auto&&... x) mutable { mMaxOffset = IndicesType{x.end().index...}; mCurrent = CombinationType{x.begin()...}; }, *mTables);
+    if (
+      std::apply([](auto&&... x) -> bool { return ((x.size() == 0) || ...); }, *mTables)) {
       this->mIsEnd = true;
     }
   }
@@ -222,16 +255,25 @@ struct CombinationsIndexPolicyBase {
 
   void addOne() {}
 
+  std::shared_ptr<std::tuple<Ts...>> mTables;
   CombinationType mCurrent;
   IndicesType mMaxOffset; // one position past maximum acceptable position for each element of combination
   bool mIsEnd;            // whether there are any more tuples available
 };
 
 template <typename... Ts>
+CombinationsIndexPolicyBase(Ts const&... tables) -> CombinationsIndexPolicyBase<Ts...>;
+
+template <typename... Ts>
+CombinationsIndexPolicyBase(Ts&&... tables) -> CombinationsIndexPolicyBase<Ts...>;
+
+template <typename... Ts>
 struct CombinationsUpperIndexPolicy : public CombinationsIndexPolicyBase<Ts...> {
   using CombinationType = typename CombinationsIndexPolicyBase<Ts...>::CombinationType;
 
+  CombinationsUpperIndexPolicy() : CombinationsIndexPolicyBase<Ts...>() {}
   CombinationsUpperIndexPolicy(const Ts&... tables) : CombinationsIndexPolicyBase<Ts...>(tables...) {}
+  CombinationsUpperIndexPolicy(Ts&&... tables) : CombinationsIndexPolicyBase<Ts...>(std::forward<Ts>(tables)...) {}
 
   void addOne()
   {
@@ -263,10 +305,48 @@ template <typename... Ts>
 struct CombinationsStrictlyUpperIndexPolicy : public CombinationsIndexPolicyBase<Ts...> {
   using CombinationType = typename CombinationsIndexPolicyBase<Ts...>::CombinationType;
 
+  CombinationsStrictlyUpperIndexPolicy() : CombinationsIndexPolicyBase<Ts...>() {}
   CombinationsStrictlyUpperIndexPolicy(const Ts&... tables) : CombinationsIndexPolicyBase<Ts...>(tables...)
+  {
+    if (!this->mIsEnd) {
+      setRanges(tables...);
+    }
+  }
+  CombinationsStrictlyUpperIndexPolicy(Ts&&... tables) : CombinationsIndexPolicyBase<Ts...>(std::forward<Ts>(tables)...)
+  {
+    if (!this->mIsEnd) {
+      setRanges();
+    }
+  }
+
+  void setTables(const Ts&... tables)
+  {
+    CombinationsIndexPolicyBase<Ts...>::setTables(tables...);
+    setRanges(tables...);
+  }
+  void setTables(Ts&&... tables)
+  {
+    CombinationsIndexPolicyBase<Ts...>::setTables(std::forward<Ts>(tables)...);
+    setRanges(tables...);
+  }
+
+  void setRanges(const Ts&... tables)
   {
     constexpr auto k = sizeof...(Ts);
     if (((tables.size() < k) || ...)) {
+      this->mIsEnd = true;
+      return;
+    }
+    for_<k>([&, this](auto i) {
+      std::get<i.value>(this->mMaxOffset) += i.value + 1 - k;
+      std::get<i.value>(this->mCurrent).moveByIndex(i.value);
+    });
+  }
+  void setRanges()
+  {
+    constexpr auto k = sizeof...(Ts);
+    if (
+      std::apply([](auto&&... x) -> bool { return ((x.size() < k) || ...); }, *this->mTables)) {
       this->mIsEnd = true;
       return;
     }
@@ -306,7 +386,9 @@ template <typename... Ts>
 struct CombinationsFullIndexPolicy : public CombinationsIndexPolicyBase<Ts...> {
   using CombinationType = typename CombinationsIndexPolicyBase<Ts...>::CombinationType;
 
+  CombinationsFullIndexPolicy() : CombinationsIndexPolicyBase<Ts...>() {}
   CombinationsFullIndexPolicy(const Ts&... tables) : CombinationsIndexPolicyBase<Ts...>(tables...) {}
+  CombinationsFullIndexPolicy(Ts&&... tables) : CombinationsIndexPolicyBase<Ts...>(std::forward<Ts>(tables)...) {}
 
   void addOne()
   {
@@ -335,7 +417,57 @@ struct CombinationsBlockIndexPolicyBase : public CombinationsIndexPolicyBase<Ts.
   using CombinationType = typename CombinationsIndexPolicyBase<Ts...>::CombinationType;
   using IndicesType = typename NTupleType<uint64_t, sizeof...(Ts)>::type;
 
-  CombinationsBlockIndexPolicyBase(const std::string& categoryColumnName, int categoryNeighbours, const T& outsider, const Ts&... tables) : CombinationsIndexPolicyBase<Ts...>(tables...), mSlidingWindowSize(categoryNeighbours + 1)
+  CombinationsBlockIndexPolicyBase(const std::string& categoryColumnName, int categoryNeighbours, const T& outsider) : CombinationsIndexPolicyBase<Ts...>(), mSlidingWindowSize(categoryNeighbours + 1), mCategoryColumnName(categoryColumnName), mCategoryNeighbours(categoryNeighbours), mOutsider(outsider) {}
+  CombinationsBlockIndexPolicyBase(const std::string& categoryColumnName, int categoryNeighbours, const T& outsider, const Ts&... tables) : CombinationsIndexPolicyBase<Ts...>(tables...), mSlidingWindowSize(categoryNeighbours + 1), mCategoryColumnName(categoryColumnName), mCategoryNeighbours(categoryNeighbours), mOutsider(outsider)
+  {
+    if (!this->mIsEnd) {
+      setRanges(tables...);
+    }
+  }
+  CombinationsBlockIndexPolicyBase(const std::string& categoryColumnName, int categoryNeighbours, const T& outsider, Ts&&... tables) : CombinationsIndexPolicyBase<Ts...>(std::forward<Ts>(tables)...), mSlidingWindowSize(categoryNeighbours + 1)
+  {
+    if (!this->mIsEnd) {
+      setRanges();
+    }
+  }
+
+  void setTables(const Ts&... tables)
+  {
+    CombinationsIndexPolicyBase<Ts...>::setTables(tables...);
+    setRanges(tables...);
+  }
+  void setTables(Ts&&... tables)
+  {
+    CombinationsIndexPolicyBase<Ts...>::setTables(std::forward<Ts>(tables)...);
+    setRanges();
+  }
+
+  void setRanges(const Ts&... tables)
+  {
+    constexpr auto k = sizeof...(Ts);
+    if (mSlidingWindowSize < 1) {
+      this->mIsEnd = true;
+      return;
+    }
+
+    int tableIndex = 0;
+    ((this->mGroupedIndices[tableIndex++] = groupTable(tables, this->mCategoryColumnName, 1, this->mOutsider)), ...);
+
+    // Synchronize categories across tables
+    syncCategories(this->mGroupedIndices);
+
+    for (int i = 0; i < k; i++) {
+      if (this->mGroupedIndices[i].size() == 0) {
+        this->mIsEnd = true;
+        return;
+      }
+    }
+
+    for_<k>([this](auto i) {
+      std::get<i.value>(this->mCurrentIndices) = 0;
+    });
+  }
+  void setRanges(Ts&&... tables)
   {
     constexpr auto k = sizeof...(Ts);
     if (this->mIsEnd) {
@@ -347,7 +479,10 @@ struct CombinationsBlockIndexPolicyBase : public CombinationsIndexPolicyBase<Ts.
     }
 
     int tableIndex = 0;
-    ((this->mGroupedIndices[tableIndex++] = groupTable(tables, categoryColumnName, 1, outsider)), ...);
+    std::apply([&, this](auto&&... x) mutable {
+      ((this->mGroupedIndices[tableIndex++] = groupTable(x, mCategoryColumnName, 1, mOutsider)), ...);
+    },
+               *this->mTables);
 
     // Synchronize categories across tables
     syncCategories(this->mGroupedIndices);
@@ -368,17 +503,38 @@ struct CombinationsBlockIndexPolicyBase : public CombinationsIndexPolicyBase<Ts.
   IndicesType mCurrentIndices;
   IndicesType mBeginIndices;
   uint64_t mSlidingWindowSize;
+  const std::string mCategoryColumnName;
+  const int mCategoryNeighbours;
+  const T mOutsider;
 };
 
 template <typename T, typename... Ts>
 struct CombinationsBlockUpperIndexPolicy : public CombinationsBlockIndexPolicyBase<T, Ts...> {
   using CombinationType = typename CombinationsBlockIndexPolicyBase<T, Ts...>::CombinationType;
 
+  CombinationsBlockUpperIndexPolicy(const std::string& categoryColumnName, int categoryNeighbours, const T& outsider) : CombinationsBlockIndexPolicyBase<T, Ts...>(categoryColumnName, categoryNeighbours, outsider) {}
   CombinationsBlockUpperIndexPolicy(const std::string& categoryColumnName, int categoryNeighbours, const T& outsider, const Ts&... tables) : CombinationsBlockIndexPolicyBase<T, Ts...>(categoryColumnName, categoryNeighbours, outsider, tables...)
   {
     if (!this->mIsEnd) {
       setRanges();
     }
+  }
+  CombinationsBlockUpperIndexPolicy(const std::string& categoryColumnName, int categoryNeighbours, const T& outsider, Ts&&... tables) : CombinationsBlockIndexPolicyBase<T, Ts...>(categoryColumnName, categoryNeighbours, outsider, std::forward<Ts>(tables)...)
+  {
+    if (!this->mIsEnd) {
+      setRanges();
+    }
+  }
+
+  void setTables(const Ts&... tables)
+  {
+    CombinationsBlockIndexPolicyBase<T, Ts...>::setTables(tables...);
+    setRanges();
+  }
+  void setTables(Ts&&... tables)
+  {
+    CombinationsBlockIndexPolicyBase<T, Ts...>::setTables(std::forward<Ts>(tables)...);
+    setRanges();
   }
 
   void setRanges()
@@ -469,11 +625,29 @@ struct CombinationsBlockFullIndexPolicy : public CombinationsBlockIndexPolicyBas
   using CombinationType = typename CombinationsBlockIndexPolicyBase<T, Ts...>::CombinationType;
   using IndicesType = typename NTupleType<uint64_t, sizeof...(Ts)>::type;
 
+  CombinationsBlockFullIndexPolicy(const std::string& categoryColumnName, int categoryNeighbours, const T& outsider) : CombinationsBlockIndexPolicyBase<T, Ts...>(categoryColumnName, categoryNeighbours, outsider), mCurrentlyFixed(0) {}
   CombinationsBlockFullIndexPolicy(const std::string& categoryColumnName, int categoryNeighbours, const T& outsider, const Ts&... tables) : CombinationsBlockIndexPolicyBase<T, Ts...>(categoryColumnName, categoryNeighbours, outsider, tables...), mCurrentlyFixed(0)
   {
     if (!this->mIsEnd) {
       setRanges();
     }
+  }
+  CombinationsBlockFullIndexPolicy(const std::string& categoryColumnName, int categoryNeighbours, const T& outsider, Ts&&... tables) : CombinationsBlockIndexPolicyBase<T, Ts...>(categoryColumnName, categoryNeighbours, outsider, std::forward<Ts>(tables)...), mCurrentlyFixed(0)
+  {
+    if (!this->mIsEnd) {
+      setRanges();
+    }
+  }
+
+  void setTables(const Ts&... tables)
+  {
+    CombinationsBlockIndexPolicyBase<T, Ts...>::setTables(tables...);
+    setRanges();
+  }
+  void setTables(Ts&&... tables)
+  {
+    CombinationsBlockIndexPolicyBase<T, Ts...>::setTables(std::forward<Ts>(tables)...);
+    setRanges();
   }
 
   void setRanges()
@@ -583,16 +757,63 @@ struct CombinationsBlockSameIndexPolicyBase : public CombinationsIndexPolicyBase
   using CombinationType = typename CombinationsIndexPolicyBase<T, Ts...>::CombinationType;
   using IndicesType = typename NTupleType<uint64_t, sizeof...(Ts) + 1>::type;
 
-  CombinationsBlockSameIndexPolicyBase(const std::string& categoryColumnName, int categoryNeighbours, const T1& outsider, int minWindowSize, const T& table, const Ts&... tables) : CombinationsIndexPolicyBase<T, Ts...>(table, tables...), mSlidingWindowSize(categoryNeighbours + 1)
+  CombinationsBlockSameIndexPolicyBase(const std::string& categoryColumnName, int categoryNeighbours, const T1& outsider, int minWindowSize) : CombinationsIndexPolicyBase<T, Ts...>(), mSlidingWindowSize(categoryNeighbours + 1), mCategoryColumnName(categoryColumnName), mCategoryNeighbours(categoryNeighbours), mOutsider(outsider), mMinWindowSize(minWindowSize) {}
+  CombinationsBlockSameIndexPolicyBase(const std::string& categoryColumnName, int categoryNeighbours, const T1& outsider, int minWindowSize, const T& table, const Ts&... tables) : CombinationsIndexPolicyBase<T, Ts...>(table, tables...), mSlidingWindowSize(categoryNeighbours + 1), mCategoryColumnName(categoryColumnName), mCategoryNeighbours(categoryNeighbours), mOutsider(outsider), mMinWindowSize(minWindowSize)
+  {
+    if (!this->mIsEnd) {
+      setRanges(table);
+    }
+  }
+  CombinationsBlockSameIndexPolicyBase(const std::string& categoryColumnName, int categoryNeighbours, const T1& outsider, int minWindowSize, T&& table, Ts&&... tables) : CombinationsIndexPolicyBase<T, Ts...>(std::forward<T>(table), std::forward<Ts>(tables)...), mSlidingWindowSize(categoryNeighbours + 1)
+  {
+    if (!this->mIsEnd) {
+      setRanges();
+    }
+  }
+
+  void setTables(const T& table, const Ts&... tables)
+  {
+    CombinationsIndexPolicyBase<T, Ts...>::setTables(table, tables...);
+    if (!this->mIsEnd) {
+      setRanges(table);
+    }
+  }
+  void setTables(T&& table, Ts&&... tables)
+  {
+    CombinationsIndexPolicyBase<T, Ts...>::setTables(std::forward<T>(table), std::forward<Ts>(tables)...);
+    if (!this->mIsEnd) {
+      setRanges();
+    }
+  }
+
+  void setRanges(const T& table)
   {
     constexpr auto k = sizeof...(Ts) + 1;
     // minWindowSize == 1 for upper and full, and k for strictly upper k-combination
-    if (mSlidingWindowSize < minWindowSize) {
+    if (mSlidingWindowSize < mMinWindowSize) {
       this->mIsEnd = true;
       return;
     }
 
-    this->mGroupedIndices = groupTable(table, categoryColumnName, minWindowSize, outsider);
+    this->mGroupedIndices = groupTable(table, mCategoryColumnName, mMinWindowSize, mOutsider);
+
+    if (this->mGroupedIndices.size() == 0) {
+      this->mIsEnd = true;
+      return;
+    }
+
+    std::get<0>(this->mCurrentIndices) = 0;
+  }
+  void setRanges()
+  {
+    constexpr auto k = sizeof...(Ts) + 1;
+    // minWindowSize == 1 for upper and full, and k for strictly upper k-combination
+    if (mSlidingWindowSize < mMinWindowSize) {
+      this->mIsEnd = true;
+      return;
+    }
+
+    this->mGroupedIndices = groupTable(std::get<0>(*this->mTables), mCategoryColumnName, mMinWindowSize, mOutsider);
 
     if (this->mGroupedIndices.size() == 0) {
       this->mIsEnd = true;
@@ -604,23 +825,45 @@ struct CombinationsBlockSameIndexPolicyBase : public CombinationsIndexPolicyBase
 
   std::vector<std::pair<uint64_t, uint64_t>> mGroupedIndices;
   IndicesType mCurrentIndices;
-  uint64_t mSlidingWindowSize;
+  const uint64_t mSlidingWindowSize;
+  const int mMinWindowSize;
+  const std::string mCategoryColumnName;
+  const int mCategoryNeighbours;
+  const T1 mOutsider;
 };
 
-template <typename T1, typename T, typename... Ts>
-struct CombinationsBlockUpperSameIndexPolicy : public CombinationsBlockSameIndexPolicyBase<T1, T, Ts...> {
-  using CombinationType = typename CombinationsBlockSameIndexPolicyBase<T1, T, Ts...>::CombinationType;
+template <typename T1, typename... Ts>
+struct CombinationsBlockUpperSameIndexPolicy : public CombinationsBlockSameIndexPolicyBase<T1, Ts...> {
+  using CombinationType = typename CombinationsBlockSameIndexPolicyBase<T1, Ts...>::CombinationType;
 
-  CombinationsBlockUpperSameIndexPolicy(const std::string& categoryColumnName, int categoryNeighbours, const T1& outsider, const T& table, const Ts&... tables) : CombinationsBlockSameIndexPolicyBase<T1, T, Ts...>(categoryColumnName, categoryNeighbours, outsider, 1, table, tables...)
+  CombinationsBlockUpperSameIndexPolicy(const std::string& categoryColumnName, int categoryNeighbours, const T1& outsider) : CombinationsBlockSameIndexPolicyBase<T1, Ts...>(categoryColumnName, categoryNeighbours, outsider, 1) {}
+  CombinationsBlockUpperSameIndexPolicy(const std::string& categoryColumnName, int categoryNeighbours, const T1& outsider, const Ts&... tables) : CombinationsBlockSameIndexPolicyBase<T1, Ts...>(categoryColumnName, categoryNeighbours, outsider, 1, tables...)
+  {
+    if (!this->mIsEnd) {
+      setRanges();
+    }
+  }
+  CombinationsBlockUpperSameIndexPolicy(const std::string& categoryColumnName, int categoryNeighbours, const T1& outsider, Ts&&... tables) : CombinationsBlockSameIndexPolicyBase<T1, Ts...>(categoryColumnName, categoryNeighbours, outsider, 1, std::forward<Ts>(tables)...)
   {
     if (!this->mIsEnd) {
       setRanges();
     }
   }
 
+  void setTables(const Ts&... tables)
+  {
+    CombinationsBlockSameIndexPolicyBase<T1, Ts...>::setTables(tables...);
+    setRanges();
+  }
+  void setTables(Ts&&... tables)
+  {
+    CombinationsBlockSameIndexPolicyBase<T1, Ts...>::setTables(std::forward<Ts>(tables)...);
+    setRanges();
+  }
+
   void setRanges()
   {
-    constexpr auto k = sizeof...(Ts) + 1;
+    constexpr auto k = sizeof...(Ts);
     auto catBegin = this->mGroupedIndices.begin() + std::get<0>(this->mCurrentIndices);
     auto range = std::equal_range(catBegin, this->mGroupedIndices.end(), *catBegin, sameCategory);
     uint64_t offset = std::distance(this->mGroupedIndices.begin(), range.second);
@@ -634,7 +877,7 @@ struct CombinationsBlockUpperSameIndexPolicy : public CombinationsBlockSameIndex
 
   void addOne()
   {
-    constexpr auto k = sizeof...(Ts) + 1;
+    constexpr auto k = sizeof...(Ts);
     bool modify = true;
     for_<k - 1>([&, this](auto i) {
       if (modify) {
@@ -685,12 +928,34 @@ struct CombinationsBlockUpperSameIndexPolicy : public CombinationsBlockSameIndex
   }
 };
 
-template <typename T1, typename T, typename... Ts>
-struct CombinationsBlockStrictlyUpperSameIndexPolicy : public CombinationsBlockSameIndexPolicyBase<T1, T, Ts...> {
-  using CombinationType = typename CombinationsBlockSameIndexPolicyBase<T1, T, Ts...>::CombinationType;
+template <typename T1, typename... Ts>
+struct CombinationsBlockStrictlyUpperSameIndexPolicy : public CombinationsBlockSameIndexPolicyBase<T1, Ts...> {
+  using CombinationType = typename CombinationsBlockSameIndexPolicyBase<T1, Ts...>::CombinationType;
 
-  CombinationsBlockStrictlyUpperSameIndexPolicy(const std::string& categoryColumnName, int categoryNeighbours, const T1& outsider, const T& table, const Ts&... tables) : CombinationsBlockSameIndexPolicyBase<T1, T, Ts...>(categoryColumnName, categoryNeighbours, outsider, sizeof...(Ts) + 1, table, tables...)
+  CombinationsBlockStrictlyUpperSameIndexPolicy(const std::string& categoryColumnName, int categoryNeighbours, const T1& outsider) : CombinationsBlockSameIndexPolicyBase<T1, Ts...>(categoryColumnName, categoryNeighbours, outsider, sizeof...(Ts)) {}
+  CombinationsBlockStrictlyUpperSameIndexPolicy(const std::string& categoryColumnName, int categoryNeighbours, const T1& outsider, const Ts&... tables) : CombinationsBlockSameIndexPolicyBase<T1, Ts...>(categoryColumnName, categoryNeighbours, outsider, sizeof...(Ts), tables...)
   {
+    if (!this->mIsEnd) {
+      setRanges();
+    }
+  }
+  CombinationsBlockStrictlyUpperSameIndexPolicy(const std::string& categoryColumnName, int categoryNeighbours, const T1& outsider, Ts&&... tables) : CombinationsBlockSameIndexPolicyBase<T1, Ts...>(categoryColumnName, categoryNeighbours, outsider, sizeof...(Ts) + 1, std::forward<Ts>(tables)...)
+  {
+    if (!this->mIsEnd) {
+      setRanges();
+    }
+  }
+
+  void setTables(const Ts&... tables)
+  {
+    CombinationsBlockSameIndexPolicyBase<T1, Ts...>::setTables(tables...);
+    if (!this->mIsEnd) {
+      setRanges();
+    }
+  }
+  void setTables(Ts&&... tables)
+  {
+    CombinationsBlockSameIndexPolicyBase<T1, Ts...>::setTables(std::forward<Ts>(tables)...);
     if (!this->mIsEnd) {
       setRanges();
     }
@@ -698,7 +963,7 @@ struct CombinationsBlockStrictlyUpperSameIndexPolicy : public CombinationsBlockS
 
   void setRanges()
   {
-    constexpr auto k = sizeof...(Ts) + 1;
+    constexpr auto k = sizeof...(Ts);
     auto catBegin = this->mGroupedIndices.begin() + std::get<0>(this->mCurrentIndices);
     auto lastIt = std::upper_bound(catBegin, this->mGroupedIndices.end(), *catBegin, sameCategory);
     uint64_t lastOffset = std::distance(this->mGroupedIndices.begin(), lastIt);
@@ -712,7 +977,7 @@ struct CombinationsBlockStrictlyUpperSameIndexPolicy : public CombinationsBlockS
 
   void addOne()
   {
-    constexpr auto k = sizeof...(Ts) + 1;
+    constexpr auto k = sizeof...(Ts);
     bool modify = true;
     for_<k - 1>([&, this](auto i) {
       if (modify) {
@@ -766,20 +1031,38 @@ struct CombinationsBlockStrictlyUpperSameIndexPolicy : public CombinationsBlockS
   }
 };
 
-template <typename T1, typename T, typename... Ts>
-struct CombinationsBlockFullSameIndexPolicy : public CombinationsBlockSameIndexPolicyBase<T1, T, Ts...> {
-  using CombinationType = typename CombinationsBlockSameIndexPolicyBase<T1, T, Ts...>::CombinationType;
+template <typename T1, typename... Ts>
+struct CombinationsBlockFullSameIndexPolicy : public CombinationsBlockSameIndexPolicyBase<T1, Ts...> {
+  using CombinationType = typename CombinationsBlockSameIndexPolicyBase<T1, Ts...>::CombinationType;
 
-  CombinationsBlockFullSameIndexPolicy(const std::string& categoryColumnName, int categoryNeighbours, const T1& outsider, const T& table, const Ts&... tables) : CombinationsBlockSameIndexPolicyBase<T1, T, Ts...>(categoryColumnName, categoryNeighbours, outsider, 1, table, tables...), mCurrentlyFixed(0)
+  CombinationsBlockFullSameIndexPolicy(const std::string& categoryColumnName, int categoryNeighbours, const T1& outsider) : CombinationsBlockSameIndexPolicyBase<T1, Ts...>(categoryColumnName, categoryNeighbours, outsider, 1), mCurrentlyFixed(0) {}
+  CombinationsBlockFullSameIndexPolicy(const std::string& categoryColumnName, int categoryNeighbours, const T1& outsider, const Ts&... tables) : CombinationsBlockSameIndexPolicyBase<T1, Ts...>(categoryColumnName, categoryNeighbours, outsider, 1, tables...), mCurrentlyFixed(0)
+  {
+    if (!this->mIsEnd) {
+      setRanges();
+    }
+  }
+  CombinationsBlockFullSameIndexPolicy(const std::string& categoryColumnName, int categoryNeighbours, const T1& outsider, Ts&&... tables) : CombinationsBlockSameIndexPolicyBase<T1, Ts...>(categoryColumnName, categoryNeighbours, outsider, 1, std::forward<Ts>(tables)...), mCurrentlyFixed(0)
   {
     if (!this->mIsEnd) {
       setRanges();
     }
   }
 
+  void setTables(const Ts&... tables)
+  {
+    CombinationsBlockSameIndexPolicyBase<T1, Ts...>::setTables(tables...);
+    setRanges();
+  }
+  void setTables(Ts&&... tables)
+  {
+    CombinationsBlockSameIndexPolicyBase<T1, Ts...>::setTables(std::forward<Ts>(tables)...);
+    setRanges();
+  }
+
   void setRanges()
   {
-    constexpr auto k = sizeof...(Ts) + 1;
+    constexpr auto k = sizeof...(Ts);
     auto catBegin = this->mGroupedIndices.begin() + std::get<0>(this->mCurrentIndices);
     auto range = std::equal_range(catBegin, this->mGroupedIndices.end(), *catBegin, sameCategory);
     this->mBeginIndex = std::get<0>(this->mCurrentIndices);
@@ -794,7 +1077,7 @@ struct CombinationsBlockFullSameIndexPolicy : public CombinationsBlockSameIndexP
 
   void addOne()
   {
-    constexpr auto k = sizeof...(Ts) + 1;
+    constexpr auto k = sizeof...(Ts);
     bool modify = true;
     for_<k>([&, this](auto i) {
       if (modify) {
@@ -958,53 +1241,101 @@ struct CombinationsGenerator {
   iterator mEnd;
 };
 
-template <typename T1, typename T2, typename... T2s>
-auto selfCombinations(const char* categoryColumnName, int categoryNeighbours, const T1& outsider, const T2& table, const T2s&... tables)
+template <typename T2, typename... T2s>
+constexpr bool isSameType()
 {
-  static_assert(std::conjunction_v<std::is_same<T2, T2s>...>, "Tables must have the same type for self combinations");
-  return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<T1, T2, T2s...>>(CombinationsBlockStrictlyUpperSameIndexPolicy(categoryColumnName, categoryNeighbours, outsider, table, tables...));
+  return std::conjunction_v<std::is_same<T2, T2s>...>;
+}
+
+template <typename T1, typename... T2s>
+auto selfCombinations(const char* categoryColumnName, int categoryNeighbours, const T1& outsider, const T2s&... tables)
+{
+  static_assert(isSameType<T2s...>(), "Tables must have the same type for self combinations");
+  return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<T1, T2s...>>(CombinationsBlockStrictlyUpperSameIndexPolicy<T1, T2s...>(categoryColumnName, categoryNeighbours, outsider, tables...));
+}
+
+template <typename T1, typename T2>
+auto selfPairCombinations(const char* categoryColumnName, int categoryNeighbours, const T1& outsider)
+{
+  return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<T1, T2, T2>>(CombinationsBlockStrictlyUpperSameIndexPolicy<T1, T2, T2>(categoryColumnName, categoryNeighbours, outsider));
 }
 
 template <typename T1, typename T2>
 auto selfPairCombinations(const char* categoryColumnName, int categoryNeighbours, const T1& outsider, const T2& table)
 {
-  return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<T1, T2, T2>>(CombinationsBlockStrictlyUpperSameIndexPolicy(categoryColumnName, categoryNeighbours, outsider, table, table));
+  return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<T1, T2, T2>>(CombinationsBlockStrictlyUpperSameIndexPolicy<T1, T2, T2>(categoryColumnName, categoryNeighbours, outsider, table, table));
+}
+
+template <typename T1, typename T2>
+auto selfTripleCombinations(const char* categoryColumnName, int categoryNeighbours, const T1& outsider)
+{
+  return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<T1, T2, T2, T2>>(CombinationsBlockStrictlyUpperSameIndexPolicy<T1, T2, T2, T2>(categoryColumnName, categoryNeighbours, outsider));
 }
 
 template <typename T1, typename T2>
 auto selfTripleCombinations(const char* categoryColumnName, int categoryNeighbours, const T1& outsider, const T2& table)
 {
-  return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<T1, T2, T2, T2>>(CombinationsBlockStrictlyUpperSameIndexPolicy(categoryColumnName, categoryNeighbours, outsider, table, table, table));
+  return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<T1, T2, T2, T2>>(CombinationsBlockStrictlyUpperSameIndexPolicy<T1, T2, T2, T2>(categoryColumnName, categoryNeighbours, outsider, table, table, table));
 }
 
-template <typename T1, typename T2, typename... T2s>
-auto combinations(const char* categoryColumnName, int categoryNeighbours, const T1& outsider, const T2& table, const T2s&... tables)
+template <typename T1, typename... T2s>
+auto combinations(const char* categoryColumnName, int categoryNeighbours, const T1& outsider, const T2s&... tables)
 {
-  if constexpr (std::conjunction_v<std::is_same<T2, T2s>...>) {
-    return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<T1, T2, T2s...>>(CombinationsBlockStrictlyUpperSameIndexPolicy(categoryColumnName, categoryNeighbours, outsider, table, tables...));
+  if constexpr (isSameType<T2s...>()) {
+    return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<T1, T2s...>>(CombinationsBlockStrictlyUpperSameIndexPolicy<T1, T2s...>(categoryColumnName, categoryNeighbours, outsider, tables...));
   } else {
-    return CombinationsGenerator<CombinationsBlockUpperIndexPolicy<T1, T2, T2s...>>(CombinationsBlockUpperIndexPolicy(categoryColumnName, categoryNeighbours, outsider, table, tables...));
+    return CombinationsGenerator<CombinationsBlockUpperIndexPolicy<T1, T2s...>>(CombinationsBlockUpperIndexPolicy<T1, T2s...>(categoryColumnName, categoryNeighbours, outsider, tables...));
   }
 }
 
-template <typename T1, typename T2, typename... T2s>
-auto combinations(const char* categoryColumnName, int categoryNeighbours, const T1& outsider, const o2::framework::expressions::Filter& filter, const T2& table, const T2s&... tables)
+template <typename T1, typename... T2s>
+auto combinations(const char* categoryColumnName, int categoryNeighbours, const T1& outsider, const o2::framework::expressions::Filter& filter, const T2s&... tables)
 {
-  if constexpr (std::conjunction_v<std::is_same<T2, T2s>...>) {
-    return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<T1, Filtered<T2>, Filtered<T2s>...>>(CombinationsBlockStrictlyUpperSameIndexPolicy(categoryColumnName, categoryNeighbours, outsider, Filtered<T2>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)}, Filtered<T2s>{{tables.asArrowTable()}, o2::framework::expressions::createSelection(tables.asArrowTable(), filter)}...));
+  if constexpr (isSameType<T2s...>()) {
+    return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<T1, Filtered<T2s>...>>(CombinationsBlockStrictlyUpperSameIndexPolicy(categoryColumnName, categoryNeighbours, outsider, tables.select(filter)...));
   } else {
-    return CombinationsGenerator<CombinationsBlockUpperIndexPolicy<T1, Filtered<T2>, Filtered<T2s>...>>(CombinationsBlockUpperIndexPolicy(categoryColumnName, categoryNeighbours, outsider, Filtered<T2>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)}, Filtered<T2s>{{tables.asArrowTable()}, o2::framework::expressions::createSelection(tables.asArrowTable(), filter)}...));
+    return CombinationsGenerator<CombinationsBlockUpperIndexPolicy<T1, Filtered<T2s>...>>(CombinationsBlockUpperIndexPolicy(categoryColumnName, categoryNeighbours, outsider, tables.select(filter)...));
   }
 }
 
-template <typename T2, typename... T2s>
-auto combinations(const T2& table, const T2s&... tables)
+template <typename... T2s>
+auto combinations(const o2::framework::expressions::Filter& filter, const T2s&... tables)
 {
-  if constexpr (std::conjunction_v<std::is_same<T2, T2s>...>) {
-    return CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<T2, T2s...>>(CombinationsStrictlyUpperIndexPolicy(table, tables...));
+  if constexpr (isSameType<T2s...>()) {
+    return CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<Filtered<T2s>...>>(CombinationsStrictlyUpperIndexPolicy(tables.select(filter)...));
   } else {
-    return CombinationsGenerator<CombinationsUpperIndexPolicy<T2, T2s...>>(CombinationsUpperIndexPolicy(table, tables...));
+    return CombinationsGenerator<CombinationsUpperIndexPolicy<Filtered<T2s>...>>(CombinationsUpperIndexPolicy(tables.select(filter)...));
   }
+}
+
+// This shortened version cannot be used for Filtered
+// (unless users create filtered tables themselves before policy creation)
+template <template <typename...> typename P2, typename... T2s>
+CombinationsGenerator<P2<T2s...>> combinations(const P2<T2s...>& policy)
+{
+  return CombinationsGenerator<P2<T2s...>>(policy);
+}
+
+template <template <typename...> typename P2, typename... T2s>
+CombinationsGenerator<P2<Filtered<T2s>...>> combinations(P2<T2s...>&&, const o2::framework::expressions::Filter& filter, const T2s&... tables)
+{
+  return CombinationsGenerator<P2<Filtered<T2s>...>>(P2<Filtered<T2s>...>(tables.select(filter)...));
+}
+
+template <typename... T2s>
+auto combinations(const T2s&... tables)
+{
+  if constexpr (isSameType<T2s...>()) {
+    return CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<T2s...>>(CombinationsStrictlyUpperIndexPolicy<T2s...>(tables...));
+  } else {
+    return CombinationsGenerator<CombinationsUpperIndexPolicy<T2s...>>(CombinationsUpperIndexPolicy<T2s...>(tables...));
+  }
+}
+
+template <typename T2>
+auto pairCombinations()
+{
+  return CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<T2, T2>>(CombinationsStrictlyUpperIndexPolicy<T2, T2>());
 }
 
 template <typename T2>
@@ -1014,33 +1345,15 @@ auto pairCombinations(const T2& table)
 }
 
 template <typename T2>
+auto tripleCombinations()
+{
+  return CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<T2, T2, T2>>(CombinationsStrictlyUpperIndexPolicy<T2, T2, T2>());
+}
+
+template <typename T2>
 auto tripleCombinations(const T2& table)
 {
   return CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<T2, T2, T2>>(CombinationsStrictlyUpperIndexPolicy(table, table, table));
-}
-
-template <typename T2, typename... T2s>
-auto combinations(const o2::framework::expressions::Filter& filter, const T2& table, const T2s&... tables)
-{
-  if constexpr (std::conjunction_v<std::is_same<T2, T2s>...>) {
-    return CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<Filtered<T2>, Filtered<T2s>...>>(CombinationsStrictlyUpperIndexPolicy(Filtered<T2>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)}, Filtered<T2s>{{tables.asArrowTable()}, o2::framework::expressions::createSelection(tables.asArrowTable(), filter)}...));
-  } else {
-    return CombinationsGenerator<CombinationsUpperIndexPolicy<Filtered<T2>, Filtered<T2s>...>>(CombinationsUpperIndexPolicy(Filtered<T2>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)}, Filtered<T2s>{{tables.asArrowTable()}, o2::framework::expressions::createSelection(tables.asArrowTable(), filter)}...));
-  }
-}
-
-template <template <typename...> typename P2, typename... T2s>
-CombinationsGenerator<P2<Filtered<T2s>...>> combinations(const P2<T2s...>& policy, const o2::framework::expressions::Filter& filter, const T2s&... tables)
-{
-  return CombinationsGenerator<P2<Filtered<T2s>...>>(P2<Filtered<T2s>...>({{tables.asArrowTable()}, o2::framework::expressions::createSelection(tables.asArrowTable(), filter)}...));
-}
-
-// This shortened version cannot be used for Filtered
-// (unless users create filtered tables themselves before policy creation)
-template <template <typename...> typename P2, typename... T2s>
-CombinationsGenerator<P2<T2s...>> combinations(const P2<T2s...>& policy)
-{
-  return CombinationsGenerator<P2<T2s...>>(policy);
 }
 
 } // namespace o2::soa

@@ -66,7 +66,7 @@ Smoother<D>::Smoother(TrackITSExt& track, int smoothingLayer, const ROframe& eve
                                              mCorr);
     mOutwardsTrack.setChi2(mOutwardsTrack.getChi2() + mOutwardsTrack.getPredictedChi2(tF.positionTrackingFrame, tF.covarianceTrackingFrame));
     statusOutw &= mOutwardsTrack.o2::track::TrackParCov::update(tF.positionTrackingFrame, tF.covarianceTrackingFrame);
-    // LOG(INFO) << "Outwards loop on inwards track, layer: " << iLayer << " x: " << mOutwardsTrack.getX();
+    // LOG(info) << "Outwards loop on inwards track, layer: " << iLayer << " x: " << mOutwardsTrack.getX();
   }
 
   // Prediction on the previously outwards-propagated track is done on a copy, as the process seems to be not reversible
@@ -94,7 +94,7 @@ Smoother<D>::Smoother(TrackITSExt& track, int smoothingLayer, const ROframe& eve
                                             mCorr);
     mInwardsTrack.setChi2(mInwardsTrack.getChi2() + mInwardsTrack.getPredictedChi2(tF.positionTrackingFrame, tF.covarianceTrackingFrame));
     statusInw &= mInwardsTrack.o2::track::TrackParCov::update(tF.positionTrackingFrame, tF.covarianceTrackingFrame);
-    // LOG(INFO) << "Inwards loop on outwards track, layer: " << iLayer << " x: " << mInwardsTrack.getX();
+    // LOG(info) << "Inwards loop on outwards track, layer: " << iLayer << " x: " << mInwardsTrack.getX();
   }
 
   // Prediction on the previously inwards-propagated track is done on a copy, as the process seems to be not revesible
@@ -111,7 +111,7 @@ Smoother<D>::Smoother(TrackITSExt& track, int smoothingLayer, const ROframe& eve
   if (mInitStatus) {
     mBestChi2 = computeSmoothedPredictedChi2(inwardsClone, outwardsClone, originalTf.positionTrackingFrame, originalTf.covarianceTrackingFrame);
     mLastChi2 = mBestChi2;
-    LOG(INFO) << "Smoothed chi2 on original cluster: " << mBestChi2;
+    LOG(info) << "Smoothed chi2 on original cluster: " << mBestChi2;
   }
 }
 
@@ -136,7 +136,7 @@ float Smoother<D>::computeSmoothedPredictedChi2(const o2::track::TrackParCov& fi
   // Symmetric covariances assumed
 
   if (firstTrack.getX() != secondTrack.getX()) {
-    LOG(FATAL) << "Tracks need to be propagated to the same point! secondTrack.X=" << secondTrack.getX() << " firstTrack.X=" << firstTrack.getX();
+    LOG(fatal) << "Tracks need to be propagated to the same point! secondTrack.X=" << secondTrack.getX() << " firstTrack.X=" << firstTrack.getX();
   }
 
   std::array<double, 2> pp1 = {static_cast<double>(firstTrack.getY()), static_cast<double>(firstTrack.getZ())};   // P1: predicted Y,Z points
@@ -169,17 +169,17 @@ float Smoother<D>::computeSmoothedPredictedChi2(const o2::track::TrackParCov& fi
   float chi2 = static_cast<float>(delta[0] * (Wp[0] * delta[0] + Wp[1] * delta[1]) + delta[1] * (Wp[1] * delta[0] + Wp[2] * delta[1])); // chi2 = tΔ * (Wp * Δ)
 
   // #ifdef CA_DEBUG
-  LOG(INFO) << "Cluster_y: " << cls[0] << " Cluster_z: " << cls[1];
-  LOG(INFO) << "\t\t- Covariance cluster: Y2: " << clCov[0] << " YZ: " << clCov[1] << " Z2: " << clCov[2];
-  LOG(INFO) << "\t\t- Propagated t1_y: " << pp1[0] << " t1_z: " << pp1[1];
-  LOG(INFO) << "\t\t- Propagated t2_y: " << pp2[0] << " t2_z: " << pp2[1];
-  LOG(INFO) << "\t\t- Covariance t1: sY2: " << c1[0] << " sYZ: " << c1[1] << " sZ2: " << c1[2];
-  LOG(INFO) << "\t\t- Covariance t2: sY2: " << c2[0] << " sYZ: " << c2[1] << " sZ2: " << c2[2];
-  LOG(INFO) << "Smoother prediction Y: " << Y << " Z: " << Z;
-  LOG(INFO) << "\t\t- Delta_y: " << delta[0] << " Delta_z: " << delta[1];
-  LOG(INFO) << "\t\t- Covariance Pr: Y2: " << C[0] << " YZ: " << C[1] << " Z2: " << C[2];
-  LOG(INFO) << "\t\t- predicted chi2 t1: " << firstTrack.getPredictedChi2(cls, clCov);
-  LOG(INFO) << "\t\t- predicted chi2 t2: " << secondTrack.getPredictedChi2(cls, clCov);
+  LOG(info) << "Cluster_y: " << cls[0] << " Cluster_z: " << cls[1];
+  LOG(info) << "\t\t- Covariance cluster: Y2: " << clCov[0] << " YZ: " << clCov[1] << " Z2: " << clCov[2];
+  LOG(info) << "\t\t- Propagated t1_y: " << pp1[0] << " t1_z: " << pp1[1];
+  LOG(info) << "\t\t- Propagated t2_y: " << pp2[0] << " t2_z: " << pp2[1];
+  LOG(info) << "\t\t- Covariance t1: sY2: " << c1[0] << " sYZ: " << c1[1] << " sZ2: " << c1[2];
+  LOG(info) << "\t\t- Covariance t2: sY2: " << c2[0] << " sYZ: " << c2[1] << " sZ2: " << c2[2];
+  LOG(info) << "Smoother prediction Y: " << Y << " Z: " << Z;
+  LOG(info) << "\t\t- Delta_y: " << delta[0] << " Delta_z: " << delta[1];
+  LOG(info) << "\t\t- Covariance Pr: Y2: " << C[0] << " YZ: " << C[1] << " Z2: " << C[2];
+  LOG(info) << "\t\t- predicted chi2 t1: " << firstTrack.getPredictedChi2(cls, clCov);
+  LOG(info) << "\t\t- predicted chi2 t2: " << secondTrack.getPredictedChi2(cls, clCov);
   // #endif
   return chi2;
 }
@@ -217,13 +217,13 @@ bool Smoother<D>::testCluster(const int clusterId, const ROframe& event)
                                           mCorr);
   bool testStatus = statusOutw && statusInw;
   if (!(statusOutw && statusInw)) {
-    LOG(WARNING) << "Failed propagation in smoother!";
+    LOG(warning) << "Failed propagation in smoother!";
     return false;
   }
 
   // Compute weighted local chi2
   mLastChi2 = computeSmoothedPredictedChi2(inwardsClone, outwardsClone, testTf.positionTrackingFrame, testTf.covarianceTrackingFrame);
-  LOG(INFO) << "Smoothed chi2 on tested cluster: " << mLastChi2;
+  LOG(info) << "Smoothed chi2 on tested cluster: " << mLastChi2;
 
   return true;
 }

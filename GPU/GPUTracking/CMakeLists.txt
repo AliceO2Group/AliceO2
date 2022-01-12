@@ -62,11 +62,17 @@ set(SRCS
     TRDTracking/GPUTRDTrackerKernels.cxx
     Base/GPUParam.cxx)
 
-set(SRCS_O2_DATATYPES
+set(SRCS_DATATYPES DataTypes/GPUDataTypes.cxx)
+set(SRCS_O2_DATATYPE_HEADERS
     DataTypes/GPUTRDTrackO2.cxx)
+set(SRCS_O2_DATATYPES
+    ${SRCS_DATATYPES}
+    Interface/GPUO2InterfaceConfigurableParam.cxx)
+set(HDRS_CINT_O2 Merger/GPUTPCGMMergedTrack.h)
+set(HDRS_CINT_O2_DATATYPES DataTypes/GPUDataTypes.h Interface/GPUO2InterfaceConfigurableParam.h)
+set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypes.h DataTypes/GPUTRDTrack.h) # Manual dependencies for ROOT dictionary generation
 
 set(SRCS_NO_CINT
-    DataTypes/GPUDataTypes.cxx
     DataTypes/GPUMemorySizeScalers.cxx
     Base/GPUReconstruction.cxx
     Base/GPUReconstructionCPU.cxx
@@ -108,7 +114,7 @@ set(HDRS_INSTALL
     Merger/GPUTPCGMBorderTrack.h
     Merger/GPUTPCGMOfflineStatisticalErrors.h
     Merger/GPUTPCGMMergedTrack.h
-    Merger/GPUTPCGMMergedTrackHit.h
+    DataTypes/GPUTPCGMMergedTrackHit.h
     DataTypes/GPUTRDDef.h
     DataTypes/GPUSettings.h
     TRDTracking/GPUTRDTrackPoint.h
@@ -153,13 +159,6 @@ set(HDRS_INSTALL
     Debug/GPUROOTDump.h
 )
 
-# Sources only for O2
-if(ALIGPU_BUILD_TYPE STREQUAL "O2")
-  set(SRCS ${SRCS} Interface/GPUO2InterfaceConfigurableParam.cxx)
-  set(HDRS_CINT_O2 ${HDRS_CINT_O2} DataTypes/TPCdEdxCalibrationSplines.h Interface/GPUO2InterfaceConfigurableParam.h)
-  set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypes.h DataTypes/GPUTRDTrack.h Merger/GPUTPCGMMergedTrack.h) # Manual dependencies for ROOT dictionary generation
-endif()
-
 # Sources for O2 and for Standalone if requested in config file
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   set(SRCS_NO_CINT ${SRCS_NO_CINT} display/GPUDisplayBackend.cxx)
@@ -171,7 +170,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         ITS/GPUITSFitter.cxx
         ITS/GPUITSFitterKernels.cxx
         dEdx/GPUdEdx.cxx
-        DataTypes/TPCdEdxCalibrationSplines.cxx
         TPCConvert/GPUTPCConvert.cxx
         TPCConvert/GPUTPCConvertKernel.cxx
         DataCompression/GPUTPCCompression.cxx
@@ -283,16 +281,24 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                        O2::ReconstructionDataFormats
                  PRIVATE_LINK_LIBRARIES O2::DataFormatsTPC
-                 SOURCES ${SRCS_O2_DATATYPES})
-target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
-                           GPUCA_TPC_GEOMETRY_O2 GPUCA_HAVE_O2HEADERS)
+                 SOURCES ${SRCS_O2_DATATYPE_HEADERS})
+  target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB GPUCA_TPC_GEOMETRY_O2 GPUCA_HAVE_O2HEADERS)
 
+  o2_add_library(GPUDataTypes
+                 TARGETVARNAME targetName
+                 PUBLIC_LINK_LIBRARIES O2::GPUDataTypeHeaders O2::GPUUtils
+                 PRIVATE_LINK_LIBRARIES O2::DataFormatsTPC
+                 SOURCES ${SRCS_O2_DATATYPES})
+  target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB GPUCA_TPC_GEOMETRY_O2 GPUCA_HAVE_O2HEADERS)
+  o2_target_root_dictionary(GPUDataTypes
+                            HEADERS ${HDRS_CINT_O2_DATATYPES} ${HDRS_CINT_O2_ADDITIONAL}
+                            LINKDEF GPUTrackingLinkDef_O2_DataTypes.h)
 
   o2_add_library(${MODULE}
                  TARGETVARNAME targetName
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                        O2::GPUUtils
-                                       O2::GPUDataTypeHeaders
+                                       O2::GPUDataTypes
                                        O2::DataFormatsTPC
                                        O2::DataFormatsTOF
                                        O2::TPCBase
@@ -330,14 +336,14 @@ target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
     ${targetName}
     PRIVATE $<TARGET_PROPERTY:O2::Framework,INTERFACE_INCLUDE_DIRECTORIES>)
 
+  target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
+                             GPUCA_TPC_GEOMETRY_O2 GPUCA_HAVE_O2HEADERS)
+
   o2_target_root_dictionary(${MODULE}
                             HEADERS ${HDRS_CINT_O2} ${HDRS_CINT_O2_ADDITIONAL}
                             LINKDEF GPUTrackingLinkDef_O2.h)
 
-  target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
-                             GPUCA_TPC_GEOMETRY_O2 GPUCA_HAVE_O2HEADERS)
-
-  install(FILES ${HDRS_CINT_ALIROOT} ${HDRS_CINT_O2} ${HDRS_INSTALL}
+  install(FILES ${HDRS_CINT_ALIROOT} ${HDRS_CINT_O2} ${HDRS_CINT_O2_DATATYPES} ${HDRS_INSTALL}
           DESTINATION include/GPU)
   install(DIRECTORY utils
           DESTINATION include/GPU
@@ -424,6 +430,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                      ${SRCS}
                      ${SRCS_NO_CINT}
                      ${SRCS_NO_H}
+                     ${SRCS_DATATYPES}
                      G__Ali${MODULE}.cxx)
   target_link_libraries(Ali${MODULE} ${LIBDEPS})
 
@@ -450,7 +457,7 @@ endif()
 
 # Main CMake part for Standalone
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
-  add_library(${MODULE} SHARED ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H})
+  add_library(${MODULE} SHARED ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H} ${SRCS_DATATYPES})
   set(targetName ${MODULE})
   add_library(O2::${MODULE} ALIAS ${MODULE})
 endif()

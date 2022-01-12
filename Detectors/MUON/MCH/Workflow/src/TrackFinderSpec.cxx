@@ -26,7 +26,7 @@
 #include <gsl/span>
 
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -40,9 +40,8 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
-#include "DataFormatsMCH/ClusterBlock.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "MCHTracking/TrackParam.h"
-#include "MCHTracking/Cluster.h"
 #include "MCHTracking/Track.h"
 #include "MCHTracking/TrackFinder.h"
 #include "MCHTracking/TrackExtrap.h"
@@ -63,7 +62,7 @@ class TrackFinderTask
   {
     /// Prepare the track extrapolation tools
 
-    LOG(INFO) << "initializing track finder";
+    LOG(info) << "initializing track finder";
 
     const auto& options = ic.options();
 
@@ -80,19 +79,19 @@ class TrackFinderTask
       dipoleCurrent = ic.options().get<float>("dipoleCurrent");
     }
 
-    auto config = ic.options().get<std::string>("config");
+    auto config = ic.options().get<std::string>("mch-config");
     if (!config.empty()) {
       o2::conf::ConfigurableParam::updateFromFile(config, "MCHTracking", true);
     }
     mTrackFinder.init(l3Current, dipoleCurrent);
 
-    auto debugLevel = ic.options().get<int>("debug");
+    auto debugLevel = ic.options().get<int>("mch-debug");
     mTrackFinder.debug(debugLevel);
 
     auto stop = [this]() {
       mTrackFinder.printStats();
       mTrackFinder.printTimers();
-      LOG(INFO) << "tracking duration = " << mElapsedTime.count() << " s";
+      LOG(info) << "tracking duration = " << mElapsedTime.count() << " s";
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
   }
@@ -104,24 +103,24 @@ class TrackFinderTask
 
     // get the input messages with clusters
     auto clusterROFs = pc.inputs().get<gsl::span<ROFRecord>>("clusterrofs");
-    auto clustersIn = pc.inputs().get<gsl::span<ClusterStruct>>("clusters");
+    auto clustersIn = pc.inputs().get<gsl::span<Cluster>>("clusters");
 
-    //LOG(INFO) << "received time frame with " << clusterROFs.size() << " interactions";
+    // LOG(info) << "received time frame with " << clusterROFs.size() << " interactions";
 
     // create the output messages for tracks and attached clusters
     auto& trackROFs = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"trackrofs"});
     auto& mchTracks = pc.outputs().make<std::vector<TrackMCH>>(OutputRef{"tracks"});
-    auto& usedClusters = pc.outputs().make<std::vector<ClusterStruct>>(OutputRef{"trackclusters"});
+    auto& usedClusters = pc.outputs().make<std::vector<Cluster>>(OutputRef{"trackclusters"});
 
     trackROFs.reserve(clusterROFs.size());
     for (const auto& clusterROF : clusterROFs) {
 
-      //LOG(INFO) << "processing interaction: " << clusterROF.getBCData() << "...";
+      // LOG(info) << "processing interaction: " << clusterROF.getBCData() << "...";
 
-      // get the input clusters of the current event
-      std::unordered_map<int, std::list<Cluster>> clusters{};
+      // sort the input clusters of the current event per DE
+      std::unordered_map<int, std::list<const Cluster*>> clusters{};
       for (const auto& cluster : clustersIn.subspan(clusterROF.getFirstIdx(), clusterROF.getNEntries())) {
-        clusters[cluster.getDEId()].emplace_back(cluster);
+        clusters[cluster.getDEId()].emplace_back(&cluster);
       }
 
       // run the track finder
@@ -145,7 +144,7 @@ class TrackFinderTask
   //_________________________________________________________________________________________________
   void writeTracks(const std::list<Track>& tracks,
                    std::vector<TrackMCH, o2::pmr::polymorphic_allocator<TrackMCH>>& mchTracks,
-                   std::vector<ClusterStruct, o2::pmr::polymorphic_allocator<ClusterStruct>>& usedClusters) const
+                   std::vector<Cluster, o2::pmr::polymorphic_allocator<Cluster>>& usedClusters) const
   {
     /// fill the output messages with tracks and attached clusters
 
@@ -153,7 +152,7 @@ class TrackFinderTask
 
       TrackParam paramAtMID(track.last());
       if (!TrackExtrap::extrapToMID(paramAtMID)) {
-        LOG(WARNING) << "propagation to MID failed --> track discarded";
+        LOG(warning) << "propagation to MID failed --> track discarded";
         continue;
       }
 
@@ -163,7 +162,7 @@ class TrackFinderTask
                              paramAtMID.getZ(), paramAtMID.getParameters(), paramAtMID.getCovariances());
 
       for (const auto& param : track) {
-        usedClusters.emplace_back(param.getClusterPtr()->getClusterStruct());
+        usedClusters.emplace_back(*param.getClusterPtr());
       }
     }
   }
@@ -186,8 +185,8 @@ o2::framework::DataProcessorSpec getTrackFinderSpec(const char* specName)
     Options{{"l3Current", VariantType::Float, -30000.0f, {"L3 current"}},
             {"dipoleCurrent", VariantType::Float, -6000.0f, {"Dipole current"}},
             {"grp-file", VariantType::String, o2::base::NameConf::getGRPFileName(), {"Name of the grp file"}},
-            {"config", VariantType::String, "", {"JSON or INI file with tracking parameters"}},
-            {"debug", VariantType::Int, 0, {"debug level"}}}};
+            {"mch-config", VariantType::String, "", {"JSON or INI file with tracking parameters"}},
+            {"mch-debug", VariantType::Int, 0, {"debug level"}}}};
 }
 
 } // namespace mch

@@ -27,6 +27,7 @@
 #include "Algorithm/RangeTokenizer.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "Framework/CallbacksPolicy.h"
 
 #include <string>
 #include <stdexcept>
@@ -41,6 +42,11 @@ o2::framework::Output gDispatchTrigger{"", ""};
 o2::tpc::reco_workflow::CompletionPolicyData gPolicyData;
 unsigned long gTpcSectorMask = 0xFFFFFFFFF;
 
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
+
 // add workflow options, note that customization needs to be declared before
 // including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
@@ -48,7 +54,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   using namespace o2::framework;
 
   std::vector<ConfigParamSpec> options{
-    {"input-type", VariantType::String, "digits", {"digitizer, digits, zsraw, clustershw, clustersnative, compressed-clusters, compressed-clusters-ctf"}},
+    {"input-type", VariantType::String, "digits", {"digitizer, digits, zsraw, clustershw, clustersnative, compressed-clusters, compressed-clusters-ctf, pass-through"}},
     {"output-type", VariantType::String, "tracks", {"digits, zsraw, clustershw, clustersnative, tracks, compressed-clusters, encoded-clusters, disable-writer, send-clusters-per-sector, qa, no-shared-cluster-map"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"no-ca-clusterer", VariantType::Bool, false, {"Use HardwareClusterer instead of clusterer of GPUCATracking"}},
@@ -60,9 +66,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCHwClusterer.peakChargeThreshold=4;...')"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}}};
-
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
-
   std::swap(workflowOptions, options);
 }
 

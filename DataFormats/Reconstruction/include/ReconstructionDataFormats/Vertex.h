@@ -20,6 +20,7 @@
 #include "CommonDataFormat/TimeStamp.h"
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <iosfwd>
+#include <type_traits>
 #endif
 
 namespace o2
@@ -93,6 +94,9 @@ class VertexBase
   }
   GPUd() void setCov(const gpu::gpustd::array<float, kNCov>& cov) { mCov = cov; }
 
+  bool operator==(const VertexBase& other) const;
+  bool operator!=(const VertexBase& other) const { return !(*this == other); }
+
  protected:
   math_utils::Point3D<float> mPos{0., 0., 0.}; ///< cartesian position
   gpu::gpustd::array<float, kNCov> mCov{};     ///< errors, see CovElems enum
@@ -151,5 +155,27 @@ std::ostream& operator<<(std::ostream& os, const o2::dataformats::VertexBase& v)
 #endif
 
 } // namespace dataformats
+
+#ifndef GPUCA_GPUCODE_DEVICE
+/// Defining PrimaryVertex explicitly as messageable
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::dataformats::VertexBase> : std::true_type {
+};
+template <>
+struct is_messageable<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>> : std::true_type {
+};
+template <>
+struct is_messageable<o2::dataformats::Vertex<o2::dataformats::TimeStamp<float>>> : std::true_type {
+};
+template <>
+struct is_messageable<o2::dataformats::Vertex<o2::dataformats::TimeStampWithError<float, float>>> : std::true_type {
+};
+} // namespace framework
+#endif
+
 } // namespace o2
 #endif

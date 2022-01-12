@@ -83,7 +83,7 @@ class Tracker
 
  private:
   track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3,
-                                    const TrackingFrameInfo& tf3);
+                                    const TrackingFrameInfo& tf3, float resolution);
   template <typename... T>
   void initialiseTimeFrame(T&&... args);
   void computeTracklets();
@@ -109,7 +109,7 @@ class Tracker
 
   bool mCUDA = false;
   bool mApplySmoothing = false;
-  o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT;
+  o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
   float mBz = 5.f;
   std::uint32_t mTimeFrameCounter = 0;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
@@ -128,11 +128,6 @@ inline void Tracker::setParameters(const std::vector<MemoryParameters>& memPars,
 inline float Tracker::getBz() const
 {
   return mBz;
-}
-
-inline void Tracker::setBz(float bz)
-{
-  mBz = bz;
 }
 
 template <typename... T>

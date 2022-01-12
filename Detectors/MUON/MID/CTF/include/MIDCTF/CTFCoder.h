@@ -39,7 +39,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
   CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks(), o2::detectors::DetID::MID) {}
-  ~CTFCoder() = default;
+  ~CTFCoder() final = default;
 
   /// entropy-encode data to buffer with CTF
   template <typename VEC>
@@ -49,7 +49,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   template <typename VROF, typename VCOL>
   void decode(const CTF::base& ec, std::array<VROF, NEvTypes>& rofVec, std::array<VCOL, NEvTypes>& colVec);
 
-  void createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op);
+  void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
  private:
   void appendToTree(TTree& tree, CTF& ec);
@@ -85,7 +85,7 @@ void CTFCoder::encode(VEC& buff, const CTFHelper::TFData& tfData)
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
-#define ENCODEMID(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get());
+#define ENCODEMID(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
   // clang-format off
   ENCODEMID(helper.begin_bcIncROF(),    helper.end_bcIncROF(),     CTF::BLC_bcIncROF,    0);
   ENCODEMID(helper.begin_orbitIncROF(), helper.end_orbitIncROF(),  CTF::BLC_orbitIncROF, 0);
@@ -96,7 +96,7 @@ void CTFCoder::encode(VEC& buff, const CTFHelper::TFData& tfData)
   ENCODEMID(helper.begin_deId(),        helper.end_deId(),         CTF::BLC_deId,        0);
   ENCODEMID(helper.begin_colId(),       helper.end_colId(),        CTF::BLC_colId,       0);
   // clang-format on
-  CTF::get(buff.data())->print(getPrefix());
+  CTF::get(buff.data())->print(getPrefix(), mVerbosity);
 }
 
 /// decode entropy-encoded clusters to standard compact clusters
@@ -105,7 +105,7 @@ void CTFCoder::decode(const CTF::base& ec, std::array<VROF, NEvTypes>& rofVec, s
 {
   auto header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
-  ec.print(getPrefix());
+  ec.print(getPrefix(), mVerbosity);
   std::vector<uint16_t> bcInc, entries, pattern;
   std::vector<uint32_t> orbitInc;
   std::vector<uint8_t> evType, deId, colId;
