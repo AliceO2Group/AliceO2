@@ -121,6 +121,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   std::vector<int> laneConfiguration = tpcSectors; // Currently just a copy of the tpcSectors, why?
 
+  gTpcSectorMask = 0;
+  for (auto s : tpcSectors) {
+    gTpcSectorMask |= (1ul << s);
+  }
+  gPolicyData.emplace_back(o2::framework::InputSpec{"data", o2::framework::ConcreteDataTypeMatcher{"TPC", "FILTERDIG"}});
+
   CalPad* noise = nullptr;
   const std::string ccdbPath = config.options().get<std::string>("ccdb-path");
   auto& cdb = o2::ccdb::BasicCCDBManager::instance();
