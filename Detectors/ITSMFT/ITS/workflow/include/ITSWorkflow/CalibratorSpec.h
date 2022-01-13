@@ -54,10 +54,19 @@ struct threshold_obj {
   bool success = false;
 };
 
+
 // Object for storing chip info in TTree
 typedef struct {
   short int chipID, row, col;
 } PIXEL;
+
+// List of the possible run types for reference
+enum runtypes
+{
+  THR_SCAN = 41, THR_SCAN_SHORT = 43, THR_SCAN_SHORT_100HZ = 101,
+  THR_SCAN_SHORT_200HZ = 102, VCASN150 = 61, VCASN100 = 81, VCASN100_100HZ = 103,
+  ITHR150 = 62, ITHR100 = 82, ITHR100_100HZ = 104, END_RUN = 0
+};
 
 class threshold_map
 {
@@ -72,7 +81,7 @@ class ITSCalibrator : public Task
  public:
   // using Mapping=ChipMappingITS;
   ITSCalibrator();
-  ~ITSCalibrator(); // override = default;
+  ~ITSCalibrator();// override = default;
 
   using ChipPixelData = o2::itsmft::ChipPixelData;
   o2::itsmft::ChipMappingITS mp;
@@ -88,19 +97,19 @@ class ITSCalibrator : public Task
   // detector information
   static constexpr short int NCols = 1024; // column number in Alpide chip
   static constexpr short int NRows = 512;  // row number in Alpide chip
-  static constexpr short int NLayer = 7;   // layer number in ITS detector
-  static constexpr short int NLayerIB = 3;
+  //static constexpr short int NLayer = 7;   // layer number in ITS detector
+  //static constexpr short int NLayerIB = 3;
 
   const short int nRUs = o2::itsmft::ChipMappingITS::getNRUs();
 
   // The number of injections per data value
   const short int nInj = 50;
 
-  // Number of charges in a threshold scan (from 0 - 50 inclusive)
+  // Number of charges in a threshold scan (from 0 to 50 inclusive)
   const short int nCharge = 51;
-  // Number of points in a VCASN tuning (from 30 - 70 inclusive)
+  // Number of points in a VCASN tuning (from 30 to 70 inclusive)
   const short int nVCASN = 51;
-  // Number of in a ITHR tuning (from 30 to 100 inclusive)
+  // Number of points in a ITHR tuning (from 30 to 100 inclusive)
   const short int nITHR = 71;
   // Refernce to one of the above values; updated during runtime
   const short int* nRange;
@@ -108,15 +117,15 @@ class ITSCalibrator : public Task
   // The x-axis of the correct data fit chosen above
   short int* x;
 
-  const short int NSubStave[NLayer] = {1, 1, 1, 2, 2, 2, 2};
-  const short int NStaves[NLayer] = {12, 16, 20, 24, 30, 42, 48};
-  const short int nHicPerStave[NLayer] = {1, 1, 1, 8, 8, 14, 14};
-  const short int nChipsPerHic[NLayer] = {9, 9, 9, 14, 14, 14, 14};
-  // const short int ChipBoundary[NLayer + 1] = { 0, 108, 252, 432, 3120, 6480, 14712, 24120 };
-  const short int StaveBoundary[NLayer + 1] = {0, 12, 28, 48, 72, 102, 144, 192};
-  const short int ReduceFraction = 1; // TODO: move to Config file to define this number
+  //const short int NSubStave[NLayer] = {1, 1, 1, 2, 2, 2, 2};
+  //const short int NStaves[NLayer] = {12, 16, 20, 24, 30, 42, 48};
+  //const short int nHicPerStave[NLayer] = {1, 1, 1, 8, 8, 14, 14};
+  //const short int nChipsPerHic[NLayer] = {9, 9, 9, 14, 14, 14, 14};
+  //const short int ChipBoundary[NLayer + 1] = { 0, 108, 252, 432, 3120, 6480, 14712, 24120 };
+  //const short int StaveBoundary[NLayer + 1] = {0, 12, 28, 48, 72, 102, 144, 192};
+  //const short int ReduceFraction = 1; // TODO: move to Config file to define this number
 
-  std::array<bool, NLayer> mEnableLayers = {false};
+  //std::array<bool, NLayer> mEnableLayers = {false};
 
   // Hash tables to store the hit and threshold information per pixel
   std::map<short int, short int> currentRow;
@@ -127,7 +136,7 @@ class ITSCalibrator : public Task
   // std::unordered_map<unsigned int, int> mHitPixelID_Hash[7][48][2][14][14]; //layer, stave, substave, hic, chip
 
   // Tree to save threshold info in full threshold scan case
-  TTree* threshold_tree = new TTree("ITS_calib_tree", "ITS_calib_tree");
+  TTree* threshold_tree = nullptr;
   PIXEL tree_pixel;
   // Save charge & counts as char (8-bit) to save memory, since values are always < 256
   unsigned char threshold = 0, noise = 0;
@@ -183,13 +192,11 @@ class ITSCalibrator : public Task
 
   short int run_type = -1;
   // Either "T" for threshold, "V" for VCASN, or "I" for ITHR
-  const char* scan_type;
+  const char* scan_type = nullptr;
   short int min = -1, max = -1;
 
   // Get threshold method (fit == 1, derivative == 0, or hitcounting == 2)
   char fit_type = -1;
-
-  int mTimeFrameId = 0;
 
   // output file (temp solution)
   std::ofstream outfile;
