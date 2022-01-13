@@ -185,6 +185,43 @@ std::vector<RawChannel> extractRawChannels(const DeviceSpec& spec, const DeviceE
   return rawChannels;
 }
 
+bool isUniqueProxy(const DeviceSpec& spec)
+{
+  return std::find(spec.labels.begin(), spec.labels.end(), ecs::uniqueProxyLabel) != spec.labels.end();
+}
+
+bool shouldPreserveRawChannels(const DeviceSpec& spec)
+{
+  return std::find(spec.labels.begin(), spec.labels.end(), ecs::preserveRawChannelsLabel) != spec.labels.end();
+}
+
+bool isQcReconfigurable(const DeviceSpec& spec)
+{
+  return std::find(spec.labels.begin(), spec.labels.end(), ecs::qcReconfigurable) != spec.labels.end();
+}
+
+void dumpQcConfig(std::ostream& dumpOut, const DeviceExecution& execution, const DeviceSpec& spec, const std::string& indLevel)
+{
+  // get the argument `--config`
+  std::string configPath;
+  auto it = std::find_if (execution.args.begin(), execution.args.end(), [&](char * v) { if (v) return strcmp(v, "--config") == 0; else return false; });
+
+  // get the next argument and find `/o2/components/` in it, then take what comes after in the string.
+  if(it != execution.args.end()) {
+    std::string configParam = *(++it);
+    std::string prefix = "/o2/components/"; // keep only the path to the config file, i.e. stuff after "/o2/components/"
+    size_t pos = configParam.find(prefix);
+    if(pos != std::string::npos) {
+      configPath = configParam.substr(pos + prefix.length());
+    }
+  }
+
+  if(implementation::isQcReconfigurable(spec)) {
+    dumpOut << indLevel << "properties:\n";
+    dumpOut << indLevel << indScheme << "qcConfiguration: " << configPath << "\n";
+  }
+}
+
 void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::string indLevel)
 {
   dumpOut << indLevel << "shell: true\n";
@@ -258,16 +295,6 @@ std::string findBinder(const std::vector<DeviceSpec>& specs, const std::string& 
     }
   }
   throw std::runtime_error("Could not find a device which binds the '" + channel + "' channel.");
-}
-
-bool isUniqueProxy(const DeviceSpec& spec)
-{
-  return std::find(spec.labels.begin(), spec.labels.end(), ecs::uniqueProxyLabel) != spec.labels.end();
-}
-
-bool shouldPreserveRawChannels(const DeviceSpec& spec)
-{
-  return std::find(spec.labels.begin(), spec.labels.end(), ecs::preserveRawChannelsLabel) != spec.labels.end();
 }
 
 void dumpRole(std::ostream& dumpOut, const std::string& taskName, const DeviceSpec& spec, const std::vector<DeviceSpec>& allSpecs, const DeviceExecution& execution, const std::string indLevel)
@@ -373,6 +400,8 @@ void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecuti
       dumpRawChannelBind(dumpOut, rawChannel, uniqueProxy, preserveRawChannels, indLevel + indScheme);
     }
   }
+
+  implementation::dumpQcConfig(dumpOut, execution, spec, indLevel);
 
   dumpOut << indLevel << "command:\n";
   implementation::dumpCommand(dumpOut, execution, indLevel + indScheme);
