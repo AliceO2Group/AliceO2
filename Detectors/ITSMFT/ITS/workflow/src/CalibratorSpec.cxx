@@ -120,11 +120,13 @@ void ITSCalibrator<Mapping>::init(InitContext& ic)
   } else if (fittype == "hitcounting") {
     this->fit_type = 2;
   } else {
-    LOG(error) << "fittype " << fittype << "not recognized, please use \'derivative\', \'fit\', or \'hitcounting\'";
+    LOG(error) << "fittype " << fittype
+               << " not recognized, please use \'derivative\', \'fit\', or \'hitcounting\'";
     throw fittype;
   }
 
   // Initialize output TTree branches
+  this->threshold_tree = new TTree("ITS_calib_tree", "ITS_calib_tree");
   this->threshold_tree->Branch("pixel", &(this->tree_pixel), "chipID/S:row/S:col/S");
   this->threshold_tree->Branch("threshold", &(this->threshold), "threshold/b");
   if (this->fit_type != 2)
@@ -629,23 +631,24 @@ void ITSCalibrator<Mapping>::set_run_type(const short int& runtype)
   // Save run type info for future evaluation
   this->run_type = runtype;
 
-  if (runtype == 42) {
-    // full_threshold-scan -- just extract thresholds and send to CCDB for each pixel
+  if (runtype == THR_SCAN) {
+    // full_threshold-scan -- just extract thresholds for each pixel and write to TTree
     // 512 rows per chip
     this->nRange = &(this->nCharge);
     this->scan_type = new const char('T');
     this->min = 0;
     this->max = 50;
 
-  } else if (runtype == 43 || runtype == 101 || runtype == 102) {
-    // threshold_scan_short -- just extract thresholds and send to CCDB for each pixel
+  } else if (runtype == THR_SCAN_SHORT || runtype == THR_SCAN_SHORT_100HZ ||
+             runtype == THR_SCAN_SHORT_200HZ) {
+    // threshold_scan_short -- just extract thresholds for each pixel and write to TTree
     // 10 rows per chip
     this->nRange = &(this->nCharge);
     this->scan_type = new const char('T');
     this->min = 0;
     this->max = 50;
 
-  } else if (runtype == 61 || runtype == 103 || runtype == 81) {
+  } else if (runtype == VCASN150 || runtype == VCASN100 || runtype == VCASN100_100HZ) {
     // VCASN tuning for different target thresholds
     // Store average VCASN for each chip into CCDB
     // 4 rows per chip
@@ -654,7 +657,7 @@ void ITSCalibrator<Mapping>::set_run_type(const short int& runtype)
     this->min = 30;
     this->max = 80;
 
-  } else if (runtype == 62 || runtype == 82 || runtype == 104) {
+  } else if (runtype == ITHR150 || runtype == ITHR100 || runtype == ITHR100_100HZ) {
     // ITHR tuning  -- average ITHR per chip
     // S-curve is backwards from VCASN case, otherwise same
     // 4 rows per chip
@@ -663,7 +666,7 @@ void ITSCalibrator<Mapping>::set_run_type(const short int& runtype)
     this->min = 30;
     this->max = 100;
 
-  } else if (runtype == 0) {
+  } else if (runtype == END_RUN) {
     // Trigger end-of-stream method to do averaging and save data to CCDB
     // TODO :: test this. In theory end-of-stream should be called automatically
     // but we could use a check on this->run_type
