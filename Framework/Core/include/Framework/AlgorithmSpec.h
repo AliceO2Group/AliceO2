@@ -92,7 +92,7 @@ struct AlgorithmPlugin {
   virtual AlgorithmSpec create() = 0;
 };
 
-template <typename T>
+template <typename T, typename S = std::void_t<>>
 struct ContextElementTraits {
   static decltype(auto) get(ProcessingContext& ctx)
   {
@@ -108,6 +108,15 @@ template <>
 struct ContextElementTraits<ConfigParamRegistry const> {
   static ConfigParamRegistry const& get(InitContext& ctx)
   {
+    return ctx.options();
+  }
+};
+
+template <typename S>
+struct ContextElementTraits<ConfigParamRegistry, S> {
+  static ConfigParamRegistry const& get(InitContext& ctx)
+  {
+    static_assert(always_static_assert_v<S>, "Should be ConfigParamRegistry const&");
     return ctx.options();
   }
 };
