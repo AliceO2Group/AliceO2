@@ -35,11 +35,6 @@ void AlpideSimResponse::initData(int tableNumber)
   /*
    * read grid parameters and load data
    */
-/*  auto& dopt = DPLDigitizerParam<o2::detectors::DetID::ITS>::Instance();  // importing the parameters from DPLDigitizerParam.h
-  const std::string DataDir = std::to_string(dopt.backBias); 
-  const std::string newDataPath = mDataPath + "Vbb-" + DataDir.substr(0,3) + "V"; // defining a new data path depending on the back bias value
-*/
-	
 	if (tableNumber == 0)  // 0V back bias
 	{  
   	const std::string newDataPath = mDataPath + "Vbb-0.0V" ;

@@ -14,6 +14,7 @@
 
 #include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
+#include "ITSMFTSimulation/DPLDigitizerParam.h"
 #include "ITSMFTSimulation/Digitizer.h"
 #include "MathUtils/Cartesian.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -35,23 +36,42 @@ using namespace o2::itsmft;
 //_______________________________________________________________________
 void Digitizer::init()
 {
-  const Int_t numOfChips = mGeometry->getNumberOfChips();
-  mChips.resize(numOfChips);
-  for (int i = numOfChips; i--;) {
+  mNumberOfChips = mGeometry->getNumberOfChips();
+  mChips.resize(mNumberOfChips);
+  for (int i = mNumberOfChips; i--;) {
     mChips[i].setChipIndex(i);
   }
-  
-  //o2::itsmft::AlpideSimResponse mAlpSimResp_array [2];
-  //std::vector<o2::itsmft::AlpideSimResponse> mAlpSimResp_vector {};
-  
-  //if (!mParams.getAlpSimResponse()) {
-	for (int i=0; i<2; i++)
-	{
-		mAlpSimResp[i].initData(i);
-		//mParams.setAlpSimResponse(& mAlpSimResp[i]);
+  // initializing for both collection tables
+	for (int i=0; i<2; i++)	{
+		mAlpSimResp[i].initData(i); 
 	}
-		//mParams.setAlpSimResponse(& mAlpSimResp[0]);
-  //}
+  // importing the parameters from DPLDigitizerParam.h
+  auto& doptMFT = DPLDigitizerParam<o2::detectors::DetID::MFT>::Instance();  
+	auto& doptITS = DPLDigitizerParam<o2::detectors::DetID::ITS>::Instance(); 	
+	
+  // initializing response according to detector and back-bias value
+  if (doptMFT.Vbb == 0.0) { // for MFT
+  	mAlpSimRespMFT = mAlpSimResp;
+  } else if (doptMFT.Vbb == 3.0) {
+  	mAlpSimRespMFT = mAlpSimResp+1;
+  } else {
+  	LOG(fatal) << "Invalid MFT back-bias value";
+  }
+  
+  if (doptITS.IBVbb == 0.0) { // for ITS Inner Barrel
+  	mAlpSimRespIB = mAlpSimResp;
+  } else if (doptITS.IBVbb == 3.0) {
+  	mAlpSimRespIB = mAlpSimResp+1;
+  } else {
+  	LOG(fatal) << "Invalid ITS Inner Barrel back-bias value";
+  }
+  if (doptITS.OBVbb == 0.0) { // for ITS Outter Barrel
+  	mAlpSimRespOB = mAlpSimResp;
+  } else if (doptITS.OBVbb == 3.0) {
+  	mAlpSimRespOB = mAlpSimResp+1;
+  } else {
+  	LOG(fatal) << "Invalid ITS Outter Barrel back-bias value";
+  }
   mParams.print();
   mIRFirstSampledTF = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();
 }
@@ -59,26 +79,15 @@ void Digitizer::init()
 
 auto Digitizer::getChipResponse(int chipID)
 {
-	const Int_t numOfChips = mGeometry->getNumberOfChips();
-  if (numOfChips < 20000) 
-  {
-     // MFT
-     return &mAlpSimResp[0]; // Biased response;
-  } 
-  else 
-  {
-    //ITS
-  	if (chipID < 438) 
-    {
-    	//Inner Barrel...
-    	return &mAlpSimResp[1]; //Bias
-    }
-    else 
-    {
-    	// Outter Barrel
-    	return &mAlpSimResp[0]; //No bias
-    }
-  }
+	if (mNumberOfChips < 10000) { // in MFT
+		return mAlpSimRespMFT;
+	}
+	
+	if (chipID < 432) { // in ITS Inner Barrel
+		return mAlpSimRespIB;
+	} else { // in ITS Outter Barrel
+	  return mAlpSimRespOB;
+	}
 }
 
 
@@ -313,10 +322,8 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   int rowPrev = -1, colPrev = -1, row, col;
   float cRowPix = 0.f, cColPix = 0.f; // local coordinated of the current pixel center
 
-	auto & chip = mChips[hit.GetDetectorID()]; 
-	int chipID = chip.getChipIndex();
+	int chipID = hit.GetDetectorID();
 	const o2::itsmft::AlpideSimResponse* resp = getChipResponse(chipID);
-  //const o2::itsmft::AlpideSimResponse* resp = mParams.getAlpSimResponse();
 
   // take into account that the AlpideSimResponse depth defintion has different min/max boundaries
   // although the max should coincide with the surface of the epitaxial layer, which in the chip
@@ -361,7 +368,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
 
   // fire the pixels assuming Poisson(n_response_electrons)
   o2::MCCompLabel lbl(hit.GetTrackID(), evID, srcID, false);
-  //auto& chip = mChips[hit.GetDetectorID()];
+  auto &chip = mChips[chipID];
   auto roFrameAbs = mNewROFrame + roFrameRel;
   for (int irow = rowSpan; irow--;) {
     uint16_t rowIS = irow + rowS;

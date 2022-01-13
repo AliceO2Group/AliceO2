@@ -41,7 +41,10 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   int minChargeToAccount = 15;            ///< minimum charge contribution to account
   int nSimSteps = 7;                      ///< number of steps in response simulation
   float energyToNElectrons = 1. / 3.6e-9; // conversion of eloss to Nelectrons
-  float backBias = 3.0;                  ///< back bias absolute value (in Volt)
+
+  float Vbb = 3.0;               ///< back bias absolute value for MFT (in Volt)
+  float IBVbb = 3.0;                  ///< back bias absolute value for ITS Inner Barrel (in Volt)
+  float OBVbb = 0.0;                  ///< back bias absolute value for ITS Outter Barrel (in Volt)  
 
   // boilerplate stuff + make principal key
   O2ParamDef(DPLDigitizerParam, getParamName().data());
