@@ -41,6 +41,8 @@ namespace o2
 namespace its
 {
 
+constexpr int N_INJ = 50;
+
 struct ThresholdObj {
  public:
   ThresholdObj(short _row, short _col, short _threshold, short _noise, bool _success) : row(_row), col(_col), threshold(_threshold), noise(_noise), success(_success){};
@@ -53,7 +55,6 @@ struct ThresholdObj {
   // Whether or not the fit is good
   bool success = false;
 };
-
 
 // Object for storing chip info in TTree
 typedef struct {
@@ -105,9 +106,6 @@ class ITSCalibrator : public Task
   //static constexpr short int N_LAYER_IB = 3;
 
   const short int N_RU = o2::itsmft::ChipMappingITS::getNRUs();
-
-  // The number of injections per data value
-  static constexpr short int N_INJ = 50;
 
   // Number of charges in a threshold scan (from 0 to 50 inclusive)
   static constexpr short int N_CHARGE = 51;

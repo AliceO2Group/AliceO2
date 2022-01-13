@@ -71,16 +71,15 @@ using namespace o2::framework;
 
 //////////////////////////////////////////////////////////////////////////////
 // Define error function for ROOT fitting
-const int NINJ = 50;
 double erf(double* xx, double* par)
 {
-  return (NINJ / 2) * TMath::Erf((xx[0] - par[0]) / (sqrt(2) * par[1])) + (NINJ / 2);
+  return (N_INJ / 2) * TMath::Erf((xx[0] - par[0]) / (sqrt(2) * par[1])) + (N_INJ / 2);
 }
 
 // ITHR erf is reversed
 double erf_ithr(double* xx, double* par)
 {
-  return (NINJ / 2) * (1 - TMath::Erf((xx[0] - par[0]) / (sqrt(2) * par[1]))) + (NINJ / 2);
+  return (N_INJ / 2) * (1 - TMath::Erf((xx[0] - par[0]) / (sqrt(2) * par[1]))) + (N_INJ / 2);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -222,7 +221,7 @@ bool ITSCalibrator::FindUpperLower(
     if (Upper == -1)
       return false;
     for (int i = Upper; i > 0; i--) {
-      if (data[i] >= this->nInj) {
+      if (data[i] >= N_INJ) {
         Lower = i;
         break;
       }
@@ -231,7 +230,7 @@ bool ITSCalibrator::FindUpperLower(
   } else { // not flipped
 
     for (int i = 0; i < NPoints; i++) {
-      if (data[i] >= this->nInj) {
+      if (data[i] >= N_INJ) {
         Upper = i;
         break;
       }
@@ -316,7 +315,7 @@ bool ITSCalibrator::GetThreshold_Fit(
 
   // g->SetMarkerStyle(20);
   // g->Draw("AP");
-  this->fitfcn->Fit("fitfcn", "QL");
+  this->fit_hist->Fit("fitfcn", "QL");
 
   noise = this->fitfcn->GetParameter(1);
   thresh = this->fitfcn->GetParameter(0);
@@ -382,23 +381,23 @@ bool ITSCalibrator::GetThreshold_Hitcounting(
   bool is50 = false;
   for (unsigned short int i = 0; i < NPoints; i++) {
     number_of_hits += data[i];
-    if (data[i] == this->nInj)
+    if (data[i] == N_INJ)
       is50 = true;
   }
 
   // If not enough counts return a failure
-  // if (number_of_hits < this->nInj) return false;
+  // if (number_of_hits < N_INJ) { return false; }
   if (!is50) {
     LOG(warning) << "Too few hits, skipping this pixel";
     return false;
   }
 
   if (this->scan_type == 'T') {
-    thresh = x[*(this->N_RANGE) - 1] - number_of_hits / (float)this->nInj;
+    thresh = x[*(this->N_RANGE) - 1] - number_of_hits / float(N_INJ);
   } else if (this->scan_type == 'V') {
-    thresh = (x[*(this->N_RANGE) - 1] * this->nInj - number_of_hits) / (float)this->nInj;
+    thresh = (x[*(this->N_RANGE) - 1] * N_INJ - number_of_hits) / float(N_INJ);
   } else if (this->scan_type == 'I') {
-    thresh = (number_of_hits - this->nInj * x[0]) / (float)this->nInj;
+    thresh = (number_of_hits - N_INJ * x[0]) / float(N_INJ);
   } else {
     LOG(error) << "Unexpected runtype encountered in GetThreshold_Hitcounting()";
     return false;
@@ -642,7 +641,7 @@ bool ITSCalibrator::scan_is_finished(const short int& chipID)
 {
   // Require that the last entry has at least half the number of expected hits
   short int col = 0; // Doesn't matter which column
-  return (pixelHits[chipID][col][*(this->N_RANGE) - 1] > (this->nInj / 2.));
+  return (pixelHits[chipID][col][*(this->N_RANGE) - 1] > (N_INJ / 2.));
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -650,7 +649,7 @@ bool ITSCalibrator::scan_is_finished(const short int& chipID)
 void ITSCalibrator::extract_and_update(const short int& chipID)
 {
   // In threshold scan case, reset threshold_tree before writing to a new file
-  if (this->scan_type == 'T') && (this->row_counter)++ == n_rows_per_file) {
+  if ((this->scan_type == 'T') && ((this->row_counter)++ == n_rows_per_file)) {
     // Finalize output and create a new TTree and ROOT file
     this->finalize_output();
     this->init_thresh_tree();
@@ -883,7 +882,7 @@ void ITSCalibrator::send_to_ccdb(
   auto class_name = o2::utils::MemFileHelper::getClassName(tuning);
 
   // Create metadata for database object
-  char ft[12] = "";
+  const char* ft = nullptr;
   switch (this->fit_type) {
     case DERIVATIVE:
       ft = "derivative";
@@ -944,7 +943,7 @@ void ITSCalibrator::endOfStream(EndOfStreamContext& ec)
   this->finalize_output();
 
   // Add configuration item to output strings for CCDB
-  char name[10] = "";
+  const char* name = nullptr;
   bool push_to_ccdb = false;
   if (this->scan_type == 'V') {
     // Loop over each chip in the thresholds data
@@ -1009,7 +1008,7 @@ DataProcessorSpec getITSCalibratorSpec()
     "its-calibrator",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<ITSCalibrator<ChipMappingITS>>()},
+    AlgorithmSpec{adaptFromTask<ITSCalibrator>()},
     // here I assume ''calls'' init, run, endOfStream sequentially...
     Options{{"fittype", VariantType::String, "derivative", {"Fit type to extract thresholds, with options: fit, derivative (default), hitcounting"}},
             {"output-dir", VariantType::String, "./", {"ROOT output directory"}},
