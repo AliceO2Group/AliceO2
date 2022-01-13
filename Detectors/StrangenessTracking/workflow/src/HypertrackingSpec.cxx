@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "TGeoGlobalMagField.h"
+#include "DataFormatsParameters/GRPObject.h"
+
 #include "StrangenessTrackingWorkflow/HypertrackingSpec.h"
 #include "ITSWorkflow/ClusterWriterSpec.h"
 #include "ITSWorkflow/TrackerSpec.h"
@@ -23,8 +26,13 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "ITStracking/IOUtils.h"
+#include "ITSMFTReconstruction/ClustererParam.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 
 #include "StrangenessTracking/HyperTracker.h"
+
+#include <fmt/format.h>
 
 namespace o2
 {
@@ -35,6 +43,8 @@ namespace strangeness_tracking
 class HypertrackerSpec : public framework::Task
 {
  public:
+  using ITSCluster = o2::BaseCluster<float>;
+
   HypertrackerSpec(bool isMC = false);
   ~HypertrackerSpec() override = default;
 
@@ -44,8 +54,10 @@ class HypertrackerSpec : public framework::Task
 
  private:
   bool mIsMC = false;
+  bool mRecreateV0 = true;
   TStopwatch mTimer;
   HyperTracker mTracker;
+  std::unique_ptr<parameters::GRPObject> mGRP = nullptr;
 };
 
 framework::WorkflowSpec getWorkflow(bool useMC, bool useRootInput)
@@ -72,6 +84,14 @@ void HypertrackerSpec::init(framework::InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
+
+  // auto filename = ic.options().get<std::string>("grp-file");
+  // const auto grp = parameters::GRPObject::loadFrom(filename);
+  // if (grp) {
+  //   mGRP.reset(grp);
+  //   base::Propagator::initFieldFromGRP(grp);
+  //   auto field = static_cast<field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+  // }
 
   // load geometry
   base::GeometryManager::loadGeometry();
@@ -114,6 +134,29 @@ void HypertrackerSpec::run(framework::ProcessingContext& pc)
        //  labITSTPCTOF.size(),
        labITS.size());
   //  \nlabTPCTOF: %d\nlabITSTPCTOF: %d
+
+  // ITS dict
+  o2::itsmft::TopologyDictionary ITSdict;
+  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
+  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
+  ITSdict.readFromFile(dictFile);
+
+  auto pattIt = ITSpatt.begin();
+  std::vector<ITSCluster> ITSClustersArray;
+  ITSClustersArray.reserve(ITSclus.size());
+  o2::its::ioutils::convertCompactClusters(ITSclus, pattIt, ITSClustersArray, ITSdict);
+
+  auto geom = o2::its::GeometryTGeo::Instance();
+
+  mTracker.loadData(ITStracks, ITSClustersArray, ITSTrackClusIdx, v0vec, geom, -5.);
+  mTracker.process();
+
+  pc.outputs().snapshot(Output{"HYP", "V0S", 0, Lifetime::Timeframe}, mTracker.getV0());
+  pc.outputs().snapshot(Output{"HYP", "HYPERTRACKS", 0, Lifetime::Timeframe}, mTracker.getHyperTracks());
+  pc.outputs().snapshot(Output{"HYP", "ITSREFS", 0, Lifetime::Timeframe}, mTracker.getITStrackRef());
+
+
+  
   mTimer.Stop();
 }
 
@@ -147,12 +190,16 @@ DataProcessorSpec getHyperTrackerSpec()
   // inputs.emplace_back("matchTPCTOF", "TOF", "MTC_TPC", 0, Lifetime::Timeframe); // Matching input type manually set to 0
 
   // Monte Carlo
-  inputs.emplace_back("trackITSTPCMCTR", "GLO", "TPCITS_MC", 0, Lifetime::Timeframe);    // MC truth
+  inputs.emplace_back("trackITSTPCMCTR", "GLO", "TPCITS_MC", 0, Lifetime::Timeframe); // MC truth
   // inputs.emplace_back("clsTOF_GLO_MCTR", "TOF", "MCMTC_ITSTPC", 0, Lifetime::Timeframe); // MC truth
-  inputs.emplace_back("trackITSMCTR", "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);      // MC truth
+  inputs.emplace_back("trackITSMCTR", "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe); // MC truth
   // inputs.emplace_back("clsTOF_TPC_MCTR", "TOF", "MCMTC_TPC", 0, Lifetime::Timeframe);    // MC truth, // Matching input type manually set to 0
 
   std::vector<OutputSpec> outputs;
+  outputs.emplace_back("HYP", "V0S", 0, Lifetime::Timeframe);
+  outputs.emplace_back("HYP", "HYPERTRACKS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("HYP", "ITSREFS", 0, Lifetime::Timeframe);
+
 
   return DataProcessorSpec{
     "hypertracker",

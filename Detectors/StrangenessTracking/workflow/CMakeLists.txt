@@ -12,6 +12,7 @@
 o2_add_library(StrangenessTrackingWorkflow
                TARGETVARNAME targetName
                SOURCES src/HypertrackingSpec.cxx
+               SOURCES src/HypertrackingWriterSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflowReaders
                                      O2::GlobalTrackingWorkflow
                                      O2::ITSWorkflow

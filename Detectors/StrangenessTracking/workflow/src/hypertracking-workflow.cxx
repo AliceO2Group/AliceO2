@@ -10,6 +10,8 @@
 // or submit itself to any jurisdiction.
 
 #include "StrangenessTrackingWorkflow/HypertrackingSpec.h"
+#include "StrangenessTrackingWorkflow/HypertrackingWriterSpec.h"
+
 #include "CommonUtils/ConfigurableParam.h"
 #include "StrangenessTracking/HypertrackingConfigParam.h"
 
@@ -20,6 +22,8 @@
 #include <vector>
 
 using namespace o2::framework;
+using namespace o2::strangeness_tracking;
+
 
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
@@ -51,6 +55,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
   auto wf = o2::strangeness_tracking::getWorkflow(useMC, useRootInput);
+  wf.emplace_back(getHypertrackingWriterSpec());
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);
