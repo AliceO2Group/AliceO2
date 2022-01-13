@@ -183,13 +183,13 @@ BOOST_AUTO_TEST_CASE(VariableLists)
 
   int empty[] = {3, 7, 10};
   auto count = 0;
-  for (auto i = 1; i < 11; ++i) {
+  for (auto i = 1; i < 1000; ++i) {
     iv.clear();
     fv.clear();
     dv.clear();
     ui.clear();
     if (i != empty[count]) {
-      for (auto j = 0; j < i; ++j) {
+      for (auto j = 0; j < i % 10 + 1; ++j) {
         iv.push_back(j + 2);
         fv.push_back((j + 2) * 0.2134f);
         dv.push_back((j + 4) * 0.192873819237);
@@ -218,22 +218,22 @@ BOOST_AUTO_TEST_CASE(VariableLists)
   int i = 1;
   count = 0;
   for (auto& row : v) {
-    auto iv = row.ivec();
-    auto fv = row.fvec();
-    auto dv = row.dvec();
-    auto uv = row.uivec();
+    auto ivr = row.ivec();
+    auto fvr = row.fvec();
+    auto dvr = row.dvec();
+    auto uvr = row.uivec();
     if (i != empty[count]) {
-      for (auto j = 0; j < i; ++j) {
-        BOOST_CHECK_EQUAL(iv[j], j + 2);
-        BOOST_CHECK_EQUAL(fv[j], (j + 2) * 0.2134f);
-        BOOST_CHECK_EQUAL(dv[j], (j + 4) * 0.192873819237);
-        BOOST_CHECK_EQUAL(uv[j], j);
+      for (auto j = 0; j < i % 10 + 1; ++j) {
+        BOOST_CHECK_EQUAL(ivr[j], j + 2);
+        BOOST_CHECK_EQUAL(fvr[j], (j + 2) * 0.2134f);
+        BOOST_CHECK_EQUAL(dvr[j], (j + 4) * 0.192873819237);
+        BOOST_CHECK_EQUAL(uvr[j], j);
       }
     } else {
-      BOOST_CHECK_EQUAL(iv.size(), 0);
-      BOOST_CHECK_EQUAL(fv.size(), 0);
-      BOOST_CHECK_EQUAL(dv.size(), 0);
-      BOOST_CHECK_EQUAL(uv.size(), 0);
+      BOOST_CHECK_EQUAL(ivr.size(), 0);
+      BOOST_CHECK_EQUAL(fvr.size(), 0);
+      BOOST_CHECK_EQUAL(dvr.size(), 0);
+      BOOST_CHECK_EQUAL(uvr.size(), 0);
       count++;
     }
     ++i;

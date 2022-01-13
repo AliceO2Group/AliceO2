@@ -13,9 +13,7 @@
 #include "Framework/MessageContext.h"
 #include "fairmq/FairMQDevice.h"
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 FairMQMessagePtr MessageContext::createMessage(const std::string& channel, int index, size_t size)
@@ -80,5 +78,27 @@ o2::header::Stack* MessageContext::findMessageHeaderStack(const Output& spec)
   return nullptr;
 }
 
-} // namespace framework
-} // namespace o2
+int64_t MessageContext::addToCache(std::unique_ptr<FairMQMessage>& toCache)
+{
+  auto&& cached = toCache->GetTransport()->CreateMessage();
+  cached->Copy(*toCache);
+  // The pointer is immutable!
+  int64_t cacheId = (int64_t)toCache->GetData();
+  mMessageCache.insert({cacheId, std::move(cached)});
+  return cacheId;
+}
+
+std::unique_ptr<FairMQMessage> MessageContext::cloneFromCache(int64_t id) const
+{
+  auto& inCache = mMessageCache.at(id);
+  auto&& cloned = inCache->GetTransport()->CreateMessage();
+  cloned->Copy(*inCache);
+  return std::move(cloned);
+}
+
+void MessageContext::pruneFromCache(int64_t id)
+{
+  mMessageCache.erase(id);
+}
+
+} // namespace o2::framework

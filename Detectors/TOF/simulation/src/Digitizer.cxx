@@ -857,7 +857,7 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
               // add diagnostic if needed
               if (trmProg[itrm].second > p) {
                 // fill diagnostic
-                mCalibApi->processError(crate, itrm, trmErr[itrm]);
+                mCalibApi->processError(crate, slot, trmErr[itrm]);
                 mPatterns.push_back(slot + 28); // add slot
                 info.addedDiagnostic(crate);
                 uint32_t cbit = 1;

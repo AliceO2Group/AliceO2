@@ -225,18 +225,19 @@ std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> B
     }
 
     auto typeSize = TDataType::GetDataType(mType)->Size();
-    std::unique_ptr<TBufferFile> offsetBuffer;
+    std::unique_ptr<TBufferFile> offsetBuffer = nullptr;
 
     uint32_t offset = 0;
-    uint32_t lastOffset;
     int count = 0;
     std::shared_ptr<arrow::Buffer> arrowOffsetBuffer;
     gsl::span<int> offsets;
     int size = 0;
     uint32_t totalSize = 0;
+    TBranch* mSizeBranch = nullptr;
     if (mVLA) {
-      offsetBuffer.reset(new TBufferFile{TBuffer::EMode::kWrite, 4 * 1024 * 1024});
-      result = arrow::AllocateResizableBuffer((totalEntries + 1) * sizeof(int), mPool);
+      mSizeBranch = mBranch->GetTree()->GetBranch((std::string{mBranch->GetName()} + TableTreeHelpers::sizeBranchSuffix).c_str());
+      offsetBuffer = std::make_unique<TBufferFile>(TBuffer::EMode::kWrite, 4 * 1024 * 1024);
+      result = arrow::AllocateResizableBuffer((totalEntries + 1) * (int64_t)sizeof(int), mPool);
       if (!result.ok()) {
         throw runtime_error("Cannot allocate offset buffer");
       }
@@ -244,29 +245,33 @@ std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> B
       unsigned char* ptrOffset = arrowOffsetBuffer->mutable_data();
       auto* tPtrOffset = reinterpret_cast<int*>(ptrOffset);
       offsets = gsl::span<int>{tPtrOffset, tPtrOffset + totalEntries + 1};
-    }
 
-    while (readEntries < totalEntries) {
-      auto readLast = mBranch->GetBulkRead().GetEntriesSerialized(readEntries, *buffer, offsetBuffer.get());
-      readEntries += readLast;
-
-      if (mVLA) {
-        lastOffset = offset;
+      // read sizes first
+      while (readEntries < totalEntries) {
+        auto readLast = mSizeBranch->GetBulkRead().GetEntriesSerialized(readEntries, *offsetBuffer);
+        readEntries += readLast;
         for (auto i = 0; i < readLast; ++i) {
           offsets[count++] = (int)offset;
           offset += swap32_(reinterpret_cast<uint32_t*>(offsetBuffer->GetCurrent())[i]);
         }
-        size = offset - lastOffset;
+      }
+      offsets[count] = (int)offset;
+      totalSize = offset;
+      readEntries = 0;
+    }
+
+    while (readEntries < totalEntries) {
+      auto readLast = mBranch->GetBulkRead().GetEntriesSerialized(readEntries, *buffer);
+      if (mVLA) {
+        size = offsets[readEntries + readLast] - offsets[readEntries];
       } else {
         size = readLast * mListSize;
       }
+      readEntries += readLast;
       swapCopy(ptr, buffer->GetCurrent(), size, typeSize);
-      ptr += size * typeSize;
+      ptr += (ptrdiff_t)(size * typeSize);
     }
-    if (mVLA) {
-      offsets[count] = offset;
-      totalSize = offset;
-    } else {
+    if (!mVLA) {
       totalSize = readEntries * mListSize;
     }
     std::shared_ptr<arrow::PrimitiveArray> varray;

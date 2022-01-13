@@ -17,11 +17,13 @@ o2_add_library(MFTWorkflow
                        src/TrackerSpec.cxx
                        src/TrackReaderSpec.cxx
                        src/TrackWriterSpec.cxx
+                       src/MFTAssessmentSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::SimConfig
                                      O2::SimulationDataFormat
                                      O2::ITSMFTReconstruction
                                      O2::MFTTracking
+                                     O2::MFTAssessment
                                      O2::DataFormatsMFT
                                      O2::ITSMFTWorkflow)
 o2_add_executable(reco-workflow
@@ -31,5 +33,10 @@ o2_add_executable(reco-workflow
 
 o2_add_executable(cluster-reader-workflow
                   SOURCES src/mft-cluster-reader-workflow.cxx
+                  COMPONENT_NAME mft
+                  PUBLIC_LINK_LIBRARIES O2::MFTWorkflow)
+
+o2_add_executable(assessment-workflow
+                  SOURCES src/mft-assessment-workflow.cxx
                   COMPONENT_NAME mft
                   PUBLIC_LINK_LIBRARIES O2::MFTWorkflow)

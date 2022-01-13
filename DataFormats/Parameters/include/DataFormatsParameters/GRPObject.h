@@ -137,6 +137,9 @@ class GRPObject
   /// same with comma-separate list of detector names
   DetID::mask_t getDetsReadOut(const std::string& only, const std::string& skip = "") const { return getDetsReadOut(DetID::getMask(only), DetID::getMask(skip)); }
 
+  bool isMC() const { return mIsMC; }
+  void setIsMC(bool v = true) { mIsMC = v; }
+
   /// print itself
   void print() const;
 
@@ -161,7 +164,7 @@ class GRPObject
 
   int8_t mNominalL3Field = 0;        //!< Nominal L3 field deduced from mL3Current
   bool mNominalL3FieldValid = false; //!< Has the field been computed (for caching)
-
+  bool mIsMC = false;                // flag GRP for MC
   int mBeamAZ[beamDirection::NBeamDirections] = {0, 0}; ///< A<<16+Z for each beam
 
   int mRun = 0;                 ///< run identifier
@@ -169,7 +172,7 @@ class GRPObject
   std::string mDataPeriod = ""; ///< name of the period
   std::string mLHCState = "";   ///< machine state
 
-  ClassDefNV(GRPObject, 7);
+  ClassDefNV(GRPObject, 8);
 };
 
 //______________________________________________

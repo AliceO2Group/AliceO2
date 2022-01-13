@@ -46,7 +46,7 @@ float GRPObject::getSqrtS() const
 void GRPObject::print() const
 {
   // print itself
-  printf("Run: %8d\nFill: %6d\nPeriod: %s\n", getRun(), getFill(), getDataPeriod().data());
+  printf("Run: %8d\nFill: %6d\nPeriod: %s, isMC:%d\n", getRun(), getFill(), getDataPeriod().data(), isMC());
   printf("LHC State: %s\n", getLHCState().data());
   std::time_t t = mTimeStart; // system_clock::to_time_t(mTimeStart);
   printf("Start: %s", std::ctime(&t));

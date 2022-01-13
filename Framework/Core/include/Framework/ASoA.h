@@ -41,52 +41,52 @@ auto createSchemaFromColumns(framework::pack<C...>)
 using SelectionVector = std::vector<int64_t>;
 
 template <typename, typename = void>
-constexpr bool is_index_column_v = false;
+inline constexpr bool is_index_column_v = false;
 
 template <typename T>
-constexpr bool is_index_column_v<T, std::void_t<decltype(sizeof(typename T::binding_t))>> = true;
+inline constexpr bool is_index_column_v<T, std::void_t<decltype(sizeof(typename T::binding_t))>> = true;
 
 template <typename, typename = void>
-constexpr bool is_type_with_originals_v = false;
+inline constexpr bool is_type_with_originals_v = false;
 
 template <typename T>
-constexpr bool is_type_with_originals_v<T, std::void_t<decltype(sizeof(typename T::originals))>> = true;
+inline constexpr bool is_type_with_originals_v<T, std::void_t<decltype(sizeof(typename T::originals))>> = true;
 
 template <typename T, typename = void>
-constexpr bool is_type_with_parent_v = false;
+inline constexpr bool is_type_with_parent_v = false;
 
 template <typename T>
-constexpr bool is_type_with_parent_v<T, std::void_t<decltype(sizeof(typename T::parent_t))>> = true;
+inline constexpr bool is_type_with_parent_v<T, std::void_t<decltype(sizeof(typename T::parent_t))>> = true;
 
 template <typename, typename = void>
-constexpr bool is_type_with_metadata_v = false;
+inline constexpr bool is_type_with_metadata_v = false;
 
 template <typename T>
-constexpr bool is_type_with_metadata_v<T, std::void_t<decltype(sizeof(typename T::metadata))>> = true;
+inline constexpr bool is_type_with_metadata_v<T, std::void_t<decltype(sizeof(typename T::metadata))>> = true;
 
 template <typename, typename = void>
-constexpr bool is_type_with_binding_v = false;
+inline constexpr bool is_type_with_binding_v = false;
 
 template <typename T>
-constexpr bool is_type_with_binding_v<T, std::void_t<decltype(sizeof(typename T::binding_t))>> = true;
+inline constexpr bool is_type_with_binding_v<T, std::void_t<decltype(sizeof(typename T::binding_t))>> = true;
 
 template <typename, typename = void>
-constexpr bool is_type_spawnable_v = false;
+inline constexpr bool is_type_spawnable_v = false;
 
 template <typename T>
-constexpr bool is_type_spawnable_v<T, std::void_t<decltype(sizeof(typename T::spawnable_t))>> = true;
+inline constexpr bool is_type_spawnable_v<T, std::void_t<decltype(sizeof(typename T::spawnable_t))>> = true;
 
 template <typename T, typename = void>
-constexpr bool is_index_table_v = false;
+inline constexpr bool is_index_table_v = false;
 
 template <typename T>
-constexpr bool is_index_table_v<T, std::void_t<decltype(sizeof(typename T::indexing_t))>> = true;
+inline constexpr bool is_index_table_v<T, std::void_t<decltype(sizeof(typename T::indexing_t))>> = true;
 
 template <typename, typename = void>
-constexpr bool is_self_index_column_v = false;
+inline constexpr bool is_self_index_column_v = false;
 
 template <typename T>
-constexpr bool is_self_index_column_v<T, std::void_t<decltype(sizeof(typename T::self_index_t))>> = true;
+inline constexpr bool is_self_index_column_v<T, std::void_t<decltype(sizeof(typename T::self_index_t))>> = true;
 
 template <typename T, typename TLambda>
 void call_if_has_originals(TLambda&& lambda)
@@ -896,7 +896,7 @@ using is_soa_iterator_t = typename framework::is_base_of_template<RowViewCore, T
 template <typename T>
 constexpr bool is_soa_iterator_v()
 {
-  return is_soa_iterator_t<T>::value || framework::is_specialization<T, RowViewCore>::value;
+  return is_soa_iterator_t<T>::value || framework::is_specialization_v<T, RowViewCore>;
 }
 
 template <typename T>
@@ -1991,10 +1991,16 @@ struct Concat : ConcatBase<T1, T2> {
 };
 
 template <typename T>
-using is_soa_join_t = typename framework::is_specialization<T, soa::Join>;
+using is_soa_join_t = framework::is_specialization<T, soa::Join>;
 
 template <typename T>
-using is_soa_concat_t = typename framework::is_specialization<T, soa::Concat>;
+using is_soa_concat_t = framework::is_specialization<T, soa::Concat>;
+
+template <typename T>
+inline constexpr bool is_soa_join_v = is_soa_join_t<T>::value;
+
+template <typename T>
+inline constexpr bool is_soa_concat_v = is_soa_concat_t<T>::value;
 
 template <typename T>
 class FilteredBase : public T

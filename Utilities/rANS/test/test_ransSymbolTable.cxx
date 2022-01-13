@@ -33,9 +33,8 @@ BOOST_AUTO_TEST_CASE(test_empty)
 {
   using namespace o2::rans;
 
-  const std::vector<uint32_t> A{};
-  const internal::SymbolStatistics symbolStats{A.begin(), A.end(), 0, 0u, 0u};
-  const internal::SymbolTable<internal::DecoderSymbol> symbolTable{symbolStats};
+  const auto frequencyTable = renorm(FrequencyTable{});
+  const internal::SymbolTable<internal::DecoderSymbol> symbolTable{frequencyTable};
 
   BOOST_CHECK_EQUAL(symbolTable.getMinSymbol(), 0);
   BOOST_CHECK_EQUAL(symbolTable.getMaxSymbol(), 0);
@@ -71,8 +70,8 @@ BOOST_AUTO_TEST_CASE(test_symbolTable)
 
   FrequencyTable f;
   f.addSamples(A.begin(), A.end());
-  const internal::SymbolStatistics symbolStats{std::move(f), scaleBits};
-  const internal::SymbolTable<internal::DecoderSymbol> symbolTable{symbolStats};
+  f = renorm(std::move(f), scaleBits);
+  const internal::SymbolTable<internal::DecoderSymbol> symbolTable{f};
 
   BOOST_CHECK_EQUAL(symbolTable.getMinSymbol(), min);
   BOOST_CHECK_EQUAL(symbolTable.getMaxSymbol(), *std::max_element(A.begin(), A.end()) + 1);
@@ -107,7 +106,7 @@ BOOST_AUTO_TEST_CASE(test_symbolTable)
       BOOST_CHECK_EQUAL(decodeSymbol.getCumulative(), cumulative[i]);
     }
   }
-  //escape symbol:
+  // escape symbol:
   BOOST_CHECK_EQUAL(symbolTable.isEscapeSymbol(0), true);
   BOOST_CHECK_EQUAL(escapeSymbol.getFrequency(), symbolTable.at(frequencies.size() - 1).getFrequency());
   BOOST_CHECK_EQUAL(escapeSymbol.getCumulative(), symbolTable.at(frequencies.size() - 1).getCumulative());

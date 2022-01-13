@@ -16,7 +16,7 @@
 #include "TFile.h"
 #include <functional>
 
-o2::tpc::IDCFactorization::IDCFactorization(const std::array<unsigned char, Mapper::NREGIONS>& groupPads, const std::array<unsigned char, Mapper::NREGIONS>& groupRows, const std::array<unsigned char, Mapper::NREGIONS>& groupLastRowsThreshold, const std::array<unsigned char, Mapper::NREGIONS>& groupLastPadsThreshold, const unsigned char groupNotnPadsSectorEdges, const unsigned int timeFrames, const unsigned int timeframesDeltaIDC)
+o2::tpc::IDCFactorization::IDCFactorization(const std::array<unsigned char, Mapper::NREGIONS>& groupPads, const std::array<unsigned char, Mapper::NREGIONS>& groupRows, const std::array<unsigned char, Mapper::NREGIONS>& groupLastRowsThreshold, const std::array<unsigned char, Mapper::NREGIONS>& groupLastPadsThreshold, const unsigned int groupNotnPadsSectorEdges, const unsigned int timeFrames, const unsigned int timeframesDeltaIDC)
   : IDCGroupHelperSector{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupNotnPadsSectorEdges}, mTimeFrames{timeFrames}, mTimeFramesDeltaIDC{timeframesDeltaIDC}, mIDCDelta{timeFrames / timeframesDeltaIDC + (timeFrames % timeframesDeltaIDC != 0)}
 {
   for (auto& idc : mIDCs) {
@@ -70,7 +70,7 @@ void o2::tpc::IDCFactorization::dumpToTree(int integrationIntervals, const char*
         for (unsigned int irow = 0; irow < Mapper::ROWSPERREGION[region]; ++irow) {
           for (unsigned int ipad = 0; ipad < Mapper::PADSPERROW[region][irow]; ++ipad) {
             const auto padNum = Mapper::getGlobalPadNumber(irow, ipad, region);
-            const auto padTmp = (sector < SECTORSPERSIDE) ? ipad : (Mapper::PADSPERROW[region][irow] - ipad); // C-Side is mirrored
+            const auto padTmp = (sector < SECTORSPERSIDE) ? ipad : (Mapper::PADSPERROW[region][irow] - ipad - 1); // C-Side is mirrored
             const auto& padPosLocal = mapper.padPos(padNum);
             vRow[index] = padPosLocal.getRow();
             vPad[index] = padPosLocal.getPad();
@@ -123,10 +123,8 @@ void o2::tpc::IDCFactorization::dumpToTree(int integrationIntervals, const char*
 void o2::tpc::IDCFactorization::calcIDCZero(const bool norm)
 {
   const unsigned int nIDCsSide = mNIDCsPerSector * o2::tpc::SECTORSPERSIDE;
-  mIDCZero.clear(Side::A);
-  mIDCZero.clear(Side::C);
-  mIDCZero.resize(Side::A, nIDCsSide);
-  mIDCZero.resize(Side::C, nIDCsSide);
+  mIDCZero.clear();
+  mIDCZero.resize(nIDCsSide);
 
 #pragma omp parallel for num_threads(sNThreads)
   for (unsigned int cru = 0; cru < mIDCs.size(); ++cru) {
@@ -151,10 +149,8 @@ void o2::tpc::IDCFactorization::calcIDCOne()
 {
   const unsigned int nIDCsSide = mNIDCsPerSector * SECTORSPERSIDE;
   const unsigned int integrationIntervals = getNIntegrationIntervals();
-  mIDCOne.clear(Side::A);
-  mIDCOne.clear(Side::C);
-  mIDCOne.resize(Side::A, integrationIntervals);
-  mIDCOne.resize(Side::C, integrationIntervals);
+  mIDCOne.clear();
+  mIDCOne.resize(integrationIntervals);
   const unsigned int crusPerSide = Mapper::NREGIONS * SECTORSPERSIDE;
 
 #pragma omp parallel for num_threads(sNThreads)
@@ -169,7 +165,10 @@ void o2::tpc::IDCFactorization::calcIDCOne()
       for (unsigned int idcs = 0; idcs < mIDCs[cru][timeframe].size(); ++idcs) {
         const unsigned int integrationInterval = idcs / mNIDCsPerCRU[region] + integrationIntervallast;
         const unsigned int indexGlob = (idcs % mNIDCsPerCRU[region]) + factorIndexGlob;
-        mIDCOne.mIDCOne[side][integrationInterval] += mIDCs[cru][timeframe][idcs] / (factorIDCOne * mIDCZero.mIDCZero[side][indexGlob % nIDCsSide]);
+        const auto idcZeroVal = mIDCZero.mIDCZero[side][indexGlob % nIDCsSide];
+        if (idcZeroVal) {
+          mIDCOne.mIDCOne[side][integrationInterval] += mIDCs[cru][timeframe][idcs] / (factorIDCOne * idcZeroVal);
+        }
       }
       integrationIntervallast += mIDCs[cru][timeframe].size() / mNIDCsPerCRU[region];
     }

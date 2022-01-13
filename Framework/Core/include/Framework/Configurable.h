@@ -105,5 +105,22 @@ std::ostream& operator<<(std::ostream& os, Configurable<T, K, IP> const& c)
   return os;
 }
 
+/// Can be used to group together a number of Configurables
+/// to overcome the limit of 100 Configurables per task.
+/// In order to do so you can do:
+///
+/// struct MyTask {
+///   struct MyGroup : ConfigurableGroup {
+///     Configurable<int> aCut{...};
+///     Configurable<float> bCut{...};
+///   } group;
+/// };
+///
+/// and access it with
+///
+/// group.aCut;
+struct ConfigurableGroup {
+};
+
 } // namespace o2::framework
 #endif // O2_FRAMEWORK_CONFIGURABLE_H_

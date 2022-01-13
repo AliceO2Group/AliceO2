@@ -287,13 +287,21 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
       FairMQParts messages;
       size_t nHeaders = 0;
       size_t totalPayload = 0;
-      auto insertHeader = [&dph, &channelAlloc, &messages, &nHeaders](DataHeader const& dh) -> void {
-        FairMQMessagePtr header = o2::pmr::getMessage(Stack{channelAlloc, dh, dph});
+      size_t allocatedSize = 0;
+      auto createMessage = [&transport, &allocatedSize](size_t size) -> FairMQMessagePtr {
+        auto msg = transport->CreateMessage(size);
+        allocatedSize += size;
+        return msg;
+      };
+      auto insertHeader = [&dph, &createMessage, &messages, &nHeaders](DataHeader const& dh) -> void {
+        Stack stack{dh, dph};
+        FairMQMessagePtr header = createMessage(stack.size());
+        memcpy(header->GetData(), stack.data(), stack.size());
         messages.AddPart(std::move(header));
         ++nHeaders;
       };
-      auto insertPayload = [&transport, &messages, &totalPayload](size_t size) -> void {
-        FairMQMessagePtr payload = transport->CreateMessage(size);
+      auto insertPayload = [&createMessage, &messages, &totalPayload](size_t size) -> void {
+        FairMQMessagePtr payload = createMessage(size);
         messages.AddPart(std::move(payload));
         totalPayload += size;
       };
@@ -344,7 +352,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
         if (std::string(e.what()).find("shmem: could not create a message of size") == std::string::npos) {
           throw e;
         }
-        LOG(error) << fmt::format("Exception {}\nconsider increasing shared memory", e.what());
+        LOG(error) << fmt::format("Exception {}\nallocated {} in cycle {} \nconsider increasing shared memory", e.what(), allocatedSize, attributes->iteration);
         forcedTermination = true;
       }
       ++attributes->iteration;

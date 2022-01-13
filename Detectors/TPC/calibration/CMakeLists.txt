@@ -126,6 +126,14 @@ o2_add_test(IDCFourierTransform
             LABELS tpc
             CONFIGURATIONS RelWithDebInfo Release MinRelSize)
 
+o2_add_test(IDCAverageGroup
+            LABELS tpc
+            PUBLIC_LINK_LIBRARIES O2::TPCCalibration
+            COMPONENT_NAME tpc
+            SOURCES test/testO2TPCIDCAverageGroup.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+            CONFIGURATIONS RelWithDebInfo Release MinRelSize)
+
 if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
     target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)

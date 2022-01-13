@@ -43,10 +43,10 @@ Digit& Digit::operator+=(const Digit& other)
 void Digit::setAmplitudeADC(Short_t amplitude, ChannelType_t ctype)
 {
   if (ctype == ChannelType_t::LOW_GAIN) {
-    if (amplitude > constants::EMCAL_HGLGTRANSITION / constants::EMCAL_HGLGFACTOR) {
+    if (amplitude > (constants::EMCAL_HGLGTRANSITION / constants::EMCAL_HGLGFACTOR)) {
       mAmplitude = amplitude;
       mChannelType = ChannelType_t::LOW_GAIN;
-    } else if (amplitude < -0x8000 / constants::EMCAL_HGLGFACTOR) {
+    } else if (amplitude < (-0x8000 / constants::EMCAL_HGLGFACTOR)) {
       mAmplitude = -0x8000;
       mChannelType = ChannelType_t::HIGH_GAIN;
     } else {
@@ -85,12 +85,12 @@ Int_t Digit::getAmplitudeADC(ChannelType_t ctype) const
 
 void Digit::setAmplitude(Double_t amplitude)
 {
-  if (amplitude < -0x8000 * constants::EMCAL_ADCENERGY) {
+  if (amplitude < (-0x8000 * constants::EMCAL_ADCENERGY)) {
     setAmplitudeADC(-0x8000, ChannelType_t::HIGH_GAIN);
-  } else if (amplitude <= constants::EMCAL_HGLGTRANSITION * constants::EMCAL_ADCENERGY) {
+  } else if (amplitude <= (constants::EMCAL_HGLGTRANSITION * constants::EMCAL_ADCENERGY)) {
     Short_t a = (Short_t)(std::floor(amplitude / constants::EMCAL_ADCENERGY));
     setAmplitudeADC(a, ChannelType_t::HIGH_GAIN);
-  } else if (amplitude <= 0x7fff * constants::EMCAL_ADCENERGY * constants::EMCAL_HGLGFACTOR) {
+  } else if (amplitude <= (0x7fff * constants::EMCAL_ADCENERGY * constants::EMCAL_HGLGFACTOR)) {
     Short_t a = (Short_t)(std::floor(amplitude / (constants::EMCAL_ADCENERGY * constants::EMCAL_HGLGFACTOR)));
     setAmplitudeADC(a, ChannelType_t::LOW_GAIN);
   } else {

@@ -21,6 +21,8 @@
 #include <cstring>
 #include <cassert>
 
+#include "rANS/definitions.h"
+
 namespace o2
 {
 namespace rans
@@ -32,8 +34,6 @@ namespace internal
 class DecoderSymbol
 {
  public:
-  using count_t = uint32_t;
-
   //TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
   constexpr DecoderSymbol() noexcept {}; //NOLINT
   // Initialize a decoder symbol to start "start" and frequency "freq"

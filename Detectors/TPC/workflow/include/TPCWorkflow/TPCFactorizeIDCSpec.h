@@ -56,7 +56,7 @@ struct TPCFactorizeIDCStruct<TPCFactorizeIDCSpecNoGroup> {
 template <>
 struct TPCFactorizeIDCStruct<TPCFactorizeIDCSpecGroup> {
 
-  TPCFactorizeIDCStruct(const std::array<unsigned char, Mapper::NREGIONS>& groupPads, const std::array<unsigned char, Mapper::NREGIONS>& groupRows, const std::array<unsigned char, Mapper::NREGIONS>& groupLastRowsThreshold, const std::array<unsigned char, Mapper::NREGIONS>& groupLastPadsThreshold, const unsigned char groupPadsSectorEdges, const unsigned char overlapRows = 0, const unsigned char overlapPads = 0)
+  TPCFactorizeIDCStruct(const std::array<unsigned char, Mapper::NREGIONS>& groupPads, const std::array<unsigned char, Mapper::NREGIONS>& groupRows, const std::array<unsigned char, Mapper::NREGIONS>& groupLastRowsThreshold, const std::array<unsigned char, Mapper::NREGIONS>& groupLastPadsThreshold, const unsigned int groupPadsSectorEdges, const unsigned char overlapRows = 0, const unsigned char overlapPads = 0)
     : mIDCs(groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges){};
   IDCAverageGroup<IDCAverageGroupTPC> mIDCs; ///< object for averaging and grouping of the IDCs
   inline static int sNThreads{1};            ///< number of threads which are used during the calculations
@@ -69,13 +69,13 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (std::is_same<Type, TPCFactorizeIDCSpecNoGroup>::value)), int>::type = 0>
   TPCFactorizeIDCSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int timeframesDeltaIDC, std::array<unsigned char, Mapper::NREGIONS> groupPads,
                       std::array<unsigned char, Mapper::NREGIONS> groupRows, std::array<unsigned char, Mapper::NREGIONS> groupLastRowsThreshold,
-                      std::array<unsigned char, Mapper::NREGIONS> groupLastPadsThreshold, const unsigned char groupPadsSectorEdges, const IDCDeltaCompression compression, const bool debug = false, const bool senddebug = false)
+                      std::array<unsigned char, Mapper::NREGIONS> groupLastPadsThreshold, const unsigned int groupPadsSectorEdges, const IDCDeltaCompression compression, const bool debug = false, const bool senddebug = false)
     : mCRUs{crus}, mIDCFactorization{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges, timeframes, timeframesDeltaIDC}, mCompressionDeltaIDC{compression}, mDebug{debug}, mSendOutDebug{senddebug} {};
 
   template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (std::is_same<Type, TPCFactorizeIDCSpecGroup>::value)), int>::type = 0>
   TPCFactorizeIDCSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int timeframesDeltaIDC, std::array<unsigned char, Mapper::NREGIONS> groupPads,
                       std::array<unsigned char, Mapper::NREGIONS> groupRows, std::array<unsigned char, Mapper::NREGIONS> groupLastRowsThreshold,
-                      std::array<unsigned char, Mapper::NREGIONS> groupLastPadsThreshold, const unsigned char groupPadsSectorEdges, const IDCDeltaCompression compression, const bool debug = false, const bool senddebug = false)
+                      std::array<unsigned char, Mapper::NREGIONS> groupLastPadsThreshold, const unsigned int groupPadsSectorEdges, const IDCDeltaCompression compression, const bool debug = false, const bool senddebug = false)
     : mCRUs{crus}, mIDCFactorization{std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, 0, timeframes, timeframesDeltaIDC}, mIDCStruct{TPCFactorizeIDCStruct<TPCFactorizeIDCSpecGroup>(groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges)}, mCompressionDeltaIDC{compression}, mDebug{debug}, mSendOutDebug{senddebug} {};
 
   void init(o2::framework::InitContext& ic) final
@@ -198,6 +198,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
 
       for (unsigned int iChunk = 0; iChunk < mIDCFactorization.getNChunks(); ++iChunk) {
         if constexpr (std::is_same_v<Type, TPCFactorizeIDCSpecGroup>) {
+          // perform grouping of IDC Delta if necessary
           mIDCStruct.mIDCs.setIDCs(std::move(mIDCFactorization).getIDCDeltaUncompressed(iChunk));
           LOGP(info, "averaging and grouping DeltaIDCs for TFs {} - {} for CRUs {} to {} using {} threads", getFirstTFDeltaIDC(iChunk), getLastTFDeltaIDC(iChunk), mCRUs.front(), mCRUs.back(), mIDCStruct.mIDCs.getNThreads());
           mIDCStruct.mIDCs.processIDCs();
@@ -210,7 +211,6 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
           case IDCDeltaCompression::MEDIUM:
           default: {
             using compType = short;
-            // perform grouping of IDC Delta if necessary
             if constexpr (std::is_same_v<Type, TPCFactorizeIDCSpecGroup>) {
               auto idcDeltaMediumCompressed = IDCDeltaCompressionHelper<compType>::getCompressedIDCs(mIDCStruct.mIDCs.getIDCGroupData());
               mDBapi.storeAsTFileAny<o2::tpc::IDCDelta<compType>>(&idcDeltaMediumCompressed, "TPC/Calib/IDC/IDCDELTA", mMetadata, getFirstTFDeltaIDC(iChunk), getLastTFDeltaIDC(iChunk));
@@ -223,7 +223,6 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
           }
           case IDCDeltaCompression::HIGH: {
             using compType = char;
-            // perform grouping of IDC Delta if necessary
             if constexpr (std::is_same_v<Type, TPCFactorizeIDCSpecGroup>) {
               auto idcDeltaMediumCompressed = IDCDeltaCompressionHelper<compType>::getCompressedIDCs(mIDCStruct.mIDCs.getIDCGroupData());
               mDBapi.storeAsTFileAny<o2::tpc::IDCDelta<compType>>(&idcDeltaMediumCompressed, "TPC/Calib/IDC/IDCDELTA", mMetadata, getFirstTFDeltaIDC(iChunk), getLastTFDeltaIDC(iChunk));
@@ -273,7 +272,7 @@ DataProcessorSpec getTPCFactorizeIDCSpec(const int lane, const std::vector<uint3
   std::copy(std::begin(paramIDCGroup.groupRows), std::end(paramIDCGroup.groupRows), std::begin(groupRows));
   std::copy(std::begin(paramIDCGroup.groupLastRowsThreshold), std::end(paramIDCGroup.groupLastRowsThreshold), std::begin(groupLastRowsThreshold));
   std::copy(std::begin(paramIDCGroup.groupLastPadsThreshold), std::end(paramIDCGroup.groupLastPadsThreshold), std::begin(groupLastPadsThreshold));
-  const unsigned char groupPadsSectorEdges = paramIDCGroup.groupPadsSectorEdges;
+  const unsigned int groupPadsSectorEdges = paramIDCGroup.groupPadsSectorEdges;
 
   DataProcessorSpec spec{
     fmt::format("tpc-factorize-idc-{:02}", lane).data(),

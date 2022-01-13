@@ -42,12 +42,10 @@ class FITCalibrationApi
   static void init();
   static void setProcessingTimestamp(unsigned long tf)
   {
-    LOG(info) << "@@@ setProcessingTimestamp " << tf;
     mProcessingTimestamp = tf;
   }
   [[nodiscard]] static unsigned long getProcessingTimestamp()
   {
-    LOG(info) << " @@@ getProcessingTimestamp " << mProcessingTimestamp;
     return mProcessingTimestamp;
   }
 

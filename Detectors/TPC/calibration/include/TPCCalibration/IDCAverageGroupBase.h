@@ -49,7 +49,7 @@ class IDCAverageGroupBase<IDCAverageGroupCRU>
   /// \param region region of the TPC
   /// \param sector processed sector
   /// \param nThreads number of CPU threads used
-  IDCAverageGroupBase(const unsigned char groupPads, const unsigned char groupRows, const unsigned char groupLastRowsThreshold, const unsigned char groupLastPadsThreshold, const unsigned char groupNotnPadsSectorEdges, const unsigned int region, const Sector sector, const int nThreads)
+  IDCAverageGroupBase(const unsigned char groupPads, const unsigned char groupRows, const unsigned char groupLastRowsThreshold, const unsigned char groupLastPadsThreshold, const unsigned int groupNotnPadsSectorEdges, const unsigned int region, const Sector sector, const int nThreads)
     : mIDCsGrouped{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupNotnPadsSectorEdges, region}, mSector{sector}, mRobustAverage(nThreads){};
 
   /// \return returns number of integration intervals for stored ungrouped IDCs
@@ -135,7 +135,7 @@ class IDCAverageGroupBase<IDCAverageGroupTPC>
   /// \param groupLastRowsThreshold minimum number of pads in row direction for the last group in row direction
   /// \param groupLastPadsThreshold minimum number of pads in pad direction for the last group in pad direction
   /// \param nThreads number of CPU threads used
-  IDCAverageGroupBase(const std::array<unsigned char, Mapper::NREGIONS>& groupPads, const std::array<unsigned char, Mapper::NREGIONS>& groupRows, const std::array<unsigned char, Mapper::NREGIONS>& groupLastRowsThreshold, const std::array<unsigned char, Mapper::NREGIONS>& groupLastPadsThreshold, const unsigned char groupNotnPadsSectorEdges, const int nThreads)
+  IDCAverageGroupBase(const std::array<unsigned char, Mapper::NREGIONS>& groupPads, const std::array<unsigned char, Mapper::NREGIONS>& groupRows, const std::array<unsigned char, Mapper::NREGIONS>& groupLastRowsThreshold, const std::array<unsigned char, Mapper::NREGIONS>& groupLastPadsThreshold, const unsigned int groupNotnPadsSectorEdges, const int nThreads)
     : mIDCGroupHelperSector(groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupNotnPadsSectorEdges), mRobustAverage(nThreads){};
 
   /// \return returns number of integration intervalls stored in this object
@@ -147,6 +147,9 @@ class IDCAverageGroupBase<IDCAverageGroupTPC>
 
   /// \return returns grouped IDCDelta object
   auto getIDCGroupData() && { return std::move(mIDCsGrouped); }
+
+  /// \return returns ungrouped IDCDelta object
+  const auto& getIDCUngroupData() const& { return mIDCsUngrouped; }
 
   /// \return returns helper object containing the grouping parameters and accessing of data indices
   auto& getIDCGroupHelperSector() const { return mIDCGroupHelperSector; }
@@ -206,6 +209,9 @@ class IDCAverageGroupBase<IDCAverageGroupTPC>
   /// setting the ungrouped IDCs using move semantics
   /// \param idcs vector containing the ungrouped IDCs
   void setIDCs(IDCDelta<float>&& idcs);
+
+  /// resetting the grouped IDCs
+  void resetGroupedIDCs(const Side side);
 
  protected:
   IDCDelta<float> mIDCsGrouped{};                                 ///< grouped and averaged IDC values

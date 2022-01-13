@@ -15,6 +15,7 @@
 #include "Framework/ASoAHelpers.h"
 #include "Framework/GroupSlicer.h"
 #include "Framework/Pack.h"
+#include <optional>
 
 namespace o2::framework
 {

@@ -18,7 +18,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   //probably some option will be added
   std::vector<o2::framework::ConfigParamSpec> options;
-  options.push_back(ConfigParamSpec{"time-calib-fitting-nbins", VariantType::Int, 2, {""}});
+  options.push_back(ConfigParamSpec{"time-calib-fitting-nbins", VariantType::Int, 100, {""}});
   std::swap(workflowOptions, options);
 }
 

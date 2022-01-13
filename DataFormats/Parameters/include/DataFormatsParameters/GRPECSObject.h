@@ -93,6 +93,9 @@ class GRPECSObject
   void setDetROMode(DetID id, ROMode status);
   ROMode getDetROMode(DetID id) const;
 
+  bool isMC() const { return mIsMC; }
+  void setIsMC(bool v = true) { mIsMC = v; }
+
   /// extra selections
   /// mask of readout detectors with addition selections. "only" overrides "skip"
   DetID::mask_t getDetsReadOut(DetID::mask_t only, DetID::mask_t skip = 0) const { return only.any() ? (mDetsReadout & only) : (mDetsReadout ^ skip); }
@@ -112,11 +115,11 @@ class GRPECSObject
   DetID::mask_t mDetsReadout;      ///< mask of detectors which are read out
   DetID::mask_t mDetsContinuousRO; ///< mask of detectors read out in continuos mode
   DetID::mask_t mDetsTrigger;      ///< mask of detectors which provide trigger
-
+  bool mIsMC = false;              ///< flag GRP for MC
   int mRun = 0;                 ///< run identifier
   std::string mDataPeriod = ""; ///< name of the period
 
-  ClassDefNV(GRPECSObject, 1);
+  ClassDefNV(GRPECSObject, 2);
 };
 
 } // namespace parameters

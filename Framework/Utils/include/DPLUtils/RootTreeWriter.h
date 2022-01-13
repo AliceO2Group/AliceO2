@@ -502,7 +502,7 @@ class RootTreeWriter
   // vectors of messageable types
   template <typename T>
   struct StructureElementTypeTrait<T, std::enable_if_t<has_messageable_value_type<T>::value &&
-                                                       is_specialization<T, std::vector>::value>> {
+                                                       is_specialization_v<T, std::vector>>> {
     using value_type = T;
     using store_type = value_type*;
     using specialization_id = MessageableVectorSpecialization;
@@ -520,7 +520,8 @@ class RootTreeWriter
 
   // types marked as ROOT serialized
   template <typename T>
-  struct StructureElementTypeTrait<T, std::enable_if_t<is_specialization<T, ROOTSerialized>::value == true>> {
+  struct StructureElementTypeTrait<T,
+                                   std::enable_if_t<is_specialization_v<T, ROOTSerialized> == true>> {
     using value_type = typename T::wrapped_type;
     using store_type = value_type*;
     using specialization_id = ROOTTypeSpecialization;

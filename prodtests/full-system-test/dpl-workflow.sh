@@ -74,7 +74,7 @@ if [[ $EPNSYNCMODE == 1 ]]; then
 elif [[ "0$ENABLE_METRICS" != "01" ]]; then
   ARGS_ALL+=" --monitoring-backend no-op://"
 fi
-( [[ $EXTINPUT == 1 ]] || [[ $NUMAGPUIDS == 1 ]] ) && ARGS_ALL+=" --no-cleanup"
+( [[ $EXTINPUT == 1 ]] || [[ $NUMAGPUIDS != 0 ]] ) && ARGS_ALL+=" --no-cleanup"
 ( [[ $GPUTYPE != "CPU" ]] || [[ $OPTIMIZED_PARALLEL_ASYNC != 0 ]] ) && ARGS_ALL+=" --shm-mlock-segment-on-creation 1"
 [[ $SHMTHROW == 0 ]] && ARGS_ALL+=" --shm-throw-bad-alloc 0"
 [[ $NORATELOG == 1 ]] && ARGS_ALL+=" --fairmq-rate-logging 0"
@@ -147,6 +147,10 @@ if [[ $EPNSYNCMODE == 1 ]]; then
   # Options for decoding current TRD real raw data (not needed for data converted from MC)
   if [[ -z $TRD_DECODER_OPTIONS ]]; then TRD_DECODER_OPTIONS=" --tracklethcheader 2 "; fi
   if [[ $EXTINPUT == 1 ]] && [[ $GPUTYPE != "CPU" ]] && [[ -z "$GPU_NUM_MEM_REG_CALLBACKS" ]]; then GPU_NUM_MEM_REG_CALLBACKS=4; fi
+fi
+
+if [[ $GPUTYPE != "CPU" && $NUMAGPUIDS != 0 ]]; then
+  GPU_CONFIG_KEY+="GPU_global.registerSelectedSegmentIds=$NUMAID;"
 fi
 
 if [[ $GPUTYPE == "HIP" ]]; then
@@ -237,7 +241,7 @@ N_TPCTRK=$NGPUS
 if [[ $OPTIMIZED_PARALLEL_ASYNC != 0 ]]; then
   # Tuned multiplicities for async Pb-Pb processing
   if [[ $SYNCMODE == "1" ]]; then echo "Must not use OPTIMIZED_PARALLEL_ASYNC with GPU or SYNCMODE" 1>&2; exit 1; fi
-  if [[ $NUMAGPUIDS == 1 ]]; then N_NUMAFACTOR=1; else N_NUMAFACTOR=2; fi
+  if [[ $NUMAGPUIDS != 0 ]]; then N_NUMAFACTOR=1; else N_NUMAFACTOR=2; fi
   GPU_CONFIG_KEY+="GPU_proc.ompThreads=6;"
   TRD_CONFIG_KEY+="GPU_proc.ompThreads=2;"
   if [[ $GPUTYPE == "CPU" ]]; then
@@ -271,7 +275,7 @@ elif [[ $EPNPIPELINES != 0 ]]; then
     GPU_CONFIG_KEY+="GPU_proc.ompThreads=4;"
   fi
   # Scale some multiplicities with the number of nodes
-  RECO_NUM_NODES_WORKFLOW_CMP=$((($RECO_NUM_NODES_WORKFLOW > 15 ? $RECO_NUM_NODES_WORKFLOW : 15) * ($NUMAGPUIDS == 1 ? 2 : 1))) # Limit the lower scaling factor, multiply by 2 if we have 2 NUMA domains
+  RECO_NUM_NODES_WORKFLOW_CMP=$((($RECO_NUM_NODES_WORKFLOW > 15 ? $RECO_NUM_NODES_WORKFLOW : 15) * ($NUMAGPUIDS != 0 ? 2 : 1))) # Limit the lower scaling factor, multiply by 2 if we have 2 NUMA domains
   N_ITSRAWDEC=$(math_max $((3 * 60 / $RECO_NUM_NODES_WORKFLOW_CMP)) ${N_ITSRAWDEC:-1}) # This means, if we have 60 EPN nodes, we need at least 3 ITS RAW decoders
   N_MFTRAWDEC=$(math_max $((3 * 60 / $RECO_NUM_NODES_WORKFLOW_CMP)) ${N_MFTRAWDEC:-1})
   N_ITSTRK=$(math_max $((1 * 200 / $RECO_NUM_NODES_WORKFLOW_CMP)) ${N_ITSTRK:-1})

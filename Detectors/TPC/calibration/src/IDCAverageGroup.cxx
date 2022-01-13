@@ -216,11 +216,12 @@ void o2::tpc::IDCAverageGroup<Type>::drawGrouping(const std::string filename)
   lat.SetTextColor(kBlack);
   lat.DrawLatex(xMin + offsx, 47.2f, "IDCs");
 
-  lat.SetTextColor(kBlack);
-  lat.DrawLatex(xMax - 6, 47.2f, fmt::format("{}", sumIDCs).data());
+  // ToDo add compression factor from root
+  const int dataRate = sumIDCs * Mapper::NSECTORS * sizeof(short) * 1000 / (1024 * 1024); // approximate data rate for IDCDelta: 'number of values per sector' * 'number of sectors' * 'sizeof datatype' * '1000 objects per second' / '1000000: to mega byte'
+  lat.DrawLatex(xMin + offsx, 50.5f, fmt::format("IDCDelta data rate (short): {} MB/s    IDCs per sector: {}", dataRate, sumIDCs).data());
 
   if constexpr (std::is_same_v<Type, IDCAverageGroupCRU>) {
-    const std::string outName = filename.empty() ? fmt::format("grouping_rows-{}_pads-{}_rowThr-{}_padThr-{}_ovRows-{}_ovPads-{}.pdf", this->mIDCsGrouped.getGroupPads(), this->mIDCsGrouped.getGroupRows(), this->mIDCsGrouped.getGroupLastRowsThreshold(), this->mIDCsGrouped.getGroupLastPadsThreshold(), mOverlapRows, mOverlapPads) : filename;
+    const std::string outName = filename.empty() ? fmt::format("grouping_rows-{}_pads-{}_rowThr-{}_padThr-{}_ovRows-{}_ovPads-{}_edge-{}.pdf", this->mIDCsGrouped.getGroupPads(), this->mIDCsGrouped.getGroupRows(), this->mIDCsGrouped.getGroupLastRowsThreshold(), this->mIDCsGrouped.getGroupLastPadsThreshold(), mOverlapRows, mOverlapPads, this->mIDCsGrouped.getGroupPadsSectorEdges()) : filename;
     can.SaveAs(outName.data());
   } else {
     std::string sgrRows = {"_"};
@@ -239,7 +240,7 @@ void o2::tpc::IDCAverageGroup<Type>::drawGrouping(const std::string filename)
         sgrPadsTh += fmt::format("{}_", grPadsTh);
       }
     }
-    const std::string outName = filename.empty() ? fmt::format("grouping_rows{}pads{}rowThr{}padThr{}ovRows-{}_ovPads-{}.pdf", sgrRows, sgrPads, sgrRowsTh, sgrPadsTh, mOverlapRows, mOverlapPads) : filename;
+    const std::string outName = filename.empty() ? fmt::format("grouping_rows{}pads{}rowThr{}padThr{}ovRows-{}_ovPads-{}_edge-{}.pdf", sgrRows, sgrPads, sgrRowsTh, sgrPadsTh, mOverlapRows, mOverlapPads, this->mIDCGroupHelperSector.getGroupingParameter().getGroupPadsSectorEdges()) : filename;
     can.SaveAs(outName.data());
   }
   delete poly;
@@ -277,19 +278,54 @@ void o2::tpc::IDCAverageGroup<Type>::loopOverGroups(IDCAverageGroupHelper<LoopTy
   const int groupRows = idcStruct.getGroupRows();
   const int groupPads = idcStruct.getGroupPads();
   const int lastRow = idcStruct.getLastRow();
-  const int groupPadsSectorEdges = idcStruct.getGroupPadsSectorEdges();
+  const int groupPadsSectorEdges = idcStruct.getTotalGroupPadsSectorEdges();
   unsigned int rowGrouped = 0;
 
-  if constexpr (std::is_same_v<LoopType, IDCAverageGroupCRU> || std::is_same_v<LoopType, IDCAverageGroupTPC>) {
-    if (groupPadsSectorEdges) {
-      // loop over pad rows
-      for (int ulrow = 0; ulrow < Mapper::ROWSPERREGION[region]; ++ulrow) {
-        for (int iYLocalSide = 0; iYLocalSide < 2; ++iYLocalSide) {
-          for (int pad = 0; pad < groupPadsSectorEdges; ++pad) {
-            const int ungroupedPad = !iYLocalSide ? pad : pad + Mapper::PADSPERROW[region][ulrow] - groupPadsSectorEdges;
-            const int padInRegion = Mapper::OFFSETCRULOCAL[region][ulrow] + ungroupedPad;
-            const auto flag = mPadStatus->getCalArray(idcStruct.getCRU()).getValue(padInRegion);
-            idcStruct.setSectorEdgeIDC(ulrow, ungroupedPad, padInRegion);
+  if (groupPadsSectorEdges) {
+    const auto groupingType = idcStruct.getEdgePadGroupingType();
+    const bool groupRowsEdge = groupingType == EdgePadGroupingMethod::ROWS;
+    const int groupedPads = idcStruct.getGroupedPadsSectorEdges();
+    const int endrow = groupRowsEdge ? lastRow + 1 : Mapper::ROWSPERREGION[region];
+    const int stepRow = groupRowsEdge ? groupRows : 1;
+    for (int ulrow = 0; ulrow < endrow; ulrow += stepRow) {
+      const bool bNotLastrow = ulrow != lastRow;
+
+      if constexpr (std::is_same_v<LoopType, IDCAverageGroupDraw>) {
+        idcStruct.mCol = ulrow / stepRow;
+      }
+
+      for (int iYLocalSide = 0; iYLocalSide < 2; ++iYLocalSide) {
+        int pad = 0;
+        for (int padGroup = 0; padGroup < groupedPads; ++padGroup) {
+          const int nPadsPerGroup = idcStruct.getPadsInGroupSectorEdges(padGroup);
+          for (int padInGroup = 0; padInGroup < nPadsPerGroup; ++padInGroup) {
+            const int endRow = (groupRowsEdge && (ulrow + stepRow >= Mapper::ROWSPERREGION[region] || !bNotLastrow)) ? (Mapper::ROWSPERREGION[region] - ulrow) : stepRow; // last row in this group
+            for (int iRowMerge = 0; iRowMerge < endRow; ++iRowMerge) {
+              const int irow = ulrow + iRowMerge;
+              const int ungroupedPad = !iYLocalSide ? pad : Mapper::PADSPERROW[region][irow] - pad - 1;
+              const int padInRegion = Mapper::OFFSETCRULOCAL[region][irow] + ungroupedPad;
+
+              if constexpr (std::is_same_v<LoopType, IDCAverageGroupCRU> || std::is_same_v<LoopType, IDCAverageGroupTPC>) {
+                const auto flag = mPadStatus->getCalArray(idcStruct.getCRU()).getValue(padInRegion);
+                if (flag == PadFlags::flagDeadPad) {
+                  continue;
+                }
+                idcStruct.addValue(padInRegion, 1);
+              } else {
+                const GlobalPadNumber padNum = o2::tpc::Mapper::getGlobalPadNumber(irow, ungroupedPad, region);
+                drawLatex(idcStruct, padNum, padInRegion, true);
+              }
+            }
+            ++pad;
+          }
+          if constexpr (std::is_same_v<LoopType, IDCAverageGroupCRU> || std::is_same_v<LoopType, IDCAverageGroupTPC>) {
+            const auto groupedIDCVal = idcStruct.getGroupedIDC();
+            const int ungroupedPad = !iYLocalSide ? pad - 1 : Mapper::PADSPERROW[region][ulrow] - pad;
+            idcStruct.setSectorEdgeIDC(ulrow, ungroupedPad);
+            idcStruct.clearRobustAverage();
+          } else {
+            ++idcStruct.mGroupCounter;
+            ++idcStruct.mCol;
           }
         }
       }
@@ -381,26 +417,8 @@ void o2::tpc::IDCAverageGroup<Type>::loopOverGroups(IDCAverageGroupHelper<LoopTy
             } else {
               // drawing the grouping
               const GlobalPadNumber padNum = o2::tpc::Mapper::getGlobalPadNumber(ungroupedRow, ungroupedPad, region);
-              static auto coords = o2::tpc::painter::getPadCoordinatesSector();
-              auto coordinate = coords[padNum];
-
-              const float yPos = (coordinate.yVals[0] + coordinate.yVals[2]) / 2;
-              const float xPos = (coordinate.xVals[0] + coordinate.xVals[2]) / 2;
-              const int nCountDraw = idcStruct.mCountDraw[padInRegion]++;
-              const float offsX = (nCountDraw % 2) * 0.6f * idcStruct.mPadInf.getPadHeight();
-              const float offsY = (nCountDraw / 2) * 0.2f * idcStruct.mPadInf.getPadWidth();
-              const float xPosDraw = xPos - 0.3f * idcStruct.mPadInf.getPadHeight() + offsX;
-              const float yPosDraw = yPos - 0.4f * idcStruct.mPadInf.getPadWidth() + offsY;
-
-              TLatex latex;
-              latex.SetTextFont(63);
-              latex.SetTextSize(1);
-              const char* groupText = Form("#bf{#color[%lu]{%i}}", (idcStruct.mCol % idcStruct.mColors.size()) + 1, idcStruct.mGroupCounter);
-              latex.DrawLatex(xPosDraw, yPosDraw, groupText);
-              if (iRowMerge < 0 || (bNotLastrow && bOverlapRowRight) || (ipadMerge < offsPad) || (!lastPad && ipadMerge >= (groupPads + offsPad))) {
-              } else {
-                idcStruct.mPoly.Fill(xPos, yPos, idcStruct.mColors[idcStruct.mCol % idcStruct.mColors.size()]);
-              }
+              const bool fillNotPoly = iRowMerge < 0 || (bNotLastrow && bOverlapRowRight) || (ipadMerge < offsPad) || (!lastPad && ipadMerge >= (groupPads + offsPad));
+              drawLatex(idcStruct, padNum, padInRegion, !fillNotPoly, idcStruct.mColors.size());
             }
           }
         }
@@ -566,6 +584,33 @@ void o2::tpc::IDCAverageGroup<Type>::createDebugTree(const IDCAverageGroupHelper
            << "gx.=" << vGlobalXPos
            << "gy.=" << vGlobalYPos
            << "\n";
+}
+
+template <class Type>
+void o2::tpc::IDCAverageGroup<Type>::drawLatex(IDCAverageGroupHelper<IDCAverageGroupDraw>& idcStruct, const GlobalPadNumber padNum, const unsigned int padInRegion, const bool fillPoly, const int colOffs) const
+{
+  // drawing the grouping
+  static auto coords = o2::tpc::painter::getPadCoordinatesSector();
+  auto coordinate = coords[padNum];
+
+  const float yPos = (coordinate.yVals[0] + coordinate.yVals[2]) / 2;
+  const float xPos = (coordinate.xVals[0] + coordinate.xVals[2]) / 2;
+  const int nCountDraw = idcStruct.mCountDraw[padInRegion]++;
+  const float offsX = (nCountDraw % 2) * 0.6f * idcStruct.mPadInf.getPadHeight();
+  const float offsY = (nCountDraw / 2) * 0.2f * idcStruct.mPadInf.getPadWidth();
+  const float xPosDraw = xPos - 0.3f * idcStruct.mPadInf.getPadHeight() + offsX;
+  const float yPosDraw = yPos - 0.4f * idcStruct.mPadInf.getPadWidth() + offsY;
+
+  TLatex latex;
+  latex.SetTextFont(63);
+  latex.SetTextSize(1);
+
+  const int col = idcStruct.mCol % idcStruct.mColors.size();
+  const char* groupText = Form("#bf{#color[%d]{%i}}", col + 1, idcStruct.mGroupCounter);
+  latex.DrawLatex(xPosDraw, yPosDraw, groupText);
+  if (fillPoly) {
+    idcStruct.mPoly.Fill(xPos, yPos, idcStruct.mColors[col] + colOffs);
+  }
 }
 
 template class o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupCRU>;
