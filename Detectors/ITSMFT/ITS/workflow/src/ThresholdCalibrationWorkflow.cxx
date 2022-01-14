@@ -24,6 +24,6 @@ framework::WorkflowSpec getWorkflow()
 
   return specs;
 }
-} // namespace threshold_cali_workflow
+} // namespace threshold_calibration_workflow
 } // namespace its
 } // namespace o2
