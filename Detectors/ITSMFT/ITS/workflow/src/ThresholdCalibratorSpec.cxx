@@ -1,4 +1,4 @@
-// @file   CalibratorSpec.cxx
+// @file   ThresholdCalibratorSpec.cxx
 
 #include <sys/stat.h>
 #include <filesystem>
@@ -38,7 +38,7 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "CommonUtils/NameConf.h"
 
-#include "ITSWorkflow/CalibratorSpec.h"
+#include "ITSWorkflow/ThresholdCalibratorSpec.h"
 #include <sstream>
 #include <stdlib.h>
 
@@ -993,7 +993,7 @@ void ITSCalibrator::endOfStream(EndOfStreamContext& ec)
 }
 
 //////////////////////////////////////////////////////////////////////////////
-DataProcessorSpec getITSCalibratorSpec()
+DataProcessorSpec getITSThresholdCalibratorSpec()
 {
   o2::header::DataOrigin detOrig = o2::header::gDataOriginITS;
   std::vector<InputSpec> inputs;

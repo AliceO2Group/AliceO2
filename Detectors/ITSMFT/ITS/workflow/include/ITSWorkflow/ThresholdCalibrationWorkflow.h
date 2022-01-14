@@ -8,10 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_ITS_CALIBRATIONWORKFLOW_H
-#define O2_ITS_CALIBRATIONWORKFLOW_H
+#ifndef O2_ITS_THRESHOLD_CALIBRATION_WORKFLOW_H
+#define O2_ITS_THRESHOLD_CALIBRATION_WORKFLOW_H
 
-/// @file   CalibrationWorkflow.h
+// @file   ThresholdCalibrationWorkflow.h
 
 #include "Framework/WorkflowSpec.h"
 
@@ -20,7 +20,7 @@ namespace o2
 namespace its
 {
 
-namespace calibration_workflow
+namespace threshold_calibration_workflow
 {
 
 framework::WorkflowSpec getWorkflow();

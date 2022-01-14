@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITSWorkflow/CalibrationWorkflow.h"
-#include "ITSWorkflow/CalibratorSpec.h"
+#include "ITSWorkflow/ThresholdCalibrationWorkflow.h"
+#include "ITSWorkflow/ThresholdCalibratorSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "ITStracking/TrackingConfigParam.h"
 #include "ITStracking/Configuration.h"
@@ -21,7 +21,7 @@ using namespace o2::framework;
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-  LOG(info) << "Initializing O2 ITS Calibration:-))))))";
+  LOG(info) << "Initializing O2 ITS Threshold Calibration:-))))))";
 
-  return std::move(o2::its::calibration_workflow::getWorkflow());
+  return std::move(o2::its::threshold_calibration_workflow::getWorkflow());
 }

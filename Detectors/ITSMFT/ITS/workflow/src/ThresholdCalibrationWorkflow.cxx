@@ -1,7 +1,7 @@
-/// @file   CalibrationWorkflow.cxx
+// @file   ThresholdCalibrationWorkflow.cxx
 
-#include "ITSWorkflow/CalibrationWorkflow.h"
-#include "ITSWorkflow/CalibratorSpec.h"
+#include "ITSWorkflow/ThresholdCalibrationWorkflow.h"
+#include "ITSWorkflow/ThresholdCalibratorSpec.h"
 
 #include "ITSWorkflow/ClustererSpec.h"
 #include "ITSWorkflow/ClusterWriterSpec.h"
@@ -14,16 +14,16 @@ namespace o2
 {
 namespace its
 {
-namespace calibration_workflow
+namespace threshold_calibration_workflow
 {
 framework::WorkflowSpec getWorkflow()
 {
   framework::WorkflowSpec specs;
 
-  specs.emplace_back(o2::its::getITSCalibratorSpec());
+  specs.emplace_back(o2::its::getITSThresholdCalibratorSpec());
 
   return specs;
 }
-} // namespace calibration_workflow
+} // namespace threshold_cali_workflow
 } // namespace its
 } // namespace o2

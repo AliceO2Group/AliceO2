@@ -21,8 +21,8 @@ o2_add_library(ITSWorkflow
                        src/IRFrameReaderSpec.cxx
                        src/TrackReaderSpec.cxx
                        src/VertexReaderSpec.cxx
-                       src/CalibrationWorkflow.cxx
-                       src/CalibratorSpec.cxx
+                       src/ThresholdCalibrationWorkflow.cxx
+                       src/ThresholdCalibratorSpec.cxx
          PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::SimConfig
                                      O2::DataFormatsITS

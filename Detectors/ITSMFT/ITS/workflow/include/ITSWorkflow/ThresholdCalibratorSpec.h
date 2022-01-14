@@ -1,7 +1,7 @@
-/// \file   CalibratorSpec.h
+// \file   ThresholdCalibratorSpec.h
 
-#ifndef O2_ITS_CALIBRATOR_
-#define O2_ITS_CALIBRATOR_
+#ifndef O2_ITS_THRESHOLD_CALIBRATOR_
+#define O2_ITS_THRESHOLD_CALIBRATOR_
 
 #include <TStopwatch.h>
 #include "Framework/DataProcessorSpec.h"
@@ -210,7 +210,7 @@ class ITSCalibrator : public Task
 };
 
 // Create a processor spec
-o2::framework::DataProcessorSpec getITSCalibratorSpec();
+o2::framework::DataProcessorSpec getITSThresholdCalibratorSpec();
 
 } // namespace its
 } // namespace o2
