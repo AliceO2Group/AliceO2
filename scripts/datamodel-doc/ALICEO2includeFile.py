@@ -167,11 +167,13 @@ class column:
   def printHTML(self):
     cn2u = fullDataModelName(self.nslevel, self.cname)
     cn2u = cn2u.replace(":collision",":&zwnj;collision")
+    # replace < by &lt; and > by &gt;
+    ty2u = self.type.replace("<","&lt;").replace(">","&gt;")
     print("      <tr>")
     print("        <td>"+cn2u+"</td>")
     print("        <td>"+columnTypes(1)[self.kind]+"</td>")
     print("        <td>"+self.gname+"</td>")
-    print("        <td>"+self.type+"</td>")
+    print("        <td>"+ty2u+"</td>")
     print("        <td>"+self.comment+"</td>")
     print("      </tr>")
 
