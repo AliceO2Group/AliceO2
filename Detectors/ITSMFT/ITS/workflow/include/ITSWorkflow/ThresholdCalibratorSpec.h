@@ -120,7 +120,7 @@ class ITSCalibrator : public Task
 
   // Number of charges in a threshold scan (from 0 to 50 inclusive)
   static constexpr short int N_CHARGE = 51;
-  // Number of points in a VCASN tuning (from 30 to 70 inclusive)
+  // Number of points in a VCASN tuning (from 30 to 80 inclusive)
   static constexpr short int N_VCASN = 51;
   // Number of points in a ITHR tuning (from 30 to 100 inclusive)
   static constexpr short int N_ITHR = 71;

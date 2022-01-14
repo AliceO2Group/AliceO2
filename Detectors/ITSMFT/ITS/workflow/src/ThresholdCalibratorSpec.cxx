@@ -280,9 +280,9 @@ bool ITSCalibrator::findThresholdDerivative(
     return false;
   }
 
-  // int deriv_size = Upper - Lower;
-  // float* deriv = new float[deriv_size];
-  float deriv[*(this->N_RANGE)] = {0};
+  int deriv_size = upper - lower;
+  float* deriv = new float[deriv_size];
+  //float deriv[*(this->N_RANGE)] = {0};
   float xfx = 0, fx = 0;
 
   // Fill array with derivatives
@@ -304,7 +304,7 @@ bool ITSCalibrator::findThresholdDerivative(
   stddev /= fx;
   noise = std::sqrt(stddev);
 
-  // delete[] deriv;
+  delete[] deriv;
   return (noise < 15);
 }
 
