@@ -59,6 +59,7 @@ CalibdEdxTrackTopologySpline& CalibdEdxTrackTopologySpline::operator=(const Cali
   return *this;
 }
 
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
 void CalibdEdxTrackTopologySpline::recreate(const int nKnots[])
 {
   /// Default constructor
@@ -89,6 +90,7 @@ void CalibdEdxTrackTopologySpline::recreate(const int nKnots[])
     mCalibSplinesqTot[i].moveBufferTo(mFlatBufferPtr + offsets2[i]);
   }
 }
+#endif
 
 void CalibdEdxTrackTopologySpline::cloneFromObject(const CalibdEdxTrackTopologySpline& obj, char* newFlatBufferPtr)
 {
