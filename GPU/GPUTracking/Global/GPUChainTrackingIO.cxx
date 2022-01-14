@@ -318,11 +318,11 @@ void GPUChainTracking::ReadSettings(const char* dir)
   processors()->calibObjects.tpcPadGain = mTPCPadGainCalibU.get();
 #ifdef GPUCA_HAVE_O2HEADERS
   f = dir;
-  f += "matlut.dump";
   f += "dEdxCalibContainer.dump";
   mdEdxCalibContainerU = ReadStructFromFile<o2::tpc::CalibdEdxContainer>(f.c_str());
   processors()->calibObjects.dEdxCalibContainer = mdEdxCalibContainerU.get();
   f = dir;
+  f += "matlut.dump";
   mMatLUTU = ReadFlatObjectFromFile<o2::base::MatLayerCylSet>(f.c_str());
   processors()->calibObjects.matLUT = mMatLUTU.get();
   f = dir;
