@@ -1,4 +1,15 @@
-// @file   ThresholdCalibratorSpec.cxx
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// @file   ThresholdCalibratorSpec.cxx
 
 #include "ITSWorkflow/ThresholdCalibratorSpec.h"
 
@@ -65,7 +76,7 @@ void ITSCalibrator::init(InitContext& ic)
 
   } else {
     LOG(error) << "fittype " << fittype
-               << " not recognized, please use \'derivative\', \'fit\', or \'hitcounting\'";
+               << " not recognized, please use 'derivative', 'fit', or 'hitcounting'";
     throw fittype;
   }
 
@@ -282,7 +293,7 @@ bool ITSCalibrator::findThresholdDerivative(
 
   int deriv_size = upper - lower;
   float* deriv = new float[deriv_size];
-  //float deriv[*(this->N_RANGE)] = {0};
+  // float deriv[*(this->N_RANGE)] = {0};
   float xfx = 0, fx = 0;
 
   // Fill array with derivatives
@@ -450,7 +461,7 @@ void ITSCalibrator::finalizeOutput()
 
   // Ensure that everything has been written to the ROOT file
   this->mRootOutfile->cd();
-  this->mThresholdTree->Write(0, TObject::kOverwrite);
+  this->mThresholdTree->Write(nullptr, TObject::kOverwrite);
 
   // Clean up the mThresholdTree and ROOT output file
   delete this->mThresholdTree;
