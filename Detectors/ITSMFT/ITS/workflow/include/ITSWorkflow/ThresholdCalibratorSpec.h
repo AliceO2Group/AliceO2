@@ -3,37 +3,38 @@
 #ifndef O2_ITS_THRESHOLD_CALIBRATOR_
 #define O2_ITS_THRESHOLD_CALIBRATOR_
 
-#include <TStopwatch.h>
-#include "Framework/DataProcessorSpec.h"
-#include "Framework/Task.h"
-#include <memory>
+#include <sys/stat.h>
+#include <filesystem>
+//#include <assert.h>
 #include <string>
-#include <string_view>
-#include <ITSMFTReconstruction/ChipMappingITS.h>
-#include <ITSMFTReconstruction/PixelData.h>
-#include <ITSMFTReconstruction/RawPixelDecoder.h> //o2::itsmft::RawPixelDecoder
-#include "DataFormatsITSMFT/GBTCalibData.h"
-#include "DetectorsCalibration/TimeSlotCalibration.h"
-#include "DetectorsCalibration/TimeSlot.h"
-#include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITSMFT/NoiseMap.h"
-#include "gsl/span"
-
-#include "DataFormatsDCS/DCSConfigObject.h"
-
-// ROOT includes
-#include "TH2F.h"
-#include "TGraph.h"
-#include "TTree.h"
-
-#include <ITSBase/GeometryTGeo.h>
-
+#include <vector>
 #include <iostream>
 #include <fstream>
 
+#include "Framework/DataProcessorSpec.h"
+#include "Framework/Task.h"
+#include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "Framework/RawDeviceService.h"
+#include "Framework/WorkflowSpec.h"
+#include "Framework/Task.h"
+#include <FairMQDevice.h>
+
+#include <ITSMFTReconstruction/RawPixelDecoder.h> //o2::itsmft::RawPixelDecoder
+#include "DetectorsCalibration/Utils.h"
+#include "DetectorsCommonDataFormats/FileMetaData.h"
+#include "CCDB/CcdbApi.h"
+#include "CommonUtils/MemFileHelper.h"
+#include "DataFormatsDCS/DCSConfigObject.h"
+
+// ROOT includes
+#include "TTree.h"
+#include "TH1F.h"
+#include "TF1.h"
+
 using namespace o2::framework;
 using namespace o2::itsmft;
-using namespace o2::header;
+// using namespace o2::header;
 // using namespace o2::ccdb;
 
 namespace o2
@@ -136,13 +137,11 @@ class ITSCalibrator : public Task
   // const short int ChipBoundary[N_LAYER + 1] = { 0, 108, 252, 432, 3120, 6480, 14712, 24120 };
   // const short int StaveBoundary[N_LAYER + 1] = {0, 12, 28, 48, 72, 102, 144, 192};
   // const short int ReduceFraction = 1; // TODO: move to Config file to define this number
-
-  // std::array<bool, N_LAYER> mEnableLayers = {false};
+  // std::array<bool, N_LAYER> mEnableLayers = { false };
 
   // Hash tables to store the hit and threshold information per pixel
   std::map<short int, short int> mCurrentRow;
   std::map<short int, std::vector<std::vector<short int>>> mPixelHits;
-  // std::map< short int, TH2F* > thresholds;
   //  Unordered vector for saving info to the output
   std::map<short int, std::vector<ThresholdObj>> mThresholds;
   // std::unordered_map<unsigned int, int> mHitPixelID_Hash[7][48][2][14][14]; //layer, stave, substave, hic, chip
@@ -151,7 +150,7 @@ class ITSCalibrator : public Task
   TFile* mRootOutfile = nullptr;
   TTree* mThresholdTree = nullptr;
   Pixel mTreePixel;
-  // Save charge & counts as char (8-bit) to save memory, since values are always < 256
+  // Save charge & counts as char (8-bit) to save memory, since values should be < 256
   unsigned char mThreshold = 0, mNoise = 0;
   bool mSuccess = false;
 

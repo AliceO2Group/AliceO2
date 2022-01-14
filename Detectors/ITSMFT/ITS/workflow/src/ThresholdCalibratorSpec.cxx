@@ -1,73 +1,11 @@
 // @file   ThresholdCalibratorSpec.cxx
 
-#include <sys/stat.h>
-#include <filesystem>
-#include <vector>
-#include <assert.h>
-#include <bitset>
-
-#include "TGeoGlobalMagField.h"
-
-// ROOT includes
-#include "TF1.h"
-#include "TGraph.h"
-#include "TH2F.h"
-
-#include "FairLogger.h"
-
-#include "Framework/ControlService.h"
-#include "Framework/ConfigParamRegistry.h"
-#include "Framework/RawDeviceService.h"
-#include "Framework/WorkflowSpec.h"
-#include "Framework/Task.h"
-#include <FairMQDevice.h>
-
-#include "ITSWorkflow/TrackerSpec.h"
-#include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITS/TrackITS.h"
-#include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
-#include "DetectorsCommonDataFormats/FileMetaData.h"
-#include "DataFormatsITSMFT/ROFRecord.h"
-#include "CCDB/CcdbApi.h"
-#include "CommonUtils/MemFileHelper.h"
-
-#include "Field/MagneticField.h"
-#include "DetectorsBase/GeometryManager.h"
-#include "DetectorsBase/Propagator.h"
-#include "ITSBase/GeometryTGeo.h"
-#include "CommonUtils/NameConf.h"
-
 #include "ITSWorkflow/ThresholdCalibratorSpec.h"
-#include <sstream>
-#include <stdlib.h>
-
-#include <vector>
-#include <fmt/format.h>
-#include <boost/lexical_cast.hpp>
-#include <DPLUtils/RawParser.h>
-#include <DPLUtils/DPLRawParser.h>
-
-// Insert Digit stuff here
-#include "DataFormatsITSMFT/Digit.h"
-#include "DataFormatsITSMFT/ClusterPattern.h"
-#include "DataFormatsITSMFT/ROFRecord.h"
-
-#include "DetectorsCalibration/Utils.h"
-#include "DetectorsCalibration/TimeSlotCalibration.h"
-#include "DetectorsCalibration/TimeSlot.h"
-
-using namespace o2::framework;
-using namespace o2::itsmft;
-using namespace o2::header;
-using namespace o2::utils;
 
 namespace o2
 {
 namespace its
 {
-
-using namespace o2::framework;
 
 //////////////////////////////////////////////////////////////////////////////
 // Define error function for ROOT fitting
@@ -94,9 +32,6 @@ ITSCalibrator::ITSCalibrator()
 ITSCalibrator::~ITSCalibrator()
 {
   // Clear dynamic memory
-
-  // Delete all the dynamically created TH2F for each chip
-  // for (auto const& th : this->mThresholds) { delete th.second; }
 
   delete[] this->mX;
   this->mX = nullptr;
@@ -822,7 +757,7 @@ void ITSCalibrator::run(ProcessingContext& pc)
         if (charge > this->mMax || charge < this->mMin) {
           LOG(error) << "charge value " << charge << " out of range for min " << this->mMin
                      << " and max " << this->mMax << " (range: " << *(this->N_RANGE) << ")";
-          exit(1);
+          throw charge;
         }
         // LOG(info) << "before";
         this->mPixelHits[chipID][col][charge - this->mMin]++;
