@@ -62,21 +62,28 @@ typedef struct {
 } Pixel;
 
 // List of the possible run types for reference
-enum RunTypes
-{
-  THR_SCAN = 41, THR_SCAN_SHORT = 43, THR_SCAN_SHORT_100HZ = 101,
-  THR_SCAN_SHORT_200HZ = 102, VCASN150 = 61, VCASN100 = 81, VCASN100_100HZ = 103,
-  ITHR150 = 62, ITHR100 = 82, ITHR100_100HZ = 104, END_RUN = 0
+enum RunTypes {
+  THR_SCAN = 41,
+  THR_SCAN_SHORT = 43,
+  THR_SCAN_SHORT_100HZ = 101,
+  THR_SCAN_SHORT_200HZ = 102,
+  VCASN150 = 61,
+  VCASN100 = 81,
+  VCASN100_100HZ = 103,
+  ITHR150 = 62,
+  ITHR100 = 82,
+  ITHR100_100HZ = 104,
+  END_RUN = 0
 };
 
 // List of the possible fit types for reference
-enum FitTypes
-{
-  DERIVATIVE = 0, FIT = 1, HITCOUNTING = 2
+enum FitTypes {
+  DERIVATIVE = 0,
+  FIT = 1,
+  HITCOUNTING = 2
 };
 
-struct ThresholdMap
-{
+struct ThresholdMap {
  public:
   ThresholdMap(const std::map<short int, std::vector<ThresholdObj>>& t) : thresholds(t){};
   std::map<short int, std::vector<ThresholdObj>> thresholds;
@@ -101,9 +108,9 @@ class ITSCalibrator : public Task
 
   // detector information
   static constexpr short int N_COL = 1024; // column number in Alpide chip
-  //static constexpr short int N_ROW = 512;  // row number in Alpide chip
-  //static constexpr short int N_LAYER = 7;   // layer number in ITS detector
-  //static constexpr short int N_LAYER_IB = 3;
+  // static constexpr short int N_ROW = 512;  // row number in Alpide chip
+  // static constexpr short int N_LAYER = 7;   // layer number in ITS detector
+  // static constexpr short int N_LAYER_IB = 3;
 
   const short int N_RU = o2::itsmft::ChipMappingITS::getNRUs();
 
@@ -117,96 +124,90 @@ class ITSCalibrator : public Task
   const short int* N_RANGE = nullptr;
 
   // The x-axis of the correct data fit chosen above
-  short int* x = nullptr;
+  short int* mX = nullptr;
 
-  //const short int NSubStave[N_LAYER] = {1, 1, 1, 2, 2, 2, 2};
-  //const short int NStaves[N_LAYER] = {12, 16, 20, 24, 30, 42, 48};
-  //const short int nHicPerStave[N_LAYER] = {1, 1, 1, 8, 8, 14, 14};
-  //const short int nChipsPerHic[N_LAYER] = {9, 9, 9, 14, 14, 14, 14};
-  //const short int ChipBoundary[N_LAYER + 1] = { 0, 108, 252, 432, 3120, 6480, 14712, 24120 };
-  //const short int StaveBoundary[N_LAYER + 1] = {0, 12, 28, 48, 72, 102, 144, 192};
-  //const short int ReduceFraction = 1; // TODO: move to Config file to define this number
+  // const short int NSubStave[N_LAYER] = {1, 1, 1, 2, 2, 2, 2};
+  // const short int NStaves[N_LAYER] = {12, 16, 20, 24, 30, 42, 48};
+  // const short int nHicPerStave[N_LAYER] = {1, 1, 1, 8, 8, 14, 14};
+  // const short int nChipsPerHic[N_LAYER] = {9, 9, 9, 14, 14, 14, 14};
+  // const short int ChipBoundary[N_LAYER + 1] = { 0, 108, 252, 432, 3120, 6480, 14712, 24120 };
+  // const short int StaveBoundary[N_LAYER + 1] = {0, 12, 28, 48, 72, 102, 144, 192};
+  // const short int ReduceFraction = 1; // TODO: move to Config file to define this number
 
-  //std::array<bool, N_LAYER> mEnableLayers = {false};
+  // std::array<bool, N_LAYER> mEnableLayers = {false};
 
   // Hash tables to store the hit and threshold information per pixel
-  std::map<short int, short int> currentRow;
-  std::map<short int, std::vector<std::vector<short int>>> pixelHits;
+  std::map<short int, short int> mCurrentRow;
+  std::map<short int, std::vector<std::vector<short int>>> mPixelHits;
   // std::map< short int, TH2F* > thresholds;
   //  Unordered vector for saving info to the output
-  std::map<short int, std::vector<ThresholdObj>> thresholds;
+  std::map<short int, std::vector<ThresholdObj>> mThresholds;
   // std::unordered_map<unsigned int, int> mHitPixelID_Hash[7][48][2][14][14]; //layer, stave, substave, hic, chip
 
   // Tree to save threshold info in full threshold scan case
-  TFile* root_outfile = nullptr;
-  TTree* threshold_tree = nullptr;
-  Pixel tree_pixel;
+  TFile* mRootOutfile = nullptr;
+  TTree* mThresholdTree = nullptr;
+  Pixel mTreePixel;
   // Save charge & counts as char (8-bit) to save memory, since values are always < 256
-  unsigned char threshold = 0, noise = 0;
-  bool success = false;
+  unsigned char mThreshold = 0, mNoise = 0;
+  bool mSuccess = false;
 
   // Initialize pointers for doing error function fits
-  TH1F* fit_hist = nullptr;
-  TF1* fitfcn = nullptr;
+  TH1F* mFitHist = nullptr;
+  TF1* mFitFunction = nullptr;
 
   // Some private helper functions
   // Helper functions related to the running over data
-  void reset_row_hitmap(const short int&, const short int&);
+  void resetRowHitmap(const short int&, const short int&);
 
-  void extract_and_update(const short int&);
-  void extract_thresh_row(const short int&, const short int&);
-  void finalize_output();
+  void extractAndUpdate(const short int&);
+  void extractThresholdRow(const short int&, const short int&);
+  void finalizeOutput();
 
-  void set_run_type(const short int&);
-  void update_env_id(ProcessingContext&);
-  void update_run_id(ProcessingContext&);
-  void update_LHC_period(ProcessingContext&);
+  void setRunType(const short int&);
+  void updateEnvironmentID(ProcessingContext&);
+  void updateRunID(ProcessingContext&);
+  void updateLHCPeriod(ProcessingContext&);
 
   // Helper functions related to threshold extraction
-  void init_thresh_tree(bool recreate=true);
-  bool FindUpperLower(const short int*, const short int*, const short int&, short int&, short int&, bool);
-  bool GetThreshold(const short int*, const short int*, const short int&, float&, float&);
-  bool GetThreshold_Fit(const short int*, const short int*, const short int&, float&, float&);
-  bool GetThreshold_Derivative(const short int*, const short int*, const short int&, float&, float&);
-  bool GetThreshold_Hitcounting(const short int*, const short int*, const short int&, float&);
-  bool scan_is_finished(const short int&);
-  void find_average(const std::vector<ThresholdObj>&, float&, float&);
-  void save_threshold(const short int&, const short int&, const short int&, float*, float*, bool);
+  void initThresholdTree(bool recreate = true);
+  bool findUpperLower(const short int*, const short int*, const short int&, short int&, short int&, bool);
+  bool findThreshold(const short int*, const short int*, const short int&, float&, float&);
+  bool findThresholdFit(const short int*, const short int*, const short int&, float&, float&);
+  bool findThresholdDerivative(const short int*, const short int*, const short int&, float&, float&);
+  bool findThresholdHitcounting(const short int*, const short int*, const short int&, float&);
+  bool isScanFinished(const short int&);
+  void findAverage(const std::vector<ThresholdObj>&, float&, float&);
+  void saveThreshold(const short int&, const short int&, const short int&, float*, float*, bool);
 
   // Helper functions for writing to the database
-  void add_db_entry(const short int&, const char*, const short int&,
-                    const float&, bool, o2::dcs::DCSconfigObject_t&);
-  void send_to_ccdb(const char*, o2::dcs::DCSconfigObject_t&, EndOfStreamContext&);
+  void addDatabaseEntry(const short int&, const char*, const short int&,
+                        const float&, bool, o2::dcs::DCSconfigObject_t&);
+  void sendToCCDB(const char*, o2::dcs::DCSconfigObject_t&, EndOfStreamContext&);
 
   std::string mSelfName;
   std::string mDictName;
   std::string mNoiseName;
 
-  std::string LHC_period;
-  std::string EnvironmentID;
-  std::string output_dir;
-  std::string metafile_dir = "/dev/null";
-  int run_number = -1;
-  int tfcounter = -1;
+  std::string mLHCPeriod;
+  std::string mEnvironmentID;
+  std::string mOutputDir;
+  std::string mMetafileDir = "/dev/null";
+  int mRunNumber = -1;
 
   // How many rows before starting new ROOT file
-  unsigned int file_number = 0;
-  const unsigned int n_rows_per_file = 10000;
-  unsigned int row_counter = 0;
+  unsigned int mFileNumber = 0;
+  const unsigned int mNRowsPerFile = 10000;
+  unsigned int mRowCounter = 0;
 
-  short int run_type = -1;
+  short int mRunType = -1;
   // Either "T" for threshold, "V" for VCASN, or "I" for ITHR
-  char scan_type = '\0';
-  short int min = -1, max = -1;
+  char mScanType = '\0';
+  short int mMin = -1, mMax = -1;
 
   // Get threshold method (fit == 1, derivative == 0, or hitcounting == 2)
-  char fit_type = -1;
-
-  // output file (temp solution)
-  std::ofstream outfile;
+  char mFitType = -1;
 };
-
-// using ITSCalibrator = ITSCalibrator<ChipMappingITS>;
 
 // Create a processor spec
 o2::framework::DataProcessorSpec getITSCalibratorSpec();
