@@ -204,7 +204,7 @@ void dumpQcConfig(std::ostream& dumpOut, const DeviceExecution& execution, const
 {
   // get the argument `--config`
   std::string configPath;
-  auto it = std::find_if(execution.args.begin(), execution.args.end(), [&](char* v) { if (v) return strcmp(v, "--config") == 0; else return false; });
+  auto it = std::find_if(execution.args.begin(), execution.args.end(), [&](char* v) { if (v) { return strcmp(v, "--config") == 0;} else {return false;} });
 
   // get the next argument and find `/o2/components/` in it, then take what comes after in the string.
   if (it != execution.args.end()) {
