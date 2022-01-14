@@ -289,11 +289,9 @@ bool ITSCalibrator::findThresholdFit(
   const short int* data, const short int* x, const short int& NPoints,
   float& thresh, float& noise)
 {
-  this->mFitHist->Reset();
-  bool flip = (this->mScanType == 'I');
-
   // Find lower & upper values of the S-curve region
   short int Lower, Upper;
+  bool flip = (this->mScanType == 'I');
   if (!this->findUpperLower(data, x, NPoints, Lower, Upper, flip) || Lower == Upper) {
     LOG(warning) << "Start-finding unsuccessful: (Lower, Upper) = ("
                  << Lower << ", " << Upper << ")";
@@ -314,13 +312,14 @@ bool ITSCalibrator::findThresholdFit(
   this->mFitFunction->SetParameter(0, Start);
   this->mFitFunction->SetParameter(1, 8);
 
-  // g->SetMarkerStyle(20);
-  // g->Draw("AP");
   this->mFitHist->Fit("mFitFunction", "QL");
 
   noise = this->mFitFunction->GetParameter(1);
   thresh = this->mFitFunction->GetParameter(0);
   float chi2 = this->mFitFunction->GetChisquare() / this->mFitFunction->GetNDF();
+
+  // Clean up histogram for next time it is used
+  this->mFitHist->Reset();
 
   return (chi2 < 5 && noise < 15);
 }
@@ -343,8 +342,9 @@ bool ITSCalibrator::findThresholdDerivative(
     return false;
   }
 
-  int deriv_size = Upper - Lower;
-  float* deriv = new float[deriv_size];
+  // int deriv_size = Upper - Lower;
+  // float* deriv = new float[deriv_size];
+  float deriv[*(this->N_RANGE)] = {0};
   float xfx = 0, fx = 0;
 
   // Fill array with derivatives
@@ -366,7 +366,7 @@ bool ITSCalibrator::findThresholdDerivative(
   stddev /= fx;
   noise = std::sqrt(stddev);
 
-  delete[] deriv;
+  // delete[] deriv;
   return (noise < 15);
 }
 
