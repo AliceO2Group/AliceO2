@@ -219,8 +219,9 @@ bool ITSCalibrator::findUpperLower(
       }
     }
 
-    if (Upper == -1)
+    if (Upper == -1) {
       return false;
+    }
     for (int i = Upper; i > 0; i--) {
       if (data[i] >= N_INJ) {
         Lower = i;
@@ -237,8 +238,9 @@ bool ITSCalibrator::findUpperLower(
       }
     }
 
-    if (Upper == -1)
+    if (Upper == -1) {
       return false;
+    }
     for (int i = Upper; i > 0; i--) {
       if (data[i] == 0) {
         Lower = i;
@@ -248,8 +250,9 @@ bool ITSCalibrator::findUpperLower(
   }
 
   // If search was successful, return central x value
-  if ((Lower == -1) || (Upper < Lower))
+  if ((Lower == -1) || (Upper < Lower)) {
     return false;
+  }
   return true;
 }
 
@@ -382,8 +385,9 @@ bool ITSCalibrator::findThresholdHitcounting(
   bool is50 = false;
   for (unsigned short int i = 0; i < NPoints; i++) {
     number_of_hits += data[i];
-    if (data[i] == N_INJ)
+    if (data[i] == N_INJ) {
       is50 = true;
+    }
   }
 
   // If not enough counts return a failure
