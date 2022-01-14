@@ -295,7 +295,7 @@ class SplineSpec<DataT, XdimT, YdimT, 0> : public SplineContainer<DataT>
     const auto maxYdimTmp = SplineUtil::getMaxNdim<XdimT>(mYdim);
     const auto maxYdim = maxYdimTmp.get();
 
-    const auto nParameters = 1 << (2 * nXdim);         //total Nr of Parameters necessary for one interpolation
+    // const auto nParameters = 1 << (2 * nXdim);         //total Nr of Parameters necessary for one interpolation
     const auto nKnotParametersPerY = 1 << nXdim;       // Nr of Parameters per Knot per Y dimension
     const auto nKnotParameters = (1 << nXdim) * nYdim; // Nr of Parameters per Knot
 

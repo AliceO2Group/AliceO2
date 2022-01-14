@@ -15,7 +15,6 @@
 #include "DataFormatsTPC/CalibdEdxContainer.h"
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
-#include "Rtypes.h"
 #include "TFile.h"
 #include "GPUCommonLogger.h"
 #endif

@@ -16,6 +16,7 @@
 #ifndef ALICEO2_TPC_CALIBDEDXCONTAINER_H_
 #define ALICEO2_TPC_CALIBDEDXCONTAINER_H_
 
+#include "GPUCommonRtypes.h"
 #include "GPUCommonDef.h"
 #include "GPUCommonMath.h"
 #include "DataFormatsTPC/CalibdEdxCorrection.h"
@@ -121,7 +122,7 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
   CalibdEdxTrackTopologyPol* mCalibTrackTopologyPol{nullptr};       ///< calibration for the track topology correction (polynomial)
   CalibdEdxCorrection mCalibResidualdEdx;                           ///< calibration for the residual dE/dx correction
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE)
   /// \return returns size of the CalibdEdxTrackTopologyPol class
   std::size_t sizeOfCalibdEdxTrackTopologyPol() const { return alignSize(sizeof(CalibdEdxTrackTopologyPol), FlatObject::getClassAlignmentBytes()); }
 

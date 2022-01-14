@@ -15,6 +15,7 @@
 #ifndef ALICEO2_TPC_CalibdEdxTrackTopologyPol_H_
 #define ALICEO2_TPC_CalibdEdxTrackTopologyPol_H_
 
+#include "GPUCommonRtypes.h"
 #include "GPUCommonDef.h"
 #ifndef GPUCA_ALIGPUCODE
 #include <string_view>

@@ -322,6 +322,8 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
           if (merger->GetConstantMem()->ioPtrs.clustersNative == nullptr) {
             qtot = clustersXYZ[ihit].amp;
             qmax = 0;
+            relPad = 0;
+            relTime = 0;
           } else {
             const ClusterNative& cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[ihit].num];
             qtot = cl.qTot;
