@@ -72,6 +72,12 @@ o2_add_executable(
         PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
 
 o2_add_executable(
+        event-finder-workflow
+        SOURCES src/EventFinderSpec.cxx src/event-finder-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::MCHTriggering)
+
+o2_add_executable(
         digits-to-timeclusters-workflow
         SOURCES src/digits-to-timeclusters-workflow.cxx
         COMPONENT_NAME mch
@@ -216,15 +222,15 @@ o2_add_executable(
             src/ClusterTransformerSpec.cxx
             src/DigitFilteringSpec.cxx
             src/DigitReaderSpec.cxx
-            src/TrackAtVertexSpec.cxx
+            src/EventFinderSpec.cxx
             src/TrackFinderSpec.cxx
             src/TrackMCLabelFinderSpec.cxx
-            src/VertexSamplerSpec.cxx
             src/reco-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES
             O2::MCHGeometryTransformer
             O2::MCHMappingImpl4
+            O2::MCHTriggering
             O2::MCHTracking
             O2::MCHWorkflow
             O2::SimulationDataFormat
