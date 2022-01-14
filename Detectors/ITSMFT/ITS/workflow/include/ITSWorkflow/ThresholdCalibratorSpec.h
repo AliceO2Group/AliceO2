@@ -102,6 +102,9 @@ class ITSCalibrator : public Task
   void run(ProcessingContext& pc) final;
   void endOfStream(EndOfStreamContext& ec) final;
 
+  void finalize(EndOfStreamContext* ec);
+  void stop() final;
+
   //////////////////////////////////////////////////////////////////
  private:
   TStopwatch mTimer;
@@ -183,7 +186,7 @@ class ITSCalibrator : public Task
   // Helper functions for writing to the database
   void addDatabaseEntry(const short int&, const char*, const short int&,
                         const float&, bool, o2::dcs::DCSconfigObject_t&);
-  void sendToCCDB(const char*, o2::dcs::DCSconfigObject_t&, EndOfStreamContext&);
+  void sendToCCDB(const char*, o2::dcs::DCSconfigObject_t&, EndOfStreamContext*);
 
   std::string mSelfName;
   std::string mDictName;
@@ -197,7 +200,7 @@ class ITSCalibrator : public Task
 
   // How many rows before starting new ROOT file
   unsigned int mFileNumber = 0;
-  const unsigned int mNRowsPerFile = 10000;
+  static constexpr unsigned int N_ROWS_PER_FILE = 10000;
   unsigned int mRowCounter = 0;
 
   short int mRunType = -1;
@@ -207,6 +210,9 @@ class ITSCalibrator : public Task
 
   // Get threshold method (fit == 1, derivative == 0, or hitcounting == 2)
   char mFitType = -1;
+
+  // Keep track of whether the endOfStream() or stop() has been called
+  bool mStopped = false;
 };
 
 // Create a processor spec

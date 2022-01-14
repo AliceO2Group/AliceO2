@@ -14,7 +14,7 @@ namespace o2
 {
 namespace its
 {
-namespace threshold_calibration_workflow
+namespace threshold_calib_workflow
 {
 framework::WorkflowSpec getWorkflow()
 {
@@ -24,6 +24,6 @@ framework::WorkflowSpec getWorkflow()
 
   return specs;
 }
-} // namespace threshold_calibration_workflow
+} // namespace threshold_calib_workflow
 } // namespace its
 } // namespace o2

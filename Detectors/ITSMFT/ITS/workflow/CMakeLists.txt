@@ -51,7 +51,7 @@ o2_add_executable(cluster-reader-workflow
                   COMPONENT_NAME its
                   PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
 
-o2_add_executable(threshold-cali-workflow
-                  SOURCES src/its-calibration-workflow.cxx
+o2_add_executable(threshold-calib-workflow
+                  SOURCES src/its-threshold-calib-workflow.cxx
                   COMPONENT_NAME its
                   PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)

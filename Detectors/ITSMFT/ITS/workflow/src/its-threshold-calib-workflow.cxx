@@ -23,5 +23,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   LOG(info) << "Initializing O2 ITS Threshold Calibration:-))))))";
 
-  return std::move(o2::its::threshold_calibration_workflow::getWorkflow());
+  return std::move(o2::its::threshold_calib_workflow::getWorkflow());
 }

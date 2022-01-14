@@ -204,27 +204,27 @@ void ITSCalibrator::initThresholdTree(bool recreate /*=true*/)
 // NPoints is the length of both arrays.
 bool ITSCalibrator::findUpperLower(
   const short int* data, const short int* x, const short int& NPoints,
-  short int& Lower, short int& Upper, bool flip)
+  short int& lower, short int& upper, bool flip)
 {
-  // Initialize (or re-initialize) Upper and Lower
-  Upper = -1;
-  Lower = -1;
+  // Initialize (or re-initialize) upper and lower
+  upper = -1;
+  lower = -1;
 
-  if (flip) { // ITHR case. Lower is at large mX[i], Upper is at small mX[i]
+  if (flip) { // ITHR case. lower is at large mX[i], upper is at small mX[i]
 
     for (int i = 0; i < NPoints; i++) {
       if (data[i] == 0) {
-        Upper = i;
+        upper = i;
         break;
       }
     }
 
-    if (Upper == -1) {
+    if (upper == -1) {
       return false;
     }
-    for (int i = Upper; i > 0; i--) {
+    for (int i = upper; i > 0; i--) {
       if (data[i] >= N_INJ) {
-        Lower = i;
+        lower = i;
         break;
       }
     }
@@ -233,24 +233,24 @@ bool ITSCalibrator::findUpperLower(
 
     for (int i = 0; i < NPoints; i++) {
       if (data[i] >= N_INJ) {
-        Upper = i;
+        upper = i;
         break;
       }
     }
 
-    if (Upper == -1) {
+    if (upper == -1) {
       return false;
     }
-    for (int i = Upper; i > 0; i--) {
+    for (int i = upper; i > 0; i--) {
       if (data[i] == 0) {
-        Lower = i;
+        lower = i;
         break;
       }
     }
   }
 
   // If search was successful, return central x value
-  if ((Lower == -1) || (Upper < Lower)) {
+  if ((lower == -1) || (upper < lower)) {
     return false;
   }
   return true;
@@ -293,17 +293,17 @@ bool ITSCalibrator::findThresholdFit(
   float& thresh, float& noise)
 {
   // Find lower & upper values of the S-curve region
-  short int Lower, Upper;
+  short int lower, upper;
   bool flip = (this->mScanType == 'I');
-  if (!this->findUpperLower(data, x, NPoints, Lower, Upper, flip) || Lower == Upper) {
-    LOG(warning) << "Start-finding unsuccessful: (Lower, Upper) = ("
-                 << Lower << ", " << Upper << ")";
+  if (!this->findUpperLower(data, x, NPoints, lower, upper, flip) || lower == upper) {
+    LOG(warning) << "Start-finding unsuccessful: (lower, upper) = ("
+                 << lower << ", " << upper << ")";
     return false;
   }
-  float Start = (this->mX[Upper] + this->mX[Lower]) / 2;
+  float start = (this->mX[upper] + this->mX[lower]) / 2;
 
-  if (Start < 0) {
-    LOG(warning) << "Start-finding unsuccessful: Start = " << Start;
+  if (start < 0) {
+    LOG(warning) << "Start-finding unsuccessful: Start = " << start;
     return false;
   }
 
@@ -312,7 +312,7 @@ bool ITSCalibrator::findThresholdFit(
   }
 
   // Initialize starting parameters
-  this->mFitFunction->SetParameter(0, Start);
+  this->mFitFunction->SetParameter(0, start);
   this->mFitFunction->SetParameter(1, 8);
 
   this->mFitHist->Fit("mFitFunction", "QL");
@@ -337,11 +337,11 @@ bool ITSCalibrator::findThresholdDerivative(
   float& thresh, float& noise)
 {
   // Find lower & upper values of the S-curve region
-  short int Lower, Upper;
+  short int lower, upper;
   bool flip = (this->mScanType == 'I');
-  if (!this->findUpperLower(data, x, NPoints, Lower, Upper, flip) || Lower == Upper) {
-    LOG(warning) << "Start-finding unsuccessful: (Lower, Upper) = ("
-                 << Lower << ", " << Upper << ")";
+  if (!this->findUpperLower(data, x, NPoints, lower, upper, flip) || lower == upper) {
+    LOG(warning) << "Start-finding unsuccessful: (lower, upper) = ("
+                 << lower << ", " << upper << ")";
     return false;
   }
 
@@ -351,19 +351,19 @@ bool ITSCalibrator::findThresholdDerivative(
   float xfx = 0, fx = 0;
 
   // Fill array with derivatives
-  for (int i = Lower; i < Upper; i++) {
-    deriv[i - Lower] = (float)(data[i + 1] - data[i]) / (float)(this->mX[i + 1] - mX[i]);
-    if (deriv[i - Lower] < 0) {
-      deriv[i - Lower] = 0.;
+  for (int i = lower; i < upper; i++) {
+    deriv[i - lower] = (data[i + 1] - data[i]) / (float)(this->mX[i + 1] - mX[i]);
+    if (deriv[i - lower] < 0) {
+      deriv[i - lower] = 0.;
     }
-    xfx += this->mX[i] * deriv[i - Lower];
-    fx += deriv[i - Lower];
+    xfx += this->mX[i] * deriv[i - lower];
+    fx += deriv[i - lower];
   }
 
   thresh = xfx / fx;
   float stddev = 0;
-  for (int i = Lower; i < Upper; i++) {
-    stddev += std::pow(this->mX[i] - thresh, 2) * deriv[i - Lower];
+  for (int i = lower; i < upper; i++) {
+    stddev += std::pow(this->mX[i] - thresh, 2) * deriv[i - lower];
   }
 
   stddev /= fx;
@@ -381,28 +381,28 @@ bool ITSCalibrator::findThresholdDerivative(
 bool ITSCalibrator::findThresholdHitcounting(
   const short int* data, const short int* x, const short int& NPoints, float& thresh)
 {
-  unsigned short int number_of_hits = 0;
+  unsigned short int numberOfHits = 0;
   bool is50 = false;
   for (unsigned short int i = 0; i < NPoints; i++) {
-    number_of_hits += data[i];
+    numberOfHits += data[i];
     if (data[i] == N_INJ) {
       is50 = true;
     }
   }
 
   // If not enough counts return a failure
-  // if (number_of_hits < N_INJ) { return false; }
+  // if (numberOfHits < N_INJ) { return false; }
   if (!is50) {
     LOG(warning) << "Too few hits, skipping this pixel";
     return false;
   }
 
   if (this->mScanType == 'T') {
-    thresh = this->mX[*(this->N_RANGE) - 1] - number_of_hits / float(N_INJ);
+    thresh = this->mX[*(this->N_RANGE) - 1] - numberOfHits / float(N_INJ);
   } else if (this->mScanType == 'V') {
-    thresh = (this->mX[*(this->N_RANGE) - 1] * N_INJ - number_of_hits) / float(N_INJ);
+    thresh = (this->mX[*(this->N_RANGE) - 1] * N_INJ - numberOfHits) / float(N_INJ);
   } else if (this->mScanType == 'I') {
-    thresh = (number_of_hits - N_INJ * this->mX[0]) / float(N_INJ);
+    thresh = (numberOfHits - N_INJ * this->mX[0]) / float(N_INJ);
   } else {
     LOG(error) << "Unexpected runtype encountered in findThresholdHitcounting()";
     return false;
@@ -535,35 +535,35 @@ void ITSCalibrator::finalizeOutput()
   // Expected ROOT output filename
   std::string filename = std::to_string(this->mRunNumber) + '_' +
                          std::to_string(this->mFileNumber);
-  std::string filename_full = dir + filename;
+  std::string filenameFull = dir + filename;
   try {
-    std::rename((filename_full + ".root.part").c_str(),
-                (filename_full + ".root").c_str());
+    std::rename((filenameFull + ".root.part").c_str(),
+                (filenameFull + ".root").c_str());
   } catch (std::exception const& e) {
-    LOG(error) << "Failed to rename ROOT file " << filename_full
+    LOG(error) << "Failed to rename ROOT file " << filenameFull
                << ".root.part, reason: " << e.what();
   }
 
   // Create metadata file
-  o2::dataformats::FileMetaData* md_file = new o2::dataformats::FileMetaData();
-  md_file->fillFileData(filename_full + ".root");
-  md_file->run = this->mRunNumber;
-  md_file->LHCPeriod = this->mLHCPeriod;
-  md_file->type = "calibration";
-  md_file->priority = "high";
-  md_file->lurl = filename_full + ".root";
+  o2::dataformats::FileMetaData* mdFile = new o2::dataformats::FileMetaData();
+  mdFile->fillFileData(filenameFull + ".root");
+  mdFile->run = this->mRunNumber;
+  mdFile->LHCPeriod = this->mLHCPeriod;
+  mdFile->type = "calibration";
+  mdFile->priority = "high";
+  mdFile->lurl = filenameFull + ".root";
   auto metaFileNameTmp = fmt::format("{}{}.tmp", this->mMetafileDir, filename);
   auto metaFileName = fmt::format("{}{}.done", this->mMetafileDir, filename);
   try {
     std::ofstream metaFileOut(metaFileNameTmp);
-    metaFileOut << md_file->asString() << '\n';
+    metaFileOut << mdFile->asString() << '\n';
     metaFileOut.close();
     std::filesystem::rename(metaFileNameTmp, metaFileName);
   } catch (std::exception const& e) {
     LOG(error) << "Failed to create threshold metadata file "
                << metaFileName << ", reason: " << e.what();
   }
-  delete md_file;
+  delete mdFile;
 
   // Next time a file is created, use a larger number
   this->mFileNumber++;
@@ -660,7 +660,7 @@ bool ITSCalibrator::isScanFinished(const short int& chipID)
 void ITSCalibrator::extractAndUpdate(const short int& chipID)
 {
   // In threshold scan case, reset mThresholdTree before writing to a new file
-  if ((this->mScanType == 'T') && ((this->mRowCounter)++ == mNRowsPerFile)) {
+  if ((this->mScanType == 'T') && ((this->mRowCounter)++ == N_ROWS_PER_FILE)) {
     // Finalize output and create a new TTree and ROOT file
     this->finalizeOutput();
     this->initThresholdTree();
@@ -677,14 +677,15 @@ void ITSCalibrator::extractAndUpdate(const short int& chipID)
 //////////////////////////////////////////////////////////////////////////////
 void ITSCalibrator::updateLHCPeriod(ProcessingContext& pc)
 {
-  const std::string LHCPeriodStr = pc.services().get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("LHCPeriod", "");
+  auto conf = pc.services().get<RawDeviceService>().device()->fConfig;
+  const std::string LHCPeriodStr = conf->GetProperty<std::string>("LHCPeriod", "");
   if (!(LHCPeriodStr.empty())) {
     this->mLHCPeriod = LHCPeriodStr;
   } else {
     const char* months[12] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN",
                               "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
-    time_t now = std::time(nullptr);
-    auto ltm = std::gmtime(&now);
+    std::time_t now = std::time(nullptr);
+    std::tm* ltm = std::gmtime(&now);
     this->mLHCPeriod = months[ltm->tm_mon];
     LOG(warning) << "LHCPeriod is not available, using current month " << this->mLHCPeriod;
   }
@@ -695,7 +696,8 @@ void ITSCalibrator::updateLHCPeriod(ProcessingContext& pc)
 //////////////////////////////////////////////////////////////////////////////
 void ITSCalibrator::updateEnvironmentID(ProcessingContext& pc)
 {
-  const std::string envN = pc.services().get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("environment_id", "");
+  auto conf = pc.services().get<RawDeviceService>().device()->fConfig;
+  const std::string envN = conf->GetProperty<std::string>("environment_id", "");
   if (!(envN.empty())) {
     this->mEnvironmentID = envN;
   }
@@ -721,7 +723,8 @@ void ITSCalibrator::updateRunID(ProcessingContext& pc)
 //     (ROFs) to count hits and extract thresholds
 void ITSCalibrator::run(ProcessingContext& pc)
 {
-  int lay, sta, ssta, mod, chip, chipInMod, rofcount; // layer, stave, sub stave, module, chip
+  // layer, stave, sub stave, module, chip
+  int lay, sta, ssta, mod, chip, chipInMod, rofcount;
 
   // auto orig = ChipMappingITS::getOrigin();
 
@@ -882,7 +885,7 @@ void ITSCalibrator::addDatabaseEntry(
 
 //////////////////////////////////////////////////////////////////////////////
 void ITSCalibrator::sendToCCDB(
-  const char* name, o2::dcs::DCSconfigObject_t& tuning, EndOfStreamContext& ec)
+  const char* name, o2::dcs::DCSconfigObject_t& tuning, EndOfStreamContext* ec)
 {
   // Below is CCDB stuff
   long tstart, tend;
@@ -926,18 +929,18 @@ void ITSCalibrator::sendToCCDB(
             << info.getEndValidityTimestamp();
 
   if (this->mScanType == 'V') {
-    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "VCASN", 0}, *image);
-    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "VCASN", 0}, info);
+    ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "VCASN", 0}, *image);
+    ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "VCASN", 0}, info);
   } else if (this->mScanType == 'I') {
-    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ITHR", 0}, *image);
-    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ITHR", 0}, info);
+    ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ITHR", 0}, *image);
+    ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ITHR", 0}, info);
   }
 
   return;
 }
 
 //////////////////////////////////////////////////////////////////////////////
-void ITSCalibrator::endOfStream(EndOfStreamContext& ec)
+void ITSCalibrator::finalize(EndOfStreamContext* ec)
 {
   LOGF(info, "endOfStream report:", mSelfName);
 
@@ -955,7 +958,7 @@ void ITSCalibrator::endOfStream(EndOfStreamContext& ec)
 
   // Add configuration item to output strings for CCDB
   const char* name = nullptr;
-  bool push_to_ccdb = false;
+  bool pushToCCDB = false;
   if (this->mScanType == 'V') {
     // Loop over each chip in the thresholds data
     name = "VCASN";
@@ -965,7 +968,7 @@ void ITSCalibrator::endOfStream(EndOfStreamContext& ec)
       this->findAverage(t_vec, avg, rms);
       bool status = (this->mX[0] < avg && avg < this->mX[*(this->N_RANGE) - 1]);
       this->addDatabaseEntry(chipID, name, (short int)avg, rms, status, tuning);
-      push_to_ccdb = true;
+      pushToCCDB = true;
     }
 
   } else if (this->mScanType == 'I') {
@@ -977,7 +980,7 @@ void ITSCalibrator::endOfStream(EndOfStreamContext& ec)
       this->findAverage(t_vec, avg, rms);
       bool status = (this->mX[0] < avg && avg < this->mX[*(this->N_RANGE) - 1]);
       this->addDatabaseEntry(chipID, name, (short int)avg, rms, status, tuning);
-      push_to_ccdb = true;
+      pushToCCDB = true;
     }
 
   } else if (this->mScanType == 'T') {
@@ -985,10 +988,33 @@ void ITSCalibrator::endOfStream(EndOfStreamContext& ec)
     name = "Threshold";
   }
 
-  if (push_to_ccdb) {
+  if (ec && pushToCCDB) {
     this->sendToCCDB(name, tuning, ec);
   }
 
+  return;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// fairMQ functionality; called automatically when the DDS stops processing
+void ITSCalibrator::stop()
+{
+  if (!mStopped) {
+    this->finalize(nullptr);
+    this->mStopped = true;
+  }
+  return;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// O2 functionality allowing to do post-processing when the upstream device
+// tells that there will be no more input data
+void ITSCalibrator::endOfStream(EndOfStreamContext& ec)
+{
+  if (!mStopped) {
+    this->finalize(&ec);
+    this->mStopped = true;
+  }
   return;
 }
 
