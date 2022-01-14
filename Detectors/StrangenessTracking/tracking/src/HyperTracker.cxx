@@ -82,50 +82,53 @@ void HyperTracker::process()
 
     for (int iTrack{0}; iTrack < mInputITStracks.size(); iTrack++) {
 
-      auto &ITStrack = mInputITStracks[iTrack];
+      auto& ITStrack = mInputITStracks[iTrack];
       auto trackClusters = getTrackClusters(ITStrack);
       std::vector<ITSCluster> v0Clusters;
 
+      int nUpdates = 0;
       for (auto& clus : trackClusters) {
+
         auto isV0Upd = false;
         auto diffR2 = v0R2 - clus.getX() * clus.getX() - clus.getY() * clus.getY(); // difference between V0 and Layer R2
         // check V0 compatibility
         if (diffR2 > -4) {
-          // LOG(INFO) << "Try to attach V0 for layer: " << mGeomITS->getLayer(clus.getSensorID());
           if (updateTrack(clus, mV0)) {
-            // LOG(INFO) << "Attach cluster to V0 for layer: " << mGeomITS->getLayer(clus.getSensorID());
             isV0Upd = true;
             v0Clusters.push_back(clus);
+            nUpdates++;
           }
         }
         // if V0 is not found, check He3 compatibility
         if (diffR2 < 4 && !isV0Upd) {
-          // LOG(INFO) << "Try to attach He3 for layer: " << mGeomITS->getLayer(clus.getSensorID());
           auto& he3track = calcV0alpha(mV0) > 0 ? mV0.getProng(0) : mV0.getProng(1);
           if (!updateTrack(clus, he3track)) {
             break;
           }
-          recreateV0(mV0.getProng(0), mV0.getProng(1), mV0.getProngID(0), mV0.getProngID(1));
-          // LOG(INFO) << "Attach cluster to He3 for layer: " << mGeomITS->getLayer(clus.getSensorID());
+          if (recreateV0(mV0.getProng(0), mV0.getProng(1), mV0.getProngID(0), mV0.getProngID(1)))
+            nUpdates++;
         }
+      }
 
-        o2::track::TrackParCov hyperTrack = mV0;
-        // outward V0 propagation
-        if (v0Clusters.size() > 0) {
-          mV0.resetCovariance();
-          std::reverse(v0Clusters.begin(), v0Clusters.end());
-          for (auto& clus : v0Clusters) {
-            if (!updateTrack(clus, mV0))
-              break;
-          }
-        }
+      if (nUpdates < trackClusters.size())
+        continue;
 
-        // final 3body refit
-        if (refitAllTracks()) {
-          mV0s.push_back(mV0);
-          mHyperTracks.push_back(hyperTrack);
-          mITStrackRef.push_back(iTrack);
+      o2::track::TrackParCov hyperTrack = mV0;
+      // outward V0 propagation
+      if (v0Clusters.size() > 0) {
+        mV0.resetCovariance();
+        std::reverse(v0Clusters.begin(), v0Clusters.end());
+        for (auto& clus : v0Clusters) {
+          if (!updateTrack(clus, mV0))
+            break;
         }
+      }
+
+      // final 3body refit
+      if (refitAllTracks()) {
+        mV0s.push_back(mV0);
+        mHyperTracks.push_back(hyperTrack);
+        mITStrackRef.push_back(iTrack);
       }
     }
   }

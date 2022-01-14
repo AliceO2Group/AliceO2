@@ -46,7 +46,6 @@ DataProcessorSpec getHypertrackingWriterSpec()
   auto inpTrackID = InputSpec{"hypertrack", "HYP", "HYPERTRACKS", 0};
   auto inpRefID = InputSpec{"itsrefs", "HYP", "ITSREFS", 0};
 
-
   return MakeRootTreeWriterSpec("hypertracking-writer",
                                 "o2_hypertrack.root",
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with Hypertracks"},

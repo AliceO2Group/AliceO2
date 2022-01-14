@@ -155,8 +155,6 @@ void HypertrackerSpec::run(framework::ProcessingContext& pc)
   pc.outputs().snapshot(Output{"HYP", "HYPERTRACKS", 0, Lifetime::Timeframe}, mTracker.getHyperTracks());
   pc.outputs().snapshot(Output{"HYP", "ITSREFS", 0, Lifetime::Timeframe}, mTracker.getITStrackRef());
 
-
-  
   mTimer.Stop();
 }
 

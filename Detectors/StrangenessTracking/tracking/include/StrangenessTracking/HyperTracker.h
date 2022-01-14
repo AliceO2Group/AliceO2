@@ -52,7 +52,6 @@ class HyperTracker
   std::vector<o2::track::TrackParCov>& getHyperTracks() { return mHyperTracks; };
   std::vector<int>& getITStrackRef() { return mITStrackRef; };
 
-
   float getMaxChi2() const { return mMaxChi2; }
   void setMaxChi2(float d) { mMaxChi2 = d; }
   float getBz() const { return mBz; }
@@ -78,17 +77,17 @@ class HyperTracker
   bool refitAllTracks();
 
  protected:
-  gsl::span<const o2::its::TrackITS> mInputITStracks;  // input ITS tracks
-  std::vector<ITSCluster> mInputITSclusters;           // input ITS clusters
-  gsl::span<const int> mInputITSidxs;                  // input ITS track-cluster indexes
-  gsl::span<const V0> mInputV0tracks;                  // input V0 of decay daughters
+  gsl::span<const o2::its::TrackITS> mInputITStracks; // input ITS tracks
+  std::vector<ITSCluster> mInputITSclusters;          // input ITS clusters
+  gsl::span<const int> mInputITSidxs;                 // input ITS track-cluster indexes
+  gsl::span<const V0> mInputV0tracks;                 // input V0 of decay daughters
 
   std::vector<o2::track::TrackParCov> mHyperTracks; // Final hypertrack
   std::vector<V0> mV0s;                             // V0 of decay daughters
   std::vector<int> mITStrackRef;                    // Ref to the ITS track
 
-  DCAFitter2 mFitterV0;                             // optional DCA Fitter for recreating V0 with hypertriton mass hypothesis
-  DCAFitter3 mFitter3Body;                          // optional DCA Fitter for final 3 Body refit
+  DCAFitter2 mFitterV0;    // optional DCA Fitter for recreating V0 with hypertriton mass hypothesis
+  DCAFitter3 mFitter3Body; // optional DCA Fitter for final 3 Body refit
 
   float mMaxChi2 = 40; // Maximum matching chi2
   float mBz = -5;      // Magnetic field
