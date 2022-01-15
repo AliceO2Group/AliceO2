@@ -243,7 +243,6 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
       }
       preClusterIndices[i2] = -1;
     }
-
     if (bbox.isAcceptableSize()) {
       parent->streamCluster(pixArrBuff, &labelsBuff, bbox, parent->mPattIdConverter, compClusPtr, patternsPtr, labelsClusPtr, nlab);
     } else {
