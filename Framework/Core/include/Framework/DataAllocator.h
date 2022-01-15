@@ -410,10 +410,10 @@ class DataAllocator
 
   //make a stl (pmr) vector
   template <typename T, typename... Args>
-  o2::vector<T> makeVector(const Output& spec, Args&&... args)
+  o2::pmr::vector<T> makeVector(const Output& spec, Args&&... args)
   {
     o2::pmr::FairMQMemoryResource* targetResource = getMemoryResource(spec);
-    return o2::vector<T>{targetResource, std::forward<Args>(args)...};
+    return o2::pmr::vector<T>{targetResource, std::forward<Args>(args)...};
   }
 
   struct CacheId {

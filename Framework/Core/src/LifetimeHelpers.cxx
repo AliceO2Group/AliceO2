@@ -189,7 +189,7 @@ size_t readToMessage(void* p, size_t size, size_t nmemb, void* userdata)
   if (size == 0) {
     return 0;
   }
-  o2::vector<char>* buffer = (o2::vector<char>*)userdata;
+  o2::pmr::vector<char>* buffer = (o2::pmr::vector<char>*)userdata;
   size_t oldSize = buffer->size();
   buffer->resize(oldSize + nmemb * size);
   memcpy(buffer->data() + oldSize, p, nmemb * size);
@@ -290,7 +290,7 @@ ExpirationHandler::Handler
 
     auto&& transport = rawDeviceService.device()->GetChannel(sourceChannel, 0).Transport();
     auto channelAlloc = o2::pmr::getTransportAllocator(transport);
-    o2::vector<char> payloadBuffer{transport->GetMemoryResource()};
+    o2::pmr::vector<char> payloadBuffer{transport->GetMemoryResource()};
     payloadBuffer.reserve(10000); // we begin with messages of 10KB
 
     CURL* curl = curl_easy_init();
@@ -366,7 +366,7 @@ ExpirationHandler::Handler
 
     DataProcessingHeader dph{timestamp, 1};
     auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
-    auto payload = o2::pmr::getMessage(std::forward<o2::vector<char>>(payloadBuffer), transport->GetMemoryResource());
+    auto payload = o2::pmr::getMessage(std::forward<o2::pmr::vector<char>>(payloadBuffer), transport->GetMemoryResource());
 
     ref.header = std::move(header);
     ref.payload = std::move(payload);

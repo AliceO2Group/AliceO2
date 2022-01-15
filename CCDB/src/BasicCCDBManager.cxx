@@ -25,7 +25,7 @@ namespace ccdb
 CCDBManagerInstance::BLOB* CCDBManagerInstance::createBlob(std::string const& path, MD const& metadata, long timestamp, MD* headers, std::string const& etag,
                                                            const std::string& createdNotAfter, const std::string& createdNotBefore)
 {
-  o2::vector<char> v;
+  o2::pmr::vector<char> v;
   mCCDBAccessor.loadFileToMemory(v, path, metadata, timestamp, headers, etag, createdNotAfter, createdNotBefore);
   if ((headers && headers->count("Error")) || !v.size()) {
     return nullptr;
