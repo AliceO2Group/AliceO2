@@ -1404,7 +1404,7 @@ std::string CcdbApi::getHostUrl(int hostIndex) const
   return hostsPool.at(hostIndex);
 }
 
-void CcdbApi::loadFileToMemory(o2::vector<char>& dest, std::string const& path,
+void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& path,
                                std::map<std::string, std::string> const& metadata, long timestamp,
                                std::map<std::string, std::string>* headers, std::string const& etag,
                                const std::string& createdNotAfter, const std::string& createdNotBefore) const
@@ -1485,7 +1485,7 @@ void CcdbApi::loadFileToMemory(o2::vector<char>& dest, std::string const& path,
 }
 
 // navigate sequence of URLs until TFile content is found; object is extracted and returned
-void CcdbApi::navigateURLsAndLoadFileToMemory(o2::vector<char>& dest, CURL* curl_handle, std::string const& url, std::map<string, string>* headers) const
+void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL* curl_handle, std::string const& url, std::map<string, string>* headers) const
 {
   // a global internal data structure that can be filled with HTTP header information
   // static --> to avoid frequent alloc/dealloc as optimization
@@ -1504,7 +1504,7 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::vector<char>& dest, CURL* curl
     errorflag = true;
   };
   auto writeCallBack = [](void* contents, size_t size, size_t nmemb, void* chunkptr) {
-    o2::vector<char>& chunk = *static_cast<o2::vector<char>*>(chunkptr);
+    o2::pmr::vector<char>& chunk = *static_cast<o2::pmr::vector<char>*>(chunkptr);
     size_t realsize = size * nmemb;
     try {
       chunk.reserve(chunk.size() + realsize);
@@ -1597,7 +1597,7 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::vector<char>& dest, CURL* curl
   return;
 }
 
-void CcdbApi::loadFileToMemory(o2::vector<char>& dest, const std::string& path, std::map<std::string, std::string>* localHeaders) const
+void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, const std::string& path, std::map<std::string, std::string>* localHeaders) const
 {
   // Read file to memory as vector. For special case of the locally cached file retriev metadata stored directly in the file
   constexpr size_t MaxCopySize = 0x1L << 25;
