@@ -118,9 +118,11 @@ class CalibdEdx
   /// Save the histograms to a TTree.
   void writeTTree(std::string_view fileName) const;
 
- private:
-  constexpr static float mipScale = 1.0 / 50.0; ///< Target value for MIP dE/dx
+  constexpr static float mipScale = 1.0 / 50.0; ///< Inverse of target MIP dE/dx value
 
+  constexpr static std::array<float, 4> tglScale{1.9, 1.5, 1.22, 1.02}; ///< Max Tgl values for each ROC type
+
+ private:
   float mField = -5;                ///< Magnetic field in kG, used for track propagation
   bool mApplyCuts{true};            ///< Wether or not to apply tracks cuts
   TrackCuts mCuts{0.4, 0.6, 60};    ///< Cut values

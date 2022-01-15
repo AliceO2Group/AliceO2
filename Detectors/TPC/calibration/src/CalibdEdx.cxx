@@ -48,8 +48,8 @@ CalibdEdx::CalibdEdx(int dEdxBins, float mindEdx, float maxdEdx, int angularBins
   constexpr float maxZ = 250;
   mHist = bh::make_histogram(
     FloatAxis(dEdxBins, mindEdx * mipScale, maxdEdx * mipScale, "dEdx"),
-    FloatAxis(angularBins, -maxTgl, maxTgl, "Tgl"),
-    FloatAxis(angularBins, -1, 1, "Snp"),
+    FloatAxis(angularBins, -0.1, 1, "Tgl"),
+    FloatAxis(angularBins, 0, 1, "Snp"),
     // FloatAxis(zBins, 0, maxZ, "Z"),
     IntAxis(0, SECTORSPERSIDE * SIDES, "sector"),
     IntAxis(0, GEMSTACKSPERSECTOR, "stackType"),
@@ -81,14 +81,15 @@ void CalibdEdx::fill(const TrackTPC& track)
       continue;
     }
 
-    const float tgl = cpTrack.getTgl();
-    const float snp = cpTrack.getSnp();
+    const float tgl = cpTrack.hasASideClusters() ? cpTrack.getTgl() : -cpTrack.getTgl();
+    const float scaledTgl = tgl / tglScale[stack];
+    const float snp = abs(cpTrack.getSnp());
     // const float z = abs(cpTrack.getZ());
     const float alpha = o2::math_utils::to02PiGen(cpTrack.getAlpha());
     const auto sector = static_cast<int>(alpha / SECPHIWIDTH) + sideOffset;
 
-    mHist(dEdxMax[stack] * mipScale, tgl, snp, /* z ,*/ sector, stack, ChargeType::Max);
-    mHist(dEdxTot[stack] * mipScale, tgl, snp, /* z ,*/ sector, stack, ChargeType::Tot);
+    mHist(dEdxMax[stack] * mipScale, scaledTgl, snp, /* z ,*/ sector, stack, ChargeType::Max);
+    mHist(dEdxTot[stack] * mipScale, scaledTgl, snp, /* z ,*/ sector, stack, ChargeType::Tot);
   }
 }
 
@@ -105,6 +106,17 @@ void CalibdEdx::merge(const CalibdEdx* other)
     mHist += other->getHist();
   }
 }
+
+namespace
+{
+float rescaleTgl(float tgl, int stack, int sector)
+{
+  if (sector > 17) {
+    tgl = -tgl;
+  }
+  return tgl * CalibdEdx::tglScale[stack];
+}
+} // namespace
 
 template <typename Hist>
 void fitHist(const Hist& hist, CalibdEdxCorrection& corr, TLinearFitter& fitter, const CalibdEdxCorrection* stackMean = nullptr)
@@ -143,8 +155,9 @@ void fitHist(const Hist& hist, CalibdEdxCorrection& corr, TLinearFitter& fitter,
         if (counts == 0) {
           continue;
         }
-        double values[] = {entry->bin(1).center(),
-                           entry->bin(2).center()};
+        double values[] = {
+          rescaleTgl(entry->bin(ax::Tgl).center(), id.type, id.sector),
+          entry->bin(ax::Snp).center()};
 
         double dEdx = entry->bin(ax::dEdx).center();
         // scale fit using the stacks mean
@@ -154,7 +167,7 @@ void fitHist(const Hist& hist, CalibdEdxCorrection& corr, TLinearFitter& fitter,
 
         // constexpr float dEdxResolution = 0.05;
         // const double error = dEdx * dEdxResolution / sqrt(counts);
-        const double error = 1. / sqrt(counts);
+        const double error = 1. / counts;
 
         fitter.AddPoint(values, dEdx, error);
       }
@@ -244,6 +257,7 @@ bool CalibdEdx::hasEnoughData(float minEntries) const
   return minStackEntries() >= minEntries;
 }
 
+// FIXME: the tgl roc type normalization breaks the histogram
 THnF* CalibdEdx::getRootHist() const
 {
   std::vector<int> bins{};
@@ -268,6 +282,7 @@ THnF* CalibdEdx::getRootHist() const
     for (int i = 0; i < histRank; ++i) {
       xs[i] = entry.bin(i).center();
     }
+
     hn->Fill(xs.data(), *entry);
   }
   return hn;
@@ -293,11 +308,19 @@ void CalibdEdx::writeTTree(std::string_view fileName) const
   float count = 0;
   tree.Branch("counts", &count);
 
-  for (const auto& x : indexed(mHist)) {
-    for (int i = 0; i < mHist.rank(); ++i) {
-      row[i] = x.bin(i).center();
+  for (auto&& entry : bh::indexed(mHist)) {
+    if (*entry == 0) {
+      continue;
     }
-    count = *x;
+    for (int i = 0; i < mHist.rank(); ++i) {
+      // Rescale Tgl
+      if (Axis::Tgl == i) {
+        row[i] = rescaleTgl(entry.bin(i).center(), entry.bin(Axis::Stack).center(), entry.bin(Axis::Sector).center());
+      } else {
+        row[i] = entry.bin(i).center();
+      }
+    }
+    count = *entry;
     tree.Fill();
   }
 

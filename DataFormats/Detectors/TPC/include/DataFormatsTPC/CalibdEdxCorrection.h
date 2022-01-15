@@ -16,6 +16,7 @@
 #define ALICEO2_TPC_CALIBDEDXCORRECTION_H_
 
 #include "GPUCommonDef.h"
+#include <cmath>
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <string_view>
 #endif
@@ -48,14 +49,14 @@ class CalibdEdxCorrection
     if (mDims < 0) {
       return 1;
     }
-
+    snp = abs(snp);
     const auto& p = mParams[stackIndex(stack, charge)];
     float corr = p[0];
 
     if (mDims > 0) {
-      corr += p[1] * tgl + p[2] * tgl * tgl;
+      corr += tgl * (p[1] + p[2] * tgl);
       if (mDims > 1) {
-        corr += p[3] * snp + p[4] * tgl * snp + p[5] * snp * snp;
+        corr += snp * (p[3] + p[4] * tgl + p[5] * snp);
       }
     }
 
