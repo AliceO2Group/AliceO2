@@ -18,6 +18,7 @@
 #include "rANS/utils.h"
 
 #include <boost/program_options.hpp>
+#include <algorithm>
 
 #include <fairlogger/Logger.h>
 
@@ -33,8 +34,9 @@ using stream_t = uint32_t;
 static const uint REPETITIONS = 5;
 
 template <typename T>
-void readFile(const std::string& filename, std::vector<T>* tokens)
+std::vector<T> readFile(const std::string& filename)
 {
+  std::vector<T> tokens{};
   std::ifstream is(filename, std::ios_base::binary | std::ios_base::in);
   if (is) {
     // get length of file:
@@ -42,22 +44,17 @@ void readFile(const std::string& filename, std::vector<T>* tokens)
     size_t length = is.tellg();
     is.seekg(0, is.beg);
 
-    // reserve size of tokens
-    if (!tokens) {
-      throw std::runtime_error("Cannot read file into nonexistent vector");
-    }
-
     if (length % sizeof(T)) {
       throw std::runtime_error("Filesize is not a multiple of datatype.");
     }
     // size the vector appropriately
-    size_t num_elems = length / sizeof(T);
-    tokens->resize(num_elems);
+    tokens.resize(length / sizeof(T));
 
     // read data as a block:
-    is.read(reinterpret_cast<char*>(tokens->data()), length);
+    is.read(reinterpret_cast<char*>(tokens.data()), length);
     is.close();
   }
+  return tokens;
 }
 
 int main(int argc, char* argv[])
@@ -112,8 +109,7 @@ int main(int argc, char* argv[])
   }
   for (size_t i = 0; i < repetitions; i++) {
     LOG(info) << "repetion: " << i;
-    std::vector<source_t> tokens;
-    readFile(filename, &tokens);
+    std::vector<source_t> tokens = readFile<source_t>(filename);
 
     const auto renormedFrequencies = o2::rans::renorm(o2::rans::makeFrequencyTableFromSamples(std::begin(tokens), std::end(tokens)));
 
@@ -127,11 +123,19 @@ int main(int argc, char* argv[])
       decoder.process(encoderBuffer.end(), decoderBuffer.begin(), std::distance(std::begin(tokens), std::end(tokens)));
     }();
 
-    if (std::memcmp(tokens.data(), decoderBuffer.data(),
-                    tokens.size() * sizeof(source_t))) {
-      LOG(error) << "Decoder failed tests";
-    } else {
+    size_t pos = 0;
+    if (std::equal(tokens.begin(), tokens.end(), decoderBuffer.begin(), decoderBuffer.end(),
+                   [&pos](const auto& a, const auto& b) {
+                     const bool cmp = a == b;
+                     if (!cmp) {
+                       LOG(error) << fmt::format("[{}] {} != {}", pos, a, b);
+                     }
+                     ++pos;
+                     return cmp;
+                   })) {
       LOG(info) << "Decoder passed tests";
+    } else {
+      LOG(error) << "Decoder failed tests";
     }
   }
-}
+};

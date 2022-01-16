@@ -14,8 +14,8 @@
 /// @since  2019-05-21
 /// @brief  Structure containing all relevant information to encode a symbol.
 
-#ifndef RANS_INTERNAL_ENCODERSYMBOL_H
-#define RANS_INTERNAL_ENCODERSYMBOL_H
+#ifndef RANS_INTERNAL_CPP_ENCODERSYMBOL_H
+#define RANS_INTERNAL_CPP_ENCODERSYMBOL_H
 
 #include <cstdint>
 #include <cassert>
@@ -28,6 +28,8 @@ namespace o2
 namespace rans
 {
 namespace internal
+{
+namespace cpp
 {
 // Encoder symbol description
 // This (admittedly odd) selection of parameters was chosen to make
@@ -138,8 +140,9 @@ class EncoderSymbol
   count_t mReciprocalShift{};     // Reciprocal shift
 };
 
+} // namespace cpp
 } // namespace internal
-} //namespace rans
-} //namespace o2
+} // namespace rans
+} // namespace o2
 
-#endif /* RANS_INTERNAL_ENCODERSYMBOL_H */
+#endif /* RANS_INTERNAL_CPP_ENCODERSYMBOL_H */

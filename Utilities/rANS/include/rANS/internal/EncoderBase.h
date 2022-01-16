@@ -25,9 +25,9 @@
 #include <stdexcept>
 
 #include "rANS/definitions.h"
-#include "rANS/internal/Encoder.h"
-#include "rANS/internal/EncoderSymbol.h"
 #include "rANS/internal/helper.h"
+#include "rANS/internal/backend/cpp/Encoder.h"
+#include "rANS/internal/backend/cpp/EncoderSymbol.h"
 #include "rANS/internal/SymbolTable.h"
 #include "rANS/RenormedFrequencyTable.h"
 
@@ -42,8 +42,8 @@ template <typename coder_T, typename stream_T, typename source_T>
 class EncoderBase
 {
  protected:
-  using encoderSymbolTable_t = typename internal::SymbolTable<internal::EncoderSymbol<coder_T>>;
-  using ransCoder_t = typename internal::Encoder<coder_T, stream_T>;
+  using encoderSymbolTable_t = typename internal::SymbolTable<cpp::EncoderSymbol<coder_T>>;
+  using ransCoder_t = typename cpp::Encoder<coder_T, stream_T>;
 
  public:
   using coder_t = coder_T;

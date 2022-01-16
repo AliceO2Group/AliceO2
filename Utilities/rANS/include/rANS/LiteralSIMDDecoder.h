@@ -14,56 +14,63 @@
 /// @since  2020-04-06
 /// @brief  Decoder - decode a rANS encoded state back into source symbols
 
-#ifndef RANS_LITERALDECODER_H
-#define RANS_LITERALDECODER_H
-
-#include "Decoder.h"
+#ifndef RANS_LITERALSIMDDECODER_H
+#define RANS_LITERALSIMDDECODER_H
 
 #include <cstddef>
 #include <type_traits>
 #include <iostream>
 #include <iomanip>
-#include <string>
+#include <memory>
 
 #include <fairlogger/Logger.h>
 
+#include "rANS/FrequencyTable.h"
 #include "rANS/internal/backend/cpp/DecoderSymbol.h"
 #include "rANS/internal/ReverseSymbolLookupTable.h"
 #include "rANS/internal/SymbolTable.h"
-#include "rANS/internal/backend/cpp/Decoder.h"
+#include "rANS/internal/backend/simd/Decoder.h"
 #include "rANS/internal/DecoderBase.h"
+#include "rANS/internal/helper.h"
 
 namespace o2
 {
 namespace rans
 {
 
-template <typename coder_T, typename stream_T, typename source_T>
-class LiteralDecoder : public internal::DecoderBase<coder_T, stream_T, source_T>
+template <typename coder_T,
+          typename stream_T,
+          typename source_T,
+          uint8_t nStreams_V = 4,
+          uint8_t nHardwareStreams_V = 2>
+class LiteralSIMDDecoder : public internal::DecoderBase<coder_T, stream_T, source_T>
 {
  public:
   using internal::DecoderBase<coder_T, stream_T, source_T>::DecoderBase;
 
-  template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT>, bool> = true>
+  template <typename stream_IT,
+            typename source_IT,
+            std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT>, bool> = true>
   void process(stream_IT inputEnd, source_IT outputBegin, size_t messageLength, std::vector<source_T>& literals) const;
 
  private:
-  using ransDecoder_t = typename internal::DecoderBase<coder_T, stream_T, source_T>::ransDecoder_t;
+  using ransDecoder_t = internal::simd::Decoder<coder_T, stream_T>;
 };
 
-template <typename coder_T, typename stream_T, typename source_T>
-template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT>, bool>>
-void LiteralDecoder<coder_T, stream_T, source_T>::process(stream_IT inputEnd, source_IT outputBegin, size_t messageLength, std::vector<source_T>& literals) const
+template <typename coder_T, typename stream_T, typename source_T, uint8_t nStreams_V, uint8_t nHardwareStreams_V>
+template <typename stream_IT,
+          typename source_IT,
+          std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT>, bool>>
+void LiteralSIMDDecoder<coder_T, stream_T, source_T, nStreams_V, nHardwareStreams_V>::process(stream_IT inputEnd, source_IT outputBegin, size_t messageLength, std::vector<source_T>& literals) const
 {
   using namespace internal;
   LOG(trace) << "start decoding";
   RANSTimer t;
+  t.start();
 
 #ifdef O2_RANS_PRINT_PROCESSED_DATA
   JSONArrayLogger<source_T> arrayLogger{};
 #endif
-
-  t.start();
 
   if (messageLength == 0) {
     LOG(warning) << "Empty message passed to decoder, skipping decode process";
@@ -92,19 +99,24 @@ void LiteralDecoder<coder_T, stream_T, source_T>::process(stream_IT inputEnd, so
   // make Iter point to the last last element
   --inputIter;
 
-  ransDecoder_t rans0{this->mSymbolTable.getPrecision()};
-  ransDecoder_t rans1{this->mSymbolTable.getPrecision()};
-  inputIter = rans0.init(inputIter);
-  inputIter = rans1.init(inputIter);
-
-  for (size_t i = 0; i < (messageLength & ~1); i += 2) {
-    std::tie(*it++, inputIter) = decode(rans0);
-    std::tie(*it++, inputIter) = decode(rans1);
+  std::vector<ransDecoder_t> decoders{nStreams_V, ransDecoder_t{this->getSymbolTablePrecision()}};
+#pragma GCC unroll 4
+  for (size_t i = 0; i < nStreams_V; ++i) {
+    inputIter = decoders[i].init(inputIter);
   }
 
-  // last byte, if message length was odd
-  if (messageLength & 1) {
-    std::tie(*it++, inputIter) = decode(rans0);
+  const size_t nLoops = messageLength / nStreams_V;
+  const size_t nLoopRemainder = messageLength % nStreams_V;
+
+  for (size_t i = 0; i < nLoops; ++i) {
+#pragma GCC unroll 4
+    for (size_t i = 0; i < nStreams_V; ++i) {
+      std::tie(*it++, inputIter) = decode(decoders[i]);
+    }
+  }
+
+  for (size_t i = 0; i < nLoopRemainder; ++i) {
+    std::tie(*it++, inputIter) = decode(decoders[i]);
   }
   t.stop();
 
@@ -122,4 +134,4 @@ void LiteralDecoder<coder_T, stream_T, source_T>::process(stream_IT inputEnd, so
 } // namespace rans
 } // namespace o2
 
-#endif /* RANS_LITERALDECODER_H */
+#endif /* RANS_LITERALSIMDDECODER_H */

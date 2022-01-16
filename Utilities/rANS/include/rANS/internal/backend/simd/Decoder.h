@@ -14,8 +14,8 @@
 /// @since  2019-05-10
 /// @brief  lass for decoding symbols using rANS
 
-#ifndef RANS_INTERNAL_DECODER_H_
-#define RANS_INTERNAL_DECODER_H_
+#ifndef RANS_INTERNAL_SIMD_DECODER_H_
+#define RANS_INTERNAL_SIMD_DECODER_H_
 
 #include <vector>
 #include <cstdint>
@@ -23,8 +23,8 @@
 #include <tuple>
 #include <type_traits>
 
-#include "rANS/internal/DecoderSymbol.h"
-#include "rANS/internal/EncoderSymbol.h"
+#include "rANS/internal/backend/cpp/DecoderSymbol.h"
+#include "rANS/internal/backend/cpp/EncoderSymbol.h"
 #include "rANS/internal/helper.h"
 
 namespace o2
@@ -32,6 +32,8 @@ namespace o2
 namespace rans
 {
 namespace internal
+{
+namespace simd
 {
 __extension__ typedef unsigned __int128 uint128;
 
@@ -58,7 +60,7 @@ class Decoder
 
   // Equivalent to Rans32DecAdvance that takes a symbol.
   template <typename stream_IT>
-  stream_IT advanceSymbol(stream_IT inputIter, const DecoderSymbol& sym);
+  stream_IT advanceSymbol(stream_IT inputIter, const cpp::DecoderSymbol& sym);
 
  private:
   state_T mState{};
@@ -72,7 +74,7 @@ class Decoder
   // Between this and our byte-aligned emission, we use 31 (not 32!) bits.
   // This is done intentionally because exact reciprocals for 31-bit uints
   // fit in 32-bit uints: this permits some optimizations during encoding.
-  inline static constexpr state_T LOWER_BOUND = needs64Bit<state_T>() ? (1u << 31) : (1u << 23); // lower bound of our normalization interval
+  inline static constexpr state_T LOWER_BOUND = needs64Bit<state_T>() ? (1u << 20) : (1u << 23); // lower bound of our normalization interval
 
   inline static constexpr state_T STREAM_BITS = sizeof(stream_T) * 8; // lower bound of our normalization interval
 };
@@ -118,7 +120,7 @@ uint32_t Decoder<state_T, stream_T>::get()
 
 template <typename state_T, typename stream_T>
 template <typename stream_IT>
-stream_IT Decoder<state_T, stream_T>::advanceSymbol(stream_IT inputIter, const DecoderSymbol& symbol)
+stream_IT Decoder<state_T, stream_T>::advanceSymbol(stream_IT inputIter, const cpp::DecoderSymbol& symbol)
 {
   static_assert(std::is_same<typename std::iterator_traits<stream_IT>::value_type, stream_T>::value);
 
@@ -159,8 +161,9 @@ inline std::tuple<state_T, stream_IT> Decoder<state_T, stream_T>::renorm(state_T
   return std::make_tuple(state, streamPosition);
 }
 
+} // namespace simd
 } // namespace internal
 } // namespace rans
 } // namespace o2
 
-#endif /* RANS_INTERNAL_DECODER_H_ */
+#endif /* RANS_INTERNAL_SIMD_DECODER_H_ */

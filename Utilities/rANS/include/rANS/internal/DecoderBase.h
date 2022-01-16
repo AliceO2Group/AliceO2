@@ -25,10 +25,10 @@
 #include <fairlogger/Logger.h>
 
 #include "rANS/RenormedFrequencyTable.h"
-#include "rANS/internal/DecoderSymbol.h"
+#include "rANS/internal/backend/cpp/DecoderSymbol.h"
 #include "rANS/internal/ReverseSymbolLookupTable.h"
 #include "rANS/internal/SymbolTable.h"
-#include "rANS/internal/Decoder.h"
+#include "rANS/internal/backend/cpp/Decoder.h"
 #include "rANS/internal/helper.h"
 
 namespace o2
@@ -41,11 +41,10 @@ namespace internal
 template <typename coder_T, typename stream_T, typename source_T>
 class DecoderBase
 {
-
  protected:
-  using decoderSymbolTable_t = internal::SymbolTable<internal::DecoderSymbol>;
-  using reverseSymbolLookupTable_t = internal::ReverseSymbolLookupTable;
-  using ransDecoder_t = Decoder<coder_T, stream_T>;
+  using decoderSymbolTable_t = SymbolTable<cpp::DecoderSymbol>;
+  using reverseSymbolLookupTable_t = ReverseSymbolLookupTable;
+  using ransDecoder_t = cpp::Decoder<coder_T, stream_T>;
 
  public:
   using coder_t = coder_T;
