@@ -398,3 +398,13 @@ BOOST_AUTO_TEST_CASE(test_renormIncompressible)
   BOOST_CHECK_EQUAL(renormedFrequencyTable.getIncompressibleSymbolFrequency(), 4);
   BOOST_CHECK_EQUAL_COLLECTIONS(renormedFrequencyTable.begin(), renormedFrequencyTable.end(), rescaledFrequencies.begin(), rescaledFrequencies.end());
 }
+
+BOOST_AUTO_TEST_CASE(test_computeEntropy)
+{
+  o2::rans::histogram_t frequencies{9, 0, 8, 0, 7, 0, 6, 0, 5, 0, 4, 0, 3, 0, 2, 0, 1};
+  o2::rans::FrequencyTable frequencyTable{frequencies.begin(), frequencies.end(), 0};
+
+  constexpr double entropy = 2.957295041922758;
+  const double computedEntropy = o2::rans::computeEntropy(frequencyTable);
+  BOOST_CHECK_CLOSE(computedEntropy, entropy, 1e-5);
+}

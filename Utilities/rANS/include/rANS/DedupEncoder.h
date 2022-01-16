@@ -28,7 +28,7 @@
 #include <stdexcept>
 
 #include "rANS/internal/EncoderBase.h"
-#include "rANS/internal/EncoderSymbol.h"
+#include "rANS/internal/backend/cpp/EncoderSymbol.h"
 #include "rANS/internal/helper.h"
 #include "rANS/internal/SymbolTable.h"
 

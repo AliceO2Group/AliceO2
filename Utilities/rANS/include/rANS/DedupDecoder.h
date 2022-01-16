@@ -25,10 +25,10 @@
 
 #include <fairlogger/Logger.h>
 
-#include "rANS/internal/DecoderSymbol.h"
+#include "rANS/internal/backend/cpp/DecoderSymbol.h"
 #include "rANS/internal/ReverseSymbolLookupTable.h"
 #include "rANS/internal/SymbolTable.h"
-#include "rANS/internal/Decoder.h"
+#include "rANS/internal/backend/cpp/Decoder.h"
 #include "rANS/internal/DecoderBase.h"
 
 namespace o2

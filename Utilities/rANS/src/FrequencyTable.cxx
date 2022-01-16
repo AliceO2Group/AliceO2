@@ -54,17 +54,19 @@ FrequencyTable& FrequencyTable::resize(symbol_t min, symbol_t max, bool truncate
   }
 }
 
-inline double_t computeEntropy(const FrequencyTable& table)
+double_t computeEntropy(const FrequencyTable& table)
 {
-  double_t entropy = std::accumulate(table.begin(), table.end(), 0, [&table](double_t entropy, count_t frequency) {
+
+  auto computeCodewordLength = [&table](count_t frequency, double_t additionalLength = 0) {
     const double_t p = static_cast<double_t>(frequency) / static_cast<double_t>(table.getNumSamples());
-    const double_t length = p == 0 ? 0 : std::log2(p);
-    return entropy -= p * length;
+    const double_t length = (p == 0) ? 0.0 : std::log2(p);
+    return p * (-length + additionalLength);
+  };
+
+  double_t entropy = std::accumulate(table.begin(), table.end(), static_cast<double>(0), [&table, computeCodewordLength](double_t entropy, count_t frequency) {
+    return entropy += computeCodewordLength(frequency);
   });
-  entropy += [&table]() {
-    const double_t p = static_cast<double_t>(table.getIncompressibleSymbolFrequency()) / static_cast<double_t>(table.getNumSamples());
-    return p * (-std::log2(p) + table.getAlphabetRangeBits());
-  }();
+  entropy += computeCodewordLength(table.getIncompressibleSymbolFrequency(), table.getAlphabetRangeBits());
 
   return entropy;
 };

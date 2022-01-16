@@ -21,7 +21,10 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/mpl/vector.hpp>
 
-#include "rANS/rans.h"
+#include "rANS/internal/SymbolTable.h"
+#include "rANS/internal/backend/cpp/DecoderSymbol.h"
+#include "rANS/internal/backend/simd/SymbolTable.h"
+#include "rANS/internal/backend/simd/Symbol.h"
 
 template <typename T>
 size_t getNUniqueSymbols(const T& container)
@@ -29,12 +32,15 @@ size_t getNUniqueSymbols(const T& container)
   return std::count_if(container.begin(), container.end(), [](uint32_t value) { return value != 0; });
 };
 
-BOOST_AUTO_TEST_CASE(test_empty)
+using SymbolTable_t = boost::mpl::vector<o2::rans::internal::SymbolTable<o2::rans::internal::cpp::DecoderSymbol>,
+                                         o2::rans::internal::simd::SymbolTable>;
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_empty, SymbolTable_T, SymbolTable_t)
 {
   using namespace o2::rans;
 
   const auto frequencyTable = renorm(FrequencyTable{});
-  const internal::SymbolTable<internal::DecoderSymbol> symbolTable{frequencyTable};
+  const SymbolTable_T symbolTable{frequencyTable};
 
   BOOST_CHECK_EQUAL(symbolTable.getMinSymbol(), 0);
   BOOST_CHECK_EQUAL(symbolTable.getMaxSymbol(), 0);
@@ -59,7 +65,7 @@ BOOST_AUTO_TEST_CASE(test_empty)
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_symbolTable)
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_symbolTable, SymbolTable_T, SymbolTable_t)
 {
   using namespace o2::rans;
 
@@ -69,7 +75,7 @@ BOOST_AUTO_TEST_CASE(test_symbolTable)
   const int32_t min = *std::min_element(A.begin(), A.end());
 
   RenormedFrequencyTable frequencyTable = renorm(makeFrequencyTableFromSamples(A.begin(), A.end()), scaleBits);
-  const internal::SymbolTable<internal::DecoderSymbol> symbolTable{frequencyTable};
+  const SymbolTable_T symbolTable{frequencyTable};
 
   BOOST_CHECK_EQUAL(symbolTable.getMinSymbol(), min);
   BOOST_CHECK_EQUAL(symbolTable.getMaxSymbol(), *std::max_element(A.begin(), A.end()) + 1);

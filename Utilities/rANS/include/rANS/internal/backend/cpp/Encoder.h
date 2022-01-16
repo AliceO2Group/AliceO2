@@ -14,8 +14,8 @@
 /// @since  2019-05-10
 /// @brief  class for encoding symbols using rANS
 
-#ifndef RANS_INTERNAL_ENCODER_H
-#define RANS_INTERNAL_ENCODER_H
+#ifndef RANS_INTERNAL_CPP_ENCODER_H
+#define RANS_INTERNAL_CPP_ENCODER_H
 
 #include <vector>
 #include <cstdint>
@@ -23,8 +23,9 @@
 #include <type_traits>
 #include <tuple>
 
-#include "rANS/internal/DecoderSymbol.h"
-#include "rANS/internal/EncoderSymbol.h"
+#include <fairlogger/Logger.h>
+
+#include "rANS/internal/backend/cpp/EncoderSymbol.h"
 #include "rANS/internal/helper.h"
 
 namespace o2
@@ -32,6 +33,8 @@ namespace o2
 namespace rans
 {
 namespace internal
+{
+namespace cpp
 {
 
 template <typename state_T, typename stream_T>
@@ -149,8 +152,9 @@ inline std::tuple<state_T, stream_IT> Encoder<state_T, stream_T>::renorm(state_T
   return std::make_tuple(state, outputIter);
 };
 
+} // namespace cpp
 } // namespace internal
 } // namespace rans
 } // namespace o2
 
-#endif /* RANS_INTERNAL_ENCODER_H */
+#endif /* RANS_INTERNAL_CPP_ENCODER_H */

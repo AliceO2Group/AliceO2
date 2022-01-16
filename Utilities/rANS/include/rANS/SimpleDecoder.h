@@ -1,9 +1,8 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
-// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
-// All rights not expressly granted are reserved.
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
 //
-// This software is distributed under the terms of the GNU General Public
-// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+// See http://alice-o2.web.cern.ch/license for full licensing information.
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -14,8 +13,8 @@
 /// @since  2020-04-06
 /// @brief  Decoder - decode a rANS encoded state back into source symbols
 
-#ifndef RANS_DECODER_H
-#define RANS_DECODER_H
+#ifndef RANS_SIMPLEDECODER_H
+#define RANS_SIMPLEDECODER_H
 
 #include <cstddef>
 #include <type_traits>
@@ -25,8 +24,14 @@
 
 #include <fairlogger/Logger.h>
 
+#include "rANS/FrequencyTable.h"
+#include "rANS/internal/backend/cpp/DecoderSymbol.h"
+#include "rANS/internal/ReverseSymbolLookupTable.h"
+#include "rANS/internal/SymbolTable.h"
+#include "rANS/internal/backend/cpp/SimpleDecoder.h"
 #include "rANS/internal/backend/cpp/Decoder.h"
 #include "rANS/internal/DecoderBase.h"
+#include "rANS/internal/helper.h"
 
 namespace o2
 {
@@ -34,7 +39,7 @@ namespace rans
 {
 
 template <typename coder_T, typename stream_T, typename source_T>
-class Decoder : public internal::DecoderBase<coder_T, stream_T, source_T>
+class SimpleDecoder : public internal::DecoderBase<coder_T, stream_T, source_T>
 {
  public:
   using internal::DecoderBase<coder_T, stream_T, source_T>::DecoderBase;
@@ -43,12 +48,12 @@ class Decoder : public internal::DecoderBase<coder_T, stream_T, source_T>
   void process(stream_IT inputEnd, source_IT outputBegin, size_t messageLength) const;
 
  private:
-  using ransDecoder_t = typename internal::DecoderBase<coder_T, stream_T, source_T>::ransDecoder_t;
+  using ransDecoder_t = internal::cpp::SimpleDecoder<coder_T, stream_T>;
 };
 
 template <typename coder_T, typename stream_T, typename source_T>
 template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT>, bool>>
-void Decoder<coder_T, stream_T, source_T>::process(stream_IT inputEnd, source_IT outputBegin, size_t messageLength) const
+void SimpleDecoder<coder_T, stream_T, source_T>::process(stream_IT inputEnd, source_IT outputBegin, size_t messageLength) const
 {
   using namespace internal;
   LOG(trace) << "start decoding";
@@ -66,27 +71,16 @@ void Decoder<coder_T, stream_T, source_T>::process(stream_IT inputEnd, source_IT
   // make Iter point to the last last element
   --inputIter;
 
-  ransDecoder_t rans0{this->mSymbolTable.getPrecision()};
-  ransDecoder_t rans1{this->mSymbolTable.getPrecision()};
+  ransDecoder_t rans{this->getSymbolTablePrecision()};
 
-  inputIter = rans0.init(inputIter);
-  inputIter = rans1.init(inputIter);
+  inputIter = rans.init(inputIter);
 
-  for (size_t i = 0; i < (messageLength & ~1); i += 2) {
-    const int64_t s0 = this->mReverseLUT[rans0.get()];
-    const int64_t s1 = this->mReverseLUT[rans1.get()];
-    *it++ = s0;
-    *it++ = s1;
-    inputIter = rans0.advanceSymbol(inputIter, this->mSymbolTable[s0]);
-    inputIter = rans1.advanceSymbol(inputIter, this->mSymbolTable[s1]);
+  for (size_t i = 0; i < messageLength; ++i) {
+    const int64_t s = this->mReverseLUT[rans.get()];
+    *it++ = s;
+    inputIter = rans.advanceSymbol(inputIter, this->mSymbolTable[s]);
   }
 
-  // last byte, if message length was odd
-  if (messageLength & 1) {
-    const int64_t s0 = this->mReverseLUT[rans0.get()];
-    *it = s0;
-    inputIter = rans0.advanceSymbol(inputIter, this->mSymbolTable[s0]);
-  }
   t.stop();
   LOG(debug1) << "Decoder::" << __func__ << " { DecodedSymbols: " << messageLength << ","
               << "processedBytes: " << messageLength * sizeof(source_T) << ","
@@ -98,4 +92,4 @@ void Decoder<coder_T, stream_T, source_T>::process(stream_IT inputEnd, source_IT
 } // namespace rans
 } // namespace o2
 
-#endif /* RANS_DECODER_H */
+#endif /* RANS_SIMPLEDECODER_H */
