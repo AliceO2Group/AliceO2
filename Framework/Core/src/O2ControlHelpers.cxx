@@ -200,11 +200,11 @@ bool isQcReconfigurable(const DeviceSpec& spec)
   return std::find(spec.labels.begin(), spec.labels.end(), ecs::qcReconfigurable) != spec.labels.end();
 }
 
-void dumpQcConfig(std::ostream& dumpOut, const DeviceExecution& execution, const DeviceSpec& spec, const std::string& indLevel)
+void dumpProperties(std::ostream& dumpOut, const DeviceExecution& execution, const DeviceSpec& spec, const std::string& indLevel)
 {
   // get the argument `--config`
   std::string configPath;
-  auto it = std::find_if(execution.args.begin(), execution.args.end(), [&](char* v) { if (v) { return strcmp(v, "--config") == 0;} else {return false;} });
+  auto it = std::find_if(execution.args.begin(), execution.args.end(), [](char* v) { return v != nullptr && strcmp(v, "--config") == 0; });
 
   // get the next argument and find `/o2/components/` in it, then take what comes after in the string.
   if (it != execution.args.end()) {
@@ -401,7 +401,7 @@ void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecuti
     }
   }
 
-  implementation::dumpQcConfig(dumpOut, execution, spec, indLevel);
+  implementation::dumpProperties(dumpOut, execution, spec, indLevel);
 
   dumpOut << indLevel << "command:\n";
   implementation::dumpCommand(dumpOut, execution, indLevel + indScheme);
