@@ -41,52 +41,52 @@ auto createSchemaFromColumns(framework::pack<C...>)
 using SelectionVector = std::vector<int64_t>;
 
 template <typename, typename = void>
-constexpr bool is_index_column_v = false;
+inline constexpr bool is_index_column_v = false;
 
 template <typename T>
-constexpr bool is_index_column_v<T, std::void_t<decltype(sizeof(typename T::binding_t))>> = true;
+inline constexpr bool is_index_column_v<T, std::void_t<decltype(sizeof(typename T::binding_t))>> = true;
 
 template <typename, typename = void>
-constexpr bool is_type_with_originals_v = false;
+inline constexpr bool is_type_with_originals_v = false;
 
 template <typename T>
-constexpr bool is_type_with_originals_v<T, std::void_t<decltype(sizeof(typename T::originals))>> = true;
+inline constexpr bool is_type_with_originals_v<T, std::void_t<decltype(sizeof(typename T::originals))>> = true;
 
 template <typename T, typename = void>
-constexpr bool is_type_with_parent_v = false;
+inline constexpr bool is_type_with_parent_v = false;
 
 template <typename T>
-constexpr bool is_type_with_parent_v<T, std::void_t<decltype(sizeof(typename T::parent_t))>> = true;
+inline constexpr bool is_type_with_parent_v<T, std::void_t<decltype(sizeof(typename T::parent_t))>> = true;
 
 template <typename, typename = void>
-constexpr bool is_type_with_metadata_v = false;
+inline constexpr bool is_type_with_metadata_v = false;
 
 template <typename T>
-constexpr bool is_type_with_metadata_v<T, std::void_t<decltype(sizeof(typename T::metadata))>> = true;
+inline constexpr bool is_type_with_metadata_v<T, std::void_t<decltype(sizeof(typename T::metadata))>> = true;
 
 template <typename, typename = void>
-constexpr bool is_type_with_binding_v = false;
+inline constexpr bool is_type_with_binding_v = false;
 
 template <typename T>
-constexpr bool is_type_with_binding_v<T, std::void_t<decltype(sizeof(typename T::binding_t))>> = true;
+inline constexpr bool is_type_with_binding_v<T, std::void_t<decltype(sizeof(typename T::binding_t))>> = true;
 
 template <typename, typename = void>
-constexpr bool is_type_spawnable_v = false;
+inline constexpr bool is_type_spawnable_v = false;
 
 template <typename T>
-constexpr bool is_type_spawnable_v<T, std::void_t<decltype(sizeof(typename T::spawnable_t))>> = true;
+inline constexpr bool is_type_spawnable_v<T, std::void_t<decltype(sizeof(typename T::spawnable_t))>> = true;
 
 template <typename T, typename = void>
-constexpr bool is_index_table_v = false;
+inline constexpr bool is_index_table_v = false;
 
 template <typename T>
-constexpr bool is_index_table_v<T, std::void_t<decltype(sizeof(typename T::indexing_t))>> = true;
+inline constexpr bool is_index_table_v<T, std::void_t<decltype(sizeof(typename T::indexing_t))>> = true;
 
 template <typename, typename = void>
-constexpr bool is_self_index_column_v = false;
+inline constexpr bool is_self_index_column_v = false;
 
 template <typename T>
-constexpr bool is_self_index_column_v<T, std::void_t<decltype(sizeof(typename T::self_index_t))>> = true;
+inline constexpr bool is_self_index_column_v<T, std::void_t<decltype(sizeof(typename T::self_index_t))>> = true;
 
 template <typename T, typename TLambda>
 void call_if_has_originals(TLambda&& lambda)
@@ -249,8 +249,15 @@ class ColumnIterator : ChunkingPolicy
   decltype(auto) operator*() const
   {
     if constexpr (ChunkingPolicy::chunked) {
-      if (O2_BUILTIN_UNLIKELY(((mCurrent + (*mCurrentPos >> SCALE_FACTOR)) >= mLast))) {
-        nextChunk();
+      if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::ListArray>) {
+        auto list = std::static_pointer_cast<arrow::ListArray>(mColumn->chunk(mCurrentChunk));
+        if (O2_BUILTIN_UNLIKELY(*mCurrentPos - mFirstIndex >= list->length())) {
+          nextChunk();
+        }
+      } else {
+        if (O2_BUILTIN_UNLIKELY(((mCurrent + (*mCurrentPos >> SCALE_FACTOR)) >= mLast))) {
+          nextChunk();
+        }
       }
     }
     if constexpr (std::is_same_v<bool, std::decay_t<T>>) {
@@ -260,7 +267,7 @@ class ColumnIterator : ChunkingPolicy
       auto list = std::static_pointer_cast<arrow::ListArray>(mColumn->chunk(mCurrentChunk));
       auto offset = list->value_offset(*mCurrentPos - mFirstIndex);
       auto length = list->value_length(*mCurrentPos - mFirstIndex);
-      return gsl::span{mCurrent + offset, mCurrent + (offset + length)};
+      return gsl::span{mCurrent + mFirstIndex + offset, mCurrent + mFirstIndex + (offset + length)};
     } else {
       return *(mCurrent + (*mCurrentPos >> SCALE_FACTOR));
     }
@@ -896,7 +903,7 @@ using is_soa_iterator_t = typename framework::is_base_of_template<RowViewCore, T
 template <typename T>
 constexpr bool is_soa_iterator_v()
 {
-  return is_soa_iterator_t<T>::value || framework::is_specialization<T, RowViewCore>::value;
+  return is_soa_iterator_t<T>::value || framework::is_specialization_v<T, RowViewCore>;
 }
 
 template <typename T>
@@ -1753,6 +1760,119 @@ constexpr auto is_binding_compatible_v()
                                                                       o2::framework::expressions::selectArrowType<_Type_>() }
 
 #define DECLARE_SOA_SELF_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_SELF_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, #_Name_)
+/// SELF SLICE
+#define DECLARE_SOA_SELF_SLICE_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Label_)                     \
+  struct _Name_##IdSlice : o2::soa::Column<_Type_[2], _Name_##IdSlice> {                                \
+    static_assert(std::is_integral_v<_Type_>, "Index type must be integral");                           \
+    static constexpr const char* mLabel = "fIndexSlice" _Label_;                                        \
+    using base = o2::soa::Column<_Type_[2], _Name_##IdSlice>;                                           \
+    using type = _Type_[2];                                                                             \
+    using column_t = _Name_##IdSlice;                                                                   \
+    using self_index_t = std::true_type;                                                                \
+    _Name_##IdSlice(arrow::ChunkedArray const* column)                                                  \
+      : o2::soa::Column<_Type_[2], _Name_##IdSlice>(o2::soa::ColumnIterator<type>(column))              \
+    {                                                                                                   \
+    }                                                                                                   \
+                                                                                                        \
+    _Name_##IdSlice() = default;                                                                        \
+    _Name_##IdSlice(_Name_##IdSlice const& other) = default;                                            \
+    _Name_##IdSlice& operator=(_Name_##IdSlice const& other) = default;                                 \
+    std::array<_Type_, 2> inline getIds() const                                                         \
+    {                                                                                                   \
+      return _Getter_##Ids();                                                                           \
+    }                                                                                                   \
+                                                                                                        \
+    bool has_##_Getter_() const                                                                         \
+    {                                                                                                   \
+      return (*mColumnIterator)[0] >= 0 && (*mColumnIterator)[1] >= 0;                                  \
+    }                                                                                                   \
+                                                                                                        \
+    std::array<_Type_, 2> _Getter_##Ids() const                                                         \
+    {                                                                                                   \
+      return std::array{(*mColumnIterator)[0], (*mColumnIterator)[1]};                                  \
+    }                                                                                                   \
+                                                                                                        \
+    template <typename T>                                                                               \
+    auto _Getter_##_as() const                                                                          \
+    {                                                                                                   \
+      assert(mBinding != nullptr);                                                                      \
+      if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                     \
+        return static_cast<T const*>(mBinding)->emptySlice();                                           \
+      }                                                                                                 \
+      auto t = static_cast<T const*>(mBinding)->rawSlice((*mColumnIterator)[0], (*mColumnIterator)[1]); \
+      static_cast<T const*>(mBinding)->copyIndexBindings(t);                                            \
+      return t;                                                                                         \
+    }                                                                                                   \
+                                                                                                        \
+    bool setCurrentRaw(void const* current)                                                             \
+    {                                                                                                   \
+      this->mBinding = current;                                                                         \
+      return true;                                                                                      \
+    }                                                                                                   \
+    void const* getCurrentRaw() const { return mBinding; }                                              \
+    void const* mBinding = nullptr;                                                                     \
+  };
+
+#define DECLARE_SOA_SELF_SLICE_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_SELF_SLICE_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, #_Name_)
+/// SELF ARRAY
+#define DECLARE_SOA_SELF_ARRAY_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Label_)              \
+  struct _Name_##Ids : o2::soa::Column<std::vector<_Type_>, _Name_##Ids> {                       \
+    static_assert(std::is_integral_v<_Type_>, "Index type must be integral");                    \
+    static constexpr const char* mLabel = "fIndexArray" _Label_;                                 \
+    using base = o2::soa::Column<std::vector<_Type_>, _Name_##Ids>;                              \
+    using type = std::vector<_Type_>;                                                            \
+    using column_t = _Name_##Ids;                                                                \
+    using self_index_t = std::true_type;                                                         \
+    _Name_##Ids(arrow::ChunkedArray const* column)                                               \
+      : o2::soa::Column<std::vector<_Type_>, _Name_##Ids>(o2::soa::ColumnIterator<type>(column)) \
+    {                                                                                            \
+    }                                                                                            \
+                                                                                                 \
+    _Name_##Ids() = default;                                                                     \
+    _Name_##Ids(_Name_##Ids const& other) = default;                                             \
+    _Name_##Ids& operator=(_Name_##Ids const& other) = default;                                  \
+    gsl::span<const _Type_> inline getIds() const                                                \
+    {                                                                                            \
+      return _Getter_##Ids();                                                                    \
+    }                                                                                            \
+                                                                                                 \
+    gsl::span<const _Type_> _Getter_##Ids() const                                                \
+    {                                                                                            \
+      return *mColumnIterator;                                                                   \
+    }                                                                                            \
+                                                                                                 \
+    bool has_##_Getter_() const                                                                  \
+    {                                                                                            \
+      return !(*mColumnIterator).empty();                                                        \
+    }                                                                                            \
+                                                                                                 \
+    template <typename T>                                                                        \
+    auto _Getter_##_as() const                                                                   \
+    {                                                                                            \
+      assert(mBinding != nullptr);                                                               \
+      return getIterators<T>();                                                                  \
+    }                                                                                            \
+                                                                                                 \
+    template <typename T>                                                                        \
+    auto getIterators() const                                                                    \
+    {                                                                                            \
+      auto result = std::vector<typename T::unfiltered_iterator>();                              \
+      for (auto& i : *mColumnIterator) {                                                         \
+        result.push_back(static_cast<T const*>(mBinding)->rawIteratorAt(i));                     \
+      }                                                                                          \
+      return result;                                                                             \
+    }                                                                                            \
+                                                                                                 \
+    bool setCurrentRaw(void const* current)                                                      \
+    {                                                                                            \
+      this->mBinding = current;                                                                  \
+      return true;                                                                               \
+    }                                                                                            \
+    void const* getCurrentRaw() const { return mBinding; }                                       \
+    void const* mBinding = nullptr;                                                              \
+  };
+
+#define DECLARE_SOA_SELF_ARRAY_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_SELF_ARRAY_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, #_Name_)
 /// A dynamic column is a column whose values are derived
 /// from those of other real columns. These can be used for
 /// example to provide different coordinate systems (e.g. polar,
@@ -1991,10 +2111,16 @@ struct Concat : ConcatBase<T1, T2> {
 };
 
 template <typename T>
-using is_soa_join_t = typename framework::is_specialization<T, soa::Join>;
+using is_soa_join_t = framework::is_specialization<T, soa::Join>;
 
 template <typename T>
-using is_soa_concat_t = typename framework::is_specialization<T, soa::Concat>;
+using is_soa_concat_t = framework::is_specialization<T, soa::Concat>;
+
+template <typename T>
+inline constexpr bool is_soa_join_v = is_soa_join_t<T>::value;
+
+template <typename T>
+inline constexpr bool is_soa_concat_v = is_soa_concat_t<T>::value;
 
 template <typename T>
 class FilteredBase : public T

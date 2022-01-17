@@ -19,6 +19,13 @@
 using namespace o2::trd;
 using namespace o2::trd::constants;
 
+void AngularResidHistos::reset()
+{
+  mHistogramEntries.fill(0);
+  mNEntriesPerBin.fill(0);
+  mNEntriesTotal = 0;
+}
+
 bool AngularResidHistos::addEntry(float deltaAlpha, float impactAngle, int chamberId)
 {
   // add entry for given angular residual
@@ -36,15 +43,18 @@ bool AngularResidHistos::addEntry(float deltaAlpha, float impactAngle, int chamb
   return 0;
 }
 
+void AngularResidHistos::fill(const AngularResidHistos& input)
+{
+  for (int i = 0; i < MAXCHAMBER * NBINSANGLEDIFF; ++i) {
+    mHistogramEntries[i] += input.getHistogramEntry(i);
+    mNEntriesPerBin[i] += input.getBinCount(i);
+    mNEntriesTotal += input.getBinCount(i);
+  }
+}
+
 void AngularResidHistos::fill(const gsl::span<const AngularResidHistos> input)
 {
-  for (const auto& data : input) {
-    for (int i = 0; i < MAXCHAMBER * NBINSANGLEDIFF; ++i) {
-      mHistogramEntries[i] += data.getHistogramEntry(i);
-      mNEntriesPerBin[i] += data.getBinCount(i);
-      mNEntriesTotal += data.getBinCount(i);
-    }
-  }
+  LOG(fatal) << "This function must not be called. But it must be available for the compilation to work";
 }
 
 void AngularResidHistos::merge(const AngularResidHistos* prev)

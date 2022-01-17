@@ -61,8 +61,11 @@ class IDCAverageGroupHelper<IDCAverageGroupCRU>
   /// \return returns grouping parameter
   int getGroupPads() const { return static_cast<int>(mIDCsGrouped.getGroupPads()); }
 
+  /// \return returns offset of the index for a pad which is not grouped (in the region where mGroupPadsSectorEdges is true).
+  int getOffsetForEdgePad(const unsigned int upad, const unsigned int ulrow) const { return mIDCsGrouped.getOffsetForEdgePad(upad, ulrow); }
+
   /// \return returns the number of pads at the sector edges which are not grouped
-  unsigned int getGroupPadsSectorEdges() const { return mIDCsGrouped.getGroupPadsSectorEdges(); }
+  unsigned int getTotalGroupPadsSectorEdges() const { return mIDCsGrouped.getTotalGroupPadsSectorEdges(); }
 
   /// \return returns last ungrouped row
   int getLastRow() const { return static_cast<int>(mIDCsGrouped.getLastRow()); }
@@ -105,7 +108,10 @@ class IDCAverageGroupHelper<IDCAverageGroupCRU>
   /// calculating and setting the grouped IDC value
   /// \param rowGrouped grouped row index
   /// \param padGrouped grouped pad index
-  void setGroupedIDC(const unsigned int rowGrouped, const unsigned int padGrouped);
+  void setGroupedIDC(const unsigned int rowGrouped, const unsigned int padGrouped) { mIDCsGrouped(rowGrouped, padGrouped, mIntegrationInterval) = getGroupedIDC(); }
+
+  /// \return returns grouped and averaged IDC value
+  float getGroupedIDC() const;
 
   /// setting the members for correct data access
   /// \param threadNum thread index
@@ -122,7 +128,17 @@ class IDCAverageGroupHelper<IDCAverageGroupCRU>
   /// \param ulrow ungrouped local row
   /// \param upad ungrouped pad
   /// \param val value which will be stored
-  void setSectorEdgeIDC(const unsigned int ulrow, const unsigned int upad, const unsigned int padInRegion) { mIDCsGrouped.setValUngrouped(ulrow, upad, mIntegrationInterval, getUngroupedIDCVal(padInRegion) * Mapper::INVPADAREA[getRegion()]); }
+  void setSectorEdgeIDC(const unsigned int ulrow, const unsigned int upad) { mIDCsGrouped.setValUngrouped(ulrow, upad, mIntegrationInterval, getGroupedIDC()); }
+
+  /// \return returns which type of grouping is performed for the sector edge pads
+  EdgePadGroupingMethod getEdgePadGroupingType() const { return mIDCsGrouped.getEdgePadGroupingType(); }
+
+  /// \return returns the number of differently grouped pads per row: returns sum of digits in integer whoch are not 0 (example: 0: returns 0, 11: returns 2, 321: returns 3)
+  unsigned int getGroupedPadsSectorEdges() const { return mIDCsGrouped.getGroupedPadsSectorEdges(); }
+
+  /// \return returns number of ungrouped pads for grouped pad (example groupPadsSectorEdges=324530: group=0 -> 3, group=1 -> 5, group=2 -> 4...
+  /// \param group index of the group
+  unsigned int getPadsInGroupSectorEdges(const unsigned indexGroup) const { return mIDCsGrouped.getPadsInGroupSectorEdges(indexGroup); }
 
  private:
   IDCGroup& mIDCsGrouped;                     ///< grouped and averaged IDC values
@@ -160,8 +176,11 @@ class IDCAverageGroupHelper<IDCAverageGroupTPC>
   /// \return returns grouping parameter
   int getGroupPads() const { return static_cast<int>(mIDCGroupHelperSector.getGroupingParameter().getGroupPads(getRegion())); }
 
+  /// \return returns offset of the index for a pad which is not grouped (in the region where mGroupPadsSectorEdges is true).
+  int getOffsetForEdgePad(const unsigned int upad, const unsigned int ulrow) const { return mIDCGroupHelperSector.getOffsetForEdgePad(upad, ulrow, getRegion()); }
+
   /// \return returns the number of pads at the sector edges which are not grouped
-  unsigned int getGroupPadsSectorEdges() const { return mIDCGroupHelperSector.getGroupingParameter().getGroupPadsSectorEdges(); }
+  unsigned int getTotalGroupPadsSectorEdges() const { return mIDCGroupHelperSector.getGroupingParameter().getTotalGroupPadsSectorEdges(); }
 
   /// \return returns last ungrouped row
   int getLastRow() const { return static_cast<int>(mIDCGroupHelperSector.getLastRow(getRegion())); }
@@ -206,7 +225,10 @@ class IDCAverageGroupHelper<IDCAverageGroupTPC>
   /// calculating and setting the grouped IDC value
   /// \param rowGrouped grouped row index
   /// \param padGrouped grouped pad index
-  void setGroupedIDC(const unsigned int rowGrouped, const unsigned int padGrouped);
+  void setGroupedIDC(const unsigned int rowGrouped, const unsigned int padGrouped) { setGroupedIDC(rowGrouped, padGrouped, getGroupedIDC()); }
+
+  /// \return returns grouped and averaged IDC value
+  float getGroupedIDC() const;
 
   /// \param threadNum thread index
   void setThreadNum(const unsigned int threadNum) { mThreadNum = threadNum; }
@@ -224,7 +246,16 @@ class IDCAverageGroupHelper<IDCAverageGroupTPC>
   /// \param ulrow ungrouped local row
   /// \param upad ungrouped pad
   /// \param val value which will be stored
-  void setSectorEdgeIDC(const unsigned int ulrow, const unsigned int upad, const unsigned int padInRegion);
+  void setSectorEdgeIDC(const unsigned int ulrow, const unsigned int upad);
+
+  /// \return returns which type of grouping is performed for the sector edge pads
+  EdgePadGroupingMethod getEdgePadGroupingType() const { return mIDCGroupHelperSector.getGroupingParameter().getEdgePadGroupingType(); }
+
+  unsigned int getGroupedPadsSectorEdges() const { return mIDCGroupHelperSector.getGroupingParameter().getGroupedPadsSectorEdges(); }
+
+  /// \return returns number of ungrouped pads for grouped pad (example groupPadsSectorEdges=324530: group=0 -> 3, group=1 -> 5, group=2 -> 4...
+  /// \param group index of the group
+  unsigned int getPadsInGroupSectorEdges(const unsigned indexGroup) const { return mIDCGroupHelperSector.getGroupingParameter().getPadsInGroupSectorEdges(indexGroup); }
 
  private:
   IDCDelta<float>& mIDCsGrouped;                                         ///< grouped and averaged IDC values
@@ -251,7 +282,7 @@ template <>
 class IDCAverageGroupHelper<IDCAverageGroupDraw> : public IDCGroupHelperRegion
 {
  public:
-  IDCAverageGroupHelper(const unsigned char groupPads, const unsigned char groupRows, const unsigned char groupLastRowsThreshold, const unsigned char groupLastPadsThreshold, const unsigned char groupNotnPadsSectorEdges, const unsigned int region, const unsigned int nPads, const PadRegionInfo& padInf, TH2Poly& poly)
+  IDCAverageGroupHelper(const unsigned char groupPads, const unsigned char groupRows, const unsigned char groupLastRowsThreshold, const unsigned char groupLastPadsThreshold, const unsigned int groupNotnPadsSectorEdges, const unsigned int region, const unsigned int nPads, const PadRegionInfo& padInf, TH2Poly& poly)
     : IDCGroupHelperRegion{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupNotnPadsSectorEdges, region}, mCountDraw(nPads), mPadInf{padInf}, mPoly{poly} {};
 
   std::vector<int> mCountDraw;                  ///< counter to keep track of the already drawn pads

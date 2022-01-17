@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <cassert>
 
+#include "rANS/definitions.h"
 #include "rANS/internal/helper.h"
 
 namespace o2
@@ -39,8 +40,6 @@ class EncoderSymbol
   __extension__ using uint128_t = unsigned __int128;
 
  public:
-  using count_t = uint32_t;
-
   //TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
   constexpr EncoderSymbol() noexcept {}; //NOLINT
 

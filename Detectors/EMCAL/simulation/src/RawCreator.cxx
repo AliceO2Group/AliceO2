@@ -105,8 +105,12 @@ int main(int argc, const char** argv)
     granularity = o2::emcal::RawWriter::FileFor_t::kFullDet;
   } else if (filefor == "subdet") {
     granularity = o2::emcal::RawWriter::FileFor_t::kSubDet;
+  } else if (filefor == "crorc") {
+    granularity = o2::emcal::RawWriter::FileFor_t::kCRORC;
   } else if (filefor == "link") {
     granularity = o2::emcal::RawWriter::FileFor_t::kLink;
+  } else {
+    LOG(fatal) << "Unknown granularity, supported: all, subdet, crorc, link";
   }
 
   o2::emcal::RawWriter rawwriter;

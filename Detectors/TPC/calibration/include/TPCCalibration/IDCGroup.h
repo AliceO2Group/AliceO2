@@ -34,7 +34,7 @@ class IDCGroup : public IDCGroupHelperRegion
   /// \param groupLastRowsThreshold minimum number of pads in row direction for the last group in row direction
   /// \param groupLastPadsThreshold minimum number of pads in pad direction for the last group in pad direction
   /// \param region region of the TPC
-  IDCGroup(const unsigned char groupPads = 4, const unsigned char groupRows = 4, const unsigned char groupLastRowsThreshold = 2, const unsigned char groupLastPadsThreshold = 2, const unsigned char groupNotnPadsSectorEdges = 0, const unsigned int region = 0)
+  IDCGroup(const unsigned char groupPads = 4, const unsigned char groupRows = 4, const unsigned char groupLastRowsThreshold = 2, const unsigned char groupLastPadsThreshold = 2, const unsigned int groupNotnPadsSectorEdges = 0, const unsigned int region = 0)
     : IDCGroupHelperRegion{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupNotnPadsSectorEdges, region}, mIDCsGrouped(getNIDCsPerIntegrationInterval()){};
 
   /// extend the size of the grouped and averaged IDC values corresponding to the number of integration intervals. This has to be called befor filling values!

@@ -309,29 +309,42 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
 
     auto& callbacks = ic.services().get<CallbackService>();
     callbacks.set(CallbackService::Id::RegionInfoCallback, [&processAttributes, confParam](FairMQRegionInfo const& info) {
-      if (info.size) {
-        int fd = 0;
-        if (confParam.mutexMemReg) {
-          mode_t mask = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
-          fd = open("/tmp/o2_gpu_memlock_mutex.lock", O_RDWR | O_CREAT | O_CLOEXEC, mask);
-          if (fd == -1) {
-            throw std::runtime_error("Error opening lock file");
-          }
-          fchmod(fd, mask);
-          if (lockf(fd, F_LOCK, 0)) {
-            throw std::runtime_error("Error locking file");
-          }
+      if (info.size == 0) {
+        return;
+      }
+      if (confParam.registerSelectedSegmentIds != -1 && info.managed && info.id != confParam.registerSelectedSegmentIds) {
+        return;
+      }
+      int fd = 0;
+      if (confParam.mutexMemReg) {
+        mode_t mask = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
+        fd = open("/tmp/o2_gpu_memlock_mutex.lock", O_RDWR | O_CREAT | O_CLOEXEC, mask);
+        if (fd == -1) {
+          throw std::runtime_error("Error opening lock file");
         }
-        auto& tracker = processAttributes->tracker;
-        if (tracker->registerMemoryForGPU(info.ptr, info.size)) {
-          throw std::runtime_error("Error registering memory for GPU");
+        fchmod(fd, mask);
+        if (lockf(fd, F_LOCK, 0)) {
+          throw std::runtime_error("Error locking file");
         }
-        if (confParam.mutexMemReg) {
-          if (lockf(fd, F_ULOCK, 0)) {
-            throw std::runtime_error("Error unlocking file");
-          }
-          close(fd);
+      }
+      auto& tracker = processAttributes->tracker;
+      std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
+      if (confParam.benchmarkMemoryRegistration) {
+        start = std::chrono::high_resolution_clock::now();
+      }
+      if (tracker->registerMemoryForGPU(info.ptr, info.size)) {
+        throw std::runtime_error("Error registering memory for GPU");
+      }
+      if (confParam.benchmarkMemoryRegistration) {
+        end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed_seconds = end - start;
+        LOG(info) << "Memory registration time (0x" << info.ptr << ", " << info.size << " bytes): " << elapsed_seconds.count() << " s";
+      }
+      if (confParam.mutexMemReg) {
+        if (lockf(fd, F_ULOCK, 0)) {
+          throw std::runtime_error("Error unlocking file");
         }
+        close(fd);
       }
     });
 

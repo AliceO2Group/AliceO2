@@ -706,10 +706,13 @@ namespace test
 DECLARE_SOA_ARRAY_INDEX_COLUMN(Points3D, pointGroup);
 DECLARE_SOA_SLICE_INDEX_COLUMN(Points3D, pointSlice);
 DECLARE_SOA_SELF_INDEX_COLUMN(OtherPoint, otherPoint);
+DECLARE_SOA_SELF_SLICE_INDEX_COLUMN(PointSeq, pointSeq);
+DECLARE_SOA_SELF_ARRAY_INDEX_COLUMN(PointSet, pointSet);
 } // namespace test
 
 DECLARE_SOA_TABLE(PointsRef, "TST", "PTSREF", test::Points3DIdSlice, test::Points3DIds);
-DECLARE_SOA_TABLE(PointsSelfIndex, "TST", "PTSSLF", o2::soa::Index<>, test::X, test::Y, test::Z, test::OtherPointId);
+DECLARE_SOA_TABLE(PointsSelfIndex, "TST", "PTSSLF", o2::soa::Index<>, test::X, test::Y, test::Z, test::OtherPointId,
+                  test::PointSeqIdSlice, test::PointSetIds);
 
 BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
 {
@@ -780,18 +783,68 @@ BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
   TableBuilder b3;
   auto pswriter = b3.cursor<PointsSelfIndex>();
   int references[] = {19, 2, 0, 13, 4, 6, 5, 5, 11, 9, 3, 8, 16, 14, 1, 18, 12, 18, 2, 7};
+  int slice[2] = {-1, -1};
+  std::vector<int> pset;
+  int withSlices[] = {3, 13, 19};
+  int withSets[] = {0, 1, 13, 14};
+  int sizes[] = {3, 1, 5, 4};
+  int c1 = 0;
+  int c2 = 0;
   for (auto i = 0; i < 20; ++i) {
-    pswriter(0, -1 * i, 0.5 * i, 2 * i, references[i]);
+    pset.clear();
+    slice[0] = -1;
+    slice[1] = -1;
+    if (i == withSlices[c1]) {
+      slice[0] = i - 2;
+      slice[1] = i - 1;
+      ++c1;
+    }
+    if (i == withSets[c2]) {
+      for (auto z = 0; z < sizes[c2]; ++z) {
+        pset.push_back(i + 1 + z);
+      }
+      ++c2;
+    }
+    pswriter(0, -1 * i, 0.5 * i, 2 * i, references[i], slice, pset);
   }
   auto t3 = b3.finalize();
   auto pst = PointsSelfIndex{t3};
   pst.bindInternalIndices();
   auto i = 0;
+  c1 = 0;
+  c2 = 0;
   for (auto& p : pst) {
     auto op = p.otherPoint_as<PointsSelfIndex>();
     auto bbb = std::is_same_v<decltype(op), PointsSelfIndex::iterator>;
     BOOST_CHECK(bbb);
     BOOST_CHECK_EQUAL(op.globalIndex(), references[i]);
+
+    auto ops = p.pointSeq_as<PointsSelfIndex>();
+    if (i == withSlices[c1]) {
+      auto it = ops.begin();
+      BOOST_CHECK_EQUAL(ops.size(), 2);
+      BOOST_CHECK_EQUAL(it.globalIndex(), i - 2);
+      ++it;
+      BOOST_CHECK_EQUAL(it.globalIndex(), i - 1);
+      ++c1;
+    } else {
+      BOOST_CHECK_EQUAL(ops.size(), 0);
+    }
+    auto opss = p.pointSet_as<PointsSelfIndex>();
+    auto opss_ids = p.pointSetIds();
+    if (i == withSets[c2]) {
+      BOOST_CHECK_EQUAL(opss.size(), sizes[c2]);
+      BOOST_CHECK_EQUAL(opss.begin()->globalIndex(), i + 1);
+      BOOST_CHECK_EQUAL(opss.back().globalIndex(), i + sizes[c2]);
+      int c3 = 0;
+      for (auto& id : opss_ids) {
+        BOOST_CHECK_EQUAL(id, i + 1 + c3);
+        ++c3;
+      }
+      ++c2;
+    } else {
+      BOOST_CHECK_EQUAL(opss.size(), 0);
+    }
     ++i;
   }
 }

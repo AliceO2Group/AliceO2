@@ -43,7 +43,7 @@ class DedupDecoder : public internal::DecoderBase<coder_T, stream_T, source_T>
  public:
   using duplicatesMap_t = std::map<uint32_t, uint32_t>;
 
-  //inherit constructors;
+  // inherit constructors;
   using internal::DecoderBase<coder_T, stream_T, source_T>::DecoderBase;
 
   template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT>, bool> = true>
@@ -73,7 +73,7 @@ void DedupDecoder<coder_T, stream_T, source_T>::process(stream_IT inputEnd, sour
   // make Iter point to the last last element
   --inputIter;
 
-  ransDecoder_t rans{this->mSymbolTablePrecission};
+  ransDecoder_t rans{this->mSymbolTable.getPrecision()};
   inputIter = rans.init(inputIter);
 
   for (size_t i = 0; i < (messageLength); i++) {

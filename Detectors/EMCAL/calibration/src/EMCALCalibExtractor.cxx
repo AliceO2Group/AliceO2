@@ -35,8 +35,9 @@ boostHisto EMCALCalibExtractor::buildHitAndEnergyMean(double emin, double emax, 
     double meanVal = result.at(1);
     double sumVal = result.at(3);
     //..Set the values only for cells that are not yet marked as bad
-    if (sumVal > 0.)
+    if (sumVal > 0.) {
       eSumHisto(cellID, meanVal / (sumVal)); //..average energy per hit
+    }
   }
   return eSumHisto;
 }
@@ -170,13 +171,15 @@ boostHisto EMCALCalibExtractor::buildHitAndEnergyMeanScaled(double emin, double 
       auto energyAxis = boost::histogram::axis::regular<>(100, 0, 100, "t-texp");
       Double_t E = energyAxis.value(j);
       Double_t N = hEnergyScaled.at(j, cell);
-      if (E < emin || E > emax)
+      if (E < emin || E > emax) {
         continue;
+      }
       Esum += E * N;
       Nsum += N;
     }
-    if (Nsum > 0.)
+    if (Nsum > 0.) {
       eSumHistoScaled(cell, Esum / (Nsum)); //..average energy per hit
+    }
   }
 
   return eSumHistoScaled;

@@ -255,14 +255,14 @@ class InputRecord
       return std::make_unique<TableConsumer>(data, DataRefUtils::getPayloadSize(ref));
 
       // implementation (e)
-    } else if constexpr (framework::is_boost_serializable<T>::value || is_specialization<T, BoostSerialized>::value) {
+    } else if constexpr (framework::is_boost_serializable<T>::value || is_specialization_v<T, BoostSerialized>) {
       // substitution for boost-serialized entities
       // We have to deserialize the ostringstream.
       // FIXME: check that the string is null terminated.
       // @return deserialized copy of payload
       auto str = std::string(ref.payload, DataRefUtils::getPayloadSize(ref));
       assert(DataRefUtils::getPayloadSize(ref) == sizeof(T));
-      if constexpr (is_specialization<T, BoostSerialized>::value) {
+      if constexpr (is_specialization_v<T, BoostSerialized>) {
         return o2::utils::BoostDeserialize<typename T::wrapped_type>(str);
       } else {
         return o2::utils::BoostDeserialize<T>(str);
@@ -291,7 +291,7 @@ class InputRecord
       // implementation (g)
     } else if constexpr (is_container<T>::value) {
       // currently implemented only for vectors
-      if constexpr (is_specialization<typename std::remove_const<T>::type, std::vector>::value) {
+      if constexpr (is_specialization_v<std::remove_const_t<T>, std::vector>) {
         auto header = DataRefUtils::getHeader<header::DataHeader*>(ref);
         auto payloadSize = DataRefUtils::getPayloadSize(ref);
         auto method = header->payloadSerializationMethod;
@@ -309,7 +309,7 @@ class InputRecord
           /// container, C++11 and beyond will implicitly apply return value optimization.
           /// @return std container object
           using NonConstT = typename std::remove_const<T>::type;
-          if constexpr (is_specialization<T, ROOTSerialized>::value == true || has_root_dictionary<T>::value == true) {
+          if constexpr (is_specialization_v<T, ROOTSerialized> == true || has_root_dictionary<T>::value == true) {
             // we expect the unique_ptr to hold an object, exception should have been thrown
             // otherwise
             auto object = DataRefUtils::as<NonConstT>(ref);
@@ -362,7 +362,7 @@ class InputRecord
           // return type with non-owning Deleter instance
           std::unique_ptr<ValueT const, Deleter<ValueT const>> result(ptr, Deleter<ValueT const>(false));
           return result;
-        } else if constexpr (is_specialization<ValueT, std::vector>::value && has_messageable_value_type<ValueT>::value) {
+        } else if constexpr (is_specialization_v<ValueT, std::vector> && has_messageable_value_type<ValueT>::value) {
           // TODO: construct a vector spectator
           // this is a quick solution now which makes a copy of the plain vector data
           auto* start = reinterpret_cast<typename ValueT::value_type const*>(ref.payload);

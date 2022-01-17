@@ -56,9 +56,10 @@ template <typename T>
 class FileWriterDevice : public Task
 {
  public:
-  FileWriterDevice(const BranchType branchType)
+  FileWriterDevice(const BranchType branchType, unsigned long sectorMask)
   {
     mBranchType = branchType;
+    mSectorMask = sectorMask;
   }
 
   void init(InitContext& ic) final
@@ -78,7 +79,7 @@ class FileWriterDevice : public Task
   {
     for (auto it = mCollectedData.begin(); it != mCollectedData.end();) {
       auto& dataStore = it->second;
-      if (!finalFill && !dataStore.received.all()) {
+      if (!finalFill && (dataStore.received.to_ulong() != mSectorMask)) {
         ++it;
         continue;
       }
@@ -88,16 +89,17 @@ class FileWriterDevice : public Task
       mFirstTForbit = dataStore.firstOrbit;
       mTFOrbits.emplace_back(mFirstTForbit);
 
-      LOGP(info, "Filling tree entry {} for run {}, tf {}, orbit {}, final {}, sectors {}", mNTFs, mRun, mPresentTF, mFirstTForbit, finalFill, dataStore.received.to_string());
+      LOGP(info, "Filling tree entry {} for run {}, tf {}, orbit {}, final {}, sectors {}, (expected: {})", mNTFs, mRun, mPresentTF, mFirstTForbit, finalFill, dataStore.received.to_string(), std::bitset<Sector::MAXSECTOR>(mSectorMask).to_string());
       auto& data = dataStore.data;
+      std::array<std::vector<T>*, Sector::MAXSECTOR> dataPtr;
       for (size_t sector = 0; sector < data.size(); ++sector) {
         auto& inData = data[sector];
-        auto dataPtr = &inData;
+        dataPtr[sector] = &inData;
 
         if (!mDataBranches[sector]) {
           mDataBranches[sector] = mTreeOut->Branch(fmt::format("{}_{}", BranchName.at(mBranchType), sector).data(), &inData);
         } else {
-          mDataBranches[sector]->SetAddress(&dataPtr);
+          mDataBranches[sector]->SetAddress(&dataPtr[sector]);
         }
       }
 
@@ -173,7 +175,9 @@ class FileWriterDevice : public Task
       if (dataStore.received.test(sector)) {
         LOGP(fatal, "data for sector {} and TF {} already received", sector, mPresentTF);
       }
-      dataStore.data[sector] = pc.inputs().get<std::vector<T>>(inputRef);
+      auto data = pc.inputs().get<std::vector<T>>(inputRef);
+      // LOGP(info, "Received data for sector {} with {} entries in TF {}, orbit {}", sector, data.size(), mPresentTF, mFirstTForbit);
+      dataStore.data[sector] = data;
       dataStore.received.set(sector);
       dataStore.firstOrbit = mFirstTForbit;
     }
@@ -213,6 +217,7 @@ class FileWriterDevice : public Task
   uint64_t mRun = 0;                                       ///< present run number
   uint32_t mPresentTF = 0;                                 ///< present TF number
   uint32_t mFirstTForbit = 0;                              ///< first orbit of present tf
+  unsigned long mSectorMask = 0xFFFFFFFFF;                 ///< mask of configured sectors
   size_t mNTFs = 0;                                        ///< total number of TFs accumulated in the current file
   size_t mNFiles = 0;                                      ///< total number of calibration files written
   int mMaxTFPerFile = 0;                                   ///< maximum number of TFs per file
@@ -334,13 +339,13 @@ void FileWriterDevice<T>::closeTreeAndFile()
 }
 
 template <typename T>
-DataProcessorSpec getFileWriterSpec(const std::string inputSpec, const BranchType branchType)
+DataProcessorSpec getFileWriterSpec(const std::string inputSpec, const BranchType branchType, unsigned long sectorMask)
 {
   return DataProcessorSpec{
     "file-writer",
     select(inputSpec.data()),
     Outputs{},
-    AlgorithmSpec{adaptFromTask<FileWriterDevice<T>>(branchType)},
+    AlgorithmSpec{adaptFromTask<FileWriterDevice<T>>(branchType, sectorMask)},
     Options{
       {"output-dir", VariantType::String, "none", {" output directory, must exist"}},
       {"meta-output-dir", VariantType::String, "/dev/null", {" metadata output directory, must exist (if not /dev/null)"}},
@@ -350,6 +355,6 @@ DataProcessorSpec getFileWriterSpec(const std::string inputSpec, const BranchTyp
 }; // end DataProcessorSpec
 
 // template spacializations
-template o2::framework::DataProcessorSpec getFileWriterSpec<o2::tpc::Digit>(const std::string inputSpec, const BranchType branchType);
-template o2::framework::DataProcessorSpec getFileWriterSpec<o2::tpc::KrCluster>(const std::string inputSpec, const BranchType branchType);
+template o2::framework::DataProcessorSpec getFileWriterSpec<o2::tpc::Digit>(const std::string inputSpec, const BranchType branchType, unsigned long sectorMask);
+template o2::framework::DataProcessorSpec getFileWriterSpec<o2::tpc::KrCluster>(const std::string inputSpec, const BranchType branchType, unsigned long sectorMask);
 } // namespace o2::tpc

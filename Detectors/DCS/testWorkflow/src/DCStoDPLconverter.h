@@ -78,7 +78,7 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
     std::chrono::duration<double, std::ratio<1>> duration = timerNow - timer;
     if (duration.count() > 1) { //did we accumulate for 1 sec?
       *timesliceId += step;     // we increment only if we send something
-      std::unordered_map<o2h::DataDescription, vector<DPCOM>, std::hash<o2h::DataDescription>> outputs;
+      std::unordered_map<o2h::DataDescription, pmr::vector<DPCOM>, std::hash<o2h::DataDescription>> outputs;
       // in the cache we have the final values of the DPs that we should put in the output
       // distribute DPs over the vectors for each requested output
       for (auto& it : cache) {

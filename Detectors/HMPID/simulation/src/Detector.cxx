@@ -30,7 +30,6 @@
 #include <TTree.h>
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
-
 #include "DetectorsBase/MaterialManager.h"
 
 #include "Framework/Logger.h"
@@ -1225,6 +1224,11 @@ void Detector::ConstructGeometry()
   // AliDebug(1,"Stop v3. HMPID option");
 }
 
+void Detector::ConstructOpGeometry()
+{
+  defineOpticalProperties(); // needs to be called within this hook
+}
+
 //*****************************************************************************************************************
 void Detector::defineOpticalProperties()
 {
@@ -1279,22 +1283,25 @@ void Detector::defineOpticalProperties()
     dQePc[i] = pQeF.Eval(eV);
     dReflMet[i] = 0.; // no reflection on the surface of the pc (?)
   }
-  fMC->SetCerenkov(getMediumID(kC6F14), kNbins, aEckov, aAbsRad, aQeAll, aIdxRad);
-  fMC->SetCerenkov(getMediumID(kSiO2), kNbins, aEckov, aAbsWin, aQeAll, aIdxWin);
-  fMC->SetCerenkov(getMediumID(kCH4), kNbins, aEckov, aAbsGap, aQeAll, aIdxGap);
-  fMC->SetCerenkov(getMediumID(kCu), kNbins, aEckov, aAbsMet, aQeAll, aIdxMet);
-  fMC->SetCerenkov(getMediumID(kW), kNbins, aEckov, aAbsMet, aQeAll,
+  // at this moment, the fMC member doesn't seem to be initialized
+  // so we fetch from the singleton
+  auto vmc = TVirtualMC::GetMC();
+  vmc->SetCerenkov(getMediumID(kC6F14), kNbins, aEckov, aAbsRad, aQeAll, aIdxRad);
+  vmc->SetCerenkov(getMediumID(kSiO2), kNbins, aEckov, aAbsWin, aQeAll, aIdxWin);
+  vmc->SetCerenkov(getMediumID(kCH4), kNbins, aEckov, aAbsGap, aQeAll, aIdxGap);
+  vmc->SetCerenkov(getMediumID(kCu), kNbins, aEckov, aAbsMet, aQeAll, aIdxMet);
+  vmc->SetCerenkov(getMediumID(kW), kNbins, aEckov, aAbsMet, aQeAll,
                    aIdxMet); // n=0 means reflect photons
-  fMC->SetCerenkov(getMediumID(kCsI), kNbins, aEckov, aAbsMet, aQePc,
+  vmc->SetCerenkov(getMediumID(kCsI), kNbins, aEckov, aAbsMet, aQePc,
                    aIdxPc); // n=1 means convert photons
-  fMC->SetCerenkov(getMediumID(kAl), kNbins, aEckov, aAbsMet, aQeAll, aIdxMet);
+  vmc->SetCerenkov(getMediumID(kAl), kNbins, aEckov, aAbsMet, aQeAll, aIdxMet);
 
   // Define a skin surface for the photocatode to enable 'detection' in G4
   for (Int_t i = 0; i < 7; i++) {
-    fMC->DefineOpSurface(Form("surfPc%i", i), kGlisur /*kUnified*/, kDielectric_metal, kPolished, 0.);
-    fMC->SetMaterialProperty(Form("surfPc%i", i), "EFFICIENCY", kNbins, dEckov, dQePc);
-    fMC->SetMaterialProperty(Form("surfPc%i", i), "REFLECTIVITY", kNbins, dEckov, dReflMet);
-    fMC->SetSkinSurface(Form("skinPc%i", i), Form("Hpad%i", i), Form("surfPc%i", i));
+    vmc->DefineOpSurface(Form("surfPc%i", i), kGlisur /*kUnified*/, kDielectric_metal, kPolished, 0.);
+    vmc->SetMaterialProperty(Form("surfPc%i", i), "EFFICIENCY", kNbins, dEckov, dQePc);
+    vmc->SetMaterialProperty(Form("surfPc%i", i), "REFLECTIVITY", kNbins, dEckov, dReflMet);
+    vmc->SetSkinSurface(Form("skinPc%i", i), Form("Hpad%i", i), Form("surfPc%i", i));
   }
 }
 

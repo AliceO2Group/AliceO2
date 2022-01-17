@@ -44,7 +44,10 @@ class TRDTrackBasedCalibDevice : public Task
 
  private:
   std::shared_ptr<DataRequest> mDataRequest;
-  o2::trd::TrackBasedCalib mCalibrator; // gather input data for calibration of vD, ExB and gain
+  TrackBasedCalib mCalibrator; // gather input data for calibration of vD, ExB and gain
+  std::unique_ptr<Output> mOutput;
+  uint32_t mNumberOfProcessedTFs{0};
+  bool mDataHeaderSet{false};
 };
 
 void TRDTrackBasedCalibDevice::init(InitContext& ic)
@@ -58,18 +61,28 @@ void TRDTrackBasedCalibDevice::init(InitContext& ic)
 
 void TRDTrackBasedCalibDevice::run(ProcessingContext& pc)
 {
-
+  if (!mDataHeaderSet) {
+    mOutput = std::make_unique<Output>(o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe);
+    mDataHeaderSet = true;
+  }
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
-
   mCalibrator.setInput(recoData);
   mCalibrator.calculateAngResHistos();
-
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe}, mCalibrator.getAngResHistos());
+  ++mNumberOfProcessedTFs;
+  if (mNumberOfProcessedTFs % 200 == 0) {
+    pc.outputs().snapshot(*mOutput, mCalibrator.getAngResHistos());
+    mDataHeaderSet = false;
+    mNumberOfProcessedTFs = 0;
+    mCalibrator.reset();
+  }
 }
 
 void TRDTrackBasedCalibDevice::endOfStream(EndOfStreamContext& ec)
 {
+  if (mNumberOfProcessedTFs > 0) {
+    ec.outputs().snapshot(*mOutput, mCalibrator.getAngResHistos());
+  }
   LOGF(info, "Added in total %i entries to angular residual histograms",
        mCalibrator.getAngResHistos().getNEntries());
 }

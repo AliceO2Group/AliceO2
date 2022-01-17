@@ -295,6 +295,13 @@ class Mapper
 
   // ===| pad number and pad row mappings |=====================================
   int getNumberOfRows() const { return mNumberOfPadRowsIROC + mNumberOfPadRowsOROC; }
+
+  /// \return returns number of pad rows in IROCs
+  static constexpr auto getNumberOfRowsInIROC() { return mNumberOfPadRowsIROC; }
+
+  /// \return returns number of pad rows in OROCs
+  static constexpr auto getNumberOfRowsInOROC() { return mNumberOfPadRowsOROC; }
+
   int getNumberOfRowsROC(ROC roc) const
   {
     return (roc.rocType() == RocType::IROC) ? mNumberOfPadRowsIROC : mNumberOfPadRowsOROC;

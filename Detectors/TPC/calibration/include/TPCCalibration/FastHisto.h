@@ -23,6 +23,7 @@
 #include <sstream>
 #include <vector>
 #include <iomanip>
+#include "Rtypes.h"
 
 namespace o2
 {
@@ -37,6 +38,7 @@ namespace tpc
 /// e.g.: create an array with 7 bins + underflow bin + overflow bins
 /// bin range is from xmin=0.4f to xmax=34.6f
 /// the values which will be filled are of the type float
+/// #define FMT_HEADER_ONLY; // to avoid undefined reference when using root shel
 /// o2::tpc::FastHisto<float> histo(7,0.4f,34.6f,true,true);
 /// histo.fill(4.5);
 /// histo.fill(20.2,3);
@@ -58,7 +60,7 @@ class FastHisto
   /// \param useUnderflow use underflow bin in the histogram
   /// \param useOverflow use overflow bin in the histogram
   FastHisto(const unsigned int nBins = 20, const float xmin = 0.f, const float xmax = 2.f, const bool useUnderflow = true, const bool useOverflow = true)
-    : mNBins(nBins), mXmin(xmin), mXmax(xmax), mUseUnderflow(useUnderflow), mUseOverflow(useOverflow), mBinCont(nBins + useUnderflow + useOverflow){};
+    : mNBins(nBins), mXmin(xmin), mXmax(xmax), mUseUnderflow(useUnderflow), mUseOverflow(useOverflow), mBinCont(nBins + useUnderflow + useOverflow), mBinWidth((mXmax - mXmin) / mNBins){};
 
   /// default destructor
   ~FastHisto() = default;
@@ -76,6 +78,7 @@ class FastHisto
   /// this function resets the bin content in the histogram
   void reset()
   {
+    mBinCount = 0;
     std::fill(mBinCont.begin(), mBinCont.end(), 0);
   }
 
@@ -84,6 +87,7 @@ class FastHisto
   /// \param weight weight of the filled content
   void fillBin(int index, T weight)
   {
+    ++mBinCount;
     mBinCont[index] += weight;
   }
 
@@ -119,40 +123,25 @@ class FastHisto
   }
 
   /// \return the bin width used in the histogram
-  float getBinWidth() const
-  {
-    return (mXmax - mXmin) / mNBins;
-  }
+  float getBinWidth() const { return mBinWidth; }
 
   /// \return returns the number of bins (excluding underflow/overflow)
-  unsigned int getNBins() const
-  {
-    return mNBins;
-  }
+  unsigned int getNBins() const { return mNBins; }
 
   /// \return get the lower bound of the histogram
-  float getXmin() const
-  {
-    return mXmin;
-  }
+  float getXmin() const { return mXmin; }
 
   /// \return get the upper bound of the histogram
-  float getXmax() const
-  {
-    return mXmax;
-  }
+  float getXmax() const { return mXmax; }
+
+  /// \return return number of entries in the histogram
+  unsigned int getEntries() const { return mBinCount; }
 
   /// \return returns if underflow bin is used in the histogram
-  bool isUnderflowSet() const
-  {
-    return mUseUnderflow;
-  }
+  bool isUnderflowSet() const { return mUseUnderflow; }
 
   /// \return returns if overflow bin is used in the histogram
-  bool isOverflowSet() const
-  {
-    return mUseUnderflow;
-  }
+  bool isOverflowSet() const { return mUseUnderflow; }
 
   /// \return returns status wether the bin is in the histogram range
   bool checkBin(int bin) const
@@ -165,13 +154,20 @@ class FastHisto
     }
   }
 
+  /// overload of operator +
+  const FastHisto& operator+=(const FastHisto& other);
+
  private:
   unsigned int mNBins{};     ///< number of bins used
   float mXmin{};             ///< minimum x value in the histogram
   float mXmax{};             ///< maximum x value in the histogram (value not included)
   bool mUseUnderflow = true; ///< if true underflow bin used in the histogram
   bool mUseOverflow = true;  ///< if true overflow bin is used in the histogram
+  float mBinWidth{};         ///< width of the bins
   std::vector<T> mBinCont{}; ///< histogram containing bin content
+  unsigned int mBinCount{0}; ///< number of values which are filled in the histogram
+
+  ClassDefNV(FastHisto, 1)
 };
 
 //______________________________________________________________________________
@@ -189,7 +185,7 @@ template <class T>
 inline void FastHisto<T>::print(const int prec) const
 {
   const math_utils::StatisticsData data = getStatisticsData();
-  LOGP(info, "\n Entries: {}", std::accumulate(mBinCont.begin(), mBinCont.end(), 0));
+  LOGP(info, "\n Entries: {}", mBinCount);
   LOGP(info, "Truncated Mean: {}", data.mCOG);
   LOGP(info, "Standard Deviation: {}", data.mStdDev);
   LOGP(info, "sum of content: {}", data.mSum);
@@ -345,6 +341,23 @@ inline int FastHisto<T>::findBin(const T val) const
   const int bin = (val - mXmin) / binWidth + mUseUnderflow;
   return bin;
 };
+
+template <class T>
+inline const FastHisto<T>& FastHisto<T>::operator+=(const FastHisto& other)
+{
+  // make sure the calibration objects have the same substructure
+  if (mNBins != other.mNBins || mXmin != other.mXmin || mXmax != other.mXmax || mUseUnderflow != other.mUseUnderflow || mUseOverflow != other.mUseOverflow) {
+    if (mBinCount) {
+      LOG(error) << "histograms properties are not equal! Setting equal properties...";
+    }
+    *this = other;
+    return *this;
+  }
+  mBinCount += other.mBinCount;
+  std::transform(mBinCont.begin(), mBinCont.end(), other.mBinCont.begin(), mBinCont.begin(), std::plus<T>());
+  return *this;
+}
+
 } // namespace tpc
 } // namespace o2
 

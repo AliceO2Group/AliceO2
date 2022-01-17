@@ -41,7 +41,7 @@ template <typename coder_T, typename stream_T, typename source_T>
 class DedupEncoder : public internal::EncoderBase<coder_T, stream_T, source_T>
 {
  public:
-  //inherit constructors;
+  // inherit constructors;
   using internal::EncoderBase<coder_T, stream_T, source_T>::EncoderBase;
 
   using duplicatesMap_t = std::map<uint32_t, uint32_t>;
@@ -66,7 +66,7 @@ stream_IT DedupEncoder<coder_T, stream_T, source_T>::process(source_IT inputBegi
     LOG(warning) << "passed empty message to encoder, skip encoding";
     return outputBegin;
   }
-  ransCoder_t rans{this->mSymbolTablePrecission};
+  ransCoder_t rans{this->mSymbolTable.getPrecision()};
 
   stream_IT outputIter = outputBegin;
   source_IT inputIT = inputEnd;
@@ -79,7 +79,7 @@ stream_IT DedupEncoder<coder_T, stream_T, source_T>::process(source_IT inputBegi
 
     // dedup step:
     auto dedupIT = symbolIter;
-    //advance on source by one.
+    // advance on source by one.
     --dedupIT;
     size_t numDuplicates = 0;
 
@@ -121,7 +121,7 @@ stream_IT DedupEncoder<coder_T, stream_T, source_T>::process(source_IT inputBegi
     << "sourceTypeB: " << sizeof(source_T) << ", "
     << "streamTypeB: " << sizeof(stream_T) << ", "
     << "coderTypeB: " << sizeof(coder_T) << ", "
-    << "probabilityBits: " << this->mSymbolTablePrecission << ", "
+    << "symbolTablePrecision: " << this->mSymbolTable.getPrecision() << ", "
     << "inputBufferSizeB: " << inputBufferSizeB << "}";
 #endif
 

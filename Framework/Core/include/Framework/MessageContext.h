@@ -551,6 +551,14 @@ class MessageContext
     return mProxy;
   }
 
+  // Add a message to cache and returns a unique identifier for
+  // such cached message.
+  int64_t addToCache(std::unique_ptr<FairMQMessage>& message);
+  // Clone a message from cache so that it can be added to the context
+  std::unique_ptr<FairMQMessage> cloneFromCache(int64_t id) const;
+  // Prune a message from cache
+  void pruneFromCache(int64_t id);
+
   /// call the proxy to create a message of the specified size
   /// we don't implement in the header to avoid including the FairMQDevice header here
   /// that's why the different versions need to be implemented as individual functions
@@ -570,6 +578,8 @@ class MessageContext
   Messages mScheduledMessages;
   DispatchControl mDispatchControl;
   std::unordered_map<std::string, std::unique_ptr<std::string>> mChannelRefs;
+  /// Cached messages, in case we want to reuse them.
+  std::unordered_map<int64_t, std::unique_ptr<FairMQMessage>> mMessageCache;
 };
 } // namespace o2::framework
 #endif // O2_FRAMEWORK_MESSAGECONTEXT_H_

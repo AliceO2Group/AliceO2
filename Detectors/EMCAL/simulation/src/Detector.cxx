@@ -60,7 +60,8 @@ Detector::Detector(Bool_t active)
     mSmodPar0(0.),
     mSmodPar1(0.),
     mSmodPar2(0.),
-    mInnerEdge(0.)
+    mInnerEdge(0.),
+    mDCALInnerGap(7)
 {
   using boost::algorithm::contains;
   memset(mParEMOD, 0, sizeof(Double_t) * 5);
@@ -100,7 +101,8 @@ Detector::Detector(const Detector& rhs)
     mSmodPar0(rhs.mSmodPar0),
     mSmodPar1(rhs.mSmodPar1),
     mSmodPar2(rhs.mSmodPar2),
-    mInnerEdge(rhs.mInnerEdge)
+    mInnerEdge(rhs.mInnerEdge),
+    mDCALInnerGap(rhs.mDCALInnerGap)
 {
   for (int i = 0; i < 5; ++i) {
     mParEMOD[i] = rhs.mParEMOD[i];
@@ -819,7 +821,9 @@ void Detector::CreateSupermoduleGeometry(const std::string_view mother)
         case DCAL_STANDARD: {
           smName = "DCSM";
           parC[2] *= 2. / 3.;
-          zpos = mSmodPar2 + g->GetDCALInnerEdge() / 2.; // 21-sep-04
+          // Extend DCAL SM by 7 cm in inner direction in order to leave space for tilted towers
+          parC[2] += mDCALInnerGap / 2.;                                   // half gap as parameter uses half size (origin in centre of the SM)
+          zpos = mSmodPar2 + (g->GetDCALInnerEdge() - mDCALInnerGap) / 2.; // 21-sep-04
           break;
         }
         case DCAL_EXT: {
@@ -929,7 +933,9 @@ void Detector::CreateEmcalModuleGeometry(const std::string_view mother, const st
         if (iz < 8) {
           continue; //!!!DCSM from 8th to 23th
         }
-        zpos = mod.GetPosZ() - mSmodPar2 - g->GetDCALInnerEdge() / 2.;
+        // Correct pack supermodule center position after increasing size for extruding fix
+        // z-pos. := abs. module z - abs origin of the mother volume
+        zpos = mod.GetPosZ() - mSmodPar2 - (g->GetDCALInnerEdge() - mDCALInnerGap) / 2.;
       } else if (mother.compare("SMOD")) {
         LOG(error) << "Unknown super module Type!!";
       }

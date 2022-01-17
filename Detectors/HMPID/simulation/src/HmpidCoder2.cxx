@@ -247,14 +247,12 @@ void HmpidCoder2::openOutputStream(const std::string& outputFileName, const std:
     rdh.linkID = ReadOut::LnkId(eq);
     rdh.endPointID = 0;
     std::string outfname;
-    if (fileFor == "link") {
+    if (fileFor == "link" || fileFor == "cru") { // for the C-RORC detector the link is equivalent of the CRU endpoint
       outfname = fmt::format("{}_{}_feeid{}.raw", outputFileName, ReadOut::FlpHostName(eq), ReadOut::FeeId(eq));
     } else if (fileFor == "flp") {
       outfname = fmt::format("{}_{}.raw", outputFileName, ReadOut::FlpHostName(eq));
     } else if (fileFor == "all") {
       outfname = fmt::format("{}.raw", outputFileName);
-    } else if (fileFor == "cru") {
-      outfname = fmt::format("{}_{}.raw", outputFileName, ReadOut::FlpHostName(eq));
     } else {
       throw std::runtime_error(fmt::format("unknown raw file grouping option {}", fileFor));
     }

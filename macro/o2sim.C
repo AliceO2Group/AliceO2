@@ -41,7 +41,7 @@ FairRunSim* o2sim_init(bool asservice)
   // initialize CCDB service
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
   ccdbmgr.setURL(confref.getConfigData().mCCDBUrl);
-  ccdbmgr.setTimestamp(confref.getConfigData().mTimestamp);
+  ccdbmgr.setTimestamp(confref.getTimestamp());
   // try to verify connection
   if (!ccdbmgr.isHostReachable()) {
     LOG(error) << "Could not setup CCDB connecting";
@@ -49,9 +49,6 @@ FairRunSim* o2sim_init(bool asservice)
     LOG(info) << "Initialized CCDB Manager at URL: " << ccdbmgr.getURL();
     LOG(info) << "Initialized CCDB Manager with timestamp : " << ccdbmgr.getTimestamp();
   }
-
-  // we can read from CCDB (for the moment faking with a TFile)
-  // o2::conf::ConfigurableParam::fromCCDB("params_ccdb.root", runid);
 
   // update the parameters from an INI/JSON file, if given (overrides code-based version)
   o2::conf::ConfigurableParam::updateFromFile(confref.getConfigFile());
@@ -62,9 +59,6 @@ FairRunSim* o2sim_init(bool asservice)
   // write the final configuration file
   o2::conf::ConfigurableParam::writeINI(o2::base::NameConf::getMCConfigFileName(confref.getOutPrefix()));
 
-  // we can update the binary CCDB entry something like this ( + timestamp key )
-  // o2::conf::ConfigurableParam::toCCDB("params_ccdb.root");
-
   // set seed
   auto seed = o2::utils::RngHelper::setGRandomSeed(confref.getStartSeed());
   LOG(info) << "RNG INITIAL SEED " << seed;
@@ -73,7 +67,7 @@ FairRunSim* o2sim_init(bool asservice)
   FairRunSim* run = new o2::steer::O2RunSim(asservice);
   run->SetImportTGeoToVMC(false); // do not import TGeo to VMC since the latter is built together with TGeo
   run->SetSimSetup([confref]() { o2::SimSetup::setup(confref.getMCEngine().c_str()); });
-  run->SetRunId(confref.getConfigData().mTimestamp);
+  run->SetRunId(confref.getTimestamp());
 
   auto pid = getpid();
   std::stringstream s;
@@ -136,8 +130,6 @@ FairRunSim* o2sim_init(bool asservice)
   // run init
   run->Init();
 
-  uint64_t runStart = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
-
   // runtime database
   bool kParameterMerged = true;
   auto rtdb = run->GetRuntimeDb();
@@ -159,7 +151,8 @@ FairRunSim* o2sim_init(bool asservice)
   {
     // store GRPobject
     o2::parameters::GRPObject grp;
-    grp.setRun(run->GetRunId());
+    grp.setRun(run->GetRunId());                // do we want to fill data taking run id?
+    uint64_t runStart = confref.getTimestamp(); // this will signify "time of this MC" (might not coincide with start of Run)
     grp.setTimeStart(runStart);
     grp.setTimeEnd(runStart + 3600000);
     grp.setDetsReadOut(detMask);

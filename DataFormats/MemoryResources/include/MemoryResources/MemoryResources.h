@@ -42,10 +42,7 @@
 #include <fairmq/MemoryResources.h>
 #include <fairmq/MemoryResourceTools.h>
 
-namespace o2
-{
-
-namespace pmr
+namespace o2::pmr
 {
 
 using FairMQMemoryResource = fair::mq::FairMQMemoryResource;
@@ -326,11 +323,6 @@ inline static FairMQMemoryResource* getTransportAllocator(FairMQTransportFactory
   return *factory;
 }
 
-}; //namespace pmr
-
-template <class T>
-using vector = std::vector<T, o2::pmr::polymorphic_allocator<T>>;
-
-}; //namespace o2
+} //namespace o2::pmr
 
 #endif

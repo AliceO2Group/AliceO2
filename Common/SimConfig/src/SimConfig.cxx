@@ -16,6 +16,7 @@
 #include <FairLogger.h>
 #include <thread>
 #include <cmath>
+#include <chrono>
 
 using namespace o2::conf;
 namespace bpo = boost::program_options;
@@ -49,7 +50,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "nworkers,j", bpo::value<int>()->default_value(nsimworkersdefault), "number of parallel simulation workers (only for parallel mode)")(
     "noemptyevents", "only writes events with at least one hit")(
     "CCDBUrl", bpo::value<std::string>()->default_value("ccdb-test.cern.ch:8080"), "URL for CCDB to be used.")(
-    "timestamp", bpo::value<long>()->default_value(-1), "global timestamp value (for anchoring) - default is now")(
+    "timestamp", bpo::value<uint64_t>(), "global timestamp value in ms (for anchoring) - default is now")(
     "asservice", bpo::value<bool>()->default_value(false), "run in service/server mode");
 }
 
@@ -106,7 +107,11 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mInternalChunkSize = vm["chunkSizeI"].as<int>();
   mConfigData.mStartSeed = vm["seed"].as<int>();
   mConfigData.mSimWorkers = vm["nworkers"].as<int>();
-  mConfigData.mTimestamp = vm["timestamp"].as<long>();
+  if (vm.count("timestamp")) {
+    mConfigData.mTimestamp = vm["timestamp"].as<uint64_t>();
+  } else {
+    mConfigData.mTimestamp = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+  }
   mConfigData.mCCDBUrl = vm["CCDBUrl"].as<std::string>();
   mConfigData.mAsService = vm["asservice"].as<bool>();
   if (vm.count("noemptyevents")) {

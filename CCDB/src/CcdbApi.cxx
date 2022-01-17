@@ -18,6 +18,7 @@
 #include "CCDB/CCDBQuery.h"
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/MemFileHelper.h"
+#include "MemoryResources/MemoryResources.h"
 #include <chrono>
 #include <sstream>
 #include <TFile.h>
@@ -808,7 +809,7 @@ void* CcdbApi::downloadAlienContent(std::string const& url, std::type_info const
   return nullptr;
 }
 
-void* CcdbApi::interpretAsTMemFileAndExtract(char* contentptr, size_t contentsize, std::type_info const& tinfo) const
+void* CcdbApi::interpretAsTMemFileAndExtract(char* contentptr, size_t contentsize, std::type_info const& tinfo)
 {
   void* result = nullptr;
   Int_t previousErrorLevel = gErrorIgnoreLevel;
@@ -1401,6 +1402,257 @@ void CcdbApi::initHostsPool(std::string hosts)
 std::string CcdbApi::getHostUrl(int hostIndex) const
 {
   return hostsPool.at(hostIndex);
+}
+
+void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& path,
+                               std::map<std::string, std::string> const& metadata, long timestamp,
+                               std::map<std::string, std::string>* headers, std::string const& etag,
+                               const std::string& createdNotAfter, const std::string& createdNotBefore) const
+{
+  // The environment option ALICEO2_CCDB_LOCALCACHE allows
+  // to reduce the number of queries to the server, by collecting the objects in a local
+  // cache folder, and serving from this folder for repeated queries.
+  // This is useful for instance for MC GRID productions in which we spawn
+  // many isolated processes, all querying the CCDB (for potentially the same objects and same timestamp).
+  // In addition, we can monitor exactly which objects are fetched and what is their content.
+  // One can also distribute so obtained caches to sites without network access.
+  auto cachedir = getenv("ALICEO2_CCDB_LOCALCACHE");
+  if (cachedir) {
+    // protect this sensitive section by a multi-process named semaphore
+    bool use_sema = false;
+    boost::interprocess::named_semaphore* sem = nullptr;
+    std::hash<std::string> hasher;
+    const auto semhashedstring = "aliceccdb" + std::to_string(hasher(std::string(cachedir) + path)).substr(0, 16);
+    try {
+      sem = new boost::interprocess::named_semaphore(boost::interprocess::open_or_create_t{}, semhashedstring.c_str(), 1);
+    } catch (std::exception e) {
+      LOG(warn) << "Exception occurred during CCDB (cache) semaphore setup; Continuing without";
+      sem = nullptr;
+    }
+    if (sem) {
+      sem->wait(); // wait until we can enter (no one else there)
+    }
+    if (!std::filesystem::exists(cachedir)) {
+      if (!std::filesystem::create_directories(cachedir)) {
+        LOG(error) << "Could not create local snapshot cache directory " << cachedir << "\n";
+      }
+    }
+    std::string logfile = std::string(cachedir) + "/log";
+    std::fstream out(logfile, ios_base::out | ios_base::app);
+    if (out.is_open()) {
+      out << "CCDB-access[" << getpid() << "] to " << path << " timestamp " << timestamp << "\n";
+    }
+    auto snapshotfile = getSnapshotPath(cachedir, path);
+    std::filesystem::exists(snapshotfile);
+    if (!std::filesystem::exists(snapshotfile)) {
+      out << "CCDB-access[" << getpid() << "]  ... downloading to snapshot " << snapshotfile << "\n";
+      // if file not already here and valid --> snapshot it
+      retrieveBlob(path, cachedir, metadata, timestamp);
+    } else {
+      out << "CCDB-access[" << getpid() << "]  ... serving from local snapshot " << snapshotfile << "\n";
+    }
+    if (sem) {
+      sem->post();
+      if (sem->try_wait()) {
+        // if nobody else is waiting remove the semaphore resource
+        sem->post();
+        boost::interprocess::named_semaphore::remove(semhashedstring.c_str());
+      }
+    }
+    return loadFileToMemory(dest, snapshotfile, headers);
+  }
+
+  // normal mode follows
+
+  CURL* curl_handle = curl_easy_init();
+  string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
+  // if we are in snapshot mode we can simply open the file; extract the object and return
+  if (mInSnapshotMode) {
+    return loadFileToMemory(dest, fullUrl, headers);
+  }
+
+  initHeadersForRetrieve(curl_handle, timestamp, headers, etag, createdNotAfter, createdNotBefore);
+
+  navigateURLsAndLoadFileToMemory(dest, curl_handle, fullUrl, headers);
+
+  for (int hostIndex = 1; hostIndex < hostsPool.size() && isMemoryFileInvalid(dest); hostIndex++) {
+    fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp, hostIndex);
+    loadFileToMemory(dest, fullUrl, headers);
+  }
+
+  curl_easy_cleanup(curl_handle);
+  return;
+}
+
+// navigate sequence of URLs until TFile content is found; object is extracted and returned
+void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL* curl_handle, std::string const& url, std::map<string, string>* headers) const
+{
+  // a global internal data structure that can be filled with HTTP header information
+  // static --> to avoid frequent alloc/dealloc as optimization
+  // not sure if thread_local takes away that benefit
+  static thread_local std::multimap<std::string, std::string> headerData;
+
+  // let's see first of all if the url is something specific that curl cannot handle
+  if (url.find("alien:/", 0) != std::string::npos) {
+    return loadFileToMemory(dest, url);
+  }
+  // otherwise make an HTTP/CURL request
+  bool errorflag = false;
+  auto signalError = [&chunk = dest, &errorflag]() {
+    chunk.clear();
+    chunk.reserve(1);
+    errorflag = true;
+  };
+  auto writeCallBack = [](void* contents, size_t size, size_t nmemb, void* chunkptr) {
+    o2::pmr::vector<char>& chunk = *static_cast<o2::pmr::vector<char>*>(chunkptr);
+    size_t realsize = size * nmemb;
+    try {
+      chunk.reserve(chunk.size() + realsize);
+      char* contC = (char*)contents;
+      chunk.insert(chunk.end(), contC, contC + realsize);
+    } catch (std::exception e) {
+      LOGP(info, "failed to expand by {} bytes chunk provided to CURL: {}", realsize, e.what());
+      realsize = 0;
+    }
+    return realsize;
+  };
+
+  // specify URL to get
+  curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
+  initCurlOptionsForRetrieve(curl_handle, (void*)&dest, writeCallBack, false);
+  curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback<decltype(headerData)>);
+  headerData.clear();
+  curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, (void*)&headerData);
+  curlSetSSLOptions(curl_handle);
+
+  auto res = curl_easy_perform(curl_handle);
+  long response_code = -1;
+  bool cachingflag = false;
+  if (res == CURLE_OK && curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code) == CURLE_OK) {
+    if (headers) {
+      for (auto& p : headerData) {
+        (*headers)[p.first] = p.second;
+      }
+    }
+    if (200 <= response_code && response_code < 300) {
+      // good response and the content is directly provided and should have been dumped into "chunk"
+    } else if (response_code == 304) {
+      // this means the object exist but I am not serving
+      // it since it's already in your possession
+      // there is nothing to be done here
+      cachingflag = true;
+    }
+    // this is a more general redirection
+    else if (300 <= response_code && response_code < 400) {
+      // we try content locations in order of appearance until one succeeds
+      // 1st: The "Location" field
+      // 2nd: Possible "Content-Location" fields - Location field
+      // some locations are relative to the main server so we need to fix/complement them
+      auto complement_Location = [this](std::string const& loc) {
+        if (loc[0] == '/') {
+          // if it's just a path (noticed by trailing '/' we prepend the server url
+          return getURL() + loc;
+        }
+        return loc;
+      };
+
+      std::vector<std::string> locs;
+      auto iter = headerData.find("Location");
+      if (iter != headerData.end()) {
+        locs.push_back(complement_Location(iter->second));
+      }
+      // add alternative locations (not yet included)
+      auto iter2 = headerData.find("Content-Location");
+      if (iter2 != headerData.end()) {
+        auto range = headerData.equal_range("Content-Location");
+        for (auto it = range.first; it != range.second; ++it) {
+          if (std::find(locs.begin(), locs.end(), it->second) == locs.end()) {
+            locs.push_back(complement_Location(it->second));
+          }
+        }
+      }
+      for (auto& l : locs) {
+        if (l.size() > 0) {
+          LOG(debug) << "Trying content location " << l;
+          navigateURLsAndLoadFileToMemory(dest, curl_handle, l, nullptr);
+          if (dest.size()) { /* or other success marker in future */
+            break;
+          }
+        }
+      }
+    } else if (response_code == 404) {
+      LOG(error) << "Requested resource does not exist: " << url;
+      signalError();
+    } else {
+      signalError();
+    }
+  } else {
+    LOG(error) << "Curl request to " << url << " failed ";
+    signalError();
+  }
+  // indicate that an error occurred ---> used by caching layers (such as CCDBManager)
+  if (errorflag && headers) {
+    (*headers)["Error"] = "An error occurred during retrieval";
+  }
+  return;
+}
+
+void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, const std::string& path, std::map<std::string, std::string>* localHeaders) const
+{
+  // Read file to memory as vector. For special case of the locally cached file retriev metadata stored directly in the file
+  constexpr size_t MaxCopySize = 0x1L << 25;
+  auto signalError = [&dest, localHeaders]() {
+    dest.clear();
+    dest.reserve(1);
+    if (localHeaders) { // indicate that an error occurred ---> used by caching layers (such as CCDBManager)
+      (*localHeaders)["Error"] = "An error occurred during retrieval";
+    }
+  };
+  if (path.find("alien:/") == 0 && !initTGrid()) {
+    signalError();
+    return;
+  }
+  std::string fname(path);
+  if (fname.find("?filetype=raw") == std::string::npos) {
+    fname += "?filetype=raw";
+  }
+  std::unique_ptr<TFile> sfile{TFile::Open(fname.c_str())};
+  if (!sfile || sfile->IsZombie()) {
+    LOG(error) << "Failed to open file " << fname;
+    signalError();
+    return;
+  }
+  size_t totalread = 0, fsize = sfile->GetSize(), b00 = sfile->GetBytesRead();
+  dest.resize(fsize);
+  char* dptr = dest.data();
+  sfile->Seek(0);
+  long nread = 0;
+  do {
+    size_t b0 = sfile->GetBytesRead(), b1 = b0 - b00;
+    size_t readsize = fsize - b1 > MaxCopySize ? MaxCopySize : fsize - b1;
+    if (readsize == 0) {
+      break;
+    }
+    sfile->Seek(totalread, TFile::kBeg);
+    bool failed = sfile->ReadBuffer(dptr, (Int_t)readsize);
+    nread = sfile->GetBytesRead() - b0;
+    if (failed || nread < 0) {
+      LOG(error) << "failed to copy file " << fname << " to memory buffer";
+      signalError();
+      return;
+    }
+    dptr += nread;
+    totalread += nread;
+  } while (nread == (long)MaxCopySize);
+  if (localHeaders) {
+    sfile->Seek(0);
+    auto storedmeta = retrieveMetaInfo(*sfile);
+    if (storedmeta) {
+      *localHeaders = *storedmeta; // do a simple deep copy
+      delete storedmeta;
+    }
+  }
+  return;
 }
 
 } // namespace ccdb

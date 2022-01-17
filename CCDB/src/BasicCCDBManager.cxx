@@ -21,6 +21,22 @@ namespace o2
 namespace ccdb
 {
 
+// Create blob pointer from the vector<char> containing the CCDB file
+CCDBManagerInstance::BLOB* CCDBManagerInstance::createBlob(std::string const& path, MD const& metadata, long timestamp, MD* headers, std::string const& etag,
+                                                           const std::string& createdNotAfter, const std::string& createdNotBefore)
+{
+  o2::pmr::vector<char> v;
+  mCCDBAccessor.loadFileToMemory(v, path, metadata, timestamp, headers, etag, createdNotAfter, createdNotBefore);
+  if ((headers && headers->count("Error")) || !v.size()) {
+    return nullptr;
+  }
+  // Do a copy to avoid changing the API of createBlob, at least for now.
+  BLOB* b = new BLOB();
+  b->reserve(v.size());
+  std::copy(v.begin(), v.end(), b->end());
+  return b;
+}
+
 void CCDBManagerInstance::setURL(std::string const& url)
 {
   mCCDBAccessor.init(url);

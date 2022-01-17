@@ -54,9 +54,7 @@ class RecordBatchWriter;
 } // namespace ipc
 } // namespace arrow
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 class ServiceRegistry;
 
@@ -104,7 +102,7 @@ class DataAllocator
   template <typename T, typename... Args>
   decltype(auto) make(const Output& spec, Args... args)
   {
-    if constexpr (is_specialization<T, UninitializedVector>::value) {
+    if constexpr (is_specialization_v<T, UninitializedVector>) {
       // plain buffer as polymorphic spectator std::vector, which does not run constructors / destructors
       using ValueType = typename T::value_type;
       auto& timingInfo = mRegistry->get<TimingInfo>();
@@ -116,7 +114,7 @@ class DataAllocator
       return context.add<MessageContext::VectorObject<ValueType, MessageContext::ContainerRefObject<std::vector<ValueType, o2::pmr::NoConstructAllocator<ValueType>>>>>(
                       std::move(headerMessage), channel, 0, std::forward<Args>(args)...)
         .get();
-    } else if constexpr (is_specialization<T, std::vector>::value && has_messageable_value_type<T>::value) {
+    } else if constexpr (is_specialization_v<T, std::vector> && has_messageable_value_type<T>::value) {
       // this catches all std::vector objects with messageable value type before checking if is also
       // has a root dictionary, so non-serialized transmission is preferred
       using ValueType = typename T::value_type;
@@ -160,9 +158,9 @@ class DataAllocator
       constexpr bool isBoostSerializable = framework::is_boost_serializable<T>::value;
       if constexpr (is_messageable<T>::value == true) {
         return *reinterpret_cast<T*>(newChunk(spec, sizeof(T)).data());
-      } else if constexpr (is_specialization<T, BoostSerialized>::value == true) {
+      } else if constexpr (is_specialization_v<T, BoostSerialized> == true) {
         return make_boost<typename T::wrapped_type>(std::move(spec));
-      } else if constexpr (is_specialization<T, BoostSerialized>::value == false && isBoostSerializable == true && std::is_base_of<std::string, T>::value == false) {
+      } else if constexpr (is_specialization_v<T, BoostSerialized> == false && isBoostSerializable == true && std::is_base_of<std::string, T>::value == false) {
         return make_boost<T>(std::move(spec));
       } else {
         static_assert(always_static_assert_v<T>, ERROR_STRING);
@@ -187,7 +185,7 @@ class DataAllocator
           create(spec, &writer, schema);
           return writer;
         }
-      } else if constexpr (is_specialization<T, BoostSerialized>::value) {
+      } else if constexpr (is_specialization_v<T, BoostSerialized>) {
         return make_boost<FirstArg>(std::move(spec));
       } else {
         static_assert(always_static_assert_v<T>, ERROR_STRING);
@@ -227,7 +225,7 @@ class DataAllocator
   /// Adopt a raw buffer in the framework and serialize / send
   /// it to the consumers of @a spec once done.
   template <typename T>
-  typename std::enable_if<is_specialization<T, BoostSerialized>::value == true, void>::type
+  typename std::enable_if<is_specialization_v<T, BoostSerialized> == true, void>::type
     adopt(const Output& spec, T* ptr)
   {
     adopt_boost(std::move(spec), std::move(ptr()));
@@ -289,7 +287,7 @@ class DataAllocator
       memcpy(payloadMessage->GetData(), &object, sizeof(T));
 
       serializationType = o2::header::gSerializationMethodNone;
-    } else if constexpr (is_specialization<T, std::vector>::value == true ||
+    } else if constexpr (is_specialization_v<T, std::vector> == true ||
                          (gsl::details::is_span<T>::value && has_messageable_value_type<T>::value)) {
       using ElementType = typename std::remove_pointer<typename T::value_type>::type;
       if constexpr (is_messageable<ElementType>::value) {
@@ -324,10 +322,10 @@ class DataAllocator
                       "\n - pointers to those"
                       "\n - types with ROOT dictionary and implementing ROOT ClassDef interface");
       }
-    } else if constexpr (has_root_dictionary<T>::value == true || is_specialization<T, ROOTSerialized>::value == true) {
+    } else if constexpr (has_root_dictionary<T>::value == true || is_specialization_v<T, ROOTSerialized> == true) {
       // Serialize a snapshot of an object with root dictionary
       payloadMessage = proxy.createMessage();
-      if constexpr (is_specialization<T, ROOTSerialized>::value == true) {
+      if constexpr (is_specialization_v<T, ROOTSerialized> == true) {
         // Explicitely ROOT serialize a snapshot of object.
         // An object wrapped into type `ROOTSerialized` is explicitely marked to be ROOT serialized
         // and is expected to have a ROOT dictionary. Availability can not be checked at compile time
@@ -412,33 +410,37 @@ class DataAllocator
 
   //make a stl (pmr) vector
   template <typename T, typename... Args>
-  o2::vector<T> makeVector(const Output& spec, Args&&... args)
+  o2::pmr::vector<T> makeVector(const Output& spec, Args&&... args)
   {
     o2::pmr::FairMQMemoryResource* targetResource = getMemoryResource(spec);
-    return o2::vector<T>{targetResource, std::forward<Args>(args)...};
+    return o2::pmr::vector<T>{targetResource, std::forward<Args>(args)...};
   }
 
-  //adopt container (if PMR is used with the appropriate memory resource in container it is ZERO-copy)
+  struct CacheId {
+    int64_t value;
+  };
+
   template <typename ContainerT>
-  void adoptContainer(const Output& spec, ContainerT& container) = delete; //only bind to moved-from containers
-  template <typename ContainerT>
-  void adoptContainer(const Output& spec, ContainerT&& container)
+  CacheId adoptContainer(const Output& spec, ContainerT& container, bool cache = false, o2::header::SerializationMethod method = header::gSerializationMethodNone)
   {
-    // Find a matching channel, extract the message for it form the container
-    // and put it in the queue to be sent at the end of the processing
-    auto& timingInfo = mRegistry->get<TimingInfo>();
-    std::string const& channel = matchDataHeader(spec, timingInfo.timeslice);
-
-    auto& context = mRegistry->get<MessageContext>();
-    FairMQMessagePtr payloadMessage = o2::pmr::getMessage(std::forward<ContainerT>(container), *context.proxy().getTransport(channel));
-
-    FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel,                        //
-                                                             o2::header::gSerializationMethodNone, //
-                                                             payloadMessage->GetSize()             //
-    );
-
-    context.add<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), channel);
+    static_assert(always_static_assert_v<ContainerT>, "Container cannot be moved. Please make sure it is backed by a FairMQMemoryResource");
+    return {0};
   }
+
+  /// Adopt a PMR container. Notice that the container must be moveable and
+  /// eventually backed / by a FairMQMemoryResource.
+  /// @a spec where to send the message
+  /// @a container the container whose resource needs to be sent
+  /// @a cache: if true, the messages being sent are shallow copies of a cached
+  ///           copy. The entry in the cache can be subsequently be sent using
+  ///           the returned CacheId.
+  /// @return a unique id of the adopted message which can be used to resend the
+  ///         message or can be pruned via the DataAllocator::prune() method.
+  template <typename ContainerT>
+  CacheId adoptContainer(const Output& spec, ContainerT&& container, bool cache = false, o2::header::SerializationMethod method = header::gSerializationMethodNone);
+
+  /// Adopt an already cached message, using an already provided CacheId.
+  void adoptFromCache(Output const& spec, CacheId id, header::SerializationMethod method = header::gSerializationMethodNone);
 
   /// snapshot object and route to output specified by OutputRef
   /// Framework makes a (serialized) copy of object content.
@@ -490,7 +492,34 @@ class DataAllocator
                         o2::header::SerializationMethod serializationMethod);
 };
 
-} // namespace framework
-} // namespace o2
+template <typename ContainerT>
+DataAllocator::CacheId DataAllocator::adoptContainer(const Output& spec, ContainerT&& container, bool cache, header::SerializationMethod method)
+{
+  // Find a matching channel, extract the message for it form the container
+  // and put it in the queue to be sent at the end of the processing
+  auto& timingInfo = mRegistry->get<TimingInfo>();
+  std::string const& channel = matchDataHeader(spec, timingInfo.timeslice);
+
+  auto& context = mRegistry->get<MessageContext>();
+  FairMQMessagePtr payloadMessage = o2::pmr::getMessage(std::forward<ContainerT>(container), *context.proxy().getTransport(channel));
+
+  FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel,            //
+                                                           method,                   //
+                                                           payloadMessage->GetSize() //
+  );
+
+  CacheId cacheId{0}; //
+  if (cache) {
+    // The message will be shallow cloned in the cache. Since the
+    // clone is indistinguishable from the original, we can keep sending
+    // the original.
+    cacheId.value = context.addToCache(payloadMessage);
+  }
+
+  context.add<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), channel);
+  return cacheId;
+}
+
+} // namespace o2::framework
 
 #endif //FRAMEWORK_DATAALLOCATOR_H

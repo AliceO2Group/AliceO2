@@ -39,7 +39,7 @@ class LiteralEncoder : public internal::EncoderBase<coder_T, stream_T, source_T>
 {
 
  public:
-  //inherit constructors;
+  // inherit constructors;
   using internal::EncoderBase<coder_T, stream_T, source_T>::EncoderBase;
 
   template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<source_T, source_IT>, bool> = true>
@@ -56,6 +56,11 @@ stream_IT LiteralEncoder<coder_T, stream_T, source_T>::process(source_IT inputBe
   using namespace internal;
   LOG(trace) << "start encoding";
   RANSTimer t;
+
+#ifdef O2_RANS_PRINT_PROCESSED_DATA
+  JSONArrayLogger<source_T> arrayLogger{true};
+#endif
+
   t.start();
 
   if (inputBegin == inputEnd) {
@@ -63,20 +68,25 @@ stream_IT LiteralEncoder<coder_T, stream_T, source_T>::process(source_IT inputBe
     return outputBegin;
   }
 
-  ransCoder_t rans0{this->mSymbolTablePrecission};
-  ransCoder_t rans1{this->mSymbolTablePrecission};
+  ransCoder_t rans0{this->mSymbolTable.getPrecision()};
+  ransCoder_t rans1{this->mSymbolTable.getPrecision()};
 
   stream_IT outputIter = outputBegin;
   source_IT inputIT = inputEnd;
 
   const auto inputBufferSize = std::distance(inputBegin, inputEnd);
 
-  auto encode = [&literals, this](source_IT symbolIter, stream_IT outputIter, ransCoder_t& coder) {
+  auto encode = [&, this](source_IT symbolIter, stream_IT outputIter, ransCoder_t& coder) {
     const source_T symbol = *symbolIter;
     const auto& encoderSymbol = (this->mSymbolTable)[symbol];
     if (this->mSymbolTable.isEscapeSymbol(symbol)) {
       literals.push_back(symbol);
     }
+
+#ifdef O2_RANS_PRINT_PROCESSED_DATA
+    arrayLogger << symbol;
+#endif
+
     return coder.putSymbol(outputIter, encoderSymbol);
   };
 
@@ -95,6 +105,11 @@ stream_IT LiteralEncoder<coder_T, stream_T, source_T>::process(source_IT inputBe
   ++outputIter;
 
   t.stop();
+
+#ifdef O2_RANS_PRINT_PROCESSED_DATA
+  LOG(info) << "encoderInput:" << arrayLogger;
+#endif
+
   LOG(debug1) << "Encoder::" << __func__ << " {ProcessedBytes: " << inputBufferSize * sizeof(source_T) << ","
               << " inclusiveTimeMS: " << t.getDurationMS() << ","
               << " BandwidthMiBPS: " << std::fixed << std::setprecision(2) << (inputBufferSize * sizeof(source_T) * 1.0) / (t.getDurationS() * 1.0 * (1 << 20)) << "}";
@@ -108,7 +123,7 @@ stream_IT LiteralEncoder<coder_T, stream_T, source_T>::process(source_IT inputBe
               << "sourceTypeB: " << sizeof(source_T) << ", "
               << "streamTypeB: " << sizeof(stream_T) << ", "
               << "coderTypeB: " << sizeof(coder_T) << ", "
-              << "probabilityBits: " << this->mSymbolTablePrecission << ", "
+              << "symbolTablePrecision: " << this->mSymbolTable.getPrecision() << ", "
               << "inputBufferSizeB: " << inputBufferSizeB << "}";
 #endif
 

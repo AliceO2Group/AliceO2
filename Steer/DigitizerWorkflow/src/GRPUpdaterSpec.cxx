@@ -103,6 +103,7 @@ class GRPDPLUpdatedTask
         }
         grp->setDetROMode(det, roMode);
       }
+      grp->setIsMC(true);
       grp->setFirstOrbit(o2::raw::HBFUtils::Instance().orbitFirst);
       grp->setNHBFPerTF(o2::raw::HBFUtils::Instance().nHBFPerTF);
       LOG(info) << "Updated GRP in " << mGRPFileName << " for detectors RO mode and 1st orbit of the run";
