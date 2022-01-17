@@ -228,7 +228,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
                "ENUM",
                static_cast<DataAllocator::SubSpecificationType>(compile_time_hash("internal-dpl-ccdb-backend")),
                Lifetime::Enumeration}},
-    {},
+    {OutputSpec{"CTP", "OrbitReset", 0}},
     CCDBHelpers::fetchFromCCDB(),
     {ConfigParamSpec{"condition-backend", VariantType::String, "http://alice-ccdb.cern.ch", {"URL for CCDB"}},
      ConfigParamSpec{"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},

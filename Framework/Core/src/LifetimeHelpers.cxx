@@ -196,64 +196,6 @@ size_t readToMessage(void* p, size_t size, size_t nmemb, void* userdata)
   return size * nmemb;
 }
 
-ExpirationHandler::Checker
-  LifetimeHelpers::expectCTP(std::string const& serverUrl, bool waitForCTP)
-{
-  return [serverUrl, waitForCTP](ServiceRegistry& services, int64_t timestamp) -> bool {
-    auto& dataTakingContext = services.get<DataTakingContext>();
-    if (waitForCTP == false || dataTakingContext.source == OrbitResetTimeSource::CTP) {
-      return true;
-    }
-    LOG(info) << "CTP is not there, fetching.";
-    std::vector<char> buffer;
-    CURL* curl = curl_easy_init();
-    if (curl == nullptr) {
-      throw runtime_error("fetchFromCCDBCache: Unable to initialise CURL");
-    }
-    CURLcode res;
-    std::string path = "CTP/Calib/OrbitReset";
-    auto url = fmt::format("{}/{}/{}", serverUrl, path, timestamp / 1000);
-    LOG(info) << "Fetching CTP from " << url;
-
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buffer);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, readToBuffer);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
-
-    res = curl_easy_perform(curl);
-    if (res != CURLE_OK) {
-      throw runtime_error_f("Unable to fetch %s from CCDB", url.c_str());
-    }
-    long responseCode;
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-
-    if (responseCode != 200) {
-      throw runtime_error_f("HTTP error %d while fetching %s from CCDB", responseCode, url.c_str());
-    }
-
-    curl_easy_cleanup(curl);
-
-    Int_t previousErrorLevel = gErrorIgnoreLevel;
-    gErrorIgnoreLevel = kFatal;
-    TMemFile memFile("name", const_cast<char*>(buffer.data()), buffer.size(), "READ");
-    gErrorIgnoreLevel = previousErrorLevel;
-    if (memFile.IsZombie()) {
-      return false;
-    }
-    TClass* tcl = TClass::GetClass(typeid(std::vector<Long64_t>));
-    void* result = ccdb::CcdbApi::extractFromTFile(memFile, tcl);
-    if (!result) {
-      throw runtime_error_f("Couldn't retrieve object corresponding to %s from TFile", tcl->GetName());
-    }
-    memFile.Close();
-    std::vector<Long64_t>* ctp = (std::vector<Long64_t>*)result;
-    LOG(info) << "Orbit reset time now at " << (*ctp)[0];
-    dataTakingContext.orbitResetTime = (*ctp)[0];
-    dataTakingContext.source = OrbitResetTimeSource::CTP;
-    return true;
-  };
-}
-
 /// Fetch an object from CCDB if the record is expired. The actual
 /// name of the object is given by:
 ///
