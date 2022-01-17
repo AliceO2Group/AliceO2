@@ -40,7 +40,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           for (size_t pi = 0; pi < condition->size(); pi++) {
             LOGP(info, "Phase at {} for timestamp {} is {}", pi, condition->timestamp(pi), condition->LHCphase(pi));
           }
-          control.readyToQuit(QuitRequest::All);
+          //          control.readyToQuit(QuitRequest::All);
         })},
       Options{
         {"test-option", VariantType::String, "test", {"A test option"}}},

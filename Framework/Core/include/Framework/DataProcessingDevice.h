@@ -26,6 +26,7 @@
 #include "Framework/ProcessingPolicies.h"
 #include "Framework/Tracing.h"
 #include "Framework/RunningWorkflowInfo.h"
+#include "Framework/ObjectCache.h"
 
 #include <fairmq/FairMQDevice.h>
 #include <fairmq/FairMQParts.h>
@@ -86,6 +87,7 @@ struct DataProcessorContext {
   AlgorithmSpec::ProcessCallback* statefulProcess = nullptr;
   AlgorithmSpec::ProcessCallback* statelessProcess = nullptr;
   AlgorithmSpec::ErrorCallback* error = nullptr;
+  ObjectCache objCache;
 
   /// Wether or not the associated DataProcessor can forward things early
   bool canForwardEarly = true;
