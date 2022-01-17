@@ -290,17 +290,10 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           // FwdTracks tracks are treated separately since they are stored in a different table
           const auto& track = data.getMCHTrack(trackIndex);
           if (collisionID < 0) {
-            InteractionRecord meanIR;
-            auto rofsMCH = data.getMCHTracksROFRecords();
-            for (const auto& rof : rofsMCH) {
-              if (trackIndex >= rof.getFirstIdx() && trackIndex <= rof.getLastIdx()) {
-                meanIR = rof.getBCData() + rof.getBCWidth() / 2;
-              }
-              math_utils::Point3D<double> vertex{};
-              // FIXME: should we get better
-              // than {0,0,0} as vertex here ?
-              addToFwdTracksTable(fwdTracksCursor, fwdTracksCovCursor, track, -1, vertex);
-            }
+            // FIXME: should we get better
+            // than {0,0,0} as vertex here ?
+            math_utils::Point3D<double> vertex{};
+            addToFwdTracksTable(fwdTracksCursor, fwdTracksCovCursor, track, collisionID, vertex);
           } else {
             math_utils::Point3D<double> vtx{vertex.getX(),
                                             vertex.getY(), vertex.getZ()};
