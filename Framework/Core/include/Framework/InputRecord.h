@@ -20,6 +20,7 @@
 #include "Framework/RuntimeError.h"
 #include "Framework/Logger.h"
 #include "Framework/ObjectCache.h"
+#include "Framework/CallbackService.h"
 
 #include "Headers/DataHeader.h"
 
@@ -42,6 +43,7 @@ namespace o2::framework
 
 struct InputSpec;
 struct InputSpan;
+struct CallbackService;
 
 /// @class InputRecord
 /// @brief The input API of the Data Processing Layer
@@ -101,7 +103,8 @@ class InputRecord
 
   InputRecord(std::vector<InputRoute> const& inputs,
               InputSpan& span,
-              ObjectCache& cache);
+              ObjectCache& cache,
+              CallbackService& callbacks);
 
   /// A deleter type to be used with unique_ptr, which can be marked that
   /// it does not own the underlying resource and thus should not delete it.
@@ -401,8 +404,10 @@ class InputRecord
         if (cacheEntry == mCache.matcherToId.end()) {
           mCache.matcherToId.insert(std::make_pair(path, id));
           std::unique_ptr<ValueT const, Deleter<ValueT const>> result(DataRefUtils::as<CCDBSerialized<ValueT>>(ref).release(), false);
-          mCache.idToObject[id] = (void*)result.get();
-          LOGP(info, "Caching in {} ptr to {} ({})", id.value, path, (void*)result.get());
+          void* obj = (void*)result.get();
+          mCallbacks(CallbackService::Id::CCDBDeserialised, matcher, obj);
+          mCache.idToObject[id] = obj;
+          LOGP(info, "Caching in {} ptr to {} ({})", id.value, path, obj);
           return result;
         }
         auto& oldId = cacheEntry->second;
@@ -416,8 +421,10 @@ class InputRecord
         // and create a new one.
         delete reinterpret_cast<ValueT*>(mCache.idToObject[oldId]);
         std::unique_ptr<ValueT const, Deleter<ValueT const>> result(DataRefUtils::as<CCDBSerialized<ValueT>>(ref).release(), false);
-        mCache.idToObject[id] = (void*)result.get();
-        LOGP(info, "Replacing cached entry {} with {} for {} ({})", oldId.value, id.value, path, (void*)result.get());
+        void* obj = (void*)result.get();
+        mCallbacks(CallbackService::Id::CCDBDeserialised, matcher, obj);
+        mCache.idToObject[id] = obj;
+        LOGP(info, "Replacing cached entry {} with {} for {} ({})", oldId.value, id.value, path, obj);
         oldId.value = id.value;
         return result;
       } else {
@@ -664,6 +671,7 @@ class InputRecord
   ObjectCache& mCache;
   std::vector<InputRoute> const& mInputsSchema;
   InputSpan& mSpan;
+  CallbackService& mCallbacks;
 };
 
 } // namespace o2::framework

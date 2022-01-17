@@ -38,6 +38,24 @@ class has_endOfStream
   enum { value = sizeof(test<T>(nullptr)) == sizeof(char) };
 };
 
+/// Check if the class task has EndOfStream
+template <typename T>
+class has_finaliseCCDB
+{
+  typedef char one;
+  struct two {
+    char x[2];
+  };
+
+  template <typename C>
+  static one test(decltype(&C::finaliseCCDB));
+  template <typename C>
+  static two test(...);
+
+ public:
+  enum { value = sizeof(test<T>(nullptr)) == sizeof(char) };
+};
+
 /// Check if the class task has Stop
 template <typename T>
 class has_stop
@@ -79,6 +97,13 @@ class Task
   /// This is invoked whenever we have an EndOfStream event
   virtual void endOfStream(EndOfStreamContext& context) {}
 
+  /// This is invoked whenever a new CCDB object associated to
+  /// a given ConcreteDataMatcher is deserialised
+  virtual void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+  {
+    LOGP(error, "CCDB deserialization invoked");
+  }
+
   /// This is invoked on stop
   virtual void stop() {}
 };
@@ -94,6 +119,12 @@ AlgorithmSpec adaptFromTask(Args&&... args)
       auto& callbacks = ic.services().get<CallbackService>();
       callbacks.set(CallbackService::Id::EndOfStream, [task](EndOfStreamContext& eosContext) {
         task->endOfStream(eosContext);
+      });
+    }
+    if constexpr (has_finaliseCCDB<T>::value) {
+      auto& callbacks = ic.services().get<CallbackService>();
+      callbacks.set(CallbackService::Id::CCDBDeserialised, [task](ConcreteDataMatcher& matcher, void* obj) {
+        task->finaliseCCDB(matcher, obj);
       });
     }
     if constexpr (has_stop<T>::value) {
