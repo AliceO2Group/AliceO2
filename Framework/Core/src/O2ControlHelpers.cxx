@@ -216,10 +216,8 @@ void dumpProperties(std::ostream& dumpOut, const DeviceExecution& execution, con
     }
   }
 
-  if (implementation::isQcReconfigurable(spec)) {
-    dumpOut << indLevel << "properties:\n";
-    dumpOut << indLevel << indScheme << "qcConfiguration: " << configPath << "\n";
-  }
+  dumpOut << indLevel << "properties:\n";
+  dumpOut << indLevel << indScheme << "qcConfiguration: " << configPath << "\n";
 }
 
 void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::string indLevel)
@@ -401,7 +399,9 @@ void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecuti
     }
   }
 
-  implementation::dumpProperties(dumpOut, execution, spec, indLevel);
+  if(implementation::isQcReconfigurable(spec)) {
+    implementation::dumpProperties(dumpOut, execution, spec, indLevel);
+  }
 
   dumpOut << indLevel << "command:\n";
   implementation::dumpCommand(dumpOut, execution, indLevel + indScheme);
