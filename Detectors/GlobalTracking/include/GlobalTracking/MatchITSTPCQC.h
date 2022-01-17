@@ -143,7 +143,7 @@ class MatchITSTPCQC
   // cut values
   float mPtCut = 0.1f;
   float mEtaCut = 1.4f;
-  int32_t mNTPCClustersCut = 40;
+  int32_t mNTPCClustersCut = 60;
   float mDCACut = 100.f;
   float mDCACutY = 10.f;
 
