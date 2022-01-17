@@ -12,6 +12,7 @@
 #include "Framework/InputSpan.h"
 #include "Framework/InputSpec.h"
 #include "Framework/ObjectCache.h"
+#include "Framework/CallbackService.h"
 #include <fairmq/FairMQMessage.h>
 #include <cassert>
 
@@ -34,10 +35,12 @@ namespace o2::framework
 
 InputRecord::InputRecord(std::vector<InputRoute> const& inputsSchema,
                          InputSpan& span,
-                         ObjectCache& cache)
+                         ObjectCache& cache,
+                         CallbackService& callbacks)
   : mInputsSchema{inputsSchema},
     mSpan{span},
-    mCache{cache}
+    mCache{cache},
+    mCallbacks{callbacks}
 {
 }
 

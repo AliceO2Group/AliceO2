@@ -1436,7 +1436,10 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     bool shouldConsume = action.op == CompletionPolicy::CompletionOp::Consume ||
                          action.op == CompletionPolicy::CompletionOp::Discard;
     InputSpan span = getInputSpan(action.slot, shouldConsume);
-    InputRecord record{context.deviceContext->spec->inputs, span, context.objCache};
+    InputRecord record{context.deviceContext->spec->inputs,
+                       span,
+                       context.objCache,
+                       context.registry->get<CallbackService>()};
     ProcessingContext processContext{record, *context.registry, *context.allocator};
     {
       ZoneScopedN("service pre processing");
