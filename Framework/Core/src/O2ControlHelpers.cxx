@@ -399,7 +399,7 @@ void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecuti
     }
   }
 
-  if(implementation::isQcReconfigurable(spec)) {
+  if (implementation::isQcReconfigurable(spec)) {
     implementation::dumpProperties(dumpOut, execution, spec, indLevel);
   }
 
