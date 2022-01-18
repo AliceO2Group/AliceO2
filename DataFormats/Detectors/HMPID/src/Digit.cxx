@@ -18,7 +18,7 @@
 
 /* ------ HISTORY ---------
   10/03/2021   /  complete review
-
+  05/11/2021   Add and review for the Cluster class
 */
 
 #include <iostream>
@@ -271,7 +271,7 @@ float Digit::getFractionalContributionForPad(HitType const& hit, int somepad)
   // converting chamber id and hit coordiates to local coordinates
   Param::instance()->mars2Lors(chamber, tmp, localX, localY);
   // calculate charge fraction in given pad
-  return Digit::inMathieson(localX, localY, somepad);
+  return Digit::intMathieson(localX, localY, somepad);
 }
 
 /// QdcTot : Samples total charge associated to a hit
@@ -324,15 +324,15 @@ Double_t Digit::qdcTot(Double_t e, Double_t time, Int_t pc, Int_t px, Int_t py, 
 /// @param[in] x : position of the center of Mathieson distribution
 /// @param[in] pad : the Digit Unique Id [0x00CPXXYY]
 /// @return : a charge fraction [0-1] imposed into the pad
-Double_t Digit::intPartMathiX(Double_t x, int pad)
+double Digit::intPartMathiX(double x, int pad)
 {
-  Double_t shift1 = -lorsX(pad) + 0.5 * o2::hmpid::Param::sizePadX();
-  Double_t shift2 = -lorsX(pad) - 0.5 * o2::hmpid::Param::sizePadX();
+  double shift1 = -lorsX(pad) + 0.5 * o2::hmpid::Param::sizePadX();
+  double shift2 = -lorsX(pad) - 0.5 * o2::hmpid::Param::sizePadX();
 
-  Double_t ux1 = o2::hmpid::Param::sqrtK3x() * TMath::TanH(o2::hmpid::Param::k2x() * (x + shift1) / o2::hmpid::Param::pitchAnodeCathode());
-  Double_t ux2 = o2::hmpid::Param::sqrtK3x() * TMath::TanH(o2::hmpid::Param::k2x() * (x + shift2) / o2::hmpid::Param::pitchAnodeCathode());
+  double ux1 = o2::hmpid::Param::sqrtK3x() * tanh(o2::hmpid::Param::k2x() * (x + shift1) / o2::hmpid::Param::pitchAnodeCathode());
+  double ux2 = o2::hmpid::Param::sqrtK3x() * tanh(o2::hmpid::Param::k2x() * (x + shift2) / o2::hmpid::Param::pitchAnodeCathode());
 
-  return o2::hmpid::Param::k4x() * (TMath::ATan(ux2) - TMath::ATan(ux1));
+  return o2::hmpid::Param::k4x() * (atan(ux2) - atan(ux1));
 }
 
 /// IntPartMathiY : Integration of Mathieson.
@@ -342,18 +342,18 @@ Double_t Digit::intPartMathiX(Double_t x, int pad)
 /// @param[in] y : position of the center of Mathieson distribution
 /// @param[in] pad : the Digit Unique Id [0x00CPXXYY]
 /// @return : a charge fraction [0-1] imposed into the pad
-Double_t Digit::intPartMathiY(Double_t y, int pad)
+double Digit::intPartMathiY(double y, int pad)
 {
-  Double_t shift1 = -lorsY(pad) + 0.5 * o2::hmpid::Param::sizePadY();
-  Double_t shift2 = -lorsY(pad) - 0.5 * o2::hmpid::Param::sizePadY();
+  double shift1 = -lorsY(pad) + 0.5 * o2::hmpid::Param::sizePadY();
+  double shift2 = -lorsY(pad) - 0.5 * o2::hmpid::Param::sizePadY();
 
-  Double_t uy1 = o2::hmpid::Param::sqrtK3y() * TMath::TanH(o2::hmpid::Param::k2y() * (y + shift1) / o2::hmpid::Param::pitchAnodeCathode());
-  Double_t uy2 = o2::hmpid::Param::sqrtK3y() * TMath::TanH(o2::hmpid::Param::k2y() * (y + shift2) / o2::hmpid::Param::pitchAnodeCathode());
+  double uy1 = o2::hmpid::Param::sqrtK3y() * tanh(o2::hmpid::Param::k2y() * (y + shift1) / o2::hmpid::Param::pitchAnodeCathode());
+  double uy2 = o2::hmpid::Param::sqrtK3y() * tanh(o2::hmpid::Param::k2y() * (y + shift2) / o2::hmpid::Param::pitchAnodeCathode());
 
-  return o2::hmpid::Param::k4y() * (TMath::ATan(uy2) - TMath::ATan(uy1));
+  return o2::hmpid::Param::k4y() * (atan(uy2) - atan(uy1));
 }
 
-/// InMathieson : Integration of Mathieson.
+/// IntMathieson : Integration of Mathieson.
 /// This is the answer to electrostatic problem of charge distrubution in MWPC
 /// described elsewhere. (NIM A370(1988)602-603)
 ///
@@ -361,10 +361,41 @@ Double_t Digit::intPartMathiY(Double_t y, int pad)
 /// @param[in] localY : Y position of the center of Mathieson distribution
 /// @param[in] pad : the Digit Unique Id [0x00CPXXYY]
 /// @return : a charge fraction [0-1] imposed into the pad
-Double_t Digit::inMathieson(Double_t localX, Double_t localY, Int_t pad)
+double Digit::intMathieson(double localX, double localY, int pad)
 {
   return 4. * intPartMathiX(localX, pad) * intPartMathiY(localY, pad);
 }
+
+// Mathieson function.
+// This is the answer to electrostatic problem of charge distrubution in MWPC described elsewhere. (NIM A370(1988)602-603)
+// Arguments: x- position of the center of Mathieson distribution
+//  Returns: value of the Mathieson function
+double Digit::mathiesonX(double x)
+{
+  double lambda = x / o2::hmpid::Param::pitchAnodeCathode();
+  double tanh_v = tanh(o2::hmpid::Param::k2x() * lambda);
+  double a = 1 - tanh_v * tanh_v;
+  double b= 1 + o2::hmpid::Param::sqrtK3x() * o2::hmpid::Param::sqrtK3x() * tanh_v * tanh_v;
+  double mathi = o2::hmpid::Param::k1x() * a / b;
+  return mathi;
+}
+
+// Mathieson function.
+// This is the answer to electrostatic problem of charge distrubution in MWPC described elsewhere. (NIM A370(1988)602-603)
+// Arguments: x- position of the center of Mathieson distribution
+//  Returns: value of the Mathieson function
+double Digit::mathiesonY(double y)
+{
+  double lambda = y / o2::hmpid::Param::pitchAnodeCathode();
+  double tanh_v = tanh(o2::hmpid::Param::k2y() * lambda);
+  double a = 1 - tanh_v * tanh_v;
+  double b = 1 + o2::hmpid::Param::sqrtK3y() * o2::hmpid::Param::sqrtK3y() * tanh_v * tanh_v;
+  double mathi = o2::hmpid::Param::k1y() * a / b;
+  return mathi;
+}
+
+
+
 /*
 // ---- Time conversion functions ----
 

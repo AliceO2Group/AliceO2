@@ -17,6 +17,8 @@
 
 //    History
 //  10/03/2021   Complete review
+//  05/11/2021   Add and review for the Cluster class
+
 
 #ifndef DETECTORS_HMPID_BASE_INCLUDE_HMPIDDATAFORMAT_DIGIT_H_
 #define DETECTORS_HMPID_BASE_INCLUDE_HMPIDDATAFORMAT_DIGIT_H_
@@ -115,11 +117,11 @@ class Digit
   }
   void subCharge(float q) { mQ -= q; }
 
-  uint16_t getQ() const { return mQ; }
-  uint8_t getCh() const { return mCh; }
-  uint8_t getPh() const { return mPh; }
-  uint8_t getX() const { return mX; }
-  uint8_t getY() const { return mY; }
+  uint16_t getQ()  const { return mQ; }
+  uint8_t  getCh() const { return mCh; }
+  uint8_t  getPh() const { return mPh; }
+  uint8_t  getX()  const { return mX; }
+  uint8_t  getY()  const { return mY; }
 
  public:
   // Members
@@ -142,11 +144,13 @@ class Digit
   static float lorsY(int pad) { return Param::lorsY(a2P(pad), a2Y(pad)); } //center of the pad y, [cm]
 
   // determines the total charge created by a hit
-  // might modify the localX, localY coordiates associated to the hit
-  static Double_t qdcTot(Double_t e, Double_t time, Int_t pc, Int_t px, Int_t py, Double_t& localX, Double_t& localY);
-  static Double_t intPartMathiX(Double_t x, Int_t pad);
-  static Double_t intPartMathiY(Double_t y, Int_t pad);
-  static Double_t inMathieson(Double_t localX, Double_t localY, int pad);
+  // might modify the localX, localY coordinates associated to the hit
+  static double qdcTot(double e, double time, int pc, int px, int py, double& localX, double& localY);
+  static double intPartMathiX(double x, int pad);
+  static double intPartMathiY(double y, int pad);
+  static double intMathieson(double localX, double localY, int pad);
+  static double mathiesonX(double x); //Mathieson distribution along wires X
+  static double mathiesonY(double x); //Mathieson distribution perp to wires Y
 
   ClassDefNV(Digit, 2);
 };
