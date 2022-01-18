@@ -226,7 +226,14 @@ BOOST_AUTO_TEST_CASE(TestSimpleConnection)
   WorkflowHelpers::injectServiceDevices(workflow, *context);
   // The fourth one is the dummy sink for the
   // timeframe reporting messages
-  BOOST_CHECK_EQUAL(workflow.size(), 4);
+  std::vector<std::string> expectedNames = {"A", "B", "internal-dpl-clock", "internal-dpl-injected-dummy-sink"};
+  BOOST_CHECK_EQUAL(workflow.size(), expectedNames.size());
+  for (size_t wi = 0, we = workflow.size(); wi != we; ++wi) {
+    BOOST_TEST_CONTEXT("With parameter wi = " << wi)
+    {
+      BOOST_CHECK_EQUAL(workflow[wi].name, expectedNames[wi]);
+    }
+  }
   WorkflowHelpers::constructGraph(workflow, logicalEdges,
                                   outputs,
                                   availableForwardsInfo);

@@ -223,7 +223,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   DataProcessorSpec ccdbBackend{
     .name = "internal-dpl-ccdb-backend",
-    .outputs = {{"CTP", "OrbitReset", 0}},
+    .outputs = {},
     .algorithm = CCDBHelpers::fetchFromCCDB(),
     .options = {{"condition-backend", VariantType::String, "http://alice-ccdb.cern.ch", {"URL for CCDB"}},
                 {"condition-not-before", VariantType::Int64, 0ll, {"do not fetch from CCDB objects created before provide timestamp"}},
@@ -490,6 +490,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   }
 
   if (ccdbBackend.outputs.empty() == false) {
+    ccdbBackend.outputs.push_back(OutputSpec{"CTP", "OrbitReset", 0});
     bool hasDISTSTF = false;
     InputSpec matcher{"dstf", "FLP", "DISTSUBTIMEFRAME"};
     ConcreteDataMatcher dstf{"FLP", "DISTSUBTIMEFRAME", 0};
