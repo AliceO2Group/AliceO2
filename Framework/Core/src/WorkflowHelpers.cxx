@@ -194,11 +194,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   DataProcessorSpec ccdbBackend{
     "internal-dpl-ccdb-backend",
-    {InputSpec{"enumeration",
-               "DPL",
-               "ENUM",
-               static_cast<DataAllocator::SubSpecificationType>(compile_time_hash("internal-dpl-ccdb-backend")),
-               Lifetime::Enumeration}},
+    {},
     {OutputSpec{"CTP", "OrbitReset", 0}},
     CCDBHelpers::fetchFromCCDB(),
     {ConfigParamSpec{"condition-backend", VariantType::String, "http://alice-ccdb.cern.ch", {"URL for CCDB"}},
@@ -414,11 +410,6 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   std::vector<DataProcessorSpec> extraSpecs;
 
-  if (ccdbBackend.outputs.empty() == false) {
-    extraSpecs.push_back(ccdbBackend);
-    auto concrete = DataSpecUtils::asConcreteDataMatcher(ccdbBackend.inputs[0]);
-    timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
-  }
   if (transientStore.outputs.empty() == false) {
     extraSpecs.push_back(transientStore);
   }
@@ -465,6 +456,39 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
     auto concrete = DataSpecUtils::asConcreteDataMatcher(aodReader.inputs[0]);
     timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
+  }
+
+  if (ccdbBackend.outputs.empty() == false) {
+    bool hasDISTSTF = false;
+    InputSpec matcher{"dstf", "FLP", "DISTSUBTIMEFRAME"};
+    ConcreteDataMatcher dstf{"FLP", "DISTSUBTIMEFRAME", 0};
+    for (auto& dp : workflow) {
+      for (auto& output : dp.outputs) {
+        if (DataSpecUtils::match(matcher, output)) {
+          hasDISTSTF = true;
+          dstf = DataSpecUtils::asConcreteDataMatcher(output);
+          break;
+        }
+      }
+      if (hasDISTSTF) {
+        break;
+      }
+    }
+    if (aodReader.outputs.empty() == false) {
+      ccdbBackend.inputs.push_back(InputSpec{"tfn", "TFN", "TFNumber"});
+    } else if (hasDISTSTF) {
+      ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf});
+    } else {
+      InputSpec input{"enumeration",
+                      "DPL",
+                      "ENUM",
+                      static_cast<DataAllocator::SubSpecificationType>(compile_time_hash("internal-dpl-ccdb-backend")),
+                      Lifetime::Enumeration};
+      ccdbBackend.inputs.push_back(input);
+      auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
+      timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
+    }
+    extraSpecs.push_back(ccdbBackend);
   }
 
   // add the timer
