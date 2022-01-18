@@ -39,7 +39,7 @@ struct DataSet {
   using TaggedSet = std::pair<o2::header::DataOrigin, MessageSet>;
   using Messages = std::vector<TaggedSet>;
   using CheckType = std::vector<std::string>;
-  DataSet(std::vector<InputRoute>&& s, Messages&& m, CheckType&& v)
+  DataSet(std::vector<InputRoute>&& s, Messages&& m, CheckType&& v, ObjectCache& cache, CallbackService& callbacks)
     : schema{std::move(s)}, messages{std::move(m)}, span{[this](size_t i, size_t part) {
                                                            BOOST_REQUIRE(i < this->messages.size());
                                                            BOOST_REQUIRE(part < this->messages[i].second.size() / 2);
@@ -48,7 +48,7 @@ struct DataSet {
                                                            return DataRef{nullptr, header, payload};
                                                          },
                                                          [this](size_t i) { return i < this->messages.size() ? messages[i].second.size() / 2 : 0; }, this->messages.size()},
-      record{schema, span},
+      record{schema, span, cache, callbacks},
       values{std::move(v)}
   {
     BOOST_REQUIRE(messages.size() == schema.size());
@@ -63,6 +63,8 @@ struct DataSet {
 
 DataSet createData()
 {
+  static CallbackService callbacks;
+  static ObjectCache cache;
   // Create the routes we want for the InputRecord
   std::vector<InputSpec> inputspecs = {
     InputSpec{"tpc", "TPC", "SOMEDATA", 0, Lifetime::Timeframe},
@@ -138,7 +140,7 @@ DataSet createData()
   createMessage(dh3);
   createMessage(dh4);
 
-  return {std::move(schema), std::move(messages), std::move(checkValues)};
+  return {std::move(schema), std::move(messages), std::move(checkValues), cache, callbacks};
 }
 
 BOOST_AUTO_TEST_CASE(test_DPLRawParser)
