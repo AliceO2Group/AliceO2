@@ -64,7 +64,7 @@ void HMPIDDigitizer::reset()
 void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::vector<o2::hmpid::Digit>& digits)
 {
   printf("*******************In digitizer process**********************************");
-  
+
   for (auto& hit : hits) {
     int chamber, pc, px, py;
     float totalQ;
