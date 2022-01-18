@@ -26,14 +26,32 @@ ConfigParamSpec ccdbRunDependent(bool defaultValue)
   return ConfigParamSpec{"ccdb-run-dependent", VariantType::Bool, defaultValue, {"Give object for specific run number"}, ConfigParamKind::kGeneric};
 }
 
-std::vector<ConfigParamSpec> ccdbParamSpec(std::string const& path, bool runDependent)
+ConfigParamSpec ccdbMetadataSpec(std::string const& key, std::string const& defaultValue)
+{
+  return ConfigParamSpec{fmt::format("ccdb-metadata-{}", key),
+                         VariantType::String,
+                         defaultValue,
+                         {fmt::format("CCDB metadata {}", key)},
+                         ConfigParamKind::kGeneric};
+}
+
+std::vector<ConfigParamSpec> ccdbParamSpec(std::string const& path, std::vector<CCDBMetadata> metadata)
+{
+  return ccdbParamSpec(path, false, metadata);
+}
+
+std::vector<ConfigParamSpec> ccdbParamSpec(std::string const& path, bool runDependent, std::vector<CCDBMetadata> metadata)
 {
   // Add here CCDB objecs which should be considered run dependent
   static std::vector<std::string> runDependentObjects = {"GLO/GRP"};
   if (std::any_of(runDependentObjects.begin(), runDependentObjects.end(), [&path](std::string const& s) { return path == s; })) {
     runDependent = true;
   }
-  return {ccdbPathSpec(path), ccdbRunDependent(runDependent)};
+  std::vector<ConfigParamSpec> result{ccdbPathSpec(path), ccdbRunDependent(runDependent)};
+  for (auto& [key, value] : metadata) {
+    result.push_back(ccdbMetadataSpec(key, value));
+  }
+  return result;
 }
 
 ConfigParamSpec startTimeParamSpec(int64_t t)
