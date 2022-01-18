@@ -135,7 +135,7 @@ void PedestalsCalculationTask::recordPedInFiles()
     FILE* fpads = fopen(padsFileName, "w");
     if (fpads == NULL) {
       mExTimer.logMes("Error creating the file = " + std::string(padsFileName));
-      LOG(ERROR) << "Error creating the file = " << padsFileName;
+      LOG(error) << "Error creating the file = " << padsFileName;
       return;
     }
     for (int c = 0; c < Geo::N_COLUMNS; c++) {
