@@ -297,19 +297,19 @@ Double_t Digit::qdcTot(Double_t e, Double_t time, Int_t pc, Int_t px, Int_t py, 
     return 0;
   } else {
     double y = Param::lorsY(pc, py);
-    localY = ((y - localY) > 0) ? y - 0.2 : y + 0.2; //shift to the nearest anod wire
+    localY = ((y - localY) > 0) ? y - 0.2 : y + 0.2; // shift to the nearest anod wire
 
-    double x = (localX > 66.6) ? localX - 66.6 : localX;                                                                      //sagita is for PC (0-64) and not for chamber
-    double qdcEle = 34.06311 + 0.2337070 * x + 5.807476e-3 * x * x - 2.956471e-04 * x * x * x + 2.310001e-06 * x * x * x * x; //reparametrised from DiMauro
+    double x = (localX > 66.6) ? localX - 66.6 : localX;                                                                      // sagita is for PC (0-64) and not for chamber
+    double qdcEle = 34.06311 + 0.2337070 * x + 5.807476e-3 * x * x - 2.956471e-04 * x * x * x + 2.310001e-06 * x * x * x * x; // reparametrised from DiMauro
 
     int iNele = int((e / 26e-9) * 0.8);
     if (iNele < 1) {
-      iNele = 1; //number of electrons created by hit, if photon e=0 implies iNele=1
+      iNele = 1; // number of electrons created by hit, if photon e=0 implies iNele=1
     }
     for (Int_t i = 1; i <= iNele; i++) {
       double rnd = gRandom->Rndm();
       if (rnd == 0) {
-        rnd = 1e-12; //1e-12 is a protection against 0 from rndm
+        rnd = 1e-12; // 1e-12 is a protection against 0 from rndm
       }
       Q -= qdcEle * TMath::Log(rnd);
     }
@@ -375,7 +375,7 @@ double Digit::mathiesonX(double x)
   double lambda = x / o2::hmpid::Param::pitchAnodeCathode();
   double tanh_v = tanh(o2::hmpid::Param::k2x() * lambda);
   double a = 1 - tanh_v * tanh_v;
-  double b= 1 + o2::hmpid::Param::sqrtK3x() * o2::hmpid::Param::sqrtK3x() * tanh_v * tanh_v;
+  double b = 1 + o2::hmpid::Param::sqrtK3x() * o2::hmpid::Param::sqrtK3x() * tanh_v * tanh_v;
   double mathi = o2::hmpid::Param::k1x() * a / b;
   return mathi;
 }
@@ -393,8 +393,6 @@ double Digit::mathiesonY(double y)
   double mathi = o2::hmpid::Param::k1y() * a / b;
   return mathi;
 }
-
-
 
 /*
 // ---- Time conversion functions ----

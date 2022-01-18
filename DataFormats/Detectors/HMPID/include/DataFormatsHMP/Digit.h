@@ -19,7 +19,6 @@
 //  10/03/2021   Complete review
 //  05/11/2021   Add and review for the Cluster class
 
-
 #ifndef DETECTORS_HMPID_BASE_INCLUDE_HMPIDDATAFORMAT_DIGIT_H_
 #define DETECTORS_HMPID_BASE_INCLUDE_HMPIDDATAFORMAT_DIGIT_H_
 
@@ -39,11 +38,11 @@ class Digit
  public:
   // Coordinates Conversion Functions
   static inline uint32_t abs(int ch, int pc, int x, int y) { return ch << 24 | pc << 16 | x << 8 | y; }
-  static inline int ddl2C(int ddl) { return ddl >> 1; }                    //ddl -> chamber
-  static inline int a2C(uint32_t pad) { return (pad & 0xFF000000) >> 24; } //abs pad -> chamber
-  static inline int a2P(uint32_t pad) { return (pad & 0x00FF0000) >> 16; } //abs pad -> pc
-  static inline int a2X(uint32_t pad) { return (pad & 0x0000FF00) >> 8; }  //abs pad -> pad X
-  static inline int a2Y(uint32_t pad) { return (pad & 0x000000FF); }       //abs pad -> pad Y
+  static inline int ddl2C(int ddl) { return ddl >> 1; }                    // ddl -> chamber
+  static inline int a2C(uint32_t pad) { return (pad & 0xFF000000) >> 24; } // abs pad -> chamber
+  static inline int a2P(uint32_t pad) { return (pad & 0x00FF0000) >> 16; } // abs pad -> pc
+  static inline int a2X(uint32_t pad) { return (pad & 0x0000FF00) >> 8; }  // abs pad -> pad X
+  static inline int a2Y(uint32_t pad) { return (pad & 0x000000FF); }       // abs pad -> pad Y
   static inline uint32_t photo2Pad(int ch, int pc, int x, int y) { return abs(ch, pc, x, y); }
   static uint32_t equipment2Pad(int Equi, int Colu, int Dilo, int Chan);
   static uint32_t absolute2Pad(int Module, int x, int y);
@@ -117,11 +116,11 @@ class Digit
   }
   void subCharge(float q) { mQ -= q; }
 
-  uint16_t getQ()  const { return mQ; }
-  uint8_t  getCh() const { return mCh; }
-  uint8_t  getPh() const { return mPh; }
-  uint8_t  getX()  const { return mX; }
-  uint8_t  getY()  const { return mY; }
+  uint16_t getQ() const { return mQ; }
+  uint8_t getCh() const { return mCh; }
+  uint8_t getPh() const { return mPh; }
+  uint8_t getX() const { return mX; }
+  uint8_t getY() const { return mY; }
 
  public:
   // Members
@@ -137,11 +136,11 @@ class Digit
   //           pppp := photo cathode [0..5]
   //           xxxx.xxxx := horizontal displacement [0..79]
   //           yyyy.yyyy := vertical displacement [0..47]
-  //uint32_t mPad = 0; // 0xFFFFFFFF indicates invalid digit
+  // uint32_t mPad = 0; // 0xFFFFFFFF indicates invalid digit
 
   // Get the Geometric center of the pad
-  static float lorsX(int pad) { return Param::lorsX(a2P(pad), a2X(pad)); } //center of the pad x, [cm]
-  static float lorsY(int pad) { return Param::lorsY(a2P(pad), a2Y(pad)); } //center of the pad y, [cm]
+  static float lorsX(int pad) { return Param::lorsX(a2P(pad), a2X(pad)); } // center of the pad x, [cm]
+  static float lorsY(int pad) { return Param::lorsY(a2P(pad), a2Y(pad)); } // center of the pad y, [cm]
 
   // determines the total charge created by a hit
   // might modify the localX, localY coordinates associated to the hit
@@ -149,8 +148,8 @@ class Digit
   static double intPartMathiX(double x, int pad);
   static double intPartMathiY(double y, int pad);
   static double intMathieson(double localX, double localY, int pad);
-  static double mathiesonX(double x); //Mathieson distribution along wires X
-  static double mathiesonY(double x); //Mathieson distribution perp to wires Y
+  static double mathiesonX(double x); // Mathieson distribution along wires X
+  static double mathiesonY(double x); // Mathieson distribution perp to wires Y
 
   ClassDefNV(Digit, 2);
 };
