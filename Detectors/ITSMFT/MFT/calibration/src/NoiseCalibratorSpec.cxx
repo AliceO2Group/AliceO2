@@ -47,9 +47,9 @@ void NoiseCalibratorSpec::init(InitContext& ic)
   std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath);
   if (o2::utils::Str::pathExists(dictFile)) {
     mCalibrator->loadDictionary(dictFile);
-    LOG(INFO) << "MFT NoiseCalibrator is running with a provided dictionary: " << dictFile;
+    LOG(info) << "MFT NoiseCalibrator is running with a provided dictionary: " << dictFile;
   } else {
-    LOG(INFO) << "Dictionary " << dictFile
+    LOG(info) << "Dictionary " << dictFile
               << " is absent, MFT NoiseCalibrator expects cluster patterns for all clusters";
   }
 
