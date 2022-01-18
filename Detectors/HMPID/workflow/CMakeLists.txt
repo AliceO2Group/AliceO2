@@ -34,10 +34,6 @@ o2_add_library(HMPIDWorkflow
                                      O2::HMPIDSimulation
                                      O2::HMPIDReconstruction)
                              
-#o2_add_executable(recoworkflow
-#              COMPONENT_NAME hmpid
-#              SOURCES src/HMPIDRecoWorkflow.cxx 
-#              PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
 o2_add_executable(entropy-encoder-workflow
                   COMPONENT_NAME hhmpid
                   SOURCES src/entropy-encoder-workflow.cxx
