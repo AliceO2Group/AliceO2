@@ -82,6 +82,7 @@ class MFTAssessment
   gsl::span<const o2::itsmft::ROFRecord> mMFTTracksROF;
   gsl::span<const o2::itsmft::CompClusterExt> mMFTClusters;
   gsl::span<const o2::itsmft::ROFRecord> mMFTClustersROF;
+  gsl::span<const unsigned char> mMFTClusterPatterns;
 
   // MC Labels
   bool mUseMC = false;

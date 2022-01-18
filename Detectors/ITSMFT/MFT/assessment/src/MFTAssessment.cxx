@@ -251,6 +251,7 @@ void MFTAssessment::runASyncQC(o2::framework::ProcessingContext& ctx)
   // get clusters
   mMFTClusters = ctx.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
   mMFTClustersROF = ctx.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("clustersrofs");
+  mMFTClusterPatterns = ctx.inputs().get<gsl::span<unsigned char>>("patterns");
 
   if (mUseMC) {
     // get labels
@@ -327,8 +328,9 @@ void MFTAssessment::processGeneratedTracks()
         auto evh = mcReader.getMCEventHeader(src, event);
         addMCParticletoHistos(&mcParticle, kGen, evh);
       } // mcTracks
-    }   // events
-  }     // sources
+      mcReader.releaseTracksForSourceAndEvent(src, event);
+    } // events
+  }   // sources
 }
 
 //__________________________________________________________

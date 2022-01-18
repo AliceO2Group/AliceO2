@@ -70,7 +70,7 @@ void ITSTPCMatchingQCDevice::sendOutput(DataAllocator& output)
 
   TObjArray objar;
   mMatchITSTPCQC->getHistos(objar);
-  output.snapshot(Output{"GLO", "ITSTPCMATCHQC", 0, Lifetime::Timeframe}, objar);
+  output.snapshot(Output{"GLO", "ITSTPCMATCHQC", 0, Lifetime::Sporadic}, objar);
 
   TFile* f = new TFile(Form("outITSTPCmatchingQC.root"), "RECREATE");
   objar.Write("ObjArray", TObject::kSingleKey);
@@ -85,7 +85,7 @@ using GID = o2::dataformats::GlobalTrackID;
 DataProcessorSpec getITSTPCMatchingQCDevice(bool useMC)
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("GLO", "ITSTPCMATCHQC", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "ITSTPCMATCHQC", 0, Lifetime::Sporadic);
 
   auto dataRequest = std::make_shared<o2::globaltracking::DataRequest>();
   GID::mask_t mSrc = GID::getSourcesMask("TPC,ITS-TPC");
