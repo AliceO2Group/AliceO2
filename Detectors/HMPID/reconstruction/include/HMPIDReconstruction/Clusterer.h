@@ -16,6 +16,7 @@
 
 #include <utility>
 #include <vector>
+#include "HMPIDBase/Param.h"
 #include "DataFormatsHMP/Cluster.h"
 #include "DataFormatsHMP/Digit.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -33,26 +34,33 @@ class Clusterer
   using Digit = o2::hmpid::Digit;
 
  public:
-  Clusterer() = default;
+  Clusterer();
   ~Clusterer() = default;
 
   Clusterer(const Clusterer&) = delete;
   Clusterer& operator=(const Clusterer&) = delete;
 
-  void process(std::vector<Digit> const& digits, std::vector<o2::hmpid::Cluster>& clusters, MCLabelContainer const* digitMCTruth);
+  // void process(std::vector<Digit> const& digits, std::vector<o2::hmpid::Cluster>& clusters, MCLabelContainer const* digitMCTruth);
 
-  void setMCTruthContainer(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* truth) { mClsLabels = truth; }
+  // void setMCTruthContainer(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* truth) { mClsLabels = truth; }
+
+  static void Dig2Clu(std::vector<o2::hmpid::Digit>* mDigs, std::vector<o2::hmpid::Cluster>* mClus, float* pUserCut, bool isUnfold = kTRUE); // digits->clusters
+  static void FormClu(Cluster* pClu, int pDig, std::vector<o2::hmpid::Digit>* pDigList, TMatrixF* pDigMap);                                  // cluster formation recursive algorithm
+  static int UseDig(int padX, int padY, TMatrixF* pDigMap);                                                                                  // use this pad's digit to form a cluster
+  inline bool IsDigSurvive(Digit* pDig) const;                                                                                               // check for sigma cut
 
  private:
-  //void processChamber(std::vector<Cluster>& clusters, MCLabelContainer const* digitMCTruth);
-  //void fetchMCLabels(const Digit* dig, std::array<Label, Cluster::maxLabels>& labels, int& nfilled) const;
+  // void processChamber(std::vector<Cluster>& clusters, MCLabelContainer const* digitMCTruth);
+  // void fetchMCLabels(const Digit* dig, std::array<Label, Cluster::maxLabels>& labels, int& nfilled) const;
 
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mClsLabels = nullptr; // Cluster MC labels
 
-  Digit* mContributingDigit[6];    //! array of digits contributing to the cluster; this will not be stored, it is temporary to build the final cluster
-  int mNumberOfContributingDigits; //! number of digits contributing to the cluster; this will not be stored, it is temporary to build the final cluster
-  void addContributingDigit(Digit* dig);
-  void buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth);
+  // Digit* mContributingDigit[6];    //! array of digits contributing to the cluster; this will not be stored, it is temporary to build the final cluster
+  // int mNumberOfContributingDigits; //! number of digits contributing to the cluster; this will not be stored, it is temporary to build the final cluster
+  // std::vector<o2::hmpid::Digit*> mDigs;
+  // std::vector<o2::hmpid::Cluster*> mClus;
+  //  void addContributingDigit(Digit* dig);
+  //  void buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth);
 };
 
 } // namespace hmpid
