@@ -66,10 +66,6 @@ void ITSCalibrator::init(InitContext& ic)
 
   } else if (fittype == "fit") {
     this->mFitType = FIT;
-    // Initialize the histogram used for error function fits
-    // Will initialize the TF1 in setRunType (it is different for different runs)
-    this->mFitHist = new TH1F(
-      "mFitHist", "mFitHist", *(this->N_RANGE), this->mX[0], this->mX[*(this->N_RANGE) - 1]);
 
   } else if (fittype == "hitcounting") {
     this->mFitType = HITCOUNTING;
@@ -575,18 +571,24 @@ void ITSCalibrator::setRunType(const short int& runtype)
     throw runtype;
   }
 
-  // Initialize correct fit function if needed
+  this->mX = new short int[*(this->N_RANGE)];
+  for (short int i = this->mMin; i <= this->mMax; i++) {
+    this->mX[i - this->mMin] = i;
+  }
+
+  // Initialize objects for doing the threshold fits
   if (this->mFitType == FIT) {
+    // Initialize the histogram used for error function fits
+    // Will initialize the TF1 in setRunType (it is different for different runs)
+    this->mFitHist = new TH1F(
+      "mFitHist", "mFitHist", *(this->N_RANGE), this->mX[0], this->mX[*(this->N_RANGE) - 1]);
+
+    // Initialize correct fit function for the scan type
     this->mFitFunction = (this->mScanType == 'I')
                            ? new TF1("mFitFunction", erf_ithr, 0, 1500, 2)
                            : new TF1("mFitFunction", erf, 0, 1500, 2);
     this->mFitFunction->SetParName(0, "Threshold");
     this->mFitFunction->SetParName(1, "Noise");
-  }
-
-  this->mX = new short int[*(this->N_RANGE)];
-  for (short int i = this->mMin; i <= this->mMax; i++) {
-    this->mX[i - this->mMin] = i;
   }
 
   return;
