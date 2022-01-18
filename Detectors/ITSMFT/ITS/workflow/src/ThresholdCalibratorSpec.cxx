@@ -360,6 +360,8 @@ void ITSCalibrator::resetRowHitmap(const short int& chipID, const short int& row
   // Update current row of chip
   this->mCurrentRow[chipID] = row;
 
+  // TODO: test if this fixes memory issue, if not remove
+  this->mPixelHits.erase(chipID);
   // Reset pixel hit counts for the chip, new empty hitvec
   // Create a 2D vector to store hits
   // Outer dim = column, inner dim = charge
@@ -490,8 +492,11 @@ void ITSCalibrator::finalizeOutput()
   o2::dataformats::FileMetaData* mdFile = new o2::dataformats::FileMetaData();
   mdFile->fillFileData(filenameFull + ".root");
   mdFile->run = this->mRunNumber;
-  mdFile->LHCPeriod = this->mLHCPeriod;
-  mdFile->type = "calibration";
+  mdFile->LHCPeriod = (this->mLHCPeriod.find("_ITS") == std::string::npos)
+                        ? this->mLHCPeriod + "_ITS"
+                        : this->mLHCPeriod;
+  // Leave blank for now; this needs to be implemented by calibration experts
+  // mdFile->type = "calibration";
   mdFile->priority = "high";
   mdFile->lurl = filenameFull + ".root";
   auto metaFileNameTmp = fmt::format("{}{}.tmp", this->mMetafileDir, filename);
