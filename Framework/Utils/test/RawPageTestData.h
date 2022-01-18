@@ -41,7 +41,7 @@ static const size_t PAGESIZE = 8192;
 struct DataSet {
   // not nice with the double vector but for quick unit test ok
   using Messages = std::vector<std::vector<std::unique_ptr<std::vector<char>>>>;
-  DataSet(std::vector<InputRoute>&& s, Messages&& m, std::vector<int>&& v)
+  DataSet(std::vector<InputRoute>&& s, Messages&& m, std::vector<int>&& v, ObjectCache& cache, CallbackService& callbacks)
     : schema{std::move(s)},
       messages{std::move(m)},
       span{[this](size_t i, size_t part) {
@@ -50,7 +50,7 @@ struct DataSet {
              return DataRef{nullptr, header, payload};
            },
            [this](size_t i) { return i < this->messages.size() ? messages[i].size() / 2 : 0; }, this->messages.size()},
-      record{schema, span},
+      record{schema, span, cache, callbacks},
       values{std::move(v)}
   {
   }

@@ -51,7 +51,9 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
   InputSpan span{
     [](size_t) { return DataRef{nullptr, nullptr, nullptr}; },
     0};
-  InputRecord emptyRecord(schema, span);
+  CallbackService callbacks;
+  ObjectCache cache;
+  InputRecord emptyRecord(schema, span, cache, callbacks);
 
   BOOST_CHECK_EXCEPTION(emptyRecord.get("x"), RuntimeErrorRef, any_exception);
   BOOST_CHECK_EXCEPTION(emptyRecord.get("y"), RuntimeErrorRef, any_exception);
@@ -93,7 +95,7 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
   createMessage(dh2, 2);
   createEmpty();
   InputSpan span2{[&inputs](size_t i) { return DataRef{nullptr, static_cast<char const*>(inputs[2 * i]), static_cast<char const*>(inputs[2 * i + 1])}; }, inputs.size() / 2};
-  InputRecord record{schema, span2};
+  InputRecord record{schema, span2, cache, callbacks};
 
   // Checking we can get the whole ref by name
   BOOST_CHECK_NO_THROW(record.get("x"));

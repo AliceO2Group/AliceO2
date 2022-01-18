@@ -48,7 +48,9 @@ static void BM_InputRecordGenericGetters(benchmark::State& state)
   // First of all we test if an empty registry behaves as expected, raising a
   // bunch of exceptions.
   InputSpan span{[](size_t) { return DataRef{nullptr, nullptr, nullptr}; }, 0};
-  InputRecord emptyRecord(schema, span);
+  CallbackService callbacks;
+  ObjectCache cache;
+  InputRecord emptyRecord(schema, span, cache, callbacks);
 
   std::vector<void*> inputs;
 
@@ -82,7 +84,7 @@ static void BM_InputRecordGenericGetters(benchmark::State& state)
   createMessage(dh2, 2);
   createEmpty();
   InputSpan span2{[&inputs](size_t i) { return DataRef{nullptr, static_cast<char const*>(inputs[2 * i]), static_cast<char const*>(inputs[2 * i + 1])}; }, inputs.size() / 2};
-  InputRecord record{schema, span2};
+  InputRecord record{schema, span2, cache, callbacks};
 
   for (auto _ : state) {
     // Checking we can get the whole ref by name
