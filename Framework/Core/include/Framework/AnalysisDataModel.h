@@ -795,8 +795,8 @@ DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Mother0, mother0, int, "McParticles_Mother0")
 DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Mother1, mother1, int, "McParticles_Mother1");       //! Track index of the last mother
 DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Daughter0, daughter0, int, "McParticles_Daughter0"); //! Track index of the first daugther
 DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Daughter1, daughter1, int, "McParticles_Daughter1"); //! Track index of the last daugther
-DECLARE_SOA_SELF_SLICE_INDEX_COLUMN(Daughters, daughters);                              //! Daughter tracks (possibly empty) slice
-DECLARE_SOA_SELF_ARRAY_INDEX_COLUMN(Mothers, mothers);                                  //! Mother tracks (possible empty) array
+DECLARE_SOA_SELF_ARRAY_INDEX_COLUMN(Mothers, mothers);                                  //! Mother tracks (possible empty) array. Iterate over mcParticle.mothers_as<aod::McParticles>())
+DECLARE_SOA_SELF_SLICE_INDEX_COLUMN(Daughters, daughters);                              //! Daughter tracks (possibly empty) slice. Check for non-zero with mcParticle.has_daughters(). Iterate over mcParticle.daughters_as<aod::McParticles>())
 DECLARE_SOA_COLUMN(Weight, weight, float);                                              //! MC weight
 DECLARE_SOA_COLUMN(Px, px, float);                                                      //! Momentum in x in GeV/c
 DECLARE_SOA_COLUMN(Py, py, float);                                                      //! Momentum in y in GeV/c
@@ -847,7 +847,7 @@ DECLARE_SOA_EXPRESSION_COLUMN(Y, y, float, //! Particle rapidity, conditionally 
                                                  (aod::mcparticle::e - aod::mcparticle::pz))));
 } // namespace mcparticle
 
-DECLARE_SOA_TABLE_FULL(StoredMcParticles, "McParticles", "AOD", "MCPARTICLE", //! On disk version of the MC particle table
+DECLARE_SOA_TABLE_FULL(StoredMcParticles_000, "McParticles", "AOD", "MCPARTICLE", //! MC particle table, version 000
                        o2::soa::Index<>, mcparticle::McCollisionId,
                        mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
                        mcparticle::Mother0Id, mcparticle::Mother1Id,
@@ -860,13 +860,33 @@ DECLARE_SOA_TABLE_FULL(StoredMcParticles, "McParticles", "AOD", "MCPARTICLE", //
                        mcparticle::GetProcess<mcparticle::Flags, mcparticle::StatusCode>,
                        mcparticle::IsPhysicalPrimary<mcparticle::Flags>);
 
-DECLARE_SOA_EXTENDED_TABLE(McParticles, StoredMcParticles, "MCPARTICLE", //! Basic MC particle properties
+DECLARE_SOA_TABLE_FULL(StoredMcParticles_001, "McParticles_001", "AOD", "MCPARTICLE_001", //! MC particle table, version 001
+                       o2::soa::Index<>, mcparticle::McCollisionId,
+                       mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
+                       mcparticle::MothersIds, mcparticle::DaughtersIdSlice, mcparticle::Weight,
+                       mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
+                       mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
+                       mcparticle::ProducedByGenerator<mcparticle::Flags>,
+                       mcparticle::FromBackgroundEvent<mcparticle::Flags>,
+                       mcparticle::GetGenStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
+                       mcparticle::GetProcess<mcparticle::Flags, mcparticle::StatusCode>,
+                       mcparticle::IsPhysicalPrimary<mcparticle::Flags>);
+
+DECLARE_SOA_EXTENDED_TABLE(McParticles_000, StoredMcParticles_000, "MCPARTICLE", //! Basic MC particle properties
                            mcparticle::Phi,
                            mcparticle::Eta,
                            mcparticle::Pt,
                            mcparticle::P,
                            mcparticle::Y);
 
+DECLARE_SOA_EXTENDED_TABLE(McParticles_001, StoredMcParticles_001, "MCPARTICLE_001", //! Basic MC particle properties
+                           mcparticle::Phi,
+                           mcparticle::Eta,
+                           mcparticle::Pt,
+                           mcparticle::P,
+                           mcparticle::Y);
+
+using McParticles = McParticles_000;
 using McParticle = McParticles::iterator;
 
 namespace mctracklabel
