@@ -45,7 +45,7 @@ class Param
   void print(Option_t* opt = "") const; //print current parametrization
 
   static Param* instance();             //pointer to Param singleton
-  static inline Param* instanceNoGeo(); //pointer to Param singleton without geometry.root for MOOD, displays, ...
+  static Param* instanceNoGeo(); //pointer to Param singleton without geometry.root for MOOD, displays, ...
                                         //geo info
   enum EChamberData { kMinCh = 0,
                       kMaxCh = 6,

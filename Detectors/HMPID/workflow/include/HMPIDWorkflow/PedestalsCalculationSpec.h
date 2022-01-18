@@ -33,31 +33,31 @@ class PedestalsCalculationTask : public framework::Task
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
   void decodeTF(framework::ProcessingContext& pc);
-  void decodeReadout(framework::ProcessingContext& pc);
-  void decodeRawFile(framework::ProcessingContext& pc);
   void endOfStream(framework::EndOfStreamContext& ec) override;
 
  private:
   void recordPedInCcdb();
+  void recordPedInFiles();
+  void recordPedInDcsCcdb();
 
  private:
   HmpidDecoder2* mDeco;
   long mTotalDigits;
   long mTotalFrames;
-  std::string mPedestalsBasePath;
   float mSigmaCut;
   std::string mPedestalTag;
-
+  bool mWriteToFiles;
+  std::string mPedestalsBasePath;
   o2::ccdb::CcdbApi mDBapi;
   std::map<std::string, std::string> mDbMetadata; // can be empty
+  std::string mPedestalsCCDBBasePath;
   bool mWriteToDB;
   bool mFastAlgorithm;
-
   ExecutionTimer mExTimer;
 };
 
 o2::framework::DataProcessorSpec getPedestalsCalculationSpec(std::string inputSpec = "TF:HMP/RAWDATA");
-//o2::framework::DataProcessorSpec getDecodingSpec();
+
 } // end namespace hmpid
 } // end namespace o2
 
