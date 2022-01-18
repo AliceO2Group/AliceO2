@@ -82,7 +82,7 @@ InjectorFunction dcs2dpl()
       LOG(error) << "unknown detector for " << filename;
       return;
     }
-    //o2::header::DataHeader hdrF("DCS_CONFIG_FILE", dataOrigin, 0);
+    // o2::header::DataHeader hdrF("DCS_CONFIG_FILE", dataOrigin, 0);
     o2::header::DataHeader hdrN("CTP_COUNTERS", dataOrigin, 0);
     OutputSpec outsp{hdrN.dataOrigin, hdrN.dataDescription, hdrN.subSpecification};
     auto channel = channelRetriever(outsp, *timesliceId);
@@ -118,7 +118,7 @@ InjectorFunction dcs2dpl()
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  //workflowOptions.push_back(ConfigParamSpec{"subscribe-to", VariantType::String, "type=sub,method=connect,address=tcp://127.0.0.1:5556,rateLogging=1,transport=zeromq", {"channel subscribe to"}});
+  // workflowOptions.push_back(ConfigParamSpec{"subscribe-to", VariantType::String, "type=sub,method=connect,address=tcp://127.0.0.1:5556,rateLogging=1,transport=zeromq", {"channel subscribe to"}});
   workflowOptions.push_back(ConfigParamSpec{"subscribe-to", VariantType::String, "type=sub,method=connect,address=tcp://188.184.30.57:5556,rateLogging=1,transport=zeromq", {"channel subscribe to"}});
 }
 
@@ -126,7 +126,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
-  LOG(info)  << "Defining data processing";
+  LOG(info) << "Defining data processing";
   auto setChanName = [](const std::string& chan, const std::string& name) {
     size_t n = 0;
     if (std::string(chan).find("name=") != std::string::npos) {
@@ -136,7 +136,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
       }
       n++;
     }
-    LOG(info) << "===>inside:" << name << " " << chan; 
+    LOG(info) << "===>inside:" << name << " " << chan;
     return o2::utils::Str::concat_string("name=", name, ",", chan.substr(n, chan.size()));
   };
   const std::string devName = "ctp-proxy";
@@ -145,7 +145,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     throw std::runtime_error("input channel is not provided");
   }
   chan = setChanName(chan, devName);
-  LOG(info) << "name:" << devName << " chan:" << chan ;
+  LOG(info) << "name:" << devName << " chan:" << chan;
   LOG(info) << "Channels setup: " << chan;
   Outputs ctpCountersOutputs;
   ctpCountersOutputs.emplace_back("CTP", "CTP_COUNTERS", 0, Lifetime::Timeframe);
