@@ -42,6 +42,11 @@ struct CCDBFetcherHelper {
   std::map<int64_t, CCDBCacheInfo> cache;
 };
 
+bool isPrefix(std::string_view prefix, std::string_view full)
+{
+  return prefix == full.substr(0, prefix.size());
+}
+
 AlgorithmSpec CCDBHelpers::fetchFromCCDB()
 {
   return adaptStateful([](ConfigParamRegistry const& options, DeviceSpec const& spec) { 
@@ -83,7 +88,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         return (*ctp)[0];
       };
 
-      return adaptStateless([helper, &getOrbitResetTime](RawDeviceService& device, DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo) {
+      return adaptStateless([helper, &getOrbitResetTime](DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo) {
         static Long64_t orbitResetTime = -1;
         // Fetch the CCDB object for the CTP
         {
@@ -145,6 +150,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         // Fetch the rest of the objects.
         LOGP(info, "Fetching objects. Run: {}. OrbitResetTime: {}, Timestamp: {}, firstTFOrbit: {}",
              dtc.runNumber, dtc.orbitResetTime, timestamp, timingInfo.firstTFOrbit);
+        std::string ccdbMetadataPrefix = "ccdb-metadata-";
 
         for (auto& route : helper->routes) {
           LOGP(info, "Fetching object for route {}", route.matcher);
@@ -159,7 +165,11 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           for (auto& meta : route.matcher.metadata) {
             if (meta.name == "ccdb-path") {
               path = meta.defaultValue.get<std::string>();
-              break;
+            } else if (isPrefix(ccdbMetadataPrefix, meta.name)) {
+              std::string key = meta.name.substr(ccdbMetadataPrefix.size());
+              std::string value = meta.defaultValue.get<std::string>();
+              LOGP(debug, "Adding metadata {}: {} to the request", key, value);
+              metadata[key] = value;
             }
           }
           const auto url2uuid = helper->mapURL2UUID.find(path);
@@ -169,7 +179,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
 
           helper->api.loadFileToMemory(v, path, metadata, timestamp, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
           if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
-            LOGP(error, "Unable to find object {}/{}", path, timingInfo.timeslice);
+            LOGP(debug, "Unable to find object {}/{}", path, timingInfo.timeslice);
             //FIXME: I should send a dummy message.
             continue;
           }
@@ -177,7 +187,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
             helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
             auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodCCDB);
             helper->mapURL2DPLCache[path] = cacheId;
-            LOGP(info, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
+            LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
             continue;
           }
           if (v.size()) { // but should be overridden by fresh object
