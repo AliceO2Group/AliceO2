@@ -1115,7 +1115,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto& caloCellsTRGTableBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALOTRIGGER"});
 
   auto bcCursor = bcBuilder.cursor<o2::aod::BCs>();
-  auto cascadesCursor = cascadesBuilder.cursor<o2::aod::StoredCascades>();
+  auto cascadesCursor = cascadesBuilder.cursor<o2::aod::Cascades>();
   auto collisionsCursor = collisionsBuilder.cursor<o2::aod::Collisions>();
   auto fddCursor = fddBuilder.cursor<o2::aod::FDDs>();
   auto ft0Cursor = ft0Builder.cursor<o2::aod::FT0s>();
@@ -1132,7 +1132,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto tracksCovCursor = tracksCovBuilder.cursor<o2::aodproducer::TracksCovTable>();
   auto tracksCursor = tracksBuilder.cursor<o2::aodproducer::TracksTable>();
   auto tracksExtraCursor = tracksExtraBuilder.cursor<o2::aodproducer::TracksExtraTable>();
-  auto v0sCursor = v0sBuilder.cursor<o2::aod::StoredV0s>();
+  auto v0sCursor = v0sBuilder.cursor<o2::aod::V0s>();
   auto zdcCursor = zdcBuilder.cursor<o2::aod::Zdcs>();
   auto caloCellsCursor = caloCellsBuilder.cursor<o2::aod::Calos>();
   auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder.cursor<o2::aod::CaloTriggers>();
@@ -1460,7 +1460,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       LOG(warn) << "Could not find a negative track index for prong ID " << trNegID;
     }
     if (posTableIdx != -1 and negTableIdx != -1) {
-      v0sCursor(0, posTableIdx, negTableIdx);
+      v0sCursor(0, -1, posTableIdx, negTableIdx);
     }
   }
 
@@ -1474,7 +1474,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     } else {
       LOG(warn) << "Could not find a bachelor track index";
     }
-    cascadesCursor(0, cascade.getV0ID(), bachTableIdx);
+    cascadesCursor(0, -1, cascade.getV0ID(), bachTableIdx);
   }
 
   mTableTrID = 0;

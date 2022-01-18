@@ -703,20 +703,14 @@ DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, Tracks, "_Neg"); //! Nega
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);                         //! Collision index
 } // namespace v0
 
-DECLARE_SOA_TABLE(StoredV0s, "AOD", "V0", //! On disk V0 table
+DECLARE_SOA_TABLE(V0s_000, "AOD", "V0", //! Run 2 V0 table (version 000)
                   o2::soa::Index<>,
                   v0::PosTrackId, v0::NegTrackId);
-DECLARE_SOA_TABLE(TransientV0s, "AOD", "V0INDEX", //! In-memory V0 table
-                  v0::CollisionId);
+DECLARE_SOA_TABLE(V0s_001, "AOD", "V0_001", //! Run 3 V0 table (version 001)
+                  o2::soa::Index<>, v0::CollisionId,
+                  v0::PosTrackId, v0::NegTrackId);
 
-} // namespace aod
-namespace soa
-{
-extern template struct Join<aod::TransientV0s, aod::StoredV0s>;
-}
-namespace aod
-{
-using V0s = soa::Join<TransientV0s, StoredV0s>;
+using V0s = V0s_001; //! this defines the current default version
 using V0 = V0s::iterator;
 
 namespace cascade
@@ -726,19 +720,12 @@ DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, Tracks, ""); //! Bachelor
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);                     //! Collision index
 } // namespace cascade
 
-DECLARE_SOA_TABLE(StoredCascades, "AOD", "CASCADE", //! On disk cascade table
+DECLARE_SOA_TABLE(Cascades_000, "AOD", "CASCADE", //! Run 2 cascade table
                   o2::soa::Index<>, cascade::V0Id, cascade::BachelorId);
-DECLARE_SOA_TABLE(TransientCascades, "AOD", "CASCADEINDEX", //! In-memory cascade table
-                  cascade::CollisionId);
-} // namespace aod
-namespace soa
-{
-extern template struct Join<aod::TransientCascades, aod::StoredCascades>;
-}
+DECLARE_SOA_TABLE(Cascades_001, "AOD", "CASCADE_001", //! Run 3 cascade table
+                  o2::soa::Index<>, cascade::CollisionId, cascade::V0Id, cascade::BachelorId);
 
-namespace aod
-{
-using Cascades = soa::Join<TransientCascades, StoredCascades>;
+using Cascades = Cascades_001; //! this defines the current default version
 using Cascade = Cascades::iterator;
 
 namespace origin

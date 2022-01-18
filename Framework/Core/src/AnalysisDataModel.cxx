@@ -16,8 +16,6 @@ template struct Join<aod::BCs, aod::Timestamps>;
 template struct Join<aod::Tracks, aod::TracksExtra>;
 template struct Join<aod::Tracks, aod::TracksCov, aod::TracksExtra>;
 template struct Join<aod::FwdTracks, aod::FwdTracksCov>;
-template struct Join<aod::TransientV0s, aod::StoredV0s>;
-template struct Join<aod::TransientCascades, aod::StoredCascades>;
 template struct Join<aod::Collisions, aod::Run2MatchedSparse>;
 template struct Join<aod::Collisions, aod::Run3MatchedSparse>;
 
