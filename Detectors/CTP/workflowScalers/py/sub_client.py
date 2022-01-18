@@ -5,7 +5,7 @@ port = "5556"
 if len(sys.argv) > 1:
     port =  sys.argv[1]
     int(port)
-    
+
 if len(sys.argv) > 2:
     port1 =  sys.argv[2]
     int(port1)
@@ -35,4 +35,4 @@ while(1):
     #print(topic, messagedata)
 
 print("Average messagedata value for topic '%s' was %dF" % (topicfilter, total_value / update_nbr))
-      
+
