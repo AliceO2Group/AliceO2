@@ -34,6 +34,8 @@ struct CCDBFetcherHelper {
 
   std::unordered_map<std::string, std::string> mapURL2UUID;
   std::unordered_map<std::string, DataAllocator::CacheId> mapURL2DPLCache;
+  std::string createdNotBefore = "0";
+  std::string createdNotAfter = "3385078236000";
 
   o2::ccdb::CcdbApi api;
   std::vector<OutputRoute> routes;
@@ -47,6 +49,8 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
       auto backend = options.get<std::string>("condition-backend");
       LOGP(info, "CCDB Backend at: {}", backend);
       helper->api.init(options.get<std::string>("condition-backend"));
+      helper->createdNotBefore = std::to_string(options.get<int64_t>("condition-not-before"));
+      helper->createdNotAfter = std::to_string(options.get<int64_t>("condition-not-after"));
 
       for (auto &route : spec.outputs) {
         if (route.matcher.lifetime != Lifetime::Condition) {
@@ -89,8 +93,6 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           std::string path = "CTP/Calib/OrbitReset";
           std::map<std::string, std::string> metadata;
           std::map<std::string, std::string> headers;
-          std::string createdNotBefore = "0";
-          std::string createdNotAfter = "0";
           std::string etag;
           const auto url2uuid = helper->mapURL2UUID.find(path);
           if (url2uuid != helper->mapURL2UUID.end()) {
@@ -98,7 +100,10 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           }
           Output output{"CTP", "OrbitReset", 0, Lifetime::Condition};
           auto&& v = allocator.makeVector<char>(output);
-          helper->api.loadFileToMemory(v, path, metadata, timingInfo.timeslice, &headers, etag, createdNotAfter, createdNotBefore);
+          helper->api.loadFileToMemory(v, path, metadata, timingInfo.timeslice,
+                                       &headers, etag,
+                                       helper->createdNotAfter,
+                                       helper->createdNotBefore);
 
           if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
             LOGP(error, "Unable to find object {}/{}", path, timingInfo.timeslice);
@@ -151,8 +156,6 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           std::map<std::string, std::string> headers;
           std::string path = "";
           std::string etag = "";
-          std::string createdNotBefore = "0";
-          std::string createdNotAfter = "0";
           for (auto& meta : route.matcher.metadata) {
             if (meta.name == "ccdb-path") {
               path = meta.defaultValue.get<std::string>();
@@ -164,7 +167,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
             etag = url2uuid->second;
           }
 
-          helper->api.loadFileToMemory(v, path, metadata, timestamp, &headers, etag, createdNotAfter, createdNotBefore);
+          helper->api.loadFileToMemory(v, path, metadata, timestamp, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
           if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
             LOGP(error, "Unable to find object {}/{}", path, timingInfo.timeslice);
             //FIXME: I should send a dummy message.
@@ -178,9 +181,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
             continue;
           }
           if (v.size()) { // but should be overridden by fresh object
-
             // somewhere here pruneFromCache should be called
-
             helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
             auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodCCDB);
             helper->mapURL2DPLCache[path] = cacheId;
