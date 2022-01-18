@@ -18,10 +18,13 @@
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
+#include "ITSMFTReconstruction/ClustererParam.h"
 
 #include "FairLogger.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 
 using namespace o2::framework;
 using namespace o2::utils;
@@ -40,6 +43,15 @@ void NoiseCalibratorSpec::init(InitContext& ic)
 {
   auto probT = ic.options().get<float>("prob-threshold");
   LOG(info) << "Setting the probability threshold to " << probT;
+  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
+  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath);
+  if (o2::utils::Str::pathExists(dictFile)) {
+    mCalibrator->loadDictionary(dictFile);
+    LOG(INFO) << "MFT NoiseCalibrator is running with a provided dictionary: " << dictFile;
+  } else {
+    LOG(INFO) << "Dictionary " << dictFile
+              << " is absent, MFT NoiseCalibrator expects cluster patterns for all clusters";
+  }
 
   mPath = ic.options().get<std::string>("path");
   mMeta = ic.options().get<std::string>("meta");

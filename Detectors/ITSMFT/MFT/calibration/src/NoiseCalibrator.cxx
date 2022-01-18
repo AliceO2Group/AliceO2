@@ -17,6 +17,7 @@
 #include "TFile.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/ClusterPattern.h"
+#include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 
 namespace o2
@@ -56,15 +57,28 @@ bool NoiseCalibrator::processTimeFrame(calibration::TFType tf,
   for (const auto& rof : rofs) {
     auto clustersInFrame = rof.getROFData(clusters);
     for (const auto& c : clustersInFrame) {
-      if (c.getPatternID() != o2::itsmft::CompCluster::InvalidPatternID) {
-        // For the noise calibration, we use "pass1" clusters...
-        continue;
-      }
-      o2::itsmft::ClusterPattern patt(pattIt);
-
-      auto id = c.getSensorID();
+      auto pattID = c.getPatternID();
+      o2::itsmft::ClusterPattern patt;
       auto row = c.getRow();
       auto col = c.getCol();
+      if (mDict.getSize() == 0) {
+        if (pattID == o2::itsmft::CompCluster::InvalidPatternID) {
+          patt.acquirePattern(pattIt);
+        } else {
+          LOG(fatal) << "Clusters contain pattern IDs, but no dictionary is provided...";
+        }
+      } else if (pattID == o2::itsmft::CompCluster::InvalidPatternID) {
+        patt.acquirePattern(pattIt);
+      } else if (mDict.isGroup(pattID)) {
+        patt.acquirePattern(pattIt);
+        float xCOG = 0., zCOG = 0.;
+        patt.getCOG(xCOG, zCOG); // for grouped patterns the reference pixel is at COG
+        row -= round(xCOG);
+        col -= round(zCOG);
+      } else {
+        patt = mDict.getPattern(pattID);
+      }
+      auto id = c.getSensorID();
       auto colSpan = patt.getColumnSpan();
       auto rowSpan = patt.getRowSpan();
 
