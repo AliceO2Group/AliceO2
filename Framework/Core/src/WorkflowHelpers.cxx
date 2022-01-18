@@ -222,16 +222,17 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   }};
 
   DataProcessorSpec ccdbBackend{
-    "internal-dpl-ccdb-backend",
-    {},
-    {OutputSpec{"CTP", "OrbitReset", 0}},
-    CCDBHelpers::fetchFromCCDB(),
-    {ConfigParamSpec{"condition-backend", VariantType::String, "http://alice-ccdb.cern.ch", {"URL for CCDB"}},
-     ConfigParamSpec{"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},
-     ConfigParamSpec{"orbit-multiplier-enumeration", VariantType::Int64, 0ll, {"multiplier to get the orbit from the counter"}},
-     ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
-     ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}},
-     ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}},
+    .name = "internal-dpl-ccdb-backend",
+    .outputs = {{"CTP", "OrbitReset", 0}},
+    .algorithm = CCDBHelpers::fetchFromCCDB(),
+    .options = {{"condition-backend", VariantType::String, "http://alice-ccdb.cern.ch", {"URL for CCDB"}},
+                {"condition-not-before", VariantType::Int64, 0ll, {"do not fetch from CCDB objects created before provide timestamp"}},
+                {"condition-not-after", VariantType::Int64, 3385078236000ll, {"do not fetch from CCDB objects created after the timestamp"}},
+                {"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},
+                {"orbit-multiplier-enumeration", VariantType::Int64, 0ll, {"multiplier to get the orbit from the counter"}},
+                {"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
+                {"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}},
+                {"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}},
   };
   DataProcessorSpec transientStore{"internal-dpl-transient-store",
                                    {},
