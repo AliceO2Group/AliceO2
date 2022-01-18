@@ -33,11 +33,11 @@ o2_add_library(HMPIDWorkflow
                                      O2::DataFormatsDCS
                                      O2::HMPIDSimulation
                                      O2::HMPIDReconstruction)
-                             
+
 o2_add_executable(entropy-encoder-workflow
-                  COMPONENT_NAME hhmpid
-                  SOURCES src/entropy-encoder-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
+              COMPONENT_NAME hhmpid
+              SOURCES src/entropy-encoder-workflow.cxx
+              PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
 
 o2_add_executable(read-raw-file-stream-workflow
               COMPONENT_NAME hmpid
