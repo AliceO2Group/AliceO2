@@ -9,12 +9,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/O2ControlLabels.h"
+#include "ITSWorkflow/ThresholdCalibrationWorkflow.h"
+#include "ITSWorkflow/ThresholdCalibratorSpec.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "ITStracking/TrackingConfigParam.h"
+#include "ITStracking/Configuration.h"
 
-namespace o2::framework::ecs
+using namespace o2::framework;
+
+#include "Framework/runDataProcessing.h"
+#include "Framework/Logger.h"
+
+WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
+  LOG(info) << "Initializing O2 ITS Threshold Calibration:-))))))";
 
-const DataProcessorLabel uniqueProxyLabel = {"ecs-unique-proxy"};
-const DataProcessorLabel preserveRawChannelsLabel = {"ecs-preserve-raw-channels"};
-const DataProcessorLabel qcReconfigurable = {"qc-reconfigurable"};
+  return std::move(o2::its::threshold_calib_workflow::getWorkflow());
 }

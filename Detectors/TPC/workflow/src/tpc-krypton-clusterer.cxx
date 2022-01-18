@@ -117,6 +117,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   std::vector<int> laneConfiguration = tpcSectors; // Currently just a copy of the tpcSectors, why?
 
+  gTpcSectorMask = 0;
+  for (auto s : tpcSectors) {
+    gTpcSectorMask |= (1ul << s);
+  }
+  gPolicyData.emplace_back(o2::framework::InputSpec{"data", o2::framework::ConcreteDataTypeMatcher{"TPC", "KRCLUSTERS"}});
+
   WorkflowSpec parallelProcessors;
   parallelProcessors.emplace_back(getKryptonClustererSpec());
 

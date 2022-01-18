@@ -9,12 +9,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/O2ControlLabels.h"
+/// @file   ThresholdCalibrationWorkflow.h
 
-namespace o2::framework::ecs
+#ifndef O2_ITS_THRESHOLD_CALIBRATION_WORKFLOW_H
+#define O2_ITS_THRESHOLD_CALIBRATION_WORKFLOW_H
+
+#include "Framework/WorkflowSpec.h"
+
+namespace o2
+{
+namespace its
 {
 
-const DataProcessorLabel uniqueProxyLabel = {"ecs-unique-proxy"};
-const DataProcessorLabel preserveRawChannelsLabel = {"ecs-preserve-raw-channels"};
-const DataProcessorLabel qcReconfigurable = {"qc-reconfigurable"};
+namespace threshold_calib_workflow
+{
+
+framework::WorkflowSpec getWorkflow();
+
 }
+
+} // namespace its
+} // namespace o2
+#endif

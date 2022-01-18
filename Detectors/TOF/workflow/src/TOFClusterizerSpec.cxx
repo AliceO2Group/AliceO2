@@ -95,7 +95,7 @@ class TOFDPLClustererTask
     auto digits = pc.inputs().get<gsl::span<o2::tof::Digit>>("tofdigits");
     auto row = pc.inputs().get<gsl::span<o2::tof::ReadoutWindowData>>("readoutwin");
     auto dia = pc.inputs().get<o2::tof::Diagnostic*>("diafreq");
-    auto patterns = pc.inputs().get<vector<unsigned char>>("patterns");
+    auto patterns = pc.inputs().get<pmr::vector<unsigned char>>("patterns");
 
     const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
     mClusterer.setFirstOrbit(dh->firstTForbit);

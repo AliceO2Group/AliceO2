@@ -50,6 +50,7 @@ class Detector : public o2::base::DetImpl<Detector>
   void IdealPositionCradle(int iCh, TGeoHMatrix* pMatrix);
   void createMaterials();
   void ConstructGeometry() override;
+  void ConstructOpGeometry() override;
   void defineOpticalProperties();
   void EndOfEvent() override { Reset(); }
 

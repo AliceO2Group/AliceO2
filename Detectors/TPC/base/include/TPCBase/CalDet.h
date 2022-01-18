@@ -27,6 +27,7 @@
 #include <Framework/Logger.h>
 #include <boost/format.hpp>
 #include <boost/range/combine.hpp>
+#include "Rtypes.h"
 #endif
 
 namespace o2
@@ -103,6 +104,8 @@ class CalDet
 
   /// initialize the data array depending on what is set as PadSubset
   void initData();
+
+  ClassDefNV(CalDet, 1)
 };
 
 //______________________________________________________________________________

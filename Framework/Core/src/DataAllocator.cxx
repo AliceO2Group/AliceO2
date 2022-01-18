@@ -291,7 +291,7 @@ bool DataAllocator::isAllowed(Output const& query)
   return false;
 }
 
-void DataAllocator::adoptFromCache(const Output& spec, CacheId id)
+void DataAllocator::adoptFromCache(const Output& spec, CacheId id, header::SerializationMethod method)
 {
   // Find a matching channel, extract the message for it form the container
   // and put it in the queue to be sent at the end of the processing
@@ -301,9 +301,9 @@ void DataAllocator::adoptFromCache(const Output& spec, CacheId id)
   auto& context = mRegistry->get<MessageContext>();
   FairMQMessagePtr payloadMessage = context.cloneFromCache(id.value);
 
-  FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel,                        //
-                                                           o2::header::gSerializationMethodNone, //
-                                                           payloadMessage->GetSize()             //
+  FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel,            //
+                                                           method,                   //
+                                                           payloadMessage->GetSize() //
   );
 
   context.add<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), channel);

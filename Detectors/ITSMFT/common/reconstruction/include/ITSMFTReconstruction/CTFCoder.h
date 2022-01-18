@@ -223,17 +223,24 @@ void CTFCoder::decompress(const CompressedClusters& compCl, VROF& rofRecVec, VCL
     o2::itsmft::ClusterPattern patt;
     auto pattItPrev = pattIt;
     maskedPixBuff.clear();
+    int rowRef = clus.getRow(), colRef = clus.getCol();
     if (clPattLookup.size() == 0 && clus.getPatternID() != o2::itsmft::CompCluster::InvalidPatternID) {
       throw std::runtime_error("Clusters contain pattern IDs, but no dictionary is provided...");
     }
-    if (clus.getPatternID() == o2::itsmft::CompCluster::InvalidPatternID || clPattLookup.isGroup(clus.getPatternID())) {
+    if (clus.getPatternID() == o2::itsmft::CompCluster::InvalidPatternID) {
       patt.acquirePattern(pattIt);
+    } else if (clPattLookup.isGroup(clus.getPatternID())) {
+      patt.acquirePattern(pattIt);
+      float xCOG = 0, zCOG = 0;
+      patt.getCOG(xCOG, zCOG); // for grouped patterns the reference pixel is at COG
+      rowRef -= round(xCOG);
+      colRef -= round(zCOG);
     } else {
       patt = clPattLookup.getPattern(clus.getPatternID());
     }
     int rowSpan = patt.getRowSpan(), colSpan = patt.getColumnSpan(), nMasked = 0;
     if (rowSpan == 1 && colSpan == 1) {                                        // easy case: 1 pixel cluster
-      if (noiseMap->isNoisy(clus.getChipID(), clus.getRow(), clus.getCol())) { // just kill the cluster
+      if (noiseMap->isNoisy(clus.getChipID(), rowRef, colRef)) {               // just kill the cluster
         std::copy(pattItStored, pattItPrev, back_inserter(pattVec));           // save patterns from after last saved to the one before killing this
         pattItStored = pattIt;                                                 // advance to the head of the pattern iterator
         cclusVec.pop_back();
@@ -242,10 +249,10 @@ void CTFCoder::decompress(const CompressedClusters& compCl, VROF& rofRecVec, VCL
     } else {
       int rowSpan = patt.getRowSpan(), colSpan = patt.getColumnSpan(), nMasked = 0, nPixels = 0; // apply noise and fill hits matrix
       for (int ir = 0; ir < rowSpan; ir++) {
-        int row = clus.getRow() + ir;
+        int row = rowRef + ir;
         for (int ic = 0; ic < colSpan; ic++) {
           if (patt.isSet(ir, ic)) {
-            if (noiseMap->isNoisy(clus.getChipID(), row, ic + clus.getCol())) {
+            if (noiseMap->isNoisy(clus.getChipID(), row, colRef + ic)) {
               maskedPixBuff.emplace_back(ir + 1, ic + 1);
               pmat[ir + 1][ic + 1] = false; // reset since might be left from prev cluster
               nMasked++;
@@ -264,7 +271,7 @@ void CTFCoder::decompress(const CompressedClusters& compCl, VROF& rofRecVec, VCL
         std::copy(pattItStored, pattItPrev, back_inserter(pattVec)); // save patterns from after last saved to the one before killing this
         pattItStored = pattIt;                                       // advance to the head of the pattern iterator
         if (nPixels) {                                               // need to reclusterize remaining pixels
-          clusterize(clus.getChipID(), clus.getRow(), clus.getCol(), nPixels);
+          clusterize(clus.getChipID(), rowRef, colRef, nPixels);
         }
       }
     }
@@ -376,7 +383,7 @@ void CTFCoder::decompress(const CompressedClusters& compCl, VROF& rofRecVec, VDI
         inChip = 1;
         col = compCl.colInc[clCount]; // colInc has abs. col meaning
       }
-      uint16_t row = compCl.row[clCount];
+      uint16_t rowRef = compCl.row[clCount], colRef = col;
       auto pattID = compCl.pattID[clCount];
       if (pattID == o2::itsmft::CompCluster::InvalidPatternID) {
         patt.acquirePattern(pattIt);
@@ -384,17 +391,23 @@ void CTFCoder::decompress(const CompressedClusters& compCl, VROF& rofRecVec, VDI
         if (clPattLookup.size() == 0) {
           throw std::runtime_error("Clusters contain pattern IDs, but no dictionary is provided...");
         }
-        if (pattID == o2::itsmft::CompCluster::InvalidPatternID || clPattLookup.isGroup(pattID)) {
+        if (pattID == o2::itsmft::CompCluster::InvalidPatternID) {
           patt.acquirePattern(pattIt);
+        } else if (clPattLookup.isGroup(pattID)) {
+          patt.acquirePattern(pattIt);
+          float xCOG = 0., zCOG = 0.;
+          patt.getCOG(xCOG, zCOG); // for grouped patterns the reference pixel is at COG
+          rowRef -= round(xCOG);
+          colRef -= round(zCOG);
         } else {
           patt = clPattLookup.getPattern(pattID);
         }
       }
       clCount++;
 
-      auto fillRowCol = [&digVec, chipID, row, col, noiseMap](int r, int c) {
-        r += row;
-        c += col;
+      auto fillRowCol = [&digVec, chipID, rowRef, colRef, noiseMap](int r, int c) {
+        r += rowRef;
+        c += colRef;
         if (noiseMap && noiseMap->isNoisy(chipID, r, c)) {
           return;
         }

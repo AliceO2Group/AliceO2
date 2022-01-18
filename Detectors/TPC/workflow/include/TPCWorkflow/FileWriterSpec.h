@@ -45,7 +45,7 @@ const std::unordered_map<BranchType, std::string> TreeName{
 /// create a processor spec
 /// read simulated TPC clusters from file and publish
 template <typename T>
-o2::framework::DataProcessorSpec getFileWriterSpec(const std::string inputSpec, const BranchType branchType = BranchType::Krypton);
+o2::framework::DataProcessorSpec getFileWriterSpec(const std::string inputSpec, const BranchType branchType = BranchType::Krypton, unsigned long sectorMask = 0xFFFFFFFFF);
 
 } // namespace o2::tpc
 

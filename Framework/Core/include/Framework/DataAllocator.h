@@ -410,10 +410,10 @@ class DataAllocator
 
   //make a stl (pmr) vector
   template <typename T, typename... Args>
-  o2::vector<T> makeVector(const Output& spec, Args&&... args)
+  o2::pmr::vector<T> makeVector(const Output& spec, Args&&... args)
   {
     o2::pmr::FairMQMemoryResource* targetResource = getMemoryResource(spec);
-    return o2::vector<T>{targetResource, std::forward<Args>(args)...};
+    return o2::pmr::vector<T>{targetResource, std::forward<Args>(args)...};
   }
 
   struct CacheId {
@@ -421,7 +421,7 @@ class DataAllocator
   };
 
   template <typename ContainerT>
-  CacheId adoptContainer(const Output& spec, ContainerT& container, bool cache = false)
+  CacheId adoptContainer(const Output& spec, ContainerT& container, bool cache = false, o2::header::SerializationMethod method = header::gSerializationMethodNone)
   {
     static_assert(always_static_assert_v<ContainerT>, "Container cannot be moved. Please make sure it is backed by a FairMQMemoryResource");
     return {0};
@@ -437,10 +437,10 @@ class DataAllocator
   /// @return a unique id of the adopted message which can be used to resend the
   ///         message or can be pruned via the DataAllocator::prune() method.
   template <typename ContainerT>
-  CacheId adoptContainer(const Output& spec, ContainerT&& container, bool cache = false);
+  CacheId adoptContainer(const Output& spec, ContainerT&& container, bool cache = false, o2::header::SerializationMethod method = header::gSerializationMethodNone);
 
   /// Adopt an already cached message, using an already provided CacheId.
-  void adoptFromCache(Output const& spec, CacheId id);
+  void adoptFromCache(Output const& spec, CacheId id, header::SerializationMethod method = header::gSerializationMethodNone);
 
   /// snapshot object and route to output specified by OutputRef
   /// Framework makes a (serialized) copy of object content.
@@ -493,7 +493,7 @@ class DataAllocator
 };
 
 template <typename ContainerT>
-DataAllocator::CacheId DataAllocator::adoptContainer(const Output& spec, ContainerT&& container, bool cache)
+DataAllocator::CacheId DataAllocator::adoptContainer(const Output& spec, ContainerT&& container, bool cache, header::SerializationMethod method)
 {
   // Find a matching channel, extract the message for it form the container
   // and put it in the queue to be sent at the end of the processing
@@ -503,9 +503,9 @@ DataAllocator::CacheId DataAllocator::adoptContainer(const Output& spec, Contain
   auto& context = mRegistry->get<MessageContext>();
   FairMQMessagePtr payloadMessage = o2::pmr::getMessage(std::forward<ContainerT>(container), *context.proxy().getTransport(channel));
 
-  FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel,                        //
-                                                           o2::header::gSerializationMethodNone, //
-                                                           payloadMessage->GetSize()             //
+  FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel,            //
+                                                           method,                   //
+                                                           payloadMessage->GetSize() //
   );
 
   CacheId cacheId{0}; //
