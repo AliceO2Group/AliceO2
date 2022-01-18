@@ -64,7 +64,7 @@ using RDH = o2::header::RDHAny;
 //=======================
 void DigitsToRootTask::init(framework::InitContext& ic)
 {
-  LOG(INFO) << "[HMPID Write Root File From Digits stream - init()]";
+  LOG(info) << "[HMPID Write Root File From Digits stream - init()]";
 
   // get line command options
   mOutRootFileName = ic.options().get<std::string>("out-file");
@@ -75,7 +75,7 @@ void DigitsToRootTask::init(framework::InitContext& ic)
   TString filename = TString::Format("%s", mOutRootFileName.c_str());
   TString tit = TString::Format("HMPID Digits File Decoding");
 
-  LOG(INFO) << "Create the ROOT file " << filename.Data();
+  LOG(info) << "Create the ROOT file " << filename.Data();
   mfileOut = new TFile(TString::Format("%s", filename.Data()), "RECREATE");
 
   mTheTree = new TTree("o2hmp", tit);
@@ -94,15 +94,15 @@ void DigitsToRootTask::run(framework::ProcessingContext& pc)
   for (auto const& ref : InputRecordWalker(pc.inputs())) {
     if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{header::gDataOriginHMP, "INTRECORDS"}})) {
       triggers = pc.inputs().get<std::vector<o2::hmpid::Trigger>>(ref);
-      LOG(INFO) << "We receive triggers =" << triggers.size();
+      LOG(info) << "We receive triggers =" << triggers.size();
     }
     if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{header::gDataOriginHMP, "DIGITS"}})) {
       digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>(ref);
-      LOG(INFO) << "The size of the vector =" << digits.size();
+      LOG(info) << "The size of the vector =" << digits.size();
     }
 
     for (int i = 0; i < triggers.size(); i++) {
-      LOG(INFO) << "Trigger Event     Orbit = " << triggers[i].getOrbit() << "  BC = " << triggers[i].getBc();
+      LOG(info) << "Trigger Event     Orbit = " << triggers[i].getOrbit() << "  BC = " << triggers[i].getBc();
       int startDigitsIndex = mDigits.size();
       int numberOfDigits = 0;
       for (int j = triggers[i].getFirstEntry(); j <= triggers[i].getLastEntry(); j++) {
@@ -120,7 +120,7 @@ void DigitsToRootTask::run(framework::ProcessingContext& pc)
 void DigitsToRootTask::endOfStream(framework::EndOfStreamContext& ec)
 {
   mExTimer.logMes("Received an End Of Stream !");
-  LOG(INFO) << "The size of digits vector =" << mDigits.size();
+  LOG(info) << "The size of digits vector =" << mDigits.size();
   mTheTree->Fill();
   mTheTree->Write();
   mfileOut->Close();

@@ -79,7 +79,7 @@ void DigitsToClustersTask::strToFloatsSplit(std::string s, std::string delimiter
 //
 void DigitsToClustersTask::init(framework::InitContext& ic)
 {
-  LOG(INFO) << "[HMPID Clusterization - init() ] ";
+  LOG(info) << "[HMPID Clusterization - init() ] ";
   mSigmaCutPar = ic.options().get<std::string>("sigma-cut");
   if (mSigmaCutPar != "") {
     strToFloatsSplit(mSigmaCutPar, ",", mSigmaCut, 7);
@@ -93,7 +93,7 @@ void DigitsToClustersTask::init(framework::InitContext& ic)
 
 void DigitsToClustersTask::run(framework::ProcessingContext& pc)
 {
-  LOG(INFO) << "[HMPID DClusterization - run() ] Enter ...";
+  LOG(info) << "[HMPID DClusterization - run() ] Enter ...";
   std::vector<o2::hmpid::Trigger> triggers;
   std::vector<o2::hmpid::Digit> digits;
   std::vector<o2::hmpid::Digit> oneEventDigits;
@@ -104,18 +104,18 @@ void DigitsToClustersTask::run(framework::ProcessingContext& pc)
   for (auto const& ref : InputRecordWalker(pc.inputs())) {
     if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{gDataOriginHMP, "INTRECORDS"}})) {
       triggers = pc.inputs().get<std::vector<o2::hmpid::Trigger>>(ref);
-      LOG(INFO) << "We receive triggers =" << triggers.size();
+      LOG(info) << "We receive triggers =" << triggers.size();
     }
     if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{gDataOriginHMP, "DIGITS"}})) {
       digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>(ref);
-      LOG(INFO) << "The size of the vector =" << digits.size();
+      LOG(info) << "The size of the vector =" << digits.size();
       mDigitsReceived += digits.size();
     }
 
     clustersTrigger.clear();
     for (int i = 0; i < triggers.size(); i++) {
       oneEventDigits.clear();
-      LOG(INFO) << "Trigger Event     Orbit = " << triggers[i].getOrbit() << "  BC = " << triggers[i].getBc();
+      LOG(info) << "Trigger Event     Orbit = " << triggers[i].getOrbit() << "  BC = " << triggers[i].getBc();
       for (int j = triggers[i].getFirstEntry(); j <= triggers[i].getLastEntry(); j++) {
         oneEventDigits.push_back(digits[j]);
       }
@@ -128,7 +128,7 @@ void DigitsToClustersTask::run(framework::ProcessingContext& pc)
         for (int j = 0; j < oneEventClusters.size(); j++)
           clusters.push_back(oneEventClusters[j]); // append clusters
       }
-      LOG(INFO) << "Clusters for event = " << oneEventClusters.size();
+      LOG(info) << "Clusters for event = " << oneEventClusters.size();
     }
 
     pc.outputs().snapshot(o2::framework::Output{"HMP", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe}, clusters);

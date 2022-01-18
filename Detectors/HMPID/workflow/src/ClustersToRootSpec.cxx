@@ -65,7 +65,7 @@ using RDH = o2::header::RDHAny;
 // Data decoder
 void ClustersToRootTask::init(framework::InitContext& ic)
 {
-  LOG(INFO) << "[HMPID Write Root File From Clusters stream - init()]";
+  LOG(info) << "[HMPID Write Root File From Clusters stream - init()]";
 
   // get line command options
   mOutRootFileName = ic.options().get<std::string>("out-file");
@@ -77,7 +77,7 @@ void ClustersToRootTask::init(framework::InitContext& ic)
   TString tit;
 
   filename = TString::Format("%s", mOutRootFileName.c_str());
-  LOG(INFO) << "Create the ROOT file " << filename.Data();
+  LOG(info) << "Create the ROOT file " << filename.Data();
   mfileOut = new TFile(TString::Format("%s", filename.Data()), "RECREATE");
   tit = TString::Format("HMPID Clusters File Decoding");
   mTheTree = new TTree("o2hmp", tit);
@@ -96,15 +96,15 @@ void ClustersToRootTask::run(framework::ProcessingContext& pc)
   for (auto const& ref : InputRecordWalker(pc.inputs())) {
     if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{header::gDataOriginHMP, "INTRECORDS1"}})) {
       triggers = pc.inputs().get<std::vector<o2::hmpid::Trigger>>(ref);
-      //    LOG(INFO) << "We receive triggers =" << triggers.size();
+      //    LOG(info) << "We receive triggers =" << triggers.size();
     }
     if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{header::gDataOriginHMP, "CLUSTERS"}})) {
       clusters = pc.inputs().get<std::vector<o2::hmpid::Cluster>>(ref);
-      //    LOG(INFO) << "The size of the vector =" << clusters.size();
+      //    LOG(info) << "The size of the vector =" << clusters.size();
     }
 
     for (int i = 0; i < triggers.size(); i++) {
-      //    LOG(INFO) << "Trigger Event     Orbit = " << triggers[i].getOrbit() << "  BC = " << triggers[i].getBc();
+      //    LOG(info) << "Trigger Event     Orbit = " << triggers[i].getOrbit() << "  BC = " << triggers[i].getBc();
       int startClusterIndex = mClusters.size();
       int numberOfClusters = 0;
       for (int j = triggers[i].getFirstEntry(); j <= triggers[i].getLastEntry(); j++) {
