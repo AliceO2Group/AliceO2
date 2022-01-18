@@ -44,19 +44,6 @@ using DetID = o2::detectors::DetID;
 
 std::array<o2::header::DataOrigin, 1> exceptionsDetID{"GRP"};
 
-void sendAnswer(const std::string& what, const std::string& ack_chan, FairMQDevice& device)
-{
-  if (!ack_chan.empty()) {
-    LOG(info) << "Sending acknowledgment " << what;
-    auto fmqFactory = device.GetChannel(ack_chan).Transport();
-    auto msg = fmqFactory->CreateMessage(what.size(), fair::mq::Alignment{64});
-    memcpy(msg->GetData(), what.c_str(), what.size());
-    FairMQParts outParts;
-    outParts.AddPart(std::move(msg));
-    sendOnChannel(device, outParts, ack_chan);
-  }
-}
-
 auto getDataOriginFromFilename(const std::string& filename)
 {
   // assume the filename start with detector name
@@ -74,25 +61,25 @@ auto getDataOriginFromFilename(const std::string& filename)
   return DetID(dID).getDataOrigin();
 }
 
-InjectorFunction dcs2dpl(const std::string& acknowledge)
+InjectorFunction dcs2dpl()
 {
 
   auto timesliceId = std::make_shared<size_t>(0);
 
-  return [acknowledge, timesliceId](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
+  return [timesliceId](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
     // make sure just 2 messages received
     if (parts.Size() != 2) {
       LOG(error) << "received " << parts.Size() << " instead of 2 expected";
-      sendAnswer("error0: wrong number of messages", acknowledge, device);
       return;
     }
     std::string filename{static_cast<const char*>(parts.At(0)->GetData()), parts.At(0)->GetSize()};
     size_t filesize = parts.At(1)->GetSize();
-    LOG(info) << "received file " << filename << " of size " << filesize;
+    std::string filedata{static_cast<const char*>(parts.At(1)->GetData()), parts.At(1)->GetSize()};
+
+    LOG(info) << "received file " << filename << " of size " << filesize << " Payload:" << filedata;
     o2::header::DataOrigin dataOrigin = getDataOriginFromFilename(filename);
     if (dataOrigin == o2::header::gDataOriginInvalid) {
       LOG(error) << "unknown detector for " << filename;
-      sendAnswer(fmt::format("{}:error1: unrecognized filename", filename), acknowledge, device);
       return;
     }
     //o2::header::DataHeader hdrF("DCS_CONFIG_FILE", dataOrigin, 0);
@@ -101,7 +88,6 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     auto channel = channelRetriever(outsp, *timesliceId);
     if (channel.empty()) {
       LOG(error) << "No output channel found for OutputSpec " << outsp;
-      sendAnswer(fmt::format("{}:error2: no channel to send", filename), acknowledge, device);
       return;
     }
 
@@ -112,20 +98,7 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     hdrN.payloadSize = parts.At(0)->GetSize();
     hdrN.firstTForbit = 0; // this should be irrelevant for DCS
 
-    //hdrF.tfCounter = *timesliceId; // this also
-    //hdrF.payloadSerializationMethod = o2::header::gSerializationMethodNone;
-    //hdrF.splitPayloadParts = 2;
-    //hdrF.splitPayloadIndex = 1;
-    //hdrF.payloadSize = filesize;
-    //hdrF.firstTForbit = 0; // this should be irrelevant for DCS
-
     auto fmqFactory = device.GetChannel(channel).Transport();
-
-    //o2::header::Stack headerStackF{hdrF, DataProcessingHeader{*timesliceId, 0}};
-    //auto hdMessageF = fmqFactory->CreateMessage(headerStackF.size(), fair::mq::Alignment{64});
-    //auto plMessageF = fmqFactory->CreateMessage(hdrF.payloadSize, fair::mq::Alignment{64});
-    //memcpy(hdMessageF->GetData(), headerStackF.data(), headerStackF.size());
-    //memcpy(plMessageF->GetData(), parts.At(1)->GetData(), hdrF.payloadSize);
 
     o2::header::Stack headerStackN{hdrN, DataProcessingHeader{*timesliceId, 0}};
     auto hdMessageN = fmqFactory->CreateMessage(headerStackN.size(), fair::mq::Alignment{64});
@@ -134,13 +107,10 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     memcpy(plMessageN->GetData(), parts.At(0)->GetData(), hdrN.payloadSize);
 
     FairMQParts outParts;
-    //outParts.AddPart(std::move(hdMessageF));
-    //outParts.AddPart(std::move(plMessageF));
     outParts.AddPart(std::move(hdMessageN));
     outParts.AddPart(std::move(plMessageN));
     sendOnChannel(device, outParts, channel);
 
-    sendAnswer("OK", acknowledge, device);
     LOG(info) << "Sent DPL message and acknowledgment for file " << filename;
   };
 }
@@ -148,9 +118,7 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  //workflowOptions.push_back(ConfigParamSpec{"acknowlege-to", VariantType::String, "type=push,method=connect,address=tcp://127.0.0.1:5557,rateLogging=1,transport=zeromq", {"channel to acknowledge, no acknowledgement if empty"}});
   //workflowOptions.push_back(ConfigParamSpec{"subscribe-to", VariantType::String, "type=sub,method=connect,address=tcp://127.0.0.1:5556,rateLogging=1,transport=zeromq", {"channel subscribe to"}});
-  workflowOptions.push_back(ConfigParamSpec{"acknowlege-to", VariantType::String, "", {"channel to acknowledge, no acknowledgement if empty"}});
   workflowOptions.push_back(ConfigParamSpec{"subscribe-to", VariantType::String, "type=sub,method=connect,address=tcp://188.184.30.57:5556,rateLogging=1,transport=zeromq", {"channel subscribe to"}});
 }
 
@@ -178,13 +146,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   }
   chan = setChanName(chan, devName);
   LOG(info) << "name:" << devName << " chan:" << chan ;
-
-  auto chanTo = config.options().get<std::string>("acknowlege-to");
-  std::string ackChan{};
-  if (!chanTo.empty()) {
-    ackChan = "ackChan";
-    chan = o2::utils::Str::concat_string(chan, ";", setChanName(chanTo, ackChan));
-  }
   LOG(info) << "Channels setup: " << chan;
   Outputs ctpCountersOutputs;
   ctpCountersOutputs.emplace_back("CTP", "CTP_COUNTERS", 0, Lifetime::Timeframe);
@@ -194,7 +155,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     std::move(ctpCountersOutputs),
     // this is just default, can be overriden by --dcs-config-proxy '--channel-config..'
     chan.c_str(),
-    dcs2dpl(ackChan));
+    dcs2dpl());
   LOG(info) << "===> Proxy done";
   WorkflowSpec workflow;
   workflow.emplace_back(ctpProxy);
