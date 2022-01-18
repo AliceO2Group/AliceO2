@@ -74,10 +74,10 @@ void DigitsToRootTask::init(framework::InitContext& ic)
 
   TString filename = TString::Format("%s", mOutRootFileName.c_str());
   TString tit = TString::Format("HMPID Digits File Decoding");
-  
+
   LOG(INFO) << "Create the ROOT file " << filename.Data();
   mfileOut = new TFile(TString::Format("%s", filename.Data()), "RECREATE");
-  
+
   mTheTree = new TTree("o2hmp", tit);
   mTheTree->Branch("InteractionRecords", &mTriggers);
   mTheTree->Branch("HMPIDDigits", &mDigits);
@@ -100,7 +100,7 @@ void DigitsToRootTask::run(framework::ProcessingContext& pc)
       digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>(ref);
       LOG(INFO) << "The size of the vector =" << digits.size();
     }
-    
+
     for (int i = 0; i < triggers.size(); i++) {
       LOG(INFO) << "Trigger Event     Orbit = " << triggers[i].getOrbit() << "  BC = " << triggers[i].getBc();
       int startDigitsIndex = mDigits.size();

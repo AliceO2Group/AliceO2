@@ -79,7 +79,7 @@ void RawFileReaderTask::run(framework::ProcessingContext& pc)
   sleep(1);
 
   while (true) {
-    //usleep(100);
+    // usleep(100);
     mInputFile.read((char*)(&rdh), sizeof(RDH)); // read the next RDH, stop if no more data is available
     if (mInputFile.fail()) {
       free(outBuffer);
@@ -121,7 +121,7 @@ void RawFileReaderTask::run(framework::ProcessingContext& pc)
     }
     bufSize = frameSize; // Set the buffer pointer
     pc.outputs().snapshot(Output{"HMP", "RAWDATA"}, outBuffer, bufSize);
-    //std::cout << mExTimer.mTimer.CpuTime() << " " << mExTimer.mLastLogTime << std::endl;
+    // std::cout << mExTimer.mTimer.CpuTime() << " " << mExTimer.mLastLogTime << std::endl;
     mExTimer.elapseMes("... Reading... Number of Pages = " + std::to_string(numberOfFrames));
   } // while (true)
 

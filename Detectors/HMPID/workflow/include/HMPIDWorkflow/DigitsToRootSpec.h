@@ -50,8 +50,8 @@ class DigitsToRootTask : public framework::Task
   ExecutionTimer mExTimer;
   std::vector<o2::hmpid::Trigger> mTriggers;
   std::vector<o2::hmpid::Digit> mDigits;
-  TFile * mfileOut;
-  TTree * mTheTree;
+  TFile* mfileOut;
+  TTree* mTheTree;
   std::string mOutRootFileName;
 };
 

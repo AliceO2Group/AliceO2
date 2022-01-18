@@ -81,9 +81,9 @@ void PedestalsCalculationTask::init(framework::InitContext& ic)
   mWriteToFiles = ic.options().get<bool>("use-files");
   mPedestalsBasePath = ic.options().get<std::string>("files-basepath");
   mPedestalsCCDBBasePath = mPedestalsBasePath;
-  
+
   mWriteToDB = ic.options().get<bool>("use-ccdb");
-  if(mWriteToDB) {
+  if (mWriteToDB) {
     mDBapi.init(ic.options().get<std::string>("ccdb-uri")); // or http://localhost:8080 for a local installation
     mWriteToDB = mDBapi.isHostReachable() ? true : false;
   }
@@ -91,7 +91,7 @@ void PedestalsCalculationTask::init(framework::InitContext& ic)
   mFastAlgorithm = ic.options().get<bool>("fast-decode");
 
   mExTimer.start();
-  LOG(info) <<  "Calculate Ped/Thresh." + (mWriteToDB ? " Store in DCSCCDB at "+mPedestalsBasePath+" with Tag:"+mPedestalTag : " CCDB not used !");
+  LOG(info) << "Calculate Ped/Thresh." + (mWriteToDB ? " Store in DCSCCDB at " + mPedestalsBasePath + " with Tag:" + mPedestalTag : " CCDB not used !");
   return;
 }
 
@@ -133,11 +133,11 @@ void PedestalsCalculationTask::recordPedInFiles()
     }
     sprintf(padsFileName, "%s_%d.dat", mPedestalsBasePath.c_str(), e);
     FILE* fpads = fopen(padsFileName, "w");
-    if(fpads == NULL) {
+    if (fpads == NULL) {
       mExTimer.logMes("Error creating the file = " + std::string(padsFileName));
       LOG(ERROR) << "Error creating the file = " << padsFileName;
       return;
-    } 
+    }
     for (int c = 0; c < Geo::N_COLUMNS; c++) {
       for (int d = 0; d < Geo::N_DILOGICS; d++) {
         for (int h = 0; h < Geo::N_CHANNELS; h++) {
@@ -181,13 +181,13 @@ void PedestalsCalculationTask::recordPedInDcsCcdb()
 
   o2::dcs::DCSconfigObject_t pedestalsConfig;
 
-  // Setup dimensions for Equipment granularity with 48 channels/dilogic
-  #define PEDTHFORMAT "%05X,"
-  #define COLUMNTAIL false
-  #define PEDTHBYTES 6
+// Setup dimensions for Equipment granularity with 48 channels/dilogic
+#define PEDTHFORMAT "%05X,"
+#define COLUMNTAIL false
+#define PEDTHBYTES 6
   int bufferDim = PEDTHBYTES * Geo::N_CHANNELS * Geo::N_DILOGICS * Geo::N_COLUMNS + 10;
-  char *outBuffer = new char[bufferDim];
-  char *inserPtr;
+  char* outBuffer = new char[bufferDim];
+  char* inserPtr;
 
   for (int e = 0; e < Geo::MAXEQUIPMENTS; e++) {
     if (mDeco->getAverageEventSize(e) == 0) { // skip the empty equipment
@@ -214,7 +214,7 @@ void PedestalsCalculationTask::recordPedInDcsCcdb()
           sprintf(inserPtr, PEDTHFORMAT, PedThr);
           inserPtr += PEDTHBYTES;
         }
-        if(COLUMNTAIL) {
+        if (COLUMNTAIL) {
           for (int h = 48; h < 64; h++) {
             sprintf(inserPtr, PEDTHFORMAT, 0);
             inserPtr += PEDTHBYTES;
@@ -223,10 +223,10 @@ void PedestalsCalculationTask::recordPedInDcsCcdb()
       }
     }
     mExTimer.logMes("End write the equipment = " + std::to_string(e));
-    sprintf(inserPtr, "%05X\n", 0xA0A0A);  // The closure value
+    sprintf(inserPtr, "%05X\n", 0xA0A0A); // The closure value
     inserPtr += 6;
     *inserPtr = '\0'; // close the string rap.
-    o2::dcs::addConfigItem(pedestalsConfig, "Equipment" + std::to_string(e), (const char *)outBuffer);
+    o2::dcs::addConfigItem(pedestalsConfig, "Equipment" + std::to_string(e), (const char*)outBuffer);
   }
 
   struct timeval tp;
@@ -237,7 +237,7 @@ void PedestalsCalculationTask::recordPedInDcsCcdb()
 
   char filename[1024];
   sprintf(filename, "%s/%s/PedThre.root", mPedestalsCCDBBasePath.c_str(), mPedestalTag.c_str());
-  mExTimer.logMes("File name = >" + std::string(filename) + "< (" +  mPedestalsCCDBBasePath +","+mPedestalTag );
+  mExTimer.logMes("File name = >" + std::string(filename) + "< (" + mPedestalsCCDBBasePath + "," + mPedestalTag);
   TFile outputFile(filename, "recreate");
   outputFile.WriteObjectAny(&pedestalsConfig, "std::vector<char>", "DCSConfig");
   outputFile.Close();
@@ -249,7 +249,6 @@ void PedestalsCalculationTask::recordPedInDcsCcdb()
 
   return;
 }
-
 
 void PedestalsCalculationTask::recordPedInCcdb()
 {
@@ -348,9 +347,9 @@ o2::framework::DataProcessorSpec getPedestalsCalculationSpec(std::string inputSp
 
   std::vector<o2::framework::InputSpec> inputs;
   inputs.emplace_back("TF", o2::framework::ConcreteDataTypeMatcher{"HMP", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
-  
+
   std::vector<o2::framework::OutputSpec> outputs;
-  
+
   return DataProcessorSpec{
     "HMP-PestalsCalculation",
     o2::framework::select(inputSpec.c_str()),

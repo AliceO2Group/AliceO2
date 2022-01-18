@@ -57,20 +57,22 @@ using namespace o2::framework;
 using RDH = o2::header::RDHAny;
 
 // Splits a string in float array for string delimiter, TODO: Move this in a HMPID common library
-void DigitsToClustersTask::strToFloatsSplit (std::string s, std::string delimiter, float *res, int maxElem) {
-    int index = 0;
-    size_t pos_start = 0;
-    size_t pos_end;
-    size_t delim_len = delimiter.length();
-    std::string token;
-    while ((pos_end = s.find (delimiter, pos_start)) != std::string::npos) {
-        token = s.substr (pos_start, pos_end - pos_start);
-        pos_start = pos_end + delim_len;
-        res[index++] = std::stof(token);
-        if(index == maxElem) return;
-    }
-    res[index++] = (std::stof(s.substr(pos_start)));
-    return;
+void DigitsToClustersTask::strToFloatsSplit(std::string s, std::string delimiter, float* res, int maxElem)
+{
+  int index = 0;
+  size_t pos_start = 0;
+  size_t pos_end;
+  size_t delim_len = delimiter.length();
+  std::string token;
+  while ((pos_end = s.find(delimiter, pos_start)) != std::string::npos) {
+    token = s.substr(pos_start, pos_end - pos_start);
+    pos_start = pos_end + delim_len;
+    res[index++] = std::stof(token);
+    if (index == maxElem)
+      return;
+  }
+  res[index++] = (std::stof(s.substr(pos_start)));
+  return;
 }
 
 //=======================
@@ -82,7 +84,7 @@ void DigitsToClustersTask::init(framework::InitContext& ic)
   if (mSigmaCutPar != "") {
     strToFloatsSplit(mSigmaCutPar, ",", mSigmaCut, 7);
   }
-      
+
   mDigitsReceived = 0;
   mRec = new o2::hmpid::Clusterer();
   mExTimer.start();
@@ -109,7 +111,7 @@ void DigitsToClustersTask::run(framework::ProcessingContext& pc)
       LOG(INFO) << "The size of the vector =" << digits.size();
       mDigitsReceived += digits.size();
     }
-    
+
     clustersTrigger.clear();
     for (int i = 0; i < triggers.size(); i++) {
       oneEventDigits.clear();
@@ -117,18 +119,18 @@ void DigitsToClustersTask::run(framework::ProcessingContext& pc)
       for (int j = triggers[i].getFirstEntry(); j <= triggers[i].getLastEntry(); j++) {
         oneEventDigits.push_back(digits[j]);
       }
-      // ------ Now we have the Digit Array for one Trigger event  
+      // ------ Now we have the Digit Array for one Trigger event
       oneEventClusters.clear();
       mRec->Dig2Clu(&oneEventDigits, &oneEventClusters, mSigmaCut, true);
-      if (oneEventClusters.size() > 0) { // we have something to store
-        clustersTrigger.push_back(triggers[i]);  // copy the Interaction record in the new triggers vector
+      if (oneEventClusters.size() > 0) {                                               // we have something to store
+        clustersTrigger.push_back(triggers[i]);                                        // copy the Interaction record in the new triggers vector
         clustersTrigger.back().setDataRange(clusters.size(), oneEventClusters.size()); // set the data range to the chunch of clusters
-        for (int j = 0; j < oneEventClusters.size(); j++) clusters.push_back(oneEventClusters[j]); // append clusters
+        for (int j = 0; j < oneEventClusters.size(); j++)
+          clusters.push_back(oneEventClusters[j]); // append clusters
       }
-      LOG(INFO) << "Clusters for event = " << oneEventClusters.size() ;
+      LOG(INFO) << "Clusters for event = " << oneEventClusters.size();
     }
 
-    
     pc.outputs().snapshot(o2::framework::Output{"HMP", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe}, clusters);
     pc.outputs().snapshot(o2::framework::Output{"HMP", "INTRECORDS1", 0, o2::framework::Lifetime::Timeframe}, clustersTrigger);
   }

@@ -42,13 +42,13 @@ class DigitsToClustersTask : public framework::Task
 
  private:
   std::string mSigmaCutPar;
-  float mSigmaCut[7] = {4,4,4,4,4,4,4};
-  
+  float mSigmaCut[7] = {4, 4, 4, 4, 4, 4, 4};
+
   o2::hmpid::Clusterer* mRec;
   long mDigitsReceived;
 
   ExecutionTimer mExTimer;
-  void strToFloatsSplit (std::string s, std::string delimiter, float *res, int maxElem=7);
+  void strToFloatsSplit(std::string s, std::string delimiter, float* res, int maxElem = 7);
 };
 
 o2::framework::DataProcessorSpec getDigitsToClustersSpec(std::string inputSpec = "HMP/DIGITS");

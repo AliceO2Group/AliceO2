@@ -96,15 +96,15 @@ void ClustersToRootTask::run(framework::ProcessingContext& pc)
   for (auto const& ref : InputRecordWalker(pc.inputs())) {
     if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{header::gDataOriginHMP, "INTRECORDS1"}})) {
       triggers = pc.inputs().get<std::vector<o2::hmpid::Trigger>>(ref);
-  //    LOG(INFO) << "We receive triggers =" << triggers.size();
+      //    LOG(INFO) << "We receive triggers =" << triggers.size();
     }
     if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{header::gDataOriginHMP, "CLUSTERS"}})) {
       clusters = pc.inputs().get<std::vector<o2::hmpid::Cluster>>(ref);
-  //    LOG(INFO) << "The size of the vector =" << clusters.size();
+      //    LOG(INFO) << "The size of the vector =" << clusters.size();
     }
-    
+
     for (int i = 0; i < triggers.size(); i++) {
-  //    LOG(INFO) << "Trigger Event     Orbit = " << triggers[i].getOrbit() << "  BC = " << triggers[i].getBc();
+      //    LOG(INFO) << "Trigger Event     Orbit = " << triggers[i].getOrbit() << "  BC = " << triggers[i].getBc();
       int startClusterIndex = mClusters.size();
       int numberOfClusters = 0;
       for (int j = triggers[i].getFirstEntry(); j <= triggers[i].getLastEntry(); j++) {
@@ -122,16 +122,15 @@ void ClustersToRootTask::run(framework::ProcessingContext& pc)
 void ClustersToRootTask::endOfStream(framework::EndOfStreamContext& ec)
 {
   mExTimer.logMes("Received an End Of Stream !");
-for (int i = 0; i < mClusters.size(); i++) {
-  mClusters.at(i).print();
-}
+  for (int i = 0; i < mClusters.size(); i++) {
+    mClusters.at(i).print();
+  }
   mTheTree->Fill();
   mTheTree->Write();
   mfileOut->Close();
   mExTimer.logMes("Register Tree ! ");
   return;
 }
-
 
 //_________________________________________________________________________________________________
 o2::framework::DataProcessorSpec getClustersToRootSpec(std::string inputSpec)
