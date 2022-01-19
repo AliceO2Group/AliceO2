@@ -133,7 +133,7 @@ void PedestalsCalculationTask::recordPedInFiles()
     }
     sprintf(padsFileName, "%s_%d.dat", mPedestalsBasePath.c_str(), e);
     FILE* fpads = fopen(padsFileName, "w");
-    if (fpads == NULL) {
+    if (fpads == nullptr) {
       mExTimer.logMes("error creating the file = " + std::string(padsFileName));
       LOG(error) << "error creating the file = " << padsFileName;
       return;
