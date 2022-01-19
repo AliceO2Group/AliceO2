@@ -286,7 +286,6 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
   // then set the third parameter to entries
   result.at(3) = entries;
 
-  int ibin = 0;
   Int_t npoints = 0;
   // in this loop: increase iter and axisiter (iterator for bin center and bincontent)
   auto axisiter = axisfirst;

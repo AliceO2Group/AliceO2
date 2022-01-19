@@ -131,7 +131,7 @@ TFitResultPtr fit(const size_t nBins, const T* arr, const T xMin, const T xMax, 
 template <typename T>
 bool medmadGaus(size_t nBins, const T* arr, const T xMin, const T xMax, std::array<double, 3>& param)
 {
-  int bStart = 0, bEnd = -1, filled = 0;
+  int bStart = 0, bEnd = -1;
   double sum = 0, binW = double(xMax - xMin) / nBins, medVal = xMin;
   for (int i = 0; i < (int)nBins; i++) {
     auto v = arr[i];
@@ -360,7 +360,7 @@ double fitGaus(size_t nBins, const T* arr, const T xMin, const T xMax, std::arra
                ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepSym<double, 3>>* covMat = nullptr,
                int minVal = 2, bool applyMAD = true)
 {
-  double binW = double(xMax - xMin) / nBins, s0 = 0, s1 = 0, s2 = 0, s3 = 0, s4 = 0, sy0 = 0, sy1 = 0, sy2 = 0, syy = 0, sum = 0.;
+  double binW = double(xMax - xMin) / nBins, s0 = 0, s1 = 0, s2 = 0, s3 = 0, s4 = 0, sy0 = 0, sy1 = 0, sy2 = 0, syy = 0;
   int np = 0;
   int bStart = 0, bEnd = (int)nBins;
   const float nSigmaMAD = 2.;
