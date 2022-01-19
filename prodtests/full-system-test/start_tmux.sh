@@ -48,10 +48,12 @@ if [ "0$FST_TMUX_LOGPREFIX" != "0" ]; then
   LOGCMD1=" &> ${FST_TMUX_LOGPREFIX}_1.log"
 fi
 
-rm -f /dev/shm/*fmq*
-if [[ `ls /dev/shm/*fmq* 2> /dev/null | wc -l` != "0" ]]; then
-  echo "FMQ SHM files left which cannot be deleted, please clean up!"
-  exit 1
+if [[ -z SHM_MANAGER_SHMID ]]; then
+  rm -f /dev/shm/*fmq*
+  if [[ `ls /dev/shm/*fmq* 2> /dev/null | wc -l` != "0" ]]; then
+    echo "FMQ SHM files left which cannot be deleted, please clean up!"
+    exit 1
+  fi
 fi
 
 tmux -L FST \
