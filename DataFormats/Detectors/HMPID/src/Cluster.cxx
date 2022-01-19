@@ -14,7 +14,7 @@
 #include "DataFormatsHMP/Cluster.h"
 #include <TGeoManager.h>
 #include <TVirtualFitter.h>
-#include <math.h>
+#include <cmath>
 
 ClassImp(o2::hmpid::Cluster);
 namespace o2
@@ -108,39 +108,28 @@ void Cluster::coG()
   int maxQpad = -1;
   int maxQ = -1; // to calculate the pad with the highest charge
 
-  o2::hmpid::Digit* pDig = 0x0;
+  o2::hmpid::Digit* pDig = nullptr;
   for (int iDig = 0; iDig < mDigs.size(); iDig++) { // digits loop
     int x, y, mod;
     int padId = mDigs[iDig]->getPadID();
     o2::hmpid::Digit::pad2Absolute(padId, &mod, &x, &y);
-    if (x > maxPadX)
-      maxPadX = x; // find the minimum box that contain the cluster  MaxX
-    if (y > maxPadY)
-      maxPadY = y; // MaxY
-    if (x < minPadX)
-      minPadX = x; // MinX
-    if (y < minPadY)
-      minPadY = y; // MinY
+    if (x > maxPadX) maxPadX = x; // find the minimum box that contain the cluster  MaxX
+    if (y > maxPadY) maxPadY = y; // MaxY
+    if (x < minPadX) minPadX = x; // MinX
+    if (y < minPadY) minPadY = y; // MinY
 
     float q = mDigs[iDig]->mQ; // get QDC
     mXX += o2::hmpid::Digit::lorsX(padId) * q;
     mYY += o2::hmpid::Digit::lorsY(padId) * q; // add digit center weighted by QDC
     mQRaw += q;                                // increment total charge
-    if (q > maxQ) {
-      maxQpad = padId;
-      maxQ = (int)q;
-    }          // to find pad with highest charge
+    if (q > maxQ) { maxQpad = padId; maxQ = (int)q; }    // to find pad with highest charge
     mCh = mod; // initialize chamber number
   }            // digits loop
 
   mBox = (maxPadX - minPadX + 1) * 100 + maxPadY - minPadY + 1; // dimension of the box: format Xdim*100+Ydim
-  if (mQRaw != 0) {
-    mXX /= mQRaw;
-    mYY /= mQRaw;
-  } // final center of gravity
+  if (mQRaw != 0) { mXX /= mQRaw; mYY /= mQRaw; } // final center of gravity
 
-  if (mDigs.size() > 1 && fgDoCorrSin)
-    corrSin(); // correct it by sinoid
+  if (mDigs.size() > 1 && fgDoCorrSin) corrSin(); // correct it by sinoid
 
   mQ = mQRaw; // Before starting fit procedure, Q and QRaw must be equal
   mMaxQpad = maxQpad;
@@ -247,7 +236,7 @@ void Cluster::fitFunc(int& iNpars, double* deriv, double& chi2, double* par, int
 // Print current cluster
 void Cluster::print(Option_t* opt) const
 {
-  const char* status = 0;
+  const char* status = nullptr;
   switch (mSt) {
     case kFrm:
       status = "formed        ";
@@ -297,8 +286,7 @@ void Cluster::print(Option_t* opt) const
          opt, mCh, mXX, mYY, mQ, mQRaw, ratio, mSi, mBox, mNlocMax, mChi2, status);
   if (mDigs.size() > 0) {
     std::cout << "Digits of Cluster" << std::endl;
-    for (int i; i < mDigs.size(); i++)
-      std::cout << mDigs.at(i) << std::endl;
+    for (int i; i < mDigs.size(); i++) std::cout << mDigs.at(i) << std::endl;
   }
   return;
 } // Print()
@@ -348,8 +336,7 @@ int Cluster::solve(std::vector<o2::hmpid::Cluster>* pCluLst, float* pSigmaCut, b
     o2::hmpid::Digit* pDig1 = mDigs.at(iDig1);      // take next digit
     int iCnt = 0;                                   // counts how many neighbouring pads has QDC more then current one
     for (int iDig2 = 0; iDig2 < rawSize; iDig2++) { // loop on all digits again
-      if (iDig1 == iDig2)
-        continue;                                                                                         // the same digit, no need to compare
+      if (iDig1 == iDig2) continue;                                                                       // the same digit, no need to compare
       o2::hmpid::Digit* pDig2 = mDigs.at(iDig2);                                                          // take second digit to compare with the first one
       int dist = TMath::Sign(int(pDig1->mX - pDig2->mX), 1) + TMath::Sign(int(pDig1->mY - pDig2->mY), 1); // distance between pads
       if (dist == 1) {                                                                                    // means dig2 is a neighbour of dig1
@@ -460,8 +447,7 @@ void Cluster::findClusterSize(int i, float* pSigmaCut)
     //  AliDebug(1,Form("Chamber %i X %i Y %i SigmaCut %i pad %i qpadMath %8.2f qPadRaw %8.2f Qtotal %8.2f cluster n.%i",
     //                 iCh, o2::hmpid::Digit::a2X(pDig->getPadID()), o2::hmpid::Digit::a2Y(pDig->getPadID()),
     //                 pSigmaCut[iCh],iDig,qPad,pDig->mQ,mQRaw,i));
-    if (qPad > pSigmaCut[iCh])
-      size++;
+    if (qPad > pSigmaCut[iCh]) size++;
   }
   //  AliDebug(1,Form(" Calculated size %i",size));
   if (size > 0) {
@@ -476,9 +462,7 @@ Bool_t Cluster::isInPc()
   //   Returns: True or False
   int pc = ((o2::hmpid::Digit*)&mDigs.at(0))->getPh(); // (o2::hmpid::Digit*)&mDigs.at(iDig)
 
-  if (mXX < Param::minPcX(pc) || mXX > Param::maxPcX(pc) ||
-      mYY < Param::minPcY(pc) || mYY > Param::maxPcY(pc))
-    return false;
+  if (mXX < Param::minPcX(pc) || mXX > Param::maxPcX(pc) || mYY < Param::minPcY(pc) || mYY > Param::maxPcY(pc)) return false;
 
   return true;
 }

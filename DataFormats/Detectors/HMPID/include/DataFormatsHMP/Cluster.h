@@ -73,18 +73,8 @@ class Cluster
   void doCorrSin(bool doCorrSin) { fgDoCorrSin = doCorrSin; } // Set sinoidal correction
   void setX(float x) { mXX = x; }
   void setY(float y) { mYY = y; }
-  void setQ(float q)
-  {
-    mQ = q;
-    if (mQ > 4095)
-      mQ = 4095;
-  }
-  void setQRaw(float qRaw)
-  {
-    mQRaw = qRaw;
-    if (mQRaw > 4095)
-      mQRaw = 4095;
-  }
+  void setQ(float q) { mQ = q; if (mQ > 4095) mQ = 4095; }
+  void setQRaw(float qRaw) { mQRaw = qRaw; if (mQRaw > 4095) mQRaw = 4095;}
   void setSize(int size) { mSi = size; }
   void setCh(int chamber) { mCh = chamber; }
   void setChi2(float chi2) { mChi2 = chi2; }
