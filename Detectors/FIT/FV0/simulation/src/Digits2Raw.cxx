@@ -49,9 +49,9 @@ void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDi
   LOG(info) << "Open digits file: " << fileDigitsName.data();
 
   TTree* digTree = (TTree*)fdig->Get("o2sim");
-  std::vector<o2::fv0::BCData> digitsBC, *fv0BCDataPtr = &digitsBC;
+  std::vector<o2::fv0::Digit> digitsBC, *fv0DigitPtr = &digitsBC;
   std::vector<o2::fv0::ChannelData> digitsCh, *fv0ChDataPtr = &digitsCh;
-  digTree->SetBranchAddress("FV0DigitBC", &fv0BCDataPtr);
+  digTree->SetBranchAddress("FV0DigitBC", &fv0DigitPtr);
   digTree->SetBranchAddress("FV0DigitCh", &fv0ChDataPtr);
 
   for (int ient = 0; ient < digTree->GetEntries(); ient++) {
@@ -69,7 +69,7 @@ void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDi
   }
 }
 
-void Digits2Raw::convertDigits(o2::fv0::BCData bcdigits, gsl::span<const ChannelData> pmchannels,
+void Digits2Raw::convertDigits(o2::fv0::Digit bcdigits, gsl::span<const ChannelData> pmchannels,
                                const o2::fv0::LookUpTable& lut)
 {
   const o2::InteractionRecord intRecord = bcdigits.getIntRecord();

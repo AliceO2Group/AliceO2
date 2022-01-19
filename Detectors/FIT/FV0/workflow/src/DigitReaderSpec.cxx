@@ -19,7 +19,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"
 #include "FV0Workflow/DigitReaderSpec.h"
-#include "DataFormatsFV0/BCData.h"
+#include "DataFormatsFV0/Digit.h"
 #include "DataFormatsFV0/ChannelData.h"
 #include "DataFormatsFV0/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -51,7 +51,7 @@ void DigitReader::init(InitContext& ic)
 void DigitReader::run(ProcessingContext& pc)
 {
 
-  std::vector<o2::fv0::BCData> digits, *pdigits = &digits;
+  std::vector<o2::fv0::Digit> digits, *pdigits = &digits;
   std::vector<o2::fv0::ChannelData> channels, *pchannels = &channels;
   mTree->SetBranchAddress("FV0DigitBC", &pdigits);
   mTree->SetBranchAddress("FV0DigitCh", &pchannels);

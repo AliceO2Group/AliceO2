@@ -21,7 +21,7 @@
 #include <string>
 #include "FV0Base/Geometry.h"
 #include "DataFormatsFV0/CTF.h"
-#include "DataFormatsFV0/BCData.h"
+#include "DataFormatsFV0/Digit.h"
 #include "DataFormatsFV0/ChannelData.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/CTFCoderBase.h"
@@ -42,7 +42,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   /// entropy-encode digits to buffer with CTF
   template <typename VEC>
-  void encode(VEC& buff, const gsl::span<const BCData>& digitVec, const gsl::span<const ChannelData>& channelVec);
+  void encode(VEC& buff, const gsl::span<const Digit>& digitVec, const gsl::span<const ChannelData>& channelVec);
 
   /// entropy decode clusters from buffer with CTF
   template <typename VDIG, typename VCHAN>
@@ -52,7 +52,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
  private:
   /// compres digits clusters to CompressedDigits
-  void compress(CompressedDigits& cd, const gsl::span<const BCData>& digitVec, const gsl::span<const ChannelData>& channelVec);
+  void compress(CompressedDigits& cd, const gsl::span<const Digit>& digitVec, const gsl::span<const ChannelData>& channelVec);
   size_t estimateCompressedSize(const CompressedDigits& cc);
 
   /// decompress CompressedDigits to digits
@@ -60,12 +60,12 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   void decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& channelVec);
 
   void appendToTree(TTree& tree, CTF& ec);
-  void readFromTree(TTree& tree, int entry, std::vector<BCData>& digitVec, std::vector<ChannelData>& channelVec);
+  void readFromTree(TTree& tree, int entry, std::vector<Digit>& digitVec, std::vector<ChannelData>& channelVec);
 };
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
-void CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& digitVec, const gsl::span<const ChannelData>& channelVec)
+void CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const gsl::span<const ChannelData>& channelVec)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation

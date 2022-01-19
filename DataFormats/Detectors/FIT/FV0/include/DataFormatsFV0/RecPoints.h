@@ -19,7 +19,7 @@
 #include "CommonDataFormat/TimeStamp.h"
 #include "DataFormatsFV0/ChannelData.h"
 #include "CommonDataFormat/RangeReference.h"
-#include "DataFormatsFV0/BCData.h"
+#include "DataFormatsFV0/Digit.h"
 #include <array>
 #include "Rtypes.h"
 #include <TObject.h>

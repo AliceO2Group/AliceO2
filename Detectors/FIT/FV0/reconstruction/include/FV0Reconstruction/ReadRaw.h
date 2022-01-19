@@ -27,7 +27,7 @@
 #include "TBranch.h"
 #include "TTree.h"
 #include "CommonDataFormat/InteractionRecord.h"
-#include "DataFormatsFV0/BCData.h"
+#include "DataFormatsFV0/Digit.h"
 #include "DataFormatsFV0/ChannelData.h"
 #include "DataFormatsFV0/LookUpTable.h"
 #include "DataFormatsFV0/RawEventData.h"

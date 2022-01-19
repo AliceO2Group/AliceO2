@@ -14,7 +14,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Task.h"
 #include "DataFormatsFV0/ChannelData.h"
-#include "DataFormatsFV0/BCData.h"
+#include "DataFormatsFV0/Digit.h"
 #include "FV0Calibration/FV0CalibrationInfoObject.h"
 
 using namespace o2::framework;
@@ -31,7 +31,7 @@ class FV0TFProcessor final : public o2::framework::Task
     const auto ref = pc.inputs().getFirstValid(true);
     auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
     auto channels = pc.inputs().get<gsl::span<o2::fv0::ChannelData>>("channels");
-    auto digits = pc.inputs().get<gsl::span<o2::fv0::BCData>>("digits");
+    auto digits = pc.inputs().get<gsl::span<o2::fv0::Digit>>("digits");
     auto& calib_data = pc.outputs().make<std::vector<o2::fv0::FV0CalibrationInfoObject>>(o2::framework::OutputRef{"calib", 0});
     calib_data.reserve(channels.size());
 

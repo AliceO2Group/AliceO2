@@ -20,7 +20,7 @@
 #include "FV0Simulation/DigitizationConstant.h"
 #include "FV0Simulation/FV0DigParam.h"
 #include <DataFormatsFV0/ChannelData.h>
-#include <DataFormatsFV0/BCData.h>
+#include <DataFormatsFV0/Digit.h>
 #include <cmath>
 #include <bitset>
 #include <cassert>
@@ -32,7 +32,7 @@
 using namespace o2::fv0;
 using RP = o2::fv0::RecPoints;
 
-RP BaseRecoTask::process(o2::fv0::BCData const& bcd,
+RP BaseRecoTask::process(o2::fv0::Digit const& bcd,
                          gsl::span<const o2::fv0::ChannelData> inChData,
                          gsl::span<o2::fv0::ChannelDataFloat> outChData)
 {

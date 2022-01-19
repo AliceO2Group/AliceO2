@@ -22,7 +22,7 @@
 #include "DataFormatsFV0/RawEventData.h"
 #include "DataFormatsFV0/LookUpTable.h"
 #include "DataFormatsFV0/ChannelData.h"
-#include "DataFormatsFV0/BCData.h"
+#include "DataFormatsFV0/Digit.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RawFileWriter.h"
 #include <FairLogger.h>
@@ -41,7 +41,7 @@ class Digits2Raw
  public:
   Digits2Raw() = default;
   void readDigits(const std::string& outDir, const std::string& fileDigitsName);
-  void convertDigits(o2::fv0::BCData bcdigits,
+  void convertDigits(o2::fv0::Digit bcdigits,
                      gsl::span<const ChannelData> pmchannels,
                      const o2::fv0::LookUpTable& lut);
 

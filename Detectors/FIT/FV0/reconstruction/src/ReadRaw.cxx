@@ -139,7 +139,7 @@ void ReadRaw::writeDigits(const std::string& outputDigitsFilePath)
   }
   TTree* outTree = new TTree("o2sim", "o2sim");
   std::vector<ChannelData> chDataVecTree;
-  std::vector<BCData> chBcVecTree;
+  std::vector<Digit> chBcVecTree;
 
   for (auto& digit : mDigitAccum) {
     LOG(debug) << " IR (" << digit.first << ")   (i, PMT, Q, T):";

@@ -29,7 +29,7 @@ void CTFCoder::appendToTree(TTree& tree, CTF& ec)
 ///___________________________________________________________________________________
 // extract and decode data from the tree
 void CTFCoder::readFromTree(TTree& tree, int entry,
-                            std::vector<BCData>& digitVec, std::vector<ChannelData>& channelVec)
+                            std::vector<Digit>& digitVec, std::vector<ChannelData>& channelVec)
 {
   assert(entry >= 0 && entry < tree.GetEntries());
   CTF ec;
@@ -38,7 +38,7 @@ void CTFCoder::readFromTree(TTree& tree, int entry,
 }
 
 ///________________________________
-void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const BCData>& digitVec, const gsl::span<const ChannelData>& channelVec)
+void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digitVec, const gsl::span<const ChannelData>& channelVec)
 {
   // convert digits/channel to their compressed version
   cd.clear();

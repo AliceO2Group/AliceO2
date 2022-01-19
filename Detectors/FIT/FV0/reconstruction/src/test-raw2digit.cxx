@@ -13,7 +13,7 @@
 #include <TTree.h>
 #include "CommonUtils/NameConf.h"
 #include "Framework/Logger.h"
-#include "DataFormatsFV0/BCData.h"
+#include "DataFormatsFV0/Digit.h"
 #include "DataFormatsFV0/ChannelData.h"
 
 #include <TFile.h>
@@ -22,7 +22,7 @@
 using namespace o2::fv0;
 int main()
 {
-  using Digit = o2::fv0::BCData;
+  using Digit = o2::fv0::Digit;
   struct EventFV0_t {
     Digit mDigit;
     std::vector<o2::fv0::ChannelData> mVecChannelData;

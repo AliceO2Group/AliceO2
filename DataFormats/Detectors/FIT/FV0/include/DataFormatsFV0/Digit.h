@@ -9,8 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef _FV0_BC_DATA_H_
-#define _FV0_BC_DATA_H_
+/// \file Digit.h
+/// \brief Class to describe fired triggered and/or stored channels for the BC and to refer to channel data
+/// \author ruben.shahoyan@cern.ch -> maciej.slupecki@cern.ch
+
+#ifndef _FV0_DIGIT_H_
+#define _FV0_DIGIT_H_
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
@@ -19,9 +23,6 @@
 #include <bitset>
 #include <vector>
 #include <tuple>
-/// \file BCData.h
-/// \brief Class to describe fired triggered and/or stored channels for the BC and to refer to channel data
-/// \author ruben.shahoyan@cern.ch -> maciej.slupecki@cern.ch
 
 namespace o2
 {
@@ -90,16 +91,16 @@ struct DetTrigInput {
   ClassDefNV(DetTrigInput, 1);
 };
 
-struct BCData {
+struct Digit {
   static constexpr char sChannelNameDPL[] = "DIGITSBC";
-  static constexpr char sDigitName[] = "BCData";
+  static constexpr char sDigitName[] = "Digit";
   static constexpr char sDigitBranchName[] = "FV0DigitBC";
   /// we are going to refer to at most 48 channels, so 6 bits for the number of channels and 26 for the reference
   o2::dataformats::RangeRefComp<6> ref;
   o2::InteractionRecord ir; //FV0 is detected by using this field!!!
   Triggers mTriggers;
-  BCData() = default;
-  BCData(int first, int ne, o2::InteractionRecord iRec, const Triggers& chTrig)
+  Digit() = default;
+  Digit(int first, int ne, o2::InteractionRecord iRec, const Triggers& chTrig)
   {
     ref.setFirstEntry(first);
     ref.setEntries(ne);
@@ -113,7 +114,7 @@ struct BCData {
   void setIntRecord(const o2::InteractionRecord& intRec) { ir = intRec; }
   void setTriggers(Triggers triggers) { mTriggers = triggers; };
   void print() const;
-  bool operator==(const BCData& other) const
+  bool operator==(const Digit& other) const
   {
     return std::tie(ref, mTriggers, ir) == std::tie(other.ref, other.mTriggers, other.ir);
   }
@@ -123,7 +124,7 @@ struct BCData {
   {
     vecTrgInput.emplace_back(ir, mTriggers.getIsMinBias(), mTriggers.getIsMinBiasInner(), mTriggers.getIsMinBiasOuter(), mTriggers.getIsHighMult(), mTriggers.getIsDummy());
   }
-  ClassDefNV(BCData, 1);
+  ClassDefNV(Digit, 1);
 };
 
 //For TCM extended mode (calibration mode), TCMdataExtended digit

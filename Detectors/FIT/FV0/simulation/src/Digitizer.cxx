@@ -81,7 +81,7 @@ void Digitizer::init()
 }
 
 void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
-                        std::vector<o2::fv0::BCData>& digitsBC,
+                        std::vector<o2::fv0::Digit>& digitsBC,
                         std::vector<o2::fv0::ChannelData>& digitsCh,
                         std::vector<o2::fv0::DetTrigInput>& digitsTrig,
                         o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>& labels)
@@ -201,7 +201,7 @@ void Digitizer::createPulse(float mipFraction, int parID, const double hitTime,
   }
 }
 
-void Digitizer::flush(std::vector<o2::fv0::BCData>& digitsBC,
+void Digitizer::flush(std::vector<o2::fv0::Digit>& digitsBC,
                       std::vector<o2::fv0::ChannelData>& digitsCh,
                       std::vector<o2::fv0::DetTrigInput>& digitsTrig,
                       o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>& labels)
@@ -218,7 +218,7 @@ void Digitizer::flush(std::vector<o2::fv0::BCData>& digitsBC,
 }
 
 void Digitizer::storeBC(const BCCache& bc,
-                        std::vector<o2::fv0::BCData>& digitsBC,
+                        std::vector<o2::fv0::Digit>& digitsBC,
                         std::vector<o2::fv0::ChannelData>& digitsCh,
                         std::vector<o2::fv0::DetTrigInput>& digitsTrig,
                         o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>& labels)
@@ -307,7 +307,7 @@ Int_t Digitizer::SimulateLightYield(Int_t pmt, Int_t nPhot) const
   return n;
 }
 //---------------------------------------------------------------------------
-Float_t Digitizer::IntegrateCharge(const ChannelBCDataF& pulse) const
+Float_t Digitizer::IntegrateCharge(const ChannelDigitF& pulse) const
 {
   int const chargeIntMin = FV0DigParam::Instance().isIntegrateFull ? 0 : (FV0DigParam::Instance().avgCfdTimeForMip - 6.0) / mBinSize;                //Charge integration offset (cfd mean time - 6 ns)
   int const chargeIntMax = FV0DigParam::Instance().isIntegrateFull ? mNTimeBinsPerBC : (FV0DigParam::Instance().avgCfdTimeForMip + 14.0) / mBinSize; //Charge integration offset (cfd mean time + 14 ns)
@@ -321,7 +321,7 @@ Float_t Digitizer::IntegrateCharge(const ChannelBCDataF& pulse) const
   return totalCharge;
 }
 //---------------------------------------------------------------------------
-Float_t Digitizer::SimulateTimeCfd(int& startIndex, const ChannelBCDataF& pulseLast, const ChannelBCDataF& pulse) const
+Float_t Digitizer::SimulateTimeCfd(int& startIndex, const ChannelDigitF& pulseLast, const ChannelDigitF& pulse) const
 {
   Float_t timeCfd = -1024.0f;
 

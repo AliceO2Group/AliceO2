@@ -14,7 +14,7 @@
 #ifndef ALICEO2_FV0_BASERECOTASK_H
 #define ALICEO2_FV0_BASERECOTASK_H
 
-#include "DataFormatsFV0/BCData.h"
+#include "DataFormatsFV0/Digit.h"
 #include "DataFormatsFV0/ChannelData.h"
 #include "DataFormatsFV0/RecPoints.h"
 #include "CommonDataFormat/InteractionRecord.h"
@@ -38,7 +38,7 @@ class BaseRecoTask
  public:
   BaseRecoTask() = default;
   ~BaseRecoTask() = default;
-  o2::fv0::RecPoints process(o2::fv0::BCData const& bcd,
+  o2::fv0::RecPoints process(o2::fv0::Digit const& bcd,
                              gsl::span<const o2::fv0::ChannelData> inChData,
                              gsl::span<o2::fv0::ChannelDataFloat> outChData);
   void FinishTask();

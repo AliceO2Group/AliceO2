@@ -26,7 +26,7 @@ using namespace o2::fv0;
 
 BOOST_AUTO_TEST_CASE(CTFTest)
 {
-  std::vector<BCData> digits;
+  std::vector<Digit> digits;
   std::vector<ChannelData> channels;
   Triggers trigger; // TODO: Actual values are not set
 
@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     LOG(info) << "Read back from tree in " << sw.CpuTime() << " s";
   }
 
-  std::vector<BCData> digitsD;
+  std::vector<Digit> digitsD;
   std::vector<ChannelData> channelsD;
 
   sw.Start();

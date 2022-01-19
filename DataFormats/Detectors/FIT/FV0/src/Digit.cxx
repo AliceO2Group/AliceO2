@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DataFormatsFV0/BCData.h"
+#include "DataFormatsFV0/Digit.h"
 #include "DataFormatsFV0/ChannelData.h"
 #include <Framework/Logger.h>
 #include <bitset>
@@ -24,18 +24,18 @@ void Triggers::printLog() const
   //  LOG(info) << "timeA: " << timeA << " | timeC: " << timeC;
 }
 
-void BCData::print() const
+void Digit::print() const
 {
   ir.print();
   printf("\n");
 }
 
-gsl::span<const ChannelData> BCData::getBunchChannelData(const gsl::span<const ChannelData> tfdata) const
+gsl::span<const ChannelData> Digit::getBunchChannelData(const gsl::span<const ChannelData> tfdata) const
 {
   // extract the span of channel data for this bunch from the whole TF data
   return ref.getEntries() ? gsl::span<const ChannelData>(&tfdata[ref.getFirstEntry()], ref.getEntries()) : gsl::span<const ChannelData>();
 }
-void BCData::printLog() const
+void Digit::printLog() const
 {
   LOG(info) << "______________DIGIT DATA____________";
   LOG(info) << "BC: " << ir.bc << "| ORBIT: " << ir.orbit;
