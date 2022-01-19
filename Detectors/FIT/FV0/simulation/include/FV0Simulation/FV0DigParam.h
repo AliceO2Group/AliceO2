@@ -30,6 +30,7 @@ struct FV0DigParam : public o2::conf::ConfigurableParamHelper<FV0DigParam> {
   // NOTUSED float pmtTransparency = 0.25;        // Transparency of the first dynode of the PMT
   float adcChannelsPerMip = 16;                         // Default: 16 for pp and 8 for PbPb
   float adcChannelsPerMilivolt = adcChannelsPerMip / 7; // Non-trivial conversion depending on the pulseshape: amplitude to charge
+  float chargeThrForMeanTime = 10;                      // Charge threshold, only above which the time is taken into account in calculating the mean time of all qualifying channels
   /// Parameter for the FV0 waveform [Conv. of expo. with Landau]
   // For ring 1-4
   float offsetRingA1ToA4 = 15.87e-09;

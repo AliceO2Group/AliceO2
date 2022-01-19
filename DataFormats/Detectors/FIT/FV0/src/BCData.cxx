@@ -11,6 +11,7 @@
 
 #include "DataFormatsFV0/BCData.h"
 #include "DataFormatsFV0/ChannelData.h"
+#include <Framework/Logger.h>
 #include <bitset>
 
 using namespace o2::fv0;

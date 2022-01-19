@@ -20,12 +20,11 @@
 #include <vector>
 #include <string>
 #include <sstream>
-#include "DataFormatsFV0/Digit.h"
-#include "DataFormatsFV0/ChannelData.h"
+#include "DataFormatsFT0/Digit.h"
+#include "DataFormatsFT0/ChannelData.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "FV0Base/Constants.h"
-#include "DataFormatsFV0/MCLabel.h"
+#include "DataFormatsFT0/MCLabel.h"
 #include "FairLogger.h"
 
 void AdjustStatBox(TH1* h, float x1ndc, float x2ndc, float y1ndc, float y2ndc)
@@ -50,18 +49,19 @@ void InitHistoNames(std::vector<std::string>& vhName)
   vhName.push_back("hNchannels");
 }
 
-void readFV0Digits(std::string digiFName = "fv0digits.root", bool printAllToTerminal = false, UInt_t rebin = 1)
+const int nChannels = 220;
+
+void readFT0Digits(std::string digiFName = "ft0digits.root", bool printAllToTerminal = false, UInt_t rebin = 1)
 {
   gStyle->SetOptStat("noumri");
   // Settings for drawing, used with SetRangeUser()
   const float tMin = -30, tMax = 70, chargeMin = 0, chargeMax = 800;
-  const int nChannels = o2::fv0::Constants::nFv0Channels + 5;
 
   // Init histos
   std::vector<std::string> vHistoNames;
   InitHistoNames(vHistoNames);
-  TH2F* hTimeCharge = new TH2F(vHistoNames.at(0).c_str(), "", 400, -2000, 2000, 4096, 0, 4096);
-  TH2F* hTimeCh = new TH2F(vHistoNames.at(1).c_str(), "", 400, -2000, 2000, nChannels, 0, nChannels);
+  TH2F* hTimeCharge = new TH2F(vHistoNames.at(0).c_str(), "", 400, -200, 200, 4096, 0, 4096);
+  TH2F* hTimeCh = new TH2F(vHistoNames.at(1).c_str(), "", 400, -200, 200, nChannels, 0, nChannels);
   TH2F* hChargeCh = new TH2F(vHistoNames.at(2).c_str(), "", 4096, 0, 4096, nChannels, 0, nChannels);
   TH1F* hNchannels = new TH1F(vHistoNames.at(3).c_str(), "", nChannels, 0, nChannels);
   TH1D* ht = nullptr; // Projection of the upper TH2F -> created later
@@ -79,34 +79,34 @@ void readFV0Digits(std::string digiFName = "fv0digits.root", bool printAllToTerm
     return;
   }
 
-  std::vector<o2::fv0::Digit> fv0digit, *fv0digitPtr = &fv0digit;
-  std::vector<o2::fv0::ChannelData> fv0ChData, *fv0ChDataPtr = &fv0ChData;
-  o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>* labelsPtr = nullptr;
+  std::vector<o2::ft0::Digit> ft0BCData, *ft0BCDataPtr = &ft0BCData;
+  std::vector<o2::ft0::ChannelData> ft0ChData, *ft0ChDataPtr = &ft0ChData;
+  o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* labelsPtr = nullptr;
 
-  digiTree->SetBranchAddress("FV0DigitBC", &fv0digitPtr);
-  digiTree->SetBranchAddress("FV0DigitCh", &fv0ChDataPtr);
+  digiTree->SetBranchAddress("FT0DIGITSBC", &ft0BCDataPtr);
+  digiTree->SetBranchAddress("FT0DIGITSCH", &ft0ChDataPtr);
   if (digiTree->GetBranch("FV0DigitLabels")) {
-    digiTree->SetBranchAddress("FV0DigitLabels", &labelsPtr);
+    digiTree->SetBranchAddress("setProperBranchName", &labelsPtr);
   }
 
   UInt_t nEntries = digiTree->GetEntries();
   for (UInt_t ient = 0; ient < nEntries; ient++) {
     digiTree->GetEntry(ient);
-    int nbc = fv0digit.size();
+    int nbc = ft0BCData.size();
     if (printAllToTerminal) {
       for (int ibc = 0; ibc < nbc; ibc++) {
-        const auto& bcd = fv0digit[ibc];
-        bcd.print();
+        const auto& bcd = ft0BCData[ibc];
+        bcd.printStream(std::cout);
         int chEnt = bcd.ref.getFirstEntry();
         for (int ic = 0; ic < bcd.ref.getEntries(); ic++) {
-          const auto& chd = fv0ChData[chEnt++];
+          const auto& chd = ft0ChData[chEnt++];
           chd.print();
         }
 
         if (labelsPtr) {
           const auto lbl = labelsPtr->getLabels(ibc);
           for (unsigned int lb = 0; lb < lbl.size(); lb++) {
-            printf("Ch%3d ", lbl[lb].getChannel());
+            printf("Det%3d ", lbl[lb].getDetID());
             printf("Src%3d ", lbl[lb].getSourceID());
             lbl[lb].print();
           }
@@ -120,14 +120,14 @@ void readFV0Digits(std::string digiFName = "fv0digits.root", bool printAllToTerm
         std::cout << "  Progress reading tree: " << ibc << "/" << nbc << " [";
         std::cout << 100.0 * ibc / nbc << "%]" << std::endl;
       }
-      const auto& bcd = fv0digit[ibc];
+      const auto& bcd = ft0BCData[ibc];
       //std::cout << ibc << " " << nbc << " - " << bcd.ir << std::endl;
       int chEnt = bcd.ref.getFirstEntry();
       int nchannels = 0;
       for (int ic = 0; ic < bcd.ref.getEntries(); ic++) {
-        const auto& chd = fv0ChData[chEnt++];
+        const auto& chd = ft0ChData[chEnt++];
         //std::cout << chd.ChId << "  " << chd.QTCAmpl << "  " << chd.CFDTime << std::endl;
-        hTimeCharge->Fill(chd.CFDtime, chd.chargeAdc);
+        hTimeCharge->Fill(chd.CFDTime, chd.QTCAmpl);
         hTimeCh->Fill(chd.CFDTime, chd.ChId);
         hChargeCh->Fill(chd.QTCAmpl, chd.ChId);
         if(chd.QTCAmpl > 0){
@@ -174,7 +174,7 @@ void readFV0Digits(std::string digiFName = "fv0digits.root", bool printAllToTerm
 
   // Draw histos
   const float zoomLevelRms = 3;
-  TCanvas* ctc = new TCanvas("fv0digi-timeCharge", "fv0digi-timeCharge", 1800, 900);
+  TCanvas* ctc = new TCanvas("ft0digi-timeCharge", "ft0digi-timeCharge", 1800, 900);
   ctc->Divide(2, 2);
   ctc->cd(1);
   gPad->SetMargin(lmargin, rmargin, bmargin, tmargin);
@@ -205,7 +205,7 @@ void readFV0Digits(std::string digiFName = "fv0digits.root", bool printAllToTerm
   hc->Draw();
   //AdjustStatBox(hc, statX1, statX2, statY1, statY2);
 
-  TCanvas* cmulti = new TCanvas("fv0digi-multi", "fv0digi-multi", 1800, 500);
+  TCanvas* cmulti = new TCanvas("ft0digi-multi", "ft0digi-multi", 1800, 500);
   cmulti->Divide(2);
   cmulti->cd(1);{
 	  gPad->SetMargin(1.3 * lmargin, rmargin, bmargin, tmargin);
@@ -221,7 +221,7 @@ void readFV0Digits(std::string digiFName = "fv0digits.root", bool printAllToTerm
   }
 
   // Save histos
-  TFile* fout = new TFile("fv0digi-rawhistos.root", "RECREATE");
+  TFile* fout = new TFile("ft0digi-rawhistos.root", "RECREATE");
   hTimeCharge->Write();
   hTimeCh->Write();
   hChargeCh->Write();
@@ -256,11 +256,10 @@ void SetupPad(TH1* h, float fontSize, float lmargin, float rmargin, float tmargi
 }
 
 // Root files generated in the previous stage (readFV0Digits()) are used as inputs here
-int compareFV0Digits(std::string digiFName1 = "fv0digi-rawhistos.root", std::string digiFName2 = "", std::string digiFName3 = "")
+int compareFT0Digits(std::string digiFName1 = "ft0digi-rawhistos.root", std::string digiFName2 = "", std::string digiFName3 = "")
 {
-  const int tmin=-100, tmax=100, cmin=0, cmax=1100;
+  const int tmin=-100, tmax=100, cmin=0, cmax=180;
   gStyle->SetOptStat("");
-  const int nChannels = o2::fv0::Constants::nFv0Channels + 5;
   std::vector<Color_t> vcol;
   vcol.push_back(kBlack);
   vcol.push_back(kRed);
@@ -312,6 +311,33 @@ int compareFV0Digits(std::string digiFName1 = "fv0digi-rawhistos.root", std::str
   const float statX1 = 1. - rmargin, statX2 = statX1 - 0.18;
   const float statH = 0.3, statY1 = 1. - tmargin, statY2 = statY1 - statH;
 
+  // Draw the comparison of TH1's (sum of all channels)
+  Color_t col[3] = {kBlack, kRed, kBlue};
+  TCanvas* c = new TCanvas("ft0digi-cmp-th1", "ft0digi-cmp-th1", 1800, 500);
+  c->Divide(2, 1);
+  for (UInt_t ifile = 0; ifile < nFiles; ifile++) {
+    TH2F* h2 = (TH2F*)vh.at(ifile * nHistos);
+    h2->SetLineColor(col[ifile]);
+    h2->SetLineWidth(2);
+    std::stringstream ss;
+    ss << "p" << ifile;
+    TH1D* ht = h2->ProjectionX((ss.str() + "t_" + h2->GetName()).c_str());
+    TH1D* hc = h2->ProjectionY((ss.str() + "c_" + h2->GetName()).c_str());
+    hc->GetXaxis()->SetRangeUser(0, 100);
+    c->cd(1);
+    gPad->SetMargin(lmargin, rmargin, bmargin, tmargin);
+    gPad->SetLogy();
+    ht->SetLineWidth(3.5 - ifile);
+    ht->Draw((ifile == 0) ? "" : "sames");
+    AdjustStatBox(ht, statX1, statX2, statY1 - statH * ifile, statY2 - statH * ifile);
+    c->cd(2);
+    gPad->SetMargin(lmargin, rmargin, bmargin, tmargin);
+    gPad->SetLogy();
+    hc->SetLineWidth(3.5 - ifile);
+    hc->Draw((ifile == 0) ? "" : "sames");
+    AdjustStatBox(hc, statX1, statX2, statY1 - statH * ifile, statY2 - statH * ifile);
+  }
+
   // Draw the comparison of time and amplitude channel by channel
   std::vector<std::string> vnamestat;
   vnamestat.push_back("htmean1");
@@ -330,10 +356,20 @@ int compareFV0Digits(std::string digiFName1 = "fv0digi-rawhistos.root", std::str
   for(unsigned int i=0; i<vnamestat.size(); i++){
 	vhstat.push_back(new TH1D(vnamestat.at(i).c_str(), "", nChannels, 0, nChannels));
   }
-  TCanvas* ct = new TCanvas("fv0digi-cmp-time"  , "fv0digi-cmp-time", 1250, 820);
-  TCanvas* cc = new TCanvas("fv0digi-cmp-charge", "fv0digi-cmp-charge", 1250, 820);
-  ct->Divide(6, nChannels/6+1);
-  cc->Divide(6, nChannels/6+1);
+  std::vector<TCanvas*> vcvs;
+  for(unsigned int icvs=0; icvs<4; icvs++){
+    std::stringstream ssct, sscc;
+    ssct << "ft0digi-cmp-time" << icvs;
+    vcvs.push_back(new TCanvas(ssct.str().c_str(), ssct.str().c_str(), 1250, 820));
+  }
+  for(unsigned int icvs=0; icvs<4; icvs++){
+    std::stringstream sscc;
+	sscc << "ft0digi-cmp-charge" << icvs;
+    vcvs.push_back(new TCanvas(sscc.str().c_str(), sscc.str().c_str(), 1250, 820));
+  }
+  for(unsigned int icvs=0; icvs<vcvs.size(); icvs++){
+	  vcvs.at(icvs)->Divide(6, nChannels/6/4+1);
+  }
   for (UInt_t ifile = 0; ifile < nFiles; ifile++) {
     TH2F* h2t = (TH2F*)vh.at(ifile * nHistos + 1);
     h2t->GetXaxis()->SetRangeUser(tmin, tmax);
@@ -341,9 +377,9 @@ int compareFV0Digits(std::string digiFName1 = "fv0digi-rawhistos.root", std::str
     h2c->GetXaxis()->SetRangeUser(cmin, cmax);
     for(unsigned int ich=0; ich<nChannels; ich++){
       std::stringstream sst, ssc;
-      ct->cd(ich+1);{
+      vcvs.at(ich/60)->cd((ich%60)+1);{
         sst << "t" << ifile << "_" << ich;
-        TH1D* ht = h2t->ProjectionX(sst.str().c_str(), ich+1, ich+1);
+        TH1D* ht = h2t->ProjectionX(sst.str().c_str(), ich, ich);
         SetupPad(ht, 0.16, 0.01, 0, 0, 0.17, 1, 1);
         ht->SetLineColor(vcol.at(ifile));
         ht->Draw((ifile==0)?"":"same");
@@ -362,9 +398,9 @@ int compareFV0Digits(std::string digiFName1 = "fv0digi-rawhistos.root", std::str
         DrawTextNdc(ss1.str(), 0.6, 0.85-ifile*0.3, 0.15, ht->GetLineColor(), 0);
         DrawTextNdc(ss2.str(), 0.6, 0.7-ifile*0.3, 0.15, ht->GetLineColor(), 0);
       }
-      cc->cd(ich+1);{
+      vcvs.at(ich/60+4)->cd((ich%60)+1);{
         ssc << "c" << ifile << "_" << ich;
-        TH1D* hc = h2c->ProjectionX(ssc.str().c_str(), ich+1, ich+1);
+        TH1D* hc = h2c->ProjectionX(ssc.str().c_str(), ich, ich);
         SetupPad(hc, 0.16, 0.01, 0, 0, 0.17, 1, 1);
         hc->SetLineColor(vcol.at(ifile));
         hc->Draw((ifile==0)?"":"same");
@@ -387,15 +423,9 @@ int compareFV0Digits(std::string digiFName1 = "fv0digi-rawhistos.root", std::str
   }
 
   // Draw the comparison of mean & rms for charge and time
-  TCanvas* cstat = new TCanvas("fv0digi-cmp-stat"  , "fv0digi-cmp-stat", 1250, 820);
-  cstat->SetMargin(0, 0, 0, 0);
+  TCanvas* cstat = new TCanvas("ft0digi-cmp-stat"  , "ft0digi-cmp-stat", 1250, 820);
   cstat->Divide(2, 2);
   float ymin = 0, ymax = 2;
-  std::vector<std::string> vytitle;
-  vytitle.push_back("Ratio of time mean (after / before)");
-  vytitle.push_back("Ratio of time RMS (after / before)");
-  vytitle.push_back("Ratio of charge mean (after / before)");
-  vytitle.push_back("Ratio of charge RMS (after / before)");
   for(int ipad=0; ipad<4; ipad++){
     cstat->cd(ipad+1);
     gPad->SetGrid(1, 1);
@@ -404,53 +434,16 @@ int compareFV0Digits(std::string digiFName1 = "fv0digi-rawhistos.root", std::str
 //    vhstat.at(ipad)->GetYaxis()->SetRangeUser(ymin, ymax);
 //    vhstat.at(ipad)->Draw();
 
-    TH1D* h1 = (TH1D*)vhstat.at(ipad+4)->Clone();
-    h1->SetLineColor(vcol.at(0));
-    h1->Divide(vhstat.at(ipad+0));
-    h1->GetYaxis()->SetRangeUser(ymin, ymax);
-    h1->SetLineWidth(2);
-    h1->Draw("");
-    h1->GetXaxis()->SetTitle("Channel");
-    h1->GetYaxis()->SetTitle(vytitle.at(ipad).c_str());
-    h1->GetXaxis()->SetNdivisions(12);
-    SetupPad(h1, 0.06, 0.11, 0.02, 0.015, 0.11, 0.9, 0.9);
-
-    TH1D* h2 = (TH1D*)vhstat.at(ipad+8)->Clone();
-    h2->SetLineColor(vcol.at(1));
-    h2->Divide(vhstat.at(ipad+0));
-    h2->GetYaxis()->SetRangeUser(ymin, ymax);
-    h2->SetLineWidth(2);
-    h2->Draw("same");
-  }
-
-  // Draw the absolute time and amplitude
-  TCanvas* cabs = new TCanvas("fv0digi-abs-tc"  , "fv0digi-abs-tc", 1250, 820);
-  cabs->SetMargin(0, 0, 0, 0);
-  cabs->Divide(2, 2);
-  float ymin1 = -100, ymax1 = 100;
-  std::vector<std::string> vytitle1;
-  vytitle1.push_back("Mean time [ch = 13 ps]");
-  vytitle1.push_back("RMS time [ch = 13 ps]");
-  vytitle1.push_back("Mean charge [ch]");
-  vytitle1.push_back("RMS charge [ch]");
-  for(int ipad=0; ipad<4; ipad++){
-    cabs->cd(ipad+1);
-    gPad->SetGrid(1, 1);
-
-//    vhstat.at(ipad)->SetLineColor(vcol.at(2));
-//    vhstat.at(ipad)->GetYaxis()->SetRangeUser(ymin, ymax);
-//    vhstat.at(ipad)->Draw();
-
     vhstat.at(ipad+4)->SetLineColor(vcol.at(0));
-    vhstat.at(ipad+4)->GetYaxis()->SetRangeUser(ymin1, ymax1);
-    vhstat.at(ipad+4)->SetLineWidth(2);
-    vhstat.at(ipad+4)->Draw("");
-    vhstat.at(ipad+4)->GetXaxis()->SetTitle("Channel");
-    vhstat.at(ipad+4)->GetYaxis()->SetTitle(vytitle1.at(ipad).c_str());
-    vhstat.at(ipad+4)->GetXaxis()->SetNdivisions(12);
-    SetupPad(vhstat.at(ipad+4), 0.06, 0.11, 0.02, 0.015, 0.11, 0.9, 0.9);
-  }
+    vhstat.at(ipad+4)->Divide(vhstat.at(ipad+0));
+    vhstat.at(ipad+4)->GetYaxis()->SetRangeUser(ymin, ymax);
+    vhstat.at(ipad+4)->Draw("same");
 
+    vhstat.at(ipad+8)->SetLineColor(vcol.at(1));
+    vhstat.at(ipad+8)->Divide(vhstat.at(ipad+0));
+    vhstat.at(ipad+8)->GetYaxis()->SetRangeUser(ymin, ymax);
+    vhstat.at(ipad+8)->Draw("same");
+  }
   return 0;
 }
 

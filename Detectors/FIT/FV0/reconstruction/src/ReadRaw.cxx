@@ -25,8 +25,8 @@ ReadRaw::ReadRaw(bool doConversionToDigits, const std::string inputRawFilePath, 
   mRawFileIn.exceptions(std::ios_base::failbit | std::ios_base::badbit);
   mRawFileIn.open(inputRawFilePath, std::fstream::in | std::fstream::binary);
   LookUpTable lut(true);
-  ReadRaw::readRawData(lut);
-  ReadRaw::writeDigits(outputDigitsFilePath.data());
+//  ReadRaw::readRawData(lut);
+//  ReadRaw::writeDigits(outputDigitsFilePath.data());
 }
 
 void ReadRaw::readRawData(const LookUpTable& lut)
@@ -81,9 +81,10 @@ void ReadRaw::readRawData(const LookUpTable& lut)
           for (int i = 0; i < eventHeader.nGBTWords; ++i) {
             mRawFileIn.read(reinterpret_cast<char*>(&eventData[2 * i]), o2::fv0::RawEventData::sPayloadSizeFirstWord);
             posPayload += o2::fv0::RawEventData::sPayloadSizeFirstWord;
-            chData = {Short_t(lut.getChannel(link, int(eventData[2 * i].channelID))),
-                      Float_t(eventData[2 * i].time),
-                      Short_t(eventData[2 * i].charge)};
+            chData = {uint8_t(lut.getChannel(link, int(eventData[2 * i].channelID))),
+                      int16_t(eventData[2 * i].time),
+                      int16_t(eventData[2 * i].charge),
+                      uint8_t(-1)}; // TODO: MS: Fill with raw data (need to modify EventData class)
             mDigitAccum[intrec].emplace_back(chData);
             LOG(debug) << "    Read 1st half-word: (PMchannel, globalChannel, Q, T, posPayload) =  "
                        << std::setw(3) << int(eventData[2 * i].channelID)
@@ -92,14 +93,15 @@ void ReadRaw::readRawData(const LookUpTable& lut)
                        << std::setw(5) << float(eventData[2 * i].time)
                        << std::setw(5) << posPayload;
 
-            Short_t channelIdFirstHalfWord = chData.pmtNumber;
+            Short_t channelIdFirstHalfWord = chData.ChId;
 
             mRawFileIn.read(reinterpret_cast<char*>(&eventData[2 * i + 1]), o2::fv0::RawEventData::sPayloadSizeSecondWord);
             posPayload += o2::fv0::RawEventData::sPayloadSizeSecondWord;
-            chData = {Short_t(lut.getChannel(link, (eventData[2 * i + 1].channelID))),
-                      Float_t(eventData[2 * i + 1].time),
-                      Short_t(eventData[2 * i + 1].charge)};
-            if (chData.pmtNumber <= channelIdFirstHalfWord) {
+            chData = {uint8_t(lut.getChannel(link, (eventData[2 * i + 1].channelID))),
+                      int16_t(eventData[2 * i + 1].time),
+                      int16_t(eventData[2 * i + 1].charge),
+                      uint8_t(-1)}; // TODO: MS: Fill with raw data (need to modify EventData class)
+            if (chData.ChId <= channelIdFirstHalfWord) {
               // Don't save the second half-word if it is only filled with zeroes (empty-data)
               // TODO: Verify if it works correctly with real data from readout
               continue;
@@ -144,18 +146,18 @@ void ReadRaw::writeDigits(const std::string& outputDigitsFilePath)
     for (uint16_t i = 0; i < digit.second.size(); i++) {
       ChannelData* chd = &(digit.second.at(i));
       LOG(debug) << "  " << std::setw(3) << i
-                 << std::setw(4) << chd->pmtNumber
-                 << std::setw(5) << chd->chargeAdc
-                 << std::setw(5) << chd->time;
+                 << std::setw(4) << chd->ChId
+                 << std::setw(5) << chd->QTCAmpl
+                 << std::setw(5) << chd->CFDTime;
     }
 
     size_t nStored = 0;
     size_t first = chDataVecTree.size();
     for (auto& sec : digit.second) {
-      chDataVecTree.emplace_back(int(sec.pmtNumber), float(sec.time), Short_t(sec.chargeAdc));
+      chDataVecTree.emplace_back(uint8_t(sec.ChId), int16_t(sec.CFDTime), int16_t(sec.QTCAmpl), uint8_t(sec.ChainQTC));
       nStored++;
     }
-    Triggers triggers; // TODO: Actual values are not set
+    Triggers triggers; // TODO: MS: Actual values are not set
     chBcVecTree.emplace_back(first, nStored, digit.first, triggers);
   }
 

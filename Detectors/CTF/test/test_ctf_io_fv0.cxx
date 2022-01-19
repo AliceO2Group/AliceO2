@@ -42,7 +42,8 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     while (ich < MAXChan) {
       int16_t t = -2048 + gRandom->Integer(2048 * 2);
       uint16_t q = gRandom->Integer(4096);
-      channels.emplace_back(ich, t, q);
+      uint8_t chain = gRandom->Rndm() > 0.5 ? 0 : 1;
+      channels.emplace_back(ich, t, q, chain);
       ich += 1 + gRandom->Poisson(10);
     }
     auto end = channels.size();
@@ -114,9 +115,9 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     /*
     const auto& cor = channels[i];
     const auto& cdc = channelsD[i];
-    BOOST_CHECK(cor.pmtNumber == cdc.pmtNumber);
-    BOOST_CHECK(cor.time == cdc.time);
-    BOOST_CHECK(cor.chargeAdc == cdc.chargeAdc);
+    BOOST_CHECK(cor.ChId == cdc.ChId);
+    BOOST_CHECK(cor.CFDTime == cdc.CFDTime);
+    BOOST_CHECK(cor.QTCAmpl == cdc.QTCAmpl);
     */
     BOOST_CHECK(channels[i] == channelsD[i]);
   }

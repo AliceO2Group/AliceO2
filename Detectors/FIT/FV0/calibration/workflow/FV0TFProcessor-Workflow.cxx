@@ -36,7 +36,7 @@ class FV0TFProcessor final : public o2::framework::Task
     calib_data.reserve(channels.size());
 
     for (const auto& channel : channels) {
-      calib_data.emplace_back(channel.pmtNumber, channel.time, channel.chargeAdc, uint64_t(creationTime));
+      calib_data.emplace_back(channel.ChId, channel.CFDTime, channel.QTCAmpl, uint64_t(creationTime));
     }
   }
 };

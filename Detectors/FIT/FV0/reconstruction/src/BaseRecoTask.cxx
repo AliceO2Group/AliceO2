@@ -51,11 +51,11 @@ RP BaseRecoTask::process(o2::fv0::BCData const& bcd,
   int nch = inChData.size();
   for (int ich = 0; ich < nch; ich++) {
     LOG(debug) << "  channel " << ich << " / " << nch;
-    int offsetChannel = getChannelOffset(inChData[ich].pmtNumber);
+    int offsetChannel = getChannelOffset(inChData[ich].ChId);
 
-    outChData[ich] = o2::fv0::ChannelDataFloat{inChData[ich].pmtNumber,
-                                               (inChData[ich].time - offsetChannel) * DigitizationConstant::TIME_PER_TDCCHANNEL,
-                                               (double)inChData[ich].chargeAdc * o2::fv0::FV0DigParam::Instance().adcChannelsPerMilivolt,
+    outChData[ich] = o2::fv0::ChannelDataFloat{inChData[ich].ChId,
+                                               (inChData[ich].CFDTime - offsetChannel) * DigitizationConstant::TIME_PER_TDCCHANNEL,
+                                               (double)inChData[ich].QTCAmpl * o2::fv0::FV0DigParam::Instance().adcChannelsPerMilivolt,
                                                0}; // Fill with ADC number once implemented
 
     //  only signals with amplitude participate in collision time
@@ -64,8 +64,7 @@ RP BaseRecoTask::process(o2::fv0::BCData const& bcd,
       sideAtimeAvg += outChData[ich].time;
       ndigitsA++;
     }
-    const float chargeThreshold = 10; // TODO: move to digitization parameters or constants and adjust to reasonable value
-    if (outChData[ich].charge > 0) {
+    if (outChData[ich].charge > o2::fv0::FV0DigParam::Instance().chargeThrForMeanTime) {
       sideAtimeAvgSelected += outChData[ich].time;
       ndigitsASelected++;
     }

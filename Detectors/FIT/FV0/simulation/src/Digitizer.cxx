@@ -256,7 +256,8 @@ void Digitizer::storeBC(const BCCache& bc,
     }
     cfdZero *= DP::INV_TIME_PER_TDCCHANNEL;
 
-    digitsCh.emplace_back(iPmt, std::lround(cfdZero), std::lround(totalCharge));
+    int chain = (std::rand() % 2) ? 1 : 0;
+    digitsCh.emplace_back(iPmt, std::lround(cfdZero), std::lround(totalCharge), chain);
     ++nStored;
     //---trigger---
     if (iPmt < 24) {

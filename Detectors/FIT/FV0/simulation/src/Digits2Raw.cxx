@@ -79,17 +79,17 @@ void Digits2Raw::convertDigits(o2::fv0::BCData bcdigits, gsl::span<const Channel
   std::stringstream ss;
   ss << "  Number of channels: " << nch << "   (Ch, PMT, Q, T)\n";
   for (int ich = 0; ich < nch; ich++) {
-    if (pmchannels[ich].chargeAdc != 0) {
+    if (pmchannels[ich].QTCAmpl != 0) {
       ss << "          " << std::setw(2) << ich
-         << std::setw(3) << pmchannels[ich].pmtNumber
-         << std::setw(5) << pmchannels[ich].chargeAdc
-         << std::setw(7) << std::setprecision(3) << pmchannels[ich].time << "\n";
+         << std::setw(3) << pmchannels[ich].ChId
+         << std::setw(5) << pmchannels[ich].QTCAmpl
+         << std::setw(7) << std::setprecision(3) << pmchannels[ich].CFDTime << "\n";
     }
   }
   LOG(debug) << ss.str().substr(0, ss.str().size() - 1);
 
   for (int ich = 0; ich < nch; ich++) {
-    int nLinkPm = lut.getLink(pmchannels[ich].pmtNumber);
+    int nLinkPm = lut.getLink(pmchannels[ich].ChId);
     if (nLinkPm != prevPmLink) {
       if (prevPmLink >= 0) {
         fillSecondHalfWordAndAddData(iChannelPerLink, prevPmLink, intRecord);
@@ -98,13 +98,13 @@ void Digits2Raw::convertDigits(o2::fv0::BCData bcdigits, gsl::span<const Channel
       iChannelPerLink = 0;
       prevPmLink = nLinkPm;
     }
-    if (pmchannels[ich].chargeAdc != 0) {
+    if (pmchannels[ich].QTCAmpl != 0) {
       LOG(debug) << "    Store data for channel: " << ich << " PmLink = " << nLinkPm << "  ";
       auto& newData = mRawEventData.mEventData[iChannelPerLink];
-      newData.charge = pmchannels[ich].chargeAdc;
-      newData.time = pmchannels[ich].time;
+      newData.charge = pmchannels[ich].QTCAmpl;
+      newData.time = pmchannels[ich].CFDTime;
       newData.generateFlags();
-      newData.channelID = lut.getPmChannel(pmchannels[ich].pmtNumber);
+      newData.channelID = lut.getPmChannel(pmchannels[ich].ChId);
       iChannelPerLink++;
     }
     if (ich == nch - 1) {

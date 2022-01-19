@@ -86,11 +86,11 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const BCData>& dig
     }
     uint8_t prevChan = 0;
     for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
-      assert(prevChan <= chanels[ic].pmtNumber);
-      cd.idChan[ccount] = chanels[ic].pmtNumber - prevChan;
-      cd.time[ccount] = chanels[ic].time;        // make sure it fits to short!!!
-      cd.charge[ccount] = chanels[ic].chargeAdc; // make sure we really need short!!!
-      prevChan = chanels[ic].pmtNumber;
+      assert(prevChan <= chanels[ic].ChId);
+      cd.idChan[ccount] = chanels[ic].ChId - prevChan;
+      cd.time[ccount] = chanels[ic].CFDTime;
+      cd.charge[ccount] = chanels[ic].QTCAmpl;
+      prevChan = chanels[ic].ChId;
       ccount++;
     }
   }
