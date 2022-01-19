@@ -1284,10 +1284,12 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
         LOG(fatal) << "Error: could not find a corresponding BC ID for MC collision; BC = " << globalBC << ", mc collision = " << iCol;
       }
       auto& colParts = mcParts[iCol];
+      auto nParts = colParts.size();
       for (auto colPart : colParts) {
         auto eventID = colPart.entryID;
         auto sourceID = colPart.sourceID;
-        if (sourceID == 0) { // embedding: using background event info
+        // enable embedding: if several colParts exist, then they are saved as one collision
+        if (nParts == 1 || sourceID == 0) {
           // FIXME:
           // use generators' names for generatorIDs (?)
           short generatorID = sourceID;
