@@ -261,13 +261,13 @@ struct OutputManager<OutputObj<T>> {
 
 /// Spawns specializations
 template <typename O>
-static auto extractOriginal(ProcessingContext& pc)
+static inline auto extractOriginal(ProcessingContext& pc)
 {
   return pc.inputs().get<TableConsumer>(aod::MetadataTrait<O>::metadata::tableLabel())->asArrowTable();
 }
 
 template <typename... Os>
-static std::vector<std::shared_ptr<arrow::Table>> extractOriginals(framework::pack<Os...>, ProcessingContext& pc)
+static inline std::vector<std::shared_ptr<arrow::Table>> extractOriginals(framework::pack<Os...>, ProcessingContext& pc)
 {
   return {extractOriginal<Os>(pc)...};
 }
@@ -282,14 +282,14 @@ struct OutputManager<Spawns<T>> {
 
   static bool prepare(ProcessingContext& pc, Spawns<T>& what)
   {
-    auto original_table = soa::ArrowHelpers::joinTables(extractOriginals(what.sources_pack(), pc));
-    if (original_table->schema()->fields().empty() == true) {
+    auto originalTable = soa::ArrowHelpers::joinTables(extractOriginals(what.sources_pack(), pc));
+    if (originalTable->schema()->fields().empty() == true) {
       using base_table_t = typename Spawns<T>::base_table_t;
-      original_table = makeEmptyTable<base_table_t>(aod::MetadataTrait<typename Spawns<T>::extension_t>::metadata::tableLabel());
+      originalTable = makeEmptyTable<base_table_t>(aod::MetadataTrait<typename Spawns<T>::extension_t>::metadata::tableLabel());
     }
 
-    what.extension = std::make_shared<typename Spawns<T>::extension_t>(o2::framework::spawner(what.pack(), original_table.get(), aod::MetadataTrait<typename Spawns<T>::extension_t>::metadata::tableLabel()));
-    what.table = std::make_shared<typename T::table_t>(soa::ArrowHelpers::joinTables({what.extension->asArrowTable(), original_table}));
+    what.extension = std::make_shared<typename Spawns<T>::extension_t>(o2::framework::spawner(what.pack(), extractOriginals(what.sources_pack(), pc), aod::MetadataTrait<typename Spawns<T>::extension_t>::metadata::tableLabel()));
+    what.table = std::make_shared<typename T::table_t>(soa::ArrowHelpers::joinTables({what.extension->asArrowTable(), originalTable}));
     return true;
   }
 

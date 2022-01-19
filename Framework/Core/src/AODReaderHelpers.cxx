@@ -134,9 +134,30 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec>& req
   }};
 }
 
+namespace
+{
+auto inputSpecFromString(std::string s)
+{
+  std::regex word_regex("(\\w+)");
+  auto words = std::sregex_iterator(s.begin(), s.end(), word_regex);
+  if (std::distance(words, std::sregex_iterator()) != 3) {
+    throw runtime_error_f("Malformed input spec metadata: %s", s.c_str());
+  }
+  std::vector<std::string> data;
+  for (auto i = words; i != std::sregex_iterator(); ++i) {
+    data.emplace_back(i->str());
+  }
+  char origin[4];
+  char description[16];
+  std::memcpy(&origin, data[1].c_str(), 4);
+  std::memcpy(&description, data[2].c_str(), 16);
+  return InputSpec{data[0], header::DataOrigin{origin}, header::DataDescription{description}};
+};
+} // namespace
+
 AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec>& requested)
 {
-  return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
+  return AlgorithmSpec::InitCallback{[requested](InitContext& /*ic*/) {
     return [requested](ProcessingContext& pc) {
       auto outputs = pc.outputs();
       // spawn tables
@@ -146,8 +167,14 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec>& reque
         auto maker = [&](auto metadata) {
           using metadata_t = decltype(metadata);
           using expressions = typename metadata_t::expression_pack_t;
-          auto original_table = pc.inputs().get<TableConsumer>(input.binding)->asArrowTable();
-          return o2::framework::spawner(expressions{}, original_table.get(), input.binding.c_str());
+          std::vector<std::shared_ptr<arrow::Table>> originalTables;
+          for (auto& i : input.metadata) {
+            if ((i.type == VariantType::String) && (i.name.find("input:") != std::string::npos)) {
+              auto spec = inputSpecFromString(i.defaultValue.get<std::string>());
+              originalTables.push_back(pc.inputs().get<TableConsumer>(spec.binding)->asArrowTable());
+            }
+          }
+          return o2::framework::spawner(expressions{}, std::move(originalTables), input.binding.c_str());
         };
 
         if (description == header::DataDescription{"TRACK"}) {

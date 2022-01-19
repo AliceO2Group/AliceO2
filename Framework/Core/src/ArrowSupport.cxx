@@ -415,6 +415,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
       auto builder = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-index-builder"; });
       auto reader = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-reader"; });
       auto writer = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-writer"; });
+      std::vector<InputSpec> requestedAODs;
 
       if (spawner != workflow.end()) {
         std::vector<InputSpec> requestedDYNs;
@@ -433,24 +434,12 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
           requestedDYNs.erase(end, requestedDYNs.end());
         }
 
-        // remove unmatched outputs
-        auto o_end = std::remove_if(spawner->outputs.begin(), spawner->outputs.end(), [&](OutputSpec const& o) {
-          return std::none_of(requestedDYNs.begin(), requestedDYNs.end(), [&](InputSpec const& i) { return DataSpecUtils::match(i, o); });
-        });
-        spawner->outputs.erase(o_end, spawner->outputs.end());
-
-        // remove unmatched inputs
-        auto i_end = std::remove_if(spawner->inputs.begin(), spawner->inputs.end(), [&](InputSpec const& i) {
-          auto&& [origin, description] = DataSpecUtils::asConcreteDataTypeMatcher(i);
-          return std::none_of(spawner->outputs.begin(), spawner->outputs.end(), [description = description](OutputSpec const& o) {
-            return DataSpecUtils::partialMatch(o, description);
-          });
-        });
-        spawner->inputs.erase(i_end, spawner->inputs.end());
-
+        spawner->outputs.clear();
+        spawner->inputs.clear();
         // replace AlgorithmSpec
         // FIXME: it should be made more generic, so it does not need replacement...
         spawner->algorithm = readers::AODReaderHelpers::aodSpawnerCallback(requestedDYNs);
+        WorkflowHelpers::addMissingOutputsToSpawner(std::move(requestedDYNs), requestedAODs, *spawner);
       }
 
       if (builder != workflow.end()) {
@@ -485,12 +474,22 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
 
       if (reader != workflow.end() && (spawner != workflow.end() || builder != workflow.end())) {
         // If reader and/or builder were adjusted, remove unneeded outputs
-        std::vector<InputSpec> requestedAODs;
-        // collect currently requested AODs
+        // update currently requested AODs
         for (auto& d : workflow) {
           for (auto& i : d.inputs) {
             if (DataSpecUtils::partialMatch(i, header::DataOrigin{"AOD"})) {
-              requestedAODs.emplace_back(i);
+              auto locate = std::find_if(requestedAODs.begin(), requestedAODs.end(), [&](InputSpec& input) { return input.binding == i.binding; });
+              if (locate != requestedAODs.end()) {
+                // amend entry
+                auto& entryMetadata = locate->metadata;
+                entryMetadata.insert(entryMetadata.end(), i.metadata.begin(), i.metadata.end());
+                std::sort(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name < b.name; });
+                auto new_end = std::unique(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name == b.name; });
+                entryMetadata.erase(new_end, entryMetadata.end());
+              } else {
+                // add entry
+                requestedAODs.emplace_back(i);
+              }
             }
           }
           std::sort(requestedAODs.begin(), requestedAODs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding < b.binding; });

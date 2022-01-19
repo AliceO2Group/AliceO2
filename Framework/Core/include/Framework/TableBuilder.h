@@ -855,16 +855,13 @@ auto makeEmptyTable(const char* name)
 
 /// Expression-based column generator to materialize columns
 template <typename... C>
-auto spawner(framework::pack<C...> columns, arrow::Table* atable, const char* name)
+auto spawner(framework::pack<C...> columns, std::vector<std::shared_ptr<arrow::Table>>&& tables, const char* name)
 {
-  std::string s = std::string{name} + "Extension";
-  if (atable->num_rows() == 0) {
-    return makeEmptyTable<soa::Table<C...>>(s.c_str());
-  }
+  auto fullTable = soa::ArrowHelpers::joinTables(std::move(tables));
   static auto new_schema = o2::soa::createSchemaFromColumns(columns);
-  static auto projectors = framework::expressions::createProjectors(columns, atable->schema());
+  static auto projectors = framework::expressions::createProjectors(columns, fullTable->schema());
 
-  arrow::TableBatchReader reader(*atable);
+  arrow::TableBatchReader reader(*fullTable);
   std::shared_ptr<arrow::RecordBatch> batch;
   arrow::ArrayVector v;
   std::array<arrow::ArrayVector, sizeof...(C)> chunks;
@@ -896,7 +893,7 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable, const char* na
     arrays.push_back(std::make_shared<arrow::ChunkedArray>(chunks[i]));
   }
 
-  addLabelToSchema(new_schema, s.c_str());
+  addLabelToSchema(new_schema, (std::string{name} + "Extension").c_str());
   return arrow::Table::Make(new_schema, arrays);
 }
 
