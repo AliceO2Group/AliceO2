@@ -42,6 +42,7 @@ class HyperTracker
   using TrackITS = o2::its::TrackITS;
   using ITSCluster = o2::BaseCluster<float>;
   using V0 = o2::dataformats::V0;
+  using GIndex = o2::dataformats::VtxTrackIndex;
   using DCAFitter2 = o2::vertexing::DCAFitterN<2>;
   using DCAFitter3 = o2::vertexing::DCAFitterN<3>;
 
@@ -50,6 +51,7 @@ class HyperTracker
 
   std::vector<V0>& getV0() { return mV0s; };
   std::vector<o2::track::TrackParCov>& getHyperTracks() { return mHyperTracks; };
+  std::vector<float>& getChi2vec() { return mChi2; };
   std::vector<int>& getITStrackRef() { return mITStrackRef; };
 
   float getMaxChi2() const { return mMaxChi2; }
@@ -62,7 +64,7 @@ class HyperTracker
     mFitterV0.setBz(mBz);
     mFitter3Body.setBz(mBz);
     mFitterV0.setUseAbsDCA(true);
-    mFitter3Body.setUseAbsDCA(true);
+    // mFitter3Body.setUseAbsDCA(true);
   }
 
   bool loadData(gsl::span<const o2::its::TrackITS> InputITStracks, std::vector<ITSCluster>& InputITSclusters, gsl::span<const int> InputITSidxs, gsl::span<const V0> InputV0tracks, o2::its::GeometryTGeo* geomITS, float Bz);
@@ -73,8 +75,10 @@ class HyperTracker
 
   void process();
 
-  bool recreateV0(const o2::track::TrackParCov& posTrack, const o2::track::TrackParCov& negTrack, const int posID, const int negID);
+  bool recreateV0(const o2::track::TrackParCov& posTrack, const o2::track::TrackParCov& negTrack, const GIndex posID, const GIndex negID);
   bool refitAllTracks();
+
+  float getMatchingChi2(V0 v0, const TrackITS ITSTrack, ITSCluster matchingClus);
 
  protected:
   gsl::span<const o2::its::TrackITS> mInputITStracks; // input ITS tracks
@@ -84,12 +88,13 @@ class HyperTracker
 
   std::vector<o2::track::TrackParCov> mHyperTracks; // Final hypertrack
   std::vector<V0> mV0s;                             // V0 of decay daughters
+  std::vector<float> mChi2;                           // V0-ITS Tracks chi2 
   std::vector<int> mITStrackRef;                    // Ref to the ITS track
 
   DCAFitter2 mFitterV0;    // optional DCA Fitter for recreating V0 with hypertriton mass hypothesis
   DCAFitter3 mFitter3Body; // optional DCA Fitter for final 3 Body refit
 
-  float mMaxChi2 = 40; // Maximum matching chi2
+  float mMaxChi2 = 10; // Maximum matching chi2
   float mBz = -5;      // Magnetic field
 
   o2::its::GeometryTGeo* mGeomITS; // ITS geometry

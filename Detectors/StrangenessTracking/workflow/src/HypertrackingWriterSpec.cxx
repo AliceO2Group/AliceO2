@@ -44,6 +44,7 @@ DataProcessorSpec getHypertrackingWriterSpec()
 
   auto inpV0ID = InputSpec{"v0s", "HYP", "V0S", 0};
   auto inpTrackID = InputSpec{"hypertrack", "HYP", "HYPERTRACKS", 0};
+  auto inpChi2ID = InputSpec{"v0itschi2", "HYP", "CHI2", 0};
   auto inpRefID = InputSpec{"itsrefs", "HYP", "ITSREFS", 0};
 
   return MakeRootTreeWriterSpec("hypertracking-writer",
@@ -51,6 +52,7 @@ DataProcessorSpec getHypertrackingWriterSpec()
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with Hypertracks"},
                                 BranchDefinition<std::vector<V0>>{inpV0ID, "V0s", loggerV},
                                 BranchDefinition<std::vector<o2::track::TrackParCov>>{inpTrackID, "Hypertracks", loggerT},
+                                BranchDefinition<std::vector<float>>{inpChi2ID, "ITSV0Chi2"},
                                 BranchDefinition<std::vector<int>>{inpRefID, "ITSTrackRefs"})();
 }
 

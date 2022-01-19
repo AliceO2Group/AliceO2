@@ -1,4 +1,4 @@
-o2_add_test_root_macro(matchV0s.C
+o2_add_test_root_macro(AnalyseHyperTree.C
                        PUBLIC_LINK_LIBRARIES O2::MathUtils
                                              O2::ITSBase
                                              O2::ITSMFTReconstruction

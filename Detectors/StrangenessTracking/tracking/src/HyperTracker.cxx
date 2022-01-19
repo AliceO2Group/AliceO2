@@ -67,6 +67,7 @@ std::vector<o2::strangeness_tracking::HyperTracker::ITSCluster> HyperTracker::ge
 
 void HyperTracker::process()
 {
+
   int counter = 0;
   for (auto& v0 : mInputV0tracks) {
     counter++;
@@ -78,40 +79,48 @@ void HyperTracker::process()
     alphaV0 > 0 ? posTrack.setAbsCharge(2) : negTrack.setAbsCharge(2);
     if (!recreateV0(posTrack, negTrack, v0.getProngID(0), v0.getProngID(1)))
       continue;
+    auto tmpV0 = mV0;
     auto v0R2 = v0.calcR2();
 
     for (int iTrack{0}; iTrack < mInputITStracks.size(); iTrack++) {
 
+      mV0 = tmpV0;
       auto& ITStrack = mInputITStracks[iTrack];
+
       auto trackClusters = getTrackClusters(ITStrack);
       std::vector<ITSCluster> v0Clusters;
-
       int nUpdates = 0;
       for (auto& clus : trackClusters) {
-
         auto isV0Upd = false;
         auto diffR2 = v0R2 - clus.getX() * clus.getX() - clus.getY() * clus.getY(); // difference between V0 and Layer R2
         // check V0 compatibility
         if (diffR2 > -4) {
           if (updateTrack(clus, mV0)) {
-            isV0Upd = true;
             v0Clusters.push_back(clus);
+            // LOG(INFO) << "Attach cluster to V0, layer: " << mGeomITS->getLayer(clus.getSensorID());
+            isV0Upd = true;
             nUpdates++;
           }
         }
         // if V0 is not found, check He3 compatibility
         if (diffR2 < 4 && !isV0Upd) {
           auto& he3track = calcV0alpha(mV0) > 0 ? mV0.getProng(0) : mV0.getProng(1);
-          if (!updateTrack(clus, he3track)) {
+          if (!updateTrack(clus, he3track))
             break;
-          }
-          if (recreateV0(mV0.getProng(0), mV0.getProng(1), mV0.getProngID(0), mV0.getProngID(1)))
-            nUpdates++;
+          if (!recreateV0(mV0.getProng(0), mV0.getProng(1), mV0.getProngID(0), mV0.getProngID(1)))
+            break;
+
+          isV0Upd = true;
+          nUpdates++;
         }
+
+        if (!isV0Upd)
+          break;
       }
 
       if (nUpdates < trackClusters.size())
         continue;
+
 
       o2::track::TrackParCov hyperTrack = mV0;
       // outward V0 propagation
@@ -122,13 +131,17 @@ void HyperTracker::process()
           if (!updateTrack(clus, mV0))
             break;
         }
-      }
 
-      // final 3body refit
-      if (refitAllTracks()) {
-        mV0s.push_back(mV0);
-        mHyperTracks.push_back(hyperTrack);
-        mITStrackRef.push_back(iTrack);
+        // final 3body refit
+        if (refitAllTracks()) {
+          LOG(INFO) << "Pushing back v0: " << v0.getProngID(0) << ", " << v0.getProngID(1);
+          auto& lastClus = trackClusters[0];
+
+          mV0s.push_back(mV0);
+          mHyperTracks.push_back(hyperTrack);
+          mChi2.push_back(getMatchingChi2(tmpV0, ITStrack, lastClus));
+          mITStrackRef.push_back(iTrack);
+        }
       }
     }
   }
@@ -156,7 +169,7 @@ bool HyperTracker::updateTrack(const ITSCluster& clus, o2::track::TrackParCov& t
   return false;
 }
 
-bool HyperTracker::recreateV0(const o2::track::TrackParCov& posTrack, const o2::track::TrackParCov& negTrack, const int posID, const int negID)
+bool HyperTracker::recreateV0(const o2::track::TrackParCov& posTrack, const o2::track::TrackParCov& negTrack, const GIndex posID, const GIndex negID)
 {
 
   int nCand;
@@ -182,6 +195,7 @@ bool HyperTracker::recreateV0(const o2::track::TrackParCov& posTrack, const o2::
   mV0 = V0(v0XYZ, pV0, mFitterV0.calcPCACovMatrixFlat(0), propPos, propNeg, posID, negID, o2::track::PID::HyperTriton);
   mV0.setAbsCharge(1);
   mV0.setPID(o2::track::PID::HyperTriton);
+
   return true;
 }
 
@@ -211,6 +225,17 @@ bool HyperTracker::refitAllTracks()
   mV0 = V0(v0XYZ, pV0, mFitter3Body.calcPCACovMatrixFlat(cand), propPos, propNeg, mV0.getProngID(0), mV0.getProngID(1), o2::track::PID::HyperTriton);
   mV0.setAbsCharge(1);
   return true;
+}
+
+float HyperTracker::getMatchingChi2(V0 v0, const TrackITS ITStrack, ITSCluster matchingClus)
+{
+  float alpha = mGeomITS->getSensorRefAlpha(matchingClus.getSensorID()), x = matchingClus.getX();
+  if (v0.rotate(alpha)) {
+    if (v0.propagateTo(x, mBz)) {
+      return v0.getPredictedChi2(ITStrack.getParamOut());
+    }
+  }
+  return -100;
 }
 
 } // namespace strangeness_tracking

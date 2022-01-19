@@ -153,6 +153,7 @@ void HypertrackerSpec::run(framework::ProcessingContext& pc)
 
   pc.outputs().snapshot(Output{"HYP", "V0S", 0, Lifetime::Timeframe}, mTracker.getV0());
   pc.outputs().snapshot(Output{"HYP", "HYPERTRACKS", 0, Lifetime::Timeframe}, mTracker.getHyperTracks());
+  pc.outputs().snapshot(Output{"HYP", "CHI2", 0, Lifetime::Timeframe}, mTracker.getChi2vec());
   pc.outputs().snapshot(Output{"HYP", "ITSREFS", 0, Lifetime::Timeframe}, mTracker.getITStrackRef());
 
   mTimer.Stop();
@@ -196,6 +197,8 @@ DataProcessorSpec getHyperTrackerSpec()
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("HYP", "V0S", 0, Lifetime::Timeframe);
   outputs.emplace_back("HYP", "HYPERTRACKS", 0, Lifetime::Timeframe);
+
+  outputs.emplace_back("HYP", "CHI2", 0, Lifetime::Timeframe);
   outputs.emplace_back("HYP", "ITSREFS", 0, Lifetime::Timeframe);
 
 
