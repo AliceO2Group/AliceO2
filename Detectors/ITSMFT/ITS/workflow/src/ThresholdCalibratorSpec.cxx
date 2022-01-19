@@ -96,6 +96,16 @@ void ITSCalibrator::init(InitContext& ic)
   }
   this->mOutputDir = o2::utils::Str::rectifyDirectory(this->mOutputDir);
 
+  // Get metadata data type from input
+  try {
+    this->mMetaType = ic.options().get<std::string>("meta-type");
+  } catch (std::exception const& e) {
+    LOG(warning) << "Input parameter meta-type not found"
+                 << "\n*** Disabling 'type' in metadata output files";
+  }
+
+  this->mVerboseOutput = ic.options().get<bool>("verbose");
+
   return;
 }
 
@@ -145,7 +155,7 @@ void ITSCalibrator::initThresholdTree(bool recreate /*=true*/)
 // x is the array of charge injected values;
 // NPoints is the length of both arrays.
 bool ITSCalibrator::findUpperLower(
-  const short int* data, const short int* x, const short int& NPoints,
+  const char* data, const short int* x, const short int& NPoints,
   short int& lower, short int& upper, bool flip)
 {
   // Initialize (or re-initialize) upper and lower
@@ -201,7 +211,7 @@ bool ITSCalibrator::findUpperLower(
 //////////////////////////////////////////////////////////////////////////////
 // Main findThreshold function which calls one of the three methods
 bool ITSCalibrator::findThreshold(
-  const short int* data, const short int* x, const short int& NPoints,
+  const char* data, const short int* x, const short int& NPoints,
   float& thresh, float& noise)
 {
   bool success = false;
@@ -231,21 +241,25 @@ bool ITSCalibrator::findThreshold(
 // NPoints is the length of both arrays.
 // thresh, noise, chi2 pointers are updated with results from the fit
 bool ITSCalibrator::findThresholdFit(
-  const short int* data, const short int* x, const short int& NPoints,
+  const char* data, const short int* x, const short int& NPoints,
   float& thresh, float& noise)
 {
   // Find lower & upper values of the S-curve region
   short int lower, upper;
   bool flip = (this->mScanType == 'I');
   if (!this->findUpperLower(data, x, NPoints, lower, upper, flip) || lower == upper) {
-    LOG(warning) << "Start-finding unsuccessful: (lower, upper) = ("
-                 << lower << ", " << upper << ")";
+    if (this->mVerboseOutput) {
+      LOG(warning) << "Start-finding unsuccessful: (lower, upper) = ("
+                   << lower << ", " << upper << ")";
+    }
     return false;
   }
   float start = (this->mX[upper] + this->mX[lower]) / 2;
 
   if (start < 0) {
-    LOG(warning) << "Start-finding unsuccessful: Start = " << start;
+    if (this->mVerboseOutput) {
+      LOG(warning) << "Start-finding unsuccessful: Start = " << start;
+    }
     return false;
   }
 
@@ -275,26 +289,27 @@ bool ITSCalibrator::findThresholdFit(
 // x is the array of charge injected values;
 // NPoints is the length of both arrays.
 bool ITSCalibrator::findThresholdDerivative(
-  const short int* data, const short int* x, const short int& NPoints,
+  const char* data, const short int* x, const short int& NPoints,
   float& thresh, float& noise)
 {
   // Find lower & upper values of the S-curve region
   short int lower, upper;
   bool flip = (this->mScanType == 'I');
   if (!this->findUpperLower(data, x, NPoints, lower, upper, flip) || lower == upper) {
-    LOG(warning) << "Start-finding unsuccessful: (lower, upper) = ("
-                 << lower << ", " << upper << ")";
+    if (this->mVerboseOutput) {
+      LOG(warning) << "Start-finding unsuccessful: (lower, upper) = ("
+                   << lower << ", " << upper << ")";
+    }
     return false;
   }
 
   int deriv_size = upper - lower;
   float* deriv = new float[deriv_size];
-  // float deriv[*(this->N_RANGE)] = {0};
   float xfx = 0, fx = 0;
 
   // Fill array with derivatives
   for (int i = lower; i < upper; i++) {
-    deriv[i - lower] = (data[i + 1] - data[i]) / (float)(this->mX[i + 1] - mX[i]);
+    deriv[i - lower] = (data[i + 1] - data[i]) / float(this->mX[i + 1] - mX[i]);
     if (deriv[i - lower] < 0) {
       deriv[i - lower] = 0.;
     }
@@ -321,13 +336,13 @@ bool ITSCalibrator::findThresholdDerivative(
 // x is the array of charge injected values;
 // NPoints is the length of both arrays.
 bool ITSCalibrator::findThresholdHitcounting(
-  const short int* data, const short int* x, const short int& NPoints, float& thresh)
+  const char* data, const short int* x, const short int& NPoints, float& thresh)
 {
   unsigned short int numberOfHits = 0;
   bool is50 = false;
   for (unsigned short int i = 0; i < NPoints; i++) {
     numberOfHits += data[i];
-    if (data[i] == N_INJ) {
+    if (!is50 && data[i] == N_INJ) {
       is50 = true;
     }
   }
@@ -354,57 +369,43 @@ bool ITSCalibrator::findThresholdHitcounting(
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// Reset the current row, and create a new vector to store hits for that row
-void ITSCalibrator::resetRowHitmap(const short int& chipID, const short int& row)
-{
-  // Update current row of chip
-  this->mCurrentRow[chipID] = row;
-
-  // TODO: test if this fixes memory issue, if not remove
-  this->mPixelHits.erase(chipID);
-  // Reset pixel hit counts for the chip, new empty hitvec
-  // Create a 2D vector to store hits
-  // Outer dim = column, inner dim = charge
-  this->mPixelHits[chipID] = std::vector<std::vector<short int>>(
-    this->N_COL, std::vector<short int>(*(this->N_RANGE), 0));
-
-  return;
-}
-
-//////////////////////////////////////////////////////////////////////////////
 // Run threshold extraction on completed row and update memory
 void ITSCalibrator::extractThresholdRow(const short int& chipID, const short int& row)
 {
+  // Initialize objects in memory for updating
+  float thresh, noise;
+  bool success;
+
+  // Loop over all columns (pixels) in the row
   for (short int col_i = 0; col_i < this->N_COL; col_i++) {
 
-    float thresh = 0., noise = 0.;
-    // Convert counts to C array for the fitting function
-    const short int* data = &(this->mPixelHits[chipID][col_i][0]);
-
     // Do the threshold fit
-    bool success = false;
+    thresh = 0.;
+    noise = 0.;
+    success = false;
     try {
-      success = this->findThreshold(data, this->mX, *(this->N_RANGE), thresh, noise);
+      success = this->findThreshold(&(this->mPixelHits[chipID][col_i][0]),
+                                    this->mX, *(this->N_RANGE), thresh, noise);
     }
 
     // Print helpful info to output file for debugging
-    // col+1 because of ROOT 1-indexing (I think row already has the +1)
+    // col+1 because of ROOT 1-indexing (row already has the +1)
     catch (int i) {
-      LOG(warning) << "Start-finding unsuccessful for chipID " << chipID
-                   << " row " << row << " column " << (col_i + 1) << '\n';
+      if (this->mVerboseOutput) {
+        LOG(warning) << "Start-finding unsuccessful for chipID " << chipID
+                     << " row " << row << " column " << (col_i + 1) << '\n';
+      }
       continue;
     } catch (int* i) {
-      LOG(warning) << "Start-finding unsuccessful for chipID " << chipID
-                   << " row " << row << " column " << (col_i + 1) << '\n';
+      if (this->mVerboseOutput) {
+        LOG(warning) << "Start-finding unsuccessful for chipID " << chipID
+                     << " row " << row << " column " << (col_i + 1) << '\n';
+      }
       continue;
     }
 
     // Saves threshold information to internal memory
     this->saveThreshold(chipID, row, (col_i + 1), &thresh, &noise, success);
-
-    // TODO use this info when writing to CCDB
-    int lay, sta, ssta, mod, chipInMod; // layer, stave, sub stave, module, chip
-    this->mp.expandChipInfoHW((int)chipID, lay, sta, ssta, mod, chipInMod);
   }
 }
 
@@ -495,8 +496,9 @@ void ITSCalibrator::finalizeOutput()
   mdFile->LHCPeriod = (this->mLHCPeriod.find("_ITS") == std::string::npos)
                         ? this->mLHCPeriod + "_ITS"
                         : this->mLHCPeriod;
-  // Leave blank for now; this needs to be implemented by calibration experts
-  // mdFile->type = "calibration";
+  if (!(this->mMetaType.empty())) {
+    mdFile->type = this->mMetaType;
+  }
   mdFile->priority = "high";
   mdFile->lurl = filenameFull + ".root";
   auto metaFileNameTmp = fmt::format("{}{}.tmp", this->mMetafileDir, filename);
@@ -742,9 +744,11 @@ void ITSCalibrator::run(ProcessingContext& pc)
       }
     }
 
-    // If a charge was not found, throw an error and skip this ROF
+    // If a charge was not found, skip this ROF
     if (charge < 0) {
-      LOG(warning) << "Charge not updated\n";
+      if (this->mVerboseOutput) {
+        LOG(warning) << "Charge not updated";
+      }
       //} else if (charge == 0) {
       // LOG(warning) << "charge == 0\n";
     } else {
@@ -758,17 +762,22 @@ void ITSCalibrator::run(ProcessingContext& pc)
         // assert(row == (short int) d.getRow());
 
         // Check if chip hasn't appeared before
-        if (this->mCurrentRow.find(chipID) == this->mCurrentRow.end()) {
-          // Update the current row and hit map
-          this->resetRowHitmap(chipID, row);
+        if (!(this->mCurrentRow.count(chipID))) {
+          // Update current row and initialize hit map
+          this->mCurrentRow[chipID] = row;
+          this->mPixelHits[chipID] = std::vector<std::vector<char>>(
+            this->N_COL, std::vector<char>(*(this->N_RANGE), 0));
 
           // Check if we have a new row on an already existing chip
         } else if (this->mCurrentRow[chipID] != row) {
           // LOG(info) << "Extracting threshold values for row " << this->mCurrentRow[chipID]
           //           << " on chipID " << chipID;
           this->extractAndUpdate(chipID);
-          // Reset row & hitmap for the new row
-          this->resetRowHitmap(chipID, row);
+          // Reset row & hit map for the new row
+          this->mCurrentRow[chipID] = row;
+          for (std::vector<char>& v : this->mPixelHits[chipID]) {
+            std::fill(v.begin(), v.end(), 0);
+          }
         }
 
         // Increment the number of counts for this pixel
@@ -782,7 +791,7 @@ void ITSCalibrator::run(ProcessingContext& pc)
 
       } // for (digits)
 
-    } // for (RUs)
+    } // if (charge)
 
   } // for (ROFs)
 
@@ -823,9 +832,11 @@ void ITSCalibrator::addDatabaseEntry(
   int lay, sta, ssta, mod, chipInMod; // layer, stave, sub stave, module, chip
   this->mp.expandChipInfoHW(chipID, lay, sta, ssta, mod, chipInMod);
 
-  std::string stave = 'L' + std::to_string(lay) + '_' + std::to_string(sta);
+  // std::string stave = 'L' + std::to_string(lay) + '_' + std::to_string(sta);
+  char stave[6];
+  sprintf(stave, "L%d_%02d", lay, sta);
 
-  o2::dcs::addConfigItem(tuning, "Stave", stave);
+  o2::dcs::addConfigItem(tuning, "Stave", std::string(stave));
   o2::dcs::addConfigItem(tuning, "Hs_pos", std::to_string(ssta));
   o2::dcs::addConfigItem(tuning, "Hic_Pos", std::to_string(mod));
   o2::dcs::addConfigItem(tuning, "ChipID", std::to_string(chipInMod));
@@ -1001,8 +1012,10 @@ DataProcessorSpec getITSThresholdCalibratorSpec()
     AlgorithmSpec{adaptFromTask<ITSCalibrator>()},
     // here I assume ''calls'' init, run, endOfStream sequentially...
     Options{{"fittype", VariantType::String, "derivative", {"Fit type to extract thresholds, with options: fit, derivative (default), hitcounting"}},
+            {"verbose", VariantType::Bool, false, {"Use verbose output mode"}},
             {"output-dir", VariantType::String, "./", {"ROOT output directory"}},
-            {"meta-output-dir", VariantType::String, "/dev/null", {"metadata output directory"}}}};
+            {"meta-output-dir", VariantType::String, "/dev/null", {"metadata output directory"}},
+            {"meta-type", VariantType::String, "", {"metadata type"}}}};
 }
 } // namespace its
 } // namespace o2

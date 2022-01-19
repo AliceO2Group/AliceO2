@@ -119,8 +119,6 @@ class ITSCalibrator : public Task
 
   //////////////////////////////////////////////////////////////////
  private:
-  TStopwatch mTimer;
-
   // detector information
   static constexpr short int N_COL = 1024; // column number in Alpide chip
   // static constexpr short int N_ROW = 512;  // row number in Alpide chip
@@ -151,10 +149,11 @@ class ITSCalibrator : public Task
   // std::array<bool, N_LAYER> mEnableLayers = { false };
 
   // Hash tables to store the hit and threshold information per pixel
-  std::map<short int, short int> mCurrentRow;
-  std::map<short int, std::vector<std::vector<short int>>> mPixelHits;
-  //  Unordered vector for saving info to the output
-  std::map<short int, std::vector<ThresholdObj>> mThresholds;
+  std::unordered_map<short int, short int> mCurrentRow;
+  std::unordered_map<short int, std::vector<std::vector<char>>> mPixelHits;
+  // std::map<short int, char**> mPixelHits;
+  //   Unordered vector for saving info to the output
+  std::unordered_map<short int, std::vector<ThresholdObj>> mThresholds;
   // std::unordered_map<unsigned int, int> mHitPixelID_Hash[7][48][2][14][14]; //layer, stave, substave, hic, chip
 
   // Tree to save threshold info in full threshold scan case
@@ -171,8 +170,6 @@ class ITSCalibrator : public Task
 
   // Some private helper functions
   // Helper functions related to the running over data
-  void resetRowHitmap(const short int&, const short int&);
-
   void extractAndUpdate(const short int&);
   void extractThresholdRow(const short int&, const short int&);
   void finalizeOutput();
@@ -184,11 +181,11 @@ class ITSCalibrator : public Task
 
   // Helper functions related to threshold extraction
   void initThresholdTree(bool recreate = true);
-  bool findUpperLower(const short int*, const short int*, const short int&, short int&, short int&, bool);
-  bool findThreshold(const short int*, const short int*, const short int&, float&, float&);
-  bool findThresholdFit(const short int*, const short int*, const short int&, float&, float&);
-  bool findThresholdDerivative(const short int*, const short int*, const short int&, float&, float&);
-  bool findThresholdHitcounting(const short int*, const short int*, const short int&, float&);
+  bool findUpperLower(const char*, const short int*, const short int&, short int&, short int&, bool);
+  bool findThreshold(const char*, const short int*, const short int&, float&, float&);
+  bool findThresholdFit(const char*, const short int*, const short int&, float&, float&);
+  bool findThresholdDerivative(const char*, const short int*, const short int&, float&, float&);
+  bool findThresholdHitcounting(const char*, const short int*, const short int&, float&);
   bool isScanFinished(const short int&);
   void findAverage(const std::vector<ThresholdObj>&, float&, float&);
   void saveThreshold(const short int&, const short int&, const short int&, float*, float*, bool);
@@ -202,6 +199,8 @@ class ITSCalibrator : public Task
   std::string mDictName;
   std::string mNoiseName;
 
+  bool mVerboseOutput = false;
+  std::string mMetaType;
   std::string mLHCPeriod;
   std::string mEnvironmentID;
   std::string mOutputDir;
