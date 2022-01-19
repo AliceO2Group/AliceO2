@@ -75,6 +75,8 @@
 #include <FT3Simulation/Detector.h>
 #endif
 
+#include <tbb/concurrent_unordered_map.h>
+
 namespace o2
 {
 namespace devices
@@ -223,6 +225,13 @@ class O2HitMerger : public FairMQDevice
     // clear "counter" datastructures
     mPartsCheckSum.clear();
     mEventChecksum = 0;
+
+    // clear collector datastructures
+    mMCTrackBuffer.clear();
+    mTrackRefBuffer.clear();
+    mSubEventInfoBuffer.clear();
+    mFlushableEvents.clear();
+
     return true;
   }
 
@@ -495,8 +504,6 @@ class O2HitMerger : public FairMQDevice
     for (auto ptr : vectorOfSubEventMCTracks) {
       delete ptr; // avoid this by using unique ptr
     }
-    // TODO: protect by lock (as multithreaded access to STL MAP)
-    mMCTrackBuffer.erase(eventID);
   }
 
   template <typename T, typename M>
@@ -548,7 +555,6 @@ class O2HitMerger : public FairMQDevice
     for (auto ptr : vectorOfT) {
       delete ptr; // avoid this by using unique ptr
     }
-    mapOfVectorOfTs.erase(eventID);
   }
 
   void updateTrackIdWithOffset(MCTrack& track, Int_t nprim, Int_t idelta0, Int_t idelta1)
@@ -771,21 +777,23 @@ class O2HitMerger : public FairMQDevice
   // structures for the final flush
   TFile* mOutFile;                                     //! outfile for kinematics
   TTree* mOutTree;                                     //! tree (kinematics) associated to mOutFile
-  std::unordered_map<int, TFile*> mDetectorOutFiles;   //! outfiles per detector for hits
-  std::unordered_map<int, TTree*> mDetectorToTTreeMap; //! the trees
+
+  template <class K, class V>
+  using Hashtable = tbb::concurrent_unordered_map<K, V>;
+  Hashtable<int, TFile*> mDetectorOutFiles;   //! outfiles per detector for hits
+  Hashtable<int, TTree*> mDetectorToTTreeMap; //! the trees
 
   // intermediate structures to collect data per event
-  std::thread mMergerIOThread;                            //! a thread used to do hit merging and IO flushing asynchronously
-  std::mutex mMapsMtx;                                    //!
+  std::thread mMergerIOThread; //! a thread used to do hit merging and IO flushing asynchronously
   bool mergingInProgress = false;
 
-  std::unordered_map<int, std::vector<std::vector<o2::MCTrack>*>> mMCTrackBuffer;         //! vector of sub-event track vectors; one per event
-  std::unordered_map<int, std::vector<std::vector<o2::TrackReference>*>> mTrackRefBuffer; //!
-  std::unordered_map<int, std::list<o2::data::SubEventInfo*>> mSubEventInfoBuffer;
+  Hashtable<int, std::vector<std::vector<o2::MCTrack>*>> mMCTrackBuffer;         //! vector of sub-event track vectors; one per event
+  Hashtable<int, std::vector<std::vector<o2::TrackReference>*>> mTrackRefBuffer; //!
+  Hashtable<int, std::list<o2::data::SubEventInfo*>> mSubEventInfoBuffer;
+  Hashtable<int, bool> mFlushableEvents; //! collection of events which have completely arrived
 
   int mEventChecksum = 0;   //! checksum for events
   int mNExpectedEvents = 0; //! number of events that we expect to receive
-  std::unordered_map<int, bool> mFlushableEvents; //! collection of events which has completely arrived
   int mNextFlushID = 1;                           //! EventID to be flushed next
   TStopwatch mTimer;
 
