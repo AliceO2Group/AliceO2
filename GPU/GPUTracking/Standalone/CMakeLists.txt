@@ -191,7 +191,7 @@ if(CONFIG_O2_EXTENSIONS)
   target_sources(standalone_support PRIVATE
                ${O2_DIR}/Common/Field/src/MagFieldFast.cxx
                ${O2_DIR}/DataFormats/Detectors/TPC/src/CompressedClusters.cxx
-               ${O2_DIR}/DataFormats/Detectors/TPC/src/CalibdEdxContainer.cxx
+               ${O2_DIR}/GPU/GPUTracking/DataTypes/CalibdEdxContainer.cxx
                ${O2_DIR}/DataFormats/Detectors/TPC/src/CalibdEdxTrackTopologySpline.cxx
                ${O2_DIR}/DataFormats/simulation/src/MCCompLabel.cxx
                ${O2_DIR}/DataFormats/Reconstruction/src/TrackParametrization.cxx

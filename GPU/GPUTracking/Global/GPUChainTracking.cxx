@@ -45,7 +45,7 @@
 #include "GPUHostDataTypes.h"
 #include "GPUTPCCFChainContext.h"
 #include "GPUTrackingRefit.h"
-#include "DataFormatsTPC/CalibdEdxContainer.h"
+#include "CalibdEdxContainer.h"
 #else
 #include "GPUO2FakeClasses.h"
 #endif

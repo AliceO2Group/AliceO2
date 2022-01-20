@@ -157,10 +157,19 @@ class CalibdEdxTrackTopologySpline : public o2::gpu::FlatObject
     return mCalibSplinesqTot[region].interpolate(x);
   };
 
-  GPUd() float getCorrection(const int region, const ChargeType charge, const float tanTheta, const float sinPhi, const float z) const
-  {
-    return charge == ChargeType::Max ? interpolateqMax(region, tanTheta, sinPhi, z) : interpolateqTot(region, tanTheta, sinPhi, z);
-  }
+  /// \return returns the track topology correction
+  /// \param region region of the TPC
+  /// \param charge correction for maximum or total charge
+  /// \param tanTheta local dip angle: z angle - dz/dx
+  /// \param sinPhi track parameter sinphi
+  /// \param z drift length
+  GPUd() float getCorrection(const int region, const ChargeType charge, const float tanTheta, const float sinPhi, const float z) const { return charge == ChargeType::Max ? interpolateqMax(region, tanTheta, sinPhi, z) : interpolateqTot(region, tanTheta, sinPhi, z); }
+
+  /// \return returns the track topology correction
+  /// \param region region of the TPC
+  /// \param charge correction for maximum or total charge
+  /// \param x coordinates where the correction is evaluated
+  GPUd() float getCorrection(const int region, const ChargeType charge, const float x[/*inpXdim*/]) const { return charge == ChargeType::Tot ? mCalibSplinesqTot[region].interpolate(x) : mCalibSplinesqMax[region].interpolate(x); }
 
   /// \param region index of the spline (region)
   /// \return returns the spline for qMax

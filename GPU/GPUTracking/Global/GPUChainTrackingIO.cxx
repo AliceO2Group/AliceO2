@@ -41,7 +41,7 @@
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "GPUHostDataTypes.h"
 #include "DataFormatsTPC/Digit.h"
-#include "DataFormatsTPC/CalibdEdxContainer.h"
+#include "CalibdEdxContainer.h"
 #else
 #include "GPUO2FakeClasses.h"
 #endif

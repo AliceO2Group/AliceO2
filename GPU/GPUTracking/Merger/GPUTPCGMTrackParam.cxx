@@ -318,21 +318,20 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
           prop.SetTrack(this, prop.GetAlpha());
         }
         if (merger->Param().par.dodEdx && iWay == nWays - 1 && clusters[ihit].leg == clusters[maxN - 1].leg) {
-          float qtot, qmax, relPad, relTime;
+          float qtot, qmax, pad, relTime;
           if (merger->GetConstantMem()->ioPtrs.clustersNative == nullptr) {
             qtot = clustersXYZ[ihit].amp;
             qmax = 0;
-            relPad = 0;
+            pad = 0;
             relTime = 0;
           } else {
             const ClusterNative& cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[ihit].num];
             qtot = cl.qTot;
             qmax = cl.qMax;
-            relPad = cl.getPad() - int(cl.getPad() + 0.5f);
+            pad = cl.getPad();
             relTime = cl.getTime() - int(cl.getTime() + 0.5f);
-            //zPos = std::abs(std::abs(cl.getTime()) * 0.199606f * 2.58 - 250.f); // std::abs(time * eleParam.ZbinWidth * gasParam.DriftV - zMaxTPC);
           }
-          dEdx.fillCluster(qtot, qmax, clusters[ihit].row, clusters[ihit].slice, mP[2], mP[3], param, merger->GetConstantMem()->calibObjects, zz, relPad, relTime);
+          dEdx.fillCluster(qtot, qmax, clusters[ihit].row, clusters[ihit].slice, mP[2], mP[3], param, merger->GetConstantMem()->calibObjects, zz, pad, relTime);
         }
       } else if (retVal == 2) { // cluster far away form the track
         if (allowModification) {
