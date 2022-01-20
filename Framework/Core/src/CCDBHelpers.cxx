@@ -32,6 +32,14 @@ struct CCDBFetcherHelper {
     std::string etag;
   };
 
+  struct RemapMatcher {
+    std::string path;
+  };
+
+  struct RemapTarget {
+    std::string url;
+  };
+
   std::unordered_map<std::string, std::string> mapURL2UUID;
   std::unordered_map<std::string, DataAllocator::CacheId> mapURL2DPLCache;
   std::string createdNotBefore = "0";
@@ -40,11 +48,79 @@ struct CCDBFetcherHelper {
   o2::ccdb::CcdbApi api;
   std::vector<OutputRoute> routes;
   std::map<int64_t, CCDBCacheInfo> cache;
+  std::unordered_map<std::string, std::string> remappings;
 };
 
 bool isPrefix(std::string_view prefix, std::string_view full)
 {
   return prefix == full.substr(0, prefix.size());
+}
+
+CCDBHelpers::ParserResult CCDBHelpers::parseRemappings(char const* str)
+{
+  std::unordered_map<std::string, std::string> remappings;
+  std::string currentUrl = "";
+
+  enum ParsingStates {
+    IN_BEGIN,
+    IN_BEGIN_URL,
+    IN_BEGIN_TARGET,
+    IN_END_TARGET,
+    IN_END_URL
+  };
+  ParsingStates state = IN_BEGIN;
+
+  while (true) {
+    switch (state) {
+      case IN_BEGIN: {
+        if (*str == 0) {
+          return {remappings, "Empty string provided"};
+        }
+        state = IN_BEGIN_URL;
+      }
+      case IN_BEGIN_URL: {
+        if (*str != '/' && (strncmp("http://", str, 6) != 0) && (strncmp("https://", str, 7) != 0)) {
+          return {remappings, "URL should start with either / or http:// / https://"};
+        }
+        state = IN_END_URL;
+      } break;
+      case IN_END_URL: {
+        char const* c = strchr(str, '=');
+        if (c == nullptr) {
+          return {remappings, "Expecting at least one target path, missing `='?"};
+        }
+        if ((c - str) == 0) {
+          return {remappings, "Empty url"};
+        }
+        currentUrl = std::string_view(str, c - str);
+        state = IN_BEGIN_TARGET;
+        str = c + 1;
+      } break;
+      case IN_BEGIN_TARGET: {
+        if (*str == 0) {
+          return {remappings, "Empty target"};
+        }
+        state = IN_END_TARGET;
+      } break;
+      case IN_END_TARGET: {
+        char const* c = strpbrk(str, ",;");
+        if (c == nullptr) {
+          remappings[std::string(str)] = currentUrl;
+          return {remappings, ""};
+        }
+        if ((c - str) == 0) {
+          return {remappings, "Empty target"};
+        }
+        remappings[std::string(str, c - str)] = currentUrl;
+        if (*c == ';') {
+          state = IN_BEGIN_URL;
+        } else {
+          state = IN_BEGIN_TARGET;
+        }
+        str = c + 1;
+      } break;
+    }
+  }
 }
 
 AlgorithmSpec CCDBHelpers::fetchFromCCDB()
@@ -56,6 +132,13 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
       helper->api.init(options.get<std::string>("condition-backend"));
       helper->createdNotBefore = std::to_string(options.get<int64_t>("condition-not-before"));
       helper->createdNotAfter = std::to_string(options.get<int64_t>("condition-not-after"));
+      auto remapString = options.get<std::string>("condition-remap");
+      ParserResult result = CCDBHelpers::parseRemappings(remapString.c_str());
+      if (!result.error.empty()) {
+        throw runtime_error_f("Error while parsing remapping string %s", result.error.c_str());
+      }
+
+      helper->remappings = result.remappings;
 
       for (auto &route : spec.outputs) {
         if (route.matcher.lifetime != Lifetime::Condition) {
@@ -76,7 +159,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         TMemFile memFile("name", const_cast<char*>(v.data()), v.size(), "READ");
         gErrorIgnoreLevel = previousErrorLevel;
         if (memFile.IsZombie()) {
-          throw runtime_error_f("CTP is Zombie");
+          throw runtime_error("CTP is Zombie");
         }
         TClass* tcl = TClass::GetClass(typeid(std::vector<Long64_t>));
         void* result = ccdb::CcdbApi::extractFromTFile(memFile, tcl);
@@ -165,9 +248,16 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           for (auto& meta : route.matcher.metadata) {
             if (meta.name == "ccdb-path") {
               path = meta.defaultValue.get<std::string>();
+              auto prefix = helper->remappings.find(path);
+              // FIXME: for now assume that we can pass the whole URL to
+              // the CCDB API. It might be better to have multiple instances...
+              if (prefix != helper->remappings.end()) {
+                LOGP(error, "Remapping {} to {}", path, prefix->second + path);
+                path = prefix->second + path;
+              }
             } else if (isPrefix(ccdbMetadataPrefix, meta.name)) {
               std::string key = meta.name.substr(ccdbMetadataPrefix.size());
-              std::string value = meta.defaultValue.get<std::string>();
+              auto value = meta.defaultValue.get<std::string>();
               LOGP(debug, "Adding metadata {}: {} to the request", key, value);
               metadata[key] = value;
             }

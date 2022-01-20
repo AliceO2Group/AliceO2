@@ -168,6 +168,7 @@ foreach(t
         BoostOptionsRetriever
         ConfigurationOptionsRetriever
         CallbackRegistry
+        CCDBHelpers
         ChannelSpecHelpers
         CheckTypes
         CompletionPolicy
