@@ -90,7 +90,7 @@ jobs:
         source_branch: 'alibuild:alibot-cleanup-${{ github.event.pull_request.number }}'
         destination_branch: '${{ github.event.pull_request.head.label }}'
         github_token: ${{ secrets.ALIBUILD_GITHUB_TOKEN }}
-        pr_title: "Please consider the following formatting changes to AliceO2Group/AliceO2#${{ github.event.pull_request.number }}"
+        pr_title: "Please consider the following formatting changes to ${{ github.event.pull_request.repo.full_name }}#${{ github.event.pull_request.number }}"
         pr_body: | 
           This PR cannot be merged as is. You should either run clang-format yourself and update the pull request, or merge this PR in yours.
           You can find AliceO2 coding conventions at http://github.com/AliceO2Group/CodingGuidelines. 
