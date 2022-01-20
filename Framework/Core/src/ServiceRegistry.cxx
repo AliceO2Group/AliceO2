@@ -103,6 +103,9 @@ void ServiceRegistry::bindService(ServiceSpec const& spec, void* service)
   if (spec.start) {
     mPreStartHandles.push_back(ServiceStartHandle{spec.start, service});
   }
+  if (spec.stop) {
+    mPostStopHandles.push_back(ServiceStopHandle{spec.stop, service});
+  }
   if (spec.exit) {
     mPreExitHandles.push_back(ServiceExitHandle{spec.exit, service});
   }
@@ -169,6 +172,15 @@ void ServiceRegistry::preStartCallbacks()
   /// I guess...
   for (auto startHandle = mPreStartHandles.begin(); startHandle != mPreStartHandles.end(); ++startHandle) {
     startHandle->callback(*this, startHandle->service);
+  }
+}
+
+void ServiceRegistry::postStopCallbacks()
+{
+  // FIXME: we need to call the callback only once for the global services
+  /// I guess...
+  for (auto& stopHandle : mPostStopHandles) {
+    stopHandle.callback(*this, stopHandle.service);
   }
 }
 
