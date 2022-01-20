@@ -15,7 +15,9 @@
 #include <variant>
 #include <vector>
 
-namespace o2::framework
+namespace o2
+{
+namespace framework
 {
 
 InputSpec::InputSpec(std::string binding_,
@@ -91,4 +93,5 @@ bool InputSpec::operator==(InputSpec const& that) const
 {
   return this->matcher == that.matcher && this->lifetime == that.lifetime;
 }
-} // namespace o2::framework
+} // namespace framework
+} // namespace o2

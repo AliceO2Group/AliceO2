@@ -78,5 +78,6 @@ struct InputSpec {
   friend std::ostream& operator<<(std::ostream& stream, InputSpec const& arg);
   bool operator==(InputSpec const& that) const;
 };
+
 } // namespace o2
 #endif
