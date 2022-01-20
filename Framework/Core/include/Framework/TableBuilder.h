@@ -858,6 +858,9 @@ template <typename... C>
 auto spawner(framework::pack<C...> columns, std::vector<std::shared_ptr<arrow::Table>>&& tables, const char* name)
 {
   auto fullTable = soa::ArrowHelpers::joinTables(std::move(tables));
+  if (fullTable->num_rows() == 0) {
+    return makeEmptyTable<soa::Table<C...>>(name);
+  }
   static auto new_schema = o2::soa::createSchemaFromColumns(columns);
   static auto projectors = framework::expressions::createProjectors(columns, fullTable->schema());
 
