@@ -11,7 +11,6 @@
 
 o2_add_library(FV0Reconstruction
         SOURCES src/BaseRecoTask.cxx
-                src/ReadRaw.cxx
                 src/CTFCoder.cxx
 
         PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
@@ -26,8 +25,7 @@ o2_add_library(FV0Reconstruction
                               O2::Headers)
 
 o2_target_root_dictionary(FV0Reconstruction
-        HEADERS include/FV0Reconstruction/BaseRecoTask.h
-                include/FV0Reconstruction/ReadRaw.h)
+        HEADERS include/FV0Reconstruction/BaseRecoTask.h)
 
 o2_add_executable(
   test-raw2digit
