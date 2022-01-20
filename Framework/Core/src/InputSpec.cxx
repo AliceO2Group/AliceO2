@@ -93,5 +93,6 @@ bool InputSpec::operator==(InputSpec const& that) const
 {
   return this->matcher == that.matcher && this->lifetime == that.lifetime;
 }
+
 } // namespace framework
 } // namespace o2
