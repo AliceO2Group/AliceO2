@@ -184,10 +184,7 @@ struct WorkflowHelpers {
   static void addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
                                         std::vector<InputSpec> requestedInputs,
                                         DataProcessorSpec& publisher);
-  static void addMissingOutputsToSpawner(std::vector<InputSpec>&& requestedDYNs,
-                                         std::vector<InputSpec>& requestedAODs,
-                                         DataProcessorSpec& publisher);
-  static void addMissingOutputsToBuilder(std::vector<InputSpec>&& requestedIDXs,
+  static void addMissingOutputsToCreator(std::vector<InputSpec>&& requestedSpecials,
                                          std::vector<InputSpec>& requestedAODs,
                                          DataProcessorSpec& publisher);
 

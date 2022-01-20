@@ -424,77 +424,55 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
           if (d.name == spawner->name) {
             continue;
           }
-          for (auto& i : d.inputs) {
+          for (auto const& i : d.inputs) {
             if (DataSpecUtils::partialMatch(i, header::DataOrigin{"DYN"})) {
-              requestedDYNs.emplace_back(i);
+              auto copy = i;
+              updateInputList(requestedDYNs, std::move(copy));
             }
           }
-          std::sort(requestedDYNs.begin(), requestedDYNs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding < b.binding; });
-          auto end = std::unique(requestedDYNs.begin(), requestedDYNs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding == b.binding; });
-          requestedDYNs.erase(end, requestedDYNs.end());
         }
-
+        // recreate inputs and outputs
         spawner->outputs.clear();
         spawner->inputs.clear();
         // replace AlgorithmSpec
         // FIXME: it should be made more generic, so it does not need replacement...
         spawner->algorithm = readers::AODReaderHelpers::aodSpawnerCallback(requestedDYNs);
-        WorkflowHelpers::addMissingOutputsToSpawner(std::move(requestedDYNs), requestedAODs, *spawner);
+        WorkflowHelpers::addMissingOutputsToCreator(std::move(requestedDYNs), requestedAODs, *spawner);
       }
 
       if (builder != workflow.end()) {
         // collect currently requested IDXs
         std::vector<InputSpec> requestedIDXs;
-        std::vector<InputSpec> dummy_i;
-        std::vector<OutputSpec> dummy_o;
         for (auto& d : workflow) {
           if (d.name == builder->name) {
             continue;
           }
           for (auto& i : d.inputs) {
             if (DataSpecUtils::partialMatch(i, header::DataOrigin{"IDX"})) {
-              requestedIDXs.emplace_back(i);
+              auto copy = i;
+              updateInputList(requestedIDXs, std::move(copy));
             }
           }
-          std::sort(requestedIDXs.begin(), requestedIDXs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding < b.binding; });
-          auto end = std::unique(requestedIDXs.begin(), requestedIDXs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding == b.binding; });
-          requestedIDXs.erase(end, requestedIDXs.end());
         }
-
         // recreate inputs and outputs
-        builder->inputs = dummy_i;
-        builder->outputs = dummy_o;
-        auto copy = requestedIDXs;
-        WorkflowHelpers::addMissingOutputsToBuilder(std::move(copy), dummy_i, *builder);
-
-        //replace AlgorithmSpec
-        // FIXME: it should be made more generic, so it does not need replacement...
+        builder->inputs.clear();
+        builder->outputs.clear();
+        // replace AlgorithmSpec
+        //  FIXME: it should be made more generic, so it does not need replacement...
         builder->algorithm = readers::AODReaderHelpers::indexBuilderCallback(requestedIDXs);
+        WorkflowHelpers::addMissingOutputsToCreator(std::move(requestedIDXs), requestedAODs, *builder);
       }
 
       if (reader != workflow.end() && (spawner != workflow.end() || builder != workflow.end())) {
         // If reader and/or builder were adjusted, remove unneeded outputs
         // update currently requested AODs
         for (auto& d : workflow) {
-          for (auto& i : d.inputs) {
+          for (auto const& i : d.inputs) {
             if (DataSpecUtils::partialMatch(i, header::DataOrigin{"AOD"})) {
-              auto locate = std::find_if(requestedAODs.begin(), requestedAODs.end(), [&](InputSpec& input) { return input.binding == i.binding; });
-              if (locate != requestedAODs.end()) {
-                // amend entry
-                auto& entryMetadata = locate->metadata;
-                entryMetadata.insert(entryMetadata.end(), i.metadata.begin(), i.metadata.end());
-                std::sort(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name < b.name; });
-                auto new_end = std::unique(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name == b.name; });
-                entryMetadata.erase(new_end, entryMetadata.end());
-              } else {
-                // add entry
-                requestedAODs.emplace_back(i);
-              }
+              auto copy = i;
+              updateInputList(requestedAODs, std::move(copy));
             }
           }
-          std::sort(requestedAODs.begin(), requestedAODs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding < b.binding; });
-          auto end = std::unique(requestedAODs.begin(), requestedAODs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding == b.binding; });
-          requestedAODs.erase(end, requestedAODs.end());
         }
 
         // remove unmatched outputs

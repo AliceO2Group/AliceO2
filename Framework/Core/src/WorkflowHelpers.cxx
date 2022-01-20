@@ -158,62 +158,21 @@ void WorkflowHelpers::addMissingOutputsToReader(std::vector<OutputSpec> const& p
   }
 }
 
-namespace
-{
-auto inputSpecFromString(std::string s)
-{
-  std::regex word_regex("(\\w+)");
-  auto words = std::sregex_iterator(s.begin(), s.end(), word_regex);
-  if (std::distance(words, std::sregex_iterator()) != 3) {
-    throw runtime_error_f("Malformed input spec metadata: %s", s.c_str());
-  }
-  std::vector<std::string> data;
-  for (auto i = words; i != std::sregex_iterator(); ++i) {
-    data.emplace_back(i->str());
-  }
-  char origin[4];
-  char description[16];
-  std::memcpy(&origin, data[1].c_str(), 4);
-  std::memcpy(&description, data[2].c_str(), 16);
-  return InputSpec{data[0], header::DataOrigin{origin}, header::DataDescription{description}};
-};
-} // namespace
-
-void WorkflowHelpers::addMissingOutputsToSpawner(std::vector<InputSpec>&& requestedDYNs,
+void WorkflowHelpers::addMissingOutputsToCreator(std::vector<InputSpec>&& requestedSpecials,
                                                  std::vector<InputSpec>& requestedAODs,
                                                  DataProcessorSpec& publisher)
 {
-  for (auto& input : requestedDYNs) {
+  for (auto& input : requestedSpecials) {
     auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
     publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
     for (auto& i : input.metadata) {
       if ((i.type == VariantType::String) && (i.name.find("input:") != std::string::npos)) {
-        auto spec = inputSpecFromString(i.defaultValue.get<std::string>());
+        auto spec = InputSpec::fromString(i.defaultValue.get<std::string>());
         auto j = std::find_if(publisher.inputs.begin(), publisher.inputs.end(), [&](auto x) { return x.binding == spec.binding; });
         if (j == publisher.inputs.end()) {
           publisher.inputs.push_back(spec);
         }
-        requestedAODs.push_back(spec);
-      }
-    }
-  }
-}
-
-void WorkflowHelpers::addMissingOutputsToBuilder(std::vector<InputSpec>&& requestedIDXs,
-                                                 std::vector<InputSpec>& requestedAODs,
-                                                 DataProcessorSpec& publisher)
-{
-  for (auto& input : requestedIDXs) {
-    auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
-    publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
-    for (auto& i : input.metadata) {
-      if ((i.type == VariantType::String) && (i.name.find("input:") != std::string::npos)) {
-        auto spec = inputSpecFromString(i.defaultValue.get<std::string>());
-        auto j = std::find_if(publisher.inputs.begin(), publisher.inputs.end(), [&](auto x) { return x.binding == spec.binding; });
-        if (j == publisher.inputs.end()) {
-          publisher.inputs.push_back(spec);
-        }
-        requestedAODs.push_back(spec);
+        updateInputList(requestedAODs, std::move(spec));
       }
     }
   }
@@ -436,8 +395,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     readers::AODReaderHelpers::indexBuilderCallback(requestedIDXs),
     {}};
 
-  addMissingOutputsToSpawner(std::move(requestedDYNs), requestedAODs, aodSpawner);
-  addMissingOutputsToBuilder(std::move(requestedIDXs), requestedAODs, indexBuilder);
+  addMissingOutputsToCreator(std::move(requestedDYNs), requestedAODs, aodSpawner);
+  addMissingOutputsToCreator(std::move(requestedIDXs), requestedAODs, indexBuilder);
 
   addMissingOutputsToReader(providedAODs, requestedAODs, aodReader);
   addMissingOutputsToReader(providedCCDBs, requestedCCDBs, ccdbBackend);
@@ -475,7 +434,6 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       LOG(fatal) << uv_dlerror(&supportLib);
       return;
     }
-    void* callback = nullptr;
     DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
 
     result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
@@ -488,7 +446,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       return;
     }
     DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
-    AlgorithmPlugin* creator = PluginManager::getByName<AlgorithmPlugin>(pluginInstance, "ROOTFileReader");
+    auto* creator = PluginManager::getByName<AlgorithmPlugin>(pluginInstance, "ROOTFileReader");
     aodReader.algorithm = creator->create();
     aodReader.outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
     extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
@@ -525,14 +483,14 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
     if (isAOD(outputsInputs[ii])) {
       auto ds = dod->getDataOutputDescriptors(outputsInputs[ii]);
-      if (ds.size() > 0 || isDangling[ii]) {
+      if (!ds.empty() || isDangling[ii]) {
         outputsInputsAOD.emplace_back(outputsInputs[ii]);
       }
     }
   }
 
   // file sink for any AOD output
-  if (outputsInputsAOD.size() > 0) {
+  if (!outputsInputsAOD.empty()) {
     // add TFNumber as input to the writer
     outputsInputsAOD.emplace_back(InputSpec{"tfn", "TFN", "TFNumber"});
     auto fileSink = CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD);
@@ -590,7 +548,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   extraSpecs.clear();
 }
 
-void WorkflowHelpers::adjustTopology(WorkflowSpec& workflow, ConfigContext const& ctx)
+void WorkflowHelpers::adjustTopology(WorkflowSpec& workflow, ConfigContext const& /*ctx*/)
 {
   for (auto& spec : workflow) {
     auto& inputs = spec.inputs;
@@ -997,7 +955,7 @@ std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(Confi
 
         // use the dangling outputs
         std::vector<InputSpec> danglingOutputs;
-        for (auto ii = 0; ii < OutputsInputs.size(); ii++) {
+        for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
           if (isAOD(OutputsInputs[ii]) && isDangling[ii]) {
             danglingOutputs.emplace_back(OutputsInputs[ii]);
           }
