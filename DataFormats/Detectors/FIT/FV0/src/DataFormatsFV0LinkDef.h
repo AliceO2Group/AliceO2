@@ -29,8 +29,6 @@
 #pragma link C++ class std::vector < o2::fv0::Digit> + ;
 
 #pragma link C++ class o2::fv0::RawEventData + ;
-#pragma link C++ class o2::fv0::Topo + ;
-
 #pragma link C++ class o2::fv0::CTFHeader + ;
 #pragma link C++ class o2::fv0::CTF + ;
 #pragma link C++ class o2::ctf::EncodedBlocks < o2::fv0::CTFHeader, 7, uint32_t> + ;
