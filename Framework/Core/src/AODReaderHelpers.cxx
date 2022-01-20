@@ -148,7 +148,7 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec>& reque
           std::vector<std::shared_ptr<arrow::Table>> originalTables;
           for (auto& i : input.metadata) {
             if ((i.type == VariantType::String) && (i.name.find("input:") != std::string::npos)) {
-              auto spec = InputSpec::fromString(i.defaultValue.get<std::string>());
+              auto spec = DataSpecUtils::fromMetadataString(i.defaultValue.get<std::string>());
               originalTables.push_back(pc.inputs().get<TableConsumer>(spec.binding)->asArrowTable());
             }
           }

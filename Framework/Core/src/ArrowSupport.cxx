@@ -427,7 +427,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
           for (auto const& i : d.inputs) {
             if (DataSpecUtils::partialMatch(i, header::DataOrigin{"DYN"})) {
               auto copy = i;
-              updateInputList(requestedDYNs, std::move(copy));
+              DataSpecUtils::updateInputList(requestedDYNs, std::move(copy));
             }
           }
         }
@@ -450,7 +450,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
           for (auto& i : d.inputs) {
             if (DataSpecUtils::partialMatch(i, header::DataOrigin{"IDX"})) {
               auto copy = i;
-              updateInputList(requestedIDXs, std::move(copy));
+              DataSpecUtils::updateInputList(requestedIDXs, std::move(copy));
             }
           }
         }
@@ -470,7 +470,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
           for (auto const& i : d.inputs) {
             if (DataSpecUtils::partialMatch(i, header::DataOrigin{"AOD"})) {
               auto copy = i;
-              updateInputList(requestedAODs, std::move(copy));
+              DataSpecUtils::updateInputList(requestedAODs, std::move(copy));
             }
           }
         }

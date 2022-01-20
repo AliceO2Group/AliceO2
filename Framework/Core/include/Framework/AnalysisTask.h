@@ -110,7 +110,7 @@ struct AnalysisDataProcessorBuilder {
       inputMetadata.insert(inputMetadata.end(), inputSources.begin(), inputSources.end());
     }
     auto newInput = InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), Lifetime::Timeframe, inputMetadata};
-    updateInputList(inputs, std::move(newInput));
+    DataSpecUtils::updateInputList(inputs, std::move(newInput));
   }
 
   template <typename... Args>

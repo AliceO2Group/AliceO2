@@ -62,9 +62,6 @@ struct InputSpec {
             enum Lifetime lifetime_ = Lifetime::Timeframe,
             std::vector<ConfigParamSpec> const& metadata_ = {});
 
-  /// Create an InputSpec from metadata string
-  static InputSpec fromString(std::string s);
-
   /// A mnemonic name for the input spec.
   std::string binding;
 
@@ -81,8 +78,5 @@ struct InputSpec {
   friend std::ostream& operator<<(std::ostream& stream, InputSpec const& arg);
   bool operator==(InputSpec const& that) const;
 };
-
-void updateInputList(std::vector<InputSpec>& list, InputSpec&& input);
-
 } // namespace o2
 #endif
