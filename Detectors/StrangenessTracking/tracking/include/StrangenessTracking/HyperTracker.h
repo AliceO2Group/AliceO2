@@ -58,6 +58,8 @@ class HyperTracker
   void setMaxChi2(float d) { mMaxChi2 = d; }
   float getBz() const { return mBz; }
   void setBz(float d) { mBz = d; }
+  void setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType& type) { mCorrType = type; }
+
 
   void setupFitters()
   {
@@ -67,7 +69,7 @@ class HyperTracker
     // mFitter3Body.setUseAbsDCA(true);
   }
 
-  bool loadData(gsl::span<const o2::its::TrackITS> InputITStracks, std::vector<ITSCluster>& InputITSclusters, gsl::span<const int> InputITSidxs, gsl::span<const V0> InputV0tracks, o2::its::GeometryTGeo* geomITS, float Bz);
+  bool loadData(gsl::span<const o2::its::TrackITS> InputITStracks, std::vector<ITSCluster>& InputITSclusters, gsl::span<const int> InputITSidxs, gsl::span<const V0> InputV0tracks, o2::its::GeometryTGeo* geomITS);
   double calcV0alpha(const V0& v0);
   std::vector<ITSCluster> getTrackClusters(o2::its::TrackITS const& ITStrack);
 
@@ -96,6 +98,7 @@ class HyperTracker
 
   float mMaxChi2 = 10; // Maximum matching chi2
   float mBz = -5;      // Magnetic field
+  o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE; //use mat correction
 
   o2::its::GeometryTGeo* mGeomITS; // ITS geometry
   V0 mV0;                          // V0 employed for the tracking

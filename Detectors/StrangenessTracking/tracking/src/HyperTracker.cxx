@@ -19,7 +19,7 @@ namespace strangeness_tracking
 {
 using ITSCluster = o2::BaseCluster<float>;
 
-bool HyperTracker::loadData(gsl::span<const o2::its::TrackITS> InputITStracks, std::vector<ITSCluster>& InputITSclusters, gsl::span<const int> InputITSidxs, gsl::span<const V0> InputV0tracks, o2::its::GeometryTGeo* geomITS, float Bz)
+bool HyperTracker::loadData(gsl::span<const o2::its::TrackITS> InputITStracks, std::vector<ITSCluster>& InputITSclusters, gsl::span<const int> InputITSidxs, gsl::span<const V0> InputV0tracks, o2::its::GeometryTGeo* geomITS)
 {
   mInputV0tracks = InputV0tracks;
   mInputITStracks = InputITStracks;
@@ -30,8 +30,6 @@ bool HyperTracker::loadData(gsl::span<const o2::its::TrackITS> InputITStracks, s
   LOG(INFO) << "ITS tracks size: " << mInputITStracks.size();
   LOG(INFO) << "ITS clusters size: " << mInputITSclusters.size();
   LOG(INFO) << "ITS idxs size: " << mInputITSidxs.size();
-
-  mBz = Bz;
   mGeomITS = geomITS;
   setupFitters();
   return true;
@@ -121,7 +119,6 @@ void HyperTracker::process()
       if (nUpdates < trackClusters.size())
         continue;
 
-
       o2::track::TrackParCov hyperTrack = mV0;
       // outward V0 propagation
       if (v0Clusters.size() > 0) {
@@ -149,24 +146,30 @@ void HyperTracker::process()
 
 bool HyperTracker::updateTrack(const ITSCluster& clus, o2::track::TrackParCov& track)
 {
+  auto propInstance = o2::base::Propagator::Instance();
   float alpha = mGeomITS->getSensorRefAlpha(clus.getSensorID()), x = clus.getX();
   int layer{mGeomITS->getLayer(clus.getSensorID())};
-  float thick = layer < 3 ? 0.005 : 0.01;
 
-  if (track.rotate(alpha)) {
+  if (!track.rotate(alpha))
+    return false;
 
-    if (track.propagateTo(x, mBz)) {
-      constexpr float radl = 9.36f; // Radiation length of Si [cm]
-      constexpr float rho = 2.33f;  // Density of Si [g/cm^3]
-
-      auto chi2 = std::abs(track.getPredictedChi2(clus));
-      if (track.correctForMaterial(thick, thick * rho * radl) && chi2 < mMaxChi2 && chi2 > 0) {
-        track.update(clus);
-        return true;
-      }
-    }
+  if (!propInstance->propagateToX(track, x, getBz(), o2::base::PropagatorImpl<float>::MAX_SIN_PHI, o2::base::PropagatorImpl<float>::MAX_STEP, mCorrType))
+    return false;
+  if (mCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
+    float thick = layer < 3 ? 0.005 : 0.01;
+    constexpr float radl = 9.36f; // Radiation length of Si [cm]
+    constexpr float rho = 2.33f;  // Density of Si [g/cm^3]
+    if (!track.correctForMaterial(thick, thick * rho * radl))
+      return false;
   }
-  return false;
+  auto chi2 = std::abs(track.getPredictedChi2(clus));
+  if (chi2 > mMaxChi2 || chi2 < 0)
+    return false;
+
+  if (!track.update(clus))
+    return false;
+  
+  return true;
 }
 
 bool HyperTracker::recreateV0(const o2::track::TrackParCov& posTrack, const o2::track::TrackParCov& negTrack, const GIndex posID, const GIndex negID)

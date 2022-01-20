@@ -11,6 +11,8 @@
 
 #include "TGeoGlobalMagField.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "Field/MagneticField.h"
 
 #include "StrangenessTrackingWorkflow/HypertrackingSpec.h"
 #include "ITSWorkflow/ClusterWriterSpec.h"
@@ -85,13 +87,21 @@ void HypertrackerSpec::init(framework::InitContext& ic)
   mTimer.Stop();
   mTimer.Reset();
 
-  // auto filename = ic.options().get<std::string>("grp-file");
-  // const auto grp = parameters::GRPObject::loadFrom(filename);
-  // if (grp) {
-  //   mGRP.reset(grp);
-  //   base::Propagator::initFieldFromGRP(grp);
-  //   auto field = static_cast<field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
-  // }
+  auto filename = ic.options().get<std::string>("grp-file");
+  const auto grp = parameters::GRPObject::loadFrom(filename);
+
+  // load propagator
+  base::Propagator::initFieldFromGRP(grp);
+  std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
+  std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
+  if (o2::utils::Str::pathExists(matLUTFile)) {
+    auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
+    o2::base::Propagator::Instance()->setMatLUT(lut);
+    mTracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
+    LOG(info) << "Loaded material LUT from " << matLUTFile;
+  } else {
+    LOG(info) << "Material LUT " << matLUTFile << " file is absent, only heuristic material correction can be used";
+  }
 
   // load geometry
   base::GeometryManager::loadGeometry();
@@ -147,8 +157,11 @@ void HypertrackerSpec::run(framework::ProcessingContext& pc)
   o2::its::ioutils::convertCompactClusters(ITSclus, pattIt, ITSClustersArray, ITSdict);
 
   auto geom = o2::its::GeometryTGeo::Instance();
+  auto field = static_cast<field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+  double origD[3] = {0., 0., 0.};
+  mTracker.setBz(field->getBz(origD));
 
-  mTracker.loadData(ITStracks, ITSClustersArray, ITSTrackClusIdx, v0vec, geom, -5.);
+  mTracker.loadData(ITStracks, ITSClustersArray, ITSTrackClusIdx, v0vec, geom);
   mTracker.process();
 
   pc.outputs().snapshot(Output{"HYP", "V0S", 0, Lifetime::Timeframe}, mTracker.getV0());
@@ -201,13 +214,14 @@ DataProcessorSpec getHyperTrackerSpec()
   outputs.emplace_back("HYP", "CHI2", 0, Lifetime::Timeframe);
   outputs.emplace_back("HYP", "ITSREFS", 0, Lifetime::Timeframe);
 
-
   return DataProcessorSpec{
     "hypertracker",
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<HypertrackerSpec>()},
-  };
+    Options{
+      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
+      {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
 }
 
 } // namespace strangeness_tracking
