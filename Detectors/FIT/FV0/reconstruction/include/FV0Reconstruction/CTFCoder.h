@@ -16,16 +16,11 @@
 #ifndef O2_FV0_CTFCODER_H
 #define O2_FV0_CTFCODER_H
 
-#include <algorithm>
-#include <iterator>
-#include <string>
-#include "FV0Base/Geometry.h"
 #include "DataFormatsFV0/CTF.h"
 #include "DataFormatsFV0/Digit.h"
 #include "DataFormatsFV0/ChannelData.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/CTFCoderBase.h"
-#include "rANS/rans.h"
 
 class TTree;
 

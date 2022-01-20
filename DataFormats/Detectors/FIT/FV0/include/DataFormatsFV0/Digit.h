@@ -62,9 +62,9 @@ struct Triggers {
   }
   bool operator==(Triggers const& other) const
   {
-    //Will be implemented later
-    //return std::tie(triggersignals, nChanA, nChanC, amplA, amplC, timeA, timeC) ==
-    //       std::tie(other.triggersignals, other.nChanA, other.nChanC, other.amplA, other.amplC, other.timeA, other.timeC);
+    // Will be implemented later
+    // return std::tie(triggersignals, nChanA, nChanC, amplA, amplC, timeA, timeC) ==
+    //        std::tie(other.triggersignals, other.nChanA, other.nChanC, other.amplA, other.amplC, other.timeA, other.timeC);
     return std::tie(triggerSignals, nChanA, amplA) ==
            std::tie(other.triggerSignals, other.nChanA, other.amplA);
   }
@@ -97,7 +97,7 @@ struct Digit {
   static constexpr char sDigitBranchName[] = "FV0DigitBC";
   /// we are going to refer to at most 48 channels, so 6 bits for the number of channels and 26 for the reference
   o2::dataformats::RangeRefComp<6> ref;
-  o2::InteractionRecord ir; //FV0 is detected by using this field!!!
+  o2::InteractionRecord ir; // FV0 is detected by using this field!!!
   Triggers mTriggers;
   Digit() = default;
   Digit(int first, int ne, o2::InteractionRecord iRec, const Triggers& chTrig)
@@ -127,7 +127,7 @@ struct Digit {
   ClassDefNV(Digit, 1);
 };
 
-//For TCM extended mode (calibration mode), TCMdataExtended digit
+// For TCM extended mode (calibration mode), TCMdataExtended digit
 struct TriggersExt {
   TriggersExt(std::array<uint32_t, 20> triggerWords) : mTriggerWords(triggerWords) {}
   TriggersExt() = default;

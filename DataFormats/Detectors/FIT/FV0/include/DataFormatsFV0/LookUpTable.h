@@ -21,12 +21,6 @@
 //////////////////////////////////////////////
 
 #include "DataFormatsFIT/LookUpTable.h"
-#include <Rtypes.h>
-#include <cassert>
-#include <iostream>
-#include <iomanip> // std::setfill, std::setw - for stream formating
-#include <Framework/Logger.h>
-#include "FV0Base/Constants.h"
 #include "CommonUtils/NameConf.h"
 
 namespace o2
@@ -34,7 +28,7 @@ namespace o2
 namespace fv0
 {
 
-struct Topo {
+/*struct Topo {
   int pmLink = 0; // Number of Processing Module, associated with GBT link ID
   int pmCh = 0;   // Channel within the Processing Module in range from 0-11
   ClassDefNV(Topo, 1);
@@ -44,8 +38,9 @@ inline bool operator<(Topo const& a, Topo const& b)
 {
   return (a.pmLink < b.pmLink || (a.pmLink == b.pmLink && a.pmCh < b.pmCh));
 }
-
+*/
 namespace new_lut
+
 {
 //Singleton for LookUpTable
 template <typename LUT>

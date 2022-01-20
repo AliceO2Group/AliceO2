@@ -17,12 +17,8 @@
 #define ALICEO2_FV0_RAWEVENTDATA_H_
 
 #include "FV0Base/Constants.h"
-#include "Headers/RAWDataHeader.h"
 #include "DataFormatsFIT/RawEventData.h"
-#include <CommonDataFormat/InteractionRecord.h>
 #include <Framework/Logger.h>
-#include <cstring>
-#include <iomanip>
 #include "Rtypes.h"
 
 namespace o2

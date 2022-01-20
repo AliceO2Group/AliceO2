@@ -9,14 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <TRandom.h>
+#include <numeric>
 #include "FV0Simulation/Digitizer.h"
 #include "FV0Base/Geometry.h"
 #include "FV0Base/Constants.h"
 #include "TF1Convolution.h"
-
-#include <TRandom.h>
-#include <algorithm>
-#include <numeric>
 
 ClassImp(o2::fv0::Digitizer);
 

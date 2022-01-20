@@ -20,7 +20,6 @@
 #include <DataFormatsFV0/Digit.h>
 #include <FV0Simulation/Detector.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
-#include <MathUtils/RandomRing.h>
 #include <CommonDataFormat/InteractionRecord.h>
 #include <array>
 #include <vector>

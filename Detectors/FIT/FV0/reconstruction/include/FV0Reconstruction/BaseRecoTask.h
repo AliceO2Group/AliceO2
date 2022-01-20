@@ -17,15 +17,8 @@
 #include "DataFormatsFV0/Digit.h"
 #include "DataFormatsFV0/ChannelData.h"
 #include "DataFormatsFV0/RecPoints.h"
-#include "CommonDataFormat/InteractionRecord.h"
-#include "CommonDataFormat/TimeStamp.h"
 #include "FV0Calibration/FV0ChannelTimeCalibrationObject.h"
-#include "FV0Base/Constants.h"
 #include <gsl/span>
-#include <bitset>
-#include <vector>
-#include <array>
-#include <TGraph.h>
 
 namespace o2
 {

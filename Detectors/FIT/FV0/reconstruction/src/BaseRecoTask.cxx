@@ -13,19 +13,12 @@
 /// \brief Implementation of the FV0 reconstruction task
 
 #include "FV0Reconstruction/BaseRecoTask.h"
-#include "FairLogger.h" // for LOG
 #include "DataFormatsFV0/RecPoints.h"
 #include "FV0Base/Geometry.h"
 #include "FV0Simulation/FV0DigParam.h"
 #include "FV0Simulation/DigitizationConstant.h"
-#include "FV0Simulation/FV0DigParam.h"
 #include <DataFormatsFV0/ChannelData.h>
 #include <DataFormatsFV0/Digit.h>
-#include <cmath>
-#include <bitset>
-#include <cassert>
-#include <iostream>
-#include <algorithm>
 #include <CommonDataFormat/InteractionRecord.h>
 #include <Framework/Logger.h>
 

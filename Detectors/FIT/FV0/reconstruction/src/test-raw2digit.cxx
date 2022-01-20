@@ -11,13 +11,10 @@
 
 #include <TSystem.h>
 #include <TTree.h>
-#include "CommonUtils/NameConf.h"
-#include "Framework/Logger.h"
 #include "DataFormatsFV0/Digit.h"
 #include "DataFormatsFV0/ChannelData.h"
-
 #include <TFile.h>
-#include <cstring>
+#include <iostream>
 
 using namespace o2::fv0;
 int main()

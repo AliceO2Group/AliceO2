@@ -52,7 +52,7 @@ o2::framework::DataProcessorSpec getFV0DigitWriterSpec(bool mctruth, bool trigIn
                                   "o2sim",
                                   MakeRootTreeWriterSpec::CustomClose(finishWriting),
                                   BranchDefinition<std::vector<o2::fv0::Digit>>{InputSpec{"digitBCinput", "FV0", "DIGITSBC"}, "FV0DigitBC", "fv0-digits-branch-name", 1,
-                                                                                 logger},
+                                                                                logger},
                                   BranchDefinition<std::vector<o2::fv0::ChannelData>>{InputSpec{"digitChinput", "FV0", "DIGITSCH"}, "FV0DigitCh", "fv0-chhdata-branch-name"},
                                   BranchDefinition<std::vector<o2::fv0::DetTrigInput>>{InputSpec{"digitTrinput", "FV0", "TRIGGERINPUT"}, "TRIGGERINPUT", "fv0-triggerinput-branch-name"},
                                   std::move(labelsdef))();
@@ -62,7 +62,7 @@ o2::framework::DataProcessorSpec getFV0DigitWriterSpec(bool mctruth, bool trigIn
                                   "o2sim",
                                   MakeRootTreeWriterSpec::CustomClose(finishWriting),
                                   BranchDefinition<std::vector<o2::fv0::Digit>>{InputSpec{"digitBCinput", "FV0", "DIGITSBC"}, "FV0DigitBC", "fv0-digits-branch-name", 1,
-                                                                                 logger},
+                                                                                logger},
                                   BranchDefinition<std::vector<o2::fv0::ChannelData>>{InputSpec{"digitChinput", "FV0", "DIGITSCH"}, "FV0DigitCh", "fv0-chhdata-branch-name"},
                                   std::move(labelsdef))();
   }

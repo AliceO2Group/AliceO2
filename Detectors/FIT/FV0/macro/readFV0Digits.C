@@ -121,17 +121,17 @@ void readFV0Digits(std::string digiFName = "fv0digits.root", bool printAllToTerm
         std::cout << 100.0 * ibc / nbc << "%]" << std::endl;
       }
       const auto& bcd = fv0digit[ibc];
-      //std::cout << ibc << " " << nbc << " - " << bcd.ir << std::endl;
+      // std::cout << ibc << " " << nbc << " - " << bcd.ir << std::endl;
       int chEnt = bcd.ref.getFirstEntry();
       int nchannels = 0;
       for (int ic = 0; ic < bcd.ref.getEntries(); ic++) {
         const auto& chd = fv0ChData[chEnt++];
-        //std::cout << chd.ChId << "  " << chd.QTCAmpl << "  " << chd.CFDTime << std::endl;
+        // std::cout << chd.ChId << "  " << chd.QTCAmpl << "  " << chd.CFDTime << std::endl;
         hTimeCharge->Fill(chd.CFDtime, chd.chargeAdc);
         hTimeCh->Fill(chd.CFDTime, chd.ChId);
         hChargeCh->Fill(chd.QTCAmpl, chd.ChId);
-        if(chd.QTCAmpl > 0){
-        	nchannels++;
+        if (chd.QTCAmpl > 0) {
+          nchannels++;
         }
       }
       hNchannels->Fill(nchannels);
@@ -182,42 +182,44 @@ void readFV0Digits(std::string digiFName = "fv0digits.root", bool printAllToTerm
   hTimeCh->Rebin2D(rebin, 1);
   hTimeCh->GetXaxis()->SetRangeUser(tMin, tMax);
   hTimeCh->Draw("colz");
-  //AdjustStatBox(hTimeCh, statX1, statX2, statY1, statY2);
+  // AdjustStatBox(hTimeCh, statX1, statX2, statY1, statY2);
   ctc->cd(2);
   gPad->SetMargin(lmargin, rmargin, bmargin, tmargin);
   gPad->SetLogz();
   hChargeCh->Rebin2D(rebin, 1);
   hChargeCh->GetXaxis()->SetRangeUser(chargeMin, chargeMax);
   hChargeCh->Draw("colz");
-  //AdjustStatBox(hChargeCh, statX1, statX2, statY1, statY2);
+  // AdjustStatBox(hChargeCh, statX1, statX2, statY1, statY2);
   ctc->cd(3);
   gPad->SetMargin(lmargin, rmargin, bmargin, tmargin);
   gPad->SetLogy();
   ht->Rebin(rebin);
   ht->GetXaxis()->SetRangeUser(tMin, tMax);
   ht->Draw();
-  //AdjustStatBox(ht, statX1, statX2, statY1, statY2);
+  // AdjustStatBox(ht, statX1, statX2, statY1, statY2);
   ctc->cd(4);
   gPad->SetMargin(lmargin, rmargin, bmargin, tmargin);
   gPad->SetLogy();
   hc->Rebin(rebin);
   hc->GetXaxis()->SetRangeUser(chargeMin, chargeMax);
   hc->Draw();
-  //AdjustStatBox(hc, statX1, statX2, statY1, statY2);
+  // AdjustStatBox(hc, statX1, statX2, statY1, statY2);
 
   TCanvas* cmulti = new TCanvas("fv0digi-multi", "fv0digi-multi", 1800, 500);
   cmulti->Divide(2);
-  cmulti->cd(1);{
-	  gPad->SetMargin(1.3 * lmargin, rmargin, bmargin, tmargin);
-	  hNchannels->Draw();
+  cmulti->cd(1);
+  {
+    gPad->SetMargin(1.3 * lmargin, rmargin, bmargin, tmargin);
+    hNchannels->Draw();
   }
-  cmulti->cd(2);{
-	  gPad->SetMargin(1.3 * lmargin, rmargin, bmargin, tmargin);
-	  hTimeCharge->Rebin2D(rebin, rebin);
-	  hTimeCharge->GetXaxis()->SetRangeUser(tMin, tMax);
-	  hTimeCharge->GetYaxis()->SetRangeUser(chargeMin, chargeMax);
-	  hTimeCharge->Draw("colz");
-	  //AdjustStatBox(hTimeCharge, statX1, statX2, statY1, statY2);
+  cmulti->cd(2);
+  {
+    gPad->SetMargin(1.3 * lmargin, rmargin, bmargin, tmargin);
+    hTimeCharge->Rebin2D(rebin, rebin);
+    hTimeCharge->GetXaxis()->SetRangeUser(tMin, tMax);
+    hTimeCharge->GetYaxis()->SetRangeUser(chargeMin, chargeMax);
+    hTimeCharge->Draw("colz");
+    // AdjustStatBox(hTimeCharge, statX1, statX2, statY1, statY2);
   }
 
   // Save histos
@@ -230,35 +232,37 @@ void readFV0Digits(std::string digiFName = "fv0digits.root", bool printAllToTerm
   std::cout << "Digits read" << std::endl;
 }
 
-void DrawTextNdc(std::string s, double x, double y, double size, Color_t col, Float_t tangle){
-	TLatex *t = new TLatex(0,0,s.c_str());
-	t->SetTextAngle(tangle);
-	t->SetNDC();
-	t->SetX(x);
-	t->SetY(y);
-	t->SetTextSize(size);
-	t->SetTextFont(42);
-	t->SetTextColor(col);
-	t->Draw();
+void DrawTextNdc(std::string s, double x, double y, double size, Color_t col, Float_t tangle)
+{
+  TLatex* t = new TLatex(0, 0, s.c_str());
+  t->SetTextAngle(tangle);
+  t->SetNDC();
+  t->SetX(x);
+  t->SetY(y);
+  t->SetTextSize(size);
+  t->SetTextFont(42);
+  t->SetTextColor(col);
+  t->Draw();
 }
 
-void SetupPad(TH1* h, float fontSize, float lmargin, float rmargin, float tmargin, float bmargin, float xoffset, float yoffset){
-	gPad->SetTopMargin(tmargin);
-	gPad->SetBottomMargin(bmargin);
-	gPad->SetLeftMargin(lmargin);
-	gPad->SetRightMargin(rmargin);
-	h->GetXaxis()->SetLabelSize(fontSize);
-	h->GetXaxis()->SetTitleSize(fontSize);
-	h->GetYaxis()->SetLabelSize(fontSize);
-	h->GetYaxis()->SetTitleSize(fontSize);
-	h->GetXaxis()->SetTitleOffset(xoffset);
-	h->GetYaxis()->SetTitleOffset(yoffset);
+void SetupPad(TH1* h, float fontSize, float lmargin, float rmargin, float tmargin, float bmargin, float xoffset, float yoffset)
+{
+  gPad->SetTopMargin(tmargin);
+  gPad->SetBottomMargin(bmargin);
+  gPad->SetLeftMargin(lmargin);
+  gPad->SetRightMargin(rmargin);
+  h->GetXaxis()->SetLabelSize(fontSize);
+  h->GetXaxis()->SetTitleSize(fontSize);
+  h->GetYaxis()->SetLabelSize(fontSize);
+  h->GetYaxis()->SetTitleSize(fontSize);
+  h->GetXaxis()->SetTitleOffset(xoffset);
+  h->GetYaxis()->SetTitleOffset(yoffset);
 }
 
 // Root files generated in the previous stage (readFV0Digits()) are used as inputs here
 int compareFV0Digits(std::string digiFName1 = "fv0digi-rawhistos.root", std::string digiFName2 = "", std::string digiFName3 = "")
 {
-  const int tmin=-100, tmax=100, cmin=0, cmax=1100;
+  const int tmin = -100, tmax = 100, cmin = 0, cmax = 1100;
   gStyle->SetOptStat("");
   const int nChannels = o2::fv0::Constants::nFv0Channels + 5;
   std::vector<Color_t> vcol;
@@ -327,67 +331,69 @@ int compareFV0Digits(std::string digiFName1 = "fv0digi-rawhistos.root", std::str
   vnamestat.push_back("hcmean3");
   vnamestat.push_back("hcrms3");
   std::vector<TH1D*> vhstat;
-  for(unsigned int i=0; i<vnamestat.size(); i++){
-	vhstat.push_back(new TH1D(vnamestat.at(i).c_str(), "", nChannels, 0, nChannels));
+  for (unsigned int i = 0; i < vnamestat.size(); i++) {
+    vhstat.push_back(new TH1D(vnamestat.at(i).c_str(), "", nChannels, 0, nChannels));
   }
-  TCanvas* ct = new TCanvas("fv0digi-cmp-time"  , "fv0digi-cmp-time", 1250, 820);
+  TCanvas* ct = new TCanvas("fv0digi-cmp-time", "fv0digi-cmp-time", 1250, 820);
   TCanvas* cc = new TCanvas("fv0digi-cmp-charge", "fv0digi-cmp-charge", 1250, 820);
-  ct->Divide(6, nChannels/6+1);
-  cc->Divide(6, nChannels/6+1);
+  ct->Divide(6, nChannels / 6 + 1);
+  cc->Divide(6, nChannels / 6 + 1);
   for (UInt_t ifile = 0; ifile < nFiles; ifile++) {
     TH2F* h2t = (TH2F*)vh.at(ifile * nHistos + 1);
     h2t->GetXaxis()->SetRangeUser(tmin, tmax);
     TH2F* h2c = (TH2F*)vh.at(ifile * nHistos + 2);
     h2c->GetXaxis()->SetRangeUser(cmin, cmax);
-    for(unsigned int ich=0; ich<nChannels; ich++){
+    for (unsigned int ich = 0; ich < nChannels; ich++) {
       std::stringstream sst, ssc;
-      ct->cd(ich+1);{
+      ct->cd(ich + 1);
+      {
         sst << "t" << ifile << "_" << ich;
-        TH1D* ht = h2t->ProjectionX(sst.str().c_str(), ich+1, ich+1);
+        TH1D* ht = h2t->ProjectionX(sst.str().c_str(), ich + 1, ich + 1);
         SetupPad(ht, 0.16, 0.01, 0, 0, 0.17, 1, 1);
         ht->SetLineColor(vcol.at(ifile));
-        ht->Draw((ifile==0)?"":"same");
+        ht->Draw((ifile == 0) ? "" : "same");
         ht->GetXaxis()->SetRangeUser(tmin, tmax);
-        vhstat.at(ifile*4+0)->SetBinContent(ich+1, ht->GetMean());
-        vhstat.at(ifile*4+1)->SetBinContent(ich+1, ht->GetRMS());
+        vhstat.at(ifile * 4 + 0)->SetBinContent(ich + 1, ht->GetMean());
+        vhstat.at(ifile * 4 + 1)->SetBinContent(ich + 1, ht->GetRMS());
 
         std::stringstream ss1, ss2;
         ss1 << "#mu = " << std::setprecision(2) << ht->GetMean();
         ss2 << "RMS = " << std::setprecision(2) << ht->GetRMS();
-        if(ifile == 0){
-        	std::stringstream ss;
-        	ss << ich;
-        	DrawTextNdc(ss.str(), 0.07, 0.75, 0.3, kBlack, 0);
+        if (ifile == 0) {
+          std::stringstream ss;
+          ss << ich;
+          DrawTextNdc(ss.str(), 0.07, 0.75, 0.3, kBlack, 0);
         }
-        DrawTextNdc(ss1.str(), 0.6, 0.85-ifile*0.3, 0.15, ht->GetLineColor(), 0);
-        DrawTextNdc(ss2.str(), 0.6, 0.7-ifile*0.3, 0.15, ht->GetLineColor(), 0);
+        DrawTextNdc(ss1.str(), 0.6, 0.85 - ifile * 0.3, 0.15, ht->GetLineColor(), 0);
+        DrawTextNdc(ss2.str(), 0.6, 0.7 - ifile * 0.3, 0.15, ht->GetLineColor(), 0);
       }
-      cc->cd(ich+1);{
+      cc->cd(ich + 1);
+      {
         ssc << "c" << ifile << "_" << ich;
-        TH1D* hc = h2c->ProjectionX(ssc.str().c_str(), ich+1, ich+1);
+        TH1D* hc = h2c->ProjectionX(ssc.str().c_str(), ich + 1, ich + 1);
         SetupPad(hc, 0.16, 0.01, 0, 0, 0.17, 1, 1);
         hc->SetLineColor(vcol.at(ifile));
-        hc->Draw((ifile==0)?"":"same");
+        hc->Draw((ifile == 0) ? "" : "same");
         hc->GetXaxis()->SetRangeUser(cmin, cmax);
-        vhstat.at(ifile*4+2)->SetBinContent(ich+1, hc->GetMean());
-        vhstat.at(ifile*4+3)->SetBinContent(ich+1, hc->GetRMS());
+        vhstat.at(ifile * 4 + 2)->SetBinContent(ich + 1, hc->GetMean());
+        vhstat.at(ifile * 4 + 3)->SetBinContent(ich + 1, hc->GetRMS());
 
         std::stringstream ss1, ss2;
         ss1 << "#mu = " << std::setprecision(2) << hc->GetMean();
         ss2 << "RMS = " << std::setprecision(2) << hc->GetRMS();
-        if(ifile == 0){
-        	std::stringstream ss;
-        	ss << ich;
-        	DrawTextNdc(ss.str(), 0.07, 0.75, 0.3, kBlack, 0);
+        if (ifile == 0) {
+          std::stringstream ss;
+          ss << ich;
+          DrawTextNdc(ss.str(), 0.07, 0.75, 0.3, kBlack, 0);
         }
-        DrawTextNdc(ss1.str(), 0.6, 0.85-ifile*0.3, 0.15, hc->GetLineColor(), 0);
-        DrawTextNdc(ss2.str(), 0.6, 0.7-ifile*0.3, 0.15, hc->GetLineColor(), 0);
+        DrawTextNdc(ss1.str(), 0.6, 0.85 - ifile * 0.3, 0.15, hc->GetLineColor(), 0);
+        DrawTextNdc(ss2.str(), 0.6, 0.7 - ifile * 0.3, 0.15, hc->GetLineColor(), 0);
       }
     }
   }
 
   // Draw the comparison of mean & rms for charge and time
-  TCanvas* cstat = new TCanvas("fv0digi-cmp-stat"  , "fv0digi-cmp-stat", 1250, 820);
+  TCanvas* cstat = new TCanvas("fv0digi-cmp-stat", "fv0digi-cmp-stat", 1250, 820);
   cstat->SetMargin(0, 0, 0, 0);
   cstat->Divide(2, 2);
   float ymin = 0, ymax = 2;
@@ -396,17 +402,17 @@ int compareFV0Digits(std::string digiFName1 = "fv0digi-rawhistos.root", std::str
   vytitle.push_back("Ratio of time RMS (after / before)");
   vytitle.push_back("Ratio of charge mean (after / before)");
   vytitle.push_back("Ratio of charge RMS (after / before)");
-  for(int ipad=0; ipad<4; ipad++){
-    cstat->cd(ipad+1);
+  for (int ipad = 0; ipad < 4; ipad++) {
+    cstat->cd(ipad + 1);
     gPad->SetGrid(1, 1);
 
-//    vhstat.at(ipad)->SetLineColor(vcol.at(2));
-//    vhstat.at(ipad)->GetYaxis()->SetRangeUser(ymin, ymax);
-//    vhstat.at(ipad)->Draw();
+    //    vhstat.at(ipad)->SetLineColor(vcol.at(2));
+    //    vhstat.at(ipad)->GetYaxis()->SetRangeUser(ymin, ymax);
+    //    vhstat.at(ipad)->Draw();
 
-    TH1D* h1 = (TH1D*)vhstat.at(ipad+4)->Clone();
+    TH1D* h1 = (TH1D*)vhstat.at(ipad + 4)->Clone();
     h1->SetLineColor(vcol.at(0));
-    h1->Divide(vhstat.at(ipad+0));
+    h1->Divide(vhstat.at(ipad + 0));
     h1->GetYaxis()->SetRangeUser(ymin, ymax);
     h1->SetLineWidth(2);
     h1->Draw("");
@@ -415,16 +421,16 @@ int compareFV0Digits(std::string digiFName1 = "fv0digi-rawhistos.root", std::str
     h1->GetXaxis()->SetNdivisions(12);
     SetupPad(h1, 0.06, 0.11, 0.02, 0.015, 0.11, 0.9, 0.9);
 
-    TH1D* h2 = (TH1D*)vhstat.at(ipad+8)->Clone();
+    TH1D* h2 = (TH1D*)vhstat.at(ipad + 8)->Clone();
     h2->SetLineColor(vcol.at(1));
-    h2->Divide(vhstat.at(ipad+0));
+    h2->Divide(vhstat.at(ipad + 0));
     h2->GetYaxis()->SetRangeUser(ymin, ymax);
     h2->SetLineWidth(2);
     h2->Draw("same");
   }
 
   // Draw the absolute time and amplitude
-  TCanvas* cabs = new TCanvas("fv0digi-abs-tc"  , "fv0digi-abs-tc", 1250, 820);
+  TCanvas* cabs = new TCanvas("fv0digi-abs-tc", "fv0digi-abs-tc", 1250, 820);
   cabs->SetMargin(0, 0, 0, 0);
   cabs->Divide(2, 2);
   float ymin1 = -100, ymax1 = 100;
@@ -433,22 +439,22 @@ int compareFV0Digits(std::string digiFName1 = "fv0digi-rawhistos.root", std::str
   vytitle1.push_back("RMS time [ch = 13 ps]");
   vytitle1.push_back("Mean charge [ch]");
   vytitle1.push_back("RMS charge [ch]");
-  for(int ipad=0; ipad<4; ipad++){
-    cabs->cd(ipad+1);
+  for (int ipad = 0; ipad < 4; ipad++) {
+    cabs->cd(ipad + 1);
     gPad->SetGrid(1, 1);
 
-//    vhstat.at(ipad)->SetLineColor(vcol.at(2));
-//    vhstat.at(ipad)->GetYaxis()->SetRangeUser(ymin, ymax);
-//    vhstat.at(ipad)->Draw();
+    //    vhstat.at(ipad)->SetLineColor(vcol.at(2));
+    //    vhstat.at(ipad)->GetYaxis()->SetRangeUser(ymin, ymax);
+    //    vhstat.at(ipad)->Draw();
 
-    vhstat.at(ipad+4)->SetLineColor(vcol.at(0));
-    vhstat.at(ipad+4)->GetYaxis()->SetRangeUser(ymin1, ymax1);
-    vhstat.at(ipad+4)->SetLineWidth(2);
-    vhstat.at(ipad+4)->Draw("");
-    vhstat.at(ipad+4)->GetXaxis()->SetTitle("Channel");
-    vhstat.at(ipad+4)->GetYaxis()->SetTitle(vytitle1.at(ipad).c_str());
-    vhstat.at(ipad+4)->GetXaxis()->SetNdivisions(12);
-    SetupPad(vhstat.at(ipad+4), 0.06, 0.11, 0.02, 0.015, 0.11, 0.9, 0.9);
+    vhstat.at(ipad + 4)->SetLineColor(vcol.at(0));
+    vhstat.at(ipad + 4)->GetYaxis()->SetRangeUser(ymin1, ymax1);
+    vhstat.at(ipad + 4)->SetLineWidth(2);
+    vhstat.at(ipad + 4)->Draw("");
+    vhstat.at(ipad + 4)->GetXaxis()->SetTitle("Channel");
+    vhstat.at(ipad + 4)->GetYaxis()->SetTitle(vytitle1.at(ipad).c_str());
+    vhstat.at(ipad + 4)->GetXaxis()->SetNdivisions(12);
+    SetupPad(vhstat.at(ipad + 4), 0.06, 0.11, 0.02, 0.015, 0.11, 0.9, 0.9);
   }
 
   return 0;
