@@ -48,7 +48,9 @@ constexpr int NROBC0 = 6;       // the number of ROBs per C0 chamber
 constexpr int NROBC1 = 8;       // the number of ROBs per C1 chamber
 constexpr int NADCMCM = 21;     // the number of ADC channels per MCM
 constexpr int NCOLMCM = 18;     // the number of pads per MCM
+constexpr int NCPU = 4;         // the number of CPUs inside the TRAP chip
 
+// the values below should come out of the TRAP config in the future
 constexpr int NBITSTRKLPOS = 11;                   // number of bits for position in tracklet64 word
 constexpr int NBITSTRKLSLOPE = 8;                  // number of bits for slope in tracklet64 word
 constexpr int ADDBITSHIFTSLOPE = 1 << 3;           // in the TRAP the slope is shifted by 3 additional bits compared to the position
@@ -56,7 +58,7 @@ constexpr int PADGRANULARITYTRKLPOS = 40;          // tracklet position is store
 constexpr int PADGRANULARITYTRKLSLOPE = 128;       // tracklet deflection is stored in units of 1/128 pad per time bin
 constexpr float GRANULARITYTRKLPOS = 1.f / PADGRANULARITYTRKLPOS;     // granularity of position in tracklet64 word in pad-widths
 constexpr float GRANULARITYTRKLSLOPE = 1.f / PADGRANULARITYTRKLSLOPE; // granularity of slope in tracklet64 word in pads/timebin
-constexpr int NCPU = 4;                                               // the number of CPUs inside the TRAP chip
+constexpr int ADCBASELINE = 10;                                       // baseline in ADC units
 
 // OS: Should this not be flexible for example in case of Kr calib?
 constexpr int TIMEBINS = 30; // the number of time bins

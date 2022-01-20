@@ -115,6 +115,7 @@ void TRDDPLTrapSimulatorTask::processTRAPchips(int& nTracklets, std::vector<Trac
     if (!trapSimulators[iTrap].isDataSet()) {
       continue;
     }
+    trapSimulators[iTrap].setBaselines();
     trapSimulators[iTrap].filter();
     trapSimulators[iTrap].tracklet();
     auto trackletsOut = trapSimulators[iTrap].getTrackletArray64();

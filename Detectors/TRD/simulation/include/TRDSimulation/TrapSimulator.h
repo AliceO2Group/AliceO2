@@ -124,12 +124,13 @@ class TrapSimulator
   bool isDataSet() { return mDataIsSet; };
   // set ADC data with array
   void setData(int iadc, const ArrayADC& adc, unsigned int digitIdx);
-  // set ADC data element by element
-  void setData(int iadc, int it, int adc);
   // set the baselines to all channels
   void setBaselines();
   // set the pedestal value to all channels
   void setDataPedestal(int iadc);
+  // set an additional ADC baseline value
+  void setAdditionalBaseline(int adc) { mAdditionalBaseline = adc; }
+  int getAdditionalBaseline() const { return mAdditionalBaseline; }
 
   int getDetector() const { return mDetector; }; // Returns Chamber ID (0-539)
   int getRobPos() const { return mRobPos; };     // Returns ROB position (0-7)
@@ -231,8 +232,15 @@ class TrapSimulator
   uint64_t mTrkltWordEmpty; // the part of the Tracklet64 which depends only on MCM row/column and detector
   bool mDontSendEmptyHeaderTrklt{false}; // flag, whether empty headers should be discarded
   int mADCFilled = 0;                    // bitpattern with ADC channels with data
+  int mAdditionalBaseline = 0;           // additional baseline to be added to the ADC input values
 
   // PID related settings
+  bool mUseFloatingPointForQ{false};   // whether to use floating point or fixed multiplier calculation of the charges
+  int mScaleQ{0x10000000};             // scale the charge by 1/16
+  int mSizeQ0Q1{7};                    // size of Q0 and Q1 charge windows in bit
+  int mMaskQ0Q1{(1 << mSizeQ0Q1) - 1}; // bit mask 0x7f
+  int mSizeQ2{6};                      // size of Q2 charge window in bit
+  int mMaxQ2{(1 << mSizeQ2) - 2};      // bit mask 0x3e
   int mQ2LeftMargin{7};
   int mQ2WindowWidth{7};
   // Q = Q >> N, where N takes one of the 4 values mDynShiftx, defined below
@@ -251,8 +259,8 @@ class TrapSimulator
   //TODO adcr adcf labels zerosupressionmap can all go into their own class. Refactor when stable.
   std::vector<int> mADCR; // Array with MCM ADC values (Raw, 12 bit) 2d with dimension mNTimeBin
   std::vector<int> mADCF; // Array with MCM ADC values (Filtered, 12 bit) 2d with dimension mNTimeBin
-  std::array<unsigned int, constants::NADCMCM> mADCDigitIndices{}; // indices of the incoming digits, used to relate the tracklets to labels in TRDTrapSimulatorSpec
-  std::array<uint32_t, 4> mMCMT;                                   // tracklet words for one mcm/trap-chip (one word for each cpu)
+  std::array<int, constants::NADCMCM> mADCDigitIndices{}; // indices of the incoming digits, used to relate the tracklets to labels in TRDTrapSimulatorSpec
+  std::array<uint32_t, 4> mMCMT;                          // tracklet words for one mcm/trap-chip (one word for each cpu)
   std::vector<Tracklet64> mTrackletArray64; // Array of 64 bit tracklets
   std::vector<unsigned short> mTrackletDigitCount; // Keep track of the number of digits contributing to the tracklet (for MC labels)
   std::vector<unsigned int> mTrackletDigitIndices; // For each tracklet the up to two global indices of the digits which contributed (global digit indices are managed in the TRDDPLTrapSimulatorTask class)
@@ -284,14 +292,12 @@ class TrapSimulator
   // Add a and b (unsigned) with clipping to the maximum value representable by nbits
   unsigned int addUintClipping(unsigned int a, unsigned int b, unsigned int nbits) const;
 
-  /*
   // The same LUT Venelin uses for his C++ test model of the TRAP (to check agreement with his results)
   const uint16_t LUT_POS[128] = {
     0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15,
     16, 16, 16, 17, 17, 18, 18, 19, 19, 19, 20, 20, 20, 21, 21, 22, 22, 22, 23, 23, 23, 24, 24, 24, 24, 25, 25, 25, 26, 26, 26, 26,
     27, 27, 27, 27, 27, 27, 27, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 27, 27, 27, 27, 26,
     26, 26, 26, 25, 25, 25, 24, 24, 23, 23, 22, 22, 21, 21, 20, 20, 19, 18, 18, 17, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 7};
-  */
 };
 
 std::ostream& operator<<(std::ostream& os, const TrapSimulator& mcm);
