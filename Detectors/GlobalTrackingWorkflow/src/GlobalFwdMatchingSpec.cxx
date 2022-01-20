@@ -110,7 +110,16 @@ void GlobalFwdMatchingDPL::run(ProcessingContext& pc)
 
   mMatching.run(recoData);
 
-  pc.outputs().snapshot(Output{"GLO", "GLFWD", 0, Lifetime::Timeframe}, mMatching.getMatchedFwdTracks());
+  const auto& matchingParam = GlobalFwdMatchingParam::Instance();
+
+  if (matchingParam.saveMode == kSaveTrainingData) {
+    pc.outputs().snapshot(Output{"GLO", "GLFWDMFT", 0, Lifetime::Timeframe}, mMatching.getMFTMatchingPlaneParams());
+    pc.outputs().snapshot(Output{"GLO", "GLFWDMCH", 0, Lifetime::Timeframe}, mMatching.getMCHMatchingPlaneParams());
+    pc.outputs().snapshot(Output{"GLO", "GLFWDINF", 0, Lifetime::Timeframe}, mMatching.getMFTMCHMatchInfo());
+  } else {
+    pc.outputs().snapshot(Output{"GLO", "GLFWD", 0, Lifetime::Timeframe}, mMatching.getMatchedFwdTracks());
+  }
+
   if (mUseMC) {
     pc.outputs().snapshot(Output{"GLO", "GLFWD_MC", 0, Lifetime::Timeframe}, mMatching.getMatchLabels());
   }
@@ -147,7 +156,13 @@ DataProcessorSpec getGlobalFwdMatchingSpec(bool useMC, bool matchRootOutput)
     dataRequest->requestMCHMIDMatches(useMC); // Request MCHMID Matches
   }
 
-  outputs.emplace_back("GLO", "GLFWD", 0, Lifetime::Timeframe);
+  if (matchingParam.saveMode == kSaveTrainingData) {
+    outputs.emplace_back("GLO", "GLFWDMFT", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "GLFWDMCH", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "GLFWDINF", 0, Lifetime::Timeframe);
+  } else {
+    outputs.emplace_back("GLO", "GLFWD", 0, Lifetime::Timeframe);
+  }
 
   if (useMC) {
     outputs.emplace_back("GLO", "GLFWD_MC", 0, Lifetime::Timeframe);
