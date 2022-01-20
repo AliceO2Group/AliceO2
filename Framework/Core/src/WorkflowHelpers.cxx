@@ -446,7 +446,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       return;
     }
     DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
-    auto* creator = PluginManager::getByName<AlgorithmPlugin>(pluginInstance, "ROOTFileReader");
+    AlgorithmPlugin* creator = PluginManager::getByName<AlgorithmPlugin>(pluginInstance, "ROOTFileReader");
     aodReader.algorithm = creator->create();
     aodReader.outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
     extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
@@ -483,14 +483,14 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
     if (isAOD(outputsInputs[ii])) {
       auto ds = dod->getDataOutputDescriptors(outputsInputs[ii]);
-      if (!ds.empty() || isDangling[ii]) {
+      if (ds.size() > 0 || isDangling[ii]) {
         outputsInputsAOD.emplace_back(outputsInputs[ii]);
       }
     }
   }
 
   // file sink for any AOD output
-  if (!outputsInputsAOD.empty()) {
+  if (outputsInputsAOD.empty() > 0) {
     // add TFNumber as input to the writer
     outputsInputsAOD.emplace_back(InputSpec{"tfn", "TFN", "TFNumber"});
     auto fileSink = CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD);
@@ -548,7 +548,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   extraSpecs.clear();
 }
 
-void WorkflowHelpers::adjustTopology(WorkflowSpec& workflow, ConfigContext const& /*ctx*/)
+void WorkflowHelpers::adjustTopology(WorkflowSpec& workflow, ConfigContext const& ctx)
 {
   for (auto& spec : workflow) {
     auto& inputs = spec.inputs;
@@ -955,7 +955,7 @@ std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(Confi
 
         // use the dangling outputs
         std::vector<InputSpec> danglingOutputs;
-        for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
+        for (auto ii = 0; ii < OutputsInputs.size(); ii++) {
           if (isAOD(OutputsInputs[ii]) && isDangling[ii]) {
             danglingOutputs.emplace_back(OutputsInputs[ii]);
           }
