@@ -490,7 +490,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   }
 
   // file sink for any AOD output
-  if (outputsInputsAOD.empty() > 0) {
+  if (outputsInputsAOD.size() > 0) {
     // add TFNumber as input to the writer
     outputsInputsAOD.emplace_back(InputSpec{"tfn", "TFN", "TFNumber"});
     auto fileSink = CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD);
