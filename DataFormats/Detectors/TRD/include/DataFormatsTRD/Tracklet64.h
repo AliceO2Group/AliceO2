@@ -43,6 +43,10 @@ Word 0  |   Format  |              HCID              |  padrow   | col |        
         -------------------------------------------------------------------------------------------------
 Word 0  |  slope                |    Q2                 |    Q1                 |         Q0            |
         -------------------------------------------------------------------------------------------------
+
+        Note: In the tracklet word both the position and the slope have one bit inverted. This avoids the
+              misinterpretation of the word as tracklet end marker. So before the position and slope are
+              written into the tracklet word they are XOR'd with 0x80, i.e. bits 31 and 39 are inverted.
 */
 class Tracklet64
 {
@@ -63,6 +67,7 @@ class Tracklet64
                     ((Q2 << Q2bs) & Q2mask) |
                     ((Q1 << Q1bs) & Q1mask) |
                     ((Q0 << Q0bs) & Q0mask);
+    mtrackletWord ^= 0x8080000000UL;
   }
 
   Tracklet64(uint64_t format, uint64_t hcid, uint64_t padrow, uint64_t col, uint64_t position,
@@ -75,6 +80,7 @@ class Tracklet64
                     ((position << posbs) & posmask) |
                     ((slope << slopebs) & slopemask) |
                     (pid & PIDmask);
+    mtrackletWord ^= 0x8080000000UL;
   }
 
   GPUdDefault() ~Tracklet64() = default;
@@ -131,12 +137,12 @@ class Tracklet64
   GPUd() void setPosition(uint64_t position)
   {
     mtrackletWord &= ~posmask;
-    mtrackletWord |= ((position << posbs) & posmask);
+    mtrackletWord |= (((position ^ 0x80) << posbs) & posmask);
   }
   GPUd() void setSlope(uint64_t slope)
   {
     mtrackletWord &= ~slopemask;
-    mtrackletWord |= ((slope << slopebs) & slopemask);
+    mtrackletWord |= (((slope ^ 0x80) << slopebs) & slopemask);
   }
 
   GPUd() bool operator==(const Tracklet64& o) const { return mtrackletWord == o.mtrackletWord; }
