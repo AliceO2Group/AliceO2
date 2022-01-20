@@ -115,7 +115,7 @@ class AlpideSimResponse
   AlpideSimResponse() = default;
   ~AlpideSimResponse() = default;
 
-  void initData(int tableNumber); 
+  void initData(int tableNumber);
 
   bool getResponse(float vRow, float vCol, float cDepth, AlpideRespSimMat& dest) const;
   const AlpideRespSimMat* getResponse(float vRow, float vCol, float vDepth, bool& flipRow, bool& flipCol) const;

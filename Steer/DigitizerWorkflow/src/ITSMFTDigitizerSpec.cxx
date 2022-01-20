@@ -254,7 +254,7 @@ class ITSDPLDigitizerTask : public ITSMFTDPLDigitizerTask
     digipar.setTimeOffset(dopt.timeOffset);
     digipar.setNSimSteps(dopt.nSimSteps);
     digipar.setIBVbb(dopt.IBVbb);
-    digipar.setOBVbb(dopt.OBVbb);    
+    digipar.setOBVbb(dopt.OBVbb);
   }
 };
 

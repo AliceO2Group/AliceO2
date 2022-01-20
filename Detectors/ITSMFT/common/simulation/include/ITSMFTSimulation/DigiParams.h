@@ -71,9 +71,9 @@ class DigiParams
   void setNSimSteps(int v);
   void setEnergyToNElectrons(float v) { mEnergyToNElectrons = v; }
 
-  void setVbb(float v) {mVbb = v;}
-  void setIBVbb(float v) {mIBVbb = v;}
-  void setOBVbb(float v) {mOBVbb = v;}
+  void setVbb(float v) { mVbb = v; }
+  void setIBVbb(float v) { mIBVbb = v; }
+  void setOBVbb(float v) { mOBVbb = v; }
 
   int getChargeThreshold() const { return mChargeThreshold; }
   int getMinChargeToAccount() const { return mMinChargeToAccount; }
@@ -81,9 +81,9 @@ class DigiParams
   float getNSimStepsInv() const { return mNSimStepsInv; }
   float getEnergyToNElectrons() const { return mEnergyToNElectrons; }
 
-  float getVbb() const {return mVbb;}
-  float getIBVbb() const {return mIBVbb;}
-  float getOBVbb() const {return mOBVbb;}
+  float getVbb() const { return mVbb; }
+  float getIBVbb() const { return mIBVbb; }
+  float getOBVbb() const { return mOBVbb; }
 
   bool isTimeOffsetSet() const { return mTimeOffset > -infTime; }
 
@@ -110,9 +110,9 @@ class DigiParams
   int mNSimSteps = 7;                      ///< number of steps in response simulation
   float mEnergyToNElectrons = 1. / 3.6e-9; // conversion of eloss to Nelectrons
 
-  float mVbb = 3.0;               ///< back bias absolute value for MFT (in Volt)
-  float mIBVbb = 3.0;                  ///< back bias absolute value for ITS Inner Barrel (in Volt)
-  float mOBVbb = 0.0;                  ///< back bias absolute value for ITS Outter Barrel (in Volt)
+  float mVbb = 3.0;   ///< back bias absolute value for MFT (in Volt)
+  float mIBVbb = 3.0; ///< back bias absolute value for ITS Inner Barrel (in Volt)
+  float mOBVbb = 0.0; ///< back bias absolute value for ITS Outter Barrel (in Volt)
 
   o2::itsmft::AlpideSignalTrapezoid mSignalShape; ///< signal timeshape parameterization
 

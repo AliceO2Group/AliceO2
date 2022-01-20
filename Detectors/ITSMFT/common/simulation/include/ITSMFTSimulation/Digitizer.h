@@ -61,7 +61,7 @@ class Digitizer : public TObject
 
   void init();
 
-	auto getChipResponse(int chipID);
+  auto getChipResponse(int chipID);
 
   /// Steer conversion of hits to digits
   void process(const std::vector<Hit>* hits, int evID, int srcID);
@@ -120,11 +120,11 @@ class Digitizer : public TObject
   uint32_t mEventROFrameMin = 0xffffffff; ///< lowest RO frame for processed events (w/o automatic noise ROFs)
   uint32_t mEventROFrameMax = 0;          ///< highest RO frame forfor processed events (w/o automatic noise ROFs)
 
-	int mNumberOfChips;
-	o2::itsmft::AlpideSimResponse *mAlpSimRespMFT = 0;
-	o2::itsmft::AlpideSimResponse *mAlpSimRespIB = 0;
-	o2::itsmft::AlpideSimResponse *mAlpSimRespOB = 0;
-	o2::itsmft::AlpideSimResponse mAlpSimResp [2];  // simulated response
+  int mNumberOfChips;
+  o2::itsmft::AlpideSimResponse* mAlpSimRespMFT = 0;
+  o2::itsmft::AlpideSimResponse* mAlpSimRespIB = 0;
+  o2::itsmft::AlpideSimResponse* mAlpSimRespOB = 0;
+  o2::itsmft::AlpideSimResponse mAlpSimResp[2]; // simulated response
 
   const o2::itsmft::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
 
