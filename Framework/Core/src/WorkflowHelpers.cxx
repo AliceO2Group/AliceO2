@@ -199,6 +199,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     .options = {{"condition-backend", VariantType::String, "http://alice-ccdb.cern.ch", {"URL for CCDB"}},
                 {"condition-not-before", VariantType::Int64, 0ll, {"do not fetch from CCDB objects created before provide timestamp"}},
                 {"condition-not-after", VariantType::Int64, 3385078236000ll, {"do not fetch from CCDB objects created after the timestamp"}},
+                {"condition-remap", VariantType::String, "", {"remap condition path in CCDB based on the provided string."}},
                 {"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},
                 {"orbit-multiplier-enumeration", VariantType::Int64, 0ll, {"multiplier to get the orbit from the counter"}},
                 {"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},

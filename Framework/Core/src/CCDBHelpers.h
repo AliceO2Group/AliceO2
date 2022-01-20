@@ -12,11 +12,19 @@
 #define O2_FRAMEWORK_CCDBHELPERS_H_
 
 #include "Framework/AlgorithmSpec.h"
+#include <unordered_map>
+#include <string>
 
 namespace o2::framework
 {
+
 struct CCDBHelpers {
+  struct ParserResult {
+    std::unordered_map<std::string, std::string> remappings;
+    std::string error;
+  };
   static AlgorithmSpec fetchFromCCDB();
+  static ParserResult parseRemappings(char const*);
 };
 
 } // namespace o2::framework
