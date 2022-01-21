@@ -68,7 +68,9 @@ void DigitsToClustersTask::strToFloatsSplit(std::string s, std::string delimiter
     token = s.substr(pos_start, pos_end - pos_start);
     pos_start = pos_end + delim_len;
     res[index++] = std::stof(token);
-    if (index == maxElem) return;
+    if (index == maxElem) {
+      return;
+    }
   }
   res[index++] = (std::stof(s.substr(pos_start)));
   return;
@@ -124,7 +126,9 @@ void DigitsToClustersTask::run(framework::ProcessingContext& pc)
       if (oneEventClusters.size() > 0) {                                               // we have something to store
         clustersTrigger.push_back(triggers[i]);                                        // copy the Interaction record in the new triggers vector
         clustersTrigger.back().setDataRange(clusters.size(), oneEventClusters.size()); // set the data range to the chunch of clusters
-        for (int j = 0; j < oneEventClusters.size(); j++) clusters.push_back(oneEventClusters[j]); // append clusters
+        for (int j = 0; j < oneEventClusters.size(); j++) {
+          clusters.push_back(oneEventClusters[j]);
+        } // append clusters
       }
       LOG(info) << "Clusters for event = " << oneEventClusters.size();
     }
