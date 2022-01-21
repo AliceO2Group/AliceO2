@@ -56,7 +56,7 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   /// constructor constructs an object Initialized from file
   /// \param fileName name of the input file containing the object
   /// \parma name name of the object
-  CalibdEdxTrackTopologyPol(std::string_view fileName, const char* name = "CalibdEdxTrackTopologyPol") { loadFromFile(fileName.data(), name); };
+  CalibdEdxTrackTopologyPol(std::string_view fileName, std::string_view name = "CalibdEdxTrackTopologyPol") { loadFromFile(fileName.data(), name.data()); };
 #endif
 
   /// Default constructor: creates an empty uninitialized object
@@ -76,7 +76,7 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   GPUd() float getCorrection(const int region, const ChargeType charge, const float tanTheta, const float sinPhi, const float z, const float relPad, const float relTime, const float threshold = 0) const
   {
     const float x[]{tanTheta, sinPhi, z, relPad, relTime, threshold};
-    const float corr = charge == ChargeType::Tot ? mCalibPolsqTot[region].eval(x) : mCalibPolsqMax[region].eval(x);
+    const float corr = (charge == ChargeType::Tot) ? mCalibPolsqTot[region].eval(x) : mCalibPolsqMax[region].eval(x);
     return corr;
   }
 
@@ -84,7 +84,7 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   /// \param region region of the TPC
   /// \param charge correction for maximum or total charge
   /// \param x coordinates where the correction is evaluated
-  GPUd() float getCorrection(const int region, const ChargeType charge, const float x[/*inpXdim*/]) const { return charge == ChargeType::Tot ? mCalibPolsqTot[region].eval(x) : mCalibPolsqMax[region].eval(x); }
+  GPUd() float getCorrection(const int region, const ChargeType charge, const float x[/*inpXdim*/]) const { return (charge == ChargeType::Tot) ? mCalibPolsqTot[region].eval(x) : mCalibPolsqMax[region].eval(x); }
 
   /// returns the maximum tanTheta for which the polynomials are valid
   GPUd() float getMaxTanTheta() const { return mMaxTanTheta; };

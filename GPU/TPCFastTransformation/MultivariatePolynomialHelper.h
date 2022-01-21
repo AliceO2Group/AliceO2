@@ -48,10 +48,16 @@ struct MultivariatePolynomialContainer {
 };
 #endif
 
-/// Helper struct for calculating the number of parameters for a multidimensional polynomial
+/// Helper class for calculating the number of parameters for a multidimensional polynomial
 class MultivariatePolynomialParametersHelper
 {
  public:
+  /// \returns number of parameters for given dimension and degree of polynomials
+  /// calculates the number of parameters for a multivariate polynomial for given degree: nParameters = (n+d-1 d) -> binomial coefficient
+  /// see: https://mathoverflow.net/questions/225953/number-of-polynomial-terms-for-certain-degree-and-certain-number-of-variables
+  GPUd() static constexpr unsigned int getNParameters(const unsigned int degree, const unsigned int dim) { return (degree == 0) ? binomialCoeff(dim - 1, 0) : binomialCoeff(dim - 1 + degree, degree) + getNParameters(degree - 1, dim); }
+
+ private:
   /// calculate factorial of n
   /// \return returns n!
   GPUd() static constexpr unsigned int factorial(const unsigned int n) { return (n == 0) || (n == 1) ? 1 : n * factorial(n - 1); }
@@ -59,14 +65,13 @@ class MultivariatePolynomialParametersHelper
   /// calculates binomial coefficient
   /// \return returns (n k)
   GPUd() static constexpr unsigned int binomialCoeff(const unsigned int n, const unsigned int k) { return factorial(n) / (factorial(k) * factorial(n - k)); }
-
-  /// \returns number of parameters for given dimension and degree of polynomials
-  /// calculates the number of parameters for a multivariate polynomial for given degree: nParameters = (n+d-1 d) -> binomial coefficient
-  /// see: https://mathoverflow.net/questions/225953/number-of-polynomial-terms-for-certain-degree-and-certain-number-of-variables
-  GPUd() static constexpr unsigned int getNParameters(const unsigned int degree, const unsigned int dim) { return degree == 0 ? binomialCoeff(dim - 1, 0) : binomialCoeff(dim - 1 + degree, degree) + getNParameters(degree - 1, dim); }
 };
 
 /// Helper struct for evaluating a multidimensional polynomial using compile time evaluated formula
+/// Compile time method to extract the formula is obtained from run time method (check combination_with_repetiton() and evalPol())
+/// by performing all loops during compile time and replacing the array to keep track of the dimensions for given term (pos[FMaxdegree + 1])
+/// to a simple unsigned int called Pos where each digit represents the dimension for a given term e.g. pos = 2234 -> x[2]*x[2]*x[3]*x[4]
+///
 template <unsigned int Dim, unsigned int Degree>
 class MultivariatePolynomialHelper : public MultivariatePolynomialParametersHelper
 {
@@ -78,7 +83,7 @@ class MultivariatePolynomialHelper : public MultivariatePolynomialParametersHelp
 #endif
 
  public:
-  /// evalutes the polynomial for given parameters and coordinates
+  /// evaluates the polynomial for given parameters and coordinates
   /// \param par parameters of the polynomials
   /// \param x input coordinates
   GPUd() static constexpr float evalPol(const float par[/*number of parameters*/], const float x[/*number of dimensions*/]) { return par[0] + loopDegrees<1>(par, x); }
@@ -93,7 +98,7 @@ class MultivariatePolynomialHelper : public MultivariatePolynomialParametersHelp
   /// computes power of 10
   GPUd() static constexpr unsigned int pow10(const unsigned int n) { return n == 0 ? 1 : 10 * pow10(n - 1); }
 
-  /// helper for modulo
+  /// helper for modulo to extract the digit in an integer a at position b (can be obtained with pow10(digitposition)): e.g. a=1234 b=pow10(2)=100 -> returns 2
   GPUd() static constexpr unsigned int mod10(const unsigned int a, const unsigned int b) { return (a / b) % 10; }
 
   /// resetting digits of pos for given position to refDigit
@@ -160,11 +165,11 @@ class MultivariatePolynomialHelper<0, 0> : public MultivariatePolynomialParamete
   GPUd() unsigned int getDegree() const { return mDegree; }
 
  protected:
-  unsigned int mDim{};    ///< number of dimensionality of the polynomial
-  unsigned int mDegree{}; ///< number of dimensionality of the polynomial
+  unsigned int mDim{};    ///< dimensionality of the polynomial
+  unsigned int mDegree{}; ///< maximum degree of the polynomial
 
  private:
-  static constexpr unsigned short FMaxdegree = 9; ///< maximum degree of the polynomials (maximum number of digits in unsigned integer - 1)
+  static constexpr unsigned short FMaxdegree = 9; ///< maximum degree of the polynomials (can be increased if desired: size of array in combination_with_repetiton: pos[FMaxdegree + 1])
 
   /// evalutes the polynomial
   GPUd() static constexpr float evalPol(const float par[], const float x[], const unsigned int degree, const unsigned int dim);
