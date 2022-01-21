@@ -103,7 +103,7 @@ DECLARE_SOA_COLUMN(Tgl, tgl, float);               //!
 DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);   //! (sign of charge)/Pt in c/GeV. Use pt() and sign() instead
 DECLARE_SOA_EXPRESSION_COLUMN(Phi, phi, float,     //! Phi of the track, in radians within [0, 2pi)
                               ifnode(nasin(aod::track::snp) + aod::track::alpha < 0.0f, nasin(aod::track::snp) + aod::track::alpha + TwoPI,
-                                     ifnode(nasin(aod::track::snp) + aod::track::alpha > TwoPI, nasin(aod::track::snp) + aod::track::alpha - TwoPI,
+                                     ifnode(nasin(aod::track::snp) + aod::track::alpha >= TwoPI, nasin(aod::track::snp) + aod::track::alpha - TwoPI,
                                             nasin(aod::track::snp) + aod::track::alpha)));
 DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, //! Pseudorapidity
                               -1.f * nlog(ntan(PIQuarter - 0.5f * natan(aod::track::tgl))));
