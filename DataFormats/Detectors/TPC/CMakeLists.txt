@@ -62,7 +62,8 @@ o2_target_root_dictionary(
           include/DataFormatsTPC/CalibdEdxCorrection.h
           include/DataFormatsTPC/CalibdEdxTrackTopologyPol.h
           include/DataFormatsTPC/CalibdEdxContainer.h
-          include/DataFormatsTPC/CalibdEdxTrackTopologySpline.h)
+          include/DataFormatsTPC/CalibdEdxTrackTopologySpline.h
+          include/DataFormatsTPC/BetheBlochAleph.h)
 
 o2_add_test(
   ClusterNative
