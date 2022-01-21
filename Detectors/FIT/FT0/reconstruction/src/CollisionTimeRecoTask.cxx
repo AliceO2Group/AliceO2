@@ -16,7 +16,7 @@
 #include "FairLogger.h" // for LOG
 #include "DataFormatsFT0/RecPoints.h"
 #include "FT0Base/Geometry.h"
-#include "FT0Simulation/DigitizationParameters.h"
+#include "FT0Simulation/FT0DigParam.h"
 #include <DataFormatsFT0/ChannelData.h>
 #include <DataFormatsFT0/Digit.h>
 #include <cmath>
@@ -41,7 +41,7 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
   Float_t sideAtime = 0, sideCtime = 0;
 
   int nch = inChData.size();
-  const auto parInv = DigitizationParameters::Instance().mMV_2_NchannelsInverse;
+  const auto parInv = FT0DigParam::Instance().mMV_2_NchannelsInverse;
   for (int ich = 0; ich < nch; ich++) {
     int offsetChannel = getOffset(int(inChData[ich].ChId), inChData[ich].QTCAmpl);
     outChData[ich] = o2::ft0::ChannelDataFloat{inChData[ich].ChId,
