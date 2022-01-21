@@ -32,9 +32,9 @@
 #include "ITStracking/Configuration.h"
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/ClusterLines.h"
+#include "ClusterLinesGPU.h"
 
 #include "Array.h"
-#include "ClusterLinesGPU.h"
 #include "UniquePointer.h"
 #include "Vector.h"
 #include "GPUCommonDef.h"
