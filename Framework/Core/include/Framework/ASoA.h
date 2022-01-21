@@ -76,6 +76,12 @@ inline constexpr bool is_type_spawnable_v = false;
 template <typename T>
 inline constexpr bool is_type_spawnable_v<T, std::void_t<decltype(sizeof(typename T::spawnable_t))>> = true;
 
+template <typename, typename = void>
+inline constexpr bool is_soa_extension_table_v = false;
+
+template <typename T>
+inline constexpr bool is_soa_extension_table_v<T, std::void_t<decltype(sizeof(typename T::expression_pack_t))>> = true;
+
 template <typename T, typename = void>
 inline constexpr bool is_index_table_v = false;
 
@@ -1972,6 +1978,7 @@ constexpr auto is_binding_compatible_v()
     _Name_##Extension(std::shared_ptr<arrow::Table> table, uint64_t offset = 0) : o2::soa::Table<__VA_ARGS__>(table, offset){}; \
     _Name_##Extension(_Name_##Extension const&) = default;                                                                      \
     _Name_##Extension(_Name_##Extension&&) = default;                                                                           \
+    using expression_pack_t = framework::pack<__VA_ARGS__>;                                                                     \
     using iterator = typename base_t::template RowView<_Name_##Extension, _Name_##Extension>;                                   \
     using const_iterator = iterator;                                                                                            \
   };                                                                                                                            \
@@ -1980,7 +1987,7 @@ constexpr auto is_binding_compatible_v()
   struct _Name_##ExtensionMetadata : o2::soa::TableMetadata<_Name_##ExtensionMetadata> {                                        \
     using table_t = _Name_##Extension;                                                                                          \
     using base_table_t = typename _Table_::table_t;                                                                             \
-    using expression_pack_t = framework::pack<__VA_ARGS__>;                                                                     \
+    using expression_pack_t = typename _Name_##Extension::expression_pack_t;                                                    \
     using originals = soa::originals_pack_t<_Table_>;                                                                           \
     using sources = originals;                                                                                                  \
     static constexpr char const* mLabel = #_Name_ "Extension";                                                                  \

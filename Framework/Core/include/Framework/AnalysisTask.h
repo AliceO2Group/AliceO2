@@ -68,16 +68,33 @@ struct AnalysisDataProcessorBuilder {
   }
 
   template <typename... T>
-  static std::vector<ConfigParamSpec> getInputSpecs(framework::pack<T...>)
+  static inline std::vector<ConfigParamSpec> getInputSpecs(framework::pack<T...>)
   {
     return std::vector{getSpec<T>()...};
   }
 
   template <typename T>
-  static std::vector<ConfigParamSpec> getIndexSources()
+  static inline auto getSources()
   {
-    static_assert(soa::is_soa_index_table_t<T>::value, "Can only be used with IndexTable");
-    return getInputSpecs(typename T::sources_t{});
+    if constexpr (soa::is_soa_index_table_t<T>::value) {
+      return getInputSpecs(typename T::sources_t{});
+    } else if constexpr (soa::is_soa_extension_table_v<std::decay_t<T>>) {
+      return getInputSpecs(typename aod::MetadataTrait<T>::metadata::sources{});
+    } else {
+      always_static_assert<T>("Can be only used with index or extension table");
+    }
+  }
+
+  template <typename T>
+  static auto getInputMetadata()
+  {
+    std::vector<ConfigParamSpec> inputMetadata;
+    auto inputSources = getSources<T>();
+    std::sort(inputSources.begin(), inputSources.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name < b.name; });
+    auto last = std::unique(inputSources.begin(), inputSources.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name == b.name; });
+    inputSources.erase(last, inputSources.end());
+    inputMetadata.insert(inputMetadata.end(), inputSources.begin(), inputSources.end());
+    return inputMetadata;
   }
 
   template <typename Arg>
@@ -88,25 +105,12 @@ struct AnalysisDataProcessorBuilder {
                   "Could not find metadata. Did you register your type?");
     std::vector<ConfigParamSpec> inputMetadata;
     inputMetadata.emplace_back(ConfigParamSpec{std::string{"control:"} + name, VariantType::Bool, value, {"\"\""}});
-    if constexpr (soa::is_soa_index_table_t<std::decay_t<Arg>>::value) {
-      auto inputSources = getIndexSources<std::decay_t<Arg>>();
-      std::sort(inputSources.begin(), inputSources.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name < b.name; });
-      auto last = std::unique(inputSources.begin(), inputSources.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name == b.name; });
-      inputSources.erase(last, inputSources.end());
+    if constexpr (soa::is_soa_index_table_t<std::decay_t<Arg>>::value || soa::is_soa_extension_table_v<std::decay_t<Arg>>) {
+      auto inputSources = getInputMetadata<std::decay_t<Arg>>();
       inputMetadata.insert(inputMetadata.end(), inputSources.begin(), inputSources.end());
     }
-    auto locate = std::find_if(inputs.begin(), inputs.end(), [](InputSpec& input) { return input.binding == metadata::tableLabel(); });
-    if (locate != inputs.end()) {
-      // amend entry
-      auto& entryMetadata = locate->metadata;
-      entryMetadata.insert(entryMetadata.end(), inputMetadata.begin(), inputMetadata.end());
-      std::sort(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name < b.name; });
-      auto new_end = std::unique(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name == b.name; });
-      entryMetadata.erase(new_end, entryMetadata.end());
-    } else {
-      // add entry
-      inputs.push_back(InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), Lifetime::Timeframe, inputMetadata});
-    }
+    auto newInput = InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), Lifetime::Timeframe, inputMetadata};
+    DataSpecUtils::updateInputList(inputs, std::move(newInput));
   }
 
   template <typename... Args>

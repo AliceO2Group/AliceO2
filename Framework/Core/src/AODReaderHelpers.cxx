@@ -91,7 +91,6 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec>& req
       // spawn tables
       for (auto& input : requested) {
         auto&& [origin, description] = DataSpecUtils::asConcreteDataTypeMatcher(input);
-
         auto maker = [&](auto metadata) {
           using metadata_t = decltype(metadata);
           using Key = typename metadata_t::Key;
@@ -146,8 +145,14 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec>& reque
         auto maker = [&](auto metadata) {
           using metadata_t = decltype(metadata);
           using expressions = typename metadata_t::expression_pack_t;
-          auto original_table = pc.inputs().get<TableConsumer>(input.binding)->asArrowTable();
-          return o2::framework::spawner(expressions{}, original_table.get(), input.binding.c_str());
+          std::vector<std::shared_ptr<arrow::Table>> originalTables;
+          for (auto& i : input.metadata) {
+            if ((i.type == VariantType::String) && (i.name.find("input:") != std::string::npos)) {
+              auto spec = DataSpecUtils::fromMetadataString(i.defaultValue.get<std::string>());
+              originalTables.push_back(pc.inputs().get<TableConsumer>(spec.binding)->asArrowTable());
+            }
+          }
+          return o2::framework::spawner(expressions{}, std::move(originalTables), input.binding.c_str());
         };
 
         if (description == header::DataDescription{"TRACK"}) {

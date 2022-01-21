@@ -158,50 +158,21 @@ void WorkflowHelpers::addMissingOutputsToReader(std::vector<OutputSpec> const& p
   }
 }
 
-void WorkflowHelpers::addMissingOutputsToSpawner(std::vector<InputSpec>&& requestedDYNs,
+void WorkflowHelpers::addMissingOutputsToCreator(std::vector<InputSpec>&& requestedSpecials,
                                                  std::vector<InputSpec>& requestedAODs,
                                                  DataProcessorSpec& publisher)
 {
-  for (auto& input : requestedDYNs) {
-    publisher.inputs.emplace_back(InputSpec{input.binding, header::DataOrigin{"AOD"}, DataSpecUtils::asConcreteDataMatcher(input).description});
-    requestedAODs.emplace_back(InputSpec{input.binding, header::DataOrigin{"AOD"}, DataSpecUtils::asConcreteDataMatcher(input).description});
-    auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
-    publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
-  }
-}
-
-void WorkflowHelpers::addMissingOutputsToBuilder(std::vector<InputSpec>&& requestedIDXs,
-                                                 std::vector<InputSpec>& requestedAODs,
-                                                 DataProcessorSpec& publisher)
-{
-  auto inputSpecFromString = [](std::string s) {
-    std::regex word_regex("(\\w+)");
-    auto words = std::sregex_iterator(s.begin(), s.end(), word_regex);
-    if (std::distance(words, std::sregex_iterator()) != 3) {
-      throw runtime_error_f("Malformed input spec metadata: %s", s.c_str());
-    }
-    std::vector<std::string> data;
-    for (auto i = words; i != std::sregex_iterator(); ++i) {
-      data.emplace_back(i->str());
-    }
-    char origin[4];
-    char description[16];
-    std::memcpy(&origin, data[1].c_str(), 4);
-    std::memcpy(&description, data[2].c_str(), 16);
-    return InputSpec{data[0], header::DataOrigin{origin}, header::DataDescription{description}};
-  };
-
-  for (auto& input : requestedIDXs) {
+  for (auto& input : requestedSpecials) {
     auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
     publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
     for (auto& i : input.metadata) {
       if ((i.type == VariantType::String) && (i.name.find("input:") != std::string::npos)) {
-        auto spec = inputSpecFromString(i.defaultValue.get<std::string>());
+        auto spec = DataSpecUtils::fromMetadataString(i.defaultValue.get<std::string>());
         auto j = std::find_if(publisher.inputs.begin(), publisher.inputs.end(), [&](auto x) { return x.binding == spec.binding; });
         if (j == publisher.inputs.end()) {
           publisher.inputs.push_back(spec);
         }
-        requestedAODs.push_back(spec);
+        DataSpecUtils::updateInputList(requestedAODs, std::move(spec));
       }
     }
   }
@@ -424,8 +395,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     readers::AODReaderHelpers::indexBuilderCallback(requestedIDXs),
     {}};
 
-  addMissingOutputsToSpawner(std::move(requestedDYNs), requestedAODs, aodSpawner);
-  addMissingOutputsToBuilder(std::move(requestedIDXs), requestedAODs, indexBuilder);
+  addMissingOutputsToCreator(std::move(requestedDYNs), requestedAODs, aodSpawner);
+  addMissingOutputsToCreator(std::move(requestedIDXs), requestedAODs, indexBuilder);
 
   addMissingOutputsToReader(providedAODs, requestedAODs, aodReader);
   addMissingOutputsToReader(providedCCDBs, requestedCCDBs, ccdbBackend);
@@ -463,7 +434,6 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       LOG(fatal) << uv_dlerror(&supportLib);
       return;
     }
-    void* callback = nullptr;
     DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
 
     result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);

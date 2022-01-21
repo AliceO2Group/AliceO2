@@ -18,6 +18,7 @@
 
 #include <cstring>
 #include <cinttypes>
+#include <regex>
 
 namespace o2::framework
 {
@@ -573,6 +574,24 @@ InputSpec DataSpecUtils::matchingInput(OutputSpec const& spec)
                     spec.matcher);
 }
 
+InputSpec DataSpecUtils::fromMetadataString(std::string s)
+{
+  std::regex word_regex("(\\w+)");
+  auto words = std::sregex_iterator(s.begin(), s.end(), word_regex);
+  if (std::distance(words, std::sregex_iterator()) != 3) {
+    throw runtime_error_f("Malformed input spec metadata: %s", s.c_str());
+  }
+  std::vector<std::string> data;
+  for (auto i = words; i != std::sregex_iterator(); ++i) {
+    data.emplace_back(i->str());
+  }
+  char origin[4];
+  char description[16];
+  std::memcpy(&origin, data[1].c_str(), 4);
+  std::memcpy(&description, data[2].c_str(), 16);
+  return InputSpec{data[0], header::DataOrigin{origin}, header::DataDescription{description}};
+}
+
 std::optional<header::DataOrigin> DataSpecUtils::getOptionalOrigin(InputSpec const& spec)
 {
   // FIXME: try to address at least a few cases.
@@ -667,6 +686,22 @@ bool DataSpecUtils::includes(const InputSpec& left, const InputSpec& right)
           left.matcher);
       }},
     right.matcher);
+}
+
+void DataSpecUtils::updateInputList(std::vector<InputSpec>& list, InputSpec&& input)
+{
+  auto locate = std::find_if(list.begin(), list.end(), [&](InputSpec& entry) { return entry.binding == input.binding; });
+  if (locate != list.end()) {
+    // amend entry
+    auto& entryMetadata = locate->metadata;
+    entryMetadata.insert(entryMetadata.end(), input.metadata.begin(), input.metadata.end());
+    std::sort(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name < b.name; });
+    auto new_end = std::unique(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name == b.name; });
+    entryMetadata.erase(new_end, entryMetadata.end());
+  } else {
+    // add entry
+    list.emplace_back(std::move(input));
+  }
 }
 
 } // namespace o2::framework
