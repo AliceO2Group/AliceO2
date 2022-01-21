@@ -9,17 +9,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file TrackerTraitsNV.h
+/// \file TrackerTraitsGPU.h
 /// \brief
 ///
 
 #ifndef ITSTRACKINGGPU_TRACKERTRAITSGPU_H_
 #define ITSTRACKINGGPU_TRACKERTRAITSGPU_H_
 
-#ifndef GPUCA_GPUCODE_GENRTC
-#include <cub/cub.cuh>
-#include <cstdint>
-#endif
+// #ifndef GPUCA_GPUCODE_GENRTC
+// #include <cub/cub.cuh>
+// #include <cstdint>
+// #endif
 #include "ITStracking/Configuration.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/TrackerTraits.h"
@@ -28,21 +28,24 @@ namespace o2
 {
 namespace its
 {
+class TimeFrameGPU;
+// class PrimaryVertexContext;
 
-class PrimaryVertexContext;
-
-class TrackerTraitsNV : public TrackerTraits
+class TrackerTraitsGPU : public TrackerTraits
 {
  public:
-  TrackerTraitsNV() = default;
-  ~TrackerTraitsNV() override = default;
+  TrackerTraitsGPU() = default;
+  ~TrackerTraitsGPU() override = default;
+  void adoptTimeFrame(TimeFrame* tf);
 
-  void computeLayerCells() final;
-  void computeLayerTracklets() final;
-  void refitTracks(const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks) override;
+  // void computeLayerCells() final;
+  // void computeLayerTracklets() final;
+  // void refitTracks(const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks) override;
+ private:
+  TimeFrameGPU* mTimeFrameGPU;
 };
 
-extern "C" TrackerTraits* createTrackerTraitsNV();
+extern "C" TrackerTraits* createTrackerTraitsGPU();
 } // namespace its
 } // namespace o2
 
