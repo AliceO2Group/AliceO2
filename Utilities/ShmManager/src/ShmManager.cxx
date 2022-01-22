@@ -42,14 +42,14 @@ void signalHandler(int /* signal */)
 }
 
 struct ShmManager {
-  ShmManager(uint64_t _shmId, const vector<string>& _segments, const vector<string>& _regions)
+  ShmManager(uint64_t _shmId, const vector<string>& _segments, const vector<string>& _regions, bool zero = true)
     : shmId(fair::mq::shmem::makeShmIdStr(_shmId))
   {
-    AddSegments(_segments);
-    AddRegions(_regions);
+    AddSegments(_segments, zero);
+    AddRegions(_regions, zero);
   }
 
-  void AddSegments(const vector<string>& _segments)
+  void AddSegments(const vector<string>& _segments, bool zero)
   {
     for (const auto& s : _segments) {
       vector<string> conf;
@@ -66,13 +66,15 @@ struct ShmManager {
       LOG(info) << "Created segment " << id << " of size " << segment.GetSize() << ", starting at " << segment.GetData() << ". Locking...";
       segment.Lock();
       LOG(info) << "Done.";
-      LOG(info) << "Zeroing...";
-      segment.Zero();
-      LOG(info) << "Done.";
+      if (zero) {
+        LOG(info) << "Zeroing...";
+        segment.Zero();
+        LOG(info) << "Done.";
+      }
     }
   }
 
-  void AddRegions(const vector<string>& _regions)
+  void AddRegions(const vector<string>& _regions, bool zero)
   {
     for (const auto& r : _regions) {
       vector<string> conf;
@@ -89,9 +91,11 @@ struct ShmManager {
       LOG(info) << "Created unamanged region " << id << " of size " << region.GetSize() << ", starting at " << region.GetData() << ". Locking...";
       region.Lock();
       LOG(info) << "Done.";
-      LOG(info) << "Zeroing...";
-      region.Zero();
-      LOG(info) << "Done.";
+      if (zero) {
+        LOG(info) << "Zeroing...";
+        region.Zero();
+        LOG(info) << "Done.";
+      }
     }
   }
 
@@ -126,12 +130,18 @@ int main(int argc, char** argv)
   signal(SIGTERM, signalHandler);
 
   try {
+    bool nozero = false;
     uint64_t shmId = 0;
     vector<string> segments;
     vector<string> regions;
 
     options_description desc("Options");
-    desc.add_options()("shmid", value<uint64_t>(&shmId)->required(), "Shm id")("segments", value<vector<string>>(&segments)->multitoken()->composing(), "Segments, as <id>,<size> <id>,<size> <id>,<size> ...")("regions", value<vector<string>>(&regions)->multitoken()->composing(), "Regions, as <id>,<size> <id>,<size> <id>,<size> ...")("help,h", "Print help");
+    desc.add_options()(
+      "shmid", value<uint64_t>(&shmId)->required(), "Shm id")(
+      "segments", value<vector<string>>(&segments)->multitoken()->composing(), "Segments, as <id>,<size> <id>,<size> <id>,<size> ...")(
+      "regions", value<vector<string>>(&regions)->multitoken()->composing(), "Regions, as <id>,<size> <id>,<size> <id>,<size> ...")(
+      "nozero", value<bool>(&nozero)->default_value(false)->implicit_value(true), "Do not zero segments after initialization")(
+      "help,h", "Print help");
 
     variables_map vm;
     store(parse_command_line(argc, argv, desc), vm);
@@ -145,7 +155,7 @@ int main(int argc, char** argv)
 
     notify(vm);
 
-    ShmManager shmManager(shmId, segments, regions);
+    ShmManager shmManager(shmId, segments, regions, !nozero);
 
     while (!gStopping) {
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
