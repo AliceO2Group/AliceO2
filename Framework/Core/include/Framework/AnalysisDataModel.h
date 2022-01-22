@@ -459,7 +459,8 @@ DECLARE_SOA_TABLE_FULL(StoredMFTTracks, "MFTTracks", "AOD", "MFTTRACK", //!
                        fwdtrack::Px<fwdtrack::Pt, fwdtrack::Phi>,
                        fwdtrack::Py<fwdtrack::Pt, fwdtrack::Phi>,
                        fwdtrack::Pz<fwdtrack::Pt, fwdtrack::Tgl>,
-                       fwdtrack::Sign<fwdtrack::Signed1Pt>, fwdtrack::Chi2);
+                       fwdtrack::Sign<fwdtrack::Signed1Pt>, fwdtrack::Chi2,
+                       fwdtrack::TrackTime, fwdtrack::TrackTimeRes);
 
 DECLARE_SOA_EXTENDED_TABLE(MFTTracks, StoredMFTTracks, "MFTTRACK", //!
                            aod::fwdtrack::Pt,
