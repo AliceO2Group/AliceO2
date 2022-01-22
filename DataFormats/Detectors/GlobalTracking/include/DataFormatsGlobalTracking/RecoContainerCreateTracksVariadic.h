@@ -160,7 +160,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     for (unsigned i = 0; i < matchesTPCTRDTOF.size(); i++) {
       const auto& match = matchesTPCTRDTOF[i];
       auto gidx = match.getTrackRef(); // this should be corresponding ITS-TPC-TRD track
-      if (isUsed(gidx)) {              // RS FIXME: THIS IS TEMPORARY, until the TOF matching will use ITS-TPC-TRD as an input
+      if (isUsed(gidx)) {
         continue;
       }
       // no need to check isUsed: by construction this ITS-TPC-TRD was not used elsewhere
