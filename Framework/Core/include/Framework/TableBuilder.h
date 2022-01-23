@@ -862,7 +862,7 @@ auto spawner(framework::pack<C...> columns, std::vector<std::shared_ptr<arrow::T
     return makeEmptyTable<soa::Table<C...>>(name);
   }
   static auto new_schema = o2::soa::createSchemaFromColumns(columns);
-  static auto projectors = framework::expressions::createProjectors(columns, fullTable->schema());
+  auto projectors = framework::expressions::createProjectors(columns, fullTable->schema());
 
   arrow::TableBatchReader reader(*fullTable);
   std::shared_ptr<arrow::RecordBatch> batch;
