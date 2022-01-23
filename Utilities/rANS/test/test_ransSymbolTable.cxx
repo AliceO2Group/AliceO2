@@ -68,10 +68,8 @@ BOOST_AUTO_TEST_CASE(test_symbolTable)
   const size_t scaleBits = 17;
   const int32_t min = *std::min_element(A.begin(), A.end());
 
-  FrequencyTable f;
-  f.addSamples(A.begin(), A.end());
-  f = renorm(std::move(f), scaleBits);
-  const internal::SymbolTable<internal::DecoderSymbol> symbolTable{f};
+  RenormedFrequencyTable frequencyTable = renorm(makeFrequencyTableFromSamples(A.begin(), A.end()), scaleBits);
+  const internal::SymbolTable<internal::DecoderSymbol> symbolTable{frequencyTable};
 
   BOOST_CHECK_EQUAL(symbolTable.getMinSymbol(), min);
   BOOST_CHECK_EQUAL(symbolTable.getMaxSymbol(), *std::max_element(A.begin(), A.end()) + 1);

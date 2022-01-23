@@ -29,7 +29,7 @@
 #include "rANS/internal/EncoderSymbol.h"
 #include "rANS/internal/helper.h"
 #include "rANS/internal/SymbolTable.h"
-#include "rANS/FrequencyTable.h"
+#include "rANS/RenormedFrequencyTable.h"
 
 namespace o2
 {
@@ -52,7 +52,7 @@ class EncoderBase
 
   // TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
   EncoderBase() noexcept {}; // NOLINT
-  explicit EncoderBase(const FrequencyTable& frequencyTable) : mSymbolTable{frequencyTable} {};
+  explicit EncoderBase(const RenormedFrequencyTable& frequencyTable) : mSymbolTable{frequencyTable} {};
 
   inline size_t getSymbolTablePrecision() const noexcept { return mSymbolTable.getPrecision(); };
   inline size_t getAlphabetRangeBits() const noexcept { return mSymbolTable.getAlphabetRangeBits(); };
