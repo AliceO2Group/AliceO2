@@ -18,6 +18,7 @@
 #define RANS_RANS_H
 
 #include "rANS/FrequencyTable.h"
+#include "rANS/RenormedFrequencyTable.h"
 #include "rANS/Encoder.h"
 #include "rANS/Decoder.h"
 #include "rANS/DedupEncoder.h"

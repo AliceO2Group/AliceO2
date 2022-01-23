@@ -23,7 +23,7 @@
 
 #include "rANS/definitions.h"
 #include "rANS/internal/helper.h"
-#include "rANS/FrequencyTable.h"
+#include "rANS/RenormedFrequencyTable.h"
 
 namespace o2
 {
@@ -40,13 +40,9 @@ class ReverseSymbolLookupTable
   // TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
   ReverseSymbolLookupTable() noexcept {}; // NOLINT
 
-  explicit ReverseSymbolLookupTable(const FrequencyTable& frequencyTable)
+  explicit ReverseSymbolLookupTable(const RenormedFrequencyTable& frequencyTable)
   {
     LOG(trace) << "start building reverse symbol lookup table";
-
-    if (!frequencyTable.isRenormed()) {
-      throw std::runtime_error("Trying to build ReverseSymbolLookupTable from non-renormed FrequencyTable.");
-    }
 
     mLut.resize(frequencyTable.getNumSamples());
     // go over all normal symbols

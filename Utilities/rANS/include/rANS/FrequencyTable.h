@@ -37,8 +37,6 @@ namespace o2
 namespace rans
 {
 
-class FrequencyTable;
-
 namespace detail
 {
 
@@ -64,9 +62,6 @@ class ExpirableProxy
 };
 
 } // namespace detail
-
-std::ostream&
-  operator<<(std::ostream& out, const FrequencyTable& fTable);
 
 class FrequencyTable
 {
@@ -153,12 +148,6 @@ class FrequencyTable
 
   inline size_t getNumSamples() const noexcept { return mNumSamples + this->getIncompressibleSymbolFrequency(); };
 
-  inline bool isRenormed() const noexcept { return this->hasIncompressibleSymbols() && internal::isPow2(this->getNumSamples()); };
-
-  size_t getRenormingBits() const;
-
-  bool isRenormedTo(size_t nBits) const noexcept;
-
   // operations
   template <typename Source_IT, std::enable_if_t<internal::isIntegralIter_v<Source_IT>, bool> = true>
   FrequencyTable& addSamples(Source_IT begin, Source_IT end, bool extendTable = true);
@@ -203,9 +192,7 @@ double_t computeEntropy(const FrequencyTable& table);
 
 count_t computeRenormingPrecision(const FrequencyTable& frequencyTable);
 
-FrequencyTable renorm(FrequencyTable oldTable, size_t newPrecision = 0);
-
-FrequencyTable renormCutoffIncompressible(FrequencyTable oldTable, uint8_t newPrecision = 0, uint8_t lowProbabilityCutoffBits = 3);
+std::ostream& operator<<(std::ostream& out, const FrequencyTable& fTable);
 
 } // namespace rans
 } // namespace o2
@@ -409,6 +396,22 @@ double_t computeEntropy(IT begin, IT end, symbol_t min)
     return entropy -= p * length;
   });
 };
+
+template <typename Source_IT, std::enable_if_t<internal::isIntegralIter_v<Source_IT>, bool> = true>
+inline FrequencyTable makeFrequencyTableFromSamples(Source_IT begin, Source_IT end, bool extendTable = true)
+{
+  FrequencyTable frequencyTable{};
+  frequencyTable.addSamples(begin, end, extendTable);
+  return frequencyTable;
+}
+
+template <typename Source_IT, std::enable_if_t<internal::isIntegralIter_v<Source_IT>, bool> = true>
+inline FrequencyTable makeFrequencyTableFromSamples(Source_IT begin, Source_IT end, symbol_t min, symbol_t max, bool extendTable = true)
+{
+  FrequencyTable frequencyTable{min, max};
+  frequencyTable.addSamples(begin, end, extendTable);
+  return frequencyTable;
+}
 
 } // namespace rans
 } // namespace o2

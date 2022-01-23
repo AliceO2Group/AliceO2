@@ -79,9 +79,7 @@ struct EncodeDecodeBase {
   {
     dictString_T source;
     std::string& s = source.data;
-    o2::rans::FrequencyTable frequencyTable;
-    frequencyTable.addSamples(std::begin(s), std::end(s));
-    frequencyTable = o2::rans::renorm(std::move(frequencyTable), params_t::symbolTablePrecision);
+    o2::rans::RenormedFrequencyTable frequencyTable = o2::rans::renorm(o2::rans::makeFrequencyTableFromSamples(std::begin(s), std::end(s)), params_t::symbolTablePrecision);
 
     encoder = decltype(encoder)(frequencyTable);
     decoder = decltype(decoder)(frequencyTable);
