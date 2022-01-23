@@ -44,23 +44,6 @@ using DetID = o2::detectors::DetID;
 
 std::array<o2::header::DataOrigin, 1> exceptionsDetID{"GRP"};
 
-auto getDataOriginFromFilename(const std::string& filename)
-{
-  // assume the filename start with detector name
-  auto dIDStr = filename.substr(0, 3);
-  auto dID = DetID::nameToID(dIDStr.c_str(), DetID::First);
-  o2::header::DataOrigin dataOrigin;
-  if (dID < 0) {
-    for (auto& el : exceptionsDetID) {
-      if (el.as<std::string>() == dIDStr) {
-        return el;
-      }
-    }
-    return o2::header::gDataOriginInvalid;
-  }
-  return DetID(dID).getDataOrigin();
-}
-
 InjectorFunction dcs2dpl()
 {
 
@@ -77,38 +60,39 @@ InjectorFunction dcs2dpl()
     std::string filedata{static_cast<const char*>(parts.At(1)->GetData()), parts.At(1)->GetSize()};
 
     LOG(info) << "received file " << filename << " of size " << filesize << " Payload:" << filedata;
-    o2::header::DataOrigin dataOrigin = getDataOriginFromFilename(filename);
+    auto dID = DetID::nameToID("CTP", DetID::First);
+    o2::header::DataOrigin dataOrigin = DetID(dID).getDataOrigin();
     if (dataOrigin == o2::header::gDataOriginInvalid) {
       LOG(error) << "unknown detector for " << filename;
       return;
     }
     // o2::header::DataHeader hdrF("DCS_CONFIG_FILE", dataOrigin, 0);
-    o2::header::DataHeader hdrN("CTP_COUNTERS", dataOrigin, 0);
-    OutputSpec outsp{hdrN.dataOrigin, hdrN.dataDescription, hdrN.subSpecification};
+    o2::header::DataHeader hdrF("CTP_COUNTERS", dataOrigin, 0);
+    OutputSpec outsp{hdrF.dataOrigin, hdrF.dataDescription, hdrF.subSpecification};
     auto channel = channelRetriever(outsp, *timesliceId);
     if (channel.empty()) {
       LOG(error) << "No output channel found for OutputSpec " << outsp;
       return;
     }
 
-    hdrN.tfCounter = *timesliceId; // this also
-    hdrN.payloadSerializationMethod = o2::header::gSerializationMethodNone;
-    hdrN.splitPayloadParts = 2;
-    hdrN.splitPayloadIndex = 0;
-    hdrN.payloadSize = parts.At(0)->GetSize();
-    hdrN.firstTForbit = 0; // this should be irrelevant for DCS
+    hdrF.tfCounter = *timesliceId; // this also
+    hdrF.payloadSerializationMethod = o2::header::gSerializationMethodNone;
+    hdrF.splitPayloadParts = 1;
+    hdrF.splitPayloadIndex = 0;
+    hdrF.payloadSize = parts.At(1)->GetSize();
+    hdrF.firstTForbit = 0; // this should be irrelevant for DCS
 
     auto fmqFactory = device.GetChannel(channel).Transport();
 
-    o2::header::Stack headerStackN{hdrN, DataProcessingHeader{*timesliceId, 0}};
-    auto hdMessageN = fmqFactory->CreateMessage(headerStackN.size(), fair::mq::Alignment{64});
-    auto plMessageN = fmqFactory->CreateMessage(hdrN.payloadSize, fair::mq::Alignment{64});
-    memcpy(hdMessageN->GetData(), headerStackN.data(), headerStackN.size());
-    memcpy(plMessageN->GetData(), parts.At(0)->GetData(), hdrN.payloadSize);
+    o2::header::Stack headerStackF{hdrF, DataProcessingHeader{*timesliceId, 1}};
+    auto hdMessageF = fmqFactory->CreateMessage(headerStackF.size(), fair::mq::Alignment{64});
+    auto plMessageF = fmqFactory->CreateMessage(hdrF.payloadSize, fair::mq::Alignment{64});
+    memcpy(hdMessageF->GetData(), headerStackF.data(), headerStackF.size());
+    memcpy(plMessageF->GetData(), parts.At(1)->GetData(), hdrF.payloadSize);
 
     FairMQParts outParts;
-    outParts.AddPart(std::move(hdMessageN));
-    outParts.AddPart(std::move(plMessageN));
+    outParts.AddPart(std::move(hdMessageF));
+    outParts.AddPart(std::move(plMessageF));
     sendOnChannel(device, outParts, channel);
 
     LOG(info) << "Sent DPL message and acknowledgment for file " << filename;
