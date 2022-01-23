@@ -40,8 +40,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useMC = !configcontext.options().get<bool>("disable-mc");
 
   WorkflowSpec specs;
-  specs.emplace_back(o2::ft0::getRecoCalibInfoWorkflow( useMC));
+  specs.emplace_back(o2::ft0::getRecoCalibInfoWorkflow(useMC));
 
-  
   return std::move(specs);
 }

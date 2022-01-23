@@ -16,10 +16,10 @@
 #include "DetectorsCalibration/TimeSlot.h"
 #include "DetectorsCalibration/Utils.h"
 #include "CommonUtils/MemFileHelper.h"
-#include "Rtypes.h"
 #include "FITCalibration/FITCalibrationObjectProducer.h"
 #include "FITCalibration/FITCalibrationApi.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "Rtypes.h"
 
 namespace o2::fit
 {
@@ -61,20 +61,20 @@ FIT_CALIBRATOR_TEMPLATES
 FIT_CALIBRATOR_TYPE::FITCalibrator(unsigned int minimumEntries)
   : mMinEntries(minimumEntries)
 {
-  LOG(info) << "FITCalibrator ";
+  LOG(debug) << "FITCalibrator ";
 }
 
 FIT_CALIBRATOR_TEMPLATES
 bool FIT_CALIBRATOR_TYPE::hasEnoughData(const Slot& slot) const
 {
-  LOG(info)<<"FIT_CALIBRATOR_TYPE::hasEnoughData";
+  LOG(debug) << "FIT_CALIBRATOR_TYPE::hasEnoughData";
   return slot.getContainer()->hasEnoughEntries();
 }
 
 FIT_CALIBRATOR_TEMPLATES
 void FIT_CALIBRATOR_TYPE::initOutput()
 {
-  LOG(info)<<"FIT_CALIBRATOR_TYPE::initOutput";
+  LOG(debug) << "FIT_CALIBRATOR_TYPE::initOutput";
   mStoredCalibrationObjects.clear();
 }
 
@@ -100,7 +100,7 @@ FIT_CALIBRATOR_TEMPLATES
 typename FIT_CALIBRATOR_TYPE::Slot& FIT_CALIBRATOR_TYPE::emplaceNewSlot(
   bool front, TFType tstart, TFType tend)
 {
-  LOG(info)<<"FIT_CALIBRATOR_TYPE::emplaceNewSlot";
+  LOG(info) << "FIT_CALIBRATOR_TYPE::emplaceNewSlot";
   auto& cont = o2::calibration::TimeSlotCalibration<InputCalibrationInfoType, TimeSlotStorageType>::getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
   slot.setContainer(std::make_unique<TimeSlotStorageType>(mMinEntries));

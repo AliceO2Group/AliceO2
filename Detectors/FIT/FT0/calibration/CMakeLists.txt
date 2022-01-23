@@ -15,9 +15,7 @@ o2_add_library(FT0Calibration
         src/FT0ChannelTimeCalibrationObject.cxx
         src/FT0CalibTimeSlewing.cxx
         src/FT0CalibCollector.cxx
-        src/LHCClockDataHisto.cxx
-        src/LHCphaseCalibrationObject.cxx
-         PUBLIC_LINK_LIBRARIES
+        PUBLIC_LINK_LIBRARIES
          O2::CCDB
          O2::MathUtils
          O2::DataFormatsFT0
@@ -31,12 +29,9 @@ o2_add_library(FT0Calibration
         include/FT0Calibration/FT0CalibrationInfoObject.h
         include/FT0Calibration/FT0ChannelTimeCalibrationObject.h
         include/FT0Calibration/FT0ChannelTimeTimeSlotContainer.h
-        include/FT0Calibration/FT0DummyCalibrationObject.h
         include/FT0Calibration/FT0CalibTimeSlewing.h
         include/FT0Calibration/FT0CalibCollector.h
-        include/FT0Calibration/LHCClockDataHisto.h
-        include/FT0Calibration/LHCphaseCalibrationObject.h
-          )
+           )
       o2_add_executable(ft0-channel-offset-calibration
         COMPONENT_NAME calibration
         SOURCES testWorkflow/FT0ChannelTimeCalibration-Workflow.cxx
@@ -50,13 +45,7 @@ o2_add_library(FT0Calibration
         PUBLIC_LINK_LIBRARIES
         O2::DataFormatsFT0 O2::FITCalibration
         )
-      o2_add_executable(ft0-calibration
-        COMPONENT_NAME calibration
-        SOURCES testWorkflow/FT0Calibration-Workflow.cxx
-        PUBLIC_LINK_LIBRARIES
-        O2::DataFormatsFT0 O2::FITCalibration
-        )
-      o2_add_executable(ft0-collect-calib-workflow
+       o2_add_executable(ft0-collect-calib-workflow
         COMPONENT_NAME calibration
         SOURCES testWorkflow/ft0-collect-calib-workflow.cxx
         PUBLIC_LINK_LIBRARIES

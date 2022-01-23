@@ -9,20 +9,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file LHCphaseCalibrationObject.cxx
-/// \brief Class to store the output of the matching to TOF for calibration
+#include <string>
+#include "TFile.h"
+#include "CCDB/CcdbApi.h"
+#include <iostream>
+#include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
 
-#include <algorithm>
-#include <cstdio>
-#include "FT0Calibration/LHCphaseCalibrationObject.h"
-#include "FT0Calibration/LHCClockDataHisto.h"
-
-using namespace o2::ft0;
-LHCphaseCalibrationObject LHCphaseCalibrationObjectAlgorithm::generateCalibrationObject(const LHCClockDataHisto& container)
+int makeChannelOffsetCalibObjectInCCDB(const std::string url = "http://localhost:8080")
 {
-  LHCphaseCalibrationObject calibrationObject;
 
-  calibrationObject.mLHCphase = container.getGaus();
+  o2::ccdb::CcdbApi api;
+  api.init(url);
+  std::map<std::string, std::string> md;
+  o2::ft0::FT0ChannelTimeCalibrationObject obj;
+  api.storeAsTFileAny(&obj, "FT0/Calibration/ChannelTimeOffset", md, 0);
 
-  return calibrationObject;
+  return 0;
 }

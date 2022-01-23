@@ -24,7 +24,7 @@ namespace o2::ft0
 class GlobalOffsetsContainer final
 {
   static constexpr int RANGE = 1000;
-  static constexpr unsigned int NBINS = 2* RANGE;
+  static constexpr unsigned int NBINS = 2 * RANGE;
 
  public:
   explicit GlobalOffsetsContainer(std::size_t minEntries)

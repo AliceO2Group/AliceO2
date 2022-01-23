@@ -27,7 +27,7 @@ namespace o2::ft0
 o2::framework::DataProcessorSpec getGlobalOffsetsCalibrationSpec()
 {
   using CalibrationDeviceType = o2::fit::FITCalibrationDevice<o2::ft0::GlobalOffsetsInfoObject, o2::ft0::GlobalOffsetsContainer, o2::ft0::GlobalOffsetsCalibrationObject>;
-  LOG(info)<<" getGlobalOffsetsCalibrationSpec()";
+  LOG(info) << " getGlobalOffsetsCalibrationSpec()";
   constexpr const char* DEFAULT_INPUT_LABEL = "calib";
 
   std::vector<o2::framework::InputSpec> inputs;

@@ -21,12 +21,12 @@ namespace ft0
 class GlobalOffsetsInfoObject
 {
  public:
-  GlobalOffsetsInfoObject(short t0AC) : mT0AC(t0AC) {};
+  GlobalOffsetsInfoObject(short t0AC) : mT0AC(t0AC){};
   GlobalOffsetsInfoObject() = default;
   ~GlobalOffsetsInfoObject() = default;
 
   void setT0AC(short t0AC) { mT0AC = t0AC; }
-   [[nodiscard]] short getT0AC() const { return mT0AC; }
+  [[nodiscard]] short getT0AC() const { return mT0AC; }
 
  private:
   short mT0AC;

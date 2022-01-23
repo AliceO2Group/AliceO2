@@ -36,11 +36,11 @@ void GlobalOffsetsContainer::fill(const gsl::span<const GlobalOffsetsInfoObject>
   for (auto& entry : data) {
     if (std::abs(entry.getT0AC()) < RANGE) {
       auto time = entry.getT0AC();
-       time += RANGE;
+      time += RANGE;
       mHisto[(time)]++;
       mEntries++;
     }
-   }
+  }
 }
 void GlobalOffsetsContainer::merge(GlobalOffsetsContainer* prev)
 {

@@ -31,7 +31,7 @@ class GlobalOffsetsCollectWorkflow final : public o2::framework::Task
     auto recpoints = pc.inputs().get<gsl::span<o2::ft0::RecPoints>>("recpoints");
     auto& calib_data = pc.outputs().make<std::vector<o2::ft0::GlobalOffsetsInfoObject>>(o2::framework::OutputRef{"calib", 0});
     for (const auto& recpoint : recpoints) {
-      if (std::abs(recpoint.getCollisionTimeMean()<1000 )) {
+      if (std::abs(recpoint.getCollisionTimeMean() < 1000)) {
         calib_data.emplace_back(recpoint.getCollisionTimeMean());
       }
     }
@@ -44,7 +44,7 @@ class GlobalOffsetsCollectWorkflow final : public o2::framework::Task
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  Inputs inputs{};  
+  Inputs inputs{};
   inputs.push_back(InputSpec{{"recpoints"}, "FT0", "RECPOINTS"});
 
   DataProcessorSpec dataProcessorSpec{

@@ -54,7 +54,7 @@ class RecoCalibInfoWorkflow final : public o2::framework::Task
   GID::mask_t mInputSources;
   TStopwatch mTimer;
 };
-framework::DataProcessorSpec getRecoCalibInfoWorkflow( bool useMC);
+framework::DataProcessorSpec getRecoCalibInfoWorkflow(bool useMC);
 
 } // namespace o2::ft0
 

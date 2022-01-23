@@ -44,6 +44,7 @@ class FITCalibrationDevice : public o2::framework::Task
 
   void init(o2::framework::InitContext& context) final;
   void run(o2::framework::ProcessingContext& context) final;
+
   void endOfStream(o2::framework::EndOfStreamContext& context) final;
 
  private:

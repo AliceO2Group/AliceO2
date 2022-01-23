@@ -20,7 +20,7 @@ GlobalOffsetsCalibrationObject GlobalOffsetsCalibrationObjectAlgorithm::generate
   GlobalOffsetsCalibrationObject calibrationObject;
   calibrationObject.mCollisionTimeOffsets = container.getMeanGaussianFitValue();
   LOG(info) << "GlobalOffsetsCalibrationObjectAlgorithm generate CalibrationObject for T0"
-             << " = " << calibrationObject.mCollisionTimeOffsets;
+            << " = " << calibrationObject.mCollisionTimeOffsets;
 
   return calibrationObject;
 }
