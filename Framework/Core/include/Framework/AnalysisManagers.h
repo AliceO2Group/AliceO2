@@ -18,9 +18,11 @@
 #include "Framework/ProcessingContext.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/HistogramRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ConfigurableHelpers.h"
+#include "Framework/Condition.h"
 #include "Framework/InitContext.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/RootConfigParamHelpers.h"
@@ -151,6 +153,46 @@ struct FilterManager<expressions::Filter> {
   static bool updatePlaceholders(expressions::Filter& filter, InitContext& ctx)
   {
     expressions::updatePlaceholders(filter, ctx);
+    return true;
+  }
+};
+
+/// A manager which takes care of condition objects
+template <typename T>
+struct ConditionManager {
+  template <typename ANY>
+  static bool appendCondition(std::vector<InputSpec>& inputs, ANY& x)
+  {
+    if constexpr (std::is_base_of_v<ConditionGroup, ANY>) {
+      homogeneous_apply_refs<true>([&inputs](auto& y) { return ConditionManager<std::decay_t<decltype(y)>>::appendCondition(inputs, y); }, x);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  template <typename ANY>
+  static bool newDataframe(InputRecord& record, ANY& x)
+  {
+    if constexpr (std::is_base_of_v<ConfigurableGroup, ANY>) {
+      homogeneous_apply_refs<true>([&record](auto&& y) { return ConditionManager<std::decay_t<decltype(y)>>::newDataframe(record, y); }, x);
+      return true;
+    } else {
+      return false;
+    }
+  }
+};
+
+template <typename OBJ>
+struct ConditionManager<Condition<OBJ>> {
+  static bool appendCondition(std::vector<InputSpec>& inputs, Condition<OBJ>& what)
+  {
+    inputs.emplace_back(InputSpec{what.path, "AODC", compile_time_hash(what.path.c_str()), Lifetime::Condition, ccdbParamSpec(what.path)});
+    return true;
+  }
+  static bool newDataframe(InputRecord& inputs, Condition<OBJ>& what)
+  {
+    what.instance(inputs.get<OBJ>(what.path));
     return true;
   }
 };
