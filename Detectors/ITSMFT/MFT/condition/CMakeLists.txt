@@ -11,14 +11,20 @@
 o2_add_library(MFTCondition
                SOURCES src/MFTDCSProcessor.cxx
                        src/DCSNameResolver.cxx                       
+		       src/DCSConfigInfo.cxx
+		       src/DCSConfigReader.cxx
+                       src/DCSConfigUtils.cxx
                PUBLIC_LINK_LIBRARIES O2::CCDB
-               O2::DetectorsCalibration
-               O2::DetectorsDCS
-               Microsoft.GSL::GSL)
+                                     O2::DetectorsCalibration
+                                     O2::DetectorsDCS
+                                     Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(MFTCondition
                           HEADERS include/MFTCondition/MFTDCSProcessor.h
                                   include/MFTCondition/DCSNameResolver.h
+                                  include/MFTCondition/DCSConfigInfo.h
+                                  include/MFTCondition/DCSConfigReader.h
+                                  include/MFTCondition/DCSConfigUtils.h
                           LINKDEF src/MFTConditionLinkDef.h)
 
 o2_add_executable(mft-dcs-sim-workflow
@@ -30,6 +36,14 @@ o2_add_executable(mft-dcs-workflow
                   COMPONENT_NAME condition
                   SOURCES testWorkflow/mft-dcs-data-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
+                                        O2::MFTCondition
+                                        O2::DetectorsDCS)
+
+o2_add_executable(mft-dcs-config-workflow
+                  COMPONENT_NAME condition
+                  SOURCES testWorkflow/mft-dcs-config-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                                        O2::DetectorsCommonDataFormats
                                         O2::MFTCondition
                                         O2::DetectorsDCS)
 
