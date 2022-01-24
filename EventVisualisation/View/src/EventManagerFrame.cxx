@@ -167,6 +167,8 @@ namespace o2
     char time_str[100];
     std::strftime(time_str, sizeof(time_str), "%Y_%m_%d_%H_%M_%S", std::localtime(&time));
 
+    TASImage* scaledImage;
+
     std::ostringstream filepath;
     filepath << outDirectory << "/Screenshot_" << time_str << ".png";
 
@@ -174,16 +176,25 @@ namespace o2
     image.FillRectangle(backgroundColor, 0, 0, width, height);
 
     TImage* view3dImage = MultiView::getInstance()->getView(MultiView::EViews::View3d)->GetGLViewer()->GetPictureUsingBB();
-    view3dImage->Scale(width * 0.65, height * 0.95);
-    CopyImage(&image, (TASImage*)view3dImage, width * 0.015, height * 0.025, 0, 0, view3dImage->GetWidth(), view3dImage->GetHeight());
+    scaledImage = ScaleImage((TASImage*)view3dImage, width * 0.65, height * 0.95);
+    if (scaledImage) {
+      CopyImage(&image, scaledImage, width * 0.015, height * 0.025, 0, 0, scaledImage->GetWidth(), scaledImage->GetHeight());
+      delete scaledImage;
+    }
 
     TImage* viewRphiImage = MultiView::getInstance()->getView(MultiView::EViews::ViewRphi)->GetGLViewer()->GetPictureUsingBB();
-    viewRphiImage->Scale(width * 0.3, height * 0.45);
-    CopyImage(&image, (TASImage*)viewRphiImage, width * 0.68, height * 0.025, 0, 0, viewRphiImage->GetWidth(), viewRphiImage->GetHeight());
+    scaledImage = ScaleImage((TASImage*)viewRphiImage, width * 0.3, height * 0.45);
+    if (scaledImage) {
+      CopyImage(&image, scaledImage, width * 0.68, height * 0.025, 0, 0, scaledImage->GetWidth(), scaledImage->GetHeight());
+      delete scaledImage;
+    }
 
     TImage* viewZrhoImage = MultiView::getInstance()->getView(MultiView::EViews::ViewZrho)->GetGLViewer()->GetPictureUsingBB();
-    viewZrhoImage->Scale(width * 0.3, height * 0.45);
-    CopyImage(&image, (TASImage*)viewZrhoImage, width * 0.68, height * 0.525, 0, 0, viewZrhoImage->GetWidth(), viewZrhoImage->GetHeight());
+    scaledImage = ScaleImage((TASImage*)viewZrhoImage, width * 0.3, height * 0.45);
+    if (scaledImage) {
+      CopyImage(&image, scaledImage, width * 0.68, height * 0.525, 0, 0, scaledImage->GetWidth(), scaledImage->GetHeight());
+      delete scaledImage;
+    }
 
     bool logo = true;
     if (logo) {
@@ -226,7 +237,17 @@ namespace o2
 
     image.BeginPaint();
     for (int i = 0; i < 4; i++) {
-      lines.push_back("");
+      lines.push_back(""); // make sure that at least 4 lines are exising
+    }
+    if (!this->mEventManager->getDataSource()->getCollisionTime().empty()) {
+      char buff[100];
+      snprintf(buff, sizeof(buff), "Run number: %d", (int)this->mEventManager->getDataSource()->getRunNumber());
+      lines[0] = buff;
+      snprintf(buff, sizeof(buff), "Date: %s", this->mEventManager->getDataSource()->getCollisionTime().c_str());
+      lines[1] = buff;
+    }
+
+    for (int i = 0; i < 4; i++) {
       image.DrawText(textX, textY + i * textLineHeight, lines[i].c_str(), fontSize, "#BBBBBB", "FreeSansBold.otf");
     }
     image.EndPaint();
@@ -407,6 +428,42 @@ namespace o2
     }
 
     return true;
+  }
+
+  TASImage* EventManagerFrame::ScaleImage(TASImage* image, UInt_t desiredWidth, UInt_t desiredHeight)
+  {
+    if (!image) {
+      return nullptr;
+    }
+    if (desiredWidth == 0 || desiredHeight == 0) {
+      return nullptr;
+    }
+
+    const char* backgroundColor = "#000000";
+
+    UInt_t scaleWidth = desiredWidth;
+    UInt_t scaleHeight = desiredHeight;
+    UInt_t offsetWidth = 0;
+    UInt_t offsetHeight = 0;
+
+    float aspectRatio = (float)image->GetWidth() / (float)image->GetHeight();
+
+    if (desiredWidth >= aspectRatio * desiredHeight) {
+      scaleWidth = (UInt_t)(aspectRatio * desiredHeight);
+      offsetWidth = (desiredWidth - scaleWidth) / 2.0f;
+    } else {
+      scaleHeight = (UInt_t)((1.0f / aspectRatio) * desiredWidth);
+      offsetHeight = (desiredHeight - scaleHeight) / 2.0f;
+    }
+
+    TASImage* scaledImage = new TASImage(desiredWidth, desiredHeight);
+    scaledImage->FillRectangle(backgroundColor, 0, 0, desiredWidth, desiredHeight);
+
+    image->Scale(scaleWidth, scaleHeight);
+
+    CopyImage(scaledImage, image, offsetWidth, offsetHeight, 0, 0, scaleWidth, scaleHeight);
+
+    return scaledImage;
   }
 
   } // namespace event_visualisation

@@ -14,15 +14,10 @@
 
 #include "EveWorkflow/O2DPLDisplay.h"
 #include "EveWorkflow/EveWorkflowHelper.h"
-#include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
-#include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
-#include "DataFormatsITSMFT/TopologyDictionary.h"
-#include "DetectorsCommonDataFormats/DetectorNameConf.h"
-#include "ITSBase/GeometryTGeo.h"
-#include "ITSMFTReconstruction/ClustererParam.h"
+#include "CommonUtils/NameConf.h"
 #include "TRDBase/GeometryFlat.h"
 #include "TOFBase/Geo.h"
 #include "TPCFastTransform.h"
@@ -33,7 +28,6 @@
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/Cluster.h"
-#include "MCHTracking/TrackParam.h"
 #include <unistd.h>
 #include <climits>
 
@@ -94,8 +88,11 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   helper.prepareITSClusters(mData.mITSDict);
   helper.prepareMFTClusters(mData.mMFTDict);
 
-  helper.draw(this->mJsonPath, this->mNumberOfFiles, this->mNumberOfTracks, this->mTrkMask, this->mClMask, this->mWorkflowVersion);
-  const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
+  const auto& ref = pc.inputs().getFirstValid(true);
+  const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+  const auto* dph = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
+
+  helper.draw(this->mJsonPath, this->mNumberOfFiles, this->mNumberOfTracks, this->mTrkMask, this->mClMask, dh->runNumber, dph->creation, this->mWorkflowVersion);
   auto endTime = std::chrono::high_resolution_clock::now();
   LOGP(info, "Visualization of TF:{} at orbit {} took {} s.", dh->tfCounter, dh->firstTForbit, std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
 }

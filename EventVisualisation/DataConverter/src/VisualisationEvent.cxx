@@ -91,7 +91,7 @@ VisualisationEvent::VisualisationEvent(VisualisationEventVO vo)
   this->mEnergy = vo.energy;
   this->mMultiplicity = vo.multiplicity;
   this->mCollidingSystem = vo.collidingSystem;
-  this->mTimeStamp = vo.timeStamp;
+  this->mCollisionTime = vo.collisionTime;
 }
 
 std::string VisualisationEvent::toJson()
@@ -101,7 +101,8 @@ std::string VisualisationEvent::toJson()
 
   // compatibility verification
   tree.AddMember("fileVersion", rapidjson::Value().SetInt(JSON_FILE_VERSION), allocator);
-  tree.AddMember("timeStamp", rapidjson::Value().SetFloat(this->mTimeStamp), allocator);
+  tree.AddMember("runNumber", rapidjson::Value().SetInt(this->mRunNumber), allocator);
+  tree.AddMember("collisionTime", rapidjson::Value().SetString(this->mCollisionTime.c_str(), this->mCollisionTime.size()), allocator);
   tree.AddMember("workflowVersion", rapidjson::Value().SetFloat(this->mWorkflowVersion), allocator);
   tree.AddMember("workflowParameters", rapidjson::Value().SetString(this->mWorkflowParameters.c_str(), this->mWorkflowParameters.size()), allocator);
   // Tracks
@@ -160,15 +161,23 @@ void VisualisationEvent::fromJson(std::string json)
 
   auto version = 1;
   if (tree.HasMember("fileVersion")) {
-    rapidjson::Value& fileVersion = tree["fileVersion"];
-    version = fileVersion.GetInt();
+    rapidjson::Value& jsonFileVersion = tree["fileVersion"];
+    version = jsonFileVersion.GetInt();
   }
-  auto timeStamp = time(nullptr);
-  if (tree.HasMember("timeStamp")) {
-    rapidjson::Value& fileTimeStamp = tree["timeStamp"];
-    timeStamp = fileTimeStamp.GetFloat();
+
+  o2::header::DataHeader::RunNumberType runNumber = 0;
+  if (tree.HasMember("runNumber")) {
+    rapidjson::Value& jsonRunNumber = tree["runNumber"];
+    runNumber = jsonRunNumber.GetInt();
   }
-  this->mTimeStamp = timeStamp;
+  this->setRunNumber(runNumber);
+
+  auto collisionTime = "not specified";
+  if (tree.HasMember("collisionTime")) {
+    rapidjson::Value& jsonCollisionTime = tree["collisionTime"];
+    collisionTime = jsonCollisionTime.GetString();
+  }
+  this->setCollisionTime(collisionTime);
 
   rapidjson::Value& trackCount = tree["trackCount"];
   this->mTracks.reserve(trackCount.GetInt());
@@ -220,7 +229,7 @@ bool VisualisationEvent::fromFile(std::string fileName)
 
 VisualisationEvent::VisualisationEvent()
 {
-  this->mTimeStamp = time(nullptr); // current time
+  this->mCollisionTime = ""; // collision time not set
 }
 
 } // namespace event_visualisation
