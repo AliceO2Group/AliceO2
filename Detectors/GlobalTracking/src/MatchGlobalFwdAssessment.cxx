@@ -243,8 +243,9 @@ void GloFwdAssessment::processGeneratedTracks()
         auto evh = mcReader.getMCEventHeader(src, event);
         addMCParticletoHistos(&mcParticle, kGen, evh);
       } // mcTracks
-    }   // events
-  }     // sources
+      mcReader.releaseTracksForSourceAndEvent(src, event);
+    } // events
+  }   // sources
 }
 
 //__________________________________________________________
