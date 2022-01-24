@@ -230,10 +230,10 @@ void AODProducerWorkflowDPL::addToTracksExtraTable(TracksExtraCursorType& tracks
                     extraInfoHolder.tpcNClsFindableMinusCrossedRows,
                     extraInfoHolder.tpcNClsShared,
                     extraInfoHolder.trdPattern,
-                    truncateFloatFraction(extraInfoHolder.itsChi2NCl, mTrackCovOffDiag),
-                    truncateFloatFraction(extraInfoHolder.tpcChi2NCl, mTrackCovOffDiag),
-                    truncateFloatFraction(extraInfoHolder.trdChi2, mTrackCovOffDiag),
-                    truncateFloatFraction(extraInfoHolder.tofChi2, mTrackCovOffDiag),
+                    truncateFloatFraction(extraInfoHolder.itsChi2NCl, mTrackChi2),
+                    truncateFloatFraction(extraInfoHolder.tpcChi2NCl, mTrackChi2),
+                    truncateFloatFraction(extraInfoHolder.trdChi2, mTrackChi2),
+                    truncateFloatFraction(extraInfoHolder.tofChi2, mTrackChi2),
                     truncateFloatFraction(extraInfoHolder.tpcSignal, mTrackSignal),
                     truncateFloatFraction(extraInfoHolder.trdSignal, mTrackSignal),
                     truncateFloatFraction(extraInfoHolder.length, mTrackSignal),
@@ -269,12 +269,12 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
                   collisionID,
                   track.getX(),
                   track.getY(),
-                  track.getZ(),
-                  track.getPhi(),
-                  track.getTanl(),
-                  track.getInvQPt(),
+                  truncateFloatFraction(track.getZ(), mTrackX), // for the forward tracks Z has the same role as X in barrel
+                  truncateFloatFraction(track.getPhi(), mTrackAlpha),
+                  truncateFloatFraction(track.getTanl(), mTrackTgl),
+                  truncateFloatFraction(track.getInvQPt(), mTrack1Pt),
                   track.getNumberOfPoints(),
-                  track.getTrackChi2(),
+                  truncateFloatFraction(track.getTrackChi2(), mTrackChi2),
                   truncateFloatFraction(trackTime, mTrackTime),
                   truncateFloatFraction(trackTimeRes, mTrackTimeError));
   if (needBCSlice) {
@@ -532,17 +532,17 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
                   trackTypeId,
                   x,
                   y,
-                  z,
-                  phi,
-                  tanl,
-                  invqpt,
+                  truncateFloatFraction(z, mTrackX), // for the forward tracks Z has the same role as X in the barrel
+                  truncateFloatFraction(phi, mTrackAlpha),
+                  truncateFloatFraction(tanl, mTrackTgl),
+                  truncateFloatFraction(invqpt, mTrack1Pt),
                   nClusters,
-                  pdca,
-                  rabs,
-                  chi2,
-                  chi2matchmchmid,
-                  chi2matchmchmft,
-                  matchscoremchmft,
+                  truncateFloatFraction(pdca, mTrackX),
+                  truncateFloatFraction(rabs, mTrackX),
+                  truncateFloatFraction(chi2, mTrackChi2),
+                  truncateFloatFraction(chi2matchmchmid, mTrackChi2),
+                  truncateFloatFraction(chi2matchmchmft, mTrackChi2),
+                  truncateFloatFraction(matchscoremchmft, mTrackChi2),
                   matchmfttrackid,
                   matchmchtrackid,
                   mchBitMap,
@@ -552,11 +552,11 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
                   truncateFloatFraction(trackTimeRes, mTrackTimeError));
 
   fwdTracksCovCursor(0,
-                     sigX,
-                     sigY,
-                     sigPhi,
-                     sigTgl,
-                     sig1Pt,
+                     truncateFloatFraction(sigX, mTrackCovDiag),
+                     truncateFloatFraction(sigY, mTrackCovDiag),
+                     truncateFloatFraction(sigPhi, mTrackCovDiag),
+                     truncateFloatFraction(sigTgl, mTrackCovDiag),
+                     truncateFloatFraction(sig1Pt, mTrackCovDiag),
                      rhoXY,
                      rhoPhiX,
                      rhoPhiY,
@@ -1043,6 +1043,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     mTrackSnp = 0xFFFFFFFF;
     mTrackTgl = 0xFFFFFFFF;
     mTrack1Pt = 0xFFFFFFFF;
+    mTrackChi2 = 0xFFFFFFFF;
     mTrackCovDiag = 0xFFFFFFFF;
     mTrackCovOffDiag = 0xFFFFFFFF;
     mTrackSignal = 0xFFFFFFFF;
