@@ -81,6 +81,8 @@ class Tracker
   void setParameters(const std::vector<MemoryParameters>&, const std::vector<TrackingParameters>&);
   void getGlobalConfiguration();
   bool isMatLUT() const { return o2::base::Propagator::Instance()->getMatLUT() && (mCorrType == o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT); }
+  template <class... T>
+  void fillTimeFrameGPU(T&&... args);
 
  private:
   track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3,
@@ -102,8 +104,8 @@ class Tracker
   template <typename... T>
   float evaluateTask(void (Tracker::*)(T...), const char*, std::function<void(std::string s)> logger, T&&... args);
 
-  TrackerTraits* mTraits = nullptr;                      /// Observer pointer, not owned by this class
-  TimeFrame* mTimeFrame = nullptr;                       /// Observer pointer, not owned by this class
+  TrackerTraits* mTraits = nullptr; /// Observer pointer, not owned by this class
+  TimeFrame* mTimeFrame = nullptr;  /// Observer pointer, not owned by this class
 
   std::vector<MemoryParameters> mMemParams;
   std::vector<TrackingParameters> mTrkParams;
@@ -135,6 +137,12 @@ template <typename... T>
 void Tracker::initialiseTimeFrame(T&&... args)
 {
   mTimeFrame->initialise(std::forward<T>(args)...);
+}
+
+template <class... T>
+void Tracker::fillTimeFrameGPU(T&&... args)
+{
+  mTraits->fillTimeFrame(std::forward<T>(args)...);
 }
 
 template <typename... T>

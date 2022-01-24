@@ -333,7 +333,6 @@ GPUg() void computeVertexKernel(DeviceStoreVertexerGPU& store, const int vertInd
 void VertexerTraitsGPU::computeTracklets()
 {
   if (!mClusters[1].size()) {
-    std::cout << "\t\tno clusters on layer 1. Returning.\n";
     return;
   }
   const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mClusters[1].capacity())};
@@ -364,7 +363,6 @@ void VertexerTraitsGPU::computeTracklets()
 void VertexerTraitsGPU::computeTrackletMatching()
 {
   if (!mClusters[1].size()) {
-    std::cout << "\t\tno clusters on layer 1. Returning.\n";
     return;
   }
   const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mClusters[1].capacity())};
@@ -412,7 +410,6 @@ void VertexerTraitsGPU::computeTrackletMatching()
 void VertexerTraitsGPU::computeVertices()
 {
   if (!mClusters[1].size()) {
-    std::cout << "\t\tno clusters on layer 1. Returning.\n";
     return;
   }
   const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mClusters[1].capacity())};

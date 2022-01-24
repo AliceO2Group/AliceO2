@@ -17,28 +17,60 @@
 #include <hip/hip_runtime.h>
 #endif
 
-#include "ITStracking/TimeFrame.h"
+// #include "ITStracking/Cell.h"
+// #include "ITStracking/Cluster.h"
+// #include "ITStracking/Configuration.h"
+// #include "ITStracking/Constants.h"
+// #include "ITStracking/Definitions.h"
+// #include "ITStracking/Road.h"
+// #include "ITStracking/Tracklet.h"
+// #include "ITStracking/IndexTableUtils.h"
 
+// #include "SimulationDataFormat/MCCompLabel.h"
+// #include "SimulationDataFormat/MCTruthContainer.h"
+
+// #include "ReconstructionDataFormats/Vertex.h"
+
+#include "ITStracking/TimeFrame.h"
 #include "Array.h"
 #include "UniquePointer.h"
 #include "Vector.h"
 #include "GPUCommonDef.h"
+#include "GPUCommonMath.h"
 
 namespace o2
 {
+
+// namespace itsmft
+// {
+// class Cluster;
+// class CompClusterExt;
+// class TopologyDictionary;
+// class ROFRecord;
+// } // namespace itsmft
+
 namespace its
 {
 namespace gpu
 {
 template <int NLayers>
-class TimeFrameGPU
+class TimeFrameGPU : public TimeFrame
 {
  public:
   TimeFrameGPU();
-  ~TimeFrameGPU() = default;
-  UniquePointer<TimeFrameGPU<NLayers>> initialise(TimeFrame* tf);
+  ~TimeFrameGPU();
+  void loadToGPU();
+  // GPUh() int loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
+  //                     gsl::span<const itsmft::CompClusterExt> clusters,
+  //                     gsl::span<const unsigned char>::iterator& pattIt,
+  //                     const itsmft::TopologyDictionary& dict,
+  //                     const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
 
  private:
+  Array<Vector<TrackingFrameInfo>, NLayers> mTrackingFrameInfoGPU;
+  Array<Vector<Cluster>, NLayers> mClustersGPU;
+  Array<Vector<int>, NLayers> mClusterExternalIndicesGPU;
+  Array<Vector<int>, NLayers> mROframesClustersGPU;
 };
 } // namespace gpu
 } // namespace its

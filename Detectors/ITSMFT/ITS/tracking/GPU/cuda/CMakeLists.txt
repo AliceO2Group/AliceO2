@@ -20,6 +20,7 @@ o2_add_library(ITStrackingCUDA
                        DeviceStoreVertexerGPU.cu
                        Stream.cu
                        TrackerTraitsGPU.cu
+                       TimeFrameGPU.cu
                        VertexerTraitsGPU.cu
                        Utils.cu
                PUBLIC_INCLUDE_DIRECTORIES ../
