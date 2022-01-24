@@ -12,8 +12,6 @@
 /// @file   ClusterReaderSpec.cxx
 
 #include <vector>
-#include <chrono>
-#include <thread>
 
 #include "TTree.h"
 
@@ -23,7 +21,6 @@
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
 #include <cassert>
 #include "CommonUtils/NameConf.h"
-using namespace std::chrono_literals;
 
 using namespace o2::framework;
 using namespace o2::itsmft;
@@ -56,7 +53,7 @@ void ClusterReader::run(ProcessingContext& pc)
   mTree->GetEntry(ent);
   LOG(info) << mDetName << "ClusterReader pushes " << mClusROFRec.size() << " ROFRecords,"
             << mClusterCompArray.size() << " compact clusters at entry " << ent;
-  std::this_thread::sleep_for(5ms);
+
   // This is a very ugly way of providing DataDescription, which anyway does not need to contain detector name.
   // To be fixed once the names-definition class is ready
   pc.outputs().snapshot(Output{mOrigin, "CLUSTERSROF", 0, Lifetime::Timeframe}, mClusROFRec);

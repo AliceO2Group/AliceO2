@@ -18,10 +18,6 @@
 #include "Framework/Logger.h"
 #include "MFTWorkflow/TrackReaderSpec.h"
 #include "CommonUtils/NameConf.h"
-#include <chrono>
-#include <thread>
-
-using namespace std::chrono_literals;
 
 using namespace o2::framework;
 using namespace o2::mft;
@@ -49,7 +45,6 @@ void TrackReader::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
   LOG(info) << "Pushing " << mTracks.size() << " track in " << mROFRec.size() << " ROFs at entry " << ent;
-  std::this_thread::sleep_for(5ms);
   pc.outputs().snapshot(Output{mOrigin, "MFTTrackROF", 0, Lifetime::Timeframe}, mROFRec);
   pc.outputs().snapshot(Output{mOrigin, "TRACKS", 0, Lifetime::Timeframe}, mTracks);
   pc.outputs().snapshot(Output{mOrigin, "TRACKCLSID", 0, Lifetime::Timeframe}, mClusInd);
