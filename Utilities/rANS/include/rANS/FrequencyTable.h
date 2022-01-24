@@ -37,72 +37,12 @@ namespace o2
 namespace rans
 {
 
-namespace detail
-{
-
-template <typename value_T, typename functor_T, typename predicate_T>
-class ExpirableProxy
-{
- public:
-  ExpirableProxy() = default;
-  explicit ExpirableProxy(value_T value, predicate_T predicate, functor_T functor = {}) : mValue{std::move(value)}, mPredicate{std::move(predicate)}, mFunctor{functor} {};
-  template <class... Args>
-  count_t& operator()(Args... args)
-  {
-    if (mPredicate()) {
-      mValue = mFunctor(args...);
-    }
-    return mValue;
-  };
-
- protected:
-  value_T mValue;
-  functor_T mFunctor;
-  predicate_T mPredicate;
-};
-
-} // namespace detail
-
 class FrequencyTable
 {
  public:
   using iterator_t = count_t*;
   using constIterator_t = const count_t*;
 
- private:
-  class NUsedAlphabetSymbolsCounter
-  {
-   public:
-    count_t operator()(const FrequencyTable& frequencyTable) const
-    {
-      return std::count_if(frequencyTable.begin(), frequencyTable.end(), [](count_t count) { return count > 0; }) + frequencyTable.hasIncompressibleSymbols();
-    };
-  };
-
-  class NUsedAlphabetSymbolsPredicate
-  {
-   public:
-    NUsedAlphabetSymbolsPredicate(FrequencyTable* frequencyTable) : mFrequencyTable{frequencyTable} {};
-
-    bool operator()()
-    {
-      const count_t newNumSamples = mFrequencyTable->getNumSamples();
-      const count_t newIncompressibleSymbolFrequency = mFrequencyTable->getIncompressibleSymbolFrequency();
-      const bool hasSameNumSamples = newNumSamples == mOldNumSamples;
-      const bool hasSameIncompressibleSymbolFrequency = newIncompressibleSymbolFrequency == mOldIncompressibleSymbolFrequency;
-      mOldIncompressibleSymbolFrequency = newIncompressibleSymbolFrequency;
-      return !(hasSameNumSamples && hasSameIncompressibleSymbolFrequency);
-    };
-
-   private:
-    FrequencyTable* mFrequencyTable;
-    count_t mOldNumSamples{};
-    count_t mOldIncompressibleSymbolFrequency{};
-  };
-
-  using NUsedAlphabetSymbolsProxy_t = detail::ExpirableProxy<count_t, NUsedAlphabetSymbolsCounter, NUsedAlphabetSymbolsPredicate>;
-
- public:
   // Constructors
 
   // TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
@@ -137,7 +77,7 @@ class FrequencyTable
 
   inline bool empty() const noexcept { return mFrequencyTable.empty(); };
 
-  inline size_t getNUsedAlphabetSymbols() const { return mNUsedAlphabetSymbols(*this); };
+  size_t getNUsedAlphabetSymbols() const;
 
   inline size_t getAlphabetRangeBits() const noexcept { return internal::numBitsForNSymbols(size() + this->hasIncompressibleSymbols()); };
 
@@ -181,9 +121,8 @@ class FrequencyTable
   histogram_t mFrequencyTable{};
   symbol_t mOffset{};
   size_t mNumSamples{};
-  mutable NUsedAlphabetSymbolsProxy_t mNUsedAlphabetSymbols{0ul, NUsedAlphabetSymbolsPredicate(this)};
   count_t mIncompressibleSymbolFrequency{};
-};
+}; // namespace rans
 
 template <typename IT>
 double_t computeEntropy(IT begin, IT end, symbol_t min);
@@ -359,6 +298,11 @@ inline auto FrequencyTable::release() && noexcept -> histogram_t
   *this = FrequencyTable();
 
   return frequencies;
+};
+
+inline size_t FrequencyTable::getNUsedAlphabetSymbols() const
+{
+  return std::count_if(mFrequencyTable.begin(), mFrequencyTable.end(), [](count_t count) { return count > 0; }) + static_cast<count_t>(this->hasIncompressibleSymbols());
 };
 
 inline auto FrequencyTable::getSymbol(symbol_t symbol) const -> const count_t&
