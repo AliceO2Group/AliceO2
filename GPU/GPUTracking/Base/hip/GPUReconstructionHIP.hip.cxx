@@ -55,13 +55,15 @@ __global__ void dummyInitKernel(void*) {}
 
 #if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
 #include "ITStrackingGPU/VertexerTraitsGPU.h"
+#include "ITStrackingGPU/TrackerTraitsGPU.h"
 #else
 namespace o2::its
 {
 class VertexerTraitsGPU : public VertexerTraits
 {
 };
-class TrackerTraitsHIP : public TrackerTraits
+template <int NLayers>
+class TrackerTraitsGPU : public TrackerTraits
 {
 };
 } // namespace o2::its
@@ -206,9 +208,9 @@ GPUReconstruction* GPUReconstruction_Create_HIP(const GPUSettingsDeviceBackend& 
 
 void GPUReconstructionHIPBackend::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits)
 {
-  // if (trackerTraits) {
-  //   trackerTraits->reset(new o2::its::TrackerTraitsNV);
-  // }
+  if (trackerTraits) {
+    trackerTraits->reset(new o2::its::TrackerTraitsGPU);
+  }
   if (vertexerTraits) {
     vertexerTraits->reset(new o2::its::VertexerTraitsGPU);
   }

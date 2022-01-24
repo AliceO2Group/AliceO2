@@ -9,9 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file TrackerTraitsGPU.cu
-/// \brief
-///
 
 #include <array>
 #include <sstream>
@@ -26,14 +23,12 @@
 #include "ITStracking/Configuration.h"
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/MathUtils.h"
+#include "ITStracking/TimeFrame.h"
 
 #include "ITStrackingGPU/Context.h"
-// #include "ITStrackingGPU/DeviceStoreGPU.h"
-// #include "ITStrackingGPU/PrimaryVertexContextGPU.h"
 #include "ITStrackingGPU/Stream.h"
 #include "ITStrackingGPU/Vector.h"
 #include "ITStrackingGPU/TrackerTraitsGPU.h"
-#include "ITStrackingGPU/TimeFrameGPU.h"
 
 namespace o2
 {
@@ -59,6 +54,14 @@ GPUd() const int4 getBinsRect(const Cluster& currentCluster, const int layerInde
               getPhiBinIndex(phiRangeMin),
               o2::gpu::GPUCommonMath::Min(ZBins - 1, getZBinIndex(layerIndex + 1, zRangeMax)),
               getPhiBinIndex(phiRangeMax)};
+}
+
+template <int NLayers>
+template <typename... T>
+void TrackerTraitsGPU<NLayers>::fillTimeFrame(T&&... args)
+{
+  mTimeFrameGPU.loadROFrameData(std::forward<T>(args)...);
+  mTimeFrameGPU.loadToGPU();
 }
 
 namespace gpu
@@ -536,5 +539,6 @@ namespace gpu
 //   //TODO: restore this
 //   // mChainRunITSTrackFit(*mChain, mPrimaryVertexContext->getRoads(), clusters, cells, tf, tracks);
 // }
+template class TrackerTraitsGPU<7>;
 } // namespace its
 } // namespace o2

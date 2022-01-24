@@ -59,7 +59,7 @@ namespace its
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
-class TimeFrame final
+class TimeFrame
 {
  public:
   TimeFrame(int nLayers = 7);

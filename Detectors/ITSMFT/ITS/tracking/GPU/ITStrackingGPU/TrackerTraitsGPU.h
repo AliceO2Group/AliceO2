@@ -23,30 +23,33 @@
 #include "ITStracking/Configuration.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/TrackerTraits.h"
+#include "ITStrackingGPU/TimeFrameGPU.h"
 
 namespace o2
 {
 namespace its
 {
+template <int NLayers>
 class TimeFrameGPU;
-// class PrimaryVertexContext;
 
+template <int NLayers = 7>
 class TrackerTraitsGPU : public TrackerTraits
 {
  public:
   TrackerTraitsGPU() = default;
   ~TrackerTraitsGPU() override = default;
-  void adoptTimeFrame(TimeFrame* tf);
+  template <class... T>
+  void fillTimeFrame(T&&... args);
 
   // void computeLayerCells() final;
   // void computeLayerTracklets() final;
   // void refitTracks(const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks) override;
  private:
-  TimeFrameGPU* mTimeFrameGPU;
+  gpu::TimeFrameGPU<NLayers> mTimeFrameGPU;
 };
 
 extern "C" TrackerTraits* createTrackerTraitsGPU();
 } // namespace its
 } // namespace o2
 
-#endif /* TRACKINGITSU_INCLUDE_TRACKERTRAITS_H_ */
+#endif

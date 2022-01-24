@@ -60,6 +60,8 @@ class TrackerTraits
     mChain = chain;
   }
 
+  template <class... T>
+  void fillTimeFrame(T&&... args){};
   virtual void computeLayerTracklets(){};
   virtual void computeLayerCells(){};
   virtual void refitTracks(const std::vector<std::vector<TrackingFrameInfo>>&, std::vector<TrackITSExt>&){};
