@@ -22,6 +22,25 @@ o2_target_root_dictionary(DataFormatsQualityControl
                                   include/DataFormatsQualityControl/TimeRangeFlag.h
                                   include/DataFormatsQualityControl/TimeRangeFlagCollection.h)
 
+### Prepare the list of methods in FlagReasonFactory
+file(READ "etc/flagReasons.csv" CSV_FLAG_REASONS)
+# delete the CSV file header
+string(REPLACE \"id\",\"method\",\"name\",\"bad\",\"obsolete\" "" CSV_FLAG_REASONS ${CSV_FLAG_REASONS})
+# detects if there is obsolete flag '1' in the last column, adds [[deprecated]] if so and retains the rest of the string
+string(REGEX REPLACE \([0-9]+,\".[^\"]*.\",.[^\"]*.,[0-1]\),1
+        "[[deprecated]] \\1,1"
+        CSV_FLAG_REASONS
+        ${CSV_FLAG_REASONS})
+# replaces the flag reason entry with a c++ method to create it
+string(REGEX REPLACE \([0-9]+\),\"\(.[^\"]*.\)\",\(.[^\"]*.\),\([0-1]\),[0-1]
+       "static FlagReason \\2\(\) { return { static_cast<uint16_t>\(\\1\), \\3, static_cast<bool>\(\\4\) }; }"
+       CSV_FLAG_REASONS
+       ${CSV_FLAG_REASONS})
+# put the method lists inside the template
+configure_file("include/DataFormatsQualityControl/FlagReasonFactory.h.in"
+               "${CMAKE_CURRENT_BINARY_DIR}/include/DataFormatsQualityControl/FlagReasonFactory.h"
+               @ONLY)
+
 o2_add_test(FlagReasons
   SOURCES test/testFlagReasons.cxx
   COMPONENT_NAME DataFormatsQualityControl

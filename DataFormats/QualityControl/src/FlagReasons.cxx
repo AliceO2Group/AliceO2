@@ -10,6 +10,8 @@
 // or submit itself to any jurisdiction.
 
 #include "DataFormatsQualityControl/FlagReasons.h"
+#include "include/DataFormatsQualityControl/FlagReasonFactory.h"
+#include "Framework/Logger.h"
 
 #include <iostream>
 #include <tuple>

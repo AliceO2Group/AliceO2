@@ -29,19 +29,19 @@ namespace o2
 namespace quality_control
 {
 
-struct FlagReasonFactory;
+class FlagReasonFactory;
 
 class FlagReason
 {
  private:
   uint16_t mId;
-  std::string mName;
+  const char* mName;
   bool mBad; // if true, data should become bad by default
 
   // By making the constructor private and FlagReasons available only in the FlagReasonFactory
   // we forbid to declare any flags in the user code. If you need a new FlagReason, please add it FlagReasonFactory.
  private:
-  FlagReason(uint16_t id, const char* name, bool bad) : mId(id), mName(name), mBad(bad) {}
+  constexpr FlagReason(uint16_t id, const char* name, bool bad) : mId(id), mName(name), mBad(bad) {}
 
  public:
   FlagReason();
@@ -52,17 +52,19 @@ class FlagReason
   bool operator<(const FlagReason& rhs) const;
   bool operator>(const FlagReason& rhs) const;
 
-  uint16_t getID() { return mId; }
-  const std::string& getName() { return mName; }
-  bool getBad() { return mBad; }
+  uint16_t getID() const { return mId; }
+  const char* getName() const { return mName; }
+  bool getBad() const { return mBad; }
 
   friend std::ostream& operator<<(std::ostream& os, FlagReason const& me);
-  friend FlagReasonFactory;
+  friend class FlagReasonFactory;
 
   ClassDefNV(FlagReason, 1);
 };
 
-struct FlagReasonFactory {
+/*
+class FlagReasonFactory {
+ public:
   FlagReasonFactory() = delete;
 
   // TODO: migrate the flag list from RCT
@@ -82,7 +84,11 @@ struct FlagReasonFactory {
   static FlagReason DetectorOff() { return {10, "Detector off", true}; }
   static FlagReason LimitedAcceptance() { return {11, "Limited acceptance", true}; }
 };
+*/
+
+
 
 } // namespace quality_control
 } // namespace o2
+
 #endif

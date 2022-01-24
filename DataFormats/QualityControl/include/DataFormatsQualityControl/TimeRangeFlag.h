@@ -27,6 +27,7 @@
 #include <MathUtils/detail/Bracket.h>
 
 #include "DataFormatsQualityControl/FlagReasons.h"
+#include "../../cmake-build-debug/DataFormats/QualityControl/include/DataFormatsQualityControl/FlagReasonFactory.h"
 
 namespace o2
 {
