@@ -657,7 +657,7 @@ int32_t DataDecoder::getDigitTime(uint32_t orbitStart, uint32_t bcStart, uint32_
   // Digits might be sent out later than the orbit in which they were recorded.
   // We account for this by allowing an extra -3 / +10 orbits when converting the
   // difference from orbit numbers to bunch crossings.
-  int64_t dBcMin = (dOrbit - 10) * bcInOrbit;
+  int64_t dBcMin = (dOrbit - 50) * bcInOrbit;
   int64_t dBcMax = (dOrbit + 3) * bcInOrbit;
 
   // Difference in bunch crossing values
