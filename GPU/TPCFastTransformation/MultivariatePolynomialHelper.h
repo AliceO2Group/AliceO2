@@ -21,7 +21,7 @@
 #include <vector>
 #include <string>
 #include <fmt/format.h>
-#include <assert.h>
+#include <cassert>
 #endif
 
 namespace GPUCA_NAMESPACE::gpu

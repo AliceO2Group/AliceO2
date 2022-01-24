@@ -50,10 +50,6 @@ class MultivariatePolynomial : public FlatObject, public MultivariatePolynomialH
     construct();
   }
 
-  /// default constructor for runtime evaluation of polynomial formula (can be used only with clone from object!)
-  template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (Dim == 0 && Degree == 0)), int>::type = 0>
-  MultivariatePolynomial(){};
-
   /// constructor for compile time evaluation of polynomial formula
   template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (Dim != 0 && Degree != 0)), int>::type = 0>
   MultivariatePolynomial() : mNParams{this->getNParameters(Degree, Dim)}
