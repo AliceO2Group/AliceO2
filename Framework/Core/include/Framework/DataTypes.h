@@ -29,7 +29,6 @@ namespace o2::aod::track
 {
 enum TrackTypeEnum : uint8_t {
   Track = 0,
-  ITSStandaloneTrack,
   Run2Track = 254,
   Run2Tracklet = 255
 };
