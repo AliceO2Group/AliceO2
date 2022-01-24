@@ -15,7 +15,7 @@
 #include <iostream>
 #include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
 
-int makeChannelOffsetCalibObjectInCCDB(const std::string url = "http://localhost:8080")
+int makeChannelOffsetCalibObjectInCCDB(const std::string url = "http://ccdb-test.cern.ch:8080")
 {
 
   o2::ccdb::CcdbApi api;
