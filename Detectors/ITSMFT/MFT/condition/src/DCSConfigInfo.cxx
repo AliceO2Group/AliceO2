@@ -9,16 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "MFTCondition/DCSConfigInfo.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#pragma link C++ struct o2::mft::MFTDCSinfo + ;
-#pragma link C++ class o2::mft::DCSNameResolver + ;
-#pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, o2::mft::MFTDCSinfo> + ;
-#pragma link C++ class o2::mft::DCSConfigInfo + ;
-#pragma link C++ class std::vector < o2::mft::DCSConfigInfo> + ;
-#pragma link C++ class o2::mft::DCSConfigUtils + ;
-#endif
+ClassImp(o2::mft::DCSConfigInfo);
