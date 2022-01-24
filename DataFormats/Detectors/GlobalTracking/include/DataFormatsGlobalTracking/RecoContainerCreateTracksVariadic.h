@@ -331,7 +331,6 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
       int trlim = rofRec.getFirstEntry() + rofRec.getNEntries();
       for (int it = rofRec.getFirstEntry(); it < trlim; it++) {
         if (isUsed2(it, GTrackID::MFT)) {
-          flagUsed2(it, GTrackID::MFT);
           continue;
         }
         GTrackID gidMFT(it, GTrackID::MFT);
