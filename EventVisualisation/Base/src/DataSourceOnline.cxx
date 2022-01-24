@@ -36,6 +36,8 @@ std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> DataSourceOnline
 
     mFileWatcher.setCurrentItem(no);
     VisualisationEvent vEvent = this->mDataReader->getEvent(mFileWatcher.currentFilePath());
+    this->setRunNumber(vEvent.getRunNumber());
+    this->setCollisionTime(vEvent.getCollisionTime());
 
     for(auto filter = EVisualisationGroup::ITS;
         filter != EVisualisationGroup::NvisualisationGroups;

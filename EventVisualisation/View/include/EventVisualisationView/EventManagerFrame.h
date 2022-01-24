@@ -45,6 +45,7 @@ class EventManagerFrame : public TGMainFrame
   static TGTextButton* makeButton(TGCompositeFrame* p, const char* txt, Int_t width = 0,
                                   Int_t lo = 0, Int_t ro = 0, Int_t to = 0, Int_t bo = 0);
   bool CopyImage(TASImage* dst, TASImage* src, Int_t x_dst = 0, Int_t y_dst = 0, Int_t x_src = 0, Int_t y_src = 0, UInt_t w_src = 0, UInt_t h_src = 0);
+  TASImage* ScaleImage(TASImage* image, UInt_t desiredWidth, UInt_t desiredHeight);
 
  protected:
   o2::event_visualisation::EventManager* mEventManager; // Model object.
