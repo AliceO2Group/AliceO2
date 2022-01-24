@@ -280,6 +280,7 @@ class AODProducerWorkflowDPL : public Task
   uint32_t mTrackTgl = 0xFFFFFF00;             // 15 bits
   uint32_t mTrack1Pt = 0xFFFFFC00;             // 13 bits
   uint32_t mTrackCovDiag = 0xFFFFFF00;         // 15 bits
+  uint32_t mTrackChi2 = 0xFFFF0000;            // 7 bits
   uint32_t mTrackCovOffDiag = 0xFFFF0000;      // 7 bits
   uint32_t mTrackSignal = 0xFFFFFF00;          // 15 bits
   uint32_t mTrackTime = 0xFFFFFF00;            // 15 bits
