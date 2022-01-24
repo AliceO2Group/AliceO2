@@ -81,7 +81,7 @@ auto sliceByColumn(
   for (auto i = 0; i < column->num_chunks(); ++i) {
     T prev = 0;
     T cur = 0;
-    T lastNeg = -1;
+    T lastNeg = 0;
     T lastPos = 0;
 
     auto array = static_cast<arrow::NumericArray<typename detail::ConversionTraits<T>::ArrowType>>(column->chunk(i)->data());
