@@ -274,10 +274,9 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
                   track.getTanl(),
                   track.getInvQPt(),
                   track.getNumberOfPoints(),
-                  track.getTrackChi2() /*, // RS FIXME
-       truncateFloatFraction(trackTime, mTrackTime),
-       truncateFloatFraction(trackTimeRes, mTrackTimeError)*/
-  );
+                  track.getTrackChi2(),
+                  truncateFloatFraction(trackTime, mTrackTime),
+                  truncateFloatFraction(trackTimeRes, mTrackTimeError));
   if (needBCSlice) {
     ambigMFTTracksCursor(0, mTableTrMFTID, bcSlice);
   }
@@ -839,13 +838,11 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
   auto cascades = recoData.getCascades();
 
   // filling v0s table
-  std::vector<bool> v0rej(v0s.size());
-  for (size_t i = 0; i < v0s.size(); i++) {
-    const auto& v0 = v0s[i];
+  for (size_t iv0 = 0; iv0 < v0s.size(); iv0++) {
+    const auto& v0 = v0s[iv0];
     auto trPosID = v0.getProngID(0);
     auto trNegID = v0.getProngID(1);
-    int posTableIdx = -1;
-    int negTableIdx = -1;
+    int posTableIdx = -1, negTableIdx = -1, collID = -1;
     auto item = mGIDToTableID.find(trPosID);
     if (item != mGIDToTableID.end()) {
       posTableIdx = item->second;
@@ -858,27 +855,41 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
     } else {
       LOG(warn) << "Could not find a negative track index for prong ID " << trNegID;
     }
-    if (posTableIdx != -1 and negTableIdx != -1) {
-      v0Cursor(0, v0.getVertexID(), posTableIdx, negTableIdx);
+    auto itemV = mVtxToTableCollID.find(v0.getVertexID());
+    if (itemV == mVtxToTableCollID.end()) {
+      LOG(warn) << "Could not find V0 collisionID for the vertex ID " << v0.getVertexID();
     } else {
-      v0rej[i] = true;
+      collID = itemV->second;
+    }
+    if (posTableIdx != -1 and negTableIdx != -1 and collID != -1) {
+      v0Cursor(0, collID, posTableIdx, negTableIdx);
+      mV0ToTableID[int(iv0)] = mTableV0ID++;
     }
   }
 
   // filling cascades table
   for (auto& cascade : cascades) {
-    if (v0rej[cascade.getV0ID()]) {
+    auto itemV0 = mV0ToTableID.find(cascade.getV0ID());
+    if (itemV0 == mV0ToTableID.end()) {
       continue;
     }
+    int v0tableID = itemV0->second, bachTableIdx = -1, collID = -1;
     auto bachelorID = cascade.getBachelorID();
-    int bachTableIdx = -1;
     auto item = mGIDToTableID.find(bachelorID);
     if (item != mGIDToTableID.end()) {
       bachTableIdx = item->second;
     } else {
       LOG(warn) << "Could not find a bachelor track index";
+      continue;
     }
-    cascadeCursor(0, cascade.getVertexID(), cascade.getV0ID(), bachTableIdx);
+    auto itemV = mVtxToTableCollID.find(cascade.getVertexID());
+    if (itemV != mVtxToTableCollID.end()) {
+      collID = itemV->second;
+    } else {
+      LOG(warn) << "Could not find cascade collisionID for the vertex ID " << cascade.getVertexID();
+      continue;
+    }
+    cascadeCursor(0, collID, v0tableID, bachTableIdx);
   }
 }
 
@@ -1498,6 +1509,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                      vertex.getNContributors(),
                      truncateFloatFraction(relInteractionTime, mCollisionPosition),
                      truncateFloatFraction(timeStamp.getTimeStampError() * 1E3, mCollisionPositionCov));
+    mVtxToTableCollID[collisionID] = mTableCollID++;
+
     auto& trackRef = primVer2TRefs[collisionID];
     // passing interaction time in [ps]
     fillTrackTablesPerCollision(collisionID, globalBC, trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, ambigTracksCursor,
@@ -1508,11 +1521,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   fillSecondaryVertices(recoData, v0sCursor, cascadesCursor);
 
-  mTableTrID = 0;
   mGIDToTableID.clear();
-  mTableTrFwdID = 0;
   mGIDToTableFwdID.clear();
-  mTableTrMFTID = 0;
   mGIDToTableMFTID.clear();
   // helper map for fast search of a corresponding class mask for a bc
   std::unordered_map<uint64_t, uint64_t> bcToClassMask;

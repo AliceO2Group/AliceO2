@@ -108,7 +108,9 @@ using MFTTracksTable = o2::soa::Table<o2::aod::fwdtrack::CollisionId,
                                       o2::aod::fwdtrack::Tgl,
                                       o2::aod::fwdtrack::Signed1Pt,
                                       o2::aod::fwdtrack::NClusters,
-                                      o2::aod::fwdtrack::Chi2>;
+                                      o2::aod::fwdtrack::Chi2,
+                                      o2::aod::fwdtrack::TrackTime,
+                                      o2::aod::fwdtrack::TrackTimeRes>;
 
 using FwdTracksTable = o2::soa::Table<o2::aod::fwdtrack::CollisionId,
                                       o2::aod::fwdtrack::TrackType,
@@ -238,6 +240,12 @@ class AODProducerWorkflowDPL : public Task
   // unordered map connects global indices and table indices of MFT tracks
   std::unordered_map<GIndex, int> mGIDToTableMFTID;
   int mTableTrMFTID{0};
+  // unordered map connects global indices and table indices of vertices
+  std::unordered_map<GIndex, int> mVtxToTableCollID;
+  int mTableCollID{0};
+  // unordered map connects global indices and table indices of V0s (needed for cascades references)
+  std::unordered_map<GIndex, int> mV0ToTableID;
+  int mTableV0ID{0};
 
   // zdc helper maps to avoid a number of "if" statements
   // when filling ZDC table
