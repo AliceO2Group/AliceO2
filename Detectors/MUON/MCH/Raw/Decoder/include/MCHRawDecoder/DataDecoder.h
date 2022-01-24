@@ -109,14 +109,16 @@ class DataDecoder
     TimeFrameStartRecord() = default;
 
     /// store the new orbit/bc pair, and copy the existing one in the "*Prev" data members
-    void update(uint32_t orbit, uint32_t bunchCrossing);
-    bool check();
+    bool update(uint32_t orbit, uint32_t bunchCrossing, bool verbose = false);
+    bool check(int32_t orbit, uint32_t bc, int32_t orbitRef, uint32_t bcRef, bool verbose = false);
 
     int64_t mOrbit{-1};
     int64_t mBunchCrossing{-1};
 
     int64_t mOrbitPrev{-1};
     int64_t mBunchCrossingPrev{-1};
+
+    bool mValid{true};
   };
 
   /// Structure used internally to store the information of the decoded digits.
