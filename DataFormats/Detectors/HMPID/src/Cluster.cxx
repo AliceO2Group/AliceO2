@@ -24,7 +24,7 @@ namespace hmpid
 
 bool o2::hmpid::Cluster::fgDoCorrSin = true;
 
-Cluster::Cluster()
+/*Cluster::Cluster()
 {
   mCh = -1;
   mSi = -1;
@@ -47,7 +47,7 @@ Cluster::Cluster()
   mParam = (o2::hmpid::Param::instanceNoGeo());
   // mParam = (o2::hmpid::Param());
 };
-
+*/
 /*Cluster::~Cluster()
 {
   delete mDigs;

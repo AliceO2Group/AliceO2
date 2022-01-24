@@ -40,7 +40,7 @@ class Cluster
                         kEmp = -1 }; // status flags
 
  public:
-  Cluster() = default;
+  Cluster() : mCh(-1), mSi(-1), mSt(kEmp), mBox(-1), mNlocMax(-1), mMaxQpad(-1), mMaxQ(-1), mQRaw(0), mQ(0), mErrQ(-1), mXX(0), mErrX(-1), mYY(0), mErrY(-1), mChi2(-1), mParam(o2::hmpid::Param::instanceNoGeo()) { mDigs.clear(); };
   //  Cluster(int chamber, int size, int NlocMax, float QRaw, float Q, float X, float Y)
   //   : mCh(chamber), mSi(size), mNlocMax(NlocMax), mQRaw(QRaw), mQ(Q), mXX(X), mYY(Y) { };
 
