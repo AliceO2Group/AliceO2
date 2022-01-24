@@ -44,4 +44,8 @@ BOOST_AUTO_TEST_CASE(TestSorting)
   BOOST_CHECK_EQUAL(result.remappings["/foo/bar"], "https://alice.cern.ch:8000");
   BOOST_CHECK_EQUAL(result.remappings["/foo/barbar"], "https://alice.cern.ch:8000");
   BOOST_CHECK_EQUAL(result.remappings["/foo/barr"], "/user/test");
+
+  result = CCDBHelpers::parseRemappings("https://alice.cern.ch:8000=/foo/bar;/user/test=/foo/bar");
+  BOOST_CHECK_EQUAL(result.remappings.size(), 1);
+  BOOST_CHECK_EQUAL(result.error, "Path /foo/bar requested more than once.");
 }

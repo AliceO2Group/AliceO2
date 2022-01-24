@@ -105,13 +105,20 @@ CCDBHelpers::ParserResult CCDBHelpers::parseRemappings(char const* str)
       case IN_END_TARGET: {
         char const* c = strpbrk(str, ",;");
         if (c == nullptr) {
+          if (remappings.count(str)) {
+            return {remappings, fmt::format("Path {} requested more than once.", str)};
+          }
           remappings[std::string(str)] = currentUrl;
           return {remappings, ""};
         }
         if ((c - str) == 0) {
           return {remappings, "Empty target"};
         }
-        remappings[std::string(str, c - str)] = currentUrl;
+        auto key = std::string(str, c - str);
+        if (remappings.count(str)) {
+          return {remappings, fmt::format("Path {} requested more than once.", key)};
+        }
+        remappings[key] = currentUrl;
         if (*c == ';') {
           state = IN_BEGIN_URL;
         } else {
