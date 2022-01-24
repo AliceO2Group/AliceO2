@@ -81,14 +81,23 @@ auto sliceByColumn(
   for (auto i = 0; i < column->num_chunks(); ++i) {
     T prev = 0;
     T cur = 0;
+    T nprev = -1;
     auto array = static_cast<arrow::NumericArray<typename detail::ConversionTraits<T>::ArrowType>>(column->chunk(i)->data());
     for (auto e = 0; e < array.length(); ++e) {
       if (cur >= 0) {
         prev = cur;
+      } else {
+        nprev = cur;
       }
       cur = array.Value(e);
-      if (cur >= 0 && prev > cur) {
-        throw runtime_error_f("Table %s index %s is not sorted: next value %d < previous value %d!", target, key, cur, prev);
+      if (cur >= 0) {
+        if (prev > cur) {
+          throw runtime_error_f("Table %s index %s is not sorted: next value %d < previous value %d!", target, key, cur, prev);
+        }
+      } else {
+        if (nprev < cur) {
+          throw runtime_error_f("Table %s index %s is not sorted: next negative value %d > previous negative value %d!", target, key, cur, nprev);
+        }
       }
     }
   }
