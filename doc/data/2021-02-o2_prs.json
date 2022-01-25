@@ -3484,12 +3484,12 @@
                 },
                 {
                   "node": {
-                    "path": "GPU/GPUTracking/display/GPUDisplayBackendGlut.cxx"
+                    "path": "GPU/GPUTracking/display/GPUDisplayFrontendGlut.cxx"
                   }
                 },
                 {
                   "node": {
-                    "path": "GPU/GPUTracking/display/GPUDisplayBackendGlut.h"
+                    "path": "GPU/GPUTracking/display/GPUDisplayFrontendGlut.h"
                   }
                 },
                 {

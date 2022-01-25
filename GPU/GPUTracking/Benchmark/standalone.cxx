@@ -19,7 +19,7 @@
 #include "GPUChainTracking.h"
 #include "GPUTPCDef.h"
 #include "GPUQA.h"
-#include "GPUDisplayBackend.h"
+#include "GPUDisplayFrontend.h"
 #include "genEvents.h"
 
 #include <iostream>
@@ -61,12 +61,12 @@
 
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
 #ifdef _WIN32
-#include "GPUDisplayBackendWindows.h"
+#include "GPUDisplayFrontendWindows.h"
 #else
-#include "GPUDisplayBackendX11.h"
-#include "GPUDisplayBackendGlfw.h"
+#include "GPUDisplayFrontendX11.h"
+#include "GPUDisplayFrontendGlfw.h"
 #endif
-#include "GPUDisplayBackendGlut.h"
+#include "GPUDisplayFrontendGlut.h"
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -88,7 +88,7 @@ void unique_ptr_aligned_delete(char* v)
   operator delete(v GPUCA_OPERATOR_NEW_ALIGNMENT);
 }
 std::unique_ptr<char, void (*)(char*)> outputmemory(nullptr, unique_ptr_aligned_delete), outputmemoryPipeline(nullptr, unique_ptr_aligned_delete), inputmemory(nullptr, unique_ptr_aligned_delete);
-std::unique_ptr<GPUDisplayBackend> eventDisplay;
+std::unique_ptr<GPUDisplayFrontend> eventDisplay;
 std::unique_ptr<GPUReconstructionTimeframe> tf;
 int nEventsInDirectory = 0;
 std::atomic<unsigned int> nIteration, nIterationEnd;
@@ -346,22 +346,22 @@ int SetupReconstruction()
 #ifdef _WIN32
     if (configStandalone.eventDisplay == 1) {
       printf("Enabling event display (windows backend)\n");
-      eventDisplay.reset(new GPUDisplayBackendWindows);
+      eventDisplay.reset(new GPUDisplayFrontendWindows);
     }
 
 #else
     if (configStandalone.eventDisplay == 1) {
-      eventDisplay.reset(new GPUDisplayBackendX11);
+      eventDisplay.reset(new GPUDisplayFrontendX11);
       printf("Enabling event display (X11 backend)\n");
     }
     if (configStandalone.eventDisplay == 3) {
-      eventDisplay.reset(new GPUDisplayBackendGlfw);
+      eventDisplay.reset(new GPUDisplayFrontendGlfw);
       printf("Enabling event display (GLFW backend)\n");
     }
 
 #endif
     else if (configStandalone.eventDisplay == 2) {
-      eventDisplay.reset(new GPUDisplayBackendGlut);
+      eventDisplay.reset(new GPUDisplayFrontendGlut);
       printf("Enabling event display (GLUT backend)\n");
     }
 

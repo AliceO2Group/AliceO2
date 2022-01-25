@@ -9,20 +9,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUDisplayBackendNone.h
+/// \file GPUDisplayFrontendNone.h
 /// \author David Rohr
 
-#ifndef GPUDISPLAYBACKENDNONE_H
-#define GPUDISPLAYBACKENDNONE_H
+#ifndef GPUDISPLAYFRONTENDNONE_H
+#define GPUDISPLAYFRONTENDNONE_H
 
-#include "GPUDisplayBackend.h"
+#include "GPUDisplayFrontend.h"
 
 namespace GPUCA_NAMESPACE::gpu
 {
-class GPUDisplayBackendNone : public GPUDisplayBackend
+class GPUDisplayFrontendNone : public GPUDisplayFrontend
 {
-  GPUDisplayBackendNone() = default;
-  ~GPUDisplayBackendNone() override = default;
+  GPUDisplayFrontendNone() = default;
+  ~GPUDisplayFrontendNone() override = default;
 
   int StartDisplay() override { return 1; }
   void DisplayExit() override {}
