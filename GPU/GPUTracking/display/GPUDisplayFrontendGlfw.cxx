@@ -13,7 +13,7 @@
 /// \author David Rohr
 
 // GL EXT must be the first header
-#include "GPUDisplayExt.h"
+#include "GPUDisplayBackend.h"
 
 #include "GPUDisplayFrontendGlfw.h"
 #include "GPULogging.h"
@@ -244,7 +244,7 @@ void GPUDisplayFrontendGlfw::DisplayLoop()
 #endif
 }
 
-int GPUDisplayFrontendGlfw::OpenGLMain()
+int GPUDisplayFrontendGlfw::FrontendMain()
 {
   me = this;
 
@@ -258,7 +258,7 @@ int GPUDisplayFrontendGlfw::OpenGLMain()
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, GL_MIN_VERSION_MAJOR);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, GL_MIN_VERSION_MINOR);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 0);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GPUCA_DISPLAY_OPENGL_CORE_FLAGS ? GLFW_OPENGL_CORE_PROFILE : GLFW_OPENGL_COMPAT_PROFILE);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, mBackend->CoreProfile() ? GLFW_OPENGL_CORE_PROFILE : GLFW_OPENGL_COMPAT_PROFILE);
   mWindow = glfwCreateWindow(INIT_WIDTH, INIT_HEIGHT, GL_WINDOW_NAME, nullptr, nullptr);
   if (!mWindow) {
     fprintf(stderr, "Error creating glfw window\n");
@@ -278,7 +278,7 @@ int GPUDisplayFrontendGlfw::OpenGLMain()
   mGlfwRunning = true;
   pthread_mutex_unlock(&mSemLockExit);
 
-  if (GPUDisplayExtInit()) {
+  if (mBackend->ExtInit()) {
     fprintf(stderr, "Error initializing GL extension wrapper\n");
     return (-1);
   }
@@ -376,7 +376,7 @@ void GPUDisplayFrontendGlfw::SetVSync(bool enable) { glfwSwapInterval(enable); }
 int GPUDisplayFrontendGlfw::StartDisplay()
 {
   static pthread_t hThread;
-  if (pthread_create(&hThread, nullptr, OpenGLWrapper, this)) {
+  if (pthread_create(&hThread, nullptr, FrontendThreadWrapper, this)) {
     GPUError("Coult not Create GL Thread...");
     return (1);
   }

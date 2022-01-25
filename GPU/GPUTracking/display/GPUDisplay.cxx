@@ -70,6 +70,8 @@
 #endif
 
 #include "GPUDisplayShaders.h"
+#include "GPUDisplayFrontend.h"
+#include "GPUDisplayBackend.h"
 
 constexpr hmm_mat4 MY_HMM_IDENTITY = {{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}}};
 constexpr hmm_mat4 MY_HMM_FROM(float (&v)[16]) { return {{{v[0], v[1], v[2], v[3]}, {v[4], v[5], v[6], v[7]}, {v[8], v[9], v[10], v[11]}, {v[12], v[13], v[14], v[15]}}}; }
@@ -105,10 +107,15 @@ static const GPUSettingsDisplay& GPUDisplay_GetConfig(GPUChainTracking* chain)
   }
 }
 
-GPUDisplay::GPUDisplay(GPUDisplayFrontend* backend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param, const GPUCalibObjectsConst* calib, const GPUSettingsDisplay* config) : mBackend(backend), mChain(chain), mConfig(config ? *config : GPUDisplay_GetConfig(chain)), mQA(qa)
+GPUDisplay::GPUDisplay(GPUDisplayFrontend* frontend, GPUChainTracking* chain, GPUQA* qa, const char* backend, const GPUParam* param, const GPUCalibObjectsConst* calib, const GPUSettingsDisplay* config) : mFrontend(frontend), mChain(chain), mConfig(config ? *config : GPUDisplay_GetConfig(chain)), mQA(qa)
 {
-  backend->mDisplay = this;
-  mCfgR.openGLCore = GPUCA_DISPLAY_OPENGL_CORE_FLAGS;
+  mBackend.reset(GPUDisplayBackend::getBackend(backend));
+  if (!mBackend) {
+    throw std::runtime_error("Error obtaining display backend");
+  }
+  frontend->mDisplay = this;
+  frontend->mBackend = mBackend.get();
+  mCfgR.openGLCore = mBackend->CoreProfile();
   mParam = param ? param : &mChain->GetParam();
   mCalib = calib;
   mCfgL = mConfig.light;
@@ -1705,15 +1712,15 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
   }
 
   hmm_mat4 nextViewMatrix = MY_HMM_IDENTITY;
-  int mMouseWheelTmp = mBackend->mMouseWheel;
-  mBackend->mMouseWheel = 0;
-  bool lookOrigin = mCfgR.camLookOrigin ^ mBackend->mKeys[mBackend->KEY_ALT];
-  bool yUp = mCfgR.camYUp ^ mBackend->mKeys[mBackend->KEY_CTRL] ^ lookOrigin;
-  bool rotateModel = mBackend->mKeys[mBackend->KEY_RCTRL] || mBackend->mKeys[mBackend->KEY_RALT];
-  bool rotateModelTPC = mBackend->mKeys[mBackend->KEY_RALT];
+  int mMouseWheelTmp = mFrontend->mMouseWheel;
+  mFrontend->mMouseWheel = 0;
+  bool lookOrigin = mCfgR.camLookOrigin ^ mFrontend->mKeys[mFrontend->KEY_ALT];
+  bool yUp = mCfgR.camYUp ^ mFrontend->mKeys[mFrontend->KEY_CTRL] ^ lookOrigin;
+  bool rotateModel = mFrontend->mKeys[mFrontend->KEY_RCTRL] || mFrontend->mKeys[mFrontend->KEY_RALT];
+  bool rotateModelTPC = mFrontend->mKeys[mFrontend->KEY_RALT];
 
   // Calculate rotation / translation scaling factors
-  float scalefactor = mBackend->mKeys[mBackend->KEY_SHIFT] ? 0.2 : 1.0;
+  float scalefactor = mFrontend->mKeys[mFrontend->KEY_SHIFT] ? 0.2 : 1.0;
   float rotatescalefactor = scalefactor * 0.25f;
   if (mCfgL.drawSlice != -1) {
     scalefactor *= 0.2f;
@@ -1832,25 +1839,25 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
 
     mResetScene = 0;
   } else {
-    float moveZ = scalefactor * ((float)mMouseWheelTmp / 150 + (float)(mBackend->mKeys['W'] - mBackend->mKeys['S']) * (!mBackend->mKeys[mBackend->KEY_SHIFT]) * 0.2 * mFPSScale);
-    float moveY = scalefactor * ((float)(mBackend->mKeys[mBackend->KEY_PAGEDOWN] - mBackend->mKeys[mBackend->KEY_PAGEUP]) * 0.2 * mFPSScale);
-    float moveX = scalefactor * ((float)(mBackend->mKeys['A'] - mBackend->mKeys['D']) * (!mBackend->mKeys[mBackend->KEY_SHIFT]) * 0.2 * mFPSScale);
-    float rotRoll = rotatescalefactor * mFPSScale * 2 * (mBackend->mKeys['E'] - mBackend->mKeys['F']) * (!mBackend->mKeys[mBackend->KEY_SHIFT]);
-    float rotYaw = rotatescalefactor * mFPSScale * 2 * (mBackend->mKeys[mBackend->KEY_RIGHT] - mBackend->mKeys[mBackend->KEY_LEFT]);
-    float rotPitch = rotatescalefactor * mFPSScale * 2 * (mBackend->mKeys[mBackend->KEY_DOWN] - mBackend->mKeys[mBackend->KEY_UP]);
+    float moveZ = scalefactor * ((float)mMouseWheelTmp / 150 + (float)(mFrontend->mKeys['W'] - mFrontend->mKeys['S']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2 * mFPSScale);
+    float moveY = scalefactor * ((float)(mFrontend->mKeys[mFrontend->KEY_PAGEDOWN] - mFrontend->mKeys[mFrontend->KEY_PAGEUP]) * 0.2 * mFPSScale);
+    float moveX = scalefactor * ((float)(mFrontend->mKeys['A'] - mFrontend->mKeys['D']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2 * mFPSScale);
+    float rotRoll = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys['E'] - mFrontend->mKeys['F']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]);
+    float rotYaw = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[mFrontend->KEY_RIGHT] - mFrontend->mKeys[mFrontend->KEY_LEFT]);
+    float rotPitch = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[mFrontend->KEY_DOWN] - mFrontend->mKeys[mFrontend->KEY_UP]);
 
-    if (mBackend->mMouseDnR && mBackend->mMouseDn) {
-      moveZ += -scalefactor * ((float)mBackend->mouseMvY - (float)mBackend->mMouseDnY) / 4;
-      rotRoll += rotatescalefactor * ((float)mBackend->mouseMvX - (float)mBackend->mMouseDnX);
-    } else if (mBackend->mMouseDnR) {
-      moveX += -scalefactor * 0.5 * ((float)mBackend->mMouseDnX - (float)mBackend->mouseMvX) / 4;
-      moveY += -scalefactor * 0.5 * ((float)mBackend->mouseMvY - (float)mBackend->mMouseDnY) / 4;
-    } else if (mBackend->mMouseDn) {
-      rotYaw += rotatescalefactor * ((float)mBackend->mouseMvX - (float)mBackend->mMouseDnX);
-      rotPitch += rotatescalefactor * ((float)mBackend->mouseMvY - (float)mBackend->mMouseDnY);
+    if (mFrontend->mMouseDnR && mFrontend->mMouseDn) {
+      moveZ += -scalefactor * ((float)mFrontend->mouseMvY - (float)mFrontend->mMouseDnY) / 4;
+      rotRoll += rotatescalefactor * ((float)mFrontend->mouseMvX - (float)mFrontend->mMouseDnX);
+    } else if (mFrontend->mMouseDnR) {
+      moveX += -scalefactor * 0.5 * ((float)mFrontend->mMouseDnX - (float)mFrontend->mouseMvX) / 4;
+      moveY += -scalefactor * 0.5 * ((float)mFrontend->mouseMvY - (float)mFrontend->mMouseDnY) / 4;
+    } else if (mFrontend->mMouseDn) {
+      rotYaw += rotatescalefactor * ((float)mFrontend->mouseMvX - (float)mFrontend->mMouseDnX);
+      rotPitch += rotatescalefactor * ((float)mFrontend->mouseMvY - (float)mFrontend->mMouseDnY);
     }
 
-    if (mBackend->mKeys['<'] && !mBackend->mKeysShift['<']) {
+    if (mFrontend->mKeys['<'] && !mFrontend->mKeysShift['<']) {
       mAnimationDelay += moveX;
       if (mAnimationDelay < 0.05) {
         mAnimationDelay = 0.05;
@@ -1940,7 +1947,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
 
     // Graphichs Options
     float minSize = 0.4 / (mCfgR.drawQualityDownsampleFSAA > 1 ? mCfgR.drawQualityDownsampleFSAA : 1);
-    int deltaLine = mBackend->mKeys['+'] * mBackend->mKeysShift['+'] - mBackend->mKeys['-'] * mBackend->mKeysShift['-'];
+    int deltaLine = mFrontend->mKeys['+'] * mFrontend->mKeysShift['+'] - mFrontend->mKeys['-'] * mFrontend->mKeysShift['-'];
     mCfgL.lineWidth += (float)deltaLine * mFPSScale * 0.02 * mCfgL.lineWidth;
     if (mCfgL.lineWidth < minSize) {
       mCfgL.lineWidth = minSize;
@@ -1949,7 +1956,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       SetInfo("%s line width: %f", deltaLine > 0 ? "Increasing" : "Decreasing", mCfgL.lineWidth);
     }
     minSize *= 2;
-    int deltaPoint = mBackend->mKeys['+'] * (!mBackend->mKeysShift['+']) - mBackend->mKeys['-'] * (!mBackend->mKeysShift['-']);
+    int deltaPoint = mFrontend->mKeys['+'] * (!mFrontend->mKeysShift['+']) - mFrontend->mKeys['-'] * (!mFrontend->mKeysShift['-']);
     mCfgL.pointSize += (float)deltaPoint * mFPSScale * 0.02 * mCfgL.pointSize;
     if (mCfgL.pointSize < minSize) {
       mCfgL.pointSize = minSize;
@@ -1965,9 +1972,9 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     calcXYZ(mViewMatrixP);
   }
 
-  if (mBackend->mMouseDn || mBackend->mMouseDnR) {
-    mBackend->mMouseDnX = mBackend->mouseMvX;
-    mBackend->mMouseDnY = mBackend->mouseMvY;
+  if (mFrontend->mMouseDn || mFrontend->mMouseDnR) {
+    mFrontend->mMouseDnX = mFrontend->mouseMvX;
+    mFrontend->mMouseDnY = mFrontend->mouseMvY;
   }
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
   if (mCfgL.smoothPoints && !mCfgR.openGLCore) {
@@ -2638,12 +2645,12 @@ void GPUDisplay::showInfo(const char* info)
   }
 #endif
   float colorValue = mCfgL.invertColors ? 0.f : 1.f;
-  mBackend->OpenGLPrint(info, 40.f, 40.f, colorValue, colorValue, colorValue, 1);
+  mFrontend->OpenGLPrint(info, 40.f, 40.f, colorValue, colorValue, colorValue, 1);
   if (mInfoText2Timer.IsRunning()) {
     if (mInfoText2Timer.GetCurrentElapsedTime() >= 6) {
       mInfoText2Timer.Reset();
     } else {
-      mBackend->OpenGLPrint(mInfoText2, 40.f, 20.f, colorValue, colorValue, colorValue, 6 - mInfoText2Timer.GetCurrentElapsedTime());
+      mFrontend->OpenGLPrint(mInfoText2, 40.f, 20.f, colorValue, colorValue, colorValue, 6 - mInfoText2Timer.GetCurrentElapsedTime());
     }
   }
   if (mInfoHelpTimer.IsRunning()) {
@@ -2669,7 +2676,7 @@ void GPUDisplay::ShowNextEvent(const GPUTrackingInOutPointers* ptrs)
     mResetScene = true;
   }
   mSemLockDisplay.Unlock();
-  mBackend->mNeedUpdate = 1;
+  mFrontend->mNeedUpdate = 1;
   mUpdateDLList = true;
 }
 
@@ -2677,7 +2684,7 @@ void GPUDisplay::WaitForNextEvent() { mSemLockDisplay.Lock(); }
 
 int GPUDisplay::StartDisplay()
 {
-  if (mBackend->StartDisplay()) {
+  if (mFrontend->StartDisplay()) {
     return (1);
   }
   while (mInitResult == 0) {

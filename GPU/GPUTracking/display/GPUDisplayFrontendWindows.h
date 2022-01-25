@@ -33,7 +33,7 @@ class GPUDisplayFrontendWindows : public GPUDisplayFrontend
   void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
 
  private:
-  int OpenGLMain() override;
+  int FrontendMain() override;
 };
 } // namespace GPUCA_NAMESPACE::gpu
 

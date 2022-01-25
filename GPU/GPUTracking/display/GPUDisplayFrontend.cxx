@@ -17,10 +17,10 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-void* GPUDisplayFrontend::OpenGLWrapper(void* ptr)
+void* GPUDisplayFrontend::FrontendThreadWrapper(void* ptr)
 {
   GPUDisplayFrontend* me = reinterpret_cast<GPUDisplayFrontend*>(ptr);
-  int retVal = me->OpenGLMain();
+  int retVal = me->FrontendMain();
   if (retVal == -1) {
     me->InitGL(true);
   }

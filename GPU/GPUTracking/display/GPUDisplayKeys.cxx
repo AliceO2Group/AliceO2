@@ -81,23 +81,23 @@ void GPUDisplay::HandleKey(unsigned char key)
   GPUSettingsDisplayHeavy oldCfgH = mCfgH;
   GPUSettingsDisplayRenderer oldCfgR = mCfgR;
   if (key == 'n') {
-    mBackend->mDisplayControl = 1;
+    mFrontend->mDisplayControl = 1;
     SetInfo("Showing next event", 1);
-  } else if (key == 27 || key == mBackend->KEY_ESCAPE) {
-    mBackend->mDisplayControl = 2;
+  } else if (key == 27 || key == mFrontend->KEY_ESCAPE) {
+    mFrontend->mDisplayControl = 2;
     SetInfo("Exiting", 1);
   } else if (key == 'r') {
     mResetScene = 1;
     SetInfo("View reset", 1);
-  } else if (key == mBackend->KEY_ALT && mBackend->mKeysShift[mBackend->KEY_ALT]) {
+  } else if (key == mFrontend->KEY_ALT && mFrontend->mKeysShift[mFrontend->KEY_ALT]) {
     mCfgR.camLookOrigin ^= 1;
     mCfgR.cameraMode = mCfgR.camLookOrigin + 2 * mCfgR.camYUp;
     SetInfo("Camera locked on origin: %s", mCfgR.camLookOrigin ? "enabled" : "disabled");
-  } else if (key == mBackend->KEY_CTRL && mBackend->mKeysShift[mBackend->KEY_CTRL]) {
+  } else if (key == mFrontend->KEY_CTRL && mFrontend->mKeysShift[mFrontend->KEY_CTRL]) {
     mCfgR.camYUp ^= 1;
     mCfgR.cameraMode = mCfgR.camLookOrigin + 2 * mCfgR.camYUp;
     SetInfo("Camera locked on y-axis facing upwards: %s", mCfgR.camYUp ? "enabled" : "disabled");
-  } else if (key == mBackend->KEY_ENTER) {
+  } else if (key == mFrontend->KEY_ENTER) {
     mCfgR.cameraMode++;
     if (mCfgR.cameraMode == 4) {
       mCfgR.cameraMode = 0;
@@ -106,8 +106,8 @@ void GPUDisplay::HandleKey(unsigned char key)
     mCfgR.camYUp = mCfgR.cameraMode & 2;
     const char* modeText[] = {"Descent (free movement)", "Focus locked on origin (y-axis forced upwards)", "Spectator (y-axis forced upwards)", "Focus locked on origin (with free rotation)"};
     SetInfo("Camera mode %d: %s", mCfgR.cameraMode, modeText[mCfgR.cameraMode]);
-  } else if (key == mBackend->KEY_ALT) {
-    mBackend->mKeys[mBackend->KEY_CTRL] = false; // Release CTRL with alt, to avoid orienting along y automatically!
+  } else if (key == mFrontend->KEY_ALT) {
+    mFrontend->mKeys[mFrontend->KEY_CTRL] = false; // Release CTRL with alt, to avoid orienting along y automatically!
   } else if (key == 'l') {
     if (mCfgL.drawSlice >= (mCfgL.drawRelatedSlices ? (NSLICES / 4 - 1) : (NSLICES - 1))) {
       mCfgL.drawSlice = -1;
@@ -309,39 +309,39 @@ void GPUDisplay::HandleKey(unsigned char key)
     mCfgL.drawGlobalTracks ^= 1;
   } else if (key == '8') {
     mCfgL.drawFinal ^= 1;
-  } else if (key == mBackend->KEY_F1) {
-    if (mBackend->mKeysShift[mBackend->KEY_F1]) {
+  } else if (key == mFrontend->KEY_F1) {
+    if (mFrontend->mKeysShift[mFrontend->KEY_F1]) {
       mCfgH.drawTPCTracks ^= 1;
       SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int)mCfgH.drawTPCTracks, (int)mCfgH.drawTRDTracks, (int)mCfgH.drawTOFTracks, (int)mCfgH.drawITSTracks);
     } else {
       mCfgL.drawTPC ^= 1;
       SetInfo("Showing TPC Clusters: %d", (int)mCfgL.drawTPC);
     }
-  } else if (key == mBackend->KEY_F2) {
-    if (mBackend->mKeysShift[mBackend->KEY_F2]) {
+  } else if (key == mFrontend->KEY_F2) {
+    if (mFrontend->mKeysShift[mFrontend->KEY_F2]) {
       mCfgH.drawTRDTracks ^= 1;
       SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int)mCfgH.drawTPCTracks, (int)mCfgH.drawTRDTracks, (int)mCfgH.drawTOFTracks, (int)mCfgH.drawITSTracks);
     } else {
       mCfgL.drawTRD ^= 1;
       SetInfo("Showing TRD Tracklets: %d", (int)mCfgL.drawTRD);
     }
-  } else if (key == mBackend->KEY_F3) {
-    if (mBackend->mKeysShift[mBackend->KEY_F3]) {
+  } else if (key == mFrontend->KEY_F3) {
+    if (mFrontend->mKeysShift[mFrontend->KEY_F3]) {
       mCfgH.drawTOFTracks ^= 1;
       SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int)mCfgH.drawTPCTracks, (int)mCfgH.drawTRDTracks, (int)mCfgH.drawTOFTracks, (int)mCfgH.drawITSTracks);
     } else {
       mCfgL.drawTOF ^= 1;
       SetInfo("Showing TOF Hits: %d", (int)mCfgL.drawTOF);
     }
-  } else if (key == mBackend->KEY_F4) {
-    if (mBackend->mKeysShift[mBackend->KEY_F4]) {
+  } else if (key == mFrontend->KEY_F4) {
+    if (mFrontend->mKeysShift[mFrontend->KEY_F4]) {
       mCfgH.drawITSTracks ^= 1;
       SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int)mCfgH.drawTPCTracks, (int)mCfgH.drawTRDTracks, (int)mCfgH.drawTOFTracks, (int)mCfgH.drawITSTracks);
     } else {
       mCfgL.drawITS ^= 1;
       SetInfo("Showing ITS Clusters: %d", (int)mCfgL.drawITS);
     }
-  } else if (key == mBackend->KEY_F12 && mBackend->mKeysShift[mBackend->KEY_F12]) {
+  } else if (key == mFrontend->KEY_F12 && mFrontend->mKeysShift[mFrontend->KEY_F12]) {
     mCfgH.drawTracksAndFilter ^= 1;
     SetInfo("Track filter: %s", mCfgH.drawTracksAndFilter ? "AND" : "OR");
   } else if (key == 't') {
@@ -475,16 +475,16 @@ void GPUDisplay::HandleKey(unsigned char key)
     UpdateOffscreenBuffers();
   }
   if (oldCfgR.drawQualityVSync != mCfgR.drawQualityVSync) {
-    mBackend->SetVSync(mCfgR.drawQualityVSync);
+    mFrontend->SetVSync(mCfgR.drawQualityVSync);
   }
   if (oldCfgR.fullScreen != mCfgR.fullScreen) {
-    mBackend->SwitchFullscreen(mCfgR.fullScreen);
+    mFrontend->SwitchFullscreen(mCfgR.fullScreen);
   }
   if (oldCfgR.maximized != mCfgR.maximized) {
-    mBackend->ToggleMaximized(mCfgR.maximized);
+    mFrontend->ToggleMaximized(mCfgR.maximized);
   }
   if (oldCfgR.maxFPSRate != mCfgR.maxFPSRate) {
-    mBackend->mMaxFPSRate = mCfgR.maxFPSRate;
+    mFrontend->mMaxFPSRate = mCfgR.maxFPSRate;
   }
   if (oldCfgR.useGLIndirectDraw != mCfgR.useGLIndirectDraw) {
     mUpdateDLList = true;
@@ -500,16 +500,16 @@ void GPUDisplay::HandleSendKey(int key)
   if (press >= 'a' && press <= 'z') {
     press += 'A' - 'a';
   }
-  bool oldShift = mBackend->mKeysShift[press];
-  mBackend->mKeysShift[press] = shifted;
+  bool oldShift = mFrontend->mKeysShift[press];
+  mFrontend->mKeysShift[press] = shifted;
   HandleKey(key);
-  mBackend->mKeysShift[press] = oldShift;
+  mFrontend->mKeysShift[press] = oldShift;
 }
 
 void GPUDisplay::PrintGLHelpText(float colorValue)
 {
   for (unsigned int i = 0; i < sizeof(HelpText) / sizeof(HelpText[0]); i++) {
-    mBackend->OpenGLPrint(HelpText[i], 40.f, 35 + 20 * (1 + i), colorValue, colorValue, colorValue, mInfoHelpTimer.GetCurrentElapsedTime() >= 5 ? (6 - mInfoHelpTimer.GetCurrentElapsedTime()) : 1, false);
+    mFrontend->OpenGLPrint(HelpText[i], 40.f, 35 + 20 * (1 + i), colorValue, colorValue, colorValue, mInfoHelpTimer.GetCurrentElapsedTime() >= 5 ? (6 - mInfoHelpTimer.GetCurrentElapsedTime()) : 1, false);
   }
 }
 

@@ -37,7 +37,7 @@ class GPUDisplayFrontendGlfw : public GPUDisplayFrontend
   bool EnableSendKey() override;
 
  private:
-  int OpenGLMain() override;
+  int FrontendMain() override;
   static void DisplayLoop();
 
   static void error_callback(int error, const char* description);

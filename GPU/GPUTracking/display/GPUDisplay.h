@@ -18,7 +18,11 @@
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
 
 // GL EXT must be the first header
-#include "GPUDisplayExt.h"
+#ifdef GPUCA_DISPLAY_GL3W
+#include "GL/gl3w.h"
+#else
+#include <GL/glew.h>
+#endif
 
 // Runtime minimum version defined in GPUDisplayFrontend.h, keep in sync!
 #if !defined(GL_VERSION_4_5) || GL_VERSION_4_5 != 1
@@ -35,6 +39,7 @@
 
 #include "GPUSettings.h"
 #include "GPUDisplayFrontend.h"
+#include "GPUDisplayBackend.h"
 
 #ifndef GPUCA_BUILD_EVENT_DISPLAY
 
@@ -45,7 +50,7 @@ namespace gpu
 class GPUDisplay
 {
  public:
-  GPUDisplay(void* backend, void* chain, void* qa, const void* param = nullptr, const void* calib = nullptr, const void* config = nullptr) {}
+  GPUDisplay(void* frontend, void* chain, void* qa, const char* backend = "", const void* param = nullptr, const void* calib = nullptr, const void* config = nullptr) {}
   ~GPUDisplay() = default;
   GPUDisplay(const GPUDisplay&) = delete;
 
@@ -87,7 +92,7 @@ class GPUQA;
 class GPUDisplay
 {
  public:
-  GPUDisplay(GPUDisplayFrontend* backend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param = nullptr, const GPUCalibObjectsConst* calib = nullptr, const GPUSettingsDisplay* config = nullptr);
+  GPUDisplay(GPUDisplayFrontend* frontend, GPUChainTracking* chain, GPUQA* qa, const char* backend = "opengl", const GPUParam* param = nullptr, const GPUCalibObjectsConst* calib = nullptr, const GPUSettingsDisplay* config = nullptr);
   ~GPUDisplay() = default;
   GPUDisplay(const GPUDisplay&) = delete;
 
@@ -267,10 +272,11 @@ class GPUDisplay
   int mModelViewProjId;
   int mColorId;
 
-  GPUDisplayFrontend* mBackend;
-  GPUChainTracking* mChain;
-  const GPUParam* mParam;
-  const GPUCalibObjectsConst* mCalib;
+  GPUDisplayFrontend* mFrontend = nullptr;
+  std::unique_ptr<GPUDisplayBackend> mBackend;
+  GPUChainTracking* mChain = nullptr;
+  const GPUParam* mParam = nullptr;
+  const GPUCalibObjectsConst* mCalib = nullptr;
   const GPUSettingsDisplay& mConfig;
   GPUSettingsDisplayLight mCfgL;
   GPUSettingsDisplayHeavy mCfgH;

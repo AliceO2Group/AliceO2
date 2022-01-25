@@ -13,7 +13,7 @@
 /// \author David Rohr
 
 // GL EXT must be the first header
-#include "GPUDisplayExt.h"
+#include "GPUDisplayBackend.h"
 
 // Now the other headers
 #include "GPUDisplayFrontendGlut.h"
@@ -196,7 +196,7 @@ void GPUDisplayFrontendGlut::mouseMoveFunc(int x, int y)
 
 void GPUDisplayFrontendGlut::mMouseWheelFunc(int button, int dir, int x, int y) { me->mMouseWheel += dir; }
 
-int GPUDisplayFrontendGlut::OpenGLMain()
+int GPUDisplayFrontendGlut::FrontendMain()
 {
   me = this;
   int nopts = 2;
@@ -205,13 +205,13 @@ int GPUDisplayFrontendGlut::OpenGLMain()
   char* opts[] = {opt1, opt2};
   glutInit(&nopts, opts);
   glutInitContextVersion(GL_MIN_VERSION_MAJOR, GL_MIN_VERSION_MINOR);
-  glutInitContextProfile(GPUCA_DISPLAY_OPENGL_CORE_FLAGS ? GLUT_CORE_PROFILE : GLUT_COMPATIBILITY_PROFILE);
+  glutInitContextProfile(mBackend->CoreProfile() ? GLUT_CORE_PROFILE : GLUT_COMPATIBILITY_PROFILE);
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
   glutInitWindowSize(INIT_WIDTH, INIT_HEIGHT);
   glutCreateWindow(GL_WINDOW_NAME);
   glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 
-  if (GPUDisplayExtInit()) {
+  if (mBackend->ExtInit()) {
     fprintf(stderr, "Error initializing GL extension wrapper\n");
     return (-1);
   }
@@ -285,7 +285,7 @@ void GPUDisplayFrontendGlut::SetVSync(bool enable) {}
 int GPUDisplayFrontendGlut::StartDisplay()
 {
   static pthread_t hThread;
-  if (pthread_create(&hThread, nullptr, OpenGLWrapper, this)) {
+  if (pthread_create(&hThread, nullptr, FrontendThreadWrapper, this)) {
     GPUError("Coult not Create GL Thread...");
     return (1);
   }

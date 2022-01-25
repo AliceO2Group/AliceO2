@@ -9,14 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUDisplayExt.h
+/// \file GPUDisplayBackendOpenGL.cxx
 /// \author David Rohr
 
-#ifndef GPUDISPLAYEXT_H
-#define GPUDISPLAYEXT_H
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
-
 #include "GPUCommonDef.h"
+#include "GPUDisplayBackendOpenGL.h"
+#include "GPUDisplay.h"
+
+using namespace GPUCA_NAMESPACE::gpu;
 
 #if defined(GPUCA_DISPLAY_GL3W) && !defined(GPUCA_DISPLAY_OPENGL_CORE)
 #define GPUCA_DISPLAY_OPENGL_CORE
@@ -28,28 +28,25 @@
 #include <GL/glew.h>
 #endif
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
-{
 #ifdef GPUCA_DISPLAY_GL3W
-static int GPUDisplayExtInit()
+int GPUDisplayBackendOpenGL::ExtInit()
 {
   return gl3wInit();
 }
 #else
-static int GPUDisplayExtInit()
+int GPUDisplayBackendOpenGL::ExtInit()
 {
   return glewInit();
 }
 #endif
 #ifdef GPUCA_DISPLAY_OPENGL_CORE
-static constexpr bool GPUCA_DISPLAY_OPENGL_CORE_FLAGS = true;
+bool GPUDisplayBackendOpenGL::CoreProfile()
+{
+  return true;
+}
 #else
-static constexpr bool GPUCA_DISPLAY_OPENGL_CORE_FLAGS = false;
-#endif
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
-
-#endif
+bool GPUDisplayBackendOpenGL::CoreProfile()
+{
+  return false;
+}
 #endif
