@@ -148,20 +148,20 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
       context.orbitResetTime = -1;
       for (auto const& ref : processingContext.inputs()) {
         const o2::framework::DataProcessingHeader *dph = o2::header::get<DataProcessingHeader*>(ref.header);
-	const auto* dh = o2::header::get<o2::header::DataHeader*>(ref.header);
+        const auto* dh = o2::header::get<o2::header::DataHeader*>(ref.header);
         if (!dph || !dh) {
           continue;
         }
         LOGP(debug, "Orbit reset time from data: {} ", dph->creation);
         context.orbitResetTime = dph->creation;
-	context.runNumber = fmt::format("{}",dh->runNumber);
+        context.runNumber = fmt::format("{}", dh->runNumber);
         break;
       } },
     .start = [](ServiceRegistry& services, void* service) {
       auto& context = services.get<DataTakingContext>();
       auto extRunNumber = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
-      if (extRunNumber != "unspecified" || context.runNumber=="0") {
-	context.runNumber = extRunNumber;
+      if (extRunNumber != "unspecified" || context.runNumber == "0") {
+        context.runNumber = extRunNumber;
       }
       // FIXME: we actually need to get the orbit, not only to know where it is
       std::string orbitResetTimeUrl = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("orbit-reset-time", "ccdb://CTP/Calib/OrbitResetTime");
