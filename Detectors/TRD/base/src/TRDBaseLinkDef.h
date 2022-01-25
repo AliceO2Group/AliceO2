@@ -33,8 +33,5 @@
 #pragma link C++ class o2::trd::CalOnlineGainTables + ;
 #pragma link C++ class o2::trd::PadNoise + ;
 #pragma link C++ class o2::trd::PadResponse + ;
-#pragma link C++ class o2::trd::Tracklet + ;
-#pragma link C++ class std::vector < o2::trd::Tracklet > +;
-
 
 #endif

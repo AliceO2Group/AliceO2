@@ -28,7 +28,6 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             Detectors/TRD/base/macros/OCDB2CCDBTrapConfig.C
             Detectors/TRD/base/macros/Readocdb.C
             Detectors/TRD/base/macros/PrintTrapConfig.C
-            Detectors/TRD/base/macros/ConvertRun2DigitsAndTracklets.C
             Detectors/TRD/macros/convertRun2ToRun3Digits.C
             Detectors/TRD/macros/ParseTrapRawOutput.C
             Detectors/EMCAL/calib/macros/ReadTestBadChannelMap_CCDBApi.C
