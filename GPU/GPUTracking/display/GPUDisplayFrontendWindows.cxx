@@ -331,7 +331,7 @@ int GPUDisplayFrontendWindows::FrontendMain()
     return -1;
   }
 
-  if (InitGL()) {
+  if (InitDisplay()) {
     KillGLWindow();
     GPUError("Initialization Failed.");
     return 1;

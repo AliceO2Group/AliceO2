@@ -22,7 +22,7 @@ void* GPUDisplayFrontend::FrontendThreadWrapper(void* ptr)
   GPUDisplayFrontend* me = reinterpret_cast<GPUDisplayFrontend*>(ptr);
   int retVal = me->FrontendMain();
   if (retVal == -1) {
-    me->InitGL(true);
+    me->InitDisplay(true);
   }
   return ((void*)(size_t)retVal);
 }
@@ -43,8 +43,8 @@ void GPUDisplayFrontend::ReSizeGLScene(int width, int height)
   mDisplayWidth = width;
   mDisplay->ReSizeGLScene(width, height);
 }
-int GPUDisplayFrontend::InitGL(bool initFailure) { return mDisplay->InitGL(initFailure); }
-void GPUDisplayFrontend::ExitGL() { return mDisplay->ExitGL(); }
+int GPUDisplayFrontend::InitDisplay(bool initFailure) { return mDisplay->InitDisplay(initFailure); }
+void GPUDisplayFrontend::ExitDisplay() { return mDisplay->ExitDisplay(); }
 bool GPUDisplayFrontend::EnableSendKey() { return true; }
 
 #ifdef GPUCA_BUILD_EVENT_DISPLAY

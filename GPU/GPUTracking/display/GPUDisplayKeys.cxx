@@ -241,11 +241,7 @@ void GPUDisplay::HandleKey(unsigned char key)
     SetInfo("Smoothing of lines %s", mCfgL.smoothLines ? "enabled" : "disabled");
   } else if (key == 'D') {
     mCfgL.depthBuffer ^= true;
-    GLint depthBits = 0;
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-    glGetIntegerv(GL_DEPTH_BITS, &depthBits);
-#endif
-    SetInfo("Depth buffer (z-buffer, %d bits) %s", depthBits, mCfgL.depthBuffer ? "enabled" : "disabled");
+    SetInfo("Depth buffer (z-buffer, %u bits) %s", mBackend->DepthBits(), mCfgL.depthBuffer ? "enabled" : "disabled");
     setDepthBuffer();
   } else if (key == 'W') {
     mCfgR.drawQualityMSAA *= 2;

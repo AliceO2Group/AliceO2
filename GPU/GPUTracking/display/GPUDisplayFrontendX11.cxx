@@ -297,7 +297,7 @@ int GPUDisplayFrontendX11::FrontendMain()
     mGlXSwapIntervalEXT(mDisplay, glXGetCurrentDrawable(), 0);
   }
 
-  if (InitGL()) {
+  if (InitDisplay()) {
     return (1);
   }
 
@@ -424,7 +424,7 @@ int GPUDisplayFrontendX11::FrontendMain()
   glDeleteLists(mFontBase, 256);
   XUnloadFont(mDisplay, font_info->fid);
 #endif
-  ExitGL();
+  ExitDisplay();
   glXDestroyContext(mDisplay, glxContext);
   XFree(visualInfo);
   XDestroyWindow(mDisplay, mWindow);

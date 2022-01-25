@@ -69,7 +69,6 @@
 #include "ITSMFTBase/DPLAlpideParam.h"
 #endif
 
-#include "GPUDisplayShaders.h"
 #include "GPUDisplayFrontend.h"
 #include "GPUDisplayBackend.h"
 
@@ -77,19 +76,6 @@ constexpr hmm_mat4 MY_HMM_IDENTITY = {{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0},
 constexpr hmm_mat4 MY_HMM_FROM(float (&v)[16]) { return {{{v[0], v[1], v[2], v[3]}, {v[4], v[5], v[6], v[7]}, {v[8], v[9], v[10], v[11]}, {v[12], v[13], v[14], v[15]}}}; }
 
 using namespace GPUCA_NAMESPACE::gpu;
-
-//#define CHKERR(cmd) {cmd;}
-#define CHKERR(cmd)                                                                           \
-  do {                                                                                        \
-    (cmd);                                                                                    \
-    GLenum err = glGetError();                                                                \
-    while (err != GL_NO_ERROR) {                                                              \
-      GPUError("OpenGL Error %d: %s (%s: %d)", err, gluErrorString(err), __FILE__, __LINE__); \
-      throw std::runtime_error("OpenGL Failure");                                             \
-    }                                                                                         \
-  } while (false)
-
-#define OPENGL_EMULATE_MULTI_DRAW 0
 
 #define GL_SCALE_FACTOR 100.f
 
@@ -113,6 +99,7 @@ GPUDisplay::GPUDisplay(GPUDisplayFrontend* frontend, GPUChainTracking* chain, GP
   if (!mBackend) {
     throw std::runtime_error("Error obtaining display backend");
   }
+  mBackend->mDisplay = this;
   frontend->mDisplay = this;
   frontend->mBackend = mBackend.get();
   mCfgR.openGLCore = mBackend->CoreProfile();
@@ -155,43 +142,7 @@ void GPUDisplay::disableUnsupportedOptions()
   }
 }
 
-inline void GPUDisplay::drawVertices(const vboList& v, const GLenum t)
-{
-  auto first = std::get<0>(v);
-  auto count = std::get<1>(v);
-  auto iSlice = std::get<2>(v);
-  if (count == 0) {
-    return;
-  }
-  mNDrawCalls += count;
-
-  if (mUseMultiVBO) {
-    if (mCfgR.openGLCore) {
-      CHKERR(glBindVertexArray(mVertexArray));
-    }
-    CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mVBOId[iSlice]));
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-    if (!mCfgR.openGLCore) {
-      CHKERR(glVertexPointer(3, GL_FLOAT, 0, nullptr));
-    } else
-#endif
-    {
-      CHKERR(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr));
-      glEnableVertexAttribArray(0);
-    }
-  }
-
-  if (mCfgR.useGLIndirectDraw) {
-    CHKERR(glMultiDrawArraysIndirect(t, (void*)(size_t)((mIndirectSliceOffset[iSlice] + first) * sizeof(DrawArraysIndirectCommand)), count, 0));
-  } else if (OPENGL_EMULATE_MULTI_DRAW) {
-    for (int k = 0; k < count; k++) {
-      CHKERR(glDrawArrays(t, mVertexBufferStart[iSlice][first + k], mVertexBufferCount[iSlice][first + k]));
-    }
-  } else {
-    CHKERR(glMultiDrawArrays(t, mVertexBufferStart[iSlice].data() + first, mVertexBufferCount[iSlice].data() + first, count));
-  }
-}
-inline void GPUDisplay::insertVertexList(std::pair<vecpod<GLint>*, vecpod<GLsizei>*>& vBuf, size_t first, size_t last)
+inline void GPUDisplay::insertVertexList(std::pair<vecpod<int>*, vecpod<unsigned int>*>& vBuf, size_t first, size_t last)
 {
   if (first == last) {
     return;
@@ -201,7 +152,7 @@ inline void GPUDisplay::insertVertexList(std::pair<vecpod<GLint>*, vecpod<GLsize
 }
 inline void GPUDisplay::insertVertexList(int iSlice, size_t first, size_t last)
 {
-  std::pair<vecpod<GLint>*, vecpod<GLsizei>*> vBuf(mVertexBufferStart + iSlice, mVertexBufferCount + iSlice);
+  std::pair<vecpod<int>*, vecpod<unsigned int>*> vBuf(mVertexBufferStart + iSlice, mVertexBufferCount + iSlice);
   insertVertexList(vBuf, first, last);
 }
 
@@ -347,14 +298,7 @@ void GPUDisplay::startAnimation()
 
 inline void GPUDisplay::ActivateColor()
 {
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (!mCfgR.openGLCore) {
-    glColor3f(mDrawColor[0], mDrawColor[1], mDrawColor[2]);
-  } else
-#endif
-  {
-    glUniform3fv(mColorId, 1, &mDrawColor[0]);
-  }
+  mBackend->ActivateColor(mDrawColor);
 }
 
 inline void GPUDisplay::SetColorClusters()
@@ -513,107 +457,17 @@ inline void GPUDisplay::SetCollisionColor(int col)
   ActivateColor();
 }
 
-void GPUDisplay::setQuality()
+inline void GPUDisplay::setQuality()
 {
-  // Doesn't seem to make a difference in this applicattion
-  if (mCfgR.drawQualityMSAA > 1) {
-    CHKERR(glEnable(GL_MULTISAMPLE));
-  } else {
-    CHKERR(glDisable(GL_MULTISAMPLE));
-  }
+  mBackend->setQuality();
 }
 
 void GPUDisplay::setDepthBuffer()
 {
-  if (mCfgL.depthBuffer) {
-    CHKERR(glEnable(GL_DEPTH_TEST)); // Enables Depth Testing
-    CHKERR(glDepthFunc(GL_LEQUAL));  // The Type Of Depth Testing To Do
-  } else {
-    CHKERR(glDisable(GL_DEPTH_TEST));
-  }
+  mBackend->setDepthBuffer();
 }
 
-void GPUDisplay::createFB_texture(GLuint& id, bool msaa, GLenum storage, GLenum attachment)
-{
-  GLenum textureType = msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-  CHKERR(glGenTextures(1, &id));
-  CHKERR(glBindTexture(textureType, id));
-  if (msaa) {
-    CHKERR(glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, mCfgR.drawQualityMSAA, storage, mRenderwidth, mRenderheight, false));
-  } else {
-    CHKERR(glTexImage2D(GL_TEXTURE_2D, 0, storage, mRenderwidth, mRenderheight, 0, storage, GL_UNSIGNED_BYTE, nullptr));
-    CHKERR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-    CHKERR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-  }
-  CHKERR(glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, textureType, id, 0));
-}
-
-void GPUDisplay::createFB_renderbuffer(GLuint& id, bool msaa, GLenum storage, GLenum attachment)
-{
-  CHKERR(glGenRenderbuffers(1, &id));
-  CHKERR(glBindRenderbuffer(GL_RENDERBUFFER, id));
-  if (msaa) {
-    CHKERR(glRenderbufferStorageMultisample(GL_RENDERBUFFER, mCfgR.drawQualityMSAA, storage, mRenderwidth, mRenderheight));
-  } else {
-    CHKERR(glRenderbufferStorage(GL_RENDERBUFFER, storage, mRenderwidth, mRenderheight));
-  }
-  CHKERR(glFramebufferRenderbuffer(GL_FRAMEBUFFER, attachment, GL_RENDERBUFFER, id));
-}
-
-void GPUDisplay::createFB(GLfb& fb, bool tex, bool withDepth, bool msaa)
-{
-  fb.tex = tex;
-  fb.depth = withDepth;
-  fb.msaa = msaa;
-  GLint drawFboId = 0, readFboId = 0;
-  glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &drawFboId);
-  glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &readFboId);
-  CHKERR(glGenFramebuffers(1, &fb.fb_id));
-  CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, fb.fb_id));
-
-  if (tex) {
-    createFB_texture(fb.fbCol_id, fb.msaa, GL_RGBA, GL_COLOR_ATTACHMENT0);
-  } else {
-    createFB_renderbuffer(fb.fbCol_id, fb.msaa, GL_RGBA, GL_COLOR_ATTACHMENT0);
-  }
-
-  if (withDepth) {
-    if (tex && fb.msaa) {
-      createFB_texture(fb.fbDepth_id, fb.msaa, GL_DEPTH_COMPONENT24, GL_DEPTH_ATTACHMENT);
-    } else {
-      createFB_renderbuffer(fb.fbDepth_id, fb.msaa, GL_DEPTH_COMPONENT24, GL_DEPTH_ATTACHMENT);
-    }
-  }
-
-  GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-  if (status != GL_FRAMEBUFFER_COMPLETE) {
-    GPUError("Error creating framebuffer (tex %d) - incomplete (%d)", (int)tex, status);
-    exit(1);
-  }
-  CHKERR(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, drawFboId));
-  CHKERR(glBindFramebuffer(GL_READ_FRAMEBUFFER, readFboId));
-  fb.created = true;
-}
-
-void GPUDisplay::deleteFB(GLfb& fb)
-{
-  if (fb.tex) {
-    CHKERR(glDeleteTextures(1, &fb.fbCol_id));
-  } else {
-    CHKERR(glDeleteRenderbuffers(1, &fb.fbCol_id));
-  }
-  if (fb.depth) {
-    if (fb.tex && fb.msaa) {
-      CHKERR(glDeleteTextures(1, &fb.fbDepth_id));
-    } else {
-      CHKERR(glDeleteRenderbuffers(1, &fb.fbDepth_id));
-    }
-  }
-  CHKERR(glDeleteFramebuffers(1, &fb.fb_id));
-  fb.created = false;
-}
-
-void GPUDisplay::setFrameBuffer(int updateCurrent, GLuint newID)
+void GPUDisplay::setFrameBuffer(int updateCurrent, unsigned int newID)
 {
   if (updateCurrent == 1) {
     mMainBufferStack.push_back(newID);
@@ -625,26 +479,19 @@ void GPUDisplay::setFrameBuffer(int updateCurrent, GLuint newID)
     mMainBufferStack.pop_back();
     newID = mMainBufferStack.back();
   }
-  if (newID == 0) {
-    CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-    glDrawBuffer(GL_BACK);
-  } else {
-    CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, newID));
-    GLenum drawBuffer = GL_COLOR_ATTACHMENT0;
-    glDrawBuffers(1, &drawBuffer);
-  }
+  mBackend->setFrameBuffer(updateCurrent, newID);
 }
 
 void GPUDisplay::UpdateOffscreenBuffers(bool clean)
 {
   if (mMixBuffer.created) {
-    deleteFB(mMixBuffer);
+    mBackend->deleteFB(mMixBuffer);
   }
   if (mOffscreenBuffer.created) {
-    deleteFB(mOffscreenBuffer);
+    mBackend->deleteFB(mOffscreenBuffer);
   }
   if (mOffscreenBufferNoMSAA.created) {
-    deleteFB(mOffscreenBufferNoMSAA);
+    mBackend->deleteFB(mOffscreenBufferNoMSAA);
   }
   if (clean) {
     return;
@@ -658,13 +505,12 @@ void GPUDisplay::UpdateOffscreenBuffers(bool clean)
     mRenderheight = mScreenheight;
   }
   if (mCfgR.drawQualityMSAA > 1 || mCfgR.drawQualityDownsampleFSAA > 1) {
-    createFB(mOffscreenBuffer, false, true, mCfgR.drawQualityMSAA > 1);
+    mBackend->createFB(mOffscreenBuffer, false, true, mCfgR.drawQualityMSAA > 1);
     if (mCfgR.drawQualityMSAA > 1 && mCfgR.drawQualityDownsampleFSAA > 1) {
-      createFB(mOffscreenBufferNoMSAA, false, true, false);
+      mBackend->createFB(mOffscreenBufferNoMSAA, false, true, false);
     }
   }
-  createFB(mMixBuffer, true, true, false);
-  glViewport(0, 0, mRenderwidth, mRenderheight);
+  mBackend->createFB(mMixBuffer, true, true, false);
   setQuality();
 }
 
@@ -690,12 +536,17 @@ void GPUDisplay::updateConfig()
   setDepthBuffer();
 }
 
-int GPUDisplay::InitGL(bool initFailure)
+inline void GPUDisplay::drawVertices(const vboList& v, const GPUDisplayBackend::drawType t)
+{
+  mNDrawCalls += mBackend->drawVertices(v, t);
+}
+
+int GPUDisplay::InitDisplay(bool initFailure)
 {
   int retVal = initFailure;
   try {
     if (!initFailure) {
-      retVal = InitGL_internal();
+      retVal = InitDisplay_internal();
     }
   } catch (const std::runtime_error& e) {
     retVal = 1;
@@ -704,52 +555,21 @@ int GPUDisplay::InitGL(bool initFailure)
   return (retVal);
 }
 
-int GPUDisplay::InitGL_internal()
+int GPUDisplay::InitDisplay_internal()
 {
-  int glVersion[2] = {0, 0};
-  glGetIntegerv(GL_MAJOR_VERSION, &glVersion[0]);
-  glGetIntegerv(GL_MINOR_VERSION, &glVersion[1]);
-  if (glVersion[0] < GPUDisplayFrontend::GL_MIN_VERSION_MAJOR || (glVersion[0] == GPUDisplayFrontend::GL_MIN_VERSION_MAJOR && glVersion[1] < GPUDisplayFrontend::GL_MIN_VERSION_MINOR)) {
-    GPUError("Unsupported OpenGL runtime %d.%d < %d.%d", glVersion[0], glVersion[1], GPUDisplayFrontend::GL_MIN_VERSION_MAJOR, GPUDisplayFrontend::GL_MIN_VERSION_MINOR);
-    return (1);
-  }
-
-  CHKERR(glCreateBuffers(GPUChainTracking::NSLICES, mVBOId));
-  CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mVBOId[0]));
-  CHKERR(glGenBuffers(1, &mIndirectId));
-  CHKERR(glBindBuffer(GL_DRAW_INDIRECT_BUFFER, mIndirectId));
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  CHKERR(glShadeModel(GL_SMOOTH)); // Enable Smooth Shading
-#endif
-  setDepthBuffer();
-  setQuality();
-  ReSizeGLScene(GPUDisplayFrontend::INIT_WIDTH, GPUDisplayFrontend::INIT_HEIGHT, true);
   mThreadBuffers.resize(getNumThreads());
   mThreadTracks.resize(getNumThreads());
-  CHKERR(mVertexShader = glCreateShader(GL_VERTEX_SHADER));
-  CHKERR(glShaderSource(mVertexShader, 1, &GPUDisplayShaders::vertexShader, nullptr));
-  CHKERR(glCompileShader(mVertexShader));
-  CHKERR(mFragmentShader = glCreateShader(GL_FRAGMENT_SHADER));
-  CHKERR(glShaderSource(mFragmentShader, 1, &GPUDisplayShaders::fragmentShader, nullptr));
-  CHKERR(glCompileShader(mFragmentShader));
-  CHKERR(mShaderProgram = glCreateProgram());
-  CHKERR(glAttachShader(mShaderProgram, mVertexShader));
-  CHKERR(glAttachShader(mShaderProgram, mFragmentShader));
-  CHKERR(glLinkProgram(mShaderProgram));
-  CHKERR(glGenVertexArrays(1, &mVertexArray));
-  CHKERR(mModelViewProjId = glGetUniformLocation(mShaderProgram, "ModelViewProj"));
-  CHKERR(mColorId = glGetUniformLocation(mShaderProgram, "color"));
-  return (0); // Initialization Went OK
+  if (mBackend->InitBackend()) {
+    return 1;
+  }
+  ReSizeGLScene(GPUDisplayFrontend::INIT_WIDTH, GPUDisplayFrontend::INIT_HEIGHT, true);
+  return 0;
 }
 
-void GPUDisplay::ExitGL()
+void GPUDisplay::ExitDisplay()
 {
   UpdateOffscreenBuffers(true);
-  CHKERR(glDeleteBuffers(GPUChainTracking::NSLICES, mVBOId));
-  CHKERR(glDeleteBuffers(1, &mIndirectId));
-  CHKERR(glDeleteProgram(mShaderProgram));
-  CHKERR(glDeleteShader(mVertexShader));
-  CHKERR(glDeleteShader(mFragmentShader));
+  mBackend->ExitBackend();
 }
 
 inline void GPUDisplay::drawPointLinestrip(int iSlice, int cid, int id, int id_limit)
@@ -1255,7 +1075,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
           break;
         }
         float alpha = alphaOrg;
-        vecpod<GLvertex>& useBuffer = iMC && inFlyDirection == 0 ? buffer : mVertexBuffer[iSlice];
+        vecpod<vtx>& useBuffer = iMC && inFlyDirection == 0 ? buffer : mVertexBuffer[iSlice];
         int nPoints = 0;
 
         while (nPoints++ < 5000) {
@@ -1703,12 +1523,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
   }
   // Initialize
   if (!mixAnimation) {
-    if (mCfgL.invertColors) {
-      CHKERR(glClearColor(1.0f, 1.0f, 1.0f, 1.0f));
-    } else {
-      CHKERR(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
-    }
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear Screen And Depth Buffer
+    mBackend->clearScreen();
   }
 
   hmm_mat4 nextViewMatrix = MY_HMM_IDENTITY;
@@ -1976,22 +1791,8 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     mFrontend->mMouseDnX = mFrontend->mouseMvX;
     mFrontend->mMouseDnY = mFrontend->mouseMvY;
   }
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (mCfgL.smoothPoints && !mCfgR.openGLCore) {
-    CHKERR(glEnable(GL_POINT_SMOOTH));
-  } else {
-    CHKERR(glDisable(GL_POINT_SMOOTH));
-  }
-  if (mCfgL.smoothLines && !mCfgR.openGLCore) {
-    CHKERR(glEnable(GL_LINE_SMOOTH));
-  } else {
-    CHKERR(glDisable(GL_LINE_SMOOTH));
-  }
-#endif
-  CHKERR(glEnable(GL_BLEND));
-  CHKERR(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-  CHKERR(glPointSize(mCfgL.pointSize * (mCfgR.drawQualityDownsampleFSAA > 1 ? mCfgR.drawQualityDownsampleFSAA : 1)));
-  CHKERR(glLineWidth(mCfgL.lineWidth * (mCfgR.drawQualityDownsampleFSAA > 1 ? mCfgR.drawQualityDownsampleFSAA : 1)));
+
+  mBackend->updateSettings();
 
   // Prepare Event
   if (!mGlDLrecent && mIOPtrs) {
@@ -2197,40 +1998,8 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     for (int i = 0; i < NSLICES; i++) {
       totalVertizes += mVertexBuffer[i].size();
     }
-
-    // TODO: Check if this can be parallelized
     mUseMultiVBO = (totalVertizes * sizeof(mVertexBuffer[0][0]) >= 0x100000000ll);
-    if (mUseMultiVBO) {
-      for (int i = 0; i < NSLICES; i++) {
-        CHKERR(glNamedBufferData(mVBOId[i], mVertexBuffer[i].size() * sizeof(mVertexBuffer[i][0]), mVertexBuffer[i].data(), GL_STATIC_DRAW));
-        mVertexBuffer[i].clear();
-      }
-    } else {
-      size_t totalYet = mVertexBuffer[0].size();
-      mVertexBuffer[0].resize(totalVertizes);
-      for (int i = 1; i < NSLICES; i++) {
-        for (unsigned int j = 0; j < mVertexBufferStart[i].size(); j++) {
-          mVertexBufferStart[i][j] += totalYet;
-        }
-        memcpy(&mVertexBuffer[0][totalYet], &mVertexBuffer[i][0], mVertexBuffer[i].size() * sizeof(mVertexBuffer[i][0]));
-        totalYet += mVertexBuffer[i].size();
-        mVertexBuffer[i].clear();
-      }
-      CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mVBOId[0])); // Bind ahead of time, since it is not going to change
-      CHKERR(glNamedBufferData(mVBOId[0], totalVertizes * sizeof(mVertexBuffer[0][0]), mVertexBuffer[0].data(), GL_STATIC_DRAW));
-      mVertexBuffer[0].clear();
-    }
-
-    if (mCfgR.useGLIndirectDraw) {
-      mCmdBuffer.clear();
-      for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-        mIndirectSliceOffset[iSlice] = mCmdBuffer.size();
-        for (unsigned int k = 0; k < mVertexBufferStart[iSlice].size(); k++) {
-          mCmdBuffer.emplace_back(mVertexBufferCount[iSlice][k], 1, mVertexBufferStart[iSlice][k], 0);
-        }
-      }
-      CHKERR(glBufferData(GL_DRAW_INDIRECT_BUFFER, mCmdBuffer.size() * sizeof(mCmdBuffer[0]), mCmdBuffer.data(), GL_STATIC_DRAW));
-    }
+    mBackend->loadDataToGPU(totalVertizes);
 
     if (showTimer) {
       printf("Event visualization time: %'d us (vertices %'lld / %'lld bytes)\n", (int)(mTimerDraw.GetCurrentElapsedTime() * 1000000.), (long long int)totalVertizes, (long long int)(totalVertizes * sizeof(mVertexBuffer[0][0])));
@@ -2239,36 +2008,11 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
 
   // Draw Event
   mNDrawCalls = 0;
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (!mCfgR.openGLCore) {
-    CHKERR(glEnableClientState(GL_VERTEX_ARRAY));
-    CHKERR(glVertexPointer(3, GL_FLOAT, 0, nullptr));
-  } else
-#endif
-  {
-    CHKERR(glBindVertexArray(mVertexArray));
-    CHKERR(glUseProgram(mShaderProgram));
-    CHKERR(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr));
-    CHKERR(glEnableVertexAttribArray(0));
-  }
-
-  {
-    const float zFar = ((mParam->par.continuousTracking ? (mMaxClusterZ / GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
-    const hmm_mat4 proj = HMM_Perspective(mCfgR.fov, (GLfloat)mScreenwidth / (GLfloat)mScreenheight, 0.1f, zFar);
-    nextViewMatrix = nextViewMatrix * mModelMatrix;
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-    if (!mCfgR.openGLCore) {
-      CHKERR(glMatrixMode(GL_PROJECTION));
-      CHKERR(glLoadMatrixf(&proj.Elements[0][0]));
-      CHKERR(glMatrixMode(GL_MODELVIEW));
-      CHKERR(glLoadMatrixf(&nextViewMatrix.Elements[0][0]));
-    } else
-#endif
-    {
-      const hmm_mat4 modelViewProj = proj * nextViewMatrix;
-      CHKERR(glUniformMatrix4fv(mModelViewProjId, 1, GL_FALSE, &modelViewProj.Elements[0][0]));
-    }
-  }
+  mBackend->prepareDraw();
+  nextViewMatrix = nextViewMatrix * mModelMatrix;
+  const float zFar = ((mParam->par.continuousTracking ? (mMaxClusterZ / GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
+  const hmm_mat4 proj = HMM_Perspective(mCfgR.fov, (GLfloat)mScreenwidth / (GLfloat)mScreenheight, 0.1f, zFar);
+  mBackend->setMatrices(proj, nextViewMatrix);
 
 #define LOOP_SLICE for (int iSlice = (mCfgL.drawSlice == -1 ? 0 : mCfgL.drawRelatedSlices ? (mCfgL.drawSlice % (NSLICES / 4)) : mCfgL.drawSlice); iSlice < NSLICES; iSlice += (mCfgL.drawSlice == -1 ? 1 : mCfgL.drawRelatedSlices ? (NSLICES / 4) : NSLICES))
 #define LOOP_SLICE2 for (int iSlice = (mCfgL.drawSlice == -1 ? 0 : mCfgL.drawRelatedSlices ? (mCfgL.drawSlice % (NSLICES / 4)) : mCfgL.drawSlice) % (NSLICES / 2); iSlice < NSLICES / 2; iSlice += (mCfgL.drawSlice == -1 ? 1 : mCfgL.drawRelatedSlices ? (NSLICES / 4) : NSLICES))
@@ -2285,37 +2029,37 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
   if (mCfgL.drawGrid) {
     if (mCfgL.drawTPC) {
       SetColorGrid();
-      LOOP_SLICE drawVertices(mGlDLGrid[iSlice], GL_LINES);
+      LOOP_SLICE drawVertices(mGlDLGrid[iSlice], GPUDisplayBackend::LINES);
     }
     if (mCfgL.drawTRD) {
       SetColorGridTRD();
-      LOOP_SLICE2 drawVertices(mGlDLGridTRD[iSlice], GL_LINES);
+      LOOP_SLICE2 drawVertices(mGlDLGridTRD[iSlice], GPUDisplayBackend::LINES);
     }
   }
   if (mCfgL.drawClusters) {
     if (mCfgL.drawTRD) {
       SetColorTRD();
-      CHKERR(glLineWidth(mCfgL.lineWidth * (mCfgR.drawQualityDownsampleFSAA > 1 ? mCfgR.drawQualityDownsampleFSAA : 1) * 2));
-      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSlice][tTRDCLUSTER][iCol], GL_LINES));
+      mBackend->lineWidthFactor(2);
+      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSlice][tTRDCLUSTER][iCol], GPUDisplayBackend::LINES));
       if (mCfgL.drawFinal && mCfgL.colorClusters) {
         SetColorFinal();
       }
-      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSlice][tTRDATTACHED][iCol], GL_LINES));
-      CHKERR(glLineWidth(mCfgL.lineWidth * (mCfgR.drawQualityDownsampleFSAA > 1 ? mCfgR.drawQualityDownsampleFSAA : 1)));
+      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSlice][tTRDATTACHED][iCol], GPUDisplayBackend::LINES));
+      mBackend->lineWidthFactor(1);
     }
     if (mCfgL.drawTOF) {
       SetColorTOF();
-      CHKERR(glPointSize(mCfgL.pointSize * (mCfgR.drawQualityDownsampleFSAA > 1 ? mCfgR.drawQualityDownsampleFSAA : 1) * 2));
-      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[0][tTOFCLUSTER][0], GL_POINTS));
-      CHKERR(glPointSize(mCfgL.pointSize * (mCfgR.drawQualityDownsampleFSAA > 1 ? mCfgR.drawQualityDownsampleFSAA : 1)));
+      mBackend->pointSizeFactor(2);
+      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[0][tTOFCLUSTER][0], GPUDisplayBackend::POINTS));
+      mBackend->pointSizeFactor(1);
     }
     if (mCfgL.drawITS) {
       SetColorITS();
-      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[0][tITSCLUSTER][0], GL_POINTS));
+      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[0][tITSCLUSTER][0], GPUDisplayBackend::POINTS));
     }
     if (mCfgL.drawTPC) {
       SetColorClusters();
-      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSlice][tCLUSTER][iCol], GL_POINTS));
+      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSlice][tCLUSTER][iCol], GPUDisplayBackend::POINTS));
 
       if (mCfgL.drawInitLinks) {
         if (mCfgL.excludeClusters) {
@@ -2325,7 +2069,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
           SetColorInitLinks();
         }
       }
-      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSlice][tINITLINK][iCol], GL_POINTS));
+      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSlice][tINITLINK][iCol], GPUDisplayBackend::POINTS));
 
       if (mCfgL.drawLinks) {
         if (mCfgL.excludeClusters) {
@@ -2337,7 +2081,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       } else {
         SetColorClusters();
       }
-      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSlice][tLINK][iCol], GL_POINTS));
+      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSlice][tLINK][iCol], GPUDisplayBackend::POINTS));
 
       if (mCfgL.drawSeeds) {
         if (mCfgL.excludeClusters) {
@@ -2347,7 +2091,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
           SetColorSeeds();
         }
       }
-      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSlice][tSEED][iCol], GL_POINTS));
+      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSlice][tSEED][iCol], GPUDisplayBackend::POINTS));
 
     skip1:
       SetColorClusters();
@@ -2359,7 +2103,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
           SetColorTracklets();
         }
       }
-      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSlice][tTRACKLET][iCol], GL_POINTS));
+      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSlice][tTRACKLET][iCol], GPUDisplayBackend::POINTS));
 
       if (mCfgL.drawTracks) {
         if (mCfgL.excludeClusters) {
@@ -2369,7 +2113,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
           SetColorTracks();
         }
       }
-      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSlice][tSLICETRACK][iCol], GL_POINTS));
+      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSlice][tSLICETRACK][iCol], GPUDisplayBackend::POINTS));
 
     skip2:;
       if (mCfgL.drawGlobalTracks) {
@@ -2382,7 +2126,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       } else {
         SetColorClusters();
       }
-      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSlice][tGLOBALTRACK][iCol], GL_POINTS));
+      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSlice][tGLOBALTRACK][iCol], GPUDisplayBackend::POINTS));
       SetColorClusters();
 
       if (mCfgL.drawFinal && mCfgL.propagateTracks < 2) {
@@ -2393,7 +2137,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
           SetColorFinal();
         }
       }
-      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSlice][tFINALTRACK][iCol], GL_POINTS));
+      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSlice][tFINALTRACK][iCol], GPUDisplayBackend::POINTS));
     skip3:;
     }
   }
@@ -2402,27 +2146,27 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     if (mCfgL.drawTPC) {
       if (mCfgL.drawInitLinks) {
         SetColorInitLinks();
-        LOOP_SLICE drawVertices(mGlDLLines[iSlice][tINITLINK], GL_LINES);
+        LOOP_SLICE drawVertices(mGlDLLines[iSlice][tINITLINK], GPUDisplayBackend::LINES);
       }
       if (mCfgL.drawLinks) {
         SetColorLinks();
-        LOOP_SLICE drawVertices(mGlDLLines[iSlice][tLINK], GL_LINES);
+        LOOP_SLICE drawVertices(mGlDLLines[iSlice][tLINK], GPUDisplayBackend::LINES);
       }
       if (mCfgL.drawSeeds) {
         SetColorSeeds();
-        LOOP_SLICE drawVertices(mGlDLLines[iSlice][tSEED], GL_LINE_STRIP);
+        LOOP_SLICE drawVertices(mGlDLLines[iSlice][tSEED], GPUDisplayBackend::LINE_STRIP);
       }
       if (mCfgL.drawTracklets) {
         SetColorTracklets();
-        LOOP_SLICE drawVertices(mGlDLLines[iSlice][tTRACKLET], GL_LINE_STRIP);
+        LOOP_SLICE drawVertices(mGlDLLines[iSlice][tTRACKLET], GPUDisplayBackend::LINE_STRIP);
       }
       if (mCfgL.drawTracks) {
         SetColorTracks();
-        LOOP_SLICE drawVertices(mGlDLLines[iSlice][tSLICETRACK], GL_LINE_STRIP);
+        LOOP_SLICE drawVertices(mGlDLLines[iSlice][tSLICETRACK], GPUDisplayBackend::LINE_STRIP);
       }
       if (mCfgL.drawGlobalTracks) {
         SetColorGlobalTracks();
-        LOOP_SLICE drawVertices(mGlDLLines[iSlice][tGLOBALTRACK], GL_LINE_STRIP);
+        LOOP_SLICE drawVertices(mGlDLLines[iSlice][tGLOBALTRACK], GPUDisplayBackend::LINE_STRIP);
       }
     }
     if (mCfgL.drawFinal) {
@@ -2433,87 +2177,45 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
           SetCollisionColor(iCol);
         }
         if (mCfgL.propagateTracks < 2) {
-          drawVertices(mGlDLFinal[iSlice][iCol][0], GL_LINE_STRIP);
+          drawVertices(mGlDLFinal[iSlice][iCol][0], GPUDisplayBackend::LINE_STRIP);
         }
         if (mCfgL.propagateTracks > 0 && mCfgL.propagateTracks < 3) {
-          drawVertices(mGlDLFinal[iSlice][iCol][1], GL_LINE_STRIP);
+          drawVertices(mGlDLFinal[iSlice][iCol][1], GPUDisplayBackend::LINE_STRIP);
         }
         if (mCfgL.propagateTracks == 2) {
-          drawVertices(mGlDLFinal[iSlice][iCol][2], GL_LINE_STRIP);
+          drawVertices(mGlDLFinal[iSlice][iCol][2], GPUDisplayBackend::LINE_STRIP);
         }
         if (mCfgL.propagateTracks == 3) {
-          drawVertices(mGlDLFinal[iSlice][iCol][3], GL_LINE_STRIP);
+          drawVertices(mGlDLFinal[iSlice][iCol][3], GPUDisplayBackend::LINE_STRIP);
         }
       }
       if (mCfgH.drawTracksAndFilter ? (mCfgH.drawTPCTracks || mCfgH.drawTRDTracks || mCfgH.drawTOFTracks) : mCfgH.drawITSTracks) {
-        drawVertices(mGlDLFinalITS, GL_LINE_STRIP);
+        drawVertices(mGlDLFinalITS, GPUDisplayBackend::LINE_STRIP);
       }
     }
     if (mCfgH.markClusters || mCfgH.markAdjacentClusters || mCfgH.markFakeClusters) {
       if (mCfgH.markFakeClusters) {
-        CHKERR(glPointSize(mCfgL.pointSize * (mCfgR.drawQualityDownsampleFSAA > 1 ? mCfgR.drawQualityDownsampleFSAA : 1) * 3));
+        mBackend->pointSizeFactor(3);
       }
       SetColorMarked();
-      LOOP_SLICE LOOP_COLLISION drawVertices(mGlDLPoints[iSlice][tMARKED][iCol], GL_POINTS);
+      LOOP_SLICE LOOP_COLLISION drawVertices(mGlDLPoints[iSlice][tMARKED][iCol], GPUDisplayBackend::POINTS);
       if (mCfgH.markFakeClusters) {
-        CHKERR(glPointSize(mCfgL.pointSize * (mCfgR.drawQualityDownsampleFSAA > 1 ? mCfgR.drawQualityDownsampleFSAA : 1)));
+        mBackend->pointSizeFactor(1);
       }
     }
   }
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (!mCfgR.openGLCore) {
-    CHKERR(glDisableClientState(GL_VERTEX_ARRAY));
-  } else
-#endif
-  {
-    CHKERR(glDisableVertexAttribArray(0));
-    CHKERR(glUseProgram(0));
-  }
+
+  mBackend->finishDraw();
 
   if (mixSlaveImage > 0) {
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-    if (!mCfgR.openGLCore) {
-      glMatrixMode(GL_MODELVIEW);
-      glLoadIdentity();
-      glMatrixMode(GL_PROJECTION);
-      hmm_mat4 proj = HMM_Orthographic(0.f, mRenderwidth, 0.f, mRenderheight, -1.f, 1.f);
-      glLoadMatrixf(&proj.Elements[0][0]);
-      CHKERR(glEnable(GL_TEXTURE_2D));
-      glDisable(GL_DEPTH_TEST);
-      CHKERR(glBindTexture(GL_TEXTURE_2D, mMixBuffer.fbCol_id));
-      glColor4f(1, 1, 1, mixSlaveImage);
-      glBegin(GL_QUADS);
-      glTexCoord2f(0, 0);
-      glVertex3f(0, 0, 0);
-      glTexCoord2f(0, 1);
-      glVertex3f(0, mRenderheight, 0);
-      glTexCoord2f(1, 1);
-      glVertex3f(mRenderwidth, mRenderheight, 0);
-      glTexCoord2f(1, 0);
-      glVertex3f(mRenderwidth, 0, 0);
-      glEnd();
-      glColor4f(1, 1, 1, 0);
-      CHKERR(glDisable(GL_TEXTURE_2D));
-      setDepthBuffer();
-    } else
-#endif
-    {
-      GPUWarning("Image mixing unsupported in OpenGL CORE profile");
-    }
+    mBackend->mixImages(mMixBuffer, mixSlaveImage);
   }
 
   if (mixAnimation) {
-    glColorMask(false, false, false, true);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glColorMask(true, true, true, true);
+    mBackend->clearScreen(true);
   } else if (mOffscreenBuffer.created) {
     setFrameBuffer();
-    GLuint srcid = mOffscreenBuffer.fb_id;
-    if (mCfgR.drawQualityMSAA > 1 && mCfgR.drawQualityDownsampleFSAA > 1) {
-      CHKERR(glBlitNamedFramebuffer(srcid, mOffscreenBufferNoMSAA.fb_id, 0, 0, mRenderwidth, mRenderheight, 0, 0, mRenderwidth, mRenderheight, GL_COLOR_BUFFER_BIT, GL_LINEAR));
-      srcid = mOffscreenBufferNoMSAA.fb_id;
-    }
-    CHKERR(glBlitNamedFramebuffer(srcid, mMainBufferStack.back(), 0, 0, mRenderwidth, mRenderheight, 0, 0, mScreenwidth, mScreenheight, GL_COLOR_BUFFER_BIT, GL_LINEAR));
+    mBackend->renderOffscreenBuffer(mOffscreenBuffer, mOffscreenBufferNoMSAA, mMainBufferStack.back());
   }
 
   if (mAnimate && mAnimateScreenshot && mAnimateTime < 0) {
@@ -2568,27 +2270,24 @@ void GPUDisplay::DoScreenshot(char* filename, float mAnimateTime)
   mCfgL.lineWidth *= (float)(SCALE_X + SCALE_Y) / 2.;
 
   int oldWidth = mScreenwidth, oldHeight = mScreenheight;
-  GLfb screenshotBuffer;
+  GPUDisplayBackend::GLfb screenshotBuffer;
 
   bool needBuffer = SCALE_X != 1 || SCALE_Y != 1;
 
   if (needBuffer) {
-    deleteFB(mMixBuffer);
+    mBackend->deleteFB(mMixBuffer);
     mScreenwidth *= SCALE_X;
     mScreenheight *= SCALE_Y;
     mRenderwidth = mScreenwidth;
     mRenderheight = mScreenheight;
-    createFB(screenshotBuffer, 0, 1, false); // Create screenshotBuffer of size mScreenwidth * SCALE, mRenderwidth * SCALE
+    mBackend->createFB(screenshotBuffer, 0, 1, false); // Create screenshotBuffer of size mScreenwidth * SCALE, mRenderwidth * SCALE
     UpdateOffscreenBuffers();                // Create other buffers of size mScreenwidth * SCALE * downscale, ...
     setFrameBuffer(1, screenshotBuffer.fb_id);
-    glViewport(0, 0, mRenderwidth, mRenderheight);
     DrawGLScene(false, mAnimateTime);
   }
   size_t size = 4 * mScreenwidth * mScreenheight;
   unsigned char* pixels = new unsigned char[size];
-  CHKERR(glPixelStorei(GL_PACK_ALIGNMENT, 1));
-  CHKERR(glReadBuffer(needBuffer ? GL_COLOR_ATTACHMENT0 : GL_BACK));
-  CHKERR(glReadPixels(0, 0, mScreenwidth, mScreenheight, GL_BGRA, GL_UNSIGNED_BYTE, pixels));
+  mBackend->readPixels(pixels, needBuffer, mScreenwidth, mScreenheight);
 
   if (filename) {
     FILE* fp = fopen(filename, "w+b");
@@ -2623,27 +2322,17 @@ void GPUDisplay::DoScreenshot(char* filename, float mAnimateTime)
   mCfgL.lineWidth = tmpLineWidth;
   if (needBuffer) {
     setFrameBuffer();
-    deleteFB(screenshotBuffer);
+    mBackend->deleteFB(screenshotBuffer);
     mScreenwidth = oldWidth;
     mScreenheight = oldHeight;
     UpdateOffscreenBuffers();
-    glViewport(0, 0, mRenderwidth, mRenderheight);
     DrawGLScene(false, mAnimateTime);
   }
 }
 
 void GPUDisplay::showInfo(const char* info)
 {
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (!mCfgR.openGLCore) {
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glMatrixMode(GL_PROJECTION);
-    hmm_mat4 proj = HMM_Orthographic(0.f, mScreenwidth, 0.f, mScreenheight, -1, 1);
-    glLoadMatrixf(&proj.Elements[0][0]);
-    glViewport(0, 0, mScreenwidth, mScreenheight);
-  }
-#endif
+  mBackend->prepareText();
   float colorValue = mCfgL.invertColors ? 0.f : 1.f;
   mFrontend->OpenGLPrint(info, 40.f, 40.f, colorValue, colorValue, colorValue, 1);
   if (mInfoText2Timer.IsRunning()) {
@@ -2660,11 +2349,6 @@ void GPUDisplay::showInfo(const char* info)
       PrintGLHelpText(colorValue);
     }
   }
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (!mCfgR.openGLCore) {
-    glViewport(0, 0, mRenderwidth, mRenderheight);
-  }
-#endif
 }
 
 void GPUDisplay::ShowNextEvent(const GPUTrackingInOutPointers* ptrs)

@@ -215,7 +215,7 @@ int GPUDisplayFrontendGlut::FrontendMain()
     fprintf(stderr, "Error initializing GL extension wrapper\n");
     return (-1);
   }
-  if (InitGL()) {
+  if (InitDisplay()) {
     fprintf(stderr, "Error in OpenGL initialization\n");
     return (1);
   }
