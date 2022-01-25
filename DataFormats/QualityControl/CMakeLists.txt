@@ -15,7 +15,8 @@ o2_add_library(DataFormatsQualityControl
                        src/TimeRangeFlagCollection.cxx
   PUBLIC_LINK_LIBRARIES O2::Headers
                         O2::FrameworkLogger
-                        O2::DetectorsCommonDataFormats)
+                        O2::DetectorsCommonDataFormats
+  PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_BINARY_DIR}/include)
 
 o2_target_root_dictionary(DataFormatsQualityControl
                           HEADERS include/DataFormatsQualityControl/FlagReasons.h
@@ -44,12 +45,18 @@ configure_file("include/DataFormatsQualityControl/FlagReasonFactory.h.in"
 o2_add_test(FlagReasons
   SOURCES test/testFlagReasons.cxx
   COMPONENT_NAME DataFormatsQualityControl
-  PUBLIC_LINK_LIBRARIES O2::DataFormatsQualityControl)
+  PUBLIC_LINK_LIBRARIES O2::DataFormatsQualityControl
+  TARGETVARNAME flagreasons)
+
+target_include_directories(${flagreasons} PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/include)
 
 o2_add_test(TimeRangeFlag
             SOURCES test/testTimeRangeFlag.cxx
             COMPONENT_NAME DataFormatsQualityControl
-            PUBLIC_LINK_LIBRARIES O2::DataFormatsQualityControl)
+            PUBLIC_LINK_LIBRARIES O2::DataFormatsQualityControl
+            TARGETVARNAME timerangeflag)
+
+target_include_directories(${timerangeflag} PRIVATE include)
 
 o2_add_test(TimeRangeFlagCollection
             SOURCES test/testTimeRangeFlagCollection.cxx

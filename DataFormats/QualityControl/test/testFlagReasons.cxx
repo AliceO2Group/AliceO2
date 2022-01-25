@@ -20,7 +20,7 @@
 
 // o2 includes
 #include "DataFormatsQualityControl/FlagReasons.h"
-#include "../../cmake-build-debug/DataFormats/QualityControl/include/DataFormatsQualityControl/FlagReasonFactory.h"
+#include "DataFormatsQualityControl/FlagReasonFactory.h"
 
 using namespace o2::quality_control;
 
