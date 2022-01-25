@@ -1382,11 +1382,28 @@ using JoinBase = decltype(join(std::declval<Ts>()...));
 template <typename T1, typename T2>
 using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
 
-template <typename T1, typename T2>
-constexpr auto is_binding_compatible_v()
+template <typename B, typename E>
+struct EquivalentIndex {
+  constexpr static bool value = false;
+};
+
+template <typename B, typename E>
+constexpr bool is_index_equivalent_v = EquivalentIndex<B, E>::value;
+
+template <typename T, typename... Os>
+constexpr bool are_bindings_compatible_v(framework::pack<Os...>&&)
 {
-  return framework::pack_size(
-           framework::intersected_pack_t<originals_pack_t<T1>, originals_pack_t<T2>>{}) > 0;
+  if constexpr (is_type_with_originals_v<T>) {
+    return (are_bindings_compatible_v<Os>(originals_pack_t<T>{}) || ...);
+  } else {
+    return ((std::is_same_v<T, Os> || is_index_equivalent_v<T, Os>) || ...);
+  }
+}
+
+template <typename T, typename B>
+constexpr bool is_binding_compatible_v()
+{
+  return are_bindings_compatible_v<T>(originals_pack_t<B>{});
 }
 
 } // namespace o2::soa
@@ -1395,6 +1412,12 @@ constexpr auto is_binding_compatible_v()
   template <typename T>              \
   struct MetadataTrait {             \
     using metadata = std::void_t<T>; \
+  }
+
+#define DECLARE_EQUIVALENT_FOR_INDEX(_Base_, _Equiv_) \
+  template <>                                         \
+  struct o2::soa::EquivalentIndex<_Base_, _Equiv_> {  \
+    constexpr static bool value = true;               \
   }
 
 #define DECLARE_SOA_COLUMN_FULL(_Name_, _Getter_, _Type_, _Label_)                                                                                                                \

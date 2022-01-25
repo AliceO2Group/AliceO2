@@ -970,5 +970,10 @@ using CollisionMatchedRun3Sparse = soa::Join<Collisions, Run3MatchedSparse>::ite
 
 } // namespace aod
 
+namespace soa
+{
+DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredMcParticles_000, aod::StoredMcParticles_001);
+}
+
 } // namespace o2
 #endif // O2_FRAMEWORK_ANALYSISDATAMODEL_H_
