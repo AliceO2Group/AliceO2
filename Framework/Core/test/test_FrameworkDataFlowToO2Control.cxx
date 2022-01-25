@@ -475,7 +475,6 @@ BOOST_AUTO_TEST_CASE(TestO2ControlDump)
   BOOST_REQUIRE_EQUAL(devices.size(), expectedTasks.size());
   for (size_t di = 0; di < devices.size(); ++di) {
     auto& spec = devices[di];
-    auto& execution = executions[di];
     auto& expected = expectedTasks[di];
 
     BOOST_TEST_CONTEXT("Device " << spec.name)

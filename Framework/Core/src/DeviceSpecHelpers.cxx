@@ -1139,7 +1139,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
                                         "--color", "false"};
     std::vector<std::string> tmpEnv;
     if (defaultStopped) {
-      tmpArgs.push_back("-s");
+      tmpArgs.emplace_back("-s");
     }
 
     // do the filtering of options:
