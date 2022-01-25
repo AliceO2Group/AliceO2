@@ -132,7 +132,7 @@ CCDBHelpers::ParserResult CCDBHelpers::parseRemappings(char const* str)
 
 AlgorithmSpec CCDBHelpers::fetchFromCCDB()
 {
-  return adaptStateful([](ConfigParamRegistry const& options, DeviceSpec const& spec) { 
+  return adaptStateful([](ConfigParamRegistry const& options, DeviceSpec const& spec) {
       std::shared_ptr<CCDBFetcherHelper> helper = std::make_shared<CCDBFetcherHelper>();
       auto backend = options.get<std::string>("condition-backend");
       LOGP(info, "CCDB Backend at: {}", backend);
@@ -154,7 +154,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         helper->routes.push_back(route);
         LOGP(info, "The following route is a condition {}", route.matcher);
         for (auto& metadata : route.matcher.metadata) {
-          if (metadata.type == VariantType::String) { 
+          if (metadata.type == VariantType::String) {
             LOGP(info, "- {}: {}", metadata.name, metadata.defaultValue);
           }
         }
@@ -240,7 +240,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         // Fetch the rest of the objects.
         LOGP(info, "Fetching objects. Run: {}. OrbitResetTime: {}, Creation: {}, Timestamp: {}, firstTFOrbit: {}",
              dtc.runNumber, orbitResetTime, timingInfo.creation, timestamp, timingInfo.firstTFOrbit);
-	// For Giulio: the dtc.orbitResetTime is wrong, it is assigned from the dph->creation, why?
+        // For Giulio: the dtc.orbitResetTime is wrong, it is assigned from the dph->creation, why?
         std::string ccdbMetadataPrefix = "ccdb-metadata-";
 
         for (auto& route : helper->routes) {
