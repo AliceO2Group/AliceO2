@@ -236,10 +236,11 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           }
         }
 
-        int64_t timestamp = ceilf((timingInfo.firstTFOrbit * o2::constants::lhc::LHCOrbitNS / 1000 + orbitResetTime) / 1000);
+        int64_t timestamp = ceil((timingInfo.firstTFOrbit * o2::constants::lhc::LHCOrbitNS / 1000 + orbitResetTime) / 1000); // RS ceilf precision is not enough
         // Fetch the rest of the objects.
-        LOGP(info, "Fetching objects. Run: {}. OrbitResetTime: {}, Timestamp: {}, firstTFOrbit: {}",
-             dtc.runNumber, dtc.orbitResetTime, timestamp, timingInfo.firstTFOrbit);
+        LOGP(info, "Fetching objects. Run: {}. OrbitResetTime: {}, Creation: {}, Timestamp: {}, firstTFOrbit: {}",
+             dtc.runNumber, orbitResetTime, timingInfo.creation, timestamp, timingInfo.firstTFOrbit);
+	// For Giulio: the dtc.orbitResetTime is wrong, it is assigned from the dph->creation, why?
         std::string ccdbMetadataPrefix = "ccdb-metadata-";
 
         for (auto& route : helper->routes) {
