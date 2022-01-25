@@ -20,8 +20,10 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 GPUDisplayBackend* GPUDisplayBackend::getBackend(const char* type)
 {
+#ifdef GPUCA_BUILD_EVENT_DISPLAY
   if (strcmp(type, "opengl") == 0) {
     return new GPUDisplayBackendOpenGL;
   }
+#endif
   return nullptr;
 }

@@ -290,7 +290,7 @@ int GPUDisplayFrontendGlfw::FrontendMain()
   }
 #endif
 
-  if (InitGL()) {
+  if (InitDisplay()) {
     fprintf(stderr, "Error in OpenGL initialization\n");
     return (1);
   }

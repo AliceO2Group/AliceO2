@@ -16,23 +16,81 @@
 #define GPUDISPLAYBACKEND_H
 
 #include "GPUCommonDef.h"
+#include "../utils/vecpod.h"
+#include <array>
+#include <cstddef>
+
+#if defined(GPUCA_DISPLAY_GL3W) && !defined(GPUCA_DISPLAY_OPENGL_CORE)
+#define GPUCA_DISPLAY_OPENGL_CORE
+#endif
+
+union hmm_mat4;
 
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
+class GPUDisplay;
 class GPUDisplayBackend
 {
+  friend GPUDisplay;
+
  public:
   GPUDisplayBackend() = default;
   virtual ~GPUDisplayBackend() = default;
 
   virtual int ExtInit() = 0;
   virtual bool CoreProfile() = 0;
+  virtual unsigned int DepthBits() = 0;
+
+  typedef std::tuple<unsigned int, unsigned int, int> vboList;
+
+  enum drawType {
+    POINTS = 0,
+    LINES = 1,
+    LINE_STRIP = 2
+  };
+
+  struct GLfb {
+    unsigned int fb_id = 0, fbCol_id = 0, fbDepth_id = 0;
+    bool tex = false;
+    bool msaa = false;
+    bool depth = false;
+    bool created = false;
+  };
+
+  virtual void createFB(GLfb& fb, bool tex, bool withDepth, bool msaa) = 0;
+  virtual void deleteFB(GLfb& fb) = 0;
+
+  virtual unsigned int drawVertices(const vboList& v, const drawType t) = 0;
+  virtual void ActivateColor(std::array<float, 3>& color) = 0;
+  virtual void setQuality() = 0;
+  virtual void setDepthBuffer() = 0;
+  virtual void setFrameBuffer(int updateCurrent, unsigned int newID) = 0;
+  virtual int InitBackend() = 0;
+  virtual void ExitBackend() = 0;
+  virtual void clearScreen(bool colorOnly = false) = 0;
+  virtual void updateSettings() = 0;
+  virtual void loadDataToGPU(size_t totalVertizes) = 0;
+  virtual void prepareDraw() = 0;
+  virtual void finishDraw() = 0;
+  virtual void prepareText() = 0;
+  virtual void setMatrices(const hmm_mat4& proj, const hmm_mat4& view) = 0;
+  virtual void mixImages(GLfb& mixBuffer, float mixSlaveImage) = 0;
+  virtual void renderOffscreenBuffer(GLfb& buffer, GLfb& bufferNoMSAA, int mainBuffer) = 0;
+  virtual void readPixels(unsigned char* pixels, bool needBuffer, unsigned int width, unsigned int height) = 0;
+  virtual void pointSizeFactor(float factor) = 0;
+  virtual void lineWidthFactor(float factor) = 0;
 
   static GPUDisplayBackend* getBackend(const char* type);
 
  protected:
+  GPUDisplay* mDisplay = nullptr;
+
+  unsigned int mVertexShader;
+  unsigned int mFragmentShader;
+  unsigned int mShaderProgram;
+  unsigned int mVertexArray;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

@@ -37,8 +37,8 @@ class GPUDisplayFrontend
   static constexpr int GL_MIN_VERSION_MAJOR = 4;
   static constexpr int GL_MIN_VERSION_MINOR = 5;
 
-  virtual int StartDisplay() = 0;                                                                                            // Start the display. This function returns, and should spawn a thread that runs the display, and calls InitGL
-  virtual void DisplayExit() = 0;                                                                                            // Stop the display. Display thread should call ExitGL and the function returns after the thread has terminated
+  virtual int StartDisplay() = 0;                                                                                            // Start the display. This function returns, and should spawn a thread that runs the display, and calls InitDisplay
+  virtual void DisplayExit() = 0;                                                                                            // Stop the display. Display thread should call ExitDisplay and the function returns after the thread has terminated
   virtual void SwitchFullscreen(bool set) = 0;                                                                               // Toggle full-screen mode
   virtual void ToggleMaximized(bool set) = 0;                                                                                // Maximize window
   virtual void SetVSync(bool enable) = 0;                                                                                    // Enable / disable vsync
@@ -109,8 +109,8 @@ class GPUDisplayFrontend
   int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f); // Callback to draw the GL scene
   void HandleSendKey();                                                 // Optional callback to handle key press from external source (e.g. stdin by default)
   void ReSizeGLScene(int width, int height);                            // Callback when GL window is resized
-  int InitGL(bool initFailure = false);                                 // Callback to initialize the GL Display (to be called in StartDisplay)
-  void ExitGL();                                                        // Callback to clean up the GL Display
+  int InitDisplay(bool initFailure = false);                            // Callback to initialize the GL Display (to be called in StartDisplay)
+  void ExitDisplay();                                                   // Callback to clean up the GL Display
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
