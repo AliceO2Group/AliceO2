@@ -20,7 +20,7 @@
 // GL EXT must be the first header
 #include "GPUDisplayExt.h"
 
-// Runtime minimum version defined in GPUDisplayBackend.h, keep in sync!
+// Runtime minimum version defined in GPUDisplayFrontend.h, keep in sync!
 #if !defined(GL_VERSION_4_5) || GL_VERSION_4_5 != 1
 #ifdef GPUCA_STANDALONE
 #error Unsupported OpenGL version < 4.5
@@ -34,7 +34,7 @@
 #endif
 
 #include "GPUSettings.h"
-#include "GPUDisplayBackend.h"
+#include "GPUDisplayFrontend.h"
 
 #ifndef GPUCA_BUILD_EVENT_DISPLAY
 
@@ -87,7 +87,7 @@ class GPUQA;
 class GPUDisplay
 {
  public:
-  GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param = nullptr, const GPUCalibObjectsConst* calib = nullptr, const GPUSettingsDisplay* config = nullptr);
+  GPUDisplay(GPUDisplayFrontend* backend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param = nullptr, const GPUCalibObjectsConst* calib = nullptr, const GPUSettingsDisplay* config = nullptr);
   ~GPUDisplay() = default;
   GPUDisplay(const GPUDisplay&) = delete;
 
@@ -267,7 +267,7 @@ class GPUDisplay
   int mModelViewProjId;
   int mColorId;
 
-  GPUDisplayBackend* mBackend;
+  GPUDisplayFrontend* mBackend;
   GPUChainTracking* mChain;
   const GPUParam* mParam;
   const GPUCalibObjectsConst* mCalib;
@@ -298,8 +298,8 @@ class GPUDisplay
   float mAngleRollOrigin = -1e9;
   float mMaxClusterZ = -1;
 
-  int mScreenwidth = GPUDisplayBackend::INIT_WIDTH, mScreenheight = GPUDisplayBackend::INIT_HEIGHT;
-  int mRenderwidth = GPUDisplayBackend::INIT_WIDTH, mRenderheight = GPUDisplayBackend::INIT_HEIGHT;
+  int mScreenwidth = GPUDisplayFrontend::INIT_WIDTH, mScreenheight = GPUDisplayFrontend::INIT_HEIGHT;
+  int mRenderwidth = GPUDisplayFrontend::INIT_WIDTH, mRenderheight = GPUDisplayFrontend::INIT_HEIGHT;
 
   hmm_mat4 mViewMatrix, mModelMatrix;
   float* const mViewMatrixP = &mViewMatrix.Elements[0][0];

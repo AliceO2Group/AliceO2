@@ -18,8 +18,8 @@ set(SRCS
     
 if(GPUCA_EVENT_DISPLAY)
     set(SRCS ${SRCS}
-             ../display/GPUDisplayBackendX11.cxx
-             ../display/GPUDisplayBackendGlut.cxx)
+             ../display/GPUDisplayFrontendX11.cxx
+             ../display/GPUDisplayFrontendGlut.cxx)
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")

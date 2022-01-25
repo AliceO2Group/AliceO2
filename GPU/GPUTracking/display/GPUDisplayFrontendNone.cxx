@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUDisplayBackendNone.cxx
+/// \file GPUDisplayFrontendNone.cxx
 /// \author David Rohr
 
-#include "GPUDisplayBackendNone.h"
+#include "GPUDisplayFrontendNone.h"
 using namespace GPUCA_NAMESPACE::gpu;

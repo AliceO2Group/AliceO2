@@ -9,25 +9,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUDisplayBackendX11.h
+/// \file GPUDisplayFrontendWindows.h
 /// \author David Rohr
 
-#ifndef GPUDISPLAYBACKENDX11_H
-#define GPUDISPLAYBACKENDX11_H
+#ifndef GPUDISPLAYFRONTENDWINDOWS_H
+#define GPUDISPLAYFRONTENDWINDOWS_H
 
-#include "GPUDisplayBackend.h"
-#include <GL/glx.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <GL/glxext.h>
+#include "GPUDisplayFrontend.h"
 
 namespace GPUCA_NAMESPACE::gpu
 {
-class GPUDisplayBackendX11 : public GPUDisplayBackend
+class GPUDisplayFrontendWindows : public GPUDisplayFrontend
 {
  public:
-  GPUDisplayBackendX11() = default;
-  ~GPUDisplayBackendX11() override = default;
+  GPUDisplayFrontendWindows() = default;
+  ~GPUDisplayFrontendWindows() override = default;
 
   int StartDisplay() override;
   void DisplayExit() override;
@@ -38,19 +34,6 @@ class GPUDisplayBackendX11 : public GPUDisplayBackend
 
  private:
   int OpenGLMain() override;
-  int GetKey(int key);
-  void GetKey(XEvent& event, int& keyOut, int& keyPressOut);
-
-  pthread_mutex_t mSemLockExit = PTHREAD_MUTEX_INITIALIZER;
-  volatile bool mDisplayRunning = false;
-
-  GLuint mFontBase;
-
-  Display* mDisplay = nullptr;
-  Window mWindow;
-
-  PFNGLXSWAPINTERVALEXTPROC mGlXSwapIntervalEXT = nullptr;
-  bool vsync_supported = false;
 };
 } // namespace GPUCA_NAMESPACE::gpu
 

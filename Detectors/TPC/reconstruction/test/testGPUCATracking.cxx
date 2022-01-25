@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   config.configProcessing.ompThreads = 4;         //4 threads if we run on the CPU, 1 = default, 0 = auto-detect
   config.configProcessing.runQA = false;          //Run QA after tracking
   config.configProcessing.eventDisplay = nullptr; //Ptr to event display backend, for running standalone OpenGL event display
-  //config.configProcessing.eventDisplay = new GPUDisplayBackendGlfw;
+  //config.configProcessing.eventDisplay = new GPUDisplayFrontendGlfw;
 
   config.configGRP.solenoidBz = solenoidBz;
   config.configGRP.continuousMaxTimeBin = continuous ? GPUSettings::TPC_MAX_TF_TIME_BIN : 0; //Number of timebins in timeframe if continuous, 0 otherwise

@@ -9,14 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUDisplayBackendGlut.cxx
+/// \file GPUDisplayFrontendGlut.cxx
 /// \author David Rohr
 
 // GL EXT must be the first header
 #include "GPUDisplayExt.h"
 
 // Now the other headers
-#include "GPUDisplayBackendGlut.h"
+#include "GPUDisplayFrontendGlut.h"
 #include "GPULogging.h"
 #include <cstdio>
 #include <cstring>
@@ -25,21 +25,21 @@
 
 #include <pthread.h>
 using namespace GPUCA_NAMESPACE::gpu;
-static GPUDisplayBackendGlut* me = nullptr;
+static GPUDisplayFrontendGlut* me = nullptr;
 
-void GPUDisplayBackendGlut::displayFunc()
+void GPUDisplayFrontendGlut::displayFunc()
 {
   me->DrawGLScene();
   glutSwapBuffers();
 }
 
-void GPUDisplayBackendGlut::glutLoopFunc()
+void GPUDisplayFrontendGlut::glutLoopFunc()
 {
   me->HandleSendKey();
   displayFunc();
 }
 
-int GPUDisplayBackendGlut::GetKey(int key)
+int GPUDisplayFrontendGlut::GetKey(int key)
 {
   if (key == GLUT_KEY_UP) {
     return (KEY_UP);
@@ -107,7 +107,7 @@ int GPUDisplayBackendGlut::GetKey(int key)
   return (0);
 }
 
-void GPUDisplayBackendGlut::GetKey(int key, int& keyOut, int& keyPressOut, bool special)
+void GPUDisplayFrontendGlut::GetKey(int key, int& keyOut, int& keyPressOut, bool special)
 {
   int specialKey = special ? GetKey(key) : 0;
   // GPUInfo("Key: key %d (%c) (special %d) -> %d (%c) special %d (%c)", key, (char) key, (int) special, (int) key, key, specialKey, (char) specialKey);
@@ -122,7 +122,7 @@ void GPUDisplayBackendGlut::GetKey(int key, int& keyOut, int& keyPressOut, bool 
   }
 }
 
-void GPUDisplayBackendGlut::keyboardDownFunc(unsigned char key, int x, int y)
+void GPUDisplayFrontendGlut::keyboardDownFunc(unsigned char key, int x, int y)
 {
   int handleKey = 0, keyPress = 0;
   GetKey(key, handleKey, keyPress, false);
@@ -131,7 +131,7 @@ void GPUDisplayBackendGlut::keyboardDownFunc(unsigned char key, int x, int y)
   me->HandleKey(handleKey);
 }
 
-void GPUDisplayBackendGlut::keyboardUpFunc(unsigned char key, int x, int y)
+void GPUDisplayFrontendGlut::keyboardUpFunc(unsigned char key, int x, int y)
 {
   int handleKey = 0, keyPress = 0;
   GetKey(key, handleKey, keyPress, false);
@@ -139,7 +139,7 @@ void GPUDisplayBackendGlut::keyboardUpFunc(unsigned char key, int x, int y)
   me->mKeysShift[keyPress] = false;
 }
 
-void GPUDisplayBackendGlut::specialDownFunc(int key, int x, int y)
+void GPUDisplayFrontendGlut::specialDownFunc(int key, int x, int y)
 {
   int handleKey = 0, keyPress = 0;
   GetKey(key, handleKey, keyPress, true);
@@ -148,7 +148,7 @@ void GPUDisplayBackendGlut::specialDownFunc(int key, int x, int y)
   me->HandleKey(handleKey);
 }
 
-void GPUDisplayBackendGlut::specialUpFunc(int key, int x, int y)
+void GPUDisplayFrontendGlut::specialUpFunc(int key, int x, int y)
 {
   int handleKey = 0, keyPress = 0;
   GetKey(key, handleKey, keyPress, true);
@@ -156,7 +156,7 @@ void GPUDisplayBackendGlut::specialUpFunc(int key, int x, int y)
   me->mKeysShift[keyPress] = false;
 }
 
-void GPUDisplayBackendGlut::ReSizeGLSceneWrapper(int width, int height)
+void GPUDisplayFrontendGlut::ReSizeGLSceneWrapper(int width, int height)
 {
   if (!me->mFullScreen) {
     me->mWidth = width;
@@ -165,7 +165,7 @@ void GPUDisplayBackendGlut::ReSizeGLSceneWrapper(int width, int height)
   me->ReSizeGLScene(width, height);
 }
 
-void GPUDisplayBackendGlut::mouseFunc(int button, int state, int x, int y)
+void GPUDisplayFrontendGlut::mouseFunc(int button, int state, int x, int y)
 {
   if (button == 3) {
     me->mMouseWheel += 100;
@@ -188,15 +188,15 @@ void GPUDisplayBackendGlut::mouseFunc(int button, int state, int x, int y)
   }
 }
 
-void GPUDisplayBackendGlut::mouseMoveFunc(int x, int y)
+void GPUDisplayFrontendGlut::mouseMoveFunc(int x, int y)
 {
   me->mouseMvX = x;
   me->mouseMvY = y;
 }
 
-void GPUDisplayBackendGlut::mMouseWheelFunc(int button, int dir, int x, int y) { me->mMouseWheel += dir; }
+void GPUDisplayFrontendGlut::mMouseWheelFunc(int button, int dir, int x, int y) { me->mMouseWheel += dir; }
 
-int GPUDisplayBackendGlut::OpenGLMain()
+int GPUDisplayFrontendGlut::OpenGLMain()
 {
   me = this;
   int nopts = 2;
@@ -245,7 +245,7 @@ int GPUDisplayBackendGlut::OpenGLMain()
   return 0;
 }
 
-void GPUDisplayBackendGlut::DisplayExit()
+void GPUDisplayFrontendGlut::DisplayExit()
 {
   pthread_mutex_lock(&mSemLockExit);
   if (mGlutRunning) {
@@ -257,7 +257,7 @@ void GPUDisplayBackendGlut::DisplayExit()
   }
 }
 
-void GPUDisplayBackendGlut::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
+void GPUDisplayFrontendGlut::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
 {
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
   if (!fromBotton) {
@@ -269,7 +269,7 @@ void GPUDisplayBackendGlut::OpenGLPrint(const char* s, float x, float y, float r
 #endif
 }
 
-void GPUDisplayBackendGlut::SwitchFullscreen(bool set)
+void GPUDisplayFrontendGlut::SwitchFullscreen(bool set)
 {
   mFullScreen = set;
   if (set) {
@@ -279,10 +279,10 @@ void GPUDisplayBackendGlut::SwitchFullscreen(bool set)
   }
 }
 
-void GPUDisplayBackendGlut::ToggleMaximized(bool set) {}
-void GPUDisplayBackendGlut::SetVSync(bool enable) {}
+void GPUDisplayFrontendGlut::ToggleMaximized(bool set) {}
+void GPUDisplayFrontendGlut::SetVSync(bool enable) {}
 
-int GPUDisplayBackendGlut::StartDisplay()
+int GPUDisplayFrontendGlut::StartDisplay()
 {
   static pthread_t hThread;
   if (pthread_create(&hThread, nullptr, OpenGLWrapper, this)) {

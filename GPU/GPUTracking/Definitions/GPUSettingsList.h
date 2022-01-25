@@ -172,7 +172,7 @@ AddOption(ignoreNonFatalGPUErrors, bool, false, "", 0, "Continue running after h
 AddOption(tpcIncreasedMinClustersPerRow, unsigned int, 0, "", 0, "Impose a minimum buffer size for the clustersPerRow during TPC clusterization")
 AddOption(noGPUMemoryRegistration, bool, false, "", 0, "Do not register input / output memory for GPU dma transfer")
 AddOption(automaticQPtThresholds, bool, true, "", 0, "Update the QPt thresholde at initialization accoding to the B field (i.e. lower to 40% for B=0.2T)")
-AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayBackend*, nullptr)
+AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayFrontend*, nullptr)
 AddSubConfig(GPUSettingsProcessingRTC, rtc)
 AddHelp("help", 'h')
 EndConfig()

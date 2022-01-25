@@ -161,7 +161,7 @@ set(HDRS_INSTALL
 
 # Sources for O2 and for Standalone if requested in config file
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR ALIGPU_BUILD_TYPE STREQUAL "Standalone")
-  set(SRCS_NO_CINT ${SRCS_NO_CINT} display/GPUDisplayBackend.cxx)
+  set(SRCS_NO_CINT ${SRCS_NO_CINT} display/GPUDisplayFrontend.cxx)
 endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
     set(SRCS_NO_CINT
@@ -236,7 +236,7 @@ endif()
 if(GPUCA_EVENT_DISPLAY)
   set(SRCS_NO_CINT ${SRCS_NO_CINT} utils/qsem.cxx
                    display/GPUDisplay.cxx
-                   display/GPUDisplayBackendGlfw.cxx)
+                   display/GPUDisplayFrontendGlfw.cxx)
   set(SRCS_NO_H ${SRCS_NO_H} display/GPUDisplayQuaternion.cxx
                 display/GPUDisplayInterpolation.cxx
                 display/GPUDisplayKeys.cxx

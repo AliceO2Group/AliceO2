@@ -9,11 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUDisplayBackend.h
+/// \file GPUDisplayFrontend.h
 /// \author David Rohr
 
-#ifndef GPUDISPLAYBACKEND_H
-#define GPUDISPLAYBACKEND_H
+#ifndef GPUDISPLAYFRONTEND_H
+#define GPUDISPLAYFRONTEND_H
 
 #include "GPUCommonDef.h"
 
@@ -24,13 +24,13 @@ namespace gpu
 class GPUReconstruction;
 class GPUDisplay;
 
-class GPUDisplayBackend
+class GPUDisplayFrontend
 {
   friend class GPUDisplay;
 
  public:
-  GPUDisplayBackend() = default;
-  virtual ~GPUDisplayBackend() = default;
+  GPUDisplayFrontend() = default;
+  virtual ~GPUDisplayFrontend() = default;
 
   // Compile time minimum version defined in GPUDisplay.h, keep in sync!
   static constexpr int GL_MIN_VERSION_MAJOR = 4;
