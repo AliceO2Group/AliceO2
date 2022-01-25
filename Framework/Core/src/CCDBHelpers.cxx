@@ -74,7 +74,7 @@ CCDBHelpers::ParserResult CCDBHelpers::parseRemappings(char const* str)
     switch (state) {
       case IN_BEGIN: {
         if (*str == 0) {
-          return {remappings, "Empty string provided"};
+          return {remappings, ""};
         }
         state = IN_BEGIN_URL;
       }
@@ -195,13 +195,13 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           }
           Output output{"CTP", "OrbitReset", 0, Lifetime::Condition};
           auto&& v = allocator.makeVector<char>(output);
-          helper->api.loadFileToMemory(v, path, metadata, timingInfo.timeslice,
+          helper->api.loadFileToMemory(v, path, metadata, timingInfo.creation,
                                        &headers, etag,
                                        helper->createdNotAfter,
                                        helper->createdNotBefore);
 
           if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
-            LOGP(error, "Unable to find object {}/{}", path, timingInfo.timeslice);
+            LOGP(error, "Unable to find object {}/{}", path, timingInfo.creation);
             //FIXME: I should send a dummy message.
             return;
           }
