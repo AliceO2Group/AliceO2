@@ -1669,6 +1669,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           DeviceSpecHelpers::reworkShmSegmentSize(dataProcessorInfos);
           DeviceSpecHelpers::prepareArguments(driverControl.defaultQuiet,
                                               driverControl.defaultStopped,
+                                              driverInfo.processingPolicies.termination == TerminationPolicy::WAIT,
                                               driverInfo.port,
                                               dataProcessorInfos,
                                               runningWorkflow.devices,

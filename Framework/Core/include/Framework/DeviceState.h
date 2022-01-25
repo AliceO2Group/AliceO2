@@ -85,6 +85,9 @@ struct DeviceState {
 
   uv_async_t* awakeMainThread = nullptr;
 
+  // A list of states which we should go to
+  std::vector<std::string> nextFairMQState;
+
   int loopReason = 0;
 };
 
