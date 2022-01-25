@@ -317,7 +317,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
   return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
-int GPUDisplayFrontendWindows::OpenGLMain()
+int GPUDisplayFrontendWindows::FrontendMain()
 {
   MSG msg;
   BOOL done = FALSE;

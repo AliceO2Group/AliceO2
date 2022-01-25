@@ -13,7 +13,7 @@
 /// \author David Rohr
 
 // GL EXT must be the first header
-#include "GPUDisplayExt.h"
+#include "GPUDisplayBackend.h"
 
 // Now the other headers
 #include "GPUDisplayFrontendX11.h"
@@ -168,7 +168,7 @@ void GPUDisplayFrontendX11::OpenGLPrint(const char* s, float x, float y, float r
 #endif
 }
 
-int GPUDisplayFrontendX11::OpenGLMain()
+int GPUDisplayFrontendX11::FrontendMain()
 {
   XSetWindowAttributes windowAttributes;
   XVisualInfo* visualInfo = nullptr;
@@ -228,7 +228,7 @@ int GPUDisplayFrontendX11::OpenGLMain()
     int context_attribs[] = {
       GLX_CONTEXT_MAJOR_VERSION_ARB, GL_MIN_VERSION_MAJOR,
       GLX_CONTEXT_MINOR_VERSION_ARB, GL_MIN_VERSION_MINOR,
-      GLX_CONTEXT_PROFILE_MASK_ARB, GPUCA_DISPLAY_OPENGL_CORE_FLAGS ? GLX_CONTEXT_CORE_PROFILE_BIT_ARB : GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
+      GLX_CONTEXT_PROFILE_MASK_ARB, mBackend->CoreProfile() ? GLX_CONTEXT_CORE_PROFILE_BIT_ARB : GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
       None};
     glxContext = glXCreateContextAttribsARB(mDisplay, fbconfig, nullptr, GL_TRUE, context_attribs);
   } else {
@@ -278,7 +278,7 @@ int GPUDisplayFrontendX11::OpenGLMain()
 #endif
 
   // Init OpenGL...
-  if (GPUDisplayExtInit()) {
+  if (mBackend->ExtInit()) {
     fprintf(stderr, "Error initializing GL extension wrapper\n");
     return (-1);
   }
@@ -487,7 +487,7 @@ void GPUDisplayFrontendX11::SetVSync(bool enable)
 int GPUDisplayFrontendX11::StartDisplay()
 {
   static pthread_t hThread;
-  if (pthread_create(&hThread, nullptr, OpenGLWrapper, this)) {
+  if (pthread_create(&hThread, nullptr, FrontendThreadWrapper, this)) {
     GPUError("Coult not Create GL Thread...");
     return (1);
   }

@@ -23,6 +23,7 @@ namespace gpu
 {
 class GPUReconstruction;
 class GPUDisplay;
+class GPUDisplayBackend;
 
 class GPUDisplayFrontend
 {
@@ -52,8 +53,8 @@ class GPUDisplayFrontend
   volatile int mNeedUpdate = 0;     // flag that backend shall update the GL window, and call DrawGLScene
 
  protected:
-  virtual int OpenGLMain() = 0;
-  static void* OpenGLWrapper(void*);
+  virtual int FrontendMain() = 0;
+  static void* FrontendThreadWrapper(void*);
 
   static constexpr int INIT_WIDTH = 1024, INIT_HEIGHT = 768;                           // Initial window size, before maximizing
   static constexpr const char* GL_WINDOW_NAME = "GPU CA TPC Standalone Event Display"; // Title of event display set by backend
@@ -101,7 +102,8 @@ class GPUDisplayFrontend
 
   int mMaxFPSRate = 0; // run at highest possible frame rate, do not sleep in between frames
 
-  GPUDisplay* mDisplay; // Ptr to display, not owning, set by display when it connects to backend
+  GPUDisplay* mDisplay = nullptr;        // Ptr to display, not owning, set by display when it connects to backend
+  GPUDisplayBackend* mBackend = nullptr; // Ptr to backend, not owning
 
   void HandleKey(unsigned char key);                                    // Callback for handling key presses
   int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f); // Callback to draw the GL scene
