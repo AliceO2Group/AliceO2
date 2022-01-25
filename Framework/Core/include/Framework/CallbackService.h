@@ -15,6 +15,7 @@
 #include "Framework/ServiceHandle.h"
 #include "Framework/DataProcessingHeader.h"
 #include "ServiceRegistry.h"
+#include "Framework/Logger.h"
 
 #include <fairmq/FwdDecls.h>
 
@@ -111,6 +112,9 @@ class CallbackService
   template <typename... TArgs>
   auto operator()(Id id, TArgs&&... args)
   {
+    if (id == Id::CCDBDeserialised) {
+      LOG(info) << "CallBack entry " << int(id);
+    }
     mCallbacks(id, std::forward<TArgs>(args)...);
   }
 
