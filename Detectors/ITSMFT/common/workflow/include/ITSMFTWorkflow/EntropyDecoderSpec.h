@@ -15,6 +15,7 @@
 #ifndef O2_ITSMFT_ENTROPYDECODER_SPEC
 #define O2_ITSMFT_ENTROPYDECODER_SPEC
 
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Headers/DataHeader.h"
@@ -37,12 +38,14 @@ class EntropyDecoderSpec : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
 
   static auto getName(o2::header::DataOrigin orig) { return std::string{orig == o2::header::gDataOriginITS ? ITSDeviceName : MFTDeviceName}; }
 
  private:
   void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
-
+  bool mAlpParUpd = false;
+  bool mGRPParUpd = false;
   static constexpr std::string_view ITSDeviceName = "its-entropy-decoder";
   static constexpr std::string_view MFTDeviceName = "mft-entropy-decoder";
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;

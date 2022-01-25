@@ -19,6 +19,8 @@
 #include "ITSMFTWorkflow/EntropyDecoderSpec.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsParameters/GRPObject.h"
 
 using namespace o2::framework;
 
@@ -84,6 +86,35 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 
 void EntropyDecoderSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
+  if (mAlpParUpd) {
+    auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
+    auto firstTForbit = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->firstTForbit;
+    LOG(info) << "Updated alppar at " << creationTime << " 1stTForbit: " << firstTForbit;
+    mAlpParUpd = false;
+  }
+  const auto& alppar = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
+  alppar.printKeyValues();
+
+  auto parCCDB = pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>*>("alpPar");
+  if (parCCDB) {
+    parCCDB->printKeyValues();
+  } else {
+    LOG(error) << "No CCDB object returned";
+  }
+
+  if (mGRPParUpd) {
+    auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
+    auto firstTForbit = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->firstTForbit;
+    LOG(info) << "Updated grp at " << creationTime << " 1stTForbit: " << firstTForbit;
+    mGRPParUpd = false;
+  }
+  auto parGRP = pc.inputs().get<o2::parameters::GRPObject*>("grp");
+  if (parGRP) {
+    parGRP->print();
+  } else {
+    LOG(error) << "No CCDB GRP object returned";
+  }
+
   static bool coderUpdated = false; // with dicts loaded from CCDB one should check also the validity of current object
   if (!coderUpdated) {
     coderUpdated = true;
@@ -113,6 +144,25 @@ void EntropyDecoderSpec::updateTimeDependentParams(ProcessingContext& pc)
   }
 }
 
+void EntropyDecoderSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  mAlpParUpd = false;
+  mGRPParUpd = false;
+  LOG(info) << "in finaliseCCDB";
+  if (matcher == ConcreteDataMatcher("MFT", "ALPIDEPARAM", 0)) {
+    mAlpParUpd = true;
+    const auto* alpparO = (o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>*)obj;
+    LOG(info) << "updated AlpPar object: ";
+    alpparO->printKeyValues();
+  }
+  if (matcher == ConcreteDataMatcher("GRP", "GRP", 0)) {
+    mGRPParUpd = true;
+    const auto* grp = (o2::parameters::GRPObject*)obj;
+    LOG(info) << "updated GRP object: ";
+    grp->print();
+  }
+}
+
 DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, int verbosity, bool getDigits)
 {
   std::vector<OutputSpec> outputs;
@@ -124,10 +174,14 @@ DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, int verbosi
     outputs.emplace_back(OutputSpec{{"ROframes"}, orig, "CLUSTERSROF", 0, Lifetime::Timeframe});
     outputs.emplace_back(OutputSpec{{"patterns"}, orig, "PATTERNS", 0, Lifetime::Timeframe});
   }
-
+  std::string alpUri = (orig == o2::header::gDataOriginITS) ? "Test/ITS/AlpideParam" : "Test/MFT/AlpideParam";
   return DataProcessorSpec{
     EntropyDecoderSpec::getName(orig),
-    Inputs{InputSpec{"ctf", orig, "CTFDATA", 0, Lifetime::Timeframe}},
+    Inputs{
+      InputSpec{"ctf", orig, "CTFDATA", 0, Lifetime::Timeframe},
+      InputSpec{"alpPar", orig, "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec(alpUri)},
+      InputSpec{"grp", "GRP", "GRP", 0, Lifetime::Condition, ccdbParamSpec("Test/GRP/Data")},
+    },
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(orig, verbosity, getDigits)},
     Options{

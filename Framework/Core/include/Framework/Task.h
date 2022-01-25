@@ -14,6 +14,7 @@
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/CallbackService.h"
 #include "Framework/EndOfStreamContext.h"
+#include "Framework/Logger.h"
 #include <utility>
 #include <memory>
 
@@ -122,6 +123,7 @@ AlgorithmSpec adaptFromTask(Args&&... args)
       });
     }
     if constexpr (has_finaliseCCDB<T>::value) {
+      LOG(info) << "Setting finaliseCCDB hook";
       auto& callbacks = ic.services().get<CallbackService>();
       callbacks.set(CallbackService::Id::CCDBDeserialised, [task](ConcreteDataMatcher& matcher, void* obj) {
         task->finaliseCCDB(matcher, obj);
