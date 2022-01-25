@@ -59,16 +59,6 @@
 #include "GPUChainITS.h"
 #endif
 
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
-#ifdef _WIN32
-#include "GPUDisplayFrontendWindows.h"
-#else
-#include "GPUDisplayFrontendX11.h"
-#include "GPUDisplayFrontendGlfw.h"
-#endif
-#include "GPUDisplayFrontendGlut.h"
-#endif
-
 using namespace GPUCA_NAMESPACE::gpu;
 
 //#define BROKEN_EVENTS
@@ -342,29 +332,28 @@ int SetupReconstruction()
 
   configStandalone.proc.forceMemoryPoolSize = (configStandalone.proc.forceMemoryPoolSize == 1 && configStandalone.eventDisplay) ? 2 : configStandalone.proc.forceMemoryPoolSize;
   if (configStandalone.eventDisplay) {
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
 #ifdef _WIN32
     if (configStandalone.eventDisplay == 1) {
+      eventDisplay.reset(GPUDisplayFrontend::getFrontend("windows"));
       printf("Enabling event display (windows backend)\n");
-      eventDisplay.reset(new GPUDisplayFrontendWindows);
     }
-
 #else
+#ifdef GPUCA_STANDALONE
     if (configStandalone.eventDisplay == 1) {
-      eventDisplay.reset(new GPUDisplayFrontendX11);
+      eventDisplay.reset(GPUDisplayFrontend::getFrontend("x11"));
       printf("Enabling event display (X11 backend)\n");
     }
+#endif
     if (configStandalone.eventDisplay == 3) {
-      eventDisplay.reset(new GPUDisplayFrontendGlfw);
+      eventDisplay.reset(GPUDisplayFrontend::getFrontend("glfw"));
       printf("Enabling event display (GLFW backend)\n");
     }
-
 #endif
-    else if (configStandalone.eventDisplay == 2) {
-      eventDisplay.reset(new GPUDisplayFrontendGlut);
+#ifdef GPUCA_STANDALONE
+    if (configStandalone.eventDisplay == 2) {
+      eventDisplay.reset(GPUDisplayFrontend::getFrontend("glut"));
       printf("Enabling event display (GLUT backend)\n");
     }
-
 #endif
     devProc.eventDisplay = eventDisplay.get();
   }

@@ -46,3 +46,43 @@ void GPUDisplayFrontend::ReSizeGLScene(int width, int height)
 int GPUDisplayFrontend::InitGL(bool initFailure) { return mDisplay->InitGL(initFailure); }
 void GPUDisplayFrontend::ExitGL() { return mDisplay->ExitGL(); }
 bool GPUDisplayFrontend::EnableSendKey() { return true; }
+
+#ifdef GPUCA_BUILD_EVENT_DISPLAY
+#ifdef _WIN32
+#include "GPUDisplayFrontendWindows.h"
+#else
+#ifdef GPUCA_STANDALONE
+#include "GPUDisplayFrontendX11.h"
+#endif
+#include "GPUDisplayFrontendGlfw.h"
+#endif
+#ifdef GPUCA_STANDALONE
+#include "GPUDisplayFrontendGlut.h"
+#endif
+#endif
+
+GPUDisplayFrontend* GPUDisplayFrontend::getFrontend(const char* type)
+{
+#ifdef GPUCA_BUILD_EVENT_DISPLAY
+#ifdef _WIN32
+  if (strcmp(type, "windows") == 0) {
+    return new GPUDisplayFrontendWindows;
+  }
+#else
+#ifdef GPUCA_STANDALONE
+  if (strcmp(type, "x11") == 0) {
+    return new GPUDisplayFrontendX11;
+  }
+#endif
+  if (strcmp(type, "glfw") == 0) {
+    return new GPUDisplayFrontendGlfw;
+  }
+#endif
+#ifdef GPUCA_STANDALONE
+  if (strcmp(type, "glut") == 0) {
+    return new GPUDisplayFrontendGlut;
+  }
+#endif
+#endif
+  return nullptr;
+}

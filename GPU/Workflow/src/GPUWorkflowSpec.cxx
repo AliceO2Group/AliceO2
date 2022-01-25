@@ -50,9 +50,6 @@
 #include "GPUO2Interface.h"
 #include "TPCPadGainCalib.h"
 #include "GPUDisplayFrontend.h"
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
-#include "GPUDisplayFrontendGlfw.h"
-#endif
 #include "DataFormatsParameters/GRPObject.h"
 #include "TPCBase/Sector.h"
 #include "TPCBase/Utils.h"
@@ -161,9 +158,12 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       config.configInterface.dumpEvents = confParam.dump;
       if (confParam.display) {
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
-        processAttributes->displayBackend.reset(new GPUDisplayFrontendGlfw);
         config.configProcessing.eventDisplay = processAttributes->displayBackend.get();
-        LOG(info) << "Event display enabled";
+        if (config.configProcessing.eventDisplay != nullptr) {
+          LOG(info) << "Event display enabled";
+        } else {
+          throw std::runtime_error("Standalone Event Display frontend could not be created!");
+        }
 #else
         throw std::runtime_error("Standalone Event Display not enabled at build time!");
 #endif

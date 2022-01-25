@@ -457,9 +457,19 @@ endif()
 
 # Main CMake part for Standalone
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
+  if(GPUCA_EVENT_DISPLAY)
+    set(SRCS ${SRCS}
+             display/GPUDisplayFrontendX11.cxx
+             display/GPUDisplayFrontendGlut.cxx)
+  endif()
+
   add_library(${MODULE} SHARED ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H} ${SRCS_DATATYPES})
   set(targetName ${MODULE})
   add_library(O2::${MODULE} ALIAS ${MODULE})
+
+if(GPUCA_EVENT_DISPLAY)
+  target_link_libraries(${targetName} PUBLIC X11::X11 glut)
+endif()
 endif()
 
 if(GPUCA_EVENT_DISPLAY)
