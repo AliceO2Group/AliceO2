@@ -115,7 +115,7 @@ arrow::Status sliceByColumn(
     int32_t cur = 0;
     int32_t lastNeg = 0;
     int32_t lastPos = 0;
-
+    bool switchedGroup = false;
     auto array = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(i)->data());
     for (auto e = 0; e < array.length(); ++e) {
       prev = cur;
@@ -129,16 +129,21 @@ arrow::Status sliceByColumn(
         if (lastPos > cur) {
           throw runtime_error_f("Table %s index %s is not sorted: next value %d < previous value %d!", target, key, cur, lastPos);
         }
-        if (lastPos == cur && prev < 0) {
+        if (switchedGroup && lastPos == cur && prev < 0) {
           throw runtime_error_f("Table %s index %s has a group with index %d that is split by %d", target, key, cur, prev);
         }
       } else {
         if (lastNeg < cur) {
           throw runtime_error_f("Table %s index %s is not sorted: next negative value %d > previous negative value %d!", target, key, cur, lastNeg);
         }
-        if (lastNeg == cur && prev >= 0) {
+        if (switchedGroup && lastNeg == cur && prev >= 0) {
           throw runtime_error_f("Table %s index %s has a group with index %d that is split by %d", target, key, cur, prev);
         }
+      }
+      if (cur != prev) {
+        switchedGroup = true;
+      } else {
+        switchedGroup = false;
       }
     }
   }
