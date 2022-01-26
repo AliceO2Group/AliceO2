@@ -13,6 +13,7 @@
 #define ALICEO2_ZDC_CONSTANTS_H
 
 #include "CommonConstants/PhysicsConstants.h"
+#include "CommonConstants/LHCConstants.h"
 #include <cstdint>
 #include <cstdlib>
 #include <array>
@@ -84,13 +85,18 @@ constexpr int MaxTDCValues = 5;  // max number of TDC values to store in reconst
 constexpr int NTDCChannels = 10; // max number of TDC values to store in reconstructed event
 constexpr uint32_t ZDCRefInitVal = 0xffffffff;
 // Parameters of interpolating function
-constexpr int TSL = 6;                      // number of zeros on the right (and on the left) of central peak
-constexpr int TSN = 200;                    // Number of interpolated points between each pair = TSN-1
-constexpr int TSNH = TSN / 2;               // Half of TSN
-constexpr int TSNS = 96;                    // Number of interpolated points per ns
-constexpr int NTS = 2 * TSL * TSN + 1;      // Tapered sinc function array size
-constexpr static float FTDCAmp = 1. / 8.;   // Multiplication factor in conversion from integer
-constexpr static float FTDCVal = 1. / TSNS; // Multiplication factor in conversion from integer
+constexpr int TSL = 6;                    // number of zeros on the right (and on the left) of central peak
+constexpr int TSN = 200;                  // Number of interpolated points between each pair = TSN-1
+constexpr int TSNH = TSN / 2;             // Half of TSN
+constexpr int NTS = 2 * TSL * TSN + 1;    // Tapered sinc function array size
+constexpr static float FTDCAmp = 1. / 8.; // Multiplication factor in conversion from integer
+// With a reference clock of 40 MHz exact this FTDCVal would have been
+// constexpr static float FTDCVal = 1. / TSNS;
+// with constexpr int TSNS = 96;
+// However we need to modify to take into account actual LHC clock frequency
+// Multiplication factor in conversion from integer
+constexpr static float FTDCVal = o2::constants::lhc::LHCBunchSpacingNS / NTimeBinsPerBC / TSN;
+constexpr static float FOffset = 8.; // Conversion from average pedestal to representation in OrbitData (16 bit)
 
 enum TDCChannelID {
   TDCZNAC,
@@ -104,6 +110,12 @@ enum TDCChannelID {
   TDCZPCC,
   TDCZPCS
 }; // TDC channels in reconstructed event, their number should be equal to NTDCChannels
+
+constexpr int NBucket = 10; // Number of buckets in a
+constexpr int NBKZero = 5;  // Bucket with main-main collisions
+constexpr int NFParA = 3;   // Number of parameters in fitting function - Amplitude
+constexpr int NFParT = 3;   // Number of parameters in fitting function - Time
+constexpr int NBCAn = 3;    // Number of analyzed bunches
 
 //< get detector TOF correction in ns
 constexpr float getTOFCorrection(int det)
@@ -209,8 +221,10 @@ constexpr int DbgFull = 3;
 
 const std::string CCDBPathConfigSim = "ZDC/Config/Sim";
 const std::string CCDBPathConfigModule = "ZDC/Config/Module";
+const std::string CCDBPathConfigReco = "ZDC/Calib/RecoParam";
 const std::string CCDBPathRecoConfigZDC = "ZDC/Calib/RecoConfigZDC";
 const std::string CCDBPathTDCCalib = "ZDC/Calib/TDCCalib";
+const std::string CCDBPathTDCCorr = "ZDC/Calib/TDCCorr";
 const std::string CCDBPathEnergyCalib = "ZDC/Calib/EnergyCalib";
 const std::string CCDBPathTowerCalib = "ZDC/Calib/TowerCalib";
 
@@ -220,12 +234,27 @@ enum Ped { PedND = 0,
            PedQC = 3,
            PedMissing = 4 };
 
+// Max 256 error messages
 enum Msg { MsgGeneric = 0,
            MsgTDCPedQC = 1,
            MsgTDCPedMissing = 2,
            MsgADCPedOr = 3,
            MsgADCPedQC = 4,
            MsgADCPedMissing = 5,
+           MsgOffPed = 6,
+           MsgPilePed = 7,
+           MsgPileTM = 8,
+           MsgADCMissingwTDC = 9,
+           MsgTDCPileEvC = 10, // A correction is done
+           MsgTDCPileEvE = 11, // Correction has problems
+           MsgTDCPileM1C = 12,
+           MsgTDCPileM1E = 13,
+           MsgTDCPileM2C = 14,
+           MsgTDCPileM2E = 15,
+           MsgTDCPileM3C = 16,
+           MsgTDCPileM3E = 17,
+           MsgTDCSigE = 18, // Error correcting isolated signal
+           // End_of_messages
            MsgEnd };
 
 constexpr std::string_view MsgText[] = {
@@ -234,7 +263,21 @@ constexpr std::string_view MsgText[] = {
   "TDC missing ped",
   "ADC Orbit ped",
   "ADC QC ped",
-  "ADC missing ped"};
+  "ADC missing ped",
+  "Positive pedestal offset",
+  "Pile-up in event pedestal",
+  "Pile-up in TM",
+  "ADC missing, TDC present",
+  "TDC pile-up Ev C", // In-event pile-up corrected
+  "TDC pile-up Ev E", // In-event pile-up correction error
+  "TDC pile-up M1 C", // Corrected for pile-up in bunch -1
+  "TDC pile-up M1 E",
+  "TDC pile-up M2 C",
+  "TDC pile-up M2 E",
+  "TDC pile-up M3 C",
+  "TDC pile-up M3 E",
+  "TDC signal E"};
+  // End_of_messages
 
 // List of channels that can be calibrated
 constexpr std::array<int, 10> ChEnergyCalib{IdZNAC, IdZNASum, IdZPAC, IdZPASum,

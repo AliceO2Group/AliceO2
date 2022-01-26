@@ -17,6 +17,7 @@
 #include "DataFormatsZDC/BCRecData.h"
 #include "DataFormatsZDC/ZDCEnergy.h"
 #include "DataFormatsZDC/ZDCTDCData.h"
+#include "DataFormatsZDC/RecEventAux.h"
 #include "ZDCBase/Constants.h"
 #include "MathUtils/Cartesian.h"
 #include <Rtypes.h>
@@ -37,26 +38,31 @@ struct RecEvent {
   std::vector<o2::zdc::ZDCEnergy> mEnergy;   /// ZDC energy
   std::vector<o2::zdc::ZDCTDCData> mTDCData; /// ZDC TDC
   std::vector<uint16_t> mInfo;               /// Event quality information
-  // Add new bunch crossing without data
-  inline void addBC(o2::InteractionRecord ir)
+  // Add new bunch crossing
+  inline void addBC(const RecEventAux& reca)
   {
-    mRecBC.emplace_back(mEnergy.size(), mTDCData.size(), mInfo.size(), ir);
-  }
-  inline void addBC(o2::InteractionRecord ir, uint32_t channels, uint32_t triggers)
-  {
-    mRecBC.emplace_back(mEnergy.size(), mTDCData.size(), mInfo.size(), ir);
-    mRecBC.back().channels = channels;
-    mRecBC.back().triggers = triggers;
+#ifdef O2_ZDC_DEBUG
+    printf("addBC %u.%-4u En_start:%-2lu TDC_start:%-2lu Info_start:%-2lu ch=0x%08x tr=0x%08x\n", reca.ir.orbit, reca.ir.bc, mEnergy.size(), mTDCData.size(), mInfo.size(), reca.channels, reca.triggers);
+#endif
+    mRecBC.emplace_back(mEnergy.size(), mTDCData.size(), mInfo.size(), reca.ir);
+    mRecBC.back().channels = reca.channels;
+    mRecBC.back().triggers = reca.triggers;
   }
   // Add energy
   inline void addEnergy(uint8_t ch, float energy)
   {
+#ifdef O2_ZDC_DEBUG
+    printf("ch:%-2u [%s] Energy %f\n", ch, ChannelNames[ch].data(), energy);
+#endif
     mEnergy.emplace_back(ch, energy);
     mRecBC.back().addEnergy();
   }
   // Add TDC
   inline void addTDC(uint8_t ch, int16_t val, int16_t amp)
   {
+#ifdef O2_ZDC_DEBUG
+    printf("ch:%-2u [%s] TDC %d Amp. %d\n", ch, ChannelNames[TDCSignal[ch]].data(), val, amp);
+#endif
     mTDCData.emplace_back(ch, val, amp);
     mRecBC.back().addTDC();
   }
@@ -78,59 +84,14 @@ struct RecEvent {
     }
     uint16_t info = (code & 0x03ff) | ((ch & 0x1f) << 10);
 #ifdef O2_ZDC_DEBUG
-    printf("addInfo ch=%u code=%u info=%u 0x%04x\n", ch, code, info, info);
+    printf("addInfo ch=%u code=%u \"%s\" info=%u 0x%04x\n", ch, code, MsgText[code].data(), info, info);
 #endif
     mInfo.emplace_back(info);
     mRecBC.back().addInfo();
   }
 
-  void addInfo(const std::array<bool, NChannels>& vec, const uint16_t code)
-  {
-    // Prepare list of channels interested by this message
-    int cnt = 0;
-    std::array<int, NChannels> active;
-    for (uint8_t ich = 0; ich < NChannels; ich++) {
-      if (vec[ich] == true) {
-        active[cnt] = ich;
-        cnt++;
-      }
-    }
-    if (cnt == 0) {
-      return;
-    }
-#ifdef O2_ZDC_DEBUG
-    printf("addInfo(");
-    for (uint8_t ich = 0; ich < NChannels; ich++) {
-      if (vec[ich] == true) {
-        printf("1");
-      } else {
-        printf("0");
-      }
-    }
-    printf(", code=%u \"%s\") %d active.\n", code, MsgText[code].data(), cnt);
-#endif
-    if (cnt <= 3) {
-      // Transmission of single channels
-      for (uint8_t i = 0; i < cnt; i++) {
-        addInfo(active[i], code);
-      }
-    } else {
-      // Transmission of channel pattern
-      uint16_t ch = 0x1f;
-      addInfo(ch, code);
-      uint16_t info = 0x8000;
-      uint8_t i = 0;
-      for (; i < cnt && active[i] < 15; i++) {
-        info = info | (0x1 << active[i]);
-      }
-      addInfo(info);
-      info = 0x8000;
-      for (; i < cnt; i++) {
-        info = info | (0x1 << (active[i] - 15));
-      }
-      addInfo(info);
-    }
-  }
+  uint32_t addInfo(const RecEventAux& reca, const std::array<bool, NChannels>& vec, const uint16_t code);
+  uint32_t addInfos(const RecEventAux& reca);
 
   void print() const;
   // TODO: remove persitency of this object (here for debugging)

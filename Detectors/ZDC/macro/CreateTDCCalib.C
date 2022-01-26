@@ -23,10 +23,9 @@
 
 using namespace std;
 
-void CreateZDCTDCParam(long tmin = 0, long tmax = -1, std::string ccdbHost = "http://ccdb-test.cern.ch:8080")
+void CreateTDCCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "http://ccdb-test.cern.ch:8080", float def_shift = 14.5)
 {
   o2::zdc::ZDCTDCParam conf;
-  float def_shift = 14.5;
   // TODO: extract shift from TDC spectra
   conf.setShift(o2::zdc::TDCZNAC, def_shift);
   conf.setShift(o2::zdc::TDCZNAS, def_shift);

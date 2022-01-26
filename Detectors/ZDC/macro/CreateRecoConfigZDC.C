@@ -97,6 +97,42 @@ void CreateRecoConfigZDC(long tmin = 0, long tmax = -1,
   conf.setIntegration(IdZPC4, beg_sig, end_sig, beg_ped, end_ped);
   conf.setIntegration(IdZPCSum, beg_sig, end_sig, beg_ped, end_ped);
 
+  // Pile-up detection from pedestal estimation
+  // Default value ADCRange will never allow to revert to orbit pedestal and will never identify pile-up
+  // Values <=0 will identify all events as pile-up and use always orbit pedestal
+  float ped_thr_high = ADCRange;
+  float ped_thr_low = ADCRange;
+  conf.setPedThreshold(IdZNAC, ped_thr_high, ped_thr_low);
+  conf.setPedThreshold(IdZNA1, ped_thr_high, ped_thr_low);
+  conf.setPedThreshold(IdZNA2, ped_thr_high, ped_thr_low);
+  conf.setPedThreshold(IdZNA3, ped_thr_high, ped_thr_low);
+  conf.setPedThreshold(IdZNA4, ped_thr_high, ped_thr_low);
+  conf.setPedThreshold(IdZNASum, ped_thr_high, ped_thr_low);
+
+  conf.setPedThreshold(IdZPAC, ped_thr_high, ped_thr_low);
+  conf.setPedThreshold(IdZPA1, ped_thr_high, ped_thr_low);
+  conf.setPedThreshold(IdZPA2, ped_thr_high, ped_thr_low);
+  conf.setPedThreshold(IdZPA3, ped_thr_high, ped_thr_low);
+  conf.setPedThreshold(IdZPA4, ped_thr_high, ped_thr_low);
+  conf.setPedThreshold(IdZPASum, ped_thr_high, ped_thr_low);
+
+  conf.setPedThreshold(IdZEM1, ped_thr_high, ped_thr_low);
+  conf.setPedThreshold(IdZEM2, ped_thr_high, ped_thr_low);
+
+  conf.setPedThreshold(IdZNCC, ped_thr_high, ped_thr_low);
+  conf.setPedThreshold(IdZNC1, ped_thr_high, ped_thr_low);
+  conf.setPedThreshold(IdZNC2, ped_thr_high, ped_thr_low);
+  conf.setPedThreshold(IdZNC3, ped_thr_high, ped_thr_low);
+  conf.setPedThreshold(IdZNC4, ped_thr_high, ped_thr_low);
+  conf.setPedThreshold(IdZNCSum, ped_thr_high, ped_thr_low);
+
+  conf.setPedThreshold(IdZPCC, ped_thr_high, ped_thr_low);
+  conf.setPedThreshold(IdZPC1, ped_thr_high, ped_thr_low);
+  conf.setPedThreshold(IdZPC2, ped_thr_high, ped_thr_low);
+  conf.setPedThreshold(IdZPC3, ped_thr_high, ped_thr_low);
+  conf.setPedThreshold(IdZPC4, ped_thr_high, ped_thr_low);
+  conf.setPedThreshold(IdZPCSum, ped_thr_high, ped_thr_low);
+
   conf.print();
 
   o2::ccdb::CcdbApi api;

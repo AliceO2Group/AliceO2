@@ -32,21 +32,7 @@ void DigiReco::init()
     return;
   }
 
-  // Prepare tapered sinc function
-  // tsc/TSN =3.75 (~ 4) and TSL*TSN*sqrt(2)/tsc >> 1 (n. of sigma)
-  const O2_ZDC_DIGIRECO_FLT tsc = 750;
-  int n = TSL * TSN;
-  for (int tsi = 0; tsi <= n; tsi++) {
-    O2_ZDC_DIGIRECO_FLT arg1 = TMath::Pi() * O2_ZDC_DIGIRECO_FLT(tsi) / O2_ZDC_DIGIRECO_FLT(TSN);
-    O2_ZDC_DIGIRECO_FLT fs = 1;
-    if (arg1 != 0) {
-      fs = TMath::Sin(arg1) / arg1;
-    }
-    O2_ZDC_DIGIRECO_FLT arg2 = O2_ZDC_DIGIRECO_FLT(tsi) / tsc;
-    O2_ZDC_DIGIRECO_FLT fg = TMath::Exp(-arg2 * arg2);
-    mTS[n + tsi] = fs * fg;
-    mTS[n - tsi] = mTS[n + tsi]; // Function is even
-  }
+  prepareInterpolation();
 
   if (mTreeDbg) {
     // Open debug file
@@ -57,8 +43,9 @@ void DigiReco::init()
   }
 
   // Update reconstruction parameters
-  //auto& ropt=RecoParamZDC::Instance();
+  // auto& ropt=RecoParamZDC::Instance();
   o2::zdc::RecoParamZDC& ropt = const_cast<o2::zdc::RecoParamZDC&>(RecoParamZDC::Instance());
+  mRopt = (o2::zdc::RecoParamZDC*)&ropt;
 
   // Fill maps to decode the pattern of channels with hit
   for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
@@ -68,8 +55,8 @@ void DigiReco::init()
       for (int im = 0; im < NModules; im++) {
         for (uint32_t ic = 0; ic < NChPerModule; ic++) {
           if (mModuleConfig->modules[im].channelID[ic] == isig && mModuleConfig->modules[im].readChannel[ic]) {
-            //ropt.updateFromString(TString::Format("RecoParamZDC.tmod[%d]=%d;",itdc,im));
-            //ropt.updateFromString(TString::Format("RecoParamZDC.tch[%d]=%d;",itdc,ic));
+            // ropt.updateFromString(TString::Format("RecoParamZDC.tmod[%d]=%d;",itdc,im));
+            // ropt.updateFromString(TString::Format("RecoParamZDC.tch[%d]=%d;",itdc,ic));
             ropt.tmod[itdc] = im;
             ropt.tch[itdc] = ic;
             // Fill mask to identify TDC channels
@@ -187,6 +174,8 @@ void DigiReco::init()
           if (mModuleConfig->modules[im].channelID[ic] == ich && mModuleConfig->modules[im].readChannel[ic]) {
             ropt.amod[ich] = im;
             ropt.ach[ich] = ic;
+            // Fill mask to identify TDC channels
+            mChMask[ich] = (0x1 << (4 * im + ic));
             goto next_ich;
           }
         }
@@ -217,11 +206,61 @@ void DigiReco::init()
         ropt.end_ped_int[ich] = mRecoConfigZDC->end_ped_int[ich];
       }
     }
+    // Thresholds for pedestal
+    // If the reconstruction parameters were not manually set
+    if (ropt.beg_int[ich] == ADCRange) {
+      if (!mRecoConfigZDC) {
+        LOG(fatal) << "Pedestal threshold high for signal " << ich << " missing configuration object and no manual override";
+      } else {
+        ropt.ped_thr_hi[ich] = mRecoConfigZDC->ped_thr_hi[ich];
+      }
+    }
+    if (ropt.beg_int[ich] == ADCRange) {
+      if (!mRecoConfigZDC) {
+        LOG(fatal) << "Pedestal threshold low for signal " << ich << " missing configuration object and no manual override";
+      } else {
+        ropt.ped_thr_lo[ich] = mRecoConfigZDC->ped_thr_lo[ich];
+      }
+    }
     if (mVerbosity > DbgZero) {
-      LOG(info) << ChannelNames[ich] << " integration: signal=[" << ropt.beg_int[ich] << ":" << ropt.end_int[ich] << "] pedestal=[" << ropt.beg_ped_int[ich] << ":" << ropt.end_ped_int[ich] << "]";
+      LOG(info) << ChannelNames[ich] << " integration: signal=[" << ropt.beg_int[ich] << ":" << ropt.end_int[ich] << "] pedestal=[" << ropt.beg_ped_int[ich] << ":" << ropt.end_ped_int[ich]
+                << "] thresholds (" << ropt.ped_thr_hi[ich] << ", " << ropt.ped_thr_lo[ich] << ")";
     }
   }
+  if (mVerbosity > DbgZero && mTDCCorr != nullptr) {
+    mTDCCorr->print();
+  }
 } // init
+
+void DigiReco::prepareInterpolation()
+{
+  // Prepare tapered sinc function
+  // Lost reference of first interpolating function
+  // Found problems in implementation: the interpolated function is not derivable in sampled points
+  // tsc/TSN =3.75 (~ 4) and TSL*TSN*sqrt(2)/tsc >> 1 (n. of sigma)
+  // const O2_ZDC_DIGIRECO_FLT tsc = 750;
+  // Kaiser function
+  O2_ZDC_DIGIRECO_FLT beta = TMath::Pi() * mAlpha;
+  O2_ZDC_DIGIRECO_FLT norm = 1. / TMath::BesselI0(beta);
+  constexpr int n = TSL * TSN;
+  for (int tsi = 0; tsi <= n; tsi++) {
+    O2_ZDC_DIGIRECO_FLT arg1 = TMath::Pi() * O2_ZDC_DIGIRECO_FLT(tsi) / O2_ZDC_DIGIRECO_FLT(TSN);
+    O2_ZDC_DIGIRECO_FLT fs = 1;
+    if (arg1 != 0) {
+      fs = TMath::Sin(arg1) / arg1;
+    }
+    // First tapering window
+    // O2_ZDC_DIGIRECO_FLT arg2 = O2_ZDC_DIGIRECO_FLT(tsi) / tsc;
+    // O2_ZDC_DIGIRECO_FLT fg = TMath::Exp(-arg2 * arg2);
+    // Kaiser window
+    O2_ZDC_DIGIRECO_FLT arg2 = O2_ZDC_DIGIRECO_FLT(tsi) / O2_ZDC_DIGIRECO_FLT(n);
+    O2_ZDC_DIGIRECO_FLT fg = norm * TMath::BesselI0(beta * TMath::Sqrt(1. - arg2 * arg2));
+    mTS[n + tsi] = fs * fg;
+    mTS[n - tsi] = mTS[n + tsi]; // Function is even
+  }
+  LOG(info) << "Interpolation numeric precision is " << sizeof(O2_ZDC_DIGIRECO_FLT);
+  LOG(info) << "Interpolation alpha = " << mAlpha;
+}
 
 int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, const gsl::span<const o2::zdc::BCData>& bcdata, const gsl::span<const o2::zdc::ChannelData>& chdata)
 {
@@ -286,16 +325,54 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
     mReco[ibc].triggers = mBCData[ibc].triggers;
   }
 
-  // Find consecutive bunch crossings and perform signal interpolation
-  // in the identified ranges (in the reconstruction method we take into
-  // account for signals that do not span the entire reange)
+  // Find consecutive bunch crossings by taking into account just the presence
+  // of bunch crossing data and then perform signal interpolation in the identified ranges.
+  // With this definition of "consecutive" bunch crossings gaps in the sample data
+  // may be present , therefore in the reconstruction method we take into account for signals
+  // that do not span the entire range
   int seq_beg = 0;
   int seq_end = 0;
   LOG(info) << "Processing ZDC reconstruction for " << mNBC << " bunch crossings";
+  // TDC reconstruction
   for (int ibc = 0; ibc < mNBC; ibc++) {
     auto& ir = mBCData[seq_end].ir;
     auto bcd = mBCData[ibc].ir.differenceInBC(ir);
     if (bcd < 0) {
+      for (int ibcdump = 0; ibcdump < mNBC; ibcdump++) {
+        LOG(error) << "mBCData[" << ibcdump << "] @ " << mBCData[ibcdump].ir.orbit << "." << mBCData[ibcdump].ir.bc;
+      }
+      LOG(fatal) << "Orbit number is not increasing " << mBCData[seq_end].ir.orbit << "." << mBCData[seq_end].ir.bc << " followed by " << mBCData[ibc].ir.orbit << "." << mBCData[ibc].ir.bc;
+      return __LINE__;
+    } else if (bcd > 1) {
+      // Detected a gap
+      reconstructTDC(seq_beg, seq_end);
+      seq_beg = ibc;
+      seq_end = ibc;
+    } else if (ibc == (mNBC - 1)) {
+      // Last bunch
+      seq_end = ibc;
+      reconstructTDC(seq_beg, seq_end);
+      seq_beg = mNBC;
+      seq_end = mNBC;
+    } else {
+      // Look for another bunch
+      seq_end = ibc;
+    }
+  }
+
+  // Apply pile-up correction for TDCs to get corrected TDC amplitudes and values
+  correctTDCPile();
+
+  // ADC reconstruction
+  seq_beg = 0;
+  seq_end = 0;
+  for (int ibc = 0; ibc < mNBC; ibc++) {
+    auto& ir = mBCData[seq_end].ir;
+    auto bcd = mBCData[ibc].ir.differenceInBC(ir);
+    if (bcd < 0) {
+      for (int ibcdump = 0; ibcdump < mNBC; ibcdump++) {
+        LOG(error) << "mBCData[" << ibcdump << "] @ " << mBCData[ibcdump].ir.orbit << "." << mBCData[ibcdump].ir.bc;
+      }
       LOG(fatal) << "Orbit number is not increasing " << mBCData[seq_end].ir.orbit << "." << mBCData[seq_end].ir.bc << " followed by " << mBCData[ibc].ir.orbit << "." << mBCData[ibc].ir.bc;
       return __LINE__;
     } else if (bcd > 1) {
@@ -314,31 +391,12 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
       seq_end = ibc;
     }
   }
-
   return 0;
 } // process
 
-int DigiReco::reconstruct(int ibeg, int iend)
+void DigiReco::reconstructTDC(int ibeg, int iend)
 {
-  // Process consecutive BCs
-  if (ibeg == iend) {
-    if (mReco[ibeg].ir.bc == (o2::constants::lhc::LHCMaxBunches - 1)) {
-      mNLastLonely++;
-    } else {
-      mNLonely++;
-      LOG(info) << "Lonely bunch " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc;
-    }
-    return 0;
-  }
-
-  if (mVerbosity >= DbgFull) {
-    LOG(info) << __func__ << "(" << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
-  }
-
-  // Get reconstruction parameters
-  auto& ropt = RecoParamZDC::Instance();
-
-  // Apply differential discrimination with triple condition
+  // Apply differential discrimination
   for (int itdc = 0; itdc < NTDCChannels; itdc++) {
     // Check if channel has valid data for consecutive bunches in current bunch range
     // N.B. there are events recorded from ibeg-iend but we are not sure if it is the
@@ -366,118 +424,146 @@ int DigiReco::reconstruct(int ibeg, int iend)
       processTrigger(itdc, istart, istop);
     }
   }
+  // processTrigger(..) calls interpolate(..) that assigns all TDCs
+  // The following TDC processing stage findSignals(..) assumes that time shift
+  // due to pile-up has been corrected because main-main is assumed to be
+  // in position 0
+} // reconstructTDC
 
-  // Loop on bunches after trigger evaluation
-  // Reconstruct integrated charges and fill output tree
-  // TODO: compare average pedestal with estimation from current event
-  // TODO: failover in case of discrepancy
-  for (int ibun = ibeg; ibun <= iend; ibun++) {
-    updateOffsets(ibun);
-    auto& rec = mReco[ibun];
-    for (int itdc = 0; itdc < NTDCChannels; itdc++) {
-#ifdef O2_ZDC_DEBUG
-      if (rec.fired[itdc] != 0x0) {
-        printf("%d %u.%u TDC %d [%s] %04hx -> ", ibun, rec.ir.orbit, rec.ir.bc, itdc, ChannelNames[TDCSignal[itdc]].data(), rec.fired[itdc]);
-        for (int isam = 0; isam < NTimeBinsPerBC; isam++) {
-          printf("%d", rec.fired[itdc] & mMask[isam] ? 1 : 0);
-        }
-        printf("\n");
-      }
-#endif
-      rec.pattern[itdc] = 0;
-      for (int32_t i = 0; i < rec.ntdc[itdc]; i++) {
-#ifdef O2_ZDC_DEBUG
-        LOG(info) << "tdc " << i << " [" << ChannelNames[TDCSignal[itdc]] << "] " << rec.TDCAmp[itdc][i] << " @ " << rec.TDCVal[itdc][i];
-#endif
-        // There is a TDC value in the search zone around main-main position
-        if (std::abs(rec.TDCVal[itdc][i]) < ropt.tdc_search[itdc]) {
-          rec.pattern[itdc] = 1;
-        }
-#ifdef O2_ZDC_DEBUG
-        else {
-          LOG(info) << rec.TDCVal[itdc][i] << " " << ropt.tdc_search[itdc];
-        }
-#endif
-      }
+int DigiReco::reconstruct(int ibeg, int iend)
+{
+  // Process consecutive BCs
+  if (ibeg == iend) {
+    if (mReco[ibeg].ir.bc == (o2::constants::lhc::LHCMaxBunches - 1)) {
+      mNLastLonely++;
+    } else {
+      mNLonely++;
+      LOG(info) << "Lonely bunch " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc;
     }
+    return 0;
+  }
 #ifdef O2_ZDC_DEBUG
-    printf("%d %u.%-4u TDC PATTERN: ", ibun, mReco[ibun].ir.orbit, mReco[ibun].ir.bc);
+  LOG(info) << __func__ << "(" << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
+  for (int ibun = ibeg; ibun <= iend; ibun++) {
+    printf("%d CH Mask: 0x%08x TDC data for:", ibun, mBCData[ibun].channels);
     for (int itdc = 0; itdc < NTDCChannels; itdc++) {
-      printf("%d", rec.pattern[itdc]);
+      if (mBCData[ibun].channels & mTDCMask[itdc]) {
+        printf(" %s", ChannelNames[TDCSignal[itdc]].data());
+      } else {
+        printf("     ");
+      }
     }
     printf("\n");
+  }
 #endif
-    // Check if coincidence of common PM and sum of towers is satisfied
-    bool fired[NChannels] = {0};
-    // Side A
-    if ((rec.pattern[TDCZNAC] || ropt.bitset[TDCZNAC]) && (rec.pattern[TDCZNAS] || ropt.bitset[TDCZNAS])) {
-      for (int ich = IdZNAC; ich <= IdZNASum; ich++) {
-        fired[ich] = true;
+
+  // After pile-up correction, find signals around main-main that satisfy condition on TDC
+  findSignals(ibeg, iend);
+
+  // For each calorimeter that has detects a collision at the time of main-main
+  // collisions we reconstruct integrated charges and fill output tree
+  for (int ich = 0; ich < NChannels; ich++) {
+    // We consder the longest sequence of acquired bunches that can be readout by
+    // the acquisition in case of isolated events (filling scheme with sigle bunches)
+    uint32_t ref[NBCReadOut] = {ZDCRefInitVal, ZDCRefInitVal, ZDCRefInitVal, ZDCRefInitVal};
+    // Flags to investigate pile-up
+    bool hasFired[NBCReadOut] = {0}; // Channel has a TDC fired
+    bool hasHit[NBCReadOut] = {0};   // Channel has hit
+    bool hasAuto0[NBCReadOut] = {0}; // Module has Auto_0 trigger bit
+    bool hasAutoM[NBCReadOut] = {0}; // Module has Auto_m trigger bit
+    // Initialize info about previous bunches
+    for (int ibp = 1; ibp < 4; ibp++) {
+      int ibun = ibeg - ibp;
+      // For the time being, we cannot access previous time frame (ibun<0)
+      if (ibun < 0) {
+        break;
       }
-    }
-    if ((rec.pattern[TDCZPAC] || ropt.bitset[TDCZPAC]) && (rec.pattern[TDCZPAS] || ropt.bitset[TDCZPAS])) {
-      for (int ich = IdZPAC; ich <= IdZPASum; ich++) {
-        fired[ich] = true;
+      auto bcd = mBCData[ibeg].ir.differenceInBC(mBCData[ibun].ir);
+      if (bcd < 1) {
+        LOG(fatal) << "Bunches are not in ascending order: " << mBCData[ibeg].ir.orbit << "." << mBCData[ibeg].ir.bc << " followed by " << mBCData[ibun].ir.orbit << "." << mBCData[ibun].ir.bc;
       }
-    }
-    // ZEM1 and ZEM2 are not in coincidence
-    fired[IdZEM1] = rec.pattern[TDCZEM1];
-    fired[IdZEM2] = rec.pattern[TDCZEM2];
-    // Side C
-    if ((rec.pattern[TDCZNCC] || ropt.bitset[TDCZNCC]) && (rec.pattern[TDCZNCS] || ropt.bitset[TDCZNCS])) {
-      for (int ich = IdZNCC; ich <= IdZNCSum; ich++) {
-        fired[ich] = true;
+      if (bcd > 3) {
+        break;
       }
-    }
-    if ((rec.pattern[TDCZPCC] || ropt.bitset[TDCZPCC]) && (rec.pattern[TDCZPCS] || ropt.bitset[TDCZPCS])) {
-      for (int ich = IdZPCC; ich <= IdZPCSum; ich++) {
-        fired[ich] = true;
+      // Assignment is done taking into account bunch crossing difference
+      ref[bcd] = mReco[ibun].ref[ich];
+      // If channel has no waverform data cannot have a hit or trigger bit assigned
+      // because all channels of a module are acquired if trigger condition is
+      // satisfied
+      if (ref[bcd] == ZDCRefInitVal) {
+        continue;
       }
+      // This condition is not comprehensive of all pile-up sources
+      // chfired: Fired TDC condition related to channel (e.g. AND of TC and SUM @ main-main)
+      hasFired[bcd] = mReco[ibun].chfired[ich];
+      // Information from hardware autotrigger is not restricted to hits in main-main
+      // but it may extend outside the correct bunch for signals near the bunch edges
+      // hasHit refers to a single channel since it is derived from ChannelDataV0::Hit
+      hasHit[bcd] = mBCData[ibun].triggers & mChMask[ich];
+      // hasAuto0 and hasAutoM are derived from autotrigger decisions and therefore
+      // refer to a module (max 4 channels) and not to a single channel
+      ModuleTriggerMapData mt;
+      mt.w = mBCData[ibun].moduleTriggers[mRopt->amod[ich]];
+      hasAuto0[bcd] = mt.f.Auto_0;
+      hasAutoM[bcd] = mt.f.Auto_m;
+      printf("%2d %s bcd = %d ibun = %d ibeg = %d ref = %3u %s %s %s\n",
+             ich, ChannelNames[ich].data(), bcd, ibun, ibeg, ref[bcd],
+             hasHit[bcd] ? "H" : "-", hasAuto0[bcd] ? "A0" : "--", hasAutoM[bcd] ? "AM" : "--");
     }
-    // TODO: option to use a less restrictive definition of "fired" using for example
-    // just the autotrigger bits instead of using TDCs
-    if (mVerbosity >= DbgFull) {
-      printf("%d FIRED ", ibun);
-      printf("ZNA:%d%d%d%d%d%d ZPA:%d%d%d%d%d%d ZEM:%d%d ZNC:%d%d%d%d%d%d ZPC:%d%d%d%d%d%d\n",
-             fired[IdZNAC], fired[IdZNA1], fired[IdZNA2], fired[IdZNA3], fired[IdZNA4], fired[IdZNASum],
-             fired[IdZPAC], fired[IdZPA1], fired[IdZPA2], fired[IdZPA3], fired[IdZPA4], fired[IdZPASum],
-             fired[IdZEM1], fired[IdZEM2],
-             fired[IdZNCC], fired[IdZNC1], fired[IdZNC2], fired[IdZNC3], fired[IdZNC4], fired[IdZNCSum],
-             fired[IdZPCC], fired[IdZPC1], fired[IdZPC2], fired[IdZPC3], fired[IdZPC4], fired[IdZPCSum]);
-    }
-    // Get Orbit pedestals
-    updateOffsets(ibun);
-    for (int ich = 0; ich < NChannels; ich++) {
+    // Analyze all bunches
+    for (int ibun = ibeg; ibun <= iend; ibun++) {
+      updateOffsets(ibun); // Get Orbit pedestals
+      auto& rec = mReco[ibun];
       // Check if the corresponding TDC is fired
-      if (fired[ich]) {
+      ref[0] = mReco[ibun].ref[ich];
+      hasHit[0] = mBCData[ibun].triggers & mChMask[ich];
+      ModuleTriggerMapData mt;
+      mt.w = mBCData[ibun].moduleTriggers[mRopt->amod[ich]];
+      hasAuto0[0] = mt.f.Auto_0;
+      hasAutoM[0] = mt.f.Auto_m;
+      if (rec.chfired[ich]) {
         // Check if channel data are present in payload
-        auto ref = mReco[ibun].ref[ich];
-        if (ref < ZDCRefInitVal) {
-          // Energy reconstruction Assignment of TDCs
+        if (ref[0] < ZDCRefInitVal) {
+          // Energy reconstruction
           // Compute event by event pedestal
           bool hasEvPed = false;
           float evPed = 0;
           if (ibun > ibeg) {
-            auto ref_m = mReco[ibun - 1].ref[ich];
-            if (ropt.beg_ped_int[ich] >= 0 || ref_m < ZDCRefInitVal) {
-              for (int is = ropt.beg_ped_int[ich]; is <= ropt.end_ped_int[ich]; is++) {
+            auto ref_m = ref[1];
+            if (mRopt->beg_ped_int[ich] >= 0 || ref_m < ZDCRefInitVal) {
+              for (int is = mRopt->beg_ped_int[ich]; is <= mRopt->end_ped_int[ich]; is++) {
                 if (is < 0) {
                   // Sample is in previous BC
                   evPed += float(mChData[ref_m].data[is + NTimeBinsPerBC]);
                 } else {
                   // Sample is in current BC
-                  evPed += float(mChData[ref].data[is]);
+                  evPed += float(mChData[ref[0]].data[is]);
                 }
               }
-              evPed /= float(ropt.end_ped_int[ich] - ropt.beg_ped_int[ich] + 1);
+              evPed /= float(mRopt->end_ped_int[ich] - mRopt->beg_ped_int[ich] + 1);
               hasEvPed = true;
             }
           }
-          float myPed = std::numeric_limits<float>::infinity();
-          // TODO: compare event pedestal with orbit pedestal to detect pile-up
-          // from previous bunch. If this is the case we use orbit pedestal
+          // Pile-up detection using trigger information allows to identify
+          // the presence of a signal in previous bunch and is module-wise
+
+          // Detection of pile-up from previous bunch by comparing event pedestal with reference
+          // (reference can be orbit or QC). If pile-up is detected we use orbit pedestal
           // instead of event pedestal
-          if (hasEvPed) {
+          // TODO: pedestal event could have a TM..
+          if (hasEvPed && (mSource[ich] == PedOr || mSource[ich] == PedQC)) {
+            auto pedref = mOffset[ich];
+            if (evPed > pedref && (evPed - pedref) > mRopt->ped_thr_hi[ich]) {
+              // Anomalous offset (put a warning but use event pedestal)
+              rec.offPed[ich] = true;
+            } else if (evPed < pedref && (pedref - evPed) > mRopt->ped_thr_lo[ich]) {
+              // Possible presence of pile-up (will need to use orbit pedestal)
+              rec.pilePed[ich] = true;
+            }
+          }
+          float myPed = std::numeric_limits<float>::infinity();
+          // TODO:
+          if (hasEvPed && rec.pilePed[ich] == false) {
             myPed = evPed;
             rec.adcPedEv[ich] = true;
           } else if (mSource[ich] == PedOr) {
@@ -491,22 +577,45 @@ int DigiReco::reconstruct(int ibeg, int iend)
           }
           if (myPed < std::numeric_limits<float>::infinity()) {
             float sum = 0;
-            for (int is = ropt.beg_int[ich]; is <= ropt.end_int[ich]; is++) {
+            for (int is = mRopt->beg_int[ich]; is <= mRopt->end_int[ich]; is++) {
               // TODO: pile-up correction
               // TODO: manage signal positioned across boundary
-              sum += (myPed - float(mChData[ref].data[is]));
+              sum += (myPed - float(mChData[ref[0]].data[is]));
             }
-            rec.ezdc[ich] = sum * ropt.energy_calib[ich];
+            rec.ezdc[ich] = sum * mRopt->energy_calib[ich];
           } else {
             LOGF(warn, "%d.%-4d CH %2d %s missing pedestal", rec.ir.orbit, rec.ir.bc, ich, ChannelNames[ich].data());
           }
         } else {
-          LOG(fatal) << "Serious mess in reconstruction code";
-          rec.err[ich] = true;
+          // This could arise from memory corruption or in the case when TDC bits are forced to 1
+          // due to a broken channel. For example Sum is broken and sum TDC is forced to 1
+          // Take a very small signal that triggers on one module and not the other
+          // 1) module 0 triggered by ZNATC is autotriggered
+          // 2) module 1 triggered by ZNATC is not triggered -> Sum is missing
+          // 3) sum TDC is forced to 1 and therefore the TDC is fired even if data are not present
+          // 4) you get this error flag in reconstruction
+          // This should happen only in case of hardware fault and signals near threshold
+          // This should be mitigated by having a software threshold higher than the hardware one
+          rec.adcPedMissing[ich] = true;
+          if (mVerbosity >= DbgMedium) {
+            LOGF(warn, "%d.%-4d CH %2d %s ADC missing, TDC present", rec.ir.orbit, rec.ir.bc, ich, ChannelNames[ich].data());
+          }
         }
       }
-    } // Loop on channels
-  }   // Loop on bunches
+      // Shift bunches by 1 taking into account bunch crossing difference
+      // TODO
+      // This is a simple shift by 1 position
+      if (ibun != iend) {
+        for (int ibcr = NBCReadOut - 1; ibcr > 0; ibcr--) {
+          ref[ibcr] = ref[ibcr - 1];
+          hasHit[ibcr] = hasHit[ibcr - 1];
+          hasAuto0[ibcr] = hasAuto0[ibcr - 1];
+          hasAutoM[ibcr] = hasAutoM[ibcr - 1];
+          hasFired[ibcr] = hasFired[ibcr - 1];
+        }
+      }
+    } // Loop on bunches
+  }   // Loop on channels
   if (mTreeDbg) {
     for (int ibun = ibeg; ibun <= iend; ibun++) {
       auto& rec = mReco[ibun];
@@ -515,7 +624,7 @@ int DigiReco::reconstruct(int ibeg, int iend)
     }
   }
   return 0;
-} //reconstruct
+} // reconstruct
 
 void DigiReco::updateOffsets(int ibun)
 {
@@ -563,13 +672,11 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
 #ifdef O2_ZDC_DEBUG
   LOG(info) << __func__ << "(itdc=" << itdc << "[" << ChannelNames[TDCSignal[itdc]] << "] ," << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
 #endif
-  // Get reconstruction parameters
-  auto& ropt = RecoParamZDC::Instance();
 
   int nbun = iend - ibeg + 1;
   int maxs2 = NTimeBinsPerBC * nbun - 1;
-  int shift = ropt.tsh[itdc];
-  int thr = ropt.tth[itdc];
+  int shift = mRopt->tsh[itdc];
+  int thr = mRopt->tth[itdc];
 
   int is1 = 0, is2 = 1;
   uint8_t isfired = 0;
@@ -599,7 +706,12 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
       LOG(fatal) << "Missing information for bunch crossing";
       return;
     }
-    // TODO: More checks that bunch crossings are indeed consecutive
+    // Check that bunch crossings are indeed the same or consecutive
+    auto bcd = mReco[b2].ir.differenceInBC(mReco[b1].ir);
+    if (bcd != 0 && bcd != 1) {
+      LOG(fatal) << __func__ << ": large bunch crossing difference " << mReco[b1].ir.orbit << "." << mReco[b1].ir.bc << " followed by " << mReco[b2].ir.orbit << "." << mReco[b2].ir.bc;
+      return;
+    }
     int diff = mChData[ref_m].data[s1] - mChData[ref_s].data[s2];
     // Triple trigger condition
 #ifdef O2_ZDC_DEBUG
@@ -608,15 +720,27 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
 #endif
     if (diff > thr) {
       isfired = isfired | 0x1;
-      if ((isfired & 0x7) == 0x7) {
+      if ((isfired & mTriggerCondition) == mTriggerCondition) {
         // Fired bit is assigned to the second sample, i.e. to the one that can identify the
         // signal peak position
         mReco[b2].fired[itdc] |= mMask[s2];
 #ifdef O2_ZDC_DEBUG
-        LOG(info) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " Fired @ " << mReco[b2].ir.orbit << "." << mReco[b2].ir.bc << ".s" << s2
-                  << " (" << m[2] << " - (" << s[2] << ")) = " << (m[2] - s[2]) << " > " << thr
-                  << " && (" << m[1] << " - (" << s[1] << ")) = " << (m[1] - s[1]) << " > " << thr
-                  << " && (s" << s1 << ":" << m[0] << " - (s" << s2 << ":" << s[0] << ")) = " << diff << " > " << thr;
+        if (mTriggerCondition == 0x7) {
+          printf("TDC %d[%s] Fired @ %u.%u.s%02u (%5d-%5d)=%5d>%2d && (%5d-%5d)=%d>%5d && (s%02d:%-5d-s%02d:%-5d)=%-5d>%2d\n",
+                 itdc, ChannelNames[TDCSignal[itdc]].data(), mReco[b2].ir.orbit, mReco[b2].ir.bc, s2,
+                 m[2], s[2], (m[2] - s[2]), thr,
+                 m[1], s[1], (m[1] - s[1]), thr,
+                 s1, m[0], s2, s[0], diff, thr);
+        } else if (mTriggerCondition == 0x3) {
+          printf("TDC %d[%s] Fired @ %u.%u.s%02u (%5d-%5d)=%5d>%2d && (s%02d:%-5d-s%02d:(%-5d))=%-5d>%2d\n",
+                 itdc, ChannelNames[TDCSignal[itdc]].data(), mReco[b2].ir.orbit, mReco[b2].ir.bc, s2,
+                 m[1], s[1], (m[1] - s[1]), thr,
+                 s1, m[0], s2, s[0], diff, thr);
+        } else if (mTriggerCondition == 0x1) {
+          printf("TDC %d[%s] Fired @ %u.%u.s%02u (%d-(%d))=%d>%d && (%d-(%d))=%d>%d && (s%d:%d-s%d:(%d))=%d>%d\n",
+                 itdc, ChannelNames[TDCSignal[itdc]].data(), mReco[b2].ir.orbit, mReco[b2].ir.bc, s2,
+                 s1, m[0], s2, s[0], diff, thr);
+        }
 #endif
       }
     }
@@ -754,7 +878,10 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
 #ifdef O2_ZDC_DEBUG
   LOG(info) << __func__ << "(itdc=" << itdc << "[" << ChannelNames[TDCSignal[itdc]] << "] ," << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
 #endif
-  // TODO: get data from preceding time frame
+
+  // TODO: get data from preceding time frame in case there are bunches
+  // with signal at the beginning of the first orbit of a time frame
+
   constexpr int MaxTimeBin = NTimeBinsPerBC - 1; //< number of samples per BC
   constexpr int nsbun = TSN * NTimeBinsPerBC;    // Total number of interpolated points per bunch crossing
   // Set data members for interpolation of the current TDC
@@ -775,11 +902,9 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
     }
   }
 
-  // Get reconstruction parameters
-  auto& ropt = RecoParamZDC::Instance();
-
-  int imod = ropt.tmod[itdc]; // Module corresponding to TDC channel
-  int ich = ropt.tch[itdc];   // Hardware channel corresponding to TDC channel
+  int imod = mRopt->tmod[itdc]; // Module corresponding to TDC channel
+  // int ich = mRopt->tch[itdc];   // Hardware channel corresponding to TDC channel
+  int isig = TDCSignal[itdc]; // Signal corresponding to TDC
 
   auto ref_beg = mReco[ibeg].ref[TDCSignal[itdc]];
   auto ref_end = mReco[iend].ref[TDCSignal[itdc]];
@@ -787,7 +912,8 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
   mFirstSample = mChData[ref_beg].data[0];
   mLastSample = mChData[ref_end].data[NTimeBinsPerBC - 1];
 
-  // Full interpolation
+  // O2_ZDC_INTERP_DEBUG turns on full interpolation for debugging
+  // otherwise the interpolation is performed only around actual signal
 #ifdef O2_ZDC_INTERP_DEBUG
   for (int i = 0; i < mNtot; i++) {
     setPoint(itdc, ibeg, iend, i);
@@ -795,11 +921,11 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
 #endif
 
   // Looking for a local maximum in a search zone
-  float amp = std::numeric_limits<float>::infinity(); // Amplitude to be stored
-  int isam_amp = 0;                                   // Sample at maximum amplitude (relative to beginning of group)
-  int ip_old = -1, ip_cur = -1, ib_cur = -1;          // Current and old points
-  bool is_searchable = false;                         // Flag for point in the search zone for maximum amplitude
-  bool was_searchable = false;                        // Flag for point in the search zone for maximum amplitude
+  O2_ZDC_DIGIRECO_FLT amp = std::numeric_limits<float>::infinity(); // Amplitude to be stored
+  int isam_amp = 0;                                                 // Sample at maximum amplitude (relative to beginning of group)
+  int ip_old = -1, ip_cur = -1, ib_cur = -1;                        // Current and old points
+  bool is_searchable = false;                                       // Flag for point in the search zone for maximum amplitude
+  bool was_searchable = false;                                      // Flag for point in the search zone for maximum amplitude
   int ib[nsp] = {-1, -1, -1, -1, -1};
   int ip[nsp] = {-1, -1, -1, -1, -1};
   // N.B. Points at the extremes are constant therefore no local maximum
@@ -902,7 +1028,11 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
     }
     // We do not restrict search zone around expected main-main collision
     // because we would like to be able to identify pile-up from collisions
-    // with satellites (buggy)
+    // with satellites
+    // This is buggy because you can get just one TDC for each search zone
+    // If more than one signal is present, just the largest one is saved
+    // To overcome this limitation one should implement more refined analysis
+    // techniques to perform shape recognition
 
     // If we exit from searching zone
     if (was_searchable && !is_searchable) {
@@ -910,8 +1040,15 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
         // Store identified peak
         int ibun = ibeg + isam_amp / nsbun;
         updateOffsets(ibun);
-        if (mSource[ich] != PedND) {
-          amp = mOffset[ich] - amp;
+        // At this level offsets are from Orbit or QC therefore
+        // the TDC amplitude and time are affected by pile-up from
+        // previous collisions. Pile up correction needs to be
+        // performed after all signals have been identified
+        if (mSource[isig] != PedND) {
+#ifdef O2_ZDC_DEBUG
+          printf("sig=%2d amp=%8.2e offset=%8.2e -> amp=%8.2e\n", isig, amp, mOffset[isig], mOffset[isig] - amp);
+#endif
+          amp = mOffset[isig] - amp;
         } else {
           LOGF(error, "%u.%-4d Missing pedestal for TDC %d %s ", mBCData[ibun].ir.orbit, mBCData[ibun].ir.bc, itdc, ChannelNames[TDCSignal[itdc]]);
           amp = std::numeric_limits<float>::infinity();
@@ -927,11 +1064,12 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
       int mysam = isam % nsbun;
 #ifndef O2_ZDC_INTERP_DEBUG
       // Perform interpolation for the searched point
-      //setPoint(itdc, ibeg, iend, isam);
-      float myval = getPoint(itdc, ibeg, iend, isam);
+      // setPoint(itdc, ibeg, iend, isam);
+      O2_ZDC_DIGIRECO_FLT myval = getPoint(itdc, ibeg, iend, isam);
 #else
-      float myval = mReco[ib_cur].inter[itdc][mysam];
+      O2_ZDC_DIGIRECO_FLT myval = mReco[ib_cur].inter[itdc][mysam];
 #endif
+      // Get local minimum of waveform
       if (myval < amp) {
         amp = myval;
         isam_amp = isam;
@@ -945,8 +1083,8 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
       // Store identified peak
       int ibun = ibeg + isam_amp / nsbun;
       updateOffsets(ibun);
-      if (mSource[ich] != PedND) {
-        amp = mOffset[ich] - amp;
+      if (mSource[isig] != PedND) {
+        amp = mOffset[isig] - amp;
       } else {
         LOGF(error, "%u.%-4d Missing pedestal for TDC %d %s ", mBCData[ibun].ir.orbit, mBCData[ibun].ir.bc, itdc, ChannelNames[TDCSignal[itdc]]);
         amp = std::numeric_limits<float>::infinity();
@@ -963,9 +1101,15 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
   constexpr int tdc_max = nsbun / 2;
   constexpr int tdc_min = -tdc_max;
 
-  // Apply tdc shift correction
+  // Apply tdc shift compensation (re-centering)
   int tdc_cor = tdc - tdc_shift[itdc];
   // Correct bunch assignment
+  // NB: we don't add new bunches to the reconstructed list if they
+  // don't exist in data, in this case we add the events to the first
+  // or last bunch in the list
+  // This situation can happen for a beam satellite close to the bunch
+  // crossing boundary if the main-main is not centered w.r.t. the
+  // 12 samples acquired in each bunch crossing
   if (tdc_cor < tdc_min && ibun >= ibeg) {
     // Assign to preceding bunch
     ibun = ibun - 1;
@@ -986,8 +1130,13 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
 
   auto& rec = mReco[ibun];
 
-  // Assign to correct bunch
+  // Encode amplitude and assign to correct bunch
   auto myamp = std::nearbyint(amp / FTDCAmp);
+#ifdef O2_ZDC_DEBUG
+  LOG(info) << __func__ << " @ " << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
+            << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor << " -> " << tdc_cor * FTDCVal
+            << " amp=" << amp << " -> " << myamp;
+#endif
   rec.TDCVal[itdc].push_back(tdc_cor);
   rec.TDCAmp[itdc].push_back(myamp);
   int& ihit = mReco[ibun].ntdc[itdc];
@@ -1000,25 +1149,447 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
                << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp * FTDCAmp << " OVERFLOW";
   }
 #endif
-  int ich = TDCSignal[itdc];
+  int isig = TDCSignal[itdc];
   // Assign info about pedestal subtration
-  if (mSource[ich] == PedOr) {
-    rec.tdcPedOr[ich] = true;
-  } else if (mSource[ich] == PedQC) {
-    rec.tdcPedQC[ich] = true;
-  } else if (mSource[ich] == PedEv) {
+  if (mSource[isig] == PedOr) {
+    rec.tdcPedOr[isig] = true;
+  } else if (mSource[isig] == PedQC) {
+    rec.tdcPedQC[isig] = true;
+  } else if (mSource[isig] == PedEv) {
     // In present implementation this never happens
-    rec.tdcPedEv[ich] = true;
+    rec.tdcPedEv[isig] = true;
   } else {
-    rec.tdcPedMissing[ich] = true;
+    rec.tdcPedMissing[isig] = true;
   }
 #ifdef O2_ZDC_DEBUG
   LOG(info) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc
             << " ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp << " -> " << myamp
-            << " pedSrc = " << mSource[ich];
+            << " mSource[" << isig << "] = " << unsigned(mSource[isig]);
 #endif
   ihit++;
 } // assignTDC
 
+void DigiReco::findSignals(int ibeg, int iend)
+{
+  // N.B. findSignals is called after pile-up correction on TDCs
+#ifdef O2_ZDC_DEBUG
+  LOG(info) << __func__ << "(" << ibeg << ", " << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
+#endif
+  // Identify TDC signals
+  for (int ibun = ibeg; ibun <= iend; ibun++) {
+    updateOffsets(ibun); // Get orbit pedestals or QC fallback
+    auto& rec = mReco[ibun];
+    for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+#ifdef O2_ZDC_DEBUG
+      bool msg = false;
+      if (rec.fired[itdc] != 0x0) {
+        msg = true;
+        printf("%d %u.%-4u TDCDiscr %d [%s] 0x%04hx -> ", ibun, rec.ir.orbit, rec.ir.bc, itdc, ChannelNames[TDCSignal[itdc]].data(), rec.fired[itdc]);
+        for (int isam = 0; isam < NTimeBinsPerBC; isam++) {
+          printf("%d", rec.fired[itdc] & mMask[isam] ? 1 : 0);
+        }
+      }
+#endif
+      rec.pattern[itdc] = 0;
+      for (int32_t i = 0; i < rec.ntdc[itdc]; i++) {
+#ifdef O2_ZDC_DEBUG
+        msg = true;
+        printf(" %d TDC A=%5d @ T=%5d", i, rec.TDCAmp[itdc][i], rec.TDCVal[itdc][i]);
+#endif
+        // There is a TDC value in the search zone around main-main position
+        // NB: by definition main-main collision has zero time
+        if (std::abs(rec.TDCVal[itdc][i]) < mRopt->tdc_search[itdc]) {
+          rec.pattern[itdc] = 1;
+        }
+#ifdef O2_ZDC_DEBUG
+        if (rec.pattern[itdc] == 1) {
+          printf("  in_r");
+        } else {
+          printf(" out_r");
+        }
+#endif
+      }
+#ifdef O2_ZDC_DEBUG
+      if (msg) {
+        printf("\n");
+      }
+#endif
+    }
+
+#ifdef O2_ZDC_DEBUG
+    printf("%d %u.%-4u TDC PATTERN: ", ibun, mReco[ibun].ir.orbit, mReco[ibun].ir.bc);
+    for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+      printf("%d", rec.pattern[itdc]);
+    }
+    for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+      printf(" %s", rec.pattern[itdc] ? ChannelNames[TDCSignal[itdc]].data() : "     ");
+    }
+    printf("\n");
+#endif
+
+    // Check if coincidence of common PM and sum of towers is satisfied
+    // Side A
+    if ((rec.pattern[TDCZNAC] || mRopt->bitset[TDCZNAC]) && (rec.pattern[TDCZNAS] || mRopt->bitset[TDCZNAS])) {
+      for (int ich = IdZNAC; ich <= IdZNASum; ich++) {
+        rec.chfired[ich] = true;
+      }
+    }
+    if ((rec.pattern[TDCZPAC] || mRopt->bitset[TDCZPAC]) && (rec.pattern[TDCZPAS] || mRopt->bitset[TDCZPAS])) {
+      for (int ich = IdZPAC; ich <= IdZPASum; ich++) {
+        rec.chfired[ich] = true;
+      }
+    }
+    // ZEM1 and ZEM2 are not in coincidence
+    rec.chfired[IdZEM1] = rec.pattern[TDCZEM1];
+    rec.chfired[IdZEM2] = rec.pattern[TDCZEM2];
+    // Side C
+    if ((rec.pattern[TDCZNCC] || mRopt->bitset[TDCZNCC]) && (rec.pattern[TDCZNCS] || mRopt->bitset[TDCZNCS])) {
+      for (int ich = IdZNCC; ich <= IdZNCSum; ich++) {
+        rec.chfired[ich] = true;
+      }
+    }
+    if ((rec.pattern[TDCZPCC] || mRopt->bitset[TDCZPCC]) && (rec.pattern[TDCZPCS] || mRopt->bitset[TDCZPCS])) {
+      for (int ich = IdZPCC; ich <= IdZPCSum; ich++) {
+        rec.chfired[ich] = true;
+      }
+    }
+    // TODO: option to use a less restrictive definition of "fired" using for example
+    // just the autotrigger bits instead of using TDCs
+#ifndef O2_ZDC_DEBUG
+    if (mVerbosity >= DbgFull) {
+      printf("%d %u.%-4u TDC FIRED ", ibun, rec.ir.orbit, rec.ir.bc);
+      printf("ZNA:%d%d%d%d%d%d ZPA:%d%d%d%d%d%d ZEM:%d%d ZNC:%d%d%d%d%d%d ZPC:%d%d%d%d%d%d\n",
+             rec.chfired[IdZNAC], rec.chfired[IdZNA1], rec.chfired[IdZNA2], rec.chfired[IdZNA3], rec.chfired[IdZNA4], rec.chfired[IdZNASum],
+             rec.chfired[IdZPAC], rec.chfired[IdZPA1], rec.chfired[IdZPA2], rec.chfired[IdZPA3], rec.chfired[IdZPA4], rec.chfired[IdZPASum],
+             rec.chfired[IdZEM1], rec.chfired[IdZEM2],
+             rec.chfired[IdZNCC], rec.chfired[IdZNC1], rec.chfired[IdZNC2], rec.chfired[IdZNC3], rec.chfired[IdZNC4], rec.chfired[IdZNCSum],
+             rec.chfired[IdZPCC], rec.chfired[IdZPC1], rec.chfired[IdZPC2], rec.chfired[IdZPC3], rec.chfired[IdZPC4], rec.chfired[IdZPCSum]);
+    }
+#endif
+  } // loop on bunches
+} // findSignals
+
+void DigiReco::correctTDCPile()
+{
+  // Pile-up correction for TDCs
+  // FEE acquires data in two modes: triggered and continuous
+  // In triggered mode minimum two and up to four bunches are transferred for each ALICE trigger
+  // In continuous mode two bunches are transferred for each autotrigger
+  // Reconstruction is performed for consecutive bunches
+  // There is no issue with gaps for triggered mode because the trigger condition
+  // A0 || A1 || (A2 && (T0 || TM)) || (A3 && T0) one can have the following sequences
+  // where: T is autotrigger, A is ALICE trigger, P is a previous bunch, - is skipped
+  // ---PA      A0 || A1
+  // ---TA      A0 || A1
+  // --TPA      A2 && T0
+  // -TPPA      A2 && TM        A3 && T0
+  // On the other hand, in autotrigger mode one can have a gap
+  // ---PT
+  // --PTT
+  // -PTPT
+  // PT-PT
+  // therefore we have to look for an interaction outside the range of consecutive bunch
+  // crossings that is used in reconstruction. Therefore the correction is done outside
+  // reconstruction loop
+  // In case TDC correction parameters are missing (e.g. mTDCCorr==0) then
+  // pile-up is flagged but not corrected for
+
+  // TODO: Perform actual pile-up correction for TDCs.. this is still work in progress..
+  // For the moment this function has pile-up detection
+
+  for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+    // Queue is empty at first event of the time frame
+    // TODO: collect information from previous time frame
+    std::deque<DigiRecoTDC> tdc;
+    for (int ibc = 0; ibc < mNBC; ibc++) {
+      // Bunch to be corrected
+      auto rec = &mReco[ibc];
+      // Count the number of hits in preceding bunch crossings
+      // N.B. it is initialized at every bunch crossing
+      int ntdc[NBCAn] = {0};
+      for (auto it = tdc.begin(); it != tdc.end(); ++it) {
+        auto bcd = (rec->ir).differenceInBC((*it).ir);
+        if (bcd > NBCAn) {
+          // Remove early events
+          tdc.pop_front();
+        } else if (bcd > 0) {
+          ntdc[bcd - 1]++;
+        }
+      }
+      if (rec->ntdc[itdc] > 1) {
+        // In-bunch pile-up: cannot correct
+        rec->tdcPileEvE[TDCSignal[itdc]] = true;
+      } else if (rec->ntdc[itdc] == 1) {
+        // A single TDC hit is present in current bunch
+        if (tdc.size() > 0) {
+          if (mCorrBackground) {
+            correctTDCBackground(ibc, itdc, tdc);
+          } else {
+            // Identify pile-up and assign error flags
+            std::deque<DigiRecoTDC>::reverse_iterator rit = tdc.rbegin();
+            // Here we should start the loop on signal bucket position
+            for (rit = tdc.rbegin(); rit != tdc.rend(); ++rit) {
+              auto bcd = (rec->ir).differenceInBC((*rit).ir);
+              // Check if background can be corrected
+              if (bcd > 0 && bcd < NBCAn) {
+                if (ntdc[bcd - 1] > 0) {
+                  // We flag pile-up
+                  if (bcd == 1) {
+                    rec->tdcPileM1E[TDCSignal[itdc]] = true;
+                  } else if (bcd == 2) {
+                    rec->tdcPileM2E[TDCSignal[itdc]] = true;
+                  } else if (bcd == 3) {
+                    rec->tdcPileM3E[TDCSignal[itdc]] = true;
+                  }
+                }
+              }
+            }
+          }
+        } else {
+          // Correct isolated signal
+          int16_t TDCVal = rec->TDCVal[itdc][0];
+          int16_t TDCAmp = rec->TDCAmp[itdc][0];
+          float TDCAmpCorr;
+          if (mCorrSignal == 0 || correctTDCSignal(itdc, TDCVal, TDCAmp, TDCAmpCorr) != 0) {
+            // Cannot apply amplitude correction for isolated signal
+            rec->tdcSigE[TDCSignal[itdc]] = true;
+          } else {
+            rec->TDCAmp[itdc][0] = std::nearbyint(TDCAmpCorr);
+          }
+        }
+        // Add current event at the end of the queue
+        for (int ihit = 0; ihit < rec->ntdc[itdc]; ihit++) {
+          tdc.emplace_back(rec->TDCVal[itdc][ihit], rec->TDCAmp[itdc][ihit], rec->ir);
+        }
+      } // Single hit in bunch
+    }
+  }
+} // correctTDCPile
+
+int DigiReco::correctTDCSignal(int itdc, int16_t TDCVal, int16_t TDCAmp, float& TDCAmpCorr)
+{
+  constexpr int TDCRange = TSN * NTimeBinsPerBC;
+  constexpr int BucketS = TDCRange / NBucket;
+  constexpr int BucketSH = BucketS / 2;
+  // Returns an error flag
+  // TDCAmpCorr = std::numeric_limits<float>::quiet_NaN();
+  if (mTDCCorr == 0) {
+#ifdef O2_ZDC_DEBUG
+  printf("%21s itdc=%d TDC=%d AMP=%d MISSING mTDCCorr\n", __func__, itdc, TDCVal, TDCAmp);
+#endif
+    return 1;
+  }
+  // Get bucket number with floor division (divisor is positive)
+  int arg1 = TDCVal + BucketSH;
+  int q1 = arg1 / BucketS;
+  int r1 = arg1 % BucketS;
+  if (r1 < 0) {
+    q1--;
+    r1 += TSN;
+  }
+  int arg2 = q1 + NBKZero;
+  int q2 = arg2 / NBucket;
+  int r2 = arg2 % NBucket;
+  if (r2 < 0) {
+    q2--;
+    r2 += NBucket;
+  }
+  float p0s = mTDCCorr->mAmpSigCorr[itdc][r2][0];
+  float p1s = mTDCCorr->mAmpSigCorr[itdc][r2][1];
+  if (isnan(p0s) || isnan(p1s)) {
+#ifdef O2_ZDC_DEBUG
+  printf("%21s itdc=%d TDC=%d bk=%d AMP=%d parameters: %f %f\n", __func__, itdc, TDCVal, r2, TDCAmp, p0s, p1s);
+#endif
+    return 1;
+  }
+  TDCAmpCorr = (TDCAmp - p0s) / (1 + p1s);
+#ifdef O2_ZDC_DEBUG
+  printf("%21s itdc=%d TDC=%d bk=%d AMP=%d -> %g\n", __func__, itdc, TDCVal, r2, TDCAmp, TDCAmpCorr);
+#endif
+  // printf("%+e, %e+, %+e, // as%d_sn%d\n",p0s,p1s,0.,itdc,r2);
+  return 0;
+}
+
+int DigiReco::correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& tdc)
+{
+  constexpr int TDCRange = TSN * NTimeBinsPerBC;
+  constexpr int BucketS = TDCRange / NBucket;
+  constexpr int BucketSH = BucketS / 2;
+  auto rec = &mReco[ibc];
+  auto isig = TDCSignal[itdc];
+  // With this function we are able to correct a single hit in a bunch
+  // therefore we refer just to TDC hit in position [0]
+  float TDCValUnc = rec->TDCVal[itdc][0];
+  float TDCAmpUnc = rec->TDCAmp[itdc][0];
+#ifdef O2_ZDC_DEBUG
+  auto TDCValUncBck = rec->TDCVal[itdc][0];
+  auto TDCAmpUncBck = rec->TDCAmp[itdc][0];
+#endif
+  float TDCValBest = TDCValUnc;
+  float TDCAmpBest = TDCAmpUnc;
+  int TDCBkBest = -1;
+  float dtime = std::numeric_limits<float>::infinity();
+  // Try every bucket position
+  for (int ibuks = 0; ibuks < NBucket; ibuks++) {
+    std::deque<DigiRecoTDC>::reverse_iterator rit = tdc.rbegin();
+    // Correct amplitude
+    float sum[3] = {0};
+    // Loop on background signals to sum the effects on reconstructed amplitude
+    int32_t nbkg = 0;
+    for (rit = tdc.rbegin(); rit != tdc.rend(); ++rit) {
+      auto bcd = (rec->ir).differenceInBC((*rit).ir);
+      if (bcd > 0 && bcd <= NBCAn) {
+        // Flag error if correction object does not exists
+        if (mTDCCorr == nullptr) {
+          if (bcd == 1) {
+            rec->tdcPileM1E[isig] = true;
+          } else if (bcd == 2) {
+            rec->tdcPileM2E[isig] = true;
+          } else if (bcd == 3) {
+            rec->tdcPileM3E[isig] = true;
+          }
+        } else {
+          int16_t TDCBkgVal = (*rit).val;
+          int16_t TDCBkgAmp = (*rit).amp;
+          // Get bucket number for background with floor division (divisor is positive)
+          int arg1 = TDCBkgVal + BucketSH;
+          int q1 = arg1 / BucketS;
+          int r1 = arg1 % BucketS;
+          if (r1 < 0) {
+            q1--;
+            r1 += TSN;
+          }
+          int arg2 = q1 + NBKZero;
+          int q2 = arg2 / NBucket;
+          int ibukb = arg2 % NBucket;
+          if (ibukb < 0) {
+            q2--;
+            ibukb += NBucket;
+          }
+          // Correction parameters for amplitude
+          int32_t ibun = NBCAn - bcd;
+          auto p0 = mTDCCorr->mAmpCorr[itdc][ibun][ibukb][ibuks][0];
+          auto p1 = mTDCCorr->mAmpCorr[itdc][ibun][ibukb][ibuks][1];
+          auto p2 = mTDCCorr->mAmpCorr[itdc][ibun][ibukb][ibuks][2];
+          // printf("%+e,%+e,%+e, // as%d_bc%+d_bk%d_sn%d\n",p0,p1,p2,itdc,-bcd,ibukb,ibuks);
+          // Flag error if parameters are NaN
+          if (std::isnan(p0) || std::isnan(p1) || std::isnan(p2)) {
+            if (bcd == 1) {
+              rec->tdcPileM1E[isig] = true;
+            } else if (bcd == 2) {
+              rec->tdcPileM2E[isig] = true;
+            } else if (bcd == 3) {
+              rec->tdcPileM3E[isig] = true;
+            }
+          } else {
+            nbkg++;
+            sum[0] += p0;
+            sum[1] += p1;
+            sum[2] += p2 * TDCBkgAmp;
+            // Flag application of correction and flag error if
+            // there are multiple signals in a bunch (make the test just once)
+            if (ibuks == 0) {
+              if (bcd == 1) {
+                if (rec->tdcPileM1C[isig]) {
+                  rec->tdcPileM1E[isig] = true;
+                } else {
+                  rec->tdcPileM1C[isig] = true;
+                }
+              } else if (bcd == 2) {
+                if (rec->tdcPileM2C[isig]) {
+                  rec->tdcPileM2E[isig] = true;
+                } else {
+                  rec->tdcPileM2C[isig] = true;
+                }
+              } else if (bcd == 3) {
+                if (rec->tdcPileM3C[isig]) {
+                  rec->tdcPileM3E[isig] = true;
+                } else {
+                  rec->tdcPileM3C[isig] = true;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    if (mTDCCorr == nullptr) {
+      // Cannot correct and error conditions has been already set above
+      return 1;
+    }
+    if (nbkg > 0) { // Cross check.. should always be true
+      float TDCAmpUpd = (TDCAmpUnc - sum[0] / float(nbkg) - sum[2]) / (1. + sum[1] / float(nbkg));
+      // Compute time correction assuming that time shift is additive
+      float tshift = 0;
+      for (rit = tdc.rbegin(); rit != tdc.rend(); ++rit) {
+        auto bcd = (rec->ir).differenceInBC((*rit).ir);
+        if (bcd > 0 && bcd <= NBCAn) {
+          int16_t TDCBkgVal = (*rit).val;
+          int16_t TDCBkgAmp = (*rit).amp;
+          // Get bucket number for background with floor division (divisor is positive)
+          int arg1 = TDCBkgVal + BucketSH;
+          int q1 = arg1 / BucketS;
+          int r1 = arg1 % BucketS;
+          if (r1 < 0) {
+            q1--;
+            r1 += TSN;
+          }
+          int arg2 = q1 + NBKZero;
+          int q2 = arg2 / NBucket;
+          int ibukb = arg2 % NBucket;
+          if (ibukb < 0) {
+            q2--;
+            ibukb += NBucket;
+          }
+          // Parameters for time correction
+          int32_t ibun = NBCAn - bcd;
+          auto p0 = mTDCCorr->mTDCCorr[itdc][ibun][ibukb][ibuks][0];
+          auto p1 = mTDCCorr->mTDCCorr[itdc][ibun][ibukb][ibuks][1];
+          auto p2 = mTDCCorr->mTDCCorr[itdc][ibun][ibukb][ibuks][2];
+          printf("%+e,%+e,%+e, // ts%d_bc%d_bk%d_sn%d\n", p0, p1, p2, itdc, -bcd, ibukb, ibuks);
+          // Flag error if parameters are NaN
+          if (std::isnan(p0) || std::isnan(p1)) {
+            if (bcd == 1) {
+              rec->tdcPileM1E[isig] = true;
+            } else if (bcd == 2) {
+              rec->tdcPileM2E[isig] = true;
+            } else if (bcd == 3) {
+              rec->tdcPileM3E[isig] = true;
+            }
+          } else {
+            tshift += p0 + p1 / (TDCAmpUpd / TDCBkgAmp);
+            // printf("ibuk = b.%d s.%d = %8.2f AS=%8.2f AB=%4d ts=%8.2f TDC %8.2f -> %8.2f delta=%8.2f ", ibukb, ibuks, TDCBucket, TDCAmpUpd, TDCBkgAmp, tshift, TDCValUnc, TDCValUpd, mydtime);
+          }
+        }
+      }
+      // Update signal arrival time
+      float TDCValUpd = TDCValUnc - tshift;
+      float TDCBucket = (ibuks - NBKZero) * BucketS;
+      // Compare updated arrival time with assumed bucket assignment
+      // Take into account the possibility that the TDC has been assigned to preceding
+      // or successive bunch
+      float mydtime = std::min(std::abs(TDCBucket - TDCValUpd), std::min(std::abs(TDCBucket - TDCValUpd - TDCRange), std::abs(TDCBucket - TDCValUpd + TDCRange)));
+#ifdef O2_ZDC_DEBUG
+      printf("ibuks = %d = %8.2f AS=%8.2f ts=%8.2f TDC %8.2f -> %8.2f delta=%8.2f\n", ibuks, TDCBucket, TDCAmpUpd, tshift, TDCValUnc, TDCValUpd, mydtime);
+#endif
+      if (mydtime < dtime) {
+        dtime = mydtime;
+        TDCValBest = TDCValUpd;
+        TDCAmpBest = TDCAmpUpd;
+        TDCBkBest = ibuks;
+      }
+    }
+  } // Loop on signal bucket position (ibuks)
+  rec->TDCVal[itdc][0] = std::nearbyint(TDCValBest);
+  rec->TDCAmp[itdc][0] = std::nearbyint(TDCAmpBest);
+#ifdef O2_ZDC_DEBUG
+  if (rec->TDCVal[itdc][0] != TDCValUnc || rec->TDCAmp[itdc][0] != TDCAmpUnc) {
+    printf("%21s ibc=%d itdc=%d", __func__, ibc, itdc);
+    printf(" TDC=%d -> %d bk = %d", TDCValUncBck, rec->TDCVal[itdc][0], TDCBkBest);
+    printf(" AMP=%d -> %d\n", TDCAmpUncBck, rec->TDCAmp[itdc][0]);
+  }
+#endif
+  return 0;
+}
 } // namespace zdc
 } // namespace o2
