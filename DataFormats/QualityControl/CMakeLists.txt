@@ -9,6 +9,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 o2_add_library(DataFormatsQualityControl
                SOURCES src/FlagReasons.cxx
                        src/TimeRangeFlag.cxx
