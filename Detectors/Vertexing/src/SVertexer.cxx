@@ -85,7 +85,7 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
       v0SortID.emplace_back(vid{i, j, mV0sTmp[i][j].getVertexID()});
     }
     for (int j = 0; j < (int)mCascadesTmp[i].size(); j++) {
-      cascSortID.emplace_back(vid{i, j, mV0sTmp[i][j].getVertexID()});
+      cascSortID.emplace_back(vid{i, j, mCascadesTmp[i][j].getVertexID()});
     }
   }
   std::sort(v0SortID.begin(), v0SortID.end(), [](const vid& a, const vid& b) { return a.vtxID > b.vtxID; });
