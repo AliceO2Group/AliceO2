@@ -56,9 +56,12 @@ o2_add_test(TimeRangeFlag
             PUBLIC_LINK_LIBRARIES O2::DataFormatsQualityControl
             TARGETVARNAME timerangeflag)
 
-target_include_directories(${timerangeflag} PRIVATE include)
+target_include_directories(${timerangeflag} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include)
 
 o2_add_test(TimeRangeFlagCollection
             SOURCES test/testTimeRangeFlagCollection.cxx
             COMPONENT_NAME DataFormatsQualityControl
-            PUBLIC_LINK_LIBRARIES O2::DataFormatsQualityControl)
+            PUBLIC_LINK_LIBRARIES O2::DataFormatsQualityControl
+            TARGETVARNAME timerangeflagcollection)
+
+target_include_directories(${timerangeflagcollection} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include)
