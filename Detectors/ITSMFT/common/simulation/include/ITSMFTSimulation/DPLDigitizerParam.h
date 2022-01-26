@@ -44,7 +44,7 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
 
   float Vbb = 3.0;   ///< back bias absolute value for MFT (in Volt)
   float IBVbb = 3.0; ///< back bias absolute value for ITS Inner Barrel (in Volt)
-  float OBVbb = 0.0; ///< back bias absolute value for ITS Outter Barrel (in Volt)
+  float OBVbb = 3.0; ///< back bias absolute value for ITS Outter Barrel (in Volt)
 
   // boilerplate stuff + make principal key
   O2ParamDef(DPLDigitizerParam, getParamName().data());
