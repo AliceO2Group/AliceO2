@@ -13,6 +13,10 @@
 
 #include "ITSWorkflow/ThresholdCalibratorSpec.h"
 
+#ifdef WITH_OPENMP
+#include <omp.h>
+#endif
+
 namespace o2
 {
 namespace its
@@ -33,14 +37,14 @@ double erf_ithr(double* xx, double* par)
 
 //////////////////////////////////////////////////////////////////////////////
 // Default constructor
-ITSCalibrator::ITSCalibrator()
+ITSThresholdCalibrator::ITSThresholdCalibrator()
 {
-  mSelfName = o2::utils::Str::concat_string(ChipMappingITS::getName(), "ITSCalibrator");
+  mSelfName = o2::utils::Str::concat_string(ChipMappingITS::getName(), "ITSThresholdCalibrator");
 }
 
 //////////////////////////////////////////////////////////////////////////////
 // Default deconstructor
-ITSCalibrator::~ITSCalibrator()
+ITSThresholdCalibrator::~ITSThresholdCalibrator()
 {
   // Clear dynamic memory
 
@@ -56,9 +60,9 @@ ITSCalibrator::~ITSCalibrator()
 }
 
 //////////////////////////////////////////////////////////////////////////////
-void ITSCalibrator::init(InitContext& ic)
+void ITSThresholdCalibrator::init(InitContext& ic)
 {
-  LOGF(info, "ITSCalibrator init...", mSelfName);
+  LOGF(info, "ITSThresholdCalibrator init...", mSelfName);
 
   std::string fittype = ic.options().get<std::string>("fittype");
   if (fittype == "derivative") {
@@ -106,12 +110,20 @@ void ITSCalibrator::init(InitContext& ic)
 
   this->mVerboseOutput = ic.options().get<bool>("verbose");
 
+  //Get number of threads
+  try {
+    this->mNThreads = ic.options().get<int>("nthreads");
+  } catch (std::exception const& e) {
+    LOG(warning) << "Input parameter nthreads not found"
+                 << "\n*** Setting nthreads equal to 1";
+  }
+
   return;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 // Open a new ROOT file and threshold TTree for that file
-void ITSCalibrator::initThresholdTree(bool recreate /*=true*/)
+void ITSThresholdCalibrator::initThresholdTree(bool recreate /*=true*/)
 {
   // Create output directory to store output
   std::string dir = this->mOutputDir + fmt::format("{}_{}/", this->mEnvironmentID, this->mRunNumber);
@@ -139,12 +151,11 @@ void ITSCalibrator::initThresholdTree(bool recreate /*=true*/)
 
   // Initialize output TTree branches
   this->mThresholdTree = new TTree("ITS_calib_tree", "ITS_calib_tree");
-  this->mThresholdTree->Branch("pixel", &(this->mTreePixel), "chipID/S:row/S:col/S");
-  this->mThresholdTree->Branch("threshold", &(this->mThreshold), "threshold/b");
-  if (this->mFitType != HITCOUNTING) {
-    this->mThresholdTree->Branch("noise", &(this->mNoise), "noise/b");
-  }
-  this->mThresholdTree->Branch("success", &(this->mSuccess), "success/O");
+  this->mThresholdTree->Branch("chipid", &vChipid, "vChipID[1024]/S");
+  this->mThresholdTree->Branch("row", &vRow, "vRow[1024]/S");
+  this->mThresholdTree->Branch("thr", &vThreshold, "vThreshold[1024]/S");
+  this->mThresholdTree->Branch("noise", &vNoise, "vNoise[1024]/b");
+  this->mThresholdTree->Branch("success", &vSuccess, "vSuccess[1024]/O");
 
   return;
 }
@@ -154,7 +165,7 @@ void ITSCalibrator::initThresholdTree(bool recreate /*=true*/)
 // data is the number of trigger counts per charge injected;
 // x is the array of charge injected values;
 // NPoints is the length of both arrays.
-bool ITSCalibrator::findUpperLower(
+bool ITSThresholdCalibrator::findUpperLower(
   const char* data, const short int* x, const short int& NPoints,
   short int& lower, short int& upper, bool flip)
 {
@@ -210,7 +221,7 @@ bool ITSCalibrator::findUpperLower(
 
 //////////////////////////////////////////////////////////////////////////////
 // Main findThreshold function which calls one of the three methods
-bool ITSCalibrator::findThreshold(
+bool ITSThresholdCalibrator::findThreshold(
   const char* data, const short int* x, const short int& NPoints,
   float& thresh, float& noise)
 {
@@ -240,7 +251,7 @@ bool ITSCalibrator::findThreshold(
 // x is the array of charge injected values;
 // NPoints is the length of both arrays.
 // thresh, noise, chi2 pointers are updated with results from the fit
-bool ITSCalibrator::findThresholdFit(
+bool ITSThresholdCalibrator::findThresholdFit(
   const char* data, const short int* x, const short int& NPoints,
   float& thresh, float& noise)
 {
@@ -288,7 +299,7 @@ bool ITSCalibrator::findThresholdFit(
 // data is the number of trigger counts per charge injected;
 // x is the array of charge injected values;
 // NPoints is the length of both arrays.
-bool ITSCalibrator::findThresholdDerivative(
+bool ITSThresholdCalibrator::findThresholdDerivative(
   const char* data, const short int* x, const short int& NPoints,
   float& thresh, float& noise)
 {
@@ -335,7 +346,7 @@ bool ITSCalibrator::findThresholdDerivative(
 // data is the number of trigger counts per charge injected;
 // x is the array of charge injected values;
 // NPoints is the length of both arrays.
-bool ITSCalibrator::findThresholdHitcounting(
+bool ITSThresholdCalibrator::findThresholdHitcounting(
   const char* data, const short int* x, const short int& NPoints, float& thresh)
 {
   unsigned short int numberOfHits = 0;
@@ -350,7 +361,9 @@ bool ITSCalibrator::findThresholdHitcounting(
   // If not enough counts return a failure
   // if (numberOfHits < N_INJ) { return false; }
   if (!is50) {
-    LOG(warning) << "Too few hits, skipping this pixel";
+    if (this->mVerboseOutput) {
+      LOG(warning) << "Too few hits, skipping this pixel";
+    }
     return false;
   }
 
@@ -370,19 +383,19 @@ bool ITSCalibrator::findThresholdHitcounting(
 
 //////////////////////////////////////////////////////////////////////////////
 // Run threshold extraction on completed row and update memory
-void ITSCalibrator::extractThresholdRow(const short int& chipID, const short int& row)
+void ITSThresholdCalibrator::extractThresholdRow(const short int& chipID, const short int& row)
 {
-  // Initialize objects in memory for updating
-  float thresh, noise;
-  bool success;
-
+#ifdef WITH_OPENMP
+  omp_set_num_threads(mNThreads);
+#pragma omp parallel for schedule(dynamic)
+#endif
   // Loop over all columns (pixels) in the row
   for (short int col_i = 0; col_i < this->N_COL; col_i++) {
 
     // Do the threshold fit
-    thresh = 0.;
-    noise = 0.;
-    success = false;
+    float thresh = 0., noise = 0.;
+    bool success = false;
+
     try {
       success = this->findThreshold(&(this->mPixelHits[chipID][col_i][0]),
                                     this->mX, *(this->N_RANGE), thresh, noise);
@@ -393,56 +406,60 @@ void ITSCalibrator::extractThresholdRow(const short int& chipID, const short int
     catch (int i) {
       if (this->mVerboseOutput) {
         LOG(warning) << "Start-finding unsuccessful for chipID " << chipID
-                     << " row " << row << " column " << (col_i + 1) << '\n';
+                     << " row " << row << " column " << (col_i) << '\n';
       }
       continue;
     } catch (int* i) {
       if (this->mVerboseOutput) {
         LOG(warning) << "Start-finding unsuccessful for chipID " << chipID
-                     << " row " << row << " column " << (col_i + 1) << '\n';
+                     << " row " << row << " column " << (col_i) << '\n';
       }
       continue;
     }
 
-    // Saves threshold information to internal memory
-    this->saveThreshold(chipID, row, (col_i + 1), &thresh, &noise, success);
+    vChipid[col_i] = chipID;
+    vRow[col_i] = row;
+    vThreshold[col_i] = this->mScanType == 'T' ? (short int)(thresh * 10.) : (short int)(thresh);
+    vNoise[col_i] = this->mScanType == 'T' ? (unsigned char)(noise * 10.) : (short int)(noise);
+    vSuccess[col_i] = success;
   }
+
+  // Saves threshold information to internal memory
+  this->saveThreshold();
 }
 
 //////////////////////////////////////////////////////////////////////////////
-void ITSCalibrator::saveThreshold(
-  const short int& chipID, const short int& row, const short int& col,
-  float* thresh, float* noise, bool _success)
+void ITSThresholdCalibrator::saveThreshold()
 {
   // In the case of a full threshold scan, write to TTree
   if (this->mScanType == 'T') {
-
-    // Cast as unsigned char to save memory
-    if (*thresh > 255 || *noise > 255) {
-      *thresh = 0;
-      *noise = 0;
-      _success = false;
-    }
-    unsigned char _threshold = (unsigned char)(*thresh * 10);
-    unsigned char _noise = (unsigned char)(*noise * 10);
-
-    this->mTreePixel.chipID = chipID;
-    this->mTreePixel.row = short(this->mCurrentRow[chipID]);
-    this->mTreePixel.col = short(col);
-    this->mThreshold = _threshold;
-    if (this->mFitType != HITCOUNTING) {
-      this->mNoise = _noise;
-    } // Don't save noise in hitcounting case
-    this->mSuccess = _success;
     this->mThresholdTree->Fill();
+  }
 
-  } else { // VCASN or ITHR scan
-    short int _threshold = short(*thresh);
-    short int _noise = short(*noise);
-
-    // Save info in a struct for later averaging
-    ThresholdObj t = ThresholdObj(row, col, _threshold, _noise, _success);
-    this->mThresholds[chipID].push_back(t);
+  // Save info in a map for later averaging
+  int sumT = 0, sumSqT = 0, sumN = 0, sumSqN = 0;
+  int countSuccess = 0;
+#ifdef WITH_OPENMP
+  omp_set_num_threads(mNThreads);
+#pragma omp parallel for default(shared) reduction(+ \
+                                                   : sumT, sumSqT, sumN, sumSqN, countSuccess)
+#endif
+  for (int i = 0; i < this->N_COL; i++) {
+    if (vSuccess[i]) {
+      sumT += vThreshold[i];
+      sumN += (int)vNoise[i];
+      sumSqT += (vThreshold[i]) * (vThreshold[i]);
+      sumSqN += ((int)vNoise[i]) * ((int)vNoise[i]);
+      countSuccess++;
+    }
+  }
+  short int chipID = vChipid[0];
+  std::array<int, 5> dataSum{{sumT, sumSqT, sumN, sumSqN, countSuccess}};
+  if (!(this->mThresholds.count(chipID))) {
+    this->mThresholds[chipID] = dataSum;
+  } else {
+    std::array<int, 5> dataAll{{this->mThresholds[chipID][0] + dataSum[0], this->mThresholds[chipID][1] + dataSum[1], this->mThresholds[chipID][2] + dataSum[2], this->mThresholds[chipID][3] + dataSum[3], this->mThresholds[chipID][4] + dataSum[4]}};
+    this->mThresholds[chipID] = dataAll;
   }
 
   return;
@@ -451,7 +468,7 @@ void ITSCalibrator::saveThreshold(
 //////////////////////////////////////////////////////////////////////////////
 // Perform final operations on output objects. In the case of a full threshold
 // scan, rename ROOT file and create metadata file for writing to EOS
-void ITSCalibrator::finalizeOutput()
+void ITSThresholdCalibrator::finalizeOutput()
 {
   // Check that objects actually exist in memory
   if (!(this->mRootOutfile) || !(this->mThresholdTree)) {
@@ -524,7 +541,7 @@ void ITSCalibrator::finalizeOutput()
 //////////////////////////////////////////////////////////////////////////////
 // Set the run_type for this run
 // Initialize the memory needed for this specific type of run
-void ITSCalibrator::setRunType(const short int& runtype)
+void ITSThresholdCalibrator::setRunType(const short int& runtype)
 {
 
   // Save run type info for future evaluation
@@ -603,7 +620,7 @@ void ITSCalibrator::setRunType(const short int& runtype)
 
 //////////////////////////////////////////////////////////////////////////////
 // Check if scan has finished for extracting thresholds
-bool ITSCalibrator::isScanFinished(const short int& chipID)
+bool ITSThresholdCalibrator::isScanFinished(const short int& chipID)
 {
   // Require that the last entry has at least half the number of expected hits
   short int col = 0; // Doesn't matter which column
@@ -612,7 +629,7 @@ bool ITSCalibrator::isScanFinished(const short int& chipID)
 
 //////////////////////////////////////////////////////////////////////////////
 // Extract thresholds and update memory
-void ITSCalibrator::extractAndUpdate(const short int& chipID)
+void ITSThresholdCalibrator::extractAndUpdate(const short int& chipID)
 {
   // In threshold scan case, reset mThresholdTree before writing to a new file
   if ((this->mScanType == 'T') && ((this->mRowCounter)++ == N_ROWS_PER_FILE)) {
@@ -630,7 +647,7 @@ void ITSCalibrator::extractAndUpdate(const short int& chipID)
 }
 
 //////////////////////////////////////////////////////////////////////////////
-void ITSCalibrator::updateLHCPeriod(ProcessingContext& pc)
+void ITSThresholdCalibrator::updateLHCPeriod(ProcessingContext& pc)
 {
   auto conf = pc.services().get<RawDeviceService>().device()->fConfig;
   const std::string LHCPeriodStr = conf->GetProperty<std::string>("LHCPeriod", "");
@@ -641,7 +658,7 @@ void ITSCalibrator::updateLHCPeriod(ProcessingContext& pc)
                               "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
     std::time_t now = std::time(nullptr);
     std::tm* ltm = std::gmtime(&now);
-    this->mLHCPeriod = months[ltm->tm_mon];
+    this->mLHCPeriod = (std::string)months[ltm->tm_mon] + "_ITS";
     LOG(warning) << "LHCPeriod is not available, using current month " << this->mLHCPeriod;
   }
 
@@ -649,7 +666,7 @@ void ITSCalibrator::updateLHCPeriod(ProcessingContext& pc)
 }
 
 //////////////////////////////////////////////////////////////////////////////
-void ITSCalibrator::updateEnvironmentID(ProcessingContext& pc)
+void ITSThresholdCalibrator::updateEnvironmentID(ProcessingContext& pc)
 {
   auto conf = pc.services().get<RawDeviceService>().device()->fConfig;
   const std::string envN = conf->GetProperty<std::string>("environment_id", "");
@@ -661,7 +678,7 @@ void ITSCalibrator::updateEnvironmentID(ProcessingContext& pc)
 }
 
 //////////////////////////////////////////////////////////////////////////////
-void ITSCalibrator::updateRunID(ProcessingContext& pc)
+void ITSThresholdCalibrator::updateRunID(ProcessingContext& pc)
 {
   const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(
     pc.inputs().getFirstValid(true));
@@ -676,13 +693,8 @@ void ITSCalibrator::updateRunID(ProcessingContext& pc)
 // Main running function
 // Get info from previous stf decoder workflow, then loop over readout frames
 //     (ROFs) to count hits and extract thresholds
-void ITSCalibrator::run(ProcessingContext& pc)
+void ITSThresholdCalibrator::run(ProcessingContext& pc)
 {
-  // layer, stave, sub stave, module, chip
-  int lay, sta, ssta, mod, chip, chipInMod, rofcount;
-
-  // auto orig = ChipMappingITS::getOrigin();
-
   // Save environment ID and run number if needed
   if (this->mEnvironmentID.empty()) {
     this->updateEnvironmentID(pc);
@@ -698,18 +710,13 @@ void ITSCalibrator::run(ProcessingContext& pc)
   const auto calibs = pc.inputs().get<gsl::span<o2::itsmft::GBTCalibData>>("calib");
   const auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
   const auto ROFs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("digitsROF");
-  // const auto tfcounter = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->startTime;
 
   // Store some lengths for convenient looping
   const unsigned int nROF = (unsigned int)ROFs.size();
-  // const short int nCals = (short int) calibs.size();
-
-  // LOG(info) << "Processing TF# " << tfcounter;
 
   // Loop over readout frames (usually only 1, sometimes 2)
   for (unsigned int iROF = 0; iROF < nROF; iROF++) {
-    // auto rof = ROFs[i]
-    // auto digitsInFrame = rof.getROFData(digits);
+
     unsigned int rofIndex = ROFs[iROF].getFirstEntry();
     unsigned int rofNEntries = ROFs[iROF].getNEntries();
 
@@ -723,7 +730,6 @@ void ITSCalibrator::run(ProcessingContext& pc)
           LOG(warning) << "More than one charge detected!";
         }
 
-        // Run Type = calibword >> 24
         if (this->mRunType == -1) {
           short int runtype = (short int)(calib.calibUserField >> 24);
           this->setRunType(runtype);
@@ -749,8 +755,6 @@ void ITSCalibrator::run(ProcessingContext& pc)
       if (this->mVerboseOutput) {
         LOG(warning) << "Charge not updated";
       }
-      //} else if (charge == 0) {
-      // LOG(warning) << "charge == 0\n";
     } else {
 
       for (unsigned int idig = rofIndex; idig < rofIndex + rofNEntries; idig++) {
@@ -758,9 +762,7 @@ void ITSCalibrator::run(ProcessingContext& pc)
         short int chipID = (short int)d.getChipIndex();
         short int col = (short int)d.getColumn();
 
-        // Row should be the same for the whole ROF so do not have to check here
-        // assert(row == (short int) d.getRow());
-
+        // Row should be the same for the whole ROF
         // Check if chip hasn't appeared before
         if (!(this->mCurrentRow.count(chipID))) {
           // Update current row and initialize hit map
@@ -770,8 +772,7 @@ void ITSCalibrator::run(ProcessingContext& pc)
 
           // Check if we have a new row on an already existing chip
         } else if (this->mCurrentRow[chipID] != row) {
-          // LOG(info) << "Extracting threshold values for row " << this->mCurrentRow[chipID]
-          //           << " on chipID " << chipID;
+
           this->extractAndUpdate(chipID);
           // Reset row & hit map for the new row
           this->mCurrentRow[chipID] = row;
@@ -786,7 +787,7 @@ void ITSCalibrator::run(ProcessingContext& pc)
                      << " and max " << this->mMax << " (range: " << *(this->N_RANGE) << ")";
           throw charge;
         }
-        // LOG(info) << "before";
+
         this->mPixelHits[chipID][col][charge - this->mMin]++;
 
       } // for (digits)
@@ -800,39 +801,24 @@ void ITSCalibrator::run(ProcessingContext& pc)
 
 //////////////////////////////////////////////////////////////////////////////
 // Calculate the average threshold given a vector of threshold objects
-void ITSCalibrator::findAverage(const std::vector<ThresholdObj>& data, float& avg, float& rms)
+void ITSThresholdCalibrator::findAverage(const std::array<int, 5>& data, float& avgT, float& rmsT, float& avgN, float& rmsN)
 {
-  float sum = 0;
-  unsigned int counts = 0;
-  for (const ThresholdObj& t : data) {
-    if (t.success) {
-      sum += t.threshold;
-      counts++;
-    }
-  }
-
-  avg = (!counts) ? 0. : sum / (float)counts;
-  sum = 0.;
-  for (const ThresholdObj& t : data) {
-    if (t.success) {
-      sum += (avg - (float)t.threshold) * (avg - (float)t.threshold);
-    }
-  }
-  rms = (!counts) ? 0. : std::sqrt(sum / (float)counts);
-
+  avgT = (!data[4]) ? 0. : (float)data[0] / (float)data[4];
+  rmsT = (!data[4]) ? 0. : std::sqrt((float)data[1] / (float)data[4] - avgT * avgT);
+  avgN = (!data[4]) ? 0. : (float)data[2] / (float)data[4];
+  rmsN = (!data[4]) ? 0. : std::sqrt((float)data[3] / (float)data[4] - avgN * avgN);
   return;
 }
 
 //////////////////////////////////////////////////////////////////////////////
-void ITSCalibrator::addDatabaseEntry(
-  const short int& chipID, const char* name, const short int& avg,
-  const float& rms, bool status, o2::dcs::DCSconfigObject_t& tuning)
+void ITSThresholdCalibrator::addDatabaseEntry(
+  const short int& chipID, const char* name, const short int& avgT,
+  const float& rmsT, const short int& avgN, const float& rmsN, bool status, o2::dcs::DCSconfigObject_t& tuning)
 {
   // Obtain specific chip information from the chip ID (layer, stave, ...)
   int lay, sta, ssta, mod, chipInMod; // layer, stave, sub stave, module, chip
   this->mp.expandChipInfoHW(chipID, lay, sta, ssta, mod, chipInMod);
 
-  // std::string stave = 'L' + std::to_string(lay) + '_' + std::to_string(sta);
   char stave[6];
   sprintf(stave, "L%d_%02d", lay, sta);
 
@@ -840,15 +826,19 @@ void ITSCalibrator::addDatabaseEntry(
   o2::dcs::addConfigItem(tuning, "Hs_pos", std::to_string(ssta));
   o2::dcs::addConfigItem(tuning, "Hic_Pos", std::to_string(mod));
   o2::dcs::addConfigItem(tuning, "ChipID", std::to_string(chipInMod));
-  o2::dcs::addConfigItem(tuning, name, std::to_string(avg));
-  o2::dcs::addConfigItem(tuning, "Rms", std::to_string(rms));
+  o2::dcs::addConfigItem(tuning, name, std::to_string(avgT));
+  o2::dcs::addConfigItem(tuning, "Rms", std::to_string(rmsT));
   o2::dcs::addConfigItem(tuning, "Status", std::to_string(status)); // pass or fail
+  if (this->mScanType == 'T') {
+    o2::dcs::addConfigItem(tuning, "Noise", std::to_string(avgN));
+    o2::dcs::addConfigItem(tuning, "NoiseRms", std::to_string(rmsN));
+  }
 
   return;
 }
 
 //////////////////////////////////////////////////////////////////////////////
-void ITSCalibrator::sendToCCDB(
+void ITSThresholdCalibrator::sendToCCDB(
   const char* name, o2::dcs::DCSconfigObject_t& tuning, EndOfStreamContext* ec)
 {
   // Below is CCDB stuff
@@ -880,9 +870,7 @@ void ITSCalibrator::sendToCCDB(
 
   std::string path("ITS/Calib/");
   std::string name_str(name);
-  // o2::ccdb::CcdbObjectInfo info((path + *name), class_name, "", md, tstart, tend);
   o2::ccdb::CcdbObjectInfo info((path + name_str), "threshold_map", "calib_scan.root", md, tstart, tend);
-  // auto file_name = o2::ccdb::CcdbApi::generateFileName(*name);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&tuning, &info);
   std::string file_name = "calib_scan_" + name_str + ".root";
   info.setFileName(file_name);
@@ -898,13 +886,16 @@ void ITSCalibrator::sendToCCDB(
   } else if (this->mScanType == 'I') {
     ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ITHR", 0}, *image);
     ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ITHR", 0}, info);
+  } else if (this->mScanType == 'T') {
+    ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "THR", 0}, *image);
+    ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "THR", 0}, info);
   }
 
   return;
 }
 
 //////////////////////////////////////////////////////////////////////////////
-void ITSCalibrator::finalize(EndOfStreamContext* ec)
+void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
 {
   LOGF(info, "endOfStream report:", mSelfName);
 
@@ -924,35 +915,40 @@ void ITSCalibrator::finalize(EndOfStreamContext* ec)
   const char* name = nullptr;
   bool pushToCCDB = false;
   if (this->mScanType == 'V') {
-    // Loop over each chip in the thresholds data
+    // Loop over each chip and calculate avg and rms
     name = "VCASN";
-    for (auto const& [chipID, t_vec] : this->mThresholds) {
+    for (auto const& [chipID, t_arr] : this->mThresholds) {
       // Casting float to short int to save memory
-      float avg, rms = 0;
-      this->findAverage(t_vec, avg, rms);
-      bool status = (this->mX[0] < avg && avg < this->mX[*(this->N_RANGE) - 1]);
-      this->addDatabaseEntry(chipID, name, (short int)avg, rms, status, tuning);
-      pushToCCDB = true;
+      float avgT, rmsT, avgN, rmsN;
+      this->findAverage(t_arr, avgT, rmsT, avgN, rmsN);
+      bool status = (this->mX[0] < avgT && avgT < this->mX[*(this->N_RANGE) - 1]);
+      this->addDatabaseEntry(chipID, name, (short int)avgT, rmsT, (short int)avgN, rmsN, status, tuning);
     }
 
   } else if (this->mScanType == 'I') {
-    // Loop over each chip in the thresholds data
+    // Loop over each chip and calculate avg and rms
     name = "ITHR";
-    for (auto const& [chipID, t_vec] : this->mThresholds) {
+    for (auto const& [chipID, t_arr] : this->mThresholds) {
       // Casting float to short int to save memory
-      float avg, rms = 0;
-      this->findAverage(t_vec, avg, rms);
-      bool status = (this->mX[0] < avg && avg < this->mX[*(this->N_RANGE) - 1]);
-      this->addDatabaseEntry(chipID, name, (short int)avg, rms, status, tuning);
-      pushToCCDB = true;
+      float avgT, rmsT, avgN, rmsN;
+      this->findAverage(t_arr, avgT, rmsT, avgN, rmsN);
+      bool status = (this->mX[0] < avgT && avgT < this->mX[*(this->N_RANGE) - 1]);
+      this->addDatabaseEntry(chipID, name, (short int)avgT, rmsT, (short int)avgN, rmsN, status, tuning);
     }
 
   } else if (this->mScanType == 'T') {
-    // No averaging required for these runs
-    name = "Threshold";
+    // Loop over each chip and calculate avg and rms
+    name = "THR";
+    for (auto const& [chipID, t_arr] : this->mThresholds) {
+      // Casting float to short int to save memory
+      float avgT, rmsT, avgN, rmsN;
+      this->findAverage(t_arr, avgT, rmsT, avgN, rmsN);
+      bool status = (this->mX[0] < avgT && avgT < this->mX[*(this->N_RANGE) - 1] * 10);
+      this->addDatabaseEntry(chipID, name, (short int)avgT, rmsT, (short int)avgN, rmsN, status, tuning);
+    }
   }
 
-  if (ec && pushToCCDB) {
+  if (ec) {
     this->sendToCCDB(name, tuning, ec);
   }
 
@@ -961,7 +957,7 @@ void ITSCalibrator::finalize(EndOfStreamContext* ec)
 
 //////////////////////////////////////////////////////////////////////////////
 // fairMQ functionality; called automatically when the DDS stops processing
-void ITSCalibrator::stop()
+void ITSThresholdCalibrator::stop()
 {
   if (!mStopped) {
     this->finalize(nullptr);
@@ -973,7 +969,7 @@ void ITSCalibrator::stop()
 //////////////////////////////////////////////////////////////////////////////
 // O2 functionality allowing to do post-processing when the upstream device
 // tells that there will be no more input data
-void ITSCalibrator::endOfStream(EndOfStreamContext& ec)
+void ITSThresholdCalibrator::endOfStream(EndOfStreamContext& ec)
 {
   if (!mStopped) {
     this->finalize(&ec);
@@ -987,35 +983,31 @@ DataProcessorSpec getITSThresholdCalibratorSpec()
 {
   o2::header::DataOrigin detOrig = o2::header::gDataOriginITS;
   std::vector<InputSpec> inputs;
-  // inputs.emplace_back("RAWDATA", ConcreteDataTypeMatcher{"ITS", "RAWDATA"}, Lifetime::Timeframe);
   inputs.emplace_back("digits", detOrig, "DIGITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("digitsROF", detOrig, "DIGITSROF", 0, Lifetime::Timeframe);
   inputs.emplace_back("calib", detOrig, "GBTCALIB", 0, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
-  // outputs.emplace_back("ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "VCASN"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "VCASN"});
 
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ITHR"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ITHR"});
 
-  // outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "Threshold"});
-  // outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "Threshold"});
-
-  // auto orig = o2::header::gDataOriginITS;
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "THR"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "THR"});
 
   return DataProcessorSpec{
     "its-calibrator",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<ITSCalibrator>()},
-    // here I assume ''calls'' init, run, endOfStream sequentially...
+    AlgorithmSpec{adaptFromTask<ITSThresholdCalibrator>()},
     Options{{"fittype", VariantType::String, "derivative", {"Fit type to extract thresholds, with options: fit, derivative (default), hitcounting"}},
             {"verbose", VariantType::Bool, false, {"Use verbose output mode"}},
-            {"output-dir", VariantType::String, "./", {"ROOT output directory"}},
-            {"meta-output-dir", VariantType::String, "/dev/null", {"metadata output directory"}},
-            {"meta-type", VariantType::String, "", {"metadata type"}}}};
+            {"output-dir", VariantType::String, "./", {"ROOT trees output directory"}},
+            {"meta-output-dir", VariantType::String, "/dev/null", {"Metadata output directory"}},
+            {"meta-type", VariantType::String, "", {"metadata type"}},
+            {"nthreads", VariantType::Int, 1, {"Number of threads, default is 1"}}}};
 }
 } // namespace its
 } // namespace o2
