@@ -178,6 +178,7 @@ AddOption(calibObjectsExtraMemorySize, unsigned long, 10ul * 1024 * 1024, "", 0,
 AddOption(useInternalO2Propagator, bool, false, "", 0, "Uses an internal (in GPUChainTracking) version of o2::Propagator, which internal b-field, matlut, etc.")
 AddOption(internalO2PropagatorGPUField, bool, true, "", 0, "Makes the internal O2 propagator use the fast GPU polynomial b field approximation")
 AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayFrontend*, nullptr)
+AddVariable(eventDisplayRenderer, const char*, "opengl")
 AddSubConfig(GPUSettingsProcessingRTC, rtc)
 AddHelp("help", 'h')
 EndConfig()
@@ -355,6 +356,7 @@ AddOption(runs2, int, 1, "runsExternal", 0, "Number of iterations to perform (re
 AddOption(runsInit, int, 1, "", 0, "Number of initial iterations excluded from average", min(0))
 AddOption(eventsDir, const char*, "pp", "events", 'e', "Directory with events to process", message("Reading events from Directory events/%s"))
 AddOption(eventDisplay, int, 0, "display", 'd', "Show standalone event display", def(1)) //1: default display (Windows / X11), 2: glut, 3: glfw
+AddOption(displayRenderer, std::string, "opengl", "renderer", 0, "Renderer for event display: opengl | vulkan")
 AddOption(eventGenerator, bool, false, "", 0, "Run event generator")
 AddOption(cont, bool, false, "", 0, "Process continuous timeframe data")
 AddOption(outputcontrolmem, unsigned long, 0, "outputMemory", 0, "Use predefined output buffer of this size", min(0ul), message("Using %s bytes as output memory"))

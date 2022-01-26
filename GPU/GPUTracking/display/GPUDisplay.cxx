@@ -521,6 +521,7 @@ void GPUDisplay::ReSizeGLScene(int width, int height, bool init)
   }
   mScreenwidth = width;
   mScreenheight = height;
+  mBackend->resizeScene(width, height);
   UpdateOffscreenBuffers();
 
   if (init) {
@@ -549,6 +550,7 @@ int GPUDisplay::InitDisplay(bool initFailure)
       retVal = InitDisplay_internal();
     }
   } catch (const std::runtime_error& e) {
+    GPUError("%s", e.what());
     retVal = 1;
   }
   mInitResult = retVal == 0 ? 1 : -1;
@@ -1995,7 +1997,22 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       totalVertizes += mVertexBuffer[i].size();
     }
     mUseMultiVBO = (totalVertizes * sizeof(mVertexBuffer[0][0]) >= 0x100000000ll);
+    if (!mUseMultiVBO) {
+      size_t totalYet = mVertexBuffer[0].size();
+      mVertexBuffer[0].resize(totalVertizes);
+      for (int i = 1; i < GPUCA_NSLICES; i++) {
+        for (unsigned int j = 0; j < mVertexBufferStart[i].size(); j++) {
+          mVertexBufferStart[i][j] += totalYet;
+        }
+        memcpy(&mVertexBuffer[0][totalYet], &mVertexBuffer[i][0], mVertexBuffer[i].size() * sizeof(mVertexBuffer[i][0]));
+        totalYet += mVertexBuffer[i].size();
+        mVertexBuffer[i].clear();
+      }
+    }
     mBackend->loadDataToGPU(totalVertizes);
+    for (int i = 0; i < (mUseMultiVBO ? GPUCA_NSLICES : 1); i++) {
+      mVertexBuffer[i].clear();
+    }
 
     if (showTimer) {
       printf("Event visualization time: %'d us (vertices %'lld / %'lld bytes)\n", (int)(mTimerDraw.GetCurrentElapsedTime() * 1000000.), (long long int)totalVertizes, (long long int)(totalVertizes * sizeof(mVertexBuffer[0][0])));

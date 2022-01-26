@@ -31,6 +31,7 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 class GPUDisplay;
+class GPUDisplayFrontend;
 class GPUDisplayBackend
 {
   friend GPUDisplay;
@@ -59,6 +60,20 @@ class GPUDisplayBackend
     bool created = false;
   };
 
+  enum backendTypes {
+    TYPE_OPENGL = 0,
+    TYPE_VULKAN = 1
+  };
+
+  struct DrawArraysIndirectCommand {
+    DrawArraysIndirectCommand(unsigned int a = 0, unsigned int b = 0, unsigned int c = 0, unsigned int d = 0) : count(a), instanceCount(b), first(c), baseInstance(d) {}
+    unsigned int count;
+    unsigned int instanceCount;
+
+    unsigned int first;
+    unsigned int baseInstance;
+  };
+
   virtual void createFB(GLfb& fb, bool tex, bool withDepth, bool msaa) = 0;
   virtual void deleteFB(GLfb& fb) = 0;
 
@@ -81,16 +96,13 @@ class GPUDisplayBackend
   virtual void readPixels(unsigned char* pixels, bool needBuffer, unsigned int width, unsigned int height) = 0;
   virtual void pointSizeFactor(float factor) = 0;
   virtual void lineWidthFactor(float factor) = 0;
+  virtual backendTypes backendType() const = 0;
+  virtual void resizeScene(unsigned int width, unsigned int height) {}
 
   static GPUDisplayBackend* getBackend(const char* type);
 
  protected:
   GPUDisplay* mDisplay = nullptr;
-
-  unsigned int mVertexShader;
-  unsigned int mFragmentShader;
-  unsigned int mShaderProgram;
-  unsigned int mVertexArray;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

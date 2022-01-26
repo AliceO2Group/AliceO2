@@ -12,8 +12,8 @@
 /// \file GPUDisplayBackendOpenGL.h
 /// \author David Rohr
 
-#ifndef GPUDISPLAYEXT_H
-#define GPUDISPLAYEXT_H
+#ifndef GPUDISPLAYBACKENDOPENGL_H
+#define GPUDISPLAYBACKENDOPENGL_H
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
 
 #include "GPUDisplayBackend.h"
@@ -53,16 +53,14 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   void readPixels(unsigned char* pixels, bool needBuffer, unsigned int width, unsigned int height) override;
   void pointSizeFactor(float factor) override;
   void lineWidthFactor(float factor) override;
+  backendTypes backendType() const override { return TYPE_OPENGL; }
 
-  struct DrawArraysIndirectCommand {
-    DrawArraysIndirectCommand(unsigned int a = 0, unsigned int b = 0, unsigned int c = 0, unsigned int d = 0) : count(a), instanceCount(b), first(c), baseInstance(d) {}
-    unsigned int count;
-    unsigned int instanceCount;
-
-    unsigned int first;
-    unsigned int baseInstance;
-  };
   vecpod<DrawArraysIndirectCommand> mCmdBuffer;
+
+  unsigned int mVertexShader;
+  unsigned int mFragmentShader;
+  unsigned int mShaderProgram;
+  unsigned int mVertexArray;
 
   unsigned int mIndirectId;
   std::vector<unsigned int> mVBOId;

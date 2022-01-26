@@ -94,6 +94,7 @@ class GPUDisplay
   int screenWidth() const { return mScreenwidth; }
   int screenHeight() const { return mScreenheight; }
   bool useMultiVBO() const { return mUseMultiVBO; }
+  const GPUDisplayBackend* backend() const { return mBackend.get(); }
   vecpod<int>* vertexBufferStart() { return mVertexBufferStart; }
   const vecpod<unsigned int>* vertexBufferCount() const { return mVertexBufferCount; }
   struct vtx {
@@ -101,6 +102,8 @@ class GPUDisplay
     vtx(float a, float b, float c) : x(a), y(b), z(c) {}
   };
   vecpod<vtx>* vertexBuffer() { return mVertexBuffer; }
+  const GPUParam* param() { return mParam; }
+  GPUDisplayFrontend* frontend() { return mFrontend; }
 
  private:
   static constexpr int NSLICES = GPUChainTracking::NSLICES;

@@ -13,7 +13,12 @@
 /// \author David Rohr
 
 #include "GPUDisplayBackend.h"
+#ifdef GPUCA_BUILD_EVENT_DISPLAY
 #include "GPUDisplayBackendOpenGL.h"
+#endif
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
+#include "GPUDisplayBackendVulkan.h"
+#endif
 #include "GPUDisplay.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -23,6 +28,11 @@ GPUDisplayBackend* GPUDisplayBackend::getBackend(const char* type)
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
   if (strcmp(type, "opengl") == 0) {
     return new GPUDisplayBackendOpenGL;
+  }
+#endif
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
+  if (strcmp(type, "vulkan") == 0) {
+    return new GPUDisplayBackendVulkan;
   }
 #endif
   return nullptr;

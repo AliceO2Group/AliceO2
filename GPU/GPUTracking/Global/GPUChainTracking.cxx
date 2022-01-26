@@ -363,7 +363,7 @@ int GPUChainTracking::Init()
     mQA.reset(new GPUQA(this));
   }
   if (GetProcessingSettings().eventDisplay) {
-    mEventDisplay.reset(new GPUDisplay(GetProcessingSettings().eventDisplay, this, mQA.get()));
+    mEventDisplay.reset(new GPUDisplay(GetProcessingSettings().eventDisplay, this, mQA.get(), GetProcessingSettings().eventDisplayRenderer));
   }
 
   processors()->errorCodes.setMemory(mInputsHost->mErrorCodes);
