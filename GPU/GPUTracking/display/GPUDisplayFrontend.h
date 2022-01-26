@@ -44,7 +44,7 @@ class GPUDisplayFrontend
   virtual void SetVSync(bool enable) = 0;                                                                                    // Enable / disable vsync
   virtual bool EnableSendKey();                                                                                              // Request external keys (e.g. from terminal)
   virtual void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) = 0; // Print text on the display (needs the backend to build the font)
-
+  const GPUDisplayBackend* backend();
   static GPUDisplayFrontend* getFrontend(const char* type);
 
   // volatile variables to exchange control informations between display and backend

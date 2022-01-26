@@ -22,6 +22,9 @@
 extern "C" int gl3wInit();
 #endif
 
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
+#define GLFW_INCLUDE_VULKAN
+#endif
 #include <GLFW/glfw3.h>
 
 #include <cstdio>
@@ -255,17 +258,24 @@ int GPUDisplayFrontendGlfw::FrontendMain()
   glfwSetErrorCallback(error_callback);
 
   glfwWindowHint(GLFW_MAXIMIZED, 1);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, GL_MIN_VERSION_MAJOR);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, GL_MIN_VERSION_MINOR);
-  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 0);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, mBackend->CoreProfile() ? GLFW_OPENGL_CORE_PROFILE : GLFW_OPENGL_COMPAT_PROFILE);
+  if (backend()->backendType() == GPUDisplayBackend::TYPE_VULKAN) {
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+  }
+  if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, GL_MIN_VERSION_MAJOR);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, GL_MIN_VERSION_MINOR);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 0);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, mBackend->CoreProfile() ? GLFW_OPENGL_CORE_PROFILE : GLFW_OPENGL_COMPAT_PROFILE);
+  }
   mWindow = glfwCreateWindow(INIT_WIDTH, INIT_HEIGHT, GL_WINDOW_NAME, nullptr, nullptr);
   if (!mWindow) {
     fprintf(stderr, "Error creating glfw window\n");
     glfwTerminate();
     return (-1);
   }
-  glfwMakeContextCurrent(mWindow);
+  if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
+    glfwMakeContextCurrent(mWindow);
+  }
 
   glfwSetKeyCallback(mWindow, key_callback);
   glfwSetCharCallback(mWindow, char_callback);
@@ -291,7 +301,7 @@ int GPUDisplayFrontendGlfw::FrontendMain()
 #endif
 
   if (InitDisplay()) {
-    fprintf(stderr, "Error in OpenGL initialization\n");
+    fprintf(stderr, "Error in GLFW display initialization\n");
     return (1);
   }
 
@@ -306,7 +316,9 @@ int GPUDisplayFrontendGlfw::FrontendMain()
       fprintf(stderr, "Error drawing GL scene\n");
       return (1);
     }
-    glfwSwapBuffers(mWindow);
+    if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
+      glfwSwapBuffers(mWindow);
+    }
     glfwPollEvents();
   }
 #endif

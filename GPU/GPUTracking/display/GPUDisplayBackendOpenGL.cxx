@@ -324,8 +324,8 @@ void GPUDisplayBackendOpenGL::updateSettings()
 #endif
   CHKERR(glEnable(GL_BLEND));
   CHKERR(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-  CHKERR(glPointSize(mDisplay->cfgL().pointSize * (mDisplay->cfgR().drawQualityDownsampleFSAA > 1 ? mDisplay->cfgR().drawQualityDownsampleFSAA : 1)));
-  CHKERR(glLineWidth(mDisplay->cfgL().lineWidth * (mDisplay->cfgR().drawQualityDownsampleFSAA > 1 ? mDisplay->cfgR().drawQualityDownsampleFSAA : 1)));
+  pointSizeFactor(1);
+  lineWidthFactor(1);
 }
 
 void GPUDisplayBackendOpenGL::loadDataToGPU(size_t totalVertizes)
@@ -334,22 +334,10 @@ void GPUDisplayBackendOpenGL::loadDataToGPU(size_t totalVertizes)
   if (mDisplay->useMultiVBO()) {
     for (int i = 0; i < GPUCA_NSLICES; i++) {
       CHKERR(glNamedBufferData(mVBOId[i], mDisplay->vertexBuffer()[i].size() * sizeof(mDisplay->vertexBuffer()[i][0]), mDisplay->vertexBuffer()[i].data(), GL_STATIC_DRAW));
-      mDisplay->vertexBuffer()[i].clear();
     }
   } else {
-    size_t totalYet = mDisplay->vertexBuffer()[0].size();
-    mDisplay->vertexBuffer()[0].resize(totalVertizes);
-    for (int i = 1; i < GPUCA_NSLICES; i++) {
-      for (unsigned int j = 0; j < mDisplay->vertexBufferStart()[i].size(); j++) {
-        mDisplay->vertexBufferStart()[i][j] += totalYet;
-      }
-      memcpy(&mDisplay->vertexBuffer()[0][totalYet], &mDisplay->vertexBuffer()[i][0], mDisplay->vertexBuffer()[i].size() * sizeof(mDisplay->vertexBuffer()[i][0]));
-      totalYet += mDisplay->vertexBuffer()[i].size();
-      mDisplay->vertexBuffer()[i].clear();
-    }
     CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mVBOId[0])); // Bind ahead of time, since it is not going to change
     CHKERR(glNamedBufferData(mVBOId[0], totalVertizes * sizeof(mDisplay->vertexBuffer()[0][0]), mDisplay->vertexBuffer()[0].data(), GL_STATIC_DRAW));
-    mDisplay->vertexBuffer()[0].clear();
   }
 
   if (mDisplay->cfgR().useGLIndirectDraw) {

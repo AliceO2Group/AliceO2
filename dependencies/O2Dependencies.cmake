@@ -149,6 +149,8 @@ find_package(GLUT)
 set_package_properties(GLUT PROPERTIES TYPE OPTIONAL)
 find_package(OpenGL)
 set_package_properties(OpenGL PROPERTIES TYPE OPTIONAL)
+find_package(Vulkan)
+set_package_properties(Vulkan PROPERTIES TYPE OPTIONAL)
 
 find_package(LLVM)
 set_package_properties(LLVM PROPERTIES TYPE OPTIONAL)

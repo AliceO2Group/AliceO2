@@ -198,6 +198,10 @@ void GPUDisplayFrontendGlut::mMouseWheelFunc(int button, int dir, int x, int y) 
 
 int GPUDisplayFrontendGlut::FrontendMain()
 {
+  if (backend()->backendType() != GPUDisplayBackend::TYPE_OPENGL) {
+    fprintf(stderr, "Only OpenGL backend supported\n");
+    return 1;
+  }
   me = this;
   int nopts = 2;
   char opt1[] = "progname";

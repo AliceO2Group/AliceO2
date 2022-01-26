@@ -170,6 +170,11 @@ void GPUDisplayFrontendX11::OpenGLPrint(const char* s, float x, float y, float r
 
 int GPUDisplayFrontendX11::FrontendMain()
 {
+  if (backend()->backendType() != GPUDisplayBackend::TYPE_OPENGL) {
+    fprintf(stderr, "Only OpenGL backend supported\n");
+    return 1;
+  }
+
   XSetWindowAttributes windowAttributes;
   XVisualInfo* visualInfo = nullptr;
   XEvent event;
