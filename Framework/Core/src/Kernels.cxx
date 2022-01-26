@@ -110,12 +110,12 @@ arrow::Status sliceByColumn(
 {
   arrow::Datum value_counts;
   auto column = input->GetColumnByName(key);
+  auto array0 = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(0)->data());
+  int32_t prev = 0;
+  int32_t cur = array0.Value(0);
+  int32_t lastNeg = cur < 0 ? cur : 0;
+  int32_t lastPos = cur < 0 ? -1 : cur;
   for (auto i = 0; i < column->num_chunks(); ++i) {
-    int32_t prev = 0;
-    int32_t cur = 0;
-    int32_t lastNeg = 0;
-    int32_t lastPos = 0;
-    bool switchedGroup = false;
     auto array = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(i)->data());
     for (auto e = 0; e < array.length(); ++e) {
       prev = cur;
@@ -129,21 +129,16 @@ arrow::Status sliceByColumn(
         if (lastPos > cur) {
           throw runtime_error_f("Table %s index %s is not sorted: next value %d < previous value %d!", target, key, cur, lastPos);
         }
-        if (switchedGroup && lastPos == cur && prev < 0) {
+        if (lastPos == cur && prev < 0) {
           throw runtime_error_f("Table %s index %s has a group with index %d that is split by %d", target, key, cur, prev);
         }
       } else {
         if (lastNeg < cur) {
           throw runtime_error_f("Table %s index %s is not sorted: next negative value %d > previous negative value %d!", target, key, cur, lastNeg);
         }
-        if (switchedGroup && lastNeg == cur && prev >= 0) {
+        if (lastNeg == cur && prev >= 0) {
           throw runtime_error_f("Table %s index %s has a group with index %d that is split by %d", target, key, cur, prev);
         }
-      }
-      if (cur != prev) {
-        switchedGroup = true;
-      } else {
-        switchedGroup = false;
       }
     }
   }
