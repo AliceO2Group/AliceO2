@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/ASoA.h"
+#include "Framework/Kernels.h"
 #include "ArrowDebugHelpers.h"
 #include "Framework/RuntimeError.h"
 #include <arrow/util/key_value_metadata.h>
@@ -107,28 +108,6 @@ arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, const char* label)
     o2::framework::throw_error(o2::framework::runtime_error_f("Unable to find column with label %s", label));
   }
   return table->column(index[0]).get();
-}
-
-arrow::Status getSliceFor(int value, char const* key, std::shared_ptr<arrow::Table> const& input, std::shared_ptr<arrow::Table>& output, uint64_t& offset)
-{
-  arrow::Datum value_counts;
-  auto options = arrow::compute::ScalarAggregateOptions::Defaults();
-  ARROW_ASSIGN_OR_RAISE(value_counts,
-                        arrow::compute::CallFunction("value_counts", {input->GetColumnByName(key)},
-                                                     &options));
-  auto pair = static_cast<arrow::StructArray>(value_counts.array());
-  auto values = static_cast<arrow::NumericArray<arrow::Int32Type>>(pair.field(0)->data());
-  auto counts = static_cast<arrow::NumericArray<arrow::Int64Type>>(pair.field(1)->data());
-
-  for (auto slice = 0; slice < values.length(); ++slice) {
-    if (values.Value(slice) == value) {
-      output = input->Slice(offset, counts.Value(slice));
-      return arrow::Status::OK();
-    }
-    offset += counts.Value(slice);
-  }
-  output = input->Slice(offset, 0);
-  return arrow::Status::OK();
 }
 
 } // namespace o2::soa

@@ -20,11 +20,10 @@
 #include "Framework/Expressions.h"
 #include "Framework/ArrowTypes.h"
 #include "Framework/RuntimeError.h"
+#include "Framework/Kernels.h"
 #include <arrow/table.h>
 #include <arrow/array.h>
 #include <arrow/util/variant.h>
-#include <arrow/compute/kernel.h>
-#include <arrow/compute/api_aggregate.h>
 #include <gandiva/selection_vector.h>
 #include <cassert>
 #include <fmt/format.h>
@@ -936,14 +935,12 @@ auto select(T const& t, framework::expressions::Filter const& f)
   return Filtered<T>({t.asArrowTable()}, selectionToVector(framework::expressions::createSelection(t.asArrowTable(), f)));
 }
 
-arrow::Status getSliceFor(int value, char const* key, std::shared_ptr<arrow::Table> const& input, std::shared_ptr<arrow::Table>& output, uint64_t& offset);
-
 template <typename T>
 auto sliceBy(T const& t, framework::expressions::BindingNode const& node, int value)
 {
   uint64_t offset = 0;
   std::shared_ptr<arrow::Table> result = nullptr;
-  auto status = getSliceFor(value, node.name.c_str(), t.asArrowTable(), result, offset);
+  auto status = o2::framework::getSliceFor(value, node.name.c_str(), t.asArrowTable(), result, offset);
   if (status.ok()) {
     return T({result}, offset);
   }
@@ -1260,15 +1257,7 @@ class Table
   arrow::Status initializeSliceCaches(char const* key)
   {
     mCurrentKey = key;
-    arrow::Datum value_counts;
-    auto options = arrow::compute::ScalarAggregateOptions::Defaults();
-    ARROW_ASSIGN_OR_RAISE(value_counts,
-                          arrow::compute::CallFunction("value_counts", {mTable->GetColumnByName(key)},
-                                                       &options));
-    auto pair = static_cast<arrow::StructArray>(value_counts.array());
-    mValues = std::make_shared<arrow::NumericArray<arrow::Int32Type>>(pair.field(0)->data());
-    mCounts = std::make_shared<arrow::NumericArray<arrow::Int64Type>>(pair.field(1)->data());
-    return arrow::Status::OK();
+    return o2::framework::getSlices(key, mTable, mValues, mCounts);
   }
 
  public:

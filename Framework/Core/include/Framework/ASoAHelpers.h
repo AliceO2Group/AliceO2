@@ -13,7 +13,6 @@
 #define O2_FRAMEWORK_ASOAHELPERS_H_
 
 #include "Framework/ASoA.h"
-#include "Framework/Kernels.h"
 #include "Framework/RuntimeError.h"
 #include <arrow/table.h>
 

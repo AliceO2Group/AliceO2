@@ -13,7 +13,6 @@
 #define FRAMEWORK_ANALYSISMANAGERS_H
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/GroupedCombinations.h"
-#include "Framework/Kernels.h"
 #include "Framework/ASoA.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/EndOfStreamContext.h"
