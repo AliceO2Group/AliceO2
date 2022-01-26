@@ -140,12 +140,11 @@ void CcdbApi::storeAsTFile_impl(const void* obj, std::type_info const& tinfo, st
                     path, metadata, startValidityTimestamp, endValidityTimestamp, maxSize);
 }
 
-
 void CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::string& filename, const std::string& objectType,
                                 const std::string& path, const std::map<std::string, std::string>& metadata,
                                 long startValidityTimestamp, long endValidityTimestamp, std::vector<char>::size_type maxSize) const
 {
-  if(maxSize > 0 && size > maxSize) {
+  if (maxSize > 0 && size > maxSize) {
     LOG(debug2) << "object " << path << " is bigger than the maximum allowed size (" << maxSize << "B) - skipped";
     return;
   }

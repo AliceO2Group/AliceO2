@@ -137,7 +137,7 @@ class CcdbApi //: public DatabaseInterface
 
   // interface for storing TObject via storeAsTFileAny
   void storeAsTFileAny(const TObject* rootobj, std::string const& path, std::map<std::string, std::string> const& metadata,
-                       long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize = 0  /*bytes*/) const
+                       long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize = 0 /*bytes*/) const
   {
     storeAsTFile(rootobj, path, metadata, startValidityTimestamp, endValidityTimestamp, maxSize);
   }
@@ -395,13 +395,13 @@ class CcdbApi //: public DatabaseInterface
    */
   void storeAsBinaryFile(const char* buffer, size_t size, const std::string& fileName, const std::string& objectType,
                          const std::string& path, const std::map<std::string, std::string>& metadata,
-                         long startValidityTimestamp, long endValidityTimestamp, std::vector<char>::size_type maxSize=0 /*in bytes*/) const;
+                         long startValidityTimestamp, long endValidityTimestamp, std::vector<char>::size_type maxSize = 0 /*in bytes*/) const;
 
   /**
    * A generic helper implementation to store an obj whose type is given by a std::type_info
    */
   void storeAsTFile_impl(const void* obj1, std::type_info const& info, std::string const& path, std::map<std::string, std::string> const& metadata,
-                         long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize=0 /*in bytes*/) const;
+                         long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize = 0 /*in bytes*/) const;
 
   /**
    * A generic helper implementation to query obj whose type is given by a std::type_info
