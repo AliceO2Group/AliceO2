@@ -19,7 +19,6 @@
 #include <string>
 #include <vector>
 #include <array>
-#include <unistd.h>
 
 #include <iostream>
 #include <fstream>
@@ -44,7 +43,6 @@
 #include "TTree.h"
 #include "TH1F.h"
 #include "TF1.h"
-#include "TStopwatch.h"
 
 using namespace o2::framework;
 using namespace o2::itsmft;
