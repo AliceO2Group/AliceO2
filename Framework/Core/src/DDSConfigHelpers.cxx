@@ -166,7 +166,7 @@ void dumpDeviceSpec2DDS(std::ostream& out,
         continue;
       }
       if (strpbrk(arg, "' ;@") != nullptr || arg[0] == 0) {
-        out << fmt::format(R"("{}" )", arg);
+        out << fmt::format(R"('{}' )", arg);
       } else if (strpbrk(arg, "\"") != nullptr || arg[0] == 0) {
         out << fmt::format(R"('{}' )", arg);
       } else {
