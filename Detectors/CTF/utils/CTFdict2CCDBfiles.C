@@ -18,6 +18,7 @@
 #include "DataFormatsZDC/CTF.h"
 #include "DataFormatsHMP/CTF.h"
 #include "DataFormatsCTP/CTF.h"
+#include <fmt/format.h>
 #endif
 
 using DetID = o2::detectors::DetID;
