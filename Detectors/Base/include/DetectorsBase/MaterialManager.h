@@ -20,6 +20,7 @@
 #include <unordered_map>
 #include <initializer_list>
 #include <iosfwd>
+#include "rapidjson/document.h"
 
 class TGeoMedium;
 
@@ -131,8 +132,13 @@ class MaterialManager
   /// Custom setting of process or cut given parameter name and value
   void SpecialCut(const char* modname, int localindex, ECut parID, Float_t val);
 
+  /// Close and apply all parameters
+  void Close();
+
   /// load cuts and process flags from a data file (like AliRoot did)
   void loadCutsAndProcessesFromFile(const char* modname, const char* filename);
+  void loadCutsAndProcessesFromJSON(std::string const& filename);
+  void writeCutsAndProcessesToJSON(std::string const& filename);
 
   /// Set flags whether to use special cuts and process settings
   void enableSpecialProcesses(bool val = true) { mApplySpecialProcesses = val; }
@@ -220,6 +226,22 @@ class MaterialManager
   void Cuts(ESpecial special, int globalindex, const std::initializer_list<std::pair<ECut, Float_t>>& parIDValMap);
   void Process(ESpecial special, int globalindex, EProc parID, int val);
   void Cut(ESpecial special, int globalindex, ECut parID, Float_t val);
+  /// helpers to read/write cuts and processes from/to JSON
+  void digestCutsFromJSON(int globalindex, rapidjson::Value& cuts);
+  void digestProcessesFromJSON(int globalindex, rapidjson::Value& processes);
+  template <typename K, typename V>
+  void writeSingleJSONParamBatch(int NPARAMS, std::map<K, V> const& valMap, V defaultValue, rapidjson::Value& paramArr, rapidjson::Document::AllocatorType& a) const
+  {
+    paramArr.Reserve(NPARAMS, a);
+    for (int i = 0; i < NPARAMS; i++) {
+      auto itVal = valMap.find(static_cast<K>(i));
+      if (itVal != valMap.end()) {
+        paramArr.PushBack(itVal->second, a);
+        continue;
+      }
+      paramArr.PushBack(defaultValue, a);
+    }
+  }
 
   // insert material name
   void insertMaterialName(const char* uniquename, int index);
@@ -264,6 +286,13 @@ class MaterialManager
   /// Decide whether special process and cut settings should be applied
   bool mApplySpecialProcesses = true;
   bool mApplySpecialCuts = true;
+
+  /// specific names of keys wo expect and write in cut and process JSON files
+  static constexpr const char* jsonKeyID = "id";
+  static constexpr const char* jsonKeyIDGlobal = "global_id";
+  static constexpr const char* jsonKeyDefault = "default";
+  static constexpr const char* jsonKeyCuts = "cuts";
+  static constexpr const char* jsonKeyProcesses = "processes";
 
  public:
   ClassDefNV(MaterialManager, 0);

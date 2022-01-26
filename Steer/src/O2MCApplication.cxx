@@ -20,6 +20,7 @@
 #include <SimConfig/SimConfig.h>
 #include <DetectorsBase/Detector.h>
 #include "DetectorsBase/Aligner.h"
+#include "DetectorsBase/MaterialManager.h"
 #include <CommonUtils/ShmManager.h>
 #include <cassert>
 #include <SimulationDataFormat/MCEventHeader.h>
@@ -133,6 +134,7 @@ void O2MCApplicationBase::InitGeometry()
   for (auto e : mSensitiveVolumes) {
     sensvolfile << e.first << ":" << e.second << "\n";
   }
+  o2::base::MaterialManager::Instance().Close();
 }
 
 bool O2MCApplicationBase::MisalignGeometry()
