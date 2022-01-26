@@ -130,20 +130,25 @@ std::unique_ptr<std::vector<char>> CcdbApi::createObjectImage(const TObject* roo
 
 void CcdbApi::storeAsTFile_impl(const void* obj, std::type_info const& tinfo, std::string const& path,
                                 std::map<std::string, std::string> const& metadata,
-                                long startValidityTimestamp, long endValidityTimestamp) const
+                                long startValidityTimestamp, long endValidityTimestamp,
+                                std::vector<char>::size_type maxSize) const
 {
   // We need the TClass for this type; will verify if dictionary exists
   CcdbObjectInfo info;
   auto img = createObjectImage(obj, tinfo, &info);
   storeAsBinaryFile(img->data(), img->size(), info.getFileName(), info.getObjectType(),
-                    path, metadata, startValidityTimestamp, endValidityTimestamp);
+                    path, metadata, startValidityTimestamp, endValidityTimestamp, maxSize);
 }
+
 
 void CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::string& filename, const std::string& objectType,
                                 const std::string& path, const std::map<std::string, std::string>& metadata,
-                                long startValidityTimestamp, long endValidityTimestamp) const
+                                long startValidityTimestamp, long endValidityTimestamp, std::vector<char>::size_type maxSize) const
 {
-  // Store a binary file
+  if(maxSize > 0 && size > maxSize) {
+    LOG(debug2) << "object " << path << " is bigger than the maximum allowed size (" << maxSize << "B) - skipped";
+    return;
+  }
 
   // Prepare URL
   long sanitizedStartValidityTimestamp = startValidityTimestamp;
@@ -212,12 +217,12 @@ void CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::stri
 }
 
 void CcdbApi::storeAsTFile(const TObject* rootObject, std::string const& path, std::map<std::string, std::string> const& metadata,
-                           long startValidityTimestamp, long endValidityTimestamp) const
+                           long startValidityTimestamp, long endValidityTimestamp, std::vector<char>::size_type maxSize) const
 {
   // Prepare file
   CcdbObjectInfo info;
   auto img = createObjectImage(rootObject, &info);
-  storeAsBinaryFile(img->data(), img->size(), info.getFileName(), info.getObjectType(), path, metadata, startValidityTimestamp, endValidityTimestamp);
+  storeAsBinaryFile(img->data(), img->size(), info.getFileName(), info.getObjectType(), path, metadata, startValidityTimestamp, endValidityTimestamp, maxSize);
 }
 
 string CcdbApi::getFullUrlForStorage(CURL* curl, const string& path, const string& objtype,
