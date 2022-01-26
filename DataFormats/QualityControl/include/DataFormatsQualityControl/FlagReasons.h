@@ -62,32 +62,6 @@ class FlagReason
   ClassDefNV(FlagReason, 1);
 };
 
-/*
-class FlagReasonFactory {
- public:
-  FlagReasonFactory() = delete;
-
-  // TODO: migrate the flag list from RCT
-  // TODO: find a way to have a nicely formatted list of reasons.
-
-  // !!! NEVER MODIFY OR DELETE EXISTING FLAGS AFTER RUN 3 STARTS !!!
-  static FlagReason Invalid() { return {static_cast<uint16_t>(-1), "Invalid", true}; }
-
-  static FlagReason Unknown() { return {1, "Unknown", true}; }
-  static FlagReason ProcessingError() { return {2, "Processing error", true}; }
-  // it can be used when there are no required Quality Objects in QCDB in certain time range.
-  static FlagReason MissingQualityObject() { return {3, "Missing Quality Object", true}; }
-  // Quality Object is there, but it has Quality::Null
-  static FlagReason MissingQuality() { return {4, "Missing Quality", true}; }
-
-  // TODO: to be seen if we should actively do anything when a detector was off.
-  static FlagReason DetectorOff() { return {10, "Detector off", true}; }
-  static FlagReason LimitedAcceptance() { return {11, "Limited acceptance", true}; }
-};
-*/
-
-
-
 } // namespace quality_control
 } // namespace o2
 

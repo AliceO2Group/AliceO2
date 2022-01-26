@@ -11,7 +11,6 @@
 
 #include "DataFormatsQualityControl/FlagReasons.h"
 #include "DataFormatsQualityControl/FlagReasonFactory.h"
-#include "Framework/Logger.h"
 
 #include <iostream>
 #include <tuple>
