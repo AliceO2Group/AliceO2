@@ -129,7 +129,8 @@ if(ENABLE_OPENCL2)
   endif()
   find_program(CLANG_OCL clang-ocl PATHS "${ROCM_ROOT}/bin")
   find_program(ROCM_AGENT_ENUMERATOR rocm_agent_enumerator PATHS "${ROCM_ROOT}/bin")
-  find_program(LLVM_SPIRV llvm-spirv)
+  find_program(LLVM_SPIRV llvm-spirv HINTS "${Clang_DIR}/../../../bin-safe")
+  find_program(LLVM_CLANG clang HINTS "${Clang_DIR}/../../../bin-safe")
   if(Clang_FOUND
      AND LLVM_FOUND
      AND LLVM_PACKAGE_VERSION VERSION_GREATER_EQUAL 13.0)
