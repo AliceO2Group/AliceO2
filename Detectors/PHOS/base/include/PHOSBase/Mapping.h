@@ -53,7 +53,7 @@ class Mapping
 
   ~Mapping() = default;
 
-  //Getters for unique instance of Mapping
+  // Getters for unique instance of Mapping
   static Mapping* Instance();
   static Mapping* Instance(std::basic_string_view<char> path);
 
@@ -62,16 +62,53 @@ class Mapping
   /// \brief convert absId and caloflag to hardware address and ddl
   ErrorStatus absIdTohw(short absId, short caloFlag, short& ddl, short& hwAddr) const;
 
-  /// \brief convert ddl number to crorc and link number (TODO!!!)
-  static void ddlToCrorcLink(short iddl, short& crorc, short& link)
+  /// \brief convert ddl number to crorc and link number
+  static void ddlToCrorcLink(short iddl, short& flp, short& crorc, short& link)
   {
-    crorc = iddl / 8;
-    link = iddl % 8;
+    //     FLP164:
+    // CRORC S/N 0243
+    //       channel 0 -> human name M2-0, DDL 3
+    //       channel 1 -> human name M2-1, DDL 4
+    //       channel 2 -> human name M2-2, DDL 5
+    //       channel 3 -> human name M2-3, DDL 6
+    // CRORC S/N 0304
+    //       channel 0 -> human name M1-2, DDL 1
+    //       channel 1 -> human name M1-3, DDL 2
+
+    // FLP165:
+    // CRORC S/N 0106
+    //       channel 0 -> human name M4-0, DDL 11
+    //       channel 1 -> human name M4-1, DDL 12
+    //       channel 2 -> human name M4-2, DDL 13
+    //       channel 3 -> human name M4-3, DDL 14
+    // CRORC S/N 0075
+    //       channel 0 -> human name M3-0, DDL 7
+    //       channel 1 -> human name M3-1, DDL 8
+    //       channel 2 -> human name M3-2, DDL 9
+    //       channel 3 -> human name M3-3, DDL 10
+    if (iddl < 6) {
+      flp = 164;
+      if (iddl < 2) {
+        crorc = 304;
+        link = iddl;
+      } else {
+        crorc = 243;
+        link = iddl - 2;
+      }
+    } else {
+      flp = 165;
+      if (iddl < 10) {
+        crorc = 75;
+      } else {
+        crorc = 106;
+      }
+      link = (iddl - 6) % 4;
+    }
   }
 
   ErrorStatus setMapping();
 
-  //Select TRU readout channels or TRU flag channels
+  // Select TRU readout channels or TRU flag channels
   static bool isTRUReadoutchannel(short hwAddress) { return (hwAddress < 112) || (hwAddress > 2048 && hwAddress < 2048 + 112); }
 
  protected:

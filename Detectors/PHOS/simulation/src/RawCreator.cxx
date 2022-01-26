@@ -97,6 +97,8 @@ int main(int argc, const char** argv)
   o2::phos::RawWriter::FileFor_t granularity = o2::phos::RawWriter::FileFor_t::kFullDet;
   if (filefor == "all") {
     granularity = o2::phos::RawWriter::FileFor_t::kFullDet;
+  } else if (filefor == "crorc") {
+    granularity = o2::phos::RawWriter::FileFor_t::kCRORC;
   } else if (filefor == "link") {
     granularity = o2::phos::RawWriter::FileFor_t::kLink;
   }
