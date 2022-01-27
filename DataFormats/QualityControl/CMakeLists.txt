@@ -10,20 +10,6 @@
 # or submit itself to any jurisdiction.
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
-o2_add_library(DataFormatsQualityControl
-               SOURCES src/FlagReasons.cxx
-                       src/TimeRangeFlag.cxx
-                       src/TimeRangeFlagCollection.cxx
-  PUBLIC_LINK_LIBRARIES O2::Headers
-                        O2::FrameworkLogger
-                        O2::DetectorsCommonDataFormats
-  PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_BINARY_DIR}/include)
-
-o2_target_root_dictionary(DataFormatsQualityControl
-                          HEADERS include/DataFormatsQualityControl/FlagReasons.h
-                                  include/DataFormatsQualityControl/TimeRangeFlag.h
-                                  include/DataFormatsQualityControl/TimeRangeFlagCollection.h)
-
 ### Prepare the list of methods in FlagReasonFactory
 file(READ "etc/flagReasons.csv" CSV_FLAG_REASONS)
 # delete the CSV file header
@@ -35,13 +21,31 @@ string(REGEX REPLACE \([0-9]+,\".[^\"]*.\",.[^\"]*.,[0-1]\),1
         ${CSV_FLAG_REASONS})
 # replaces the flag reason entry with a c++ method to create it
 string(REGEX REPLACE \([0-9]+\),\"\(.[^\"]*.\)\",\(.[^\"]*.\),\([0-1]\),[0-1]
-       "static FlagReason \\2\(\) { return { static_cast<uint16_t>\(\\1\), \\3, static_cast<bool>\(\\4\) }; }"
-       CSV_FLAG_REASONS
-       ${CSV_FLAG_REASONS})
+        "static FlagReason \\2\(\) { return { static_cast<uint16_t>\(\\1\), \\3, static_cast<bool>\(\\4\) }; }"
+        CSV_FLAG_REASONS
+        ${CSV_FLAG_REASONS})
 # put the method lists inside the template
 configure_file("include/DataFormatsQualityControl/FlagReasonFactory.h.in"
-               "${CMAKE_CURRENT_BINARY_DIR}/include/DataFormatsQualityControl/FlagReasonFactory.h"
-               @ONLY)
+        "${CMAKE_CURRENT_BINARY_DIR}/include/DataFormatsQualityControl/FlagReasonFactory.h"
+        @ONLY)
+
+o2_add_library(DataFormatsQualityControl
+               SOURCES src/FlagReasons.cxx
+                       src/TimeRangeFlag.cxx
+                       src/TimeRangeFlagCollection.cxx
+  PUBLIC_LINK_LIBRARIES O2::Headers
+                        O2::FrameworkLogger
+                        O2::DetectorsCommonDataFormats
+  PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_BINARY_DIR}/include
+                             include
+        )
+
+o2_target_root_dictionary(DataFormatsQualityControl
+                          HEADERS include/DataFormatsQualityControl/FlagReasons.h
+                                  include/DataFormatsQualityControl/TimeRangeFlag.h
+                                  include/DataFormatsQualityControl/TimeRangeFlagCollection.h)
+
+
 
 o2_add_test(FlagReasons
   SOURCES test/testFlagReasons.cxx
