@@ -124,11 +124,11 @@ class IDCFactorization : public IDCGroupHelperSector
 
   /// \return creates and returns medium compressed IDCDelta \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
   /// \param chunk chunk of Delta IDC
-  auto getIDCDeltaMediumCompressed(const unsigned int chunk) const { return IDCDeltaCompressionHelper<short>::getCompressedIDCs(mIDCDelta[chunk]); }
+  auto getIDCDeltaMediumCompressed(const unsigned int chunk) const { return IDCDeltaCompressionHelper<unsigned short>::getCompressedIDCs(mIDCDelta[chunk]); }
 
   /// \return creates and returns high compressed IDCDelta \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
   /// \param chunk chunk of Delta IDC
-  auto getIDCDeltaHighCompressed(const unsigned int chunk) const { return IDCDeltaCompressionHelper<char>::getCompressedIDCs(mIDCDelta[chunk]); }
+  auto getIDCDeltaHighCompressed(const unsigned int chunk) const { return IDCDeltaCompressionHelper<unsigned char>::getCompressedIDCs(mIDCDelta[chunk]); }
 
   /// \return returns number of chunks for Delta IDCs
   unsigned int getNChunks() const { return mIDCDelta.size(); }
@@ -161,8 +161,11 @@ class IDCFactorization : public IDCGroupHelperSector
   /// \param nThreads number of threads
   static void setNThreads(const int nThreads) { sNThreads = nThreads; }
 
+  /// \param minIDCDeltaValue minimum IDC delta value for compressed IDC delta
+  static void setMinCompressedIDCDelta(const float minIDCDeltaValue) { o2::conf::ConfigurableParam::setValue<float>("TPCIDCCompressionParam", "minIDCDeltaValue", minIDCDeltaValue); }
+
   /// \param maxIDCDeltaValue maximum IDC delta value for compressed IDC delta
-  static void setMaxCompressedIDCDelta(const float maxIDCDeltaValue) { o2::conf::ConfigurableParam::setValue<float>("TPCIDCCompressionParam", "MaxIDCDeltaValue", maxIDCDeltaValue); }
+  static void setMaxCompressedIDCDelta(const float maxIDCDeltaValue) { o2::conf::ConfigurableParam::setValue<float>("TPCIDCCompressionParam", "maxIDCDeltaValue", maxIDCDeltaValue); }
 
   /// draw IDCs for one sector for one integration interval
   /// \param sector sector which will be drawn
