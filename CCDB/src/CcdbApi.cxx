@@ -129,22 +129,22 @@ std::unique_ptr<std::vector<char>> CcdbApi::createObjectImage(const TObject* roo
 }
 
 int CcdbApi::storeAsTFile_impl(const void* obj, std::type_info const& tinfo, std::string const& path,
-                                std::map<std::string, std::string> const& metadata,
-                                long startValidityTimestamp, long endValidityTimestamp,
-                                std::vector<char>::size_type maxSize) const
+                               std::map<std::string, std::string> const& metadata,
+                               long startValidityTimestamp, long endValidityTimestamp,
+                               std::vector<char>::size_type maxSize) const
 {
   // We need the TClass for this type; will verify if dictionary exists
   CcdbObjectInfo info;
   auto img = createObjectImage(obj, tinfo, &info);
   return storeAsBinaryFile(img->data(), img->size(), info.getFileName(), info.getObjectType(),
-                    path, metadata, startValidityTimestamp, endValidityTimestamp, maxSize);
+                           path, metadata, startValidityTimestamp, endValidityTimestamp, maxSize);
 }
 
 int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::string& filename, const std::string& objectType,
-                                const std::string& path, const std::map<std::string, std::string>& metadata,
-                                long startValidityTimestamp, long endValidityTimestamp, std::vector<char>::size_type maxSize) const
+                               const std::string& path, const std::map<std::string, std::string>& metadata,
+                               long startValidityTimestamp, long endValidityTimestamp, std::vector<char>::size_type maxSize) const
 {
-  if(maxSize > 0 && size > maxSize) {
+  if (maxSize > 0 && size > maxSize) {
     return -1;
   }
 
@@ -219,7 +219,7 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
 }
 
 int CcdbApi::storeAsTFile(const TObject* rootObject, std::string const& path, std::map<std::string, std::string> const& metadata,
-                           long startValidityTimestamp, long endValidityTimestamp, std::vector<char>::size_type maxSize) const
+                          long startValidityTimestamp, long endValidityTimestamp, std::vector<char>::size_type maxSize) const
 {
   // Prepare file
   CcdbObjectInfo info;
