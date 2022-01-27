@@ -86,9 +86,8 @@ DataSet createData(std::vector<InputSpec> const& inputspecs, std::vector<DataHea
     }
   }
 
-  static ObjectCache cache;
-  static CallbackService callbacks;
-  return {std::move(schema), std::move(messages), std::move(checkValues), cache, callbacks};
+  static ServiceRegistry registry;
+  return {std::move(schema), std::move(messages), std::move(checkValues), registry};
 }
 
 } // namespace test

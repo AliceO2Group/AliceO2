@@ -87,7 +87,6 @@ struct DataProcessorContext {
   AlgorithmSpec::ProcessCallback* statefulProcess = nullptr;
   AlgorithmSpec::ProcessCallback* statelessProcess = nullptr;
   AlgorithmSpec::ErrorCallback* error = nullptr;
-  ObjectCache objCache;
 
   /// Wether or not the associated DataProcessor can forward things early
   bool canForwardEarly = true;

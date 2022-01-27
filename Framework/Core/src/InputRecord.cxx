@@ -35,12 +35,10 @@ namespace o2::framework
 
 InputRecord::InputRecord(std::vector<InputRoute> const& inputsSchema,
                          InputSpan& span,
-                         ObjectCache& cache,
-                         CallbackService& callbacks)
-  : mInputsSchema{inputsSchema},
-    mSpan{span},
-    mCache{cache},
-    mCallbacks{callbacks}
+                         ServiceRegistry& registry)
+  : mRegistry{registry},
+    mInputsSchema{inputsSchema},
+    mSpan{span}
 {
 }
 
