@@ -21,8 +21,7 @@
 // or submit itself to any jurisdiction.
 
 // example to run:
-// o2-dcs-config-proxy --dcs-config-proxy '--channel-config "name=dcs-config-proxy,type=sub,method=connect,address=tcp://127.0.0.1:5556,rateLogging=1,transport=zeromq"' \
-//                     --acknowlege-to "type=push,method=connect,address=tcp://127.0.0.1:5557,rateLogging=1,transport=zeromq"
+// o2-ctp-proxy --ctp-proxy '--channel-config "name=ctp-proxy,type=sub,method=connect,address=tcp://127.0.0.1:5556,rateLogging=1,transport=zeromq"'
 
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
@@ -35,7 +34,7 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Headers/DataHeaderHelpers.h"
 #include <fairmq/FairMQDevice.h>
-#include "CommonUtils/StringUtils.h"
+#include "CommonUtils/StringUtils.h"--
 #include <vector>
 #include <string>
 
@@ -66,7 +65,6 @@ InjectorFunction dcs2dpl()
       LOG(error) << "unknown detector for " << filename;
       return;
     }
-    // o2::header::DataHeader hdrF("DCS_CONFIG_FILE", dataOrigin, 0);
     o2::header::DataHeader hdrF("CTP_COUNTERS", dataOrigin, 0);
     OutputSpec outsp{hdrF.dataOrigin, hdrF.dataDescription, hdrF.subSpecification};
     auto channel = channelRetriever(outsp, *timesliceId);
@@ -102,7 +100,6 @@ InjectorFunction dcs2dpl()
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  // workflowOptions.push_back(ConfigParamSpec{"subscribe-to", VariantType::String, "type=sub,method=connect,address=tcp://127.0.0.1:5556,rateLogging=1,transport=zeromq", {"channel subscribe to"}});
   workflowOptions.push_back(ConfigParamSpec{"subscribe-to", VariantType::String, "type=sub,method=connect,address=tcp://188.184.30.57:5556,rateLogging=1,transport=zeromq", {"channel subscribe to"}});
 }
 
