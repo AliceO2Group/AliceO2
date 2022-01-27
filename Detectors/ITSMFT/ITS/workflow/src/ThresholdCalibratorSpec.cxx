@@ -111,11 +111,11 @@ void ITSThresholdCalibrator::init(InitContext& ic)
   this->mVerboseOutput = ic.options().get<bool>("verbose");
 
   //Get number of threads
-  try {
-    this->mNThreads = ic.options().get<int>("nthreads");
-  } catch (std::exception const& e) {
-    LOG(warning) << "Input parameter nthreads not found"
-                 << "\n*** Setting nthreads equal to 1";
+  this->mNThreads = ic.options().get<int>("nthreads");
+
+  //Check fit type vs nthreads (fit option is not thread safe!)
+  if (mFitType == FIT && mNThreads > 1) {
+    throw std::runtime_error("Multiple threads are requested with fit method which is not thread safe");
   }
 
   return;
@@ -315,7 +315,7 @@ bool ITSThresholdCalibrator::findThresholdDerivative(
   }
 
   int deriv_size = upper - lower;
-  float* deriv = new float[deriv_size];
+  float deriv[deriv_size];
   float xfx = 0, fx = 0;
 
   // Fill array with derivatives
@@ -337,7 +337,6 @@ bool ITSThresholdCalibrator::findThresholdDerivative(
   stddev /= fx;
   noise = std::sqrt(stddev);
 
-  delete[] deriv;
   return (noise < 15);
 }
 
@@ -362,7 +361,7 @@ bool ITSThresholdCalibrator::findThresholdHitcounting(
   // if (numberOfHits < N_INJ) { return false; }
   if (!is50) {
     if (this->mVerboseOutput) {
-      LOG(warning) << "Too few hits, skipping this pixel";
+      LOG(warning) << "Calculation unsuccessful: too few hits. Skipping this pixel";
     }
     return false;
   }
@@ -395,27 +394,8 @@ void ITSThresholdCalibrator::extractThresholdRow(const short int& chipID, const 
     // Do the threshold fit
     float thresh = 0., noise = 0.;
     bool success = false;
-
-    try {
-      success = this->findThreshold(&(this->mPixelHits[chipID][col_i][0]),
-                                    this->mX, *(this->N_RANGE), thresh, noise);
-    }
-
-    // Print helpful info to output file for debugging
-    // col+1 because of ROOT 1-indexing (row already has the +1)
-    catch (int i) {
-      if (this->mVerboseOutput) {
-        LOG(warning) << "Start-finding unsuccessful for chipID " << chipID
-                     << " row " << row << " column " << (col_i) << '\n';
-      }
-      continue;
-    } catch (int* i) {
-      if (this->mVerboseOutput) {
-        LOG(warning) << "Start-finding unsuccessful for chipID " << chipID
-                     << " row " << row << " column " << (col_i) << '\n';
-      }
-      continue;
-    }
+    success = this->findThreshold(&(this->mPixelHits[chipID][col_i][0]),
+                                  this->mX, *(this->N_RANGE), thresh, noise);
 
     vChipid[col_i] = chipID;
     vRow[col_i] = row;
