@@ -405,7 +405,7 @@ class InputRecord
           mCache.matcherToId.insert(std::make_pair(path, id));
           std::unique_ptr<ValueT const, Deleter<ValueT const>> result(DataRefUtils::as<CCDBSerialized<ValueT>>(ref).release(), false);
           void* obj = (void*)result.get();
-          mCallbacks(CallbackService::Id::CCDBDeserialised, matcher, obj);
+          mCallbacks(CallbackService::Id::CCDBDeserialised, (ConcreteDataMatcher&)matcher, (void*)obj);
           mCache.idToObject[id] = obj;
           LOGP(info, "Caching in {} ptr to {} ({})", id.value, path, obj);
           return result;
@@ -422,7 +422,7 @@ class InputRecord
         delete reinterpret_cast<ValueT*>(mCache.idToObject[oldId]);
         std::unique_ptr<ValueT const, Deleter<ValueT const>> result(DataRefUtils::as<CCDBSerialized<ValueT>>(ref).release(), false);
         void* obj = (void*)result.get();
-        mCallbacks(CallbackService::Id::CCDBDeserialised, matcher, obj);
+        mCallbacks(CallbackService::Id::CCDBDeserialised, (ConcreteDataMatcher&)matcher, (void*)obj);
         mCache.idToObject[id] = obj;
         LOGP(info, "Replacing cached entry {} with {} for {} ({})", oldId.value, id.value, path, obj);
         oldId.value = id.value;
