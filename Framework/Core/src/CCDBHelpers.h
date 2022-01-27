@@ -19,11 +19,18 @@ namespace o2::framework
 {
 
 struct CCDBHelpers {
+  // How we retrieve the timestamp information.
+  enum struct Mode {
+    Analysis,
+    Data,
+    MC,
+    Run2
+  };
   struct ParserResult {
     std::unordered_map<std::string, std::string> remappings;
     std::string error;
   };
-  static AlgorithmSpec fetchFromCCDB();
+  static AlgorithmSpec fetchFromCCDB(CCDBHelpers::Mode mode = Mode::Data);
   static ParserResult parseRemappings(char const*);
 };
 
