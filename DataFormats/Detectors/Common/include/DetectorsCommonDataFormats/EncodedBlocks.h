@@ -376,10 +376,10 @@ class EncodedBlocks
 
   /// cast arbitrary buffer head to container class. Head is supposed to respect the alignment
   static auto get(void* head) { return reinterpret_cast<EncodedBlocks*>(head); }
-  static const auto get(const void* head) { return reinterpret_cast<const EncodedBlocks*>(head); }
+  static auto get(const void* head) { return reinterpret_cast<const EncodedBlocks*>(head); }
 
   /// get const image of the container wrapper, with pointers in the image relocated to new head
-  static const auto getImage(const void* newHead);
+  static auto getImage(const void* newHead);
 
   /// create container from arbitrary buffer of predefined size (in bytes!!!). Head is supposed to respect the alignment
   static auto create(void* head, size_t sz);
@@ -690,7 +690,7 @@ void EncodedBlocks<H, N, W>::clear()
 ///_____________________________________________________________________________
 /// get const image of the container wrapper, with pointers in the image relocated to new head
 template <typename H, int N, typename W>
-const auto EncodedBlocks<H, N, W>::getImage(const void* newHead)
+auto EncodedBlocks<H, N, W>::getImage(const void* newHead)
 {
   auto image(*get(newHead)); // 1st make a shalow copy
   // now fix its pointers
