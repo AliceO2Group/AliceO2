@@ -28,9 +28,7 @@ using DataHeader = o2::header::DataHeader;
 using Stack = o2::header::Stack;
 using RAWDataHeaderV6 = o2::header::RAWDataHeaderV6;
 
-namespace o2::framework
-{
-namespace test
+namespace o2::framework::test
 {
 using RAWDataHeader = RAWDataHeaderV6;
 static const size_t PAGESIZE = 8192;
@@ -41,7 +39,7 @@ static const size_t PAGESIZE = 8192;
 struct DataSet {
   // not nice with the double vector but for quick unit test ok
   using Messages = std::vector<std::vector<std::unique_ptr<std::vector<char>>>>;
-  DataSet(std::vector<InputRoute>&& s, Messages&& m, std::vector<int>&& v, ObjectCache& cache, CallbackService& callbacks)
+  DataSet(std::vector<InputRoute>&& s, Messages&& m, std::vector<int>&& v, ServiceRegistry& registry)
     : schema{std::move(s)},
       messages{std::move(m)},
       span{[this](size_t i, size_t part) {
@@ -50,7 +48,7 @@ struct DataSet {
              return DataRef{nullptr, header, payload};
            },
            [this](size_t i) { return i < this->messages.size() ? messages[i].size() / 2 : 0; }, this->messages.size()},
-      record{schema, span, cache, callbacks},
+      record{schema, span, registry},
       values{std::move(v)}
   {
   }
@@ -65,6 +63,5 @@ struct DataSet {
 using AmendRawDataHeader = std::function<void(RAWDataHeader&)>;
 DataSet createData(std::vector<InputSpec> const& inputspecs, std::vector<DataHeader> const& dataheaders, AmendRawDataHeader amendRdh = nullptr);
 
-} // namespace test
 } // namespace o2::framework
 #endif // FRAMEWORK_UTILS_RAWPAGETESTDATA_H

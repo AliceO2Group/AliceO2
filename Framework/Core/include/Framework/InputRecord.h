@@ -103,8 +103,7 @@ class InputRecord
 
   InputRecord(std::vector<InputRoute> const& inputs,
               InputSpan& span,
-              ObjectCache& cache,
-              CallbackService& callbacks);
+              ServiceRegistry&);
 
   /// A deleter type to be used with unique_ptr, which can be marked that
   /// it does not own the underlying resource and thus should not delete it.
@@ -400,30 +399,32 @@ class InputRecord
         // and cache the deserialised object at the given id.
         auto path = fmt::format("{}", DataSpecUtils::describe(matcher));
         LOGP(info, "{}", path);
-        auto cacheEntry = mCache.matcherToId.find(path);
-        if (cacheEntry == mCache.matcherToId.end()) {
-          mCache.matcherToId.insert(std::make_pair(path, id));
+        auto& cache = mRegistry.get<ObjectCache>();
+        auto& callbacks = mRegistry.get<CallbackService>();
+        auto cacheEntry = cache.matcherToId.find(path);
+        if (cacheEntry == cache.matcherToId.end()) {
+          cache.matcherToId.insert(std::make_pair(path, id));
           std::unique_ptr<ValueT const, Deleter<ValueT const>> result(DataRefUtils::as<CCDBSerialized<ValueT>>(ref).release(), false);
           void* obj = (void*)result.get();
-          mCallbacks(CallbackService::Id::CCDBDeserialised, (ConcreteDataMatcher&)matcher, (void*)obj);
-          mCache.idToObject[id] = obj;
+          callbacks(CallbackService::Id::CCDBDeserialised, (ConcreteDataMatcher&)matcher, (void*)obj);
+          cache.idToObject[id] = obj;
           LOGP(info, "Caching in {} ptr to {} ({})", id.value, path, obj);
           return result;
         }
         auto& oldId = cacheEntry->second;
         // The id in the cache is the same, let's simply return it.
         if (oldId.value == id.value) {
-          std::unique_ptr<ValueT const, Deleter<ValueT const>> result((ValueT const*)mCache.idToObject[id], false);
+          std::unique_ptr<ValueT const, Deleter<ValueT const>> result((ValueT const*)cache.idToObject[id], false);
           LOGP(info, "Returning cached entry {} for {} ({})", id.value, path, (void*)result.get());
           return result;
         }
         // The id in the cache is different. Let's destroy the old cached entry
         // and create a new one.
-        delete reinterpret_cast<ValueT*>(mCache.idToObject[oldId]);
+        delete reinterpret_cast<ValueT*>(cache.idToObject[oldId]);
         std::unique_ptr<ValueT const, Deleter<ValueT const>> result(DataRefUtils::as<CCDBSerialized<ValueT>>(ref).release(), false);
         void* obj = (void*)result.get();
-        mCallbacks(CallbackService::Id::CCDBDeserialised, (ConcreteDataMatcher&)matcher, (void*)obj);
-        mCache.idToObject[id] = obj;
+        callbacks(CallbackService::Id::CCDBDeserialised, (ConcreteDataMatcher&)matcher, (void*)obj);
+        cache.idToObject[id] = obj;
         LOGP(info, "Replacing cached entry {} with {} for {} ({})", oldId.value, id.value, path, obj);
         oldId.value = id.value;
         return result;
@@ -438,8 +439,6 @@ class InputRecord
     } else {
       // non-messageable objects for which serialization method can not be derived by type,
       // the operation depends on the transmitted serialization method
-      using DataHeader = o2::header::DataHeader;
-
       auto header = DataRefUtils::getHeader<header::DataHeader*>(ref);
       auto method = header->payloadSerializationMethod;
       if (method == o2::header::gSerializationMethodNone) {
@@ -668,10 +667,9 @@ class InputRecord
   }
 
  private:
-  ObjectCache& mCache;
+  ServiceRegistry& mRegistry;
   std::vector<InputRoute> const& mInputsSchema;
   InputSpan& mSpan;
-  CallbackService& mCallbacks;
 };
 
 } // namespace o2::framework
