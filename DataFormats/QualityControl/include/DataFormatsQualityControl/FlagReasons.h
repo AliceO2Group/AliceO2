@@ -65,4 +65,7 @@ class FlagReason
 } // namespace quality_control
 } // namespace o2
 
+// TODO: remove once we include it in QualityControl
+#include "DataFormatsQualityControl/FlagReasonFactory.h"
+
 #endif
