@@ -93,7 +93,10 @@ class EMCALCalibExtractor
     return mOutputBCM;
   }
 
-  /// \brief For now a dummy function to calibrate the time.
+  /// \brief Calibrate time for all cells
+  /// \param hist -- 2d boost histogram: cell-time vs. cell-ID
+  /// \param minTime -- min. time considered for fit
+  /// \param maxTime -- max. time considered for fit
   template <typename... axes>
   o2::emcal::TimeCalibrationParams calibrateTime(boost::histogram::histogram<axes...>& hist, double minTime = 0, double maxTime = 1000)
   {
@@ -101,6 +104,8 @@ class EMCALCalibExtractor
     auto histReduced = boost::histogram::algorithm::reduce(hist, boost::histogram::algorithm::shrink(minTime, maxTime), boost::histogram::algorithm::shrink(0, NCELLS));
 
     o2::emcal::TimeCalibrationParams TCP;
+
+    double mean = 0;
 
 #if (defined(WITH_OPENMP) && !defined(__CLING__))
     if (mNThreads < 1) {
@@ -114,18 +119,18 @@ class EMCALCalibExtractor
 #endif
 
     for (unsigned int i = 0; i < NCELLS; ++i) {
-      // project boost histogram to 1d just for 1 cell
-      auto boostHist1d = o2::utils::ProjectBoostHistoX(histReduced, i, i + 1);
-      // maybe cut histo to max +- 25 ns
 
-      // fit with gaussian to extract mean
+      // project boost histogram to 1d just for 1 cell
+      auto boostHist1d = o2::utils::ProjectBoostHistoXFast(histReduced, i, i + 1);
+      // ToDo: maybe cut histo to max +- 25 ns
+
       try {
         auto fitValues = o2::utils::fitBoostHistoWithGaus<double>(boostHist1d);
-        double mean = fitValues.at(1);
+        mean = fitValues.at(1);
         // add mean to time calib params
         TCP.addTimeCalibParam(i, mean, 0);
       } catch (o2::utils::FitGausError_t) {
-        TCP.addTimeCalibParam(i, 400, 0); // 400 ns shift default value
+        TCP.addTimeCalibParam(i, mean, 0); // take calib value of last cell; or 400 ns shift default value
       }
     }
     return TCP;
