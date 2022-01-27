@@ -51,7 +51,7 @@ struct IDCDeltaContainer {
 /// storage for the factor used to compress IDCDelta.
 /// This factor is separated from the IDCDelta struct to able to store those values independently in the CCDB
 struct IDCDeltaCompressionFactors {
-  std::array<float, o2::tpc::SIDES> mFactors{1.f, 1.f}; ///< compression factors for each TPC side
+  std::array<std::pair<float, float>, o2::tpc::SIDES> mFactors{std::pair{1.f, 1.f}, std::pair{1.f, 1.f}}; ///< compression factors for each TPC side
 };
 
 /// struct to access and set Delta IDCs
@@ -72,21 +72,21 @@ struct IDCDelta {
   /// \return returns converted IDC value from float to new data type specified by template parameter of the object
   /// \param idcDelta Delta IDC value which will be set
   /// \param side side of the TPC
-  DataT compressValue(const float idcDelta, const o2::tpc::Side side) const
+  DataT compressValue(float idcDelta, const o2::tpc::Side side) const
   {
-    const static auto& paramIDCGroup = ParameterIDCCompression::Instance();
-    return (std::abs(idcDelta) >= paramIDCGroup.MaxIDCDeltaValue) ? static_cast<DataT>(std::copysign(paramIDCGroup.MaxIDCDeltaValue * mCompressionFactor.mFactors[side] + 0.5f, idcDelta)) : static_cast<DataT>(idcDelta * mCompressionFactor.mFactors[side] + std::copysign(0.5f, idcDelta));
+    idcDelta = (std::clamp(idcDelta, mCompressionFactor.mFactors[side].first, mCompressionFactor.mFactors[side].second) - mCompressionFactor.mFactors[side].first) * std::numeric_limits<DataT>::max() / (mCompressionFactor.mFactors[side].second - mCompressionFactor.mFactors[side].first);
+    return std::nearbyint(idcDelta);
   }
 
   /// \return returns stored Delta IDC value
   /// \param side side of the TPC
   /// \param index index in the storage (see: getIndexUngrouped int IDCGroupHelperSector)
-  float getValue(const o2::tpc::Side side, const unsigned int index) const { return (static_cast<float>(mIDCDelta.mIDCDeltaCont[side][index]) / mCompressionFactor.mFactors[side]); }
+  float getValue(const o2::tpc::Side side, const unsigned int index) const { return mCompressionFactor.mFactors[side].first + (mCompressionFactor.mFactors[side].second - mCompressionFactor.mFactors[side].first) * static_cast<float>(mIDCDelta.mIDCDeltaCont[side][index]) / std::numeric_limits<DataT>::max(); }
 
   /// set compression factor
   /// \param side side of the TPC
   /// \param factor factor which will be used for the compression
-  void setCompressionFactor(const o2::tpc::Side side, const float factor) { mCompressionFactor.mFactors[side] = factor; }
+  void setCompressionFactor(const o2::tpc::Side side, const float factorMin, const float factorMax) { mCompressionFactor.mFactors[side] = std::pair{factorMin, factorMax}; }
 
   /// \return returns vector of Delta IDCs for given side
   /// \param side side of the TPC
@@ -185,30 +185,18 @@ class IDCDeltaCompressionHelper
   static void compress(const IDCDelta<float>& idcDeltaUncompressed, IDCDelta<DataT>& idcCompressed, const o2::tpc::Side side)
   {
     idcCompressed.getIDCDelta(side).reserve(idcDeltaUncompressed.getIDCDelta(side).size());
-    const float factor = getCompressionFactor(idcDeltaUncompressed, side);
-    idcCompressed.setCompressionFactor(side, factor);
+    const auto minmaxIDC = std::minmax_element(std::begin(idcDeltaUncompressed.getIDCDelta(side)), std::end(idcDeltaUncompressed.getIDCDelta(side)));
+    const auto& paramIDCGroup = ParameterIDCCompression::Instance();
+    const float minIDCDelta = std::clamp(*minmaxIDC.first, paramIDCGroup.minIDCDeltaValue, paramIDCGroup.maxIDCDeltaValue);
+    const float maxIDCDelta = std::clamp(*minmaxIDC.second, paramIDCGroup.minIDCDeltaValue, paramIDCGroup.maxIDCDeltaValue);
+    idcCompressed.setCompressionFactor(side, minIDCDelta, maxIDCDelta);
     for (auto& idc : idcDeltaUncompressed.getIDCDelta(side)) {
       idcCompressed.emplace_back(idc, side);
     }
   }
-
-  /// \return returns the factor which is used during the compression
-  static float getCompressionFactor(const IDCDelta<float>& idcDeltaUncompressed, const o2::tpc::Side side)
-  {
-    const float maxAbsIDC = getMaxValue(idcDeltaUncompressed.getIDCDelta(side));
-    const auto& paramIDCGroup = ParameterIDCCompression::Instance();
-    const float maxIDC = paramIDCGroup.MaxIDCDeltaValue;
-    return (maxAbsIDC > maxIDC || maxAbsIDC == 0) ? (std::numeric_limits<DataT>::max() / maxIDC) : (std::numeric_limits<DataT>::max() / maxAbsIDC);
-  }
-
-  /// \returns returns maximum abs value in vector
-  static float getMaxValue(const std::vector<float>& idcs)
-  {
-    return std::abs(*std::max_element(idcs.begin(), idcs.end(), [](const float a, const float b) -> bool { return (std::abs(a) < std::abs(b)); }));
-  };
 };
 
-///<struct containing the IDC1 values
+///< struct containing the IDC0 values
 struct IDCZero {
 
   /// set IDC zero for given index

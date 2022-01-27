@@ -210,7 +210,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
         switch (mCompressionDeltaIDC) {
           case IDCDeltaCompression::MEDIUM:
           default: {
-            using compType = short;
+            using compType = unsigned short;
             if constexpr (std::is_same_v<Type, TPCFactorizeIDCSpecGroup>) {
               auto idcDeltaMediumCompressed = IDCDeltaCompressionHelper<compType>::getCompressedIDCs(mIDCStruct.mIDCs.getIDCGroupData());
               mDBapi.storeAsTFileAny<o2::tpc::IDCDelta<compType>>(&idcDeltaMediumCompressed, "TPC/Calib/IDC/IDCDELTA", mMetadata, getFirstTFDeltaIDC(iChunk), getLastTFDeltaIDC(iChunk));
@@ -222,7 +222,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
             break;
           }
           case IDCDeltaCompression::HIGH: {
-            using compType = char;
+            using compType = unsigned char;
             if constexpr (std::is_same_v<Type, TPCFactorizeIDCSpecGroup>) {
               auto idcDeltaMediumCompressed = IDCDeltaCompressionHelper<compType>::getCompressedIDCs(mIDCStruct.mIDCs.getIDCGroupData());
               mDBapi.storeAsTFileAny<o2::tpc::IDCDelta<compType>>(&idcDeltaMediumCompressed, "TPC/Calib/IDC/IDCDELTA", mMetadata, getFirstTFDeltaIDC(iChunk), getLastTFDeltaIDC(iChunk));
