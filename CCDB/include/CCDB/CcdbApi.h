@@ -121,7 +121,7 @@ class CcdbApi //: public DatabaseInterface
      *         -2 : curl initialization error
      */
   int storeAsTFile(const TObject* rootObject, std::string const& path, std::map<std::string, std::string> const& metadata,
-                    long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize = 0 /*bytes*/) const;
+                   long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize = 0 /*bytes*/) const;
 
   /**
      * Store into the CCDB a TFile containing an object of type T (which needs to have a ROOT dictionary)
@@ -138,14 +138,14 @@ class CcdbApi //: public DatabaseInterface
      */
   template <typename T>
   int storeAsTFileAny(const T* obj, std::string const& path, std::map<std::string, std::string> const& metadata,
-                       long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize = 0 /*bytes*/) const
+                      long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize = 0 /*bytes*/) const
   {
     return storeAsTFile_impl(reinterpret_cast<const void*>(obj), typeid(T), path, metadata, startValidityTimestamp, endValidityTimestamp, maxSize);
   }
 
   // interface for storing TObject via storeAsTFileAny
   int storeAsTFileAny(const TObject* rootobj, std::string const& path, std::map<std::string, std::string> const& metadata,
-                       long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize = 0 /*bytes*/) const
+                      long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize = 0 /*bytes*/) const
   {
     return storeAsTFile(rootobj, path, metadata, startValidityTimestamp, endValidityTimestamp, maxSize);
   }
@@ -406,8 +406,8 @@ class CcdbApi //: public DatabaseInterface
    *         -2 : curl initialization error
    */
   int storeAsBinaryFile(const char* buffer, size_t size, const std::string& fileName, const std::string& objectType,
-                         const std::string& path, const std::map<std::string, std::string>& metadata,
-                         long startValidityTimestamp, long endValidityTimestamp, std::vector<char>::size_type maxSize = 0 /*in bytes*/) const;
+                        const std::string& path, const std::map<std::string, std::string>& metadata,
+                        long startValidityTimestamp, long endValidityTimestamp, std::vector<char>::size_type maxSize = 0 /*in bytes*/) const;
 
   /**
    * A generic helper implementation to store an obj whose type is given by a std::type_info
@@ -417,7 +417,7 @@ class CcdbApi //: public DatabaseInterface
    *         -2 : curl initialization error
    */
   int storeAsTFile_impl(const void* obj1, std::type_info const& info, std::string const& path, std::map<std::string, std::string> const& metadata,
-                         long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize = 0 /*in bytes*/) const;
+                        long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize = 0 /*in bytes*/) const;
 
   /**
    * A generic helper implementation to query obj whose type is given by a std::type_info
