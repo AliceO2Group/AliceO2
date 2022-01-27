@@ -629,6 +629,18 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
     .kind = ServiceKind::Serial};
 }
 
+o2::framework::ServiceSpec CommonServices::objectCache()
+{
+  return ServiceSpec{
+    .name = "object-cache",
+    .init = [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+      auto* cache = new ObjectCache();
+      return ServiceHandle{TypeIdHelpers::uniqueId<ObjectCache>(), cache};
+    },
+    .configure = noConfiguration(),
+    .kind = ServiceKind::Serial};
+}
+
 std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
 {
   std::vector<ServiceSpec> specs{
@@ -647,6 +659,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     dataRelayer(),
     dataSender(),
     dataProcessingStats(),
+    objectCache(),
     CommonMessageBackends::fairMQBackendSpec(),
     ArrowSupport::arrowBackendSpec(),
     CommonMessageBackends::stringBackendSpec(),

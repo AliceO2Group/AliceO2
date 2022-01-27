@@ -48,9 +48,8 @@ static void BM_InputRecordGenericGetters(benchmark::State& state)
   // First of all we test if an empty registry behaves as expected, raising a
   // bunch of exceptions.
   InputSpan span{[](size_t) { return DataRef{nullptr, nullptr, nullptr}; }, 0};
-  CallbackService callbacks;
-  ObjectCache cache;
-  InputRecord emptyRecord(schema, span, cache, callbacks);
+  ServiceRegistry registry;
+  InputRecord emptyRecord(schema, span, registry);
 
   std::vector<void*> inputs;
 
@@ -84,17 +83,17 @@ static void BM_InputRecordGenericGetters(benchmark::State& state)
   createMessage(dh2, 2);
   createEmpty();
   InputSpan span2{[&inputs](size_t i) { return DataRef{nullptr, static_cast<char const*>(inputs[2 * i]), static_cast<char const*>(inputs[2 * i + 1])}; }, inputs.size() / 2};
-  InputRecord record{schema, span2, cache, callbacks};
+  InputRecord record{schema, span2, registry};
 
   for (auto _ : state) {
     // Checking we can get the whole ref by name
-    auto ref00 = record.get("x");
-    auto ref10 = record.get("y");
-    auto ref20 = record.get("z");
+    [[maybe_unused]] auto ref00 = record.get("x");
+    [[maybe_unused]] auto ref10 = record.get("y");
+    [[maybe_unused]] auto ref20 = record.get("z");
 
     // Or we can get it positionally
-    auto ref01 = record.getByPos(0);
-    auto ref11 = record.getByPos(1);
+    [[maybe_unused]] auto ref01 = record.getByPos(0);
+    [[maybe_unused]] auto ref11 = record.getByPos(1);
 
     record.isValid("x");
     record.isValid("y");
