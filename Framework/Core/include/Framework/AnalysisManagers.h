@@ -27,8 +27,6 @@
 #include "Framework/ExpressionHelpers.h"
 #include "Framework/CommonServices.h"
 
-#include <iostream>
-
 namespace o2::framework
 {
 
@@ -47,15 +45,7 @@ struct GroupedCombinationManager<GroupedCombinationsGenerator<T1, GroupingPolicy
   {
     static_assert(sizeof...(T2s) > 0, "There must be associated tables in process() for a correct pair");
     static_assert(!soa::is_soa_iterator_t<std::decay_t<H>>::value, "Only full tables can be in process(), no grouping");
-    std::cout << "Combinations grouping type: " << typeid(G).name() << " received grouping type: " << typeid(TG).name() << std::endl;
-    std::cout << "Combinations associated type:" << std::endl;
-    print_pack<pack<As...>>();
-    std::cout << "received associated type:" << std::endl;
-    print_pack<pack<T2s...>>();
-    std::cout << "Combinations unique types:" << std::endl;
-    print_pack<pack<Us...>>();
     if constexpr (std::is_same_v<G, TG> && std::is_same_v<H, TH>) {
-      std::cout << "Setting tables in manager" << std::endl;
       // Take respective unique associated tables for grouping
       auto associatedTuple = std::tuple<Us...>(std::get<Us>(associated)...);
       comb.setTables(hashes, grouping, associatedTuple);

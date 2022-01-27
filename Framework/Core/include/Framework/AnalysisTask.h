@@ -38,7 +38,6 @@
 #include <memory>
 #include <sstream>
 #include <iomanip>
-#include <iostream>
 namespace o2::framework
 {
 /// A more familiar task API for the DPL analysis framework.
@@ -316,7 +315,6 @@ struct AnalysisDataProcessorBuilder {
         associatedTables);
 
       // GroupedCombinations bound separately, as they should be set once for all associated tables
-      std::cout << "Analysis task applying tables to grouped combs" << std::endl;
       auto hashes = std::get<0>(associatedTables);
       auto realAssociated = tuple_tail(associatedTables);
       homogeneous_apply_refs([&groupingTable, &hashes, &realAssociated](auto& t) {
