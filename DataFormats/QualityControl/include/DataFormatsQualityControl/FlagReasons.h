@@ -35,13 +35,13 @@ class FlagReason
 {
  private:
   uint16_t mId;
-  const char* mName;
+  std::string mName;
   bool mBad; // if true, data should become bad by default
 
   // By making the constructor private and FlagReasons available only in the FlagReasonFactory
   // we forbid to declare any flags in the user code. If you need a new FlagReason, please add it FlagReasonFactory.
  private:
-  constexpr FlagReason(uint16_t id, const char* name, bool bad) : mId(id), mName(name), mBad(bad) {}
+  FlagReason(uint16_t id, const char* name, bool bad) : mId(id), mName(name), mBad(bad) {}
 
  public:
   FlagReason();
@@ -53,7 +53,7 @@ class FlagReason
   bool operator>(const FlagReason& rhs) const;
 
   uint16_t getID() const { return mId; }
-  const char* getName() const { return mName; }
+  const std::string& getName() const { return mName; }
   bool getBad() const { return mBad; }
 
   friend std::ostream& operator<<(std::ostream& os, FlagReason const& me);
