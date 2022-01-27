@@ -52,7 +52,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"groupRows", VariantType::String, "5,5,5,5,4,4,4,4,3,3", {"number of pads in row direction which will be grouped per region"}},
     {"groupLastRowsThreshold", VariantType::String, "3,3,3,3,2,2,2,2,2,2", {"set threshold in row direction for merging the last group to the previous group per region"}},
     {"groupLastPadsThreshold", VariantType::String, "3,3,3,3,2,2,2,2,1,1", {"set threshold in pad direction for merging the last group to the previous group per region"}},
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g. for pp 50kHz: 'TPCIDCCompressionParam.MaxIDCDeltaValue=15;')"}}};
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g. for pp 50kHz: 'TPCIDCCompressionParam.maxIDCDeltaValue=15;')"}}};
 
   std::swap(workflowOptions, options);
 }
