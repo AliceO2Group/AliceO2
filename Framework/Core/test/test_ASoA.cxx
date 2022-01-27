@@ -703,6 +703,7 @@ BOOST_AUTO_TEST_CASE(TestIndexToFiltered)
 
 namespace test
 {
+DECLARE_SOA_INDEX_COLUMN_FULL(SinglePoint, singlePoint, int32_t, Points3Ds, "");
 DECLARE_SOA_ARRAY_INDEX_COLUMN(Points3D, pointGroup);
 DECLARE_SOA_SLICE_INDEX_COLUMN(Points3D, pointSlice);
 DECLARE_SOA_SELF_INDEX_COLUMN(OtherPoint, otherPoint);
@@ -711,6 +712,7 @@ DECLARE_SOA_SELF_ARRAY_INDEX_COLUMN(PointSet, pointSet);
 } // namespace test
 
 DECLARE_SOA_TABLE(PointsRef, "TST", "PTSREF", test::Points3DIdSlice, test::Points3DIds);
+DECLARE_SOA_TABLE(PointsRefF, "TST", "PTSREFF", test::SinglePointId, test::Points3DIdSlice, test::Points3DIds);
 DECLARE_SOA_TABLE(PointsSelfIndex, "TST", "PTSSLF", o2::soa::Index<>, test::X, test::Y, test::Z, test::OtherPointId,
                   test::PointSeqIdSlice, test::PointSetIds);
 
@@ -913,6 +915,38 @@ BOOST_AUTO_TEST_CASE(TestSliceBy)
     BOOST_CHECK_EQUAL(slice.size(), 5);
     for (auto& ri : slice) {
       BOOST_CHECK_EQUAL(ri.originId(), oi.globalIndex());
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(TestIndexUnboundExceptions)
+{
+  TableBuilder b;
+  auto prwriter = b.cursor<PointsRefF>();
+  auto a = std::array{0, 1};
+  auto aa = std::vector{2, 3, 4};
+  prwriter(0, 0, &a[0], aa);
+  a = {4, 10};
+  aa = {12, 2, 19};
+  prwriter(0, 1, &a[0], aa);
+  auto t = b.finalize();
+  auto prt = PointsRefF{t};
+
+  for (auto& row : prt) {
+    try {
+      auto sp = row.singlePoint();
+    } catch (RuntimeErrorRef ref) {
+      BOOST_REQUIRE_EQUAL(std::string{error_from_ref(ref).what}, "Index to Points3Ds is not bound! Did you subscribe to the table?");
+    }
+    try {
+      auto ps = row.pointSlice();
+    } catch (RuntimeErrorRef ref) {
+      BOOST_REQUIRE_EQUAL(std::string{error_from_ref(ref).what}, "Index to Points3Ds is not bound! Did you subscribe to the table?");
+    }
+    try {
+      auto pg = row.pointGroup();
+    } catch (RuntimeErrorRef ref) {
+      BOOST_REQUIRE_EQUAL(std::string{error_from_ref(ref).what}, "Index to Points3Ds is not bound! Did you subscribe to the table?");
     }
   }
 }
