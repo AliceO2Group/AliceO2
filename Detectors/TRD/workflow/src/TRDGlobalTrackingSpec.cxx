@@ -328,7 +328,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
 
   // start the tracking
   //mTracker->DumpTracks();
-  mTracker->DoTracking(mChainTracking);
+  mChainTracking->DoTRDGPUTracking<GPUTRDTrackerKernels::o2Version>(mTracker);
   //mTracker->DumpTracks();
 
   // finished tracking, now collect the output

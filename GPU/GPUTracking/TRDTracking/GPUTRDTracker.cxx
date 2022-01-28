@@ -246,50 +246,6 @@ void GPUTRDTracker_t<TRDTRK, PROP>::PrepareTracking(GPUChainTracking* chainTrack
   if (mGenerateSpacePoints) {
     chainTracking->mIOPtrs.trdSpacePoints = mSpacePoints;
   }
-}
-
-template <class TRDTRK, class PROP>
-void GPUTRDTracker_t<TRDTRK, PROP>::DoTracking(GPUChainTracking* chainTracking)
-{
-  //--------------------------------------------------------------------
-  // Steering function for the tracking
-  //--------------------------------------------------------------------
-
-  PrepareTracking(chainTracking);
-
-  auto timeStart = std::chrono::high_resolution_clock::now();
-
-  if (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TRDTracking) {
-    chainTracking->DoTRDGPUTracking<0>();
-  } else {
-#ifdef WITH_OPENMP
-#pragma omp parallel for num_threads(mRec->GetProcessingSettings().ompThreads)
-    for (int iTrk = 0; iTrk < mNTracks; ++iTrk) {
-      if (omp_get_num_threads() > mMaxThreads) {
-        GPUError("Number of parallel threads too high, aborting tracking");
-        // break statement not possible in OpenMP for loop
-        iTrk = mNTracks;
-        continue;
-      }
-      DoTrackingThread(iTrk, omp_get_thread_num());
-    }
-#else
-    for (int iTrk = 0; iTrk < mNTracks; ++iTrk) {
-      DoTrackingThread(iTrk);
-    }
-#endif
-  }
-
-  auto duration = std::chrono::high_resolution_clock::now() - timeStart;
-  (void)duration; // suppress warning about unused variable
-  /*
-  std::cout << "--->  -----> -------> ---------> ";
-  std::cout << "Time for event " << mNEvents << ": " << std::chrono::duration_cast<std::chrono::microseconds>(duration).count() << " us ";
-  std::cout << "nTracks: " << mNTracks;
-  std::cout << " nTracklets: " << GetConstantMem()->ioPtrs.nTRDTracklets;
-  std::cout << std::endl;
-  */
-  //DumpTracks();
   mNEvents++;
 }
 

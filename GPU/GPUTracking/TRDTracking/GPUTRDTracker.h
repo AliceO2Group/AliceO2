@@ -66,7 +66,6 @@ class GPUTRDTracker_t : public GPUProcessor
   void* SetPointersTracks(void* base);
 
   void PrepareTracking(GPUChainTracking* chainTracking);
-  void DoTracking(GPUChainTracking* chainTracking);
   void SetNCandidates(int n);
   void PrintSettings() const;
   bool IsInitialized() const { return mIsInitialized; }
