@@ -159,8 +159,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int RunTPCTrackingMerger(bool synchronizeOutput = true);
   template <int I>
   int RunTRDTracking();
-  template <int I>
-  int DoTRDGPUTracking(GPUTRDTracker* externalInstance = nullptr);
+  template <int I, class T = GPUTRDTracker>
+  int DoTRDGPUTracking(T* externalInstance = nullptr);
   int RunTPCCompression();
   int RunTPCDecompression();
   int RunRefit();
