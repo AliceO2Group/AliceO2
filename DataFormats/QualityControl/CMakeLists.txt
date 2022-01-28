@@ -28,6 +28,8 @@ string(REGEX REPLACE \([0-9]+\),\"\(.[^\"]*.\)\",\(.[^\"]*.\),\([0-1]\),[0-1]
 configure_file("include/DataFormatsQualityControl/FlagReasonFactory.h.in"
         "${CMAKE_CURRENT_BINARY_DIR}/include/DataFormatsQualityControl/FlagReasonFactory.h"
         @ONLY)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/DataFormatsQualityControl/FlagReasonFactory.h"
+        DESTINATION include/DataFormatsQualityControl)
 
 o2_add_library(DataFormatsQualityControl
                SOURCES src/FlagReasons.cxx
