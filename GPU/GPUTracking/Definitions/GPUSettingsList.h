@@ -125,6 +125,7 @@ AddOption(gpuDeviceOnly, bool, false, "", 0, "Use only GPU as device (i.e. no CP
 AddOption(globalInitMutex, bool, false, "", 0, "Use global mutex to synchronize initialization of multiple GPU instances")
 AddOption(stuckProtection, int, 0, "", 0, "Timeout in us, When AMD GPU is stuck, just continue processing and skip tracking, do not crash or stall the chain")
 AddOption(trdNCandidates, int, 3, "", 0, "Number of branching track candidates for single input track during propagation")
+AddOption(trdTrackModelO2, bool, false, "", 0, "Use O2 track model instead of GPU track model for TRD tracking")
 AddOption(debugLevel, int, -1, "debug", 'd', "Set debug level (-1 = silend)")
 AddOption(allocDebugLevel, int, 0, "allocDebug", 0, "Some debug output for memory allocations (without messing with normal debug level)")
 AddOption(debugMask, int, -1, "", 0, "Mask for debug output dumps to file")

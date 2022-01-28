@@ -884,17 +884,20 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
       // Print TRD part of track
       if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
         if (mTRDTrackIds[i] != -1 && mIOPtrs->nTRDTracklets) {
-          auto& trk = mIOPtrs->trdTracks[mTRDTrackIds[i]];
-          for (int k = 5; k >= 0; k--) {
-            int cid = trk.getTrackletIndex(k);
-            if (cid < 0) {
-              continue;
+          auto tmpDoTRDTracklets = [&](auto* trdTracks) {
+            auto& trk = mIOPtrs->trdTracks[mTRDTrackIds[i]];
+            for (int k = 5; k >= 0; k--) {
+              int cid = trk.getTrackletIndex(k);
+              if (cid < 0) {
+                continue;
+              }
+              drawing = true;
+              mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD2[cid].x, mGlobalPosTRD2[cid].y, mCfgH.projectXY ? 0 : mGlobalPosTRD2[cid].z);
+              mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD[cid].x, mGlobalPosTRD[cid].y, mCfgH.projectXY ? 0 : mGlobalPosTRD[cid].z);
+              mGlobalPosTRD[cid].w = tTRDATTACHED;
             }
-            drawing = true;
-            mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD2[cid].x, mGlobalPosTRD2[cid].y, mCfgH.projectXY ? 0 : mGlobalPosTRD2[cid].z);
-            mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD[cid].x, mGlobalPosTRD[cid].y, mCfgH.projectXY ? 0 : mGlobalPosTRD[cid].z);
-            mGlobalPosTRD[cid].w = tTRDATTACHED;
-          }
+          };
+          mIOPtrs->trdTracksO2 ? tmpDoTRDTracklets(mIOPtrs->trdTracksO2) : tmpDoTRDTracklets(mIOPtrs->trdTracks);
         }
       } else if constexpr (std::is_same_v<T, o2::tpc::TrackTPC>) {
         if (mIOPtrs->tpcLinkTRD && mIOPtrs->tpcLinkTRD[i] != -1 && mIOPtrs->nTRDTracklets) {
@@ -1336,11 +1339,14 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     for (unsigned int i = 0; i < nTpcMergedTracks; i++) {
       mTRDTrackIds[i] = -1;
     }
-    for (unsigned int i = 0; i < mIOPtrs->nTRDTracks; i++) {
-      if (mIOPtrs->trdTracks[i].getNtracklets()) {
-        mTRDTrackIds[mIOPtrs->trdTracks[i].getRefGlobalTrackIdRaw()] = i;
+    auto tmpDoTRDTracklets = [&](auto* trdTracks) {
+      for (unsigned int i = 0; i < mIOPtrs->nTRDTracks; i++) {
+        if (trdTracks[i].getNtracklets()) {
+          mTRDTrackIds[trdTracks[i].getRefGlobalTrackIdRaw()] = i;
+        }
       }
-    }
+    };
+    mIOPtrs->trdTracksO2 ? tmpDoTRDTracklets(mIOPtrs->trdTracksO2) : tmpDoTRDTracklets(mIOPtrs->trdTracks);
     if (mIOPtrs->nItsTracks) {
       std::fill(mITSStandaloneTracks.begin(), mITSStandaloneTracks.end(), true);
       if (mIOPtrs->tpcLinkITS) {
