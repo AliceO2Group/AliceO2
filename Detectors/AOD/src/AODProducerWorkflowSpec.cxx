@@ -770,11 +770,25 @@ void AODProducerWorkflowDPL::fillMCTrackLabelsTable(const MCTrackLabelCursorType
     int start = trackRef.getFirstEntryOfSource(src);
     int end = start + trackRef.getEntriesOfSource(src);
     for (int ti = start; ti < end; ti++) {
-      auto& trackIndex = primVerGIs[ti];
+      const auto trackIndex = primVerGIs[ti];
+
+      // check if the label was already stored (or the track was rejected for some reason in the fillTrackTablesPerCollision)
+      auto needToStore = [trackIndex](std::unordered_map<GIndex, int>& mp) {
+        auto entry = mp.find(trackIndex);
+        if (entry == mp.end() || entry->second == -1) {
+          return false;
+        }
+        entry->second = -1;
+        return true;
+      };
+
       if (GIndex::includesSource(src, mInputSources)) {
         auto mcTruth = data.getTrackMCLabel(trackIndex);
         MCLabels labelHolder;
         if ((src == GIndex::Source::MFT) || (src == GIndex::Source::MFTMCH) || (src == GIndex::Source::MCH)) { // treating mft and fwd labels separately
+          if (!needToStore(src == GIndex::Source::MFT ? mGIDToTableMFTID : mGIDToTableFwdID)) {
+            continue;
+          }
           if (mcTruth.isValid()) {                                                                             // if not set, -1 will be stored
             labelHolder.labelID = mToStore.at(Triplet_t(mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID()));
           }
@@ -788,13 +802,15 @@ void AODProducerWorkflowDPL::fillMCTrackLabelsTable(const MCTrackLabelCursorType
             mcMFTTrackLabelCursor(0,
                                   labelHolder.labelID,
                                   labelHolder.fwdLabelMask);
-
           } else {
             mcFwdTrackLabelCursor(0,
                                   labelHolder.labelID,
                                   labelHolder.fwdLabelMask);
           }
         } else {
+          if (!needToStore(mGIDToTableID)) {
+            continue;
+          }
           if (mcTruth.isValid()) { // if not set, -1 will be stored
             labelHolder.labelID = mToStore.at(Triplet_t(mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID()));
           }
@@ -1522,9 +1538,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   fillSecondaryVertices(recoData, v0sCursor, cascadesCursor);
 
-  mGIDToTableID.clear();
-  mGIDToTableFwdID.clear();
-  mGIDToTableMFTID.clear();
   // helper map for fast search of a corresponding class mask for a bc
   std::unordered_map<uint64_t, uint64_t> bcToClassMask;
   if (mInputSources[GID::CTP]) {
@@ -1585,6 +1598,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     }
   }
   mToStore.clear();
+  mGIDToTableID.clear();
+  mGIDToTableFwdID.clear();
+  mGIDToTableMFTID.clear();
 
   pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, tfNumber);
 
