@@ -21,7 +21,6 @@
 #include "ITStracking/Smoother.h"
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/TrackerTraits.h"
-#include "ITStracking/TrackerTraitsCPU.h"
 #include "ITStracking/TrackingConfigParam.h"
 
 #include "ReconstructionDataFormats/Track.h"

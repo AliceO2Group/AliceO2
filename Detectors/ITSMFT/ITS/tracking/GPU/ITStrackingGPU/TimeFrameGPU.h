@@ -41,14 +41,6 @@
 namespace o2
 {
 
-// namespace itsmft
-// {
-// class Cluster;
-// class CompClusterExt;
-// class TopologyDictionary;
-// class ROFRecord;
-// } // namespace itsmft
-
 namespace its
 {
 namespace gpu
@@ -59,12 +51,7 @@ class TimeFrameGPU : public TimeFrame
  public:
   TimeFrameGPU();
   ~TimeFrameGPU();
-  void loadToGPU();
-  // GPUh() int loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
-  //                     gsl::span<const itsmft::CompClusterExt> clusters,
-  //                     gsl::span<const unsigned char>::iterator& pattIt,
-  //                     const itsmft::TopologyDictionary& dict,
-  //                     const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
+  void loadToDevice();
 
  private:
   Array<Vector<TrackingFrameInfo>, NLayers> mTrackingFrameInfoGPU;
@@ -72,6 +59,7 @@ class TimeFrameGPU : public TimeFrame
   Array<Vector<int>, NLayers> mClusterExternalIndicesGPU;
   Array<Vector<int>, NLayers> mROframesClustersGPU;
 };
+
 } // namespace gpu
 } // namespace its
 } // namespace o2

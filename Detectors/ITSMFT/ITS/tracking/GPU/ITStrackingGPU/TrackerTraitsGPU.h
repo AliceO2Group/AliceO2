@@ -29,9 +29,6 @@ namespace o2
 {
 namespace its
 {
-template <int NLayers>
-class TimeFrameGPU;
-
 template <int NLayers = 7>
 class TrackerTraitsGPU : public TrackerTraits
 {
