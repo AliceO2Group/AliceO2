@@ -43,6 +43,8 @@ class GPUDisplay
   int InitDisplay(bool initFailure = false) { return 1; }
   void ExitDisplay() {}
   void ReSizeGLScene(int width, int height, bool init = false) {}
+
+  const GPUDisplayBackend* backend() const { return nullptr; }
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
