@@ -303,8 +303,9 @@ void Cluster::print(Option_t* opt) const
          opt, mCh, mXX, mYY, mQ, mQRaw, ratio, mSi, mBox, mNlocMax, mChi2, status);
   if (mDigs.size() > 0) {
     std::cout << "Digits of Cluster" << std::endl;
-    for (int i; i < mDigs.size(); i++)
-      { std::cout << mDigs.at(i) << std::endl; }
+    for (int i; i < mDigs.size(); i++) {
+      std::cout << mDigs.at(i) << std::endl;
+    }
   }
   return;
 } // Print()
@@ -354,8 +355,9 @@ int Cluster::solve(std::vector<o2::hmpid::Cluster>* pCluLst, float* pSigmaCut, b
     o2::hmpid::Digit* pDig1 = mDigs.at(iDig1);      // take next digit
     int iCnt = 0;                                   // counts how many neighbouring pads has QDC more then current one
     for (int iDig2 = 0; iDig2 < rawSize; iDig2++) { // loop on all digits again
-      if (iDig1 == iDig2)
-      { continue; }                                                                                         // the same digit, no need to compare
+      if (iDig1 == iDig2) {
+        continue;
+      }                                                                                                   // the same digit, no need to compare
       o2::hmpid::Digit* pDig2 = mDigs.at(iDig2);                                                          // take second digit to compare with the first one
       int dist = TMath::Sign(int(pDig1->mX - pDig2->mX), 1) + TMath::Sign(int(pDig1->mY - pDig2->mY), 1); // distance between pads
       if (dist == 1) {                                                                                    // means dig2 is a neighbour of dig1
