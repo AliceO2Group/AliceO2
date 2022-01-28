@@ -42,11 +42,17 @@ using namespace boost::program_options;
 namespace
 {
 volatile sig_atomic_t gStopping = 0;
+volatile sig_atomic_t gResetContent = 0;
 }
 
 void signalHandler(int /* signal */)
 {
   gStopping = 1;
+}
+
+void resetContentHandler(int /* signal */)
+{
+  gResetContent = 1;
 }
 
 struct ShmManager {
@@ -170,6 +176,7 @@ int main(int argc, char** argv)
 
   signal(SIGINT, signalHandler);
   signal(SIGTERM, signalHandler);
+  signal(SIGUSR1, resetContentHandler);
 
   try {
     bool nozero = false;
@@ -199,9 +206,23 @@ int main(int argc, char** argv)
 
     ShmManager shmManager(shmId, segments, regions, !nozero);
 
+    std::thread resetContentThread([&shmManager]() {
+      while (!gStopping) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        if (gResetContent == 1) {
+          LOG(info) << "Resetting content for shmId " << shmManager.shmId;
+          shmManager.ResetContent();
+          gResetContent = 0;
+          LOG(info) << "Done resetting content for shmId " << shmManager.shmId;
+        }
+      }
+    });
+
     while (!gStopping) {
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
+
+    resetContentThread.join();
 
     LOG(info) << "stopping.";
   } catch (exception& e) {
