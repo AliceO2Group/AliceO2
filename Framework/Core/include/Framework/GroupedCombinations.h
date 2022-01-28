@@ -231,6 +231,8 @@ struct GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<Us...>, As...
   {
     setTables(hashes, grouping, associated);
   }
+  GroupedCombinationsGenerator(GroupedCombinationsGenerator const&) = default;
+  GroupedCombinationsGenerator& operator=(GroupedCombinationsGenerator const&) = default;
   ~GroupedCombinationsGenerator() = default;
 
   void setTables(H& hashes, G& grouping, std::tuple<Us...>& associated)
@@ -257,13 +259,13 @@ struct GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<Us...>, As...
 template <typename H, typename G>
 using joinedCollisions = typename soa::Join<H, G>::table_t;
 template <typename H, typename G, typename A1, typename A2, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<T1, joinedCollisions<H, G>, joinedCollisions<H, G>>>
-using Pair = GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, unique_pack_t<pack<A1, A2>>>;
+using Pair = GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, unique_pack_t<pack<A1, A2>>, A1, A2>;
 template <typename H, typename G, typename A, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<T1, joinedCollisions<H, G>, joinedCollisions<H, G>>>
 using SameKindPair = GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<A>, A, A>;
 
 // Aliases for 3-particle correlations
 template <typename H, typename G, typename A1, typename A2, typename A3, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<T1, joinedCollisions<H, G>, joinedCollisions<H, G>, joinedCollisions<H, G>>>
-using Triple = GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, unique_pack_t<pack<A1, A2, A3>>>;
+using Triple = GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, unique_pack_t<pack<A1, A2, A3>>, A1, A2, A3>;
 template <typename H, typename G, typename A, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<T1, joinedCollisions<H, G>, joinedCollisions<H, G>, joinedCollisions<H, G>>>
 using SameKindTriple = GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<A>, A, A, A>;
 
