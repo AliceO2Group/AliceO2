@@ -231,6 +231,10 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
           throw std::invalid_argument("Cannot run TPC decompression with a sector mask");
         }
       }
+      if (specconfig.runTRDTracking) {
+        config.configWorkflow.inputs.setBits(GPUDataTypes::InOutType::TRDTracklets, true);
+        config.configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, true);
+      }
       if (specconfig.outputSharedClusterMap) {
         config.configProcessing.outputSharedClusterMap = true;
       }
