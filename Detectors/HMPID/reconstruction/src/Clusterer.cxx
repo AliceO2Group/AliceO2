@@ -24,11 +24,11 @@
 using namespace o2::hmpid;
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Clusterer::Clusterer()
+/*Clusterer::Clusterer()
 {
   // mDigs = {nullptr};
   // mClus = {nullptr};
-}
+}*/
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void Clusterer::Dig2Clu(std::vector<o2::hmpid::Digit>* mDigs, std::vector<o2::hmpid::Cluster>* mClus, float* pUserCut, bool isTryUnfold)
 {
@@ -49,18 +49,21 @@ void Clusterer::Dig2Clu(std::vector<o2::hmpid::Digit>* mDigs, std::vector<o2::hm
     padMap = (Float_t)-1;                                      // reset map to -1 (means no digit for this pad)
     for (int iDig = 0; iDig < mDigs->size(); iDig++) {         // digits loop for current chamber
       o2::hmpid::Digit::pad2Absolute(mDigs->at(iDig).getPadID(), &module, &padChX, &padChY);
-      if (module != iCh)
+      if (module != iCh) {
         continue;
+      }
       padMap(padChX, padChY) = iDig; // fill the map for the given chamber, (padx,pady) cell takes digit index
     }                                // digits loop for current chamber
 
     for (int iDig = 0; iDig < mDigs->size(); iDig++) { // digits loop for current chamber
       o2::hmpid::Digit::pad2Absolute(mDigs->at(iDig).getPadID(), &module, &padChX, &padChY);
-      if (module != iCh)
+      if (module != iCh) {
         continue;
+      }
       pUsedDig = UseDig(padChX, padChY, &padMap);
-      if (pUsedDig == -1)
-        continue; // this digit is already taken in FormClu(), go after next digit
+      if (pUsedDig == -1) {
+        continue;
+      } // this digit is already taken in FormClu(), go after next digit
       clu = new o2::hmpid::Cluster;
       clu->setCh(iCh);
       FormClu(clu, pUsedDig, mDigs, &padMap);   // form cluster starting from this digit by recursion
@@ -108,9 +111,10 @@ void Clusterer::FormClu(Cluster* pClu, int pDig, std::vector<o2::hmpid::Digit>* 
 
   for (int i = 0; i < cnt; i++) { // neighbours loop
     pDig = UseDig(cx[i], cy[i], pDigMap);
-    if (pDig != -1)
-      FormClu(pClu, pDig, pDigList, pDigMap); // check if this neighbour pad fired and mark it as taken
-  }                                           // neighbours loop
+    if (pDig != -1) {
+      FormClu(pClu, pDig, pDigList, pDigMap);
+    } // check if this neighbour pad fired and mark it as taken
+  }   // neighbours loop
 } // FormClu()
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 int Clusterer::UseDig(int padX, int padY, TMatrixF* pPadMap)
@@ -139,10 +143,11 @@ bool Clusterer::IsDigSurvive(Digit* pDig) const
   float sig = (*pM)(pDig->PadChX(),pDig->PadChY());
   //if(pDig->Q()>pUserCut[iCh]*sig) return kTRUE; to be improved
   */
-  if (pDig->getQ() > 4.)
+  if (pDig->getQ() > 4.) {
     return true;
-  else
+  } else {
     return false;
+  }
 }
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 /*void Clusterer::process(std::vector<o2::hmpid::Digit> const& digits, std::vector<o2::hmpid::Cluster>& clusters, MCLabelContainer const* digitMCTruth)
