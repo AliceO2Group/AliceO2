@@ -68,7 +68,6 @@ void Detector::InitializeO2Detector()
     LOG(warn) << "@@@@ Sensitive volume 0REG not found!!!!!!!!";
   } else {
     AddSensitiveVolume(v);
-    regVolID = v->GetNumber();
   }
 
   TGeoVolume* vrad = gGeoManager->GetVolume("0TOP");
@@ -76,14 +75,12 @@ void Detector::InitializeO2Detector()
     LOG(warn) << "@@@@ Sensitive radiator not found!!!!!!!!";
   } else {
     AddSensitiveVolume(vrad);
-    topVolID = vrad->GetNumber();
   }
   TGeoVolume* vmcp = gGeoManager->GetVolume("0MTO");
   if (vmcp == nullptr) {
     LOG(warn) << "@@@@ Sensitive MCP glass not found!!!!!!!!";
   } else {
     AddSensitiveVolume(vmcp);
-    mtoVolID = vmcp->GetNumber();
   }
 }
 
@@ -875,6 +872,9 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
   Int_t copy;
   Int_t volID = fMC->CurrentVolID(copy);
+  Int_t volREG = fMC->VolId("0REG");
+  Int_t volTOP = fMC->VolId("0TOP");
+  Int_t volMTO = fMC->VolId("0MTO");
 
   TVirtualMCStack* stack = fMC->GetStack();
   Int_t quadrant, mcp;
@@ -887,14 +887,14 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     int trackID = stack->GetCurrentTrackNumber();
     int detID = mSim2LUT[4 * mcp + quadrant - 1];
     int iPart = fMC->TrackPid();
-    if (fMC->TrackCharge() && volID == regVolID) { //charge particles for MCtrue
+    if (fMC->TrackCharge() && volID == volREG) { //charge particles for MCtrue
       AddHit(x, y, z, time, 10, trackID, detID);
     }
     if (iPart == 50000050) { // If particle is photon then ...
       float etot = fMC->Etot();
       float enDep = fMC->Edep();
       Int_t parentID = stack->GetCurrentTrack()->GetMother(0);
-      if (volID == topVolID) {
+      if (volID == volTOP) {
         if (!RegisterPhotoE(etot)) {
           fMC->StopTrack();
           return kFALSE;
@@ -902,7 +902,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
         mTrackIdTop = trackID;
       }
 
-      if (volID == mtoVolID) {
+      if (volID == volMTO) {
         if (trackID != mTrackIdTop) {
           if (!RegisterPhotoE(etot)) {
             fMC->StopTrack();
@@ -912,7 +912,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
         }
       }
 
-      if (volID == regVolID) {
+      if (volID == volREG) {
         if (trackID != mTrackIdTop && trackID != mTrackIdMCPtop) {
           if (RegisterPhotoE(etot)) {
             AddHit(x, y, z, time, enDep, parentID, detID);
