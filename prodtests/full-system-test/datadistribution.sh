@@ -9,7 +9,7 @@ if [[ `which StfBuilder 2> /dev/null | wc -l` == "0" ]]; then
 fi
 
 # For benchmark only, do NOT copy&paste!
-[[ $NUMAGPUIDS == 1 ]] && export DATADIST_SHM_DELAY=30
+[[ $NUMAGPUIDS == 1 ]] && [[ -z $SHM_MANAGER_SHMID ]] && export DATADIST_SHM_DELAY=10
 
 if [[ ! -z $DD_STARTUP_DELAY ]]; then
   sleep $DD_STARTUP_DELAY
