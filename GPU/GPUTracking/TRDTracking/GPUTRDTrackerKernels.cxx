@@ -15,6 +15,7 @@
 #include "GPUTRDTrackerKernels.h"
 #include "GPUTRDGeometry.h"
 #include "GPUConstantMem.h"
+#include "GPUCommonTypeTraits.h"
 #if defined(WITH_OPENMP) && !defined(GPUCA_GPUCODE)
 #include "GPUReconstruction.h"
 #endif
@@ -22,16 +23,23 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <int I>
-GPUdii() void GPUTRDTrackerKernels::Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors)
+GPUdii() void GPUTRDTrackerKernels::Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors, GPUTRDTracker* externalInstance)
 {
-  auto& trdTracker = processors.getTRDTracker<I>();
-  GPUCA_OPENMP(parallel for if(!trdTracker.GetRec().GetProcessingSettings().ompKernels) num_threads(trdTracker.GetRec().GetProcessingSettings().ompThreads))
-  for (int i = get_global_id(0); i < trdTracker.NTracks(); i += get_global_size(0)) {
-    trdTracker.DoTrackingThread(i, get_global_id(0));
+  auto* trdTracker = &processors.getTRDTracker<I>();
+#ifndef GPUCA_GPUCODE_DEVICE
+  if constexpr (std::is_same_v<decltype(trdTracker), decltype(externalInstance)>) {
+    if (externalInstance) {
+      trdTracker = externalInstance;
+    }
+  }
+#endif
+  GPUCA_OPENMP(parallel for if(!trdTracker->GetRec().GetProcessingSettings().ompKernels) num_threads(trdTracker->GetRec().GetProcessingSettings().ompThreads))
+  for (int i = get_global_id(0); i < trdTracker->NTracks(); i += get_global_size(0)) {
+    trdTracker->DoTrackingThread(i, get_global_id(0));
   }
 }
 
-template GPUd() void GPUTRDTrackerKernels::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors);
+template GPUd() void GPUTRDTrackerKernels::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors, GPUTRDTracker* externalInstance);
 #ifdef GPUCA_HAVE_O2HEADERS
-template GPUd() void GPUTRDTrackerKernels::Thread<1>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors);
-#endif
+template GPUd() void GPUTRDTrackerKernels::Thread<1>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors, GPUTRDTracker* externalInstance);
+#endif // GPUCA_HAVE_O2HEADERS

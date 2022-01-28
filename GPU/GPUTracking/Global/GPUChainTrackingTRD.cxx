@@ -69,18 +69,25 @@ int GPUChainTracking::DoTRDGPUTracking(GPUTRDTracker* externalInstance)
 {
 #ifdef GPUCA_HAVE_O2HEADERS
   bool doGPU = GetRecoStepsGPU() & RecoStep::TRDTracking;
-  GPUTRDTrackerGPU& Tracker = processors()->trdTrackerGPU;
-  GPUTRDTrackerGPU& TrackerShadow = doGPU ? processorsShadow()->trdTrackerGPU : Tracker;
+  auto* Tracker = &processors()->getTRDTracker<I>();
+  auto* TrackerShadow = doGPU ? &processorsShadow()->getTRDTracker<I>() : Tracker;
+  if (externalInstance) {
+    if constexpr (std::is_same_v<decltype(Tracker), decltype(externalInstance)>) {
+      Tracker = externalInstance;
+    } else {
+      throw std::runtime_error("Must not provide external instance that does not match template type");
+    }
+  }
 
   const auto& threadContext = GetThreadContext();
-  SetupGPUProcessor(&Tracker, false);
-  TrackerShadow.OverrideGPUGeometry(reinterpret_cast<GPUTRDGeometry*>(mFlatObjectsDevice.mCalibObjects.trdGeometry));
+  SetupGPUProcessor(Tracker, false);
+  TrackerShadow->OverrideGPUGeometry(reinterpret_cast<GPUTRDGeometry*>(mFlatObjectsDevice.mCalibObjects.trdGeometry));
 
-  WriteToConstantMemory(RecoStep::TRDTracking, (char*)&processors()->trdTrackerGPU - (char*)processors(), &TrackerShadow, sizeof(TrackerShadow), 0);
-  TransferMemoryResourcesToGPU(RecoStep::TRDTracking, &Tracker, 0);
+  WriteToConstantMemory(RecoStep::TRDTracking, (char*)&processors()->trdTrackerGPU - (char*)processors(), TrackerShadow, sizeof(*TrackerShadow), 0);
+  TransferMemoryResourcesToGPU(RecoStep::TRDTracking, Tracker, 0);
 
-  runKernel<GPUTRDTrackerKernels>(GetGridAuto(0), krnlRunRangeNone);
-  TransferMemoryResourcesToHost(RecoStep::TRDTracking, &Tracker, 0);
+  runKernel<GPUTRDTrackerKernels>(GetGridAuto(0), krnlRunRangeNone, krnlEventNone, nullptr);
+  TransferMemoryResourcesToHost(RecoStep::TRDTracking, Tracker, 0);
   SynchronizeStream(0);
 
   if (GetProcessingSettings().debugLevel >= 2) {
