@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-///
+
 /// \file   Digit.cxx
 /// \author Antonio Franco - INFN Bari
 /// \brief Base Class to manage HMPID Digit data
