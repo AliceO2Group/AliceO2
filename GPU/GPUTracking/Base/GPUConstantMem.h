@@ -81,7 +81,31 @@ struct GPUConstantMem {
 #ifdef GPUCA_KERNEL_DEBUGGER_OUTPUT
   GPUKernelDebugOutput debugOutput;
 #endif
+
+#if defined(GPUCA_HAVE_O2HEADERS) && defined(GPUCA_NOCOMPAT)
+  template <int I>
+  GPUd() auto& getTRDTracker();
+#else  // GPUCA_HAVE_O2HEADERS
+  template <int I>
+  GPUdi() GPUTRDTrackerGPU& getTRDTracker()
+  {
+    return trdTrackerGPU;
+  }
+#endif // !GPUCA_HAVE_O2HEADERS
 };
+
+#if defined(GPUCA_HAVE_O2HEADERS) && defined(GPUCA_NOCOMPAT)
+template <>
+GPUdi() auto& GPUConstantMem::getTRDTracker<0>()
+{
+  return trdTrackerGPU;
+}
+template <>
+GPUdi() auto& GPUConstantMem::getTRDTracker<1>()
+{
+  return trdTrackerO2;
+}
+#endif
 
 #ifdef GPUCA_NOCOMPAT
 union GPUConstantMemCopyable {
