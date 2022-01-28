@@ -135,6 +135,7 @@ class GPUTRDTracker_t : public GPUProcessor
 
   // settings
   GPUd() void SetGenerateSpacePoints(bool flag) { mGenerateSpacePoints = flag; }
+  GPUd() bool GenerateSpacepoints() const { return mGenerateSpacePoints; }
   GPUd() void SetProcessPerTimeFrame(bool flag) { mProcessPerTimeFrame = flag; }
   GPUd() void EnableDebugOutput() { mDebugOutput = true; }
   GPUd() void SetMaxEta(float maxEta) { mMaxEta = maxEta; }
