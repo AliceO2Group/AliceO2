@@ -52,8 +52,6 @@ class GPUChainITS;
 }
 namespace its
 {
-
-class TimeFrame;
 class TrackerTraits;
 
 class Tracker

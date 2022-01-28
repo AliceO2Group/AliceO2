@@ -175,6 +175,12 @@ class TimeFrame
 
   IndexTableUtils mIndexTableUtils;
 
+ protected:
+  std::vector<std::vector<Cluster>> mClusters;
+  std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
+  std::vector<std::vector<int>> mClusterExternalIndices;
+  std::vector<std::vector<int>> mROframesClusters;
+
  private:
   template <typename... T>
   void addClusterToLayer(int layer, T&&... args);
@@ -193,16 +199,12 @@ class TimeFrame
   std::vector<float> mPositionResolution;
   std::vector<bool> mMultiplicityCutMask;
   std::vector<int> mROframesPV = {0};
-  std::vector<std::vector<int>> mROframesClusters;
   std::vector<Vertex> mPrimaryVertices;
-  std::vector<std::vector<Cluster>> mClusters;
   std::vector<std::vector<Cluster>> mUnsortedClusters;
   std::vector<std::vector<bool>> mUsedClusters;
-  std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
   const dataformats::MCTruthContainer<MCCompLabel>* mClusterLabels = nullptr;
   std::vector<std::vector<MCCompLabel>> mTrackletLabels;
   std::vector<std::vector<MCCompLabel>> mCellLabels;
-  std::vector<std::vector<int>> mClusterExternalIndices;
   std::vector<std::vector<Cell>> mCells;
   std::vector<std::vector<int>> mCellsLookupTable;
   std::vector<std::vector<std::vector<int>>> mCellsNeighbours;

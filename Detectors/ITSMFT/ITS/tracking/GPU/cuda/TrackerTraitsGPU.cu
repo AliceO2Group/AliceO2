@@ -61,7 +61,7 @@ template <typename... T>
 void TrackerTraitsGPU<NLayers>::fillTimeFrame(T&&... args)
 {
   mTimeFrameGPU.loadROFrameData(std::forward<T>(args)...);
-  mTimeFrameGPU.loadToGPU();
+  mTimeFrameGPU.loadToDevice();
 }
 
 namespace gpu
