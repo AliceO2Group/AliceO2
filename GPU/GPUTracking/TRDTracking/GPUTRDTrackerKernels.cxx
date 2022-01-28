@@ -21,31 +21,10 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-#ifdef GPUCA_HAVE_O2HEADERS
-template <int I>
-GPUd() auto& getTracker(GPUTRDTrackerKernels::processorType& processors);
-template <>
-GPUdi() auto& getTracker<0>(GPUTRDTrackerKernels::processorType& processors)
-{
-  return processors.trdTrackerGPU;
-}
-template <>
-GPUdi() auto& getTracker<1>(GPUTRDTrackerKernels::processorType& processors)
-{
-  return processors.trdTrackerO2;
-}
-#else
-template <int I>
-GPUdi() GPUTRDTrackerGPU& getTracker(GPUTRDTrackerKernels::processorType& processors)
-{
-  return processors.trdTrackerGPU;
-}
-#endif
-
 template <int I>
 GPUdii() void GPUTRDTrackerKernels::Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors)
 {
-  auto& trdTracker = getTracker<I>(processors);
+  auto& trdTracker = processors.getTRDTracker<I>();
   GPUCA_OPENMP(parallel for if(!trdTracker.GetRec().GetProcessingSettings().ompKernels) num_threads(trdTracker.GetRec().GetProcessingSettings().ompThreads))
   for (int i = get_global_id(0); i < trdTracker.NTracks(); i += get_global_size(0)) {
     trdTracker.DoTrackingThread(i, get_global_id(0));

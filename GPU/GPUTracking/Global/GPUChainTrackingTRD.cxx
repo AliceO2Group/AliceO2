@@ -55,7 +55,7 @@ int GPUChainTracking::RunTRDTracking()
     }
   }
 
-  Tracker.DoTracking(this);
+  DoTRDGPUTracking<GPUTRDTrackerKernels::gpuVersion>();
 
   mIOPtrs.nTRDTracks = Tracker.NTracks();
   mIOPtrs.trdTracks = Tracker.Tracks();
@@ -64,7 +64,8 @@ int GPUChainTracking::RunTRDTracking()
   return 0;
 }
 
-int GPUChainTracking::DoTRDGPUTracking()
+template <int I>
+int GPUChainTracking::DoTRDGPUTracking(GPUTRDTracker* externalInstance)
 {
 #ifdef GPUCA_HAVE_O2HEADERS
   bool doGPU = GetRecoStepsGPU() & RecoStep::TRDTracking;
@@ -88,3 +89,6 @@ int GPUChainTracking::DoTRDGPUTracking()
 #endif
   return (0);
 }
+
+template int GPUChainTracking::DoTRDGPUTracking<0>(GPUTRDTracker*);
+template int GPUChainTracking::DoTRDGPUTracking<1>(GPUTRDTracker*);

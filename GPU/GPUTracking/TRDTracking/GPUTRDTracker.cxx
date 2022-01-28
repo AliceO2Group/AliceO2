@@ -260,7 +260,7 @@ void GPUTRDTracker_t<TRDTRK, PROP>::DoTracking(GPUChainTracking* chainTracking)
   auto timeStart = std::chrono::high_resolution_clock::now();
 
   if (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TRDTracking) {
-    chainTracking->DoTRDGPUTracking();
+    chainTracking->DoTRDGPUTracking<0>();
   } else {
 #ifdef WITH_OPENMP
 #pragma omp parallel for num_threads(mRec->GetProcessingSettings().ompThreads)
