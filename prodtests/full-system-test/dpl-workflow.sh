@@ -483,8 +483,16 @@ WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Run / create / print workflow
-[[ $WORKFLOWMODE != "print" ]] && WORKFLOW+=" --${WORKFLOWMODE}"
-[[ $WORKFLOWMODE == "print" || "0$PRINT_WORKFLOW" == "01" ]] && echo "#Workflow command:\n\n${WORKFLOW}\n" | sed -e "s/\\\\n/\n/g" -e"s/| */| \\\\\n/g" | eval cat $( [[ $WORKFLOWMODE == "dds" ]] && echo '1>&2')
-[[ $WORKFLOWMODE != "print" ]] && eval $WORKFLOW
+if [[ "0$FST_BENCHMARK_STARTUP" == "01" ]]; then
+  date 1>&2
+  eval $WORKFLOW --dump > fst.startup.tmp.$NUMAID.json
+  WORKFLOW2="cat fst.startup.tmp.$NUMAID.json | o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"
+  date 1>&2
+  eval $WORKFLOW2
+else
+  [[ $WORKFLOWMODE != "print" ]] && WORKFLOW+=" --${WORKFLOWMODE}"
+  [[ $WORKFLOWMODE == "print" || "0$PRINT_WORKFLOW" == "01" ]] && echo "#Workflow command:\n\n${WORKFLOW}\n" | sed -e "s/\\\\n/\n/g" -e"s/| */| \\\\\n/g" | eval cat $( [[ $WORKFLOWMODE == "dds" ]] && echo '1>&2')
+  [[ $WORKFLOWMODE != "print" ]] && eval $WORKFLOW
+fi
 
 # ---------------------------------------------------------------------------------------------------------------------
