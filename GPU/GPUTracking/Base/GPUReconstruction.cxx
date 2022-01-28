@@ -104,7 +104,9 @@ GPUReconstruction::GPUReconstruction(const GPUSettingsDeviceBackend& cfg) : mHos
     processors()->tpcClusterer[i].mISlice = i;
 #endif
   }
+#ifndef GPUCA_NO_ROOT
   mROOTDump = GPUROOTDumpCore::getAndCreate();
+#endif
 }
 
 GPUReconstruction::~GPUReconstruction()
