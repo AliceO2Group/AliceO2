@@ -19,6 +19,7 @@
 #include "GPUTRDTrackletLabels.h"
 #include "GPUTRDTrack.h"
 #include "GPUTRDTracker.h"
+#include "GPUTrackingInputProvider.h"
 #include "utils/strtag.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -80,17 +81,46 @@ int GPUChainTracking::DoTRDGPUTracking(GPUTRDTracker* externalInstance)
   }
   Tracker->PrepareTracking(this);
 
+  int useStream = 0;
+
   const auto& threadContext = GetThreadContext();
   SetupGPUProcessor(Tracker, false);
   if (doGPU) {
     TrackerShadow->OverrideGPUGeometry(reinterpret_cast<GPUTRDGeometry*>(mFlatObjectsDevice.mCalibObjects.trdGeometry));
-    WriteToConstantMemory(RecoStep::TRDTracking, (char*)&processors()->trdTrackerGPU - (char*)processors(), TrackerShadow, sizeof(*TrackerShadow), 0);
+    mInputsHost->mNTRDTracklets = mInputsShadow->mNTRDTracklets = processorsShadow()->ioPtrs.nTRDTracklets = mIOPtrs.nTRDTracklets;
+    mInputsHost->mNTRDTriggerRecords = mInputsShadow->mNTRDTriggerRecords = processorsShadow()->ioPtrs.nTRDTriggerRecords = mIOPtrs.nTRDTriggerRecords;
+    mInputsHost->mDoSpacepoints = mInputsShadow->mDoSpacepoints = !Tracker->GenerateSpacepoints();
+    AllocateRegisteredMemory(mInputsHost->mResourceTRD);
+    processorsShadow()->ioPtrs.trdTracklets = mInputsShadow->mTRDTracklets;
+    processorsShadow()->ioPtrs.trdSpacePoints = Tracker->GenerateSpacepoints() ? Tracker->SpacePoints() : mInputsShadow->mTRDSpacePoints;
+    if constexpr (std::is_same_v<decltype(processorsShadow()->ioPtrs.trdTracks), decltype(TrackerShadow->Tracks())>) {
+      processorsShadow()->ioPtrs.trdTracks = TrackerShadow->Tracks();
+    } else {
+      processorsShadow()->ioPtrs.trdTracks = nullptr;
+    }
+    processorsShadow()->ioPtrs.nTRDTracks = mIOPtrs.nTRDTracks;
+    processorsShadow()->ioPtrs.trdTriggerTimes = mInputsShadow->mTRDTriggerTimes;
+    processorsShadow()->ioPtrs.trdTrackletIdxFirst = mInputsShadow->mTRDTrackletIdxFirst;
+    GPUMemCpy(RecoStep::TRDTracking, mInputsShadow->mTRDTracklets, mIOPtrs.trdTracklets, sizeof(*mIOPtrs.trdTracklets) * mIOPtrs.nTRDTracklets, useStream, true);
+    if (!Tracker->GenerateSpacepoints()) {
+      GPUMemCpy(RecoStep::TRDTracking, mInputsShadow->mTRDSpacePoints, mIOPtrs.trdSpacePoints, sizeof(*mIOPtrs.trdSpacePoints) * mIOPtrs.nTRDTracklets, useStream, true);
+    }
+    GPUMemCpy(RecoStep::TRDTracking, mInputsShadow->mTRDTriggerTimes, mIOPtrs.trdTriggerTimes, sizeof(*mIOPtrs.trdTriggerTimes) * mIOPtrs.nTRDTriggerRecords, useStream, true);
+    GPUMemCpy(RecoStep::TRDTracking, mInputsShadow->mTRDTrackletIdxFirst, mIOPtrs.trdTrackletIdxFirst, sizeof(*mIOPtrs.trdTrackletIdxFirst) * mIOPtrs.nTRDTriggerRecords, useStream, true);
+    if (mIOPtrs.trdTrigRecMask) {
+      processorsShadow()->ioPtrs.trdTrigRecMask = mInputsShadow->mTRDTrigRecMask;
+      GPUMemCpy(RecoStep::TRDTracking, mInputsShadow->mTRDTrigRecMask, mIOPtrs.trdTrigRecMask, sizeof(*mIOPtrs.trdTrigRecMask) * mIOPtrs.nTRDTriggerRecords, useStream, true);
+    } else {
+      processorsShadow()->ioPtrs.trdTrigRecMask = nullptr;
+    }
+    WriteToConstantMemory(RecoStep::TRDTracking, (char*)&processors()->ioPtrs - (char*)processors(), &processorsShadow()->ioPtrs, sizeof(processorsShadow()->ioPtrs), useStream);
+    WriteToConstantMemory(RecoStep::TRDTracking, (char*)&processors()->trdTrackerGPU - (char*)processors(), TrackerShadow, sizeof(*TrackerShadow), useStream);
   }
 
-  TransferMemoryResourcesToGPU(RecoStep::TRDTracking, Tracker, 0);
-  runKernel<GPUTRDTrackerKernels, I>(GetGridAuto(0), krnlRunRangeNone, krnlEventNone, externalInstance);
-  TransferMemoryResourcesToHost(RecoStep::TRDTracking, Tracker, 0);
-  SynchronizeStream(0);
+  TransferMemoryResourcesToGPU(RecoStep::TRDTracking, Tracker, useStream);
+  runKernel<GPUTRDTrackerKernels, I>(GetGridAuto(useStream), krnlRunRangeNone, krnlEventNone, externalInstance);
+  TransferMemoryResourcesToHost(RecoStep::TRDTracking, Tracker, useStream);
+  SynchronizeStream(useStream);
 
   if (GetProcessingSettings().debugLevel >= 2) {
     GPUInfo("GPU TRD tracker Finished");
