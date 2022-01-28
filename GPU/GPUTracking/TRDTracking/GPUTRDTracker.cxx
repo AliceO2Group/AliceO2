@@ -205,7 +205,7 @@ void GPUTRDTracker_t<TRDTRK, PROP>::PrepareTracking(GPUChainTracking* chainTrack
   // this function on the host prior to GPU processing
   //--------------------------------------------------------------------
   for (unsigned int iColl = 0; iColl < GetConstantMem()->ioPtrs.nTRDTriggerRecords; ++iColl) {
-    if (GetConstantMem()->ioPtrs.trdTrigRecMask[iColl] == 0) {
+    if (GetConstantMem()->ioPtrs.trdTrigRecMask && GetConstantMem()->ioPtrs.trdTrigRecMask[iColl] == 0) {
       // this trigger is masked as there is no ITS information available for it
       continue;
     }
@@ -370,7 +370,7 @@ GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::GetCollisionIDs(int iTrk, int* collisi
   //--------------------------------------------------------------------
   int nColls = 0;
   for (unsigned int iColl = 0; iColl < GetConstantMem()->ioPtrs.nTRDTriggerRecords; ++iColl) {
-    if (GetConstantMem()->ioPtrs.trdTrigRecMask[iColl] == 0) {
+    if (GetConstantMem()->ioPtrs.trdTrigRecMask && GetConstantMem()->ioPtrs.trdTrigRecMask[iColl] == 0) {
       continue;
     }
     if (GetConstantMem()->ioPtrs.trdTriggerTimes[iColl] > mTrackAttribs[iTrk].GetTimeMin() && GetConstantMem()->ioPtrs.trdTriggerTimes[iColl] < mTrackAttribs[iTrk].GetTimeMax()) {
