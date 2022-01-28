@@ -10,6 +10,7 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(ITSWorkflow
+               TARGETVARNAME targetName
                SOURCES src/RecoWorkflow.cxx
                        src/ClusterWriterWorkflow.cxx
                        src/ClustererSpec.cxx
@@ -55,3 +56,9 @@ o2_add_executable(threshold-calib-workflow
                   SOURCES src/its-threshold-calib-workflow.cxx
                   COMPONENT_NAME its
                   PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
+
+if (OpenMP_CXX_FOUND)
+    target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+    target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+endif()
+
