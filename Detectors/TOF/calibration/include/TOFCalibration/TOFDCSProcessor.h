@@ -71,7 +71,6 @@ class TOFDCSProcessor
 {
 
  public:
-  using TFType = uint64_t;
   using CcdbObjectInfo = o2::ccdb::CcdbObjectInfo;
   using DQDoubles = std::deque<double>;
 
@@ -107,11 +106,7 @@ class TOFDCSProcessor
   const std::bitset<Geo::NCHANNELS>& getHVStatus() const { return mHV; }
   bool isHVUpdated() const { return mUpdateHVStatus; }
 
-  /*template <typename T>
-  void prepareCCDBobjectInfo(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf,
-                             const std::map<std::string, std::string>& md);
-  */
-  void setTF(TFType tf) { mTF = tf; }
+  void setStartValidity(long t) { mStartValidity = t; }
   void useVerboseMode() { mVerbose = true; }
 
   void clearDPsinfo()
@@ -137,31 +132,14 @@ class TOFDCSProcessor
   CcdbObjectInfo mccdbDPsInfo;
   CcdbObjectInfo mccdbLVInfo;
   CcdbObjectInfo mccdbHVInfo;
-  TFType mStartTF; // TF index for processing of first processed TF, used to store CCDB object
-  TFType mTF = 0;  // TF index for processing, used to store CCDB object
-  bool mStartTFset = false;
+  long mFirstTime;         // time when a CCDB object was stored first
+  long mStartValidity = 0; // TF index for processing, used to store CCDB object
+  bool mFirstTimeSet = false;
 
   bool mVerbose = false;
 
   ClassDefNV(TOFDCSProcessor, 0);
 };
-/*
-template <typename T>
-void TOFDCSProcessor::prepareCCDBobjectInfo(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf,
-                                          const std::map<std::string, std::string>& md)
-{
-
-// prepare all info to be sent to CCDB for object obj
-auto clName = o2::utils::MemFileHelper::getClassName(obj);
-auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-info.setPath(path);
-info.setObjectType(clName);
-info.setFileName(flName);
-info.setStartValidityTimestamp(tf);
-info.setEndValidityTimestamp(99999999999999);
-info.setMetaData(md);
-}
-*/
 } // namespace tof
 } // namespace o2
 

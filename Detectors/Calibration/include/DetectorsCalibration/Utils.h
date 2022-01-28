@@ -31,19 +31,18 @@ namespace o2
 namespace calibration
 {
 
-using TFType = uint64_t;
-
 struct Utils {
   static constexpr o2::header::DataOrigin gDataOriginCDBPayload{"CLP"}; // generic DataOrigin for calibrations payload
   static constexpr o2::header::DataOrigin gDataOriginCDBWrapper{"CLW"}; // generic DataOrigin for calibrations wrapper
+  static constexpr long INFINITE_TIME = 99999999999999;
   template <typename T>
-  static void prepareCCDBobjectInfo(T& obj, o2::ccdb::CcdbObjectInfo& info, const std::string& path, TFType tf,
-                                    const std::map<std::string, std::string>& md);
+  static void prepareCCDBobjectInfo(T& obj, o2::ccdb::CcdbObjectInfo& info, const std::string& path,
+                                    const std::map<std::string, std::string>& md, long start, long end = -1);
 };
 
 template <typename T>
-void Utils::prepareCCDBobjectInfo(T& obj, o2::ccdb::CcdbObjectInfo& info, const std::string& path, TFType tf,
-                                  const std::map<std::string, std::string>& md)
+void Utils::prepareCCDBobjectInfo(T& obj, o2::ccdb::CcdbObjectInfo& info, const std::string& path,
+                                  const std::map<std::string, std::string>& md, long start, long end)
 {
 
   // prepare all info to be sent to CCDB for object obj
@@ -52,8 +51,8 @@ void Utils::prepareCCDBobjectInfo(T& obj, o2::ccdb::CcdbObjectInfo& info, const 
   info.setPath(path);
   info.setObjectType(clName);
   info.setFileName(flName);
-  info.setStartValidityTimestamp(tf);
-  info.setEndValidityTimestamp(99999999999999);
+  info.setStartValidityTimestamp(start);
+  info.setEndValidityTimestamp(end);
   info.setMetaData(md);
 }
 

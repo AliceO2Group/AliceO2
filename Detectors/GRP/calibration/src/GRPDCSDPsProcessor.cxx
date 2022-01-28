@@ -42,9 +42,9 @@ int GRPDCSDPsProcessor::process(const gsl::span<const DPCOM> dps)
   if (mVerbose) {
     LOG(info) << "\n\n\nProcessing new TF\n-----------------";
   }
-  if (!mStartTFset) {
-    mStartTF = mTF;
-    mStartTFset = true;
+  if (!mFirstTimeSet) {
+    mFirstTime = mStartValidity;
+    mFirstTimeSet = true;
   }
   std::unordered_map<DPID, DPVAL> mapin;
   for (auto& it : dps) {
@@ -394,11 +394,11 @@ void GRPDCSDPsProcessor::updateMagFieldCCDB()
   // we need to update a CCDB for the B field --> let's prepare the CCDBInfo
 
   if (mVerbose) {
-    LOG(info) << "At least one DP related to B field changed --> we will update CCDB with startTime " << mTF;
+    LOG(info) << "At least one DP related to B field changed --> we will update CCDB with startTime " << mStartValidity;
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mMagField, mccdbMagFieldInfo, "GLO/Config/GRPMagField", mTF, md);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mMagField, mccdbMagFieldInfo, "GLO/Config/GRPMagField", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
   return;
 }
 
@@ -410,11 +410,11 @@ void GRPDCSDPsProcessor::updateLHCIFInfoCCDB()
   // we need to update a CCDB for the LHCIF DPs --> let's prepare the CCDBInfo
 
   if (mVerbose) {
-    LOG(info) << "Entry related to LHCIF needs to be updated with startTime " << mTF;
+    LOG(info) << "Entry related to LHCIF needs to be updated with startTime " << mStartValidity;
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mLHCInfo, mccdbLHCIFInfo, "GLO/Config/LHCIF", mTF, md);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mLHCInfo, mccdbLHCIFInfo, "GLO/Config/LHCIF", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
   return;
 }
 
@@ -426,11 +426,11 @@ void GRPDCSDPsProcessor::updateEnvVarsCCDB()
   // we need to update a CCDB for the Env Variables DPs --> let's prepare the CCDBInfo
 
   if (mVerbose) {
-    LOG(info) << "Entry related to Env Vars needs to be updated with startTime " << mTF;
+    LOG(info) << "Entry related to Env Vars needs to be updated with startTime " << mStartValidity;
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbEnvVarsInfo, "GLO/Config/EnvVars", mTF, md);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbEnvVarsInfo, "GLO/Config/EnvVars", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
   return;
 }
 
@@ -442,10 +442,10 @@ void GRPDCSDPsProcessor::updateCollimatorsCCDB()
   // we need to update a CCDB for the Env Variables DPs --> let's prepare the CCDBInfo
 
   if (mVerbose) {
-    LOG(info) << "Entry related to Env Vars needs to be updated with startTime " << mTF;
+    LOG(info) << "Entry related to Env Vars needs to be updated with startTime " << mStartValidity;
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbCollimatorsInfo, "GLO/Config/Collimators", mTF, md);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbCollimatorsInfo, "GLO/Config/Collimators", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
   return;
 }

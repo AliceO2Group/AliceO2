@@ -63,11 +63,11 @@ int TOFDCSProcessor::process(const gsl::span<const DPCOM> dps)
   // first we check which DPs are missing - if some are, it means that
   // the delta map was sent
   if (mVerbose) {
-    LOG(info) << "\n\n\nProcessing new TF\n-----------------";
+    LOG(info) << "\n\n\nProcessing new DCS DP map\n-----------------";
   }
-  if (!mStartTFset) {
-    mStartTF = mTF;
-    mStartTFset = true;
+  if (!mFirstTimeSet) {
+    mFirstTime = mStartValidity;
+    mFirstTimeSet = true;
   }
 
   std::unordered_map<DPID, DPVAL> mapin;
@@ -393,7 +393,7 @@ void TOFDCSProcessor::updateDPsCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mTOFDCS, mccdbDPsInfo, "TOF/Calib/DCSDPs", mTF, md);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mTOFDCS, mccdbDPsInfo, "TOF/Calib/DCSDPs", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
 
   return;
 }
@@ -410,7 +410,7 @@ void TOFDCSProcessor::updateFEACCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mFeac, mccdbLVInfo, "TOF/Calib/LVStatus", mTF, md);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mFeac, mccdbLVInfo, "TOF/Calib/LVStatus", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
   return;
 }
 
@@ -426,7 +426,7 @@ void TOFDCSProcessor::updateHVCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mHV, mccdbHVInfo, "TOF/Calib/HVStatus", mTF, md);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mHV, mccdbHVInfo, "TOF/Calib/HVStatus", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
   return;
 }
 

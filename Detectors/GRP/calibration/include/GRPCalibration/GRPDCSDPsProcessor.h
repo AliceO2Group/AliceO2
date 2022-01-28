@@ -189,9 +189,6 @@ struct GRPLHCInfo {
 class GRPDCSDPsProcessor
 {
  public:
-  using TFType = uint64_t;
-  // using CcdbObjectInfo = o2::ccdb::CcdbObjectInfo;
-
   GRPDCSDPsProcessor() = default;
   ~GRPDCSDPsProcessor() = default;
 
@@ -231,16 +228,16 @@ class GRPDCSDPsProcessor
   void updateCollimatorsCCDB();
   bool isCollimatorsUpdated() const { return mUpdateCollimators; }
 
-  void setTF(TFType tf) { mTF = tf; }
+  void setStartValidity(long t) { mStartValidity = t; }
   void useVerboseMode() { mVerbose = true; }
 
  private:
   std::unordered_map<DPID, bool> mPids; // contains all PIDs for the processor, the bool
                                         // will be true if the DP was processed at least once
 
-  TFType mStartTF; // TF index for processing of first processed TF, used to store CCDB object
-  TFType mTF = 0;  // TF index for processing, used to store CCDB object
-  bool mStartTFset = false;
+  long mFirstTime;         // time when a CCDB object was stored first
+  long mStartValidity = 0; // TF index for processing, used to store CCDB object
+  bool mFirstTimeSet = false;
 
   bool mVerbose = false;
 

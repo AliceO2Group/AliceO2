@@ -115,11 +115,14 @@ void GRPDCSDPsDataProcessor::init(o2::framework::InitContext& ic)
 
 void GRPDCSDPsDataProcessor::run(o2::framework::ProcessingContext& pc)
 {
-  auto tfid = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
+  auto startValidity = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
   auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
-  mProcessor->setTF(tfid);
-  mProcessor->process(dps);
   auto timeNow = HighResClock::now();
+  if (startValidity == 0xffffffffffffffff) {                                                                   // it means it is not set
+    startValidity = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow.time_since_epoch()).count(); // in ms
+  }
+  mProcessor->setStartValidity(startValidity);
+  mProcessor->process(dps);
   Duration elapsedTime = timeNow - mTimer; // in seconds
   if (elapsedTime.count() >= mDPsUpdateInterval || mProcessor->isLHCIFInfoUpdated()) {
     sendLHCIFDPsoutput(pc.outputs());
