@@ -28,7 +28,7 @@
 #include <string>
 #include <thread>
 
-#if !defined(__MACH__) && defined(__APPLE__)
+#if !defined(__MACH__) && !defined(__APPLE__)
 #include <syscall.h>
 #define MPOL_DEFAULT 0
 #define MPOL_PREFERRED 1
@@ -70,7 +70,7 @@ struct ShmManager {
       uint16_t id = stoi(conf.at(0));
       uint64_t size = stoull(conf.at(1));
 
-#if !defined(__MACH__) && defined(__APPLE__)
+#if !defined(__MACH__) && !defined(__APPLE__)
       int numaid = stoi(conf.at(2));
       if (numaid == -2) {
         LOG(info) << "Setting memory allocation to process default";
@@ -112,7 +112,7 @@ struct ShmManager {
       uint16_t id = stoi(conf.at(0));
       uint64_t size = stoull(conf.at(1));
 
-#if !defined(__MACH__) && defined(__APPLE__)
+#if !defined(__MACH__) && !defined(__APPLE__)
       int numaid = stoi(conf.at(2));
       if (numaid == -2) {
         LOG(info) << "Setting memory allocation to process default";
