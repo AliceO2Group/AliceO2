@@ -294,9 +294,9 @@ int SetupReconstruction()
 
   GPUSettingsGRP grp = rec->GetGRPSettings();
   GPUSettingsRec recSet;
-  GPUSettingsProcessing devProc;
+  GPUSettingsProcessing procSet;
   memcpy((void*)&recSet, (void*)&configStandalone.rec, sizeof(GPUSettingsRec));
-  memcpy((void*)&devProc, (void*)&configStandalone.proc, sizeof(GPUSettingsProcessing));
+  memcpy((void*)&procSet, (void*)&configStandalone.proc, sizeof(GPUSettingsProcessing));
   GPURecoStepConfiguration steps;
 
   if (configStandalone.eventGenerator) {
@@ -355,10 +355,10 @@ int SetupReconstruction()
       printf("Enabling event display (GLUT backend)\n");
     }
 #endif
-    devProc.eventDisplay = eventDisplay.get();
+    procSet.eventDisplay = eventDisplay.get();
   }
-  if (devProc.runQA) {
-    devProc.runMC = true;
+  if (procSet.runQA) {
+    procSet.runMC = true;
   }
 
   steps.steps = GPUDataTypes::RecoStep::AllRecoSteps;
@@ -412,18 +412,27 @@ int SetupReconstruction()
   steps.steps.setBits(GPUDataTypes::RecoStep::TPCDecompression, false);
   steps.inputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
 
+  if (steps.steps.isSet(GPUDataTypes::RecoStep::TRDTracking)) {
+    if (recSet.tpc.nWays > 1) {
+      recSet.tpc.nWaysOuter = 1;
+    }
+    if (procSet.createO2Output && !procSet.trdTrackModelO2) {
+      procSet.createO2Output = 1; // Must not be 2, to make sure TPC GPU tracks are still available for TRD
+    }
+  }
+
   if (configStandalone.testSyncAsync || configStandalone.testSync) {
     // Set settings for synchronous
     steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, 0);
     recSet.useMatLUT = false;
     if (configStandalone.testSyncAsync) {
-      devProc.eventDisplay = nullptr;
+      procSet.eventDisplay = nullptr;
     }
   }
 
-  rec->SetSettings(&grp, &recSet, &devProc, &steps);
+  rec->SetSettings(&grp, &recSet, &procSet, &steps);
   if (configStandalone.proc.doublePipeline) {
-    recPipeline->SetSettings(&grp, &recSet, &devProc, &steps);
+    recPipeline->SetSettings(&grp, &recSet, &procSet, &steps);
   }
   if (configStandalone.testSyncAsync) {
     // Set settings for asynchronous
@@ -435,15 +444,15 @@ int SetupReconstruction()
     steps.inputs.setBits(GPUDataTypes::InOutType::TPCClusters, false);
     steps.inputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, true);
     steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
-    devProc.runMC = false;
-    devProc.runQA = false;
-    devProc.eventDisplay = eventDisplay.get();
-    devProc.runCompressionStatistics = 0;
+    procSet.runMC = false;
+    procSet.runQA = false;
+    procSet.eventDisplay = eventDisplay.get();
+    procSet.runCompressionStatistics = 0;
     recSet.tpc.disableRefitAttachment = 0xFF;
     recSet.tpc.loopInterpolationInExtraPass = 0;
     recSet.maxTrackQPt = CAMath::Min(recSet.maxTrackQPt, recSet.tpc.rejectQPt);
     recSet.useMatLUT = true;
-    recAsync->SetSettings(&grp, &recSet, &devProc, &steps);
+    recAsync->SetSettings(&grp, &recSet, &procSet, &steps);
   }
 
   if (configStandalone.outputcontrolmem) {
