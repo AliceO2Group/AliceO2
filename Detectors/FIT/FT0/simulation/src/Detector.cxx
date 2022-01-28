@@ -68,7 +68,7 @@ void Detector::InitializeO2Detector()
     LOG(warn) << "@@@@ Sensitive volume 0REG not found!!!!!!!!";
   } else {
     AddSensitiveVolume(v);
-    mREGVolID = v->GetNumber();
+    regVolID = v->GetNumber();
   }
 
   TGeoVolume* vrad = gGeoManager->GetVolume("0TOP");
@@ -76,14 +76,14 @@ void Detector::InitializeO2Detector()
     LOG(warn) << "@@@@ Sensitive radiator not found!!!!!!!!";
   } else {
     AddSensitiveVolume(vrad);
-    mTOPVolID = vrad->GetNumber();
+    topVolID = vrad->GetNumber();
   }
   TGeoVolume* vmcp = gGeoManager->GetVolume("0MTO");
   if (vmcp == nullptr) {
     LOG(warn) << "@@@@ Sensitive MCP glass not found!!!!!!!!";
   } else {
     AddSensitiveVolume(vmcp);
-    mMTOVolID = vmcp->GetNumber();
+    mtoVolID = vmcp->GetNumber();
   }
 }
 
@@ -887,14 +887,14 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     int trackID = stack->GetCurrentTrackNumber();
     int detID = mSim2LUT[4 * mcp + quadrant - 1];
     int iPart = fMC->TrackPid();
-    if (fMC->TrackCharge() && volID == mREGVolID) { //charge particles for MCtrue
+    if (fMC->TrackCharge() && volID == regVolID) { //charge particles for MCtrue
       AddHit(x, y, z, time, 10, trackID, detID);
     }
     if (iPart == 50000050) { // If particle is photon then ...
       float etot = fMC->Etot();
       float enDep = fMC->Edep();
       Int_t parentID = stack->GetCurrentTrack()->GetMother(0);
-      if (volID == mTOPVolID) {
+      if (volID == topVolID) {
         if (!RegisterPhotoE(etot)) {
           fMC->StopTrack();
           return kFALSE;
@@ -902,7 +902,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
         mTrackIdTop = trackID;
       }
 
-      if (volID == mMTOVolID) {
+      if (volID == mtoVolID) {
         if (trackID != mTrackIdTop) {
           if (!RegisterPhotoE(etot)) {
             fMC->StopTrack();
@@ -912,7 +912,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
         }
       }
 
-      if (volID == mREGVolID) {
+      if (volID == regVolID) {
         if (trackID != mTrackIdTop && trackID != mTrackIdMCPtop) {
           if (RegisterPhotoE(etot)) {
             AddHit(x, y, z, time, enDep, parentID, detID);
