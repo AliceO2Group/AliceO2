@@ -9,17 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file TrackerTraitsGPU.h
-/// \brief
-///
 
 #ifndef ITSTRACKINGGPU_TRACKERTRAITSGPU_H_
 #define ITSTRACKINGGPU_TRACKERTRAITSGPU_H_
 
-// #ifndef GPUCA_GPUCODE_GENRTC
-// #include <cub/cub.cuh>
-// #include <cstdint>
-// #endif
 #include "ITStracking/Configuration.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/TrackerTraits.h"
@@ -35,12 +28,16 @@ class TrackerTraitsGPU : public TrackerTraits
  public:
   TrackerTraitsGPU() = default;
   ~TrackerTraitsGPU() override = default;
-  template <class... T>
-  void fillTimeFrame(T&&... args);
+  void loadToDevice() override;
+  gpu::TimeFrameGPU<NLayers>* getTimeFrameGPU() override
+  {
+    return &mTimeFrameGPU;
+  }
 
   // void computeLayerCells() final;
-  // void computeLayerTracklets() final;
+  void computeLayerTracklets() final;
   // void refitTracks(const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks) override;
+
  private:
   gpu::TimeFrameGPU<NLayers> mTimeFrameGPU;
 };

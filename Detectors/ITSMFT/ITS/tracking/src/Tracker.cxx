@@ -92,6 +92,33 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
   rectifyClusterIndices();
 }
 
+void Tracker::clustersToTracksGPU(std::function<void(std::string s)> logger)
+{
+  double total{0};
+  for (int iteration = 0; iteration < mTrkParams.size(); ++iteration) {
+    mTraits->UpdateTrackingParameters(mTrkParams[iteration]);
+    total += evaluateTask(&Tracker::loadToDevice, "Device loading", logger);
+    // total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", logger);
+    // total += evaluateTask(&Tracker::computeCells, "Cell finding", logger);
+    // total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", logger, iteration);
+    // total += evaluateTask(&Tracker::findRoads, "Road finding", logger, iteration);
+    // total += evaluateTask(&Tracker::findTracks, "Track finding", logger);
+    // total += evaluateTask(&Tracker::extendTracks, "Extending tracks", logger);
+  }
+
+  std::stringstream sstream;
+  if (constants::DoTimeBenchmarks) {
+    sstream << std::setw(2) << " - "
+            << "Timeframe " << mTimeFrameCounter++ << " GPU processing completed in: " << total << "ms" << std::endl;
+  }
+  logger(sstream.str());
+
+  // if (mTimeFrame->hasMCinformation()) {
+  //   computeTracksMClabels();
+  // }
+  // rectifyClusterIndices();
+}
+
 void Tracker::computeTracklets()
 {
   mTraits->computeLayerTracklets();
@@ -100,6 +127,16 @@ void Tracker::computeTracklets()
 void Tracker::computeCells()
 {
   mTraits->computeLayerCells();
+}
+
+TimeFrame* Tracker::getTimeFrameGPU()
+{
+  return (TimeFrame*)mTraits->getTimeFrameGPU();
+}
+
+void Tracker::loadToDevice()
+{
+  mTraits->loadToDevice();
 }
 
 void Tracker::findCellsNeighbours(int& iteration)
