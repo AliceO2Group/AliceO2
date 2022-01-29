@@ -21,7 +21,7 @@ o2_add_library(ITStracking
                        src/Road.cxx
                        src/StandaloneDebugger.cxx
                        src/Tracker.cxx
-                       src/TrackerTraitsCPU.cxx
+                       src/TrackerTraits.cxx
                        src/TrackingConfigParam.cxx
                        src/ClusterLines.cxx
                        src/Vertexer.cxx

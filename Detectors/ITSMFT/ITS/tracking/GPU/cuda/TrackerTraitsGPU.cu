@@ -57,37 +57,35 @@ GPUd() const int4 getBinsRect(const Cluster& currentCluster, const int layerInde
 }
 
 template <int NLayers>
-template <typename... T>
-void TrackerTraitsGPU<NLayers>::fillTimeFrame(T&&... args)
+void TrackerTraitsGPU<NLayers>::loadToDevice()
 {
-  mTimeFrameGPU.loadROFrameData(std::forward<T>(args)...);
   mTimeFrameGPU.loadToDevice();
 }
 
 namespace gpu
 {
 
-// struct StaticTrackingParameters {
-//   StaticTrackingParameters& operator=(const StaticTrackingParameters& t);
+struct StaticTrackingParameters {
+  StaticTrackingParameters& operator=(const StaticTrackingParameters& t);
 
-//   int CellMinimumLevel();
+  int CellMinimumLevel();
 
-//   /// General parameters
-//   int ClusterSharing = 0;
-//   int MinTrackLength = 7;
-//   /// Trackleting cuts
-//   float TrackletMaxDeltaPhi = 0.3f;
-//   float TrackletMaxDeltaZ[constants::its2::TrackletsPerRoad] = {0.1f, 0.1f, 0.3f, 0.3f, 0.3f, 0.3f};
-//   /// Cell finding cuts
-//   float CellMaxDeltaTanLambda = 0.025f;
-//   float CellMaxDCA[constants::its2::CellsPerRoad] = {0.05f, 0.04f, 0.05f, 0.2f, 0.4f};
-//   float CellMaxDeltaPhi = 0.14f;
-//   float CellMaxDeltaZ[constants::its2::CellsPerRoad] = {0.2f, 0.4f, 0.5f, 0.6f, 3.0f};
-//   /// Neighbour finding cuts
-//   float NeighbourMaxDeltaCurvature[constants::its2::CellsPerRoad - 1] = {0.008f, 0.0025f, 0.003f, 0.0035f};
-//   float NeighbourMaxDeltaN[constants::its2::CellsPerRoad - 1] = {0.002f, 0.0090f, 0.002f, 0.005f};
-// };
-// __constant__ StaticTrackingParameters kTrkPar;
+  /// General parameters
+  int ClusterSharing = 0;
+  int MinTrackLength = 7;
+  /// Trackleting cuts
+  float TrackletMaxDeltaPhi = 0.3f;
+  float TrackletMaxDeltaZ[constants::its2::TrackletsPerRoad] = {0.1f, 0.1f, 0.3f, 0.3f, 0.3f, 0.3f};
+  /// Cell finding cuts
+  float CellMaxDeltaTanLambda = 0.025f;
+  float CellMaxDCA[constants::its2::CellsPerRoad] = {0.05f, 0.04f, 0.05f, 0.2f, 0.4f};
+  float CellMaxDeltaPhi = 0.14f;
+  float CellMaxDeltaZ[constants::its2::CellsPerRoad] = {0.2f, 0.4f, 0.5f, 0.6f, 3.0f};
+  /// Neighbour finding cuts
+  float NeighbourMaxDeltaCurvature[constants::its2::CellsPerRoad - 1] = {0.008f, 0.0025f, 0.003f, 0.0035f};
+  float NeighbourMaxDeltaN[constants::its2::CellsPerRoad - 1] = {0.002f, 0.0090f, 0.002f, 0.005f};
+};
+__constant__ StaticTrackingParameters kTrkPar;
 
 // GPUd() void computeLayerTracklets(DeviceStoreNV& devStore, const int layerIndex,
 //                                   Vector<Tracklet>& trackletsVector)
@@ -319,8 +317,9 @@ namespace gpu
 //   return new TrackerTraitsGPU;
 // }
 
-// void TrackerTraitsGPU::computeLayerTracklets()
-// {
+template <int NLayers>
+void TrackerTraitsGPU<NLayers>::computeLayerTracklets()
+{
 //   PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(nullptr); //TODO: FIX THIS with Time Frames
 
 //   // cudaMemcpyToSymbol(gpu::kTrkPar, &mTrkParams, sizeof(TrackingParameters));
@@ -406,7 +405,7 @@ namespace gpu
 //       throw std::runtime_error{errorString.str()};
 //     }
 //   }
-// }
+}
 
 // void TrackerTraitsGPU::computeLayerCells()
 // {

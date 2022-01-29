@@ -53,6 +53,7 @@ class GPUChainITS;
 namespace its
 {
 class TrackerTraits;
+// class gpu::TimeFrameGPU;
 
 class Tracker
 {
@@ -70,6 +71,7 @@ class Tracker
 
   void clustersToTracks(
     std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; }, std::function<void(std::string s)> = [](std::string s) { std::cerr << s << std::endl; });
+  void clustersToTracksGPU(std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; });
   void setSmoothing(bool v) { mApplySmoothing = v; }
   bool getSmoothing() const { return mApplySmoothing; }
 
@@ -79,8 +81,9 @@ class Tracker
   void setParameters(const std::vector<MemoryParameters>&, const std::vector<TrackingParameters>&);
   void getGlobalConfiguration();
   bool isMatLUT() const { return o2::base::Propagator::Instance()->getMatLUT() && (mCorrType == o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT); }
-  template <class... T>
-  void fillTimeFrameGPU(T&&... args);
+  // GPU-specific interfaces
+  TimeFrame* getTimeFrameGPU();
+  void loadToDevice();
 
  private:
   track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3,
@@ -135,12 +138,6 @@ template <typename... T>
 void Tracker::initialiseTimeFrame(T&&... args)
 {
   mTimeFrame->initialise(std::forward<T>(args)...);
-}
-
-template <class... T>
-void Tracker::fillTimeFrameGPU(T&&... args)
-{
-  mTraits->fillTimeFrame(std::forward<T>(args)...);
 }
 
 template <typename... T>
