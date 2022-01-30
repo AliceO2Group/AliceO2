@@ -20,28 +20,8 @@ namespace o2::ft0
 {
 
 struct GlobalOffsetsCalibrationObject {
-
-  // T0A - 0; T0C  -1 ; T0AC -2
-  enum class Offset { T0A,
-                      T0C,
-                      T0AC };
-  std::array<short, 3> mCollisionTimeOffsets{};
-
-  short getT0A() const
-  {
-    return mCollisionTimeOffsets[static_cast<short>(Offset::T0A)];
-  }
-
-  short getT0C() const
-  {
-    return mCollisionTimeOffsets[static_cast<short>(Offset::T0C)];
-  }
-
-  short getT0AC() const
-  {
-    return mCollisionTimeOffsets[static_cast<short>(Offset::T0AC)];
-  }
-
+  // LHCphase calibration
+  int mCollisionTimeOffsets; ///< <LHCphase>
   ClassDefNV(GlobalOffsetsCalibrationObject, 1);
 };
 

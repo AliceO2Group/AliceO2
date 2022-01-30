@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file digits-reader-workflow.cxx
+/// \file recpoints-reader-workflow.cxx
 /// \brief Implementation of FT0 digits reader
 ///
 /// \author ruben.shahoyan@cern.ch
@@ -18,7 +18,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Task.h"
-#include "FT0Workflow/DigitReaderSpec.h"
+#include "FT0Workflow/RecPointReaderSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
@@ -30,8 +30,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}}};
-  options.push_back(ConfigParamSpec{"disable-trigger-input", o2::framework::VariantType::Bool, false, {"Disable trigger input DPL channel"}});
-
   std::string keyvaluehelp("Semicolon separated key=value strings");
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
   std::swap(workflowOptions, options);
@@ -43,7 +41,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext& ctx)
 {
   WorkflowSpec specs;
   o2::conf::ConfigurableParam::updateFromString(ctx.options().get<std::string>("configKeyValues"));
-  DataProcessorSpec producer = o2::ft0::getDigitReaderSpec(ctx.options().get<bool>("disable-mc"), ctx.options().get<bool>("disable-trigger-input"));
+  DataProcessorSpec producer = o2::ft0::getRecPointReaderSpec(ctx.options().get<bool>("disable-mc"));
   specs.push_back(producer);
   return specs;
 }

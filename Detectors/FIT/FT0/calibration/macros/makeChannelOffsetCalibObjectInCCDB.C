@@ -13,16 +13,16 @@
 #include "TFile.h"
 #include "CCDB/CcdbApi.h"
 #include <iostream>
-#include "FT0Calibration/FT0DummyCalibrationObject.h"
+#include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
 
-int makeDummyFT0CalibObjectInCCDB(const std::string url = "http://localhost:8080")
+int makeChannelOffsetCalibObjectInCCDB(const std::string url = "http://ccdb-test.cern.ch:8080")
 {
 
   o2::ccdb::CcdbApi api;
   api.init(url);
   std::map<std::string, std::string> md;
-  o2::ft0::FT0DummyNeededCalibrationObject obj;
-  api.storeAsTFileAny(&obj, "FT0/Calibration/DummyNeeded", md, 0);
+  o2::ft0::FT0ChannelTimeCalibrationObject obj;
+  api.storeAsTFileAny(&obj, "FT0/Calibration/ChannelTimeOffset", md, 0);
 
   return 0;
 }

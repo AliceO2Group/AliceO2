@@ -50,7 +50,6 @@ void DigitReader::init(InitContext& ic)
 
 void DigitReader::run(ProcessingContext& pc)
 {
-
   std::vector<o2::ft0::Digit> digits, *pdigits = &digits;
   std::vector<o2::ft0::DetTrigInput> trgInput, *ptrTrgInput = &trgInput;
   std::vector<o2::ft0::ChannelData> channels, *pchannels = &channels;

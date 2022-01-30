@@ -38,5 +38,6 @@ o2_target_root_dictionary(DataFormatsFT0
                                   include/DataFormatsFT0/LookUpTable.h
                                   include/DataFormatsFT0/CTF.h
                                   include/DataFormatsFT0/RecoCalibInfoObject.h
+                                  include/DataFormatsFT0/GlobalOffsetsInfoObject.h
                                   include/DataFormatsFT0/GlobalOffsetsCalibrationObject.h
                                   include/DataFormatsFT0/GlobalOffsetsContainer.h)
