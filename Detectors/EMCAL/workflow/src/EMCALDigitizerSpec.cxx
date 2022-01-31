@@ -126,10 +126,6 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
       continue;
     } else {
       preTriggerColl = false;
-      // Discard collisions that occurs 900 ns after the readout window is open
-      if (mDigitizer.afterTriggerCollision()) {
-        continue;
-      }
     }
 
     if (mDigitizer.isEmpty()) {
