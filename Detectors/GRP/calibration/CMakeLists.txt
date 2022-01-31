@@ -12,8 +12,14 @@
 o2_add_library(GRPCalibration
                TARGETVARNAME targetName
                SOURCES src/LHCIFfileReader.cxx
-         PUBLIC_LINK_LIBRARIES Microsoft.GSL::GSL
-         O2::Framework)
+                       src/GRPDCSDPsProcessor.cxx
+               PUBLIC_LINK_LIBRARIES Microsoft.GSL::GSL
+                                     O2::Framework
+                               O2::DetectorsDCS
+                               O2::DetectorsCalibration
+                               O2::CCDB
+                               O2::DataFormatsParameters)
 
 o2_target_root_dictionary(GRPCalibration
-                          HEADERS include/GRPCalibration/LHCIFfileReader.h)
+                          HEADERS include/GRPCalibration/LHCIFfileReader.h
+                                  include/GRPCalibration/GRPDCSDPsProcessor.h)
