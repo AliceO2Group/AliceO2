@@ -1308,11 +1308,41 @@ void SpaceCharge<DataT>::getLocalCorrectionsCyl(const DataT z, const DataT r, co
 }
 
 template <typename DataT>
+void SpaceCharge<DataT>::getLocalCorrectionsCyl(const std::vector<DataT>& z, const std::vector<DataT>& r, const std::vector<DataT>& phi, const Side side, std::vector<DataT>& lcorrZ, std::vector<DataT>& lcorrR, std::vector<DataT>& lcorrRPhi) const
+{
+  const auto nPoints = z.size();
+  lcorrZ.resize(nPoints);
+  lcorrR.resize(nPoints);
+  lcorrRPhi.resize(nPoints);
+#pragma omp parallel for num_threads(sNThreads)
+  for (size_t i = 0; i < nPoints; ++i) {
+    lcorrZ[i] = mInterpolatorLocalCorr[side].evaldZ(z[i], r[i], phi[i]);
+    lcorrR[i] = mInterpolatorLocalCorr[side].evaldR(z[i], r[i], phi[i]);
+    lcorrRPhi[i] = mInterpolatorLocalCorr[side].evaldRPhi(z[i], r[i], phi[i]);
+  }
+}
+
+template <typename DataT>
 void SpaceCharge<DataT>::getCorrectionsCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& corrZ, DataT& corrR, DataT& corrRPhi) const
 {
   corrZ = mInterpolatorGlobalCorr[side].evaldZ(z, r, phi);
   corrR = mInterpolatorGlobalCorr[side].evaldR(z, r, phi);
   corrRPhi = mInterpolatorGlobalCorr[side].evaldRPhi(z, r, phi);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::getCorrectionsCyl(const std::vector<DataT>& z, const std::vector<DataT>& r, const std::vector<DataT>& phi, const Side side, std::vector<DataT>& corrZ, std::vector<DataT>& corrR, std::vector<DataT>& corrRPhi) const
+{
+  const auto nPoints = z.size();
+  corrZ.resize(nPoints);
+  corrR.resize(nPoints);
+  corrRPhi.resize(nPoints);
+#pragma omp parallel for num_threads(sNThreads)
+  for (size_t i = 0; i < nPoints; ++i) {
+    corrZ[i] = mInterpolatorGlobalCorr[side].evaldZ(z[i], r[i], phi[i]);
+    corrR[i] = mInterpolatorGlobalCorr[side].evaldR(z[i], r[i], phi[i]);
+    corrRPhi[i] = mInterpolatorGlobalCorr[side].evaldRPhi(z[i], r[i], phi[i]);
+  }
 }
 
 template <typename DataT>
@@ -1343,11 +1373,41 @@ void SpaceCharge<DataT>::getLocalDistortionsCyl(const DataT z, const DataT r, co
 }
 
 template <typename DataT>
+void SpaceCharge<DataT>::getLocalDistortionsCyl(const std::vector<DataT>& z, const std::vector<DataT>& r, const std::vector<DataT>& phi, const Side side, std::vector<DataT>& ldistZ, std::vector<DataT>& ldistR, std::vector<DataT>& ldistRPhi) const
+{
+  const auto nPoints = z.size();
+  ldistZ.resize(nPoints);
+  ldistR.resize(nPoints);
+  ldistRPhi.resize(nPoints);
+#pragma omp parallel for num_threads(sNThreads)
+  for (size_t i = 0; i < nPoints; ++i) {
+    ldistZ[i] = mInterpolatorLocalDist[side].evaldZ(z[i], r[i], phi[i]);
+    ldistR[i] = mInterpolatorLocalDist[side].evaldR(z[i], r[i], phi[i]);
+    ldistRPhi[i] = mInterpolatorLocalDist[side].evaldRPhi(z[i], r[i], phi[i]);
+  }
+}
+
+template <typename DataT>
 void SpaceCharge<DataT>::getLocalDistortionVectorCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& lvecdistZ, DataT& lvecdistR, DataT& lvecdistRPhi) const
 {
   lvecdistZ = mInterpolatorLocalVecDist[side].evaldZ(z, r, phi);
   lvecdistR = mInterpolatorLocalVecDist[side].evaldR(z, r, phi);
   lvecdistRPhi = mInterpolatorLocalVecDist[side].evaldRPhi(z, r, phi);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::getLocalDistortionVectorCyl(const std::vector<DataT>& z, const std::vector<DataT>& r, const std::vector<DataT>& phi, const Side side, std::vector<DataT>& lvecdistZ, std::vector<DataT>& lvecdistR, std::vector<DataT>& lvecdistRPhi) const
+{
+  const auto nPoints = z.size();
+  lvecdistZ.resize(nPoints);
+  lvecdistR.resize(nPoints);
+  lvecdistRPhi.resize(nPoints);
+#pragma omp parallel for num_threads(sNThreads)
+  for (size_t i = 0; i < nPoints; ++i) {
+    lvecdistZ[i] = mInterpolatorLocalVecDist[side].evaldZ(z[i], r[i], phi[i]);
+    lvecdistR[i] = mInterpolatorLocalVecDist[side].evaldR(z[i], r[i], phi[i]);
+    lvecdistRPhi[i] = mInterpolatorLocalVecDist[side].evaldRPhi(z[i], r[i], phi[i]);
+  }
 }
 
 template <typename DataT>
@@ -1359,11 +1419,41 @@ void SpaceCharge<DataT>::getLocalCorrectionVectorCyl(const DataT z, const DataT 
 }
 
 template <typename DataT>
+void SpaceCharge<DataT>::getLocalCorrectionVectorCyl(const std::vector<DataT>& z, const std::vector<DataT>& r, const std::vector<DataT>& phi, const Side side, std::vector<DataT>& lveccorrZ, std::vector<DataT>& lveccorrR, std::vector<DataT>& lveccorrRPhi) const
+{
+  const auto nPoints = z.size();
+  lveccorrZ.resize(nPoints);
+  lveccorrR.resize(nPoints);
+  lveccorrRPhi.resize(nPoints);
+#pragma omp parallel for num_threads(sNThreads)
+  for (size_t i = 0; i < nPoints; ++i) {
+    lveccorrZ[i] = -mInterpolatorLocalVecDist[side].evaldZ(z[i], r[i], phi[i]);
+    lveccorrR[i] = -mInterpolatorLocalVecDist[side].evaldR(z[i], r[i], phi[i]);
+    lveccorrRPhi[i] = -mInterpolatorLocalVecDist[side].evaldRPhi(z[i], r[i], phi[i]);
+  }
+}
+
+template <typename DataT>
 void SpaceCharge<DataT>::getDistortionsCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& distZ, DataT& distR, DataT& distRPhi) const
 {
   distZ = mInterpolatorGlobalDist[side].evaldZ(z, r, phi);
   distR = mInterpolatorGlobalDist[side].evaldR(z, r, phi);
   distRPhi = mInterpolatorGlobalDist[side].evaldRPhi(z, r, phi);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::getDistortionsCyl(const std::vector<DataT>& z, const std::vector<DataT>& r, const std::vector<DataT>& phi, const Side side, std::vector<DataT>& distZ, std::vector<DataT>& distR, std::vector<DataT>& distRPhi) const
+{
+  const auto nPoints = z.size();
+  distZ.resize(nPoints);
+  distR.resize(nPoints);
+  distRPhi.resize(nPoints);
+#pragma omp parallel for num_threads(sNThreads)
+  for (size_t i = 0; i < nPoints; ++i) {
+    distZ[i] = mInterpolatorGlobalDist[side].evaldZ(z[i], r[i], phi[i]);
+    distR[i] = mInterpolatorGlobalDist[side].evaldR(z[i], r[i], phi[i]);
+    distRPhi[i] = mInterpolatorGlobalDist[side].evaldRPhi(z[i], r[i], phi[i]);
+  }
 }
 
 template <typename DataT>
@@ -1442,7 +1532,7 @@ void SpaceCharge<DataT>::integrateEFieldsRoot(const DataT p1r, const DataT p1phi
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::calculateElectronDriftPath(const std::vector<GlobalPosition3D>& elePos, const int nSamplingPoints, const char* outFile) const
+std::vector<std::pair<std::vector<o2::math_utils::Point3D<float>>, std::array<DataT, 3>>> SpaceCharge<DataT>::calculateElectronDriftPath(const std::vector<GlobalPosition3D>& elePos, const int nSamplingPoints, const std::string_view outFile) const
 {
   const unsigned int nElectrons = elePos.size();
   std::vector<std::pair<std::vector<o2::math_utils::Point3D<float>>, std::array<DataT, 3>>> electronTracks(nElectrons);
@@ -1516,7 +1606,10 @@ void SpaceCharge<DataT>::calculateElectronDriftPath(const std::vector<GlobalPosi
     }
     electronTracks[i].second = std::array<DataT, 3>{drDist, dPhiDist * r0, dzDist};
   }
-  dumpElectronTracksToTree(electronTracks, nSamplingPoints, outFile);
+  if (!outFile.empty()) {
+    dumpElectronTracksToTree(electronTracks, nSamplingPoints, outFile.data());
+  }
+  return electronTracks;
 }
 
 template <typename DataT>
@@ -1530,7 +1623,7 @@ void SpaceCharge<DataT>::dumpElectronTracksToTree(const std::vector<std::pair<st
 
   for (int i = 0; i < electronTracks.size(); ++i) {
     auto electronPath = electronTracks[i].first;
-    const auto nPoints = electronPath.size();
+    const int nPoints = electronPath.size();
     if (electronPath.empty()) {
       LOGP(warning, "Track is empty. Continue to next track.");
       continue;
