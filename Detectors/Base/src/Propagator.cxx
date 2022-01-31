@@ -585,8 +585,15 @@ template <typename value_T>
 GPUd() MatBudget PropagatorImpl<value_T>::getMatBudget(PropagatorImpl<value_type>::MatCorrType corrType, const math_utils::Point3D<value_type>& p0, const math_utils::Point3D<value_type>& p1) const
 {
 #if !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
-  if (corrType == MatCorrType::USEMatCorrTGeo || !mMatLUT) {
+  if (corrType == MatCorrType::USEMatCorrTGeo) {
     return GeometryManager::meanMaterialBudget(p0, p1);
+  }
+  if (!mMatLUT) {
+    if (mTGeoFallBackAllowed) {
+      return GeometryManager::meanMaterialBudget(p0, p1);
+    } else {
+      throw std::runtime_error("requested MatLUT is absent and fall-back to TGeo is disabled");
+    }
   }
 #endif
   return mMatLUT->getMatBudget(p0.X(), p0.Y(), p0.Z(), p1.X(), p1.Y(), p1.Z());
