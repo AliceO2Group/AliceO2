@@ -106,6 +106,14 @@ class ChipMappingMFT
     ruOnLayer = 4 * half + zone;
   }
 
+  ///< decompose FEEid to face, disk, half
+  void expandFEEIdFaceDiskHalf(uint16_t feeID, uint16_t& face, uint16_t& disk, uint16_t& half) const
+  {
+    half = (feeID >> 6) & 0x1;
+    disk = (feeID >> 3) & 0x7;
+    face = (feeID >> 2) & 0x1;
+  }
+
   ///< get info on sw RU
   const RUInfo* getRUInfoFEEId(Int_t feeID) const { return &mRUInfo[FEEId2RUSW(feeID)]; }
 
