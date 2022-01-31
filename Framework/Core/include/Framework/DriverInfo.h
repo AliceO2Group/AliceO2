@@ -33,7 +33,7 @@
 namespace o2::framework
 {
 
-class ConfigContext;
+struct ConfigContext;
 
 /// Possible states for the DPL Driver application
 ///

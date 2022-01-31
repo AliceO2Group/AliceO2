@@ -269,6 +269,10 @@ void displayDeviceInspector(DeviceSpec const& spec,
     if (ImGui::Button("Offer SHM")) {
       control.controller->write("/shm-offer 1000", strlen("/shm-offer 1000"));
     }
+
+    if (ImGui::Button("Restart")) {
+      control.controller->write("/restart", strlen("/restart"));
+    }
   }
 
   deviceInfoTable("Inputs:", info.queriesViewIndex, metrics);
