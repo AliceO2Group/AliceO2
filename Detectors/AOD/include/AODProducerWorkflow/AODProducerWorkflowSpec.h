@@ -283,7 +283,7 @@ class AODProducerWorkflowDPL : public Task
   uint32_t mTrackChi2 = 0xFFFF0000;            // 7 bits
   uint32_t mTrackCovOffDiag = 0xFFFF0000;      // 7 bits
   uint32_t mTrackSignal = 0xFFFFFF00;          // 15 bits
-  uint32_t mTrackTime = 0xFFFFFF00;            // 15 bits
+  uint32_t mTrackTime = 0xFFFFFFFF;            // use full float precision for time
   uint32_t mTrackTimeError = 0xFFFFFF00;       // 15 bits
   uint32_t mTrackPosEMCAL = 0xFFFFFF00;        // 15 bits
   uint32_t mTracklets = 0xFFFFFF00;            // 15 bits
