@@ -888,13 +888,14 @@ DECLARE_SOA_EXTENDED_TABLE(McParticles_001, StoredMcParticles_001, "MCPARTICLE_0
 
 using McParticles = McParticles_000;
 using McParticle = McParticles::iterator;
-}
+} // namespace aod
 namespace soa
 {
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredMcParticles_000, aod::StoredMcParticles_001);
 }
 
-namespace aod {
+namespace aod
+{
 namespace mctracklabel
 {
 DECLARE_SOA_INDEX_COLUMN(McParticle, mcParticle); //! MC particle

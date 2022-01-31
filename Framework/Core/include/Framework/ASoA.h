@@ -1416,7 +1416,7 @@ constexpr bool is_binding_compatible_v()
 
 #define DECLARE_EQUIVALENT_FOR_INDEX(_Base_, _Equiv_) \
   template <>                                         \
-  struct EquivalentIndex<_Base_, _Equiv_> {  \
+  struct EquivalentIndex<_Base_, _Equiv_> {           \
     constexpr static bool value = true;               \
   }
 
@@ -1572,7 +1572,7 @@ constexpr bool is_binding_compatible_v()
 
 #define DECLARE_SOA_SLICE_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_SLICE_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, _Name_##s, "")
 
-///ARRAY
+/// ARRAY
 #define DECLARE_SOA_ARRAY_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Table_, _Suffix_)         \
   struct _Name_##Ids : o2::soa::Column<std::vector<_Type_>, _Name_##Ids> {                       \
     static_assert(std::is_integral_v<_Type_>, "Index type must be integral");                    \
@@ -1651,7 +1651,7 @@ constexpr bool is_binding_compatible_v()
 
 #define DECLARE_SOA_ARRAY_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_ARRAY_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, _Name_##s, "")
 
-///NORMAL
+/// NORMAL
 #define DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Table_, _Suffix_)                                                \
   struct _Name_##Id : o2::soa::Column<_Type_, _Name_##Id> {                                                                       \
     static_assert(std::is_integral_v<_Type_>, "Index type must be integral");                                                     \
@@ -1724,7 +1724,7 @@ constexpr bool is_binding_compatible_v()
 
 #define DECLARE_SOA_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, _Name_##s, "")
 
-///SELF
+/// SELF
 #define DECLARE_SOA_SELF_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Label_)                                           \
   struct _Name_##Id : o2::soa::Column<_Type_, _Name_##Id> {                                                             \
     static_assert(std::is_integral_v<_Type_>, "Index type must be integral");                                           \
