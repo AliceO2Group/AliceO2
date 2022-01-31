@@ -11,7 +11,7 @@
 
 // O2 include
 #include "DataFormatsQualityControl/TimeRangeFlagCollection.h"
-
+#include "DataFormatsQualityControl/FlagReasonFactory.h"
 #include <iostream>
 
 namespace o2::quality_control
