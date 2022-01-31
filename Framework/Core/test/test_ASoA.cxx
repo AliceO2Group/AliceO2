@@ -936,17 +936,17 @@ BOOST_AUTO_TEST_CASE(TestIndexUnboundExceptions)
     try {
       auto sp = row.singlePoint();
     } catch (RuntimeErrorRef ref) {
-      BOOST_REQUIRE_EQUAL(std::string{error_from_ref(ref).what}, "Index to Points3Ds is not bound! Did you subscribe to the table?");
+      BOOST_REQUIRE_EQUAL(std::string{error_from_ref(ref).what}, "Index pointing to Points3Ds is not bound! Did you subscribe to the table?");
     }
     try {
       auto ps = row.pointSlice();
     } catch (RuntimeErrorRef ref) {
-      BOOST_REQUIRE_EQUAL(std::string{error_from_ref(ref).what}, "Index to Points3Ds is not bound! Did you subscribe to the table?");
+      BOOST_REQUIRE_EQUAL(std::string{error_from_ref(ref).what}, "Index pointing to Points3Ds is not bound! Did you subscribe to the table?");
     }
     try {
       auto pg = row.pointGroup();
     } catch (RuntimeErrorRef ref) {
-      BOOST_REQUIRE_EQUAL(std::string{error_from_ref(ref).what}, "Index to Points3Ds is not bound! Did you subscribe to the table?");
+      BOOST_REQUIRE_EQUAL(std::string{error_from_ref(ref).what}, "Index pointing to Points3Ds is not bound! Did you subscribe to the table?");
     }
   }
 }
