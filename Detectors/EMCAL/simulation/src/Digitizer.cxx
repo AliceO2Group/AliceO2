@@ -111,7 +111,7 @@ void Digitizer::clear()
 void Digitizer::process(const std::vector<LabeledDigit>& labeledSDigits)
 {
 
-  mDigits.reserve();
+  //mDigits.reserve();
 
   for (auto labeleddigit : labeledSDigits) {
 
@@ -131,12 +131,7 @@ void Digitizer::process(const std::vector<LabeledDigit>& labeledSDigits)
         }
         d.addLabel(label);
       }
-      double digitTime = mEventTime;
-      if (preTriggerCollision()) {
-        digitTime = mEventTime - (mLiveTime + mBusyTime - mPreTriggerTime) + mAfterTriggerTime;
-      }
-
-      mDigits.addDigit(id, d, digitTime);
+      mDigits[id].push_back(d);
     }
   }
 
@@ -162,7 +157,12 @@ void Digitizer::sampleSDigit(const Digit& sDigit)
     for (int j = 0; j < mAmplitudeInTimeBins.at(mPhase).size(); j++) {
       double val = energy * (mAmplitudeInTimeBins.at(mPhase).at(j));
 
-      Digit digit(tower, val, (mEventTimeOffset + j - mTimeBinOffset.at(mPhase) + mDelay - mTimeWindowStart) * constants::EMCAL_TIMESAMPLE);
+      double digitTime = (mEventTimeOffset + j - mTimeBinOffset.at(mPhase) + mDelay - mTimeWindowStart) * constants::EMCAL_TIMESAMPLE;
+      if (preTriggerCollision() && digitTime >= (mLiveTime + mBusyTime)) {
+        digitTime = digitTime - (mLiveTime + mBusyTime);
+      }
+
+      Digit digit(tower, val, digitTime);
       mTempDigitVector.push_back(digit);
     }
   } else {
@@ -230,59 +230,48 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits, o2::dataformats:
 {
   std::list<LabeledDigit> l;
 
-  auto listMaps = mDigits.getLastNSamples();
+  for (auto [tower, digitsList] : mDigits) {
 
-  for (auto digsMap = listMaps.begin(); digsMap != listMaps.end(); ++digsMap) {
+    if (digitsList.size() == 0) {
+      continue;
+    }
+    digitsList.sort();
 
-    for (auto& [tower, digitsList] : *digsMap) {
+    for (auto& ld : digitsList) {
 
-      if (digitsList.size() == 0) {
+      // Loop over all digits in the time sample and sum the digits that falls in one time bin
+      for (auto ld1 = digitsList.begin(); ld1 != digitsList.end(); ++ld1) {
+
+        if (ld == *ld1) {
+          continue;
+        }
+
+        std::vector<decltype(digitsList.begin())> toDelete;
+
+        if (ld.canAdd(*ld1)) {
+          ld += *ld1;
+          toDelete.push_back(ld1);
+        }
+        for (auto del : toDelete) {
+          digitsList.erase(del);
+        }
+      }
+
+      if (mSimulateNoiseDigits) {
+        addNoiseDigits(ld);
+      }
+
+      if (mRemoveDigitsBelowThreshold && (ld.getAmplitude() < (mSimParam->getDigitThreshold() * constants::EMCAL_ADCENERGY))) {
         continue;
       }
-      digitsList.sort();
-
-      for (auto& ld : digitsList) {
-
-        // Loop over all digits in the time sample and sum the digits that falls in one time bin
-        for (auto compDigMap = digsMap; compDigMap != listMaps.end(); ++compDigMap) {
-
-          if (digsMap == compDigMap) {
-            continue;
-          }
-          std::vector<decltype(digitsList.begin())> toDelete;
-
-          auto towerEntry = compDigMap->find(tower);
-          if (towerEntry == compDigMap->end()) {
-            continue;
-          }
-
-          for (auto ld1 = towerEntry->second.begin(); ld1 != towerEntry->second.end(); ++ld1) { // must be iterator in order to know the position in the container for erasing
-            if (ld.canAdd(*ld1)) {
-              ld += *ld1;
-              toDelete.push_back(ld1);
-            }
-          }
-          for (auto del : toDelete) {
-            towerEntry->second.erase(del);
-          }
-        }
-
-        if (mSimulateNoiseDigits) {
-          addNoiseDigits(ld);
-        }
-
-        if (mRemoveDigitsBelowThreshold && (ld.getAmplitude() < (mSimParam->getDigitThreshold() * constants::EMCAL_ADCENERGY))) {
-          continue;
-        }
-        if (ld.getAmplitude() < 0) {
-          continue;
-        }
-        if ((ld.getTimeStamp() >= (mSimParam->getLiveTime() + (mDelay - mTimeWindowStart) * constants::EMCAL_TIMESAMPLE)) || (ld.getTimeStamp() < ((mDelay - mTimeWindowStart) * constants::EMCAL_TIMESAMPLE))) {
-          continue;
-        }
-
-        l.push_back(ld);
+      if (ld.getAmplitude() < 0) {
+        continue;
       }
+      if ((ld.getTimeStamp() >= mSimParam->getLiveTime()) || (ld.getTimeStamp() < 0)) {
+        continue;
+      }
+
+      l.push_back(ld);
     }
   }
   l.sort();
