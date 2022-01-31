@@ -222,7 +222,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
 
   if (linksAdded) { // new links were added, update link<->RU mapping, usually is done for 1st TF only
     if (nLinks) {
-      LOG(warning) << mSelfName << " New links appeared although the initialization was already done";
+      LOG(alarm) << mSelfName << " New links appeared although the initialization was already done";
       for (auto& ru : mRUDecodeVec) { // reset RU->link references since they may have been changed
         memset(&ru.links[0], -1, RUDecodeData::MaxLinksPerRU * sizeof(int));
       }

@@ -279,9 +279,9 @@ o2::framework::DataProcessorSpec getLinkZSToDigitsSpec(int channel, const std::s
           }
 
         } catch (const std::runtime_error& e) {
-          LOG(error) << "can not create raw parser form input data";
+          LOG(alarm) << "can not create raw parser form input data";
           o2::header::hexDump("payload", input.payload, dh->payloadSize, 64);
-          LOG(error) << e.what();
+          LOG(alarm) << e.what();
         }
       }
     };

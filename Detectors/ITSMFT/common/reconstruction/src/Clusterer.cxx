@@ -248,7 +248,7 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
     } else {
       auto warnLeft = MaxHugeClusWarn - parent->mNHugeClus;
       if (warnLeft > 0) {
-        LOGP(warning, "Splitting a huge cluster: chipID {}, rows {}:{} cols {}:{}{}", bbox.chipID, bbox.rowMin, bbox.rowMax, bbox.colMin, bbox.colMax,
+        LOGP(alarm, "Splitting a huge cluster: chipID {}, rows {}:{} cols {}:{}{}", bbox.chipID, bbox.rowMin, bbox.rowMax, bbox.colMin, bbox.colMax,
              warnLeft == 1 ? " (Further warnings will be muted)" : "");
 #ifdef WITH_OPENMP
 #pragma omp critical
