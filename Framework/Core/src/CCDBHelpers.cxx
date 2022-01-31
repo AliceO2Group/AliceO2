@@ -180,7 +180,11 @@ auto createBackend(ConfigParamRegistry const& options, DeviceSpec const& spec) -
   return helper;
 }
 
-auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper, int64_t timestamp, TimingInfo& timingInfo, DataAllocator& allocator) -> void
+auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
+                       int64_t timestamp,
+                       TimingInfo& timingInfo,
+                       DataAllocator& allocator,
+                       std::string runNumber) -> void
 {
   // For Giulio: the dtc.orbitResetTime is wrong, it is assigned from the dph->creation, why?
   std::string ccdbMetadataPrefix = "ccdb-metadata-";
@@ -205,6 +209,8 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper, int64_t
           LOGP(error, "Remapping {} to {}", path, prefix->second + path);
           path = prefix->second + path;
         }
+      } else if (meta.name == "ccdb-run-dependent") {
+        metadata["runNumber"] = runNumber;
       } else if (isPrefix(ccdbMetadataPrefix, meta.name)) {
         std::string key = meta.name.substr(ccdbMetadataPrefix.size());
         auto value = meta.defaultValue.get<std::string>();
@@ -256,7 +262,10 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB(Mode ccdbMode)
   return adaptStateful([ccdbMode](ConfigParamRegistry const& options, DeviceSpec const& spec) {
       std::shared_ptr<CCDBFetcherHelper> helper = createBackend(options, spec);
 
-      return adaptStateless([helper, ccdbMode](DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo) {
+      return adaptStateless([helper](DataTakingContext& dtc,
+                                     DataAllocator& allocator,
+                                     TimingInfo& timingInfo,
+                                     DataTakingContext& dataTakingContext) {
         static Long64_t orbitResetTime = -1;
         // Fetch the CCDB object for the CTP
         {
@@ -319,7 +328,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB(Mode ccdbMode)
         LOGP(info, "Fetching objects. Run: {}. OrbitResetTime: {}, Creation: {}, Timestamp: {}, firstTFOrbit: {}",
              dtc.runNumber, orbitResetTime, timingInfo.creation, timestamp, timingInfo.firstTFOrbit);
 
-        populateCacheWith(helper, timestamp, timingInfo, allocator);
+        populateCacheWith(helper, timestamp, timingInfo, allocator, dataTakingContext.runNumber);
       }); });
 }
 
