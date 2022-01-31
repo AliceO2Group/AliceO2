@@ -30,6 +30,7 @@ namespace quality_control
 {
 
 class FlagReasonFactory;
+class TimeRangeFlagCollection;
 
 class FlagReason
 {
@@ -58,6 +59,7 @@ class FlagReason
 
   friend std::ostream& operator<<(std::ostream& os, FlagReason const& me);
   friend class FlagReasonFactory;
+  friend class TimeRangeFlagCollection;
 
   ClassDefNV(FlagReason, 1);
 };
