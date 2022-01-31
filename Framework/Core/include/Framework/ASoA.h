@@ -1536,7 +1536,7 @@ void notBoundTable(const char* tableName);
     template <typename T>                                                                               \
     auto _Getter_##_as() const                                                                          \
     {                                                                                                   \
-      if (O2_BUILTIN_UNLIKELY(binding == nullptr)) {                                                    \
+      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                                   \
         o2::soa::notBoundTable(#_Table_);                                                               \
       }                                                                                                 \
       if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                     \
@@ -1612,7 +1612,7 @@ void notBoundTable(const char* tableName);
     template <typename T>                                                                        \
     auto _Getter_##_as() const                                                                   \
     {                                                                                            \
-      if (O2_BUILTIN_UNLIKELY(binding == nullptr)) {                                             \
+      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                            \
         o2::soa::notBoundTable(#_Table_);                                                        \
       }                                                                                          \
       return getIterators<T>();                                                                  \
@@ -1692,7 +1692,7 @@ void notBoundTable(const char* tableName);
     template <typename T>                                                                                                         \
     auto _Getter_##_as() const                                                                                                    \
     {                                                                                                                             \
-      if (O2_BUILTIN_UNLIKELY(binding == nullptr)) {                                                                              \
+      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                                                             \
         o2::soa::notBoundTable(#_Table_);                                                                                         \
       }                                                                                                                           \
       if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                                               \
