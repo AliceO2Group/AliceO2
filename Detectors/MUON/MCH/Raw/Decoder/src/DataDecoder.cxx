@@ -250,7 +250,7 @@ DataDecoder::DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandl
 void DataDecoder::logErrorMap(int tfcount) const
 {
   for (auto err : mErrorMap) {
-    LOGP(error, "{} ({} time{}) [{} TFs seeen]", err.first, err.second,
+    LOGP(alarm, "{} ({} time{}) [{} TFs seen]", err.first, err.second,
          err.second > 1 ? "s" : "", tfcount);
   }
 }
@@ -494,7 +494,7 @@ bool DataDecoder::addDigit(const DsElecId& dsElecId, DualSampaChannelId channel,
 
   // skip channels not associated to any pad
   if (padId < 0) {
-    LOGP(error, "got invalid padId from dsElecId={} dualSampaId={} channel={}", asString(dsElecId), dsIddet, channel);
+    LOGP(alarm, "got invalid padId from dsElecId={} dualSampaId={} channel={}", asString(dsElecId), dsIddet, channel);
     return false;
   }
 
@@ -694,7 +694,7 @@ bool DataDecoder::getTimeFrameStartRecord(const RawDigit& digit, uint32_t& orbit
 
   if (tfStart.mOrbit < 0) {
     if (mErrorCount < MCH_DECODER_MAX_ERROR_COUNT) {
-      LOGP(warning, "Missing TF start record for S{}-J{}-DS{}-CHIP{}", info.solar, info.ds / 5 + 1, info.ds % 5, info.chip);
+      LOGP(alarm, "Missing TF start record for S{}-J{}-DS{}-CHIP{}", info.solar, info.ds / 5 + 1, info.ds % 5, info.chip);
       mErrorCount += 1;
     }
     return false;
@@ -702,7 +702,7 @@ bool DataDecoder::getTimeFrameStartRecord(const RawDigit& digit, uint32_t& orbit
 
   if (tfStart.mValid == false) {
     if (mErrorCount < MCH_DECODER_MAX_ERROR_COUNT) {
-      LOGP(warning, "Invalid TF start record for S{}-J{}-DS{}-CHIP{}", info.solar, info.ds / 5 + 1, info.ds % 5, info.chip);
+      LOGP(alarm, "Invalid TF start record for S{}-J{}-DS{}-CHIP{}", info.solar, info.ds / 5 + 1, info.ds % 5, info.chip);
       mErrorCount += 1;
     }
   }

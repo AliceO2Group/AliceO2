@@ -254,7 +254,7 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
       streamCluster(pixArrBuff, rowMin, rowSpan, colMin, colSpan, chipID,
                     compClusPtr, patternsPtr, labelsClusPtr, nlab);
     } else {
-      LOG(warning) << "Splitting a huge cluster !  ChipID: " << chipID;
+      LOG(alarm) << "Splitting a huge cluster !  ChipID: " << chipID;
 
       colSpan %= o2::itsmft::ClusterPattern::MaxColSpan;
       if (colSpan == 0) {
