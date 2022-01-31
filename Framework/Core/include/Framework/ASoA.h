@@ -1406,7 +1406,7 @@ constexpr bool is_binding_compatible_v()
   return are_bindings_compatible_v<T>(originals_pack_t<B>{});
 }
 
-void checkBinding(void const* binding, const char* tableName);
+void notBoundTable(const char* tableName);
 } // namespace o2::soa
 
 #define DECLARE_SOA_STORE()          \
@@ -1536,7 +1536,9 @@ void checkBinding(void const* binding, const char* tableName);
     template <typename T>                                                                               \
     auto _Getter_##_as() const                                                                          \
     {                                                                                                   \
-      o2::soa::checkBinding(mBinding, #_Table_);                                                        \
+      if (O2_BUILTIN_UNLIKELY(binding == nullptr)) {                                                    \
+        o2::soa::notBoundTable(#_Table_);                                                               \
+      }                                                                                                 \
       if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                     \
         return static_cast<T const*>(mBinding)->emptySlice();                                           \
       }                                                                                                 \
@@ -1610,7 +1612,9 @@ void checkBinding(void const* binding, const char* tableName);
     template <typename T>                                                                        \
     auto _Getter_##_as() const                                                                   \
     {                                                                                            \
-      o2::soa::checkBinding(mBinding, #_Table_);                                                 \
+      if (O2_BUILTIN_UNLIKELY(binding == nullptr)) {                                             \
+        o2::soa::notBoundTable(#_Table_);                                                        \
+      }                                                                                          \
       return getIterators<T>();                                                                  \
     }                                                                                            \
                                                                                                  \
@@ -1688,7 +1692,9 @@ void checkBinding(void const* binding, const char* tableName);
     template <typename T>                                                                                                         \
     auto _Getter_##_as() const                                                                                                    \
     {                                                                                                                             \
-      o2::soa::checkBinding(mBinding, #_Table_);                                                                                  \
+      if (O2_BUILTIN_UNLIKELY(binding == nullptr)) {                                                                              \
+        o2::soa::notBoundTable(#_Table_);                                                                                         \
+      }                                                                                                                           \
       if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                                               \
         throw o2::framework::runtime_error_f("Accessing invalid index for %s", #_Getter_);                                        \
       }                                                                                                                           \
