@@ -1406,7 +1406,7 @@ constexpr bool is_binding_compatible_v()
   return are_bindings_compatible_v<T>(originals_pack_t<B>{});
 }
 
-void checkBinding(void* binding, const char* tableName);
+void checkBinding(void const* binding, const char* tableName);
 } // namespace o2::soa
 
 #define DECLARE_SOA_STORE()          \

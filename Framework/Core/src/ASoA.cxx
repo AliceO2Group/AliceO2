@@ -110,7 +110,7 @@ arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, const char* label)
   return table->column(index[0]).get();
 }
 
-void checkBinding(void* binding, const char* tableName)
+void checkBinding(void const* binding, const char* tableName)
 {
   if (O2_BUILTIN_UNLIKELY(binding == nullptr)) {
     throw o2::framework::runtime_error_f("Index to %s is not bound! Did you subscribe to the table?", tableName);
