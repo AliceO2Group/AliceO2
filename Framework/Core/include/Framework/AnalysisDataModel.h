@@ -886,7 +886,7 @@ DECLARE_SOA_EXTENDED_TABLE(McParticles_001, StoredMcParticles_001, "MCPARTICLE_0
                            mcparticle::P,
                            mcparticle::Y);
 
-using McParticles = McParticles_000;
+using McParticles = McParticles_001;
 using McParticle = McParticles::iterator;
 } // namespace aod
 namespace soa
