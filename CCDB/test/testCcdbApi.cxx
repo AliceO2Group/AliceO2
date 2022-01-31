@@ -200,6 +200,21 @@ BOOST_AUTO_TEST_CASE(store_retrieve_TMemFile_templated_test, *utf::precondition(
   }
 }
 
+BOOST_AUTO_TEST_CASE(store_max_size_test, *utf::precondition(if_reachable()))
+{
+  test_fixture f;
+
+  // try to store a user defined class
+  // since we don't depend on anything, we are putting an object known to CCDB
+  o2::ccdb::IdPath path;
+  path.setPath("HelloWorld");
+
+  int result = f.api.storeAsTFileAny(&path, basePath + "CCDBPath", f.metadata); // ok
+  BOOST_CHECK_EQUAL(result, 0);
+  result = f.api.storeAsTFileAny(&path, basePath + "CCDBPath", f.metadata, -1, -1, 1 /* bytes */); // we know this will fail
+  BOOST_CHECK_EQUAL(result, -1);
+}
+
 /// A test verifying that the DB responds the correct result for given timestamps
 BOOST_AUTO_TEST_CASE(timestamptest, *utf::precondition(if_reachable()))
 {
