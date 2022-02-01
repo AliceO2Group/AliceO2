@@ -117,14 +117,14 @@ class MultivariatePolynomialHelper : public MultivariatePolynomialParametersHelp
   /// \Pos decoded information about the current term e.g. 1233 -> x[1]*x[2]*x[3]*x[3] (otherwise an array could be used)
   /// \tparam Index index for accessing the parameters
   template <unsigned int DegreePol, unsigned int Pos, unsigned int Index>
-  GPUd() static constexpr float sumTerms(const float par[], const float x[]);
+  GPUd() static constexpr float sumTerms(GPUgeneric() const float par[], const float x[]);
 
   /// loop over the degrees of the polynomials (for formula see https://math.stackexchange.com/questions/1234240/equation-that-defines-multi-dimensional-polynomial)
   /// \tparam degree iteration of the loop which starts from 1 to the max degree of the polynomial e.g. Iter=4 -> summation of the par[]*x^4 + par[]*x^3*y + par[]*x^3*z + par[]*x^2*y^2..... terms
   /// \param par parameters of the pokynomial
   /// \param x input coordinates
   template <unsigned int DegreePol>
-  GPUd() static constexpr float loopDegrees(const float par[], const float x[]);
+  GPUd() static constexpr float loopDegrees(GPUgeneric() const float par[], const float x[]);
 };
 
 /// Helper struct for evaluating a multidimensional polynomial using run time evaluated formula
@@ -172,11 +172,11 @@ class MultivariatePolynomialHelper<0, 0> : public MultivariatePolynomialParamete
   static constexpr unsigned short FMaxdegree = 9; ///< maximum degree of the polynomials (can be increased if desired: size of array in combination_with_repetiton: pos[FMaxdegree + 1])
 
   /// evalutes the polynomial
-  GPUd() static constexpr float evalPol(const float par[], const float x[], const unsigned int degree, const unsigned int dim);
+  GPUd() static constexpr float evalPol(GPUgeneric() const float par[], const float x[], const unsigned int degree, const unsigned int dim);
 
   /// helper function to get all combinations
   template <class Type>
-  GPUd() static Type combination_with_repetiton(const unsigned int degree, const unsigned int dim, const float par[], int& indexPar, const float x[]);
+  GPUd() static Type combination_with_repetiton(const unsigned int degree, const unsigned int dim, GPUgeneric() const float par[], int& indexPar, const float x[]);
 };
 
 //=================================================================================
@@ -231,7 +231,7 @@ GPUd() constexpr float MultivariatePolynomialHelper<Dim, Degree>::prodTerm(const
 
 template <unsigned int Dim, unsigned int Degree>
 template <unsigned int DegreePol, unsigned int Pos, unsigned int Index>
-GPUd() constexpr float MultivariatePolynomialHelper<Dim, Degree>::sumTerms(const float par[], const float x[])
+GPUd() constexpr float MultivariatePolynomialHelper<Dim, Degree>::sumTerms(GPUgeneric() const float par[], const float x[])
 {
   // checking if the current position is reasonable e.g. if the max dimension is x[4]: for Pos=15 -> x[1]*x[5] the position is set to 22 -> x[2]*x[2]
   constexpr unsigned int posNew = getNewPos(DegreePol, Pos, 0);
@@ -244,7 +244,7 @@ GPUd() constexpr float MultivariatePolynomialHelper<Dim, Degree>::sumTerms(const
 
 template <unsigned int Dim, unsigned int Degree>
 template <unsigned int DegreePol>
-GPUd() constexpr float MultivariatePolynomialHelper<Dim, Degree>::loopDegrees(const float par[], const float x[])
+GPUd() constexpr float MultivariatePolynomialHelper<Dim, Degree>::loopDegrees(GPUgeneric() const float par[], const float x[])
 {
   if constexpr (DegreePol <= Degree) {
     constexpr unsigned int index{getNParameters(DegreePol - 1, Dim)}; // offset of the index for accessing the parameters
@@ -254,7 +254,7 @@ GPUd() constexpr float MultivariatePolynomialHelper<Dim, Degree>::loopDegrees(co
 }
 
 template <class Type>
-GPUd() Type MultivariatePolynomialHelper<0, 0>::combination_with_repetiton(const unsigned int degree, const unsigned int dim, const float par[], int& indexPar, const float x[])
+GPUd() Type MultivariatePolynomialHelper<0, 0>::combination_with_repetiton(const unsigned int degree, const unsigned int dim, GPUgeneric() const float par[], int& indexPar, const float x[])
 {
   {
     const unsigned int size = degree + 1;
@@ -304,7 +304,7 @@ GPUd() Type MultivariatePolynomialHelper<0, 0>::combination_with_repetiton(const
   }
 }
 
-GPUd() constexpr float MultivariatePolynomialHelper<0, 0>::evalPol(const float par[], const float x[], const unsigned int degree, const unsigned int dim)
+GPUd() constexpr float MultivariatePolynomialHelper<0, 0>::evalPol(GPUgeneric() const float par[], const float x[], const unsigned int degree, const unsigned int dim)
 {
   float val = par[0];
   int indexPar = 1;
