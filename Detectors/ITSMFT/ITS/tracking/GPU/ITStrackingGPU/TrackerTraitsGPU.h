@@ -22,6 +22,12 @@ namespace o2
 {
 namespace its
 {
+namespace gpu
+{
+template <int NLayers>
+struct StaticTrackingParameters;
+}
+
 template <int NLayers = 7>
 class TrackerTraitsGPU : public TrackerTraits
 {
@@ -40,9 +46,8 @@ class TrackerTraitsGPU : public TrackerTraits
 
  private:
   gpu::TimeFrameGPU<NLayers> mTimeFrameGPU;
+  gpu::StaticTrackingParameters<NLayers>* mStaticTrkPars;
 };
-
-extern "C" TrackerTraits* createTrackerTraitsGPU();
 } // namespace its
 } // namespace o2
 
