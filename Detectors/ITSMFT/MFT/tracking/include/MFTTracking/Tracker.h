@@ -53,7 +53,15 @@ class Tracker : public TrackerConfig
   auto& getTracksLTF() { return mTracksLTF; }
   auto& getTrackLabels() { return mTrackLabels; }
 
-  void clustersToTracks(ROframe<T>&, std::ostream& = std::cout);
+  void clearTracks()
+  {
+    mTracks.clear();
+    mTrackLabels.clear();
+  }
+
+  void findLTFTracks(ROframe<T>&);
+  void findCATracks(ROframe<T>&);
+  bool fitTracks(ROframe<T>&);
 
   void computeTracksMClabels(const std::vector<T>&);
 
@@ -64,7 +72,6 @@ class Tracker : public TrackerConfig
   void initConfig(const MFTTrackingParam& trkParam, bool printConfig = false);
 
  private:
-  void findTracks(ROframe<T>&);
   void findTracksLTF(ROframe<T>&);
   void findTracksCA(ROframe<T>&);
   void findTracksLTFfcs(ROframe<T>&);
@@ -73,8 +80,6 @@ class Tracker : public TrackerConfig
   void runForwardInRoad();
   void runBackwardInRoad(ROframe<T>&);
   void updateCellStatusInRoad();
-
-  bool fitTracks(ROframe<T>&);
 
   const Int_t isDiskFace(Int_t layer) const { return (layer % 2); }
   const Float_t getDistanceToSeed(const Cluster&, const Cluster&, const Cluster&) const;
