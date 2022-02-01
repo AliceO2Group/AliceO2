@@ -12,19 +12,41 @@
 #include "MFTAssessment/MFTAssessment.h"
 #include "Framework/InputSpec.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "MFTBase/GeometryTGeo.h"
 #include <Framework/InputRecord.h>
 #include <TPaveText.h>
 #include <TLegend.h>
 #include <TStyle.h>
 #include <TFile.h>
+#include <numeric>
+
 
 using namespace o2::mft;
+using o2::itsmft::CompClusterExt;
+
+
 
 //__________________________________________________________
 void MFTAssessment::init(bool finalizeAnalysis)
 {
   mFinalizeAnalysis = finalizeAnalysis;
   createHistos();
+  //get geometry
+  o2::base::GeometryManager::loadGeometry("", true);
+  geom = o2::mft::GeometryTGeo::Instance();
+
+  //load the cluster dictionary
+  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
+  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath);
+  if (o2::utils::Str::pathExists(dictFile)) {
+    mDictionary.readBinaryFile(dictFile);
+    LOG(info) << "MFTAssessment running with a provided dictionary: " << dictFile;
+    printf("DictPath is %s\n", dictPath.c_str());
+  } else {
+    LOG(fatal) << "Dictionary " << dictFile << " is absent, MFTAssessment expects cluster patterns";
+  }
+
+
 }
 
 //__________________________________________________________
@@ -41,6 +63,22 @@ void MFTAssessment::reset()
   mPositiveTrackPhi->Reset();
   mNegativeTrackPhi->Reset();
   mTrackEta->Reset();
+
+  mMFTClsZ->Reset();
+  mMFTClsOfTracksZ->Reset();
+  mMFTDeadChipID->Reset();
+
+  for(auto nMFTLayer = 0 ; nMFTLayer < 10 ; nMFTLayer++)
+  {
+    mMFTClsXYinLayer[nMFTLayer]->Reset();
+    mMFTClsOfTracksXYinLayer[nMFTLayer]->Reset();
+  }
+
+  for(auto nMFTDisk = 0 ; nMFTDisk < 5 ; nMFTDisk++)
+  {
+    mMFTClsXYRedundantInDisk[nMFTDisk]->Reset();
+  }
+
   for (auto minNClusters : sMinNClustersList) {
     auto nHisto = minNClusters - sMinNClustersList[0];
     mTrackEtaNCls[nHisto]->Reset();
@@ -95,6 +133,12 @@ void MFTAssessment::createHistos()
   auto TimeBinSize = 0.01f;
   auto NofTimeBins = static_cast<int>(MaxDuration / TimeBinSize);
 
+  for (auto chipIndex=0; chipIndex < 936; chipIndex++)//fills the vector from 0 to 935
+  {
+    mlistOfUnusedChipIDs.push_back(chipIndex);
+  }
+
+
   // Creating data-only histos
   mTrackNumberOfClusters = std::make_unique<TH1F>("mMFTTrackNumberOfClusters",
                                                   "Number Of Clusters Per Track; # clusters; # entries", 10, 0.5, 10.5);
@@ -118,6 +162,26 @@ void MFTAssessment::createHistos()
   mNegativeTrackPhi = std::make_unique<TH1F>("mMFTNegativeTrackPhi", "Negative Track #phi; #phi; # entries", 100, -3.2, 3.2);
 
   mTrackEta = std::make_unique<TH1F>("mMFTTrackEta", "Track #eta; #eta; # entries", 50, -4, -2);
+
+  //----------------------------------------------------------------------------
+
+  mMFTClsZ = std::make_unique<TH1F>("mMFTClsZ", "Z of all clusters; Z (cm); # entries", 400, -80, -40);
+
+  mMFTClsOfTracksZ = std::make_unique<TH1F>("mMFTClsOfTracksZ", "Z of clusters belonging to MFT tracks; Z (cm); # entries", 400, -80, -40);
+
+  mMFTDeadChipID = std::make_unique<TH1F>("mMFTDeadChipID", "chipID of the dead chips; chipID; # entries",936,-0.5,935.5);
+
+  for(auto nMFTLayer = 0 ; nMFTLayer < 10 ; nMFTLayer++)
+  {
+    mMFTClsXYinLayer[nMFTLayer] = std::make_unique<TH2F>(Form("mMFTClsXYinLayer%d", nMFTLayer), Form("Cluster Position in Layer %d; x (cm); y (cm)", nMFTLayer), 400, -20, 20, 400, -20, 20);
+    mMFTClsOfTracksXYinLayer[nMFTLayer] = std::make_unique<TH2F>(Form("mMFTClsOfTracksXYinLayer%d", nMFTLayer), Form("Cluster (of MFT tracks) Position in Layer %d; x (cm); y (cm)", nMFTLayer), 400, -20, 20, 400, -20, 20);
+  }
+
+  for(auto nMFTDisk = 0 ; nMFTDisk < 5 ; nMFTDisk++)
+  {
+    mMFTClsXYRedundantInDisk[nMFTDisk] = std::make_unique<TH2F>(Form("mMFTClsXYRedundantInDisk%d", nMFTDisk), Form("Redondant Cluster Position in disk %d; x (cm); y (cm)", nMFTDisk), 400, -20, 20, 400, -20, 20);
+  }
+
 
   for (auto minNClusters : sMinNClustersList) {
     auto nHisto = minNClusters - sMinNClustersList[0];
@@ -243,15 +307,21 @@ void MFTAssessment::createHistos()
 //__________________________________________________________
 void MFTAssessment::runASyncQC(o2::framework::ProcessingContext& ctx)
 {
+  mNumberTFs++;//TF Counter
 
   // get tracks
   mMFTTracks = ctx.inputs().get<gsl::span<o2::mft::TrackMFT>>("tracks");
   mMFTTracksROF = ctx.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("tracksrofs");
+  mMFTTrackClusIdx = ctx.inputs().get<gsl::span<int>>("trackClIdx");
 
   // get clusters
   mMFTClusters = ctx.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
   mMFTClustersROF = ctx.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("clustersrofs");
   mMFTClusterPatterns = ctx.inputs().get<gsl::span<unsigned char>>("patterns");
+  pattIt = mMFTClusterPatterns.begin();
+  mMFTClustersGlobal.clear();
+  mMFTClustersGlobal.reserve(mMFTClusters.size());
+  o2::mft::ioutils::convertCompactClusters(mMFTClusters, pattIt, mMFTClustersGlobal, mDictionary);
 
   if (mUseMC) {
     // get labels
@@ -266,9 +336,46 @@ void MFTAssessment::runASyncQC(o2::framework::ProcessingContext& ctx)
     mNOfClustersTime->Fill(seconds, rof.getNEntries());
   }
 
-  for (auto& oneCluster : mMFTClusters) {
+  // for (auto& oneCluster : mMFTClusters)
+  // {
+  //   mClusterSensorIndex->Fill(oneCluster.getSensorID());
+  //   mClusterPatternIndex->Fill(oneCluster.getPatternID());
+  //   mItChipIDs=std::find(mlistOfUnusedChipIDs.begin(), mlistOfUnusedChipIDs.end(), oneCluster.getChipID());
+  //   if (mItChipIDs != mlistOfUnusedChipIDs.end())//chipID is in the vector mlistOfUnusedChipIDs
+  //     {
+  //       mlistOfUnusedChipIDs.erase(mItChipIDs);
+  //     }
+  // }
+  //
+  //
+  // for (auto& globalCluster : mMFTClustersGlobal)
+  // {
+  //   mMFTClsZ->Fill(globalCluster.getZ());
+  //   auto sensorID = globalCluster.getSensorID();
+  //   int layer = geom->getLayer(sensorID);
+  //   //auto clsLayer =  mftChipMapper.chip2Layer(cluster.getChipID());
+  //   mMFTClsXYinLayer[layer]->Fill(globalCluster.getX(),globalCluster.getY());
+  // }
+
+
+
+  for (int icls = 0; icls < mMFTClusters.size(); ++icls)
+  {
+    auto const oneCluster = mMFTClusters[icls];
+    auto const globalCluster = mMFTClustersGlobal[icls];
+
     mClusterSensorIndex->Fill(oneCluster.getSensorID());
     mClusterPatternIndex->Fill(oneCluster.getPatternID());
+
+    mMFTClsZ->Fill(globalCluster.getZ());
+
+    auto clsLayer =  mMFTChipMapper.chip2Layer(oneCluster.getChipID());
+    mMFTClsXYinLayer[clsLayer]->Fill(globalCluster.getX(),globalCluster.getY());
+    mItChipIDs=std::find(mlistOfUnusedChipIDs.begin(), mlistOfUnusedChipIDs.end(), oneCluster.getChipID());
+    if (mItChipIDs != mlistOfUnusedChipIDs.end())//chipID is in the vector mlistOfUnusedChipIDs
+      {
+        mlistOfUnusedChipIDs.erase(mItChipIDs);
+      }
   }
 
   // fill the tracks histogram
@@ -280,6 +387,8 @@ void MFTAssessment::runASyncQC(o2::framework::ProcessingContext& ctx)
     mNOfTracksTime->Fill(seconds, rof.getNEntries());
   }
 
+  std::array<std::array<int,2>,5> clsEntriesForRedundancy; //declare it in the .h ?
+
   for (auto& oneTrack : mMFTTracks) {
     mTrackNumberOfClusters->Fill(oneTrack.getNumberOfPoints());
     mTrackChi2->Fill(oneTrack.getTrackChi2());
@@ -287,6 +396,47 @@ void MFTAssessment::runASyncQC(o2::framework::ProcessingContext& ctx)
     mTrackPhi->Fill(oneTrack.getPhi());
     mTrackEta->Fill(oneTrack.getEta());
     mTrackTanl->Fill(oneTrack.getTanl());
+
+    for(auto idisk = 0 ; idisk < 5 ; idisk++)
+    {
+      clsEntriesForRedundancy[idisk]={-1,-1};
+    }
+
+    auto ncls = oneTrack.getNumberOfPoints();
+    auto offset = oneTrack.getExternalClusterIndexOffset();
+
+    for (int icls = 0; icls < ncls; ++icls)//cluster loop
+    {
+
+      auto clsEntry = mMFTTrackClusIdx[offset + icls];
+      auto globalCluster = mMFTClustersGlobal[clsEntry];
+
+      mMFTClsOfTracksZ->Fill(globalCluster.getZ());
+
+      int layer = geom->getLayer(globalCluster.getSensorID());
+      mMFTClsOfTracksXYinLayer[layer]->Fill(globalCluster.getX(),globalCluster.getY());
+
+      int clsMFTdiskID = layer/2;
+
+      if (clsEntriesForRedundancy[clsMFTdiskID][0]!=-1)
+      {
+        clsEntriesForRedundancy[clsMFTdiskID][1]=clsEntry;
+      }
+      else
+      {
+        clsEntriesForRedundancy[clsMFTdiskID][0]=clsEntry;
+      }
+    }
+
+    for(auto idisk = 0 ; idisk < 5 ; idisk++)
+    {
+      if ((clsEntriesForRedundancy[idisk][0]!=-1) && (clsEntriesForRedundancy[idisk][1]!=-1))
+      {
+        auto globalCluster1 = mMFTClustersGlobal[clsEntriesForRedundancy[idisk][0]];
+
+        mMFTClsXYRedundantInDisk[idisk]->Fill(globalCluster1.getX(),globalCluster1.getY());
+      }
+    }
 
     for (auto minNClusters : sMinNClustersList) {
       if (oneTrack.getNumberOfPoints() >= minNClusters) {
@@ -477,6 +627,13 @@ void MFTAssessment::processRecoAndTrueTracks()
 //__________________________________________________________
 void MFTAssessment::getHistos(TObjArray& objar)
 {
+  for (auto chipIndex : mlistOfUnusedChipIDs)
+  {
+    mMFTDeadChipID->Fill(chipIndex);
+  }
+  mMFTDeadChipID->Scale(mNumberTFs);
+
+
   objar.Add(mTrackNumberOfClusters.get());
   objar.Add(mCATrackNumberOfClusters.get());
   objar.Add(mLTFTrackNumberOfClusters.get());
@@ -487,6 +644,22 @@ void MFTAssessment::getHistos(TObjArray& objar)
   objar.Add(mPositiveTrackPhi.get());
   objar.Add(mNegativeTrackPhi.get());
   objar.Add(mTrackEta.get());
+
+  //------
+  objar.Add(mMFTClsZ.get());
+  objar.Add(mMFTClsOfTracksZ.get());
+  objar.Add(mMFTDeadChipID.get());
+  for(auto nMFTLayer = 0 ; nMFTLayer < 10 ; nMFTLayer++)
+  {
+    objar.Add(mMFTClsXYinLayer[nMFTLayer].get());
+    objar.Add(mMFTClsOfTracksXYinLayer[nMFTLayer].get());
+  }
+
+  for(auto nMFTDisk = 0 ; nMFTDisk < 5 ; nMFTDisk++)
+  {
+    objar.Add(mMFTClsXYRedundantInDisk[nMFTDisk].get());
+  }
+
   for (auto minNClusters : sMinNClustersList) {
     auto nHisto = minNClusters - sMinNClustersList[0];
     objar.Add(mTrackEtaNCls[nHisto].get());
@@ -649,6 +822,25 @@ bool MFTAssessment::loadHistos()
   mNegativeTrackPhi = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTNegativeTrackPhi"));
 
   mTrackEta = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTTrackEta"));
+
+  //---------------------------------------------------------------------------
+
+  mMFTClsZ = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTClsZ"));
+
+  mMFTClsOfTracksZ = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTClsOfTracksZ"));
+
+  mMFTDeadChipID = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTDeadChipID"));
+
+  for(auto nMFTLayer = 0 ; nMFTLayer < 10 ; nMFTLayer++)
+  {
+    mMFTClsXYinLayer[nMFTLayer] = std::unique_ptr<TH2F>((TH2F*)f->Get(Form("mMFTClsXYinLayer%d", nMFTLayer)));
+    mMFTClsOfTracksXYinLayer[nMFTLayer] = std::unique_ptr<TH2F>((TH2F*)f->Get(Form("mMFTClsOfTracksXYinLayer%d", nMFTLayer)));
+  }
+
+  for(auto nMFTDisk = 0 ; nMFTDisk < 5 ; nMFTDisk++)
+  {
+    mMFTClsXYRedundantInDisk[nMFTDisk] = std::unique_ptr<TH2F>((TH2F*)f->Get(Form("mMFTClsXYRedundantInDisk%d", nMFTDisk)));
+  }
 
   for (auto minNClusters : sMinNClustersList) {
     auto nHisto = minNClusters - sMinNClustersList[0];

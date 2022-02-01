@@ -117,7 +117,8 @@ DataProcessorSpec getMFTAssessmentSpec(bool useMC, bool processGen, bool finaliz
   inputs.emplace_back("clustersrofs", "MFT", "CLUSTERSROF", 0, Lifetime::Timeframe);
   inputs.emplace_back("tracksrofs", "MFT", "MFTTrackROF", 0, Lifetime::Timeframe);
   inputs.emplace_back("tracks", "MFT", "TRACKS", 0, Lifetime::Timeframe);
-
+  inputs.emplace_back("trackClIdx", "MFT", "TRACKCLSID", 0, Lifetime::Timeframe);
+  
   if (useMC) {
     inputs.emplace_back("clslabels", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
     inputs.emplace_back("trklabels", "MFT", "TRACKSMCTR", 0, Lifetime::Timeframe);
