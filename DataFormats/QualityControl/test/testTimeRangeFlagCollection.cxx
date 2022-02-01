@@ -28,13 +28,19 @@ BOOST_AUTO_TEST_CASE(test_TimeRangeFlagCollection_Methods)
   TimeRangeFlag trf1{12, 34, FlagReasonFactory::ProcessingError(), "comment", "source"};
   TimeRangeFlag trf2{10, 34, FlagReasonFactory::ProcessingError(), "comment", "source"};
 
-  TimeRangeFlagCollection trfc1{"Raw data checks", "TOF", {10, 20000}};
+  TimeRangeFlagCollection trfc1{"Raw data checks", "TOF", {10, 20000}, 12345, "LHC22k5", "passMC", "qc_mc"};
   trfc1.insert(trf1); // by copy
   trfc1.insert(trf2);
   trfc1.insert({50, 77, FlagReasonFactory::Invalid()}); // by move
   BOOST_CHECK_EQUAL(trfc1.size(), 3);
+  BOOST_CHECK_EQUAL(trfc1.getName(), "Raw data checks");
+  BOOST_CHECK_EQUAL(trfc1.getDetector(), "TOF");
   BOOST_CHECK_EQUAL(trfc1.getStart(), 10);
   BOOST_CHECK_EQUAL(trfc1.getEnd(), 20000);
+  BOOST_CHECK_EQUAL(trfc1.getRunNumber(), 12345);
+  BOOST_CHECK_EQUAL(trfc1.getPeriodName(), "LHC22k5");
+  BOOST_CHECK_EQUAL(trfc1.getPassName(), "passMC");
+  BOOST_CHECK_EQUAL(trfc1.getProvenance(), "qc_mc");
 
   TimeRangeFlagCollection trfc2{"Reco checks", "TOF"};
   trfc2.insert({50, 77, FlagReasonFactory::Invalid()}); // this is a duplicate to an entry in trfc1

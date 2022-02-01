@@ -25,9 +25,12 @@ namespace o2::quality_control
 constexpr const char* csvHeader = "start,end,flag_id,flag_name,flag_bad,comment,source";
 constexpr size_t csvColumns = 7;
 
-TimeRangeFlagCollection::TimeRangeFlagCollection(std::string name, std::string detector, RangeInterval validityRange)
-  : mName(std::move(name)), mDetID(std::move(detector)), mValidityRange(validityRange)
-{}
+TimeRangeFlagCollection::TimeRangeFlagCollection(std::string name, std::string detector, RangeInterval validityRange,
+                                                 int runNumber, std::string periodName, std::string passName,
+                                                 std::string provenance)
+  : mName(std::move(name)), mDetID(std::move(detector)), mValidityRange(validityRange), mRunNumber(runNumber), mPeriodName(std::move(periodName)), mPassName(passName), mProvenance(std::move(provenance))
+{
+}
 
 void TimeRangeFlagCollection::insert(TimeRangeFlag&& trf)
 {
@@ -190,6 +193,25 @@ const std::string& TimeRangeFlagCollection::getName() const
 const std::string& TimeRangeFlagCollection::getDetector() const
 {
   return mDetID;
+}
+
+int TimeRangeFlagCollection::getRunNumber() const
+{
+  return mRunNumber;
+}
+
+const std::string& TimeRangeFlagCollection::getPeriodName() const
+{
+  return mPeriodName;
+}
+
+const std::string& TimeRangeFlagCollection::getPassName() const
+{
+  return mPassName;
+}
+const std::string& TimeRangeFlagCollection::getProvenance() const
+{
+  return mProvenance;
 }
 
 } // namespace o2::quality_control
