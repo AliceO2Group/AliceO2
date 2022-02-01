@@ -98,7 +98,7 @@ void Tracker::clustersToTracksGPU(std::function<void(std::string s)> logger)
   for (int iteration = 0; iteration < mTrkParams.size(); ++iteration) {
     mTraits->UpdateTrackingParameters(mTrkParams[iteration]);
     total += evaluateTask(&Tracker::loadToDevice, "Device loading", logger);
-    // total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", logger);
+    total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", logger);
     // total += evaluateTask(&Tracker::computeCells, "Cell finding", logger);
     // total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", logger, iteration);
     // total += evaluateTask(&Tracker::findRoads, "Road finding", logger, iteration);
