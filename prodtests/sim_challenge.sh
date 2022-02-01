@@ -241,7 +241,8 @@ if [ "$doreco" == "1" ]; then
 
   # let's do some very basic analysis tests (mainly to enlarge coverage in full CI) and enabled when SIM_CHALLENGE_ANATESTING=ON
   if [[ ${O2DPG_ROOT} && ${SIM_CHALLENGE_ANATESTING} ]]; then
-    for t in ${ANATESTLIST:-MCHistograms Efficiency Validation PIDTOF PIDTPC EventTrackQA WeakDecayTutorial}; do
+    # Efficiency + EventTrackQA to be re-added
+    for t in ${ANATESTLIST:-MCHistograms Validation PIDTOF PIDTPC WeakDecayTutorial}; do
       ${O2DPG_ROOT}/MC/analysis_testing/analysis_test.sh ${t}
       echo "Return status of ${t}: ${?}"
     done
