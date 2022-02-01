@@ -86,7 +86,7 @@ class MultivariatePolynomialHelper : public MultivariatePolynomialParametersHelp
   /// evaluates the polynomial for given parameters and coordinates
   /// \param par parameters of the polynomials
   /// \param x input coordinates
-  GPUd() static constexpr float evalPol(const float par[/*number of parameters*/], const float x[/*number of dimensions*/]) { return par[0] + loopDegrees<1>(par, x); }
+  GPUd() static constexpr float evalPol(GPUgeneric() const float par[/*number of parameters*/], const float x[/*number of dimensions*/]) { return par[0] + loopDegrees<1>(par, x); }
 
   /// \return returns number of dimensions of the polynomials
   GPUd() static constexpr unsigned int getDim() { return Dim; }
@@ -156,7 +156,7 @@ class MultivariatePolynomialHelper<0, 0> : public MultivariatePolynomialParamete
   /// evaluating the polynomial
   /// \param par coefficients of the polynomial
   /// \param x input coordinates
-  GPUd() float evalPol(const float par[/*number of parameters*/], const float x[/*number of dimensions*/]) const { return evalPol(par, x, mDegree, mDim); }
+  GPUd() float evalPol(GPUgeneric() const float par[/*number of parameters*/], const float x[/*number of dimensions*/]) const { return evalPol(par, x, mDegree, mDim); }
 
   /// \return returns number of dimensions of the polynomials
   GPUd() unsigned int getDim() const { return mDim; }
