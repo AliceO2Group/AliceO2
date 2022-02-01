@@ -461,7 +461,6 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   }
 
   if (ccdbBackend.outputs.empty() == false) {
-    ccdbBackend.outputs.push_back(OutputSpec{"CTP", "OrbitReset", 0});
     bool hasDISTSTF = false;
     InputSpec matcher{"dstf", "FLP", "DISTSUBTIMEFRAME"};
     ConcreteDataMatcher dstf{"FLP", "DISTSUBTIMEFRAME", 0};
@@ -478,16 +477,22 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       }
     }
     if (aodReader.outputs.empty() == false) {
-      ccdbBackend.inputs.push_back(InputSpec{"tfn", "TFN", "TFNumber"});
+      ccdbBackend.inputs.push_back(InputSpec{"bc", "AOD", "BC"});
+      ccdbBackend.outputs.push_back(OutputSpec{"AOD", "TIMESTAMPS"});
+      ccdbBackend.algorithm = CCDBHelpers::fetchFromCCDB(CCDBHelpers::Mode::Analysis);
     } else if (hasDISTSTF) {
+      ccdbBackend.outputs.push_back(OutputSpec{"CTP", "OrbitReset", 0});
       ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf});
+      ccdbBackend.algorithm = CCDBHelpers::fetchFromCCDB(CCDBHelpers::Mode::Data);
     } else {
       InputSpec input{"enumeration",
                       "DPL",
                       "ENUM",
                       static_cast<DataAllocator::SubSpecificationType>(compile_time_hash("internal-dpl-ccdb-backend")),
                       Lifetime::Enumeration};
+      ccdbBackend.outputs.push_back(OutputSpec{"CTP", "OrbitReset", 0});
       ccdbBackend.inputs.push_back(input);
+      ccdbBackend.algorithm = CCDBHelpers::fetchFromCCDB(CCDBHelpers::Mode::Data);
       auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
       timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
     }

@@ -17,6 +17,9 @@
 #include "Framework/DataTakingContext.h"
 #include "Framework/RawDeviceService.h"
 #include "CCDB/CcdbApi.h"
+#include "CommonDataFormat/InteractionRecord.h"
+#include "Framework/AnalysisDataModel.h"
+#include "Framework/AnalysisHelpers.h"
 #include "CommonConstants/LHCConstants.h"
 #include <typeinfo>
 #include <TError.h>
@@ -49,6 +52,23 @@ struct CCDBFetcherHelper {
   std::vector<OutputRoute> routes;
   std::map<int64_t, CCDBCacheInfo> cache;
   std::unordered_map<std::string, std::string> remappings;
+  void* context = nullptr; // type erased pointer to the context for analysis or reco
+};
+
+/// Holds information about the analysis
+struct CCDBAnalysisContext {
+  std::map<int, int>* mapStartOrbit = nullptr; /// Map of the starting orbit for the run
+  std::map<int, long> mapRunToTimestamp;       /// Cache of processed run numbers
+  int lastRunNumber = 0;                       /// Last run number processed
+  long runNumberTimeStamp = 0;                 /// Timestamp of the run number, used in the process function to work out the timestamp of the BC
+  uint32_t initialOrbit = 0;                   /// Index of the first orbit of the run number, used in the process function to evaluate the offset with respect to the starting of the run
+  static constexpr uint16_t initialBC = 0;     /// Index of the initial bc, exact bc number not relevant due to ms precision of timestamps
+  InteractionRecord initialIR;                 /// Initial interaction record, used to compute the delta with respect to the start of the run
+  bool isRun2MC;
+  Produces<aod::Timestamps> timestampTable; /// Table with SOR timestamps produced by the task
+};
+
+struct CCDBRecoAnalysisContext {
 };
 
 bool isPrefix(std::string_view prefix, std::string_view full)
@@ -226,7 +246,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
     helper->api.loadFileToMemory(v, path, metadata, timestamp, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
     if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
       LOGP(debug, "Unable to find object {}/{}", path, timingInfo.timeslice);
-      //FIXME: I should send a dummy message.
+      // FIXME: I should send a dummy message.
       continue;
     }
     if (etag.empty()) {
@@ -252,84 +272,208 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
     }
   }
 }
+
+auto recoCCDBCallback(std::shared_ptr<CCDBFetcherHelper> helper)
+{
+  return adaptStateless([helper](DataTakingContext& dtc,
+                                 DataAllocator& allocator,
+                                 TimingInfo& timingInfo,
+                                 DataTakingContext& dataTakingContext) {
+    static Long64_t orbitResetTime = -1;
+    // Fetch the CCDB object for the CTP
+    {
+      // FIXME: this (the static) is needed because for now I cannot get
+      // a pointer for the cachedObject in the fetcher itself.
+      // Will be fixed at a later point.
+      std::string path = "CTP/Calib/OrbitReset";
+      std::map<std::string, std::string> metadata;
+      std::map<std::string, std::string> headers;
+      std::string etag;
+      const auto url2uuid = helper->mapURL2UUID.find(path);
+      if (url2uuid != helper->mapURL2UUID.end()) {
+        etag = url2uuid->second;
+      }
+      Output output{"CTP", "OrbitReset", 0, Lifetime::Condition};
+      auto&& v = allocator.makeVector<char>(output);
+      helper->api.loadFileToMemory(v, path, metadata, timingInfo.creation,
+                                   &headers, etag,
+                                   helper->createdNotAfter,
+                                   helper->createdNotBefore);
+
+      if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
+        LOGP(error, "Unable to find object {}/{}", path, timingInfo.creation);
+        // FIXME: I should send a dummy message.
+        return;
+      }
+      Long64_t newOrbitResetTime = orbitResetTime;
+      if (etag.empty()) {
+        helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
+        newOrbitResetTime = getOrbitResetTime(v);
+        auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodNone);
+        helper->mapURL2DPLCache[path] = cacheId;
+        LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
+      } else if (v.size()) { // but should be overridden by fresh object
+        // somewhere here pruneFromCache should be called
+        helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
+        newOrbitResetTime = getOrbitResetTime(v);
+        auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodNone);
+        helper->mapURL2DPLCache[path] = cacheId;
+        LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
+        // one could modify the    adoptContainer to take optional old cacheID to clean:
+        // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), true, mapURL2DPLCache[URL]);
+      } else { // cached object is fine
+        auto cacheId = helper->mapURL2DPLCache[path];
+        LOGP(debug, "Reusing {} for {}", cacheId.value, path);
+        allocator.adoptFromCache(output, cacheId, header::gSerializationMethodNone);
+        // We need to find a way to get "v" also in this case.
+        // orbitResetTime = getOrbitResetTime(v);
+        // the outputBuffer was not used, can we destroy it?
+      }
+      if (newOrbitResetTime != orbitResetTime) {
+        LOGP(info, "Orbit reset time now at {} (was {})",
+             newOrbitResetTime, orbitResetTime);
+        orbitResetTime = newOrbitResetTime;
+      }
+    }
+
+    int64_t timestamp = ceil((timingInfo.firstTFOrbit * o2::constants::lhc::LHCOrbitNS / 1000 + orbitResetTime) / 1000); // RS ceilf precision is not enough
+    // Fetch the rest of the objects.
+    LOGP(info, "Fetching objects. Run: {}. OrbitResetTime: {}, Creation: {}, Timestamp: {}, firstTFOrbit: {}",
+         dtc.runNumber, orbitResetTime, timingInfo.creation, timestamp, timingInfo.firstTFOrbit);
+
+    populateCacheWith(helper, timestamp, timingInfo, allocator, dataTakingContext.runNumber);
+  });
+}
+
+void* decodeObject(char* buffer, size_t s, std::type_info const& tinfo)
+{
+  void* result = nullptr;
+  Int_t previousErrorLevel = gErrorIgnoreLevel;
+  gErrorIgnoreLevel = kFatal;
+  TMemFile memFile("name", buffer, s, "READ");
+  gErrorIgnoreLevel = previousErrorLevel;
+  if (memFile.IsZombie()) {
+    return nullptr;
+  }
+  TClass* tcl = TClass::GetClass(tinfo);
+  result = ccdb::CcdbApi::extractFromTFile(memFile, tcl);
+  if (!result) {
+    throw runtime_error_f("Couldn't retrieve object corresponding to %s from TFile", tcl->GetName());
+  }
+  memFile.Close();
+  return result;
+}
+
+void initAnalysis(std::shared_ptr<CCDBFetcherHelper> helper)
+{
+  std::map<std::string, std::string> metadata;
+  std::map<std::string, std::string> headers;
+  std::string etag;
+  std::string path = "GRP/StartOrbiot";
+  auto now = std::chrono::steady_clock::now();
+  uint64_t timestamp = std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+  o2::pmr::vector<char> v;
+  helper->api.loadFileToMemory(v, path, metadata, timestamp,
+                               &headers, etag,
+                               helper->createdNotAfter,
+                               helper->createdNotBefore);
+  auto* context = (CCDBAnalysisContext*)helper->context;
+  context->mapStartOrbit = (std::map<int, int>*)decodeObject(v.data(), v.size(), typeid(std::map<int, int>));
+  if (!context->mapStartOrbit) {
+    LOGP(fatal, "Cannot find map of SOR orbits in CCDB in path {}", path);
+  }
+}
+
+void makeInitialOrbit(aod::BC const& bunchCrossing, CCDBAnalysisContext& context)
+{
+  if (!context.mapStartOrbit->count(bunchCrossing.runNumber())) {
+    LOGP(fatal, "Cannot find run {} in mapStartOrbit map", bunchCrossing.runNumber());
+  }
+  context.initialOrbit = context.mapStartOrbit->at(bunchCrossing.runNumber());
+  context.initialIR.bc = context.initialBC;
+  context.initialIR.orbit = context.initialOrbit;
+  // Setting lastCall
+  LOGF(debug, "Setting the last call of the timestamp for run %i to %llu", bunchCrossing.runNumber(), context.runNumberTimeStamp);
+  context.lastRunNumber = bunchCrossing.runNumber(); // Setting latest run number information
+}
+
+void createTimestampTable(aod::BC const& bc, o2::ccdb::CcdbApi& ccdb, CCDBAnalysisContext& context, std::string const& rct_path, bool verbose)
+{
+  // First: we need to set the timestamp from the run number.
+  // This is done with caching if the run number of the BC was already processed before
+  // If not the timestamp of the run number from BC is queried from CCDB and added to the cache
+  if (bc.runNumber() == context.lastRunNumber) { // The run number coincides to the last run processed
+    LOGF(debug, "Using timestamp from last call");
+  } else if (context.mapRunToTimestamp.count(bc.runNumber())) { // The run number was already requested before: getting it from cache!
+    LOGF(debug, "Getting timestamp from cache");
+    context.runNumberTimeStamp = context.mapRunToTimestamp[bc.runNumber()];
+    makeInitialOrbit(bc, context);
+  } else { // The run was not requested before: need to acccess CCDB!
+    LOGF(debug, "Getting timestamp from CCDB");
+    std::map<std::string, std::string> metadata, headers;
+    const std::string run_path = fmt::format("{}/{}", rct_path, bc.runNumber());
+    headers = ccdb.retrieveHeaders(run_path, metadata, -1);
+    if (headers.count("SOR") == 0) {
+      LOGF(fatal, "Cannot find run-number to timestamp in path '%s'.", run_path.data());
+    }
+    context.runNumberTimeStamp = atol(headers["SOR"].c_str()); // timestamp of the SOR in ms
+
+    // Adding the timestamp to the cache map
+    std::pair<std::map<int, long>::iterator, bool> check;
+    check = context.mapRunToTimestamp.insert(std::pair<int, long>(bc.runNumber(), context.runNumberTimeStamp));
+    if (!check.second) {
+      LOGF(fatal, "Run number %i already existed with a timestamp of %llu", bc.runNumber(), check.first->second);
+    }
+    makeInitialOrbit(bc, context);
+    LOGF(info, "Add new run number %i with timestamp %llu to cache", bc.runNumber(), context.runNumberTimeStamp);
+  }
+
+  if (verbose) {
+    LOGF(info, "Run-number to timestamp found! %i %llu ms", bc.runNumber(), context.runNumberTimeStamp);
+  }
+  const uint16_t currentBC = context.isRun2MC ? context.initialBC : (bc.globalBC() % o2::constants::lhc::LHCMaxBunches);
+  const uint32_t currentOrbit = context.isRun2MC ? context.initialOrbit : (bc.globalBC() / o2::constants::lhc::LHCMaxBunches);
+  const InteractionRecord currentIR(currentBC, currentOrbit);
+  context.timestampTable(context.runNumberTimeStamp + (currentIR - context.initialIR).bc2ns() * 1e-6);
+}
+
+auto analysisCCDBCallback(std::shared_ptr<CCDBFetcherHelper> helper)
+{
+  return adaptStateless([helper](InputRecord& record,
+                                 DataAllocator& allocator) {
+    auto t = record.get<TableConsumer>(aod::MetadataTrait<aod::BCs>::metadata::tableLabel());
+    auto bcs = aod::BCs{t->asArrowTable()};
+    auto* context = (CCDBAnalysisContext*)helper->context;
+    context->timestampTable.resetCursor(allocator.make<TableBuilder>(context->timestampTable.ref()));
+    for (auto& bc : bcs) {
+      createTimestampTable(bc, helper->api, *context, "RCT/RunInformation", true);
+      // populateCacheWith(helper, timestamp, timingInfo, allocator, dataTakingContext.runNumber);
+    }
+  });
+}
+
 /// * for a given timeframe in analysis, I need to find the
 /// table which provides me the BC
 /// * for all the BCs in that table, I need to find the associated
 ///   ccdb objects for each of them. Possibly with a unique ptr.
-
 AlgorithmSpec CCDBHelpers::fetchFromCCDB(Mode ccdbMode)
 {
   return adaptStateful([ccdbMode](ConfigParamRegistry const& options, DeviceSpec const& spec) {
-      std::shared_ptr<CCDBFetcherHelper> helper = createBackend(options, spec);
+    std::shared_ptr<CCDBFetcherHelper> helper = createBackend(options, spec);
 
-      return adaptStateless([helper](DataTakingContext& dtc,
-                                     DataAllocator& allocator,
-                                     TimingInfo& timingInfo,
-                                     DataTakingContext& dataTakingContext) {
-        static Long64_t orbitResetTime = -1;
-        // Fetch the CCDB object for the CTP
-        {
-          // FIXME: this (the static) is needed because for now I cannot get
-          // a pointer for the cachedObject in the fetcher itself.
-          // Will be fixed at a later point.
-          std::string path = "CTP/Calib/OrbitReset";
-          std::map<std::string, std::string> metadata;
-          std::map<std::string, std::string> headers;
-          std::string etag;
-          const auto url2uuid = helper->mapURL2UUID.find(path);
-          if (url2uuid != helper->mapURL2UUID.end()) {
-            etag = url2uuid->second;
-          }
-          Output output{"CTP", "OrbitReset", 0, Lifetime::Condition};
-          auto&& v = allocator.makeVector<char>(output);
-          helper->api.loadFileToMemory(v, path, metadata, timingInfo.creation,
-                                       &headers, etag,
-                                       helper->createdNotAfter,
-                                       helper->createdNotBefore);
-
-          if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
-            LOGP(error, "Unable to find object {}/{}", path, timingInfo.creation);
-            //FIXME: I should send a dummy message.
-            return;
-          }
-          Long64_t newOrbitResetTime = orbitResetTime;
-          if (etag.empty()) {
-            helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
-            newOrbitResetTime = getOrbitResetTime(v);
-            auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodNone);
-            helper->mapURL2DPLCache[path] = cacheId;
-            LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
-          } else if (v.size()) { // but should be overridden by fresh object
-            // somewhere here pruneFromCache should be called
-            helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
-            newOrbitResetTime = getOrbitResetTime(v);
-            auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodNone);
-            helper->mapURL2DPLCache[path] = cacheId;
-            LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
-            // one could modify the    adoptContainer to take optional old cacheID to clean:
-            // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), true, mapURL2DPLCache[URL]);
-          } else { // cached object is fine
-            auto cacheId = helper->mapURL2DPLCache[path];
-            LOGP(debug, "Reusing {} for {}", cacheId.value, path);
-            allocator.adoptFromCache(output, cacheId, header::gSerializationMethodNone);
-            // We need to find a way to get "v" also in this case.
-            // orbitResetTime = getOrbitResetTime(v);
-            // the outputBuffer was not used, can we destroy it?
-          }
-          if (newOrbitResetTime != orbitResetTime) {
-            LOGP(info, "Orbit reset time now at {} (was {})",
-                 newOrbitResetTime, orbitResetTime);
-            orbitResetTime = newOrbitResetTime;
-          }
-        }
-
-        int64_t timestamp = ceil((timingInfo.firstTFOrbit * o2::constants::lhc::LHCOrbitNS / 1000 + orbitResetTime) / 1000); // RS ceilf precision is not enough
-        // Fetch the rest of the objects.
-        LOGP(info, "Fetching objects. Run: {}. OrbitResetTime: {}, Creation: {}, Timestamp: {}, firstTFOrbit: {}",
-             dtc.runNumber, orbitResetTime, timingInfo.creation, timestamp, timingInfo.firstTFOrbit);
-
-        populateCacheWith(helper, timestamp, timingInfo, allocator, dataTakingContext.runNumber);
-      }); });
+    switch (ccdbMode) {
+      case Mode::Analysis: {
+        auto* context = new CCDBAnalysisContext();
+        initAnalysis(helper);
+        helper->context = context;
+        return analysisCCDBCallback(helper);
+      }
+      case Mode::Data:
+      case Mode::MC:
+      case Mode::Run2:
+        return recoCCDBCallback(helper);
+    }
+  });
 }
 
 } // namespace o2::framework
