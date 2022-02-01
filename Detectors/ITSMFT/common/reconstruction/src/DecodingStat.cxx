@@ -54,7 +54,9 @@ void ChipStat::addErrors(const ChipPixelData& d, int verbosity)
     for (int i = NErrorsDefined; i--;) {
       if (d.getErrorFlags() & (0x1 << i)) {
         if (verbosity > -1 && (!errorCounts[i] || verbosity > 1)) {
-          LOGP(important, "New error registered on the FEEID:{:#04x} chip#{}: {}{}", feeID, int16_t(d.getChipID()), ErrNames[i], d.getErrorDetails(i));
+          LOGP(important, "New error registered at bc/orbit {}/{} on the FEEID:{:#04x} chip#{}: {}{}",
+               d.getInteractionRecord().bc, d.getInteractionRecord().orbit,
+               feeID, int16_t(d.getChipID()), ErrNames[i], d.getErrorDetails(i));
         }
         errorCounts[i]++;
       }
