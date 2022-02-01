@@ -102,7 +102,7 @@ class ClusterFinderGEMTask
     printf("------------------------------------> GG Mode mode=%d\n", mode);
 
     /// Prepare the clusterizer
-    LOG(INFO) << "initializing cluster finder";
+    LOG(info) << "initializing cluster finder";
 
     if (isOriginalDumped() && !isOriginalActivated()) {
       mode = mode & (~DumpOriginal);
@@ -118,13 +118,13 @@ class ClusterFinderGEMTask
     }
 
     //
-    LOG(INFO) << "Configuration" << std::endl;
-    LOG(INFO) << "  Mode: " << mode << std::endl;
-    LOG(INFO) << "  Original: " << isOriginalActivated() << std::endl;
-    LOG(INFO) << "  GEM     : " << isGEMActivated() << std::endl;
-    LOG(INFO) << "  Dump Original: " << isOriginalDumped() << std::endl;
-    LOG(INFO) << "  Dump GEM     : " << isGEMDumped() << std::endl;
-    LOG(INFO) << "  GEM stream output: " << isGEMOutputStream() << std::endl;
+    LOG(info) << "Configuration" << std::endl;
+    LOG(info) << "  Mode: " << mode << std::endl;
+    LOG(info) << "  Original: " << isOriginalActivated() << std::endl;
+    LOG(info) << "  GEM     : " << isGEMActivated() << std::endl;
+    LOG(info) << "  Dump Original: " << isOriginalDumped() << std::endl;
+    LOG(info) << "  Dump GEM     : " << isGEMDumped() << std::endl;
+    LOG(info) << "  GEM stream output: " << isGEMOutputStream() << std::endl;
 
     // mClusterFinder.init( ClusterFinderGEM::DoGEM );
     if (isOriginalActivated()) {
@@ -135,7 +135,7 @@ class ClusterFinderGEMTask
 
     /// Print the timer and clear the clusterizer when the processing is over
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, [this]() {
-      LOG(INFO) << "cluster finder duration = " << mTimeClusterFinder.count() << " s";
+      LOG(info) << "cluster finder duration = " << mTimeClusterFinder.count() << " s";
       if (isOriginalActivated()) {
         this->mClusterFinderOriginal.deinit();
       } else if (isGEMActivated()) {
@@ -152,7 +152,7 @@ class ClusterFinderGEMTask
     });
     auto stop = [this]() {
       /// close the output file
-      LOG(INFO) << "stop GEM";
+      LOG(info) << "stop GEM";
       // this->mOutputFile.close();
     };
   }
@@ -167,7 +167,7 @@ class ClusterFinderGEMTask
     auto preClusters = pc.inputs().get<gsl::span<PreCluster>>("preclusters");
     auto digits = pc.inputs().get<gsl::span<Digit>>("digits");
 
-    // LOG(INFO) << "received time frame with " << preClusterROFs.size() << " interactions";
+    // LOG(info) << "received time frame with " << preClusterROFs.size() << " interactions";
 
     // create the output messages for clusters and attached digits
     auto& clusterROFs = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"clusterrofs"});
@@ -176,7 +176,7 @@ class ClusterFinderGEMTask
 
     clusterROFs.reserve(preClusterROFs.size());
     for (const auto& preClusterROF : preClusterROFs) {
-      LOG(INFO) << "processing interaction: time frame " << preClusterROF.getBCData().orbit << "...";
+      LOG(info) << "processing interaction: time frame " << preClusterROF.getBCData().orbit << "...";
       // GG infos
       // uint16_t bc = DummyBC;       ///< bunch crossing ID of interaction
       // uint32_t orbit = DummyOrbit; ///< LHC orbit
