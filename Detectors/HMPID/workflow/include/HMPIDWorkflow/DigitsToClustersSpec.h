@@ -9,54 +9,49 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_PEDESTALS_H_
-#define DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_PEDESTALS_H_
+///
+/// \file    DatDecoderSpec.h
+/// \author  Andrea Ferrero
+///
+/// \brief Definition of a data processor to run the raw decoding
+///
+
+#ifndef DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_DIGITSTOCLUSTERSPEC_H_
+#define DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_DIGITSTOCLUSTERSPEC_H_
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
-#include "CCDB/CcdbApi.h"
-
 #include "HMPIDBase/Common.h"
-#include "HMPIDReconstruction/HmpidDecoder2.h"
+#include "HMPIDReconstruction/Clusterer.h"
+#include "Framework/WorkflowSpec.h"
 
 namespace o2
 {
 namespace hmpid
 {
 
-class PedestalsCalculationTask : public framework::Task
+class DigitsToClustersTask : public framework::Task
 {
  public:
-  PedestalsCalculationTask() = default;
-  ~PedestalsCalculationTask() override = default;
+  DigitsToClustersTask() = default;
+  ~DigitsToClustersTask() override = default;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
-  void decodeTF(framework::ProcessingContext& pc);
   void endOfStream(framework::EndOfStreamContext& ec) override;
 
  private:
-  void recordPedInCcdb();
-  void recordPedInFiles();
-  void recordPedInDcsCcdb();
+  std::string mSigmaCutPar;
+  float mSigmaCut[7] = {4, 4, 4, 4, 4, 4, 4};
 
- private:
-  HmpidDecoder2* mDeco;
-  long mTotalDigits;
-  long mTotalFrames;
-  float mSigmaCut;
-  std::string mPedestalTag;
-  bool mWriteToFiles;
-  std::string mPedestalsBasePath;
-  o2::ccdb::CcdbApi mDBapi;
-  std::map<std::string, std::string> mDbMetadata; // can be empty
-  std::string mPedestalsCCDBBasePath;
-  bool mWriteToDB;
-  bool mFastAlgorithm;
+  o2::hmpid::Clusterer* mRec;
+  long mDigitsReceived;
+
   ExecutionTimer mExTimer;
+  void strToFloatsSplit(std::string s, std::string delimiter, float* res, int maxElem = 7);
 };
 
-o2::framework::DataProcessorSpec getPedestalsCalculationSpec(std::string inputSpec = "TF:HMP/RAWDATA");
+o2::framework::DataProcessorSpec getDigitsToClustersSpec(std::string inputSpec = "HMP/DIGITS");
 
 } // end namespace hmpid
 } // end namespace o2
