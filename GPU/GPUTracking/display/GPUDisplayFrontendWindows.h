@@ -9,21 +9,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUDisplayBackendWindows.h
+/// \file GPUDisplayFrontendWindows.h
 /// \author David Rohr
 
-#ifndef GPUDISPLAYBACKENDWINDOWS_H
-#define GPUDISPLAYBACKENDWINDOWS_H
+#ifndef GPUDISPLAYFRONTENDWINDOWS_H
+#define GPUDISPLAYFRONTENDWINDOWS_H
 
-#include "GPUDisplayBackend.h"
+#include "GPUDisplayFrontend.h"
 
 namespace GPUCA_NAMESPACE::gpu
 {
-class GPUDisplayBackendWindows : public GPUDisplayBackend
+class GPUDisplayFrontendWindows : public GPUDisplayFrontend
 {
  public:
-  GPUDisplayBackendWindows() = default;
-  ~GPUDisplayBackendWindows() override = default;
+  GPUDisplayFrontendWindows() = default;
+  ~GPUDisplayFrontendWindows() override = default;
 
   int StartDisplay() override;
   void DisplayExit() override;
@@ -33,7 +33,7 @@ class GPUDisplayBackendWindows : public GPUDisplayBackend
   void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
 
  private:
-  int OpenGLMain() override;
+  int FrontendMain() override;
 };
 } // namespace GPUCA_NAMESPACE::gpu
 

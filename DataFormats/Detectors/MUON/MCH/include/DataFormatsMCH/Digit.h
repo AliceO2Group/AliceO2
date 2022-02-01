@@ -36,6 +36,7 @@ class Digit
   ~Digit() = default;
 
   bool operator==(const Digit&) const;
+  bool operator!=(const Digit& other) const { return !(*this == other); }
   bool operator<(const Digit&) const;
 
   // time in bunch crossing units, relative to the beginning of the TimeFrame
@@ -65,10 +66,10 @@ class Digit
   uint32_t mADC;        /// Amplitude of signal
 
   ClassDefNV(Digit, 4);
-}; //class Digit
+}; // class Digit
 
 std::ostream& operator<<(std::ostream& os, const Digit& d);
 
-} //namespace mch
-} //namespace o2
+} // namespace mch
+} // namespace o2
 #endif // ALICEO2_MCH_DIGIT_H_

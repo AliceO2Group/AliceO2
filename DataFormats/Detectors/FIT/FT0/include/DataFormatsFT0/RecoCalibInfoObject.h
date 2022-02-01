@@ -21,16 +21,16 @@ namespace ft0
 class RecoCalibInfoObject
 {
  public:
-  RecoCalibInfoObject(short t0a, short t0c, short t0ac) : mT0A(t0a), mT0C(t0c), mT0AC(t0ac){};
+  RecoCalibInfoObject(short t0ac, short t0a, short t0c) : mT0AC(t0ac), mT0A(t0a), mT0C(t0c){};
   RecoCalibInfoObject() = default;
   ~RecoCalibInfoObject() = default;
 
-  void setT0A(short time) { mT0A = time; }
-  void setT0C(short time) { mT0C = time; }
   void setT0AC(short time) { mT0AC = time; }
-  [[nodiscard]] short getT0A() const { return mT0A; }
-  [[nodiscard]] short getT0C() const { return mT0C; }
   [[nodiscard]] short getT0AC() const { return mT0AC; }
+  void setT0A(short time) { mT0A = time; }
+  short getT0A() const { return mT0A; }
+  void setT0C(short time) { mT0C = time; }
+  short getT0C() const { return mT0C; }
 
  private:
   short mT0A;

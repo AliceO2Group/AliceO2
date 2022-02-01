@@ -13,7 +13,6 @@
 #define FRAMEWORK_ANALYSISMANAGERS_H
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/GroupedCombinations.h"
-#include "Framework/Kernels.h"
 #include "Framework/ASoA.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/EndOfStreamContext.h"
@@ -47,7 +46,7 @@ struct GroupedCombinationManager<GroupedCombinationsGenerator<T1, GroupingPolicy
   {
     static_assert(sizeof...(T2s) > 0, "There must be associated tables in process() for a correct pair");
     static_assert(!soa::is_soa_iterator_t<std::decay_t<H>>::value, "Only full tables can be in process(), no grouping");
-    if constexpr (std::conjunction_v<std::is_same<G, TG>, std::is_same<H, TH>>) {
+    if constexpr (std::is_same_v<G, TG> && std::is_same_v<H, TH>) {
       // Take respective unique associated tables for grouping
       auto associatedTuple = std::tuple<Us...>(std::get<Us>(associated)...);
       comb.setTables(hashes, grouping, associatedTuple);

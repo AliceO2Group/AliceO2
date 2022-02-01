@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUDisplayBackendWindows.cxx
+/// \file GPUDisplayFrontendWindows.cxx
 /// \author David Rohr
 
 // GLEW must be the first header
@@ -19,7 +19,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include "GPUDisplayBackendWindows.h"
+#include "GPUDisplayFrontendWindows.h"
 #include "GPULogging.h"
 #include <windows.h>
 #include <winbase.h>
@@ -317,7 +317,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
   return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
-int GPUDisplayBackendWindows::OpenGLMain()
+int GPUDisplayFrontendWindows::FrontendMain()
 {
   MSG msg;
   BOOL done = FALSE;
@@ -331,7 +331,7 @@ int GPUDisplayBackendWindows::OpenGLMain()
     return -1;
   }
 
-  if (InitGL()) {
+  if (InitDisplay()) {
     KillGLWindow();
     GPUError("Initialization Failed.");
     return 1;
@@ -370,7 +370,7 @@ void SwitchFullscreen(bool set) {}
 void ToggleMaximized(bool set) {}
 void SetVSync(bool enable) {}
 
-int GPUDisplayBackendWindows::StartDisplay()
+int GPUDisplayFrontendWindows::StartDisplay()
 {
   HANDLE hThread;
   if ((hThread = CreateThread(nullptr, nullptr, &OpenGLWrapper, this, nullptr, nullptr)) == nullptr) {

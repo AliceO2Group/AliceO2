@@ -9,13 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUDisplayBackendGlfw.cxx
+/// \file GPUDisplayFrontendGlfw.cxx
 /// \author David Rohr
 
 // GL EXT must be the first header
-#include "GPUDisplayExt.h"
+#include "GPUDisplayBackend.h"
 
-#include "GPUDisplayBackendGlfw.h"
+#include "GPUDisplayFrontendGlfw.h"
 #include "GPULogging.h"
 
 #if defined(GPUCA_O2_LIB) && !defined(GPUCA_DISPLAY_GL3W) // Hack: we have to define this in order to initialize gl3w, cannot include the header as it clashes with glew
@@ -42,9 +42,9 @@ extern "C" int gl3wInit();
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-static GPUDisplayBackendGlfw* me = nullptr;
+static GPUDisplayFrontendGlfw* me = nullptr;
 
-int GPUDisplayBackendGlfw::GetKey(int key)
+int GPUDisplayFrontendGlfw::GetKey(int key)
 {
   if (key == GLFW_KEY_KP_SUBTRACT) {
     return ('-');
@@ -142,7 +142,7 @@ int GPUDisplayBackendGlfw::GetKey(int key)
   return (0);
 }
 
-void GPUDisplayBackendGlfw::GetKey(int key, int scancode, int mods, int& keyOut, int& keyPressOut)
+void GPUDisplayFrontendGlfw::GetKey(int key, int scancode, int mods, int& keyOut, int& keyPressOut)
 {
   int specialKey = GetKey(key);
   const char* str = glfwGetKeyName(key, scancode);
@@ -162,9 +162,9 @@ void GPUDisplayBackendGlfw::GetKey(int key, int scancode, int mods, int& keyOut,
   }
 }
 
-void GPUDisplayBackendGlfw::error_callback(int error, const char* description) { fprintf(stderr, "Error: %s\n", description); }
+void GPUDisplayFrontendGlfw::error_callback(int error, const char* description) { fprintf(stderr, "Error: %s\n", description); }
 
-void GPUDisplayBackendGlfw::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+void GPUDisplayFrontendGlfw::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
   int handleKey = 0, keyPress = 0;
   GetKey(key, scancode, mods, handleKey, keyPress);
@@ -188,7 +188,7 @@ void GPUDisplayBackendGlfw::key_callback(GLFWwindow* window, int key, int scanco
   }
 }
 
-void GPUDisplayBackendGlfw::char_callback(GLFWwindow* window, unsigned int codepoint)
+void GPUDisplayFrontendGlfw::char_callback(GLFWwindow* window, unsigned int codepoint)
 {
   // GPUInfo("Key (char callback): %d %c - key: %d", codepoint, (char)codepoint, (int)me->mLastKeyDown);
   int keyPress = codepoint;
@@ -201,7 +201,7 @@ void GPUDisplayBackendGlfw::char_callback(GLFWwindow* window, unsigned int codep
   me->HandleKey(codepoint);
 }
 
-void GPUDisplayBackendGlfw::mouseButton_callback(GLFWwindow* window, int button, int action, int mods)
+void GPUDisplayFrontendGlfw::mouseButton_callback(GLFWwindow* window, int button, int action, int mods)
 {
   if (action == GLFW_PRESS) {
     if (button == 0) {
@@ -220,17 +220,17 @@ void GPUDisplayBackendGlfw::mouseButton_callback(GLFWwindow* window, int button,
   }
 }
 
-void GPUDisplayBackendGlfw::scroll_callback(GLFWwindow* window, double x, double y) { me->mMouseWheel += y * 100; }
+void GPUDisplayFrontendGlfw::scroll_callback(GLFWwindow* window, double x, double y) { me->mMouseWheel += y * 100; }
 
-void GPUDisplayBackendGlfw::cursorPos_callback(GLFWwindow* window, double x, double y)
+void GPUDisplayFrontendGlfw::cursorPos_callback(GLFWwindow* window, double x, double y)
 {
   me->mouseMvX = x;
   me->mouseMvY = y;
 }
 
-void GPUDisplayBackendGlfw::resize_callback(GLFWwindow* window, int width, int height) { me->ReSizeGLScene(width, height); }
+void GPUDisplayFrontendGlfw::resize_callback(GLFWwindow* window, int width, int height) { me->ReSizeGLScene(width, height); }
 
-void GPUDisplayBackendGlfw::DisplayLoop()
+void GPUDisplayFrontendGlfw::DisplayLoop()
 {
 #ifdef GPUCA_O2_LIB
   ImGui::SetNextWindowPos(ImVec2(0, 0));
@@ -244,7 +244,7 @@ void GPUDisplayBackendGlfw::DisplayLoop()
 #endif
 }
 
-int GPUDisplayBackendGlfw::OpenGLMain()
+int GPUDisplayFrontendGlfw::FrontendMain()
 {
   me = this;
 
@@ -258,7 +258,7 @@ int GPUDisplayBackendGlfw::OpenGLMain()
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, GL_MIN_VERSION_MAJOR);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, GL_MIN_VERSION_MINOR);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 0);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GPUCA_DISPLAY_OPENGL_CORE_FLAGS ? GLFW_OPENGL_CORE_PROFILE : GLFW_OPENGL_COMPAT_PROFILE);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, mBackend->CoreProfile() ? GLFW_OPENGL_CORE_PROFILE : GLFW_OPENGL_COMPAT_PROFILE);
   mWindow = glfwCreateWindow(INIT_WIDTH, INIT_HEIGHT, GL_WINDOW_NAME, nullptr, nullptr);
   if (!mWindow) {
     fprintf(stderr, "Error creating glfw window\n");
@@ -278,7 +278,7 @@ int GPUDisplayBackendGlfw::OpenGLMain()
   mGlfwRunning = true;
   pthread_mutex_unlock(&mSemLockExit);
 
-  if (GPUDisplayExtInit()) {
+  if (mBackend->ExtInit()) {
     fprintf(stderr, "Error initializing GL extension wrapper\n");
     return (-1);
   }
@@ -290,7 +290,7 @@ int GPUDisplayBackendGlfw::OpenGLMain()
   }
 #endif
 
-  if (InitGL()) {
+  if (InitDisplay()) {
     fprintf(stderr, "Error in OpenGL initialization\n");
     return (1);
   }
@@ -324,7 +324,7 @@ int GPUDisplayBackendGlfw::OpenGLMain()
   return 0;
 }
 
-void GPUDisplayBackendGlfw::DisplayExit()
+void GPUDisplayFrontendGlfw::DisplayExit()
 {
   pthread_mutex_lock(&mSemLockExit);
   if (mGlfwRunning) {
@@ -336,7 +336,7 @@ void GPUDisplayBackendGlfw::DisplayExit()
   }
 }
 
-void GPUDisplayBackendGlfw::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
+void GPUDisplayFrontendGlfw::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
 {
 #ifdef GPUCA_O2_LIB
   if (fromBotton) {
@@ -348,7 +348,7 @@ void GPUDisplayBackendGlfw::OpenGLPrint(const char* s, float x, float y, float r
 #endif
 }
 
-void GPUDisplayBackendGlfw::SwitchFullscreen(bool set)
+void GPUDisplayFrontendGlfw::SwitchFullscreen(bool set)
 {
   GPUInfo("Setting Full Screen %d", (int)set);
   if (set) {
@@ -362,7 +362,7 @@ void GPUDisplayBackendGlfw::SwitchFullscreen(bool set)
   }
 }
 
-void GPUDisplayBackendGlfw::ToggleMaximized(bool set)
+void GPUDisplayFrontendGlfw::ToggleMaximized(bool set)
 {
   if (set) {
     glfwMaximizeWindow(mWindow);
@@ -371,19 +371,19 @@ void GPUDisplayBackendGlfw::ToggleMaximized(bool set)
   }
 }
 
-void GPUDisplayBackendGlfw::SetVSync(bool enable) { glfwSwapInterval(enable); }
+void GPUDisplayFrontendGlfw::SetVSync(bool enable) { glfwSwapInterval(enable); }
 
-int GPUDisplayBackendGlfw::StartDisplay()
+int GPUDisplayFrontendGlfw::StartDisplay()
 {
   static pthread_t hThread;
-  if (pthread_create(&hThread, nullptr, OpenGLWrapper, this)) {
+  if (pthread_create(&hThread, nullptr, FrontendThreadWrapper, this)) {
     GPUError("Coult not Create GL Thread...");
     return (1);
   }
   return (0);
 }
 
-bool GPUDisplayBackendGlfw::EnableSendKey()
+bool GPUDisplayFrontendGlfw::EnableSendKey()
 {
 #ifdef GPUCA_O2_LIB
   return false;

@@ -21,6 +21,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 using namespace o2::framework;
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
+
   WorkflowSpec workflow;
   workflow.emplace_back(o2::ft0::getGlobalOffsetsCalibrationSpec());
   return workflow;

@@ -9,25 +9,22 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUDisplayBackendX11.h
+/// \file GPUDisplayFrontendGlut.h
 /// \author David Rohr
 
-#ifndef GPUDISPLAYBACKENDX11_H
-#define GPUDISPLAYBACKENDX11_H
+#ifndef GPUDISPLAYFRONTENDGLUT_H
+#define GPUDISPLAYFRONTENDGLUT_H
 
-#include "GPUDisplayBackend.h"
-#include <GL/glx.h>
+#include "GPUDisplayFrontend.h"
 #include <pthread.h>
-#include <unistd.h>
-#include <GL/glxext.h>
 
 namespace GPUCA_NAMESPACE::gpu
 {
-class GPUDisplayBackendX11 : public GPUDisplayBackend
+class GPUDisplayFrontendGlut : public GPUDisplayFrontend
 {
  public:
-  GPUDisplayBackendX11() = default;
-  ~GPUDisplayBackendX11() override = default;
+  GPUDisplayFrontendGlut() = default;
+  ~GPUDisplayFrontendGlut() override = default;
 
   int StartDisplay() override;
   void DisplayExit() override;
@@ -37,20 +34,27 @@ class GPUDisplayBackendX11 : public GPUDisplayBackend
   void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
 
  private:
-  int OpenGLMain() override;
-  int GetKey(int key);
-  void GetKey(XEvent& event, int& keyOut, int& keyPressOut);
+  int FrontendMain() override;
 
+  static void displayFunc();
+  static void glutLoopFunc();
+  static void keyboardUpFunc(unsigned char key, int x, int y);
+  static void keyboardDownFunc(unsigned char key, int x, int y);
+  static void specialUpFunc(int key, int x, int y);
+  static void specialDownFunc(int key, int x, int y);
+  static void mouseMoveFunc(int x, int y);
+  static void mMouseWheelFunc(int button, int dir, int x, int y);
+  static void mouseFunc(int button, int state, int x, int y);
+  static void ReSizeGLSceneWrapper(int width, int height);
+  static int GetKey(int key);
+  static void GetKey(int keyin, int& keyOut, int& keyPressOut, bool special);
+
+  volatile bool mGlutRunning = false;
   pthread_mutex_t mSemLockExit = PTHREAD_MUTEX_INITIALIZER;
-  volatile bool mDisplayRunning = false;
 
-  GLuint mFontBase;
-
-  Display* mDisplay = nullptr;
-  Window mWindow;
-
-  PFNGLXSWAPINTERVALEXTPROC mGlXSwapIntervalEXT = nullptr;
-  bool vsync_supported = false;
+  int mWidth = INIT_WIDTH;
+  int mHeight = INIT_HEIGHT;
+  bool mFullScreen = false;
 };
 } // namespace GPUCA_NAMESPACE::gpu
 

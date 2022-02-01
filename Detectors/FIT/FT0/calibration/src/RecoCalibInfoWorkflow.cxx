@@ -99,7 +99,7 @@ DataProcessorSpec getRecoCalibInfoWorkflow(GID::mask_t src, bool useMC)
   dataRequest->requestFT0RecPoints(false);
 
   return DataProcessorSpec{
-    "calib-global-offsets",
+    "ft0-calib-reco",
     dataRequest->inputs,
     Outputs{
       {{"calib"}, "FT0", "CALIB_INFO"}},

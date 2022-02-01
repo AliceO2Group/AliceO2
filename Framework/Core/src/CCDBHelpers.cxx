@@ -74,7 +74,7 @@ CCDBHelpers::ParserResult CCDBHelpers::parseRemappings(char const* str)
     switch (state) {
       case IN_BEGIN: {
         if (*str == 0) {
-          return {remappings, "Empty string provided"};
+          return {remappings, ""};
         }
         state = IN_BEGIN_URL;
       }
@@ -132,7 +132,7 @@ CCDBHelpers::ParserResult CCDBHelpers::parseRemappings(char const* str)
 
 AlgorithmSpec CCDBHelpers::fetchFromCCDB()
 {
-  return adaptStateful([](ConfigParamRegistry const& options, DeviceSpec const& spec) { 
+  return adaptStateful([](ConfigParamRegistry const& options, DeviceSpec const& spec) {
       std::shared_ptr<CCDBFetcherHelper> helper = std::make_shared<CCDBFetcherHelper>();
       auto backend = options.get<std::string>("condition-backend");
       LOGP(info, "CCDB Backend at: {}", backend);
@@ -154,7 +154,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         helper->routes.push_back(route);
         LOGP(info, "The following route is a condition {}", route.matcher);
         for (auto& metadata : route.matcher.metadata) {
-          if (metadata.type == VariantType::String) { 
+          if (metadata.type == VariantType::String) {
             LOGP(info, "- {}: {}", metadata.name, metadata.defaultValue);
           }
         }
@@ -195,13 +195,13 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           }
           Output output{"CTP", "OrbitReset", 0, Lifetime::Condition};
           auto&& v = allocator.makeVector<char>(output);
-          helper->api.loadFileToMemory(v, path, metadata, timingInfo.timeslice,
+          helper->api.loadFileToMemory(v, path, metadata, timingInfo.creation,
                                        &headers, etag,
                                        helper->createdNotAfter,
                                        helper->createdNotBefore);
 
           if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
-            LOGP(error, "Unable to find object {}/{}", path, timingInfo.timeslice);
+            LOGP(error, "Unable to find object {}/{}", path, timingInfo.creation);
             //FIXME: I should send a dummy message.
             return;
           }
@@ -236,10 +236,11 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           }
         }
 
-        int64_t timestamp = ceilf((timingInfo.firstTFOrbit * o2::constants::lhc::LHCOrbitNS / 1000 + orbitResetTime) / 1000);
+        int64_t timestamp = ceil((timingInfo.firstTFOrbit * o2::constants::lhc::LHCOrbitNS / 1000 + orbitResetTime) / 1000); // RS ceilf precision is not enough
         // Fetch the rest of the objects.
-        LOGP(info, "Fetching objects. Run: {}. OrbitResetTime: {}, Timestamp: {}, firstTFOrbit: {}",
-             dtc.runNumber, dtc.orbitResetTime, timestamp, timingInfo.firstTFOrbit);
+        LOGP(info, "Fetching objects. Run: {}. OrbitResetTime: {}, Creation: {}, Timestamp: {}, firstTFOrbit: {}",
+             dtc.runNumber, orbitResetTime, timingInfo.creation, timestamp, timingInfo.firstTFOrbit);
+        // For Giulio: the dtc.orbitResetTime is wrong, it is assigned from the dph->creation, why?
         std::string ccdbMetadataPrefix = "ccdb-metadata-";
 
         for (auto& route : helper->routes) {

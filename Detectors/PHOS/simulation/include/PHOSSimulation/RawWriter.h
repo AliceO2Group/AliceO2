@@ -54,8 +54,9 @@ class RawWriter
 {
  public:
   enum class FileFor_t {
-    kFullDet,
-    kLink
+    kFullDet, ///< Full detector
+    kCRORC,   ///< C-RORC card
+    kLink     ///< Per link
   };
   RawWriter() = default;
   RawWriter(const char* outputdir) { setOutputLocation(outputdir); }

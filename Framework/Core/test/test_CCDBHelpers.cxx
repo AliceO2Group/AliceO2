@@ -21,7 +21,7 @@ using namespace o2::framework;
 BOOST_AUTO_TEST_CASE(TestSorting)
 {
   auto result = CCDBHelpers::parseRemappings("");
-  BOOST_CHECK_EQUAL(result.error, "Empty string provided");
+  BOOST_CHECK_EQUAL(result.error, ""); // not an error
 
   result = CCDBHelpers::parseRemappings("https");
   BOOST_CHECK_EQUAL(result.error, "URL should start with either / or http:// / https://");

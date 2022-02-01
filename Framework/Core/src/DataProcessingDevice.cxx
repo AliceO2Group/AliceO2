@@ -135,6 +135,18 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
       }
     };
   }
+
+  std::function<void(const fair::mq::State)> stateWatcher = [this, &registry = mServiceRegistry](const fair::mq::State state) -> void {
+    auto& deviceState = registry.get<DeviceState>();
+    if (deviceState.nextFairMQState.empty() == false) {
+      auto state = deviceState.nextFairMQState.back();
+      this->ChangeState(state);
+      deviceState.nextFairMQState.pop_back();
+    }
+  };
+
+  this->SubscribeToStateChange("dpl", stateWatcher);
+
   // One task for now.
   mStreams.resize(1);
   mHandles.resize(1);
@@ -598,6 +610,10 @@ void DataProcessingDevice::Reset()
 void DataProcessingDevice::Run()
 {
   while (!NewStatePending()) {
+    if (mState.nextFairMQState.empty() == false) {
+      this->ChangeState(mState.nextFairMQState.back());
+      mState.nextFairMQState.pop_back();
+    }
     // Notify on the main thread the new region callbacks, making sure
     // no callback is issued if there is something still processing.
     {
@@ -1028,7 +1044,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
           switch (relayed) {
             case DataRelayer::Backpressured:
               if (info.normalOpsNotified == true && info.backpressureNotified == false) {
-                LOGP(warn, "Backpressure on channel {}. Waiting.", info.channel->GetName());
+                LOGP(alarm, "Backpressure on channel {}. Waiting.", info.channel->GetName());
                 info.backpressureNotified = true;
                 info.normalOpsNotified = false;
               }

@@ -427,6 +427,31 @@ auto ProjectBoostHistoX(boost::histogram::histogram<axes...>& hist2d, const int 
   return histoProj;
 }
 
+/// \brief Function to project 2d boost histogram onto x-axis
+/// \param hist2d 2d boost histogram
+/// \param binLow lower bin in y for projection
+/// \param binHigh lower bin in y for projection
+/// \return result
+///      1d boost histogram from projection of the input 2d boost histogram
+template <typename... axes>
+auto ProjectBoostHistoXFast(boost::histogram::histogram<axes...>& hist2d, const int binLow, const int binHigh)
+{
+  unsigned int nbins = hist2d.axis(0).size();
+  double binStartX = hist2d.axis(0).bin(0).lower();
+  double binEndX = hist2d.axis(0).bin(nbins - 1).upper();
+  auto histoProj = boost::histogram::make_histogram(boost::histogram::axis::regular<>(nbins, binStartX, binEndX));
+
+  // Now rewrite the bin content of the 1d histogram to get the summed bin content in the specified range
+  for (int x = 0; x < nbins; ++x) {
+    histoProj.at(x) = 0;
+    for (int y = binLow; y < binHigh; ++y) {
+      histoProj.at(x) = histoProj.at(x) + hist2d.at(x, y);
+    }
+  }
+
+  return histoProj;
+}
+
 } // end namespace utils
 } // end namespace o2
 

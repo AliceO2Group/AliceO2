@@ -58,7 +58,7 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             macro/load_all_libs.C
             macro/putCondition.C
             macro/rootlogon.C
-            Detectors/FIT/FT0/calibration/macros/makeDummyFT0CalibObjectInCCDB.C)
+            Detectors/FIT/FT0/calibration/macros/makeChannelOffsetCalibObjectInCCDB.C)
 
 
 if(NOT BUILD_SIMULATION)

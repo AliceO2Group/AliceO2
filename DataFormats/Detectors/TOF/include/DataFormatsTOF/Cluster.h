@@ -19,7 +19,7 @@
 #include "GPUCommonMath.h"
 #include "ReconstructionDataFormats/BaseCluster.h"
 #include "CommonConstants/LHCConstants.h"
-#ifndef GPUCA_GPUCODE
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 #include <boost/serialization/base_object.hpp> // for base_object
 #include <cstdlib>
 #include <vector>
@@ -136,8 +136,9 @@ class Cluster : public o2::BaseCluster<float>
   float getDigitInfoTOT(int idig) const { return mDigitInfoTOT[idig]; }
 
  private:
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
   friend class boost::serialization::access;
-
+#endif
   double mTimeRaw;  // raw TOF time // CZ: in AliRoot it is a double
   double mTime;     // calibrated TOF time // CZ: in AliRoot it is a double
   float mTot;       // Time-Over-threshold // CZ: in AliRoot it is a double

@@ -161,7 +161,9 @@ set(HDRS_INSTALL
 
 # Sources for O2 and for Standalone if requested in config file
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR ALIGPU_BUILD_TYPE STREQUAL "Standalone")
-  set(SRCS_NO_CINT ${SRCS_NO_CINT} display/GPUDisplayBackend.cxx)
+  set(SRCS_NO_CINT ${SRCS_NO_CINT}
+                   display/GPUDisplayFrontend.cxx
+                   display/GPUDisplayBackend.cxx)
 endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
     set(SRCS_NO_CINT
@@ -236,13 +238,13 @@ endif()
 if(GPUCA_EVENT_DISPLAY)
   set(SRCS_NO_CINT ${SRCS_NO_CINT} utils/qsem.cxx
                    display/GPUDisplay.cxx
-                   display/GPUDisplayBackendGlfw.cxx)
+                   display/GPUDisplayBackendOpenGL.cxx
+                   display/GPUDisplayFrontendGlfw.cxx)
   set(SRCS_NO_H ${SRCS_NO_H} display/GPUDisplayQuaternion.cxx
                 display/GPUDisplayInterpolation.cxx
                 display/GPUDisplayKeys.cxx
                 display/GPUDisplayROOT.cxx)
   set(HDRS_INSTALL ${HDRS_INSTALL}
-                   display/GPUDisplayExt.h
                    display/GPUDisplayShaders.h)
   if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
     install(DIRECTORY display/filterMacros/ DESTINATION displayTrackFilter FILES_MATCHING PATTERN "*.C")
@@ -457,9 +459,19 @@ endif()
 
 # Main CMake part for Standalone
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
+  if(GPUCA_EVENT_DISPLAY)
+    set(SRCS ${SRCS}
+             display/GPUDisplayFrontendX11.cxx
+             display/GPUDisplayFrontendGlut.cxx)
+  endif()
+
   add_library(${MODULE} SHARED ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H} ${SRCS_DATATYPES})
   set(targetName ${MODULE})
   add_library(O2::${MODULE} ALIAS ${MODULE})
+
+if(GPUCA_EVENT_DISPLAY)
+  target_link_libraries(${targetName} PUBLIC X11::X11 glut)
+endif()
 endif()
 
 if(GPUCA_EVENT_DISPLAY)

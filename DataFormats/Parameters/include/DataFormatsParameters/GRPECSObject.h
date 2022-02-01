@@ -48,6 +48,9 @@ class GRPECSObject
   timePoint getTimeStart() const { return mTimeStart; }
   void setTimeStart(timePoint t) { mTimeStart = t; }
 
+  timePoint getTimeEnd() const { return mTimeEnd; }
+  void setTimeEnd(timePoint t) { mTimeEnd = t; }
+
   void setNHBFPerTF(uint32_t n) { mNHBFPerTF = n; }
   uint32_t getNHBFPerTF() const { return mNHBFPerTF; }
 
@@ -109,6 +112,7 @@ class GRPECSObject
 
  private:
   timePoint mTimeStart = 0; ///< DAQ_time_start entry from DAQ logbook
+  timePoint mTimeEnd = 0;   ///< DAQ_time_end entry from DAQ logbook
 
   uint32_t mNHBFPerTF = 128; /// Number of HBFrames per TF
 
@@ -119,7 +123,7 @@ class GRPECSObject
   int mRun = 0;                 ///< run identifier
   std::string mDataPeriod = ""; ///< name of the period
 
-  ClassDefNV(GRPECSObject, 2);
+  ClassDefNV(GRPECSObject, 3);
 };
 
 } // namespace parameters

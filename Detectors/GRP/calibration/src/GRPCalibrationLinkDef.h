@@ -16,5 +16,9 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::grp::LHCIFfileReader + ;
+//#pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, std::vector < std::pair < uint64_t, float > > > +;
+#pragma link C++ struct o2::grp::GRPEnvVariables + ;
+#pragma link C++ struct o2::grp::GRPCollimators + ;
+#pragma link C++ struct o2::grp::GRPLHCInfo + ;
 
 #endif

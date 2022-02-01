@@ -9,24 +9,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUDisplayBackendGlfw.h
+/// \file GPUDisplayFrontendGlfw.h
 /// \author David Rohr
 
-#ifndef GPUDISPLAYBACKENDGlfw_H
-#define GPUDISPLAYBACKENDGlfw_H
+#ifndef GPUDISPLAYFRONTENDGlfw_H
+#define GPUDISPLAYFRONTENDGlfw_H
 
-#include "GPUDisplayBackend.h"
+#include "GPUDisplayFrontend.h"
 #include <pthread.h>
 
 struct GLFWwindow;
 
 namespace GPUCA_NAMESPACE::gpu
 {
-class GPUDisplayBackendGlfw : public GPUDisplayBackend
+class GPUDisplayFrontendGlfw : public GPUDisplayFrontend
 {
  public:
-  GPUDisplayBackendGlfw() = default;
-  ~GPUDisplayBackendGlfw() override = default;
+  GPUDisplayFrontendGlfw() = default;
+  ~GPUDisplayFrontendGlfw() override = default;
 
   int StartDisplay() override;
   void DisplayExit() override;
@@ -37,7 +37,7 @@ class GPUDisplayBackendGlfw : public GPUDisplayBackend
   bool EnableSendKey() override;
 
  private:
-  int OpenGLMain() override;
+  int FrontendMain() override;
   static void DisplayLoop();
 
   static void error_callback(int error, const char* description);

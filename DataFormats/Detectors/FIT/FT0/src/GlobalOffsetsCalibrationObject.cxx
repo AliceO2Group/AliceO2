@@ -18,11 +18,9 @@ using namespace o2::ft0;
 GlobalOffsetsCalibrationObject GlobalOffsetsCalibrationObjectAlgorithm::generateCalibrationObject(const GlobalOffsetsContainer& container)
 {
   GlobalOffsetsCalibrationObject calibrationObject;
-  TString side[3] = {"A", "C", "AC"};
-  for (unsigned int iCh = 0; iCh < 3; ++iCh) {
-    calibrationObject.mCollisionTimeOffsets[iCh] = container.getMeanGaussianFitValue(iCh);
-    LOG(debug) << "GlobalOffsetsCalibrationObjectAlgorithm generate CalibrationObject for T0" << side[iCh].Data() << " = " << calibrationObject.mCollisionTimeOffsets[iCh];
-  }
+  calibrationObject.mCollisionTimeOffsets = container.getMeanGaussianFitValue();
+  LOG(info) << "GlobalOffsetsCalibrationObjectAlgorithm generate CalibrationObject for T0"
+            << " = " << calibrationObject.mCollisionTimeOffsets;
 
   return calibrationObject;
 }

@@ -147,7 +147,7 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
       }
 
     } catch (const std::exception& e) {
-      LOGP(error, "EXCEPTIION in processRawData: {} -> skipping part:{}/{} of spec:{}/{}/{}, size:{}", e.what(), dh->splitPayloadIndex, dh->splitPayloadParts,
+      LOGP(alarm, "EXCEPTIION in processRawData: {} -> skipping part:{}/{} of spec:{}/{}/{}, size:{}", e.what(), dh->splitPayloadIndex, dh->splitPayloadParts,
            dh->dataOrigin, dh->dataDescription, subSpecification, dh->payloadSize);
       errorCount++;
       continue;

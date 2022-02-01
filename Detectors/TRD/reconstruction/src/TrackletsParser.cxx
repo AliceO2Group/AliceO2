@@ -270,7 +270,7 @@ int TrackletsParser::Parse()
               qa = mTrackletMCMHeader->pid2;
               break;
             default:
-              LOG(warn) << "mcmtrackletcount is not in [0:2] count=" << mcmtrackletcount << " headertrackletcount=" << headertrackletcount << " something very wrong parsing the TrackletMCMData fields with data of : 0x" << std::hex << mTrackletMCMData->word;
+              LOG(alarm) << "mcmtrackletcount is not in [0:2] count=" << mcmtrackletcount << " headertrackletcount=" << headertrackletcount << " something very wrong parsing the TrackletMCMData fields with data of : 0x" << std::hex << mTrackletMCMData->word;
               incParsingError(TRDParsingTrackletInvalidTrackletCount);
               //this should have been caught above by the headertrackletcount to mcmtrackletcount
               ignoreDataTillTrackletEndMarker = true;

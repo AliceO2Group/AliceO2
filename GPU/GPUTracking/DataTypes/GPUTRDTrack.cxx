@@ -89,7 +89,7 @@ GPUd() void GPUTRDTrack_t<T>::ConvertFrom(const GPUTRDTrackDataRecord& t)
 
 #endif
 
-#if defined(GPUCA_O2_LIB) && !defined(GPUCA_GPUCODE)
+#if defined(GPUCA_HAVE_O2HEADERS)
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 

@@ -30,7 +30,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}}};
-  options.push_back(ConfigParamSpec{"disable-trigger-input", o2::framework::VariantType::Bool, false, {"Disble trigger input DPL channel"}});
+  options.push_back(ConfigParamSpec{"disable-trigger-input", o2::framework::VariantType::Bool, false, {"Disable trigger input DPL channel"}});
 
   std::string keyvaluehelp("Semicolon separated key=value strings");
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});

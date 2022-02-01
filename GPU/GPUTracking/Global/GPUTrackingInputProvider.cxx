@@ -14,6 +14,7 @@
 
 #include "GPUTrackingInputProvider.h"
 #include "GPUDataTypes.h"
+#include "GPUTRDTrackletWord.h"
 #include "GPUReconstruction.h"
 #include "GPUErrors.h"
 
@@ -61,6 +62,19 @@ void* GPUTrackingInputProvider::SetPointersErrorCodes(void* mem)
   return mem;
 }
 
+void* GPUTrackingInputProvider::SetPointersInputTRD(void* mem)
+{
+  computePointerWithAlignment(mem, mTRDTracklets, mNTRDTracklets);
+  if (mDoSpacepoints) {
+    computePointerWithAlignment(mem, mTRDSpacePoints, mNTRDTracklets);
+  }
+  computePointerWithAlignment(mem, mTRDTriggerTimes, mNTRDTriggerRecords);
+  computePointerWithAlignment(mem, mTRDTrackletIdxFirst, mNTRDTriggerRecords);
+  computePointerWithAlignment(mem, mTRDTrigRecMask, mNTRDTriggerRecords);
+
+  return mem;
+}
+
 void GPUTrackingInputProvider::RegisterMemoryAllocation()
 {
   mResourceErrorCodes = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersErrorCodes, GPUMemoryResource::MEMORY_PERMANENT, "ErrorCodes");
@@ -68,6 +82,7 @@ void GPUTrackingInputProvider::RegisterMemoryAllocation()
   mResourceClusterNativeAccess = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersInputClusterNativeAccess, GPUMemoryResource::MEMORY_INPUT, "ClusterNativeAccess");
   mResourceClusterNativeBuffer = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersInputClusterNativeBuffer, GPUMemoryResource::MEMORY_INPUT_FLAG | GPUMemoryResource::MEMORY_GPU | GPUMemoryResource::MEMORY_EXTERNAL | GPUMemoryResource::MEMORY_CUSTOM, "ClusterNativeBuffer");
   mResourceClusterNativeOutput = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersInputClusterNativeOutput, GPUMemoryResource::MEMORY_OUTPUT_FLAG | GPUMemoryResource::MEMORY_HOST | GPUMemoryResource::MEMORY_CUSTOM, "ClusterNativeOutput");
+  mResourceTRD = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersInputTRD, GPUMemoryResource::MEMORY_INPUT_FLAG | GPUMemoryResource::MEMORY_GPU | GPUMemoryResource::MEMORY_EXTERNAL | GPUMemoryResource::MEMORY_CUSTOM, "TRDInputBuffer");
 }
 
 void GPUTrackingInputProvider::SetMaxData(const GPUTrackingInOutPointers& io)

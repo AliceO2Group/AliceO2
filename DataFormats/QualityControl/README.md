@@ -7,7 +7,7 @@ Data formats for tagging good quality data for analysis.
 * Each detector has its own CCDB (QCDB) entry - TimeRangeFlagCollection
 * The CCDB Entry validity will be run or fill, depending on the final data taking granularity
 * Each entry can define sub ranges (TimeRangeFlags) of certain data characteristics (FlagReasons) inside the CCDB Entry validity
-* Flags are defined in a common store, they are used to derive the Data Tags - the final filters for good quality data during analysis.
+* Flags are defined in a CSV master file, they are used to derive the Data Tags - the final filters for good quality data during analysis.
 * Data Tag are stored as CCDB entries. They might require different detectors and may suppress different flags dependent on the analysis type.
 
 ## Implementation
@@ -21,6 +21,9 @@ id: 10
 name: Limited Acceptance
 bad: true
 ```
+The list of available FlagReasons is defined in [etc/flagReasons.csv](etc/flagReasons.csv), which is used to generate the corresponding list of methods in FlagReasonFactory.
+The existing flags should never be modified, except for marking them as obsolete.
+New flags may be added via pull requests if there is no flag which conveys a similar meaning.
 
 With [TimeRangeFlags](include/DataFormatsQualityControl/TimeRangeFlag.h) we can define the time range of a chosen FlagReason, add an additional comment and specify the source of this flag.
 For example:

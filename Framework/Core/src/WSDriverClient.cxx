@@ -111,8 +111,13 @@ void on_connect(uv_connect_t* connection, int status)
     state->pendingOffers.push_back(offer);
   });
 
-  client->observe("/quit", [state = context->state](std::string_view offer) {
+  client->observe("/quit", [state = context->state](std::string_view) {
     state->quitRequested = true;
+  });
+
+  client->observe("/restart", [state = context->state](std::string_view) {
+    state->nextFairMQState.emplace_back("RUN");
+    state->nextFairMQState.emplace_back("STOP");
   });
   auto clientContext = std::make_unique<o2::framework::DriverClientContext>(DriverClientContext{client->spec(), context->state});
   client->setDPLClient(std::make_unique<WSDPLClient>(connection->handle, std::move(clientContext), onHandshake, std::move(handler)));

@@ -111,9 +111,9 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     std::unique_ptr<GPUTPCGMMergedTrackHitXYZ[]> mergedTrackHitsXYZ;
     std::unique_ptr<GPUTRDTrackletWord[]> trdTracklets;
     std::unique_ptr<GPUTRDSpacePoint[]> trdSpacePoints;
-    std::unique_ptr<char[]> trdTrigRecMask;
     std::unique_ptr<float[]> trdTriggerTimes;
     std::unique_ptr<int[]> trdTrackletIdxFirst;
+    std::unique_ptr<char[]> trdTrigRecMask;
     std::unique_ptr<GPUTRDTrackGPU[]> trdTracks;
     std::unique_ptr<char[]> clusterNativeMC;
     std::unique_ptr<o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>> clusterNativeMCView;
@@ -157,8 +157,10 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int ForwardTPCDigits();
   int RunTPCTrackingSlices();
   int RunTPCTrackingMerger(bool synchronizeOutput = true);
+  template <int I>
   int RunTRDTracking();
-  int DoTRDGPUTracking();
+  template <int I, class T = GPUTRDTracker>
+  int DoTRDGPUTracking(T* externalInstance = nullptr);
   int RunTPCCompression();
   int RunTPCDecompression();
   int RunRefit();

@@ -131,7 +131,12 @@ void Digitizer::process(const std::vector<LabeledDigit>& labeledSDigits)
         }
         d.addLabel(label);
       }
-      mDigits.addDigit(id, d, mEventTime);
+      double digitTime = mEventTime;
+      if (preTriggerCollision()) {
+        digitTime = mEventTime - (mLiveTime + mBusyTime - mPreTriggerTime) + mAfterTriggerTime;
+      }
+
+      mDigits.addDigit(id, d, digitTime);
     }
   }
 
@@ -194,6 +199,11 @@ void Digitizer::setEventTime(double t)
   mPhase = ((int)(std::fmod(mEventTime, 100) / 25));
 
   mEventTimeOffset = ((int)((mEventTime - std::fmod(mEventTime, 100) + 0.1) / 100));
+
+  if (preTriggerCollision()) {
+    mEventTimeOffset = ((int)((mEventTime - std::fmod(mEventTime, 100) + 0.1) / 100)) - (mLiveTime + mBusyTime - mPreTriggerTime) / 100 + mAfterTriggerTime / 100;
+  }
+
   if (mPhase == 4) {
     mPhase = 0;
     mEventTimeOffset++;

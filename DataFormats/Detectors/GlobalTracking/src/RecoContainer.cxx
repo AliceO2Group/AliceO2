@@ -1109,8 +1109,11 @@ RecoContainer::GlobalIDSet RecoContainer::getSingleDetectorRefs(GTrackID gidx) c
     table[parent1.getRefITS().getSource()] = parent1.getRefITS();
     table[GTrackID::TPC] = parent1.getRefTPC();
     table[GTrackID::TRD] = gidx; // there is no standalone TRD track, so use the index for the ITSTPCTRD track array
-  }
-  if (src == GTrackID::ITSTPCTOF) {
+  } else if (src == GTrackID::TPCTRD) {
+    const auto& parent0 = getTPCTRDTrack<o2::trd::TrackTRD>(gidx);
+    table[GTrackID::TPC] = parent0.getRefGlobalTrackId();
+    table[GTrackID::TRD] = gidx; // there is no standalone TRD track, so use the index for the TPCTRD track array
+  } else if (src == GTrackID::ITSTPCTOF) {
     const auto& parent0 = getTOFMatch(gidx); // ITS/TPC : TOF
     const auto& parent1 = getTPCITSTrack(parent0.getTrackRef());
     table[GTrackID::ITSTPC] = parent0.getTrackRef();
@@ -1126,6 +1129,7 @@ RecoContainer::GlobalIDSet RecoContainer::getSingleDetectorRefs(GTrackID gidx) c
     table[GTrackID::TOF] = {unsigned(parent0.getIdxTOFCl()), GTrackID::TOF};
     table[GTrackID::TPC] = parent2.getRefTPC();
     table[parent2.getRefITS().getSource()] = parent2.getRefITS(); // ITS source might be an ITS track or ITSAB tracklet
+    table[GTrackID::TRD] = gidx;                                  // there is no standalone TRD track, so use the index for the ITSTPCTRDTOF track array
   } else if (src == GTrackID::TPCTOF) {
     const auto& parent0 = getTPCTOFMatch(gidx); // TPC : TOF
     table[GTrackID::TOF] = {unsigned(parent0.getIdxTOFCl()), GTrackID::TOF};
@@ -1167,6 +1171,9 @@ GTrackID RecoContainer::getTPCContributorGID(GTrackID gidx) const
   } else if (src == GTrackID::TPCTOF) {
     const auto& parent0 = getTPCTOFMatch(gidx); // TPC : TOF
     return parent0.getTrackRef();
+  } else if (src == GTrackID::TPCTRD) {
+    const auto& parent0 = getTPCTRDTrack<o2::trd::TrackTRD>(gidx);
+    return parent0.getRefGlobalTrackId();
   } else if (src == GTrackID::ITSTPC) {
     const auto& parent0 = getTPCITSTrack(gidx);
     return parent0.getRefTPC();

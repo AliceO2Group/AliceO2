@@ -26,7 +26,7 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-class GPUDisplayBackend;
+class GPUDisplayFrontend;
 class GPUReconstruction;
 
 class GPUSettings

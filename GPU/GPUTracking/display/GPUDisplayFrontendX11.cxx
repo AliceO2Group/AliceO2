@@ -9,14 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUDisplayBackendX11.cxx
+/// \file GPUDisplayFrontendX11.cxx
 /// \author David Rohr
 
 // GL EXT must be the first header
-#include "GPUDisplayExt.h"
+#include "GPUDisplayBackend.h"
 
 // Now the other headers
-#include "GPUDisplayBackendX11.h"
+#include "GPUDisplayFrontendX11.h"
 #include "GPULogging.h"
 #include <cstdio>
 #include <cstdlib>
@@ -26,7 +26,7 @@ typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXC
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-int GPUDisplayBackendX11::GetKey(int key)
+int GPUDisplayFrontendX11::GetKey(int key)
 {
   if (key == 65453) {
     return ('-');
@@ -127,7 +127,7 @@ int GPUDisplayBackendX11::GetKey(int key)
   return 0;
 }
 
-void GPUDisplayBackendX11::GetKey(XEvent& event, int& keyOut, int& keyPressOut)
+void GPUDisplayFrontendX11::GetKey(XEvent& event, int& keyOut, int& keyPressOut)
 {
   char tmpString[9];
   KeySym sym;
@@ -148,7 +148,7 @@ void GPUDisplayBackendX11::GetKey(XEvent& event, int& keyOut, int& keyPressOut)
   }
 }
 
-void GPUDisplayBackendX11::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
+void GPUDisplayFrontendX11::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
 {
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
   if (!fromBotton) {
@@ -168,7 +168,7 @@ void GPUDisplayBackendX11::OpenGLPrint(const char* s, float x, float y, float r,
 #endif
 }
 
-int GPUDisplayBackendX11::OpenGLMain()
+int GPUDisplayFrontendX11::FrontendMain()
 {
   XSetWindowAttributes windowAttributes;
   XVisualInfo* visualInfo = nullptr;
@@ -228,7 +228,7 @@ int GPUDisplayBackendX11::OpenGLMain()
     int context_attribs[] = {
       GLX_CONTEXT_MAJOR_VERSION_ARB, GL_MIN_VERSION_MAJOR,
       GLX_CONTEXT_MINOR_VERSION_ARB, GL_MIN_VERSION_MINOR,
-      GLX_CONTEXT_PROFILE_MASK_ARB, GPUCA_DISPLAY_OPENGL_CORE_FLAGS ? GLX_CONTEXT_CORE_PROFILE_BIT_ARB : GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
+      GLX_CONTEXT_PROFILE_MASK_ARB, mBackend->CoreProfile() ? GLX_CONTEXT_CORE_PROFILE_BIT_ARB : GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
       None};
     glxContext = glXCreateContextAttribsARB(mDisplay, fbconfig, nullptr, GL_TRUE, context_attribs);
   } else {
@@ -278,7 +278,7 @@ int GPUDisplayBackendX11::OpenGLMain()
 #endif
 
   // Init OpenGL...
-  if (GPUDisplayExtInit()) {
+  if (mBackend->ExtInit()) {
     fprintf(stderr, "Error initializing GL extension wrapper\n");
     return (-1);
   }
@@ -297,7 +297,7 @@ int GPUDisplayBackendX11::OpenGLMain()
     mGlXSwapIntervalEXT(mDisplay, glXGetCurrentDrawable(), 0);
   }
 
-  if (InitGL()) {
+  if (InitDisplay()) {
     return (1);
   }
 
@@ -424,7 +424,7 @@ int GPUDisplayBackendX11::OpenGLMain()
   glDeleteLists(mFontBase, 256);
   XUnloadFont(mDisplay, font_info->fid);
 #endif
-  ExitGL();
+  ExitDisplay();
   glXDestroyContext(mDisplay, glxContext);
   XFree(visualInfo);
   XDestroyWindow(mDisplay, mWindow);
@@ -437,7 +437,7 @@ int GPUDisplayBackendX11::OpenGLMain()
   return (0);
 }
 
-void GPUDisplayBackendX11::DisplayExit()
+void GPUDisplayFrontendX11::DisplayExit()
 {
   pthread_mutex_lock(&mSemLockExit);
   if (mDisplayRunning) {
@@ -449,7 +449,7 @@ void GPUDisplayBackendX11::DisplayExit()
   }
 }
 
-void GPUDisplayBackendX11::SwitchFullscreen(bool set)
+void GPUDisplayFrontendX11::SwitchFullscreen(bool set)
 {
   XEvent xev;
   memset(&xev, 0, sizeof(xev));
@@ -463,7 +463,7 @@ void GPUDisplayBackendX11::SwitchFullscreen(bool set)
   XSendEvent(mDisplay, DefaultRootWindow(mDisplay), False, SubstructureNotifyMask, &xev);
 }
 
-void GPUDisplayBackendX11::ToggleMaximized(bool set)
+void GPUDisplayFrontendX11::ToggleMaximized(bool set)
 {
   XEvent xev;
   memset(&xev, 0, sizeof(xev));
@@ -477,17 +477,17 @@ void GPUDisplayBackendX11::ToggleMaximized(bool set)
   XSendEvent(mDisplay, DefaultRootWindow(mDisplay), False, SubstructureNotifyMask, &xev);
 }
 
-void GPUDisplayBackendX11::SetVSync(bool enable)
+void GPUDisplayFrontendX11::SetVSync(bool enable)
 {
   if (vsync_supported) {
     mGlXSwapIntervalEXT(mDisplay, glXGetCurrentDrawable(), (int)enable);
   }
 }
 
-int GPUDisplayBackendX11::StartDisplay()
+int GPUDisplayFrontendX11::StartDisplay()
 {
   static pthread_t hThread;
-  if (pthread_create(&hThread, nullptr, OpenGLWrapper, this)) {
+  if (pthread_create(&hThread, nullptr, FrontendThreadWrapper, this)) {
     GPUError("Coult not Create GL Thread...");
     return (1);
   }

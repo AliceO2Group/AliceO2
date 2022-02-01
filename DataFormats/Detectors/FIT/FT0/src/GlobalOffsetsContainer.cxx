@@ -9,7 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "Framework/Logger.h"
+#include "MathUtils/fit.h"
+#include "CommonUtils/MemFileHelper.h"
+#include "CCDB/CcdbApi.h"
+#include "DetectorsCalibration/Utils.h"
 #include "DataFormatsFT0/GlobalOffsetsContainer.h"
+#include "DataFormatsFT0/GlobalOffsetsInfoObject.h"
 #include <numeric>
 #include <algorithm>
 #include "MathUtils/fit.h"
@@ -17,73 +23,60 @@
 #include <gsl/span>
 
 using namespace o2::ft0;
-
-GlobalOffsetsContainer::GlobalOffsetsContainer(std::size_t minEntries)
-  : mMinEntries(minEntries)
-{
-  TString histnames[3] = {"hT0A", "hT0C", "hT0AC"};
-  for (int ihist = 0; ihist < 3; ++ihist) {
-    mHistogram[ihist] = new TH1F(histnames[ihist].Data(), histnames[ihist].Data(), NUMBER_OF_HISTOGRAM_BINS, -HISTOGRAM_RANGE, HISTOGRAM_RANGE);
-  }
-}
+using o2::math_utils::fitGaus;
 
 bool GlobalOffsetsContainer::hasEnoughEntries() const
 {
-  LOG(debug) << "@@@ GlobalOffsetsContainer::hasEnoughEntries " << *std::min_element(mEntriesCollTime.begin(), mEntriesCollTime.end());
-  return *std::min_element(mEntriesCollTime.begin(), mEntriesCollTime.end()) > mMinEntries;
+  return mEntries < mMinEntries;
 }
-void GlobalOffsetsContainer::fill(const gsl::span<const o2::ft0::RecoCalibInfoObject>& data)
+void GlobalOffsetsContainer::fill(const gsl::span<const GlobalOffsetsInfoObject>& data)
 {
+  // fill container
+
   for (auto& entry : data) {
-    if (std::abs(entry.getT0A()) < HISTOGRAM_RANGE && std::abs(entry.getT0C()) < HISTOGRAM_RANGE && std::abs(entry.getT0AC()) < HISTOGRAM_RANGE) {
-      mHistogram[0]->Fill(entry.getT0A());
-      mHistogram[1]->Fill(entry.getT0C());
-      mHistogram[2]->Fill(entry.getT0AC());
-      ++mEntriesCollTime[0];
-      ++mEntriesCollTime[1];
-      ++mEntriesCollTime[2];
-    } else {
-      LOG(debug) << "empty  data A " << entry.getT0A() << " C " << entry.getT0C();
+    if (std::abs(entry.getT0AC()) < RANGE) {
+      auto time = entry.getT0AC();
+      time += RANGE;
+      mHisto[(time)]++;
+      mEntries++;
     }
   }
 }
-
 void GlobalOffsetsContainer::merge(GlobalOffsetsContainer* prev)
 {
-  LOG(debug) << "@@@ GlobalOffsetsContainer::merge";
-  for (int ihist = 0; ihist < 3; ++ihist) {
-    mHistogram[ihist]->Add(prev->mHistogram[ihist], mHistogram[ihist], 1, 1);
+  // merge data of 2 slots
+  for (int i = mHisto.size(); i--;) {
+    mHisto[i] += prev->mHisto[i];
   }
+  mEntries += prev->mEntries;
 }
 
-int16_t GlobalOffsetsContainer::getMeanGaussianFitValue(std::size_t side) const
+int GlobalOffsetsContainer::getMeanGaussianFitValue() const
 {
-
-  //  static constexpr size_t MEAN_VALUE_INDEX_IN_OUTPUT_VECTOR = 1;
-
-  if (0 == mHistogram[side]->GetEntries()) {
+  if (!hasEnoughEntries()) {
     return 0;
   }
-
-  TFitResultPtr returnCode = mHistogram[side]->Fit("gaus", "SQ");
-  if (returnCode < 0) {
-    LOG(error) << "Gaussian fit error!";
+  if (mEntries == 0) {
     return 0;
   }
-  double meanfit = 0;
-  if ((Int_t)returnCode == 0) {
-    meanfit = returnCode->Parameter(1);
+  float sum = 0;
+  for (int ic = 0; ic < NBINS; ic++) {
+    sum += float(ic - RANGE) * float(mHisto[ic]);
+    //    LOG(info)<<" histo "<<ic<<" "<< float(mHisto[ic]);
   }
-  LOG(debug) << " @@@ MeanGaussianFitValue " << meanfit;
-  return meanfit;
+  std::array<double, 3> fitValues;
+  double fitres = fitGaus(NBINS, mHisto.data(), -RANGE, RANGE, fitValues);
+  if (fitres >= 0) {
+    LOG(info) << "Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2] << " size " << mEntries << " mean " << sum / mEntries;
+    return (static_cast<int>(std::round(fitValues[1])));
+  } else {
+    LOG(error) << "Fit failed with result = " << fitres;
+    return 0;
+  }
 }
 
 void GlobalOffsetsContainer::print() const
 {
-  for (int ihist = 0; ihist < 3; ++ihist) {
-    LOG(info) << "Container keep data for global offsets calibration:";
-    LOG(info) << "Gaussian mean time A side " << getMeanGaussianFitValue(0) << " based on" << mEntriesCollTime[0] << " entries";
-    LOG(info) << "Gaussian mean time C side " << getMeanGaussianFitValue(1) << " based on" << mEntriesCollTime[1] << " entries";
-    LOG(info) << "Gaussian mean time AC side " << getMeanGaussianFitValue(2) << " based on" << mEntriesCollTime[2] << " entries";
-  }
+  LOG(info) << "Container keep data for LHC phase calibration:";
+  LOG(info) << "Gaussian mean time AC side " << getMeanGaussianFitValue() << " based on" << mEntries << " entries";
 }

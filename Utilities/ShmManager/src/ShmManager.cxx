@@ -28,7 +28,7 @@
 #include <string>
 #include <thread>
 
-#if !defined(__MACH__) && defined(__APPLE__)
+#if !defined(__MACH__) && !defined(__APPLE__)
 #include <syscall.h>
 #define MPOL_DEFAULT 0
 #define MPOL_PREFERRED 1
@@ -42,11 +42,17 @@ using namespace boost::program_options;
 namespace
 {
 volatile sig_atomic_t gStopping = 0;
+volatile sig_atomic_t gResetContent = 0;
 }
 
 void signalHandler(int /* signal */)
 {
   gStopping = 1;
+}
+
+void resetContentHandler(int /* signal */)
+{
+  gResetContent = 1;
 }
 
 struct ShmManager {
@@ -70,7 +76,7 @@ struct ShmManager {
       uint16_t id = stoi(conf.at(0));
       uint64_t size = stoull(conf.at(1));
 
-#if !defined(__MACH__) && defined(__APPLE__)
+#if !defined(__MACH__) && !defined(__APPLE__)
       int numaid = stoi(conf.at(2));
       if (numaid == -2) {
         LOG(info) << "Setting memory allocation to process default";
@@ -112,7 +118,7 @@ struct ShmManager {
       uint16_t id = stoi(conf.at(0));
       uint64_t size = stoull(conf.at(1));
 
-#if !defined(__MACH__) && defined(__APPLE__)
+#if !defined(__MACH__) && !defined(__APPLE__)
       int numaid = stoi(conf.at(2));
       if (numaid == -2) {
         LOG(info) << "Setting memory allocation to process default";
@@ -170,6 +176,7 @@ int main(int argc, char** argv)
 
   signal(SIGINT, signalHandler);
   signal(SIGTERM, signalHandler);
+  signal(SIGUSR1, resetContentHandler);
 
   try {
     bool nozero = false;
@@ -199,9 +206,23 @@ int main(int argc, char** argv)
 
     ShmManager shmManager(shmId, segments, regions, !nozero);
 
+    std::thread resetContentThread([&shmManager]() {
+      while (!gStopping) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        if (gResetContent == 1) {
+          LOG(info) << "Resetting content for shmId " << shmManager.shmId;
+          shmManager.ResetContent();
+          gResetContent = 0;
+          LOG(info) << "Done resetting content for shmId " << shmManager.shmId;
+        }
+      }
+    });
+
     while (!gStopping) {
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
+
+    resetContentThread.join();
 
     LOG(info) << "stopping.";
   } catch (exception& e) {

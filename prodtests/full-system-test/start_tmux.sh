@@ -48,14 +48,23 @@ if [ "0$FST_TMUX_LOGPREFIX" != "0" ]; then
   LOGCMD1=" &> ${FST_TMUX_LOGPREFIX}_1.log"
 fi
 
-rm -f /dev/shm/*fmq*
-if [[ `ls /dev/shm/*fmq* 2> /dev/null | wc -l` != "0" ]]; then
-  echo "FMQ SHM files left which cannot be deleted, please clean up!"
-  exit 1
+FST_SLEEP0=0
+FST_SLEEP1=0
+FST_SLEEP2=45
+if [[ -z $SHM_MANAGER_SHMID ]]; then
+  rm -f /dev/shm/*fmq*
+  if [[ `ls /dev/shm/*fmq* 2> /dev/null | wc -l` != "0" ]]; then
+    echo "FMQ SHM files left which cannot be deleted, please clean up!"
+    exit 1
+  fi
+else
+  FST_SLEEP0=0
+  FST_SLEEP1=0
+  FST_SLEEP2=30
 fi
 
 tmux -L FST \
-    new-session  "sleep  0; NUMAID=0 $MYDIR/dpl-workflow.sh $LOGCMD0; $ENDCMD" \; \
-    split-window "sleep 45; NUMAID=1 $MYDIR/dpl-workflow.sh $LOGCMD1; $ENDCMD" \; \
-    split-window "sleep 90; SEVERITY=debug numactl --interleave=all $MYDIR/$CMD; $KILLCMD $ENDCMD" \; \
+    new-session  "sleep $FST_SLEEP0; NUMAID=0 $MYDIR/dpl-workflow.sh $LOGCMD0; $ENDCMD" \; \
+    split-window "sleep $FST_SLEEP1; NUMAID=1 $MYDIR/dpl-workflow.sh $LOGCMD1; $ENDCMD" \; \
+    split-window "sleep $FST_SLEEP2; SEVERITY=debug numactl --interleave=all $MYDIR/$CMD; $KILLCMD $ENDCMD" \; \
     select-layout even-vertical

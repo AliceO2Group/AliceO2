@@ -230,9 +230,15 @@ void GPUChainTracking::PrintOutputStat()
     int nTRDTracks = 0;
     int nTRDTracklets = 0;
     for (unsigned int k = 0; k < mIOPtrs.nTRDTracks; k++) {
-      auto& trk = mIOPtrs.trdTracks[k];
-      nTRDTracklets += trk.getNtracklets();
-      nTRDTracks += trk.getNtracklets() != 0;
+      if (mIOPtrs.trdTracksO2) {
+        auto& trk = mIOPtrs.trdTracksO2[k];
+        nTRDTracklets += trk.getNtracklets();
+        nTRDTracks += trk.getNtracklets() != 0;
+      } else {
+        auto& trk = mIOPtrs.trdTracks[k];
+        nTRDTracklets += trk.getNtracklets();
+        nTRDTracks += trk.getNtracklets() != 0;
+      }
     }
     snprintf(trdText, 1024, " - TRD Tracker reconstructed %d tracks (%d tracklets)", nTRDTracks, nTRDTracklets);
   }

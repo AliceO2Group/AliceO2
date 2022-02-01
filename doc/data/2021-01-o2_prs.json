@@ -1845,62 +1845,62 @@
                 },
                 {
                   "node": {
-                    "path": "GPU/GPUTracking/display/GPUDisplayBackend.cxx"
+                    "path": "GPU/GPUTracking/display/GPUDisplayFrontend.cxx"
                   }
                 },
                 {
                   "node": {
-                    "path": "GPU/GPUTracking/display/GPUDisplayBackend.h"
+                    "path": "GPU/GPUTracking/display/GPUDisplayFrontend.h"
                   }
                 },
                 {
                   "node": {
-                    "path": "GPU/GPUTracking/display/GPUDisplayBackendGlfw.cxx"
+                    "path": "GPU/GPUTracking/display/GPUDisplayFrontendGlfw.cxx"
                   }
                 },
                 {
                   "node": {
-                    "path": "GPU/GPUTracking/display/GPUDisplayBackendGlfw.h"
+                    "path": "GPU/GPUTracking/display/GPUDisplayFrontendGlfw.h"
                   }
                 },
                 {
                   "node": {
-                    "path": "GPU/GPUTracking/display/GPUDisplayBackendGlut.cxx"
+                    "path": "GPU/GPUTracking/display/GPUDisplayFrontendGlut.cxx"
                   }
                 },
                 {
                   "node": {
-                    "path": "GPU/GPUTracking/display/GPUDisplayBackendGlut.h"
+                    "path": "GPU/GPUTracking/display/GPUDisplayFrontendGlut.h"
                   }
                 },
                 {
                   "node": {
-                    "path": "GPU/GPUTracking/display/GPUDisplayBackendNone.cxx"
+                    "path": "GPU/GPUTracking/display/GPUDisplayFrontendNone.cxx"
                   }
                 },
                 {
                   "node": {
-                    "path": "GPU/GPUTracking/display/GPUDisplayBackendNone.h"
+                    "path": "GPU/GPUTracking/display/GPUDisplayFrontendNone.h"
                   }
                 },
                 {
                   "node": {
-                    "path": "GPU/GPUTracking/display/GPUDisplayBackendWindows.cxx"
+                    "path": "GPU/GPUTracking/display/GPUDisplayFrontendWindows.cxx"
                   }
                 },
                 {
                   "node": {
-                    "path": "GPU/GPUTracking/display/GPUDisplayBackendWindows.h"
+                    "path": "GPU/GPUTracking/display/GPUDisplayFrontendWindows.h"
                   }
                 },
                 {
                   "node": {
-                    "path": "GPU/GPUTracking/display/GPUDisplayBackendX11.cxx"
+                    "path": "GPU/GPUTracking/display/GPUDisplayFrontendX11.cxx"
                   }
                 },
                 {
                   "node": {
-                    "path": "GPU/GPUTracking/display/GPUDisplayBackendX11.h"
+                    "path": "GPU/GPUTracking/display/GPUDisplayFrontendX11.h"
                   }
                 },
                 {
@@ -4470,7 +4470,7 @@
                 },
                 {
                   "node": {
-                    "path": "GPU/GPUTracking/display/GPUDisplayBackendGlfw.cxx"
+                    "path": "GPU/GPUTracking/display/GPUDisplayFrontendGlfw.cxx"
                   }
                 },
                 {

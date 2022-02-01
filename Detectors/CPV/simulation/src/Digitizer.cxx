@@ -36,11 +36,6 @@ void Digitizer::init()
     LOG(info) << "[CPVDigitizer] No reading calibration from ccdb requested, set default";
   } else {
     auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
-    bool isCcdbReachable = ccdbMgr.isHostReachable(); //if host is not reachable we can use only dummy calibration
-    if (!isCcdbReachable) {
-      LOG(fatal) << "[CPVDigitizer] CCDB Host is not reachable!!!";
-      return;
-    }
     ccdbMgr.setCaching(true);                     //make local cache of remote objects
     ccdbMgr.setLocalObjectValidityChecking(true); //query objects from remote site only when local one is not valid
     //read calibration from ccdb (for now do it only at the beginning of dataprocessing)
