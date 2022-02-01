@@ -46,7 +46,20 @@ class TrackerDPL : public o2::framework::Task
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
   std::unique_ptr<o2::mft::Tracker<TrackLTF>> mTracker = nullptr;
   std::unique_ptr<o2::mft::Tracker<TrackLTFL>> mTrackerL = nullptr;
-  TStopwatch mTimer;
+  enum TimerIDs { SWTot,
+                  SWLoadData,
+                  SWFindLTFTracks,
+                  SWFindCATracks,
+                  SWFitTracks,
+                  SWComputeLabels,
+                  NStopWatches };
+  static constexpr std::string_view TimerName[] = {"Total",
+                                                   "LoadData",
+                                                   "FindLTFTracks",
+                                                   "FindCATracks",
+                                                   "FitTracks",
+                                                   "ComputeLabels"};
+  TStopwatch mTimer[NStopWatches];
 };
 
 /// create a processor spec
