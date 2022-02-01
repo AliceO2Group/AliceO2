@@ -309,7 +309,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
     for (int ti = start; ti < end; ti++) {
       auto& trackIndex = GIndices[ti];
       if (GIndex::includesSource(src, mInputSources)) {
-        if (src == GIndex::Source::MFT) { // MFT tracks are treated separately since they are stored in a different table
+        if (src == GIndex::Source::MFT) {                                                                // MFT tracks are treated separately since they are stored in a different table
           if (trackIndex.isAmbiguous() && mGIDToTableMFTID.find(trackIndex) != mGIDToTableMFTID.end()) { // was it already stored ?
             continue;
           }
@@ -701,29 +701,29 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
         flags |= o2::aod::mcparticle::enums::PhysicalPrimary; // mark as physical primary
       }
       float weight = 0.f;
+      std::vector<int> mothers;
       int mcMother0 = mcParticles[particle].getMotherTrackId();
       auto item = mToStore.find(Triplet_t(source, event, mcMother0));
-      int mother0 = -1;
       if (item != mToStore.end()) {
-        mother0 = item->second;
+        mothers.push_back(item->second);
       }
       int mcMother1 = mcParticles[particle].getSecondMotherTrackId();
-      int mother1 = -1;
       item = mToStore.find(Triplet_t(source, event, mcMother1));
       if (item != mToStore.end()) {
-        mother1 = item->second;
+        mothers.push_back(item->second);
       }
+      int daughters[2] = {-1, -1}; // slice
       int mcDaughter0 = mcParticles[particle].getFirstDaughterTrackId();
-      int daughter0 = -1;
       item = mToStore.find(Triplet_t(source, event, mcDaughter0));
       if (item != mToStore.end()) {
-        daughter0 = item->second;
+        daughters[0] = item->second;
       }
       int mcDaughterL = mcParticles[particle].getLastDaughterTrackId();
-      int daughterL = -1;
       item = mToStore.find(Triplet_t(source, event, mcDaughterL));
       if (item != mToStore.end()) {
-        daughterL = item->second;
+        daughters[1] = item->second;
+      } else {
+        daughters[1] = daughters[0];
       }
       auto pX = (float)mcParticles[particle].Px();
       auto pY = (float)mcParticles[particle].Py();
@@ -734,10 +734,8 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
                         mcParticles[particle].GetPdgCode(),
                         statusCode,
                         flags,
-                        mother0,
-                        mother1,
-                        daughter0,
-                        daughterL,
+                        mothers,
+                        daughters,
                         truncateFloatFraction(weight, mMcParticleW),
                         truncateFloatFraction(pX, mMcParticleMom),
                         truncateFloatFraction(pY, mMcParticleMom),
@@ -789,7 +787,7 @@ void AODProducerWorkflowDPL::fillMCTrackLabelsTable(const MCTrackLabelCursorType
           if (!needToStore(src == GIndex::Source::MFT ? mGIDToTableMFTID : mGIDToTableFwdID)) {
             continue;
           }
-          if (mcTruth.isValid()) {                                                                             // if not set, -1 will be stored
+          if (mcTruth.isValid()) { // if not set, -1 will be stored
             labelHolder.labelID = mToStore.at(Triplet_t(mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID()));
           }
           if (mcTruth.isFake()) {
@@ -1178,7 +1176,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto& mcCollisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISION"});
   auto& mcMFTTrackLabelBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCMFTTRACKLABEL"});
   auto& mcFwdTrackLabelBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCFWDTRACKLABEL"});
-  auto& mcParticlesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE"});
+  auto& mcParticlesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE_001"});
   auto& mcTrackLabelBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCTRACKLABEL"});
   auto& mftTracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MFTTRACK"});
   auto& tracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACK"});
@@ -1204,7 +1202,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto mcCollisionsCursor = mcCollisionsBuilder.cursor<o2::aod::McCollisions>();
   auto mcMFTTrackLabelCursor = mcMFTTrackLabelBuilder.cursor<o2::aod::McMFTTrackLabels>();
   auto mcFwdTrackLabelCursor = mcFwdTrackLabelBuilder.cursor<o2::aod::McFwdTrackLabels>();
-  auto mcParticlesCursor = mcParticlesBuilder.cursor<o2::aodproducer::MCParticlesTable>();
+  auto mcParticlesCursor = mcParticlesBuilder.cursor<o2::aod::StoredMcParticles_001>();
   auto mcTrackLabelCursor = mcTrackLabelBuilder.cursor<o2::aod::McTrackLabels>();
   auto mftTracksCursor = mftTracksBuilder.cursor<o2::aodproducer::MFTTracksTable>();
   auto tracksCovCursor = tracksCovBuilder.cursor<o2::aodproducer::TracksCovTable>();
@@ -1939,7 +1937,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   outputs.emplace_back(OutputLabel{"O2mccollisionlabel"}, "AOD", "MCCOLLISIONLABEL", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2mcmfttracklabel"}, "AOD", "MCMFTTRACKLABEL", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2mcfwdtracklabel"}, "AOD", "MCFWDTRACKLABEL", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2mcparticle"}, "AOD", "MCPARTICLE", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2mcparticle_001"}, "AOD", "MCPARTICLE_001", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2mctracklabel"}, "AOD", "MCTRACKLABEL", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2mfttrack"}, "AOD", "MFTTRACK", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2track"}, "AOD", "TRACK", 0, Lifetime::Timeframe);
