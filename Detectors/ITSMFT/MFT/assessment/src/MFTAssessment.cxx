@@ -22,6 +22,7 @@
 
 using namespace o2::mft;
 using o2::itsmft::CompClusterExt;
+o2::itsmft::ChipMappingMFT mMFTMapping;
 
 //__________________________________________________________
 void MFTAssessment::init(bool finalizeAnalysis)
@@ -30,7 +31,6 @@ void MFTAssessment::init(bool finalizeAnalysis)
   createHistos();
   //get geometry
   o2::base::GeometryManager::loadGeometry("", true);
-  geom = o2::mft::GeometryTGeo::Instance();
 
   //load the cluster dictionary
   std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
@@ -368,10 +368,12 @@ void MFTAssessment::runASyncQC(o2::framework::ProcessingContext& ctx)
 
       auto clsEntry = mMFTTrackClusIdx[offset + icls];
       auto globalCluster = mMFTClustersGlobal[clsEntry];
+      //auto oneCluster = mMFTClusters[clsEntry];
 
       mMFTClsOfTracksZ->Fill(globalCluster.getZ());
 
-      int layer = geom->getLayer(globalCluster.getSensorID());
+      auto layer = mMFTMapping.ChipID2Layer[globalCluster.getSensorID()];
+
       mMFTClsOfTracksXYinLayer[layer]->Fill(globalCluster.getX(), globalCluster.getY());
 
       int clsMFTdiskID = layer / 2;

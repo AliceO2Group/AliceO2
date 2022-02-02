@@ -85,7 +85,7 @@ class MFTAssessment
 
  private:
   o2::itsmft::TopologyDictionary mDictionary; // cluster patterns dictionary
-  o2::mft::GeometryTGeo* geom;
+  //o2::mft::GeometryTGeo* geom;
 
   gsl::span<const o2::mft::TrackMFT> mMFTTracks;
   gsl::span<const o2::itsmft::ROFRecord> mMFTTracksROF;
