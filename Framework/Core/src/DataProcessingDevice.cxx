@@ -709,6 +709,11 @@ void DataProcessingDevice::Run()
     }
     FrameMark;
   }
+  /// Cleanup messages which are still pending on exit.
+  for (size_t ci = 0; ci < mDeviceContext.spec->inputChannels.size(); ++ci) {
+    auto& info = mDeviceContext.state->inputChannelInfos[ci];
+    info.parts.fParts.clear();
+  }
 }
 
 /// We drive the state loop ourself so that we will be able to support
