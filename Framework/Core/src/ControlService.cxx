@@ -78,4 +78,11 @@ void ControlService::notifyStreamingState(StreamingState state)
   mDriverClient.flushPending();
 }
 
+void ControlService::notifyDeviceState(std::string currentState)
+{
+  std::scoped_lock lock(mMutex);
+  mDriverClient.tell(fmt::format("CONTROL_ACTION: NOTIFY_DEVICE_STATE {}", currentState));
+  mDriverClient.flushPending();
+}
+
 } // namespace o2::framework
