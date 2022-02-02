@@ -52,6 +52,7 @@ struct ChipStat {
     APE_FSM_ERROR,                // FSM error (FATAL, SEU error, reached an unknown state)
     APE_OCCUPANCY_RATE_LIMIT,     // pending detector events limit (FATAL)
     APE_OCCUPANCY_RATE_LIMIT_2,   // pending detector events limit in packager(FATAL)
+    WrongDColOrder,               // DColumns non increasing
     NErrorsDefined
   };
 
@@ -78,7 +79,9 @@ struct ChipStat {
     "APE_LANE_FIFO_OVERFLOW_ERROR",
     "APE_FSM_ERROR",
     "APE_OCCUPANCY_RATE_LIMIT",
-    "APE_OCCUPANCY_RATE_LIMIT_2"};
+    "APE_OCCUPANCY_RATE_LIMIT_2",
+    "DColumns non-increasing" // DColumns non increasing
+  };
 
   uint16_t feeID = -1;
   size_t nHits = 0;

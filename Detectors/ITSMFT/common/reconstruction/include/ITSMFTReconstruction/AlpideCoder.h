@@ -124,6 +124,7 @@ class AlpideCoder
     // read record for single non-empty chip, updating on change module and cycle.
     // return number of records filled (>0), EOFFlag or Error
     //
+    bool needSorting = false; // if DColumns order is wrong, do explicit reordering
     auto roErrHandler = [&chipData](uint8_t roErr) {
 #ifdef ALPIDE_DECODING_STAT
       if (roErr == MaskErrBusyViolation) {
@@ -235,6 +236,12 @@ class AlpideCoder
           bool rightC = (row & 0x1) ? !(pixID & 0x1) : (pixID & 0x1); // true for right column / lalse for left
           // if we start new double column, transfer the hits accumulated in the right column buffer of prev. double column
           if (colD != colDPrev) {
+            if (colD < colDPrev && colDPrev != 0xffff) {
+              needSorting = true;
+#ifdef ALPIDE_DECODING_STAT
+              chipData.setError(ChipStat::WrongDColOrder);
+#endif
+            }
             colDPrev++;
             for (int ihr = 0; ihr < nRightCHits; ihr++) {
               addHit(chipData, rightColHits[ihr], colDPrev);
@@ -376,6 +383,20 @@ class AlpideCoder
 #endif
       return unexpectedEOF(fmt::format("Unknown word 0x{:x} [expectation = 0x{:x}]", int(dataC), int(expectInp))); // error
     }
+
+    if (needSorting && chipData.getData().size()) { // d.columns were in a wrong order, need to sort the data
+      auto& pixData = chipData.getData();
+      std::sort(pixData.begin(), pixData.end(),
+                [](PixelData& a, PixelData& b) { return a.getCol() < b.getCol() || (a.getCol() == b.getCol() && a.getRowDirect() < b.getRowDirect()); });
+      // if the columns ordering was wrong, detection of same pixel fired twice might have failed, make sure there are no duplicates
+      auto currPix = pixData.begin(), prevPix = currPix++;
+      while (currPix != pixData.end()) {
+        if (prevPix->getCol() == currPix->getCol() && prevPix->getRowDirect() == currPix->getRowDirect()) {
+          pixData.erase(prevPix);
+        }
+        prevPix = currPix++;
+      }
+    }
     return chipData.getData().size();
   }
 
@@ -412,7 +433,7 @@ class AlpideCoder
         return;
       }
     }
-
+    LOGP(debug, "Add hit#{} at r:{}/c:{} of chip:{}", chipData.getData().size(), row, col, chipData.getChipID());
     chipData.getData().emplace_back(row, col);
   }
 
