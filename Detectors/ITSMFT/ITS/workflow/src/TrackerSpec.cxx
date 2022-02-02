@@ -89,6 +89,7 @@ void TrackerDPL::init(InitContext& ic)
     std::vector<MemoryParameters> memParams;
 
     mRunVertexer = true;
+    mCosmicsProcessing = false;
     if (mMode == "async") {
 
       trackParams.resize(2);
@@ -122,6 +123,7 @@ void TrackerDPL::init(InitContext& ic)
       trackParams.resize(1);
       LOG(info) << "Initializing tracker in sync. phase reconstruction with " << trackParams.size() << " passes";
     } else if (mMode == "cosmics") {
+      mCosmicsProcessing = true;
       mRunVertexer = false;
       trackParams.resize(1);
       memParams.resize(1);
@@ -224,6 +226,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   pattIt = patterns.begin();
   std::vector<int> savedROF;
   auto logger = [&](std::string s) { LOG(info) << s; };
+  auto fatalLogger = [&](std::string s) { LOG(fatal) << s; };
   float vertexerElapsedTime{0.f};
   int nclUsed = 0;
 
@@ -288,8 +291,12 @@ void TrackerDPL::run(ProcessingContext& pc)
   LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} clusters in {} ROFs", vertexerElapsedTime, nclUsed, rofspan.size());
   LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", mTimeFrame.getBeamX(), mTimeFrame.getBeamY());
 
+  if (mCosmicsProcessing && nclUsed > 1500 * rofspan.size()) {
+    LOG(fatal) << "Cosmics processing was requested with an average detector occupancy exceeding 1.e-7, aborting.";
+  }
+
   mTimeFrame.setMultiplicityCutMask(processingMask);
-  mTracker->clustersToTracks(logger);
+  mTracker->clustersToTracks(logger, fatalLogger);
   if (mTimeFrame.hasBogusClusters()) {
     LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", mTimeFrame.hasBogusClusters());
   }
