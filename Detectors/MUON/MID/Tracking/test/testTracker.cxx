@@ -31,6 +31,7 @@
 #include "MIDBase/MpArea.h"
 #include "MIDTestingSimTools/TrackGenerator.h"
 #include "MIDTracking/Tracker.h"
+#include "MIDTracking/HitMapBuilder.h"
 
 namespace o2
 {
@@ -51,8 +52,9 @@ struct Helper {
   TrackGenerator trackGen;
   Tracker tracker;
   Tracker trackerAll;
+  HitMapBuilder hitMapBuilder;
 
-  Helper() : mapping(), geoTrans(createDefaultTransformer()), hitFinder(geoTrans), trackGen(), tracker(geoTrans), trackerAll(geoTrans)
+  Helper() : mapping(), geoTrans(createDefaultTransformer()), hitFinder(geoTrans), trackGen(), tracker(geoTrans), trackerAll(geoTrans), hitMapBuilder(geoTrans)
   {
     tracker.init();
     trackerAll.init(true);
@@ -81,6 +83,7 @@ TrackClusters getTrackClusters(const Track& track)
         continue;
       }
       cl.deId = deId;
+      cl.zCoor = 0.;
       area = helper.mapping.stripByLocation(stripIndex.strip, 0, stripIndex.line, stripIndex.column, deId);
       cl.yCoor = area.getCenterY();
       cl.yErr = area.getHalfSizeY() / std::sqrt(3.);
@@ -88,6 +91,7 @@ TrackClusters getTrackClusters(const Track& track)
       area = helper.mapping.stripByLocation(stripIndex.strip, 1, stripIndex.line, stripIndex.column, deId);
       cl.xCoor = area.getCenterX();
       cl.xErr = area.getHalfSizeX() / std::sqrt(3.);
+      cl.setBothFired();
       trCl.clusters.push_back(cl);
       isFired = true;
     } // loop on fired pos
@@ -222,5 +226,20 @@ BOOST_DATA_TEST_CASE(TestAlgorithms, boost::unit_test::data::xrange(2, 3), nTrac
   }
 }
 
+BOOST_AUTO_TEST_CASE(TestHitMapBuilder)
+{
+  for (int ievt = 0; ievt < 100; ++ievt) {
+    std::vector<TrackClusters> trackClusters = getTrackClusters(1);
+    for (auto& trCl : trackClusters) {
+      // Run tracker algorithm
+      helper.tracker.process(trCl.clusters);
+      std::vector<Track> tracks = helper.tracker.getTracks();
+      for (auto& track : tracks) {
+        helper.hitMapBuilder.buildTrackInfo(track, trCl.clusters);
+        BOOST_TEST(track.getEfficiencyFlag() >= 1);
+      }
+    }
+  }
+}
 } // namespace mid
 } // namespace o2
