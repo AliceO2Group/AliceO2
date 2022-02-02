@@ -121,9 +121,9 @@ class Digitizer : public TObject
   uint32_t mEventROFrameMax = 0;          ///< highest RO frame forfor processed events (w/o automatic noise ROFs)
 
   int mNumberOfChips;
-  o2::itsmft::AlpideSimResponse* mAlpSimRespMFT = 0;
-  o2::itsmft::AlpideSimResponse* mAlpSimRespIB = 0;
-  o2::itsmft::AlpideSimResponse* mAlpSimRespOB = 0;
+  o2::itsmft::AlpideSimResponse* mAlpSimRespMFT = nullptr;
+  o2::itsmft::AlpideSimResponse* mAlpSimRespIB = nullptr;
+  o2::itsmft::AlpideSimResponse* mAlpSimRespOB = nullptr;
   o2::itsmft::AlpideSimResponse mAlpSimResp[2]; // simulated response
 
   const o2::itsmft::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
