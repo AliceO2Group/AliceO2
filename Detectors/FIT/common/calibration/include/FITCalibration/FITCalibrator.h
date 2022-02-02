@@ -20,6 +20,7 @@
 #include "FITCalibration/FITCalibrationApi.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "Rtypes.h"
+#include <type_traits>
 
 namespace o2::fit
 {
@@ -67,14 +68,14 @@ FIT_CALIBRATOR_TYPE::FITCalibrator(unsigned int minimumEntries)
 FIT_CALIBRATOR_TEMPLATES
 bool FIT_CALIBRATOR_TYPE::hasEnoughData(const Slot& slot) const
 {
-  LOG(debug) << "FIT_CALIBRATOR_TYPE::hasEnoughData";
+  LOG(info) << "FIT_CALIBRATOR_TYPE::hasEnoughData";
   return slot.getContainer()->hasEnoughEntries();
 }
 
 FIT_CALIBRATOR_TEMPLATES
 void FIT_CALIBRATOR_TYPE::initOutput()
 {
-  LOG(debug) << "FIT_CALIBRATOR_TYPE::initOutput";
+  LOG(info) << "FIT_CALIBRATOR_TYPE::initOutput";
   mStoredCalibrationObjects.clear();
 }
 
@@ -82,10 +83,14 @@ FIT_CALIBRATOR_TEMPLATES
 void FIT_CALIBRATOR_TYPE::finalizeSlot(Slot& slot)
 {
   static std::map<std::string, std::string> md;
-  const auto& container = slot.getContainer();
+  auto* container = slot.getContainer();
   static const double TFlength = 1E-3 * o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCOrbitMUS; // in ms
   uint64_t starting = slot.getTFStart() * TFlength;
   uint64_t stopping = slot.getTFEnd() * TFlength;
+  if constexpr (std::is_same_v<decltype(*container), o2::ft0::FT0ChannelTimeTimeSlotContainer&>) {
+    starting = container->getFirstCreation();
+  }
+
   LOG(info) << " TFstart " << slot.getTFStart() << " TFend " << slot.getTFEnd() << "starting = " << starting << " - stopping = " << stopping;
 
   auto calibrationObject = FITCalibrationObjectProducer::generateCalibrationObject<CalibrationObjectType>(*container);
@@ -100,7 +105,8 @@ FIT_CALIBRATOR_TEMPLATES
 typename FIT_CALIBRATOR_TYPE::Slot& FIT_CALIBRATOR_TYPE::emplaceNewSlot(
   bool front, TFType tstart, TFType tend)
 {
-  LOG(info) << "FIT_CALIBRATOR_TYPE::emplaceNewSlot";
+  LOG(info) << "FIT_CALIBRATOR_TYPE::emplaceNewSlot "
+            << " start " << tstart << " end " << tend;
   auto& cont = o2::calibration::TimeSlotCalibration<InputCalibrationInfoType, TimeSlotStorageType>::getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
   slot.setContainer(std::make_unique<TimeSlotStorageType>(mMinEntries));

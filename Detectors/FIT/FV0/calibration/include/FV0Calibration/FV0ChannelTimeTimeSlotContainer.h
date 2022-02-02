@@ -45,13 +45,27 @@ class FV0ChannelTimeTimeSlotContainer final
   void merge(FV0ChannelTimeTimeSlotContainer* prev);
   void print() const;
   static int sGausFitBins;
+  void updateFirstCreation(std::uint64_t creation)
+  {
+    if (creation < mFirstCreation)
+      mFirstCreation = creation;
+  }
+  void resetFirstCreation()
+  {
+    mFirstCreation = std::numeric_limits<std::uint64_t>::max();
+  }
+  std::uint64_t getFirstCreation() const
+  {
+    return mFirstCreation;
+  }
 
  private:
   std::size_t mMinEntries;
   std::array<uint64_t, Constants::nFv0Channels> mEntriesPerChannel{};
   BoostHistogramType mHistogram;
+  std::uint64_t mFirstCreation = std::numeric_limits<std::uint64_t>::max();
 
-  ClassDefNV(FV0ChannelTimeTimeSlotContainer, 1);
+  ClassDefNV(FV0ChannelTimeTimeSlotContainer, 2);
 };
 
 } // namespace o2::fv0

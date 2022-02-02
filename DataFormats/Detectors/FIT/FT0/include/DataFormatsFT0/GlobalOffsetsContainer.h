@@ -37,13 +37,28 @@ class GlobalOffsetsContainer final
   int getMeanGaussianFitValue() const;
   void merge(GlobalOffsetsContainer* prev);
   void print() const;
+  void updateFirstCreation(std::uint64_t creation)
+  {
+    if (creation < mFirstCreation)
+      mFirstCreation = creation;
+  }
+  void resetFirstCreation()
+  {
+
+    mFirstCreation = std::numeric_limits<std::uint64_t>::max();
+  }
+  std::uint64_t getFirstCreation() const
+  {
+    return mFirstCreation;
+  }
 
  private:
+  std::uint64_t mFirstCreation = std::numeric_limits<std::uint64_t>::max();
   std::size_t mMinEntries;
   std::array<int, NBINS> mHisto{};
   int mEntries = 0;
 
-  ClassDefNV(GlobalOffsetsContainer, 1);
+  ClassDefNV(GlobalOffsetsContainer, 2);
 };
 
 } // namespace o2::ft0
