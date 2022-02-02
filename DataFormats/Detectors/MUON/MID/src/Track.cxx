@@ -17,17 +17,15 @@
 #include "DataFormatsMID/Track.h"
 
 #include <iostream>
+#include <fmt/format.h>
 
 namespace o2
 {
 namespace mid
 {
 
-//______________________________________________________________________________
-void Track::setCovarianceParameters(float xErr2, float yErr2, float slopeXErr2, float slopeYErr2, float covXSlopeX,
-                                    float covYSlopeY)
+void Track::setCovarianceParameters(float xErr2, float yErr2, float slopeXErr2, float slopeYErr2, float covXSlopeX, float covYSlopeY)
 {
-  /// Sets the covariance parameters
   mCovarianceParameters[static_cast<int>(CovarianceParamIndex::VarX)] = xErr2;
   mCovarianceParameters[static_cast<int>(CovarianceParamIndex::VarY)] = yErr2;
   mCovarianceParameters[static_cast<int>(CovarianceParamIndex::VarSlopeX)] = slopeXErr2;
@@ -36,24 +34,18 @@ void Track::setCovarianceParameters(float xErr2, float yErr2, float slopeXErr2, 
   mCovarianceParameters[static_cast<int>(CovarianceParamIndex::CovYSlopeY)] = covYSlopeY;
 }
 
-//______________________________________________________________________________
 void Track::setDirection(float xDir, float yDir, float zDir)
 {
-  /// Sets the track direction parameters
   mDirection = {xDir, yDir, zDir};
 }
 
-//______________________________________________________________________________
 void Track::setPosition(float xPos, float yPos, float zPos)
 {
-  /// Sets the track starting position
   mPosition = {xPos, yPos, zPos};
 }
 
-//______________________________________________________________________________
 int Track::getClusterMatched(int chamber) const
 {
-  /// Gets the matched clusters
   if (chamber < 0 || chamber > 3) {
     std::cerr << "Error: chamber must be in range [0, 3]\n";
     return 0;
@@ -61,10 +53,8 @@ int Track::getClusterMatched(int chamber) const
   return mClusterMatched[chamber];
 }
 
-//______________________________________________________________________________
 void Track::setClusterMatched(int chamber, int id)
 {
-  /// Sets the matched clusters
   if (chamber < 0 || chamber > 3) {
     std::cerr << "Error: chamber must be in range [0, 3]\n";
     return;
@@ -72,12 +62,8 @@ void Track::setClusterMatched(int chamber, int id)
   mClusterMatched[chamber] = id;
 }
 
-//______________________________________________________________________________
 bool Track::propagateToZ(float zPosition)
 {
-  /// Propagate track to the specified zPosition
-  /// A linear extraplation is performed
-
   // Nothing to be done if we're already at zPosition
   // Notice that the z position is typically the z of the cluster,
   // which is provided in float precision as well.
@@ -112,10 +98,8 @@ bool Track::propagateToZ(float zPosition)
   return true;
 }
 
-//______________________________________________________________________________
 bool Track::isCompatible(const Track& track, float chi2Cut) const
 {
-  /// Check if tracks are compatible within uncertainties
   if (track.mPosition[2] != mPosition[2]) {
     Track copyTrack(track);
     copyTrack.propagateToZ(mPosition[2]);
@@ -177,10 +161,14 @@ bool Track::isCompatible(const Track& track, float chi2Cut) const
   return true;
 }
 
-//______________________________________________________________________________
+void Track::setEfficiencyWord(int pos, int mask, int value)
+{
+  mEfficiencyWord &= ~(mask << pos);
+  mEfficiencyWord |= (value << pos);
+}
+
 std::ostream& operator<<(std::ostream& stream, const Track& track)
 {
-  /// Overload ostream operator
   stream << "Position: (" << track.mPosition[0] << ", " << track.mPosition[1] << ", " << track.mPosition[2] << ")";
   stream << " Direction: (" << track.mDirection[0] << ", " << track.mDirection[1] << ", " << track.mDirection[2] << ")";
   stream << " Covariance (X, Y, SlopeX, SlopeY, X-SlopeX, Y-SlopeY): (";
@@ -188,6 +176,8 @@ std::ostream& operator<<(std::ostream& stream, const Track& track)
     stream << track.mCovarianceParameters[ival];
     stream << ((ival == 5) ? ")" : ", ");
   }
+  stream << fmt::format(" chi2/ndf: {:g}/{:d}", track.getChi2(), track.getNDF());
+  stream << fmt::format(" hitMap: 0x{:x} locId: {:d} deId: {:d} effFlag {:d}", track.getHitMap(), track.getFiredLocalBoard(), track.getFiredDeId(), track.getEfficiencyFlag());
   return stream;
 }
 
