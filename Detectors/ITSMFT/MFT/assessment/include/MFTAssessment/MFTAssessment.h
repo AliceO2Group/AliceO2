@@ -37,7 +37,6 @@
 #include "ReconstructionDataFormats/BaseCluster.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
-#include "MFTBase/GeometryTGeo.h"
 
 namespace o2
 {
@@ -85,7 +84,6 @@ class MFTAssessment
 
  private:
   o2::itsmft::TopologyDictionary mDictionary; // cluster patterns dictionary
-  //o2::mft::GeometryTGeo* geom;
 
   gsl::span<const o2::mft::TrackMFT> mMFTTracks;
   gsl::span<const o2::itsmft::ROFRecord> mMFTTracksROF;

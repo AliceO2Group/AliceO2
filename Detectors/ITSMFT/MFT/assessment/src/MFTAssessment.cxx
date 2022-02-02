@@ -18,7 +18,6 @@
 #include <TLegend.h>
 #include <TStyle.h>
 #include <TFile.h>
-#include <numeric>
 
 using namespace o2::mft;
 using o2::itsmft::CompClusterExt;
@@ -346,7 +345,7 @@ void MFTAssessment::runASyncQC(o2::framework::ProcessingContext& ctx)
     mNOfTracksTime->Fill(seconds, rof.getNEntries());
   }
 
-  std::array<std::array<int, 2>, 5> clsEntriesForRedundancy; //declare it in the .h ?
+  std::array<std::array<int, 2>, 5> clsEntriesForRedundancy;
 
   for (auto& oneTrack : mMFTTracks) {
     mTrackNumberOfClusters->Fill(oneTrack.getNumberOfPoints());
@@ -368,7 +367,6 @@ void MFTAssessment::runASyncQC(o2::framework::ProcessingContext& ctx)
 
       auto clsEntry = mMFTTrackClusIdx[offset + icls];
       auto globalCluster = mMFTClustersGlobal[clsEntry];
-      //auto oneCluster = mMFTClusters[clsEntry];
 
       mMFTClsOfTracksZ->Fill(globalCluster.getZ());
 
