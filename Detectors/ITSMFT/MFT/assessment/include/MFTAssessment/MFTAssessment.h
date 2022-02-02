@@ -39,7 +39,6 @@
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "MFTBase/GeometryTGeo.h"
 
-
 namespace o2
 {
 
@@ -84,11 +83,9 @@ class MFTAssessment
     return (orbit - refOrbit) * o2::constants::lhc::LHCOrbitNS / 1E9;
   }
 
-
  private:
-
-  o2::itsmft::TopologyDictionary mDictionary;// cluster patterns dictionary
-  o2::mft::GeometryTGeo *geom;
+  o2::itsmft::TopologyDictionary mDictionary; // cluster patterns dictionary
+  o2::mft::GeometryTGeo* geom;
 
   gsl::span<const o2::mft::TrackMFT> mMFTTracks;
   gsl::span<const o2::itsmft::ROFRecord> mMFTTracksROF;
@@ -99,9 +96,7 @@ class MFTAssessment
   gsl::span<const unsigned char>::iterator pattIt;
   std::vector<o2::BaseCluster<float>> mMFTClustersGlobal;
 
-
-  std::vector<int> mlistOfUnusedChipIDs;//936 chipIDs in total
-  std::vector<int>::iterator mItChipIDs;
+  std::array<bool, 936> mUnusedChips; //936 chipIDs in total
   int mNumberTFs = 0;
 
   // MC Labels
@@ -126,7 +121,7 @@ class MFTAssessment
 
   std::unique_ptr<TH1F> mMFTClsZ = nullptr;
   std::unique_ptr<TH1F> mMFTClsOfTracksZ = nullptr;
-  std::unique_ptr<TH1F> mMFTDeadChipID = nullptr;
+
   std::array<std::unique_ptr<TH2F>, 10> mMFTClsXYinLayer = {nullptr};
   std::array<std::unique_ptr<TH2F>, 10> mMFTClsOfTracksXYinLayer = {nullptr};
   std::array<std::unique_ptr<TH2F>, 5> mMFTClsXYRedundantInDisk = {nullptr};
@@ -342,8 +337,6 @@ class MFTAssessment
   bool mFinalizeAnalysis = false;
 
   o2::itsmft::ChipMappingMFT mMFTChipMapper;
-
-
 
   ClassDefNV(MFTAssessment, 1);
 };
