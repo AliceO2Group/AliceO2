@@ -20,6 +20,7 @@
 #include "DataFormatsMID/Cluster.h"
 #include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/Track.h"
+#include "MIDBase/HitFinder.h"
 #include "MIDBase/Mapping.h"
 #include "MIDBase/GeometryTransformer.h"
 #include "MIDSimulation/ChamberResponseParams.h"
@@ -34,7 +35,6 @@
 #include "MIDClustering/PreClusterizer.h"
 #include "MIDTracking/Tracker.h"
 #include "MIDTestingSimTools/TrackGenerator.h"
-#include "MIDTestingSimTools/HitFinder.h"
 
 namespace o2
 {
@@ -88,7 +88,6 @@ struct SimClustering {
   SimClustering() : correlation(), preClusterizer(), clusterizer(), preClusterHelper(), preClusterLabeler(), clusterLabeler()
   {
     correlation.clear();
-    preClusterizer.init();
     clusterizer.init([&](size_t baseIndex, size_t relatedIndex) { correlation.push_back({baseIndex, relatedIndex}); });
   }
 };
