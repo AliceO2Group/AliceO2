@@ -235,51 +235,6 @@ void RawToDigitsTask::writeResults()
   sort(mEvents.begin(), mEvents.end()); // sort the events
   mExTimer.logMes("Sorted  Events = " + std::to_string(mEvents.size()));
 
-  /* ------ ROOT file version 1 ----------
-  o2::hmpid::Digit digit;
-  o2::hmpid::Trigger event;
-  TString filename;
-  TString tit;
-
-  filename = TString::Format("%s", mOutRootFileName.c_str());
-  LOG(info) << "Create the ROOT file " << filename.Data();
-  TFile mfileOut(TString::Format("%s", filename.Data()), "RECREATE");
-  TTree* theTree;
-  TBranch* theDigits;
-  TBranch* theEvents;
-  tit = TString::Format("HMPID Raw File Decoding");
-  theTree = new TTree("o2hmp", tit);
-
-  theDigits = theTree->Branch("HMPDigit", &digit, sizeof(o2::hmpid::Digit), 1);
-  theEvents = theTree->Branch("InteractionRecords", &event, sizeof(o2::hmpid::Trigger), 1);
-
-  o2::hmpid::Trigger prevEvent = mEvents[0];
-  uint32_t theFirstDigit = 0;
-  uint32_t theLastDigit = 0;
-  for (int e = 0; e < mEvents.size(); e++) {
-    LOG(info) << "Manage event " << mEvents[e];
-    if (prevEvent != mEvents[e]) { // changes the event Flush It
-      event = prevEvent;
-      event.setDataRange(theFirstDigit, theLastDigit-theFirstDigit);
-      theEvents->Fill();
-      theFirstDigit = theLastDigit;
-      prevEvent = mEvents[e];
-    }
-    int first = mEvents[e].getFirstEntry();
-    int last = mEvents[e].getLastEntry();
-    for(int idx = first; idx <= last; idx++) {
-      digit = mAccumulateDigits[idx];
-      theDigits->Fill();
-      theLastDigit++;
-    }
-  }
-  event = prevEvent;
-  event.setDataRange(theFirstDigit, theLastDigit-theFirstDigit);
-  theEvents->Fill();
-  theTree->Write();
-  mfileOut.Close();
-  -------------------------- */
-
   //  ---------- ROOT file version 2  ---------------
   TString filename;
   TString tit;

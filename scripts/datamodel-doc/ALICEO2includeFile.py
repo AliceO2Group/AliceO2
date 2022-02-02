@@ -105,8 +105,9 @@ class using:
       for nsp in dm.namespaces:
         for use in nsp.usings:
           if self.master == use.name:
-            self.kind += 2
-            self.joiners = use.joiners
+            if len(use.joiners) > 0:
+              self.kind += 2
+              self.joiners = use.joiners
 
   def print(self):
     print("    using: "+self.name)

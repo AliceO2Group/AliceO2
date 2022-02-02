@@ -106,8 +106,8 @@ class Digitizer : public TObject
   bool mEmpty = true;                      ///< Digitizer contains no digits/labels
 
   std::vector<Digit> mTempDigitVector; ///< temporary digit storage
-  //std::unordered_map<Int_t, std::list<LabeledDigit>> mDigits; ///< used to sort digits and labels by tower
-  o2::emcal::DigitsWriteoutBuffer mDigits; ///< used to sort digits and labels by tower
+  std::unordered_map<Int_t, std::list<LabeledDigit>> mDigits; ///< used to sort digits and labels by tower
+  // o2::emcal::DigitsWriteoutBuffer mDigits; ///< used to sort digits and labels by tower
 
   TRandom3* mRandomGenerator = nullptr;                  // random number generator
   std::vector<int> mTimeBinOffset;                       // offset of first time bin

@@ -30,8 +30,8 @@
 
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
-#include "TRDBase/Calibrations.h"
 #include "TRDSimulation/TRDSimParams.h"
+#include "TRDSimulation/TrapConfig.h"
 #include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 
@@ -115,6 +115,7 @@ void TRDDPLTrapSimulatorTask::processTRAPchips(int& nTracklets, std::vector<Trac
     if (!trapSimulators[iTrap].isDataSet()) {
       continue;
     }
+    trapSimulators[iTrap].setBaselines();
     trapSimulators[iTrap].filter();
     trapSimulators[iTrap].tracklet();
     auto trackletsOut = trapSimulators[iTrap].getTrackletArray64();

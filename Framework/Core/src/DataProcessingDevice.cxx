@@ -1454,8 +1454,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     InputSpan span = getInputSpan(action.slot, shouldConsume);
     InputRecord record{context.deviceContext->spec->inputs,
                        span,
-                       context.objCache,
-                       context.registry->get<CallbackService>()};
+                       *context.registry};
     ProcessingContext processContext{record, *context.registry, *context.allocator};
     {
       ZoneScopedN("service pre processing");

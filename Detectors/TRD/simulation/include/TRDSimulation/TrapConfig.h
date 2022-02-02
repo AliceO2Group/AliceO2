@@ -561,7 +561,7 @@ class TrapConfig
     static const std::array<int, TrapConfig::mlastAlloc> mgkSize; //= {0, 1, 540, 1080, 8 * 18 * 540, 4, 6, 8 * 18 * 30};
     //static const std::array<int,TrapConfig::mlastAlloc> mgkSize; // required array dimension for different allocation modes
     //this is used purely for copying data from run2 ocdb to run3 ccdb.
-    void setDataFromRun2(int value, int valid, int index)
+    void setDataFromRun2(int value, int valid, unsigned int index)
     {
       if (index < mData.size()) {
         mData[index] = value;

@@ -23,6 +23,7 @@
 #include "Rtypes.h"
 
 // O2 includes
+#include "MathUtils/detail/Bracket.h"
 #include "DataFormatsQualityControl/TimeRangeFlag.h"
 
 // STL
@@ -39,8 +40,12 @@ class TimeRangeFlagCollection
 {
  public:
   using collection_t = std::set<TimeRangeFlag>;
+  using time_type = uint64_t;
+  using RangeInterval = o2::math_utils::detail::Bracket<time_type>;
 
-  explicit TimeRangeFlagCollection(std::string name, std::string detector = "TST");
+  explicit TimeRangeFlagCollection(std::string name, std::string detector = "TST", RangeInterval validityRange = {},
+                                   int runNumber = 0, std::string periodName = "Invalid", std::string passName = "Invalid",
+                                   std::string provenance = "qc");
 
   void insert(TimeRangeFlag&&);
   void insert(const TimeRangeFlag&);
@@ -57,18 +62,37 @@ class TimeRangeFlagCollection
 
   const std::string& getName() const;
   const std::string& getDetector() const;
+  int getRunNumber() const;
+  const std::string& getPeriodName() const;
+  const std::string& getPassName() const;
+  const std::string& getProvenance() const;
+
+  time_type getStart() const { return mValidityRange.getMin(); }
+  time_type getEnd() const { return mValidityRange.getMax(); }
+  RangeInterval& getInterval() { return mValidityRange; }
+
+  void setStart(time_type start) { mValidityRange.setMin(start); }
+  void setEnd(time_type end) { mValidityRange.setMax(end); }
+  void setInterval(RangeInterval interval) { mValidityRange = interval; }
 
   /// write data to ostream
   void streamTo(std::ostream& output) const;
+  /// Read data from instream
+  void streamFrom(std::istream& input);
 
   /// overloading output stream operator
   friend std::ostream& operator<<(std::ostream& output, const TimeRangeFlagCollection& data);
 
  private:
   std::string mDetID;     // three letter detector code
-  std::string mName = ""; // some description of the collection, e.g. "Raw data checks", "QA Expert masks"
+  std::string mName;      // some description of the collection, e.g. "Raw data checks", "QA Expert masks"
   // with std::set we can sort the flags in time and have merge() for granted.
   collection_t mTimeRangeFlags;
+  RangeInterval mValidityRange; // we need a validity range to e.g. state that there are no TRFs for given time interval
+  int mRunNumber;
+  std::string mPeriodName;
+  std::string mPassName;
+  std::string mProvenance;
 
   ClassDefNV(TimeRangeFlagCollection, 1);
 };
