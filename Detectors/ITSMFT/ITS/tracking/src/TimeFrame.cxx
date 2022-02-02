@@ -316,6 +316,23 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
   }
 }
 
+unsigned long TimeFrame::getArtefactsMemory()
+{
+  unsigned long size{0};
+  for (auto& trkl : mTracklets) {
+    size += sizeof(Tracklet) * trkl.size();
+  }
+  for (auto& cells : mCells) {
+    size += sizeof(Cell) * cells.size();
+  }
+  for (auto& cellsN : mCellsNeighbours) {
+    for (auto& vec : cellsN) {
+      size += sizeof(int) * vec.size();
+    }
+  }
+  return size + sizeof(Road) * mRoads.size();
+}
+
 void TimeFrame::checkTrackletLUTs()
 {
   for (uint32_t iLayer{0}; iLayer < getTracklets().size(); ++iLayer) {

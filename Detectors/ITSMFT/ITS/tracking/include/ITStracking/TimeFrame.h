@@ -115,6 +115,9 @@ class TimeFrame final
   std::vector<TrackITSExt>& getTracks(int rof) { return mTracks[rof]; }
   std::vector<MCCompLabel>& getTracksLabel(int rof) { return mTracksLabel[rof]; }
 
+  bool checkMemory(unsigned long max) { return getArtefactsMemory() < max; }
+  unsigned long getArtefactsMemory();
+
   void initialiseRoadLabels();
   void setRoadLabel(int i, const unsigned long long& lab, bool fake);
   const unsigned long long& getRoadLabel(int i) const;

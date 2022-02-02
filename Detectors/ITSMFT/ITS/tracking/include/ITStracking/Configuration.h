@@ -76,6 +76,7 @@ struct TrackingParameters {
   float CellDeltaTanLambdaSigma = 0.007f;
   /// Fitter parameters
   bool UseMatBudLUT = false;
+  unsigned long MaxMemory = 32000000000UL;
   std::array<float, 2> FitIterationMaxChi2 = {50, 20};
 };
 

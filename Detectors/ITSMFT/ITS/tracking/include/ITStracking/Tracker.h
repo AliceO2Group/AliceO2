@@ -70,7 +70,8 @@ class Tracker
   void setBz(float bz);
   float getBz() const;
 
-  void clustersToTracks(std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; });
+  void clustersToTracks(
+    std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; }, std::function<void(std::string s)> = [](std::string s) { std::cerr << s << std::endl; });
   void setSmoothing(bool v) { mApplySmoothing = v; }
   bool getSmoothing() const { return mApplySmoothing; }
 

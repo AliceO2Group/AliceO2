@@ -49,6 +49,7 @@ class TrackerDPL : public framework::Task
  private:
   bool mIsMC = false;
   bool mRunVertexer = true;
+  bool mCosmicsProcessing = false;
   float mBz = 0.f;
   std::string mMode = "sync";
   o2::itsmft::TopologyDictionary mDict;
