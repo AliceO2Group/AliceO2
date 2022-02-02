@@ -33,6 +33,12 @@ namespace its
 
 void NoiseCalibratorSpec::init(InitContext& ic)
 {
+  auto onepix = ic.options().get<bool>("1pix-only");
+  LOG(info) << "Fast 1=pixel calibration: " << onepix;
+  auto probT = ic.options().get<float>("prob-threshold");
+  LOG(info) << "Setting the probability threshold to " << probT;
+
+  mCalibrator = std::make_unique<CALIBRATOR>(onepix, probT);
   std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
   std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
   if (o2::utils::Str::pathExists(dictFile)) {
@@ -42,13 +48,6 @@ void NoiseCalibratorSpec::init(InitContext& ic)
     LOG(info) << "Dictionary " << dictFile
               << " is absent, ITS NoiseCalibrator expects cluster patterns for all clusters";
   }
-
-  auto onepix = ic.options().get<bool>("1pix-only");
-  LOG(info) << "Fast 1=pixel calibration: " << onepix;
-  auto probT = ic.options().get<float>("prob-threshold");
-  LOG(info) << "Setting the probability threshold to " << probT;
-
-  mCalibrator = std::make_unique<CALIBRATOR>(onepix, probT);
 }
 
 void NoiseCalibratorSpec::run(ProcessingContext& pc)
@@ -84,8 +83,9 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
             << " : " << info.getEndValidityTimestamp();
 
   using clbUtils = o2::calibration::Utils;
-  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, 0}, *image.get());
-  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, 0}, info);
+  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ITS_NOISE", 0}, *image.get());
+  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ITS_NOISE", 0}, info);
+  LOG(info) << "sending done";
 }
 
 void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
