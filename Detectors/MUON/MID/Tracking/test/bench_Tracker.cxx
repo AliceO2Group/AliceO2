@@ -18,9 +18,9 @@
 #include <random>
 #include "DataFormatsMID/Cluster.h"
 #include "DataFormatsMID/Track.h"
+#include "MIDBase/HitFinder.h"
 #include "MIDBase/Mapping.h"
 #include "MIDBase/MpArea.h"
-#include "MIDTestingSimTools/HitFinder.h"
 #include "MIDTestingSimTools/TrackGenerator.h"
 #include "MIDTracking/Tracker.h"
 
