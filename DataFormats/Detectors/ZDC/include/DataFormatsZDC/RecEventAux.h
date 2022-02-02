@@ -36,12 +36,13 @@ struct RecEventAux : public RecEventFlat {
   int16_t tdcVal[NTDCChannels][MaxTDCValues]; /// TdcValues (encoded)
   int16_t tdcAmp[NTDCChannels][MaxTDCValues]; /// TdcAmplitudes (encoded)
 #endif
-  int ntdc[NTDCChannels] = {0};           /// Number of hits in TDC
-  std::array<bool, NTDCChannels> pattern; /// Pattern of TDC
-  uint16_t fired[NTDCChannels] = {0};     /// Position at which the trigger algorithm is fired
-  bool chfired[NChannels] = {0};          /// Fired TDC condition related to channel
-  uint32_t ref[NChannels];                /// Cache of references
-  std::array<bool, NChannels> err;        /// Generic error condition
+  int ntdc[NTDCChannels] = {0};                              /// Number of hits in TDC
+  std::array<bool, NTDCChannels> pattern;                    /// Pattern of TDC
+  uint16_t fired[NTDCChannels] = {0};                        /// Position at which the trigger algorithm is fired
+  bool chfired[NChannels] = {0};                             /// Fired TDC condition related to channel
+  uint32_t ref[NChannels];                                   /// Cache of references
+  std::array<bool, NChannels> err;                           /// Generic error condition
+  std::array<int16_t, NTimeBinsPerBC> data[NChannels] = {0}; /// Samples (raw or filtered)
 #ifdef O2_ZDC_INTERP_DEBUG
   float inter[NTDCChannels][NTimeBinsPerBC * TSN] = {0}; /// Interpolated samples
 #endif

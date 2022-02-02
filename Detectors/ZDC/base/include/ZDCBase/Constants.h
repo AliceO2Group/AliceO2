@@ -27,6 +27,8 @@
 //#define O2_ZDC_TDC_C_ARRAY
 // Debug output of full interpolated function
 //#define O2_ZDC_INTERP_DEBUG
+// Low pass filtering of acquired samples
+#define O2_ZDC_RECO_FILTERING
 
 namespace o2
 {
@@ -53,6 +55,7 @@ enum ChannelTypeZEM { ZEMCh1,
 constexpr int NTimeBinsPerBC = 12; //< number of samples per BC
 constexpr int NBCReadOut = 4;      // N BCs read out per trigger
 constexpr int NTimeBinsReadout = NTimeBinsPerBC * NBCReadOut;
+constexpr int16_t Int16MaxVal = 0x7fff;
 
 constexpr int NChannelsZN = 6;  //< number of channels stored per ZN
 constexpr int NChannelsZP = 6;  //< number of channels stored per ZP

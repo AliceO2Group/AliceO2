@@ -116,6 +116,7 @@ class DigiReco
  private:
   const ModuleConfig* mModuleConfig = nullptr;                                    /// Trigger/readout configuration object
   void updateOffsets(int ibun);                                                   /// Update offsets to process current bunch
+  void lowPassFilter();                                                           /// low-pass filtering of digitized data
   void reconstructTDC(int seq_beg, int seq_end);                                  /// Reconstruction of uncorrected TDCs
   int reconstruct(int seq_beg, int seq_end);                                      /// Main method for data reconstruction
   void processTrigger(int itdc, int ibeg, int iend);                              /// Replay of trigger algorithm on acquired data

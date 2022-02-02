@@ -45,6 +45,7 @@ class DigiRecoTest
   {
     return mDigi.add(ic, myAmp, irpk, myShift, hasJitter);
   }
+  // Digitization and reconstruction of cached data
   void process()
   {
     mDigi.digitize();
