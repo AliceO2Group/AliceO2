@@ -48,8 +48,8 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
   const auto& dig0 = digitVec[0];
   cd.header.det = mDet;
   cd.header.nTriggers = digitVec.size();
-  cd.header.firstOrbit = dig0.ir.orbit;
-  cd.header.firstBC = dig0.ir.bc;
+  cd.header.firstOrbit = dig0.mIntRecord.orbit;
+  cd.header.firstBC = dig0.mIntRecord.bc;
 
   cd.trigger.resize(cd.header.nTriggers);
   cd.bcInc.resize(cd.header.nTriggers);
@@ -68,16 +68,16 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
     const auto chanels = digit.getBunchChannelData(channelVec); // we assume the channels are sorted
 
     // fill trigger info
-    cd.trigger[idig] = digit.getTriggers().triggerSignals;
-    if (prevOrbit == digit.ir.orbit) {
-      cd.bcInc[idig] = digit.ir.bc - prevBC;
+    cd.trigger[idig] = digit.getTriggers().triggersignals;
+    if (prevOrbit == digit.mIntRecord.orbit) {
+      cd.bcInc[idig] = digit.mIntRecord.bc - prevBC;
       cd.orbitInc[idig] = 0;
     } else {
-      cd.bcInc[idig] = digit.ir.bc;
-      cd.orbitInc[idig] = digit.ir.orbit - prevOrbit;
+      cd.bcInc[idig] = digit.mIntRecord.bc;
+      cd.orbitInc[idig] = digit.mIntRecord.orbit - prevOrbit;
     }
-    prevBC = digit.ir.bc;
-    prevOrbit = digit.ir.orbit;
+    prevBC = digit.mIntRecord.bc;
+    prevOrbit = digit.mIntRecord.orbit;
     // fill channels info
     cd.nChan[idig] = chanels.size();
     if (!cd.nChan[idig]) {

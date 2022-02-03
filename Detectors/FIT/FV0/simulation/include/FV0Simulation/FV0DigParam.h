@@ -60,7 +60,8 @@ struct FV0DigParam : public o2::conf::ConfigurableParamHelper<FV0DigParam> {
   float mCFD_trsh = 3.;                                                       // [mV]
   ///Parameters for trigger simulation
   bool useMaxChInAdc = true;         // default = true
-  int adcChargeHighMultTh = 3 * 498; // threshold value of ADC charge for high multiplicity trigger
+  int adcChargeCenThr = 3 * 498;     // threshold value of ADC charge for Central trigger
+  int adcChargeSCenThr = 1 * 498;    // threshold value of ADC charge for Semi-central trigger
   int maxCountInAdc = 4095;          // to take care adc ADC overflow
   O2ParamDef(FV0DigParam, "FV0DigParam");
 };

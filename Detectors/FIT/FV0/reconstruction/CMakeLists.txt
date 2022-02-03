@@ -28,6 +28,12 @@ o2_target_root_dictionary(FV0Reconstruction
         HEADERS include/FV0Reconstruction/BaseRecoTask.h)
 
 o2_add_executable(
+  test-raw-conversion
+  COMPONENT_NAME fv0
+  SOURCES src/test-raw-conversion.cxx
+  PUBLIC_LINK_LIBRARIES O2::FV0Reconstruction)
+
+o2_add_executable(
   test-raw2digit
   COMPONENT_NAME fv0
   SOURCES src/test-raw2digit.cxx

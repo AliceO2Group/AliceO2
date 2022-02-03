@@ -12,21 +12,18 @@
 #include "DataFormatsFV0/Digit.h"
 #include "DataFormatsFV0/ChannelData.h"
 #include <Framework/Logger.h>
+#include <iostream>
+#include <gsl/span>
+#include <bitset>
 
 using namespace o2::fv0;
 
 void Triggers::printLog() const
 {
-  LOG(info) << "mTrigger: " << static_cast<uint16_t>(triggerSignals);
-  LOG(info) << "nChanA: " << static_cast<uint16_t>(nChanA) /* << " | nChanC: " << static_cast<uint16_t>(nChanC)*/;
-  LOG(info) << "amplA: " << amplA /* << " | amplC: " << amplC*/;
-  //  LOG(info) << "timeA: " << timeA << " | timeC: " << timeC;
-}
-
-void Digit::print() const
-{
-  ir.print();
-  printf("\n");
+  LOG(info) << "mTrigger: " << static_cast<uint16_t>(triggersignals);
+  LOG(info) << "nChanA: " << static_cast<uint16_t>(nChanA);
+  LOG(info) << "amplA: " << amplA;
+  LOG(info) << "timeA: " << timeA;
 }
 
 gsl::span<const ChannelData> Digit::getBunchChannelData(const gsl::span<const ChannelData> tfdata) const
@@ -34,10 +31,22 @@ gsl::span<const ChannelData> Digit::getBunchChannelData(const gsl::span<const Ch
   // extract the span of channel data for this bunch from the whole TF data
   return ref.getEntries() ? gsl::span<const ChannelData>(&tfdata[ref.getFirstEntry()], ref.getEntries()) : gsl::span<const ChannelData>();
 }
+
+void Digit::printStream(std::ostream& stream) const
+{
+  stream << "FV0 Digit:  BC " << mIntRecord.bc << " orbit " << mIntRecord.orbit << std::endl;
+  stream << " A amp " << mTriggers.amplA << " time A " << mTriggers.timeA << " signals " << int(mTriggers.triggersignals) << std::endl;
+}
+
+std::ostream& operator<<(std::ostream& stream, const Digit& digi)
+{
+  digi.printStream(stream);
+  return stream;
+}
 void Digit::printLog() const
 {
   LOG(info) << "______________DIGIT DATA____________";
-  LOG(info) << "BC: " << ir.bc << "| ORBIT: " << ir.orbit;
+  LOG(info) << "BC: " << mIntRecord.bc << "| ORBIT: " << mIntRecord.orbit;
   LOG(info) << "Ref first: " << ref.getFirstEntry() << "| Ref entries: " << ref.getEntries();
   mTriggers.printLog();
 }

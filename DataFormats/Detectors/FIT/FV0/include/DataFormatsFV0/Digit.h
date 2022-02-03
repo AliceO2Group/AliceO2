@@ -18,10 +18,12 @@
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
+#include "DataFormatsFV0/ChannelData.h"
 #include <Rtypes.h>
 #include <gsl/span>
 #include <bitset>
-#include <vector>
+#include <iostream>
+
 #include <tuple>
 
 namespace o2
@@ -31,61 +33,78 @@ namespace fv0
 class ChannelData;
 
 struct Triggers {
-  enum {
-    bitMinBias,
-    bitMinBiasInner, // experimental
-    bitMinBiasOuter, // experimental
-    bitHighMult,
-    bitDummy // non-defined yet, placeholder
-  };
-  uint8_t triggerSignals = 0; // V0 trigger signals
-  int8_t nChanA = 0;          // number of fired channels [A side]
-  int32_t amplA = -1000;      // sum amplitude [A side]
+  enum { bitA,
+         bitAIn = 1,
+         bitC = 1, // alias of bitAIn - needed to be compatible with common-for-FIT raw reader
+         bitAOut = 2,
+         bitVertex = 2, // alias of bitAOut - needed to be compatible with common-for-FIT raw reader
+         bitCen,
+         bitSCen,
+         bitLaser };
+  uint8_t triggersignals = 0; // V0 trigger signals
+  int8_t nChanA = 0;          // number of fired channels A side
+  int8_t nChanC = 0;          // TODO: MS: unused in FV0
+  int32_t amplA = -5000;      // sum amplitude A side
+  int32_t amplC = -5000;      // TODO: MS: unused in FV0
+  int16_t timeA = -5000;      // average time A side
+  int16_t timeC = -5000;      // TODO: MS: unused in FV0
   Triggers() = default;
-  Triggers(uint8_t signals, int8_t chanA, int32_t amplASum)
+  Triggers(uint8_t signals, int8_t chanA, int32_t aamplA, int16_t atimeA)
   {
-    triggerSignals = signals;
+    triggersignals = signals;
     nChanA = chanA;
-    amplA = amplASum;
+    amplA = aamplA;
+    timeA = atimeA;
   }
+  bool getOrA() const { return (triggersignals & (1 << bitA)) != 0; }
+  bool getOrAIn() const { return (triggersignals & (1 << bitAIn)) != 0; }
+  bool getOrAOut() const { return (triggersignals & (1 << bitAOut)) != 0; }
+  bool getCen() const { return (triggersignals & (1 << bitCen)) != 0; }
+  bool getSCen() const { return (triggersignals & (1 << bitSCen)) != 0; }
+  bool getLaserBit() const { return (triggersignals & (1 << bitLaser)) != 0; }
 
-  bool getIsMinBias() const { return (triggerSignals & (1 << bitMinBias)) != 0; }
-  bool getIsMinBiasInner() const { return (triggerSignals & (1 << bitMinBiasInner)) != 0; }
-  bool getIsMinBiasOuter() const { return (triggerSignals & (1 << bitMinBiasOuter)) != 0; }
-  bool getIsHighMult() const { return (triggerSignals & (1 << bitHighMult)) != 0; }
-  bool getIsDummy() const { return (triggerSignals & (1 << bitDummy)) != 0; }
-  void setTriggers(Bool_t isMinBias, Bool_t isMinBiasInner, Bool_t isMinBiasOuter, Bool_t isHighMult, Bool_t isDummy, int8_t chanA, int32_t amplASum)
+  // TODO: MS: temporary aliases to keep DigitBlockFIT.h working (treat FV0 as FT0/FDD)
+  bool getOrC() const { return getOrAIn(); }
+  bool getVertex() const { return getOrAOut(); }
+
+  void setTriggers(Bool_t isA, Bool_t isAIn, Bool_t isAOut, Bool_t isCnt, Bool_t isSCnt, int8_t chanA, int32_t aamplA,
+                   int16_t atimeA, Bool_t isLaser = kFALSE)
   {
-    triggerSignals = (isMinBias << bitMinBias) | (isMinBiasInner << bitMinBiasInner) | (isMinBiasOuter << bitMinBiasOuter) | (isHighMult << bitHighMult) | (isDummy << bitDummy);
+    triggersignals = (isA << bitA) | (isAIn << bitAIn) | (isAOut << bitAOut) | (isCnt << bitCen) | (isSCnt << bitSCen) | (isLaser << bitLaser);
     nChanA = chanA;
-    amplA = amplASum;
+    amplA = aamplA;
+    timeA = atimeA;
+  }
+  void cleanTriggers()
+  {
+    triggersignals = 0;
+    nChanA = 0;
+    amplA = -5000;
+    timeA = -5000;
   }
   bool operator==(Triggers const& other) const
   {
-    // Will be implemented later
-    // return std::tie(triggersignals, nChanA, nChanC, amplA, amplC, timeA, timeC) ==
-    //        std::tie(other.triggersignals, other.nChanA, other.nChanC, other.amplA, other.amplC, other.timeA, other.timeC);
-    return std::tie(triggerSignals, nChanA, amplA) ==
-           std::tie(other.triggerSignals, other.nChanA, other.amplA);
+    return std::tie(triggersignals, nChanA, amplA, timeA) ==
+           std::tie(other.triggersignals, other.nChanA, other.amplA, other.timeA);
   }
   void printLog() const;
-  ClassDefNV(Triggers, 1);
+  ClassDefNV(Triggers, 2);
 };
 
 struct DetTrigInput {
   static constexpr char sChannelNameDPL[] = "TRIGGERINPUT";
   static constexpr char sDigitName[] = "DetTrigInput";
   static constexpr char sDigitBranchName[] = "FV0TRIGGERINPUT";
-  o2::InteractionRecord mIntRecord; // bc/orbit of the intpur
-  std::bitset<5> mInputs;           // pattern of inputs.
+  o2::InteractionRecord mIntRecord{}; // bc/orbit of the intpur
+  std::bitset<5> mInputs{};           // pattern of inputs.
   DetTrigInput() = default;
-  DetTrigInput(const o2::InteractionRecord& iRec, Bool_t isMb, Bool_t isMbIn, Bool_t isMbOut, Bool_t isHm, Bool_t isDummy)
+  DetTrigInput(const o2::InteractionRecord& iRec, Bool_t isA, Bool_t isAIn, Bool_t isAOut, Bool_t isCnt, Bool_t isSCnt)
     : mIntRecord(iRec),
-      mInputs((isMb << Triggers::bitMinBias) |
-              (isMbIn << Triggers::bitMinBiasInner) |
-              (isMbOut << Triggers::bitMinBiasOuter) |
-              (isHm << Triggers::bitHighMult) |
-              (isDummy << Triggers::bitDummy))
+      mInputs((isA << Triggers::bitA) |
+              (isAIn << Triggers::bitAIn) |
+              (isAOut << Triggers::bitAOut) |
+              (isCnt << Triggers::bitCen) |
+              (isSCnt << Triggers::bitSCen))
   {
   }
   ClassDefNV(DetTrigInput, 1);
@@ -97,46 +116,52 @@ struct Digit {
   static constexpr char sDigitBranchName[] = "FV0DigitBC";
   /// we are going to refer to at most 48 channels, so 6 bits for the number of channels and 26 for the reference
   o2::dataformats::RangeRefComp<6> ref;
-  o2::InteractionRecord ir; // FV0 is detected by using this field!!!
-  Triggers mTriggers;
+  Triggers mTriggers{}; // pattern of triggers  in this BC
+
+  o2::InteractionRecord mIntRecord{}; // Interaction record (orbit, bc)
+  int mEventID = 0;
   Digit() = default;
-  Digit(int first, int ne, o2::InteractionRecord iRec, const Triggers& chTrig)
+  Digit(int first, int ne, const o2::InteractionRecord& iRec, const Triggers& chTrig, int event)
   {
     ref.setFirstEntry(first);
     ref.setEntries(ne);
-    ir = iRec;
+    mIntRecord = iRec;
     mTriggers = chTrig;
+    mEventID = event;
   }
   typedef DetTrigInput DetTrigInput_t;
-  gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
-  const o2::InteractionRecord& getIntRecord() const { return ir; };
+  uint32_t getOrbit() const { return mIntRecord.orbit; }
+  uint16_t getBC() const { return mIntRecord.bc; }
   Triggers getTriggers() const { return mTriggers; }
-  void setIntRecord(const o2::InteractionRecord& intRec) { ir = intRec; }
-  void setTriggers(Triggers triggers) { mTriggers = triggers; };
-  void print() const;
-  bool operator==(const Digit& other) const
-  {
-    return std::tie(ref, mTriggers, ir) == std::tie(other.ref, other.mTriggers, other.ir);
-  }
-  void printLog() const;
-  DetTrigInput makeTrgInput() const { return DetTrigInput{ir, mTriggers.getIsMinBias(), mTriggers.getIsMinBiasInner(), mTriggers.getIsMinBiasOuter(), mTriggers.getIsHighMult(), mTriggers.getIsDummy()}; }
+  int getEventID() const { return mEventID; }
+  const o2::InteractionRecord& getIntRecord() const { return mIntRecord; };
+  void setIntRecord(const o2::InteractionRecord& intRec) { mIntRecord = intRec; }
+  gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
+  DetTrigInput makeTrgInput() const { return DetTrigInput{mIntRecord, mTriggers.getOrA(), mTriggers.getOrAIn(), mTriggers.getOrAOut(), mTriggers.getCen(), mTriggers.getSCen()}; } // TODO:MS:Add laser bit
   void fillTrgInputVec(std::vector<DetTrigInput>& vecTrgInput) const
   {
-    vecTrgInput.emplace_back(ir, mTriggers.getIsMinBias(), mTriggers.getIsMinBiasInner(), mTriggers.getIsMinBiasOuter(), mTriggers.getIsHighMult(), mTriggers.getIsDummy());
+    vecTrgInput.emplace_back(mIntRecord, mTriggers.getOrA(), mTriggers.getOrAIn(), mTriggers.getOrAOut(), mTriggers.getCen(), mTriggers.getSCen());
   }
-  ClassDefNV(Digit, 1);
+  void printStream(std::ostream& stream) const;
+  void setTriggers(Triggers trig) { mTriggers = trig; };
+  bool operator==(const Digit& other) const
+  {
+    return std::tie(ref, mTriggers, mIntRecord) == std::tie(other.ref, other.mTriggers, other.mIntRecord);
+  }
+  void printLog() const;
+  ClassDefNV(Digit, 2);
 };
 
 // For TCM extended mode (calibration mode), TCMdataExtended digit
 struct TriggersExt {
-  TriggersExt(std::array<uint32_t, 20> triggerWords) : mTriggerWords(triggerWords) {}
-  TriggersExt() = default;
   static constexpr char sChannelNameDPL[] = "DIGITSTRGEXT";
   static constexpr char sDigitName[] = "TriggersExt";
   static constexpr char sDigitBranchName[] = "FV0DIGITSTRGEXT";
-  o2::InteractionRecord mIntRecord;
+  TriggersExt(std::array<uint32_t, 20> triggerWords) : mTriggerWords(triggerWords) {}
+  TriggersExt() = default;
+  o2::InteractionRecord mIntRecord{};
   void setTrgWord(uint32_t trgWord, std::size_t pos) { mTriggerWords[pos] = trgWord; }
-  std::array<uint32_t, 20> mTriggerWords;
+  std::array<uint32_t, 20> mTriggerWords{};
   void printLog() const;
   ClassDefNV(TriggersExt, 1);
 };

@@ -163,8 +163,8 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
       const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.time[icc], cd.charge[icc], -1); // TODO: MS: modify the CTF format and fill the chain correctly, not with -1
     }
     Triggers triggers;
-    triggers.triggerSignals = cd.trigger[idig];
-    digitVec.emplace_back(firstEntry, cd.nChan[idig], ir, triggers);
+    triggers.triggersignals = cd.trigger[idig];
+    digitVec.emplace_back(firstEntry, cd.nChan[idig], ir, triggers, idig);
   }
 }
 

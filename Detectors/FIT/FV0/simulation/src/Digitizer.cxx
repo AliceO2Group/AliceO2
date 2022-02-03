@@ -204,6 +204,7 @@ void Digitizer::flush(std::vector<o2::fv0::Digit>& digitsBC,
                       std::vector<o2::fv0::DetTrigInput>& digitsTrig,
                       o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>& labels)
 {
+  ++mEventId;
   while (!mCache.empty()) {
     auto const& bc = mCache.front();
     if (mIntRecord.differenceInBC(bc) > NBC2Cache) { // Build events that are separated by NBC2Cache BCs from current BC
@@ -224,8 +225,9 @@ void Digitizer::storeBC(const BCCache& bc,
 {
   size_t const nBC = digitsBC.size();   // save before digitsBC is being modified
   size_t const first = digitsCh.size(); // save before digitsCh is being modified
-  size_t nStored = 0;
+  size_t nFiredCells = 0;
   double totalChargeAllRing = 0;
+  double avgTime = 0;
   double nSignalInner = 0;
   double nSignalOuter = 0;
 
@@ -256,8 +258,9 @@ void Digitizer::storeBC(const BCCache& bc,
 
     int chain = (std::rand() % 2) ? 1 : 0;
     digitsCh.emplace_back(iPmt, std::lround(cfdZero), std::lround(totalCharge), chain);
-    ++nStored;
+    ++nFiredCells;
     //---trigger---
+    avgTime += cfdZero;
     if (iPmt < 24) {
       nSignalInner++;
     } else {
@@ -266,23 +269,24 @@ void Digitizer::storeBC(const BCCache& bc,
   }
   // save BC information for the CFD detector
   mLastBCCache = bc;
-  if (nStored < 1) {
+  if (nFiredCells < 1) {
     return;
   }
   totalChargeAllRing *= DP::INV_CHARGE_PER_ADC;
+  avgTime /= nFiredCells;
   //LOG(info)<<"Total charge ADC " <<totalChargeAllRing ;
   ///Triggers for FV0
-  bool isMinBias, isMinBiasInner, isMinBiasOuter, isHighMult, isDummy;
-  isMinBias = nStored > 0;
-  isMinBiasInner = nSignalInner > 0; //ring 1,2 and 3
-  isMinBiasOuter = nSignalOuter > 0; //ring 4 and 5
-  isHighMult = totalChargeAllRing > FV0DigParam::Instance().adcChargeHighMultTh;
-  isDummy = false;
+  bool isA, isAIn, isAOut, isCen, isSCen;
+  isA = nFiredCells > 0;
+  isAIn = nSignalInner > 0;  // ring 1,2 and 3
+  isAOut = nSignalOuter > 0; // ring 4 and 5
+  isCen = totalChargeAllRing > FV0DigParam::Instance().adcChargeCenThr;
+  isSCen = totalChargeAllRing > FV0DigParam::Instance().adcChargeSCenThr;
 
   Triggers triggers;
-  triggers.setTriggers(isMinBias, isMinBiasInner, isMinBiasOuter, isHighMult, isDummy, nStored, totalChargeAllRing);
-  digitsBC.emplace_back(first, nStored, bc, triggers);
-  digitsTrig.emplace_back(bc, isMinBias, isMinBiasInner, isMinBiasOuter, isHighMult, isDummy);
+  triggers.setTriggers(isA, isAIn, isAOut, isCen, isSCen, nFiredCells, totalChargeAllRing, avgTime);
+  digitsBC.emplace_back(first, nFiredCells, bc, triggers, mEventId - 1);
+  digitsTrig.emplace_back(bc, isA, isAIn, isAOut, isCen, isSCen);
   for (auto const& lbl : bc.labels) {
     labels.addElement(nBC, lbl);
   }

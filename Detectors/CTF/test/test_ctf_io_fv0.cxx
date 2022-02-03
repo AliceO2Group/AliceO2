@@ -47,8 +47,8 @@ BOOST_AUTO_TEST_CASE(CTFTest)
       ich += 1 + gRandom->Poisson(10);
     }
     auto end = channels.size();
-    trigger.triggerSignals = gRandom->Integer(255);
-    digits.emplace_back(start, end - start, ir, trigger);
+    trigger.triggersignals = gRandom->Integer(255);
+    digits.emplace_back(start, end - start, ir, trigger, idig);
   }
 
   LOG(info) << "Generated " << channels.size() << " channels in " << digits.size() << " digits " << sw.CpuTime() << " s";
