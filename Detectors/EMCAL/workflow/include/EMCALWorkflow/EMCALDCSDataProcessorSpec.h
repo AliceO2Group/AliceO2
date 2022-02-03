@@ -34,6 +34,7 @@
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
 #include "CommonUtils/NameConf.h"
+#include "DataFormatsParameters/GRPECSObject.h"
 
 using namespace o2::framework;
 
@@ -54,8 +55,18 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
 class EMCALDCSDataProcessor : public o2::framework::Task
 {
  public:
+  enum class EMCRunStatus { NONE,
+                            START,
+                            ONGOING,
+                            STOP };
+
   void init(o2::framework::InitContext& ic) final
   {
+    std::string ccdbpath = ic.options().get<std::string>("ccdb-path");
+    auto& mgr = CcdbManager::instance();
+    mgr.setURL(ccdbpath);
+
+    mCheckRunStartStop = ic.options().get<bool>("follow-emcal-run");
 
     std::vector<DPID> vect;
     mDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval");
@@ -66,11 +77,6 @@ class EMCALDCSDataProcessor : public o2::framework::Task
     bool useCCDBtoConfigure = ic.options().get<bool>("use-ccdb-to-configure");
     if (useCCDBtoConfigure) {
       LOG(info) << "Configuring via CCDB";
-      std::string ccdbpath = ic.options().get<std::string>("ccdb-path");
-      auto& mgr = CcdbManager::instance();
-      mgr.setURL(ccdbpath);
-      CcdbApi api;
-      api.init(mgr.getURL());
       long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
       std::unordered_map<DPID, std::string>* dpid2DataDesc = mgr.getForTimeStamp<std::unordered_map<DPID, std::string>>("EMC/Config/DCSDPconfig", ts);
       for (auto& i : *dpid2DataDesc) {
@@ -122,6 +128,8 @@ class EMCALDCSDataProcessor : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
+    auto grp = checkRunStartEnd();
+
     auto tfid = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
     auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
     mProcessor->setTF(tfid);
@@ -145,6 +153,10 @@ class EMCALDCSDataProcessor : public o2::framework::Task
   std::unique_ptr<EMCDCSProcessor> mProcessor;
   HighResClock::time_point mTimer;
   int64_t mDPsUpdateInterval;
+
+  bool mCheckRunStartStop = false;
+  int mRunFollowed = -1; // EMCAL run being followed. Assumption is that at the given moment there might be only 1 such a run
+  EMCRunStatus mRunStatus{EMCRunStatus::NONE};
 
   //________________________________________________________________
   void sendELMButput(DataAllocator& output)
@@ -182,6 +194,49 @@ class EMCALDCSDataProcessor : public o2::framework::Task
     }
   }
 
+  //________________________________________________________________
+  const o2::parameters::GRPECSObject* checkRunStartEnd()
+  {
+    // check if EMC run is going on
+    if (!mCheckRunStartStop) {
+      return nullptr;
+    }
+    auto& mgr = CcdbManager::instance();
+    bool fatalOn = mgr.getFatalWhenNull();
+    mgr.setFatalWhenNull(false);
+    if (mRunStatus == EMCRunStatus::STOP) { // the STOP was detected at previous check
+      mRunFollowed = -1;
+      mRunStatus = EMCRunStatus::NONE;
+    }
+    std::map<std::string, std::string> md;
+    if (mRunFollowed > 0) { // run start was seen
+      md["runNumber"] = std::to_string(mRunFollowed);
+    }
+    long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    const auto* grp = mgr.getSpecific<o2::parameters::GRPECSObject>("GLO/Config/GRPECS", ts, md);
+    if (grp) { // some object was returned
+      if (mRunFollowed > 0) {
+        if (grp->getTimeEnd() > grp->getTimeStart()) { // this means that the EOR was registered
+          mRunStatus = EMCRunStatus::STOP;
+        } else { // run still continues
+          mRunStatus = EMCRunStatus::ONGOING;
+        }
+      } else {                                                  // we were not following EMC run, check if the current one has an EMC
+        if (grp->getDetsReadOut()[o2::detectors::DetID::EMC]) { // we start following EMC run
+          mRunStatus = grp->getTimeEnd() > grp->getTimeStart() ? EMCRunStatus::STOP : EMCRunStatus::START;
+          mRunFollowed = grp->getRun();
+        }
+      }
+    } else {                  // query did not return any GRP -> we are certainly not in the EMC run
+      if (mRunFollowed > 0) { // normally this should not happen
+        LOGP(warning, "We were following EMC run {} but the query at {} did not return any GRP, problem with EOR?", mRunFollowed, ts);
+        mRunStatus = EMCRunStatus::STOP;
+      }
+    }
+    mgr.setFatalWhenNull(fatalOn);
+    return grp;
+  }
+
 }; // end class
 } // namespace emcal
 
@@ -208,6 +263,7 @@ DataProcessorSpec getEMCALDCSDataProcessorSpec()
     Options{{"ccdb-path", VariantType::String, o2::base::NameConf::getCCDBServer(), {"Path to CCDB"}},
             {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
             {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
+            {"follow-emcal-run", VariantType::Bool, false, {"Check EMCAL runs SOR/EOR"}},
             {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}}}};
 }
 
