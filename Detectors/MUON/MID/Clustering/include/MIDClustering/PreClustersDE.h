@@ -17,7 +17,7 @@
 #ifndef O2_MID_PRECLUSTERSDE_H
 #define O2_MID_PRECLUSTERSDE_H
 
-#include <cstddef>
+#include <cstdint>
 #include <array>
 #include <vector>
 #include "MIDBase/MpArea.h"
