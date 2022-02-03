@@ -1282,7 +1282,7 @@ int getConnectedComponentsOfProjPadsWOIsolatedPads(short* padGrp)
       for (PadIdx_t* neigh_ptr = getNeighborsOf(neigh, i); *neigh_ptr != -1; neigh_ptr++) {
         j = *neigh_ptr;
         // printf("    neigh j %d\n, \n", j);
-        if ((padGrp[j] == 0)) {
+        if (padGrp[j] == 0) {
           // Add the neighbors in the currentgroup
           //
           // aloneKPads = 0 if only one cathode
@@ -2524,7 +2524,7 @@ int assignGroupToCathPads(short* projPadGroup, int nProjPads, int nGrp, int nCat
     //
     if ((i >= 0) && (nCath0 != 0)) {
       prevGroup0 = cath0ToGrpFromProj[i];
-      if ((prevGroup0 == 0)) {
+      if (prevGroup0 == 0) {
         if ((projGrpToCathGrp[g] == 0) && (g != 0)) {
           nCathGrp++;
           projGrpToCathGrp[g] = nCathGrp;
@@ -2539,7 +2539,7 @@ int assignGroupToCathPads(short* projPadGroup, int nProjPads, int nGrp, int nCat
     //
     if ((j >= 0) && (nCath1 != 0)) {
       prevGroup1 = cath1ToGrpFromProj[j];
-      if ((prevGroup1 == 0)) {
+      if (prevGroup1 == 0) {
         if ((projGrpToCathGrp[g] == 0) && (g != 0)) {
           nCathGrp++;
           projGrpToCathGrp[g] = nCathGrp;
@@ -2888,7 +2888,7 @@ int addIsolatedPadInGroups0(const double* xyDxy, Mask_t* cathToGrp, int nbrCath,
           }
         }
       }
-      if ((newCathToGrp[p] == 0)) {
+      if (newCathToGrp[p] == 0) {
         // No neighbours with a group
         // New group
         nGroups++;
@@ -3603,8 +3603,8 @@ Pads* findLocalMaxWithPET(const Pads& cath0, const Pads& cath1, const Pads& proj
     }
   }
   int nMacroIterations = 8;
-  int nIterations[nMacroIterations] = {5, 10, 10, 10, 10, 10, 10, 30};
-  double minPadResidues[nMacroIterations] = {2.0, 2.0, 1.5, 1.5, 1.0, 1.0, 0.5, 0.5};
+  int nIterations[] = {5, 10, 10, 10, 10, 10, 10, 30};
+  double minPadResidues[] = {2.0, 2.0, 1.5, 1.5, 1.0, 1.0, 0.5, 0.5};
   double previousCriteriom = DBL_MAX;
   double criteriom = DBL_MAX;
   bool goon = true;

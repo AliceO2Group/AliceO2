@@ -612,6 +612,10 @@ void fitMathieson(double* thetai,
       muAndWf[3 * KMax - 1] = 1.0 - sumW;
 
       // Parameter error
+      /* Pb with MacOS :
+       * mathiesonFit.cxx:618:31: error: no member named 'J' in 'gsl_multifit_fdfsolver'
+       * gsl_multifit_covar(s->J, 0.0, covar);
+       * Removed ...
       if (computeStdDev && (pError != nullptr)) { //
         // Covariance matrix an error
         gsl_matrix* covar = gsl_matrix_alloc(3 * K - 1, 3 * K - 1);
@@ -621,6 +625,7 @@ void fitMathieson(double* thetai,
         }
         gsl_matrix_free(covar);
       }
+      */
     }
     if (verbose >= 2) {
       printf("  status parameter error = %s\n", gsl_strerror(status));
