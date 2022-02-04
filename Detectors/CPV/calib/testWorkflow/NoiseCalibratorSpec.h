@@ -13,10 +13,11 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/WorkflowSpec.h"
+#include "Framework/CCDBParamSpec.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "DetectorsCalibration/Utils.h"
-#include "CPVCalibration/PedestalCalibrator.h"
+#include "CPVCalibration/NoiseCalibrator.h"
 #include "DataFormatsCPV/Digit.h"
 #include "DataFormatsCPV/TriggerRecord.h"
 
@@ -26,7 +27,7 @@ namespace o2
 {
 namespace calibration
 {
-class CPVPedestalCalibratorSpec : public o2::framework::Task
+class CPVNoiseCalibratorSpec : public o2::framework::Task
 {
  public:
   //_________________________________________________________________
@@ -36,14 +37,14 @@ class CPVPedestalCalibratorSpec : public o2::framework::Task
     uint64_t delay = ic.options().get<uint64_t>("max-delay");
     uint64_t updateInterval = ic.options().get<uint64_t>("updateInterval");
     bool updateAtTheEndOfRunOnly = ic.options().get<bool>("updateAtTheEndOfRunOnly");
-    mCalibrator = std::make_unique<o2::cpv::PedestalCalibrator>();
+    mCalibrator = std::make_unique<o2::cpv::NoiseCalibrator>();
     mCalibrator->setSlotLength(slotL);
     mCalibrator->setMaxSlotsDelay(delay);
     if (updateAtTheEndOfRunOnly) {
       mCalibrator->setUpdateAtTheEndOfRunOnly();
     }
     mCalibrator->setCheckIntervalInfiniteSlot(updateInterval);
-    LOG(info) << "CPVPedestalCalibratorSpec initialized";
+    LOG(info) << "CPVNoiseCalibratorSpec initialized";
     LOG(info) << "tf-per-slot = " << slotL;
     LOG(info) << "max-delay = " << delay;
     LOG(info) << "updateInterval = " << updateInterval;
@@ -55,6 +56,7 @@ class CPVPedestalCalibratorSpec : public o2::framework::Task
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("digits").header)->startTime;
     auto&& digits = pc.inputs().get<gsl::span<o2::cpv::Digit>>("digits");
     auto&& trigrecs = pc.inputs().get<gsl::span<o2::cpv::TriggerRecord>>("trigrecs");
+
     LOG(info) << "Processing TF " << tfcounter << " with " << digits.size() << " digits in " << trigrecs.size() << " trigger records.";
     auto& slotTF = mCalibrator->getSlotForTF(tfcounter);
 
@@ -70,17 +72,37 @@ class CPVPedestalCalibratorSpec : public o2::framework::Task
       }
     }
 
-    auto infoVecSize = mCalibrator->getCcdbInfoPedestalsVector().size();
-    auto pedsVecSize = mCalibrator->getPedestalsVector().size();
+    auto infoVecSize = mCalibrator->getCcdbInfoBadChannelMapVector().size();
+    auto badMapVecSize = mCalibrator->getBadChannelMapVector().size();
     if (infoVecSize > 0) {
-      LOG(info) << "Created " << infoVecSize << " ccdb infos and " << pedsVecSize << " pedestal objects for TF " << tfcounter;
+      LOG(info) << "Created " << infoVecSize << " ccdb infos and " << badMapVecSize << " pedestal objects for TF " << tfcounter;
     }
     sendOutput(pc.outputs());
   }
   //_________________________________________________________________
+  void finaliseCCDB(ConcreteDataMatcher matcher, void* obj)
+  {
+    LOG(info) << "finaliseCCDB() : I've been called with ConcreteDataMatcher" << matcher.origin.str << "/" << matcher.description.str << "/" << matcher.subSpec;
+    if (matcher == ConcreteDataMatcher{"CPV", "CPV_PedEffs", 0}) {
+      auto* pedEffs = static_cast<std::vector<float>*>(obj);
+      mCalibrator->mPedEfficiencies = pedEffs;
+      LOG(info) << "finaliseCCDB() : obtained vector of pedestal efficiencies from CCDB";
+    }
 
+    if (matcher == ConcreteDataMatcher{"CPV", "CPV_DeadChnls", 0}) {
+      auto* deadCh = static_cast<std::vector<int>*>(obj);
+      mCalibrator->mDeadChannels = deadCh;
+      LOG(info) << "finaliseCCDB() : obtained vector of dead channels from CCDB";
+    }
+    if (matcher == ConcreteDataMatcher{"CPV", "CPV_HighThrs", 0}) {
+      auto* highPeds = static_cast<std::vector<int>*>(obj);
+      mCalibrator->mHighPedChannels = highPeds;
+      LOG(info) << "finaliseCCDB() : obtained vector of high pedestal channels from CCDB";
+    }
+  }
+  //_________________________________________________________________
  private:
-  std::unique_ptr<o2::cpv::PedestalCalibrator> mCalibrator;
+  std::unique_ptr<o2::cpv::NoiseCalibrator> mCalibrator;
 
   void sendOutput(DataAllocator& output)
   {
@@ -88,9 +110,9 @@ class CPVPedestalCalibratorSpec : public o2::framework::Task
     // TO NOT(!) DO in principle, this routine is non-generic(!), can be moved to Utils.h
     // if there are more than 1 calibration objects to output
 
-    // send o2::cpv::Pedestals
-    /*const auto& payloadVec = mCalibrator->getPedestalsVector();
-    auto&& infoVec = mCalibrator->getCcdbInfoPedestalsVector(); // use non-const version as we update it
+    // send o2::cpv::BadChannelMap
+    const auto& payloadVec = mCalibrator->getBadChannelMapVector();
+    auto&& infoVec = mCalibrator->getCcdbInfoBadChannelMapVector(); // use non-const version as we update it
 
     assert(payloadVec.size() == infoVec.size());
 
@@ -99,66 +121,35 @@ class CPVPedestalCalibratorSpec : public o2::framework::Task
       auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
       LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
                 << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_Pedestals", i}, *image.get()); // vector<char>
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_Pedestals", i}, w);            // root-serialized
-    }*/
-    bool isSomethingSent = false;
-    isSomethingSent = sendOutputWhat<o2::cpv::Pedestals>(mCalibrator->getPedestalsVector(), mCalibrator->getCcdbInfoPedestalsVector(), "CPV_Pedestals", output);
-    isSomethingSent += sendOutputWhat<std::vector<int>>(mCalibrator->getThresholdsFEEVector(), mCalibrator->getCcdbInfoThresholdsFEEVector(), "CPV_FEEThrs", output);
-    isSomethingSent += sendOutputWhat<std::vector<int>>(mCalibrator->getDeadChannelsVector(), mCalibrator->getCcdbInfoDeadChannelsVector(), "CPV_DeadChnls", output);
-    isSomethingSent += sendOutputWhat<std::vector<int>>(mCalibrator->getHighPedChannelsVector(), mCalibrator->getCcdbInfoHighPedChannelsVector(), "CPV_HighThrs", output);
-    isSomethingSent += sendOutputWhat<std::vector<float>>(mCalibrator->getEfficienciesVector(), mCalibrator->getCcdbInfoEfficienciesVector(), "CPV_PedEffs", output);
-
-    if (isSomethingSent) {
-      mCalibrator->initOutput(); // reset the outputs once they are already sent
+      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_BadMap", i}, *image.get()); // vector<char>
+      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_BadMap", i}, w);            // root-serialized
     }
+    mCalibrator->initOutput(); // reset the outputs once they are already sent
   }
-
-  template <class Payload>
-  bool sendOutputWhat(const std::vector<Payload>& payloadVec, std::vector<o2::ccdb::CcdbObjectInfo>&& infoVec, header::DataDescription what, DataAllocator& output)
-  {
-    assert(payloadVec.size() == infoVec.size());
-    if (!payloadVec.size()) {
-      return false;
-    }
-
-    for (uint32_t i = 0; i < payloadVec.size(); i++) {
-      auto& w = infoVec[i];
-      auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
-      LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
-                << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, what, i}, *image.get()); // vector<char>
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, what, i}, w);            // root-serialized
-    }
-
-    return true;
-  }
-}; // class CPVPedestalCalibratorSpec
+}; // class CPVNoiseCalibratorSpec
 } // namespace calibration
+
 namespace framework
 {
-DataProcessorSpec getCPVPedestalCalibratorSpec()
+DataProcessorSpec getCPVNoiseCalibratorSpec()
 {
-  using device = o2::calibration::CPVPedestalCalibratorSpec;
+  using device = o2::calibration::CPVNoiseCalibratorSpec;
+
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("digits", "CPV", "DIGITS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("trigrecs", "CPV", "DIGITTRIGREC", 0, Lifetime::Timeframe);
+  inputs.emplace_back("pedeffs", "CPV", "CPV_PedEffs", 0, Lifetime::Condition, ccdbParamSpec("CPV/PedestalRun/ChannelEfficiencies"));
+  inputs.emplace_back("deadchs", "CPV", "CPV_DeadChnls", 0, Lifetime::Condition, ccdbParamSpec("CPV/PedestalRun/DeadChannels"));
+  inputs.emplace_back("highpeds", "CPV", "CPV_HighThrs", 0, Lifetime::Condition, ccdbParamSpec("CPV/PedestalRun/HighPedChannels"));
 
   std::vector<OutputSpec> outputs;
   // Length of data description ("CPV_Pedestals") must be < 16 characters.
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_Pedestals"}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_Pedestals"}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_FEEThrs"}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_FEEThrs"}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_PedEffs"}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_PedEffs"}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_DeadChnls"}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_DeadChnls"}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_HighThrs"}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_HighThrs"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_BadMap"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_BadMap"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
-    "cpv-pedestal-calibration",
-    Inputs{
-      {"digits", "CPV", "DIGITS"},
-      {"trigrecs", "CPV", "DIGITTRIGREC"}},
+    "cpv-noise-calibration",
+    inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},
     Options{

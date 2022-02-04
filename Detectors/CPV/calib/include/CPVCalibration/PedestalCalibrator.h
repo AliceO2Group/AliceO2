@@ -69,7 +69,7 @@ struct PedestalCalibData {
 
 }; //end PedestalCalibData
 
-using TimeSlot = o2::calibration::TimeSlot<o2::cpv::PedestalCalibData>;
+using PedestalTimeSlot = o2::calibration::TimeSlot<o2::cpv::PedestalCalibData>;
 //===================================================================
 class PedestalCalibrator final : public o2::calibration::TimeSlotCalibration<o2::cpv::Digit, o2::cpv::PedestalCalibData>
 {
@@ -87,14 +87,14 @@ class PedestalCalibrator final : public o2::calibration::TimeSlotCalibration<o2:
   std::vector<o2::ccdb::CcdbObjectInfo> getCcdbInfoEfficienciesVector() { return mCcdbInfoPedEfficienciesVec; }
   std::vector<std::vector<float>> getEfficienciesVector() { return mPedEfficienciesVec; }
 
-  bool hasEnoughData(const TimeSlot& slot) const final
+  bool hasEnoughData(const PedestalTimeSlot& slot) const final
   {
     LOG(info) << "hasEnoughData() is being called";
     return slot.getContainer()->mNEvents >= mMinEvents;
   }
   void initOutput() final;
-  void finalizeSlot(TimeSlot& slot) final;
-  TimeSlot& emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend) final;
+  void finalizeSlot(PedestalTimeSlot& slot) final;
+  PedestalTimeSlot& emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend) final;
 
  private:
   int mMinEvents = 100;
