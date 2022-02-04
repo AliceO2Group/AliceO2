@@ -185,7 +185,7 @@ bool Clusterizer::init(std::function<void(size_t, size_t)> func)
 //______________________________________________________________________________
 void Clusterizer::makeCluster(const MpArea& areaBP, const MpArea& areaNBP, uint8_t deId)
 {
-  double sqrt12 = 3.4641016;
+  constexpr double sqrt12 = 3.4641016;
   double xCoor = 0.5 * (areaNBP.getXmax() + areaNBP.getXmin());
   double yCoor = 0.5 * (areaBP.getYmax() + areaBP.getYmin());
   double errX = (areaNBP.getXmax() - areaNBP.getXmin()) / sqrt12;
