@@ -27,7 +27,7 @@ bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv
     "dest,d", bpo::value<std::string>()->default_value("./"), "destination path")(
     "no-preserve-path", "Do not preserve path structure. If not set, the full path structure -- reflecting the '--path' argument will be put.")(
     "outfile,o", bpo::value<std::string>()->default_value("snapshot.root"), "Name of output file. If set to \"\", the name will be determined from the uploaded content.")(
-    "timestamp,t", bpo::value<long>()->default_value(-1), "timestamp - default -1 = now")(
+    "timestamp,t", bpo::value<long>()->default_value(-1), "timestamp in ms - default -1 = now")(
     "help,h", "Produce help message.");
 
   try {
