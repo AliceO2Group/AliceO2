@@ -27,12 +27,31 @@
 #endif
 #include <cassert>
 #include <set>
+#include "rapidjson/document.h"
 #include "rapidjson/istreamwrapper.h"
 #include "rapidjson/ostreamwrapper.h"
 #include "rapidjson/prettywriter.h"
 
 using namespace o2::base;
 namespace rj = rapidjson;
+
+namespace
+{
+/// helper to read/write cuts and processes from/to JSON
+template <typename K, typename V>
+void writeSingleJSONParamBatch(int NPARAMS, std::map<K, V> const& valMap, V defaultValue, rapidjson::Value& paramArr, rapidjson::Document::AllocatorType& a)
+{
+  paramArr.Reserve(NPARAMS, a);
+  for (int i = 0; i < NPARAMS; i++) {
+    auto itVal = valMap.find(static_cast<K>(i));
+    if (itVal != valMap.end()) {
+      paramArr.PushBack(itVal->second, a);
+      continue;
+    }
+    paramArr.PushBack(defaultValue, a);
+  }
+}
+} // namespace
 
 const std::unordered_map<EProc, const char*> MaterialManager::mProcessIDToName = {
   {EProc::kPAIR, "PAIR"},
@@ -357,39 +376,34 @@ TGeoMedium* MaterialManager::getTGeoMedium(const char* mediumname)
   return med;
 }
 
-void MaterialManager::digestCutsFromJSON(int globalindex, rj::Value& cuts)
-{
-  for (rj::SizeType i = 0; i < cuts.Size(); i++) {
-    if (globalindex < 0) {
-      DefaultCut(static_cast<ECut>(i), cuts[i].GetFloat());
-      continue;
-    }
-    Cut(ESpecial::kTRUE, globalindex, static_cast<ECut>(i), cuts[i].GetFloat());
-  }
-}
-
-void MaterialManager::digestProcessesFromJSON(int globalindex, rj::Value& processes)
-{
-  for (rj::SizeType i = 0; i < processes.Size(); i++) {
-    if (globalindex < 0) {
-      DefaultProcess(static_cast<EProc>(i), processes[i].GetInt());
-      continue;
-    }
-    Process(ESpecial::kTRUE, globalindex, static_cast<EProc>(i), processes[i].GetInt());
-  }
-}
-
 void MaterialManager::loadCutsAndProcessesFromJSON(std::string const& filename)
 {
   if (filename.empty()) {
     return;
   }
-  constexpr const char* defaultParamsKey = "default";
   std::ifstream is(filename);
   if (!is.is_open()) {
     LOG(error) << "Cannot open file " << filename;
     return;
   }
+  auto digestCutsFromJSON = [this](int globalindex, rj::Value& cuts) {
+    for (rj::SizeType i = 0; i < cuts.Size(); i++) {
+      if (globalindex < 0) {
+        DefaultCut(static_cast<ECut>(i), cuts[i].GetFloat());
+        continue;
+      }
+      Cut(ESpecial::kTRUE, globalindex, static_cast<ECut>(i), cuts[i].GetFloat());
+    }
+  };
+  auto digestProcessesFromJSON = [this](int globalindex, rj::Value& processes) {
+    for (rj::SizeType i = 0; i < processes.Size(); i++) {
+      if (globalindex < 0) {
+        DefaultProcess(static_cast<EProc>(i), processes[i].GetInt());
+        continue;
+      }
+      Process(ESpecial::kTRUE, globalindex, static_cast<EProc>(i), processes[i].GetInt());
+    }
+  };
   rj::IStreamWrapper isw(is);
   rj::Document d;
   d.ParseStream(isw);
@@ -401,11 +415,11 @@ void MaterialManager::loadCutsAndProcessesFromJSON(std::string const& filename)
       digestCutsFromJSON(-1, defaultParams[jsonKeyCuts]);
     }
     if (defaultParams.HasMember(jsonKeyProcesses)) {
-      digestCutsFromJSON(-1, defaultParams[jsonKeyProcesses]);
+      digestProcessesFromJSON(-1, defaultParams[jsonKeyProcesses]);
     }
   }
   for (auto& m : d.GetObject()) {
-    if (std::strcmp(m.name.GetString(), defaultParamsKey) == 0) {
+    if (std::strcmp(m.name.GetString(), jsonKeyDefault) == 0) {
       // defaults are done, not do this again
       continue;
     }
@@ -424,7 +438,7 @@ void MaterialManager::loadCutsAndProcessesFromJSON(std::string const& filename)
         digestCutsFromJSON(index, batch[jsonKeyCuts]);
       }
       if (batch.HasMember(jsonKeyProcesses)) {
-        digestCutsFromJSON(index, batch[jsonKeyProcesses]);
+        digestProcessesFromJSON(index, batch[jsonKeyProcesses]);
       }
     }
   }

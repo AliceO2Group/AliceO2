@@ -20,7 +20,6 @@
 #include <unordered_map>
 #include <initializer_list>
 #include <iosfwd>
-#include "rapidjson/document.h"
 
 class TGeoMedium;
 
@@ -226,22 +225,6 @@ class MaterialManager
   void Cuts(ESpecial special, int globalindex, const std::initializer_list<std::pair<ECut, Float_t>>& parIDValMap);
   void Process(ESpecial special, int globalindex, EProc parID, int val);
   void Cut(ESpecial special, int globalindex, ECut parID, Float_t val);
-  /// helpers to read/write cuts and processes from/to JSON
-  void digestCutsFromJSON(int globalindex, rapidjson::Value& cuts);
-  void digestProcessesFromJSON(int globalindex, rapidjson::Value& processes);
-  template <typename K, typename V>
-  void writeSingleJSONParamBatch(int NPARAMS, std::map<K, V> const& valMap, V defaultValue, rapidjson::Value& paramArr, rapidjson::Document::AllocatorType& a) const
-  {
-    paramArr.Reserve(NPARAMS, a);
-    for (int i = 0; i < NPARAMS; i++) {
-      auto itVal = valMap.find(static_cast<K>(i));
-      if (itVal != valMap.end()) {
-        paramArr.PushBack(itVal->second, a);
-        continue;
-      }
-      paramArr.PushBack(defaultValue, a);
-    }
-  }
 
   // insert material name
   void insertMaterialName(const char* uniquename, int index);
