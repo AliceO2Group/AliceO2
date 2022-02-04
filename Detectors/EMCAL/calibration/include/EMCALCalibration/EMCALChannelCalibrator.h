@@ -70,8 +70,8 @@ class EMCALChannelCalibrator : public o2::calibration::TimeSlotCalibration<o2::e
   void setIsTest(bool isTest) { mTest = isTest; }
   bool isTest() const { return mTest; }
 
-  CcdbObjectInfoVector getInfoVector() { return mInfoVector; }
-  std::vector<DataOutput> getOutputVector() { return mCalibObjectVector; }
+  const CcdbObjectInfoVector& getInfoVector() const { return mInfoVector; }
+  const std::vector<DataOutput>& getOutputVector() const { return mCalibObjectVector; }
 
   // Configure the calibrator
   EMCALCalibExtractor* getCalibExtractor() const { return mCalibrator.get(); }
