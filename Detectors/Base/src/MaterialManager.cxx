@@ -459,10 +459,6 @@ void MaterialManager::writeCutsAndProcessesToJSON(std::string const& filename)
       auto globalindex = locToGlob.second;
       auto itCut = mMediumCutMap.find(globalindex);
       auto itProc = mMediumProcessMap.find(globalindex);
-      if (itCut == mMediumCutMap.end() && itProc == mMediumProcessMap.end()) {
-        // nothing to do here since no processes or cuts set
-        continue;
-      }
       // prepare a batch summarising localID, globaldID, cuts and processes
       rj::Value oLoc(rj::kObjectType);
       // IDs
