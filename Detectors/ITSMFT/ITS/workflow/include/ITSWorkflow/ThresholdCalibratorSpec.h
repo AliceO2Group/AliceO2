@@ -168,6 +168,7 @@ class ITSThresholdCalibrator : public Task
   std::string mOutputDir;
   std::string mMetafileDir = "/dev/null";
   int mNThreads = 1;
+  std::string mCcdbUrl = "";
   int mRunNumber = -1;
 
   // How many rows before starting new ROOT file

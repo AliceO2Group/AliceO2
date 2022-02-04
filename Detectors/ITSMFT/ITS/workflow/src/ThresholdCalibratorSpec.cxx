@@ -32,7 +32,7 @@ double erf(double* xx, double* par)
 // ITHR erf is reversed
 double erf_ithr(double* xx, double* par)
 {
-  return (N_INJ / 2) * (1 - TMath::Erf((xx[0] - par[0]) / (sqrt(2) * par[1]))) + (N_INJ / 2);
+  return (N_INJ / 2) * (1 - TMath::Erf((xx[0] - par[0]) / (sqrt(2) * par[1])));
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -110,13 +110,16 @@ void ITSThresholdCalibrator::init(InitContext& ic)
 
   this->mVerboseOutput = ic.options().get<bool>("verbose");
 
-  //Get number of threads
+  // Get number of threads
   this->mNThreads = ic.options().get<int>("nthreads");
 
-  //Check fit type vs nthreads (fit option is not thread safe!)
+  // Check fit type vs nthreads (fit option is not thread safe!)
   if (mFitType == FIT && mNThreads > 1) {
     throw std::runtime_error("Multiple threads are requested with fit method which is not thread safe");
   }
+
+  // Get CCDB url
+  this->mCcdbUrl = ic.options().get<std::string>("ccdb-url");
 
   return;
 }
@@ -371,7 +374,7 @@ bool ITSThresholdCalibrator::findThresholdHitcounting(
   } else if (this->mScanType == 'V') {
     thresh = (this->mX[*(this->N_RANGE) - 1] * N_INJ - numberOfHits) / float(N_INJ);
   } else if (this->mScanType == 'I') {
-    thresh = (numberOfHits - N_INJ * this->mX[0]) / float(N_INJ);
+    thresh = (numberOfHits + N_INJ * this->mX[0]) / float(N_INJ);
   } else {
     LOG(error) << "Unexpected runtype encountered in findThresholdHitcounting()";
     return false;
@@ -847,6 +850,9 @@ void ITSThresholdCalibrator::sendToCCDB(
   if (!(this->mLHCPeriod.empty())) {
     md.insert({"LHC_period", this->mLHCPeriod});
   }
+  if (!mCcdbUrl.empty()) { // add only if we write here otherwise ccdb-populator-wf add it already
+    md.insert({"runNumber", std::to_string(this->mRunNumber)});
+  }
 
   std::string path("ITS/Calib/");
   std::string name_str(name);
@@ -854,21 +860,33 @@ void ITSThresholdCalibrator::sendToCCDB(
   auto image = o2::ccdb::CcdbApi::createObjectImage(&tuning, &info);
   std::string file_name = "calib_scan_" + name_str + ".root";
   info.setFileName(file_name);
-  LOG(info) << "Class Name: " << class_name << " | File Name: " << file_name
-            << "\nSending object " << info.getPath() << "/" << info.getFileName()
-            << " of size " << image->size() << " bytes, valid for "
-            << info.getStartValidityTimestamp() << " : "
-            << info.getEndValidityTimestamp();
 
-  if (this->mScanType == 'V') {
-    ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "VCASN", 0}, *image);
-    ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "VCASN", 0}, info);
-  } else if (this->mScanType == 'I') {
-    ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ITHR", 0}, *image);
-    ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ITHR", 0}, info);
-  } else if (this->mScanType == 'T') {
-    ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "THR", 0}, *image);
-    ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "THR", 0}, info);
+  if (ec) { // send to ccdb-populator wf only if there is an EndOfStreamContext
+    LOG(info) << "Class Name: " << class_name << " | File Name: " << file_name
+              << "\nSending to ccdb-populator the object " << info.getPath() << "/" << info.getFileName()
+              << " of size " << image->size() << " bytes, valid for "
+              << info.getStartValidityTimestamp() << " : "
+              << info.getEndValidityTimestamp();
+
+    if (this->mScanType == 'V') {
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "VCASN", 0}, *image);
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "VCASN", 0}, info);
+    } else if (this->mScanType == 'I') {
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ITHR", 0}, *image);
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ITHR", 0}, info);
+    } else if (this->mScanType == 'T') {
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "THR", 0}, *image);
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "THR", 0}, info);
+    }
+  }
+
+  if (!mCcdbUrl.empty()) { // if url is specified, send object to ccdb from THIS wf
+
+    LOG(info) << "Storing object " << info.getFileName() << " to " << mCcdbUrl << "/browse/" << info.getPath() << " from the ITS calib workflow";
+    o2::ccdb::CcdbApi mApi;
+    mApi.init(mCcdbUrl);
+    mApi.storeAsBinaryFile(&image->at(0), image->size(), info.getFileName(), info.getObjectType(), info.getPath(),
+                           info.getMetaData(), info.getStartValidityTimestamp(), info.getEndValidityTimestamp());
   }
 
   return;
@@ -928,9 +946,8 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
     }
   }
 
-  if (ec) {
-    this->sendToCCDB(name, tuning, ec);
-  }
+  // Send to ccdb
+  this->sendToCCDB(name, tuning, ec);
 
   return;
 }
@@ -987,7 +1004,8 @@ DataProcessorSpec getITSThresholdCalibratorSpec()
             {"output-dir", VariantType::String, "./", {"ROOT trees output directory"}},
             {"meta-output-dir", VariantType::String, "/dev/null", {"Metadata output directory"}},
             {"meta-type", VariantType::String, "", {"metadata type"}},
-            {"nthreads", VariantType::Int, 1, {"Number of threads, default is 1"}}}};
+            {"nthreads", VariantType::Int, 1, {"Number of threads, default is 1"}},
+            {"ccdb-url", VariantType::String, "", {"CCDB url, default is empty (i.e. no upload to CCDB)"}}}};
 }
 } // namespace its
 } // namespace o2
