@@ -89,7 +89,17 @@ void merge(TObject* const target, TObject* const other)
 
     if (target->InheritsFrom(TH1::Class())) {
       // this includes TH1, TH2, TH3
-      errorCode = reinterpret_cast<TH1*>(target)->Merge(&otherCollection);
+      auto targetTH1 = reinterpret_cast<TH1*>(target);
+      if (targetTH1->TestBit(TH1::kIsAverage)) {
+        // Merge() does not support averages, we have to use Add()
+        // this will break if collection.size != 1
+        if (auto otherTH1 = dynamic_cast<TH1*>(otherCollection.First())) {
+          errorCode = targetTH1->Add(otherTH1);
+        }
+      } else {
+        // Add() does not support histograms with labels, thus we resort to Merge() by default
+        errorCode = targetTH1->Merge(&otherCollection);
+      }
     } else if (target->InheritsFrom(THnBase::Class())) {
       // this includes THn and THnSparse
       errorCode = reinterpret_cast<THnBase*>(target)->Merge(&otherCollection);
