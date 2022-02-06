@@ -34,15 +34,12 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Headers/DataHeaderHelpers.h"
 #include <fairmq/FairMQDevice.h>
-#include "CommonUtils/StringUtils.h"--
+#include "CommonUtils/StringUtils.h"
 #include <vector>
 #include <string>
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
-
-std::array<o2::header::DataOrigin, 1> exceptionsDetID{"GRP"};
-
 InjectorFunction dcs2dpl()
 {
 
@@ -54,17 +51,12 @@ InjectorFunction dcs2dpl()
       LOG(error) << "received " << parts.Size() << " instead of 2 expected";
       return;
     }
-    std::string filename{static_cast<const char*>(parts.At(0)->GetData()), parts.At(0)->GetSize()};
-    size_t filesize = parts.At(1)->GetSize();
-    std::string filedata{static_cast<const char*>(parts.At(1)->GetData()), parts.At(1)->GetSize()};
-
-    LOG(info) << "received file " << filename << " of size " << filesize << " Payload:" << filedata;
+    std::string messageHeader{static_cast<const char*>(parts.At(0)->GetData()), parts.At(0)->GetSize()};
+    size_t dataSize = parts.At(1)->GetSize();
+    std::string messageData{static_cast<const char*>(parts.At(1)->GetData()), parts.At(1)->GetSize()};
+    LOG(info) << "received message " << messageHeader << " of size " << dataSize << " Payload:" << messageData;
     auto dID = DetID::nameToID("CTP", DetID::First);
     o2::header::DataOrigin dataOrigin = DetID(dID).getDataOrigin();
-    if (dataOrigin == o2::header::gDataOriginInvalid) {
-      LOG(error) << "unknown detector for " << filename;
-      return;
-    }
     o2::header::DataHeader hdrF("CTP_COUNTERS", dataOrigin, 0);
     OutputSpec outsp{hdrF.dataOrigin, hdrF.dataDescription, hdrF.subSpecification};
     auto channel = channelRetriever(outsp, *timesliceId);
@@ -72,13 +64,13 @@ InjectorFunction dcs2dpl()
       LOG(error) << "No output channel found for OutputSpec " << outsp;
       return;
     }
-
+    
     hdrF.tfCounter = *timesliceId; // this also
     hdrF.payloadSerializationMethod = o2::header::gSerializationMethodNone;
     hdrF.splitPayloadParts = 1;
     hdrF.splitPayloadIndex = 0;
     hdrF.payloadSize = parts.At(1)->GetSize();
-    hdrF.firstTForbit = 0; // this should be irrelevant for DCS
+    hdrF.firstTForbit = 0; // this should be irrelevant for Counters ? Orbit is in payload
 
     auto fmqFactory = device.GetChannel(channel).Transport();
 
@@ -92,8 +84,7 @@ InjectorFunction dcs2dpl()
     outParts.AddPart(std::move(hdMessageF));
     outParts.AddPart(std::move(plMessageF));
     sendOnChannel(device, outParts, channel);
-
-    LOG(info) << "Sent DPL message and acknowledgment for file " << filename;
+    //LOG(info) << "Sent CTP counters DPL message";
   };
 }
 
@@ -134,7 +125,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   DataProcessorSpec ctpProxy = specifyExternalFairMQDeviceProxy(
     devName.c_str(),
     std::move(ctpCountersOutputs),
-    // this is just default, can be overriden by --dcs-config-proxy '--channel-config..'
+    // this is just default, can be overriden by --ctp-config-proxy '--channel-config..'
     chan.c_str(),
     dcs2dpl());
   LOG(info) << "===> Proxy done";
