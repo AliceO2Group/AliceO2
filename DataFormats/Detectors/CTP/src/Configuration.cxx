@@ -338,8 +338,8 @@ std::vector<int> CTPConfiguration::getTriggerClassList() const
 {
   uint64_t clsmask = getTriggerClassMask();
   std::vector<int> classlist;
-  for(int i = 0; i < 64; i++) {
-    if((1ull << i) & clsmask) {
+  for (int i = 0; i < 64; i++) {
+    if ((1ull << i) & clsmask) {
       classlist.push_back(i);
     }
   }

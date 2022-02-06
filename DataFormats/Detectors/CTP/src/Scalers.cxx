@@ -361,6 +361,7 @@ int CTPRunScalers::updateOverflows(const CTPScalerRaw& scal0, const CTPScalerRaw
   //std::cout << std::endl;
   return 0;
 }
-int CTPRunScalers::parseZMQScalers(std::string zmqscalers) {
+int CTPRunScalers::parseZMQScalers(std::string zmqscalers)
+{
   return 0;
 }

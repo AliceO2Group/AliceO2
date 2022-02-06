@@ -64,7 +64,7 @@ InjectorFunction dcs2dpl()
       LOG(error) << "No output channel found for OutputSpec " << outsp;
       return;
     }
-    
+
     hdrF.tfCounter = *timesliceId; // this also
     hdrF.payloadSerializationMethod = o2::header::gSerializationMethodNone;
     hdrF.splitPayloadParts = 1;
@@ -84,7 +84,7 @@ InjectorFunction dcs2dpl()
     outParts.AddPart(std::move(hdMessageF));
     outParts.AddPart(std::move(plMessageF));
     sendOnChannel(device, outParts, channel);
-    //LOG(info) << "Sent CTP counters DPL message";
+    // LOG(info) << "Sent CTP counters DPL message";
   };
 }
 
