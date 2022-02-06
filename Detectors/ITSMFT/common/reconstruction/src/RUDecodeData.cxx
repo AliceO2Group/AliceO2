@@ -55,7 +55,10 @@ void RUDecodeData::fillChipStatistics(int icab, const ChipPixelData* chipData)
 {
   cableLinkPtr[icab]->chipStat.nHits += chipData->getData().size();
   //cableLinkPtr[icab]->chipStat.addErrors(chipData->getErrorFlags(), chipData->getChipID(), verbosity);
-  cableLinkPtr[icab]->chipStat.addErrors(*chipData, verbosity);
+  auto action = cableLinkPtr[icab]->chipStat.addErrors(*chipData, verbosity);
+  if (action & ChipStat::ErrActDump) {
+    linkHBFToDump[(uint64_t(cableLinkPtr[icab]->subSpec) << 32) + cableLinkPtr[icab]->hbfEntry] = cableLinkPtr[icab]->irHBF.orbit;
+  }
 }
 
 } // namespace itsmft
