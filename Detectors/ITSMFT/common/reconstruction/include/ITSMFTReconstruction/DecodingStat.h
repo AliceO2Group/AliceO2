@@ -27,13 +27,18 @@ namespace itsmft
 class ChipPixelData;
 
 struct ChipStat {
+  enum ActionOnError : int {
+    ErrActNone = 0x0,      // do nothing
+    ErrActPropagate = 0x1, // propagate to decoded data
+    ErrActDump = 0x2       // produce raw data dump
+  };
 
   enum DecErrors : int {
-    BusyViolation,
-    DataOverrun,
-    Fatal,
-    BusyOn,
-    BusyOff,
+    BusyViolation,                // Busy violation
+    DataOverrun,                  // Data overrun
+    Fatal,                        // Fatal (?)
+    BusyOn,                       // Busy On
+    BusyOff,                      // Busy Off
     TruncatedChipEmpty,           // Data was truncated after ChipEmpty
     TruncatedChipHeader,          // Data was truncated after ChipHeader
     TruncatedRegion,              // Data was truncated after Region record
@@ -71,18 +76,44 @@ struct ChipStat {
     "Unknown word",                                 // UnknownWord
     "Same pixel fired multiple times",              // RepeatingPixel
     "Non-existing row decoded",                     // WrongRow
-    "APE_STRIP_START",
-    "APE_STRIP_STOP",
-    "APE_DET_TIMEOUT",
-    "APE_OOT_START",
-    "APE_PROTOCOL_ERROR",
-    "APE_LANE_FIFO_OVERFLOW_ERROR",
-    "APE_FSM_ERROR",
-    "APE_OCCUPANCY_RATE_LIMIT",
-    "APE_OCCUPANCY_RATE_LIMIT_2",
-    "DColumns non-increasing" // DColumns non increasing
+    "APE_STRIP_START",                              // lane entering strip data mode | See https://alice.its.cern.ch/jira/browse/O2-1717
+    "APE_STRIP_STOP",                               // lane exiting strip data mode
+    "APE_DET_TIMEOUT",                              // detector timeout (FATAL)
+    "APE_OOT_START",                                // 8b10b OOT (FATAL, start)
+    "APE_PROTOCOL_ERROR",                           // event event protocol error marker (FATAL, start)
+    "APE_LANE_FIFO_OVERFLOW_ERROR",                 // lane FIFO overflow error (FATAL)
+    "APE_FSM_ERROR",                                // FSM error (FATAL, SEU error, reached an unknown state)
+    "APE_OCCUPANCY_RATE_LIMIT",                     // pending detector events limit (FATAL)
+    "APE_OCCUPANCY_RATE_LIMIT_2",                   // pending detector events limit in packager(FATAL)
+    "DColumns non-increasing"                       // DColumns non increasing
   };
 
+  static constexpr std::array<uint32_t, NErrorsDefined> ErrActions = {
+    ErrActPropagate | ErrActDump, // Busy violation
+    ErrActPropagate | ErrActDump, // Data overrun
+    ErrActPropagate | ErrActDump, // Fatal (?)
+    ErrActNone,                   // Busy On
+    ErrActNone,                   // Busy Off
+    ErrActPropagate | ErrActDump, // Data was truncated after ChipEmpty
+    ErrActPropagate | ErrActDump, // Data was truncated after ChipHeader
+    ErrActPropagate | ErrActDump, // Data was truncated after Region record
+    ErrActPropagate | ErrActDump, // Data was truncated in the LongData record
+    ErrActPropagate | ErrActDump, // LongData pattern has highest bit set
+    ErrActPropagate | ErrActDump, // Region is not followed by Short or Long data
+    ErrActPropagate | ErrActDump, // Unknown word was seen
+    ErrActPropagate | ErrActDump, // Same pixel fired more than once
+    ErrActPropagate | ErrActDump, // Non-existing row decoded
+    ErrActPropagate | ErrActDump, // lane entering strip data mode | See https://alice.its.cern.ch/jira/browse/O2-1717
+    ErrActPropagate | ErrActDump, // lane exiting strip data mode
+    ErrActPropagate | ErrActDump, // detector timeout (FATAL)
+    ErrActPropagate | ErrActDump, // 8b10b OOT (FATAL, start)
+    ErrActPropagate | ErrActDump, // event protocol error marker (FATAL, start)
+    ErrActPropagate | ErrActDump, // lane FIFO overflow error (FATAL)
+    ErrActPropagate | ErrActDump, // FSM error (FATAL, SEU error, reached an unknown state)
+    ErrActPropagate | ErrActDump, // pending detector events limit (FATAL)
+    ErrActPropagate | ErrActDump, // pending detector events limit in packager(FATAL)
+    ErrActPropagate | ErrActDump, // DColumns non increasingx
+  };
   uint16_t feeID = -1;
   size_t nHits = 0;
   std::array<uint32_t, NErrorsDefined> errorCounts = {};
@@ -105,8 +136,8 @@ struct ChipStat {
     return APE_STRIP_START + c - 0xf2;
   }
   uint32_t getNErrors() const;
-  void addErrors(uint32_t mask, uint16_t chID, int verbosity);
-  void addErrors(const ChipPixelData& d, int verbosity);
+  uint32_t addErrors(uint32_t mask, uint16_t chID, int verbosity);
+  uint32_t addErrors(const ChipPixelData& d, int verbosity);
   void print(bool skipNoErr = true, const std::string& pref = "FEEID") const;
 
   ClassDefNV(ChipStat, 1);

@@ -87,6 +87,7 @@ class RawPixelDecoder final : public PixelReader
   int getVerbosity() const { return mVerbosity; }
 
   void printReport(bool decstat = true, bool skipNoErr = true) const;
+  void produceRawDataDumps(int dump, const o2::header::DataHeader* dh);
 
   void clearStat();
 

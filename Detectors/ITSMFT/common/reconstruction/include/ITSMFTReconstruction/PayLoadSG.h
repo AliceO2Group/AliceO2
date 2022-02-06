@@ -123,6 +123,10 @@ class PayLoadSG
     return currentPiece();
   }
 
+  const SGPiece* getPiece(int i) const { return &mBuffer[i]; }
+
+  size_t getNPieces() const { return mBuffer.size(); }
+
  private:
   std::vector<SGPiece> mBuffer;   // list of pieces to fetch
   size_t mCurrentPieceID = 0;     // current piece
