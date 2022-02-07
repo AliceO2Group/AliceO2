@@ -1272,8 +1272,7 @@ int getConnectedComponentsOfProjPadsWOIsolatedPads(short* padGrp)
   }
   while (nbrOfPadSetInGrp < N) {
     // Seeking the first unclassed pad (padGrp[k]=0)
-    for (; (curPadGrp < &padGrp[N]) && *curPadGrp != 0; curPadGrp++)
-    {
+    for (; (curPadGrp < &padGrp[N]) && *curPadGrp != 0; curPadGrp++) {
     }
     k = curPadGrp - padGrp;
     if (VERBOSE > 1) {
@@ -1936,8 +1935,7 @@ int findLocalMaxWithLaplacian(const double* xyDxy, const double* z,
       j = *neigh_ptr;
       if (zi >= z[j]) {
         nSupi++;
-      }
-      else {
+      } else {
         nInfi++;
       }
     }
@@ -2050,8 +2048,7 @@ int findLocalMaxWithLaplacianV0(const double* xyDxy, const double* z, const PadI
       }
       if (zi >= z[j]) {
         nSupi++;
-      }
-      else {
+      } else {
         nInfi++;
       }
     }

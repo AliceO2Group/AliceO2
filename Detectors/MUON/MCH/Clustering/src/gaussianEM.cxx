@@ -440,10 +440,9 @@ double weightedEMLoop(const double* xyDxy, const Mask_t* saturated, const double
     // E-Step
     if (maskTheta == nullptr) {
       EStep(xyInfSup, theta, K, N, verbose, eta, zEval);
-    }
-    else {
+    } else {
       maskedEStep(xyInfSup, theta, maskTheta, K, N, verbose, eta, zEval);
-    //
+      //
     }
     if (nbrSaturatedPads > 0) {
       // Set (or update) saturated pads to the estimate
