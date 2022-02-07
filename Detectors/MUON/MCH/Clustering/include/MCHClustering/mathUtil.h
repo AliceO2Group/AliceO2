@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_MCH_MATHUTIL_H
-#define ALICEO2_MCH_MATHUTIL_H
+#ifndef ALICEO2_MCH_MATHUTIL_H_
+#define ALICEO2_MCH_MATHUTIL_H_
 
 #include <cmath>
 #include <climits>
