@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_MCH_PADPROCESSING_H
-#define ALICEO2_MCH_PADPROCESSING_H
+#ifndef ALICEO2_MCH_PADPROCESSING_H_
+#define ALICEO2_MCH_PADPROCESSING_H_
 
 #include "dataStructure.h"
 #include "PadsPEM.h"
