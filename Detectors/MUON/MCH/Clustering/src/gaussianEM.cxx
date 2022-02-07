@@ -430,18 +430,21 @@ double weightedEMLoop(const double* xyDxy, const Mask_t* saturated, const double
   int it = 0;
   // for( ; (( fabs((logL - prevLogL)/logL) > LConvergence) || (it < nIterMin)) && ( it < nIterMax ); ) {
   for (; ((fabs((logL - prevLogL) / logL) > LConvergence)) && (it < nIterMax);) {
-    if (verbose >= 1)
+    if (verbose >= 1) {
       printEMState(it, logL, logL - prevLogL);
+    }
     prevLogL = logL;
     //
     // EM Step
     //
     // E-Step
-    if (maskTheta == 0)
+    if (maskTheta == nullptr) {
       EStep(xyInfSup, theta, K, N, verbose, eta, zEval);
-    else
+    }
+    else {
       maskedEStep(xyInfSup, theta, maskTheta, K, N, verbose, eta, zEval);
     //
+    }
     if (nbrSaturatedPads > 0) {
       // Set (or update) saturated pads to the estimate
       // values i.e. zEval
@@ -456,8 +459,9 @@ double weightedEMLoop(const double* xyDxy, const Mask_t* saturated, const double
     // Log-Lilelihood
     logL = computeWeightedLogLikelihood(xyInfSup, theta, zObsNorm, K, N);
 
-    if (verbose >= 2)
+    if (verbose >= 2) {
       printTheta("  EM new theta", theta, K);
+    }
     it += 1;
   }
   if (verbose >= 1)
@@ -538,8 +542,9 @@ double weightedEMLoopWithMuCriterion(const double* xyDxy, const Mask_t* saturate
     }
   }
   double logL = computeWeightedLogLikelihood(xyInfSup, theta0, zObsNorm, K, N);
-  if (verbose >= 1)
+  if (verbose >= 1) {
     printEMState(-1, logL, 0.0);
+  }
   //
   // EM Loop
   //
@@ -583,8 +588,9 @@ double weightedEMLoopWithMuCriterion(const double* xyDxy, const Mask_t* saturate
     // Log-Lilelihood
     logL = computeWeightedLogLikelihood(xyInfSup, theta, zObsNorm, K, N);
 
-    if (verbose >= 2)
+    if (verbose >= 2) {
       printTheta("  EM new theta", theta, K);
+    }
     // Mu Changed
     // Coresponding pad in projection ???
     Mask_t significantMuChange[N];

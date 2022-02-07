@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef _DATASTRUCT_H
-#define _DATASTRUCT_H
+#ifndef _DATASTRUCTURE_H
+#define _DATASTRUCTURE_H
 
 #include "mathUtil.h"
 
@@ -71,4 +71,4 @@ void printTheta(const char* str, const double* theta, int K);
 
 void printXYdXY(const char* str, const double* xyDxy, int NMax, int N, const double* val1, const double* val2);
 
-#endif // _DATASTRUCT_H
+#endif // _DATASTRUCTURE_H

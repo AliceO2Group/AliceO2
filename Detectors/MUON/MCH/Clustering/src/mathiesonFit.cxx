@@ -637,8 +637,9 @@ void fitMathieson(double* thetai,
   } // while(doFit)
   // Release memory
   delete[] cathWeights;
-  if (pads != nullptr)
+  if (pads != nullptr) {
     delete pads;
+  }
   //
   return;
 }

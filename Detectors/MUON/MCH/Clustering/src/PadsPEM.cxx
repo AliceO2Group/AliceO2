@@ -114,7 +114,7 @@ Pads::Pads(const Pads& pads1, const Pads& pads2, int mode_)
     memcpy(&dy[N1], pads2.dy, sizeof(double) * N2);
     memcpy(&q[N1], pads2.q, sizeof(double) * N2);
     memcpy(&saturate[N1], pads2.saturate, sizeof(double) * N2);
-  } else
+  } else {
     for (int i = 0; i < N1; i++) {
       xInf[i] = pads1.x[i] - pads1.dx[i];
       xSup[i] = pads1.x[i] + pads1.dx[i];
@@ -123,6 +123,7 @@ Pads::Pads(const Pads& pads1, const Pads& pads2, int mode_)
       q[i] = pads1.q[i];
       saturate[i] = pads1.saturate[i];
     }
+  }
   for (int i = 0; i < N2; i++) {
     xInf[i + N1] = pads2.x[i] - pads2.dx[i];
     xSup[i + N1] = pads2.x[i] + pads2.dx[i];
@@ -136,8 +137,9 @@ Pads::Pads(const Pads& pads1, const Pads& pads2, int mode_)
 void Pads::removePad(int index)
 {
 
-  if ((index < 0) || (index >= nPads))
+  if ((index < 0) || (index >= nPads)) {
     return;
+  }
   int nItems = nPads - index;
   if (index == nPads - 1) {
     nPads = nPads - 1;

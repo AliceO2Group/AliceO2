@@ -143,11 +143,11 @@ class ClusterFinderGEMTask
       }
       if (isOriginalDumped()) {
         delete mOriginalDump;
-        mOriginalDump = 0;
+        mOriginalDump = nullptr;
       }
       if (isGEMDumped()) {
         delete mGEMDump;
-        mGEMDump = 0;
+        mGEMDump = nullptr;
       }
     });
     auto stop = [this]() {
