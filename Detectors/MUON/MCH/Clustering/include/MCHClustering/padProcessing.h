@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef _PADPROCESSING_H
-#define _PADPROCESSING_H
+#ifndef ALICEO2_MCH_PADPROCESSING_H
+#define ALICEO2_MCH_PADPROCESSING_H
 
 #include "dataStructure.h"
 #include "PadsPEM.h"
@@ -129,4 +129,4 @@ void printNeighbors(const PadIdx_t* neigh, int N);
 void printMatrixShort(const char* str, const short* matrix, int N, int M);
 void printMatrixInt(const char* str, const int* matrix, int N, int M);
 }
-#endif // _PADPROCESSING_H
+#endif // ALICEO2_MCH_PADPROCESSING_H

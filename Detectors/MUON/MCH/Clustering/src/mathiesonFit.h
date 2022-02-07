@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef _MATHIESONFIT_H
-#define _MATHIESONFIT_H
+#ifndef ALICEO2_MCH_MATHIESONFIT_H
+#define ALICEO2_MCH_MATHIESONFIT_H
 
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_blas.h>

@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef _MATHIESON_H
-#define _MATHIESON_H
+#ifndef ALICEO2_MCH_MATHIESON_H
+#define ALICEO2_MCH_MATHIESON_H
 
 #include <cstddef>
 #include <cmath>

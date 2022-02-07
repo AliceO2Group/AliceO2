@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef _CLUSTERPROCESSING_H
-#define _CLUSTERPROCESSING_H
+#ifndef ALICEO2_MCH_CLUSTERPROCESSING_H
+#define ALICEO2_MCH_CLUSTERPROCESSING_H
 
 typedef std::pair<int, const double*> DataBlock_t;
 
