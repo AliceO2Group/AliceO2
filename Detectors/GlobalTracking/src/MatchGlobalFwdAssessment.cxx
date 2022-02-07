@@ -605,18 +605,16 @@ void GloFwdAssessment::finalizePurityAndEff()
   auto minBin = Reco->GetYaxis()->FindBin(2.4);
   auto midBin = Reco->GetYaxis()->FindBin(3.0);
   auto maxBin = Reco->GetYaxis()->FindBin(3.6);
-  auto PairablePtProjInner = (TH1*)hTrue->ProjectionX("PairableInner", midBin, maxBin);
-  auto PairablePtProjOuter = (TH1*)hTrue->ProjectionX("PairableOuter", minBin, midBin);
+  auto PairablePtProjInner = (TH1*)hPairable->ProjectionX("PairableInner", midBin, maxBin);
+  auto PairablePtProjOuter = (TH1*)hPairable->ProjectionX("PairableOuter", minBin, midBin);
 
   auto RecoEtaPt = (TH2D*)Reco->Project3D("xy COLZ");
   auto PairableEtaPt = (TH2D*)hPairable->Project3D("xy COLZ");
   auto PairablePt = (TH1D*)hPairable->Project3D("x");
 
   /// Purity vs score cuts
-  float maxCut = 15.f;
-  int nSteps = 15;
-  float scoreStep = maxCut / nSteps;
-  for (float scoreCut = scoreStep; scoreCut < maxCut; scoreCut += scoreStep) {
+  float scoreStep = (mFinalizeMaxCut - mFinalizeMinCut) / mNFinalizeSteps;
+  for (float scoreCut = mFinalizeMinCut; scoreCut <= mFinalizeMaxCut; scoreCut += scoreStep) {
 
     auto RecoPtProj = (TH1*)Reco->ProjectionX(Form("_RecoPtProj%.2f", scoreCut));
     auto TruePtProj = (TH1*)hTrue->ProjectionX(Form("_TruePtProj%.2f", scoreCut));
@@ -626,48 +624,48 @@ void GloFwdAssessment::finalizePurityAndEff()
     auto RecoPtProjInner = (TH1*)Reco->ProjectionX(Form("_InnerRecoCut_%.2f", scoreCut), midBin, maxBin, 0, maxScoreBin);
     auto TruePtProjInner = (TH1*)hTrue->ProjectionX(Form("_InnerTrueCut_%.2f", scoreCut), midBin, maxBin, 0, maxScoreBin);
 
-    auto& hPInner = mPurityPtInnerVecTH2.emplace_back((std::unique_ptr<TH2D>)static_cast<TH2D*>(TruePtProjInner->Clone()));
-    hPInner->Divide(RecoPtProjInner);
-    hPInner->SetNameTitle(Form("TH2GMTrackPurityInnerEtaCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
-    hPInner->GetYaxis()->SetTitle("Pairing Purity [ N_{True} / N_{Rec}]");
-    hPInner->SetOption("COLZ");
-    hPInner->SetMarkerStyle(kFullCircle);
-    hPInner->SetMinimum(0.0);
-    hPInner->SetMaximum(1.2);
+    auto& hPurityInner = mPurityPtInnerVecTH2.emplace_back((std::unique_ptr<TH2D>)static_cast<TH2D*>(TruePtProjInner->Clone()));
+    hPurityInner->Divide(RecoPtProjInner); // Global Pairing Purity = N_true / N_reco
+    hPurityInner->SetNameTitle(Form("TH2GMTrackPurityInnerEtaCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
+    hPurityInner->GetYaxis()->SetTitle("Pairing Purity [ N_{True} / N_{Rec}]");
+    hPurityInner->SetOption("COLZ");
+    hPurityInner->SetMarkerStyle(kFullCircle);
+    hPurityInner->SetMinimum(0.0);
+    hPurityInner->SetMaximum(1.2);
 
-    auto& hInner = mPairingPtInnerVecTH1.emplace_back((std::unique_ptr<TH1D>)static_cast<TH1D*>(RecoPtProjInner->Clone()));
-    hInner->Divide(PairablePtProjInner);
-    hInner->SetNameTitle(Form("GMTrackPairingEffInnerPtCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
-    hInner->GetYaxis()->SetTitle("Pairing Efficiency [ N_{Rec} / N_{pairable}]");
-    hInner->SetOption("COLZ");
-    hInner->SetMarkerStyle(kFullCircle);
-    hInner->SetMinimum(0.0);
-    hInner->SetMaximum(1.8);
+    auto& hPairingEffInner = mPairingPtInnerVecTH1.emplace_back((std::unique_ptr<TH1D>)static_cast<TH1D*>(RecoPtProjInner->Clone()));
+    hPairingEffInner->Divide(PairablePtProjInner); // Pairing Efficiency = N_reco / N_Pairable
+    hPairingEffInner->SetNameTitle(Form("GMTrackPairingEffInnerPtCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
+    hPairingEffInner->GetYaxis()->SetTitle("Pairing Efficiency [ N_{Rec} / N_{pairable}]");
+    hPairingEffInner->SetOption("COLZ");
+    hPairingEffInner->SetMarkerStyle(kFullCircle);
+    hPairingEffInner->SetMinimum(0.0);
+    hPairingEffInner->SetMaximum(1.8);
 
     // Outer pseudorapidity
     auto RecoPtProjOuter = (TH1*)Reco->ProjectionX(Form("_OuterRecoCut_%.2f", scoreCut), minBin, midBin, 0, maxScoreBin);
     auto TruePtProjOuter = (TH1*)hTrue->ProjectionX(Form("_OuterTrueCut_%.2f", scoreCut), minBin, midBin, 0, maxScoreBin);
 
-    auto& hPOuter = mPurityPtOuterVecTH2.emplace_back((std::unique_ptr<TH2D>)static_cast<TH2D*>(TruePtProjOuter->Clone()));
-    hPOuter->Divide(RecoPtProjOuter);
-    hPOuter->SetNameTitle(Form("TH2GMTrackPurityOuterEtaCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
-    hPOuter->GetYaxis()->SetTitle("Pairing Purity [ N_{True} / N_{Rec}]");
-    hPOuter->SetOption("COLZ");
-    hPOuter->SetMarkerStyle(kFullTriangleUp);
-    hPOuter->SetMinimum(0.0);
-    hPOuter->SetMaximum(1.2);
+    auto& hPurityOuter = mPurityPtOuterVecTH2.emplace_back((std::unique_ptr<TH2D>)static_cast<TH2D*>(TruePtProjOuter->Clone()));
+    hPurityOuter->Divide(RecoPtProjOuter); // Global Pairing Purity = N_true / N_reco
+    hPurityOuter->SetNameTitle(Form("TH2GMTrackPurityOuterEtaCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
+    hPurityOuter->GetYaxis()->SetTitle("Pairing Purity [ N_{True} / N_{Rec}]");
+    hPurityOuter->SetOption("COLZ");
+    hPurityOuter->SetMarkerStyle(kFullTriangleUp);
+    hPurityOuter->SetMinimum(0.0);
+    hPurityOuter->SetMaximum(1.2);
 
-    auto& hOuter = mPairingPtOuterVecTH1.emplace_back((std::unique_ptr<TH1D>)static_cast<TH1D*>(RecoPtProjOuter->Clone()));
-    hOuter->Divide(PairablePtProjInner);
-    hOuter->SetNameTitle(Form("GMTrackPairingEffOuterPtCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
-    hOuter->GetYaxis()->SetTitle("Pairing Efficiency [ N_{Rec} / N_{pairable}]");
-    hOuter->SetOption("COLZ");
-    hOuter->SetMarkerStyle(kFullTriangleUp);
-    hOuter->SetMinimum(0.0);
-    hOuter->SetMaximum(1.8);
+    auto& hPairingEffOuter = mPairingPtOuterVecTH1.emplace_back((std::unique_ptr<TH1D>)static_cast<TH1D*>(RecoPtProjOuter->Clone()));
+    hPairingEffOuter->Divide(PairablePtProjInner); // Pairing Efficiency = N_reco / N_Pairable
+    hPairingEffOuter->SetNameTitle(Form("GMTrackPairingEffOuterPtCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
+    hPairingEffOuter->GetYaxis()->SetTitle("Pairing Efficiency [ N_{Rec} / N_{pairable}]");
+    hPairingEffOuter->SetOption("COLZ");
+    hPairingEffOuter->SetMarkerStyle(kFullTriangleUp);
+    hPairingEffOuter->SetMinimum(0.0);
+    hPairingEffOuter->SetMaximum(1.8);
 
     mPairingEtaPtVec.emplace_back((std::unique_ptr<TH2D>)static_cast<TH2D*>(RecoEtaPt->Clone()));
-    mPairingEtaPtVec.back()->Divide(PairableEtaPt);
+    mPairingEtaPtVec.back()->Divide(PairableEtaPt); // Pairing Efficiency = N_reco / N_Pairable
     mPairingEtaPtVec.back()->SetNameTitle(Form("GMTrackPairingEffEtaPtCut_%.2f", scoreCut), Form("%.2f", scoreCut));
     mPairingEtaPtVec.back()->SetOption("COLZ");
   }
@@ -696,8 +694,6 @@ void GloFwdAssessment::finalizePurityAndEff()
   auto veryLowptBin = mPurityPtOuterVecTH2.front()->GetXaxis()->FindBin(0.25);
   auto lowptBin = mPurityPtOuterVecTH2.front()->GetXaxis()->FindBin(0.75);
   auto highptBin = mPurityPtOuterVecTH2.front()->GetXaxis()->FindBin(2.25);
-
-  auto maxEff = 1.f;
 
   for (auto& th2 : mPurityPtOuterVecTH2) {
     if (first) {
