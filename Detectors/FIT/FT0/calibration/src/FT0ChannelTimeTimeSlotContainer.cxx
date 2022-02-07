@@ -55,14 +55,14 @@ bool FT0ChannelTimeTimeSlotContainer::hasEnoughEntries() const
 }
 void FT0ChannelTimeTimeSlotContainer::fill(const gsl::span<const FT0CalibrationInfoObject>& data)
 {
-
   for (auto& entry : data) {
+    updateFirstCreation(entry.getTimeStamp());
     const auto chID = entry.getChannelIndex();
     const auto chTime = entry.getTime();
     if (chID < NCHANNELS && std::abs(chTime) < o2::ft0::DigitizationParameters::mTime_trg_gate && entry.getAmp() > o2::ft0::DigitizationParameters::mAmpThresholdForReco) {
       mHistogram[chID]->Fill(chTime);
       ++mEntriesPerChannel[chID];
-      LOG(debug) << "entries " << mEntriesPerChannel[chID] << " chID " << int(chID) << " time " << chTime;
+      LOG(debug) << "@@@@entries " << mEntriesPerChannel[chID] << " chID " << int(chID) << " time " << chTime << " tiestamp " << uint64_t(entry.getTimeStamp());
     } else {
       LOG(fatal) << "Invalid channel data";
     }
@@ -76,6 +76,7 @@ void FT0ChannelTimeTimeSlotContainer::merge(FT0ChannelTimeTimeSlotContainer* pre
     mEntriesPerChannel[iCh] += prev->mEntriesPerChannel[iCh];
     LOG(debug) << " entries " << mEntriesPerChannel[iCh] << " " << prev->mEntriesPerChannel[iCh];
   }
+  mFirstCreation = std::min(mFirstCreation, prev->mFirstCreation);
 }
 
 int16_t FT0ChannelTimeTimeSlotContainer::getMeanGaussianFitValue(std::size_t channelID) const

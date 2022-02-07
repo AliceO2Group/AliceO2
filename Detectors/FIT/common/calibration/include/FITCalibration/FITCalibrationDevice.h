@@ -81,15 +81,10 @@ void FIT_CALIBRATION_DEVICE_TYPE::run(o2::framework::ProcessingContext& context)
     o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref)->firstTForbit;
   auto creationTime =
     o2::framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(ref)->creation;
-  /* if (!mCalibrator->mFirstCreation) mCalibrator->mFirstCreation = creationTime; */
-  // I only got creationTime == -1
   mCalibrator->process(TFCounter, data);
-  auto* container = mCalibrator->getSlotForTF(TFCounter).getContainer();
-  //  if constexpr (std::is_same_v<decltype(*container), o2::ft0::FT0ChannelTimeTimeSlotContainer&>) {
-  if constexpr (std::is_same_v<decltype(*container), TimeSlotStorageType&>) {
-    container->updateFirstCreation(creationTime);
-  }
-  LOG(info) << " FIT_CALIBRATION_DEVICE_TYPE::run tfOrbitFirst " << tfOrbitFirst << " creationTime " << creationTime;
+  auto& slot = mCalibrator->getSlotForTF(TFCounter);
+  auto* container = slot.getContainer();
+  LOG(debug) << "@@@ calibrator::run tfOrbitFirst " << tfOrbitFirst << " creationTime " << creationTime << " tf " << slot.getTFStart() << "-" << slot.getTFEnd();
 
   _sendCalibrationObjectIfSlotFinalized(context.outputs());
 }

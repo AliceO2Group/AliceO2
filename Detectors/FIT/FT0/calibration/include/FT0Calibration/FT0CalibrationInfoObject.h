@@ -21,7 +21,7 @@ namespace ft0
 class FT0CalibrationInfoObject
 {
  public:
-  FT0CalibrationInfoObject(uint8_t channel, int16_t time, int32_t amp) : mChannelIndex(channel), mTime(time), mAmp(amp){};
+  FT0CalibrationInfoObject(uint8_t channel, int16_t time, int32_t amp, uint64_t timestamp) : mChannelIndex(channel), mTime(time), mAmp(amp), mTimeStamp(timestamp){};
   FT0CalibrationInfoObject() = default;
   ~FT0CalibrationInfoObject() = default;
 
@@ -32,11 +32,14 @@ class FT0CalibrationInfoObject
   [[nodiscard]] int16_t getTime() const { return mTime; }
   void setAmp(int16_t amp) { mAmp = amp; }
   [[nodiscard]] int16_t getAmp() const { return mAmp; }
+  void setTimeStamp(int64_t timestamp) { mTimeStamp = timestamp; }
+  [[nodiscard]] int64_t getTimeStamp() const { return mTimeStamp; }
 
  private:
   uint8_t mChannelIndex;
   int16_t mTime;
   int16_t mAmp;
+  uint64_t mTimeStamp;
 
   ClassDefNV(FT0CalibrationInfoObject, 2);
 };

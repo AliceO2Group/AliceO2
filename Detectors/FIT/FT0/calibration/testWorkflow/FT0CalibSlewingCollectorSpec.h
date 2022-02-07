@@ -40,7 +40,7 @@ class FT0CalibCollectorDevice : public o2::framework::Task
   {
     bool isTFsendingPolicy = ic.options().get<bool>("tf-sending-policy");
     int maxEnt = ic.options().get<int>("max-number-hits-to-fill-tree");
-    bool isTest = ic.options().get<bool>("running-in-test-mode");
+    int slotL = ic.options().get<int>("tf-per-slot");
     bool absMaxEnt = ic.options().get<bool>("is-max-number-hits-to-fill-tree-absolute");
     mCollector = std::make_unique<o2::ft0::FT0CalibCollector>(isTFsendingPolicy, maxEnt);
   }
@@ -111,10 +111,11 @@ DataProcessorSpec getFT0CalibCollectorDeviceSpec()
       {"max-number-hits-to-fill-tree", VariantType::Int, 1000, {"maximum number of entries in one channel to trigger teh filling of the tree"}},
       {"is-max-number-hits-to-fill-tree-absolute", VariantType::Bool, false, {"to decide if we want to multiply the max-number-hits-to-fill-tree by the number of channels (when set to true), or not (when set to false) for fast checks"}},
       {"tf-sending-policy", VariantType::Bool, false, {"if we are sending output at every TF; otherwise, we use the max-number-hits-to-fill-tree"}},
-      {"running-in-test-mode", VariantType::Bool, false, {"to run in test mode for simplification"}}}};
+      {"tf-per-slot", o2::framework::VariantType::Int, 200000, {"TF per slot "}}}};
 }
 
 } // namespace framework
+
 } // namespace o2
 
 #endif

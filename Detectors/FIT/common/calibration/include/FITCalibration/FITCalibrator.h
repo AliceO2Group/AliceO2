@@ -85,13 +85,12 @@ void FIT_CALIBRATOR_TYPE::finalizeSlot(Slot& slot)
   static std::map<std::string, std::string> md;
   auto* container = slot.getContainer();
   static const double TFlength = 1E-3 * o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCOrbitMUS; // in ms
-  uint64_t starting = slot.getTFStart() * TFlength;
-  uint64_t stopping = slot.getTFEnd() * TFlength;
-  if constexpr (std::is_same_v<decltype(*container), o2::ft0::FT0ChannelTimeTimeSlotContainer&>) {
+  uint64_t starting;
+  if constexpr (std::is_same_v<decltype(*container), TimeSlotStorageType&>) {
     starting = container->getFirstCreation();
   }
-
-  LOG(info) << " TFstart " << slot.getTFStart() << " TFend " << slot.getTFEnd() << "starting = " << starting << " - stopping = " << stopping;
+  uint64_t stopping = starting + (slot.getTFEnd() - slot.getTFStart()) * TFlength;
+  LOG(info) << "!!!! TFstart " << slot.getTFStart() << " TFend " << slot.getTFEnd() << "starting = " << starting << " - stopping = " << stopping;
 
   auto calibrationObject = FITCalibrationObjectProducer::generateCalibrationObject<CalibrationObjectType>(*container);
   auto preparedCalibObjects = FITCalibrationApi::prepareCalibrationObjectToSend(calibrationObject, starting, stopping);
