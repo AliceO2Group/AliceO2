@@ -101,7 +101,7 @@ struct ChipStat {
     ErrActPropagate | ErrActDump, // LongData pattern has highest bit set
     ErrActPropagate | ErrActDump, // Region is not followed by Short or Long data
     ErrActPropagate | ErrActDump, // Unknown word was seen
-    ErrActPropagate | ErrActDump, // Same pixel fired more than once
+    ErrActPropagate,              // Same pixel fired more than once
     ErrActPropagate | ErrActDump, // Non-existing row decoded
     ErrActPropagate | ErrActDump, // lane entering strip data mode | See https://alice.its.cern.ch/jira/browse/O2-1717
     ErrActPropagate | ErrActDump, // lane exiting strip data mode
@@ -112,7 +112,7 @@ struct ChipStat {
     ErrActPropagate | ErrActDump, // FSM error (FATAL, SEU error, reached an unknown state)
     ErrActPropagate | ErrActDump, // pending detector events limit (FATAL)
     ErrActPropagate | ErrActDump, // pending detector events limit in packager(FATAL)
-    ErrActPropagate | ErrActDump, // DColumns non increasingx
+    ErrActPropagate | ErrActDump  // DColumns non increasing
   };
   uint16_t feeID = -1;
   size_t nHits = 0;
