@@ -87,6 +87,7 @@ bool MatchITSTPCQC::init()
   mEta = new TH1F("mEta", "Eta distribution of matched tracks; Eta; dNdEta", 100, -2.f, 2.f);
   mChi2Matching = new TH1F("mChi2Matching", "Chi2 of matching; chi2", 300, 0, 30);
   mChi2Refit = new TH1F("mChi2Refit", "Chi2 of refit; chi2", 1000, 0, 100);
+<<<<<<< HEAD
 
   // log binning for pT
   const Int_t nbinsPt = 100;
@@ -105,6 +106,9 @@ bool MatchITSTPCQC::init()
   mPtTPCPhysPrim = new TH1F("mPtTPPhysPrimC", "Pt distribution of TPC tracks (physical primary); Pt [GeV/c]; dNdPt", nbinsPt, xbinsPt);
   mFractionITSTPCmatchPhysPrim = new TEfficiency("mFractionITSTPCmatchPhysPrim", "Fraction of ITSTPC matched tracks vs Pt (physical primary); Pt [GeV/c]; Eff", nbinsPt, xbinsPt);
   mPtPhysPrim = new TH1F("mPtPhysPrim", "Pt distribution of matched tracks (physical primary); Pt [GeV/c]; dNdPt", nbinsPt, xbinsPt);
+=======
+  mTimeResVsPt = new TH2F("mTimeResVsPt", "Time resolution vs Pt; Pt [GeV/c]; time res [us]", 100, 0.f, 20.f, 100, 0.f, 2.f);
+>>>>>>> 796d92643a99ad472176c6a3cdfe87d5c42ec1fa
 
   mPtTPC->Sumw2();
   mPt->Sumw2();
