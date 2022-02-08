@@ -138,7 +138,7 @@ void deleteDouble(double* ptr)
 {
   if (ptr != nullptr) {
     delete[] ptr;
-    ptr = 0;
+    ptr = nullptr;
   }
 }
 
@@ -382,8 +382,9 @@ void cleanInspectModel()
   }
   inspectModel.subClusterChargeList.clear();
   //
-  for (int i = 0; i < inspectModel.subClusterThetaEMFinal.size(); i++)
+  for (int i = 0; i < inspectModel.subClusterThetaEMFinal.size(); i++) {
     delete[] inspectModel.subClusterThetaEMFinal[i].second;
+  }
   inspectModel.subClusterThetaEMFinal.clear();
   //
   if (inspectModel.laplacian != nullptr) {
@@ -592,8 +593,9 @@ int kOptimizer(double* xyDxy, Mask_t* saturated, double* z,
     }
     sumRow[k0] = rowCumul;
   }
-  if (VERBOSE)
+  if (VERBOSE) {
     printMatrixShort("  proximity Matrix", proximityMatrix, K, K);
+  }
   //
   // EM on all k's
   double thetaTest[5 * K];
@@ -858,8 +860,8 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_, const Mask_t* sa
       printf("  nProjPads=%2d\n", nProjPads);
     }
     if (VERBOSE > 1) {
-      printXYdXY("  Pads xy0InfSup, ch0", xy0InfSup, nbrCath0, nbrCath0, ch0, 0);
-      printXYdXY("  Pads xy1InfSup, ch1", xy1InfSup, nbrCath1, nbrCath1, ch1, 0);
+      printXYdXY("  Pads xy0InfSup, ch0", xy0InfSup, nbrCath0, nbrCath0, ch0, nullptr);
+      printXYdXY("  Pads xy1InfSup, ch1", xy1InfSup, nbrCath1, nbrCath1, ch1, nullptr);
     }
     // Get the projected plane and the charges
     xyDxyProj = new double[nProjPads * 4];

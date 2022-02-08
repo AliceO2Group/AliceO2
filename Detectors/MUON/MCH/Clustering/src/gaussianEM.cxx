@@ -463,11 +463,12 @@ double weightedEMLoop(const double* xyDxy, const Mask_t* saturated, const double
     }
     it += 1;
   }
-  if (verbose >= 1)
+  if (verbose >= 1) {
     printEMState(it, logL, logL - prevLogL);
-  if (verbose >= 2)
+  }
+  if (verbose >= 2) {
     printf("End GaussianEM\n");
-
+  }
   // Return BIC criterion
   int kSignificant = vectorSumOfGreater(w, 10.e-5, K);
   printf("EMLoop # parameters %d, log( N -saturated)= %f \n", (3 * kSignificant - 1), log(N - nbrSaturatedPads));
@@ -560,8 +561,9 @@ double weightedEMLoopWithMuCriterion(const double* xyDxy, const Mask_t* saturate
   int muChanged = 0;
   // for( ; (( fabs((logL - prevLogL)/logL) > LConvergence) || (it < nIterMin)) && ( it < nIterMax ); ) {
   for (; (muChanged == 0) && (fabs((logL - prevLogL) / logL) > LConvergence) && (it < nIterMax);) {
-    if (verbose >= 1)
+    if (verbose >= 1) {
       printEMState(it, logL, logL - prevLogL);
+    }
     prevLogL = logL;
     //
     // EM Step
