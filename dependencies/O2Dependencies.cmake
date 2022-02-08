@@ -98,7 +98,6 @@ set_package_properties(RapidJSON PROPERTIES TYPE REQUIRED)
 find_package(CURL)
 set_package_properties(CURL PROPERTIES TYPE REQUIRED)
 
-set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
 find_package(TBB)
 set_package_properties(TBB PROPERTIES TYPE REQUIRED)
 
