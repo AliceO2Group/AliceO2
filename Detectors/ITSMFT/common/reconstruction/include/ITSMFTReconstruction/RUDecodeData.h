@@ -90,7 +90,12 @@ int RUDecodeData::decodeROF(const Mapping& mp)
 #ifdef ALPIDE_DECODING_STAT
       fillChipStatistics(icab, chipData);
 #endif
-      if (ret >= 0 && !chipData->isErrorSet()) { // make sure there was no error
+      if (ret >= 0 /* && !chipData->isErrorSet()*/) { // make sure there was no error | upd: why? if there was a non fatal error, we use chip data
+        if (chipData->isErrorSet() && nChipsFired && chipData->getChipID() == chipsData[nChipsFired - 1].getChipID()) {
+          // we are still in the chip data whose decoding was aborted due to the error, reuse this chip data
+          LOGP(debug, "re-entry into the data of the chip {} after previously detector error", chipData->getChipID());
+          continue;
+        }
         ntot += chipData->getData().size();
         if (++nChipsFired < chipsData.size()) { // fetch next free chip
           chipData = &chipsData[nChipsFired];
