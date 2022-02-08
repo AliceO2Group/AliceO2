@@ -55,9 +55,7 @@ InjectorFunction dcs2dpl()
     size_t dataSize = parts.At(1)->GetSize();
     std::string messageData{static_cast<const char*>(parts.At(1)->GetData()), parts.At(1)->GetSize()};
     LOG(info) << "received message " << messageHeader << " of size " << dataSize << " Payload:" << messageData;
-    auto dID = DetID::nameToID("CTP", DetID::First);
-    o2::header::DataOrigin dataOrigin = DetID(dID).getDataOrigin();
-    o2::header::DataHeader hdrF("CTP_COUNTERS", dataOrigin, 0);
+    o2::header::DataHeader hdrF("CTP_COUNTERS", o2::header::gDataOriginCTP, 0);
     OutputSpec outsp{hdrF.dataOrigin, hdrF.dataDescription, hdrF.subSpecification};
     auto channel = channelRetriever(outsp, *timesliceId);
     if (channel.empty()) {
@@ -91,7 +89,7 @@ InjectorFunction dcs2dpl()
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  workflowOptions.push_back(ConfigParamSpec{"subscribe-to", VariantType::String, "type=sub,method=connect,address=tcp://188.184.30.57:5556,rateLogging=1,transport=zeromq", {"channel subscribe to"}});
+  workflowOptions.push_back(ConfigParamSpec{"subscribe-to", VariantType::String, "type=sub,method=connect,address=tcp://188.184.30.57:5556,rateLogging=10,transport=zeromq", {"channel subscribe to"}});
 }
 
 #include "Framework/runDataProcessing.h"
