@@ -15,11 +15,12 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
+#pragma link C++ class o2::mch::calibration::BadChannelCalibratorParam + ;
 #pragma link C++ class o2::mch::calibration::PedestalDigit + ;
 #pragma link C++ class std::vector < o2::mch::calibration::PedestalDigit> + ;
 
 #pragma link C++ class o2::mch::calibration::PedestalData + ;
-#pragma link C++ class o2::mch::calibration::PedestalCalibrator + ;
+#pragma link C++ class o2::mch::calibration::BadChannelCalibrator + ;
 #pragma link C++ class o2::calibration::TimeSlot < o2::mch::calibration::PedestalData> + ;
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::mch::calibration::PedestalDigit, o2::mch::calibration::PedestalData> + ;
 
