@@ -23,6 +23,9 @@
 #include <iostream>
 #include <fstream>
 
+// Boost library for easy access of host name
+#include <boost/asio/ip/host_name.hpp>
+
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Framework/ControlService.h"
@@ -90,7 +93,6 @@ class ITSThresholdCalibrator : public Task
   void endOfStream(EndOfStreamContext& ec) final;
 
   void finalize(EndOfStreamContext* ec);
-  void stop() final;
 
   //////////////////////////////////////////////////////////////////
  private:
@@ -155,7 +157,7 @@ class ITSThresholdCalibrator : public Task
   // Helper functions for writing to the database
   void addDatabaseEntry(const short int&, const char*, const short int&,
                         const float&, const short int&, const float&, bool, o2::dcs::DCSconfigObject_t&);
-  void sendToCCDB(const char*, o2::dcs::DCSconfigObject_t&, EndOfStreamContext*);
+  void sendToAggregator(o2::dcs::DCSconfigObject_t&, EndOfStreamContext*);
 
   std::string mSelfName;
   std::string mDictName;
@@ -183,8 +185,8 @@ class ITSThresholdCalibrator : public Task
   // Get threshold method (fit == 1, derivative == 0, or hitcounting == 2)
   char mFitType = -1;
 
-  // Keep track of whether the endOfStream() or stop() has been called
-  bool mStopped = false;
+  //Machine hostname
+  std::string mHostname;
 };
 
 // Create a processor spec

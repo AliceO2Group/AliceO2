@@ -32,7 +32,7 @@ double erf(double* xx, double* par)
 // ITHR erf is reversed
 double erf_ithr(double* xx, double* par)
 {
-  return (N_INJ / 2) * (1 - TMath::Erf((xx[0] - par[0]) / (sqrt(2) * par[1]))) + (N_INJ / 2);
+  return (N_INJ / 2) * (1 - TMath::Erf((xx[0] - par[0]) / (sqrt(2) * par[1])));
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -110,13 +110,16 @@ void ITSThresholdCalibrator::init(InitContext& ic)
 
   this->mVerboseOutput = ic.options().get<bool>("verbose");
 
-  //Get number of threads
+  // Get number of threads
   this->mNThreads = ic.options().get<int>("nthreads");
 
-  //Check fit type vs nthreads (fit option is not thread safe!)
+  // Check fit type vs nthreads (fit option is not thread safe!)
   if (mFitType == FIT && mNThreads > 1) {
     throw std::runtime_error("Multiple threads are requested with fit method which is not thread safe");
   }
+
+  //Machine hostname
+  this->mHostname = boost::asio::ip::host_name();
 
   return;
 }
@@ -136,7 +139,7 @@ void ITSThresholdCalibrator::initThresholdTree(bool recreate /*=true*/)
   }
 
   std::string filename = dir + std::to_string(this->mRunNumber) + '_' +
-                         std::to_string(this->mFileNumber) + ".root.part";
+                         std::to_string(this->mFileNumber) + '_' + this->mHostname + ".root.part";
 
   // Check if file already exists
   struct stat buffer;
@@ -371,7 +374,7 @@ bool ITSThresholdCalibrator::findThresholdHitcounting(
   } else if (this->mScanType == 'V') {
     thresh = (this->mX[*(this->N_RANGE) - 1] * N_INJ - numberOfHits) / float(N_INJ);
   } else if (this->mScanType == 'I') {
-    thresh = (numberOfHits - N_INJ * this->mX[0]) / float(N_INJ);
+    thresh = (numberOfHits + N_INJ * this->mX[0]) / float(N_INJ);
   } else {
     LOG(error) << "Unexpected runtype encountered in findThresholdHitcounting()";
     return false;
@@ -476,7 +479,7 @@ void ITSThresholdCalibrator::finalizeOutput()
 
   // Expected ROOT output filename
   std::string filename = std::to_string(this->mRunNumber) + '_' +
-                         std::to_string(this->mFileNumber);
+                         std::to_string(this->mFileNumber) + '_' + this->mHostname;
   std::string filenameFull = dir + filename;
   try {
     std::rename((filenameFull + ".root.part").c_str(),
@@ -627,6 +630,7 @@ void ITSThresholdCalibrator::extractAndUpdate(const short int& chipID)
 }
 
 //////////////////////////////////////////////////////////////////////////////
+// LHC period
 void ITSThresholdCalibrator::updateLHCPeriod(ProcessingContext& pc)
 {
   auto conf = pc.services().get<RawDeviceService>().device()->fConfig;
@@ -638,9 +642,10 @@ void ITSThresholdCalibrator::updateLHCPeriod(ProcessingContext& pc)
                               "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
     std::time_t now = std::time(nullptr);
     std::tm* ltm = std::gmtime(&now);
-    this->mLHCPeriod = (std::string)months[ltm->tm_mon] + "_ITS";
+    this->mLHCPeriod = (std::string)months[ltm->tm_mon];
     LOG(warning) << "LHCPeriod is not available, using current month " << this->mLHCPeriod;
   }
+  this->mLHCPeriod += "_ITS";
 
   return;
 }
@@ -818,59 +823,17 @@ void ITSThresholdCalibrator::addDatabaseEntry(
 }
 
 //////////////////////////////////////////////////////////////////////////////
-void ITSThresholdCalibrator::sendToCCDB(
-  const char* name, o2::dcs::DCSconfigObject_t& tuning, EndOfStreamContext* ec)
+void ITSThresholdCalibrator::sendToAggregator(
+  o2::dcs::DCSconfigObject_t& tuning, EndOfStreamContext* ec)
 {
-  // Below is CCDB stuff
-  long tstart, tend;
-  tstart = o2::ccdb::getCurrentTimestamp();
-  constexpr long SECONDSPERYEAR = 365 * 24 * 60 * 60;
-  tend = o2::ccdb::getFutureTimestamp(SECONDSPERYEAR);
 
-  auto class_name = o2::utils::MemFileHelper::getClassName(tuning);
-
-  // Create metadata for database object
-  const char* ft = nullptr;
-  switch (this->mFitType) {
-    case DERIVATIVE:
-      ft = "derivative";
-      break;
-    case FIT:
-      ft = "fit";
-      break;
-    case HITCOUNTING:
-      ft = "hitcounting";
-      break;
+  if (ec) { // send to ccdb-populator wf only if there is an EndOfStreamContext
+    LOG(info) << "Shipping DCSconfigObject_t, run type, scan type and fit type to aggregator";
+    ec->outputs().snapshot(Output{"ITS", "TSTR", 0}, tuning);
+    ec->outputs().snapshot(Output{"ITS", "RUNT", 0}, this->mRunType);
+    ec->outputs().snapshot(Output{"ITS", "SCANT", 0}, this->mScanType);
+    ec->outputs().snapshot(Output{"ITS", "FITT", 0}, this->mFitType);
   }
-  std::map<std::string, std::string> md = {
-    {"fittype", ft}, {"runtype", std::to_string(this->mRunType)}};
-  if (!(this->mLHCPeriod.empty())) {
-    md.insert({"LHC_period", this->mLHCPeriod});
-  }
-
-  std::string path("ITS/Calib/");
-  std::string name_str(name);
-  o2::ccdb::CcdbObjectInfo info((path + name_str), "threshold_map", "calib_scan.root", md, tstart, tend);
-  auto image = o2::ccdb::CcdbApi::createObjectImage(&tuning, &info);
-  std::string file_name = "calib_scan_" + name_str + ".root";
-  info.setFileName(file_name);
-  LOG(info) << "Class Name: " << class_name << " | File Name: " << file_name
-            << "\nSending object " << info.getPath() << "/" << info.getFileName()
-            << " of size " << image->size() << " bytes, valid for "
-            << info.getStartValidityTimestamp() << " : "
-            << info.getEndValidityTimestamp();
-
-  if (this->mScanType == 'V') {
-    ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "VCASN", 0}, *image);
-    ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "VCASN", 0}, info);
-  } else if (this->mScanType == 'I') {
-    ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ITHR", 0}, *image);
-    ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ITHR", 0}, info);
-  } else if (this->mScanType == 'T') {
-    ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "THR", 0}, *image);
-    ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "THR", 0}, info);
-  }
-
   return;
 }
 
@@ -893,7 +856,6 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
 
   // Add configuration item to output strings for CCDB
   const char* name = nullptr;
-  bool pushToCCDB = false;
   if (this->mScanType == 'V') {
     // Loop over each chip and calculate avg and rms
     name = "VCASN";
@@ -928,21 +890,9 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
     }
   }
 
-  if (ec) {
-    this->sendToCCDB(name, tuning, ec);
-  }
+  // Send to ccdb
+  this->sendToAggregator(tuning, ec);
 
-  return;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// fairMQ functionality; called automatically when the DDS stops processing
-void ITSThresholdCalibrator::stop()
-{
-  if (!mStopped) {
-    this->finalize(nullptr);
-    this->mStopped = true;
-  }
   return;
 }
 
@@ -951,10 +901,7 @@ void ITSThresholdCalibrator::stop()
 // tells that there will be no more input data
 void ITSThresholdCalibrator::endOfStream(EndOfStreamContext& ec)
 {
-  if (!mStopped) {
-    this->finalize(&ec);
-    this->mStopped = true;
-  }
+  this->finalize(&ec);
   return;
 }
 
@@ -968,14 +915,10 @@ DataProcessorSpec getITSThresholdCalibratorSpec()
   inputs.emplace_back("calib", detOrig, "GBTCALIB", 0, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "VCASN"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "VCASN"});
-
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ITHR"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ITHR"});
-
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "THR"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "THR"});
+  outputs.emplace_back("ITS", "TSTR", 0);
+  outputs.emplace_back("ITS", "RUNT", 0);
+  outputs.emplace_back("ITS", "SCANT", 0);
+  outputs.emplace_back("ITS", "FITT", 0);
 
   return DataProcessorSpec{
     "its-calibrator",
