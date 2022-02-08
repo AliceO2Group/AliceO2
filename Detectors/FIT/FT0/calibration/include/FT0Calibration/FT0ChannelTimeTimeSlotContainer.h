@@ -50,8 +50,9 @@ class FT0ChannelTimeTimeSlotContainer final
   void print() const;
   void updateFirstCreation(std::uint64_t creation)
   {
-    if (creation < mFirstCreation)
+    if (creation < mFirstCreation) {
       mFirstCreation = creation;
+    }
   }
   void resetFirstCreation()
   {

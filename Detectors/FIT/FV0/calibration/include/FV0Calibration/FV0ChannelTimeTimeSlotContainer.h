@@ -47,8 +47,9 @@ class FV0ChannelTimeTimeSlotContainer final
   static int sGausFitBins;
   void updateFirstCreation(std::uint64_t creation)
   {
-    if (creation < mFirstCreation)
+    if (creation < mFirstCreation) {
       mFirstCreation = creation;
+    }
   }
   void resetFirstCreation()
   {

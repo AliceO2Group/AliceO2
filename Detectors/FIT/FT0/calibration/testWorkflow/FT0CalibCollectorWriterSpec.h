@@ -63,7 +63,7 @@ class FT0CalibCollectorWriter : public o2::framework::Task
         auto subSpanVect = collectedInfo.subspan(offsetStart, entriesPerChannel[ich]);
         memcpy(&mFT0CalibInfoOut[0], subSpanVect.data(), sizeof(o2::ft0::FT0CalibrationInfoObject) * subSpanVect.size());
         const o2::ft0::FT0CalibrationInfoObject* tmp = subSpanVect.data();
-        LOG(info) << "@@@@@ run ich " << ich << " entries " << entriesPerChannel[ich];
+        LOG(debug) << "@@@@@ run ich " << ich << " entries " << entriesPerChannel[ich];
       }
       mOutputTree->Fill();
       offsetStart += entriesPerChannel[ich];
