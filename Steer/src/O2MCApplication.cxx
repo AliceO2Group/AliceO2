@@ -123,7 +123,12 @@ void O2MCApplicationBase::ConstructGeometry()
 
 void O2MCApplicationBase::InitGeometry()
 {
+  // load special cuts which might be given from the outside first.
+  auto& matMgr = o2::base::MaterialManager::Instance();
+  matMgr.loadCutsAndProcessesFromJSON(o2::base::MaterialManager::ESpecial::kTRUE);
+  // During the following, FairModule::SetSpecialPhysicsCuts will be called for each module
   FairMCApplication::InitGeometry();
+  matMgr.writeCutsAndProcessesToJSON();
   // now the sensitive volumes are set up in fVolMap and we can query them
   for (auto e : fVolMap) {
     // since fVolMap contains multiple entries (if multiple copies), this may
@@ -134,7 +139,6 @@ void O2MCApplicationBase::InitGeometry()
   for (auto e : mSensitiveVolumes) {
     sensvolfile << e.first << ":" << e.second << "\n";
   }
-  o2::base::MaterialManager::Instance().Close();
 }
 
 bool O2MCApplicationBase::MisalignGeometry()

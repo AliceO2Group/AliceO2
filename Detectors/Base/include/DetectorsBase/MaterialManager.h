@@ -131,13 +131,10 @@ class MaterialManager
   /// Custom setting of process or cut given parameter name and value
   void SpecialCut(const char* modname, int localindex, ECut parID, Float_t val);
 
-  /// Close and apply all parameters
-  void Close();
-
   /// load cuts and process flags from a data file (like AliRoot did)
   void loadCutsAndProcessesFromFile(const char* modname, const char* filename);
-  void loadCutsAndProcessesFromJSON(std::string const& filename);
-  void writeCutsAndProcessesToJSON(std::string const& filename);
+  void loadCutsAndProcessesFromJSON(ESpecial special = ESpecial::kFALSE, std::string const& filename = "");
+  void writeCutsAndProcessesToJSON(std::string const& filename = "");
 
   /// Set flags whether to use special cuts and process settings
   void enableSpecialProcesses(bool val = true) { mApplySpecialProcesses = val; }

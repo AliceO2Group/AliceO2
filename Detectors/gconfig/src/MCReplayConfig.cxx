@@ -36,6 +36,7 @@ void Config()
   auto& params = o2::MCReplayParam::Instance();
   replay->setStepFilename(params.stepFilename);
   replay->setStepTreename(params.stepTreename);
+  replay->SetCut("CUTALLE", params.energyCut);
 }
 
 void MCReplayConfig()

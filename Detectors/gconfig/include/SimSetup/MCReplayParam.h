@@ -27,6 +27,7 @@ namespace o2
 struct MCReplayParam : public o2::conf::ConfigurableParamHelper<MCReplayParam> {
   std::string stepTreename = "StepLoggerTree";          // name of the TTree containing the actual steps
   std::string stepFilename = "MCStepLoggerOutput.root"; // filename where to find the stepTreename
+  float energyCut = -1.;                                // minimum energy required for a step to continue tracking
   O2ParamDef(MCReplayParam, "MCReplayParam");
 };
 } // end namespace o2

@@ -202,10 +202,16 @@ void MaterialManager::Cut(ESpecial special, int globalindex, ECut cut, Float_t v
     return;
   }
   if (special == ESpecial::kFALSE) {
-    mDefaultCutMap[cut] = val;
+    auto ins = mDefaultCutMap.insert({cut, val});
+    if (ins.second) {
+      TVirtualMC::GetMC()->SetCut(it->second, val);
+    }
     /// Explicit template definition to cover this which differs from global cut setting
   } else if (mApplySpecialCuts) {
-    mMediumCutMap[globalindex][cut] = val;
+    auto ins = mMediumCutMap[globalindex].insert({cut, val});
+    if (ins.second) {
+      TVirtualMC::GetMC()->Gstpar(globalindex, it->second, val);
+    }
   }
 }
 
@@ -220,41 +226,17 @@ void MaterialManager::Process(ESpecial special, int globalindex, EProc process, 
     return;
   }
   if (special == ESpecial::kFALSE) {
-    mDefaultProcessMap[process] = val;
+    auto ins = mDefaultProcessMap.insert({process, val});
+    if (ins.second) {
+      TVirtualMC::GetMC()->SetProcess(it->second, val);
+    }
     /// Explicit template definition to cover this which differs from global process setting
   } else if (mApplySpecialProcesses) {
-    mMediumProcessMap[globalindex][process] = val;
-  }
-}
-
-void MaterialManager::Close()
-{
-  auto& params = o2::MaterialManagerParam::Instance();
-  loadCutsAndProcessesFromJSON(params.inputFile);
-  // finally apply all cuts and processes
-  // defaults
-  for (auto& cut : mDefaultCutMap) {
-    auto it = mCutIDToName.find(cut.first);
-    TVirtualMC::GetMC()->SetCut(it->second, cut.second);
-  }
-  for (auto& proc : mDefaultProcessMap) {
-    auto it = mProcessIDToName.find(proc.first);
-    TVirtualMC::GetMC()->SetProcess(it->second, proc.second);
-  }
-  // special
-  for (auto& cuts : mMediumCutMap) {
-    for (auto& cut : cuts.second) {
-      auto it = mCutIDToName.find(cut.first);
-      TVirtualMC::GetMC()->Gstpar(cuts.first, it->second, cut.second);
+    auto ins = mMediumProcessMap[globalindex].insert({process, val});
+    if (ins.second) {
+      TVirtualMC::GetMC()->Gstpar(globalindex, it->second, val);
     }
   }
-  for (auto& procs : mMediumProcessMap) {
-    for (auto& proc : procs.second) {
-      auto it = mProcessIDToName.find(proc.first);
-      TVirtualMC::GetMC()->Gstpar(procs.first, it->second, proc.second);
-    }
-  }
-  writeCutsAndProcessesToJSON(params.outputFile);
 }
 
 void MaterialManager::printMaterials() const
@@ -376,14 +358,15 @@ TGeoMedium* MaterialManager::getTGeoMedium(const char* mediumname)
   return med;
 }
 
-void MaterialManager::loadCutsAndProcessesFromJSON(std::string const& filename)
+void MaterialManager::loadCutsAndProcessesFromJSON(ESpecial special, std::string const& filename)
 {
-  if (filename.empty()) {
+  const std::string filenameIn = filename.empty() ? o2::MaterialManagerParam::Instance().inputFile : filename;
+  if (filenameIn.empty()) {
     return;
   }
-  std::ifstream is(filename);
+  std::ifstream is(filenameIn);
   if (!is.is_open()) {
-    LOG(error) << "Cannot open file " << filename;
+    LOG(error) << "Cannot open file " << filenameIn;
     return;
   }
   auto digestCutsFromJSON = [this](int globalindex, rj::Value& cuts) {
@@ -408,8 +391,8 @@ void MaterialManager::loadCutsAndProcessesFromJSON(std::string const& filename)
   rj::Document d;
   d.ParseStream(isw);
 
-  // first handle default cuts indices
-  if (d.HasMember(jsonKeyDefault)) {
+  if (special == ESpecial::kFALSE && d.HasMember(jsonKeyDefault)) {
+    // defaults
     auto& defaultParams = d[jsonKeyDefault];
     if (defaultParams.HasMember(jsonKeyCuts)) {
       digestCutsFromJSON(-1, defaultParams[jsonKeyCuts]);
@@ -417,28 +400,29 @@ void MaterialManager::loadCutsAndProcessesFromJSON(std::string const& filename)
     if (defaultParams.HasMember(jsonKeyProcesses)) {
       digestProcessesFromJSON(-1, defaultParams[jsonKeyProcesses]);
     }
-  }
-  for (auto& m : d.GetObject()) {
-    if (std::strcmp(m.name.GetString(), jsonKeyDefault) == 0) {
-      // defaults are done, not do this again
-      continue;
-    }
-
-    if (m.name.GetString()[0] == '\0' || !m.value.IsArray()) {
-      // do not parse anything with empty key, these at the most meant to be comments
-      continue;
-    }
-    for (auto& batch : m.value.GetArray()) {
-      // set via their global indices
-      auto index = getMediumID(m.name.GetString(), batch[jsonKeyID].GetInt());
-      if (index < 0) {
+  } else if (special == ESpecial::kTRUE) {
+    // special
+    for (auto& m : d.GetObject()) {
+      if (m.name.GetString()[0] == '\0' || !m.value.IsArray()) {
+        // do not parse anything with empty key, these at the most meant to be comments
         continue;
       }
-      if (batch.HasMember(jsonKeyCuts)) {
-        digestCutsFromJSON(index, batch[jsonKeyCuts]);
-      }
-      if (batch.HasMember(jsonKeyProcesses)) {
-        digestProcessesFromJSON(index, batch[jsonKeyProcesses]);
+      for (auto& batch : m.value.GetArray()) {
+        if (std::strcmp(m.name.GetString(), jsonKeyDefault) == 0) {
+          // don't do defaults here
+          continue;
+        }
+        // set via their global indices
+        auto index = getMediumID(m.name.GetString(), batch[jsonKeyID].GetInt());
+        if (index < 0) {
+          continue;
+        }
+        if (batch.HasMember(jsonKeyCuts)) {
+          digestCutsFromJSON(index, batch[jsonKeyCuts]);
+        }
+        if (batch.HasMember(jsonKeyProcesses)) {
+          digestProcessesFromJSON(index, batch[jsonKeyProcesses]);
+        }
       }
     }
   }
@@ -446,14 +430,15 @@ void MaterialManager::loadCutsAndProcessesFromJSON(std::string const& filename)
 
 void MaterialManager::writeCutsAndProcessesToJSON(std::string const& filename)
 {
-  if (filename.empty()) {
+  const std::string filenameOut = filename.empty() ? o2::MaterialManagerParam::Instance().outputFile : filename;
+  if (filenameOut.empty()) {
     return;
   }
 
   // write parameters as global AND module specific
-  std::ofstream os(filename);
+  std::ofstream os(filenameOut);
   if (!os.is_open()) {
-    LOG(error) << "Cannot create file " << filename;
+    LOG(error) << "Cannot create file " << filenameOut;
     return;
   }
 
@@ -634,7 +619,7 @@ void MaterialManager::SpecialProcess(const char* modname, int localindex, EProc 
   if (globalindex != -1) {
     Process(ESpecial::kTRUE, globalindex, parID, val);
   } else {
-    LOG(warn) << "SpecialCut: NO GLOBALINDEX FOUND FOR " << modname << " " << localindex;
+    LOG(warn) << "SpecialProcess: NO GLOBALINDEX FOUND FOR " << modname << " " << localindex;
   }
 }
 
