@@ -120,6 +120,7 @@ class DigiReco
   void reconstructTDC(int seq_beg, int seq_end);                                  /// Reconstruction of uncorrected TDCs
   int reconstruct(int seq_beg, int seq_end);                                      /// Main method for data reconstruction
   void processTrigger(int itdc, int ibeg, int iend);                              /// Replay of trigger algorithm on acquired data
+  void processTriggerExtended(int itdc, int ibeg, int iend);                      /// Replay of trigger algorithm on acquired data
   void interpolate(int itdc, int ibeg, int iend);                                 /// Interpolation of samples to evaluate signal amplitude and arrival time
   void correctTDCPile();                                                          /// Correction of pile-up in TDC
   bool mCorrSignal = true;                                                        /// Enable TDC signal correction

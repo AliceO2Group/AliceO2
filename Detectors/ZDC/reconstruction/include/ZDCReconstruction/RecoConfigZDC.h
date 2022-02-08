@@ -35,6 +35,7 @@ struct RecoConfigZDC {
   int tdc_search[NTDCChannels] = {250, 250, 250, 250, 250, 250, 250, 250, 250, 250}; // Search zone for a TDC signal ideally 2.5 ns (units of ~10 ps)
   void setSearch(uint32_t ich, int val);
   int getSearch(uint32_t ich) const;
+  bool extendedSearch = true;
 
   // Charge integration
   // Beginning and end of integration range: signal

@@ -368,7 +368,7 @@ void Digitizer::phe2Sample(int nphe, int parID, double timeHit, std::array<o2::I
   const auto& chanConfig = mSimCondition->channels[channel];
 
   float timeDiff = time0 - timeHit;
-  int sample = (timeDiff - gRandom->Gaus(chanConfig.timePosition, chanConfig.timeJitter)) * ChannelSimCondition::ShapeBinWidthInv + chanConfig.ampMinID;
+  int sample = (timeDiff - gRandom->Gaus(chanConfig.timePosition, chanConfig.timeJitter)) * ChannelSimCondition::ShapeBinWidthInv + chanConfig.ampMinID + TSNH;
   int ir = 0;
   bool stop = false;
 
@@ -550,7 +550,7 @@ void Digitizer::setTriggerMask()
     }
     printTriggerMask += "]";
     uint32_t mytmask = mTriggerMask >> (im * NChPerModule);
-    LOGF(info, "Trigger mask for module %d 0123 %c%c%c%c\n", im,
+    LOGF(info, "Trigger mask for module %d 0123 %c%c%c%c", im,
          mytmask & 0x1 ? 'T' : 'N', mytmask & 0x2 ? 'T' : 'N', mytmask & 0x4 ? 'T' : 'N', mytmask & 0x8 ? 'T' : 'N');
   }
   LOGF(info, "TriggerMask=0x%08x %s\n", mTriggerMask, printTriggerMask.c_str());
@@ -579,7 +579,7 @@ void Digitizer::setReadoutMask()
     }
     printReadoutMask += "]";
     uint32_t myrmask = mReadoutMask >> (im * NChPerModule);
-    LOGF(info, "Readout mask for module %d 0123 %c%c%c%c\n", im,
+    LOGF(info, "Readout mask for module %d 0123 %c%c%c%c", im,
          myrmask & 0x1 ? 'R' : 'N', myrmask & 0x2 ? 'R' : 'N', myrmask & 0x4 ? 'R' : 'N', myrmask & 0x8 ? 'R' : 'N');
   }
   LOGF(info, "ReadoutMask=0x%08x %s\n", mReadoutMask, printReadoutMask.c_str());
