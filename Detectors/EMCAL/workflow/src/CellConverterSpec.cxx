@@ -59,7 +59,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
   int currentstart = mOutputCells.size(), ncellsTrigger = 0;
   for (const auto& trg : triggers) {
     if (!trg.getNumberOfObjects()) {
-      mOutputTriggers.emplace_back(trg.getBCData(), currentstart, ncellsTrigger);
+      mOutputTriggers.emplace_back(trg.getBCData(), trg.getTriggerBits(), currentstart, ncellsTrigger);
       continue;
     }
     gsl::span<const o2::emcal::Digit> digits(digitsAll.data() + trg.getFirstEntry(), trg.getNumberOfObjects());
@@ -91,7 +91,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
         ncellsTrigger++;
       }
     }
-    mOutputTriggers.emplace_back(trg.getBCData(), currentstart, ncellsTrigger);
+    mOutputTriggers.emplace_back(trg.getBCData(), trg.getTriggerBits(), currentstart, ncellsTrigger);
     currentstart = mOutputCells.size();
     ncellsTrigger = 0;
   }
