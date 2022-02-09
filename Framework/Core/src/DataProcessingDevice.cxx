@@ -83,13 +83,22 @@ struct ServiceKindExtractor<ConfigurationInterface> {
 void on_idle_timer(uv_timer_t* handle)
 {
   ZoneScopedN("Idle timer");
-  DeviceState* state = (DeviceState*)handle->data;
+  auto* state = (DeviceState*)handle->data;
   state->loopReason |= DeviceState::TIMER_EXPIRED;
+}
+
+void on_transition_requested_expired(uv_timer_t* handle)
+{
+  ZoneScopedN("Transition expired");
+  auto* state = (DeviceState*)handle->data;
+  state->loopReason |= DeviceState::TIMER_EXPIRED;
+  LOGP(info, "Timer expired. Forcing transition to READY");
+  state->transitionHandling = TransitionHandlingState::Expired;
 }
 
 void on_communication_requested(uv_async_t* s)
 {
-  DeviceState* state = (DeviceState*)s->data;
+  auto* state = (DeviceState*)s->data;
   state->loopReason |= DeviceState::METRICS_MUST_FLUSH;
 }
 
@@ -402,6 +411,7 @@ void DataProcessingDevice::InitTask()
   }
 
   mDeviceContext.expectedRegionCallbacks = std::stoi(fConfig->GetValue<std::string>("expected-region-callbacks"));
+  mDeviceContext.exitTransitionTimeout = std::stoi(fConfig->GetValue<std::string>("exit-transition-timeout"));
 
   for (auto& channel : fChannels) {
     channel.second.at(0).Transport()->SubscribeToRegionEvents([this,
@@ -507,7 +517,7 @@ void DataProcessingDevice::InitTask()
     // This is a fake device, so we can request to exit immediately
     mServiceRegistry.get<ControlService>().readyToQuit(QuitRequest::Me);
     // A two second timer to stop internal devices which do not want to
-    uv_timer_t* timer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
+    auto* timer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
     uv_timer_init(mState.loop, timer);
     timer->data = &mState;
     uv_timer_start(timer, on_idle_timer, 2000, 2000);
@@ -609,7 +619,7 @@ void DataProcessingDevice::Reset()
 
 void DataProcessingDevice::Run()
 {
-  while (!NewStatePending()) {
+  while (mState.transitionHandling != TransitionHandlingState::Expired) {
     if (mState.nextFairMQState.empty() == false) {
       this->ChangeState(mState.nextFairMQState.back());
       mState.nextFairMQState.pop_back();
@@ -633,6 +643,22 @@ void DataProcessingDevice::Run()
                            (mState.streaming == StreamingState::EndOfStreaming);
       if (NewStatePending()) {
         shouldNotWait = true;
+      }
+      if (mState.transitionHandling == TransitionHandlingState::NoTransition && NewStatePending()) {
+        mState.transitionHandling = TransitionHandlingState::Requested;
+        auto timeout = mDeviceContext.exitTransitionTimeout;
+        if (timeout != 0) {
+          auto* timer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
+          timer->data = &mState;
+          mState.activeTimers.push_back(timer);
+          uv_timer_init(mState.loop, timer);
+          mState.transitionHandling = TransitionHandlingState::Requested;
+          uv_timer_start(timer, on_transition_requested_expired, timeout * 1000, 0);
+          LOGP(info, "New state requested. Waiting for {} seconds before quitting.", timeout);
+        } else {
+          mState.transitionHandling = TransitionHandlingState::Expired;
+          LOGP(info, "New state requested. No timeout set, therefore exiting immediately");
+        }
       }
       TracyPlot("shouldNotWait", (int)shouldNotWait);
       uv_run(mState.loop, shouldNotWait ? UV_RUN_NOWAIT : UV_RUN_ONCE);
@@ -708,6 +734,11 @@ void DataProcessingDevice::Run()
       mWasActive = false;
     }
     FrameMark;
+  }
+  /// Cleanup messages which are still pending on exit.
+  for (size_t ci = 0; ci < mDeviceContext.spec->inputChannels.size(); ++ci) {
+    auto& info = mDeviceContext.state->inputChannelInfos[ci];
+    info.parts.fParts.clear();
   }
 }
 

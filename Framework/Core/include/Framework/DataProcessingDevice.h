@@ -64,6 +64,7 @@ struct DeviceContext {
   DataProcessingStats* stats = nullptr;
   ComputingQuotaStats* quotaStats = nullptr;
   int expectedRegionCallbacks = 0;
+  int exitTransitionTimeout = 0;
 };
 
 struct DataProcessorContext {

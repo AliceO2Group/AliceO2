@@ -13,6 +13,7 @@
 /// \brief Implementation of the ITSMFT Alpide simulated response parametrization
 
 #include "ITSMFTSimulation/AlpideSimResponse.h"
+#include "ITSMFTSimulation/DPLDigitizerParam.h"
 #include <TSystem.h>
 #include <cstdio>
 #include <cstddef>
@@ -29,11 +30,21 @@ ClassImp(o2::itsmft::AlpideRespSimMat);
 
 constexpr float micron2cm = 1e-4;
 
-void AlpideSimResponse::initData()
+void AlpideSimResponse::initData(int tableNumber)
 {
   /*
    * read grid parameters and load data
    */
+  if (tableNumber == 0) // 0V back bias
+  {
+    const std::string newDataPath = mDataPath + "Vbb-3.0V"; // temporary solution (Vbb-0.0V will be called in the end)
+    setDataPath(newDataPath);                               // setting the new data path
+  } else if (tableNumber == 1)                              // -3V back bias
+  {
+    const std::string newDataPath = mDataPath + "Vbb-3.0V";
+    setDataPath(newDataPath); // setting the new data path
+  }
+
   if (mData.size()) {
     cout << "Object already initialized" << endl;
     print();

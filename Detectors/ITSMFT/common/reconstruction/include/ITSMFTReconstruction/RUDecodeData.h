@@ -40,7 +40,7 @@ struct RUDecodeData {
   std::array<uint8_t, MaxCablesPerRU> cableHWID;           // HW ID of cable whose data is in the corresponding slot of cableData
   std::array<uint8_t, MaxCablesPerRU> cableLinkID;         // ID of the GBT link transmitting this cable data
   std::array<GBTLink*, MaxCablesPerRU> cableLinkPtr;       // Ptr of the GBT link transmitting this cable data
-
+  std::unordered_map<uint64_t, uint32_t> linkHBFToDump;    // FEEID<<32+hbfEntry to dump in case of error
   int ruSWID = -1;         // SW (stave) ID
   int nCables = 0;         // total number of cables decoded for single trigger
   int nChipsFired = 0;     // number of chips with data or with errors
@@ -90,7 +90,12 @@ int RUDecodeData::decodeROF(const Mapping& mp)
 #ifdef ALPIDE_DECODING_STAT
       fillChipStatistics(icab, chipData);
 #endif
-      if (ret >= 0 && !chipData->isErrorSet()) { // make sure there was no error
+      if (ret >= 0 /* && !chipData->isErrorSet()*/) { // make sure there was no error | upd: why? if there was a non fatal error, we use chip data
+        if (chipData->isErrorSet() && nChipsFired && chipData->getChipID() == chipsData[nChipsFired - 1].getChipID()) {
+          // we are still in the chip data whose decoding was aborted due to the error, reuse this chip data
+          LOGP(debug, "re-entry into the data of the chip {} after previously detector error", chipData->getChipID());
+          continue;
+        }
         ntot += chipData->getData().size();
         if (++nChipsFired < chipsData.size()) { // fetch next free chip
           chipData = &chipsData[nChipsFired];

@@ -1388,7 +1388,7 @@ struct EquivalentIndex {
 };
 
 template <typename B, typename E>
-constexpr bool is_index_equivalent_v = EquivalentIndex<B, E>::value;
+constexpr bool is_index_equivalent_v = EquivalentIndex<B, E>::value || EquivalentIndex<E, B>::value;
 
 template <typename T, typename... Os>
 constexpr bool are_bindings_compatible_v(framework::pack<Os...>&&)

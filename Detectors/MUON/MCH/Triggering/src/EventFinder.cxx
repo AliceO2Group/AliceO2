@@ -100,7 +100,8 @@ void EventFinder::run(const gsl::span<const mch::ROFRecord>& mchROFs,
         } else {
           auto& digit0 = mDigits[digitLoc.first->second];
           digit0.setADC(digit0.getADC() + digit.getADC());
-          digit0.setNofSamples(digit0.getNofSamples() + digit.getNofSamples());
+          auto nofSamples = digit0.getNofSamples() + digit.getNofSamples();
+          digit0.setNofSamples((nofSamples > 0x3FF) ? 0x3FF : nofSamples);
           digit0.setSaturated(digit0.isSaturated() || digit.isSaturated());
           if (labels != nullptr) {
             for (const auto& label : labels->getLabels(iDigit)) {

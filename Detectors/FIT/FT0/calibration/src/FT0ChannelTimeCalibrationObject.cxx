@@ -20,7 +20,6 @@ FT0ChannelTimeCalibrationObject FT0TimeChannelOffsetCalibrationObjectAlgorithm::
 
   for (unsigned int iCh = 0; iCh < o2::ft0::Geometry::Nchannels; ++iCh) {
     calibrationObject.mTimeOffsets[iCh] = container.getMeanGaussianFitValue(iCh);
-    LOG(info) << " generateCalibrationObject " << iCh << " " << calibrationObject.mTimeOffsets[iCh];
   }
 
   return calibrationObject;

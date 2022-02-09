@@ -37,6 +37,8 @@ using DPID = o2::dcs::DataPointIdentifier;
 using DPVAL = o2::dcs::DataPointValue;
 using DPCOM = o2::dcs::DataPointCompositeObject;
 
+inline unsigned long llu2lu(std::uint64_t v) { return (unsigned long)v; }
+
 struct GRPEnvVariables {
 
   std::pair<uint64_t, double> mCavernTemperature;
@@ -54,10 +56,10 @@ struct GRPEnvVariables {
 
   void print()
   {
-    std::printf("%-30s : timestamp %llu   val %.3f\n", "Cavern Temperature", mCavernTemperature.first, mCavernTemperature.second);
-    std::printf("%-30s : timestamp %llu   val %.3f\n", "Cavern Atm Pressure", mCavernAtmosPressure.first, mCavernAtmosPressure.second);
-    std::printf("%-30s : timestamp %llu   val %.3f\n", "Surf Atm Pressure", mSurfaceAtmosPressure.first, mSurfaceAtmosPressure.second);
-    std::printf("%-30s : timestamp %llu   val %.3f\n", "Cavern Atm Pressure 2", mCavernAtmosPressure2.first, mCavernAtmosPressure2.second);
+    std::printf("%-30s : timestamp %lu   val %.3f\n", "Cavern Temperature", llu2lu(mCavernTemperature.first), mCavernTemperature.second);
+    std::printf("%-30s : timestamp %lu   val %.3f\n", "Cavern Atm Pressure", llu2lu(mCavernAtmosPressure.first), mCavernAtmosPressure.second);
+    std::printf("%-30s : timestamp %lu   val %.3f\n", "Surf Atm Pressure", llu2lu(mSurfaceAtmosPressure.first), mSurfaceAtmosPressure.second);
+    std::printf("%-30s : timestamp %lu   val %.3f\n", "Cavern Atm Pressure 2", llu2lu(mCavernAtmosPressure2.first), mCavernAtmosPressure2.second);
   }
 
   ClassDefNV(GRPEnvVariables, 1);
@@ -84,12 +86,12 @@ struct GRPCollimators {
 
   void print()
   {
-    std::printf("%-60s : timestamp %llu   val %.3e\n", "LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_downstream", mgap_downstream.first, mgap_downstream.second);
-    std::printf("%-60s : timestamp %llu   val %.3e\n", "LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_upstream", mgap_upstream.first, mgap_upstream.second);
-    std::printf("%-60s : timestamp %llu   val %.3e\n", "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_downstream", mleft_downstream.first, mleft_downstream.second);
-    std::printf("%-60s : timestamp %llu   val %.3e\n", "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_upstream", mleft_upstream.first, mleft_upstream.second);
-    std::printf("%-60s : timestamp %llu   val %.3e\n", "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_downstream", mright_downstream.first, mright_downstream.second);
-    std::printf("%-60s : timestamp %llu   val %.3e\n", "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_upstream", mright_upstream.first, mright_upstream.second);
+    std::printf("%-60s : timestamp %lu   val %.3e\n", "LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_downstream", llu2lu(mgap_downstream.first), mgap_downstream.second);
+    std::printf("%-60s : timestamp %lu   val %.3e\n", "LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_upstream", llu2lu(mgap_upstream.first), mgap_upstream.second);
+    std::printf("%-60s : timestamp %lu   val %.3e\n", "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_downstream", llu2lu(mleft_downstream.first), mleft_downstream.second);
+    std::printf("%-60s : timestamp %lu   val %.3e\n", "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_upstream", llu2lu(mleft_upstream.first), mleft_upstream.second);
+    std::printf("%-60s : timestamp %lu   val %.3e\n", "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_downstream", llu2lu(mright_downstream.first), mright_downstream.second);
+    std::printf("%-60s : timestamp %lu   val %.3e\n", "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_upstream", llu2lu(mright_upstream.first), mright_upstream.second);
   }
 
   ClassDefNV(GRPCollimators, 1);
@@ -132,55 +134,55 @@ struct GRPLHCInfo {
       std::sprintf(alias, "LHC_IntensityBeam%d_totalIntensity", i + 1);
       std::printf("%-30s : n elements %ld\n", alias, mIntensityBeam[i].size());
       for (int iel = 0; iel < mIntensityBeam[i].size(); ++iel) {
-        std::printf("timestamp %llu   val %.3e\n", mIntensityBeam[i].at(iel).first, mIntensityBeam[i].at(iel).second);
+        std::printf("timestamp %lu   val %.3e\n", llu2lu(mIntensityBeam[i].at(iel).first), mIntensityBeam[i].at(iel).second);
       }
     }
     for (int i = 0; i < 3; ++i) {
       std::sprintf(alias, "ALI_Background%d", i + 1);
       std::printf("%-30s : n elements %ld\n", alias, mBackground[i].size());
       for (int iel = 0; iel < mBackground[i].size(); ++iel) {
-        std::printf("timestamp %llu   val %.3e\n", mBackground[i].at(iel).first, mBackground[i].at(iel).second);
+        std::printf("timestamp %lu   val %.3e\n", llu2lu(mBackground[i].at(iel).first), mBackground[i].at(iel).second);
       }
     }
     std::printf("%-30s : n elements %ld\n", "ALI_Lumi_Total_Inst", mInstLumi.size());
     for (int iel = 0; iel < mInstLumi.size(); ++iel) {
-      std::printf("timestamp %llu   val %.3e\n", mInstLumi.at(iel).first, mInstLumi.at(iel).second);
+      std::printf("timestamp %lu   val %.3e\n", llu2lu(mInstLumi.at(iel).first), mInstLumi.at(iel).second);
     }
     std::printf("%-30s : n elements %ld\n", "BPTX_deltaT_B1_B2", mBPTXdeltaT.size());
     for (int iel = 0; iel < mBPTXdeltaT.size(); ++iel) {
-      std::printf("timestamp %llu   val %.3e\n", mBPTXdeltaT.at(iel).first, mBPTXdeltaT.at(iel).second);
+      std::printf("timestamp %lu   val %.3e\n", llu2lu(mBPTXdeltaT.at(iel).first), mBPTXdeltaT.at(iel).second);
     }
     std::printf("%-30s : n elements %ld\n", "BPTX_deltaTRMS_B1_B2", mBPTXdeltaTRMS.size());
     for (int iel = 0; iel < mBPTXdeltaTRMS.size(); ++iel) {
-      std::printf("timestamp %llu   val %.3e\n", mBPTXdeltaTRMS.at(iel).first, mBPTXdeltaTRMS.at(iel).second);
+      std::printf("timestamp %lu   val %.3e\n", llu2lu(mBPTXdeltaTRMS.at(iel).first), mBPTXdeltaTRMS.at(iel).second);
     }
     for (int i = 0; i < 2; ++i) {
       std::sprintf(alias, "BPTX_Phase_B%d", i + 1);
       std::printf("%-30s : n elements %ld\n", alias, mBPTXPhase[i].size());
       for (int iel = 0; iel < mBPTXPhase[i].size(); ++iel) {
-        std::printf("timestamp %llu   val %.3e\n", mBPTXPhase[i].at(iel).first, mBPTXPhase[i].at(iel).second);
+        std::printf("timestamp %lu   val %.3e\n", llu2lu(mBPTXPhase[i].at(iel).first), mBPTXPhase[i].at(iel).second);
       }
     }
     for (int i = 0; i < 2; ++i) {
       std::sprintf(alias, "BPTX_PhaseRMS_B%d", i + 1);
       std::printf("%-30s : n elements %ld\n", alias, mBPTXPhaseRMS[i].size());
       for (int iel = 0; iel < mBPTXPhaseRMS[i].size(); ++iel) {
-        std::printf("timestamp %llu   val %.3e\n", mBPTXPhaseRMS[i].at(iel).first, mBPTXPhaseRMS[i].at(iel).second);
+        std::printf("timestamp %lu   val %.3e\n", llu2lu(mBPTXPhaseRMS[i].at(iel).first), mBPTXPhaseRMS[i].at(iel).second);
       }
     }
     for (int i = 0; i < 2; ++i) {
       std::sprintf(alias, "BPTX_Phase_Shift_B%d", i + 1);
       std::printf("%-30s : n elements %ld\n", alias, mBPTXPhaseShift[i].size());
       for (int iel = 0; iel < mBPTXPhaseShift[i].size(); ++iel) {
-        std::printf("timestamp %llu   val %.3e\n", mBPTXPhaseShift[i].at(iel).first, mBPTXPhaseShift[i].at(iel).second);
+        std::printf("timestamp %lu   val %.3e\n", llu2lu(mBPTXPhaseShift[i].at(iel).first), mBPTXPhaseShift[i].at(iel).second);
       }
     }
     std::printf("%-30s :\n", "ALI_Lumi_Source_Name");
-    std::printf("timestamp %llu   val %s\n", mLumiSource.first, mLumiSource.second.c_str());
+    std::printf("timestamp %lu   val %s\n", llu2lu(mLumiSource.first), mLumiSource.second.c_str());
     std::printf("%-30s :\n", "BEAM_MODE");
-    std::printf("timestamp %llu   val %s\n", mBeamMode.first, mBeamMode.second.c_str());
+    std::printf("timestamp %lu   val %s\n", llu2lu(mBeamMode.first), mBeamMode.second.c_str());
     std::printf("%-30s :\n", "MACHINE_MODE");
-    std::printf("timestamp %llu   val %s\n", mMachineMode.first, mMachineMode.second.c_str());
+    std::printf("timestamp %lu   val %s\n", llu2lu(mMachineMode.first), mMachineMode.second.c_str());
   }
 
   ClassDefNV(GRPLHCInfo, 1);

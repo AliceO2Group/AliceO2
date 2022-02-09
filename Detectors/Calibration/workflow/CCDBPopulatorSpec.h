@@ -46,6 +46,8 @@ class CCDBPopulator : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
     mCCDBpath = ic.options().get<std::string>("ccdb-path");
+    mSSpecMin = ic.options().get<std::int64_t>("sspec-min");
+    mSSpecMax = ic.options().get<std::int64_t>("sspec-max");
     auto& mgr = CcdbManager::instance();
     mgr.setURL(mCCDBpath);
     mAPI.init(mgr.getURL());
@@ -63,8 +65,16 @@ class CCDBPopulator : public o2::framework::Task
 
     std::map<std::string, std::string> metadata;
     for (int isl = 0; isl < nSlots; isl++) {
-      const auto wrp = pc.inputs().get<CcdbObjectInfo*>("clbWrapper", isl);
-      const auto pld = pc.inputs().get<gsl::span<char>>("clbPayload", isl); // this is actually an image of TMemFile
+      auto refWrp = pc.inputs().get("clbWrapper", isl);
+      auto refPld = pc.inputs().get("clbPayload", isl);
+      if (mSSpecMin >= 0 && mSSpecMin <= mSSpecMax) { // there is a selection
+        auto ss = std::int64_t(o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(refWrp)->subSpecification);
+        if (ss < mSSpecMin || ss > mSSpecMax) {
+          continue;
+        }
+      }
+      const auto wrp = pc.inputs().get<CcdbObjectInfo*>(refWrp);
+      const auto pld = pc.inputs().get<gsl::span<char>>(refPld); // this is actually an image of TMemFile
       const auto* md = &wrp->getMetaData();
       if (runNoFromDH > 0 && md->find(o2::base::NameConf::CCDBRunTag.data()) == md->end()) { // if valid run number is provided and it is not filled in the metadata, add it to the clone
         metadata = *md;                                                                      // clone since the md from the message is const
@@ -81,6 +91,8 @@ class CCDBPopulator : public o2::framework::Task
 
  private:
   CcdbApi mAPI;
+  std::int64_t mSSpecMin = -1;                             // min subspec to accept
+  std::int64_t mSSpecMax = -1;                             // max subspec to accept
   std::string mCCDBpath = "http://ccdb-test.cern.ch:8080"; // CCDB path
 };
 
@@ -89,18 +101,21 @@ class CCDBPopulator : public o2::framework::Task
 namespace framework
 {
 
-DataProcessorSpec getCCDBPopulatorDeviceSpec(const std::string& defCCDB)
+DataProcessorSpec getCCDBPopulatorDeviceSpec(const std::string& defCCDB, const std::string& nameExt)
 {
   using clbUtils = o2::calibration::Utils;
   std::vector<InputSpec> inputs = {{"clbPayload", "CLP"}, {"clbWrapper", "CLW"}};
-
+  std::string devName = "ccdb-populator";
+  devName += nameExt;
   return DataProcessorSpec{
-    "ccdb-populator",
+    devName,
     inputs,
     Outputs{},
     AlgorithmSpec{adaptFromTask<o2::calibration::CCDBPopulator>()},
     Options{
-      {"ccdb-path", VariantType::String, defCCDB, {"Path to CCDB"}}}};
+      {"ccdb-path", VariantType::String, defCCDB, {"Path to CCDB"}},
+      {"sspec-min", VariantType::Int64, -1L, {"min subspec to accept"}},
+      {"sspec-max", VariantType::Int64, -1L, {"max subspec to accept"}}}};
 }
 
 } // namespace framework

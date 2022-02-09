@@ -310,6 +310,7 @@ if [[ $CTFINPUT == 1 ]]; then
   CTFName=`ls -t $RAWINPUTDIR/o2_ctf_*.root 2> /dev/null | head -n1`
   [[ -z $CTFName && $WORKFLOWMODE == "print" ]] && CTFName='$CTFName'
   [[ ! -z $INPUT_FILE_LIST ]] && CTFName=$INPUT_FILE_LIST
+  if [[ -z $CTFName && $WORKFLOWMODE != "print" ]]; then echo "No CTF file present!"; exit 1; fi
   if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--max-tf $NTIMEFRAMES"; fi
   add_W o2-ctf-reader-workflow "--delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD --ctf-input ${CTFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD} --ctf-dict ${CTF_DICT} --onlyDet $WORKFLOW_DETECTORS --pipeline $(get_N tpc-entropy-decoder TPC REST TPCENTDEC)"
 elif [[ $RAWTFINPUT == 1 ]]; then

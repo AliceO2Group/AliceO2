@@ -24,6 +24,7 @@
 #include "DetectorsCommonDataFormats/CTFDictHeader.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "rANS/rans.h"
+#include <filesystem>
 
 namespace o2
 {
@@ -140,7 +141,10 @@ template <typename CTF>
 std::vector<char> CTFCoderBase::readDictionaryFromFile(const std::string& dictPath, bool mayFail)
 {
   std::vector<char> bufVec;
-  std::unique_ptr<TFile> fileDict(TFile::Open(dictPath.c_str()));
+  std::unique_ptr<TFile> fileDict;
+  if (std::filesystem::exists(dictPath)) {
+    fileDict.reset(TFile::Open(dictPath.c_str()));
+  }
   if (!fileDict || fileDict->IsZombie()) {
     std::string errstr = fmt::format("CTF dictionary file {} for detector {} is absent", dictPath, mDet.getName());
     if (mayFail) {

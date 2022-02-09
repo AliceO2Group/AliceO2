@@ -330,3 +330,17 @@ BOOST_AUTO_TEST_CASE(Deleting)
   // I am afraid we can't check more than that.
   BOOST_CHECK_NO_THROW(algorithm::deleteTCollections(main));
 }
+
+BOOST_AUTO_TEST_CASE(AverageHisto)
+{
+  TH1F* target = new TH1F("histo 1", "histo 1", bins, min, max);
+  target->SetBit(TH1::kIsAverage);
+  target->Fill(5);
+
+  TH1F* other = new TH1F("histo 2", "histo 2", bins, min, max);
+  other->SetBit(TH1::kIsAverage);
+  other->Fill(5);
+
+  BOOST_CHECK_NO_THROW(algorithm::merge(target, other));
+  BOOST_CHECK_CLOSE(target->GetBinContent(other->FindBin(5)), 1.0, 0.001);
+}

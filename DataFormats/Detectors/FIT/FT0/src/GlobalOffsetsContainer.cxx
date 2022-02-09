@@ -32,9 +32,9 @@ bool GlobalOffsetsContainer::hasEnoughEntries() const
 void GlobalOffsetsContainer::fill(const gsl::span<const GlobalOffsetsInfoObject>& data)
 {
   // fill container
-
   for (auto& entry : data) {
     if (std::abs(entry.getT0AC()) < RANGE) {
+      updateFirstCreation(entry.getTimeStamp());
       auto time = entry.getT0AC();
       time += RANGE;
       mHisto[(time)]++;
@@ -49,6 +49,7 @@ void GlobalOffsetsContainer::merge(GlobalOffsetsContainer* prev)
     mHisto[i] += prev->mHisto[i];
   }
   mEntries += prev->mEntries;
+  mFirstCreation = std::min(mFirstCreation, prev->mFirstCreation);
 }
 
 int GlobalOffsetsContainer::getMeanGaussianFitValue() const

@@ -75,6 +75,7 @@ struct ShmManager {
       }
       uint16_t id = stoi(conf.at(0));
       uint64_t size = stoull(conf.at(1));
+      segmentCfgs.emplace_back(fair::mq::shmem::SegmentConfig{id, size, "rbtree_best_fit"});
 
 #if !defined(__MACH__) && !defined(__APPLE__)
       int numaid = stoi(conf.at(2));
@@ -117,6 +118,10 @@ struct ShmManager {
       }
       uint16_t id = stoi(conf.at(0));
       uint64_t size = stoull(conf.at(1));
+      fair::mq::RegionConfig cfg;
+      cfg.id = id;
+      cfg.size = size;
+      regionCfgs.push_back(cfg);
 
 #if !defined(__MACH__) && !defined(__APPLE__)
       int numaid = stoi(conf.at(2));
@@ -149,7 +154,7 @@ struct ShmManager {
 
   void ResetContent()
   {
-    fair::mq::shmem::Monitor::ResetContent(fair::mq::shmem::ShmId{shmId});
+    fair::mq::shmem::Monitor::ResetContent(fair::mq::shmem::ShmId{shmId}, segmentCfgs, regionCfgs);
   }
 
   void FullReset()
@@ -168,6 +173,8 @@ struct ShmManager {
   std::string shmId;
   map<uint16_t, fair::mq::shmem::Segment> segments;
   map<uint16_t, unique_ptr<fair::mq::shmem::UnmanagedRegion>> regions;
+  std::vector<fair::mq::shmem::SegmentConfig> segmentCfgs;
+  std::vector<fair::mq::RegionConfig> regionCfgs;
 };
 
 int main(int argc, char** argv)
