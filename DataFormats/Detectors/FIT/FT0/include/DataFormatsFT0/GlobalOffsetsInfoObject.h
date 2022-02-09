@@ -21,15 +21,19 @@ namespace ft0
 class GlobalOffsetsInfoObject
 {
  public:
-  GlobalOffsetsInfoObject(short t0AC) : mT0AC(t0AC){};
+  GlobalOffsetsInfoObject(short t0AC, uint64_t timestamp) : mT0AC(t0AC), mTimeStamp(timestamp){};
   GlobalOffsetsInfoObject() = default;
   ~GlobalOffsetsInfoObject() = default;
 
   void setT0AC(short t0AC) { mT0AC = t0AC; }
   [[nodiscard]] short getT0AC() const { return mT0AC; }
 
+  [[nodiscard]] int64_t getTimeStamp() const { return mTimeStamp; }
+  void setTimeStamp(int64_t timestamp) { mTimeStamp = timestamp; }
+
  private:
   short mT0AC;
+  uint64_t mTimeStamp;
 
   ClassDefNV(GlobalOffsetsInfoObject, 1);
 };
