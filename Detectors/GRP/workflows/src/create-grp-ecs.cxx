@@ -102,7 +102,7 @@ int main(int argc, char** argv)
     add_option("help,h", "Print this help message");
     add_option("period,p", bpo::value<std::string>(), "data taking period");
     add_option("run,r", bpo::value<int>(), "run number");
-    add_option("run-type,t", bpo::value<int>->default_value(int(GRPECSObject::RunType::NONE)), "run type");
+    add_option("run-type,t", bpo::value<int>()->default_value(int(GRPECSObject::RunType::NONE)), "run type");
     add_option("hbf-per-tf,n", bpo::value<int>()->default_value(128), "number of HBFs per TF");
     add_option("detectors,d", bpo::value<string>()->default_value("all"), "comma separated list of detectors");
     add_option("continuous,c", bpo::value<string>()->default_value("ITS,TPC,TOF,MFT,MCH,MID,ZDC,FT0,FV0,FDD,CTP"), "comma separated list of detectors in continuous readout mode");
