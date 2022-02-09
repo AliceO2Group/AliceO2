@@ -101,7 +101,7 @@ class Task
   /// a given ConcreteDataMatcher is deserialised
   virtual void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   {
-    LOGP(error, "CCDB deserialization invoked");
+    LOGP(debug, "CCDB deserialization invoked");
   }
 
   /// This is invoked on stop
