@@ -233,7 +233,7 @@ void PedestalsCalculationTask::recordPedInDcsCcdb()
   gettimeofday(&tp, nullptr);
   uint64_t ms = tp.tv_sec * 1000 + tp.tv_usec / 1000;
   uint64_t minTimeStamp = ms;
-  uint64_t maxTimeStamp = ms + 1;
+  uint64_t maxTimeStamp = ms + (3 * 3600); // Set alive 3 hours
 
   char filename[1024];
   sprintf(filename, "%s/%s/PedThre.root", mPedestalsCCDBBasePath.c_str(), mPedestalTag.c_str());
@@ -293,7 +293,7 @@ void PedestalsCalculationTask::recordPedInCcdb()
   gettimeofday(&tp, nullptr);
   uint64_t ms = tp.tv_sec * 1000 + tp.tv_usec / 1000;
   uint64_t minTimeStamp = ms;
-  uint64_t maxTimeStamp = ms + 1;
+  uint64_t maxTimeStamp = ms + (3 * 3600); // Alive time 3 hours
 
   for (int i = 0; i < Geo::N_MODULES; i++) {
     if (mDeco->getAverageEventSize(i * 2) == 0 && mDeco->getAverageEventSize(i * 2 + 1) == 0) {
