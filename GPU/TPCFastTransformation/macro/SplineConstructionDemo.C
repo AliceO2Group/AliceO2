@@ -31,7 +31,7 @@ static double Fcoeff[2 * (Fdegree + 1)];
 void F(double u, double f[])
 {
   double uu = u * TMath::Pi() / (nKnots - 1);
-  f[0] = 0; //Fcoeff[0]/2;
+  f[0] = 0; // Fcoeff[0]/2;
   for (int i = 1; i <= Fdegree; i++) {
     f[0] += Fcoeff[2 * i] * TMath::Cos(i * uu) + Fcoeff[2 * i + 1] * TMath::Sin(i * uu);
   }
@@ -105,7 +105,7 @@ bool askStep()
   return (!doAskSteps) ? 1 : ask();
 }
 
-int SplineDemo()
+int SplineConstructionDemo()
 {
 
   const int nAxiliaryPoints = 10;
@@ -114,7 +114,7 @@ int SplineDemo()
 
   std::cout << "Test interpolation.." << std::endl;
 
-  //TCanvas* canv = new TCanvas("cQA", "Spline1D  QA", 2000, 1000);
+  // TCanvas* canv = new TCanvas("cQA", "Spline1D  QA", 2000, 1000);
 
   gRandom->SetSeed(0);
 
@@ -125,7 +125,7 @@ int SplineDemo()
 
   for (int seed = 12;; seed++) {
 
-    //seed = gRandom->Integer(100000); // 605
+    // seed = gRandom->Integer(100000); // 605
 
     gRandom->SetSeed(seed);
     std::cout << "Random seed: " << seed << " " << gRandom->GetSeed() << std::endl;
@@ -139,7 +139,27 @@ int SplineDemo()
 
     o2::gpu::Spline1D<float, 1> splineClassic(nKnots);
     o2::gpu::Spline1DHelperOld<float> helper;
-    helper.approximateFunctionClassic(splineClassic, 0, nKnots - 1, F);
+    {
+      vector<double> vu, vy;
+      for (int i = 0; i < nKnots; i += 1) {
+        double u = spline.getKnot(i).u;
+        if (i > 0) {
+          vu.push_back(u);
+          vy.push_back(F1D(u));
+        }
+        if (i >= 0) {
+
+          vu.push_back(u + 0.5);
+          vy.push_back(F1D(u + 0.5));
+
+          /*
+          vu.push_back(u + 0.6);
+          vy.push_back(F1D(u + 0.6));
+          */
+        }
+      }
+      helper.approximateDataPoints(splineClassic, 0, nKnots - 1, &vu[0], &vy[0], vu.size());
+    }
 
     IrregularSpline1D splineLocal;
     int nKnotsLocal = 2 * nKnots - 1;
@@ -254,8 +274,8 @@ int SplineDemo()
       canv->cd(2);
     */
 
-    //nt->SetMarkerColor(kBlack);
-    //nt->Draw("f0:u","","");
+    // nt->SetMarkerColor(kBlack);
+    // nt->Draw("f0:u","","");
 
     {
       TNtuple* ntRange = new TNtuple("ntRange", "nt", "u:f");
@@ -274,7 +294,7 @@ int SplineDemo()
     }
 
     auto legend = new TLegend(0.1, 0.72, 0.4, 0.95);
-    //legend->SetHeader("Splines of the same size:","C"); // option "C" allows to center the header
+    // legend->SetHeader("Splines of the same size:","C"); // option "C" allows to center the header
 
     nt->SetMarkerColor(kGray);
     nt->SetMarkerStyle(8);
@@ -289,7 +309,7 @@ int SplineDemo()
     TLine* l0 = new TLine();
     l0->SetLineWidth(7);
     l0->SetLineColor(kGray);
-    //legend->AddEntry(l0, "Input function", "L");
+    // legend->AddEntry(l0, "Input function", "L");
     legend->AddEntry(l0, "Function to approximate", "L");
     legend->Draw();
 
@@ -306,15 +326,15 @@ int SplineDemo()
 
     knots->SetMarkerStyle(21);
     knots->SetMarkerColor(kGreen + 2);
-    knots->SetMarkerSize(2.5);             //5.
+    knots->SetMarkerSize(2.5);             // 5.
     knots->Draw("f:u", "type==1", "same"); // Classical
     TNtuple* l1 = new TNtuple();
     l1->SetMarkerStyle(21);
     l1->SetMarkerColor(kGreen + 2);
     l1->SetMarkerSize(1.5); // 3.5
     l1->SetLineColor(kGreen + 2);
-    l1->SetLineWidth(2.); //5.
-    //legend->AddEntry(l1, Form("Interpolation spline (%d knots + %d slopes)", nKnots, nKnots), "LP");
+    l1->SetLineWidth(2.); // 5.
+    // legend->AddEntry(l1, Form("Interpolation spline (%d knots + %d slopes)", nKnots, nKnots), "LP");
     legend->AddEntry(l1, "Interpolation spline", "LP");
     legend->Draw();
 
@@ -326,12 +346,12 @@ int SplineDemo()
       nt->SetMarkerColor(kMagenta);
       nt->Draw("fLocal:u", "", "P,same");
 
-      knots->SetMarkerSize(1.5); //2.5
+      knots->SetMarkerSize(1.5); // 2.5
       knots->SetMarkerStyle(8);
       knots->SetMarkerColor(kMagenta);
       knots->Draw("f:u", "type==4", "same"); // local
       TLine* l2 = new TLine();
-      l2->SetLineWidth(2); //4
+      l2->SetLineWidth(2); // 4
       l2->SetLineColor(kMagenta);
       legend->AddEntry(l2, Form("Local spline (%d knots)", 2 * nKnots - 1), "L");
       legend->Draw();
@@ -343,7 +363,7 @@ int SplineDemo()
       nt->SetMarkerColor(kBlue);
       nt->Draw("fCheb:u", "", "P,same");
       TLine* lCheb = new TLine();
-      lCheb->SetLineWidth(2); //4
+      lCheb->SetLineWidth(2); // 4
       lCheb->SetLineColor(kBlue);
       legend->AddEntry(lCheb, Form("Chebyshev (%d coeff)", 2 * nKnots), "L");
       legend->Draw();
@@ -358,17 +378,17 @@ int SplineDemo()
 
     knots->SetMarkerStyle(20);
     knots->SetMarkerColor(kRed);
-    knots->SetMarkerSize(2.5);             //5.
+    knots->SetMarkerSize(2.5);             // 5.
     knots->Draw("f:u", "type==2", "same"); // best-fit splines
 
-    //TMarker * l3 = new TMarker();
+    // TMarker * l3 = new TMarker();
     TNtuple* l3 = new TNtuple();
     l3->SetMarkerStyle(20);
     l3->SetMarkerColor(kRed);
-    l3->SetMarkerSize(2.5); //3.5
+    l3->SetMarkerSize(2.5); // 3.5
     l3->SetLineColor(kRed);
     l3->SetLineWidth(5.);
-    //legend->AddEntry(l3, Form("Best-fit spline (%d knots + %d slopes)", nKnots, nKnots), "PL");
+    // legend->AddEntry(l3, Form("Best-fit spline (%d knots + %d slopes)", nKnots, nKnots), "PL");
     legend->AddEntry(l3, "Best-fit spline", "PL");
     legend->Draw();
 
@@ -384,7 +404,7 @@ int SplineDemo()
       knots->SetMarkerStyle(8);
 
       knots->Draw("f:u", "type==3", "same"); // best-fit data points
-      //knots->Draw("f:u", "type==5", "same"); // chebyshev, data points
+      // knots->Draw("f:u", "type==5", "same"); // chebyshev, data points
       TMarker* l4 = new TMarker;
       l4->SetMarkerStyle(8);
       l4->SetMarkerSize(1.5);

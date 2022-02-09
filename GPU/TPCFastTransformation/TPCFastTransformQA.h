@@ -19,6 +19,8 @@
 
 #include "GPUCommonDef.h"
 #include "TPCFastTransformManager.h"
+#include "GPUCommonLogger.h"
+
 #include <cmath>
 #include <iostream>
 
@@ -69,7 +71,7 @@ class TPCFastTransformQA
 inline int TPCFastTransformQA::storeError(int code, const char* msg)
 {
   mError = msg;
-  std::cout << msg << std::endl;
+  LOG(info) << msg;
   return code;
 }
 } // namespace gpu
