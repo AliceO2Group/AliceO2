@@ -348,3 +348,17 @@ o2_add_test(
     --consumer
     "--global-config consumer-config --local-option hello-aliceo2 --a-boolean3 --an-int2 20 --a-double2 22. --an-int64-2 50000000000000"
   )
+
+# the test is compiled from the ExternalFairMQDeviceWorkflow test and run with
+# command line option to include the output proxy
+o2_add_test(
+  ExternalFairMQOutputProxyWorkflow NAME test_Framework_test_ExternalFairMQOutputProxyWorkflow
+  SOURCES test/test_ExternalFairMQDeviceWorkflow.cxx
+  COMPONENT_NAME Framework
+  LABELS framework workflow
+  TIMEOUT 60
+  PUBLIC_LINK_LIBRARIES O2::Framework
+  NO_BOOST_TEST
+  COMMAND_LINE_ARGS
+    --proxy-mode all --run ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS}
+  )
