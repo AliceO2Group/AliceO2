@@ -28,6 +28,7 @@
 #include "DataFormatsMID/Track.h"
 #include "DataFormatsMID/MCClusterLabel.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "MIDTracking/HitMapBuilder.h"
 #include "MIDTracking/Tracker.h"
 #include "MIDSimulation/TrackLabeler.h"
 #include "CommonUtils/NameConf.h"
@@ -51,7 +52,11 @@ class TrackerDeviceDPL
       o2::base::GeometryManager::loadGeometry();
     }
 
-    mTracker = std::make_unique<Tracker>(createTransformationFromManager(gGeoManager));
+    auto geoTrans = createTransformationFromManager(gGeoManager);
+
+    mTracker = std::make_unique<Tracker>(geoTrans);
+
+    mHitMapBuilder = std::make_unique<HitMapBuilder>(geoTrans);
 
     if (!mTracker->init(true)) {
       LOG(error) << "Initialization of MID tracker device failed";
@@ -60,7 +65,7 @@ class TrackerDeviceDPL
     auto stop = [this]() {
       LOG(info) << "Capacities: ROFRecords: " << mTracker->getTrackROFRecords().capacity() << "  tracks: " << mTracker->getTracks().capacity() << "  clusters: " << mTracker->getClusters().capacity();
       double scaleFactor = 1.e6 / mNROFs;
-      LOG(info) << "Processing time / " << mNROFs << " ROFs: full: " << mTimer.count() * scaleFactor << " us  tracking: " << mTimerAlgo.count() * scaleFactor << " us";
+      LOG(info) << "Processing time / " << mNROFs << " ROFs: full: " << mTimer.count() * scaleFactor << " us  tracking: " << mTimerTracker.count() * scaleFactor << " us  hitMapBuilder: " << mTimerBuilder.count() << " us";
     };
     ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);
   }
@@ -75,19 +80,24 @@ class TrackerDeviceDPL
 
     auto tAlgoStart = std::chrono::high_resolution_clock::now();
     mTracker->process(clusters, inROFRecords);
-    mTimerAlgo += std::chrono::high_resolution_clock::now() - tAlgoStart;
+    mTimerTracker += std::chrono::high_resolution_clock::now() - tAlgoStart;
+
+    tAlgoStart = std::chrono::high_resolution_clock::now();
+    std::vector<Track> tracks = mTracker->getTracks();
+    mHitMapBuilder->process(tracks, clusters);
+    mTimerBuilder += std::chrono::high_resolution_clock::now() - tAlgoStart;
 
     if (mIsMC) {
       std::unique_ptr<const o2::dataformats::MCTruthContainer<MCClusterLabel>> labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<MCClusterLabel>*>("mid_clusterlabels");
-      mTrackLabeler.process(mTracker->getClusters(), mTracker->getTracks(), *labels);
+      mTrackLabeler.process(mTracker->getClusters(), tracks, *labels);
       pc.outputs().snapshot(of::Output{"MID", "TRACKLABELS", 0, of::Lifetime::Timeframe}, mTrackLabeler.getTracksLabels());
       LOG(debug) << "Sent " << mTrackLabeler.getTracksLabels().getIndexedSize() << " indexed tracks.";
       pc.outputs().snapshot(of::Output{"MID", "TRCLUSLABELS", 0, of::Lifetime::Timeframe}, mTrackLabeler.getTrackClustersLabels());
       LOG(debug) << "Sent " << mTrackLabeler.getTrackClustersLabels().getIndexedSize() << " indexed track clusters.";
     }
 
-    pc.outputs().snapshot(of::Output{"MID", "TRACKS", 0, of::Lifetime::Timeframe}, mTracker->getTracks());
-    LOG(debug) << "Sent " << mTracker->getTracks().size() << " tracks.";
+    pc.outputs().snapshot(of::Output{"MID", "TRACKS", 0, of::Lifetime::Timeframe}, tracks);
+    LOG(debug) << "Sent " << tracks.size() << " tracks.";
     pc.outputs().snapshot(of::Output{"MID", "TRACKCLUSTERS", 0, of::Lifetime::Timeframe}, mTracker->getClusters());
     LOG(debug) << "Sent " << mTracker->getClusters().size() << " track clusters.";
 
@@ -104,9 +114,11 @@ class TrackerDeviceDPL
   bool mIsMC = false;
   TrackLabeler mTrackLabeler{};
   std::unique_ptr<Tracker> mTracker{nullptr};
-  std::chrono::duration<double> mTimer{0};     ///< full timer
-  std::chrono::duration<double> mTimerAlgo{0}; ///< algorithm timer
-  unsigned int mNROFs{0};                      /// Total number of processed ROFs
+  std::unique_ptr<HitMapBuilder> mHitMapBuilder{nullptr};
+  std::chrono::duration<double> mTimer{0};        ///< full timer
+  std::chrono::duration<double> mTimerTracker{0}; ///< tracker timer
+  std::chrono::duration<double> mTimerBuilder{0}; ///< hit map builder timer
+  unsigned int mNROFs{0};                         /// Total number of processed ROFs
 };
 
 framework::DataProcessorSpec getTrackerSpec(bool isMC)
