@@ -114,23 +114,26 @@ class DigiReco
   const std::vector<o2::zdc::RecEventAux>& getReco() { return mReco; }
 
  private:
-  const ModuleConfig* mModuleConfig = nullptr;                                    /// Trigger/readout configuration object
-  void updateOffsets(int ibun);                                                   /// Update offsets to process current bunch
-  void lowPassFilter();                                                           /// low-pass filtering of digitized data
-  void reconstructTDC(int seq_beg, int seq_end);                                  /// Reconstruction of uncorrected TDCs
-  int reconstruct(int seq_beg, int seq_end);                                      /// Main method for data reconstruction
-  void processTrigger(int itdc, int ibeg, int iend);                              /// Replay of trigger algorithm on acquired data
-  void processTriggerExtended(int itdc, int ibeg, int iend);                      /// Replay of trigger algorithm on acquired data
-  void interpolate(int itdc, int ibeg, int iend);                                 /// Interpolation of samples to evaluate signal amplitude and arrival time
-  void correctTDCPile();                                                          /// Correction of pile-up in TDC
-  bool mCorrSignal = true;                                                        /// Enable TDC signal correction
-  bool mCorrBackground = true;                                                    /// Enable TDC background correction
-  int correctTDCSignal(int itdc, int16_t TDCVal, int16_t TDCAmp, float& FTDCAmp); /// TDC amplitude correction
-  int correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& tdc);      /// TDC amplitude and time corrections
-  O2_ZDC_DIGIRECO_FLT getPoint(int itdc, int ibeg, int iend, int i);              /// Interpolation for current TDC
+  const ModuleConfig* mModuleConfig = nullptr;               /// Trigger/readout configuration object
+  void updateOffsets(int ibun);                              /// Update offsets to process current bunch
+  void lowPassFilter();                                      /// low-pass filtering of digitized data
+  void reconstructTDC(int seq_beg, int seq_end);             /// Reconstruction of uncorrected TDCs
+  int reconstruct(int seq_beg, int seq_end);                 /// Main method for data reconstruction
+  void processTrigger(int itdc, int ibeg, int iend);         /// Replay of trigger algorithm on acquired data
+  void processTriggerExtended(int itdc, int ibeg, int iend); /// Replay of trigger algorithm on acquired data
+  void interpolate(int itdc, int ibeg, int iend);            /// Interpolation of samples to evaluate signal amplitude and arrival time
+  void correctTDCPile();                                     /// Correction of pile-up in TDC
+  bool mCorrSignal = true;                                   /// Enable TDC signal correction
+  bool mCorrBackground = true;                               /// Enable TDC background correction
+
+  int correctTDCSignal(int itdc, int16_t TDCVal, int16_t TDCAmp, float& FTDCVal, float& FTDCAmp, bool isbeg, bool isend); /// Correct TDC single signal
+  int correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& tdc);                                              /// TDC amplitude and time corrections due to pile-up from previous bunches
+
+  O2_ZDC_DIGIRECO_FLT getPoint(int itdc, int ibeg, int iend, int i); /// Interpolation for current TDC
 #ifdef O2_ZDC_INTERP_DEBUG
   void setPoint(int itdc, int ibeg, int iend, int i); /// Interpolation for current TDC
 #endif
+
   void assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float amp); /// Set reconstructed TDC values
   void findSignals(int ibeg, int iend);                                       /// Find signals around main-main that satisfy condition on TDC
   const RecoParamZDC* mRopt = nullptr;
