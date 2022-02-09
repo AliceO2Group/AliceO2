@@ -36,16 +36,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   WorkflowSpec specs;
-  specs.emplace_back(o2::emcal::getPublisherSpec<o2::emcal::Cell>(PublisherConf{
-                                                                    "emcal-cell-reader",
-                                                                    "o2sim",
-                                                                    "emccells.root",
-                                                                    {"cellbranch", "EMCALCell", "Cell branch"},
-                                                                    {"celltriggerbranch", "EMCALCellTRGR", "Trigger record branch"},
-                                                                    {"mcbranch", "EMCALCellMCTruth", "MC label branch"},
-                                                                    o2::framework::OutputSpec{"EMC", "CELLS"},
-                                                                    o2::framework::OutputSpec{"EMC", "CELLSTRGR"},
-                                                                    o2::framework::OutputSpec{"EMC", "CELLSMCTR"}},
-                                                                  !disableMC));
+  specs.emplace_back(o2::emcal::getPublisherSpec<std::vector<o2::emcal::Cell>>(PublisherConf{
+                                                                                 "emcal-cell-reader",
+                                                                                 "o2sim",
+                                                                                 "emccells.root",
+                                                                                 {"cellbranch", "EMCALCell", "Cell branch"},
+                                                                                 {"celltriggerbranch", "EMCALCellTRGR", "Trigger record branch"},
+                                                                                 {"mcbranch", "EMCALCellMCTruth", "MC label branch"},
+                                                                                 o2::framework::OutputSpec{"EMC", "CELLS"},
+                                                                                 o2::framework::OutputSpec{"EMC", "CELLSTRGR"},
+                                                                                 o2::framework::OutputSpec{"EMC", "CELLSMCTR"}},
+                                                                               !disableMC));
   return specs;
 }
