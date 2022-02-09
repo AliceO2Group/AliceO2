@@ -13,6 +13,8 @@
 #define O2_FT0CHANNELTIMETIMESLOTCONTAINER_H
 
 #include <array>
+#include <cstdint>
+#include <limits>
 #include <memory>
 #include <vector>
 #include <gsl/span>
@@ -46,12 +48,27 @@ class FT0ChannelTimeTimeSlotContainer final
   [[nodiscard]] int16_t getMeanGaussianFitValue(std::size_t channelID) const;
   void merge(FT0ChannelTimeTimeSlotContainer* prev);
   void print() const;
+  void updateFirstCreation(std::uint64_t creation)
+  {
+    if (creation < mFirstCreation) {
+      mFirstCreation = creation;
+    }
+  }
+  void resetFirstCreation()
+  {
+    mFirstCreation = std::numeric_limits<std::uint64_t>::max();
+  }
+  std::uint64_t getFirstCreation() const
+  {
+    return mFirstCreation;
+  }
   static int sGausFitBins;
 
  private:
   std::size_t mMinEntries = 1000;
   std::array<uint64_t, NCHANNELS> mEntriesPerChannel{};
   std::array<std::unique_ptr<TH1F>, NCHANNELS> mHistogram;
+  std::uint64_t mFirstCreation = std::numeric_limits<std::uint64_t>::max();
   ClassDefNV(FT0ChannelTimeTimeSlotContainer, 2);
 };
 

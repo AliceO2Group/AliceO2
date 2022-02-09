@@ -46,7 +46,7 @@ void FV0CalibInfoSlot::fill(const gsl::span<const o2::fv0::FV0CalibrationInfoObj
     }
     offsPrev = offset;
     chPrev = ch;
-    auto it = mFV0CollectedCalibInfoSlot.emplace(mFV0CollectedCalibInfoSlot.begin() + offset, data[ord[i]].getChannelIndex(), data[ord[i]].getTime(), data[ord[i]].getCharge());
+    auto it = mFV0CollectedCalibInfoSlot.emplace(mFV0CollectedCalibInfoSlot.begin() + offset, data[ord[i]].getChannelIndex(), data[ord[i]].getTime(), data[ord[i]].getCharge(), data[ord[i]].getTimeStamp());
     mEntriesSlot[ch]++;
   }
 }

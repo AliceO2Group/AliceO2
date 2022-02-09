@@ -23,7 +23,7 @@ BOOST_AUTO_TEST_CASE(AlpideSimResponse_test)
 {
   // test for the templated Descriptor struct
   AlpideSimResponse resp;
-  resp.initData();
+  resp.initData(1);
   float vCol = 1.e-4, vRow = 1.e-4, vDepth = 10.e-4;
   LOG(info) << "Checking response from vRow:" << vCol << " vCol:" << vCol
             << " Depth:" << vDepth;

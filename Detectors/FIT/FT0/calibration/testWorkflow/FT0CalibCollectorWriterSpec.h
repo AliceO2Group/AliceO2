@@ -40,6 +40,7 @@ class FT0CalibCollectorWriter : public o2::framework::Task
     mfileOut.reset(TFile::Open(TString::Format("%s", filename.Data()), "RECREATE"));
     mOutputTree = std::make_unique<TTree>("treeCollectedCalibInfo", "Tree with FT0 calib info for Time Slewing");
     mOutputTree->Branch(mOutputBranchName.data(), &mPFT0CalibInfoOut);
+    LOG(info) << " @@@@@ createAndOpenFileAndTree tree  set";
   }
 
   void init(o2::framework::InitContext& ic) final
@@ -47,6 +48,7 @@ class FT0CalibCollectorWriter : public o2::framework::Task
     mCount = 0;
     createAndOpenFileAndTree();
     mFT0CalibInfoOut.reserve(1000000 * Geo::Nchannels); // tree size  216ch * 10^6 entries * 12 byte
+    LOG(info) << " @@@@@ init";
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -61,6 +63,7 @@ class FT0CalibCollectorWriter : public o2::framework::Task
         auto subSpanVect = collectedInfo.subspan(offsetStart, entriesPerChannel[ich]);
         memcpy(&mFT0CalibInfoOut[0], subSpanVect.data(), sizeof(o2::ft0::FT0CalibrationInfoObject) * subSpanVect.size());
         const o2::ft0::FT0CalibrationInfoObject* tmp = subSpanVect.data();
+        LOG(debug) << "@@@@@ run ich " << ich << " entries " << entriesPerChannel[ich];
       }
       mOutputTree->Fill();
       offsetStart += entriesPerChannel[ich];

@@ -12,8 +12,6 @@
 #ifndef O2_FITCALIBRATIONDEVICE_H
 #define O2_FITCALIBRATIONDEVICE_H
 
-#include <utility>
-
 #include "FITCalibration/FITCalibrator.h"
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
@@ -21,6 +19,9 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "Framework/DataRefUtils.h"
+#include <optional>
+#include <utility>
+#include <type_traits>
 
 namespace o2::fit
 {
@@ -80,9 +81,11 @@ void FIT_CALIBRATION_DEVICE_TYPE::run(o2::framework::ProcessingContext& context)
     o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref)->firstTForbit;
   auto creationTime =
     o2::framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(ref)->creation;
-  // I only got creationTime == -1
   mCalibrator->process(TFCounter, data);
-  LOG(debug) << " tfOrbitFirst " << tfOrbitFirst << " creationTime " << creationTime;
+  auto& slot = mCalibrator->getSlotForTF(TFCounter);
+  auto* container = slot.getContainer();
+  LOG(debug) << "@@@ calibrator::run tfOrbitFirst " << tfOrbitFirst << " creationTime " << creationTime << " tf " << slot.getTFStart() << "-" << slot.getTFEnd();
+
   _sendCalibrationObjectIfSlotFinalized(context.outputs());
 }
 
@@ -114,6 +117,7 @@ void FIT_CALIBRATION_DEVICE_TYPE::_sendOutputs(o2::framework::DataAllocator& out
   for (const auto& [ccdbInfo, calibObject] : objectsToSend) {
     outputs.snapshot(o2::framework::Output{clbUtils::gDataOriginCDBPayload, "FIT_CALIB", iSendChannel}, *calibObject);
     outputs.snapshot(o2::framework::Output{clbUtils::gDataOriginCDBWrapper, "FIT_CALIB", iSendChannel}, ccdbInfo);
+    LOG(info) << "_sendOutputs " << ccdbInfo.getStartValidityTimestamp();
     ++iSendChannel;
   }
   mCalibrator->initOutput();

@@ -41,6 +41,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"nFourierCoeff", VariantType::Int, 60, {"Number of fourier coefficients (real+imag) which will be stored in the CCDB. The maximum can be 'rangeIDC + 2'."}},
     {"debug", VariantType::Bool, false, {"create debug files"}},
     {"use-naive-fft", VariantType::Bool, false, {"using naive fourier transform (true) or FFTW (false)"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"crus", VariantType::String, cruDefault.c_str(), {"List of CRUs, comma separated ranges, e.g. 0-3,7,9-15"}}};
 
   std::swap(workflowOptions, options);
@@ -54,6 +55,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   // set up configuration
   o2::conf::ConfigurableParam::updateFromFile(config.options().get<std::string>("configFile"));
+  o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
   o2::conf::ConfigurableParam::writeINI("o2tpcftidcsync_configuration.ini");
 
   const auto tpcCRUs = o2::RangeTokenizer::tokenize<int>(config.options().get<std::string>("crus"));

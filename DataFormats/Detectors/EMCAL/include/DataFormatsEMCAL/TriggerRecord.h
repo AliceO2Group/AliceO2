@@ -64,9 +64,9 @@ class TriggerRecord
     PHYSTRIGGER, ///< Physics trigger
     CALIBTRIGGER ///< Calib trigger
   };
-  BCData mBCData;        /// Bunch crossing data of the trigger
-  DataRange mDataRange;  /// Index of the triggering event (event index and first entry in the container)
-  uint32_t mTriggerBits; /// Trigger bits as from the Raw Data Header
+  BCData mBCData;            /// Bunch crossing data of the trigger
+  DataRange mDataRange;      /// Index of the triggering event (event index and first entry in the container)
+  uint32_t mTriggerBits = 0; /// Trigger bits as from the Raw Data Header
 
   ClassDefNV(TriggerRecord, 2);
 };
