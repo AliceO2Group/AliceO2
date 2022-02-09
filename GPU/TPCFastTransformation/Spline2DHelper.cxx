@@ -17,6 +17,12 @@
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 
 #include "Spline2DHelper.h"
+#include "Spline1DHelper.h"
+
+#include "SymMatrixSolver.h"
+#include "GPUCommonDef.h"
+#include "GPUCommonLogger.h"
+
 #include "TMath.h"
 #include "TMatrixD.h"
 #include "TVectorD.h"
@@ -30,6 +36,7 @@
 #include "TFile.h"
 #include "GPUCommonMath.h"
 #include <iostream>
+#include <chrono>
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -223,6 +230,182 @@ void Spline2DHelper<DataT>::approximateFunction(
   }
 }
 
+template <typename DataT>
+void Spline2DHelper<DataT>::approximateFunctionViaDataPoints(
+  Spline2DContainer<DataT>& spline,
+  double x1Min, double x1Max, double x2Min, double x2Max,
+  std::function<void(double x1, double x2, double f[/*spline.getYdimensions()*/])> F,
+  int nAuxiliaryDataPointsU1, int nAuxiliaryDataPointsU2)
+{
+  /// Create best-fit spline parameters for a given input function F
+
+  setSpline(spline, nAuxiliaryDataPointsU1, nAuxiliaryDataPointsU2);
+  mFdimensions = spline.getYdimensions();
+  std::vector<double> dataPointX1(getNumberOfDataPoints());
+  std::vector<double> dataPointX2(getNumberOfDataPoints());
+  std::vector<double> dataPointF(getNumberOfDataPoints() * mFdimensions);
+
+  double scaleX1 = (x1Max - x1Min) / ((double)mHelperU1.getSpline().getUmax());
+  double scaleX2 = (x2Max - x2Min) / ((double)mHelperU2.getSpline().getUmax());
+
+  for (int iv = 0; iv < getNumberOfDataPointsU2(); iv++) {
+    double x2 = x2Min + mHelperU2.getDataPoint(iv).u * scaleX2;
+    for (int iu = 0; iu < getNumberOfDataPointsU1(); iu++) {
+      double x1 = x1Min + mHelperU1.getDataPoint(iu).u * scaleX1;
+      int ind = iv * getNumberOfDataPointsU1() + iu;
+      dataPointX1[ind] = x1;
+      dataPointX2[ind] = x2;
+      F(x1, x2, &dataPointF[ind * mFdimensions]);
+    }
+  }
+  approximateDataPoints(spline, x1Min, x1Max, x2Min, x2Max, &dataPointX1[0], &dataPointX2[0], &dataPointF[0], getNumberOfDataPoints());
+}
+
+template <typename DataT>
+void Spline2DHelper<DataT>::setGrid(Spline2DContainer<DataT>& spline, double x1Min, double x1Max, double x2Min, double x2Max)
+{
+  mFdimensions = spline.getYdimensions();
+  spline.setXrange(x1Min, x1Max, x2Min, x2Max);
+  {
+    std::vector<int> knots;
+    for (int i = 0; i < spline.getGridX1().getNumberOfKnots(); i++) {
+      knots.push_back(spline.getGridX1().getKnot(i).getU());
+    }
+    fGridU.recreate(0, knots.size(), knots.data());
+    fGridU.setXrange(x1Min, x1Max);
+  }
+  {
+    std::vector<int> knots;
+    for (int i = 0; i < spline.getGridX2().getNumberOfKnots(); i++) {
+      knots.push_back(spline.getGridX2().getKnot(i).getU());
+    }
+    fGridV.recreate(0, knots.size(), knots.data());
+    fGridV.setXrange(x2Min, x2Max);
+  }
+}
+
+template <typename DataT>
+void Spline2DHelper<DataT>::getScoefficients(int iu, int iv, double u, double v,
+                                             double coeff[16], int indices[16])
+{
+  const typename Spline1D<double>::Knot& knotU = fGridU.getKnot(iu);
+  const typename Spline1D<double>::Knot& knotV = fGridV.getKnot(iv);
+  int nu = fGridU.getNumberOfKnots();
+
+  // indices of parameters that are involved in spline calculation, 1D case
+  int i00 = (nu * iv + iu) * 4; // values { S, S'v, S'u, S''vu } at {u0, v0}
+  int i01 = i00 + 4 * nu;       // values { ... } at {u0, v1}
+  int i10 = i00 + 4;
+  int i11 = i01 + 4;
+
+  double dSl, dDl, dSr, dDr;
+  Spline1DHelper<double>::getScoefficients(knotU, u, dSl, dDl, dSr, dDr);
+  double dSd, dDd, dSu, dDu;
+  Spline1DHelper<double>::getScoefficients(knotV, v, dSd, dDd, dSu, dDu);
+
+  // A = Parameters + i00,  B = Parameters + i01
+  // S = dSl * (dSd * A[0] + dDd * A[1]) + dDl * (dSd * A[2] + dDd * A[3]) +
+  //     dSr * (dSd * A[4] + dDd * A[5]) + dDr * (dSd * A[6] + dDd * A[7]) +
+  //     dSl * (dSu * B[0] + dDu * B[1]) + dDl * (dSu * B[2] + dDu * B[3]) +
+  //     dSr * (dSu * B[4] + dDu * B[5]) + dDr * (dSu * B[6] + dDu * B[7]);
+
+  double c[16] = {dSl * dSd, dSl * dDd, dDl * dSd, dDl * dDd,
+                  dSr * dSd, dSr * dDd, dDr * dSd, dDr * dDd,
+                  dSl * dSu, dSl * dDu, dDl * dSu, dDl * dDu,
+                  dSr * dSu, dSr * dDu, dDr * dSu, dDr * dDu};
+  for (int i = 0; i < 16; i++) {
+    coeff[i] = c[i];
+  }
+  for (int i = 0; i < 4; i++) {
+    indices[0 + i] = i00 + i;
+    indices[4 + i] = i10 + i;
+    indices[8 + i] = i01 + i;
+    indices[12 + i] = i11 + i;
+  }
+}
+
+template <typename DataT>
+void Spline2DHelper<DataT>::approximateDataPoints(
+  Spline2DContainer<DataT>& spline, double x1Min, double x1Max, double x2Min, double x2Max,
+  const double dataPointX1[], const double dataPointX2[], const double dataPointF[/*getNumberOfDataPoints() x nFdim*/],
+  int nDataPoints)
+{
+  /// Create best-fit spline parameters for a given input function F
+
+  setGrid(spline, x1Min, x1Max, x2Min, x2Max);
+
+  int nFdim = spline.getYdimensions();
+  int nu = fGridU.getNumberOfKnots();
+  int nv = fGridV.getNumberOfKnots();
+
+  const int nPar = 4 * spline.getNumberOfKnots(); // n parameters for 1-dimensional F
+
+  SymMatrixSolver solver(nPar, nFdim);
+
+  for (int iPoint = 0; iPoint < nDataPoints; ++iPoint) {
+    double u = fGridU.convXtoU(dataPointX1[iPoint]);
+    double v = fGridV.convXtoU(dataPointX2[iPoint]);
+    int iu = fGridU.getLeftKnotIndexForU(u);
+    int iv = fGridV.getLeftKnotIndexForU(v);
+    double c[16];
+    int ind[16];
+    getScoefficients(iu, iv, u, v, c, ind);
+
+    // S(u,v) = sum c[i]*Parameters[ind[i]]
+
+    for (int i = 0; i < 16; i++) {
+      for (int j = i; j < 16; j++) {
+        solver.A(ind[i], ind[j]) += c[i] * c[j];
+      }
+    }
+
+    for (int iDim = 0; iDim < nFdim; iDim++) {
+      double f = (double)dataPointF[iPoint * nFdim + iDim];
+      for (int i = 0; i < 16; i++) {
+        solver.B(ind[i], iDim) += f * c[i];
+      }
+    }
+  } // data points
+
+  // add extra smoothness for a case some data is missing
+  for (int iu = 0; iu < nu - 1; iu++) {
+    for (int iv = 0; iv < nv - 1; iv++) {
+      int smoothPoint[4][2] = {
+        {-1, -1},
+        {-1, +1},
+        {+1, -1},
+        {+1, +1}};
+      for (int iSet = 0; iSet < 4; iSet++) {
+        int pu = iu + smoothPoint[iSet][0];
+        int pv = iv + smoothPoint[iSet][1];
+        int ip = (nu * pv + pu) * 4;
+        if (pu < 0 || pv < 0 || pu >= nu || pv >= nv) {
+          continue;
+        }
+        double c[17];
+        int ind[17];
+        getScoefficients(iu, iv, fGridU.getKnot(pu).u, fGridV.getKnot(pv).u, c, ind);
+        c[16] = -1.;
+        ind[16] = ip;
+        // S = sum c[i]*Par[ind[i]]
+        double w = 0.0001;
+        for (int i = 0; i < 17; i++) {
+          for (int j = i; j < 17; j++) {
+            solver.A(ind[i], ind[j]) += w * c[i] * c[j];
+          }
+        }
+      }
+    }
+  }
+
+  solver.solve();
+  for (int i = 0; i < nPar; i++) {
+    for (int iDim = 0; iDim < nFdim; iDim++) {
+      spline.getParameters()[i * nFdim + iDim] = solver.B(i, iDim);
+    }
+  }
+}
+
 #ifndef GPUCA_ALIROOT_LIB
 template <typename DataT>
 int Spline2DHelper<DataT>::test(const bool draw, const bool drawDataPoints)
@@ -235,9 +418,9 @@ int Spline2DHelper<DataT>::test(const bool draw, const bool drawDataPoints)
 
   double Fcoeff[Ndim][4 * (Fdegree + 1) * (Fdegree + 1)];
 
-  constexpr int nKnots = 4;
-  constexpr int nAuxiliaryPoints = 1;
-  constexpr int uMax = nKnots * 3;
+  constexpr int nKnots = 10;
+  constexpr int nAuxiliaryPoints = 2;
+  constexpr int uMax = nKnots; //* 3;
 
   auto F = [&](double u, double v, double Fuv[]) {
     const double scale = TMath::Pi() / uMax;
@@ -273,15 +456,15 @@ int Spline2DHelper<DataT>::test(const bool draw, const bool drawDataPoints)
       return 0;
     }
     canv->Update();
-    cout << "type 'q ' to exit" << endl;
+    LOG(info) << "type 'q ' to exit";
     std::string str;
     std::getline(std::cin, str);
     return (str != "q" && str != ".q");
   };
 
-  std::cout << "Test 2D interpolation with the compact spline" << std::endl;
+  LOG(info) << "Test 2D interpolation with the compact spline";
 
-  int nTries = 10;
+  int nTries = 100;
 
   if (draw) {
     canv = new TCanvas("cQA", "Spline2D  QA", 1500, 800);
@@ -292,8 +475,10 @@ int Spline2DHelper<DataT>::test(const bool draw, const bool drawDataPoints)
   long double statDf1D = 0;
   long double statN = 0;
 
+  auto statTime = std::chrono::nanoseconds::zero();
+
   for (int seed = 1; seed < nTries + 1; seed++) {
-    //cout << "next try.." << endl;
+    // LOG(info) << "next try.." ;
 
     gRandom->SetSeed(seed);
 
@@ -320,34 +505,38 @@ int Spline2DHelper<DataT>::test(const bool draw, const bool drawDataPoints)
 
       if (nKnots != spline.getGridX1().getNumberOfKnots() ||
           nKnots != spline.getGridX2().getNumberOfKnots()) {
-        cout << "warning: n knots changed during the initialisation " << nKnots
-             << " -> " << spline.getNumberOfKnots() << std::endl;
+        LOG(info) << "warning: n knots changed during the initialisation " << nKnots
+                  << " -> " << spline.getNumberOfKnots();
         continue;
       }
     } while (0);
 
     std::string err = FlatObject::stressTest(spline);
     if (!err.empty()) {
-      cout << "error at FlatObject functionality: " << err << endl;
+      LOG(info) << "error at FlatObject functionality: " << err;
       return -1;
     } else {
-      // cout << "flat object functionality is ok" << endl;
+      // LOG(info) << "flat object functionality is ok" ;
     }
 
     // Ndim-D spline
-    spline.approximateFunction(0., uMax, 0., uMax, F, 4, 4);
+
+    auto startTime = std::chrono::high_resolution_clock::now();
+    spline.approximateFunctionViaDataPoints(0., uMax, 0., uMax, F, nAuxiliaryPoints, nAuxiliaryPoints);
+    auto stopTime = std::chrono::high_resolution_clock::now();
+    statTime += std::chrono::duration_cast<std::chrono::nanoseconds>(stopTime - startTime);
 
     //if (itry == 0)
-    if (1) {
+    if (0) {
       TFile outf("testSpline2D.root", "recreate");
       if (outf.IsZombie()) {
-        cout << "Failed to open output file testSpline2D.root " << std::endl;
+        LOG(info) << "Failed to open output file testSpline2D.root ";
       } else {
         const char* name = "spline2Dtest";
         spline.writeToFile(outf, name);
         Spline2D<DataT, Ndim>* p = Spline2D<DataT, Ndim>::readFromFile(outf, name);
         if (p == nullptr) {
-          cout << "Failed to read Spline1DOld from file testSpline1DOld.root " << std::endl;
+          LOG(info) << "Failed to read Spline1DOld from file testSpline1DOld.root ";
         } else {
           spline = *p;
         }
@@ -366,7 +555,7 @@ int Spline2DHelper<DataT>::test(const bool draw, const bool drawDataPoints)
         f[0] = ff[dim];
       };
       splines1D[dim].recreate(nKnots, knotsU, nKnots, knotsV);
-      splines1D[dim].approximateFunction(0., uMax, 0., uMax, F1, 4, 4);
+      splines1D[dim].approximateFunctionViaDataPoints(0., uMax, 0., uMax, F1, nAuxiliaryPoints, nAuxiliaryPoints);
     }
 
     double stepU = .1;
@@ -382,12 +571,12 @@ int Spline2DHelper<DataT>::test(const bool draw, const bool drawDataPoints)
           statDf1D += (s[dim] - s1) * (s[dim] - s1);
         }
         statN += Ndim;
-        // cout << u << " " << v << ": f " << f << " s " << s << " df "
-        //   << s - f << " " << sqrt(statDf / statN) << std::endl;
+        // LOG(info) << u << " " << v << ": f " << f << " s " << s << " df "
+        //   << s - f << " " << sqrt(statDf / statN) ;
       }
     }
-    // cout << "Spline2D standard deviation   : " << sqrt(statDf / statN)
-    //   << std::endl;
+    // LOG(info) << "Spline2D standard deviation   : " << sqrt(statDf / statN)
+    //   ;
 
     if (draw) {
       delete nt;
@@ -438,9 +627,9 @@ int Spline2DHelper<DataT>::test(const bool draw, const bool drawDataPoints)
         Spline2DHelper<DataT> helper;
         helper.setSpline(spline, 4, 4);
         for (int ipu = 0; ipu < helper.getHelperU1().getNumberOfDataPoints(); ipu++) {
-          const typename Spline1DHelper<DataT>::DataPoint& pu = helper.getHelperU1().getDataPoint(ipu);
+          const typename Spline1DHelperOld<DataT>::DataPoint& pu = helper.getHelperU1().getDataPoint(ipu);
           for (int ipv = 0; ipv < helper.getHelperU2().getNumberOfDataPoints(); ipv++) {
-            const typename Spline1DHelper<DataT>::DataPoint& pv = helper.getHelperU2().getDataPoint(ipv);
+            const typename Spline1DHelperOld<DataT>::DataPoint& pv = helper.getHelperU2().getDataPoint(ipv);
             if (pu.isKnot && pv.isKnot) {
               continue;
             }
@@ -466,14 +655,15 @@ int Spline2DHelper<DataT>::test(const bool draw, const bool drawDataPoints)
   statDf = sqrt(statDf / statN);
   statDf1D = sqrt(statDf1D / statN);
 
-  cout << "\n std dev for Spline2D   : " << statDf << std::endl;
-  cout << " mean difference between 1-D and " << Ndim
-       << "-D splines   : " << statDf1D << std::endl;
+  LOG(info) << "\n std dev for Spline2D   : " << statDf;
+  LOG(info) << " mean difference between 1-D and " << Ndim
+            << "-D splines   : " << statDf1D;
+  LOG(info) << " approximation time " << statTime.count() / 1000. / nTries << " ms";
 
   if (statDf < 0.15 && statDf1D < 1.e-20) {
-    cout << "Everything is fine" << endl;
+    LOG(info) << "Everything is fine";
   } else {
-    cout << "Something is wrong!!" << endl;
+    LOG(info) << "Something is wrong!!";
     return -2;
   }
 
