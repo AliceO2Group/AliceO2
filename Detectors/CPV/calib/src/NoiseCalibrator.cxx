@@ -89,6 +89,7 @@ void NoiseCalibrator::finalizeSlot(NoiseTimeSlot& slot)
   // handle data from pedestal run first
   // check pedestal efficiencies
   if (mPedEfficiencies) {
+    LOG(info) << "NoiseCalibrator::finalizeSlot() : checking ped efficiencies";
     for (int i = 0; i < Geometry::kNCHANNELS; i++) {
       badMapBool[i] = false;
       if (mPedEfficiencies->at(i) > mToleratedChannelEfficiencyHigh ||
@@ -100,6 +101,7 @@ void NoiseCalibrator::finalizeSlot(NoiseTimeSlot& slot)
 
   // check dead channels
   if (mDeadChannels) {
+    LOG(info) << "NoiseCalibrator::finalizeSlot() : checking dead channels";
     for (int i = 0; i < mDeadChannels->size(); i++) {
       badMapBool[mDeadChannels->at(i)] = true;
     }
@@ -107,6 +109,7 @@ void NoiseCalibrator::finalizeSlot(NoiseTimeSlot& slot)
 
   // check channels with very high pedestal value (> 511)
   if (mHighPedChannels) {
+    LOG(info) << "NoiseCalibrator::finalizeSlot() : checking high ped channels";
     for (int i = 0; i < mHighPedChannels->size(); i++) {
       badMapBool[mHighPedChannels->at(i)] = true;
     }
@@ -120,7 +123,7 @@ void NoiseCalibrator::finalizeSlot(NoiseTimeSlot& slot)
   }
 
   // fill BadChannelMap and send it to output
-  for (int i = 0; i < Geometry::kNCHANNELS; i++) {
+  for (unsigned short i = 0; i < Geometry::kNCHANNELS; i++) {
     if (badMapBool[i]) {
       badMap->addBadChannel(i);
     }

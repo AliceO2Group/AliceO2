@@ -56,7 +56,20 @@ class CPVNoiseCalibratorSpec : public o2::framework::Task
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("digits").header)->startTime;
     auto&& digits = pc.inputs().get<gsl::span<o2::cpv::Digit>>("digits");
     auto&& trigrecs = pc.inputs().get<gsl::span<o2::cpv::TriggerRecord>>("trigrecs");
+    //LOG(info) << "NoiseCalibratorSpec::run() : I got deadchs vector with size = " << (pc.inputs().get<std::vector<int>>("deadchs")).size();
 
+    //std::vector<int>* const deadChs = (pc.inputs().get<std::vector<int>*>("deadchs")).size;
+    /*
+    static bool lStart = true;
+    if (deadChs.size()) {
+      LOG(info) << "NoiseCalibratorSpec::run() : I got deadchs vector with following dead channels:";
+      for (int i = 0; i < deadChs.size(); i++) {
+        LOG(info) << "Dead channel " << deadChs.at(i);
+      }
+      LOG(info) << "NoiseCalibratorSpec::run() : that's all dead channels I had";
+      lStart = false;
+    }
+*/
     LOG(info) << "Processing TF " << tfcounter << " with " << digits.size() << " digits in " << trigrecs.size() << " trigger records.";
     auto& slotTF = mCalibrator->getSlotForTF(tfcounter);
 
@@ -80,7 +93,7 @@ class CPVNoiseCalibratorSpec : public o2::framework::Task
     sendOutput(pc.outputs());
   }
   //_________________________________________________________________
-  void finaliseCCDB(ConcreteDataMatcher matcher, void* obj)
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   {
     LOG(info) << "finaliseCCDB() : I've been called with ConcreteDataMatcher" << matcher.origin.str << "/" << matcher.description.str << "/" << matcher.subSpec;
     if (matcher == ConcreteDataMatcher{"CPV", "CPV_PedEffs", 0}) {
