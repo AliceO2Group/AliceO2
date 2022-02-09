@@ -31,7 +31,6 @@ class FITCalibrationApi
  private:
   static constexpr const char* DEFAULT_CCDB_URL = "http://localhost:8080";
   using CalibObjWithInfoType = std::pair<o2::ccdb::CcdbObjectInfo, std::unique_ptr<std::vector<char>>>;
-  inline static unsigned long mProcessingTimestamp = 0;
   using TFType = std::uint64_t;
 
  public:
@@ -40,14 +39,6 @@ class FITCalibrationApi
   FITCalibrationApi(FITCalibrationApi&&) = delete;
 
   static void init();
-  static void setProcessingTimestamp(unsigned long tf)
-  {
-    mProcessingTimestamp = tf;
-  }
-  [[nodiscard]] static unsigned long getProcessingTimestamp()
-  {
-    return mProcessingTimestamp;
-  }
 
   template <typename CalibrationObjectType>
   [[nodiscard]] static const char* getObjectPath();
@@ -91,9 +82,10 @@ FITCalibrationApi::CalibObjWithInfoType FITCalibrationApi::doSerializationAndPre
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   LOG(info) << " clName " << clName << " flName " << flName;
   result.first = o2::ccdb::CcdbObjectInfo(FITCalibrationApi::getObjectPath<CalibrationObjectType>(), clName, flName, metaData, starting, stopping);
+  stopping = 999999999999;
   result.second = o2::ccdb::CcdbApi::createObjectImage(&calibrationObject, &result.first);
   LOG(info) << " FITCalibrationApi::doSerializationAndPrepareObjectInfo"
-            << " start " << starting << " end " << starting;
+            << " start " << starting << " end " << stopping;
   return result;
 }
 

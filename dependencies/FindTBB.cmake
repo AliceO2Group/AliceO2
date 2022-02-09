@@ -9,6 +9,10 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+find_package(${CMAKE_FIND_PACKAGE_NAME} NO_MODULE)
+
+if(NOT ${CMAKE_FIND_PACKAGE_NAME}_FOUND)
+
 set(PKGNAME ${CMAKE_FIND_PACKAGE_NAME})
 string(TOUPPER ${PKGNAME} PKGENVNAME)
 
@@ -33,3 +37,5 @@ mark_as_advanced(${PKGNAME}_LIBRARY_SHARED)
 
 unset(PKGNAME)
 unset(PKGENVNAME)
+
+endif()

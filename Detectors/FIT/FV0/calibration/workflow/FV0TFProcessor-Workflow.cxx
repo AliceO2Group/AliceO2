@@ -28,13 +28,15 @@ class FV0TFProcessor final : public o2::framework::Task
  public:
   void run(o2::framework::ProcessingContext& pc) final
   {
+    const auto ref = pc.inputs().getFirstValid(true);
+    auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
     auto channels = pc.inputs().get<gsl::span<o2::fv0::ChannelData>>("channels");
     auto digits = pc.inputs().get<gsl::span<o2::fv0::BCData>>("digits");
     auto& calib_data = pc.outputs().make<std::vector<o2::fv0::FV0CalibrationInfoObject>>(o2::framework::OutputRef{"calib", 0});
     calib_data.reserve(channels.size());
 
     for (const auto& channel : channels) {
-      calib_data.emplace_back(channel.pmtNumber, channel.time, channel.chargeAdc);
+      calib_data.emplace_back(channel.pmtNumber, channel.time, channel.chargeAdc, uint64_t(creationTime));
     }
   }
 };

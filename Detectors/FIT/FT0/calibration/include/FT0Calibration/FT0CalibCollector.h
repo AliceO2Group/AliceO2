@@ -67,7 +67,7 @@ class FT0CalibCollector final : public o2::calibration::TimeSlotCalibration<o2::
   static constexpr int NCHANNELS = o2::ft0::Geometry::Nchannels;
 
  public:
-  FT0CalibCollector(bool TFsendingPolicy, int maxNumOfHits, bool test = false) : mTFsendingPolicy(TFsendingPolicy), mMaxNumOfHits(maxNumOfHits), mTest(test){};
+  FT0CalibCollector(bool TFsendingPolicy, int maxNumOfHits) : mTFsendingPolicy(TFsendingPolicy), mMaxNumOfHits(maxNumOfHits){};
 
   ~FT0CalibCollector() final = default;
 
@@ -75,7 +75,6 @@ class FT0CalibCollector final : public o2::calibration::TimeSlotCalibration<o2::
   void initOutput() final;
   void finalizeSlot(Slot& slot) final;
   Slot& emplaceNewSlot(bool front, TFType tstart, TFType tend) final;
-  void setIsTest(bool istest) { mTest = istest; }
   auto& getCollectedCalibInfo() const { return mFT0CollectedCalibInfo; }
   auto& getEntriesPerChannel() const { return mEntries; }
   void setIsMaxNumberOfHitsAbsolute(bool absNumber) { mAbsMaxNumOfHits = absNumber; }
@@ -83,7 +82,6 @@ class FT0CalibCollector final : public o2::calibration::TimeSlotCalibration<o2::
  private:
   bool mTFsendingPolicy = false;                                         // whether we will send information at every TF or only when we have a certain statistics
   int mMaxNumOfHits = 1000000;                                           // maximum number of hits for one single channel to trigger the sending of the information (if mTFsendingPolicy = false)
-  bool mTest = false;                                                    // flag to say whether we are in test mode or not
   bool mAbsMaxNumOfHits = true;                                          // to decide if the mMaxNumOfHits should be multiplied by the number of FT0 channels
   std::array<int, NCHANNELS> mEntries;                                   // vector containing number of entries per channel
   std::vector<o2::ft0::FT0CalibrationInfoObject> mFT0CollectedCalibInfo; ///< output FT0 calibration info

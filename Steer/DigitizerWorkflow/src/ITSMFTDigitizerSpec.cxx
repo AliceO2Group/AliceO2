@@ -253,6 +253,8 @@ class ITSDPLDigitizerTask : public ITSMFTDPLDigitizerTask
     digipar.setNoisePerPixel(dopt.noisePerPixel);     // noise level
     digipar.setTimeOffset(dopt.timeOffset);
     digipar.setNSimSteps(dopt.nSimSteps);
+    digipar.setIBVbb(dopt.IBVbb);
+    digipar.setOBVbb(dopt.OBVbb);
   }
 };
 
@@ -296,6 +298,7 @@ class MFTDPLDigitizerTask : public ITSMFTDPLDigitizerTask
     digipar.setNoisePerPixel(dopt.noisePerPixel);     // noise level
     digipar.setTimeOffset(dopt.timeOffset);
     digipar.setNSimSteps(dopt.nSimSteps);
+    digipar.setVbb(dopt.Vbb);
   }
 };
 

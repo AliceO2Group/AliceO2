@@ -53,7 +53,6 @@ class Detector : public o2::base::DetImpl<Detector>
     kAl = 15,
     kOpGlass = 16,
     kOptAl = 17,
-    kOptBlack = 18,
     kOpGlassCathode = 19,
     kCable = 23,
     kMCPwalls = 25

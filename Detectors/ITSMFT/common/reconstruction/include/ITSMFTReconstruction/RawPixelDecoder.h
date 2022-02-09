@@ -181,14 +181,12 @@ int RawPixelDecoder<ChipMappingMFT>::fillDecodedDigits(DigitContainer& digits, R
   }
   mTimerFetchData.Start(false);
   int ref = digits.size();
-  while (!mOrderedChipsPtr.empty()) {
-    const auto& chipData = *mOrderedChipsPtr.back();
-    assert(mLastReadChipID < chipData.getChipID());
-    mLastReadChipID = chipData.getChipID();
-    for (const auto& hit : chipData.getData()) {
+  for (auto chipData = mOrderedChipsPtr.rbegin(); chipData != mOrderedChipsPtr.rend(); ++chipData) {
+    assert(mLastReadChipID < (*chipData)->getChipID());
+    mLastReadChipID = (*chipData)->getChipID();
+    for (const auto& hit : (*chipData)->getData()) {
       digits.emplace_back(mLastReadChipID, hit.getRow(), hit.getCol());
     }
-    mOrderedChipsPtr.pop_back();
   }
   int nFilled = digits.size() - ref;
   rofs.emplace_back(mInteractionRecord, mROFCounter, ref, nFilled);

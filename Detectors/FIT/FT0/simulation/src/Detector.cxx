@@ -1064,8 +1064,6 @@ void Detector::DefineOpticalProperties()
   TVirtualMC::GetMC()->SetCerenkov(getMediumID(kOpGlassCathode), nBins, &(mPhotonEnergyD[0]), &(mAbsorptionLength[0]),
                                    &(mQuantumEfficiency[0]), &(mRefractionIndex[0]));
 
-  TVirtualMC::GetMC()->SetCerenkov(getMediumID(kOptBlack), nBins, &(mPhotonEnergyD[0]), &(mAbsBlackPaper[0]),
-                                   &(mEffBlackPaper[0]), &(mReflBlackPaper[0]));
   // Define a side mirror border for radiator optical properties
   TVirtualMC::GetMC()->DefineOpSurface("surfRd", kUnified, kDielectric_dielectric, kPolishedbackpainted, 0.);
   TVirtualMC::GetMC()->SetMaterialProperty("surfRd", "EFFICIENCY", nBins, &(mPhotonEnergyD[0]), &(mEfficMet[0]));
