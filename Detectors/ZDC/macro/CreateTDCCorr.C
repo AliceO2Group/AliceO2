@@ -21,6 +21,7 @@
 #include "ZDCBase/Constants.h"
 #include "ZDCReconstruction/ZDCTDCCorr.h"
 #include "TDCCorrPar.h"
+#include "TDCSinglePar.h"
 
 using namespace std;
 

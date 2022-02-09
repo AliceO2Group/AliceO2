@@ -191,7 +191,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
           toAddBC = false;
         }
         nt++;
-        recEvent.addTDC(it, reca.TDCVal[it][ih], reca.TDCAmp[it][ih]);
+        recEvent.addTDC(it, reca.TDCVal[it][ih], reca.TDCAmp[it][ih], reca.isBeg[it], reca.isEnd[it]);
       }
     }
     if (ne > 0) {

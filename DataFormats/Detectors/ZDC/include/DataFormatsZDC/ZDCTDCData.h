@@ -27,14 +27,16 @@ namespace zdc
 
 struct ZDCTDCData {
 
-  int8_t id = IdDummy; // channel ID
-  int16_t val = 0;     // tdc value
-  int16_t amp = 0;     // tdc amplitude
+  uint8_t id = 0xff; // channel ID
+  int16_t val = 0;   // tdc value
+  int16_t amp = 0;   // tdc amplitude
 
   ZDCTDCData() = default;
-  ZDCTDCData(int8_t ida, int16_t vala, int16_t ampa)
+  ZDCTDCData(uint8_t ida, int16_t vala, int16_t ampa, bool isbeg = false, bool isend = false)
   {
-    id = ida;
+    id = ida & 0x0f;
+    id = id | isbeg ? 0x80 : 0x00;
+    id = id | isend ? 0x40 : 0x00;
     val = vala;
     amp = ampa;
   }
@@ -47,9 +49,17 @@ struct ZDCTDCData {
   {
     return FTDCVal * val;
   }
-  inline uint8_t ch() const
+  inline int ch() const
   {
-    return id;
+    return (id & 0x0f);
+  }
+  inline bool isBeg() const
+  {
+    return id & 0x80 ? true : false;
+  }
+  inline bool isEnd() const
+  {
+    return id & 0x40 ? true : false;
   }
 
   void print() const;

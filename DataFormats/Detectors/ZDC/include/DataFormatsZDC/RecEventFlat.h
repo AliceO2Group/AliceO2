@@ -35,7 +35,7 @@ namespace zdc
 using FirstEntry = int;
 using NElem = int;
 
-struct RecEventFlat { //NOLINT: false positive in clang-tidy !!
+struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   o2::InteractionRecord ir;
   uint32_t channels = 0;                      /// pattern of channels acquired
   uint32_t triggers = 0;                      /// pattern of channels with autotrigger bit
@@ -58,6 +58,8 @@ struct RecEventFlat { //NOLINT: false positive in clang-tidy !!
   NElem mNE = 0;                              //! N energy
   NElem mNT = 0;                              //! N TDC
   NElem mNI = 0;                              //! N info
+  std::array<bool, NChannels> isBeg{};        //! Beginning of sequence
+  std::array<bool, NChannels> isEnd{};        //! End of sequence
   o2::zdc::BCRecData mCurB;                   //! Current BC
 
   // Reconstruction messages

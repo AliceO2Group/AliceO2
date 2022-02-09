@@ -25,16 +25,31 @@ namespace o2
 namespace zdc
 {
 struct ZDCTDCCorr {
+  const static int NParExtS = 6;
+  const static int NParExtC = 4;
+  const static int NParMidS = 3;
+  const static int NParMidC = 1;
   std::array<std::array<std::array<float, NFParA>, NBucket>, NTDCChannels> mAmpSigCorr;                                      // Amplitude correction of signal w/o pile-up
   std::array<std::array<std::array<std::array<std::array<float, NFParT>, NBucket>, NBucket>, NBCAn>, NTDCChannels> mTDCCorr; // TDC correction of signal with pile-up
   std::array<std::array<std::array<std::array<std::array<float, NFParA>, NBucket>, NBucket>, NBCAn>, NTDCChannels> mAmpCorr; // Amplitude correction of signal with pile-up
-  void SetAmpSigCorr(int itdc, int ibuk, int ipar, float val){
+
+  std::array<std::array<float, NParExtS>, NTDCChannels> mTSBegS; // TDC time correction, sine wave, beginning of sequence
+  std::array<std::array<float, NParMidS>, NTDCChannels> mTSMidS; // TDC time correction, sine wave, mid of sequence
+  std::array<std::array<float, NParExtS>, NTDCChannels> mTSEndS; // TDC time correction, sine wave, end of sequence
+  std::array<std::array<float, NParExtC>, NTDCChannels> mTSBegC; // TDC time correction, constant, beginning of sequence
+  std::array<std::array<float, NParMidC>, NTDCChannels> mTSMidC; // TDC time correction, constant, mid of sequence
+  std::array<std::array<float, NParExtC>, NTDCChannels> mTSEndC; // TDC time correction, constant, end of sequence
+
+  void SetAmpSigCorr(int itdc, int ibuk, int ipar, float val)
+  {
     mAmpSigCorr[itdc][ibuk][ipar] = val;
   }
-  void SetTDCCorr(int itdc, int ibun, int ibukb, int ibuks, int ipar, float val){
+  void SetTDCCorr(int itdc, int ibun, int ibukb, int ibuks, int ipar, float val)
+  {
     mAmpCorr[itdc][ibun][ibukb][ibuks][ipar] = val;
   }
-  void SetAmpCorr(int itdc, int ibun, int ibukb, int ibuks, int ipar, float val){
+  void SetAmpCorr(int itdc, int ibun, int ibukb, int ibuks, int ipar, float val)
+  {
     mTDCCorr[itdc][ibun][ibukb][ibuks][ipar] = val;
   }
 

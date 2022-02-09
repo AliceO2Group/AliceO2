@@ -58,12 +58,12 @@ struct RecEvent {
     mRecBC.back().addEnergy();
   }
   // Add TDC
-  inline void addTDC(uint8_t ch, int16_t val, int16_t amp)
+  inline void addTDC(uint8_t ch, int16_t val, int16_t amp, bool isbeg = false, bool isend = false)
   {
 #ifdef O2_ZDC_DEBUG
-    printf("ch:%-2u [%s] TDC %d Amp. %d\n", ch, ChannelNames[TDCSignal[ch]].data(), val, amp);
+    printf("ch:%-2u [%s] TDC %d Amp. %d%s%s\n", ch, ChannelNames[TDCSignal[ch]].data(), val, amp, isbeg ? " B" : "", isend ? " E" : "");
 #endif
-    mTDCData.emplace_back(ch, val, amp);
+    mTDCData.emplace_back(ch, val, amp, isbeg, isend);
     mRecBC.back().addTDC();
   }
   // Add event information

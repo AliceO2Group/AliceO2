@@ -761,7 +761,7 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
 #ifdef O2_ZDC_DEBUG
   LOG(info) << __func__ << "(itdc=" << itdc << "[" << ChannelNames[TDCSignal[itdc]] << "] ," << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
 #endif
-
+  // Extracting TDC information for TDC number itdc, in consecutive bunches from ibeg to iend
   int nbun = iend - ibeg + 1;
   int maxs2 = NTimeBinsPerBC * nbun - 1;
   int shift = mRopt->tsh[itdc];
@@ -891,6 +891,7 @@ void DigiReco::processTriggerExtended(int itdc, int ibeg, int iend)
     int b2 = ibeg + is2 / NTimeBinsPerBC;
     int s2 = is2 % NTimeBinsPerBC;
     auto ref_s = mReco[b2].ref[isig]; // reference to subtrahend
+    int s1 = is1 % NTimeBinsPerBC;
     if(is1<0){
       if (ref_s == ZDCRefInitVal) {
         LOG(fatal) << "Missing information for bunch crossing";
@@ -903,7 +904,6 @@ void DigiReco::processTriggerExtended(int itdc, int ibeg, int iend)
 #endif
     }else{
       int b1 = ibeg + is1 / NTimeBinsPerBC;
-      int s1 = is1 % NTimeBinsPerBC;
       auto ref_m = mReco[b1].ref[TDCSignal[itdc]]; // reference to minuend
       // Check data consistency before computing difference
       if (ref_m == ZDCRefInitVal || ref_s == ZDCRefInitVal) {
@@ -1052,6 +1052,7 @@ void DigiReco::setPoint(int itdc, int ibeg, int iend, int i)
 
 void DigiReco::interpolate(int itdc, int ibeg, int iend)
 {
+  // Interpolation of signal for TDC number itdc, in consecutive bunches from ibeg to iend
 #ifdef O2_ZDC_DEBUG
   LOG(info) << __func__ << "(itdc=" << itdc << "[" << ChannelNames[TDCSignal[itdc]] << "] ," << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
 #endif
@@ -1321,6 +1322,13 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
 #endif
   rec.TDCVal[itdc].push_back(tdc_cor);
   rec.TDCAmp[itdc].push_back(myamp);
+  // Flag hit position in sequence
+  if(ibun == ibeg){
+    rec.isBeg[itdc] = true;
+  }
+  if(ibun == iend){
+    rec.isEnd[itdc] = true;
+  }
   int& ihit = mReco[ibun].ntdc[itdc];
 #ifdef O2_ZDC_TDC_C_ARRAY
   if (ihit < MaxTDCValues) {
@@ -1538,6 +1546,9 @@ void DigiReco::correctTDCPile()
           } else {
             rec->TDCAmp[itdc][0] = std::nearbyint(TDCAmpCorr);
           }
+          // New code needs information about position in sequence
+          
+          
         }
         // Add current event at the end of the queue
         for (int ihit = 0; ihit < rec->ntdc[itdc]; ihit++) {
