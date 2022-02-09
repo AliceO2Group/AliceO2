@@ -120,7 +120,7 @@ bool MatchITSTPCQC::init()
   mEta->SetOption("logy");
   mChi2Matching->SetOption("logy");
   mChi2Refit->SetOption("logy");
-  mTimeResVsPt->SetOption("colz logz logy");
+  mTimeResVsPt->SetOption("colz logz logy logx");
 
   o2::base::GeometryManager::loadGeometry(mGeomFileName);
   o2::base::Propagator::initFieldFromGRP(mGRPFileName);
