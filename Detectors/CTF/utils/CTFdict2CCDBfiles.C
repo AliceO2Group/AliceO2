@@ -1,5 +1,4 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-#include "DetectorsBase/CTFCoderBase.h"
 #include "DetectorsCommonDataFormats/CTFDictHeader.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "CommonUtils/NameConf.h"
