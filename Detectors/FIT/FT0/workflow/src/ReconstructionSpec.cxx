@@ -38,9 +38,9 @@ void ReconstructionDPL::init(InitContext& ic)
 
 void ReconstructionDPL::run(ProcessingContext& pc)
 {
-  //  auto& mCCDBManager = o2::ccdb::BasicCCDBManager::instance();
-  //  mCCDBManager.setURL(mCCDBpath);
-  //  LOG(info) << " set-up CCDB " << mCCDBpath;
+  auto& mCCDBManager = o2::ccdb::BasicCCDBManager::instance();
+  mCCDBManager.setURL(mCCDBpath);
+  LOG(info) << " set-up CCDB " << mCCDBpath;
   mTimer.Start(false);
   mRecPoints.clear();
   auto digits = pc.inputs().get<gsl::span<o2::ft0::Digit>>("digits");
@@ -51,9 +51,10 @@ void ReconstructionDPL::run(ProcessingContext& pc)
   if (mUseMC) {
     LOG(info) << "Ignoring MC info";
   }
-  auto caliboffsets = pc.inputs().get<o2::ft0::FT0ChannelTimeCalibrationObject*>("ft0offsets");
-  // auto caliboffsets = mCCDBManager.get<o2::ft0::FT0ChannelTimeCalibrationObject>("FT0/Calibration/ChannelTimeOffset");
-  mReco.SetChannelOffset(caliboffsets.get());
+  // auto caliboffsets = pc.inputs().get<o2::ft0::FT0ChannelTimeCalibrationObject*>("ft0offsets");
+  //  mReco.SetChannelOffset(caliboffsets.get());
+  auto caliboffsets = mCCDBManager.get<o2::ft0::FT0ChannelTimeCalibrationObject>("FT0/Calibration/ChannelTimeOffset");
+  mReco.SetChannelOffset(caliboffsets);
   LOG(debug) << " RecoSpec  mReco.SetChannelOffset(&caliboffsets)";
   /*
   auto calibslew = mCCDBManager.get<std::array<TGraph, NCHANNELS>>("FT0/SlewingCorr");
@@ -100,9 +101,9 @@ DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath)
     LOG(info) << "Currently Reconstruction does not consume and provide MC truth";
     inputSpec.emplace_back("labels", o2::header::gDataOriginFT0, "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
-  inputSpec.emplace_back("ft0offsets", "FT0", "TimeOffset", 0,
+  /* inputSpec.emplace_back("ft0offsets", "FT0", "TimeOffset", 0,
                          Lifetime::Condition,
-                         ccdbParamSpec("FT0/Calibration/ChannelTimeOffset"));
+                         ccdbParamSpec("FT0/Calibration/ChannelTimeOffset"));*/
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECCHDATA", 0, Lifetime::Timeframe);
 
