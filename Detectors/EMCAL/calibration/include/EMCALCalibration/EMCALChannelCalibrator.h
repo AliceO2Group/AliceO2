@@ -67,6 +67,7 @@ class EMCALChannelCalibrator : public o2::calibration::TimeSlotCalibration<o2::e
   void finalizeSlot(Slot& slot) final;
   o2::calibration::TimeSlot<DataInput>& emplaceNewSlot(bool front, TFType tstart, TFType tend) final;
 
+  ///\brief Set the testing status.
   void setIsTest(bool isTest) { mTest = isTest; }
   bool isTest() const { return mTest; }
 
