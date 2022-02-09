@@ -732,7 +732,8 @@ void EncodedBlocks<H, N, W>::print(const std::string& prefix, int verbosity) con
   if (verbosity > 0) {
     LOG(info) << prefix << "Container of " << N << " blocks, size: " << size() << " bytes, unused: " << getFreeSize();
     for (int i = 0; i < N; i++) {
-      LOG(info) << "Block " << i << " for " << static_cast<uint32_t>(mMetadata[i].messageLength) << " message words of " << mMetadata[i].messageWordSize << " bytes |"
+      LOG(info) << "Block " << i << " for " << static_cast<uint32_t>(mMetadata[i].messageLength) << " message words of "
+                << static_cast<uint32_t>(mMetadata[i].messageWordSize) << " bytes |"
                 << " NDictWords: " << mBlocks[i].getNDict() << " NDataWords: " << mBlocks[i].getNData()
                 << " NLiteralWords: " << mBlocks[i].getNLiterals();
     }
