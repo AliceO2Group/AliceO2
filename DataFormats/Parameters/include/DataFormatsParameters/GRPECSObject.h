@@ -40,7 +40,22 @@ class GRPECSObject
                       PRESENT = 0x1,
                       CONTINUOUS = PRESENT + (0x1 << 1),
                       TRIGGERING = PRESENT + (0x1 << 2) };
-
+  enum RunType : int {
+    NONE,
+    PHYSICS,
+    TECHNICAL,
+    PEDESTAL,
+    PULSER,
+    LASER,
+    CALIBRATION_ITHR_TUNING,
+    CALIBRATION_VCASN_TUNING,
+    CALIBRATION_THR_SCAN,
+    CALIBRATION_DIGITAL_SCAN,
+    CALIBRATION_ANALOG_SCAN,
+    CALIBRATION_FHR,
+    CALIBRATION_ALPIDE_SCAN,
+    NRUNTYPES
+  };
   GRPECSObject() = default;
   ~GRPECSObject() = default;
 
@@ -96,6 +111,9 @@ class GRPECSObject
   void setDetROMode(DetID id, ROMode status);
   ROMode getDetROMode(DetID id) const;
 
+  void setRunType(RunType t) { mRunType = t; }
+  auto getRunType() const { return mRunType; }
+
   bool isMC() const { return mIsMC; }
   void setIsMC(bool v = true) { mIsMC = v; }
 
@@ -120,10 +138,11 @@ class GRPECSObject
   DetID::mask_t mDetsContinuousRO; ///< mask of detectors read out in continuos mode
   DetID::mask_t mDetsTrigger;      ///< mask of detectors which provide trigger
   bool mIsMC = false;              ///< flag GRP for MC
-  int mRun = 0;                 ///< run identifier
-  std::string mDataPeriod = ""; ///< name of the period
+  int mRun = 0;                    ///< run identifier
+  RunType mRunType = NONE;         ///< run type
+  std::string mDataPeriod{};       ///< name of the period
 
-  ClassDefNV(GRPECSObject, 3);
+  ClassDefNV(GRPECSObject, 4);
 };
 
 } // namespace parameters
