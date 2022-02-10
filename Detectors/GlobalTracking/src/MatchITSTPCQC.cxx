@@ -122,6 +122,28 @@ bool MatchITSTPCQC::init()
   mChi2Refit->SetOption("logy");
   mTimeResVsPt->SetOption("colz logz logy logx");
 
+  mPtTPC = new TH1F("mPtTPC", "Pt distribution of TPC tracks; Pt [GeV/c]; dNdPt", 100, 0.f, 20.f);
+  mFractionITSTPCmatch = new TEfficiency("mFractionITSTPCmatch", "Fraction of ITSTPC matched tracks vs Pt; Pt [GeV/c]; Eff", 100, 0.f, 20.f);
+  mPt = new TH1F("mPt", "Pt distribution of matched tracks; Pt [GeV/c]; dNdPt", 100, 0.f, 20.f);
+  mPhiTPC = new TH1F("mPhiTPC", "Phi distribution of TPC tracks; Phi [rad]; dNdPhi", 100, 0.f, 2 * TMath::Pi());
+  mFractionITSTPCmatchPhi = new TEfficiency("mFractionITSTPCmatchPhi", "Fraction of ITSTPC matched tracks vs Phi; Phi [rad]; Eff", 100, 0.f, 2 * TMath::Pi());
+  mPhi = new TH1F("mPhi", "Phi distribution of matched tracks; Phi [rad]; dNdPhi", 100, 0.f, 2 * TMath::Pi());
+  // These will be empty in case of no MC info...
+  mPhiTPCPhysPrim = new TH1F("mPhiTPCPhysPrim", "Phi distribution of TPC tracks (physical primary); Phi [rad]; dNdPhi", 100, 0.f, 2 * TMath::Pi());
+  mFractionITSTPCmatchPhiPhysPrim = new TEfficiency("mFractionITSTPCmatchPhiPhysPrim", "Fraction of ITSTPC matched tracks vs Phi (physical primary); Phi [rad]; Eff", 100, 0.f, 2 * TMath::Pi());
+  mPhiPhysPrim = new TH1F("mPhiPhysPrim", "Phi distribution of matched tracks (physical primary); Phi [rad]; dNdPhi", 100, 0.f, 2 * TMath::Pi());
+  // ...till here
+  mEta = new TH1F("mEta", "Eta distribution of matched tracks; Eta; dNdEta", 100, -2.f, 2.f);
+  mChi2Matching = new TH1F("mChi2Matching", "Chi2 of matching; chi2", 300, 0, 30);
+  mChi2Refit = new TH1F("mChi2Refit", "Chi2 of refit; chi2", 1000, 0, 100);
+
+  mPtTPC->GetYaxis()->SetTitleOffset(1.4);
+  mPt->GetYaxis()->SetTitleOffset(1.4);
+  mEta->GetYaxis()->SetTitleOffset(1.4);
+  mChi2Matching->GetYaxis()->SetTitleOffset(1.4);
+  mChi2Refit->GetYaxis()->SetTitleOffset(1.4);
+  mTimeResVsPt->GetYaxis()->SetTitleOffset(1.4);
+
   o2::base::GeometryManager::loadGeometry(mGeomFileName);
   o2::base::Propagator::initFieldFromGRP(mGRPFileName);
   mBz = o2::base::Propagator::Instance()->getNominalBz();
