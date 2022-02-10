@@ -41,4 +41,3 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   return specs;
 }
-
