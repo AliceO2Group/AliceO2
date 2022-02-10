@@ -19,7 +19,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   workflowOptions.push_back(ConfigParamSpec{"useDigits", VariantType::Bool, false, {"Use decoded digits"}});
-  workflowOptions.push_back(ConfigParamSpec{"configKeyValues",  VariantType::String, "", {"Semicolon separated key=value strings"}});
+  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
 }
 
 // ------------------------------------------------------------------
