@@ -56,24 +56,26 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
 
   /// \return returns the topology correction for the cluster charge
   /// \param region region of the TPC
-  /// \param charge type of the charge (qMax or qTot)
+  /// \param chargeT type of the charge (qMax or qTot)
   /// \param tanTheta local inclination angle tanTheta
   /// \param sinPhi snp track parameter
   /// \param z z position
   /// \param relPad relative pad position of the cluster
   /// \param relTime relative time position of the cluster
-  GPUd() float getTopologyCorrection(const int region, const ChargeType charge, const float tanTheta, const float sinPhi, const float z, const float relPad, const float relTime, const float threshold = 0) const
+  /// \param threshold zero supression threshold
+  /// \param charge charge of the cluster
+  GPUd() float getTopologyCorrection(const int region, const ChargeType chargeT, const float tanTheta, const float sinPhi, const float z, const float relPad, const float relTime, const float threshold, const float charge) const
   {
-    return mCalibTrackTopologyPol ? mCalibTrackTopologyPol->getCorrection(region, charge, tanTheta, sinPhi, z, relPad, relTime, threshold) : (mCalibTrackTopologySpline ? mCalibTrackTopologySpline->getCorrection(region, charge, tanTheta, sinPhi, z) : getDefaultTopologyCorrection(tanTheta, sinPhi));
+    return mCalibTrackTopologyPol ? mCalibTrackTopologyPol->getCorrection(region, chargeT, tanTheta, sinPhi, z, relPad, relTime, threshold, charge) : (mCalibTrackTopologySpline ? mCalibTrackTopologySpline->getCorrection(region, chargeT, tanTheta, sinPhi, z) : getDefaultTopologyCorrection(tanTheta, sinPhi));
   }
 
   /// \return returns the topology correction for the cluster charge
   /// \param region region of the TPC
-  /// \param charge type of the charge (qMax or qTot)
+  /// \param chargeT type of the charge (qMax or qTot)
   /// \param x coordinates where the correction is evaluated
-  GPUd() float getTopologyCorrection(const int region, const ChargeType charge, const float x[]) const
+  GPUd() float getTopologyCorrection(const int region, const ChargeType chargeT, const float x[]) const
   {
-    return mCalibTrackTopologyPol ? mCalibTrackTopologyPol->getCorrection(region, charge, x) : (mCalibTrackTopologySpline ? mCalibTrackTopologySpline->getCorrection(region, charge, x) : getDefaultTopologyCorrection(x[0], x[1]));
+    return mCalibTrackTopologyPol ? mCalibTrackTopologyPol->getCorrection(region, chargeT, x) : (mCalibTrackTopologySpline ? mCalibTrackTopologySpline->getCorrection(region, chargeT, x) : getDefaultTopologyCorrection(x[0], x[1]));
   }
 
   /// \return returns analytical default correction
@@ -85,6 +87,12 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
 
   /// \return returns maximum sinPhi for which the topology correction is valid
   GPUd() float getMaxSinPhiTopologyCorrection() const { return mCalibTrackTopologyPol ? mCalibTrackTopologyPol->getMaxSinPhi() : (mCalibTrackTopologySpline ? mCalibTrackTopologySpline->getMaxSinPhi() : 1); }
+
+  /// \return returns the the minimum qTot for which the polynomials are valid
+  GPUd() float getMinqTot() const { return mCalibTrackTopologyPol ? mCalibTrackTopologyPol->getMinqTot() : 0; };
+
+  /// \return returns the the maximum qTot for which the polynomials are valid
+  GPUd() float getMaxqTot() const { return mCalibTrackTopologyPol ? mCalibTrackTopologyPol->getMaxqTot() : 10000; };
 
 #if !defined(GPUCA_GPUCODE)
   /// \returns the minimum zero supression threshold for which the track topology correction is valid
