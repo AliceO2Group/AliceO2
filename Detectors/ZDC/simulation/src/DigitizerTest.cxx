@@ -101,7 +101,7 @@ double DigitizerTest::add(int ic, float myAmp, const o2::InteractionRecord irpk,
         if (sample >= 0 && sample < nbx) {
           double y = mSimCondition->channels[ic].shape[sample];
           bc->data[ic][i] += y * myAmp;
-          LOG(info) << ic << " " << ir.orbit << "." << ir.bc << " s" << i << ") s " << sample << " " << y*myAmp << " -> " << bc->data[ic][i];
+          //LOG(info) << ic << " " << ir.orbit << "." << ir.bc << " s" << i << ") s " << sample << " " << y*myAmp << " -> " << bc->data[ic][i];
         }
         sample += TSN;
       }
