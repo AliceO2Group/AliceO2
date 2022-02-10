@@ -43,6 +43,7 @@
 #include "Framework/Logger.h"
 
 #include "CCDB/CcdbApi.h"
+#include <CCDB/CCDBTimeStampUtils.h>
 
 #include "Headers/RAWDataHeader.h"
 #include "DetectorsRaw/RDHUtils.h"
