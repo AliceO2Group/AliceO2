@@ -17,6 +17,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
 #include <algorithm>
+#include "TGraphAsymmErrors.h"
 
 using namespace o2::globaltracking;
 using MCTrack = o2::MCTrackT<float>;
@@ -69,7 +70,6 @@ void MatchITSTPCQC::reset()
 }
 
 //__________________________________________________________
-
 bool MatchITSTPCQC::init()
 {
 
@@ -80,17 +80,31 @@ bool MatchITSTPCQC::init()
   mFractionITSTPCmatchPhi = new TEfficiency("mFractionITSTPCmatchPhi", "Fraction of ITSTPC matched tracks vs Phi; Phi [rad]; Eff", 100, 0.f, 2 * TMath::Pi());
   mPhi = new TH1F("mPhi", "Phi distribution of matched tracks; Phi [rad]; dNdPhi", 100, 0.f, 2 * TMath::Pi());
   // These will be empty in case of no MC info...
-  mPtTPCPhysPrim = new TH1F("mPtTPPhysPrimC", "Pt distribution of TPC tracks (physical primary); Pt [GeV/c]; dNdPt", 100, 0.f, 20.f);
-  mFractionITSTPCmatchPhysPrim = new TEfficiency("mFractionITSTPCmatchPhysPrim", "Fraction of ITSTPC matched tracks vs Pt (physical primary); Pt [GeV/c]; Eff", 100, 0.f, 20.f);
-  mPtPhysPrim = new TH1F("mPtPhysPrim", "Pt distribution of matched tracks (physical primary); Pt [GeV/c]; dNdPt", 100, 0.f, 20.f);
   mPhiTPCPhysPrim = new TH1F("mPhiTPCPhysPrim", "Phi distribution of TPC tracks (physical primary); Phi [rad]; dNdPhi", 100, 0.f, 2 * TMath::Pi());
   mFractionITSTPCmatchPhiPhysPrim = new TEfficiency("mFractionITSTPCmatchPhiPhysPrim", "Fraction of ITSTPC matched tracks vs Phi (physical primary); Phi [rad]; Eff", 100, 0.f, 2 * TMath::Pi());
   mPhiPhysPrim = new TH1F("mPhiPhysPrim", "Phi distribution of matched tracks (physical primary); Phi [rad]; dNdPhi", 100, 0.f, 2 * TMath::Pi());
   // ...till here
   mEta = new TH1F("mEta", "Eta distribution of matched tracks; Eta; dNdEta", 100, -2.f, 2.f);
-  mChi2Matching = new TH1F("mChi2Matching", "Chi2 of matching; chi2", 200, 0, 20);
-  mChi2Refit = new TH1F("mChi2Refit", "Chi2 of refit; chi2", 200, 0, 20);
-  mTimeResVsPt = new TH2F("mTimeResVsPt", "Time resolution vs Pt; Pt [GeV/c]; time res [us]", 100, 0.f, 20.f, 100, 0.f, 2.f);
+  mChi2Matching = new TH1F("mChi2Matching", "Chi2 of matching; chi2", 100, 0, 30);
+  mChi2Refit = new TH1F("mChi2Refit", "Chi2 of refit; chi2", 200, 0, 100);
+
+  // log binning for pT
+  const Int_t nbinsPt = 100;
+  const Double_t xminPt = 0.01;
+  const Double_t xmaxPt = 20;
+  Double_t* xbinsPt = new Double_t[nbinsPt + 1];
+  Double_t xlogminPt = TMath::Log10(xminPt);
+  Double_t xlogmaxPt = TMath::Log10(xmaxPt);
+  Double_t dlogxPt = (xlogmaxPt - xlogminPt) / nbinsPt;
+  Double_t yPt = (xlogmaxPt - xlogminPt) / nbinsPt;
+  for (int i = 0; i <= nbinsPt; i++) {
+    Double_t xlogPt = xlogminPt + i * dlogxPt;
+    xbinsPt[i] = TMath::Exp(TMath::Log(10) * xlogPt);
+  }
+  mTimeResVsPt = new TH2F("mTimeResVsPt", "Time resolution vs Pt; Pt [GeV/c]; time res [us]", nbinsPt, xbinsPt, 100, 0.f, 2.f);
+  mPtTPCPhysPrim = new TH1F("mPtTPPhysPrimC", "Pt distribution of TPC tracks (physical primary); Pt [GeV/c]; dNdPt", nbinsPt, xbinsPt);
+  mFractionITSTPCmatchPhysPrim = new TEfficiency("mFractionITSTPCmatchPhysPrim", "Fraction of ITSTPC matched tracks vs Pt (physical primary); Pt [GeV/c]; Eff", nbinsPt, xbinsPt);
+  mPtPhysPrim = new TH1F("mPtPhysPrim", "Pt distribution of matched tracks (physical primary); Pt [GeV/c]; dNdPt", nbinsPt, xbinsPt);
 
   mPtTPC->Sumw2();
   mPt->Sumw2();
@@ -100,6 +114,13 @@ bool MatchITSTPCQC::init()
   mPtPhysPrim->Sumw2();
   mPhiTPCPhysPrim->Sumw2();
   mPhiPhysPrim->Sumw2();
+
+  mPtTPC->SetOption("logy");
+  mPt->SetOption("logy");
+  mEta->SetOption("logy");
+  mChi2Matching->SetOption("logy");
+  mChi2Refit->SetOption("logy");
+  mTimeResVsPt->SetOption("colz logz logy logx");
 
   o2::base::GeometryManager::loadGeometry(mGeomFileName);
   o2::base::Propagator::initFieldFromGRP(mGRPFileName);
