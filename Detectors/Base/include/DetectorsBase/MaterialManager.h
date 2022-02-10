@@ -267,13 +267,6 @@ class MaterialManager
   bool mApplySpecialProcesses = true;
   bool mApplySpecialCuts = true;
 
-  /// specific names of keys wo expect and write in cut and process JSON files
-  static constexpr const char* jsonKeyID = "id";
-  static constexpr const char* jsonKeyIDGlobal = "global_id";
-  static constexpr const char* jsonKeyDefault = "default";
-  static constexpr const char* jsonKeyCuts = "cuts";
-  static constexpr const char* jsonKeyProcesses = "processes";
-
  public:
   ClassDefNV(MaterialManager, 0);
 };

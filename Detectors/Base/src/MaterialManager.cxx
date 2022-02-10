@@ -51,6 +51,15 @@ void writeSingleJSONParamBatch(int NPARAMS, std::map<K, V> const& valMap, V defa
     paramArr.PushBack(defaultValue, a);
   }
 }
+
+/// specific names of keys wo expect and write in cut and process JSON files
+static constexpr const char* jsonKeyID = "local_id";
+static constexpr const char* jsonKeyIDGlobal = "global_id";
+static constexpr const char* jsonKeyDefault = "default";
+static constexpr const char* jsonKeyCuts = "cuts";
+static constexpr const char* jsonKeyProcesses = "processes";
+static constexpr const char* jsonKeyEnableSpecialCuts = "enableSpecialCuts";
+static constexpr const char* jsonKeyEnableSpecialProcesses = "uenableSpecialProcesses";
 } // namespace
 
 const std::unordered_map<EProc, const char*> MaterialManager::mProcessIDToName = {
@@ -401,6 +410,13 @@ void MaterialManager::loadCutsAndProcessesFromJSON(ESpecial special, std::string
       digestProcessesFromJSON(-1, defaultParams[jsonKeyProcesses]);
     }
   } else if (special == ESpecial::kTRUE) {
+    // read whether to apply special cuts and processes at all
+    if (d.HasMember(jsonKeyEnableSpecialCuts)) {
+      enableSpecialCuts(d[jsonKeyEnableSpecialCuts].GetBool());
+    }
+    if (d.HasMember(jsonKeyEnableSpecialProcesses)) {
+      enableSpecialProcesses(d[jsonKeyEnableSpecialProcesses].GetBool());
+    }
     // special
     for (auto& m : d.GetObject()) {
       if (m.name.GetString()[0] == '\0' || !m.value.IsArray()) {
@@ -463,6 +479,12 @@ void MaterialManager::writeCutsAndProcessesToJSON(std::string const& filename)
       // IDs
       oLoc.AddMember(rj::Value(jsonKeyID, std::strlen(jsonKeyID), a), rj::Value(locToGlob.first), a);
       oLoc.AddMember(rj::Value(jsonKeyIDGlobal, std::strlen(jsonKeyIDGlobal)), rj::Value(locToGlob.second), a);
+      // add medium and material name
+      auto mediumIt = mTGeoMediumMap.find({itMed.first, locToGlob.first});
+      const char* medName = mediumIt->second->GetName();
+      const char* matName = mediumIt->second->GetMaterial()->GetName();
+      oLoc.AddMember(rj::Value("medium_name", 11, a), rj::Value(medName, std::strlen(medName), a), a);
+      oLoc.AddMember(rj::Value("material_name", 13, a), rj::Value(matName, std::strlen(matName), a), a);
       // prepare for cuts
       if (itCut != mMediumCutMap.end()) {
         rj::Value cutArr(rj::kArrayType);
@@ -491,6 +513,8 @@ void MaterialManager::writeCutsAndProcessesToJSON(std::string const& filename)
   defaultParams.AddMember(rj::Value(jsonKeyProcesses, std::strlen(jsonKeyProcesses), a), procArr, a);
   d.AddMember(rj::Value(jsonKeyDefault, std::strlen(jsonKeyDefault), a), defaultParams, a);
 
+  d.AddMember(rj::Value(jsonKeyEnableSpecialCuts, std::strlen(jsonKeyEnableSpecialCuts), a), rj::Value(mApplySpecialCuts), a);
+  d.AddMember(rj::Value(jsonKeyEnableSpecialProcesses, std::strlen(jsonKeyEnableSpecialProcesses), a), rj::Value(mApplySpecialProcesses), a);
   // now write to file
   rj::OStreamWrapper osw(os);
   rj::PrettyWriter<rj::OStreamWrapper> writer(osw);
