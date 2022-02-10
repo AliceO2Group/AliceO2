@@ -141,6 +141,10 @@ class DataProcessingDevice : public FairMQDevice
   void fillContext(DataProcessorContext& context, DeviceContext& deviceContext);
 
  private:
+  /// Initialise the socket pollers / timers
+  void initPollers();
+  void startPollers();
+  void stopPollers();
   DeviceContext mDeviceContext;
   /// The specification used to create the initial state of this device
   DeviceSpec const& mSpec;
