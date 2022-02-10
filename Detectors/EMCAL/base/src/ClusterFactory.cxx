@@ -272,7 +272,7 @@ void ClusterFactory<InputType>::evalGlobalPosition(gsl::span<const int> inputsIn
 
     // get the local coordinates of the cell
     try {
-      mGeomPtr->RelPosCellInSModule(mInputsContainer[iInput].getTower(), dist).GetCoordinates(xyzi[0], xyzi[1], xyzi[2]);
+      mGeomPtr->RelPosCellInSModule(mInputsContainer[iInput].getTower(), dist).GetCoordinates(lxyzi[0], lxyzi[1], lxyzi[2]);
     } catch (InvalidCellIDException& e) {
       LOG(error) << e.what();
       continue;
