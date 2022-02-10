@@ -265,6 +265,7 @@ void DigiReco::prepareInterpolation()
 int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, const gsl::span<const o2::zdc::BCData>& bcdata, const gsl::span<const o2::zdc::ChannelData>& chdata)
 {
 #ifdef O2_ZDC_DEBUG
+  LOG(info) << "________________________________________________________________________________";
   LOG(info) << __func__;
 #endif
   // We assume that vectors contain data from a full time frame
@@ -382,6 +383,9 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
   // Apply pile-up correction for TDCs to get corrected TDC amplitudes and values
   correctTDCPile();
 
+  // Recentering ot corrected TDCs
+  recenterTDC();
+
   // ADC reconstruction
   seq_beg = 0;
   seq_end = 0;
@@ -421,7 +425,6 @@ void DigiReco::lowPassFilter()
 #ifdef O2_ZDC_DEBUG
   LOG(info) << "________________________________________________________________________________";
   LOG(info) << __func__;
-  LOG(info) << "________________________________________________________________________________";
 #endif
   constexpr int MaxTimeBin = NTimeBinsPerBC - 1;
   for (int itdc = 0; itdc < NTDCChannels; itdc++) {
@@ -1292,6 +1295,7 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
       assignTDC(ibun, ibeg, iend, itdc, tdc, amp);
     }
   }
+  // TODO: add logic to assign TDC in presence of overflow
 } // interpolate
 
 void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float amp)
@@ -1300,39 +1304,8 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
   constexpr int tdc_max = nsbun / 2;
   constexpr int tdc_min = -tdc_max;
 
-  // Apply tdc shift compensation (re-centering)
-  int tdc_cor = tdc - tdc_shift[itdc];
-  // Correct bunch assignment
-  // NB: we don't add new bunches to the reconstructed list if they
-  // don't exist in data, in this case we add the events to the first
-  // or last bunch in the list
-  // This situation can happen for a beam satellite close to the bunch
-  // crossing boundary if the main-main is not centered w.r.t. the
-  // 12 samples acquired in each bunch crossing
-  if (tdc_cor < tdc_min && ibun >= ibeg) {
-    // Assign to preceding bunch
-    ibun = ibun - 1;
-    tdc_cor = tdc_cor + nsbun;
-  } else if (tdc_cor >= tdc_max && ibun < iend) {
-    // Assign to following bunch
-    ibun = ibun + 1;
-    tdc_cor = tdc_cor - nsbun;
-  }
-  if (tdc_cor < kMinShort) {
-    LOG(error) << "TDC " << itdc << " " << tdc_cor << " is out of range";
-    tdc_cor = kMinShort;
-  }
-  if (tdc_cor > kMaxShort) {
-    LOG(error) << "TDC " << itdc << " " << tdc_cor << " is out of range";
-    tdc_cor = kMaxShort;
-  }
-
   auto& rec = mReco[ibun];
 
-  // Encode amplitude and assign to correct bunch
-  auto myamp = std::nearbyint(amp / FTDCAmp);
-  rec.TDCVal[itdc].push_back(tdc_cor);
-  rec.TDCAmp[itdc].push_back(myamp);
   // Flag hit position in sequence
   if (ibun == ibeg) {
     rec.isBeg[itdc] = true;
@@ -1340,19 +1313,45 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
   if (ibun == iend) {
     rec.isEnd[itdc] = true;
   }
+  auto TDCVal = tdc;
+  auto TDCAmp = amp;
+
+  // Correct for time bias on single signals
+  float TDCValCorr, TDCAmpCorr;
+  if (mCorrSignal == 0 || correctTDCSignal(itdc, tdc, amp, TDCValCorr, TDCAmpCorr, rec.isBeg[itdc], rec.isEnd[itdc]) != 0) {
+    // Cannot apply amplitude correction for isolated signal
+    rec.tdcSigE[TDCSignal[itdc]] = true;
+  } else {
+    TDCVal = std::nearbyint(TDCValCorr);
+    TDCAmp = std::nearbyint(TDCAmpCorr);
+  }
+
+  if (TDCVal < kMinShort) {
+    LOG(error) << "TDC " << itdc << " " << TDCVal << " is out of range";
+    TDCVal = kMinShort;
+  }
+  if (TDCVal > kMaxShort) {
+    LOG(error) << "TDC " << itdc << " " << TDCVal << " is out of range";
+    TDCVal = kMaxShort;
+  }
+
+  // Encode amplitude and assign to correct bunch
+  auto myamp = std::nearbyint(TDCAmp / FTDCAmp);
+  rec.TDCVal[itdc].push_back(TDCVal);
+  rec.TDCAmp[itdc].push_back(myamp);
 #ifdef O2_ZDC_DEBUG
-  LOG(info) << __func__ << " @ " << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
-            << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor << " -> " << tdc_cor * FTDCVal
-            << " amp=" << amp << " -> " << myamp << (ibun == ibeg ? " B" : "") << (ibun == iend ? " E" : "");
+  LOG(info) << __func__ << " @ " << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " " << "ibun=" << ibun << " itdc=" << itdc
+            << " tdc=" << tdc << " -> TDCVal=" << TDCVal << "=" << TDCVal * FTDCVal
+            << " amp=" << amp << " -> TDCAmp=" << TDCAmp << " -> " << myamp << (ibun == ibeg ? " B" : "") << (ibun == iend ? " E" : "");
 #endif
   int& ihit = mReco[ibun].ntdc[itdc];
 #ifdef O2_ZDC_TDC_C_ARRAY
   if (ihit < MaxTDCValues) {
-    rec.tdcVal[itdc][ihit] = tdc_cor;
+    rec.tdcVal[itdc][ihit] = TDCVal;
     rec.tdcAmp[itdc][ihit] = myamp;
   } else {
     LOG(error) << rec.ir.orbit << "." << rec.ir.bc << " "
-               << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp * FTDCAmp << " OVERFLOW";
+               << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " TDCVal=" << TDCVal * FTDCVal << " TDCAmp=" << TDCAmp * FTDCAmp << " OVERFLOW";
   }
 #endif
   int isig = TDCSignal[itdc];
@@ -1369,7 +1368,7 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
   }
 #ifdef O2_ZDC_DEBUG
   LOG(info) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc
-            << " ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp << " -> " << myamp
+            << " ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " TDCVal=" << TDCVal * FTDCVal << " TDCAmp=" << TDCAmp << " -> " << myamp
             << " mSource[" << isig << "] = " << unsigned(mSource[isig]);
 #endif
   ihit++;
@@ -1503,7 +1502,6 @@ void DigiReco::correctTDCPile()
 #ifdef O2_ZDC_DEBUG
   LOG(info) << "________________________________________________________________________________";
   LOG(info) << __func__;
-  LOG(info) << "________________________________________________________________________________";
 #endif
 
   // TODO: Perform actual pile-up correction for TDCs.. this is still work in progress..
@@ -1557,18 +1555,6 @@ void DigiReco::correctTDCPile()
               }
             }
           }
-        } else {
-          // Correct isolated signal
-          int16_t TDCVal = rec->TDCVal[itdc][0];
-          int16_t TDCAmp = rec->TDCAmp[itdc][0];
-          float TDCValCorr, TDCAmpCorr;
-          if (mCorrSignal == 0 || correctTDCSignal(itdc, TDCVal, TDCAmp, TDCValCorr, TDCAmpCorr, rec->isBeg[itdc], rec->isEnd[itdc]) != 0) {
-            // Cannot apply amplitude correction for isolated signal
-            rec->tdcSigE[TDCSignal[itdc]] = true;
-          } else {
-            rec->TDCVal[itdc][0] = std::nearbyint(TDCValCorr);
-            rec->TDCAmp[itdc][0] = std::nearbyint(TDCAmpCorr);
-          }
         }
         // Add current event at the end of the queue
         for (int ihit = 0; ihit < rec->ntdc[itdc]; ihit++) {
@@ -1579,8 +1565,10 @@ void DigiReco::correctTDCPile()
   }
 } // correctTDCPile
 
-int DigiReco::correctTDCSignal(int itdc, int16_t TDCVal, int16_t TDCAmp, float& FTDCVal, float& FTDCAmp, bool isbeg, bool isend)
+int DigiReco::correctTDCSignal(int itdc, int16_t TDCVal, float TDCAmp, float& FTDCVal, float& FTDCAmp, bool isbeg, bool isend)
 {
+  // Correction of single TDC signals
+  // TDCVal is before recentering
   constexpr int TDCRange = TSN * NTimeBinsPerBC;
   constexpr int TDCMax = TDCRange - TSNH;
   // This function takes into account the position of the signal in the sequence
@@ -1600,18 +1588,20 @@ int DigiReco::correctTDCSignal(int itdc, int16_t TDCVal, int16_t TDCAmp, float& 
     if (TDCVal > TSNH && TDCVal < p0) {
       auto diff = TDCVal - p0;
       auto p2 = mTDCCorr->mTSBegC[itdc][2];
-      auto p2 = mTDCCorr->mTSBegC[itdc][3];
+      auto p3 = mTDCCorr->mTSBegC[itdc][3];
       FTDCVal = TDCVal - (p2 * diff + p3 * diff * diff);
     } else {
       FTDCVal = TDCVal;
     }
   } else if (isend == true) {
     auto p0 = mTDCCorr->mTSEndC[itdc][0];
-    if (TDCVal > p0 TDCVal < TDCMax) {
+    printf("p0 = %g TDCVal = %d\n", p0, TDCVal);
+    if (TDCVal > p0 && TDCVal < TDCMax) {
       auto diff = TDCVal - p0;
       auto p2 = mTDCCorr->mTSEndC[itdc][2];
-      auto p2 = mTDCCorr->mTSEndC[itdc][3];
+      auto p3 = mTDCCorr->mTSEndC[itdc][3];
       FTDCVal = TDCVal - (p2 * diff + p3 * diff * diff);
+      printf("diff = %g corr = %g\n", diff, p2 * diff + p3 * diff * diff);
     } else {
       FTDCVal = TDCVal;
     }
@@ -1621,7 +1611,54 @@ int DigiReco::correctTDCSignal(int itdc, int16_t TDCVal, int16_t TDCAmp, float& 
 #endif
     return 1;
   }
-}
+  return 0;
+} // correctTDCSignal
+
+void DigiReco::recenterTDC()
+{
+  for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+    // Queue is empty at first event of the time frame
+    // TODO: collect information from previous time frame
+    std::deque<DigiRecoTDC> tdc;
+    for (int ibc = 0; ibc < mNBC; ibc++) {
+      // Bunch to be corrected
+      auto rec = &mReco[ibc];
+      for (int ihit = 0; ihit < rec->ntdc[itdc]; ihit++) {
+        // Apply tdc shift compensation (re-centering)
+        int TDCVal = rec->TDCVal[itdc][ihit] - tdc_shift[itdc];
+        if (TDCVal < kMinShort) {
+          LOG(error) << "TDC " << itdc << " " << TDCVal << " is out of range";
+          rec->TDCVal[itdc][ihit] = kMinShort;
+        } else if (TDCVal > kMaxShort) {
+          LOG(error) << "TDC " << itdc << " " << TDCVal << " is out of range";
+          rec->TDCVal[itdc][ihit] = kMaxShort;
+        } else {
+          rec->TDCVal[itdc][ihit] = TDCVal;
+        }
+      }
+      // Correct bunch assignment
+      // NB: we don't add new bunches to the reconstructed list if they
+      // don't exist in data, in this case we add the events to the first
+      // or last bunch in the list
+      // This situation can happen for a beam satellite close to the bunch
+      // crossing boundary if the main-main is not centered w.r.t. the
+      // 12 samples acquired in each bunch crossing
+      //   if (tdc_cor < tdc_min && ibun >= ibeg) {
+      //     // Assign to preceding bunch
+      //     ibun = ibun - 1;
+      //     tdc_cor = tdc_cor + nsbun;
+      //   } else if (tdc_cor >= tdc_max && ibun < iend) {
+      //     // Assign to following bunch
+      //     ibun = ibun + 1;
+      //     tdc_cor = tdc_cor - nsbun;
+      //   }
+      // This will likely cause some issues analyzing data since there is
+      // some information that is attached to the bunch that would be no
+      // longer linked to the signal
+      // Decided to remove this re-assignment
+    }
+  }
+} // recenterTDC
 
 int DigiReco::correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& tdc)
 {

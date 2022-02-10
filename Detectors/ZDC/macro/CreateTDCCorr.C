@@ -65,6 +65,22 @@ void CreateTDCCorr(long tmin = 0, long tmax = -1, std::string ccdbHost = "http:/
       }
     }
   }
+  // Corrections for single signal
+  for (int32_t itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
+    // TDC time correction, constant, beginning of sequence
+    for (int32_t ipar = 0; ipar < o2::zdc::ZDCTDCCorr::NParExtC; ipar++) {
+      conf.mTSBegC[itdc][ipar] = ts_beg_c[o2::zdc::ZDCTDCCorr::NParExtC * itdc + ipar];
+    }
+    // TDC time correction, constant, mid of sequence
+    for (int32_t ipar = 0; ipar < o2::zdc::ZDCTDCCorr::NParMidC; ipar++) {
+      conf.mTSMidC[itdc][ipar] = ts_mid_c[o2::zdc::ZDCTDCCorr::NParMidC * itdc + ipar];
+    }
+    // TDC time correction, constant, end of sequence
+    for (int32_t ipar = 0; ipar < o2::zdc::ZDCTDCCorr::NParExtC; ipar++) {
+      conf.mTSEndC[itdc][ipar] = ts_end_c[o2::zdc::ZDCTDCCorr::NParExtC * itdc + ipar];
+    }
+  }
+
   conf.print();
 
   o2::ccdb::CcdbApi api;
