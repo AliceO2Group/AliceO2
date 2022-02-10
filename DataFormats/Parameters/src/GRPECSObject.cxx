@@ -27,6 +27,7 @@ void GRPECSObject::print() const
 {
   // print itself
   std::time_t ts = mTimeStart / 1000, te = mTimeEnd / 1000;
+  printf("Run %d of type %d, period %s\n", mRun, int(mRunType), mDataPeriod.c_str());
   printf("Start: %s", std::ctime(&ts));
   printf("End  : %s", std::ctime(&te));
   printf("isMC : %d ", isMC());
