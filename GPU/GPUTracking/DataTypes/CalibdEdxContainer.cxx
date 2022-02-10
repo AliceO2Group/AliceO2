@@ -124,7 +124,7 @@ float CalibdEdxContainer::getMinZeroSupresssionThreshold() const
     return mCalibTrackTopologyPol->getMinThreshold();
   } else {
     const float minThr = 0;
-    LOGP(info, "Topology correction not set! Returning defualt min threshold of: {}", minThr);
+    LOGP(info, "Topology correction not set! Returning default min threshold of: {}", minThr);
     return minThr;
   }
 }
@@ -135,7 +135,7 @@ float CalibdEdxContainer::getMaxZeroSupresssionThreshold() const
     return mCalibTrackTopologyPol->getMaxThreshold();
   } else {
     const float maxThr = 1;
-    LOGP(info, "Topology correction not set! Returning defualt max threshold of: {}", maxThr);
+    LOGP(info, "Topology correction not set! Returning default max threshold of: {}", maxThr);
     return maxThr;
   }
 }
@@ -167,7 +167,7 @@ void CalibdEdxContainer::setZeroSupresssionThreshold(const CalDet<float>& thresh
 
 void CalibdEdxContainer::setDefaultZeroSupresssionThreshold()
 {
-  const float defaultVal = getMinZeroSupresssionThreshold();
+  const float defaultVal = getMinZeroSupresssionThreshold() + (getMaxZeroSupresssionThreshold() - getMinZeroSupresssionThreshold()) / 2;
   mThresholdMap.setMinCorrectionFactor(defaultVal - 0.1f);
   mThresholdMap.setMaxCorrectionFactor(defaultVal + 0.1f);
   for (int sector = 0; sector < o2::tpc::constants::MAXSECTOR; ++sector) {
