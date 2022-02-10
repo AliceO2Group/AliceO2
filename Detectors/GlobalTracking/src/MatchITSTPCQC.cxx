@@ -134,8 +134,8 @@ bool MatchITSTPCQC::init()
   mPhiPhysPrim = new TH1F("mPhiPhysPrim", "Phi distribution of matched tracks (physical primary); Phi [rad]; dNdPhi", 100, 0.f, 2 * TMath::Pi());
   // ...till here
   mEta = new TH1F("mEta", "Eta distribution of matched tracks; Eta; dNdEta", 100, -2.f, 2.f);
-  mChi2Matching = new TH1F("mChi2Matching", "Chi2 of matching; chi2", 300, 0, 30);
-  mChi2Refit = new TH1F("mChi2Refit", "Chi2 of refit; chi2", 1000, 0, 100);
+  mChi2Matching = new TH1F("mChi2Matching", "Chi2 of matching; chi2", 100, 0, 30);
+  mChi2Refit = new TH1F("mChi2Refit", "Chi2 of refit; chi2", 200, 0, 100);
 
   mPtTPC->GetYaxis()->SetTitleOffset(1.4);
   mPt->GetYaxis()->SetTitleOffset(1.4);
