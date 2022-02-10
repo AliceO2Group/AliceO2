@@ -56,8 +56,30 @@ class CPVNoiseCalibratorSpec : public o2::framework::Task
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("digits").header)->startTime;
     auto&& digits = pc.inputs().get<gsl::span<o2::cpv::Digit>>("digits");
     auto&& trigrecs = pc.inputs().get<gsl::span<o2::cpv::TriggerRecord>>("trigrecs");
-    auto deadChs = pc.inputs().get<std::vector<int>>("deadchs");
-    LOG(info) << "NoiseCalibratorSpec::run() : I got deadchs vector with size = " << deadChs.size();
+
+    // read pedestal efficiencies, dead and high ped channels from pedestal run
+    // do it only once as they don't change during noise scan
+    if (!mCalibrator->mPedEfficiencies) {
+      const auto pedEffs = o2::framework::DataRefUtils::as<CCDBSerialized<std::vector<float>>>(pc.inputs().get("pedeffs"));
+      if (pedEffs) {
+        mCalibrator->mPedEfficiencies = new std::vector<float>(pedEffs->begin(), pedEffs->end());
+        LOG(info) << "NoiseCalibratorSpec()::run() : I got pedestal efficiencies vetor of size " << mCalibrator->mPedEfficiencies->size();
+      }
+    }
+    if (!mCalibrator->mDeadChannels) {
+      const auto deadChs = o2::framework::DataRefUtils::as<CCDBSerialized<std::vector<int>>>(pc.inputs().get("deadchs"));
+      if (deadChs) {
+        mCalibrator->mDeadChannels = new std::vector<int>(deadChs->begin(), deadChs->end());
+        LOG(info) << "NoiseCalibratorSpec()::run() : I got dead channels vetor of size " << mCalibrator->mDeadChannels->size();
+      }
+    }
+    if (!mCalibrator->mHighPedChannels) {
+      const auto highPeds = o2::framework::DataRefUtils::as<CCDBSerialized<std::vector<int>>>(pc.inputs().get("highpeds"));
+      if (highPeds) {
+        mCalibrator->mHighPedChannels = new std::vector<int>(highPeds->begin(), highPeds->end());
+        LOG(info) << "NoiseCalibratorSpec()::run() : I got high pedestal channels vetor of size " << mCalibrator->mHighPedChannels->size();
+      }
+    }
 
     LOG(info) << "Processing TF " << tfcounter << " with " << digits.size() << " digits in " << trigrecs.size() << " trigger records.";
     auto& slotTF = mCalibrator->getSlotForTF(tfcounter);
@@ -80,27 +102,6 @@ class CPVNoiseCalibratorSpec : public o2::framework::Task
       LOG(info) << "Created " << infoVecSize << " ccdb infos and " << badMapVecSize << " pedestal objects for TF " << tfcounter;
     }
     sendOutput(pc.outputs());
-  }
-  //_________________________________________________________________
-  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
-  {
-    LOG(info) << "finaliseCCDB() : I've been called with ConcreteDataMatcher" << matcher.origin.str << "/" << matcher.description.str << "/" << matcher.subSpec;
-    if (matcher == ConcreteDataMatcher{"CPV", "CPV_PedEffs", 0}) {
-      auto* pedEffs = static_cast<std::vector<float>*>(obj);
-      mCalibrator->mPedEfficiencies = pedEffs;
-      LOG(info) << "finaliseCCDB() : obtained vector of pedestal efficiencies from CCDB";
-    }
-
-    if (matcher == ConcreteDataMatcher{"CPV", "CPV_DeadChnls", 0}) {
-      auto* deadCh = static_cast<std::vector<int>*>(obj);
-      mCalibrator->mDeadChannels = deadCh;
-      LOG(info) << "finaliseCCDB() : obtained vector of dead channels from CCDB";
-    }
-    if (matcher == ConcreteDataMatcher{"CPV", "CPV_HighThrs", 0}) {
-      auto* highPeds = static_cast<std::vector<int>*>(obj);
-      mCalibrator->mHighPedChannels = highPeds;
-      LOG(info) << "finaliseCCDB() : obtained vector of high pedestal channels from CCDB";
-    }
   }
   //_________________________________________________________________
  private:
