@@ -297,7 +297,7 @@ void DataProcessingDevice::Init()
     if (entry.second.empty() == false) {
       boost::property_tree::json_parser::write_json(ss, entry.second, false);
       str = ss.str();
-      str.pop_back(); //remove EoL
+      str.pop_back(); // remove EoL
     } else {
       str = entry.second.get_value<std::string>();
     }
@@ -385,6 +385,111 @@ void on_awake_main_thread(uv_async_t* handle)
   state->loopReason |= DeviceState::ASYNC_NOTIFICATION;
 }
 } // namespace
+
+void DataProcessingDevice::initPollers()
+{
+  // We add a timer only in case a channel poller is not there.
+  if ((mStatefulProcess != nullptr) || (mStatelessProcess != nullptr)) {
+    for (auto& x : fChannels) {
+      if ((x.first.rfind("from_internal-dpl", 0) == 0) &&
+          (x.first.rfind("from_internal-dpl-aod", 0) != 0) &&
+          (x.first.rfind("from_internal-dpl-ccdb-backend", 0) != 0) &&
+          (x.first.rfind("from_internal-dpl-injected", 0)) != 0) {
+        LOG(debug) << x.first << " is an internal channel. Skipping as no input will come from there." << std::endl;
+        continue;
+      }
+      // We only watch receiving sockets.
+      if (x.first.rfind("from_" + mSpec.name + "_", 0) == 0) {
+        LOG(debug) << x.first << " is to send data. Not polling." << std::endl;
+        continue;
+      }
+      // We assume there is always a ZeroMQ socket behind.
+      int zmq_fd = 0;
+      size_t zmq_fd_len = sizeof(zmq_fd);
+      // FIXME: I should probably save those somewhere... ;-)
+      auto* poller = (uv_poll_t*)malloc(sizeof(uv_poll_t));
+      x.second[0].GetSocket().GetOption("fd", &zmq_fd, &zmq_fd_len);
+      if (zmq_fd == 0) {
+        LOG(error) << "Cannot get file descriptor for channel." << x.first;
+        continue;
+      }
+      LOG(debug) << "Polling socket for " << x.second[0].GetName();
+      // FIXME: leak
+      auto* pCtx = (PollerContext*)malloc(sizeof(PollerContext));
+      pCtx->name = strdup(x.first.c_str());
+      pCtx->loop = mState.loop;
+      pCtx->device = this;
+      pCtx->state = &mState;
+      pCtx->fd = zmq_fd;
+      poller->data = pCtx;
+      uv_poll_init(mState.loop, poller, zmq_fd);
+      mState.activeInputPollers.push_back(poller);
+    }
+    // In case we do not have any input channel and we do not have
+    // any timers or signal watchers we still wake up whenever we can send data to downstream
+    // devices to allow for enumerations.
+    if (mState.activeInputPollers.empty() && mState.activeTimers.empty() && mState.activeSignals.empty()) {
+      for (auto& x : fChannels) {
+        if (x.first.rfind(mSpec.channelPrefix + "from_internal-dpl", 0) == 0) {
+          LOG(debug) << x.first << " is an internal channel. Not polling." << std::endl;
+          continue;
+        }
+        assert(x.first.rfind(mSpec.channelPrefix + "from_" + mSpec.name + "_", 0) == 0);
+        // We assume there is always a ZeroMQ socket behind.
+        int zmq_fd = 0;
+        size_t zmq_fd_len = sizeof(zmq_fd);
+        // FIXME: I should probably save those somewhere... ;-)
+        auto* poller = (uv_poll_t*)malloc(sizeof(uv_poll_t));
+        x.second[0].GetSocket().GetOption("fd", &zmq_fd, &zmq_fd_len);
+        if (zmq_fd == 0) {
+          LOG(error) << "Cannot get file descriptor for channel." << x.first;
+          continue;
+        }
+        LOG(debug) << "Polling socket for " << x.second[0].GetName();
+        // FIXME: leak
+        auto* pCtx = (PollerContext*)malloc(sizeof(PollerContext));
+        pCtx->name = strdup(x.first.c_str());
+        pCtx->loop = mState.loop;
+        pCtx->device = this;
+        pCtx->state = &mState;
+        pCtx->fd = zmq_fd;
+        poller->data = pCtx;
+        uv_poll_init(mState.loop, poller, zmq_fd);
+        mState.activeOutputPollers.push_back(poller);
+      }
+    }
+  } else {
+    // This is a fake device, so we can request to exit immediately
+    mServiceRegistry.get<ControlService>().readyToQuit(QuitRequest::Me);
+    // A two second timer to stop internal devices which do not want to
+    auto* timer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
+    uv_timer_init(mState.loop, timer);
+    timer->data = &mState;
+    uv_timer_start(timer, on_idle_timer, 2000, 2000);
+    mState.activeTimers.push_back(timer);
+  }
+}
+
+void DataProcessingDevice::startPollers()
+{
+  for (auto& poller : mState.activeInputPollers) {
+    uv_poll_start(poller, UV_READABLE | UV_DISCONNECT, &on_socket_polled);
+  }
+  for (auto& poller : mState.activeOutputPollers) {
+    uv_poll_start(poller, UV_WRITABLE, &on_socket_polled);
+  }
+}
+
+void DataProcessingDevice::stopPollers()
+{
+  for (auto& poller : mState.activeInputPollers) {
+    uv_poll_stop(poller);
+  }
+  for (auto& poller : mState.activeOutputPollers) {
+    uv_poll_stop(poller);
+  }
+}
+
 void DataProcessingDevice::InitTask()
 {
   auto distinct = DataRelayerHelpers::createDistinctRouteIndex(mSpec.inputs);
@@ -441,88 +546,8 @@ void DataProcessingDevice::InitTask()
   sigusr1Handle->data = &mDeviceContext;
   uv_signal_start(sigusr1Handle, on_signal_callback, SIGUSR1);
 
-  // We add a timer only in case a channel poller is not there.
-  if ((mStatefulProcess != nullptr) || (mStatelessProcess != nullptr)) {
-    for (auto& x : fChannels) {
-      if ((x.first.rfind("from_internal-dpl", 0) == 0) &&
-          (x.first.rfind("from_internal-dpl-aod", 0) != 0) &&
-          (x.first.rfind("from_internal-dpl-ccdb-backend", 0) != 0) &&
-          (x.first.rfind("from_internal-dpl-injected", 0)) != 0) {
-        LOG(debug) << x.first << " is an internal channel. Skipping as no input will come from there." << std::endl;
-        continue;
-      }
-      // We only watch receiving sockets.
-      if (x.first.rfind("from_" + mSpec.name + "_", 0) == 0) {
-        LOG(debug) << x.first << " is to send data. Not polling." << std::endl;
-        continue;
-      }
-      // We assume there is always a ZeroMQ socket behind.
-      int zmq_fd = 0;
-      size_t zmq_fd_len = sizeof(zmq_fd);
-      // FIXME: I should probably save those somewhere... ;-)
-      uv_poll_t* poller = (uv_poll_t*)malloc(sizeof(uv_poll_t));
-      x.second[0].GetSocket().GetOption("fd", &zmq_fd, &zmq_fd_len);
-      if (zmq_fd == 0) {
-        LOG(error) << "Cannot get file descriptor for channel." << x.first;
-        continue;
-      }
-      LOG(debug) << "Polling socket for " << x.second[0].GetName();
-      // FIXME: leak
-      PollerContext* pCtx = (PollerContext*)malloc(sizeof(PollerContext));
-      pCtx->name = strdup(x.first.c_str());
-      pCtx->loop = mState.loop;
-      pCtx->device = this;
-      pCtx->state = &mState;
-      pCtx->fd = zmq_fd;
-      poller->data = pCtx;
-      uv_poll_init(mState.loop, poller, zmq_fd);
-      uv_poll_start(poller, UV_READABLE | UV_DISCONNECT, &on_socket_polled);
-      mState.activeInputPollers.push_back(poller);
-    }
-    // In case we do not have any input channel and we do not have
-    // any timers or signal watchers we still wake up whenever we can send data to downstream
-    // devices to allow for enumerations.
-    if (mState.activeInputPollers.empty() && mState.activeTimers.empty() && mState.activeSignals.empty()) {
-      for (auto& x : fChannels) {
-        if (x.first.rfind(mSpec.channelPrefix + "from_internal-dpl", 0) == 0) {
-          LOG(debug) << x.first << " is an internal channel. Not polling." << std::endl;
-          continue;
-        }
-        assert(x.first.rfind(mSpec.channelPrefix + "from_" + mSpec.name + "_", 0) == 0);
-        // We assume there is always a ZeroMQ socket behind.
-        int zmq_fd = 0;
-        size_t zmq_fd_len = sizeof(zmq_fd);
-        // FIXME: I should probably save those somewhere... ;-)
-        uv_poll_t* poller = (uv_poll_t*)malloc(sizeof(uv_poll_t));
-        x.second[0].GetSocket().GetOption("fd", &zmq_fd, &zmq_fd_len);
-        if (zmq_fd == 0) {
-          LOG(error) << "Cannot get file descriptor for channel." << x.first;
-          continue;
-        }
-        LOG(debug) << "Polling socket for " << x.second[0].GetName();
-        // FIXME: leak
-        PollerContext* pCtx = (PollerContext*)malloc(sizeof(PollerContext));
-        pCtx->name = strdup(x.first.c_str());
-        pCtx->loop = mState.loop;
-        pCtx->device = this;
-        pCtx->state = &mState;
-        pCtx->fd = zmq_fd;
-        poller->data = pCtx;
-        uv_poll_init(mState.loop, poller, zmq_fd);
-        uv_poll_start(poller, UV_WRITABLE, &on_socket_polled);
-        mState.activeOutputPollers.push_back(poller);
-      }
-    }
-  } else {
-    // This is a fake device, so we can request to exit immediately
-    mServiceRegistry.get<ControlService>().readyToQuit(QuitRequest::Me);
-    // A two second timer to stop internal devices which do not want to
-    auto* timer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
-    uv_timer_init(mState.loop, timer);
-    timer->data = &mState;
-    uv_timer_start(timer, on_idle_timer, 2000, 2000);
-    mState.activeTimers.push_back(timer);
-  }
+  /// Initialise the pollers
+  DataProcessingDevice::initPollers();
 
   // Whenever we InitTask, we consider as if the previous iteration
   // was successful, so that even if there is no timer or receiving
@@ -604,10 +629,12 @@ void DataProcessingDevice::PreRun()
 {
   mServiceRegistry.preStartCallbacks();
   mServiceRegistry.get<CallbackService>()(CallbackService::Id::Start);
+  startPollers();
 }
 
 void DataProcessingDevice::PostRun()
 {
+  stopPollers();
   mServiceRegistry.get<CallbackService>()(CallbackService::Id::Stop);
   mServiceRegistry.postStopCallbacks();
 }
@@ -740,6 +767,7 @@ void DataProcessingDevice::Run()
     auto& info = mDeviceContext.state->inputChannelInfos[ci];
     info.parts.fParts.clear();
   }
+  mState.transitionHandling = TransitionHandlingState::NoTransition;
 }
 
 /// We drive the state loop ourself so that we will be able to support
@@ -1102,10 +1130,10 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
           //        split parts.
           parts.At(headerIndex).reset(nullptr);
           parts.At(payloadIndex).reset(nullptr);
-          //for (size_t i = 0; i < dh->splitPayloadParts > 0 ? dh->splitPayloadParts * 2 - 1 : 1; ++i) {
-          //  parts.At(headerIndex + 1 + i).reset(nullptr);
-          //}
-          //pi += dh->splitPayloadParts > 0 ? dh->splitPayloadParts - 1 : 0;
+          // for (size_t i = 0; i < dh->splitPayloadParts > 0 ? dh->splitPayloadParts * 2 - 1 : 1; ++i) {
+          //   parts.At(headerIndex + 1 + i).reset(nullptr);
+          // }
+          // pi += dh->splitPayloadParts > 0 ? dh->splitPayloadParts - 1 : 0;
 
         } break;
         case InputType::Invalid: {
