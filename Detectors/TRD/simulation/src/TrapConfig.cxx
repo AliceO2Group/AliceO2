@@ -14,7 +14,7 @@
 //  TRAP config                                                           //
 //                                                                        //
 //  Author: J. Klein (Jochen.Klein@cern.ch) (run2 version                 //
-//          S. Murray (murrays@cern.ch)                   //
+//          S. Murray (murrays@cern.ch)                                   //
 ////////////////////////////////////////////////////////////////////////////
 
 #include "TRDBase/Geometry.h"
