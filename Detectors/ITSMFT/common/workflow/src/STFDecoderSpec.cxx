@@ -90,6 +90,10 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     mDecoder->setFormat(ic.options().get<bool>("old-format") ? GBTLink::OldFormat : GBTLink::NewFormat);
     mUnmutExtraLanes = ic.options().get<bool>("unmute-extra-lanes");
     mVerbosity = ic.options().get<int>("decoder-verbosity");
+    mDumpOnError = ic.options().get<int>("raw-data-dumps");
+    if (mDumpOnError < 0 || mDumpOnError >= int(GBTLink::RawDataDumps::DUMP_NTYPES)) {
+      throw std::runtime_error(fmt::format("unknown raw data dump level {} requested", mDumpOnError));
+    }
     mDecoder->setFillCalibData(mDoCalibData);
     if (o2::utils::Str::pathExists(mNoiseName)) {
       TFile* f = TFile::Open(mNoiseName.data(), "old");
@@ -214,6 +218,10 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     mEstNROF = std::max(mEstNROF, size_t(clusROFVec.size() * 1.2));
   }
 
+  if (mDumpOnError != int(GBTLink::RawDataDumps::DUMP_NONE)) {
+    mDecoder->produceRawDataDumps(mDumpOnError, DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true)));
+  }
+
   if (mDoClusters) {
     LOG(debug) << mSelfName << " Built " << clusCompVec.size() << " clusters in " << clusROFVec.size() << " ROFs";
   }
@@ -281,6 +289,7 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
       {"nthreads", VariantType::Int, 1, {"Number of decoding/clustering threads"}},
       {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},
       {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data) of 1st lane"}},
+      {"raw-data-dumps", VariantType::Int, int(GBTLink::RawDataDumps::DUMP_HBF), {"Raw data dumps on error (0: none, 1: HBF for link, 2: whole TF for all links"}},
       {"unmute-extra-lanes", VariantType::Bool, false, {"allow extra lanes to be as verbose as 1st one"}}}};
 }
 

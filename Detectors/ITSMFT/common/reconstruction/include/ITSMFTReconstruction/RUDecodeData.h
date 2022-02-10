@@ -40,7 +40,7 @@ struct RUDecodeData {
   std::array<uint8_t, MaxCablesPerRU> cableHWID;           // HW ID of cable whose data is in the corresponding slot of cableData
   std::array<uint8_t, MaxCablesPerRU> cableLinkID;         // ID of the GBT link transmitting this cable data
   std::array<GBTLink*, MaxCablesPerRU> cableLinkPtr;       // Ptr of the GBT link transmitting this cable data
-
+  std::unordered_map<uint64_t, uint32_t> linkHBFToDump;    // FEEID<<32+hbfEntry to dump in case of error
   int ruSWID = -1;         // SW (stave) ID
   int nCables = 0;         // total number of cables decoded for single trigger
   int nChipsFired = 0;     // number of chips with data or with errors

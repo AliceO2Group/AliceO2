@@ -38,9 +38,10 @@ void Digitizer::init()
     auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
     ccdbMgr.setCaching(true);                     //make local cache of remote objects
     ccdbMgr.setLocalObjectValidityChecking(true); //query objects from remote site only when local one is not valid
-    //read calibration from ccdb (for now do it only at the beginning of dataprocessing)
-    //TODO: setup timestam according to anchors
-    ccdbMgr.setTimestamp(o2::ccdb::getCurrentTimestamp());
+    // read calibration from ccdb (for now do it only at the beginning of dataprocessing)
+    // TODO: setup timestam according to anchors
+    // Do not set timestamp here: This should be set from the framework and is done via the digitizer workflow
+    // ccdbMgr.setTimestamp(o2::ccdb::getCurrentTimestamp());
 
     LOG(info) << "CCDB: Reading o2::cpv::CalibParams from CPV/Calib/Gains";
     mCalibParams = ccdbMgr.get<o2::cpv::CalibParams>("CPV/Calib/Gains");

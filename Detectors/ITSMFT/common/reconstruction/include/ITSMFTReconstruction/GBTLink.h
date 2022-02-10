@@ -30,11 +30,15 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "CommonDataFormat/InteractionRecord.h"
 
-#define GBTLINK_DECODE_ERRORCHECK(errRes, errEval) \
-  errRes = errEval;                                \
-  if ((errRes) == Abort) {                         \
-    discardData();                                 \
-    return AbortedOnError;                         \
+#define GBTLINK_DECODE_ERRORCHECK(errRes, errEval)                            \
+  errRes = errEval;                                                           \
+  if ((errRes)&uint8_t(ErrorPrinted)) {                                       \
+    ruPtr->linkHBFToDump[(uint64_t(subSpec) << 32) + hbfEntry] = irHBF.orbit; \
+    errRes &= ~uint8_t(ErrorPrinted);                                         \
+  }                                                                           \
+  if ((errRes)&uint8_t(Abort)) {                                              \
+    discardData();                                                            \
+    return AbortedOnError;                                                    \
   }
 
 namespace o2
@@ -50,6 +54,11 @@ struct GBTTrigger;
 /// support for the GBT single link data
 struct GBTLink {
 
+  enum RawDataDumps : int { DUMP_NONE, // no raw data dumps on error
+                            DUMP_HBF,  // dump HBF for FEEID with error
+                            DUMP_TF,   // dump whole TF at error
+                            DUMP_NTYPES };
+
   enum Format : int8_t { OldFormat,
                          NewFormat,
                          NFormats };
@@ -59,10 +68,11 @@ struct GBTLink {
                                       StoppedOnEndOfData,
                                       DataSeen }; // None is set before starting collectROFCableData
 
-  enum ErrorType : int8_t { NoError,
-                            Warning,
-                            Skip,
-                            Abort };
+  enum ErrorType : uint8_t { NoError = 0x0,
+                             Warning = 0x1,
+                             Skip = 0x2,
+                             Abort = 0x4,
+                             ErrorPrinted = 0x1 << 7 };
 
   enum Verbosity : int8_t { Silent = -1,
                             VerboseErrors,
@@ -82,7 +92,7 @@ struct GBTLink {
   uint16_t feeID = 0;     // FEE ID
   uint16_t channelID = 0; // channel ID in the reader input
   uint32_t lanes = 0;     // lanes served by this link
-
+  uint32_t subSpec = 0;   // link subspec
   // RS do we need this >> ? // Legacy from old data format encoder
   int lastPageSize = 0; // size of last added page = offset from the end to get to the RDH
   int nTriggers = 0;    // number of triggers loaded (the last one might be incomplete)
@@ -98,8 +108,10 @@ struct GBTLink {
   int32_t packetCounter = -1; // current packet counter from RDH (RDH.packetCounter)
   uint32_t trigger = 0;       // trigger word
   uint32_t errorBits = 0;     // bits of the error code of last frame decoding (if any)
+  uint32_t hbfEntry = 0;      // entry of the current HBF page in the rawData SG list
   const RDH* lastRDH = nullptr;
-  o2::InteractionRecord ir;       // interaction record
+  o2::InteractionRecord ir;       // interaction record of the ROF
+  o2::InteractionRecord irHBF;    // interaction record of the HBF
   GBTLinkDecodingStat statistics; // link decoding statistics
   ChipStat chipStat;              // chip decoding statistics
   RUDecodeData* ruPtr = nullptr;  // pointer on the parent RU
@@ -140,36 +152,36 @@ struct GBTLink {
   {
     return true;
   }
-  ErrorType checkErrorsRDHStop(const RDH& rdh) const { return NoError; }
-  ErrorType checkErrorsRDHStopPageEmpty(const RDH& rdh) const { return NoError; }
-  ErrorType checkErrorsTriggerWord(const GBTTrigger* gbtTrg) const { return NoError; }
-  ErrorType checkErrorsHeaderWord(const GBTDataHeader* gbtH) const { return NoError; }
-  ErrorType checkErrorsHeaderWord(const GBTDataHeaderL* gbtH) const { return NoError; }
-  ErrorType checkErrorsActiveLanes(int cables) const { return NoError; }
-  ErrorType checkErrorsGBTData(int cablePos) const { return NoError; }
-  ErrorType checkErrorsTrailerWord(const GBTDataTrailer* gbtT) const { return NoError; }
-  ErrorType checkErrorsPacketDoneMissing(const GBTDataTrailer* gbtT, bool notEnd) const { return NoError; }
-  ErrorType checkErrorsLanesStops() const { return NoError; }
-  ErrorType checkErrorsDiagnosticWord(const GBTDiagnostic* gbtD) const { return NoError; }
-  ErrorType checkErrorsCalibrationWord(const GBTCalibration* gbtCal) const { return NoError; }
-  ErrorType checkErrorsCableID(const GBTData* gbtD, uint8_t cableSW) const { return NoError; }
+  uint8_t checkErrorsRDHStop(const RDH& rdh) const { return NoError; }
+  uint8_t checkErrorsRDHStopPageEmpty(const RDH& rdh) const { return NoError; }
+  uint8_t checkErrorsTriggerWord(const GBTTrigger* gbtTrg) const { return NoError; }
+  uint8_t checkErrorsHeaderWord(const GBTDataHeader* gbtH) const { return NoError; }
+  uint8_t checkErrorsHeaderWord(const GBTDataHeaderL* gbtH) const { return NoError; }
+  uint8_t checkErrorsActiveLanes(int cables) const { return NoError; }
+  uint8_t checkErrorsGBTData(int cablePos) const { return NoError; }
+  uint8_t checkErrorsTrailerWord(const GBTDataTrailer* gbtT) const { return NoError; }
+  uint8_t checkErrorsPacketDoneMissing(const GBTDataTrailer* gbtT, bool notEnd) const { return NoError; }
+  uint8_t checkErrorsLanesStops() const { return NoError; }
+  uint8_t checkErrorsDiagnosticWord(const GBTDiagnostic* gbtD) const { return NoError; }
+  uint8_t checkErrorsCalibrationWord(const GBTCalibration* gbtCal) const { return NoError; }
+  uint8_t checkErrorsCableID(const GBTData* gbtD, uint8_t cableSW) const { return NoError; }
 #else
-  ErrorType checkErrorsRDH(const RDH& rdh);
-  ErrorType checkErrorsRDHStop(const RDH& rdh);
-  ErrorType checkErrorsRDHStopPageEmpty(const RDH& rdh);
-  ErrorType checkErrorsTriggerWord(const GBTTrigger* gbtTrg);
-  ErrorType checkErrorsHeaderWord(const GBTDataHeader* gbtH);
-  ErrorType checkErrorsHeaderWord(const GBTDataHeaderL* gbtH);
-  ErrorType checkErrorsActiveLanes(int cables);
-  ErrorType checkErrorsGBTData(int cablePos);
-  ErrorType checkErrorsTrailerWord(const GBTDataTrailer* gbtT);
-  ErrorType checkErrorsPacketDoneMissing(const GBTDataTrailer* gbtT, bool notEnd);
-  ErrorType checkErrorsLanesStops();
-  ErrorType checkErrorsDiagnosticWord(const GBTDiagnostic* gbtD);
-  ErrorType checkErrorsCalibrationWord(const GBTCalibration* gbtCal);
-  ErrorType checkErrorsCableID(const GBTData* gbtD, uint8_t cableSW);
+  uint8_t checkErrorsRDH(const RDH& rdh);
+  uint8_t checkErrorsRDHStop(const RDH& rdh);
+  uint8_t checkErrorsRDHStopPageEmpty(const RDH& rdh);
+  uint8_t checkErrorsTriggerWord(const GBTTrigger* gbtTrg);
+  uint8_t checkErrorsHeaderWord(const GBTDataHeader* gbtH);
+  uint8_t checkErrorsHeaderWord(const GBTDataHeaderL* gbtH);
+  uint8_t checkErrorsActiveLanes(int cables);
+  uint8_t checkErrorsGBTData(int cablePos);
+  uint8_t checkErrorsTrailerWord(const GBTDataTrailer* gbtT);
+  uint8_t checkErrorsPacketDoneMissing(const GBTDataTrailer* gbtT, bool notEnd);
+  uint8_t checkErrorsLanesStops();
+  uint8_t checkErrorsDiagnosticWord(const GBTDiagnostic* gbtD);
+  uint8_t checkErrorsCalibrationWord(const GBTCalibration* gbtCal);
+  uint8_t checkErrorsCableID(const GBTData* gbtD, uint8_t cableSW);
 #endif
-  ErrorType checkErrorsGBTDataID(const GBTData* dbtD);
+  uint8_t checkErrorsGBTDataID(const GBTData* dbtD);
 
   ClassDefNV(GBTLink, 1);
 };
@@ -183,7 +195,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
   int nw = 0;
   status = None;
   auto* currRawPiece = rawData.currentPiece();
-  GBTLink::ErrorType errRes = GBTLink::NoError;
+  uint8_t errRes = uint8_t(GBTLink::NoError);
   bool expectPacketDone = false;
   ir.clear();
   while (currRawPiece) { // we may loop over multiple CRU page
@@ -194,17 +206,22 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
       }
     }
     if (!dataOffset) { // here we always start with the RDH
+      auto hbfEntrySav = hbfEntry;
+      hbfEntry = 0xffffffff; // in case of problems with RDH, dump full TF
       const auto* rdh = reinterpret_cast<const RDH*>(&currRawPiece->data[dataOffset]);
       if (verbosity >= VerboseHeaders) {
         RDHUtils::printRDH(rdh);
       }
-
       GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsRDH(*rdh));     // make sure we are dealing with RDH
       GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsRDHStop(*rdh)); // if new HB starts, the lastRDH must have stop
       //      GBTLINK_DECODE_ERRORCHECK(checkErrorsRDHStopPageEmpty(*rdh)); // end of HBF should be an empty page with stop
+      hbfEntry = hbfEntrySav; // critical check of RDH passed
       lastRDH = rdh;
       statistics.nPackets++;
-
+      if (RDHUtils::getPageCounter(*rdh) == 0) {
+        irHBF = RDHUtils::getHeartBeatIR(*rdh);
+        hbfEntry = rawData.currentPieceID();
+      }
       dataOffset += sizeof(RDH);
       auto psz = RDHUtils::getMemorySize(*rdh);
       if (psz == sizeof(RDH)) {
@@ -283,10 +300,10 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
         gbtD->printX();
       }
       GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsGBTDataID(gbtD));
-      if (errRes != GBTLink::Skip) {
+      if (errRes != uint8_t(GBTLink::Skip)) {
         int cableHW = gbtD->getCableID(), cableSW = chmap.cableHW2SW(ruPtr->ruInfo->ruType, cableHW);
         GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsCableID(gbtD, cableSW));
-        if (errRes != GBTLink::Skip) {
+        if (errRes != uint8_t(GBTLink::Skip)) {
           GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsGBTData(chmap.cableHW2Pos(ruPtr->ruInfo->ruType, cableHW)));
           ruPtr->cableData[cableSW].add(gbtD->getW8(), 9);
           ruPtr->cableHWID[cableSW] = cableHW;
