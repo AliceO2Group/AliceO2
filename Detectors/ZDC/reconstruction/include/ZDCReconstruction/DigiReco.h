@@ -123,7 +123,6 @@ class DigiReco
   void processTriggerExtended(int itdc, int ibeg, int iend); /// Replay of trigger algorithm on acquired data
   void interpolate(int itdc, int ibeg, int iend);            /// Interpolation of samples to evaluate signal amplitude and arrival time
   void correctTDCPile();                                     /// Correction of pile-up in TDC
-  void recenterTDC();                                        /// TDC time alignment
   bool mCorrSignal = true;                                   /// Enable TDC signal correction
   bool mCorrBackground = true;                               /// Enable TDC background correction
 
