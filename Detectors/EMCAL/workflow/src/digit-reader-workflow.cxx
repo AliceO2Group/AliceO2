@@ -13,7 +13,7 @@
 #include <vector>
 #include "Framework/Variant.h"
 #include "Framework/ConfigParamSpec.h"
-#include "DataFormatsEMCAL/Cell.h"
+#include "DataFormatsEMCAL/Digit.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "EMCALWorkflow/PublisherSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
@@ -38,19 +38,20 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   WorkflowSpec specs;
-  specs.emplace_back(o2::emcal::getPublisherSpec<std::vector<o2::emcal::Cell>>(PublisherConf{
-                                                                                 "emcal-cell-reader",
-                                                                                 "o2sim",
-                                                                                 "emccells.root",
-                                                                                 {"cellbranch", "EMCALCell", "Cell branch"},
-                                                                                 {"celltriggerbranch", "EMCALCellTRGR", "Trigger record branch"},
-                                                                                 {"mcbranch", "EMCALCellMCTruth", "MC label branch"},
-                                                                                 o2::framework::OutputSpec{"EMC", "CELLS"},
-                                                                                 o2::framework::OutputSpec{"EMC", "CELLSTRGR"},
-                                                                                 o2::framework::OutputSpec{"EMC", "CELLSMCTR"}},
-                                                                               !disableMC));
+  specs.emplace_back(o2::emcal::getPublisherSpec<std::vector<o2::emcal::Digit>>(PublisherConf{
+                                                                                  "emcal-digit-reader",
+                                                                                  "o2sim",
+                                                                                  "emcdigits.root",
+                                                                                  {"digitbranch", "EMCALDigit", "Digit branch"},
+                                                                                  {"digittriggerbranch", "EMCALDigitTRGR", "Trigger record branch"},
+                                                                                  {"mcbranch", "EMCALDigitMCTruth", "MC label branch"},
+                                                                                  o2::framework::OutputSpec{"EMC", "DIGITS"},
+                                                                                  o2::framework::OutputSpec{"EMC", "DIGITSTRGR"},
+                                                                                  o2::framework::OutputSpec{"EMC", "DIGITSMCTR"}},
+                                                                                !disableMC));
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
+
   return specs;
 }

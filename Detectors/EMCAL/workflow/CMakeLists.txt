@@ -58,6 +58,11 @@ o2_add_executable(cell-reader-workflow
                   SOURCES src/cell-reader-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::EMCALWorkflow)
 
+o2_add_executable(digit-reader-workflow
+                  COMPONENT_NAME emcal
+                  SOURCES src/digit-reader-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::EMCALWorkflow)
+
 o2_add_executable(standalone-aod-producer-workflow
                   COMPONENT_NAME emcal
                   SOURCES src/standalone-aod-producer-workflow.cxx
