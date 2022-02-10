@@ -110,4 +110,9 @@ arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, const char* label)
   return table->column(index[0]).get();
 }
 
+void notBoundTable(const char* tableName)
+{
+  throw o2::framework::runtime_error_f("Index pointing to %s is not bound! Did you subscribe to the table?", tableName);
+}
+
 } // namespace o2::soa

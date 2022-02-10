@@ -1406,6 +1406,7 @@ constexpr bool is_binding_compatible_v()
   return are_bindings_compatible_v<T>(originals_pack_t<B>{});
 }
 
+void notBoundTable(const char* tableName);
 } // namespace o2::soa
 
 #define DECLARE_SOA_STORE()          \
@@ -1535,7 +1536,9 @@ constexpr bool is_binding_compatible_v()
     template <typename T>                                                                               \
     auto _Getter_##_as() const                                                                          \
     {                                                                                                   \
-      assert(mBinding != nullptr);                                                                      \
+      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                                   \
+        o2::soa::notBoundTable(#_Table_);                                                               \
+      }                                                                                                 \
       if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                     \
         return static_cast<T const*>(mBinding)->emptySlice();                                           \
       }                                                                                                 \
@@ -1609,7 +1612,9 @@ constexpr bool is_binding_compatible_v()
     template <typename T>                                                                        \
     auto _Getter_##_as() const                                                                   \
     {                                                                                            \
-      assert(mBinding != nullptr);                                                               \
+      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                            \
+        o2::soa::notBoundTable(#_Table_);                                                        \
+      }                                                                                          \
       return getIterators<T>();                                                                  \
     }                                                                                            \
                                                                                                  \
@@ -1687,7 +1692,9 @@ constexpr bool is_binding_compatible_v()
     template <typename T>                                                                                                         \
     auto _Getter_##_as() const                                                                                                    \
     {                                                                                                                             \
-      assert(mBinding != nullptr);                                                                                                \
+      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                                                             \
+        o2::soa::notBoundTable(#_Table_);                                                                                         \
+      }                                                                                                                           \
       if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                                               \
         throw o2::framework::runtime_error_f("Accessing invalid index for %s", #_Getter_);                                        \
       }                                                                                                                           \
@@ -1759,7 +1766,6 @@ constexpr bool is_binding_compatible_v()
     template <typename T>                                                                                               \
     auto _Getter_##_as() const                                                                                          \
     {                                                                                                                   \
-      assert(mBinding != nullptr);                                                                                      \
       if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                                     \
         throw o2::framework::runtime_error_f("Accessing invalid index for %s", #_Getter_);                              \
       }                                                                                                                 \
@@ -1813,7 +1819,6 @@ constexpr bool is_binding_compatible_v()
     template <typename T>                                                                               \
     auto _Getter_##_as() const                                                                          \
     {                                                                                                   \
-      assert(mBinding != nullptr);                                                                      \
       if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                     \
         return static_cast<T const*>(mBinding)->emptySlice();                                           \
       }                                                                                                 \
@@ -1867,7 +1872,6 @@ constexpr bool is_binding_compatible_v()
     template <typename T>                                                                        \
     auto _Getter_##_as() const                                                                   \
     {                                                                                            \
-      assert(mBinding != nullptr);                                                               \
       return getIterators<T>();                                                                  \
     }                                                                                            \
                                                                                                  \
