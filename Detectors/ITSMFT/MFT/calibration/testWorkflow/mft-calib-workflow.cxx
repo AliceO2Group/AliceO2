@@ -31,7 +31,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec specs;
-  o2::conf::ConfigurableParam::updateFromString(ConfigContext.options().get<std::string>("configKeyValues"));
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   auto useDigits = cfgc.options().get<bool>("useDigits");
 
   LOG(info) << "MFT calibration workflow options";
