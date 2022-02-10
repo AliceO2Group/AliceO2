@@ -30,8 +30,8 @@ BOOST_AUTO_TEST_CASE(TestPrefetch)
   int a[10];
   int b[10];
 
-  Foo foo;
-  Bar bar;
+  [[maybe_unused]] Foo foo;
+  [[maybe_unused]] Bar bar;
 
   for (int i = 0; i < 10; i++) {
     a[i] = a[i] + b[i];
