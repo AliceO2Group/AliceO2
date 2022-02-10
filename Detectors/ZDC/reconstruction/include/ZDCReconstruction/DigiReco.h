@@ -127,7 +127,7 @@ class DigiReco
   bool mCorrBackground = true;                               /// Enable TDC background correction
 
   int correctTDCSignal(int itdc, int16_t TDCVal, float TDCAmp, float& FTDCVal, float& FTDCAmp, bool isbeg, bool isend); /// Correct TDC single signal
-  int correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& tdc);                                              /// TDC amplitude and time corrections due to pile-up from previous bunches
+  int correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& tdc);                                            /// TDC amplitude and time corrections due to pile-up from previous bunches
 
   O2_ZDC_DIGIRECO_FLT getPoint(int itdc, int ibeg, int iend, int i); /// Interpolation for current TDC
 #ifdef O2_ZDC_INTERP_DEBUG
@@ -165,7 +165,8 @@ class DigiReco
   int mNBC = 0;
   int mNLonely = 0;
   int mNLastLonely = 0;
-  int16_t tdc_shift[NTDCChannels] = {0}; /// TDC correction (units of 1/96 ns)
+  int16_t tdc_shift[NTDCChannels] = {0};                          /// TDC correction (units of 1/96 ns)
+  float tdc_calib[NTDCChannels] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; /// TDC correction factor
   constexpr static uint16_t mMask[NTimeBinsPerBC] = {0x0001, 0x002, 0x004, 0x008, 0x0010, 0x0020, 0x0040, 0x0080, 0x0100, 0x0200, 0x0400, 0x0800};
   O2_ZDC_DIGIRECO_FLT mAlpha = 3; // Parameter of interpolation function
   // Configuration of interpolation for current TDC

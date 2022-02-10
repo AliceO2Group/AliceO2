@@ -27,8 +27,11 @@ namespace zdc
 struct ZDCTDCParam {
   //std::array<float, NTDCChannels> tdcShift{}
   float tdc_shift[NTDCChannels] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Correction of TDC position (ns)
+  float tdc_calib[NTDCChannels] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; // Correction factor of TDC amplitude
   void setShift(uint32_t ich, float val);
   float getShift(uint32_t ich) const;
+  void setFactor(uint32_t ich, float val);
+  float getFactor(uint32_t ich) const;
   void print();
   ClassDefNV(ZDCTDCParam, 1);
 };

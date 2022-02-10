@@ -12,8 +12,10 @@
 #ifndef ZDC_TDC_DATA_H
 #define ZDC_TDC_DATA_H
 
+#include "Framework/Logger.h"
 #include "ZDCBase/Constants.h"
 #include <array>
+#include <TMath.h>
 #include <Rtypes.h>
 
 /// \file ZDCTDCData.h
@@ -38,6 +40,36 @@ struct ZDCTDCData {
     id = id | isbeg ? 0x80 : 0x00;
     id = id | isend ? 0x40 : 0x00;
     val = vala;
+    amp = ampa;
+  }
+
+  ZDCTDCData(uint8_t ida, float vala, float ampa, bool isbeg = false, bool isend = false)
+  {
+    id = ida & 0x0f;
+    id = id | isbeg ? 0x80 : 0x00;
+    id = id | isend ? 0x40 : 0x00;
+
+    auto TDCVal = std::nearbyint(vala);
+    auto TDCAmp = std::nearbyint(ampa);
+
+    if (TDCVal < kMinShort) {
+      LOG(error) << __func__ << " TDC " << ida << " " << TDCVal << " is out of range";
+      TDCVal = kMinShort;
+    }
+    if (TDCVal > kMaxShort) {
+      LOG(error) << __func__ << " TDC " << ida << " " << TDCVal << " is out of range";
+      TDCVal = kMaxShort;
+    }
+    if (TDCAmp < kMinShort) {
+      LOG(error) << __func__ << " TDC " << ida << " " << TDCAmp << " is out of range";
+      TDCAmp = kMinShort;
+    }
+    if (TDCAmp > kMaxShort) {
+      LOG(error) << __func__ << " TDC " << ida << " " << TDCAmp << " is out of range";
+      TDCAmp = kMaxShort;
+    }
+
+    val = TDCVal;
     amp = ampa;
   }
 

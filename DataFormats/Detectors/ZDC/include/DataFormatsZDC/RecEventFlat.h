@@ -40,8 +40,8 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   uint32_t channels = 0;                      /// pattern of channels acquired
   uint32_t triggers = 0;                      /// pattern of channels with autotrigger bit
   std::map<uint8_t, float> ezdc;              /// signal in ZDCs
-  std::vector<int16_t> TDCVal[NTDCChannels];  /// TDC values
-  std::vector<int16_t> TDCAmp[NTDCChannels];  /// TDC signal amplitudes
+  std::vector<float> TDCVal[NTDCChannels];    /// TDC values
+  std::vector<float> TDCAmp[NTDCChannels];    /// TDC signal amplitudes
   std::vector<bool> TDCPile[NTDCChannels];    /// TDC pile-up correction flag (TODO)
   std::vector<o2::zdc::BCRecData>* mRecBC;    //! Interaction record and references to data
   std::vector<o2::zdc::ZDCEnergy>* mEnergy;   //! ZDC energy

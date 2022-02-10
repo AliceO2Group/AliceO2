@@ -74,6 +74,7 @@ void DigiReco::init()
   }
 
   // TDC calibration
+  // Recentering
   for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
     float fval = ropt.tdc_shift[itdc];
     // If the reconstruction parameters were not manually set
@@ -95,6 +96,26 @@ void DigiReco::init()
     tdc_shift[itdc] = val;
     if (mVerbosity > DbgZero) {
       LOG(info) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " shift= " << tdc_shift[itdc] << " i.s. = " << val * FTDCVal << " ns";
+    }
+  }
+  // Amplitude calibration
+  for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
+    float fval = ropt.tdc_calib[itdc];
+    // If the reconstruction parameters were not manually set
+    if (fval < 0) {
+      // Check if calibration object is present
+      if (!mTDCParam) {
+        LOG(fatal) << "TDC " << itdc << " missing configuration object and no manual override";
+      } else {
+        fval = mTDCParam->getFactor(itdc);
+      }
+    }
+    if (fval <=0) {
+      LOG(fatal) << "Correction factor for TDC amplitude " << itdc << " " << fval << " is out of range";
+    }
+    tdc_calib[itdc] = fval;
+    if (mVerbosity > DbgZero) {
+      LOG(info) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " factor= " << tdc_calib[itdc];
     }
   }
 
@@ -382,9 +403,6 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
 
   // Apply pile-up correction for TDCs to get corrected TDC amplitudes and values
   correctTDCPile();
-
-  // Recentering ot corrected TDCs
-  recenterTDC();
 
   // ADC reconstruction
   seq_beg = 0;
@@ -1313,37 +1331,38 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
   if (ibun == iend) {
     rec.isEnd[itdc] = true;
   }
-  auto TDCVal = tdc;
-  auto TDCAmp = amp;
+
+  int isig = TDCSignal[itdc];
+  float TDCVal = tdc;
+  float TDCAmp = amp;
 
   // Correct for time bias on single signals
-  float TDCValCorr, TDCAmpCorr;
+  float TDCValCorr=0, TDCAmpCorr=0;
   if (mCorrSignal == 0 || correctTDCSignal(itdc, tdc, amp, TDCValCorr, TDCAmpCorr, rec.isBeg[itdc], rec.isEnd[itdc]) != 0) {
     // Cannot apply amplitude correction for isolated signal -> Flag error condition
     rec.tdcSigE[TDCSignal[itdc]] = true;
   } else {
-    TDCVal = std::nearbyint(TDCValCorr);
-    TDCAmp = std::nearbyint(TDCAmpCorr);
+    TDCVal = TDCValCorr;
+    // Cannot correct amplitude if pedestal is missing
+    if(! rec.tdcPedMissing[isig]){
+      TDCAmp = TDCAmpCorr;
+    }
   }
 
-  // Recenter TDC
+  // TDC calibration
   TDCVal = TDCVal - tdc_shift[itdc];
-  
-  if (TDCVal < kMinShort) {
-    LOG(error) << "TDC " << itdc << " " << TDCVal << " is out of range";
-    TDCVal = kMinShort;
-  }
-  if (TDCVal > kMaxShort) {
-    LOG(error) << "TDC " << itdc << " " << TDCVal << " is out of range";
-    TDCVal = kMaxShort;
+  if(! rec.tdcPedMissing[isig]){
+    // Cannot correct amplitude if pedestal is missing
+    TDCAmp = TDCAmp * tdc_calib[itdc];
   }
 
-  // Encode amplitude and assign to correct bunch
-  auto myamp = std::nearbyint(TDCAmp / FTDCAmp);
+  // Encode amplitude and assign
+  auto myamp = TDCAmp / FTDCAmp;
   rec.TDCVal[itdc].push_back(TDCVal);
   rec.TDCAmp[itdc].push_back(myamp);
 #ifdef O2_ZDC_DEBUG
-  LOG(info) << __func__ << " @ " << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " " << "ibun=" << ibun << " itdc=" << itdc
+  LOG(info) << __func__ << " @ " << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
+            << "ibun=" << ibun << " itdc=" << itdc
             << " tdc=" << tdc << " shift=" << tdc_shift[itdc] << " -> TDCVal=" << TDCVal << "=" << TDCVal * FTDCVal
             << " amp=" << amp << " -> TDCAmp=" << TDCAmp << " -> " << myamp << (ibun == ibeg ? " B" : "") << (ibun == iend ? " E" : "");
 #endif
@@ -1357,7 +1376,6 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
                << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " TDCVal=" << TDCVal * FTDCVal << " TDCAmp=" << TDCAmp * FTDCAmp << " OVERFLOW";
   }
 #endif
-  int isig = TDCSignal[itdc];
   // Assign info about pedestal subtration
   if (mSource[isig] == PedOr) {
     rec.tdcPedOr[isig] = true;
@@ -1571,40 +1589,74 @@ void DigiReco::correctTDCPile()
 int DigiReco::correctTDCSignal(int itdc, int16_t TDCVal, float TDCAmp, float& FTDCVal, float& FTDCAmp, bool isbeg, bool isend)
 {
   // Correction of single TDC signals
+  // This function takes into account the position of the signal in the sequence
   // TDCVal is before recentering
   constexpr int TDCRange = TSN * NTimeBinsPerBC;
-  constexpr int TDCMax = TDCRange - TSNH -1;
-  // This function takes into account the position of the signal in the sequence
+  constexpr int TDCMax = TDCRange - TSNH - 1;
+
+  // Fallback is no correction appliead
+  FTDCVal = TDCVal;
+  FTDCAmp = TDCAmp;
+
   if (mTDCCorr == 0) {
 #ifdef O2_ZDC_DEBUG
-    printf("Ciao %21s itdc=%d TDC=%d AMP=%d MISSING mTDCCorr\n", __func__, itdc, TDCVal, TDCAmp);
+    printf("%21s itdc=%d TDC=%d AMP=%d MISSING mTDCCorr\n", __func__, itdc, TDCVal, TDCAmp);
 #endif
     return 1;
   }
-  // For the moment..
-  FTDCAmp = TDCAmp;
+
   if (isbeg == false && isend == false) {
     // Mid bunch
-    FTDCVal = TDCVal;
+    FTDCAmp = TDCAmp / mTDCCorr->mAFMidC[itdc][0];
   } else if (isbeg == true) {
-    auto p0 = mTDCCorr->mTSBegC[itdc][0];
-    if (TDCVal > TSNH && TDCVal < p0) {
-      auto diff = TDCVal - p0;
-      auto p2 = mTDCCorr->mTSBegC[itdc][2];
-      auto p3 = mTDCCorr->mTSBegC[itdc][3];
-      FTDCVal = TDCVal - (p2 * diff + p3 * diff * diff);
-    } else {
-      FTDCVal = TDCVal;
+    {
+      auto p0 = mTDCCorr->mTSBegC[itdc][0];
+      auto p1 = mTDCCorr->mTSBegC[itdc][1];
+      if (TDCVal > TSNH && TDCVal < p0) {
+        auto diff = TDCVal - p0;
+        auto p2 = mTDCCorr->mTSBegC[itdc][2];
+        auto p3 = mTDCCorr->mTSBegC[itdc][3];
+        FTDCVal = TDCVal - (p1 + p2 * diff + p3 * diff * diff);
+      }else{
+        FTDCVal = TDCVal - p1;
+      }
+    }
+    {
+      auto p0 = mTDCCorr->mAFBegC[itdc][0];
+      auto p1 = mTDCCorr->mAFBegC[itdc][1];
+      if (TDCVal > TSNH && TDCVal < p0) {
+        auto diff = TDCVal - p0;
+        auto p2 = mTDCCorr->mAFBegC[itdc][2];
+        auto p3 = mTDCCorr->mAFBegC[itdc][3];
+        FTDCAmp = TDCAmp / (p1 + p2 * diff + p3 * diff * diff);
+      }else{
+        FTDCAmp = TDCAmp / p1;
+      }
     }
   } else if (isend == true) {
-    auto p0 = mTDCCorr->mTSEndC[itdc][0];
-    if (TDCVal > p0 && TDCVal < TDCMax) {
-      auto diff = TDCVal - p0;
-      auto p2 = mTDCCorr->mTSEndC[itdc][2];
-      auto p3 = mTDCCorr->mTSEndC[itdc][3];
-      FTDCVal = TDCVal - (p2 * diff + p3 * diff * diff);
-    } else {
-      FTDCVal = TDCVal;
+    {
+      auto p0 = mTDCCorr->mTSEndC[itdc][0];
+      auto p1 = mTDCCorr->mTSEndC[itdc][1];
+      if (TDCVal > p0 && TDCVal < TDCMax) {
+        auto diff = TDCVal - p0;
+        auto p2 = mTDCCorr->mTSEndC[itdc][2];
+        auto p3 = mTDCCorr->mTSEndC[itdc][3];
+        FTDCVal = TDCVal - (p1 + p2 * diff + p3 * diff * diff);
+      }else{
+        FTDCVal = TDCVal - p1;
+      }
+    }
+    {
+      auto p0 = mTDCCorr->mAFEndC[itdc][0];
+      auto p1 = mTDCCorr->mAFEndC[itdc][1];
+      if (TDCVal > p0 && TDCVal < TDCMax) {
+        auto diff = TDCVal - p0;
+        auto p2 = mTDCCorr->mAFEndC[itdc][2];
+        auto p3 = mTDCCorr->mAFEndC[itdc][3];
+        FTDCAmp = TDCAmp / (p1 + p2 * diff + p3 * diff * diff);
+      }else{
+        FTDCAmp = TDCAmp / p1;
+      }
     }
   } else {
 #ifdef O2_ZDC_DEBUG

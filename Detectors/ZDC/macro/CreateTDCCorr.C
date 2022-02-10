@@ -79,6 +79,18 @@ void CreateTDCCorr(long tmin = 0, long tmax = -1, std::string ccdbHost = "http:/
     for (int32_t ipar = 0; ipar < o2::zdc::ZDCTDCCorr::NParExtC; ipar++) {
       conf.mTSEndC[itdc][ipar] = ts_end_c[o2::zdc::ZDCTDCCorr::NParExtC * itdc + ipar];
     }
+    // TDC amplitude correction, constant, beginning of sequence
+    for (int32_t ipar = 0; ipar < o2::zdc::ZDCTDCCorr::NParExtC; ipar++) {
+      conf.mAFBegC[itdc][ipar] = af_beg_c[o2::zdc::ZDCTDCCorr::NParExtC * itdc + ipar];
+    }
+    // TDC amplitude correction, constant, mid of sequence
+    for (int32_t ipar = 0; ipar < o2::zdc::ZDCTDCCorr::NParMidC; ipar++) {
+      conf.mAFMidC[itdc][ipar] = af_mid_c[o2::zdc::ZDCTDCCorr::NParMidC * itdc + ipar];
+    }
+    // TDC amplitude correction, constant, end of sequence
+    for (int32_t ipar = 0; ipar < o2::zdc::ZDCTDCCorr::NParExtC; ipar++) {
+      conf.mAFEndC[itdc][ipar] = af_end_c[o2::zdc::ZDCTDCCorr::NParExtC * itdc + ipar];
+    }
   }
 
   conf.print();

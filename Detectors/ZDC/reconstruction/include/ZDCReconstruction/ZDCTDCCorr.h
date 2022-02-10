@@ -33,12 +33,12 @@ struct ZDCTDCCorr {
   std::array<std::array<std::array<std::array<std::array<float, NFParT>, NBucket>, NBucket>, NBCAn>, NTDCChannels> mTDCCorr; // TDC correction of signal with pile-up
   std::array<std::array<std::array<std::array<std::array<float, NFParA>, NBucket>, NBucket>, NBCAn>, NTDCChannels> mAmpCorr; // Amplitude correction of signal with pile-up
 
-  std::array<std::array<float, NParExtS>, NTDCChannels> mTSBegS; // TDC time correction, sine wave, beginning of sequence
-  std::array<std::array<float, NParMidS>, NTDCChannels> mTSMidS; // TDC time correction, sine wave, mid of sequence
-  std::array<std::array<float, NParExtS>, NTDCChannels> mTSEndS; // TDC time correction, sine wave, end of sequence
   std::array<std::array<float, NParExtC>, NTDCChannels> mTSBegC; // TDC time correction, constant, beginning of sequence
   std::array<std::array<float, NParMidC>, NTDCChannels> mTSMidC; // TDC time correction, constant, mid of sequence
   std::array<std::array<float, NParExtC>, NTDCChannels> mTSEndC; // TDC time correction, constant, end of sequence
+  std::array<std::array<float, NParExtC>, NTDCChannels> mAFBegC; // TDC amplitude correction, constant, beginning of sequence
+  std::array<std::array<float, NParMidC>, NTDCChannels> mAFMidC; // TDC amplitude correction, constant, mid of sequence
+  std::array<std::array<float, NParExtC>, NTDCChannels> mAFEndC; // TDC amplitude correction, constant, end of sequence
 
   void SetAmpSigCorr(int itdc, int ibuk, int ipar, float val)
   {
