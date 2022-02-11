@@ -12,8 +12,7 @@
 o2_add_library(
   MIDTracking
   SOURCES src/HitMapBuilder.cxx src/Tracker.cxx
-  PUBLIC_LINK_LIBRARIES O2::DataFormatsMID O2::MIDBase O2::MIDTestingSimTools
-                        Microsoft.GSL::GSL)
+  PUBLIC_LINK_LIBRARIES O2::DataFormatsMID O2::MIDBase Microsoft.GSL::GSL)
 
 if(BUILD_TESTING)
   add_subdirectory(test)
