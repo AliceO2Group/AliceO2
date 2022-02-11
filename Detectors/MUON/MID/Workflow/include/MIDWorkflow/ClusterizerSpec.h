@@ -23,8 +23,8 @@ namespace o2
 {
 namespace mid
 {
-framework::DataProcessorSpec getClusterizerSpec();
+framework::DataProcessorSpec getClusterizerSpec(bool isMC);
 }
 } // namespace o2
 
-#endif //O2_MID_CLUSTERIZERSPEC_H
+#endif // O2_MID_CLUSTERIZERSPEC_H
