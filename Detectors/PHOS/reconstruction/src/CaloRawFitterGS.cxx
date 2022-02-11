@@ -21,36 +21,36 @@ using namespace o2::phos;
 CaloRawFitterGS::CaloRawFitterGS() : CaloRawFitter()
 {
   mDecTime = o2::phos::PHOSSimParams::Instance().mSampleDecayTime;
-  mTimeAccuracy = o2::phos::PHOSSimParams::Instance().mSampleTimeFitAccuracy;
-  mAmpAccuracy = o2::phos::PHOSSimParams::Instance().mSampleAmpFitAccuracy;
+  mQAccuracy = o2::phos::PHOSSimParams::Instance().mSampleTimeFitAccuracy;
   init();
 }
 
 void CaloRawFitterGS::init()
 {
-  //prepare fitting arrays, once per lifetime
+  mSpikeThreshold = 5;
+  // prepare fitting arrays, once per lifetime
   double k = o2::phos::PHOSSimParams::Instance().mSampleDecayTime;
-  ma0[0] = 1.;
-  mb0[0] = 1.;
-  mb1[0] = 0.;
-  mb2[0] = 0.;
-  mb3[0] = 0.;
-  mb4[0] = 0.;
+  ma0[0] = 0.;
+  ma1[0] = 0.;
+  ma2[0] = 0.;
+  ma3[0] = 0.;
+  ma4[0] = 0.;
   for (int i = 1; i < NMAXSAMPLES; i++) {
     double xi = k * i;
-    ma0[i] = exp(-xi);
-    mb0[i] = mb0[i - 1] + ma0[i];
-    mb1[i] = 4 * mb1[i - 1] + ma0[i] * xi;
-    mb2[i] = 6 * mb2[i - 1] + ma0[i] * xi * xi;
-    mb3[i] = 4 * mb3[i - 1] + ma0[i] * xi * xi * xi;
-    mb4[i] = mb4[i - 1] + ma0[i] * xi * xi * xi * xi;
+    mexp[i] = exp(-xi);
+    double s = mexp[i] * mexp[i];
+    ma0[i] = ma0[i - 1] + s;
+    ma1[i] = ma1[i - 1] + s * xi;
+    ma2[i] = ma2[i - 1] + s * xi * xi;
+    ma3[i] = ma3[i - 1] + s * xi * xi * xi;
+    ma4[i] = ma4[i - 1] + s * xi * xi * xi * xi;
   }
 }
 
 CaloRawFitterGS::FitStatus CaloRawFitterGS::evaluate(gsl::span<short unsigned int> signal)
 {
 
-  //Pedestal analysis mode
+  // Pedestal analysis mode
   if (mPedestalRun) {
     int nPed = signal.size();
     mAmp = 0.;
@@ -80,25 +80,36 @@ CaloRawFitterGS::FitStatus CaloRawFitterGS::evaluate(gsl::span<short unsigned in
 CaloRawFitterGS::FitStatus CaloRawFitterGS::evalFit(gsl::span<short unsigned int> signal)
 {
   // Calculate signal parameters (energy, time, quality) from array of samples
+  // Fit with semi-gaus function with free parameters time and amplitude
+  // Signal overflows if there are at least 3 samples of the same amplitude above 900
+
+  // Calculate signal parameters (energy, time, quality) from array of samples
   // Energy is a maximum sample minus pedestal 9
   // Time is the first time bin
   // Signal overflows is there are at least 3 samples of the same amplitude above 900
 
-  int sigLength = signal.size();
-  if (sigLength == 0) {
+  int nSamples = signal.size();
+  if (nSamples == 0) {
+    mAmp = 0;
+    mTime = 0.;
+    mChi2 = 0.;
     return kEmptyBunch;
   }
-  mAmp = 0.;
-  mTime = 0.;
-  mChi2 = 0.;
-  mOverflow = false;
-  FitStatus status = kNotEvaluated;
+  if (nSamples == 1) {
+    mAmp = signal[0];
+    mTime = 0.;
+    mChi2 = 1.;
+    return kOK;
+  }
 
-  //if pedestal should be subtracted first evaluate it
+  mOverflow = false;
+
+  // if pedestal should be subtracted first evaluate it
   float pedMean = 0;
   int nPed = 0;
   if (mPedSubtract) {
-    //remember inverse time order
+    nSamples = -mPreSamples;
+    // remember inverse time order
     for (auto it = signal.rbegin(); (nPed < mPreSamples) && it != signal.rend(); ++it) {
       nPed++;
       pedMean += *it;
@@ -108,208 +119,178 @@ CaloRawFitterGS::FitStatus CaloRawFitterGS::evalFit(gsl::span<short unsigned int
     }
   }
 
-  float maxSample = 0.;  //maximal sample value
-  int nMax = 0;          //number of consequitive maximal samples
-  bool spike = false;    //did we observe spike?
-  int ap = -1, app = -1; //remember previous values to evaluate spikes
-  double At = 0., Bt = 0., Ct = 0., y2 = 0.;
+  float maxSample = 0.;                                    // maximal sample value
+  int nMax = 0;                                            // number of consequitive maximal samples
+  bool spike = false;                                      // spike in previoud signal bin?
+  short ap = -1, app = -1;                                 // remember previous values to evaluate spikes
+  double b0 = 0., b1 = 0., b2 = 0., y2 = 0.;               // fit coeficients
+  double sa0 = 0., sa1 = 0., sa2 = 0., sa3 = 0., sa4 = 0.; // corrections in case of overflow
 
-  int nSamples = signal.size();
-  if (mPedSubtract) {
-    nSamples = -mPreSamples;
-  }
-  int firstS = nSamples - 1;
-  for (int i = 0; i < nSamples; i++) {
-    float a = signal[firstS - i] - pedMean; //remember inverse order of samples
+  int firstS = nSamples;
+  int j = TMath::Min(nSamples, NMAXSAMPLES - 1);
+  for (int i = 1; i <= j; i++) {
+    short a = signal[firstS - i] - pedMean; // remember inverse order of samples
     float xi = i * mDecTime;
     if (a > maxSample) {
-      mMaxSample = a;
+      maxSample = a;
       nMax = 1;
+    } else {
+      if (a == maxSample) {
+        nMax++;
+      }
     }
-    if (a == maxSample) {
-      nMax++;
+    // check if there was a spike in previous step?
+    if (app > 0 && ap > 0) {
+      spike = (ap - a > mSpikeThreshold) && (ap - app > mSpikeThreshold);
     }
-    //check if there was a spike in previous step?
-    if (app >= 0 && ap >= 0) {
-      spike = (2 * ap - (a + app) > 2 * mSpikeThreshold);
-    }
-    if (spike) {
-      status = kSpike;
-      //Try to recover: subtract last point contribution and replace by average of "app" and "a"
+    if (spike) { // Try to recover: subtract last point contribution and replace by average of "app" and "a"
       float atmp = 0.5 * (app + a);
       float xiprev = xi - mDecTime;
-      float ss = (atmp - ap) * ma0[i - 1];
-      At += ss; //spike can not appear at 0-th bin
-      Bt += ss * xiprev;
-      Ct += ss * xiprev * xiprev;
-      y2 += (atmp * atmp - ap * ap);
+      float st = (atmp - ap) * mexp[i - 1];
+      b0 += st;
+      b1 += st * xiprev;
+      b2 += st * xiprev * xiprev;
+      y2 += atmp * atmp - ap * ap;
+      ap = a;
     } else {
       app = ap;
       ap = a;
     }
-    //Check if in saturation
-    if (maxSample > 900 && nMax > 3) {
+    // Check if in saturation
+    if (maxSample > 900 && nMax >= 3) {
+      // Remove overflow points from the fit
+      if (!mOverflow) {            // first time in this sample: remove two previous points
+        sa0 = ma0[i] - ma0[i - 2]; // can not appear at i<2
+        sa1 = ma1[i] - ma1[i - 2];
+        sa2 = ma2[i] - ma2[i - 2];
+        sa3 = ma3[i] - ma3[i - 2];
+        sa4 = ma4[i] - ma4[i - 2];
+        float st = ap * mexp[i - 1];
+        float xiprev = xi - mDecTime;
+        b0 -= st;
+        b1 -= st * xiprev;
+        b2 -= st * xiprev * xiprev;
+        y2 -= ap * ap;
+        st = app * mexp[i - 2];
+        xiprev -= mDecTime;
+        b0 -= st;
+        b1 -= st * xiprev;
+        b2 -= st * xiprev * xiprev;
+        y2 -= ap * ap;
+      }
       mOverflow = true;
     }
-
-    //to calculate time
-    float st = a * ma0[i];
-    At += st;
-    Bt += st * xi;
-    Ct += st * xi * xi;
-    y2 += a * a;
-    //to calculate amplitude
-  } //Scanned full sample
-
-  //calculate time, amp and chi2
-  double polB = At - Bt;
-  double polC = Ct - 2. * Bt;
-  if (At == 0.) {
-    if (polB == 0.) {
-      mTime = 999.;
-      status = kFitFailed;
-    } else {
-      mTime = -polC / (2. * polB);
+    if (!mOverflow) {
+      // to calculate time
+      float st = a * mexp[i];
+      b0 += st;
+      b1 += st * xi;
+      b2 += st * xi * xi;
+      y2 += a * a;
+    } else {                     // do not add current point and subtract contributions to amx[] arrays
+      sa0 = ma0[i] - ma0[i - 1]; // can not appear at i<2
+      sa1 = ma1[i] - ma1[i - 1];
+      sa2 = ma2[i] - ma2[i - 1];
+      sa3 = ma3[i] - ma3[i - 1];
+      sa4 = ma4[i] - ma4[i - 1];
     }
-  } else {
-    double d = polB * polB - At * polC;
-    if (d >= 0) {
-      mTime = (-polB - sqrt(d)) / (At * mDecTime);
-    } else {
-      mTime = 999.;
-      status = kFitFailed;
-    }
+  } // Scanned full
+
+  // too small amplitude, assing max to max Amp and time to zero and do not calculate height
+  if (maxSample < mMinTimeCalc) {
+    mAmp = maxSample;
+    mTime = 0.;
+    mChi2 = 0.;
+    return kOK;
   }
-  if (status == kFitFailed && !mOverflow) { //in case of overflow try to recover
+
+  if (mOverflow && b0 == 0) { // strong overflow, no reasonable counts, can not extract anything
     mAmp = 0.;
-    mTime = 999.;
-    mChi2 = 999.;
-    return status;
+    mTime = 0.;
+    mChi2 = 900.;
+    return kOverflow;
   }
 
-  if (!mOverflow) { //normal sample, calculate amp and chi2 and return
-    double tt = mTime * mDecTime;
-    double tt2 = tt * tt;
-    double expT = exp(tt);
-    double nom = (At * tt2 - 2. * Bt * tt + Ct) * expT; //  1./(k*k) cancel with denom
-    int i = nSamples - 1;
-    double denom = (mb4[i] - tt * (mb3[i] - tt * (mb2[i] - tt * (mb1[i] - tt * mb0[i])))) *
-                   expT * expT / (mDecTime * mDecTime); // 1/(k*k) cancel with nom
-    if (denom != 0) {
-      mAmp = nom / denom;
-      mChi2 = (y2 - (2. * (At * tt2 - 2. * tt * Bt + Ct) - mAmp * denom * expT) * mAmp * expT / (mDecTime * mDecTime)) / (i + 1);
+  // calculate time, amp and chi2
+  double a, b, c, d, e; // Polinomial coefficients
+  if (!mOverflow) {
+    a = ma1[j] * b0 - ma0[j] * b1;
+    b = ma0[j] * b2 + 2. * ma1[j] * b1 - 3. * ma2[j] * b0;
+    c = 3. * (ma3[j] * b0 - ma1[j] * b2);
+    d = 3. * ma2[j] * b2 - ma4[j] * b0 - 2. * ma3[j] * b1;
+    e = ma4[j] * b1 - ma3[j] * b2;
+  } else { // account removed points in overflow
+    a = (ma1[j] - sa1) * b0 - (ma0[j] - sa0) * b1;
+    b = (ma0[j] - sa0) * b2 + 2. * (ma1[j] - sa1) * b1 - 3. * (ma2[j] - sa2) * b0;
+    c = 3. * ((ma3[j] - sa3) * b0 - (ma1[j] - sa1) * b2);
+    d = 3. * (ma2[j] - sa2) * b2 - (ma4[j] - sa4) * b0 - 2. * (ma3[j] - sa4) * b1;
+    e = (ma4[j] - sa4) * b1 - (ma3[j] - sa3) * b2;
+  }
+
+  // Find zero of 4-order polinomial
+  // first use linear extrapolation to reach correct root of four
+  double z = -1.;
+  if (ma0[j] * b1 - ma1[j] * b0 != 0) {
+    z = (ma1[j] * b1 - ma2[j] * b0) / (ma0[j] * b1 - ma1[j] * b0) - 1.; // linear fit + offset
+  }
+  double q = 0., dq = 0., ddq = 0., lq = 0., dz = 0.1;
+  double z2 = z * z;
+  double z3 = z2 * z;
+  double z4 = z2 * z2;
+  q = a * z4 + b * z3 + c * z2 + d * z + e;        // polinomial
+  dq = 4. * a * z3 + 3. * b * z2 + 2. * c * z + d; // Derivative
+  ddq = 12. * a * z2 + 6. * b * z + 2. * c;        // Second derivative
+  if (dq != 0.) {
+    lq = q * ddq / (dq * dq);
+  }
+  // dz = -q/dq ;               // Newton  ~7 terations
+  // dz =-(1+0.5*lq)*q/dq ;     // Chebyshev ~3 iterations to reach |q|<1.e-11
+  double ttt = dq * (1. - 0.5 * lq); // Halley’s method ~3 iterations, a bit more precise
+  if (ttt != 0) {
+    dz = -q / ttt;
+  } else {
+    dz = 0.1; // step off saddle point
+  }
+  int it = 0;
+  while (TMath::Abs(q) > 0.0001 && (++it < 15)) {
+    z += dz;
+    z2 = z * z;
+    z3 = z2 * z;
+    z4 = z2 * z2;
+    q = a * z4 + b * z3 + c * z2 + d * z + e;
+    dq = 4. * a * z3 + 3. * b * z2 + 2. * c * z + d;
+    ddq = 12. * a * z2 + 6. * b * z + 2. * c;
+    if (dq != 0) {
+      lq = q * ddq / (dq * dq);
+      ttt = dq * (1. - 0.5 * lq);
+      // dz = -q/dq ;  //Newton
+      // dz =-(1+0.5*lq)*q/dq ; //Chebyshev
+      if (ttt != 0) {
+        dz = -q / ttt; // Halley’s
+      } else {
+        dz = -q / dq;
+      }
     } else {
-      mAmp = 0.;
-      status = kFitFailed;
-    }
-    return status;
-  } else { // overflow: try iterative procedure but for lowGain only
-    if (!mLowGain) {
-      mAmp = 0.;
-      mTime = 999.;
-      mChi2 = 999.;
-      return kOverflow;
-    }
-
-    //Try to recalculate parameters replacing overflow/spike values by those expected from the sample shape
-    short nIter = 0;
-    double timeOld = mTime;
-    double ampOld = mAmp;
-    if (status == kFitFailed) { //could not calculate time, amp: set best guess
-      timeOld = 0;
-      ampOld = maxSample;
-    }
-
-    //Iterative process, not more than NITERATIONS
-    short nMaxIter = o2::phos::PHOSSimParams::Instance().mNIterations;
-    for (short nIter = 0; nIter < nMaxIter; nIter++) {
-      ap = -1;
-      app = -1; //remember previous values to evaluate spikes
-
-      double expT = exp(mDecTime * timeOld);
-      for (int i = 0; i < nSamples; i++) {
-        float a = signal[firstS - i] - pedMean; //remember inverse order of samples
-        float xi = i * mDecTime;
-        if (a == maxSample) { //overflow, replace with calculated
-          a = ampOld * ma0[i] * (timeOld - i) * (timeOld - i) * expT;
-        }
-        //check if there was a spike in prev step?
-        if (app >= 0 && ap >= 0) {
-          if (2 * ap - (a + app) > 2 * mSpikeThreshold) {
-            //Try to recover: subtract last point contribution and replace by average of "app" and "a"
-            float atmp = ampOld * ma0[i] * (timeOld - i + 1) * (timeOld - i + 1) * expT; //0.5*(app+a) ;
-            float xiprev = xi - mDecTime;
-            float s = (atmp - ap) * ma0[i - 1]; //spike can not appear at 0-th bin
-            At += s;
-            Bt += s * xiprev;
-            Ct += s * xiprev * xiprev;
-            y2 += (atmp * atmp - ap * ap);
-          }
-        } else {
-          app = ap;
-          ap = a;
-        }
-
-        //to calculate time
-        float ss = a * ma0[i];
-        At += ss;
-        Bt += ss * xi;
-        Ct += ss * xi * xi;
-        y2 += a * a;
-      }
-      //evaluate new time and amp
-
-      double polB = At - Bt;
-      double polC = Ct - 2. * Bt;
-      if (At == 0.) {
-        if (polB == 0.) {
-          mTime = 999.;
-          status = kFitFailed;
-        } else {
-          mTime = -polC / (2. * polB);
-        }
-      } else {
-        double d = polB * polB - At * polC;
-        if (d >= 0) {
-          mTime = (-polB - sqrt(d)) / (At * mDecTime);
-        } else {
-          mTime = 999.;
-          status = kFitFailed;
-        }
-      }
-      if (status == kFitFailed) { //Can not improve, give up
-        mAmp = 0;
-        mTime = 999.;
-        mChi2 = 999.;
-        mOverflow = false;
-        return status;
-      }
-      double tt = mTime * mDecTime;
-      expT = exp(tt);
-      double nom = (At * tt * tt - 2. * Bt * tt + Ct) * expT; //  1./(k*k) cancel with denom
-      int i = nSamples - 1;
-      double denom = ((mb4[i] - tt * (mb3[i] - tt * (mb2[i] - tt * (mb1[i] - tt * mb0[i]))))) *
-                     expT * expT / (mDecTime * mDecTime); // 1/(k*k) cancel with nom
-      if (denom != 0) {
-        mAmp = nom / denom;
-        mChi2 = (y2 - (2. * (At * tt * tt - 2. * tt * Bt + Ct) - mAmp * denom * expT) * mAmp * expT / (mDecTime * mDecTime)) / (i + 1);
-      } else {
-        mAmp = 0;
-        mTime = 999.;
-        mChi2 = 999.;
-        mOverflow = false;
-        return kFitFailed;
-      }
-
-      //Check modification and quit if ready
-      if (std::abs(mTime - timeOld) < mTimeAccuracy && std::abs(mAmp - ampOld) < ampOld * mAmpAccuracy) {
-        break;
-      }
-
-      timeOld = mTime;
-      ampOld = mAmp;
+      dz = 0.5 * dz; // step off saddle point
     }
   }
 
-  return status;
+  // check that result is reasonable
+  double denom = ma4[j] - 4. * ma3[j] * z + 6. * ma2[j] * z * z - 4. * ma1[j] * z * z * z + ma0[j] * z * z * z * z;
+  if (denom != 0.) {
+    mAmp = 4. * exp(-2 - z) * (b2 - 2. * b1 * z + b0 * z * z) / denom;
+  } else {
+    mAmp = 0.;
+  }
+
+  if ((TMath::Abs(q) < mQAccuracy) && (mAmp < 1.2 * maxSample)) { // converged and estimated amplitude is not mush larger than Max
+    mTime = z / mDecTime;
+    mChi2 = (y2 - 0.25 * exp(2. + z) * mAmp * (b2 - 2 * b1 * z + b0 * z2)) / nSamples;
+    return kOK;
+  } else { // too big difference, fit failed
+    mAmp = maxSample;
+    mTime = 0; // First count in sample
+    mChi2 = 999.;
+    return kFitFailed;
+  }
 }
