@@ -14,14 +14,11 @@
 
 #include "TPCCalibration/CalibPadGainTracksBase.h"
 #include "TPCCalibration/IDCDrawHelper.h"
-#include "TPCBase/PadPos.h"
 #include "TPCBase/ROC.h"
 #include "TPCBase/Painter.h"
-#include "CommonUtils/TreeStreamRedirector.h"
 
-//root includes
+// root includes
 #include "TFile.h"
-#include "TTree.h"
 #include "TCanvas.h"
 
 using namespace o2::tpc;
@@ -150,7 +147,7 @@ bool CalibPadGainTracksBase::hasEnoughData(const int minEntries) const
 
 void CalibPadGainTracksBase::finalize(const float low, const float high)
 {
-  //fill the gain values in CalPad object
+  // fill the gain values in CalPad object
   unsigned long int iROC = 0; // roc: 0...71
   for (auto& calArray : mGainMap->getData()) {
     unsigned int pad = 0; // pad in roc
