@@ -122,6 +122,13 @@ bool MatchITSTPCQC::init()
   mChi2Refit->SetOption("logy");
   mTimeResVsPt->SetOption("colz logz logy logx");
 
+  mPtTPC->GetYaxis()->SetTitleOffset(1.4);
+  mPt->GetYaxis()->SetTitleOffset(1.4);
+  mEta->GetYaxis()->SetTitleOffset(1.4);
+  mChi2Matching->GetYaxis()->SetTitleOffset(1.4);
+  mChi2Refit->GetYaxis()->SetTitleOffset(1.4);
+  mTimeResVsPt->GetYaxis()->SetTitleOffset(1.4);
+
   o2::base::GeometryManager::loadGeometry(mGeomFileName);
   o2::base::Propagator::initFieldFromGRP(mGRPFileName);
   mBz = o2::base::Propagator::Instance()->getNominalBz();
