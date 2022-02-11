@@ -36,7 +36,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   std::vector<ConfigParamSpec> options{
     {"debug", VariantType::Bool, false, {"create debug tree"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
-    {"publish-after-tfs", VariantType::Int, 0, {"number of time frames after which to force publishing the objects"}}};
+    {"publish-after-tfs", VariantType::Int, 0, {"number of time frames after which to force publishing the objects"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
 }
@@ -49,6 +50,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   // set up configuration
   o2::conf::ConfigurableParam::updateFromFile(config.options().get<std::string>("configFile"));
+  o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
   o2::conf::ConfigurableParam::writeINI("o2tpcpadgaintrackscalibrator_configuration.ini");
 
   const auto debug = config.options().get<bool>("debug");
