@@ -41,8 +41,20 @@ class CalibTOFapi
   void resetDia();
   CalibTOFapi();
   CalibTOFapi(const std::string url);
-  CalibTOFapi(long timestamp, o2::dataformats::CalibLHCphaseTOF* phase, o2::dataformats::CalibTimeSlewingParamTOF* slew) : mTimeStamp(timestamp), mLHCphase(phase), mSlewParam(slew) { CalibTOFapi(); }
-  ~CalibTOFapi() = default;
+  CalibTOFapi(long timestamp, o2::dataformats::CalibLHCphaseTOF* phase, o2::dataformats::CalibTimeSlewingParamTOF* slew, Diagnostic* dia = nullptr) : mTimeStamp(timestamp), mLHCphase(phase), mSlewParam(slew), mDiaFreq(dia) { CalibTOFapi(); }
+  ~CalibTOFapi()
+  {
+    if (mLHCphase) {
+      //      delete mLHCphase;
+    }
+    if (mSlewParam) {
+      //      delete mSlewParam;
+    }
+    if (mDiaFreq) {
+      //      delete mDiaFreq;
+    }
+  }
+
   void setTimeStamp(long t)
   {
     mTimeStamp = t;
@@ -55,7 +67,9 @@ class CalibTOFapi
   void readLHCphase();
   void readTimeSlewingParam();
   void readDiagnosticFrequencies();
+  void loadDiagnosticFrequencies();
   void readActiveMap();
+  void loadActiveMap(TOFFEElightInfo* fee);
   void writeLHCphase(LhcPhase* phase, std::map<std::string, std::string> metadataLHCphase, uint64_t minTimeSTamp, uint64_t maxTimeStamp);
   void writeTimeSlewingParam(SlewParam* param, std::map<std::string, std::string> metadataChannelCalib, uint64_t minTimeSTamp, uint64_t maxTimeStamp = 0);
   float getTimeCalibration(int ich, float tot);
@@ -68,6 +82,7 @@ class CalibTOFapi
   SlewParam* getSlewParam() { return mSlewParam; }
   SlewParam& getSlewParamObj() { return *mSlewParam; }
   LhcPhase* getLhcPhase() { return mLHCphase; }
+  Diagnostic* getDiagnostic() { return mDiaFreq; }
 
   int getNoisyThreshold() const { return mNoisyThreshold; }
   void setNoisyThreshold(int val) { mNoisyThreshold = val; }

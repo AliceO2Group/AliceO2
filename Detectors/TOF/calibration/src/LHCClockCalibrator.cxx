@@ -108,8 +108,8 @@ void LHCClockCalibrator::finalizeSlot(Slot& slot)
   auto clName = o2::utils::MemFileHelper::getClassName(l);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
 
-  uint64_t starting = slot.getTFStart() * TFlength;
-  uint64_t stopping = slot.getTFEnd() * TFlength;
+  uint64_t starting = slot.getTFStart() * TFlength - 10000; // start 10 seconds before
+  uint64_t stopping = slot.getTFEnd() * TFlength + 10000;   // stop 10 seconds after
   LOG(info) << "starting = " << starting * 1E-3 << " - stopping = " << stopping * 1E-3 << " -> phase = " << fitValues[1] << " ps";
 
   mInfoVector.emplace_back("TOF/Calib/LHCphase", clName, flName, md, starting, stopping);
