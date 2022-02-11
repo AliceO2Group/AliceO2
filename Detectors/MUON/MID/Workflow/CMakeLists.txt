@@ -12,8 +12,7 @@
 o2_add_library(
   MIDWorkflow
   TARGETVARNAME targetName
-  SOURCES src/ClusterizerMCSpec.cxx
-          src/ClusterizerSpec.cxx
+  SOURCES src/ClusterizerSpec.cxx
           src/DecodedDataAggregatorSpec.cxx
           src/DigitReaderSpec.cxx
           src/EntropyDecoderSpec.cxx
@@ -25,7 +24,6 @@ o2_add_library(
           src/RawGBTDecoderSpec.cxx
           src/RawInputSpecHandler.cxx
           src/RawWriterSpec.cxx
-          src/TrackerMCSpec.cxx
           src/TrackerSpec.cxx
           src/TrackReaderSpec.cxx
           src/ZeroSuppressionSpec.cxx
