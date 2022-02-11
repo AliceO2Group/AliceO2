@@ -173,7 +173,6 @@ class MyFixture
  public:
   MyFixture() : preClusterizer(), clusterizer(), mapping()
   {
-    preClusterizer.init();
     clusterizer.init();
   }
   PreClusterizer preClusterizer;
