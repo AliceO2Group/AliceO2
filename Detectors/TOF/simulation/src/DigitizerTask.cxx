@@ -14,6 +14,8 @@
 
 #include "TOFSimulation/DigitizerTask.h"
 #include "MathUtils/Utils.h"
+#include "DetectorsRaw/HBFUtils.h"
+#include "TOFBase/Geo.h"
 
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
@@ -67,7 +69,10 @@ void DigitizerTask::Exec(Option_t* option)
   /*if (mDigitsArray)
     mDigitsArray->clear(); // this clear is now moved to the digitizer
   */
-  mDigitizer.setEventTime(mgr->GetEventTime());
+  o2::InteractionTimeRecord firstorbit(o2::InteractionRecord(0, o2::raw::HBFUtils::Instance().orbitFirstSampled), 0.0);
+  o2::InteractionTimeRecord orbit(mgr->GetEventTime());
+  orbit += firstorbit;
+  mDigitizer.setEventTime(orbit);
   mDigitizer.setContinuous(mContinuous);
 
   mDigitsArray->clear();
