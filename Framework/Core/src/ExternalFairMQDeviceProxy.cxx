@@ -423,7 +423,8 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
         for (auto const& channel : outputChannels) {
           DataProcessingHelpers::sendEndOfStream(*device, channel);
         }
-        control->readyToQuit(QuitRequest::Me);
+        // FIXME: this prevents the readout-proxy to be restarted
+        //control->readyToQuit(QuitRequest::Me);
       }
     };
 
