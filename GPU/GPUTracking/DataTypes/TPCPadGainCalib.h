@@ -46,12 +46,27 @@ struct TPCPadGainCalib {
 #ifndef GPUCA_GPUCODE
   TPCPadGainCalib();
   TPCPadGainCalib(const o2::tpc::CalDet<float>&);
+
+  /// constructor
+  /// \param minValue minimum value which will be stored
+  /// \param maxValue maximum value which will be stored
+  /// \param inv setting the inverse value
+  TPCPadGainCalib(const o2::tpc::CalDet<float>&, const float minValue, const float maxValue, const bool inv);
+
+  /// setting the stored values from CalDet
+  /// \param inv setting the inverse value
+  void setFromMap(const o2::tpc::CalDet<float>&, const bool inv = true);
 #endif
 
   // Deal with pad gain correction from here on
   GPUdi() void setGainCorrection(int sector, tpccf::Row row, tpccf::Pad pad, float c)
   {
     mGainCorrection[sector].set(globalPad(row, pad), c);
+  }
+
+  GPUdi() void setGainCorrection(int sector, unsigned short globalPad, float c)
+  {
+    mGainCorrection[sector].set(globalPad, c);
   }
 
   GPUdi() float getGainCorrection(int sector, tpccf::Row row, tpccf::Pad pad) const
@@ -64,14 +79,28 @@ struct TPCPadGainCalib {
     return mPadOffsetPerRow[row] + pad;
   }
 
+  GPUdi() void setMinCorrectionFactor(const float minCorrectionFactor)
+  {
+    for (int sector = 0; sector < GPUCA_NSLICES; sector++) {
+      mGainCorrection[sector].mMinCorrectionFactor = minCorrectionFactor;
+    }
+  }
+
+  GPUdi() void setMaxCorrectionFactor(const float maxCorrectionFactor)
+  {
+    for (int sector = 0; sector < GPUCA_NSLICES; sector++) {
+      mGainCorrection[sector].mMaxCorrectionFactor = maxCorrectionFactor;
+    }
+  }
+
  private:
   template <typename T = unsigned short>
   class SectorPadGainCorrection
   {
 
    public:
-    constexpr static float MinCorrectionFactor = 0.f;
-    constexpr static float MaxCorrectionFactor = 2.f;
+    float mMinCorrectionFactor = 0.f;
+    float mMaxCorrectionFactor = 2.f;
     constexpr static int NumOfSteps = TPCPadGainCorrectionStepNum<T>::value;
 
     GPUdi() SectorPadGainCorrection()
@@ -97,18 +126,18 @@ struct TPCPadGainCalib {
     }
 
    private:
-    GPUd() static T pack(float f)
+    GPUd() T pack(float f) const
     {
-      f = CAMath::Clamp(f, MinCorrectionFactor, MaxCorrectionFactor);
-      f -= MinCorrectionFactor;
+      f = CAMath::Clamp(f, mMinCorrectionFactor, mMaxCorrectionFactor);
+      f -= mMinCorrectionFactor;
       f *= float(NumOfSteps);
-      f /= (MaxCorrectionFactor - MinCorrectionFactor);
+      f /= (mMaxCorrectionFactor - mMinCorrectionFactor);
       return CAMath::Nint(f);
     }
 
-    GPUd() static float unpack(T c)
+    GPUd() float unpack(T c) const
     {
-      return MinCorrectionFactor + (MaxCorrectionFactor - MinCorrectionFactor) * float(c) / float(NumOfSteps);
+      return mMinCorrectionFactor + (mMaxCorrectionFactor - mMinCorrectionFactor) * float(c) / float(NumOfSteps);
     }
 
     T mGainCorrection[TPC_PADS_IN_SECTOR];
