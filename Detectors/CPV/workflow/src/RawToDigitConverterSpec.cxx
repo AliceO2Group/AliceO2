@@ -84,9 +84,37 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
   }
   contDeadBeef = 0; // if good data, reset the counter
 
-  const o2::cpv::Pedestals* pedestals = mIsPedestalData ? 0x0 : (ctx.inputs().get<o2::cpv::Pedestals*>("peds")).get();
-  const o2::cpv::BadChannelMap* badMap = mIsUsingBadMap ? (ctx.inputs().get<o2::cpv::BadChannelMap*>("badmap")).get() : 0x0;
-  const o2::cpv::CalibParams* gains = mIsUsingGainCalibration ? (ctx.inputs().get<o2::cpv::CalibParams*>("gains")).get() : 0x0;
+  const o2::cpv::Pedestals* pedestals = nullptr;
+  const o2::cpv::BadChannelMap* badMap = nullptr;
+  const o2::cpv::CalibParams* gains = nullptr;
+  std::decay_t<decltype(ctx.inputs().get<o2::cpv::Pedestals*>("peds"))> pedPtr{};
+  std::decay_t<decltype(ctx.inputs().get<o2::cpv::BadChannelMap*>("badmap"))> badMapPtr{};
+  std::decay_t<decltype(ctx.inputs().get<o2::cpv::CalibParams*>("gains"))> gainsPtr{};
+
+  if (!mIsPedestalData) {
+    pedPtr = ctx.inputs().get<o2::cpv::Pedestals*>("peds");
+    pedestals = pedPtr.get();
+  }
+
+  if (mIsUsingBadMap) {
+    badMapPtr = ctx.inputs().get<o2::cpv::BadChannelMap*>("badmap");
+    badMap = badMapPtr.get();
+  }
+
+  if (mIsUsingGainCalibration) {
+    gainsPtr = ctx.inputs().get<o2::cpv::CalibParams*>("gains");
+    gains = gainsPtr.get();
+  }
+
+  /*if (!mIsPedestalData) {
+    pedestals = const_cast<o2::cpv::Pedestals*>((ctx.inputs().get<o2::cpv::Pedestals*>("peds")).get());
+  }
+  if (mIsUsingBadMap) {
+    badMap = const_cast<o2::cpv::BadChannelMap*>((ctx.inputs().get<o2::cpv::BadChannelMap*>("peds")).get());
+  }
+  if (mIsUsingGainCalibration) {
+    gains = const_cast<o2::cpv::CalibParams*>((ctx.inputs().get<o2::cpv::CalibParams*>("peds")).get());
+  }*/
 
   std::vector<o2::framework::InputSpec> rawFilter{
     {"RAWDATA", o2::framework::ConcreteDataTypeMatcher{"CPV", "RAWDATA"}, o2::framework::Lifetime::Timeframe},

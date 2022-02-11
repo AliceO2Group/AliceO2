@@ -57,9 +57,9 @@ class NoiseCalibrator final : public o2::calibration::TimeSlotCalibration<o2::cp
   void finalizeSlot(NoiseTimeSlot& slot) final;
   NoiseTimeSlot& emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend) final;
 
-  std::vector<float>* mPedEfficiencies = 0x0;
-  std::vector<int>* mDeadChannels = 0x0;
-  std::vector<int>* mHighPedChannels = 0x0;
+  std::vector<float>* mPedEfficiencies = nullptr;
+  std::vector<int>* mDeadChannels = nullptr;
+  std::vector<int>* mHighPedChannels = nullptr;
 
  private:
   int mMinEvents = 100;
