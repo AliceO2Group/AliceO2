@@ -22,7 +22,7 @@ namespace o2
 namespace mid
 {
 
-void ClusterLabeler::process(gsl::span<const PreCluster> preClusters, const o2::dataformats::MCTruthContainer<MCCompLabel>& inMCContainer, gsl::span<const Cluster2D> clusters, gsl::span<const std::array<size_t, 2>> correlations)
+void ClusterLabeler::process(gsl::span<const PreCluster> preClusters, const o2::dataformats::MCTruthContainer<MCCompLabel>& inMCContainer, gsl::span<const Cluster> clusters, gsl::span<const std::array<size_t, 2>> correlations)
 {
   /// Applies labels to the clusters
   mMCContainer.clear();
