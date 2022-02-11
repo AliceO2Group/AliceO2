@@ -209,7 +209,7 @@ struct Spawns : TableTransform<typename aod::MetadataTrait<framework::pack_head_
 struct IndexExclusive {
   /// Generic builder for in index table
   template <typename... Cs, typename Key, typename T1, typename... T>
-  static auto indexBuilder(const char* label, framework::pack<Cs...>, Key const&, std::tuple<T1, T...> tables)
+  static auto indexBuilder(const char* label, framework::pack<Cs...>, Key const&, std::tuple<T1, T...>&& tables)
   {
     static_assert(sizeof...(Cs) == sizeof...(T) + 1, "Number of columns does not coincide with number of supplied tables");
     using tables_t = framework::pack<T...>;
@@ -278,12 +278,23 @@ struct IndexExclusive {
     builder.setLabel(label);
     return builder.finalize();
   }
+
+  template <typename IDX, typename Key, typename T1, typename... T>
+  static auto makeIndex(Key const& key, std::tuple<T1, T...>&& tables)
+  {
+    auto t = IDX{indexBuilder(o2::aod::MetadataTrait<IDX>::metadata::tableLabel(),
+                              typename o2::aod::MetadataTrait<IDX>::metadata::index_pack_t{},
+                              key,
+                              std::make_tuple(std::decay_t<T1>{{std::get<T1>(tables).asArrowTable()}}, std::decay_t<T>{{std::get<T>(tables).asArrowTable()}}...))};
+    t.bindExternalIndices(&key, &std::get<T1>(tables), &std::get<T>(tables)...);
+    return t;
+  }
 };
 /// Sparse index: values in a row can be (-1), index table is isomorphic (joinable)
 /// to T1
 struct IndexSparse {
   template <typename... Cs, typename Key, typename T1, typename... T>
-  static auto indexBuilder(const char* label, framework::pack<Cs...>, Key const&, std::tuple<T1, T...> tables)
+  static auto indexBuilder(const char* label, framework::pack<Cs...>, Key const&, std::tuple<T1, T...>&& tables)
   {
     static_assert(sizeof...(Cs) == sizeof...(T) + 1, "Number of columns does not coincide with number of supplied tables");
     using tables_t = framework::pack<T...>;
@@ -344,6 +355,17 @@ struct IndexSparse {
     builder.setLabel(label);
     return builder.finalize();
   }
+
+  template <typename IDX, typename Key, typename T1, typename... T>
+  static auto makeIndex(Key const& key, std::tuple<T1, T...>&& tables)
+  {
+    auto t = IDX{indexBuilder(o2::aod::MetadataTrait<IDX>::metadata::tableLabel(),
+                              typename o2::aod::MetadataTrait<IDX>::metadata::index_pack_t{},
+                              key,
+                              std::make_tuple(std::decay_t<T1>{{std::get<T1>(tables).asArrowTable()}}, std::decay_t<T>{{std::get<T>(tables).asArrowTable()}}...))};
+    t.bindExternalIndices(&key, &std::get<T1>(tables), &std::get<T>(tables)...);
+    return t;
+  }
 };
 
 /// This helper struct allows you to declare index tables to be created in a task
@@ -376,9 +398,9 @@ struct Builds : TableTransform<typename aod::MetadataTrait<T>::metadata> {
   }
 
   template <typename... Cs, typename Key, typename T1, typename... Ts>
-  auto build(framework::pack<Cs...>, Key const& key, std::tuple<T1, Ts...> tables)
+  auto build(framework::pack<Cs...>, Key const& key, std::tuple<T1, Ts...>&& tables)
   {
-    this->table = std::make_shared<T>(IP::indexBuilder(aod::MetadataTrait<T>::metadata::tableLabel(), framework::pack<Cs...>{}, key, tables));
+    this->table = std::make_shared<T>(IP::indexBuilder(aod::MetadataTrait<T>::metadata::tableLabel(), framework::pack<Cs...>{}, key, std::forward<std::tuple<T1, Ts...>>(tables)));
     return (this->table != nullptr);
   }
 };
