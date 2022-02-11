@@ -1634,6 +1634,34 @@ void notBoundTable(const char* tableName);
     }                                                                                            \
                                                                                                  \
     template <typename T>                                                                        \
+    auto _Getter_##_first_as() const                                                             \
+    {                                                                                            \
+      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                            \
+        o2::soa::notBoundTable(#_Table_);                                                        \
+      }                                                                                          \
+      return static_cast<T const*>(mBinding)->rawIteratorAt((*mColumnIterator)[0]);              \
+    }                                                                                            \
+                                                                                                 \
+    template <typename T>                                                                        \
+    auto _Getter_##_last_as() const                                                              \
+    {                                                                                            \
+      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                            \
+        o2::soa::notBoundTable(#_Table_);                                                        \
+      }                                                                                          \
+      return static_cast<T const*>(mBinding)->rawIteratorAt((*mColumnIterator).back());          \
+    }                                                                                            \
+                                                                                                 \
+    auto _Getter_first() const                                                                   \
+    {                                                                                            \
+      return _Getter_##_first_as<binding_t>();                                                   \
+    }                                                                                            \
+                                                                                                 \
+    auto _Getter_last() const                                                                    \
+    {                                                                                            \
+      return _Getter_##_last_as<binding_t>();                                                    \
+    }                                                                                            \
+                                                                                                 \
+    template <typename T>                                                                        \
     bool setCurrent(T* current)                                                                  \
     {                                                                                            \
       if constexpr (o2::soa::is_binding_compatible_v<T, binding_t>()) {                          \
@@ -1883,6 +1911,18 @@ void notBoundTable(const char* tableName);
         result.push_back(static_cast<T const*>(mBinding)->rawIteratorAt(i));                     \
       }                                                                                          \
       return result;                                                                             \
+    }                                                                                            \
+                                                                                                 \
+    template <typename T>                                                                        \
+    auto _Getter_##_first_as() const                                                             \
+    {                                                                                            \
+      return static_cast<T const*>(mBinding)->rawIteratorAt((*mColumnIterator)[0]);              \
+    }                                                                                            \
+                                                                                                 \
+    template <typename T>                                                                        \
+    auto _Getter_##_last_as() const                                                              \
+    {                                                                                            \
+      return static_cast<T const*>(mBinding)->rawIteratorAt((*mColumnIterator).back());          \
     }                                                                                            \
                                                                                                  \
     bool setCurrentRaw(void const* current)                                                      \
