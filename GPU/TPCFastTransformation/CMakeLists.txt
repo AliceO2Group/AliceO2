@@ -29,6 +29,8 @@ set(SRCS
     TPCFastTransformGeo.cxx
     TPCFastSpaceChargeCorrection.cxx
     TPCFastTransform.cxx
+    MultivariatePolynomial.cxx
+    MultivariatePolynomialHelper.cxx
 )
 
 string(REPLACE ".cxx" ".h" HDRS_CINT_O2 "${SRCS}")
@@ -57,6 +59,14 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
               SOURCES test/testSplines.cxx
               COMPONENT_NAME GPU
               LABELS gpu)
+
+  o2_add_test(MultivarPolynomials
+              COMPONENT_NAME GPU
+              PUBLIC_LINK_LIBRARIES O2::${MODULE}
+              SOURCES test/testMultivarPolynomials.cxx
+              ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+              LABELS gpu
+              CONFIGURATIONS RelWithDebInfo Release MinRelSize)
 
   foreach(m
           SplineDemo.C

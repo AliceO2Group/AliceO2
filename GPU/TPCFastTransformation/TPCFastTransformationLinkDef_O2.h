@@ -59,5 +59,6 @@
 #pragma link C++ class o2::gpu::TPCFastTransform + ;
 #pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection::SliceInfo + ;
 #pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection + ;
+#pragma link C++ struct o2::gpu::MultivariatePolynomialContainer +;
 
 #endif

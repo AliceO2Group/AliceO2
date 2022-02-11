@@ -36,7 +36,6 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DataFormatsTPC/Digit.h"
 #include "TPCFastTransform.h"
-#include "DataFormatsTPC/CalibdEdxContainer.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "DPLUtils/DPLRawPageSequencer.h"
 #include "DetectorsBase/MatLayerCylSet.h"
@@ -48,6 +47,7 @@
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUO2InterfaceQA.h"
 #include "GPUO2Interface.h"
+#include "CalibdEdxContainer.h"
 #include "TPCPadGainCalib.h"
 #include "GPUDisplayFrontend.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -270,6 +270,18 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
           LOGP(info, "Loading dEdx correction from file: {}", confParam.dEdxCorrFile);
           processAttributes->dEdxCalibContainer->loadResidualCorrectionFromFile(confParam.dEdxCorrFile);
         }
+        if (std::filesystem::exists(confParam.thresholdCalibFile)) {
+          LOG(info) << "Loading tpc zero supression map from file " << confParam.thresholdCalibFile;
+          const auto* thresholdMap = o2::tpc::utils::readCalPads(confParam.thresholdCalibFile, "ThresholdMap")[0];
+          processAttributes->dEdxCalibContainer->setZeroSupresssionThreshold(*thresholdMap);
+        } else {
+          if (not confParam.thresholdCalibFile.empty()) {
+            LOG(warn) << "Couldn't find tpc zero supression file " << confParam.thresholdCalibFile << ". Not setting any zero supression.";
+          }
+          LOG(info) << "Setting default zero supression map";
+          processAttributes->dEdxCalibContainer->setDefaultZeroSupresssionThreshold();
+        }
+
       } else {
         processAttributes->dEdxCalibContainer.reset(new o2::tpc::CalibdEdxContainer());
       }
