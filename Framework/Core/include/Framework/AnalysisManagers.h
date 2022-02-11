@@ -191,7 +191,7 @@ struct ConditionManager<Condition<OBJ>> {
   }
   static bool newDataframe(InputRecord& inputs, Condition<OBJ>& what)
   {
-    what.instance(inputs.get<OBJ>(what.path));
+    what.instance = (OBJ*)inputs.get<OBJ*>(what.path).get();
     return true;
   }
 };
