@@ -20,8 +20,7 @@
 #include <vector>
 #include <unordered_set>
 #include <gsl/gsl>
-#include "DataFormatsMID/Cluster2D.h"
-#include "DataFormatsMID/Cluster3D.h"
+#include "DataFormatsMID/Cluster.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "DataFormatsMID/Track.h"
 #include "MIDBase/GeometryTransformer.h"
@@ -49,15 +48,15 @@ class Tracker
   /// Gets number of sigmas for cuts
   inline float getSigmaCut() const { return mSigmaCut; }
 
-  void process(gsl::span<const Cluster2D> clusters, bool accumulate = false);
-  void process(gsl::span<const Cluster2D> clusters, gsl::span<const ROFRecord> rofRecords);
+  void process(gsl::span<const Cluster> clusters, bool accumulate = false);
+  void process(gsl::span<const Cluster> clusters, gsl::span<const ROFRecord> rofRecords);
   bool init(bool keepAll = false);
 
   /// Gets the array of reconstructes tracks
   const std::vector<Track>& getTracks() { return mTracks; }
 
   /// Gets the array of associated clusters
-  const std::vector<Cluster3D>& getClusters() { return mClusters; }
+  const std::vector<Cluster>& getClusters() { return mClusters; }
 
   /// Gets the vector of tracks RO frame records
   const std::vector<ROFRecord>& getTrackROFRecords() { return mTrackROFRecords; }
@@ -75,9 +74,9 @@ class Tracker
   bool findNextCluster(const Track& track, bool isRight, bool isInward, int chamber, int firstRPC, int lastRPC, Track& bestTrack) const;
   int getFirstNeighbourRPC(int rpc) const;
   int getLastNeighbourRPC(int rpc) const;
-  bool loadClusters(gsl::span<const Cluster2D>& clusters);
-  bool makeTrackSeed(Track& track, const Cluster3D& cl1, const Cluster3D& cl2) const;
-  void runKalmanFilter(Track& track, const Cluster3D& cluster) const;
+  bool loadClusters(gsl::span<const Cluster>& clusters);
+  bool makeTrackSeed(Track& track, const Cluster& cl1, const Cluster& cl2) const;
+  void runKalmanFilter(Track& track, const Cluster& cluster) const;
   bool tryOneCluster(const Track& track, int chamber, int clIdx, Track& newTrack) const;
   void excludeUsedClusters(const Track& track, int ch1, int ch2, std::unordered_set<int>& excludedClusters);
 
@@ -88,7 +87,7 @@ class Tracker
   float mMaxChi2 = 50.;         ///< Maximum cut on chi2 to attach a cluster (= 2 * mSigmaCut^2)
 
   std::vector<int> mClusterIndexes[72]; ///< Ordered arrays of clusters indexes
-  std::vector<Cluster3D> mClusters{};   ///< 3D clusters
+  std::vector<Cluster> mClusters{};     ///< 3D clusters
 
   std::vector<Track> mTracks{};                ///< Vector of tracks
   std::vector<ROFRecord> mTrackROFRecords{};   ///< List of track RO frame records

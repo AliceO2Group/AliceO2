@@ -21,7 +21,7 @@
 #include "Framework/Logger.h"
 #include "Framework/Output.h"
 #include "Framework/Task.h"
-#include "DataFormatsMID/Cluster3D.h"
+#include "DataFormatsMID/Cluster.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "DataFormatsMID/Track.h"
 #include "MIDSimulation/Geometry.h"
@@ -56,7 +56,7 @@ class TrackerMCDeviceDPL
   void run(o2::framework::ProcessingContext& pc)
   {
     auto msg = pc.inputs().get("mid_clusters");
-    gsl::span<const Cluster2D> clusters = of::DataRefUtils::as<const Cluster2D>(msg);
+    gsl::span<const Cluster> clusters = of::DataRefUtils::as<const Cluster>(msg);
 
     auto msgROF = pc.inputs().get("mid_clusters_rof");
     gsl::span<const ROFRecord> inROFRecords = of::DataRefUtils::as<const ROFRecord>(msgROF);

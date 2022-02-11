@@ -27,7 +27,7 @@
 #include "DataFormatsMCH/ROFRecord.h"
 
 #include "DataFormatsMID/ROFRecord.h"
-#include "DataFormatsMID/Cluster3D.h"
+#include "DataFormatsMID/Cluster.h"
 #include "DataFormatsMID/Track.h"
 #include "DataFormatsMID/MCClusterLabel.h"
 
