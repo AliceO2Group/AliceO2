@@ -16,6 +16,7 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/ControlService.h"
+#include "Framework/SourceInfoHeader.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
@@ -209,7 +210,22 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
       for (int i = 0; i < NTimers; i++) {
         LOGF(info, "Timing for %15s: Cpu: %.3e Real: %.3e s in %d slots", TimerName[i], mTimer[i].CpuTime(), mTimer[i].RealTime(), mTimer[i].Counter() - 1);
       }
-      ctx.services().get<o2f::ControlService>().endOfStream();
+      if (!mRawChannelName.empty()) { // send endOfStream message to raw channel
+        o2f::SourceInfoHeader exitHdr;
+        exitHdr.state = o2::framework::InputChannelState::Completed;
+        const auto exitStack = o2::header::Stack(o2h::DataHeader(o2h::gDataDescriptionInfo, o2h::gDataOriginAny, 0, 0), o2f::DataProcessingHeader(), exitHdr);
+        auto fmqFactory = device->GetChannel(mRawChannelName, 0).Transport();
+        auto hdEOSMessage = fmqFactory->CreateMessage(exitStack.size(), fair::mq::Alignment{64});
+        auto plEOSMessage = fmqFactory->CreateMessage(0, fair::mq::Alignment{64});
+        memcpy(hdEOSMessage->GetData(), exitStack.data(), exitStack.size());
+        FairMQParts eosMsg;
+        eosMsg.AddPart(std::move(hdEOSMessage));
+        eosMsg.AddPart(std::move(plEOSMessage));
+        device->Send(eosMsg, mRawChannelName);
+        LOG(info) << "Sent EoS message to " << mRawChannelName;
+      } else {
+        ctx.services().get<o2f::ControlService>().endOfStream();
+      }
       ctx.services().get<o2f::ControlService>().readyToQuit(o2f::QuitRequest::Me);
       return;
     }
