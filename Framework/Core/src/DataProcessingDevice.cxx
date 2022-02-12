@@ -1463,7 +1463,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
       // Notice that we cannot block, because we will not
       // be unblocked in case of a new state
       // device->Send(forwardedParts[fi], spec->forwards[fi].channel, 0);
-      while (device->Send(forwardedParts[fi], spec->forwards[fi].channel, 0, 100) == 0 || device->NewStatePending() == false) {
+      while (device->Send(forwardedParts[fi], spec->forwards[fi].channel, 0, 100) < 0 && device->NewStatePending() == false) {
       }
     }
   };
