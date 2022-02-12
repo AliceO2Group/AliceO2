@@ -1460,7 +1460,11 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         continue;
       }
       // in DPL we are using subchannel 0 only
-      device->Send(forwardedParts[fi], spec->forwards[fi].channel, 0);
+      // Notice that we cannot block, because we will not
+      // be unblocked in case of a new state
+      // device->Send(forwardedParts[fi], spec->forwards[fi].channel, 0);
+      while (device->Send(forwardedParts[fi], spec->forwards[fi].channel, 0, 100) == 0 || device->NewStatePending() == false) {
+      }
     }
   };
 
