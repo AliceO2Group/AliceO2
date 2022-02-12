@@ -952,6 +952,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
       uv_poll_stop(poller);
     }
     context.deviceContext->state->activeOutputPollers.clear();
+    context.deviceContext->state->transitionHandling = TransitionHandlingState::Expired;
   }
 
   return;
