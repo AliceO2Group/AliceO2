@@ -681,18 +681,10 @@ void DataProcessingDevice::Run()
           uv_timer_init(mState.loop, timer);
           mState.transitionHandling = TransitionHandlingState::Requested;
           uv_timer_start(timer, on_transition_requested_expired, timeout * 1000, 0);
-          if (mProcessingPolicies.termination == TerminationPolicy::QUIT) {
-            LOGP(info, "New state requested. No timeout set, switching to READY state immediately");
-          } else {
-            LOGP(info, "New state requested. Waiting for {} seconds before switching to READY state.", timeout);
-          }
+          LOGP(info, "New state requested. Waiting for {} seconds before quitting.", timeout);
         } else {
           mState.transitionHandling = TransitionHandlingState::Expired;
-          if (mProcessingPolicies.termination == TerminationPolicy::QUIT) {
-            LOGP(info, "New state requested. No timeout set, quitting immediately as per --completion-policy");
-          } else {
-            LOGP(info, "New state requested. No timeout set, switching to READY state immediately");
-          }
+          LOGP(info, "New state requested. No timeout set, therefore exiting immediately");
         }
       }
       TracyPlot("shouldNotWait", (int)shouldNotWait);
