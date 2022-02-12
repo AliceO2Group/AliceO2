@@ -290,7 +290,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     auto const* mmh = DataRefUtils::getHeader<test_header::MsgModeHeader*>(inputs.get("datain"));
     ASSERT_ERROR(dh != nullptr);
     ASSERT_ERROR(mmh != nullptr);
-    LOGP(info, "{} input slots(s), data {}, parts {}, mode {}", inputs.size(), inputs.get<int>("datain"), mmh->nPayloadParts, mmh->mode);
+    LOGP(info, "{} input slots(s), data {}, parts {}, mode {}", inputs.size(), inputs.get<int>("datain"), mmh->nPayloadParts, (int)mmh->mode);
     if (mmh->mode == test_header::MsgModeHeader::MsgMode::Pair) {
       ASSERT_ERROR(dh->splitPayloadParts == mmh->nPayloadParts);
       ASSERT_ERROR(dh->splitPayloadIndex == 0);
