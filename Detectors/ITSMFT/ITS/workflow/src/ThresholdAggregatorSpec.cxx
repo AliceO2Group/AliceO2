@@ -60,7 +60,6 @@ void ITSThresholdAggregator::run(ProcessingContext& pc)
 
   // Read strings with tuning info
   const auto tunString = pc.inputs().get<gsl::span<char>>("tunestring");
-  // std::string tmpString(tunString.begin(), tunString.end());
   // Merge all strings coming from several sources (EPN)
   std::copy(tunString.begin(), tunString.end(), std::back_inserter(tuningMerge));
 
