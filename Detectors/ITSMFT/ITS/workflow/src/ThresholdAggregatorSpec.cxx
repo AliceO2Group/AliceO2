@@ -46,23 +46,23 @@ void ITSThresholdAggregator::init(InitContext& ic)
 void ITSThresholdAggregator::run(ProcessingContext& pc)
 {
 
-  //take run type and scan type at the beginning
+  // take run type and scan type at the beginning
   if (this->mRunType == -1) {
-    this->mRunType = pc.inputs().get<short int>("runtype");
-    this->mScanType = pc.inputs().get<char>("scantype");
-    this->mFitType = pc.inputs().get<char>("fittype");
-    this->updateRunID(pc); // run number
+    mRunType = pc.inputs().get<short int>("runtype");
+    mScanType = pc.inputs().get<char>("scantype");
+    mFitType = pc.inputs().get<char>("fittype");
+    updateRunID(pc); // run number
   }
 
-  if (this->mLHCPeriod.empty()) {
-    this->updateLHCPeriod(pc);
+  if (mLHCPeriod.empty()) {
+    updateLHCPeriod(pc);
   }
 
   // Read strings with tuning info
-  const auto tunString = pc.inputs().get<o2::dcs::DCSconfigObject_t>("tunestring");
-  std::string tmpString(tunString.begin(), tunString.end());
-  //Merge all strings coming from several sources (EPN)
-  std::copy(tmpString.begin(), tmpString.end(), std::back_inserter(tuningMerge));
+  const auto tunString = pc.inputs().get<gsl::span<char>>("tunestring");
+  // std::string tmpString(tunString.begin(), tunString.end());
+  // Merge all strings coming from several sources (EPN)
+  std::copy(tunString.begin(), tunString.end(), std::back_inserter(tuningMerge));
 
   return;
 }
@@ -73,10 +73,8 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
   LOGF(info, "endOfStream report:", mSelfName);
 
   // Below is CCDB stuff
-  long tstart, tend;
-  tstart = o2::ccdb::getCurrentTimestamp();
-  constexpr long SECONDSPERYEAR = 365 * 24 * 60 * 60;
-  tend = o2::ccdb::getFutureTimestamp(SECONDSPERYEAR);
+  long tstart = o2::ccdb::getCurrentTimestamp();
+  long tend = tstart + 365L * 24 * 3600 * 1000;
 
   auto class_name = o2::utils::MemFileHelper::getClassName(tuningMerge);
 

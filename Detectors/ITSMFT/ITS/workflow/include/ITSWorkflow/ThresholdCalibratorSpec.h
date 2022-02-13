@@ -93,6 +93,7 @@ class ITSThresholdCalibrator : public Task
   void endOfStream(EndOfStreamContext& ec) final;
 
   void finalize(EndOfStreamContext* ec);
+  void stop() final;
 
   //////////////////////////////////////////////////////////////////
  private:
@@ -197,7 +198,6 @@ class ITSThresholdCalibrator : public Task
   // Flag to check if endOfStream is available
   bool mCheckEos = false;
   int mCounter = 0;
-  bool isFinalized = false;
 };
 
 // Create a processor spec

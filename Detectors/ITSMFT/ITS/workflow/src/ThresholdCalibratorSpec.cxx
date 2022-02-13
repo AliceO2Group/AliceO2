@@ -618,7 +618,7 @@ bool ITSThresholdCalibrator::isScanFinished(const short int& chipID)
 void ITSThresholdCalibrator::extractAndUpdate(const short int& chipID)
 {
   // In threshold scan case, reset mThresholdTree before writing to a new file
-  if ((!this->mCounter || this->mCheckEos) && (this->mScanType == 'T') && ((this->mRowCounter)++ == N_ROWS_PER_FILE)) {
+  if ((this->mScanType == 'T') && ((this->mRowCounter)++ == N_ROWS_PER_FILE)) {
     // Finalize output and create a new TTree and ROOT file
     this->finalizeOutput();
     this->initThresholdTree();
@@ -865,14 +865,19 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
   for (auto const& [chipID, hits_vec] : this->mPixelHits) {
     // Check that we have received all the data for this row
     // Require that the last charge value has at least half counts
-    if (this->isScanFinished(chipID) && (this->mCheckEos || !this->isFinalized)) {
+    if (this->isScanFinished(chipID)) {
       this->mCounter++;
       this->extractAndUpdate(chipID);
+      if (!this->mCheckEos) {
+        this->mPixelHits[chipID][0][*(this->N_RANGE) - 1] = 0; // so that at next call, if does not pass isScanFinished again
+      }
     }
   }
-  if (!this->mCheckEos && this->mCounter > 0 && !this->isFinalized) {
+
+  if (!this->mCheckEos && this->mCounter > 0) {
     this->finalizeOutput();
-    this->isFinalized = true;
+    this->initThresholdTree();
+    this->mCounter = 0;
   } else if (this->mCheckEos) {
     this->finalizeOutput();
   }
@@ -954,9 +959,19 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
 // tells that there will be no more input data
 void ITSThresholdCalibrator::endOfStream(EndOfStreamContext& ec)
 {
-  if (this - mCheckEos) {
+  if (this->mCheckEos) {
     LOGF(info, "endOfStream report:", mSelfName);
     this->finalize(&ec);
+  }
+  return;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// DDS stop method: simply close the latest tree
+void ITSThresholdCalibrator::stop()
+{
+  if (!this->mCheckEos) {
+    this->finalizeOutput();
   }
   return;
 }
