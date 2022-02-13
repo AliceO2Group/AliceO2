@@ -772,11 +772,11 @@ class O2HitMerger : public FairMQDevice
   }
 
   std::map<uint32_t, uint32_t> mPartsCheckSum; //! mapping event id -> part checksum used to detect when all info
-  std::string mOutFileName; //!
+  std::string mOutFileName;                    //!
 
   // structures for the final flush
-  TFile* mOutFile;                                     //! outfile for kinematics
-  TTree* mOutTree;                                     //! tree (kinematics) associated to mOutFile
+  TFile* mOutFile; //! outfile for kinematics
+  TTree* mOutTree; //! tree (kinematics) associated to mOutFile
 
   template <class K, class V>
   using Hashtable = tbb::concurrent_unordered_map<K, V>;
@@ -794,7 +794,7 @@ class O2HitMerger : public FairMQDevice
 
   int mEventChecksum = 0;   //! checksum for events
   int mNExpectedEvents = 0; //! number of events that we expect to receive
-  int mNextFlushID = 1;                           //! EventID to be flushed next
+  int mNextFlushID = 1;     //! EventID to be flushed next
   TStopwatch mTimer;
 
   bool mAsService = false; //! if run in deamonized mode
@@ -822,7 +822,7 @@ void O2HitMerger::initHitFiles(std::string prefix)
   // a little helper lambda
   auto isActivated = [](std::string s) -> bool {
     // access user configuration for list of wanted modules
-    auto& modulelist = o2::conf::SimConfig::Instance().getActiveDetectors();
+    auto& modulelist = o2::conf::SimConfig::Instance().getReadoutDetectors();
     auto active = std::find(modulelist.begin(), modulelist.end(), s) != modulelist.end();
     return active; };
 
@@ -843,7 +843,7 @@ void O2HitMerger::initDetInstances()
   // a little helper lambda
   auto isActivated = [](std::string s) -> bool {
     // access user configuration for list of wanted modules
-    auto& modulelist = o2::conf::SimConfig::Instance().getActiveDetectors();
+    auto& modulelist = o2::conf::SimConfig::Instance().getReadoutDetectors();
     auto active = std::find(modulelist.begin(), modulelist.end(), s) != modulelist.end();
     return active; };
 
@@ -865,7 +865,7 @@ void O2HitMerger::initDetInstances()
       counter++;
     }
     if (i == DetID::MFT) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::mft::Detector>());
+      mDetectorInstances[i] = std::move(std::make_unique<o2::mft::Detector>(true));
       counter++;
     }
     if (i == DetID::TRD) {
