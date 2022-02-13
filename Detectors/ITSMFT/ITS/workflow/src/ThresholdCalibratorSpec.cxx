@@ -118,8 +118,11 @@ void ITSThresholdCalibrator::init(InitContext& ic)
     throw std::runtime_error("Multiple threads are requested with fit method which is not thread safe");
   }
 
-  //Machine hostname
+  // Machine hostname
   this->mHostname = boost::asio::ip::host_name();
+
+  // endOfStream flag
+  this->mCheckEos = ic.options().get<bool>("enable-eos");
 
   return;
 }
@@ -606,8 +609,8 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
 bool ITSThresholdCalibrator::isScanFinished(const short int& chipID)
 {
   // Require that the last entry has at least half the number of expected hits
-  short int col = 0; // Doesn't matter which column
-  return (this->mPixelHits[chipID][col][*(this->N_RANGE) - 1] > (N_INJ / 2.));
+  short int col = 0;                                                            // Doesn't matter which column
+  return (this->mPixelHits[chipID][col][*(this->N_RANGE) - 1] >= (N_INJ - 2.)); // TODO: -2 is a safety factor for now
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -615,7 +618,7 @@ bool ITSThresholdCalibrator::isScanFinished(const short int& chipID)
 void ITSThresholdCalibrator::extractAndUpdate(const short int& chipID)
 {
   // In threshold scan case, reset mThresholdTree before writing to a new file
-  if ((this->mScanType == 'T') && ((this->mRowCounter)++ == N_ROWS_PER_FILE)) {
+  if ((!this->mCounter || this->mCheckEos) && (this->mScanType == 'T') && ((this->mRowCounter)++ == N_ROWS_PER_FILE)) {
     // Finalize output and create a new TTree and ROOT file
     this->finalizeOutput();
     this->initThresholdTree();
@@ -719,7 +722,7 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
           short int runtype = (short int)(calib.calibUserField >> 24);
           this->setRunType(runtype);
         }
-
+        this->mRunTypeUp = (short int)(calib.calibUserField >> 24);
         // Divide calibration word (24-bit) by 2^16 to get the first 8 bits
         if (this->mScanType == 'T') {
           // For threshold scan have to subtract from 170 to get charge value
@@ -746,7 +749,12 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
         auto& d = digits[idig];
         short int chipID = (short int)d.getChipIndex();
         short int col = (short int)d.getColumn();
-
+        if (!this->mCheckEos && !this->mRunTypeUp) {
+          if (!this->mIsChipDone[chipID]) {
+            this->mRunTypeChip[chipID]++;
+            this->mIsChipDone[chipID] = true;
+          }
+        }
         // Row should be the same for the whole ROF
         // Check if chip hasn't appeared before
         if (!(this->mCurrentRow.count(chipID))) {
@@ -779,7 +787,21 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
 
     } // if (charge)
 
+    // reset mIsChipDone before the next ROF
+    memset(this->mIsChipDone, 0, sizeof(this->mIsChipDone));
+
   } // for (ROFs)
+
+  if (!(this->mCheckEos) && !(this->mRunTypeUp)) {
+    LOG(info) << "Shipping DCSconfigObject_t, run type, scan type and fit type to aggregator from run function (no endOfStream will be used!)";
+    this->finalize(nullptr);
+    pc.outputs().snapshot(Output{"ITS", "TSTR", 0}, this->mTuning);
+    pc.outputs().snapshot(Output{"ITS", "RUNT", 0}, this->mRunType);
+    pc.outputs().snapshot(Output{"ITS", "SCANT", 0}, this->mScanType);
+    pc.outputs().snapshot(Output{"ITS", "FITT", 0}, this->mFitType);
+    // reset the DCSconfigObject_t before next ship out
+    this->mTuning.clear();
+  }
 
   return;
 }
@@ -798,7 +820,7 @@ void ITSThresholdCalibrator::findAverage(const std::array<int, 5>& data, float& 
 //////////////////////////////////////////////////////////////////////////////
 void ITSThresholdCalibrator::addDatabaseEntry(
   const short int& chipID, const char* name, const short int& avgT,
-  const float& rmsT, const short int& avgN, const float& rmsN, bool status, o2::dcs::DCSconfigObject_t& tuning)
+  const float& rmsT, const short int& avgN, const float& rmsN, bool status)
 {
   // Obtain specific chip information from the chip ID (layer, stave, ...)
   int lay, sta, ssta, mod, chipInMod; // layer, stave, sub stave, module, chip
@@ -807,29 +829,28 @@ void ITSThresholdCalibrator::addDatabaseEntry(
   char stave[6];
   sprintf(stave, "L%d_%02d", lay, sta);
 
-  o2::dcs::addConfigItem(tuning, "Stave", std::string(stave));
-  o2::dcs::addConfigItem(tuning, "Hs_pos", std::to_string(ssta));
-  o2::dcs::addConfigItem(tuning, "Hic_Pos", std::to_string(mod));
-  o2::dcs::addConfigItem(tuning, "ChipID", std::to_string(chipInMod));
-  o2::dcs::addConfigItem(tuning, name, std::to_string(avgT));
-  o2::dcs::addConfigItem(tuning, "Rms", std::to_string(rmsT));
-  o2::dcs::addConfigItem(tuning, "Status", std::to_string(status)); // pass or fail
+  o2::dcs::addConfigItem(this->mTuning, "Stave", std::string(stave));
+  o2::dcs::addConfigItem(this->mTuning, "Hs_pos", std::to_string(ssta));
+  o2::dcs::addConfigItem(this->mTuning, "Hic_Pos", std::to_string(mod));
+  o2::dcs::addConfigItem(this->mTuning, "ChipID", std::to_string(chipInMod));
+  o2::dcs::addConfigItem(this->mTuning, name, std::to_string(avgT));
+  o2::dcs::addConfigItem(this->mTuning, "Rms", std::to_string(rmsT));
+  o2::dcs::addConfigItem(this->mTuning, "Status", std::to_string(status)); // pass or fail
   if (this->mScanType == 'T') {
-    o2::dcs::addConfigItem(tuning, "Noise", std::to_string(avgN));
-    o2::dcs::addConfigItem(tuning, "NoiseRms", std::to_string(rmsN));
+    o2::dcs::addConfigItem(this->mTuning, "Noise", std::to_string(avgN));
+    o2::dcs::addConfigItem(this->mTuning, "NoiseRms", std::to_string(rmsN));
   }
 
   return;
 }
 
 //////////////////////////////////////////////////////////////////////////////
-void ITSThresholdCalibrator::sendToAggregator(
-  o2::dcs::DCSconfigObject_t& tuning, EndOfStreamContext* ec)
+void ITSThresholdCalibrator::sendToAggregator(EndOfStreamContext* ec)
 {
 
-  if (ec) { // send to ccdb-populator wf only if there is an EndOfStreamContext
-    LOG(info) << "Shipping DCSconfigObject_t, run type, scan type and fit type to aggregator";
-    ec->outputs().snapshot(Output{"ITS", "TSTR", 0}, tuning);
+  if (this->mCheckEos && ec) { // send to ccdb-populator wf only if there is an EndOfStreamContext
+    LOG(info) << "Shipping DCSconfigObject_t, run type, scan type and fit type to aggregator using endOfStream!";
+    ec->outputs().snapshot(Output{"ITS", "TSTR", 0}, this->mTuning);
     ec->outputs().snapshot(Output{"ITS", "RUNT", 0}, this->mRunType);
     ec->outputs().snapshot(Output{"ITS", "SCANT", 0}, this->mScanType);
     ec->outputs().snapshot(Output{"ITS", "FITT", 0}, this->mFitType);
@@ -840,58 +861,90 @@ void ITSThresholdCalibrator::sendToAggregator(
 //////////////////////////////////////////////////////////////////////////////
 void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
 {
-  LOGF(info, "endOfStream report:", mSelfName);
-
-  // DCS formatted data object for VCASN and ITHR tuning
-  o2::dcs::DCSconfigObject_t tuning;
 
   for (auto const& [chipID, hits_vec] : this->mPixelHits) {
     // Check that we have received all the data for this row
     // Require that the last charge value has at least half counts
-    if (this->isScanFinished(chipID)) {
+    if (this->isScanFinished(chipID) && (this->mCheckEos || !this->isFinalized)) {
+      this->mCounter++;
       this->extractAndUpdate(chipID);
     }
   }
-  this->finalizeOutput();
+  if (!this->mCheckEos && this->mCounter > 0 && !this->isFinalized) {
+    this->finalizeOutput();
+    this->isFinalized = true;
+  } else if (this->mCheckEos) {
+    this->finalizeOutput();
+  }
 
   // Add configuration item to output strings for CCDB
   const char* name = nullptr;
   if (this->mScanType == 'V') {
     // Loop over each chip and calculate avg and rms
     name = "VCASN";
-    for (auto const& [chipID, t_arr] : this->mThresholds) {
-      // Casting float to short int to save memory
+    auto it = this->mThresholds.cbegin();
+    while (it != this->mThresholds.cend()) {
+      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ - 2) { // TODO: -2 is a safety factor, to be modified once THR scan is stable enough
+        ++it;
+        continue;
+      }
       float avgT, rmsT, avgN, rmsN;
-      this->findAverage(t_arr, avgT, rmsT, avgN, rmsN);
+      this->findAverage(it->second, avgT, rmsT, avgN, rmsN);
       bool status = (this->mX[0] < avgT && avgT < this->mX[*(this->N_RANGE) - 1]);
-      this->addDatabaseEntry(chipID, name, (short int)avgT, rmsT, (short int)avgN, rmsN, status, tuning);
+      this->addDatabaseEntry(it->first, name, (short int)avgT, rmsT, (short int)avgN, rmsN, status);
+      if (!this->mCheckEos) {
+        this->mRunTypeChip[it->first] = 0; // so that this chip will never appear again in the DCSconfigObject_t
+        it = this->mThresholds.erase(it);
+      } else {
+        ++it;
+      }
     }
 
   } else if (this->mScanType == 'I') {
     // Loop over each chip and calculate avg and rms
     name = "ITHR";
-    for (auto const& [chipID, t_arr] : this->mThresholds) {
-      // Casting float to short int to save memory
+    auto it = this->mThresholds.cbegin();
+    while (it != this->mThresholds.cend()) {
+      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ - 2) { // TODO: -2 is a safety factor, to be modified once THR scan is stable enough
+        ++it;
+        continue;
+      }
       float avgT, rmsT, avgN, rmsN;
-      this->findAverage(t_arr, avgT, rmsT, avgN, rmsN);
+      this->findAverage(it->second, avgT, rmsT, avgN, rmsN);
       bool status = (this->mX[0] < avgT && avgT < this->mX[*(this->N_RANGE) - 1]);
-      this->addDatabaseEntry(chipID, name, (short int)avgT, rmsT, (short int)avgN, rmsN, status, tuning);
+      this->addDatabaseEntry(it->first, name, (short int)avgT, rmsT, (short int)avgN, rmsN, status);
+      if (!this->mCheckEos) {
+        this->mRunTypeChip[it->first] = 0; // so that this chip will never appear again in the DCSconfigObject_t
+        it = this->mThresholds.erase(it);
+      } else {
+        ++it;
+      }
     }
 
   } else if (this->mScanType == 'T') {
     // Loop over each chip and calculate avg and rms
     name = "THR";
-    for (auto const& [chipID, t_arr] : this->mThresholds) {
-      // Casting float to short int to save memory
+    auto it = this->mThresholds.cbegin();
+    while (it != this->mThresholds.cend()) {
+      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ - 2) { // TODO: -2 is a safety factor, to be modified once THR scan is stable enough
+        ++it;
+        continue;
+      }
       float avgT, rmsT, avgN, rmsN;
-      this->findAverage(t_arr, avgT, rmsT, avgN, rmsN);
+      this->findAverage(it->second, avgT, rmsT, avgN, rmsN);
       bool status = (this->mX[0] < avgT && avgT < this->mX[*(this->N_RANGE) - 1] * 10);
-      this->addDatabaseEntry(chipID, name, (short int)avgT, rmsT, (short int)avgN, rmsN, status, tuning);
+      this->addDatabaseEntry(it->first, name, (short int)avgT, rmsT, (short int)avgN, rmsN, status);
+      if (!this->mCheckEos) {
+        this->mRunTypeChip[it->first] = 0; // so that this chip will never appear again in the DCSconfigObject_t
+        it = this->mThresholds.erase(it);
+      } else {
+        ++it;
+      }
     }
   }
 
   // Send to ccdb
-  this->sendToAggregator(tuning, ec);
+  this->sendToAggregator(ec);
 
   return;
 }
@@ -901,7 +954,10 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
 // tells that there will be no more input data
 void ITSThresholdCalibrator::endOfStream(EndOfStreamContext& ec)
 {
-  this->finalize(&ec);
+  if (this - mCheckEos) {
+    LOGF(info, "endOfStream report:", mSelfName);
+    this->finalize(&ec);
+  }
   return;
 }
 
@@ -930,7 +986,8 @@ DataProcessorSpec getITSThresholdCalibratorSpec()
             {"output-dir", VariantType::String, "./", {"ROOT trees output directory"}},
             {"meta-output-dir", VariantType::String, "/dev/null", {"Metadata output directory"}},
             {"meta-type", VariantType::String, "", {"metadata type"}},
-            {"nthreads", VariantType::Int, 1, {"Number of threads, default is 1"}}}};
+            {"nthreads", VariantType::Int, 1, {"Number of threads, default is 1"}},
+            {"enable-eos", VariantType::Bool, false, {"Use if endOfStream is available"}}}};
 }
 } // namespace its
 } // namespace o2
