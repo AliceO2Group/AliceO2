@@ -358,45 +358,8 @@ int GPUChainTracking::Init()
   processors()->errorCodes.clear();
 
   if (mRec->IsGPU()) {
-    if (processors()->calibObjects.fastTransform) {
-      memcpy((void*)mFlatObjectsShadow.mCalibObjects.fastTransform, (const void*)processors()->calibObjects.fastTransform, sizeof(*processors()->calibObjects.fastTransform));
-      memcpy((void*)mFlatObjectsShadow.mTpcTransformBuffer, (const void*)processors()->calibObjects.fastTransform->getFlatBufferPtr(), processors()->calibObjects.fastTransform->getFlatBufferSize());
-      mFlatObjectsShadow.mCalibObjects.fastTransform->clearInternalBufferPtr();
-      mFlatObjectsShadow.mCalibObjects.fastTransform->setActualBufferAddress(mFlatObjectsShadow.mTpcTransformBuffer);
-      mFlatObjectsShadow.mCalibObjects.fastTransform->setFutureBufferAddress(mFlatObjectsDevice.mTpcTransformBuffer);
-    }
-#ifdef GPUCA_HAVE_O2HEADERS
-    if (processors()->calibObjects.dEdxCalibContainer) {
-      memcpy((void*)mFlatObjectsShadow.mCalibObjects.dEdxCalibContainer, (const void*)processors()->calibObjects.dEdxCalibContainer, sizeof(*processors()->calibObjects.dEdxCalibContainer));
-      memcpy((void*)mFlatObjectsShadow.mdEdxSplinesBuffer, (const void*)processors()->calibObjects.dEdxCalibContainer->getFlatBufferPtr(), processors()->calibObjects.dEdxCalibContainer->getFlatBufferSize());
-      mFlatObjectsShadow.mCalibObjects.dEdxCalibContainer->clearInternalBufferPtr();
-      mFlatObjectsShadow.mCalibObjects.dEdxCalibContainer->setActualBufferAddress(mFlatObjectsShadow.mdEdxSplinesBuffer);
-      mFlatObjectsShadow.mCalibObjects.dEdxCalibContainer->setFutureBufferAddress(mFlatObjectsDevice.mdEdxSplinesBuffer);
-    }
-    if (processors()->calibObjects.matLUT) {
-      memcpy((void*)mFlatObjectsShadow.mCalibObjects.matLUT, (const void*)processors()->calibObjects.matLUT, sizeof(*processors()->calibObjects.matLUT));
-      memcpy((void*)mFlatObjectsShadow.mMatLUTBuffer, (const void*)processors()->calibObjects.matLUT->getFlatBufferPtr(), processors()->calibObjects.matLUT->getFlatBufferSize());
-      mFlatObjectsShadow.mCalibObjects.matLUT->clearInternalBufferPtr();
-      mFlatObjectsShadow.mCalibObjects.matLUT->setActualBufferAddress(mFlatObjectsShadow.mMatLUTBuffer);
-      mFlatObjectsShadow.mCalibObjects.matLUT->setFutureBufferAddress(mFlatObjectsDevice.mMatLUTBuffer);
-    }
-    if (processors()->calibObjects.trdGeometry) {
-      memcpy((void*)mFlatObjectsShadow.mCalibObjects.trdGeometry, (const void*)processors()->calibObjects.trdGeometry, sizeof(*processors()->calibObjects.trdGeometry));
-      mFlatObjectsShadow.mCalibObjects.trdGeometry->clearInternalBufferPtr();
-    }
-    if (processors()->calibObjects.tpcPadGain) {
-      memcpy((void*)mFlatObjectsShadow.mCalibObjects.tpcPadGain, (const void*)processors()->calibObjects.tpcPadGain, sizeof(*processors()->calibObjects.tpcPadGain));
-    }
-    if (processors()->calibObjects.o2Propagator) {
-      memcpy((void*)mFlatObjectsShadow.mCalibObjects.o2Propagator, (const void*)processors()->calibObjects.o2Propagator, sizeof(*processors()->calibObjects.o2Propagator));
-      mFlatObjectsShadow.mCalibObjects.o2Propagator->setGPUField(&processorsDevice()->param.polynomialField);
-      mFlatObjectsShadow.mCalibObjects.o2Propagator->setBz(param().polynomialField.GetNominalBz());
-      mFlatObjectsShadow.mCalibObjects.o2Propagator->setMatLUT(mFlatObjectsShadow.mCalibObjects.matLUT);
-    }
-#endif
-    TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mFlatObjectsShadow.mMemoryResFlat);
-    memcpy((void*)&processorsShadow()->calibObjects, (void*)&mFlatObjectsDevice.mCalibObjects, sizeof(mFlatObjectsDevice.mCalibObjects));
-    WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->calibObjects - (char*)processors(), &mFlatObjectsDevice.mCalibObjects, sizeof(mFlatObjectsDevice.mCalibObjects), -1); // First initialization, for users not using RunChain
+    UpdateGPUCalibObjects(-1);
+    UpdateGPUCalibObjectsPtrs(-1); // First initialization, for users not using RunChain
     processorsShadow()->errorCodes.setMemory(mInputsShadow->mErrorCodes);
     WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->errorCodes - (char*)processors(), &processorsShadow()->errorCodes, sizeof(processorsShadow()->errorCodes), -1);
     TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mInputsHost->mResourceErrorCodes);
@@ -407,6 +370,53 @@ int GPUChainTracking::Init()
   }
 
   return 0;
+}
+
+void GPUChainTracking::UpdateGPUCalibObjects(int stream)
+{
+  if (processors()->calibObjects.fastTransform) {
+    memcpy((void*)mFlatObjectsShadow.mCalibObjects.fastTransform, (const void*)processors()->calibObjects.fastTransform, sizeof(*processors()->calibObjects.fastTransform));
+    memcpy((void*)mFlatObjectsShadow.mTpcTransformBuffer, (const void*)processors()->calibObjects.fastTransform->getFlatBufferPtr(), processors()->calibObjects.fastTransform->getFlatBufferSize());
+    mFlatObjectsShadow.mCalibObjects.fastTransform->clearInternalBufferPtr();
+    mFlatObjectsShadow.mCalibObjects.fastTransform->setActualBufferAddress(mFlatObjectsShadow.mTpcTransformBuffer);
+    mFlatObjectsShadow.mCalibObjects.fastTransform->setFutureBufferAddress(mFlatObjectsDevice.mTpcTransformBuffer);
+  }
+#ifdef GPUCA_HAVE_O2HEADERS
+  if (processors()->calibObjects.dEdxCalibContainer) {
+    memcpy((void*)mFlatObjectsShadow.mCalibObjects.dEdxCalibContainer, (const void*)processors()->calibObjects.dEdxCalibContainer, sizeof(*processors()->calibObjects.dEdxCalibContainer));
+    memcpy((void*)mFlatObjectsShadow.mdEdxSplinesBuffer, (const void*)processors()->calibObjects.dEdxCalibContainer->getFlatBufferPtr(), processors()->calibObjects.dEdxCalibContainer->getFlatBufferSize());
+    mFlatObjectsShadow.mCalibObjects.dEdxCalibContainer->clearInternalBufferPtr();
+    mFlatObjectsShadow.mCalibObjects.dEdxCalibContainer->setActualBufferAddress(mFlatObjectsShadow.mdEdxSplinesBuffer);
+    mFlatObjectsShadow.mCalibObjects.dEdxCalibContainer->setFutureBufferAddress(mFlatObjectsDevice.mdEdxSplinesBuffer);
+  }
+  if (processors()->calibObjects.matLUT) {
+    memcpy((void*)mFlatObjectsShadow.mCalibObjects.matLUT, (const void*)processors()->calibObjects.matLUT, sizeof(*processors()->calibObjects.matLUT));
+    memcpy((void*)mFlatObjectsShadow.mMatLUTBuffer, (const void*)processors()->calibObjects.matLUT->getFlatBufferPtr(), processors()->calibObjects.matLUT->getFlatBufferSize());
+    mFlatObjectsShadow.mCalibObjects.matLUT->clearInternalBufferPtr();
+    mFlatObjectsShadow.mCalibObjects.matLUT->setActualBufferAddress(mFlatObjectsShadow.mMatLUTBuffer);
+    mFlatObjectsShadow.mCalibObjects.matLUT->setFutureBufferAddress(mFlatObjectsDevice.mMatLUTBuffer);
+  }
+  if (processors()->calibObjects.trdGeometry) {
+    memcpy((void*)mFlatObjectsShadow.mCalibObjects.trdGeometry, (const void*)processors()->calibObjects.trdGeometry, sizeof(*processors()->calibObjects.trdGeometry));
+    mFlatObjectsShadow.mCalibObjects.trdGeometry->clearInternalBufferPtr();
+  }
+  if (processors()->calibObjects.tpcPadGain) {
+    memcpy((void*)mFlatObjectsShadow.mCalibObjects.tpcPadGain, (const void*)processors()->calibObjects.tpcPadGain, sizeof(*processors()->calibObjects.tpcPadGain));
+  }
+  if (processors()->calibObjects.o2Propagator) {
+    memcpy((void*)mFlatObjectsShadow.mCalibObjects.o2Propagator, (const void*)processors()->calibObjects.o2Propagator, sizeof(*processors()->calibObjects.o2Propagator));
+    mFlatObjectsShadow.mCalibObjects.o2Propagator->setGPUField(&processorsDevice()->param.polynomialField);
+    mFlatObjectsShadow.mCalibObjects.o2Propagator->setBz(param().polynomialField.GetNominalBz());
+    mFlatObjectsShadow.mCalibObjects.o2Propagator->setMatLUT(mFlatObjectsShadow.mCalibObjects.matLUT);
+  }
+#endif
+  TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mFlatObjectsShadow.mMemoryResFlat, stream);
+  memcpy((void*)&processorsShadow()->calibObjects, (void*)&mFlatObjectsDevice.mCalibObjects, sizeof(mFlatObjectsDevice.mCalibObjects));
+}
+
+void GPUChainTracking::UpdateGPUCalibObjectsPtrs(int stream)
+{
+  WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->calibObjects - (char*)processors(), &mFlatObjectsDevice.mCalibObjects, sizeof(mFlatObjectsDevice.mCalibObjects), stream);
 }
 
 int GPUChainTracking::PrepareEvent()
@@ -472,6 +482,9 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
     computePointerWithAlignment(mem, mCalibObjects.o2Propagator, 1);
   }
 #endif
+  if (!mChainTracking->mUpdateNewCalibObjects) {
+    mem = (char*)mem + mChainTracking->GetProcessingSettings().calibObjectsExtraMemorySize;
+  }
   return mem;
 }
 
@@ -552,9 +565,23 @@ int GPUChainTracking::RunChain()
   if (GetProcessingSettings().debugLevel >= 6) {
     *mDebugFile << "\n\nProcessing event " << mRec->getNEventsProcessed() << std::endl;
   }
-  if (mRec->slavesExist() && mRec->IsGPU()) {
-    WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->calibObjects - (char*)processors(), &mFlatObjectsDevice.mCalibObjects, sizeof(mFlatObjectsDevice.mCalibObjects), 0); // Reinitialize
+  if (mUpdateNewCalibObjects) {
+    void** pSrc = (void**)&mNewCalibObjects;
+    void** pDst = (void**)&processors()->calibObjects;
+    for (unsigned int i = 0; i < sizeof(mNewCalibObjects) / sizeof(void*); i++) {
+      if (pSrc[i]) {
+        pDst[i] = pSrc[i];
+      }
+    }
+    if (mRec->IsGPU()) {
+      mRec->ResetRegisteredMemoryPointers(mFlatObjectsShadow.mMemoryResFlat);
+      UpdateGPUCalibObjects(0);
+    }
   }
+  if ((mUpdateNewCalibObjects || mRec->slavesExist()) && mRec->IsGPU()) {
+    UpdateGPUCalibObjectsPtrs(0); // Reinitialize
+  }
+  mUpdateNewCalibObjects = false;
 
   mRec->getGeneralStepTimer(GeneralStep::Prepare).Start();
   try {
@@ -797,4 +824,10 @@ void GPUChainTracking::SetDefaultO2PropagatorForGPU()
   prop->setMatLUT(processors()->calibObjects.matLUT);
   SetO2Propagator(prop);
 #endif
+}
+
+void GPUChainTracking::SetUpdateCalibObjects(const GPUCalibObjectsConst& obj)
+{
+  mNewCalibObjects = obj;
+  mUpdateNewCalibObjects = true;
 }
