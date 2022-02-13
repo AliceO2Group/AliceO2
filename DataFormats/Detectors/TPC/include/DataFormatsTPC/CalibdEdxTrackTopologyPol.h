@@ -52,7 +52,7 @@ struct CalibdEdxTrackTopologyPolContainer {
 class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
 {
  public:
-#if !defined(GPUCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
   /// constructor constructs an object Initialized from file
   /// \param fileName name of the input file containing the object
   /// \parma name name of the object
@@ -123,6 +123,7 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   /// \param thresholdMax maximum threshold
   void setMaxThreshold(const float thresholdMax) { mThresholdMax = thresholdMax; };
 
+#ifndef GPUCA_STANDALONE
   /// write a class object to the file
   /// \param outf file where the object will be written to
   /// \param name name of the object in the output file
@@ -140,6 +141,7 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   /// sets the polynomials from an input file. The names of the objects have to be the same as in the getPolyName() function
   /// \param inpf file where the polynomials are stored
   void setPolynomialsFromFile(TFile& inpf);
+#endif
 
   /// \return returns the name of the polynomial object which can be read in with the setPolynomialsFromFile() function
   /// \param region region of the TPC

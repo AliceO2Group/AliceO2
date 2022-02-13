@@ -10,8 +10,10 @@
 // or submit itself to any jurisdiction.
 
 #include "ReconstructionDataFormats/Vertex.h"
-#include <fmt/printf.h>
 #include <iostream>
+#ifndef GPUCA_NO_FMT
+#include <fmt/printf.h>
+#endif
 
 namespace o2
 {
@@ -19,7 +21,7 @@ namespace dataformats
 {
 
 #ifndef GPUCA_GPUCODE_DEVICE
-
+#ifndef GPUCA_NO_FMT
 std::string VertexBase::asString() const
 {
   return fmt::format("Vtx {{{:+.4e},{:+.4e},{:+.4e}}} Cov.:{{{{{:.3e}..}},{{{:.3e},{:.3e}..}},{{{:.3e},{:.3e},{:.3e}}}}}",
@@ -37,6 +39,7 @@ void VertexBase::print() const
 {
   std::cout << *this << std::endl;
 }
+#endif
 
 bool VertexBase::operator==(const VertexBase& other) const
 {
