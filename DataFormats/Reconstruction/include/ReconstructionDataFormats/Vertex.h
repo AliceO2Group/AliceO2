@@ -20,6 +20,7 @@
 #include "CommonDataFormat/TimeStamp.h"
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <iosfwd>
+#include <string>
 #include <type_traits>
 #endif
 
@@ -45,7 +46,7 @@ class VertexBase
   {
   }
 
-#ifndef GPUCA_GPUCODE_DEVICE
+#if !defined(GPUCA_NO_FMT) && !defined(GPUCA_GPUCODE_DEVICE)
   void print() const;
   std::string asString() const;
 #endif
@@ -150,7 +151,7 @@ class Vertex : public VertexBase
   ClassDefNV(Vertex, 3);
 };
 
-#ifndef GPUCA_GPUCODE_DEVICE
+#if !defined(GPUCA_GPUCODE_DEVICE) && !defined(GPUCA_NO_FMT)
 std::ostream& operator<<(std::ostream& os, const o2::dataformats::VertexBase& v);
 #endif
 

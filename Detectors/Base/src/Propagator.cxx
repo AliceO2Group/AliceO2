@@ -384,7 +384,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCA(const o2::dataformats::Verte
   if (!tmpT.rotate(alp) || !propagateToX(tmpT, xv, bZ, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
 #ifndef GPUCA_ALIGPUCODE
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: " << tmpT.asString();
-#else
+#elif !defined(GPUCA_NO_FMT)
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx;
 #endif
     return false;
@@ -433,7 +433,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const o2::dataformats:
   if (!tmpT.rotate(alp) || !PropagateToXBxByBz(tmpT, xv, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
 #ifndef GPUCA_ALIGPUCODE
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: " << tmpT.asString();
-#else
+#elif !defined(GPUCA_NO_FMT)
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx;
 #endif
     return false;

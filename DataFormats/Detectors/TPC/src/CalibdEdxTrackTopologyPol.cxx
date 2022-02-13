@@ -11,10 +11,12 @@
 
 #include "DataFormatsTPC/CalibdEdxTrackTopologyPol.h"
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
-#include "TFile.h"
+#if !defined(GPUCA_GPUCODE) // code invisible on GPU and in the standalone compilation
 #include <cstddef>
 #include <string_view>
+#if !defined(GPUCA_STANDALONE)
+#include "TFile.h"
+#endif
 #endif
 
 using namespace o2::tpc;
