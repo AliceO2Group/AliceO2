@@ -28,8 +28,10 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "mcEngine,e", bpo::value<std::string>()->default_value("TGeant3"), "VMC backend to be used.")(
     "generator,g", bpo::value<std::string>()->default_value("boxgen"), "Event generator to be used.")(
     "trigger,t", bpo::value<std::string>()->default_value(""), "Event generator trigger to be used.")(
-    "modules,m", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>({"all"}), "all modules"), "list of detectors")(
-    "skipModules", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>({""}), ""), "list of detectors to skip (precendence over -m")(
+    "modules,m", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>({"all"}), "all modules"), "list of modules included in geometry")(
+    "skipModules", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>({""}), ""), "list of modules excluded in geometry (precendence over -m")(
+    "readoutDetectors", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>(), ""), "list of detectors creating hits, all if not given; added to to active modules")(
+    "skipReadoutDetectors", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>(), ""), "list of detectors to skip hit creation (precendence over --readoutDetectors")(
     "nEvents,n", bpo::value<unsigned int>()->default_value(1), "number of events")(
     "startEvent", bpo::value<unsigned int>()->default_value(0), "index of first event to be used (when applicable)")(
     "extKinFile", bpo::value<std::string>()->default_value("Kinematics.root"),
@@ -58,35 +60,73 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
 {
   using o2::detectors::DetID;
   mConfigData.mMCEngine = vm["mcEngine"].as<std::string>();
-  mConfigData.mActiveDetectors = vm["modules"].as<std::vector<std::string>>();
-  auto& active = mConfigData.mActiveDetectors;
-  if (active.size() == 1 && active[0] == "all") {
-    active.clear();
+  mConfigData.mActiveModules = vm["modules"].as<std::vector<std::string>>();
+  auto& activeModules = mConfigData.mActiveModules;
+  if (activeModules.size() == 1 && activeModules[0] == "all") {
+    activeModules.clear();
     for (int d = DetID::First; d <= DetID::Last; ++d) {
 #ifdef ENABLE_UPGRADES
       if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3) {
-        active.emplace_back(DetID::getName(d));
+        activeModules.emplace_back(DetID::getName(d));
       }
 #else
-      active.emplace_back(DetID::getName(d));
+      activeModules.emplace_back(DetID::getName(d));
 #endif
     }
     // add passive components manually (make a PassiveDetID for them!)
-    active.emplace_back("HALL");
-    active.emplace_back("MAG");
-    active.emplace_back("DIPO");
-    active.emplace_back("COMP");
-    active.emplace_back("PIPE");
-    active.emplace_back("ABSO");
-    active.emplace_back("SHIL");
+    activeModules.emplace_back("HALL");
+    activeModules.emplace_back("MAG");
+    activeModules.emplace_back("DIPO");
+    activeModules.emplace_back("COMP");
+    activeModules.emplace_back("PIPE");
+    activeModules.emplace_back("ABSO");
+    activeModules.emplace_back("SHIL");
   }
   // now we take out detectors listed as skipped
   auto& skipped = vm["skipModules"].as<std::vector<std::string>>();
   for (auto& s : skipped) {
-    auto iter = std::find(active.begin(), active.end(), s);
-    if (iter != active.end()) {
+    auto iter = std::find(activeModules.begin(), activeModules.end(), s);
+    if (iter != activeModules.end()) {
       // take it out
-      active.erase(iter);
+      activeModules.erase(iter);
+    }
+  }
+
+  // find all detectors that should be readout
+  auto enableReadout = vm["readoutDetectors"].as<std::vector<std::string>>();
+  auto& disableReadout = vm["skipReadoutDetectors"].as<std::vector<std::string>>();
+  auto& readoutDetectors = mConfigData.mReadoutDetectors;
+  readoutDetectors.clear();
+
+  auto isDet = [](std::string const& s) {
+    auto d = DetID::nameToID(s.c_str());
+#ifdef ENABLE_UPGRADES
+    return d >= DetID::First && d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3;
+#else
+    return d >= DetID::First;
+#endif
+  };
+
+  if (enableReadout.empty()) {
+    // if no readout explicitly given, use all detectors from active modules
+    for (auto& am : activeModules) {
+      if (!isDet(am) || std::find(disableReadout.begin(), disableReadout.end(), am) != disableReadout.end()) {
+        // either we found a passive module or one with disabled readout ==> skip
+        continue;
+      }
+      readoutDetectors.emplace_back(am);
+    }
+  } else {
+    for (auto& er : enableReadout) {
+      if (!isDet(er) || std::find(disableReadout.begin(), disableReadout.end(), er) != disableReadout.end()) {
+        // either we found a passive module or one with disabled readout ==> skip
+        continue;
+      }
+      readoutDetectors.emplace_back(er);
+      if (std::find(activeModules.begin(), activeModules.end(), er) == activeModules.end()) {
+        // add to active modules if not yet there
+        activeModules.emplace_back(er);
+      }
     }
   }
 
