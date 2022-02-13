@@ -361,3 +361,8 @@ int CTPRunScalers::updateOverflows(const CTPScalerRaw& scal0, const CTPScalerRaw
   //std::cout << std::endl;
   return 0;
 }
+int CTPRunScalers::parseZMQScalers(std::string zmqscalers)
+{
+  std::vector<std::string> tokens = o2::utils::Str::tokenize(zmqscalers, ' ');
+  return 0;
+}

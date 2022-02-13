@@ -100,6 +100,8 @@ class CTPConfiguration
   CTPInput* isInputInConfig(const std::string inpname);
   uint64_t getDecrtiptorInputsMask(const std::string& name) const;
   std::map<o2::detectors::DetID::ID, std::vector<CTPInput>> getDet2InputMap();
+  uint64_t getTriggerClassMask() const;
+  std::vector<int> getTriggerClassList() const;
 
  private:
   std::string mName;
