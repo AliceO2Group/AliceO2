@@ -1,11 +1,10 @@
-# Changes since 2022-01-29
+# Changes since 2022-01-30
 
 ## Changes in Algorithm
 
 - [#8078](https://github.com/AliceO2Group/AliceO2/pull/8078) 2022-02-04: [QC-741] Mergers: support merging histograms with averages by [@knopers8](https://github.com/knopers8)
 ## Changes in Analysis
 
-- [#8041](https://github.com/AliceO2Group/AliceO2/pull/8041) 2022-01-31: Introducing McParticle version 001 by [@jgrosseo](https://github.com/jgrosseo)
 - [#8048](https://github.com/AliceO2Group/AliceO2/pull/8048) 2022-02-01: McParticle: moving default to 001 by [@jgrosseo](https://github.com/jgrosseo)
 - [#8071](https://github.com/AliceO2Group/AliceO2/pull/8071) 2022-02-04: improve comment by [@jgrosseo](https://github.com/jgrosseo)
 - [#8121](https://github.com/AliceO2Group/AliceO2/pull/8121) 2022-02-11: DPL Analysis: index builder helper by [@aalkin](https://github.com/aalkin)
@@ -15,7 +14,6 @@
 - [#8100](https://github.com/AliceO2Group/AliceO2/pull/8100) 2022-02-09: Check availability of CTF-dictionary before opening the file by [@shahor02](https://github.com/shahor02)
 ## Changes in DataFormats
 
-- [#8039](https://github.com/AliceO2Group/AliceO2/pull/8039) 2022-01-29: GPU Standalone: Add script to set up build environment for GPU standalone benchmark by [@davidrohr](https://github.com/davidrohr)
 - [#8053](https://github.com/AliceO2Group/AliceO2/pull/8053) 2022-02-02: [QC-725] Allow to store TRFCollections as CSV files by [@knopers8](https://github.com/knopers8)
 - [#8069](https://github.com/AliceO2Group/AliceO2/pull/8069) 2022-02-03: Truncate digitcontext output by [@sawenzel](https://github.com/sawenzel)
 - [#8089](https://github.com/AliceO2Group/AliceO2/pull/8089) 2022-02-08: [EMCAL-548, EMCAL-614,EMCAL-687,EMCAL-757] Fill EMCAL information in AOD in simulations by [@mfasDa](https://github.com/mfasDa)
@@ -23,15 +21,10 @@
 - [#8086](https://github.com/AliceO2Group/AliceO2/pull/8086) 2022-02-09: add  CreationTime for FT0  and FV0 calibration objects by [@AllaMaevskaya](https://github.com/AllaMaevskaya)
 - [#8082](https://github.com/AliceO2Group/AliceO2/pull/8082) 2022-02-10: Add runType to GRPECS + its creator by [@shahor02](https://github.com/shahor02)
 - [#8073](https://github.com/AliceO2Group/AliceO2/pull/8073) 2022-02-11: Use Cluster class for MID instead of Cluster2D and Cluster3D by [@dstocco](https://github.com/dstocco)
+- [#8136](https://github.com/AliceO2Group/AliceO2/pull/8136) 2022-02-12: fix in VtxTrackRef::asString method by [@shahor02](https://github.com/shahor02)
 ## Changes in Detectors
 
-- [#8035](https://github.com/AliceO2Group/AliceO2/pull/8035) 2022-01-29: Adapt AOD MCLabels to non-redundant storage of ambiguous tracks by [@shahor02](https://github.com/shahor02)
-- [#8036](https://github.com/AliceO2Group/AliceO2/pull/8036) 2022-01-29: DCS proxies use now() in ms to fill DPH.creation time by [@shahor02](https://github.com/shahor02)
-- [#8040](https://github.com/AliceO2Group/AliceO2/pull/8040) 2022-01-29: Fix in ambiguous tracks tagging by [@shahor02](https://github.com/shahor02)
-- [#8039](https://github.com/AliceO2Group/AliceO2/pull/8039) 2022-01-29: GPU Standalone: Add script to set up build environment for GPU standalone benchmark by [@davidrohr](https://github.com/davidrohr)
-- [#8038](https://github.com/AliceO2Group/AliceO2/pull/8038) 2022-01-29: Revert "Improving sensitive hit creation for FT0 in Detector.cxx" by [@sawenzel](https://github.com/sawenzel)
 - [#8044](https://github.com/AliceO2Group/AliceO2/pull/8044) 2022-01-31: AOD stores the time with full float precision by [@shahor02](https://github.com/shahor02)
-- [#8042](https://github.com/AliceO2Group/AliceO2/pull/8042) 2022-01-31: Load Geant4 libraries (MacOSX Monterey) by [@pzhristov](https://github.com/pzhristov)
 - [#8047](https://github.com/AliceO2Group/AliceO2/pull/8047) 2022-01-31: Promote/demote several warnings/errors to alarm, in order to raise infologger-min-severity to important for sync processing by [@davidrohr](https://github.com/davidrohr)
 - [#8048](https://github.com/AliceO2Group/AliceO2/pull/8048) 2022-02-01: McParticle: moving default to 001 by [@jgrosseo](https://github.com/jgrosseo)
 - [#8045](https://github.com/AliceO2Group/AliceO2/pull/8045) 2022-02-01: switch to disable fall-back to TGeo if MatLUT is missing by [@shahor02](https://github.com/shahor02)
@@ -71,9 +64,11 @@
 - [#8073](https://github.com/AliceO2Group/AliceO2/pull/8073) 2022-02-11: Use Cluster class for MID instead of Cluster2D and Cluster3D by [@dstocco](https://github.com/dstocco)
 - [#8111](https://github.com/AliceO2Group/AliceO2/pull/8111) 2022-02-11: [EMCAL-670] fixed wrong eta/phi pos of clusters in ClusterFactory by [@fjonasALICE](https://github.com/fjonasALICE)
 - [#8108](https://github.com/AliceO2Group/AliceO2/pull/8108) 2022-02-11: fix title offset for dpg (L126-L131) by [@alindner14](https://github.com/alindner14)
+- [#8128](https://github.com/AliceO2Group/AliceO2/pull/8128) 2022-02-12: FastFit implemented by [@peressounko](https://github.com/peressounko)
+- [#8137](https://github.com/AliceO2Group/AliceO2/pull/8137) 2022-02-12: Workaround for fmt 8.1, which doesn't want to print enums without explicit type + better FST error message by [@davidrohr](https://github.com/davidrohr)
+- [#8129](https://github.com/AliceO2Group/AliceO2/pull/8129) 2022-02-12: [MFT] Update README.md by [@rpezzi](https://github.com/rpezzi)
 ## Changes in Framework
 
-- [#8041](https://github.com/AliceO2Group/AliceO2/pull/8041) 2022-01-31: Introducing McParticle version 001 by [@jgrosseo](https://github.com/jgrosseo)
 - [#8047](https://github.com/AliceO2Group/AliceO2/pull/8047) 2022-01-31: Promote/demote several warnings/errors to alarm, in order to raise infologger-min-severity to important for sync processing by [@davidrohr](https://github.com/davidrohr)
 - [#8048](https://github.com/AliceO2Group/AliceO2/pull/8048) 2022-02-01: McParticle: moving default to 001 by [@jgrosseo](https://github.com/jgrosseo)
 - [#8067](https://github.com/AliceO2Group/AliceO2/pull/8067) 2022-02-03: DPL: cleanup remaining messages by [@ktf](https://github.com/ktf)
@@ -86,6 +81,9 @@
 - [#8121](https://github.com/AliceO2Group/AliceO2/pull/8121) 2022-02-11: DPL Analysis: index builder helper by [@aalkin](https://github.com/aalkin)
 - [#8127](https://github.com/AliceO2Group/AliceO2/pull/8127) 2022-02-11: DPL: make sure Condition<> object can be used by [@ktf](https://github.com/ktf)
 - [#8113](https://github.com/AliceO2Group/AliceO2/pull/8113) 2022-02-11: add first and last shorthand for array by [@jgrosseo](https://github.com/jgrosseo)
+- [#8140](https://github.com/AliceO2Group/AliceO2/pull/8140) 2022-02-12: DPL: fix message merged too quickly by [@ktf](https://github.com/ktf)
+- [#8138](https://github.com/AliceO2Group/AliceO2/pull/8138) 2022-02-12: DPL: improve message on STOP transition by [@ktf](https://github.com/ktf)
+- [#8137](https://github.com/AliceO2Group/AliceO2/pull/8137) 2022-02-12: Workaround for fmt 8.1, which doesn't want to print enums without explicit type + better FST error message by [@davidrohr](https://github.com/davidrohr)
 ## Changes in Steer
 
 - [#8069](https://github.com/AliceO2Group/AliceO2/pull/8069) 2022-02-03: Truncate digitcontext output by [@sawenzel](https://github.com/sawenzel)
@@ -95,6 +93,5 @@
 - [#8073](https://github.com/AliceO2Group/AliceO2/pull/8073) 2022-02-11: Use Cluster class for MID instead of Cluster2D and Cluster3D by [@dstocco](https://github.com/dstocco)
 ## Changes in Utilities
 
-- [#8037](https://github.com/AliceO2Group/AliceO2/pull/8037) 2022-01-29: Add SIGUSR1 signal handler to ShmManager by [@rbx](https://github.com/rbx)
 - [#8060](https://github.com/AliceO2Group/AliceO2/pull/8060) 2022-02-03: update ShmManager::ResetContent to be able to reset after a crash by [@rbx](https://github.com/rbx)
 - [#8078](https://github.com/AliceO2Group/AliceO2/pull/8078) 2022-02-04: [QC-741] Mergers: support merging histograms with averages by [@knopers8](https://github.com/knopers8)
