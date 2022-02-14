@@ -39,16 +39,15 @@ namespace
 {
 /// helper to read/write cuts and processes from/to JSON
 template <typename K, typename V>
-void writeSingleJSONParamBatch(int NPARAMS, std::map<K, V> const& valMap, V defaultValue, rapidjson::Value& paramArr, rapidjson::Document::AllocatorType& a)
+void writeSingleJSONParamBatch(std::unordered_map<K, const char*> const& idToName, std::map<K, V> const& valMap, V defaultValue, rapidjson::Value& parent, rapidjson::Document::AllocatorType& a)
 {
-  paramArr.Reserve(NPARAMS, a);
-  for (int i = 0; i < NPARAMS; i++) {
-    auto itVal = valMap.find(static_cast<K>(i));
+  for (auto& itName : idToName) {
+    auto itVal = valMap.find(itName.first);
     if (itVal != valMap.end()) {
-      paramArr.PushBack(itVal->second, a);
+      parent.AddMember(rj::Value(itName.second, std::strlen(itName.second), a), rj::Value(itVal->second), a);
       continue;
     }
-    paramArr.PushBack(defaultValue, a);
+    parent.AddMember(rj::Value(itName.second, std::strlen(itName.second), a), rj::Value(defaultValue), a);
   }
 }
 
@@ -379,23 +378,33 @@ void MaterialManager::loadCutsAndProcessesFromJSON(ESpecial special, std::string
     return;
   }
   auto digestCutsFromJSON = [this](int globalindex, rj::Value& cuts) {
-    for (rj::SizeType i = 0; i < cuts.Size(); i++) {
-      if (globalindex < 0) {
-        DefaultCut(static_cast<ECut>(i), cuts[i].GetFloat());
-        continue;
+    auto special = globalindex < 0 ? ESpecial::kFALSE : ESpecial::kTRUE;
+    for (auto& cut : cuts.GetObject()) {
+      auto name = cut.name.GetString();
+      bool found = false;
+      for (auto& cn : mCutIDToName) {
+        if (std::strcmp(name, cn.second) == 0) {
+          Cut(special, globalindex, cn.first, cut.value.GetFloat());
+          found = true;
+        }
       }
-      Cut(ESpecial::kTRUE, globalindex, static_cast<ECut>(i), cuts[i].GetFloat());
+      if (!found) {
+        LOG(warn) << "Unknown cut parameter " << name;
+      }
     }
   };
   auto digestProcessesFromJSON = [this](int globalindex, rj::Value& processes) {
-    for (rj::SizeType i = 0; i < processes.Size(); i++) {
-      if (globalindex < 0) {
-        DefaultProcess(static_cast<EProc>(i), processes[i].GetInt());
-        continue;
+    auto special = globalindex < 0 ? ESpecial::kFALSE : ESpecial::kTRUE;
+    for (auto& proc : processes.GetObject()) {
+      auto name = proc.name.GetString();
+      for (auto& pn : mProcessIDToName) {
+        if (std::strcmp(name, pn.second) == 0) {
+          Process(special, globalindex, pn.first, proc.value.GetInt());
+        }
       }
-      Process(ESpecial::kTRUE, globalindex, static_cast<EProc>(i), processes[i].GetInt());
     }
   };
+
   rj::IStreamWrapper isw(is);
   rj::Document d;
   d.ParseStream(isw);
@@ -458,9 +467,6 @@ void MaterialManager::writeCutsAndProcessesToJSON(std::string const& filename)
     return;
   }
 
-  const int NCUTS = mCutIDToName.size() - 1;
-  const int NFLAGS = mProcessIDToName.size() - 1;
-
   rj::Document d;
   rj::Document::AllocatorType& a = d.GetAllocator();
   d.SetObject();
@@ -483,19 +489,20 @@ void MaterialManager::writeCutsAndProcessesToJSON(std::string const& filename)
       auto mediumIt = mTGeoMediumMap.find({itMed.first, locToGlob.first});
       const char* medName = mediumIt->second->GetName();
       const char* matName = mediumIt->second->GetMaterial()->GetName();
+      // not using variables for key names cause they are only written for info but not read
       oLoc.AddMember(rj::Value("medium_name", 11, a), rj::Value(medName, std::strlen(medName), a), a);
       oLoc.AddMember(rj::Value("material_name", 13, a), rj::Value(matName, std::strlen(matName), a), a);
       // prepare for cuts
       if (itCut != mMediumCutMap.end()) {
-        rj::Value cutArr(rj::kArrayType);
-        writeSingleJSONParamBatch(NCUTS, itCut->second, -1.f, cutArr, a);
-        oLoc.AddMember(rj::Value(jsonKeyCuts, std::strlen(jsonKeyCuts), a), cutArr, a);
+        rj::Value cutMap(rj::kObjectType);
+        writeSingleJSONParamBatch(mCutIDToName, itCut->second, -1.f, cutMap, a);
+        oLoc.AddMember(rj::Value(jsonKeyCuts, std::strlen(jsonKeyCuts), a), cutMap, a);
       }
       // prepare for processes
       if (itProc != mMediumProcessMap.end()) {
-        rj::Value procArr(rj::kArrayType);
-        writeSingleJSONParamBatch(NFLAGS, itProc->second, -1, procArr, a);
-        oLoc.AddMember(rj::Value(jsonKeyProcesses, std::strlen(jsonKeyProcesses), a), procArr, a);
+        rj::Value procMap(rj::kObjectType);
+        writeSingleJSONParamBatch(mProcessIDToName, itProc->second, -1, procMap, a);
+        oLoc.AddMember(rj::Value(jsonKeyProcesses, std::strlen(jsonKeyProcesses), a), procMap, a);
       }
       // append this medium to module array
       toAdd.PushBack(oLoc, a);
@@ -504,13 +511,13 @@ void MaterialManager::writeCutsAndProcessesToJSON(std::string const& filename)
     d.AddMember(rj::Value(itMed.first.c_str(), itMed.first.size(), a), toAdd, a);
   }
   // also add default parameters
-  rj::Value cutArr(rj::kArrayType);
-  rj::Value procArr(rj::kArrayType);
-  writeSingleJSONParamBatch(NCUTS, mDefaultCutMap, -1.f, cutArr, a);
-  writeSingleJSONParamBatch(NFLAGS, mDefaultProcessMap, -1, procArr, a);
+  rj::Value cutMapDef(rj::kObjectType);
+  rj::Value procMapDef(rj::kObjectType);
+  writeSingleJSONParamBatch(mCutIDToName, mDefaultCutMap, -1.f, cutMapDef, a);
+  writeSingleJSONParamBatch(mProcessIDToName, mDefaultProcessMap, -1, procMapDef, a);
   rj::Value defaultParams(rj::kObjectType);
-  defaultParams.AddMember(rj::Value(jsonKeyCuts, std::strlen(jsonKeyCuts), a), cutArr, a);
-  defaultParams.AddMember(rj::Value(jsonKeyProcesses, std::strlen(jsonKeyProcesses), a), procArr, a);
+  defaultParams.AddMember(rj::Value(jsonKeyCuts, std::strlen(jsonKeyCuts), a), cutMapDef, a);
+  defaultParams.AddMember(rj::Value(jsonKeyProcesses, std::strlen(jsonKeyProcesses), a), procMapDef, a);
   d.AddMember(rj::Value(jsonKeyDefault, std::strlen(jsonKeyDefault), a), defaultParams, a);
 
   d.AddMember(rj::Value(jsonKeyEnableSpecialCuts, std::strlen(jsonKeyEnableSpecialCuts), a), rj::Value(mApplySpecialCuts), a);
