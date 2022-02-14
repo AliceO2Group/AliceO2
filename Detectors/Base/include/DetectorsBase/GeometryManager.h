@@ -51,7 +51,7 @@ class GeometryManager : public TObject
   ///< load geometry from file
   ///< When applyMisalignedment == false --> read from unaligned file
   ///< When preferAlignedFile == true and applyMisalignment == true : Prefer reading from existing aligned file
-  static void loadGeometry(std::string_view geomFilePath = "", bool applyMisalignment = true, bool preferAlignedFile = false);
+  static void loadGeometry(std::string_view geomFilePath = "", bool applyMisalignment = false, bool preferAlignedFile = true);
   static bool isGeometryLoaded() { return gGeoManager != nullptr; }
   static void applyMisalignent(bool applyMisalignment = true);
 
