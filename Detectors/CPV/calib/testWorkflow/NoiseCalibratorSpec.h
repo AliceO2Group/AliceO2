@@ -59,25 +59,25 @@ class CPVNoiseCalibratorSpec : public o2::framework::Task
 
     // read pedestal efficiencies, dead and high ped channels from pedestal run
     // do it only once as they don't change during noise scan
-    if (!mCalibrator->mPedEfficiencies) {
+    if (!mCalibrator->isSettedPedEfficiencies()) {
       const auto pedEffs = o2::framework::DataRefUtils::as<CCDBSerialized<std::vector<float>>>(pc.inputs().get("pedeffs"));
       if (pedEffs) {
-        mCalibrator->mPedEfficiencies = new std::vector<float>(pedEffs->begin(), pedEffs->end());
-        LOG(info) << "NoiseCalibratorSpec()::run() : I got pedestal efficiencies vetor of size " << mCalibrator->mPedEfficiencies->size();
+        mCalibrator->setPedEfficiencies(new std::vector<float>(pedEffs->begin(), pedEffs->end()));
+        LOG(info) << "NoiseCalibratorSpec()::run() : I got pedestal efficiencies vetor of size " << pedEffs->size();
       }
     }
-    if (!mCalibrator->mDeadChannels) {
+    if (!mCalibrator->isSettedDeadChannels()) {
       const auto deadChs = o2::framework::DataRefUtils::as<CCDBSerialized<std::vector<int>>>(pc.inputs().get("deadchs"));
       if (deadChs) {
-        mCalibrator->mDeadChannels = new std::vector<int>(deadChs->begin(), deadChs->end());
-        LOG(info) << "NoiseCalibratorSpec()::run() : I got dead channels vetor of size " << mCalibrator->mDeadChannels->size();
+        mCalibrator->setDeadChannels(new std::vector<int>(deadChs->begin(), deadChs->end()));
+        LOG(info) << "NoiseCalibratorSpec()::run() : I got dead channels vetor of size " << deadChs->size();
       }
     }
-    if (!mCalibrator->mHighPedChannels) {
+    if (!mCalibrator->isSettedHighPedChannels()) {
       const auto highPeds = o2::framework::DataRefUtils::as<CCDBSerialized<std::vector<int>>>(pc.inputs().get("highpeds"));
       if (highPeds) {
-        mCalibrator->mHighPedChannels = new std::vector<int>(highPeds->begin(), highPeds->end());
-        LOG(info) << "NoiseCalibratorSpec()::run() : I got high pedestal channels vetor of size " << mCalibrator->mHighPedChannels->size();
+        mCalibrator->setHighPedChannels(new std::vector<int>(highPeds->begin(), highPeds->end()));
+        LOG(info) << "NoiseCalibratorSpec()::run() : I got high pedestal channels vetor of size " << highPeds->size();
       }
     }
 

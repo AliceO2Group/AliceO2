@@ -48,6 +48,13 @@ class NoiseCalibrator final : public o2::calibration::TimeSlotCalibration<o2::cp
   std::vector<o2::ccdb::CcdbObjectInfo> getCcdbInfoBadChannelMapVector() { return mCcdbInfoBadChannelMapVec; }
   std::vector<o2::cpv::BadChannelMap> getBadChannelMapVector() { return mBadChannelMapVec; }
 
+  void setPedEfficiencies(std::vector<float>* pedEffs) { mPedEfficiencies.reset(pedEffs); }
+  void setDeadChannels(std::vector<int>* deadChs) { mDeadChannels.reset(deadChs); }
+  void setHighPedChannels(std::vector<int>* highPeds) { mHighPedChannels.reset(highPeds); }
+  bool isSettedPedEfficiencies() { return mPedEfficiencies.get() == nullptr ? false : true; }
+  bool isSettedDeadChannels() { return mDeadChannels.get() == nullptr ? false : true; }
+  bool isSettedHighPedChannels() { return mHighPedChannels.get() == nullptr ? false : true; }
+
   bool hasEnoughData(const NoiseTimeSlot& slot) const final
   {
     LOG(info) << "hasEnoughData() is being called";
@@ -57,11 +64,10 @@ class NoiseCalibrator final : public o2::calibration::TimeSlotCalibration<o2::cp
   void finalizeSlot(NoiseTimeSlot& slot) final;
   NoiseTimeSlot& emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend) final;
 
-  std::vector<float>* mPedEfficiencies = nullptr;
-  std::vector<int>* mDeadChannels = nullptr;
-  std::vector<int>* mHighPedChannels = nullptr;
-
  private:
+  std::unique_ptr<std::vector<float>> mPedEfficiencies = nullptr;
+  std::unique_ptr<std::vector<int>> mDeadChannels = nullptr;
+  std::unique_ptr<std::vector<int>> mHighPedChannels = nullptr;
   int mMinEvents = 100;
   float mNoiseFrequencyCriteria = 0.5; // how often channel should appear to be considered as noisy
   float mToleratedChannelEfficiencyLow = 0.9;

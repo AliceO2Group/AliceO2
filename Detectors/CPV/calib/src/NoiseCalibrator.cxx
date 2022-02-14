@@ -84,7 +84,7 @@ void NoiseCalibrator::finalizeSlot(NoiseTimeSlot& slot)
   LOG(info) << "NoiseCalibrator::finalizeSlot() : finalizing slot "
             << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with " << calibData->mNEvents << " events.";
   o2::cpv::BadChannelMap* badMap = new o2::cpv::BadChannelMap();
-  bool* badMapBool = new bool[Geometry::kNCHANNELS];
+  bool badMapBool[Geometry::kNCHANNELS] = {};
 
   // handle data from pedestal run first
   // check pedestal efficiencies
@@ -92,8 +92,8 @@ void NoiseCalibrator::finalizeSlot(NoiseTimeSlot& slot)
     LOG(info) << "NoiseCalibrator::finalizeSlot() : checking ped efficiencies";
     for (int i = 0; i < Geometry::kNCHANNELS; i++) {
       badMapBool[i] = false;
-      if (mPedEfficiencies->at(i) > mToleratedChannelEfficiencyHigh ||
-          mPedEfficiencies->at(i) < mToleratedChannelEfficiencyLow) {
+      if (mPedEfficiencies.get()->at(i) > mToleratedChannelEfficiencyHigh ||
+          mPedEfficiencies.get()->at(i) < mToleratedChannelEfficiencyLow) {
         badMapBool[i] = true;
       }
     }
@@ -102,16 +102,16 @@ void NoiseCalibrator::finalizeSlot(NoiseTimeSlot& slot)
   // check dead channels
   if (mDeadChannels) {
     LOG(info) << "NoiseCalibrator::finalizeSlot() : checking dead channels";
-    for (int i = 0; i < mDeadChannels->size(); i++) {
-      badMapBool[mDeadChannels->at(i)] = true;
+    for (int i = 0; i < mDeadChannels.get()->size(); i++) {
+      badMapBool[mDeadChannels.get()->at(i)] = true;
     }
   }
 
   // check channels with very high pedestal value (> 511)
   if (mHighPedChannels) {
     LOG(info) << "NoiseCalibrator::finalizeSlot() : checking high ped channels";
-    for (int i = 0; i < mHighPedChannels->size(); i++) {
-      badMapBool[mHighPedChannels->at(i)] = true;
+    for (int i = 0; i < mHighPedChannels.get()->size(); i++) {
+      badMapBool[mHighPedChannels.get()->at(i)] = true;
     }
   }
 
