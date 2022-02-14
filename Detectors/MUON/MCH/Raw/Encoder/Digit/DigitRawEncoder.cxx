@@ -60,7 +60,7 @@ void setupRawFileWriter(o2::raw::RawFileWriter& fw, const std::set<LinkInfo>& li
     }
   }
 
-  std::string output = fmt::format("{:s}/mch", opt.outputDir);
+  std::string output = fmt::format("{:s}/MCH", opt.outputDir);
 
   // Register the corresponding links (might have several solars for 1 link)
   registerLinks(fw, output, links,
