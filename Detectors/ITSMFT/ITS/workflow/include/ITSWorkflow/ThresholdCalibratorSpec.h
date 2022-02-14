@@ -23,6 +23,9 @@
 #include <iostream>
 #include <fstream>
 
+// Boost library for easy access of host name
+#include <boost/asio/ip/host_name.hpp>
+
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Framework/ControlService.h"
@@ -154,8 +157,8 @@ class ITSThresholdCalibrator : public Task
 
   // Helper functions for writing to the database
   void addDatabaseEntry(const short int&, const char*, const short int&,
-                        const float&, const short int&, const float&, bool, o2::dcs::DCSconfigObject_t&);
-  void sendToCCDB(const char*, o2::dcs::DCSconfigObject_t&, EndOfStreamContext*);
+                        const float&, const short int&, const float&, bool);
+  void sendToAggregator(EndOfStreamContext*);
 
   std::string mSelfName;
   std::string mDictName;
@@ -176,6 +179,9 @@ class ITSThresholdCalibrator : public Task
   unsigned int mRowCounter = 0;
 
   short int mRunType = -1;
+  short int mRunTypeUp;
+  short int mRunTypeChip[24120] = {0};
+  bool mIsChipDone[24120] = {false};
   // Either "T" for threshold, "V" for VCASN, or "I" for ITHR
   char mScanType = '\0';
   short int mMin = -1, mMax = -1;
@@ -183,8 +189,15 @@ class ITSThresholdCalibrator : public Task
   // Get threshold method (fit == 1, derivative == 0, or hitcounting == 2)
   char mFitType = -1;
 
-  // Keep track of whether the endOfStream() or stop() has been called
-  bool mStopped = false;
+  // Machine hostname
+  std::string mHostname;
+
+  // DCS config object
+  o2::dcs::DCSconfigObject_t mTuning;
+
+  // Flag to check if endOfStream is available
+  bool mCheckEos = false;
+  int mCounter = 0;
 };
 
 // Create a processor spec
