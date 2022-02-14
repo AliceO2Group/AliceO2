@@ -41,6 +41,8 @@ struct AO2DConverter {
   o2::framework::Configurable<std::string> jsonPath{"jsons-folder", "./jsons", "name of the folder to store json files"};
 
   static constexpr float mWorkflowVersion = 1.00;
+  o2::header::DataHeader::RunNumberType mRunNumber = 1;
+  o2::framework::DataProcessingHeader::CreationTime mCreationTime;
 
   void init(o2::framework::InitContext& ic);
   void process(o2::aod::Collisions const& collisions, EveWorkflowHelper::AODFullTracks const& tracks);

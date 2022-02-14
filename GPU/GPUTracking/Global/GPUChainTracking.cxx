@@ -45,7 +45,7 @@
 #include "GPUHostDataTypes.h"
 #include "GPUTPCCFChainContext.h"
 #include "GPUTrackingRefit.h"
-#include "DataFormatsTPC/CalibdEdxContainer.h"
+#include "CalibdEdxContainer.h"
 #else
 #include "GPUO2FakeClasses.h"
 #endif
@@ -304,6 +304,16 @@ bool GPUChainTracking::ValidateSettings()
   if ((GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression) && !(GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression) && (ProcessingSettings().tpcCompressionGatherMode == 1 || ProcessingSettings().tpcCompressionGatherMode == 3)) {
     GPUError("Invalid tpcCompressionGatherMode for compression on CPU");
     return false;
+  }
+  if (GetRecoSteps() & RecoStep::TRDTracking) {
+    if (GetProcessingSettings().trdTrackModelO2 && (GetProcessingSettings().createO2Output == 0 || param().rec.tpc.nWaysOuter == 0 || GetMatLUT() == nullptr)) {
+      GPUError("TRD tracking can only run on O2 TPC tracks if createO2Output is enabled, nWaysOuter is set, and matBudLUT is available");
+      return false;
+    }
+    if ((GetRecoStepsGPU() & RecoStep::TRDTracking) && !GetProcessingSettings().trdTrackModelO2 && GetProcessingSettings().createO2Output > 1) {
+      GPUError("TRD tracking can only run on GPU TPC tracks if the createO2Output setting does not suppress them");
+      return false;
+    }
   }
   return true;
 }
@@ -612,7 +622,7 @@ int GPUChainTracking::RunChain()
     }
   }
 
-  if (runRecoStep(RecoStep::TRDTracking, &GPUChainTracking::RunTRDTracking)) {
+  if (GetProcessingSettings().trdTrackModelO2 ? runRecoStep(RecoStep::TRDTracking, &GPUChainTracking::RunTRDTracking<GPUTRDTrackerKernels::o2Version>) : runRecoStep(RecoStep::TRDTracking, &GPUChainTracking::RunTRDTracking<GPUTRDTrackerKernels::gpuVersion>)) {
     return 1;
   }
 

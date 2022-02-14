@@ -24,12 +24,11 @@
 
 #include <fairlogger/Logger.h>
 
-#include "rANS/FrequencyTable.h"
+#include "rANS/RenormedFrequencyTable.h"
 #include "rANS/internal/DecoderSymbol.h"
 #include "rANS/internal/ReverseSymbolLookupTable.h"
 #include "rANS/internal/SymbolTable.h"
 #include "rANS/internal/Decoder.h"
-#include "rANS/FrequencyTable.h"
 #include "rANS/internal/helper.h"
 
 namespace o2
@@ -55,7 +54,7 @@ class DecoderBase
 
   // TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
   DecoderBase() noexcept {}; // NOLINT
-  explicit DecoderBase(const FrequencyTable& frequencyTable) : mSymbolTable{frequencyTable}, mReverseLUT{frequencyTable} {};
+  explicit DecoderBase(const RenormedFrequencyTable& frequencyTable) : mSymbolTable{frequencyTable}, mReverseLUT{frequencyTable} {};
 
   inline size_t getAlphabetRangeBits() const noexcept { return mSymbolTable.getAlphabetRangeBits(); }
   inline size_t getSymbolTablePrecision() const noexcept { return mSymbolTable.getPrecision(); }

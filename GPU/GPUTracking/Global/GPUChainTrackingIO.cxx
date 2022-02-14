@@ -41,7 +41,7 @@
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "GPUHostDataTypes.h"
 #include "DataFormatsTPC/Digit.h"
-#include "DataFormatsTPC/CalibdEdxContainer.h"
+#include "CalibdEdxContainer.h"
 #else
 #include "GPUO2FakeClasses.h"
 #endif
@@ -145,6 +145,7 @@ void GPUChainTracking::DumpData(const char* filename)
   }
   DumpData(fp, &mIOPtrs.trdTriggerTimes, &mIOPtrs.nTRDTriggerRecords, InOutPointerType::TRD_TRIGGERRECORDS);
   DumpData(fp, &mIOPtrs.trdTrackletIdxFirst, &mIOPtrs.nTRDTriggerRecords, InOutPointerType::TRD_TRIGGERRECORDS);
+  DumpData(fp, &mIOPtrs.trdTrigRecMask, &mIOPtrs.nTRDTriggerRecords, InOutPointerType::TRD_TRIGGERRECORDS);
   fclose(fp);
 }
 
@@ -239,6 +240,7 @@ int GPUChainTracking::ReadData(const char* filename)
   ReadData(fp, &mIOPtrs.trdSpacePoints, &dummy, &mIOMem.trdSpacePoints, InOutPointerType::TRD_SPACEPOINT);
   ReadData(fp, &mIOPtrs.trdTriggerTimes, &mIOPtrs.nTRDTriggerRecords, &mIOMem.trdTriggerTimes, InOutPointerType::TRD_TRIGGERRECORDS);
   ReadData(fp, &mIOPtrs.trdTrackletIdxFirst, &mIOPtrs.nTRDTriggerRecords, &mIOMem.trdTrackletIdxFirst, InOutPointerType::TRD_TRIGGERRECORDS);
+  ReadData(fp, &mIOPtrs.trdTrigRecMask, &mIOPtrs.nTRDTriggerRecords, &mIOMem.trdTrigRecMask, InOutPointerType::TRD_TRIGGERRECORDS);
 
   size_t fptr = ftell(fp);
   fseek(fp, 0, SEEK_END);
@@ -318,11 +320,11 @@ void GPUChainTracking::ReadSettings(const char* dir)
   processors()->calibObjects.tpcPadGain = mTPCPadGainCalibU.get();
 #ifdef GPUCA_HAVE_O2HEADERS
   f = dir;
-  f += "matlut.dump";
   f += "dEdxCalibContainer.dump";
   mdEdxCalibContainerU = ReadStructFromFile<o2::tpc::CalibdEdxContainer>(f.c_str());
   processors()->calibObjects.dEdxCalibContainer = mdEdxCalibContainerU.get();
   f = dir;
+  f += "matlut.dump";
   mMatLUTU = ReadFlatObjectFromFile<o2::base::MatLayerCylSet>(f.c_str());
   processors()->calibObjects.matLUT = mMatLUTU.get();
   f = dir;

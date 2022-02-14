@@ -32,6 +32,11 @@
 #include "Steer/MCKinematicsReader.h"
 #include <unordered_map>
 #include <vector>
+#include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "MFTTracking/IOUtils.h"
+#include "ReconstructionDataFormats/BaseCluster.h"
+#include "ITSMFTReconstruction/ClustererParam.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 
 namespace o2
 {
@@ -78,10 +83,19 @@ class MFTAssessment
   }
 
  private:
+  o2::itsmft::TopologyDictionary mDictionary; // cluster patterns dictionary
+
   gsl::span<const o2::mft::TrackMFT> mMFTTracks;
   gsl::span<const o2::itsmft::ROFRecord> mMFTTracksROF;
+  gsl::span<const int> mMFTTrackClusIdx;
   gsl::span<const o2::itsmft::CompClusterExt> mMFTClusters;
   gsl::span<const o2::itsmft::ROFRecord> mMFTClustersROF;
+  gsl::span<const unsigned char> mMFTClusterPatterns;
+  gsl::span<const unsigned char>::iterator pattIt;
+  std::vector<o2::BaseCluster<float>> mMFTClustersGlobal;
+
+  std::array<bool, 936> mUnusedChips; //936 chipIDs in total
+  int mNumberTFs = 0;
 
   // MC Labels
   bool mUseMC = false;
@@ -102,6 +116,14 @@ class MFTAssessment
   std::unique_ptr<TH1F> mPositiveTrackPhi = nullptr;
   std::unique_ptr<TH1F> mNegativeTrackPhi = nullptr;
   std::unique_ptr<TH1F> mTrackEta = nullptr;
+
+  std::unique_ptr<TH1F> mMFTClsZ = nullptr;
+  std::unique_ptr<TH1F> mMFTClsOfTracksZ = nullptr;
+
+  std::array<std::unique_ptr<TH2F>, 10> mMFTClsXYinLayer = {nullptr};
+  std::array<std::unique_ptr<TH2F>, 10> mMFTClsOfTracksXYinLayer = {nullptr};
+  std::array<std::unique_ptr<TH2F>, 5> mMFTClsXYRedundantInDisk = {nullptr};
+
   std::array<std::unique_ptr<TH1F>, 7> mTrackEtaNCls = {nullptr};
   std::array<std::unique_ptr<TH1F>, 7> mTrackPhiNCls = {nullptr};
   std::array<std::unique_ptr<TH2F>, 7> mTrackXYNCls = {nullptr};

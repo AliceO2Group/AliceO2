@@ -83,7 +83,7 @@ if(OPENCL2_ENABLED_SPIRV) # BUILD OpenCL2 intermediate code for SPIR-V target
   # executes clang to create llvm IL code
   add_custom_command(
       OUTPUT ${CL_BIN}.bc
-      COMMAND clang
+      COMMAND ${LLVM_CLANG}
               -O0
               -emit-llvm --target=spir64-unknown-unknown
               ${OCL_FLAGS}
@@ -124,7 +124,7 @@ if(OPENCL2_ENABLED) # BUILD OpenCL2 source code for runtime compilation target
   # executes clang to preprocess
   add_custom_command(
       OUTPUT ${CL_BIN}.src
-      COMMAND clang
+      COMMAND ${LLVM_CLANG}
               ${OCL_DEFINECL} -cl-no-stdinc
               -E ${CL_SRC} > ${CL_BIN}.src
       MAIN_DEPENDENCY ${CL_SRC}

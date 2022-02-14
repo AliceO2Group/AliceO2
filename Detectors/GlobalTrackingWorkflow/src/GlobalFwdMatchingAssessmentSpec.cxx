@@ -103,7 +103,7 @@ void GlobalFwdAssessmentSpec::sendOutput(DataAllocator& output)
   TObjArray objar;
   mGloFwdAssessment->getHistos(objar);
 
-  output.snapshot(Output{"GLO", "FWDASSESSMENT", 0, Lifetime::Timeframe}, objar);
+  output.snapshot(Output{"GLO", "FWDASSESSMENT", 0, Lifetime::Sporadic}, objar);
 
   TFile* f = new TFile(Form("GlobalForwardAssessment.root"), "RECREATE");
   objar.Write();
@@ -126,7 +126,7 @@ DataProcessorSpec getGlobaFwdAssessmentSpec(bool useMC, bool processGen, bool mi
     inputs.emplace_back("fwdtrklabels", "GLO", "GLFWD_MC", 0, Lifetime::Timeframe);
   }
 
-  outputs.emplace_back("GLO", "FWDASSESSMENT", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "FWDASSESSMENT", 0, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "glofwd-assessment",

@@ -63,8 +63,10 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     bool mctruth = pc.outputs().isAllowed({"TRD", "LABELS", 0});
 
     Calibrations simcal;
-    auto timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    simcal.getCCDBObjects(timeStamp);
+    // the timestamp can be extracted from the DPL header (it is set in SimReader)
+    const auto ref = pc.inputs().getFirstValid(true);
+    auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation;
+    simcal.getCCDBObjects(creationTime);
     mDigitizer.setCalibrations(&simcal);
 
     // read collision context from input

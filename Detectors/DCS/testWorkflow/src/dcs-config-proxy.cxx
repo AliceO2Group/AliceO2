@@ -27,6 +27,7 @@
 #include "CommonUtils/StringUtils.h"
 #include <vector>
 #include <string>
+#include <chrono>
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
@@ -109,14 +110,15 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     hdrN.firstTForbit = 0; // this should be irrelevant for DCS
 
     auto fmqFactory = device.GetChannel(channel).Transport();
+    std::uint64_t creation = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
 
-    o2::header::Stack headerStackF{hdrF, DataProcessingHeader{*timesliceId, 1}};
+    o2::header::Stack headerStackF{hdrF, DataProcessingHeader{*timesliceId, 1, creation}};
     auto hdMessageF = fmqFactory->CreateMessage(headerStackF.size(), fair::mq::Alignment{64});
     auto plMessageF = fmqFactory->CreateMessage(hdrF.payloadSize, fair::mq::Alignment{64});
     memcpy(hdMessageF->GetData(), headerStackF.data(), headerStackF.size());
     memcpy(plMessageF->GetData(), parts.At(1)->GetData(), hdrF.payloadSize);
 
-    o2::header::Stack headerStackN{hdrN, DataProcessingHeader{*timesliceId, 1}};
+    o2::header::Stack headerStackN{hdrN, DataProcessingHeader{*timesliceId, 1, creation}};
     auto hdMessageN = fmqFactory->CreateMessage(headerStackN.size(), fair::mq::Alignment{64});
     auto plMessageN = fmqFactory->CreateMessage(hdrN.payloadSize, fair::mq::Alignment{64});
     memcpy(hdMessageN->GetData(), headerStackN.data(), headerStackN.size());

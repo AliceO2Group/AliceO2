@@ -64,6 +64,7 @@ class ROFRecord
            mDataRef == other.mDataRef &&
            mBCWidth == other.mBCWidth;
   }
+  bool operator!=(const ROFRecord& other) const { return !(*this == other); }
   bool operator<(const ROFRecord& other) const
   {
     if (mBCData == other.mBCData) {

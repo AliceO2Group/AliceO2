@@ -25,7 +25,8 @@ o2_add_library(EMCALCalibration
                                      )
 
 o2_target_root_dictionary(EMCALCalibration
-                          HEADERS include/EMCALCalibration/EMCALChannelCalibrator.h
+                          HEADERS include/EMCALCalibration/EMCALCalibExtractor.h
+                                  include/EMCALCalibration/EMCALChannelCalibrator.h
                                   include/EMCALCalibration/EMCALChannelData.h
                                   include/EMCALCalibration/EMCALTimeCalibData.h
                           LINKDEF src/EMCALCalibrationLinkDef.h)

@@ -358,15 +358,12 @@ class EncodedBlocks
     return mBlocks[i];
   }
 
-  auto getFrequencyTable(int i) const
+  o2::rans::RenormedFrequencyTable getFrequencyTable(int i) const
   {
     const auto& block = getBlock(i);
     const auto& metadata = getMetadata(i);
     rans::FrequencyTable frequencyTable{block.getDict(), block.getDict() + block.getNDict(), metadata.min};
-    if (!frequencyTable.isRenormedTo(metadata.probabilityBits)) {
-      frequencyTable = rans::renorm(std::move(frequencyTable), metadata.probabilityBits);
-    }
-    return frequencyTable;
+    return rans::renorm(std::move(frequencyTable), metadata.probabilityBits);
   }
 
   void setANSHeader(const ANSHeader& h) { mANSHeader = h; }
@@ -379,10 +376,10 @@ class EncodedBlocks
 
   /// cast arbitrary buffer head to container class. Head is supposed to respect the alignment
   static auto get(void* head) { return reinterpret_cast<EncodedBlocks*>(head); }
-  static const auto get(const void* head) { return reinterpret_cast<const EncodedBlocks*>(head); }
+  static auto get(const void* head) { return reinterpret_cast<const EncodedBlocks*>(head); }
 
   /// get const image of the container wrapper, with pointers in the image relocated to new head
-  static const auto getImage(const void* newHead);
+  static auto getImage(const void* newHead);
 
   /// create container from arbitrary buffer of predefined size (in bytes!!!). Head is supposed to respect the alignment
   static auto create(void* head, size_t sz);
@@ -693,7 +690,7 @@ void EncodedBlocks<H, N, W>::clear()
 ///_____________________________________________________________________________
 /// get const image of the container wrapper, with pointers in the image relocated to new head
 template <typename H, int N, typename W>
-const auto EncodedBlocks<H, N, W>::getImage(const void* newHead)
+auto EncodedBlocks<H, N, W>::getImage(const void* newHead)
 {
   auto image(*get(newHead)); // 1st make a shalow copy
   // now fix its pointers
@@ -735,7 +732,8 @@ void EncodedBlocks<H, N, W>::print(const std::string& prefix, int verbosity) con
   if (verbosity > 0) {
     LOG(info) << prefix << "Container of " << N << " blocks, size: " << size() << " bytes, unused: " << getFreeSize();
     for (int i = 0; i < N; i++) {
-      LOG(info) << "Block " << i << " for " << static_cast<uint32_t>(mMetadata[i].messageLength) << " message words of " << mMetadata[i].messageWordSize << " bytes |"
+      LOG(info) << "Block " << i << " for " << static_cast<uint32_t>(mMetadata[i].messageLength) << " message words of "
+                << static_cast<uint32_t>(mMetadata[i].messageWordSize) << " bytes |"
                 << " NDictWords: " << mBlocks[i].getNDict() << " NDataWords: " << mBlocks[i].getNData()
                 << " NLiteralWords: " << mBlocks[i].getNLiterals();
     }
@@ -786,9 +784,7 @@ void EncodedBlocks<H, N, W>::decode(D_IT dest,                    // iterator to
       const o2::rans::LiteralDecoder64<dest_t>* decoder = reinterpret_cast<const o2::rans::LiteralDecoder64<dest_t>*>(decoderExt);
       std::unique_ptr<o2::rans::LiteralDecoder64<dest_t>> decoderLoc;
       if (block.getNDict()) { // if dictionaty is saved, prefer it
-        rans::FrequencyTable frequencies{block.getDict(), block.getDict() + block.getNDict(), md.min};
-        frequencies = rans::renorm(std::move(frequencies), md.probabilityBits);
-        decoderLoc = std::make_unique<o2::rans::LiteralDecoder64<dest_t>>(frequencies);
+        decoderLoc = std::make_unique<o2::rans::LiteralDecoder64<dest_t>>(this->getFrequencyTable(slot));
         decoder = decoderLoc.get();
       } else { // verify that decoded corresponds to stored metadata
         if (md.min != decoder->getMinSymbol()) {
@@ -884,9 +880,8 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
       if (encoderExt) {
         return std::make_tuple(ransEncoder_t{}, rans::FrequencyTable{});
       } else {
-        rans::FrequencyTable frequencyTable{};
-        frequencyTable.addSamples(srcBegin, srcEnd);
-        FrequencyTable renormedFrequencyTable = rans::renorm(frequencyTable, symbolTablePrecision);
+        rans::FrequencyTable frequencyTable = rans::makeFrequencyTableFromSamples(srcBegin, srcEnd);
+        RenormedFrequencyTable renormedFrequencyTable = rans::renorm(frequencyTable, symbolTablePrecision);
         return std::make_tuple(ransEncoder_t{renormedFrequencyTable}, frequencyTable);
       }
     }();
@@ -898,7 +893,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
     dataSize = SizeEstMarginAbs + int(SizeEstMarginRel * (dataSize / sizeof(storageBuffer_t))) + (sizeof(input_t) < sizeof(storageBuffer_t)); // size in words of output stream
     expandStorage(frequencyTable.size() + dataSize);
     // store dictionary first
-    if (frequencyTable.size()) {
+    if (!frequencyTable.empty()) {
       thisBlock->storeDict(frequencyTable.size(), frequencyTable.data());
       LOGP(debug, "StoreDict {} bytes, offs: {}:{}", frequencyTable.size() * sizeof(W), thisBlock->getOffsDict(), thisBlock->getOffsDict() + frequencyTable.size() * sizeof(W));
     }

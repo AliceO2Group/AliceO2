@@ -69,6 +69,7 @@ class STFDecoder : public Task
   bool mUnmutExtraLanes = false;
   bool mFinalizeDone = false;
   bool mAllowReporting = true;
+  int mDumpOnError = 0;
   int mNThreads = 1;
   int mVerbosity = 0;
   size_t mTFCounter = 0;

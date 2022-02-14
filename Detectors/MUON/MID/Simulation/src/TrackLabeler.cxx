@@ -86,7 +86,7 @@ std::vector<MCCompLabel> TrackLabeler::findLabels(const Track& track, const o2::
   return labels;
 }
 
-void TrackLabeler::process(gsl::span<const Cluster3D> clusters, gsl::span<const Track> tracks, const o2::dataformats::MCTruthContainer<MCClusterLabel>& inMCContainer)
+void TrackLabeler::process(gsl::span<const Cluster> clusters, gsl::span<const Track> tracks, const o2::dataformats::MCTruthContainer<MCClusterLabel>& inMCContainer)
 {
   /// Applies labels to the tracks
   mMCTracksLabels.clear();

@@ -36,6 +36,7 @@
 #include <cassert>
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <array>
 #include <string>
 #include <bitset>

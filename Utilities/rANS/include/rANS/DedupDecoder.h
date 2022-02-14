@@ -83,7 +83,7 @@ void DedupDecoder<coder_T, stream_T, source_T>::process(stream_IT inputEnd, sour
     auto duplicatesIter = duplicates.find(i);
     if (duplicatesIter != duplicates.end()) {
       LOG(trace) << "pos[" << i << "]: restoring " << duplicatesIter->second << " duplicates of symbol " << (char)s;
-      for (int d = 0; d < duplicatesIter->second; d++) {
+      for (unsigned int d = 0; d < duplicatesIter->second; d++) {
         *it++ = s;
         i++;
       }

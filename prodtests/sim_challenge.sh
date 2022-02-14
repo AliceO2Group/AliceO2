@@ -239,14 +239,15 @@ if [ "$doreco" == "1" ]; then
   echo "Return status of CPV reconstruction: $?"
 
   echo "Producing AOD"
-  taskwrapper aod.log o2-aod-producer-workflow $gloOpt --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE --aod-timeframe-id 1
+  taskwrapper aod.log o2-aod-producer-workflow $gloOpt --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE --aod-timeframe-id 1 --run-number 300000
   echo "Return status of AOD production: $?"
 
   # let's do some very basic analysis tests (mainly to enlarge coverage in full CI) and enabled when SIM_CHALLENGE_ANATESTING=ON
   if [[ ${O2DPG_ROOT} && ${SIM_CHALLENGE_ANATESTING} ]]; then
-    for t in ${ANATESTLIST:-o2-analysistutorial-mc-histograms o2-analysis-validation o2-analysis-qa-efficiency o2-analysis-pid-tof o2-analysis-pid-tpc}; do
+    # to be added again: Efficiency
+    for t in ${ANATESTLIST:-MCHistograms Validation PIDTOF PIDTPC EventTrackQA WeakDecayTutorial}; do
       ${O2DPG_ROOT}/MC/analysis_testing/analysis_test.sh ${t}
-      echo "Return status of ${t}: ${RC}"
+      echo "Return status of ${t}: ${?}"
     done
   fi
 fi

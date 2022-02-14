@@ -1020,6 +1020,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       ("driver-client-backend", bpo::value<std::string>()->default_value(defaultDriverClient), "backend for device -> driver communicataon: stdout://: use stdout, ws://: use websockets") //
       ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")                                                           //
       ("expected-region-callbacks", bpo::value<std::string>()->default_value("0"), "how many region callbacks we are expecting")                                                           //
+      ("exit-transition-timeout", bpo::value<std::string>()->default_value("0"), "how many second to wait before switching from RUN to READY")                                             //
       ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframe can be in fly at the same moment (0 disables)")                                         //
       ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                             //
       ("infologger-mode", bpo::value<std::string>()->default_value(""), "O2_INFOLOGGER_MODE override");
@@ -1074,7 +1075,9 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
   };
 
   runner.AddHook<fair::mq::hooks::InstantiateDevice>(afterConfigParsingCallback);
-  return runner.Run();
+  auto result = runner.Run();
+  serviceRegistry.preExitCallbacks();
+  return result;
 }
 
 struct WorkflowInfo {
@@ -1667,6 +1670,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           DeviceSpecHelpers::reworkShmSegmentSize(dataProcessorInfos);
           DeviceSpecHelpers::prepareArguments(driverControl.defaultQuiet,
                                               driverControl.defaultStopped,
+                                              driverInfo.processingPolicies.termination == TerminationPolicy::WAIT,
                                               driverInfo.port,
                                               dataProcessorInfos,
                                               runningWorkflow.devices,

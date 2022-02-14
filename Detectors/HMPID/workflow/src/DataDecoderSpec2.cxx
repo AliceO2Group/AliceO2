@@ -197,7 +197,7 @@ void DataDecoderTask2::decodeTF(framework::ProcessingContext& pc)
   }
 
   DPLRawParser parser(inputs, o2::framework::select("TF:HMP/RAWDATA"));
-  //mDeco->mDigits.clear();
+  // mDeco->mDigits.clear();
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     int pointerToTheFirst = mDeco->mDigits.size();
     uint32_t* theBuffer = (uint32_t*)it.raw();

@@ -20,11 +20,10 @@
 #include "Framework/Expressions.h"
 #include "Framework/ArrowTypes.h"
 #include "Framework/RuntimeError.h"
+#include "Framework/Kernels.h"
 #include <arrow/table.h>
 #include <arrow/array.h>
 #include <arrow/util/variant.h>
-#include <arrow/compute/kernel.h>
-#include <arrow/compute/api_aggregate.h>
 #include <gandiva/selection_vector.h>
 #include <cassert>
 #include <fmt/format.h>
@@ -75,6 +74,12 @@ inline constexpr bool is_type_spawnable_v = false;
 
 template <typename T>
 inline constexpr bool is_type_spawnable_v<T, std::void_t<decltype(sizeof(typename T::spawnable_t))>> = true;
+
+template <typename, typename = void>
+inline constexpr bool is_soa_extension_table_v = false;
+
+template <typename T>
+inline constexpr bool is_soa_extension_table_v<T, std::void_t<decltype(sizeof(typename T::expression_pack_t))>> = true;
 
 template <typename T, typename = void>
 inline constexpr bool is_index_table_v = false;
@@ -930,14 +935,12 @@ auto select(T const& t, framework::expressions::Filter const& f)
   return Filtered<T>({t.asArrowTable()}, selectionToVector(framework::expressions::createSelection(t.asArrowTable(), f)));
 }
 
-arrow::Status getSliceFor(int value, char const* key, std::shared_ptr<arrow::Table> const& input, std::shared_ptr<arrow::Table>& output, uint64_t& offset);
-
 template <typename T>
 auto sliceBy(T const& t, framework::expressions::BindingNode const& node, int value)
 {
   uint64_t offset = 0;
   std::shared_ptr<arrow::Table> result = nullptr;
-  auto status = getSliceFor(value, node.name.c_str(), t.asArrowTable(), result, offset);
+  auto status = o2::framework::getSliceFor(value, node.name.c_str(), t.asArrowTable(), result, offset);
   if (status.ok()) {
     return T({result}, offset);
   }
@@ -1254,15 +1257,7 @@ class Table
   arrow::Status initializeSliceCaches(char const* key)
   {
     mCurrentKey = key;
-    arrow::Datum value_counts;
-    auto options = arrow::compute::ScalarAggregateOptions::Defaults();
-    ARROW_ASSIGN_OR_RAISE(value_counts,
-                          arrow::compute::CallFunction("value_counts", {mTable->GetColumnByName(key)},
-                                                       &options));
-    auto pair = static_cast<arrow::StructArray>(value_counts.array());
-    mValues = std::make_shared<arrow::NumericArray<arrow::Int32Type>>(pair.field(0)->data());
-    mCounts = std::make_shared<arrow::NumericArray<arrow::Int64Type>>(pair.field(1)->data());
-    return arrow::Status::OK();
+    return o2::framework::getSlices(key, mTable, mValues, mCounts);
   }
 
  public:
@@ -1387,19 +1382,43 @@ using JoinBase = decltype(join(std::declval<Ts>()...));
 template <typename T1, typename T2>
 using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
 
-template <typename T1, typename T2>
-constexpr auto is_binding_compatible_v()
+template <typename B, typename E>
+struct EquivalentIndex {
+  constexpr static bool value = false;
+};
+
+template <typename B, typename E>
+constexpr bool is_index_equivalent_v = EquivalentIndex<B, E>::value || EquivalentIndex<E, B>::value;
+
+template <typename T, typename... Os>
+constexpr bool are_bindings_compatible_v(framework::pack<Os...>&&)
 {
-  return framework::pack_size(
-           framework::intersected_pack_t<originals_pack_t<T1>, originals_pack_t<T2>>{}) > 0;
+  if constexpr (is_type_with_originals_v<T>) {
+    return (are_bindings_compatible_v<Os>(originals_pack_t<T>{}) || ...);
+  } else {
+    return ((std::is_same_v<T, Os> || is_index_equivalent_v<T, Os>) || ...);
+  }
 }
 
+template <typename T, typename B>
+constexpr bool is_binding_compatible_v()
+{
+  return are_bindings_compatible_v<T>(originals_pack_t<B>{});
+}
+
+void notBoundTable(const char* tableName);
 } // namespace o2::soa
 
 #define DECLARE_SOA_STORE()          \
   template <typename T>              \
   struct MetadataTrait {             \
     using metadata = std::void_t<T>; \
+  }
+
+#define DECLARE_EQUIVALENT_FOR_INDEX(_Base_, _Equiv_) \
+  template <>                                         \
+  struct EquivalentIndex<_Base_, _Equiv_> {           \
+    constexpr static bool value = true;               \
   }
 
 #define DECLARE_SOA_COLUMN_FULL(_Name_, _Getter_, _Type_, _Label_)                                                                                                                \
@@ -1517,7 +1536,9 @@ constexpr auto is_binding_compatible_v()
     template <typename T>                                                                               \
     auto _Getter_##_as() const                                                                          \
     {                                                                                                   \
-      assert(mBinding != nullptr);                                                                      \
+      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                                   \
+        o2::soa::notBoundTable(#_Table_);                                                               \
+      }                                                                                                 \
       if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                     \
         return static_cast<T const*>(mBinding)->emptySlice();                                           \
       }                                                                                                 \
@@ -1554,7 +1575,7 @@ constexpr auto is_binding_compatible_v()
 
 #define DECLARE_SOA_SLICE_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_SLICE_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, _Name_##s, "")
 
-///ARRAY
+/// ARRAY
 #define DECLARE_SOA_ARRAY_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Table_, _Suffix_)         \
   struct _Name_##Ids : o2::soa::Column<std::vector<_Type_>, _Name_##Ids> {                       \
     static_assert(std::is_integral_v<_Type_>, "Index type must be integral");                    \
@@ -1591,7 +1612,9 @@ constexpr auto is_binding_compatible_v()
     template <typename T>                                                                        \
     auto _Getter_##_as() const                                                                   \
     {                                                                                            \
-      assert(mBinding != nullptr);                                                               \
+      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                            \
+        o2::soa::notBoundTable(#_Table_);                                                        \
+      }                                                                                          \
       return getIterators<T>();                                                                  \
     }                                                                                            \
                                                                                                  \
@@ -1608,6 +1631,34 @@ constexpr auto is_binding_compatible_v()
     auto _Getter_() const                                                                        \
     {                                                                                            \
       return _Getter_##_as<binding_t>();                                                         \
+    }                                                                                            \
+                                                                                                 \
+    template <typename T>                                                                        \
+    auto _Getter_##_first_as() const                                                             \
+    {                                                                                            \
+      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                            \
+        o2::soa::notBoundTable(#_Table_);                                                        \
+      }                                                                                          \
+      return static_cast<T const*>(mBinding)->rawIteratorAt((*mColumnIterator)[0]);              \
+    }                                                                                            \
+                                                                                                 \
+    template <typename T>                                                                        \
+    auto _Getter_##_last_as() const                                                              \
+    {                                                                                            \
+      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                            \
+        o2::soa::notBoundTable(#_Table_);                                                        \
+      }                                                                                          \
+      return static_cast<T const*>(mBinding)->rawIteratorAt((*mColumnIterator).back());          \
+    }                                                                                            \
+                                                                                                 \
+    auto _Getter_first() const                                                                   \
+    {                                                                                            \
+      return _Getter_##_first_as<binding_t>();                                                   \
+    }                                                                                            \
+                                                                                                 \
+    auto _Getter_last() const                                                                    \
+    {                                                                                            \
+      return _Getter_##_last_as<binding_t>();                                                    \
     }                                                                                            \
                                                                                                  \
     template <typename T>                                                                        \
@@ -1633,7 +1684,7 @@ constexpr auto is_binding_compatible_v()
 
 #define DECLARE_SOA_ARRAY_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_ARRAY_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, _Name_##s, "")
 
-///NORMAL
+/// NORMAL
 #define DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Table_, _Suffix_)                                                \
   struct _Name_##Id : o2::soa::Column<_Type_, _Name_##Id> {                                                                       \
     static_assert(std::is_integral_v<_Type_>, "Index type must be integral");                                                     \
@@ -1669,7 +1720,9 @@ constexpr auto is_binding_compatible_v()
     template <typename T>                                                                                                         \
     auto _Getter_##_as() const                                                                                                    \
     {                                                                                                                             \
-      assert(mBinding != nullptr);                                                                                                \
+      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                                                             \
+        o2::soa::notBoundTable(#_Table_);                                                                                         \
+      }                                                                                                                           \
       if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                                               \
         throw o2::framework::runtime_error_f("Accessing invalid index for %s", #_Getter_);                                        \
       }                                                                                                                           \
@@ -1706,7 +1759,7 @@ constexpr auto is_binding_compatible_v()
 
 #define DECLARE_SOA_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, _Name_##s, "")
 
-///SELF
+/// SELF
 #define DECLARE_SOA_SELF_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Label_)                                           \
   struct _Name_##Id : o2::soa::Column<_Type_, _Name_##Id> {                                                             \
     static_assert(std::is_integral_v<_Type_>, "Index type must be integral");                                           \
@@ -1741,7 +1794,6 @@ constexpr auto is_binding_compatible_v()
     template <typename T>                                                                                               \
     auto _Getter_##_as() const                                                                                          \
     {                                                                                                                   \
-      assert(mBinding != nullptr);                                                                                      \
       if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                                     \
         throw o2::framework::runtime_error_f("Accessing invalid index for %s", #_Getter_);                              \
       }                                                                                                                 \
@@ -1795,7 +1847,6 @@ constexpr auto is_binding_compatible_v()
     template <typename T>                                                                               \
     auto _Getter_##_as() const                                                                          \
     {                                                                                                   \
-      assert(mBinding != nullptr);                                                                      \
       if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                     \
         return static_cast<T const*>(mBinding)->emptySlice();                                           \
       }                                                                                                 \
@@ -1813,7 +1864,7 @@ constexpr auto is_binding_compatible_v()
     void const* mBinding = nullptr;                                                                     \
   };
 
-#define DECLARE_SOA_SELF_SLICE_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_SELF_SLICE_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, #_Name_)
+#define DECLARE_SOA_SELF_SLICE_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_SELF_SLICE_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, "_" #_Name_)
 /// SELF ARRAY
 #define DECLARE_SOA_SELF_ARRAY_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Label_)              \
   struct _Name_##Ids : o2::soa::Column<std::vector<_Type_>, _Name_##Ids> {                       \
@@ -1849,7 +1900,6 @@ constexpr auto is_binding_compatible_v()
     template <typename T>                                                                        \
     auto _Getter_##_as() const                                                                   \
     {                                                                                            \
-      assert(mBinding != nullptr);                                                               \
       return getIterators<T>();                                                                  \
     }                                                                                            \
                                                                                                  \
@@ -1863,6 +1913,18 @@ constexpr auto is_binding_compatible_v()
       return result;                                                                             \
     }                                                                                            \
                                                                                                  \
+    template <typename T>                                                                        \
+    auto _Getter_##_first_as() const                                                             \
+    {                                                                                            \
+      return static_cast<T const*>(mBinding)->rawIteratorAt((*mColumnIterator)[0]);              \
+    }                                                                                            \
+                                                                                                 \
+    template <typename T>                                                                        \
+    auto _Getter_##_last_as() const                                                              \
+    {                                                                                            \
+      return static_cast<T const*>(mBinding)->rawIteratorAt((*mColumnIterator).back());          \
+    }                                                                                            \
+                                                                                                 \
     bool setCurrentRaw(void const* current)                                                      \
     {                                                                                            \
       this->mBinding = current;                                                                  \
@@ -1872,7 +1934,8 @@ constexpr auto is_binding_compatible_v()
     void const* mBinding = nullptr;                                                              \
   };
 
-#define DECLARE_SOA_SELF_ARRAY_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_SELF_ARRAY_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, #_Name_)
+#define DECLARE_SOA_SELF_ARRAY_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_SELF_ARRAY_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, "_" #_Name_)
+
 /// A dynamic column is a column whose values are derived
 /// from those of other real columns. These can be used for
 /// example to provide different coordinate systems (e.g. polar,
@@ -1972,6 +2035,7 @@ constexpr auto is_binding_compatible_v()
     _Name_##Extension(std::shared_ptr<arrow::Table> table, uint64_t offset = 0) : o2::soa::Table<__VA_ARGS__>(table, offset){}; \
     _Name_##Extension(_Name_##Extension const&) = default;                                                                      \
     _Name_##Extension(_Name_##Extension&&) = default;                                                                           \
+    using expression_pack_t = framework::pack<__VA_ARGS__>;                                                                     \
     using iterator = typename base_t::template RowView<_Name_##Extension, _Name_##Extension>;                                   \
     using const_iterator = iterator;                                                                                            \
   };                                                                                                                            \
@@ -1980,7 +2044,7 @@ constexpr auto is_binding_compatible_v()
   struct _Name_##ExtensionMetadata : o2::soa::TableMetadata<_Name_##ExtensionMetadata> {                                        \
     using table_t = _Name_##Extension;                                                                                          \
     using base_table_t = typename _Table_::table_t;                                                                             \
-    using expression_pack_t = framework::pack<__VA_ARGS__>;                                                                     \
+    using expression_pack_t = typename _Name_##Extension::expression_pack_t;                                                    \
     using originals = soa::originals_pack_t<_Table_>;                                                                           \
     using sources = originals;                                                                                                  \
     static constexpr char const* mLabel = #_Name_ "Extension";                                                                  \

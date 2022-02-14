@@ -29,13 +29,13 @@ namespace o2::aod::track
 {
 enum TrackTypeEnum : uint8_t {
   Track = 0,
-  ITSStandaloneTrack,
   Run2Track = 254,
   Run2Tracklet = 255
 };
 enum TrackFlags {
   TrackTimeResIsRange = 0x1, // Gaussian or range
-  PVContributor = 0x2        // This track has contributed to the collision vertex fit
+  PVContributor = 0x2,       // This track has contributed to the collision vertex fit
+  OrphanTrack = 0x4          // Track has no association with any collision vertexd
   // NOTE Highest 4 (29..32) bits reserved for PID hypothesis
 };
 enum TrackFlagsRun2Enum {

@@ -59,25 +59,26 @@ int Tracker::getLastNeighbourRPC(int rpc) const
 }
 
 //______________________________________________________________________________
-bool Tracker::loadClusters(gsl::span<const Cluster2D>& clusters)
+bool Tracker::loadClusters(gsl::span<const Cluster>& clusters)
 {
   /// Fills the array of clusters per detection element
 
-  for (auto& currData : clusters) {
-    int deId = currData.deId;
+  for (auto& cl : clusters) {
+    int deId = cl.deId;
     // This needs to be done before adding the element to mClusters
     mClusterIndexes[deId].emplace_back(mClusters.size());
-    const auto& position = mTransformer.localToGlobal(deId, currData.xCoor, currData.yCoor);
-    mClusters.push_back({currData.deId,
-                         position.x(), position.y(), position.z(),
-                         currData.sigmaX2, currData.sigmaY2});
+    const auto& position = mTransformer.localToGlobal(deId, cl.xCoor, cl.yCoor);
+    mClusters.emplace_back(cl);
+    mClusters.back().xCoor = position.x();
+    mClusters.back().yCoor = position.y();
+    mClusters.back().zCoor = position.z();
   }
 
   return (clusters.size() > 0);
 }
 
 //______________________________________________________________________________
-void Tracker::process(gsl::span<const Cluster2D> clusters, gsl::span<const ROFRecord> rofRecords)
+void Tracker::process(gsl::span<const Cluster> clusters, gsl::span<const ROFRecord> rofRecords)
 {
   /// Main function: runs on a data containing the clusters in timeframe
   /// and builds the tracks
@@ -97,7 +98,7 @@ void Tracker::process(gsl::span<const Cluster2D> clusters, gsl::span<const ROFRe
 }
 
 //______________________________________________________________________________
-void Tracker::process(gsl::span<const Cluster2D> clusters, bool accumulate)
+void Tracker::process(gsl::span<const Cluster> clusters, bool accumulate)
 {
   /// Main function: runs on a data containing the clusters per event
   /// and builds the tracks
@@ -174,7 +175,7 @@ bool Tracker::processSide(bool isRight, bool isInward)
 }
 
 //______________________________________________________________________________
-bool Tracker::makeTrackSeed(Track& track, const Cluster3D& cl1, const Cluster3D& cl2) const
+bool Tracker::makeTrackSeed(Track& track, const Cluster& cl1, const Cluster& cl2) const
 {
   /// Make a track seed from two clusters
 
@@ -184,7 +185,7 @@ bool Tracker::makeTrackSeed(Track& track, const Cluster3D& cl1, const Cluster3D&
   double nonBendingSlope = (cl2.xCoor - cl1.xCoor) / dZ;
   double nonBendingImpactParam = std::abs(cl2.xCoor - cl2.zCoor * nonBendingSlope);
   double nonBendingImpactParamErr = std::sqrt(
-    (cl1.zCoor * cl1.zCoor * cl2.sigmaX2 + cl2.zCoor * cl2.zCoor * cl1.sigmaX2) / dZ2);
+    (cl1.zCoor * cl1.zCoor * cl2.getEX2() + cl2.zCoor * cl2.zCoor * cl1.getEX2()) / dZ2);
   if ((nonBendingImpactParam - mSigmaCut * nonBendingImpactParamErr) > mImpactParamCut) {
     return false;
   }
@@ -192,12 +193,12 @@ bool Tracker::makeTrackSeed(Track& track, const Cluster3D& cl1, const Cluster3D&
   // Then start making the track (from 2 points)
   track.setPosition(cl2.xCoor, cl2.yCoor, cl2.zCoor);
   track.setDirection(nonBendingSlope, (cl2.yCoor - cl1.yCoor) / dZ, 1.);
-  track.setCovarianceParameters(cl2.sigmaX2,                       // x-x
-                                cl2.sigmaY2,                       // y-y
-                                (cl1.sigmaX2 + cl2.sigmaX2) / dZ2, // slopeX-slopeX
-                                (cl1.sigmaY2 + cl2.sigmaY2) / dZ2, // slopeY-slopeY
-                                cl2.sigmaX2 / dZ,                  // x-slopeX
-                                cl2.sigmaY2 / dZ);                 // y-slopeY
+  track.setCovarianceParameters(cl2.getEX2(),                        // x-x
+                                cl2.getEY2(),                        // y-y
+                                (cl1.getEX2() + cl2.getEX2()) / dZ2, // slopeX-slopeX
+                                (cl1.getEY2() + cl2.getEY2()) / dZ2, // slopeY-slopeY
+                                cl2.getEX2() / dZ,                   // x-slopeX
+                                cl2.getEY2() / dZ);                  // y-slopeY
   track.setChi2(0.);
   track.setNDF(0);
 
@@ -372,8 +373,8 @@ bool Tracker::tryOneCluster(const Track& track, int chamber, int clIdx, Track& n
   newTrack.propagateToZ(cl.zCoor);
 
   double diff[2] = {cl.xCoor - newTrack.getPositionX(), cl.yCoor - newTrack.getPositionY()};
-  double err2[2] = {newTrack.getCovarianceParameter(Track::CovarianceParamIndex::VarX) + cl.sigmaX2,
-                    newTrack.getCovarianceParameter(Track::CovarianceParamIndex::VarY) + cl.sigmaY2};
+  double err2[2] = {newTrack.getCovarianceParameter(Track::CovarianceParamIndex::VarX) + cl.getEX2(),
+                    newTrack.getCovarianceParameter(Track::CovarianceParamIndex::VarY) + cl.getEY2()};
   double chi2 = diff[0] * diff[0] / err2[0] + diff[1] * diff[1] / err2[1];
   if (chi2 > mMaxChi2) {
     return false;
@@ -388,7 +389,7 @@ bool Tracker::tryOneCluster(const Track& track, int chamber, int clIdx, Track& n
 }
 
 //__________________________________________________________________________
-void Tracker::runKalmanFilter(Track& track, const Cluster3D& cluster) const
+void Tracker::runKalmanFilter(Track& track, const Cluster& cluster) const
 {
   /// Computes new track parameters and their covariances including new cluster using kalman filter.
   /// Returns the additional track chi2
@@ -397,7 +398,7 @@ void Tracker::runKalmanFilter(Track& track, const Cluster3D& cluster) const
   double dir[2] = {track.getDirectionX(), track.getDirectionY()};
   const std::array<float, 6>& covParams = track.getCovarianceParameters();
   double clusPos[2] = {cluster.xCoor, cluster.yCoor};
-  double clusterSigma[2] = {cluster.sigmaX2, cluster.sigmaY2};
+  double clusterSigma[2] = {cluster.getEX2(), cluster.getEY2()};
 
   std::array<float, 6> newCovParams;
   double newPos[2], newDir[2];

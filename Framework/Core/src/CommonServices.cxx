@@ -148,16 +148,21 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
       context.orbitResetTime = -1;
       for (auto const& ref : processingContext.inputs()) {
         const o2::framework::DataProcessingHeader *dph = o2::header::get<DataProcessingHeader*>(ref.header);
-        if (!dph) {
+        const auto* dh = o2::header::get<o2::header::DataHeader*>(ref.header);
+        if (!dph || !dh) {
           continue;
         }
         LOGP(debug, "Orbit reset time from data: {} ", dph->creation);
         context.orbitResetTime = dph->creation;
+        context.runNumber = fmt::format("{}", dh->runNumber);
         break;
       } },
     .start = [](ServiceRegistry& services, void* service) {
       auto& context = services.get<DataTakingContext>();
-      context.runNumber = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
+      auto extRunNumber = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
+      if (extRunNumber != "unspecified" || context.runNumber == "0") {
+        context.runNumber = extRunNumber;
+      }
       // FIXME: we actually need to get the orbit, not only to know where it is
       std::string orbitResetTimeUrl = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("orbit-reset-time", "ccdb://CTP/Calib/OrbitResetTime");
       auto is_number = [](const std::string& s) -> bool {
@@ -624,6 +629,18 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
     .kind = ServiceKind::Serial};
 }
 
+o2::framework::ServiceSpec CommonServices::objectCache()
+{
+  return ServiceSpec{
+    .name = "object-cache",
+    .init = [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+      auto* cache = new ObjectCache();
+      return ServiceHandle{TypeIdHelpers::uniqueId<ObjectCache>(), cache};
+    },
+    .configure = noConfiguration(),
+    .kind = ServiceKind::Serial};
+}
+
 std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
 {
   std::vector<ServiceSpec> specs{
@@ -642,6 +659,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     dataRelayer(),
     dataSender(),
     dataProcessingStats(),
+    objectCache(),
     CommonMessageBackends::fairMQBackendSpec(),
     ArrowSupport::arrowBackendSpec(),
     CommonMessageBackends::stringBackendSpec(),

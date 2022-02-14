@@ -20,7 +20,7 @@
 
 using namespace o2::steer;
 
-void DigitizationContext::printCollisionSummary(bool withQED) const
+void DigitizationContext::printCollisionSummary(bool withQED, int truncateOutputTo) const
 {
   std::cout << "Summary of DigitizationContext --\n";
   std::cout << "Maximal parts per collision " << mMaxPartNumber << "\n";
@@ -33,6 +33,10 @@ void DigitizationContext::printCollisionSummary(bool withQED) const
     std::cout << "Number of QED events " << mEventRecordsWithQED.size() - mEventRecords.size() << "\n";
     // loop over combined stuff
     for (int i = 0; i < mEventRecordsWithQED.size(); ++i) {
+      if (truncateOutputTo >= 0 && i > truncateOutputTo) {
+        std::cout << "--- Output truncated to " << truncateOutputTo << " ---\n";
+        break;
+      }
       std::cout << "Record " << i << " TIME " << mEventRecordsWithQED[i];
       for (auto& e : mEventPartsWithQED[i]) {
         std::cout << " (" << e.sourceID << " , " << e.entryID << ")";
@@ -42,6 +46,10 @@ void DigitizationContext::printCollisionSummary(bool withQED) const
   } else {
     std::cout << "Number of Collisions " << mEventRecords.size() << "\n";
     for (int i = 0; i < mEventRecords.size(); ++i) {
+      if (truncateOutputTo >= 0 && i > truncateOutputTo) {
+        std::cout << "--- Output truncated to " << truncateOutputTo << " ---\n";
+        break;
+      }
       std::cout << "Collision " << i << " TIME " << mEventRecords[i];
       for (auto& e : mEventParts[i]) {
         std::cout << " (" << e.sourceID << " , " << e.entryID << ")";

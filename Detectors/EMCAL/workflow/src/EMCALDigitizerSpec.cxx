@@ -96,7 +96,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
       std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(mAccumulatedDigits));
       labelAccum.mergeAtBack(mLabels);
       LOG(info) << "Have " << mAccumulatedDigits.size() << " digits ";
-      triggers.emplace_back(timesview[trigID], indexStart, mDigits.size());
+      triggers.emplace_back(timesview[trigID], o2::trigger::PhT, indexStart, mDigits.size());
       indexStart = mAccumulatedDigits.size();
       mDigits.clear();
       mLabels.clear();
@@ -126,10 +126,6 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
       continue;
     } else {
       preTriggerColl = false;
-      // Discard collisions that occurs 900 ns after the readout window is open
-      if (mDigitizer.afterTriggerCollision()) {
-        continue;
-      }
     }
 
     if (mDigitizer.isEmpty()) {

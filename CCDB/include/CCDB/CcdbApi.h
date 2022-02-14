@@ -115,9 +115,13 @@ class CcdbApi //: public DatabaseInterface
      * @param metadata Key-values representing the metadata for this object.
      * @param startValidityTimestamp Start of validity. If omitted, current timestamp is used.
      * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 day is used.
+     * @return 0 -> ok,
+     *         positive number -> curl error (https://curl.se/libcurl/c/libcurl-errors.html),
+     *         -1 : object bigger than maxSize,
+     *         -2 : curl initialization error
      */
-  void storeAsTFile(const TObject* rootObject, std::string const& path, std::map<std::string, std::string> const& metadata,
-                    long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
+  int storeAsTFile(const TObject* rootObject, std::string const& path, std::map<std::string, std::string> const& metadata,
+                   long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize = 0 /*bytes*/) const;
 
   /**
      * Store into the CCDB a TFile containing an object of type T (which needs to have a ROOT dictionary)
@@ -127,19 +131,23 @@ class CcdbApi //: public DatabaseInterface
      * @param metadata Key-values representing the metadata for this object.
      * @param startValidityTimestamp Start of validity. If omitted, current timestamp is used.
      * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 day is used.
+     * @return 0 -> ok,
+     *         positive number -> curl error (https://curl.se/libcurl/c/libcurl-errors.html),
+     *         -1 : object bigger than maxSize,
+     *         -2 : curl initialization error
      */
   template <typename T>
-  void storeAsTFileAny(const T* obj, std::string const& path, std::map<std::string, std::string> const& metadata,
-                       long startValidityTimestamp = -1, long endValidityTimestamp = -1) const
+  int storeAsTFileAny(const T* obj, std::string const& path, std::map<std::string, std::string> const& metadata,
+                      long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize = 0 /*bytes*/) const
   {
-    storeAsTFile_impl(reinterpret_cast<const void*>(obj), typeid(T), path, metadata, startValidityTimestamp, endValidityTimestamp);
+    return storeAsTFile_impl(reinterpret_cast<const void*>(obj), typeid(T), path, metadata, startValidityTimestamp, endValidityTimestamp, maxSize);
   }
 
   // interface for storing TObject via storeAsTFileAny
-  void storeAsTFileAny(const TObject* rootobj, std::string const& path, std::map<std::string, std::string> const& metadata,
-                       long startValidityTimestamp = -1, long endValidityTimestamp = -1) const
+  int storeAsTFileAny(const TObject* rootobj, std::string const& path, std::map<std::string, std::string> const& metadata,
+                      long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize = 0 /*bytes*/) const
   {
-    storeAsTFile(rootobj, path, metadata, startValidityTimestamp, endValidityTimestamp);
+    return storeAsTFile(rootobj, path, metadata, startValidityTimestamp, endValidityTimestamp, maxSize);
   }
 
   /**
@@ -392,19 +400,31 @@ class CcdbApi //: public DatabaseInterface
  public:
   /**
    * A generic method to store a binary buffer (e.g. an image of the TMemFile)
+   * @return 0 -> ok,
+   *         positive number -> curl error (https://curl.se/libcurl/c/libcurl-errors.html),
+   *         -1 : object bigger than maxSize,
+   *         -2 : curl initialization error
    */
-  void storeAsBinaryFile(const char* buffer, size_t size, const std::string& fileName, const std::string& objectType,
-                         const std::string& path, const std::map<std::string, std::string>& metadata,
-                         long startValidityTimestamp, long endValidityTimestamp) const;
+  int storeAsBinaryFile(const char* buffer, size_t size, const std::string& fileName, const std::string& objectType,
+                        const std::string& path, const std::map<std::string, std::string>& metadata,
+                        long startValidityTimestamp, long endValidityTimestamp, std::vector<char>::size_type maxSize = 0 /*in bytes*/) const;
 
   /**
    * A generic helper implementation to store an obj whose type is given by a std::type_info
+   * @return 0 -> ok,
+   *         positive number -> curl error (https://curl.se/libcurl/c/libcurl-errors.html),
+   *         -1 : object bigger than maxSize,
+   *         -2 : curl initialization error
    */
-  void storeAsTFile_impl(const void* obj1, std::type_info const& info, std::string const& path, std::map<std::string, std::string> const& metadata,
-                         long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
+  int storeAsTFile_impl(const void* obj1, std::type_info const& info, std::string const& path, std::map<std::string, std::string> const& metadata,
+                        long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize = 0 /*in bytes*/) const;
 
   /**
    * A generic helper implementation to query obj whose type is given by a std::type_info
+   * @return 0 -> ok,
+   *         positive number -> curl error (https://curl.se/libcurl/c/libcurl-errors.html),
+   *         -1 : object bigger than maxSize,
+   *         -2 : curl initialization error
    */
   void* retrieveFromTFile(std::type_info const&, std::string const& path, std::map<std::string, std::string> const& metadata,
                           long timestamp = -1, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",

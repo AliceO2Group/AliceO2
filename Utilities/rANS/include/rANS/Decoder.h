@@ -25,13 +25,8 @@
 
 #include <fairlogger/Logger.h>
 
-#include "rANS/FrequencyTable.h"
-#include "rANS/internal/DecoderSymbol.h"
-#include "rANS/internal/ReverseSymbolLookupTable.h"
-#include "rANS/internal/SymbolTable.h"
 #include "rANS/internal/Decoder.h"
 #include "rANS/internal/DecoderBase.h"
-#include "rANS/internal/helper.h"
 
 namespace o2
 {

@@ -60,7 +60,7 @@ class GloFwdAssessment
 
   void init(bool finalizeAnalysis);
   void createHistos();
-  bool loadHistos();
+  void loadHistos();
   void deleteHistograms();
 
   void reset();
@@ -72,6 +72,8 @@ class GloFwdAssessment
   void addMCParticletoHistos(const MCTrack* mcTr, const int TrackType, const o2::dataformats::MCEventHeader& evH);
 
   void finalizeAnalysis();
+  void finalizeRecoAndPairables();
+  void finalizePurityAndEff();
 
   void getHistos(TObjArray& objar);
   void setBz(float bz) { mBz = bz; }
@@ -129,10 +131,13 @@ class GloFwdAssessment
   // Histos for reconstruction assessment
 
   std::unique_ptr<TEfficiency> mChargeMatchEff = nullptr;
-  std::unique_ptr<TEfficiency> mPurityPt = nullptr;
-  std::unique_ptr<TEfficiency> mPurityPtInner = nullptr;
-  std::unique_ptr<TEfficiency> mPurityPtOuter = nullptr;
   std::unique_ptr<TH2D> mPairingEtaPt = nullptr;
+
+  std::vector<std::unique_ptr<TH2D>> mPurityPtInnerVecTH2;
+  std::vector<std::unique_ptr<TH2D>> mPurityPtOuterVecTH2;
+  std::vector<std::unique_ptr<TH1D>> mPairingPtInnerVecTH1;
+  std::vector<std::unique_ptr<TH1D>> mPairingPtOuterVecTH1;
+  std::vector<std::unique_ptr<TH2D>> mPairingEtaPtVec;
 
   enum TH3HistosCodes {
     kTH3GMTrackDeltaXDeltaYEta,
@@ -350,7 +355,24 @@ class GloFwdAssessment
   void TH3Slicer(TCanvas* canvas, std::unique_ptr<TH3F>& histo3D, std::vector<float> list, double window, int iPar, float marker_size = 1.5);
 
   std::unordered_map<o2::MCCompLabel, bool> mPairables;
-  std::unordered_map<o2::MCCompLabel, bool> mMFTTrackables;
+
+  enum GMAssesmentCanvases {
+    kPurityPtOuter,
+    kPurityPtInner,
+    kPairingEffPtOuter,
+    kPairingEffPtInner,
+    kPurityVsEfficiency,
+    kNGMAssesmentCanvases
+  };
+
+  std::map<int, const char*> GMAssesmentNames{
+    {kPurityPtOuter, "PurityPtOuter"},
+    {kPurityPtInner, "PurityPtInner"},
+    {kPairingEffPtOuter, "PairingEffPtOuter"},
+    {kPairingEffPtInner, "PairingEffPtInner"},
+    {kPurityVsEfficiency, "PurityVsEfficiency"}};
+
+  std::array<TCanvas*, kNGMAssesmentCanvases> mAssessmentCanvas;
 
   static constexpr std::array<short, 7> sMinNClustersList = {4, 5, 6, 7, 8, 9, 10};
   uint32_t mRefOrbit = 0; // Reference orbit used in relative time calculation

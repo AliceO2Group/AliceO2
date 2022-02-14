@@ -365,7 +365,7 @@ Using `--cache-data` option one can force caching the data to memory during the 
 At every invocation of the device `processing` callback a full TimeFrame for every link will be added as a multi-part `FairMQ` message and relayed by the relevant channel.
 By default each HBF will start a new part in the multipart message. This behaviour can be changed by providing `part-per-sp` option, in which case there will be one part per superpage (Note that this is incompatible to the DPLRawSequencer).
 
-By the default the DataProcessingHeader of each message will have its creation time set to `now()`. This can be changed by passing an option `--start-time <t>`: in this case the creation time will be defined as `t + firstTForbir*orbit_duration` in milliseconds.
+By the default the DataProcessingHeader of each message will have its creation time set to `now()`. This can be changed by passing an option `--configKeyValues "HBFUtils.startTime=<t>"` with `t` being desired run start time in milliseconds: in this case the creation time will be defined as `t + (firstTForbit-HBFUtils.orbitFirst)*orbit_duration` in milliseconds.
 
 The standard use case of this workflow is to provide the input for other worfklows using the piping, e.g.
 ```cpp

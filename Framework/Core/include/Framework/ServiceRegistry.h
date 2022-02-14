@@ -97,6 +97,8 @@ struct ServiceRegistry {
   std::vector<ServiceDispatchingHandle> mPostDispatchingHandles;
   /// Callbacks for services to be executed before Start
   std::vector<ServiceStartHandle> mPreStartHandles;
+  /// Callbacks for services to be executed on the Stop transition
+  std::vector<ServiceStopHandle> mPostStopHandles;
   /// Callbacks for services to be executed on exit
   std::vector<ServiceExitHandle> mPreExitHandles;
 
@@ -149,6 +151,9 @@ struct ServiceRegistry {
   /// Invoke callbacks to monitor inputs after dispatching, regardless of them
   /// being discarded, consumed or processed.
   void postDispatchingCallbacks(ProcessingContext&);
+
+  /// Invoke callbacks on stop.
+  void postStopCallbacks();
   /// Invoke callbacks on exit.
   void preExitCallbacks();
 

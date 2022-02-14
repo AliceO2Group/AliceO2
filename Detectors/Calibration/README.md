@@ -18,7 +18,7 @@ max-delay                 : maximum arrival delay of a TF with respect to the mo
                             If `tf-per-slot == std::numeric_limits<long>::max()`, or `updateAtTheEndOfRunOnly == true`, its value is irrelevant.
 updateAtTheEndOfRunOnly   : to tell the TimeCalibration to finalize the slots and prepare the CCDB entries only at the end of the run.
 ```
-Example for the options above: 
+Example for the options above:
 `tf-per-slot = 20`
 `max-delay = 3`
 Then if we are processing TF 61 and TF 0 comes, TF 0 will be discarded.
@@ -65,13 +65,33 @@ output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_LHCph
 output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_LHCphase", i}, w);            // root-serialized
 ```
 
-See e.g. AliceO2/Detectors/TOF/calibration/testWorkflow/LHCClockCalibratorSpec.h,  AliceO2/Detectors/TOF/calibration/testWorkflow/lhc-clockphase-workflow.cxx 
+See e.g. AliceO2/Detectors/TOF/calibration/testWorkflow/LHCClockCalibratorSpec.h,  AliceO2/Detectors/TOF/calibration/testWorkflow/lhc-clockphase-workflow.cxx
 
-## cccd-populator-workflow
+## ccdb-populator-workflow
 
 This is the workflow that, connected to all workflows producting calibrations with different granularities and frequencies, will update the CCDB.
 
 The `--ccdb-path` option of the ccdb-populator-workflow allows to define the CCDB destination (e.g. `--ccdb-path localhost:8080`).
+
+By default the `ccdb-populator-workflow` will upload to the CCDB the inputs with any `SubSpec`. There is a possibility to run with multiple `ccdb-populators`, e.g. each one writing to particular CCDB server
+(this might be needed e.g. to populate the production CCDB and the transient CCDB for DCS exchange, with the same or different objects). This can be done by piping
+two populators, one of which should have device name modified. Additionally, one can pass an option for each populator to process only inputs with specific `SubSpecs`.
+E.g. if your calibration device sends to the output
+```
+output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ObjA", 0}, *imageA.get());
+output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ObjA", 0}, wA);
+output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ObjB", 1}, *imageB.get());
+output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ObjB", 1}, wB);
+output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ObjC", 2}, *imageC.get());
+output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ObjC", 2}, wC);
+```
+in the workflow defined as:
+```
+<your_workflow> | o2-calibration-ccdb-populator-workflow --ccdb-path="http://localhost:8080" --name-extention loc  --sspec-min 1 --sspec-max 10 |
+o2-calibration-ccdb-populator-workflow --sspec-min 0 --sspec-max 1  -b
+```
+then the `ObjA` will be uploaded only to the default server (`http://alice-ccdb.cern.ch`), `ObjB` will be uploaded to both default and `local` server and
+`ObjC` will be uploaded to the `local` server only.
 
 <!-- doxy
 * \subpage refDetectorsCalibrationtestMacros

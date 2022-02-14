@@ -14,16 +14,15 @@
 
 #include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
 #include "FV0Calibration/FV0ChannelTimeCalibrationObject.h"
-#include "CommonUtils/MemFileHelper.h"
-#include "CCDB/CCDBTimeStampUtils.h"
-#include "FT0Calibration/FT0DummyCalibrationObject.h" //delete this when example not needed anymore
 #include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
 #include "FT0Calibration/FT0CalibTimeSlewing.h"
+#include "DataFormatsFT0/GlobalOffsetsCalibrationObject.h"
+#include "DataFormatsFT0/GlobalOffsetsContainer.h"
+#include "CommonUtils/MemFileHelper.h"
+#include "CCDB/CCDBTimeStampUtils.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "CCDB/BasicCCDBManager.h"
 #include <vector>
-#include "DataFormatsFT0/GlobalOffsetsCalibrationObject.h"
-#include "DataFormatsFT0/GlobalOffsetsContainer.h"
 
 namespace o2::fit
 {
@@ -32,7 +31,7 @@ class FITCalibrationApi
  private:
   static constexpr const char* DEFAULT_CCDB_URL = "http://localhost:8080";
   using CalibObjWithInfoType = std::pair<o2::ccdb::CcdbObjectInfo, std::unique_ptr<std::vector<char>>>;
-  inline static unsigned long mProcessingTimestamp = 0;
+  using TFType = std::uint64_t;
 
  public:
   FITCalibrationApi() = delete;
@@ -40,14 +39,6 @@ class FITCalibrationApi
   FITCalibrationApi(FITCalibrationApi&&) = delete;
 
   static void init();
-  static void setProcessingTimestamp(unsigned long tf)
-  {
-    mProcessingTimestamp = tf;
-  }
-  [[nodiscard]] static unsigned long getProcessingTimestamp()
-  {
-    return mProcessingTimestamp;
-  }
 
   template <typename CalibrationObjectType>
   [[nodiscard]] static const char* getObjectPath();
@@ -59,14 +50,14 @@ class FITCalibrationApi
   [[nodiscard]] static const CalibrationObjectType& getCalibrationObjectForGivenTimestamp(long timestamp);
 
   template <typename CalibrationObjectType>
-  [[nodiscard]] static std::vector<CalibObjWithInfoType> prepareCalibrationObjectToSend(const CalibrationObjectType& calibrationObject);
+  [[nodiscard]] static std::vector<CalibObjWithInfoType> prepareCalibrationObjectToSend(const CalibrationObjectType& calibrationObject, TFType tfStart, TFType tfEnd);
 
  private:
   template <typename CalibrationObjectType>
   static void handleInvalidCalibrationObjectType();
 
   template <typename CalibrationObjectType>
-  [[nodiscard]] static CalibObjWithInfoType doSerializationAndPrepareObjectInfo(const CalibrationObjectType& calibrationObject);
+  [[nodiscard]] static CalibObjWithInfoType doSerializationAndPrepareObjectInfo(const CalibrationObjectType& calibrationObject, TFType tfStart, TFType tfEnd);
 };
 
 inline void FITCalibrationApi::init()
@@ -82,15 +73,19 @@ void FITCalibrationApi::handleInvalidCalibrationObjectType()
 }
 
 template <typename CalibrationObjectType>
-FITCalibrationApi::CalibObjWithInfoType FITCalibrationApi::doSerializationAndPrepareObjectInfo(const CalibrationObjectType& calibrationObject)
+FITCalibrationApi::CalibObjWithInfoType FITCalibrationApi::doSerializationAndPrepareObjectInfo(const CalibrationObjectType& calibrationObject, TFType starting, TFType stopping)
 {
   static std::map<std::string, std::string> metaData;
   static std::string dummyStringVariableThatWillBeChangedAnyway;
-
   CalibObjWithInfoType result;
-  result.first = o2::ccdb::CcdbObjectInfo(FITCalibrationApi::getObjectPath<CalibrationObjectType>(), dummyStringVariableThatWillBeChangedAnyway, dummyStringVariableThatWillBeChangedAnyway, metaData, o2::ccdb::getCurrentTimestamp(), -1);
+  auto clName = o2::utils::MemFileHelper::getClassName(calibrationObject);
+  auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
+  LOG(info) << " clName " << clName << " flName " << flName;
+  result.first = o2::ccdb::CcdbObjectInfo(FITCalibrationApi::getObjectPath<CalibrationObjectType>(), clName, flName, metaData, starting, stopping);
+  stopping = 999999999999;
   result.second = o2::ccdb::CcdbApi::createObjectImage(&calibrationObject, &result.first);
-
+  LOG(info) << " FITCalibrationApi::doSerializationAndPrepareObjectInfo"
+            << " start " << starting << " end " << stopping;
   return result;
 }
 
@@ -115,7 +110,7 @@ const CalibrationObjectType& FITCalibrationApi::getMostRecentCalibrationObject()
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <typename CalibrationObjectType>
-std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend(const CalibrationObjectType& calibrationObject)
+std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend(const CalibrationObjectType& calibrationObject, TFType, TFType)
 {
   handleInvalidCalibrationObjectType<CalibrationObjectType>();
   return {};
@@ -148,18 +143,26 @@ inline const char* FITCalibrationApi::getObjectPath<o2::ft0::GlobalOffsetsCalibr
 }
 
 template <>
-inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend<o2::ft0::FT0ChannelTimeCalibrationObject>(const o2::ft0::FT0ChannelTimeCalibrationObject& calibrationObject)
+inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend<o2::ft0::FT0ChannelTimeCalibrationObject>(const o2::ft0::FT0ChannelTimeCalibrationObject& calibrationObject, TFType tfStart, TFType tfEnd)
 {
   std::vector<CalibObjWithInfoType> result;
-  result.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject));
+  result.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject, tfStart, tfEnd));
   return result;
 }
 
 template <>
-inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend<o2::ft0::FT0CalibTimeSlewing>(const o2::ft0::FT0CalibTimeSlewing& calibrationObject)
+inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend<o2::ft0::FT0CalibTimeSlewing>(const o2::ft0::FT0CalibTimeSlewing& calibrationObject, TFType tfStart, TFType tfEnd)
 {
   std::vector<CalibObjWithInfoType> result;
-  result.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject));
+  result.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject, tfStart, tfEnd));
+  return result;
+}
+
+template <>
+inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend<o2::ft0::GlobalOffsetsCalibrationObject>(const o2::ft0::GlobalOffsetsCalibrationObject& calibrationObject, TFType tfStart, TFType tfEnd)
+{
+  std::vector<CalibObjWithInfoType> result;
+  result.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject, tfStart, tfEnd));
   return result;
 }
 
@@ -172,53 +175,13 @@ inline const char* FITCalibrationApi::getObjectPath<o2::fv0::FV0ChannelTimeCalib
 }
 
 template <>
-inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend<o2::fv0::FV0ChannelTimeCalibrationObject>(const o2::fv0::FV0ChannelTimeCalibrationObject& calibrationObject)
+inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend<o2::fv0::FV0ChannelTimeCalibrationObject>(const o2::fv0::FV0ChannelTimeCalibrationObject& calibrationObject, TFType tfStart, TFType tfEnd)
 {
   std::vector<CalibObjWithInfoType> result;
-  result.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject));
+  result.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject, tfStart, tfEnd));
   return result;
 }
 
-template <>
-inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend<o2::ft0::GlobalOffsetsCalibrationObject>(const o2::ft0::GlobalOffsetsCalibrationObject& calibrationObject)
-{
-  std::vector<CalibObjWithInfoType> result;
-  result.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject));
-  return result;
-}
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// DUMMY STUFF DELETE IT WHEN EXAMPLE NOT NEEDED ANYMORE
-template <>
-inline const char* FITCalibrationApi::getObjectPath<o2::ft0::FT0DummyCalibrationObjectTime>()
-{
-  return "FT0/Calibration/DummyTime";
-}
-
-template <>
-inline const char* FITCalibrationApi::getObjectPath<o2::ft0::FT0DummyCalibrationObjectCharge>()
-{
-  return "FT0/Calibration/DummyCharge";
-}
-
-template <>
-inline const char* FITCalibrationApi::getObjectPath<o2::ft0::FT0DummyNeededCalibrationObject>()
-{
-  return "FT0/Calibration/DummyNeeded";
-}
-
-template <>
-inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend<o2::ft0::FT0DummyCalibrationObject>(const o2::ft0::FT0DummyCalibrationObject& calibrationObject)
-{
-  std::vector<CalibObjWithInfoType> result;
-  result.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject.mChargeCalibrationObject));
-  result.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject.mTimeCalibrationObject));
-  return result;
-}
-
-// END OF DUMMY STUFF DELETE IT WHEN EXAMPLE NOT NEEDED ANYMORE
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 } // namespace o2::fit
 

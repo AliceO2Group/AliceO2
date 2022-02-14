@@ -80,3 +80,33 @@ to receive from the `CHANFROM` DCS channel the configuration file name (starting
 The `o2-dcs-config-consumer-test-workflow` is a dummy processing device which just consumes such messages for the detector `<DET>`.
 
 If the `CHANACK` string is not empty, then the acknowledgment string `OK` will be sent to this channel on every reception of the DCS message.
+
+While the real exchange will be with the DCS server, for the local tests one can use the `DCS server emulator`. As a prerequisite, this will require building the `ccpzmq` package which is in the alidist but is not dependency of the `O2`:
+```
+cd ~/alice/
+aliBuild build cppzmq --defaults o2
+```
+
+Then, one should load it together with O2, e.g. `alienv load cppzmq/latest O2/latest` and compile locally the emulator code, e.g.:
+```
+mkdir ~/tstDCS
+cd ~/tstDCS
+cp ~/alice/O2/Detectors/DCS/testWorkflow/src/dcs*.cpp ./
+cp ~/alice/O2/Detectors/DCS/testWorkflow/src/compile-dcs-emulator.sh ./
+./compile-dcs-emulator.sh
+```
+This will compile two executables `dcssend` and `dcsclient`. The former one is the `DCS server emulator` which has the following options:
+```
+./dcssend -h
+```
+You can use it as e.g.:
+```
+echo "blabla" > TOFfile.txt  # this is the file you want to send from the DCS to the config processor
+xterm -e "alienv load cppzmq/latest O2/latest; ./dcssend -f TOFfile.txt -o 5556 -a 5557"& # run the server emulator in separate terminal
+```
+
+Then, in other terminal you can run your DCS config processor, as described above (make sure the ports of sender and receiver are consistent.
+In case of problems you can validate the receiving process using `dcsclient` test utility (emulates `o2-dcs-config-proxy ...` workflow by receiving the file from the `DCS server` and sending it an acknowledgment):
+```
+./dcsclient -o 5556 -a 5557
+```

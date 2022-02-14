@@ -22,7 +22,6 @@
 #include "DetectorsBase/Propagator.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "DataFormatsTPC/Defs.h"
-
 #include "MCHTracking/TrackParam.h"
 #include "MCHTracking/TrackExtrap.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
@@ -46,9 +45,14 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
   this->mRecoCont.createTracksVariadic(creator);
 }
 
-void EveWorkflowHelper::draw(const std::string& jsonPath, int numberOfFiles, int numberOfTracks,
+void EveWorkflowHelper::draw(const std::string& jsonPath,
+                             int numberOfFiles,
+                             int numberOfTracks,
                              o2::dataformats::GlobalTrackID::mask_t trkMask,
-                             o2::dataformats::GlobalTrackID::mask_t clMask, float workflowVersion)
+                             o2::dataformats::GlobalTrackID::mask_t clMask,
+                             o2::header::DataHeader::RunNumberType runNumber,
+                             o2::framework::DataProcessingHeader::CreationTime creation,
+                             float workflowVersion)
 {
   size_t nTracks = mTrackSet.trackGID.size();
   if (numberOfTracks != -1 && numberOfTracks < nTracks) {
@@ -99,18 +103,26 @@ void EveWorkflowHelper::draw(const std::string& jsonPath, int numberOfFiles, int
         LOG(info) << "Track type " << gid.getSource() << " not handled";
     }
   }
-  save(jsonPath, numberOfFiles, trkMask, clMask, workflowVersion);
+
+  // save json file
+  save(jsonPath, numberOfFiles, trkMask, clMask, workflowVersion, runNumber, creation);
 }
 
 void EveWorkflowHelper::save(const std::string& jsonPath, int numberOfFiles,
                              o2::dataformats::GlobalTrackID::mask_t trkMask, o2::dataformats::GlobalTrackID::mask_t clMask,
-                             float workflowVersion)
+                             float workflowVersion, o2::header::DataHeader::RunNumberType runNumber, o2::framework::DataProcessingHeader::CreationTime creation)
 {
   mEvent.setWorkflowVersion(workflowVersion);
+  mEvent.setRunNumber(runNumber);
   std::time_t timeStamp = std::time(nullptr);
   std::string asciiTimeStamp = std::asctime(std::localtime(&timeStamp));
   asciiTimeStamp.pop_back(); // remove trailing \n
   mEvent.setWorkflowParameters(asciiTimeStamp + " t:" + trkMask.to_string() + " c:" + clMask.to_string());
+
+  std::time_t creationTime = creation;
+  std::string asciiCreationTime = std::asctime(std::localtime(&creationTime));
+  asciiCreationTime.pop_back(); // remove trailing \n
+  mEvent.setCollisionTime(asciiCreationTime);
 
   FileProducer producer(jsonPath, numberOfFiles);
   mEvent.toFile(producer.newFileName());

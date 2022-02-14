@@ -17,6 +17,7 @@
 #define ALICE_O2_EVENTVISUALISATION_WORKFLOW_EVEWORKFLOWHELPER_H
 
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "Framework/DataProcessingHeader.h"
 #include "DataFormatsTRD/TrackTRD.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "EveWorkflow/EveConfiguration.h"
@@ -105,7 +106,12 @@ class EveWorkflowHelper
   void selectTracks(const CalibObjectsConst* calib, GID::mask_t maskCl,
                     GID::mask_t maskTrk, GID::mask_t maskMatch);
   void addTrackToEvent(const o2::track::TrackParCov& tr, GID gid, float trackTime, float dz, GID::Source source = GID::NSources);
-  void draw(const std::string& jsonPath, int numberOfFiles, int numberOfTracks, o2::dataformats::GlobalTrackID::mask_t trkMask, o2::dataformats::GlobalTrackID::mask_t clMask, float mWorkflowVersion);
+  void draw(const std::string& jsonPath, int numberOfFiles, int numberOfTracks,
+            o2::dataformats::GlobalTrackID::mask_t trkMask,
+            o2::dataformats::GlobalTrackID::mask_t clMask,
+            o2::header::DataHeader::RunNumberType runNumber,
+            o2::framework::DataProcessingHeader::CreationTime creation,
+            float mWorkflowVersion);
   void drawTPC(GID gid, float trackTime);
   void drawITS(GID gid, float trackTime);
   void drawMFT(GID gid, float trackTime);
@@ -129,10 +135,15 @@ class EveWorkflowHelper
   void drawPoint(float x, float y, float z, float trackTime) { mEvent.addCluster(x, y, z, trackTime); }
   void prepareITSClusters(const o2::itsmft::TopologyDictionary& dict); // fills mITSClustersArray
   void prepareMFTClusters(const o2::itsmft::TopologyDictionary& dict); // fills mMFTClustersArray
-  void save(const std::string& jsonPath, int numberOfFiles,
-            o2::dataformats::GlobalTrackID::mask_t trkMask, o2::dataformats::GlobalTrackID::mask_t clMask,
-            float workflowVersion);
   void clear() { mEvent.clear(); }
+
+  void save(const std::string& jsonPath,
+            int numberOfFiles,
+            o2::dataformats::GlobalTrackID::mask_t trkMask,
+            o2::dataformats::GlobalTrackID::mask_t clMask,
+            float workflowVersion,
+            o2::header::DataHeader::RunNumberType runNumber,
+            o2::framework::DataProcessingHeader::CreationTime creationTime);
 
   o2::globaltracking::RecoContainer mRecoCont;
   o2::globaltracking::RecoContainer& getRecoContainer() { return mRecoCont; }

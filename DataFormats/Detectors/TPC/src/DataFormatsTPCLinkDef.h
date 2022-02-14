@@ -58,6 +58,6 @@
 #pragma link C++ class o2::tpc::CalibdEdxCorrection + ;
 #pragma link C++ class o2::tpc::CalibdEdxTrackTopologyPol + ;
 #pragma link C++ class o2::tpc::CalibdEdxTrackTopologySpline + ;
-#pragma link C++ class o2::tpc::CalibdEdxContainer + ;
+#pragma link C++ struct o2::tpc::CalibdEdxTrackTopologyPolContainer + ;
 
 #endif

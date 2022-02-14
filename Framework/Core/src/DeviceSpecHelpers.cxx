@@ -46,6 +46,9 @@
 #include <sys/resource.h>
 #include <csignal>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+
 namespace bpo = boost::program_options;
 
 using namespace o2::framework;
@@ -712,16 +715,16 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     switch (consumer.inputs[edge.consumerInputIndex].lifetime) {
       case Lifetime::OutOfBand:
         route.configurator = {
-          ExpirationHandlerHelpers::fairmqDrivenConfiguration(inputSpec, consumerDevice.inputTimesliceId, consumerDevice.maxInputTimeslices),
-          ExpirationHandlerHelpers::danglingOutOfBandConfigurator(),
-          ExpirationHandlerHelpers::expiringOutOfBandConfigurator(inputSpec)};
+          .creatorConfigurator = ExpirationHandlerHelpers::fairmqDrivenConfiguration(inputSpec, consumerDevice.inputTimesliceId, consumerDevice.maxInputTimeslices),
+          .danglingConfigurator = ExpirationHandlerHelpers::danglingOutOfBandConfigurator(),
+          .expirationConfigurator = ExpirationHandlerHelpers::expiringOutOfBandConfigurator(inputSpec)};
         break;
-      case Lifetime::Condition:
-        route.configurator = {
-          ExpirationHandlerHelpers::dataDrivenConfigurator(),
-          ExpirationHandlerHelpers::danglingConditionConfigurator(),
-          ExpirationHandlerHelpers::expiringConditionConfigurator(inputSpec, sourceChannel)};
-        break;
+        //      case Lifetime::Condition:
+        //        route.configurator = {
+        //          ExpirationHandlerHelpers::dataDrivenConfigurator(),
+        //          ExpirationHandlerHelpers::danglingConditionConfigurator(),
+        //          ExpirationHandlerHelpers::expiringConditionConfigurator(inputSpec, sourceChannel)};
+        //        break;
       case Lifetime::QA:
         route.configurator = {
           ExpirationHandlerHelpers::dataDrivenConfigurator(),
@@ -1078,7 +1081,8 @@ void split(const std::string& str, Container& cont)
 }
 } // namespace
 
-void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped, unsigned short driverPort,
+void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped, bool interactive,
+                                         unsigned short driverPort,
                                          std::vector<DataProcessorInfo> const& processorInfos,
                                          std::vector<DeviceSpec> const& deviceSpecs,
                                          std::vector<DeviceExecution>& deviceExecutions,
@@ -1130,13 +1134,13 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     // FIXME: this should probably be done in one go with char *, but I am lazy.
     std::vector<std::string> tmpArgs = {argv[0],
                                         "--id", spec.id.c_str(),
-                                        "--control", "static",
+                                        "--control", interactive ? "gui" : "static",
                                         "--shm-monitor", "false",
                                         "--log-color", "false",
                                         "--color", "false"};
     std::vector<std::string> tmpEnv;
     if (defaultStopped) {
-      tmpArgs.push_back("-s");
+      tmpArgs.emplace_back("-s");
     }
 
     // do the filtering of options:
@@ -1202,6 +1206,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         realOdesc.add_options()("severity", bpo::value<std::string>());
         realOdesc.add_options()("child-driver", bpo::value<std::string>());
         realOdesc.add_options()("rate", bpo::value<std::string>());
+        realOdesc.add_options()("exit-transition-timeout", bpo::value<std::string>());
         realOdesc.add_options()("expected-region-callbacks", bpo::value<std::string>());
         realOdesc.add_options()("timeframes-rate-limit", bpo::value<std::string>());
         realOdesc.add_options()("environment", bpo::value<std::string>());
@@ -1214,6 +1219,8 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         realOdesc.add_options()("shm-throw-bad-alloc", bpo::value<std::string>());
         realOdesc.add_options()("shm-segment-id", bpo::value<std::string>());
         realOdesc.add_options()("shm-allocation", bpo::value<std::string>());
+        realOdesc.add_options()("shm-no-cleanup", bpo::value<std::string>());
+        realOdesc.add_options()("shmid", bpo::value<std::string>());
         realOdesc.add_options()("shm-monitor", bpo::value<std::string>());
         realOdesc.add_options()("channel-prefix", bpo::value<std::string>());
         realOdesc.add_options()("network-interface", bpo::value<std::string>());
@@ -1359,6 +1366,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("plugin-search-path,S", bpo::value<std::string>(), "FairMQ plugins search path")                                                                                //
     ("control-port", bpo::value<std::string>(), "Utility port to be used by O2 Control")                                                                             //
     ("rate", bpo::value<std::string>(), "rate for a data source device (Hz)")                                                                                        //
+    ("exit-transition-timeout", bpo::value<std::string>(), "timeout before switching to READY state")                                                                //
     ("expected-region-callbacks", bpo::value<std::string>(), "region callbacks to expect before starting")                                                           //
     ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframes can be in fly")                                                    //
     ("shm-monitor", bpo::value<std::string>(), "whether to use the shared memory monitor")                                                                           //
@@ -1370,13 +1378,15 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("shm-throw-bad-alloc", bpo::value<std::string>()->default_value("true"), "throw if insufficient shm memory")                                                    //
     ("shm-segment-id", bpo::value<std::string>()->default_value("0"), "shm segment id")                                                                              //
     ("shm-allocation", bpo::value<std::string>()->default_value("rbtree_best_fit"), "shm allocation method")                                                         //
+    ("shm-no-cleanup", bpo::value<std::string>()->default_value("false"), "no shm cleanup")                                                                          //
+    ("shmid", bpo::value<std::string>(), "shmid")                                                                                                                    //
     ("environment", bpo::value<std::string>(), "comma separated list of environment variables to set for the device")                                                //
     ("stacktrace-on-signal", bpo::value<std::string>()->default_value("all"),                                                                                        //
      "dump stacktrace on specified signal(s) (any of `all`, `segv`, `bus`, `ill`, `abrt`, `fpe`, `sys`.)")                                                           //
     ("post-fork-command", bpo::value<std::string>(), "post fork command to execute (e.g. numactl {pid}")                                                             //
     ("session", bpo::value<std::string>(), "unique label for the shared memory session")                                                                             //
     ("network-interface", bpo::value<std::string>(), "network interface to which to bind tpc fmq ports without specified address")                                   //
-    ("early-forward-policy", bpo::value<EarlyForwardPolicy>()->default_value(EarlyForwardPolicy::NEVER), "when to forward early the messages: never, noraw, always") //                                                                                                                      //
+    ("early-forward-policy", bpo::value<EarlyForwardPolicy>()->default_value(EarlyForwardPolicy::NEVER), "when to forward early the messages: never, noraw, always") //
     ("configuration,cfg", bpo::value<std::string>(), "configuration connection string")                                                                              //
     ("driver-client-backend", bpo::value<std::string>(), "driver connection string")                                                                                 //
     ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                                                                                //

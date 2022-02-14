@@ -22,7 +22,6 @@
 #include <iomanip>
 
 #include "TRDBase/FeeParam.h"
-#include "TRDBase/Tracklet.h"
 #include "TRDBase/Geometry.h"
 #include "TRDBase/CalOnlineGainTables.h"
 #include "TRDBase/PadResponse.h"

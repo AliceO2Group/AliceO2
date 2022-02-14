@@ -12,6 +12,9 @@
 /// \file vecpod.h
 /// \author David Rohr
 
+#ifndef QONMODULE_VECPOD_H
+#define QONMODULE_VECPOD_H
+
 #include <vector>
 
 template <class T>
@@ -27,3 +30,5 @@ struct vecpod_allocator {
 template <class T>
 using vecpod = typename std::vector<T, vecpod_allocator<T>>;
 // template <class T> using vecpod = typename std::vector<T>;
+
+#endif // QONMODULE_VECPOD_H

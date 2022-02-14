@@ -29,7 +29,8 @@ namespace o2
 namespace quality_control
 {
 
-struct FlagReasonFactory;
+class FlagReasonFactory;
+class TimeRangeFlagCollection;
 
 class FlagReason
 {
@@ -52,37 +53,21 @@ class FlagReason
   bool operator<(const FlagReason& rhs) const;
   bool operator>(const FlagReason& rhs) const;
 
-  uint16_t getID() { return mId; }
-  const std::string& getName() { return mName; }
-  bool getBad() { return mBad; }
+  uint16_t getID() const { return mId; }
+  const std::string& getName() const { return mName; }
+  bool getBad() const { return mBad; }
 
   friend std::ostream& operator<<(std::ostream& os, FlagReason const& me);
-  friend FlagReasonFactory;
+  friend class FlagReasonFactory;
+  friend class TimeRangeFlagCollection;
 
   ClassDefNV(FlagReason, 1);
 };
 
-struct FlagReasonFactory {
-  FlagReasonFactory() = delete;
-
-  // TODO: migrate the flag list from RCT
-  // TODO: find a way to have a nicely formatted list of reasons.
-
-  // !!! NEVER MODIFY OR DELETE EXISTING FLAGS AFTER RUN 3 STARTS !!!
-  static FlagReason Invalid() { return {static_cast<uint16_t>(-1), "Invalid", true}; }
-
-  static FlagReason Unknown() { return {1, "Unknown", true}; }
-  static FlagReason ProcessingError() { return {2, "Processing error", true}; }
-  // it can be used when there are no required Quality Objects in QCDB in certain time range.
-  static FlagReason MissingQualityObject() { return {3, "Missing Quality Object", true}; }
-  // Quality Object is there, but it has Quality::Null
-  static FlagReason MissingQuality() { return {4, "Missing Quality", true}; }
-
-  // TODO: to be seen if we should actively do anything when a detector was off.
-  static FlagReason DetectorOff() { return {10, "Detector off", true}; }
-  static FlagReason LimitedAcceptance() { return {11, "Limited acceptance", true}; }
-};
-
 } // namespace quality_control
 } // namespace o2
+
+// TODO: remove once we include it in QualityControl
+#include "DataFormatsQualityControl/FlagReasonFactory.h"
+
 #endif

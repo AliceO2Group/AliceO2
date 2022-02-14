@@ -368,36 +368,33 @@ BOOST_AUTO_TEST_CASE(test_renorm)
 {
   o2::rans::histogram_t frequencies{1, 1, 2, 2, 2, 2, 6, 8, 4, 10, 8, 14, 10, 19, 26, 30, 31, 35, 41, 45, 51, 44, 47, 39, 58, 52, 42, 53, 50, 34, 50, 30, 32, 24, 30, 20, 17, 12, 16, 6, 8, 5, 6, 4, 4, 2, 2, 2, 1};
   o2::rans::FrequencyTable frequencyTable{frequencies.begin(), frequencies.end(), 0};
-  BOOST_CHECK_EQUAL(frequencyTable.isRenormed(), false);
 
   const size_t scaleBits = 8;
 
-  auto newFrequencyTable = o2::rans::renorm(std::move(frequencyTable), scaleBits);
+  auto renormedFrequencyTable = o2::rans::renorm(std::move(frequencyTable), scaleBits);
   const o2::rans::histogram_t rescaledFrequencies{1, 1, 1, 2, 1, 2, 1, 2, 2, 2, 2, 3, 3, 4, 6, 7, 7, 9, 9, 11, 12, 10, 11, 9, 13, 12, 10, 13, 11, 8, 12, 7, 7, 6, 7, 4, 4, 3, 4, 1, 2, 1, 2, 2, 2, 1, 2, 1, 1};
-  BOOST_CHECK_EQUAL(newFrequencyTable.isRenormed(), true);
-  BOOST_CHECK_EQUAL(newFrequencyTable.getNumSamples(), 1 << scaleBits);
-  BOOST_CHECK_EQUAL(newFrequencyTable.getMinSymbol(), 0);
-  BOOST_CHECK_EQUAL(newFrequencyTable.getMaxSymbol(), 48);
-  BOOST_CHECK_EQUAL(newFrequencyTable.getIncompressibleSymbolFrequency(), 2);
-  BOOST_CHECK_EQUAL_COLLECTIONS(newFrequencyTable.begin(), newFrequencyTable.end(), rescaledFrequencies.begin(), rescaledFrequencies.end());
+  BOOST_CHECK_EQUAL(renormedFrequencyTable.isRenormedTo(scaleBits), true);
+  BOOST_CHECK_EQUAL(renormedFrequencyTable.getNumSamples(), 1 << scaleBits);
+  BOOST_CHECK_EQUAL(renormedFrequencyTable.getMinSymbol(), 0);
+  BOOST_CHECK_EQUAL(renormedFrequencyTable.getMaxSymbol(), 48);
+  BOOST_CHECK_EQUAL(renormedFrequencyTable.getIncompressibleSymbolFrequency(), 2);
+  BOOST_CHECK_EQUAL_COLLECTIONS(renormedFrequencyTable.begin(), renormedFrequencyTable.end(), rescaledFrequencies.begin(), rescaledFrequencies.end());
 }
 
 BOOST_AUTO_TEST_CASE(test_renormIncompressible)
 {
   o2::rans::histogram_t frequencies{1, 1, 2, 2, 2, 2, 6, 8, 4, 10, 8, 14, 10, 19, 26, 30, 31, 35, 41, 45, 51, 44, 47, 39, 58, 52, 42, 53, 50, 34, 50, 30, 32, 24, 30, 20, 17, 12, 16, 6, 8, 5, 6, 4, 4, 2, 2, 2, 1};
   o2::rans::FrequencyTable frequencyTable{frequencies.begin(), frequencies.end(), 0};
-  BOOST_CHECK_EQUAL(frequencyTable.isRenormed(), false);
 
   const size_t scaleBits = 8;
 
-  auto newFrequencyTable = o2::rans::renormCutoffIncompressible(std::move(frequencyTable), scaleBits, 1);
+  auto renormedFrequencyTable = o2::rans::renormCutoffIncompressible(std::move(frequencyTable), scaleBits, 1);
 
   const o2::rans::histogram_t rescaledFrequencies{1, 2, 1, 3, 2, 3, 3, 5, 6, 7, 8, 9, 10, 11, 13, 11, 12, 10, 14, 13, 10, 13, 12, 8, 12, 7, 8, 6, 7, 5, 4, 3, 4, 2, 2, 1, 2, 1, 1};
-  BOOST_CHECK_EQUAL(newFrequencyTable.isRenormed(), true);
-  BOOST_CHECK_EQUAL(newFrequencyTable.isRenormedTo(scaleBits), true);
-  BOOST_CHECK_EQUAL(newFrequencyTable.getNumSamples(), 1 << scaleBits);
-  BOOST_CHECK_EQUAL(newFrequencyTable.getMinSymbol(), 6);
-  BOOST_CHECK_EQUAL(newFrequencyTable.getMaxSymbol(), 44);
-  BOOST_CHECK_EQUAL(newFrequencyTable.getIncompressibleSymbolFrequency(), 4);
-  BOOST_CHECK_EQUAL_COLLECTIONS(newFrequencyTable.begin(), newFrequencyTable.end(), rescaledFrequencies.begin(), rescaledFrequencies.end());
+  BOOST_CHECK_EQUAL(renormedFrequencyTable.isRenormedTo(scaleBits), true);
+  BOOST_CHECK_EQUAL(renormedFrequencyTable.getNumSamples(), 1 << scaleBits);
+  BOOST_CHECK_EQUAL(renormedFrequencyTable.getMinSymbol(), 6);
+  BOOST_CHECK_EQUAL(renormedFrequencyTable.getMaxSymbol(), 44);
+  BOOST_CHECK_EQUAL(renormedFrequencyTable.getIncompressibleSymbolFrequency(), 4);
+  BOOST_CHECK_EQUAL_COLLECTIONS(renormedFrequencyTable.begin(), renormedFrequencyTable.end(), rescaledFrequencies.begin(), rescaledFrequencies.end());
 }

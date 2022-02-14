@@ -39,6 +39,15 @@ enum struct StreamingState {
   Idle = 2,
 };
 
+enum struct TransitionHandlingState {
+  /// No pending transitions
+  NoTransition,
+  /// A transition was notified to be requested
+  Requested,
+  /// A transition needs to be fullfilled ASAP
+  Expired
+};
+
 /// Running state information of a given device
 struct DeviceState {
   /// Motivation for the loop being triggered.
@@ -85,7 +94,11 @@ struct DeviceState {
 
   uv_async_t* awakeMainThread = nullptr;
 
+  // A list of states which we should go to
+  std::vector<std::string> nextFairMQState;
+
   int loopReason = 0;
+  TransitionHandlingState transitionHandling = TransitionHandlingState::NoTransition;
 };
 
 } // namespace o2::framework

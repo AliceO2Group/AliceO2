@@ -26,8 +26,11 @@ using o2::detectors::DetID;
 void GRPECSObject::print() const
 {
   // print itself
-  std::time_t t = mTimeStart; // system_clock::to_time_t(mTimeStart);
-  printf("Start: %s, isMC: %d", std::ctime(&t), isMC());
+  std::time_t ts = mTimeStart / 1000, te = mTimeEnd / 1000;
+  printf("Run %d of type %d, period %s\n", mRun, int(mRunType), mDataPeriod.c_str());
+  printf("Start: %s", std::ctime(&ts));
+  printf("End  : %s", std::ctime(&te));
+  printf("isMC : %d ", isMC());
   printf("Detectors: Cont.RO Triggers\n");
   for (auto i = DetID::First; i <= DetID::Last; i++) {
     if (!isDetReadOut(DetID(i))) {

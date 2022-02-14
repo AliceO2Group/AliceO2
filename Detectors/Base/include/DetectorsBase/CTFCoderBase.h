@@ -24,6 +24,7 @@
 #include "DetectorsCommonDataFormats/CTFDictHeader.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "rANS/rans.h"
+#include <filesystem>
 
 namespace o2
 {
@@ -55,18 +56,18 @@ class CTFCoderBase
   void createCodersFromFile(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op);
 
   template <typename S>
-  void createCoder(OpType op, const o2::rans::FrequencyTable& freq, int slot)
+  void createCoder(OpType op, const o2::rans::RenormedFrequencyTable& renormedFrequencyTable, int slot)
   {
-    if (!freq.size()) {
+    if (renormedFrequencyTable.empty()) {
       LOG(warning) << "Empty dictionary provided for slot " << slot << ", " << (op == OpType::Encoder ? "encoding" : "decoding") << " will assume literal symbols only";
     }
 
     switch (op) {
       case OpType::Encoder:
-        mCoders[slot].reset(new o2::rans::LiteralEncoder64<S>(freq));
+        mCoders[slot].reset(new o2::rans::LiteralEncoder64<S>(renormedFrequencyTable));
         break;
       case OpType::Decoder:
-        mCoders[slot].reset(new o2::rans::LiteralDecoder64<S>(freq));
+        mCoders[slot].reset(new o2::rans::LiteralDecoder64<S>(renormedFrequencyTable));
         break;
     }
   }
@@ -140,7 +141,10 @@ template <typename CTF>
 std::vector<char> CTFCoderBase::readDictionaryFromFile(const std::string& dictPath, bool mayFail)
 {
   std::vector<char> bufVec;
-  std::unique_ptr<TFile> fileDict(TFile::Open(dictPath.c_str()));
+  std::unique_ptr<TFile> fileDict;
+  if (std::filesystem::exists(dictPath)) {
+    fileDict.reset(TFile::Open(dictPath.c_str()));
+  }
   if (!fileDict || fileDict->IsZombie()) {
     std::string errstr = fmt::format("CTF dictionary file {} for detector {} is absent", dictPath, mDet.getName());
     if (mayFail) {

@@ -12,6 +12,7 @@
 add_subdirectory(Base)
 add_subdirectory(Contour)
 add_subdirectory(Mapping)
+add_subdirectory(Triggering)
 add_subdirectory(TimeClustering)
 add_subdirectory(PreClustering)
 add_subdirectory(Geometry)

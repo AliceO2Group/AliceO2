@@ -58,8 +58,8 @@ void MatchGlobalFwd::init()
   mUseMIDMCHMatch = matchingParam.useMIDMatch;
   LOG(info) << "UseMIDMCH Matching = " << (mUseMIDMCHMatch ? "true" : "false");
 
-  mSaveAll = matchingParam.saveAll;
-  LOG(info) << "Save all MFTMCH candidates = " << (mSaveAll ? "true" : "false");
+  mSaveMode = matchingParam.saveMode;
+  LOG(info) << "Save mode MFTMCH candidates = " << mSaveMode;
 }
 
 //_________________________________________________________
@@ -82,7 +82,19 @@ void MatchGlobalFwd::run(const o2::globaltracking::RecoContainer& inp)
   } else {
     switch (mMatchingType) {
       case MATCHINGFUNC:
-        mSaveAll ? doMatching<true>() : doMatching<false>();
+        switch (mSaveMode) {
+          case kBestMatch:
+            doMatching<kBestMatch>();
+            break;
+          case kSaveAll:
+            doMatching<kSaveAll>();
+            break;
+          case kSaveTrainingData:
+            doMatching<kSaveTrainingData>();
+            break;
+          default:
+            LOG(fatal) << "Invalid MFTMCH save mode";
+        }
         break;
       case MATCHINGUPSTREAM:
         loadMatches();
@@ -241,7 +253,11 @@ bool MatchGlobalFwd::prepareMFTData()
 
       int nWorkTracks = mMFTWork.size();
       // working copy of outer track param
-      auto& trc = mMFTWork.emplace_back(TrackLocMFT{trcOrig.getOutParam(), {tMin, tMax}, irof});
+      auto& trc = mMFTWork.emplace_back(TrackLocMFT{trcOrig, {tMin, tMax}, irof});
+      trc.setParameters(trcOrig.getOutParam().getParameters());
+      trc.setZ(trcOrig.getOutParam().getZ());
+      trc.setCovariances(trcOrig.getOutParam().getCovariances());
+      trc.setTrackChi2(trcOrig.getOutParam().getTrackChi2());
       trc.propagateToZ(mMatchingPlaneZ, mBz);
     }
   }
@@ -282,7 +298,7 @@ void MatchGlobalFwd::loadMatches()
 }
 
 //_________________________________________________________
-template <bool saveAllMode>
+template <Int_t saveAllMode>
 void MatchGlobalFwd::doMatching()
 {
   // Range of compatible MCH ROFS for the first MFT track
@@ -328,7 +344,7 @@ void MatchGlobalFwd::doMatching()
     }
   }
 
-  if constexpr (!saveAllMode) { // In saveAllMode output container is filled by ROFMatch()
+  if constexpr (saveAllMode == SaveMode::kBestMatch) { // Otherwise output container is filled by ROFMatch()
     int nFakes = 0, nTrue = 0;
     for (auto& thisMCHTrack : mMCHWork) {
       auto bestMFTMatchID = thisMCHTrack.getMFTTrackID();
@@ -354,7 +370,7 @@ void MatchGlobalFwd::doMatching()
 }
 
 //_________________________________________________________
-template <bool saveAllMode>
+template <Int_t saveAllMode>
 void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
 {
   /// Matches MFT tracks on a given ROF with MCH tracks in a range of ROFs
@@ -400,11 +416,24 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
           thisMCHTrack.setMFTMCHMatchingScore(score);
           thisMCHTrack.setMFTMCHMatchingChi2(chi2);
         }
-        if constexpr (saveAllMode) { // In saveAllmode save all pairs to output container
+        if constexpr (saveAllMode == SaveMode::kSaveAll) { // In saveAllmode save all pairs to output container
           thisMCHTrack.setMFTTrackID(MFTId);
           thisMCHTrack.setTimeMUS(thisMCHTrack.tBracket.getMin(), thisMCHTrack.tBracket.delta());
           mMatchedTracks.emplace_back(thisMCHTrack);
           mMatchingInfo.emplace_back(thisMCHTrack);
+          if (mMCTruthON) {
+            mMatchLabels.push_back(matchLabel);
+            mMatchLabels.back().isFake() ? nFakes++ : nTrue++;
+          }
+        }
+
+        if constexpr (saveAllMode == SaveMode::kSaveTrainingData) { // In save training data mode store track parameters at matching plane
+          thisMCHTrack.setMFTTrackID(MFTId);
+          thisMCHTrack.setTimeMUS(thisMCHTrack.tBracket.getMin(), thisMCHTrack.tBracket.delta());
+          mMatchingInfo.emplace_back(thisMCHTrack);
+          mMCHMatchPlaneParams.emplace_back(thisMCHTrack);
+          mMFTMatchPlaneParams.emplace_back(static_cast<o2::mft::TrackMFT>(thisMFTTrack));
+
           if (mMCTruthON) {
             mMatchLabels.push_back(matchLabel);
             mMatchLabels.back().isFake() ? nFakes++ : nTrue++;

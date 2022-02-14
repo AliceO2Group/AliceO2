@@ -16,28 +16,24 @@
 #include <string>
 #include <vector>
 
-namespace o2
-{
-
-namespace framework
+namespace o2::framework
 {
 
 /// Runtime metadata about a data processor.  Used to hold information like the
 /// actual executable name or the options passed to it.
 struct DataProcessorInfo {
   /// Name of the associated DataProcessorSpec
-  std::string name;
+  std::string name = "Unknown";
   /// The executable name of the program which holds the DataProcessorSpec
-  std::string executable;
+  std::string executable = "/bin/false";
   /// The argument passed on the command line for this DataProcessorSpec
-  std::vector<std::string> cmdLineArgs;
+  std::vector<std::string> cmdLineArgs = {};
   /// The workflow options which are available for the associated DataProcessorSpec
-  std::vector<ConfigParamSpec> workflowOptions;
+  std::vector<ConfigParamSpec> workflowOptions = {};
   /// The channels for a given dataprocessor
-  std::vector<std::string> channels;
+  std::vector<std::string> channels = {};
 };
 
-} // namespace framework
 } // namespace o2
 
 #endif // O2_FRAMEWORK_CORE_DATAPROCESSORINFO_H_

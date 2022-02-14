@@ -64,7 +64,7 @@ namespace globaltracking
 ///< MFT track outward parameters propagated to reference Z,
 ///<  with time bracket and index of original track in the
 ///<  currently loaded MFT reco output
-struct TrackLocMFT : public o2::track::TrackParCovFwd {
+struct TrackLocMFT : public o2::mft::TrackMFT {
   o2::math_utils::Bracketf_t tBracket; ///< bracketing time in \mus
   int roFrame = -1;                    ///< MFT readout frame assigned to this track
 
@@ -134,6 +134,8 @@ class MatchGlobalFwd
   ///< set MFT ROFrame duration in BC (continuous mode only)
   void setMFTROFrameLengthInBC(int nbc);
   const std::vector<o2::dataformats::GlobalFwdTrack>& getMatchedFwdTracks() const { return mMatchedTracks; }
+  const std::vector<o2::mft::TrackMFT>& getMFTMatchingPlaneParams() const { return mMFTMatchPlaneParams; }
+  const std::vector<o2::track::TrackParCovFwd>& getMCHMatchingPlaneParams() const { return mMCHMatchPlaneParams; }
   const std::vector<o2::dataformats::MatchInfoFwd>& getMFTMCHMatchInfo() const { return mMatchingInfo; }
   const std::vector<o2::MCCompLabel>& getMatchLabels() const { return mMatchLabels; }
 
@@ -145,7 +147,7 @@ class MatchGlobalFwd
   bool prepareMFTData();
   bool processMCHMIDMatches();
 
-  template <bool saveAllMode = false>
+  template <int saveMode>
   void doMatching();
   void doMCMatching();
   void loadMatches();
@@ -153,7 +155,7 @@ class MatchGlobalFwd
   o2::MCCompLabel computeLabel(const int MCHId, const int MFTid);
 
   ///< Matches MFT tracks in one MFT ROFrame with all MCH tracks in the overlapping MCH ROFrames
-  template <bool saveAllMode = false>
+  template <int saveMode>
   void ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId);
 
   void fitTracks();                                          ///< Fit all matched tracks
@@ -182,7 +184,7 @@ class MatchGlobalFwd
     using o2::mft::constants::LayerZPosition;
     auto startingZ = track.getZ();
 
-    //https://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c
+    // https://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c
     auto signum = [](auto a) {
       return (0 < a) - (a < 0);
     };
@@ -313,13 +315,15 @@ class MatchGlobalFwd
   std::vector<MFTCluster> mMFTClusters;                        ///< input MFT clusters
   std::vector<o2::dataformats::GlobalFwdTrack> mMatchedTracks; ///< MCH-MFT(-MID) Matched tracks
   std::vector<o2::MCCompLabel> mMatchLabels;                   ///< Output labels
-  std::vector<o2::dataformats::MatchInfoFwd> mMatchingInfo;
+  std::vector<o2::dataformats::MatchInfoFwd> mMatchingInfo;    ///< Forward tracks mathing information
+  std::vector<o2::mft::TrackMFT> mMFTMatchPlaneParams;         ///< MFT track parameters at matching plane
+  std::vector<o2::track::TrackParCovFwd> mMCHMatchPlaneParams; ///< MCH track parameters at matching plane
 
   const o2::itsmft::TopologyDictionary* mMFTDict{nullptr}; // cluster patterns dictionary
   o2::itsmft::ChipMappingMFT mMFTMapping;
   bool mMCTruthON = false;      ///< Flag availability of MC truth
   bool mUseMIDMCHMatch = false; ///< Flag for using MCHMID matches (TrackMCHMID)
-  bool mSaveAll = false;        ///< Flag to save all MCH-MFT matching pairs
+  int mSaveMode = 0;            ///< Output mode [0 = SaveBestMatch; 1 = SaveAllMatches; 2 = SaveTrainingData]
   MatchingType mMatchingType = MATCHINGUNDEFINED;
   TGeoManager* mGeoManager;
 };

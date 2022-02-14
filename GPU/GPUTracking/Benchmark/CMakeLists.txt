@@ -16,12 +16,6 @@ set(SRCS
     ../utils/qconfig.cxx
     ../Base/GPUReconstructionTimeframe.cxx)
     
-if(GPUCA_EVENT_DISPLAY)
-    set(SRCS ${SRCS}
-             ../display/GPUDisplayBackendX11.cxx
-             ../display/GPUDisplayBackendGlut.cxx)
-endif()
-
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     o2_add_executable(standalone-benchmark
                       COMPONENT_NAME gpu
@@ -39,8 +33,4 @@ endif()
 
 if(ROOT_FOUND)
   target_sources(${targetName} PRIVATE ../qa/genEvents.cxx)
-endif()
-
-if(GPUCA_EVENT_DISPLAY)
-    target_link_libraries(${targetName} PUBLIC X11::X11 glut)
 endif()

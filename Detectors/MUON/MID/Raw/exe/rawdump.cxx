@@ -30,7 +30,7 @@ void decode(o2::mid::Decoder& decoder, gsl::span<const uint8_t> payload, const R
   decoder.clear();
   decoder.process(payload, rdh);
   for (auto& rof : decoder.getROFRecords()) {
-    out << fmt::format("BCid: 0x{:x} Orbit: 0x{:x}  EvtType: {:d}", rof.interactionRecord.bc, rof.interactionRecord.orbit, rof.eventType) << std::endl;
+    out << fmt::format("BCid: 0x{:x} Orbit: 0x{:x}  EvtType: {:d}", rof.interactionRecord.bc, rof.interactionRecord.orbit, (int)rof.eventType) << std::endl;
     for (auto colIt = decoder.getData().begin() + rof.firstEntry; colIt != decoder.getData().begin() + rof.firstEntry + rof.nEntries; ++colIt) {
       out << *colIt << std::endl;
     }

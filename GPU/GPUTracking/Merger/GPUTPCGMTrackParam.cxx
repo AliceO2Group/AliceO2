@@ -302,6 +302,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
       CADEBUG(printf("\t%21sFit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f), DzDs %5.2f %16s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f   -   Err %d\n", "", prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), mP[3], "", sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10], retVal));
       // clang-format on
 
+      ConstrainSinPhi();
       if (retVal == 0) // track is updated
       {
         noFollowCircle2 = false;
@@ -318,19 +319,20 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
           prop.SetTrack(this, prop.GetAlpha());
         }
         if (merger->Param().par.dodEdx && iWay == nWays - 1 && clusters[ihit].leg == clusters[maxN - 1].leg) {
-          float qtot, qmax, relPad, relTime;
+          float qtot, qmax, pad, relTime;
           if (merger->GetConstantMem()->ioPtrs.clustersNative == nullptr) {
             qtot = clustersXYZ[ihit].amp;
             qmax = 0;
+            pad = 0;
+            relTime = 0;
           } else {
             const ClusterNative& cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[ihit].num];
             qtot = cl.qTot;
             qmax = cl.qMax;
-            relPad = cl.getPad() - int(cl.getPad() + 0.5f);
+            pad = cl.getPad();
             relTime = cl.getTime() - int(cl.getTime() + 0.5f);
-            //zPos = std::abs(std::abs(cl.getTime()) * 0.199606f * 2.58 - 250.f); // std::abs(time * eleParam.ZbinWidth * gasParam.DriftV - zMaxTPC);
           }
-          dEdx.fillCluster(qtot, qmax, clusters[ihit].row, clusters[ihit].slice, mP[2], mP[3], param, merger->GetConstantMem()->calibObjects, zz, relPad, relTime);
+          dEdx.fillCluster(qtot, qmax, clusters[ihit].row, clusters[ihit].slice, mP[2], mP[3], param, merger->GetConstantMem()->calibObjects, zz, pad, relTime);
         }
       } else if (retVal == 2) { // cluster far away form the track
         if (allowModification) {

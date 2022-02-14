@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import numpy as np
+import re
 import ALICEO2dataModelTools as O2DMT
 
 # -----------------------------------------------------------------------------
@@ -15,18 +16,21 @@ import ALICEO2dataModelTools as O2DMT
 # 4: SELF_INDEX_COLUMN
 # 5: EXPRESSION_COLUMN
 # 6: DYNAMIC_COLUMN
+# 7: SLICE_INDEX_COLUMN
+# 8: SLICE_INDEX_COLUMN_FULL
 
 def columnTypes(abbr=0):
   if abbr == 0:
-    types = ["", "INDEX_", "INDEX_", "INDEX_", "INDEX_", "EXPRESSION_", "DYNAMIC_"]
+    types = ["", "INDEX_", "INDEX_", "INDEX_", "INDEX_", "EXPRESSION_", "DYNAMIC_", "SLICE_INDEX_", "SLICE_INDEX_"]
     types[3] = "SELF_"+types[3]
     types[4] = "SELF_"+types[4]
     types = [s+"COLUMN" for s in types]
     types = ["DECLARE_SOA_"+s for s in types]
     types[1] = types[1]+"_FULL"
     types[3] = types[3]+"_FULL"
+    types[8] = types[8]+"_FULL"
   else:
-    types = ["", "I", "I", "SI", "SI", "E", "D", "GI"]
+    types = ["", "I", "I", "SI", "SI", "E", "D", "SLI", "SLI", "GI"]
 
   return types
 
@@ -105,8 +109,9 @@ class using:
       for nsp in dm.namespaces:
         for use in nsp.usings:
           if self.master == use.name:
-            self.kind += 2
-            self.joiners = use.joiners
+            if len(use.joiners) > 0:
+              self.kind += 2
+              self.joiners = use.joiners
 
   def print(self):
     print("    using: "+self.name)
@@ -330,7 +335,9 @@ class datamodel:
       # self.synchronize()
   
   # extract the categories definition
-  def setCategories(self, DMxml):
+  def setTableCategories(self, DMxml):
+
+    # table categories
     cats = DMxml.find('categories')
     for cat in cats:
       catName = cat.attrib['name']
@@ -586,11 +593,18 @@ class datamodel:
     tabInCat = list()
     others = list()
     if DMtype == 0:  
+      # pattern for table versions
+      vPattern = self.initCard.find('O2general/TableVersionPattern')
+      if vPattern == None:
+        vPattern = "_\d\d\d$"
+      else:
+        vPattern = vPattern.text.strip()
+    
       # Analyze the tables and categories
       tabInCat = [False]*len(tabs2u)
       for cat in self.categories:
         for i in range(0,len(tabs2u)):
-          if tabs2u[i].tname in cat.members:
+          if baseTableName(tabs2u[i].tname, vPattern) in cat.members:
             tabInCat[i] = True
       others = [i for i, x in enumerate(tabInCat) if x == False]
 
@@ -616,18 +630,12 @@ class datamodel:
         # print tables of of given category
         for tname in cat.members:
           for tab in tabs2u:
-            if tab.tname == tname:
+            if baseTableName(tab.tname, vPattern) == tname:
               print()
               self.printSingleTable(href2u, path2u, tabs, uses, tab)
               continue
         print("</div>")
         
-        #for tab in tabs2u:
-        #  if tab.tname in cat.members:
-        #    print()
-        #    self.printSingleTable(href2u, path2u, tabs, uses, tab)
-        #print("</div>")
-
       # print non-categorized tables
       if len(others) > 0:
         print('<h4 id="cat_Others">Others</h4>')
@@ -781,6 +789,18 @@ class datamodel:
 # functions
 #
 # .............................................................................
+# remove the version id from the table name
+
+def baseTableName(vtname, vPattern):
+  
+  vres = re.compile(vPattern).search(vtname)
+  if vres:
+    return vtname[0:vres.start()]
+  else:
+    return vtname
+
+# .............................................................................
+
 def fullDataModelName(nslevel, name):
   toks0 = nslevel.split("::")
   toks1 = name.split("::")
@@ -945,6 +965,9 @@ def extractColumns(nslevel, content):
     if kind in [1, 2, 3, 4]:
       cname = cname+"Id"
       gname = gname+"Id"
+    if kind in [7,8]:
+      cname = cname+"IdSlice"
+      gname = gname+"Ids"
 
     # determine the type of the colums
     # can be type, array<type,n>, or type[n]
@@ -972,6 +995,10 @@ def extractColumns(nslevel, content):
         type = O2DMT.block(cont[iarr[0]+2:iarr[0]+2+iend[0]], False)
       else:
         type = "?"
+    elif words[icol].txt == types[7]:
+      type = "int32_t"
+    elif words[icol].txt == types[8]:
+      type = "int32_t"
 
     # kind, namespace, name, type, cont
     col = column(kind, nslevel, "", cname, gname, type, O2DMT.block(cont))

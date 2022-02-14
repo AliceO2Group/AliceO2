@@ -855,16 +855,16 @@ auto makeEmptyTable(const char* name)
 
 /// Expression-based column generator to materialize columns
 template <typename... C>
-auto spawner(framework::pack<C...> columns, arrow::Table* atable, const char* name)
+auto spawner(framework::pack<C...> columns, std::vector<std::shared_ptr<arrow::Table>>&& tables, const char* name)
 {
-  std::string s = std::string{name} + "Extension";
-  if (atable->num_rows() == 0) {
-    return makeEmptyTable<soa::Table<C...>>(s.c_str());
+  auto fullTable = soa::ArrowHelpers::joinTables(std::move(tables));
+  if (fullTable->num_rows() == 0) {
+    return makeEmptyTable<soa::Table<C...>>(name);
   }
   static auto new_schema = o2::soa::createSchemaFromColumns(columns);
-  static auto projectors = framework::expressions::createProjectors(columns, atable->schema());
+  auto projectors = framework::expressions::createProjectors(columns, fullTable->schema());
 
-  arrow::TableBatchReader reader(*atable);
+  arrow::TableBatchReader reader(*fullTable);
   std::shared_ptr<arrow::RecordBatch> batch;
   arrow::ArrayVector v;
   std::array<arrow::ArrayVector, sizeof...(C)> chunks;
@@ -873,7 +873,7 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable, const char* na
   while (true) {
     auto s = reader.ReadNext(&batch);
     if (!s.ok()) {
-      throw runtime_error_f("Cannot read batches from table %s: %s", name, s.ToString().c_str());
+      throw runtime_error_f("Cannot read batches from source table to spawn %s: %s", name, s.ToString().c_str());
     }
     if (batch == nullptr) {
       break;
@@ -881,10 +881,10 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable, const char* na
     try {
       s = projectors->Evaluate(*batch, arrow::default_memory_pool(), &v);
       if (!s.ok()) {
-        throw runtime_error_f("Cannot apply projector to table %s: %s", name, s.ToString().c_str());
+        throw runtime_error_f("Cannot apply projector to source table of %s: %s", name, s.ToString().c_str());
       }
     } catch (std::exception& e) {
-      throw runtime_error_f("Cannot apply projector to table %s: exception caught: %s", name, e.what());
+      throw runtime_error_f("Cannot apply projector to source table of %s: exception caught: %s", name, e.what());
     }
 
     for (auto i = 0u; i < sizeof...(C); ++i) {
@@ -896,7 +896,7 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable, const char* na
     arrays.push_back(std::make_shared<arrow::ChunkedArray>(chunks[i]));
   }
 
-  addLabelToSchema(new_schema, s.c_str());
+  addLabelToSchema(new_schema, name);
   return arrow::Table::Make(new_schema, arrays);
 }
 

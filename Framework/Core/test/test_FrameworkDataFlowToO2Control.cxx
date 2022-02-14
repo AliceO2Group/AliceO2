@@ -196,6 +196,8 @@ command:
     - "'false'"
     - "--shm-mlock-segment-on-creation"
     - "'false'"
+    - "--shm-no-cleanup"
+    - "'false'"
     - "--shm-segment-id"
     - "'0'"
     - "--shm-zero-segment"
@@ -269,6 +271,8 @@ command:
     - "--shm-mlock-segment"
     - "'false'"
     - "--shm-mlock-segment-on-creation"
+    - "'false'"
+    - "--shm-no-cleanup"
     - "'false'"
     - "--shm-segment-id"
     - "'0'"
@@ -344,6 +348,8 @@ command:
     - "'false'"
     - "--shm-mlock-segment-on-creation"
     - "'false'"
+    - "--shm-no-cleanup"
+    - "'false'"
     - "--shm-segment-id"
     - "'0'"
     - "--shm-zero-segment"
@@ -417,6 +423,8 @@ command:
     - "'false'"
     - "--shm-mlock-segment-on-creation"
     - "'false'"
+    - "--shm-no-cleanup"
+    - "'false'"
     - "--shm-segment-id"
     - "'0'"
     - "--shm-zero-segment"
@@ -461,7 +469,7 @@ BOOST_AUTO_TEST_CASE(TestO2ControlDump)
       {"C", "foo", {}, workflowOptions},
       {"D", "foo", {}, workflowOptions},
     }};
-  DeviceSpecHelpers::prepareArguments(false, false, 8080,
+  DeviceSpecHelpers::prepareArguments(false, false, false, 8080,
                                       dataProcessorInfos,
                                       devices, executions, controls,
                                       "workflow-id");
@@ -475,7 +483,6 @@ BOOST_AUTO_TEST_CASE(TestO2ControlDump)
   BOOST_REQUIRE_EQUAL(devices.size(), expectedTasks.size());
   for (size_t di = 0; di < devices.size(); ++di) {
     auto& spec = devices[di];
-    auto& execution = executions[di];
     auto& expected = expectedTasks[di];
 
     BOOST_TEST_CONTEXT("Device " << spec.name)

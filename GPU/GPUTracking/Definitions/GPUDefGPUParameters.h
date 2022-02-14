@@ -237,8 +237,11 @@
   #ifndef GPUCA_LB_GPUTPCGlobalTracking
     #define GPUCA_LB_GPUTPCGlobalTracking 256
   #endif
-  #ifndef GPUCA_LB_GPUTRDTrackerKernels
-    #define GPUCA_LB_GPUTRDTrackerKernels 512
+  #ifndef GPUCA_LB_GPUTRDTrackerKernels_gpuVersion
+    #define GPUCA_LB_GPUTRDTrackerKernels_gpuVersion 512
+  #endif
+  #ifndef GPUCA_LB_GPUTRDTrackerKernels_o2Version
+    #define GPUCA_LB_GPUTRDTrackerKernels_o2Version 512
   #endif
   #ifndef GPUCA_LB_GPUTPCConvertKernel
     #define GPUCA_LB_GPUTPCConvertKernel 256

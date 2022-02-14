@@ -19,6 +19,7 @@
 
 #include "TPCSimulation/Point.h"
 #include "TPCBase/Sector.h"
+#include "DataFormatsTPC/BetheBlochAleph.h"
 
 class FairVolume; // lines 10-10
 
@@ -115,7 +116,10 @@ class Detector : public o2::base::DetImpl<Detector>
   /// @param kp* Parameters for the ALICE TPC
   /// @return Bethe-Bloch value in MIP units
   template <typename T>
-  static T BetheBlochAleph(T bg, T kp1, T kp2, T kp3, T kp4, T kp5);
+  static T BetheBlochAleph(T bg, T kp1, T kp2, T kp3, T kp4, T kp5)
+  {
+    return o2::tpc::BetheBlochAleph(bg, kp1, kp2, kp3, kp4, kp5);
+  }
 
   /// Copied from AliRoot - should go to someplace else
   /// Function to generate random numbers according to Gamma function
@@ -187,18 +191,6 @@ class Detector : public o2::base::DetImpl<Detector>
   friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1);
 };
-
-template <typename T>
-inline T Detector::BetheBlochAleph(T bg, T kp1, T kp2, T kp3, T kp4, T kp5)
-{
-  T beta = bg / std::sqrt(static_cast<T>(1.) + bg * bg);
-
-  T aa = std::pow(beta, kp4);
-  T bb = std::pow(static_cast<T>(1.) / bg, kp5);
-  bb = std::log(kp3 + bb);
-
-  return (kp2 - aa - bb) * kp1 / aa;
-}
 
 } // namespace tpc
 } // namespace o2

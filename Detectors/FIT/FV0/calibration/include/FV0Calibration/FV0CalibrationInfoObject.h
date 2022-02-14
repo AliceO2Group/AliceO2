@@ -21,7 +21,7 @@ namespace fv0
 class FV0CalibrationInfoObject
 {
  public:
-  FV0CalibrationInfoObject(uint8_t channel, int16_t time, int32_t charge) : mChannelIndex(channel), mTime(time), mCharge(charge){};
+  FV0CalibrationInfoObject(uint8_t channel, int16_t time, int32_t charge, uint64_t timestamp) : mChannelIndex(channel), mTime(time), mCharge(charge), mTimeStamp(timestamp){};
   FV0CalibrationInfoObject() = default;
   ~FV0CalibrationInfoObject() = default;
 
@@ -32,11 +32,14 @@ class FV0CalibrationInfoObject
   [[nodiscard]] int16_t getTime() const { return mTime; }
   void setCharge(int16_t charge) { mCharge = charge; }
   [[nodiscard]] int16_t getCharge() const { return mCharge; }
+  void setTimeStamp(int64_t timestamp) { mTimeStamp = timestamp; }
+  [[nodiscard]] int64_t getTimeStamp() const { return mTimeStamp; }
 
  private:
   uint8_t mChannelIndex;
   int16_t mTime;
   int16_t mCharge;
+  uint64_t mTimeStamp;
 
   ClassDefNV(FV0CalibrationInfoObject, 1);
 };

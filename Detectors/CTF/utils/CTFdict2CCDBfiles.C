@@ -1,5 +1,4 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-#include "DetectorsBase/CTFCoderBase.h"
 #include "DetectorsCommonDataFormats/CTFDictHeader.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "CommonUtils/NameConf.h"
@@ -18,6 +17,7 @@
 #include "DataFormatsZDC/CTF.h"
 #include "DataFormatsHMP/CTF.h"
 #include "DataFormatsCTP/CTF.h"
+#include <fmt/format.h>
 #endif
 
 using DetID = o2::detectors::DetID;

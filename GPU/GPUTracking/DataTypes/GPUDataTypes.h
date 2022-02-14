@@ -297,6 +297,7 @@ struct GPUTrackingInOutPointers {
   const GPUTRDSpacePoint* trdSpacePoints = nullptr;
   unsigned int nTRDTracklets = 0;
   const GPUTRDTrackGPU* trdTracks = nullptr;
+  const GPUTRDTrack* trdTracksO2 = nullptr;
   unsigned int nTRDTracks = 0;
   const float* trdTriggerTimes = nullptr;
   const int* trdTrackletIdxFirst = nullptr;

@@ -274,8 +274,8 @@ class DPLRawParser
           try {
             mParser = std::make_unique<parser_type>(raw.data(), raw.size());
           } catch (const std::runtime_error& e) {
-            LOG(error) << "can not create raw parser form input data";
-            LOG(error) << e.what();
+            LOG(alarm) << "can not create raw parser form input data";
+            LOG(alarm) << e.what();
           }
 
           if (mParser != nullptr) {

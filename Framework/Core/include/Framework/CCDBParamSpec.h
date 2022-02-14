@@ -17,9 +17,15 @@
 namespace o2::framework
 {
 
+struct CCDBMetadata {
+  std::string key;
+  std::string value;
+};
+
 ConfigParamSpec ccdbPathSpec(std::string const& path);
 ConfigParamSpec ccdbRunDependent(bool defaultValue = true);
-std::vector<ConfigParamSpec> ccdbParamSpec(std::string const& path, bool runDependent = false);
+std::vector<ConfigParamSpec> ccdbParamSpec(std::string const& path, bool runDependent, std::vector<CCDBMetadata> metadata = {});
+std::vector<ConfigParamSpec> ccdbParamSpec(std::string const& path, std::vector<CCDBMetadata> metadata = {});
 ConfigParamSpec startTimeParamSpec(int64_t t);
 
 } // namespace o2::framework

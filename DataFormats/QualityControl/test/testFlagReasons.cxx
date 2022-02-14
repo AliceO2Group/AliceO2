@@ -20,13 +20,14 @@
 
 // o2 includes
 #include "DataFormatsQualityControl/FlagReasons.h"
+#include "DataFormatsQualityControl/FlagReasonFactory.h"
 
 using namespace o2::quality_control;
 
 BOOST_AUTO_TEST_CASE(FlagReasons)
 {
   static_assert(std::is_constructible<FlagReason, uint16_t, const char*, bool>::value == false,
-                "FlagReason should not be constructible outside of its static methods.");
+                "FlagReason should not be constructible outside of its static methods and the factory.");
 
   FlagReason rDefault;
   BOOST_CHECK_EQUAL(rDefault, FlagReasonFactory::Invalid());

@@ -31,8 +31,8 @@ size_t getNUniqueSymbols(const T& container)
 
 BOOST_AUTO_TEST_CASE(test_empty)
 {
-  const auto frequencyTable = o2::rans::renorm(o2::rans::FrequencyTable{});
-  const o2::rans::internal::ReverseSymbolLookupTable rLut{frequencyTable};
+  const auto renormedFrequencyTable = o2::rans::renorm(o2::rans::FrequencyTable{});
+  const o2::rans::internal::ReverseSymbolLookupTable rLut{renormedFrequencyTable};
 
   const auto size = 1 << o2::rans::MinRenormThreshold;
   BOOST_CHECK_EQUAL(rLut.size(), size);
@@ -48,10 +48,8 @@ BOOST_AUTO_TEST_CASE(test_buildRLUT)
   const size_t scaleBits = 17;
   const auto size = 1 << scaleBits;
 
-  o2::rans::FrequencyTable ft;
-  ft.addSamples(A.begin(), A.end());
-  ft = o2::rans::renorm(std::move(ft), scaleBits);
-  const o2::rans::internal::ReverseSymbolLookupTable rLut{ft};
+  const auto renormedFrequencyTable = o2::rans::renorm(o2::rans::makeFrequencyTableFromSamples(A.begin(), A.end()), scaleBits);
+  const o2::rans::internal::ReverseSymbolLookupTable rLut{renormedFrequencyTable};
 
   BOOST_CHECK_EQUAL(rLut.size(), size);
 

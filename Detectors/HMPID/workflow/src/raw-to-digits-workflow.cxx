@@ -43,7 +43,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 }
 
 #include "Framework/runDataProcessing.h"
-#include "../include/HMPIDWorkflow/RawToDigitsSpec.h"
+#include "HMPIDWorkflow/RawToDigitsSpec.h"
 
 using namespace o2;
 using namespace o2::framework;

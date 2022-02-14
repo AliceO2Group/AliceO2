@@ -19,6 +19,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   workflowOptions.push_back(ConfigParamSpec{"useDigits", VariantType::Bool, false, {"Use decoded digits"}});
+  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
 }
 
 // ------------------------------------------------------------------
@@ -30,6 +31,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec specs;
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   auto useDigits = cfgc.options().get<bool>("useDigits");
 
   LOG(info) << "MFT calibration workflow options";

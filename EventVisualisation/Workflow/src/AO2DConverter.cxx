@@ -50,7 +50,7 @@ void AO2DConverter::process(o2::aod::Collisions const& collisions, EveWorkflowHe
       mHelper->drawAOD(track, c.collisionTime());
     }
 
-    mHelper->save(jsonPath, collisions.size(), GlobalTrackID::MASK_ALL, GlobalTrackID::MASK_NONE, mWorkflowVersion);
+    mHelper->save(jsonPath, collisions.size(), GlobalTrackID::MASK_ALL, GlobalTrackID::MASK_NONE, mWorkflowVersion, mRunNumber, mCreationTime);
     mHelper->clear();
   }
 }

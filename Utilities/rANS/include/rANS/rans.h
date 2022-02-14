@@ -18,6 +18,7 @@
 #define RANS_RANS_H
 
 #include "rANS/FrequencyTable.h"
+#include "rANS/RenormedFrequencyTable.h"
 #include "rANS/Encoder.h"
 #include "rANS/Decoder.h"
 #include "rANS/DedupEncoder.h"
@@ -60,7 +61,7 @@ using DedupDecoder32 = DedupDecoder<uint32_t, uint8_t, source_T>;
 template <typename source_T>
 using DedupDecoder64 = DedupDecoder<uint64_t, uint32_t, source_T>;
 
-inline size_t calculateMaxBufferSize(size_t num, size_t rangeBits, size_t sizeofStreamT)
+inline size_t calculateMaxBufferSize(size_t num, size_t /*rangeBits*/, size_t sizeofStreamT)
 {
   //  // RS: w/o safety margin the o2-test-ctf-io produces an overflow in the Encoder::process
   //  constexpr size_t SaferyMargin = 16;

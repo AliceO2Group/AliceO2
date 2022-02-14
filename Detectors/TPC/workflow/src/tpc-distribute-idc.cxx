@@ -38,6 +38,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"timeframes", VariantType::Int, 2000, {"Number of TFs which will be aggregated per aggregation interval."}},
     {"firstTF", VariantType::Int, 0, {"First time frame index."}},
     {"load-from-file", VariantType::Bool, false, {"load average and grouped IDCs from IDCGroup.root file."}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"output-lanes", VariantType::Int, 2, {"Number of parallel pipelines which will be used in the factorization device."}}};
 
   std::swap(workflowOptions, options);
@@ -50,6 +51,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   using namespace o2::tpc;
 
   // set up configuration
+  o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
   o2::conf::ConfigurableParam::writeINI("o2tpcdistributeidc_configuration.ini");
 
   const auto tpcCRUs = o2::RangeTokenizer::tokenize<int>(config.options().get<std::string>("crus"));

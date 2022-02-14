@@ -137,7 +137,11 @@ class TrackSinkTask
       }
 
     } else {
-      throw length_error("empty time frame");
+
+      int zero(0);
+      mOutputFile.write(reinterpret_cast<char*>(&zero), sizeof(int));
+      mOutputFile.write(reinterpret_cast<char*>(&zero), sizeof(int));
+      mOutputFile.write(reinterpret_cast<char*>(&zero), sizeof(int));
     }
   }
 

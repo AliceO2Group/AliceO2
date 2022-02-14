@@ -72,7 +72,7 @@ class DigitizationContext
   void setMuPerBC(float m) { mMuBC = m; }
   float getMuPerBC() const { return mMuBC; }
 
-  void printCollisionSummary(bool withQED = false) const;
+  void printCollisionSummary(bool withQED = false, int truncateOutputTo = -1) const;
 
   // we need a method to fill the file names
   void setSimPrefixes(std::vector<std::string> const& p);

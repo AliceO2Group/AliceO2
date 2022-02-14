@@ -13,14 +13,15 @@
 #define FRAMEWORK_ANALYSISMANAGERS_H
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/GroupedCombinations.h"
-#include "Framework/Kernels.h"
 #include "Framework/ASoA.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/HistogramRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ConfigurableHelpers.h"
+#include "Framework/Condition.h"
 #include "Framework/InitContext.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/RootConfigParamHelpers.h"
@@ -45,7 +46,7 @@ struct GroupedCombinationManager<GroupedCombinationsGenerator<T1, GroupingPolicy
   {
     static_assert(sizeof...(T2s) > 0, "There must be associated tables in process() for a correct pair");
     static_assert(!soa::is_soa_iterator_t<std::decay_t<H>>::value, "Only full tables can be in process(), no grouping");
-    if constexpr (std::conjunction_v<std::is_same<G, TG>, std::is_same<H, TH>>) {
+    if constexpr (std::is_same_v<G, TG> && std::is_same_v<H, TH>) {
       // Take respective unique associated tables for grouping
       auto associatedTuple = std::tuple<Us...>(std::get<Us>(associated)...);
       comb.setTables(hashes, grouping, associatedTuple);
@@ -151,6 +152,46 @@ struct FilterManager<expressions::Filter> {
   static bool updatePlaceholders(expressions::Filter& filter, InitContext& ctx)
   {
     expressions::updatePlaceholders(filter, ctx);
+    return true;
+  }
+};
+
+/// A manager which takes care of condition objects
+template <typename T>
+struct ConditionManager {
+  template <typename ANY>
+  static bool appendCondition(std::vector<InputSpec>& inputs, ANY& x)
+  {
+    if constexpr (std::is_base_of_v<ConditionGroup, ANY>) {
+      homogeneous_apply_refs<true>([&inputs](auto& y) { return ConditionManager<std::decay_t<decltype(y)>>::appendCondition(inputs, y); }, x);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  template <typename ANY>
+  static bool newDataframe(InputRecord& record, ANY& x)
+  {
+    if constexpr (std::is_base_of_v<ConfigurableGroup, ANY>) {
+      homogeneous_apply_refs<true>([&record](auto&& y) { return ConditionManager<std::decay_t<decltype(y)>>::newDataframe(record, y); }, x);
+      return true;
+    } else {
+      return false;
+    }
+  }
+};
+
+template <typename OBJ>
+struct ConditionManager<Condition<OBJ>> {
+  static bool appendCondition(std::vector<InputSpec>& inputs, Condition<OBJ>& what)
+  {
+    inputs.emplace_back(InputSpec{what.path, "AODC", compile_time_hash(what.path.c_str()), Lifetime::Condition, ccdbParamSpec(what.path)});
+    return true;
+  }
+  static bool newDataframe(InputRecord& inputs, Condition<OBJ>& what)
+  {
+    what.instance = (OBJ*)inputs.get<OBJ*>(what.path).get();
     return true;
   }
 };
@@ -261,13 +302,13 @@ struct OutputManager<OutputObj<T>> {
 
 /// Spawns specializations
 template <typename O>
-static auto extractOriginal(ProcessingContext& pc)
+static inline auto extractOriginal(ProcessingContext& pc)
 {
   return pc.inputs().get<TableConsumer>(aod::MetadataTrait<O>::metadata::tableLabel())->asArrowTable();
 }
 
 template <typename... Os>
-static std::vector<std::shared_ptr<arrow::Table>> extractOriginals(framework::pack<Os...>, ProcessingContext& pc)
+static inline std::vector<std::shared_ptr<arrow::Table>> extractOriginals(framework::pack<Os...>, ProcessingContext& pc)
 {
   return {extractOriginal<Os>(pc)...};
 }
@@ -282,14 +323,14 @@ struct OutputManager<Spawns<T>> {
 
   static bool prepare(ProcessingContext& pc, Spawns<T>& what)
   {
-    auto original_table = soa::ArrowHelpers::joinTables(extractOriginals(what.sources_pack(), pc));
-    if (original_table->schema()->fields().empty() == true) {
+    auto originalTable = soa::ArrowHelpers::joinTables(extractOriginals(what.sources_pack(), pc));
+    if (originalTable->schema()->fields().empty() == true) {
       using base_table_t = typename Spawns<T>::base_table_t;
-      original_table = makeEmptyTable<base_table_t>(aod::MetadataTrait<typename Spawns<T>::extension_t>::metadata::tableLabel());
+      originalTable = makeEmptyTable<base_table_t>(aod::MetadataTrait<typename Spawns<T>::extension_t>::metadata::tableLabel());
     }
 
-    what.extension = std::make_shared<typename Spawns<T>::extension_t>(o2::framework::spawner(what.pack(), original_table.get(), aod::MetadataTrait<typename Spawns<T>::extension_t>::metadata::tableLabel()));
-    what.table = std::make_shared<typename T::table_t>(soa::ArrowHelpers::joinTables({what.extension->asArrowTable(), original_table}));
+    what.extension = std::make_shared<typename Spawns<T>::extension_t>(o2::framework::spawner(what.pack(), extractOriginals(what.sources_pack(), pc), aod::MetadataTrait<typename Spawns<T>::extension_t>::metadata::tableLabel()));
+    what.table = std::make_shared<typename T::table_t>(soa::ArrowHelpers::joinTables({what.extension->asArrowTable(), originalTable}));
     return true;
   }
 

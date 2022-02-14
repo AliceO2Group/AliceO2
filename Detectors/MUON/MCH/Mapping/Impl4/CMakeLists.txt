@@ -48,4 +48,6 @@ if(APPLE)
                 TARGET ${targetName} POST_BUILD
                 COMMAND ${script} $<TARGET_LINKER_FILE:${targetName}> 19
                 COMMENT "Checking number of exported symbols in the library")
+else()
+	target_link_options(${targetName} PUBLIC "LINKER:--no-as-needed")
 endif()

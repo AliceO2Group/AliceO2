@@ -46,7 +46,7 @@ void FT0CalibInfoSlot::fill(const gsl::span<const o2::ft0::FT0CalibrationInfoObj
     }
     offsPrev = offset;
     chPrev = ch;
-    auto it = mFT0CollectedCalibInfoSlot.emplace(mFT0CollectedCalibInfoSlot.begin() + offset, data[ord[i]].getChannelIndex(), data[ord[i]].getTime(), data[ord[i]].getAmp());
+    auto it = mFT0CollectedCalibInfoSlot.emplace(mFT0CollectedCalibInfoSlot.begin() + offset, data[ord[i]].getChannelIndex(), data[ord[i]].getTime(), data[ord[i]].getAmp(), data[ord[i]].getTimeStamp());
     mEntriesSlot[ch]++;
   }
 }
@@ -127,9 +127,6 @@ bool FT0CalibCollector::hasEnoughData(const Slot& slot) const
   // E.g. supposing that we have 500000 entries per channel  --> 500 eneries per one amplitude bin
   // we can check if we have  500000*o2::ft0::Geometry::NCHANNELS entries in the vector
 
-  if (mTest) {
-    return true;
-  }
   const o2::ft0::FT0CalibInfoSlot* c = slot.getContainer();
   LOG(info) << "we have " << c->getCollectedCalibInfoSlot().size() << " entries";
   int maxNumberOfHits = mAbsMaxNumOfHits ? mMaxNumOfHits : mMaxNumOfHits * NCHANNELS;
@@ -154,6 +151,8 @@ void FT0CalibCollector::finalizeSlot(Slot& slot)
 Slot& FT0CalibCollector::emplaceNewSlot(bool front, TFType tstart, TFType tend)
 {
 
+  LOG(info) << "FIT_CALIBRATOR_TYPE::emplaceNewSlot "
+            << " start " << tstart << " end " << tend;
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
   slot.setContainer(std::make_unique<FT0CalibInfoSlot>());

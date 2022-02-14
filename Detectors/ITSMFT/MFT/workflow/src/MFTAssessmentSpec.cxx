@@ -99,7 +99,7 @@ void MFTAssessmentSpec::sendOutput(DataAllocator& output)
   TObjArray objar;
   mMFTAssessment->getHistos(objar);
 
-  output.snapshot(Output{"MFT", "MFTASSESSMENT", 0, Lifetime::Timeframe}, objar);
+  output.snapshot(Output{"MFT", "MFTASSESSMENT", 0, Lifetime::Sporadic}, objar);
 
   TFile* f = new TFile(Form("MFTAssessment.root"), "RECREATE");
   objar.Write();
@@ -117,13 +117,14 @@ DataProcessorSpec getMFTAssessmentSpec(bool useMC, bool processGen, bool finaliz
   inputs.emplace_back("clustersrofs", "MFT", "CLUSTERSROF", 0, Lifetime::Timeframe);
   inputs.emplace_back("tracksrofs", "MFT", "MFTTrackROF", 0, Lifetime::Timeframe);
   inputs.emplace_back("tracks", "MFT", "TRACKS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("trackClIdx", "MFT", "TRACKCLSID", 0, Lifetime::Timeframe);
 
   if (useMC) {
     inputs.emplace_back("clslabels", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
     inputs.emplace_back("trklabels", "MFT", "TRACKSMCTR", 0, Lifetime::Timeframe);
   }
 
-  outputs.emplace_back("MFT", "MFTASSESSMENT", 0, Lifetime::Timeframe);
+  outputs.emplace_back("MFT", "MFTASSESSMENT", 0, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "mft-assessment",

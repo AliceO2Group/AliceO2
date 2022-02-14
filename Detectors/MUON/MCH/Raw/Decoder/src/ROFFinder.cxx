@@ -156,7 +156,6 @@ void ROFFinder::sortDigits()
 
     auto orbit = digit.getOrbit();
     if (orbit < mFirstTForbit) {
-      LOG(error) << "[ROFFinder::fillDigitsArray] orbit smaller than first TF orbit: " << orbit << ", " << mFirstTForbit;
       continue;
     }
 

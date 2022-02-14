@@ -23,7 +23,7 @@
 #include <fairlogger/Logger.h>
 
 #include "rANS/definitions.h"
-#include "rANS/FrequencyTable.h"
+#include "rANS/RenormedFrequencyTable.h"
 
 namespace o2
 {
@@ -40,7 +40,7 @@ class SymbolTable
   // TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
   SymbolTable() noexcept {}; // NOLINT
 
-  explicit SymbolTable(const FrequencyTable& frequencyTable);
+  explicit SymbolTable(const RenormedFrequencyTable& frequencyTable);
 
   inline size_t size() const noexcept { return mIndex.size(); };
 
@@ -64,13 +64,9 @@ class SymbolTable
 };
 
 template <typename T>
-SymbolTable<T>::SymbolTable(const FrequencyTable& frequencyTable) : mOffset{frequencyTable.getMinSymbol()}, mPrecision{frequencyTable.getRenormingBits()}
+SymbolTable<T>::SymbolTable(const RenormedFrequencyTable& frequencyTable) : mOffset{frequencyTable.getMinSymbol()}, mPrecision{frequencyTable.getRenormingBits()}
 {
   LOG(trace) << "start building symbol table";
-
-  if (!frequencyTable.isRenormed()) {
-    throw std::runtime_error("Trying to build SymbolTable from non-renormed FrequencyTable.");
-  }
 
   mIndex.reserve(frequencyTable.size() + 1); // +1 for incompressible symbol
   mSymbols.reserve(frequencyTable.getNUsedAlphabetSymbols());
