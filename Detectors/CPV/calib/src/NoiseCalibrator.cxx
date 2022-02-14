@@ -92,8 +92,8 @@ void NoiseCalibrator::finalizeSlot(NoiseTimeSlot& slot)
     LOG(info) << "NoiseCalibrator::finalizeSlot() : checking ped efficiencies";
     for (int i = 0; i < Geometry::kNCHANNELS; i++) {
       badMapBool[i] = false;
-      if (mPedEfficiencies.get()->at(i) > mToleratedChannelEfficiencyHigh ||
-          mPedEfficiencies.get()->at(i) < mToleratedChannelEfficiencyLow) {
+      if ((*mPedEfficiencies.get())[i] > mToleratedChannelEfficiencyHigh ||
+          (*mPedEfficiencies.get())[i] < mToleratedChannelEfficiencyLow) {
         badMapBool[i] = true;
       }
     }
@@ -103,7 +103,7 @@ void NoiseCalibrator::finalizeSlot(NoiseTimeSlot& slot)
   if (mDeadChannels) {
     LOG(info) << "NoiseCalibrator::finalizeSlot() : checking dead channels";
     for (int i = 0; i < mDeadChannels.get()->size(); i++) {
-      badMapBool[mDeadChannels.get()->at(i)] = true;
+      badMapBool[(*mDeadChannels.get())[i]] = true;
     }
   }
 
@@ -111,7 +111,7 @@ void NoiseCalibrator::finalizeSlot(NoiseTimeSlot& slot)
   if (mHighPedChannels) {
     LOG(info) << "NoiseCalibrator::finalizeSlot() : checking high ped channels";
     for (int i = 0; i < mHighPedChannels.get()->size(); i++) {
-      badMapBool[mHighPedChannels.get()->at(i)] = true;
+      badMapBool[(*mHighPedChannels.get())[i]] = true;
     }
   }
 

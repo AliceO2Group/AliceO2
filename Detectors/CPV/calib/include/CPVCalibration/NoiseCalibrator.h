@@ -45,8 +45,8 @@ class NoiseCalibrator final : public o2::calibration::TimeSlotCalibration<o2::cp
  public:
   NoiseCalibrator();
   ~NoiseCalibrator() final = default;
-  std::vector<o2::ccdb::CcdbObjectInfo> getCcdbInfoBadChannelMapVector() { return mCcdbInfoBadChannelMapVec; }
-  std::vector<o2::cpv::BadChannelMap> getBadChannelMapVector() { return mBadChannelMapVec; }
+  std::vector<o2::ccdb::CcdbObjectInfo>& getCcdbInfoBadChannelMapVector() { return mCcdbInfoBadChannelMapVec; }
+  const std::vector<o2::cpv::BadChannelMap>& getBadChannelMapVector() const { return mBadChannelMapVec; }
 
   void setPedEfficiencies(std::vector<float>* pedEffs) { mPedEfficiencies.reset(pedEffs); }
   void setDeadChannels(std::vector<int>* deadChs) { mDeadChannels.reset(deadChs); }

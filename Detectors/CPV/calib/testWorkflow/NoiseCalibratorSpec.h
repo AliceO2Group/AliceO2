@@ -121,7 +121,7 @@ class CPVNoiseCalibratorSpec : public o2::framework::Task
 
     for (uint32_t i = 0; i < payloadVec.size(); i++) {
       auto& w = infoVec[i];
-      auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
+      auto image = o2::ccdb::CcdbApi::createObjectImage(&(payloadVec[i]), &w);
       LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
                 << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_BadMap", i}, *image.get()); // vector<char>

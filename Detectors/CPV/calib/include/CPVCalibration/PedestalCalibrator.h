@@ -76,16 +76,16 @@ class PedestalCalibrator final : public o2::calibration::TimeSlotCalibration<o2:
  public:
   PedestalCalibrator();
   ~PedestalCalibrator() final = default;
-  std::vector<o2::ccdb::CcdbObjectInfo> getCcdbInfoPedestalsVector() { return mCcdbInfoPedestalsVec; }
-  std::vector<o2::cpv::Pedestals> getPedestalsVector() { return mPedestalsVec; }
-  std::vector<o2::ccdb::CcdbObjectInfo> getCcdbInfoThresholdsFEEVector() { return mCcdbInfoThresholdsFEEVec; }
-  std::vector<std::vector<int>> getThresholdsFEEVector() { return mThresholdsFEEVec; }
-  std::vector<o2::ccdb::CcdbObjectInfo> getCcdbInfoDeadChannelsVector() { return mCcdbInfoDeadChannelsVec; }
-  std::vector<std::vector<int>> getDeadChannelsVector() { return mDeadChannelsVec; }
-  std::vector<o2::ccdb::CcdbObjectInfo> getCcdbInfoHighPedChannelsVector() { return mCcdbInfoHighPedChannelsVec; }
-  std::vector<std::vector<int>> getHighPedChannelsVector() { return mHighPedChannelsVec; }
-  std::vector<o2::ccdb::CcdbObjectInfo> getCcdbInfoEfficienciesVector() { return mCcdbInfoPedEfficienciesVec; }
-  std::vector<std::vector<float>> getEfficienciesVector() { return mPedEfficienciesVec; }
+  std::vector<o2::ccdb::CcdbObjectInfo>& getCcdbInfoPedestalsVector() { return mCcdbInfoPedestalsVec; }
+  const std::vector<o2::cpv::Pedestals>& getPedestalsVector() const { return mPedestalsVec; }
+  std::vector<o2::ccdb::CcdbObjectInfo>& getCcdbInfoThresholdsFEEVector() { return mCcdbInfoThresholdsFEEVec; }
+  const std::vector<std::vector<int>>& getThresholdsFEEVector() const { return mThresholdsFEEVec; }
+  std::vector<o2::ccdb::CcdbObjectInfo>& getCcdbInfoDeadChannelsVector() { return mCcdbInfoDeadChannelsVec; }
+  const std::vector<std::vector<int>>& getDeadChannelsVector() const { return mDeadChannelsVec; }
+  std::vector<o2::ccdb::CcdbObjectInfo>& getCcdbInfoHighPedChannelsVector() { return mCcdbInfoHighPedChannelsVec; }
+  const std::vector<std::vector<int>>& getHighPedChannelsVector() const { return mHighPedChannelsVec; }
+  std::vector<o2::ccdb::CcdbObjectInfo>& getCcdbInfoEfficienciesVector() { return mCcdbInfoPedEfficienciesVec; }
+  const std::vector<std::vector<float>>& getEfficienciesVector() const { return mPedEfficienciesVec; }
 
   bool hasEnoughData(const PedestalTimeSlot& slot) const final
   {

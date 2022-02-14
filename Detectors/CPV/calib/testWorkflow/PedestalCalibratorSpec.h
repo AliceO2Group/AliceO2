@@ -115,7 +115,7 @@ class CPVPedestalCalibratorSpec : public o2::framework::Task
   }
 
   template <class Payload>
-  bool sendOutputWhat(const std::vector<Payload>& payloadVec, std::vector<o2::ccdb::CcdbObjectInfo>&& infoVec, header::DataDescription what, DataAllocator& output)
+  bool sendOutputWhat(const std::vector<Payload>& payloadVec, std::vector<o2::ccdb::CcdbObjectInfo>& infoVec, header::DataDescription what, DataAllocator& output)
   {
     assert(payloadVec.size() == infoVec.size());
     if (!payloadVec.size()) {
