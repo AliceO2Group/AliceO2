@@ -130,7 +130,7 @@ std::vector<T> readDigits()
   std::vector<T> result;
   DataDecoder dd(handlePacketStoreAsVec<T>(result), nullptr, 0, "", "", false, false, useDummyElecMap);
 
-  auto buffer = getBuffer("mch.raw");
+  auto buffer = getBuffer("MCH.raw");
   dd.decodeBuffer(buffer);
   return result;
 }
