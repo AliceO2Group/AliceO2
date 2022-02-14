@@ -221,10 +221,12 @@ endif()
 
 if(CONFIG_FMT)
   target_link_libraries(standalone_support PUBLIC fmt::fmt)
+  target_link_libraries(TPCFastTransformation PUBLIC fmt::fmt)
 endif()
 
 if(CONFIG_VC)
   target_link_libraries(standalone_support PUBLIC Vc::Vc)
+  target_link_libraries(TPCFastTransformation PUBLIC Vc::Vc)
 endif()
 
 if(BUILD_EVENT_DISPLAY)
@@ -247,10 +249,6 @@ if(CONFIG_ROOT)
 endif()
 if(CONFIG_O2_EXTENSIONS)
   target_link_libraries(standalone_support PUBLIC Microsoft.GSL::GSL TPCFastTransformation)
-endif()
-
-if(CONFIG_VC)
-  target_link_libraries(TPCFastTransformation PUBLIC Vc::Vc)
 endif()
 
 if(OpenMP_CXX_FOUND)
