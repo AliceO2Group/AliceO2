@@ -259,9 +259,11 @@ o2::base::Propagator* GPUParam::GetDefaultO2Propagator(bool useGPUField) const
 {
   o2::base::Propagator* prop = nullptr;
 #ifdef GPUCA_HAVE_O2HEADERS
+#ifdef GPUCA_STANDALONE
   if (useGPUField == false) {
     throw std::runtime_error("o2 propagator withouzt gpu field unsupported");
   }
+#endif
   prop = o2::base::Propagator::Instance(useGPUField);
   if (useGPUField) {
     prop->setGPUField(&polynomialField);
