@@ -307,15 +307,27 @@ bool GPUChainTracking::ValidateSettings()
   }
   if (GetRecoSteps() & RecoStep::TRDTracking) {
     if (GetProcessingSettings().trdTrackModelO2 && (GetProcessingSettings().createO2Output == 0 || param().rec.tpc.nWaysOuter == 0 || GetMatLUT() == nullptr)) {
-      GPUError("TRD tracking can only run on O2 TPC tracks if createO2Output is enabled, nWaysOuter is set, and matBudLUT is available");
+      GPUError("TRD tracking can only run on O2 TPC tracks if createO2Output is enabled (%d), nWaysOuter is set (%d), and matBudLUT is available (0x%p)", (int)GetProcessingSettings().createO2Output, (int)param().rec.tpc.nWaysOuter, (void*)GetMatLUT());
       return false;
     }
     if ((GetRecoStepsGPU() & RecoStep::TRDTracking) && !GetProcessingSettings().trdTrackModelO2 && GetProcessingSettings().createO2Output > 1) {
       GPUError("TRD tracking can only run on GPU TPC tracks if the createO2Output setting does not suppress them");
       return false;
     }
+    if ((GetRecoStepsGPU() & RecoStep::TRDTracking) && (param().rec.trd.useExternalO2DefaultPropagator || !GetProcessingSettings().internalO2PropagatorGPUField)) {
+      GPUError("Cannot use TRD tracking on GPU with external default o2::Propagator or without GPU polynomial field map");
+      return false;
+    }
   }
   return true;
+}
+
+int GPUChainTracking::EarlyConfigure()
+{
+  if (GetProcessingSettings().useInternalO2Propagator) {
+    SetDefaultInternalO2Propagator(GetProcessingSettings().internalO2PropagatorGPUField);
+  }
+  return 0;
 }
 
 int GPUChainTracking::Init()
@@ -817,10 +829,10 @@ void GPUChainTracking::ClearErrorCodes()
   TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mInputsHost->mResourceErrorCodes, 0);
 }
 
-void GPUChainTracking::SetDefaultO2PropagatorForGPU()
+void GPUChainTracking::SetDefaultInternalO2Propagator(bool useGPUField)
 {
 #ifdef GPUCA_HAVE_O2HEADERS
-  o2::base::Propagator* prop = param().GetDefaultO2Propagator(true);
+  o2::base::Propagator* prop = param().GetDefaultO2Propagator(useGPUField);
   prop->setMatLUT(processors()->calibObjects.matLUT);
   SetO2Propagator(prop);
 #endif

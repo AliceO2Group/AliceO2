@@ -286,20 +286,24 @@ void GPUTRDTracker_t<TRDTRK, PROP>::StartDebugging()
 #endif //! GPUCA_GPUCODE
 
 template <>
-GPUdi() const GPUTRDPropagatorGPU::propagatorParam* GPUTRDTracker_t<GPUTRDTrackGPU, GPUTRDPropagatorGPU>::getPropagatorParam()
+GPUdi() const GPUTRDPropagatorGPU::propagatorParam* GPUTRDTracker_t<GPUTRDTrackGPU, GPUTRDPropagatorGPU>::getPropagatorParam(bool externalDefaultO2Propagator)
 {
   return &Param().polynomialField;
 }
 
 template <class TRDTRK, class PROP>
-GPUdi() const typename PROP::propagatorParam* GPUTRDTracker_t<TRDTRK, PROP>::getPropagatorParam()
+GPUdi() const typename PROP::propagatorParam* GPUTRDTracker_t<TRDTRK, PROP>::getPropagatorParam(bool externalDefaultO2Propagator)
 {
 #ifdef GPUCA_GPUCODE
   return GetConstantMem()->calibObjects.o2Propagator;
 #elif defined GPUCA_ALIROOT_LIB
   return nullptr;
 #else
-  return o2::base::Propagator::Instance();
+  if (externalDefaultO2Propagator) {
+    return o2::base::Propagator::Instance();
+  } else {
+    return GetConstantMem()->calibObjects.o2Propagator;
+  }
 #endif
 }
 
@@ -402,7 +406,7 @@ GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::DoTrackingThread(int iTrk, int thread
       return;
     }
   }
-  PROP prop(getPropagatorParam());
+  PROP prop(getPropagatorParam(Param().rec.trd.useExternalO2DefaultPropagator));
   mTracks[iTrk].setChi2(Param().rec.trd.penaltyChi2); // TODO check if this should not be higher
   auto trkStart = mTracks[iTrk];
   for (int iColl = 0; iColl < nCollisionIds; ++iColl) {

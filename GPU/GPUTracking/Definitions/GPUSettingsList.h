@@ -91,6 +91,7 @@ AddOptionRTC(extraRoadY, float, 2.f, "", 0, "Addition to search road around trac
 AddOptionRTC(extraRoadZ, float, 0.f, "", 0, "Addition to search road around track prolongation along Z in cm")
 AddOptionRTC(applyDeflectionCut, unsigned char, 0, "", 0, "Set to 1 to enable tracklet selection based on deflection")
 AddOptionRTC(stopTrkAfterNMissLy, unsigned char, 6, "", 0, "Abandon track following after N layers without a TRD match")
+AddOptionRTC(useExternalO2DefaultPropagator, unsigned char, 0, "", 0, "Use the default instance of the o2::Propagator, instead of the GPU Reconstruciton one with GPU B field")
 AddHelp("help", 'h')
 EndConfig()
 
@@ -174,6 +175,8 @@ AddOption(tpcIncreasedMinClustersPerRow, unsigned int, 0, "", 0, "Impose a minim
 AddOption(noGPUMemoryRegistration, bool, false, "", 0, "Do not register input / output memory for GPU dma transfer")
 AddOption(automaticQPtThresholds, bool, true, "", 0, "Update the QPt thresholde at initialization accoding to the B field (i.e. lower to 40% for B=0.2T)")
 AddOption(calibObjectsExtraMemorySize, unsigned long, 10ul * 1024 * 1024, "", 0, "Extra spare memory added for calibration object buffer, to allow fow updates with larger objects")
+AddOption(useInternalO2Propagator, bool, false, "", 0, "Uses an internal (in GPUChainTracking) version of o2::Propagator, which internal b-field, matlut, etc.")
+AddOption(internalO2PropagatorGPUField, bool, true, "", 0, "Makes the internal O2 propagator use the fast GPU polynomial b field approximation")
 AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayFrontend*, nullptr)
 AddSubConfig(GPUSettingsProcessingRTC, rtc)
 AddHelp("help", 'h')
