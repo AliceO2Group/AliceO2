@@ -885,7 +885,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
       if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
         if (mTRDTrackIds[i] != -1 && mIOPtrs->nTRDTracklets) {
           auto tmpDoTRDTracklets = [&](auto* trdTracks) {
-            auto& trk = mIOPtrs->trdTracks[mTRDTrackIds[i]];
+            auto& trk = trdTracks[mTRDTrackIds[i]];
             for (int k = 5; k >= 0; k--) {
               int cid = trk.getTrackletIndex(k);
               if (cid < 0) {
