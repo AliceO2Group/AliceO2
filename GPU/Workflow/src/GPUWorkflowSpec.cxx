@@ -243,6 +243,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       // Create and forward data objects for TPC transformation, material LUT, ...
       if (confParam.transformationFile.size()) {
         processAttributes->fastTransform = nullptr;
+        LOG(info) << "Reading TPC transformation map from file " << confParam.transformationFile;
         config.configCalib.fastTransform = TPCFastTransform::loadFromFile(confParam.transformationFile.c_str());
       } else {
         processAttributes->fastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
@@ -253,7 +254,11 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       }
 
       if (confParam.matLUTFile.size()) {
+        LOGP(info, "Loading matlut file {}", confParam.matLUTFile.c_str());
         config.configCalib.matLUT = o2::base::MatLayerCylSet::loadFromFile(confParam.matLUTFile.c_str());
+        if (config.configCalib.matLUT == nullptr) {
+          LOGF(fatal, "Error loading matlut file");
+        }
       }
 
       // load from file
