@@ -173,8 +173,7 @@ int genEvents::GenerateEvent(const GPUParam& param, char* filename)
     prop.SetPolynomialField(&merger.Param().polynomialField);
   }
 
-  //  const double kCLight = 0.000299792458;
-  // Bz*=kCLight;
+  // Bz*=o2::gpu::gpu_common_constants::kCLight;
 
   std::vector<GenCluster> vClusters;
   int clusterId = 0; // Here we count up the cluster ids we fill (must be unique).

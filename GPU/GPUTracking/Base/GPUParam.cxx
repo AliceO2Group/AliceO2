@@ -16,6 +16,7 @@
 #include "GPUParamRTC.h"
 #include "GPUDef.h"
 #include "GPUCommonMath.h"
+#include "GPUCommonConstants.h"
 #include "GPUTPCGMPolynomialFieldManager.h"
 #include "GPUDataTypes.h"
 #include "GPUConstantMem.h"
@@ -82,8 +83,7 @@ void GPUParam::SetDefaults(float solenoidBz)
 
   par.dAlpha = 0.349066f;
   par.bzkG = solenoidBz;
-  constexpr double kCLight = 0.000299792458f;
-  par.constBz = solenoidBz * kCLight;
+  par.constBz = solenoidBz * GPUCA_NAMESPACE::gpu::gpu_common_constants::kCLight;
   par.dodEdx = 0;
 
   constexpr float plusZmin = 0.0529937;
