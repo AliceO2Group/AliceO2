@@ -259,7 +259,7 @@ class GloFwdAssessment
     {kTH3GMTrackPtEtaMatchScore, R"(p_{t}_{Fit})"},
     {kTH3GMTruePtEtaChi2, R"(p_{t}_{Fit})"},
     {kTH3GMTruePtEtaMatchScore, R"(p_{t}_{Fit})"},
-    {kTH3GMTruePtEtaMatchScore_MC, R"(p_{t}_{MC})"},};
+    {kTH3GMTruePtEtaMatchScore_MC, R"(p_{t}_{MC})"}};
 
   std::map<int, const char*> TH3YaxisTitles{
     {kTH3GMTrackDeltaXDeltaYEta, R"(X_{residual \rightarrow vtx} (\mu m))"},
