@@ -627,6 +627,12 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
 
 void DataProcessingDevice::PreRun()
 {
+  mDeviceContext.state->streaming = StreamingState::Streaming;
+  for (auto &info : mDeviceContext.state->inputChannelInfos) {
+    if (info.state != InputChannelState::Pull) {
+      info.state = InputChannelState::Running;
+    }
+  }
   mServiceRegistry.preStartCallbacks();
   mServiceRegistry.get<CallbackService>()(CallbackService::Id::Start);
   startPollers();
@@ -942,7 +948,6 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     for (auto& poller : context.deviceContext->state->activeOutputPollers) {
       uv_poll_stop(poller);
     }
-    context.deviceContext->state->activeOutputPollers.clear();
     return;
   }
 
@@ -951,7 +956,6 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     for (auto& poller : context.deviceContext->state->activeOutputPollers) {
       uv_poll_stop(poller);
     }
-    context.deviceContext->state->activeOutputPollers.clear();
   }
 
   return;
