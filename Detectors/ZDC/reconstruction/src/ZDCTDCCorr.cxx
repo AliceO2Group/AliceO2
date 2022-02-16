@@ -18,19 +18,6 @@ void ZDCTDCCorr::print() const
 {
   LOG(info) << "o2::zdc::ZDCTDCCorr: NTDCChannels = " << NTDCChannels << " NBCAn = " << NBCAn << " NBucket = " << NBucket << " NFParA = " << NFParA << " NFParT = " << NFParT;
   for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
-    for (int32_t ibuk = 0; ibuk < NBucket; ibuk++) {
-      int nnan = 0;
-      for (int32_t ipar = 0; ipar < NFParA; ipar++) {
-        if (isnan(mAmpSigCorr[itdc][ibuk][ipar])) {
-          nnan++;
-        }
-      }
-      if (nnan > 0) {
-        LOG(warning) << "o2::zdc::ZDCTDCCorr AmpSigCorr: itdc = " << itdc << " bucket " << ibuk << " unassigned = " << nnan;
-      }
-    }
-  }
-  for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
     for (int32_t ibun = 0; ibun < NBCAn; ibun++) {
       int nnan = 0;
       for (int32_t ibukb = 0; ibukb < NBucket; ibukb++) {
@@ -68,22 +55,6 @@ void ZDCTDCCorr::print() const
 
 void ZDCTDCCorr::dump() const
 {
-  printf("std::array<double,NTDCChannels*NBucket*NFParA+1> fit_as_par_sig={\n");
-  for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
-    for (int32_t ibuk = 0; ibuk < NBucket; ibuk++) {
-      for (int32_t ipar = 0; ipar < NFParA; ipar++) {
-        if (isnan(mAmpSigCorr[itdc][ibuk][ipar])) {
-          printf("std::numeric_limits<double>::quiet_NaN(),");
-        } else {
-          printf("%+e,", mAmpSigCorr[itdc][ibuk][ipar]);
-        }
-      }
-      printf(" // as%d_sn%d\n", itdc, ibuk);
-    }
-  }
-  printf("std::numeric_limits<double>::quiet_NaN() // End_of_array\n");
-  printf("};\n\n");
-
   printf("std::array<double,NTDCChannels*NBCAn*NBucket*NBucket*NFParT+1> fit_ts_par={\n");
   for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
     for (int32_t ibcan = 0; ibcan < NBCAn; ibcan++) {
@@ -129,13 +100,6 @@ void ZDCTDCCorr::dump() const
 
 void ZDCTDCCorr::clear()
 {
-  for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
-    for (int32_t ibuk = 0; ibuk < NBucket; ibuk++) {
-      for (int32_t ipar = 0; ipar < NFParA; ipar++) {
-        mAmpSigCorr[itdc][ibuk][ipar] = std::numeric_limits<double>::quiet_NaN();
-      }
-    }
-  }
   for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
     for (int32_t ibun = 0; ibun < NBCAn; ibun++) {
       for (int32_t ibukb = 0; ibukb < NBucket; ibukb++) {

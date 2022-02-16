@@ -23,7 +23,7 @@
 
 using namespace std;
 
-void CreateTDCCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "http://ccdb-test.cern.ch:8080", float def_shift = 14.5)
+void CreateTDCCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "", float def_shift = 12.5)
 {
   o2::zdc::ZDCTDCParam conf;
   // TODO: extract shift from TDC spectra
@@ -42,7 +42,15 @@ void CreateTDCCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "http:
 
   o2::ccdb::CcdbApi api;
   map<string, string> metadata; // can be empty
-  api.init(ccdbHost.c_str());   // or http://localhost:8080 for a local installation
+  if(ccdbHost.size() == 0){
+    ccdbHost = "http://alice-ccdb.cern.ch:8080";
+  }else if(ccdbHost == "test"){
+    ccdbHost = "http://ccdb-test.cern.ch:8080";
+  }else if(ccdbHost == "local"){
+    ccdbHost = "http://localhost:8080";
+  }
+  api.init( ? ccdbHost.c_str() : );
+  LOG(info) << "CCDB server: " << api.getURL();
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(&conf, o2::zdc::CCDBPathTDCCalib, metadata, tmin, tmax);
 

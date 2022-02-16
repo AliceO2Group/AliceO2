@@ -25,19 +25,10 @@
 
 using namespace std;
 
-void CreateTDCCorr(long tmin = 0, long tmax = -1, std::string ccdbHost = "http://alice-ccdb.cern.ch:8080")
+void CreateTDCCorr(long tmin = 0, long tmax = -1, std::string ccdbHost = "")
 {
   o2::zdc::ZDCTDCCorr conf;
   int ipos = 0;
-  for (int32_t itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
-    for (int32_t ibuk = 0; ibuk < o2::zdc::NBucket; ibuk++) {
-      for (int32_t ipar = 0; ipar < o2::zdc::NFParA; ipar++) {
-        conf.mAmpSigCorr[itdc][ibuk][ipar] = o2::zdc::fit_as_par_sig[ipos];
-        ipos++;
-      }
-    }
-  }
-  ipos = 0;
   for (int32_t itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
     for (int32_t ibun = 0; ibun < o2::zdc::NBCAn; ibun++) {
       // N.B. There is an ordering by signal in the flat file
@@ -94,11 +85,19 @@ void CreateTDCCorr(long tmin = 0, long tmax = -1, std::string ccdbHost = "http:/
   }
 
   conf.print();
+  //conf.dump();
 
   o2::ccdb::CcdbApi api;
   map<string, string> metadata; // can be empty
-  api.init(ccdbHost.c_str());   // or http://localhost:8080 for a local installation
-  LOG(info) << "CCDB server: " << ccdbHost;
+  if(ccdbHost.size() == 0){
+    ccdbHost = "http://alice-ccdb.cern.ch:8080";
+  }else if(ccdbHost == "test"){
+    ccdbHost = "http://ccdb-test.cern.ch:8080";
+  }else if(ccdbHost == "local"){
+    ccdbHost = "http://localhost:8080";
+  }
+  api.init(ccdbHost.c_str());
+  LOG(info) << "CCDB server: " << api.getURL();
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(&conf, o2::zdc::CCDBPathTDCCorr, metadata, tmin, tmax);
 

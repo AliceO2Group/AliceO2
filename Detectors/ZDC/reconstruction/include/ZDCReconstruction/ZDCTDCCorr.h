@@ -29,9 +29,8 @@ struct ZDCTDCCorr {
   const static int NParExtC = 4;
   const static int NParMidS = 3;
   const static int NParMidC = 1;
-  std::array<std::array<std::array<float, NFParA>, NBucket>, NTDCChannels> mAmpSigCorr;                                      // Amplitude correction of signal w/o pile-up
-  std::array<std::array<std::array<std::array<std::array<float, NFParT>, NBucket>, NBucket>, NBCAn>, NTDCChannels> mTDCCorr; // TDC correction of signal with pile-up
-  std::array<std::array<std::array<std::array<std::array<float, NFParA>, NBucket>, NBucket>, NBCAn>, NTDCChannels> mAmpCorr; // Amplitude correction of signal with pile-up
+  std::array<std::array<std::array<std::array<std::array<float, NFParT>, NBucket>, NBucket>, NBCAn>, NTDCChannels> mTDCCorr; // Time correction with pile-up
+  std::array<std::array<std::array<std::array<std::array<float, NFParA>, NBucket>, NBucket>, NBCAn>, NTDCChannels> mAmpCorr; // Amplitude correction with pile-up
 
   std::array<std::array<float, NParExtC>, NTDCChannels> mTSBegC; // TDC time correction, constant, beginning of sequence
   std::array<std::array<float, NParMidC>, NTDCChannels> mTSMidC; // TDC time correction, constant, mid of sequence
@@ -40,10 +39,6 @@ struct ZDCTDCCorr {
   std::array<std::array<float, NParMidC>, NTDCChannels> mAFMidC; // TDC amplitude correction, constant, mid of sequence
   std::array<std::array<float, NParExtC>, NTDCChannels> mAFEndC; // TDC amplitude correction, constant, end of sequence
 
-  void SetAmpSigCorr(int itdc, int ibuk, int ipar, float val)
-  {
-    mAmpSigCorr[itdc][ibuk][ipar] = val;
-  }
   void SetTDCCorr(int itdc, int ibun, int ibukb, int ibuks, int ipar, float val)
   {
     mAmpCorr[itdc][ibun][ibukb][ibuks][ipar] = val;

@@ -1585,6 +1585,8 @@ void DigiReco::correctTDCPile()
   }
 } // correctTDCPile
 
+//#define O2_ZDC_DEBUG_CORR
+
 int DigiReco::correctTDCSignal(int itdc, int16_t TDCVal, float TDCAmp, float& FTDCVal, float& FTDCAmp, bool isbeg, bool isend)
 {
   // Correction of single TDC signals
@@ -1684,7 +1686,7 @@ int DigiReco::correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& t
 #endif
   float TDCValBest = TDCValUnc;
   float TDCAmpBest = TDCAmpUnc;
-  int TDCBkBest = -1;
+  int TDCSigBest = -1;
   float dtime = std::numeric_limits<float>::infinity();
   // Try every bucket position
   for (int ibuks = 0; ibuks < NBucket; ibuks++) {
@@ -1728,7 +1730,9 @@ int DigiReco::correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& t
           auto p0 = mTDCCorr->mAmpCorr[itdc][ibun][ibukb][ibuks][0];
           auto p1 = mTDCCorr->mAmpCorr[itdc][ibun][ibukb][ibuks][1];
           auto p2 = mTDCCorr->mAmpCorr[itdc][ibun][ibukb][ibuks][2];
-          // printf("%+e,%+e,%+e, // as%d_bc%+d_bk%d_sn%d\n",p0,p1,p2,itdc,-bcd,ibukb,ibuks);
+#ifdef O2_ZDC_DEBUG_CORR
+          printf("%+e,%+e,%+e, // as%d_bc%+d_bk%d_sn%d\n",p0,p1,p2,itdc,-bcd,ibukb,ibuks);
+#endif
           // Flag error if parameters are NaN
           if (std::isnan(p0) || std::isnan(p1) || std::isnan(p2)) {
             if (bcd == 1) {
@@ -1744,8 +1748,8 @@ int DigiReco::correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& t
             sum[1] += p1;
             sum[2] += p2 * TDCBkgAmp;
             // Flag application of correction and flag error if
-            // there are multiple signals in a bunch (make the test just once)
-            if (ibuks == 0) {
+            // there are multiple signals in a bunch
+            if (ibuks == 0) { // Make the test just once
               if (bcd == 1) {
                 if (rec->tdcPileM1C[isig]) {
                   rec->tdcPileM1E[isig] = true;
@@ -1775,7 +1779,7 @@ int DigiReco::correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& t
       return 1;
     }
     if (nbkg > 0) { // Cross check.. should always be true
-      float TDCAmpUpd = (TDCAmpUnc - sum[0] / float(nbkg) - sum[2]) / (1. + sum[1] / float(nbkg));
+      float TDCAmpUpd = (TDCAmpUnc - sum[0] - sum[2]) / (1. -  float(nbkg) + sum[1]);
       // Compute time correction assuming that time shift is additive
       float tshift = 0;
       for (rit = tdc.rbegin(); rit != tdc.rend(); ++rit) {
@@ -1803,7 +1807,9 @@ int DigiReco::correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& t
           auto p0 = mTDCCorr->mTDCCorr[itdc][ibun][ibukb][ibuks][0];
           auto p1 = mTDCCorr->mTDCCorr[itdc][ibun][ibukb][ibuks][1];
           auto p2 = mTDCCorr->mTDCCorr[itdc][ibun][ibukb][ibuks][2];
-          // printf("%+e,%+e,%+e, // ts%d_bc%d_bk%d_sn%d\n", p0, p1, p2, itdc, -bcd, ibukb, ibuks);
+#ifdef O2_ZDC_DEBUG_CORR
+          printf("%+e,%+e,%+e, // ts%d_bc%d_bk%d_sn%d\n", p0, p1, p2, itdc, -bcd, ibukb, ibuks);
+#endif
           // Flag error if parameters are NaN
           if (std::isnan(p0) || std::isnan(p1)) {
             if (bcd == 1) {
@@ -1815,7 +1821,9 @@ int DigiReco::correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& t
             }
           } else {
             tshift += p0 + p1 / (TDCAmpUpd / TDCBkgAmp);
-            // printf("ibuk = b.%d s.%d = %8.2f AS=%8.2f AB=%4d ts=%8.2f TDC %8.2f -> %8.2f delta=%8.2f ", ibukb, ibuks, TDCBucket, TDCAmpUpd, TDCBkgAmp, tshift, TDCValUnc, TDCValUpd, mydtime);
+#ifdef O2_ZDC_DEBUG_CORR
+            printf("ibuk = b.%d s.%d = %8.2f ts=%8.2f\n", ibukb, ibuks, TDCAmpUpd, TDCBkgAmp, tshift);
+#endif
           }
         }
       }
@@ -1826,24 +1834,24 @@ int DigiReco::correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& t
       // Take into account the possibility that the TDC has been assigned to preceding
       // or successive bunch
       float mydtime = std::min(std::abs(TDCBucket - TDCValUpd), std::min(std::abs(TDCBucket - TDCValUpd - TDCRange), std::abs(TDCBucket - TDCValUpd + TDCRange)));
-#ifdef O2_ZDC_DEBUG
+#ifdef O2_ZDC_DEBUG_CORR
       printf("ibuks = %d = %8.2f AS=%8.2f ts=%8.2f TDC %8.2f -> %8.2f delta=%8.2f\n", ibuks, TDCBucket, TDCAmpUpd, tshift, TDCValUnc, TDCValUpd, mydtime);
 #endif
       if (mydtime < dtime) {
         dtime = mydtime;
         TDCValBest = TDCValUpd;
         TDCAmpBest = TDCAmpUpd;
-        TDCBkBest = ibuks;
+        TDCSigBest = ibuks;
       }
     }
   } // Loop on signal bucket position (ibuks)
-  rec->TDCVal[itdc][0] = std::nearbyint(TDCValBest);
-  rec->TDCAmp[itdc][0] = std::nearbyint(TDCAmpBest);
+  rec->TDCVal[itdc][0] = TDCValBest;
+  rec->TDCAmp[itdc][0] = TDCAmpBest;
 #ifdef O2_ZDC_DEBUG
   if (rec->TDCVal[itdc][0] != TDCValUnc || rec->TDCAmp[itdc][0] != TDCAmpUnc) {
-    printf("%21s ibc=%d itdc=%d", __func__, ibc, itdc);
-    printf(" TDC=%f -> %d bk = %d", TDCValUncBck, rec->TDCVal[itdc][0], TDCBkBest);
-    printf(" AMP=%f -> %d\n", TDCAmpUncBck, rec->TDCAmp[itdc][0]);
+    printf("%21s ibc=%d itdc=%d sn = %d", __func__, ibc, itdc, TDCSigBest);
+    printf(" TDC=%f -> %f", TDCValUncBck, rec->TDCVal[itdc][0]);
+    printf(" AMP=%f -> %f\n", TDCAmpUncBck, rec->TDCAmp[itdc][0]);
   }
 #endif
   return 0;
