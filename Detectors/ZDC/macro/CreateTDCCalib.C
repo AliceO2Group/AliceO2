@@ -42,14 +42,16 @@ void CreateTDCCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "", fl
 
   o2::ccdb::CcdbApi api;
   map<string, string> metadata; // can be empty
-  if(ccdbHost.size() == 0){
+  if (ccdbHost.size() == 0 || ccdbHost == "external") {
     ccdbHost = "http://alice-ccdb.cern.ch:8080";
-  }else if(ccdbHost == "test"){
+  } else if (ccdbHost == "internal") {
+    ccdbHost = "http://o2-ccdb.internal/";
+  } else if (ccdbHost == "test") {
     ccdbHost = "http://ccdb-test.cern.ch:8080";
-  }else if(ccdbHost == "local"){
+  } else if (ccdbHost == "local") {
     ccdbHost = "http://localhost:8080";
   }
-  api.init( ? ccdbHost.c_str() : );
+  api.init(ccdbHost.c_str());
   LOG(info) << "CCDB server: " << api.getURL();
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(&conf, o2::zdc::CCDBPathTDCCalib, metadata, tmin, tmax);

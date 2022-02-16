@@ -135,10 +135,10 @@ int RecEventFlat::next()
     auto mytdc = mTDCData->at(i);
     auto ch = mytdc.ch();
     if (ch < NTDCChannels) {
-      if(mytdc.isBeg()){
+      if (mytdc.isBeg()) {
         isBeg[ch] = true;
       }
-      if(mytdc.isEnd()){
+      if (mytdc.isEnd()) {
         isEnd[ch] = true;
       }
       TDCVal[ch].push_back(mytdc.val);

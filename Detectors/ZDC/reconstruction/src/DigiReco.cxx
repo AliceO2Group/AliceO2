@@ -1731,7 +1731,7 @@ int DigiReco::correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& t
           auto p1 = mTDCCorr->mAmpCorr[itdc][ibun][ibukb][ibuks][1];
           auto p2 = mTDCCorr->mAmpCorr[itdc][ibun][ibukb][ibuks][2];
 #ifdef O2_ZDC_DEBUG_CORR
-          printf("%+e,%+e,%+e, // as%d_bc%+d_bk%d_sn%d\n",p0,p1,p2,itdc,-bcd,ibukb,ibuks);
+          printf("%+e,%+e,%+e, // as%d_bc%+d_bk%d_sn%d\n", p0, p1, p2, itdc, -bcd, ibukb, ibuks);
 #endif
           // Flag error if parameters are NaN
           if (std::isnan(p0) || std::isnan(p1) || std::isnan(p2)) {
@@ -1779,7 +1779,7 @@ int DigiReco::correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& t
       return 1;
     }
     if (nbkg > 0) { // Cross check.. should always be true
-      float TDCAmpUpd = (TDCAmpUnc - sum[0] - sum[2]) / (1. -  float(nbkg) + sum[1]);
+      float TDCAmpUpd = (TDCAmpUnc - sum[0] - sum[2]) / (1. - float(nbkg) + sum[1]);
       // Compute time correction assuming that time shift is additive
       float tshift = 0;
       for (rit = tdc.rbegin(); rit != tdc.rend(); ++rit) {

@@ -36,9 +36,10 @@ class DigiRecoTest
   void setTripleTrigger() { mDR.setTripleTrigger(); }
   void setDoubleTrigger() { mDR.setDoubleTrigger(); }
   void setSingleTrigger() { mDR.setSingleTrigger(); }
-  DigiReco *getDigiReco() { return &mDR; }
+  DigiReco* getDigiReco() { return &mDR; }
   void init();
-  o2::zdc::Digitizer::BCCache &getCreateBCCache(const o2::InteractionRecord &ir){
+  o2::zdc::Digitizer::BCCache& getCreateBCCache(const o2::InteractionRecord& ir)
+  {
     return mDigi.getCreateBCCache(ir);
   }
   double add(int ic, float myAmp, const o2::InteractionRecord irpk, float myShift, bool hasJitter = true)

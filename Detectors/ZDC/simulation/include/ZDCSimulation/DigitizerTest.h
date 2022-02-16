@@ -43,9 +43,9 @@ class DigitizerTest
   void setCCDBServer(const std::string& s) { mCCDBServer = s; }
   void setMask(uint32_t ich, uint32_t mask);
   void init();
-  o2::zdc::Digitizer::BCCache &getCreateBCCache(const o2::InteractionRecord &ir);
+  o2::zdc::Digitizer::BCCache& getCreateBCCache(const o2::InteractionRecord& ir);
   double add(int ic, float myAmp, const o2::InteractionRecord irpk,
-             float myShift, bool hasJitter=true);
+             float myShift, bool hasJitter = true);
   const std::vector<o2::zdc::OrbitData>& getZDCOrbitData() const { return zdcOrbitData; }
   const std::vector<o2::zdc::BCData>& getZDCBCData() const { return zdcBCData; }
   const std::vector<o2::zdc::ChannelData>& getZDCChannelData() const { return zdcChData; }

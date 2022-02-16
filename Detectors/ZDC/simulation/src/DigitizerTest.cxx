@@ -23,7 +23,7 @@ using namespace o2::zdc;
 void DigitizerTest::init()
 {
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-  if(mCCDBServer.size()>0){
+  if (mCCDBServer.size() > 0) {
     mgr.setURL(mCCDBServer);
   }
   LOG(info) << "Initialization of ZDC Test Digitization " << mgr.getURL();
@@ -49,7 +49,7 @@ void DigitizerTest::setMask(uint32_t ich, uint32_t mask)
 
 o2::zdc::Digitizer::BCCache& DigitizerTest::getCreateBCCache(const o2::InteractionRecord& ir)
 {
-  //printf("size = %zu Add %u.%u\n", mCache.size(), ir.orbit, ir.bc);
+  // printf("size = %zu Add %u.%u\n", mCache.size(), ir.orbit, ir.bc);
   if (mCache.empty() || mCache.back() < ir) {
     mCache.emplace_back();
     auto& cb = mCache.back();
@@ -101,7 +101,7 @@ double DigitizerTest::add(int ic, float myAmp, const o2::InteractionRecord irpk,
         if (sample >= 0 && sample < nbx) {
           double y = mSimCondition->channels[ic].shape[sample];
           bc->data[ic][i] += y * myAmp;
-          //LOG(info) << ic << " " << ir.orbit << "." << ir.bc << " s" << i << ") s " << sample << " " << y*myAmp << " -> " << bc->data[ic][i];
+          // LOG(info) << ic << " " << ir.orbit << "." << ir.bc << " s" << i << ") s " << sample << " " << y*myAmp << " -> " << bc->data[ic][i];
         }
         sample += TSN;
       }
@@ -127,9 +127,9 @@ void DigitizerTest::digitize()
                                   gRandom->Gaus(mSimCondition->channels[ic].pedestal,
                                                 mSimCondition->channels[ic].pedestalFluct / 20.));
       }
-      //printf("Adding data for orbit=%u\n", od.ir.orbit);
+      // printf("Adding data for orbit=%u\n", od.ir.orbit);
     }
-    //printf("Adding CH data for bunch=%u\n", bc->bc);
+    // printf("Adding CH data for bunch=%u\n", bc->bc);
     auto& bcd = getCreateBCData(*bc);
     bcd.ref.setFirstEntry(zdcChData.size());
     uint32_t nstored = 0;
@@ -138,8 +138,8 @@ void DigitizerTest::digitize()
       if (bcd.channels & mMask[ic]) {
         Double_t meanp = mSimCondition->channels[ic].pedestal;
         Double_t sigmab = mSimCondition->channels[ic].pedestalFluct;
-        //LOG(info) << ic << " meanp=" << meanp << " sigmab=" << sigmab;
-        // No pedestal oscillations on data. We do it in the orbit data
+        // LOG(info) << ic << " meanp=" << meanp << " sigmab=" << sigmab;
+        //  No pedestal oscillations on data. We do it in the orbit data
         for (int i = 0; i < NTimeBinsPerBC; i++) {
           Double_t yval = TMath::Nint(bc->data[ic][i] + gRandom->Gaus(meanp, sigmab));
           if (yval > ADCMax) {
@@ -149,7 +149,7 @@ void DigitizerTest::digitize()
           }
           // This is not correct but will work for direct digitization
           bc->digi[ic][i] = yval;
-          //LOG(info) << ic << " " << i << ") " << yval;
+          // LOG(info) << ic << " " << i << ") " << yval;
         }
         // Store data in output array
         zdcChData.emplace_back(ic, bc->digi[ic]);

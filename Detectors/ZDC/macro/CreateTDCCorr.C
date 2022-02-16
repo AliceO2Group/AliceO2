@@ -85,17 +85,17 @@ void CreateTDCCorr(long tmin = 0, long tmax = -1, std::string ccdbHost = "")
   }
 
   conf.print();
-  //conf.dump();
+  // conf.dump();
 
   o2::ccdb::CcdbApi api;
   map<string, string> metadata; // can be empty
-  if(ccdbHost.size() == 0 || ccdbHost == "external"){
+  if (ccdbHost.size() == 0 || ccdbHost == "external") {
     ccdbHost = "http://alice-ccdb.cern.ch:8080";
-  }else if(ccdbHost == "internal"){
+  } else if (ccdbHost == "internal") {
     ccdbHost = "http://o2-ccdb.internal/";
-  }else if(ccdbHost == "test"){
+  } else if (ccdbHost == "test") {
     ccdbHost = "http://ccdb-test.cern.ch:8080";
-  }else if(ccdbHost == "local"){
+  } else if (ccdbHost == "local") {
     ccdbHost = "http://localhost:8080";
   }
   api.init(ccdbHost.c_str());

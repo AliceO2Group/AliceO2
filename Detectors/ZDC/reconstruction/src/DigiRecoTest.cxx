@@ -31,7 +31,7 @@ namespace zdc
 void DigiRecoTest::init()
 {
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-  if(mCCDBServer.size()>0){
+  if (mCCDBServer.size() > 0) {
     mgr.setURL(mCCDBServer);
     mDigi.setCCDBServer(mCCDBServer);
   }

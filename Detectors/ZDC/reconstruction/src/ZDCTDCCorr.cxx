@@ -181,7 +181,6 @@ void ZDCTDCCorr::dump() const
   }
   printf("std::numeric_limits<double>::quiet_NaN() // End_of_array\n");
   printf("};\n\n");
-
 }
 
 void ZDCTDCCorr::clear()

@@ -280,7 +280,7 @@ constexpr std::string_view MsgText[] = {
   "TDC pile-up M3 C",
   "TDC pile-up M3 E",
   "TDC signal E"};
-  // End_of_messages
+// End_of_messages
 
 // List of channels that can be calibrated
 constexpr std::array<int, 10> ChEnergyCalib{IdZNAC, IdZNASum, IdZPAC, IdZPASum,
