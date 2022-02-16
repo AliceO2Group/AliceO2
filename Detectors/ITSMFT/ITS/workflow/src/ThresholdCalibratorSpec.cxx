@@ -719,7 +719,7 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
         }
 
         if (this->mRunType == -1) {
-          short int runtype = (short int)(calib.calibUserField >> 24);
+          short int runtype = ((short int)(calib.calibUserField >> 24)) & 0x68;
           this->setRunType(runtype);
         }
         this->mRunTypeUp = (short int)(calib.calibUserField >> 24);
