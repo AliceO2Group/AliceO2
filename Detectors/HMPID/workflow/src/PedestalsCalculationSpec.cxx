@@ -71,7 +71,7 @@ using RDH = o2::header::RDHAny;
 void PedestalsCalculationTask::init(framework::InitContext& ic)
 {
 
-  LOG(info) << "[HMPID Pedestal Calculation - Init] ( create Decoder for " << Geo::MAXEQUIPMENTS << " equipments !";
+  LOG(info) << "[HMPID Pedestal Calculation - v.1 - Init] ( create Decoder for " << Geo::MAXEQUIPMENTS << " equipments !";
 
   mDeco = new o2::hmpid::HmpidDecoder2(Geo::MAXEQUIPMENTS);
   mDeco->init();
@@ -97,7 +97,7 @@ void PedestalsCalculationTask::init(framework::InitContext& ic)
     mDCSDBapi.init(ic.options().get<std::string>("dcsccdb-uri")); // or http://localhost:8080 for a local installation
     mWriteToDCSDB = mDCSDBapi.isHostReachable() ? true : false;
   }
-  mDcsCcdbAliveHours = ic.options().get<bool>("dcsccdb-alivehours");
+  mDcsCcdbAliveHours = ic.options().get<int>("dcsccdb-alivehours");
 
   mExTimer.start();
   LOG(info) << "Calculate Ped/Thresh." + (mWriteToDB ? " Store in DCSCCDB at " + mPedestalsBasePath + " with Tag:" + mPedestalTag : " CCDB not used !");
