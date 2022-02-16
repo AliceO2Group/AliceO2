@@ -17,7 +17,7 @@
 #ifndef AliceO2_TPC_FastHisto_H
 #define AliceO2_TPC_FastHisto_H
 
-//o2 includes
+// o2 includes
 #include "MathUtils/fit.h"
 #include "Framework/Logger.h"
 #include <sstream>
@@ -68,12 +68,12 @@ class FastHisto
   /// this function fills the histogram with given value and weight
   /// \param val value which will be filled in the histogram
   /// \param weight the weight of the filled value
-  void fill(T val, T weight = 1);
+  void fill(const float val, T weight = 1);
 
   /// this function returns the index (bin) for the input value
   /// \return the index of the bin
   /// \param val the value for which the bin index will be returned
-  int findBin(const T val) const;
+  int findBin(const float val) const;
 
   /// this function resets the bin content in the histogram
   void reset()
@@ -172,7 +172,7 @@ class FastHisto
 
 //______________________________________________________________________________
 template <class T>
-inline void FastHisto<T>::fill(T val, T weight)
+inline void FastHisto<T>::fill(const float val, T weight)
 {
   const int indexBin = findBin(val);
   if (indexBin == -1) { // if no underflow/overflow bin is used, but the value should be in the underflow/overflow bin return
@@ -295,8 +295,8 @@ inline math_utils::StatisticsData FastHisto<T>::getStatisticsData(const float lo
     return data;
   }
 
-  //set last bin
-  //TODO move to upper loop
+  // set last bin
+  // TODO move to upper loop
   const float xcenter = mXmin + (bin + 0.5f + shiftBin) * binWidth;
   const T upFrac = mBinCont[bin] - (static_cast<float>(countContent) - upperBound);
   const float tmpMean = upFrac * xcenter;
@@ -317,7 +317,7 @@ inline math_utils::StatisticsData FastHisto<T>::getStatisticsData(const float lo
 }
 
 template <class T>
-inline int FastHisto<T>::findBin(const T val) const
+inline int FastHisto<T>::findBin(const float val) const
 {
   if (val < mXmin) {
     if (!mUseUnderflow) {
