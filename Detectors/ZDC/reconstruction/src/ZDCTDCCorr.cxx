@@ -68,7 +68,7 @@ void ZDCTDCCorr::dump() const
               printf("%+e,", mTDCCorr[itdc][ibcan][ibukb][ibuks][ipar]);
             }
           }
-          printf(" // ts%d_bc%+d_bk%d_sn%d\n", itdc, -NBCAn+ibcan, ibukb, ibuks);
+          printf(" // ts%d_bc%+d_bk%d_sn%d\n", itdc, -NBCAn + ibcan, ibukb, ibuks);
         }
       }
     }
@@ -89,13 +89,99 @@ void ZDCTDCCorr::dump() const
               printf("%+e,", mAmpCorr[itdc][ibcan][ibukb][ibuks][ipar]);
             }
           }
-          printf(" // as%d_bc%+d_bk%d_sn%d\n", itdc, -NBCAn+ibcan, ibukb, ibuks);
+          printf(" // as%d_bc%+d_bk%d_sn%d\n", itdc, -NBCAn + ibcan, ibukb, ibuks);
         }
       }
     }
   }
   printf("std::numeric_limits<double>::quiet_NaN() // End_of_array\n");
   printf("};\n\n");
+
+  // Corrections for single signal
+  printf("std::array<double,o2::zdc::ZDCTDCCorr::NParExtC*o2::zdc::NTDCChannels+1> ts_beg_c={\n");
+  for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
+    for (int32_t ipar = 0; ipar < NParExtC; ipar++) {
+      if (isnan(mTSBegC[itdc][ipar])) {
+        printf("std::numeric_limits<double>::quiet_NaN(),");
+      } else {
+        printf("%+e,", mTSBegC[itdc][ipar]);
+      }
+    }
+    printf(" // ts_beg_c_%d\n", itdc);
+  }
+  printf("std::numeric_limits<double>::quiet_NaN() // End_of_array\n");
+  printf("};\n\n");
+
+  printf("std::array<double,o2::zdc::ZDCTDCCorr::NParMidC*o2::zdc::NTDCChannels+1> ts_mid_c={\n");
+  for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
+    for (int32_t ipar = 0; ipar < NParMidC; ipar++) {
+      if (isnan(mTSMidC[itdc][ipar])) {
+        printf("std::numeric_limits<double>::quiet_NaN(),");
+      } else {
+        printf("%+e,", mTSMidC[itdc][ipar]);
+      }
+    }
+    printf(" // ts_mid_c_%d\n", itdc);
+  }
+  printf("std::numeric_limits<double>::quiet_NaN() // End_of_array\n");
+  printf("};\n\n");
+
+  printf("std::array<double,o2::zdc::ZDCTDCCorr::NParExtC*o2::zdc::NTDCChannels+1> ts_end_c={\n");
+  for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
+    for (int32_t ipar = 0; ipar < NParExtC; ipar++) {
+      if (isnan(mTSEndC[itdc][ipar])) {
+        printf("std::numeric_limits<double>::quiet_NaN(),");
+      } else {
+        printf("%+e,", mTSEndC[itdc][ipar]);
+      }
+    }
+    printf(" // ts_end_c_%d\n", itdc);
+  }
+  printf("std::numeric_limits<double>::quiet_NaN() // End_of_array\n");
+  printf("};\n\n");
+
+  printf("std::array<double,o2::zdc::ZDCTDCCorr::NParExtC*o2::zdc::NTDCChannels+1> af_beg_c={\n");
+  for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
+    for (int32_t ipar = 0; ipar < NParExtC; ipar++) {
+      if (isnan(mAFBegC[itdc][ipar])) {
+        printf("std::numeric_limits<double>::quiet_NaN(),");
+      } else {
+        printf("%+e,", mAFBegC[itdc][ipar]);
+      }
+    }
+    printf(" // af_beg_c_%d\n", itdc);
+  }
+  printf("std::numeric_limits<double>::quiet_NaN() // End_of_array\n");
+  printf("};\n\n");
+
+  printf("std::array<double,o2::zdc::ZDCTDCCorr::NParMidC*o2::zdc::NTDCChannels+1> af_mid_c={\n");
+  for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
+    for (int32_t ipar = 0; ipar < NParMidC; ipar++) {
+      if (isnan(mAFMidC[itdc][ipar])) {
+        printf("std::numeric_limits<double>::quiet_NaN(),");
+      } else {
+        printf("%+e,", mAFMidC[itdc][ipar]);
+      }
+    }
+    printf(" // af_mid_c_%d\n", itdc);
+  }
+  printf("std::numeric_limits<double>::quiet_NaN() // End_of_array\n");
+  printf("};\n\n");
+
+  printf("std::array<double,o2::zdc::ZDCTDCCorr::NParExtC*o2::zdc::NTDCChannels+1> af_end_c={\n");
+  for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
+    for (int32_t ipar = 0; ipar < NParExtC; ipar++) {
+      if (isnan(mAFEndC[itdc][ipar])) {
+        printf("std::numeric_limits<double>::quiet_NaN(),");
+      } else {
+        printf("%+e,", mAFEndC[itdc][ipar]);
+      }
+    }
+    printf(" // af_end_c_%d\n", itdc);
+  }
+  printf("std::numeric_limits<double>::quiet_NaN() // End_of_array\n");
+  printf("};\n\n");
+
 }
 
 void ZDCTDCCorr::clear()
@@ -112,6 +198,32 @@ void ZDCTDCCorr::clear()
           }
         }
       }
+    }
+  }
+  for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
+    // TDC time correction, constant, beginning of sequence
+    for (int32_t ipar = 0; ipar < NParExtC; ipar++) {
+      mTSBegC[itdc][ipar] = std::numeric_limits<double>::quiet_NaN();
+    }
+    // TDC time correction, constant, mid of sequence
+    for (int32_t ipar = 0; ipar < NParMidC; ipar++) {
+      mTSMidC[itdc][ipar] = std::numeric_limits<double>::quiet_NaN();
+    }
+    // TDC time correction, constant, end of sequence
+    for (int32_t ipar = 0; ipar < NParExtC; ipar++) {
+      mTSEndC[itdc][ipar] = std::numeric_limits<double>::quiet_NaN();
+    }
+    // TDC amplitude correction, constant, beginning of sequence
+    for (int32_t ipar = 0; ipar < NParExtC; ipar++) {
+      mAFBegC[itdc][ipar] = std::numeric_limits<double>::quiet_NaN();
+    }
+    // TDC amplitude correction, constant, mid of sequence
+    for (int32_t ipar = 0; ipar < NParMidC; ipar++) {
+      mAFMidC[itdc][ipar] = std::numeric_limits<double>::quiet_NaN();
+    }
+    // TDC amplitude correction, constant, end of sequence
+    for (int32_t ipar = 0; ipar < NParExtC; ipar++) {
+      mAFEndC[itdc][ipar] = std::numeric_limits<double>::quiet_NaN();
     }
   }
 }
