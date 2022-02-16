@@ -119,6 +119,7 @@ o2::framework::DataProcessorSpec getLinkZSToDigitsSpec(int channel, const std::s
       // loop over all inputs
       for (auto& input : pc.inputs()) {
         const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
+        auto payloadSize = DataRefUtils::getPayloadSize(input);
 
         // select only RAW data
         if (dh->dataDescription != o2::header::gDataDescriptionRawData) {
@@ -143,11 +144,11 @@ o2::framework::DataProcessorSpec getLinkZSToDigitsSpec(int channel, const std::s
         processAttributes->activeSectors |= (0x1 << sector);
 
         LOGP(debug, "Specifier: {}/{}/{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification);
-        LOGP(debug, "Payload size: {}", dh->payloadSize);
+        LOGP(debug, "Payload size: {}", payloadSize);
         LOGP(debug, "CRU: {}; linkID: {}; dataWrapperID: {}; globalLinkID: {}", cruID, linkID, dataWrapperID, globalLinkID);
 
         try {
-          o2::framework::RawParser parser(input.payload, dh->payloadSize);
+          o2::framework::RawParser parser(input.payload, payloadSize);
 
           for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
             auto* rdhPtr = it.get_if<o2::header::RAWDataHeader>();
@@ -280,7 +281,7 @@ o2::framework::DataProcessorSpec getLinkZSToDigitsSpec(int channel, const std::s
 
         } catch (const std::runtime_error& e) {
           LOG(alarm) << "can not create raw parser form input data";
-          o2::header::hexDump("payload", input.payload, dh->payloadSize, 64);
+          o2::header::hexDump("payload", input.payload, payloadSize, 64);
           LOG(alarm) << e.what();
         }
       }
