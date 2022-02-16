@@ -138,7 +138,7 @@ class ReadOut
  public:
   struct LinkAddr {
     uint8_t Fee;
-    uint8_t Cru;
+    uint16_t Cru;
     uint8_t Lnk;
     uint8_t Flp;
     std::string_view FlpHostName;
