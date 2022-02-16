@@ -39,6 +39,9 @@ include(O2BuildSanityChecks)
 o2_build_sanity_checks()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+
+find_package(ONNXRuntime::ONNXRuntime CONFIG)
+
 include(O2CheckCXXFeatures)
 o2_check_cxx_features()
 
