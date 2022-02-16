@@ -638,9 +638,11 @@ int DigiReco::reconstruct(int ibeg, int iend)
       mt.w = mBCData[ibun].moduleTriggers[mRopt->amod[ich]];
       hasAuto0[bcd] = mt.f.Auto_0;
       hasAutoM[bcd] = mt.f.Auto_m;
+#ifdef O2_ZDC_DEBUG
       printf("%2d %s bcd = %d ibun = %d ibeg = %d ref = %3u %s %s %s\n",
              ich, ChannelNames[ich].data(), bcd, ibun, ibeg, ref[bcd],
              hasHit[bcd] ? "H" : "-", hasAuto0[bcd] ? "A0" : "--", hasAutoM[bcd] ? "AM" : "--");
+#endif
     }
     // Analyze all bunches
     for (int ibun = ibeg; ibun <= iend; ibun++) {

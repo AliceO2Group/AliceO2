@@ -23,7 +23,7 @@
 
 using namespace std;
 
-void CreateSimCondition(std::string sourceDataPath = "signal_shapes.root", long tmin = 0, long tmax = -1, std::string ccdbHost = "")
+void CreateSimCondition_pp(std::string sourceDataPath = "signal_shapes.root", long tmin = 0, long tmax = -1, std::string ccdbHost = "")
 {
   TFile sourceData(sourceDataPath.c_str());
   if (!sourceData.IsOpen() || sourceData.IsZombie()) {
@@ -32,7 +32,7 @@ void CreateSimCondition(std::string sourceDataPath = "signal_shapes.root", long 
   o2::zdc::SimCondition conf;
 
   const float Gains[5] = {15.e-3, 30.e-3, 100.e-3, 15.e-3, 30.e-3}; // gain (response per photoelectron)
-  const float fudgeFactor = 2.7;                                    // ad hoc factor to tune the gain in the MC
+  const float fudgeFactor = 120;                                    // ad hoc factor to tune the gain in the MC
 
   // Source of line shapes, pedestal and noise for each channel
   // Missing histos for: towers 1-4 of all calorimeters, zem1, all towers of zpc

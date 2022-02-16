@@ -38,6 +38,17 @@ void CreateTDCCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "", fl
   conf.setShift(o2::zdc::TDCZPCC, def_shift);
   conf.setShift(o2::zdc::TDCZPCS, def_shift);
 
+  conf.setFactor(o2::zdc::TDCZNAC, 1.);
+  conf.setFactor(o2::zdc::TDCZNAS, 1.);
+  conf.setFactor(o2::zdc::TDCZPAC, 1.);
+  conf.setFactor(o2::zdc::TDCZPAS, 1.);
+  conf.setFactor(o2::zdc::TDCZEM1, 1.);
+  conf.setFactor(o2::zdc::TDCZEM2, 1.);
+  conf.setFactor(o2::zdc::TDCZNCC, 1.);
+  conf.setFactor(o2::zdc::TDCZNCS, 1.);
+  conf.setFactor(o2::zdc::TDCZPCC, 1.);
+  conf.setFactor(o2::zdc::TDCZPCS, 1.);
+
   conf.print();
 
   o2::ccdb::CcdbApi api;
