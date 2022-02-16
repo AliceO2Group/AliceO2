@@ -58,7 +58,7 @@ static constexpr const char* jsonKeyDefault = "default";
 static constexpr const char* jsonKeyCuts = "cuts";
 static constexpr const char* jsonKeyProcesses = "processes";
 static constexpr const char* jsonKeyEnableSpecialCuts = "enableSpecialCuts";
-static constexpr const char* jsonKeyEnableSpecialProcesses = "uenableSpecialProcesses";
+static constexpr const char* jsonKeyEnableSpecialProcesses = "enableSpecialProcesses";
 } // namespace
 
 const std::unordered_map<EProc, const char*> MaterialManager::mProcessIDToName = {
