@@ -55,7 +55,7 @@ class PedestalsCalculationTask : public framework::Task
   o2::ccdb::CcdbApi mDCSDBapi;
   bool mWriteToDCSDB;
   int mDcsCcdbAliveHours;
- 
+
   bool mFastAlgorithm;
   ExecutionTimer mExTimer;
 };

@@ -300,8 +300,8 @@ void PedestalsCalculationTask::recordPedInCcdb()
   }
 
   long minTimeStamp = o2::ccdb::getCurrentTimestamp();
-  long maxTimeStamp = o2::ccdb::getFutureTimestamp(60 * 60 * 24 * (5*365) ); // 5 years
-  
+  long maxTimeStamp = o2::ccdb::getFutureTimestamp(60 * 60 * 24 * (5 * 365)); // 5 years
+
   for (int i = 0; i < Geo::N_MODULES; i++) {
     if (mDeco->getAverageEventSize(i * 2) == 0 && mDeco->getAverageEventSize(i * 2 + 1) == 0) {
       continue; // If no events skip the chamber
