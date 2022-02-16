@@ -23,7 +23,7 @@
 
 using namespace std;
 
-void CreateSimCondition(std::string sourceDataPath = "signal_shapes.root", long tmin = 0, long tmax = -1, std::string ccdbHost = "")
+void CreateSimCondition(long tmin = 0, long tmax = -1, std::string ccdbHost = "", std::string sourceDataPath = "signal_shapes.root")
 {
   TFile sourceData(sourceDataPath.c_str());
   if (!sourceData.IsOpen() || sourceData.IsZombie()) {
