@@ -134,7 +134,7 @@ void CruCompressorTask::run(ProcessingContext& pc)
       auto headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       auto dataProcessingHeaderIn = DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(ref);
       auto payloadIn = ref.payload;
-      auto payloadInSize = headerIn->payloadSize;
+      auto payloadInSize = DataRefUtils::getPayloadSize(ref);
       std::cout << "payload In is : " << std::hex << payloadIn << std::endl;
       std::cout << "payload In is : " << std::dec << payloadIn << std::endl;
       std::cout << "payload In size is : " << std::dec << payloadInSize << std::endl;
