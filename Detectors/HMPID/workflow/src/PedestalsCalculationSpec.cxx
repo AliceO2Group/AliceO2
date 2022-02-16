@@ -43,6 +43,7 @@
 #include "Framework/Logger.h"
 
 #include "CCDB/CcdbApi.h"
+#include "CCDB/CCDBTimeStampUtils.h"
 
 #include "Headers/RAWDataHeader.h"
 #include "DetectorsRaw/RDHUtils.h"
@@ -87,8 +88,16 @@ void PedestalsCalculationTask::init(framework::InitContext& ic)
     mDBapi.init(ic.options().get<std::string>("ccdb-uri")); // or http://localhost:8080 for a local installation
     mWriteToDB = mDBapi.isHostReachable() ? true : false;
   }
+
   mPedestalTag = ic.options().get<std::string>("pedestals-tag");
   mFastAlgorithm = ic.options().get<bool>("fast-decode");
+
+  mWriteToDCSDB = ic.options().get<bool>("use-dcsccdb");
+  if (mWriteToDCSDB) {
+    mDCSDBapi.init(ic.options().get<std::string>("dcsccdb-uri")); // or http://localhost:8080 for a local installation
+    mWriteToDCSDB = mDCSDBapi.isHostReachable() ? true : false;
+  }
+  mDcsCcdbAliveHours = ic.options().get<bool>("dcsccdb-alivehours");
 
   mExTimer.start();
   LOG(info) << "Calculate Ped/Thresh." + (mWriteToDB ? " Store in DCSCCDB at " + mPedestalsBasePath + " with Tag:" + mPedestalTag : " CCDB not used !");
@@ -105,6 +114,9 @@ void PedestalsCalculationTask::run(framework::ProcessingContext& pc)
 void PedestalsCalculationTask::endOfStream(framework::EndOfStreamContext& ec)
 {
   if (mWriteToDB) {
+    recordPedInCcdb();
+  }
+  if (mWriteToDCSDB) {
     recordPedInDcsCcdb();
   }
   if (mWriteToFiles) {
@@ -229,11 +241,8 @@ void PedestalsCalculationTask::recordPedInDcsCcdb()
     o2::dcs::addConfigItem(pedestalsConfig, "Equipment" + std::to_string(e), (const char*)outBuffer);
   }
 
-  struct timeval tp;
-  gettimeofday(&tp, nullptr);
-  uint64_t ms = tp.tv_sec * 1000 + tp.tv_usec / 1000;
-  uint64_t minTimeStamp = ms;
-  uint64_t maxTimeStamp = ms + 1;
+  long minTimeStamp = o2::ccdb::getCurrentTimestamp();
+  long maxTimeStamp = o2::ccdb::getFutureTimestamp(60 * 60 * mDcsCcdbAliveHours * 1);
 
   char filename[1024];
   sprintf(filename, "%s/%s/PedThre.root", mPedestalsCCDBBasePath.c_str(), mPedestalTag.c_str());
@@ -243,7 +252,7 @@ void PedestalsCalculationTask::recordPedInDcsCcdb()
   outputFile.Close();
 
   mDbMetadata.emplace("Tag", mPedestalTag.c_str());
-  mDBapi.storeAsTFileAny(&pedestalsConfig, filename, mDbMetadata, minTimeStamp, maxTimeStamp);
+  mDCSDBapi.storeAsTFileAny(&pedestalsConfig, filename, mDbMetadata, minTimeStamp, maxTimeStamp);
 
   mExTimer.logMes("End Writing the pedestals ! Digits decoded = " + std::to_string(mTotalDigits) + " Frames received = " + std::to_string(mTotalFrames));
 
@@ -289,12 +298,10 @@ void PedestalsCalculationTask::recordPedInCcdb()
       }
     }
   }
-  struct timeval tp;
-  gettimeofday(&tp, nullptr);
-  uint64_t ms = tp.tv_sec * 1000 + tp.tv_usec / 1000;
-  uint64_t minTimeStamp = ms;
-  uint64_t maxTimeStamp = ms + 1;
 
+  long minTimeStamp = o2::ccdb::getCurrentTimestamp();
+  long maxTimeStamp = o2::ccdb::getFutureTimestamp(60 * 60 * 24 * (5*365) ); // 5 years
+  
   for (int i = 0; i < Geo::N_MODULES; i++) {
     if (mDeco->getAverageEventSize(i * 2) == 0 && mDeco->getAverageEventSize(i * 2 + 1) == 0) {
       continue; // If no events skip the chamber
@@ -359,6 +366,9 @@ o2::framework::DataProcessorSpec getPedestalsCalculationSpec(std::string inputSp
             {"use-files", VariantType::Bool, false, {"Register the Pedestals/Threshold values into ASCII files"}},
             {"use-ccdb", VariantType::Bool, true, {"Register the Pedestals/Threshold values into the CCDB"}},
             {"ccdb-uri", VariantType::String, "http://ccdb-test.cern.ch:8080", {"URI for the CCDB access."}},
+            {"use-dcsccdb", VariantType::Bool, true, {"Register the Pedestals/Threshold values into the DCS-CCDB"}},
+            {"dcsccdb-uri", VariantType::String, "http://ccdb-test.cern.ch:8080", {"URI for the DCS-CCDB access."}},
+            {"dcsccdb-alivehours", VariantType::Int, 3, {"Alive hours in DCS-CCDB."}},
             {"fast-decode", VariantType::Bool, true, {"Use the fast algorithm. (error 0.8%)"}},
             {"pedestals-tag", VariantType::String, "Latest", {"The tag applied to this set of pedestals/threshold values"}},
             {"sigmacut", VariantType::Float, 4.0f, {"Sigma values for the Thresholds calculation."}}}};
