@@ -44,6 +44,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
     {"debug", VariantType::Bool, false, {"create debug files"}},
     {"propagateIDCs", VariantType::Bool, false, {"IDCs will not be grouped and just send out."}},
+    {"loadStatusMap", VariantType::Bool, false, {"Loading pad status map from the CCDB."}},
     {"lanes", VariantType::Int, defaultlanes, {"Number of parallel processing lanes (crus are split per device)."}},
     {"time-lanes", VariantType::Int, 1, {"Number of parallel processing lanes (timeframes are split per device)."}},
     {"nthreads", VariantType::Int, 1, {"Number of threads which will be used during averaging and grouping."}},
@@ -73,6 +74,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const auto crusPerLane = nCRUs / nLanes + ((nCRUs % nLanes) != 0);
   const auto debug = config.options().get<bool>("debug");
   const auto propagateIDCs = config.options().get<bool>("propagateIDCs");
+  const auto loadStatusMap = config.options().get<bool>("loadStatusMap");
   const auto nthreads = static_cast<unsigned long>(config.options().get<int>("nthreads"));
   IDCAverageGroup<IDCAverageGroupCRU>::setNThreads(nthreads);
   const auto rangeIDC = static_cast<unsigned int>(config.options().get<int>("rangeIDC"));
@@ -102,7 +104,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     }
     const auto last = std::min(tpcCRUs.end(), first + crusPerLane);
     const std::vector<uint32_t> rangeCRUs(first, last);
-    propagateIDCs ? workflow.emplace_back(timePipeline(getTPCFLPIDCSpec<TPCFLPIDCDeviceNoGroup>(ilane, rangeCRUs, rangeIDC, debug, loadFromFile), time_lanes)) : workflow.emplace_back(timePipeline(getTPCFLPIDCSpec<TPCFLPIDCDeviceGroup>(ilane, rangeCRUs, rangeIDC, debug, loadFromFile), time_lanes));
+    propagateIDCs ? workflow.emplace_back(timePipeline(getTPCFLPIDCSpec<TPCFLPIDCDeviceNoGroup>(ilane, rangeCRUs, rangeIDC, debug, loadFromFile, loadStatusMap), time_lanes)) : workflow.emplace_back(timePipeline(getTPCFLPIDCSpec<TPCFLPIDCDeviceGroup>(ilane, rangeCRUs, rangeIDC, debug, loadFromFile, loadStatusMap), time_lanes));
   }
 
   return workflow;

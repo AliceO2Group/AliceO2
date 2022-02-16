@@ -106,6 +106,12 @@ class TPCDistributeIDCSpec : public o2::framework::Task
     const bool currentBuffer = (tf > mTFEnd[mBuffer]) ? !mBuffer : mBuffer;
     const unsigned int currentOutLane = (tf > mTFEnd[mBuffer]) ? (mCurrentOutLane + 1) % mOutLanes : mCurrentOutLane;
     const auto relTF = tf - mTFStart[currentBuffer];
+    LOGP(info, "current TF: {}   relative TF: {}    current buffer: {}    current output lane", tf, relTF, currentBuffer, currentOutLane);
+
+    if (relTF > mProcessedCRU[currentBuffer].size()) {
+      LOGP(error, "Skipping tf {}: relative tf {} is larger than size of buffer: {}", tf, relTF, mProcessedCRU[currentBuffer].size());
+      return;
+    }
 
     if (!mLoadFromFile) {
       for (auto& ref : InputRecordWalker(pc.inputs(), mFilter)) {
@@ -114,20 +120,27 @@ class TPCDistributeIDCSpec : public o2::framework::Task
         const int cru = tpcCRUHeader->subSpecification >> 7;
         const auto descr = tpcCRUHeader->dataDescription;
         if (TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescriptionIDCGroup() == descr) {
+          LOGP(info, "receiving IDCs for CRU: {}", cru);
           mIDCs[currentBuffer][cru][relTF] = std::move(pc.inputs().get<pmr::vector<float>>(ref));
         } else {
+          LOGP(info, "receiving 1D IDCs for CRU: {}", cru);
           mOneDIDCs[currentBuffer][cru][relTF] = std::move(pc.inputs().get<pmr::vector<float>>(ref));
         }
       }
     }
 
+    LOGP(info, "number of received CRUs for current TF: {}    Needed a total number of processed CRUs of: {}", mProcessedCRU[currentBuffer][relTF], 2 * mCRUs.size());
+
     // check if all CRUs for current TF are already aggregated and send data
     if (mProcessedCRU[currentBuffer][relTF] == 2 * mCRUs.size() || mLoadFromFile) {
+      LOGP(info, "All data for current TF received. Sending data...");
       ++mProcessedTFs[currentBuffer];
       sendOutput(pc, currentOutLane, currentBuffer, relTF);
     }
 
     if (mProcessedTFs[currentBuffer] == mTimeFrames) {
+      LOGP(info, "All TFs for current buffer received. Clearing buffer");
+
       mProcessedTFs[currentBuffer] = 0; // reset processed TFs for next aggregation interval
       std::fill(mProcessedCRU[currentBuffer].begin(), mProcessedCRU[currentBuffer].end(), 0);
 

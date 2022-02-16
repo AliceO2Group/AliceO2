@@ -100,25 +100,6 @@ void o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupTPC>::init()
 }
 
 template <class Type>
-void o2::tpc::IDCAverageGroup<Type>::updatePadStatusMapFromFile(const char* file, const char* objName)
-{
-  TFile inpfile(file);
-  CalDet<PadFlags>* padStatus{nullptr};
-  inpfile.GetObject(objName, padStatus);
-  if (!padStatus) {
-    LOG(fatal) << "No valid pad flag object was loaded";
-    return;
-  }
-
-  const auto type = padStatus->getPadSubset();
-  if (type != PadSubset::Region) {
-    LOG(fatal) << "Wrong pad subset type! Type must be PadSubset::Region";
-    return;
-  }
-  mPadStatus.reset(padStatus);
-}
-
-template <class Type>
 float o2::tpc::IDCAverageGroup<Type>::normal_dist(const float x, const float sigma)
 {
   const float fac = x / sigma;
@@ -126,19 +107,19 @@ float o2::tpc::IDCAverageGroup<Type>::normal_dist(const float x, const float sig
 }
 
 template <>
-void o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupCRU>::processIDCs()
+void o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupCRU>::processIDCs(const CalDet<PadFlags>* padStatusFlags)
 {
   std::vector<IDCAverageGroupHelper<IDCAverageGroupCRU>> idcStruct(sNThreads, IDCAverageGroupHelper<IDCAverageGroupCRU>{this->mIDCsGrouped, this->mWeightsPad, this->mWeightsRow, this->mIDCsUngrouped, this->mRobustAverage, this->getCRU()});
 #pragma omp parallel for num_threads(sNThreads)
   for (unsigned int integrationInterval = 0; integrationInterval < this->getNIntegrationIntervals(); ++integrationInterval) {
     const unsigned int threadNum = omp_get_thread_num();
     idcStruct[threadNum].set(threadNum, integrationInterval);
-    loopOverGroups(idcStruct[threadNum]);
+    loopOverGroups(idcStruct[threadNum], padStatusFlags);
   }
 }
 
 template <>
-void o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupTPC>::processIDCs()
+void o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupTPC>::processIDCs(const CalDet<PadFlags>* padStatusFlags)
 {
   std::vector<IDCAverageGroupHelper<IDCAverageGroupTPC>> idcStruct(sNThreads, IDCAverageGroupHelper<IDCAverageGroupTPC>{this->mIDCsGrouped, this->mWeightsPad, this->mWeightsRow, this->mIDCsUngrouped, this->mRobustAverage, this->mIDCGroupHelperSector});
   for (int thread = 0; thread < sNThreads; ++thread) {
@@ -152,7 +133,7 @@ void o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupTPC>::processIDCs()
     idcStruct[threadNum].setCRU(cru);
     for (unsigned int integrationInterval = 0; integrationInterval < this->getNIntegrationIntervals(cru.side()); ++integrationInterval) {
       idcStruct[threadNum].setIntegrationInterval(integrationInterval);
-      loopOverGroups(idcStruct[threadNum]);
+      loopOverGroups(idcStruct[threadNum], padStatusFlags);
     }
   }
 }
@@ -272,7 +253,7 @@ void o2::tpc::IDCAverageGroup<Type>::drawGroupingInformations(const int region, 
 
 template <class Type>
 template <class LoopType>
-void o2::tpc::IDCAverageGroup<Type>::loopOverGroups(IDCAverageGroupHelper<LoopType>& idcStruct)
+void o2::tpc::IDCAverageGroup<Type>::loopOverGroups(IDCAverageGroupHelper<LoopType>& idcStruct, const CalDet<PadFlags>* padStatusFlags)
 {
   const unsigned int region = idcStruct.getRegion();
   const int groupRows = idcStruct.getGroupRows();
@@ -280,6 +261,7 @@ void o2::tpc::IDCAverageGroup<Type>::loopOverGroups(IDCAverageGroupHelper<LoopTy
   const int lastRow = idcStruct.getLastRow();
   const int groupPadsSectorEdges = idcStruct.getTotalGroupPadsSectorEdges();
   unsigned int rowGrouped = 0;
+  const bool applyWeights = mOverlapRows && mOverlapPads;
 
   if (groupPadsSectorEdges) {
     const auto groupingType = idcStruct.getEdgePadGroupingType();
@@ -306,9 +288,11 @@ void o2::tpc::IDCAverageGroup<Type>::loopOverGroups(IDCAverageGroupHelper<LoopTy
               const int padInRegion = Mapper::OFFSETCRULOCAL[region][irow] + ungroupedPad;
 
               if constexpr (std::is_same_v<LoopType, IDCAverageGroupCRU> || std::is_same_v<LoopType, IDCAverageGroupTPC>) {
-                const auto flag = mPadStatus->getCalArray(idcStruct.getCRU()).getValue(padInRegion);
-                if (flag == PadFlags::flagDeadPad) {
-                  continue;
+                if (padStatusFlags) {
+                  const auto flag = padStatusFlags->getCalArray(idcStruct.getCRU()).getValue(padInRegion);
+                  if ((flag & PadFlags::flagSkip) == PadFlags::flagSkip) {
+                    continue;
+                  }
                 }
                 idcStruct.addValue(padInRegion, 1);
               } else {
@@ -319,7 +303,6 @@ void o2::tpc::IDCAverageGroup<Type>::loopOverGroups(IDCAverageGroupHelper<LoopTy
             ++pad;
           }
           if constexpr (std::is_same_v<LoopType, IDCAverageGroupCRU> || std::is_same_v<LoopType, IDCAverageGroupTPC>) {
-            const auto groupedIDCVal = idcStruct.getGroupedIDC();
             const int ungroupedPad = !iYLocalSide ? pad - 1 : Mapper::PADSPERROW[region][ulrow] - pad;
             idcStruct.setSectorEdgeIDC(ulrow, ungroupedPad);
             idcStruct.clearRobustAverage();
@@ -369,17 +352,16 @@ void o2::tpc::IDCAverageGroup<Type>::loopOverGroups(IDCAverageGroupHelper<LoopTy
             // averaging and grouping
             if constexpr (std::is_same_v<LoopType, IDCAverageGroupCRU> || std::is_same_v<LoopType, IDCAverageGroupTPC>) {
               // check status flag
-              const auto flag = mPadStatus->getCalArray(idcStruct.getCRU()).getValue(padInRegion);
-
-              // TODO add more cases...
-              if (flag == PadFlags::flagDeadPad) {
-                // dead pad. just skip this
-                continue;
+              if (padStatusFlags) {
+                const auto flag = padStatusFlags->getCalArray(idcStruct.getCRU()).getValue(padInRegion);
+                if ((flag & PadFlags::flagSkip) == PadFlags::flagSkip) {
+                  continue;
+                }
               }
 
-              float weight = 1;
               // set weight for outer pads which are not in the main group
-              if (mOverlapRows && mOverlapPads) {
+              if (applyWeights) {
+                float weight = 1;
                 if (iRowMerge < 0) {
                   // everything on the left border
                   const int relPosRow = std::abs(iRowMerge);
@@ -412,8 +394,11 @@ void o2::tpc::IDCAverageGroup<Type>::loopOverGroups(IDCAverageGroupHelper<LoopTy
                   weight = idcStruct.getWeightPad(relPadPos);
                 } else {
                 }
+                idcStruct.addValue(padInRegion, weight);
+              } else {
+                idcStruct.addValue(padInRegion);
               }
-              idcStruct.addValue(padInRegion, weight);
+
             } else {
               // drawing the grouping
               const GlobalPadNumber padNum = o2::tpc::Mapper::getGlobalPadNumber(ungroupedRow, ungroupedPad, region);
@@ -423,7 +408,7 @@ void o2::tpc::IDCAverageGroup<Type>::loopOverGroups(IDCAverageGroupHelper<LoopTy
           }
         }
         if constexpr (std::is_same_v<LoopType, IDCAverageGroupCRU> || std::is_same_v<LoopType, IDCAverageGroupTPC>) {
-          idcStruct.setGroupedIDC(rowGrouped, padGrouped);
+          idcStruct.setGroupedIDC(rowGrouped, padGrouped, applyWeights);
         } else {
           ++idcStruct.mGroupCounter;
           ++idcStruct.mCol;
@@ -459,21 +444,6 @@ bool o2::tpc::IDCAverageGroup<Type>::setFromFile(const char* fileName, const cha
 
   delete idcAverageGroupTmp;
   return true;
-}
-
-template <class Type>
-void o2::tpc::IDCAverageGroup<Type>::drawPadStatusMap(const bool type, const Sector sector, const std::string filename) const
-{
-  std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> idcFunc = [this](const unsigned int sector, const unsigned int region, const unsigned int row, const unsigned int pad) {
-    const unsigned int padInRegion = Mapper::OFFSETCRULOCAL[region][row] + pad;
-    const auto flag = mPadStatus->getCalArray(region + sector * Mapper::NREGIONS).getValue(padInRegion);
-    return static_cast<float>(flag);
-  };
-
-  IDCDrawHelper::IDCDraw drawFun;
-  drawFun.mIDCFunc = idcFunc;
-  const std::string zAxisTitle = "status flag";
-  type ? IDCDrawHelper::drawSide(drawFun, sector.side(), zAxisTitle, filename) : IDCDrawHelper::drawSector(drawFun, 0, Mapper::NREGIONS, sector, zAxisTitle, filename);
 }
 
 template <>
@@ -615,7 +585,7 @@ void o2::tpc::IDCAverageGroup<Type>::drawLatex(IDCAverageGroupHelper<IDCAverageG
 
 template class o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupCRU>;
 template class o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupTPC>;
-template void o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupCRU>::loopOverGroups(IDCAverageGroupHelper<o2::tpc::IDCAverageGroupCRU>&);
-template void o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupTPC>::loopOverGroups(IDCAverageGroupHelper<o2::tpc::IDCAverageGroupTPC>&);
-template void o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupCRU>::loopOverGroups(IDCAverageGroupHelper<o2::tpc::IDCAverageGroupDraw>&);
-template void o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupTPC>::loopOverGroups(IDCAverageGroupHelper<o2::tpc::IDCAverageGroupDraw>&);
+template void o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupCRU>::loopOverGroups(IDCAverageGroupHelper<o2::tpc::IDCAverageGroupCRU>&, const CalDet<PadFlags>*);
+template void o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupTPC>::loopOverGroups(IDCAverageGroupHelper<o2::tpc::IDCAverageGroupTPC>&, const CalDet<PadFlags>*);
+template void o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupCRU>::loopOverGroups(IDCAverageGroupHelper<o2::tpc::IDCAverageGroupDraw>&, const CalDet<PadFlags>*);
+template void o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupTPC>::loopOverGroups(IDCAverageGroupHelper<o2::tpc::IDCAverageGroupDraw>&, const CalDet<PadFlags>*);

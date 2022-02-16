@@ -74,3 +74,8 @@ void o2::tpc::RobustAverage::addValue(const float value, const float weight)
   mValues.emplace_back(value);
   mWeights.emplace_back(weight);
 }
+
+void o2::tpc::RobustAverage::addValue(const float value)
+{
+  mValues.emplace_back(value);
+}

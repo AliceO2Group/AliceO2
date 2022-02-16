@@ -46,11 +46,10 @@ class IDCAverageGroupBase<IDCAverageGroupCRU>
   /// \param groupRows number of pads in row direction which will be grouped
   /// \param groupLastRowsThreshold minimum number of pads in row direction for the last group in row direction
   /// \param groupLastPadsThreshold minimum number of pads in pad direction for the last group in pad direction
-  /// \param region region of the TPC
-  /// \param sector processed sector
+  /// \param cru cru index
   /// \param nThreads number of CPU threads used
-  IDCAverageGroupBase(const unsigned char groupPads, const unsigned char groupRows, const unsigned char groupLastRowsThreshold, const unsigned char groupLastPadsThreshold, const unsigned int groupNotnPadsSectorEdges, const unsigned int region, const Sector sector, const int nThreads)
-    : mIDCsGrouped{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupNotnPadsSectorEdges, region}, mSector{sector}, mRobustAverage(nThreads){};
+  IDCAverageGroupBase(const unsigned char groupPads, const unsigned char groupRows, const unsigned char groupLastRowsThreshold, const unsigned char groupLastPadsThreshold, const unsigned int groupNotnPadsSectorEdges, const unsigned short cru, const int nThreads)
+    : mIDCsGrouped{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupNotnPadsSectorEdges, cru}, mRobustAverage(nThreads), mSector{CRU(cru).sector()} {};
 
   /// \return returns number of integration intervals for stored ungrouped IDCs
   unsigned int getNIntegrationIntervals() const { return mIDCsUngrouped.size() / Mapper::PADSPERREGION[getRegion()]; }
