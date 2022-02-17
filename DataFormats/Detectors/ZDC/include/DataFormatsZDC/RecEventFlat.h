@@ -112,7 +112,8 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
     return mNI;
   }
 
-  const std::vector<uint16_t> &getDecodedInfo(){
+  const std::vector<uint16_t>& getDecodedInfo()
+  {
     return mDecodedInfo;
   }
 
