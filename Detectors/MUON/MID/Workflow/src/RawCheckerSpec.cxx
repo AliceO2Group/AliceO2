@@ -77,6 +77,11 @@ class RawCheckerDeviceDPL
     mOutFile.open(outFilename.c_str());
 
     auto stop = [this]() {
+      if constexpr (std::is_same_v<RAWCHECKER, RawDataChecker>) {
+        if (!mChecker.checkMissingLinks()) {
+          mOutFile << mChecker.getDebugMessage() << "\n";
+        }
+      }
       bool hasProcessed = (mChecker.getNEventsProcessed() > 0);
       double scaleFactor = (mChecker.getNEventsProcessed() > 0) ? 1.e6 / static_cast<double>(mChecker.getNEventsProcessed()) : 0.;
       LOG(info) << "Processing time / " << mChecker.getNEventsProcessed() << " BCs: full: " << mTimer.count() * scaleFactor << " us  checker: " << mTimerAlgo.count() * scaleFactor << " us";
