@@ -242,7 +242,7 @@ void PedestalsCalculationTask::recordPedInDcsCcdb()
   }
 
   long minTimeStamp = o2::ccdb::getCurrentTimestamp();
-  long maxTimeStamp = o2::ccdb::getFutureTimestamp(60 * 60 * mDcsCcdbAliveHours * 1);
+  long maxTimeStamp = minTimeStamp + (3600L * mDcsCcdbAliveHours * 1000);
 
   char filename[1024];
   sprintf(filename, "%s/%s/PedThre.root", mPedestalsCCDBBasePath.c_str(), mPedestalTag.c_str());
@@ -300,7 +300,7 @@ void PedestalsCalculationTask::recordPedInCcdb()
   }
 
   long minTimeStamp = o2::ccdb::getCurrentTimestamp();
-  long maxTimeStamp = o2::ccdb::getFutureTimestamp(60 * 60 * 24 * (5 * 365)); // 5 years
+  long maxTimeStamp = minTimeStamp + (3600L * 24 * (5 * 365) * 1000); // 5 years
 
   for (int i = 0; i < Geo::N_MODULES; i++) {
     if (mDeco->getAverageEventSize(i * 2) == 0 && mDeco->getAverageEventSize(i * 2 + 1) == 0) {
