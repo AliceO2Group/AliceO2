@@ -25,10 +25,10 @@ namespace o2
 namespace mid
 {
 
-void GBTRawDataChecker::init(uint16_t feeId, uint8_t mask)
+void GBTRawDataChecker::init(uint16_t gbtUniqueId, uint8_t mask)
 {
   /// Initializer
-  mFeeId = feeId;
+  mGBTUniqueId = gbtUniqueId;
   mCrateMask = mask;
 }
 
@@ -421,11 +421,8 @@ bool GBTRawDataChecker::checkEvents(bool isTriggered)
   for (auto& evtIdxItem : orderedIndexes) {
     // All of these boards have the same timestamp
     GBT gbtEvent;
-    // bool busyRaised = false;
     for (auto& evtPair : evtIdxItem.second) {
       auto& boardInfo = boards[evtPair.first][evtPair.second];
-      uint8_t triggerId = boardInfo.board.triggerWord;
-      auto elinkId = getElinkId(boardInfo.board);
 
       if (raw::isLoc(boardInfo.board.statusWord)) {
         gbtEvent.locs.push_back(boardInfo.board);
