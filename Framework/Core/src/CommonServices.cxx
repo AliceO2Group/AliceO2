@@ -46,6 +46,7 @@
 
 #include <FairMQDevice.h>
 #include <fairmq/shmem/Monitor.h>
+#include <fairmq/shmem/Common.h>
 #include <options/FairMQProgOptions.h>
 
 #include <cstdlib>
@@ -490,9 +491,19 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
   // FIXME: Ugly, but we do it only every 5 seconds...
   if (spec.name == "readout-proxy") {
     auto device = registry.get<RawDeviceService>().device();
+    long freeMemory = -1;
     try {
-      stats.availableManagedShm.store(Monitor::GetFreeMemory(SessionId{device->fConfig->GetProperty<std::string>("session")}, runningWorkflow.shmSegmentId));
+      freeMemory = Monitor::GetFreeMemory(ShmId{makeShmIdStr(device->fConfig->GetProperty<uint64_t>("shmid"))}, runningWorkflow.shmSegmentId);
     } catch (...) {
+    }
+    if (freeMemory == -1) {
+      try {
+        freeMemory = Monitor::GetFreeMemory(SessionId{device->fConfig->GetProperty<std::string>("session")}, runningWorkflow.shmSegmentId);
+      } catch (...) {
+      }
+    }
+    if (freeMemory != -1) {
+      stats.availableManagedShm.store(freeMemory);
     }
   }
 
