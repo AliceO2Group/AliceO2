@@ -443,4 +443,4 @@ EndConfig()
 EndNamespace() // gpu
 EndNamespace() // GPUCA_NAMESPACE
 #endif // #ifdef BeginNamespace
-                 // clang-format on
+       // clang-format on
