@@ -39,6 +39,7 @@
 
 #include "GPUCommonMath.h"
 #include "GPUCommonAlgorithm.h"
+#include "GPUCommonConstants.h"
 
 #include "GPUTPCTrackParam.h"
 #include "GPUTPCSliceOutput.h"
@@ -1796,8 +1797,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
     p1.DzDs() = p2.DzDs();
     p1.QPt() = p2.QPt();
     mergedTrack.SetAlpha(p2.Alpha());
-    const double kCLight = 0.000299792458;
-    if (CAMath::Abs(Param().polynomialField.GetNominalBz()) < (0.01 * kCLight)) {
+    if (CAMath::Abs(Param().polynomialField.GetNominalBz()) < (0.01f * gpu_common_constants::kCLight)) {
       p1.QPt() = 100.f / Param().rec.bz0Pt10MeV;
     }
 

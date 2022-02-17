@@ -326,6 +326,9 @@ int GPUReconstruction::InitPhaseBeforeDevice()
 
   mDeviceMemorySize = mHostMemorySize = 0;
   for (unsigned int i = 0; i < mChains.size(); i++) {
+    if (mChains[i]->EarlyConfigure()) {
+      return 1;
+    }
     mChains[i]->RegisterPermanentMemoryAndProcessors();
     size_t memPrimary, memPageLocked;
     mChains[i]->MemorySize(memPrimary, memPageLocked);

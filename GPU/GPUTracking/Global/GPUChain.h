@@ -41,6 +41,7 @@ class GPUChain
   virtual ~GPUChain() = default;
   virtual void RegisterPermanentMemoryAndProcessors() = 0;
   virtual void RegisterGPUProcessors() = 0;
+  virtual int EarlyConfigure() { return 0; };
   virtual int Init() = 0;
   virtual int PrepareEvent() = 0;
   virtual int Finalize() = 0;

@@ -229,6 +229,9 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
       const auto dh = o2::header::get<DataHeader*>(parts.At(msgidx)->GetData());
       if (!dh) {
         LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
+        if (msgidx > 0) {
+          --msgidx;
+        }
         continue;
       }
       auto dph = o2::header::get<DataProcessingHeader*>(parts.At(msgidx)->GetData());
@@ -255,25 +258,25 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
           break;
         }
       }
-      if (!channelName.empty()) {
-        if (dh->splitPayloadParts > 0 && dh->splitPayloadParts == dh->splitPayloadIndex) {
-          // this is indicating a sequence of payloads following the header
-          // FIXME: we will probably also set the DataHeader version
-          finalBlockIndex = msgidx + dh->splitPayloadParts + 1;
-        } else {
-          // We can consider the next splitPayloadParts as one block of messages pairs
-          // because we are guaranteed they are all the same.
-          // If splitPayloadParts = 0, we assume that means there is only one (header, payload)
-          // pair.
-          finalBlockIndex = msgidx + (dh->splitPayloadParts > 0 ? dh->splitPayloadParts : 1) * 2;
-        }
-        assert(finalBlockIndex >= msgidx + 2);
-        if (finalBlockIndex > parts.Size()) {
-          // TODO error handling
-          //LOGP(error, "DataHeader::splitPayloadParts invalid");
-          continue;
-        }
+      if (dh->splitPayloadParts > 0 && dh->splitPayloadParts == dh->splitPayloadIndex) {
+        // this is indicating a sequence of payloads following the header
+        // FIXME: we will probably also set the DataHeader version
+        finalBlockIndex = msgidx + dh->splitPayloadParts + 1;
+      } else {
+        // We can consider the next splitPayloadParts as one block of messages pairs
+        // because we are guaranteed they are all the same.
+        // If splitPayloadParts = 0, we assume that means there is only one (header, payload)
+        // pair.
+        finalBlockIndex = msgidx + (dh->splitPayloadParts > 0 ? dh->splitPayloadParts : 1) * 2;
+      }
+      assert(finalBlockIndex >= msgidx + 2);
+      if (finalBlockIndex > parts.Size()) {
+        // TODO error handling
+        //LOGP(error, "DataHeader::splitPayloadParts invalid");
+        continue;
+      }
 
+      if (!channelName.empty()) {
         // the checks for consistency of split payload parts are of informative nature
         // forwarding happens independently
         //if (dh->splitPayloadParts > 1 && dh->splitPayloadParts != std::numeric_limits<decltype(dh->splitPayloadParts)>::max()) {
@@ -292,6 +295,8 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
           outputs[channelName].AddPart(std::move(parts.At(msgidx)));
         }
         msgidx -= 2;
+      } else {
+        msgidx = finalBlockIndex - 2;
       }
       if (finalBlockIndex == 0 && !DataSpecUtils::match(query, "DPL", "EOS", 0)) {
         unmatchedDescriptions.emplace_back(DataSpecUtils::describe(query));
