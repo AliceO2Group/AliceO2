@@ -79,6 +79,7 @@ int RecEventFlat::next()
   triggers = mCurB.triggers;
 
   // Decode event info
+  mDecodedInfo.clear();
   int infoState = 0;
   uint16_t code = 0;
   uint32_t map = 0;
@@ -174,6 +175,9 @@ void RecEventFlat::decodeInfo(uint8_t ch, uint16_t code)
   }
   // Reconstruction messages
   switch (code) {
+    case MsgGeneric:
+      genericE[ch] = true;
+      break;
     case MsgTDCPedQC:
       tdcPedQC[ch] = true;
       break;
@@ -231,7 +235,9 @@ void RecEventFlat::decodeInfo(uint8_t ch, uint16_t code)
       // End_of_messages
     default:
       LOG(error) << "Not managed info code: " << code;
+      return;
   }
+  mDecodedInfo.emplace_back((code & 0x03ff) | ((ch & 0x1f) << 10));
 }
 
 void RecEventFlat::print() const
@@ -287,7 +293,7 @@ void RecEventFlat::print() const
 void RecEventFlat::printDecodedMessages() const
 {
   const std::array<bool, NChannels>* maps[MsgEnd];
-  maps[0] = nullptr;
+  maps[0] = &genericE;
   maps[1] = &tdcPedQC;
   maps[2] = &tdcPedMissing;
   maps[3] = &adcPedOr;

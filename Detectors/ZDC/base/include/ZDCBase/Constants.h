@@ -224,7 +224,6 @@ constexpr int DbgFull = 3;
 
 const std::string CCDBPathConfigSim = "ZDC/Config/Sim";
 const std::string CCDBPathConfigModule = "ZDC/Config/Module";
-const std::string CCDBPathConfigReco = "ZDC/Calib/RecoParam";
 const std::string CCDBPathRecoConfigZDC = "ZDC/Calib/RecoConfigZDC";
 const std::string CCDBPathTDCCalib = "ZDC/Calib/TDCCalib";
 const std::string CCDBPathTDCCorr = "ZDC/Calib/TDCCorr";
@@ -257,18 +256,18 @@ enum Msg { MsgGeneric = 0,
            MsgTDCPileM3C = 16,
            MsgTDCPileM3E = 17,
            MsgTDCSigE = 18, // Error correcting isolated signal
-           // End_of_messages
-           MsgEnd };
+           MsgEnd           // End_of_messages
+};
 
 constexpr std::string_view MsgText[] = {
-  "generic error",
+  "Generic E",
   "TDC QC ped",
   "TDC missing ped",
   "ADC Orbit ped",
   "ADC QC ped",
   "ADC missing ped",
-  "Positive pedestal offset",
-  "Pile-up in event pedestal",
+  "Positive ped offset",
+  "Pile-up in ev ped",
   "Pile-up in TM",
   "ADC missing, TDC present",
   "TDC pile-up Ev C", // In-event pile-up corrected
@@ -279,8 +278,9 @@ constexpr std::string_view MsgText[] = {
   "TDC pile-up M2 E",
   "TDC pile-up M3 C",
   "TDC pile-up M3 E",
-  "TDC signal E"};
-// End_of_messages
+  "TDC signal E"
+  // End_of_messages
+};
 
 // List of channels that can be calibrated
 constexpr std::array<int, 10> ChEnergyCalib{IdZNAC, IdZNASum, IdZPAC, IdZPASum,

@@ -47,6 +47,7 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   std::vector<o2::zdc::ZDCEnergy>* mEnergy;   //! ZDC energy
   std::vector<o2::zdc::ZDCTDCData>* mTDCData; //! ZDC TDC
   std::vector<uint16_t>* mInfo;               //! Event quality information
+  std::vector<uint16_t> mDecodedInfo;         //! Event quality information (decoded)
   uint64_t mEntry = 0;                        //! Current entry
   uint64_t mNEntries = 0;                     //! Number of entries
   FirstEntry mFirstE = 0;                     //! First energy
@@ -63,6 +64,7 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   o2::zdc::BCRecData mCurB;                   //! Current BC
 
   // Reconstruction messages
+  std::array<bool, NChannels> genericE{};       ///  0 Generic error
   std::array<bool, NChannels> tdcPedEv{};       /// -- Event pedestal for TDC
   std::array<bool, NChannels> tdcPedOr{};       /// -- Orbit pedestal for TDC
   std::array<bool, NChannels> tdcPedQC{};       ///  1 QC pedestal for TDC
@@ -108,6 +110,10 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   inline NElem getNInfo() const
   {
     return mNI;
+  }
+
+  const std::vector<uint16_t> &getDecodedInfo(){
+    return mDecodedInfo;
   }
 
   float tdcV(uint8_t ich, uint64_t ipos) const

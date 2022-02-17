@@ -53,19 +53,19 @@ struct ZDCTDCData {
     auto TDCAmp = std::nearbyint(ampa);
 
     if (TDCVal < kMinShort) {
-      LOG(error) << __func__ << " TDC " << ida << " " << TDCVal << " is out of range";
+      LOG(error) << __func__ << " TDCVal " << int(ida) << " " << ChannelNames[ida] << " = " << TDCVal << " is out of range";
       TDCVal = kMinShort;
     }
     if (TDCVal > kMaxShort) {
-      LOG(error) << __func__ << " TDC " << ida << " " << TDCVal << " is out of range";
+      LOG(error) << __func__ << " TDCVal " << int(ida) << " " << ChannelNames[ida] << " = " << TDCVal << " is out of range";
       TDCVal = kMaxShort;
     }
     if (TDCAmp < kMinShort) {
-      LOG(error) << __func__ << " TDC " << ida << " " << TDCAmp << " is out of range";
+      LOG(error) << __func__ << " TDCAmp " << int(ida) << " " << ChannelNames[ida] << " = " << TDCAmp << " is out of range";
       TDCAmp = kMinShort;
     }
     if (TDCAmp > kMaxShort) {
-      LOG(error) << __func__ << " TDC " << ida << " " << TDCAmp << " is out of range";
+      LOG(error) << __func__ << " TDCAmp " << int(ida) << " " << ChannelNames[ida] << " = " << TDCAmp << " is out of range";
       TDCAmp = kMaxShort;
     }
 

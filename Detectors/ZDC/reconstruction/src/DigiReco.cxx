@@ -1354,6 +1354,8 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
     }
   }
 
+  // rec.genericE[TDCSignal[itdc]] = true; // Produce fake error
+
   // TDC calibration
   TDCVal = TDCVal - tdc_shift[itdc];
   if (!rec.tdcPedMissing[isig]) {
