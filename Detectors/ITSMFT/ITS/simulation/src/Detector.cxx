@@ -103,8 +103,8 @@ static void configITS(Detector* its)
     {3.78, 3.93, 4.21, 9., 9.55, 20},
     {-1, 19.6, -1, 4., 7.5, 24},   // for others: -, rMid, -, NMod/HStave, phi0, nStaves // 24 was 49
     {-1, 24.55, -1, 4., 6., 30},   // 30 was 61
-    {-1, 34.39, -1, 7., 4.29, 42}, // 42 was 88
-    {-1, 39.34, -1, 7., 3.75, 48}  // 48 was 100
+    {-1, 34.34, -1, 7., 4.29, 42}, // 42 was 88
+    {-1, 39.30, -1, 7., 3.75, 48}  // 48 was 100
   };
   const int nChipsPerModule = 7;  // For OB: how many chips in a row
   const double zChipGap = 0.01;   // For OB: gap in Z between chips
