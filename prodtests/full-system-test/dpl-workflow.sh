@@ -467,7 +467,7 @@ workflow_has_parameter CALIB && has_detector_calib TPC && has_detectors TPC ITS 
 # RS this is a temporary setting
 [[ -z "$ED_TRACKS" ]] && ED_TRACKS=$TRACK_SOURCES
 [[ -z "$ED_CLUSTERS" ]] && ED_CLUSTERS=$TRACK_SOURCES
-workflow_has_parameter EVENT_DISPLAY && [[ $NUMAID == 0 ]] && [[ ! -z "$ED_TRACKS" ]] && [[ ! -z "$ED_CLUSTERS" ]] && add_W o2-eve-display "--display-tracks $ED_TRACKS --display-clusters $ED_CLUSTERS $EVE_CONFIG $DISABLE_MC" "$ITSMFT_FILES"
+workflow_has_parameter EVENT_DISPLAY && [[ $NUMAID == 0 ]] && [[ ! -z "$ED_TRACKS" ]] && [[ ! -z "$ED_CLUSTERS" ]] && add_W o2-eve-display "--display-tracks $ED_TRACKS --display-clusters $ED_CLUSTERS --skipOnEmptyInput $EVE_CONFIG $DISABLE_MC" "$ITSMFT_FILES"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # AOD
