@@ -18,7 +18,7 @@ void o2::zdc::ZDCTDCData::print() const
   int itdc = id & 0x0f;
   int isig = IdDummy;
   if (id != 0xff && itdc >= 0 && itdc < NTDCChannels) {
-    isig = TDCSignal[NTDCChannels];
+    isig = TDCSignal[itdc];
   }
   printf("%2d (%s) %d = %8.3f @ %d = %6.3f%s%s\n", isig, channelName(isig), amp, amplitude(), val, value(), isBeg() ? " B" : "", isEnd() ? " E" : "");
 }
