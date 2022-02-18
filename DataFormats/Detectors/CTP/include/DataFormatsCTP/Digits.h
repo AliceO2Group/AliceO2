@@ -33,7 +33,7 @@ static constexpr uint32_t NGBT = 80;
 static constexpr std::uint32_t NumOfHBInTF = 256;
 typedef std::bitset<NGBT> gbtword80_t;
 //
-static constexpr std::uint32_t CTP_NINPUTS = 46;    /// Max number of CTP inputs for all levels
+static constexpr std::uint32_t CTP_NINPUTS = 48;    /// Max number of CTP inputs for all levels
 static constexpr std::uint32_t CTP_NCLASSES = 64;   /// Number of classes in hardware
 static constexpr std::uint32_t CTP_MAXTRIGINPPERDET = 5; /// Max number of LM/L0inputs per detector
 /// Positions of CTP Detector inputs in CTPInputMask: first=offset, second=mask
@@ -57,7 +57,7 @@ struct CTPDigit {
     return intRecord == d.intRecord && CTPInputMask == d.CTPInputMask && CTPClassMask == d.CTPClassMask;
   }
 
-  ClassDefNV(CTPDigit, 2);
+  ClassDefNV(CTPDigit, 3);
 };
 
 std::ostream& operator<<(std::ostream& os, const CTPDigit& d);

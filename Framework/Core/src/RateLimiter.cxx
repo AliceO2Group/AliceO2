@@ -15,6 +15,7 @@
 #include "Framework/RunningWorkflowInfo.h"
 #include <fairmq/FairMQDevice.h>
 #include <fairmq/shmem/Monitor.h>
+#include <fairmq/shmem/Common.h>
 
 using namespace o2::framework;
 
@@ -50,7 +51,21 @@ void RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
     int waitMessage = 0;
     auto& runningWorkflow = ctx.services().get<RunningWorkflowInfo const>();
     while (true) {
-      uint64_t freeSHM = fair::mq::shmem::Monitor::GetFreeMemory(fair::mq::shmem::SessionId{device->fConfig->GetProperty<std::string>("session")}, runningWorkflow.shmSegmentId);
+      long freeMemory = -1;
+      try {
+        freeMemory = fair::mq::shmem::Monitor::GetFreeMemory(fair::mq::shmem::ShmId{fair::mq::shmem::makeShmIdStr(device->fConfig->GetProperty<uint64_t>("shmid"))}, runningWorkflow.shmSegmentId);
+      } catch (...) {
+      }
+      if (freeMemory == -1) {
+        try {
+          freeMemory = fair::mq::shmem::Monitor::GetFreeMemory(fair::mq::shmem::SessionId{device->fConfig->GetProperty<std::string>("session")}, runningWorkflow.shmSegmentId);
+        } catch (...) {
+        }
+      }
+      if (freeMemory == -1) {
+        throw std::runtime_error("Could not obtain free SHM memory");
+      }
+      uint64_t freeSHM = freeMemory;
       if (freeSHM > minSHM) {
         if (waitMessage) {
           LOG(important) << "Sufficient SHM memory free (" << freeSHM << " >= " << minSHM << "), continuing to publish";

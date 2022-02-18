@@ -38,6 +38,8 @@ if(BUILD_ANALYSIS)
 add_subdirectory(AOD)
 endif()
 
+add_subdirectory(Filtering)
+
 add_subdirectory(Calibration)
 add_subdirectory(DCS)
 

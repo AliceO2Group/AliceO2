@@ -17,12 +17,11 @@
 #ifndef AliceO2_TPC_CalibPadGainTracks_H
 #define AliceO2_TPC_CalibPadGainTracks_H
 
-//o2 includes
+// o2 includes
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "TPCBase/CalDet.h"
 #include "TPCBase/Mapper.h"
-#include "TPCCalibration/FastHisto.h"
 #include "TPCCalibration/CalibPadGainTracksBase.h"
 
 #include <vector>
@@ -108,6 +107,14 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   /// \param field magnetic field in kG, used for track propagation
   void setField(const float field) { mField = field; }
 
+  /// setting a gain map from a file
+  /// \param inpFile input file containing some caldet
+  /// \param mapName name of the caldet
+  void setRefGainMap(const char* inpFile, const char* mapName);
+
+  /// setting a gain map from a file
+  void setRefGainMap(const CalPad& gainmap) { mGainMapRef = std::make_unique<CalPad>(gainmap); }
+
   /// \return returns minimum momentum of accepted tracks
   float getMomMin() const { return mMomMin; }
 
@@ -143,6 +150,7 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   std::vector<float> mDEdxOROC{};                                                     ///<! memory for dE/dx in OROC
   std::vector<o2::tpc::ClusterNative> mCLNat;                                         ///<! memory for clusters
   std::vector<std::tuple<unsigned char, unsigned char, unsigned char, float>> mClTrk; ///<! memory for cluster informations
+  std::unique_ptr<CalPad> mGainMapRef;                                                ///<! static Gain map object used for correcting the cluster charge
 
   /// calculate truncated mean for track
   /// \param track input track which will be processed
@@ -155,9 +163,9 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   /// \param pad pad in row
   static int getIndex(o2::tpc::PadSubset padSub, int padSubsetNumber, const int row, const int pad) { return mapper.getPadNumber(padSub, padSubsetNumber, row, pad); }
 
-  float getTrackTopologyCorrection(o2::tpc::TrackTPC& track, int iCl);
+  float getTrackTopologyCorrection(const o2::tpc::TrackTPC& track, const unsigned char rowIndex) const;
 
-  ///get the truncated mean for input vector and the truncation range low*nCl<nCl<high*nCl
+  /// get the truncated mean for input vector and the truncation range low*nCl<nCl<high*nCl
   /// \param vCharge vector containing all qmax values of the track
   /// \param low lower cluster cut of  0.05*nCluster
   /// \param high higher cluster cut of  0.6*nCluster

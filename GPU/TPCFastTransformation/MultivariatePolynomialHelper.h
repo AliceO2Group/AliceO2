@@ -17,11 +17,13 @@
 
 #include "GPUCommonDef.h"
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE)
 #include <vector>
 #include <string>
-#include <fmt/format.h>
 #include <cassert>
+#if !defined(GPUCA_NO_FMT)
+#include <fmt/format.h>
+#endif
 #endif
 
 namespace GPUCA_NAMESPACE::gpu
@@ -287,7 +289,7 @@ GPUd() Type MultivariatePolynomialHelper<0, 0>::combination_with_repetiton(const
           }
           val += term;
         } else {
-#if !defined(GPUCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_FMT)
           std::string term{};
           for (size_t i = 1; i < size; ++i) {
             term += fmt::format("x[{}] * ", pos[i]);

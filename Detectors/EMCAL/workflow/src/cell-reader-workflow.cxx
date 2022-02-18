@@ -14,6 +14,7 @@
 #include "Framework/Variant.h"
 #include "Framework/ConfigParamSpec.h"
 #include "DataFormatsEMCAL/Cell.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "EMCALWorkflow/PublisherSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 
@@ -25,6 +26,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{{"disable-mc", VariantType::Bool, false, {"Do not propagate MC labels"}},
                                        {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
 }
 
@@ -47,5 +49,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                                                                  o2::framework::OutputSpec{"EMC", "CELLSTRGR"},
                                                                                  o2::framework::OutputSpec{"EMC", "CELLSMCTR"}},
                                                                                !disableMC));
+
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
   return specs;
 }

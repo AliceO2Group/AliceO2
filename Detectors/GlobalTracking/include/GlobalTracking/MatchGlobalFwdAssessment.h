@@ -74,6 +74,12 @@ class GloFwdAssessment
   void finalizeAnalysis();
   void finalizeRecoAndPairables();
   void finalizePurityAndEff();
+  void finalizeCutConfig(float minCut, float maxCut, int nSteps)
+  {
+    mFinalizeMinCut = minCut;
+    mFinalizeMaxCut = maxCut;
+    mNFinalizeSteps = nSteps;
+  }
 
   void getHistos(TObjArray& objar);
   void setBz(float bz) { mBz = bz; }
@@ -379,6 +385,9 @@ class GloFwdAssessment
   float mBz = 0;
   bool mMIDFilterEnabled = true;
   bool mFinalizeAnalysis = false;
+  float mFinalizeMinCut = 0.f;
+  float mFinalizeMaxCut = 15.f;
+  int mNFinalizeSteps = 15;
 
   ClassDefNV(GloFwdAssessment, 1);
 };

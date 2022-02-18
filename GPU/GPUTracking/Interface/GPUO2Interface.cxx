@@ -178,5 +178,6 @@ std::unique_ptr<o2::tpc::CalibdEdxContainer> GPUO2Interface::getCalibdEdxContain
 
 int GPUO2Interface::UpdateCalibration(const GPUCalibObjectsConst& newCalib)
 {
-  return 1;
+  mChain->SetUpdateCalibObjects(newCalib);
+  return 0;
 }

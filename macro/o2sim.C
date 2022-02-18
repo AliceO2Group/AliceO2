@@ -108,13 +108,20 @@ FairRunSim* o2sim_init(bool asservice)
   timer.Start();
 
   o2::detectors::DetID::mask_t detMask{};
+  o2::detectors::DetID::mask_t readoutDetMask{};
   {
-    auto& modulelist = o2::conf::SimConfig::Instance().getActiveDetectors();
+    auto& modulelist = o2::conf::SimConfig::Instance().getActiveModules();
     for (const auto& md : modulelist) {
       int id = o2::detectors::DetID::nameToID(md.c_str());
       if (id >= o2::detectors::DetID::First) {
         detMask |= o2::detectors::DetID::getMask(id);
+        if (isReadout(md)) {
+          readoutDetMask |= o2::detectors::DetID::getMask(id);
+        }
       }
+    }
+    if (readoutDetMask.none()) {
+      LOG(info) << "Hit creation disabled for all detectors";
     }
     // somewhat ugly, but this is the most straighforward way to make sure the detectors to align
     // don't include detectors which are not activated
@@ -155,9 +162,9 @@ FairRunSim* o2sim_init(bool asservice)
     uint64_t runStart = confref.getTimestamp(); // this will signify "time of this MC" (might not coincide with start of Run)
     grp.setTimeStart(runStart);
     grp.setTimeEnd(runStart + 3600000);
-    grp.setDetsReadOut(detMask);
+    grp.setDetsReadOut(readoutDetMask);
     // CTP is not a physical detector, just flag in the GRP if requested
-    if (isActivated("CTP")) {
+    if (isReadout("CTP")) {
       grp.addDetReadOut(o2::detectors::DetID::CTP);
     }
 

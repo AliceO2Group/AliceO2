@@ -12,7 +12,7 @@
 o2_add_library(GRPCalibrationWorkflow
   TARGETVARNAME targetName
                SOURCES src/GRPLHCIFfileSpec.cxx
-                 src/GRPDCSDPsSpec.cxx
+                       src/GRPDCSDPsSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::Headers
                                      O2::CCDB
@@ -40,6 +40,14 @@ o2_add_executable(grp-create
                                         O2::CCDB
                                         Boost::program_options)
 
+o2_add_executable(create-aligned
+                  COMPONENT_NAME geometry
+                  SOURCES src/create-aligned-geometry.cxx
+                  PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+                                        O2::CommonUtils
+                                        O2::CCDB
+                                        Boost::program_options)
+
 o2_add_executable(grp-dcs-dps-sim-workflow
                   COMPONENT_NAME calibration
                   SOURCES src/grp-dcs-dps-sim-workflow.cxx
@@ -50,6 +58,6 @@ o2_add_executable(grp-dcs-dps-workflow
                   SOURCES src/grp-dcs-dps-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   O2::CCDB
-      O2::GRPCalibrationWorkflow
-      O2::GRPCalibration
-      O2::DetectorsCalibration)
+                  O2::GRPCalibrationWorkflow
+                  O2::GRPCalibration
+                  O2::DetectorsCalibration)

@@ -16,14 +16,16 @@
 #define ALICEO2_TPC_MULTIVARIATEPOLYNOMIAL
 
 #include "GPUCommonDef.h"
+#include "GPUCommonLogger.h"
 #include "FlatObject.h"
 #include "MultivariatePolynomialHelper.h"
 
 #if !defined(GPUCA_GPUCODE)
 #include <algorithm>
 #include <type_traits>
-#include "TFile.h"
-#include "Framework/Logger.h"
+#if !defined(GPUCA_STANDALONE)
+#include <TFile.h>
+#endif
 #endif
 
 namespace GPUCA_NAMESPACE::gpu
@@ -102,6 +104,7 @@ class MultivariatePolynomial : public FlatObject, public MultivariatePolynomialH
   /// \return returns the paramaters of the coefficients
   const float* getParams() const { return mParams; }
 
+#ifndef GPUCA_STANDALONE
   /// load parameters from input file (which were written using the writeToFile method)
   /// \param inpf input file
   /// \parma name name of the object in the file
@@ -111,6 +114,7 @@ class MultivariatePolynomial : public FlatObject, public MultivariatePolynomialH
   /// \param outf output file
   /// \param name name of the output object
   void writeToFile(TFile& outf, const char* name);
+#endif
 
   /// converts the parameters to a container which can be written to a root file
   MultivariatePolynomialContainer getContainer() const { return MultivariatePolynomialContainer{this->getDim(), this->getDegree(), mNParams, mParams}; }
@@ -138,7 +142,7 @@ class MultivariatePolynomial : public FlatObject, public MultivariatePolynomialH
 //============================ inline implementations =============================
 //=================================================================================
 
-#if !defined(GPUCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 template <unsigned int Dim, unsigned int Degree>
 void MultivariatePolynomial<Dim, Degree>::loadFromFile(TFile& inpf, const char* name)
 {

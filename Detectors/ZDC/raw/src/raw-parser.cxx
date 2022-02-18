@@ -84,7 +84,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
                   } else {
                     rdhprintout << " " + std::to_string(dh->splitPayloadParts) + " part(s)";
                   }
-                  rdhprintout << " payload size " << dh->payloadSize << std::endl;
+                  rdhprintout << " payload size " << payloadSize << std::endl;
                 }
                 if (!rdhprintout.str().empty()) {
                   LOG(info) << rdhprintout.str();

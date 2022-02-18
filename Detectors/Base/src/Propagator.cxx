@@ -11,6 +11,7 @@
 
 #include "DetectorsBase/Propagator.h"
 #include "GPUCommonLogger.h"
+#include "GPUCommonConstants.h"
 #include "GPUCommonMath.h"
 #include "GPUTPCGMPolynomialField.h"
 #include "MathUtils/Utils.h"
@@ -384,7 +385,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCA(const o2::dataformats::Verte
   if (!tmpT.rotate(alp) || !propagateToX(tmpT, xv, bZ, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
 #ifndef GPUCA_ALIGPUCODE
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: " << tmpT.asString();
-#else
+#elif !defined(GPUCA_NO_FMT)
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx;
 #endif
     return false;
@@ -433,7 +434,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const o2::dataformats:
   if (!tmpT.rotate(alp) || !PropagateToXBxByBz(tmpT, xv, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
 #ifndef GPUCA_ALIGPUCODE
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: " << tmpT.asString();
-#else
+#elif !defined(GPUCA_NO_FMT)
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx;
 #endif
     return false;
@@ -612,10 +613,10 @@ GPUd() void PropagatorImpl<value_T>::getFieldXYZImpl(const math_utils::Point3D<T
     float bxyzF[3];
     f->GetField(xyz.X(), xyz.Y(), xyz.Z(), bxyzF);
     //copy and convert
+    constexpr value_type kCLight1 = 1. / o2::gpu::gpu_common_constants::kCLight;
     for (uint i = 0; i < 3; ++i) {
-      bxyz[i] = static_cast<value_type>(bxyzF[i]);
+      bxyz[i] = static_cast<value_type>(bxyzF[i]) * kCLight1;
     }
-
   } else {
 #ifndef GPUCA_GPUCODE
     if (mFieldFast) {

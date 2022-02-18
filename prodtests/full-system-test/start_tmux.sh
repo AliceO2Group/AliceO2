@@ -22,6 +22,11 @@ export SHMTHROW=0
 export SEVERITY=error
 export IS_SIMULATED_DATA=1
 
+if [ "0$FST_TMUX_MEM_OVERRIDE" != "0" ]; then
+  export SHMSIZE=$(( $FST_TMUX_MEM_OVERRIDE << 30 ))
+  export DDSHMSIZE=$(( $FST_TMUX_MEM_OVERRIDE << 10 ))
+fi
+
 if [ $1 == "dd" ]; then
   export CMD=datadistribution.sh
   export GPU_NUM_MEM_REG_CALLBACKS=5
