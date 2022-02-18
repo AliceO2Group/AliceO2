@@ -2433,6 +2433,7 @@ template <typename T>
 class Filtered : public FilteredBase<T>
 {
  public:
+  using self_t = Filtered<T>;
   Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
     : FilteredBase<T>(std::move(tables), selection, offset) {}
 
@@ -2513,12 +2514,14 @@ class Filtered : public FilteredBase<T>
   {
     return operator*=(other.getSelectedRows());
   }
+  using FilteredBase<T>::sliceByCached;
 };
 
 template <typename T>
 class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
 {
  public:
+  using self_t = Filtered<Filtered<T>>;
   using table_t = typename FilteredBase<typename T::table_t>::table_t;
 
   Filtered(std::vector<Filtered<T>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
@@ -2616,6 +2619,8 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
   {
     return operator*=(other.getSelectedRows());
   }
+
+  using FilteredBase<typename T::table_t>::sliceByCached;
 
  private:
   std::vector<std::shared_ptr<arrow::Table>> extractTablesFromFiltered(std::vector<Filtered<T>>&& tables)
