@@ -23,7 +23,7 @@ void ZDCTDCCorr::print() const
       for (int32_t ibukb = 0; ibukb < NBucket; ibukb++) {
         for (int32_t ibuks = 0; ibuks < NBucket; ibuks++) {
           for (int32_t ipar = 0; ipar < NFParA; ipar++) {
-            if (isnan(mAmpCorr[itdc][ibun][ibukb][ibuks][ipar])) {
+            if (std::isnan(mAmpCorr[itdc][ibun][ibukb][ibuks][ipar])) {
               nnan++;
             }
           }
@@ -40,7 +40,7 @@ void ZDCTDCCorr::print() const
       for (int32_t ibukb = 0; ibukb < NBucket; ibukb++) {
         for (int32_t ibuks = 0; ibuks < NBucket; ibuks++) {
           for (int32_t ipar = 0; ipar < NFParT; ipar++) {
-            if (isnan(mTDCCorr[itdc][ibun][ibukb][ibuks][ipar])) {
+            if (std::isnan(mTDCCorr[itdc][ibun][ibukb][ibuks][ipar])) {
               nnan++;
             }
           }
@@ -62,7 +62,7 @@ void ZDCTDCCorr::dump() const
       for (int32_t ibuks = 0; ibuks < NBucket; ibuks++) {
         for (int32_t ibukb = 0; ibukb < NBucket; ibukb++) {
           for (int32_t ipar = 0; ipar < NFParA; ipar++) {
-            if (isnan(mTDCCorr[itdc][ibcan][ibukb][ibuks][ipar])) {
+            if (std::isnan(mTDCCorr[itdc][ibcan][ibukb][ibuks][ipar])) {
               printf("std::numeric_limits<double>::quiet_NaN(),");
             } else {
               printf("%+e,", mTDCCorr[itdc][ibcan][ibukb][ibuks][ipar]);
@@ -83,7 +83,7 @@ void ZDCTDCCorr::dump() const
       for (int32_t ibuks = 0; ibuks < NBucket; ibuks++) {
         for (int32_t ibukb = 0; ibukb < NBucket; ibukb++) {
           for (int32_t ipar = 0; ipar < NFParA; ipar++) {
-            if (isnan(mAmpCorr[itdc][ibcan][ibukb][ibuks][ipar])) {
+            if (std::isnan(mAmpCorr[itdc][ibcan][ibukb][ibuks][ipar])) {
               printf("std::numeric_limits<double>::quiet_NaN(),");
             } else {
               printf("%+e,", mAmpCorr[itdc][ibcan][ibukb][ibuks][ipar]);
@@ -101,7 +101,7 @@ void ZDCTDCCorr::dump() const
   printf("std::array<double,o2::zdc::ZDCTDCCorr::NParExtC*o2::zdc::NTDCChannels+1> ts_beg_c={\n");
   for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
     for (int32_t ipar = 0; ipar < NParExtC; ipar++) {
-      if (isnan(mTSBegC[itdc][ipar])) {
+      if (std::isnan(mTSBegC[itdc][ipar])) {
         printf("std::numeric_limits<double>::quiet_NaN(),");
       } else {
         printf("%+e,", mTSBegC[itdc][ipar]);
@@ -115,7 +115,7 @@ void ZDCTDCCorr::dump() const
   printf("std::array<double,o2::zdc::ZDCTDCCorr::NParMidC*o2::zdc::NTDCChannels+1> ts_mid_c={\n");
   for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
     for (int32_t ipar = 0; ipar < NParMidC; ipar++) {
-      if (isnan(mTSMidC[itdc][ipar])) {
+      if (std::isnan(mTSMidC[itdc][ipar])) {
         printf("std::numeric_limits<double>::quiet_NaN(),");
       } else {
         printf("%+e,", mTSMidC[itdc][ipar]);
@@ -129,7 +129,7 @@ void ZDCTDCCorr::dump() const
   printf("std::array<double,o2::zdc::ZDCTDCCorr::NParExtC*o2::zdc::NTDCChannels+1> ts_end_c={\n");
   for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
     for (int32_t ipar = 0; ipar < NParExtC; ipar++) {
-      if (isnan(mTSEndC[itdc][ipar])) {
+      if (std::isnan(mTSEndC[itdc][ipar])) {
         printf("std::numeric_limits<double>::quiet_NaN(),");
       } else {
         printf("%+e,", mTSEndC[itdc][ipar]);
@@ -143,7 +143,7 @@ void ZDCTDCCorr::dump() const
   printf("std::array<double,o2::zdc::ZDCTDCCorr::NParExtC*o2::zdc::NTDCChannels+1> af_beg_c={\n");
   for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
     for (int32_t ipar = 0; ipar < NParExtC; ipar++) {
-      if (isnan(mAFBegC[itdc][ipar])) {
+      if (std::isnan(mAFBegC[itdc][ipar])) {
         printf("std::numeric_limits<double>::quiet_NaN(),");
       } else {
         printf("%+e,", mAFBegC[itdc][ipar]);
@@ -157,7 +157,7 @@ void ZDCTDCCorr::dump() const
   printf("std::array<double,o2::zdc::ZDCTDCCorr::NParMidC*o2::zdc::NTDCChannels+1> af_mid_c={\n");
   for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
     for (int32_t ipar = 0; ipar < NParMidC; ipar++) {
-      if (isnan(mAFMidC[itdc][ipar])) {
+      if (std::isnan(mAFMidC[itdc][ipar])) {
         printf("std::numeric_limits<double>::quiet_NaN(),");
       } else {
         printf("%+e,", mAFMidC[itdc][ipar]);
@@ -171,7 +171,7 @@ void ZDCTDCCorr::dump() const
   printf("std::array<double,o2::zdc::ZDCTDCCorr::NParExtC*o2::zdc::NTDCChannels+1> af_end_c={\n");
   for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
     for (int32_t ipar = 0; ipar < NParExtC; ipar++) {
-      if (isnan(mAFEndC[itdc][ipar])) {
+      if (std::isnan(mAFEndC[itdc][ipar])) {
         printf("std::numeric_limits<double>::quiet_NaN(),");
       } else {
         printf("%+e,", mAFEndC[itdc][ipar]);
