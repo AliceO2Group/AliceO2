@@ -1392,7 +1392,7 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
 
   // Correct for time bias on single signals
   float TDCValCorr = 0, TDCAmpCorr = 0;
-  if (mCorrSignal == 0 || correctTDCSignal(itdc, tdc, amp, TDCValCorr, TDCAmpCorr, rec.isBeg[itdc], rec.isEnd[itdc]) != 0) {
+  if (mCorrSignal == false || correctTDCSignal(itdc, tdc, amp, TDCValCorr, TDCAmpCorr, rec.isBeg[itdc], rec.isEnd[itdc]) != 0) {
     // Cannot apply amplitude correction for isolated signal -> Flag error condition
     rec.tdcSigE[TDCSignal[itdc]] = true;
   } else {
@@ -1652,7 +1652,7 @@ int DigiReco::correctTDCSignal(int itdc, int16_t TDCVal, float TDCAmp, float& FT
   FTDCVal = TDCVal;
   FTDCAmp = TDCAmp;
 
-  if (mTDCCorr == 0) {
+  if (mTDCCorr == nullptr) {
 #ifdef O2_ZDC_DEBUG
     printf("%21s itdc=%d TDC=%d AMP=%d MISSING mTDCCorr\n", __func__, itdc, TDCVal, TDCAmp);
 #endif
