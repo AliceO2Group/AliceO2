@@ -37,8 +37,8 @@ struct ZDCTDCData {
   ZDCTDCData(uint8_t ida, int16_t vala, int16_t ampa, bool isbeg = false, bool isend = false)
   {
     id = ida & 0x0f;
-    id = id | isbeg ? 0x80 : 0x00;
-    id = id | isend ? 0x40 : 0x00;
+    id = id | (isbeg ? 0x80 : 0x00);
+    id = id | (isend ? 0x40 : 0x00);
     val = vala;
     amp = ampa;
   }
@@ -46,8 +46,8 @@ struct ZDCTDCData {
   ZDCTDCData(uint8_t ida, float vala, float ampa, bool isbeg = false, bool isend = false)
   {
     id = ida & 0x0f;
-    id = id | isbeg ? 0x80 : 0x00;
-    id = id | isend ? 0x40 : 0x00;
+    id = id | (isbeg ? 0x80 : 0x00);
+    id = id | (isend ? 0x40 : 0x00);
 
     auto TDCVal = std::nearbyint(vala);
     auto TDCAmp = std::nearbyint(ampa);
