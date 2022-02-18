@@ -203,7 +203,6 @@ class TimeFrame final
   std::vector<int> mBogusClusters; /// keep track of clusters with wild coordinates
 
   std::vector<index_table_t> mIndexTables;
-  std::vector<std::vector<int>> mIndexTablesL0;
   std::vector<std::vector<Tracklet>> mTracklets;
   std::vector<std::vector<int>> mTrackletsLookupTable;
 
@@ -211,6 +210,7 @@ class TimeFrame final
   int mCutClusterMult;
   int mCutVertexMult;
   // Vertexer
+  std::vector<std::vector<int>> mIndexTablesL0;
   std::vector<std::array<std::vector<int>, 2>> mNTrackletsPerCluster; // TODO: remove in favour of mNTrackletsPerROf
   std::vector<std::vector<int>> mNTrackletsPerROf;
   std::vector<std::vector<Line>> mLines;

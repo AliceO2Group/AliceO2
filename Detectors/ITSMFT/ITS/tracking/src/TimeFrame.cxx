@@ -68,7 +68,7 @@ TimeFrame::TimeFrame(int nLayers)
   mTrackingFrameInfo.resize(nLayers);
   mClusterExternalIndices.resize(nLayers);
   mUsedClusters.resize(nLayers);
-  mROframesClusters.resize(nLayers, {0}); ///TBC: if resetting the timeframe is required, then this has to be done
+  mROframesClusters.resize(nLayers, {0}); /// TBC: if resetting the timeframe is required, then this has to be done
   mTrackletsIndexROf.resize(2, {0});
 }
 
@@ -140,7 +140,7 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
 
     auto pattID = c.getPatternID();
     o2::math_utils::Point3D<float> locXYZ;
-    float sigmaY2 = DefClusError2Row, sigmaZ2 = DefClusError2Col, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
+    float sigmaY2 = DefClusError2Row, sigmaZ2 = DefClusError2Col, sigmaYZ = 0; // Dummy COG errors (about half pixel size)
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
       sigmaY2 = dict->getErr2X(pattID);
       sigmaZ2 = dict->getErr2Z(pattID);
@@ -187,7 +187,7 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
   mCutVertexMult = 0;
 
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
-  FastMultEst multEst;  
+  FastMultEst multEst;
   for (auto& rof : rofs) {
     bool multCut = (cutMultClusLow <= 0 && cutMultClusHigh <= 0); // cut was requested
     if (!multCut) {
@@ -200,8 +200,6 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
     }
     mMultiplicityCutMask.push_back(multCut);
   }
-  //
-
   return mNrof;
 }
 
@@ -319,7 +317,7 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
           for (unsigned int iB{0}; iB < clsPerBin.size(); ++iB) {
             mIndexTablesL0[rof][iB] = lutPerBin[iB];
           }
-          for (auto iB{clsPerBin.size()}; iB < (int)mIndexTables[rof].size(); iB++) {
+          for (auto iB{clsPerBin.size()}; iB < (int)mIndexTablesL0[rof].size(); iB++) {
             mIndexTablesL0[rof][iB] = clustersNum;
           }
         }

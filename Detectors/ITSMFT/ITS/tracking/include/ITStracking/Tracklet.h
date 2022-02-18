@@ -30,6 +30,8 @@ struct Tracklet final {
   Tracklet();
   GPUdi() Tracklet(const int, const int, const Cluster&, const Cluster&, int rof0, int rof1);
   GPUdi() Tracklet(const int, const int, float tanL, float phi, int rof0, int rof1);
+  bool operator==(const Tracklet&) const;
+  bool operator!=(const Tracklet&) const;
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   unsigned char isEmpty() const;
   void dump();
@@ -69,6 +71,22 @@ GPUdi() Tracklet::Tracklet(const int idx0, const int idx1, float tanL, float phi
     rof{static_cast<unsigned short>(rof0), static_cast<unsigned short>(rof1)}
 {
   // Nothing to do
+}
+
+inline bool Tracklet::operator==(const Tracklet& rhs) const
+{
+  return this->firstClusterIndex == rhs.firstClusterIndex &&
+         this->secondClusterIndex == rhs.secondClusterIndex &&
+         this->tanLambda == rhs.tanLambda &&
+         this->phi == rhs.phi;
+}
+
+inline bool Tracklet::operator!=(const Tracklet& rhs) const
+{
+  return this->firstClusterIndex != rhs.firstClusterIndex ||
+         this->secondClusterIndex != rhs.secondClusterIndex ||
+         this->tanLambda != rhs.tanLambda ||
+         this->phi != rhs.phi;
 }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_

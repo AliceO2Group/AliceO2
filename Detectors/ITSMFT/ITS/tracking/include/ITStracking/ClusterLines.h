@@ -45,6 +45,8 @@ struct Line final {
   GPUhd() static void getDCAComponents(const Line& line, const float point[3], float destArray[6]);
   GPUhd() static float getDCA(const Line&, const Line&, const float precision = 1e-14);
   static bool areParallel(const Line&, const Line&, const float precision = 1e-14);
+  bool operator==(const Line&) const;
+  bool operator!=(const Line&) const;
 
   float originPoint[3], cosinesDirector[3];         // std::array<float, 3> originPoint, cosinesDirector;
   float weightMatrix[6] = {1., 0., 0., 1., 0., 1.}; // std::array<float, 6> weightMatrix;
@@ -207,6 +209,24 @@ GPUhdi() void Line::getDCAComponents(const Line& line, const float point[3], flo
   destArray[1] = std::sqrt(destArray[0] * destArray[0] + destArray[3] * destArray[3]);
   destArray[2] = std::sqrt(destArray[0] * destArray[0] + destArray[5] * destArray[5]);
   destArray[4] = std::sqrt(destArray[3] * destArray[3] + destArray[5] * destArray[5]);
+}
+
+inline bool Line::operator==(const Line& rhs) const
+{
+  bool val;
+  for (int i{0}; i < 3; ++i) {
+    val = this->originPoint[i] != rhs.originPoint[i] ? false : true;
+  }
+  return val && this->isEmpty == rhs.isEmpty;
+}
+
+inline bool Line::operator!=(const Line& rhs) const
+{
+  bool val;
+  for (int i{0}; i < 3; ++i) {
+    val = this->originPoint[i] != rhs.originPoint[i] ? true : false;
+  }
+  return val || this->isEmpty != rhs.isEmpty;
 }
 
 ///

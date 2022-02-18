@@ -29,6 +29,9 @@
 #include <unordered_map>
 #endif
 
+#include "TTree.h"
+#include "TFile.h"
+
 #define LAYER0_TO_LAYER1 0
 #define LAYER1_TO_LAYER2 1
 
@@ -59,6 +62,7 @@ void trackleterKernelSerial(
   const int PhiBins{utils.getNphiBins()};
   const int ZBins{utils.getNzBins()};
 
+  foundTracklets.resize(clustersCurrentLayer.size(), 0);
   // loop on layer1 clusters
   for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < clustersCurrentLayer.size(); ++iCurrentLayerClusterIndex) {
     int storedTracklets{0};
@@ -98,18 +102,13 @@ void trackleterKernelSerial(
 }
 
 void trackletSelectionKernelSerial(
-  const gsl::span<const Cluster> clustersNextLayer,    //0
-  const gsl::span<const Cluster> clustersCurrentLayer, //1
+  const gsl::span<const Cluster> clustersNextLayer,    // 0
+  const gsl::span<const Cluster> clustersCurrentLayer, // 1
   const gsl::span<const Tracklet>& tracklets01,
   const gsl::span<const Tracklet>& tracklets12,
   const std::vector<int>& foundTracklets01,
   const std::vector<int>& foundTracklets12,
   std::vector<Line>& destTracklets,
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  std::vector<std::array<int, 2>>& allowedTrackletPairs,
-  StandaloneDebugger* debugger,
-  ROframe* event,
-#endif
   const float tanLambdaCut = 0.025f,
   const float phiCut = 0.005f,
   const int maxTracklets = static_cast<int>(1e2))
@@ -123,15 +122,7 @@ void trackletSelectionKernelSerial(
         const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(tracklets01[iTracklet01].tanLambda - tracklets12[iTracklet12].tanLambda)};
         const float deltaPhi{o2::gpu::GPUCommonMath::Abs(tracklets01[iTracklet01].phi - tracklets12[iTracklet12].phi)};
         if (deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTracklets) {
-          if (tracklets01[iTracklet01].secondClusterIndex != tracklets12[iTracklet12].firstClusterIndex) {
-            LOG(fatal) << "Second clIdx in tracklet 01: " << tracklets01[iTracklet01].secondClusterIndex << "first clIdx in tracklet 12: " << tracklets12[iTracklet12].firstClusterIndex;
-          }
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-          allowedTrackletPairs.push_back(std::array<int, 2>{iTracklet01, iTracklet12});
-          destTracklets.emplace_back(tracklets01[iTracklet01], clustersNextLayer.data(), clustersCurrentLayer.data(), debugger->getEventId(clustersNextLayer[tracklets01[iTracklet01].firstClusterIndex].clusterId, clustersCurrentLayer[tracklets01[iTracklet01].secondClusterIndex].clusterId, event));
-#else
           destTracklets.emplace_back(tracklets01[iTracklet01], clustersNextLayer.data(), clustersCurrentLayer.data());
-#endif
           ++validTracklets;
         }
       }
@@ -277,11 +268,50 @@ void VertexerTraits::computeTracklets()
     mTimeFrame->getNTrackletsROf(1, rofId) = std::accumulate(mTimeFrame->getNTrackletsCluster(rofId)[1].begin(), mTimeFrame->getNTrackletsCluster(rofId)[1].end(), 0);
   }
   mTimeFrame->computeTrackletsScans();
+
+  // Dump on file
+  TFile* trackletFile = TFile::Open("artefacts_tf.root", "recreate");
+  TTree* tr_tre = new TTree("tracklets", "tf");
+  std::vector<o2::its::Tracklet> trkl_vec_0(0);
+  std::vector<o2::its::Tracklet> trkl_vec_1(0);
+  std::vector<o2::its::Cluster> clus0(0);
+  std::vector<o2::its::Cluster> clus1(0);
+  std::vector<o2::its::Cluster> clus2(0);
+  tr_tre->Branch("Tracklets0", &trkl_vec_0);
+  tr_tre->Branch("Tracklets1", &trkl_vec_1);
+  tr_tre->Branch("clusters0", &clus0);
+  tr_tre->Branch("clusters1", &clus1);
+  tr_tre->Branch("clusters2", &clus2);
+  for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
+    trkl_vec_0.clear();
+    trkl_vec_1.clear();
+    clus0.clear();
+    clus1.clear();
+    clus2.clear();
+    for (auto& cl : mTimeFrame->getClustersOnLayer(rofId, 0)) {
+      clus0.push_back(cl);
+    }
+    for (auto& cl : mTimeFrame->getClustersOnLayer(rofId, 1)) {
+      clus1.push_back(cl);
+    }
+    for (auto& cl : mTimeFrame->getClustersOnLayer(rofId, 2)) {
+      clus2.push_back(cl);
+    }
+    for (auto& tr : mTimeFrame->getFoundTracklets(rofId, 0)) {
+      trkl_vec_0.push_back(tr);
+    }
+    for (auto& tr : mTimeFrame->getFoundTracklets(rofId, 1)) {
+      trkl_vec_1.push_back(tr);
+    }
+    tr_tre->Fill();
+  }
+  trackletFile->cd();
+  tr_tre->Write();
+  trackletFile->Close();
 }
 
 void VertexerTraits::computeTrackletMatching()
 {
-  TimeFrame* tf = mTimeFrame;
   for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
     trackletSelectionKernelSerial(
       mTimeFrame->getClustersOnLayer(rofId, 0), // mClusters[0],
@@ -291,30 +321,40 @@ void VertexerTraits::computeTrackletMatching()
       mTimeFrame->getNTrackletsCluster(rofId)[0], // mFoundTracklets01,
       mTimeFrame->getNTrackletsCluster(rofId)[1], // mFoundTracklets12,
       mTimeFrame->getLines(rofId),
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-      mAllowedTrackletPairs,
-      mDebugger,
-      mEvent,
-#endif
       mVrtParams.tanLambdaCut,
       mVrtParams.phiCut);
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-    if (isDebugFlag(VertexerDebug::TrackletTreeAll)) {
-      mDebugger->fillTrackletSelectionTree(mClusters, mComb01, mComb12, mAllowedTrackletPairs, mEvent);
-    }
-    if (isDebugFlag(VertexerDebug::LineTreeAll)) {
-      mDebugger->fillPairsInfoTree(mTracklets, mEvent);
-    }
-    if (isDebugFlag(VertexerDebug::LineSummaryAll)) {
-      mDebugger->fillLinesSummaryTree(mTracklets, mEvent);
-    }
-#endif
   }
+  TFile* trackletFile = TFile::Open("artefacts_tf.root", "update");
+  TTree* ln_tre = new TTree("lines", "tf");
+  std::vector<o2::its::Line> lines_vec(0);
+  std::vector<int> nTrackl01(0);
+  std::vector<int> nTrackl12(0);
+  ln_tre->Branch("Lines", &lines_vec);
+  ln_tre->Branch("NTrackletCluster01", &nTrackl01);
+  ln_tre->Branch("NTrackletCluster12", &nTrackl12);
+  for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
+    lines_vec.clear();
+    nTrackl01.clear();
+    nTrackl12.clear();
+    for (auto& ln : mTimeFrame->getLines(rofId)) {
+      lines_vec.push_back(ln);
+    }
+    for (auto& n : mTimeFrame->getNTrackletsCluster(rofId)[0]) {
+      nTrackl01.push_back(n);
+    }
+    for (auto& n : mTimeFrame->getNTrackletsCluster(rofId)[1]) {
+      nTrackl12.push_back(n);
+    }
+
+    ln_tre->Fill();
+  }
+  trackletFile->cd();
+  ln_tre->Write();
+  trackletFile->Close();
 }
 
 void VertexerTraits::computeVertices()
 {
-  TimeFrame* tf = mTimeFrame;
   for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
     const int numTracklets{static_cast<int>(mTimeFrame->getLines(rofId).size())};
     std::vector<bool> usedTracklets{};

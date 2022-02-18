@@ -79,23 +79,23 @@ void Cluster::Init(const int layerIndex, const float3& primaryVertex, const Inde
                                          utils.getPhiBinIndex(phi));
 }
 
+bool Cluster::operator==(const Cluster& rhs) const
+{
+  return this->xCoordinate == rhs.xCoordinate &&
+         this->yCoordinate == rhs.yCoordinate &&
+         this->zCoordinate == rhs.zCoordinate &&
+         this->phi == rhs.phi &&
+         this->radius == rhs.radius &&
+        //  this->clusterId == rhs.clusterId &&
+         this->indexTableBinIndex == rhs.indexTableBinIndex;
+}
+
 TrackingFrameInfo::TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, GPUArray<float, 2>&& posTF,
                                      GPUArray<float, 3>&& covTF)
-  : xCoordinate{x}, yCoordinate{y}, zCoordinate{z}, xTrackingFrame{xTF}, alphaTrackingFrame{alpha},
-#ifndef __OPENCL__
-    positionTrackingFrame{posTF},
-    covarianceTrackingFrame{covTF}
+  : xCoordinate{x}, yCoordinate{y}, zCoordinate{z}, xTrackingFrame{xTF}, alphaTrackingFrame{alpha}, positionTrackingFrame{posTF}, covarianceTrackingFrame{covTF}
 {
   // Nothing to do
 }
-#else
-    positionTrackingFrame{},
-    covarianceTrackingFrame{}
-{
-  positionTrackingFrame.copy(posTF);
-  covarianceTrackingFrame.copy(covTF);
-}
-#endif
 
 } // namespace its
 } // namespace o2
