@@ -27,6 +27,7 @@ CalibPadGainTracksBase::CalibPadGainTracksBase(const bool initCalPad) : mPadHist
 {
   if (initCalPad) {
     initCalPadMemory();
+    initCalPadStdDevMemory();
   }
 };
 
@@ -46,15 +47,20 @@ void CalibPadGainTracksBase::dumpGainMap(const char* fileName) const
   f.WriteObject(mGainMap.get(), "GainMap");
 }
 
-void CalibPadGainTracksBase::drawExtractedGainMapHelper(const bool type, const Sector sector, const std::string filename, const float minZ, const float maxZ) const
+void CalibPadGainTracksBase::drawExtractedGainMapHelper(const bool type, const int typeMap, const Sector sector, const std::string filename, const float minZ, const float maxZ) const
 {
-  std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> idcFunc = [this](const unsigned int sector, const unsigned int region, const unsigned int lrow, const unsigned int pad) {
-    return this->mGainMap->getValue(sector, Mapper::getGlobalPadNumber(lrow, pad, region));
+  const auto* map = (typeMap == 0) ? mGainMap.get() : mSigmaMap.get();
+  if (!map) {
+    LOGP(error, "Map not set");
+    return;
+  }
+  std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> idcFunc = [map](const unsigned int sector, const unsigned int region, const unsigned int lrow, const unsigned int pad) {
+    return map->getValue(sector, Mapper::getGlobalPadNumber(lrow, pad, region));
   };
 
   IDCDrawHelper::IDCDraw drawFun;
   drawFun.mIDCFunc = idcFunc;
-  const std::string zAxisTitle = "rel. gain";
+  const std::string zAxisTitle = (typeMap == 0) ? "rel. gain" : "sigma";
   type ? IDCDrawHelper::drawSide(drawFun, sector.side(), zAxisTitle, filename, minZ, maxZ) : IDCDrawHelper::drawSector(drawFun, 0, Mapper::NREGIONS, sector, zAxisTitle, filename, minZ, maxZ);
 }
 
@@ -137,7 +143,8 @@ bool CalibPadGainTracksBase::hasEnoughData(const int minEntries) const
 {
   for (auto& calArray : mPadHistosDet->getData()) {
     for (auto& tHist : calArray.getData()) {
-      if (tHist.getEntries() < minEntries) {
+      const auto entries = tHist.getEntries();
+      if (entries > 0 && entries < minEntries) {
         return false;
       }
     }
@@ -147,15 +154,12 @@ bool CalibPadGainTracksBase::hasEnoughData(const int minEntries) const
 
 void CalibPadGainTracksBase::finalize(const float low, const float high)
 {
-  // fill the gain values in CalPad object
-  unsigned long int iROC = 0; // roc: 0...71
-  for (auto& calArray : mGainMap->getData()) {
-    unsigned int pad = 0; // pad in roc
-    for (auto& val : calArray.getData()) {
-      const auto entries = mPadHistosDet->getCalArray(iROC).getData()[pad].getEntries();
-      val = mPadHistosDet->getCalArray(iROC).getData()[pad].getStatisticsData(low, high).mCOG;
-      pad++;
+  for (int roc = 0; roc < ROC::MaxROC; ++roc) {
+    const auto padsInRoc = ROC(roc).isIROC() ? Mapper::getPadsInIROC() : Mapper::getPadsInOROC();
+    for (int pad = 0; pad < padsInRoc; ++pad) {
+      const auto stat = mPadHistosDet->getCalArray(roc).getData()[pad].getStatisticsData(low, high);
+      mGainMap->getCalArray(roc).getData()[pad] = stat.mCOG;
+      mSigmaMap->getCalArray(roc).getData()[pad] = stat.mStdDev;
     }
-    iROC++;
   }
 }

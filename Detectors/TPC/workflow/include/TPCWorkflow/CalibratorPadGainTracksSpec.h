@@ -91,7 +91,7 @@ class CalibratorPadGainTracksDevice : public Task
       if (mWriteToDB) {
         LOGP(info, "Writing pad-by-pad gain map to CCDB for TF {} to {}", firstTF, lastTF);
         mMetadata["runNumber"] = std::to_string(mRunNumber);
-        mDBapi.storeAsTFileAny<o2::tpc::CalPad>(&calib, CDBTypeMap.at(CDBType::CalPadGainResidual), mMetadata, firstTF, lastTF + 1);
+        mDBapi.storeAsTFileAny<std::unordered_map<std::string, CalPad>>(&calib, CDBTypeMap.at(CDBType::CalPadGainResidual), mMetadata, firstTF, lastTF + 1);
       }
     }
     mCalibrator->initOutput(); // empty the outputs after they are send

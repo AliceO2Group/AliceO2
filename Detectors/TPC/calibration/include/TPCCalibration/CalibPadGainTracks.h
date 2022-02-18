@@ -102,7 +102,7 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   void setMaxEta(const float eta) { mEtaMax = eta; }
 
   /// \param nCl minimum number of clusters required of the tracks
-  void setMinNClusters(const float nCl) { mMinClusters = nCl; }
+  void setMinNClusters(const int nCl) { mMinClusters = nCl; }
 
   /// \param field magnetic field in kG, used for track propagation
   void setField(const float field) { mField = field; }
