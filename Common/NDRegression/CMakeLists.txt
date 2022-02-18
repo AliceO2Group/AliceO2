@@ -11,8 +11,12 @@
 
 o2_add_library(
   NDRegression
-  SOURCES src/NDLocalRegression.cxx
+  SOURCES src/NDRegression.cxx
   PUBLIC_LINK_LIBRARIES
+    O2::MathUtils
+    O2::Headers
+    O2::CommonUtils
+    ROOT::Minuit
     # ROOT::Hist
     # FairRoot::Base
     # O2::CommonConstants
@@ -24,12 +28,12 @@ o2_add_library(
 
 o2_target_root_dictionary(
   NDRegression
-  HEADERS include/NDRegression/NDLocalRegression.h
+  HEADERS include/NDRegression/NDRegression.h
           )
 
 o2_add_test(
-  NDLocalRegressionTest
-  SOURCES test/NDLocalRegressionTest.cxx
+  NDRegression2DIdeal
+  SOURCES test/NDRegression2DIdeal.cxx
   COMPONENT_NAME NDRegression
   PUBLIC_LINK_LIBRARIES O2::NDRegression
-  LABELS whatisthis)
+  LABELS init tfile ttree histo makefit)
