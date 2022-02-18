@@ -119,7 +119,7 @@ class Geo
   static constexpr int MAXYPHOTO = 47;
 
   // from
-  //static constexpr Bool_t FEAWITHMASKS[NSECTORS] =
+  // static constexpr Bool_t FEAWITHMASKS[NSECTORS] =
   //  // TOF sectors with Nino masks: 0, 8, 9, 10, 16
   //  {kTRUE, kFALSE, kFALSE, kFALSE, kFALSE, kFALSE, kFALSE, kFALSE, kTRUE,
   //   kTRUE, kTRUE, kFALSE, kFALSE, kFALSE, kFALSE, kFALSE, kTRUE, kFALSE};

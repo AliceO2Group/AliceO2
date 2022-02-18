@@ -48,10 +48,14 @@ class PedestalsCalculationTask : public framework::Task
   std::string mPedestalTag;
   bool mWriteToFiles;
   std::string mPedestalsBasePath;
-  o2::ccdb::CcdbApi mDBapi;
   std::map<std::string, std::string> mDbMetadata; // can be empty
   std::string mPedestalsCCDBBasePath;
+  o2::ccdb::CcdbApi mDBapi;
   bool mWriteToDB;
+  o2::ccdb::CcdbApi mDCSDBapi;
+  bool mWriteToDCSDB;
+  int mDcsCcdbAliveHours;
+
   bool mFastAlgorithm;
   ExecutionTimer mExTimer;
 };
