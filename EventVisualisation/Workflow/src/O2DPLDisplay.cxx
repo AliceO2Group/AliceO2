@@ -53,7 +53,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"display-tracks", VariantType::String, "TPC,ITS,ITS-TPC,TPC-TRD,ITS-TPC-TRD,TPC-TOF,ITS-TPC-TOF", {"comma-separated list of tracks to display"}},
     {"read-from-files", o2::framework::VariantType::Bool, false, {"comma-separated list of tracks to display"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"Disable root input overriding read-from-files"}},
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
+    {"skipOnEmptyInput", o2::framework::VariantType::Bool, false, {"Just don't run the ED when no input is provided"}}};
 
   std::swap(workflowOptions, options);
 }
@@ -138,6 +139,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   GlobalTrackID::mask_t srcTrk = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-tracks")) & allowedTracks;
   GlobalTrackID::mask_t srcCl = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-clusters")) & allowedClusters;
   if (!srcTrk.any() && !srcCl.any()) {
+    if (cfgc.options().get<bool>("skipOnEmptyInput")) {
+      LOG(info) << "No valid inputs for event display, disabling event display";
+      return std::move(specs);
+    }
     throw std::runtime_error("No input configured");
   }
   std::shared_ptr<DataRequest> dataRequest = std::make_shared<DataRequest>();
