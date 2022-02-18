@@ -212,7 +212,6 @@ class TimeFrame final
   std::vector<int> mBogusClusters; /// keep track of clusters with wild coordinates
 
   std::vector<index_table_t> mIndexTables;
-  std::vector<std::vector<int>> mIndexTablesL0;
   std::vector<std::vector<Tracklet>> mTracklets;
   std::vector<std::vector<int>> mTrackletsLookupTable;
 
