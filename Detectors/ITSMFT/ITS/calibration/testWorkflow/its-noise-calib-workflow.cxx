@@ -18,18 +18,8 @@ using namespace o2::framework;
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
-  workflowOptions.push_back(
-    ConfigParamSpec{
-      "doNoise",
-      VariantType::Bool,
-      true,
-      {"Generate noisy-pixel maps"}});
-  workflowOptions.push_back(
-    ConfigParamSpec{
-      "configKeyValues",
-      VariantType::String,
-      "",
-      {"Semicolon separated key=value strings"}});
+  workflowOptions.push_back(ConfigParamSpec{"use-clusters", VariantType::Bool, false, {"Use clusters instead of digits"}});
+  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
 }
 
 // ------------------------------------------------------------------
@@ -42,14 +32,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  auto doNoise = configcontext.options().get<bool>("doNoise");
-
-  LOG(info) << "ITS calibration workflow options";
-  LOG(info) << "Generate noisy-pixel maps: " << doNoise;
-
-  if (doNoise) {
-    specs.emplace_back(o2::its::getNoiseCalibratorSpec());
-  }
-
+  specs.emplace_back(o2::its::getNoiseCalibratorSpec(configcontext.options().get<bool>("use-clusters")));
   return specs;
 }
