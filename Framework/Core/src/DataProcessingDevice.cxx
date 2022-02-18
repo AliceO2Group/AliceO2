@@ -390,17 +390,26 @@ void DataProcessingDevice::initPollers()
 {
   // We add a timer only in case a channel poller is not there.
   if ((mStatefulProcess != nullptr) || (mStatelessProcess != nullptr)) {
-    for (auto& x : fChannels) {
-      if ((x.first.rfind("from_internal-dpl", 0) == 0) &&
-          (x.first.rfind("from_internal-dpl-aod", 0) != 0) &&
-          (x.first.rfind("from_internal-dpl-ccdb-backend", 0) != 0) &&
-          (x.first.rfind("from_internal-dpl-injected", 0)) != 0) {
-        LOG(debug) << x.first << " is an internal channel. Skipping as no input will come from there." << std::endl;
+    for (auto& [channelName, channel] : fChannels) {
+      InputChannelInfo* channelInfo;
+      for (size_t ci = 0; ci < mDeviceContext.spec->inputChannels.size(); ++ci) {
+        auto& channelSpec = mDeviceContext.spec->inputChannels[ci];
+        channelInfo = &mDeviceContext.state->inputChannelInfos[ci];
+        if (channelSpec.name != channelName) {
+          continue;
+        }
+        channelInfo->channel = &this->GetChannel(channelName, 0);
+      }
+      if ((channelName.rfind("from_internal-dpl", 0) == 0) &&
+          (channelName.rfind("from_internal-dpl-aod", 0) != 0) &&
+          (channelName.rfind("from_internal-dpl-ccdb-backend", 0) != 0) &&
+          (channelName.rfind("from_internal-dpl-injected", 0)) != 0) {
+        LOGP(debug, "{} is an internal channel. Skipping as no input will come from there.", channelName);
         continue;
       }
       // We only watch receiving sockets.
-      if (x.first.rfind("from_" + mSpec.name + "_", 0) == 0) {
-        LOG(debug) << x.first << " is to send data. Not polling." << std::endl;
+      if (channelName.rfind("from_" + mSpec.name + "_", 0) == 0) {
+        LOG(debug) << channelName << " is to send data. Not polling." << std::endl;
         continue;
       }
       // We assume there is always a ZeroMQ socket behind.
@@ -408,15 +417,15 @@ void DataProcessingDevice::initPollers()
       size_t zmq_fd_len = sizeof(zmq_fd);
       // FIXME: I should probably save those somewhere... ;-)
       auto* poller = (uv_poll_t*)malloc(sizeof(uv_poll_t));
-      x.second[0].GetSocket().GetOption("fd", &zmq_fd, &zmq_fd_len);
+      channel[0].GetSocket().GetOption("fd", &zmq_fd, &zmq_fd_len);
       if (zmq_fd == 0) {
-        LOG(error) << "Cannot get file descriptor for channel." << x.first;
+        LOG(error) << "Cannot get file descriptor for channel." << channelName;
         continue;
       }
-      LOG(debug) << "Polling socket for " << x.second[0].GetName();
+      LOG(debug) << "Polling socket for " << channel[0].GetName();
       // FIXME: leak
       auto* pCtx = (PollerContext*)malloc(sizeof(PollerContext));
-      pCtx->name = strdup(x.first.c_str());
+      pCtx->name = strdup(channelName.c_str());
       pCtx->loop = mState.loop;
       pCtx->device = this;
       pCtx->state = &mState;
@@ -808,7 +817,6 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
 
   // Whether or not all the channels are completed
   for (size_t ci = 0; ci < context.deviceContext->spec->inputChannels.size(); ++ci) {
-    auto& channel = context.deviceContext->spec->inputChannels[ci];
     auto& info = context.deviceContext->state->inputChannelInfos[ci];
 
     if (info.state != InputChannelState::Completed && info.state != InputChannelState::Pull) {
@@ -821,10 +829,6 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
         DataProcessingDevice::handleData(context, info);
       }
       continue;
-    }
-    int64_t result = -2;
-    if (info.channel == nullptr) {
-      info.channel = &context.deviceContext->device->GetChannel(channel.name, 0);
     }
     auto& socket = info.channel->GetSocket();
     // If we have pending events from a previous iteration,
