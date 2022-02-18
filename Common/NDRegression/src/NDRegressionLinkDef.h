@@ -9,16 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test NDLocalRegressionTest
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-#include <boost/test/unit_test.hpp>
-#include "NDLocalRegression/NDLocalRegression.h"
+#ifdef __CLING__
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
 
-BOOST_AUTO_TEST_CASE(NDLocalRegressionTest_test)
-{
-  auto fitter = o2::nd_local_regression::NDLocalRegression();
-  auto success = fitter.init();
+#pragma link C++ class o2::nd_regression::NDRegression + ;
 
-  BOOST_CHECK(success == true);
-}
+#endif
