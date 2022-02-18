@@ -24,6 +24,8 @@
 #include <string>
 #include <iostream>
 #include <iomanip>
+#include <limits>
+#include <algorithm>
 #include "FairLogger.h"
 
 using namespace std;
@@ -92,6 +94,8 @@ VisualisationEvent::VisualisationEvent(VisualisationEventVO vo)
   this->mMultiplicity = vo.multiplicity;
   this->mCollidingSystem = vo.collidingSystem;
   this->mCollisionTime = vo.collisionTime;
+  this->mMinTimeOfTracks = numeric_limits<float>::max();
+  this->mMaxTimeOfTracks = numeric_limits<float>::min();
 }
 
 std::string VisualisationEvent::toJson()
@@ -137,9 +141,15 @@ VisualisationEvent::VisualisationEvent(std::string fileName)
   this->fromFile(fileName);
 }
 
-VisualisationEvent::VisualisationEvent(const VisualisationEvent& source, EVisualisationGroup filter)
+VisualisationEvent::VisualisationEvent(const VisualisationEvent& source, EVisualisationGroup filter, float minTime, float maxTime)
 {
   for (auto it = source.mTracks.begin(); it != source.mTracks.end(); ++it) {
+    if (it->getTime() < minTime) {
+      continue;
+    }
+    if (it->getTime() > maxTime) {
+      continue;
+    }
     if (VisualisationEvent::mVis.contains[it->getSource()][filter]) {
       this->mTracks.push_back(*it);
     }
@@ -184,6 +194,12 @@ void VisualisationEvent::fromJson(std::string json)
   rapidjson::Value& jsonTracks = tree["mTracks"];
   for (auto& v : jsonTracks.GetArray()) {
     mTracks.emplace_back(v);
+  }
+  this->mMinTimeOfTracks = numeric_limits<float>::max();
+  this->mMaxTimeOfTracks = numeric_limits<float>::min();
+  for (auto& v : this->mTracks) {
+    this->mMinTimeOfTracks = min(this->mMinTimeOfTracks, v.getTime());
+    this->mMaxTimeOfTracks = max(this->mMaxTimeOfTracks, v.getTime());
   }
 
   rapidjson::Value& clusterCount = tree["clusterCount"];
