@@ -48,6 +48,9 @@ class CalibPadGainTracksBase
   /// initializing CalPad object for gainmap
   void initCalPadMemory() { mGainMap = std::make_unique<CalPad>("GainMap"); }
 
+  /// initializing CalPad object for std dev map
+  void initCalPadStdDevMemory() { mSigmaMap = std::make_unique<CalPad>("SigmaMap"); }
+
   /// copy constructor
   CalibPadGainTracksBase(const CalibPadGainTracksBase& other) : mPadHistosDet(std::make_unique<DataTHistos>(*other.mPadHistosDet)), mGainMap(std::make_unique<CalPad>(*other.mGainMap)) {}
 
@@ -69,7 +72,7 @@ class CalibPadGainTracksBase
   /// \param minEntries minimum number of entries in each histogram
   bool hasEnoughData(const int minEntries) const;
 
-  /// get the truncated mean for each histogram and fill the extracted gainvalues in a CalPad object
+  /// get the truncated mean and the sigma for each histogram and fill the extracted values in a CalPad object
   /// \param low lower truncation range for calculating the rel gain
   /// \param high upper truncation range
   void finalize(const float low = 0.05f, const float high = 0.6f);
@@ -79,6 +82,9 @@ class CalibPadGainTracksBase
 
   /// \return returns the gainmap object
   const CalPad& getPadGainMap() const { return *mGainMap; }
+
+  /// \return returns the gainmap object
+  const CalPad& getSigmaMap() const { return *mSigmaMap; }
 
   /// \return return histogram which is used to extract the gain
   /// \param sector sector of the TPC
@@ -98,14 +104,28 @@ class CalibPadGainTracksBase
   /// \param filename name of the output file. If empty the canvas is drawn
   /// \param minZ min z value for drawing (if minZ > maxZ automatic z axis)
   /// \param maxZ max z value for drawing (if minZ > maxZ automatic z axis)
-  void drawExtractedGainMapSector(const int sector, const std::string filename = "GainMapSector.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(false, sector, filename, minZ, maxZ); }
+  void drawExtractedGainMapSector(const int sector, const std::string filename = "GainMapSector.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(false, 0, sector, filename, minZ, maxZ); }
 
   /// draw gain map side
   /// \param side side of the TPC which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn
   /// \param minZ min z value for drawing (if minZ > maxZ automatic z axis)
   /// \param maxZ max z value for drawing (if minZ > maxZ automatic z axis)
-  void drawExtractedGainMapSide(const o2::tpc::Side side, const std::string filename = "GainMapSide.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(true, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), filename, minZ, maxZ); }
+  void drawExtractedGainMapSide(const o2::tpc::Side side, const std::string filename = "GainMapSide.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(true, 0, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), filename, minZ, maxZ); }
+
+  /// draw sigma map sector
+  /// \param sector sector which will be drawn
+  /// \param filename name of the output file. If empty the canvas is drawn
+  /// \param minZ min z value for drawing (if minZ > maxZ automatic z axis)
+  /// \param maxZ max z value for drawing (if minZ > maxZ automatic z axis)
+  void drawExtractedSigmaMapSector(const int sector, const std::string filename = "StdDevMapSector.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(false, 1, sector, filename, minZ, maxZ); }
+
+  /// draw sigma map side
+  /// \param side side of the TPC which will be drawn
+  /// \param filename name of the output file. If empty the canvas is drawn
+  /// \param minZ min z value for drawing (if minZ > maxZ automatic z axis)
+  /// \param maxZ max z value for drawing (if minZ > maxZ automatic z axis)
+  void drawExtractedSigmaMapSide(const o2::tpc::Side side, const std::string filename = "StdDevMapSide.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(true, 1, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), filename, minZ, maxZ); }
 
   /// draw gain map using painter functionality
   TCanvas* drawExtractedGainMapPainter() const;
@@ -151,9 +171,10 @@ class CalibPadGainTracksBase
  private:
   std::unique_ptr<DataTHistos> mPadHistosDet; ///< Calibration object containing for each pad a histogram with normalized charge
   std::unique_ptr<CalPad> mGainMap;           ///< Gain map object
+  std::unique_ptr<CalPad> mSigmaMap;          ///< standard dewviation map
 
   /// Helper function for drawing the extracted gain map
-  void drawExtractedGainMapHelper(const bool type, const Sector sector, const std::string filename, const float minZ, const float maxZ) const;
+  void drawExtractedGainMapHelper(const bool type, const int typeMap, const Sector sector, const std::string filename, const float minZ, const float maxZ) const;
 };
 
 } // namespace tpc

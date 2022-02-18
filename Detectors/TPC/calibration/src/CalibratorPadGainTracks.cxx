@@ -38,7 +38,8 @@ void CalibratorPadGainTracks::finalizeSlot(Slot& slot)
   auto& calibPadGainTracks = *slot.getContainer();
   calibPadGainTracks.finalize(mLowTruncation, mUpTruncation);
   mIntervals.emplace_back(startTF, endTF);
-  mCalibs.emplace_back(calibPadGainTracks.getPadGainMap());
+  std::unordered_map<std::string, CalPad> cal({{"GainMap", calibPadGainTracks.getPadGainMap()}, {"SigmaMap", calibPadGainTracks.getSigmaMap()}});
+  mCalibs.emplace_back(cal);
 
   if (mWriteDebug) {
     calibPadGainTracks.dumpToFile(fmt::format("calPadGainTracksBase_TF_{}_to_{}.root", startTF, endTF).data());
