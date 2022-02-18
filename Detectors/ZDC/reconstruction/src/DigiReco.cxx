@@ -73,6 +73,50 @@ void DigiReco::init()
     }
   }
 
+  // Signal processing
+  // N.B. Function call overrides other settings for low pass filtering
+  if (mLowPassFilterSet == false) {
+    if (ropt.low_pass_filter < 0) {
+      if (!mRecoConfigZDC) {
+        LOG(fatal) << "Configuration of low pass filtering: missing configuration object and no manual override";
+      } else {
+        ropt.low_pass_filter = mRecoConfigZDC->low_pass_filter;
+      }
+    }
+    mLowPassFilter = ropt.low_pass_filter > 0 ? true : false;
+  }
+  if (mVerbosity > DbgZero) {
+    LOG(info) << "Low pass filtering is " << (mLowPassFilter ? "enabled" : "disabled");
+  }
+
+  if (mCorrSignalSet == false) {
+    if (ropt.corr_signal < 0) {
+      if (!mRecoConfigZDC) {
+        LOG(fatal) << "Configuration of TDC signal correction: missing configuration object and no manual override";
+      } else {
+        ropt.corr_signal = mRecoConfigZDC->corr_signal;
+      }
+    }
+    mCorrSignal = ropt.corr_signal > 0 ? true : false;
+  }
+  if (mVerbosity > DbgZero) {
+    LOG(info) << "TDC signal correction is " << (mCorrSignal ? "enabled" : "disabled");
+  }
+
+  if (mCorrBackgroundSet == false) {
+    if (ropt.corr_background < 0) {
+      if (!mRecoConfigZDC) {
+        LOG(fatal) << "Configuration of TDC pile-up correction: missing configuration object and no manual override";
+      } else {
+        ropt.corr_background = mRecoConfigZDC->corr_background;
+      }
+    }
+    mCorrBackground = ropt.corr_background > 0 ? true : false;
+  }
+  if (mVerbosity > DbgZero) {
+    LOG(info) << "TDC pile-up correction is " << (mCorrBackground ? "enabled" : "disabled");
+  }
+
   // TDC calibration
   // Recentering
   for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
@@ -252,10 +296,13 @@ void DigiReco::init()
     mTDCCorr->print();
   }
   // Information about reconstruction configuration
-  if (mCorrSignal == 0) {
+  if (mLowPassFilter == false) {
+    LOG(warning) << "Low pass filtering of signal is disabled";
+  }
+  if (mCorrSignal == false) {
     LOG(warning) << "TDC signal correction is disabled";
   }
-  if (mCorrBackground == 0) {
+  if (mCorrBackground == false) {
     LOG(warning) << "TDC pile-up correction is disabled";
   }
 } // init
@@ -370,7 +417,9 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
   }
 
   // Low pass filtering
-  lowPassFilter();
+  if (mLowPassFilter) {
+    lowPassFilter();
+  }
 
   // Find consecutive bunch crossings by taking into account just the presence
   // of bunch crossing data and then perform signal interpolation in the identified ranges.

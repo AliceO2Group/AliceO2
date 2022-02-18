@@ -31,6 +31,11 @@ struct RecoConfigZDC {
   std::array<bool, NTDCChannels> bitset = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Set bits in coincidence
   void setBit(uint32_t ibit, bool val = true);
 
+  // Signal processing
+  bool low_pass_filter = true; // Low pass filtering
+  bool corr_signal = true;     // TDC signal correction
+  bool corr_background = true; // TDC pile-up correction
+
   // TDC
   int tdc_search[NTDCChannels] = {250, 250, 250, 250, 250, 250, 250, 250, 250, 250}; // Search zone for a TDC signal ideally 2.5 ns (units of ~10 ps)
   void setSearch(uint32_t ich, int val);

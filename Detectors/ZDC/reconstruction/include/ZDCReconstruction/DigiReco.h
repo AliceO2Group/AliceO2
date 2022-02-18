@@ -103,11 +103,29 @@ class DigiReco
   const ZDCTowerParam* getTowerParam() { return mTowerParam; };
   void setRecoConfigZDC(const RecoConfigZDC* cfg) { mRecoConfigZDC = cfg; };
   const RecoConfigZDC* getRecoConfigZDC() { return mRecoConfigZDC; };
+  // Enable or disable low pass filtering
+  void setLowPassFilter(bool val = true)
+  {
+    mLowPassFilter = val;
+    mLowPassFilterSet = true;
+    LOG(warn) << __func__ << " Configuration of low pass filtering: " << (mLowPassFilter ? "enabled" : "disabled");
+  };
+  bool getLowPassFilter() { return mLowPassFilter; };
   // Enable or disable TDC corrections
-  void setCorrBackground(bool val = true) { mCorrBackground = val; };
-  bool getCorrBackground() { return mCorrBackground; };
-  void setCorrSignal(bool val = true) { mCorrSignal = val; };
+  void setCorrSignal(bool val = true)
+  {
+    mCorrSignal = val;
+    mCorrSignalSet = true;
+    LOG(warn) << __func__ << " Configuration of TDC signal correction: " << (mCorrSignal ? "enabled" : "disabled");
+  };
   bool getCorrSignal() { return mCorrSignal; };
+  void setCorrBackground(bool val = true)
+  {
+    mCorrBackground = val;
+    mCorrBackgroundSet = true;
+    LOG(warn) << __func__ << " Configuration of TDC pile-up correction: " << (mCorrBackground ? "enabled" : "disabled");
+  };
+  bool getCorrBackground() { return mCorrBackground; };
 
   const uint32_t* getTDCMask() const { return mTDCMask; }
   const uint32_t* getChMask() const { return mChMask; }
@@ -123,8 +141,12 @@ class DigiReco
   void processTriggerExtended(int itdc, int ibeg, int iend); /// Replay of trigger algorithm on acquired data
   void interpolate(int itdc, int ibeg, int iend);            /// Interpolation of samples to evaluate signal amplitude and arrival time
   void correctTDCPile();                                     /// Correction of pile-up in TDC
+  bool mLowPassFilter = true;                                /// Enable low pass filtering
+  bool mLowPassFilterSet = false;                            /// Low pass filtering set via function call
   bool mCorrSignal = true;                                   /// Enable TDC signal correction
-  bool mCorrBackground = true;                               /// Enable TDC background correction
+  bool mCorrSignalSet = false;                               /// TDC signal correction set via function call
+  bool mCorrBackground = true;                               /// Enable TDC pile-up correction
+  bool mCorrBackgroundSet = false;                           /// TDC pile-up correction set via function call
 
   int correctTDCSignal(int itdc, int16_t TDCVal, float TDCAmp, float& FTDCVal, float& FTDCAmp, bool isbeg, bool isend); /// Correct TDC single signal
   int correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& tdc);                                            /// TDC amplitude and time corrections due to pile-up from previous bunches
