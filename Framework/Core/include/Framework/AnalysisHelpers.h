@@ -236,7 +236,7 @@ struct IndexExclusive {
         return true;
       } else {
         lowerBound<Key>(idx, x);
-        if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) {
+        if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.size())}) {
           return false;
         } else if (x.template getId<Key>() != idx) {
           return false;
@@ -258,7 +258,7 @@ struct IndexExclusive {
       }
       if (std::apply(
             [](auto&... x) {
-              return ((x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) && ...);
+              return ((x == soa::RowViewSentinel{static_cast<uint64_t>(x.size())}) && ...);
             },
             iterators)) {
         break;
@@ -322,7 +322,7 @@ struct IndexSparse {
         return true;
       } else {
         lowerBound<Key>(idx, x);
-        if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) {
+        if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.size())}) {
           values[position] = -1;
           return false;
         } else if (x.template getId<Key>() != idx) {
@@ -362,7 +362,7 @@ struct IndexSparse {
     auto t = IDX{indexBuilder(o2::aod::MetadataTrait<IDX>::metadata::tableLabel(),
                               typename o2::aod::MetadataTrait<IDX>::metadata::index_pack_t{},
                               key,
-                              std::make_tuple(std::decay_t<T1>{{std::get<T1>(tables).asArrowTable()}}, std::decay_t<T>{{std::get<T>(tables).asArrowTable()}}...))};
+                              std::make_tuple(std::decay_t<T1>{{std::get<T1>(tables)}}, std::decay_t<T>{{std::get<T>(tables)}}...))};
     t.bindExternalIndices(&key, &std::get<T1>(tables), &std::get<T>(tables)...);
     return t;
   }
