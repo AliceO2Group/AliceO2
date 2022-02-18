@@ -905,6 +905,7 @@ DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);     //! Bit mask to indicate detec
 DECLARE_SOA_TABLE(McTrackLabels, "AOD", "MCTRACKLABEL", //! Table joined to the track table containing the MC index
                   mctracklabel::McParticleId, mctracklabel::McMask);
 using McTrackLabel = McTrackLabels::iterator;
+using LabeledTracks = soa::Join<Tracks, McTrackLabels>;
 
 namespace mcmfttracklabel
 {
@@ -947,16 +948,17 @@ DECLARE_SOA_TABLE(McCollisionLabels, "AOD", "MCCOLLISLABEL", //! Table joined to
 using McCollisionLabel = McCollisionLabels::iterator;
 
 // --- Matching between collisions and other tables through BC ---
-
 namespace indices
 {
-DECLARE_SOA_INDEX_COLUMN(Collision, collision); //!
-DECLARE_SOA_INDEX_COLUMN(BC, bc);               //!
-DECLARE_SOA_INDEX_COLUMN(Zdc, zdc);             //!
-DECLARE_SOA_INDEX_COLUMN(FV0A, fv0a);           //!
-DECLARE_SOA_INDEX_COLUMN(FV0C, fv0c);           //!
-DECLARE_SOA_INDEX_COLUMN(FT0, ft0);             //!
-DECLARE_SOA_INDEX_COLUMN(FDD, fdd);             //!
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);       //!
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                     //!
+DECLARE_SOA_INDEX_COLUMN(Zdc, zdc);                   //!
+DECLARE_SOA_INDEX_COLUMN(FV0A, fv0a);                 //!
+DECLARE_SOA_INDEX_COLUMN(FV0C, fv0c);                 //!
+DECLARE_SOA_INDEX_COLUMN(FT0, ft0);                   //!
+DECLARE_SOA_INDEX_COLUMN(FDD, fdd);                   //!
+DECLARE_SOA_INDEX_COLUMN(McParticle, mcparticle);     //!
+DECLARE_SOA_INDEX_COLUMN(LabeledTrack, labeledTrack); //!
 } // namespace indices
 
 // First entry: Collision
@@ -982,13 +984,18 @@ DECLARE_SOA_INDEX_TABLE(Run3MatchedToBCSparse, BCs, "MA_RN3_BC_SP", //!
 DECLARE_SOA_INDEX_TABLE(Run2MatchedToBCSparse, BCs, "MA_RN2_BC_SP", //!
                         indices::BCId, indices::ZdcId, indices::FT0Id, indices::FV0AId, indices::FV0CId, indices::FDDId);
 
-// Joins with collisions (only for sparse ones)
+// First entry: McParticle
+DECLARE_SOA_INDEX_TABLE(MatchedParticlesTracks, McParticles, "MA_P2T", //!
+                        indices::McParticleId, indices::LabeledTrackId);
+
+// Joins with collisions and particles (only for sparse ones)
 // NOTE: index table needs to be always last argument
 } // namespace aod
 namespace soa
 {
 extern template struct Join<aod::Collisions, aod::Run2MatchedSparse>;
 extern template struct Join<aod::Collisions, aod::Run3MatchedSparse>;
+extern template struct Join<aod::McParticles, aod::MatchedParticlesTracks>;
 } // namespace soa
 namespace aod
 {

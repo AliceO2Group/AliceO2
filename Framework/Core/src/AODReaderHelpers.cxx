@@ -125,6 +125,8 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec>& req
           outputs.adopt(Output{origin, description}, maker(o2::aod::Run3MatchedToBCExclusiveMetadata{}));
         } else if (description == header::DataDescription{"MA_RN2_BC_SP"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::Run2MatchedToBCSparseMetadata{}));
+        } else if (description == header::DataDescription{"MA_P2T"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::MatchedParticlesTracksMetadata{}));
         } else {
           throw std::runtime_error("Not an index table");
         }

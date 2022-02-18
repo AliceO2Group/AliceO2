@@ -18,6 +18,7 @@ template struct Join<aod::Tracks, aod::TracksCov, aod::TracksExtra>;
 template struct Join<aod::FwdTracks, aod::FwdTracksCov>;
 template struct Join<aod::Collisions, aod::Run2MatchedSparse>;
 template struct Join<aod::Collisions, aod::Run3MatchedSparse>;
+template struct Join<aod::McParticles, aod::MatchedParticlesTracks>;
 
 template struct Join<aod::TracksExtension, aod::StoredTracks>;
 } // namespace o2::soa
