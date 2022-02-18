@@ -278,57 +278,6 @@ void TrackerDPL::run(ProcessingContext& pc)
       timeFrame->addPrimaryVertices(vtxVecLoc);
     }
   }
-  // for (auto& rof : rofspan) {
-  //   // prepare in advance output ROFRecords, even if this ROF to be rejected
-  //   // int first = allTracks.size();
-
-  //   // for vertices output
-  //   auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
-  //   vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
-  //   vtxROF.setNEntries(0);
-
-  //   // bool multCut = (multEstConf.cutMultClusLow <= 0 && multEstConf.cutMultClusHigh <= 0); // cut was requested
-  //   // if (!multCut) {
-  //   //   float mult = multEst.process(rof.getROFData(compClusters));
-  //   //   multCut = mult >= multEstConf.cutMultClusLow && mult <= multEstConf.cutMultClusHigh;
-  //   //   LOG(debug) << fmt::format("ROF {} rejected by the cluster multiplicity selection [{},{}]", processingMask.size(), multEstConf.cutMultClusLow, multEstConf.cutMultClusHigh);
-  //   //   cutClusterMult += !multCut;
-  //   // }
-
-  //   //   std::vector<Vertex> vtxVecLoc;
-  //   //   if (multCut) {
-  //   //     if (mRunVertexer) {
-  //   //       vertexerElapsedTime += mVertexer->clustersToVertices(false, logger);
-  //   //       auto allVerts = mVertexer->exportVertices();
-  //   //       multCut = allVerts.size() == 0;
-  //   //       for (const auto& vtx : allVerts) {
-  //   //         if (vtx.getNContributors() < multEstConf.cutMultVtxLow || (multEstConf.cutMultVtxHigh > 0 && vtx.getNContributors() > multEstConf.cutMultVtxHigh)) {
-  //   //           continue; // skip vertex of unwanted multiplicity
-  //   //         }
-  //   //         multCut = true; // At least one passes the selection
-  //   //         vtxVecLoc.push_back(vtx);
-  //   //       }
-  //   //     } else {
-  //   //       vtxVecLoc.emplace_back(Vertex());
-  //   //       vtxVecLoc.back().setNContributors(1);
-  //   //     }
-
-  //   //     if (!multCut) {
-  //   //       LOG(debug) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]", processingMask.size(), multEstConf.cutMultVtxLow, multEstConf.cutMultVtxHigh);
-  //   //       cutVertexMult++;
-  //   //     }
-  //   //   }
-  //   // cutTotalMult += !multCut;
-  //   // processingMask.push_back(multCut);
-  //   // mTimeFrame.addPrimaryVertices(vtxVecLoc);
-
-  //   // vtxROF.setNEntries(vtxVecLoc.size());
-  //   // for (const auto& vtx : vtxVecLoc) {
-  //   //   vertices.push_back(vtx);
-  //   // }
-  //   // savedROF.push_back(roFrame);
-  //   // roFrame++;
-  // }
 
   LOG(info) << fmt::format(" - In total, multiplicity selection rejected {}/{} ROFs", mTimeFrame.getROfCutAllMult(), rofspan.size());
   LOG(info) << fmt::format("\t - Cluster multiplicity selection rejected {}/{} ROFs", mTimeFrame.getROfCutClusterMult(), rofspan.size());
