@@ -81,7 +81,7 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   /// \param charge charge of the cluster
   GPUd() float getCorrection(const int region, const ChargeType chargeT, const float tanTheta, const float sinPhi, const float z, const float relPad, const float relTime, const float threshold, const float charge) const
   {
-    const float corr = chargeT == ChargeType::Tot ? getCorrectionqTot(region, tanTheta, sinPhi, z, threshold, charge) : getCorrectionqMax(region, tanTheta, sinPhi, z, relPad, relTime);
+    const float corr = (chargeT == ChargeType::Tot) ? getCorrectionqTot(region, tanTheta, sinPhi, z, threshold, charge) : getCorrectionqMax(region, tanTheta, sinPhi, z, relPad, relTime);
     return corr;
   }
 

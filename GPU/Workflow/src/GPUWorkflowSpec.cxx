@@ -267,6 +267,17 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         if (!confParam.dEdxPolTopologyCorrFile.empty()) {
           LOGP(info, "Loading dE/dx polynomial track topology correction from file: {}", confParam.dEdxPolTopologyCorrFile);
           processAttributes->dEdxCalibContainer->loadPolTopologyCorrectionFromFile(confParam.dEdxPolTopologyCorrFile);
+          if (std::filesystem::exists(confParam.thresholdCalibFile)) {
+            LOG(info) << "Loading tpc zero supression map from file " << confParam.thresholdCalibFile;
+            const auto* thresholdMap = o2::tpc::utils::readCalPads(confParam.thresholdCalibFile, "ThresholdMap")[0];
+            processAttributes->dEdxCalibContainer->setZeroSupresssionThreshold(*thresholdMap);
+          } else {
+            if (not confParam.thresholdCalibFile.empty()) {
+              LOG(warn) << "Couldn't find tpc zero supression file " << confParam.thresholdCalibFile << ". Not setting any zero supression.";
+            }
+            LOG(info) << "Setting default zero supression map";
+            processAttributes->dEdxCalibContainer->setDefaultZeroSupresssionThreshold();
+          }
         } else if (!confParam.dEdxSplineTopologyCorrFile.empty()) {
           LOGP(info, "Loading dE/dx spline track topology correction from file: {}", confParam.dEdxSplineTopologyCorrFile);
           processAttributes->dEdxCalibContainer->loadSplineTopologyCorrectionFromFile(confParam.dEdxSplineTopologyCorrFile);
@@ -274,17 +285,6 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         if (!confParam.dEdxCorrFile.empty()) {
           LOGP(info, "Loading dEdx correction from file: {}", confParam.dEdxCorrFile);
           processAttributes->dEdxCalibContainer->loadResidualCorrectionFromFile(confParam.dEdxCorrFile);
-        }
-        if (std::filesystem::exists(confParam.thresholdCalibFile)) {
-          LOG(info) << "Loading tpc zero supression map from file " << confParam.thresholdCalibFile;
-          const auto* thresholdMap = o2::tpc::utils::readCalPads(confParam.thresholdCalibFile, "ThresholdMap")[0];
-          processAttributes->dEdxCalibContainer->setZeroSupresssionThreshold(*thresholdMap);
-        } else {
-          if (not confParam.thresholdCalibFile.empty()) {
-            LOG(warn) << "Couldn't find tpc zero supression file " << confParam.thresholdCalibFile << ". Not setting any zero supression.";
-          }
-          LOG(info) << "Setting default zero supression map";
-          processAttributes->dEdxCalibContainer->setDefaultZeroSupresssionThreshold();
         }
 
       } else {
