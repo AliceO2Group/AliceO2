@@ -95,15 +95,15 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec>& req
           using metadata_t = decltype(metadata);
           using Key = typename metadata_t::Key;
           using index_pack_t = typename metadata_t::index_pack_t;
-          using sources = typename metadata_t::originals;
+          using originals = typename metadata_t::originals;
           if constexpr (metadata_t::exclusive == true) {
             return o2::framework::IndexExclusive::indexBuilder(input.binding.c_str(), index_pack_t{},
                                                                extractTypedOriginal<Key>(pc),
-                                                               extractOriginalsTuple(sources{}, pc));
+                                                               extractOriginalsTuple(originals{}, pc));
           } else {
             return o2::framework::IndexSparse::indexBuilder(input.binding.c_str(), index_pack_t{},
                                                             extractTypedOriginal<Key>(pc),
-                                                            extractOriginalsTuple(sources{}, pc));
+                                                            extractOriginalsTuple(originals{}, pc));
           }
         };
 
