@@ -34,16 +34,16 @@ BOOST_AUTO_TEST_CASE(Cell_test)
     c.setAbsId(j);
     BOOST_CHECK_EQUAL(c.getAbsId(), j);
     BOOST_CHECK_EQUAL(c.getTRUId(), 0);
-    BOOST_CHECK_SMALL(c.getTime() - float(0.), kTimeAccuracy);
+    BOOST_CHECK_SMALL(c.getTime() - float(0.), kTimeAccuracy3);
     BOOST_CHECK_SMALL(c.getEnergy() - 0, float(0.1));
     BOOST_CHECK_EQUAL(c.getLowGain(), true);
     BOOST_CHECK_EQUAL(c.getTRU(), false);
   }
-  for (short j = 0; j < 3136; j++) { //TRU
+  for (short j = 0; j < 3136; j++) { // TRU
     c.setAbsId(14337 + 1 + j);
     BOOST_CHECK_EQUAL(c.getAbsId(), 0);
     BOOST_CHECK_EQUAL(c.getTRUId(), j);
-    BOOST_CHECK_SMALL(c.getTime() - float(0.), kTimeAccuracy);
+    BOOST_CHECK_SMALL(c.getTime() - float(0.), kTimeAccuracy3);
     BOOST_CHECK_SMALL(c.getEnergy() - float(0), float(0.1));
     BOOST_CHECK_EQUAL(c.getTRU(), true);
   }
@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(Cell_test)
   for (float t : times) {
     c.setTime(t);
     BOOST_CHECK_EQUAL(c.getAbsId(), 1793);
-    BOOST_CHECK_SMALL(c.getTime() - t, kTimeAccuracy);
+    BOOST_CHECK_SMALL(c.getTime() - t, kTimeAccuracy3);
     BOOST_CHECK_SMALL(c.getEnergy() - float(0), float(0.1));
     BOOST_CHECK_EQUAL(c.getLowGain(), true);
   }
@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(Cell_test)
   for (float e : energies) {
     c.setEnergy(e);
     BOOST_CHECK_EQUAL(c.getAbsId(), 1793);
-    BOOST_CHECK_SMALL(c.getTime() - float(0.), kTimeAccuracy);
+    BOOST_CHECK_SMALL(c.getTime() - float(0.), kTimeAccuracy3);
     BOOST_CHECK_SMALL(e - c.getEnergy(), float(0.1));
     BOOST_CHECK_EQUAL(c.getLowGain(), true);
   }
@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(Cell_test)
 
   c.setLowGain();
   BOOST_CHECK_EQUAL(c.getAbsId(), 1793);
-  BOOST_CHECK_SMALL(c.getTime() - float(0.), kTimeAccuracy);
+  BOOST_CHECK_SMALL(c.getTime() - float(0.), kTimeAccuracy3);
   BOOST_CHECK_SMALL(c.getEnergy() - float(0), float(0.1));
   BOOST_CHECK_EQUAL(c.getLowGain(), true);
   BOOST_CHECK_EQUAL(c.getHighGain(), false);
@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(Cell_test)
 
   c.setHighGain();
   BOOST_CHECK_EQUAL(c.getAbsId(), 1793);
-  BOOST_CHECK_SMALL(c.getTime() - float(0.), kTimeAccuracy);
+  BOOST_CHECK_SMALL(c.getTime() - float(0.), kTimeAccuracy3);
   BOOST_CHECK_SMALL(c.getEnergy() - float(0), float(0.1));
   BOOST_CHECK_EQUAL(c.getLowGain(), false);
   BOOST_CHECK_EQUAL(c.getHighGain(), true);
