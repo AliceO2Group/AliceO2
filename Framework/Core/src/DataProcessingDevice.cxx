@@ -636,6 +636,7 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
 
 void DataProcessingDevice::PreRun()
 {
+  mDeviceContext.state->quitRequested = false;
   mDeviceContext.state->streaming = StreamingState::Streaming;
   for (auto& info : mDeviceContext.state->inputChannelInfos) {
     if (info.state != InputChannelState::Pull) {
