@@ -1599,8 +1599,15 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
   mToStore.clear();
   mGIDToTableID.clear();
+  mTableTrID = 0;
   mGIDToTableFwdID.clear();
+  mTableTrFwdID = 0;
   mGIDToTableMFTID.clear();
+  mTableTrMFTID = 0;
+  mVtxToTableCollID.clear();
+  mTableCollID = 0;
+  mV0ToTableID.clear();
+  mTableV0ID = 0;
 
   originCursor(0, tfNumber);
 
