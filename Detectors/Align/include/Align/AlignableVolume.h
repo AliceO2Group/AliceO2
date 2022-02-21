@@ -28,11 +28,12 @@
 #include <TObjArray.h>
 #include <TGeoMatrix.h>
 #include <cstdio>
+#include "DetectorsCommonDataFormats/AlignParam.h"
 #include "Align/DOFStatistics.h"
 #include "Align/DOFSet.h"
+#include <vector>
 
 class TObjArray;
-class TClonesArray;
 class TH1;
 
 namespace o2
@@ -156,7 +157,7 @@ class AlignableVolume : public DOFSet
   //
   virtual void prepareMatrixL2G(bool reco = false);
   virtual void prepareMatrixL2GIdeal();
-  virtual void updateL2GRecoMatrices(const TClonesArray* algArr, const TGeoHMatrix* cumulDelta);
+  virtual void updateL2GRecoMatrices(const std::vector<o2::detectors::AlignParam>& algArr, const TGeoHMatrix* cumulDelta);
   //
   void getMatrixT2G(TGeoHMatrix& m) const;
   //
@@ -177,7 +178,7 @@ class AlignableVolume : public DOFSet
   void createPreGloDeltaMatrix(TGeoHMatrix& deltaM) const;
   void createPreLocDeltaMatrix(TGeoHMatrix& deltaM) const;
   void createAlignmenMatrix(TGeoHMatrix& alg) const;
-  void createAlignmentObjects(TClonesArray* arr) const;
+  void createAlignmentObjects(std::vector<o2::detectors::AlignParam>& arr) const;
   //
   void setSkip(bool v = true) { SetBit(kSkipBit, v); }
   bool getSkip() const { return TestBit(kSkipBit); }
