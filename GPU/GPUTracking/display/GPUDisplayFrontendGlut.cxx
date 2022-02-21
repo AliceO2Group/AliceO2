@@ -233,6 +233,8 @@ int GPUDisplayFrontendGlut::FrontendMain()
   glutMouseWheelFunc(mMouseWheelFunc);
   ToggleMaximized(true);
 
+  ExitDisplay();
+
   pthread_mutex_lock(&mSemLockExit);
   mGlutRunning = true;
   pthread_mutex_unlock(&mSemLockExit);

@@ -360,6 +360,7 @@ int GPUDisplayFrontendWindows::FrontendMain()
   }
 
   // Shutdown
+  ExitDisplay();
   KillGLWindow();
   return (0);
 }
