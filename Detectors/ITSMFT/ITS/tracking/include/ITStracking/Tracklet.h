@@ -73,17 +73,13 @@ GPUdi() Tracklet::Tracklet(const int idx0, const int idx1, float tanL, float phi
 
 inline bool Tracklet::operator==(const Tracklet& rhs) const
 {
-  return this->firstClusterIndex == rhs.firstClusterIndex &&
-         this->secondClusterIndex == rhs.secondClusterIndex &&
-         this->tanLambda == rhs.tanLambda &&
+  return this->tanLambda == rhs.tanLambda &&
          this->phi == rhs.phi;
 }
 
 inline bool Tracklet::operator!=(const Tracklet& rhs) const
 {
-  return this->firstClusterIndex != rhs.firstClusterIndex ||
-         this->secondClusterIndex != rhs.secondClusterIndex ||
-         this->tanLambda != rhs.tanLambda ||
+  return this->tanLambda != rhs.tanLambda ||
          this->phi != rhs.phi;
 }
 
