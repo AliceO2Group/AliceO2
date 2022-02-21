@@ -263,6 +263,8 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
                 LOGP(error, "Remapping {} to {}", path, prefix->second + path);
                 path = prefix->second + path;
               }
+            } else if (meta.name == "ccdb-run-dependent") {
+              metadata["runNumber"] = dtc.runNumber;
             } else if (isPrefix(ccdbMetadataPrefix, meta.name)) {
               std::string key = meta.name.substr(ccdbMetadataPrefix.size());
               auto value = meta.defaultValue.get<std::string>();
