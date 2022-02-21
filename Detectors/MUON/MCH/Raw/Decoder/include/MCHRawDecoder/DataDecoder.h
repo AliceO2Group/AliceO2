@@ -58,6 +58,11 @@ class DataDecoder
   static constexpr int32_t tfTimeMax{0x7FFFFFFF};
   static constexpr int32_t tfTimeInvalid{-tfTimeMax};
 
+  enum class TimeRecoMode : uint8_t {
+    HBPackets = 0,
+    BCReset = 1
+  };
+
   /// Structure storing the raw SAMPA information
   struct SampaInfo {
     union {
@@ -144,7 +149,7 @@ class DataDecoder
   DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler,
               uint32_t sampaBcOffset,
               std::string mapCRUfile, std::string mapFECfile,
-              bool ds2manu, bool verbose, bool useDummyElecMap);
+              bool ds2manu, bool verbose, bool useDummyElecMap, TimeRecoMode timeRecoMode = TimeRecoMode::HBPackets);
 
   void reset();
 
@@ -167,8 +172,12 @@ class DataDecoder
   /// Convert a Solar/Ds/Chip triplet into an unique chip index
   static uint64_t getChipId(uint32_t solar, uint32_t ds, uint32_t chip);
   /// Helper function for computing the digit time relative to the beginning of the TimeFrame
-  static int32_t getDigitTime(uint32_t orbitTF, uint32_t bcTF, uint32_t orbitDigit, uint32_t bcDigit);
+  static int32_t getDigitTimeHBPackets(uint32_t orbitTF, uint32_t bcTF, uint32_t orbitDigit, uint32_t bcDigit);
   /// Compute the time of all the digits that have been decoded in the current TimeFrame
+  void computeDigitsTimeHBPackets();
+  int32_t getDigitTimeBCRst(uint32_t orbitTF, uint32_t bcTF, uint32_t orbitDigit, uint32_t bcDigit);
+  /// Compute the time of all the digits that have been decoded in the current TimeFrame
+  void computeDigitsTimeBCRst();
   void computeDigitsTime();
 
   /// Get the vector of digits that have been decoded in the current TimeFrame
@@ -210,6 +219,8 @@ class DataDecoder
   // table storing the last recorded TF time stamp in SAMPA BC counter units
   std::vector<TimeFrameStartRecord> mTimeFrameStartRecords;
 
+  TimeRecoMode mTimeRecoMode{TimeRecoMode::HBPackets}; ///< method used to reconstruct the digits time
+
   // table storing the digits merging information for each readout channel in the MCH system
   std::vector<MergerChannelRecord> mMergerRecords; ///< merger records for all MCH readout channels
   std::vector<uint64_t> mMergerRecordsReady;       ///< merger status flags, one bit for one DS channel
@@ -224,6 +235,8 @@ class DataDecoder
   RawDigitVector mDigits;                               ///< vector of decoded digits
   std::unordered_set<OrbitInfo, OrbitInfoHash> mOrbits; ///< list of orbits in the processed buffer
 
+  uint32_t mOrbitsInTF{128};    ///< number of orbits in one time frame
+  uint32_t mBcInOrbit;          ///< number of bunch crossings in one orbit
   uint32_t mFirstOrbitInTF;     ///< first orbit in the processed time-frame
   uint32_t mSampaTimeOffset{0}; ///< SAMPA BC counter value to be subtracted from the HBPacket BC at the TF start
 
@@ -247,4 +260,4 @@ std::string asString(const DataDecoder::RawDigit& d);
 } // namespace raw
 } // namespace mch
 } // end namespace o2
-#endif //O2_MCH_DATADECODER_H_
+#endif // O2_MCH_DATADECODER_H_
