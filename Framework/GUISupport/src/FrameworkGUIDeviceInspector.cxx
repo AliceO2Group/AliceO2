@@ -338,6 +338,7 @@ void displayDeviceInspector(DeviceSpec const& spec,
     flagsChanged |= ImGui::CheckboxFlags("FIRST_LOOP", &control.tracingFlags, DeviceState::LoopReason::FIRST_LOOP);
     flagsChanged |= ImGui::CheckboxFlags("NEW_STATE_PENDING", &control.tracingFlags, DeviceState::LoopReason::NEW_STATE_PENDING);
     flagsChanged |= ImGui::CheckboxFlags("PREVIOUSLY_ACTIVE", &control.tracingFlags, DeviceState::LoopReason::PREVIOUSLY_ACTIVE);
+    flagsChanged |= ImGui::CheckboxFlags("TRACE_CALLBACKS", &control.tracingFlags, DeviceState::LoopReason::TRACE_CALLBACKS);
     if (flagsChanged && control.controller) {
       std::string cmd = fmt::format("/trace {}", control.tracingFlags);
       control.controller->write(cmd.c_str(), cmd.size());
