@@ -727,10 +727,18 @@ void DataProcessingDevice::Run()
         fair::Logger::SetConsoleSeverity(originalSeverity);
         shouldResetSeverity = false;
       }
+      mState.loopReason = DeviceState::NO_REASON;
+      if ((mState.tracingFlags & DeviceState::LoopReason::TRACE_CALLBACKS) != 0) {
+        fair::Logger::SetConsoleSeverity(fair::Severity::trace);
+        shouldResetSeverity = true;
+      }
       uv_run(mState.loop, shouldNotWait ? UV_RUN_NOWAIT : UV_RUN_ONCE);
       if ((mState.loopReason & mState.tracingFlags) != 0) {
         fair::Logger::SetConsoleSeverity(fair::Severity::trace);
         shouldResetSeverity = true;
+      } else if (shouldResetSeverity) {
+        fair::Logger::SetConsoleSeverity(originalSeverity);
+        shouldResetSeverity = false;
       }
       TracyPlot("loopReason", (int64_t)(uint64_t)mState.loopReason);
       LOGP(debug, "Loop reason mask {:b} & {:b} = {:b}",
