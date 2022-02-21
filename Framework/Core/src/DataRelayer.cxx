@@ -100,11 +100,13 @@ TimesliceId DataRelayer::getTimesliceForSlot(TimesliceSlot slot)
 DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& expirationHandlers,
                                                               ServiceRegistry& services, bool createNew)
 {
+  LOGP(debug, "DataRelayer::processDanglingInputs");
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
   ActivityStats activity;
   /// Nothing to do if nothing can expire.
   if (expirationHandlers.empty()) {
+    LOGP(debug, "DataRelayer::processDanglingInputs: No expiration handlers");
     return activity;
   }
   // Create any slot for the time based fields
@@ -116,11 +118,16 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
   }
   if (slotsCreatedByHandlers.empty() == false) {
     activity.newSlots++;
+    LOGP(debug, "DataRelayer::processDanglingInputs: {} slots created by handler", slotsCreatedByHandlers.size());
+  } else {
+    LOGP(debug, "DataRelayer::processDanglingInputs: no slots created by hadnler");
   }
   // Outer loop, we process all the records because the fact that the record
   // expires is independent from having received data for it.
+  LOGP(debug, "DataRelayer::processDanglingInputs: running over all the timeslices");
   for (size_t ti = 0; ti < mTimesliceIndex.size(); ++ti) {
     TimesliceSlot slot{ti};
+    LOGP(debug, "DataRelayer::processDanglingInputs: processing timeslice {}", ti);
     if (mTimesliceIndex.isValid(slot) == false) {
       continue;
     }
@@ -130,23 +137,29 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
     // We iterate on all the hanlders checking if they need to be expired.
     for (size_t ei = 0; ei < expirationHandlers.size(); ++ei) {
       auto& expirator = expirationHandlers[ei];
+      LOGP(debug, "DataRelayer::processDanglingInputs: running handler {}", ei);
       // We check that no data is already there for the given cell
       // it is enough to check the first element
       auto& part = mCache[ti * mDistinctRoutesIndex.size() + expirator.routeIndex.value];
       if (part.size() > 0 && part.header(0) != nullptr) {
+        LOGP(debug, "DataRelayer::processDanglingInputs: data already present. Skipping");
         continue;
       }
       if (part.size() > 0 && part.payload(0) != nullptr) {
+        LOGP(debug, "DataRelayer::processDanglingInputs: data already present. Skipping");
         continue;
       }
       // We check that the cell can actually be expired.
       if (!expirator.checker) {
+        LOGP(debug, "DataRelayer::processDanglingInputs: No checkers");
         continue;
       }
       if (slotsCreatedByHandlers[ei] != slot) {
+        LOGP(debug, "DataRelayer::processDanglingInputs: bad slot");
         continue;
       }
       if (expirator.checker(services, timestamp.value) == false) {
+        LOGP(debug, "DataRelayer::processDanglingInputs: checker does not work");
         continue;
       }
 
