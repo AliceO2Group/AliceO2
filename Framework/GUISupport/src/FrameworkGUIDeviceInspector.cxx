@@ -318,6 +318,31 @@ void displayDeviceInspector(DeviceSpec const& spec,
       kill(info.pid, SIGUSR2);
     }
   }
+
+  bool flagsChanged = false;
+  if (ImGui::CollapsingHeader("Event loop tracing", ImGuiTreeNodeFlags_DefaultOpen)) {
+    flagsChanged |= ImGui::CheckboxFlags("METRICS_MUST_FLUSH", &control.tracingFlags, DeviceState::LoopReason::METRICS_MUST_FLUSH);
+    flagsChanged |= ImGui::CheckboxFlags("SIGNAL_ARRIVED", &control.tracingFlags, DeviceState::LoopReason::SIGNAL_ARRIVED);
+    flagsChanged |= ImGui::CheckboxFlags("DATA_SOCKET_POLLED", &control.tracingFlags, DeviceState::LoopReason::DATA_SOCKET_POLLED);
+    flagsChanged |= ImGui::CheckboxFlags("DATA_INCOMING", &control.tracingFlags, DeviceState::LoopReason::DATA_INCOMING);
+    flagsChanged |= ImGui::CheckboxFlags("DATA_OUTGOING", &control.tracingFlags, DeviceState::LoopReason::DATA_OUTGOING);
+    flagsChanged |= ImGui::CheckboxFlags("WS_COMMUNICATION", &control.tracingFlags, DeviceState::LoopReason::WS_COMMUNICATION);
+    flagsChanged |= ImGui::CheckboxFlags("TIMER_EXPIRED", &control.tracingFlags, DeviceState::LoopReason::TIMER_EXPIRED);
+    flagsChanged |= ImGui::CheckboxFlags("WS_CONNECTED", &control.tracingFlags, DeviceState::LoopReason::WS_CONNECTED);
+    flagsChanged |= ImGui::CheckboxFlags("WS_CLOSING", &control.tracingFlags, DeviceState::LoopReason::WS_CLOSING);
+    flagsChanged |= ImGui::CheckboxFlags("WS_READING", &control.tracingFlags, DeviceState::LoopReason::WS_READING);
+    flagsChanged |= ImGui::CheckboxFlags("WS_WRITING", &control.tracingFlags, DeviceState::LoopReason::WS_WRITING);
+    flagsChanged |= ImGui::CheckboxFlags("ASYNC_NOTIFICATION", &control.tracingFlags, DeviceState::LoopReason::ASYNC_NOTIFICATION);
+    flagsChanged |= ImGui::CheckboxFlags("OOB_ACTIVITY", &control.tracingFlags, DeviceState::LoopReason::OOB_ACTIVITY);
+    flagsChanged |= ImGui::CheckboxFlags("UNKNOWN", &control.tracingFlags, DeviceState::LoopReason::UNKNOWN);
+    flagsChanged |= ImGui::CheckboxFlags("FIRST_LOOP", &control.tracingFlags, DeviceState::LoopReason::FIRST_LOOP);
+    flagsChanged |= ImGui::CheckboxFlags("NEW_STATE_PENDING", &control.tracingFlags, DeviceState::LoopReason::NEW_STATE_PENDING);
+    flagsChanged |= ImGui::CheckboxFlags("PREVIOUSLY_ACTIVE", &control.tracingFlags, DeviceState::LoopReason::PREVIOUSLY_ACTIVE);
+    if (flagsChanged && control.controller) {
+      std::string cmd = fmt::format("/trace {}", control.tracingFlags);
+      control.controller->write(cmd.c_str(), cmd.size());
+    }
+  }
 }
 
 } // namespace o2::framework::gui

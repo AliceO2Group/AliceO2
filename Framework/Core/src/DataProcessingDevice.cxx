@@ -662,6 +662,9 @@ void DataProcessingDevice::Reset()
 
 void DataProcessingDevice::Run()
 {
+  mState.loopReason = DeviceState::LoopReason::FIRST_LOOP;
+  auto originalSeverity = fair::Logger::GetConsoleSeverity();
+  bool shouldResetSeverity = false;
   while (mState.transitionHandling != TransitionHandlingState::Expired) {
     if (mState.nextFairMQState.empty() == false) {
       this->ChangeState(mState.nextFairMQState.back());
@@ -684,8 +687,12 @@ void DataProcessingDevice::Run()
       auto shouldNotWait = (mWasActive &&
                             (mState.streaming != StreamingState::Idle) && (mState.activeSignals.empty())) ||
                            (mState.streaming == StreamingState::EndOfStreaming);
+      if (mWasActive) {
+        mState.loopReason |= DeviceState::LoopReason::PREVIOUSLY_ACTIVE;
+      }
       if (NewStatePending()) {
         shouldNotWait = true;
+        mState.loopReason |= DeviceState::LoopReason::NEW_STATE_PENDING;
       }
       if (mState.transitionHandling == TransitionHandlingState::NoTransition && NewStatePending()) {
         mState.transitionHandling = TransitionHandlingState::Requested;
@@ -712,10 +719,21 @@ void DataProcessingDevice::Run()
         }
       }
       TracyPlot("shouldNotWait", (int)shouldNotWait);
+      if (shouldResetSeverity) {
+        fair::Logger::SetConsoleSeverity(originalSeverity);
+        shouldResetSeverity = false;
+      }
       uv_run(mState.loop, shouldNotWait ? UV_RUN_NOWAIT : UV_RUN_ONCE);
+      if ((mState.loopReason & mState.tracingFlags) != 0) {
+        fair::Logger::SetConsoleSeverity(fair::Severity::trace);
+        shouldResetSeverity = true;
+      }
       TracyPlot("loopReason", (int64_t)(uint64_t)mState.loopReason);
+      LOGP(debug, "Loop reason mask {:b} & {:b} = {:b}",
+           mState.loopReason, mState.tracingFlags,
+           mState.loopReason & mState.tracingFlags);
 
-      mState.loopReason = DeviceState::NO_REASON;
+      mState.loopReason = DeviceState::LoopReason::NO_REASON;
       if (!mState.pendingOffers.empty()) {
         mQuotaEvaluator.updateOffers(mState.pendingOffers, uv_now(mState.loop));
       }
