@@ -311,6 +311,7 @@ int GPUDisplayFrontendGlfw::FrontendMain()
   }
 #endif
 
+  ExitDisplay();
   mDisplayControl = 2;
   pthread_mutex_lock(&mSemLockExit);
 #ifdef GPUCA_O2_LIB
