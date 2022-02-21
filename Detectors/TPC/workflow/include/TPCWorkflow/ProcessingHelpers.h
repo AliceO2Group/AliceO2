@@ -21,5 +21,11 @@ namespace processing_helpers
 
 uint64_t getRunNumber(o2::framework::ProcessingContext& pc);
 
-}
+/// \return returns tf from tfCounter
+uint32_t getCurrentTF(o2::framework::ProcessingContext& pc);
+
+/// \return returns creation time of tf
+uint64_t getCreationTime(o2::framework::ProcessingContext& pc);
+
+} // namespace processing_helpers
 } // namespace o2::tpc

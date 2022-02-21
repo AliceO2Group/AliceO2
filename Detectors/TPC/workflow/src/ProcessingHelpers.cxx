@@ -51,3 +51,13 @@ uint64_t processing_helpers::getRunNumber(ProcessingContext& pc)
 
   return run;
 }
+
+uint32_t processing_helpers::getCurrentTF(o2::framework::ProcessingContext& pc)
+{
+  return o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->tfCounter;
+}
+
+uint64_t processing_helpers::getCreationTime(o2::framework::ProcessingContext& pc)
+{
+  return DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
+}

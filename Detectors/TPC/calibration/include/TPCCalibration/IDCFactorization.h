@@ -255,7 +255,10 @@ class IDCFactorization : public IDCGroupHelperSector
   void dumpPadFlagMap(const char* outFile, const char* mapName);
 
   /// \return returns pointer to pad status map
-  CalDet<PadFlags>* getPadStatusMap() const { return mPadFlagsMap.get(); }
+  CalDet<PadFlags>* getPadStatusMapPtr() const { return mPadFlagsMap.get(); }
+
+  /// \return returns unique_ptr to pad status map
+  std::unique_ptr<CalDet<PadFlags>> getPadStatusMap() { return std::move(mPadFlagsMap); }
 
  private:
   const unsigned int mTimeFrames{};                                 ///< number of timeframes which are stored

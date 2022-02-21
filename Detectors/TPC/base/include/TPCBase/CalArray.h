@@ -122,6 +122,9 @@ class CalArray
   /// Divide this by other channel by channel
   const CalArray& operator/=(const CalArray& other);
 
+  /// check for equality
+  bool operator==(const CalArray& other) const;
+
   /// Add value to all channels
   const CalArray& operator+=(const T& val);
 
@@ -265,6 +268,18 @@ inline const CalArray<T>& CalArray<T>::operator/=(const CalArray<T>& other)
     }
   }
   return *this;
+}
+
+//______________________________________________________________________________
+template <class T>
+inline bool CalArray<T>::operator==(const CalArray<T>& other) const
+{
+  if (!((mPadSubset == other.mPadSubset) && (mPadSubsetNumber == other.mPadSubsetNumber))) {
+    LOG(error) << "pad subset type of the objects it not compatible";
+    return false;
+  }
+  bool isSame = mData == other.mData;
+  return isSame;
 }
 
 //______________________________________________________________________________

@@ -34,6 +34,7 @@
 #include "TPCWorkflow/TPCDistributeIDCSpec.h"
 #include "TPCBase/CRU.h"
 #include "CommonUtils/NameConf.h"
+#include "TPCWorkflow/ProcessingHelpers.h"
 
 using namespace o2::framework;
 using o2::header::gDataOriginTPC;
@@ -91,34 +92,30 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
       mIDCFactorization.setGainMap(refGainMapFile.data(), "GainMap");
     }
 
-    mTFRangeIDCDelta[0].resize(mIDCFactorization.getNChunks());
-    mTFRangeIDCDelta[1].resize(mIDCFactorization.getNChunks());
-    mTimeStampRangeIDCDelta[0].resize(mIDCFactorization.getNChunks());
-    // mTimeStampRangeIDCDelta[1].resize(mIDCFactorization.getNChunks());
-    mTimeStampRangeIDCDelta[1] = std::vector<uint64_t>(mIDCFactorization.getNChunks(), 99999999999999);
+    mTFRangeIDCDelta.resize(mIDCFactorization.getNChunks());
+    mTimeStampRangeIDCDelta.resize(mIDCFactorization.getNChunks());
   }
 
   void run(o2::framework::ProcessingContext& pc) final
   {
     // set the min range of TFs for first TF
     if (mProcessedTFs == 0) {
-      mTFFirst = getCurrentTF(pc);
-      mTimeStampRange[0] = getCurrentTimeStamp(pc);
+      mTFFirst = processing_helpers::getCurrentTF(pc);
+      mTimeStampFirst = processing_helpers::getCreationTime(pc);
 
       // write struct containing grouping parameters to access grouped IDCs to CCDB
       if (mWriteToDB && mUpdateGroupingPar) {
         // validity for grouping parameters is from first TF to some really large TF (until it is updated) TODO do somewhere else?!
         if constexpr (std::is_same_v<Type, TPCFactorizeIDCSpecGroup>) {
-          mDBapi.storeAsTFileAny<o2::tpc::ParameterIDCGroupCCDB>(&mIDCStruct.mIDCs.getIDCGroupHelperSector().getGroupingParameter(), "TPC/Calib/IDC/GROUPINGPAR", mMetadata, mTimeStampRange[0], 99999999999999);
+          mDBapi.storeAsTFileAny<o2::tpc::ParameterIDCGroupCCDB>(&mIDCStruct.mIDCs.getIDCGroupHelperSector().getGroupingParameter(), "TPC/Calib/IDC/GROUPINGPAR", mMetadata, mTimeStampFirst, 99999999999999);
         } else {
-          mDBapi.storeAsTFileAny<o2::tpc::ParameterIDCGroupCCDB>(&mIDCFactorization.getGroupingParameter(), "TPC/Calib/IDC/GROUPINGPAR", mMetadata, mTimeStampRange[0], 99999999999999);
+          mDBapi.storeAsTFileAny<o2::tpc::ParameterIDCGroupCCDB>(&mIDCFactorization.getGroupingParameter(), "TPC/Calib/IDC/GROUPINGPAR", mMetadata, mTimeStampFirst, 99999999999999);
         }
         mUpdateGroupingPar = false; // write grouping parameters only once
       }
 
       for (unsigned int iChunk = 0; iChunk < mIDCFactorization.getNChunks(); ++iChunk) {
-        mTFRangeIDCDelta[0][iChunk] = getFirstTFDeltaIDC(iChunk);
-        mTFRangeIDCDelta[1][iChunk] = 999999999; //getLastTFDeltaIDC(iChunk);
+        mTFRangeIDCDelta[iChunk] = getFirstTFDeltaIDC(iChunk);
       }
     }
 
@@ -136,8 +133,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
     LOGP(info, "aggregated TFs: {}", mProcessedTFs);
 
     if (mProcessedTFs == mIDCFactorization.getNTimeframes()) {
-      mTimeStampRange[1] = 99999999999999; // getCurrentTimeStamp(pc);
-      mProcessedTFs = 0;                   // reset processed TFs for next aggregation interval
+      mProcessedTFs = 0; // reset processed TFs for next aggregation interval
       if constexpr (std::is_same_v<Type, TPCFactorizeIDCSpecGroup>) {
         mIDCFactorization.factorizeIDCs(true); // calculate DeltaIDC, 0D-IDC, 1D-IDC
       } else {
@@ -146,7 +142,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
 
       if (mDebug) {
         LOGP(info, "dumping aggregated and factorized IDCs to file");
-        mIDCFactorization.dumpToFile(fmt::format("IDCFactorized_{:02}.root", getCurrentTF(pc)).data());
+        mIDCFactorization.dumpToFile(fmt::format("IDCFactorized_{:02}.root", processing_helpers::getCurrentTF(pc)).data());
         mIDCFactorization.dumpPadFlagMap("padstatusmap.root", "PadStatus");
       }
 
@@ -165,28 +161,23 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   static constexpr header::DataDescription getDataDescriptionIDCDelta() { return header::DataDescription{"IDCDELTA"}; }
 
  private:
-  const std::vector<uint32_t> mCRUs{};                            ///< CRUs to process in this instance
-  int mProcessedTFs{0};                                           ///< number of processed time frames to keep track of when the writing to CCDB will be done
-  IDCFactorization mIDCFactorization;                             ///< object aggregating the IDCs and performing the factorization of the IDCs
-  TPCFactorizeIDCStruct<Type> mIDCStruct{};                       ///< object for averaging and grouping of the IDCs
-  const IDCDeltaCompression mCompressionDeltaIDC{};               ///< compression type for IDC Delta
-  const bool mDebug{false};                                       ///< dump IDCs to tree for debugging
-  const bool mSendOutDebug{false};                                ///< flag if the output will be send (for debugging)
-  o2::ccdb::CcdbApi mDBapi;                                       ///< API for storing the IDCs in the CCDB
-  std::map<std::string, std::string> mMetadata;                   ///< meta data of the stored object in CCDB
-  bool mWriteToDB{};                                              ///< flag if writing to CCDB will be done
-  uint32_t mTFFirst{};                                            ///< first TF of current aggregation interval
-  std::array<uint64_t, 2> mTimeStampRange{};                      ///< storing of first and last time stamp range used when setting the validity of the objects when writing to CCDB
-  std::array<std::vector<uint32_t>, 2> mTFRangeIDCDelta{};        ///< tf range for storing IDCDelta
-  std::array<std::vector<uint64_t>, 2> mTimeStampRangeIDCDelta{}; ///< time stamp range of IDCDelta
-  bool mUpdateGroupingPar{true};                                  ///< flag to set if grouping parameters should be updated or not
-  int mLaneId{0};                                                 ///< the id of the current process within the parallel pipeline
-
-  /// \return returns TF of current processed data
-  uint32_t getCurrentTF(o2::framework::ProcessingContext& pc) const { return o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->tfCounter; }
-
-  /// \return returns time stamp of current processed data
-  uint64_t getCurrentTimeStamp(o2::framework::ProcessingContext& pc) const { return DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation; }
+  const std::vector<uint32_t> mCRUs{};              ///< CRUs to process in this instance
+  int mProcessedTFs{0};                             ///< number of processed time frames to keep track of when the writing to CCDB will be done
+  IDCFactorization mIDCFactorization;               ///< object aggregating the IDCs and performing the factorization of the IDCs
+  TPCFactorizeIDCStruct<Type> mIDCStruct{};         ///< object for averaging and grouping of the IDCs
+  const IDCDeltaCompression mCompressionDeltaIDC{}; ///< compression type for IDC Delta
+  const bool mDebug{false};                         ///< dump IDCs to tree for debugging
+  const bool mSendOutDebug{false};                  ///< flag if the output will be send (for debugging)
+  o2::ccdb::CcdbApi mDBapi;                         ///< API for storing the IDCs in the CCDB
+  std::map<std::string, std::string> mMetadata;     ///< meta data of the stored object in CCDB
+  bool mWriteToDB{};                                ///< flag if writing to CCDB will be done
+  uint32_t mTFFirst{};                              ///< first TF of current aggregation interval
+  uint64_t mTimeStampFirst{};                       ///< storing of first and last time stamp range used when setting the validity of the objects when writing to CCDB
+  std::vector<uint32_t> mTFRangeIDCDelta{};         ///< tf range for storing IDCDelta
+  std::vector<uint64_t> mTimeStampRangeIDCDelta{};  ///< time stamp range of IDCDelta
+  bool mUpdateGroupingPar{true};                    ///< flag to set if grouping parameters should be updated or not
+  int mLaneId{0};                                   ///< the id of the current process within the parallel pipeline
+  std::unique_ptr<CalDet<PadFlags>> mPadFlagsMap;   ///< status flag for each pad (i.e. if the pad is dead). This map is buffered to check if something changed, when a new map is created
 
   /// \return returns first TF for validity range when storing to CCDB
   uint32_t getFirstTF() const { return mTFFirst; }
@@ -198,25 +189,21 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   unsigned int getLastTFDeltaIDC(const unsigned int iChunk) const { return (iChunk == mIDCFactorization.getNChunks() - 1) ? (mIDCFactorization.getNTimeframes() + getFirstTF()) : (getFirstTFDeltaIDC(iChunk) + mIDCFactorization.getTimeFramesDeltaIDC()); }
 
   /// \return returns first time stamp for validity range when storing to IDCDelta CCDB
-  auto getFirstTimeStampDeltaIDC(const unsigned int iChunk) const { return mTimeStampRangeIDCDelta[0][iChunk]; }
-
-  /// \return returns last time stamp for validity range when storing to IDCDelta CCDB
-  auto getLastTimeStampDeltaIDC(const unsigned int iChunk) const { return mTimeStampRangeIDCDelta[1][iChunk]; }
+  auto getFirstTimeStampDeltaIDC(const unsigned int iChunk) const { return mTimeStampRangeIDCDelta[iChunk]; }
 
   /// check if current tf will be used to set the time stamp range
   bool findTimeStamp(o2::framework::ProcessingContext& pc)
   {
-    const auto tf = getCurrentTF(pc);
-    return findTimeStamp(true, tf, pc) ? 1 : findTimeStamp(false, tf, pc);
+    const auto tf = processing_helpers::getCurrentTF(pc);
+    return findTimeStamp(tf, pc);
   }
 
-  bool findTimeStamp(const bool first, const uint32_t tf, o2::framework::ProcessingContext& pc)
+  bool findTimeStamp(const uint32_t tf, o2::framework::ProcessingContext& pc)
   {
-    const int ind = first ? 0 : 1;
-    auto it = std::find(mTFRangeIDCDelta[ind].begin(), mTFRangeIDCDelta[ind].end(), tf);
-    if (it != mTFRangeIDCDelta[ind].end()) {
-      const int index = std::distance(mTFRangeIDCDelta[ind].begin(), it);
-      mTimeStampRangeIDCDelta[ind][index] = getCurrentTimeStamp(pc);
+    auto it = std::find(mTFRangeIDCDelta.begin(), mTFRangeIDCDelta.end(), tf);
+    if (it != mTFRangeIDCDelta.end()) {
+      const int index = std::distance(mTFRangeIDCDelta.begin(), it);
+      mTimeStampRangeIDCDelta[index] = processing_helpers::getCreationTime(pc);
       // TODO remove found tf?
       return true;
     }
@@ -240,18 +227,30 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
     }
 
     if (mWriteToDB) {
-      const auto timeStampStart = mTimeStampRange[0];
-      const auto timeStampEnd = mTimeStampRange[1];
+      const auto timeStampStart = mTimeStampFirst;
+      const auto timeStampEnd = 99999999999999;
 
       LOGP(info, "Writing IDCs to CCDB");
       mDBapi.storeAsTFileAny<o2::tpc::IDCZero>(&mIDCFactorization.getIDCZero(), "TPC/Calib/IDC/IDC0", mMetadata, timeStampStart, timeStampEnd);
       mDBapi.storeAsTFileAny<o2::tpc::IDCOne>(&mIDCFactorization.getIDCOne(), "TPC/Calib/IDC/IDC1", mMetadata, timeStampStart, timeStampEnd);
 
-      const auto padStatusMap = mIDCFactorization.getPadStatusMap();
+      auto padStatusMap = mIDCFactorization.getPadStatusMap();
       if (padStatusMap) {
-        LOGP(info, "Writing pad status map to CCDB");
-        mDBapi.storeAsTFileAny<CalDet<PadFlags>>(padStatusMap, "TPC/Calib/IDC/PadStatusMap", mMetadata, 1635378515832, timeStampEnd);
-        LOGP(info, "Pad status map written to CCDB");
+        // store map in case it is nullptr
+        if (!mPadFlagsMap) {
+          mPadFlagsMap = std::move(padStatusMap);
+          LOGP(info, "Writing pad status map to CCDB.");
+          mDBapi.storeAsTFileAny<CalDet<PadFlags>>(mPadFlagsMap.get(), "TPC/Calib/IDC/PadStatusMap", mMetadata, timeStampStart, timeStampEnd);
+          LOGP(info, "Pad status map written to CCDB");
+        } else {
+          // check if map changed. if it changed update the map in the CCDB and store new map in buffer
+          if (!(*padStatusMap.get() == *mPadFlagsMap.get())) {
+            LOGP(info, "Pad status map changed");
+            LOGP(info, "Writing pad status map to CCDB");
+            mDBapi.storeAsTFileAny<CalDet<PadFlags>>(mPadFlagsMap.get(), "TPC/Calib/IDC/PadStatusMap", mMetadata, timeStampStart, timeStampEnd);
+            LOGP(info, "Pad status map written to CCDB");
+          }
+        }
       }
 
       for (unsigned int iChunk = 0; iChunk < mIDCFactorization.getNChunks(); ++iChunk) {
@@ -259,7 +258,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
           // perform grouping of IDC Delta if necessary
           mIDCStruct.mIDCs.setIDCs(std::move(mIDCFactorization).getIDCDeltaUncompressed(iChunk));
           LOGP(info, "averaging and grouping DeltaIDCs for TFs {} - {} for CRUs {} to {} using {} threads", getFirstTFDeltaIDC(iChunk), getLastTFDeltaIDC(iChunk), mCRUs.front(), mCRUs.back(), mIDCStruct.mIDCs.getNThreads());
-          mIDCStruct.mIDCs.processIDCs(padStatusMap);
+          mIDCStruct.mIDCs.processIDCs(mPadFlagsMap.get());
           if (mDebug) {
             mIDCStruct.mIDCs.dumpToFile(fmt::format("IDCDeltaAveraged_chunk{:02}_{:02}.root", iChunk, getFirstTFDeltaIDC(iChunk)).data());
           }
@@ -271,10 +270,10 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
             using compType = unsigned short;
             if constexpr (std::is_same_v<Type, TPCFactorizeIDCSpecGroup>) {
               auto idcDeltaMediumCompressed = IDCDeltaCompressionHelper<compType>::getCompressedIDCs(mIDCStruct.mIDCs.getIDCGroupData());
-              mDBapi.storeAsTFileAny<o2::tpc::IDCDelta<compType>>(&idcDeltaMediumCompressed, "TPC/Calib/IDC/IDCDELTA", mMetadata, getFirstTimeStampDeltaIDC(iChunk), getLastTimeStampDeltaIDC(iChunk));
+              mDBapi.storeAsTFileAny<o2::tpc::IDCDelta<compType>>(&idcDeltaMediumCompressed, "TPC/Calib/IDC/IDCDELTA", mMetadata, getFirstTimeStampDeltaIDC(iChunk), timeStampEnd);
             } else {
               auto idcDeltaMediumCompressed = mIDCFactorization.getIDCDeltaMediumCompressed(iChunk);
-              mDBapi.storeAsTFileAny<o2::tpc::IDCDelta<compType>>(&idcDeltaMediumCompressed, "TPC/Calib/IDC/IDCDELTA", mMetadata, getFirstTimeStampDeltaIDC(iChunk), getLastTimeStampDeltaIDC(iChunk));
+              mDBapi.storeAsTFileAny<o2::tpc::IDCDelta<compType>>(&idcDeltaMediumCompressed, "TPC/Calib/IDC/IDCDELTA", mMetadata, getFirstTimeStampDeltaIDC(iChunk), timeStampEnd);
             }
 
             break;
@@ -283,18 +282,18 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
             using compType = unsigned char;
             if constexpr (std::is_same_v<Type, TPCFactorizeIDCSpecGroup>) {
               auto idcDeltaMediumCompressed = IDCDeltaCompressionHelper<compType>::getCompressedIDCs(mIDCStruct.mIDCs.getIDCGroupData());
-              mDBapi.storeAsTFileAny<o2::tpc::IDCDelta<compType>>(&idcDeltaMediumCompressed, "TPC/Calib/IDC/IDCDELTA", mMetadata, getFirstTimeStampDeltaIDC(iChunk), getLastTimeStampDeltaIDC(iChunk));
+              mDBapi.storeAsTFileAny<o2::tpc::IDCDelta<compType>>(&idcDeltaMediumCompressed, "TPC/Calib/IDC/IDCDELTA", mMetadata, getFirstTimeStampDeltaIDC(iChunk), timeStampEnd);
             } else {
               auto idcDeltaHighCompressed = mIDCFactorization.getIDCDeltaHighCompressed(iChunk);
-              mDBapi.storeAsTFileAny<o2::tpc::IDCDelta<compType>>(&idcDeltaHighCompressed, "TPC/Calib/IDC/IDCDELTA", mMetadata, getFirstTimeStampDeltaIDC(iChunk), getLastTimeStampDeltaIDC(iChunk));
+              mDBapi.storeAsTFileAny<o2::tpc::IDCDelta<compType>>(&idcDeltaHighCompressed, "TPC/Calib/IDC/IDCDELTA", mMetadata, getFirstTimeStampDeltaIDC(iChunk), timeStampEnd);
             }
             break;
           }
           case IDCDeltaCompression::NO:
             if constexpr (std::is_same_v<Type, TPCFactorizeIDCSpecGroup>) {
-              mDBapi.storeAsTFileAny<o2::tpc::IDCDelta<float>>(&mIDCStruct.mIDCs.getIDCGroupData(), "TPC/Calib/IDC/IDCDELTA", mMetadata, getFirstTimeStampDeltaIDC(iChunk), getLastTimeStampDeltaIDC(iChunk));
+              mDBapi.storeAsTFileAny<o2::tpc::IDCDelta<float>>(&mIDCStruct.mIDCs.getIDCGroupData(), "TPC/Calib/IDC/IDCDELTA", mMetadata, getFirstTimeStampDeltaIDC(iChunk), timeStampEnd);
             } else {
-              mDBapi.storeAsTFileAny<o2::tpc::IDCDelta<float>>(&mIDCFactorization.getIDCDeltaUncompressed(iChunk), "TPC/Calib/IDC/IDCDELTA", mMetadata, getFirstTimeStampDeltaIDC(iChunk), getLastTimeStampDeltaIDC(iChunk));
+              mDBapi.storeAsTFileAny<o2::tpc::IDCDelta<float>>(&mIDCFactorization.getIDCDeltaUncompressed(iChunk), "TPC/Calib/IDC/IDCDELTA", mMetadata, getFirstTimeStampDeltaIDC(iChunk), timeStampEnd);
             }
             break;
         }
