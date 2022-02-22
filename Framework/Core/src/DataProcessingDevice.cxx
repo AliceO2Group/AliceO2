@@ -488,6 +488,10 @@ void DataProcessingDevice::startPollers()
   for (auto& poller : mState.activeOutputPollers) {
     uv_poll_start(poller, UV_WRITABLE, &on_socket_polled);
   }
+
+  mDeviceContext.gracePeriodTimer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
+  mDeviceContext.gracePeriodTimer->data = &mState;
+  uv_timer_init(mState.loop, mDeviceContext.gracePeriodTimer);
 }
 
 void DataProcessingDevice::stopPollers()
@@ -498,6 +502,10 @@ void DataProcessingDevice::stopPollers()
   for (auto& poller : mState.activeOutputPollers) {
     uv_poll_stop(poller);
   }
+
+  uv_timer_stop(mDeviceContext.gracePeriodTimer);
+  free(mDeviceContext.gracePeriodTimer);
+  mDeviceContext.gracePeriodTimer = nullptr;
 }
 
 void DataProcessingDevice::InitTask()
@@ -699,12 +707,8 @@ void DataProcessingDevice::Run()
         mState.transitionHandling = TransitionHandlingState::Requested;
         auto timeout = mDeviceContext.exitTransitionTimeout;
         if (timeout != 0 && mState.streaming != StreamingState::Idle) {
-          auto* timer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
-          timer->data = &mState;
-          mState.activeTimers.push_back(timer);
-          uv_timer_init(mState.loop, timer);
           mState.transitionHandling = TransitionHandlingState::Requested;
-          uv_timer_start(timer, on_transition_requested_expired, timeout * 1000, 0);
+          uv_timer_start(mDeviceContext.gracePeriodTimer, on_transition_requested_expired, timeout * 1000, 0);
           if (mProcessingPolicies.termination == TerminationPolicy::QUIT) {
             LOGP(info, "New state requested. Waiting for {} seconds before quitting.", timeout);
           } else {

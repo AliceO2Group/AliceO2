@@ -63,6 +63,7 @@ struct DeviceContext {
   ComputingQuotaEvaluator* quotaEvaluator = nullptr;
   DataProcessingStats* stats = nullptr;
   ComputingQuotaStats* quotaStats = nullptr;
+  uv_timer_t* gracePeriodTimer = nullptr;
   int expectedRegionCallbacks = 0;
   int exitTransitionTimeout = 0;
 };
