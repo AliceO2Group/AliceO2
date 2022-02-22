@@ -19,6 +19,8 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/InputRecord.h"
 #include "Framework/ServiceRegistry.h"
+#include "CCDB/BasicCCDBManager.h"
+#include "CommonConstants/LHCConstants.h"
 
 #include "TPCWorkflow/ProcessingHelpers.h"
 
@@ -60,4 +62,12 @@ uint32_t processing_helpers::getCurrentTF(o2::framework::ProcessingContext& pc)
 uint64_t processing_helpers::getCreationTime(o2::framework::ProcessingContext& pc)
 {
   return DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
+}
+
+uint64_t processing_helpers::getTimeStamp(o2::framework::ProcessingContext& pc, o2::ccdb::BasicCCDBManager& ccdbManager)
+{
+  const auto tfOrbitFirst = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->firstTForbit;
+  const auto* tv = ccdbManager.getForTimeStamp<std::vector<Long64_t>>("CTP/Calib/OrbitReset", processing_helpers::getCreationTime(pc));
+  const long tPrec = (*tv)[0] + tfOrbitFirst * o2::constants::lhc::LHCOrbitMUS; // microsecond-precise time stamp
+  return tPrec;
 }
