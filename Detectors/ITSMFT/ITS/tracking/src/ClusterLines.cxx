@@ -179,13 +179,6 @@ ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const in
   // AvgDistance2
   mAvgDistance2 = std::move(Line::getDistanceFromPoint(firstLine, mVertex) * Line::getDistanceFromPoint(firstLine, mVertex));
   mAvgDistance2 += (Line::getDistanceFromPoint(secondLine, mVertex) * Line::getDistanceFromPoint(secondLine, mVertex) - mAvgDistance2) / mLabels.size();
-
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  mNVotes = 1;
-  mPoll = firstLine.evtId;
-  mMap.emplace(firstLine.evtId, 1);
-  vote(secondLine);
-#endif
 }
 
 ClusterLines::ClusterLines(const Line& firstLine, const Line& secondLine)
@@ -274,20 +267,11 @@ ClusterLines::ClusterLines(const Line& firstLine, const Line& secondLine)
     determinantSecond;
 
   computeClusterCentroid();
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  mNVotes = 1;
-  mPoll = firstLine.evtId;
-  mMap.emplace(firstLine.evtId, 1);
-  vote(secondLine);
-#endif
 }
 
 void ClusterLines::add(const int& lineLabel, const Line& line, const bool& weight)
 {
   mLabels.push_back(lineLabel);
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  vote(line);
-#endif
   std::array<float, 3> covariance{1., 1., 1.};
 
   for (int i{0}; i < 6; ++i) {
@@ -356,29 +340,5 @@ void ClusterLines::computeClusterCentroid()
                  mBMatrix[0] * (mAMatrix[1] * mAMatrix[4] - mAMatrix[2] * mAMatrix[3])) /
                determinant;
 }
-
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-void ClusterLines::vote(const Line& line)
-{
-  if (mNVotes == 0) {
-    mPoll = line.evtId;
-    ++mNVotes;
-  } else {
-    if (line.evtId == mPoll) {
-      ++mNVotes;
-    } else {
-      ++mSwitches;
-      --mNVotes;
-    }
-  }
-  auto it = mMap.find(line.evtId);
-  if (it == mMap.end()) {
-    mMap.emplace(line.evtId, 1);
-  } else {
-    it->second += 1;
-  }
-}
-#endif
-
 } // namespace its
 } // namespace o2

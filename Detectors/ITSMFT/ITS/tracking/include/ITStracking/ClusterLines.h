@@ -19,10 +19,6 @@
 #include "ITStracking/Tracklet.h"
 #include "GPUCommonMath.h"
 
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-#include <unordered_map>
-#endif
-
 namespace o2
 {
 namespace its
@@ -34,10 +30,6 @@ struct Line final {
   Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint);
   GPUhd() Line(const float firstPoint[3], const float secondPoint[3]);
   GPUhd() Line(const Tracklet&, const Cluster*, const Cluster*);
-
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  GPUhd() Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters, const int evId);
-#endif
 
   inline static float getDistanceFromPoint(const Line& line, const std::array<float, 3>& point);
   GPUhd() static float getDistanceFromPoint(const Line& line, const float point[3]);
@@ -59,9 +51,6 @@ struct Line final {
   //    4 --> 1,2
   //    5 --> 2,2
   // Debug quantities
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  int evtId; // -1 if fake
-#endif
 };
 
 GPUhdi() Line::Line() : weightMatrix{1., 0., 0., 1., 0., 1.}
@@ -79,7 +68,7 @@ GPUhdi() Line::Line(const Line& other)
   for (int i{0}; i < 6; ++i) {
     weightMatrix[i] = other.weightMatrix[i];
   }
-#ifdef _ALLOW_DEBUG_TREES_ITS_
+#ifdef CA_DEBUG
   evtId = other.evtId;
 #endif
 }
@@ -116,25 +105,6 @@ GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, cons
     cosinesDirector[index] *= inverseNorm;
   }
 }
-
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters, const int evId) : evtId{evId}
-{
-  originPoint[0] = innerClusters[tracklet.firstClusterIndex].xCoordinate;
-  originPoint[1] = innerClusters[tracklet.firstClusterIndex].yCoordinate;
-  originPoint[2] = innerClusters[tracklet.firstClusterIndex].zCoordinate;
-
-  cosinesDirector[0] = outerClusters[tracklet.secondClusterIndex].xCoordinate - innerClusters[tracklet.firstClusterIndex].xCoordinate;
-  cosinesDirector[1] = outerClusters[tracklet.secondClusterIndex].yCoordinate - innerClusters[tracklet.firstClusterIndex].yCoordinate;
-  cosinesDirector[2] = outerClusters[tracklet.secondClusterIndex].zCoordinate - innerClusters[tracklet.firstClusterIndex].zCoordinate;
-
-  float inverseNorm{1.f / o2::gpu::CAMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
-                                                cosinesDirector[2] * cosinesDirector[2])};
-
-  for (int index{0}; index < 3; ++index)
-    cosinesDirector[index] *= inverseNorm;
-}
-#endif
 
 // static functions
 inline float Line::getDistanceFromPoint(const Line& line, const std::array<float, 3>& point)
@@ -229,8 +199,6 @@ inline bool Line::operator!=(const Line& rhs) const
   return val || this->isEmpty != rhs.isEmpty;
 }
 
-///
-
 class ClusterLines final
 {
  public:
@@ -248,22 +216,6 @@ class ClusterLines final
   inline std::array<float, 6> getRMS2() const { return mRMS2; }
   inline float getAvgDistance2() const { return mAvgDistance2; }
 
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  inline std::vector<Line> getLines()
-  {
-    return mLines;
-  }
-  void vote(const Line& line);
-  inline int getEventId() const { return mPoll; }
-  inline float getPurity()
-  {
-    auto id = getEventId();
-    auto it = mMap.find(id);
-    assert(it != mMap.end());
-    return (float)it->second / (float)mLabels.size();
-  }
-#endif
-
  protected:
   std::array<float, 6> mAMatrix;         // AX=B
   std::array<float, 3> mBMatrix;         // AX=B
@@ -273,13 +225,6 @@ class ClusterLines final
   std::array<float, 3> mVertex;          // cluster centroid position
   std::array<float, 6> mRMS2;            // symmetric matrix: diagonal is RMS2
   float mAvgDistance2;                   // substitute for chi2
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  std::vector<Line> mLines;
-  int mPoll;
-  int mNVotes;
-  std::unordered_map<int, int> mMap;
-  int mSwitches;
-#endif
 };
 
 } // namespace its

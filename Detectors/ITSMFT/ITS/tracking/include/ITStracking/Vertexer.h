@@ -99,12 +99,10 @@ class Vertexer
   TimeFrame* mTimeFrame = nullptr;   /// Observer pointer, not owned by this class
 };
 
-#ifdef _ALLOW_DEBUG_TREES_ITS_
 inline void Vertexer::filterMCTracklets()
 {
   mTraits->computeMCFiltering();
 }
-#endif
 
 template <typename... T>
 void Vertexer::initialiseVertexer(T&&... args)
