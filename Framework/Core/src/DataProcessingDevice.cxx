@@ -705,7 +705,7 @@ void DataProcessingDevice::Run()
           mState.transitionHandling = TransitionHandlingState::Requested;
           uv_timer_start(timer, on_transition_requested_expired, timeout * 1000, 0);
           if (mProcessingPolicies.termination == TerminationPolicy::QUIT) {
-            LOGP(info, "New state requested. Waiting for {} seconds before quitting.");
+            LOGP(info, "New state requested. Waiting for {} seconds before quitting.", timeout);
           } else {
             LOGP(info, "New state requested. Waiting for {} seconds before switching to READY state.", timeout);
           }
