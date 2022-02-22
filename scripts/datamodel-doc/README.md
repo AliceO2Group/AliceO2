@@ -1,3 +1,7 @@
+<!-- doxy
+\page refscriptsDatamodel-doc ALICEO2dataModel converter
+/doxy -->
+
 # ALICEO2dataModel converter
 
 Allows to create an html representation of the ALICE O2 data model.

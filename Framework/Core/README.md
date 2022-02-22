@@ -2,6 +2,7 @@
 \page refFrameworkCore Core
 \subpage refFrameworkCoreCOOKBOOK Core COOKBOOK
 \subpage refFrameworkCoreANALYSIS Core ANALYSIS
+\subpage refFrameworkCorePROFILING Core PROFILING
 /doxy -->
 
 # Data Processing Layer in O2 Framework

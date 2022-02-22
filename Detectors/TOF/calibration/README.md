@@ -1,3 +1,7 @@
+<!-- doxy
+\page refDetectorsTOFcalibration Calibration
+/doxy -->
+
 # ccdb object are produced via different workflows
 
 # LHCphase (example with 5 minutes time slots)

@@ -1,3 +1,7 @@
+<!-- doxy
+\page refDetectorsTOFsimulation Simulation
+/doxy -->
+
 # to run digitisation with ccdb object enabling ccdb to anchor to data -> --use-ccdb-tof and --timestamp-tof 1635567000
 # second argument will be marked as obsolete once the framework will provide the timestamp
 o2-sim-digitizer-workflow -b --onlyDet TOF --use-ccdb-tof --timestamp-tof 1635567000 --shm-segment-size 5000000000

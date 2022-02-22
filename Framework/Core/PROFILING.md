@@ -1,3 +1,7 @@
+<!-- doxy
+\page refFrameworkCorePROFILING Core PROFILING
+/doxy -->
+
 # Profiling using perf
 
 ## Setup 

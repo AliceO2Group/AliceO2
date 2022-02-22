@@ -1,3 +1,7 @@
+<!-- doxy
+\page refGPUTrackingStandalone Standalone benchmark
+/doxy -->
+
 GPU Tracking Standalone benchmark
 
 This is the standalone benchmark for the GPU tracking.
