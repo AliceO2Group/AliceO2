@@ -1506,6 +1506,10 @@ void DigiReco::findSignals(int ibeg, int iend)
 #endif
 
     // Check if coincidence of common PM and sum of towers is satisfied
+    // Missing coincidence can be due for example by PM noise
+    // TODO: for the moment the map of fired TDC is in RecEventAux
+    // One should  transmit it or introduce a way to recompute while reading back
+    // the reconstructed events
     // Side A
     if ((rec.pattern[TDCZNAC] || mRopt->bitset[TDCZNAC]) && (rec.pattern[TDCZNAS] || mRopt->bitset[TDCZNAS])) {
       for (int ich = IdZNAC; ich <= IdZNASum; ich++) {
