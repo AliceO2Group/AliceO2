@@ -37,6 +37,13 @@ int GPUChainTracking::RunTRDTracking()
   if (mIOPtrs.nTRDTracklets == 0) {
     return 0;
   }
+
+  bool isTriggeredEvent = (param().par.continuousMaxTimeBin == 0);
+
+  if (!isTriggeredEvent) {
+    Tracker.SetProcessPerTimeFrame(true);
+  }
+
   Tracker.SetGenerateSpacePoints(mIOPtrs.trdSpacePoints == nullptr);
 
   mRec->PushNonPersistentMemory(qStr2Tag("TRDTRACK"));
@@ -52,8 +59,24 @@ int GPUChainTracking::RunTRDTracking()
       if (!Tracker.CheckTrackTRDCandidate(trktrd)) {
         continue;
       }
-
-      if (Tracker.LoadTrack(trktrd, i, false)) {
+      GPUTRDTrackerGPU::HelperTrackAttributes trkAttribs, *trkAttribsPtr{nullptr};
+      if (!isTriggeredEvent) {
+        const float tpcTBinMUS = 0.199606f;
+        trkAttribs.mTime = trk.GetParam().GetTZOffset() * tpcTBinMUS;
+        trkAttribs.mTimeAddMax = 50.f; // half of a TPC drift time in us
+        trkAttribs.mTimeSubMax = 50.f; // half of a TPC drift time in us
+        if (!trk.CCE()) {
+          if (trk.CSide()) {
+            // track has only C-side clusters
+            trkAttribs.mSide = 1;
+          } else {
+            // track has only A-side clusters
+            trkAttribs.mSide = -1;
+          }
+        }
+        trkAttribsPtr = &trkAttribs;
+      }
+      if (Tracker.LoadTrack(trktrd, i, false, trkAttribsPtr)) {
         return 1;
       }
     }
@@ -61,6 +84,7 @@ int GPUChainTracking::RunTRDTracking()
 #ifdef GPUCA_HAVE_O2HEADERS
     for (unsigned int i = 0; i < mIOPtrs.nOutputTracksTPCO2; i++) {
       const auto& trk = mIOPtrs.outputTracksTPCO2[i];
+
       if (!Tracker.PreCheckTrackTRDCandidate(trk)) {
         continue;
       }
@@ -69,7 +93,20 @@ int GPUChainTracking::RunTRDTracking()
         continue;
       }
 
-      if (Tracker.LoadTrack(trktrd, i, false)) {
+      GPUTRDTracker::HelperTrackAttributes trkAttribs, *trkAttribsPtr{nullptr};
+      if (!isTriggeredEvent) {
+        const float tpcTBinMUS = 0.199606f;
+        trkAttribs.mTime = trk.getTime0() * tpcTBinMUS;
+        trkAttribs.mTimeAddMax = trk.getDeltaTFwd() * tpcTBinMUS;
+        trkAttribs.mTimeSubMax = trk.getDeltaTBwd() * tpcTBinMUS;
+        if (trk.hasASideClustersOnly()) {
+          trkAttribs.mSide = -1;
+        } else if (trk.hasCSideClustersOnly()) {
+          trkAttribs.mSide = 1;
+        }
+        trkAttribsPtr = &trkAttribs;
+      }
+      if (Tracker.LoadTrack(trktrd, i, false, trkAttribsPtr)) {
         return 1;
       }
     }
