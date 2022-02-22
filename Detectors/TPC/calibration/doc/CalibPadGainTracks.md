@@ -1,5 +1,5 @@
 <!-- doxy
-\page refTPCcalibrationCalibPadGainTracks dEdx Calibration
+\page refTPCcalibrationCalibPadGainTracks Residual gainmap calibration
 /doxy -->
 
 # Residual gainmap calibration
