@@ -112,9 +112,8 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
     mConfigRegistry{nullptr},
     mServiceRegistry{registry},
     mAllocator{&registry, mSpec.outputs},
-    mQuotaEvaluator{registry.get<ComputingQuotaEvaluator>()},
-    mAwakeHandle{nullptr},
-    mProcessingPolicies{policies}
+    mProcessingPolicies{policies},
+    mQuotaEvaluator{registry.get<ComputingQuotaEvaluator>()}
 {
   /// FIXME: move erro handling to a service?
   if (mError != nullptr) {
@@ -1002,7 +1001,7 @@ void DataProcessingDevice::ResetTask()
 }
 
 struct WaitBackpressurePolicy {
-  void backpressure(InputChannelInfo const& info)
+  void backpressure(InputChannelInfo const&)
   {
   }
 };
@@ -1264,7 +1263,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // should work just fine.
   std::vector<MessageSet> currentSetOfInputs;
 
-  auto reportError = [&registry = *context.registry, &context](const char* message) {
+  auto reportError = [&registry = *context.registry](const char* message) {
     registry.get<DataProcessingStats>().errorCount++;
   };
 
