@@ -4,7 +4,7 @@
 
 # Profiling using perf
 
-## Setup 
+## Setup
 
 the perf suite is a great profiler suite which is part of the Linux kernel itself. It provides very fine grained view of the state of a running system. By default, however the result you get on Ubuntu or Centos are not particulary good due to security reasons. However if the workstation you are running perf is your own, those defaults can probably be relaxed to provide a better profile expirience. First of all, allow profiling at all:
 
