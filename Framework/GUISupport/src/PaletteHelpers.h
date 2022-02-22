@@ -8,14 +8,12 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_PALETTE_HELPER_H
-#define FRAMEWORK_PALETTE_HELPER_H
+#ifndef O2_FRAMEWORK_PALETTEHELPERS_H_
+#define O2_FRAMEWORK_PALETTEHELPERS_H_
 
 #include "DebugGUI/imgui.h"
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// An helper class for colors and palettes
@@ -37,7 +35,6 @@ struct PaletteHelpers {
   static const ImVec4 LIGHT_GRAY;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif
+#endif // O2_FRAMEWORK_PALETTEHELPERS_H_
