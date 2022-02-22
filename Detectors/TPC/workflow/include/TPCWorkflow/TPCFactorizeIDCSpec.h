@@ -34,6 +34,7 @@
 #include "TPCWorkflow/TPCDistributeIDCSpec.h"
 #include "TPCBase/CRU.h"
 #include "CommonUtils/NameConf.h"
+#include "CCDB/BasicCCDBManager.h"
 #include "TPCWorkflow/ProcessingHelpers.h"
 
 using namespace o2::framework;
@@ -71,19 +72,21 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   TPCFactorizeIDCSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int timeframesDeltaIDC, std::array<unsigned char, Mapper::NREGIONS> groupPads,
                       std::array<unsigned char, Mapper::NREGIONS> groupRows, std::array<unsigned char, Mapper::NREGIONS> groupLastRowsThreshold,
                       std::array<unsigned char, Mapper::NREGIONS> groupLastPadsThreshold, const unsigned int groupPadsSectorEdges, const IDCDeltaCompression compression, const bool debug = false, const bool senddebug = false)
-    : mCRUs{crus}, mIDCFactorization{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges, timeframes, timeframesDeltaIDC}, mCompressionDeltaIDC{compression}, mDebug{debug}, mSendOutDebug{senddebug} {};
+    : mCRUs{crus}, mIDCFactorization{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges, timeframes, timeframesDeltaIDC, crus}, mCompressionDeltaIDC{compression}, mDebug{debug}, mSendOutDebug{senddebug} {};
 
   template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (std::is_same<Type, TPCFactorizeIDCSpecGroup>::value)), int>::type = 0>
   TPCFactorizeIDCSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int timeframesDeltaIDC, std::array<unsigned char, Mapper::NREGIONS> groupPads,
                       std::array<unsigned char, Mapper::NREGIONS> groupRows, std::array<unsigned char, Mapper::NREGIONS> groupLastRowsThreshold,
                       std::array<unsigned char, Mapper::NREGIONS> groupLastPadsThreshold, const unsigned int groupPadsSectorEdges, const IDCDeltaCompression compression, const bool debug = false, const bool senddebug = false)
-    : mCRUs{crus}, mIDCFactorization{std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, 0, timeframes, timeframesDeltaIDC}, mIDCStruct{TPCFactorizeIDCStruct<TPCFactorizeIDCSpecGroup>(groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges)}, mCompressionDeltaIDC{compression}, mDebug{debug}, mSendOutDebug{senddebug} {};
+    : mCRUs{crus}, mIDCFactorization{std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, 0, timeframes, timeframesDeltaIDC, crus}, mIDCStruct{TPCFactorizeIDCStruct<TPCFactorizeIDCSpecGroup>(groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges)}, mCompressionDeltaIDC{compression}, mDebug{debug}, mSendOutDebug{senddebug} {};
 
   void init(o2::framework::InitContext& ic) final
   {
     mLaneId = ic.services().get<const o2::framework::DeviceSpec>().rank;
     mDBapi.init(ic.options().get<std::string>("ccdb-uri")); // or http://localhost:8080 for a local installation
+    mCCDBManager.setURL(ic.options().get<std::string>("ccdb-uri"));
     mWriteToDB = mDBapi.isHostReachable() ? true : false;
+
     mUpdateGroupingPar = mLaneId == 0 ? !(ic.options().get<bool>("update-not-grouping-parameter")) : false;
 
     const std::string refGainMapFile = ic.options().get<std::string>("gainMapFile");
@@ -101,7 +104,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
     // set the min range of TFs for first TF
     if (mProcessedTFs == 0) {
       mTFFirst = processing_helpers::getCurrentTF(pc);
-      mTimeStampFirst = processing_helpers::getCreationTime(pc);
+      mTimeStampFirst = processing_helpers::getTimeStamp(pc, mCCDBManager) / 1000; // in milliseconds
 
       // write struct containing grouping parameters to access grouped IDCs to CCDB
       if (mWriteToDB && mUpdateGroupingPar) {
@@ -161,23 +164,24 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   static constexpr header::DataDescription getDataDescriptionIDCDelta() { return header::DataDescription{"IDCDELTA"}; }
 
  private:
-  const std::vector<uint32_t> mCRUs{};              ///< CRUs to process in this instance
-  int mProcessedTFs{0};                             ///< number of processed time frames to keep track of when the writing to CCDB will be done
-  IDCFactorization mIDCFactorization;               ///< object aggregating the IDCs and performing the factorization of the IDCs
-  TPCFactorizeIDCStruct<Type> mIDCStruct{};         ///< object for averaging and grouping of the IDCs
-  const IDCDeltaCompression mCompressionDeltaIDC{}; ///< compression type for IDC Delta
-  const bool mDebug{false};                         ///< dump IDCs to tree for debugging
-  const bool mSendOutDebug{false};                  ///< flag if the output will be send (for debugging)
-  o2::ccdb::CcdbApi mDBapi;                         ///< API for storing the IDCs in the CCDB
-  std::map<std::string, std::string> mMetadata;     ///< meta data of the stored object in CCDB
-  bool mWriteToDB{};                                ///< flag if writing to CCDB will be done
-  uint32_t mTFFirst{};                              ///< first TF of current aggregation interval
-  uint64_t mTimeStampFirst{};                       ///< storing of first and last time stamp range used when setting the validity of the objects when writing to CCDB
-  std::vector<uint32_t> mTFRangeIDCDelta{};         ///< tf range for storing IDCDelta
-  std::vector<uint64_t> mTimeStampRangeIDCDelta{};  ///< time stamp range of IDCDelta
-  bool mUpdateGroupingPar{true};                    ///< flag to set if grouping parameters should be updated or not
-  int mLaneId{0};                                   ///< the id of the current process within the parallel pipeline
-  std::unique_ptr<CalDet<PadFlags>> mPadFlagsMap;   ///< status flag for each pad (i.e. if the pad is dead). This map is buffered to check if something changed, when a new map is created
+  const std::vector<uint32_t> mCRUs{};                                              ///< CRUs to process in this instance
+  int mProcessedTFs{0};                                                             ///< number of processed time frames to keep track of when the writing to CCDB will be done
+  IDCFactorization mIDCFactorization;                                               ///< object aggregating the IDCs and performing the factorization of the IDCs
+  TPCFactorizeIDCStruct<Type> mIDCStruct{};                                         ///< object for averaging and grouping of the IDCs
+  const IDCDeltaCompression mCompressionDeltaIDC{};                                 ///< compression type for IDC Delta
+  const bool mDebug{false};                                                         ///< dump IDCs to tree for debugging
+  const bool mSendOutDebug{false};                                                  ///< flag if the output will be send (for debugging)
+  o2::ccdb::CcdbApi mDBapi;                                                         ///< API for storing the IDCs in the CCDB
+  o2::ccdb::BasicCCDBManager mCCDBManager = o2::ccdb::BasicCCDBManager::instance(); ///< CCDB manager for loading the time stamp from CCDB
+  std::map<std::string, std::string> mMetadata;                                     ///< meta data of the stored object in CCDB
+  bool mWriteToDB{};                                                                ///< flag if writing to CCDB will be done
+  uint32_t mTFFirst{};                                                              ///< first TF of current aggregation interval
+  uint64_t mTimeStampFirst{};                                                       ///< storing of first and last time stamp range used when setting the validity of the objects when writing to CCDB
+  std::vector<uint32_t> mTFRangeIDCDelta{};                                         ///< tf range for storing IDCDelta
+  std::vector<uint64_t> mTimeStampRangeIDCDelta{};                                  ///< time stamp range of IDCDelta
+  bool mUpdateGroupingPar{true};                                                    ///< flag to set if grouping parameters should be updated or not
+  int mLaneId{0};                                                                   ///< the id of the current process within the parallel pipeline
+  std::unique_ptr<CalDet<PadFlags>> mPadFlagsMap;                                   ///< status flag for each pad (i.e. if the pad is dead). This map is buffered to check if something changed, when a new map is created
 
   /// \return returns first TF for validity range when storing to CCDB
   uint32_t getFirstTF() const { return mTFFirst; }
@@ -203,7 +207,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
     auto it = std::find(mTFRangeIDCDelta.begin(), mTFRangeIDCDelta.end(), tf);
     if (it != mTFRangeIDCDelta.end()) {
       const int index = std::distance(mTFRangeIDCDelta.begin(), it);
-      mTimeStampRangeIDCDelta[index] = processing_helpers::getCreationTime(pc);
+      mTimeStampRangeIDCDelta[index] = processing_helpers::getTimeStamp(pc, mCCDBManager) / 1000;
       // TODO remove found tf?
       return true;
     }

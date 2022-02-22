@@ -45,7 +45,7 @@ class IDCFactorization : public IDCGroupHelperSector
   /// \param groupLastPadsThreshold minimum number of pads in pad direction for the last group in pad direction for all regions
   /// \param timeFrames number of time frames which will be stored
   /// \param timeframesDeltaIDC number of time frames stored for each DeltaIDC object
-  IDCFactorization(const std::array<unsigned char, Mapper::NREGIONS>& groupPads, const std::array<unsigned char, Mapper::NREGIONS>& groupRows, const std::array<unsigned char, Mapper::NREGIONS>& groupLastRowsThreshold, const std::array<unsigned char, Mapper::NREGIONS>& groupLastPadsThreshold, const unsigned int groupNotnPadsSectorEdges, const unsigned int timeFrames, const unsigned int timeframesDeltaIDC);
+  IDCFactorization(const std::array<unsigned char, Mapper::NREGIONS>& groupPads, const std::array<unsigned char, Mapper::NREGIONS>& groupRows, const std::array<unsigned char, Mapper::NREGIONS>& groupLastRowsThreshold, const std::array<unsigned char, Mapper::NREGIONS>& groupLastPadsThreshold, const unsigned int groupNotnPadsSectorEdges, const unsigned int timeFrames, const unsigned int timeframesDeltaIDC, const std::vector<uint32_t>& crus);
 
   /// default constructor for ROOT I/O
   IDCFactorization() = default;
@@ -100,10 +100,10 @@ class IDCFactorization : public IDCGroupHelperSector
 
   /// \return returns the number of stored integration intervals for given Delta IDC chunk
   /// \param chunk chunk of Delta IDC
-  unsigned long getNIntegrationIntervals(const unsigned int chunk) const;
+  unsigned long getNIntegrationIntervals(const unsigned int chunk, const int cru) const;
 
   /// \return returns the total number of stored integration intervals
-  unsigned long getNIntegrationIntervals() const;
+  unsigned long getNIntegrationIntervals(const int cru) const;
 
   /// \return returns stored IDC0 I_0(r,\phi) = <I(r,\phi,t)>_t
   /// \param side TPC side
@@ -271,6 +271,7 @@ class IDCFactorization : public IDCGroupHelperSector
   std::unique_ptr<CalDet<float>> mGainMap;                          ///<! static Gain map object used for filling missing IDC_0 values
   std::unique_ptr<CalDet<PadFlags>> mPadFlagsMap;                   ///< status flag for each pad (i.e. if the pad is dead)
   bool mInputGrouped{false};                                        ///< flag which is set to true if the input IDCs are grouped (checked via the grouping parameters from the constructor)
+  const std::vector<uint32_t> mCRUs{};                              ///< CRUs to process in this instance
 
   /// calculate I_0(r,\phi) = <I(r,\phi,t)>_t
   void calcIDCZero(const bool norm);

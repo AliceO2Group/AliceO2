@@ -32,6 +32,7 @@
 #include "Framework/CCDBParamSpec.h"
 #include "TPCCalibration/IDCContainer.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "TPCWorkflow/ProcessingHelpers.h"
 
 #include "TKey.h"
 
@@ -88,21 +89,6 @@ class TPCFLPIDCDevice : public o2::framework::Task
 
   void init(o2::framework::InitContext& ic) final
   {
-    const std::string padStatusMapFile = ic.options().get<std::string>("padStatusMapFile");
-    if (!padStatusMapFile.empty()) {
-      LOGP(info, "Loading pad status map from file {}", padStatusMapFile);
-      TFile f(padStatusMapFile.data(), "READ");
-      o2::tpc::CalDet<PadFlags>* statusmap = nullptr;
-      f.GetObject("PadStatus", statusmap);
-
-      if (!statusmap) {
-        LOGP(info, "Pad flag map not found returning");
-        return;
-      }
-      mPadFlagsMap = std::make_unique<CalDet<PadFlags>>(*statusmap);
-      delete statusmap;
-    }
-
     if constexpr (std::is_same_v<Type, TPCFLPIDCDeviceGroup>) {
       if (mLoadFromFile) {
         const char* fName = "IDCGroup.root";
@@ -120,7 +106,7 @@ class TPCFLPIDCDevice : public o2::framework::Task
           unsigned int cru = idcavg->getSector() * Mapper::NREGIONS + idcavg->getRegion();
           // check cru
           if (std::find(mCRUs.begin(), mCRUs.end(), cru) != mCRUs.end()) {
-            mIDCStruct.mIDCs[cru].processIDCs(mPadFlagsMap.get());
+            mIDCStruct.mIDCs[cru].processIDCs(mPadFlagsMap);
             mIDCStruct.mIDCs[cru].setFromFile(fName, name);
           }
           delete idcavg;
@@ -132,17 +118,15 @@ class TPCFLPIDCDevice : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final
   {
     if constexpr (std::is_same_v<Type, TPCFLPIDCDeviceGroup>) {
-      LOGP(info, "averaging and grouping IDCs for TF {} for CRUs {} to {} using {} threads", getCurrentTF(pc), mCRUs.front(), mCRUs.back(), mIDCStruct.mIDCs.begin()->second.getNThreads());
+      LOGP(info, "averaging and grouping IDCs for TF {} for CRUs {} to {} using {} threads", processing_helpers::getCurrentTF(pc), mCRUs.front(), mCRUs.back(), mIDCStruct.mIDCs.begin()->second.getNThreads());
     } else {
-      LOGP(info, "skipping grouping of IDCs for TF {} for CRUs {} to {}", getCurrentTF(pc), mCRUs.front(), mCRUs.back());
+      LOGP(info, "skipping grouping of IDCs for TF {} for CRUs {} to {}", processing_helpers::getCurrentTF(pc), mCRUs.front(), mCRUs.back());
     }
 
     // retrieving map containing the status flags for the static outlier
-    // using ValueT = CalDet<PadFlags>;
-    // std::unique_ptr<ValueT const, InputRecord::Deleter<ValueT const>> flagmapTmp;
-    // if (mLoadPadMapCCDB) {
-    // flagmapTmp = pc.inputs().get<CalDet<PadFlags>*>("tpcpadmap");
-    // }
+    if (mLoadPadMapCCDB) {
+      updateTimeDependentParams(pc);
+    }
 
     if (!mLoadFromFile) {
       for (int i = 0; i < mCRUs.size(); ++i) {
@@ -151,7 +135,7 @@ class TPCFLPIDCDevice : public o2::framework::Task
         const int cru = tpcCRUHeader->subSpecification >> 7;
         if constexpr (std::is_same_v<Type, TPCFLPIDCDeviceGroup>) {
           mIDCStruct.mIDCs[cru].setIDCs(pc.inputs().get<std::vector<float>>(ref));
-          mIDCStruct.mIDCs[cru].processIDCs(mPadFlagsMap.get());
+          mIDCStruct.mIDCs[cru].processIDCs(mPadFlagsMap);
         } else {
           mIDCStruct.mIDCs[cru] = pc.inputs().get<std::vector<float>>(ref);
         }
@@ -166,13 +150,21 @@ class TPCFLPIDCDevice : public o2::framework::Task
     }
 
     if (mDebug) {
-      TFile fOut(fmt::format("IDCGroup_{}_tf_{}.root", mLane, getCurrentTF(pc)).data(), "RECREATE");
+      TFile fOut(fmt::format("IDCGroup_{}_tf_{}.root", mLane, processing_helpers::getCurrentTF(pc)).data(), "RECREATE");
       for (int i = 0; i < mCRUs.size(); ++i) {
         const DataRef ref = pc.inputs().getByPos(i);
         auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
         const int cru = tpcCRUHeader->subSpecification >> 7;
         fOut.WriteObject(&mIDCStruct.mIDCs[cru], fmt::format("CRU_{}", cru).data());
       }
+    }
+  }
+
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final
+  {
+    if (matcher == ConcreteDataMatcher(gDataOriginTPC, "PADSTATUSMAP", 0)) {
+      LOGP(info, "Updating pad status from CCDB");
+      mPadFlagsMap = static_cast<o2::tpc::CalDet<PadFlags>*>(obj);
     }
   }
 
@@ -208,10 +200,10 @@ class TPCFLPIDCDevice : public o2::framework::Task
   std::vector<float> mOneDIDCs{};                                                   ///< 1D-IDCs which will be send to the EPNs
   IDCFLPIDCStruct<Type> mIDCStruct{};                                               ///< object for averaging and grouping of the IDCs
   std::unordered_map<unsigned int, std::deque<std::vector<float>>> mBuffer1DIDCs{}; ///< buffer for 1D-IDCs. The buffered 1D-IDCs for n TFs will be send to the EPNs for synchronous reco. Zero initialized to avoid empty first TFs!
-  std::unique_ptr<CalDet<PadFlags>> mPadFlagsMap;                                   ///< status flag for each pad (i.e. if the pad is dead)
+  CalDet<PadFlags>* mPadFlagsMap{nullptr};                                          ///< status flag for each pad (i.e. if the pad is dead)
 
-  /// \return returns TF of current processed data
-  uint32_t getCurrentTF(o2::framework::ProcessingContext& pc) const { return o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->tfCounter; }
+  /// update the time dependent parameters if they have changed (i.e. update the pad status map)
+  void updateTimeDependentParams(ProcessingContext& pc) { pc.inputs().get<o2::tpc::CalDet<PadFlags>*>("tpcpadmap").get(); }
 
   void sendOutput(DataAllocator& output, const uint32_t cru)
   {
@@ -222,7 +214,7 @@ class TPCFLPIDCDevice : public o2::framework::Task
       // calculate 1D-IDCs = sum over 2D-IDCs as a function of the integration interval
       vec1DIDCs = mIDCStruct.mIDCs[cru].getIDCGroup().get1DIDCs();
     } else {
-      vec1DIDCs = IDCGroup::get1DIDCsUngrouped(mIDCStruct.mIDCs[cru], cru, mPadFlagsMap.get());
+      vec1DIDCs = IDCGroup::get1DIDCsUngrouped(mIDCStruct.mIDCs[cru], cru, mPadFlagsMap);
     }
     output.snapshot(Output{gDataOriginTPC, getDataDescription1DIDC(), subSpec, Lifetime::Timeframe}, vec1DIDCs);
 
@@ -265,15 +257,15 @@ DataProcessorSpec getTPCFLPIDCSpec(const int ilane, const std::vector<uint32_t>&
     if (!loadFromFile) {
       inputSpecs.emplace_back(InputSpec{"idcs", gDataOriginTPC, TPCIntegrateIDCDevice::getDataDescription(TPCIntegrateIDCDevice::IDCFormat::Sim), subSpec, Lifetime::Timeframe});
     }
-    // if (loadStatusMap) {
-    // TODO implement loading map from CCDB
-    // LOGP(info, "Using pad status map from CCDB");
-    // inputSpecs.emplace_back("tpcpadmap", gDataOriginTPC, "PADSTATUSMAP", 0, Lifetime::Condition, ccdbParamSpec("TPC/Calib/IDC/PadStatusMap"));
-    // }
 
     outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFLPIDCDevice<Type>::getDataDescriptionIDCGroup(), subSpec});
     outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFLPIDCDevice<Type>::getDataDescription1DIDC(), subSpec});
     outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFLPIDCDevice<Type>::getDataDescription1DIDCEPN(), subSpec});
+  }
+
+  if (loadStatusMap) {
+    LOGP(info, "Using pad status map from CCDB");
+    inputSpecs.emplace_back("tpcpadmap", gDataOriginTPC, "PADSTATUSMAP", 0, Lifetime::Condition, ccdbParamSpec("TPC/Calib/IDC/PadStatusMap"));
   }
 
   const auto id = fmt::format("tpc-flp-idc-{:02}", ilane);
@@ -281,9 +273,7 @@ DataProcessorSpec getTPCFLPIDCSpec(const int ilane, const std::vector<uint32_t>&
     id.data(),
     inputSpecs,
     outputSpecs,
-    AlgorithmSpec{adaptFromTask<TPCFLPIDCDevice<Type>>(ilane, crus, rangeIDC, debug, loadFromFile, loadStatusMap)},
-    Options{
-      {"padStatusMapFile", VariantType::String, "", {"file to reference pad status map, which will be used for filtering of static outliers."}}}}; // end DataProcessorSpec
+    AlgorithmSpec{adaptFromTask<TPCFLPIDCDevice<Type>>(ilane, crus, rangeIDC, debug, loadFromFile, loadStatusMap)}}; // end DataProcessorSpec
 }
 
 } // namespace o2::tpc
