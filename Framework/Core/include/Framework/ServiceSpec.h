@@ -172,41 +172,49 @@ struct ServiceSpec {
 };
 
 struct ServiceConfigureHandle {
+  ServiceSpec const& spec;
   ServiceConfigureCallback callback;
   void* service;
 };
 
 struct ServiceProcessingHandle {
+  ServiceSpec const& spec;
   ServiceProcessingCallback callback;
   void* service;
 };
 
 struct ServiceDanglingHandle {
+  ServiceSpec const& spec;
   ServiceDanglingCallback callback;
   void* service;
 };
 
 struct ServiceEOSHandle {
+  ServiceSpec const& spec;
   ServiceEOSCallback callback;
   void* service;
 };
 
 struct ServiceDispatchingHandle {
+  ServiceSpec const& spec;
   ServicePostDispatching callback;
   void* service;
 };
 
 struct ServiceStartHandle {
+  ServiceSpec const& spec;
   ServiceStartCallback callback;
   void* service;
 };
 
 struct ServiceStopHandle {
+  ServiceSpec const& spec;
   ServiceStopCallback callback;
   void* service;
 };
 
 struct ServiceExitHandle {
+  ServiceSpec const& spec;
   ServiceExitCallback callback;
   void* service;
 };
