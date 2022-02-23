@@ -17,5 +17,6 @@
 
 #pragma link C++ class o2::hmpid::Param + ;
 #pragma link C++ class o2::hmpid::Geo + ;
+#pragma link C++ class o2::hmpid::ReadOut + ;
 
 #endif

@@ -31,7 +31,7 @@ Cell::Cell(short absId, float energy, float time, ChannelType_t ctype)
 
 void Cell::setAbsId(short absId)
 {
-  //14 bits available
+  // 14 bits available
   if (absId < kOffset) {
     absId = kNmaxCell;
   }
@@ -42,7 +42,7 @@ void Cell::setAbsId(short absId)
 }
 short Cell::getAbsId() const
 {
-  ULong_t t = getLong() & 0x3fff; //14 bits
+  ULong_t t = getLong() & 0x3fff; // 14 bits
   short a = kOffset + (short)t;
   if (a <= kNmaxCell) {
     return a;
@@ -53,7 +53,7 @@ short Cell::getAbsId() const
 
 short Cell::getTRUId() const
 {
-  ULong_t t = getLong() & 0x3fff; //14 bits
+  ULong_t t = getLong() & 0x3fff; // 14 bits
   short a = kOffset + (short)t;
   if (a > kNmaxCell) {
     return a - kNmaxCell - 1;
@@ -64,18 +64,41 @@ short Cell::getTRUId() const
 
 void Cell::setTime(float time)
 {
-  //10 bits available for time
+  // 13 bits available for time
+  //  -Underflow
+  //  -1500<t<-800 ns, 1.  ns binning =>  700 bin
+  //   -800<t<-200 ns, 0.6 ns binning => 1000 bin
+  //   -200<t< 200 ns, 0.2 ns binning => 2000 bin
+  //    200<t< 800 ns, 0.6 ns binning => 1000 bin
+  //    800<t<4290 ns, 1   ns binning => 3490 bin
+  //  + overflow                total    8192
+
   ULong_t t = 0;
-  //Convert time to long
-  t = ULong_t((time - kTime0) / kTimeAccuracy);
-  if (t > 0x1fff) {
-    t = 0x1fff;
+  // Convert time to long
+  if (time < kTime0) {
+    t = 0; // underflow
   } else {
-    if (t < 0) {
-      t = 0;
+    if (time < kTime1) {
+      t = ULong_t(1.5 + (time - kTime0) / kTimeAccuracy1);
+    } else {
+      if (time < kTime2) {
+        t = kTimeOffset1 + ULong_t(0.5 + (time - kTime1) / kTimeAccuracy2);
+      } else {
+        if (time < kTime3) {
+          t = kTimeOffset2 + ULong_t(0.5 + (time - kTime2) / kTimeAccuracy3);
+        } else {
+          if (time < kTime4) {
+            t = kTimeOffset3 + ULong_t(0.5 + (time - kTime3) / kTimeAccuracy4);
+          } else {
+            t = kTimeOffset4 + ULong_t(0.5 + (time - kTime4) / kTimeAccuracy5);
+            if (t > 8191) {
+              t = 8191; // overflow
+            }
+          }
+        }
+      }
     }
   }
-
   t <<= 14;
   ULong_t b = getLong() & 0xfff8003fff; // 1111 1111 1111 1000 0000 0000 0011 1111 1111 1111
   mBits = b + t;
@@ -85,21 +108,39 @@ float Cell::getTime() const
   ULong_t t = getLong();
   t >>= 14;
   t &= 0x1fff;
-  //Convert back long to float
-
-  return float(t * kTimeAccuracy) + kTime0;
+  // Convert back long to float
+  if (t == 0) {
+    return kTime0 - 1.e-9; // First bin- underflow
+  }
+  if (t < kTimeOffset1) {
+    return float((t - 1) * kTimeAccuracy1) + kTime0; // First bin- underflow
+  } else {
+    if (t < kTimeOffset2) {
+      return float((t - kTimeOffset1) * kTimeAccuracy2) + kTime1;
+    } else {
+      if (t < kTimeOffset3) {
+        return float((t - kTimeOffset2) * kTimeAccuracy3) + kTime2;
+      } else {
+        if (t < kTimeOffset4) {
+          return float((t - kTimeOffset3) * kTimeAccuracy4) + kTime3;
+        } else {
+          return float((t - kTimeOffset4) * kTimeAccuracy5) + kTime4;
+        }
+      }
+    }
+  }
 }
 
 void Cell::setEnergy(float amp)
 {
-  //12 bits
+  // 12 bits
   ULong_t a;
   if (getType() == HIGH_GAIN) {
     a = static_cast<ULong_t>(amp * 4);
   } else {
     a = static_cast<ULong_t>(amp);
   }
-  a = a & 0xfff; //12 bits
+  a = a & 0xfff; // 12 bits
 
   a <<= 27;
   ULong_t b = getLong() & 0x8007ffffff; // 1000 0000 0000 0111 1111 1111 1111 1111 1111 1111
@@ -183,9 +224,9 @@ Bool_t Cell::getHighGain() const
 Bool_t Cell::getTRU() const
 {
   ULong_t t = getLong();
-  t &= 0x3fff; //14 bits
+  t &= 0x3fff; // 14 bits
   int a = kOffset + (int)t;
-  return (a > kNmaxCell); //TRU addresses
+  return (a > kNmaxCell); // TRU addresses
 }
 
 void Cell::setLong(ULong_t l)

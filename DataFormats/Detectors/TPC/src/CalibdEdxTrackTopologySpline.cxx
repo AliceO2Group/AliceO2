@@ -37,12 +37,11 @@ CalibdEdxTrackTopologySpline::CalibdEdxTrackTopologySpline()
   setDefaultSplines();
 }
 
-CalibdEdxTrackTopologySpline::CalibdEdxTrackTopologySpline(const char* dEdxSplinesFile)
+CalibdEdxTrackTopologySpline::CalibdEdxTrackTopologySpline(const char* dEdxSplinesFile, const char* name)
   : FlatObject()
 {
   TFile dEdxFile(dEdxSplinesFile);
-  setSplinesFromFile(dEdxFile);
-  setRangesFromFile(dEdxFile);
+  setFromFile(dEdxFile, name);
 }
 
 CalibdEdxTrackTopologySpline::CalibdEdxTrackTopologySpline(const CalibdEdxTrackTopologySpline& obj)
@@ -110,6 +109,11 @@ void CalibdEdxTrackTopologySpline::cloneFromObject(const CalibdEdxTrackTopologyS
   }
   mMaxTanTheta = obj.mMaxTanTheta;
   mMaxSinPhi = obj.mMaxSinPhi;
+
+  for (int i = 0; i < FSplines; ++i) {
+    mScalingFactorsqTot[i] = obj.mScalingFactorsqTot[i];
+    mScalingFactorsqMax[i] = obj.mScalingFactorsqMax[i];
+  }
 }
 
 void CalibdEdxTrackTopologySpline::moveBufferTo(char* newFlatBufferPtr)
@@ -175,9 +179,19 @@ CalibdEdxTrackTopologySpline* CalibdEdxTrackTopologySpline::readFromFile(
   return FlatObject::readFromFile<CalibdEdxTrackTopologySpline>(inpf, name);
 }
 
+void CalibdEdxTrackTopologySpline::setFromFile(TFile& inpf, const char* name)
+{
+  LOGP(info, "Warnings when reading from file can be ignored");
+  o2::tpc::CalibdEdxTrackTopologySpline* cont = readFromFile(inpf, name);
+  *this = *cont;
+  delete cont;
+  LOGP(info, "CalibdEdxTrackTopologySpline sucessfully loaded from file");
+}
+
 int CalibdEdxTrackTopologySpline::writeToFile(TFile& outf, const char* name)
 {
   /// write a class object to the file
+  LOGP(info, "Warnings when writting to file can be ignored");
   return FlatObject::writeToFile(*this, outf, name);
 }
 
@@ -242,6 +256,13 @@ inline void CalibdEdxTrackTopologySpline::setRangesFromFile(TFile& inpf)
     mMaxSinPhi = (*sinPhiMax).front();
     delete sinPhiMax;
   }
+}
+
+std::string CalibdEdxTrackTopologySpline::getSplineName(const int region, const ChargeType charge)
+{
+  const std::string typeName[2] = {"qMax", "qTot"};
+  const std::string polname = fmt::format("spline_{}_region{}", typeName[charge], region).data();
+  return polname;
 }
 
 #endif

@@ -26,13 +26,13 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
     srand(getpid());
     return adaptStateless([what, minDelay](DataAllocator& outputs) {
       std::this_thread::sleep_for(std::chrono::seconds((rand() % 5) + minDelay));
-      auto& bData = outputs.make<int>(OutputRef{what}, 1);
+      outputs.make<int>(OutputRef{what}, 1);
     });
   })};
 }
 
 // This is how you can define your processing in a declarative way
-WorkflowSpec defineDataProcessing(ConfigContext const& specs)
+WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
     {"A",
@@ -41,7 +41,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
      AlgorithmSpec{adaptStateless(
        [](DataAllocator& outputs) {
          std::this_thread::sleep_for(std::chrono::seconds(rand() % 2));
-         auto& aData = outputs.make<int>(OutputRef{"a1"}, 1);
+         outputs.make<int>(OutputRef{"a1"}, 1);
        })},
      {ConfigParamSpec{"some-device-param", VariantType::Int, 1, {"Some device parameter"}}}}};
 }

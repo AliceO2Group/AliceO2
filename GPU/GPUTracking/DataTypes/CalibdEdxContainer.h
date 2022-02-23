@@ -23,6 +23,7 @@
 #include "DataFormatsTPC/CalibdEdxTrackTopologyPol.h"
 #include "DataFormatsTPC/CalibdEdxTrackTopologySpline.h"
 #include "FlatObject.h"
+#include "TPCPadGainCalib.h"
 
 #ifndef GPUCA_ALIGPUCODE
 #include <string_view>
@@ -55,15 +56,26 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
 
   /// \return returns the topology correction for the cluster charge
   /// \param region region of the TPC
-  /// \param charge type of the charge (qMax or qTot)
+  /// \param chargeT type of the charge (qMax or qTot)
   /// \param tanTheta local inclination angle tanTheta
   /// \param sinPhi snp track parameter
   /// \param z z position
   /// \param relPad relative pad position of the cluster
   /// \param relTime relative time position of the cluster
-  GPUd() float getTopologyCorrection(const int region, const ChargeType charge, const float tanTheta, const float sinPhi, const float z, const float relPad, const float relTime) const
+  /// \param threshold zero supression threshold
+  /// \param charge charge of the cluster
+  GPUd() float getTopologyCorrection(const int region, const ChargeType chargeT, const float tanTheta, const float sinPhi, const float z, const float relPad, const float relTime, const float threshold, const float charge) const
   {
-    return mCalibTrackTopologyPol ? mCalibTrackTopologyPol->getCorrection(region, charge, tanTheta, sinPhi, z, relPad, relTime) : (mCalibTrackTopologySpline ? mCalibTrackTopologySpline->getCorrection(region, charge, tanTheta, sinPhi, z) : getDefaultTopologyCorrection(tanTheta, sinPhi));
+    return mCalibTrackTopologyPol ? mCalibTrackTopologyPol->getCorrection(region, chargeT, tanTheta, sinPhi, z, relPad, relTime, threshold, charge) : (mCalibTrackTopologySpline ? mCalibTrackTopologySpline->getCorrection(region, chargeT, tanTheta, sinPhi, z) : getDefaultTopologyCorrection(tanTheta, sinPhi));
+  }
+
+  /// \return returns the topology correction for the cluster charge
+  /// \param region region of the TPC
+  /// \param chargeT type of the charge (qMax or qTot)
+  /// \param x coordinates where the correction is evaluated
+  GPUd() float getTopologyCorrection(const int region, const ChargeType chargeT, const float x[]) const
+  {
+    return mCalibTrackTopologyPol ? mCalibTrackTopologyPol->getCorrection(region, chargeT, x) : (mCalibTrackTopologySpline ? mCalibTrackTopologySpline->getCorrection(region, chargeT, x) : getDefaultTopologyCorrection(x[0], x[1]));
   }
 
   /// \return returns analytical default correction
@@ -75,6 +87,25 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
 
   /// \return returns maximum sinPhi for which the topology correction is valid
   GPUd() float getMaxSinPhiTopologyCorrection() const { return mCalibTrackTopologyPol ? mCalibTrackTopologyPol->getMaxSinPhi() : (mCalibTrackTopologySpline ? mCalibTrackTopologySpline->getMaxSinPhi() : 1); }
+
+  /// \return returns the the minimum qTot for which the polynomials are valid
+  GPUd() float getMinqTot() const { return mCalibTrackTopologyPol ? mCalibTrackTopologyPol->getMinqTot() : 0; };
+
+  /// \return returns the the maximum qTot for which the polynomials are valid
+  GPUd() float getMaxqTot() const { return mCalibTrackTopologyPol ? mCalibTrackTopologyPol->getMaxqTot() : 10000; };
+
+#if !defined(GPUCA_GPUCODE)
+  /// \returns the minimum zero supression threshold for which the track topology correction is valid
+  float getMinZeroSupresssionThreshold() const;
+
+  /// \returns the maximum zero supression threshold for which the track topology correction is valid
+  float getMaxZeroSupresssionThreshold() const;
+#endif
+
+  /// \return returns zero supression threshold
+  /// \param sector tpc sector
+  /// \param row global pad row
+  GPUd() float getZeroSupressionThreshold(const int sector, const gpu::tpccf::Row row, const gpu::tpccf::Pad pad) const { return mThresholdMap.getGainCorrection(sector, row, pad); }
 
   /// \return returns the residual dE/dx correction for the cluster charge
   /// \param stack ID of the GEM stack
@@ -105,30 +136,61 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
   // loading the polynomial track topology correction from a file
-  /// \param fileName input file containg the correction
+  /// \param fileName input file containing the correction
   void loadPolTopologyCorrectionFromFile(std::string_view fileName);
 
   // loading the spline track topology correction from a file
-  /// \param fileName input file containg the correction
+  /// \param fileName input file containing the correction
   void loadSplineTopologyCorrectionFromFile(std::string_view fileName);
 
   // loading the residual dE/dx correction from a file
-  /// \param fileName input file containg the correction
+  /// \param fileName input file containing the correction
   void loadResidualCorrectionFromFile(std::string_view fileName) { mCalibResidualdEdx.loadFromFile(fileName); }
+
+  // loading the zero supression threshold map from a file
+  /// \param fileName input file containing the CalDet map
+  void loadZeroSupresssionThresholdFromFile(std::string_view fileName, std::string_view objName, const float minCorrectionFactor, const float maxCorrectionFactor);
+
+  // loading the zero supression threshold map from a file
+  /// \param fileName input file containing the CalDet map
+  void setZeroSupresssionThreshold(const CalDet<float>& thresholdMap) { setZeroSupresssionThreshold(thresholdMap, getMinZeroSupresssionThreshold(), getMaxZeroSupresssionThreshold()); }
+
+  // loading the zero supression threshold map from a file
+  /// \param fileName input file containing the CalDet map
+  void setZeroSupresssionThreshold(const CalDet<float>& thresholdMap, const float minCorrectionFactor, const float maxCorrectionFactor);
+
+  /// setting default zero supression threshold map (all values are set to getMinZeroSupresssionThreshold())
+  /// \param fileName input file containing the CalDet map
+  void setDefaultZeroSupresssionThreshold();
 #endif // !GPUCA_GPUCODE
 
  private:
   CalibdEdxTrackTopologySpline* mCalibTrackTopologySpline{nullptr}; ///< calibration for the track topology correction (splines)
   CalibdEdxTrackTopologyPol* mCalibTrackTopologyPol{nullptr};       ///< calibration for the track topology correction (polynomial)
-  CalibdEdxCorrection mCalibResidualdEdx;                           ///< calibration for the residual dE/dx correction
+  o2::gpu::TPCPadGainCalib mThresholdMap{};                         ///< calibration object containing the zero supression threshold map
+  CalibdEdxCorrection mCalibResidualdEdx{};                         ///< calibration for the residual dE/dx correction
 
 #if !defined(GPUCA_GPUCODE)
-  /// \return returns size of the CalibdEdxTrackTopologyPol class
-  std::size_t sizeOfCalibdEdxTrackTopologyPol() const { return alignSize(sizeof(CalibdEdxTrackTopologyPol), FlatObject::getClassAlignmentBytes()); }
+  template <class Type>
+  std::size_t sizeOfCalibdEdxTrackTopologyObj() const
+  {
+    return alignSize(sizeof(Type), FlatObject::getClassAlignmentBytes());
+  }
 
-  /// \return returns size of the CalibdEdxTrackTopologySpline class (without taking the size of the flat buffer into acocunt)
-  std::size_t sizeOfCalibdEdxTrackTopologySpline() const { return alignSize(sizeof(CalibdEdxTrackTopologyPol), FlatObject::getClassAlignmentBytes()); }
-#endif // !GPUCA_GPUCODE
+  template <class Type>
+  void loadTopologyCorrectionFromFile(std::string_view fileName, Type*& obj);
+#endif
+
+  template <class Type>
+  void setActualBufferAddress(Type*& obj);
+
+  template <class Type>
+  void setFutureBufferAddress(Type*& obj, char* futureFlatBufferPtr);
+
+#if !defined(GPUCA_GPUCODE)
+  template <class Type>
+  void cloneFromObject(Type*& obj, const Type* objOld, char* newFlatBufferPtr, const char* oldFlatBufferPtr);
+#endif
 
 #ifndef GPUCA_ALIROOT_LIB
   ClassDefNV(CalibdEdxContainer, 1);

@@ -12,6 +12,7 @@
 /// \file GPUTPCGMPolynomialFieldManager.cxx
 /// \author Sergey Gorbunov, David Rohr
 
+#include "GPUCommonConstants.h"
 #include "GPUTPCGMPolynomialFieldManager.h"
 #include "GPUTPCGMPolynomialField.h"
 #include <cmath>
@@ -105,8 +106,6 @@ int GPUTPCGMPolynomialFieldManager::GetPolynomialField(StoredField_t fieldType, 
 
   const float kItsSol5Bz[kItsM] = {1.00001418591e+00, -3.69126610167e-06, 7.76097112976e-06, -3.11396547659e-06, 1.64195810726e-07, 2.47078468796e-10, 2.39289423831e-08, 1.61199579907e-07, -3.16838866254e-09, -3.23542707292e-07};
 
-  const double kCLight = 0.000299792458;
-
   field.Reset();
 
   // check if GPUTPCGMPolynomialField class is ok
@@ -119,7 +118,7 @@ int GPUTPCGMPolynomialFieldManager::GetPolynomialField(StoredField_t fieldType, 
 
   const float *cTpcBx, *cTpcBy, *cTpcBz, *cTrdBx, *cTrdBy, *cTrdBz, *cItsBx, *cItsBy, *cItsBz;
 
-  double nominalBz = nominalFieldkG * kCLight;
+  double nominalBz = nominalFieldkG * gpu_common_constants::kCLight;
 
   if (fieldType == GPUTPCGMPolynomialFieldManager::kUniform) {
     cTpcBx = kSolUBx;
@@ -270,7 +269,6 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTpc(AliMagF* inputFld, GPUTPCGMPolyn
   // Fit magnetic field with polynoms
   //
 
-  const double kCLight = 0.000299792458;
   const double kAlmost0Field = 1.e-13;
 
   AliMagF* fld = inputFld;
@@ -377,7 +375,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTpc(AliMagF* inputFld, GPUTPCGMPolyn
   fittedField.SetFieldTpc(cX, cY, cZ);
 
   // scale result
-  double nominalBz = solenoidBzkG * kCLight;
+  double nominalBz = solenoidBzkG * gpu_common_constants::kCLight;
 
   for (int i = 0; i < M; i++) {
     cX[i] = nominalBz * cX[i];
@@ -451,7 +449,6 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTrd(AliMagF* inputFld, GPUTPCGMPolyn
   // Fit magnetic field with polynoms
   //
 
-  const double kCLight = 0.000299792458;
   const double kAlmost0Field = 1.e-13;
 
   AliMagF* fld = inputFld;
@@ -554,7 +551,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTrd(AliMagF* inputFld, GPUTPCGMPolyn
   fittedField.SetFieldTrd(cX, cY, cZ);
 
   // scale result
-  double nominalBz = solenoidBzkG * kCLight;
+  double nominalBz = solenoidBzkG * gpu_common_constants::kCLight;
 
   for (int i = 0; i < M; i++) {
     cX[i] = nominalBz * cX[i];
@@ -627,7 +624,6 @@ int GPUTPCGMPolynomialFieldManager::FitFieldIts(AliMagF* inputFld, GPUTPCGMPolyn
   // Fit magnetic field with polynoms
   //
 
-  const double kCLight = 0.000299792458;
   const double kAlmost0Field = 1.e-13;
 
   AliMagF* fld = inputFld;
@@ -740,7 +736,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldIts(AliMagF* inputFld, GPUTPCGMPolyn
   fittedField.SetFieldIts(cX, cY, cZ);
 
   // scale result
-  double nominalBz = solenoidBzkG * kCLight;
+  double nominalBz = solenoidBzkG * gpu_common_constants::kCLight;
 
   for (int i = 0; i < M; i++) {
     cX[i] = nominalBz * cX[i];

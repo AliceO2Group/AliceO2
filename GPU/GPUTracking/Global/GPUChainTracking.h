@@ -73,6 +73,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void RegisterPermanentMemoryAndProcessors() override;
   void RegisterGPUProcessors() override;
   int Init() override;
+  int EarlyConfigure() override;
   int PrepareEvent() override;
   int Finalize() override;
   int RunChain() override;
@@ -184,7 +185,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void SetO2Propagator(const o2::base::Propagator* prop) { processors()->calibObjects.o2Propagator = prop; }
   void SetCalibObjects(const GPUCalibObjectsConst& obj) { processors()->calibObjects = obj; }
   void SetCalibObjects(const GPUCalibObjects& obj) { memcpy((void*)&processors()->calibObjects, (const void*)&obj, sizeof(obj)); }
-  void SetDefaultO2PropagatorForGPU();
+  void SetUpdateCalibObjects(const GPUCalibObjectsConst& obj);
+  void SetDefaultInternalO2Propagator(bool useGPUField);
   void LoadClusterErrors();
   void SetOutputControlCompressedClusters(GPUOutputControl* v) { mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::compressedClusters)] = v; }
   void SetOutputControlClustersNative(GPUOutputControl* v) { mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clustersNative)] = v; }
@@ -206,6 +208,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     short mMemoryResFlat = -1;
     void* SetPointersFlatObjects(void* mem);
   };
+  void UpdateGPUCalibObjects(int stream);
+  void UpdateGPUCalibObjectsPtrs(int stream);
 
   struct eventStruct // Must consist only of void* ptr that will hold the GPU event ptrs!
   {
@@ -265,6 +269,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   // (Ptrs to) configuration objects
   std::unique_ptr<GPUTPCCFChainContext> mCFContext;
   bool mTPCSliceScratchOnStack = false;
+  GPUCalibObjectsConst mNewCalibObjects;
+  bool mUpdateNewCalibObjects = false;
 
   // Upper bounds for memory allocation
   unsigned int mMaxTPCHits = 0;

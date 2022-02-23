@@ -19,7 +19,7 @@
 #include "Framework/Task.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "DataFormatsMID/Cluster3D.h"
+#include "DataFormatsMID/Cluster.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "DataFormatsMID/Track.h"
 #include "DataFormatsMID/MCClusterLabel.h"
@@ -50,7 +50,7 @@ RootTreeReader::SpecialPublishHook logging{
       printBranch<Track>(data, "TRACKS");
     }
     if (name == "MIDTrackCluster") {
-      printBranch<Cluster3D>(data, "TRACKCLUSTERS");
+      printBranch<Cluster>(data, "TRACKCLUSTERS");
     }
     if (name == "MIDTrackLabels") {
       auto tdata = reinterpret_cast<o2::dataformats::MCTruthContainer<MCCompLabel>*>(data);
@@ -83,7 +83,7 @@ struct TrackReader {
         RootTreeReader::PublishingMode::Single,
         RootTreeReader::BranchDefinition<std::vector<Track>>{Output{"MID", "TRACKS", 0}, "MIDTrack"},
         RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MID", "TRACKROFS", 0}, "MIDTrackROF"},
-        RootTreeReader::BranchDefinition<std::vector<Cluster3D>>{Output{"MID", "TRACKCLUSTERS", 0}, "MIDTrackCluster"},
+        RootTreeReader::BranchDefinition<std::vector<Cluster>>{Output{"MID", "TRACKCLUSTERS", 0}, "MIDTrackCluster"},
         RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MID", "TRCLUSROFS", 0}, "MIDTrackClusterROF"},
         RootTreeReader::BranchDefinition<o2::dataformats::MCTruthContainer<MCCompLabel>>{Output{"MID", "TRACKLABELS", 0}, "MIDTrackLabels"},
         RootTreeReader::BranchDefinition<o2::dataformats::MCTruthContainer<MCClusterLabel>>{Output{"MID", "TRCLUSLABELS", 0}, "MIDTrackClusterLabels"},
@@ -96,7 +96,7 @@ struct TrackReader {
         RootTreeReader::PublishingMode::Single,
         RootTreeReader::BranchDefinition<std::vector<Track>>{Output{"MID", "TRACKS", 0}, "MIDTrack"},
         RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MID", "TRACKROFS", 0}, "MIDTrackROF"},
-        RootTreeReader::BranchDefinition<std::vector<Cluster3D>>{Output{"MID", "TRACKCLUSTERS", 0}, "MIDTrackCluster"},
+        RootTreeReader::BranchDefinition<std::vector<Cluster>>{Output{"MID", "TRACKCLUSTERS", 0}, "MIDTrackCluster"},
         RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MID", "TRCLUSROFS", 0}, "MIDTrackClusterROF"},
         &logging);
     }

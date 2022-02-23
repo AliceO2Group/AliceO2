@@ -5,5 +5,8 @@
 # TRD
 
 <!-- doxy
+* \subpage refDetectorsTRDcalibration
 * \subpage refDetectorsTRDsimulation
+* \subpage refDetectorsTRDreconstruction
+* \subpage refDetectorsTRDworkflow
 /doxy -->

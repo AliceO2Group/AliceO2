@@ -18,5 +18,7 @@
 #pragma link C++ struct o2::mft::MFTDCSinfo + ;
 #pragma link C++ class o2::mft::DCSNameResolver + ;
 #pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, o2::mft::MFTDCSinfo> + ;
-
+#pragma link C++ class o2::mft::DCSConfigInfo + ;
+#pragma link C++ class std::vector < o2::mft::DCSConfigInfo> + ;
+#pragma link C++ class o2::mft::DCSConfigUtils + ;
 #endif

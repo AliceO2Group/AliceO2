@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
   std::cout << "Selected VMC engine " << conf.getMCEngine() << "\n";
   std::cout << "Selected Modules:\n";
 
-  auto v = conf.getActiveDetectors();
+  auto v = conf.getActiveModules();
   for (auto& m : v) {
     std::cout << "@ " << m << "\n";
   }
@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
 
   if (inconfigdata) {
     conf.resetFromConfigData(*inconfigdata);
-    auto v2 = conf.getActiveDetectors();
+    auto v2 = conf.getActiveModules();
     for (auto& m : v2) {
       std::cout << "@ " << m << "\n";
     }

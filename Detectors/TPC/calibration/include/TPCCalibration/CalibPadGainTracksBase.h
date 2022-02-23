@@ -17,16 +17,12 @@
 #ifndef ALICEO2_TPC_CALIBPADGAINTRACKSBASE_H
 #define ALICEO2_TPC_CALIBPADGAINTRACKSBASE_H
 
-//o2 includes
-#include "DataFormatsTPC/TrackTPC.h"
-#include "DataFormatsTPC/ClusterNative.h"
+// o2 includes
 #include "TPCBase/CalDet.h"
 #include "TPCBase/Mapper.h"
 #include "TPCCalibration/FastHisto.h"
 
-#include <vector>
 #include <gsl/span>
-#include <tuple>
 
 class TCanvas;
 

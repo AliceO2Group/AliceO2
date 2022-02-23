@@ -19,9 +19,10 @@
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 
-#include "FairLogger.h"
+#include "Framework/Logger.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/DeviceSpec.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 
 using namespace o2::framework;
@@ -39,6 +40,8 @@ void NoiseCalibratorSpec::init(InitContext& ic)
   LOG(info) << "Setting the probability threshold to " << probT;
 
   mCalibrator = std::make_unique<CALIBRATOR>(onepix, probT);
+  mCalibrator->setNThreads(ic.options().get<int>("nthreads"));
+
   std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
   std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
   if (o2::utils::Str::pathExists(dictFile)) {
@@ -52,15 +55,37 @@ void NoiseCalibratorSpec::init(InitContext& ic)
 
 void NoiseCalibratorSpec::run(ProcessingContext& pc)
 {
-  const auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
-  gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
-  const auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
-
-  if (mCalibrator->processTimeFrame(compClusters, patterns, rofs)) {
+  mTimer.Start(false);
+  static bool firstCall = true;
+  if (firstCall) {
+    firstCall = false;
+    mCalibrator->setInstanceID(pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId);
+    mCalibrator->setNInstances(pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices);
+  }
+  bool done = false;
+  if (mUseClusters) {
+    const auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
+    gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
+    const auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
+    mNClustersProc += compClusters.size();
+    mDataSizeStat +=
+      rofs.size() * sizeof(o2::itsmft::ROFRecord) + patterns.size() +
+      compClusters.size() * sizeof(o2::itsmft::CompClusterExt);
+    done = mCalibrator->processTimeFrameClusters(compClusters, patterns, rofs);
+  } else {
+    const auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
+    const auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
+    mNClustersProc += digits.size();
+    mDataSizeStat += digits.size() * sizeof(o2::itsmft::Digit) + rofs.size() * sizeof(o2::itsmft::ROFRecord);
+    done = mCalibrator->processTimeFrameDigits(digits, rofs);
+  }
+  if (done) {
     LOG(info) << "Minimum number of noise counts has been reached !";
     sendOutput(pc.outputs());
     pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
   }
+
+  mTimer.Stop();
 }
 
 void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
@@ -82,10 +107,13 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
             << " bytes, valid for " << info.getStartValidityTimestamp()
             << " : " << info.getEndValidityTimestamp();
 
-  using clbUtils = o2::calibration::Utils;
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ITS_NOISE", 0}, *image.get());
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ITS_NOISE", 0}, info);
   LOG(info) << "sending done";
+  LOGP(info, "Timing: {:.2f} CPU / {:.2f} Real s. in {} TFs for {} {} / {:.2f} GB",
+       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1,
+       mUseClusters ? "clusters" : "digits",
+       mNClustersProc, double(mDataSizeStat) / (1024L * 1024L * 1024L));
 }
 
 void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
@@ -93,14 +121,18 @@ void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
   sendOutput(ec.outputs());
 }
 
-DataProcessorSpec getNoiseCalibratorSpec()
+DataProcessorSpec getNoiseCalibratorSpec(bool useClusters)
 {
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
+  if (useClusters) {
+    inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
+    inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
+    inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
+  } else {
+    inputs.emplace_back("digits", "ITS", "DIGITS", 0, Lifetime::Timeframe);
+    inputs.emplace_back("ROframes", "ITS", "DIGITSROF", 0, Lifetime::Timeframe);
+  }
 
-  using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ITS_NOISE"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ITS_NOISE"}, Lifetime::Sporadic);
@@ -109,10 +141,11 @@ DataProcessorSpec getNoiseCalibratorSpec()
     "its-noise-calibrator",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<NoiseCalibratorSpec>()},
+    AlgorithmSpec{adaptFromTask<NoiseCalibratorSpec>(useClusters)},
     Options{
-      {"1pix-only", VariantType::Bool, false, {"Fast 1-pixel calibration only"}},
-      {"prob-threshold", VariantType::Float, 3.e-6f, {"Probability threshold for noisy pixels"}}}};
+      {"1pix-only", VariantType::Bool, false, {"Fast 1-pixel calibration only (cluster input only)"}},
+      {"prob-threshold", VariantType::Float, 3.e-6f, {"Probability threshold for noisy pixels"}},
+      {"nthreads", VariantType::Int, 1, {"Number of map-filling threads"}}}};
 }
 
 } // namespace its

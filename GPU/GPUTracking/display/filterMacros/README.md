@@ -1,3 +1,7 @@
+<!-- doxy
+\page refGPUTrackingDisplayFilterMacros Filtering tracks macros
+/doxy -->
+
 # Filtering tracks in the GPU event display using ROOT macros
 
 The event display can filter tracks using ROOT macros.

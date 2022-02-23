@@ -76,8 +76,7 @@ class Cluster;
 
 namespace o2::mid
 {
-class Cluster2D;
-class Cluster3D;
+class Cluster;
 class ROFRecord;
 class Track;
 class MCClusterLabel;
@@ -465,7 +464,7 @@ struct RecoContainer {
   const o2::mid::Track& getMIDTrack(GTrackID gid) const { return getTrack<o2::mid::Track>(gid); }
   auto getMIDTracks() const { return getTracks<o2::mid::Track>(GTrackID::MID); }
   auto getMIDTracksROFRecords() const { return getSpan<o2::mid::ROFRecord>(GTrackID::MID, TRACKREFS); }
-  auto getMIDTrackClusters() const { return getSpan<o2::mid::Cluster3D>(GTrackID::MID, CLUSREFS); }
+  auto getMIDTrackClusters() const { return getSpan<o2::mid::Cluster>(GTrackID::MID, CLUSREFS); }
   auto getMIDTrackClustersROFRecords() const { return getSpan<o2::mid::ROFRecord>(GTrackID::MID, MATCHES); }
   auto getMIDTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::MID, MCLABELS); }
   const o2::dataformats::MCTruthContainer<o2::mid::MCClusterLabel>* getMIDTracksClusterMCLabels() const;

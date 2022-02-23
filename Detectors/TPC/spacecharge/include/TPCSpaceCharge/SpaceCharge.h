@@ -227,6 +227,15 @@ class SpaceCharge
   /// \param lcorrRPhi returns local correction in rphi direction
   void getLocalCorrectionsCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& lcorrZ, DataT& lcorrR, DataT& lcorrRPhi) const;
 
+  /// get the local correction for given coordinates
+  /// \param z global z coordinates
+  /// \param r global r coordinates
+  /// \param phi global phi coordinates
+  /// \param lcorrZ returns local corrections in z direction
+  /// \param lcorrR returns local corrections in r direction
+  /// \param lcorrRPhi returns local corrections in rphi direction
+  void getLocalCorrectionsCyl(const std::vector<DataT>& z, const std::vector<DataT>& r, const std::vector<DataT>& phi, const Side side, std::vector<DataT>& lcorrZ, std::vector<DataT>& lcorrR, std::vector<DataT>& lcorrRPhi) const;
+
   /// get the global correction for given coordinate
   /// \param z global z coordinate
   /// \param r global r coordinate
@@ -235,6 +244,15 @@ class SpaceCharge
   /// \param corrR returns correction in r direction
   /// \param corrRPhi returns correction in rphi direction
   void getCorrectionsCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& corrZ, DataT& corrR, DataT& corrRPhi) const;
+
+  /// get the global correction for given coordinates
+  /// \param z global z coordinates
+  /// \param r global r coordinates
+  /// \param phi global phi coordinates
+  /// \param corrZ returns corrections in z direction
+  /// \param corrR returns corrections in r direction
+  /// \param corrRPhi returns corrections in rphi direction
+  void getCorrectionsCyl(const std::vector<DataT>& z, const std::vector<DataT>& r, const std::vector<DataT>& phi, const Side side, std::vector<DataT>& corrZ, std::vector<DataT>& corrR, std::vector<DataT>& corrRPhi) const;
 
   /// get the global corrections for given coordinate
   /// \param x global x coordinate
@@ -254,7 +272,16 @@ class SpaceCharge
   /// \param ldistRPhi returns local distortion in rphi direction
   void getLocalDistortionsCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& ldistZ, DataT& ldistR, DataT& ldistRPhi) const;
 
-  /// get the local distortion vector for given coordinate
+  /// get the local distortions for given coordinates
+  /// \param z global z coordinates
+  /// \param r global r coordinates
+  /// \param phi global phi coordinates
+  /// \param ldistZ returns local distortions in z direction
+  /// \param ldistR returns local distortions in r direction
+  /// \param ldistRPhi returns local distortions in rphi direction
+  void getLocalDistortionsCyl(const std::vector<DataT>& z, const std::vector<DataT>& r, const std::vector<DataT>& phi, const Side side, std::vector<DataT>& ldistZ, std::vector<DataT>& ldistR, std::vector<DataT>& ldistRPhi) const;
+
+  /// get the local distortion vector for given coordinates
   /// \param z global z coordinate
   /// \param r global r coordinate
   /// \param phi global phi coordinate
@@ -262,6 +289,15 @@ class SpaceCharge
   /// \param lvecdistR returns local distortion vector in r direction
   /// \param lvecdistRPhi returns local distortion vector in rphi direction
   void getLocalDistortionVectorCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& lvecdistZ, DataT& lvecdistR, DataT& lvecdistRPhi) const;
+
+  /// get the local distortion vector for given coordinate
+  /// \param z global z coordinates
+  /// \param r global r coordinates
+  /// \param phi global phi coordinates
+  /// \param lvecdistZ returns local distortion vectors in z direction
+  /// \param lvecdistR returns local distortion vectors in r direction
+  /// \param lvecdistRPhi returns local distortion vectors in rphi direction
+  void getLocalDistortionVectorCyl(const std::vector<DataT>& z, const std::vector<DataT>& r, const std::vector<DataT>& phi, const Side side, std::vector<DataT>& lvecdistZ, std::vector<DataT>& lvecdistR, std::vector<DataT>& lvecdistRPhi) const;
 
   /// get the local correction vector for given coordinate
   /// \param z global z coordinate
@@ -272,6 +308,15 @@ class SpaceCharge
   /// \param ldistRPhi returns local correction vector in rphi direction
   void getLocalCorrectionVectorCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& lveccorrZ, DataT& lveccorrR, DataT& lveccorrRPhi) const;
 
+  /// get the local correction vector for given coordinate
+  /// \param z global z coordinates
+  /// \param r global r coordinates
+  /// \param phi global phi coordinates
+  /// \param ldistZ returns local correction vectors in z direction
+  /// \param ldistR returns local correction vectors in r direction
+  /// \param ldistRPhi returns local correction vectors in rphi direction
+  void getLocalCorrectionVectorCyl(const std::vector<DataT>& z, const std::vector<DataT>& r, const std::vector<DataT>& phi, const Side side, std::vector<DataT>& lveccorrZ, std::vector<DataT>& lveccorrR, std::vector<DataT>& lveccorrRPhi) const;
+
   /// get the global distortions for given coordinate
   /// \param z global z coordinate
   /// \param r global r coordinate
@@ -280,6 +325,15 @@ class SpaceCharge
   /// \param distR returns distortion in r direction
   /// \param distRPhi returns distortion in rphi direction
   void getDistortionsCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& distZ, DataT& distR, DataT& distRPhi) const;
+
+  /// get the global distortions for given coordinate
+  /// \param z global z coordinates
+  /// \param r global r coordinates
+  /// \param phi global phi coordinates
+  /// \param distZ returns distortions in z direction
+  /// \param distR returns distortions in r direction
+  /// \param distRPhi returns distortions in rphi direction
+  void getDistortionsCyl(const std::vector<DataT>& z, const std::vector<DataT>& r, const std::vector<DataT>& phi, const Side side, std::vector<DataT>& distZ, std::vector<DataT>& distR, std::vector<DataT>& distRPhi) const;
 
   /// get the global distortions for given coordinate
   /// \param x global x coordinate
@@ -748,8 +802,9 @@ class SpaceCharge
   /// function to calculate the drift paths of the electron whose starting position is delivered. Electric fields must be set!
   /// \param elePos global position of the start position of the electron
   /// \param nSamplingPoints number of output points of the electron drift path
+  /// \param outFile name of the output debug file (if empty no file is created)
   /// \return returns the input electron a vector of 3D-points describing the drift path of the electron
-  void calculateElectronDriftPath(const std::vector<GlobalPosition3D>& elePos, const int nSamplingPoints, const char* outFile = "electron_tracks.root") const;
+  std::vector<std::pair<std::vector<o2::math_utils::Point3D<float>>, std::array<DataT, 3>>> calculateElectronDriftPath(const std::vector<GlobalPosition3D>& elePos, const int nSamplingPoints, const std::string_view outFile = "electron_tracks.root") const;
 
   /// \param inpFile input file containing the electron tracks tree, which is the output file of calculateElectronDriftPath()
   /// \param hBorder histogram which defines the borders for the drawing and also the axis titles

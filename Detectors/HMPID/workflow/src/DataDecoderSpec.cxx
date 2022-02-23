@@ -39,6 +39,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Logger.h"
 #include "Framework/InputRecordWalker.h"
+#include "Framework/DataRefUtils.h"
 
 #include "Headers/RAWDataHeader.h"
 #include "DetectorsRaw/RDHUtils.h"
@@ -173,11 +174,12 @@ void DataDecoderTask::decodeTF(framework::ProcessingContext& pc)
     std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{"HMP", "RAWDATA", 0xDEADBEEF}}};
     for (const auto& ref : InputRecordWalker(inputs, dummy)) {
       const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      if (dh->payloadSize == 0) {
+      auto payloadSize = o2::framework::DataRefUtils::getPayloadSize(ref);
+      if (payloadSize == 0) {
         auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
         if (++contDeadBeef <= maxWarn) {
           LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
-               dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,
+               dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
                contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
         }
         return;
@@ -249,7 +251,7 @@ void DataDecoderTask::decodeRawFile(framework::ProcessingContext& pc)
       }
 
       auto const* raw = input.payload;
-      size_t payloadSize = header->payloadSize;
+      size_t payloadSize = DataRefUtils::getPayloadSize(input);
 
       LOG(info) << "  payloadSize=" << payloadSize;
       if (payloadSize == 0) {
@@ -257,7 +259,7 @@ void DataDecoderTask::decodeRawFile(framework::ProcessingContext& pc)
       }
 
       uint32_t* theBuffer = (uint32_t*)input.payload;
-      int pagesize = header->payloadSize;
+      int pagesize = payloadSize;
       mDeco->setUpStream(theBuffer, pagesize);
       try {
         if (mFastAlgorithm) {

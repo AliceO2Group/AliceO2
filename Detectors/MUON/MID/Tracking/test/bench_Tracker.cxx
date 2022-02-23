@@ -16,21 +16,21 @@
 
 #include "benchmark/benchmark.h"
 #include <random>
-#include "DataFormatsMID/Cluster2D.h"
+#include "DataFormatsMID/Cluster.h"
 #include "DataFormatsMID/Track.h"
+#include "MIDBase/HitFinder.h"
 #include "MIDBase/Mapping.h"
 #include "MIDBase/MpArea.h"
-#include "MIDTestingSimTools/HitFinder.h"
 #include "MIDTestingSimTools/TrackGenerator.h"
 #include "MIDTracking/Tracker.h"
 
-std::vector<o2::mid::Cluster2D> generateTestData(int nTracks, o2::mid::TrackGenerator& trackGen,
-                                                 const o2::mid::HitFinder& hitFinder, const o2::mid::Mapping& mapping)
+std::vector<o2::mid::Cluster> generateTestData(int nTracks, o2::mid::TrackGenerator& trackGen,
+                                               const o2::mid::HitFinder& hitFinder, const o2::mid::Mapping& mapping)
 {
   o2::mid::Mapping::MpStripIndex stripIndex;
   o2::mid::MpArea area;
-  std::vector<o2::mid::Cluster2D> clusters;
-  o2::mid::Cluster2D cl;
+  std::vector<o2::mid::Cluster> clusters;
+  o2::mid::Cluster cl;
   std::vector<o2::mid::Track> tracks = trackGen.generate(nTracks);
   for (auto& track : tracks) {
     for (int ich = 0; ich < 4; ++ich) {
@@ -47,13 +47,11 @@ std::vector<o2::mid::Cluster2D> generateTestData(int nTracks, o2::mid::TrackGene
         cl.deId = deId;
         area = mapping.stripByLocation(stripIndex.strip, 0, stripIndex.line, stripIndex.column, deId);
         cl.yCoor = area.getCenterY();
-        float halfSize = area.getHalfSizeY();
-        cl.sigmaY2 = halfSize * halfSize / 3.;
+        cl.yErr = area.getHalfSizeY() / std::sqrt(3.);
         stripIndex = mapping.stripByPosition(xPos, yPos, 1, deId, false);
         area = mapping.stripByLocation(stripIndex.strip, 1, stripIndex.line, stripIndex.column, deId);
         cl.xCoor = area.getCenterX();
-        halfSize = area.getHalfSizeX();
-        cl.sigmaX2 = halfSize * halfSize / 3.;
+        cl.xErr = area.getHalfSizeX() / std::sqrt(3.);
         clusters.push_back(cl);
       } // loop on fired pos
     }   // loop on chambers
@@ -73,7 +71,7 @@ static void BM_TRACKER(benchmark::State& state)
   tracker.init((state.range(1) == 1));
   double num{0};
 
-  std::vector<o2::mid::Cluster2D> inputData;
+  std::vector<o2::mid::Cluster> inputData;
 
   for (auto _ : state) {
     state.PauseTiming();

@@ -9,47 +9,29 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/ConfigParamSpec.h"
-#include "CommonUtils/ConfigurableParam.h"
+#include "Framework/TypeTraits.h"
+#include "Framework/DataProcessorSpec.h"
+#include "MFTDCSConfigProcessorSpec.h"
 
 using namespace o2::framework;
 
 // we need to add workflow options before including Framework/runDataProcessing
-void customize(std::vector<ConfigParamSpec>& workflowOptions)
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
-  workflowOptions.push_back(
-    ConfigParamSpec{
-      "doNoise",
-      VariantType::Bool,
-      true,
-      {"Generate noisy-pixel maps"}});
-  workflowOptions.push_back(
-    ConfigParamSpec{
-      "configKeyValues",
-      VariantType::String,
-      "",
-      {"Semicolon separated key=value strings"}});
+  std::vector<o2::framework::ConfigParamSpec> options{
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+
+  std::swap(workflowOptions, options);
 }
 
 // ------------------------------------------------------------------
 
 #include "Framework/runDataProcessing.h"
-#include "ITSCalibration/NoiseCalibratorSpec.h"
-#include "ITSCalibration/NoiseCalibrator.h"
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
-  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  auto doNoise = configcontext.options().get<bool>("doNoise");
-
-  LOG(info) << "ITS calibration workflow options";
-  LOG(info) << "Generate noisy-pixel maps: " << doNoise;
-
-  if (doNoise) {
-    specs.emplace_back(o2::its::getNoiseCalibratorSpec());
-  }
-
+  specs.emplace_back(getMFTDCSConfigProcessorSpec());
   return specs;
 }

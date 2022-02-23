@@ -26,14 +26,19 @@ struct Condition {
   {
   }
 
+  T* get()
+  {
+    return this->instance;
+  }
+
   operator T()
   {
-    return *this->value;
+    return *this->instance;
   }
 
   T const* operator->() const
   {
-    return this->value;
+    return this->instance;
   }
 };
 

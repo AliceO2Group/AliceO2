@@ -764,18 +764,15 @@ void AlignableVolume::createAlignmenMatrix(TGeoHMatrix& alg) const
 */
 
 //_________________________________________________________________
-void AlignableVolume::createAlignmentObjects(TClonesArray* arr) const
+void AlignableVolume::createAlignmentObjects(std::vector<o2::detectors::AlignParam>& arr) const
 {
   // add to supplied array alignment object for itself and children
-  TClonesArray& parr = *arr;
   TGeoHMatrix algM;
   createAlignmenMatrix(algM);
   //  new (parr[parr.GetEntriesFast()]) AliAlignObjParams(GetName(), getVolID(), algM, true);
   const double* translation = algM.GetTranslation();
   const double* rotation = algM.GetRotationMatrix();
-  new (parr[parr.GetEntriesFast()]) detectors::AlignParam(GetName(), getVolID(),
-                                                          translation[0], translation[1], translation[2],
-                                                          rotation[0], rotation[1], rotation[2], true);
+  arr.emplace_back(getSymName(), getVolID(), translation[0], translation[1], translation[2], rotation[0], rotation[1], rotation[2], true);
   int nch = getNChildren();
   for (int ich = 0; ich < nch; ich++) {
     getChild(ich)->createAlignmentObjects(arr);
@@ -783,7 +780,7 @@ void AlignableVolume::createAlignmentObjects(TClonesArray* arr) const
 }
 
 //_________________________________________________________________
-void AlignableVolume::updateL2GRecoMatrices(const TClonesArray* algArr, const TGeoHMatrix* cumulDelta)
+void AlignableVolume::updateL2GRecoMatrices(const std::vector<o2::detectors::AlignParam>& algArr, const TGeoHMatrix* cumulDelta)
 {
   // recreate mMatL2GReco matrices from ideal L2G matrix and alignment objects
   // used during data reconstruction. For the volume at level J we have
@@ -791,23 +788,21 @@ void AlignableVolume::updateL2GRecoMatrices(const TClonesArray* algArr, const TG
   // cumulDelta is Delta_{J-1} * ... * Delta_0, supplied by the parent
   //
   mMatL2GReco = mMatL2GIdeal;
-  // find alignment object for this volume
-  int nalg = algArr->GetEntriesFast();
+  // find alignment object for this volume;
   const detectors::AlignParam* par = nullptr;
-  for (int i = 0; i < nalg; i++) {
-    par = (detectors::AlignParam*)algArr->At(i);
-    if (!strcmp(par->getSymName().c_str(), getSymName())) {
+  int selPar = -1;
+  for (size_t i = 0; i < algArr.size(); i++) {
+    if (algArr[i].getSymName() == getSymName()) {
+      selPar = int(i);
       break;
     }
-    par = nullptr;
   }
   TGeoHMatrix delta;
-  if (!par) {
+  if (selPar < 0) {
     LOG(info) << "Alignment for " << getSymName() << " is absent in Reco-Time alignment object";
   } else {
-    delta = par->createMatrix();
+    delta = algArr[selPar].createMatrix();
   }
-  //    par->GetMatrix(delta);
   if (cumulDelta) {
     delta *= *cumulDelta;
   }

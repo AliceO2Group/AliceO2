@@ -78,7 +78,7 @@ class CalibdEdxTrackTopologySpline : public o2::gpu::FlatObject
 
   /// constructor with initialization of the splines from file
   /// \param dEdxSplinesFile path to root file containing the splines
-  CalibdEdxTrackTopologySpline(const char* dEdxSplinesFile);
+  CalibdEdxTrackTopologySpline(const char* dEdxSplinesFile, const char* name = "CalibdEdxTrackTopologySpline");
 
   /// Copy constructor
   CalibdEdxTrackTopologySpline(const CalibdEdxTrackTopologySpline&);
@@ -124,6 +124,24 @@ class CalibdEdxTrackTopologySpline : public o2::gpu::FlatObject
 
   /// set default splines: the return value of the splines will be 1 (no correction will be applied)
   void setDefaultSplines();
+
+  /// set the the scaling factors for the splines for qTot
+  /// \param factor scaling factor
+  /// \param region region of the scaling factor
+  void setScalingFactorqTot(const float factor, const int region) { mScalingFactorsqTot[region] = factor; };
+
+  /// set the the scaling factors for the splines for qMax
+  /// \param factor scaling factor
+  /// \param region region of the scaling factor
+  void setScalingFactorqMax(const float factor, const int region) { mScalingFactorsqMax[region] = factor; };
+
+  /// set the maximum tanTheta for which the splines are valid
+  /// \param maxTanTheta maximum tanTheta
+  void setMaxTanTheta(const float maxTanTheta) { mMaxTanTheta = maxTanTheta; };
+
+  /// set the maximum sinPhi for which the splines are valid
+  /// \param maxSinPhi maximum sinPhi
+  void setMaxSinPhi(const float maxSinPhi) { mMaxSinPhi = maxSinPhi; };
 #endif
 
   /// returns the number of splines stored in the calibration object
@@ -135,6 +153,14 @@ class CalibdEdxTrackTopologySpline : public o2::gpu::FlatObject
   /// returns the maximum SinPhi for which the splines are valid
   GPUd() float getMaxSinPhi() const { return mMaxSinPhi; };
 
+  /// \return returns the the scaling factors for the splines for qTot
+  /// \param region region of the scaling factor
+  GPUd() float getScalingFactorqTot(const int region) const { return mScalingFactorsqTot[region]; };
+
+  /// \return returns the the scaling factors for the splines for qMax
+  /// \param region region of the scaling factor
+  GPUd() float getScalingFactorqMax(const int region) const { return mScalingFactorsqMax[region]; };
+
   /// \param region index of the spline (region)
   /// \param tanTheta local dip angle: z angle - dz/dx
   /// \param sinPhi track parameter sinphi
@@ -143,7 +169,7 @@ class CalibdEdxTrackTopologySpline : public o2::gpu::FlatObject
   GPUd() float interpolateqMax(const int region, const float tanTheta, const float sinPhi, const float z) const
   {
     const float x[FDimX] = {z, tanTheta, sinPhi};
-    return mCalibSplinesqMax[region].interpolate(x);
+    return mScalingFactorsqMax[region] * mCalibSplinesqMax[region].interpolate(x);
   };
 
   /// \param region index of the spline (region)
@@ -154,13 +180,22 @@ class CalibdEdxTrackTopologySpline : public o2::gpu::FlatObject
   GPUd() float interpolateqTot(const int region, const float tanTheta, const float sinPhi, const float z) const
   {
     const float x[FDimX] = {z, tanTheta, sinPhi};
-    return mCalibSplinesqTot[region].interpolate(x);
+    return mScalingFactorsqTot[region] * mCalibSplinesqTot[region].interpolate(x);
   };
 
-  GPUd() float getCorrection(const int region, const ChargeType charge, const float tanTheta, const float sinPhi, const float z) const
-  {
-    return charge == ChargeType::Max ? interpolateqMax(region, tanTheta, sinPhi, z) : interpolateqTot(region, tanTheta, sinPhi, z);
-  }
+  /// \return returns the track topology correction
+  /// \param region region of the TPC
+  /// \param charge correction for maximum or total charge
+  /// \param tanTheta local dip angle: z angle - dz/dx
+  /// \param sinPhi track parameter sinphi
+  /// \param z drift length
+  GPUd() float getCorrection(const int region, const ChargeType charge, const float tanTheta, const float sinPhi, const float z) const { return (charge == ChargeType::Max) ? interpolateqMax(region, tanTheta, sinPhi, z) : interpolateqTot(region, tanTheta, sinPhi, z); }
+
+  /// \return returns the track topology correction
+  /// \param region region of the TPC
+  /// \param charge correction for maximum or total charge
+  /// \param x coordinates where the correction is evaluated
+  GPUd() float getCorrection(const int region, const ChargeType charge, const float x[/*inpXdim*/]) const { return (charge == ChargeType::Tot) ? mCalibSplinesqTot[region].interpolate(x) : mCalibSplinesqMax[region].interpolate(x); }
 
   /// \param region index of the spline (region)
   /// \return returns the spline for qMax
@@ -173,19 +208,31 @@ class CalibdEdxTrackTopologySpline : public o2::gpu::FlatObject
     /// _______________  IO   ________________________
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
   /// write a class object to the file
-  int writeToFile(TFile& outf, const char* name);
+  int writeToFile(TFile& outf, const char* name = "CalibdEdxTrackTopologySpline");
+
+  /// set a class object from the file
+  /// \param inpf input file containing the object which was stored using writeTofile
+  /// \param name name of the object
+  void setFromFile(TFile& inpf, const char* name);
 
   /// read a class object from the file
   static CalibdEdxTrackTopologySpline* readFromFile(TFile& inpf, const char* name);
+
+  /// \return returns the name of the spline object which are read in in the setSplinesFromFile() function
+  /// \param region region of the TPC
+  /// \param charge correction for maximum or total charge
+  static std::string getSplineName(const int region, const ChargeType charge);
 #endif
 
  private:
-  constexpr static unsigned int FSplines = 10; ///< number of splines stored for each type
-  constexpr static int FDimX = 3;              ///< dimensionality of the splines
-  SplineType mCalibSplinesqMax[FSplines];      ///< spline objects storage for the splines for qMax
-  SplineType mCalibSplinesqTot[FSplines];      ///< spline objects storage for the splines for qTot
-  float mMaxTanTheta{2.f};                     ///< max tanTheta for which the correction is stored
-  float mMaxSinPhi{0.99f};                     ///< max snp for which the correction is stored
+  constexpr static unsigned int FSplines = 10;                       ///< number of splines stored for each type
+  constexpr static int FDimX = 3;                                    ///< dimensionality of the splines
+  SplineType mCalibSplinesqMax[FSplines];                            ///< spline objects storage for the splines for qMax
+  SplineType mCalibSplinesqTot[FSplines];                            ///< spline objects storage for the splines for qTot
+  float mMaxTanTheta{2.f};                                           ///< max tanTheta for which the correction is stored
+  float mMaxSinPhi{0.99f};                                           ///< max snp for which the correction is stored
+  float mScalingFactorsqTot[FSplines]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; ///< value which is used to scale the result of the splines for qTot (can be used for normalization)
+  float mScalingFactorsqMax[FSplines]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; ///< value which is used to scale the result of the splines for qMax (can be used for normalization)
 
   ClassDefNV(CalibdEdxTrackTopologySpline, 1);
 };
@@ -201,7 +248,7 @@ inline void CalibdEdxTrackTopologySpline::setSplinesFromFile(TFile& inpf)
   int offsets2[FSplines];
 
   for (unsigned int ireg = 0; ireg < FSplines; ++ireg) {
-    std::string splinename = fmt::format("spline_qMax_region{}", ireg);
+    std::string splinename = getSplineName(ireg, ChargeType::Max);
     SplineType* splineTmpqMax = SplineType::readFromFile(inpf, splinename.data());
     mCalibSplinesqMax[ireg] = *splineTmpqMax;
     buffSize = alignSize(buffSize, mCalibSplinesqMax[ireg].getBufferAlignmentBytes());
@@ -211,7 +258,7 @@ inline void CalibdEdxTrackTopologySpline::setSplinesFromFile(TFile& inpf)
   }
 
   for (unsigned int ireg = 0; ireg < FSplines; ++ireg) {
-    std::string splinename = fmt::format("spline_qTot_region{}", ireg);
+    std::string splinename = getSplineName(ireg, ChargeType::Tot);
     SplineType* splineTmpqTot = SplineType::readFromFile(inpf, splinename.data());
     mCalibSplinesqTot[ireg] = *splineTmpqTot;
     buffSize = alignSize(buffSize, mCalibSplinesqTot[ireg].getBufferAlignmentBytes());

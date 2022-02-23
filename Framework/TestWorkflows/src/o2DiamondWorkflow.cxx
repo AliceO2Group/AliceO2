@@ -100,6 +100,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
      AlgorithmSpec{adaptStateless([](InputRecord& inputs) {
        auto ref = inputs.get("b");
        auto header = o2::header::get<const DataProcessingHeader*>(ref.header);
-       LOG(info) << header->startTime;
+       LOG(debug) << "Start time: " << header->startTime;
      })}}};
 }

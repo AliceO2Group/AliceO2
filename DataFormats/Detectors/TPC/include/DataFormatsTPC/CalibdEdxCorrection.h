@@ -16,6 +16,8 @@
 #define ALICEO2_TPC_CALIBDEDXCORRECTION_H_
 
 #include "GPUCommonDef.h"
+#include "GPUCommonRtypes.h"
+
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <string_view>
 #endif

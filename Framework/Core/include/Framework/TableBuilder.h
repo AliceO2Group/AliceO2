@@ -920,7 +920,7 @@ void lowerBound(int32_t value, T& start)
 {
   static_assert(soa::is_soa_iterator_t<T>::value, "Argument needs to be a Table::iterator");
   int step;
-  auto count = start.mMaxRow - start.globalIndex();
+  auto count = start.size() - start.globalIndex();
 
   while (count > 0) {
     step = count / 2;

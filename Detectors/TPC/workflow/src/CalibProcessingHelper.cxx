@@ -73,8 +73,9 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
 
   for (auto const& ref : InputRecordWalker(inputs, filter)) {
     const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    auto payloadSize = DataRefUtils::getPayloadSize(ref);
     // skip empty HBF
-    if (dh->payloadSize == 2 * sizeof(o2::header::RAWDataHeader)) {
+    if (payloadSize == 2 * sizeof(o2::header::RAWDataHeader)) {
       continue;
     }
 
@@ -108,7 +109,7 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
     rdh_utils::getMapping(feeID, cruID, endPoint, linkID);
     const auto globalLinkID = linkID + endPoint * 12;
     LOGP(debug, "Specifier: {}/{}/{} Part {} of {}", dh->dataOrigin, dh->dataDescription, subSpecification, dh->splitPayloadIndex, dh->splitPayloadParts);
-    LOGP(debug, "Payload size: {}", dh->payloadSize);
+    LOGP(debug, "Payload size: {}", payloadSize);
     LOGP(debug, "CRU: {}; linkID: {}; endPoint: {}; globalLinkID: {}", cruID, linkID, endPoint, globalLinkID);
     // ^^^^^^
 
@@ -148,7 +149,7 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
 
     } catch (const std::exception& e) {
       LOGP(alarm, "EXCEPTIION in processRawData: {} -> skipping part:{}/{} of spec:{}/{}/{}, size:{}", e.what(), dh->splitPayloadIndex, dh->splitPayloadParts,
-           dh->dataOrigin, dh->dataDescription, subSpecification, dh->payloadSize);
+           dh->dataOrigin, dh->dataDescription, subSpecification, payloadSize);
       errorCount++;
       continue;
     }
@@ -234,8 +235,9 @@ uint32_t getBCsyncOffsetReference(InputRecord& inputs, const std::vector<InputSp
 
   for (auto const& ref : InputRecordWalker(inputs, filter)) {
     const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    auto payloadSize = DataRefUtils::getPayloadSize(ref);
     // skip empty HBF
-    if (dh->payloadSize == 2 * sizeof(o2::header::RAWDataHeader)) {
+    if (payloadSize == 2 * sizeof(o2::header::RAWDataHeader)) {
       continue;
     }
 

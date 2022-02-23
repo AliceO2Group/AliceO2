@@ -9,12 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MID/TestingSimTools/src/HitFinder.cxx
+/// \file   MID/Base/src/HitFinder.cxx
 /// \brief  Implementation of the hit finder for MID
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   14 March 2018
 
-#include "MIDTestingSimTools/HitFinder.h"
+#include "MIDBase/HitFinder.h"
 
 #include <cmath>
 #include "MIDBase/DetectorParameters.h"
@@ -36,7 +36,6 @@ HitFinder::HitFinder(const GeometryTransformer& geoTrans)
 //______________________________________________________________________________
 math_utils::Point3D<double> HitFinder::getIntersectInDefaultPlane(const Track& track, int chamber) const
 {
-  /// Get the intersection point in the default chamber plane
   double defaultZ = geoparams::DefaultChamberZ[chamber];
   double linePar = ((track.getPositionZ() - defaultZ) * mTanTheta - track.getPositionY()) /
                    (track.getDirectionY() - track.getDirectionZ() * mTanTheta);
@@ -48,18 +47,9 @@ math_utils::Point3D<double> HitFinder::getIntersectInDefaultPlane(const Track& t
 }
 
 //______________________________________________________________________________
-Cluster2D HitFinder::getIntersect(const Track& track, int deId) const
+Cluster HitFinder::getIntersect(const Track& track, int deId) const
 {
-  /// Get the intersection point in the specified detection elements
-  /// The point is expressed in local coordinates
   math_utils::Point3D<float> localPoint = mGeometryTransformer.globalToLocal(deId, track.getPositionX(), track.getPositionY(), track.getPositionZ());
-
-  // Track localTrack(track);
-  // localTrack.propagateToZ(localTrack.getPosition().z() + 20.);
-  // math_utils::Point3D<float> localPoint2 = mGeometryTransformer.globalToLocal(deId, localTrack.getPosition());
-  // localTrack.setPosition(localPoint.x(), localPoint.y(), localPoint.z());
-  // float dZ = localPoint2.z() - localPoint.z();
-  // localTrack.setDirection((localPoint2.x() - localPoint.x()) / dZ, (localPoint2.y() - localPoint.y()) / dZ, 1.);
 
   math_utils::Vector3D<float> localDirection = mGeometryTransformer.globalToLocal(deId, math_utils::Vector3D<float>(track.getDirectionX(), track.getDirectionY(), track.getDirectionZ()));
   Track localTrack;
@@ -67,7 +57,7 @@ Cluster2D HitFinder::getIntersect(const Track& track, int deId) const
   localTrack.setDirection(localDirection.x() / localDirection.z(), localDirection.y() / localDirection.z(), 1.);
 
   localTrack.propagateToZ(0);
-  Cluster2D cluster;
+  Cluster cluster;
   cluster.deId = deId;
   cluster.xCoor = localTrack.getPositionX();
   cluster.yCoor = localTrack.getPositionY();
@@ -77,17 +67,12 @@ Cluster2D HitFinder::getIntersect(const Track& track, int deId) const
 //______________________________________________________________________________
 int HitFinder::guessRPC(double yPos, int chamber) const
 {
-  /// Guesses the RPC form the y position
   return (int)(yPos / (2. * geoparams::getRPCHalfHeight(chamber)) + 4.5);
 }
 
 //______________________________________________________________________________
 std::vector<int> HitFinder::getFiredDE(const Track& track, int chamber) const
 {
-  /// Gets the potentially fired detection elements
-  /// @param track MID track
-  /// @param chamber Chamber ID (0-3)
-  /// @return Vector with the list of the detection element IDs potentially fired
   std::vector<int> deIdList;
   math_utils::Point3D<double> defPos = getIntersectInDefaultPlane(track, chamber);
   double xPos = defPos.x();
@@ -123,18 +108,14 @@ std::vector<int> HitFinder::getFiredDE(const Track& track, int chamber) const
 }
 
 //______________________________________________________________________________
-std::vector<Cluster2D> HitFinder::getLocalPositions(const Track& track, int chamber, bool withUncertainties) const
+std::vector<Cluster> HitFinder::getLocalPositions(const Track& track, int chamber, bool withUncertainties) const
 {
-  /// Gets the list of fired Points in local coordinates
-  /// @param track MID track
-  /// @param chamber Chamber ID (0-3)
-  /// @return Vector with the pairs of detection element Ids and intersection point
   std::vector<int> deIdList = getFiredDE(track, chamber);
 
-  std::vector<Cluster2D> points;
+  std::vector<Cluster> points;
   for (auto& deId : deIdList) {
-    Cluster2D cl = getIntersect(track, deId);
-    int rpc = deId % 9;
+    Cluster cl = getIntersect(track, deId);
+    int rpc = detparams::getRPCLine(deId);
     double hl = geoparams::getRPCHalfLength(chamber, rpc);
     double hh = geoparams::getRPCHalfHeight(chamber);
     if (cl.xCoor < -hl || cl.xCoor > hl) {
@@ -153,13 +134,12 @@ std::vector<Cluster2D> HitFinder::getLocalPositions(const Track& track, int cham
 }
 
 //______________________________________________________________________________
-void HitFinder::addUncertainty(Cluster2D& cl, Track track) const
+void HitFinder::addUncertainty(Cluster& cl, Track track) const
 {
-  /// Add uncertainties to cluster
   auto globalPos = mGeometryTransformer.localToGlobal(cl.deId, cl.xCoor, cl.yCoor);
   track.propagateToZ(globalPos.z());
-  cl.sigmaX2 = track.getCovarianceParameter(Track::CovarianceParamIndex::VarX);
-  cl.sigmaY2 = track.getCovarianceParameter(Track::CovarianceParamIndex::VarY);
+  cl.xErr = std::sqrt(track.getCovarianceParameter(Track::CovarianceParamIndex::VarX));
+  cl.yErr = std::sqrt(track.getCovarianceParameter(Track::CovarianceParamIndex::VarY));
 }
 
 } // namespace mid

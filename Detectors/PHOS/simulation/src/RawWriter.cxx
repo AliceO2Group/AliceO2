@@ -42,11 +42,11 @@ void RawWriter::init()
         break;
       case FileFor_t::kCRORC:
         Mapping::ddlToCrorcLink(iddl, flp, crorc, link);
-        rawfilename += fmt::format("/PHS_alio2-cr1-flp{:d}_cru{:d}.raw", flp, crorc);
+        rawfilename += fmt::format("/PHS_alio2-cr1-flp{:d}_crorc{:d}.raw", flp, crorc);
         break;
       case FileFor_t::kLink:
         Mapping::ddlToCrorcLink(iddl, flp, crorc, link);
-        rawfilename += fmt::format("/PHS_alio2-cr1-flp{:d}_cru{:d}_lnk{:d}.raw", flp, crorc, link);
+        rawfilename += fmt::format("/PHS_alio2-cr1-flp{:d}_crorc{:d}_{:d}.raw", flp, crorc, link);
     }
     mRawWriter->registerLink(iddl, crorc, link, 0, rawfilename.data());
   }

@@ -154,7 +154,8 @@ struct ParameterIDCGroupCCDB {
 };
 
 struct ParameterIDCCompression : public o2::conf::ConfigurableParamHelper<ParameterIDCCompression> {
-  float MaxIDCDeltaValue = 0.3f; ///< maximum Delta IDC
+  float maxIDCDeltaValue = 3.f;  ///< maximum Delta IDC
+  float minIDCDeltaValue = -1.f; ///< minimum Delta IDC
   O2ParamDef(ParameterIDCCompression, "TPCIDCCompressionParam");
 };
 

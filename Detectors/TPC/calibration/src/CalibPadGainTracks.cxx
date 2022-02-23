@@ -15,16 +15,11 @@
 ///
 
 #include "TPCCalibration/CalibPadGainTracks.h"
-#include "TPCCalibration/IDCDrawHelper.h"
 #include "TPCBase/PadPos.h"
 #include "TPCBase/ROC.h"
-#include "TPCBase/Painter.h"
-#include "CommonUtils/TreeStreamRedirector.h"
 
-//root includes
+// root includes
 #include "TFile.h"
-#include "TTree.h"
-#include "TCanvas.h"
 
 using namespace o2::tpc;
 
@@ -50,10 +45,7 @@ void CalibPadGainTracks::processTrack(o2::tpc::TrackTPC track)
   mCLNat.clear();
   mClTrk.clear();
 
-  float effectiveLengthLastCluster = 0; // set the effective length of the track over pad for the last cluster
-
-  for (int iCl = 0; iCl < nClusters; iCl++) { //loop over cluster
-    const float effectiveLength = getTrackTopologyCorrection(track, iCl);
+  for (int iCl = 0; iCl < nClusters; iCl++) { // loop over cluster
     mCLNat.emplace_back(track.getCluster(*mTPCTrackClIdxVecInput, iCl, *mClusterIndex));
     unsigned char sectorIndex = 0;
     unsigned char rowIndex = 0;
@@ -61,23 +53,26 @@ void CalibPadGainTracks::processTrack(o2::tpc::TrackTPC track)
 
     // this function sets sectorIndex, rowIndex, clusterIndexNumb
     track.getClusterReference(*mTPCTrackClIdxVecInput, iCl, sectorIndex, rowIndex, clusterIndexNumb);
-    const float charge = mCLNat[static_cast<unsigned int>(iCl)].qMax;
+    const float xPosition = mapper.getPadCentre(PadPos(rowIndex, 0)).X();
+    const bool check = track.propagateTo(xPosition, mField); // propagate this track to the plane X=xk (cm) in the field "b" (kG)
+    if (!check) {
+      continue;
+    }
+
+    const float effectiveLength = getTrackTopologyCorrection(track, rowIndex);
     const unsigned char pad = static_cast<unsigned char>(mCLNat[static_cast<unsigned int>(iCl)].getPad() + 0.5f); // the left side of the pad ist defined at e.g. 3.5 and the right side at 4.5
 
-    // propagateTo delivers sometimes wrong values! break if the effLength doesnt change
-    // TODO check this
-    if (effectiveLength - effectiveLengthLastCluster == 0) {
-      break;
-    }
+    const float gain = mGainMapRef ? mGainMapRef->getValue(sectorIndex, rowIndex, pad) : 1;
+    const float charge = mCLNat[static_cast<unsigned int>(iCl)].qMax / gain;
 
     // fill IROC dedx
+    const float chargeNorm = charge / effectiveLength;
     if (rowIndex < mapper.getNumberOfRowsROC(0)) {
-      mDEdxIROC.emplace_back(charge / effectiveLength);
+      mDEdxIROC.emplace_back(chargeNorm);
     } else {
-      mDEdxOROC.emplace_back(charge / effectiveLength);
+      mDEdxOROC.emplace_back(chargeNorm);
     }
-    mClTrk.emplace_back(std::make_tuple(sectorIndex, rowIndex, pad, charge / effectiveLength)); // fill with dummy dedx value
-    effectiveLengthLastCluster = effectiveLength;
+    mClTrk.emplace_back(std::make_tuple(sectorIndex, rowIndex, pad, chargeNorm)); // fill with dummy dedx value
   }
 
   // use dedx from track as reference
@@ -99,7 +94,7 @@ void CalibPadGainTracks::processTrack(o2::tpc::TrackTPC track)
       const int num = getHistos()->getCalArray(roc.getRoc()).getPadSubsetNumber();
       const int rowinROC = roctype == RocType::IROC ? std::get<1>(x) : std::get<1>(x) - rowsIROC;
       const auto index = static_cast<unsigned int>(getIndex(sub, num, rowinROC, pad)); // index=globalpadnumber
-      //fill the normalizes charge in pad histogram
+      // fill the normalizes charge in pad histogram
       fillPadByPadHistogram(roc.getRoc(), index, fillVal);
     }
   } else {
@@ -109,7 +104,7 @@ void CalibPadGainTracks::processTrack(o2::tpc::TrackTPC track)
 float CalibPadGainTracks::getTruncMean(std::vector<float>& vCharge, float low, float high) const
 {
   // returns the truncated mean for input vector
-  std::sort(vCharge.begin(), vCharge.end()); //sort the vector for performing truncated mean
+  std::sort(vCharge.begin(), vCharge.end()); // sort the vector for performing truncated mean
 
   const int nClustersUsed = static_cast<int>(vCharge.size());
   const int startInd = static_cast<int>(low * nClustersUsed);
@@ -124,20 +119,10 @@ float CalibPadGainTracks::getTruncMean(std::vector<float>& vCharge, float low, f
   return dEdx / nClustersTrunc;
 }
 
-float CalibPadGainTracks::getTrackTopologyCorrection(o2::tpc::TrackTPC& track, int iCl)
+float CalibPadGainTracks::getTrackTopologyCorrection(const o2::tpc::TrackTPC& track, const unsigned char rowIndex) const
 {
-  unsigned char sectorIndex = 0;
-  unsigned char rowIndex = 0;
-  unsigned int clusterIndexNumb = 0;
-  // this function sets sectorIndex, rowIndex, clusterIndexNumb
-  track.getClusterReference(*mTPCTrackClIdxVecInput, iCl, sectorIndex, rowIndex, clusterIndexNumb);
-
   const PadRegionInfo& region = mapper.getPadRegionInfo(Mapper::REGION[rowIndex]);
   const float padLength = region.getPadHeight();
-
-  // to correct the cluster charge for the track topology, the track parameters have to be propagated to the x position if the cluster
-  const float xPosition = mapper.getPadCentre(PadPos(rowIndex, 0)).X();
-  track.propagateTo(xPosition, mField); // propagate this track to the plane X=xk (cm) in the field "b" (kG)
   const float sinPhi = track.getSnp();
   const float tgl = track.getTgl();
   const float snp2 = sinPhi * sinPhi;
@@ -171,4 +156,18 @@ void CalibPadGainTracks::setMomentumRange(const float momMin, const float momMax
 {
   mMomMin = momMin;
   mMomMax = momMax;
+}
+
+void CalibPadGainTracks::setRefGainMap(const char* inpFile, const char* mapName)
+{
+  TFile f(inpFile, "READ");
+  o2::tpc::CalPad* gainMap = nullptr;
+  f.GetObject(mapName, gainMap);
+
+  if (!gainMap) {
+    LOGP(info, "GainMap {} not found returning", mapName);
+    return;
+  }
+  setRefGainMap(*gainMap);
+  delete gainMap;
 }

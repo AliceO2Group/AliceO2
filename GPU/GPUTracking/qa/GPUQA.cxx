@@ -755,7 +755,7 @@ int GPUQA::InitQA(int tasks)
       labelsBuffer[i] = (std::vector<std::vector<int>>*)files[i]->Get("mcLabelBuffer");
       effBuffer[i] = (std::vector<std::vector<int>>*)files[i]->Get("mcEffBuffer");
       if (labelsBuffer[i] == nullptr || effBuffer[i] == nullptr) {
-        GPUError("Error opening / reading from labels file %u/%s: %p %p", i, mConfig.matchMCLabels[i], (void*)labelsBuffer[i], (void*)effBuffer[i]);
+        GPUError("Error opening / reading from labels file %u/%s: %p %p", i, mConfig.matchMCLabels[i].c_str(), (void*)labelsBuffer[i], (void*)effBuffer[i]);
         exit(1);
       }
     }
@@ -1819,7 +1819,7 @@ T* GPUQA::GetHist(T*& ee, std::vector<std::unique_ptr<TFile>>& tin, int k, int n
 {
   T* e = ee;
   if ((mConfig.inputHistogramsOnly || k) && (e = dynamic_cast<T*>(tin[k - nNewInput]->Get(e->GetName()))) == nullptr) {
-    GPUWarning("Missing histogram in input %s: %s", mConfig.compareInputs[k - nNewInput], ee->GetName());
+    GPUWarning("Missing histogram in input %s: %s", mConfig.compareInputs[k - nNewInput].c_str(), ee->GetName());
     return (nullptr);
   }
   ee = e;

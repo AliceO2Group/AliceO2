@@ -59,7 +59,7 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
                                         std::string const& cfgInput,
                                         std::string const& cfgOutput,
                                         bool fullCluOut,
-                                        int ddlId)
+                                        int flpId)
 {
   InputType inputType;
 
@@ -80,19 +80,19 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
 
   o2::framework::WorkflowSpec specs;
 
-  //Raw to ....
+  // Raw to ....
   if (inputType == InputType::Raw) {
-    //no explicit raw reader ??
+    // no explicit raw reader ??
 
     if (isEnabled(OutputType::Cells)) {
-      specs.emplace_back(o2::phos::reco_workflow::getRawToCellConverterSpec(ddlId));
+      specs.emplace_back(o2::phos::reco_workflow::getRawToCellConverterSpec(flpId));
       if (!disableRootOut) {
         specs.emplace_back(o2::phos::getCellWriterSpec(false));
       }
     }
     if (isEnabled(OutputType::Clusters)) {
-      specs.emplace_back(o2::phos::reco_workflow::getRawToCellConverterSpec(ddlId));
-      specs.emplace_back(o2::phos::reco_workflow::getCellClusterizerSpec(false, fullCluOut)); //no MC propagation
+      specs.emplace_back(o2::phos::reco_workflow::getRawToCellConverterSpec(flpId));
+      specs.emplace_back(o2::phos::reco_workflow::getCellClusterizerSpec(false, fullCluOut)); // no MC propagation
       if (!disableRootOut) {
         specs.emplace_back(o2::phos::getClusterWriterSpec(false));
       }
@@ -120,7 +120,7 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
     }
   }
 
-  //Cells to
+  // Cells to
   if (inputType == InputType::Cells) {
     if (!disableRootInp) {
       specs.emplace_back(o2::phos::getCellReaderSpec(propagateMC));

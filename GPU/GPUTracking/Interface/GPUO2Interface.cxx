@@ -22,6 +22,7 @@
 #include "GPUQA.h"
 #include "GPUOutputControl.h"
 #include "TPCPadGainCalib.h"
+#include "CalibdEdxContainer.h"
 #include <iostream>
 #include <fstream>
 
@@ -170,7 +171,13 @@ std::unique_ptr<TPCPadGainCalib> GPUO2Interface::getPadGainCalib(const o2::tpc::
   return std::make_unique<TPCPadGainCalib>(in);
 }
 
+std::unique_ptr<o2::tpc::CalibdEdxContainer> GPUO2Interface::getCalibdEdxContainerDefault()
+{
+  return std::make_unique<o2::tpc::CalibdEdxContainer>();
+}
+
 int GPUO2Interface::UpdateCalibration(const GPUCalibObjectsConst& newCalib)
 {
-  return 1;
+  mChain->SetUpdateCalibObjects(newCalib);
+  return 0;
 }

@@ -119,6 +119,23 @@ void on_connect(uv_connect_t* connection, int status)
     state->nextFairMQState.emplace_back("RUN");
     state->nextFairMQState.emplace_back("STOP");
   });
+
+  client->observe("/trace", [state = context->state](std::string_view cmd) {
+    static constexpr int prefixSize = std::string_view{"/trace "}.size();
+    if (prefixSize > cmd.size()) {
+      LOG(error) << "Malformed tracing request";
+      return;
+    }
+    cmd.remove_prefix(prefixSize);
+    int tracingFlags = 0;
+    auto error = std::from_chars(cmd.data(), cmd.data() + cmd.size(), tracingFlags);
+    if (error.ec != std::errc()) {
+      LOG(error) << "Malformed tracing mask";
+      return;
+    }
+    LOGP(info, "Tracing flags set to {}", tracingFlags);
+    state->tracingFlags = tracingFlags;
+  });
   auto clientContext = std::make_unique<o2::framework::DriverClientContext>(DriverClientContext{client->spec(), context->state});
   client->setDPLClient(std::make_unique<WSDPLClient>(connection->handle, std::move(clientContext), onHandshake, std::move(handler)));
   client->sendHandshake();

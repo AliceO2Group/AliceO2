@@ -9,27 +9,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MIDSimulation/ColumnDataMC.h
-/// \brief  Strip pattern (aka digits) for simulations
-/// \author Diego Stocco <Diego.Stocco at cern.ch>
-/// \date   05 March 2019
+/// @file   ThresholdAggregatorWorkflow.cxx
 
-#ifndef O2_MID_COLUMNDATAMC_H
-#define O2_MID_COLUMNDATAMC_H
-
-#include "DataFormatsMID/ColumnData.h"
+#include "ITSWorkflow/ThresholdAggregatorWorkflow.h"
+#include "ITSWorkflow/ThresholdAggregatorSpec.h"
 
 namespace o2
 {
-namespace mid
+namespace its
 {
-/// Column data structure for MID simulations
-class ColumnDataMC : public ColumnData
+namespace threshold_aggregator_workflow
 {
-  ClassDefNV(ColumnDataMC, 1);
-};
+framework::WorkflowSpec getWorkflow()
+{
+  framework::WorkflowSpec specs;
 
-} // namespace mid
+  specs.emplace_back(o2::its::getITSThresholdAggregatorSpec());
+
+  return specs;
+}
+} // namespace threshold_aggregator_workflow
+} // namespace its
 } // namespace o2
-
-#endif /* O2_MID_COLUMNDATAMC_H */

@@ -49,17 +49,17 @@ class CaloRawFitterGS : public CaloRawFitter
   FitStatus evalFit(gsl::span<short unsigned int> signal);
 
  private:
+  short mMinTimeCalc = 10;      ///< minimal sample amplitude to calculate time and amp
   float mDecTime = 0.058823529; ///< decay time constant
-  float mTimeAccuracy = 0.;     ///< accuracy of iterative fit
-  float mAmpAccuracy = 0.;      ///< accuracy of iterative fit
+  float mQAccuracy = 1.e-3;     ///< accuracy of iterative fit
+  float mexp[NMAXSAMPLES];      ///< arrays to tabulate Gamma2 function and its momenta
   float ma0[NMAXSAMPLES];       ///< arrays to tabulate Gamma2 function and its momenta
-  float mb0[NMAXSAMPLES];       ///< arrays to tabulate Gamma2 function and its momenta
-  float mb1[NMAXSAMPLES];       ///< arrays to tabulate Gamma2 function and its momenta
-  float mb2[NMAXSAMPLES];       ///< arrays to tabulate Gamma2 function and its momenta
-  float mb3[NMAXSAMPLES];       ///< arrays to tabulate Gamma2 function and its momenta
-  float mb4[NMAXSAMPLES];       ///< arrays to tabulate Gamma2 function and its momenta
+  float ma1[NMAXSAMPLES];       ///< arrays to tabulate Gamma2 function and its momenta
+  float ma2[NMAXSAMPLES];       ///< arrays to tabulate Gamma2 function and its momenta
+  float ma3[NMAXSAMPLES];       ///< arrays to tabulate Gamma2 function and its momenta
+  float ma4[NMAXSAMPLES];       ///< arrays to tabulate Gamma2 function and its momenta
 
-  ClassDef(CaloRawFitterGS, 1);
+  ClassDef(CaloRawFitterGS, 2);
 }; // End of CaloRawFitterGS
 
 } // namespace phos

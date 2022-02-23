@@ -158,7 +158,7 @@ void WorkflowHelpers::addMissingOutputsToReader(std::vector<OutputSpec> const& p
   }
 }
 
-void WorkflowHelpers::addMissingOutputsToCreator(std::vector<InputSpec>&& requestedSpecials,
+void WorkflowHelpers::addMissingOutputsToSpawner(std::vector<InputSpec> const& requestedSpecials,
                                                  std::vector<InputSpec>& requestedAODs,
                                                  DataProcessorSpec& publisher)
 {
@@ -173,6 +173,31 @@ void WorkflowHelpers::addMissingOutputsToCreator(std::vector<InputSpec>&& reques
           publisher.inputs.push_back(spec);
         }
         DataSpecUtils::updateInputList(requestedAODs, std::move(spec));
+      }
+    }
+  }
+}
+
+void WorkflowHelpers::addMissingOutputsToBuilder(std::vector<InputSpec> const& requestedSpecials,
+                                                 std::vector<InputSpec>& requestedAODs,
+                                                 std::vector<InputSpec>& requestedDYNs,
+                                                 DataProcessorSpec& publisher)
+{
+  for (auto& input : requestedSpecials) {
+    auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
+    publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
+    for (auto& i : input.metadata) {
+      if ((i.type == VariantType::String) && (i.name.find("input:") != std::string::npos)) {
+        auto spec = DataSpecUtils::fromMetadataString(i.defaultValue.get<std::string>());
+        auto j = std::find_if(publisher.inputs.begin(), publisher.inputs.end(), [&](auto x) { return x.binding == spec.binding; });
+        if (j == publisher.inputs.end()) {
+          publisher.inputs.push_back(spec);
+        }
+        if (DataSpecUtils::partialMatch(spec, header::DataOrigin{"AOD"})) {
+          DataSpecUtils::updateInputList(requestedAODs, std::move(spec));
+        } else if (DataSpecUtils::partialMatch(spec, header::DataOrigin{"DYN"})) {
+          DataSpecUtils::updateInputList(requestedDYNs, std::move(spec));
+        }
       }
     }
   }
@@ -404,8 +429,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     readers::AODReaderHelpers::indexBuilderCallback(requestedIDXs),
     {}};
 
-  addMissingOutputsToCreator(std::move(requestedDYNs), requestedAODs, aodSpawner);
-  addMissingOutputsToCreator(std::move(requestedIDXs), requestedAODs, indexBuilder);
+  addMissingOutputsToBuilder(requestedIDXs, requestedAODs, requestedDYNs, indexBuilder);
+  addMissingOutputsToSpawner(requestedDYNs, requestedAODs, aodSpawner);
 
   addMissingOutputsToReader(providedAODs, requestedAODs, aodReader);
   addMissingOutputsToReader(providedCCDBs, requestedCCDBs, ccdbBackend);
