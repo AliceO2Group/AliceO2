@@ -168,7 +168,7 @@ header::Stack Dispatcher::extractAdditionalHeaders(const char* inputHeaderStack)
 void Dispatcher::send(DataAllocator& dataAllocator, const DataRef& inputData, const Output& output) const
 {
   const auto* inputHeader = DataRefUtils::getHeader<header::DataHeader*>(inputData);
-  dataAllocator.snapshot(output, inputData.payload, inputHeader->payloadSize, inputHeader->payloadSerializationMethod);
+  dataAllocator.snapshot(output, inputData.payload, DataRefUtils::getPayloadSize(inputData), inputHeader->payloadSerializationMethod);
 }
 
 void Dispatcher::registerPolicy(std::unique_ptr<DataSamplingPolicy>&& policy)
