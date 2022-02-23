@@ -66,6 +66,13 @@ inline void TimesliceIndex::markAsDirty(TimesliceSlot slot, bool value)
   mDirty[slot.index] = value;
 }
 
+inline void TimesliceIndex::rescan()
+{
+  for (size_t i = 0; i < mDirty.size(); i++) {
+    mDirty[i] = true;
+  }
+}
+
 inline void TimesliceIndex::markAsInvalid(TimesliceSlot slot)
 {
   assert(mVariables.size() > slot.index);

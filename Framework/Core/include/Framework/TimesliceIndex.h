@@ -69,11 +69,13 @@ class TimesliceIndex
 
   TimesliceIndex(size_t maxLanes);
   inline void resize(size_t s);
-  inline size_t size() const;
-  inline bool isValid(TimesliceSlot const& slot) const;
-  inline bool isDirty(TimesliceSlot const& slot) const;
+  [[nodiscard]] inline size_t size() const;
+  [[nodiscard]] inline bool isValid(TimesliceSlot const& slot) const;
+  [[nodiscard]] inline bool isDirty(TimesliceSlot const& slot) const;
   inline void markAsDirty(TimesliceSlot slot, bool value);
   inline void markAsInvalid(TimesliceSlot slot);
+  /// Mark all the cachelines as invalid, e.g. due to an out of band event
+  inline void rescan();
   /// Publish a slot to be sent via metrics.
   inline void publishSlot(TimesliceSlot slot);
   /// Associated the @a timestamp to the given @a slot. Notice that
