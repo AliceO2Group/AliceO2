@@ -468,6 +468,7 @@ void DataProcessingDevice::initPollers()
       }
     }
   } else {
+    mDeviceContext.exitTransitionTimeout = 0;
     // This is a fake device, so we can request to exit immediately
     mServiceRegistry.get<ControlService>().readyToQuit(QuitRequest::Me);
     // A two second timer to stop internal devices which do not want to
@@ -697,7 +698,7 @@ void DataProcessingDevice::Run()
       if (mState.transitionHandling == TransitionHandlingState::NoTransition && NewStatePending()) {
         mState.transitionHandling = TransitionHandlingState::Requested;
         auto timeout = mDeviceContext.exitTransitionTimeout;
-        if (timeout != 0) {
+        if (timeout != 0 && mState.streaming != StreamingState::Idle) {
           auto* timer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
           timer->data = &mState;
           mState.activeTimers.push_back(timer);
@@ -1590,10 +1591,11 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         if (*context.statefulProcess) {
           ZoneScopedN("statefull process");
           (*context.statefulProcess)(processContext);
-        }
-        if (*context.statelessProcess) {
+        } else if (*context.statelessProcess) {
           ZoneScopedN("stateless process");
           (*context.statelessProcess)(processContext);
+        } else {
+          context.deviceContext->state->streaming = StreamingState::Idle;
         }
 
         // Notify the sink we just consumed some timeframe data
