@@ -18,6 +18,7 @@
 #include "DataSampling/DataSamplingConditionFactory.h"
 #include "Headers/DataHeader.h"
 #include "Framework/Logger.h"
+#include "Framework/DataRefUtils.h"
 #include <boost/property_tree/ptree.hpp>
 
 using namespace o2::framework;
@@ -49,10 +50,9 @@ class DataSamplingConditionPayloadSize : public DataSamplingCondition
   /// \brief Makes a positive decision if the payload size is within given limits
   bool decide(const o2::framework::DataRef& dataRef) override
   {
-    const auto* header = get<DataHeader*>(dataRef.header);
-    assert(header);
+    auto payloadSize = o2::framework::DataRefUtils::getPayloadSize(dataRef);
 
-    return header->payloadSize >= mLowerLimit && header->payloadSize <= mUpperLimit;
+    return payloadSize >= mLowerLimit && payloadSize <= mUpperLimit;
   }
 
  private:
