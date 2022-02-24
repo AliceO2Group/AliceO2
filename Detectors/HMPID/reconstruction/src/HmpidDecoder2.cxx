@@ -431,7 +431,7 @@ int HmpidDecoder2::decodeHeader(uint32_t* streamPtrAdr, int* EquipIndex)
   // ---- Event ID  : Actualy based on ORBIT NUMBER and BC
   mHeEvent = (mHeORBIT << 12) | mHeBCDI;
 
-  if (mVerbose > 6) {
+  if (mVerbose > 6 || (*EquipIndex == -1 && mVerbose > 1)) {
     std::cout << "HMPID Decoder2 : [INFO] "
               << "FEE-ID=" << mHeFEEID << " HeSize=" << mHeSize << " HePrior=" << mHePrior << " Det.Id=" << mHeDetectorID << " HeMemorySize=" << mHeMemorySize << " HeOffsetNewPack=" << mHeOffsetNewPack << std::endl;
     std::cout << "      Equipment=" << mEquipment << " PakCounter=" << mHePackNum << " Link=" << mHeLinkNum << " CruID=" << mHeCruID << " DW=" << mHeDW << " BC=" << mHeBCDI << " ORBIT=" << mHeORBIT << std::endl;
@@ -444,6 +444,12 @@ int HmpidDecoder2::decodeHeader(uint32_t* streamPtrAdr, int* EquipIndex)
                 << "ERROR ! Bad equipment Number: " << mEquipment << std::endl;
     }
     throw TH_WRONGEQUIPINDEX;
+  if (mHeDetectorID != 0x06) {
+    if (mVerbose > 1) {
+      std::cout << "HMPID Decoder2 : [ERROR] "
+                << "ERROR ! Bad Detector Id Number: " << mHeDetectorID << std::endl;
+    }
+    throw TH_WRONGHEADER;
   }
   // std::cout << "HMPID ! Exit decode header" << std::endl;
   return (true);
