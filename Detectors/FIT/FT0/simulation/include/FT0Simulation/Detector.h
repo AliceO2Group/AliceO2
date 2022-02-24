@@ -246,11 +246,11 @@ class Detector : public o2::base::DetImpl<Detector>
 
   /// Container for data points
   std::vector<o2::ft0::HitType>* mHits = nullptr;
-  
+
   // Define volume IDs
   int mREGVolID = -1;
   int mTOPVolID = -1;
-  int mMTOVolID = -1;  
+  int mMTOVolID = -1;
 
   /// Define the sensitive volumes of the geometry
   void defineSensitiveVolumes();

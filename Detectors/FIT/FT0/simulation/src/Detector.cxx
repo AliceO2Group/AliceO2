@@ -63,7 +63,7 @@ Detector::~Detector()
 void Detector::InitializeO2Detector()
 {
   // FIXME: we need to register the sensitive volumes with FairRoot
-  TVirtualMC *fMC = TVirtualMC::GetMC();
+  TVirtualMC* fMC = TVirtualMC::GetMC();
   TGeoVolume* v = gGeoManager->GetVolume("0REG");
   if (v == nullptr) {
     LOG(warn) << "@@@@ Sensitive volume 0REG not found!!!!!!!!";
