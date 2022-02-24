@@ -63,7 +63,7 @@ Detector::~Detector()
 void Detector::InitializeO2Detector()
 {
   // FIXME: we need to register the sensitive volumes with FairRoot
-  TVirtualMC *fMC = TVirtualMC::GetMC();
+  TVirtualMC* fMC = TVirtualMC::GetMC();
   TGeoVolume* v = gGeoManager->GetVolume("0REG");
   if (v == nullptr) {
     LOG(warn) << "@@@@ Sensitive volume 0REG not found!!!!!!!!";
@@ -122,7 +122,7 @@ void Detector::ConstructGeometry()
     LOG(debug) << " A geom " << itr << " " << mPosModuleAx[itr] << " " << mPosModuleAy[itr];
   }
   SetCablesA(stlinA);
-  //Add FT0-A support Structure to the geometry
+  // Add FT0-A support Structure to the geometry
   stlinA->AddNode(constructFrameGeometry(), 1, new TGeoTranslation(0, 0, -mStartA[2] + mInStart[2]));
 
   // C Side
@@ -149,7 +149,7 @@ void Detector::ConstructGeometry()
     TGeoHMatrix hm = *com[ic];
     TGeoHMatrix* ph = new TGeoHMatrix(hm);
     stlinC->AddNode(ins, itr, ph);
-    //cables
+    // cables
     TGeoVolume* cables = SetCablesSize(itr);
     LOG(debug) << " C " << mPosModuleCx[ic] << " " << mPosModuleCy[ic];
     //    cables->Print();
@@ -166,7 +166,7 @@ void Detector::ConstructGeometry()
 
   // MCP + 4 x wrapped radiator + 4xphotocathod + MCP + Al top in front of radiators
   SetOneMCP(ins);
-  //SetCablesC(stlinC);
+  // SetCablesC(stlinC);
 }
 
 void Detector::ConstructOpGeometry()
@@ -206,7 +206,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   TVirtualMC::GetMC()->Gsvolu("0REG", "BOX", getMediumID(kOpGlassCathode), preg, 3);
   TGeoVolume* cat = gGeoManager->GetVolume("0REG");
 
-  //wrapped radiator +  reflecting layers
+  // wrapped radiator +  reflecting layers
 
   Int_t ntops = 0, nrfvs = 0, nrfhs = 0;
   x = y = z = 0;
@@ -220,7 +220,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   yinv = ptop[1] + prfh[1];
   topref->AddNode(rfh, 2, new TGeoTranslation(0, yinv, 0));
 
-  //container for radiator, cathode
+  // container for radiator, cathode
   for (Int_t ix = 0; ix < 2; ix++) {
     float xin = -mInStart[0] + 0.3 + (ix + 0.5) * 2 * ptopref[0];
     for (Int_t iy = 0; iy < 2; iy++) {
@@ -235,17 +235,17 @@ void Detector::SetOneMCP(TGeoVolume* ins)
     }
   }
   // MCP
-  TVirtualMC::GetMC()->Gsvolu("0MTO", "BOX", getMediumID(kOpGlass), pmcptopglass, 3); //Op  Glass
+  TVirtualMC::GetMC()->Gsvolu("0MTO", "BOX", getMediumID(kOpGlass), pmcptopglass, 3); // Op  Glass
   TGeoVolume* mcptop = gGeoManager->GetVolume("0MTO");
   z = -mInStart[2] + 2 * ptopref[2] + pmcptopglass[2];
   ins->AddNode(mcptop, 1, new TGeoTranslation(0, 0, z));
 
-  TVirtualMC::GetMC()->Gsvolu("0MCP", "BOX", getMediumID(kAir), pmcp, 3); //glass
+  TVirtualMC::GetMC()->Gsvolu("0MCP", "BOX", getMediumID(kAir), pmcp, 3); // glass
   TGeoVolume* mcp = gGeoManager->GetVolume("0MCP");
   z = -mInStart[2] + 2 * ptopref[2] + 2 * pmcptopglass[2] + 2 * preg[2] + pmcp[2];
   ins->AddNode(mcp, 1, new TGeoTranslation(0, 0, z));
 
-  TVirtualMC::GetMC()->Gsvolu("0MSI", "BOX", getMediumID(kMCPwalls), pmcpside, 3); //glass
+  TVirtualMC::GetMC()->Gsvolu("0MSI", "BOX", getMediumID(kMCPwalls), pmcpside, 3); // glass
   TGeoVolume* mcpside = gGeoManager->GetVolume("0MSI");
   x = -pmcp[0] + pmcpside[0];
   y = -pmcp[1] + pmcpside[1];
@@ -260,7 +260,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   y = pmcp[0] - pmcpside[0];
   mcp->AddNode(mcpside, 4, new TGeoCombiTrans(x, y, 0, new TGeoRotation("R2", 90, 0, 0)));
 
-  TVirtualMC::GetMC()->Gsvolu("0MBA", "BOX", getMediumID(kCeramic), pmcpbase, 3); //glass
+  TVirtualMC::GetMC()->Gsvolu("0MBA", "BOX", getMediumID(kCeramic), pmcpbase, 3); // glass
   TGeoVolume* mcpbase = gGeoManager->GetVolume("0MBA");
   z = -mInStart[2] + 2 * ptopref[2] + pmcptopglass[2] + 2 * pmcp[2] + pmcpbase[2];
   ins->AddNode(mcpbase, 1, new TGeoTranslation(0, 0, z));
@@ -272,7 +272,7 @@ void Detector::SetCablesA(TGeoVolume* stl)
 
   float pcableplane[3] = {20, 20, 0.25}; //
 
-  TVirtualMC::GetMC()->Gsvolu("0CAA", "BOX", getMediumID(kAir), pcableplane, 3); //container for cables
+  TVirtualMC::GetMC()->Gsvolu("0CAA", "BOX", getMediumID(kAir), pcableplane, 3); // container for cables
   TGeoVolume* cableplane = gGeoManager->GetVolume("0CAA");
   //  float zcableplane = -mStartA[2] + 2 * mInStart[2] + pcableplane[2];
   int na = 0;
@@ -285,11 +285,11 @@ void Detector::SetCablesA(TGeoVolume* stl)
     na++;
   }
 
-  //12 cables extending beyond the frame
+  // 12 cables extending beyond the frame
   Float_t pcablesextend[3] = {2, 15, 0.245};
   Float_t pcablesextendsmall[3] = {3, 2, 0.245};
   Float_t* ppcablesextend[] = {pcablesextend, pcablesextend, pcablesextendsmall, pcablesextendsmall};
-  //left side
+  // left side
   double xcell_side[] = {-mStartA[0] + pcablesextend[0], mStartA[0] - pcablesextend[0], 0, 0};
   double ycell_side[] = {0, 0, -mStartA[1] + pcablesextendsmall[1], mStartA[1] - pcablesextendsmall[1]};
 
@@ -322,9 +322,9 @@ TGeoVolume* Detector::SetCablesSize(int mod)
                        2, 3, 3};
 
   // cable D=0.257cm, Weight: 13 lbs/1000ft = 0.197g/cm; 1 piece 0.65cm
-  //1st 8 pieces - tube  8*0.65cm = 5.2cm; V = 0.0531cm2 -> box {0.27*0.27*1}cm; W = 0.66g
-  //2nd 24 pieces 24*0.65cm; V = 0.76 -> {0.44, 0.447 1}; W = 3.07g
-  //3d  48  pieces  48*0.65cm;  V = 1.53cm^3; ->box {0.66, 0.66, 1.}; W= 6.14g
+  // 1st 8 pieces - tube  8*0.65cm = 5.2cm; V = 0.0531cm2 -> box {0.27*0.27*1}cm; W = 0.66g
+  // 2nd 24 pieces 24*0.65cm; V = 0.76 -> {0.44, 0.447 1}; W = 3.07g
+  // 3d  48  pieces  48*0.65cm;  V = 1.53cm^3; ->box {0.66, 0.66, 1.}; W= 6.14g
   double xcell[ncells], ycell[ncells], zcell[ncells];
   float xsize[3] = {1.8, 1.8, 2.6}; //
   float ysize[3] = {0.6, 1.7, 2.};
@@ -359,14 +359,14 @@ void Detector::addAlignableVolumes() const
   }
 
   TString volPath = Form("/cave_1/barrel_1");
-  //set A side
+  // set A side
   TString volPathA = volPath + Form("/FT0A_1");
   TString symNameA = "FT0A";
   LOG(info) << symNameA << " <-> " << volPathA;
   if (!gGeoManager->SetAlignableEntry(symNameA.Data(), volPathA.Data())) {
     LOG(fatal) << "Unable to set alignable entry ! " << symNameA << " : " << volPathA;
   }
-  //set C side
+  // set C side
   TString volPathC = volPath + Form("/FT0C_1");
   TString symNameC = "FT0C";
   LOG(info) << symNameC << " <-> " << volPathC;
@@ -502,12 +502,12 @@ std::string Detector::frame1CompositeShapeBoolean()
   // for ease of comparison and identification
   // Since one L is reflected about the axes of symmetry, the correspondence with
   // sensitive element numbering for the left-side L-shape is also included here.
-  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr1";  //Sens Elmt 2,21
-  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr2";  //Sens Elmt 7,16
-  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr3";  //Sens Elmt 3,20
-  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr4";  //Sens Elmt 8,15
-  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr5";  //Sens Elmt 4,19
-  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr6)"; //Sens Elmt 9,14
+  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr1";  // Sens Elmt 2,21
+  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr2";  // Sens Elmt 7,16
+  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr3";  // Sens Elmt 3,20
+  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr4";  // Sens Elmt 8,15
+  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr5";  // Sens Elmt 4,19
+  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr6)"; // Sens Elmt 9,14
 
   // remove the PMT shapes for the sockets
   frame1CompositeShapeBoolean += " - PMT:PMTTr1";
@@ -552,12 +552,12 @@ std::string Detector::frame2CompositeShapeBoolean()
   // for ease of comparison and identification
   // Since one L is reflected about the axes of symmetry, the correspondence with
   // sensitive element numbering for the left-side L-shape is also included here.
-  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr7";   //Sens Elmt 13,10
-  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr8";   //Sens Elmt 12,11
-  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr9";   //Sens Elmt 18,14
-  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr10";  //Sens Elmt 17,15
-  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr11";  //Sens Elmt 23,0
-  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr12)"; //Sens Elmt 22,1
+  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr7";   // Sens Elmt 13,10
+  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr8";   // Sens Elmt 12,11
+  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr9";   // Sens Elmt 18,14
+  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr10";  // Sens Elmt 17,15
+  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr11";  // Sens Elmt 23,0
+  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr12)"; // Sens Elmt 22,1
 
   // remove the PMT shapes for the sockets
   frame2CompositeShapeBoolean += " - PMT:PMTTr7";
@@ -569,7 +569,7 @@ std::string Detector::frame2CompositeShapeBoolean()
 
   return frame2CompositeShapeBoolean;
 }
-//Support structure L-shape element definition
+// Support structure L-shape element definition
 std::string Detector::frameCompositeShapeBoolean()
 {
   // create a string for the boolean operations for the composite plateGroup shape
@@ -596,7 +596,7 @@ std::string Detector::frameCompositeShapeBoolean()
   return frameCompositeShapeBoolean;
 }
 
-//Plate group elements
+// Plate group elements
 std::string Detector::plateGroupCompositeShapeBoolean()
 {
   // create a string for the boolean operations for the composite plateGroup shape
@@ -610,7 +610,7 @@ std::string Detector::plateGroupCompositeShapeBoolean()
   return plateGroupCompositeShapeBoolean;
 }
 
-//Optical fiber plate for the first aluminum box in the L-shaped element
+// Optical fiber plate for the first aluminum box in the L-shaped element
 std::string Detector::opticalFiberPlateCompositeShapeBoolean1()
 {
   // create a string for the boolean operations for the composite opticalFiberPlate1 shape
@@ -624,7 +624,7 @@ std::string Detector::opticalFiberPlateCompositeShapeBoolean1()
   return opticalFiberPlateCompositeShapeBoolean1;
 }
 
-//Optical fiber plate for the second aluminum box in the L-shaped element
+// Optical fiber plate for the second aluminum box in the L-shaped element
 std::string Detector::opticalFiberPlateCompositeShapeBoolean2()
 {
   // create a string for the boolean operations for the composite opticalFiberPlate2 shape
@@ -639,7 +639,7 @@ std::string Detector::opticalFiberPlateCompositeShapeBoolean2()
 
   return opticalFiberPlateCompositeShapeBoolean2;
 }
-//Create rounded PMT socket corners
+// Create rounded PMT socket corners
 std::string Detector::pmtCornerCompositeShapeBoolean()
 {
   // create a string for the boolean operations for the composite pmtCorner shape
@@ -650,7 +650,7 @@ std::string Detector::pmtCornerCompositeShapeBoolean()
   return pmtCornerCompositeShapeBoolean;
 }
 
-//Create PMT socket shape
+// Create PMT socket shape
 std::string Detector::pmtCompositeShapeBoolean()
 {
   // create a string for the boolean operations for the composite PMT shape
@@ -663,7 +663,7 @@ std::string Detector::pmtCompositeShapeBoolean()
 
   return pmtCompositeShapeBoolean;
 }
-//Plate composite structure
+// Plate composite structure
 std::string Detector::plateBoxCompositeShapeBoolean()
 {
   // create a string for the boolean operations for the composite plateBox shape
@@ -676,7 +676,7 @@ std::string Detector::plateBoxCompositeShapeBoolean()
   return plateBoxCompositeShapeBoolean;
 }
 
-//Wrapper function to define all support structure transformations at once
+// Wrapper function to define all support structure transformations at once
 void Detector::defineTransformations()
 {
   defineQuartzRadiatorTransformations();
@@ -685,7 +685,7 @@ void Detector::defineTransformations()
   defineFrameTransformations();
 }
 
-//Transformations for quartz radiator sockets
+// Transformations for quartz radiator sockets
 void Detector::defineQuartzRadiatorTransformations()
 {
   // translations for quartz radiator shapes to be removed from the frame2 pice of the L-shaped element
@@ -716,7 +716,7 @@ void Detector::defineQuartzRadiatorTransformations()
   TGeoTranslation* quartzRadiatorTr12 = new TGeoTranslation("quartzRadiatorTr12", sPos2X[3], sPos2Y[2], sQuartzHeight);
   quartzRadiatorTr12->RegisterYourself();
 }
-//Transformations for PMT sockets, including rounded corners
+// Transformations for PMT sockets, including rounded corners
 void Detector::definePmtTransformations()
 {
   // translations for PMT shapes to be removed from the frame2 piece in the L-shaped element
@@ -777,7 +777,7 @@ void Detector::definePmtTransformations()
   TGeoCombiTrans* edgeCornerTr = new TGeoCombiTrans("edgeCornerTr", sEdgeCornerPos[0], sEdgeCornerPos[1], 0, reflect5);
   edgeCornerTr->RegisterYourself();
 }
-//Transformations for plate elements
+// Transformations for plate elements
 void Detector::definePlateTransformations()
 {
   // TODO: redefine fiber head transformations
@@ -827,7 +827,7 @@ void Detector::definePlateTransformations()
   plateGroupTr2->RegisterYourself();
 }
 
-//Transformations for the L-shaped elements
+// Transformations for the L-shaped elements
 void Detector::defineFrameTransformations()
 {
 
@@ -883,11 +883,11 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     fMC->TrackPosition(x, y, z);
     fMC->CurrentVolID(quadrant);
     fMC->CurrentVolOffID(1, mcp);
-    float time = fMC->TrackTime() * 1.0e9; //time from seconds to ns
+    float time = fMC->TrackTime() * 1.0e9; // time from seconds to ns
     int trackID = stack->GetCurrentTrackNumber();
     int detID = mSim2LUT[4 * mcp + quadrant - 1];
     int iPart = fMC->TrackPid();
-    if (fMC->TrackCharge() && volID == mREGVolID) { //charge particles for MCtrue
+    if (fMC->TrackCharge() && volID == mREGVolID) { // charge particles for MCtrue
       AddHit(x, y, z, time, 10, trackID, detID);
     }
     if (iPart == 50000050) { // If particle is photon then ...
@@ -992,15 +992,15 @@ void Detector::CreateMaterials()
   Float_t wCeramic[2] = {2., 3.};
   Float_t denscer = 2.37;
 
-  //MCP walls Ceramic+Nickel (50//50)
+  // MCP walls Ceramic+Nickel (50//50)
   const Int_t nCeramicNice = 3;
   Float_t aCeramicNicel[3] = {26.981539, 15.9994, 58.6934};
   Float_t zCeramicNicel[3] = {13., 8., 28};
   Float_t wCeramicNicel[3] = {0.2, 0.3, 0.5};
   Float_t denscerCeramicNickel = 5.6;
 
-  //Mixed Cables material simulated as plastic with density taken from description of Low Loss Microwave Coax24 AWG 0
-  //  plastic + cooper (6%)
+  // Mixed Cables material simulated as plastic with density taken from description of Low Loss Microwave Coax24 AWG 0
+  //   plastic + cooper (6%)
   const Int_t nPlast = 4;
   Float_t aPlast[nPlast] = {1.00784, 12.0107, 15.999, 63.54};
   Float_t zPlast[nPlast] = {1, 6, 8, 29};
@@ -1008,8 +1008,8 @@ void Detector::CreateMaterials()
   const Float_t denCable = 3.66;
 
   // Black paper
-  //G4Element* elC = new G4Element("Carbon", "C", 6., 12.0107*g/mole);
-  //G4Material* C = new G4Material("Carbon Material", 3.52*g/cm3, 1);
+  // G4Element* elC = new G4Element("Carbon", "C", 6., 12.0107*g/mole);
+  // G4Material* C = new G4Material("Carbon Material", 3.52*g/cm3, 1);
   // C->AddElement(elC, 1);
 
   //*** Definition Of avaible FIT materials ***
@@ -1076,12 +1076,12 @@ void Detector::DefineOpticalProperties()
   TVirtualMC::GetMC()->SetBorderSurface("surMirrorBorder1", "0TOP", 1, "0RFH", 1, "surfRd");
   TVirtualMC::GetMC()->SetBorderSurface("surMirrorBorder2", "0TOP", 1, "0RFV", 2, "surfRd");
   TVirtualMC::GetMC()->SetBorderSurface("surMirrorBorder3", "0TOP", 1, "0RFH", 2, "surfRd");
-  //between cathode and back of front MCP glass window
+  // between cathode and back of front MCP glass window
   TVirtualMC::GetMC()->DefineOpSurface("surFrontBWindow", kUnified, kDielectric_dielectric, kPolished, 0.);
   TVirtualMC::GetMC()->SetMaterialProperty("surFrontBWindow", "EFFICIENCY", nBins, &(mPhotonEnergyD[0]), &(mEffFrontWindow[0]));
   TVirtualMC::GetMC()->SetMaterialProperty("surFrontBWindow", "REFLECTIVITY", nBins, &(mPhotonEnergyD[0]), &(mReflFrontWindow[0]));
   TVirtualMC::GetMC()->SetBorderSurface("surBorderFrontBWindow", "0REG", 1, "0MTO", 1, "surFrontBWindow");
-  //between radiator and front MCP glass window
+  // between radiator and front MCP glass window
   TVirtualMC::GetMC()->DefineOpSurface("surBackFrontWindow", kUnified, kDielectric_dielectric, kPolished, 0.);
   TVirtualMC::GetMC()->SetMaterialProperty("surBackFrontWindow", "EFFICIENCY", nBins, &(mPhotonEnergyD[0]), &(mEffFrontWindow[0]));
   TVirtualMC::GetMC()->SetMaterialProperty("surBackFrontWindow", "REFLECTIVITY", nBins, &(mPhotonEnergyD[0]), &(mReflFrontWindow[0]));
