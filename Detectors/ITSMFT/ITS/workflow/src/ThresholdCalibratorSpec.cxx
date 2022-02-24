@@ -609,8 +609,9 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
 bool ITSThresholdCalibrator::isScanFinished(const short int& chipID)
 {
   // Require that the last entry has at least half the number of expected hits
-  short int col = 0;                                                            // Doesn't matter which column
-  return (this->mPixelHits[chipID][col][*(this->N_RANGE) - 1] >= (N_INJ - 2.)); // TODO: -2 is a safety factor for now
+  short int col = 0; // Doesn't matter which column
+  short int chg = mScanType == 'I' ? 0 : (*(this->N_RANGE) - 1);
+  return (this->mPixelHits[chipID][col][chg] >= (N_INJ - 2.)); // TODO: -2 is a safety factor for now
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -719,10 +720,10 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
         }
 
         if (this->mRunType == -1) {
-          short int runtype = (short int)(calib.calibUserField >> 24);
+          short int runtype = ((short int)(calib.calibUserField >> 24)) & 0xff;
           this->setRunType(runtype);
         }
-        this->mRunTypeUp = (short int)(calib.calibUserField >> 24);
+        this->mRunTypeUp = ((short int)(calib.calibUserField >> 24)) & 0xff;
         // Divide calibration word (24-bit) by 2^16 to get the first 8 bits
         if (this->mScanType == 'T') {
           // For threshold scan have to subtract from 170 to get charge value
@@ -869,7 +870,8 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
       this->mCounter++;
       this->extractAndUpdate(chipID);
       if (!this->mCheckEos) {
-        this->mPixelHits[chipID][0][*(this->N_RANGE) - 1] = 0; // so that at next call, if does not pass isScanFinished again
+        short int chg = mScanType == 'I' ? 0 : (*(this->N_RANGE) - 1);
+        this->mPixelHits[chipID][0][chg] = 0; // so that at next call, if does not pass isScanFinished again
       }
     }
   }

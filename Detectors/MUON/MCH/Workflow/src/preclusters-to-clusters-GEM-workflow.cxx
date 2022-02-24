@@ -9,47 +9,40 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/ConfigParamSpec.h"
+/// \file preclusters-to-clusters-GEM-workflow.cxx
+/// \brief This is an executable that runs the GEM MLEM cluster finder via DPL.
+///
+/// \author Philippe Pillot, Subatech
+
+/* ???
+#include "Framework/runDataProcessing.h"
+
+#include "MCHWorkflow/ClusterFinderGEMSpec.h"
+
+using namespace o2::framework;
+
+WorkflowSpec defineDataProcessing(const ConfigContext&)
+{
+  return WorkflowSpec{o2::mch::getClusterFinderGEMSpec()};
+}
+*/
+
 #include "CommonUtils/ConfigurableParam.h"
+#include "ClusterFinderGEMSpec.h"
 
 using namespace o2::framework;
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  // option allowing to set parameters
-  workflowOptions.push_back(
-    ConfigParamSpec{
-      "doNoise",
-      VariantType::Bool,
-      true,
-      {"Generate noisy-pixel maps"}});
-  workflowOptions.push_back(
-    ConfigParamSpec{
-      "configKeyValues",
-      VariantType::String,
-      "",
-      {"Semicolon separated key=value strings"}});
+  workflowOptions.emplace_back("configKeyValues", VariantType::String, "",
+                               ConfigParamSpec::HelpString{"Semicolon separated key=value strings"});
 }
 
-// ------------------------------------------------------------------
-
 #include "Framework/runDataProcessing.h"
-#include "ITSCalibration/NoiseCalibratorSpec.h"
-#include "ITSCalibration/NoiseCalibrator.h"
 
-WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
+WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
 {
-  WorkflowSpec specs;
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  auto doNoise = configcontext.options().get<bool>("doNoise");
-
-  LOG(info) << "ITS calibration workflow options";
-  LOG(info) << "Generate noisy-pixel maps: " << doNoise;
-
-  if (doNoise) {
-    specs.emplace_back(o2::its::getNoiseCalibratorSpec());
-  }
-
-  return specs;
+  return WorkflowSpec{o2::mch::getClusterFinderGEMSpec()};
 }

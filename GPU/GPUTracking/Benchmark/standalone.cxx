@@ -356,6 +356,7 @@ int SetupReconstruction()
     }
 #endif
     procSet.eventDisplay = eventDisplay.get();
+    procSet.eventDisplayRenderer = configStandalone.displayRenderer.c_str();
   }
   if (procSet.runQA) {
     procSet.runMC = true;
@@ -430,6 +431,11 @@ int SetupReconstruction()
     }
   }
 
+#ifdef GPUCA_HAVE_O2HEADERS
+  procSet.useInternalO2Propagator = true;
+  procSet.internalO2PropagatorGPUField = true;
+#endif
+
   rec->SetSettings(&grp, &recSet, &procSet, &steps);
   if (configStandalone.proc.doublePipeline) {
     recPipeline->SetSettings(&grp, &recSet, &procSet, &steps);
@@ -461,16 +467,6 @@ int SetupReconstruction()
       recPipeline->SetOutputControl(outputmemoryPipeline.get(), configStandalone.outputcontrolmem);
     }
   }
-
-#ifdef GPUCA_HAVE_O2HEADERS
-  chainTracking->SetDefaultO2PropagatorForGPU();
-  if (configStandalone.testSyncAsync) {
-    chainTrackingAsync->SetDefaultO2PropagatorForGPU();
-  }
-  if (configStandalone.proc.doublePipeline) {
-    chainTrackingPipeline->SetDefaultO2PropagatorForGPU();
-  }
-#endif
 
   if (rec->Init()) {
     printf("Error initializing GPUReconstruction!\n");

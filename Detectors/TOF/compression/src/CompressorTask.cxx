@@ -81,6 +81,7 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
 
     /** store parts in map **/
     auto headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    auto payloadInSize = DataRefUtils::getPayloadSize(ref);
     auto subspec = headerIn->subSpecification;
     subspecPartMap[subspec].push_back(ref);
 
@@ -88,7 +89,7 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
     if (!subspecBufferSize.count(subspec)) {
       subspecBufferSize[subspec] = 0;
     }
-    subspecBufferSize[subspec] += headerIn->payloadSize;
+    subspecBufferSize[subspec] += payloadInSize;
     //  }
   }
 
@@ -118,7 +119,7 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
       auto headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       auto dataProcessingHeaderIn = DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(ref);
       auto payloadIn = ref.payload;
-      auto payloadInSize = headerIn->payloadSize;
+      auto payloadInSize = DataRefUtils::getPayloadSize(ref);
 
       /** prepare compressor **/
       mCompressor.setDecoderBuffer(payloadIn);

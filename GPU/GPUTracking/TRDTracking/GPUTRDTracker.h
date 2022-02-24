@@ -154,7 +154,7 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() void DumpTracks();
 
   // utility
-  GPUd() const typename PROP::propagatorParam* getPropagatorParam();
+  GPUd() const typename PROP::propagatorParam* getPropagatorParam(bool externalDefaultO2Propagator);
 
  protected:
   float* mR;                               // radial position of each TRD chamber, alignment taken into account, radial spread within chambers < 7mm

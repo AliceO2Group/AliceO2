@@ -11,6 +11,7 @@
 
 #include "DetectorsBase/Propagator.h"
 #include "GPUCommonLogger.h"
+#include "GPUCommonConstants.h"
 #include "GPUCommonMath.h"
 #include "GPUTPCGMPolynomialField.h"
 #include "MathUtils/Utils.h"
@@ -612,10 +613,10 @@ GPUd() void PropagatorImpl<value_T>::getFieldXYZImpl(const math_utils::Point3D<T
     float bxyzF[3];
     f->GetField(xyz.X(), xyz.Y(), xyz.Z(), bxyzF);
     //copy and convert
+    constexpr value_type kCLight1 = 1. / o2::gpu::gpu_common_constants::kCLight;
     for (uint i = 0; i < 3; ++i) {
-      bxyz[i] = static_cast<value_type>(bxyzF[i]);
+      bxyz[i] = static_cast<value_type>(bxyzF[i]) * kCLight1;
     }
-
   } else {
 #ifndef GPUCA_GPUCODE
     if (mFieldFast) {

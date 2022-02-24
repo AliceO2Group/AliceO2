@@ -50,6 +50,12 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
     const auto overflowBin = ic.options().get<bool>("overflowBin");
     mPadGainTracks.init(nBins, reldEdxMin, reldEdxMax, underflowBin, overflowBin);
 
+    const std::string refGainMapFile = ic.options().get<std::string>("refGainMapFile");
+    if (!refGainMapFile.empty()) {
+      LOGP(info, "Loading GainMap from file {}", refGainMapFile);
+      mPadGainTracks.setRefGainMap(refGainMapFile.data(), "GainMap");
+    }
+
     float field = ic.options().get<float>("field");
     if (field <= -10.f) {
       const auto inputGRP = o2::base::NameConf::getGRPFileName();
@@ -136,6 +142,7 @@ DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, c
       {"momMax", VariantType::Float, 5.f, {"maximum momentum of the tracks which are used for the pad-by-pad gain map"}},
       {"etaMax", VariantType::Float, 1.f, {"maximum eta of the tracks which are used for the pad-by-pad gain map"}},
       {"minClusters", VariantType::Int, 50, {"minimum number of clusters of tracks which are used for the pad-by-pad gain map"}},
+      {"refGainMapFile", VariantType::String, "", {"file to reference gain map, which will be used for correcting the cluster charge"}},
     }}; // end DataProcessorSpec
 }
 

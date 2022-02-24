@@ -26,10 +26,27 @@ namespace o2
 namespace phos
 {
 
-constexpr int kOffset = 1792;            // offset due to missing half of module 1: 56*32
-constexpr int kNmaxCell = 14337;         //56*64*4 + 1 - kOffset
-constexpr float kTimeAccuracy = 0.25e-9; //Time digitization step
-constexpr float kTime0 = -500.e-9;       //Minimal time to be digitized with 13 bits -500,1548 ns
+constexpr int kOffset = 1792;                                             // offset due to missing half of module 1: 56*32
+constexpr int kNmaxCell = 14337;                                          // 56*64*4 + 1 - kOffset
+                                                                          //  -1500<t<-800 ns, 1.  ns binning =>  700 bin
+                                                                          //   -800<t<-200 ns, 0.6 ns binning => 1000 bin
+                                                                          //   -200<t< 200 ns, 0.2 ns binning => 2000 bin
+                                                                          //    200<t< 800 ns, 0.6 ns binning => 1000 bin
+                                                                          //    800<t<4290 ns, 1   ns binning => 4290 bin
+constexpr float kTimeAccuracy1 = 1.e-9;                                   // Time digitization step
+constexpr float kTimeAccuracy2 = 0.6e-9;                                  // Time digitization step
+constexpr float kTimeAccuracy3 = 0.2e-9;                                  // Time digitization step
+constexpr float kTimeAccuracy4 = 0.6e-9;                                  // Time digitization step
+constexpr float kTimeAccuracy5 = 1.e-9;                                   // Time digitization step
+constexpr float kTime0 = -1500.e-9;                                       // Minimal time to be digitized with 13 bits -1500<t<4290 ns
+constexpr float kTime1 = -800.e-9;                                        // Switch to 0.6 ns accuracy
+constexpr float kTime2 = -200.e-9;                                        // Switch to 0.2 ns accuracy
+constexpr float kTime3 = 200.e-9;                                         // Switch to 0.6 ns accuracy
+constexpr float kTime4 = 800.e-9;                                         // Switch to 1 ns accuracy
+constexpr uint16_t kTimeOffset1 = 1 + (kTime1 - kTime0) / kTimeAccuracy1; // underflow bin+...
+constexpr uint16_t kTimeOffset2 = kTimeOffset1 + (kTime2 - kTime1) / kTimeAccuracy2;
+constexpr uint16_t kTimeOffset3 = kTimeOffset2 + (kTime3 - kTime2) / kTimeAccuracy3;
+constexpr uint16_t kTimeOffset4 = kTimeOffset3 + (kTime4 - kTime3) / kTimeAccuracy4;
 
 enum ChannelType_t {
   LOW_GAIN,  ///< Low gain channel
@@ -48,15 +65,15 @@ class Cell
   void setAbsId(short absId);
   short getAbsId() const;
 
-  //return pure TRUid (absId with subtracted readout channels offset)
+  // return pure TRUid (absId with subtracted readout channels offset)
   short getTRUId() const;
 
-  //time in seconds
+  // time in seconds
   void setTime(float time);
   float getTime() const;
 
-  //make sure that type of Cell (HG/LG) set before filling energy: scale will be different!
-  //Energy stored in ADC counts!
+  // make sure that type of Cell (HG/LG) set before filling energy: scale will be different!
+  // Energy stored in ADC counts!
   void setEnergy(float energy);
   float getEnergy() const;
 

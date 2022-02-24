@@ -521,6 +521,7 @@ void GPUDisplay::ReSizeGLScene(int width, int height, bool init)
   }
   mScreenwidth = width;
   mScreenheight = height;
+  mBackend->resizeScene(width, height);
   UpdateOffscreenBuffers();
 
   if (init) {
@@ -549,6 +550,7 @@ int GPUDisplay::InitDisplay(bool initFailure)
       retVal = InitDisplay_internal();
     }
   } catch (const std::runtime_error& e) {
+    GPUError("%s", e.what());
     retVal = 1;
   }
   mInitResult = retVal == 0 ? 1 : -1;
@@ -882,38 +884,28 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
       }
 
       // Print TRD part of track
-      if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
-        if (mTRDTrackIds[i] != -1 && mIOPtrs->nTRDTracklets) {
-          auto tmpDoTRDTracklets = [&](auto* trdTracks) {
-            auto& trk = mIOPtrs->trdTracks[mTRDTrackIds[i]];
-            for (int k = 5; k >= 0; k--) {
-              int cid = trk.getTrackletIndex(k);
-              if (cid < 0) {
-                continue;
-              }
-              drawing = true;
-              mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD2[cid].x, mGlobalPosTRD2[cid].y, mCfgH.projectXY ? 0 : mGlobalPosTRD2[cid].z);
-              mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD[cid].x, mGlobalPosTRD[cid].y, mCfgH.projectXY ? 0 : mGlobalPosTRD[cid].z);
-              mGlobalPosTRD[cid].w = tTRDATTACHED;
-            }
-          };
-          mIOPtrs->trdTracksO2 ? tmpDoTRDTracklets(mIOPtrs->trdTracksO2) : tmpDoTRDTracklets(mIOPtrs->trdTracks);
+      auto tmpDoTRDTracklets = [&](const auto& trk) {
+        for (int k = 5; k >= 0; k--) {
+          int cid = trk.getTrackletIndex(k);
+          if (cid < 0) {
+            continue;
+          }
+          drawing = true;
+          mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD2[cid].x, mGlobalPosTRD2[cid].y, mCfgH.projectXY ? 0 : mGlobalPosTRD2[cid].z);
+          mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD[cid].x, mGlobalPosTRD[cid].y, mCfgH.projectXY ? 0 : mGlobalPosTRD[cid].z);
+          mGlobalPosTRD[cid].w = tTRDATTACHED;
+        }
+      };
+      if (std::is_same_v<T, GPUTPCGMMergedTrack> || (!mIOPtrs->tpcLinkTRD && mIOPtrs->trdTracksO2)) {
+        if (mChain && ((int)mConfig.showTPCTracksFromO2Format == (int)mChain->GetProcessingSettings().trdTrackModelO2) && mTRDTrackIds[i] != -1 && mIOPtrs->nTRDTracklets) {
+          mIOPtrs->trdTracksO2 ? tmpDoTRDTracklets(mIOPtrs->trdTracksO2[mTRDTrackIds[i]]) : tmpDoTRDTracklets(mIOPtrs->trdTracks[mTRDTrackIds[i]]);
         }
       } else if constexpr (std::is_same_v<T, o2::tpc::TrackTPC>) {
         if (mIOPtrs->tpcLinkTRD && mIOPtrs->tpcLinkTRD[i] != -1 && mIOPtrs->nTRDTracklets) {
           if ((mIOPtrs->tpcLinkTRD[i] & 0x40000000) ? mIOPtrs->nTRDTracksITSTPCTRD : mIOPtrs->nTRDTracksTPCTRD) {
             const auto* container = (mIOPtrs->tpcLinkTRD[i] & 0x40000000) ? mIOPtrs->trdTracksITSTPCTRD : mIOPtrs->trdTracksTPCTRD;
             const auto& trk = container[mIOPtrs->tpcLinkTRD[i] & 0x3FFFFFFF];
-            for (int k = 5; k >= 0; k--) {
-              int cid = trk.getTrackletIndex(k);
-              if (cid < 0) {
-                continue;
-              }
-              drawing = true;
-              mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD2[cid].x, mGlobalPosTRD2[cid].y, mCfgH.projectXY ? 0 : mGlobalPosTRD2[cid].z);
-              mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD[cid].x, mGlobalPosTRD[cid].y, mCfgH.projectXY ? 0 : mGlobalPosTRD[cid].z);
-              mGlobalPosTRD[cid].w = tTRDATTACHED;
-            }
+            tmpDoTRDTracklets(trk);
           }
         }
       }
@@ -2005,7 +1997,22 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       totalVertizes += mVertexBuffer[i].size();
     }
     mUseMultiVBO = (totalVertizes * sizeof(mVertexBuffer[0][0]) >= 0x100000000ll);
+    if (!mUseMultiVBO) {
+      size_t totalYet = mVertexBuffer[0].size();
+      mVertexBuffer[0].resize(totalVertizes);
+      for (int i = 1; i < GPUCA_NSLICES; i++) {
+        for (unsigned int j = 0; j < mVertexBufferStart[i].size(); j++) {
+          mVertexBufferStart[i][j] += totalYet;
+        }
+        memcpy(&mVertexBuffer[0][totalYet], &mVertexBuffer[i][0], mVertexBuffer[i].size() * sizeof(mVertexBuffer[i][0]));
+        totalYet += mVertexBuffer[i].size();
+        mVertexBuffer[i].clear();
+      }
+    }
     mBackend->loadDataToGPU(totalVertizes);
+    for (int i = 0; i < (mUseMultiVBO ? GPUCA_NSLICES : 1); i++) {
+      mVertexBuffer[i].clear();
+    }
 
     if (showTimer) {
       printf("Event visualization time: %'d us (vertices %'lld / %'lld bytes)\n", (int)(mTimerDraw.GetCurrentElapsedTime() * 1000000.), (long long int)totalVertizes, (long long int)(totalVertizes * sizeof(mVertexBuffer[0][0])));

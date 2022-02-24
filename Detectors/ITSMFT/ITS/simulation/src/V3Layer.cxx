@@ -169,7 +169,7 @@ const Double_t V3Layer::sOBColdPlateZLenML = 87.55 * sCm;
 const Double_t V3Layer::sOBColdPlateZLenOL = 150.15 * sCm;
 const Double_t V3Layer::sOBColdPlateThick = 0.012 * sCm;
 const Double_t V3Layer::sOBHalfStaveYPos = 2.067 * sCm;
-const Double_t V3Layer::sOBHalfStaveYTrans = 1.76 * sMm;
+const Double_t V3Layer::sOBHalfStaveYTrans = 3.6 * sMm;
 const Double_t V3Layer::sOBHalfStaveXOverlap = 7.2 * sMm;
 const Double_t V3Layer::sOBGraphiteFoilThick = 30.0 * sMicron;
 const Double_t V3Layer::sOBCarbonFleeceThick = 20.0 * sMicron;
@@ -223,8 +223,8 @@ const Double_t V3Layer::sOBSFrameSideRibDiam = 1.25 * sMm;
 const Double_t V3Layer::sOBSFrameSideRibPhi = 70.0; // deg
 const Double_t V3Layer::sOBSFrameULegLen = 14.2 * sMm;
 const Double_t V3Layer::sOBSFrameULegWidth = 1.5 * sMm;
-const Double_t V3Layer::sOBSFrameULegHeight1 = 2.7 * sMm;
-const Double_t V3Layer::sOBSFrameULegHeight2 = 5.0 * sMm;
+const Double_t V3Layer::sOBSFrameULegHeight1 = 6.3 * sMm;
+const Double_t V3Layer::sOBSFrameULegHeight2 = 2.7 * sMm;
 const Double_t V3Layer::sOBSFrameULegThick = 0.3 * sMm;
 const Double_t V3Layer::sOBSFrameULegXPos = 12.9 * sMm;
 const Double_t V3Layer::sOBSFrameConnWidth = 42.0 * sMm;
@@ -522,7 +522,7 @@ TGeoVolume* V3Layer::createStave(const TGeoManager* /*mgr*/)
       if (mechStaveVol) {
         if (mBuildLevel < 6) { // Carbon
           staveVol->AddNode(mechStaveVol, 1,
-                            new TGeoCombiTrans(0, -sOBSFrameULegHeight1, 0, new TGeoRotation("", 180, 0, 0)));
+                            new TGeoCombiTrans(0, -sOBSFrameULegHeight2, 0, new TGeoRotation("", 180, 0, 0)));
         }
       }
     }

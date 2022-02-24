@@ -86,3 +86,8 @@ GPUDisplayFrontend* GPUDisplayFrontend::getFrontend(const char* type)
 #endif
   return nullptr;
 }
+
+const GPUDisplayBackend* GPUDisplayFrontend::backend()
+{
+  return mDisplay->backend();
+}

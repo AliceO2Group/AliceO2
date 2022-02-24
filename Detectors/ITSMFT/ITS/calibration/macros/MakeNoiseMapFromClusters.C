@@ -60,7 +60,7 @@ void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", bool only1p
   auto nevents = clusTree->GetEntries();
   for (int n = 0; n < nevents; n++) {
     clusTree->GetEntry(n);
-    calib.processTimeFrame(*clusters, *patternsPtr, *rofVec);
+    calib.processTimeFrameClusters(*clusters, *patternsPtr, *rofVec);
   }
   calib.finalize();
 

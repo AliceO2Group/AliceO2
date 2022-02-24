@@ -9,27 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MIDSimulation/ColumnDataMC.h
-/// \brief  Strip pattern (aka digits) for simulations
-/// \author Diego Stocco <Diego.Stocco at cern.ch>
-/// \date   05 March 2019
+#ifdef __CLING__
 
-#ifndef O2_MID_COLUMNDATAMC_H
-#define O2_MID_COLUMNDATAMC_H
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
 
-#include "DataFormatsMID/ColumnData.h"
+#pragma link C++ class o2::dataformats::FilteredRecoTF + ;
+#pragma link C++ class o2::dataformats::FilteredRecoTF::Header + ;
+#pragma link C++ class std::vector < o2::dataformats::FilteredRecoTF> + ;
 
-namespace o2
-{
-namespace mid
-{
-/// Column data structure for MID simulations
-class ColumnDataMC : public ColumnData
-{
-  ClassDefNV(ColumnDataMC, 1);
-};
-
-} // namespace mid
-} // namespace o2
-
-#endif /* O2_MID_COLUMNDATAMC_H */
+#endif

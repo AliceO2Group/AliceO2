@@ -80,9 +80,9 @@ class ITSThresholdAggregator : public Task
   char mFitType;
 
   std::string mLHCPeriod;
-  //Ccdb url for ccdb upload withing the wf
+  // Ccdb url for ccdb upload withing the wf
   std::string mCcdbUrl = "";
-  //Run number
+  // Run number
   int mRunNumber = -1;
 };
 

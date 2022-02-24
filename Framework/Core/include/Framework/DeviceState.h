@@ -52,20 +52,24 @@ enum struct TransitionHandlingState {
 struct DeviceState {
   /// Motivation for the loop being triggered.
   enum LoopReason : int {
-    NO_REASON = 0,          // No tracked reason to wake up
-    METRICS_MUST_FLUSH = 1, // Metrics available to flush
-    SIGNAL_ARRIVED = 2,     // Signal has arrived
-    DATA_SOCKET_POLLED = 4, // Data has arrived
-    DATA_INCOMING = 8,      // Data was read
-    DATA_OUTGOING = 16,     // Data was written
-    WS_COMMUNICATION = 32,  // Communication over WS
-    TIMER_EXPIRED = 64,     // Timer expired
-    WS_CONNECTED = 128,     // Connection to driver established
-    WS_CLOSING = 256,       // Events related to WS shutting down
-    WS_READING = 512,       // Events related to WS shutting down
-    WS_WRITING = 1024,      // Events related to WS shutting down
-    ASYNC_NOTIFICATION = 2048,
-    OOB_ACTIVITY = 4096 // Out of band activity
+    NO_REASON = 0,             // No tracked reason to wake up
+    METRICS_MUST_FLUSH = 1,    // Metrics available to flush
+    SIGNAL_ARRIVED = 2,        // Signal has arrived
+    DATA_SOCKET_POLLED = 4,    // Data has arrived
+    DATA_INCOMING = 8,         // Data was read
+    DATA_OUTGOING = 16,        // Data was written
+    WS_COMMUNICATION = 32,     // Communication over WS
+    TIMER_EXPIRED = 64,        // Timer expired
+    WS_CONNECTED = 128,        // Connection to driver established
+    WS_CLOSING = 256,          // Events related to WS shutting down
+    WS_READING = 512,          // Events related to WS shutting down
+    WS_WRITING = 1024,         // Events related to WS shutting down
+    ASYNC_NOTIFICATION = 2048, // Some other thread asked the main one to wake up
+    OOB_ACTIVITY = 4096,       // Out of band activity
+    UNKNOWN = 8192,            // Unknown reason why we are here.
+    FIRST_LOOP = 16384,        // First loop to be executed
+    NEW_STATE_PENDING = 32768, // Someone invoked NewStatePending
+    PREVIOUSLY_ACTIVE = 65536  // The previous loop was active
   };
 
   std::vector<InputChannelInfo> inputChannelInfos;
@@ -97,7 +101,10 @@ struct DeviceState {
   // A list of states which we should go to
   std::vector<std::string> nextFairMQState;
 
+  /// Bitmask of LoopReason which caused this iterations.
   int loopReason = 0;
+  /// Bitmask of LoopReason to trace
+  int tracingFlags = 0;
   TransitionHandlingState transitionHandling = TransitionHandlingState::NoTransition;
 };
 

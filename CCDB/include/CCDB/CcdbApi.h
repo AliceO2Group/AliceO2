@@ -76,6 +76,12 @@ class CcdbApi //: public DatabaseInterface
   std::string const& getURL() const { return mUrl; }
 
   /**
+   * Check if we are in a snapshot mode
+   *
+   */
+  bool isSnapshotMode() const { return mInSnapshotMode; }
+
+  /**
    * Create a binary image of the arbitrary type object, if CcdbObjectInfo pointer is provided, register there
    *
    * the assigned object class name and the filename

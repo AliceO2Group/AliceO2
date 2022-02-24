@@ -26,6 +26,9 @@ else()
      AND OPENGL_GLU_FOUND
      AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(GPUCA_EVENT_DISPLAY ON)
+    if(Vulkan_FOUND)
+      set(GPUCA_EVENT_DISPLAY_VULKAN ON)
+    endif()
   endif()
   if(ROOT_FOUND)
     set(GPUCA_QA ON)
@@ -241,6 +244,9 @@ if(GPUCA_EVENT_DISPLAY)
                    display/GPUDisplay.cxx
                    display/GPUDisplayBackendOpenGL.cxx
                    display/GPUDisplayFrontendGlfw.cxx)
+  if(GPUCA_EVENT_DISPLAY_VULKAN)
+    set(SRCS_NO_CINT ${SRCS_NO_CINT} display/GPUDisplayBackendVulkan.cxx)
+  endif()
   set(SRCS_NO_H ${SRCS_NO_H} display/GPUDisplayQuaternion.cxx
                 display/GPUDisplayInterpolation.cxx
                 display/GPUDisplayKeys.cxx
@@ -476,9 +482,13 @@ endif()
 endif()
 
 if(GPUCA_EVENT_DISPLAY)
-  message(STATUS "Building GPU Event Display")
+  message(STATUS "Building GPU Event Display (Vulkan ${GPUCA_EVENT_DISPLAY_VULKAN})")
   target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY)
   target_link_libraries(${targetName} PUBLIC ${GLFW_LIBRARIES} OpenGL::GL OpenGL::GLU)
+  if(GPUCA_EVENT_DISPLAY_VULKAN)
+    target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_VULKAN)
+    target_link_libraries(${targetName} PUBLIC ${GLFW_LIBRARIES} Vulkan::Vulkan)
+  endif()
   if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     target_compile_definitions(${targetName} PRIVATE GPUCA_DISPLAY_GL3W GPUCA_DISPLAY_OPENGL_CORE)
   else()

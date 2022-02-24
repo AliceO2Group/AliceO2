@@ -19,7 +19,7 @@ namespace o2
 {
 namespace mid
 {
-void DigitsMerger::mergeDigit(size_t idigit, const std::vector<ColumnDataMC>& inDigitStore)
+void DigitsMerger::mergeDigit(size_t idigit, const std::vector<ColumnData>& inDigitStore)
 {
   /// Merges the current digit
   for (auto& pair : mDigitsLabels) {
@@ -34,7 +34,7 @@ void DigitsMerger::mergeDigit(size_t idigit, const std::vector<ColumnDataMC>& in
   mDigitsLabels.emplace_back(std::make_pair(inDigitStore[idigit], vec));
 }
 
-void DigitsMerger::process(const std::vector<ColumnDataMC>& inDigitStore, const o2::dataformats::MCTruthContainer<MCLabel>& inMCContainer, const std::vector<ROFRecord>& inROFRecords, bool mergeInBunchPileup)
+void DigitsMerger::process(const std::vector<ColumnData>& inDigitStore, const o2::dataformats::MCTruthContainer<MCLabel>& inMCContainer, const std::vector<ROFRecord>& inROFRecords, bool mergeInBunchPileup)
 {
   /// Merges the MC digits that are provided per hit
   /// into the format that we expect from data

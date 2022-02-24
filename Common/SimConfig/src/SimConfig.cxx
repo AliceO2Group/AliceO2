@@ -110,7 +110,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   if (enableReadout.empty()) {
     // if no readout explicitly given, use all detectors from active modules
     for (auto& am : activeModules) {
-      if (!isDet(am) || std::find(disableReadout.begin(), disableReadout.end(), am) != disableReadout.end()) {
+      if (!isDet(am)) {
         // either we found a passive module or one with disabled readout ==> skip
         continue;
       }
@@ -118,15 +118,29 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
     }
   } else {
     for (auto& er : enableReadout) {
-      if (!isDet(er) || std::find(disableReadout.begin(), disableReadout.end(), er) != disableReadout.end()) {
+      if (!isDet(er)) {
         // either we found a passive module or one with disabled readout ==> skip
-        continue;
+        LOG(fatal) << "Enabled readout for " << er << " which is not a detector.";
       }
-      readoutDetectors.emplace_back(er);
       if (std::find(activeModules.begin(), activeModules.end(), er) == activeModules.end()) {
         // add to active modules if not yet there
-        activeModules.emplace_back(er);
+        LOG(fatal) << "Module " << er << " not constructed and cannot be used for readout (make sure it is contained in -m option).";
       }
+      readoutDetectors.emplace_back(er);
+    }
+  }
+  for (auto& dr : disableReadout) {
+    if (!isDet(dr)) {
+      // either we found a passive module or one with disabled readout ==> skip
+      LOG(fatal) << "Disabled readout for " << dr << " which is not a detector.";
+    }
+    if (std::find(activeModules.begin(), activeModules.end(), dr) == activeModules.end()) {
+      // add to active modules if not yet there
+      LOG(fatal) << "Module " << dr << " not constructed, makes no sense to disable its readout (make sure it is contained in -m option).";
+    }
+    auto iter = std::find(readoutDetectors.begin(), readoutDetectors.end(), dr);
+    if (iter != readoutDetectors.end()) {
+      readoutDetectors.erase(iter);
     }
   }
 

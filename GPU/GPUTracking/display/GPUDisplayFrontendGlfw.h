@@ -35,6 +35,7 @@ class GPUDisplayFrontendGlfw : public GPUDisplayFrontend
   void SetVSync(bool enable) override;
   void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
   bool EnableSendKey() override;
+  GLFWwindow* Window() { return mWindow; }
 
  private:
   int FrontendMain() override;

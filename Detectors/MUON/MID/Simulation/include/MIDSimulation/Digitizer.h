@@ -21,12 +21,12 @@
 #include <array>
 #include "MathUtils/Cartesian.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DataFormatsMID/ColumnData.h"
 #include "MIDBase/Mapping.h"
 #include "MIDBase/GeometryTransformer.h"
 #include "MIDSimulation/ChamberResponse.h"
 #include "MIDSimulation/ChamberEfficiencyResponse.h"
 #include "MIDSimulation/Hit.h"
-#include "MIDSimulation/ColumnDataMC.h"
 #include "MIDSimulation/MCLabel.h"
 
 namespace o2
@@ -39,7 +39,7 @@ class Digitizer
   Digitizer(const ChamberResponse& chamberResponse, const ChamberEfficiencyResponse& efficiencyResponse, const GeometryTransformer& transformer);
   virtual ~Digitizer() = default;
 
-  void process(const std::vector<Hit>& hits, std::vector<ColumnDataMC>& digitStore, o2::dataformats::MCTruthContainer<MCLabel>& mcContainer);
+  void process(const std::vector<Hit>& hits, std::vector<ColumnData>& digitStore, o2::dataformats::MCTruthContainer<MCLabel>& mcContainer);
 
   /// Sets the event ID
   void setEventID(int entryID) { mEventID = entryID; }
@@ -62,7 +62,7 @@ class Digitizer
   bool addNeighbours(const Mapping::MpStripIndex& stripIndex, int cathode, int deId, double prob,
                      const std::array<double, 2>& initialDist, double xOffset = 0.);
   bool hitToDigits(const Hit& hit);
-  bool getLabelLimits(int cathode, const ColumnDataMC& col, int& firstStrip, int& lastStrip) const;
+  bool getLabelLimits(int cathode, const ColumnData& col, int& firstStrip, int& lastStrip) const;
 
   int mEventID{0};
   int mSrcID{0};
@@ -73,7 +73,7 @@ class Digitizer
   ChamberEfficiencyResponse mEfficiencyResponse;  ///< Chamber efficiency response
   Mapping mMapping;                               ///< Mapping
   GeometryTransformer mTransformer;               ///< Geometry transformer
-  std::vector<ColumnDataMC> mDigits;              /// Digits per hit
+  std::vector<ColumnData> mDigits;                /// Digits per hit
 };
 
 Digitizer createDefaultDigitizer();
