@@ -725,6 +725,9 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       } else {
         daughters[1] = daughters[0];
       }
+      if (daughters[0] > daughters[1]) {
+        std::swap(daughters[0], daughters[1]);
+      }
       auto pX = (float)mcParticles[particle].Px();
       auto pY = (float)mcParticles[particle].Py();
       auto pZ = (float)mcParticles[particle].Pz();
