@@ -142,6 +142,10 @@ class DataRelayer
   /// Remove all pending messages
   void clear();
 
+  /// Rescan the whole data to see if there is anything new we should do,
+  /// e.g. as consequnce of an OOB event.
+  void rescan() { mTimesliceIndex.rescan(); };
+
  private:
   monitoring::Monitoring& mMetrics;
 
