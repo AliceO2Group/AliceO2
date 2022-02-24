@@ -553,7 +553,7 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
 {
 
   // we setup the target path for this blob
-  std::string fulltargetdir = targetdir + '/' + (preservePath ? path : "");
+  std::string fulltargetdir = targetdir + (preservePath ? ('/' + path) : "");
 
   if (!std::filesystem::exists(fulltargetdir)) {
     if (!std::filesystem::create_directories(fulltargetdir)) {
