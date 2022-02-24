@@ -17,65 +17,160 @@
 #include <gsl/span>
 #include "EMCALSimulation/LabeledDigit.h"
 #include "EMCALSimulation/DigitsWriteoutBuffer.h"
+#include "CommonDataFormat/InteractionRecord.h"
+#include "TMath.h"
 
 using namespace o2::emcal;
 
-DigitsWriteoutBuffer::DigitsWriteoutBuffer(unsigned int nTimeBins, unsigned int binWidth) : mBufferSize(nTimeBins),
-                                                                                            mTimeBinWidth(binWidth)
+DigitsWriteoutBuffer::DigitsWriteoutBuffer(unsigned int nTimeBins) : mBufferSize(nTimeBins)
 {
   for (int itime = 0; itime < nTimeBins; itime++) {
-    mTimedDigits.push_back(std::unordered_map<int, std::list<LabeledDigit>>());
+    mTimedDigitsFuture.push_back(o2::emcal::DigitTimebin());
   }
+}
+
+void DigitsWriteoutBuffer::init()
+{
+  const SimParam* simParam = &(o2::emcal::SimParam::Instance());
+
+  mLiveTime = simParam->getLiveTime();
+  mBusyTime = simParam->getBusyTime();
+  mPreTriggerTime = simParam->getPreTriggerTime();
+
+  mDigitStream.init();
 }
 
 void DigitsWriteoutBuffer::clear()
 {
-  std::cout << "Clearing ..." << std::endl;
-  mTimedDigits.clear();
+  for (auto iNode : mTimedDigitsFuture) {
+    iNode.mTimestamp = 0;
+    iNode.mRecordMode = false;
+    iNode.mEndWindow = false;
+    iNode.mDigitMap->clear();
+  }
+
+  mTimedDigitsPast.clear();
 }
 
 void DigitsWriteoutBuffer::reserve()
 {
-  //Fill in the missing entries
-  for (int itime = 0; itime < (mBufferSize - mTimedDigits.size()); itime++) {
-    mTimedDigits.push_back(std::unordered_map<int, std::list<LabeledDigit>>());
+  if (mTimedDigitsFuture.size() < mBufferSize - 1) {
+    int originalSize = mTimedDigitsFuture.size();
+    for (int itime = 0; itime < (mBufferSize - originalSize); itime++) {
+      mTimedDigitsFuture.push_back(o2::emcal::DigitTimebin());
+    }
   }
 }
 
-void DigitsWriteoutBuffer::addDigit(unsigned int towerID, LabeledDigit dig, double eventTime)
+// Add digits to the buffer
+void DigitsWriteoutBuffer::addDigits(unsigned int towerID, std::vector<LabeledDigit> digList)
 {
-  int nsamples = int(eventTime / mTimeBinWidth);
 
-  if (nsamples >= mTimedDigits.size()) {
-    mTimedDigits.pop_front();
-    mTimedDigits.push_back(std::unordered_map<int, std::list<LabeledDigit>>());
-    nsamples = mTimedDigits.size() - 1;
+  for (int ientry = 0; ientry < mBufferSize; ientry++) {
+
+    auto& buffEntry = mTimedDigitsFuture[ientry];
+    auto dig = digList.at(ientry);
+
+    auto towerEntry = buffEntry.mDigitMap->find(towerID);
+    if (towerEntry == buffEntry.mDigitMap->end()) {
+      towerEntry = buffEntry.mDigitMap->insert(std::pair<int, std::list<o2::emcal::LabeledDigit>>(towerID, std::list<o2::emcal::LabeledDigit>())).first;
+    }
+    dig.setTimeStamp(dig.getTimeStamp() + ((mLastEventTime - mTriggerTime) / 100) * 100);
+    towerEntry->second.push_back(dig);
+  }
+}
+
+// When the current time is forwarded (every 100 ns) the entry 0 of the future dequeue
+// is removed and pushed at the end of the past dequeue. At the same time a new entry in
+// the future dequeue is pushed at the end, and - in case the past dequeue reached 15 entries
+// the first entry of the past dequeue is removed.
+void DigitsWriteoutBuffer::forwardMarker(o2::InteractionTimeRecord record)
+{
+
+  unsigned long eventTime = record.getTimeNS();
+
+  // To see how much the marker will forwarded, or see how much of the future buffer will be written into the past past buffer
+  int sampleDifference = (eventTime - mTriggerTime) / 100 - (mLastEventTime - mTriggerTime) / 100;
+
+  for (int idel = 0; idel < sampleDifference; idel++) {
+
+    // Stop reading if record mode is false to save memory
+    if (!mTimedDigitsFuture.front().mRecordMode) {
+      break;
+    }
+
+    // with sampleDifference, the future buffer will written into the past buffer
+    // the added entries will be removed the future, and the same number will added as empty bins
+    mTimedDigitsPast.push_back(mTimedDigitsFuture.front());
+    mTimedDigitsFuture.pop_front();
+    mTimedDigitsFuture.push_back(o2::emcal::DigitTimebin());
+
+    if (mTimedDigitsPast.size() > mBufferSize) {
+      mTimedDigitsPast.pop_front();
+    }
+
+    // If it is the end of the readout window write all the digits, labels, and trigger record into the streamer
+    if (mTimedDigitsPast.back().mEndWindow) {
+      mDigitStream.fill(getLastSamples(), mTimedDigitsPast.front().mInterRecord);
+      clear();
+    }
   }
 
-  auto& timeEntry = mTimedDigits[nsamples];
+  // If we have a trigger, all the time bins in the future buffer will be set to record mode
+  // the last time bin will the end of the readout window since it will be mTriggerTime + 1500 ns
+  if ((eventTime - mTriggerTime) >= (mLiveTime + mBusyTime)) {
+    mTriggerTime = eventTime;
+    mTimedDigitsFuture.front().mTriggerColl = true;
+    mTimedDigitsFuture.front().mInterRecord = record;
+    mTimedDigitsFuture.back().mEndWindow = true;
 
-  auto towerEntry = timeEntry.find(towerID);
-  if (towerEntry == timeEntry.end()) {
-    towerEntry = timeEntry.insert(std::pair<int, std::list<o2::emcal::LabeledDigit>>(towerID, std::list<o2::emcal::LabeledDigit>())).first;
+    unsigned long timeStamp = int(eventTime / 100) * 100; /// This is to make the event time multiple of 100s
+    for (auto& iNode : mTimedDigitsFuture) {
+      iNode.mRecordMode = true;
+      iNode.mTimestamp = timeStamp;
+      timeStamp += 100;
+    }
   }
 
-  towerEntry->second.push_back(dig);
+  // If we have a pre-trigger collision, all the time bins in the future buffer will be set to record mode
+  if ((eventTime - mTriggerTime) >= (mLiveTime + mBusyTime - mPreTriggerTime)) {
+    unsigned long timeStamp = int(eventTime / 100) * 100; /// This is to make the event time multiple of 100s
+    for (auto& iNode : mTimedDigitsFuture) {
+      iNode.mRecordMode = true;
+      iNode.mTimestamp = timeStamp;
+      timeStamp += 100;
+    }
+  }
 
   mLastEventTime = eventTime;
+  mPhase = ((int)(std::fmod(mLastEventTime, 100) / 25));
 }
 
-std::list<std::unordered_map<int, std::list<LabeledDigit>>> DigitsWriteoutBuffer::getLastNSamples(int nsamples)
+/// For the end of the run only write all the remaining digits into the streamer
+void DigitsWriteoutBuffer::finish()
 {
-  int startingPosition = int(mLastEventTime / mTimeBinWidth) - nsamples;
-  if (startingPosition < 0) {
-    startingPosition = 0;
-  }
+  for (unsigned int ibin = 0; ibin < mBufferSize; ibin++) {
 
-  std::list<std::unordered_map<int, std::list<LabeledDigit>>> output;
+    if (!mTimedDigitsFuture.front().mRecordMode || mTimedDigitsFuture.front().mDigitMap->empty()) {
+      break;
+    }
 
-  for (int ientry = startingPosition; ientry < startingPosition + nsamples; ientry++) {
-    output.push_back(mTimedDigits[ientry]);
+    mTimedDigitsPast.push_back(mTimedDigitsFuture.front());
+    mTimedDigitsFuture.pop_front();
+
+    if (mTimedDigitsPast.size() > mBufferSize) {
+      mTimedDigitsPast.pop_front();
+    }
+
+    if (mTimedDigitsPast.back().mEndWindow) {
+      mDigitStream.fill(getLastSamples(), mTimedDigitsPast.front().mInterRecord);
+      clear();
+      break;
+    }
   }
-  return output;
-  //return gsl::span<std::unordered_map<int, std::list<LabeledDigit>>>(&mTimedDigits[startingPosition], nsamples);
+}
+
+gsl::span<o2::emcal::DigitTimebin> DigitsWriteoutBuffer::getLastSamples()
+{
+  return gsl::span<o2::emcal::DigitTimebin>(&mTimedDigitsPast[0], mTimedDigitsPast.size());
 }
