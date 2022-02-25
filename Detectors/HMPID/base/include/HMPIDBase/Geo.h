@@ -75,19 +75,7 @@ namespace hmpid
 class Geo
 {
  public:
-  // From AliTOFGeometry
-  //  static void translate(Float_t* xyz, Float_t translationVector[3]);
-  //  enum {
-  //    // DAQ characteristics
-  //    kNDDL = 4,    // Number of DDL (Detector Data Link) per sector
-  //    kNTRM = 12,   // Number of TRM ( Readout Module) per DDL
-  //    kNTdc = 15,   // Number of Tdc (Time to Digital Converter) per TRM
-  //    kNChain = 2,  // Number of chains per TRM
-  //    kNCrate = 72, // Number of Crates
-  //    kNCh = 8      // Number of channels per Tdc
-  //  };
-
-  // ---- HMPID geometry -------
+   // ---- HMPID geometry -------
   static constexpr int MAXEQUIPMENTS = 14;
   static constexpr int N_SEGMENTS = 3;
   static constexpr int N_COLXSEGMENT = 8;
@@ -117,16 +105,7 @@ class Geo
   static constexpr int N_PHOTOCATODSY = 48;
   static constexpr int MAXXPHOTO = 79;
   static constexpr int MAXYPHOTO = 47;
-
-  // from
-  // static constexpr Bool_t FEAWITHMASKS[NSECTORS] =
-  //  // TOF sectors with Nino masks: 0, 8, 9, 10, 16
-  //  {kTRUE, kFALSE, kFALSE, kFALSE, kFALSE, kFALSE, kFALSE, kFALSE, kTRUE,
-  //   kTRUE, kTRUE, kFALSE, kFALSE, kFALSE, kFALSE, kFALSE, kTRUE, kFALSE};
-  //; // Selecting TOF sectors containing FEA cooling masks
-
-  //  static Float_t getCableLength(Int_t icrate, Int_t islot, Int_t ichain, Int_t itdc) { return CABLELENGTH[icrate][islot - 3][ichain][itdc / 3]; }
-
+  
  private:
   static void Init();
 
@@ -147,20 +126,20 @@ class ReadOut
     LinkAddr Id;
     uint32_t LinkUId;
   };
-  static constexpr Lnk mEq[Geo::MAXEQUIPMENTS] = {{0, 222, 0, 160, "alio2-cr1-flp160"},
-                                                  {1, 222, 1, 160, "alio2-cr1-flp160"},
-                                                  {2, 222, 2, 160, "alio2-cr1-flp160"},
-                                                  {3, 222, 3, 160, "alio2-cr1-flp160"},
-                                                  {4, 221, 0, 160, "alio2-cr1-flp160"},
-                                                  {5, 221, 1, 160, "alio2-cr1-flp160"},
-                                                  {8, 221, 2, 160, "alio2-cr1-flp160"},
-                                                  {9, 221, 3, 160, "alio2-cr1-flp160"},
-                                                  {6, 51, 0, 161, "alio2-cr1-flp161"},
-                                                  {7, 51, 1, 161, "alio2-cr1-flp161"},
-                                                  {10, 51, 2, 161, "alio2-cr1-flp161"},
-                                                  {11, 288, 0, 161, "alio2-cr1-flp161"},
-                                                  {12, 288, 1, 161, "alio2-cr1-flp161"},
-                                                  {13, 288, 2, 161, "alio2-cr1-flp161"}};
+  static constexpr Lnk mEq[Geo::MAXEQUIPMENTS] = {{0, 221, 0, 160, "alio2-cr1-flp160"},
+                                                  {1, 221, 1, 160, "alio2-cr1-flp160"},
+                                                  {2, 221, 2, 160, "alio2-cr1-flp160"},
+                                                  {3, 221, 3, 160, "alio2-cr1-flp160"},
+                                                  {4, 222, 0, 160, "alio2-cr1-flp160"},
+                                                  {5, 222, 1, 160, "alio2-cr1-flp160"},
+                                                  {8, 222, 2, 160, "alio2-cr1-flp160"},
+                                                  {9, 222, 3, 160, "alio2-cr1-flp160"},
+                                                  {6, 288, 0, 161, "alio2-cr1-flp161"},
+                                                  {7, 288, 1, 161, "alio2-cr1-flp161"},
+                                                  {10, 288, 2, 161, "alio2-cr1-flp161"},
+                                                  {11, 51, 0, 161, "alio2-cr1-flp161"},
+                                                  {12, 51, 1, 161, "alio2-cr1-flp161"},
+                                                  {13, 51, 2, 161, "alio2-cr1-flp161"}};
 
   static inline int FeeId(unsigned int idx) { return (idx >= Geo::MAXEQUIPMENTS) ? -1 : mEq[idx].Id.Fee; };
   static inline int CruId(unsigned int idx) { return (idx >= Geo::MAXEQUIPMENTS) ? -1 : mEq[idx].Id.Cru; };
@@ -198,25 +177,6 @@ class ReadOut
 
   ClassDefNV(ReadOut, 1);
 };
-/*
-void ReadOut::Init()
-{
-  mEq[0].Id  = { 0, 0, 0, 160};
-  mEq[1].Id  = { 1, 0, 1, 160};
-  mEq[2].Id  = { 2, 0, 2, 160};
-  mEq[3].Id  = { 3, 0, 3, 160};
-  mEq[4].Id  = { 4, 1, 0, 160};
-  mEq[5].Id  = { 5, 1, 1, 160};
-  mEq[6].Id  = { 8, 1, 2, 160};
-  mEq[7].Id  = { 9, 1, 3, 160};
-  mEq[8].Id  = { 6, 2, 0, 161};
-  mEq[9].Id  = { 7, 2, 1, 161};
-  mEq[10].Id = {10, 2, 2, 161};
-  mEq[11].Id = {11, 3, 0, 161};
-  mEq[12].Id = {12, 3, 1, 161};
-  mEq[13].Id = {13, 3, 2, 161};
-};
-*/
 
 } // namespace hmpid
 } // namespace o2

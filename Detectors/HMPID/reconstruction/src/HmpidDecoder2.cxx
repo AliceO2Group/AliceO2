@@ -378,29 +378,7 @@ int HmpidDecoder2::decodeHeader(uint32_t* streamPtrAdr, int* EquipIndex)
 {
   uint32_t* buffer = streamPtrAdr; // Sets the pointer to buffer
   o2::header::RAWDataHeaderV6* hpt = (o2::header::RAWDataHeaderV6*)buffer;
-
-  /*
-  mHeFEEID = (buffer[0] & 0x000f0000) >> 16;
-  mHeSize = (buffer[0] & 0x0000ff00) >> 8;
-  mHeVer = (buffer[0] & 0x000000ff);
-  mHePrior = (buffer[1] & 0x000000FF);
-  mHeDetectorID = (buffer[1] & 0x0000FF00) >> 8;
-  mHeOffsetNewPack = (buffer[2] & 0x0000FFFF);
-  mHeMemorySize = (buffer[2] & 0xffff0000) >> 16;
-  mHeDW = (buffer[3] & 0xF0000000) >> 24;
-  mHeCruID = (buffer[3] & 0x0FF0000) >> 16;
-  mHePackNum = (buffer[3] & 0x0000FF00) >> 8;
-  mHeLinkNum = (buffer[3] & 0x000000FF);
-  mHeBCDI = (buffer[4] & 0x00000FFF);
-  mHeORBIT = buffer[5];
-  mHeTType = buffer[8];
-  mHePageNum = (buffer[9] & 0x0000FFFF);
-  mHeStop = (buffer[9] & 0x00ff0000) >> 16;
-  mHeBusy = (buffer[12] & 0xfffffe00) >> 9;
-  mHeFirmwareVersion = buffer[12] & 0x0000000f;
-  mHeHmpidError = (buffer[12] & 0x000001F0) >> 4;
-  mHePAR = buffer[13] & 0x0000FFFF;
-  */
+  
   mHeFEEID = hpt->feeId;
   mHeSize = hpt->headerSize;
   mHeVer = hpt->version;
@@ -423,14 +401,12 @@ int HmpidDecoder2::decodeHeader(uint32_t* streamPtrAdr, int* EquipIndex)
   mHePAR = hpt->detectorPAR;
 
   *EquipIndex = getEquipmentIndex(mHeCruID, mHeLinkNum);
-  //  mEquipment = (*EquipIndex != -1) ? mTheEquipments[*EquipIndex]->getEquipmentId() : -1;
   mEquipment = mHeFEEID & 0x000F;
   mNumberWordToRead = ((mHeMemorySize - mHeSize) / sizeof(uint32_t));
   mPayloadTail = ((mHeOffsetNewPack - mHeMemorySize) / sizeof(uint32_t));
 
   // ---- Event ID  : Actualy based on ORBIT NUMBER and BC
   mHeEvent = (mHeORBIT << 12) | mHeBCDI;
-
   if (mVerbose > 6 || (*EquipIndex == -1 && mVerbose > 1)) {
     std::cout << "HMPID Decoder2 : [INFO] "
               << "FEE-ID=" << mHeFEEID << " HeSize=" << mHeSize << " HePrior=" << mHePrior << " Det.Id=" << mHeDetectorID << " HeMemorySize=" << mHeMemorySize << " HeOffsetNewPack=" << mHeOffsetNewPack << std::endl;
@@ -444,6 +420,7 @@ int HmpidDecoder2::decodeHeader(uint32_t* streamPtrAdr, int* EquipIndex)
                 << "ERROR ! Bad equipment Number: " << mEquipment << std::endl;
     }
     throw TH_WRONGEQUIPINDEX;
+  }
   if (mHeDetectorID != 0x06) {
     if (mVerbose > 1) {
       std::cout << "HMPID Decoder2 : [ERROR] "
@@ -451,7 +428,6 @@ int HmpidDecoder2::decodeHeader(uint32_t* streamPtrAdr, int* EquipIndex)
     }
     throw TH_WRONGHEADER;
   }
-  // std::cout << "HMPID ! Exit decode header" << std::endl;
   return (true);
 }
 
@@ -471,8 +447,6 @@ void HmpidDecoder2::updateStatistics(HmpidEquipment* eq)
   }
   eq->mTotalPads += eq->mSampleNumber;
   eq->mTotalErrors += eq->mErrorsCounter;
-
-  //std::cout << ">>>updateStatistics() >>> "<< eq->getEquipmentId() << "="<< eq->mNumberOfEvents<<" :" << eq->mEventSize <<","<< eq->mTotalPads << ", " << eq->mSampleNumber << std::endl;
 
   return;
 }
@@ -509,7 +483,6 @@ HmpidEquipment* HmpidDecoder2::evaluateHeaderContents(int EquipmentIndex)
     dumpHmpidError(mHeHmpidError);
     eq->setError(ERR_HMPID);
   }
-  // std::cout << ".. end evaluateHeaderContents = " << eq->mEventNumber << std::endl;
   return (eq);
 }
 
@@ -864,14 +837,12 @@ void HmpidDecoder2::decodePageFast(uint32_t** streamBuf)
     }
     throw TH_WRONGHEADER;
   }
-
   HmpidEquipment* eq;
   try {
     eq = evaluateHeaderContents(equipmentIndex);
   } catch (int e) {
     throw TH_WRONGHEADER;
   }
-
   uint32_t wpprev = 0;
   uint32_t wp = 0;
   int newOne = true;
@@ -915,6 +886,7 @@ void HmpidDecoder2::decodePageFast(uint32_t** streamBuf)
 /// @throws TH_WRONGHEADER Thrown if the Fails to decode the Header
 bool HmpidDecoder2::decodeBufferFast()
 {
+  bool isNotEmpty = false;
   // ---------resets the PAdMap-----------
   for (int i = 0; i < mNumberOfEquipments; i++) {
     mTheEquipments[i]->init();
@@ -936,6 +908,7 @@ bool HmpidDecoder2::decodeBufferFast()
       }
       break;
     }
+    isNotEmpty = true;
   } // this is the end of stream
 
   // cycle in order to update info for the last event
@@ -944,7 +917,7 @@ bool HmpidDecoder2::decodeBufferFast()
       updateStatistics(mTheEquipments[i]);
     }
   }
-  return (true);
+  return (isNotEmpty);
 }
 
 // =========================================================
@@ -1296,6 +1269,5 @@ bool HmpidDecoder2::setUpStream(void* Buffer, long BufferLen)
   mActualStreamPtr = (uint32_t*)Buffer;                 // sets the pointer to the Buffer
   mEndStreamPtr = ((uint32_t*)Buffer) + wordsBufferLen; //sets the End of buffer
   mStartStreamPtr = ((uint32_t*)Buffer);
-  //  std::cout << " setUpStrem : StPtr=" << mStartStreamPtr << " EndPtr=" << mEndStreamPtr << " Len=" << wordsBufferLen << std::endl;
   return (true);
 }
