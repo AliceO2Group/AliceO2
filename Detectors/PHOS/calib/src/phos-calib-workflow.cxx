@@ -14,6 +14,7 @@
 #include "PHOSCalibWorkflow/PHOSEnergyCalibDevice.h"
 #include "PHOSCalibWorkflow/PHOSTurnonCalibDevice.h"
 #include "PHOSCalibWorkflow/PHOSRunbyrunCalibDevice.h"
+#include "PHOSCalibWorkflow/PHOSBadMapCalibDevice.h"
 #include "Framework/DataProcessorSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/NameConf.h"
@@ -39,6 +40,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"ptminmgg", o2::framework::VariantType::Float, 1.5f, {"minimal pt to fill mgg calib histos"}});
   workflowOptions.push_back(ConfigParamSpec{"eminhgtime", o2::framework::VariantType::Float, 1.5f, {"minimal E (GeV) to fill HG time calib histos"}});
   workflowOptions.push_back(ConfigParamSpec{"eminlgtime", o2::framework::VariantType::Float, 5.f, {"minimal E (GeV) to fill LG time calib histos"}});
+  // BadMap
+  workflowOptions.push_back(ConfigParamSpec{"mode", o2::framework::VariantType::Int, 0, {"operation mode: 0: occupancy, 1: chi2, 2: pedestals"}});
 
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
 }
@@ -95,8 +98,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
   if (doBadMap) {
     LOG(info) << "bad map calculation ";
-    short m = 0;
-    // specs.emplace_back(o2::phos::getBadMapCalibSpec(useCCDB,forceUpdate,path,m));
+    int mode = configcontext.options().get<int>("mode");
+    ;
+    specs.emplace_back(o2::phos::getBadMapCalibSpec(mode));
   }
   return specs;
 }

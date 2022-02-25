@@ -17,6 +17,7 @@
 
 #pragma link C++ class o2::phos::PHOSPedestalCalibDevice + ;
 #pragma link C++ class o2::phos::PHOSHGLGRatioCalibDevice + ;
+#pragma link C++ class o2::phos::PHOSBadMapCalibDevice + ;
 #pragma link C++ class o2::phos::ETCalibHistos + ;
 #pragma link C++ class o2::phos::PHOSEnergySlot + ;
 #pragma link C++ class o2::phos::PHOSEnergyCalibrator + ;

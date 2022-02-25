@@ -23,14 +23,14 @@ namespace phos
 // (mostly used in GEANT stepping and Digitizer)
 struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
 
-  std::string mCCDBPath = "localtest"; ///< use "localtest" to avoid connecting ccdb server, otherwise use ccdb-test.cern.ch
+  std::string mCCDBPath = "ccdb"; ///< use "localtest" to avoid connecting ccdb server, otherwise use ccdb-test.cern.ch
 
-  //Parameters used in conversion of deposited energy to APD response
+  // Parameters used in conversion of deposited energy to APD response
   float mLightYieldPerGeV = 526.;                 ///< Average number of photoelectrons per GeV: 1.983 gamma/MeV * 0.2655 PDE eff of APD
   std::string mDigitizationCalibPath = "default"; ///< use "default" to use default calibration or use ccdb.cern.ch
   std::string mDigitizationTrigPath = "default";  ///< use "default" to use default map and turn-on or use ccdb.cern.ch
 
-  //Parameters used in electronic noise calculation and thresholds (Digitizer)
+  // Parameters used in electronic noise calculation and thresholds (Digitizer)
   float mReadoutTime = 5.;           ///< Read-out time in ns for default simulaionts
   float mDeadTime = 20.;             ///< PHOS dead time (includes Read-out time i.e. mDeadTime>=mReadoutTime)
   float mReadoutTimePU = 2000.;      ///< Read-out time in ns if pileup simulation on in DigitizerSpec
@@ -57,7 +57,7 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
   float mTrig2x2MinThreshold = 800.; ///< threshold to simulate 2x2 trigger turn-on curve (in ADC counts~0.005 GeV/count!)
   float mTrig4x4MinThreshold = 900.; ///< threshold to simulate 4x4 trigger turn-on curve (in ADC counts!)
 
-  //Parameters used in Raw simulation
+  // Parameters used in Raw simulation
   float mSampleDecayTime = 0.091; ///< Time parameter in Gamma2 function (1/tau, 100.e-9/2.1e-6)
 
   // //Parameters used in raw data reconstruction
@@ -66,8 +66,8 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
   short mPreSamples = 2;                ///< number of pre-samples readout before sample (if no pedestal subtrauction)
   short mMCOverflow = 970;              ///< Overflow level for MC simulations: 1023-(pedestal~50)
   float mTimeTick = 100.;               ///< ns to PHOS digitization step conversion
-  float mSampleTimeFitAccuracy = 1.e-3; //Abs accuracy of time fit of saturated samples (in 100ns tick units)
-  float mSampleAmpFitAccuracy = 1.e-2;  //Relative accuracy of amp. fit
+  float mSampleTimeFitAccuracy = 1.e-3; // Abs accuracy of time fit of saturated samples (in 100ns tick units)
+  float mSampleAmpFitAccuracy = 1.e-2;  // Relative accuracy of amp. fit
   short mNIterations = 5;               ///< maximal number of iterations in oveflow sample fit
 
   // bool  mSubtractPedestal = false ;    ///< subtract pedestals
@@ -77,11 +77,12 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
   // short mChiMaxCut = 1000;             ///< Maximal cut on sample quality
   // std::string mFitterVersion = "default"; ///< version of raw fitter to be used
 
-  //Parameters used in clusterization
+  // Parameters used in clusterization
   float mLogWeight = 4.5;              ///< Cutoff used in log. weight calculation
   float mDigitMinEnergy = 0.010;       ///< Minimal energy of digits to be used in cluster (GeV)
   float mClusteringThreshold = 0.050;  ///< Minimal energy of digit to start clustering (GeV)
   float mLocalMaximumCut = 0.015;      ///< Minimal height of local maximum over neighbours
+  int mUnfoldMaxSize = 100;            ///< maximal number of cells in cluster to be unfolded
   bool mUnfoldClusters = true;         ///< To perform cluster unfolding
   float mUnfogingEAccuracy = 1.e-2;    ///< Accuracy of energy calculation in unfoding prosedure (GeV)
   float mUnfogingXZAccuracy = 1.e-1;   ///< Accuracy of position calculation in unfolding procedure (cm)

@@ -167,7 +167,7 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
         //    fec += kGeneralTRUErr * branch;
         //    mOutputHWErrors.emplace_back(mddl, fec, 8); //8: time calculation failed
         //  }
-        if (!rawFitter->isOverflow()) { // Overflow is will show wrong chi2
+        if (!rawFitter->isOverflow() && rawFitter->getChi2() > 0) { // Overflow is will show wrong chi2
           short chiAddr = absId;
           chiAddr |= caloFlag << 14;
           mOutputFitChi.emplace_back(chiAddr);
