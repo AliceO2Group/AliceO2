@@ -37,27 +37,6 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
   auto path = ctx.options().get<std::string>("mappingpath");
   Mapping::Instance(path);
 
-  if (!mCalibParams) {
-    if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-      mCalibParams = std::make_unique<CalibParams>(1); // test default calibration
-      LOG(info) << "[RawToCellConverterSpec] No reading calibration from ccdb requested, set default";
-    } else {
-      LOG(info) << "[RawToCellConverterSpec] getting calibration object from ccdb";
-      o2::ccdb::CcdbApi ccdb;
-      std::map<std::string, std::string> metadata;
-      ccdb.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
-      // auto tr = triggerbranch.begin();
-      double eventTime = -1;
-      // if(tr!=triggerbranch.end()){
-      //   eventTime = (*tr).getBCData().getTimeNS() ;
-      // }
-      // mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, eventTime);
-      if (!mCalibParams) {
-        LOG(fatal) << "[RawToCellConverterSpec] can not get calibration object from ccdb";
-      }
-    }
-  }
-
   auto fitmethod = ctx.options().get<std::string>("fitmethod");
   if (fitmethod == "default") {
     LOG(info) << "Using default raw fitter";
@@ -200,6 +179,13 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       for (auto a : errs) {
         mOutputHWErrors.emplace_back(a);
       }
+      if (mFillChi2) {
+        const std::vector<short>& chi2list = mDecoder->chi2list();
+        for (auto a : chi2list) {
+          mOutputFitChi.emplace_back(a);
+        }
+      }
+
       // Sort cells according to cell ID
       (*rangeIter)[2 * ddl + 1] = currentCellContainer.size();
       auto itBegin = currentCellContainer.begin() + (*rangeIter)[2 * ddl];
