@@ -478,7 +478,7 @@ void GeometryMisAligner::MisAlign(Bool_t verbose, const std::string& ccdbHost, l
             LOG(error) << "Problem extracting angles from sensor";
           }
           lAP.setSymName(sname);
-          Int_t chipID = itsmft::ChipMappingMFT::mChipIDGeoToRO[nChip++];
+          Int_t chipID = itsmft::ChipMappingMFT::mChipIDGeoToRO[nChip];
           Int_t uid = o2::base::GeometryManager::getSensID(o2::detectors::DetID::MFT, chipID);
           lAP.setAlignableID(uid);
           lAP.setLocalParams(localDeltaTransform);
