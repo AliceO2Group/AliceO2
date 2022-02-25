@@ -78,6 +78,7 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
   } else {
     LOG(fatal) << "Unknown fit method" << fitmethod;
   }
+  LOG(info) << "Creating decoding errors: " << (mCreateRawDataErrors ? "yes" : "no");
 
   mPrintTrailer = ctx.options().get<bool>("printtrailer");
 
@@ -142,7 +143,9 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       try {
         rawreader.next();
       } catch (RawDecodingError& e) {
-        mOutputDecoderErrors.emplace_back(e.getFECID(), ErrorTypeFEE::ErrorSource_t::PAGE_ERROR, RawDecodingError::ErrorTypeToInt(e.getErrorType()));
+        if (mCreateRawDataErrors) {
+          mOutputDecoderErrors.emplace_back(e.getFECID(), ErrorTypeFEE::ErrorSource_t::PAGE_ERROR, RawDecodingError::ErrorTypeToInt(e.getErrorType()));
+        }
         if (mNumErrorMessages < mMaxErrorMessages) {
           LOG(error) << " EMCAL raw task: " << e.what() << " in FEC " << e.getFECID() << std::endl;
           mNumErrorMessages++;
@@ -184,7 +187,6 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       try {
         decoder.decode();
       } catch (AltroDecoderError& e) {
-        ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(e.getErrorType()));
         if (mNumErrorMessages < mMaxErrorMessages) {
           std::string errormessage;
           using AltroErrType = AltroDecoderError::ErrorType_t;
@@ -224,22 +226,27 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         } else {
           mErrorMessagesSuppressed++;
         }
-        // fill histograms  with error types
-        mOutputDecoderErrors.push_back(errornum);
+        if (mCreateRawDataErrors) {
+          // fill histograms  with error types
+          ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(e.getErrorType()));
+          mOutputDecoderErrors.push_back(errornum);
+        }
         continue;
       }
-      for (auto minorerror : decoder.getMinorDecodingErrors()) {
-        if (mNumErrorMessages < mMaxErrorMessages) {
-          LOG(error) << " EMCAL raw task - Minor error in DDL " << feeID << ": " << minorerror.what() << std::endl;
-          mNumErrorMessages++;
-          if (mNumErrorMessages == mMaxErrorMessages) {
-            LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+      if (mCreateRawDataErrors) {
+        for (auto minorerror : decoder.getMinorDecodingErrors()) {
+          if (mNumErrorMessages < mMaxErrorMessages) {
+            LOG(error) << " EMCAL raw task - Minor error in DDL " << feeID << ": " << minorerror.what() << std::endl;
+            mNumErrorMessages++;
+            if (mNumErrorMessages == mMaxErrorMessages) {
+              LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+            }
+          } else {
+            mErrorMessagesSuppressed++;
           }
-        } else {
-          mErrorMessagesSuppressed++;
+          ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, MinorAltroDecodingError::errorTypeToInt(minorerror.getErrorType()));
+          mOutputDecoderErrors.push_back(errornum);
         }
-        ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, MinorAltroDecodingError::errorTypeToInt(minorerror.getErrorType()));
-        mOutputDecoderErrors.push_back(errornum);
       }
 
       if (mPrintTrailer) {
@@ -319,7 +326,9 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           } else {
             mErrorMessagesSuppressed++;
           }
-          mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, 0); // 0 -> Cell ID out of range
+          if (mCreateRawDataErrors) {
+            mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, 0); // 0 -> Cell ID out of range
+          }
           continue;
         }
         if (CellID < 0) {
@@ -347,7 +356,9 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           } else {
             mErrorMessagesSuppressed++;
           }
-          mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, -1); // Geometry error codes will start from 100
+          if (mCreateRawDataErrors) {
+            mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, -1); // Geometry error codes will start from 100
+          }
           continue;
         }
 
@@ -452,7 +463,9 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             LOG(debug2) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
             nBunchesNotOK++;
           }
-          mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::FIT_ERROR, CaloRawFitter::getErrorNumber(fiterror));
+          if (mCreateRawDataErrors) {
+            mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::FIT_ERROR, CaloRawFitter::getErrorNumber(fiterror));
+          }
         }
       }
       if (nBunchesNotOK) {
@@ -480,7 +493,9 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           } else {
             mErrorMessagesSuppressed++;
           }
-          mOutputDecoderErrors.emplace_back(cell.mFecID, ErrorTypeFEE::GAIN_ERROR, 0);
+          if (mCreateRawDataErrors) {
+            mOutputDecoderErrors.emplace_back(cell.mFecID, ErrorTypeFEE::GAIN_ERROR, 0);
+          }
           continue;
         }
         if (cell.mHGOutOfRange) {
@@ -493,7 +508,9 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           } else {
             mErrorMessagesSuppressed++;
           }
-          mOutputDecoderErrors.emplace_back(cell.mFecID, ErrorTypeFEE::GAIN_ERROR, 1);
+          if (mCreateRawDataErrors) {
+            mOutputDecoderErrors.emplace_back(cell.mFecID, ErrorTypeFEE::GAIN_ERROR, 1);
+          }
           continue;
         }
         ncellsEvent++;
@@ -538,17 +555,21 @@ void RawToCellConverterSpec::sendData(framework::ProcessingContext& ctx, const s
   constexpr auto originEMC = o2::header::gDataOriginEMC;
   ctx.outputs().snapshot(framework::Output{originEMC, "CELLS", mSubspecification, framework::Lifetime::Timeframe}, cells);
   ctx.outputs().snapshot(framework::Output{originEMC, "CELLSTRGR", mSubspecification, framework::Lifetime::Timeframe}, triggers);
-  ctx.outputs().snapshot(framework::Output{originEMC, "DECODERERR", mSubspecification, framework::Lifetime::Timeframe}, decodingErrors);
+  if (mCreateRawDataErrors) {
+    ctx.outputs().snapshot(framework::Output{originEMC, "DECODERERR", mSubspecification, framework::Lifetime::Timeframe}, decodingErrors);
+  }
 }
 
-o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverterSpec(bool askDISTSTF, int subspecification)
+o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverterSpec(bool askDISTSTF, bool disableDecodingErrors, int subspecification)
 {
   constexpr auto originEMC = o2::header::gDataOriginEMC;
   std::vector<o2::framework::OutputSpec> outputs;
 
   outputs.emplace_back(originEMC, "CELLS", subspecification, o2::framework::Lifetime::Timeframe);
   outputs.emplace_back(originEMC, "CELLSTRGR", subspecification, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back(originEMC, "DECODERERR", subspecification, o2::framework::Lifetime::Timeframe);
+  if (!disableDecodingErrors) {
+    outputs.emplace_back(originEMC, "DECODERERR", subspecification, o2::framework::Lifetime::Timeframe);
+  }
 
   std::vector<o2::framework::InputSpec> inputs{{"stf", o2::framework::ConcreteDataTypeMatcher{originEMC, o2::header::gDataDescriptionRawData}, o2::framework::Lifetime::Optional}};
   if (askDISTSTF) {
@@ -558,7 +579,7 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverter
   return o2::framework::DataProcessorSpec{"EMCALRawToCellConverterSpec",
                                           inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>(subspecification),
+                                          o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>(subspecification, !disableDecodingErrors),
                                           o2::framework::Options{
                                             {"fitmethod", o2::framework::VariantType::String, "gamma2", {"Fit method (standard or gamma2)"}},
                                             {"maxmessage", o2::framework::VariantType::Int, 100, {"Max. amout of error messages to be displayed"}},
