@@ -392,7 +392,7 @@ class AlpideCoder
       auto currPix = pixData.begin(), prevPix = currPix++;
       while (currPix != pixData.end()) {
         if (prevPix->getCol() == currPix->getCol() && prevPix->getRowDirect() == currPix->getRowDirect()) {
-          pixData.erase(prevPix);
+          currPix = pixData.erase(prevPix);
         }
         prevPix = currPix++;
       }
