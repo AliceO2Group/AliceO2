@@ -75,7 +75,7 @@ namespace hmpid
 class Geo
 {
  public:
-   // ---- HMPID geometry -------
+  // ---- HMPID geometry -------
   static constexpr int MAXEQUIPMENTS = 14;
   static constexpr int N_SEGMENTS = 3;
   static constexpr int N_COLXSEGMENT = 8;
