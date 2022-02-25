@@ -104,6 +104,9 @@ class RawPixelDecoder final : public PixelReader
   auto getInstanceID() const { return mInstanceID; }
   auto getNInstances() const { return mNInstances; }
 
+  void setRawDumpDirectory(const std::string& s) { mRawDumpDirectory = s; }
+  auto getRawDumpDirectory() const { return mRawDumpDirectory; }
+
   struct LinkEntry {
     int entry = -1;
   };
@@ -122,7 +125,8 @@ class RawPixelDecoder final : public PixelReader
   std::vector<RUDecodeData> mRUDecodeVec;                   // set of active RUs
   std::array<short, Mapping::getNRUs()> mRUEntry;           // entry of the RU with given SW ID in the mRUDecodeVec
   std::vector<ChipPixelData*> mOrderedChipsPtr;             // special ordering helper used for the MFT (its chipID is not contiguous in RU)
-  std::string mSelfName;                        // self name
+  std::string mSelfName{};                                  // self name
+  std::string mRawDumpDirectory{};                          // destination directory for dumps
   header::DataOrigin mUserDataOrigin = o2::header::gDataOriginInvalid; // alternative user-provided data origin to pick
   header::DataDescription mUserDataDescription = o2::header::gDataDescriptionInvalid; // alternative user-provided description to pick
   uint16_t mCurRUDecodeID = NORUDECODED;        // index of currently processed RUDecode container
