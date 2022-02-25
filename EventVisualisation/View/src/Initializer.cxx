@@ -131,7 +131,7 @@ void Initializer::setupGeometry()
 
         multiView->drawGeometryForDetector(detName, false, true, false);
       } else { // default
-        if (detName != "ACO") {
+        if (detName != "TST") {
           multiView->drawGeometryForDetector(detName);
         }
       }

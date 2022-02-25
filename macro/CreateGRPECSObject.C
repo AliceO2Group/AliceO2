@@ -27,7 +27,7 @@ using GRPECSObject = o2::parameters::GRPECSObject;
 // Simple macro to exemplify how to fill a GRPECS object (GRP object containing the information that come from ECS)
 
 // The list of detectors in the readout, read-out continuously, or in the trigger are passed as DetID::mask_it; this is a std::bitset<32>, with the following meaning per bit:
-// {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", "CTP"}
+// {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "TST", "CTP"}
 
 // e.g.
 /*

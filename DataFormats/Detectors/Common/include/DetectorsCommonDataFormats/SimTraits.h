@@ -87,7 +87,7 @@ class SimTraits
       /*FT0*/ VS{ "FT0Hit" },
       /*FV0*/ VS{ "FV0Hit" },
       /*FDD*/ VS{ "FDDHit" },
-      /*ACO*/ VS{ "ACOHit" },
+      /*TST*/ VS{ "TSTHit" }, // former ACO
       /*CTP*/ VS{ "CTPHit" }
 #ifdef ENABLE_UPGRADES
       ,
