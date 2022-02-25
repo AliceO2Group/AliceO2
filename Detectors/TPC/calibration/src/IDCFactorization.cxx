@@ -163,7 +163,7 @@ void o2::tpc::IDCFactorization::fillIDCZeroDeadPads()
     const int region = cruTmp.region();
     const int sector = cruTmp.sector();
     std::vector<unsigned int> padTmp;
-    padTmp.reserve(Mapper::PADSPERROW[region][Mapper::ROWSPERREGION[region]]);
+    padTmp.reserve(Mapper::PADSPERROW[region].back());
     for (unsigned int lrow = 0; lrow < Mapper::ROWSPERREGION[region]; ++lrow) {
       float idcRow = 0;
       int count = 0;
@@ -339,7 +339,7 @@ void o2::tpc::IDCFactorization::createStatusMap()
     const int region = cruTmp.region();
     const int sector = cruTmp.sector();
     std::vector<float> idcsRow;
-    const int maxValues = Mapper::PADSPERROW[region][Mapper::ROWSPERREGION[region]];
+    const auto maxValues = Mapper::PADSPERROW[region].back();
     idcsRow.reserve(maxValues);
     for (unsigned int lrow = 0; lrow < Mapper::ROWSPERREGION[region]; ++lrow) {
       // loop over pads in row in the first iteration and calculate median at the end

@@ -278,7 +278,7 @@ inline bool CalArray<T>::operator==(const CalArray<T>& other) const
     LOG(error) << "pad subset type of the objects it not compatible";
     return false;
   }
-  bool isSame = mData == other.mData;
+  bool isSame = (mData == other.mData);
   return isSame;
 }
 
