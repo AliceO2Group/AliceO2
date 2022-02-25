@@ -378,7 +378,7 @@ int HmpidDecoder2::decodeHeader(uint32_t* streamPtrAdr, int* EquipIndex)
 {
   uint32_t* buffer = streamPtrAdr; // Sets the pointer to buffer
   o2::header::RAWDataHeaderV6* hpt = (o2::header::RAWDataHeaderV6*)buffer;
-  
+
   mHeFEEID = hpt->feeId;
   mHeSize = hpt->headerSize;
   mHeVer = hpt->version;

@@ -105,7 +105,7 @@ class Geo
   static constexpr int N_PHOTOCATODSY = 48;
   static constexpr int MAXXPHOTO = 79;
   static constexpr int MAXYPHOTO = 47;
-  
+ 
  private:
   static void Init();
 
