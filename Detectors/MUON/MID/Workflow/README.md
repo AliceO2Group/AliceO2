@@ -4,10 +4,10 @@
 
 # MID workflows
 
-1. [MID reconstruction workflow](#MID-reconstruction-workflow)
-2. [MID raw data checker](#MID-raw-data-checker)
-3. [MID mask maker](#MID-mask-maker)
-4. [MID digits writer](#MID-digits-writer)
+1. [MID reconstruction workflow](#mid-reconstruction-workflow)
+2. [MID raw data checker](#mid-raw-data-checker)
+3. [MID calibration](#mid-calibration)
+4. [MID digits writer](#mid-digits-writer)
 
 ## MID reconstruction workflow
 
@@ -142,7 +142,7 @@ In order to be able to speed-up the process, the check can be launch per gbt lin
 This is achieved by adding the option: `--per-gbt`.
 In this case, the workflow will produce one output per link, which is called: `raw_checker_out_GBT_LINKID.txt`, where `LINKID` is the link number.
 
-## MID mask maker
+## MID calibration
 
 This workflow checks the fired strips in calibration events (when only noisy strips are fired) and during FET events (where all strips alive should fired).
 Scalers are filled for the noisy and dead channels, respectively.
@@ -152,12 +152,11 @@ If the fraction is larger than a configurable threshold, a mask is produced to a
 The common usage is:
 
 ```bash
-o2-raw-file-reader-workflow --input-conf MIDraw.cfg | o2-mid-raw-to-digits-workflow | o2-mid-mask-maker-workflow
+o2-raw-file-reader-workflow --input-conf MIDraw.cfg | o2-mid-raw-to-digits-workflow | o2-mid-calibration-workflow
 ```
 
 The fraction of time a strip must be noisy or dead in order to be masked can be adjusted with: `--mid-mask-threshold XX` (with 0<`XX`<= 1).
 The scalers are reset from time to time in order to better check the evolution of the noisy/dead channels.
-The number of calibration triggers analysed before the scalers are reset can be adjusted with `--mask-mask-reset XX`, where `XX` is a positive integer.
 
 ## MID digits writer
 
