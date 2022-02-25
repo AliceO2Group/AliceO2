@@ -496,7 +496,7 @@ void GeometryMisAligner::MisAlign(Bool_t verbose, const std::string& ccdbHost, l
   if (!ccdbHost.empty()) {
     std::string path = objectPath.empty() ? o2::base::DetectorNameConf::getAlignmentPath(o2::detectors::DetID::MFT) : objectPath;
     path = "MFT/test_CCDB/MFT"; // testing the ccdb
-    LOGP(INFO, "Storing alignment object on {}/{}", ccdbHost, path);
+    LOGP(info, "Storing alignment object on {}/{}", ccdbHost, path);
     o2::ccdb::CcdbApi api;
     std::map<std::string, std::string> metadata; // can be empty
     metadata["test"] = fmt::format("Misalignment objects for DetID:{}", o2::detectors::DetID::MFT);
