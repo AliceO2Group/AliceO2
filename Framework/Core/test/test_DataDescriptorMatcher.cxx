@@ -537,6 +537,15 @@ BOOST_AUTO_TEST_CASE(DataQuery)
     BOOST_CHECK_EQUAL(ex.what(), "Parse error: Remove trailing ;");
     return true;
   };
+
+  auto missing_value = [](std::runtime_error const& ex) -> bool {
+    BOOST_CHECK_EQUAL(ex.what(), "Parse error: value needs to be between 1 and 1000 char long");
+    return true;
+  };
+  auto missing_key = [](std::runtime_error const& ex) -> bool {
+    BOOST_CHECK_EQUAL(ex.what(), "Parse error: missing value for attribute key");
+    return true;
+  };
   // Empty query.
   BOOST_CHECK(DataDescriptorQueryBuilder::parse().empty() == true);
   // Empty bindings.
@@ -606,4 +615,11 @@ BOOST_AUTO_TEST_CASE(DataQuery)
       << DataDescriptorMatcher::Op::Xor
       << DataDescriptorMatcher::Op::Just;
   BOOST_CHECK_EQUAL(ops.str(), "andorxorjust");
+
+  // Let's check the metadata associated to a query
+  auto result2 = DataDescriptorQueryBuilder::parse("x:TST/A1/0?lifetime=condition");
+  BOOST_CHECK(result2[0].lifetime == Lifetime::Condition);
+
+  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/A1/0?lifetime="), std::runtime_error, missing_value);
+  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/A1/0?"), std::runtime_error, missing_key);
 }
