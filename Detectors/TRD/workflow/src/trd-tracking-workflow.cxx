@@ -82,12 +82,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!configcontext.options().get<bool>("disable-root-output")) {
     if (GTrackID::includesSource(GTrackID::Source::ITSTPC, srcTRD)) {
       specs.emplace_back(o2::trd::getTRDGlobalTrackWriterSpec(useMC));
-      if (configcontext.options().get<bool>("enable-trackbased-calib")) {
-        specs.emplace_back(o2::trd::getTRDCalibWriterSpec());
-      }
     }
     if (GTrackID::includesSource(GTrackID::Source::TPC, srcTRD)) {
       specs.emplace_back(o2::trd::getTRDTPCTrackWriterSpec(useMC, strict));
+    }
+    if (configcontext.options().get<bool>("enable-trackbased-calib")) {
+      specs.emplace_back(o2::trd::getTRDCalibWriterSpec());
     }
   }
 
