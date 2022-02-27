@@ -11,26 +11,27 @@
 
 /** @file PedestalDigit.h
  * C++ Muon MCH digit with ADC samples information.
- * @author  Andrea Ferrero
+ * @author Andrea Ferrero
  */
 
-#ifndef ALICEO2_MCH_PEDESTAL_DIGIT_H_
-#define ALICEO2_MCH_PEDESTAL_DIGIT_H_
+#ifndef O2_MCH_CALIBRATION_PEDESTAL_DIGIT_H_
+#define O2_MCH_CALIBRATION_PEDESTAL_DIGIT_H_
 
-#include <vector>
 #include "Rtypes.h"
 
 #define MCH_PEDESTALS_MAX_SAMPLES 20
 
-namespace o2
-{
-namespace mch
-{
-namespace calibration
+namespace o2::mch::calibration
 {
 
-// \class PedestalDigit
-/// \brief MCH "fat" digit implementation for pedestal data
+/** 
+ * @class PedestalDigit 
+ * @brief "Fat" digit for pedestal data. 
+ *
+ * In contrast to a "regular" digit, a PedestalDigit stores ADC samples
+ * (up to `MCH_PEDESTALS_MAX_SAMPLES` samples)
+ *
+ */
 class PedestalDigit
 {
  public:
@@ -59,9 +60,7 @@ class PedestalDigit
   int mChannel; /// Amplitude of signal
 
   ClassDefNV(PedestalDigit, 1);
-}; //class PedestalDigit
+};
 
-} //namespace calibration
-} //namespace mch
-} //namespace o2
-#endif // ALICEO2_MCH_PEDESTAL_DIGIT_H_
+} // namespace o2::mch::calibration
+#endif

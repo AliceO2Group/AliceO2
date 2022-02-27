@@ -9,22 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file DsChannleGroup.h
-/// \brief Implementation of a group of DualSampa channels
-///
-/// \author Andrea Ferrero, CEA-Saclay
-
-#ifndef ALICEO2_MCH_DSCHANNELGROUP_H_
-#define ALICEO2_MCH_DSCHANNELGROUP_H_
-
-#include <vector>
-#include "DataFormatsMCH/DsChannelId.h"
+#include "DataFormatsMCH/DsChannelGroup.h"
+#include <fmt/core.h>
 
 namespace o2::mch
 {
-
-using DsChannelGroup = std::vector<DsChannelId>;
-
+std::string DsChannelId::asString() const
+{
+  return fmt::format("solarid {:4d} dsid {:4d} ch {:2d}",
+                     getSolarId(), getDsId(), getChannel());
+}
 } // namespace o2::mch
-
-#endif

@@ -112,9 +112,8 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
     mConfigRegistry{nullptr},
     mServiceRegistry{registry},
     mAllocator{&registry, mSpec.outputs},
-    mQuotaEvaluator{registry.get<ComputingQuotaEvaluator>()},
-    mAwakeHandle{nullptr},
-    mProcessingPolicies{policies}
+    mProcessingPolicies{policies},
+    mQuotaEvaluator{registry.get<ComputingQuotaEvaluator>()}
 {
   /// FIXME: move erro handling to a service?
   if (mError != nullptr) {
@@ -723,10 +722,18 @@ void DataProcessingDevice::Run()
         fair::Logger::SetConsoleSeverity(originalSeverity);
         shouldResetSeverity = false;
       }
+      mState.loopReason = DeviceState::NO_REASON;
+      if ((mState.tracingFlags & DeviceState::LoopReason::TRACE_CALLBACKS) != 0) {
+        fair::Logger::SetConsoleSeverity(fair::Severity::trace);
+        shouldResetSeverity = true;
+      }
       uv_run(mState.loop, shouldNotWait ? UV_RUN_NOWAIT : UV_RUN_ONCE);
       if ((mState.loopReason & mState.tracingFlags) != 0) {
         fair::Logger::SetConsoleSeverity(fair::Severity::trace);
         shouldResetSeverity = true;
+      } else if (shouldResetSeverity) {
+        fair::Logger::SetConsoleSeverity(originalSeverity);
+        shouldResetSeverity = false;
       }
       TracyPlot("loopReason", (int64_t)(uint64_t)mState.loopReason);
       LOGP(debug, "Loop reason mask {:b} & {:b} = {:b}",
@@ -837,6 +844,8 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
   // Whether or not all the channels are completed
   for (size_t ci = 0; ci < context.deviceContext->spec->inputChannels.size(); ++ci) {
     auto& info = context.deviceContext->state->inputChannelInfos[ci];
+    auto& channelSpec = context.deviceContext->spec->inputChannels[ci];
+    LOGP(debug, "Processing channel {}", channelSpec.name);
 
     if (info.state != InputChannelState::Completed && info.state != InputChannelState::Pull) {
       context.allDone = false;
@@ -847,6 +856,7 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
       if (info.parts.Size()) {
         DataProcessingDevice::handleData(context, info);
       }
+      LOGP(debug, "Flushing channel {} which is in state {} and has {} parts still pending.", channelSpec.name, info.state, info.parts.Size());
       continue;
     }
     auto& socket = info.channel->GetSocket();
@@ -858,6 +868,7 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
       socket.Events(&info.hasPendingEvents);
       // If we do not read, we can continue.
       if ((info.hasPendingEvents & 1) == 0 && (info.parts.Size() == 0)) {
+        LOGP(debug, "No pending events and no remaining parts to process for channel {}", channelSpec.name);
         continue;
       }
     }
@@ -990,7 +1001,7 @@ void DataProcessingDevice::ResetTask()
 }
 
 struct WaitBackpressurePolicy {
-  void backpressure(InputChannelInfo const& info)
+  void backpressure(InputChannelInfo const&)
   {
   }
 };
@@ -1245,13 +1256,14 @@ void update_maximum(std::atomic<T>& maximum_value, T const& value) noexcept
 bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context, std::vector<DataRelayer::RecordAction>& completed)
 {
   ZoneScopedN("DataProcessingDevice::tryDispatchComputation");
+  LOGP(debug, "DataProcessingDevice::tryDispatchComputation");
   // This is the actual hidden state for the outer loop. In case we decide we
   // want to support multithreaded dispatching of operations, I can simply
   // move these to some thread local store and the rest of the lambdas
   // should work just fine.
   std::vector<MessageSet> currentSetOfInputs;
 
-  auto reportError = [&registry = *context.registry, &context](const char* message) {
+  auto reportError = [&registry = *context.registry](const char* message) {
     registry.get<DataProcessingStats>().errorCount++;
   };
 
@@ -1381,6 +1393,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
                         &spec = context.deviceContext->spec,
                         &device = context.deviceContext->device, &currentSetOfInputs](TimesliceSlot slot, InputRecord& record, bool copy, bool consume = true) {
     ZoneScopedN("forward inputs");
+    LOGP(debug, "DataProcessingDevice::tryDispatchComputation::forwardInputs");
     assert(record.size() == currentSetOfInputs.size());
     // we collect all messages per forward in a map and send them together
     std::vector<FairMQParts> forwardedParts;
@@ -1506,6 +1519,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   };
 
   if (canDispatchSomeComputation() == false) {
+    LOGP(debug, "No computations available for dispatching.");
     return false;
   }
 
@@ -1537,8 +1551,11 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   };
 
   // This is the main dispatching loop
+  LOGP(debug, "Processing actions:");
   for (auto action : getReadyActions()) {
+    LOGP(debug, "  Begin action");
     if (action.op == CompletionPolicy::CompletionOp::Wait) {
+      LOGP(debug, "  - Action is to Wait");
       continue;
     }
 
@@ -1555,6 +1572,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
       context.registry->preProcessingCallbacks(processContext);
     }
     if (action.op == CompletionPolicy::CompletionOp::Discard) {
+      LOGP(debug, "  - Action is to Discard");
       context.registry->postDispatchingCallbacks(processContext);
       if (context.deviceContext->spec->forwards.empty() == false) {
         forwardInputs(action.slot, record, false);
@@ -1569,6 +1587,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     bool consumeSomething = action.op == CompletionPolicy::CompletionOp::Consume || action.op == CompletionPolicy::CompletionOp::ConsumeExisting;
 
     if (context.canForwardEarly && hasForwards && consumeSomething) {
+      LOGP(debug, "  - Early forwarding");
       forwardInputs(action.slot, record, true, action.op == CompletionPolicy::CompletionOp::Consume);
     }
     markInputsAsDone(action.slot);
@@ -1634,6 +1653,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
       context.registry->get<CallbackService>()(CallbackService::Id::DataConsumed, *(context.registry));
     }
     if ((context.canForwardEarly == false) && hasForwards && consumeSomething) {
+      LOGP(debug, "Late forwarding");
       forwardInputs(action.slot, record, false, action.op == CompletionPolicy::CompletionOp::Consume);
     }
     if (action.op == CompletionPolicy::CompletionOp::Consume) {
@@ -1646,6 +1666,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   }
   // We now broadcast the end of stream if it was requested
   if (context.deviceContext->state->streaming == StreamingState::EndOfStreaming) {
+    LOGP(debug, "Broadcasting end of stream");
     for (auto& channel : context.deviceContext->spec->outputChannels) {
       DataProcessingHelpers::sendEndOfStream(*context.deviceContext->device, channel);
     }

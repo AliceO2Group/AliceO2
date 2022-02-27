@@ -370,6 +370,7 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     auto& rawDeviceService = services.get<RawDeviceService>();
 
     auto timestamp = VariableContextHelpers::getTimeslice(variables).value;
+    LOGP(debug, "Enumerating record");
     DataHeader dh;
     dh.dataOrigin = matcher.origin;
     dh.dataDescription = matcher.description;

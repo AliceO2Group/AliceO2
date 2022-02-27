@@ -102,6 +102,11 @@ EVE_CONFIG=" --jsons-folder $EDJSONS_DIR"
 MIDDEC_CONFIG=
 EMCRAW2C_CONFIG=
 
+if [[ -z $ALPIDE_ERR_DUMPS ]]; then
+  [[ $EPNSYNCMODE == 1 ]] && ALPIDE_ERR_DUMPS="1" || ALPIDE_ERR_DUMPS="0"
+fi
+
+
 if [[ $SYNCMODE == 1 ]]; then
   if [[ $BEAMTYPE == "PbPb" ]]; then
     ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;"
@@ -376,8 +381,8 @@ if [[ $CTFINPUT == 0 && $DIGITINPUT == 0 ]]; then
     add_W o2-tpc-raw-to-digits-workflow "--input-spec \"A:TPC/RAWDATA;dd:FLP/DISTSUBTIMEFRAME/0\" --remove-duplicates --pipeline $(get_N tpc-raw-to-digits-0 TPC RAW TPCRAWDEC)"
     add_W o2-tpc-reco-workflow "--input-type digitizer --output-type zsraw,disable-writer --pipeline $(get_N tpc-zsEncoder TPC RAW TPCRAWDEC)"
   fi
-  has_detector ITS && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NITSDECTHREADS} --pipeline $(get_N its-stf-decoder ITS RAW ITSRAWDEC)" "$ITSMFT_FILES"
-  has_detector MFT && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NMFTDECTHREADS} --pipeline $(get_N mft-stf-decoder MFT RAW MFTRAWDEC) --runmft true" "$ITSMFT_FILES"
+  has_detector ITS && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NITSDECTHREADS} --raw-data-dumps $ALPIDE_ERR_DUMPS --pipeline $(get_N its-stf-decoder ITS RAW ITSRAWDEC)" "$ITSMFT_FILES"
+  has_detector MFT && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NMFTDECTHREADS} --raw-data-dumps $ALPIDE_ERR_DUMPS --pipeline $(get_N mft-stf-decoder MFT RAW MFTRAWDEC) --runmft true" "$ITSMFT_FILES"
   has_detector FT0 && ! has_detector_flp_processing FT0 && add_W o2-ft0-flp-dpl-workflow "$DISABLE_ROOT_OUTPUT --pipeline $(get_N ft0-datareader-dpl FT0 RAW)"
   has_detector FV0 && ! has_detector_flp_processing FV0 && add_W o2-fv0-flp-dpl-workflow "$DISABLE_ROOT_OUTPUT --pipeline $(get_N fv0-datareader-dpl FV0 RAW)"
   has_detector MID && add_W o2-mid-raw-to-digits-workflow "$MIDDEC_CONFIG --pipeline $(get_N MIDRawDecoder MID RAW),$(get_N MIDDecodedDataAggregator MID RAW)"

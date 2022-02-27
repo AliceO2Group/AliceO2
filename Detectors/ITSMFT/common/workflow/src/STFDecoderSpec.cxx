@@ -289,7 +289,7 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
       {"nthreads", VariantType::Int, 1, {"Number of decoding/clustering threads"}},
       {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},
       {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data) of 1st lane"}},
-      {"raw-data-dumps", VariantType::Int, int(GBTLink::RawDataDumps::DUMP_HBF), {"Raw data dumps on error (0: none, 1: HBF for link, 2: whole TF for all links"}},
+      {"raw-data-dumps", VariantType::Int, int(GBTLink::RawDataDumps::DUMP_NONE), {"Raw data dumps on error (0: none, 1: HBF for link, 2: whole TF for all links"}},
       {"unmute-extra-lanes", VariantType::Bool, false, {"allow extra lanes to be as verbose as 1st one"}}}};
 }
 

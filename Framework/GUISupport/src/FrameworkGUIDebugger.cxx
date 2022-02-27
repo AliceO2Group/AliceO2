@@ -1055,6 +1055,9 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
         ImGui::InputText("Log stop trigger", control.logStopTrigger, sizeof(control.logStopTrigger));
         ImGui::Checkbox("Stop logging", &control.quiet);
         ImGui::SameLine();
+        if (control.tracingFlags) {
+          control.logLevel = LogParsingHelpers::LogLevel::Debug;
+        }
         ImGui::Combo("Log level", reinterpret_cast<int*>(&control.logLevel), LogParsingHelpers::LOG_LEVELS,
                      (int)LogParsingHelpers::LogLevel::Size, 5);
 

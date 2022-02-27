@@ -9,20 +9,29 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file MCHChannelCalibrator.h
-/// \brief Transitional compatibility header
-///
-/// \author Andrea Ferrero
-
-#ifndef O2_MCH_CALIBRATION_CHANNEL_CALIBRATOR_H_
-#define O2_MCH_CALIBRATION_CHANNEL_CALIBRATOR_H_
-
-#include "MCHCalibration/BadChannelCalibrator.h"
+#include "MCHCalibration/PedestalChannel.h"
+#include <cmath>
+#include <fmt/core.h>
+#include <iostream>
 
 namespace o2::mch::calibration
+
 {
-using MCHChannelCalibrator [[deprecated("Use BadChannelCalibrator instead")]] = BadChannelCalibrator;
-using PedestalProcessor [[deprecated("Use PedestalData instead")]] = PedestalData;
-using ChannelPedestal [[deprecated("Use PedestalChannel instead")]] = PedestalChannel;
+double PedestalChannel::getRms() const
+{
+  return mEntries > 0 ? std::sqrt(mVariance / mEntries) : std::numeric_limits<double>::max();
+}
+
+std::string PedestalChannel::asString() const
+{
+  return fmt::format("{} entries {:8d} mean {:7.2f} mVariance {:7.2f}",
+                     dsChannelId.asString(), mEntries, mPedestal, mVariance);
+}
+
+std::ostream& operator<<(std::ostream& os, const PedestalChannel& c)
+{
+  os << c.asString();
+  return os;
+}
+
 } // namespace o2::mch::calibration
-#endif
