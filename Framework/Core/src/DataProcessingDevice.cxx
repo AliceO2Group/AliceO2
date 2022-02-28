@@ -863,7 +863,7 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
       if (info.parts.Size()) {
         DataProcessingDevice::handleData(context, info);
       }
-      LOGP(debug, "Flushing channel {} which is in state {} and has {} parts still pending.", channelSpec.name, info.state, info.parts.Size());
+      LOGP(debug, "Flushing channel {} which is in state {} and has {} parts still pending.", channelSpec.name, (int)info.state, info.parts.Size());
       continue;
     }
     auto& socket = info.channel->GetSocket();
