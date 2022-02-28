@@ -36,6 +36,7 @@ enum struct InputChannelState {
 struct InputChannelInfo {
   InputChannelState state = InputChannelState::Running;
   uint32_t hasPendingEvents = 0;
+  bool readPolled = false;
   FairMQChannel* channel = nullptr;
   FairMQParts parts;
   /// Wether we already notified operations are normal.

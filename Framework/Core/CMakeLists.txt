@@ -41,6 +41,7 @@ o2_add_library(Framework
                        src/ProcessingPoliciesHelpers.cxx
                        src/ConfigParamStore.cxx
                        src/ConfigParamsHelper.cxx
+                       src/ChannelParamSpec.cxx
                        src/DDSConfigHelpers.cxx
                        src/DataAllocator.cxx
                        src/DataDescriptorMatcher.cxx

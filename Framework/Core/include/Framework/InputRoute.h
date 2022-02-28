@@ -30,6 +30,7 @@ struct RouteConfigurator {
   using CreationConfigurator = std::function<ExpirationHandler::Creator(DeviceState&, ServiceRegistry&, ConfigParamRegistry const&)>;
   using DanglingConfigurator = std::function<ExpirationHandler::Checker(DeviceState&, ConfigParamRegistry const&)>;
   using ExpirationConfigurator = std::function<ExpirationHandler::Handler(DeviceState&, ConfigParamRegistry const&)>;
+  std::string name = "unknown";
 
   CreationConfigurator creatorConfigurator = nullptr;
   DanglingConfigurator danglingConfigurator = nullptr;

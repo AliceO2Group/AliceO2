@@ -54,7 +54,7 @@ size_t getCurrentTime()
 
 ExpirationHandler::Creator LifetimeHelpers::dataDrivenCreation()
 {
-  return [](TimesliceIndex& index) -> TimesliceSlot {
+  return [](TimesliceIndex&) -> TimesliceSlot {
     return {TimesliceSlot::ANY};
   };
 }
@@ -64,9 +64,10 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
   auto last = std::make_shared<size_t>(start + inputTimeslice * step);
   auto repetition = std::make_shared<size_t>(0);
 
-  return [start, end, step, last, inputTimeslice, maxInputTimeslices, maxRepetitions, repetition](TimesliceIndex& index) -> TimesliceSlot {
+  return [end, step, last, maxInputTimeslices, maxRepetitions, repetition](TimesliceIndex& index) -> TimesliceSlot {
     for (size_t si = 0; si < index.size(); si++) {
       if (*last > end) {
+        LOGP(debug, "Last greater than end");
         return TimesliceSlot{TimesliceSlot::INVALID};
       }
       auto slot = TimesliceSlot{si};
@@ -76,11 +77,13 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
         if (*repetition % maxRepetitions == 0) {
           *last += step * maxInputTimeslices;
         }
+        LOGP(debug, "Associating timestamp {} to slot {}", timestamp.value, slot.index);
         index.associate(timestamp, slot);
         return slot;
       }
     }
 
+    LOGP(debug, "No slots available");
     return TimesliceSlot{TimesliceSlot::INVALID};
   };
 }
@@ -141,6 +144,58 @@ ExpirationHandler::Checker LifetimeHelpers::expireAlways()
   return [](ServiceRegistry&, int64_t) -> bool { return true; };
 }
 
+ExpirationHandler::Creator LifetimeHelpers::uvDrivenCreation(int requestedLoopReason, DeviceState& state)
+{
+  return [requestedLoopReason, &state](TimesliceIndex& index) -> TimesliceSlot {
+    /// Not the expected loop reason, return an invalid slot.
+    if ((state.loopReason & requestedLoopReason) == 0) {
+      LOGP(debug, "No expiration due to a loop event. Requested: {:b}, reported: {:b}, matching: {:b}",
+           requestedLoopReason,
+           state.loopReason,
+           requestedLoopReason & state.loopReason);
+      return TimesliceSlot{TimesliceSlot::INVALID};
+    }
+    auto current = getCurrentTime();
+
+    // We first check if the current time is not already present
+    // FIXME: this should really be done by query matching? Ok
+    //        for now to avoid duplicate entries.
+    for (size_t i = 0; i < index.size(); ++i) {
+      TimesliceSlot slot{i};
+      if (index.isValid(slot) == false) {
+        continue;
+      }
+      auto& variables = index.getVariablesForSlot(slot);
+      if (VariableContextHelpers::getTimeslice(variables).value == current) {
+        return TimesliceSlot{TimesliceSlot::INVALID};
+      }
+    }
+
+    LOGP(debug, "Record was expired due to a loop event. Requested: {:b}, reported: {:b}, matching: {:b}",
+         requestedLoopReason,
+         state.loopReason,
+         requestedLoopReason & state.loopReason);
+
+    // If we are here the loop has triggered with the expected
+    // event so we need to create a slot.
+    data_matcher::VariableContext newContext;
+    newContext.put({0, static_cast<uint64_t>(current)});
+    newContext.commit();
+    auto [action, slot] = index.replaceLRUWith(newContext, TimesliceId{current});
+    switch (action) {
+      case TimesliceIndex::ActionTaken::ReplaceObsolete:
+      case TimesliceIndex::ActionTaken::ReplaceUnused:
+        index.associate(TimesliceId{current}, slot);
+        break;
+      case TimesliceIndex::ActionTaken::DropInvalid:
+      case TimesliceIndex::ActionTaken::DropObsolete:
+      case TimesliceIndex::ActionTaken::Wait:
+        break;
+    }
+    return slot;
+  };
+}
+
 ExpirationHandler::Checker LifetimeHelpers::expireTimed(std::chrono::microseconds period)
 {
   auto start = getCurrentTime();
@@ -161,7 +216,7 @@ ExpirationHandler::Checker LifetimeHelpers::expireTimed(std::chrono::microsecond
 /// expires via this mechanism).
 ExpirationHandler::Handler LifetimeHelpers::doNothing()
 {
-  return [](ServiceRegistry&, PartRef& ref, data_matcher::VariableContext&) -> void { return; };
+  return [](ServiceRegistry&, PartRef&, data_matcher::VariableContext&) -> void { return; };
 }
 
 // We simply put everything
@@ -173,7 +228,7 @@ size_t readToBuffer(void* p, size_t size, size_t nmemb, void* userdata)
   if (size == 0) {
     return 0;
   }
-  std::vector<char>* buffer = (std::vector<char>*)userdata;
+  auto* buffer = (std::vector<char>*)userdata;
   size_t oldSize = buffer->size();
   buffer->resize(oldSize + nmemb * size);
   memcpy(buffer->data() + oldSize, p, nmemb * size);
@@ -189,7 +244,7 @@ size_t readToMessage(void* p, size_t size, size_t nmemb, void* userdata)
   if (size == 0) {
     return 0;
   }
-  o2::pmr::vector<char>* buffer = (o2::pmr::vector<char>*)userdata;
+  auto* buffer = (o2::pmr::vector<char>*)userdata;
   size_t oldSize = buffer->size();
   buffer->resize(oldSize + nmemb * size);
   memcpy(buffer->data() + oldSize, p, nmemb * size);
@@ -321,7 +376,7 @@ ExpirationHandler::Handler
   LifetimeHelpers::fetchFromFairMQ(InputSpec const& spec,
                                    std::string const& channelName)
 {
-  return [spec, channelName](ServiceRegistry& services, PartRef& ref, data_matcher::VariableContext& variables) -> void {
+  return [spec, channelName](ServiceRegistry& services, PartRef& ref, data_matcher::VariableContext&) -> void {
     auto& rawDeviceService = services.get<RawDeviceService>();
     auto device = rawDeviceService.device();
 
@@ -340,7 +395,7 @@ ExpirationHandler::Handler
 /// FIXME: provide a way to customise the histogram from the configuration.
 ExpirationHandler::Handler LifetimeHelpers::fetchFromQARegistry()
 {
-  return [](ServiceRegistry&, PartRef& ref, data_matcher::VariableContext&) -> void {
+  return [](ServiceRegistry&, PartRef&, data_matcher::VariableContext&) -> void {
     throw runtime_error("fetchFromQARegistry: Not yet implemented");
     return;
   };
@@ -351,7 +406,7 @@ ExpirationHandler::Handler LifetimeHelpers::fetchFromQARegistry()
 /// FIXME: provide a way to customise the histogram from the configuration.
 ExpirationHandler::Handler LifetimeHelpers::fetchFromObjectRegistry()
 {
-  return [](ServiceRegistry&, PartRef& ref, data_matcher::VariableContext&) -> void {
+  return [](ServiceRegistry&, PartRef&, data_matcher::VariableContext&) -> void {
     throw runtime_error("fetchFromObjectRegistry: Not yet implemented");
     return;
   };
