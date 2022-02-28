@@ -45,6 +45,7 @@
 - [#8204](https://github.com/AliceO2Group/AliceO2/pull/8204) 2022-02-25: Produce Alpide raw data dumps only on request or in EPNSYNCMODE=1 mode by [@shahor02](https://github.com/shahor02)
 - [#8217](https://github.com/AliceO2Group/AliceO2/pull/8217) 2022-02-25: Sort AOD track daughters indices by [@shahor02](https://github.com/shahor02)
 - [#8215](https://github.com/AliceO2Group/AliceO2/pull/8215) 2022-02-26: [MRRTF-146] MCH: Introduce CSV version of the Bad Channel List by [@aphecetche](https://github.com/aphecetche)
+- [#8218](https://github.com/AliceO2Group/AliceO2/pull/8218) 2022-02-28: MCH: add ability to write digits in Root format in the digits-writer by [@aphecetche](https://github.com/aphecetche)
 ## Changes in EventVisualisation
 
 - [#8179](https://github.com/AliceO2Group/AliceO2/pull/8179) 2022-02-18: Event display: Add option to not throw when no input + unrelated cleanup by [@davidrohr](https://github.com/davidrohr)
