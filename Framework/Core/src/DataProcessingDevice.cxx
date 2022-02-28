@@ -146,6 +146,8 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
 
   std::function<void(const fair::mq::State)> stateWatcher = [this, &registry = mServiceRegistry](const fair::mq::State state) -> void {
     auto& deviceState = registry.get<DeviceState>();
+    auto& control = registry.get<ControlService>();
+    control.notifyDeviceState(fair::mq::GetStateName(state));
     if (deviceState.nextFairMQState.empty() == false) {
       auto state = deviceState.nextFairMQState.back();
       this->ChangeState(state);

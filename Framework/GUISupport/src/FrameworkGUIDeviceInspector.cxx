@@ -212,6 +212,7 @@ void displayDeviceInspector(DeviceSpec const& spec,
   } else {
     ImGui::Text("Pid: %d (exit status: %d)", info.pid, info.exitStatus);
   }
+  ImGui::Text("Device state: %s", info.deviceState.data());
 #ifdef DPL_ENABLE_TRACING
   ImGui::Text("Tracy Port: %d", info.tracyPort);
 #endif

@@ -49,6 +49,8 @@ class ControlService
   void endOfStream();
   /// Report the current streaming state of a given device
   void notifyStreamingState(StreamingState state);
+  /// Report the current FairMQ state of a given device
+  void notifyDeviceState(std::string state);
 
  private:
   bool mOnce = false;

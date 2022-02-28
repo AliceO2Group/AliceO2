@@ -28,7 +28,8 @@ bool ControlServiceHelpers::parseControl(std::string const& s, std::smatch& matc
   }
   const static std::regex controlRE1(".*CONTROL_ACTION: READY_TO_(QUIT)_(ME|ALL)", std::regex::optimize);
   const static std::regex controlRE2(".*CONTROL_ACTION: (NOTIFY_STREAMING_STATE) (IDLE|STREAMING|EOS)", std::regex::optimize);
-  return std::regex_search(s, match, controlRE1) || std::regex_search(s, match, controlRE2);
+  const static std::regex controlRE3(".*CONTROL_ACTION: (NOTIFY_DEVICE_STATE) ([A-Z ]*)", std::regex::optimize);
+  return std::regex_search(s, match, controlRE1) || std::regex_search(s, match, controlRE2) || std::regex_search(s, match, controlRE3);
 }
 
 void ControlServiceHelpers::processCommand(std::vector<DeviceInfo>& infos,
@@ -60,6 +61,8 @@ void ControlServiceHelpers::processCommand(std::vector<DeviceInfo>& infos,
   } else if (command == "NOTIFY_STREAMING_STATE" && arg == "EOS") {
     // FIXME: this should really be a policy...
     doToMatchingPid(infos, pid, [](DeviceInfo& info) { info.streamingState = StreamingState::EndOfStreaming; });
+  } else if (command == "NOTIFY_DEVICE_STATE") {
+    doToMatchingPid(infos, pid, [arg](DeviceInfo& info) { info.deviceState = arg; });
   } else {
     LOGP(error, "Unknown command {} with argument {}", command, arg);
   }
