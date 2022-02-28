@@ -540,14 +540,14 @@ struct ControlWebSocketHandler : public WebSocketHandler {
 /// A callback for the rest engine
 void ws_connect_callback(uv_stream_t* server, int status)
 {
-  DriverServerContext* serverContext = reinterpret_cast<DriverServerContext*>(server->data);
+  auto* serverContext = reinterpret_cast<DriverServerContext*>(server->data);
   if (status < 0) {
     LOGF(error, "New connection error %s\n", uv_strerror(status));
     // error!
     return;
   }
 
-  uv_tcp_t* client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
+  auto* client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
   uv_tcp_init(serverContext->loop, client);
   if (uv_accept(server, (uv_stream_t*)client) == 0) {
     client->data = new WSDPLHandler((uv_stream_t*)client, serverContext);
@@ -564,7 +564,7 @@ struct StreamConfigContext {
 
 void stream_config(uv_work_t* req)
 {
-  StreamConfigContext* context = (StreamConfigContext*)req->data;
+  auto* context = (StreamConfigContext*)req->data;
   size_t result = write(context->fd, context->configuration.data(), context->configuration.size());
   if (result != context->configuration.size()) {
     LOG(error) << "Unable to pass configuration to children";
