@@ -38,8 +38,8 @@
 #include "CommonDataFormat/IRFrame.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 
-// #include "ITSReconstruction/FastMultEstConfig.h"
-// #include "ITSReconstruction/FastMultEst.h"
+#include "ITSReconstruction/FastMultEstConfig.h"
+#include "ITSReconstruction/FastMultEst.h"
 #include <fmt/format.h>
 
 namespace o2
@@ -279,9 +279,9 @@ void TrackerDPL::run(ProcessingContext& pc)
     }
   }
 
-  LOG(info) << fmt::format(" - In total, multiplicity selection rejected {}/{} ROFs", mTimeFrame.getROfCutAllMult(), rofspan.size());
-  LOG(info) << fmt::format("\t - Cluster multiplicity selection rejected {}/{} ROFs", mTimeFrame.getROfCutClusterMult(), rofspan.size());
-  LOG(info) << fmt::format("\t - Vertex multiplicity selection rejected {}/{} ROFs", mTimeFrame.getROfCutVertexMult(), rofspan.size());
+  LOG(info) << fmt::format(" - In total, multiplicity selection rejected {}/{} ROFs", cutTotalMult, rofspan.size());
+  LOG(info) << fmt::format("\t - Cluster multiplicity selection rejected {}/{} ROFs", cutClusterMult, rofspan.size());
+  LOG(info) << fmt::format("\t - Vertex multiplicity selection rejected {}/{} ROFs", cutVertexMult, rofspan.size());
   LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} clusters in {} ROFs", vertexerElapsedTime, nclUsed, rofspan.size());
   LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", timeFrame->getBeamX(), timeFrame->getBeamY());
 
