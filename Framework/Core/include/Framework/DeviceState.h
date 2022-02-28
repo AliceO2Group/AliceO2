@@ -71,6 +71,7 @@ struct DeviceState {
     NEW_STATE_PENDING = 1 << 15,  // Someone invoked NewStatePending
     PREVIOUSLY_ACTIVE = 1 << 16,  // The previous loop was active
     TRACE_CALLBACKS = 1 << 17,    // Trace callbacks
+    TRACE_USERCODE = 1 << 18,     // Trace only usercode
   };
 
   std::vector<InputChannelInfo> inputChannelInfos;
@@ -106,6 +107,9 @@ struct DeviceState {
   int loopReason = 0;
   /// Bitmask of LoopReason to trace
   int tracingFlags = 0;
+  /// Stack of the severity, so that we can display only
+  /// the bits we are interested in.
+  std::vector<int> severityStack;
   TransitionHandlingState transitionHandling = TransitionHandlingState::NoTransition;
 };
 

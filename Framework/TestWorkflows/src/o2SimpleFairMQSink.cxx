@@ -12,6 +12,7 @@
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/RawDeviceService.h"
+#include "Framework/ChannelParamSpec.h"
 
 #include <chrono>
 #include <thread>
@@ -25,9 +26,11 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
 {
   return AlgorithmSpec{adaptStateful([what, minDelay]() {
     srand(getpid());
-    return adaptStateless([what, minDelay](DataAllocator& outputs, RawDeviceService& device) {
-      LOG(info) << "Callback invoked";
-      outputs.make<int>(OutputRef{what}, 1);
+    return adaptStateless([what, minDelay](RawDeviceService& device) {
+      std::unique_ptr<FairMQMessage> msg;
+      device.device()->Receive(msg, "upstream", 0);
+      LOGP(info, "Callback invoked. Size of the message {}", msg->GetSize());
+
       device.device()->WaitFor(std::chrono::seconds(minDelay));
     });
   })};
@@ -37,14 +40,8 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    {"B",
-     {InputSpec{{"external"}, "TST", "EXT", 0, Lifetime::OutOfBand}},
-     {OutputSpec{{"b1"}, "TST", "B1"}},
-     simplePipe("b1", 0)},
-    {"D",
-     Inputs{
-       InputSpec{"b", "TST", "B1"},
-     },
-     Outputs{},
-     AlgorithmSpec{adaptStateless([]() {})}}};
+    {.name = "B",
+     .inputs = {{{"external"}, "TST", "EXT", 0, Lifetime::OutOfBand, channelParamSpec("upstream")}},
+     .algorithm = simplePipe("b1", 0)},
+  };
 }
