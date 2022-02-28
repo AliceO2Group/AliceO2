@@ -94,6 +94,11 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     if (mDumpOnError < 0 || mDumpOnError >= int(GBTLink::RawDataDumps::DUMP_NTYPES)) {
       throw std::runtime_error(fmt::format("unknown raw data dump level {} requested", mDumpOnError));
     }
+    auto dumpDir = ic.options().get<std::string>("raw-data-dumps-directory");
+    if (mDumpOnError != int(GBTLink::RawDataDumps::DUMP_NONE) && o2::utils::Str::pathIsDirectory(dumpDir)) {
+      throw std::runtime_error(fmt::format("directory {} for raw data dumps does not exist", dumpDir));
+    }
+    mDecoder->setRawDumpDirectory(dumpDir);
     mDecoder->setFillCalibData(mDoCalibData);
     if (o2::utils::Str::pathExists(mNoiseName)) {
       TFile* f = TFile::Open(mNoiseName.data(), "old");
@@ -290,6 +295,7 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
       {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},
       {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data) of 1st lane"}},
       {"raw-data-dumps", VariantType::Int, int(GBTLink::RawDataDumps::DUMP_NONE), {"Raw data dumps on error (0: none, 1: HBF for link, 2: whole TF for all links"}},
+      {"raw-data-dumps-directory", VariantType::String, "", {"Destination directory for the raw data dumps"}},
       {"unmute-extra-lanes", VariantType::Bool, false, {"allow extra lanes to be as verbose as 1st one"}}}};
 }
 
