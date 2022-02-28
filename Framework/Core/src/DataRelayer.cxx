@@ -568,10 +568,9 @@ void DataRelayer::updateCacheStatus(TimesliceSlot slot, CacheEntryStatus oldStat
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
   const auto numInputTypes = mDistinctRoutesIndex.size();
-  auto& index = mTimesliceIndex;
 
   auto markInputDone = [&cachedStateMetrics = mCachedStateMetrics,
-                        &index, &numInputTypes](TimesliceSlot s, size_t arg, CacheEntryStatus oldStatus, CacheEntryStatus newStatus) {
+                        &numInputTypes](TimesliceSlot s, size_t arg, CacheEntryStatus oldStatus, CacheEntryStatus newStatus) {
     auto cacheId = s.index * numInputTypes + arg;
     if (cachedStateMetrics[cacheId] == oldStatus) {
       cachedStateMetrics[cacheId] = newStatus;
@@ -592,7 +591,6 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeAllInputsForTimeslice
   std::vector<MessageSet> messages(numInputTypes);
   auto& cache = mCache;
   auto& index = mTimesliceIndex;
-  auto& metrics = mMetrics;
 
   // Nothing to see here, this is just to make the outer loop more understandable.
   auto jumpToCacheEntryAssociatedWith = [](TimesliceSlot) {
@@ -605,7 +603,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeAllInputsForTimeslice
   // cache where to put them.
   auto moveHeaderPayloadToOutput = [&messages,
                                     &cachedStateMetrics = mCachedStateMetrics,
-                                    &cache, &index, &numInputTypes, &metrics](TimesliceSlot s, size_t arg) {
+                                    &cache, &index, &numInputTypes](TimesliceSlot s, size_t arg) {
     auto cacheId = s.index * numInputTypes + arg;
     cachedStateMetrics[cacheId] = CacheEntryStatus::RUNNING;
     // TODO: in the original implementation of the cache, there have been only two messages per entry,
@@ -620,7 +618,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeAllInputsForTimeslice
   // timeslice, so I can simply do that. I keep the assertion there because in principle
   // we should have dispatched the timeslice already!
   // FIXME: what happens when we have enough timeslices to hit the invalid one?
-  auto invalidateCacheFor = [&numInputTypes, &cachedStateMetrics = mCachedStateMetrics, &index, &cache](TimesliceSlot s) {
+  auto invalidateCacheFor = [&numInputTypes, &index, &cache](TimesliceSlot s) {
     for (size_t ai = s.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
       assert(std::accumulate(cache[ai].messages.begin(), cache[ai].messages.end(), true, [](bool result, auto const& element) { return result && element.get() == nullptr; }));
       cache[ai].clear();
@@ -635,7 +633,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeAllInputsForTimeslice
   }
   invalidateCacheFor(slot);
 
-  return std::move(messages);
+  return messages;
 }
 
 std::vector<o2::framework::MessageSet> DataRelayer::consumeExistingInputsForTimeslice(TimesliceSlot slot)
