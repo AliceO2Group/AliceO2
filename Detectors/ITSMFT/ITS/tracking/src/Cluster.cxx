@@ -86,7 +86,7 @@ bool Cluster::operator==(const Cluster& rhs) const
          this->zCoordinate == rhs.zCoordinate &&
          this->phi == rhs.phi &&
          this->radius == rhs.radius &&
-         //  this->clusterId == rhs.clusterId &&
+         this->clusterId == rhs.clusterId &&
          this->indexTableBinIndex == rhs.indexTableBinIndex;
 }
 

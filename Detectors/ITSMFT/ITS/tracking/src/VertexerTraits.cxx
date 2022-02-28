@@ -27,6 +27,8 @@
 #include "TTree.h"
 #include "TFile.h"
 
+#define VTX_DEBUG
+
 namespace o2
 {
 namespace its
@@ -209,7 +211,7 @@ void VertexerTraits::computeTracklets()
   }
   mTimeFrame->computeTrackletsScans();
 
-#ifdef CA_DEBUG
+#ifdef VTX_DEBUG
   // Dump on file
   TFile* trackletFile = TFile::Open("artefacts_tf.root", "recreate");
   TTree* tr_tre = new TTree("tracklets", "tf");
@@ -267,7 +269,7 @@ void VertexerTraits::computeTrackletMatching()
       mVrtParams.phiCut);
   }
 
-#ifdef CA_DEBUG
+#ifdef VTX_DEBUG
   TFile* trackletFile = TFile::Open("artefacts_tf.root", "update");
   TTree* ln_tre = new TTree("lines", "tf");
   std::vector<o2::its::Line> lines_vec(0);
@@ -300,6 +302,10 @@ void VertexerTraits::computeTrackletMatching()
 
 void VertexerTraits::computeVertices()
 {
+#ifdef VTX_DEBUG
+  std::vector<std::vector<ClusterLines>> dbg_clusLines(mTimeFrame->getNrof());
+#endif
+  std::vector<int> noClustersVec(mTimeFrame->getNrof(), 0);
   for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
     const int numTracklets{static_cast<int>(mTimeFrame->getLines(rofId).size())};
     std::vector<bool> usedTracklets{};
@@ -337,11 +343,11 @@ void VertexerTraits::computeVertices()
     }
     std::sort(mTimeFrame->getTrackletClusters(rofId).begin(), mTimeFrame->getTrackletClusters(rofId).end(),
               [](ClusterLines& cluster1, ClusterLines& cluster2) { return cluster1.getSize() > cluster2.getSize(); });
-    int noClusters{static_cast<int>(mTimeFrame->getTrackletClusters(rofId).size())};
-    for (int iCluster1{0}; iCluster1 < noClusters; ++iCluster1) {
+    noClustersVec[rofId] = static_cast<int>(mTimeFrame->getTrackletClusters(rofId).size());
+    for (int iCluster1{0}; iCluster1 < noClustersVec[rofId]; ++iCluster1) {
       std::array<float, 3> vertex1{mTimeFrame->getTrackletClusters(rofId)[iCluster1].getVertex()};
       std::array<float, 3> vertex2{};
-      for (int iCluster2{iCluster1 + 1}; iCluster2 < noClusters; ++iCluster2) {
+      for (int iCluster2{iCluster1 + 1}; iCluster2 < noClustersVec[rofId]; ++iCluster2) {
         vertex2 = mTimeFrame->getTrackletClusters(rofId)[iCluster2].getVertex();
         if (std::abs(vertex1[2] - vertex2[2]) < mVrtParams.clusterCut) {
           float distance{(vertex1[0] - vertex2[0]) * (vertex1[0] - vertex2[0]) +
@@ -355,14 +361,22 @@ void VertexerTraits::computeVertices()
           }
           mTimeFrame->getTrackletClusters(rofId).erase(mTimeFrame->getTrackletClusters(rofId).begin() + iCluster2);
           --iCluster2;
-          --noClusters;
+          --noClustersVec[rofId];
         }
       }
     }
-    for (int iCluster{0}; iCluster < noClusters; ++iCluster) {
-      if (mTimeFrame->getTrackletClusters(rofId)[iCluster].getSize() < mVrtParams.clusterContributorsCut && noClusters > 1) {
+  }
+
+  for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
+#ifdef VTX_DEBUG
+    for (auto& cl : mTimeFrame->getTrackletClusters(rofId)) {
+      dbg_clusLines[rofId].push_back(cl);
+    }
+#endif
+    for (int iCluster{0}; iCluster < noClustersVec[rofId]; ++iCluster) {
+      if (mTimeFrame->getTrackletClusters(rofId)[iCluster].getSize() < mVrtParams.clusterContributorsCut && noClustersVec[rofId] > 1) {
         mTimeFrame->getTrackletClusters(rofId).erase(mTimeFrame->getTrackletClusters(rofId).begin() + iCluster);
-        noClusters--;
+        noClustersVec[rofId]--;
         continue;
       }
       if (mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0] * mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0] +
@@ -386,6 +400,28 @@ void VertexerTraits::computeVertices()
     mTimeFrame->addPrimaryVertices(vertices);
     mVertices.clear();
   }
+#ifdef VTX_DEBUG
+  TFile* dbg_file = TFile::Open("artefacts_tf.root", "update");
+  TTree* ln_clus_lines_tree = new TTree("clusterlines","tf");
+  std::vector<o2::its::ClusterLines> cl_lines_vec_pre(0);
+  std::vector<o2::its::ClusterLines> cl_lines_vec_post(0);
+  ln_clus_lines_tree->Branch("cllines_pre", &cl_lines_vec_pre);
+  ln_clus_lines_tree->Branch("cllines_post", &cl_lines_vec_post);
+  for (auto rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
+    cl_lines_vec_pre.clear();
+    cl_lines_vec_post.clear();
+    for (auto& clln : mTimeFrame->getTrackletClusters(rofId)) {
+      cl_lines_vec_post.push_back(clln);
+    }
+    for (auto& cl : dbg_clusLines[rofId]) {
+      cl_lines_vec_pre.push_back(cl);
+    }
+    ln_clus_lines_tree->Fill();
+  }
+  dbg_file->cd();
+  ln_clus_lines_tree->Write();
+  dbg_file->Close();
+#endif
 }
 
 // void VertexerTraits::computeHistVertices()

@@ -22,9 +22,6 @@
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITStracking/TrackingConfigParam.h"
 
-#include "ITSReconstruction/FastMultEstConfig.h"
-#include "ITSReconstruction/FastMultEst.h"
-
 #include <iostream>
 
 namespace
@@ -182,24 +179,6 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
     mClusterLabels = mcLabels;
   }
 
-  // Apply selections on clusters multiplicity here
-  mCutClusterMult = 0;
-  mCutVertexMult = 0;
-
-  const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
-  FastMultEst multEst;
-  for (auto& rof : rofs) {
-    bool multCut = (cutMultClusLow <= 0 && cutMultClusHigh <= 0); // cut was requested
-    if (!multCut) {
-      float mult = multEst.process(rof.getROFData(clusters));
-      multCut = mult >= cutMultClusLow && mult <= cutMultClusHigh;
-      if (multCut) {
-        LOG(debug) << fmt::format("ROF {} rejected by the cluster multiplicity selection [{},{}]", mMultiplicityCutMask.size(), cutMultClusLow, cutMultClusHigh);
-      }
-      mCutClusterMult += !multCut;
-    }
-    mMultiplicityCutMask.push_back(multCut);
-  }
   return mNrof;
 }
 

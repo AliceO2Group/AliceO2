@@ -340,5 +340,24 @@ void ClusterLines::computeClusterCentroid()
                  mBMatrix[0] * (mAMatrix[1] * mAMatrix[4] - mAMatrix[2] * mAMatrix[3])) /
                determinant;
 }
+
+bool ClusterLines::operator==(const ClusterLines& rhs) const
+{
+  bool retval{true};
+  for (auto i{0}; i < 6; ++i) {
+    retval &= this->mRMS2[i] == rhs.mRMS2[i];
+  }
+  for (auto i{0}; i < 3; ++i) {
+    retval &= this->mVertex[i] == rhs.mVertex[i];
+  }
+  if (this->mLabels.size() != rhs.mLabels.size()) {
+    retval = false;
+  } else {
+    for (size_t i{0}; i < this->mLabels.size(); ++i) {
+      retval &= this->mLabels[i] == rhs.mLabels[i];
+    }
+  }
+  return retval && this->mAvgDistance2 == rhs.mAvgDistance2;
+}
 } // namespace its
 } // namespace o2

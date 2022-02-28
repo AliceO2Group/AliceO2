@@ -41,13 +41,13 @@ float Vertexer::clustersToVertices(const bool useMc, std::function<void(std::str
   float total{0.f};
   TrackingParameters trkPars;
   MemoryParameters memPars;
-  total += evaluateTask(&Vertexer::initialiseVertexer, false, "Vertexer initialisation", logger, memPars, trkPars);
-  total += evaluateTask(&Vertexer::findTracklets, false, "Tracklet finding", logger);
+  total += evaluateTask(&Vertexer::initialiseVertexer, true, "Vertexer initialisation", logger, memPars, trkPars);
+  total += evaluateTask(&Vertexer::findTracklets, true, "Tracklet finding", logger);
   if (useMc) {
-    total += evaluateTask(&Vertexer::filterMCTracklets, false, "MC tracklets filtering", logger);
+    total += evaluateTask(&Vertexer::filterMCTracklets, true, "MC tracklets filtering", logger);
   }
-  total += evaluateTask(&Vertexer::validateTracklets, false, "Adjacent tracklets validation", logger);
-  total += evaluateTask(&Vertexer::findVertices, false, "Vertex finding", logger);
+  total += evaluateTask(&Vertexer::validateTracklets, true, "Adjacent tracklets validation", logger);
+  total += evaluateTask(&Vertexer::findVertices, true, "Vertex finding", logger);
 
   return total;
 }

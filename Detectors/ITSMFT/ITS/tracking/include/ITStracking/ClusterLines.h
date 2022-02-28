@@ -202,6 +202,7 @@ inline bool Line::operator!=(const Line& rhs) const
 class ClusterLines final
 {
  public:
+  ClusterLines() = default;
   ClusterLines(const int firstLabel, const Line& firstLine, const int secondLabel, const Line& secondLine,
                const bool weight = false);
   ClusterLines(const Line& firstLine, const Line& secondLine);
@@ -216,11 +217,12 @@ class ClusterLines final
   inline std::array<float, 6> getRMS2() const { return mRMS2; }
   inline float getAvgDistance2() const { return mAvgDistance2; }
 
+  bool operator==(const ClusterLines&) const;
+
  protected:
   std::array<float, 6> mAMatrix;         // AX=B
   std::array<float, 3> mBMatrix;         // AX=B
   std::vector<int> mLabels;              // labels
-  std::array<float, 3> mVertexCandidate; // vertex candidate
   std::array<float, 9> mWeightMatrix;    // weight matrix
   std::array<float, 3> mVertex;          // cluster centroid position
   std::array<float, 6> mRMS2;            // symmetric matrix: diagonal is RMS2
