@@ -13,6 +13,7 @@
 #include <string>
 #include <cstdlib>
 #include <unistd.h>
+#include <fmt/format.h>
 
 namespace
 {
