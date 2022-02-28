@@ -282,20 +282,18 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
       } break;
       case IN_END_VALUE: {
         if (*next == '&') {
-          assignLastStringMatch("value", 1000, currentValue, IN_END_VALUE);
+          assignLastStringMatch("value", 1000, currentValue, IN_BEGIN_KEY);
           if (*currentKey == "lifetime" && currentValue == "condition") {
             currentLifetime = Lifetime::Condition;
           }
           attributes.push_back(ConfigParamSpec{*currentKey, VariantType::String, *currentValue, {}});
-        }
-        if (*next == ';') {
+        } else if (*next == ';') {
           assignLastStringMatch("value", 1000, currentValue, IN_END_ATTRIBUTES);
           if (*currentKey == "lifetime" && currentValue == "condition") {
             currentLifetime = Lifetime::Condition;
           }
           attributes.push_back(ConfigParamSpec{*currentKey, VariantType::String, *currentValue, {}});
-        }
-        if (*next == '\0') {
+        } else if (*next == '\0') {
           assignLastStringMatch("value", 1000, currentValue, IN_END_ATTRIBUTES);
           if (*currentKey == "lifetime" && currentValue == "condition") {
             currentLifetime = Lifetime::Condition;
