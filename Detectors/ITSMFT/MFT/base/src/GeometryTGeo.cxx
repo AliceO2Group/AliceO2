@@ -202,7 +202,7 @@ void GeometryTGeo::Build(Int_t loadTrans)
       for (Int_t iL = 0; iL < mNumberOfLaddersPerDisk[iD]; iL++) {
         Int_t ladder = mLadderId2Index[iD][iL];
         Int_t nS = extractNumberOfSensorsPerLadder(iH,iD,iL);
-        for (Int_t iS = 0; iS < nS; iS++) {
+        for (Int_t iS = 0; iS < nS; iS++b) {
           index = getSensorIndex(iH,iD,iL,iS);
           LOG(info) << "Half " << iH << " disk " << iD << " ladder " << ladder << " ladderID " << iL << " sensor " << iS
   << " index " << index;
@@ -452,6 +452,34 @@ void GeometryTGeo::fillMatrixCache(Int_t mask)
   }
 }
 
+//__________________________________________________________________________
+void GeometryTGeo::updateL2GMatrixCache(std::vector<int> chipIDs)
+{
+  // update matrix cache for requested transformations
+  //
+  if (mSize < 1) {
+    LOG(fatal) << "Matrices must be filled beforehand.";
+    return;
+  }
+
+  // build matrices
+  auto& cacheL2G = getCacheL2G();
+  cacheL2G.setSize(mSize);
+  auto setMatrix = [this](auto chipID, auto& cacheL2G) {
+    TGeoHMatrix* hm = extractMatrixSensor(chipID);
+    cacheL2G.setMatrix(hm ? Mat3D(*hm) : Mat3D(), chipID);
+  };
+
+  if (chipIDs.size()) { // Update matrices for provided sensors
+    for (auto& i : chipIDs) {
+      setMatrix(i, cacheL2G);
+    }
+  } else {
+    for (Int_t i = 0; i < mSize; i++) {
+      setMatrix(i, cacheL2G);
+    }
+  }
+}
 //__________________________________________________________________________
 TGeoHMatrix& GeometryTGeo::createT2LMatrix(Int_t index)
 {
