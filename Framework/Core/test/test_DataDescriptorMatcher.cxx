@@ -622,4 +622,7 @@ BOOST_AUTO_TEST_CASE(DataQuery)
 
   BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/A1/0?lifetime="), std::runtime_error, missing_value);
   BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/A1/0?"), std::runtime_error, missing_key);
+
+  auto result3 = DataDescriptorQueryBuilder::parse("x:TST/A1/0?key=value&key2=value2");
+  BOOST_CHECK_EQUAL(result3[0].metadata.size(), 2);
 }
