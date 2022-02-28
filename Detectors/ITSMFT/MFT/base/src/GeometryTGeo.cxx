@@ -202,7 +202,7 @@ void GeometryTGeo::Build(Int_t loadTrans)
       for (Int_t iL = 0; iL < mNumberOfLaddersPerDisk[iD]; iL++) {
         Int_t ladder = mLadderId2Index[iD][iL];
         Int_t nS = extractNumberOfSensorsPerLadder(iH,iD,iL);
-        for (Int_t iS = 0; iS < nS; iS++b) {
+        for (Int_t iS = 0; iS < nS; iS++) {
           index = getSensorIndex(iH,iD,iL,iS);
           LOG(info) << "Half " << iH << " disk " << iD << " ladder " << ladder << " ladderID " << iL << " sensor " << iS
   << " index " << index;
