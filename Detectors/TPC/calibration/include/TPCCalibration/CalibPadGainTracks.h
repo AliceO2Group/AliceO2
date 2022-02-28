@@ -23,6 +23,8 @@
 #include "TPCBase/CalDet.h"
 #include "TPCBase/Mapper.h"
 #include "TPCCalibration/CalibPadGainTracksBase.h"
+#include "GPUO2Interface.h"
+#include "DataFormatsTPC/CalibdEdxTrackTopologyPol.h"
 
 #include <vector>
 #include <gsl/span>
@@ -68,9 +70,16 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
 
  public:
   /// mode of normalizing qmax
-  enum dEdxType : unsigned char {
-    DedxTrack, ///< normalize qMax using the truncated mean from the track
-    DedxBB     ///< normalize qMax by evaluating a Bethe Bloch fit. THIS is yet not implemented and shouldnt be used.
+  enum DEdxType : unsigned char {
+    dedxTrack,    ///< normalize qMax using the truncated mean from the track
+    dedxTracking, ///< normalize qMax using the dEdx which was calculated during the tracking
+    dedxBB        ///< normalize qMax by evaluating a Bethe Bloch fit. THIS is yet not implemented and shouldnt be used.
+  };
+
+  enum DEdxRegion : unsigned char {
+    chamber, ///< use the dE/dx from IROC and OROC
+    stack,   ///< use the dE/dx from IROC, OROC1, OROC2, OROC3
+    sector   ///< use the dE/dx from the whole sector
   };
 
   /// default constructor
@@ -92,7 +101,7 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   /// this function sets the mode of the class.
   /// e.g. mode=0 -> use the truncated mean from the track for normalizing the dedx
   ///      mode=1 -> use the value from the BB-fit for normalizing the dedx. NOT implemented yet
-  void setMode(dEdxType iMode) { mMode = iMode; }
+  void setMode(DEdxType iMode) { mMode = iMode; }
 
   /// \param momMin minimum accpeted momentum of the tracks
   /// \param momMax maximum accpeted momentum of the tracks
@@ -115,6 +124,9 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   /// setting a gain map from a file
   void setRefGainMap(const CalPad& gainmap) { mGainMapRef = std::make_unique<CalPad>(gainmap); }
 
+  /// set how the dedx is calculated which is used for normalizing the cluster charge
+  void setdEdxRegion(const DEdxRegion dedx);
+
   /// \return returns minimum momentum of accepted tracks
   float getMomMin() const { return mMomMin; }
 
@@ -135,22 +147,26 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   /// \param outName name of the object in the output file
   void dumpToFile(const char* outFileName = "calPadGainTracks.root", const char* outName = "calPadGain") const;
 
+  /// loading the track topology correction from a file
+  /// \param fileName name of the file containing the object
+  void loadPolTopologyCorrectionFromFile(std::string_view fileName);
+
  private:
   gsl::span<const TrackTPC>* mTracks{nullptr};                                        ///<! vector containing the tpc tracks which will be processed. Cant be const due to the propagate function
   gsl::span<const TPCClRefElem>* mTPCTrackClIdxVecInput{nullptr};                     ///<! input vector with TPC tracks cluster indicies
   const o2::tpc::ClusterNativeAccess* mClusterIndex{nullptr};                         ///<! needed to access clusternative with tpctracks
-  dEdxType mMode = DedxTrack;                                                         ///< normalization type: type=DedxTrack use truncated mean, type=DedxBB use value from BB fit
+  DEdxType mMode = dedxTrack;                                                         ///< normalization type: type=DedxTrack use truncated mean, type=DedxBB use value from BB fit
+  DEdxRegion mDedxRegion = stack;                                                     ///<  using the dE/dx per chamber, stack or per sector
   inline static auto& mapper = Mapper::instance();                                    ///< initialize mapper object
   float mField{-5};                                                                   ///< Magnetic field in kG, used for track propagation
   float mMomMin{0.1f};                                                                ///< minimum momentum which is required by tracks
   float mMomMax{5.f};                                                                 ///< maximum momentum which is required by tracks
   float mEtaMax{1.f};                                                                 ///< maximum accpeted eta of tracks
   int mMinClusters{50};                                                               ///< minimum number of clusters the tracks require
-  std::vector<float> mDEdxIROC{};                                                     ///<! memory for dE/dx in IROC
-  std::vector<float> mDEdxOROC{};                                                     ///<! memory for dE/dx in OROC
-  std::vector<o2::tpc::ClusterNative> mCLNat;                                         ///<! memory for clusters
+  std::vector<std::vector<float>> mDEdxBuffer{};                                      ///<! memory for dE/dx
   std::vector<std::tuple<unsigned char, unsigned char, unsigned char, float>> mClTrk; ///<! memory for cluster informations
   std::unique_ptr<CalPad> mGainMapRef;                                                ///<! static Gain map object used for correcting the cluster charge
+  std::unique_ptr<CalibdEdxTrackTopologyPol> mCalibTrackTopologyPol;                  ///< calibration container for the cluster charge
 
   /// calculate truncated mean for track
   /// \param track input track which will be processed
@@ -163,16 +179,22 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   /// \param pad pad in row
   static int getIndex(o2::tpc::PadSubset padSub, int padSubsetNumber, const int row, const int pad) { return mapper.getPadNumber(padSub, padSubsetNumber, row, pad); }
 
-  float getTrackTopologyCorrection(const o2::tpc::TrackTPC& track, const unsigned char rowIndex) const;
+  float getTrackTopologyCorrection(const o2::tpc::TrackTPC& track, const unsigned int region) const;
+
+  float getTrackTopologyCorrectionPol(const o2::tpc::TrackTPC& track, const o2::tpc::ClusterNative& cl, const unsigned int region) const;
 
   /// get the truncated mean for input vector and the truncation range low*nCl<nCl<high*nCl
   /// \param vCharge vector containing all qmax values of the track
   /// \param low lower cluster cut of  0.05*nCluster
   /// \param high higher cluster cut of  0.6*nCluster
-  float getTruncMean(std::vector<float>& vCharge, float low = 0.05f, float high = 0.6f) const;
+  std::vector<float> getTruncMean(std::vector<std::vector<float>>& vCharge, float low = 0.05f, float high = 0.6f) const;
 
   /// reserve memory for members
   void reserveMemory();
+
+  void resizedEdxBuffer();
+
+  int getdEdxBufferIndex(const int region) const;
 };
 
 } // namespace tpc
