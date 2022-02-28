@@ -66,10 +66,10 @@ namespace
 {
 std::string composeIPCName(std::string const& prefix, std::string const& hostname, short port)
 {
-  if (prefix == "@") {
-    return fmt::format("ipc://@{}_{},transport=shmem", hostname, port);
+  if (prefix.empty() == false && prefix[0] == '@') {
+    return fmt::format("ipc://{}{}_{},transport=shmem", prefix, hostname, port);
   }
-  if (prefix.back() == '/') {
+  if (prefix.empty() == false && prefix.back() == '/') {
     return fmt::format("ipc://{}{}_{},transport=shmem", prefix, hostname, port);
   }
   return fmt::format("ipc://{}/{}_{},transport=shmem", prefix, hostname, port);
