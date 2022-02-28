@@ -115,17 +115,19 @@ class CalibPadGainTracksBase
 
   /// draw sigma map sector
   /// \param sector sector which will be drawn
+  /// \param norm normalizing the sigma to the extracted gain map
   /// \param filename name of the output file. If empty the canvas is drawn
   /// \param minZ min z value for drawing (if minZ > maxZ automatic z axis)
   /// \param maxZ max z value for drawing (if minZ > maxZ automatic z axis)
-  void drawExtractedSigmaMapSector(const int sector, const std::string filename = "StdDevMapSector.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(false, 1, sector, filename, minZ, maxZ); }
+  void drawExtractedSigmaMapSector(const int sector, const bool norm = false, const std::string filename = "StdDevMapSector.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(false, 1, sector, filename, minZ, maxZ, norm); }
 
   /// draw sigma map side
   /// \param side side of the TPC which will be drawn
+  /// \param norm normalizing the sigma to the extracted gain map
   /// \param filename name of the output file. If empty the canvas is drawn
   /// \param minZ min z value for drawing (if minZ > maxZ automatic z axis)
   /// \param maxZ max z value for drawing (if minZ > maxZ automatic z axis)
-  void drawExtractedSigmaMapSide(const o2::tpc::Side side, const std::string filename = "StdDevMapSide.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(true, 1, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), filename, minZ, maxZ); }
+  void drawExtractedSigmaMapSide(const o2::tpc::Side side, const bool norm = false, const std::string filename = "StdDevMapSide.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(true, 1, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), filename, minZ, maxZ, norm); }
 
   /// draw gain map using painter functionality
   TCanvas* drawExtractedGainMapPainter() const;
@@ -174,7 +176,7 @@ class CalibPadGainTracksBase
   std::unique_ptr<CalPad> mSigmaMap;          ///< standard dewviation map
 
   /// Helper function for drawing the extracted gain map
-  void drawExtractedGainMapHelper(const bool type, const int typeMap, const Sector sector, const std::string filename, const float minZ, const float maxZ) const;
+  void drawExtractedGainMapHelper(const bool type, const int typeMap, const Sector sector, const std::string filename, const float minZ, const float maxZ, const bool norm = false) const;
 };
 
 } // namespace tpc

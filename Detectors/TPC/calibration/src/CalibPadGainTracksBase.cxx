@@ -47,20 +47,25 @@ void CalibPadGainTracksBase::dumpGainMap(const char* fileName) const
   f.WriteObject(mGainMap.get(), "GainMap");
 }
 
-void CalibPadGainTracksBase::drawExtractedGainMapHelper(const bool type, const int typeMap, const Sector sector, const std::string filename, const float minZ, const float maxZ) const
+void CalibPadGainTracksBase::drawExtractedGainMapHelper(const bool type, const int typeMap, const Sector sector, const std::string filename, const float minZ, const float maxZ, const bool norm) const
 {
-  const auto* map = (typeMap == 0) ? mGainMap.get() : mSigmaMap.get();
+  const auto map = (typeMap == 0) ? std::make_unique<CalPad>(*mGainMap) : std::make_unique<CalPad>(*mSigmaMap);
   if (!map) {
     LOGP(error, "Map not set");
     return;
   }
-  std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> idcFunc = [map](const unsigned int sector, const unsigned int region, const unsigned int lrow, const unsigned int pad) {
-    return map->getValue(sector, Mapper::getGlobalPadNumber(lrow, pad, region));
+
+  if (norm) {
+    *map /= *mGainMap;
+  }
+
+  std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> idcFunc = [mapTmp = map.get()](const unsigned int sector, const unsigned int region, const unsigned int lrow, const unsigned int pad) {
+    return mapTmp->getValue(sector, Mapper::getGlobalPadNumber(lrow, pad, region));
   };
 
   IDCDrawHelper::IDCDraw drawFun;
   drawFun.mIDCFunc = idcFunc;
-  const std::string zAxisTitle = (typeMap == 0) ? "rel. gain" : "sigma";
+  const std::string zAxisTitle = (typeMap == 0) ? "rel. gain" : (norm ? "sigma / rel. gain" : "sigma");
   type ? IDCDrawHelper::drawSide(drawFun, sector.side(), zAxisTitle, filename, minZ, maxZ) : IDCDrawHelper::drawSector(drawFun, 0, Mapper::NREGIONS, sector, zAxisTitle, filename, minZ, maxZ);
 }
 
