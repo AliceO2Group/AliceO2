@@ -30,29 +30,63 @@ namespace tof
 {
 
 struct eventTimeContainer {
-  eventTimeContainer(const float& e, const float& err) : eventTime{e}, eventTimeError{err} {};
-  float eventTime = 0.f;                      /// Value of the event time
-  float eventTimeError = 0.f;                 /// Uncertainty on the computed event time
-  unsigned short eventTimeMultiplicity = 0.f; /// Track multiplicity used to compute the event time
+  eventTimeContainer(const float& e, const float& err, const float& diamond) : mEventTime{e}, mEventTimeError{err}, mDiamondSpread{diamond} {};
+  float mEventTime = 0.f;                    /// Value of the event time
+  float mEventTimeError = 0.f;               /// Uncertainty on the computed event time
+  unsigned short mEventTimeMultiplicity = 0; /// Track multiplicity used to compute the event time
 
-  float sumweights = 0.f;       /// sum of weights of all track contributors
-  std::vector<float> weights;   /// weights (1/sigma^2) associated to a track in event time computation, 0 if track not used
-  std::vector<float> tracktime; /// eventtime provided by a single track
+  float mSumOfWeights = 0.f;      /// sum of weights of all track contributors
+  std::vector<float> mWeights;    /// weights (1/sigma^2) associated to a track in event time computation, 0 if track not used
+  std::vector<float> mTrackTimes; /// eventtime provided by a single track
+  float mDiamondSpread = 6.0;     /// spread of primary verdex in cm. Used when resetting the container to the default value
 
-  void reset(const float& diamond /* spread of primary verdex in cm */ = 6.0)
+  void reset()
   {
     // reset info
-    static const float& sigmaFill = diamond * 33.356409; // move from diamond (cm) to spread on event time (ps)
-    weights.clear();
-    tracktime.clear();
-    eventTime = 0.;
-    eventTimeError = sigmaFill;
-    eventTimeMultiplicity = 0;
-    sumweights = 0.;
+    static const float& sigmaFill = mDiamondSpread * 33.356409; // move from diamond spread (cm) to spread on event time (ps)
+    mSumOfWeights = 0.;
+    mWeights.clear();
+    mTrackTimes.clear();
+    mEventTime = 0.;
+    mEventTimeError = sigmaFill;
+    mEventTimeMultiplicity = 0;
   }
+
+  template <typename trackType,
+            bool (*trackFilter)(const trackType&)>
+  void removeBias(const trackType& track,
+                  int& nTrackIndex /* index of the track to remove the bias */,
+                  float& eventTimeValue,
+                  float& eventTimeError,
+                  const int& minimumMultiplicity = 2) const
+  {
+    eventTimeValue = mEventTime;
+    eventTimeError = mEventTimeError;
+    if (!trackFilter(track)) { // Check if the track was usable for the event time
+      nTrackIndex++;
+      return;
+    }
+    if (mEventTimeMultiplicity <= minimumMultiplicity && mWeights[nTrackIndex] > 1E-6) { // Check if a track was used for the event time and if the multiplicity is low
+      eventTimeValue = 0.f;
+      eventTimeError = mDiamondSpread * 33.356409; // move from diamond (cm) to spread on event time (ps)
+      LOG(debug) << mEventTimeMultiplicity << " <= " << minimumMultiplicity << " and " << mWeights[nTrackIndex] << ": track was used, setting " << eventTimeValue << " " << eventTimeError;
+      nTrackIndex++;
+      return;
+    }
+    // Remove the bias
+    float sumw = 1. / eventTimeError / eventTimeError;
+    LOG(debug) << "sumw " << sumw;
+    eventTimeValue *= sumw;
+    eventTimeValue -= mWeights[nTrackIndex] * mTrackTimes[nTrackIndex];
+    sumw -= mWeights[nTrackIndex];
+    eventTimeValue /= sumw;
+    eventTimeError = sqrt(1. / sumw);
+    nTrackIndex++;
+  }
+
   void print()
   {
-    LOG(info) << "eventTimeContainer " << eventTime << " +- " << eventTimeError << " sum of weights " << sumweights << " tracks used " << eventTimeMultiplicity;
+    LOG(info) << "eventTimeContainer " << mEventTime << " +- " << mEventTimeError << " sum of weights " << mSumOfWeights << " tracks used " << mEventTimeMultiplicity;
   }
 };
 
@@ -107,7 +141,8 @@ template <typename trackTypeContainer,
           typename trackType,
           bool (*trackFilter)(const trackType&)>
 eventTimeContainer evTimeMaker(const trackTypeContainer& tracks,
-                               float diamond = 6.0 /* spread of primary verdex in cm */, bool isFast = false)
+                               const float& diamond = 6.0 /* spread of primary verdex in cm */,
+                               bool isFast = false)
 {
   static std::vector<eventTimeTrack> trkWork;
   trkWork.clear();
@@ -116,10 +151,10 @@ eventTimeContainer evTimeMaker(const trackTypeContainer& tracks,
 
   static float expt[3], expsigma[3];
 
-  static eventTimeContainer result = {0, 0};
+  static eventTimeContainer result = {0, 0, diamond};
 
   // reset info
-  result.reset(diamond);
+  result.reset();
 
   for (auto track : tracks) { // Loop on tracks
     if (trackFilter(track)) { // Select tracks good for T0 computation
@@ -130,10 +165,10 @@ eventTimeContainer evTimeMaker(const trackTypeContainer& tracks,
       expsigma[1] = track.tofExpSigmaKa();
       expsigma[2] = track.tofExpSigmaPr();
       trkWork.emplace_back(track.tofSignal(), expt, expsigma);
-      trkIndex.push_back(result.weights.size());
+      trkIndex.push_back(result.mWeights.size());
     }
-    result.weights.push_back(0.);
-    result.tracktime.push_back(0.);
+    result.mWeights.push_back(0.);
+    result.mTrackTimes.push_back(0.);
   }
   if (!isFast) {
     computeEvTime(trkWork, trkIndex, result);
@@ -150,7 +185,8 @@ template <typename trackTypeContainer,
           typename responseParametersType>
 eventTimeContainer evTimeMakerFromParam(const trackTypeContainer& tracks,
                                         const responseParametersType& responseParameters,
-                                        float diamond = 6.0 /* spread of primary verdex in cm */, bool isFast = false)
+                                        const float& diamond = 6.0 /* spread of primary verdex in cm */,
+                                        bool isFast = false)
 {
   static std::vector<eventTimeTrack> trkWork;
   trkWork.clear();
@@ -163,10 +199,10 @@ eventTimeContainer evTimeMakerFromParam(const trackTypeContainer& tracks,
 
   static float expt[3], expsigma[3];
 
-  static eventTimeContainer result = {0, 0};
+  static eventTimeContainer result = {0, 0, diamond};
 
   // reset info
-  result.reset(diamond);
+  result.reset();
 
   for (auto track : tracks) { // Loop on tracks
     if (trackFilter(track)) { // Select tracks good for T0 computation
@@ -177,10 +213,10 @@ eventTimeContainer evTimeMakerFromParam(const trackTypeContainer& tracks,
       expsigma[1] = responseKa.GetExpectedSigmaTracking(responseParameters, track);
       expsigma[2] = responsePr.GetExpectedSigmaTracking(responseParameters, track);
       trkWork.emplace_back(track.tofSignal(), expt, expsigma);
-      trkIndex.push_back(result.weights.size());
+      trkIndex.push_back(result.mWeights.size());
     }
-    result.weights.push_back(0.);
-    result.tracktime.push_back(0.);
+    result.mWeights.push_back(0.);
+    result.mTrackTimes.push_back(0.);
   }
   if (!isFast) {
     computeEvTime(trkWork, trkIndex, result);
