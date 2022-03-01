@@ -41,7 +41,7 @@ void DataProcessor::doSend(DataSender& sender, MessageContext& context, ServiceR
   auto contextMessages = context.getMessagesForSending();
   for (auto& message : contextMessages) {
     //     monitoringService.send({ message->parts.Size(), "outputs/total" });
-    FairMQParts parts = std::move(message->finalize());
+    FairMQParts parts = message->finalize();
     assert(message->empty());
     assert(parts.Size() == 2);
     for (auto& part : parts) {
@@ -64,7 +64,7 @@ void DataProcessor::doSend(DataSender& sender, StringContext& context, ServiceRe
     const DataHeader* cdh = o2::header::get<DataHeader*>(messageRef.header->GetData());
     // sigh... See if we can avoid having it const by not
     // exposing it to the user in the first place.
-    DataHeader* dh = const_cast<DataHeader*>(cdh);
+    auto* dh = const_cast<DataHeader*>(cdh);
     dh->payloadSize = payload->GetSize();
     parts.AddPart(std::move(messageRef.header));
     parts.AddPart(std::move(payload));
@@ -80,6 +80,7 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
   using o2::monitoring::tags::Value;
   auto& monitoring = registry.get<Monitoring>();
 
+  std::regex invalid_metric(" ");
   for (auto& messageRef : context) {
     FairMQParts parts;
     // Depending on how the arrow table is constructed, we finalize
@@ -91,10 +92,17 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
     const DataHeader* cdh = o2::header::get<DataHeader*>(messageRef.header->GetData());
     // sigh... See if we can avoid having it const by not
     // exposing it to the user in the first place.
-    DataHeader* dh = const_cast<DataHeader*>(cdh);
+    auto* dh = const_cast<DataHeader*>(cdh);
     dh->payloadSize = payload->GetSize();
     dh->serialization = o2::header::gSerializationMethodArrow;
-    monitoring.send(Metric{(uint64_t)payload->GetSize(), fmt::format("table-bytes-{}-{}-created", dh->dataOrigin.as<std::string>(), dh->dataDescription.as<std::string>())}.addTag(Key::Subsystem, Value::DPL));
+
+    auto origin = std::regex_replace(dh->dataOrigin.as<std::string>(), invalid_metric, "_");
+    auto description = std::regex_replace(dh->dataDescription.as<std::string>(), invalid_metric, "_");
+    monitoring.send(Metric{(uint64_t)payload->GetSize(),
+                           fmt::format("table-bytes-{}-{}-created",
+                                       origin,
+                                       description)}
+                      .addTag(Key::Subsystem, Value::DPL));
     LOGP(info, "Creating {}MB for table {}/{}.", payload->GetSize() / 1000000., dh->dataOrigin, dh->dataDescription);
     context.updateBytesSent(payload->GetSize());
     context.updateMessagesSent(1);
@@ -110,8 +118,7 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
     ComputingQuotaOffer disposed;
     disposed.sharedMemory = 0;
     int64_t bytesSent = bs;
-    for (size_t oi = 0; oi < offers.size(); oi++) {
-      auto& offer = offers[oi];
+    for (auto& offer : offers) {
       if (offer.user != taskId) {
         continue;
       }
@@ -125,14 +132,14 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
     }
     return accountDisposed(disposed, stats);
   };
-  registry.get<DeviceState>().offerConsumers.push_back(disposeResources);
+  registry.get<DeviceState>().offerConsumers.emplace_back(disposeResources);
   previousBytesSent = context.bytesSent();
   monitoring.send(Metric{(uint64_t)context.bytesSent(), "arrow-bytes-created"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{(uint64_t)context.messagesCreated(), "arrow-messages-created"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.flushBuffer();
 }
 
-void DataProcessor::doSend(DataSender& sender, RawBufferContext& context, ServiceRegistry& registry)
+void DataProcessor::doSend(DataSender& sender, RawBufferContext& context, ServiceRegistry&)
 {
   for (auto& messageRef : context) {
     FairMQParts parts;
@@ -145,7 +152,7 @@ void DataProcessor::doSend(DataSender& sender, RawBufferContext& context, Servic
     const DataHeader* cdh = o2::header::get<DataHeader*>(messageRef.header->GetData());
     // sigh... See if we can avoid having it const by not
     // exposing it to the user in the first place.
-    DataHeader* dh = const_cast<DataHeader*>(cdh);
+    auto* dh = const_cast<DataHeader*>(cdh);
     dh->payloadSize = size;
     parts.AddPart(std::move(messageRef.header));
     parts.AddPart(std::move(payload));
