@@ -69,32 +69,32 @@ struct PedestalCalibData {
 
 }; //end PedestalCalibData
 
-using TimeSlot = o2::calibration::TimeSlot<o2::cpv::PedestalCalibData>;
+using PedestalTimeSlot = o2::calibration::TimeSlot<o2::cpv::PedestalCalibData>;
 //===================================================================
 class PedestalCalibrator final : public o2::calibration::TimeSlotCalibration<o2::cpv::Digit, o2::cpv::PedestalCalibData>
 {
  public:
   PedestalCalibrator();
   ~PedestalCalibrator() final = default;
-  std::vector<o2::ccdb::CcdbObjectInfo> getCcdbInfoPedestalsVector() { return mCcdbInfoPedestalsVec; }
-  std::vector<o2::cpv::Pedestals> getPedestalsVector() { return mPedestalsVec; }
-  std::vector<o2::ccdb::CcdbObjectInfo> getCcdbInfoThresholdsFEEVector() { return mCcdbInfoThresholdsFEEVec; }
-  std::vector<std::vector<int>> getThresholdsFEEVector() { return mThresholdsFEEVec; }
-  std::vector<o2::ccdb::CcdbObjectInfo> getCcdbInfoDeadChannelsVector() { return mCcdbInfoDeadChannelsVec; }
-  std::vector<std::vector<int>> getDeadChannelsVector() { return mDeadChannelsVec; }
-  std::vector<o2::ccdb::CcdbObjectInfo> getCcdbInfoHighPedChannelsVector() { return mCcdbInfoHighPedChannelsVec; }
-  std::vector<std::vector<int>> getHighPedChannelsVector() { return mHighPedChannelsVec; }
-  std::vector<o2::ccdb::CcdbObjectInfo> getCcdbInfoEfficienciesVector() { return mCcdbInfoPedEfficienciesVec; }
-  std::vector<std::vector<float>> getEfficienciesVector() { return mPedEfficienciesVec; }
+  std::vector<o2::ccdb::CcdbObjectInfo>& getCcdbInfoPedestalsVector() { return mCcdbInfoPedestalsVec; }
+  const std::vector<o2::cpv::Pedestals>& getPedestalsVector() const { return mPedestalsVec; }
+  std::vector<o2::ccdb::CcdbObjectInfo>& getCcdbInfoThresholdsFEEVector() { return mCcdbInfoThresholdsFEEVec; }
+  const std::vector<std::vector<int>>& getThresholdsFEEVector() const { return mThresholdsFEEVec; }
+  std::vector<o2::ccdb::CcdbObjectInfo>& getCcdbInfoDeadChannelsVector() { return mCcdbInfoDeadChannelsVec; }
+  const std::vector<std::vector<int>>& getDeadChannelsVector() const { return mDeadChannelsVec; }
+  std::vector<o2::ccdb::CcdbObjectInfo>& getCcdbInfoHighPedChannelsVector() { return mCcdbInfoHighPedChannelsVec; }
+  const std::vector<std::vector<int>>& getHighPedChannelsVector() const { return mHighPedChannelsVec; }
+  std::vector<o2::ccdb::CcdbObjectInfo>& getCcdbInfoEfficienciesVector() { return mCcdbInfoPedEfficienciesVec; }
+  const std::vector<std::vector<float>>& getEfficienciesVector() const { return mPedEfficienciesVec; }
 
-  bool hasEnoughData(const TimeSlot& slot) const final
+  bool hasEnoughData(const PedestalTimeSlot& slot) const final
   {
     LOG(info) << "hasEnoughData() is being called";
     return slot.getContainer()->mNEvents >= mMinEvents;
   }
   void initOutput() final;
-  void finalizeSlot(TimeSlot& slot) final;
-  TimeSlot& emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend) final;
+  void finalizeSlot(PedestalTimeSlot& slot) final;
+  PedestalTimeSlot& emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend) final;
 
  private:
   int mMinEvents = 100;

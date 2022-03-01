@@ -40,6 +40,9 @@ framework::WorkflowSpec getWorkflow(bool disableRootInp,
                                     bool disableRootOut,
                                     bool propagateMC = true,
                                     bool askSTFDist = true,
+                                    bool isPedestal = false,
+                                    bool useBadChannelMap = true,
+                                    bool useGainCalibration = true,
                                     std::string const& cfgInput = "digits",
                                     std::string const& cfgOutput = "clusters");
 } // namespace reco_workflow

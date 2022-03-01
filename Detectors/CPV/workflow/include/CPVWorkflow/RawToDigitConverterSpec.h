@@ -13,6 +13,7 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+#include "Framework/ConcreteDataMatcher.h"
 #include "DataFormatsCPV/Digit.h"
 #include "DataFormatsCPV/TriggerRecord.h"
 #include "DataFormatsCPV/CalibParams.h"
@@ -40,7 +41,10 @@ class RawToDigitConverterSpec : public framework::Task
  public:
   /// \brief Constructor
   /// \param propagateMC If true the MCTruthContainer is propagated to the output
-  RawToDigitConverterSpec() : framework::Task(){};
+  RawToDigitConverterSpec(bool isPedestal, bool useBadChannelMap, bool useGainCalibration) : framework::Task(),
+                                                                                             mIsPedestalData(isPedestal),
+                                                                                             mIsUsingBadMap(useBadChannelMap),
+                                                                                             mIsUsingGainCalibration(useGainCalibration){};
 
   /// \brief Destructor
   ~RawToDigitConverterSpec() override = default;
@@ -67,11 +71,6 @@ class RawToDigitConverterSpec : public framework::Task
   bool mIsUsingGainCalibration;                     ///< Use gain calibration from CCDB
   bool mIsUsingBadMap;                              ///< Use BadChannelMap to mask bad channels
   bool mIsPedestalData;                             ///< Do not subtract pedestals if true
-  bool mIsUsingCcdbMgr;                             ///< Are we using CCDB manager?
-  long mCurrentTimeStamp;                           ///< Current timestamp for CCDB querying
-  CalibParams* mCalibParams;                        ///< CPV calibration
-  Pedestals* mPedestals;                            ///< CPV pedestals
-  BadChannelMap* mBadMap;                           ///< BadMap
   std::vector<Digit> mOutputDigits;                 ///< Container with output cells
   std::vector<TriggerRecord> mOutputTriggerRecords; ///< Container with output cells
   std::vector<RawDecoderError> mOutputHWErrors;     ///< Errors occured in reading data
@@ -80,7 +79,10 @@ class RawToDigitConverterSpec : public framework::Task
 /// \brief Creating DataProcessorSpec for the CPV Digit Converter Spec
 ///
 /// Refer to RawToDigitConverterSpec::run for input and output specs
-o2::framework::DataProcessorSpec getRawToDigitConverterSpec(bool askDISTSTF = true);
+o2::framework::DataProcessorSpec getRawToDigitConverterSpec(bool askDISTSTF = true,
+                                                            bool isPedestal = false,
+                                                            bool useBadChannelMap = true,
+                                                            bool useGainCalibration = true);
 
 } // namespace reco_workflow
 
