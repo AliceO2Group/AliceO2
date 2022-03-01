@@ -76,10 +76,6 @@ void PedestalData::fill(gsl::span<const PedestalDigit> digits)
       double M0 = ped.mVariance;
       double M = M0 + (s - p0) * (s - p);
       ped.mVariance = M;
-
-      ped.mPedRms = ped.getRms();    // FIXME: remove this line when QC no longer uses a direct access to mPedRms
-      ped.mPedMean = ped.mPedestal;  // FIXME: remove this line when QC no longer uses a direct access to mPedRms
-      ped.mDsChId = ped.dsChannelId; // FIXME: remove this line when QC no longer uses a direct access to mPedRms
     }
 
     if (mDebug) {
@@ -87,11 +83,6 @@ void PedestalData::fill(gsl::span<const PedestalDigit> digits)
                 << "  entries " << ped.mEntries << "  ped " << ped.mPedestal << "  mVariance " << ped.mVariance << std::endl;
     }
   }
-}
-
-void PedestalData::process(const gsl::span<const o2::mch::calibration::PedestalDigit> digits)
-{
-  fill(digits);
 }
 
 void PedestalData::merge(const PedestalData* prev)
