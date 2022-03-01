@@ -43,7 +43,7 @@ namespace o2::framework
 
 struct InputSpec;
 struct InputSpan;
-struct CallbackService;
+class CallbackService;
 
 /// @class InputRecord
 /// @brief The input API of the Data Processing Layer
@@ -179,14 +179,14 @@ class InputRecord
   };
 
   int getPos(const char* name) const;
-  int getPos(const std::string& name) const;
+  [[nodiscard]] int getPos(const std::string& name) const;
 
-  DataRef getByPos(int pos, int part = 0) const;
+  [[nodiscard]] DataRef getByPos(int pos, int part = 0) const;
 
   /// Get the ref of the first valid input. If requested, throw an error if none is found.
-  DataRef getFirstValid(bool throwOnFailure = false) const;
+  [[nodiscard]] DataRef getFirstValid(bool throwOnFailure = false) const;
 
-  size_t getNofParts(int pos) const;
+  [[nodiscard]] size_t getNofParts(int pos) const;
   /// Get the object of specified type T for the binding R.
   /// If R is a string like object, we look up by name the InputSpec and
   /// return the data associated to the given label.
@@ -338,7 +338,6 @@ class InputRecord
       // Cast content of payload bound by @a binding to known type.
       // we need to check the serialization type, the cast makes only sense for
       // unserialized objects
-      using DataHeader = o2::header::DataHeader;
 
       auto header = DataRefUtils::getHeader<header::DataHeader*>(ref);
       auto method = header->payloadSerializationMethod;
@@ -354,7 +353,6 @@ class InputRecord
                          (is_messageable<typename std::remove_pointer<T>::type>::value || has_root_dictionary<typename std::remove_pointer<T>::type>::value)) {
       // extract a messageable type or object with ROOT dictionary by pointer
       // return unique_ptr to message content with custom deleter
-      using DataHeader = o2::header::DataHeader;
       using ValueT = typename std::remove_pointer<T>::type;
 
       auto header = DataRefUtils::getHeader<header::DataHeader*>(ref);
@@ -468,24 +466,24 @@ class InputRecord
   }
 
   /// Helper method to be used to check if a given part of the InputRecord is present.
-  bool isValid(std::string const& s) const
+  [[nodiscard]] bool isValid(std::string const& s) const
   {
     return isValid(s.c_str());
   }
 
   /// Helper method to be used to check if a given part of the InputRecord is present.
   bool isValid(char const* s) const;
-  bool isValid(int pos) const;
+  [[nodiscard]] bool isValid(int pos) const;
 
   /// @return the total number of inputs in the InputRecord. Notice that these will include
   /// both valid and invalid inputs (i.e. inputs which have not arrived yet), depending
   /// on the CompletionPolicy you have (using the default policy all inputs will be valid).
-  size_t size() const;
+  [[nodiscard]] size_t size() const;
 
   /// @return the total number of valid inputs in the InputRecord.
   /// Invalid inputs might happen if the CompletionPolicy allows
   /// incomplete records to be consumed or processed.
-  size_t countValidInputs() const;
+  [[nodiscard]] size_t countValidInputs() const;
 
   template <typename T>
   using IteratorBase = std::iterator<std::forward_iterator_tag, T>;
@@ -504,7 +502,7 @@ class InputRecord
     Iterator() = delete;
 
     Iterator(ParentType const* parent, size_t position = 0, size_t size = 0)
-      : mParent(parent), mPosition(position), mSize(size > position ? size : position), mElement{nullptr, nullptr, nullptr}
+      : mPosition(position), mSize(size > position ? size : position), mParent(parent), mElement{nullptr, nullptr, nullptr}
     {
       if (mPosition < mSize) {
         if (mParent->isValid(mPosition)) {
@@ -556,7 +554,7 @@ class InputRecord
       return mPosition != rh.mPosition;
     }
 
-    bool matches(o2::header::DataHeader matcher) const
+    [[nodiscard]] bool matches(o2::header::DataHeader matcher) const
     {
       if (mPosition >= mSize || mElement.header == nullptr) {
         return false;
@@ -567,7 +565,7 @@ class InputRecord
       return *dh == matcher;
     }
 
-    bool matches(o2::header::DataOrigin origin, o2::header::DataDescription description = o2::header::gDataDescriptionInvalid) const
+    [[nodiscard]] bool matches(o2::header::DataOrigin origin, o2::header::DataDescription description = o2::header::gDataDescriptionInvalid) const
     {
       if (mPosition >= mSize || mElement.header == nullptr) {
         return false;
@@ -578,17 +576,17 @@ class InputRecord
       return dh->dataOrigin == origin && (description == o2::header::gDataDescriptionInvalid || dh->dataDescription == description);
     }
 
-    bool matches(o2::header::DataOrigin origin, o2::header::DataDescription description, o2::header::DataHeader::SubSpecificationType subspec) const
+    [[nodiscard]] bool matches(o2::header::DataOrigin origin, o2::header::DataDescription description, o2::header::DataHeader::SubSpecificationType subspec) const
     {
       return matches(o2::header::DataHeader{description, origin, subspec});
     }
 
-    ParentType const* parent() const
+    [[nodiscard]] ParentType const* parent() const
     {
       return mParent;
     }
 
-    size_t position() const
+    [[nodiscard]] size_t position() const
     {
       return mPosition;
     }
@@ -622,13 +620,13 @@ class InputRecord
     }
 
     /// Get element at {slotindex, partindex}
-    ElementType getByPos(size_t pos) const
+    [[nodiscard]] ElementType getByPos(size_t pos) const
     {
       return this->parent()->getByPos(this->position(), pos);
     }
 
     /// Check if slot is valid, index of part is not used
-    bool isValid(size_t = 0) const
+    [[nodiscard]] bool isValid(size_t = 0) const
     {
       if (this->position() < this->parent()->size()) {
         return this->parent()->isValid(this->position());
@@ -637,17 +635,17 @@ class InputRecord
     }
 
     /// Get number of parts in input slot
-    size_t size() const
+    [[nodiscard]] size_t size() const
     {
       return this->parent()->getNofParts(this->position());
     }
 
-    const_iterator begin() const
+    [[nodiscard]] const_iterator begin() const
     {
       return const_iterator(this, 0, size());
     }
 
-    const_iterator end() const
+    [[nodiscard]] const_iterator end() const
     {
       return const_iterator(this, size());
     }
@@ -656,14 +654,14 @@ class InputRecord
   using iterator = InputRecordIterator<DataRef>;
   using const_iterator = InputRecordIterator<const DataRef>;
 
-  const_iterator begin() const
+  [[nodiscard]] const_iterator begin() const
   {
-    return const_iterator(this, 0, size());
+    return {this, 0, size()};
   }
 
-  const_iterator end() const
+  [[nodiscard]] const_iterator end() const
   {
-    return const_iterator(this, size());
+    return {this, size()};
   }
 
  private:
