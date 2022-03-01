@@ -105,13 +105,17 @@ class IDCAverageGroupHelper<IDCAverageGroupCRU>
   /// \param weight weight of the value
   void addValue(const unsigned int padInRegion, const float weight);
 
+  /// add a value to the averaging object
+  /// \param padInRegion pad index in the processed region to the value which will be added
+  void addValue(const unsigned int padInRegion);
+
   /// calculating and setting the grouped IDC value
   /// \param rowGrouped grouped row index
   /// \param padGrouped grouped pad index
-  void setGroupedIDC(const unsigned int rowGrouped, const unsigned int padGrouped) { mIDCsGrouped(rowGrouped, padGrouped, mIntegrationInterval) = getGroupedIDC(); }
+  void setGroupedIDC(const unsigned int rowGrouped, const unsigned int padGrouped, const bool withweights) { mIDCsGrouped(rowGrouped, padGrouped, mIntegrationInterval) = getGroupedIDC(withweights); }
 
   /// \return returns grouped and averaged IDC value
-  float getGroupedIDC() const;
+  float getGroupedIDC(const bool withweights) const;
 
   /// setting the members for correct data access
   /// \param threadNum thread index
@@ -128,7 +132,7 @@ class IDCAverageGroupHelper<IDCAverageGroupCRU>
   /// \param ulrow ungrouped local row
   /// \param upad ungrouped pad
   /// \param val value which will be stored
-  void setSectorEdgeIDC(const unsigned int ulrow, const unsigned int upad) { mIDCsGrouped.setValUngrouped(ulrow, upad, mIntegrationInterval, getGroupedIDC()); }
+  void setSectorEdgeIDC(const unsigned int ulrow, const unsigned int upad) { mIDCsGrouped.setValUngrouped(ulrow, upad, mIntegrationInterval, getGroupedIDC(false)); }
 
   /// \return returns which type of grouping is performed for the sector edge pads
   EdgePadGroupingMethod getEdgePadGroupingType() const { return mIDCsGrouped.getEdgePadGroupingType(); }
@@ -222,13 +226,17 @@ class IDCAverageGroupHelper<IDCAverageGroupTPC>
   /// \param weight weight of the value
   void addValue(const unsigned int padInRegion, const float weight);
 
+  /// add a value to the averaging object
+  /// \param padInRegion pad index in the processed region to the value which will be added
+  void addValue(const unsigned int padInRegion);
+
   /// calculating and setting the grouped IDC value
   /// \param rowGrouped grouped row index
   /// \param padGrouped grouped pad index
-  void setGroupedIDC(const unsigned int rowGrouped, const unsigned int padGrouped) { setGroupedIDC(rowGrouped, padGrouped, getGroupedIDC()); }
+  void setGroupedIDC(const unsigned int rowGrouped, const unsigned int padGrouped, const bool withweights) { setGroupedIDC(rowGrouped, padGrouped, getGroupedIDC(withweights)); }
 
   /// \return returns grouped and averaged IDC value
-  float getGroupedIDC() const;
+  float getGroupedIDC(const bool withweights) const;
 
   /// \param threadNum thread index
   void setThreadNum(const unsigned int threadNum) { mThreadNum = threadNum; }
