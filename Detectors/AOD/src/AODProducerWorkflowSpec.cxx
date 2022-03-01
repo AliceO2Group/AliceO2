@@ -697,7 +697,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       if (source == 0) {
         flags |= o2::aod::mcparticle::enums::FromBackgroundEvent; // mark as particle from background event
       }
-      if (mcParticles[particle].isPrimary()) {
+      if (o2::mcutils::MCTrackNavigator::isPhysicalPrimary(mcParticles[particle], mcParticles)) {
         flags |= o2::aod::mcparticle::enums::PhysicalPrimary; // mark as physical primary
       }
       float weight = 0.f;
