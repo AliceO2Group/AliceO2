@@ -46,8 +46,6 @@ class BadChannelCalibrator final : public o2::calibration::TimeSlotCalibration<o
   using PedestalsVector = std::vector<PedestalChannel>;
 
  public:
-  using ChannelPedestal [[deprecated("Use PedestalChannel instead")]] = PedestalChannel;
-
   BadChannelCalibrator() = default;
 
   ~BadChannelCalibrator() final = default;

@@ -60,7 +60,6 @@ class PedestalData
   PedestalData() = default;
   ~PedestalData() = default;
 
-  [[deprecated("use fill method instead")]] void process(gsl::span<const PedestalDigit> digits);
   void reset();
 
   static constexpr int MAXDS = 40;      // max number of dual sampas per solar
@@ -83,8 +82,6 @@ class PedestalData
 
   /** dump this object. */
   void print() const;
-
-  [[deprecated]] PedestalsMap getPedestals() const { return mPedestals; }
 
   uint32_t size() const;
 
