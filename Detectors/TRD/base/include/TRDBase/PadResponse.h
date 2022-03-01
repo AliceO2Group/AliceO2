@@ -13,6 +13,7 @@
 #define ALICEO2_TRD_PADRESPONSE_H_
 
 #include <array>
+#include "Rtypes.h"
 #include "DataFormatsTRD/Constants.h"
 
 namespace o2
@@ -34,6 +35,7 @@ class PadResponse
   float mPRFwid;                                  // Bin width of the sampled PRF
   int mPRFpad;                                    // Distance to next pad in PRF
   std::array<float, constants::NLAYER * mPRFbin> mPRFsmp{}; // Sampled pad response
+  ClassDefNV(PadResponse, 1);
 };
 } // namespace trd
 } // namespace o2

@@ -26,7 +26,7 @@
 #include "Framework/Output.h"
 #include "Framework/Task.h"
 #include "DataFormatsMID/ColumnData.h"
-#include "DataFormatsMID/Cluster2D.h"
+#include "DataFormatsMID/Cluster.h"
 #include "MIDClustering/PreCluster.h"
 #include "MIDClustering/PreClusterizer.h"
 #include "MIDClustering/Clusterizer.h"

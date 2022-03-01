@@ -26,8 +26,10 @@
 #include "CCDB/CcdbObjectInfo.h"
 #include <CommonUtils/ConfigurableParam.h>
 #include <type_traits>
+#include <vector>
 
 #if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
+#include "MemoryResources/MemoryResources.h"
 #include <TJAlienCredentials.h>
 #else
 class TJAlienCredentials;
@@ -62,9 +64,10 @@ class CcdbApi //: public DatabaseInterface
   /**
    * Initialize connection to CCDB
    *
-   * @param host The URL to the CCDB (e.g. "ccdb-test.cern.ch:8080" or to a local snapshot "file:///tmp/CCDBSnapshot")
+   * @param hosts The URLs to the CCDB (e.g. "ccdb-test.cern.ch:8080" or to a local snapshot "file:///tmp/CCDBSnapshot"),
+   * separated with "," or ";" ("https://localhost:8080,https://ccdb-test.cern.ch:8080")
    */
-  void init(std::string const& host);
+  void init(std::string const& hosts);
 
   /**
    * Query current URL
@@ -73,7 +76,13 @@ class CcdbApi //: public DatabaseInterface
   std::string const& getURL() const { return mUrl; }
 
   /**
-   * Create a binary image of the arbitrary type object, if CcdbObjectInfo pointer is provided, register there 
+   * Check if we are in a snapshot mode
+   *
+   */
+  bool isSnapshotMode() const { return mInSnapshotMode; }
+
+  /**
+   * Create a binary image of the arbitrary type object, if CcdbObjectInfo pointer is provided, register there
    *
    * the assigned object class name and the filename
    * @param obj: Raw pointer to the object to store.
@@ -86,7 +95,7 @@ class CcdbApi //: public DatabaseInterface
   }
 
   /**
-   * Create a binary image of the TObject, if CcdbObjectInfo pointer is provided, register there 
+   * Create a binary image of the TObject, if CcdbObjectInfo pointer is provided, register there
    *
    * the assigned object class name and the filename
    * @param obj: Raw pointer to the object to store.
@@ -95,7 +104,7 @@ class CcdbApi //: public DatabaseInterface
   static std::unique_ptr<std::vector<char>> createObjectImage(const TObject* obj, CcdbObjectInfo* info = nullptr);
 
   /**
-   * Create a binary image of the object, if CcdbObjectInfo pointer is provided, register there 
+   * Create a binary image of the object, if CcdbObjectInfo pointer is provided, register there
    *
    * the assigned object class name and the filename
    * @param obj: Raw pointer to the object to store.
@@ -112,9 +121,13 @@ class CcdbApi //: public DatabaseInterface
      * @param metadata Key-values representing the metadata for this object.
      * @param startValidityTimestamp Start of validity. If omitted, current timestamp is used.
      * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 day is used.
+     * @return 0 -> ok,
+     *         positive number -> curl error (https://curl.se/libcurl/c/libcurl-errors.html),
+     *         -1 : object bigger than maxSize,
+     *         -2 : curl initialization error
      */
-  void storeAsTFile(const TObject* rootObject, std::string const& path, std::map<std::string, std::string> const& metadata,
-                    long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
+  int storeAsTFile(const TObject* rootObject, std::string const& path, std::map<std::string, std::string> const& metadata,
+                   long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize = 0 /*bytes*/) const;
 
   /**
      * Store into the CCDB a TFile containing an object of type T (which needs to have a ROOT dictionary)
@@ -124,19 +137,23 @@ class CcdbApi //: public DatabaseInterface
      * @param metadata Key-values representing the metadata for this object.
      * @param startValidityTimestamp Start of validity. If omitted, current timestamp is used.
      * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 day is used.
+     * @return 0 -> ok,
+     *         positive number -> curl error (https://curl.se/libcurl/c/libcurl-errors.html),
+     *         -1 : object bigger than maxSize,
+     *         -2 : curl initialization error
      */
   template <typename T>
-  void storeAsTFileAny(const T* obj, std::string const& path, std::map<std::string, std::string> const& metadata,
-                       long startValidityTimestamp = -1, long endValidityTimestamp = -1) const
+  int storeAsTFileAny(const T* obj, std::string const& path, std::map<std::string, std::string> const& metadata,
+                      long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize = 0 /*bytes*/) const
   {
-    storeAsTFile_impl(reinterpret_cast<const void*>(obj), typeid(T), path, metadata, startValidityTimestamp, endValidityTimestamp);
+    return storeAsTFile_impl(reinterpret_cast<const void*>(obj), typeid(T), path, metadata, startValidityTimestamp, endValidityTimestamp, maxSize);
   }
 
   // interface for storing TObject via storeAsTFileAny
-  void storeAsTFileAny(const TObject* rootobj, std::string const& path, std::map<std::string, std::string> const& metadata,
-                       long startValidityTimestamp = -1, long endValidityTimestamp = -1) const
+  int storeAsTFileAny(const TObject* rootobj, std::string const& path, std::map<std::string, std::string> const& metadata,
+                      long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize = 0 /*bytes*/) const
   {
-    storeAsTFile(rootobj, path, metadata, startValidityTimestamp, endValidityTimestamp);
+    return storeAsTFile(rootobj, path, metadata, startValidityTimestamp, endValidityTimestamp, maxSize);
   }
 
   /**
@@ -271,7 +288,7 @@ class CcdbApi //: public DatabaseInterface
    */
   static void* extractFromTFile(TFile& file, TClass const* cl);
 
-  /** Get headers associated to a given CCDBEntry on the server. 
+  /** Get headers associated to a given CCDBEntry on the server.
    * @param url the url which refers to the objects
    * @param etag of the previous reply
    * @param headers the headers found in the request. Will be emptied when we return false.
@@ -320,6 +337,29 @@ class CcdbApi //: public DatabaseInterface
                              std::map<std::string, std::string>* headers, std::string const& etag,
                              const std::string& createdNotAfter, const std::string& createdNotBefore) const;
 
+#if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
+  void loadFileToMemory(o2::pmr::vector<char>& dest, const std::string& path, std::map<std::string, std::string>* localHeaders = nullptr) const;
+  void loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& path,
+                        std::map<std::string, std::string> const& metadata, long timestamp,
+                        std::map<std::string, std::string>* headers, std::string const& etag,
+                        const std::string& createdNotAfter, const std::string& createdNotBefore) const;
+  void navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL* curl_handle, std::string const& url, std::map<string, string>* headers) const;
+
+  // the failure to load the file to memory is signaled by 0 size and non-0 capacity
+  static bool isMemoryFileInvalid(const o2::pmr::vector<char>& v) { return v.size() == 0 && v.capacity() > 0; }
+  template <typename T>
+  static T* extractFromMemoryBlob(o2::pmr::vector<char>& blob)
+  {
+    auto obj = static_cast<T*>(interpretAsTMemFileAndExtract(blob.data(), blob.size(), typeid(T)));
+    if constexpr (std::is_base_of<o2::conf::ConfigurableParam, T>::value) {
+      auto& param = const_cast<typename std::remove_const<T&>::type>(T::Instance());
+      param.syncCCDBandRegistry(obj);
+      obj = &param;
+    }
+    return obj;
+  }
+#endif
+
  private:
   /**
    * Initialize in local mode; Objects will be retrieved from snapshot
@@ -351,7 +391,7 @@ class CcdbApi //: public DatabaseInterface
    */
   std::string getFullUrlForStorage(CURL* curl, const std::string& path, const std::string& objtype,
                                    const std::map<std::string, std::string>& metadata,
-                                   long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
+                                   long startValidityTimestamp = -1, long endValidityTimestamp = -1, int hostIndex = 0) const;
 
   /**
    * Build the full url to store an object.
@@ -361,24 +401,36 @@ class CcdbApi //: public DatabaseInterface
    * @return The full url to store an object (url / startValidity / endValidity / [metadata &]* )
    */
   std::string getFullUrlForRetrieval(CURL* curl, const std::string& path, const std::map<std::string, std::string>& metadata,
-                                     long timestamp = -1) const;
+                                     long timestamp = -1, int hostIndex = 0) const;
 
  public:
   /**
    * A generic method to store a binary buffer (e.g. an image of the TMemFile)
+   * @return 0 -> ok,
+   *         positive number -> curl error (https://curl.se/libcurl/c/libcurl-errors.html),
+   *         -1 : object bigger than maxSize,
+   *         -2 : curl initialization error
    */
-  void storeAsBinaryFile(const char* buffer, size_t size, const std::string& fileName, const std::string& objectType,
-                         const std::string& path, const std::map<std::string, std::string>& metadata,
-                         long startValidityTimestamp, long endValidityTimestamp) const;
+  int storeAsBinaryFile(const char* buffer, size_t size, const std::string& fileName, const std::string& objectType,
+                        const std::string& path, const std::map<std::string, std::string>& metadata,
+                        long startValidityTimestamp, long endValidityTimestamp, std::vector<char>::size_type maxSize = 0 /*in bytes*/) const;
 
   /**
    * A generic helper implementation to store an obj whose type is given by a std::type_info
+   * @return 0 -> ok,
+   *         positive number -> curl error (https://curl.se/libcurl/c/libcurl-errors.html),
+   *         -1 : object bigger than maxSize,
+   *         -2 : curl initialization error
    */
-  void storeAsTFile_impl(const void* obj1, std::type_info const& info, std::string const& path, std::map<std::string, std::string> const& metadata,
-                         long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
+  int storeAsTFile_impl(const void* obj1, std::type_info const& info, std::string const& path, std::map<std::string, std::string> const& metadata,
+                        long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize = 0 /*in bytes*/) const;
 
   /**
    * A generic helper implementation to query obj whose type is given by a std::type_info
+   * @return 0 -> ok,
+   *         positive number -> curl error (https://curl.se/libcurl/c/libcurl-errors.html),
+   *         -1 : object bigger than maxSize,
+   *         -2 : curl initialization error
    */
   void* retrieveFromTFile(std::type_info const&, std::string const& path, std::map<std::string, std::string> const& metadata,
                           long timestamp = -1, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
@@ -411,7 +463,7 @@ class CcdbApi //: public DatabaseInterface
   void* navigateURLsAndRetrieveContent(CURL*, std::string const& url, std::type_info const& tinfo, std::map<std::string, std::string>* headers) const;
 
   // helper that interprets a content chunk as TMemFile and extracts the object therefrom
-  void* interpretAsTMemFileAndExtract(char* contentptr, size_t contentsize, std::type_info const& tinfo) const;
+  static void* interpretAsTMemFileAndExtract(char* contentptr, size_t contentsize, std::type_info const& tinfo);
 
   /**
    * Initialization of CURL
@@ -421,8 +473,39 @@ class CcdbApi //: public DatabaseInterface
   // convert type_info to TClass, throw on failure
   static TClass* tinfo2TClass(std::type_info const& tinfo);
 
+  // split string on delimiters and return tokens as vector
+  std::vector<std::string> splitString(std::string string, const char* delimiters);
+
+  typedef size_t (*CurlWriteCallback)(void*, size_t, size_t, void*);
+
+  void initCurlOptionsForRetrieve(CURL* curlHandle, void* pointer, CurlWriteCallback writeCallback, bool followRedirect = true) const;
+
+  void initHeadersForRetrieve(CURL* curlHandle, long timestamp, std::map<std::string, std::string>* headers, std::string const& etag,
+                              const std::string& createdNotAfter, const std::string& createdNotBefore) const;
+
+  bool receiveToFile(FILE* fileHandle, std::string const& path, std::map<std::string, std::string> const& metadata,
+                     long timestamp, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
+                     const std::string& createdNotAfter = "", const std::string& createdNotBefore = "", bool followRedirect = true) const;
+
+  bool receiveToMemory(void* chunk, std::string const& path, std::map<std::string, std::string> const& metadata,
+                       long timestamp, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
+                       const std::string& createdNotAfter = "", const std::string& createdNotBefore = "", bool followRedirect = true) const;
+
+  bool receiveObject(void* dataHolder, std::string const& path, std::map<std::string, std::string> const& metadata,
+                     long timestamp, std::map<std::string, std::string>* headers, std::string const& etag,
+                     const std::string& createdNotAfter, const std::string& createdNotBefore, bool followRedirect, CurlWriteCallback writeCallback) const;
+
+  /**
+  * Initialize hostsPool
+  * @param hosts string with hosts separated by "," or ";"
+  */
+  void initHostsPool(std::string hosts);
+
+  std::string getHostUrl(int hostIndex) const;
+
   /// Base URL of the CCDB (with port)
   std::string mUrl{};
+  std::vector<std::string> hostsPool{};
   std::string mSnapshotTopPath{};
   bool mInSnapshotMode = false;
   mutable TGrid* mAlienInstance = nullptr;                       // a cached connection to TGrid (needed for Alien locations)

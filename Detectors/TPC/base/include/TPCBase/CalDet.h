@@ -27,6 +27,7 @@
 #include <Framework/Logger.h>
 #include <boost/format.hpp>
 #include <boost/range/combine.hpp>
+#include "Rtypes.h"
 #endif
 
 namespace o2
@@ -41,7 +42,7 @@ class CalDet
   using CalType = CalArray<T>;
 
  public:
-  CalDet() = default;
+  CalDet() { initData(); }
   CalDet(CalDet const&) = default;
   CalDet& operator=(CalDet const&) = default;
   ~CalDet() = default;
@@ -82,6 +83,7 @@ class CalDet
   const CalDet& operator-=(const CalDet& other);
   const CalDet& operator*=(const CalDet& other);
   const CalDet& operator/=(const CalDet& other);
+  bool operator==(const CalDet& other) const;
 
   const CalDet& operator+=(const T& val);
   const CalDet& operator-=(const T& val);
@@ -97,12 +99,14 @@ class CalDet
   friend CalDet<U> operator-(const CalDet<U>&, const CalDet<U>&);
 
  private:
-  std::string mName;          ///< name of the object
-  std::vector<CalType> mData; ///< internal CalArrays
-  PadSubset mPadSubset;       ///< Pad subset granularity
+  std::string mName;                     ///< name of the object
+  std::vector<CalType> mData;            ///< internal CalArrays
+  PadSubset mPadSubset = PadSubset::ROC; ///< Pad subset granularity
 
   /// initialize the data array depending on what is set as PadSubset
   void initData();
+
+  ClassDefNV(CalDet, 1)
 };
 
 //______________________________________________________________________________
@@ -349,6 +353,25 @@ inline const CalDet<T>& CalDet<T>::operator=(const T& val)
     cal = val;
   }
   return *this;
+}
+
+//______________________________________________________________________________
+template <class T>
+inline bool CalDet<T>::operator==(const CalDet& other) const
+{
+  // make sure the calibration objects have the same substructure
+  // TODO: perhaps make it independed of this
+  if (mPadSubset != other.mPadSubset) {
+    LOG(error) << "Pad subste type of the objects it not compatible";
+    return false;
+  }
+
+  for (size_t i = 0; i < mData.size(); ++i) {
+    if (!(mData[i] == other.mData[i])) {
+      return false;
+    }
+  }
+  return true;
 }
 
 //______________________________________________________________________________

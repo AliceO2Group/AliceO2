@@ -44,6 +44,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"debug", VariantType::Bool, false, {"create debug files"}},
     {"sendOutput", VariantType::Bool, false, {"send IDC0, IDC1, IDCDelta, fourier coefficients (for debugging)"}},
     {"use-naive-fft", VariantType::Bool, false, {"using naive fourier transform (true) or FFTW (false)"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"crus", VariantType::String, cruDefault.c_str(), {"List of CRUs, comma separated ranges, e.g. 0-3,7,9-15"}}};
 
   std::swap(workflowOptions, options);
@@ -56,6 +57,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   using namespace o2::tpc;
 
   // set up configuration
+  o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
   o2::conf::ConfigurableParam::writeINI("o2tpcaggregate1didc_configuration.ini");
 
   const auto tpcCRUs = o2::RangeTokenizer::tokenize<int>(config.options().get<std::string>("crus"));

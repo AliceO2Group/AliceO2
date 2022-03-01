@@ -26,7 +26,7 @@
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "ITSMFTReconstruction/GBTLink.h"
 #include "ITSMFTWorkflow/STFDecoderSpec.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "DataFormatsITSMFT/CompCluster.h"
@@ -81,8 +81,8 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     mDictName = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
     mNoiseName = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().noiseFilePath;
   }
-  mNoiseName = o2::base::NameConf::getNoiseFileName(detID, mNoiseName, "root");
-  mDictName = o2::base::NameConf::getAlpideClusterDictionaryFileName(detID, mDictName);
+  mNoiseName = o2::base::DetectorNameConf::getNoiseFileName(detID, mNoiseName, "root");
+  mDictName = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(detID, mDictName);
 
   try {
     mNThreads = std::max(1, ic.options().get<int>("nthreads"));
@@ -90,6 +90,15 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     mDecoder->setFormat(ic.options().get<bool>("old-format") ? GBTLink::OldFormat : GBTLink::NewFormat);
     mUnmutExtraLanes = ic.options().get<bool>("unmute-extra-lanes");
     mVerbosity = ic.options().get<int>("decoder-verbosity");
+    mDumpOnError = ic.options().get<int>("raw-data-dumps");
+    if (mDumpOnError < 0 || mDumpOnError >= int(GBTLink::RawDataDumps::DUMP_NTYPES)) {
+      throw std::runtime_error(fmt::format("unknown raw data dump level {} requested", mDumpOnError));
+    }
+    auto dumpDir = ic.options().get<std::string>("raw-data-dumps-directory");
+    if (mDumpOnError != int(GBTLink::RawDataDumps::DUMP_NONE) && o2::utils::Str::pathIsDirectory(dumpDir)) {
+      throw std::runtime_error(fmt::format("directory {} for raw data dumps does not exist", dumpDir));
+    }
+    mDecoder->setRawDumpDirectory(dumpDir);
     mDecoder->setFillCalibData(mDoCalibData);
     if (o2::utils::Str::pathExists(mNoiseName)) {
       TFile* f = TFile::Open(mNoiseName.data(), "old");
@@ -214,15 +223,19 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     mEstNROF = std::max(mEstNROF, size_t(clusROFVec.size() * 1.2));
   }
 
+  if (mDumpOnError != int(GBTLink::RawDataDumps::DUMP_NONE)) {
+    mDecoder->produceRawDataDumps(mDumpOnError, DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true)));
+  }
+
   if (mDoClusters) {
-    LOG(info) << mSelfName << " Built " << clusCompVec.size() << " clusters in " << clusROFVec.size() << " ROFs";
+    LOG(debug) << mSelfName << " Built " << clusCompVec.size() << " clusters in " << clusROFVec.size() << " ROFs";
   }
   if (mDoDigits) {
-    LOG(info) << mSelfName << " Decoded " << digVec.size() << " Digits in " << digROFVec.size() << " ROFs";
+    LOG(debug) << mSelfName << " Decoded " << digVec.size() << " Digits in " << digROFVec.size() << " ROFs";
   }
   mTimer.Stop();
   auto tfID = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->tfCounter;
-  LOG(info) << mSelfName << " Total time for TF " << tfID << '(' << mTFCounter << ") : CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0;
+  LOG(debug) << mSelfName << " Total time for TF " << tfID << '(' << mTFCounter << ") : CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0;
   mTFCounter++;
 }
 ///_______________________________________
@@ -281,6 +294,8 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
       {"nthreads", VariantType::Int, 1, {"Number of decoding/clustering threads"}},
       {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},
       {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data) of 1st lane"}},
+      {"raw-data-dumps", VariantType::Int, int(GBTLink::RawDataDumps::DUMP_NONE), {"Raw data dumps on error (0: none, 1: HBF for link, 2: whole TF for all links"}},
+      {"raw-data-dumps-directory", VariantType::String, "", {"Destination directory for the raw data dumps"}},
       {"unmute-extra-lanes", VariantType::Bool, false, {"allow extra lanes to be as verbose as 1st one"}}}};
 }
 

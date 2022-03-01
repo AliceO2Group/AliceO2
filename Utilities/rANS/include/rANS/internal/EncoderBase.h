@@ -24,11 +24,12 @@
 #include <fairlogger/Logger.h>
 #include <stdexcept>
 
+#include "rANS/definitions.h"
 #include "rANS/internal/Encoder.h"
 #include "rANS/internal/EncoderSymbol.h"
 #include "rANS/internal/helper.h"
 #include "rANS/internal/SymbolTable.h"
-#include "rANS/FrequencyTable.h"
+#include "rANS/RenormedFrequencyTable.h"
 
 namespace o2
 {
@@ -42,47 +43,25 @@ class EncoderBase
 {
  protected:
   using encoderSymbolTable_t = typename internal::SymbolTable<internal::EncoderSymbol<coder_T>>;
+  using ransCoder_t = typename internal::Encoder<coder_T, stream_T>;
 
  public:
-  using symbol_t = typename FrequencyTable::symbol_t;
-
   using coder_t = coder_T;
   using stream_t = stream_T;
   using source_t = source_T;
 
-  //TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
-  EncoderBase() noexcept {}; //NOLINT
-  EncoderBase(encoderSymbolTable_t&& e, size_t symbolTablePrecission) noexcept;
-  EncoderBase(const FrequencyTable& frequencies, size_t symbolTablePrecission);
+  // TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
+  EncoderBase() noexcept {}; // NOLINT
+  explicit EncoderBase(const RenormedFrequencyTable& frequencyTable) : mSymbolTable{frequencyTable} {};
 
-  inline size_t getSymbolTablePrecision() const noexcept { return mSymbolTablePrecission; }
-  inline size_t getAlphabetRangeBits() const noexcept { return mSymbolTable.getAlphabetRangeBits(); }
-  inline symbol_t getMinSymbol() const noexcept { return mSymbolTable.getMinSymbol(); }
-  inline symbol_t getMaxSymbol() const noexcept { return mSymbolTable.getMaxSymbol(); }
+  inline size_t getSymbolTablePrecision() const noexcept { return mSymbolTable.getPrecision(); };
+  inline size_t getAlphabetRangeBits() const noexcept { return mSymbolTable.getAlphabetRangeBits(); };
+  inline symbol_t getMinSymbol() const noexcept { return mSymbolTable.getMinSymbol(); };
+  inline symbol_t getMaxSymbol() const noexcept { return mSymbolTable.getMaxSymbol(); };
 
  protected:
   encoderSymbolTable_t mSymbolTable{};
-  size_t mSymbolTablePrecission{};
-
-  using ransCoder_t = typename internal::Encoder<coder_T, stream_T>;
 };
-
-template <typename coder_T, typename stream_T, typename source_T>
-EncoderBase<coder_T, stream_T, source_T>::EncoderBase(encoderSymbolTable_t&& e, size_t symbolTablePrecission) noexcept : mSymbolTable{std::move(e)}, mSymbolTablePrecission{symbolTablePrecission} {};
-
-template <typename coder_T, typename stream_T, typename source_T>
-EncoderBase<coder_T, stream_T, source_T>::EncoderBase(const FrequencyTable& frequencies,
-                                                      size_t symbolTablePrecission) : mSymbolTablePrecission{symbolTablePrecission}
-{
-  SymbolStatistics stats{frequencies, mSymbolTablePrecission};
-  mSymbolTablePrecission = stats.getSymbolTablePrecision();
-
-  RANSTimer t;
-  t.start();
-  mSymbolTable = encoderSymbolTable_t{stats};
-  t.stop();
-  LOG(debug1) << "Encoder SymbolTable inclusive time (ms): " << t.getDurationMS();
-}
 
 } // namespace internal
 } // namespace rans

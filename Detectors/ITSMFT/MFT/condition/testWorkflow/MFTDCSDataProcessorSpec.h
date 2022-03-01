@@ -57,12 +57,16 @@ class MFTDCSDataProcessor : public o2::framework::Task
   //________________________________________________________________
   void init(o2::framework::InitContext& ic) final
   {
+
+    // o2::conf::ConfigurableParam::updateFromString(ic.options().get<std::string>("configKeyValues"));
+
     std::vector<DPID> vect;
     mDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval");
     if (mDPsUpdateInterval == 0) {
       LOG(error) << "MFT DPs update interval set to zero seconds --> changed to 60";
       mDPsUpdateInterval = 60;
     }
+
     bool useCCDBtoConfigure = ic.options().get<bool>("use-ccdb-to-configure");
 
     mStart = ic.options().get<int64_t>("tstart");
@@ -70,9 +74,9 @@ class MFTDCSDataProcessor : public o2::framework::Task
 
     if (useCCDBtoConfigure) {
       LOG(info) << "Configuring via CCDB";
-      std::string ccdbpath = ic.options().get<std::string>("ccdb-path");
+
       auto& mgr = CcdbManager::instance();
-      mgr.setURL(ccdbpath);
+      mgr.setURL(o2::base::NameConf::getCCDBServer());
       CcdbApi api;
       api.init(mgr.getURL());
       long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -219,11 +223,11 @@ DataProcessorSpec getMFTDCSDataProcessorSpec()
     outputs,
     AlgorithmSpec{adaptFromTask<o2::mft::MFTDCSDataProcessor>()},
     Options{
-      {"ccdb-path", VariantType::String, "http://localhost:8080", {"Path to CCDB"}},
       {"tstart", VariantType::Int64, -1ll, {"Start of validity timestamp"}},
       {"tend", VariantType::Int64, -1ll, {"End of validity timestamp"}},
       {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
       {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
+      //{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
       {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}}}};
 }
 

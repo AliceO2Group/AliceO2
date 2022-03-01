@@ -17,6 +17,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/OutputRoute.h"
 #include "Framework/EndOfStreamContext.h"
+#include "Framework/SourceInfoHeader.h"
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
 
@@ -25,6 +26,7 @@
 #include <fairmq/FairMQDevice.h>
 #include "TFReaderSpec.h"
 #include "TFReaderDD/SubTimeFrameFileReader.h"
+#include "TFReaderDD/SubTimeFrameFile.h"
 #include "CommonUtils/FileFetcher.h"
 #include "CommonUtils/FIFO.h"
 #include <unistd.h>
@@ -41,13 +43,19 @@ using namespace o2::rawdd;
 using namespace std::chrono_literals;
 using DetID = o2::detectors::DetID;
 namespace o2f = o2::framework;
+namespace o2h = o2::header;
 
 class TFReaderSpec : public o2f::Task
 {
  public:
+  struct SubSpecCount {
+    uint32_t defSubSpec = 0xdeadbeef;
+    int count = -1;
+  };
+
   using TFMap = std::unordered_map<std::string, std::unique_ptr<FairMQParts>>; // map of channel / TFparts
 
-  explicit TFReaderSpec(const TFReaderInp& rinp) : mInput(rinp) {}
+  explicit TFReaderSpec(const TFReaderInp& rinp);
   void init(o2f::InitContext& ic) final;
   void run(o2f::ProcessingContext& ctx) final;
   void endOfStream(o2f::EndOfStreamContext& ec) final;
@@ -61,12 +69,22 @@ class TFReaderSpec : public o2f::Task
   std::vector<o2f::OutputRoute> mOutputRoutes;
   std::unique_ptr<o2::utils::FileFetcher> mFileFetcher;
   o2::utils::FIFO<std::unique_ptr<TFMap>> mTFQueue{}; // queued TFs
+  //  std::unordered_map<o2h::DataIdentifier, SubSpecCount, std::hash<o2h::DataIdentifier>> mSeenOutputMap;
+  std::unordered_map<o2h::DataIdentifier, SubSpecCount> mSeenOutputMap;
   int mTFCounter = 0;
   int mTFBuilderCounter = 0;
   bool mRunning = false;
   TFReaderInp mInput; // command line inputs
   std::thread mTFBuilderThread{};
 };
+
+//___________________________________________________________
+TFReaderSpec::TFReaderSpec(const TFReaderInp& rinp) : mInput(rinp)
+{
+  for (const auto& hd : rinp.hdVec) {
+    mSeenOutputMap[o2h::DataIdentifier{hd.dataDescription.str, hd.dataOrigin.str}].defSubSpec = hd.subSpecification;
+  }
+}
 
 //___________________________________________________________
 void TFReaderSpec::init(o2f::InitContext& ic)
@@ -81,8 +99,8 @@ void TFReaderSpec::init(o2f::InitContext& ic)
 void TFReaderSpec::run(o2f::ProcessingContext& ctx)
 {
   if (!mTFCounter) { // RS FIXME: this is a temporary hack to avoid late-starting devices to lose the input
-    LOG(warning) << "This is a hack, sleeping 10 s at startup";
-    usleep(10000000);
+    LOG(warning) << "This is a hack, sleeping 2 s at startup";
+    usleep(2000000);
   }
   if (!mDevice) {
     mDevice = ctx.services().get<o2f::RawDeviceService>().device();
@@ -99,6 +117,73 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
     throw std::runtime_error(fmt::format("FMQDevice has changed, old={} new={}", fmt::ptr(mDevice), fmt::ptr(device)));
   }
 
+  auto acknowledgeOutput = [this](FairMQParts& parts) {
+    int np = parts.Size();
+    for (int ip = 0; ip < np; ip += 2) {
+      const auto& msgh = parts[ip];
+      const auto* hd = o2h::get<o2h::DataHeader*>(msgh.GetData());
+      if (hd->splitPayloadIndex == 0) { // check the 1st one only
+        auto& entry = this->mSeenOutputMap[{hd->dataDescription.str, hd->dataOrigin.str}];
+        if (entry.count != this->mTFCounter) {
+          entry.count = this->mTFCounter; // acknowledge identifier seen in the data
+          LOG(debug) << "Found a part " << ip << " of " << np << " | " << hd->dataOrigin.as<std::string>() << "/" << hd->dataDescription.as<std::string>()
+                     << "/" << hd->subSpecification << " part " << hd->splitPayloadIndex << " of " << hd->splitPayloadParts << " for TF " << this->mTFCounter;
+        }
+      }
+    }
+  };
+
+  auto findOutputChannel = [&ctx, this](o2h::DataHeader& h) {
+    if (!this->mInput.rawChannelConfig.empty()) {
+      return std::string{this->mInput.rawChannelConfig};
+    } else {
+      auto outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
+      for (auto& oroute : outputRoutes) {
+        LOG(debug) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
+        if (o2f::DataSpecUtils::match(oroute.matcher, h.dataOrigin, h.dataDescription, h.subSpecification) && ((h.tfCounter % oroute.maxTimeslices) == oroute.timeslice)) {
+          LOG(debug) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
+          return std::string{oroute.channel};
+        }
+      }
+    }
+    LOGP(error, "Failed to find output channel for {}/{}/{} @ timeslice {}", h.dataOrigin.str, h.dataDescription.str, h.subSpecification, h.tfCounter);
+    return std::string{};
+  };
+
+  auto addMissingParts = [this, &findOutputChannel](TFMap& msgMap) {
+    // at least the 1st header is guaranteed to be filled by the reader, use it for extra info
+    const auto* dataptr = (*msgMap.begin()->second.get())[0].GetData();
+    const auto* hd0 = o2h::get<o2h::DataHeader*>(dataptr);
+    const auto* dph = o2h::get<o2f::DataProcessingHeader*>(dataptr);
+    for (auto& out : this->mSeenOutputMap) {
+      if (out.second.count == this->mTFCounter) { // was seen in the data
+        continue;
+      }
+      LOG(debug) << "Adding dummy output for " << out.first.dataOrigin.as<std::string>() << "/" << out.first.dataDescription.as<std::string>()
+                 << "/" << out.second.defSubSpec << " for TF " << this->mTFCounter;
+      o2h::DataHeader outHeader(out.first.dataDescription, out.first.dataOrigin, out.second.defSubSpec, 0);
+      outHeader.payloadSerializationMethod = o2h::gSerializationMethodNone;
+      outHeader.firstTForbit = hd0->firstTForbit;
+      outHeader.tfCounter = hd0->tfCounter;
+      const auto fmqChannel = findOutputChannel(outHeader);
+      if (fmqChannel.empty()) { // no output channel
+        continue;
+      }
+      auto fmqFactory = this->mDevice->GetChannel(fmqChannel, 0).Transport();
+      o2h::Stack headerStack{outHeader, *dph};
+      auto hdMessage = fmqFactory->CreateMessage(headerStack.size(), fair::mq::Alignment{64});
+      auto plMessage = fmqFactory->CreateMessage(0, fair::mq::Alignment{64});
+      memcpy(hdMessage->GetData(), headerStack.data(), headerStack.size());
+      FairMQParts* parts = msgMap[fmqChannel].get();
+      if (!parts) {
+        msgMap[fmqChannel] = std::make_unique<FairMQParts>();
+        parts = msgMap[fmqChannel].get();
+      }
+      parts->AddPart(std::move(hdMessage));
+      parts->AddPart(std::move(plMessage));
+    }
+  };
+
   while (1) {
     if (mTFCounter >= mInput.maxTFs) { // done
       stopProcessing(ctx);
@@ -111,6 +196,13 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
         LOG(error) << "Builder provided nullptr TF pointer";
         continue;
       }
+      if (mInput.sendDummyForMissing) {
+        for (auto& msgIt : *tfPtr.get()) { // complete with empty output for the specs which were requested but not seen in the data
+          acknowledgeOutput(*msgIt.second.get());
+        }
+        addMissingParts(*tfPtr.get());
+      }
+
       auto tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
       auto tDiff = tNow - tLastTF + 2 * deltaSending;
       if (mTFCounter && tDiff < mInput.delay_us) {
@@ -119,6 +211,7 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
       size_t nparts = 0;
       auto tSend = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
       for (auto& msgIt : *tfPtr.get()) {
+        acknowledgeOutput(*msgIt.second.get());
         nparts += msgIt.second->Size() / 2;
         device->Send(*msgIt.second.get(), msgIt.first);
       }
@@ -163,7 +256,23 @@ void TFReaderSpec::stopProcessing(o2f::ProcessingContext& ctx)
   if (mTFBuilderThread.joinable()) {
     mTFBuilderThread.join();
   }
-  ctx.services().get<o2f::ControlService>().endOfStream();
+  if (!mInput.rawChannelConfig.empty()) {
+    auto device = ctx.services().get<o2f::RawDeviceService>().device();
+    o2f::SourceInfoHeader exitHdr;
+    exitHdr.state = o2f::InputChannelState::Completed;
+    const auto exitStack = o2h::Stack(o2h::DataHeader(o2h::gDataDescriptionInfo, o2h::gDataOriginAny, 0, 0), o2f::DataProcessingHeader(), exitHdr);
+    auto fmqFactory = device->GetChannel(mInput.rawChannelConfig, 0).Transport();
+    auto hdEOSMessage = fmqFactory->CreateMessage(exitStack.size(), fair::mq::Alignment{64});
+    auto plEOSMessage = fmqFactory->CreateMessage(0, fair::mq::Alignment{64});
+    memcpy(hdEOSMessage->GetData(), exitStack.data(), exitStack.size());
+    FairMQParts eosMsg;
+    eosMsg.AddPart(std::move(hdEOSMessage));
+    eosMsg.AddPart(std::move(plEOSMessage));
+    device->Send(eosMsg, mInput.rawChannelConfig);
+    LOG(info) << "Sent EoS message to " << mInput.rawChannelConfig;
+  } else {
+    ctx.services().get<o2f::ControlService>().endOfStream();
+  }
   ctx.services().get<o2f::ControlService>().readyToQuit(o2f::QuitRequest::Me);
 }
 
@@ -240,6 +349,7 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
       if (rinp.detMask[id]) {
         if (!rinp.detMaskNonRawOnly[id]) {
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "RAWDATA"}});
+          rinp.hdVec.emplace_back(o2h::DataHeader{"RAWDATA", DetID::getDataOrigin(id), 0xDEADBEEF, 0}); // in abcence of real data this will be sent
         }
         //
         if (rinp.detMaskRawOnly[id]) { // used asked to not open non-raw channels
@@ -248,25 +358,36 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
         // in case detectors were processed on FLP
         if (id == DetID::TOF) {
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(DetID::TOF), "CRAWDATA"}});
+          rinp.hdVec.emplace_back(o2h::DataHeader{"CRAWDATA", DetID::getDataOrigin(DetID::TOF), 0xDEADBEEF, 0}); // in abcence of real data this will be sent
         } else if (id == DetID::FT0 || id == DetID::FV0 || id == DetID::FDD) {
           spec.outputs.emplace_back(o2f::OutputSpec{DetID::getDataOrigin(id), "DIGITSBC", 0});
           spec.outputs.emplace_back(o2f::OutputSpec{DetID::getDataOrigin(id), "DIGITSCH", 0});
+          rinp.hdVec.emplace_back(o2h::DataHeader{"DIGITSBC", DetID::getDataOrigin(id), 0, 0}); // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back(o2h::DataHeader{"DIGITSCH", DetID::getDataOrigin(id), 0, 0}); // in abcence of real data this will be sent
         } else if (id == DetID::PHS) {
           spec.outputs.emplace_back(o2f::OutputSpec{DetID::getDataOrigin(id), "CELLS", 0});
           spec.outputs.emplace_back(o2f::OutputSpec{DetID::getDataOrigin(id), "CELLTRIGREC", 0});
+          rinp.hdVec.emplace_back(o2h::DataHeader{"CELLS", DetID::getDataOrigin(id), 0, 0});       // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back(o2h::DataHeader{"CELLTRIGREC", DetID::getDataOrigin(id), 0, 0}); // in abcence of real data this will be sent
         } else if (id == DetID::CPV) {
           spec.outputs.emplace_back(o2f::OutputSpec{DetID::getDataOrigin(id), "DIGITS", 0});
           spec.outputs.emplace_back(o2f::OutputSpec{DetID::getDataOrigin(id), "DIGITTRIGREC", 0});
           spec.outputs.emplace_back(o2f::OutputSpec{DetID::getDataOrigin(id), "RAWHWERRORS", 0});
+          rinp.hdVec.emplace_back(o2h::DataHeader{"DIGITS", DetID::getDataOrigin(id), 0, 0});       // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back(o2h::DataHeader{"DIGITTRIGREC", DetID::getDataOrigin(id), 0, 0}); // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back(o2h::DataHeader{"RAWHWERRORS", DetID::getDataOrigin(id), 0, 0});  // in abcence of real data this will be sent
         } else if (id == DetID::EMC) {
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "CELLS"}});
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "CELLSTRGR"}});
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "DECODERERR"}});
+          rinp.hdVec.emplace_back(o2h::DataHeader{"CELLS", DetID::getDataOrigin(id), 0, 0});      // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back(o2h::DataHeader{"CELLSTRGR", DetID::getDataOrigin(id), 0, 0});  // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back(o2h::DataHeader{"DECODERERR", DetID::getDataOrigin(id), 0, 0}); // in abcence of real data this will be sent
         }
       }
     }
 
-    spec.outputs.emplace_back(o2f::OutputSpec{{"stfDist"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0});
+    spec.outputs.emplace_back(o2f::OutputSpec{{"stfDist"}, o2h::gDataOriginFLP, o2h::gDataDescriptionDISTSTF, 0});
   } else {
     auto nameStart = rinp.rawChannelConfig.find("name=");
     if (nameStart == std::string::npos) {

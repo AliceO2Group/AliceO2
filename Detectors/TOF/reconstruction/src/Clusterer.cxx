@@ -51,10 +51,12 @@ void Clusterer::calibrateStrip()
   for (int idig = 0; idig < mStripData.digits.size(); idig++) {
     //    LOG(debug) << "Checking digit " << idig;
     Digit* dig = &mStripData.digits[idig];
+    //    LOG(info) << "channel = " << dig->getChannel();
     dig->setBC(dig->getBC() - mBCOffset); // RS Don't use raw BC, always start from the beginning of the TF
     double calib = mCalibApi->getTimeCalibration(dig->getChannel(), dig->getTOT() * Geo::TOTBIN_NS);
     //printf("channel %d) isProblematic = %d, fractionUnderPeak = %f\n",dig->getChannel(),mCalibApi->isProblematic(dig->getChannel()),mCalibApi->getFractionUnderPeak(dig->getChannel())); // toberem
-    dig->setIsProblematic(0);                                                                                                                            // to be replaced with -> mCalibApi->isProblematic(dig->getChannel())
+    bool isProbOrError = mCalibApi->isChannelError(dig->getChannel()) || mCalibApi->isNoisy(dig->getChannel()) || mCalibApi->isProblematic(dig->getChannel());
+    dig->setIsProblematic(isProbOrError);
     dig->setCalibratedTime(dig->getTDC() * Geo::TDCBIN + dig->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3 - Geo::LATENCYWINDOW * 1E3 - calib); //TODO:  to be checked that "-" is correct, and we did not need "+" instead :-)
     //printf("calibration correction = %f\n",calib); // toberem
   }

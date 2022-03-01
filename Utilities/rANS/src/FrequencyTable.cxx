@@ -21,68 +21,79 @@ namespace o2
 namespace rans
 {
 
-void FrequencyTable::resizeFrequencyTable(symbol_t min, symbol_t max)
+FrequencyTable& FrequencyTable::trim()
 {
-  LOG(trace) << "start resizing frequency table";
-  internal::RANSTimer t;
-  t.start();
-  // calculate new dimensions
-  const symbol_t newMin = std::min(mMin, min);
-  const symbol_t newMax = std::max(mMax, max);
-  const size_t newSize = newMax - newMin + 1;
+  auto trimmedHistogram = utils::trim(utils::HistogramView(mFrequencyTable.begin(), mFrequencyTable.end(), this->mOffset));
 
-  // empty - init and prevent special treatment of corner cases when resizing.
-  if (mFrequencyTable.empty()) {
-    mFrequencyTable.resize(newSize, 0);
-  }
+  histogram_t newFrequencyTable{trimmedHistogram.begin(), trimmedHistogram.end()};
+  mFrequencyTable = std::move(newFrequencyTable);
+  mOffset = trimmedHistogram.getOffset();
 
-  // if the new size is bigger than the old one we need to resize the frequency table
-  if (newSize > mFrequencyTable.size()) {
-    const size_t offset = newMin < mMin ? std::abs(min - mMin) : 0;
-    std::vector<count_t> tmpFrequencyTable;
-    tmpFrequencyTable.reserve(newSize);
-    // insert initial offset if applicable
-    tmpFrequencyTable.insert(std::begin(tmpFrequencyTable), offset, 0);
-    // append current frequency table
-    tmpFrequencyTable.insert(std::end(tmpFrequencyTable), mFrequencyTable.begin(), mFrequencyTable.end());
-    //fill tail with zeroes if applicable
-    const size_t tail = newMax > mMax ? std::abs(max - mMax) : 0;
-    tmpFrequencyTable.insert(std::end(tmpFrequencyTable), tail, 0);
-
-    mFrequencyTable = std::move(tmpFrequencyTable);
-  }
-
-  assert(mFrequencyTable.size() == newSize);
-  mMin = newMin;
-  mMax = newMax;
-
-  t.stop();
-  LOG(debug1) << __func__ << " inclusive time (ms): " << t.getDurationMS();
-  LOG(trace) << "done resizing frequency table";
+  return *this;
 }
+
+FrequencyTable& FrequencyTable::resize(symbol_t min, symbol_t max, bool truncate)
+{
+  assert(max >= min);
+
+  const size_t newSize = max - min + 1;
+  const symbol_t oldOffset = mOffset;
+  mOffset = min;
+  mNumSamples = 0;
+
+  if (this->empty()) {
+    mFrequencyTable.resize(newSize, 0);
+    return *this;
+  } else {
+    histogram_t oldFrequencyTable = std::move(mFrequencyTable);
+    auto oldHistogram = utils::HistogramView{oldFrequencyTable.begin(), oldFrequencyTable.end(), oldOffset};
+    mFrequencyTable = histogram_t(newSize, 0);
+
+    const bool extendTable = !truncate;
+    return this->addFrequencies(oldHistogram.begin(), oldHistogram.end(), oldHistogram.getMin(), extendTable);
+  }
+}
+
+inline double_t computeEntropy(const FrequencyTable& table)
+{
+  double_t entropy = std::accumulate(table.begin(), table.end(), 0, [&table](double_t entropy, count_t frequency) {
+    const double_t p = static_cast<double_t>(frequency) / static_cast<double_t>(table.getNumSamples());
+    const double_t length = p == 0 ? 0 : std::log2(p);
+    return entropy -= p * length;
+  });
+  entropy += [&table]() {
+    const double_t p = static_cast<double_t>(table.getIncompressibleSymbolFrequency()) / static_cast<double_t>(table.getNumSamples());
+    return p * (-std::log2(p) + table.getAlphabetRangeBits());
+  }();
+
+  return entropy;
+};
+
+count_t computeRenormingPrecision(const FrequencyTable& frequencyTable)
+{
+  const uint8_t minBits = std::ceil(std::log2(frequencyTable.getNUsedAlphabetSymbols()));
+  const uint8_t estimate = minBits * 3u / 2u;
+  const uint8_t maxThreshold = std::max(minBits, MaxRenormThreshold);
+  const uint8_t minThreshold = std::max(estimate, MinRenormThreshold);
+
+  return std::min(minThreshold, maxThreshold);
+};
 
 std::ostream& operator<<(std::ostream& out, const FrequencyTable& fTable)
 {
-  double entropy = 0;
-  for (auto frequency : fTable) {
-    if (frequency > 0) {
-      const double p = (frequency * 1.0) / fTable.getNumSamples();
-      entropy -= p * std::log2(p);
-    }
-  }
-
   out << "FrequencyTable: {"
       << "numSymbols: " << fTable.getNumSamples() << ", "
       << "alphabetRange: " << fTable.getAlphabetRangeBits() << ", "
       << "alphabetSize: " << fTable.getNUsedAlphabetSymbols() << ", "
       << "minSymbol: " << fTable.getMinSymbol() << ", "
       << "maxSymbol: " << fTable.getMaxSymbol() << ", "
-      << "sizeFrequencyTableB: " << fTable.size() << ", "
-      << "sizeFrequencyTableB: " << fTable.size() * sizeof(typename o2::rans::FrequencyTable::symbol_t) << ", "
-      << "entropy: " << entropy << "}";
+      << "incompressibleSymbolFrequency: " << fTable.getIncompressibleSymbolFrequency() << ", "
+      << "sizeFrequencyTable: " << fTable.size() << ", "
+      << "sizeFrequencyTableB: " << fTable.size() * sizeof(typename o2::rans::symbol_t) << ", "
+      << "entropy: " << computeEntropy(fTable) << "}";
 
   return out;
 }
 
-} //namespace rans
+} // namespace rans
 } // namespace o2

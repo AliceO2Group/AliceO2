@@ -154,31 +154,86 @@ bool DataDecoder::RawDigit::operator==(const DataDecoder::RawDigit& other) const
   return digit == other.digit && info == other.info;
 }
 
-void DataDecoder::TimeFrameStartRecord::update(uint32_t orbit, uint32_t bunchCrossing)
+bool DataDecoder::TimeFrameStartRecord::update(uint32_t orbit, uint32_t bunchCrossing, bool verbose)
 {
-  mOrbitPrev = mOrbit;
-  mBunchCrossingPrev = mBunchCrossing;
+  if (verbose) {
+    LOGP(info, "[TimeFrameStartRecord::update()] new {}/{}  current {}/{}  prev {}/{}  valid {}",
+         orbit, bunchCrossing, mOrbit, mBunchCrossing, mOrbitPrev, mBunchCrossingPrev, mValid);
+  }
 
-  mOrbit = orbit;
-  mBunchCrossing = bunchCrossing;
-}
+  // if this is the first occurence, simply initialize the orbit and binch crossing and mark the start recortd as valid
+  if (mOrbit < 0) {
+    mOrbit = orbit;
+    mBunchCrossing = bunchCrossing;
 
-bool DataDecoder::TimeFrameStartRecord::check()
-{
-  if (mOrbitPrev < 0) {
+    mValid = true;
     return true;
   }
 
-  if (mOrbit < mOrbitPrev) {
-    return false;
+  if (mOrbit == orbit) {
+    if (mValid) {
+      // there is already one valid record for this orbit, so the current one is discarded
+      return false;
+    } else {
+      // there is already one record for this orbit, but it is invalid
+      // check if the current one is compatible with the previous, if yes replace the existing one
+      if (check(orbit, bunchCrossing, mOrbitPrev, mBunchCrossingPrev, verbose)) {
+        mOrbit = orbit;
+        mBunchCrossing = bunchCrossing;
+
+        mValid = true;
+      }
+    }
+  } else {
+    // we received an HB packet for a new TF, check if it is compatible with the last stored one
+    bool valid = check(orbit, bunchCrossing, mOrbit, mBunchCrossing, verbose);
+
+    bool replace = valid || (mOrbitPrev < 0) || (mValid == false);
+
+    if (replace) {
+      mOrbitPrev = mOrbit;
+      mBunchCrossingPrev = mBunchCrossing;
+
+      mOrbit = orbit;
+      mBunchCrossing = bunchCrossing;
+
+      mValid = valid;
+    }
   }
 
-  uint64_t dOrbit = mOrbit - mOrbitPrev;
-  uint64_t bcExpected = dOrbit * bcInOrbit + mBunchCrossingPrev;
+  if (verbose) {
+    LOGP(info, "[TimeFrameStartRecord::update()] set to {}/{}  prev {}/{}  valid {}",
+         mOrbit, mBunchCrossing, mOrbitPrev, mBunchCrossingPrev, mValid);
+  }
+
+  return mValid;
+}
+
+bool DataDecoder::TimeFrameStartRecord::check(int32_t orbit, uint32_t bc, int32_t orbitRef, uint32_t bcRef, bool verbose)
+{
+  if (verbose) {
+    LOGP(info, "[TimeFrameStartRecord::check()] current {}/{}  ref {}/{}", orbit, bc, orbitRef, bcRef);
+  }
+
+  if (orbitRef < 0) {
+    return true;
+  }
+
+  int64_t dOrbit = orbit - orbitRef;
+  if (verbose) {
+    LOGP(info, "[TimeFrameStartRecord::check()] dOrbit{}", dOrbit);
+  }
+  int64_t bcExpected = dOrbit * bcInOrbit + bcRef;
 
   uint64_t bcExpected20bits = bcExpected & twentyBitsAtOne;
 
-  return (bcExpected20bits == mBunchCrossing);
+  bool result = (bcExpected20bits == bc);
+
+  if (verbose) {
+    LOGP(info, "  dOrbit {}  expected {}  expected20bits {}  bc {}  valid {}", dOrbit, bcExpected, bcExpected20bits, bc, result);
+  }
+
+  return result;
 }
 
 //_________________________________________________________________________________________________
@@ -195,7 +250,7 @@ DataDecoder::DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandl
 void DataDecoder::logErrorMap(int tfcount) const
 {
   for (auto err : mErrorMap) {
-    LOGP(error, "{} ({} time{}) [{} TFs seeen]", err.first, err.second,
+    LOGP(alarm, "{} ({} time{}) [{} TFs seen]", err.first, err.second,
          err.second > 1 ? "s" : "", tfcount);
   }
 }
@@ -374,6 +429,12 @@ void DataDecoder::updateMergerRecord(uint32_t mergerChannelId, uint32_t mergerBo
   mergerCh.digitId = digitId;
   mergerCh.bcEnd = digit.info.bunchCrossing + (digit.info.sampaTime + digit.digit.getNofSamples() - 1) * 4;
   mMergerRecordsReady[mergerBoardId] |= mergerChannelBitmask;
+  if (mDebug) {
+    std::cout << fmt::format("[updateMergerRecord] updated S{}-DS{}-CHIP{}  time {}-{}-{}  cs {}",
+                             (int)digit.info.solar, (int)digit.info.ds, (int)digit.info.chip,
+                             (int)digit.info.orbit, (int)digit.info.bunchCrossing, (int)digit.info.sampaTime, (int)digit.digit.getNofSamples())
+              << std::endl;
+  }
 }
 
 //_________________________________________________________________________________________________
@@ -433,7 +494,7 @@ bool DataDecoder::addDigit(const DsElecId& dsElecId, DualSampaChannelId channel,
 
   // skip channels not associated to any pad
   if (padId < 0) {
-    LOGP(error, "got invalid padId from dsElecId={} dualSampaId={} channel={}", asString(dsElecId), dsIddet, channel);
+    LOGP(alarm, "got invalid padId from dsElecId={} dualSampaId={} channel={}", asString(dsElecId), dsIddet, channel);
     return false;
   }
 
@@ -501,18 +562,20 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
 
     uint32_t bcTF = subtractBcOffset(bunchCrossing, mSampaTimeOffset);
 
-    updateTimeFrameStartRecord(chipId, mFirstOrbitInTF, bcTF);
-
     if (mDebug) {
       auto s = asString(dsElecId);
       LOGP(info, "HeartBeat: {}-CHIP{} -> {}/{} offset {} -> bcTF {}",
            s, chip, mFirstOrbitInTF, bunchCrossing, mSampaTimeOffset, bcTF);
     }
 
-    if (!mTimeFrameStartRecords[chipId].check()) {
+    if (chipId >= DataDecoder::sReadoutChipsNum) {
+      return;
+    }
+
+    if (!mTimeFrameStartRecords[chipId].update(mFirstOrbitInTF, bcTF)) {
       if (mErrorCount < MCH_DECODER_MAX_ERROR_COUNT) {
         auto s = asString(dsElecId);
-        LOGP(warning, "Inconsistent HeartBeat packet received: {}-CHIP{} {}/{} (last {}/{})",
+        LOGP(warning, "Bad HeartBeat packet received: {}-CHIP{} {}/{} (last {}/{})",
              s, chip, mFirstOrbitInTF, bcTF, mTimeFrameStartRecords[chipId].mOrbitPrev, mTimeFrameStartRecords[chipId].mBunchCrossingPrev);
         mErrorCount += 1;
       }
@@ -594,7 +657,7 @@ int32_t DataDecoder::getDigitTime(uint32_t orbitStart, uint32_t bcStart, uint32_
   // Digits might be sent out later than the orbit in which they were recorded.
   // We account for this by allowing an extra -3 / +10 orbits when converting the
   // difference from orbit numbers to bunch crossings.
-  int64_t dBcMin = (dOrbit - 10) * bcInOrbit;
+  int64_t dBcMin = (dOrbit - 50) * bcInOrbit;
   int64_t dBcMax = (dOrbit + 3) * bcInOrbit;
 
   // Difference in bunch crossing values
@@ -631,10 +694,17 @@ bool DataDecoder::getTimeFrameStartRecord(const RawDigit& digit, uint32_t& orbit
 
   if (tfStart.mOrbit < 0) {
     if (mErrorCount < MCH_DECODER_MAX_ERROR_COUNT) {
-      LOGP(warning, "Missing TF start record for S{}-J{}-DS{}-CHIP{}", info.solar, info.ds / 5 + 1, info.ds % 5, info.chip);
+      LOGP(alarm, "Missing TF start record for S{}-J{}-DS{}-CHIP{}", info.solar, info.ds / 5 + 1, info.ds % 5, info.chip);
       mErrorCount += 1;
     }
     return false;
+  }
+
+  if (tfStart.mValid == false) {
+    if (mErrorCount < MCH_DECODER_MAX_ERROR_COUNT) {
+      LOGP(alarm, "Invalid TF start record for S{}-J{}-DS{}-CHIP{}", info.solar, info.ds / 5 + 1, info.ds % 5, info.chip);
+      mErrorCount += 1;
+    }
   }
 
   // orbit and BC from the last received HB packet
@@ -661,6 +731,7 @@ bool DataDecoder::getTimeFrameStartRecord(const RawDigit& digit, uint32_t& orbit
 void DataDecoder::computeDigitsTime()
 {
   static constexpr int32_t timeInvalid = DataDecoder::tfTimeInvalid;
+  constexpr int BCINORBIT = o2::constants::lhc::LHCMaxBunches;
 
   auto setDigitTime = [&](Digit& d, int32_t tfTime) {
     d.setTime(tfTime);

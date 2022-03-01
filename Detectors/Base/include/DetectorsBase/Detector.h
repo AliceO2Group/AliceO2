@@ -16,6 +16,7 @@
 #define ALICEO2_BASE_DETECTOR_H_
 
 #include <map>
+#include <tbb/concurrent_unordered_map.h>
 #include <vector>
 #include <initializer_list>
 #include <memory>
@@ -477,6 +478,7 @@ class DetImpl : public o2::base::Detector
     targetbr->ResetAddress();
     targetdata->clear();
     hitbuffervector.clear();
+    hitbuffervector = L(); // swap with empty vector to release mem
     delete targetdata;
   }
 
@@ -501,7 +503,7 @@ class DetImpl : public o2::base::Detector
     int probe = 0;
     using Hit_t = typename std::remove_pointer<decltype(static_cast<Det*>(this)->Det::getHits(0))>::type;
     // remove buffered event from the hit store
-    using Collector_t = std::map<int, std::vector<std::vector<std::unique_ptr<Hit_t>>>>;
+    using Collector_t = tbb::concurrent_unordered_map<int, std::vector<std::vector<std::unique_ptr<Hit_t>>>>;
     auto hitbufferPtr = reinterpret_cast<Collector_t*>(mHitCollectorBufferPtr);
     auto iter = hitbufferPtr->find(eventID);
     if (iter == hitbufferPtr->end()) {
@@ -518,10 +520,6 @@ class DetImpl : public o2::base::Detector
       probe++;
       name = static_cast<Det*>(this)->getHitBranchNames(probe);
     }
-    {
-      // std::lock_guard<std::mutex> l(mHitBufferMutex);
-      hitbufferPtr->erase(eventID);
-    }
   }
 
  public:
@@ -531,7 +529,7 @@ class DetImpl : public o2::base::Detector
   void collectHits(int eventID, FairMQParts& parts, int& index) override
   {
     using Hit_t = typename std::remove_pointer<decltype(static_cast<Det*>(this)->Det::getHits(0))>::type;
-    using Collector_t = std::map<int, std::vector<std::vector<std::unique_ptr<Hit_t>>>>;
+    using Collector_t = tbb::concurrent_unordered_map<int, std::vector<std::vector<std::unique_ptr<Hit_t>>>>;
     static Collector_t hitcollector; // note: we can't put this as member because
     // decltype type deduction doesn't seem to work for class members; so we use a static member
     // and will use some pointer member to communicate this data to other functions
@@ -545,11 +543,10 @@ class DetImpl : public o2::base::Detector
     auto copyToBuffer = [this, eventID](HitPtr_t hitdata, Collector_t& collectbuffer, int probe) {
       std::vector<std::vector<std::unique_ptr<Hit_t>>>* hitvector = nullptr;
       {
-        // we protect reading from this map by a lock
-        // since other threads might delete from the buffer at the same time
-        // std::lock_guard<std::mutex> l(mHitBufferMutex);
         auto eventIter = collectbuffer.find(eventID);
         if (eventIter == collectbuffer.end()) {
+          // key insertion and traversal are thread-safe with tbb so no need
+          // to protect
           collectbuffer[eventID] = std::vector<std::vector<std::unique_ptr<Hit_t>>>();
         }
         hitvector = &(collectbuffer[eventID]);

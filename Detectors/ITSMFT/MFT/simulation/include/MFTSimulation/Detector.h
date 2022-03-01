@@ -49,6 +49,11 @@ namespace mft
 class Detector : public o2::base::DetImpl<Detector>
 {
  public:
+  /// Name : Detector Name
+  /// Active: kTRUE for active detectors (ProcessHits() will be called)
+  ///         kFALSE for inactive detectors
+  Detector(Bool_t active);
+
   /// Default constructor
   Detector();
 

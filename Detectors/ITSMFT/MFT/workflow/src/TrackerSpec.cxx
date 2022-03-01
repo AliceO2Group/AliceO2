@@ -33,7 +33,7 @@
 #include "Field/MagneticField.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 
 using namespace o2::framework;
@@ -45,8 +45,13 @@ namespace mft
 
 void TrackerDPL::init(InitContext& ic)
 {
-  mTimer.Stop();
-  mTimer.Reset();
+  for (int sw = 0; sw < NStopWatches; sw++) {
+    mTimer[sw].Stop();
+    mTimer[sw].Reset();
+  }
+
+  mTimer[SWTot].Start(false);
+
   auto filename = ic.options().get<std::string>("grp-file");
   const auto grp = o2::parameters::GRPObject::loadFrom(filename.c_str());
   if (grp) {
@@ -57,7 +62,7 @@ void TrackerDPL::init(InitContext& ic)
     Bool_t continuous = mGRP->isDetContinuousReadOut("MFT");
     LOG(info) << "MFTTracker RO: continuous=" << continuous;
 
-    o2::base::GeometryManager::loadGeometry();
+    o2::base::GeometryManager::loadGeometry("", true, true);
     o2::mft::GeometryTGeo* geom = o2::mft::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
                                                    o2::math_utils::TransformType::T2G));
@@ -87,7 +92,7 @@ void TrackerDPL::init(InitContext& ic)
   }
 
   std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath);
+  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath);
   if (o2::utils::Str::pathExists(dictFile)) {
     mDict.readFromFile(dictFile);
     LOG(info) << "Tracker running with a provided dictionary: " << dictFile;
@@ -98,7 +103,6 @@ void TrackerDPL::init(InitContext& ic)
 
 void TrackerDPL::run(ProcessingContext& pc)
 {
-  mTimer.Start(false);
   gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   auto compClusters = pc.inputs().get<const std::vector<o2::itsmft::CompClusterExt>>("compClusters");
   auto ntracks = 0;
@@ -152,21 +156,42 @@ void TrackerDPL::run(ProcessingContext& pc)
 
     gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
     for (auto& rof : rofs) {
+      mTimer[SWLoadData].Start(false);
       int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels, mTracker.get());
+      mTimer[SWLoadData].Stop();
+
       if (nclUsed) {
+        mTimer[SWLoadData].Start(false);
         event.setROFrameId(roFrame);
+        mTimer[SWLoadData].Stop();
+
         event.initialize(trackingParam.FullClusterScan);
         LOG(debug) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
         mTracker->setROFrame(roFrame);
-        mTracker->clustersToTracks(event);
+        mTracker->clearTracks();
+
+        mTimer[SWFindLTFTracks].Start(false);
+        mTracker->findLTFTracks(event);
+        mTimer[SWFindLTFTracks].Stop();
+
+        mTimer[SWFindCATracks].Start(false);
+        mTracker->findCATracks(event);
+        mTimer[SWFindCATracks].Stop();
+
+        mTimer[SWFitTracks].Start(false);
+        mTracker->fitTracks(event);
+        mTimer[SWFitTracks].Stop();
+
         tracks.swap(event.getTracks());
         ntracks += tracks.size();
 
         if (mUseMC) {
+          mTimer[SWComputeLabels].Start(false);
           mTracker->computeTracksMClabels(tracks);
           trackLabels.swap(mTracker->getTrackLabels());
           std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
           trackLabels.clear();
+          mTimer[SWComputeLabels].Stop();
         }
 
         LOG(debug) << "Found MFT tracks: " << tracks.size();
@@ -199,21 +224,42 @@ void TrackerDPL::run(ProcessingContext& pc)
 
     gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
     for (auto& rof : rofs) {
+      mTimer[SWLoadData].Start(false);
       int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels, mTrackerL.get());
+      mTimer[SWLoadData].Stop();
+
       if (nclUsed) {
         event.setROFrameId(roFrame);
+        mTimer[SWLoadData].Start(false);
         event.initialize(trackingParam.FullClusterScan);
+        mTimer[SWLoadData].Stop();
+
         LOG(debug) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
         mTrackerL->setROFrame(roFrame);
-        mTrackerL->clustersToTracks(event);
+        mTrackerL->clearTracks();
+
+        mTimer[SWFindLTFTracks].Start(false);
+        mTrackerL->findLTFTracks(event);
+        mTimer[SWFindLTFTracks].Stop();
+
+        mTimer[SWFindCATracks].Start(false);
+        mTrackerL->findCATracks(event);
+        mTimer[SWFindCATracks].Stop();
+
+        mTimer[SWFitTracks].Start(false);
+        mTrackerL->fitTracks(event);
+        mTimer[SWFitTracks].Stop();
+
         tracksL.swap(event.getTracks());
         ntracks += tracksL.size();
 
         if (mUseMC) {
+          mTimer[SWComputeLabels].Start(false);
           mTrackerL->computeTracksMClabels(tracksL);
           trackLabels.swap(mTrackerL->getTrackLabels());
           std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
           trackLabels.clear();
+          mTimer[SWComputeLabels].Stop();
         }
 
         LOG(debug) << "Found MFT tracks: " << tracks.size();
@@ -232,13 +278,15 @@ void TrackerDPL::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"MFT", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
     pc.outputs().snapshot(Output{"MFT", "TRACKSMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
   }
-  mTimer.Stop();
 }
 
 void TrackerDPL::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(info, "MFT Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
-       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  mTimer[SWTot].Stop();
+
+  for (int i = 0; i < NStopWatches; i++) {
+    LOGF(info, "Timing %18s: Cpu: %.3e s; Real: %.3e s in %d slots", TimerName[i], mTimer[i].CpuTime(), mTimer[i].RealTime(), mTimer[i].Counter() - 1);
+  }
 }
 
 DataProcessorSpec getTrackerSpec(bool useMC)

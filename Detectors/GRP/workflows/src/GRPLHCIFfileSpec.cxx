@@ -216,18 +216,16 @@ void GRPLHCIFfileProcessor::endOfStream(o2::framework::EndOfStreamContext& ec)
 
 //__________________________________________________________________
 
-void GRPLHCIFfileProcessor::sendOutput(DataAllocator& output, long tf, const GRPLHCIFData& lhcifdata)
+void GRPLHCIFfileProcessor::sendOutput(DataAllocator& output, long start, const GRPLHCIFData& lhcifdata)
 {
   // sending output to CCDB
-
-  constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
 
   using clbUtils = o2::calibration::Utils;
   auto clName = o2::utils::MemFileHelper::getClassName(lhcifdata);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   std::map<std::string, std::string> md;
   md.emplace("created by", "dpl");
-  o2::ccdb::CcdbObjectInfo info("GLO/Config/GRPLHCIFData", clName, flName, md, tf, INFINITE_TF);
+  o2::ccdb::CcdbObjectInfo info("GLO/Config/GRPLHCIFData", clName, flName, md, start, o2::calibration::Utils::INFINITE_TIME);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&lhcifdata, &info);
   LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();

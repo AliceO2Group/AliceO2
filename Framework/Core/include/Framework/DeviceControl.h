@@ -46,6 +46,8 @@ struct DeviceControl {
   std::map<std::string, std::string> options;
   /// Handler used to communicate with the device (if available)
   DeviceController* controller = nullptr;
+  /// What kind of events should run with the TRACE level
+  int tracingFlags = 0;
 };
 
 } // namespace o2::framework

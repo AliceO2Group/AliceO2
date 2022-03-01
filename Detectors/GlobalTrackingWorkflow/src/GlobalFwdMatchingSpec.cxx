@@ -18,7 +18,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "CommonUtils/StringUtils.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/DigitizationContext.h"
@@ -81,7 +81,7 @@ void GlobalFwdMatchingDPL::init(InitContext& ic)
   mMatching.setBunchFilling(bcfill);
 
   std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath);
+  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath);
   if (o2::utils::Str::pathExists(dictFile)) {
     mMFTDict.readFromFile(dictFile);
     LOG(info) << "Forward track-matching is running with a provided MFT dictionary: " << dictFile;
@@ -110,7 +110,16 @@ void GlobalFwdMatchingDPL::run(ProcessingContext& pc)
 
   mMatching.run(recoData);
 
-  pc.outputs().snapshot(Output{"GLO", "GLFWD", 0, Lifetime::Timeframe}, mMatching.getMatchedFwdTracks());
+  const auto& matchingParam = GlobalFwdMatchingParam::Instance();
+
+  if (matchingParam.saveMode == kSaveTrainingData) {
+    pc.outputs().snapshot(Output{"GLO", "GLFWDMFT", 0, Lifetime::Timeframe}, mMatching.getMFTMatchingPlaneParams());
+    pc.outputs().snapshot(Output{"GLO", "GLFWDMCH", 0, Lifetime::Timeframe}, mMatching.getMCHMatchingPlaneParams());
+    pc.outputs().snapshot(Output{"GLO", "GLFWDINF", 0, Lifetime::Timeframe}, mMatching.getMFTMCHMatchInfo());
+  } else {
+    pc.outputs().snapshot(Output{"GLO", "GLFWD", 0, Lifetime::Timeframe}, mMatching.getMatchedFwdTracks());
+  }
+
   if (mUseMC) {
     pc.outputs().snapshot(Output{"GLO", "GLFWD_MC", 0, Lifetime::Timeframe}, mMatching.getMatchLabels());
   }
@@ -147,7 +156,13 @@ DataProcessorSpec getGlobalFwdMatchingSpec(bool useMC, bool matchRootOutput)
     dataRequest->requestMCHMIDMatches(useMC); // Request MCHMID Matches
   }
 
-  outputs.emplace_back("GLO", "GLFWD", 0, Lifetime::Timeframe);
+  if (matchingParam.saveMode == kSaveTrainingData) {
+    outputs.emplace_back("GLO", "GLFWDMFT", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "GLFWDMCH", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "GLFWDINF", 0, Lifetime::Timeframe);
+  } else {
+    outputs.emplace_back("GLO", "GLFWD", 0, Lifetime::Timeframe);
+  }
 
   if (useMC) {
     outputs.emplace_back("GLO", "GLFWD_MC", 0, Lifetime::Timeframe);

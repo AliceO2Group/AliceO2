@@ -24,7 +24,7 @@ namespace o2
 namespace mch
 {
 
-o2::framework::DataProcessorSpec getTrackFinderSpec(const char* specName = "mch-track-finder");
+o2::framework::DataProcessorSpec getTrackFinderSpec(const char* specName = "mch-track-finder", bool digits = false);
 
 } // end namespace mch
 } // end namespace o2

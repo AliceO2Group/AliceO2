@@ -26,7 +26,7 @@ namespace o2
 namespace ctp
 {
 /// Database constants
-const std::string CCDBPathCTPConfig = "CTP/Config";
+const std::string CCDBPathCTPConfig = "CTP/Config/Config";
 ///
 bool isDetector(o2::detectors::DetID& det);
 /// CTP Config items
@@ -100,6 +100,8 @@ class CTPConfiguration
   CTPInput* isInputInConfig(const std::string inpname);
   uint64_t getDecrtiptorInputsMask(const std::string& name) const;
   std::map<o2::detectors::DetID::ID, std::vector<CTPInput>> getDet2InputMap();
+  uint64_t getTriggerClassMask() const;
+  std::vector<int> getTriggerClassList() const;
 
  private:
   std::string mName;

@@ -35,11 +35,11 @@ CalibPedestal::CalibPedestal(PadSubset padSubset)
     mADCMax(140),
     mNumberOfADCs(mADCMax - mADCMin + 1),
     mStatisticsType(StatisticsType::GausFitFast),
-    mPedestal("Pedestals", padSubset),
-    mNoise("Noise", padSubset),
     mADCdata()
 
 {
+  mCalDets["Pedestals"] = CalPad("Pedestals");
+  mCalDets["Noise"] = CalPad("Noise");
   mADCdata.resize(ROC::MaxROC);
 }
 //______________________________________________________________________________
@@ -72,7 +72,7 @@ Int_t CalibPedestal::updateROC(const Int_t roc, const Int_t row, const Int_t pad
   vectorType& adcVec = *getVector(ROC(roc), kTRUE);
   ++(adcVec[bin]);
 
-  //printf("bin: %5d, val: %.2f\n", bin, adcVec[bin]);
+  // printf("bin: %5d, val: %.2f\n", bin, adcVec[bin]);
 
   return 0;
 }
@@ -109,8 +109,8 @@ void CalibPedestal::analyse()
       continue;
     }
 
-    CalROC& calROCPedestal = mPedestal.getCalArray(roc);
-    CalROC& calROCNoise = mNoise.getCalArray(roc);
+    CalROC& calROCPedestal = mCalDets["Pedestals"].getCalArray(roc);
+    CalROC& calROCNoise = mCalDets["Noise"].getCalArray(roc);
 
     float* array = vec->data();
 
@@ -142,7 +142,7 @@ void CalibPedestal::analyse()
       calROCPedestal.setValue(ichannel, pedestal);
       calROCNoise.setValue(ichannel, noise);
 
-      //printf("roc: %2d, channel: %4d, pedestal: %.2f, noise: %.2f\n", roc.getRoc(), ichannel, pedestal, noise);
+      // printf("roc: %2d, channel: %4d, pedestal: %.2f, noise: %.2f\n", roc.getRoc(), ichannel, pedestal, noise);
     }
 
     ++roc;
@@ -166,8 +166,8 @@ void CalibPedestal::dumpToFile(const std::string filename, uint32_t type /* = 0*
 {
   auto f = std::unique_ptr<TFile>(TFile::Open(filename.c_str(), "recreate"));
   if (type == 0) {
-    f->WriteObject(&mPedestal, "Pedestals");
-    f->WriteObject(&mNoise, "Noise");
+    f->WriteObject(&mCalDets["Pedestals"], "Pedestals");
+    f->WriteObject(&mCalDets["Noise"], "Noise");
     f->Close();
   } else if (type == 1) {
     f->WriteObject(this, "CalibPedestal");

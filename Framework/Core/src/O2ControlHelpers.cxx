@@ -42,6 +42,8 @@ void dumpChannelBind(std::ostream& dumpOut, const T& channel, std::string indLev
   dumpOut << indLevel << indScheme << "transport: " << (channel.protocol == ChannelProtocol::IPC ? "shmem" : "zeromq") << "\n";
   dumpOut << indLevel << indScheme << "addressing: " << (channel.protocol == ChannelProtocol::IPC ? "ipc" : "tcp") << "\n";
   dumpOut << indLevel << indScheme << "rateLogging: \"{{ fmq_rate_logging }}\"\n";
+  dumpOut << indLevel << indScheme << "sndBufSize: " << channel.sendBufferSize << "\n";
+  dumpOut << indLevel << indScheme << "rcvBufSize: " << channel.recvBufferSize << "\n";
 }
 
 template <typename T>
@@ -53,6 +55,8 @@ void dumpChannelConnect(std::ostream& dumpOut, const T& channel, const std::stri
   dumpOut << indLevel << indScheme << "transport: " << (channel.protocol == ChannelProtocol::IPC ? "shmem" : "zeromq") << "\n";
   dumpOut << indLevel << indScheme << "target: \"{{ Parent().Path }}." << binderName << ":" << channel.name << "\"\n";
   dumpOut << indLevel << indScheme << "rateLogging: \"{{ fmq_rate_logging }}\"\n";
+  dumpOut << indLevel << indScheme << "sndBufSize: " << channel.sendBufferSize << "\n";
+  dumpOut << indLevel << indScheme << "rcvBufSize: " << channel.recvBufferSize << "\n";
 }
 
 struct RawChannel {
@@ -62,6 +66,8 @@ struct RawChannel {
   std::string_view address;
   std::string_view rateLogging;
   std::string_view transport;
+  std::string_view sndBufSize;
+  std::string_view rcvBufSize;
 };
 
 std::string rawChannelReference(std::string_view channelName, bool isUniqueChannel)
@@ -81,17 +87,23 @@ void dumpRawChannelConnect(std::ostream& dumpOut, const RawChannel& channel, boo
   dumpOut << indLevel << indScheme << "transport: " << channel.transport << "\n";
   if (preserveRawChannels) {
     dumpOut << indLevel << indScheme << "target: \"" << channel.address << "\"\n";
-    LOG(info) << "This topology will connect to the channel '" << channel.name << "', which is most likely bound outside."
+    LOG(info) << "This workflow will connect to the channel '" << channel.name << "', which is most likely bound outside."
               << " Please make sure it is available under the address '" << channel.address
               << "' in the mother workflow or another subworkflow.";
   } else {
     auto channelRef = rawChannelReference(channel.name, isUniqueChannel);
-    LOG(info) << "This topology will connect to the channel '" << channel.name << "', which is most likely bound outside."
+    LOG(info) << "This workflow will connect to the channel '" << channel.name << "', which is most likely bound outside."
               << " Please make sure it is declared in the global channel space under the name '" << channelRef
               << "' in the mother workflow or another subworkflow.";
     dumpOut << indLevel << indScheme << "target: \"::" << channelRef << "\"\n";
   }
   dumpOut << indLevel << indScheme << "rateLogging: \"{{ fmq_rate_logging }}\"\n";
+  if (!channel.sndBufSize.empty()) {
+    dumpOut << indLevel << indScheme << "sndBufSize: " << channel.sndBufSize << "\n";
+  }
+  if (!channel.rcvBufSize.empty()) {
+    dumpOut << indLevel << indScheme << "rcvBufSize: " << channel.rcvBufSize << "\n";
+  }
 }
 
 void dumpRawChannelBind(std::ostream& dumpOut, const RawChannel& channel, bool isUniqueChannel, bool preserveRawChannels, std::string indLevel)
@@ -102,18 +114,24 @@ void dumpRawChannelBind(std::ostream& dumpOut, const RawChannel& channel, bool i
   dumpOut << indLevel << indScheme << "addressing: " << (channel.address.find("ipc") != std::string_view::npos ? "ipc" : "tcp") << "\n";
   dumpOut << indLevel << indScheme << "rateLogging: \"{{ fmq_rate_logging }}\"\n";
   if (preserveRawChannels) {
-    LOG(info) << "This topology will bind a dangling channel '" << channel.name << "'"
+    LOG(info) << "This workflow will bind a dangling channel '" << channel.name << "'"
               << " with the address '" << channel.address << "'."
               << " Please make sure that another device connects to this channel elsewhere."
               << " Also, don't mind seeing the message twice, it will be addressed in future releases.";
     dumpOut << indLevel << indScheme << "target: \"" << channel.address << "\"\n";
   } else {
     auto channelRef = rawChannelReference(channel.name, isUniqueChannel);
-    LOG(info) << "This topology will bind a dangling channel '" << channel.name << "'"
+    LOG(info) << "This workflow will bind a dangling channel '" << channel.name << "'"
               << " and declare it in the global channel space under the name '" << channelRef << "'."
               << " Please make sure that another device connects to this channel elsewhere."
               << " Also, don't mind seeing the message twice, it will be addressed in future releases.";
     dumpOut << indLevel << indScheme << "global: \"" << channelRef << "\"\n";
+  }
+  if (!channel.sndBufSize.empty()) {
+    dumpOut << indLevel << indScheme << "sndBufSize: " << channel.sndBufSize << "\n";
+  }
+  if (!channel.rcvBufSize.empty()) {
+    dumpOut << indLevel << indScheme << "rcvBufSize: " << channel.rcvBufSize << "\n";
   }
 }
 
@@ -158,11 +176,48 @@ std::vector<RawChannel> extractRawChannels(const DeviceSpec& spec, const DeviceE
                                extractValueFromChannelConfig(channelConfig, "method="),
                                extractValueFromChannelConfig(channelConfig, "address="),
                                extractValueFromChannelConfig(channelConfig, "rateLogging="),
-                               extractValueFromChannelConfig(channelConfig, "transport=")});
+                               extractValueFromChannelConfig(channelConfig, "transport="),
+                               extractValueFromChannelConfig(channelConfig, "sndBufSize="),
+                               extractValueFromChannelConfig(channelConfig, "rcvBufSize=")});
       }
     }
   }
   return rawChannels;
+}
+
+bool isUniqueProxy(const DeviceSpec& spec)
+{
+  return std::find(spec.labels.begin(), spec.labels.end(), ecs::uniqueProxyLabel) != spec.labels.end();
+}
+
+bool shouldPreserveRawChannels(const DeviceSpec& spec)
+{
+  return std::find(spec.labels.begin(), spec.labels.end(), ecs::preserveRawChannelsLabel) != spec.labels.end();
+}
+
+bool isQcReconfigurable(const DeviceSpec& spec)
+{
+  return std::find(spec.labels.begin(), spec.labels.end(), ecs::qcReconfigurable) != spec.labels.end();
+}
+
+void dumpProperties(std::ostream& dumpOut, const DeviceExecution& execution, const DeviceSpec& spec, const std::string& indLevel)
+{
+  // get the argument `--config`
+  std::string configPath;
+  auto it = std::find_if(execution.args.begin(), execution.args.end(), [](char* v) { return v != nullptr && strcmp(v, "--config") == 0; });
+
+  // get the next argument and find `/o2/components/` in it, then take what comes after in the string.
+  if (it != execution.args.end()) {
+    std::string configParam = *(++it);
+    std::string prefix = "/o2/components/"; // keep only the path to the config file, i.e. stuff after "/o2/components/"
+    size_t pos = configParam.find(prefix);
+    if (pos != std::string::npos) {
+      configPath = configParam.substr(pos + prefix.length());
+    }
+  }
+
+  dumpOut << indLevel << "properties:\n";
+  dumpOut << indLevel << indScheme << "qcConfiguration: " << configPath << "\n";
 }
 
 void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::string indLevel)
@@ -240,16 +295,6 @@ std::string findBinder(const std::vector<DeviceSpec>& specs, const std::string& 
   throw std::runtime_error("Could not find a device which binds the '" + channel + "' channel.");
 }
 
-bool isUniqueProxy(const DeviceSpec& spec)
-{
-  return std::find(spec.labels.begin(), spec.labels.end(), ecs::uniqueProxyLabel) != spec.labels.end();
-}
-
-bool shouldPreserveRawChannels(const DeviceSpec& spec)
-{
-  return std::find(spec.labels.begin(), spec.labels.end(), ecs::preserveRawChannelsLabel) != spec.labels.end();
-}
-
 void dumpRole(std::ostream& dumpOut, const std::string& taskName, const DeviceSpec& spec, const std::vector<DeviceSpec>& allSpecs, const DeviceExecution& execution, const std::string indLevel)
 {
   dumpOut << indLevel << "- name: \"" << spec.id << "\"\n";
@@ -323,7 +368,8 @@ void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecuti
   dumpOut << indLevel << indScheme << "_module_cmdline: >-\n";
   dumpOut << indLevel << indScheme << indScheme << "source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&\n";
   dumpOut << indLevel << indScheme << indScheme << "{{ dpl_command }} | " << execution.args[0] << "\n";
-  dumpOut << indLevel << indScheme << "_plain_cmdline: \"source /etc/profile.d/o2.sh && {{ len(extra_env_vars)>0 ? 'export ' + extra_env_vars + ' &&' : '' }} {{ dpl_command }} | " << execution.args[0] << "\"\n";
+  dumpOut << indLevel << indScheme << "_plain_cmdline: >-\n";
+  dumpOut << indLevel << indScheme << indScheme << "source /etc/profile.d/o2.sh && {{ len(extra_env_vars)>0 ? 'export ' + extra_env_vars + ' &&' : '' }} {{ dpl_command }} | " << execution.args[0] << "\n";
 
   dumpOut << indLevel << "control:\n";
   dumpOut << indLevel << indScheme << "mode: \"fairmq\"\n";
@@ -351,6 +397,10 @@ void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecuti
     if (rawChannel.method == "bind") {
       dumpRawChannelBind(dumpOut, rawChannel, uniqueProxy, preserveRawChannels, indLevel + indScheme);
     }
+  }
+
+  if (implementation::isQcReconfigurable(spec)) {
+    implementation::dumpProperties(dumpOut, execution, spec, indLevel);
   }
 
   dumpOut << indLevel << "command:\n";

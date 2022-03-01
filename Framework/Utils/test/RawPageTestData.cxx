@@ -86,7 +86,8 @@ DataSet createData(std::vector<InputSpec> const& inputspecs, std::vector<DataHea
     }
   }
 
-  return {std::move(schema), std::move(messages), std::move(checkValues)};
+  static ServiceRegistry registry;
+  return {std::move(schema), std::move(messages), std::move(checkValues), registry};
 }
 
 } // namespace test

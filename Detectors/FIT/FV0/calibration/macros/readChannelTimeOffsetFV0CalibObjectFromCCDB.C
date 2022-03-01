@@ -18,7 +18,7 @@
 #endif
 
 // Macro retrieves only latest set of calibrations
-int readChannelTimeOffsetFV0CalibObjectFromCCDB(const std::string url = "http://o2-ccdb.internal/")
+int readChannelTimeOffsetFV0CalibObjectFromCCDB(const std::string url = "http://alice-ccdb.cern.ch/")
 {
   o2::ccdb::CcdbApi api;
   api.init(url);

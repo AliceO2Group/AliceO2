@@ -221,9 +221,11 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
     return DataRef{nullptr, static_cast<char const*>(store[2 * i]->GetData()), static_cast<char const*>(store[2 * i + 1]->GetData())};
   };
   InputSpan span{getter, store.size() / 2};
+  ServiceRegistry registry;
   InputRecord inputs{
     schema,
-    span};
+    span,
+    registry};
 
   writer(inputs);
   writer.close();

@@ -15,12 +15,12 @@ o2_add_library(FT0Calibration
         src/FT0ChannelTimeCalibrationObject.cxx
         src/FT0CalibTimeSlewing.cxx
         src/FT0CalibCollector.cxx
-        src/RecoCalibInfoWorkflow.cxx
-         PUBLIC_LINK_LIBRARIES
+        PUBLIC_LINK_LIBRARIES
          O2::CCDB
          O2::MathUtils
          O2::DataFormatsFT0
          O2::DetectorsCalibration
+         O2::FT0Simulation
          O2::DataFormatsGlobalTracking
          ROOT::Minuit
          Microsoft.GSL::GSL
@@ -30,10 +30,8 @@ o2_add_library(FT0Calibration
         include/FT0Calibration/FT0CalibrationInfoObject.h
         include/FT0Calibration/FT0ChannelTimeCalibrationObject.h
         include/FT0Calibration/FT0ChannelTimeTimeSlotContainer.h
-        include/FT0Calibration/FT0DummyCalibrationObject.h
         include/FT0Calibration/FT0CalibTimeSlewing.h
         include/FT0Calibration/FT0CalibCollector.h
-        include/FT0Calibration/RecoCalibInfoWorkflow.h
         )
       o2_add_executable(ft0-channel-offset-calibration
         COMPONENT_NAME calibration
@@ -48,11 +46,23 @@ o2_add_library(FT0Calibration
         PUBLIC_LINK_LIBRARIES
         O2::DataFormatsFT0 O2::FITCalibration
         )
-      o2_add_executable(ft0-calibration
+      o2_add_executable(ft0-slew-upload
         COMPONENT_NAME calibration
-        SOURCES testWorkflow/FT0Calibration-Workflow.cxx
+        SOURCES testWorkflow/slew_upload.cxx
         PUBLIC_LINK_LIBRARIES
-        O2::DataFormatsFT0 O2::FITCalibration
+        O2::FITCalibration  O2::DetectorsCalibration
+        )
+      o2_add_executable(ft0-global-offsets
+        COMPONENT_NAME calibration
+        SOURCES testWorkflow/GlobalOffsetsCalibrationWorkflow.cxx
+        PUBLIC_LINK_LIBRARIES
+        O2::DetectorsCalibration  O2::FITCalibration
+        )
+     o2_add_executable(ft0-collect-global-offsets-workflow
+        COMPONENT_NAME calibration
+        SOURCES testWorkflow/GlobalOffsetsCollectWorkflow.cxx
+        PUBLIC_LINK_LIBRARIES
+        O2::DataFormatsFT0 O2::DetectorsCalibration  O2::FITCalibration
         )
       o2_add_executable(ft0-collect-calib-workflow
         COMPONENT_NAME calibration
@@ -60,29 +70,6 @@ o2_add_library(FT0Calibration
         PUBLIC_LINK_LIBRARIES
         O2::DataFormatsFT0 O2::FITCalibration O2::DetectorsCalibration
         )
-      o2_add_executable(ft0-slew-upload
-        COMPONENT_NAME calibration
-        SOURCES testWorkflow/slew_upload.cxx
-        PUBLIC_LINK_LIBRARIES
-        O2::FITCalibration  O2::DetectorsCalibration
-        )
-      o2_add_executable(ft0-collect-global-offsets
-        COMPONENT_NAME calibration
-        SOURCES testWorkflow/calib-global-offsets.cxx
-        PUBLIC_LINK_LIBRARIES
-        O2::DetectorsCalibration  O2::FITCalibration O2::GlobalTrackingWorkflowHelpers
-        )
-      o2_add_executable(ft0-calib-ft0-zero-time
-        COMPONENT_NAME calibration
-        SOURCES testWorkflow/GlobalOffsetsCalibrationWorkflow.cxx
-        PUBLIC_LINK_LIBRARIES
-        O2::DetectorsCalibration  O2::FITCalibration
-        )
+   
 
-      o2_add_executable(ft0-dummy-example
-        COMPONENT_NAME calibration
-        SOURCES testWorkflow/FT0CalibrationDummy-Workflow.cxx
-        PUBLIC_LINK_LIBRARIES
-        O2::DataFormatsFT0 O2::FITCalibration
-        )
 o2_data_file(COPY files DESTINATION Detectors/FT0/)

@@ -415,87 +415,64 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
       auto builder = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-index-builder"; });
       auto reader = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-reader"; });
       auto writer = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-writer"; });
-
-      if (spawner != workflow.end()) {
-        std::vector<InputSpec> requestedDYNs;
-        // collect currently requested DYNs
-        for (auto& d : workflow) {
-          if (d.name == spawner->name) {
-            continue;
-          }
-          for (auto& i : d.inputs) {
-            if (DataSpecUtils::partialMatch(i, header::DataOrigin{"DYN"})) {
-              requestedDYNs.emplace_back(i);
-            }
-          }
-          std::sort(requestedDYNs.begin(), requestedDYNs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding < b.binding; });
-          auto end = std::unique(requestedDYNs.begin(), requestedDYNs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding == b.binding; });
-          requestedDYNs.erase(end, requestedDYNs.end());
-        }
-
-        // remove unmatched outputs
-        auto o_end = std::remove_if(spawner->outputs.begin(), spawner->outputs.end(), [&](OutputSpec const& o) {
-          return std::none_of(requestedDYNs.begin(), requestedDYNs.end(), [&](InputSpec const& i) { return DataSpecUtils::match(i, o); });
-        });
-        spawner->outputs.erase(o_end, spawner->outputs.end());
-
-        // remove unmatched inputs
-        auto i_end = std::remove_if(spawner->inputs.begin(), spawner->inputs.end(), [&](InputSpec const& i) {
-          auto&& [origin, description] = DataSpecUtils::asConcreteDataTypeMatcher(i);
-          return std::none_of(spawner->outputs.begin(), spawner->outputs.end(), [description = description](OutputSpec const& o) {
-            return DataSpecUtils::partialMatch(o, description);
-          });
-        });
-        spawner->inputs.erase(i_end, spawner->inputs.end());
-
-        // replace AlgorithmSpec
-        // FIXME: it should be made more generic, so it does not need replacement...
-        spawner->algorithm = readers::AODReaderHelpers::aodSpawnerCallback(requestedDYNs);
-      }
+      std::vector<InputSpec> requestedAODs;
+      std::vector<InputSpec> requestedDYNs;
 
       if (builder != workflow.end()) {
         // collect currently requested IDXs
         std::vector<InputSpec> requestedIDXs;
-        std::vector<InputSpec> dummy_i;
-        std::vector<OutputSpec> dummy_o;
         for (auto& d : workflow) {
           if (d.name == builder->name) {
             continue;
           }
           for (auto& i : d.inputs) {
             if (DataSpecUtils::partialMatch(i, header::DataOrigin{"IDX"})) {
-              requestedIDXs.emplace_back(i);
+              auto copy = i;
+              DataSpecUtils::updateInputList(requestedIDXs, std::move(copy));
             }
           }
-          std::sort(requestedIDXs.begin(), requestedIDXs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding < b.binding; });
-          auto end = std::unique(requestedIDXs.begin(), requestedIDXs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding == b.binding; });
-          requestedIDXs.erase(end, requestedIDXs.end());
         }
-
         // recreate inputs and outputs
-        builder->inputs = dummy_i;
-        builder->outputs = dummy_o;
-        auto copy = requestedIDXs;
-        WorkflowHelpers::addMissingOutputsToBuilder(std::move(copy), dummy_i, *builder);
-
-        //replace AlgorithmSpec
-        // FIXME: it should be made more generic, so it does not need replacement...
+        builder->inputs.clear();
+        builder->outputs.clear();
+        // replace AlgorithmSpec
+        //  FIXME: it should be made more generic, so it does not need replacement...
         builder->algorithm = readers::AODReaderHelpers::indexBuilderCallback(requestedIDXs);
+        WorkflowHelpers::addMissingOutputsToBuilder(requestedIDXs, requestedAODs, requestedDYNs, *builder);
+      }
+
+      if (spawner != workflow.end()) {
+        // collect currently requested DYNs
+        for (auto& d : workflow) {
+          if (d.name == spawner->name) {
+            continue;
+          }
+          for (auto const& i : d.inputs) {
+            if (DataSpecUtils::partialMatch(i, header::DataOrigin{"DYN"})) {
+              auto copy = i;
+              DataSpecUtils::updateInputList(requestedDYNs, std::move(copy));
+            }
+          }
+        }
+        // recreate inputs and outputs
+        spawner->outputs.clear();
+        spawner->inputs.clear();
+        // replace AlgorithmSpec
+        // FIXME: it should be made more generic, so it does not need replacement...
+        spawner->algorithm = readers::AODReaderHelpers::aodSpawnerCallback(requestedDYNs);
+        WorkflowHelpers::addMissingOutputsToSpawner(requestedDYNs, requestedAODs, *spawner);
       }
 
       if (reader != workflow.end() && (spawner != workflow.end() || builder != workflow.end())) {
         // If reader and/or builder were adjusted, remove unneeded outputs
-        std::vector<InputSpec> requestedAODs;
-        // collect currently requested AODs
+        // update currently requested AODs
         for (auto& d : workflow) {
-          for (auto& i : d.inputs) {
+          for (auto const& i : d.inputs) {
             if (DataSpecUtils::partialMatch(i, header::DataOrigin{"AOD"})) {
-              requestedAODs.emplace_back(i);
+              auto copy = i;
+              DataSpecUtils::updateInputList(requestedAODs, std::move(copy));
             }
           }
-          std::sort(requestedAODs.begin(), requestedAODs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding < b.binding; });
-          auto end = std::unique(requestedAODs.begin(), requestedAODs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding == b.binding; });
-          requestedAODs.erase(end, requestedAODs.end());
         }
 
         // remove unmatched outputs

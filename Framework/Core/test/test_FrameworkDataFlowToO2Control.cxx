@@ -35,7 +35,7 @@ WorkflowSpec defineDataProcessing()
            Outputs{OutputSpec{"TST", "A1"}, OutputSpec{"TST", "A2"}}, // A1 will be consumed twice, A2 is dangling
            AlgorithmSpec{},                                           //
            {ConfigParamSpec{"channel-config", VariantType::String,    // raw input channel
-                            "name=into_dpl,type=pull,method=connect,address=ipc:///tmp/pipe-into-dpl,transport=shmem,rateLogging=10",
+                            "name=into_dpl,type=pull,method=connect,address=ipc:///tmp/pipe-into-dpl,transport=shmem,rateLogging=10,rcvBufSize=789",
                             {"Out-of-band channel config"}}}},
           {"B", // producer, no inputs
            Inputs{},
@@ -85,6 +85,7 @@ roles:
       transport: shmem
       target: "::into_dpl-{{ it }}"
       rateLogging: "{{ fmq_rate_logging }}"
+      rcvBufSize: 789
     task:
       load: testwf-A
   - name: "B"
@@ -98,11 +99,15 @@ roles:
       transport: shmem
       target: "{{ Parent().Path }}.A:from_A_to_C"
       rateLogging: "{{ fmq_rate_logging }}"
+      sndBufSize: 1
+      rcvBufSize: 1
     - name: from_B_to_C
       type: pull
       transport: shmem
       target: "{{ Parent().Path }}.B:from_B_to_C"
       rateLogging: "{{ fmq_rate_logging }}"
+      sndBufSize: 1
+      rcvBufSize: 1
     task:
       load: testwf-C
   - name: "D"
@@ -112,6 +117,8 @@ roles:
       transport: shmem
       target: "{{ Parent().Path }}.C:from_C_to_D"
       rateLogging: "{{ fmq_rate_logging }}"
+      sndBufSize: 1
+      rcvBufSize: 1
     bind:
     - name: outta_dpl
       type: push
@@ -130,7 +137,8 @@ defaults:
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
     {{ dpl_command }} | bcsadc/foo
-  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ len(extra_env_vars)>0 ? 'export ' + extra_env_vars + ' &&' : '' }} {{ dpl_command }} | bcsadc/foo"
+  _plain_cmdline: >-
+    source /etc/profile.d/o2.sh && {{ len(extra_env_vars)>0 ? 'export ' + extra_env_vars + ' &&' : '' }} {{ dpl_command }} | bcsadc/foo
 control:
   mode: "fairmq"
 wants:
@@ -142,6 +150,8 @@ bind:
     transport: shmem
     addressing: ipc
     rateLogging: "{{ fmq_rate_logging }}"
+    sndBufSize: 1
+    rcvBufSize: 1
 command:
   shell: true
   log: "{{ log_task_output }}"
@@ -186,6 +196,8 @@ command:
     - "'false'"
     - "--shm-mlock-segment-on-creation"
     - "'false'"
+    - "--shm-no-cleanup"
+    - "'false'"
     - "--shm-segment-id"
     - "'0'"
     - "--shm-zero-segment"
@@ -201,7 +213,8 @@ defaults:
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
     {{ dpl_command }} | foo
-  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ len(extra_env_vars)>0 ? 'export ' + extra_env_vars + ' &&' : '' }} {{ dpl_command }} | foo"
+  _plain_cmdline: >-
+    source /etc/profile.d/o2.sh && {{ len(extra_env_vars)>0 ? 'export ' + extra_env_vars + ' &&' : '' }} {{ dpl_command }} | foo
 control:
   mode: "fairmq"
 wants:
@@ -213,6 +226,8 @@ bind:
     transport: shmem
     addressing: ipc
     rateLogging: "{{ fmq_rate_logging }}"
+    sndBufSize: 1
+    rcvBufSize: 1
 command:
   shell: true
   log: "{{ log_task_output }}"
@@ -257,6 +272,8 @@ command:
     - "'false'"
     - "--shm-mlock-segment-on-creation"
     - "'false'"
+    - "--shm-no-cleanup"
+    - "'false'"
     - "--shm-segment-id"
     - "'0'"
     - "--shm-zero-segment"
@@ -272,7 +289,8 @@ defaults:
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
     {{ dpl_command }} | foo
-  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ len(extra_env_vars)>0 ? 'export ' + extra_env_vars + ' &&' : '' }} {{ dpl_command }} | foo"
+  _plain_cmdline: >-
+    source /etc/profile.d/o2.sh && {{ len(extra_env_vars)>0 ? 'export ' + extra_env_vars + ' &&' : '' }} {{ dpl_command }} | foo
 control:
   mode: "fairmq"
 wants:
@@ -284,6 +302,8 @@ bind:
     transport: shmem
     addressing: ipc
     rateLogging: "{{ fmq_rate_logging }}"
+    sndBufSize: 1
+    rcvBufSize: 1
 command:
   shell: true
   log: "{{ log_task_output }}"
@@ -328,6 +348,8 @@ command:
     - "'false'"
     - "--shm-mlock-segment-on-creation"
     - "'false'"
+    - "--shm-no-cleanup"
+    - "'false'"
     - "--shm-segment-id"
     - "'0'"
     - "--shm-zero-segment"
@@ -343,7 +365,8 @@ defaults:
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
     {{ dpl_command }} | foo
-  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ len(extra_env_vars)>0 ? 'export ' + extra_env_vars + ' &&' : '' }} {{ dpl_command }} | foo"
+  _plain_cmdline: >-
+    source /etc/profile.d/o2.sh && {{ len(extra_env_vars)>0 ? 'export ' + extra_env_vars + ' &&' : '' }} {{ dpl_command }} | foo
 control:
   mode: "fairmq"
 wants:
@@ -400,6 +423,8 @@ command:
     - "'false'"
     - "--shm-mlock-segment-on-creation"
     - "'false'"
+    - "--shm-no-cleanup"
+    - "'false'"
     - "--shm-segment-id"
     - "'0'"
     - "--shm-zero-segment"
@@ -444,7 +469,7 @@ BOOST_AUTO_TEST_CASE(TestO2ControlDump)
       {"C", "foo", {}, workflowOptions},
       {"D", "foo", {}, workflowOptions},
     }};
-  DeviceSpecHelpers::prepareArguments(false, false, 8080,
+  DeviceSpecHelpers::prepareArguments(false, false, false, 8080,
                                       dataProcessorInfos,
                                       devices, executions, controls,
                                       "workflow-id");
@@ -458,7 +483,6 @@ BOOST_AUTO_TEST_CASE(TestO2ControlDump)
   BOOST_REQUIRE_EQUAL(devices.size(), expectedTasks.size());
   for (size_t di = 0; di < devices.size(); ++di) {
     auto& spec = devices[di];
-    auto& execution = executions[di];
     auto& expected = expectedTasks[di];
 
     BOOST_TEST_CONTEXT("Device " << spec.name)

@@ -292,7 +292,7 @@ int CruRawReader::parseDigitHCHeader()
     increment2dHist(TRDParsingDigitHeaderCountGT3, mFEEID.supermodule * 2 + mHalfChamberSide[0], mStack[0], mLayer[0]);
     //TODO graph this and stats it
     if (mMaxErrsPrinted > 0) {
-      LOG(error) << "Error parsing DigitHCHeader, too many additional words count=" << additionalHeaderWords;
+      LOG(alarm) << "Error parsing DigitHCHeader, too many additional words count=" << additionalHeaderWords;
       printDigitHCHeader(mDigitHCHeader, &headers[0]);
       checkNoErr();
     }
@@ -308,26 +308,26 @@ int CruRawReader::parseDigitHCHeader()
       case 1: // header header1;
         mDigitHCHeader1.word = headers[headerwordcount];
         if (mDigitHCHeader1.res != 0x1) {
-          //LOG(error) << "Digit HC Header 1 reserved : " << std::hex << mDigitHCHeader1.res << " raw: 0x" << mDigitHCHeader1.word;
+          //LOG(alarm) << "Digit HC Header 1 reserved : " << std::hex << mDigitHCHeader1.res << " raw: 0x" << mDigitHCHeader1.word;
           increment2dHist(TRDParsingDigitHeaderWrong1, mFEEID.supermodule * 2 + mHalfChamberSide[0], mStack[0], mLayer[0]);
         }
         break;
       case 2: // header header2;
         mDigitHCHeader2.word = headers[headerwordcount];
         if (mDigitHCHeader2.res != 0b110001) {
-          // LOG(error) << "Digit HC Header 2 reserved : " << std::hex << mDigitHCHeader2.res << " raw: 0x" << mDigitHCHeader2.word;
+          // LOG(alarm) << "Digit HC Header 2 reserved : " << std::hex << mDigitHCHeader2.res << " raw: 0x" << mDigitHCHeader2.word;
           increment2dHist(TRDParsingDigitHeaderWrong2, mFEEID.supermodule * 2 + mHalfChamberSide[0], mStack[0], mLayer[0]);
         }
         break;
       case 3: // header header3;
         mDigitHCHeader3.word = headers[headerwordcount];
         if (mDigitHCHeader3.res != 0b110101) {
-          // LOG(error) << "Digit HC Header 3 reserved : " << std::hex << mDigitHCHeader3.res << " raw: 0x" << mDigitHCHeader3.word;
+          // LOG(alarm) << "Digit HC Header 3 reserved : " << std::hex << mDigitHCHeader3.res << " raw: 0x" << mDigitHCHeader3.word;
           increment2dHist(TRDParsingDigitHeaderWrong3, mFEEID.supermodule * 2 + mHalfChamberSide[0], mStack[0], mLayer[0]);
         }
         break;
       default:
-        //LOG(error) << "Error parsing DigitHCHeader at word:" << headerwordcount << " looking at 0x:" << std::hex << mHBFPayload[mHBFoffset32 - 1];
+        //LOG(alarm) << "Error parsing DigitHCHeader at word:" << headerwordcount << " looking at 0x:" << std::hex << mHBFPayload[mHBFoffset32 - 1];
         increment2dHist(TRDParsingDigitHeaderWrong4, mFEEID.supermodule * 2 + mHalfChamberSide[0], mStack[0], mLayer[0]);
     }
   }
@@ -542,7 +542,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
       ** DIGITS NOW ***
       *****************/
       // Check if we have a calibration trigger ergo we do actually have digits data. check if we are now at the end of the data due to bugs, i.e. if trackletparsing read padding words.
-      if (linkstart != linkend && mCurrentHalfCRUHeader.EventType == o2::trd::constants::ETYPECALIBRATIONTRIGGER) { // calibration trigger
+      if (linkstart != linkend && (mCurrentHalfCRUHeader.EventType == o2::trd::constants::ETYPECALIBRATIONTRIGGER || mOptions[TRDIgnore2StageTrigger])) { // calibration trigger
         if (mHeaderVerbose) {
           LOG(info) << "*** Digit Parsing : starting at " << std::hex << linkstart << " at hbfoffset: " << std::dec << mHBFoffset32 << " linkhbf start pos:" << hbfoffsetatstartoflink;
         }
@@ -554,13 +554,13 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
         //move over the DigitHCHeader mHBFoffset32 has already been moved in the reading.
         if (mHBFoffset32 - hfboffsetbeforehcparse != 1 + mDigitHCHeader.numberHCW) {
           if (mMaxErrsPrinted > 0) {
-            LOG(error) << "Seems data offset is out of sync with number of HC Headers words " << mHBFoffset32 << "-" << hfboffsetbeforehcparse << "!=" << 1 << "+" << mDigitHCHeader.numberHCW;
+            LOG(alarm) << "Seems data offset is out of sync with number of HC Headers words " << mHBFoffset32 << "-" << hfboffsetbeforehcparse << "!=" << 1 << "+" << mDigitHCHeader.numberHCW;
             checkNoErr();
           }
         }
         if (hcparse == -1) {
           if (mMaxWarnPrinted > 0) {
-            LOG(warn) << "Parsing Digit HCHeader returned a -1";
+            LOG(alarm) << "Parsing Digit HCHeader returned a -1";
             checkNoWarn();
           }
         } else {
@@ -737,7 +737,7 @@ void CruRawReader::buildDPLOutputs(o2::framework::ProcessingContext& pc)
 void CruRawReader::checkNoWarn()
 {
   if (!mVerbose && --mMaxWarnPrinted == 0) {
-    LOG(warn) << "Warnings limit reached, the following ones will be suppressed";
+    LOG(alarm) << "Warnings limit reached, the following ones will be suppressed";
   }
 }
 

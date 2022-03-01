@@ -85,12 +85,20 @@ class Detector : public o2::base::DetImpl<Detector>
     Air,
     Scintillator,
     Plastic,
-    FiberInner,
-    FiberMiddle,
-    FiberOuter,
+    FiberRing1,
+    FiberRing2,
+    FiberRing3,
+    FiberRing4,
+    FiberRing5,
+    FiberPMT1,
+    FiberPMT2,
+    FiberPMT3,
+    FiberPMT4,
+    FiberPMT5,
     Aluminium,
     Steel,
-    Titanium
+    Titanium,
+    PMT,
   }; // media IDs used in createMaterials()
 
   /// Add alignable  volumes

@@ -35,7 +35,7 @@ GPUd() void GPUTPCGMPropagator::GetBxByBzBase(float cosAlpha, float sinAlpha, fl
   float gy = getGlobalY(cosAlpha, sinAlpha, X, Y);
 
 #if defined(GPUCA_GM_USE_FULL_FIELD)
-  const double kCLight = 0.000299792458;
+  const float kCLight = gpu_common_constants::kCLight;
   double r[3] = {gx, gy, Z};
   double bb[3];
   AliTracker::GetBxByBz(r, bb);
@@ -93,7 +93,7 @@ GPUd() float GPUTPCGMPropagator::GetBzBase(float cosAlpha, float sinAlpha, float
   float gy = getGlobalY(cosAlpha, sinAlpha, X, Y);
 
 #if defined(GPUCA_GM_USE_FULL_FIELD)
-  const double kCLight = 0.000299792458;
+  const float kCLight = gpu_common_constants::kCLight;
   double r[3] = {gx, gy, Z};
   double bb[3];
   AliTracker::GetBxByBz(r, bb);

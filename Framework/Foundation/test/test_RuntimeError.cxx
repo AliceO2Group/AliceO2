@@ -36,6 +36,7 @@ BOOST_AUTO_TEST_CASE(TestRuntimeError)
     BOOST_CHECK_EQUAL(strncmp(err.what, "foo", 3), 0);
 #ifdef DPL_ENABLE_BACKTRACE
     backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+    o2::framework::demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
 #endif
   }
 }

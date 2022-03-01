@@ -52,20 +52,20 @@ void Digitizer::init()
   mTimeBinOffset.clear();
   mAmplitudeInTimeBins.clear();
 
+  // for each phase create a template distribution
   TF1 RawResponse("RawResponse", rawResponseFunction, 0, 256, 5);
   RawResponse.SetParameters(1., 0., tau, N, 0.);
 
   for (int i = 0; i < 4; i++) {
-    int offset = ((int)(std::floor(tau - delay - 0.25 * i)));
+    int offset = 0;
     mTimeBinOffset.push_back(offset);
 
     std::vector<double> sf;
-    RawResponse.SetParameter(1, 0.25 * i + delay);
+    RawResponse.SetParameter(1, 0.25 * i);
 
     for (int j = 0; j < constants::EMCAL_MAXTIMEBINS; j++) {
-      sf.push_back(RawResponse.Eval(j - offset));
+      sf.push_back(RawResponse.Eval(j - mTimeWindowStart));
     }
-
     mAmplitudeInTimeBins.push_back(sf);
   }
 }
@@ -78,6 +78,8 @@ double Digitizer::rawResponseFunction(double* x, double* par)
   double n = par[3];
   double ped = par[4];
   double xx = (x[0] - par[1] + tau) / tau;
+
+  // par[0] amp, par[1] peak time
 
   if (xx <= 0) {
     signal = ped;
@@ -109,6 +111,8 @@ void Digitizer::clear()
 void Digitizer::process(const std::vector<LabeledDigit>& labeledSDigits)
 {
 
+  //mDigits.reserve();
+
   for (auto labeleddigit : labeledSDigits) {
 
     sampleSDigit(labeleddigit.getDigit());
@@ -116,11 +120,17 @@ void Digitizer::process(const std::vector<LabeledDigit>& labeledSDigits)
     for (auto digit : mTempDigitVector) {
       Int_t id = digit.getTower();
 
-      MCLabel label(labeleddigit.getLabels()[0]);
-      if (digit.getAmplitude() == 0) {
-        label.setAmplitudeFraction(0);
+      auto labels = labeleddigit.getLabels();
+      LabeledDigit d(digit, labels[0]);
+      for (auto label : labels) {
+        if (digit.getAmplitude() == 0) {
+          label.setAmplitudeFraction(0);
+        }
+        if (label == labels.front()) {
+          continue;
+        }
+        d.addLabel(label);
       }
-      LabeledDigit d(digit, label);
       mDigits[id].push_back(d);
     }
   }
@@ -139,15 +149,20 @@ void Digitizer::sampleSDigit(const Digit& sDigit)
     energy = smearEnergy(energy);
   }
 
-  // Convert the amplitude from energy GeV to ADC
-  energy = energy / constants::EMCAL_ADCENERGY;
+  if (energy < __DBL_EPSILON__) {
+    return;
+  }
 
-  if (mSimulateTimeResponse && (energy != 0)) {
+  if (mSimulateTimeResponse) {
     for (int j = 0; j < mAmplitudeInTimeBins.at(mPhase).size(); j++) {
       double val = energy * (mAmplitudeInTimeBins.at(mPhase).at(j));
 
-      // @TODO check if the time is set correctly
-      Digit digit(tower, val, (mEventTimeOffset + j - mTimeBinOffset.at(mPhase) + mDelay) * constants::EMCAL_TIMESAMPLE);
+      double digitTime = (mEventTimeOffset + j - mTimeBinOffset.at(mPhase) + mDelay - mTimeWindowStart) * constants::EMCAL_TIMESAMPLE;
+      if (preTriggerCollision() && digitTime >= (mLiveTime + mBusyTime)) {
+        digitTime = digitTime - (mLiveTime + mBusyTime);
+      }
+
+      Digit digit(tower, val, digitTime);
       mTempDigitVector.push_back(digit);
     }
   } else {
@@ -175,14 +190,20 @@ void Digitizer::setEventTime(double t)
     LOG(fatal) << "New event time (" << t << ") is < previous event time (" << mEventTime << ")";
   }
 
-  if (t - mTriggerTime >= mLiveTime + mBusyTime) {
+  if ((t - mTriggerTime) >= (mLiveTime + mBusyTime)) {
     mTriggerTime = t;
   }
 
   mEventTime = t - mTriggerTime;
 
-  mPhase = ((int)((std::fmod(mEventTime, 100) + 12.5) / 25));
+  mPhase = ((int)(std::fmod(mEventTime, 100) / 25));
+
   mEventTimeOffset = ((int)((mEventTime - std::fmod(mEventTime, 100) + 0.1) / 100));
+
+  if (preTriggerCollision()) {
+    mEventTimeOffset = ((int)((mEventTime - std::fmod(mEventTime, 100) + 0.1) / 100)) - (mLiveTime + mBusyTime - mPreTriggerTime) / 100 + mAfterTriggerTime / 100;
+  }
+
   if (mPhase == 4) {
     mPhase = 0;
     mEventTimeOffset++;
@@ -210,21 +231,43 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits, o2::dataformats:
   std::list<LabeledDigit> l;
 
   for (auto [tower, digitsList] : mDigits) {
+
+    if (digitsList.size() == 0) {
+      continue;
+    }
     digitsList.sort();
 
-    for (auto ld : digitsList) {
+    for (auto& ld : digitsList) {
+
+      // Loop over all digits in the time sample and sum the digits that falls in one time bin
+      for (auto ld1 = digitsList.begin(); ld1 != digitsList.end(); ++ld1) {
+
+        if (ld == *ld1) {
+          continue;
+        }
+
+        std::vector<decltype(digitsList.begin())> toDelete;
+
+        if (ld.canAdd(*ld1)) {
+          ld += *ld1;
+          toDelete.push_back(ld1);
+        }
+        for (auto del : toDelete) {
+          digitsList.erase(del);
+        }
+      }
 
       if (mSimulateNoiseDigits) {
         addNoiseDigits(ld);
       }
 
-      if (mRemoveDigitsBelowThreshold && (ld.getAmplitude() < mSimParam->getDigitThreshold() * (constants::EMCAL_ADCENERGY))) {
+      if (mRemoveDigitsBelowThreshold && (ld.getAmplitude() < (mSimParam->getDigitThreshold() * constants::EMCAL_ADCENERGY))) {
         continue;
       }
       if (ld.getAmplitude() < 0) {
         continue;
       }
-      if (ld.getTimeStamp() >= mSimParam->getLiveTime()) {
+      if ((ld.getTimeStamp() >= mSimParam->getLiveTime()) || (ld.getTimeStamp() < 0)) {
         continue;
       }
 

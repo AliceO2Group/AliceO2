@@ -18,7 +18,7 @@
 #include "DataFormatsZDC/Hit.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DetectorsCommonDataFormats/SimTraits.h"
 
 #ifdef ENABLE_UPGRADES
@@ -89,7 +89,7 @@ TTree* getHitTree(o2::parameters::GRPObject const* grp, const char* filebase, o2
   if (!grp->isDetReadOut(detid)) {
     return nullptr;
   }
-  std::string filename(o2::base::NameConf::getHitsFileName(detid, filebase).c_str());
+  std::string filename(o2::base::DetectorNameConf::getHitsFileName(detid, filebase).c_str());
 
   const char* mode = createnew ? "RECREATE" : "OPEN";
 

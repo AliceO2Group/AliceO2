@@ -21,7 +21,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "TOFWorkflowIO/CalibInfoReaderSpec.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 using namespace o2::tof;
@@ -31,10 +31,11 @@ namespace o2
 namespace tof
 {
 
-constexpr o2::header::DataDescription ddCalib{"CALIBDATA"}, ddCalib_tpc{"CALIBDATA_TPC"};
+constexpr o2::header::DataDescription ddCalib{"CALIBDATA"}, ddCalib_tpc{"CALIBDATA_TPC"}, ddDia{"DIAFREQ"};
 
 void CalibInfoReader::init(InitContext& ic)
 {
+  mDiagnostic = ic.options().get<bool>("enable-dia");
   LOG(debug) << "Init CalibInfo reader!";
   auto fname = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")), mFileName);
   mFile = fopen(fname.c_str(), "r");
@@ -60,6 +61,11 @@ void CalibInfoReader::run(ProcessingContext& pc)
       mTree = (TTree*)fin->Get("calibTOF");
       mCurrentEntry = 0;
       mTree->SetBranchAddress("TOFCalibInfo", &mPvect);
+
+      if (mDiagnostic) {
+        mTree->SetBranchAddress("TOFDiaInfo", &mPdia);
+      }
+
       LOG(debug) << "Open " << filename;
     }
     if ((mGlobalEntry % mNinstances) == mInstance) {
@@ -67,6 +73,9 @@ void CalibInfoReader::run(ProcessingContext& pc)
       LOG(debug) << "Current entry " << mCurrentEntry;
       LOG(debug) << "Send " << mVect.size() << " calib infos";
       pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, mTOFTPC ? ddCalib_tpc : ddCalib, 0, Lifetime::Timeframe}, mVect);
+
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, ddDia, 0, Lifetime::Timeframe}, mDia);
+
       usleep(100);
     }
     mGlobalEntry++;
@@ -91,12 +100,14 @@ DataProcessorSpec getCalibInfoReaderSpec(int instance, int ninstances, const cha
     nameSpec += fmt::format("-{:d}", instance);
   }
 
+  outputs.emplace_back(o2::header::gDataOriginTOF, ddDia, 0, Lifetime::Timeframe);
+
   return DataProcessorSpec{
     nameSpec,
     Inputs{},
     outputs,
     AlgorithmSpec{adaptFromTask<CalibInfoReader>(instance, ninstances, filename)},
-    Options{{"input-dir", VariantType::String, "none", {"Input directory"}}}};
+    Options{{"input-dir", VariantType::String, "none", {"Input directory"}}, {"enable-dia", VariantType::Bool, false, {"read also diagnostic frequency"}}}};
 }
 } // namespace tof
 } // namespace o2

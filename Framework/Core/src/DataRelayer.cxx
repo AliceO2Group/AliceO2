@@ -100,11 +100,13 @@ TimesliceId DataRelayer::getTimesliceForSlot(TimesliceSlot slot)
 DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& expirationHandlers,
                                                               ServiceRegistry& services, bool createNew)
 {
+  LOGP(debug, "DataRelayer::processDanglingInputs");
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
   ActivityStats activity;
   /// Nothing to do if nothing can expire.
   if (expirationHandlers.empty()) {
+    LOGP(debug, "DataRelayer::processDanglingInputs: No expiration handlers");
     return activity;
   }
   // Create any slot for the time based fields
@@ -116,11 +118,16 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
   }
   if (slotsCreatedByHandlers.empty() == false) {
     activity.newSlots++;
+    LOGP(debug, "DataRelayer::processDanglingInputs: {} slots created by handler", slotsCreatedByHandlers.size());
+  } else {
+    LOGP(debug, "DataRelayer::processDanglingInputs: no slots created by hadnler");
   }
   // Outer loop, we process all the records because the fact that the record
   // expires is independent from having received data for it.
+  LOGP(debug, "DataRelayer::processDanglingInputs: running over all the timeslices");
   for (size_t ti = 0; ti < mTimesliceIndex.size(); ++ti) {
     TimesliceSlot slot{ti};
+    LOGP(debug, "DataRelayer::processDanglingInputs: processing timeslice {}", ti);
     if (mTimesliceIndex.isValid(slot) == false) {
       continue;
     }
@@ -130,23 +137,29 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
     // We iterate on all the hanlders checking if they need to be expired.
     for (size_t ei = 0; ei < expirationHandlers.size(); ++ei) {
       auto& expirator = expirationHandlers[ei];
+      LOGP(debug, "DataRelayer::processDanglingInputs: running handler {}", ei);
       // We check that no data is already there for the given cell
       // it is enough to check the first element
       auto& part = mCache[ti * mDistinctRoutesIndex.size() + expirator.routeIndex.value];
       if (part.size() > 0 && part.header(0) != nullptr) {
+        LOGP(debug, "DataRelayer::processDanglingInputs: data already present. Skipping");
         continue;
       }
       if (part.size() > 0 && part.payload(0) != nullptr) {
+        LOGP(debug, "DataRelayer::processDanglingInputs: data already present. Skipping");
         continue;
       }
       // We check that the cell can actually be expired.
       if (!expirator.checker) {
+        LOGP(debug, "DataRelayer::processDanglingInputs: No checkers");
         continue;
       }
       if (slotsCreatedByHandlers[ei] != slot) {
+        LOGP(debug, "DataRelayer::processDanglingInputs: bad slot");
         continue;
       }
       if (expirator.checker(services, timestamp.value) == false) {
+        LOGP(debug, "DataRelayer::processDanglingInputs: checker does not work");
         continue;
       }
 
@@ -555,10 +568,9 @@ void DataRelayer::updateCacheStatus(TimesliceSlot slot, CacheEntryStatus oldStat
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
   const auto numInputTypes = mDistinctRoutesIndex.size();
-  auto& index = mTimesliceIndex;
 
   auto markInputDone = [&cachedStateMetrics = mCachedStateMetrics,
-                        &index, &numInputTypes](TimesliceSlot s, size_t arg, CacheEntryStatus oldStatus, CacheEntryStatus newStatus) {
+                        &numInputTypes](TimesliceSlot s, size_t arg, CacheEntryStatus oldStatus, CacheEntryStatus newStatus) {
     auto cacheId = s.index * numInputTypes + arg;
     if (cachedStateMetrics[cacheId] == oldStatus) {
       cachedStateMetrics[cacheId] = newStatus;
@@ -579,7 +591,6 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeAllInputsForTimeslice
   std::vector<MessageSet> messages(numInputTypes);
   auto& cache = mCache;
   auto& index = mTimesliceIndex;
-  auto& metrics = mMetrics;
 
   // Nothing to see here, this is just to make the outer loop more understandable.
   auto jumpToCacheEntryAssociatedWith = [](TimesliceSlot) {
@@ -592,7 +603,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeAllInputsForTimeslice
   // cache where to put them.
   auto moveHeaderPayloadToOutput = [&messages,
                                     &cachedStateMetrics = mCachedStateMetrics,
-                                    &cache, &index, &numInputTypes, &metrics](TimesliceSlot s, size_t arg) {
+                                    &cache, &index, &numInputTypes](TimesliceSlot s, size_t arg) {
     auto cacheId = s.index * numInputTypes + arg;
     cachedStateMetrics[cacheId] = CacheEntryStatus::RUNNING;
     // TODO: in the original implementation of the cache, there have been only two messages per entry,
@@ -607,7 +618,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeAllInputsForTimeslice
   // timeslice, so I can simply do that. I keep the assertion there because in principle
   // we should have dispatched the timeslice already!
   // FIXME: what happens when we have enough timeslices to hit the invalid one?
-  auto invalidateCacheFor = [&numInputTypes, &cachedStateMetrics = mCachedStateMetrics, &index, &cache](TimesliceSlot s) {
+  auto invalidateCacheFor = [&numInputTypes, &index, &cache](TimesliceSlot s) {
     for (size_t ai = s.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
       assert(std::accumulate(cache[ai].messages.begin(), cache[ai].messages.end(), true, [](bool result, auto const& element) { return result && element.get() == nullptr; }));
       cache[ai].clear();
@@ -622,7 +633,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeAllInputsForTimeslice
   }
   invalidateCacheFor(slot);
 
-  return std::move(messages);
+  return messages;
 }
 
 std::vector<o2::framework::MessageSet> DataRelayer::consumeExistingInputsForTimeslice(TimesliceSlot slot)

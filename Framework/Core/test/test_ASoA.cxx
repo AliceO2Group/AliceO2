@@ -35,7 +35,7 @@ DECLARE_SOA_COLUMN_FULL(X, x, int32_t, "x");
 DECLARE_SOA_COLUMN_FULL(Y, y, int32_t, "y");
 DECLARE_SOA_COLUMN_FULL(Z, z, int32_t, "z");
 DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](int32_t x, int32_t y) { return x + y; });
-DECLARE_SOA_EXPRESSION_COLUMN(ESum, esum, int32_t, 1 * test::x + test::y);
+DECLARE_SOA_EXPRESSION_COLUMN(ESum, esum, int32_t, test ::x + test::y);
 } // namespace test
 
 DECLARE_SOA_TABLE(Points, "TST", "POINTS", test::X, test::Y);
@@ -703,31 +703,36 @@ BOOST_AUTO_TEST_CASE(TestIndexToFiltered)
 
 namespace test
 {
-DECLARE_SOA_ARRAY_INDEX_COLUMN(Points3D, pointGroup, 3);
+DECLARE_SOA_INDEX_COLUMN_FULL(SinglePoint, singlePoint, int32_t, Points3Ds, "");
+DECLARE_SOA_ARRAY_INDEX_COLUMN(Points3D, pointGroup);
 DECLARE_SOA_SLICE_INDEX_COLUMN(Points3D, pointSlice);
 DECLARE_SOA_SELF_INDEX_COLUMN(OtherPoint, otherPoint);
+DECLARE_SOA_SELF_SLICE_INDEX_COLUMN(PointSeq, pointSeq);
+DECLARE_SOA_SELF_ARRAY_INDEX_COLUMN(PointSet, pointSet);
 } // namespace test
 
 DECLARE_SOA_TABLE(PointsRef, "TST", "PTSREF", test::Points3DIdSlice, test::Points3DIds);
-DECLARE_SOA_TABLE(PointsSelfIndex, "TST", "PTSSLF", o2::soa::Index<>, test::X, test::Y, test::Z, test::OtherPointId);
+DECLARE_SOA_TABLE(PointsRefF, "TST", "PTSREFF", test::SinglePointId, test::Points3DIdSlice, test::Points3DIds);
+DECLARE_SOA_TABLE(PointsSelfIndex, "TST", "PTSSLF", o2::soa::Index<>, test::X, test::Y, test::Z, test::OtherPointId,
+                  test::PointSeqIdSlice, test::PointSetIds);
 
 BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
 {
   TableBuilder b1;
   auto pwriter = b1.cursor<Points3Ds>();
   for (auto i = 0; i < 20; ++i) {
-    pwriter(0, -1 * i, 0.5 * i, 2 * i);
+    pwriter(0, -1 * i, (int)(i / 2), 2 * i);
   }
   auto t1 = b1.finalize();
 
   TableBuilder b2;
   auto prwriter = b2.cursor<PointsRef>();
   auto a = std::array{0, 1};
-  auto aa = std::array{2, 3, 4};
-  prwriter(0, &a[0], &aa[0]);
+  auto aa = std::vector{2, 3, 4};
+  prwriter(0, &a[0], aa);
   a = {4, 10};
   aa = {12, 2, 19};
-  prwriter(0, &a[0], &aa[0]);
+  prwriter(0, &a[0], aa);
   auto t2 = b2.finalize();
 
   auto pt = Points3Ds{t1};
@@ -780,18 +785,68 @@ BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
   TableBuilder b3;
   auto pswriter = b3.cursor<PointsSelfIndex>();
   int references[] = {19, 2, 0, 13, 4, 6, 5, 5, 11, 9, 3, 8, 16, 14, 1, 18, 12, 18, 2, 7};
+  int slice[2] = {-1, -1};
+  std::vector<int> pset;
+  int withSlices[] = {3, 13, 19};
+  int withSets[] = {0, 1, 13, 14};
+  int sizes[] = {3, 1, 5, 4};
+  int c1 = 0;
+  int c2 = 0;
   for (auto i = 0; i < 20; ++i) {
-    pswriter(0, -1 * i, 0.5 * i, 2 * i, references[i]);
+    pset.clear();
+    slice[0] = -1;
+    slice[1] = -1;
+    if (i == withSlices[c1]) {
+      slice[0] = i - 2;
+      slice[1] = i - 1;
+      ++c1;
+    }
+    if (i == withSets[c2]) {
+      for (auto z = 0; z < sizes[c2]; ++z) {
+        pset.push_back(i + 1 + z);
+      }
+      ++c2;
+    }
+    pswriter(0, -1 * i, 0.5 * i, 2 * i, references[i], slice, pset);
   }
   auto t3 = b3.finalize();
   auto pst = PointsSelfIndex{t3};
   pst.bindInternalIndices();
   auto i = 0;
+  c1 = 0;
+  c2 = 0;
   for (auto& p : pst) {
     auto op = p.otherPoint_as<PointsSelfIndex>();
     auto bbb = std::is_same_v<decltype(op), PointsSelfIndex::iterator>;
     BOOST_CHECK(bbb);
     BOOST_CHECK_EQUAL(op.globalIndex(), references[i]);
+
+    auto ops = p.pointSeq_as<PointsSelfIndex>();
+    if (i == withSlices[c1]) {
+      auto it = ops.begin();
+      BOOST_CHECK_EQUAL(ops.size(), 2);
+      BOOST_CHECK_EQUAL(it.globalIndex(), i - 2);
+      ++it;
+      BOOST_CHECK_EQUAL(it.globalIndex(), i - 1);
+      ++c1;
+    } else {
+      BOOST_CHECK_EQUAL(ops.size(), 0);
+    }
+    auto opss = p.pointSet_as<PointsSelfIndex>();
+    auto opss_ids = p.pointSetIds();
+    if (i == withSets[c2]) {
+      BOOST_CHECK_EQUAL(opss.size(), sizes[c2]);
+      BOOST_CHECK_EQUAL(opss.begin()->globalIndex(), i + 1);
+      BOOST_CHECK_EQUAL(opss.back().globalIndex(), i + sizes[c2]);
+      int c3 = 0;
+      for (auto& id : opss_ids) {
+        BOOST_CHECK_EQUAL(id, i + 1 + c3);
+        ++c3;
+      }
+      ++c2;
+    } else {
+      BOOST_CHECK_EQUAL(opss.size(), 0);
+    }
     ++i;
   }
 }
@@ -860,6 +915,38 @@ BOOST_AUTO_TEST_CASE(TestSliceBy)
     BOOST_CHECK_EQUAL(slice.size(), 5);
     for (auto& ri : slice) {
       BOOST_CHECK_EQUAL(ri.originId(), oi.globalIndex());
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(TestIndexUnboundExceptions)
+{
+  TableBuilder b;
+  auto prwriter = b.cursor<PointsRefF>();
+  auto a = std::array{0, 1};
+  auto aa = std::vector{2, 3, 4};
+  prwriter(0, 0, &a[0], aa);
+  a = {4, 10};
+  aa = {12, 2, 19};
+  prwriter(0, 1, &a[0], aa);
+  auto t = b.finalize();
+  auto prt = PointsRefF{t};
+
+  for (auto& row : prt) {
+    try {
+      auto sp = row.singlePoint();
+    } catch (RuntimeErrorRef ref) {
+      BOOST_REQUIRE_EQUAL(std::string{error_from_ref(ref).what}, "Index pointing to Points3Ds is not bound! Did you subscribe to the table?");
+    }
+    try {
+      auto ps = row.pointSlice();
+    } catch (RuntimeErrorRef ref) {
+      BOOST_REQUIRE_EQUAL(std::string{error_from_ref(ref).what}, "Index pointing to Points3Ds is not bound! Did you subscribe to the table?");
+    }
+    try {
+      auto pg = row.pointGroup();
+    } catch (RuntimeErrorRef ref) {
+      BOOST_REQUIRE_EQUAL(std::string{error_from_ref(ref).what}, "Index pointing to Points3Ds is not bound! Did you subscribe to the table?");
     }
   }
 }

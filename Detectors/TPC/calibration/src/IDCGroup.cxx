@@ -12,7 +12,9 @@
 #include "TPCCalibration/IDCGroup.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "TPCCalibration/IDCDrawHelper.h"
+#include "TPCCalibration/IDCContainer.h"
 #include "TPCBase/Mapper.h"
+#include "TPCBase/CalDet.h"
 #include "TFile.h"
 #include <numeric>
 
@@ -38,7 +40,7 @@ void o2::tpc::IDCGroup::dumpToTree(const char* outname) const
 void o2::tpc::IDCGroup::draw(const unsigned int integrationInterval, const std::string filename) const
 {
   std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> idcFunc = [this, integrationInterval](const unsigned int, const unsigned int region, const unsigned int irow, const unsigned int pad) {
-    return (*this)(getGroupedRow(irow), getGroupedPad(pad, irow), integrationInterval);
+    return this->getValUngrouped(irow, pad, integrationInterval);
   };
 
   IDCDrawHelper::IDCDraw drawFun;
@@ -61,28 +63,48 @@ float o2::tpc::IDCGroup::getValUngroupedGlobal(unsigned int ugrow, unsigned int 
 
 std::vector<float> o2::tpc::IDCGroup::get1DIDCs() const
 {
-  return get1DIDCs(mIDCsGrouped, getNIntegrationIntervals(), getNIDCsPerIntegrationInterval(), mRegion, true);
+  return get1DIDCs(mIDCsGrouped, getNIntegrationIntervals(), getNIDCsPerIntegrationInterval(), mCRU, true, nullptr);
 }
 
-std::vector<float> o2::tpc::IDCGroup::get1DIDCsUngrouped(const std::vector<float> idc, const unsigned int region)
+std::vector<float> o2::tpc::IDCGroup::get1DIDCsUngrouped(const std::vector<float> idc, const unsigned short cru, const CalDet<PadFlags>* flagMap)
 {
-  const auto nIDCsPerIntegrationInterval = Mapper::PADSPERREGION[region];
-  return get1DIDCs(idc, idc.size() / nIDCsPerIntegrationInterval, nIDCsPerIntegrationInterval, region, false);
+  const auto nIDCsPerIntegrationInterval = Mapper::PADSPERREGION[CRU(cru).region()];
+  return get1DIDCs(idc, idc.size() / nIDCsPerIntegrationInterval, nIDCsPerIntegrationInterval, cru, false, flagMap);
 }
 
-std::vector<float> o2::tpc::IDCGroup::get1DIDCs(const std::vector<float> idc, const unsigned int nIntervals, const unsigned int nIDCsPerIntegrationInterval, const unsigned int region, const bool normalize)
+std::vector<float> o2::tpc::IDCGroup::get1DIDCs(const std::vector<float> idc, const unsigned int nIntervals, const unsigned int nIDCsPerIntegrationInterval, const unsigned short cru, const bool normalize, const CalDet<PadFlags>* flagMap)
 {
   // integrate IDCs for each interval
   std::vector<float> idcOne;
   idcOne.reserve(nIntervals);
+  int count = 0; // counter for good pads which are not skipped
+
   for (unsigned int i = 0; i < nIntervals; ++i) {
     // set integration range for one integration interval
     const auto start = idc.begin() + i * nIDCsPerIntegrationInterval;
     const auto end = start + nIDCsPerIntegrationInterval;
-    idcOne.emplace_back(std::accumulate(start, end, decltype(idc)::value_type(0)));
+
+    if (flagMap) {
+      size_t index = 0;
+      float sum = 0;
+      for (auto it = start; it != end; ++it) {
+        const auto flag = flagMap->getCalArray(cru).getValue(index++);
+        if ((flag & PadFlags::flagSkip) != PadFlags::flagSkip) {
+          sum += *it;
+          // only count for first iteration
+          if (i == 0) {
+            ++count;
+          }
+        }
+      }
+      idcOne.emplace_back(sum);
+    } else {
+      idcOne.emplace_back(std::accumulate(start, end, decltype(idc)::value_type(0)));
+    }
   }
   // normalize 1D-IDCs to absolute space charge
-  const float norm = normalize ? Mapper::REGIONAREA[region] / nIDCsPerIntegrationInterval : 1.f / nIDCsPerIntegrationInterval;
+  const float normFac = (count > 0) ? count : nIDCsPerIntegrationInterval;
+  const float norm = normalize ? Mapper::REGIONAREA[CRU(cru).region()] / normFac : 1.f / normFac;
   std::transform(idcOne.begin(), idcOne.end(), idcOne.begin(), [norm](auto& val) { return val * norm; });
 
   return idcOne;

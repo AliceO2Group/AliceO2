@@ -19,7 +19,7 @@
 #include <vector>
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsMID/ROFRecord.h"
-#include "MIDSimulation/ColumnDataMC.h"
+#include "DataFormatsMID/ColumnData.h"
 #include "MIDSimulation/MCLabel.h"
 
 namespace o2
@@ -29,21 +29,21 @@ namespace mid
 class DigitsMerger
 {
  public:
-  void process(const std::vector<ColumnDataMC>& inDigitStore, const o2::dataformats::MCTruthContainer<MCLabel>& inMCContainer, const std::vector<ROFRecord>& inROFRecords, bool mergeInBunchPileup = true);
+  void process(const std::vector<ColumnData>& inDigitStore, const o2::dataformats::MCTruthContainer<MCLabel>& inMCContainer, const std::vector<ROFRecord>& inROFRecords, bool mergeInBunchPileup = true);
 
   /// Gets the merged column data
-  const std::vector<ColumnDataMC>& getColumnData() const { return mDigitStore; }
+  const std::vector<ColumnData>& getColumnData() const { return mDigitStore; }
   /// Gets the merged MC labels
   const o2::dataformats::MCTruthContainer<MCLabel>& getMCContainer() const { return mMCContainer; }
   /// Gets the merged RO frame records
   const std::vector<ROFRecord>& getROFRecords() const { return mROFRecords; }
 
  private:
-  void mergeDigit(size_t idigit, const std::vector<ColumnDataMC>& inDigitStore);
-  std::vector<std::pair<ColumnDataMC, std::vector<size_t>>> mDigitsLabels{}; //! Temporary digits store
-  std::vector<ColumnDataMC> mDigitStore{};                                   ///< Digit store
-  o2::dataformats::MCTruthContainer<MCLabel> mMCContainer{};                 ///< MC Container
-  std::vector<ROFRecord> mROFRecords{};                                      ///< RO frame records
+  void mergeDigit(size_t idigit, const std::vector<ColumnData>& inDigitStore);
+  std::vector<std::pair<ColumnData, std::vector<size_t>>> mDigitsLabels{}; //! Temporary digits store
+  std::vector<ColumnData> mDigitStore{};                                   ///< Digit store
+  o2::dataformats::MCTruthContainer<MCLabel> mMCContainer{};               ///< MC Container
+  std::vector<ROFRecord> mROFRecords{};                                    ///< RO frame records
 };
 
 } // namespace mid

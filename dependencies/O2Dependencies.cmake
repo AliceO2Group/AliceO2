@@ -38,7 +38,7 @@ set_package_properties(Vc PROPERTIES TYPE REQUIRED)
 find_package(ROOT 6.20.02)
 set_package_properties(ROOT PROPERTIES TYPE REQUIRED)
 
-find_package(VMC)
+find_package(VMC MODULE)
 
 find_package(fmt)
 set_package_properties(fmt PROPERTIES TYPE REQUIRED)
@@ -98,6 +98,9 @@ set_package_properties(RapidJSON PROPERTIES TYPE REQUIRED)
 find_package(CURL)
 set_package_properties(CURL PROPERTIES TYPE REQUIRED)
 
+find_package(TBB)
+set_package_properties(TBB PROPERTIES TYPE REQUIRED)
+
 find_package(JAliEnROOT MODULE)
 set_package_properties(JAliEnROOT PROPERTIES TYPE RECOMMENDED)
 
@@ -146,6 +149,8 @@ find_package(GLUT)
 set_package_properties(GLUT PROPERTIES TYPE OPTIONAL)
 find_package(OpenGL)
 set_package_properties(OpenGL PROPERTIES TYPE OPTIONAL)
+find_package(Vulkan)
+set_package_properties(Vulkan PROPERTIES TYPE OPTIONAL)
 
 find_package(LLVM)
 set_package_properties(LLVM PROPERTIES TYPE OPTIONAL)

@@ -17,7 +17,7 @@
 #include <TFile.h>
 #include "DataFormatsParameters/GRPECSObject.h"
 #include <cmath>
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::parameters;
 using o2::detectors::DetID;
@@ -26,8 +26,11 @@ using o2::detectors::DetID;
 void GRPECSObject::print() const
 {
   // print itself
-  std::time_t t = mTimeStart; // system_clock::to_time_t(mTimeStart);
-  printf("Start: %s", std::ctime(&t));
+  std::time_t ts = mTimeStart / 1000, te = mTimeEnd / 1000;
+  printf("Run %d of type %d, period %s\n", mRun, int(mRunType), mDataPeriod.c_str());
+  printf("Start: %s", std::ctime(&ts));
+  printf("End  : %s", std::ctime(&te));
+  printf("isMC : %d ", isMC());
   printf("Detectors: Cont.RO Triggers\n");
   for (auto i = DetID::First; i <= DetID::Last; i++) {
     if (!isDetReadOut(DetID(i))) {

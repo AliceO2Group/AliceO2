@@ -248,13 +248,13 @@ void HmpidCoder2::openOutputStream(const std::string& outputFileName, const std:
     rdh.endPointID = 0;
     std::string outfname;
     if (fileFor == "link") {
-      outfname = fmt::format("{}_{}_feeid{}.raw", outputFileName, ReadOut::FlpHostName(eq), ReadOut::FeeId(eq));
+      outfname = fmt::format("{}_{}_feeid{}.raw", outputFileName, ReadOut::FlpHostName(eq), int(rdh.feeId));
     } else if (fileFor == "flp") {
       outfname = fmt::format("{}_{}.raw", outputFileName, ReadOut::FlpHostName(eq));
     } else if (fileFor == "all") {
       outfname = fmt::format("{}.raw", outputFileName);
     } else if (fileFor == "cru") {
-      outfname = fmt::format("{}_{}.raw", outputFileName, ReadOut::FlpHostName(eq));
+      outfname = fmt::format("{}_{}_crorc{}_{}.raw", outputFileName, ReadOut::FlpHostName(eq), int(rdh.cruID), int(rdh.linkID));
     } else {
       throw std::runtime_error(fmt::format("unknown raw file grouping option {}", fileFor));
     }

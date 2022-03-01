@@ -23,7 +23,7 @@
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 
@@ -50,7 +50,6 @@ void DigitReader::init(InitContext& ic)
 
 void DigitReader::run(ProcessingContext& pc)
 {
-
   std::vector<o2::ft0::Digit> digits, *pdigits = &digits;
   std::vector<o2::ft0::DetTrigInput> trgInput, *ptrTrgInput = &trgInput;
   std::vector<o2::ft0::ChannelData> channels, *pchannels = &channels;
@@ -66,7 +65,7 @@ void DigitReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(info) << "FT0DigitReader pushed " << channels.size() << " channels in " << digits.size() << " digits";
+  LOG(debug) << "FT0DigitReader pushed " << channels.size() << " channels in " << digits.size() << " digits";
   pc.outputs().snapshot(Output{"FT0", "DIGITSBC", 0, Lifetime::Timeframe}, digits);
   pc.outputs().snapshot(Output{"FT0", "DIGITSCH", 0, Lifetime::Timeframe}, channels);
   if (mUseMC) {

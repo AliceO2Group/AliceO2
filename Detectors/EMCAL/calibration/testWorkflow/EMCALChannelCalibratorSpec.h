@@ -27,6 +27,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 
@@ -46,11 +47,11 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
     int isTest = ic.options().get<bool>("do-EMCAL-channel-calib-in-test-mode");
-    mCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::ChannelCalibInitParams>>();
-    mCalibrator->setUpdateAtTheEndOfRunOnly();
-    mCalibrator->setIsTest(isTest);
+    mBadChannelCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap, o2::emcal::ChannelCalibInitParams>>();
+    mBadChannelCalibrator->setUpdateAtTheEndOfRunOnly();
+    mBadChannelCalibrator->setIsTest(isTest);
     if (ic.options().get<bool>("useScaledHistoForBadChannelMap")) {
-      mCalibrator->getCalibExtractor()->setUseScaledHistoForBadChannels(true);
+      mBadChannelCalibrator->getCalibExtractor()->setUseScaledHistoForBadChannels(true);
     }
   }
 
@@ -65,42 +66,62 @@ class EMCALChannelCalibDevice : public o2::framework::Task
 
     auto data = pc.inputs().get<gsl::span<o2::emcal::Cell>>("input");
     LOG(info) << "Processing TF " << tfcounter << " with " << data.size() << " cells";
-    mCalibrator->process(tfcounter, data);
+    mTimeCalibrator->process(tfcounter, data);
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
     constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
-    mCalibrator->checkSlotsToFinalize(INFINITE_TF);
-    sendOutput(ec.outputs());
+    mBadChannelCalibrator->checkSlotsToFinalize(INFINITE_TF);
+    sendOutput<o2::emcal::BadChannelMap>(ec.outputs());
   }
 
  private:
-  std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::ChannelCalibInitParams>> mCalibrator;
-  std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibInitParams>> mTimeCalibrator;
+  std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap, o2::emcal::ChannelCalibInitParams>> mBadChannelCalibrator;
+  std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibrationParams, o2::emcal::TimeCalibInitParams>> mTimeCalibrator;
 
   //________________________________________________________________
+  template <typename DataOutput>
   void sendOutput(DataAllocator& output)
   {
     // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
     // TODO in principle, this routine is generic, can be moved to Utils.h
     using clbUtils = o2::calibration::Utils;
-    /*
-    const auto& payloadVec = mCalibrator->getTimeSlewingVector();
-    auto& infoVec = mCalibrator->getTimeSlewingInfoVector(); // use non-const version as we update it
+
+    // we need this to be a vector of bad channel maps or time params, we will probably need to create this?
+    std::vector<DataOutput> payloadVec;
+    std::vector<o2::ccdb::CcdbObjectInfo> infoVec;
+    if constexpr (std::is_same<DataOutput, o2::emcal::TimeCalibrationParams>::value) {
+      payloadVec = mTimeCalibrator->getOutputVector();
+      infoVec = mTimeCalibrator->getInfoVector();
+    } else {
+      payloadVec = mBadChannelCalibrator->getOutputVector();
+      infoVec = mBadChannelCalibrator->getInfoVector();
+    }
+    // use non-const version as we update it
     assert(payloadVec.size() == infoVec.size());
     for (uint32_t i = 0; i < payloadVec.size(); i++) {
       auto& w = infoVec[i];
       auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
-      LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
-                << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_CHANNEL", i}, *image.get()); // vector<char>
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_CHANNEL", i}, w);               // root-serialized
+      if constexpr (std::is_same<DataOutput, o2::emcal::TimeCalibrationParams>::value) {
+        LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
+                  << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
+        output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_TIMECALIB", i}, *image.get()); // vector<char>
+        output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_TIMECALIB", i}, w);            // root-serialized
+      } else {
+        LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
+                  << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
+        output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_BADCHANNELS", i}, *image.get()); // vector<char>
+        output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_BADCHANNELS", i}, w);            // root-serialized
+      }
     }
-    */
-    //if (payloadVec.size()) {
-    mCalibrator->initOutput(); // reset the outputs once they are already sent
-    //}
+    if (payloadVec.size()) {
+      if constexpr (std::is_same<DataOutput, o2::emcal::TimeCalibrationParams>::value) {
+        mTimeCalibrator->initOutput(); // reset the outputs once they are already sent
+      } else {
+        mBadChannelCalibrator->initOutput(); // reset the outputs once they are already sent
+      }
+    }
   }
 };
 
@@ -128,7 +149,7 @@ DataProcessorSpec getEMCALChannelCalibDeviceSpec()
     AlgorithmSpec{adaptFromTask<device>()},
     Options{
       {"do-EMCAL-channel-calib-in-test-mode", VariantType::Bool, false, {"to run in test mode for simplification"}},
-      {"ccdb-path", VariantType::String, "http://ccdb-test.cern.ch:8080", {"Path to CCDB"}},
+      {"ccdb-path", VariantType::String, o2::base::NameConf::getCCDBServer(), {"Path to CCDB"}},
       {"useScaledHistoForBadChannelMap", VariantType::Bool, false, {"Use scaled histogram for bad channel extraction"}}}};
 }
 

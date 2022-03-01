@@ -20,7 +20,6 @@
 
 #include "TRandom.h"
 #include "TMath.h"
-#include "TOFBase/Utils.h"
 #include "ReconstructionDataFormats/PID.h"
 #include "Framework/Logger.h"
 
@@ -39,6 +38,18 @@ struct eventTimeContainer {
   float sumweights = 0.f;       /// sum of weights of all track contributors
   std::vector<float> weights;   /// weights (1/sigma^2) associated to a track in event time computation, 0 if track not used
   std::vector<float> tracktime; /// eventtime provided by a single track
+
+  void reset(const float& diamond /* spread of primary verdex in cm */ = 6.0)
+  {
+    // reset info
+    static const float& sigmaFill = diamond * 33.356409; // move from diamond (cm) to spread on event time (ps)
+    weights.clear();
+    tracktime.clear();
+    eventTime = 0.;
+    eventTimeError = sigmaFill;
+    eventTimeMultiplicity = 0;
+    sumweights = 0.;
+  }
   void print()
   {
     LOG(info) << "eventTimeContainer " << eventTime << " +- " << eventTimeError << " sum of weights " << sumweights << " tracks used " << eventTimeMultiplicity;
@@ -79,7 +90,7 @@ struct eventTimeTrackTest : eventTimeTrack {
   int mHypo = 0;
 };
 
-void generateEvTimeTracks(std::vector<eventTimeTrackTest>& tracks, int ntracks, float evTime = Utils::mLHCPhase);
+void generateEvTimeTracks(std::vector<eventTimeTrackTest>& tracks, int ntracks, float evTime = 0.0);
 
 template <typename trackType>
 bool filterDummy(const trackType& tr)
@@ -88,13 +99,15 @@ bool filterDummy(const trackType& tr)
 } // accept all
 
 void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<int>& trkIndex, eventTimeContainer& evtime);
+void computeEvTimeFast(const std::vector<eventTimeTrack>& tracks, const std::vector<int>& trkIndex, eventTimeContainer& evtime);
 int getStartTimeInSet(const std::vector<eventTimeTrack>& tracks, std::vector<int>& trackInSet, unsigned long& bestComb);
+int getStartTimeInSetFast(const std::vector<eventTimeTrack>& tracks, std::vector<int>& trackInSet, unsigned long& bestComb);
 
 template <typename trackTypeContainer,
           typename trackType,
           bool (*trackFilter)(const trackType&)>
 eventTimeContainer evTimeMaker(const trackTypeContainer& tracks,
-                               float diamond = Utils::mEventTimeSpread * 0.029979246 /* spread of primary verdex in cm */)
+                               float diamond = 6.0 /* spread of primary verdex in cm */, bool isFast = false)
 {
   static std::vector<eventTimeTrack> trkWork;
   trkWork.clear();
@@ -106,12 +119,7 @@ eventTimeContainer evTimeMaker(const trackTypeContainer& tracks,
   static eventTimeContainer result = {0, 0};
 
   // reset info
-  float sigmaFill = diamond * 33.356409; // move from diamond (cm) to spread on event time (ps)
-  result.weights.clear();
-  result.tracktime.clear();
-  result.eventTime = 0.;
-  result.eventTimeError = sigmaFill;
-  result.sumweights = 0.;
+  result.reset(diamond);
 
   for (auto track : tracks) { // Loop on tracks
     if (trackFilter(track)) { // Select tracks good for T0 computation
@@ -127,7 +135,11 @@ eventTimeContainer evTimeMaker(const trackTypeContainer& tracks,
     result.weights.push_back(0.);
     result.tracktime.push_back(0.);
   }
-  computeEvTime(trkWork, trkIndex, result);
+  if (!isFast) {
+    computeEvTime(trkWork, trkIndex, result);
+  } else {
+    computeEvTimeFast(trkWork, trkIndex, result);
+  }
   return result;
 }
 
@@ -138,7 +150,7 @@ template <typename trackTypeContainer,
           typename responseParametersType>
 eventTimeContainer evTimeMakerFromParam(const trackTypeContainer& tracks,
                                         const responseParametersType& responseParameters,
-                                        float diamond = Utils::mEventTimeSpread * 0.029979246 /* spread of primary verdex in cm */)
+                                        float diamond = 6.0 /* spread of primary verdex in cm */, bool isFast = false)
 {
   static std::vector<eventTimeTrack> trkWork;
   trkWork.clear();
@@ -154,12 +166,7 @@ eventTimeContainer evTimeMakerFromParam(const trackTypeContainer& tracks,
   static eventTimeContainer result = {0, 0};
 
   // reset info
-  float sigmaFill = diamond * 33.356409; // move from diamond (cm) to spread on event time (ps)
-  result.weights.clear();
-  result.tracktime.clear();
-  result.eventTime = 0.;
-  result.eventTimeError = sigmaFill;
-  result.sumweights = 0.;
+  result.reset(diamond);
 
   for (auto track : tracks) { // Loop on tracks
     if (trackFilter(track)) { // Select tracks good for T0 computation
@@ -175,7 +182,11 @@ eventTimeContainer evTimeMakerFromParam(const trackTypeContainer& tracks,
     result.weights.push_back(0.);
     result.tracktime.push_back(0.);
   }
-  computeEvTime(trkWork, trkIndex, result);
+  if (!isFast) {
+    computeEvTime(trkWork, trkIndex, result);
+  } else {
+    computeEvTimeFast(trkWork, trkIndex, result);
+  }
   return result;
 }
 } // namespace tof

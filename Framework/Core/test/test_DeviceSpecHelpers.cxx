@@ -76,7 +76,7 @@ void check(const std::vector<std::string>& arguments,
       workflowOptions,
     });
   }
-  DeviceSpecHelpers::prepareArguments(true, true, 8080,
+  DeviceSpecHelpers::prepareArguments(true, true, false, 8080,
                                       dataProcessorInfos,
                                       deviceSpecs,
                                       deviceExecutions,

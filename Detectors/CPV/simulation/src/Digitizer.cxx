@@ -28,25 +28,20 @@ using namespace o2::cpv;
 //_______________________________________________________________________
 void Digitizer::init()
 {
-  LOG(info) << "CPVDigitizer::init() : CCDB Url = " << o2::cpv::CPVSimParams::Instance().mCCDBPath.data();
-  if (o2::cpv::CPVSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
+  LOG(info) << "CPVDigitizer::init() : CCDB Url = " << o2::base::NameConf::getCCDBServer();
+  if (o2::base::NameConf::getCCDBServer().compare("localtest") == 0) {
     mCalibParams = new CalibParams(1); // test default calibration
     mPedestals = new Pedestals(1);     // test default pedestals
     mBadMap = new BadChannelMap(1);    // test default bad channels
     LOG(info) << "[CPVDigitizer] No reading calibration from ccdb requested, set default";
   } else {
     auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
-    ccdbMgr.setURL(o2::cpv::CPVSimParams::Instance().mCCDBPath.data());
-    bool isCcdbReachable = ccdbMgr.isHostReachable(); //if host is not reachable we can use only dummy calibration
-    if (!isCcdbReachable) {
-      LOG(fatal) << "[CPVDigitizer] CCDB Host is not reachable!!!";
-      return;
-    }
     ccdbMgr.setCaching(true);                     //make local cache of remote objects
     ccdbMgr.setLocalObjectValidityChecking(true); //query objects from remote site only when local one is not valid
-    //read calibration from ccdb (for now do it only at the beginning of dataprocessing)
-    //TODO: setup timestam according to anchors
-    ccdbMgr.setTimestamp(o2::ccdb::getCurrentTimestamp());
+    // read calibration from ccdb (for now do it only at the beginning of dataprocessing)
+    // TODO: setup timestam according to anchors
+    // Do not set timestamp here: This should be set from the framework and is done via the digitizer workflow
+    // ccdbMgr.setTimestamp(o2::ccdb::getCurrentTimestamp());
 
     LOG(info) << "CCDB: Reading o2::cpv::CalibParams from CPV/Calib/Gains";
     mCalibParams = ccdbMgr.get<o2::cpv::CalibParams>("CPV/Calib/Gains");

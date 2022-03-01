@@ -36,24 +36,20 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DataFormatsTPC/Digit.h"
 #include "TPCFastTransform.h"
-#include "TPCdEdxCalibrationSplines.h"
-#include "DataFormatsTPC/CalibdEdxCorrection.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "DPLUtils/DPLRawPageSequencer.h"
 #include "DetectorsBase/MatLayerCylSet.h"
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsRaw/HBFUtils.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "TPCBase/RDHUtils.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUO2InterfaceQA.h"
 #include "GPUO2Interface.h"
+#include "CalibdEdxContainer.h"
 #include "TPCPadGainCalib.h"
-#include "GPUDisplayBackend.h"
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
-#include "GPUDisplayBackendGlfw.h"
-#endif
+#include "GPUDisplayFrontend.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "TPCBase/Sector.h"
 #include "TPCBase/Utils.h"
@@ -105,11 +101,10 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
   struct ProcessAttributes {
     std::unique_ptr<ClusterGroupParser> parser;
     std::unique_ptr<GPUO2Interface> tracker;
-    std::unique_ptr<GPUDisplayBackend> displayBackend;
+    std::unique_ptr<GPUDisplayFrontend> displayFrontend;
     std::unique_ptr<TPCFastTransform> fastTransform;
-    std::unique_ptr<TPCdEdxCalibrationSplines> dEdxSplines;
     std::unique_ptr<TPCPadGainCalib> tpcPadGainCalib;
-    std::unique_ptr<o2::tpc::CalibdEdxCorrection> dEdxCorrection;
+    std::unique_ptr<o2::tpc::CalibdEdxContainer> dEdxCalibContainer;
     std::unique_ptr<o2::trd::GeometryFlat> trdGeometry;
     std::unique_ptr<GPUO2InterfaceConfiguration> config;
     int qaTaskMask = 0;
@@ -163,11 +158,15 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       config.configInterface.dumpEvents = confParam.dump;
       if (confParam.display) {
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
-        processAttributes->displayBackend.reset(new GPUDisplayBackendGlfw);
-        config.configProcessing.eventDisplay = processAttributes->displayBackend.get();
-        LOG(info) << "Event display enabled";
+        processAttributes->displayFrontend.reset(GPUDisplayFrontend::getFrontend("glfw"));
+        config.configProcessing.eventDisplay = processAttributes->displayFrontend.get();
+        if (config.configProcessing.eventDisplay != nullptr) {
+          LOG(info) << "Event display enabled";
+        } else {
+          throw std::runtime_error("GPU Event Display frontend could not be created!");
+        }
 #else
-        throw std::runtime_error("Standalone Event Display not enabled at build time!");
+        throw std::runtime_error("GPU Event Display not enabled at build time!");
 #endif
       }
 
@@ -232,6 +231,10 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
           throw std::invalid_argument("Cannot run TPC decompression with a sector mask");
         }
       }
+      if (specconfig.runTRDTracking) {
+        config.configWorkflow.inputs.setBits(GPUDataTypes::InOutType::TRDTracklets, true);
+        config.configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, true);
+      }
       if (specconfig.outputSharedClusterMap) {
         config.configProcessing.outputSharedClusterMap = true;
       }
@@ -240,6 +243,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       // Create and forward data objects for TPC transformation, material LUT, ...
       if (confParam.transformationFile.size()) {
         processAttributes->fastTransform = nullptr;
+        LOG(info) << "Reading TPC transformation map from file " << confParam.transformationFile;
         config.configCalib.fastTransform = TPCFastTransform::loadFromFile(confParam.transformationFile.c_str());
       } else {
         processAttributes->fastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
@@ -250,24 +254,43 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       }
 
       if (confParam.matLUTFile.size()) {
+        LOGP(info, "Loading matlut file {}", confParam.matLUTFile.c_str());
         config.configCalib.matLUT = o2::base::MatLayerCylSet::loadFromFile(confParam.matLUTFile.c_str());
+        if (config.configCalib.matLUT == nullptr) {
+          LOGF(fatal, "Error loading matlut file");
+        }
       }
 
       // load from file
-      if (confParam.dEdxFile.size()) {
-        processAttributes->dEdxSplines.reset(new TPCdEdxCalibrationSplines(confParam.dEdxFile.c_str()));
-      } else {
-        processAttributes->dEdxSplines.reset(new TPCdEdxCalibrationSplines);
-      }
-      config.configCalib.dEdxSplines = processAttributes->dEdxSplines.get();
+      if (!confParam.dEdxPolTopologyCorrFile.empty() || !confParam.dEdxCorrFile.empty() || !confParam.dEdxSplineTopologyCorrFile.empty()) {
+        processAttributes->dEdxCalibContainer.reset(new o2::tpc::CalibdEdxContainer());
+        if (!confParam.dEdxPolTopologyCorrFile.empty()) {
+          LOGP(info, "Loading dE/dx polynomial track topology correction from file: {}", confParam.dEdxPolTopologyCorrFile);
+          processAttributes->dEdxCalibContainer->loadPolTopologyCorrectionFromFile(confParam.dEdxPolTopologyCorrFile);
+          if (std::filesystem::exists(confParam.thresholdCalibFile)) {
+            LOG(info) << "Loading tpc zero supression map from file " << confParam.thresholdCalibFile;
+            const auto* thresholdMap = o2::tpc::utils::readCalPads(confParam.thresholdCalibFile, "ThresholdMap")[0];
+            processAttributes->dEdxCalibContainer->setZeroSupresssionThreshold(*thresholdMap);
+          } else {
+            if (not confParam.thresholdCalibFile.empty()) {
+              LOG(warn) << "Couldn't find tpc zero supression file " << confParam.thresholdCalibFile << ". Not setting any zero supression.";
+            }
+            LOG(info) << "Setting default zero supression map";
+            processAttributes->dEdxCalibContainer->setDefaultZeroSupresssionThreshold();
+          }
+        } else if (!confParam.dEdxSplineTopologyCorrFile.empty()) {
+          LOGP(info, "Loading dE/dx spline track topology correction from file: {}", confParam.dEdxSplineTopologyCorrFile);
+          processAttributes->dEdxCalibContainer->loadSplineTopologyCorrectionFromFile(confParam.dEdxSplineTopologyCorrFile);
+        }
+        if (!confParam.dEdxCorrFile.empty()) {
+          LOGP(info, "Loading dEdx correction from file: {}", confParam.dEdxCorrFile);
+          processAttributes->dEdxCalibContainer->loadResidualCorrectionFromFile(confParam.dEdxCorrFile);
+        }
 
-      if (!confParam.dEdxCorrFile.empty()) {
-        LOGP(info, "Loading dEdx correction file: {}", confParam.dEdxCorrFile);
-        processAttributes->dEdxCorrection.reset(new o2::tpc::CalibdEdxCorrection(confParam.dEdxCorrFile));
       } else {
-        processAttributes->dEdxCorrection.reset(new o2::tpc::CalibdEdxCorrection());
+        processAttributes->dEdxCalibContainer.reset(new o2::tpc::CalibdEdxContainer());
       }
-      config.configCalib.dEdxCorrection = processAttributes->dEdxCorrection.get();
+      config.configCalib.dEdxCalibContainer = processAttributes->dEdxCalibContainer.get();
 
       if (std::filesystem::exists(confParam.gainCalibFile)) {
         LOG(info) << "Loading tpc gain correction from file " << confParam.gainCalibFile;
@@ -308,29 +331,42 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
 
     auto& callbacks = ic.services().get<CallbackService>();
     callbacks.set(CallbackService::Id::RegionInfoCallback, [&processAttributes, confParam](FairMQRegionInfo const& info) {
-      if (info.size) {
-        int fd = 0;
-        if (confParam.mutexMemReg) {
-          mode_t mask = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
-          fd = open("/tmp/o2_gpu_memlock_mutex.lock", O_RDWR | O_CREAT | O_CLOEXEC, mask);
-          if (fd == -1) {
-            throw std::runtime_error("Error opening lock file");
-          }
-          fchmod(fd, mask);
-          if (lockf(fd, F_LOCK, 0)) {
-            throw std::runtime_error("Error locking file");
-          }
+      if (info.size == 0) {
+        return;
+      }
+      if (confParam.registerSelectedSegmentIds != -1 && info.managed && info.id != confParam.registerSelectedSegmentIds) {
+        return;
+      }
+      int fd = 0;
+      if (confParam.mutexMemReg) {
+        mode_t mask = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
+        fd = open("/tmp/o2_gpu_memlock_mutex.lock", O_RDWR | O_CREAT | O_CLOEXEC, mask);
+        if (fd == -1) {
+          throw std::runtime_error("Error opening lock file");
         }
-        auto& tracker = processAttributes->tracker;
-        if (tracker->registerMemoryForGPU(info.ptr, info.size)) {
-          throw std::runtime_error("Error registering memory for GPU");
+        fchmod(fd, mask);
+        if (lockf(fd, F_LOCK, 0)) {
+          throw std::runtime_error("Error locking file");
         }
-        if (confParam.mutexMemReg) {
-          if (lockf(fd, F_ULOCK, 0)) {
-            throw std::runtime_error("Error unlocking file");
-          }
-          close(fd);
+      }
+      auto& tracker = processAttributes->tracker;
+      std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
+      if (confParam.benchmarkMemoryRegistration) {
+        start = std::chrono::high_resolution_clock::now();
+      }
+      if (tracker->registerMemoryForGPU(info.ptr, info.size)) {
+        throw std::runtime_error("Error registering memory for GPU");
+      }
+      if (confParam.benchmarkMemoryRegistration) {
+        end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed_seconds = end - start;
+        LOG(info) << "Memory registration time (0x" << info.ptr << ", " << info.size << " bytes): " << elapsed_seconds.count() << " s";
+      }
+      if (confParam.mutexMemReg) {
+        if (lockf(fd, F_ULOCK, 0)) {
+          throw std::runtime_error("Error unlocking file");
         }
+        close(fd);
       }
     });
 
@@ -798,6 +834,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       inputs.emplace_back("trdctracklets", o2::header::gDataOriginTRD, "CTRACKLETS", 0, Lifetime::Timeframe);
       inputs.emplace_back("trdtracklets", o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe);
       inputs.emplace_back("trdtriggerrec", o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe);
+      inputs.emplace_back("trdtrigrecmask", o2::header::gDataOriginTRD, "TRIGRECMASK", 0, Lifetime::Timeframe);
     }
     return inputs;
   };

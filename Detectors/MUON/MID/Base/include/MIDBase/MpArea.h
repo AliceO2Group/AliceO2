@@ -25,35 +25,35 @@ namespace mid
 class MpArea
 {
  public:
-  MpArea(float x1 = 0., float y1 = 0., float x2 = 0., float y2 = 0.);
+  MpArea(double x1 = 0., double y1 = 0., double x2 = 0., double y2 = 0.);
   // virtual ~MpArea() = default;
 
-  float getCenterX() const;
-  float getCenterY() const;
-  float getHalfSizeX() const;
-  float getHalfSizeY() const;
+  double getCenterX() const;
+  double getCenterY() const;
+  double getHalfSizeX() const;
+  double getHalfSizeY() const;
   bool isValid() const;
 
   /// Set x min
-  void setXmin(float val) { mPositions[0] = val; }
+  void setXmin(double val) { mPositions[0] = val; }
   /// Set x max
-  void setXmax(float val) { mPositions[2] = val; }
+  void setXmax(double val) { mPositions[2] = val; }
   /// Set y min
-  void setYmin(float val) { mPositions[1] = val; }
+  void setYmin(double val) { mPositions[1] = val; }
   /// Set y max
-  void setYmax(float val) { mPositions[3] = val; }
+  void setYmax(double val) { mPositions[3] = val; }
 
   /// Get x min
-  float getXmin() const { return mPositions[0]; }
+  double getXmin() const { return mPositions[0]; }
   /// Get x max
-  float getXmax() const { return mPositions[2]; }
+  double getXmax() const { return mPositions[2]; }
   /// Get y min
-  float getYmin() const { return mPositions[1]; }
+  double getYmin() const { return mPositions[1]; }
   /// Get y max
-  float getYmax() const { return mPositions[3]; }
+  double getYmax() const { return mPositions[3]; }
 
  private:
-  std::array<float, 4> mPositions;
+  std::array<double, 4> mPositions;
 };
 } // namespace mid
 } // namespace o2

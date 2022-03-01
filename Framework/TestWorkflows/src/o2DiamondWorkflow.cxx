@@ -18,14 +18,13 @@
 #include "Framework/RunningWorkflowInfo.h"
 #include "Framework/CallbackService.h"
 #include <FairMQDevice.h>
-#include <InfoLogger/InfoLogger.hxx>
 
+#include <iostream>
 #include <chrono>
 #include <thread>
 #include <vector>
 
 using namespace o2::framework;
-using namespace AliceO2::InfoLogger;
 
 struct WorkflowOptions {
   Configurable<int> anInt{"anInt", 1, ""};
@@ -77,11 +76,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
      {OutputSpec{{"a1"}, "TST", "A1"},
       OutputSpec{{"a2"}, "TST", "A2"}},
      AlgorithmSpec{adaptStateless(
-       [](DataAllocator& outputs, InfoLogger& logger, RawDeviceService& device, DataTakingContext& context) {
+       [](DataAllocator& outputs, RawDeviceService& device, DataTakingContext& context) {
          device.device()->WaitFor(std::chrono::seconds(rand() % 2));
          auto& aData = outputs.make<int>(OutputRef{"a1"}, 1);
          auto& bData = outputs.make<int>(OutputRef{"a2"}, 1);
-         logger.log("This goes to infologger");
        })},
      {ConfigParamSpec{"some-device-param", VariantType::Int, 1, {"Some device parameter"}}}},
     {"B",
@@ -102,6 +100,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
      AlgorithmSpec{adaptStateless([](InputRecord& inputs) {
        auto ref = inputs.get("b");
        auto header = o2::header::get<const DataProcessingHeader*>(ref.header);
-       LOG(info) << header->startTime;
+       LOG(debug) << "Start time: " << header->startTime;
      })}}};
 }

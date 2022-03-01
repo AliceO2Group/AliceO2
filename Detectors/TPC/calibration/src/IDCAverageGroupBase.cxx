@@ -16,8 +16,7 @@
 void o2::tpc::IDCAverageGroupBase<o2::tpc::IDCAverageGroupCRU>::drawUngroupedIDCs(const unsigned int integrationInterval, const std::string filename) const
 {
   std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> idcFunc = [this, integrationInterval](const unsigned int, const unsigned int region, const unsigned int row, const unsigned int pad) {
-    const unsigned int indexIDC = integrationInterval * Mapper::PADSPERREGION[region] + Mapper::OFFSETCRULOCAL[region][row] + pad;
-    return this->mIDCsUngrouped[indexIDC] * Mapper::INVPADAREA[region];
+    return this->getUngroupedNormedIDCValLocal(row, pad, integrationInterval);
   };
 
   IDCDrawHelper::IDCDraw drawFun;
@@ -71,4 +70,9 @@ void o2::tpc::IDCAverageGroupBase<o2::tpc::IDCAverageGroupTPC>::setIDCs(IDCDelta
 {
   mIDCsUngrouped = std::move(idcs);
   resizeGroupedIDCs();
+}
+
+void o2::tpc::IDCAverageGroupBase<o2::tpc::IDCAverageGroupTPC>::resetGroupedIDCs(const Side side)
+{
+  std::fill(mIDCsGrouped.getIDCDelta(side).begin(), mIDCsGrouped.getIDCDelta(side).end(), 0);
 }

@@ -41,9 +41,11 @@ class DanglingContext;
 
 /// A callback to create a given Service.
 using ServiceInit = std::function<ServiceHandle(ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&)>;
-/// A callback invoked whenever we start running, before the user callback.
+/// A callback invoked whenever we start running, before the user processing callback.
 using ServiceStartCallback = std::function<void(ServiceRegistry&, void*)>;
-/// A callback invoked whenever we stop running, before we exit.
+/// A callback invoked whenever we stop running, after the user processing callback.
+using ServiceStopCallback = std::function<void(ServiceRegistry&, void*)>;
+/// A callback invoked whenever we stop running completely, before we exit.
 using ServiceExitCallback = std::function<void(ServiceRegistry&, void*)>;
 
 /// A callback to configure a given Service. Notice that the
@@ -150,6 +152,8 @@ struct ServiceSpec {
 
   /// Callback invoked on Start
   ServiceStartCallback start = nullptr;
+  /// Callback invoked on Start
+  ServiceStopCallback stop = nullptr;
   /// Callback invoked on exit
   ServiceExitCallback exit = nullptr;
   /// Callback invoked on driver entering the INIT state
@@ -168,36 +172,49 @@ struct ServiceSpec {
 };
 
 struct ServiceConfigureHandle {
+  ServiceSpec const& spec;
   ServiceConfigureCallback callback;
   void* service;
 };
 
 struct ServiceProcessingHandle {
+  ServiceSpec const& spec;
   ServiceProcessingCallback callback;
   void* service;
 };
 
 struct ServiceDanglingHandle {
+  ServiceSpec const& spec;
   ServiceDanglingCallback callback;
   void* service;
 };
 
 struct ServiceEOSHandle {
+  ServiceSpec const& spec;
   ServiceEOSCallback callback;
   void* service;
 };
 
 struct ServiceDispatchingHandle {
+  ServiceSpec const& spec;
   ServicePostDispatching callback;
   void* service;
 };
 
 struct ServiceStartHandle {
+  ServiceSpec const& spec;
   ServiceStartCallback callback;
   void* service;
 };
 
+struct ServiceStopHandle {
+  ServiceSpec const& spec;
+  ServiceStopCallback callback;
+  void* service;
+};
+
 struct ServiceExitHandle {
+  ServiceSpec const& spec;
   ServiceExitCallback callback;
   void* service;
 };

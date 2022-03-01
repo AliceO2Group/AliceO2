@@ -104,7 +104,9 @@ GPUReconstruction::GPUReconstruction(const GPUSettingsDeviceBackend& cfg) : mHos
     processors()->tpcClusterer[i].mISlice = i;
 #endif
   }
+#ifndef GPUCA_NO_ROOT
   mROOTDump = GPUROOTDumpCore::getAndCreate();
+#endif
 }
 
 GPUReconstruction::~GPUReconstruction()
@@ -324,6 +326,9 @@ int GPUReconstruction::InitPhaseBeforeDevice()
 
   mDeviceMemorySize = mHostMemorySize = 0;
   for (unsigned int i = 0; i < mChains.size(); i++) {
+    if (mChains[i]->EarlyConfigure()) {
+      return 1;
+    }
     mChains[i]->RegisterPermanentMemoryAndProcessors();
     size_t memPrimary, memPageLocked;
     mChains[i]->MemorySize(memPrimary, memPageLocked);
@@ -697,17 +702,19 @@ void GPUReconstruction::ResetRegisteredMemoryPointers(short ires)
 {
   GPUMemoryResource* res = &mMemoryResources[ires];
   if (!(res->mType & GPUMemoryResource::MEMORY_EXTERNAL) && (res->mType & GPUMemoryResource::MEMORY_HOST)) {
-    if (res->mReuse >= 0) {
-      res->SetPointers(mMemoryResources[res->mReuse].mPtr);
-    } else {
-      res->SetPointers(res->mPtr);
+    void* basePtr = res->mReuse >= 0 ? mMemoryResources[res->mReuse].mPtr : res->mPtr;
+    size_t size = (char*)res->SetPointers(basePtr) - (char*)basePtr;
+    if (basePtr && size > std::max(res->mSize, res->mOverrideSize)) {
+      std::cout << "Updated pointers exceed available memory size: " << size << " > " << std::max(res->mSize, res->mOverrideSize) << " - host - " << res->mName << "\n";
+      throw std::bad_alloc();
     }
   }
   if (IsGPU() && (res->mType & GPUMemoryResource::MEMORY_GPU)) {
-    if (res->mReuse >= 0) {
-      res->SetDevicePointers(mMemoryResources[res->mReuse].mPtrDevice);
-    } else {
-      res->SetDevicePointers(res->mPtrDevice);
+    void* basePtr = res->mReuse >= 0 ? mMemoryResources[res->mReuse].mPtrDevice : res->mPtrDevice;
+    size_t size = (char*)res->SetDevicePointers(basePtr) - (char*)basePtr;
+    if (basePtr && size > std::max(res->mSize, res->mOverrideSize)) {
+      std::cout << "Updated pointers exceed available memory size: " << size << " > " << std::max(res->mSize, res->mOverrideSize) << " - GPU - " << res->mName << "\n";
+      throw std::bad_alloc();
     }
   }
 }

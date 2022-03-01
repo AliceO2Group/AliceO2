@@ -66,7 +66,6 @@ class GPUTRDTracker_t : public GPUProcessor
   void* SetPointersTracks(void* base);
 
   void PrepareTracking(GPUChainTracking* chainTracking);
-  void DoTracking(GPUChainTracking* chainTracking);
   void SetNCandidates(int n);
   void PrintSettings() const;
   bool IsInitialized() const { return mIsInitialized; }
@@ -136,6 +135,7 @@ class GPUTRDTracker_t : public GPUProcessor
 
   // settings
   GPUd() void SetGenerateSpacePoints(bool flag) { mGenerateSpacePoints = flag; }
+  GPUd() bool GenerateSpacepoints() const { return mGenerateSpacePoints; }
   GPUd() void SetProcessPerTimeFrame(bool flag) { mProcessPerTimeFrame = flag; }
   GPUd() void EnableDebugOutput() { mDebugOutput = true; }
   GPUd() void SetMaxEta(float maxEta) { mMaxEta = maxEta; }
@@ -154,7 +154,7 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() void DumpTracks();
 
   // utility
-  GPUd() const typename PROP::propagatorParam* getPropagatorParam();
+  GPUd() const typename PROP::propagatorParam* getPropagatorParam(bool externalDefaultO2Propagator);
 
  protected:
   float* mR;                               // radial position of each TRD chamber, alignment taken into account, radial spread within chambers < 7mm

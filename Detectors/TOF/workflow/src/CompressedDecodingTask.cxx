@@ -117,6 +117,7 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITHEADER", 0, Lifetime::Timeframe}, digitH);
 
   auto diagnosticFrequency = mDecoder.getDiagnosticFrequency();
+  diagnosticFrequency.setTimeStamp(mCreationTime / 1000);
   //diagnosticFrequency.print();
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIAFREQ", 0, Lifetime::Timeframe}, diagnosticFrequency);
 
@@ -130,6 +131,8 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
 void CompressedDecodingTask::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
+
+  mCreationTime = std::chrono::high_resolution_clock::now().time_since_epoch().count() / 1000000;
 
   //RS set the 1st orbit of the TF from the O2 header, relying on rdhHandler is not good (in fact, the RDH might be eliminated in the derived data)
   const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
@@ -169,11 +172,12 @@ void CompressedDecodingTask::decodeTF(ProcessingContext& pc)
     std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{"TOF", mDataDesc, 0xDEADBEEF}}};
     for (const auto& ref : InputRecordWalker(inputs, dummy)) {
       const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      if (dh->payloadSize == 0) {
+      auto payloadSize = DataRefUtils::getPayloadSize(ref);
+      if (payloadSize == 0) {
         auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
         if (++contDeadBeef <= maxWarn) {
           LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
-               dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,
+               dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
                contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
         }
         return;
@@ -194,7 +198,7 @@ void CompressedDecodingTask::decodeTF(ProcessingContext& pc)
     //    for (auto const& ref : iit) {
     const auto* headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     auto payloadIn = ref.payload;
-    auto payloadInSize = headerIn->payloadSize;
+    auto payloadInSize = DataRefUtils::getPayloadSize(ref);
 
     DecoderBase::setDecoderBuffer(payloadIn);
     DecoderBase::setDecoderBufferSize(payloadInSize);

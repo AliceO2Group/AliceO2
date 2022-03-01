@@ -248,11 +248,10 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateToDCA(const o2::dat
   auto tmpT(*this); // operate on the copy to recover after the failure
   alp += gpu::CAMath::ASin(sn);
   if (!tmpT.rotate(alp) || !tmpT.propagateTo(xv, b)) {
-#ifndef GPUCA_ALIGPUCODE
+#if !defined(GPUCA_ALIGPUCODE)
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: " << tmpT.asString();
-#else
+#elif !defined(GPUCA_NO_FMT)
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx;
-    ;
 #endif
     return false;
   }
@@ -461,6 +460,9 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
     return false;
   }
   value_t crv = (gpu::CAMath::Abs(b[2]) < constants::math::Almost0) ? 0.f : this->getCurvature(b[2]);
+  if (gpu::CAMath::Abs(crv) < constants::math::Almost0) {
+    return propagateTo(xk, 0.);
+  }
   value_t x2r = crv * dx;
   value_t f1 = this->getSnp(), f2 = f1 + x2r;
   if ((gpu::CAMath::Abs(f1) > constants::math::Almost1) || (gpu::CAMath::Abs(f2) > constants::math::Almost1)) {

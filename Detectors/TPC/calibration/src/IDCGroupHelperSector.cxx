@@ -15,40 +15,35 @@
 
 unsigned int o2::tpc::IDCGroupHelperSector::getGroupedPad(const unsigned int region, unsigned int ulrow, unsigned int upad) const
 {
-  return IDCGroupHelperRegion::getGroupedPad(upad, ulrow, region, mGroupingPar.GroupPads[region], mGroupingPar.GroupRows[region], mRows[region], mPadsPerRow[region]);
+  return IDCGroupHelperRegion::getGroupedPad(upad, ulrow, region, mGroupingPar.groupPads[region], mGroupingPar.groupRows[region], mRows[region], mGroupingPar.groupPadsSectorEdges, mPadsPerRow[region]);
 }
 
 unsigned int o2::tpc::IDCGroupHelperSector::getGroupedRow(const unsigned int region, unsigned int ulrow) const
 {
-  return IDCGroupHelperRegion::getGroupedRow(ulrow, mGroupingPar.GroupRows[region], mRows[region]);
+  return IDCGroupHelperRegion::getGroupedRow(ulrow, mGroupingPar.groupRows[region], mRows[region]);
 }
 
 unsigned int o2::tpc::IDCGroupHelperSector::getLastRow(const unsigned int region) const
 {
   const unsigned int nTotRows = Mapper::ROWSPERREGION[region];
-  const unsigned int rowsRemainder = nTotRows % mGroupingPar.GroupRows[region];
+  const unsigned int rowsRemainder = nTotRows % mGroupingPar.groupRows[region];
   unsigned int lastRow = nTotRows - rowsRemainder;
-  if (rowsRemainder <= mGroupingPar.GroupLastRowsThreshold[region]) {
-    lastRow -= mGroupingPar.GroupRows[region];
+  if (rowsRemainder <= mGroupingPar.groupLastRowsThreshold[region]) {
+    lastRow -= mGroupingPar.groupRows[region];
   }
   return lastRow;
 }
 
+// TODO MAKE STATIC AND MOVE TO REGION HELPER
 unsigned int o2::tpc::IDCGroupHelperSector::getLastPad(const unsigned int region, const unsigned int ulrow) const
 {
-  const unsigned int nPads = Mapper::PADSPERROW[region][ulrow] / 2;
-  const unsigned int padsRemainder = nPads % mGroupingPar.GroupPads[region];
-  int unsigned lastPad = (padsRemainder == 0) ? nPads - mGroupingPar.GroupPads[region] : nPads - padsRemainder;
-  if (padsRemainder && padsRemainder <= mGroupingPar.GroupLastPadsThreshold[region]) {
-    lastPad -= mGroupingPar.GroupPads[region];
-  }
-  return lastPad;
+  return IDCGroupHelperRegion::getLastPad(ulrow, region, mGroupingPar.groupPads[region], mGroupingPar.groupLastPadsThreshold[region], mGroupingPar.groupPadsSectorEdges);
 }
 
 void o2::tpc::IDCGroupHelperSector::initIDCGroupHelperSector()
 {
   for (unsigned int reg = 0; reg < Mapper::NREGIONS; ++reg) {
-    const IDCGroupHelperRegion groupTmp(mGroupingPar.GroupPads[reg], mGroupingPar.GroupRows[reg], mGroupingPar.GroupLastRowsThreshold[reg], mGroupingPar.GroupLastPadsThreshold[reg], reg);
+    const IDCGroupHelperRegion groupTmp(mGroupingPar.groupPads[reg], mGroupingPar.groupRows[reg], mGroupingPar.groupLastRowsThreshold[reg], mGroupingPar.groupLastPadsThreshold[reg], mGroupingPar.groupPadsSectorEdges, reg);
     mNIDCsPerCRU[reg] = groupTmp.getNIDCsPerIntegrationInterval();
     mRows[reg] = groupTmp.getNRows();
     mPadsPerRow[reg] = groupTmp.getPadsPerRow();
@@ -59,4 +54,9 @@ void o2::tpc::IDCGroupHelperSector::initIDCGroupHelperSector()
     }
   }
   mNIDCsPerSector = static_cast<unsigned int>(std::accumulate(mNIDCsPerCRU.begin(), mNIDCsPerCRU.end(), decltype(mNIDCsPerCRU)::value_type(0)));
+}
+
+int o2::tpc::IDCGroupHelperSector::getOffsetForEdgePad(const unsigned int upad, const unsigned int ulrow, const unsigned int region) const
+{
+  return (IDCGroupHelperRegion::isSectorEdgePad(upad, ulrow, region, mGroupingPar.groupPadsSectorEdges)) ? IDCGroupHelperRegion::getOffsetForEdgePad(upad, ulrow, mGroupingPar.groupRows[region], mGroupingPar.groupPadsSectorEdges, region, getLastRow(region)) : 0;
 }

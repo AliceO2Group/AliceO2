@@ -26,7 +26,7 @@
 #pragma link C++ class o2::tpc::DigitDump;
 #pragma link C++ class o2::tpc::DigitDumpParam;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::DigitDumpParam> + ;
-#pragma link C++ class o2::tpc::CalibPadGainTracks;
+#pragma link C++ class o2::tpc::CalibPadGainTracks +;
 #pragma link C++ class o2::tpc::FastHisto<float> +;
 #pragma link C++ class o2::tpc::FastHisto<unsigned int> +;
 #pragma link C++ class o2::tpc::CalibLaserTracks +;
@@ -46,12 +46,12 @@
 #pragma link C++ class o2::tpc::IDCAverageGroupBase<o2::tpc::IDCAverageGroupTPC> + ;
 #pragma link C++ class o2::tpc::IDCFactorization +;
 #pragma link C++ struct o2::tpc::IDCDelta<float> +;
-#pragma link C++ struct o2::tpc::IDCDelta<short> +;
-#pragma link C++ struct o2::tpc::IDCDelta<char> +;
+#pragma link C++ struct o2::tpc::IDCDelta < unsigned short> + ;
+#pragma link C++ struct o2::tpc::IDCDelta < unsigned char> + ;
 #pragma link C++ struct o2::tpc::IDCDeltaCompressionFactors +;
 #pragma link C++ struct o2::tpc::IDCDeltaContainer<float> +;
-#pragma link C++ struct o2::tpc::IDCDeltaContainer<short> +;
-#pragma link C++ struct o2::tpc::IDCDeltaContainer<char> +;
+#pragma link C++ struct o2::tpc::IDCDeltaContainer < unsigned short> + ;
+#pragma link C++ struct o2::tpc::IDCDeltaContainer < unsigned char> + ;
 #pragma link C++ class o2::tpc::IDCDeltaCompressionHelper<short> +;
 #pragma link C++ class o2::tpc::IDCDeltaCompressionHelper<char> +;
 #pragma link C++ struct o2::tpc::IDCZero +;
@@ -83,5 +83,10 @@
 #pragma link C++ class o2::tpc::TrackDump::TrackInfo + ;
 #pragma link C++ class std::vector < o2::tpc::TrackDump::TrackInfo> + ;
 #pragma link C++ class o2::tpc::CalDet<o2::tpc::PadFlags> +;
+#pragma link C++ class o2::tpc::CalibPadGainTracksBase +;
+#pragma link C++ class o2::tpc::CalDet<o2::tpc::FastHisto<unsigned int> > +;
+#pragma link C++ class o2::calibration::TimeSlot < o2::tpc::CalibPadGainTracksBase> +;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::tpc::CalDet<o2::tpc::FastHisto<unsigned int> >, o2::tpc::CalibPadGainTracksBase> +;
+#pragma link C++ class o2::tpc::CalibratorPadGainTracks +;
 
 #endif

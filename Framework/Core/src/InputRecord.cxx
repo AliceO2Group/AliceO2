@@ -11,6 +11,8 @@
 #include "Framework/InputRecord.h"
 #include "Framework/InputSpan.h"
 #include "Framework/InputSpec.h"
+#include "Framework/ObjectCache.h"
+#include "Framework/CallbackService.h"
 #include <fairmq/FairMQMessage.h>
 #include <cassert>
 
@@ -32,8 +34,10 @@ namespace o2::framework
 {
 
 InputRecord::InputRecord(std::vector<InputRoute> const& inputsSchema,
-                         InputSpan& span)
-  : mInputsSchema{inputsSchema},
+                         InputSpan& span,
+                         ServiceRegistry& registry)
+  : mRegistry{registry},
+    mInputsSchema{inputsSchema},
     mSpan{span}
 {
 }

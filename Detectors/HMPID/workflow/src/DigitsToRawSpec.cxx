@@ -39,7 +39,7 @@
 #include "Framework/Logger.h"
 #include "Framework/InputRecordWalker.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 
 #include "TFile.h"
 #include "TTree.h"
@@ -198,7 +198,7 @@ o2::framework::DataProcessorSpec getDigitsToRawSpec()
     AlgorithmSpec{adaptFromTask<DigitsToRawSpec>()},
     Options{{"outdir", VariantType::String, "./", {"base dir for output file"}},
             {"file-for", VariantType::String, "all", {"single file per: all,flp,link,cru"}},
-            {"outfile", VariantType::String, "hmpid", {"base name for output file"}},
+            {"outfile", VariantType::String, "HMP", {"base name for output file"}},
             {"in-file", VariantType::String, "hmpiddigits.root", {"name of the input sim root file"}},
             {"dump-digits", VariantType::Bool, false, {"out the digits file in /tmp/hmpDumpDigits.dat"}},
             {"skip-empty", VariantType::Bool, false, {"skip empty events"}}}};

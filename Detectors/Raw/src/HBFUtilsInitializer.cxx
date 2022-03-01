@@ -17,7 +17,7 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/StringUtils.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
@@ -134,7 +134,7 @@ void HBFUtilsInitializer::addNewTimeSliceCallback(std::vector<o2::framework::Cal
                     [offset = int64_t(hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit), increment = int64_t(hbfu.nHBFPerTF),
                      startTime = hbfu.startTime, orbitFirst = hbfu.orbitFirst](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) {
                       dh.firstTForbit = offset + increment * dh.tfCounter;
-                      dph.creation = startTime + (dh.firstTForbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS;
+                      dph.creation = startTime + (dh.firstTForbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
                     });
       }
     }});

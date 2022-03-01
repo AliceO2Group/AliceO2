@@ -183,11 +183,12 @@ void DataDecoderTask2::decodeTF(framework::ProcessingContext& pc)
     std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{"HMP", "RAWDATA", 0xDEADBEEF}}};
     for (const auto& ref : InputRecordWalker(inputs, dummy)) {
       const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      if (dh->payloadSize == 0) {
+      auto payloadSize = DataRefUtils::getPayloadSize(ref);
+      if (payloadSize == 0) {
         auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
         if (++contDeadBeef <= maxWarn) {
           LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
-               dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,
+               dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
                contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
         }
         return;
@@ -197,7 +198,7 @@ void DataDecoderTask2::decodeTF(framework::ProcessingContext& pc)
   }
 
   DPLRawParser parser(inputs, o2::framework::select("TF:HMP/RAWDATA"));
-  //mDeco->mDigits.clear();
+  // mDeco->mDigits.clear();
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     int pointerToTheFirst = mDeco->mDigits.size();
     uint32_t* theBuffer = (uint32_t*)it.raw();

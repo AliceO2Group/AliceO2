@@ -79,10 +79,6 @@ class ArrowContext
     // On send we move the header, but the payload remains
     // there because what's really sent is the copy of the string
     // payload will be cleared by the mMessages.clear()
-    for (auto& m : mMessages) {
-      //      assert(m.header.get() == nullptr);
-      //      assert(m.payload.get() != nullptr);
-    }
     mMessages.clear();
   }
 

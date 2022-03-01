@@ -198,23 +198,22 @@ void Tracker<T>::initialize(bool fullClusterScan)
 
 //_________________________________________________________________________________________________
 template <typename T>
-void Tracker<T>::clustersToTracks(ROframe<T>& event, std::ostream& timeBenchmarkOutputStream)
+void Tracker<T>::findLTFTracks(ROframe<T>& event)
 {
-  mTracks.clear();
-  mTrackLabels.clear();
-  findTracks(event);
-  fitTracks(event);
+  if (!mFullClusterScan) {
+    findTracksLTF(event);
+  } else {
+    findTracksLTFfcs(event);
+  }
 }
 
 //_________________________________________________________________________________________________
 template <typename T>
-void Tracker<T>::findTracks(ROframe<T>& event)
+void Tracker<T>::findCATracks(ROframe<T>& event)
 {
   if (!mFullClusterScan) {
-    findTracksLTF(event);
     findTracksCA(event);
   } else {
-    findTracksLTFfcs(event);
     findTracksCAfcs(event);
   }
 }

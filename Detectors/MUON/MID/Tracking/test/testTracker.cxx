@@ -24,13 +24,14 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include "DataFormatsMID/Cluster2D.h"
+#include "DataFormatsMID/Cluster.h"
 #include "DataFormatsMID/Track.h"
+#include "MIDBase/HitFinder.h"
 #include "MIDBase/Mapping.h"
 #include "MIDBase/MpArea.h"
-#include "MIDTestingSimTools/HitFinder.h"
 #include "MIDTestingSimTools/TrackGenerator.h"
 #include "MIDTracking/Tracker.h"
+#include "MIDTracking/HitMapBuilder.h"
 
 namespace o2
 {
@@ -39,7 +40,7 @@ namespace mid
 
 struct TrackClusters {
   Track track;
-  std::vector<Cluster2D> clusters;
+  std::vector<Cluster> clusters;
   int nFiredChambers;
   bool isReconstructible() { return nFiredChambers > 2; }
 };
@@ -51,8 +52,9 @@ struct Helper {
   TrackGenerator trackGen;
   Tracker tracker;
   Tracker trackerAll;
+  HitMapBuilder hitMapBuilder;
 
-  Helper() : mapping(), geoTrans(createDefaultTransformer()), hitFinder(geoTrans), trackGen(), tracker(geoTrans), trackerAll(geoTrans)
+  Helper() : mapping(), geoTrans(createDefaultTransformer()), hitFinder(geoTrans), trackGen(), tracker(geoTrans), trackerAll(geoTrans), hitMapBuilder(geoTrans)
   {
     tracker.init();
     trackerAll.init(true);
@@ -68,7 +70,7 @@ TrackClusters getTrackClusters(const Track& track)
   trCl.nFiredChambers = 0;
   Mapping::MpStripIndex stripIndex;
   MpArea area;
-  Cluster2D cl;
+  Cluster cl;
   for (int ich = 0; ich < 4; ++ich) {
     auto hits = helper.hitFinder.getLocalPositions(track, ich);
     bool isFired = false;
@@ -81,15 +83,15 @@ TrackClusters getTrackClusters(const Track& track)
         continue;
       }
       cl.deId = deId;
+      cl.zCoor = 0.;
       area = helper.mapping.stripByLocation(stripIndex.strip, 0, stripIndex.line, stripIndex.column, deId);
       cl.yCoor = area.getCenterY();
-      float halfSize = area.getHalfSizeY();
-      cl.sigmaY2 = halfSize * halfSize / 3.;
+      cl.yErr = area.getHalfSizeY() / std::sqrt(3.);
       stripIndex = helper.mapping.stripByPosition(xPos, yPos, 1, deId, false);
       area = helper.mapping.stripByLocation(stripIndex.strip, 1, stripIndex.line, stripIndex.column, deId);
       cl.xCoor = area.getCenterX();
-      halfSize = area.getHalfSizeX();
-      cl.sigmaX2 = halfSize * halfSize / 3.;
+      cl.xErr = area.getHalfSizeX() / std::sqrt(3.);
+      cl.setBothFired();
       trCl.clusters.push_back(cl);
       isFired = true;
     } // loop on fired pos
@@ -126,7 +128,7 @@ BOOST_DATA_TEST_CASE(TestMultipleTracks, boost::unit_test::data::xrange(1, 9), n
   int nTotFakes = 0, nTotReconstructible = 0;
   for (int ievt = 0; ievt < 1000; ++ievt) {
     std::vector<TrackClusters> trackClusters = getTrackClusters(nTracksPerEvent);
-    std::vector<Cluster2D> clusters;
+    std::vector<Cluster> clusters;
 
     // Fill string for debugging
     std::stringstream ss;
@@ -194,7 +196,7 @@ BOOST_DATA_TEST_CASE(TestAlgorithms, boost::unit_test::data::xrange(2, 3), nTrac
   int nTotFakes = 0, nTotReconstructible = 0;
   for (int ievt = 0; ievt < 1000; ++ievt) {
     std::vector<TrackClusters> trackClusters = getTrackClusters(nTracksPerEvent);
-    std::vector<Cluster2D> clusters;
+    std::vector<Cluster> clusters;
     for (auto& trCl : trackClusters) {
       for (auto& cl : trCl.clusters) {
         clusters.push_back(cl);
@@ -224,5 +226,20 @@ BOOST_DATA_TEST_CASE(TestAlgorithms, boost::unit_test::data::xrange(2, 3), nTrac
   }
 }
 
+BOOST_AUTO_TEST_CASE(TestHitMapBuilder)
+{
+  for (int ievt = 0; ievt < 100; ++ievt) {
+    std::vector<TrackClusters> trackClusters = getTrackClusters(1);
+    for (auto& trCl : trackClusters) {
+      // Run tracker algorithm
+      helper.tracker.process(trCl.clusters);
+      std::vector<Track> tracks = helper.tracker.getTracks();
+      for (auto& track : tracks) {
+        helper.hitMapBuilder.buildTrackInfo(track, trCl.clusters);
+        BOOST_TEST(track.getEfficiencyFlag() >= 1);
+      }
+    }
+  }
+}
 } // namespace mid
 } // namespace o2

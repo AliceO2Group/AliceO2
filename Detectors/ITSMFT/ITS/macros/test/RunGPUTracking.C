@@ -11,7 +11,7 @@
 #include <FairEventHeader.h>
 #include <FairGeoParSet.h>
 #include <FairLogger.h>
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 
 #include "DataFormatsITSMFT/TopologyDictionary.h"
@@ -120,7 +120,7 @@ void RunGPUTracking(bool useLUT = true,
 
   o2::itsmft::TopologyDictionary dict;
   if (dictfile.empty()) {
-    dictfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "");
+    dictfile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "");
   }
   std::ifstream file(dictfile.c_str());
   if (file.good()) {

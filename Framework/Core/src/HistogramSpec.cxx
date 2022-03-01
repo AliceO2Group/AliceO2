@@ -22,6 +22,9 @@ void AxisSpec::makeLogaritmic()
   }
 
   const double min = binEdges[0];
+  if (min <= 0.) {
+    LOG(fatal) << "Cannot have the first bin limit of the log. axis below 0: " << min;
+  }
   const double max = binEdges[1];
   binEdges.clear();
   const double logmin = std::log10(min);

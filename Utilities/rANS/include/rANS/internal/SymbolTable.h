@@ -22,7 +22,8 @@
 #include <cmath>
 #include <fairlogger/Logger.h>
 
-#include "rANS/internal/SymbolStatistics.h"
+#include "rANS/definitions.h"
+#include "rANS/RenormedFrequencyTable.h"
 
 namespace o2
 {
@@ -36,12 +37,10 @@ class SymbolTable
 {
 
  public:
-  using symbol_t = SymbolStatistics::symbol_t;
+  // TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
+  SymbolTable() noexcept {}; // NOLINT
 
-  //TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
-  SymbolTable() noexcept {}; //NOLINT
-
-  explicit SymbolTable(const SymbolStatistics& symbolStats);
+  explicit SymbolTable(const RenormedFrequencyTable& frequencyTable);
 
   inline size_t size() const noexcept { return mIndex.size(); };
 
@@ -52,40 +51,44 @@ class SymbolTable
 
   inline size_t getAlphabetRangeBits() const noexcept { return numBitsForNSymbols(size()); };
   inline size_t getNUsedAlphabetSymbols() const noexcept { return mSymbols.size() + 1; /*all normal symbols plus escape symbol*/ };
-  inline symbol_t getMinSymbol() const noexcept { return mMin; };
+  inline size_t getPrecision() const noexcept { return mPrecision; };
+  inline symbol_t getMinSymbol() const noexcept { return mOffset; };
   inline symbol_t getMaxSymbol() const noexcept { return getMinSymbol() + size() - 1; };
 
  private:
   std::vector<T*> mIndex{};
   std::vector<T> mSymbols{};
   std::unique_ptr<T> mEscapeSymbol{};
-  int mMin{};
+  symbol_t mOffset{};
+  size_t mPrecision{};
 };
 
 template <typename T>
-SymbolTable<T>::SymbolTable(const SymbolStatistics& symbolStats) : mMin{symbolStats.getMinSymbol()}
+SymbolTable<T>::SymbolTable(const RenormedFrequencyTable& frequencyTable) : mOffset{frequencyTable.getMinSymbol()}, mPrecision{frequencyTable.getRenormingBits()}
 {
   LOG(trace) << "start building symbol table";
 
-  mIndex.reserve(symbolStats.size());
-  mSymbols.reserve(symbolStats.getNUsedAlphabetSymbols());
+  mIndex.reserve(frequencyTable.size() + 1); // +1 for incompressible symbol
+  mSymbols.reserve(frequencyTable.getNUsedAlphabetSymbols());
 
   mEscapeSymbol = [&]() -> std::unique_ptr<T> {
-    const auto [symFrequency, symCumulated] = symbolStats.getEscapeSymbol();
-    return std::make_unique<T>(symFrequency, symCumulated, symbolStats.getSymbolTablePrecision());
+    const count_t symbolFrequency = frequencyTable.getIncompressibleSymbolFrequency();
+    const count_t cumulatedFrequency = frequencyTable.getNumSamples() - symbolFrequency;
+    return std::make_unique<T>(symbolFrequency, cumulatedFrequency, this->getPrecision());
   }();
 
-  for (auto it = symbolStats.begin(); it != --symbolStats.end(); ++it) {
-    const auto [symFrequency, symCumulated] = *it;
-    if (symFrequency) {
-      mSymbols.emplace_back(symFrequency, symCumulated, symbolStats.getSymbolTablePrecision());
+  count_t cumulatedFrequency = 0;
+  for (const auto symbolFrequency : frequencyTable) {
+    if (symbolFrequency) {
+      mSymbols.emplace_back(symbolFrequency, cumulatedFrequency, this->getPrecision());
       mIndex.emplace_back(&mSymbols.back());
+      cumulatedFrequency += symbolFrequency;
     } else {
       mIndex.emplace_back(mEscapeSymbol.get());
     }
   }
 
-  //escape symbol
+  // escape symbol
   mIndex.emplace_back(mEscapeSymbol.get());
 
 // advanced diagnostics for debug builds
@@ -95,13 +98,22 @@ SymbolTable<T>::SymbolTable(const SymbolStatistics& symbolStats) : mMin{symbolSt
               << "sizeB: " << mSymbols.size() * sizeof(T) + mIndex.size() * sizeof(T*) << "}";
 #endif
 
+#ifdef O2_RANS_PRINT_PROCESSED_DATA
+  JSONArrayLogger<count_t> arrayLogger;
+  for (auto f : frequencyTable) {
+    arrayLogger << f;
+  }
+  arrayLogger << frequencyTable.getIncompressibleSymbolFrequency();
+  LOG(info) << "symbolTableFrequencies:" << arrayLogger;
+#endif
+
   LOG(trace) << "done building symbol table";
 }
 
 template <typename T>
 inline const T& SymbolTable<T>::operator[](symbol_t symbol) const noexcept
 {
-  const size_t index = static_cast<size_t>(symbol - mMin);
+  const size_t index = static_cast<size_t>(symbol - mOffset);
   // static cast to unsigned: idx < 0 => (uint)idx > MAX_INT => idx > mIndex.size()
   if (index < mIndex.size()) {
     return *(mIndex[index]);

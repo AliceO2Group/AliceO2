@@ -15,7 +15,7 @@
 #define O2_ITS_NOISECALIBRATORSPEC
 
 #include <string>
-
+#include <TStopwatch.h>
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
@@ -39,7 +39,10 @@ namespace its
 class NoiseCalibratorSpec : public Task
 {
  public:
-  NoiseCalibratorSpec() = default;
+  NoiseCalibratorSpec(bool useClusters = false) : mUseClusters(useClusters)
+  {
+    mTimer.Stop();
+  }
   ~NoiseCalibratorSpec() override = default;
 
   void init(InitContext& ic) final;
@@ -49,11 +52,15 @@ class NoiseCalibratorSpec : public Task
  private:
   void sendOutput(DataAllocator& output);
   std::unique_ptr<CALIBRATOR> mCalibrator = nullptr;
+  size_t mDataSizeStat = 0;
+  size_t mNClustersProc = 0;
+  bool mUseClusters = false;
+  TStopwatch mTimer{};
 };
 
 /// create a processor spec
 /// run ITS noise calibration
-DataProcessorSpec getNoiseCalibratorSpec();
+DataProcessorSpec getNoiseCalibratorSpec(bool useClusters);
 
 } // namespace its
 } // namespace o2

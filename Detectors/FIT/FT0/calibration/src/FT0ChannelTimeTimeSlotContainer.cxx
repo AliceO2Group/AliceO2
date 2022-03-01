@@ -11,9 +11,14 @@
 
 #include "FT0Calibration/FT0ChannelTimeTimeSlotContainer.h"
 #include "FT0Base/Geometry.h"
+#include "FT0Simulation/DigitizationParameters.h"
 #include <numeric>
 #include <algorithm>
+#include <iterator>
+#include <vector>
 #include "MathUtils/fit.h"
+#include "TH1.h"
+#include "TFitResult.h"
 
 using namespace o2::ft0;
 
@@ -22,9 +27,26 @@ int FT0ChannelTimeTimeSlotContainer::sGausFitBins = 999; // NOT USED
 FT0ChannelTimeTimeSlotContainer::FT0ChannelTimeTimeSlotContainer(std::size_t minEntries)
   : mMinEntries(minEntries)
 {
+  for (int ich = 0; ich < NCHANNELS; ++ich) {
+    mHistogram[ich].reset(new TH1F(Form("hTime%i", ich), "time", NUMBER_OF_HISTOGRAM_BINS, -HISTOGRAM_RANGE, HISTOGRAM_RANGE));
+  }
+}
 
-  mHistogram = boost::histogram::make_histogram(boost::histogram::axis::integer<>(-HISTOGRAM_RANGE, HISTOGRAM_RANGE, "channel_times"),
-                                                boost::histogram::axis::integer<>(0, o2::ft0::Nchannels_FT0, "channel_ID"));
+FT0ChannelTimeTimeSlotContainer::FT0ChannelTimeTimeSlotContainer(FT0ChannelTimeTimeSlotContainer const& other)
+  : mMinEntries(other.mMinEntries)
+{
+  for (int ich = 0; ich < NCHANNELS; ++ich) {
+    mHistogram[ich].reset(new TH1F(*other.mHistogram[ich]));
+  }
+}
+
+FT0ChannelTimeTimeSlotContainer& FT0ChannelTimeTimeSlotContainer::operator=(FT0ChannelTimeTimeSlotContainer const& other)
+{
+  mMinEntries = other.mMinEntries;
+  for (int ich = 0; ich < NCHANNELS; ++ich) {
+    mHistogram[ich].reset(new TH1F(*other.mHistogram[ich]));
+  }
+  return *this;
 }
 
 bool FT0ChannelTimeTimeSlotContainer::hasEnoughEntries() const
@@ -33,16 +55,14 @@ bool FT0ChannelTimeTimeSlotContainer::hasEnoughEntries() const
 }
 void FT0ChannelTimeTimeSlotContainer::fill(const gsl::span<const FT0CalibrationInfoObject>& data)
 {
-
   for (auto& entry : data) {
-
+    updateFirstCreation(entry.getTimeStamp());
     const auto chID = entry.getChannelIndex();
     const auto chTime = entry.getTime();
-
-    //i dont really know when should it be marked as invalid
-    if (chID < o2::ft0::Geometry::Nchannels) {
-      mHistogram(chTime, chID);
+    if (chID < NCHANNELS && std::abs(chTime) < o2::ft0::DigitizationParameters::mTime_trg_gate && entry.getAmp() > o2::ft0::DigitizationParameters::mAmpThresholdForReco) {
+      mHistogram[chID]->Fill(chTime);
       ++mEntriesPerChannel[chID];
+      LOG(debug) << "@@@@entries " << mEntriesPerChannel[chID] << " chID " << int(chID) << " time " << chTime << " tiestamp " << uint64_t(entry.getTimeStamp());
     } else {
       LOG(fatal) << "Invalid channel data";
     }
@@ -51,52 +71,36 @@ void FT0ChannelTimeTimeSlotContainer::fill(const gsl::span<const FT0CalibrationI
 
 void FT0ChannelTimeTimeSlotContainer::merge(FT0ChannelTimeTimeSlotContainer* prev)
 {
-
-  mHistogram += prev->mHistogram;
-  for (unsigned int iCh = 0; iCh < o2::ft0::Geometry::Nchannels; ++iCh) {
+  for (unsigned int iCh = 0; iCh < NCHANNELS; ++iCh) {
+    mHistogram[iCh]->Add(prev->mHistogram[iCh].get(), 1);
     mEntriesPerChannel[iCh] += prev->mEntriesPerChannel[iCh];
+    LOG(debug) << " entries " << mEntriesPerChannel[iCh] << " " << prev->mEntriesPerChannel[iCh];
   }
+  mFirstCreation = std::min(mFirstCreation, prev->mFirstCreation);
 }
 
 int16_t FT0ChannelTimeTimeSlotContainer::getMeanGaussianFitValue(std::size_t channelID) const
 {
 
-  static constexpr size_t MEAN_VALUE_INDEX_IN_OUTPUT_VECTOR = 1;
-
   if (0 == mEntriesPerChannel[channelID]) {
     return 0;
   }
-  LOG(debug) << " for channel " << int(channelID) << " entries " << mEntriesPerChannel[channelID];
+  LOG(debug) << " for channel " << int(channelID) << " entries " << mEntriesPerChannel[channelID] << " hist entries " << mHistogram[channelID]->GetEntries() << " mean " << mHistogram[channelID]->GetMean() << " RMS " << mHistogram[channelID]->GetRMS();
 
-  std::vector<double> channelHistogramData(NUMBER_OF_HISTOGRAM_BINS);
-
-  std::vector<double> outputGaussianFitValues;
-  double binWidth = (HISTOGRAM_RANGE - (-HISTOGRAM_RANGE)) / NUMBER_OF_HISTOGRAM_BINS;
-  double minGausFitRange = 0;
-  double maxGausFitRange = 0;
-  double MaxValOfHistogram = 0.0;
-
-  for (int iBin = 0; iBin < NUMBER_OF_HISTOGRAM_BINS; ++iBin) {
-    channelHistogramData[iBin] = mHistogram.at(iBin, channelID);
+  int outputGaussianFitValues = -99999;
+  int sigma;
+  TFitResultPtr r = mHistogram[channelID]->Fit("gaus", "0SQ", "", -sGausFitBins, sGausFitBins);
+  if ((Int_t)r == 0) {
+    outputGaussianFitValues = int(r->Parameters()[1]);
+    sigma = int(r->Parameters()[2]);
+  };
+  //  if (r != 0 || std::abs(outputGaussianFitValues - mHistogram[channelID]->GetMean()) > 20 || mHistogram[channelID]->GetRMS() < 3 || sigma > 30) {
+  if (r != 0 || std::abs(outputGaussianFitValues - mHistogram[channelID]->GetMean()) > 20 || mHistogram[channelID]->GetRMS() < 1 || sigma > 30) { // to be used fot test with laser
+    LOG(info) << "!!! Bad gauss fit " << outputGaussianFitValues << " sigma " << sigma << " mean " << mHistogram[channelID]->GetMean() << " RMS " << mHistogram[channelID]->GetRMS();
+    outputGaussianFitValues = mHistogram[channelID]->GetMean();
   }
 
-  int maxElementIndex = std::max_element(channelHistogramData.begin(), channelHistogramData.end()) - channelHistogramData.begin();
-  int maxElement = *std::max_element(channelHistogramData.begin(), channelHistogramData.end());
-
-  // calculating the min & max range values to fit gaussian
-  minGausFitRange = (-HISTOGRAM_RANGE + (maxElementIndex - sGausFitBins) * binWidth + binWidth / 2.0);
-  maxGausFitRange = (-HISTOGRAM_RANGE + (maxElementIndex + sGausFitBins) * binWidth + binWidth / 2.0);
-
-  double returnCode = math_utils::fitGaus<double>(NUMBER_OF_HISTOGRAM_BINS, channelHistogramData.data(),
-                                                  minGausFitRange, maxGausFitRange, outputGaussianFitValues);
-
-  MaxValOfHistogram = (-HISTOGRAM_RANGE + maxElementIndex * binWidth + binWidth / 2.0);
-  if (returnCode < 0) {
-    LOG(error) << "Gaussian fit error!";
-    return static_cast<int16_t>(std::round(MaxValOfHistogram));
-  }
-
-  return static_cast<int16_t>(std::round(outputGaussianFitValues[MEAN_VALUE_INDEX_IN_OUTPUT_VECTOR]));
+  return static_cast<int16_t>(outputGaussianFitValues);
 }
 
 void FT0ChannelTimeTimeSlotContainer::print() const

@@ -14,22 +14,15 @@
 ///
 /// \author Andrea Ferrero
 
-#ifndef ALICEO2_MCH_CALIBRATION_CHANNELCALIBRATOR_H
-#define ALICEO2_MCH_CALIBRATION_CHANNELCALIBRATOR_H
+#ifndef O2_MCH_CALIBRATION_CHANNEL_CALIBRATOR_H_
+#define O2_MCH_CALIBRATION_CHANNEL_CALIBRATOR_H_
 
-#include "MCHCalibration/PedestalCalibrator.h"
+#include "MCHCalibration/BadChannelCalibrator.h"
 
-namespace o2
+namespace o2::mch::calibration
 {
-namespace mch
-{
-namespace calibration
-{
-
-using MCHChannelCalibrator = PedestalCalibrator;
-
-} // end namespace calibration
-} // end namespace mch
-} // end namespace o2
-
+using MCHChannelCalibrator [[deprecated("Use BadChannelCalibrator instead")]] = BadChannelCalibrator;
+using PedestalProcessor [[deprecated("Use PedestalData instead")]] = PedestalData;
+using ChannelPedestal [[deprecated("Use PedestalChannel instead")]] = PedestalChannel;
+} // namespace o2::mch::calibration
 #endif

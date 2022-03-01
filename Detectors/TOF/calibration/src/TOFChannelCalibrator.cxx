@@ -18,7 +18,6 @@
 #include "Fit/Fitter.h"
 #include "Fit/BinData.h"
 #include "Math/WrappedMultiTF1.h"
-#include "TOFBase/Utils.h"
 
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -46,21 +45,18 @@ void TOFChannelData::fill(const gsl::span<const o2::dataformats::CalibInfoTOF> d
   if (mSafeMode) {
     float sumdt = 0;
     int ngood = 0;
-    if (o2::tof::Utils::hasFillScheme()) {
-      for (int j = 0; j < data.size(); j++) {
-        float dtraw = data[j].getDeltaTimePi();
-        float dt = mCalibTOFapi->getTimeCalibration(data[j].getTOFChIndex(), data[j].getTot());
-        dt = o2::tof::Utils::subtractInteractionBC(dt, true);
-        if (dt > -50000 && dt < 50000) {
-          sumdt += dt;
-          ngood++;
-        }
+    for (int j = 0; j < data.size(); j++) {
+      float dtraw = data[j].getDeltaTimePi();
+      float dt = mCalibTOFapi->getTimeCalibration(data[j].getTOFChIndex(), data[j].getTot());
+      if (dt > -50000 && dt < 50000) {
+        sumdt += dt;
+        ngood++;
       }
-      if (ngood) {
-        sumdt /= ngood;
-        sumDt += sumdt;
-        ntf++;
-      }
+    }
+    if (ngood) {
+      sumdt /= ngood;
+      sumDt += sumdt;
+      ntf++;
     }
 
     if (ntf && (sumdt > 5000 + sumDt / ntf || sumdt < -5000 + sumDt / ntf)) { // skip TF since it is very far from average behaviour (probably noise if detector already partial calibrated)
@@ -81,15 +77,12 @@ void TOFChannelData::fill(const gsl::span<const o2::dataformats::CalibInfoTOF> d
 
     auto dtcorr = dt - corr;
 
-    if (!Utils::hasFillScheme()) {
-      Utils::addBC(dtcorr, true);
+    // add calib info for computation of LHC phase
+    Utils::addCalibTrack(dtcorr);
 
-      continue;
-    }
+    dtcorr -= Utils::mLHCPhase;
 
-    dtcorr = Utils::subtractInteractionBC(dtcorr, true);
-
-    LOG(debug) << "inserting in channel " << ch << ": dt = " << Utils::subtractInteractionBC(dt, true) << ", tot = " << tot << ", corr = " << corr << ", corrected dt = " << dtcorr;
+    LOG(debug) << "LHCphase = " << Utils::mLHCPhase;
 
 #ifdef DEBUGGING
     mChannelDist->Fill(ch, dtcorr);

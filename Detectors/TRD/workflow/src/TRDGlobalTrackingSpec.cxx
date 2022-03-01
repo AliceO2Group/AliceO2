@@ -13,7 +13,7 @@
 
 #include "TRDWorkflow/TRDGlobalTrackingSpec.h"
 #include "TRDBase/Geometry.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
@@ -86,7 +86,7 @@ void TRDGlobalTracking::init(InitContext& ic)
 
   // this is a hack to provide ITS dictionary from the local file, in general will be provided by the framework from CCDB
   auto dictFile = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictFile);
+  dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictFile);
   if (o2::utils::Str::pathExists(dictFile)) {
     mITSDict.readFromFile(dictFile);
     LOG(info) << "Matching is running with a provided ITS dictionary: " << dictFile;
@@ -101,6 +101,7 @@ void TRDGlobalTracking::init(InitContext& ic)
   cfgRecoStep.outputs.clear();
   mRec = GPUReconstruction::CreateInstance("CPU", true);
   mRec->SetSettings(o2::base::Propagator::Instance()->getNominalBz(), &cfgRecoStep);
+  mRec->GetNonConstParam().rec.trd.useExternalO2DefaultPropagator = true;
 
   mChainTracking = mRec->AddChain<GPUChainTracking>();
 
@@ -328,7 +329,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
 
   // start the tracking
   //mTracker->DumpTracks();
-  mTracker->DoTracking(mChainTracking);
+  mChainTracking->DoTRDGPUTracking<GPUTRDTrackerKernels::o2Version>(mTracker);
   //mTracker->DumpTracks();
 
   // finished tracking, now collect the output
@@ -436,7 +437,7 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
     outerParam = recoCont->getTPCITSTrack(trk.getRefGlobalTrackId()); // start from the inner kinematics of ITS-TPC
     // refit
     for (int icl = 0; icl < nCl; icl++) {                                                                                  // clusters are stored from inner to outer layers
-      const auto& clus = mITSClustersArray[mITSABTrackClusIdx[clRefs[nCl - icl - 1] = mITSABTrackClusIdx[clEntry + icl]]]; // register in clRefs from outer to inner layer
+      const auto& clus = mITSClustersArray[clRefs[nCl - icl - 1] = mITSABTrackClusIdx[clEntry + icl]];                     // register in clRefs from outer to inner layer
       if (!outerParam.rotate(geom->getSensorRefAlpha(clus.getSensorID())) ||
           !propagator->propagateToX(outerParam, clus.getX(), propagator->getNominalBz(), o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, o2::base::Propagator::MatCorrType::USEMatCorrLUT)) {
         break;

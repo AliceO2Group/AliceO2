@@ -22,6 +22,7 @@
 #include <unordered_map>
 #include <functional>
 #include <string_view>
+#include <chrono>
 
 namespace o2h = o2::header;
 namespace o2f = o2::framework;
@@ -55,7 +56,7 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
   auto timesliceId = std::make_shared<size_t>(startTime);
   return [dpid2group, timesliceId, step, verbose](FairMQDevice& device, FairMQParts& parts, o2f::ChannelRetriever channelRetriever) {
     static std::unordered_map<DPID, DPCOM> cache; // will keep only the latest measurement in the 1-second wide window for each DPID
-    static auto timer = std::chrono::high_resolution_clock::now();
+    static auto timer = std::chrono::system_clock::now();
 
     LOG(debug) << "In lambda function: ********* Size of unordered_map (--> number of defined groups) = " << dpid2group.size();
     // We first iterate over the parts of the received message
@@ -74,11 +75,11 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
       }
     }
 
-    auto timerNow = std::chrono::high_resolution_clock::now();
+    auto timerNow = std::chrono::system_clock::now();
     std::chrono::duration<double, std::ratio<1>> duration = timerNow - timer;
     if (duration.count() > 1) { //did we accumulate for 1 sec?
       *timesliceId += step;     // we increment only if we send something
-      std::unordered_map<o2h::DataDescription, vector<DPCOM>, std::hash<o2h::DataDescription>> outputs;
+      std::unordered_map<o2h::DataDescription, pmr::vector<DPCOM>, std::hash<o2h::DataDescription>> outputs;
       // in the cache we have the final values of the DPs that we should put in the output
       // distribute DPs over the vectors for each requested output
       for (auto& it : cache) {
@@ -87,7 +88,7 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
           outputs[mapEl->second].push_back(it.second);
         }
       }
-
+      std::uint64_t creation = std::chrono::time_point_cast<std::chrono::milliseconds>(timerNow).time_since_epoch().count();
       // create and send output messages
       for (auto& it : outputs) {
         o2h::DataHeader hdr(it.first, "DCS", 0);
@@ -109,14 +110,14 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
         hdr.splitPayloadIndex = 1;
         hdr.payloadSize = it.second.size() * sizeof(DPCOM);
         hdr.firstTForbit = 0; // this should be irrelevant for DCS
-        o2h::Stack headerStack{hdr, o2::framework::DataProcessingHeader{*timesliceId, 0}};
+        o2h::Stack headerStack{hdr, o2::framework::DataProcessingHeader{*timesliceId, 1, creation}};
         auto fmqFactory = device.GetChannel(channel).Transport();
         auto hdMessage = fmqFactory->CreateMessage(headerStack.size(), fair::mq::Alignment{64});
         auto plMessage = fmqFactory->CreateMessage(hdr.payloadSize, fair::mq::Alignment{64});
         memcpy(hdMessage->GetData(), headerStack.data(), headerStack.size());
         memcpy(plMessage->GetData(), it.second.data(), hdr.payloadSize);
         if (verbose) {
-          LOGP(info, "Pushing {} DPs to output for TimeSlice", it.second.size(), it.first, *timesliceId, hdr);
+          LOGP(info, "Pushing {} DPs to {} for TimeSlice {} at {}", it.second.size(), o2f::DataSpecUtils::describe(outsp), *timesliceId, creation);
         }
         it.second.clear();
         FairMQParts outParts;

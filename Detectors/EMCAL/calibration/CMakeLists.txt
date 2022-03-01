@@ -10,8 +10,10 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(EMCALCalibration
-               SOURCES  src/EMCALChannelData.cxx 
-                        src/EMCALTimeCalibData.cxx 
+               TARGETVARNAME targetName
+               SOURCES  src/EMCALChannelData.cxx
+                        src/EMCALTimeCalibData.cxx
+                        src/EMCALCalibExtractor.cxx
                PUBLIC_LINK_LIBRARIES O2::CCDB O2::EMCALBase
                                      O2::EMCALCalib
                                      O2::CommonUtils
@@ -21,17 +23,13 @@ o2_add_library(EMCALCalibration
                                      O2::Algorithm
                                      Microsoft.GSL::GSL
                                      )
-									 
-				  
-				   
+
 o2_target_root_dictionary(EMCALCalibration
-                          HEADERS include/EMCALCalibration/EMCALChannelCalibrator.h
+                          HEADERS include/EMCALCalibration/EMCALCalibExtractor.h
+                                  include/EMCALCalibration/EMCALChannelCalibrator.h
                                   include/EMCALCalibration/EMCALChannelData.h
                                   include/EMCALCalibration/EMCALTimeCalibData.h
                           LINKDEF src/EMCALCalibrationLinkDef.h)
-
-
-
 
 o2_add_executable(emcal-channel-calib-workflow
                   COMPONENT_NAME calibration
@@ -39,3 +37,15 @@ o2_add_executable(emcal-channel-calib-workflow
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                         O2::EMCALCalibration
                                         O2::DetectorsCalibration)
+
+o2_add_executable(run-calib-offline
+                  COMPONENT_NAME emcal
+                  TARGETVARNAME targetName
+                  SOURCES run/runCalibOffline.cxx
+                  PUBLIC_LINK_LIBRARIES O2::EMCALCalibration)
+
+
+if (OpenMP_CXX_FOUND)
+    target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+    target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+endif()

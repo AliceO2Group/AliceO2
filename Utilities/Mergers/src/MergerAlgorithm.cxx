@@ -32,6 +32,16 @@
 namespace o2::mergers::algorithm
 {
 
+size_t estimateTreeSize(TTree* tree)
+{
+  size_t totalSize = 0;
+  auto branchList = tree->GetListOfBranches();
+  for (const auto* branch : *branchList) {
+    totalSize += dynamic_cast<const TBranch*>(branch)->GetTotalSize();
+  }
+  return totalSize;
+}
+
 void merge(TObject* const target, TObject* const other)
 {
   if (target == nullptr) {
@@ -79,12 +89,31 @@ void merge(TObject* const target, TObject* const other)
 
     if (target->InheritsFrom(TH1::Class())) {
       // this includes TH1, TH2, TH3
-      errorCode = reinterpret_cast<TH1*>(target)->Merge(&otherCollection);
+      auto targetTH1 = reinterpret_cast<TH1*>(target);
+      if (targetTH1->TestBit(TH1::kIsAverage)) {
+        // Merge() does not support averages, we have to use Add()
+        // this will break if collection.size != 1
+        if (auto otherTH1 = dynamic_cast<TH1*>(otherCollection.First())) {
+          errorCode = targetTH1->Add(otherTH1);
+        }
+      } else {
+        // Add() does not support histograms with labels, thus we resort to Merge() by default
+        errorCode = targetTH1->Merge(&otherCollection);
+      }
     } else if (target->InheritsFrom(THnBase::Class())) {
       // this includes THn and THnSparse
       errorCode = reinterpret_cast<THnBase*>(target)->Merge(&otherCollection);
     } else if (target->InheritsFrom(TTree::Class())) {
-      errorCode = reinterpret_cast<TTree*>(target)->Merge(&otherCollection);
+      auto targetTree = reinterpret_cast<TTree*>(target);
+      auto otherTree = reinterpret_cast<TTree*>(other);
+      auto targetTreeSize = estimateTreeSize(targetTree);
+      auto otherTreeSize = estimateTreeSize(otherTree);
+      if (auto totalSize = targetTreeSize + otherTreeSize; totalSize > 100000000) {
+        LOG(warn) << "The tree '" << targetTree << "' would be larger than 100MB (" << totalSize << "B) after merging, skipping to let the system survive";
+        errorCode = 0;
+      } else {
+        errorCode = targetTree->Merge(&otherCollection);
+      }
     } else if (target->InheritsFrom(TGraph::Class())) {
       errorCode = reinterpret_cast<TGraph*>(target)->Merge(&otherCollection);
     } else if (target->InheritsFrom(TEfficiency::Class())) {

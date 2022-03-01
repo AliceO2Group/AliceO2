@@ -61,6 +61,10 @@ o2_add_executable(reco-qc
                   PUBLIC_LINK_LIBRARIES
                   O2::FT0Workflow O2::FITCalibration O2::GlobalTrackingWorkflowHelpers)
 
+o2_add_executable(recpoints-reader-workflow
+                  SOURCES src/recpoints-reader-workflow.cxx
+                  COMPONENT_NAME ft0
+                  PUBLIC_LINK_LIBRARIES O2::FT0Workflow)
 
 if(NOT APPLE)
 

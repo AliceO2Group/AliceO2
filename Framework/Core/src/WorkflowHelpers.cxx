@@ -25,6 +25,7 @@
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/Plugins.h"
 #include "ArrowSupport.h"
+#include "CCDBHelpers.h"
 
 #include "Headers/DataHeader.h"
 #include <algorithm>
@@ -153,54 +154,50 @@ void WorkflowHelpers::addMissingOutputsToReader(std::vector<OutputSpec> const& p
     }
 
     auto concrete = DataSpecUtils::asConcreteDataMatcher(requested);
-    publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
+    publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, requested.lifetime, requested.metadata});
   }
 }
 
-void WorkflowHelpers::addMissingOutputsToSpawner(std::vector<InputSpec>&& requestedDYNs,
+void WorkflowHelpers::addMissingOutputsToSpawner(std::vector<InputSpec> const& requestedSpecials,
                                                  std::vector<InputSpec>& requestedAODs,
                                                  DataProcessorSpec& publisher)
 {
-  for (auto& input : requestedDYNs) {
-    publisher.inputs.emplace_back(InputSpec{input.binding, header::DataOrigin{"AOD"}, DataSpecUtils::asConcreteDataMatcher(input).description});
-    requestedAODs.emplace_back(InputSpec{input.binding, header::DataOrigin{"AOD"}, DataSpecUtils::asConcreteDataMatcher(input).description});
-    auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
-    publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
-  }
-}
-
-void WorkflowHelpers::addMissingOutputsToBuilder(std::vector<InputSpec>&& requestedIDXs,
-                                                 std::vector<InputSpec>& requestedAODs,
-                                                 DataProcessorSpec& publisher)
-{
-  auto inputSpecFromString = [](std::string s) {
-    std::regex word_regex("(\\w+)");
-    auto words = std::sregex_iterator(s.begin(), s.end(), word_regex);
-    if (std::distance(words, std::sregex_iterator()) != 3) {
-      throw runtime_error_f("Malformed input spec metadata: %s", s.c_str());
-    }
-    std::vector<std::string> data;
-    for (auto i = words; i != std::sregex_iterator(); ++i) {
-      data.emplace_back(i->str());
-    }
-    char origin[4];
-    char description[16];
-    std::memcpy(&origin, data[1].c_str(), 4);
-    std::memcpy(&description, data[2].c_str(), 16);
-    return InputSpec{data[0], header::DataOrigin{origin}, header::DataDescription{description}};
-  };
-
-  for (auto& input : requestedIDXs) {
+  for (auto& input : requestedSpecials) {
     auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
     publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
     for (auto& i : input.metadata) {
       if ((i.type == VariantType::String) && (i.name.find("input:") != std::string::npos)) {
-        auto spec = inputSpecFromString(i.defaultValue.get<std::string>());
+        auto spec = DataSpecUtils::fromMetadataString(i.defaultValue.get<std::string>());
         auto j = std::find_if(publisher.inputs.begin(), publisher.inputs.end(), [&](auto x) { return x.binding == spec.binding; });
         if (j == publisher.inputs.end()) {
           publisher.inputs.push_back(spec);
         }
-        requestedAODs.push_back(spec);
+        DataSpecUtils::updateInputList(requestedAODs, std::move(spec));
+      }
+    }
+  }
+}
+
+void WorkflowHelpers::addMissingOutputsToBuilder(std::vector<InputSpec> const& requestedSpecials,
+                                                 std::vector<InputSpec>& requestedAODs,
+                                                 std::vector<InputSpec>& requestedDYNs,
+                                                 DataProcessorSpec& publisher)
+{
+  for (auto& input : requestedSpecials) {
+    auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
+    publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
+    for (auto& i : input.metadata) {
+      if ((i.type == VariantType::String) && (i.name.find("input:") != std::string::npos)) {
+        auto spec = DataSpecUtils::fromMetadataString(i.defaultValue.get<std::string>());
+        auto j = std::find_if(publisher.inputs.begin(), publisher.inputs.end(), [&](auto x) { return x.binding == spec.binding; });
+        if (j == publisher.inputs.end()) {
+          publisher.inputs.push_back(spec);
+        }
+        if (DataSpecUtils::partialMatch(spec, header::DataOrigin{"AOD"})) {
+          DataSpecUtils::updateInputList(requestedAODs, std::move(spec));
+        } else if (DataSpecUtils::partialMatch(spec, header::DataOrigin{"DYN"})) {
+          DataSpecUtils::updateInputList(requestedDYNs, std::move(spec));
+        }
       }
     }
   }
@@ -221,10 +218,19 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   }};
 
   DataProcessorSpec ccdbBackend{
-    "internal-dpl-ccdb-backend",
-    {},
-    {},
-    AlgorithmSpec::dummyAlgorithm()};
+    .name = "internal-dpl-ccdb-backend",
+    .outputs = {},
+    .algorithm = CCDBHelpers::fetchFromCCDB(),
+    .options = {{"condition-backend", VariantType::String, "http://alice-ccdb.cern.ch", {"URL for CCDB"}},
+                {"condition-not-before", VariantType::Int64, 0ll, {"do not fetch from CCDB objects created before provide timestamp"}},
+                {"condition-not-after", VariantType::Int64, 3385078236000ll, {"do not fetch from CCDB objects created after the timestamp"}},
+                {"condition-remap", VariantType::String, "", {"remap condition path in CCDB based on the provided string."}},
+                {"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},
+                {"orbit-multiplier-enumeration", VariantType::Int64, 0ll, {"multiplier to get the orbit from the counter"}},
+                {"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
+                {"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}},
+                {"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}},
+  };
   DataProcessorSpec transientStore{"internal-dpl-transient-store",
                                    {},
                                    {},
@@ -423,17 +429,14 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     readers::AODReaderHelpers::indexBuilderCallback(requestedIDXs),
     {}};
 
-  addMissingOutputsToSpawner(std::move(requestedDYNs), requestedAODs, aodSpawner);
-  addMissingOutputsToBuilder(std::move(requestedIDXs), requestedAODs, indexBuilder);
+  addMissingOutputsToBuilder(requestedIDXs, requestedAODs, requestedDYNs, indexBuilder);
+  addMissingOutputsToSpawner(requestedDYNs, requestedAODs, aodSpawner);
 
   addMissingOutputsToReader(providedAODs, requestedAODs, aodReader);
   addMissingOutputsToReader(providedCCDBs, requestedCCDBs, ccdbBackend);
 
   std::vector<DataProcessorSpec> extraSpecs;
 
-  if (ccdbBackend.outputs.empty() == false) {
-    extraSpecs.push_back(ccdbBackend);
-  }
   if (transientStore.outputs.empty() == false) {
     extraSpecs.push_back(transientStore);
   }
@@ -462,7 +465,6 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       LOG(fatal) << uv_dlerror(&supportLib);
       return;
     }
-    void* callback = nullptr;
     DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
 
     result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
@@ -481,6 +483,40 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
     auto concrete = DataSpecUtils::asConcreteDataMatcher(aodReader.inputs[0]);
     timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
+  }
+
+  if (ccdbBackend.outputs.empty() == false) {
+    ccdbBackend.outputs.push_back(OutputSpec{"CTP", "OrbitReset", 0});
+    bool hasDISTSTF = false;
+    InputSpec matcher{"dstf", "FLP", "DISTSUBTIMEFRAME"};
+    ConcreteDataMatcher dstf{"FLP", "DISTSUBTIMEFRAME", 0};
+    for (auto& dp : workflow) {
+      for (auto& output : dp.outputs) {
+        if (DataSpecUtils::match(matcher, output)) {
+          hasDISTSTF = true;
+          dstf = DataSpecUtils::asConcreteDataMatcher(output);
+          break;
+        }
+      }
+      if (hasDISTSTF) {
+        break;
+      }
+    }
+    if (aodReader.outputs.empty() == false) {
+      ccdbBackend.inputs.push_back(InputSpec{"tfn", "TFN", "TFNumber"});
+    } else if (hasDISTSTF) {
+      ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf});
+    } else {
+      InputSpec input{"enumeration",
+                      "DPL",
+                      "ENUM",
+                      static_cast<DataAllocator::SubSpecificationType>(compile_time_hash("internal-dpl-ccdb-backend")),
+                      Lifetime::Enumeration};
+      ccdbBackend.inputs.push_back(input);
+      auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
+      timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
+    }
+    extraSpecs.push_back(ccdbBackend);
   }
 
   // add the timer
@@ -901,8 +937,8 @@ WorkflowParsingState WorkflowHelpers::verifyWorkflow(const o2::framework::Workfl
     for (auto& option : spec.options) {
       if (option.defaultValue.type() != VariantType::Empty &&
           option.type != option.defaultValue.type()) {
-        ss << "Mismatch between declared option type and default value type"
-           << " for " << option.name << " in DataProcessorSpec of "
+        ss << "Mismatch between declared option type (" << (int)option.type << ") and default value type (" << (int)option.defaultValue.type()
+           << ") for " << option.name << " in DataProcessorSpec of "
            << spec.name;
         throw std::runtime_error(ss.str());
       }

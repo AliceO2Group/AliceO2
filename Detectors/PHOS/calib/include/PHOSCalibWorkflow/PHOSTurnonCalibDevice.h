@@ -46,7 +46,7 @@ class PHOSTurnonCalibDevice : public o2::framework::Task
 
  private:
   bool mUseCCDB = false;
-  std::string mCCDBPath{"http://ccdb-test.cern.ch:8080"}; ///< CCDB server path
+  std::string mCCDBPath{"http://alice-ccdb.cern.ch"};     ///< CCDB server path
   long mRunStartTime = 0;                                 /// start time of the run (sec)
   std::unique_ptr<TriggerMap> mTriggerMap;                /// Final calibration object
   std::unique_ptr<PHOSTurnonCalibrator> mCalibrator;      /// Agregator of calibration TimeFrameSlots

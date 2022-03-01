@@ -30,6 +30,8 @@
 #include "TStopwatch.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataRefUtils.h"
+#include "TOFBase/Utils.h"
+#include "Steer/MCKinematicsReader.h"
 
 #include <memory> // for make_shared, make_unique, unique_ptr
 #include <vector>
@@ -71,6 +73,19 @@ class TOFDPLClustererTask
 
     mClusterer.setCalibFromCluster(mIsCalib);
     mClusterer.setDeltaTforClustering(mTimeWin);
+
+    // initialize collision context
+    auto mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
+    auto context = mcReader->getDigitizationContext();
+    if (context) {
+      auto bcf = context->getBunchFilling();
+      std::bitset<3564> isInBC = bcf.getBCPattern();
+      for (unsigned int i = 0; i < isInBC.size(); i++) {
+        if (isInBC.test(i)) {
+          o2::tof::Utils::addInteractionBC(i, true);
+        }
+      }
+    }
   }
 
   void run(framework::ProcessingContext& pc)
@@ -80,6 +95,7 @@ class TOFDPLClustererTask
     auto digits = pc.inputs().get<gsl::span<o2::tof::Digit>>("tofdigits");
     auto row = pc.inputs().get<gsl::span<o2::tof::ReadoutWindowData>>("readoutwin");
     auto dia = pc.inputs().get<o2::tof::Diagnostic*>("diafreq");
+    auto patterns = pc.inputs().get<pmr::vector<unsigned char>>("patterns");
 
     const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
     mClusterer.setFirstOrbit(dh->firstTForbit);
@@ -124,10 +140,18 @@ class TOFDPLClustererTask
 
     if (mUseCCDB) {
       calibapi.setURL(mCCDBurl.c_str());
-      calibapi.setTimeStamp(0);
+      auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
+      calibapi.setTimeStamp(creationTime / 1000);
+      LOG(info) << "CCDB required from TOF clusterizer with timestamp " << creationTime / 1000 << " from URL " << mCCDBurl.c_str();
+
+      LOG(info) << "read LHCphase";
       calibapi.readLHCphase();
+      LOG(info) << "read time slewing";
       calibapi.readTimeSlewingParam();
+      LOG(info) << "read daignostic";
       calibapi.readDiagnosticFrequencies();
+    } else {
+      LOG(info) << "No CCDB requested by TOF";
     }
 
     mClusterer.setCalibApi(&calibapi);
@@ -145,7 +169,34 @@ class TOFDPLClustererTask
       mCosmicProcessor.clear();
     }
 
-    for (int i = 0; i < row.size(); i++) {
+    for (unsigned int i = 0; i < row.size(); i++) {
+      //fill trm pattern but process them in clusterize since they are for readout windows
+      calibapi.resetTRMErrors();
+
+      // loop over crates
+      int kw = 0;
+      for (int crate = 0; crate < 72; crate++) {
+        int slot = -1;
+        int nwords = kw + row[i].getDiagnosticInCrate(crate);
+        int eword;
+        for (; kw < nwords; kw++) {
+          if (patterns[kw] > 28) { // new slot
+            if (slot > -1) {       // fill previous
+              calibapi.processError(crate, slot, eword);
+            }
+            slot = patterns[kw] - 28;
+            eword = 0;
+
+            if (slot < 3 || slot > 12) { // not a valid slot -> don't fill otherwise mapping fails (slot 1 crate 0 is a bad condition)
+              slot = -1;
+              //              LOG(info) << "not a valid slot in diagnostic words: slot  = " << slot << " for crate " << crate;
+            }
+          } else if (slot > -1) { // process error in this slot
+            eword += 1 << patterns[kw];
+          }
+        }
+      } // end crate loop
+
       //printf("# TOF readout window for clusterization = %d/%lu (N digits = %d)\n", i, row.size(), row[i].size());
       auto digitsRO = row[i].getBunchChannelData(digits);
       mReader.setDigitArray(&digitsRO);
@@ -210,6 +261,8 @@ o2::framework::DataProcessorSpec getTOFClusterizerSpec(bool useMC, bool useCCDB,
   inputs.emplace_back("tofdigits", o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("readoutwin", o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe);
   inputs.emplace_back("diafreq", o2::header::gDataOriginTOF, "DIAFREQ", 0, Lifetime::Timeframe);
+  inputs.emplace_back("patterns", o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe);
+
   //  if (useCCDB) {
   //    inputs.emplace_back("tofccdbLHCphase", o2::header::gDataOriginTOF, "LHCphase");
   //    inputs.emplace_back("tofccdbChannelCalib", o2::header::gDataOriginTOF, "ChannelCalib");

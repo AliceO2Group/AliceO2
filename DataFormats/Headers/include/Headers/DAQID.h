@@ -24,7 +24,6 @@ namespace header
 /// Source IDs used by DAQ
 
 constexpr o2::header::DataOrigin gDataOriginUnloaded{"UNL"};
-constexpr o2::header::DataOrigin gDataOriginTST{"TST"};
 
 class DAQID
 {

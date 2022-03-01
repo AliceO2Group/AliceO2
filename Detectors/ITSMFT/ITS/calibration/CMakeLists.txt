@@ -12,6 +12,7 @@
 add_subdirectory(macros)
 
 o2_add_library(ITSCalibration
+               TARGETVARNAME targetName
                SOURCES src/NoiseCalibrator.cxx
                SOURCES src/NoiseSlotCalibrator.cxx
                SOURCES src/NoiseCalibratorSpec.cxx
@@ -26,9 +27,13 @@ o2_target_root_dictionary(ITSCalibration
                           HEADERS include/ITSCalibration/NoiseSlotCalibrator.h
                           LINKDEF src/ITSCalibrationLinkDef.h)
 
-o2_add_executable(its-calib-workflow
-                  COMPONENT_NAME calibration
-                  SOURCES testWorkflow/its-calib-workflow.cxx
+o2_add_executable(noise-calib-workflow
+                  COMPONENT_NAME its
+                  SOURCES testWorkflow/its-noise-calib-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                         O2::ITSCalibration)
 
+if (OpenMP_CXX_FOUND)
+    target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+    target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+endif()

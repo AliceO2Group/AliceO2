@@ -31,7 +31,7 @@ class DigitReader : public framework::Task
   void run(framework::ProcessingContext& pc) final;
 
  private:
-  bool mUseMC = true;
+  bool mUseMC = false;
   bool mUseTrgInput = true;
   std::unique_ptr<TTree> mTree;
   std::unique_ptr<TFile> mFile;
@@ -39,7 +39,7 @@ class DigitReader : public framework::Task
 
 /// create a processor spec
 /// read simulated FT0 digits from a root file
-framework::DataProcessorSpec getDigitReaderSpec(bool useMC, bool useTrgInput = true);
+framework::DataProcessorSpec getDigitReaderSpec(bool useMC = false, bool useTrgInput = true);
 
 } // end namespace ft0
 } // end namespace o2

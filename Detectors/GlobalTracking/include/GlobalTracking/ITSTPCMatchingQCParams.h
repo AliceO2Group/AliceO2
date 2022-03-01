@@ -27,7 +27,7 @@ struct ITSTPCMatchingQCParams : public o2::conf::ConfigurableParamHelper<ITSTPCM
 
   float minPtCut = 0.1f;
   float etaCut = 1.4f;
-  int32_t minNTPCClustersCut = 40;
+  int32_t minNTPCClustersCut = 60;
   float minDCACut = 100.f;
   float minDCACutY = 10.f;
 

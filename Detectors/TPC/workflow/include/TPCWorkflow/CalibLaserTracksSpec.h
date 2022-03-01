@@ -24,6 +24,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include "CommonUtils/NameConf.h"
 
 #include "TPCWorkflow/ProcessingHelpers.h"
 
@@ -102,7 +103,7 @@ class CalibLaserTracksDevice : public o2::framework::Task
     auto image = o2::ccdb::CcdbApi::createObjectImage(&ltrCalib, &w);
 
     md = w.getMetaData();
-    md["runNumber"] = std::to_string(mRunNumber);
+    md[o2::base::NameConf::CCDBRunTag.data()] = std::to_string(mRunNumber);
     w.setMetaData(md);
 
     const auto now = std::chrono::system_clock::now();

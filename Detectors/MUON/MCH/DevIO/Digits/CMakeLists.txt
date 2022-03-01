@@ -66,5 +66,5 @@ o2_add_executable(
         digits-file-dumper
         SOURCES digits-file-dumper.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::MCHDigitIO O2::MCHMappingImpl3 Boost::program_options)
+        PUBLIC_LINK_LIBRARIES O2::MCHDigitIO Boost::program_options)
 

@@ -176,6 +176,7 @@ BOOST_AUTO_TEST_CASE(store_retrieve_TMemFile_templated_test, *utf::precondition(
   // std::filesystem does not yet provide boost::filesystem::unique_path() equivalent, and usin tmpnam generate a warning
   auto ph = o2::utils::Str::create_unique_path(std::filesystem::temp_directory_path().native());
   std::filesystem::create_directories(ph);
+  std::cout << "Creating snapshot at " << ph << "\n";
   f.api.snapshot(basePath, ph, o2::ccdb::getCurrentTimestamp());
   std::cout << "Creating snapshot at " << ph << "\n";
 
@@ -197,6 +198,21 @@ BOOST_AUTO_TEST_CASE(store_retrieve_TMemFile_templated_test, *utf::precondition(
   if (std::filesystem::exists(ph)) {
     std::filesystem::remove_all(ph);
   }
+}
+
+BOOST_AUTO_TEST_CASE(store_max_size_test, *utf::precondition(if_reachable()))
+{
+  test_fixture f;
+
+  // try to store a user defined class
+  // since we don't depend on anything, we are putting an object known to CCDB
+  o2::ccdb::IdPath path;
+  path.setPath("HelloWorld");
+
+  int result = f.api.storeAsTFileAny(&path, basePath + "CCDBPath", f.metadata); // ok
+  BOOST_CHECK_EQUAL(result, 0);
+  result = f.api.storeAsTFileAny(&path, basePath + "CCDBPath", f.metadata, -1, -1, 1 /* bytes */); // we know this will fail
+  BOOST_CHECK_EQUAL(result, -1);
 }
 
 /// A test verifying that the DB responds the correct result for given timestamps

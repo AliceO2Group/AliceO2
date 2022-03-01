@@ -9,6 +9,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+
+add_library(obj-mch-reco OBJECT)
+target_sources(obj-mch-reco PRIVATE src/TimeClusterFinderSpec.cxx)
+target_link_libraries(obj-mch-reco PUBLIC O2::Framework O2::MCHTimeClustering
+ O2::MCHTracking)
+
 # MCHWorkflow library is (at least) needed by Detectors/CTF/workflow
 o2_add_library(MCHWorkflow
                SOURCES
@@ -16,8 +22,6 @@ o2_add_library(MCHWorkflow
                    src/ClusterReaderSpec.cxx
                    src/ClusterWriterSpec.cxx
                    src/DataDecoderSpec.cxx
-                   src/EntropyDecoderSpec.cxx
-                   src/TimeClusterFinderSpec.cxx
                    src/PreClusterFinderSpec.cxx
                    src/SanityCheck.cxx
                    src/TrackReaderSpec.cxx
@@ -32,7 +36,6 @@ o2_add_library(MCHWorkflow
                    O2::MCHCTF
                    O2::MCHClustering
                    O2::MCHPreClustering
-                   O2::MCHTimeClustering
                    O2::MCHRawCommon
                    O2::MCHRawDecoder
                )
@@ -54,7 +57,7 @@ o2_add_executable(
         raw-to-digits-workflow
         SOURCES src/raw-to-digits-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHMappingImpl4)
 
 o2_add_executable(
         raw-debug-workflow
@@ -69,10 +72,18 @@ o2_add_executable(
         PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
 
 o2_add_executable(
+        event-finder-workflow
+        SOURCES src/EventFinderSpec.cxx src/event-finder-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::MCHTriggering)
+
+o2_add_executable(
         digits-to-timeclusters-workflow
         SOURCES src/digits-to-timeclusters-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+        PUBLIC_LINK_LIBRARIES O2::MCHBase
+        TARGETVARNAME mch-time-cluster-finder)
+target_link_libraries(${mch-time-cluster-finder} PRIVATE obj-mch-reco)
 
 o2_add_executable(
         digits-filtering-workflow
@@ -84,7 +95,8 @@ o2_add_executable(
         digits-to-preclusters-workflow
         SOURCES src/digits-to-preclusters-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+        # PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHMappingImpl4)
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHMappingImpl3)
 
 o2_add_executable(
         digits-reader-workflow
@@ -96,7 +108,7 @@ o2_add_executable(
         sim-digits-reader-workflow
         SOURCES src/DigitReaderSpec.cxx src/sim-digits-reader-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::DataFormatsMCH O2::MCHBase O2::MCHMappingImpl3 O2::SimulationDataFormat)
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::DataFormatsMCH O2::MCHBase O2::SimulationDataFormat)
 
 o2_add_executable(
         preclusters-sink-workflow
@@ -108,7 +120,14 @@ o2_add_executable(
         preclusters-to-clusters-original-workflow
         SOURCES src/preclusters-to-clusters-original-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHClustering)
+        # PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHClustering O2::MCHMappingImp4)
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHClustering O2::MCHMappingImpl3)
+
+o2_add_executable(
+        preclusters-to-clusters-gem-workflow
+        SOURCES src/preclusters-to-clusters-GEM-workflow.cxx src/ClusterFinderGEMSpec.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHClusteringGEM O2::MCHMappingImpl3)
 
 o2_add_executable(
         clusters-sink-workflow
@@ -211,19 +230,21 @@ o2_add_executable(
             src/ClusterTransformerSpec.cxx
             src/DigitFilteringSpec.cxx
             src/DigitReaderSpec.cxx
-            src/TrackAtVertexSpec.cxx
+            src/EventFinderSpec.cxx
             src/TrackFinderSpec.cxx
             src/TrackMCLabelFinderSpec.cxx
-            src/VertexSamplerSpec.cxx
             src/reco-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES
             O2::MCHGeometryTransformer
+            O2::MCHMappingImpl4
+            O2::MCHTriggering
             O2::MCHTracking
             O2::MCHWorkflow
             O2::SimulationDataFormat
             O2::Steer
-        )
+        TARGETVARNAME mch-reco-workflow)
+target_link_libraries(${mch-reco-workflow} PRIVATE obj-mch-reco)
 
 o2_add_executable(tracks-file-dumper
         SOURCES src/tracks-file-dumper.cxx

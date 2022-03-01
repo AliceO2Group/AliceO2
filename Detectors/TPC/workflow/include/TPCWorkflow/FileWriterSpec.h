@@ -19,16 +19,34 @@
 #include "Framework/DataProcessorSpec.h"
 #include <string>
 
-namespace o2
+namespace o2::tpc
 {
-namespace tpc
-{
+
+enum class BranchType {
+  Krypton,
+  Digits,
+};
+
+const std::unordered_map<std::string, BranchType> BranchTypeMap{
+  {"krypton", BranchType::Krypton},
+  {"digits", BranchType::Digits},
+};
+
+const std::unordered_map<BranchType, std::string> BranchName{
+  {BranchType::Krypton, "TPCBoxCluster"},
+  {BranchType::Digits, "TPCDigit"},
+};
+
+const std::unordered_map<BranchType, std::string> TreeName{
+  {BranchType::Krypton, "Clusters"},
+  {BranchType::Digits, "o2sim"},
+};
 
 /// create a processor spec
 /// read simulated TPC clusters from file and publish
-o2::framework::DataProcessorSpec getFileWriterSpec(const std::string inputSpec, const std::string branchType = "krypton");
+template <typename T>
+o2::framework::DataProcessorSpec getFileWriterSpec(const std::string inputSpec, const BranchType branchType = BranchType::Krypton, unsigned long sectorMask = 0xFFFFFFFFF);
 
-} // end namespace tpc
-} // end namespace o2
+} // namespace o2::tpc
 
 #endif // TPC_RAWTODIGITSSPEC_H_

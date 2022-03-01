@@ -1,3 +1,7 @@
+<!-- doxy
+\page refscriptsDatamodel-doc ALICEO2dataModel converter
+/doxy -->
+
 # ALICEO2dataModel converter
 
 Allows to create an html representation of the ALICE O2 data model.
@@ -30,7 +34,7 @@ Header files are combed for definitions of:
 - COLUMN declarations
 - TABLE declarations
 
-In a first step the header files are scanned and comments (//) and comment blocks (/* ... */) are removed, whereas special comments (//!) are understood to be annotations of tables and columns. Blocks of line extensions (\) are reduced to a single line. 
+In a first step the header files are scanned and comments (//) and comment blocks (/* ... */) are removed, whereas special comments (//!) are understood to be annotations of tables and columns. Blocks of line extensions (\) are reduced to a single line.
 
 In the such processed text #define directives are searched for and are used to substitute related text in the block starting with the actual #define directive and ending with an #undef directive or the end of the text.
 

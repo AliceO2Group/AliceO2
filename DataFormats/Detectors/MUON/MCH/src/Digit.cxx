@@ -66,7 +66,8 @@ bool Digit::operator==(const Digit& other) const
          mPadID == other.mPadID &&
          mADC == other.mADC &&
          mTFtime == other.mTFtime &&
-         mNofSamples == other.mNofSamples;
+         mNofSamples == other.mNofSamples &&
+         mIsSaturated == other.mIsSaturated;
 }
 
 bool Digit::operator<(const Digit& other) const

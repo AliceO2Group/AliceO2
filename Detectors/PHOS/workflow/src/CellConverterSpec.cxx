@@ -21,6 +21,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "PHOSBase/PHOSSimParams.h"
 #include "CCDB/CcdbApi.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::phos::reco_workflow;
 
@@ -71,7 +72,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
       LOG(info) << "[PHOSCellConverter - run] getting BadMap object from ccdb";
       o2::ccdb::CcdbApi ccdb;
       std::map<std::string, std::string> metadata; // do we want to store any meta data?
-      ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
+      ccdb.init(o2::base::NameConf::getCCDBServer()); // or http://localhost:8080 for a local installation
       long bcTime = -1;                            //TODO!!! Convert BC time to time o2::InteractionRecord bcTime = digitsTR.front().getBCData() ;
       mBadMap = ccdb.retrieveFromTFileAny<o2::phos::BadChannelsMap>("PHOS/BadMap", metadata, bcTime);
       if (!mBadMap) {

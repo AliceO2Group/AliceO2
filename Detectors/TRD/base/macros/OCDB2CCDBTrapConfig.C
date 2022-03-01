@@ -66,12 +66,7 @@
 
 //#include "TRDBase/PadParameters.h"
 //#include "TRDBase/PadCalibrations.h"
-//#include "TRDBase/PadStatus.h"
-//#include "TRDBase/PadNoise.h"
-//#include "TRDBase/LocalVDrift.h"
-//#include "TRDBase/LocalT0.h"
-//#include "TRDBase/LocalGainFactor.h"
-//#include "TRDBase/PadNoise.h"
+//#include "TRDBase/PadCalibrationsAliases.h"
 //#include "TRDBase/ChamberCalibrations.h"
 //#include "TRDBase/ChamberStatus.h"
 //#include "TRDBase/ChamberNoise.h"
@@ -122,7 +117,7 @@ void ParseTrapConfigs(TrapConfig* trapconfig, AliTRDtrapConfig* run2config)
     //cout << "size is : " << run2config->fRegisterValue[regvalue].fSize << endl;
     //allocate will set the size of the arrays and resize them accordingly.
     //                cout<< "PROBLEM !! datacount " << datacount<<">="<<trapconfig->mRegisterValue.size() << " and run2 size is : "<< run2config->fRegisterValue[regvalue].fSize << " allocmode : "<< run2config->fRegisterValue[regvalue].fAllocMode << endl;
-    for (int datacount = 0; datacount < run2config->fRegisterValue[regvalue].fSize; datacount++) {
+    for (unsigned int datacount = 0; datacount < run2config->fRegisterValue[regvalue].fSize; datacount++) {
       if (datacount < trapconfig->mRegisterValue[regvalue].getDataSize()) {
         //      cout << " Writing :  " << run2config->fRegisterValue[regvalue].fData[datacount] << " :: with valid of " << run2config->fRegisterValue[regvalue].fValid[datacount] << endl;
         trapconfig->mRegisterValue[regvalue].setDataFromRun2(run2config->fRegisterValue[regvalue].fData[datacount], run2config->fRegisterValue[regvalue].fValid[datacount], datacount);
@@ -146,7 +141,7 @@ void ParseTrapConfigs(TrapConfig* trapconfig, AliTRDtrapConfig* run2config)
     trapconfig->mDmem[dmemwords].allocatei((int)run2config->fDmem[dmemwords].fAllocMode);
     //cout << "size is : " << run2config->fDmem[dmemwords].fSize << endl;
     //trapconfig->mDmem[dmemwords].mSize = run2config->fDmem[dmemwords].fSize;i// gets set via allocate method in line above
-    for (int datacount = 0; datacount < run2config->fDmem[dmemwords].fSize; datacount++) {
+    for (unsigned int datacount = 0; datacount < run2config->fDmem[dmemwords].fSize; datacount++) {
       if (datacount < trapconfig->mDmem[dmemwords].getDataSize()) {
         trapconfig->mDmem[dmemwords].setDataFromRun2(run2config->fDmem[dmemwords].fData[datacount], run2config->fDmem[dmemwords].fValid[datacount], datacount);
       } else
@@ -167,6 +162,11 @@ void OCDB2CCDBTrapConfig(TString ccdbPath = "http://localhost:8080", Int_t run =
   //
   // Main function to steer the extraction of TRD OCDB information
   //
+
+  auto timeStampStart = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+  auto timeStampEnd = timeStampStart;
+  timeStampStart = 297595;
+  timeStampEnd += 1e3 * 60 * 60 * 24 * 365 * 3;
 
   //std::string outFilename="CalibrationsForRun"+Run;
   TTimeStamp jobStartTime;
@@ -196,6 +196,8 @@ void OCDB2CCDBTrapConfig(TString ccdbPath = "http://localhost:8080", Int_t run =
   //
   o2::ccdb::CcdbApi ccdb;
   map<string, string> metadata;               // do we want to store any meta data?
+  metadata.emplace(std::make_pair("UploadedBy", "marten"));
+  metadata.emplace(std::make_pair("Description", "Default TRAP config for Run 3 simulations in LS2"));
   ccdb.init(ccdbPath.Data());
 
   /*
@@ -206,6 +208,7 @@ its all going here unfortunately ....
 */
 
   vector<std::string> run2confignames = {
+    /*
     "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5505",
     "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b2p-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5585",
     "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b5p-fs1e24-ht200-qs0e23s23e22-pidlhc11dv3en-pt100_ptrg.r5766",
@@ -260,6 +263,7 @@ its all going here unfortunately ....
     "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b5n-fs1e24-ht200-qs0e23s23e22-pidlhc11dv1-pt100_ptrg.r5762",
     "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b0-fs1e24-ht200-qs0e24s24e23-pidlinear_ptrg.r5505",
     "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b0-fs1e24-ht200-qs0e23s23e22-pidlhc11dv1_ptrg.r5762",
+    */
     "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549"};
 
   // now we loop over these extracting the trapconfing and dumping it into the ccdb.
@@ -272,7 +276,7 @@ its all going here unfortunately ....
         run2trapconfig = run2caltrapconfig->Get(run2trapconfigname.c_str());
         ParseTrapConfigs(o2trapconfig, run2trapconfig);
         std::string objectPath = "TRD/TrapConfig/" + run2trapconfigname;
-        ccdb.storeAsTFileAny(o2trapconfig, objectPath, metadata, 1, 1670700184549); //upper time chosen into the future else the server simply adds a year
+        ccdb.storeAsTFileAny(o2trapconfig, objectPath, metadata, timeStampStart, timeStampEnd); // upper time chosen into the future else the server simply adds a year
       }
     }
   }

@@ -13,7 +13,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "TRDReconstruction/CTFCoder.h"
 #include "DataFormatsTRD/CTF.h"
 #include "Framework/Logger.h"
@@ -113,12 +113,6 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   }
   sw.Stop();
   LOG(info) << "Decompressed in " << sw.CpuTime() << " s";
-
-  //fix for XOR of 0x80 of pos and slope, the get methods have the XOR inside.
-  for (auto& tracklet : trackletsD) {
-    tracklet.setPosition(tracklet.getPosition());
-    tracklet.setSlope(tracklet.getSlope());
-  }
 
   BOOST_CHECK(triggersD.size() == triggers.size());
   BOOST_CHECK(trackletsD.size() == tracklets.size());

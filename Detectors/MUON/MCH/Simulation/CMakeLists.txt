@@ -24,7 +24,7 @@ o2_add_library(MCHSimulation
                                       O2::DetectorsRaw
                                       O2::MCHBase
                                       O2::MCHGeometryCreator
-                                      O2::MCHMappingImpl4
+                                      O2::MCHMappingInterface
                                       O2::SimulationDataFormat)
 
 o2_target_root_dictionary(MCHSimulation

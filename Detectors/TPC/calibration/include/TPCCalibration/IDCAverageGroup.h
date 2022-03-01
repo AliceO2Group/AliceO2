@@ -35,45 +35,11 @@ namespace o2::tpc
 template <class Type>
 class IDCAverageGroupHelper;
 
-template <typename T>
-struct Enable_enum_class_bitfield {
-  static constexpr bool value = false;
-};
-
-// operator overload for allowing bitfiedls with enum
-template <typename T>
-typename std::enable_if<std::is_enum<T>::value && Enable_enum_class_bitfield<T>::value, T>::type
-  operator&(T lhs, T rhs)
-{
-  typedef typename std::underlying_type<T>::type integer_type;
-  return static_cast<T>(static_cast<integer_type>(lhs) & static_cast<integer_type>(rhs));
-}
-
-template <typename T>
-typename std::enable_if<std::is_enum<T>::value && Enable_enum_class_bitfield<T>::value, T>::type
-  operator|(T lhs, T rhs)
-{
-  typedef typename std::underlying_type<T>::type integer_type;
-  return static_cast<T>(static_cast<integer_type>(lhs) | static_cast<integer_type>(rhs));
-}
-
-enum class PadFlags : unsigned short {
-  flagGoodPad = 1 << 0,     ///< flag for a good pad binary 0001
-  flagDeadPad = 1 << 1,     ///< flag for a dead pad binary 0010
-  flagUnknownPad = 1 << 2,  ///< flag for unknown status binary 0100
-  flagSaturatedPad = 1 << 3 ///< flag for unknown status binary 0100
-};
-
-template <>
-struct Enable_enum_class_bitfield<PadFlags> {
-  static constexpr bool value = true;
-};
-
 /// class for averaging and grouping IDCs
 /// usage:
 /// 1. Define grouping parameters
 /// const int region = 3;
-/// IDCAverageGroup<IDCAverageGroupCRU> idcaverage(6, 4, 3, 2, region);
+/// IDCAverageGroup<IDCAverageGroupCRU> idcaverage(6, 4, 3, 2, 111, region);
 /// 2. set the ungrouped IDCs for one CRU
 /// const int nIntegrationIntervals = 3;
 /// std::vector<float> idcsungrouped(nIntegrationIntervals*Mapper::PADSPERREGION[region], 11.11); // vector containing IDCs for one region
@@ -93,12 +59,13 @@ class IDCAverageGroup : public IDCAverageGroupBase<Type>
   /// \param groupRows number of pads in row direction which will be grouped
   /// \param groupLastRowsThreshold minimum number of pads in row direction for the last group in row direction
   /// \param groupLastPadsThreshold minimum number of pads in pad direction for the last group in pad direction
-  /// \param region region of the TPC
+  /// \param groupPadsSectorEdges decoded number of pads at the sector edges which are grouped differently. First digit specifies the EdgePadGroupingMethod  (example: 0: no pads are grouped, 110: first two pads are not grouped, 3210: first pad is not grouped, second + third pads are grouped, fourth + fifth + sixth pads are grouped)
+  /// \param cru cru index
   /// \param overlapRows define parameter for additional overlapping pads in row direction
   /// \param overlapPads define parameter for additional overlapping pads in pad direction
   template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (std::is_same<Type, IDCAverageGroupCRU>::value)), int>::type = 0>
-  IDCAverageGroup(const unsigned char groupPads = 4, const unsigned char groupRows = 4, const unsigned char groupLastRowsThreshold = 2, const unsigned char groupLastPadsThreshold = 2, const unsigned int region = 0, const Sector sector = Sector{0}, const unsigned char overlapRows = 0, const unsigned char overlapPads = 0)
-    : IDCAverageGroupBase<Type>{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, region, sector, sNThreads}, mOverlapRows{overlapRows}, mOverlapPads{overlapPads}
+  IDCAverageGroup(const unsigned char groupPads = 4, const unsigned char groupRows = 4, const unsigned char groupLastRowsThreshold = 2, const unsigned char groupLastPadsThreshold = 2, const unsigned int groupPadsSectorEdges = 0, const unsigned short cru = 0, const unsigned char overlapRows = 0, const unsigned char overlapPads = 0)
+    : IDCAverageGroupBase<Type>{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges, cru, sNThreads}, mOverlapRows{overlapRows}, mOverlapPads{overlapPads}
   {
     init();
   }
@@ -107,25 +74,19 @@ class IDCAverageGroup : public IDCAverageGroupBase<Type>
   /// \param groupRows number of pads in row direction which will be grouped
   /// \param groupLastRowsThreshold minimum number of pads in row direction for the last group in row direction
   /// \param groupLastPadsThreshold minimum number of pads in pad direction for the last group in pad direction
+  /// \param groupPadsSectorEdges decoded number of pads at the sector edges which are grouped differently. First digit specifies the EdgePadGroupingMethod  (example: 0: no pads are grouped, 110: first two pads are not grouped, 3210: first pad is not grouped, second + third pads are grouped, fourth + fifth + sixth pads are grouped)
   /// \param overlapRows define parameter for additional overlapping pads in row direction
   /// \param overlapPads define parameter for additional overlapping pads in pad direction
   template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (std::is_same<Type, IDCAverageGroupTPC>::value)), int>::type = 0>
-  IDCAverageGroup(const std::array<unsigned char, Mapper::NREGIONS>& groupPads = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, const std::array<unsigned char, Mapper::NREGIONS>& groupRows = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, const std::array<unsigned char, Mapper::NREGIONS>& groupLastRowsThreshold = {}, const std::array<unsigned char, Mapper::NREGIONS>& groupLastPadsThreshold = {}, const unsigned char overlapRows = 0, const unsigned char overlapPads = 0)
-    : IDCAverageGroupBase<Type>{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, sNThreads}, mOverlapRows{overlapRows}, mOverlapPads{overlapPads}
+  IDCAverageGroup(const std::array<unsigned char, Mapper::NREGIONS>& groupPads = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, const std::array<unsigned char, Mapper::NREGIONS>& groupRows = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, const std::array<unsigned char, Mapper::NREGIONS>& groupLastRowsThreshold = {}, const std::array<unsigned char, Mapper::NREGIONS>& groupLastPadsThreshold = {}, const unsigned int groupPadsSectorEdges = 0, const unsigned char overlapRows = 0, const unsigned char overlapPads = 0)
+    : IDCAverageGroupBase<Type>{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges, sNThreads}, mOverlapRows{overlapRows}, mOverlapPads{overlapPads}
   {
     init();
   }
 
-  /// Update pad flag map from a local file
-  /// \param file file containing the caldet map  with the flags
-  // \param objName name of the object (TODO use a fixed name)
-  void updatePadStatusMapFromFile(const char* file, const char* objName);
-
-  /// TODO: Update pad flag map from the CCDB
-  // void updatePadStatusMapFromCCDB(const char* file, const char* objName);
-
   /// grouping and averaging of IDCs
-  void processIDCs();
+  /// \param padStatusFlags pointer to map containing status flags for each pad to skip dead pads etc.
+  void processIDCs(const CalDet<PadFlags>* padStatusFlags = nullptr);
 
   /// draw plot with information about the performed grouping
   /// \param filename name of the output file. If empty the name is chosen automatically
@@ -135,16 +96,6 @@ class IDCAverageGroup : public IDCAverageGroupBase<Type>
   /// \param outFileName name of the output file
   /// \param outName name of the object in the output file
   void dumpToFile(const char* outFileName = "IDCAverageGroup.root", const char* outName = "IDCAverageGroup") const;
-
-  /// draw the status map for the flags (for debugging) for a sector
-  /// \param sector sector which will be drawn
-  /// \param filename name of the output file. If empty the canvas is drawn.
-  void drawPadStatusMapSector(const unsigned int sector, const std::string filename = "PadStatusFlags_Sector.pdf") const { drawPadStatusMap(false, Sector(sector), filename); }
-
-  /// draw the status map for the flags (for debugging) for a full side
-  /// \param side side which will be drawn
-  /// \param filename name of the output file. If empty the canvas is drawn.
-  void drawPadStatusMapSide(const o2::tpc::Side side, const std::string filename = "PadStatusFlags_Side.pdf") const { drawPadStatusMap(true, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), filename); }
 
   /// get the number of threads used for some of the calculations
   static int getNThreads() { return sNThreads; }
@@ -161,10 +112,6 @@ class IDCAverageGroup : public IDCAverageGroupBase<Type>
   /// set the number of threads used for some of the calculations
   static void setNThreads(const int nThreads) { sNThreads = nThreads; }
 
-  /// Set pad flag map directly
-  /// \param padStatus CalDet containing for each pad the status flag
-  void setPadStatusMap(const CalDet<PadFlags>& padStatus) { mPadStatus = std::make_unique<CalDet<PadFlags>>(padStatus); }
-
   /// load ungrouped and grouped IDCs from File
   /// \param fileName name of the input file
   /// \param name name of the object in the output file
@@ -180,10 +127,9 @@ class IDCAverageGroup : public IDCAverageGroupBase<Type>
   static void createDebugTreeForAllCRUs(const char* nameFile, const char* filename);
 
  private:
-  inline static int sNThreads{1};                                                                                                 ///< number of threads which are used during the calculations
-  const unsigned char mOverlapRows{0};                                                                                            ///< additional/overlapping pads in row direction (TODO overlap per region)
-  const unsigned char mOverlapPads{0};                                                                                            ///< additional/overlapping pads in pad direction (TODO overlap per region)
-  std::unique_ptr<CalDet<PadFlags>> mPadStatus{std::make_unique<CalDet<PadFlags>>(CalDet<PadFlags>("flags", PadSubset::Region))}; ///< status flag for each pad (i.e. if the pad is dead)
+  inline static int sNThreads{1};      ///< number of threads which are used during the calculations
+  const unsigned char mOverlapRows{0}; ///< additional/overlapping pads in row direction (TODO overlap per region)
+  const unsigned char mOverlapPads{0}; ///< additional/overlapping pads in pad direction (TODO overlap per region)
 
   /// init function
   void init();
@@ -199,10 +145,13 @@ class IDCAverageGroup : public IDCAverageGroupBase<Type>
   /// perform the loop over the IDCs by either perform the grouping or the drawing
   /// \param type containing necessary methods for either perform the grouping or the drawing
   template <class LoopType>
-  void loopOverGroups(IDCAverageGroupHelper<LoopType>& idcStruct);
+  void loopOverGroups(IDCAverageGroupHelper<LoopType>& idcStruct, const CalDet<PadFlags>* padStatusFlags = nullptr);
 
-  /// helper function for drawing
-  void drawPadStatusMap(const bool type, const Sector sector, const std::string filename) const;
+  /// draw information of the grouping on the pads (grouping parameters and number of grouped pads)
+  void drawGroupingInformations(const int region, const int grPads, const int grRows, const int groupLastRowsThreshold, const int groupLastPadsThreshold, const int overlapRows, const int overlapPads, const int nIDCs, const int groupPadsSectorEdges) const;
+
+  /// Helper function for drawing
+  void drawLatex(IDCAverageGroupHelper<IDCAverageGroupDraw>& idcStruct, const GlobalPadNumber padNum, const unsigned int padInRegion, const bool fillPoly, const int colOffs = 0) const;
 
   ClassDefNV(IDCAverageGroup, 1)
 };

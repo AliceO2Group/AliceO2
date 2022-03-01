@@ -20,7 +20,7 @@ namespace o2
 namespace mid
 {
 //______________________________________________________________________________
-MpArea::MpArea(float x1, float y1, float x2, float y2) : mPositions()
+MpArea::MpArea(double x1, double y1, double x2, double y2) : mPositions()
 {
   /// Constructor
   mPositions[0] = (x1 < x2) ? x1 : x2;
@@ -30,28 +30,28 @@ MpArea::MpArea(float x1, float y1, float x2, float y2) : mPositions()
 }
 
 //______________________________________________________________________________
-float MpArea::getCenterX() const
+double MpArea::getCenterX() const
 {
   /// Return x position of the area center
   return 0.5 * (getXmax() + getXmin());
 }
 
 //______________________________________________________________________________
-float MpArea::getCenterY() const
+double MpArea::getCenterY() const
 {
   /// Return y position of the area center
   return 0.5 * (getYmax() + getYmin());
 }
 
 //______________________________________________________________________________
-float MpArea::getHalfSizeX() const
+double MpArea::getHalfSizeX() const
 {
   /// Return half size in x
   return 0.5 * (getXmax() - getXmin());
 }
 
 //______________________________________________________________________________
-float MpArea::getHalfSizeY() const
+double MpArea::getHalfSizeY() const
 {
   /// Return half size in y
   return 0.5 * (getYmax() - getYmin());

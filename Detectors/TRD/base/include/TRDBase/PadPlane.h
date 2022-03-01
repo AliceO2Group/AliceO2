@@ -164,7 +164,7 @@ class PadPlane
   GPUd() double getWidthIPad() const { return mWidthIPad; };
   GPUd() double getAnodeWireOffset() const { return mAnodeWireOffset; };
 
- protected:
+ private:
   static constexpr int MAXCOLS = 144;
   static constexpr int MAXROWS = 16;
 
@@ -205,8 +205,7 @@ class PadPlane
   double mInverseWidthIPad; // 1 / mWidthIPad
   double mInverseWidthOPad; // 1 / mWidthOPad
 
- private:
-  ClassDefNV(PadPlane, 1); //  TRD ROC pad plane
+  ClassDefNV(PadPlane, 2); //  TRD ROC pad plane
 };
 } // namespace trd
 } // namespace o2

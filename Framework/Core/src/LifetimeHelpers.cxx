@@ -189,69 +189,11 @@ size_t readToMessage(void* p, size_t size, size_t nmemb, void* userdata)
   if (size == 0) {
     return 0;
   }
-  o2::vector<char>* buffer = (o2::vector<char>*)userdata;
+  o2::pmr::vector<char>* buffer = (o2::pmr::vector<char>*)userdata;
   size_t oldSize = buffer->size();
   buffer->resize(oldSize + nmemb * size);
   memcpy(buffer->data() + oldSize, p, nmemb * size);
   return size * nmemb;
-}
-
-ExpirationHandler::Checker
-  LifetimeHelpers::expectCTP(std::string const& serverUrl, bool waitForCTP)
-{
-  return [serverUrl, waitForCTP](ServiceRegistry& services, int64_t timestamp) -> bool {
-    auto& dataTakingContext = services.get<DataTakingContext>();
-    if (waitForCTP == false || dataTakingContext.source == OrbitResetTimeSource::CTP) {
-      return true;
-    }
-    LOG(info) << "CTP is not there, fetching.";
-    std::vector<char> buffer;
-    CURL* curl = curl_easy_init();
-    if (curl == nullptr) {
-      throw runtime_error("fetchFromCCDBCache: Unable to initialise CURL");
-    }
-    CURLcode res;
-    std::string path = "CTP/Calib/OrbitReset";
-    auto url = fmt::format("{}/{}/{}", serverUrl, path, timestamp / 1000);
-    LOG(info) << "Fetching CTP from " << url;
-
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buffer);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, readToBuffer);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
-
-    res = curl_easy_perform(curl);
-    if (res != CURLE_OK) {
-      throw runtime_error_f("Unable to fetch %s from CCDB", url.c_str());
-    }
-    long responseCode;
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-
-    if (responseCode != 200) {
-      throw runtime_error_f("HTTP error %d while fetching %s from CCDB", responseCode, url.c_str());
-    }
-
-    curl_easy_cleanup(curl);
-
-    Int_t previousErrorLevel = gErrorIgnoreLevel;
-    gErrorIgnoreLevel = kFatal;
-    TMemFile memFile("name", const_cast<char*>(buffer.data()), buffer.size(), "READ");
-    gErrorIgnoreLevel = previousErrorLevel;
-    if (memFile.IsZombie()) {
-      return false;
-    }
-    TClass* tcl = TClass::GetClass(typeid(std::vector<Long64_t>));
-    void* result = ccdb::CcdbApi::extractFromTFile(memFile, tcl);
-    if (!result) {
-      throw runtime_error_f("Couldn't retrieve object corresponding to %s from TFile", tcl->GetName());
-    }
-    memFile.Close();
-    std::vector<Long64_t>* ctp = (std::vector<Long64_t>*)result;
-    LOG(info) << "Orbit reset time now at " << (*ctp)[0];
-    dataTakingContext.orbitResetTime = (*ctp)[0];
-    dataTakingContext.source = OrbitResetTimeSource::CTP;
-    return true;
-  };
 }
 
 /// Fetch an object from CCDB if the record is expired. The actual
@@ -290,7 +232,7 @@ ExpirationHandler::Handler
 
     auto&& transport = rawDeviceService.device()->GetChannel(sourceChannel, 0).Transport();
     auto channelAlloc = o2::pmr::getTransportAllocator(transport);
-    o2::vector<char> payloadBuffer{transport->GetMemoryResource()};
+    o2::pmr::vector<char> payloadBuffer{transport->GetMemoryResource()};
     payloadBuffer.reserve(10000); // we begin with messages of 10KB
 
     CURL* curl = curl_easy_init();
@@ -366,7 +308,7 @@ ExpirationHandler::Handler
 
     DataProcessingHeader dph{timestamp, 1};
     auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
-    auto payload = o2::pmr::getMessage(std::forward<o2::vector<char>>(payloadBuffer), transport->GetMemoryResource());
+    auto payload = o2::pmr::getMessage(std::forward<o2::pmr::vector<char>>(payloadBuffer), transport->GetMemoryResource());
 
     ref.header = std::move(header);
     ref.payload = std::move(payload);
@@ -428,6 +370,7 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     auto& rawDeviceService = services.get<RawDeviceService>();
 
     auto timestamp = VariableContextHelpers::getTimeslice(variables).value;
+    LOGP(debug, "Enumerating record");
     DataHeader dh;
     dh.dataOrigin = matcher.origin;
     dh.dataDescription = matcher.description;

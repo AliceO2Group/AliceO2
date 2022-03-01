@@ -17,7 +17,7 @@
 #include "Framework/Task.h"
 #include "Framework/Lifetime.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include <TFile.h>
 #include <FairLogger.h>
 #include <memory> // for make_shared, make_unique, unique_ptr
@@ -103,6 +103,7 @@ class GRPDPLUpdatedTask
         }
         grp->setDetROMode(det, roMode);
       }
+      grp->setIsMC(true);
       grp->setFirstOrbit(o2::raw::HBFUtils::Instance().orbitFirst);
       grp->setNHBFPerTF(o2::raw::HBFUtils::Instance().nHBFPerTF);
       LOG(info) << "Updated GRP in " << mGRPFileName << " for detectors RO mode and 1st orbit of the run";

@@ -16,7 +16,7 @@
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "DetectorsVertexing/VertexTrackMatcher.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterGas.h"
@@ -118,28 +118,20 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
       // track matches to vertex, register
       vtxList.push_back(vto.origID); // flag matching vertex
     }
-    if ((tro.origID.getSource() == GIndex::Source::MFT) || (tro.origID.getSource() == GIndex::Source::MFTMCH)) { // Fwd tracks are treated differently: tracks with unresolved ambiguities are marked as orphans -> unassigned
-      if (vtxList.size() == 1) {
-        nAssigned++;
-        tmpMap[vtxList[0]].emplace_back(tro.origID).setAmbiguous();
-      } else {
-        orphans.emplace_back(tro.origID); // register as unassigned MFT track
+    if (vtxList.size()) {
+      nAssigned++;
+      bool ambig = vtxList.size() > 1;
+      for (auto v : vtxList) {
+        auto& ref = tmpMap[v].emplace_back(tro.origID);
+        if (ambig) {
+          ref.setAmbiguous();
+        }
       }
-      if (vtxList.size() > 1) { // did track match to multiple vertices?
-        nAmbiguous++;           // Should count MFT tracks here even if they end up on the orphans/unassigned table?
+      if (ambig) { // did track match to multiple vertices?
+        nAmbiguous++;
       }
     } else {
-      if (vtxList.size()) {
-        nAssigned++;
-        for (auto v : vtxList) {
-          tmpMap[v].emplace_back(tro.origID).setAmbiguous();
-        }
-        if (vtxList.size() > 1) { // did track match to multiple vertices?
-          nAmbiguous++;
-        }
-      } else {
-        orphans.emplace_back(tro.origID); // register unassigned track
-      }
+      orphans.emplace_back(tro.origID); // register unassigned track
     }
   }
 

@@ -104,7 +104,7 @@ void CompressedInspectorTask<RDH>::run(ProcessingContext& pc)
 
       const auto* headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       auto payloadIn = ref.payload;
-      auto payloadInSize = headerIn->payloadSize;
+      auto payloadInSize = DataRefUtils::getPayloadSize(ref);
 
       DecoderBaseT<RDH>::setDecoderBuffer(payloadIn);
       DecoderBaseT<RDH>::setDecoderBufferSize(payloadInSize);

@@ -183,7 +183,7 @@ void Detector::createMaterials()
   Float_t zScint[nScint] = {1, 6};
   // TODO: Verify which of the following 2 lines is correct
   Float_t wScint[nScint] = {0.07085, 0.92915}; // based on EJ-204 datasheet: n_atoms/cm3
-  //Float_t wScint[nScint] = { 0.08528, 0.91472 }; // based on chemical composition of base: polyvinyltoluene
+  // Float_t wScint[nScint] = { 0.08528, 0.91472 }; // based on chemical composition of base: polyvinyltoluene
   const Float_t dScint = 1.023;
 
   // PMMA plastic mixture: (C5O2H8)n, same for plastic fiber support and for the fiber core
@@ -194,10 +194,13 @@ void Detector::createMaterials()
   Float_t wPlast[nPlast] = {0.08054, 0.59985, 0.31961};
   const Float_t dPlast = 1.18;
 
-  // Densities of fiber-equivalent material, for 3 radially-distributed density regions
-  Float_t dFiberInner = 0.087;
-  Float_t dFiberMiddle = 0.129;
-  Float_t dFiberOuter = 0.049;
+  // Densities of fiber-equivalent material, for five radially-distributed density regions
+  const Int_t nFiberRings = 5;
+  Float_t dFiberRings[nFiberRings] = {0.035631, 0.059611, 0.074765, 0.079451, 0.054490};
+
+  // Densities of fiber-equivalent material, for five density regions in front of the PMTs
+  const Int_t nFiberPMTs = 5;
+  Float_t dFiberPMTs[nFiberPMTs] = {0.109313, 0.217216, 0.364493, 1.373307, 1.406480};
 
   // Aluminum
   Float_t aAlu = 26.981;
@@ -210,6 +213,13 @@ void Detector::createMaterials()
   Float_t zTitanium[nTitanium] = {22, 13, 23};
   Float_t wTitanium[nTitanium] = {0.9, 0.06, 0.04};
   const Float_t dTitanium = 4.42;
+
+  // Mixture of elements found in the PMTs
+  const Int_t nPMT = 14;
+  Float_t aPMT[nPMT] = {63.546, 65.38, 28.085, 15.999, 12.011, 1.008, 14.007, 55.845, 51.996, 10.81, 121.76, 132.91, 9.0122, 26.982};
+  Float_t zPMT[nPMT] = {29, 30, 14, 8, 6, 1, 7, 26, 24, 5, 51, 55, 4, 13};
+  Float_t wPMT[nPMT] = {0.07, 0.02, 0.14, 0.21, 0.11, 0.02, 0.02, 0.04, 0.01, 0.01, 0.00, 0.00, 0.01, 0.34};
+  const Float_t dPMT = Geometry::getPmtDensity();
 
   Int_t matId = 0;                  // tmp material id number
   const Int_t unsens = 0, sens = 1; // sensitive or unsensitive medium
@@ -241,17 +251,17 @@ void Detector::createMaterials()
   o2::base::Detector::Medium(Plastic, "Plastic$", matId, unsens, fieldType, maxField,
                              tmaxfd, stemax, deemax, epsil, stmin);
 
-  o2::base::Detector::Mixture(++matId, "FiberInner$", aPlast, zPlast, dFiberInner, nPlast, wPlast);
-  o2::base::Detector::Medium(FiberInner, "FiberInner$", matId, unsens, fieldType, maxField,
-                             tmaxfd, stemax, deemax, epsil, stmin);
+  for (int i = 0; i < nFiberRings; i++) {
+    o2::base::Detector::Mixture(++matId, Form("FiberRing%i$", i + 1), aPlast, zPlast, dFiberRings[i], nPlast, wPlast);
+    o2::base::Detector::Medium(FiberRing1 + i, Form("FiberRing%i$", i + 1), matId, unsens, fieldType, maxField,
+                               tmaxfd, stemax, deemax, epsil, stmin);
+  }
 
-  o2::base::Detector::Mixture(++matId, "FiberMiddle$", aPlast, zPlast, dFiberMiddle, nPlast, wPlast);
-  o2::base::Detector::Medium(FiberMiddle, "FiberMiddle$", matId, unsens, fieldType, maxField,
-                             tmaxfd, stemax, deemax, epsil, stmin);
-
-  o2::base::Detector::Mixture(++matId, "FiberOuter$", aPlast, zPlast, dFiberOuter, nPlast, wPlast);
-  o2::base::Detector::Medium(FiberOuter, "FiberOuter$", matId, unsens, fieldType, maxField,
-                             tmaxfd, stemax, deemax, epsil, stmin);
+  for (int i = 0; i < nFiberPMTs; i++) {
+    o2::base::Detector::Mixture(++matId, Form("FiberPMT%i$", i + 1), aPlast, zPlast, dFiberPMTs[i], nPlast, wPlast);
+    o2::base::Detector::Medium(FiberPMT1 + i, Form("FiberPMT%i$", i + 1), matId, unsens, fieldType, maxField,
+                               tmaxfd, stemax, deemax, epsil, stmin);
+  }
 
   o2::base::Detector::Material(++matId, "Aluminium$", aAlu, zAlu, dAlu, 8.9, 999);
   o2::base::Detector::Medium(Aluminium, "Aluminium$", matId, unsens, fieldType, maxField,
@@ -259,6 +269,10 @@ void Detector::createMaterials()
 
   o2::base::Detector::Mixture(++matId, "Titanium$", aTitanium, zTitanium, dTitanium, nTitanium, wTitanium);
   o2::base::Detector::Medium(Titanium, "Titanium$", matId, unsens, fieldType, maxField,
+                             tmaxfd, stemax, deemax, epsil, stmin);
+
+  o2::base::Detector::Mixture(++matId, "PMT$", aPMT, zPMT, dPMT, nPMT, wPMT);
+  o2::base::Detector::Medium(PMT, "PMT$", matId, unsens, fieldType, maxField,
                              tmaxfd, stemax, deemax, epsil, stmin);
 
   LOG(debug) << "FV0 Detector::createMaterials(): matId = " << matId;
@@ -286,7 +300,7 @@ void Detector::addAlignableVolumes() const
   //  First version (mainly ported from AliRoot)
   //
 
-  LOG(info) << "Add FV0 alignable volumes";
+  LOG(info) << "FV0: Add alignable volumes";
 
   if (!gGeoManager) {
     LOG(fatal) << "TGeoManager doesn't exist !";
@@ -294,12 +308,12 @@ void Detector::addAlignableVolumes() const
   }
 
   TString volPath, symName;
-  for (int ihalf = 1; ihalf < 3; ihalf++) {
-    volPath = Form("/cave_1/barrel_1/FV0_1/FV0CONTAINER_%i", ihalf);
-    symName = Form("FV0half_%i", ihalf);
-    LOG(info) << symName << " <-> " << volPath;
+  for (auto& half : {"RIGHT_0", "LEFT_1"}) {
+    volPath = Form("/cave_1/barrel_1/FV0_1/FV0%s", half);
+    symName = Form("FV0%s", half);
+    LOG(info) << "FV0: Add alignable volume: " << symName << ": " << volPath;
     if (!gGeoManager->SetAlignableEntry(symName.Data(), volPath.Data())) {
-      LOG(fatal) << "Unable to set alignable entry ! " << symName << " : " << volPath;
+      LOG(fatal) << "FV0: Unable to set alignable entry! " << symName << ": " << volPath;
     }
   }
 }

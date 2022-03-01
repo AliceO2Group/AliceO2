@@ -48,13 +48,17 @@ constexpr int NROBC0 = 6;       // the number of ROBs per C0 chamber
 constexpr int NROBC1 = 8;       // the number of ROBs per C1 chamber
 constexpr int NADCMCM = 21;     // the number of ADC channels per MCM
 constexpr int NCOLMCM = 18;     // the number of pads per MCM
+constexpr int NCPU = 4;         // the number of CPUs inside the TRAP chip
 
+// the values below should come out of the TRAP config in the future
 constexpr int NBITSTRKLPOS = 11;                   // number of bits for position in tracklet64 word
 constexpr int NBITSTRKLSLOPE = 8;                  // number of bits for slope in tracklet64 word
-constexpr float PADGRANULARITYTRKLPOS = 40.f;      // TODO this should come out of the trapconfig.
-constexpr float PADGRANULARITYTRKLSLOPE = 1000.f;
+constexpr int ADDBITSHIFTSLOPE = 1 << 3;           // in the TRAP the slope is shifted by 3 additional bits compared to the position
+constexpr int PADGRANULARITYTRKLPOS = 40;          // tracklet position is stored in units of 1/40 pad
+constexpr int PADGRANULARITYTRKLSLOPE = 128;       // tracklet deflection is stored in units of 1/128 pad per time bin
 constexpr float GRANULARITYTRKLPOS = 1.f / PADGRANULARITYTRKLPOS;     // granularity of position in tracklet64 word in pad-widths
 constexpr float GRANULARITYTRKLSLOPE = 1.f / PADGRANULARITYTRKLSLOPE; // granularity of slope in tracklet64 word in pads/timebin
+constexpr int ADCBASELINE = 10;                                       // baseline in ADC units
 
 // OS: Should this not be flexible for example in case of Kr calib?
 constexpr int TIMEBINS = 30; // the number of time bins
@@ -69,6 +73,8 @@ constexpr double BUSY_TIME = READOUT_TIME + DEAD_TIME; // the time for which no 
 // array size to store incoming half cru payload.
 constexpr int HBFBUFFERMAX = 1048576;         // max buffer size for data read from a half cru, (all events)
 constexpr int CRUPADDING32 = 0xeeeeeeee;      // padding word used in the cru.
+constexpr int CHANNELNRNOTRKLT = 23;          // this marks channels in the ADC mask which don't contribute to a tracklet
+constexpr int NOTRACKLETFIT = 31;             // this value is assigned to the fit pointer in case no tracklet is available
 constexpr int TRACKLETENDMARKER = 0x10001000; // marker for the end of tracklets in raw data, 2 of these.
 constexpr int DIGITENDMARKER = 0x0;           // marker for the end of digits in raw data, 2 of these
 constexpr int MAXDATAPERLINK32 = 13824;       // max number of 32 bit words per link ((21x12+2+4)*64) 64 mcm, 21 channels, 10 words per channel 2 header words(DigitMCMHeader DigitMCMADCmask) 4 words for tracklets.

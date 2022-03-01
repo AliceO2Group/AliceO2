@@ -12,6 +12,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "CCDBPopulatorSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 
@@ -20,6 +21,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
+    {"name-extention", VariantType::String, "", {"optional extention of device name"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
@@ -42,6 +44,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  specs.emplace_back(getCCDBPopulatorDeviceSpec());
+  specs.emplace_back(getCCDBPopulatorDeviceSpec(o2::base::NameConf::getCCDBServer(), configcontext.options().get<std::string>("name-extention")));
   return specs;
 }

@@ -1,0 +1,10 @@
+"id","method","name","bad","obsolete"
+1,"Unknown","Unknown",1,0
+2,"ProcessingError","Processing Error",1,0
+3,"MissingQualityObject","Missing Quality Object",1,0
+4,"MissingQuality","Missing Quality",1,0
+10,"DetectorOff","Detector off",1,0
+11,"LimitedAcceptance","Limited acceptance",1,0
+65500,"ObsoleteFlagExample","Obsolete flag example",1,1
+65501,"NotBadFlagExample","Not bad flag example",0,0
+65535,"Invalid","Invalid",1,0

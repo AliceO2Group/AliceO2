@@ -68,9 +68,9 @@ o2_add_executable(raw-to-digits-workflow
                   SOURCES src/tpc-raw-to-digits-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
-o2_add_executable(calib-pedestal
+o2_add_executable(calib-pad-raw
                   COMPONENT_NAME tpc
-                  SOURCES src/tpc-calib-pedestal.cxx
+                  SOURCES src/tpc-calib-pad-raw.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_executable(laser-tracks-calibrator
@@ -173,6 +173,11 @@ o2_add_executable(track-and-cluster-filter
                   SOURCES src/track-and-cluster-filter.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
+o2_add_executable(calib-gainmap-tracks
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-calib-gainmap-tracks.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow O2::GlobalTracking)
+
 o2_add_test(workflow
             COMPONENT_NAME tpc
             LABELS tpc workflow
@@ -188,6 +193,11 @@ o2_add_executable(digits-to-rawzs
 o2_add_executable(monitor-workflow
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-monitor-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(calibrator-gainmap-tracks
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-calibrator-gainmap-tracks.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 add_subdirectory(readers)

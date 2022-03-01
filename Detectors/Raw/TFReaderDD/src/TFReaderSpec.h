@@ -16,6 +16,7 @@
 
 #include "Framework/WorkflowSpec.h"
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "Headers/DataHeader.h"
 
 namespace o2
 {
@@ -39,6 +40,8 @@ struct TFReaderInp {
   int64_t delay_us = 0;
   int maxLoops = 0;
   int maxTFs = -1;
+  bool sendDummyForMissing = true;
+  std::vector<o2::header::DataHeader> hdVec;
 };
 
 o2::framework::DataProcessorSpec getTFReaderSpec(o2::rawdd::TFReaderInp& rinp);

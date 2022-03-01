@@ -19,7 +19,7 @@
 
 #endif
 
-using timePoint = std::time_t;
+using timePoint = long;
 using DetID = o2::detectors::DetID;
 using CcdbApi = o2::ccdb::CcdbApi;
 using GRPECSObject = o2::parameters::GRPECSObject;
@@ -27,7 +27,7 @@ using GRPECSObject = o2::parameters::GRPECSObject;
 // Simple macro to exemplify how to fill a GRPECS object (GRP object containing the information that come from ECS)
 
 // The list of detectors in the readout, read-out continuously, or in the trigger are passed as DetID::mask_it; this is a std::bitset<32>, with the following meaning per bit:
-// {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", "CTP"}
+// {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "TST", "CTP"}
 
 // e.g.
 /*
@@ -56,7 +56,7 @@ void CreateGRPECSObject(timePoint start, uint32_t nHBPerTF, DetID::mask_t detsRe
   api.init(ccdbPath);
   std::map<std::string, std::string> metadata;
   metadata["responsible"] = "ECS";
-  metadata["run_number"] = std::to_string(run);
+  metadata[o2::base::NameConf::CCDBRunTag.data()] = std::to_string(run);
   //long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
   if (end < 0) {
     end = (start + 60 * 60 * 10) * 1000; // start + 10h, in ms

@@ -16,11 +16,13 @@
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigContext.h"
+#include "Framework/Condition.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Expressions.h"
 #include "Framework/ExpressionHelpers.h"
 #include "Framework/EndOfStreamContext.h"
+#include "Framework/GroupSlicer.h"
 #include "Framework/Logger.h"
 #include "Framework/StructToTuple.h"
 #include "Framework/FunctionalHelpers.h"
@@ -52,88 +54,8 @@ namespace o2::framework
 struct AnalysisTask {
 };
 
-namespace
-{
-template <typename B, typename C>
-constexpr static bool isIndexTo()
-{
-  if constexpr (soa::is_type_with_binding_v<C>) {
-    if constexpr (soa::is_soa_index_table_t<std::decay_t<B>>::value) {
-      using T = typename std::decay_t<B>::first_t;
-      if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
-        using TT = typename framework::pack_element_t<0, typename std::decay_t<T>::originals>;
-        return std::is_same_v<typename C::binding_t, TT>;
-      } else {
-        using TT = std::decay_t<T>;
-        return std::is_same_v<typename C::binding_t, TT>;
-      }
-    } else {
-      if constexpr (soa::is_type_with_originals_v<std::decay_t<B>>) {
-        using TT = typename framework::pack_element_t<0, typename std::decay_t<B>::originals>;
-        return std::is_same_v<typename C::binding_t, TT>;
-      } else {
-        using TT = std::decay_t<B>;
-        return std::is_same_v<typename C::binding_t, TT>;
-      }
-    }
-  }
-  return false;
-}
-
-template <typename B, typename C>
-constexpr static bool isSortedIndexTo()
-{
-  if constexpr (soa::is_type_with_binding_v<C>) {
-    if constexpr (soa::is_soa_index_table_t<std::decay_t<B>>::value) {
-      using T = typename std::decay_t<B>::first_t;
-      if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
-        using TT = typename framework::pack_element_t<0, typename std::decay_t<T>::originals>;
-        return std::is_same_v<typename C::binding_t, TT> && C::sorted;
-      } else {
-        using TT = std::decay_t<T>;
-        return std::is_same_v<typename C::binding_t, TT> && C::sorted;
-      }
-    } else {
-      if constexpr (soa::is_type_with_originals_v<std::decay_t<B>>) {
-        using TT = typename framework::pack_element_t<0, typename std::decay_t<B>::originals>;
-        return std::is_same_v<typename C::binding_t, TT> && C::sorted;
-      } else {
-        using TT = std::decay_t<B>;
-        return std::is_same_v<typename C::binding_t, TT> && C::sorted;
-      }
-    }
-  }
-  return false;
-}
-
-template <typename B, typename... C>
-constexpr static bool hasIndexTo(framework::pack<C...>&&)
-{
-  return (isIndexTo<B, C>() || ...);
-}
-
-template <typename B, typename... C>
-constexpr static bool hasSortedIndexTo(framework::pack<C...>&&)
-{
-  return (isSortedIndexTo<B, C>() || ...);
-}
-
-template <typename B, typename Z>
-constexpr static bool relatedByIndex()
-{
-  return hasIndexTo<B>(typename Z::persistent_columns_t{});
-}
-
-template <typename B, typename Z>
-constexpr static bool relatedBySortedIndex()
-{
-  return hasSortedIndexTo<B>(typename Z::persistent_columns_t{});
-}
-} // namespace
-
 // Helper struct which builds a DataProcessorSpec from
 // the contents of an AnalysisTask...
-
 struct AnalysisDataProcessorBuilder {
   template <typename T>
   static ConfigParamSpec getSpec()
@@ -147,16 +69,33 @@ struct AnalysisDataProcessorBuilder {
   }
 
   template <typename... T>
-  static std::vector<ConfigParamSpec> getInputSpecs(framework::pack<T...>)
+  static inline std::vector<ConfigParamSpec> getInputSpecs(framework::pack<T...>)
   {
     return std::vector{getSpec<T>()...};
   }
 
   template <typename T>
-  static std::vector<ConfigParamSpec> getIndexSources()
+  static inline auto getSources()
   {
-    static_assert(soa::is_soa_index_table_t<T>::value, "Can only be used with IndexTable");
-    return getInputSpecs(typename T::sources_t{});
+    if constexpr (soa::is_soa_index_table_t<T>::value) {
+      return getInputSpecs(typename T::sources_t{});
+    } else if constexpr (soa::is_soa_extension_table_v<std::decay_t<T>>) {
+      return getInputSpecs(typename aod::MetadataTrait<T>::metadata::sources{});
+    } else {
+      always_static_assert<T>("Can be only used with index or extension table");
+    }
+  }
+
+  template <typename T>
+  static auto getInputMetadata()
+  {
+    std::vector<ConfigParamSpec> inputMetadata;
+    auto inputSources = getSources<T>();
+    std::sort(inputSources.begin(), inputSources.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name < b.name; });
+    auto last = std::unique(inputSources.begin(), inputSources.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name == b.name; });
+    inputSources.erase(last, inputSources.end());
+    inputMetadata.insert(inputMetadata.end(), inputSources.begin(), inputSources.end());
+    return inputMetadata;
   }
 
   template <typename Arg>
@@ -167,25 +106,12 @@ struct AnalysisDataProcessorBuilder {
                   "Could not find metadata. Did you register your type?");
     std::vector<ConfigParamSpec> inputMetadata;
     inputMetadata.emplace_back(ConfigParamSpec{std::string{"control:"} + name, VariantType::Bool, value, {"\"\""}});
-    if constexpr (soa::is_soa_index_table_t<std::decay_t<Arg>>::value) {
-      auto inputSources = getIndexSources<std::decay_t<Arg>>();
-      std::sort(inputSources.begin(), inputSources.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name < b.name; });
-      auto last = std::unique(inputSources.begin(), inputSources.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name == b.name; });
-      inputSources.erase(last, inputSources.end());
+    if constexpr (soa::is_soa_index_table_t<std::decay_t<Arg>>::value || soa::is_soa_extension_table_v<std::decay_t<Arg>>) {
+      auto inputSources = getInputMetadata<std::decay_t<Arg>>();
       inputMetadata.insert(inputMetadata.end(), inputSources.begin(), inputSources.end());
     }
-    auto locate = std::find_if(inputs.begin(), inputs.end(), [](InputSpec& input) { return input.binding == metadata::tableLabel(); });
-    if (locate != inputs.end()) {
-      // amend entry
-      auto& entryMetadata = locate->metadata;
-      entryMetadata.insert(entryMetadata.end(), inputMetadata.begin(), inputMetadata.end());
-      std::sort(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name < b.name; });
-      auto new_end = std::unique(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name == b.name; });
-      entryMetadata.erase(new_end, entryMetadata.end());
-    } else {
-      // add entry
-      inputs.push_back(InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), Lifetime::Timeframe, inputMetadata});
-    }
+    auto newInput = InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), Lifetime::Timeframe, inputMetadata};
+    DataSpecUtils::updateInputList(inputs, std::move(newInput));
   }
 
   template <typename... Args>
@@ -316,251 +242,6 @@ struct AnalysisDataProcessorBuilder {
   template <typename T, typename C>
   using is_external_index_to_t = std::is_same<typename C::binding_t, T>;
 
-  template <typename G, typename... A>
-  struct GroupSlicer {
-    using grouping_t = std::decay_t<G>;
-    GroupSlicer(G& gt, std::tuple<A...>& at)
-      : max{gt.size()},
-        mBegin{GroupSlicerIterator(gt, at)}
-    {
-    }
-
-    struct GroupSlicerSentinel {
-      int64_t position;
-    };
-
-    struct GroupSlicerIterator {
-      using associated_pack_t = framework::pack<A...>;
-
-      GroupSlicerIterator() = default;
-      GroupSlicerIterator(GroupSlicerIterator const&) = default;
-      GroupSlicerIterator(GroupSlicerIterator&&) = default;
-      GroupSlicerIterator& operator=(GroupSlicerIterator const&) = default;
-      GroupSlicerIterator& operator=(GroupSlicerIterator&&) = default;
-
-      template <typename Z>
-      std::string getLabelFromType()
-      {
-        if constexpr (soa::is_soa_index_table_t<std::decay_t<Z>>::value) {
-          using T = typename std::decay_t<Z>::first_t;
-          if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
-            using O = typename framework::pack_element_t<0, typename std::decay_t<Z>::originals>;
-            using groupingMetadata = typename aod::MetadataTrait<O>::metadata;
-            return groupingMetadata::tableLabel();
-          } else {
-            using groupingMetadata = typename aod::MetadataTrait<T>::metadata;
-            return groupingMetadata::tableLabel();
-          }
-        } else if constexpr (soa::is_type_with_originals_v<std::decay_t<Z>>) {
-          using T = typename framework::pack_element_t<0, typename std::decay_t<Z>::originals>;
-          using groupingMetadata = typename aod::MetadataTrait<T>::metadata;
-          return groupingMetadata::tableLabel();
-        } else {
-          using groupingMetadata = typename aod::MetadataTrait<std::decay_t<Z>>::metadata;
-          return groupingMetadata::tableLabel();
-        }
-      }
-
-      template <typename T>
-      auto splittingFunction(T&& table)
-      {
-        constexpr auto index = framework::has_type_at_v<std::decay_t<T>>(associated_pack_t{});
-        if constexpr (relatedByIndex<std::decay_t<G>, std::decay_t<T>>()) {
-          auto name = getLabelFromType<std::decay_t<T>>();
-          if constexpr (!framework::is_specialization<std::decay_t<T>, soa::SmallGroups>::value) {
-            if (table.size() == 0) {
-              return;
-            }
-            // use presorted splitting approach
-            auto result = o2::framework::sliceByColumn(mIndexColumnName.c_str(),
-                                                       name.c_str(),
-                                                       table.asArrowTable(),
-                                                       static_cast<int32_t>(mGt->tableSize()),
-                                                       &groups[index],
-                                                       &offsets[index],
-                                                       &sizes[index]);
-            if (result.ok() == false) {
-              throw runtime_error("Cannot split collection");
-            }
-            if (groups[index].size() > mGt->tableSize()) {
-              throw runtime_error_f("Splitting collection %s resulted in a larger group number (%d) than there is rows in the grouping table (%d).", name.c_str(), groups[index].size(), mGt->tableSize());
-            };
-          } else {
-            if (table.tableSize() == 0) {
-              return;
-            }
-            // use generic splitting approach
-            o2::framework::sliceByColumnGeneric(mIndexColumnName.c_str(),
-                                                name.c_str(),
-                                                table.asArrowTable(),
-                                                static_cast<int32_t>(mGt->tableSize()),
-                                                &filterGroups[index]);
-          }
-        }
-      }
-
-      template <typename T>
-      auto extractingFunction(T&& table)
-      {
-        if constexpr (soa::is_soa_filtered_t<std::decay_t<T>>::value) {
-          constexpr auto index = framework::has_type_at_v<std::decay_t<T>>(associated_pack_t{});
-          selections[index] = &table.getSelectedRows();
-          starts[index] = selections[index]->begin();
-          offsets[index].push_back(table.tableSize());
-        }
-      }
-
-      GroupSlicerIterator(G& gt, std::tuple<A...>& at)
-        : mIndexColumnName{std::string("fIndex") + getLabelFromType<G>()},
-          mGt{&gt},
-          mAt{&at},
-          mGroupingElement{gt.begin()},
-          position{0}
-      {
-        if constexpr (soa::is_soa_filtered_t<std::decay_t<G>>::value) {
-          groupSelection = mGt->getSelectedRows();
-        }
-
-        /// prepare slices and offsets for all associated tables that have index
-        /// to grouping table
-        ///
-        std::apply(
-          [&](auto&&... x) -> void {
-            (splittingFunction(x), ...);
-          },
-          at);
-        /// extract selections from filtered associated tables
-        std::apply(
-          [&](auto&&... x) -> void {
-            (extractingFunction(x), ...);
-          },
-          at);
-      }
-
-      GroupSlicerIterator& operator++()
-      {
-        ++position;
-        ++mGroupingElement;
-        return *this;
-      }
-
-      bool operator==(GroupSlicerSentinel const& other)
-      {
-        return O2_BUILTIN_UNLIKELY(position == other.position);
-      }
-
-      bool operator!=(GroupSlicerSentinel const& other)
-      {
-        return O2_BUILTIN_LIKELY(position != other.position);
-      }
-
-      auto& groupingElement()
-      {
-        return mGroupingElement;
-      }
-
-      GroupSlicerIterator& operator*()
-      {
-        return *this;
-      }
-
-      auto associatedTables()
-      {
-        return std::make_tuple(prepareArgument<A>()...);
-      }
-
-      template <typename A1>
-      auto prepareArgument()
-      {
-        constexpr auto index = framework::has_type_at_v<A1>(associated_pack_t{});
-        auto& originalTable = std::get<A1>(*mAt);
-
-        if constexpr (relatedByIndex<std::decay_t<G>, std::decay_t<A1>>()) {
-          uint64_t pos;
-          if constexpr (soa::is_soa_filtered_t<std::decay_t<G>>::value) {
-            pos = groupSelection[position];
-          } else {
-            pos = position;
-          }
-          if constexpr (!framework::is_specialization<std::decay_t<A1>, soa::SmallGroups>::value) {
-            if (originalTable.size() == 0) {
-              return originalTable;
-            }
-            // optimized split
-            if constexpr (soa::is_soa_filtered_t<std::decay_t<A1>>::value) {
-              auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[pos]).value);
-
-              // for each grouping element we need to slice the selection vector
-              auto start_iterator = std::lower_bound(starts[index], selections[index]->end(), (offsets[index])[pos]);
-              auto stop_iterator = std::lower_bound(start_iterator, selections[index]->end(), (offsets[index])[pos] + (sizes[index])[pos]);
-              starts[index] = stop_iterator;
-              soa::SelectionVector slicedSelection{start_iterator, stop_iterator};
-              std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
-                             [&](int64_t idx) {
-                               return idx - static_cast<int64_t>((offsets[index])[pos]);
-                             });
-
-              std::decay_t<A1> typedTable{{groupedElementsTable}, std::move(slicedSelection), (offsets[index])[pos]};
-              typedTable.bindInternalIndicesTo(&originalTable);
-              return typedTable;
-            } else {
-              auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[pos]).value);
-              std::decay_t<A1> typedTable{{groupedElementsTable}, (offsets[index])[pos]};
-              typedTable.bindInternalIndicesTo(&originalTable);
-              return typedTable;
-            }
-          } else {
-            //generic split
-            if constexpr (soa::is_soa_filtered_t<std::decay_t<A1>>::value) {
-              if (originalTable.tableSize() == 0) {
-                return originalTable;
-              }
-              // intersect selections
-              o2::soa::SelectionVector s;
-              if (selections[index]->empty()) {
-                std::copy((filterGroups[index])[pos].begin(), (filterGroups[index])[pos].end(), std::back_inserter(s));
-              } else {
-                std::set_intersection((filterGroups[index])[pos].begin(), (filterGroups[index])[pos].end(), selections[index]->begin(), selections[index]->end(), std::back_inserter(s));
-              }
-              std::decay_t<A1> typedTable{{originalTable.asArrowTable()}, std::move(s)};
-              typedTable.bindInternalIndicesTo(&originalTable);
-              return typedTable;
-            } else {
-              throw runtime_error("Unsorted grouped table needs to be used with soa::SmallGroups<>");
-            }
-          }
-        } else {
-          return std::get<A1>(*mAt);
-        }
-      }
-
-      std::string mIndexColumnName;
-      G const* mGt;
-      std::tuple<A...>* mAt;
-      typename grouping_t::iterator mGroupingElement;
-      uint64_t position = 0;
-      gsl::span<int64_t const> groupSelection;
-      std::array<std::vector<arrow::Datum>, sizeof...(A)> groups;
-      std::array<ListVector, sizeof...(A)> filterGroups;
-      std::array<std::vector<uint64_t>, sizeof...(A)> offsets;
-      std::array<std::vector<int>, sizeof...(A)> sizes;
-      std::array<gsl::span<int64_t const> const*, sizeof...(A)> selections;
-      std::array<gsl::span<int64_t const>::iterator, sizeof...(A)> starts;
-    };
-
-    GroupSlicerIterator& begin()
-    {
-      return mBegin;
-    }
-
-    GroupSlicerSentinel end()
-    {
-      return GroupSlicerSentinel{max};
-    }
-    int64_t max;
-    GroupSlicerIterator mBegin;
-  };
-
   template <typename Task, typename... T>
   static void invokeProcessTuple(Task& task, InputRecord& inputs, std::tuple<T...> const& processTuple, std::vector<ExpressionInfo>& infos)
   {
@@ -585,7 +266,7 @@ struct AnalysisDataProcessorBuilder {
       // single argument to process
       homogeneous_apply_refs([&groupingTable](auto& x) {
         PartitionManager<std::decay_t<decltype(x)>>::bindExternalIndices(x, &groupingTable);
-        PartitionManager<std::decay_t<decltype(x)>>::getBoundToExternalIndices(x, groupingTable);
+        GroupedCombinationManager<std::decay_t<decltype(x)>>::setGroupedCombination(x, groupingTable);
         return true;
       },
                              task);
@@ -621,7 +302,6 @@ struct AnalysisDataProcessorBuilder {
         homogeneous_apply_refs([&x](auto& t) {
           PartitionManager<std::decay_t<decltype(t)>>::setPartition(t, x);
           PartitionManager<std::decay_t<decltype(t)>>::bindExternalIndices(t, &x);
-          PartitionManager<std::decay_t<decltype(t)>>::getBoundToExternalIndices(t, x);
           return true;
         },
                                task);
@@ -634,6 +314,15 @@ struct AnalysisDataProcessorBuilder {
           (binder(x), ...);
         },
         associatedTables);
+
+      // GroupedCombinations bound separately, as they should be set once for all associated tables
+      auto hashes = std::get<0>(associatedTables);
+      auto realAssociated = tuple_tail(associatedTables);
+      homogeneous_apply_refs([&groupingTable, &hashes, &realAssociated](auto& t) {
+        GroupedCombinationManager<std::decay_t<decltype(t)>>::setGroupedCombination(t, hashes, groupingTable, realAssociated);
+        return true;
+      },
+                             task);
 
       if constexpr (soa::is_soa_iterator_t<std::decay_t<G>>::value) {
         // grouping case
@@ -650,7 +339,6 @@ struct AnalysisDataProcessorBuilder {
           // bind partitions and grouping table
           homogeneous_apply_refs([&groupingTable](auto& x) {
             PartitionManager<std::decay_t<decltype(x)>>::bindExternalIndices(x, &groupingTable);
-            PartitionManager<std::decay_t<decltype(x)>>::getBoundToExternalIndices(x, groupingTable);
             return true;
           },
                                  task);
@@ -663,7 +351,6 @@ struct AnalysisDataProcessorBuilder {
         // bind partitions and grouping table
         homogeneous_apply_refs([&groupingTable](auto& x) {
           PartitionManager<std::decay_t<decltype(x)>>::bindExternalIndices(x, &groupingTable);
-          PartitionManager<std::decay_t<decltype(x)>>::getBoundToExternalIndices(x, groupingTable);
           return true;
         },
                                task);
@@ -844,6 +531,8 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 
   /// make sure options and configurables are set before expression infos are created
   homogeneous_apply_refs([&options, &hash](auto& x) { return OptionManager<std::decay_t<decltype(x)>>::appendOption(options, x); }, *task.get());
+  /// extract conditions and append them as inputs
+  homogeneous_apply_refs([&inputs](auto& x) { return ConditionManager<std::decay_t<decltype(x)>>::appendCondition(inputs, x); }, *task.get());
 
   /// parse process functions defined by corresponding configurables
   if constexpr (has_process_v<T>) {
@@ -919,6 +608,10 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
     }
 
     return [task, expressionInfos](ProcessingContext& pc) mutable {
+      // load the ccdb object from their cache
+      homogeneous_apply_refs([&pc](auto&& x) { return ConditionManager<std::decay_t<decltype(x)>>::newDataframe(pc.inputs(), x); }, *task.get());
+      // reset partitions once per dataframe
+      homogeneous_apply_refs([](auto&& x) { return PartitionManager<std::decay_t<decltype(x)>>::newDataframe(x); }, *task.get());
       // reset selections for the next dataframe
       for (auto& info : expressionInfos) {
         info.resetSelection = true;
@@ -942,7 +635,6 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
         },
         *task.get());
 
-      homogeneous_apply_refs([](auto&& x) { PartitionManager<std::decay_t<decltype(x)>>::resetSelection(x); return true; }, *task.get());
       homogeneous_apply_refs([&pc](auto&& x) { return OutputManager<std::decay_t<decltype(x)>>::finalize(pc, x); }, *task.get());
     };
   }};

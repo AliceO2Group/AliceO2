@@ -83,6 +83,11 @@ if(BUILD_EVENT_DISPLAY)
   find_package(GLUT REQUIRED)
   find_package(OpenGL REQUIRED)
   find_package(X11 REQUIRED)
+  if(BUILD_EVENT_DISPLAY_VULKAN)
+    find_package(Vulkan REQUIRED)
+  else()
+    set(Vulkan_FOUND OFF)
+  endif()
 else()
   set(OpenGL_FOUND OFF)
 endif()
@@ -191,6 +196,9 @@ if(CONFIG_O2_EXTENSIONS)
   target_sources(standalone_support PRIVATE
                ${O2_DIR}/Common/Field/src/MagFieldFast.cxx
                ${O2_DIR}/DataFormats/Detectors/TPC/src/CompressedClusters.cxx
+               ${O2_DIR}/GPU/GPUTracking/DataTypes/CalibdEdxContainer.cxx
+               ${O2_DIR}/DataFormats/Detectors/TPC/src/CalibdEdxTrackTopologySpline.cxx
+               ${O2_DIR}/DataFormats/Detectors/TPC/src/CalibdEdxTrackTopologyPol.cxx
                ${O2_DIR}/DataFormats/simulation/src/MCCompLabel.cxx
                ${O2_DIR}/DataFormats/Reconstruction/src/TrackParametrization.cxx
                ${O2_DIR}/DataFormats/Reconstruction/src/TrackParametrizationWithError.cxx
@@ -218,10 +226,12 @@ endif()
 
 if(CONFIG_FMT)
   target_link_libraries(standalone_support PUBLIC fmt::fmt)
+  target_link_libraries(TPCFastTransformation PUBLIC fmt::fmt)
 endif()
 
 if(CONFIG_VC)
   target_link_libraries(standalone_support PUBLIC Vc::Vc)
+  target_link_libraries(TPCFastTransformation PUBLIC Vc::Vc)
 endif()
 
 if(BUILD_EVENT_DISPLAY)
@@ -243,11 +253,7 @@ if(CONFIG_ROOT)
                              ROOT::Tree)
 endif()
 if(CONFIG_O2_EXTENSIONS)
-  target_link_libraries(standalone_support PUBLIC Microsoft.GSL::GSL)
-endif()
-
-if(CONFIG_VC)
-  target_link_libraries(TPCFastTransformation PUBLIC Vc::Vc)
+  target_link_libraries(standalone_support PUBLIC Microsoft.GSL::GSL TPCFastTransformation)
 endif()
 
 if(OpenMP_CXX_FOUND)

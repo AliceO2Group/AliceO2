@@ -49,7 +49,7 @@ class GPUTPCGMPolynomialField;
 template <class TRDTRK, class PROP>
 void GPUTRDTracker_t<TRDTRK, PROP>::SetMaxData(const GPUTrackingInOutPointers& io)
 {
-  mNMaxTracks = std::max(std::max(io.nOutputTracksTPCO2, io.nTracksTPCITSO2), io.nMergedTracks);
+  mNMaxTracks = std::max(std::max(io.nOutputTracksTPCO2, io.nTracksTPCITSO2), std::max(io.nMergedTracks, io.nOutputTracksTPCO2)); // TODO: This is a bit stupid, we should just take the correct number, not the max of all
   mNMaxSpacePoints = io.nTRDTracklets;
   mNMaxCollisions = io.nTRDTriggerRecords;
 }
@@ -205,7 +205,7 @@ void GPUTRDTracker_t<TRDTRK, PROP>::PrepareTracking(GPUChainTracking* chainTrack
   // this function on the host prior to GPU processing
   //--------------------------------------------------------------------
   for (unsigned int iColl = 0; iColl < GetConstantMem()->ioPtrs.nTRDTriggerRecords; ++iColl) {
-    if (GetConstantMem()->ioPtrs.trdTrigRecMask[iColl] == 0) {
+    if (GetConstantMem()->ioPtrs.trdTrigRecMask && GetConstantMem()->ioPtrs.trdTrigRecMask[iColl] == 0) {
       // this trigger is masked as there is no ITS information available for it
       continue;
     }
@@ -246,50 +246,6 @@ void GPUTRDTracker_t<TRDTRK, PROP>::PrepareTracking(GPUChainTracking* chainTrack
   if (mGenerateSpacePoints) {
     chainTracking->mIOPtrs.trdSpacePoints = mSpacePoints;
   }
-}
-
-template <class TRDTRK, class PROP>
-void GPUTRDTracker_t<TRDTRK, PROP>::DoTracking(GPUChainTracking* chainTracking)
-{
-  //--------------------------------------------------------------------
-  // Steering function for the tracking
-  //--------------------------------------------------------------------
-
-  PrepareTracking(chainTracking);
-
-  auto timeStart = std::chrono::high_resolution_clock::now();
-
-  if (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TRDTracking) {
-    chainTracking->DoTRDGPUTracking();
-  } else {
-#ifdef WITH_OPENMP
-#pragma omp parallel for num_threads(mRec->GetProcessingSettings().ompThreads)
-    for (int iTrk = 0; iTrk < mNTracks; ++iTrk) {
-      if (omp_get_num_threads() > mMaxThreads) {
-        GPUError("Number of parallel threads too high, aborting tracking");
-        // break statement not possible in OpenMP for loop
-        iTrk = mNTracks;
-        continue;
-      }
-      DoTrackingThread(iTrk, omp_get_thread_num());
-    }
-#else
-    for (int iTrk = 0; iTrk < mNTracks; ++iTrk) {
-      DoTrackingThread(iTrk);
-    }
-#endif
-  }
-
-  auto duration = std::chrono::high_resolution_clock::now() - timeStart;
-  (void)duration; // suppress warning about unused variable
-  /*
-  std::cout << "--->  -----> -------> ---------> ";
-  std::cout << "Time for event " << mNEvents << ": " << std::chrono::duration_cast<std::chrono::microseconds>(duration).count() << " us ";
-  std::cout << "nTracks: " << mNTracks;
-  std::cout << " nTracklets: " << GetConstantMem()->ioPtrs.nTRDTracklets;
-  std::cout << std::endl;
-  */
-  //DumpTracks();
   mNEvents++;
 }
 
@@ -330,20 +286,24 @@ void GPUTRDTracker_t<TRDTRK, PROP>::StartDebugging()
 #endif //! GPUCA_GPUCODE
 
 template <>
-GPUdi() const GPUTRDPropagatorGPU::propagatorParam* GPUTRDTracker_t<GPUTRDTrackGPU, GPUTRDPropagatorGPU>::getPropagatorParam()
+GPUdi() const GPUTRDPropagatorGPU::propagatorParam* GPUTRDTracker_t<GPUTRDTrackGPU, GPUTRDPropagatorGPU>::getPropagatorParam(bool externalDefaultO2Propagator)
 {
   return &Param().polynomialField;
 }
 
 template <class TRDTRK, class PROP>
-GPUdi() const typename PROP::propagatorParam* GPUTRDTracker_t<TRDTRK, PROP>::getPropagatorParam()
+GPUdi() const typename PROP::propagatorParam* GPUTRDTracker_t<TRDTRK, PROP>::getPropagatorParam(bool externalDefaultO2Propagator)
 {
 #ifdef GPUCA_GPUCODE
   return GetConstantMem()->calibObjects.o2Propagator;
 #elif defined GPUCA_ALIROOT_LIB
   return nullptr;
 #else
-  return o2::base::Propagator::Instance();
+  if (externalDefaultO2Propagator) {
+    return o2::base::Propagator::Instance();
+  } else {
+    return GetConstantMem()->calibObjects.o2Propagator;
+  }
 #endif
 }
 
@@ -414,7 +374,7 @@ GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::GetCollisionIDs(int iTrk, int* collisi
   //--------------------------------------------------------------------
   int nColls = 0;
   for (unsigned int iColl = 0; iColl < GetConstantMem()->ioPtrs.nTRDTriggerRecords; ++iColl) {
-    if (GetConstantMem()->ioPtrs.trdTrigRecMask[iColl] == 0) {
+    if (GetConstantMem()->ioPtrs.trdTrigRecMask && GetConstantMem()->ioPtrs.trdTrigRecMask[iColl] == 0) {
       continue;
     }
     if (GetConstantMem()->ioPtrs.trdTriggerTimes[iColl] > mTrackAttribs[iTrk].GetTimeMin() && GetConstantMem()->ioPtrs.trdTriggerTimes[iColl] < mTrackAttribs[iTrk].GetTimeMax()) {
@@ -446,7 +406,7 @@ GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::DoTrackingThread(int iTrk, int thread
       return;
     }
   }
-  PROP prop(getPropagatorParam());
+  PROP prop(getPropagatorParam(Param().rec.trd.useExternalO2DefaultPropagator));
   mTracks[iTrk].setChi2(Param().rec.trd.penaltyChi2); // TODO check if this should not be higher
   auto trkStart = mTracks[iTrk];
   for (int iColl = 0; iColl < nCollisionIds; ++iColl) {

@@ -23,6 +23,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "FT0Base/Constants.h"
 #include "DataFormatsFIT/LookUpTable.h"
+#include "CommonUtils/NameConf.h"
 #include <Rtypes.h>
 #include <cassert>
 #include <exception>
@@ -214,7 +215,7 @@ class LookUpTable
 
     std::vector<o2::ft0::Topo> lut_data;
     auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-    mgr.setURL("http://ccdb-test.cern.ch:8080");
+    mgr.setURL(o2::base::NameConf::getCCDBServer());
     auto hvch = mgr.get<std::vector<o2::ft0::HVchannel>>("FT0/LookUpTable");
     size_t max = 0;
     for (auto const& chan : *hvch) {
@@ -371,15 +372,17 @@ class SingleLUT : public LUT
 
  public:
   static constexpr char sDetectorName[] = "FT0";
-  static constexpr char sDefaultCCDBpath[] = "http://ccdb-test.cern.ch:8080/";
-  static constexpr char sDefaultLUTpath[] = "FT0/LookUpTableNew";
-  inline static std::string sCurrentCCDBpath = sDefaultCCDBpath;
+  static constexpr char sDefaultLUTpath[] = "FT0/Config/LookupTable";
+  inline static std::string sCurrentCCDBpath = "";
   inline static std::string sCurrentLUTpath = sDefaultLUTpath;
   //Before instance() call, setup url and path
   static void setCCDBurl(const std::string& url) { sCurrentCCDBpath = url; }
   static void setLUTpath(const std::string& path) { sCurrentLUTpath = path; }
   static SingleLUT& Instance()
   {
+    if (sCurrentCCDBpath == "") {
+      sCurrentCCDBpath = o2::base::NameConf::getCCDBServer();
+    }
     static SingleLUT instanceLUT(sCurrentCCDBpath, sCurrentLUTpath);
     return instanceLUT;
   }

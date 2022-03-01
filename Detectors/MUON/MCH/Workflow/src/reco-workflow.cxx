@@ -12,17 +12,18 @@
 #include "ClusterTransformerSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
-#include "Framework/CallbacksPolicy.h"
 #include "DigitFilteringSpec.h"
 #include "DigitReaderSpec.h"
+#include "Framework/CallbacksPolicy.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/Logger.h"
 #include "Framework/Variant.h"
 #include "Framework/WorkflowSpec.h"
 #include "MCHWorkflow/ClusterFinderOriginalSpec.h"
 #include "MCHWorkflow/PreClusterFinderSpec.h"
-#include "MCHWorkflow/TimeClusterFinderSpec.h"
 #include "MCHWorkflow/TrackWriterSpec.h"
+#include "TimeClusterFinderSpec.h"
+#include "EventFinderSpec.h"
 #include "TrackFinderSpec.h"
 #include "TrackFitterSpec.h"
 #include "TrackMCLabelFinderSpec.h"
@@ -43,6 +44,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not write output root files"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"digits", VariantType::Bool, false, {"Write digits associated to tracks"}},
+    {"triggered", VariantType::Bool, false, {"use MID to trigger the MCH reconstruction"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -56,6 +59,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
   auto disableRootInput = configcontext.options().get<bool>("disable-root-input");
+  auto digits = configcontext.options().get<bool>("digits");
+  auto triggered = configcontext.options().get<bool>("triggered");
   auto useMC = !configcontext.options().get<bool>("disable-mc");
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
@@ -69,24 +74,33 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
                                                     "DIGITROFS", "F-DIGITROFS",
                                                     "DIGITLABELS", "F-DIGITLABELS"));
 
-  specs.emplace_back(o2::mch::getTimeClusterFinderSpec("mch-time-cluster-finder",
-                                                       "F-DIGITROFS",
-                                                       "TC-F-DIGITROFS"));
+  if (triggered) {
+    specs.emplace_back(o2::mch::getEventFinderSpec(useMC, "mch-event-finder",
+                                                   "F-DIGITS", "E-F-DIGITS",
+                                                   "F-DIGITROFS", "E-F-DIGITROFS",
+                                                   "F-DIGITLABELS", "E-F-DIGITLABELS"));
+  } else if (!useMC) {
+    specs.emplace_back(o2::mch::getTimeClusterFinderSpec("mch-time-cluster-finder",
+                                                         "F-DIGITS",
+                                                         "F-DIGITROFS",
+                                                         "TC-F-DIGITROFS"));
+  }
 
   specs.emplace_back(o2::mch::getPreClusterFinderSpec("mch-precluster-finder",
-                                                      "F-DIGITS",
-                                                      "TC-F-DIGITROFS"));
+                                                      triggered ? "E-F-DIGITS" : "F-DIGITS",
+                                                      triggered ? "E-F-DIGITROFS" : (useMC ? "F-DIGITROFS" : "TC-F-DIGITROFS")));
+
   specs.emplace_back(o2::mch::getClusterFinderOriginalSpec("mch-cluster-finder"));
   specs.emplace_back(o2::mch::getClusterTransformerSpec());
-  specs.emplace_back(o2::mch::getTrackFinderSpec("mch-track-finder"));
+  specs.emplace_back(o2::mch::getTrackFinderSpec("mch-track-finder", digits));
   if (useMC) {
     specs.emplace_back(o2::mch::getTrackMCLabelFinderSpec("mch-track-mc-label-finder",
-                                                          "TC-F-DIGITROFS",
-                                                          "F-DIGITLABELS"));
+                                                          triggered ? "E-F-DIGITROFS" : "F-DIGITROFS",
+                                                          triggered ? "E-F-DIGITLABELS" : "F-DIGITLABELS"));
   }
 
   if (!disableRootOutput) {
-    specs.emplace_back(o2::mch::getTrackWriterSpec(useMC, "mch-track-writer", "mchtracks.root"));
+    specs.emplace_back(o2::mch::getTrackWriterSpec(useMC, "mch-track-writer", "mchtracks.root", digits));
   }
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit

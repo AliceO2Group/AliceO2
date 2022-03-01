@@ -18,7 +18,7 @@
 
 #include <array>
 #include <gsl/gsl>
-#include "DataFormatsMID/Cluster2D.h"
+#include "DataFormatsMID/Cluster.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "MIDClustering/PreCluster.h"
@@ -31,7 +31,7 @@ namespace mid
 class ClusterLabeler
 {
  public:
-  void process(gsl::span<const PreCluster> preClusters, const o2::dataformats::MCTruthContainer<MCCompLabel>& inMCContainer, gsl::span<const Cluster2D> clusters, gsl::span<const std::array<size_t, 2>> correlations);
+  void process(gsl::span<const PreCluster> preClusters, const o2::dataformats::MCTruthContainer<MCCompLabel>& inMCContainer, gsl::span<const Cluster> clusters, gsl::span<const std::array<size_t, 2>> correlations);
 
   const o2::dataformats::MCTruthContainer<MCClusterLabel>& getContainer() { return mMCContainer; }
 

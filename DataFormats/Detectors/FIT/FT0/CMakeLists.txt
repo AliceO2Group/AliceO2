@@ -25,7 +25,7 @@ o2_add_library(DataFormatsFT0
                         O2::DetectorsCalibration
                         O2::FT0Base
                         O2::DataFormatsFIT
-                         )
+                        )
 
 o2_target_root_dictionary(DataFormatsFT0
                           HEADERS include/DataFormatsFT0/Digit.h
@@ -38,5 +38,6 @@ o2_target_root_dictionary(DataFormatsFT0
                                   include/DataFormatsFT0/LookUpTable.h
                                   include/DataFormatsFT0/CTF.h
                                   include/DataFormatsFT0/RecoCalibInfoObject.h
+                                  include/DataFormatsFT0/GlobalOffsetsInfoObject.h
                                   include/DataFormatsFT0/GlobalOffsetsCalibrationObject.h
                                   include/DataFormatsFT0/GlobalOffsetsContainer.h)

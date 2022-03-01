@@ -1,5 +1,5 @@
 <!-- doxy
-\page refTRDcalibration TRD calibration
+\page refDetectorsTRDcalibration TRD calibration
 /doxy -->
 
 # TRD calibration in O2

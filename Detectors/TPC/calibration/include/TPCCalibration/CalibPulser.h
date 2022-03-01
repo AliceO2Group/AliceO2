@@ -17,6 +17,7 @@
 
 #include <vector>
 #include <memory>
+#include <unordered_map>
 
 #include "TH2S.h"
 
@@ -83,8 +84,8 @@ class CalibPulser : public CalibRawBase
   {
     mFirstTimeBin = first;
     mLastTimeBin = last;
-    //TODO: until automatic T0 calibration is done we use the same time range
-    //      as for the time bin selection
+    // TODO: until automatic T0 calibration is done we use the same time range
+    //       as for the time bin selection
     mXminT0 = mFirstTimeBin;
     mXmaxT0 = mLastTimeBin;
   }
@@ -134,15 +135,17 @@ class CalibPulser : public CalibRawBase
 
   /// Get the pulser mean time calibration object
   /// \return pedestal calibration object
-  const CalPad& getT0() const { return mT0; }
+  const CalPad& getT0() const { return mCalDets.at("T0"); }
 
   /// Get the pulser pulse with calibration object
   /// \return pulse width calibration object
-  const CalPad& getWidth() const { return mWidth; }
+  const CalPad& getWidth() const { return mCalDets.at("Width"); }
 
   /// Get the pulser total charge calibration object
   /// \return pulser total charge calibration object
-  const CalPad& getQtot() const { return mQtot; }
+  const CalPad& getQtot() const { return mCalDets.at("Qtot"); }
+
+  const auto& getCalDets() const { return mCalDets; }
 
   /// Dump the relevant data to file
   void dumpToFile(const std::string filename, uint32_t type = 0) final;
@@ -165,19 +168,17 @@ class CalibPulser : public CalibRawBase
   float mXminWidth; ///< xmin   of width reference histogram
   float mXmaxWidth; ///< xmax   of width reference histogram
 
-  int mFirstTimeBin;    ///< first time bin used in analysis
-  int mLastTimeBin;     ///< first time bin used in analysis
-  int mADCMin;          ///< minimum adc value
-  int mADCMax;          ///< maximum adc value
-  int mNumberOfADCs;    ///< number of adc values (mADCMax-mADCMin+1)
-  int mPeakIntMinus;    ///< lower bound from maximum for the peak integration, mean and std dev. calc
-  int mPeakIntPlus;     ///< upper bound from maximum for the peak integration, mean and std dev. calc
-  float mMinimumQtot;   ///< minimal Qtot accepted as pulser signal
-  float mMinimumQmax;   ///< minimal Qtot accepted as pulser signal
-  int mMaxTimeBinRange; ///< number of time bins around the one with the maximum number of entries arouch which to analyse
-  CalPad mT0;           ///< CalDet object with pulser time information
-  CalPad mWidth;        ///< CalDet object with pulser pulse width information
-  CalPad mQtot;         ///< CalDet object with pulser Qtot information
+  int mFirstTimeBin;                                ///< first time bin used in analysis
+  int mLastTimeBin;                                 ///< first time bin used in analysis
+  int mADCMin;                                      ///< minimum adc value
+  int mADCMax;                                      ///< maximum adc value
+  int mNumberOfADCs;                                ///< number of adc values (mADCMax-mADCMin+1)
+  int mPeakIntMinus;                                ///< lower bound from maximum for the peak integration, mean and std dev. calc
+  int mPeakIntPlus;                                 ///< upper bound from maximum for the peak integration, mean and std dev. calc
+  float mMinimumQtot;                               ///< minimal Qtot accepted as pulser signal
+  float mMinimumQmax;                               ///< minimal Qtot accepted as pulser signal
+  int mMaxTimeBinRange;                             ///< number of time bins around the one with the maximum number of entries arouch which to analyse
+  std::unordered_map<std::string, CalPad> mCalDets; ///< CalDet objects for pedestal and noise
 
   const CalPad* mPedestal; //!< Pedestal calibration object
   const CalPad* mNoise;    //!< Noise calibration object

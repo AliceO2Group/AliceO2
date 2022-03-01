@@ -37,8 +37,6 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
   Int_t ndigitsC = 0, ndigitsA = 0;
 
   constexpr Int_t nMCPsA = 4 * Geometry::NCellsA;
-  //  constexpr Int_t nMCPsC = 4 * Geometry::NCellsC;
-  //  constexpr Int_t nMCPs = nMCPsA + nMCPsC;
 
   Float_t sideAtime = 0, sideCtime = 0;
 
@@ -52,7 +50,7 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
                                                inChData[ich].ChainQTC};
 
     //  only signals with amplitude participate in collision time
-    if (outChData[ich].QTCAmpl > 0 && std::abs(outChData[ich].CFDTime) < 2000) {
+    if (outChData[ich].QTCAmpl > DigitizationParameters::Instance().mAmpThresholdForReco && std::abs(outChData[ich].CFDTime) < DigitizationParameters::Instance().mTimeThresholdForReco) {
       if (outChData[ich].ChId < nMCPsA) {
         sideAtime += outChData[ich].CFDTime;
         ndigitsA++;

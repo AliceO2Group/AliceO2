@@ -25,10 +25,9 @@
 #include "CCDB/CcdbApi.h"
 #include "TPCBase/CalDet.h"
 #include "DataFormatsTPC/LtrCalibData.h"
+#include "CommonUtils/NameConf.h"
 
-namespace o2
-{
-namespace tpc
+namespace o2::tpc
 {
 // forward declarations
 class ParameterDetector;
@@ -40,6 +39,7 @@ class ParameterGEM;
 enum class CDBType {
   CalPedestal,        ///< Pedestal calibration
   CalNoise,           ///< Noise calibration
+  CalPedestalNoise,   ///< Pedestal and Noise calibration
   CalPulser,          ///< Pulser calibration
   CalCE,              ///< Laser CE calibration
   CalPadGainFull,     ///< Full pad gain calibration
@@ -59,9 +59,10 @@ enum class CDBIntervention {
 };
 
 /// Storage name in CCDB for each calibration and parameter type
-const std::unordered_map<CDBType, std::string> CDBTypeMap{
+const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalPedestal, "TPC/Calib/Pedestal"},
   {CDBType::CalNoise, "TPC/Calib/Noise"},
+  {CDBType::CalPedestalNoise, "TPC/Calib/PedestalNoise"},
   {CDBType::CalPulser, "TPC/Calib/Pulser"},
   {CDBType::CalCE, "TPC/Calib/CE"},
   {CDBType::CalPadGainFull, "TPC/Calib/PadGainFull"},
@@ -94,6 +95,8 @@ const std::unordered_map<CDBIntervention, std::string> CDBInterventionMap{
 class CDBInterface
 {
  public:
+  using CalPadMapType = std::unordered_map<std::string, CalPad>;
+
   CDBInterface(const CDBInterface&) = delete;
 
   /// Create instance of singleton
@@ -243,6 +246,9 @@ inline T& CDBInterface::getObjectFromCDB(std::string_view path)
 {
   static auto& cdb = o2::ccdb::BasicCCDBManager::instance();
   auto* object = cdb.get<T>(path.data());
+  if (!object) {
+    LOGP(fatal, "Could not get {} from cdb", path);
+  }
   return *object;
 }
 
@@ -263,7 +269,7 @@ inline T& CDBInterface::getSpecificObjectFromCDB(std::string_view path, long tim
 
 template CalPad& CDBInterface::getSpecificObjectFromCDB(const std::string_view path, long timestamp, const std::map<std::string, std::string>& metaData);
 template std::vector<CalPad>& CDBInterface::getSpecificObjectFromCDB(const std::string_view path, long timestamp, const std::map<std::string, std::string>& metaData);
-template std::unordered_map<std::string, o2::tpc::CalPad>& CDBInterface::getSpecificObjectFromCDB(const std::string_view path, long timestamp, const std::map<std::string, std::string>& metaData);
+template CDBInterface::CalPadMapType& CDBInterface::getSpecificObjectFromCDB(const std::string_view path, long timestamp, const std::map<std::string, std::string>& metaData);
 template LtrCalibData& CDBInterface::getSpecificObjectFromCDB(const std::string_view path, long timestamp, const std::map<std::string, std::string>& metaData);
 
 /// \class CDBStorage
@@ -305,6 +311,11 @@ class CDBStorage
     mMetaData["Comment"] = comment;
   }
 
+  void setRunNumber(int run)
+  {
+    mMetaData[o2::base::NameConf::CCDBRunTag.data()] = std::to_string(run);
+  }
+
   template <typename T>
   void storeObject(T* obj, CDBType const type, MetaData_t const& metadata, long start, long end)
   {
@@ -322,9 +333,9 @@ class CDBStorage
     storeObject(obj, type, mMetaData, start, end);
   }
 
-  void uploadNoiseAndPedestal(std::string_view fileName, long first = -1, long last = -1);
-  void uploadGainMap(std::string_view fileName, bool isFull = true, long first = -1, long last = -1);
-  void uploadPulserOrCEData(CDBType type, std::string_view fileName, long first = -1, long last = -1);
+  void uploadNoiseAndPedestal(std::string_view fileName, long first = -1, long last = 99999999999999);
+  void uploadGainMap(std::string_view fileName, bool isFull = true, long first = -1, long last = 99999999999999);
+  void uploadPulserOrCEData(CDBType type, std::string_view fileName, long first = -1, long last = 99999999999999);
 
  private:
   bool checkMetaData(MetaData_t metaData) const;
@@ -335,7 +346,6 @@ class CDBStorage
   MetaData_t mMetaData;
 };
 
-} // namespace tpc
-} // namespace o2
+} // namespace o2::tpc
 
 #endif

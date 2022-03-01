@@ -19,7 +19,7 @@
 #include "GPUChainTracking.h"
 #include "GPUTPCDef.h"
 #include "GPUQA.h"
-#include "GPUDisplayBackend.h"
+#include "GPUDisplayFrontend.h"
 #include "genEvents.h"
 
 #include <iostream>
@@ -59,16 +59,6 @@
 #include "GPUChainITS.h"
 #endif
 
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
-#ifdef _WIN32
-#include "GPUDisplayBackendWindows.h"
-#else
-#include "GPUDisplayBackendX11.h"
-#include "GPUDisplayBackendGlfw.h"
-#endif
-#include "GPUDisplayBackendGlut.h"
-#endif
-
 using namespace GPUCA_NAMESPACE::gpu;
 
 //#define BROKEN_EVENTS
@@ -88,7 +78,7 @@ void unique_ptr_aligned_delete(char* v)
   operator delete(v GPUCA_OPERATOR_NEW_ALIGNMENT);
 }
 std::unique_ptr<char, void (*)(char*)> outputmemory(nullptr, unique_ptr_aligned_delete), outputmemoryPipeline(nullptr, unique_ptr_aligned_delete), inputmemory(nullptr, unique_ptr_aligned_delete);
-std::unique_ptr<GPUDisplayBackend> eventDisplay;
+std::unique_ptr<GPUDisplayFrontend> eventDisplay;
 std::unique_ptr<GPUReconstructionTimeframe> tf;
 int nEventsInDirectory = 0;
 std::atomic<unsigned int> nIteration, nIterationEnd;
@@ -304,9 +294,9 @@ int SetupReconstruction()
 
   GPUSettingsGRP grp = rec->GetGRPSettings();
   GPUSettingsRec recSet;
-  GPUSettingsProcessing devProc;
+  GPUSettingsProcessing procSet;
   memcpy((void*)&recSet, (void*)&configStandalone.rec, sizeof(GPUSettingsRec));
-  memcpy((void*)&devProc, (void*)&configStandalone.proc, sizeof(GPUSettingsProcessing));
+  memcpy((void*)&procSet, (void*)&configStandalone.proc, sizeof(GPUSettingsProcessing));
   GPURecoStepConfiguration steps;
 
   if (configStandalone.eventGenerator) {
@@ -342,34 +332,34 @@ int SetupReconstruction()
 
   configStandalone.proc.forceMemoryPoolSize = (configStandalone.proc.forceMemoryPoolSize == 1 && configStandalone.eventDisplay) ? 2 : configStandalone.proc.forceMemoryPoolSize;
   if (configStandalone.eventDisplay) {
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
 #ifdef _WIN32
     if (configStandalone.eventDisplay == 1) {
+      eventDisplay.reset(GPUDisplayFrontend::getFrontend("windows"));
       printf("Enabling event display (windows backend)\n");
-      eventDisplay.reset(new GPUDisplayBackendWindows);
     }
-
 #else
+#ifdef GPUCA_STANDALONE
     if (configStandalone.eventDisplay == 1) {
-      eventDisplay.reset(new GPUDisplayBackendX11);
+      eventDisplay.reset(GPUDisplayFrontend::getFrontend("x11"));
       printf("Enabling event display (X11 backend)\n");
     }
+#endif
     if (configStandalone.eventDisplay == 3) {
-      eventDisplay.reset(new GPUDisplayBackendGlfw);
+      eventDisplay.reset(GPUDisplayFrontend::getFrontend("glfw"));
       printf("Enabling event display (GLFW backend)\n");
     }
-
 #endif
-    else if (configStandalone.eventDisplay == 2) {
-      eventDisplay.reset(new GPUDisplayBackendGlut);
+#ifdef GPUCA_STANDALONE
+    if (configStandalone.eventDisplay == 2) {
+      eventDisplay.reset(GPUDisplayFrontend::getFrontend("glut"));
       printf("Enabling event display (GLUT backend)\n");
     }
-
 #endif
-    devProc.eventDisplay = eventDisplay.get();
+    procSet.eventDisplay = eventDisplay.get();
+    procSet.eventDisplayRenderer = configStandalone.displayRenderer.c_str();
   }
-  if (devProc.runQA) {
-    devProc.runMC = true;
+  if (procSet.runQA) {
+    procSet.runMC = true;
   }
 
   steps.steps = GPUDataTypes::RecoStep::AllRecoSteps;
@@ -423,18 +413,32 @@ int SetupReconstruction()
   steps.steps.setBits(GPUDataTypes::RecoStep::TPCDecompression, false);
   steps.inputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
 
+  if (steps.steps.isSet(GPUDataTypes::RecoStep::TRDTracking)) {
+    if (recSet.tpc.nWays > 1) {
+      recSet.tpc.nWaysOuter = 1;
+    }
+    if (procSet.createO2Output && !procSet.trdTrackModelO2) {
+      procSet.createO2Output = 1; // Must not be 2, to make sure TPC GPU tracks are still available for TRD
+    }
+  }
+
   if (configStandalone.testSyncAsync || configStandalone.testSync) {
     // Set settings for synchronous
     steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, 0);
     recSet.useMatLUT = false;
     if (configStandalone.testSyncAsync) {
-      devProc.eventDisplay = nullptr;
+      procSet.eventDisplay = nullptr;
     }
   }
 
-  rec->SetSettings(&grp, &recSet, &devProc, &steps);
+#ifdef GPUCA_HAVE_O2HEADERS
+  procSet.useInternalO2Propagator = true;
+  procSet.internalO2PropagatorGPUField = true;
+#endif
+
+  rec->SetSettings(&grp, &recSet, &procSet, &steps);
   if (configStandalone.proc.doublePipeline) {
-    recPipeline->SetSettings(&grp, &recSet, &devProc, &steps);
+    recPipeline->SetSettings(&grp, &recSet, &procSet, &steps);
   }
   if (configStandalone.testSyncAsync) {
     // Set settings for asynchronous
@@ -446,15 +450,15 @@ int SetupReconstruction()
     steps.inputs.setBits(GPUDataTypes::InOutType::TPCClusters, false);
     steps.inputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, true);
     steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
-    devProc.runMC = false;
-    devProc.runQA = false;
-    devProc.eventDisplay = eventDisplay.get();
-    devProc.runCompressionStatistics = 0;
+    procSet.runMC = false;
+    procSet.runQA = false;
+    procSet.eventDisplay = eventDisplay.get();
+    procSet.runCompressionStatistics = 0;
     recSet.tpc.disableRefitAttachment = 0xFF;
     recSet.tpc.loopInterpolationInExtraPass = 0;
     recSet.maxTrackQPt = CAMath::Min(recSet.maxTrackQPt, recSet.tpc.rejectQPt);
     recSet.useMatLUT = true;
-    recAsync->SetSettings(&grp, &recSet, &devProc, &steps);
+    recAsync->SetSettings(&grp, &recSet, &procSet, &steps);
   }
 
   if (configStandalone.outputcontrolmem) {
@@ -463,16 +467,6 @@ int SetupReconstruction()
       recPipeline->SetOutputControl(outputmemoryPipeline.get(), configStandalone.outputcontrolmem);
     }
   }
-
-#ifdef GPUCA_HAVE_O2HEADERS
-  chainTracking->SetDefaultO2PropagatorForGPU();
-  if (configStandalone.testSyncAsync) {
-    chainTrackingAsync->SetDefaultO2PropagatorForGPU();
-  }
-  if (configStandalone.proc.doublePipeline) {
-    chainTrackingPipeline->SetDefaultO2PropagatorForGPU();
-  }
-#endif
 
   if (rec->Init()) {
     printf("Error initializing GPUReconstruction!\n");

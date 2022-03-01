@@ -83,7 +83,7 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
   ///< calculate TF timestamp in ms
   uint64_t getTFTimeStamp(const IR& rec) const
   {
-    return startTime + (getFirstIRofTF(rec).orbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS;
+    return startTime + (getFirstIRofTF(rec).orbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
   }
 
   ///< create RDH for given IR
@@ -141,7 +141,7 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
   // used for MC
   uint32_t orbitFirstSampled = 0;   ///< 1st orbit sampled in the MC
   uint32_t maxNOrbits = 0xffffffff; ///< max number of orbits to accept, used in digit->raw conversion
-  uint64_t startTime = 0;           ///< absolute time corresponding to the start of the MC run
+  uint64_t startTime = 0;           ///< absolute time in ms corresponding to the start of the MC run
 
   O2ParamDef(HBFUtils, "HBFUtils");
 };

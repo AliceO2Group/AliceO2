@@ -21,7 +21,7 @@
 
 #include "CTFWorkflow/CTFWriterSpec.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsCommonDataFormats/EncodedBlocks.h"
 #include "DetectorsCommonDataFormats/FileMetaData.h"
 #include "CommonUtils/StringUtils.h"
@@ -124,16 +124,16 @@ class CTFWriterSpec : public o2::framework::Task
   int mSaveDictAfter = 0; // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
   int mFlagMinDet = 1;    // append list of detectors to LHC period if their number is <= mFlagMinDet
   uint64_t mRun = 0;
-  size_t mMinSize = 0;     // if > 0, accumulate CTFs in the same tree until the total size exceeds this minimum
-  size_t mMaxSize = 0;     // if > MinSize, and accumulated size will exceed this value, stop accumulation (even if mMinSize is not reached)
-  size_t mChkSize = 0;     // if > 0 and fallback storage provided, reserve this size per CTF file in production on primary storage
-  size_t mAccCTFSize = 0;  // so far accumulated size (if any)
-  size_t mCurrCTFSize = 0; // size of currently processed CTF
-  size_t mNCTF = 0;        // total number of CTFs written
-  size_t mNAccCTF = 0;     // total number of CTFs accumulated in the current file
-  size_t mCTFAutoSave = 0; // if > 0, autosave after so many TFs
-  size_t mNCTFFiles = 0;   // total number of CTF files written
-  int mMaxCTFPerFile = 0;  // max CTFs per files to store
+  size_t mMinSize = 0;               // if > 0, accumulate CTFs in the same tree until the total size exceeds this minimum
+  size_t mMaxSize = 0;               // if > MinSize, and accumulated size will exceed this value, stop accumulation (even if mMinSize is not reached)
+  size_t mChkSize = 0;               // if > 0 and fallback storage provided, reserve this size per CTF file in production on primary storage
+  size_t mAccCTFSize = 0;            // so far accumulated size (if any)
+  size_t mCurrCTFSize = 0;           // size of currently processed CTF
+  size_t mNCTF = 0;                  // total number of CTFs written
+  size_t mNAccCTF = 0;               // total number of CTFs accumulated in the current file
+  size_t mCTFAutoSave = 0;           // if > 0, autosave after so many TFs
+  size_t mNCTFFiles = 0;             // total number of CTF files written
+  int mMaxCTFPerFile = 0;            // max CTFs per files to store
   std::vector<uint32_t> mTFOrbits{}; // 1st orbits of TF accumulated in current file
 
   std::string mOutputType{}; // RS FIXME once global/local options clash is solved, --output-type will become device option
@@ -284,7 +284,7 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
         auto& freq = mFreqsAccumulation[det][ib];
         auto& mdSave = mFreqsMetaData[det][ib];
         const auto& md = ctfImage.getMetadata(ib);
-        freq.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min, md.max);
+        freq.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min);
         mdSave = o2::ctf::Metadata{0, 0, md.messageWordSize, md.coderType, md.streamSize, md.probabilityBits, md.opt, freq.getMinSymbol(), freq.getMaxSymbol(), (int)freq.size(), 0, 0};
       }
     }

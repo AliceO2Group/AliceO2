@@ -22,6 +22,7 @@
 #pragma link C++ class std::vector < o2::mch::Cluster> + ;
 #pragma link C++ class o2::mch::DsChannelId + ;
 #pragma link C++ class o2::mch::DsChannelGroup + ;
+#pragma link C++ class std::vector < o2::mch::DsChannelId> + ;
 #pragma link C++ class o2::mch::Digit + ;
 #pragma link C++ class std::vector < o2::mch::Digit> + ;
 #pragma link C++ struct o2::mch::CTFHeader + ;

@@ -24,7 +24,7 @@
 #include <SimulationDataFormat/Stack.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <DetectorsCommonDataFormats/DetID.h>
-#include <DetectorsCommonDataFormats/NameConf.h>
+#include <DetectorsCommonDataFormats/DetectorNameConf.h>
 #include <gsl/gsl>
 #include "TFile.h"
 #include "TMemFile.h"
@@ -74,6 +74,8 @@
 #include <TRKSimulation/Detector.h>
 #include <FT3Simulation/Detector.h>
 #endif
+
+#include <tbb/concurrent_unordered_map.h>
 
 namespace o2
 {
@@ -223,6 +225,13 @@ class O2HitMerger : public FairMQDevice
     // clear "counter" datastructures
     mPartsCheckSum.clear();
     mEventChecksum = 0;
+
+    // clear collector datastructures
+    mMCTrackBuffer.clear();
+    mTrackRefBuffer.clear();
+    mSubEventInfoBuffer.clear();
+    mFlushableEvents.clear();
+
     return true;
   }
 
@@ -495,8 +504,6 @@ class O2HitMerger : public FairMQDevice
     for (auto ptr : vectorOfSubEventMCTracks) {
       delete ptr; // avoid this by using unique ptr
     }
-    // TODO: protect by lock (as multithreaded access to STL MAP)
-    mMCTrackBuffer.erase(eventID);
   }
 
   template <typename T, typename M>
@@ -548,7 +555,6 @@ class O2HitMerger : public FairMQDevice
     for (auto ptr : vectorOfT) {
       delete ptr; // avoid this by using unique ptr
     }
-    mapOfVectorOfTs.erase(eventID);
   }
 
   void updateTrackIdWithOffset(MCTrack& track, Int_t nprim, Int_t idelta0, Int_t idelta1)
@@ -575,7 +581,7 @@ class O2HitMerger : public FairMQDevice
       mDetectorOutFiles[detID]->Close();
       delete mDetectorOutFiles[detID];
     }
-    std::string name(o2::base::NameConf::getHitsFileName(detID, prefix));
+    std::string name(o2::base::DetectorNameConf::getHitsFileName(detID, prefix));
     mDetectorOutFiles[detID] = new TFile(name.c_str(), "RECREATE");
     mDetectorToTTreeMap[detID] = new TTree("o2sim", "o2sim");
     mDetectorToTTreeMap[detID]->SetDirectory(mDetectorOutFiles[detID]);
@@ -766,27 +772,29 @@ class O2HitMerger : public FairMQDevice
   }
 
   std::map<uint32_t, uint32_t> mPartsCheckSum; //! mapping event id -> part checksum used to detect when all info
-  std::string mOutFileName; //!
+  std::string mOutFileName;                    //!
 
   // structures for the final flush
-  TFile* mOutFile;                                     //! outfile for kinematics
-  TTree* mOutTree;                                     //! tree (kinematics) associated to mOutFile
-  std::unordered_map<int, TFile*> mDetectorOutFiles;   //! outfiles per detector for hits
-  std::unordered_map<int, TTree*> mDetectorToTTreeMap; //! the trees
+  TFile* mOutFile; //! outfile for kinematics
+  TTree* mOutTree; //! tree (kinematics) associated to mOutFile
+
+  template <class K, class V>
+  using Hashtable = tbb::concurrent_unordered_map<K, V>;
+  Hashtable<int, TFile*> mDetectorOutFiles;   //! outfiles per detector for hits
+  Hashtable<int, TTree*> mDetectorToTTreeMap; //! the trees
 
   // intermediate structures to collect data per event
-  std::thread mMergerIOThread;                            //! a thread used to do hit merging and IO flushing asynchronously
-  std::mutex mMapsMtx;                                    //!
+  std::thread mMergerIOThread; //! a thread used to do hit merging and IO flushing asynchronously
   bool mergingInProgress = false;
 
-  std::unordered_map<int, std::vector<std::vector<o2::MCTrack>*>> mMCTrackBuffer;         //! vector of sub-event track vectors; one per event
-  std::unordered_map<int, std::vector<std::vector<o2::TrackReference>*>> mTrackRefBuffer; //!
-  std::unordered_map<int, std::list<o2::data::SubEventInfo*>> mSubEventInfoBuffer;
+  Hashtable<int, std::vector<std::vector<o2::MCTrack>*>> mMCTrackBuffer;         //! vector of sub-event track vectors; one per event
+  Hashtable<int, std::vector<std::vector<o2::TrackReference>*>> mTrackRefBuffer; //!
+  Hashtable<int, std::list<o2::data::SubEventInfo*>> mSubEventInfoBuffer;
+  Hashtable<int, bool> mFlushableEvents; //! collection of events which have completely arrived
 
   int mEventChecksum = 0;   //! checksum for events
   int mNExpectedEvents = 0; //! number of events that we expect to receive
-  std::unordered_map<int, bool> mFlushableEvents; //! collection of events which has completely arrived
-  int mNextFlushID = 1;                           //! EventID to be flushed next
+  int mNextFlushID = 1;     //! EventID to be flushed next
   TStopwatch mTimer;
 
   bool mAsService = false; //! if run in deamonized mode
@@ -814,7 +822,7 @@ void O2HitMerger::initHitFiles(std::string prefix)
   // a little helper lambda
   auto isActivated = [](std::string s) -> bool {
     // access user configuration for list of wanted modules
-    auto& modulelist = o2::conf::SimConfig::Instance().getActiveDetectors();
+    auto& modulelist = o2::conf::SimConfig::Instance().getReadoutDetectors();
     auto active = std::find(modulelist.begin(), modulelist.end(), s) != modulelist.end();
     return active; };
 
@@ -835,7 +843,7 @@ void O2HitMerger::initDetInstances()
   // a little helper lambda
   auto isActivated = [](std::string s) -> bool {
     // access user configuration for list of wanted modules
-    auto& modulelist = o2::conf::SimConfig::Instance().getActiveDetectors();
+    auto& modulelist = o2::conf::SimConfig::Instance().getReadoutDetectors();
     auto active = std::find(modulelist.begin(), modulelist.end(), s) != modulelist.end();
     return active; };
 
@@ -857,7 +865,7 @@ void O2HitMerger::initDetInstances()
       counter++;
     }
     if (i == DetID::MFT) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::mft::Detector>());
+      mDetectorInstances[i] = std::move(std::make_unique<o2::mft::Detector>(true));
       counter++;
     }
     if (i == DetID::TRD) {

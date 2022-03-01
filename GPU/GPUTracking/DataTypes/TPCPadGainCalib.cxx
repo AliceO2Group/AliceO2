@@ -32,10 +32,22 @@ TPCPadGainCalib::TPCPadGainCalib()
 
 TPCPadGainCalib::TPCPadGainCalib(const o2::tpc::CalDet<float>& gainMap) : TPCPadGainCalib()
 {
+  setFromMap(gainMap);
+}
+
+TPCPadGainCalib::TPCPadGainCalib(const o2::tpc::CalDet<float>& gainMap, const float minValue, const float maxValue, const bool inv) : TPCPadGainCalib()
+{
+  setMinCorrectionFactor(minValue);
+  setMaxCorrectionFactor(maxValue);
+  setFromMap(gainMap, inv);
+}
+
+void TPCPadGainCalib::setFromMap(const o2::tpc::CalDet<float>& gainMap, const bool inv)
+{
   for (int sector = 0; sector < o2::tpc::constants::MAXSECTOR; sector++) {
     for (int p = 0; p < TPC_PADS_IN_SECTOR; p++) {
       const float gainVal = gainMap.getValue(sector, p);
-      mGainCorrection[sector].set(p, (gainVal > 1.e-5f) ? 1.f / gainVal : 1.f);
+      inv ? mGainCorrection[sector].set(p, (gainVal > 1.e-5f) ? 1.f / gainVal : 1.f) : mGainCorrection[sector].set(p, gainVal);
     }
   }
 }

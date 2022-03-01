@@ -178,6 +178,9 @@ struct DataSpecUtils {
   /// OutputSpec
   static InputSpec matchingInput(OutputSpec const& spec);
 
+  /// Create an InputSpec from metadata string
+  static InputSpec fromMetadataString(std::string s);
+
   /// Get the origin, if available
   static std::optional<header::DataOrigin> getOptionalOrigin(InputSpec const& spec);
 
@@ -204,6 +207,9 @@ struct DataSpecUtils {
 
   /// Checks if left includes right (or is equal to)
   static bool includes(const InputSpec& left, const InputSpec& right);
+
+  /// Updates list of InputSpecs by merging metadata
+  static void updateInputList(std::vector<InputSpec>& list, InputSpec&& input);
 };
 
 } // namespace framework

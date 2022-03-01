@@ -47,6 +47,12 @@ struct HelperMethods {
     return constants::NMCMROBINROW * (irob / 2) + imcm / constants::NMCMROBINCOL;
   }
 
+  static void printSectorStackLayer(int det)
+  {
+    // for a given chamber number prints SECTOR_STACK_LAYER
+    printf("%02i_%i_%i\n", det / constants::NCHAMBERPERSEC, (det % constants::NCHAMBERPERSEC) / constants::NLAYER, det % constants::NLAYER);
+  }
+
   static int getPadColFromADC(int irob, int imcm, int iadc)
   {
     if (iadc < 0 || iadc > constants::NADCMCM) {
@@ -80,6 +86,11 @@ struct HelperMethods {
   static int getLayer(int det)
   {
     return det % constants::NLAYER;
+  }
+
+  static int getDetector(int layer, int stack, int sector)
+  {
+    return (layer + stack * constants::NLAYER + sector * constants::NLAYER * constants::NSTACK);
   }
 
   static int getORIinSuperModule(int detector, int readoutboard)

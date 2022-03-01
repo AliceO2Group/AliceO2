@@ -51,7 +51,7 @@ struct IDCDeltaContainer {
 /// storage for the factor used to compress IDCDelta.
 /// This factor is separated from the IDCDelta struct to able to store those values independently in the CCDB
 struct IDCDeltaCompressionFactors {
-  std::array<float, o2::tpc::SIDES> mFactors{1.f, 1.f}; ///< compression factors for each TPC side
+  std::array<std::pair<float, float>, o2::tpc::SIDES> mFactors{std::pair{1.f, 1.f}, std::pair{1.f, 1.f}}; ///< compression factors for each TPC side
 };
 
 /// struct to access and set Delta IDCs
@@ -72,21 +72,21 @@ struct IDCDelta {
   /// \return returns converted IDC value from float to new data type specified by template parameter of the object
   /// \param idcDelta Delta IDC value which will be set
   /// \param side side of the TPC
-  DataT compressValue(const float idcDelta, const o2::tpc::Side side) const
+  DataT compressValue(float idcDelta, const o2::tpc::Side side) const
   {
-    const static auto& paramIDCGroup = ParameterIDCCompression::Instance();
-    return (std::abs(idcDelta) >= paramIDCGroup.MaxIDCDeltaValue) ? static_cast<DataT>(std::copysign(paramIDCGroup.MaxIDCDeltaValue * mCompressionFactor.mFactors[side] + 0.5f, idcDelta)) : static_cast<DataT>(idcDelta * mCompressionFactor.mFactors[side] + std::copysign(0.5f, idcDelta));
+    idcDelta = (std::clamp(idcDelta, mCompressionFactor.mFactors[side].first, mCompressionFactor.mFactors[side].second) - mCompressionFactor.mFactors[side].first) * std::numeric_limits<DataT>::max() / (mCompressionFactor.mFactors[side].second - mCompressionFactor.mFactors[side].first);
+    return std::nearbyint(idcDelta);
   }
 
   /// \return returns stored Delta IDC value
   /// \param side side of the TPC
   /// \param index index in the storage (see: getIndexUngrouped int IDCGroupHelperSector)
-  float getValue(const o2::tpc::Side side, const unsigned int index) const { return (static_cast<float>(mIDCDelta.mIDCDeltaCont[side][index]) / mCompressionFactor.mFactors[side]); }
+  float getValue(const o2::tpc::Side side, const unsigned int index) const { return mCompressionFactor.mFactors[side].first + (mCompressionFactor.mFactors[side].second - mCompressionFactor.mFactors[side].first) * static_cast<float>(mIDCDelta.mIDCDeltaCont[side][index]) / std::numeric_limits<DataT>::max(); }
 
   /// set compression factor
   /// \param side side of the TPC
   /// \param factor factor which will be used for the compression
-  void setCompressionFactor(const o2::tpc::Side side, const float factor) { mCompressionFactor.mFactors[side] = factor; }
+  void setCompressionFactor(const o2::tpc::Side side, const float factorMin, const float factorMax) { mCompressionFactor.mFactors[side] = std::pair{factorMin, factorMax}; }
 
   /// \return returns vector of Delta IDCs for given side
   /// \param side side of the TPC
@@ -108,6 +108,10 @@ struct IDCDelta {
   /// \return returns compression factors to uncompress Delta IDC
   /// \param side side of the TPC
   auto getCompressionFactor(const o2::tpc::Side side) const { return mCompressionFactor.mFactors[side]; }
+
+  /// \return returns number of stored IDCs for given side
+  /// \param side side of the TPC
+  auto getNIDCs(const o2::tpc::Side side) const { return getIDCDelta(side).size(); }
 
   IDCDeltaContainer<DataT> mIDCDelta{};            ///< storage for Delta IDCs
   IDCDeltaCompressionFactors mCompressionFactor{}; ///< compression factor for Delta IDCs
@@ -146,7 +150,13 @@ struct IDCDelta<float> {
   /// \param val value of IDCDelta which will be stored
   void setIDCDelta(const o2::tpc::Side side, const unsigned int index, const float val) { mIDCDelta.mIDCDeltaCont[side][index] = val; }
 
+  /// resize the container
+  /// \param size new size of the container
   void resize(const o2::tpc::Side side, const unsigned int size) { mIDCDelta.mIDCDeltaCont[side].resize(size); }
+
+  /// \return returns number of stored IDCs for given side
+  /// \param side side of the TPC
+  auto getNIDCs(const o2::tpc::Side side) const { return getIDCDelta(side).size(); }
 
   IDCDeltaContainer<float> mIDCDelta{}; ///< storage for uncompressed Delta IDCs
   ClassDefNV(IDCDelta, 1)
@@ -175,30 +185,18 @@ class IDCDeltaCompressionHelper
   static void compress(const IDCDelta<float>& idcDeltaUncompressed, IDCDelta<DataT>& idcCompressed, const o2::tpc::Side side)
   {
     idcCompressed.getIDCDelta(side).reserve(idcDeltaUncompressed.getIDCDelta(side).size());
-    const float factor = getCompressionFactor(idcDeltaUncompressed, side);
-    idcCompressed.setCompressionFactor(side, factor);
+    const auto minmaxIDC = std::minmax_element(std::begin(idcDeltaUncompressed.getIDCDelta(side)), std::end(idcDeltaUncompressed.getIDCDelta(side)));
+    const auto& paramIDCGroup = ParameterIDCCompression::Instance();
+    const float minIDCDelta = std::clamp(*minmaxIDC.first, paramIDCGroup.minIDCDeltaValue, paramIDCGroup.maxIDCDeltaValue);
+    const float maxIDCDelta = std::clamp(*minmaxIDC.second, paramIDCGroup.minIDCDeltaValue, paramIDCGroup.maxIDCDeltaValue);
+    idcCompressed.setCompressionFactor(side, minIDCDelta, maxIDCDelta);
     for (auto& idc : idcDeltaUncompressed.getIDCDelta(side)) {
       idcCompressed.emplace_back(idc, side);
     }
   }
-
-  /// \return returns the factor which is used during the compression
-  static float getCompressionFactor(const IDCDelta<float>& idcDeltaUncompressed, const o2::tpc::Side side)
-  {
-    const float maxAbsIDC = getMaxValue(idcDeltaUncompressed.getIDCDelta(side));
-    const auto& paramIDCGroup = ParameterIDCCompression::Instance();
-    const float maxIDC = paramIDCGroup.MaxIDCDeltaValue;
-    return (maxAbsIDC > maxIDC || maxAbsIDC == 0) ? (std::numeric_limits<DataT>::max() / maxIDC) : (std::numeric_limits<DataT>::max() / maxAbsIDC);
-  }
-
-  /// \returns returns maximum abs value in vector
-  static float getMaxValue(const std::vector<float>& idcs)
-  {
-    return std::abs(*std::max_element(idcs.begin(), idcs.end(), [](const float a, const float b) -> bool { return (std::abs(a) < std::abs(b)); }));
-  };
 };
 
-///<struct containing the IDC1 values
+///< struct containing the IDC0 values
 struct IDCZero {
 
   /// set IDC zero for given index
@@ -262,6 +260,10 @@ struct IDCOne {
   /// \param side side of the TPC
   /// \param index index in the storage
   float getValueIDCOne(const o2::tpc::Side side, const unsigned int index) const { return mIDCOne[side][index]; }
+
+  /// \return returns number of stored IDCs for given side
+  /// \param side side of the TPC
+  auto getNIDCs(const o2::tpc::Side side) const { return mIDCOne[side].size(); }
 
   /// clear values
   void clear()
@@ -407,6 +409,43 @@ struct FourierCoeff {
   const unsigned int mCoeffPerTF{};                                      ///< number of real+imag coefficients per TF
 
   ClassDefNV(FourierCoeff, 1)
+};
+
+template <typename T>
+struct Enable_enum_class_bitfield {
+  static constexpr bool value = false;
+};
+
+// operator overload for allowing bitfiedls with enum
+template <typename T>
+typename std::enable_if<std::is_enum<T>::value && Enable_enum_class_bitfield<T>::value, T>::type
+  operator&(T lhs, T rhs)
+{
+  typedef typename std::underlying_type<T>::type integer_type;
+  return static_cast<T>(static_cast<integer_type>(lhs) & static_cast<integer_type>(rhs));
+}
+
+template <typename T>
+typename std::enable_if<std::is_enum<T>::value && Enable_enum_class_bitfield<T>::value, T>::type
+  operator|(T lhs, T rhs)
+{
+  typedef typename std::underlying_type<T>::type integer_type;
+  return static_cast<T>(static_cast<integer_type>(lhs) | static_cast<integer_type>(rhs));
+}
+
+enum class PadFlags : unsigned short {
+  flagGoodPad = 1 << 0,      ///< flag for a good pad binary 0001
+  flagDeadPad = 1 << 1,      ///< flag for a dead pad binary 0010
+  flagUnknownPad = 1 << 2,   ///< flag for unknown status binary 0100
+  flagSaturatedPad = 1 << 3, ///< flag for saturated status binary 0100
+  flagHighPad = 1 << 4,      ///< flag for pad with extremly high IDC value
+  flagLowPad = 1 << 5,       ///< flag for pad with extremly low IDC value
+  flagSkip = 1 << 6          ///< flag for defining a pad which is just ignored during the calculation of I1 and IDCDelta
+};
+
+template <>
+struct Enable_enum_class_bitfield<PadFlags> {
+  static constexpr bool value = true;
 };
 
 } // namespace tpc

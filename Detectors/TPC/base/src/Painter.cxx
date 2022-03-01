@@ -109,10 +109,10 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
   TH1::SetDefaultBufferSize(Sector::MAXSECTOR * mapper.getPadsInSector());
 
   auto hAside1D = new TH1F(fmt::format("h_Aside_1D_{}", name).data(), fmt::format("{} (A-Side)", title).data(),
-                           nbins1D, xMin1D, xMax1D); //TODO: modify ranges
+                           nbins1D, xMin1D, xMax1D); // TODO: modify ranges
 
   auto hCside1D = new TH1F(fmt::format("h_Cside_1D_{}", name).data(), fmt::format("{} (C-Side)", title).data(),
-                           nbins1D, xMin1D, xMax1D); //TODO: modify ranges
+                           nbins1D, xMin1D, xMax1D); // TODO: modify ranges
 
   auto hAside2D = new TH2F(fmt::format("h_Aside_2D_{}", name).data(), fmt::format("{} (A-Side);#it{{x}} (cm);#it{{y}} (cm)", title).data(),
                            330, -270, 270, 330, -270, 270);
@@ -153,12 +153,13 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
 
   // ===| Draw histograms |=====================================================
   gStyle->SetOptStat("mr");
-  gStyle->SetStatX(1. - gPad->GetRightMargin());
-  gStyle->SetStatY(1. - gPad->GetTopMargin());
   auto c = outputCanvas;
   if (!c) {
     c = new TCanvas(fmt::format("c_{}", name).data(), title.data(), 1000, 1000);
   }
+  gStyle->SetStatX(1. - gPad->GetRightMargin());
+  gStyle->SetStatY(1. - gPad->GetTopMargin());
+
   c->Clear();
   c->Divide(2, 2);
 
@@ -387,7 +388,7 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const CalDet<T>& calDet, int 
     }
 
     // ===| 1D histogram |===
-    auto h1D = new TH1F(fmt::format("h_{}_{:02d}", calName, iroc).data(), fmt::format("{} distribution ROC {:02d} ({});ADC value", calName, iroc, getROCTitle(iroc)).data(), nbins1D, xMin1D, xMax1D);
+    auto h1D = new TH1F(fmt::format("h1_{}_{:02d}", calName, iroc).data(), fmt::format("{} distribution ROC {:02d} ({});ADC value", calName, iroc, getROCTitle(iroc)).data(), nbins1D, xMin1D, xMax1D);
     for (const auto& val : roc.getData()) {
       h1D->Fill(val);
     }
@@ -437,9 +438,9 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const std::string_view fileNa
 }
 
 //______________________________________________________________________________
-TH2Poly* painter::makeSectorHist(const std::string_view name, const std::string_view title)
+TH2Poly* painter::makeSectorHist(const std::string_view name, const std::string_view title, const float xMin, const float xMax, const float yMin, const float yMax)
 {
-  auto poly = new TH2Poly(name.data(), title.data(), 83.65, 247.7, -43.7, 43.7);
+  auto poly = new TH2Poly(name.data(), title.data(), xMin, xMax, yMin, yMax);
 
   auto coords = painter::getPadCoordinatesSector();
   for (const auto& coord : coords) {
@@ -806,7 +807,7 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const LtrCalibData& ltr, std:
     cLtrCoverage = new TCanvas("cLtrCoverage", "laser track coverage", size, 2. * size * 7 / 24 * 1.1);
     cCalibValues = new TCanvas("cCalibValues", "calibration values", size, 2. * size * 7 / 24 * 1.1);
 
-    //TODO: add cCalibValues
+    // TODO: add cCalibValues
   }
 
   auto getLtrStatHist = [](Side side) -> TH2F* {
@@ -849,7 +850,7 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const LtrCalibData& ltr, std:
 
     hltrCoverage->Fill(bundleID, trackID);
   }
-  //hltrCoverage->Scale(1.f/float(ltr->processedTFs));
+  // hltrCoverage->Scale(1.f/float(ltr->processedTFs));
 
   cLtrCoverage->Divide(1, 2);
 

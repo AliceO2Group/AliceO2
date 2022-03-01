@@ -30,6 +30,7 @@
 #include "TPCWorkflow/TPCDistributeIDCSpec.h"
 #include "TPCBase/CRU.h"
 #include "Framework/WorkflowSpec.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 using o2::header::gDataOriginTPC;
@@ -57,7 +58,7 @@ class TPCFourierTransformAggregatorSpec : public o2::framework::Task
   {
     // set the min range of TFs for first TF
     if (mProcessedTFs == 0) {
-      mTFRange[0] = getCurrentTF(pc);
+      mTimeStampRange[0] = getCurrentTimeStamp(pc);
     }
 
     for (int i = 0; i < mCRUs.size(); ++i) {
@@ -68,13 +69,11 @@ class TPCFourierTransformAggregatorSpec : public o2::framework::Task
     }
     ++mProcessedTFs;
 
-    if (!(mProcessedTFs % ((mTimeFrames + 5) / 5))) {
-      LOGP(info, "aggregated TFs: {}", mProcessedTFs);
-    }
+    LOGP(info, "aggregated TFs: {}", mProcessedTFs);
 
     if (mProcessedTFs == mTimeFrames) {
-      mTFRange[1] = getCurrentTF(pc); // set the TF for last aggregated TF
-      mProcessedTFs = 0;              // reset processed TFs for next aggregation interval
+      mTimeStampRange[1] = getCurrentTimeStamp(pc);
+      mProcessedTFs = 0; // reset processed TFs for next aggregation interval
 
       // perform fourier transform of 1D-IDCs
       auto intervals = mOneDIDCAggregator.getIntegrationIntervalsPerTF();
@@ -108,11 +107,13 @@ class TPCFourierTransformAggregatorSpec : public o2::framework::Task
   o2::ccdb::CcdbApi mDBapi;                     ///< API for storing the IDCs in the CCDB
   std::map<std::string, std::string> mMetadata; ///< meta data of the stored object in CCDB
   bool mWriteToDB{};                            ///< flag if writing to CCDB will be done
-  std::array<uint32_t, 2> mTFRange{};           ///< storing of first and last TF used when setting the validity of the objects when writing to CCDB
+  std::array<uint64_t, 2> mTimeStampRange{};    ///< storing of first and last time stamp used when setting the validity of the objects when writing to CCDB
   int mProcessedTFs{0};                         ///< number of processed time frames to keep track of when the writing to CCDB will be done
 
   /// \return returns TF of current processed data
   uint32_t getCurrentTF(o2::framework::ProcessingContext& pc) const { return o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->tfCounter; }
+
+  uint64_t getCurrentTimeStamp(o2::framework::ProcessingContext& pc) const { return DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation; }
 
   void sendOutput(DataAllocator& output)
   {
@@ -121,7 +122,7 @@ class TPCFourierTransformAggregatorSpec : public o2::framework::Task
     }
 
     if (mWriteToDB) {
-      mDBapi.storeAsTFileAny<o2::tpc::FourierCoeff>(&mIDCFourierTransform.getFourierCoefficients(), "TPC/Calib/IDC/FOURIER", mMetadata, mTFRange[0], mTFRange[1]);
+      mDBapi.storeAsTFileAny<o2::tpc::FourierCoeff>(&mIDCFourierTransform.getFourierCoefficients(), "TPC/Calib/IDC/FOURIER", mMetadata, mTimeStampRange[0], mTimeStampRange[1]);
     }
   }
 };
@@ -144,7 +145,7 @@ DataProcessorSpec getTPCFourierTransformAggregatorSpec(const std::vector<uint32_
     inputSpecs,
     outputSpecs,
     AlgorithmSpec{adaptFromTask<TPCFourierTransformAggregatorSpec>(crus, timeframes, nFourierCoefficientsStore, rangeIDC, debug, senddebug)},
-    Options{{"ccdb-uri", VariantType::String, "http://ccdb-test.cern.ch:8080", {"URI for the CCDB access."}}}}; // end DataProcessorSpec
+    Options{{"ccdb-uri", VariantType::String, o2::base::NameConf::getCCDBServer(), {"URI for the CCDB access."}}}}; // end DataProcessorSpec
 }
 
 } // namespace o2::tpc

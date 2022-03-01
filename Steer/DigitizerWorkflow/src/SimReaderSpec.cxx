@@ -178,7 +178,7 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
 
         // get digitization context and add QED stuff
         mgr.getDigitizationContext().fillQED(qedprefix, qedinteractionrecords);
-        mgr.getDigitizationContext().printCollisionSummary(true);
+        mgr.getDigitizationContext().printCollisionSummary(true, 2000); // print with QED but truncate output
       }
       // --- end addition of QED contributions
 

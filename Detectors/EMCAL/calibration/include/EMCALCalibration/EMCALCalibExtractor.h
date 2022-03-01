@@ -26,6 +26,10 @@
 #include "EMCALBase/Geometry.h"
 #include <boost/histogram.hpp>
 
+#if (defined(WITH_OPENMP) && !defined(__CLING__))
+#include <omp.h>
+#endif
+
 namespace o2
 {
 namespace emcal
@@ -44,6 +48,9 @@ class EMCALCalibExtractor
 
   int getNsigma() const { return mSigma; }
   void setNsigma(int ns) { mSigma = ns; }
+
+  void setNThreads(int n) { mNThreads = std::min(n, NCELLS); }
+  int getNThreads() const { return mNThreads; }
 
   void setUseScaledHistoForBadChannels(bool useScaledHistoForBadChannels) { mUseScaledHistoForBadChannels = useScaledHistoForBadChannels; }
 
@@ -86,18 +93,53 @@ class EMCALCalibExtractor
     return mOutputBCM;
   }
 
-  /// \brief For now a dummy function to calibrate the time.
+  /// \brief Calibrate time for all cells
+  /// \param hist -- 2d boost histogram: cell-time vs. cell-ID
+  /// \param minTime -- min. time considered for fit
+  /// \param maxTime -- max. time considered for fit
   template <typename... axes>
-  o2::emcal::TimeCalibrationParams calibrateTime(boost::histogram::histogram<axes...>& hist)
+  o2::emcal::TimeCalibrationParams calibrateTime(boost::histogram::histogram<axes...>& hist, double minTime = 0, double maxTime = 1000)
   {
+
+    auto histReduced = boost::histogram::algorithm::reduce(hist, boost::histogram::algorithm::shrink(minTime, maxTime), boost::histogram::algorithm::shrink(0, NCELLS));
+
     o2::emcal::TimeCalibrationParams TCP;
-    TCP.addTimeCalibParam(1234, 600, 0);
+
+    double mean = 0;
+
+#if (defined(WITH_OPENMP) && !defined(__CLING__))
+    if (mNThreads < 1) {
+      mNThreads = std::min(omp_get_max_threads(), NCELLS);
+    }
+    LOG(info) << "Number of threads that will be used = " << mNThreads;
+#pragma omp parallel for num_threads(mNThreads)
+#else
+    LOG(info) << "OPEN MP will not be used for the time calibration";
+    mNThreads = 1;
+#endif
+
+    for (unsigned int i = 0; i < NCELLS; ++i) {
+
+      // project boost histogram to 1d just for 1 cell
+      auto boostHist1d = o2::utils::ProjectBoostHistoXFast(histReduced, i, i + 1);
+      // ToDo: maybe cut histo to max +- 25 ns
+
+      try {
+        auto fitValues = o2::utils::fitBoostHistoWithGaus<double>(boostHist1d);
+        mean = fitValues.at(1);
+        // add mean to time calib params
+        TCP.addTimeCalibParam(i, mean, 0);
+      } catch (o2::utils::FitGausError_t) {
+        TCP.addTimeCalibParam(i, mean, 0); // take calib value of last cell; or 400 ns shift default value
+      }
+    }
     return TCP;
   }
 
  private:
   bool mUseScaledHistoForBadChannels = false; ///< variable to specify whether or not we want to use the scaled histo for the claibration of bad channels.
   int mSigma = 4;                             ///< number of sigma used in the calibration to define outliers
+  int mNThreads = 1;                          ///< number of threads used for calibration
 
   ClassDefNV(EMCALCalibExtractor, 1);
 };

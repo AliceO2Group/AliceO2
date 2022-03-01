@@ -46,11 +46,10 @@ class IDCAverageGroupBase<IDCAverageGroupCRU>
   /// \param groupRows number of pads in row direction which will be grouped
   /// \param groupLastRowsThreshold minimum number of pads in row direction for the last group in row direction
   /// \param groupLastPadsThreshold minimum number of pads in pad direction for the last group in pad direction
-  /// \param region region of the TPC
-  /// \param sector processed sector
+  /// \param cru cru index
   /// \param nThreads number of CPU threads used
-  IDCAverageGroupBase(const unsigned char groupPads, const unsigned char groupRows, const unsigned char groupLastRowsThreshold, const unsigned char groupLastPadsThreshold, const unsigned int region, const Sector sector, const int nThreads)
-    : mIDCsGrouped{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, region}, mSector{sector}, mRobustAverage(nThreads){};
+  IDCAverageGroupBase(const unsigned char groupPads, const unsigned char groupRows, const unsigned char groupLastRowsThreshold, const unsigned char groupLastPadsThreshold, const unsigned int groupNotnPadsSectorEdges, const unsigned short cru, const int nThreads)
+    : mIDCsGrouped{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupNotnPadsSectorEdges, cru}, mRobustAverage(nThreads), mSector{CRU(cru).sector()} {};
 
   /// \return returns number of integration intervals for stored ungrouped IDCs
   unsigned int getNIntegrationIntervals() const { return mIDCsUngrouped.size() / Mapper::PADSPERREGION[getRegion()]; }
@@ -75,11 +74,25 @@ class IDCAverageGroupBase<IDCAverageGroupCRU>
   /// \return returns grouped IDC object using move semantics
   auto getIDCGroupData() && { return std::move(mIDCsGrouped).getData(); }
 
+  const auto& getIDCGroup() const { return mIDCsGrouped; }
+
   /// \return returns the stored ungrouped IDC value for global ungrouped pad row and ungrouped pad
   /// \param ugrow ungrouped global row
   /// \param upad ungrouped pad in pad direction
   /// \param integrationInterval integration interval for which the IDCs will be returned
   float getUngroupedIDCValGlobal(const unsigned int ugrow, const unsigned int upad, const unsigned int integrationInterval) const { return mIDCsUngrouped[getUngroupedIndexGlobal(ugrow, upad, integrationInterval)]; }
+
+  /// \return returns the stored ungrouped IDC value for local ungrouped pad row and ungrouped pad
+  /// \param ugrow ungrouped global row
+  /// \param upad ungrouped pad in pad direction
+  /// \param integrationInterval integration interval for which the IDCs will be returned
+  float getUngroupedIDCValLocal(const unsigned int ulrow, const unsigned int upad, const unsigned int integrationInterval) const { return mIDCsUngrouped[getUngroupedIndex(ulrow, upad, integrationInterval)]; }
+
+  /// \return returns the stored ungrouped IDC value normalized to the pad size for local ungrouped pad row and ungrouped pad
+  /// \param ugrow ungrouped global row
+  /// \param upad ungrouped pad in pad direction
+  /// \param integrationInterval integration interval for which the IDCs will be returned
+  float getUngroupedNormedIDCValLocal(const unsigned int ulrow, const unsigned int upad, const unsigned int integrationInterval) const { return mIDCsUngrouped[getUngroupedIndex(ulrow, upad, integrationInterval)] * Mapper::INVPADAREA[getRegion()]; }
 
   /// \return returns index to data from ungrouped pad and row
   /// \param ulrow ungrouped local row in region
@@ -121,18 +134,21 @@ class IDCAverageGroupBase<IDCAverageGroupTPC>
   /// \param groupLastRowsThreshold minimum number of pads in row direction for the last group in row direction
   /// \param groupLastPadsThreshold minimum number of pads in pad direction for the last group in pad direction
   /// \param nThreads number of CPU threads used
-  IDCAverageGroupBase(const std::array<unsigned char, Mapper::NREGIONS>& groupPads, const std::array<unsigned char, Mapper::NREGIONS>& groupRows, const std::array<unsigned char, Mapper::NREGIONS>& groupLastRowsThreshold, const std::array<unsigned char, Mapper::NREGIONS>& groupLastPadsThreshold, const int nThreads)
-    : mIDCGroupHelperSector(groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold), mRobustAverage(nThreads){};
+  IDCAverageGroupBase(const std::array<unsigned char, Mapper::NREGIONS>& groupPads, const std::array<unsigned char, Mapper::NREGIONS>& groupRows, const std::array<unsigned char, Mapper::NREGIONS>& groupLastRowsThreshold, const std::array<unsigned char, Mapper::NREGIONS>& groupLastPadsThreshold, const unsigned int groupNotnPadsSectorEdges, const int nThreads)
+    : mIDCGroupHelperSector(groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupNotnPadsSectorEdges), mRobustAverage(nThreads){};
 
   /// \return returns number of integration intervalls stored in this object
   /// \param side side of the TPC
   unsigned int getNIntegrationIntervals(const o2::tpc::Side side) const { return mIDCsUngrouped.getIDCDelta(side).size() / Mapper::getNumberOfPadsPerSide(); }
 
   /// \return returns grouped IDCDelta object
-  const auto& getIDCGroupData() & { return std::move(mIDCsGrouped); }
+  const auto& getIDCGroupData() const& { return mIDCsGrouped; }
 
   /// \return returns grouped IDCDelta object
   auto getIDCGroupData() && { return std::move(mIDCsGrouped); }
+
+  /// \return returns ungrouped IDCDelta object
+  const auto& getIDCUngroupData() const& { return mIDCsUngrouped; }
 
   /// \return returns helper object containing the grouping parameters and accessing of data indices
   auto& getIDCGroupHelperSector() const { return mIDCGroupHelperSector; }
@@ -192,6 +208,9 @@ class IDCAverageGroupBase<IDCAverageGroupTPC>
   /// setting the ungrouped IDCs using move semantics
   /// \param idcs vector containing the ungrouped IDCs
   void setIDCs(IDCDelta<float>&& idcs);
+
+  /// resetting the grouped IDCs
+  void resetGroupedIDCs(const Side side);
 
  protected:
   IDCDelta<float> mIDCsGrouped{};                                 ///< grouped and averaged IDC values

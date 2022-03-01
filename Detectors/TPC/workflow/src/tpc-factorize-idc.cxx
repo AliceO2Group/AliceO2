@@ -48,7 +48,11 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"crus", VariantType::String, cruDefault.c_str(), {"List of CRUs, comma separated ranges, e.g. 0-3,7,9-15"}},
     {"compression", VariantType::Int, 1, {"compression of DeltaIDC: 0 -> No, 1 -> Medium (data compression ratio 2), 2 -> High (data compression ratio ~6)"}},
     {"input-lanes", VariantType::Int, 2, {"Number of parallel pipelines which were set in the TPCDistributeIDCSpec device."}},
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g. for pp 50kHz: 'TPCIDCCompressionParam.MaxIDCDeltaValue=15;')"}}};
+    {"groupPads", VariantType::String, "7,7,7,7,6,6,6,6,5,5", {"number of pads in a row which will be grouped per region"}},
+    {"groupRows", VariantType::String, "5,5,5,5,4,4,4,4,3,3", {"number of pads in row direction which will be grouped per region"}},
+    {"groupLastRowsThreshold", VariantType::String, "3,3,3,3,2,2,2,2,2,2", {"set threshold in row direction for merging the last group to the previous group per region"}},
+    {"groupLastPadsThreshold", VariantType::String, "3,3,3,3,2,2,2,2,1,1", {"set threshold in pad direction for merging the last group to the previous group per region"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g. for pp 50kHz: 'TPCIDCCompressionParam.maxIDCDeltaValue=15;')"}}};
 
   std::swap(workflowOptions, options);
 }
@@ -58,6 +62,12 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
   using namespace o2::tpc;
+
+  const std::string sgroupPads = config.options().get<std::string>("groupPads");
+  const std::string sgroupRows = config.options().get<std::string>("groupRows");
+  const std::string sgroupLastRowsThreshold = config.options().get<std::string>("groupLastRowsThreshold");
+  const std::string sgroupLastPadsThreshold = config.options().get<std::string>("groupLastPadsThreshold");
+  ParameterIDCGroup::setGroupingParameterFromString(sgroupPads, sgroupRows, sgroupLastRowsThreshold, sgroupLastPadsThreshold);
 
   // set up configuration
   o2::conf::ConfigurableParam::updateFromFile(config.options().get<std::string>("configFile"));

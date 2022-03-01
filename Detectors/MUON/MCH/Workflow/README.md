@@ -10,6 +10,7 @@
 * [Raw to digits](#raw-to-digits)
 * [Digit filtering](#digit-filtering)
 * [Time clustering](#time-clustering)
+* [Event finding](#event-finding)
 * [Preclustering](#preclustering)
 * [Clustering](#clustering)
 * [CTF encoding/decoding](#ctf-encodingdecoding)
@@ -92,7 +93,7 @@ Inputs :
 
 Outputs :
 - list of digits that pass the filtering criteria (for the moment ADC>0), with the (default) data description `F-DIGITS`  (can be changed with `--output-digits-data-description` option)
-- list of ROF records corresponding to the digits above, with a (default) data description of `F-DIGITROFS` (can be changed with `--output-digit-rofs-data-description` option) (can be changed with `--output-digit-rofs-data-description` option)
+- list of ROF records corresponding to the digits above, with a (default) data description of `F-DIGITROFS` (can be changed with `--output-digit-rofs-data-description` option)
 
 
 ## Time clustering
@@ -107,6 +108,45 @@ The option `--time-cluster-width xxx` allows to set the width of the time correl
 
 The time clustering is based on a brute-force peak search algorithm, which arranges the input digits into coarse time bins. The number of bins in one time cluster window can be set via the `--peak-search-nbins` option.
 
+## Event finding
+
+```shell
+o2-mch-event-finder-workflow
+```
+
+Inputs :
+- list of all MCH digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) in the current time frame, with the (default) data description `F-DIGITS` (can be changed with `--input-digits-data-description` option)
+- list of MCH ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the digits associated to each ROF, with the (default) data description `F-DIGITROFS` (can be changed with `--input-digit-rofs-data-description` option)
+- list of MID ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MID/include/DataFormatsMID/ROFRecord.h)) used to trigger the event finding, with the data description `TRACKROFS`
+
+Outputs :
+- list of MCH digits associated to an event, with the (default) data description `E-F-DIGITS` (can be changed with `--output-digits-data-description` option)
+- list of MCH ROF records pointing to the digits associated to each event, with the (default) data description `E-F-DIGITROFS` (can be changed with `--output-digit-rofs-data-description` option)
+
+Option `--mch-config "file.json"` or `--mch-config "file.ini"` allows to change the triggering parameters from a configuration file. This file can be either in JSON or in INI format, as described below:
+
+* Example of configuration file in JSON format:
+```json
+{
+    "MCHTriggering": {
+        "triggerRange[0]": "-3",
+        "triggerRange[1]": "3"
+    }
+}
+```
+* Example of configuration file in INI format:
+```ini
+[MCHTriggering]
+triggerRange[0]=-3
+triggerRange[1]=3
+```
+
+Option `--configKeyValues "key1=value1;key2=value2;..."` allows to change the triggering parameters from the command line. The parameters changed from the command line will supersede the ones changed from a configuration file.
+
+* Example of parameters changed from the command line:
+```shell
+--configKeyValues "MCHTriggering.triggerRange[0]=-3;MCHTriggering.triggerRange[1]=3"
+```
 ## Preclustering
 
 ```shell
@@ -130,7 +170,7 @@ Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/
 
 Option `--run2-config` allows to configure the clustering to process run2 data.
 
-Option `--config "file.json"` or `--config "file.ini"` allows to change the clustering parameters from a configuration file. This file can be either in JSON or in INI format, as described below:
+Option `--mch-config "file.json"` or `--mch-config "file.ini"` allows to change the clustering parameters from a configuration file. This file can be either in JSON or in INI format, as described below:
 
 * Example of configuration file in JSON format:
 ```json
@@ -196,7 +236,7 @@ Options `--l3Current xxx` and `--dipoleCurrent yyy` allow to specify the current
 
 Option `--debug x` allows to enable the debug level x (0 = no debug, 1 or 2).
 
-Option `--config "file.json"` or `--config "file.ini"` allows to change the tracking parameters from a configuration file. This file can be either in JSON or in INI format, as described below:
+Option `--mch-config "file.json"` or `--mch-config "file.ini"` allows to change the tracking parameters from a configuration file. This file can be either in JSON or in INI format, as described below:
 
 * Example of configuration file in JSON format:
 ```json

@@ -13,14 +13,16 @@ add_subdirectory(CPVCalibWorkflow)
 
 o2_add_library(CPVCalibration
                TARGETVARNAME targetName
-               SOURCES src/PedestalCalibrator.cxx
+               SOURCES src/NoiseCalibrator.cxx
+                       src/PedestalCalibrator.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsCPV
                                      O2::CPVBase
                                      O2::DetectorsCalibration
                                      O2::CCDB)
 
 o2_target_root_dictionary(CPVCalibration
-                          HEADERS include/CPVCalibration/PedestalCalibrator.h)
+                          HEADERS include/CPVCalibration/NoiseCalibrator.h
+                                  include/CPVCalibration/PedestalCalibrator.h)
 
 o2_add_executable(cpv-calib-workflow
                   COMPONENT_NAME calibration
@@ -33,6 +35,10 @@ o2_add_executable(cpv-calib-workflow
 if(BUILD_TESTING)
   o2_add_test_root_macro(macros/readPedestalsFromCCDB.C
                          PUBLIC_LINK_LIBRARIES O2::CCDB O2::DataFormatsCPV
+                         LABELS CPV COMPILE_ONLY)
+
+  o2_add_test_root_macro(macros/readBadChannelMapFromCCDB.C
+                         PUBLIC_LINK_LIBRARIES O2::CCDB O2::CPVBase O2::DataFormatsCPV
                          LABELS CPV COMPILE_ONLY)
 
   o2_add_test_root_macro(macros/readPedEfficienciesFromCCDB.C

@@ -166,9 +166,10 @@ namespace cols
 DECLARE_SOA_COLUMN(Ivec, ivec, std::vector<int>);
 DECLARE_SOA_COLUMN(Fvec, fvec, std::vector<float>);
 DECLARE_SOA_COLUMN(Dvec, dvec, std::vector<double>);
+DECLARE_SOA_COLUMN(UIvec, uivec, std::vector<uint8_t>);
 } // namespace cols
 
-DECLARE_SOA_TABLE(Vectors, "AOD", "VECS", o2::soa::Index<>, cols::Ivec, cols::Fvec, cols::Dvec);
+DECLARE_SOA_TABLE(Vectors, "AOD", "VECS", o2::soa::Index<>, cols::Ivec, cols::Fvec, cols::Dvec, cols::UIvec);
 } // namespace o2::aod
 
 BOOST_AUTO_TEST_CASE(VariableLists)
@@ -178,16 +179,26 @@ BOOST_AUTO_TEST_CASE(VariableLists)
   std::vector<int> iv;
   std::vector<float> fv;
   std::vector<double> dv;
-  for (auto i = 1; i < 11; ++i) {
+  std::vector<uint8_t> ui;
+
+  int empty[] = {3, 7, 10};
+  auto count = 0;
+  for (auto i = 1; i < 1000; ++i) {
     iv.clear();
     fv.clear();
     dv.clear();
-    for (auto j = 0; j < i; ++j) {
-      iv.push_back(j + 2);
-      fv.push_back((j + 2) * 0.2134f);
-      dv.push_back((j + 4) * 0.192873819237);
+    ui.clear();
+    if (i != empty[count]) {
+      for (auto j = 0; j < i % 10 + 1; ++j) {
+        iv.push_back(j + 2);
+        fv.push_back((j + 2) * 0.2134f);
+        dv.push_back((j + 4) * 0.192873819237);
+        ui.push_back(j);
+      }
+    } else {
+      count++;
     }
-    writer(0, iv, fv, dv);
+    writer(0, iv, fv, dv, ui);
   }
   auto table = b.finalize();
 
@@ -205,14 +216,25 @@ BOOST_AUTO_TEST_CASE(VariableLists)
   auto ta = tr2ta.finalize();
   o2::aod::Vectors v{ta};
   int i = 1;
+  count = 0;
   for (auto& row : v) {
-    auto iv = row.ivec();
-    auto fv = row.fvec();
-    auto dv = row.dvec();
-    for (auto j = 0; j < i; ++j) {
-      BOOST_CHECK_EQUAL(iv[j], j + 2);
-      BOOST_CHECK_EQUAL(fv[j], (j + 2) * 0.2134f);
-      BOOST_CHECK_EQUAL(dv[j], (j + 4) * 0.192873819237);
+    auto ivr = row.ivec();
+    auto fvr = row.fvec();
+    auto dvr = row.dvec();
+    auto uvr = row.uivec();
+    if (i != empty[count]) {
+      for (auto j = 0; j < i % 10 + 1; ++j) {
+        BOOST_CHECK_EQUAL(ivr[j], j + 2);
+        BOOST_CHECK_EQUAL(fvr[j], (j + 2) * 0.2134f);
+        BOOST_CHECK_EQUAL(dvr[j], (j + 4) * 0.192873819237);
+        BOOST_CHECK_EQUAL(uvr[j], j);
+      }
+    } else {
+      BOOST_CHECK_EQUAL(ivr.size(), 0);
+      BOOST_CHECK_EQUAL(fvr.size(), 0);
+      BOOST_CHECK_EQUAL(dvr.size(), 0);
+      BOOST_CHECK_EQUAL(uvr.size(), 0);
+      count++;
     }
     ++i;
   }

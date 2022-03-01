@@ -16,6 +16,7 @@
 #include "GPUParamRTC.h"
 #include "GPUDef.h"
 #include "GPUCommonMath.h"
+#include "GPUCommonConstants.h"
 #include "GPUTPCGMPolynomialFieldManager.h"
 #include "GPUDataTypes.h"
 #include "GPUConstantMem.h"
@@ -82,8 +83,7 @@ void GPUParam::SetDefaults(float solenoidBz)
 
   par.dAlpha = 0.349066f;
   par.bzkG = solenoidBz;
-  constexpr double kCLight = 0.000299792458f;
-  par.constBz = solenoidBz * kCLight;
+  par.constBz = solenoidBz * GPUCA_NAMESPACE::gpu::gpu_common_constants::kCLight;
   par.dodEdx = 0;
 
   constexpr float plusZmin = 0.0529937;
@@ -249,7 +249,7 @@ std::string GPUParamRTC::generateRTCCode(const GPUParam& param, bool useConstexp
   return "#ifndef GPUCA_GPUCODE_DEVICE\n"
          "#include <string>\n"
          "#endif\n"
-         "namespace o2::gpu { class GPUDisplayBackend; }\n" +
+         "namespace o2::gpu { class GPUDisplayFrontend; }\n" +
          qConfigPrintRtc(std::make_tuple(&param.rec.tpc, &param.rec.trd, &param.rec, &param.par), useConstexpr);
 }
 
@@ -259,9 +259,11 @@ o2::base::Propagator* GPUParam::GetDefaultO2Propagator(bool useGPUField) const
 {
   o2::base::Propagator* prop = nullptr;
 #ifdef GPUCA_HAVE_O2HEADERS
+#ifdef GPUCA_STANDALONE
   if (useGPUField == false) {
     throw std::runtime_error("o2 propagator withouzt gpu field unsupported");
   }
+#endif
   prop = o2::base::Propagator::Instance(useGPUField);
   if (useGPUField) {
     prop->setGPUField(&polynomialField);

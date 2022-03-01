@@ -44,6 +44,7 @@ class DigitsWriteoutBuffer
 
   /// clear the container
   void clear();
+  void reserve();
 
   /// Add digit to the container
   /// \param towerID Cell ID
@@ -53,28 +54,18 @@ class DigitsWriteoutBuffer
 
   /// Getter for the last N entries (time samples) in the ring buffer
   /// \param nsample number of entries to be written
-  /// \return Vector of map of cell IDs and labeled digits in that cell
-  gsl::span<std::unordered_map<int, std::list<LabeledDigit>>> getLastNSamples(int nsample = 15);
-
-  /// Forwards the marker to the next time sample every mTimeBinWidth
-  void forwardMarker(double eventTime);
+  /// \return List of map of cell IDs and labeled digits in that cell
+  std::list<std::unordered_map<int, std::list<LabeledDigit>>> getLastNSamples(int nsample = 15);
 
   void setNumberReadoutSamples(unsigned int nsamples) { mNumberReadoutSamples = nsamples; }
 
-  /// Getter for current position in the ring buffer
-  /// \return current position
-  std::tuple<double, int> getCurrentTimeAndPosition() const { return std::make_tuple(mMarker.mReferenceTime, mMarker.mPositionInBuffer - mTimedDigits.begin()); }
+  std::deque<std::unordered_map<int, std::list<LabeledDigit>>> getTheWholeSample() { return mTimedDigits; }
 
  private:
-  struct Marker {
-    double mReferenceTime;
-    std::deque<std::unordered_map<int, std::list<LabeledDigit>>>::iterator mPositionInBuffer;
-  };
-
   unsigned int mBufferSize = 30;                                             ///< The size of the buffer, it has to be at least 2 times the size of the readout cycle
   unsigned int mTimeBinWidth = 100;                                          ///< The size of the time bin (ns)
   unsigned int mNumberReadoutSamples = 15;                                   ///< The number of smaples in a readout window
-  Marker mMarker;                                                            ///< Marker for the current time sample
+  double mLastEventTime = 1500;                                              ///< The event time of last collisions in the readout window
   std::deque<std::unordered_map<int, std::list<LabeledDigit>>> mTimedDigits; ///< Container for time sampled digits per tower ID
 
   ClassDefNV(DigitsWriteoutBuffer, 1);

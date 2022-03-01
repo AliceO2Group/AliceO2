@@ -62,7 +62,7 @@
 /Detectors/GlobalTracking          @shahor02
 /Detectors/GlobalTrackingWorkflow  @shahor02
 /Detectors/HMPID                   @gvolpe79
-/Detectors/ITSMFT                  @iouribelikov @bovulpes @rpezzi
+/Detectors/ITSMFT                  @iouribelikov @bovulpes @rpezzi @mconcas
 /Detectors/MUON                    @aphecetche
 /Detectors/PHOS                    @peressounko @kharlov
 /Detectors/Passive                 @sawenzel

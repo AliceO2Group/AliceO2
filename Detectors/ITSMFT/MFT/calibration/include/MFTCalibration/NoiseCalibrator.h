@@ -17,6 +17,7 @@
 #include <string>
 
 #include "DataFormatsITSMFT/NoiseMap.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
 #include "gsl/span"
@@ -56,9 +57,15 @@ class NoiseCalibrator
 
   void finalize();
 
+  void loadDictionary(std::string fname)
+  {
+    mDict.readBinaryFile(fname);
+  }
+
   const o2::itsmft::NoiseMap& getNoiseMap() const { return mNoiseMap; }
 
  private:
+  o2::itsmft::TopologyDictionary mDict;
   o2::itsmft::NoiseMap mNoiseMap{936};
   float mProbabilityThreshold = 1e-6f;
   unsigned int mThreshold = 100;

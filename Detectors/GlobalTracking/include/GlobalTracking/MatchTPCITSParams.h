@@ -60,9 +60,8 @@ struct MatchTPCITSParams : public o2::conf::ConfigurableParamHelper<MatchTPCITSP
 
   //___________________ AfterBurner params
   int requireToReachLayerAB = 5;   ///< AB tracks should reach at least this layer from above
-  int lowestLayerAB = 0;           ///< lowest layer to reach in AfterBurner
+  int lowestLayerAB = 3;           ///< lowest layer to reach in AfterBurner
   int minContributingLayersAB = 2; ///< AB tracks must have at least this amount on contributing layers
-  int maxHoleSizeAB = 1;           ///< between 2 contributing layers there should be at most this amount of non-contributing ones
   int maxABLinksOnLayer = 10;      ///< max prolongations for single seed from one to next layer
   int maxABFinalHyp = 20;          ///< max final hypotheses per TPC seed
   float cutABTrack2ClChi2 = 30.f;  ///< cut on AfterBurner track-cluster chi2

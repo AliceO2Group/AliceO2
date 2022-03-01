@@ -17,6 +17,7 @@
 #include "Rtypes.h" // for Double_t, ULong_t, etc
 #include <iostream>
 #include <climits>
+#include <cassert>
 #include <vector>
 #include <map>
 
@@ -54,9 +55,7 @@ class NoiseMap
   /// Get the noise level for this pixels
   float getNoiseLevel(int chip, int row, int col) const
   {
-    if (chip > (int)mNoisyPixels.size()) {
-      return 0;
-    }
+    assert(chip > (int)mNoisyPixels.size());
     const auto keyIt = mNoisyPixels[chip].find(getKey(row, col));
     if (keyIt != mNoisyPixels[chip].end()) {
       return keyIt->second;
@@ -66,9 +65,7 @@ class NoiseMap
 
   void increaseNoiseCount(int chip, int row, int col)
   {
-    if (chip > (int)mNoisyPixels.size()) {
-      return;
-    }
+    assert(chip > (int)mNoisyPixels.size());
     mNoisyPixels[chip][getKey(row, col)]++;
   }
 
@@ -117,16 +114,46 @@ class NoiseMap
 
   bool isNoisy(int chip, int row, int col) const
   {
-    return chip < (int)mNoisyPixels.size() && (mNoisyPixels[chip].find(getKey(row, col)) != mNoisyPixels[chip].end());
+    assert(chip < (int)mNoisyPixels.size());
+    return (mNoisyPixels[chip].find(getKey(row, col)) != mNoisyPixels[chip].end());
   }
 
-  bool isNoisy(int chip) const { return chip < (int)mNoisyPixels.size() && !mNoisyPixels[chip].empty(); }
+  bool isNoisyOrFullyMasked(int chip, int row, int col) const
+  {
+    assert(chip < (int)mNoisyPixels.size());
+    return isNoisy(chip, row, col) || isFullChipMasked(chip);
+  }
+
+  bool isNoisy(int chip) const
+  {
+    assert(chip < (int)mNoisyPixels.size());
+    return !mNoisyPixels[chip].empty();
+  }
 
   // Methods required by the calibration framework
   void print();
   void fill(const gsl::span<const CompClusterExt> data);
   void merge(const NoiseMap* prev) {}
   const std::map<int, int>* getChipMap(int chip) const { return chip < (int)mNoisyPixels.size() ? &mNoisyPixels[chip] : nullptr; }
+
+  void maskFullChip(int chip, bool cleanNoisyPixels = false)
+  {
+    if (cleanNoisyPixels) {
+      resetChip(chip);
+    }
+    increaseNoiseCount(chip, -1, -1);
+  }
+
+  bool isFullChipMasked(int chip) const
+  {
+    return isNoisy(chip, -1, -1);
+  }
+
+  void resetChip(int chip)
+  {
+    assert(chip < (int)mNoisyPixels.size());
+    mNoisyPixels[chip].clear();
+  }
 
  private:
   static constexpr int SHIFT = 10, MASK = (0x1 << SHIFT) - 1;

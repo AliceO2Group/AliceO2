@@ -23,6 +23,12 @@ namespace trd
 
 using namespace constants;
 
+void Tracklet64::print() const
+{
+  LOGF(info, "trackletWord(0x%x), hcid(%i), row(%i), col(%i), position(%i), slope(%i), pid(%i), q0(%i), q1(%i), q2(%i)",
+       getTrackletWord(), getHCID(), getPadRow(), getColumn(), getPosition(), getSlope(), getPID(), getQ0(), getQ1(), getQ2());
+}
+
 #ifndef GPUCA_GPUCODE_DEVICE
 void Tracklet64::printStream(std::ostream& stream) const
 {

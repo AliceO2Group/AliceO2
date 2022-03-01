@@ -15,7 +15,7 @@
 #include <boost/test/unit_test.hpp>
 #include "DataFormatsTPC/CompressedClusters.h"
 #include "DataFormatsTPC/CTF.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "TPCReconstruction/CTFCoder.h"
 #include "Framework/Logger.h"
 #include <TFile.h>

@@ -47,6 +47,7 @@ struct Config {
   bool processMC = false;
   bool sendClustersPerSector = false;
   bool askDISTSTF = true;
+  bool runTRDTracking = false;
   bool readTRDtracklets = false;
 };
 using CompletionPolicyData = std::vector<framework::InputSpec>;

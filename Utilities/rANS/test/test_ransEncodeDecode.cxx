@@ -56,7 +56,7 @@ struct Params<uint32_t> {
   using coder_t = uint32_t;
   using stream_t = uint8_t;
   using source_t = char;
-  static constexpr size_t symbolTablePrecission = 16;
+  static constexpr size_t symbolTablePrecision = 16;
 };
 
 template <>
@@ -64,7 +64,7 @@ struct Params<uint64_t> {
   using coder_t = uint64_t;
   using stream_t = uint32_t;
   using source_t = char;
-  static constexpr size_t symbolTablePrecission = 16;
+  static constexpr size_t symbolTablePrecision = 16;
 };
 
 template <
@@ -79,11 +79,10 @@ struct EncodeDecodeBase {
   {
     dictString_T source;
     std::string& s = source.data;
-    o2::rans::FrequencyTable frequencies;
-    frequencies.addSamples(std::begin(s), std::end(s));
+    o2::rans::RenormedFrequencyTable frequencyTable = o2::rans::renorm(o2::rans::makeFrequencyTableFromSamples(std::begin(s), std::end(s)), params_t::symbolTablePrecision);
 
-    encoder = decltype(encoder)(frequencies, params_t::symbolTablePrecission);
-    decoder = decltype(decoder)(frequencies, params_t::symbolTablePrecission);
+    encoder = decltype(encoder)(frequencyTable);
+    decoder = decltype(decoder)(frequencyTable);
 
     const auto [min, max] = [&s]() {
       const auto [minIter, maxIter] = std::minmax_element(s.begin(), s.end());
@@ -94,12 +93,12 @@ struct EncodeDecodeBase {
 
     const size_t alphabetRangeBits = o2::rans::internal::numBitsForNSymbols(max - min + 1 + 1);
 
-    BOOST_CHECK_EQUAL(encoder.getSymbolTablePrecision(), params_t::symbolTablePrecission);
+    BOOST_CHECK_EQUAL(encoder.getSymbolTablePrecision(), params_t::symbolTablePrecision);
     BOOST_CHECK_EQUAL(encoder.getAlphabetRangeBits(), alphabetRangeBits);
     BOOST_CHECK_EQUAL(encoder.getMinSymbol(), min);
     BOOST_CHECK_EQUAL(encoder.getMaxSymbol(), max);
 
-    BOOST_CHECK_EQUAL(decoder.getSymbolTablePrecision(), params_t::symbolTablePrecission);
+    BOOST_CHECK_EQUAL(decoder.getSymbolTablePrecision(), params_t::symbolTablePrecision);
     BOOST_CHECK_EQUAL(decoder.getAlphabetRangeBits(), alphabetRangeBits);
     BOOST_CHECK_EQUAL(decoder.getMinSymbol(), min);
     BOOST_CHECK_EQUAL(decoder.getMaxSymbol(), max);

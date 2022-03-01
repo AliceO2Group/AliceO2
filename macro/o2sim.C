@@ -28,7 +28,7 @@
 #include <Steer/O2RunSim.h>
 #include <DetectorsBase/MaterialManager.h>
 #include <CCDB/BasicCCDBManager.h>
-#include <DetectorsCommonDataFormats/NameConf.h>
+#include <CommonUtils/NameConf.h>
 #include "DetectorsBase/Aligner.h"
 #include <unistd.h>
 #include <sstream>
@@ -41,7 +41,7 @@ FairRunSim* o2sim_init(bool asservice)
   // initialize CCDB service
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
   ccdbmgr.setURL(confref.getConfigData().mCCDBUrl);
-  ccdbmgr.setTimestamp(confref.getConfigData().mTimestamp);
+  ccdbmgr.setTimestamp(confref.getTimestamp());
   // try to verify connection
   if (!ccdbmgr.isHostReachable()) {
     LOG(error) << "Could not setup CCDB connecting";
@@ -49,9 +49,6 @@ FairRunSim* o2sim_init(bool asservice)
     LOG(info) << "Initialized CCDB Manager at URL: " << ccdbmgr.getURL();
     LOG(info) << "Initialized CCDB Manager with timestamp : " << ccdbmgr.getTimestamp();
   }
-
-  // we can read from CCDB (for the moment faking with a TFile)
-  // o2::conf::ConfigurableParam::fromCCDB("params_ccdb.root", runid);
 
   // update the parameters from an INI/JSON file, if given (overrides code-based version)
   o2::conf::ConfigurableParam::updateFromFile(confref.getConfigFile());
@@ -62,9 +59,6 @@ FairRunSim* o2sim_init(bool asservice)
   // write the final configuration file
   o2::conf::ConfigurableParam::writeINI(o2::base::NameConf::getMCConfigFileName(confref.getOutPrefix()));
 
-  // we can update the binary CCDB entry something like this ( + timestamp key )
-  // o2::conf::ConfigurableParam::toCCDB("params_ccdb.root");
-
   // set seed
   auto seed = o2::utils::RngHelper::setGRandomSeed(confref.getStartSeed());
   LOG(info) << "RNG INITIAL SEED " << seed;
@@ -73,7 +67,7 @@ FairRunSim* o2sim_init(bool asservice)
   FairRunSim* run = new o2::steer::O2RunSim(asservice);
   run->SetImportTGeoToVMC(false); // do not import TGeo to VMC since the latter is built together with TGeo
   run->SetSimSetup([confref]() { o2::SimSetup::setup(confref.getMCEngine().c_str()); });
-  run->SetRunId(confref.getConfigData().mTimestamp);
+  run->SetRunId(confref.getTimestamp());
 
   auto pid = getpid();
   std::stringstream s;
@@ -93,6 +87,9 @@ FairRunSim* o2sim_init(bool asservice)
   run->SetMCEventHeader(header);
 
   // construct geometry / including magnetic field
+  auto flg = TGeoManager::LockDefaultUnits(false);
+  TGeoManager::SetDefaultUnits(TGeoManager::kRootUnits);
+  TGeoManager::LockDefaultUnits(flg);
   build_geometry(run);
 
   // setup generator
@@ -111,13 +108,20 @@ FairRunSim* o2sim_init(bool asservice)
   timer.Start();
 
   o2::detectors::DetID::mask_t detMask{};
+  o2::detectors::DetID::mask_t readoutDetMask{};
   {
-    auto& modulelist = o2::conf::SimConfig::Instance().getActiveDetectors();
+    auto& modulelist = o2::conf::SimConfig::Instance().getActiveModules();
     for (const auto& md : modulelist) {
       int id = o2::detectors::DetID::nameToID(md.c_str());
       if (id >= o2::detectors::DetID::First) {
         detMask |= o2::detectors::DetID::getMask(id);
+        if (isReadout(md)) {
+          readoutDetMask |= o2::detectors::DetID::getMask(id);
+        }
       }
+    }
+    if (readoutDetMask.none()) {
+      LOG(info) << "Hit creation disabled for all detectors";
     }
     // somewhat ugly, but this is the most straighforward way to make sure the detectors to align
     // don't include detectors which are not activated
@@ -132,8 +136,6 @@ FairRunSim* o2sim_init(bool asservice)
 
   // run init
   run->Init();
-
-  uint64_t runStart = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
 
   // runtime database
   bool kParameterMerged = true;
@@ -156,12 +158,13 @@ FairRunSim* o2sim_init(bool asservice)
   {
     // store GRPobject
     o2::parameters::GRPObject grp;
-    grp.setRun(run->GetRunId());
+    grp.setRun(run->GetRunId());                // do we want to fill data taking run id?
+    uint64_t runStart = confref.getTimestamp(); // this will signify "time of this MC" (might not coincide with start of Run)
     grp.setTimeStart(runStart);
     grp.setTimeEnd(runStart + 3600000);
-    grp.setDetsReadOut(detMask);
+    grp.setDetsReadOut(readoutDetMask);
     // CTP is not a physical detector, just flag in the GRP if requested
-    if (isActivated("CTP")) {
+    if (isReadout("CTP")) {
       grp.addDetReadOut(o2::detectors::DetID::CTP);
     }
 

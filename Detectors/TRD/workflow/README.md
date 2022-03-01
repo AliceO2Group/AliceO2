@@ -1,5 +1,5 @@
 <!-- doxy
-\page refTRDworkflow TRD workflow
+\page refDetectorsTRDworkflow TRD workflow
 /doxy -->
 
 # DPL workflows for the TRD

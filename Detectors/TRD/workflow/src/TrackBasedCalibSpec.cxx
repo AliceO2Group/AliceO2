@@ -19,7 +19,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "Headers/DataHeader.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
@@ -44,7 +44,10 @@ class TRDTrackBasedCalibDevice : public Task
 
  private:
   std::shared_ptr<DataRequest> mDataRequest;
-  o2::trd::TrackBasedCalib mCalibrator; // gather input data for calibration of vD, ExB and gain
+  TrackBasedCalib mCalibrator; // gather input data for calibration of vD, ExB and gain
+  std::unique_ptr<Output> mOutput;
+  uint32_t mNumberOfProcessedTFs{0};
+  bool mDataHeaderSet{false};
 };
 
 void TRDTrackBasedCalibDevice::init(InitContext& ic)
@@ -58,18 +61,28 @@ void TRDTrackBasedCalibDevice::init(InitContext& ic)
 
 void TRDTrackBasedCalibDevice::run(ProcessingContext& pc)
 {
-
+  if (!mDataHeaderSet) {
+    mOutput = std::make_unique<Output>(o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe);
+    mDataHeaderSet = true;
+  }
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
-
   mCalibrator.setInput(recoData);
   mCalibrator.calculateAngResHistos();
-
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe}, mCalibrator.getAngResHistos());
+  ++mNumberOfProcessedTFs;
+  if (mNumberOfProcessedTFs % 200 == 0) {
+    pc.outputs().snapshot(*mOutput, mCalibrator.getAngResHistos());
+    mDataHeaderSet = false;
+    mNumberOfProcessedTFs = 0;
+    mCalibrator.reset();
+  }
 }
 
 void TRDTrackBasedCalibDevice::endOfStream(EndOfStreamContext& ec)
 {
+  if (mNumberOfProcessedTFs > 0) {
+    ec.outputs().snapshot(*mOutput, mCalibrator.getAngResHistos());
+  }
   LOGF(info, "Added in total %i entries to angular residual histograms",
        mCalibrator.getAngResHistos().getNEntries());
 }
@@ -84,7 +97,7 @@ DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask
     LOGF(info, "Found ITS-TPC tracks as input, loading ITS-TPC-TRD");
     srcTrk |= GTrackID::getSourcesMask("ITS-TPC-TRD");
   }
-  if (GTrackID::includesSource(GTrackID::Source::ITSTPC, src)) {
+  if (GTrackID::includesSource(GTrackID::Source::TPC, src)) {
     LOGF(info, "Found TPC tracks as input, loading TPC-TRD");
     srcTrk |= GTrackID::getSourcesMask("TPC-TRD");
   }

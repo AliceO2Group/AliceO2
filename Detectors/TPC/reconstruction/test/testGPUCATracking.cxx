@@ -25,11 +25,10 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 
 #include "TPCFastTransform.h"
-#include "TPCdEdxCalibrationSplines.h"
-#include "DataFormatsTPC/CalibdEdxCorrection.h"
 #include "GPUO2Interface.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "TPCPadGainCalib.h"
+#include "CalibdEdxContainer.h"
 
 using namespace o2::gpu;
 
@@ -60,7 +59,6 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   config.configProcessing.ompThreads = 4;         //4 threads if we run on the CPU, 1 = default, 0 = auto-detect
   config.configProcessing.runQA = false;          //Run QA after tracking
   config.configProcessing.eventDisplay = nullptr; //Ptr to event display backend, for running standalone OpenGL event display
-  //config.configProcessing.eventDisplay = new GPUDisplayBackendGlfw;
 
   config.configGRP.solenoidBz = solenoidBz;
   config.configGRP.continuousMaxTimeBin = continuous ? GPUSettings::TPC_MAX_TF_TIME_BIN : 0; //Number of timebins in timeframe if continuous, 0 otherwise
@@ -77,10 +75,8 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
 
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
   config.configCalib.fastTransform = fastTransform.get();
-  std::unique_ptr<o2::gpu::TPCdEdxCalibrationSplines> dEdxSplines = GPUO2Interface::getdEdxCalibrationSplinesDefault();
-  config.configCalib.dEdxSplines = dEdxSplines.get();
-  auto dEdxCorrection = std::make_unique<o2::tpc::CalibdEdxCorrection>();
-  config.configCalib.dEdxCorrection = dEdxCorrection.get();
+  auto dEdxCalibContainer = GPUO2Interface::getCalibdEdxContainerDefault();
+  config.configCalib.dEdxCalibContainer = dEdxCalibContainer.get();
   std::unique_ptr<TPCPadGainCalib> gainCalib = GPUO2Interface::getPadGainCalibDefault();
   config.configCalib.tpcPadGain = gainCalib.get();
 

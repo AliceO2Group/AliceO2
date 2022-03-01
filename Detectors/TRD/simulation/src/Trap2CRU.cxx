@@ -36,6 +36,7 @@
 #include <cassert>
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <array>
 #include <string>
 #include <bitset>
@@ -49,6 +50,54 @@ namespace o2
 {
 namespace trd
 {
+
+struct TRDCRUMapping {
+  uint32_t flpid;       // hostname of flp
+  uint32_t cruHWID = 0; // cru ID taken from ecs
+  uint32_t HCID = 0;    // hcid of first link
+};
+
+//this should probably come from ccdb or some authoritive source.
+//I doubt this is going to change very often, but ... famous last words.
+//
+const TRDCRUMapping trdHWMap[o2::trd::constants::NHALFCRU / 2] =
+  {
+    {166, 250, 0},
+    {166, 583, 0},
+    {166, 585, 0},
+    {167, 248, 0},
+    {167, 249, 0},
+    {167, 596, 0},
+    {168, 246, 0},
+    {168, 247, 0},
+    {168, 594, 0},
+    {169, 252, 0},
+    {169, 253, 0},
+    {169, 254, 0},
+    {170, 245, 0},
+    {170, 593, 0},
+    {170, 595, 0},
+    {171, 258, 0},
+    {171, 259, 0},
+    {171, 260, 0},
+    {172, 579, 0},
+    {172, 581, 0},
+    {172, 586, 0},
+    {173, 578, 0},
+    {173, 580, 0},
+    {173, 597, 0},
+    {174, 256, 0},
+    {174, 582, 0},
+    {174, 587, 0},
+    {175, 251, 0},
+    {175, 255, 0},
+    {175, 588, 0},
+    {176, 264, 0},
+    {176, 591, 0},
+    {176, 592, 0},
+    {177, 263, 0},
+    {177, 589, 0},
+    {177, 590, 0}};
 
 Trap2CRU::Trap2CRU(const std::string& outputDir, const std::string& inputdigitsfilename, const std::string& inputtrackletsfilename)
 {
@@ -221,11 +270,12 @@ void Trap2CRU::readTrapData()
     mLinkID = o2::trd::constants::TRDLINKID;
 
     std::string outFileLink;
-    std::string outPrefix = "trd";
+    std::string outPrefix = "TRD_";
+    outPrefix += "alio2-cr1-flp";
     std::string outSuffix = ".raw";
-    std::string trdside = mEndPointID ? "_h" : "_l"; // the side of cru lower or higher
     // filename structure of trd_cru_[CRU#]_[upper/lower].raw
-    std::string whichrun = mUseTrackletHCHeader ? "run3" : "run2";
+    auto flpid = trdHWMap[mCruID].flpid;
+    auto cruhwid = trdHWMap[mCruID].cruHWID;
     if (mFilePer == "all") { // single file for all links
       outFileLink = o2::utils::Str::concat_string(mOutputDir, "/", outPrefix, outSuffix);
     } else if (mFilePer == "sm") {
@@ -235,9 +285,9 @@ void Trap2CRU::readTrapData()
       std::string supermodule = ss.str();
       outFileLink = o2::utils::Str::concat_string(mOutputDir, "/", outPrefix, "_sm_", supermodule, outSuffix);
     } else if (mFilePer == "cru") {
-      outFileLink = o2::utils::Str::concat_string(mOutputDir, "/", outPrefix, "_cru_", std::to_string(mCruID), outSuffix);
+      outFileLink = o2::utils::Str::concat_string(mOutputDir, "/", outPrefix, std::to_string(flpid), "_cru", std::to_string(cruhwid), "_", std::to_string(mEndPointID), outSuffix);
     } else if (mFilePer == "halfcru") {
-      outFileLink = o2::utils::Str::concat_string(mOutputDir, "/", outPrefix, "_cru_", std::to_string(mCruID), trdside, outSuffix);
+      outFileLink = o2::utils::Str::concat_string(mOutputDir, "/", outPrefix, std::to_string(flpid), "_cru", std::to_string(cruhwid), "_", std::to_string(mEndPointID), outSuffix);
     } else {
       throw std::runtime_error("invalid option provided for file grouping");
     }

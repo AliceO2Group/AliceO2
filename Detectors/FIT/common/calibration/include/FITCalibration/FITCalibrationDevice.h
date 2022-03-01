@@ -12,13 +12,16 @@
 #ifndef O2_FITCALIBRATIONDEVICE_H
 #define O2_FITCALIBRATIONDEVICE_H
 
-#include <utility>
-
 #include "FITCalibration/FITCalibrator.h"
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "DetectorsRaw/HBFUtils.h"
+#include "Framework/DataRefUtils.h"
+#include <optional>
+#include <utility>
+#include <type_traits>
 
 namespace o2::fit
 {
@@ -42,6 +45,7 @@ class FITCalibrationDevice : public o2::framework::Task
 
   void init(o2::framework::InitContext& context) final;
   void run(o2::framework::ProcessingContext& context) final;
+
   void endOfStream(o2::framework::EndOfStreamContext& context) final;
 
  private:
@@ -58,13 +62,11 @@ void FIT_CALIBRATION_DEVICE_TYPE::init(o2::framework::InitContext& context)
 {
   int slotL = context.options().get<int>("tf-per-slot");
   int delay = context.options().get<int>("max-delay");
-  int updateInterval = context.options().get<int64_t>("updateInterval");
 
   mCalibrator = std::make_unique<CalibratorType>();
 
   mCalibrator->setSlotLength(slotL);
   mCalibrator->setMaxSlotsDelay(delay);
-  mCalibrator->setCheckIntervalInfiniteSlot(updateInterval);
 
   FITCalibrationApi::init();
 }
@@ -72,20 +74,25 @@ void FIT_CALIBRATION_DEVICE_TYPE::init(o2::framework::InitContext& context)
 FIT_CALIBRATION_DEVICE_TEMPLATES
 void FIT_CALIBRATION_DEVICE_TYPE::run(o2::framework::ProcessingContext& context)
 {
-
   auto TFCounter = o2::header::get<o2::framework::DataProcessingHeader*>(context.inputs().get(mInputDataLabel).header)->startTime;
   auto data = context.inputs().get<gsl::span<InputCalibrationInfoType>>(mInputDataLabel);
-
-  //something like that probably in the future
-  //  FITCalibrationApi::setProcessingTimestamp( getTimestampForTF(TFCounter)) );
-
+  const auto ref = context.inputs().getFirstValid(true);
+  auto tfOrbitFirst =
+    o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref)->firstTForbit;
+  auto creationTime =
+    o2::framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(ref)->creation;
   mCalibrator->process(TFCounter, data);
+  auto& slot = mCalibrator->getSlotForTF(TFCounter);
+  auto* container = slot.getContainer();
+  LOG(debug) << "@@@ calibrator::run tfOrbitFirst " << tfOrbitFirst << " creationTime " << creationTime << " tf " << slot.getTFStart() << "-" << slot.getTFEnd();
+
   _sendCalibrationObjectIfSlotFinalized(context.outputs());
 }
 
 FIT_CALIBRATION_DEVICE_TEMPLATES
 void FIT_CALIBRATION_DEVICE_TYPE::endOfStream(o2::framework::EndOfStreamContext& context)
 {
+
   //nope, we have to check if we can finalize slot anyway - scenario with one batch
   static constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
   mCalibrator->checkSlotsToFinalize(INFINITE_TF);
@@ -103,7 +110,6 @@ void FIT_CALIBRATION_DEVICE_TYPE::_sendCalibrationObjectIfSlotFinalized(o2::fram
 FIT_CALIBRATION_DEVICE_TEMPLATES
 void FIT_CALIBRATION_DEVICE_TYPE::_sendOutputs(o2::framework::DataAllocator& outputs)
 {
-
   using clbUtils = o2::calibration::Utils;
   const auto& objectsToSend = mCalibrator->getStoredCalibrationObjects();
 
@@ -111,6 +117,7 @@ void FIT_CALIBRATION_DEVICE_TYPE::_sendOutputs(o2::framework::DataAllocator& out
   for (const auto& [ccdbInfo, calibObject] : objectsToSend) {
     outputs.snapshot(o2::framework::Output{clbUtils::gDataOriginCDBPayload, "FIT_CALIB", iSendChannel}, *calibObject);
     outputs.snapshot(o2::framework::Output{clbUtils::gDataOriginCDBWrapper, "FIT_CALIB", iSendChannel}, ccdbInfo);
+    LOG(info) << "_sendOutputs " << ccdbInfo.getStartValidityTimestamp();
     ++iSendChannel;
   }
   mCalibrator->initOutput();

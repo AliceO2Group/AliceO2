@@ -20,10 +20,11 @@
 #include <TFile.h>
 #include <TTree.h>
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsCommonDataFormats/CTFDictHeader.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "rANS/rans.h"
+#include <filesystem>
 
 namespace o2
 {
@@ -55,18 +56,18 @@ class CTFCoderBase
   void createCodersFromFile(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op);
 
   template <typename S>
-  void createCoder(OpType op, const o2::rans::FrequencyTable& freq, uint8_t probabilityBits, int slot)
+  void createCoder(OpType op, const o2::rans::RenormedFrequencyTable& renormedFrequencyTable, int slot)
   {
-    if (!freq.size()) {
+    if (renormedFrequencyTable.empty()) {
       LOG(warning) << "Empty dictionary provided for slot " << slot << ", " << (op == OpType::Encoder ? "encoding" : "decoding") << " will assume literal symbols only";
     }
 
     switch (op) {
       case OpType::Encoder:
-        mCoders[slot].reset(new o2::rans::LiteralEncoder64<S>(freq, probabilityBits));
+        mCoders[slot].reset(new o2::rans::LiteralEncoder64<S>(renormedFrequencyTable));
         break;
       case OpType::Decoder:
-        mCoders[slot].reset(new o2::rans::LiteralDecoder64<S>(freq, probabilityBits));
+        mCoders[slot].reset(new o2::rans::LiteralDecoder64<S>(renormedFrequencyTable));
         break;
     }
   }
@@ -100,7 +101,7 @@ class CTFCoderBase
 
   std::vector<std::shared_ptr<void>> mCoders; // encoders/decoders
   DetID mDet;
-  CTFDictHeader mExtHeader; // external dictionary header
+  CTFDictHeader mExtHeader;      // external dictionary header
   float mMemMarginFactor = 1.0f; // factor for memory allocation in EncodedBlocks
   int mVerbosity = 0;
 };
@@ -140,7 +141,10 @@ template <typename CTF>
 std::vector<char> CTFCoderBase::readDictionaryFromFile(const std::string& dictPath, bool mayFail)
 {
   std::vector<char> bufVec;
-  std::unique_ptr<TFile> fileDict(TFile::Open(dictPath.c_str()));
+  std::unique_ptr<TFile> fileDict;
+  if (std::filesystem::exists(dictPath)) {
+    fileDict.reset(TFile::Open(dictPath.c_str()));
+  }
   if (!fileDict || fileDict->IsZombie()) {
     std::string errstr = fmt::format("CTF dictionary file {} for detector {} is absent", dictPath, mDet.getName());
     if (mayFail) {

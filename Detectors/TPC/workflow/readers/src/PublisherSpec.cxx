@@ -19,7 +19,7 @@
 #include "TPCReaderWorkflow/PublisherSpec.h"
 #include "Headers/DataHeader.h"
 #include "TPCBase/Sector.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include <memory> // for make_shared, make_unique, unique_ptr
 #include <array>
@@ -125,7 +125,7 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
         o2::header::DataHeader::SubSpecificationType subSpec = *outputId;
         std::string sectorfile = filename;
         if (filename.find('%') != std::string::npos) {
-          vector<char> formattedname(filename.length() + 10, 0);
+          std::vector<char> formattedname(filename.length() + 10, 0);
           snprintf(formattedname.data(), formattedname.size() - 1, filename.c_str(), sector);
           sectorfile = formattedname.data();
         }

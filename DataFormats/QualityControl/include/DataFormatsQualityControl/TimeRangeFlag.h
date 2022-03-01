@@ -27,6 +27,7 @@
 #include <MathUtils/detail/Bracket.h>
 
 #include "DataFormatsQualityControl/FlagReasons.h"
+#include "DataFormatsQualityControl/FlagReasonFactory.h"
 
 namespace o2
 {
@@ -74,10 +75,10 @@ class TimeRangeFlag
   friend std::ostream& operator<<(std::ostream& output, const TimeRangeFlag& data);
 
  private:
-  RangeInterval mInterval = {};                   ///< time interval of the masked range
-  flag_type mFlag = FlagReasonFactory::Invalid(); ///< flag reason
-  std::string mComment = "";                      ///< optional comment, which may extend the reason
-  std::string mSource = "Unknown";                ///< optional (but encouraged) source of the flag (e.g. Qc Check name)
+  RangeInterval mInterval = {};    ///< time interval of the masked range
+  flag_type mFlag;                 ///< flag reason
+  std::string mComment = "";       ///< optional comment, which may extend the reason
+  std::string mSource = "Unknown"; ///< optional (but encouraged) source of the flag (e.g. Qc Check name)
 
   ClassDefNV(TimeRangeFlag, 1);
 };

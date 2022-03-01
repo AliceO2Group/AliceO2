@@ -115,16 +115,15 @@ int main(int argc, char* argv[])
     std::vector<source_t> tokens;
     readFile(filename, &tokens);
 
-    o2::rans::FrequencyTable frequencies;
-    frequencies.addSamples(std::begin(tokens), std::end(tokens));
+    const auto renormedFrequencies = o2::rans::renorm(o2::rans::makeFrequencyTableFromSamples(std::begin(tokens), std::end(tokens)));
 
     std::vector<stream_t> encoderBuffer;
-    const o2::rans::Encoder64<source_t> encoder{frequencies, probabilityBits};
+    const o2::rans::Encoder64<source_t> encoder{renormedFrequencies};
     encoder.process(std::begin(tokens), std::end(tokens), std::back_inserter(encoderBuffer));
 
     std::vector<source_t> decoderBuffer(tokens.size());
     [&]() {
-      o2::rans::Decoder64<source_t> decoder{frequencies, probabilityBits};
+      o2::rans::Decoder64<source_t> decoder{renormedFrequencies};
       decoder.process(encoderBuffer.end(), decoderBuffer.begin(), std::distance(std::begin(tokens), std::end(tokens)));
     }();
 

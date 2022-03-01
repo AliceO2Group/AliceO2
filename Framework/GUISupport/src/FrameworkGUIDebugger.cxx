@@ -68,7 +68,7 @@ ImVec4 colorForLogLevel(LogParsingHelpers::LogLevel logLevel)
     case LogParsingHelpers::LogLevel::Info:
       return PaletteHelpers::GREEN;
     case LogParsingHelpers::LogLevel::Debug:
-      return ImVec4(153. / 255, 61. / 255, 61. / 255, 255. / 255);
+      return PaletteHelpers::WHITE;
     case LogParsingHelpers::LogLevel::Warning:
       return PaletteHelpers::DARK_YELLOW;
     case LogParsingHelpers::LogLevel::Error:
@@ -76,9 +76,9 @@ ImVec4 colorForLogLevel(LogParsingHelpers::LogLevel logLevel)
     case LogParsingHelpers::LogLevel::Fatal:
       return PaletteHelpers::RED;
     case LogParsingHelpers::LogLevel::Unknown:
-      return ImVec4(194. / 255, 195. / 255, 199. / 255, 255. / 255);
+      return PaletteHelpers::DARK_RED;
     default:
-      return ImVec4(194. / 255, 195. / 255, 199. / 255, 255. / 255);
+      return PaletteHelpers::DARK_RED;
   };
 }
 
@@ -1055,6 +1055,9 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
         ImGui::InputText("Log stop trigger", control.logStopTrigger, sizeof(control.logStopTrigger));
         ImGui::Checkbox("Stop logging", &control.quiet);
         ImGui::SameLine();
+        if (control.tracingFlags) {
+          control.logLevel = LogParsingHelpers::LogLevel::Debug;
+        }
         ImGui::Combo("Log level", reinterpret_cast<int*>(&control.logLevel), LogParsingHelpers::LOG_LEVELS,
                      (int)LogParsingHelpers::LogLevel::Size, 5);
 

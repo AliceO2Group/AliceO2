@@ -13,6 +13,7 @@
 
 #include "ZDCWorkflow/ZDCDataReaderDPLSpec.h"
 #include "CommonUtils/VerbosityConfig.h"
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
 
@@ -43,11 +44,12 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
     std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{o2::header::gDataOriginZDC, o2::header::gDataDescriptionRawData, 0xDEADBEEF}}};
     for (const auto& ref : InputRecordWalker(pc.inputs(), dummy)) {
       const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      if (dh->payloadSize == 0) {
+      auto payloadSize = DataRefUtils::getPayloadSize(ref);
+      if (payloadSize == 0) {
         auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
         if (++contDeadBeef <= maxWarn) {
           LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
-               dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,
+               dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
                contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
         }
         mRawReader.makeSnapshot(pc); // send empty output
@@ -61,15 +63,15 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
 
   //>> update Time-dependent CCDB stuff, at the moment set the moduleconfig only once
   if (!mRawReader.getModuleConfig()) {
-    long timeStamp = 0;
+    /*long timeStamp = 0; // TIMESTAMP SHOULD NOT BE 0
+    mgr.setTimestamp(timeStamp);*/
     auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-    mgr.setTimestamp(timeStamp);
     auto moduleConfig = mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
     if (!moduleConfig) {
-      LOG(fatal) << "Cannot module configuratio for timestamp " << timeStamp;
+      LOG(fatal) << "Cannot module configuratio for timestamp " << mgr.getTimestamp();
       return;
     } else {
-      LOG(info) << "Loaded module configuration for timestamp " << timeStamp;
+      LOG(info) << "Loaded module configuration for timestamp " << mgr.getTimestamp();
     }
     mRawReader.setModuleConfig(moduleConfig);
     mRawReader.setTriggerMask();
@@ -103,7 +105,7 @@ framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawRead
     inputSpec,
     outputSpec,
     adaptFromTask<ZDCDataReaderDPLSpec>(rawReader, verifyTrigger),
-    Options{{"ccdb-url", o2::framework::VariantType::String, "http://ccdb-test.cern.ch:8080", {"CCDB Url"}}}};
+    Options{{"ccdb-url", o2::framework::VariantType::String, o2::base::NameConf::getCCDBServer(), {"CCDB Url"}}}};
 }
 } // namespace zdc
 } // namespace o2

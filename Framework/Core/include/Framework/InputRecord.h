@@ -8,8 +8,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_INPUTRECORD_H
-#define FRAMEWORK_INPUTRECORD_H
+#ifndef O2_FRAMEWORK_INPUTRECORD_H_
+#define O2_FRAMEWORK_INPUTRECORD_H_
 
 #include "Framework/DataRef.h"
 #include "Framework/DataRefUtils.h"
@@ -18,6 +18,10 @@
 #include "Framework/TableConsumer.h"
 #include "Framework/Traits.h"
 #include "Framework/RuntimeError.h"
+#include "Framework/Logger.h"
+#include "Framework/ObjectCache.h"
+#include "Framework/CallbackService.h"
+
 #include "Headers/DataHeader.h"
 
 #include "CommonUtils/BoostSerializer.h"
@@ -34,13 +38,12 @@
 
 #include <fairmq/FwdDecls.h>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 struct InputSpec;
 struct InputSpan;
+struct CallbackService;
 
 /// @class InputRecord
 /// @brief The input API of the Data Processing Layer
@@ -99,7 +102,8 @@ class InputRecord
   using DataHeader = o2::header::DataHeader;
 
   InputRecord(std::vector<InputRoute> const& inputs,
-              InputSpan& span);
+              InputSpan& span,
+              ServiceRegistry&);
 
   /// A deleter type to be used with unique_ptr, which can be marked that
   /// it does not own the underlying resource and thus should not delete it.
@@ -255,14 +259,14 @@ class InputRecord
       return std::make_unique<TableConsumer>(data, DataRefUtils::getPayloadSize(ref));
 
       // implementation (e)
-    } else if constexpr (framework::is_boost_serializable<T>::value || is_specialization<T, BoostSerialized>::value) {
+    } else if constexpr (framework::is_boost_serializable<T>::value || is_specialization_v<T, BoostSerialized>) {
       // substitution for boost-serialized entities
       // We have to deserialize the ostringstream.
       // FIXME: check that the string is null terminated.
       // @return deserialized copy of payload
       auto str = std::string(ref.payload, DataRefUtils::getPayloadSize(ref));
       assert(DataRefUtils::getPayloadSize(ref) == sizeof(T));
-      if constexpr (is_specialization<T, BoostSerialized>::value) {
+      if constexpr (is_specialization_v<T, BoostSerialized>) {
         return o2::utils::BoostDeserialize<typename T::wrapped_type>(str);
       } else {
         return o2::utils::BoostDeserialize<T>(str);
@@ -291,7 +295,7 @@ class InputRecord
       // implementation (g)
     } else if constexpr (is_container<T>::value) {
       // currently implemented only for vectors
-      if constexpr (is_specialization<typename std::remove_const<T>::type, std::vector>::value) {
+      if constexpr (is_specialization_v<std::remove_const_t<T>, std::vector>) {
         auto header = DataRefUtils::getHeader<header::DataHeader*>(ref);
         auto payloadSize = DataRefUtils::getPayloadSize(ref);
         auto method = header->payloadSerializationMethod;
@@ -309,7 +313,7 @@ class InputRecord
           /// container, C++11 and beyond will implicitly apply return value optimization.
           /// @return std container object
           using NonConstT = typename std::remove_const<T>::type;
-          if constexpr (is_specialization<T, ROOTSerialized>::value == true || has_root_dictionary<T>::value == true) {
+          if constexpr (is_specialization_v<T, ROOTSerialized> == true || has_root_dictionary<T>::value == true) {
             // we expect the unique_ptr to hold an object, exception should have been thrown
             // otherwise
             auto object = DataRefUtils::as<NonConstT>(ref);
@@ -362,7 +366,7 @@ class InputRecord
           // return type with non-owning Deleter instance
           std::unique_ptr<ValueT const, Deleter<ValueT const>> result(ptr, Deleter<ValueT const>(false));
           return result;
-        } else if constexpr (is_specialization<ValueT, std::vector>::value && has_messageable_value_type<ValueT>::value) {
+        } else if constexpr (is_specialization_v<ValueT, std::vector> && has_messageable_value_type<ValueT>::value) {
           // TODO: construct a vector spectator
           // this is a quick solution now which makes a copy of the plain vector data
           auto* start = reinterpret_cast<typename ValueT::value_type const*>(ref.payload);
@@ -384,7 +388,45 @@ class InputRecord
         std::unique_ptr<ValueT const, Deleter<ValueT const>> result(DataRefUtils::as<ROOTSerialized<ValueT>>(ref).release());
         return result;
       } else if (method == o2::header::gSerializationMethodCCDB) {
-        std::unique_ptr<ValueT const, Deleter<ValueT const>> result(DataRefUtils::as<CCDBSerialized<ValueT>>(ref).release());
+        // This is to support deserialising objects from CCDB. Contrary to what happens for
+        // other objects, those objects are most likely long lived, so we
+        // keep around an instance of the associated object and deserialise it only when
+        // it's updated.
+        // FIXME: add ability to apply callbacks to deserialised objects.
+        auto id = ObjectCache::Id::fromRef(ref);
+        ConcreteDataMatcher matcher{header->dataOrigin, header->dataDescription, header->subSpecification};
+        // If the matcher does not have an entry in the cache, deserialise it
+        // and cache the deserialised object at the given id.
+        auto path = fmt::format("{}", DataSpecUtils::describe(matcher));
+        LOGP(info, "{}", path);
+        auto& cache = mRegistry.get<ObjectCache>();
+        auto& callbacks = mRegistry.get<CallbackService>();
+        auto cacheEntry = cache.matcherToId.find(path);
+        if (cacheEntry == cache.matcherToId.end()) {
+          cache.matcherToId.insert(std::make_pair(path, id));
+          std::unique_ptr<ValueT const, Deleter<ValueT const>> result(DataRefUtils::as<CCDBSerialized<ValueT>>(ref).release(), false);
+          void* obj = (void*)result.get();
+          callbacks(CallbackService::Id::CCDBDeserialised, (ConcreteDataMatcher&)matcher, (void*)obj);
+          cache.idToObject[id] = obj;
+          LOGP(info, "Caching in {} ptr to {} ({})", id.value, path, obj);
+          return result;
+        }
+        auto& oldId = cacheEntry->second;
+        // The id in the cache is the same, let's simply return it.
+        if (oldId.value == id.value) {
+          std::unique_ptr<ValueT const, Deleter<ValueT const>> result((ValueT const*)cache.idToObject[id], false);
+          LOGP(info, "Returning cached entry {} for {} ({})", id.value, path, (void*)result.get());
+          return result;
+        }
+        // The id in the cache is different. Let's destroy the old cached entry
+        // and create a new one.
+        delete reinterpret_cast<ValueT*>(cache.idToObject[oldId]);
+        std::unique_ptr<ValueT const, Deleter<ValueT const>> result(DataRefUtils::as<CCDBSerialized<ValueT>>(ref).release(), false);
+        void* obj = (void*)result.get();
+        callbacks(CallbackService::Id::CCDBDeserialised, (ConcreteDataMatcher&)matcher, (void*)obj);
+        cache.idToObject[id] = obj;
+        LOGP(info, "Replacing cached entry {} with {} for {} ({})", oldId.value, id.value, path, obj);
+        oldId.value = id.value;
         return result;
       } else {
         throw runtime_error("Attempt to extract object from message with unsupported serialization type");
@@ -397,8 +439,6 @@ class InputRecord
     } else {
       // non-messageable objects for which serialization method can not be derived by type,
       // the operation depends on the transmitted serialization method
-      using DataHeader = o2::header::DataHeader;
-
       auto header = DataRefUtils::getHeader<header::DataHeader*>(ref);
       auto method = header->payloadSerializationMethod;
       if (method == o2::header::gSerializationMethodNone) {
@@ -627,11 +667,11 @@ class InputRecord
   }
 
  private:
+  ServiceRegistry& mRegistry;
   std::vector<InputRoute> const& mInputsSchema;
   InputSpan& mSpan;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_INPUTREGISTRY_H
+#endif // O2_FRAMEWORK_INPUTREGISTRY_H_

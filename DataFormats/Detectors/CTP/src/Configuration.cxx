@@ -326,3 +326,22 @@ std::map<o2::detectors::DetID::ID, std::vector<CTPInput>> CTPConfiguration::getD
   }
   return det2inp;
 }
+uint64_t CTPConfiguration::getTriggerClassMask() const
+{
+  uint64_t clsmask = 0;
+  for (auto const& cls : mCTPClasses) {
+    clsmask |= cls.classMask;
+  }
+  return clsmask;
+}
+std::vector<int> CTPConfiguration::getTriggerClassList() const
+{
+  uint64_t clsmask = getTriggerClassMask();
+  std::vector<int> classlist;
+  for (int i = 0; i < 64; i++) {
+    if ((1ull << i) & clsmask) {
+      classlist.push_back(i);
+    }
+  }
+  return classlist;
+}

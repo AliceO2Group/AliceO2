@@ -26,6 +26,7 @@ struct DataHeader;
 namespace o2::framework
 {
 
+struct ConcreteDataMatcher;
 class EndOfStreamContext;
 
 // A service that data processors can register callback functions invoked by the
@@ -69,7 +70,8 @@ class CallbackService
     /// to a timeslice with the wanted quantities.
     NewTimeslice,
     /// Invoked before the processing callback
-    PreProcessing
+    PreProcessing,
+    CCDBDeserialised
   };
 
   using StartCallback = std::function<void()>;
@@ -82,19 +84,21 @@ class CallbackService
   using RegionInfoCallback = std::function<void(FairMQRegionInfo const&)>;
   using NewTimesliceCallback = std::function<void(o2::header::DataHeader&, DataProcessingHeader&)>;
   using PreProcessingCallback = std::function<void(ServiceRegistry&, int)>;
+  using CCDBDeserializedCallback = std::function<void(ConcreteDataMatcher&, void*)>;
 
-  using Callbacks = CallbackRegistry<Id,                                                           //
-                                     RegistryPair<Id, Id::Start, StartCallback>,                   //
-                                     RegistryPair<Id, Id::Stop, StopCallback>,                     //
-                                     RegistryPair<Id, Id::Reset, ResetCallback>,                   //
-                                     RegistryPair<Id, Id::Idle, IdleCallback>,                     //
-                                     RegistryPair<Id, Id::ClockTick, ClockTickCallback>,           //
-                                     RegistryPair<Id, Id::DataConsumed, DataConsumedCallback>,     //
-                                     RegistryPair<Id, Id::EndOfStream, EndOfStreamCallback>,       //
-                                     RegistryPair<Id, Id::RegionInfoCallback, RegionInfoCallback>, //
-                                     RegistryPair<Id, Id::NewTimeslice, NewTimesliceCallback>,     //
-                                     RegistryPair<Id, Id::PreProcessing, PreProcessingCallback>    //
-                                     >;                                                            //
+  using Callbacks = CallbackRegistry<Id,                                                              //
+                                     RegistryPair<Id, Id::Start, StartCallback>,                      //
+                                     RegistryPair<Id, Id::Stop, StopCallback>,                        //
+                                     RegistryPair<Id, Id::Reset, ResetCallback>,                      //
+                                     RegistryPair<Id, Id::Idle, IdleCallback>,                        //
+                                     RegistryPair<Id, Id::ClockTick, ClockTickCallback>,              //
+                                     RegistryPair<Id, Id::DataConsumed, DataConsumedCallback>,        //
+                                     RegistryPair<Id, Id::EndOfStream, EndOfStreamCallback>,          //
+                                     RegistryPair<Id, Id::RegionInfoCallback, RegionInfoCallback>,    //
+                                     RegistryPair<Id, Id::NewTimeslice, NewTimesliceCallback>,        //
+                                     RegistryPair<Id, Id::PreProcessing, PreProcessingCallback>,      //
+                                     RegistryPair<Id, Id::CCDBDeserialised, CCDBDeserializedCallback> //
+                                     >;                                                               //
 
   // set callback for specified processing step
   template <typename U>

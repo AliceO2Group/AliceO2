@@ -22,6 +22,7 @@
 #include <string>
 #include <map>
 #include <memory>
+#include "CommonUtils/NameConf.h"
 
 using namespace o2::trd::constants;
 
@@ -100,7 +101,7 @@ void CalibratorVdExB::initProcessing()
   mFitFunctor.lowerBoundAngleFit = 80 * TMath::DegToRad();
   mFitFunctor.upperBoundAngleFit = 100 * TMath::DegToRad();
   mFitFunctor.vdPreCorr = 1.546;    // TODO: will be taken from CCDB in the future
-  mFitFunctor.laPreCorr = -0.16133; // TODO: will be taken from CCDB in the future
+  mFitFunctor.laPreCorr = 0.;       // TODO: will be taken from CCDB in the future
   for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
     mFitFunctor.profiles[iDet] = std::make_unique<TProfile>(Form("profAngleDiff_%i", iDet), Form("profAngleDiff_%i", iDet), NBINSANGLEDIFF, -MAXIMPACTANGLE, MAXIMPACTANGLE);
   }
@@ -129,7 +130,7 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
     }
     ROOT::Fit::Fitter fitter;
     double paramsStart[2];
-    paramsStart[ParamIndex::LA] = -7.5 * TMath::DegToRad();
+    paramsStart[ParamIndex::LA] = 0. * TMath::DegToRad();
     paramsStart[ParamIndex::VD] = 1.;
     fitter.SetFCN<FitFunctor>(2, mFitFunctor, paramsStart);
     fitter.Config().ParSettings(ParamIndex::LA).SetLimits(-0.7, 0.7);
@@ -154,7 +155,7 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
 
   // write results to CCDB
   o2::ccdb::CcdbApi ccdb;
-  ccdb.init("http://ccdb-test.cern.ch:8080");
+  ccdb.init(o2::base::NameConf::getCCDBServer());
   // ccdb.init("http://localhost:8080");
   std::map<std::string, std::string> metadata; // TODO: do we want to store any meta data?
   CalVdriftExB calObject;

@@ -252,6 +252,10 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
 {
   // TOF digit requires: channel, time and time-over-threshold
 
+  if (mCalibApi->isOff(channel)) {
+    return;
+  }
+
   time = getDigitTimeSmeared(time, x, z, charge); // add time smearing
 
   charge *= getFractionOfCharge(x, z);
@@ -822,6 +826,7 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
     mDigitsPerTimeFrame.insert(mDigitsPerTimeFrame.end(), digits.begin(), digits.end());
 
     // fill diagnostics
+    mCalibApi->resetTRMErrors();
     float p = gRandom->Rndm();
     if (mCalibApi->getEmptyTOFProb() > p) { // check empty TOF
       for (int i = 0; i < Geo::kNCrate; i++) {
@@ -852,6 +857,7 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
               // add diagnostic if needed
               if (trmProg[itrm].second > p) {
                 // fill diagnostic
+                mCalibApi->processError(crate, slot, trmErr[itrm]);
                 mPatterns.push_back(slot + 28); // add slot
                 info.addedDiagnostic(crate);
                 uint32_t cbit = 1;
@@ -885,7 +891,7 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
         for (auto [key, dig] : dmap) {
           int crate = Geo::getCrateFromECH(Geo::getECHFromCH(dig.getChannel()));
 
-          if (isEmptyCrate[crate]) {
+          if (isEmptyCrate[crate] || mCalibApi->isChannelError(dig.getChannel())) {
             // flag digits to be removed
             keyToBeRemoved.push_back(key);
           }

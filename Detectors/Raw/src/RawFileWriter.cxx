@@ -18,7 +18,7 @@
 #include <sstream>
 #include <functional>
 #include <cassert>
-#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/NameConf.h"
 #include "DetectorsRaw/RawFileWriter.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "CommonConstants/Triggers.h"

@@ -47,7 +47,8 @@ class CollisionTimeRecoTask
                              gsl::span<const o2::ft0::ChannelData> inChData,
                              gsl::span<o2::ft0::ChannelDataFloat> outChData);
   void FinishTask();
-  void SetChannelOffset(o2::ft0::FT0ChannelTimeCalibrationObject* caliboffsets) { mCalibOffset = caliboffsets; };
+  void SetChannelOffset(o2::ft0::FT0ChannelTimeCalibrationObject const*
+                          caliboffsets) { mCalibOffset = caliboffsets; };
   void SetSlew(std::array<TGraph, NCHANNELS>* calibslew)
   {
     LOG(info) << "@@@SetSlew " << calibslew->size();
@@ -56,7 +57,7 @@ class CollisionTimeRecoTask
   int getOffset(int channel, int amp);
 
  private:
-  o2::ft0::FT0ChannelTimeCalibrationObject* mCalibOffset;
+  o2::ft0::FT0ChannelTimeCalibrationObject const* mCalibOffset;
   std::array<TGraph, NCHANNELS>* mCalibSlew = nullptr;
 
   ClassDefNV(CollisionTimeRecoTask, 3);

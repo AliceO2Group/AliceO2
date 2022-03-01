@@ -26,6 +26,9 @@ else()
      AND OPENGL_GLU_FOUND
      AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(GPUCA_EVENT_DISPLAY ON)
+    if(Vulkan_FOUND)
+      set(GPUCA_EVENT_DISPLAY_VULKAN ON)
+    endif()
   endif()
   if(ROOT_FOUND)
     set(GPUCA_QA ON)
@@ -68,7 +71,7 @@ set(SRCS_O2_DATATYPE_HEADERS
 set(SRCS_O2_DATATYPES
     ${SRCS_DATATYPES}
     Interface/GPUO2InterfaceConfigurableParam.cxx)
-set(HDRS_CINT_O2 DataTypes/TPCdEdxCalibrationSplines.h Merger/GPUTPCGMMergedTrack.h)
+set(HDRS_CINT_O2 Merger/GPUTPCGMMergedTrack.h)
 set(HDRS_CINT_O2_DATATYPES DataTypes/GPUDataTypes.h Interface/GPUO2InterfaceConfigurableParam.h)
 set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypes.h DataTypes/GPUTRDTrack.h) # Manual dependencies for ROOT dictionary generation
 
@@ -161,7 +164,9 @@ set(HDRS_INSTALL
 
 # Sources for O2 and for Standalone if requested in config file
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR ALIGPU_BUILD_TYPE STREQUAL "Standalone")
-  set(SRCS_NO_CINT ${SRCS_NO_CINT} display/GPUDisplayBackend.cxx)
+  set(SRCS_NO_CINT ${SRCS_NO_CINT}
+                   display/GPUDisplayFrontend.cxx
+                   display/GPUDisplayBackend.cxx)
 endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
     set(SRCS_NO_CINT
@@ -170,7 +175,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         ITS/GPUITSFitter.cxx
         ITS/GPUITSFitterKernels.cxx
         dEdx/GPUdEdx.cxx
-        DataTypes/TPCdEdxCalibrationSplines.cxx
         TPCConvert/GPUTPCConvert.cxx
         TPCConvert/GPUTPCConvertKernel.cxx
         DataCompression/GPUTPCCompression.cxx
@@ -192,6 +196,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         TPCClusterFinder/GPUTPCCFDecodeZS.cxx
         TPCClusterFinder/GPUTPCCFGather.cxx
         DataTypes/TPCPadGainCalib.cxx
+        DataTypes/CalibdEdxContainer.cxx
         Refit/GPUTrackingRefit.cxx
         Refit/GPUTrackingRefitKernel.cxx
         Merger/GPUTPCGMO2Output.cxx)
@@ -237,13 +242,16 @@ endif()
 if(GPUCA_EVENT_DISPLAY)
   set(SRCS_NO_CINT ${SRCS_NO_CINT} utils/qsem.cxx
                    display/GPUDisplay.cxx
-                   display/GPUDisplayBackendGlfw.cxx)
+                   display/GPUDisplayBackendOpenGL.cxx
+                   display/GPUDisplayFrontendGlfw.cxx)
+  if(GPUCA_EVENT_DISPLAY_VULKAN)
+    set(SRCS_NO_CINT ${SRCS_NO_CINT} display/GPUDisplayBackendVulkan.cxx)
+  endif()
   set(SRCS_NO_H ${SRCS_NO_H} display/GPUDisplayQuaternion.cxx
                 display/GPUDisplayInterpolation.cxx
                 display/GPUDisplayKeys.cxx
                 display/GPUDisplayROOT.cxx)
   set(HDRS_INSTALL ${HDRS_INSTALL}
-                   display/GPUDisplayExt.h
                    display/GPUDisplayShaders.h)
   if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
     install(DIRECTORY display/filterMacros/ DESTINATION displayTrackFilter FILES_MATCHING PATTERN "*.C")
@@ -458,15 +466,29 @@ endif()
 
 # Main CMake part for Standalone
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
+  if(GPUCA_EVENT_DISPLAY)
+    set(SRCS ${SRCS}
+             display/GPUDisplayFrontendX11.cxx
+             display/GPUDisplayFrontendGlut.cxx)
+  endif()
+
   add_library(${MODULE} SHARED ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H} ${SRCS_DATATYPES})
   set(targetName ${MODULE})
   add_library(O2::${MODULE} ALIAS ${MODULE})
+
+if(GPUCA_EVENT_DISPLAY)
+  target_link_libraries(${targetName} PUBLIC X11::X11 glut)
+endif()
 endif()
 
 if(GPUCA_EVENT_DISPLAY)
-  message(STATUS "Building GPU Event Display")
+  message(STATUS "Building GPU Event Display (Vulkan ${GPUCA_EVENT_DISPLAY_VULKAN})")
   target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY)
   target_link_libraries(${targetName} PUBLIC ${GLFW_LIBRARIES} OpenGL::GL OpenGL::GLU)
+  if(GPUCA_EVENT_DISPLAY_VULKAN)
+    target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_VULKAN)
+    target_link_libraries(${targetName} PUBLIC ${GLFW_LIBRARIES} Vulkan::Vulkan)
+  endif()
   if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     target_compile_definitions(${targetName} PRIVATE GPUCA_DISPLAY_GL3W GPUCA_DISPLAY_OPENGL_CORE)
   else()

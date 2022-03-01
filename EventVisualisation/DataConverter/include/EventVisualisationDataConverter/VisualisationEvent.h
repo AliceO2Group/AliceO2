@@ -59,11 +59,11 @@ class VisualisationEvent
   /// by providing their names
   struct VisualisationEventVO {
     int eventNumber;
-    int runNumber;
+    o2::header::DataHeader::RunNumberType runNumber;
     double energy;
     int multiplicity;
     std::string collidingSystem;
-    time_t timeStamp;
+    time_t collisionTime;
   };
   // Default constructor
   VisualisationEvent(const VisualisationEventVO vo);
@@ -105,22 +105,35 @@ class VisualisationEvent
     return mTracks.size();
   }
 
+  // Clears event from stored data (tracks, collisions)
+  void clear()
+  {
+    mTracks.clear();
+    mClusters.clear();
+  }
+
   const VisualisationCluster& getCluster(int i) const { return mClusters[i]; };
   size_t getClusterCount() const { return mClusters.size(); } // Returns number of clusters
   void setWorkflowVersion(float workflowVersion) { this->mWorkflowVersion = workflowVersion; }
   void setWorkflowParameters(const std::string& workflowParameters) { this->mWorkflowParameters = workflowParameters; }
 
+  o2::header::DataHeader::RunNumberType getRunNumber() const { return this->mRunNumber; }
+  void setRunNumber(o2::header::DataHeader::RunNumberType runNumber) { this->mRunNumber = runNumber; }
+
+  std::string getCollisionTime() const { return this->mCollisionTime; }
+  void setCollisionTime(std::string collisionTime) { this->mCollisionTime = collisionTime; }
+
  private:
-  float mWorkflowVersion;                      /// workflow version used to generate this Event
-  std::string mWorkflowParameters;             /// workflow parameters used to generate this Event
-  int mEventNumber;                            /// event number in file
-  int mRunNumber;                              /// run number
-  double mEnergy;                              /// energy of the collision
-  int mMultiplicity;                           /// number of particles reconstructed
-  std::string mCollidingSystem;                /// colliding system (e.g. proton-proton)
-  std::time_t mTimeStamp;                      /// collision timestamp
-  std::vector<VisualisationTrack> mTracks;     /// an array of visualisation tracks
-  std::vector<VisualisationCluster> mClusters; /// an array of visualisation clusters
+  float mWorkflowVersion;                           /// workflow version used to generate this Event
+  std::string mWorkflowParameters;                  /// workflow parameters used to generate this Event
+  int mEventNumber;                                 /// event number in file
+  o2::header::DataHeader::RunNumberType mRunNumber; /// run number
+  double mEnergy;                                   /// energy of the collision
+  int mMultiplicity;                                /// number of particles reconstructed
+  std::string mCollidingSystem;                     /// colliding system (e.g. proton-proton)
+  std::string mCollisionTime;                       /// collision timestamp
+  std::vector<VisualisationTrack> mTracks;          /// an array of visualisation tracks
+  std::vector<VisualisationCluster> mClusters;      /// an array of visualisation clusters
 };
 
 } // namespace event_visualisation
