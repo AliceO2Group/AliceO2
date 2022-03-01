@@ -9,25 +9,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_FV0_SIMPARAMS_H_
-#define O2_FV0_SIMPARAMS_H_
+/// \file FV0DigParam.h
+/// \brief Configurable digitization parameters
 
-#include "CommonUtils/ConfigurableParam.h"
-#include "CommonUtils/ConfigurableParamHelper.h"
+#ifndef ALICEO2_FV0_DIG_PARAM
+#define ALICEO2_FV0_DIG_PARAM
+
 #include "CommonConstants/PhysicsConstants.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 
-namespace o2
-{
-namespace fv0
+namespace o2::fv0
 {
 // parameters of FV0 digitization / transport simulation
-struct FV0DigParam : public o2::conf::ConfigurableParamHelper<FV0DigParam> {
-  // NOTUSED float intrinsicTimeRes = 0.91;       // time resolution
+struct FV0DigParam : o2::conf::ConfigurableParamHelper<FV0DigParam> {
   float photoCathodeEfficiency = 0.23; // quantum efficiency = nOfPhotoE_emitted_by_photocathode / nIncidentPhotons
   float lightYield = 0.01;             // light collection efficiency to be tuned using collision data [1%]
-  // NOTUSED float pmtGain = 5e4;                 // value for PMT R5924-70 at default FV0 gain
-  // NOTUSED float pmtTransitTime = 9.5;          // PMT response time (corresponds to 1.9 ns rise time)
-  // NOTUSED float pmtTransparency = 0.25;        // Transparency of the first dynode of the PMT
   float adcChannelsPerMip = 16;                         // Default: 16 for pp and 8 for PbPb
   float adcChannelsPerMilivolt = adcChannelsPerMip / 7; // Non-trivial conversion depending on the pulseshape: amplitude to charge
   float chargeThrForMeanTime = 10;                      // Charge threshold, only above which the time is taken into account in calculating the mean time of all qualifying channels
@@ -63,9 +59,9 @@ struct FV0DigParam : public o2::conf::ConfigurableParamHelper<FV0DigParam> {
   int adcChargeCenThr = 3 * 498;     // threshold value of ADC charge for Central trigger
   int adcChargeSCenThr = 1 * 498;    // threshold value of ADC charge for Semi-central trigger
   int maxCountInAdc = 4095;          // to take care adc ADC overflow
+
   O2ParamDef(FV0DigParam, "FV0DigParam");
 };
-} // namespace fv0
-} // namespace o2
+} // namespace o2::fv0
 
 #endif

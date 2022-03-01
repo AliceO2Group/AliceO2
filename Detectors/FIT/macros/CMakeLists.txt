@@ -12,7 +12,19 @@
 o2_add_test_root_macro(readFT0hits.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsFT0
                        LABELS fit)
+
 o2_add_test_root_macro(readFT0digits.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsFT0
                        LABELS fit)
 
+o2_add_test_root_macro(readFT0digits2.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsFT0
+                       LABELS fit)
+
+o2_add_test_root_macro(readFV0hits.C
+                       PUBLIC_LINK_LIBRARIES O2::FV0Simulation
+                       LABELS fit)
+
+o2_add_test_root_macro(readFV0digits.C
+                       PUBLIC_LINK_LIBRARIES O2::FV0Simulation
+                       LABELS fit)

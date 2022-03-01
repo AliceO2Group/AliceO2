@@ -9,17 +9,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file FT0DigParam.h
+/// \brief Configurable digitization parameters
+
 #ifndef ALICEO2_FT0_DIG_PARAM
 #define ALICEO2_FT0_DIG_PARAM
 
-#include <FT0Base/Geometry.h>
-#include <CommonUtils/ConfigurableParamHelper.h>
+#include "FT0Base/Geometry.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 
 namespace o2::ft0
 {
-
-struct FT0DigParam
-  : o2::conf::ConfigurableParamHelper<FT0DigParam> {
+struct FT0DigParam : o2::conf::ConfigurableParamHelper<FT0DigParam> {
   float mBunchWidth = 25;                   // ns
   float mChannelWidthInverse = 0.076804916; // channel width in ps inverse
 

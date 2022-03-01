@@ -10,32 +10,32 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(FT0Simulation
-  SOURCES src/Detector.cxx
-  SOURCES src/Digitizer.cxx
+        SOURCES src/Detector.cxx
+                src/Digitizer.cxx
+        PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
+                              O2::Framework
+                              O2::DetectorsRaw
+                              O2::Headers
+                              O2::FT0Base
+                              O2::DataFormatsFT0
+                              O2::CCDB
+                              O2::DetectorsCalibration)
 
-  PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::Framework
-  O2::FT0Base
-  O2::DataFormatsFT0
-  O2::DetectorsRaw
-  O2::CCDB
-  O2::DetectorsCalibration
-  O2::Headers)
+o2_target_root_dictionary(FT0Simulation
+        HEADERS include/FT0Simulation/Detector.h
+                include/FT0Simulation/DigitizationConstants.h
+                include/FT0Simulation/Digitizer.h
+                include/FT0Simulation/FT0DigParam.h)
 
-o2_target_root_dictionary(FT0Simulation HEADERS
-  include/FT0Simulation/Detector.h
-  include/FT0Simulation/Digitizer.h
-  include/FT0Simulation/DigitizationConstants.h
-  include/FT0Simulation/FT0DigParam.h
-   )
+o2_add_executable(digi2raw
+        COMPONENT_NAME ft0
+        SOURCES src/digit2raw.cxx
+        PUBLIC_LINK_LIBRARIES O2::FT0Simulation
+                              O2::DetectorsRaw
+                              O2::DetectorsCommonDataFormats
+                              O2::CommonUtils
+                              Boost::program_options
+                              O2::FT0Raw)
 
- o2_data_file(COPY data  DESTINATION Detectors/FT0/simulation)
+o2_data_file(COPY data DESTINATION Detectors/FT0/simulation)
 
- o2_add_executable(digi2raw
-                  COMPONENT_NAME ft0
-                  SOURCES src/digit2raw.cxx
-                  PUBLIC_LINK_LIBRARIES O2::FT0Simulation
-                                        O2::DetectorsRaw
-                                        O2::DetectorsCommonDataFormats
-                                        O2::CommonUtils
-                                        Boost::program_options
-                                        O2::FT0Raw)

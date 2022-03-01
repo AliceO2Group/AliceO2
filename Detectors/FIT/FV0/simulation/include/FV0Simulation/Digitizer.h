@@ -12,15 +12,14 @@
 #ifndef ALICEO2_FV0_DIGITIZER_H
 #define ALICEO2_FV0_DIGITIZER_H
 
+#include "CommonDataFormat/InteractionRecord.h"
+#include "DataFormatsFV0/Digit.h"
+#include "DataFormatsFV0/ChannelData.h"
+#include "DataFormatsFV0/MCLabel.h"
+#include "FV0Simulation/Detector.h"
 #include "FV0Base/Constants.h"
-#include <DataFormatsFV0/MCLabel.h>
-#include <FV0Simulation/DigitizationConstant.h>
-#include <FV0Simulation/FV0DigParam.h>
-#include <DataFormatsFV0/ChannelData.h>
-#include <DataFormatsFV0/Digit.h>
-#include <FV0Simulation/Detector.h>
-#include <SimulationDataFormat/MCTruthContainer.h>
-#include <CommonDataFormat/InteractionRecord.h>
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "FV0Simulation/DigitizationConstant.h"
 #include <array>
 #include <vector>
 

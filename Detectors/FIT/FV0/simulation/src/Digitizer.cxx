@@ -12,6 +12,7 @@
 #include <TRandom.h>
 #include <numeric>
 #include "FV0Simulation/Digitizer.h"
+#include "FV0Simulation/FV0DigParam.h"
 #include "FV0Base/Geometry.h"
 #include "FV0Base/Constants.h"
 #include "TF1Convolution.h"
@@ -430,3 +431,5 @@ bool Digitizer::isRing5(int detID)
     return false;
   }
 }
+
+O2ParamImpl(FV0DigParam);

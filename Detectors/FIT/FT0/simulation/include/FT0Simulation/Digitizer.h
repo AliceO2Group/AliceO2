@@ -16,14 +16,12 @@
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/MCLabel.h"
-#include "MathUtils/RandomRing.h"
 #include "FT0Simulation/Detector.h"
 #include "FT0Base/Geometry.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "SimulationDataFormat/MCCompLabel.h"
 #include "FT0Simulation/DigitizationConstants.h"
 #include "FT0Simulation/FT0DigParam.h"
-#include <TH1F.h>
+#include "MathUtils/RandomRing.h"
 #include <array>
 #include <bitset>
 #include <vector>
