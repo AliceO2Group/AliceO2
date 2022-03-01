@@ -134,6 +134,25 @@ CCDBHelpers::ParserResult CCDBHelpers::parseRemappings(char const* str)
   }
 }
 
+auto getOrbitResetTime(o2::pmr::vector<char> const& v) -> Long64_t
+{
+  Int_t previousErrorLevel = gErrorIgnoreLevel;
+  gErrorIgnoreLevel = kFatal;
+  TMemFile memFile("name", const_cast<char*>(v.data()), v.size(), "READ");
+  gErrorIgnoreLevel = previousErrorLevel;
+  if (memFile.IsZombie()) {
+    throw runtime_error("CTP is Zombie");
+  }
+  TClass* tcl = TClass::GetClass(typeid(std::vector<Long64_t>));
+  void* result = ccdb::CcdbApi::extractFromTFile(memFile, tcl);
+  if (!result) {
+    throw runtime_error_f("Couldn't retrieve object corresponding to %s from TFile", tcl->GetName());
+  }
+  memFile.Close();
+  auto* ctp = (std::vector<Long64_t>*)result;
+  return (*ctp)[0];
+};
+
 AlgorithmSpec CCDBHelpers::fetchFromCCDB()
 {
   return adaptStateful([](ConfigParamRegistry const& options, DeviceSpec const& spec) {
@@ -173,25 +192,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         }
       }
 
-      auto getOrbitResetTime = [](o2::pmr::vector<char> const& v) -> Long64_t {
-        Int_t previousErrorLevel = gErrorIgnoreLevel;
-        gErrorIgnoreLevel = kFatal;
-        TMemFile memFile("name", const_cast<char*>(v.data()), v.size(), "READ");
-        gErrorIgnoreLevel = previousErrorLevel;
-        if (memFile.IsZombie()) {
-          throw runtime_error("CTP is Zombie");
-        }
-        TClass* tcl = TClass::GetClass(typeid(std::vector<Long64_t>));
-        void* result = ccdb::CcdbApi::extractFromTFile(memFile, tcl);
-        if (!result) {
-          throw runtime_error_f("Couldn't retrieve object corresponding to %s from TFile", tcl->GetName());
-        }
-        memFile.Close();
-        std::vector<Long64_t>* ctp = (std::vector<Long64_t>*)result;
-        return (*ctp)[0];
-      };
-
-      return adaptStateless([helper, &getOrbitResetTime](DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo) {
+      return adaptStateless([helper](DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo) {
         static Long64_t orbitResetTime = -1;
         // Fetch the CCDB object for the CTP
         {
