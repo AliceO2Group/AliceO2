@@ -269,7 +269,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           for (auto& meta : route.matcher.metadata) {
             if (meta.name == "ccdb-path") {
               path = meta.defaultValue.get<std::string>();
-            } else if (meta.name == "ccdb-run-dependent") {
+            } else if (meta.name == "ccdb-run-dependent" && meta.defaultValue.get<bool>() == true) {
               metadata["runNumber"] = dtc.runNumber;
             } else if (isPrefix(ccdbMetadataPrefix, meta.name)) {
               std::string key = meta.name.substr(ccdbMetadataPrefix.size());
