@@ -1014,7 +1014,14 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
   // Populate options from the command line. Notice that only the options
   // declared in the workflow definition are allowed.
   runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec, defaultDriverClient](fair::mq::DeviceRunner& r) {
-    std::string defaultExitTransitionTimeout = ((getenv("DDS_SESSION_ID") != nullptr) || (getenv("OCC_CONTROL_PORT") != nullptr)) ? "20" : "0";
+    std::string defaultExitTransitionTimeout = "0";
+    std::string defaultInfologgerMode = "";
+    if (getenv("DDS_SESSION_ID") != nullptr) {
+      defaultExitTransitionTimeout = "20";
+      defaultInfologgerMode = "infoLoggerD";
+    } else if (getenv("OCC_CONTROL_PORT") != nullptr) {
+      defaultExitTransitionTimeout = "20";
+    }
     boost::program_options::options_description optsDesc;
     ConfigParamsHelper::populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
     optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("default"), "monitoring backend info")                                                           //
@@ -1024,7 +1031,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       ("exit-transition-timeout", bpo::value<std::string>()->default_value(defaultExitTransitionTimeout), "how many second to wait before switching from RUN to READY")                    //
       ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframe can be in fly at the same moment (0 disables)")                                         //
       ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                             //
-      ("infologger-mode", bpo::value<std::string>()->default_value(""), "O2_INFOLOGGER_MODE override");
+      ("infologger-mode", bpo::value<std::string>()->default_value(defaultInfologgerMode), "O2_INFOLOGGER_MODE override");
     r.fConfig.AddToCmdLineOptions(optsDesc, true);
   });
 
