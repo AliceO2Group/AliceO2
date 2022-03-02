@@ -53,7 +53,8 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "noemptyevents", "only writes events with at least one hit")(
     "CCDBUrl", bpo::value<std::string>()->default_value("ccdb-test.cern.ch:8080"), "URL for CCDB to be used.")(
     "timestamp", bpo::value<uint64_t>(), "global timestamp value in ms (for anchoring) - default is now")(
-    "asservice", bpo::value<bool>()->default_value(false), "run in service/server mode");
+    "asservice", bpo::value<bool>()->default_value(false), "run in service/server mode")(
+    "noGeant", bpo::bool_switch(), "prohibits any Geant transport/physics (by using tight cuts)");
 }
 
 bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& vm)
@@ -168,6 +169,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   }
   mConfigData.mCCDBUrl = vm["CCDBUrl"].as<std::string>();
   mConfigData.mAsService = vm["asservice"].as<bool>();
+  mConfigData.mNoGeant = vm["noGeant"].as<bool>();
   if (vm.count("noemptyevents")) {
     mConfigData.mFilterNoHitEvents = true;
   }
