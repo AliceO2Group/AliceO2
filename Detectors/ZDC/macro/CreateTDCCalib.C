@@ -23,10 +23,9 @@
 
 using namespace std;
 
-void CreateZDCTDCParam(long tmin = 0, long tmax = -1, std::string ccdbHost = "http://ccdb-test.cern.ch:8080")
+void CreateTDCCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "", float def_shift = 12.5)
 {
   o2::zdc::ZDCTDCParam conf;
-  float def_shift = 14.5;
   // TODO: extract shift from TDC spectra
   conf.setShift(o2::zdc::TDCZNAC, def_shift);
   conf.setShift(o2::zdc::TDCZNAS, def_shift);
@@ -39,11 +38,32 @@ void CreateZDCTDCParam(long tmin = 0, long tmax = -1, std::string ccdbHost = "ht
   conf.setShift(o2::zdc::TDCZPCC, def_shift);
   conf.setShift(o2::zdc::TDCZPCS, def_shift);
 
+  conf.setFactor(o2::zdc::TDCZNAC, 1.);
+  conf.setFactor(o2::zdc::TDCZNAS, 1.);
+  conf.setFactor(o2::zdc::TDCZPAC, 1.);
+  conf.setFactor(o2::zdc::TDCZPAS, 1.);
+  conf.setFactor(o2::zdc::TDCZEM1, 1.);
+  conf.setFactor(o2::zdc::TDCZEM2, 1.);
+  conf.setFactor(o2::zdc::TDCZNCC, 1.);
+  conf.setFactor(o2::zdc::TDCZNCS, 1.);
+  conf.setFactor(o2::zdc::TDCZPCC, 1.);
+  conf.setFactor(o2::zdc::TDCZPCS, 1.);
+
   conf.print();
 
   o2::ccdb::CcdbApi api;
   map<string, string> metadata; // can be empty
-  api.init(ccdbHost.c_str());   // or http://localhost:8080 for a local installation
+  if (ccdbHost.size() == 0 || ccdbHost == "external") {
+    ccdbHost = "http://alice-ccdb.cern.ch:8080";
+  } else if (ccdbHost == "internal") {
+    ccdbHost = "http://o2-ccdb.internal/";
+  } else if (ccdbHost == "test") {
+    ccdbHost = "http://ccdb-test.cern.ch:8080";
+  } else if (ccdbHost == "local") {
+    ccdbHost = "http://localhost:8080";
+  }
+  api.init(ccdbHost.c_str());
+  LOG(info) << "CCDB server: " << api.getURL();
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(&conf, o2::zdc::CCDBPathTDCCalib, metadata, tmin, tmax);
 

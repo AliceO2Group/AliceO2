@@ -15,5 +15,5 @@ using namespace o2::zdc;
 
 void RecEventAux::print() const
 {
-  ir.print();
+  RecEventFlat::print();
 }

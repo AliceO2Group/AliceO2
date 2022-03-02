@@ -33,6 +33,7 @@
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "ZDCReconstruction/RecoConfigZDC.h"
 #include "ZDCReconstruction/ZDCTDCParam.h"
+#include "ZDCReconstruction/ZDCTDCCorr.h"
 
 using namespace o2::framework;
 
@@ -113,6 +114,18 @@ void DigitRecoSpec::run(ProcessingContext& pc)
       tdcParam->print();
     }
 
+    // TDC correction parameters
+    auto* tdcCorr = mgr.get<o2::zdc::ZDCTDCCorr>(o2::zdc::CCDBPathTDCCorr);
+    if (!tdcCorr) {
+      LOG(warning) << "Missing ZDCTDCCorr calibration object - no correction is applied";
+    } else {
+      if (mVerbosity > DbgZero) {
+        LOG(info) << "Loaded TDC correction parameters for timestamp " << mgr.getTimestamp();
+        tdcCorr->print();
+      }
+      loadedConfFiles += " ZDCTDCCorr";
+    }
+
     // Energy calibration
     auto* energyParam = mgr.get<o2::zdc::ZDCEnergyParam>(o2::zdc::CCDBPathEnergyCalib);
     if (!energyParam) {
@@ -142,6 +155,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     mDR.setModuleConfig(moduleConfig);
     mDR.setRecoConfigZDC(recoConfigZDC);
     mDR.setTDCParam(tdcParam);
+    mDR.setTDCCorr(tdcCorr);
     mDR.setEnergyParam(energyParam);
     mDR.setTowerParam(towerParam);
 
@@ -163,23 +177,28 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   const std::vector<o2::zdc::RecEventAux>& recAux = mDR.getReco();
 
   RecEvent recEvent;
-  int32_t nte = 0, ntt = 0;
+  LOG(info) << "BC processed during reconstruction " << recAux.size();
+  uint32_t nte = 0, ntt = 0, nti = 0;
   for (auto reca : recAux) {
+    bool toAddBC = true;
     int32_t ne = reca.ezdc.size();
     int32_t nt = 0;
+    // Store TDC hits
     for (int32_t it = 0; it < o2::zdc::NTDCChannels; it++) {
       for (int32_t ih = 0; ih < reca.ntdc[it]; ih++) {
-        if (nt == 0) {
-          recEvent.addBC(reca.ir, reca.channels, reca.triggers);
+        if (toAddBC) {
+          recEvent.addBC(reca);
+          toAddBC = false;
         }
         nt++;
-        recEvent.addTDC(it, reca.TDCVal[it][ih], reca.TDCAmp[it][ih]);
+        recEvent.addTDC(it, reca.TDCVal[it][ih], reca.TDCAmp[it][ih], reca.isBeg[it], reca.isEnd[it]);
       }
     }
-    if (ne > 0 && nt == 0) {
-      recEvent.addBC(reca.ir);
-    }
     if (ne > 0) {
+      if (toAddBC) {
+        recEvent.addBC(reca);
+        toAddBC = false;
+      }
       std::map<uint8_t, float>::iterator it;
       for (it = reca.ezdc.begin(); it != reca.ezdc.end(); it++) {
         recEvent.addEnergy(it->first, it->second);
@@ -191,13 +210,9 @@ void DigitRecoSpec::run(ProcessingContext& pc)
       printf("Orbit %9u bc %4u ntdc %2d ne %2d\n", reca.ir.orbit, reca.ir.bc, nt, ne);
     }
     // Event information
-    recEvent.addInfo(reca.tdcPedQC, MsgTDCPedQC);
-    recEvent.addInfo(reca.tdcPedMissing, MsgTDCPedMissing);
-    recEvent.addInfo(reca.adcPedOr, MsgADCPedOr);
-    recEvent.addInfo(reca.adcPedQC, MsgADCPedQC);
-    recEvent.addInfo(reca.adcPedMissing, MsgADCPedMissing);
+    nti += recEvent.addInfos(reca);
   }
-  LOG(info) << "Reconstructed " << ntt << " signal TDCs and " << nte << " ZDC energies in " << recEvent.mRecBC.size() << "/" << recAux.size() << " b.c.";
+  LOG(info) << "Reconstructed " << ntt << " signal TDCs and " << nte << " ZDC energies and " << nti << " info messages in " << recEvent.mRecBC.size() << "/" << recAux.size() << " b.c.";
   // TODO: rate information for all channels
   // TODO: summary of reconstruction to be collected by DQM?
   pc.outputs().snapshot(Output{"ZDC", "BCREC", 0, Lifetime::Timeframe}, recEvent.mRecBC);
