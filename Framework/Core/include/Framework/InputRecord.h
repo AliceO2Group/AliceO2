@@ -230,6 +230,9 @@ class InputRecord
     } else {
       static_assert(always_static_assert_v<R>, "Unknown binding type");
     }
+
+    using PointerLessValueT = std::remove_pointer_t<T>;
+
     if constexpr (std::is_same_v<std::decay_t<T>, DataRef>) {
       return ref;
     } else if constexpr (std::is_same<T, std::string>::value) {
@@ -350,10 +353,10 @@ class InputRecord
 
       // implementation (i)
     } else if constexpr (std::is_pointer<T>::value &&
-                         (is_messageable<typename std::remove_pointer<T>::type>::value || has_root_dictionary<typename std::remove_pointer<T>::type>::value)) {
+                         (is_messageable<PointerLessValueT>::value || has_root_dictionary<PointerLessValueT>::value || (is_specialization_v<PointerLessValueT, std::vector> && has_messageable_value_type<PointerLessValueT>::value))) {
       // extract a messageable type or object with ROOT dictionary by pointer
       // return unique_ptr to message content with custom deleter
-      using ValueT = typename std::remove_pointer<T>::type;
+      using ValueT = PointerLessValueT;
 
       auto header = DataRefUtils::getHeader<header::DataHeader*>(ref);
       auto payloadSize = DataRefUtils::getPayloadSize(ref);
