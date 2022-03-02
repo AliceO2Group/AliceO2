@@ -284,7 +284,13 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
       if (infoLoggerEnv == nullptr || strcmp(infoLoggerEnv, "none") == 0) {
         return ServiceHandle{TypeIdHelpers::uniqueId<MissingService>(), nullptr};
       }
-      auto infoLoggerService = new InfoLogger;
+      InfoLogger* infoLoggerService = nullptr;
+      try {
+        infoLoggerService = new InfoLogger;
+      } catch (...) {
+        LOGP(error, "Unable to initialise InfoLogger with O2_INFOLOGGER_MODE={}.", infoLoggerMode);
+        return ServiceHandle{TypeIdHelpers::uniqueId<MissingService>(), nullptr};
+      }
       auto infoLoggerContext = &services.get<InfoLoggerContext>();
       infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, std::string("dpl/") + services.get<DeviceSpec const>().name);
       infoLoggerContext->setField(InfoLoggerContext::FieldName::System, std::string("DPL"));
