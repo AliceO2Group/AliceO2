@@ -8,8 +8,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_INPUTSPAN_H
-#define FRAMEWORK_INPUTSPAN_H
+#ifndef O2_FRAMEWORK_INPUTSPAN_H_
+#define O2_FRAMEWORK_INPUTSPAN_H_
 
 #include "Framework/DataRef.h"
 #include <functional>
@@ -49,13 +49,13 @@ class InputSpan
   InputSpan(std::function<DataRef(size_t, size_t)> getter, std::function<size_t(size_t)> nofPartsGetter, size_t size);
 
   /// @a i-th element of the InputSpan
-  DataRef get(size_t i, size_t partidx = 0) const
+  [[nodiscard]] DataRef get(size_t i, size_t partidx = 0) const
   {
     return mGetter(i, partidx);
   }
 
   /// @a number of parts in the i-th element of the InputSpan
-  size_t getNofParts(size_t i) const
+  [[nodiscard]] size_t getNofParts(size_t i) const
   {
     if (i >= mSize) {
       return 0;
@@ -67,17 +67,17 @@ class InputSpan
   }
 
   /// Number of elements in the InputSpan
-  size_t size() const
+  [[nodiscard]] size_t size() const
   {
     return mSize;
   }
 
-  const char* header(size_t i) const
+  [[nodiscard]] const char* header(size_t i) const
   {
     return get(i).header;
   }
 
-  const char* payload(size_t i) const
+  [[nodiscard]] const char* payload(size_t i) const
   {
     return get(i).payload;
   }
@@ -100,7 +100,7 @@ class InputSpan
     Iterator() = delete;
 
     Iterator(ParentType const* parent, size_t position = 0, size_t size = 0)
-      : mParent(parent), mPosition(position), mSize(size > position ? size : position), mElement{}
+      : mPosition(position), mSize(size > position ? size : position), mParent(parent), mElement{}
     {
       if (mPosition < mSize) {
         mElement = mParent->get(mPosition);
@@ -147,13 +147,13 @@ class InputSpan
     }
 
     // return pointer to parent instance
-    ParentType const* parent() const
+    [[nodiscard]] ParentType const* parent() const
     {
       return mParent;
     }
 
     // return current position
-    size_t position() const
+    [[nodiscard]] size_t position() const
     {
       return mPosition;
     }
@@ -187,13 +187,13 @@ class InputSpan
     }
 
     /// Get element at {slotindex, partindex}
-    ElementType get(size_t pos) const
+    [[nodiscard]] ElementType get(size_t pos) const
     {
       return this->parent()->get(this->position(), pos);
     }
 
     /// Check if slot is valid, index of part is not used
-    bool isValid(size_t = 0) const
+    [[nodiscard]] bool isValid(size_t = 0) const
     {
       if (this->position() < this->parent()->size()) {
         return this->parent()->isValid(this->position());
@@ -202,18 +202,18 @@ class InputSpan
     }
 
     /// Get number of parts in input slot
-    size_t size() const
+    [[nodiscard]] size_t size() const
     {
       return this->parent()->getNofParts(this->position());
     }
 
     // iterator for the part access
-    const_iterator begin() const
+    [[nodiscard]] const_iterator begin() const
     {
       return const_iterator(this, 0, size());
     }
 
-    const_iterator end() const
+    [[nodiscard]] const_iterator end() const
     {
       return const_iterator(this, size());
     }
@@ -223,15 +223,15 @@ class InputSpan
   using const_iterator = InputSpanIterator<const DataRef>;
 
   // supporting read-only access and returning const_iterator
-  const_iterator begin() const
+  [[nodiscard]] const_iterator begin() const
   {
-    return const_iterator(this, 0, size());
+    return {this, 0, size()};
   }
 
   // supporting read-only access and returning const_iterator
-  const_iterator end() const
+  [[nodiscard]] const_iterator end() const
   {
-    return const_iterator(this, size());
+    return {this, size()};
   }
 
  private:

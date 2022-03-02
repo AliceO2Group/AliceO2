@@ -137,6 +137,7 @@ void ServiceRegistry::preDanglingCallbacks(DanglingContext& danglingContext)
 void ServiceRegistry::postDanglingCallbacks(DanglingContext& danglingContext)
 {
   for (auto postDanglingHandle : mPostDanglingHandles) {
+    LOGP(debug, "Doing postDanglingCallback for service {}", postDanglingHandle.spec.name);
     postDanglingHandle.callback(danglingContext, postDanglingHandle.service);
   }
 }

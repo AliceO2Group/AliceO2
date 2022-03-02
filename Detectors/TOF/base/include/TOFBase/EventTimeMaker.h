@@ -38,6 +38,18 @@ struct eventTimeContainer {
   float sumweights = 0.f;       /// sum of weights of all track contributors
   std::vector<float> weights;   /// weights (1/sigma^2) associated to a track in event time computation, 0 if track not used
   std::vector<float> tracktime; /// eventtime provided by a single track
+
+  void reset(const float& diamond /* spread of primary verdex in cm */ = 6.0)
+  {
+    // reset info
+    static const float& sigmaFill = diamond * 33.356409; // move from diamond (cm) to spread on event time (ps)
+    weights.clear();
+    tracktime.clear();
+    eventTime = 0.;
+    eventTimeError = sigmaFill;
+    eventTimeMultiplicity = 0;
+    sumweights = 0.;
+  }
   void print()
   {
     LOG(info) << "eventTimeContainer " << eventTime << " +- " << eventTimeError << " sum of weights " << sumweights << " tracks used " << eventTimeMultiplicity;
@@ -107,12 +119,7 @@ eventTimeContainer evTimeMaker(const trackTypeContainer& tracks,
   static eventTimeContainer result = {0, 0};
 
   // reset info
-  float sigmaFill = diamond * 33.356409; // move from diamond (cm) to spread on event time (ps)
-  result.weights.clear();
-  result.tracktime.clear();
-  result.eventTime = 0.;
-  result.eventTimeError = sigmaFill;
-  result.sumweights = 0.;
+  result.reset(diamond);
 
   for (auto track : tracks) { // Loop on tracks
     if (trackFilter(track)) { // Select tracks good for T0 computation
@@ -159,12 +166,7 @@ eventTimeContainer evTimeMakerFromParam(const trackTypeContainer& tracks,
   static eventTimeContainer result = {0, 0};
 
   // reset info
-  float sigmaFill = diamond * 33.356409; // move from diamond (cm) to spread on event time (ps)
-  result.weights.clear();
-  result.tracktime.clear();
-  result.eventTime = 0.;
-  result.eventTimeError = sigmaFill;
-  result.sumweights = 0.;
+  result.reset(diamond);
 
   for (auto track : tracks) { // Loop on tracks
     if (trackFilter(track)) { // Select tracks good for T0 computation

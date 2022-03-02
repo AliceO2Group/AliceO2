@@ -33,6 +33,7 @@ struct ExpirationHandler {
   /// Callback type to actually materialise a given record
   using Handler = std::function<void(ServiceRegistry&, PartRef& expiredInput, data_matcher::VariableContext& variables)>;
 
+  std::string name = "unset";
   RouteIndex routeIndex;
   Lifetime lifetime;
   Creator creator;

@@ -64,14 +64,17 @@ class RobustAverage
 
   /// \param value value which will be added to the list of stored values for averaging
   /// \param weight weight of the value
-  void addValue(const float value, const float weight = 1.f);
+  void addValue(const float value, const float weight);
+
+  /// \param value value which will be added to the list of stored values for averaging
+  void addValue(const float value);
 
   /// returns the filtered average value
   /// \param sigma maximum accepted standard deviation: sigma*stdev
   float getFilteredAverage(const float sigma = 3);
 
   /// \return returns mean of stored values
-  float getMean() const { return getMean(mValues.begin(), mValues.end()); }
+  float getMean() const { return mValues.empty() ? 0 : getMean(mValues.begin(), mValues.end()); }
 
   /// \return returns weighted mean of stored values
   float getWeightedMean() const { return getWeightedMean(mValues.begin(), mValues.end(), mWeights.begin(), mWeights.end()); }

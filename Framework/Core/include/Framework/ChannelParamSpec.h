@@ -8,24 +8,17 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#ifndef O2_FRAMEWORK_CHANNELPARAMSPEC_H_
+#define O2_FRAMEWORK_CHANNELPARAMSPEC_H_
+#include "Framework/ConfigParamSpec.h"
+
+#include <vector>
+#include <string>
 
 namespace o2::framework
 {
-class ProcessingContext;
-}
 
-namespace o2::tpc
-{
-namespace processing_helpers
-{
+std::vector<ConfigParamSpec> channelParamSpec(std::string const& name);
 
-uint64_t getRunNumber(o2::framework::ProcessingContext& pc);
-
-/// \return returns tf from tfCounter
-uint32_t getCurrentTF(o2::framework::ProcessingContext& pc);
-
-/// \return returns creation time of tf
-uint64_t getCreationTime(o2::framework::ProcessingContext& pc);
-
-} // namespace processing_helpers
-} // namespace o2::tpc
+} // namespace o2::framework
+#endif

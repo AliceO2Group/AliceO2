@@ -22,7 +22,7 @@ namespace o2::framework
 struct FairMQChannelConfigParser {
   virtual void beginChannel() {}
   virtual void endChannel() {}
-  virtual void property(std::string_view key, std::string_view value) {}
+  virtual void property(std::string_view /* key */, std::string_view /* value */) {}
   virtual void error() {}
 };
 

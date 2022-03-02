@@ -17,12 +17,11 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <iostream>
 
 using namespace o2::framework::data_matcher;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 enum QueryBuilderState {
@@ -42,7 +41,13 @@ enum QueryBuilderState {
   IN_END_QUERY,
   IN_STRING,
   IN_NUMBER,
-  IN_ERROR
+  IN_ERROR,
+  IN_BEGIN_ATTRIBUTES,
+  IN_END_ATTRIBUTES,
+  IN_BEGIN_KEY,
+  IN_END_KEY,
+  IN_BEGIN_VALUE,
+  IN_END_VALUE
 };
 
 std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
@@ -61,8 +66,11 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
   std::optional<std::string> currentBinding;
   std::optional<std::string> currentOrigin;
   std::optional<std::string> currentDescription;
+  std::optional<std::string> currentKey;
+  std::optional<std::string> currentValue;
   std::optional<header::DataHeader::SubSpecificationType> currentSubSpec;
   std::optional<uint64_t> currentTimeModulo;
+  Lifetime currentLifetime = Lifetime::Timeframe;
   size_t currentNumber;
 
   auto error = [&errorString, &states](std::string const& s) {
@@ -79,7 +87,7 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
     expectedSeparators = sep;
   };
 
-  auto assignLastStringMatch = [&next, &cur, &error, &pushState, &nodes](std::string const& what, size_t maxSize, std::optional<std::string>& s, QueryBuilderState nextState) {
+  auto assignLastStringMatch = [&next, &cur, &error, &pushState](std::string const& what, int maxSize, std::optional<std::string>& s, QueryBuilderState nextState) {
     if ((next - cur == 0) || (next - cur > maxSize)) {
       error(what + " needs to be between 1 and " + std::to_string(maxSize) + " char long");
       return false;
@@ -95,7 +103,7 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
     return true;
   };
 
-  auto assignLastNumericMatch = [&next, &cur, &error, &pushState, &currentNumber](std::string const& what, auto& value,
+  auto assignLastNumericMatch = [&next, &cur, &error, &pushState, &currentNumber](std::string const&, auto& value,
                                                                                   QueryBuilderState nextState) {
     if ((next - cur == 0)) {
       error("number expected");
@@ -112,7 +120,9 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
     return true;
   };
 
-  auto buildMatchingTree = [&nodes](std::string const& binding) -> InputSpec {
+  std::vector<ConfigParamSpec> attributes;
+
+  auto buildMatchingTree = [&nodes](std::string const& binding, std::vector<ConfigParamSpec> attributes) -> InputSpec {
     auto lastMatcher =
       std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
                                               StartTimeValueMatcher(ContextRef{0}));
@@ -124,7 +134,13 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
       assert(lastMatcher.get() == nullptr);
       lastMatcher = std::move(tmp);
     }
-    return InputSpec{binding, std::move(*lastMatcher.release())};
+    Lifetime lifetime = Lifetime::Timeframe;
+    for (auto& attribute : attributes) {
+      if (attribute.name == "lifetime" && attribute.defaultValue.get<std::string>() == "condition") {
+        lifetime = Lifetime::Condition;
+      }
+    }
+    return InputSpec{binding, std::move(*lastMatcher.release()), lifetime, attributes};
   };
 
   while (states.empty() == false) {
@@ -151,6 +167,7 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
       } break;
       case IN_BEGIN_MATCHER: {
         nodes.clear();
+        attributes.clear();
         pushState(IN_BEGIN_BINDING);
       } break;
       case IN_BEGIN_BINDING: {
@@ -174,34 +191,58 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
       } break;
       case IN_BEGIN_ORIGIN: {
         pushState(IN_END_ORIGIN);
-        token(IN_STRING, "/;");
+        token(IN_STRING, "/;?");
       } break;
       case IN_END_ORIGIN: {
-        if (assignLastStringMatch("origin", 4, currentOrigin, IN_BEGIN_DESCRIPTION)) {
+        if (*next == '/' && assignLastStringMatch("origin", 4, currentOrigin, IN_BEGIN_DESCRIPTION)) {
           nodes.push_back(OriginValueMatcher{*currentOrigin});
+        } else if (*next == ';' && assignLastStringMatch("origin", 4, currentOrigin, IN_END_MATCHER)) {
+          nodes.push_back(OriginValueMatcher{*currentOrigin});
+        } else if (*next == '?' && assignLastStringMatch("origin", 4, currentOrigin, IN_BEGIN_ATTRIBUTES)) {
+          nodes.push_back(OriginValueMatcher{*currentOrigin});
+        } else if (*next == '\0' && assignLastStringMatch("origin", 4, currentOrigin, IN_END_MATCHER)) {
+          nodes.push_back(OriginValueMatcher{*currentOrigin});
+        } else {
+          error("origin needs to be between 1 and 4 char long");
         }
       } break;
       case IN_BEGIN_DESCRIPTION: {
         pushState(IN_END_DESCRIPTION);
-        token(IN_STRING, "/;");
+        token(IN_STRING, "/;?");
       } break;
       case IN_END_DESCRIPTION: {
-        if (assignLastStringMatch("description", 16, currentDescription, IN_BEGIN_SUBSPEC)) {
+        if (*next == '/' && assignLastStringMatch("description", 16, currentDescription, IN_BEGIN_SUBSPEC)) {
           nodes.push_back(DescriptionValueMatcher{*currentDescription});
+        } else if (*next == ';' && assignLastStringMatch("description", 16, currentDescription, IN_END_MATCHER)) {
+          nodes.push_back(DescriptionValueMatcher{*currentDescription});
+        } else if (*next == '?' && assignLastStringMatch("description", 16, currentDescription, IN_BEGIN_ATTRIBUTES)) {
+          nodes.push_back(DescriptionValueMatcher{*currentDescription});
+        } else if (*next == '\0' && assignLastStringMatch("description", 16, currentDescription, IN_BEGIN_ATTRIBUTES)) {
+          nodes.push_back(DescriptionValueMatcher{*currentDescription});
+        } else {
+          error("description needs to be between 1 and 16 char long");
         }
       } break;
       case IN_BEGIN_SUBSPEC: {
         pushState(IN_END_SUBSPEC);
-        token(IN_NUMBER, ";%");
+        token(IN_NUMBER, ";%?");
       } break;
       case IN_END_SUBSPEC: {
-        if (assignLastNumericMatch("subspec", currentSubSpec, IN_BEGIN_TIMEMODULO)) {
+        if (*next == '%' && assignLastNumericMatch("subspec", currentSubSpec, IN_BEGIN_TIMEMODULO)) {
           nodes.push_back(SubSpecificationTypeValueMatcher{*currentSubSpec});
+        } else if (*next == '?' && assignLastNumericMatch("subspec", currentSubSpec, IN_BEGIN_ATTRIBUTES)) {
+          nodes.push_back(SubSpecificationTypeValueMatcher{*currentSubSpec});
+        } else if (*next == ';' && assignLastNumericMatch("subspec", currentSubSpec, IN_END_MATCHER)) {
+          nodes.push_back(SubSpecificationTypeValueMatcher{*currentSubSpec});
+        } else if (*next == '\0' && assignLastNumericMatch("subspec", currentSubSpec, IN_END_MATCHER)) {
+          nodes.push_back(SubSpecificationTypeValueMatcher{*currentSubSpec});
+        } else {
+          error("Expected a number");
         }
       } break;
       case IN_BEGIN_TIMEMODULO: {
         pushState(IN_END_TIMEMODULO);
-        token(IN_NUMBER, ";");
+        token(IN_NUMBER, ";?");
       } break;
       case IN_END_TIMEMODULO: {
         assignLastNumericMatch("timemodulo", currentTimeModulo, IN_ERROR);
@@ -211,15 +252,59 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
           error("Remove trailing ;");
           continue;
         }
-        result.push_back(buildMatchingTree(*currentBinding));
+        result.push_back(buildMatchingTree(*currentBinding, attributes));
         if (*cur == '\0') {
           pushState(IN_END_QUERY);
         } else if (*cur == ';') {
           cur += 1;
           pushState(IN_BEGIN_MATCHER);
         } else {
-          error("Unexpected character" + std::string(cur, 1));
+          error("Unexpected character " + std::string(cur, 1));
         }
+      } break;
+      case IN_BEGIN_ATTRIBUTES: {
+        pushState(IN_BEGIN_KEY);
+      } break;
+      case IN_BEGIN_KEY: {
+        pushState(IN_END_KEY);
+        token(IN_STRING, "=");
+      } break;
+      case IN_END_KEY: {
+        if (*next == '=') {
+          assignLastStringMatch("key", 1000, currentKey, IN_BEGIN_VALUE);
+        } else {
+          error("missing value for attribute key");
+        }
+      } break;
+      case IN_BEGIN_VALUE: {
+        pushState(IN_END_VALUE);
+        token(IN_STRING, "&;");
+      } break;
+      case IN_END_VALUE: {
+        if (*next == '&') {
+          assignLastStringMatch("value", 1000, currentValue, IN_BEGIN_KEY);
+          if (*currentKey == "lifetime" && currentValue == "condition") {
+            currentLifetime = Lifetime::Condition;
+          }
+          attributes.push_back(ConfigParamSpec{*currentKey, VariantType::String, *currentValue, {}});
+        } else if (*next == ';') {
+          assignLastStringMatch("value", 1000, currentValue, IN_END_ATTRIBUTES);
+          if (*currentKey == "lifetime" && currentValue == "condition") {
+            currentLifetime = Lifetime::Condition;
+          }
+          attributes.push_back(ConfigParamSpec{*currentKey, VariantType::String, *currentValue, {}});
+        } else if (*next == '\0') {
+          assignLastStringMatch("value", 1000, currentValue, IN_END_ATTRIBUTES);
+          if (*currentKey == "lifetime" && currentValue == "condition") {
+            currentLifetime = Lifetime::Condition;
+          }
+          attributes.push_back(ConfigParamSpec{*currentKey, VariantType::String, *currentValue, {}});
+        } else {
+          error("missing value for string value");
+        }
+      } break;
+      case IN_END_ATTRIBUTES: {
+        pushState(IN_END_MATCHER);
       } break;
       case IN_ERROR: {
         throw std::runtime_error("Parse error: " + errorString);
@@ -336,5 +421,4 @@ std::smatch DataDescriptorQueryBuilder::getTokens(std::string const& nodeString)
   return m;
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

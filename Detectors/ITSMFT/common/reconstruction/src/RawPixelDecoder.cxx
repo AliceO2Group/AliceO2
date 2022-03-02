@@ -433,10 +433,10 @@ void RawPixelDecoder<Mapping>::produceRawDataDumps(int dump, const o2::header::D
           if (entry >= lnk.rawData.getNPieces()) {
             allHBFs = true;
             entry = 0;
-            fnm = fmt::format("rawdump_{}_run{}_tf_orb{}_full_feeID{:#06x}.raw",
+            fnm = fmt::format("{}/rawdump_{}_run{}_tf_orb{}_full_feeID{:#06x}.raw", mRawDumpDirectory,
                               Mapping::getName(), dh->runNumber, dh->firstTForbit, lnk.feeID);
           } else {
-            fnm = fmt::format("rawdump_{}_run{}_tf_orb{}_hbf_orb{}_feeID{:#06x}.raw",
+            fnm = fmt::format("{}/rawdump_{}_run{}_tf_orb{}_hbf_orb{}_feeID{:#06x}.raw", mRawDumpDirectory,
                               Mapping::getName(), dh->runNumber, dh->firstTForbit, it.second, lnk.feeID);
           }
           std::ofstream ostrm(fnm, std::ios::binary);

@@ -27,15 +27,16 @@ struct CPVSimParams : public o2::conf::ConfigurableParamHelper<CPVSimParams> {
   //Parameters used in conversion of deposited energy to APD response
   int mnCellX = 128;
   int mnCellZ = 60;
-  float mPadSizeX = 1.13;       ///<  overall size of CPV active size
-  float mPadSizeZ = 2.1093;     ///<  in phi and z directions
-  float mDetR = 0.1;            ///<  Relative energy fluctuation in track for 100 e-
-  float mdEdx = 400.0;          ///<  Average energy loss in CPV (arbitrary units);
-  int mNgamz = 5;               ///<  Ionization size in Z
-  int mNgamx = 9;               ///<  Ionization size in Phi
-  float mCPVGasThickness = 1.3; ///<  width of ArC02 gas gap
-  float mA = 1.0;               ///<  Parameter to model CPV response
-  float mB = 0.7;               ///<  Parameter to model CPV response
+  float mPadSizeX = 1.13;                                 ///<  overall size of CPV active size
+  float mPadSizeZ = 2.1093;                               ///<  in phi and z directions
+  float mDetR = 0.1;                                      ///<  Relative energy fluctuation in track for 100 e-
+  float mdEdx = 400.0;                                    ///<  Average energy loss in CPV (arbitrary units);
+  int mNgamz = 5;                                         ///<  Ionization size in Z
+  int mNgamx = 9;                                         ///<  Ionization size in Phi
+  float mCPVGasThickness = 1.3;                           ///<  width of ArC02 gas gap
+  float mA = 1.0;                                         ///<  Parameter to model CPV response
+  float mB = 0.7;                                         ///<  Parameter to model CPV response
+  inline float CellWr() const { return 0.5 * mPadSizeX; } ///<  Distance between wires (2 wires above 1 pad)
 
   //Parameters used in electronic noise calculation and thresholds (Digitizer, Calibration)
   float mReadoutTime = 5.;        ///< Read-out time in ns for default simulaionts
@@ -58,13 +59,16 @@ struct CPVSimParams : public o2::conf::ConfigurableParamHelper<CPVSimParams> {
   bool mUnfoldClusters = false;      ///< Perform cluster unfolding?
 
   // Parameters used in pedestal calibration
-  uint16_t mPedClbToleratedGapWidth = 5;              ///< Tolerated gap between bins: if |bin1 - bin2| < width -> bin1 and bin2 belongs to same peak
-  float mPedClbToleratedChannelEfficiencyLow = 0.9;   ///< Tolerated channel efficiency (lower limit)
-  float mPedClbToleratedChannelEfficiencyHigh = 1.01; ///< Tolerated channel efficiency (upper limit)
-  uint32_t mPedClbMinEvents = 100;                    ///< Minimal number of events to produce calibration
-  float mPedClbSuspiciousPedestalRMS = 10.;           ///< Take additional care for channel if its RMS >  mPedClbSuspiciousPedestalRMS
+  uint16_t mPedClbToleratedGapWidth = 5;    ///< Tolerated gap between bins: if |bin1 - bin2| < width -> bin1 and bin2 belongs to same peak
+  uint32_t mPedClbMinEvents = 100;          ///< Minimal number of events to produce calibration
+  float mPedClbSuspiciousPedestalRMS = 10.; ///< Take additional care for channel if its RMS >  mPedClbSuspiciousPedestalRMS
 
-  inline float CellWr() const { return 0.5 * mPadSizeX; } ///<  Distance between wires (2 wires above 1 pad)
+  // Parameters used in noise scan calibration
+  uint32_t mNoiseClbMinEvents = 100;                    ///< Minimal number of events to produce calibration
+  float mNoiseClbToleratedChannelEfficiencyLow = 0.9;   ///< Tolerated channel efficiency (lower limit)
+  float mNoiseClbToleratedChannelEfficiencyHigh = 1.01; ///< Tolerated channel efficiency (upper limit)
+  uint16_t mNoiseClbThreshold = 10;                     ///< ADC threshold
+  float mNoiseClbFrequencyCriteria = 0.5;               ///< Appearance frequency of noisy channels
 
   O2ParamDef(CPVSimParams, "CPVSimParams");
 };

@@ -22,6 +22,7 @@ namespace o2::framework
 {
 
 struct ConcreteDataMatcher;
+struct DeviceState;
 
 /// Lifetime handlers are used to manage the cases in which data is not coming
 /// from the dataflow, but from some other source or trigger, e.g.,
@@ -39,6 +40,10 @@ struct LifetimeHelpers {
   /// expires and there is not a compatible datadriven callback
   /// available.
   static ExpirationHandler::Creator timeDrivenCreation(std::chrono::microseconds period);
+
+  /// Callback which  creates a new timeslice whenever some libuv event happens
+  static ExpirationHandler::Creator uvDrivenCreation(int loopReason, DeviceState& state);
+
   /// Callback which never expires records. To be used with, e.g.
   /// Lifetime::Timeframe.
   static ExpirationHandler::Checker expireNever();

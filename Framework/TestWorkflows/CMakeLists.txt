@@ -79,6 +79,14 @@ o2_add_dpl_workflow(simple-source
                   SOURCES src/o2SimpleSource.cxx
                   COMPONENT_NAME TestWorkflows)
 
+o2_add_dpl_workflow(simple-fairmq-source
+                  SOURCES src/o2SimpleFairMQSource.cxx
+                  COMPONENT_NAME TestWorkflows)
+
+o2_add_dpl_workflow(simple-fairmq-sink
+                  SOURCES src/o2SimpleFairMQSink.cxx
+                  COMPONENT_NAME TestWorkflows)
+
 o2_add_dpl_workflow(simple-sink
                   SOURCES src/o2SimpleSink.cxx
                   COMPONENT_NAME TestWorkflows)

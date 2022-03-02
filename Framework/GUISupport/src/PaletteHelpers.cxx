@@ -10,9 +10,7 @@
 // or submit itself to any jurisdiction.
 #include "PaletteHelpers.h"
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 const ImVec4 PaletteHelpers::RED = ImVec4(0.945, 0.094, 0.298, 1);
@@ -31,5 +29,4 @@ const ImVec4 PaletteHelpers::BLACK = ImVec4(0x28 / 255., 0x28 / 255., 0x28 / 255
 const ImVec4 PaletteHelpers::GRAY = ImVec4(60 / 255., 60 / 255., 60 / 255., 1);
 const ImVec4 PaletteHelpers::LIGHT_GRAY = ImVec4(75 / 255., 75 / 255., 75 / 255., 1);
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

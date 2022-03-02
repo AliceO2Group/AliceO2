@@ -428,7 +428,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
         for (auto const& channel : outputChannels) {
           DataProcessingHelpers::sendEndOfStream(*device, channel);
         }
-        control->readyToQuit(QuitRequest::Me);
+        control->endOfStream();
       }
     };
 

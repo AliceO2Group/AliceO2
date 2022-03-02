@@ -19,9 +19,15 @@
 #include <vector>
 #include "Rtypes.h"
 #include "TPCCalibration/IDCGroupHelperRegion.h"
+#include "TPCBase/CRU.h"
 
 namespace o2::tpc
 {
+
+enum class PadFlags : unsigned short;
+
+template <class T>
+class CalDet;
 
 /// Class to hold grouped IDC values for one CRU for one TF
 
@@ -33,9 +39,9 @@ class IDCGroup : public IDCGroupHelperRegion
   /// \param groupRows number of pads in row direction which will be grouped
   /// \param groupLastRowsThreshold minimum number of pads in row direction for the last group in row direction
   /// \param groupLastPadsThreshold minimum number of pads in pad direction for the last group in pad direction
-  /// \param region region of the TPC
-  IDCGroup(const unsigned char groupPads = 4, const unsigned char groupRows = 4, const unsigned char groupLastRowsThreshold = 2, const unsigned char groupLastPadsThreshold = 2, const unsigned int groupNotnPadsSectorEdges = 0, const unsigned int region = 0)
-    : IDCGroupHelperRegion{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupNotnPadsSectorEdges, region}, mIDCsGrouped(getNIDCsPerIntegrationInterval()){};
+  /// \param cru cru index
+  IDCGroup(const unsigned char groupPads = 4, const unsigned char groupRows = 4, const unsigned char groupLastRowsThreshold = 2, const unsigned char groupLastPadsThreshold = 2, const unsigned int groupNotnPadsSectorEdges = 0, const unsigned short cru = 0)
+    : IDCGroupHelperRegion{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupNotnPadsSectorEdges, CRU(cru).region()}, mIDCsGrouped(getNIDCsPerIntegrationInterval()), mCRU{cru} {};
 
   /// extend the size of the grouped and averaged IDC values corresponding to the number of integration intervals. This has to be called befor filling values!
   /// without using this function the object can hold only one integration interval
@@ -103,14 +109,19 @@ class IDCGroup : public IDCGroupHelperRegion
 
   /// calculate and return 1D-IDCs for ungrouped IDCs
   /// \param idc vector containing the ungrouped IDCs for one region
-  /// \param region TPC region to which the IDCs corresponds to
-  static std::vector<float> get1DIDCsUngrouped(const std::vector<float> idc, const unsigned int region);
+  /// \param cru cru index
+  /// \param flagMap map which can be used to exclude pads during calculation of the 1D-IDCs
+  static std::vector<float> get1DIDCsUngrouped(const std::vector<float> idc, const unsigned short cru, const CalDet<PadFlags>* flagMap = nullptr);
+
+  /// \return returns cru
+  unsigned short getCRU() const { return mCRU; }
 
  private:
   std::vector<float> mIDCsGrouped{}; ///< grouped and averaged IDC values for n integration intervals for one CRU
+  const unsigned short mCRU{};       ///< cru of grouped IDCs
 
   /// calculate and return 1D-IDCs for a vector of IDCs
-  static std::vector<float> get1DIDCs(const std::vector<float> idc, const unsigned int nIntervals, const unsigned int nIDCsPerIntegrationInterval, const unsigned int region, const bool normalize);
+  static std::vector<float> get1DIDCs(const std::vector<float> idc, const unsigned int nIntervals, const unsigned int nIDCsPerIntegrationInterval, const unsigned short cru, const bool normalize, const CalDet<PadFlags>* flagMap);
 
   ClassDefNV(IDCGroup, 1)
 };

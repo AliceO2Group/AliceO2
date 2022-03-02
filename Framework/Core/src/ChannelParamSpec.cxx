@@ -9,23 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "Framework/ChannelParamSpec.h"
 namespace o2::framework
 {
-class ProcessingContext;
+std::vector<ConfigParamSpec> channelParamSpec(std::string const& name)
+{
+  return {
+    {ConfigParamSpec{"channel-name", VariantType::String, name, {"channel name"}}}};
 }
 
-namespace o2::tpc
-{
-namespace processing_helpers
-{
-
-uint64_t getRunNumber(o2::framework::ProcessingContext& pc);
-
-/// \return returns tf from tfCounter
-uint32_t getCurrentTF(o2::framework::ProcessingContext& pc);
-
-/// \return returns creation time of tf
-uint64_t getCreationTime(o2::framework::ProcessingContext& pc);
-
-} // namespace processing_helpers
-} // namespace o2::tpc
+} // namespace o2::framework
