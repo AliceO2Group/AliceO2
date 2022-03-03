@@ -102,7 +102,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
     // set the min range of TFs for first TF
     if (mProcessedTFs == 0) {
       mTFFirst = processing_helpers::getCurrentTF(pc);
-      mTimeStampFirst = processing_helpers::getTimeStamp(pc, getOrbitReset(pc)) / 1000; // in milliseconds
+      mTimeStampFirst = processing_helpers::getTimeStamp(pc) / 1000; // in milliseconds
 
       // write struct containing grouping parameters to access grouped IDCs to CCDB
       if (mWriteToDB && mUpdateGroupingPar) {
@@ -195,13 +195,6 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   /// \return returns first time stamp for validity range when storing to IDCDelta CCDB
   auto getFirstTimeStampDeltaIDC(const unsigned int iChunk) const { return mTimeStampRangeIDCDelta[iChunk]; }
 
-  Long64_t getOrbitReset(o2::framework::ProcessingContext& pc) const
-  {
-    auto tv = pc.inputs().get<std::vector<Long64_t>*>("orbitreset");
-    const auto orbitReset = tv->front();
-    return orbitReset;
-  }
-
   /// check if current tf will be used to set the time stamp range
   bool findTimeStamp(o2::framework::ProcessingContext& pc)
   {
@@ -214,7 +207,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
     auto it = std::find(mTFRangeIDCDelta.begin(), mTFRangeIDCDelta.end(), tf);
     if (it != mTFRangeIDCDelta.end()) {
       const int index = std::distance(mTFRangeIDCDelta.begin(), it);
-      mTimeStampRangeIDCDelta[index] = processing_helpers::getTimeStamp(pc, getOrbitReset(pc)) / 1000;
+      mTimeStampRangeIDCDelta[index] = processing_helpers::getTimeStamp(pc) / 1000;
       // TODO remove found tf?
       return true;
     }
