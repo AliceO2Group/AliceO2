@@ -86,6 +86,8 @@ class PedestalData
 
   [[deprecated]] PedestalsMap getPedestals() const { return mPedestals; }
 
+  uint32_t size() const;
+
  private:
   PedestalsMap mPedestals{}; ///< internal storage of all PedestalChannel values
 
