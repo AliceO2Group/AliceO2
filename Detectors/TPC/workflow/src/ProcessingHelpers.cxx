@@ -63,9 +63,16 @@ uint64_t processing_helpers::getCreationTime(o2::framework::ProcessingContext& p
   return DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
 }
 
-uint64_t processing_helpers::getTimeStamp(o2::framework::ProcessingContext& pc, const Long64_t orbitReset)
+uint64_t processing_helpers::getTimeStamp(o2::framework::ProcessingContext& pc)
 {
   const auto tfOrbitFirst = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->firstTForbit;
-  const long tPrec = orbitReset + tfOrbitFirst * o2::constants::lhc::LHCOrbitMUS; // microsecond-precise time stamp
+  const long tPrec = getOrbitReset(pc) + tfOrbitFirst * o2::constants::lhc::LHCOrbitMUS; // microsecond-precise time stamp
   return tPrec;
+}
+
+Long64_t processing_helpers::getOrbitReset(o2::framework::ProcessingContext& pc)
+{
+  auto tv = pc.inputs().get<std::vector<Long64_t>*>("orbitreset");
+  const auto orbitReset = tv->front();
+  return orbitReset;
 }
