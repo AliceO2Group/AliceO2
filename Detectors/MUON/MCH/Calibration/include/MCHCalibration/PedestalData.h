@@ -110,6 +110,9 @@ class PedestalDataIterator
                                                       mCol{0},
                                                       mRow{0}
   {
+    if (mData && mData->size() == 0) {
+      mData = nullptr;
+    }
     if (mData) {
       mMapIt = mData->mPedestals.begin();
     }

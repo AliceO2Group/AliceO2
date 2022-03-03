@@ -83,4 +83,10 @@ BOOST_AUTO_TEST_CASE(TestIteratorInCountIfAlgorithm)
   BOOST_TEST(n == 3);
 }
 
+BOOST_AUTO_TEST_CASE(IterationOnEmptyDataShouldNotBeAnInfiniteLoop, *boost::unit_test::timeout(10))
+{
+  PedestalData d;
+  auto c = std::distance(d.cbegin(), d.cend());
+  BOOST_CHECK_EQUAL(c, 0);
+}
 BOOST_AUTO_TEST_SUITE_END()
