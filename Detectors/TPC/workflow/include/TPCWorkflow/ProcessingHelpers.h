@@ -9,11 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-namespace o2::ccdb
-{
-class BasicCCDBManager;
-}
-
 namespace o2::framework
 {
 class ProcessingContext;
@@ -33,7 +28,7 @@ uint32_t getCurrentTF(o2::framework::ProcessingContext& pc);
 uint64_t getCreationTime(o2::framework::ProcessingContext& pc);
 
 /// \return returns time stamp in microsecond-precission
-uint64_t getTimeStamp(o2::framework::ProcessingContext& pc, o2::ccdb::BasicCCDBManager& ccdbManager);
+uint64_t getTimeStamp(o2::framework::ProcessingContext& pc, const Long64_t orbitReset);
 
 } // namespace processing_helpers
 } // namespace o2::tpc

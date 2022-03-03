@@ -118,7 +118,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
     // check which buffer to use for current incoming data
     const auto tf = processing_helpers::getCurrentTF(pc);
 
-    // automatically detext firstTF in case firstTF was not specified
+    // automatically detect firstTF in case firstTF was not specified
     if (mTFStart.front() <= -1) {
       const auto firstTF = tf;
       const int offsetTF = std::abs(mTFStart.front() + 1);

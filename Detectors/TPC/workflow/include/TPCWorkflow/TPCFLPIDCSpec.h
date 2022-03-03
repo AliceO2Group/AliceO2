@@ -129,19 +129,21 @@ class TPCFLPIDCDevice : public o2::framework::Task
     }
 
     if (!mLoadFromFile) {
-      for (int i = 0; i < mCRUs.size(); ++i) {
+      for (int i = 0; i < mCRUs.size() + mLoadPadMapCCDB; ++i) {
         const DataRef ref = pc.inputs().getByPos(i);
         auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-        const int cru = tpcCRUHeader->subSpecification >> 7;
-        if constexpr (std::is_same_v<Type, TPCFLPIDCDeviceGroup>) {
-          mIDCStruct.mIDCs[cru].setIDCs(pc.inputs().get<std::vector<float>>(ref));
-          mIDCStruct.mIDCs[cru].processIDCs(mPadFlagsMap);
-        } else {
-          mIDCStruct.mIDCs[cru] = pc.inputs().get<std::vector<float>>(ref);
+        const auto descr = tpcCRUHeader->dataDescription;
+        if (TPCIntegrateIDCDevice::getDataDescription(TPCIntegrateIDCDevice::IDCFormat::Sim) == descr) {
+          const int cru = tpcCRUHeader->subSpecification >> 7;
+          if constexpr (std::is_same_v<Type, TPCFLPIDCDeviceGroup>) {
+            mIDCStruct.mIDCs[cru].setIDCs(pc.inputs().get<std::vector<float>>(ref));
+            mIDCStruct.mIDCs[cru].processIDCs(mPadFlagsMap);
+          } else {
+            mIDCStruct.mIDCs[cru] = pc.inputs().get<std::vector<float>>(ref);
+          }
+          // send the output for one CRU for one TF
+          sendOutput(pc.outputs(), cru);
         }
-
-        // send the output for one CRU for one TF
-        sendOutput(pc.outputs(), cru);
       }
     } else {
       for (int i = 0; i < mCRUs.size(); ++i) {
