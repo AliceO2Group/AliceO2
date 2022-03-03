@@ -44,7 +44,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
 {
  public:
   TPCDistributeIDCSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int outlanes, const bool loadFromFile, const int firstTF)
-    : mCRUs{crus}, mTimeFrames{timeframes}, mOutLanes{outlanes}, mLoadFromFile{loadFromFile}, mProcessedCRU{{std::vector<unsigned int>(timeframes), std::vector<unsigned int>(timeframes)}}, mDataSend{std::vector<bool>(timeframes), std::vector<bool>(timeframes)}, mTFStart{{firstTF, firstTF + timeframes}}, mTFEnd{{firstTF + timeframes - 1, mTFStart[1] + timeframes - 1}}
+    : mCRUs{crus}, mTimeFrames{timeframes}, mOutLanes{outlanes}, mLoadFromFile{loadFromFile}, mProcessedCRU{{std::vector<unsigned int>(timeframes), std::vector<unsigned int>(timeframes)}}, mDataSent{std::vector<bool>(timeframes), std::vector<bool>(timeframes)}, mTFStart{{firstTF, firstTF + timeframes}}, mTFEnd{{firstTF + timeframes - 1, mTFStart[1] + timeframes - 1}}
   {
     // sort vector for binary_search
     std::sort(mCRUs.begin(), mCRUs.end());
@@ -190,9 +190,9 @@ class TPCDistributeIDCSpec : public o2::framework::Task
     }
 
     // check if all CRUs for current TF are already aggregated and send data
-    if ((mProcessedCRU[currentBuffer][relTF] == 2 * mCRUs.size() || mLoadFromFile) && !mDataSend[currentBuffer][relTF]) {
+    if ((mProcessedCRU[currentBuffer][relTF] == 2 * mCRUs.size() || mLoadFromFile) && !mDataSent[currentBuffer][relTF]) {
       LOGP(info, "All data for current TF received. Sending data...");
-      mDataSend[currentBuffer][relTF] = true;
+      mDataSent[currentBuffer][relTF] = true;
       ++mProcessedTFs[currentBuffer];
       sendOutput(pc, currentOutLane, currentBuffer, relTF);
     }
@@ -209,7 +209,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
 
       mProcessedTFs[currentBuffer] = 0; // reset processed TFs for next aggregation interval
       std::fill(mProcessedCRU[currentBuffer].begin(), mProcessedCRU[currentBuffer].end(), 0);
-      std::fill(mDataSend[currentBuffer].begin(), mDataSend[currentBuffer].end(), false);
+      std::fill(mDataSent[currentBuffer].begin(), mDataSent[currentBuffer].end(), false);
 
       // set integration range for next integration interval
       mTFStart[mBuffer] = mTFEnd[!mBuffer] + 1;
@@ -241,7 +241,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   std::array<std::array<std::vector<pmr::vector<float>>, CRU::MaxCRU>, 2> mIDCs{};     ///< grouped and integrated IDCs for the whole TPC. CRU -> time frame -> IDCs. Buffer used in case one FLP delivers the TF after the last TF for the current aggregation interval faster then the other FLPs the last TF.
   std::array<std::array<std::vector<pmr::vector<float>>, CRU::MaxCRU>, 2> mOneDIDCs{}; ///< 1D IDCs for the whole TPC. CRU -> time frame -> IDCs. Buffer used in case one FLP delivers the TF after the last TF for the current aggregation interval faster then the other FLPs the last TF.
   std::array<std::vector<unsigned int>, 2> mProcessedCRU{};                            ///< counter of received data from CRUs per TF to merge incoming data from FLPs. Buffer used in case one FLP delivers the TF after the last TF for the current aggregation interval faster then the other FLPs the last TF.
-  std::array<std::vector<bool>, 2> mDataSend{};                                        ///< to keep track if the data for a given tf has already been send
+  std::array<std::vector<bool>, 2> mDataSent{};                                        ///< to keep track if the data for a given tf has already been sent
   std::array<std::vector<std::unordered_map<unsigned int, bool>>, 2> mProcessedCRUs{}; ///< to keep track of the already processed CRUs ([buffer][relTF][CRU])
   std::array<long, 2> mTFStart{};                                                      ///< storing of first TF for buffer interval
   std::array<long, 2> mTFEnd{};                                                        ///< storing of last TF for buffer interval
