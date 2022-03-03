@@ -14,6 +14,7 @@
 #include <ostream>
 #include <cassert>
 #include <cctype>
+#include <regex>
 #if __has_include(<filesystem>)
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -33,6 +34,94 @@ std::string getTmpFolder()
 
 namespace o2::framework
 {
+
+void OutputChannelSpecConfigParser::beginChannel()
+{
+  specs.push_back(OutputChannelSpec{});
+}
+
+void OutputChannelSpecConfigParser::endChannel()
+{
+}
+
+bool isIPAddress(const std::string& address)
+{
+  std::regex ipv4_regex("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$");
+  if (std::regex_match(address, ipv4_regex)) {
+    return true;
+  }
+  return false;
+}
+
+void OutputChannelSpecConfigParser::property(std::string_view key, std::string_view value)
+{
+  std::string valueStr = value.data();
+  if (key == "address") {
+    auto parseAddress = [v = std::string(value), &outputChannelSpec = specs.back()]() {
+      auto value = v;
+      std::string protocol = "tcp";
+      std::string hostname = "127.0.0.1";
+      std::string port = "9090";
+      auto pos = value.find("://");
+      if (pos != std::string::npos) {
+        protocol = value.substr(0, pos);
+        value = value.substr(pos + 3);
+      }
+      if (protocol == "tcp") {
+        pos = value.find(':');
+        if (pos != std::string::npos) {
+          hostname = value.substr(0, pos);
+          value = value.substr(pos + 1);
+        } else {
+          throw runtime_error_f("Port not found in address '%s'", v.c_str());
+        }
+        port = value;
+        if (isIPAddress(hostname) == false) {
+          throw runtime_error_f("Invalid ip address '%s'", hostname.c_str());
+        }
+        outputChannelSpec.hostname = hostname;
+        outputChannelSpec.port = std::stoi(port);
+        outputChannelSpec.protocol = ChannelProtocol::Network;
+      } else if (protocol == "ipc") {
+        outputChannelSpec.hostname = value;
+        outputChannelSpec.port = 0;
+        outputChannelSpec.protocol = ChannelProtocol::IPC;
+      } else {
+        throw runtime_error_f("Unknown protocol '%s'", protocol.c_str());
+      }
+    };
+    parseAddress();
+  }
+  auto& outputChannelSpec = specs.back();
+  if (key == "name") {
+    outputChannelSpec.name = value;
+  } else if (key == "type" && value == "pub") {
+    outputChannelSpec.type = ChannelType::Pub;
+  } else if (key == "type" && value == "sub") {
+    outputChannelSpec.type = ChannelType::Sub;
+  } else if (key == "type" && value == "push") {
+    outputChannelSpec.type = ChannelType::Push;
+  } else if (key == "type" && value == "pull") {
+    outputChannelSpec.type = ChannelType::Pull;
+  } else if (key == "type" && value == "pair") {
+    outputChannelSpec.type = ChannelType::Pair;
+  } else if (key == "method" && value == "bind") {
+    outputChannelSpec.method = ChannelMethod::Bind;
+  } else if (key == "method" && value == "connect") {
+    outputChannelSpec.method = ChannelMethod::Connect;
+  } else if (key == "rateLogging") {
+    outputChannelSpec.rateLogging = std::stoi(valueStr);
+  } else if (key == "recvBufSize") {
+    outputChannelSpec.recvBufferSize = std::stoi(valueStr);
+  } else if (key == "sendBufSize") {
+    outputChannelSpec.recvBufferSize = std::stoi(valueStr);
+  }
+}
+
+void OutputChannelSpecConfigParser::error()
+{
+  throw runtime_error_f("Error in channel config.");
+}
 
 char const* ChannelSpecHelpers::typeAsString(enum ChannelType type)
 {
@@ -131,13 +220,16 @@ void ChannelSpecHelpers::parseChannelConfig(char const* config, FairMQChannelCon
   std::string_view key;
   std::string_view value;
   char const* nameKey = "name";
+  char const* lastError = "bad configuation string";
 
   while (true) {
     switch (state) {
       case ChannelConfigParserState::BEGIN: {
         if (*cur == '\0') {
+          lastError = "empty config string";
           state = ChannelConfigParserState::ERROR;
         } else if (!isalpha(*cur)) {
+          lastError = "first character is not alphabetic";
           state = ChannelConfigParserState::ERROR;
         } else {
           state = ChannelConfigParserState::BEGIN_CHANNEL;
@@ -147,6 +239,7 @@ void ChannelSpecHelpers::parseChannelConfig(char const* config, FairMQChannelCon
       case ChannelConfigParserState::BEGIN_CHANNEL: {
         next = strpbrk(cur, ":=;,");
         if (*next == ';' || *next == ',') {
+          lastError = "expected channel name";
           state = ChannelConfigParserState::ERROR;
           break;
         } else if (*next == ':') {
@@ -156,6 +249,11 @@ void ChannelSpecHelpers::parseChannelConfig(char const* config, FairMQChannelCon
           handler.property(key, value);
           state = ChannelConfigParserState::BEGIN_KEY;
           cur = next + 1;
+          if (*cur == '\0') {
+            state = ChannelConfigParserState::END_CHANNEL;
+          } else {
+            state = ChannelConfigParserState::BEGIN_KEY;
+          }
           break;
         }
         handler.beginChannel();
@@ -165,6 +263,7 @@ void ChannelSpecHelpers::parseChannelConfig(char const* config, FairMQChannelCon
       case ChannelConfigParserState::BEGIN_KEY: {
         next = strchr(cur, '=');
         if (next == nullptr) {
+          lastError = "expected '='";
           state = ChannelConfigParserState::ERROR;
         } else {
           key = std::string_view(cur, next - cur);
@@ -212,6 +311,7 @@ void ChannelSpecHelpers::parseChannelConfig(char const* config, FairMQChannelCon
           state = ChannelConfigParserState::BEGIN_CHANNEL;
           cur++;
         } else {
+          lastError = "expected ';'";
           state = ChannelConfigParserState::ERROR;
         }
         break;
@@ -220,7 +320,7 @@ void ChannelSpecHelpers::parseChannelConfig(char const* config, FairMQChannelCon
         return;
       }
       case ChannelConfigParserState::ERROR: {
-        throw runtime_error("Unable to parse channel config");
+        throw runtime_error_f("Unable to parse channel config: %s", lastError);
       }
     }
   }
