@@ -625,4 +625,15 @@ BOOST_AUTO_TEST_CASE(DataQuery)
 
   auto result3 = DataDescriptorQueryBuilder::parse("x:TST/A1/0?key=value&key2=value2");
   BOOST_CHECK_EQUAL(result3[0].metadata.size(), 2);
+
+  auto result4 = DataDescriptorQueryBuilder::parse("x:TST/A1/0?lifetime=condition&ccdb-path=GLO/Config/GRPECS&key3=value3");
+  BOOST_CHECK_EQUAL(result4.size(), 1);
+  result4[0].lifetime = Lifetime::Condition;
+  BOOST_CHECK_EQUAL(result4[0].metadata.size(), 3);
+  BOOST_CHECK_EQUAL(result4[0].metadata[0].name, "lifetime");
+  BOOST_CHECK_EQUAL(result4[0].metadata[0].defaultValue.get<std::string>(), "condition");
+  BOOST_CHECK_EQUAL(result4[0].metadata[1].name, "ccdb-path");
+  BOOST_CHECK_EQUAL(result4[0].metadata[1].defaultValue.get<std::string>(), "GLO/Config/GRPECS");
+  BOOST_CHECK_EQUAL(result4[0].metadata[2].name, "key3");
+  BOOST_CHECK_EQUAL(result4[0].metadata[2].defaultValue.get<std::string>(), "value3");
 }
