@@ -26,17 +26,10 @@ void DigitsVectorStream::init()
 {
   mSimParam = &(o2::emcal::SimParam::Instance());
 
-  mLiveTime = mSimParam->getLiveTime();
-  mBusyTime = mSimParam->getBusyTime();
-  mPreTriggerTime = mSimParam->getPreTriggerTime();
-
   mRandomGenerator = new TRandom3(std::chrono::high_resolution_clock::now().time_since_epoch().count());
 
   mRemoveDigitsBelowThreshold = mSimParam->doRemoveDigitsBelowThreshold();
   mSimulateNoiseDigits = mSimParam->doSimulateNoiseDigits();
-
-  mDelay = (unsigned int)mSimParam->getSignalDelay();
-  mTimeWindowStart = (unsigned int)mSimParam->getTimeBinOffset();
 }
 
 //_______________________________________________________________________
@@ -59,14 +52,6 @@ void DigitsVectorStream::fill(gsl::span<o2::emcal::DigitTimebin> digitlist, o2::
 {
   std::map<unsigned int, std::list<LabeledDigit>> outputList;
 
-  o2::emcal::DigitTimebin triggerNode;
-  for (auto& digitTimebin : digitlist) {
-    if (digitTimebin.mTriggerColl) {
-      triggerNode = digitTimebin;
-      break;
-    }
-  }
-
   for (auto& digitsTimeBin : digitlist) {
 
     for (auto& [tower, digitsList] : *digitsTimeBin.mDigitMap) {
@@ -77,11 +62,6 @@ void DigitsVectorStream::fill(gsl::span<o2::emcal::DigitTimebin> digitlist, o2::
       digitsList.sort();
 
       for (auto& ld : digitsList) {
-
-        /// This is to reset the time of the pre-trigger digits
-        if (ld.getTimeStamp() >= (mLiveTime + mBusyTime - mPreTriggerTime)) {
-          ld.setTimeStamp(digitsTimeBin.mTimestamp - triggerNode.mTimestamp + mDelay - mTimeWindowStart);
-        }
 
         // Loop over all digits in the time sample and sum the digits that belongs to the same tower and falls in one time bin
         for (auto ld1 = digitsList.begin(); ld1 != digitsList.end(); ++ld1) {
@@ -120,16 +100,16 @@ void DigitsVectorStream::fill(gsl::span<o2::emcal::DigitTimebin> digitlist, o2::
     }
   }
 
-  for (auto [tower, outdiglist] : outputList) {
-    for (auto d : outdiglist) {
-      outdiglist.sort();
+  for (const auto& [tower, outdiglist] : outputList) {
+    for (const auto& d : outdiglist) {
+      // outdiglist.sort();
 
       Digit digit = d.getDigit();
       std::vector<MCLabel> labels = d.getLabels();
       mDigits.push_back(digit);
 
       Int_t LabelIndex = mLabels.getIndexedSize();
-      for (auto label : labels) {
+      for (const auto& label : labels) {
         mLabels.addElementRandomAccess(LabelIndex, label);
       }
     }
