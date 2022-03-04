@@ -12,7 +12,7 @@
 #  @author SwirtaB
 
 if (ONNXRuntime::ONNXRuntime_FOUND)
-    add_compile_definitions(FASTSIM_BUILDED)
+    add_compile_definitions(ZDC_FASTSIM_ONXX)
     o2_add_library(FASTSimulation
                 SOURCES src/FastSimulations.cxx src/Utils.cxx
                 PUBLIC_LINK_LIBRARIES ONNXRuntime::ONNXRuntime)
