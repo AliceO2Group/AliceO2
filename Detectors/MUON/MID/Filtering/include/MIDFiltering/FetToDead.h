@@ -16,10 +16,10 @@
 #ifndef O2_MID_FETTODEAD_H
 #define O2_MID_FETTODEAD_H
 
-#include <cstdint>
 #include <gsl/span>
+#include <unordered_map>
+#include <vector>
 #include "DataFormatsMID/ColumnData.h"
-#include "MIDFiltering/ChannelMasksHandler.h"
 
 namespace o2
 {
@@ -29,22 +29,29 @@ namespace mid
 class FetToDead
 {
  public:
+  /// Default constructor
   FetToDead();
+
+  /// Default destructor
   ~FetToDead() = default;
 
-  FetToDead(const FetToDead&) = default;
-  FetToDead(FetToDead&&) = default;
-
+  /// Converts the fet data into a vector of bad channels
+  /// \param fetData FET data
+  /// \return vector of bad channels
   std::vector<ColumnData> process(gsl::span<const ColumnData> fetData);
 
   /// Sets the masks
-  void setMasks(std::vector<ColumnData> masks);
+  void setMasks(const std::vector<ColumnData>& masks) { mRefMasks = masks; }
 
  private:
-  bool invertPattern(const ColumnData& col, std::vector<ColumnData>& invertedData);
+  /// Add channels to the bad channels list if needed
+  /// \param mask Mask
+  /// \param fet FET data
+  /// \param badChannels List of bad channels
+  void checkChannels(const ColumnData& mask, ColumnData fet, std::vector<ColumnData>& badChannels) const;
 
-  ChannelMasksHandler mMasksHandler{};                      // Masks handler
-  std::unordered_map<uint16_t, ColumnData> mInvertedActive; // Map of inverted active channels
+  std::vector<ColumnData> mRefMasks;                   /// Reference masks
+  std::unordered_map<uint16_t, ColumnData> mFetData{}; // FET data
 };
 
 } // namespace mid
