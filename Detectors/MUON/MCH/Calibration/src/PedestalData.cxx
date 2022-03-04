@@ -107,6 +107,11 @@ void PedestalData::print() const
   }
 }
 
+uint32_t PedestalData::size() const
+{
+  return mPedestals.size() * MAXCHANNEL * MAXDS;
+}
+
 PedestalData::iterator PedestalData::begin()
 {
   return PedestalData::iterator(this);

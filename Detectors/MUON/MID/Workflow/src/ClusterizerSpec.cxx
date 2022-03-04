@@ -22,14 +22,20 @@
 #include <gsl/gsl>
 #include "Framework/ControlService.h"
 #include "Framework/DataRefUtils.h"
+#include "Framework/InputRecordWalker.h"
 #include "Framework/Logger.h"
 #include "Framework/Output.h"
 #include "Framework/Task.h"
-#include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/Cluster.h"
+#include "DataFormatsMID/ColumnData.h"
+#include "DataFormatsMID/ROFRecord.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 #include "MIDClustering/PreCluster.h"
 #include "MIDClustering/PreClusterizer.h"
 #include "MIDClustering/Clusterizer.h"
+#include "MIDSimulation/ClusterLabeler.h"
+#include "MIDSimulation/MCLabel.h"
+#include "MIDSimulation/PreClusterLabeler.h"
 
 namespace of = o2::framework;
 
@@ -41,13 +47,19 @@ namespace mid
 class ClusterizerDeviceDPL
 {
  public:
+  ClusterizerDeviceDPL(bool isMC) : mIsMC(isMC) {}
+  ~ClusterizerDeviceDPL() = default;
+
   void init(o2::framework::InitContext& ic)
   {
-    if (!mPreClusterizer.init()) {
-      LOG(error) << "Initialization of MID pre-clusterizer device failed";
+    bool isClusterizerInit = false;
+    if (mIsMC) {
+      mCorrelation.clear();
+      isClusterizerInit = mClusterizer.init([&](size_t baseIndex, size_t relatedIndex) { mCorrelation.push_back({baseIndex, relatedIndex}); });
+    } else {
+      isClusterizerInit = mClusterizer.init();
     }
-
-    if (!mClusterizer.init()) {
+    if (!isClusterizerInit) {
       LOG(error) << "Initialization of MID clusterizer device failed";
     }
 
@@ -63,11 +75,22 @@ class ClusterizerDeviceDPL
   {
     auto tStart = std::chrono::high_resolution_clock::now();
 
-    auto msg = pc.inputs().get("mid_data");
-    gsl::span<const ColumnData> patterns = of::DataRefUtils::as<const ColumnData>(msg);
+    std::vector<of::InputSpec> filter = {
+      {"check_data", of::ConcreteDataMatcher{header::gDataOriginMID, "DATA", 0}, of::Lifetime::Timeframe},
+      {"check_rof", of::ConcreteDataMatcher{header::gDataOriginMID, "DATAROF", 0}, of::Lifetime::Timeframe},
+    };
 
-    auto msgROF = pc.inputs().get("mid_data_rof");
-    gsl::span<const ROFRecord> inROFRecords = of::DataRefUtils::as<const ROFRecord>(msgROF);
+    gsl::span<const ColumnData> patterns;
+    gsl::span<const ROFRecord> inROFRecords;
+
+    for (auto const& inputRef : of::InputRecordWalker(pc.inputs(), filter)) {
+      if (of::DataRefUtils::match(inputRef, "mid_data")) {
+        patterns = pc.inputs().get<gsl::span<o2::mid::ColumnData>>(inputRef);
+      }
+      if (of::DataRefUtils::match(inputRef, "mid_data_rof")) {
+        inROFRecords = pc.inputs().get<gsl::span<o2::mid::ROFRecord>>(inputRef);
+      }
+    }
 
     // Pre-clustering
     auto tAlgoStart = std::chrono::high_resolution_clock::now();
@@ -80,6 +103,18 @@ class ClusterizerDeviceDPL
     mClusterizer.process(mPreClusterizer.getPreClusters(), mPreClusterizer.getROFRecords());
     mTimerCluster += std::chrono::high_resolution_clock::now() - tAlgoStart;
 
+    if (mIsMC) {
+      // Labelling
+      std::unique_ptr<const o2::dataformats::MCTruthContainer<MCLabel>> labels = mIsMC ? pc.inputs().get<const o2::dataformats::MCTruthContainer<MCLabel>*>("mid_data_labels") : nullptr;
+      mPreClusterLabeler.process(mPreClusterizer.getPreClusters(), *labels, mPreClusterizer.getROFRecords(), inROFRecords);
+      mClusterLabeler.process(mPreClusterizer.getPreClusters(), mPreClusterLabeler.getContainer(), mClusterizer.getClusters(), mCorrelation);
+      // Clear the index correlations that will be used in the next cluster processing
+      mCorrelation.clear();
+
+      pc.outputs().snapshot(of::Output{"MID", "CLUSTERSLABELS", 0, of::Lifetime::Timeframe}, mClusterLabeler.getContainer());
+      LOG(debug) << "Sent " << mClusterLabeler.getContainer().getIndexedSize() << " indexed clusters";
+    }
+
     pc.outputs().snapshot(of::Output{"MID", "CLUSTERS", 0, of::Lifetime::Timeframe}, mClusterizer.getClusters());
     LOG(debug) << "Sent " << mClusterizer.getClusters().size() << " clusters";
     pc.outputs().snapshot(of::Output{"MID", "CLUSTERSROF", 0, of::Lifetime::Timeframe}, mClusterizer.getROFRecords());
@@ -90,24 +125,37 @@ class ClusterizerDeviceDPL
   }
 
  private:
+  bool mIsMC = false;
   PreClusterizer mPreClusterizer{};
   Clusterizer mClusterizer{};
+  PreClusterLabeler mPreClusterLabeler{};
+  ClusterLabeler mClusterLabeler{};
+  std::vector<std::array<size_t, 2>> mCorrelation{};
   std::chrono::duration<double> mTimer{0};           ///< full timer
   std::chrono::duration<double> mTimerPreCluster{0}; ///< pre-clustering timer
   std::chrono::duration<double> mTimerCluster{0};    ///< clustering timer
   unsigned long mNROFs{0};                           ///< Total number of processed ROFs
 };
 
-framework::DataProcessorSpec getClusterizerSpec()
+framework::DataProcessorSpec getClusterizerSpec(bool isMC)
 {
-  std::vector<of::InputSpec> inputSpecs{of::InputSpec{"mid_data", "MID", "DATA"}, of::InputSpec{"mid_data_rof", "MID", "DATAROF"}};
+  std::vector<of::InputSpec> inputSpecs;
+  inputSpecs.emplace_back("mid_data", of::ConcreteDataTypeMatcher(header::gDataOriginMID, "DATA"), of::Lifetime::Timeframe);
+  inputSpecs.emplace_back("mid_data_rof", of::ConcreteDataTypeMatcher(header::gDataOriginMID, "DATAROF"), of::Lifetime::Timeframe);
+
   std::vector<of::OutputSpec> outputSpecs{of::OutputSpec{"MID", "CLUSTERS"}, of::OutputSpec{"MID", "CLUSTERSROF"}};
+
+  if (isMC) {
+    inputSpecs.emplace_back(of::InputSpec{"mid_data_labels", "MID", "DATALABELS"});
+
+    outputSpecs.emplace_back(of::OutputSpec{"MID", "CLUSTERSLABELS"});
+  }
 
   return of::DataProcessorSpec{
     "MIDClusterizer",
     {inputSpecs},
     {outputSpecs},
-    of::AlgorithmSpec{of::adaptFromTask<o2::mid::ClusterizerDeviceDPL>()}};
+    of::AlgorithmSpec{of::adaptFromTask<o2::mid::ClusterizerDeviceDPL>(isMC)}};
 }
 } // namespace mid
 } // namespace o2

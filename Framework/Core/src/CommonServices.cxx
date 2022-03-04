@@ -277,24 +277,43 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
     .name = "infologger",
     .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto infoLoggerMode = options.GetPropertyAsString("infologger-mode");
+      auto infoLoggerSeverity = options.GetPropertyAsString("infologger-severity");
+      if (infoLoggerSeverity.empty() == false && options.GetPropertyAsString("infologger-mode") == "") {
+        LOGP(info, "Using O2_INFOLOGGER_MODE=infoLoggerD since infologger-severity is set");
+        infoLoggerMode = "infoLoggerD";
+      }
       if (infoLoggerMode != "") {
         setenv("O2_INFOLOGGER_MODE", infoLoggerMode.c_str(), 1);
       }
       char const* infoLoggerEnv = getenv("O2_INFOLOGGER_MODE");
       if (infoLoggerEnv == nullptr || strcmp(infoLoggerEnv, "none") == 0) {
-        return ServiceHandle{TypeIdHelpers::uniqueId<MissingService>(), nullptr};
+        return ServiceHandle{.hash = TypeIdHelpers::uniqueId<MissingService>(),
+                             .instance = nullptr,
+                             .kind = ServiceKind::Serial,
+                             .name = "infologger"};
       }
-      auto infoLoggerService = new InfoLogger;
+      InfoLogger* infoLoggerService = nullptr;
+      try {
+        infoLoggerService = new InfoLogger;
+      } catch (...) {
+        LOGP(error, "Unable to initialise InfoLogger with O2_INFOLOGGER_MODE={}.", infoLoggerMode);
+        return ServiceHandle{.hash = TypeIdHelpers::uniqueId<MissingService>(),
+                             .instance = nullptr,
+                             .kind = ServiceKind::Serial,
+                             .name = "infologger"};
+      }
       auto infoLoggerContext = &services.get<InfoLoggerContext>();
       infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, std::string("dpl/") + services.get<DeviceSpec const>().name);
       infoLoggerContext->setField(InfoLoggerContext::FieldName::System, std::string("DPL"));
       infoLoggerService->setContext(*infoLoggerContext);
 
-      auto infoLoggerSeverity = options.GetPropertyAsString("infologger-severity");
       if (infoLoggerSeverity != "") {
         fair::Logger::AddCustomSink("infologger", infoLoggerSeverity, createInfoLoggerSinkHelper(infoLoggerService, infoLoggerContext));
       }
-      return ServiceHandle{TypeIdHelpers::uniqueId<InfoLogger>(), infoLoggerService};
+      return ServiceHandle{.hash = TypeIdHelpers::uniqueId<InfoLogger>(),
+                           .instance = infoLoggerService,
+                           .kind = ServiceKind::Serial,
+                           .name = "infologger"};
     },
     .configure = noConfiguration(),
     .kind = ServiceKind::Serial};

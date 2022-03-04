@@ -23,9 +23,7 @@
 
 using namespace std;
 
-void CreateSimCondition(std::string sourceDataPath = "signal_shapes.root",
-                        long tmin = 0, long tmax = -1,
-                        std::string ccdbHost = "http://ccdb-test.cern.ch:8080")
+void CreateSimCondition(long tmin = 0, long tmax = -1, std::string ccdbHost = "", std::string sourceDataPath = "signal_shapes.root")
 {
   TFile sourceData(sourceDataPath.c_str());
   if (!sourceData.IsOpen() || sourceData.IsZombie()) {
@@ -34,7 +32,7 @@ void CreateSimCondition(std::string sourceDataPath = "signal_shapes.root",
   o2::zdc::SimCondition conf;
 
   const float Gains[5] = {15.e-3, 30.e-3, 100.e-3, 15.e-3, 30.e-3}; // gain (response per photoelectron)
-  const float fudgeFactor = 2.7;                                    // ad hoc factor to tune the gain in the MC
+  const float fudgeFactor = 4.0;                                    // ad hoc factor to tune the gain in the MC
 
   // Source of line shapes, pedestal and noise for each channel
   // Missing histos for: towers 1-4 of all calorimeters, zem1, all towers of zpc
@@ -104,7 +102,17 @@ void CreateSimCondition(std::string sourceDataPath = "signal_shapes.root",
 
   o2::ccdb::CcdbApi api;
   map<string, string> metadata; // can be empty
-  api.init(ccdbHost.c_str());   // or http://localhost:8080 for a local installation
+  if (ccdbHost.size() == 0 || ccdbHost == "external") {
+    ccdbHost = "http://alice-ccdb.cern.ch:8080";
+  } else if (ccdbHost == "internal") {
+    ccdbHost = "http://o2-ccdb.internal/";
+  } else if (ccdbHost == "test") {
+    ccdbHost = "http://ccdb-test.cern.ch:8080";
+  } else if (ccdbHost == "local") {
+    ccdbHost = "http://localhost:8080";
+  }
+  api.init(ccdbHost.c_str());
+  LOG(info) << "CCDB server: " << api.getURL();
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(&conf, o2::zdc::CCDBPathConfigSim, metadata, tmin, tmax);
 

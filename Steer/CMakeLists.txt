@@ -14,6 +14,7 @@ o2_add_library(Steer
                        src/HitProcessingManager.cxx src/MCKinematicsReader.cxx
 		       PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
 		                     O2::CommonConstants
+                             O2::DetectorsBase
                                      O2::SimulationDataFormat
                                      O2::DetectorsCommonDataFormats)
 

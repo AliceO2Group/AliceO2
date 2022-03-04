@@ -60,7 +60,7 @@ class CPVNoiseCalibratorSpec : public o2::framework::Task
     // read pedestal efficiencies, dead and high ped channels from pedestal run
     // do it only once as they don't change during noise scan
     if (!mCalibrator->isSettedPedEfficiencies()) {
-      const auto pedEffs = o2::framework::DataRefUtils::as<CCDBSerialized<std::vector<float>>>(pc.inputs().get("pedeffs"));
+      const auto pedEffs = pc.inputs().get<std::vector<float>*>("pedeffs");
       if (pedEffs) {
         mCalibrator->setPedEfficiencies(new std::vector<float>(pedEffs->begin(), pedEffs->end()));
         LOG(info) << "NoiseCalibratorSpec()::run() : I got pedestal efficiencies vetor of size " << pedEffs->size();

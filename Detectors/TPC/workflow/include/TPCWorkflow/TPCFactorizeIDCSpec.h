@@ -71,19 +71,20 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   TPCFactorizeIDCSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int timeframesDeltaIDC, std::array<unsigned char, Mapper::NREGIONS> groupPads,
                       std::array<unsigned char, Mapper::NREGIONS> groupRows, std::array<unsigned char, Mapper::NREGIONS> groupLastRowsThreshold,
                       std::array<unsigned char, Mapper::NREGIONS> groupLastPadsThreshold, const unsigned int groupPadsSectorEdges, const IDCDeltaCompression compression, const bool debug = false, const bool senddebug = false)
-    : mCRUs{crus}, mIDCFactorization{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges, timeframes, timeframesDeltaIDC}, mCompressionDeltaIDC{compression}, mDebug{debug}, mSendOutDebug{senddebug} {};
+    : mCRUs{crus}, mIDCFactorization{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges, timeframes, timeframesDeltaIDC, crus}, mCompressionDeltaIDC{compression}, mDebug{debug}, mSendOutDebug{senddebug} {};
 
   template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (std::is_same<Type, TPCFactorizeIDCSpecGroup>::value)), int>::type = 0>
   TPCFactorizeIDCSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int timeframesDeltaIDC, std::array<unsigned char, Mapper::NREGIONS> groupPads,
                       std::array<unsigned char, Mapper::NREGIONS> groupRows, std::array<unsigned char, Mapper::NREGIONS> groupLastRowsThreshold,
                       std::array<unsigned char, Mapper::NREGIONS> groupLastPadsThreshold, const unsigned int groupPadsSectorEdges, const IDCDeltaCompression compression, const bool debug = false, const bool senddebug = false)
-    : mCRUs{crus}, mIDCFactorization{std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, 0, timeframes, timeframesDeltaIDC}, mIDCStruct{TPCFactorizeIDCStruct<TPCFactorizeIDCSpecGroup>(groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges)}, mCompressionDeltaIDC{compression}, mDebug{debug}, mSendOutDebug{senddebug} {};
+    : mCRUs{crus}, mIDCFactorization{std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, 0, timeframes, timeframesDeltaIDC, crus}, mIDCStruct{TPCFactorizeIDCStruct<TPCFactorizeIDCSpecGroup>(groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges)}, mCompressionDeltaIDC{compression}, mDebug{debug}, mSendOutDebug{senddebug} {};
 
   void init(o2::framework::InitContext& ic) final
   {
     mLaneId = ic.services().get<const o2::framework::DeviceSpec>().rank;
     mDBapi.init(ic.options().get<std::string>("ccdb-uri")); // or http://localhost:8080 for a local installation
     mWriteToDB = mDBapi.isHostReachable() ? true : false;
+
     mUpdateGroupingPar = mLaneId == 0 ? !(ic.options().get<bool>("update-not-grouping-parameter")) : false;
 
     const std::string refGainMapFile = ic.options().get<std::string>("gainMapFile");
@@ -101,7 +102,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
     // set the min range of TFs for first TF
     if (mProcessedTFs == 0) {
       mTFFirst = processing_helpers::getCurrentTF(pc);
-      mTimeStampFirst = processing_helpers::getCreationTime(pc);
+      mTimeStampFirst = processing_helpers::getTimeStamp(pc) / 1000; // in milliseconds
 
       // write struct containing grouping parameters to access grouped IDCs to CCDB
       if (mWriteToDB && mUpdateGroupingPar) {
@@ -122,11 +123,14 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
     // check if current TF is in range of IDCDelta range
     findTimeStamp(pc);
 
-    for (int i = 0; i < mCRUs.size(); ++i) {
+    for (int i = 0; i < mCRUs.size() + 1; ++i) {
       const DataRef ref = pc.inputs().getByPos(i);
       auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      const int cru = tpcCRUHeader->subSpecification - mLaneId * CRU::MaxCRU;
-      mIDCFactorization.setIDCs(pc.inputs().get<std::vector<float>>(ref), cru, mProcessedTFs); // aggregate IDCs
+      const auto descr = tpcCRUHeader->dataDescription;
+      if (TPCDistributeIDCSpec::getDataDescriptionIDC() == descr) {
+        const int cru = tpcCRUHeader->subSpecification - mLaneId * CRU::MaxCRU;
+        mIDCFactorization.setIDCs(pc.inputs().get<std::vector<float>>(ref), cru, mProcessedTFs); // aggregate IDCs
+      }
     }
     ++mProcessedTFs;
 
@@ -203,7 +207,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
     auto it = std::find(mTFRangeIDCDelta.begin(), mTFRangeIDCDelta.end(), tf);
     if (it != mTFRangeIDCDelta.end()) {
       const int index = std::distance(mTFRangeIDCDelta.begin(), it);
-      mTimeStampRangeIDCDelta[index] = processing_helpers::getCreationTime(pc);
+      mTimeStampRangeIDCDelta[index] = processing_helpers::getTimeStamp(pc) / 1000;
       // TODO remove found tf?
       return true;
     }
@@ -314,11 +318,12 @@ DataProcessorSpec getTPCFactorizeIDCSpec(const int lane, const std::vector<uint3
     outputSpecs.emplace_back(ConcreteDataTypeMatcher{gDataOriginTPC, TPCFactorizeIDCSpec<Type>::getDataDescriptionIDCDelta()});
   }
 
-  std::vector<InputSpec> inputSpecs; //{InputSpec{"idcagg", ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDC()}, Lifetime::Timeframe}};
+  std::vector<InputSpec> inputSpecs;
   inputSpecs.reserve(crus.size());
   for (const auto& cru : crus) {
     inputSpecs.emplace_back(InputSpec{"idcagg", gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDC(), header::DataHeader::SubSpecificationType{cru + lane * CRU::MaxCRU}, Lifetime::Timeframe});
   }
+  inputSpecs.emplace_back("orbitreset", "CTP", "ORBITRESET", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/OrbitReset"));
 
   const auto& paramIDCGroup = ParameterIDCGroup::Instance();
   std::array<unsigned char, Mapper::NREGIONS> groupPads{};

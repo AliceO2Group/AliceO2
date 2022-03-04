@@ -230,6 +230,8 @@ void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::s
 
   dumpOut << indLevel << "arguments:\n";
   dumpOut << indLevel << indScheme << "- \"-b\"\n";
+  dumpOut << indLevel << indScheme << "- \"--exit-transition-timeout\"\n";
+  dumpOut << indLevel << indScheme << "- \"'{{ exit_transition_timeout }}'\"\n";
   dumpOut << indLevel << indScheme << "- \"--monitoring-backend\"\n";
   dumpOut << indLevel << indScheme << "- \"'{{ monitoring_dpl_url }}'\"\n";
   dumpOut << indLevel << indScheme << "- \"--session\"\n";
@@ -359,6 +361,15 @@ void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecuti
   dumpOut << indLevel << "name: " << taskName << "\n";
   dumpOut << indLevel << "defaults:\n";
   dumpOut << indLevel << indScheme << "log_task_output: none\n";
+  std::string exitTransitionTimeout = "15";
+  if (execution.args.size() > 2) {
+    for (size_t i = 0; i < execution.args.size() - 1; ++i) {
+      if (strcmp(execution.args[i], "--exit-transition-timeout") == 0) {
+        exitTransitionTimeout = execution.args[i + 1];
+      }
+    }
+  }
+  dumpOut << indLevel << indScheme << "exit_transition_timeout: " << exitTransitionTimeout << "\n";
 
   if (bfs::path(execution.args[0]).filename().string() != execution.args[0]) {
     LOG(warning) << "The workflow template generation was started with absolute or relative executables paths."

@@ -26,9 +26,7 @@
 #include "DataFormatsMID/Track.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "DataFormatsMID/MCClusterLabel.h"
-#include "MIDWorkflow/ClusterizerMCSpec.h"
 #include "MIDWorkflow/ClusterizerSpec.h"
-#include "MIDWorkflow/TrackerMCSpec.h"
 #include "MIDWorkflow/TrackerSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 
@@ -57,9 +55,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   WorkflowSpec specs;
-  specs.emplace_back(disableMC ? o2::mid::getClusterizerSpec() : o2::mid::getClusterizerMCSpec());
+  specs.emplace_back(o2::mid::getClusterizerSpec(!disableMC));
   if (!disableTracking) {
-    specs.emplace_back(disableMC ? o2::mid::getTrackerSpec() : o2::mid::getTrackerMCSpec());
+    specs.emplace_back(o2::mid::getTrackerSpec(!disableMC));
   }
   if (!disableFile) {
     if (disableTracking) {

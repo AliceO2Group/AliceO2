@@ -86,6 +86,8 @@ class PedestalData
 
   [[deprecated]] PedestalsMap getPedestals() const { return mPedestals; }
 
+  uint32_t size() const;
+
  private:
   PedestalsMap mPedestals{}; ///< internal storage of all PedestalChannel values
 
@@ -110,6 +112,9 @@ class PedestalDataIterator
                                                       mCol{0},
                                                       mRow{0}
   {
+    if (mData && mData->size() == 0) {
+      mData = nullptr;
+    }
     if (mData) {
       mMapIt = mData->mPedestals.begin();
     }

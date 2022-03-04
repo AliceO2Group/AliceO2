@@ -9,22 +9,22 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MIDWorkflow/ClusterizerMCSpec.h
-/// \brief  Data processor specs for MID MC clustering device
-/// \author Diego Stocco <Diego.Stocco at cern.ch>
-/// \date   27 September 2019
+#ifndef DETECTORS_BASE_INCLUDE_MATERIALMANAGERPARAM_H_
+#define DETECTORS_BASE_INCLUDE_MATERIALMANAGERPARAM_H_
 
-#ifndef O2_MID_CLUSTERIZERMCSPEC_H
-#define O2_MID_CLUSTERIZERMCSPEC_H
-
-#include "Framework/DataProcessorSpec.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 
 namespace o2
 {
-namespace mid
-{
-framework::DataProcessorSpec getClusterizerMCSpec();
-}
+
+struct MaterialManagerParam : public o2::conf::ConfigurableParamHelper<MaterialManagerParam> {
+  std::string inputFile = "";
+  std::string outputFile = "";
+  // boilerplate stuff + make principal key "MaterialManagerParam"
+  O2ParamDef(MaterialManagerParam, "MaterialManagerParam");
+};
+
 } // namespace o2
 
-#endif //O2_MID_CLUSTERIZERMCSPEC_H
+#endif /* DETECTORS_BASE_INCLUDE_MATERIALMANAGERPARAM_H_ */

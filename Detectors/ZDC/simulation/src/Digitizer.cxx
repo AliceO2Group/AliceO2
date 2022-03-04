@@ -253,7 +253,7 @@ bool Digitizer::triggerBC(int ibc)
   for (const auto& md : mModuleConfig->modules) {
     if (md.id >= 0 && md.id < NModules) {
       for (int ic = Module::MaxChannels; ic--;) {
-        //int id=md.channelID[ic];
+        // int id=md.channelID[ic];
         auto trigCh = md.trigChannelConf[ic];
         int id = trigCh.id;
         if (id >= 0 && id < NChannels) {
@@ -361,14 +361,14 @@ void Digitizer::storeBC(const BCCache& bc, uint32_t chan2Store,
 //______________________________________________________________________________
 void Digitizer::phe2Sample(int nphe, int parID, double timeHit, std::array<o2::InteractionRecord, NBC2Cache> const& cachedIR, int nCachedIR, int channel)
 {
-  //function to simulate the waveform from no. of photoelectrons seen in a given sample
-  // for electrons at timeInSample wrt beginning of the sample
+  // function to simulate the waveform from no. of photoelectrons seen in a given sample
+  //  for electrons at timeInSample wrt beginning of the sample
 
   double time0 = cachedIR[0].bc2ns(); // start time of the 1st cashed BC
   const auto& chanConfig = mSimCondition->channels[channel];
 
   float timeDiff = time0 - timeHit;
-  int sample = (timeDiff - gRandom->Gaus(chanConfig.timePosition, chanConfig.timeJitter)) * ChannelSimCondition::ShapeBinWidthInv + chanConfig.ampMinID;
+  int sample = (timeDiff - gRandom->Gaus(chanConfig.timePosition, chanConfig.timeJitter)) * ChannelSimCondition::ShapeBinWidthInv + chanConfig.ampMinID + TSNH;
   int ir = 0;
   bool stop = false;
 
@@ -459,7 +459,7 @@ void Digitizer::refreshCCDB()
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   if (!mModuleConfig) { // load this only once
     mModuleConfig = mgr.get<ModuleConfig>(CCDBPathConfigModule);
-    LOG(info) << "Loaded module configuration for timestamp " << mgr.getTimestamp();
+    LOG(info) << "Loaded " << CCDBPathConfigModule << " from " << mgr.getURL() << " for timestamp " << mgr.getTimestamp();
     // fetch trigger info
     mTriggerConfig.clear();
     mModConfAux.clear();
@@ -504,7 +504,7 @@ void Digitizer::refreshCCDB()
 
   if (!mSimCondition) { // load this only once
     mSimCondition = mgr.get<SimCondition>(CCDBPathConfigSim);
-    LOG(info) << "Loaded simulation configuration for timestamp " << mgr.getTimestamp();
+    LOG(info) << "Loaded " << CCDBPathConfigSim << " from " << mgr.getURL() << " for timestamp " << mgr.getTimestamp();
     mSimCondition->print();
   }
 
@@ -549,11 +549,12 @@ void Digitizer::setTriggerMask()
       }
     }
     printTriggerMask += "]";
+#ifdef O2_ZDC_DEBUG
     uint32_t mytmask = mTriggerMask >> (im * NChPerModule);
-    LOGF(info, "Trigger mask for module %d 0123 %c%c%c%c\n", im,
-         mytmask & 0x1 ? 'T' : 'N', mytmask & 0x2 ? 'T' : 'N', mytmask & 0x4 ? 'T' : 'N', mytmask & 0x8 ? 'T' : 'N');
+    LOGF(info, "Trigger mask for module %d 0123 %c%c%c%c", im, mytmask & 0x1 ? 'T' : 'N', mytmask & 0x2 ? 'T' : 'N', mytmask & 0x4 ? 'T' : 'N', mytmask & 0x8 ? 'T' : 'N');
+#endif
   }
-  LOGF(info, "TriggerMask=0x%08x %s\n", mTriggerMask, printTriggerMask.c_str());
+  LOGF(info, "TriggerMask=0x%08x %s", mTriggerMask, printTriggerMask.c_str());
 }
 
 //______________________________________________________________________________
@@ -578,11 +579,12 @@ void Digitizer::setReadoutMask()
       }
     }
     printReadoutMask += "]";
+#ifdef O2_ZDC_DEBUG
     uint32_t myrmask = mReadoutMask >> (im * NChPerModule);
-    LOGF(info, "Readout mask for module %d 0123 %c%c%c%c\n", im,
-         myrmask & 0x1 ? 'R' : 'N', myrmask & 0x2 ? 'R' : 'N', myrmask & 0x4 ? 'R' : 'N', myrmask & 0x8 ? 'R' : 'N');
+    LOGF(info, "Readout mask for module %d 0123 %c%c%c%c", im, myrmask & 0x1 ? 'R' : 'N', myrmask & 0x2 ? 'R' : 'N', myrmask & 0x4 ? 'R' : 'N', myrmask & 0x8 ? 'R' : 'N');
+#endif
   }
-  LOGF(info, "ReadoutMask=0x%08x %s\n", mReadoutMask, printReadoutMask.c_str());
+  LOGF(info, "ReadoutMask=0x%08x %s", mReadoutMask, printReadoutMask.c_str());
 }
 
 //______________________________________________________________________________
@@ -625,7 +627,7 @@ void Digitizer::assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData)
     }
   }
   // Printout before cleanup
-  //currBC.print(mTriggerMask);
+  // currBC.print(mTriggerMask);
 }
 
 void Digitizer::Finalize(std::vector<BCData>& bcData, std::vector<o2::zdc::OrbitData>& pData)
@@ -666,7 +668,7 @@ void Digitizer::Finalize(std::vector<BCData>& bcData, std::vector<o2::zdc::Orbit
       // Cleanup trigger bits for channels that are not readout
       currBC.triggers &= mReadoutMask;
       // Printout after cleanup
-      //currBC.print(mTriggerMask);
+      // currBC.print(mTriggerMask);
     }
   }
 }

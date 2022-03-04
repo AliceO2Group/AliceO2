@@ -74,12 +74,23 @@ void RecoConfigZDC::setIntegration(uint32_t ich, int beg, int end, int beg_ped, 
   }
 }
 
+void RecoConfigZDC::setPedThreshold(int32_t ich, float high, float low)
+{
+  if (ich >= 0 && ich < NChannels) {
+    ped_thr_hi[ich] = high;
+    ped_thr_lo[ich] = low;
+  } else {
+    LOG(fatal) << __func__ << " channel " << ich << " not in allowed range";
+  }
+}
+
 void RecoConfigZDC::print()
 {
   for (int itdc = 0; itdc < NTDCChannels; itdc++) {
     LOG(info) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << tdc_search[itdc] << " = " << tdc_search[itdc] * FTDCVal << " ns";
   }
   for (Int_t ich = 0; ich < NChannels; ich++) {
-    LOG(info) << ChannelNames[ich] << " integration: signal=[" << beg_int[ich] << ":" << end_int[ich] << "] pedestal=[" << beg_ped_int[ich] << ":" << end_ped_int[ich] << "]";
+    LOG(info) << ChannelNames[ich] << " integration: signal=[" << beg_int[ich] << ":" << end_int[ich] << "] pedestal=[" << beg_ped_int[ich] << ":" << end_ped_int[ich]
+              << "] thresholds (" << ped_thr_hi[ich] << ", " << ped_thr_lo[ich] << ")";
   }
 }
