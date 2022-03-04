@@ -45,6 +45,8 @@ enum class CDBType {
   CalPadGainFull,     ///< Full pad gain calibration
   CalPadGainResidual, ///< ResidualpPad gain calibration (e.g. from tracks)
   CalLaserTracks,     ///< Laser track calibration data
+  CalTimeGain,        ///< Residual gain correction for angular dependencies etc. from tracks
+  CalTopologyGain,    ///< Q cluster topology correction
                       ///
   ParDetector,        ///< Parameter for Detector
   ParElectronics,     ///< Parameter for Electronics
@@ -68,6 +70,8 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalPadGainFull, "TPC/Calib/PadGainFull"},
   {CDBType::CalPadGainResidual, "TPC/Calib/PadGainResidual"},
   {CDBType::CalLaserTracks, "TPC/Calib/LaserTracks"},
+  {CDBType::CalTimeGain, "TPC/Calib/TimeGain"},
+  {CDBType::CalTopologyGain, "TPC/Calib/TopologyGain"},
   //
   {CDBType::ParDetector, "TPC/Parameter/Detector"},
   {CDBType::ParElectronics, "TPC/Parameter/Electronics"},
