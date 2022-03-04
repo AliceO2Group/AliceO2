@@ -488,34 +488,46 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   if (ccdbBackend.outputs.empty() == false) {
     ccdbBackend.outputs.push_back(OutputSpec{"CTP", "OrbitReset", 0});
-    bool hasDISTSTF = false;
+    bool providesDISTSTF = false;
     InputSpec matcher{"dstf", "FLP", "DISTSUBTIMEFRAME"};
-    ConcreteDataMatcher dstf{"FLP", "DISTSUBTIMEFRAME", 0};
+    ConcreteDataMatcher dstf{"FLP", "DISTSUBTIMEFRAME", 0xccdb};
+    // Check if any of the provided outputs is a DISTSTF
     for (auto& dp : workflow) {
       for (auto& output : dp.outputs) {
         if (DataSpecUtils::match(matcher, output)) {
-          hasDISTSTF = true;
+          providesDISTSTF = true;
           dstf = DataSpecUtils::asConcreteDataMatcher(output);
           break;
         }
       }
-      if (hasDISTSTF) {
+      if (providesDISTSTF) {
         break;
       }
     }
+    // * If there are AOD outputs we use TFNumber as the CCDB clock
+    // * If one device provides a DISTSTF we use that as the CCDB clock
+    // * If one of the devices provides a timer we use that as the CCDB clock
+    // * If none of the above apply add to the first data processor
+    //   which has no inputs apart from enumerations the responsibility
+    //   to provide the DISTSUBTIMEFRAME.
     if (aodReader.outputs.empty() == false) {
       ccdbBackend.inputs.push_back(InputSpec{"tfn", "TFN", "TFNumber"});
-    } else if (hasDISTSTF) {
-      ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf});
+    } else if (providesDISTSTF) {
+      ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
     } else {
-      InputSpec input{"enumeration",
-                      "DPL",
-                      "ENUM",
-                      static_cast<DataAllocator::SubSpecificationType>(compile_time_hash("internal-dpl-ccdb-backend")),
-                      Lifetime::Enumeration};
-      ccdbBackend.inputs.push_back(input);
-      auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
-      timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
+      for (auto& dp : workflow) {
+        bool enumOnly = dp.inputs.size() == 1 && dp.inputs[0].lifetime == Lifetime::Enumeration;
+        bool timerOnly = dp.inputs.size() == 1 && dp.inputs[0].lifetime == Lifetime::Timer;
+        if (enumOnly == true) {
+          dp.outputs.push_back(OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
+          ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
+          break;
+        } else if (timerOnly == true) {
+          dstf = DataSpecUtils::asConcreteDataMatcher(dp.outputs[0]);
+          ccdbBackend.inputs.push_back(InputSpec{{"tfn"}, dstf, Lifetime::Timeframe});
+          break;
+        }
+      }
     }
     extraSpecs.push_back(ccdbBackend);
   }
