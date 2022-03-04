@@ -83,7 +83,10 @@ class MaskHandlerDeviceDPL
         std::string outFilename = mOutFilename;
         outFilename.insert(insertIdx, "_");
         outFilename.insert(insertIdx, name.c_str());
-        auto fullMasks = masks.getMasksFull(o2::mid::makeDefaultMasks());
+        auto fullMasks = o2::mid::makeDefaultMasks();
+        for (auto& mask : fullMasks) {
+          masks.applyMask(mask);
+        }
         colToBoard.process(fullMasks);
         roBoardCfgHandler.updateMasks(colToBoard.getData());
         roBoardCfgHandler.write(outFilename.c_str());
