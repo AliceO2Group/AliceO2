@@ -15,6 +15,7 @@
 
 #include <cassert>
 #include <ostream>
+#include <fstream>
 
 #include <boost/histogram.hpp>
 #include <boost/format.hpp>
@@ -27,7 +28,7 @@
 #include "TTree.h"
 #include "TFile.h"
 
-#define VTX_DEBUG
+// #define VTX_DEBUG
 
 namespace o2
 {
@@ -106,13 +107,15 @@ void trackletSelectionKernelSerial(
 {
   int offset01{0};
   int offset12{0};
+  std::vector<bool> usedTracklets(tracklets01.size(), false);
   for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < clustersCurrentLayer.size(); ++iCurrentLayerClusterIndex) {
     int validTracklets{0};
     for (int iTracklet12{offset12}; iTracklet12 < offset12 + foundTracklets12[iCurrentLayerClusterIndex]; ++iTracklet12) {
       for (int iTracklet01{offset01}; iTracklet01 < offset01 + foundTracklets01[iCurrentLayerClusterIndex]; ++iTracklet01) {
         const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(tracklets01[iTracklet01].tanLambda - tracklets12[iTracklet12].tanLambda)};
         const float deltaPhi{o2::gpu::GPUCommonMath::Abs(tracklets01[iTracklet01].phi - tracklets12[iTracklet12].phi)};
-        if (deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTracklets) {
+        if (!usedTracklets[iTracklet01] && deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTracklets) {
+          usedTracklets[iTracklet01] = true;
           destTracklets.emplace_back(tracklets01[iTracklet01], clustersNextLayer.data(), clustersCurrentLayer.data());
           ++validTracklets;
         }
@@ -308,8 +311,7 @@ void VertexerTraits::computeVertices()
   std::vector<int> noClustersVec(mTimeFrame->getNrof(), 0);
   for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
     const int numTracklets{static_cast<int>(mTimeFrame->getLines(rofId).size())};
-    std::vector<bool> usedTracklets{};
-    usedTracklets.resize(mTimeFrame->getLines(rofId).size(), false);
+    std::vector<bool> usedTracklets(numTracklets, false);
     for (int tracklet1{0}; tracklet1 < numTracklets; ++tracklet1) {
       if (usedTracklets[tracklet1]) {
         continue;
@@ -318,7 +320,7 @@ void VertexerTraits::computeVertices()
         if (usedTracklets[tracklet2]) {
           continue;
         }
-        if (Line::getDCA(mTimeFrame->getLines(rofId)[tracklet1], mTimeFrame->getLines(rofId)[tracklet2]) <= mVrtParams.pairCut) {
+        if (Line::getDCA(mTimeFrame->getLines(rofId)[tracklet1], mTimeFrame->getLines(rofId)[tracklet2]) < mVrtParams.pairCut) {
           mTimeFrame->getTrackletClusters(rofId).emplace_back(tracklet1, mTimeFrame->getLines(rofId)[tracklet1], tracklet2, mTimeFrame->getLines(rofId)[tracklet2]);
           std::array<float, 3> tmpVertex{mTimeFrame->getTrackletClusters(rofId).back().getVertex()};
           if (tmpVertex[0] * tmpVertex[0] + tmpVertex[1] * tmpVertex[1] > 4.f) {
@@ -353,7 +355,7 @@ void VertexerTraits::computeVertices()
           float distance{(vertex1[0] - vertex2[0]) * (vertex1[0] - vertex2[0]) +
                          (vertex1[1] - vertex2[1]) * (vertex1[1] - vertex2[1]) +
                          (vertex1[2] - vertex2[2]) * (vertex1[2] - vertex2[2])};
-          if (distance <= mVrtParams.pairCut * mVrtParams.pairCut) {
+          if (distance < mVrtParams.pairCut * mVrtParams.pairCut) {
             for (auto label : mTimeFrame->getTrackletClusters(rofId)[iCluster2].getLabels()) {
               mTimeFrame->getTrackletClusters(rofId)[iCluster1].add(label, mTimeFrame->getLines(rofId)[label]);
               vertex1 = mTimeFrame->getTrackletClusters(rofId)[iCluster1].getVertex();
@@ -402,7 +404,7 @@ void VertexerTraits::computeVertices()
   }
 #ifdef VTX_DEBUG
   TFile* dbg_file = TFile::Open("artefacts_tf.root", "update");
-  TTree* ln_clus_lines_tree = new TTree("clusterlines","tf");
+  TTree* ln_clus_lines_tree = new TTree("clusterlines", "tf");
   std::vector<o2::its::ClusterLines> cl_lines_vec_pre(0);
   std::vector<o2::its::ClusterLines> cl_lines_vec_post(0);
   ln_clus_lines_tree->Branch("cllines_pre", &cl_lines_vec_pre);

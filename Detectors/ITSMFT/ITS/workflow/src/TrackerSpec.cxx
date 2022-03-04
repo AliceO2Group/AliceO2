@@ -265,9 +265,10 @@ void TrackerDPL::run(ProcessingContext& pc)
       }
       if (processingMask[iRof] && !multCut) { // passed selection in clusters and not in vertex multiplicity
         LOG(info) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]",
-                                 processingMask.size(),
+                                 iRof,
                                  multEstConf.cutMultVtxLow,
                                  multEstConf.cutMultVtxHigh);
+        processingMask[iRof] = false;
         cutVertexMult++;
       }
     } else { // cosmics
