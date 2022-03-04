@@ -47,8 +47,9 @@ std::vector<float> o2::zdc::fastsim::parse_block(std::istream& input, const std:
   // read while empty line or eof reached
   // discrads empty lines
   while (std::getline(input, line) && !line.empty()) {
-    if (read == true)
+    if (read == true) {
       data.push_back(std::stof(line));
+    }
   }
 
   return data;

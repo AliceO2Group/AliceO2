@@ -43,8 +43,9 @@ std::array<int, 5> o2::zdc::fastsim::calculateChannels(Ort::Value& value)
         } else if (i >= 22 && j >= 22) {
           channels[3] = channels[3] + (std::exp(flattedImageVector[i + j * 44]) - 1);
         }
-      } else
+      } else {
         channels[4] = channels[4] + (std::exp(flattedImageVector[i + j * 44]) - 1);
+      }
     }
   }
   std::array<int, 5> channels_integers = {0};
@@ -136,16 +137,19 @@ std::optional<std::pair<std::array<float, 9>, std::array<float, 9>>> o2::zdc::fa
   const std::string& path)
 {
   std::fstream file(path, file.in);
-  if (!file.is_open())
+  if (!file.is_open()) {
     return std::nullopt;
+  }
 
   auto means = parse_block(file, "#means");
-  if (means.size() != 9)
+  if (means.size() != 9) {
     return std::nullopt;
+  }
 
   auto scales = parse_block(file, "#scales");
-  if (scales.size() != 9)
+  if (scales.size() != 9) {
     return std::nullopt;
+  }
 
   std::array<float, 9> meansArray;
   std::array<float, 9> scalesArray;
@@ -206,16 +210,19 @@ std::optional<std::pair<std::array<float, 9>, std::array<float, 9>>> o2::zdc::fa
   const std::string& path)
 {
   std::fstream file(path, file.in);
-  if (!file.is_open())
+  if (!file.is_open()) {
     return std::nullopt;
+  }
 
   auto means = parse_block(file, "#means");
-  if (means.size() != 9)
+  if (means.size() != 9) {
     return std::nullopt;
+  }
 
   auto scales = parse_block(file, "#scales");
-  if (scales.size() != 9)
+  if (scales.size() != 9) {
     return std::nullopt;
+  }
 
   std::array<float, 9> meansArray;
   std::array<float, 9> scalesArray;
