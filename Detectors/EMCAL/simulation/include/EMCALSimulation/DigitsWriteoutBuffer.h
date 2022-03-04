@@ -76,6 +76,7 @@ class DigitsWriteoutBuffer
 
   /// Setting the buffer size
   void setBufferSize(unsigned int nsamples) { mBufferSize = nsamples; }
+  unsigned int getBufferSize() const { return mBufferSize; }
 
   /// forward the marker for every 100 ns
   void forwardMarker(o2::InteractionTimeRecord record);
@@ -85,7 +86,7 @@ class DigitsWriteoutBuffer
   void setBusyTime(unsigned int busyTime) { mBusyTime = busyTime; }
   void setPreTriggerTime(unsigned int pretriggerTime) { mPreTriggerTime = pretriggerTime; }
 
-  unsigned int getPhase() { return mPhase; }
+  unsigned int getPhase() const { return mPhase; }
 
   std::vector<o2::emcal::Digit> getDigits() { return mDigitStream.getDigits(); }
   std::vector<o2::emcal::TriggerRecord> getTriggerRecords() { return mDigitStream.getTriggerRecords(); }
@@ -96,9 +97,10 @@ class DigitsWriteoutBuffer
   unsigned int mLiveTime = 1500;                          ///< EMCal live time (ns)
   unsigned int mBusyTime = 35000;                         ///< EMCal busy time (ns)
   unsigned int mPreTriggerTime = 600;                     ///< EMCal pre-trigger time (ns)
-  unsigned long mTriggerTime = 600;                       ///< Time of the collision that fired the trigger (ns)
-  unsigned long mLastEventTime = 1500;                    ///< The event time of last collisions in the readout window
+  unsigned long mTriggerTime = 0;                         ///< Time of the collision that fired the trigger (ns)
+  unsigned long mLastEventTime = 0;                       ///< The event time of last collisions in the readout window
   unsigned int mPhase = 0;                                ///< The event L1 phase
+  bool mFirstEvent = true;                                ///< Flag to the first event in the run
   std::deque<o2::emcal::DigitTimebin> mTimedDigitsFuture; ///< Container for time sampled digits per tower ID for future digits
   std::deque<o2::emcal::DigitTimebin> mTimedDigitsPast;   ///< Container for time sampled digits per tower ID for past digits
 

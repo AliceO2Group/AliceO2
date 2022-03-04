@@ -97,7 +97,6 @@ class Digitizer : public TObject
   o2::emcal::DigitsWriteoutBuffer mDigits; ///< used to sort digits and labels by tower
 
   TRandom3* mRandomGenerator = nullptr;                  ///< random number generator
-  std::vector<int> mTimeBinOffset;                       ///< offset of first time bin
   std::vector<std::vector<double>> mAmplitudeInTimeBins; ///< amplitude of signal for each time bin
 
   int mTimeWindowStart = 7; ///< The start of the time window
