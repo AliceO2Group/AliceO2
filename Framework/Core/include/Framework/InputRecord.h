@@ -352,8 +352,11 @@ class InputRecord
       return *reinterpret_cast<T const*>(ref.payload);
 
       // implementation (i)
-    } else if constexpr (std::is_pointer<T>::value &&
-                         (is_messageable<PointerLessValueT>::value || has_root_dictionary<PointerLessValueT>::value || (is_specialization_v<PointerLessValueT, std::vector> && has_messageable_value_type<PointerLessValueT>::value))) {
+    } else if constexpr (std::is_pointer_v<T> &&
+                         (is_messageable<PointerLessValueT>::value ||
+                          has_root_dictionary<PointerLessValueT>::value ||
+                          (is_specialization_v<PointerLessValueT, std::vector> && has_messageable_value_type<PointerLessValueT>::value) ||
+                          (has_root_dictionary_mapped_type<PointerLessValueT>::value))) {
       // extract a messageable type or object with ROOT dictionary by pointer
       // return unique_ptr to message content with custom deleter
       using ValueT = PointerLessValueT;
@@ -432,6 +435,8 @@ class InputRecord
       } else {
         throw runtime_error("Attempt to extract object from message with unsupported serialization type");
       }
+    } else if constexpr (std::is_pointer_v<T>) {
+      static_assert(always_static_assert<T>::value, "T is not a supported type");
     } else if constexpr (has_root_dictionary<T>::value) {
       // retrieving ROOT objects follows the pointer approach, i.e. T* has to be specified
       // as template parameter and a unique_ptr will be returned, std vectors of ROOT serializable
