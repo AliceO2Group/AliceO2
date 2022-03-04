@@ -303,9 +303,10 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
   }
 
   // send sTF acknowledge message
-  {
+  unsigned stfSS[2] = {0, 0xccdb};
+  for (int iss = 0; iss < 2; iss++) {
     o2::header::STFHeader stfHeader{mTFCounter, firstOrbit, 0};
-    o2::header::DataHeader stfDistDataHeader(o2::header::gDataDescriptionDISTSTF, o2::header::gDataOriginFLP, 0, sizeof(o2::header::STFHeader), 0, 1);
+    o2::header::DataHeader stfDistDataHeader(o2::header::gDataDescriptionDISTSTF, o2::header::gDataOriginFLP, stfSS[iss], sizeof(o2::header::STFHeader), 0, 1);
     stfDistDataHeader.payloadSerializationMethod = o2h::gSerializationMethodNone;
     stfDistDataHeader.firstTForbit = stfHeader.firstOrbit;
     stfDistDataHeader.tfCounter = mTFCounter;
@@ -359,6 +360,7 @@ o2f::DataProcessorSpec getReaderSpec(ReaderInp rinp)
     }
     // add output for DISTSUBTIMEFRAME
     spec.outputs.emplace_back(o2f::OutputSpec{{"stfDist"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0});
+    spec.outputs.emplace_back(o2f::OutputSpec{{"stfDist"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0xccdb});
   } else {
     auto nameStart = rinp.rawChannelConfig.find("name=");
     if (nameStart == std::string::npos) {
