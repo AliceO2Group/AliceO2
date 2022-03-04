@@ -82,7 +82,7 @@ class CTFReaderSpec : public o2::framework::Task
   void stopReader();
   template <typename C>
   void processDetector(DetID det, const CTFHeader& ctfHeader, ProcessingContext& pc) const;
-  void setMessageHeader(const CTFHeader& ctfHeader, const std::string& lbl, ProcessingContext& pc) const;
+  void setMessageHeader(ProcessingContext& pc, const CTFHeader& ctfHeader, const std::string& lbl, unsigned subspec = 0) const;
   void tryToFixCTFHeader(CTFHeader& ctfHeader) const;
   CTFReaderInp mInput{};
   std::unique_ptr<o2::utils::FileFetcher> mFileFetcher;
@@ -234,7 +234,7 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
 
   // send CTF Header
   pc.outputs().snapshot({"header"}, ctfHeader);
-  setMessageHeader(ctfHeader, "header", pc);
+  setMessageHeader(pc, ctfHeader, "header");
 
   processDetector<o2::itsmft::CTF>(DetID::ITS, ctfHeader, pc);
   processDetector<o2::itsmft::CTF>(DetID::MFT, ctfHeader, pc);
@@ -255,11 +255,11 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
 
   // send sTF acknowledge message
   {
-    auto& stfDist = pc.outputs().make<o2::header::STFHeader>({"STFDist"});
+    auto& stfDist = pc.outputs().make<o2::header::STFHeader>(OutputRef{"STFDist", 0xccdb});
     stfDist.id = uint64_t(mCurrTreeEntry);
     stfDist.firstOrbit = ctfHeader.firstTForbit;
     stfDist.runNumber = uint32_t(ctfHeader.run);
-    setMessageHeader(ctfHeader, "STFDist", pc);
+    setMessageHeader(pc, ctfHeader, "STFDist", 0xccdb);
   }
 
   auto entryStr = fmt::format("({} of {} in {})", mCurrTreeEntry, mCTFTree->GetEntries(), mCTFFile->GetName());
@@ -296,9 +296,9 @@ void CTFReaderSpec::checkTreeEntries()
 }
 
 ///_______________________________________
-void CTFReaderSpec::setMessageHeader(const CTFHeader& ctfHeader, const std::string& lbl, ProcessingContext& pc) const
+void CTFReaderSpec::setMessageHeader(ProcessingContext& pc, const CTFHeader& ctfHeader, const std::string& lbl, unsigned subspec) const
 {
-  auto* stack = pc.outputs().findMessageHeaderStack({lbl});
+  auto* stack = pc.outputs().findMessageHeaderStack(OutputRef{lbl, subspec});
   if (!stack) {
     throw std::runtime_error(fmt::format("failed to find output message header stack for {}", lbl));
   }
@@ -322,7 +322,7 @@ void CTFReaderSpec::processDetector(DetID det, const CTFHeader& ctfHeader, Proce
     } else if (!mInput.allowMissingDetectors) {
       throw std::runtime_error(fmt::format("Requested detector {} is missing in the CTF", lbl));
     }
-    setMessageHeader(ctfHeader, lbl, pc);
+    setMessageHeader(pc, ctfHeader, lbl);
   }
 }
 
@@ -385,7 +385,7 @@ DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
       outputs.emplace_back(OutputLabel{det.getName()}, det.getDataOrigin(), "CTFDATA", 0, Lifetime::Timeframe);
     }
   }
-  outputs.emplace_back(OutputSpec{{"STFDist"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0});
+  outputs.emplace_back(OutputSpec{{"STFDist"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0xccdb});
 
   return DataProcessorSpec{
     "ctf-reader",
