@@ -23,10 +23,9 @@
 #include "TPCBase/CalArray.h"
 #include "TPCBase/CalDet.h"
 #include "TFile.h"
+#include "Framework/TypeTraits.h"
 
-namespace o2
-{
-namespace tpc
+namespace o2::tpc
 {
 
 //templated euqality check
@@ -313,5 +312,12 @@ BOOST_AUTO_TEST_CASE(CalDet_Arithmetics)
   BOOST_CHECK_EQUAL(isEqual, true);
 }
 
-} // namespace tpc
+BOOST_AUTO_TEST_CASE(CalDetTypeTest)
+{
+  using namespace o2::framework;
+  BOOST_CHECK_EQUAL(has_root_dictionary<o2::tpc::CalDet<float>>::value, true);
+  auto testDict = has_root_dictionary_mapped_type<std::unordered_map<std::string, o2::tpc::CalDet<float>>>::value;
+  BOOST_CHECK(testDict == false);
+}
+
 } // namespace o2
