@@ -22,6 +22,8 @@
 
 class TH1F;
 class TH2F;
+class TH1;
+class TH2;
 
 namespace o2
 {
