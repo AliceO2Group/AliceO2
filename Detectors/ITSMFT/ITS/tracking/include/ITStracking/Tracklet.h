@@ -97,8 +97,9 @@ inline unsigned char Tracklet::operator<(const Tracklet& t) const
   if (isEmpty() && t.isEmpty()) {
     return false;
   } else {
-    if (isEmpty())
+    if (isEmpty()) {
       return false;
+    }
   }
   return true;
 }

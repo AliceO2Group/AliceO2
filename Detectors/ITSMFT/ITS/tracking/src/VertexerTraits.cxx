@@ -126,10 +126,6 @@ void trackletSelectionKernelSerial(
   }
 }
 
-VertexerTraits::VertexerTraits()
-{
-}
-
 const std::vector<std::pair<int, int>> VertexerTraits::selectClusters(const int* indexTable,
                                                                       const std::array<int, 4>& selectedBinsRect,
                                                                       const IndexTableUtils& utils)

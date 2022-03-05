@@ -119,6 +119,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   }
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   FastMultEst multEst;                                     // mult estimator
+  TimeFrame mTimeFrame;
 
   LOG(info) << "ITSCookedTracker pulled " << compClusters.size() << " clusters, in " << rofs.size() << " RO frames";
 
@@ -128,6 +129,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   }
 
   o2::its::ROframe event(0, 7);
+  mVertexerPtr->adoptTimeFrame(mTimeFrame);
 
   auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe});
   auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe});
@@ -138,33 +140,52 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance(); // RS: this should come from CCDB
   int nBCPerTF = mTracker.getContinuousMode() ? alpParams.roFrameLengthInBC : alpParams.roFrameLengthTrig;
 
-  gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
-  for (auto& rof : rofs) {
+  gsl::span<const unsigned char>::iterator pattIt_timeframe = patterns.begin();
+  gsl::span<const unsigned char>::iterator pattIt_tracker = patterns.begin();
+  gsl::span<itsmft::ROFRecord> rofspan(rofs);
+  mTimeFrame.loadROFrameData(rofspan, compClusters, pattIt_timeframe, mDict, labels.get());
+
+  std::vector<bool> processingMask;
+  int cutClusterMult{0}, cutVertexMult{0}, cutTotalMult{0};
+
+  for (size_t iRof{0}; iRof < rofspan.size(); ++iRof) {
+    auto& rof = rofspan[iRof];
+    bool multCut = (multEstConf.cutMultClusLow <= 0 && multEstConf.cutMultClusHigh <= 0); // cut was requested
+    if (!multCut) {
+      float mult = multEst.process(rof.getROFData(compClusters));
+      multCut = mult >= multEstConf.cutMultClusLow && mult <= multEstConf.cutMultClusHigh;
+      if (!multCut) {
+        LOG(info) << "Estimated cluster mult. " << mult << " is outside of requested range "
+                  << multEstConf.cutMultClusLow << " : " << multEstConf.cutMultClusHigh << " | ROF " << rof.getBCData();
+      }
+      cutClusterMult += !multCut;
+    }
+    processingMask.push_back(multCut);
+  }
+  // auto processingMask_ephemeral = processingMask;
+  mTimeFrame.setMultiplicityCutMask(processingMask);
+  float vertexerElapsedTime;
+  if (mRunVertexer) {
+    vertexerElapsedTime = mVertexerPtr->clustersToVertices(false, [&](std::string s) { LOG(info) << s; });
+  }
+  LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms in {} ROFs", vertexerElapsedTime, rofspan.size());
+  for (size_t iRof{0}; iRof < rofspan.size(); ++iRof) {
+    auto& rof = rofspan[iRof];
+
     auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
     vtxROF.setFirstEntry(vertices.size());
     vtxROF.setNEntries(0);
 
-    auto it = pattIt;
-
-    // fast cluster mult. cut if asked (e.g. sync. mode)
-    if (rof.getNEntries() && (multEstConf.cutMultClusLow > 0 || multEstConf.cutMultClusHigh > 0)) { // cut was requested
-      auto mult = multEst.process(rof.getROFData(compClusters));
-      if (mult < multEstConf.cutMultClusLow || (multEstConf.cutMultClusHigh > 0 && mult > multEstConf.cutMultClusHigh)) {
-        LOG(info) << "Estimated cluster mult. " << mult << " is outside of requested range "
-                  << multEstConf.cutMultClusLow << " : " << multEstConf.cutMultClusHigh << " | ROF " << rof.getBCData();
-        rof.setFirstEntry(tracks.size());
-        rof.setNEntries(0);
-        continue;
-      }
+    if (!processingMask[iRof]) {
+      rof.setFirstEntry(tracks.size());
+      rof.setNEntries(0);
+      continue;
     }
 
-    if (mRunVertexer) {
-      o2::its::ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels.get());
-      // FIXME
-      mVertexerPtr->clustersToVertices(false, [&](std::string s) { LOG(info) << s; });
+    std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>> vtxVecLoc;
+    for (auto& v : mTimeFrame.getPrimaryVertices(iRof)) {
+      vtxVecLoc.push_back(v);
     }
-    auto vtxVecLoc = mVertexerPtr->exportVertices();
-
     if (multEstConf.cutMultVtxLow > 0 || multEstConf.cutMultVtxHigh > 0) { // cut was requested
       std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>> vtxVecSel;
       vtxVecSel.swap(vtxVecLoc);
@@ -185,14 +206,15 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
         rof.setNEntries(0);
         continue;
       }
-    } else { // save vetrices
+    } else { // save vertices
       vtxROF.setNEntries(vtxVecLoc.size());
       for (const auto& vtx : vtxVecLoc) {
         vertices.push_back(vtx);
       }
     }
+
     mTracker.setVertices(vtxVecLoc);
-    mTracker.process(compClusters, it, mDict, tracks, clusIdx, rof);
+    mTracker.process(compClusters, pattIt_tracker, mDict, tracks, clusIdx, rof);
     if (tracks.size()) {
       irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1);
     }
