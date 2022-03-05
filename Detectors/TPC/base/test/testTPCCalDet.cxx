@@ -317,7 +317,7 @@ BOOST_AUTO_TEST_CASE(CalDetTypeTest)
   using namespace o2::framework;
   BOOST_CHECK_EQUAL(has_root_dictionary<o2::tpc::CalDet<float>>::value, true);
   auto testDict = has_root_dictionary_mapped_type<std::unordered_map<std::string, o2::tpc::CalDet<float>>>::value;
-  BOOST_CHECK(testDict == false);
+  BOOST_CHECK(testDict == true);
 }
 
 } // namespace o2
