@@ -126,7 +126,7 @@ class RawPixelDecoder final : public PixelReader
   std::array<short, Mapping::getNRUs()> mRUEntry;           // entry of the RU with given SW ID in the mRUDecodeVec
   std::vector<ChipPixelData*> mOrderedChipsPtr;             // special ordering helper used for the MFT (its chipID is not contiguous in RU)
   std::string mSelfName{};                                  // self name
-  std::string mRawDumpDirectory{};                          // destination directory for dumps
+  std::string mRawDumpDirectory;                            // destination directory for dumps
   header::DataOrigin mUserDataOrigin = o2::header::gDataOriginInvalid; // alternative user-provided data origin to pick
   header::DataDescription mUserDataDescription = o2::header::gDataDescriptionInvalid; // alternative user-provided description to pick
   uint16_t mCurRUDecodeID = NORUDECODED;        // index of currently processed RUDecode container
