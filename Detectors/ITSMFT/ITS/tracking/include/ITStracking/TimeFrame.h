@@ -68,6 +68,7 @@ class TimeFrame final
   gsl::span<const Vertex> getPrimaryVertices(int romin, int romax) const;
   int getPrimaryVerticesNum(int rofID = -1) const;
   void addPrimaryVertices(const std::vector<Vertex>& vertices);
+  void removePrimaryVerticesInROf(const int rofId);
   int loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const itsmft::Cluster> clusters,
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
 
@@ -220,11 +221,12 @@ class TimeFrame final
 
 inline const Vertex& TimeFrame::getPrimaryVertex(const int vertexIndex) const { return mPrimaryVertices[vertexIndex]; }
 
-inline gsl::span<const Vertex> TimeFrame::getPrimaryVertices(int tf) const
+inline gsl::span<const Vertex> TimeFrame::getPrimaryVertices(int rof) const
 {
-  const int start = mROframesPV[tf];
-  const int stop = tf >= mNrof - 1 ? mNrof : tf + 1;
-  return {&mPrimaryVertices[start], static_cast<gsl::span<const Vertex>::size_type>(mROframesPV[stop] - mROframesPV[tf])};
+  const int start = mROframesPV[rof];
+  const int stop_idx = rof >= mNrof - 1 ? mNrof : rof + 1;
+  int delta = mMultiplicityCutMask[rof] ? mROframesPV[stop_idx] - start : 0; // return empty span if Rof is excluded
+  return {&mPrimaryVertices[start], static_cast<gsl::span<const Vertex>::size_type>(delta)};
 }
 
 inline gsl::span<const Vertex> TimeFrame::getPrimaryVertices(int romin, int romax) const

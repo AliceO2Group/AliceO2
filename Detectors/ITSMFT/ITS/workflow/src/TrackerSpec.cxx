@@ -234,7 +234,9 @@ void TrackerDPL::run(ProcessingContext& pc)
     if (!multCut) {
       float mult = multEst.process(rof.getROFData(compClusters));
       multCut = mult >= multEstConf.cutMultClusLow && mult <= multEstConf.cutMultClusHigh;
-      LOG(info) << fmt::format("ROF {} rejected by the cluster multiplicity selection [{},{}]", processingMask.size(), multEstConf.cutMultClusLow, multEstConf.cutMultClusHigh);
+      if (!multCut) {
+        LOG(debug) << fmt::format("ROF {} rejected by the cluster multiplicity selection [{},{}]", processingMask.size(), multEstConf.cutMultClusLow, multEstConf.cutMultClusHigh);
+      }
       cutClusterMult += !multCut;
     }
     processingMask.push_back(multCut);
@@ -264,11 +266,11 @@ void TrackerDPL::run(ProcessingContext& pc)
         vertices.push_back(v);
       }
       if (processingMask[iRof] && !multCut) { // passed selection in clusters and not in vertex multiplicity
-        LOG(info) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]",
-                                 iRof,
-                                 multEstConf.cutMultVtxLow,
-                                 multEstConf.cutMultVtxHigh);
-        processingMask[iRof] = false;
+        LOG(debug) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]",
+                                  iRof,
+                                  multEstConf.cutMultVtxLow,
+                                  multEstConf.cutMultVtxHigh);
+        processingMask[iRof] = multCut;
         cutVertexMult++;
       }
     } else { // cosmics
@@ -328,11 +330,9 @@ void TrackerDPL::run(ProcessingContext& pc)
       allTracks.emplace_back(trc);
     }
   }
-
-  LOG(info) << "ITSTracker pushed " << allTracks.size() << " tracks";
+  LOGP(info, "ITSTracker pushed {} and {} vertices", allTracks.size(), vertices.size());
   if (mIsMC) {
-    LOG(info) << "ITSTracker pushed " << allTrackLabels.size() << " track labels";
-
+    LOGP(info, "ITSTracker pushed {} track labels", allTrackLabels.size());
     pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
     pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
   }
