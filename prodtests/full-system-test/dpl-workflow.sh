@@ -73,8 +73,10 @@ if [[ $EPNSYNCMODE == 1 ]]; then
   ARGS_ALL+=" --infologger-severity $INFOLOGGER_SEVERITY"
   ARGS_ALL+=" --monitoring-backend influxdb-unix:///tmp/telegraf.sock --resources-monitoring 15"
   ARGS_ALL_CONFIG+="NameConf.mCCDBServer=http://o2-ccdb.internal;"
+  [[ -z $CONDITION_BACKEND ]] && CONDITION_BACKEND=" --condition-backend http://o2-ccdb.internal "
 elif [[ "0$ENABLE_METRICS" != "01" ]]; then
   ARGS_ALL+=" --monitoring-backend no-op://"
+  [[ -z $CONDITION_BACKEND ]] && CONDITION_BACKEND=" --condition-backend http://alice-ccdb.cern.ch "
 fi
 ( [[ $EXTINPUT == 1 ]] || [[ $NUMAGPUIDS != 0 ]] ) && ARGS_ALL+=" --no-cleanup"
 ( [[ $GPUTYPE != "CPU" ]] || [[ $OPTIMIZED_PARALLEL_ASYNC != 0 ]] ) && ARGS_ALL+=" --shm-mlock-segment-on-creation 1"
@@ -494,7 +496,7 @@ fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 # DPL run binary
-WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"
+WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT $CONDITION_BACKEND"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Run / create / print workflow
