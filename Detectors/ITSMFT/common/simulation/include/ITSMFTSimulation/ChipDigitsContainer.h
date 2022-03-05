@@ -63,8 +63,12 @@ class ChipDigitsContainer
     return static_cast<UInt_t>(key >> (8 * sizeof(UInt_t)));
   }
 
+  bool isDisabled() const { return mDisabled; }
+  void disable(bool v) { mDisabled = v; }
+
  protected:
   UShort_t mChipIndex = 0;                           ///< chip index
+  bool mDisabled = false;
   std::map<ULong64_t, o2::itsmft::PreDigit> mDigits; ///< Map of fired pixels, possibly in multiple frames
 
   ClassDefNV(ChipDigitsContainer, 1);
