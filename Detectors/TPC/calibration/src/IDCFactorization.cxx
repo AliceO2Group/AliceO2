@@ -256,7 +256,11 @@ void o2::tpc::IDCFactorization::calcIDCOne()
       integrationIntervallast += mIDCs[cru][timeframe].size() / mNIDCsPerCRU[region];
     }
     const float crusTmp = (side == Side::A) ? crusPerSideA : crusPerSideC;
+#ifdef WITH_OPENMP
     const int ithread = omp_get_thread_num();
+#else
+    const int ithread = 0;
+#endif
     for (int i = 0; i < integrationIntervals; ++i) {
       if (count[i] == 0) {
         continue;
