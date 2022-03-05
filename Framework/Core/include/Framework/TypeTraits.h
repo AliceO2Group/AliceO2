@@ -127,6 +127,15 @@ struct has_root_dictionary<
     void>> : public std::true_type {
 };
 
+// Detect whether a container class has a type definition `mapped_type` with a root dictionary
+template <typename T, typename _ = void>
+struct has_root_dictionary_mapped_type : std::false_type {
+};
+
+template <typename T>
+struct has_root_dictionary_mapped_type<T, std::conditional_t<false, typename T::mapped_type, void>> : has_root_dictionary<typename T::mapped_type> {
+};
+
 // specialization for containers
 // covers cases with T::value_type having ROOT dictionary, meaning that
 // std::map is not supported out of the box
