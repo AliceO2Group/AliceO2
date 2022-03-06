@@ -221,10 +221,10 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     .name = "internal-dpl-ccdb-backend",
     .outputs = {},
     .algorithm = CCDBHelpers::fetchFromCCDB(),
-    .options = {{"condition-backend", VariantType::String, "http://alice-ccdb.cern.ch", {"URL for CCDB"}},
-                {"condition-not-before", VariantType::Int64, 0ll, {"do not fetch from CCDB objects created before provide timestamp"}},
-                {"condition-not-after", VariantType::Int64, 3385078236000ll, {"do not fetch from CCDB objects created after the timestamp"}},
-                {"condition-remap", VariantType::String, "", {"remap condition path in CCDB based on the provided string."}},
+    .options = {{"internal-condition-backend", VariantType::String, ctx.options().get<std::string>("condition-backend"), {"URL for CCDB"}},
+                {"internal-condition-not-before", VariantType::Int64, ctx.options().get<int64_t>("condition-not-before"), {"do not fetch from CCDB objects created before provide timestamp"}},
+                {"internal-condition-not-after", VariantType::Int64, ctx.options().get<int64_t>("condition-not-after"), {"do not fetch from CCDB objects created after the timestamp"}},
+                {"internal-condition-remap", VariantType::String, ctx.options().get<std::string>("condition-remap"), {"remap condition path in CCDB based on the provided string."}},
                 {"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},
                 {"orbit-multiplier-enumeration", VariantType::Int64, 0ll, {"multiplier to get the orbit from the counter"}},
                 {"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
@@ -324,7 +324,6 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         processor.outputs.push_back(OutputSpec{{"dpl-summary"}, ConcreteDataMatcher{"DPL", "SUMMARY", static_cast<DataAllocator::SubSpecificationType>(compile_time_hash(processor.name.c_str()))}});
       }
     }
-    bool hasConditionOption = false;
     for (size_t ii = 0; ii < processor.inputs.size(); ++ii) {
       auto& input = processor.inputs[ii];
       switch (input.lifetime) {
@@ -345,17 +344,6 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
           timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
         } break;
         case Lifetime::Condition: {
-          for (auto& option : processor.options) {
-            if (option.name == "condition-backend") {
-              hasConditionOption = true;
-              break;
-            }
-          }
-          if (hasConditionOption == false) {
-            processor.options.emplace_back(ConfigParamSpec{"condition-backend", VariantType::String, "http://localhost:8080", {"URL for CCDB"}});
-            processor.options.emplace_back(ConfigParamSpec{"condition-timestamp", VariantType::Int64, 0ll, {"Force timestamp for CCDB lookup"}});
-            hasConditionOption = true;
-          }
           requestedCCDBs.emplace_back(input);
         } break;
         case Lifetime::OutOfBand: {

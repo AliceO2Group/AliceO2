@@ -50,6 +50,12 @@ std::vector<ConfigParamSpec> WorkflowCustomizationHelpers::requiredWorkflowOptio
            {"labels", VariantType::String, "", {"add labels to dataprocessors"}},
            {"workflow-suffix", VariantType::String, "", {"suffix to add to all dataprocessors"}},
 
+           // options for CCDB
+           {"condition-backend", VariantType::String, defaultConditionBackend, {"URL for CCDB"}},
+           {"condition-not-before", VariantType::Int64, 0ll, {"do not fetch from CCDB objects created before provide timestamp"}},
+           {"condition-not-after", VariantType::Int64, 3385078236000ll, {"do not fetch from CCDB objects created after the timestamp"}},
+           {"condition-remap", VariantType::String, "", {"remap condition path in CCDB based on the provided string."}},
+
            // options for TF rate limiting
            {"timeframes-rate-limit-ipcid", VariantType::String, "-1", {"Suffix for IPC channel for metrix-feedback, -1 = disable"}},
 

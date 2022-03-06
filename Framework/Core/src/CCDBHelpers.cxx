@@ -227,8 +227,8 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
       std::shared_ptr<CCDBFetcherHelper> helper = std::make_shared<CCDBFetcherHelper>();
       auto backend = options.get<std::string>("condition-backend");
       LOGP(info, "CCDB Backend at: {}", backend);
-      const auto& defHost = options.get<std::string>("condition-backend");
-      auto remapString = options.get<std::string>("condition-remap");
+      const auto& defHost = options.get<std::string>("internal-condition-backend");
+      auto remapString = options.get<std::string>("internal-condition-remap");
       ParserResult result = CCDBHelpers::parseRemappings(remapString.c_str());
       if (!result.error.empty()) {
         throw runtime_error_f("Error while parsing remapping string %s", result.error.c_str());
@@ -244,8 +244,8 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         }
         LOGP(info, "{} is remapped to {}", entry.first, entry.second);
       }
-      helper->createdNotBefore = std::to_string(options.get<int64_t>("condition-not-before"));
-      helper->createdNotAfter = std::to_string(options.get<int64_t>("condition-not-after"));
+      helper->createdNotBefore = std::to_string(options.get<int64_t>("internal-condition-not-before"));
+      helper->createdNotAfter = std::to_string(options.get<int64_t>("internal-condition-not-after"));
 
       for (auto &route : spec.outputs) {
         if (route.matcher.lifetime != Lifetime::Condition) {
