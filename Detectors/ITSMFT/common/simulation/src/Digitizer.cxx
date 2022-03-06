@@ -234,7 +234,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   int chipID = hit.GetDetectorID();
   auto& chip = mChips[chipID];
   if (chip.isDisabled()) {
-    LOG(info) << "skip disabled chip " << chipID;
+    LOG(debug) << "skip disabled chip " << chipID;
     return;
   }
   float timeInROF = hit.GetTime() * sec2ns;
