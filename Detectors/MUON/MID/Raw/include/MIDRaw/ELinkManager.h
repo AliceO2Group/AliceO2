@@ -71,6 +71,8 @@ class ELinkManager
   inline uint16_t makeUniqueId(bool isLoc, uint8_t uniqueId) { return (isLoc ? 0 : (1 << 8)) | uniqueId; }
   std::unordered_map<uint16_t, ELinkDataShaper> mDataShapers; /// Data shapers for each loc and reg board
   std::unordered_map<uint16_t, ELinkDecoder> mDecoders;       /// Decoders for each loc and reg board
+  std::unordered_map<uint16_t, unsigned long int> mErrors;    /// Decoding errors
+  uint16_t mFeeId;                                            /// Front End ID
 
 #endif
 };

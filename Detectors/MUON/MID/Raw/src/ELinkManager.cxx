@@ -15,8 +15,10 @@
 /// \date   18 March 2021
 
 #include "MIDRaw/ELinkManager.h"
-#include "MIDRaw/CrateParameters.h"
+
 #include "fmt/format.h"
+#include "Framework/Logger.h"
+#include "MIDRaw/CrateParameters.h"
 
 namespace o2
 {
@@ -26,6 +28,7 @@ void ELinkManager::init(uint16_t feeId, bool isDebugMode, bool isBare, const Ele
 {
   /// Initializer
   auto gbtUniqueIds = isBare ? std::vector<uint16_t>{feeId} : feeIdConfig.getGBTUniqueIdsInLink(feeId);
+  mFeeId = feeId;
 
   for (auto& gbtUniqueId : gbtUniqueIds) {
     auto crateId = crateparams::getCrateIdFromGBTUniqueId(gbtUniqueId);
@@ -64,14 +67,26 @@ void ELinkManager::init(uint16_t feeId, bool isDebugMode, bool isBare, const Ele
 
 void ELinkManager::onDone(const ELinkDecoder& decoder, uint8_t crateId, uint8_t locId, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
 {
-  auto ds = mDataShapers.find(makeUniqueId(raw::isLoc(decoder.getStatusWord()), raw::makeUniqueLocID(crateId, locId)));
+  auto uniqueId = makeUniqueId(raw::isLoc(decoder.getStatusWord()), raw::makeUniqueLocID(crateId, locId));
+  auto ds = mDataShapers.find(uniqueId);
   if (ds == mDataShapers.end()) {
-    ROBoard board{decoder.getStatusWord(), decoder.getTriggerWord(), raw::makeUniqueLocID(crateId, locId), decoder.getInputs()};
-    for (int ich = 0; ich < 4; ++ich) {
-      board.patternsBP[ich] = decoder.getPattern(0, ich);
-      board.patternsNBP[ich] = decoder.getPattern(1, ich);
+    // There is something wrong: we are receiving data from a local board that is not expected to be there.
+    // This usually happens when some local boards are not properly configured
+    // and the crate or board ID that they return is not correct.
+    // We keep track of this for debugging.
+    // However, when a board is faulty it keeps sending messages.
+    // To avoid flooding the logs, we warn only the first time we see it.
+    auto& err = mErrors[uniqueId];
+    ++err;
+    if (err == 1) {
+      // This is the first time we see this faulty board, so we report it.
+      ROBoard board{decoder.getStatusWord(), decoder.getTriggerWord(), raw::makeUniqueLocID(crateId, locId), decoder.getInputs()};
+      for (int ich = 0; ich < 4; ++ich) {
+        board.patternsBP[ich] = decoder.getPattern(0, ich);
+        board.patternsNBP[ich] = decoder.getPattern(1, ich);
+      }
+      LOG(alarm) << "FEEId: " << mFeeId << "  board not found: " << board;
     }
-    std::cerr << "Board not found: " << board << "\n";
     return;
   }
   return ds->second.onDone(decoder, data, rofs);
