@@ -50,7 +50,6 @@ RP BaseRecoTask::process(o2::fv0::Digit const& bcd,
                                                (inChData[ich].CFDTime - offsetChannel) * DigitizationConstant::TIME_PER_TDCCHANNEL,
                                                (double)inChData[ich].QTCAmpl * o2::fv0::FV0DigParam::Instance().adcChannelsPerMilivolt,
                                                0}; // Fill with ADC number once implemented
-
     //  only signals with amplitude participate in collision time
     if (outChData[ich].charge > 0) {
       sideAtimeFirst = std::min(static_cast<Double_t>(sideAtimeFirst), outChData[ich].time);
