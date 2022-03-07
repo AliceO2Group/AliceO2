@@ -13,8 +13,8 @@
 /// \brief Configurable parameters for MCH tracking
 /// \author Philippe Pillot, Subatech
 
-#ifndef ALICEO2_MCH_TRACKERPARAM_H_
-#define ALICEO2_MCH_TRACKERPARAM_H_
+#ifndef O2_MCH_TRACKERPARAM_H_
+#define O2_MCH_TRACKERPARAM_H_
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
@@ -48,4 +48,4 @@ struct TrackerParam : public o2::conf::ConfigurableParamHelper<TrackerParam> {
 } // namespace mch
 } // end namespace o2
 
-#endif // ALICEO2_MCH_TRACKERPARAM_H_
+#endif // O2_MCH_TRACKERPARAM_H_

@@ -13,8 +13,8 @@
 /// @author P. Pillot
 /// @brief Class to group the fired pads into preclusters
 
-#ifndef ALICEO2_MCH_PRECLUSTERFINDER_H_
-#define ALICEO2_MCH_PRECLUSTERFINDER_H_
+#ifndef O2_MCH_PRECLUSTERFINDER_H_
+#define O2_MCH_PRECLUSTERFINDER_H_
 
 #include <cassert>
 #include <cstdint>
@@ -94,4 +94,4 @@ class PreClusterFinder
 } // namespace mch
 } // namespace o2
 
-#endif // ALICEO2_MCH_PRECLUSTERFINDER_H_
+#endif // O2_MCH_PRECLUSTERFINDER_H_
