@@ -27,6 +27,7 @@
 #include "Steer/MCKinematicsReader.h"
 #include <unordered_map>
 #include <vector>
+#include "TPDGCode.h"
 
 namespace o2
 {
@@ -83,7 +84,11 @@ class MatchITSTPCQC
   void setBz(float bz) { mBz = bz; }
 
   // MC level selection
-  bool isPhysicalPrimary(MCTrack const* mcTrk);
+  bool isPhysicalPrimary(MCTrack const* mcTrk, std::vector<o2::MCTrack> const& pcontainer);
+  /// Given an MCTrack p; Return it's direct mother or nullptr. (we follow only first mother)
+  static o2::MCTrack const* getMother(MCTrack const* mcTrk, std::vector<o2::MCTrack> const& pcontainer);
+  /// Given an MCTrack p; Return it's direct daughter or nullptr. (we follow only first daughter)
+  static o2::MCTrack const* getDaughter(MCTrack const* mcTrk, std::vector<o2::MCTrack> const& pcontainer);
 
   // track selection
   bool selectTrack(o2::tpc::TrackTPC const& track);
@@ -110,7 +115,7 @@ class MatchITSTPCQC
   bool mUseMC = false;
   std::string mGRPFileName = "o2sim_grp.root";
   std::string mGeomFileName = "o2sim_geometry.root";
-  float mBz = 0; ///< nominal Bz
+  float mBz = 0;                                              ///< nominal Bz
   std::unordered_map<o2::MCCompLabel, LblInfo> mMapLabels;    // map with labels that have been found for the matched ITSTPC tracks; key is the label,
                                                               // value is the LbLinfo with the id of the track with the highest pT found with that label so far,
                                                               // and the flag to say if it is a physical primary or not
@@ -149,6 +154,49 @@ class MatchITSTPCQC
 
   ClassDefNV(MatchITSTPCQC, 1);
 };
+
+inline bool isStable(int pdg)
+{
+  //
+  // Decide whether particle (pdg) is stable
+  //
+
+  // All ions/nucleons are considered as stable
+  // Nuclear code is 10LZZZAAAI
+  if (pdg > 1000000000) {
+    return true;
+  }
+
+  const int kNstable = 18;
+  int pdgStable[kNstable] = {
+    kGamma,      // Photon
+    kElectron,   // Electron
+    kMuonPlus,   // Muon
+    kPiPlus,     // Pion
+    kKPlus,      // Kaon
+    kK0Short,    // K0s
+    kK0Long,     // K0l
+    kProton,     // Proton
+    kNeutron,    // Neutron
+    kLambda0,    // Lambda_0
+    kSigmaMinus, // Sigma Minus
+    kSigmaPlus,  // Sigma Plus
+    3312,        // Xsi Minus
+    3322,        // Xsi
+    3334,        // Omega
+    kNuE,        // Electron Neutrino
+    kNuMu,       // Muon Neutrino
+    kNuTau       // Tau Neutrino
+  };
+
+  // this is linear search ---> a hash map or binary search should be more appropriate??
+  for (int i = 0; i < kNstable; ++i) {
+    if (pdg == std::abs(pdgStable[i])) {
+      return true;
+    }
+  }
+  return false;
+}
 
 } // namespace globaltracking
 } // namespace o2
