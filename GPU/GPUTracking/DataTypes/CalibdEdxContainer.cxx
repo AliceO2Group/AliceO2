@@ -155,10 +155,10 @@ void CalibdEdxContainer::setPolTopologyCorrection(const CalibdEdxTrackTopologyPo
   setTopologyCorrection(calibTrackTopology, mCalibTrackTopologyPol);
 }
 
-void CalibdEdxContainer::setdefaultPolTopologyCorrection()
+void CalibdEdxContainer::setDefaultPolTopologyCorrection()
 {
   CalibdEdxTrackTopologyPol calibTrackTopology;
-  calibTrackTopology.setdefaultPolynomials();
+  calibTrackTopology.setDefaultPolynomials();
   setTopologyCorrection(calibTrackTopology, mCalibTrackTopologyPol);
 }
 

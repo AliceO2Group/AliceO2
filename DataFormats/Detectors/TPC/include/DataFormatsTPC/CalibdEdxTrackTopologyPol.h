@@ -210,7 +210,7 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   void setPolynomialsFromFile(TFile& inpf);
 
   /// setting a default topology correction which just returns 1
-  void setdefaultPolynomials();
+  void setDefaultPolynomials();
 #endif
 
   /// \return returns the name of the polynomial object which can be read in with the setPolynomialsFromFile() function

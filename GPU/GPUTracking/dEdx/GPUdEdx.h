@@ -145,8 +145,16 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, unsigned
   const int region = param.tpcGeometry.GetRegion(padRow);
   z = CAMath::Abs(z);
   const float threshold = calibContainer->getZeroSupressionThreshold(slice, padRow, padPos); // TODO: Use the mean zero supresion threshold of all pads in the cluster?
+  const bool useFullGainMap = calibContainer->isUsageOfFullGainMap();
+  float qTotIn = CAMath::Clamp(qtot, calibContainer->getMinqTot(), calibContainer->getMaxqTot());
   const float fullGainMapGain = calibContainer->getGain(slice, padRow, padPos);
-  const float qTotIn = fullGainMapGain * CAMath::Clamp(qtot, calibContainer->getMinqTot(), calibContainer->getMaxqTot());
+  if (useFullGainMap) {
+    qmax /= fullGainMapGain;
+    qtot /= fullGainMapGain;
+  } else {
+    qTotIn *= fullGainMapGain;
+  }
+
   const float qMaxTopologyCorr = calibContainer->getTopologyCorrection(region, o2::tpc::ChargeType::Max, tanTheta, snp, z, absRelPad, relTime, threshold, qTotIn);
   const float qTotTopologyCorr = calibContainer->getTopologyCorrection(region, o2::tpc::ChargeType::Tot, tanTheta, snp, z, absRelPad, relTime, threshold, qTotIn);
   qmax /= qMaxTopologyCorr;

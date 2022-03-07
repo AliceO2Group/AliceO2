@@ -131,7 +131,7 @@ void CalibdEdxTrackTopologyPol::construct()
   }
 }
 
-void CalibdEdxTrackTopologyPol::setdefaultPolynomials()
+void CalibdEdxTrackTopologyPol::setDefaultPolynomials()
 {
   for (int i = 0; i < FFits; ++i) {
     mCalibPolsqTot[i].setParam(0, 1);
