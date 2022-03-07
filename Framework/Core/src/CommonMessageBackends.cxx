@@ -41,8 +41,8 @@
 namespace o2::framework
 {
 
-struct EndOfStreamContext;
-struct ProcessingContext;
+class EndOfStreamContext;
+class ProcessingContext;
 
 o2::framework::ServiceSpec CommonMessageBackends::fairMQBackendSpec()
 {
@@ -52,9 +52,10 @@ o2::framework::ServiceSpec CommonMessageBackends::fairMQBackendSpec()
       auto& device = services.get<RawDeviceService>();
       auto context = new MessageContext(FairMQDeviceProxy{device.device()});
       auto& spec = services.get<DeviceSpec const>();
+      auto& dataSender = services.get<DataSender>();
 
-      auto dispatcher = [&device](FairMQParts&& parts, std::string const& channel, unsigned int index) {
-        device.device()->Send(parts, channel, index);
+      auto dispatcher = [&dataSender](FairMQParts&& parts, std::string const& channel, unsigned int) {
+        dataSender.send(parts, channel);
       };
 
       auto matcher = [policy = spec.dispatchPolicy](o2::header::DataHeader const& header) {
@@ -67,7 +68,7 @@ o2::framework::ServiceSpec CommonMessageBackends::fairMQBackendSpec()
       if (spec.dispatchPolicy.action == DispatchPolicy::DispatchOp::WhenReady) {
         context->init(DispatchControl{dispatcher, matcher});
       }
-      return ServiceHandle{TypeIdHelpers::uniqueId<MessageContext>(), context};
+      return ServiceHandle{.hash = TypeIdHelpers::uniqueId<MessageContext>(), .instance = context, .kind = ServiceKind::Serial};
     },
     .configure = CommonServices::noConfiguration(),
     .preProcessing = CommonMessageBackendsHelpers<MessageContext>::clearContext(),

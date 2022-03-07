@@ -38,6 +38,8 @@
 #include "ArrowSupport.h"
 #include "DPLMonitoringBackend.h"
 #include "TDatabasePDG.h"
+#include "Headers/STFHeader.h"
+#include "Headers/DataHeader.h"
 
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
@@ -453,17 +455,55 @@ o2::framework::ServiceSpec CommonServices::tracingSpec()
 {
   return ServiceSpec{
     .name = "tracing",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
-      return ServiceHandle{TypeIdHelpers::uniqueId<TracingInfrastructure>(), new TracingInfrastructure()};
+    .init = [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+      return ServiceHandle{.hash = TypeIdHelpers::uniqueId<TracingInfrastructure>(),
+                           .instance = new TracingInfrastructure(),
+                           .kind = ServiceKind::Serial};
     },
     .configure = noConfiguration(),
     .preProcessing = [](ProcessingContext&, void* service) {
-      TracingInfrastructure* t = reinterpret_cast<TracingInfrastructure*>(service);
+      auto* t = reinterpret_cast<TracingInfrastructure*>(service);
       t->processingCount += 1; },
     .postProcessing = [](ProcessingContext&, void* service) {
-      TracingInfrastructure* t = reinterpret_cast<TracingInfrastructure*>(service);
+      auto* t = reinterpret_cast<TracingInfrastructure*>(service);
       t->processingCount += 1; },
     .kind = ServiceKind::Serial};
+}
+
+struct CCDBSupport {
+};
+
+// CCDB Support service
+o2::framework::ServiceSpec CommonServices::ccdbSupportSpec()
+{
+  return ServiceSpec{
+    .name = "ccdb-support",
+    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+      // iterate on all the outputs matchers
+      auto& spec = services.get<DeviceSpec const>();
+      for (auto& outputs : spec.outputs) {
+        if (outputs.matcher.binding.value == "ccdb-diststf") {
+          LOGP(info, "CCDB support enabled");
+          return ServiceHandle{.hash = TypeIdHelpers::uniqueId<CCDBSupport>(), .instance = new CCDBSupport, .kind = ServiceKind::Serial};
+        }
+      }
+      return ServiceHandle{.hash = TypeIdHelpers::uniqueId<CCDBSupport>(), .instance = nullptr, .kind = ServiceKind::Serial};
+    },
+    .configure = noConfiguration(),
+    .postProcessing = [](ProcessingContext& pc, void* service) {
+      if (!service) {
+        return;
+      }
+      const auto ref = pc.inputs().getFirstValid(true);
+      const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      const auto* dph = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
+      auto& stfDist = pc.outputs().make<o2::header::STFHeader>(OutputRef{"ccdb-diststf", header::DataHeader::SubSpecificationType{0xccdb}});
+      LOG(info) << "CCDB support enabled: " << dh->firstTForbit;
+      stfDist.id = dph->startTime;
+      stfDist.firstOrbit = dh->firstTForbit;
+      stfDist.runNumber = dh->runNumber;
+    },
+    .kind = ServiceKind::Global};
 }
 
 // FIXME: allow configuring the default number of threads per device
@@ -690,6 +730,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     dataSender(),
     dataProcessingStats(),
     objectCache(),
+    ccdbSupportSpec(),
     CommonMessageBackends::fairMQBackendSpec(),
     ArrowSupport::arrowBackendSpec(),
     CommonMessageBackends::stringBackendSpec(),
