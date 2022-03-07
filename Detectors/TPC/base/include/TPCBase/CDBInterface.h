@@ -45,6 +45,9 @@ enum class CDBType {
   CalPadGainFull,     ///< Full pad gain calibration
   CalPadGainResidual, ///< ResidualpPad gain calibration (e.g. from tracks)
   CalLaserTracks,     ///< Laser track calibration data
+  CalTimeGain,        ///< Gain variation over time
+                      ///
+  ConfigFEEPad,       ///< FEE pad-by-pad configuration map
                       ///
   ParDetector,        ///< Parameter for Detector
   ParElectronics,     ///< Parameter for Electronics
@@ -68,6 +71,9 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalPadGainFull, "TPC/Calib/PadGainFull"},
   {CDBType::CalPadGainResidual, "TPC/Calib/PadGainResidual"},
   {CDBType::CalLaserTracks, "TPC/Calib/LaserTracks"},
+  {CDBType::CalTimeGain, "TPC/Calib/TimeGain"},
+  //
+  {CDBType::ConfigFEEPad, "TPC/Config/FEEPad"},
   //
   {CDBType::ParDetector, "TPC/Parameter/Detector"},
   {CDBType::ParElectronics, "TPC/Parameter/Electronics"},
@@ -316,11 +322,17 @@ class CDBStorage
     mMetaData[o2::base::NameConf::CCDBRunTag.data()] = std::to_string(run);
   }
 
+  void setSimulate(bool sim = true) { mSimulate = sim; }
+
+  bool getSimulate() const { return mSimulate; }
+
   template <typename T>
   void storeObject(T* obj, CDBType const type, MetaData_t const& metadata, long start, long end)
   {
     if (checkMetaData(metadata)) {
-      mCCDB.storeAsTFileAny(obj, CDBTypeMap.at(type), metadata, start, end);
+      if (!mSimulate) {
+        mCCDB.storeAsTFileAny(obj, CDBTypeMap.at(type), metadata, start, end);
+      }
       printObjectSummary(typeid(obj).name(), type, metadata, start, end);
     } else {
       LOGP(error, "Meta data not set properly, object will not be stored");
@@ -336,6 +348,8 @@ class CDBStorage
   void uploadNoiseAndPedestal(std::string_view fileName, long first = -1, long last = 99999999999999);
   void uploadGainMap(std::string_view fileName, bool isFull = true, long first = -1, long last = 99999999999999);
   void uploadPulserOrCEData(CDBType type, std::string_view fileName, long first = -1, long last = 99999999999999);
+  void uploadFEEConfigPad(std::string_view fileName, long first = -1, long last = 99999999999999);
+  void uploadTimeGain(std::string_view fileName, long first = -1, long last = 99999999999999);
 
  private:
   bool checkMetaData(MetaData_t metaData) const;
@@ -344,6 +358,7 @@ class CDBStorage
 
   o2::ccdb::CcdbApi mCCDB;
   MetaData_t mMetaData;
+  bool mSimulate = false;
 };
 
 } // namespace o2::tpc
