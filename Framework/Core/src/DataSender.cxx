@@ -71,13 +71,13 @@ DataSender::DataSender(ServiceRegistry& registry,
 
 std::unique_ptr<FairMQMessage> DataSender::create()
 {
-  FairMQDevice* device = (FairMQDevice*)mContext;
+  auto* device = (FairMQDevice*)mContext;
   return device->NewMessage();
 }
 
 void DataSender::send(FairMQParts& parts, std::string const& channel)
 {
-  FairMQDevice* device = (FairMQDevice*)mContext;
+  auto* device = (FairMQDevice*)mContext;
   mPolicy.send(*device, parts, channel);
 }
 

@@ -121,7 +121,7 @@ void DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage, const Ou
   // FIXME: this is kind of ugly, we know that we can change the content of the
   // header message because we have just created it, but the API declares it const
   const DataHeader* cdh = o2::header::get<DataHeader*>(headerMessage->GetData());
-  DataHeader* dh = const_cast<DataHeader*>(cdh);
+  auto* dh = const_cast<DataHeader*>(cdh);
   dh->payloadSize = payloadMessage->GetSize();
   auto& context = mRegistry->get<MessageContext>();
   // make_scoped creates the context object inside of a scope handler, since it goes out of
