@@ -41,7 +41,7 @@ namespace o2::framework
 
 std::vector<ConfigParamSpec> WorkflowCustomizationHelpers::requiredWorkflowOptions()
 {
-  auto defaultConditionBackend = std::getenv("DDS_SESSION_ID") ? "http://o2ccdb.internal" : "http://alice-ccdb.cern.ch";
+  auto defaultConditionBackend = std::getenv("DDS_SESSION_ID") ? "http://o2-ccdb.internal" : "http://alice-ccdb.cern.ch";
 
   return {{{"readers", VariantType::Int64, 1ll, {"number of parallel readers to use"}},
            {"spawners", VariantType::Int64, 1ll, {"number of parallel spawners to use"}},
