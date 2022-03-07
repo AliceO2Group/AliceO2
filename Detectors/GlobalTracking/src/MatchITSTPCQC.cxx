@@ -188,7 +188,10 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
         auto lbl = mRecoCont.getTrackMCLabel({(unsigned int)(itrk), GID::Source::ITSTPC});
         if (mMapLabels.find(lbl) == mMapLabels.end()) {
           auto const* mcParticle = mcReader.getTrack(lbl);
-          if (isPhysicalPrimary(mcParticle)) {
+          int source = lbl.getSourceID();
+          int event = lbl.getEventID();
+          const std::vector<o2::MCTrack> &pcontainer = mcReader.getTracks(source, event);
+          if (isPhysicalPrimary(mcParticle, pcontainer)) {
             mMapLabels.insert({lbl, {itrk, true}});
           } else {
             mMapLabels.insert({lbl, {itrk, false}});
@@ -259,7 +262,10 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
         }
         if (mMapTPCLabels.find(lbl) == mMapTPCLabels.end()) {
           o2::MCTrack const* mcParticle = mcReader.getTrack(lbl);
-          if (isPhysicalPrimary(mcParticle)) {
+          int source = lbl.getSourceID();
+          int event = lbl.getEventID();
+          const std::vector<o2::MCTrack> &pcontainer = mcReader.getTracks(source, event);
+          if (isPhysicalPrimary(mcParticle, pcontainer)) {
             mMapTPCLabels.insert({lbl, {itrk, true}});
           } else {
             mMapTPCLabels.insert({lbl, {itrk, false}});
@@ -406,10 +412,138 @@ void MatchITSTPCQC::getHistos(TObjArray& objar)
 }
 
 //__________________________________________________________
+// adapted from AliceO2/DataFormats/simulation/src/MCUtils.cxx class
 
-bool MatchITSTPCQC::isPhysicalPrimary(o2::MCTrack const* mcTrk)
+o2::MCTrack const *MatchITSTPCQC::getMother(o2::MCTrack const *mcTrk, const std::vector<o2::MCTrack> &pcontainer)
 {
-  // decide if the MC particle is a physical primary or not
+  const auto mid = mcTrk->getMotherTrackId();
+  if (mid < 0 or mid > pcontainer.size())
+  {
+    return nullptr;
+  }
+  return &(pcontainer[mid]);
+}
 
-  return true;
+o2::MCTrack const *MatchITSTPCQC::getDaughter(o2::MCTrack const *mcTrk, const std::vector<o2::MCTrack> &pcontainer)
+{
+  const auto did = mcTrk->getFirstDaughterTrackId();
+  if (did < 0 or did > pcontainer.size())
+  {
+    return nullptr;
+  }
+  return &(pcontainer[did]);
+}
+
+bool MatchITSTPCQC::isPhysicalPrimary(o2::MCTrack const *mcTrk, const std::vector<o2::MCTrack> &pcontainer)
+{
+  // Test if a particle is a physical primary according to the following definition:
+  // Particles produced in the collision including products of strong and
+  // electromagnetic decay and excluding feed-down from weak decays of strange
+  // particles.
+  //
+
+  const int ist = mcTrk->getStatusCode(); // the generator status code
+  const int pdg = std::abs(mcTrk->GetPdgCode());
+  //
+  // Initial state particle
+  // Solution for K0L decayed by Pythia6
+  // ->
+  // ist > 1 --> essentially means unstable
+  if ((ist > 1) && (pdg != 130) && mcTrk->isPrimary())
+  {
+    return false;
+  }
+  if ((ist > 1) && mcTrk->isSecondary())
+  {
+    return false;
+  }
+  if (!isStable(pdg))
+  {
+    return false;
+  }
+
+  if (mcTrk->isPrimary())
+  {
+    //
+    // Particle produced by generator
+    // Solution for K0L decayed by Pythia6
+    // ->
+    const auto ipm = getMother(mcTrk, pcontainer);
+    if (ipm != nullptr)
+    {
+      if (std::abs(ipm->GetPdgCode()) == 130)
+      {
+        return false;
+      }
+    }
+    // <-
+    // check for direct photon in parton shower
+    // ->
+    if (pdg == 22)
+    {
+      const auto ipd = getDaughter(mcTrk, pcontainer);
+      if (ipd && ipd->GetPdgCode() == 22)
+      {
+        return false;
+      }
+    }
+    // <-
+    return true;
+  }
+  else
+  {
+    //
+    // Particle produced during transport
+    //
+
+    auto *pm = getMother(mcTrk, pcontainer);
+    int mpdg = std::abs(pm->GetPdgCode());
+    // Check for Sigma0
+    if ((mpdg == 3212) && pm->isPrimary())
+    {
+      return true;
+    }
+
+    //
+    // Check if it comes from a pi0 decay
+    //
+    if ((mpdg == kPi0) && pm->isPrimary())
+    {
+      return true;
+    }
+
+    // Check if this is a heavy flavor decay product
+    int mfl = int(mpdg / std::pow(10, int(std::log10(mpdg))));
+    //
+    // Light hadron
+    if (mfl < 4)
+    {
+      return false;
+    }
+
+    //
+    // Heavy flavor hadron produced by generator
+    if (pm->isPrimary())
+    {
+      return true;
+    }
+
+    // To be sure that heavy flavor has not been produced in a secondary interaction
+    // Loop back to the generated mother
+    while (!pm->isPrimary())
+    {
+      pm = getMother(pm, pcontainer);
+    }
+    mpdg = std::abs(pm->GetPdgCode());
+    mfl = int(mpdg / std::pow(10, int(std::log10(mpdg))));
+
+    if (mfl < 4)
+    {
+      return false;
+    }
+    else
+    {
+      return true;
+    }
+  } 
 }
