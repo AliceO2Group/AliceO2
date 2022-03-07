@@ -14,8 +14,8 @@
 ///
 /// \author Gilles Grasseau, Subatech
 
-#ifndef ALICEO2_MCH_PADSPEM_H_
-#define ALICEO2_MCH_PADSPEM_H_
+#ifndef O2_MCH_PADSPEM_H_
+#define O2_MCH_PADSPEM_H_
 
 #include "MCHClustering/dataStructure.h"
 namespace o2
@@ -58,4 +58,4 @@ struct Pads {
 } // namespace mch
 } // namespace o2
 
-#endif // ALICEO2_MCH_PADSPEM_H_
+#endif // O2_MCH_PADSPEM_H_

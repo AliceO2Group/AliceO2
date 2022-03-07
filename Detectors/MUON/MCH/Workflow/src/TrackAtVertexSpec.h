@@ -14,8 +14,8 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#ifndef ALICEO2_MCH_TRACKATVERTEXSPEC_H_
-#define ALICEO2_MCH_TRACKATVERTEXSPEC_H_
+#ifndef O2_MCH_TRACKATVERTEXSPEC_H_
+#define O2_MCH_TRACKATVERTEXSPEC_H_
 
 #include "Framework/DataProcessorSpec.h"
 
@@ -29,4 +29,4 @@ o2::framework::DataProcessorSpec getTrackAtVertexSpec(const char* specName = "mc
 } // end namespace mch
 } // end namespace o2
 
-#endif // ALICEO2_MCH_TRACKATVERTEXSPEC_H_
+#endif // O2_MCH_TRACKATVERTEXSPEC_H_

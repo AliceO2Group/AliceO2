@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_MCH_MATHUTIL_H_
-#define ALICEO2_MCH_MATHUTIL_H_
+#ifndef O2_MCH_MATHUTIL_H_
+#define O2_MCH_MATHUTIL_H_
 
 #include <cmath>
 #include <climits>
@@ -421,4 +421,4 @@ void vectorPrintInt(const char* str, const int* x, int N);
 void vectorPrintShort(const char* str, const short* x, int N);
 void vectorPrint2Columns(const char* str, const double* x, const double* y, int N);
 
-#endif // ALICEO2_MCH_MATHUTIL_H
+#endif // O2_MCH_MATHUTIL_H
