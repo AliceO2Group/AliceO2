@@ -40,7 +40,7 @@ struct FT0DigParam : o2::conf::ConfigurableParamHelper<FT0DigParam> {
   float mCFDShiftPos = 1.47; //// shift positive part of CFD signal; distance between 0.3 of max amplitude  to max
   float mCFDdeadTime = 15.6; // ns
   float mCharge2amp = 0.22;
-  float mNoiseVar = 0.1;                               //noise level
+  float mNoiseVar = 0.1;                               // noise level
   float mNoisePeriod = 1 / 0.9;                        // GHz low frequency noise period;
   static constexpr short mTime_trg_gate = 153;         // #channels as in TCM as in Pilot beams
   static constexpr float mAmpThresholdForReco = 14;    // only channels with amplitude higher will participate in calibration and collision time

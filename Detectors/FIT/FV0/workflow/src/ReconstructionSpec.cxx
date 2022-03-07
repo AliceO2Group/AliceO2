@@ -15,6 +15,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"
+#include "Framework/CCDBParamSpec.h"
 #include "FV0Workflow/ReconstructionSpec.h"
 #include "DataFormatsFV0/Digit.h"
 #include "DataFormatsFV0/ChannelData.h"
@@ -39,7 +40,7 @@ void ReconstructionDPL::run(ProcessingContext& pc)
 {
   auto& mCCDBManager = o2::ccdb::BasicCCDBManager::instance();
   mCCDBManager.setURL(mCCDBpath);
-  LOG(debug) << " set-up CCDB " << mCCDBpath;
+  LOG(info) << " set-up CCDB " << mCCDBpath;
   mTimer.Start(false);
   mRecPoints.clear();
   auto digits = pc.inputs().get<gsl::span<o2::fv0::Digit>>("digits");
@@ -48,9 +49,7 @@ void ReconstructionDPL::run(ProcessingContext& pc)
   //std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>> labels;
   //const o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>* lblPtr = nullptr;
   if (mUseMC) {
-    //   labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>*>("labels");
-    // lblPtr = labels.get();
-    LOG(debug) << "Ignoring MC info";
+    LOG(info) << "Ignoring MC info";
   }
   auto caliboffsets = mCCDBManager.get<o2::fv0::FV0ChannelTimeCalibrationObject>("FV0/Calibration/ChannelTimeOffset");
   mReco.setChannelOffset(caliboffsets);

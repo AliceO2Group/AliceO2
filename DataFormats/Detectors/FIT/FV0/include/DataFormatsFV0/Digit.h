@@ -137,7 +137,7 @@ struct Digit {
   const o2::InteractionRecord& getIntRecord() const { return mIntRecord; };
   void setIntRecord(const o2::InteractionRecord& intRec) { mIntRecord = intRec; }
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
-  DetTrigInput makeTrgInput() const { return DetTrigInput{mIntRecord, mTriggers.getOrA(), mTriggers.getOrAIn(), mTriggers.getOrAOut(), mTriggers.getCen(), mTriggers.getSCen()}; } // TODO:MS:Add laser bit
+  DetTrigInput makeTrgInput() const { return DetTrigInput{mIntRecord, mTriggers.getOrA(), mTriggers.getOrAIn(), mTriggers.getOrAOut(), mTriggers.getCen(), mTriggers.getSCen()}; }
   void fillTrgInputVec(std::vector<DetTrigInput>& vecTrgInput) const
   {
     vecTrgInput.emplace_back(mIntRecord, mTriggers.getOrA(), mTriggers.getOrAIn(), mTriggers.getOrAOut(), mTriggers.getCen(), mTriggers.getSCen());
