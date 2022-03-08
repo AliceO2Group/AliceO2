@@ -140,6 +140,9 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
   /// \param tgl tracking parameter tgl
   GPUd() float getResidualCorrection(const StackID& stack, const ChargeType charge, const float z = 0, const float tgl = 0) const { return mCalibResidualdEdx.getCorrection(stack, charge, z, tgl); }
 
+  /// \return returns if the full gain map will be used during the calculation of the dE/dx to correct the cluster charge
+  GPUd() bool isUsageOfFullGainMap() const { return mApplyFullGainMap; }
+
   /// ========== FlatObject functionality, see FlatObject class for description  =================
 #if !defined(GPUCA_GPUCODE)
   /// cloning a container object (use newFlatBufferPtr=nullptr for simple copy)
@@ -230,10 +233,6 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
 
   /// \param applyFullGainMap if set to true the cluster charge will be corrected with the full gain map
   void setUsageOfFullGainMap(const bool applyFullGainMap) { mApplyFullGainMap = applyFullGainMap; }
-
-  /// \return returns if the full gain map will be used during the calculation of the dE/dx to correct the cluster charge
-  bool isUsageOfFullGainMap() const { return mApplyFullGainMap; }
-
 #endif // !GPUCA_GPUCODE
 
  private:
