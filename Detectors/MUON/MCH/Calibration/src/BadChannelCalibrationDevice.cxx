@@ -23,6 +23,7 @@
 #include "TObjString.h"
 #include <TBuffer3D.h>
 #include <limits>
+#include <numeric>
 
 namespace o2::mch::calibration
 {

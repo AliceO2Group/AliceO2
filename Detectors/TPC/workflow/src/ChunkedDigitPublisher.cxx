@@ -34,6 +34,7 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include <numeric>
 #include <TROOT.h>
 #ifdef NDEBUG
 #undef NDEBUG
