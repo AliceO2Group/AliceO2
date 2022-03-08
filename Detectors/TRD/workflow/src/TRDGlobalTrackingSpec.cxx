@@ -48,6 +48,7 @@
 
 #include <regex>
 #include <algorithm>
+#include <numeric>
 
 using namespace o2::framework;
 using namespace o2::gpu;
