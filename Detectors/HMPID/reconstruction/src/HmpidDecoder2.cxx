@@ -17,7 +17,7 @@
 /// \date 17/11/2020
 
 /* ------ HISTORY ---------
-*/
+ */
 
 #include "FairLogger.h" // for LOG
 #include "Framework/Logger.h"
@@ -530,7 +530,7 @@ void HmpidDecoder2::decodePage(uint32_t** streamBuf)
   bool isIt;
 
   int payIndex = 0;
-  while (payIndex < mNumberWordToRead) { //start the payload loop word by word
+  while (payIndex < mNumberWordToRead) { // start the payload loop word by word
     if (newOne == true) {
       wpprev = wp;
       if (!getWordFromStream(&wp)) { // end the stream
@@ -805,7 +805,7 @@ void HmpidDecoder2::setPad(HmpidEquipment* eq, int col, int dil, int ch, uint16_
 {
   eq->setPad(col, dil, ch, charge);
   mDigits.push_back(o2::hmpid::Digit(charge, eq->getEquipmentId(), col, dil, ch));
-  //std::cout << "DI " << mDigits.back() << " "<<col<<","<< dil<<","<< ch<<"="<< charge<<std::endl;
+  // std::cout << "DI " << mDigits.back() << " "<<col<<","<< dil<<","<< ch<<"="<< charge<<std::endl;
   return;
 }
 
@@ -849,7 +849,7 @@ void HmpidDecoder2::decodePageFast(uint32_t** streamBuf)
   int Column, Dilogic, Channel, Charge;
   int pwer;
   int payIndex = 0;
-  while (payIndex < mNumberWordToRead) { //start the payload loop word by word
+  while (payIndex < mNumberWordToRead) { // start the payload loop word by word
     wpprev = wp;
     wp = readWordFromStream();
     if (wp == wpprev) {
@@ -1228,13 +1228,13 @@ bool HmpidDecoder2::getWordFromStream(uint32_t* word)
 }
 
 /// Gets a Word from the stream.
-/// @returns Tthe word read
+/// @returns The word read
 uint32_t HmpidDecoder2::readWordFromStream()
 {
   mActualStreamPtr++;
   if (mActualStreamPtr > mEndStreamPtr) {
     throw TH_WRONGBUFFERDIM;
-  }  
+  }
   return (*mActualStreamPtr);
 }
 
@@ -1273,7 +1273,7 @@ bool HmpidDecoder2::setUpStream(void* Buffer, long BufferLen)
   }
 
   mActualStreamPtr = (uint32_t*)Buffer;                 // sets the pointer to the Buffer
-  mEndStreamPtr = ((uint32_t*)Buffer) + wordsBufferLen; //sets the End of buffer
+  mEndStreamPtr = ((uint32_t*)Buffer) + wordsBufferLen; // sets the End of buffer
   mStartStreamPtr = ((uint32_t*)Buffer);
   return (true);
 }
