@@ -49,15 +49,9 @@ if [ "0$FST_TMUX_KILLCHAINS" == "01" ]; then
 fi
 
 if [ "0$FST_TMUX_LOGPREFIX" != "0" ]; then
-  if [ "0$FST_TMUX_BATCH_MODE" == "01" ]; then
-    LOGCMD0=" &> ${FST_TMUX_LOGPREFIX}_0.log"
-    LOGCMD1=" &> ${FST_TMUX_LOGPREFIX}_1.log"
-    LOGCMD2=" &> ${FST_TMUX_LOGPREFIX}_2.log"
-  else
-    LOGCMD0=" |& tee ${FST_TMUX_LOGPREFIX}_0.log"
-    LOGCMD1=" |& tee ${FST_TMUX_LOGPREFIX}_1.log"
-    LOGCMD2=" |& tee ${FST_TMUX_LOGPREFIX}_2.log"
-  fi
+  LOGCMD0=" &> ${FST_TMUX_LOGPREFIX}_0.log"
+  LOGCMD1=" &> ${FST_TMUX_LOGPREFIX}_1.log"
+  LOGCMD2=" &> ${FST_TMUX_LOGPREFIX}_2.log"
 fi
 
 FST_SLEEP0=0
