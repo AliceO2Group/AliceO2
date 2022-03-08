@@ -64,6 +64,7 @@ o2_add_library(Framework
                        src/DeviceSpec.cxx
                        src/DeviceController.cxx
                        src/DeviceSpecHelpers.cxx
+                       src/DeviceStateHelpers.cxx
                        src/DPLMonitoringBackend.cxx
                        src/DriverControl.cxx
                        src/DriverClient.cxx
@@ -186,6 +187,7 @@ foreach(t
         DeviceMetricsInfo
         DeviceSpec
         DeviceSpecHelpers
+        DeviceStateHelpers
         Expressions
         ExternalFairMQDeviceProxy
         FairMQOptionsRetriever
