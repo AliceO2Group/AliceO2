@@ -95,7 +95,6 @@ namespace o2
 
       f->AddFrame(infoLabel, new TGLayoutHints(kLHintsNormal, 5, 10, 4, 0));
       this->mTimeFrameSlider = EventManagerFrame::makeSlider(f, "Time", 8 * width);
-
       makeSliderRangeEntries(f, 30, this->mTimeFrameSliderMin, "Display the minimum value of the time",
                              this->mTimeFrameSliderMax, "Display the maximum value of the time");
       this->mTimeFrameSlider->Connect("PositionChanged()", cls, this, "DoTimeFrameSliderChanged()");
