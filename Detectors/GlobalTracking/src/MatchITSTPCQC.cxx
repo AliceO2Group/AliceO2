@@ -189,7 +189,6 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       if (std::any_of(mSelectedTPCtracks.begin(), mSelectedTPCtracks.end(), [idxTrkTpc](int el) { return el == idxTrkTpc; })) {
         auto lbl = mRecoCont.getTrackMCLabel({(unsigned int)(itrk), GID::Source::ITSTPC});
         if (mMapLabels.find(lbl) == mMapLabels.end()) {
-          auto const* mcParticle = mcReader.getTrack(lbl);
           int source = lbl.getSourceID();
           int event = lbl.getEventID();
           const std::vector<o2::MCTrack>& pcontainer = mcReader.getTracks(source, event);
@@ -264,7 +263,6 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
           continue;
         }
         if (mMapTPCLabels.find(lbl) == mMapTPCLabels.end()) {
-          o2::MCTrack const* mcParticle = mcReader.getTrack(lbl);
           int source = lbl.getSourceID();
           int event = lbl.getEventID();
           const std::vector<o2::MCTrack>& pcontainer = mcReader.getTracks(source, event);
