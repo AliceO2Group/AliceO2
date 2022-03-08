@@ -1235,7 +1235,7 @@ uint32_t HmpidDecoder2::readWordFromStream()
   if (mActualStreamPtr > mEndStreamPtr) {
     throw TH_WRONGBUFFERDIM;
   }  
-  return(*mActualStreamPtr);
+  return (*mActualStreamPtr);
 }
 
 /// Setup the Input Stream with a Memory Pointer
