@@ -851,10 +851,7 @@ void HmpidDecoder2::decodePageFast(uint32_t** streamBuf)
   int payIndex = 0;
   while (payIndex < mNumberWordToRead) { //start the payload loop word by word
     wpprev = wp;
-    if (!getWordFromStream(&wp)) { // end the stream
-      //mPayloadTail = 0;
-      throw TH_BUFFEREMPTY;
-    }
+    wp = readWordFromStream();
     if (wp == wpprev) {
       if (mVerbose > 8) {
         std::cout << "HMPID Decoder2 : [DEBUG] "
@@ -871,9 +868,7 @@ void HmpidDecoder2::decodePageFast(uint32_t** streamBuf)
     payIndex += 1;
   }
   for (int i = 0; i < mPayloadTail; i++) { // move the pointer to skip the Payload Tail
-    if (!getWordFromStream(&wp)) {
-      throw TH_BUFFEREMPTY;
-    }
+    wp = readWordFromStream();
   }
   *streamBuf = mActualStreamPtr;
   return;
@@ -1230,6 +1225,17 @@ bool HmpidDecoder2::getWordFromStream(uint32_t* word)
     return (true);
   }
   return (false);
+}
+
+/// Gets a Word from the stream.
+/// @returns Tthe word read
+uint32_t HmpidDecoder2::readWordFromStream()
+{
+  mActualStreamPtr++;
+  if (mActualStreamPtr > mEndStreamPtr) {
+    throw TH_WRONGBUFFERDIM;
+  }  
+  return(*mActualStreamPtr);
 }
 
 /// Setup the Input Stream with a Memory Pointer
