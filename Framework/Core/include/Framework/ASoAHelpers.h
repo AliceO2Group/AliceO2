@@ -13,6 +13,7 @@
 #define O2_FRAMEWORK_ASOAHELPERS_H_
 
 #include "Framework/ASoA.h"
+#include "Framework/BinningPolicy.h"
 #include "Framework/RuntimeError.h"
 #include <arrow/table.h>
 
@@ -62,11 +63,14 @@ inline bool diffCategory(std::pair<uint64_t, uint64_t> const& a, std::pair<uint6
   return a.first >= b.first;
 }
 
-template <typename BinningPolicy, typename T2, typename ARRAY, typename T>
-std::vector<std::pair<uint64_t, uint64_t>> doGroupTable(const T& table, const BinningPolicy& binningPolicy, int minCatSize, const T2& outsider)
+// TODO: Store types, not labels in BinningPolicy, can be a framework::pack<...>
+// C::type would return uint64_t
+// Pass column type C, not the label, so you have the access to C::type and the rest out of the box
+// C::mColumnIterator.mColumn == arrow::ChunkedArray
+template <typename BinningPolicy, typename T>
+std::vector<std::pair<uint64_t, uint64_t>> groupTable(const T& table, const BinningPolicy& binningPolicy, int minCatSize, int outsider)
 {
-  auto columnIndex = table.asArrowTable()->schema()->GetFieldIndex(categoryColumnName);
-  auto chunkedArray = table.asArrowTable()->column(columnIndex);
+  arrow::Table* arrowTable = table.asArrowTable().get();
 
   uint64_t ind = 0;
   uint64_t selInd = 0;
@@ -82,24 +86,41 @@ std::vector<std::pair<uint64_t, uint64_t>> doGroupTable(const T& table, const Bi
     selectedRows = table.getSelectedRows(); // vector<int64_t>
   }
 
-  for (uint64_t ci = 0; ci < chunkedArray->num_chunks(); ++ci) {
-    auto chunk = chunkedArray->chunk(ci);
+  auto arrowColumns = binningPolicy.getArrowColumns(arrowTable);
+  auto chunksCount = arrowColumns[0]->num_chunks();
+  // TODO: Are such checks needed or can we safely assume chunks are always the same?
+  for (int i = 1; i < binningPolicy.mColumnsCount; i++) {
+    if (arrowColumns[i]->num_chunks() != chunksCount) {
+      throw o2::framework::runtime_error("Combinations: data size varies between selected columns");
+    }
+  }
+
+  for (uint64_t ci = 0; ci < chunksCount; ++ci) {
+    auto chunks = binningPolicy.getChunks(arrowTable, ci);
+    auto chunkLength = std::get<0>(chunks)->length();
+    // TODO: Are such checks needed or can we safely assume chunks are always the same?
+    for_<binningPolicy.mColumnsCount - 1>([&chunks, &chunkLength](auto i) {
+      if (std::get<i.value + 1>(chunks)->length() != chunkLength) {
+        throw o2::framework::runtime_error("Combinations: data size varies between selected columns");
+      }
+    });
+
     if constexpr (soa::is_soa_filtered_t<T>::value) {
-      if (selectedRows[ind] >= selInd + chunk->length()) {
-        selInd += chunk->length();
+      if (selectedRows[ind] >= selInd + chunkLength) {
+        selInd += chunkLength;
         continue; // Go to the next chunk, no value selected in this chunk
       }
     }
 
-    T2 const* data = std::static_pointer_cast<ARRAY>(chunk)->raw_values();
     uint64_t ai = 0;
-    while (ai < chunk->length()) {
+    while (ai < chunkLength) {
       if constexpr (soa::is_soa_filtered_t<T>::value) {
         ai += selectedRows[ind] - selInd;
         selInd = selectedRows[ind];
       }
 
-      int val = binningPolicy.getBin(data[ai]);
+      auto rowData = binningPolicy.getRowData(arrowTable, ci, ai);
+      int val = binningPolicy.getBin(rowData);
       if (val != outsider) {
         groupedIndices.emplace_back(val, ind);
       }
@@ -138,38 +159,6 @@ std::vector<std::pair<uint64_t, uint64_t>> doGroupTable(const T& table, const Bi
   }
 
   return groupedIndices;
-}
-
-// TODO: Make some other compile-time branching depending on columns in binningPolicy
-template <typename BinningPolicy, typename T, typename T2>
-auto groupTable(const T& table, const BinningPolicy& binningPolicy, int minCatSize, const T2& outsider)
-{
-  auto columnIndex = table.asArrowTable()->schema()->GetFieldIndex(categoryColumnName);
-  auto dataType = table.asArrowTable()->column(columnIndex)->type();
-  if (dataType->id() == arrow::Type::UINT64) {
-    return doGroupTable<BinningPolicy, uint64_t, arrow::UInt64Array>(table, categoryColumnName, minCatSize, outsider);
-  }
-  if (dataType->id() == arrow::Type::INT64) {
-    return doGroupTable<BinningPolicy, int64_t, arrow::Int64Array>(table, categoryColumnName, minCatSize, outsider);
-  }
-  if (dataType->id() == arrow::Type::UINT32) {
-    return doGroupTable<BinningPolicy, uint32_t, arrow::UInt32Array>(table, categoryColumnName, minCatSize, outsider);
-  }
-  if (dataType->id() == arrow::Type::INT32) {
-    return doGroupTable<BinningPolicy, int32_t, arrow::Int32Array>(table, categoryColumnName, minCatSize, outsider);
-  }
-  if (dataType->id() == arrow::Type::FLOAT) {
-    return doGroupTable<BinningPolicy, float, arrow::FloatArray>(table, categoryColumnName, minCatSize, outsider);
-  }
-  // FIXME: Should we support other types as well?
-  throw o2::framework::runtime_error("Combinations: category column must be of integral type");
-}
-
-template <typename T, typename T2, typename BinningPolicy>
-auto groupTable(const T& table, int minCatSize, const T2& outsider, const BinningPolicy& binningPolicy)
-{
-  for (int i = 0; i < table.size(); i++) {
-  }
 }
 
 // Synchronize categories so as groupedIndices contain elements only of categories common to all tables
@@ -430,7 +419,7 @@ struct CombinationsBlockIndexPolicyBase : public CombinationsIndexPolicyBase<Ts.
       setRanges(tables...);
     }
   }
-  CombinationsBlockIndexPolicyBase(const BinningPolicy& binningPolicy, int categoryNeighbours, const T& outsider, Ts&&... tables) : CombinationsIndexPolicyBase<Ts...>(std::forward<Ts>(tables)...), mSlidingWindowSize(categoryNeighbours + 1), mBinningPolicy(binningPolicy), mCategoryNeighbours(categoryNeigbours), mOutsider(outsider)
+  CombinationsBlockIndexPolicyBase(const BinningPolicy& binningPolicy, int categoryNeighbours, const T& outsider, Ts&&... tables) : CombinationsIndexPolicyBase<Ts...>(std::forward<Ts>(tables)...), mSlidingWindowSize(categoryNeighbours + 1), mBinningPolicy(binningPolicy), mCategoryNeighbours(categoryNeighbours), mOutsider(outsider)
   {
     if (!this->mIsEnd) {
       setRanges();
@@ -457,7 +446,7 @@ struct CombinationsBlockIndexPolicyBase : public CombinationsIndexPolicyBase<Ts.
     }
 
     int tableIndex = 0;
-    ((this->mGroupedIndices[tableIndex++] = groupTable(tables, this->mCategoryColumnName, 1, this->mOutsider)), ...);
+    ((this->mGroupedIndices[tableIndex++] = groupTable(tables, this->mBinningPolicy, 1, this->mOutsider)), ...);
 
     // Synchronize categories across tables
     syncCategories(this->mGroupedIndices);
@@ -801,7 +790,7 @@ struct CombinationsBlockSameIndexPolicyBase : public CombinationsIndexPolicyBase
       return;
     }
 
-    this->mGroupedIndices = groupTable(table, mBinningPolicy, minWindowSize, mOutsider);
+    this->mGroupedIndices = groupTable(table, mBinningPolicy, mMinWindowSize, mOutsider);
 
     if (this->mGroupedIndices.size() == 0) {
       this->mIsEnd = true;
@@ -938,8 +927,8 @@ template <typename BinningPolicy, typename T1, typename... Ts>
 struct CombinationsBlockStrictlyUpperSameIndexPolicy : public CombinationsBlockSameIndexPolicyBase<BinningPolicy, T1, Ts...> {
   using CombinationType = typename CombinationsBlockSameIndexPolicyBase<BinningPolicy, T1, Ts...>::CombinationType;
 
-  CombinationsBlockStrictlyUpperSameIndexPolicy(const BinningPolicy& binningPolicy binningPolicy, int categoryNeighbours, const T1& outsider) : CombinationsBlockSameIndexPolicyBase<BinningPolicy, T1, Ts...>(binningPolicy, categoryNeighbours, outsider, sizeof...(Ts)) {}
-  CombinationsBlockStrictlyUpperSameIndexPolicy(const BinningPolicy& binningPolicy binningPolicy, int categoryNeighbours, const T1& outsider, const Ts&... tables) : CombinationsBlockSameIndexPolicyBase<BinningPolicy, T1, Ts...>(binningPolicy, categoryNeighbours, outsider, sizeof...(Ts), tables...)
+  CombinationsBlockStrictlyUpperSameIndexPolicy(const BinningPolicy& binningPolicy, int categoryNeighbours, const T1& outsider) : CombinationsBlockSameIndexPolicyBase<BinningPolicy, T1, Ts...>(binningPolicy, categoryNeighbours, outsider, sizeof...(Ts)) {}
+  CombinationsBlockStrictlyUpperSameIndexPolicy(const BinningPolicy& binningPolicy, int categoryNeighbours, const T1& outsider, const Ts&... tables) : CombinationsBlockSameIndexPolicyBase<BinningPolicy, T1, Ts...>(binningPolicy, categoryNeighbours, outsider, sizeof...(Ts), tables...)
   {
     if (!this->mIsEnd) {
       setRanges();

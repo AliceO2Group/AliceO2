@@ -12,53 +12,83 @@
 #ifndef FRAMEWORK_BINNINGPOLICY_H
 #define FRAMEWORK_BINNINGPOLICY_H
 
+#include "Framework/HistogramSpec.h" // only for VARIABLE_WIDTH
 #include "Framework/ASoAHelpers.h"
 #include "Framework/Pack.h"
+#include "Framework/ArrowTypes.h"
 #include <optional>
 
 namespace o2::framework
 {
 
+template <typename... Cs>
 struct BinningPolicyBase {
-  BinningPolicyBase(std::vector<AxisSpec>& bins, bool ignoreOverflows = true) : mBins(bins), mIgnoreOverflows(ignoreOverflows) {}
+  BinningPolicyBase() = default;
+  BinningPolicyBase(std::array<std::vector<double>, sizeof...(Cs)> bins, bool ignoreOverflows = true) : mBins(bins), mIgnoreOverflows(ignoreOverflows) {}
 
-  template <typename... Bs>
-  int getBin(Bs...)
+  int getBin(std::tuple<typename Cs::type...> const&) const
   {
     return -1;
   }
 
-  std::vector<AxisSpec> mBins;
+  std::array<arrow::ChunkedArray*, sizeof...(Cs)> getArrowColumns(arrow::Table* table) const
+  {
+    // TODO: Do the columns need to be persistent (i.e., not dynamic, not index)?
+    return std::array<arrow::ChunkedArray*, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())...};
+  }
+
+  std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)> getChunks(arrow::Table* table, uint64_t ci) const
+  {
+    return std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci)...};
+  }
+
+  // FIXME: Rather not needed
+  std::tuple<typename Cs::type const*...> getChunkData(arrow::Table* table, uint64_t ci) const
+  {
+    return std::make_tuple(std::static_pointer_cast<o2::soa::arrow_array_for_t<typename Cs::type>>(o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci))->raw_values()...);
+  }
+
+  std::tuple<typename Cs::type...> getRowData(arrow::Table* table, uint64_t ci, uint64_t ai) const
+  {
+    return std::make_tuple(std::static_pointer_cast<o2::soa::arrow_array_for_t<typename Cs::type>>(o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci))->raw_values()[ai]...);
+  }
+
+  std::array<std::vector<double>, sizeof...(Cs)> mBins;
   bool mIgnoreOverflows;
+  static constexpr int mColumnsCount = sizeof...(Cs);
 };
 
-struct NoBinningPolicy {
+template <typename C>
+struct NoBinningPolicy : public BinningPolicyBase<C> {
   // Just take the bin number from the column data
-  NoBinningPolicy(std::string const& xColName) : BinningPolicyBase(AxisSpec{{}, nullopt, xColName}) {}
+  NoBinningPolicy() : BinningPolicyBase<C>() {}
 
-  template <typename B1>
-  int getBin(B1 val1)
+  int getBin(std::tuple<typename C::type> const& data) const
   {
-    return val1;
+    return std::get<0>(data);
   }
-}
 
-struct SingleBinningPolicy {
-  template <typename B1>
-  SingleBinningPolicy(std::string const& xColName, std::vector<B1> xBins, bool ignoreOverflows = true) : BinningPolicyBase({AxisSpec{xBins, std::nullopt, xColName}}, ignoreOverflows)
+  using BinningPolicyBase<C>::getArrowColumns;
+  using BinningPolicyBase<C>::getChunks;
+  using BinningPolicyBase<C>::getChunkData;
+  using BinningPolicyBase<C>::getRowData;
+};
+
+template <typename C>
+struct SingleBinningPolicy : public BinningPolicyBase<C> {
+  SingleBinningPolicy(std::vector<double>& xBins, bool ignoreOverflows = true) : BinningPolicyBase<C>({xBins}, ignoreOverflows)
   {
     expandConstantBinning(xBins);
   }
-  template <typename B1>
-  SingleBinningPolicy(std::string const& xColName, int xNBins, B1 xBinMin, B1 xBinMax, bool ignoreOverflows = true) : SingleBinningPolicy(xColName, {xNBins, xBinMin, xBinMax}, ignoreOverflows)
+  SingleBinningPolicy(int xNBins, typename C::type xBinMin, typename C::type xBinMax, bool ignoreOverflows = true) : SingleBinningPolicy<C>({xNBins, xBinMin, xBinMax}, ignoreOverflows)
   {
   }
 
-  template <typename B1>
-  int getBin(B1 val1)
+  int getBin(std::tuple<typename C::type> const& data) const
   {
-    auto xBins = this->mBins[0].binEdges;
-    if (mIgnoreOverflows) {
+    auto val1 = std::get<0>(data);
+    auto xBins = this->mBins[0];
+    if (this->mIgnoreOverflows) {
       // underflow
       if (val1 < xBins[1]) { // xBins[0] is a dummy VARIABLE_WIDTH
         return -1;
@@ -71,44 +101,45 @@ struct SingleBinningPolicy {
       }
     }
     // overflow
-    return ignoreOverflows ? -1 : xBins.size() - 1;
+    return this->mIgnoreOverflows ? -1 : xBins.size() - 1;
   }
 
+  using BinningPolicyBase<C>::getArrowColumns;
+  using BinningPolicyBase<C>::getChunks;
+  using BinningPolicyBase<C>::getChunkData;
+  using BinningPolicyBase<C>::getRowData;
+
  private:
-  template <typename B1, typename B2>
-  void expandConstantBinning(std::vector<B1> const& xBins, std::vector<B2> const& yBins)
+  void expandConstantBinning(std::vector<double> const& xBins)
   {
     if (xBins[0] != VARIABLE_WIDTH) {
       int nBins = static_cast<int>(xBins[0]);
-      this->mBins[0].binEdges.clear;
+      this->mBins[0].clear();
       this->mBins[0].resize(nBins + 2);
       this->mBins[0][0] = VARIABLE_WIDTH;
-      std::iota(std::begin(this->mBins[0].binEdges) + 1, std::end(this->mBins[0].binEdges), xBins[2] - xBins[1] / nBins);
+      std::iota(std::begin(this->mBins[0]) + 1, std::end(this->mBins[0]), xBins[2] - xBins[1] / nBins);
     }
   }
 };
 
-struct PairBinningPolicy {
-  PairBinningPolicy(std::string const& xColName, ConfigurableAxis& xBins, std::string const& yColName, ConfigurableAxis& yBins, bool ignoreOverflows = true) : BinningPolicyBase({AxisSpec{xBins, std::nullopt, xColName}, AxisSpec{yBins, std::nullopt, yColName}}, ignoreOverflows)
+template <typename C1, typename C2>
+struct PairBinningPolicy : public BinningPolicyBase<C1, C2> {
+  PairBinningPolicy(std::vector<double>& xBins, std::vector<double>& yBins, bool ignoreOverflows = true) : BinningPolicyBase<C1, C2>({xBins, yBins}, ignoreOverflows)
   {
     expandConstantBinning(xBins, yBins);
   }
-  template <typename B1, typename B2>
-  PairBinningPolicy(std::string const& xColName, std::vector<B1> const& xBins, std::string const& yColName, std::vector<B2> const& yBins, bool ignoreOverflows = true) : BinningPolicyBase({AxisSpec{xBins, std::nullopt, xColName}, AxisSpec{yBins, std::nullopt, yColName}}, ignoreOverflows)
-  {
-    expandConstantBinning(xBins, yBins);
-  }
-  template <typename B1, typename B2>
-  PairBinningPolicy(std::string const& xColName, int xNBins, B1 xBinMin, B1 xBinMax, std::string const& yColName, int yNBins, B2 yBinMin, B2 yBinMax, bool ignoreOverflows = true) : PairBinningPolicy(xColName, {xNBins, xBinMin, xBinMax}, yColName, {yNBins, yBinMin, yBinMax}, zColName, {zNBins, zBinMin, zBinMax}, ignoreOverflows)
+  PairBinningPolicy(int xNBins, typename C1::type xBinMin, typename C1::type xBinMax, int yNBins, typename C2::type yBinMin, typename C2::type yBinMax, bool ignoreOverflows = true) : PairBinningPolicy<C1, C2>({xNBins, xBinMin, xBinMax}, {yNBins, yBinMin, yBinMax}, ignoreOverflows)
   {
   }
 
-  template <typename B1, typename B2>
-  int getBin(B1 val1, B2 val2)
+  int getBin(std::tuple<typename C1::type, typename C2::type> const& data) const
   {
-    auto xBins = this->mBins[0].binEdges;
-    auto yBins = this->mBins[1].binEdges;
-    if (mIgnoreOverflows) {
+    auto val1 = std::get<0>(data);
+    auto val2 = std::get<1>(data);
+    auto xBins = this->mBins[0];
+    auto yBins = this->mBins[1];
+
+    if (this->mIgnoreOverflows) {
       // underflow
       if (val1 < xBins[1]) { // xBins[0] is a dummy VARIABLE_WIDTH
         return -1;
@@ -126,11 +157,11 @@ struct PairBinningPolicy {
           }
         }
         // overflow for yBins only
-        return mIgnoreOverflows ? -1 : (i - 1) + (yBins.size() - 1) * xBins.size();
+        return this->mIgnoreOverflows ? -1 : (i - 1) + (yBins.size() - 1) * xBins.size();
       }
     }
 
-    if (mIgnoreOverflows) {
+    if (this->mIgnoreOverflows) {
       // overflow
       return -1;
     }
@@ -146,45 +177,50 @@ struct PairBinningPolicy {
     return xBins.size() * yBins.size() - 1;
   }
 
+  using BinningPolicyBase<C1, C2>::getArrowColumns;
+  using BinningPolicyBase<C1, C2>::getChunks;
+  using BinningPolicyBase<C1, C2>::getChunkData;
+  using BinningPolicyBase<C1, C2>::getRowData;
+
  private:
-  template <typename B1, typename B2>
-  void expandConstantBinning(std::vector<B1> const& xBins, std::vector<B2> const& yBins)
+  void expandConstantBinning(std::vector<double> const& xBins, std::vector<double> const& yBins)
   {
     if (xBins[0] != VARIABLE_WIDTH) {
       int nBins = static_cast<int>(xBins[0]);
-      this->mBins[0].binEdges.clear;
+      this->mBins[0].clear();
       this->mBins[0].resize(nBins + 2);
       this->mBins[0][0] = VARIABLE_WIDTH;
-      std::iota(std::begin(this->mBins[0].binEdges) + 1, std::end(this->mBins[0].binEdges), xBins[2] - xBins[1] / nBins);
+      std::iota(std::begin(this->mBins[0]) + 1, std::end(this->mBins[0]), xBins[2] - xBins[1] / nBins);
     }
     if (yBins[0] != VARIABLE_WIDTH) {
       int nBins = static_cast<int>(yBins[0]);
-      this->mBins[1].binEdges.clear;
+      this->mBins[1].clear();
       this->mBins[1].resize(nBins + 2);
       this->mBins[1][0] = VARIABLE_WIDTH;
-      std::iota(std::begin(this->mBins[1].binEdges) + 1, std::end(this->mBins[1].binEdges), xBins[2] - xBins[1] / nBins);
+      std::iota(std::begin(this->mBins[1]) + 1, std::end(this->mBins[1]), xBins[2] - xBins[1] / nBins);
     }
   }
 };
 
-struct TripleBinningPolicy {
-  template <typename B1, typename B2, typename B3>
-  TripleBinningPolicy(std::string const& xColName, std::vector<B1> const& xBins, std::string const& yColName, std::vector<B2> const& yBins, std::string const& zColName, std::vector<B2> const& zBins, bool ignoreOverflows = true) : BinningPolicyBase({AxisSpec{xBins, std::nullopt, xColName}, AxisSpec{yBins, std::nullopt, yColName}, AxisSpec{zBins, std::nullopt, zColName}}, ignoreOverflows)
+template <typename C1, typename C2, typename C3>
+struct TripleBinningPolicy : public BinningPolicyBase<C1, C2, C3> {
+  TripleBinningPolicy(std::vector<double>& xBins, std::vector<double>& yBins, std::vector<double>& zBins, bool ignoreOverflows = true) : BinningPolicyBase<C1, C2, C3>({xBins, yBins, zBins}, ignoreOverflows)
   {
     expandConstantBinning(xBins, yBins, zBins);
   }
-  template <typename B1, typename B2, typename B3>
-  TripleBinningPolicy(std::string const& xColName, int xNBins, B1 xBinMin, B1 xBinMax, std::string const& yColName, int yNBins, B2 yBinMin, B2 yBinMax, std::string const& zColName, int zNBins, B3 zBinMin, B3 zBinMax, bool ignoreOverflows = true) : TripleBinningPolicy(xColName, {xNBins, xBinMin, xBinMax}, yColName, {yNBins, yBinMin, yBinMax}, zColName, {zNBins, zBinMin, zBinMax}, ignoreOverflows)
+  TripleBinningPolicy(int xNBins, typename C1::type xBinMin, typename C1::type xBinMax, int yNBins, typename C2::type yBinMin, typename C2::type yBinMax, int zNBins, typename C2::type zBinMin, typename C3::type zBinMax, bool ignoreOverflows = true) : TripleBinningPolicy<C1, C2, C3>({xNBins, xBinMin, xBinMax}, {yNBins, yBinMin, yBinMax}, {zNBins, zBinMin, zBinMax}, ignoreOverflows)
   {
   }
 
-  template <typename B1, typename B2, typename B3>
-  int getBin(B1 val1, B2 val2, B3 val3)
+  int getBin(std::tuple<typename C1::type, typename C2::type, typename C3::type> const& data) const
   {
-    auto xBins = std::get<0>(this->mBins);
-    auto yBins = std::get<1>(this->mBins);
-    auto zBins = std::get<2>(this->mBins);
-    if (mIgnoreOverflows) {
+    auto val1 = std::get<0>(data);
+    auto val2 = std::get<1>(data);
+    auto val3 = std::get<2>(data);
+    auto xBins = this->mBins[0];
+    auto yBins = this->mBins[1];
+    auto zBins = this->mBins[2];
+    if (this->mIgnoreOverflows) {
       // underflow
       if (val1 < xBins[1]) { // xBins[0] is a dummy VARIABLE_WIDTH
         return -1;
@@ -208,10 +244,10 @@ struct TripleBinningPolicy {
               }
             }
             // overflow for zBins only
-            return mIgnoreOverflows ? -1 : (i - 1) + (j - 1) * xBins.size() + (k - 1) * (xBins.size() + yBins.size);
+            return this->mIgnoreOverflows ? -1 : (i - 1) + (j - 1) * xBins.size() + (k - 1) * (xBins.size() + yBins.size);
           }
         }
-        if (mIgnoreOverflows) {
+        if (this->mIgnoreOverflows) {
           return -1;
         }
         // overflow for yBins only
@@ -225,7 +261,7 @@ struct TripleBinningPolicy {
       }
     }
 
-    if (mIgnoreOverflows) {
+    if (this->mIgnoreOverflows) {
       // overflow
       return -1;
     }
@@ -255,30 +291,34 @@ struct TripleBinningPolicy {
     return (i - 1) + (j - 1) * xBins.size() + (k - 1) * (xBins.size() + yBins.size());
   }
 
+  using BinningPolicyBase<C1, C2, C3>::getArrowColumns;
+  using BinningPolicyBase<C1, C2, C3>::getChunks;
+  using BinningPolicyBase<C1, C2, C3>::getChunkData;
+  using BinningPolicyBase<C1, C2, C3>::getRowData;
+
  private:
-  template <typename B1, typename B2, typename B3>
-  void expandConstantBinning(std::vector<B1> const& xBins, std::vector<B2> const& yBins)
+  void expandConstantBinning(std::vector<double> const& xBins, std::vector<double> const& yBins, std::vector<double> const& zBins)
   {
     if (xBins[0] != VARIABLE_WIDTH) {
       int nBins = static_cast<int>(xBins[0]);
-      this->mBins[0].binEdges.clear;
+      this->mBins[0].clear();
       this->mBins[0].resize(nBins + 2);
       this->mBins[0][0] = VARIABLE_WIDTH;
-      std::iota(std::begin(this->mBins[0].binEdges) + 1, std::end(this->mBins[0].binEdges), xBins[2] - xBins[1] / nBins);
+      std::iota(std::begin(this->mBins[0]) + 1, std::end(this->mBins[0]), xBins[2] - xBins[1] / nBins);
     }
     if (yBins[0] != VARIABLE_WIDTH) {
       int nBins = static_cast<int>(yBins[0]);
-      this->mBins[1].binEdges.clear;
+      this->mBins[1].clear();
       this->mBins[1].resize(nBins + 2);
       this->mBins[1][0] = VARIABLE_WIDTH;
-      std::iota(std::begin(this->mBins[1].binEdges) + 1, std::end(this->mBins[1].binEdges), yBins[2] - yBins[1] / nBins);
+      std::iota(std::begin(this->mBins[1]) + 1, std::end(this->mBins[1]), yBins[2] - yBins[1] / nBins);
     }
     if (zBins[0] != VARIABLE_WIDTH) {
       int nBins = static_cast<int>(zBins[0]);
-      this->mBins[2].binEdges.clear;
+      this->mBins[2].clear();
       this->mBins[2].resize(nBins + 2);
       this->mBins[2][0] = VARIABLE_WIDTH;
-      std::iota(std::begin(this->mBins[2].binEdges) + 1, std::end(this->mBins[2].binEdges), zBins[2] - zBins[1] / nBins);
+      std::iota(std::begin(this->mBins[2]) + 1, std::end(this->mBins[2]), zBins[2] - zBins[1] / nBins);
     }
   }
 };
