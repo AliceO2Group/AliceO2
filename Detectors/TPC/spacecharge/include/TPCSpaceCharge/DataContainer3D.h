@@ -98,9 +98,13 @@ struct DataContainer3D {
   /// write this object to a file
   /// \param outf object is written to this file
   /// \param name object is saved with this name
+  /// \tparam DataTOut format of the output container (can be used to store the container with a different precission than the current object)
+  template <typename DataTOut = DataT>
   int writeToFile(TFile& outf, const char* name = "data") const;
 
   /// set values from file
+  /// \tparam DataTOut format of the input container (can be used to load the container with a different precission than the current object)
+  template <typename DataTIn = DataT>
   bool initFromFile(TFile& inpf, const char* name = "data");
 
   /// get pointer to object from file
@@ -125,26 +129,32 @@ struct DataContainer3D {
 ///
 
 template <typename DataT>
+template <typename DataTOut>
 int DataContainer3D<DataT>::writeToFile(TFile& outf, const char* name) const
 {
   if (outf.IsZombie()) {
     LOGP(error, "Failed to write to file: {}", outf.GetName());
     return -1;
   }
-  outf.WriteObjectAny(this, DataContainer3D<DataT>::Class(), name);
+
+  DataContainer3D<DataTOut> containerTmp(mZVertices, mRVertices, mPhiVertices);
+  containerTmp.getData() = std::vector<DataTOut>(mData.begin(), mData.end());
+
+  outf.WriteObjectAny(&containerTmp, DataContainer3D<DataTOut>::Class(), name);
   return 0;
 }
 
 /// set values from file
 template <typename DataT>
+template <typename DataTIn>
 bool DataContainer3D<DataT>::initFromFile(TFile& inpf, const char* name)
 {
   if (inpf.IsZombie()) {
     LOGP(error, "Failed to read from file: {}", inpf.GetName());
     return false;
   }
-  DataContainer3D<DataT>* dataCont{nullptr};
-  dataCont = reinterpret_cast<DataContainer3D<DataT>*>(inpf.GetObjectChecked(name, DataContainer3D<DataT>::Class()));
+  DataContainer3D<DataTIn>* dataCont{nullptr};
+  dataCont = reinterpret_cast<DataContainer3D<DataTIn>*>(inpf.GetObjectChecked(name, DataContainer3D<DataTIn>::Class()));
 
   if (!dataCont) {
     LOGP(error, "Failed to load {} from {}", name, inpf.GetName());
@@ -158,7 +168,7 @@ bool DataContainer3D<DataT>::initFromFile(TFile& inpf, const char* name)
     return false;
   }
 
-  mData = dataCont->mData;
+  mData = std::vector<DataT>(dataCont->getData().begin(), dataCont->getData().end());
   delete dataCont;
   return true;
 }
