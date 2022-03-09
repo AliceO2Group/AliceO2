@@ -135,6 +135,14 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //! Momentum in z-direction in GeV/c
 
 DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, //! Momentum in Gev/c
                               0.5f * (ntan(PIQuarter - 0.5f * natan(aod::track::tgl)) + 1.f / ntan(PIQuarter - 0.5f * natan(aod::track::tgl))) / nabs(aod::track::signed1Pt));
+DECLARE_SOA_DYNAMIC_COLUMN(Rapidity, rapidity, //! Track rapidity, computed under the mass assumption given as input
+                           [](float signed1Pt, float tgl, float mass) -> float {
+                             auto pt = 1.f / std::abs(signed1Pt);
+                             auto pz = pt * tgl;
+                             auto p = 0.5f * (tan(PIQuarter - 0.5f * atan(tgl)) + 1.f / tan(PIQuarter - 0.5f * atan(tgl))) * pt;
+                             auto energy = sqrt(p * p + mass * mass);
+                             return 0.5f * log((energy + pz) / (energy - pz));
+                           });
 
 // TRACKPARCOV TABLE definition
 DECLARE_SOA_COLUMN(SigmaY, sigmaY, float);        //! Covariance matrix
@@ -274,6 +282,7 @@ DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK", //! On disk versi
                        track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Pz<track::Signed1Pt, track::Tgl>,
+                       track::Rapidity<track::Signed1Pt, track::Tgl>,
                        track::Sign<track::Signed1Pt>);
 
 DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACK", //! Basic track properties
