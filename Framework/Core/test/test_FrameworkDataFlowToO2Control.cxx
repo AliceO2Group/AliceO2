@@ -206,7 +206,7 @@ command:
     - "--shm-zero-segment"
     - "'false'"
     - "--stacktrace-on-signal"
-    - "'all'"
+    - "'simple'"
     - "--timeframes-rate-limit"
     - "'0'"
 )EXPECTED",
@@ -285,7 +285,7 @@ command:
     - "--shm-zero-segment"
     - "'false'"
     - "--stacktrace-on-signal"
-    - "'all'"
+    - "'simple'"
     - "--timeframes-rate-limit"
     - "'0'"
 )EXPECTED",
@@ -364,7 +364,7 @@ command:
     - "--shm-zero-segment"
     - "'false'"
     - "--stacktrace-on-signal"
-    - "'all'"
+    - "'simple'"
     - "--timeframes-rate-limit"
     - "'0'"
 )EXPECTED",
@@ -442,7 +442,7 @@ command:
     - "--shm-zero-segment"
     - "'false'"
     - "--stacktrace-on-signal"
-    - "'all'"
+    - "'simple'"
     - "--timeframes-rate-limit"
     - "'0'"
     - "--a-param"
