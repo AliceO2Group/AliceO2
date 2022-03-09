@@ -63,10 +63,6 @@ inline bool diffCategory(std::pair<uint64_t, uint64_t> const& a, std::pair<uint6
   return a.first >= b.first;
 }
 
-// TODO: Store types, not labels in BinningPolicy, can be a framework::pack<...>
-// C::type would return uint64_t
-// Pass column type C, not the label, so you have the access to C::type and the rest out of the box
-// C::mColumnIterator.mColumn == arrow::ChunkedArray
 template <typename BinningPolicy, typename T>
 std::vector<std::pair<uint64_t, uint64_t>> groupTable(const T& table, const BinningPolicy& binningPolicy, int minCatSize, int outsider)
 {
@@ -86,7 +82,7 @@ std::vector<std::pair<uint64_t, uint64_t>> groupTable(const T& table, const Binn
     selectedRows = table.getSelectedRows(); // vector<int64_t>
   }
 
-  auto arrowColumns = binningPolicy.getArrowColumns(arrowTable);
+  auto arrowColumns = binning_arrow_helpers::getArrowColumns(arrowTable);
   auto chunksCount = arrowColumns[0]->num_chunks();
   // TODO: Are such checks needed or can we safely assume chunks are always the same?
   for (int i = 1; i < binningPolicy.mColumnsCount; i++) {
@@ -96,7 +92,7 @@ std::vector<std::pair<uint64_t, uint64_t>> groupTable(const T& table, const Binn
   }
 
   for (uint64_t ci = 0; ci < chunksCount; ++ci) {
-    auto chunks = binningPolicy.getChunks(arrowTable, ci);
+    auto chunks = binning_arrow_helpers::getChunks(arrowTable, ci);
     auto chunkLength = std::get<0>(chunks)->length();
     // TODO: Are such checks needed or can we safely assume chunks are always the same?
     for_<binningPolicy.mColumnsCount - 1>([&chunks, &chunkLength](auto i) {
@@ -119,7 +115,7 @@ std::vector<std::pair<uint64_t, uint64_t>> groupTable(const T& table, const Binn
         selInd = selectedRows[ind];
       }
 
-      auto rowData = binningPolicy.getRowData(arrowTable, ci, ai);
+      auto rowData = binning_arrow_helpers::getRowData(arrowTable, ci, ai);
       int val = binningPolicy.getBin(rowData);
       if (val != outsider) {
         groupedIndices.emplace_back(val, ind);

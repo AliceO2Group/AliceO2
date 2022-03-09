@@ -21,6 +21,27 @@
 namespace o2::framework
 {
 
+namespace binning_arrow_helpers
+{
+std::array<arrow::ChunkedArray*, sizeof...(Cs)> getArrowColumns(arrow::Table* table) const
+{
+  static_assert(T::persistent::value, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
+  return std::array<arrow::ChunkedArray*, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())...};
+}
+
+std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)> getChunks(arrow::Table* table, uint64_t ci) const
+{
+  static_assert(T::persistent::value, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
+  return std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci)...};
+}
+
+std::tuple<typename Cs::type...> getRowData(arrow::Table* table, uint64_t ci, uint64_t ai) const
+{
+  static_assert(T::persistent::value, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
+  return std::make_tuple(std::static_pointer_cast<o2::soa::arrow_array_for_t<typename Cs::type>>(o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci))->raw_values()[ai]...);
+}
+} // namespace binning_arrow_helpers
+
 template <typename... Cs>
 struct BinningPolicyBase {
   BinningPolicyBase() = default;
@@ -29,28 +50,6 @@ struct BinningPolicyBase {
   int getBin(std::tuple<typename Cs::type...> const&) const
   {
     return -1;
-  }
-
-  std::array<arrow::ChunkedArray*, sizeof...(Cs)> getArrowColumns(arrow::Table* table) const
-  {
-    // TODO: Do the columns need to be persistent (i.e., not dynamic, not index)?
-    return std::array<arrow::ChunkedArray*, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())...};
-  }
-
-  std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)> getChunks(arrow::Table* table, uint64_t ci) const
-  {
-    return std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci)...};
-  }
-
-  // FIXME: Rather not needed
-  std::tuple<typename Cs::type const*...> getChunkData(arrow::Table* table, uint64_t ci) const
-  {
-    return std::make_tuple(std::static_pointer_cast<o2::soa::arrow_array_for_t<typename Cs::type>>(o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci))->raw_values()...);
-  }
-
-  std::tuple<typename Cs::type...> getRowData(arrow::Table* table, uint64_t ci, uint64_t ai) const
-  {
-    return std::make_tuple(std::static_pointer_cast<o2::soa::arrow_array_for_t<typename Cs::type>>(o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci))->raw_values()[ai]...);
   }
 
   std::array<std::vector<double>, sizeof...(Cs)> mBins;
