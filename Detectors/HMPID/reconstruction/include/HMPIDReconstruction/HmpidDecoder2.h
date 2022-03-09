@@ -172,7 +172,7 @@ class HmpidDecoder2
   bool getBlockFromStream(uint32_t** streamPtr, uint32_t Size);
   bool getHeaderFromStream(uint32_t** streamPtr);
   bool getWordFromStream(uint32_t* word);
-  uint32_t HmpidDecoder2::readWordFromStream();
+  uint32_t readWordFromStream();
   uint32_t* getActualStreamPtr()
   {
     return (mActualStreamPtr);
