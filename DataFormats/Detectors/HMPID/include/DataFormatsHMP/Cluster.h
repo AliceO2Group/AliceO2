@@ -91,8 +91,7 @@ class Cluster
   void setCh(int chamber) { mCh = chamber; }
   void setChi2(float chi2) { mChi2 = chi2; }
   void setStatus(int status) { mSt = status; }
-  void findClusterSize(int i, float* pSigmaCut);            // Find the clusterSize of deconvoluted clusters
-  //virtual void clear(const Option_t*) { delete[] & mDigs; } // ===> delete [] fParam; fParam=0; }
+  void findClusterSize(int i, float* pSigmaCut); // Find the clusterSize of deconvoluted clusters
 
   // public:
  protected:
