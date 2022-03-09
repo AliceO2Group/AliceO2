@@ -39,6 +39,7 @@ class LookUp
   int findGroupID(int nRow, int nCol, const unsigned char patt[ClusterPattern::MaxPatternBytes]) const;
   int getTopologiesOverThreshold() const { return mTopologiesOverThreshold; }
   void loadDictionary(std::string fileName);
+  void setDictionary(const TopologyDictionary* dict);
   bool isGroup(int id) const { return mDictionary.isGroup(id); }
   int size() const { return mDictionary.getSize(); }
   auto getPattern(int id) const { return mDictionary.getPattern(id); }
