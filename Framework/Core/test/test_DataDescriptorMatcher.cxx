@@ -636,4 +636,7 @@ BOOST_AUTO_TEST_CASE(DataQuery)
   BOOST_CHECK_EQUAL(result4[0].metadata[1].defaultValue.get<std::string>(), "GLO/Config/GRPECS");
   BOOST_CHECK_EQUAL(result4[0].metadata[2].name, "key3");
   BOOST_CHECK_EQUAL(result4[0].metadata[2].defaultValue.get<std::string>(), "value3");
+
+  // This is valid.
+  BOOST_CHECK_NO_THROW(DataDescriptorQueryBuilder::parse("x:TST/A1/0xccdb"));
 }

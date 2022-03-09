@@ -155,7 +155,7 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
         }
       } break;
       case IN_NUMBER: {
-        currentNumber = strtoll(cur, &endptr, 10);
+        currentNumber = strtoll(cur, &endptr, 0);
         if (endptr == cur) {
           error("Expected a number");
         }
