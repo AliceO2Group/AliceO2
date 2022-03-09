@@ -63,8 +63,11 @@ class DigitizerSpec final : public o2::base::BaseDPLDigitizer
   Bool_t mFinished = false;            ///< Flag for digitization finished
   Digitizer mDigitizer;                ///< Digitizer object
   o2::emcal::SDigitizer mSumDigitizer; ///< Summed digitizer
-  std::vector<Hit> mHits;              ///< Vector with input hits
   std::vector<TChain*> mSimChains;
+  std::vector<Hit> mHits;                ///< Vector with input hits
+  std::vector<Digit> mDigits;            ///< Vector with non-accumulated digits (per collision)
+  std::vector<Digit> mAccumulatedDigits; ///< Vector with accumulated digits (time frame)
+  dataformats::MCTruthContainer<MCLabel> mLabels;
 };
 
 /// \brief Create new digitizer spec
