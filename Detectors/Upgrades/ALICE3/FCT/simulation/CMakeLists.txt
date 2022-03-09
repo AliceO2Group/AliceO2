@@ -9,8 +9,15 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(Passive)
-add_subdirectory(TRK)
-add_subdirectory(FT3)
-add_subdirectory(FCT)
-add_subdirectory(AOD)
+o2_add_library(FCTSimulation
+               SOURCES src/FCTLayer.cxx
+                       src/Detector.cxx
+               PUBLIC_LINK_LIBRARIES O2::FCTBase
+                                     O2::ITSMFTSimulation
+                                     ROOT::Physics)
+
+o2_target_root_dictionary(FCTSimulation
+                          HEADERS include/FCTSimulation/Detector.h
+                                  include/FCTSimulation/FCTLayer.h)
+
+o2_data_file(COPY data  DESTINATION Detectors/FCT/simulation)

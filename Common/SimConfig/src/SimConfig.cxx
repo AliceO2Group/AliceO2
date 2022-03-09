@@ -69,7 +69,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
     activeModules.clear();
     for (int d = DetID::First; d <= DetID::Last; ++d) {
 #ifdef ENABLE_UPGRADES
-      if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3) {
+      if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3 && d != DetID::FCT) {
         activeModules.emplace_back(DetID::getName(d));
       }
 #else
