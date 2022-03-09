@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_DCS_TEST_WORKFLOW_RANDOM_DATA_GENERATOR_SPEC_H
-#define O2_DCS_TEST_WORKFLOW_RANDOM_DATA_GENERATOR_SPEC_H
+#ifndef O2_DCS_TEST_WORKFLOW_DATA_REPLAY_SPEC_H
+#define O2_DCS_TEST_WORKFLOW_DATA_REPLAY_SPEC_H
 
 #include "DetectorsDCS/DCSDataPointHint.h"
 #include "Framework/DataProcessorSpec.h"
@@ -22,8 +22,8 @@
 namespace o2::dcs::test
 {
 
-o2::framework::DataProcessorSpec getDCSRandomDataGeneratorSpec(std::vector<HintType> hints = {},
-                                                               const char* detName = "TOF");
+o2::framework::DataProcessorSpec getDCSDataReplaySpec(std::vector<HintType> hints = {},
+                                                      const char* detName = "TPC");
 
 } // namespace o2::dcs::test
 
