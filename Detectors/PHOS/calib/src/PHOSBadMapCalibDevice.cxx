@@ -346,7 +346,7 @@ void PHOSBadMapCalibDevice::checkBadMap()
     mUpdateCCDB = true;
     return;
   }
-  LOG(info) << "Retrieving current Pedestals from CCDB";
+  LOG(info) << "Retrieving current BadMap from CCDB";
   // Read current pedestals for comparison
   // Normally CCDB manager should get and own objects
   auto& ccdbManager = o2::ccdb::BasicCCDBManager::instance();
@@ -355,13 +355,13 @@ void PHOSBadMapCalibDevice::checkBadMap()
 
   std::string kind;
   if (mMode == 0) { // Occupancy
-    kind = "PHOS/BadMapOcc";
+    kind = "PHS/BadMapOcc";
   }
   if (mMode == 1) { // Chi2
-    kind = "PHOS/BadMapChi";
+    kind = "PHS/BadMapChi";
   }
   if (mMode == 2) { // Pedestals
-    kind = "PHOS/BadMapPed";
+    kind = "PHS/BadMapPed";
   }
 
   BadChannelsMap* badMap = ccdbManager.get<o2::phos::BadChannelsMap>(kind);
@@ -410,8 +410,8 @@ o2::framework::DataProcessorSpec o2::phos::getBadMapCalibSpec(int mode)
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginPHS, "CALIBDIFF", 0, o2::framework::Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_BadMap"}, o2::framework::Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_BadMap"}, o2::framework::Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHS_BadMap"}, o2::framework::Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHS_BadMap"}, o2::framework::Lifetime::Sporadic);
   return o2::framework::DataProcessorSpec{"BadMapCalibSpec",
                                           inputs,
                                           outputs,

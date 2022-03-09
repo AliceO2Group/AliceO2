@@ -32,6 +32,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"runbyrun", o2::framework::VariantType::Bool, false, {"do run by run correction calculation"}});
   workflowOptions.push_back(ConfigParamSpec{"energy", o2::framework::VariantType::Bool, false, {"collect tree for E calib"}});
   workflowOptions.push_back(ConfigParamSpec{"badmap", o2::framework::VariantType::Bool, false, {"do bad map calculation"}});
+
   //
   workflowOptions.push_back(ConfigParamSpec{"not-use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb phos calibration objects"}});
   workflowOptions.push_back(ConfigParamSpec{"forceupdate", o2::framework::VariantType::Bool, false, {"update ccdb even difference to previous object large"}});
@@ -77,11 +78,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   LOG(info) << "useCCDB = " << useCCDB;
   if (doPedestals) {
     LOG(info) << "pedestals ";
-    specs.emplace_back(o2::phos::getPedestalCalibSpec(useCCDB, forceUpdate, path));
+    specs.emplace_back(o2::phos::getPedestalCalibSpec(useCCDB, forceUpdate));
   } else {
     if (doHgLgRatio) {
       LOG(info) << "hglgratio ";
-      specs.emplace_back(o2::phos::getHGLGRatioCalibSpec(useCCDB, forceUpdate, path));
+      specs.emplace_back(o2::phos::getHGLGRatioCalibSpec(useCCDB, forceUpdate));
     }
   }
   if (doEnergy) {
