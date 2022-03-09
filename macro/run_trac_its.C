@@ -155,7 +155,6 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   o2::its::Vertexer vertexer(&vertexerTraits);
 
   int nTFs = itsClusters.GetEntries();
-
   for (int nt = 0; nt < nTFs; nt++) {
     LOGP(info, "Processing timeframe {}/{}", nt, nTFs);
     itsClusters.GetEntry(nt);
@@ -188,8 +187,22 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
         verticesL.emplace_back();
       }
       tracker.setVertices(verticesL);
+<<<<<<< HEAD
+<<<<<<< HEAD
       tracker.process(clSpan, it, dict, tracksITS, trackClIdx, rof);
       ++iRof;
+=======
+<<<<<<< HEAD
+      tracker.process(clSpan, it, &dict, tracksITS, trackClIdx, rof);
+=======
+      tracker.process(clSpan, it, dict, tracksITS, trackClIdx, rof);
+      ++iRof;
+>>>>>>> Fix cooked tracker macro
+>>>>>>> Fix cooked tracker macro
+=======
+      tracker.process(clSpan, it, dict, tracksITS, trackClIdx, rof);
+      ++iRof;
+>>>>>>> Fix ITS cluster dictionary handling in macros
     }
     outTree.Fill();
     if (mcTruth) {
