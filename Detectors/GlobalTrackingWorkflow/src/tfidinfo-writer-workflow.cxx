@@ -19,7 +19,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<ConfigParamSpec> options{
-    ConfigParamSpec{"dataspec", VariantType::String, "tfidinfo:FLP/DISTSUBTIMEFRAME/0xccdb", {"spec from which the TFIDInfo will be extracted"}},
+    ConfigParamSpec{"dataspec", VariantType::String, "tfidinfo:FLP/DISTSUBTIMEFRAME/52443", {"spec from which the TFIDInfo will be extracted"}},
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
