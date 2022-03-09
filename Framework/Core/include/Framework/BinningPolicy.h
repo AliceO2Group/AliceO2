@@ -95,13 +95,14 @@ struct SingleBinningPolicy : public BinningPolicyBase<C> {
       }
     }
 
-    for (unsigned int i = 2; i < xBins.size(); i++) {
+    unsigned int i = 2;
+    for (i; i < xBins.size(); i++) {
       if (val1 < xBins[i]) {
         return i - 1;
       }
     }
     // overflow
-    return this->mIgnoreOverflows ? -1 : xBins.size() - 1;
+    return this->mIgnoreOverflows ? -1 : i - 1;
   }
 
   using BinningPolicyBase<C>::getArrowColumns;
@@ -149,15 +150,16 @@ struct PairBinningPolicy : public BinningPolicyBase<C1, C2> {
       }
     }
 
-    for (unsigned int i = 2; i < xBins.size(); i++) {
+    unsigned int i = 2, j = 2;
+    for (i; i < xBins.size(); i++) {
       if (val1 < xBins[i]) {
-        for (unsigned int j = 2; j < yBins.size(); j++) {
+        for (j; j < yBins.size(); j++) {
           if (val2 < yBins[j]) {
-            return (i - 1) + (j - 1) * xBins.size();
+            return getBinAt(i, j);
           }
         }
         // overflow for yBins only
-        return this->mIgnoreOverflows ? -1 : (i - 1) + (yBins.size() - 1) * xBins.size();
+        return this->mIgnoreOverflows ? -1 : return getBinAt(i, j);
       }
     }
 
@@ -167,14 +169,14 @@ struct PairBinningPolicy : public BinningPolicyBase<C1, C2> {
     }
 
     // overflow for xBins only
-    for (int j = 1; j < yBins.size(); j++) {
+    for (j = 2; j < yBins.size(); j++) {
       if (val2 < yBins[j]) {
-        return (xBins.size() - 1) + (j - 1) * xBins.size();
+        return getBinAt(i, j);
       }
     }
 
     // overflow for both bins
-    return xBins.size() * yBins.size() - 1;
+    return getBinAt(i, j);
   }
 
   using BinningPolicyBase<C1, C2>::getArrowColumns;
@@ -183,6 +185,11 @@ struct PairBinningPolicy : public BinningPolicyBase<C1, C2> {
   using BinningPolicyBase<C1, C2>::getRowData;
 
  private:
+  int getBinAt(unsigned int i, unsigned int j)
+  {
+    return (i - 1) + (j - 1) * this->mBins[0].size();
+  }
+
   void expandConstantBinning(std::vector<double> const& xBins, std::vector<double> const& yBins)
   {
     if (xBins[0] != VARIABLE_WIDTH) {
@@ -240,11 +247,11 @@ struct TripleBinningPolicy : public BinningPolicyBase<C1, C2, C3> {
           if (val2 < yBins[j]) {
             for (k; k < zBins.size(); k++) {
               if (val3 < zBins[k]) {
-                return (i - 1) + (j - 1) * xBins.size() + (k - 1) * (xBins.size() + yBins.size());
+                return getBinAt(i, j, k);
               }
             }
             // overflow for zBins only
-            return this->mIgnoreOverflows ? -1 : (i - 1) + (j - 1) * xBins.size() + (k - 1) * (xBins.size() + yBins.size);
+            return this->mIgnoreOverflows ? -1 : getBinAt(i, j, k);
           }
         }
         if (this->mIgnoreOverflows) {
@@ -253,11 +260,11 @@ struct TripleBinningPolicy : public BinningPolicyBase<C1, C2, C3> {
         // overflow for yBins only
         for (k = 2; k < zBins.size(); k++) {
           if (val3 < zBins[k]) {
-            return (i - 1) + (j - 1) * xBins.size() + (k - 1) * (xBins.size + yBins.size());
+            return getBinAt(i, j, k);
           }
         }
         // overflow for zBins and yBins
-        return (i - 1) + (j - 1) * xBins.size() + (k - 1) * (xBins.size() + yBins.size());
+        return getBinAt(i, j, k);
       }
     }
 
@@ -271,24 +278,24 @@ struct TripleBinningPolicy : public BinningPolicyBase<C1, C2, C3> {
       if (val2 < yBins[j]) {
         for (k = 2; k < zBins.size(); k++) {
           if (val3 < zBins[k]) {
-            return (i - 1) + (j - 1) * xBins.size() + (k - 1) * (xBins.size() + yBins.size());
+            return getBinAt(i, j, k);
           }
         }
 
         // overflow for xBins and zBins
-        return (i - 1) + (j - 1) * xBins.size() + (k - 1) * (xBins.size() + yBins.size());
+        return getBinAt(i, j, k);
       }
     }
 
     // overflow for xBins and yBins
     for (k = 2; k < zBins.size(); k++) {
       if (val3 < zBins[k]) {
-        return (i - 1) + (j - 1) * xBins.size() + (k - 1) * (xBins.size() + yBins.size());
+        return getBinAt(i, j, k);
       }
     }
 
     // overflow for all bins
-    return (i - 1) + (j - 1) * xBins.size() + (k - 1) * (xBins.size() + yBins.size());
+    return getBinAt(i, j, k);
   }
 
   using BinningPolicyBase<C1, C2, C3>::getArrowColumns;
@@ -297,6 +304,11 @@ struct TripleBinningPolicy : public BinningPolicyBase<C1, C2, C3> {
   using BinningPolicyBase<C1, C2, C3>::getRowData;
 
  private:
+  int getBinAt(unsigned int i, unsigned int j, unsigned int k)
+  {
+    return (i - 1) + (j - 1) * this->mBins[0].size() + (k - 1) * (this->mBins[0].size() + this->mBins[1].size());
+  }
+
   void expandConstantBinning(std::vector<double> const& xBins, std::vector<double> const& yBins, std::vector<double> const& zBins)
   {
     if (xBins[0] != VARIABLE_WIDTH) {
