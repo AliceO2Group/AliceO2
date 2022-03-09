@@ -21,26 +21,29 @@
 namespace o2::framework
 {
 
-namespace binning_arrow_helpers
+namespace binning_helpers
 {
-std::array<arrow::ChunkedArray*, sizeof...(Cs)> getArrowColumns(arrow::Table* table) const
+template <typename... Cs>
+std::array<arrow::ChunkedArray*, sizeof...(Cs)> getArrowColumns(arrow::Table* table, pack<Cs...>)
 {
-  static_assert(T::persistent::value, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
+  static_assert(std::conjunction_v<typename Cs::persistent...>, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
   return std::array<arrow::ChunkedArray*, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())...};
 }
 
-std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)> getChunks(arrow::Table* table, uint64_t ci) const
+template <typename... Cs>
+std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)> getChunks(arrow::Table* table, pack<Cs...>, uint64_t ci)
 {
-  static_assert(T::persistent::value, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
+  static_assert(std::conjunction_v<typename Cs::persistent...>, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
   return std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci)...};
 }
 
-std::tuple<typename Cs::type...> getRowData(arrow::Table* table, uint64_t ci, uint64_t ai) const
+template <typename... Cs>
+std::tuple<typename Cs::type...> getRowData(arrow::Table* table, pack<Cs...>, uint64_t ci, uint64_t ai)
 {
-  static_assert(T::persistent::value, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
+  static_assert(std::conjunction_v<typename Cs::persistent...>, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
   return std::make_tuple(std::static_pointer_cast<o2::soa::arrow_array_for_t<typename Cs::type>>(o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci))->raw_values()[ai]...);
 }
-} // namespace binning_arrow_helpers
+} // namespace binning_helpers
 
 template <typename... Cs>
 struct BinningPolicyBase {
@@ -51,6 +54,8 @@ struct BinningPolicyBase {
   {
     return -1;
   }
+
+  pack<Cs...> getColumns() const { return pack<Cs...>{}; }
 
   std::array<std::vector<double>, sizeof...(Cs)> mBins;
   bool mIgnoreOverflows;
@@ -67,10 +72,7 @@ struct NoBinningPolicy : public BinningPolicyBase<C> {
     return std::get<0>(data);
   }
 
-  using BinningPolicyBase<C>::getArrowColumns;
-  using BinningPolicyBase<C>::getChunks;
-  using BinningPolicyBase<C>::getChunkData;
-  using BinningPolicyBase<C>::getRowData;
+  using BinningPolicyBase<C>::getColumns;
 };
 
 template <typename C>
@@ -104,10 +106,7 @@ struct SingleBinningPolicy : public BinningPolicyBase<C> {
     return this->mIgnoreOverflows ? -1 : i - 1;
   }
 
-  using BinningPolicyBase<C>::getArrowColumns;
-  using BinningPolicyBase<C>::getChunks;
-  using BinningPolicyBase<C>::getChunkData;
-  using BinningPolicyBase<C>::getRowData;
+  using BinningPolicyBase<C>::getColumns;
 
  private:
   void expandConstantBinning(std::vector<double> const& xBins)
@@ -158,7 +157,7 @@ struct PairBinningPolicy : public BinningPolicyBase<C1, C2> {
           }
         }
         // overflow for yBins only
-        return this->mIgnoreOverflows ? -1 : return getBinAt(i, j);
+        return this->mIgnoreOverflows ? -1 : getBinAt(i, j);
       }
     }
 
@@ -178,13 +177,10 @@ struct PairBinningPolicy : public BinningPolicyBase<C1, C2> {
     return getBinAt(i, j);
   }
 
-  using BinningPolicyBase<C1, C2>::getArrowColumns;
-  using BinningPolicyBase<C1, C2>::getChunks;
-  using BinningPolicyBase<C1, C2>::getChunkData;
-  using BinningPolicyBase<C1, C2>::getRowData;
+  using BinningPolicyBase<C1, C2>::getColumns;
 
  private:
-  int getBinAt(unsigned int i, unsigned int j)
+  int getBinAt(unsigned int i, unsigned int j) const
   {
     return (i - 1) + (j - 1) * this->mBins[0].size();
   }
@@ -297,13 +293,10 @@ struct TripleBinningPolicy : public BinningPolicyBase<C1, C2, C3> {
     return getBinAt(i, j, k);
   }
 
-  using BinningPolicyBase<C1, C2, C3>::getArrowColumns;
-  using BinningPolicyBase<C1, C2, C3>::getChunks;
-  using BinningPolicyBase<C1, C2, C3>::getChunkData;
-  using BinningPolicyBase<C1, C2, C3>::getRowData;
+  using BinningPolicyBase<C1, C2, C3>::getColumns;
 
  private:
-  int getBinAt(unsigned int i, unsigned int j, unsigned int k)
+  int getBinAt(unsigned int i, unsigned int j, unsigned int k) const
   {
     return (i - 1) + (j - 1) * this->mBins[0].size() + (k - 1) * (this->mBins[0].size() + this->mBins[1].size());
   }

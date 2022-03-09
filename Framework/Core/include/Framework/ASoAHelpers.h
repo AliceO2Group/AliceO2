@@ -82,7 +82,8 @@ std::vector<std::pair<uint64_t, uint64_t>> groupTable(const T& table, const Binn
     selectedRows = table.getSelectedRows(); // vector<int64_t>
   }
 
-  auto arrowColumns = binning_arrow_helpers::getArrowColumns(arrowTable);
+  auto binningColumns = binningPolicy.getColumns();
+  auto arrowColumns = o2::framework::binning_helpers::getArrowColumns(arrowTable, binningColumns);
   auto chunksCount = arrowColumns[0]->num_chunks();
   // TODO: Are such checks needed or can we safely assume chunks are always the same?
   for (int i = 1; i < binningPolicy.mColumnsCount; i++) {
@@ -92,7 +93,7 @@ std::vector<std::pair<uint64_t, uint64_t>> groupTable(const T& table, const Binn
   }
 
   for (uint64_t ci = 0; ci < chunksCount; ++ci) {
-    auto chunks = binning_arrow_helpers::getChunks(arrowTable, ci);
+    auto chunks = o2::framework::binning_helpers::getChunks(arrowTable, binningColumns, ci);
     auto chunkLength = std::get<0>(chunks)->length();
     // TODO: Are such checks needed or can we safely assume chunks are always the same?
     for_<binningPolicy.mColumnsCount - 1>([&chunks, &chunkLength](auto i) {
@@ -115,7 +116,7 @@ std::vector<std::pair<uint64_t, uint64_t>> groupTable(const T& table, const Binn
         selInd = selectedRows[ind];
       }
 
-      auto rowData = binning_arrow_helpers::getRowData(arrowTable, ci, ai);
+      auto rowData = o2::framework::binning_helpers::getRowData(arrowTable, binningColumns, ci, ai);
       int val = binningPolicy.getBin(rowData);
       if (val != outsider) {
         groupedIndices.emplace_back(val, ind);
