@@ -1162,6 +1162,35 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
     count++;
   }
   BOOST_CHECK_EQUAL(count, 0);
+
+  // Testing bin calculations for triple binning
+  // Grouped data:
+  // [3, 5] [0, 4], [7], [1, 6], [2], [8, 9]
+  // Assuming bins intervals: [ , )
+  std::vector<double> xBins{VARIABLE_WIDTH, 0, 7, 10};
+  TripleBinningPolicy<test::X, test::Y, test::FloatZ> tripleBinning{xBins, yBins, zBins, false};
+  TripleBinningPolicy<test::X, test::Y, test::FloatZ> tripleBinningNoOverflows{xBins, yBins, zBins, true};
+
+  // 2, 3, 5, 8, 9 have overflows in testA
+  std::vector<std::tuple<int32_t, int32_t>> expectedFullPairsTripleBinningNoOverflows{
+    {0, 0}, {0, 4}, {4, 0}, {4, 4}, {7, 7}, {1, 1}, {1, 6}, {6, 1}, {6, 6}};
+  count = 0;
+  for (auto& [c0, c1] : combinations(CombinationsBlockFullIndexPolicy(tripleBinningNoOverflows, 1, -1, testA, testA))) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedFullPairsTripleBinningNoOverflows[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedFullPairsTripleBinningNoOverflows[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedFullPairsTripleBinningNoOverflows.size());
+
+  std::vector<std::tuple<int32_t, int32_t>> expectedFullPairsTripleBinning{
+    {0, 0}, {0, 4}, {4, 0}, {4, 4}, {7, 7}, {1, 1}, {1, 6}, {6, 1}, {6, 6}, {3, 3}, {3, 5}, {5, 3}, {5, 5}, {2, 2}, {8, 8}, {8, 9}, {9, 8}, {9, 9}};
+  count = 0;
+  for (auto& [c0, c1] : combinations(CombinationsBlockFullIndexPolicy(tripleBinning, 2, -1, testA, testA))) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedFullPairsTripleBinning[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedFullPairsTripleBinning[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedFullPairsTripleBinning.size());
 }
 
 BOOST_AUTO_TEST_CASE(CombinationsHelpers)
