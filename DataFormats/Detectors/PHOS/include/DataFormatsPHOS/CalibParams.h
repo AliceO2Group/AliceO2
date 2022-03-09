@@ -39,6 +39,9 @@ class CalibParams
   /// \brief Constructor for tests
   CalibParams(int test);
 
+  /// \brief Constructor for tests
+  CalibParams(CalibParams& a) = default;
+
   CalibParams& operator=(const CalibParams& other) = default;
 
   /// \brief Destructor

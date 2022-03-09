@@ -18,8 +18,9 @@
 #include "PHOSSimulation/RawWriter.h"
 #include "PHOSBase/Mapping.h"
 #include "PHOSBase/PHOSSimParams.h"
-#include "CCDB/CcdbApi.h"
 #include "CommonUtils/NameConf.h"
+#include "CCDB/CcdbApi.h"
+#include "CCDB/BasicCCDBManager.h"
 
 using namespace o2::phos;
 
@@ -35,17 +36,16 @@ void RawWriter::init()
   short flp, crorc, link;
   for (auto iddl = 0; iddl < o2::phos::Mapping::NDDL; iddl++) {
     // For PHOS set
+    Mapping::ddlToCrorcLink(iddl, flp, crorc, link);
     std::string rawfilename = mOutputLocation;
     switch (mFileFor) {
       case FileFor_t::kFullDet:
         rawfilename += "/phos.raw";
         break;
       case FileFor_t::kCRORC:
-        Mapping::ddlToCrorcLink(iddl, flp, crorc, link);
         rawfilename += fmt::format("/PHS_alio2-cr1-flp{:d}_crorc{:d}.raw", flp, crorc);
         break;
       case FileFor_t::kLink:
-        Mapping::ddlToCrorcLink(iddl, flp, crorc, link);
         rawfilename += fmt::format("/PHS_alio2-cr1-flp{:d}_crorc{:d}_{:d}.raw", flp, crorc, link);
     }
     mRawWriter->registerLink(iddl, crorc, link, 0, rawfilename.data());
@@ -71,18 +71,14 @@ void RawWriter::digitsToRaw(gsl::span<o2::phos::Digit> digitsbranch, gsl::span<o
       LOG(info) << "[RawWriter] No reading calibration from ccdb requested, set default";
     } else {
       LOG(info) << "[RawWriter] getting calibration object from ccdb";
-      o2::ccdb::CcdbApi ccdb;
-      std::map<std::string, std::string> metadata;
-      ccdb.init(o2::base::NameConf::getCCDBServer()); // or http://localhost:8080 for a local installation
-      auto tr = triggerbranch.begin();
-      double eventTime = -1;
-      // if(tr!=triggerbranch.end()){
-      //   eventTime = (*tr).getBCData().getTimeNS() ;
-      // }
-      // mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, eventTime);
-      if (!mCalibParams) {
+      auto& ccdbManager = o2::ccdb::BasicCCDBManager::instance();
+      ccdbManager.setURL(o2::base::NameConf::getCCDBServer());
+      LOG(info) << " set-up CCDB " << o2::base::NameConf::getCCDBServer();
+
+      if (!ccdbManager.get<o2::phos::CalibParams>("PHS/Calib/CalibParams")) {
         LOG(fatal) << "[RawWriter] can not get calibration object from ccdb";
       }
+      mCalibParams = std::make_unique<CalibParams>(*(ccdbManager.get<o2::phos::CalibParams>("PHS/Calib/CalibParams")));
     }
   }
 
