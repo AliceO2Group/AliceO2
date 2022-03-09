@@ -604,10 +604,10 @@ void VertexerTraits::computeMCFiltering()
   }
 }
 
-VertexerTraits* createVertexerTraits()
-{
-  return new VertexerTraits;
-}
+// VertexerTraits* createVertexerTraits()
+// {
+//   return new VertexerTraits;
+// }
 
 } // namespace its
 } // namespace o2

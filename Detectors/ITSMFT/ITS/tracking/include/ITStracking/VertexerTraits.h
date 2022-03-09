@@ -80,7 +80,7 @@ inline lightVertex::lightVertex(float x, float y, float z, std::array<float, 6> 
 class VertexerTraits
 {
  public:
-  VertexerTraits();
+  VertexerTraits() = default;
   ~VertexerTraits() = default;
 
   GPUhd() static constexpr int4 getEmptyBinsRect()
@@ -229,7 +229,7 @@ inline unsigned char VertexerTraits::isDebugFlag(const VertexerDebug& flags) con
   return mDBGFlags & static_cast<unsigned int>(flags);
 }
 
-extern "C" VertexerTraits* createVertexerTraits();
+// extern "C" VertexerTraits* createVertexerTraits();
 
 } // namespace its
 } // namespace o2

@@ -165,28 +165,34 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
 
   o2::its::VertexerTraits vertexerTraits;
   o2::its::Vertexer vertexer(&vertexerTraits);
-  o2::its::ROframe event(0, 7);
 
   int nTFs = itsClusters.GetEntries();
+  int iRof = 0;
   for (int nt = 0; nt < nTFs; nt++) {
     itsClusters.GetEntry(nt);
-
+    o2::its::TimeFrame tf;
+    gsl::span<o2::itsmft::ROFRecord> rofspan(*rofs);
     gsl::span<const unsigned char> patt(patterns->data(), patterns->size());
     auto pattIt = patt.begin();
+    auto pattIt_vertexer = patt.begin();
+
     auto clSpan = gsl::span(cclusters->data(), cclusters->size());
+    tf.loadROFrameData(rofspan, clSpan, pattIt_vertexer, &dict, labels);
+    vertexer.clustersToVertices(mcTruth);
+
     for (auto& rof : *rofs) {
       auto it = pattIt;
-      o2::its::ioutils::loadROFrameData(rof, event, clSpan, pattIt, &dict, labels);
-      vertexer.clustersToVertices(event, mcTruth);
-      auto verticesL = vertexer.exportVertices();
 
       auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
       vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
-      vtxROF.setNEntries(verticesL.size());
-      for (const auto& vtx : verticesL) {
+      std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>> verticesL;
+      vtxROF.setNEntries(tf.getPrimaryVertices(iRof).size());
+
+      for (const auto& vtx : tf.getPrimaryVertices(iRof)) {
         vertices.push_back(vtx);
+        verticesL.push_back(vtx);
       }
-      if (verticesL.empty()) {
+      if (tf.getPrimaryVertices(iRof).empty()) {
         verticesL.emplace_back();
       }
       tracker.setVertices(verticesL);
@@ -202,6 +208,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
     rofs->clear();
     verticesPtr->clear();
     vertROFvecPtr->clear();
+    ++iRof;
   }
   outFile.cd();
   outTree.Write();

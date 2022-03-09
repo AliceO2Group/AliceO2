@@ -176,7 +176,7 @@ void run_trac_ca_its(bool cosmics = false,
     LOG(fatal) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
   }
 
-  o2::its::VertexerTraits* traits = o2::its::createVertexerTraits();
+  o2::its::VertexerTraits* traits = new o2::its::VertexerTraits();
   o2::its::Vertexer vertexer(traits);
 
   o2::its::VertexingParameters parameters;
@@ -232,42 +232,9 @@ void run_trac_ca_its(bool cosmics = false,
   tf.loadROFrameData(rofspan, clSpan, pattIt, &dict, labels);
   pattIt = patt.begin();
   int rofId{0};
-  for (auto& rof : *rofs) {
+  vertexer.adoptTimeFrame(tf);
+  vertexer.clustersToVertices(false);
 
-    auto start = std::chrono::high_resolution_clock::now();
-    auto it = pattIt;
-    o2::its::ioutils::loadROFrameData(rof, event, clSpan, pattIt, &dict, labels);
-
-    vertexer.initialiseVertexer(&event);
-    vertexer.findTracklets();
-    vertexer.validateTracklets();
-    vertexer.findVertices();
-    std::vector<Vertex> vertITS = vertexer.exportVertices();
-    rofId++;
-    tf.addPrimaryVertices(vertITS);
-    auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
-    vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
-    vtxROF.setNEntries(vertITS.size());
-    for (const auto& vtx : vertITS) {
-      vertices.push_back(vtx);
-    }
-
-    if (!vertITS.empty()) {
-      // Using only the first vertex in the list
-      std::cout << " - Reconstructed vertex: x = " << vertITS[0].getX() << " y = " << vertITS[0].getY() << " x = " << vertITS[0].getZ() << std::endl;
-      event.addPrimaryVertex(vertITS[0].getX(), vertITS[0].getY(), vertITS[0].getZ());
-    } else {
-      std::cout << " - Vertex not reconstructed, tracking skipped" << std::endl;
-    }
-    trackClIdx.clear();
-    tracksITS.clear();
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> diff_t{end - start};
-
-    ncls.push_back(event.getTotalClusters());
-    time.push_back(diff_t.count());
-    roFrameCounter++;
-  }
   tf.printVertices();
 
   o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU);
