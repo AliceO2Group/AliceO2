@@ -17,7 +17,6 @@
 #include <vector>
 #include <deque>
 #include <list>
-#include <optional>
 #include <gsl/span>
 #include "TRandom3.h"
 #include "DataFormatsEMCAL/Digit.h"
@@ -39,10 +38,11 @@ namespace emcal
 /// \date 16/02/2022
 
 struct DigitTimebin {
+  unsigned long mTimestamp = 0;
   bool mRecordMode = false;
   bool mEndWindow = false;
   bool mTriggerColl = false;
-  std::optional<o2::InteractionRecord> mInterRecord;
+  o2::InteractionRecord mInterRecord;
   std::shared_ptr<std::unordered_map<int, std::list<LabeledDigit>>> mDigitMap = std::make_shared<std::unordered_map<int, std::list<LabeledDigit>>>();
 };
 
@@ -90,6 +90,12 @@ class DigitsVectorStream
 
   const SimParam* mSimParam = nullptr;  ///< SimParam object
   TRandom3* mRandomGenerator = nullptr; ///< random number generator
+
+  unsigned int mLiveTime = 1500;       ///< EMCal live time (ns)
+  unsigned int mBusyTime = 35000;      ///< EMCal busy time (ns)
+  unsigned int mPreTriggerTime = 600;  ///< EMCal pre-trigger time (ns)
+  unsigned int mTimeWindowStart = 700; ///< The start of the time window (ns)
+  unsigned int mDelay = 700;           ///< Signal delay time (ns)
 
   ClassDefNV(DigitsVectorStream, 1);
 };

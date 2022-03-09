@@ -42,11 +42,13 @@ void DigitsWriteoutBuffer::init()
 
 void DigitsWriteoutBuffer::clear()
 {
-  for (auto& iNode : mTimedDigitsFuture) {
+  for (auto iNode : mTimedDigitsFuture) {
+    iNode.mTimestamp = 0;
     iNode.mRecordMode = false;
     iNode.mEndWindow = false;
     iNode.mDigitMap->clear();
   }
+
   mTimedDigitsPast.clear();
 }
 
@@ -64,14 +66,16 @@ void DigitsWriteoutBuffer::reserve()
 void DigitsWriteoutBuffer::addDigits(unsigned int towerID, std::vector<LabeledDigit> digList)
 {
 
-  for (int ientry = 0; ientry < digList.size(); ientry++) {
+  for (int ientry = 0; ientry < mBufferSize; ientry++) {
+
     auto& buffEntry = mTimedDigitsFuture[ientry];
-    auto& dig = digList.at(ientry);
+    auto dig = digList.at(ientry);
 
     auto towerEntry = buffEntry.mDigitMap->find(towerID);
     if (towerEntry == buffEntry.mDigitMap->end()) {
       towerEntry = buffEntry.mDigitMap->insert(std::pair<int, std::list<o2::emcal::LabeledDigit>>(towerID, std::list<o2::emcal::LabeledDigit>())).first;
     }
+    dig.setTimeStamp(dig.getTimeStamp() + ((mLastEventTime - mTriggerTime) / 100) * 100);
     towerEntry->second.push_back(dig);
   }
 }
@@ -107,57 +111,39 @@ void DigitsWriteoutBuffer::forwardMarker(o2::InteractionTimeRecord record)
 
     // If it is the end of the readout window write all the digits, labels, and trigger record into the streamer
     if (mTimedDigitsPast.back().mEndWindow) {
-
-      // Find the trigger time bin
-      o2::emcal::DigitTimebin triggerNode;
-      for (auto& digitTimebin : mTimedDigitsPast) {
-        if (digitTimebin.mTriggerColl) {
-          triggerNode = digitTimebin;
-          break;
-        }
-      }
-      mDigitStream.fill(getLastSamples(), triggerNode.mInterRecord.value());
+      mDigitStream.fill(getLastSamples(), mTimedDigitsPast.front().mInterRecord);
       clear();
     }
   }
 
   // If we have a trigger, all the time bins in the future buffer will be set to record mode
   // the last time bin will the end of the readout window since it will be mTriggerTime + 1500 ns
-  if ((eventTime - mTriggerTime) >= (mLiveTime + mBusyTime) || mFirstEvent) {
+  if ((eventTime - mTriggerTime) >= (mLiveTime + mBusyTime)) {
     mTriggerTime = eventTime;
     mTimedDigitsFuture.front().mTriggerColl = true;
     mTimedDigitsFuture.front().mInterRecord = record;
-    mTimedDigitsFuture[(mLiveTime / 100) - 1].mEndWindow = true;
+    mTimedDigitsFuture.back().mEndWindow = true;
 
-    long timeStamp = (eventTime / 100) * 100; /// This is to make the event time multiple of 100s
+    unsigned long timeStamp = int(eventTime / 100) * 100; /// This is to make the event time multiple of 100s
     for (auto& iNode : mTimedDigitsFuture) {
-      long diff = (timeStamp - eventTime);
-      if (TMath::Abs(diff) > mLiveTime) {
-        break;
-      }
       iNode.mRecordMode = true;
+      iNode.mTimestamp = timeStamp;
       timeStamp += 100;
     }
   }
 
   // If we have a pre-trigger collision, all the time bins in the future buffer will be set to record mode
   if ((eventTime - mTriggerTime) >= (mLiveTime + mBusyTime - mPreTriggerTime)) {
-    long timeStamp = (eventTime / 100) * 100; /// This is to make the event time multiple of 100s
+    unsigned long timeStamp = int(eventTime / 100) * 100; /// This is to make the event time multiple of 100s
     for (auto& iNode : mTimedDigitsFuture) {
-      long diff = (timeStamp - eventTime);
-      if (TMath::Abs(diff) > mLiveTime) {
-        break;
-      }
       iNode.mRecordMode = true;
+      iNode.mTimestamp = timeStamp;
       timeStamp += 100;
     }
   }
 
   mLastEventTime = eventTime;
   mPhase = ((int)(std::fmod(mLastEventTime, 100) / 25));
-  if (mFirstEvent) {
-    mFirstEvent = false;
-  }
 }
 
 /// For the end of the run only write all the remaining digits into the streamer
@@ -177,17 +163,7 @@ void DigitsWriteoutBuffer::finish()
     }
 
     if (mTimedDigitsPast.back().mEndWindow) {
-
-      // Find the trigger time bin
-      o2::emcal::DigitTimebin triggerNode;
-      for (auto& digitTimebin : mTimedDigitsPast) {
-        if (digitTimebin.mTriggerColl) {
-          triggerNode = digitTimebin;
-          break;
-        }
-      }
-
-      mDigitStream.fill(getLastSamples(), triggerNode.mInterRecord.value());
+      mDigitStream.fill(getLastSamples(), mTimedDigitsPast.front().mInterRecord);
       clear();
       break;
     }
@@ -196,20 +172,5 @@ void DigitsWriteoutBuffer::finish()
 
 gsl::span<o2::emcal::DigitTimebin> DigitsWriteoutBuffer::getLastSamples()
 {
-
-  // Setting the digit time
-  // If we have a delay the first digit in the buffer will start from mDelay,
-  // If we also have digits coming from pre-trigger collisions, also their time will start from mDelay,
-  // so, to shift the digits back to zero, their time has to be subtracted by the extra digits (with time [0,mDelay])
-  int timeStamp = mLiveTime - (mTimedDigitsPast.size() * 100);
-  for (auto& buffEntry : mTimedDigitsPast) {
-    for (auto& [tower, digitList] : *buffEntry.mDigitMap) {
-      for (auto& digit : digitList) {
-        digit.setTimeStamp(digit.getTimeStamp() + timeStamp);
-      }
-    }
-    timeStamp += 100;
-  }
-
   return gsl::span<o2::emcal::DigitTimebin>(&mTimedDigitsPast[0], mTimedDigitsPast.size());
 }
