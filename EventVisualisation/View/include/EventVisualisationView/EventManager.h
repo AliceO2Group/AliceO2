@@ -59,6 +59,7 @@ class EventManager final : public TEveEventManager, public TQObject
 
   DataSource* getDataSource() { return dataSource; }
   void setDataSource(DataSource* dataSource) { this->dataSource = dataSource; }
+  void CurrentEvent();
 
   void GotoEvent(Int_t /*event*/) override;
   void NextEvent() override;

@@ -33,6 +33,19 @@ class DataSource
 {
  protected:
   DataReader* mDataReader = nullptr;
+  float mTimeFrameMinTrackTime = 0;
+  float mTimeFrameMaxTrackTime = 0;
+
+ public:
+  float getTimeFrameMinTrackTime() const
+  {
+    return mTimeFrameMinTrackTime;
+  }
+
+  float getTimeFrameMaxTrackTime() const
+  {
+    return mTimeFrameMaxTrackTime;
+  }
 
  public:
   void registerReader(DataReader* reader) { this->mDataReader = reader; }
@@ -51,7 +64,7 @@ class DataSource
   /// Deleted assignemt operator
   void operator=(DataSource const&) = delete;
 
-  virtual std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> getVisualisationList(int no) = 0;
+  virtual std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> getVisualisationList(int no, float minTime, float maxTime, float range) = 0;
 
   virtual void changeDataFolder(std::string /*newFolder*/){};
   virtual void saveCurrentEvent(std::string /*targetFolder*/){};
