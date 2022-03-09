@@ -101,12 +101,15 @@ class TOFDPLClustererTask
   {
     if (matcher == ConcreteDataMatcher("TOF", "DiagnosticCal", 0)) {
       mUpdateCCDB = true;
+      return;
     }
     if (matcher == ConcreteDataMatcher("TOF", "LHCphaseCal", 0)) {
       mUpdateCCDB = true;
+      return;
     }
     if (matcher == ConcreteDataMatcher("TOF", "ChannelCalibCal", 0)) {
       mUpdateCCDB = true;
+      return;
     }
   }
   void run(framework::ProcessingContext& pc)

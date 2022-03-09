@@ -73,15 +73,19 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   {
     if (matcher == ConcreteDataMatcher("TOF", "DiagnosticCal", 0)) {
       mUpdateCCDB = true;
+      return;
     }
     if (matcher == ConcreteDataMatcher("TOF", "LHCphaseCal", 0)) {
       mUpdateCCDB = true;
+      return;
     }
     if (matcher == ConcreteDataMatcher("TOF", "ChannelCalibCal", 0)) {
       mUpdateCCDB = true;
+      return;
     }
     if (matcher == ConcreteDataMatcher("TOF", "StatusTOF", 0)) {
       mUpdateCCDB = true;
+      return;
     }
   }
 
@@ -180,10 +184,10 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     auto& eventParts = context->getEventParts();
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
-    o2::InteractionTimeRecord firstorbit(o2::InteractionRecord(0, o2::raw::HBFUtils::Instance().orbitFirstSampled), 0.0);
+    // o2::InteractionTimeRecord firstorbit(o2::InteractionRecord(0, o2::raw::HBFUtils::Instance().orbitFirstSampled), 0.0);
     for (int collID = 0; collID < timesview.size(); ++collID) {
       o2::InteractionTimeRecord orbit(timesview[collID]);
-      orbit += firstorbit;
+      // orbit += firstorbit;
       mDigitizer->setEventTime(orbit);
 
       // for each collision, loop over the constituents event and source IDs
