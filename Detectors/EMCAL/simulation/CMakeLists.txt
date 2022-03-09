@@ -11,7 +11,7 @@
 
 o2_add_library(EMCALSimulation
                SOURCES src/Detector.cxx src/Digitizer.cxx src/SDigitizer.cxx
-                       src/DigitsWriteoutBuffer.cxx src/DigitsVectorStream.cxx src/SpaceFrame.cxx src/SimParam.cxx
+                       src/DigitsWriteoutBuffer.cxx src/SpaceFrame.cxx src/SimParam.cxx
                        src/LabeledDigit.cxx src/RawWriter.cxx
                PUBLIC_LINK_LIBRARIES O2::EMCALBase O2::DetectorsBase O2::SimConfig O2::SimulationDataFormat O2::Headers O2::DetectorsRaw O2::EMCALReconstruction)
 
@@ -20,7 +20,6 @@ o2_target_root_dictionary(EMCALSimulation
                                   include/EMCALSimulation/Digitizer.h
                                   include/EMCALSimulation/SDigitizer.h
                                   include/EMCALSimulation/DigitsWriteoutBuffer.h
-                                  include/EMCALSimulation/DigitsVectorStream.h
                                   include/EMCALSimulation/RawWriter.h
                                   include/EMCALSimulation/SpaceFrame.h
                                   include/EMCALSimulation/SimParam.h
