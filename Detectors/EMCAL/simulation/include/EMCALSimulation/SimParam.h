@@ -90,7 +90,7 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
 
   // Timing
   Float_t mSignalDelay{700};          ///< Signal delay time (ns)
-  unsigned int mTimeWindowStart{400}; ///< The start of the time window
+  unsigned int mTimeWindowStart{700}; ///< The start of the time window
   Float_t mLiveTime{1500};            ///< EMCal live time (ns)
   Float_t mBusyTime{35000};           ///< EMCal busy time (ns)
   Float_t mPreTriggerTime{600};       ///< EMCal pre-trigger time (ns)

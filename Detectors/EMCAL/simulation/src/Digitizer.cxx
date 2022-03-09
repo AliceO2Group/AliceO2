@@ -48,11 +48,8 @@ void Digitizer::init()
   mSimulateTimeResponse = mSimParam->doSimulateTimeResponse();
 
   mDigits.init();
-  if ((mDelay - mTimeWindowStart) != 0) {
-    mDigits.setBufferSize(mDigits.getBufferSize() + (mDelay - mTimeWindowStart));
-    mDigits.reserve();
-  }
 
+  mTimeBinOffset.clear();
   mAmplitudeInTimeBins.clear();
 
   // for each phase create a template distribution
@@ -60,6 +57,8 @@ void Digitizer::init()
   RawResponse.SetParameters(1., 0., tau, N, 0.);
 
   for (int i = 0; i < 4; i++) {
+    int offset = 0;
+    mTimeBinOffset.push_back(offset);
 
     std::vector<double> sf;
     RawResponse.SetParameter(1, 0.25 * i);
@@ -152,7 +151,7 @@ void Digitizer::sampleSDigit(const Digit& sDigit)
     for (int j = 0; j < mAmplitudeInTimeBins.at(mPhase).size(); j++) {
 
       double val = energy * (mAmplitudeInTimeBins.at(mPhase).at(j));
-      double digitTime = (mEventTimeOffset + mDelay - mTimeWindowStart) * constants::EMCAL_TIMESAMPLE;
+      double digitTime = (mEventTimeOffset + j - mTimeBinOffset.at(mPhase) + mDelay - mTimeWindowStart) * constants::EMCAL_TIMESAMPLE;
 
       Digit digit(tower, val, digitTime);
       mTempDigitVector.push_back(digit);
