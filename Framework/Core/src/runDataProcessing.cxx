@@ -673,6 +673,17 @@ void handleChildrenStdio(uv_loop_t* loop,
   }
 }
 
+void handle_crash(int /* sig */)
+{
+  // dump demangled stack trace
+  void* array[1024];
+
+  int size = backtrace(array, 1024);
+
+  demangled_backtrace_symbols(array, size, STDERR_FILENO);
+  _exit(1);
+}
+
 /// This will start a new device by forking and executing a
 /// new child
 void spawnDevice(DeviceRef ref,
@@ -2214,6 +2225,15 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     };
 
   } else if (varmap.count("id")) {
+    // Add our own stacktrace dumping
+    if (varmap["stacktrace-on-signal"].as<std::string>() == "simple" && (getenv("O2_NO_CATCHALL_EXCEPTIONS") == nullptr || strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0") == 0)) {
+      LOGP(info, "Instrumenting crash signals");
+      signal(SIGSEGV, handle_crash);
+      signal(SIGABRT, handle_crash);
+      signal(SIGBUS, handle_crash);
+      signal(SIGILL, handle_crash);
+      signal(SIGFPE, handle_crash);
+    }
     // FIXME: for the time being each child needs to recalculate the workflow,
     //        so that it can understand what it needs to do. This is obviously
     //        a bad idea. In the future we should have the client be pushed
