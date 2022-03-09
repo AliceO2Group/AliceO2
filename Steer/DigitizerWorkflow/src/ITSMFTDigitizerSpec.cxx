@@ -73,16 +73,6 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
 
     // init digitizer
     mDigitizer.init();
-
-    // FIXME to be removed once switch to CCDBFetcher
-    if (o2::utils::Str::pathExists(mNoiseName)) {
-      TFile* f = TFile::Open(mNoiseName.data(), "old");
-      auto pnoise = (NoiseMap*)f->Get("ccdb_object");
-      mDigitizer.setNoiseMap(pnoise);
-      LOG(info) << mID.getName() << " loading noise/masked chips map file: " << mNoiseName;
-    } else {
-      LOG(info) << mID.getName() << " Noise file " << mNoiseName << " is absent, running without chips masking";
-    }
   }
 
   virtual void setDigitizationOptions() = 0;
@@ -209,18 +199,24 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     mFinished = true;
   }
 
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+  {
+    if (matcher == ConcreteDataMatcher(mOrigin, "NOISEMAP", 0)) {
+      LOG(info) << mID.getName() << " noise map updated";
+      mDigitizer.setNoiseMap((const o2::itsmft::NoiseMap*)obj);
+    }
+    if (matcher == ConcreteDataMatcher(mOrigin, "DEADMAP", 0)) {
+      LOG(info) << mID.getName() << " dead map updated";
+      mDigitizer.setDeadChannelsMap((const o2::itsmft::NoiseMap*)obj);
+    }
+  }
+
  protected:
   ITSMFTDPLDigitizerTask(bool mctruth = true) : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM), mWithMCTruth(mctruth) {}
   void updateTimeDependentParams(ProcessingContext& pc)
   {
-    // const auto* noisemap = pc.inputs().get<o2::itsmft::NoiseMap*>("noise").get(); // FIXME uncomment when we switch to CCDB Fetcher
-  }
-  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
-  {
-    if (matcher == ConcreteDataMatcher(mOrigin, "NOISEMAP", 0)) {
-      LOG(info) << mID.getName() << "  noise map updated";
-      mDigitizer.setNoiseMap((const o2::itsmft::NoiseMap*)obj);
-    }
+    pc.inputs().get<o2::itsmft::NoiseMap*>("noise");
+    pc.inputs().get<o2::itsmft::NoiseMap*>("dead");
   }
 
   bool mWithMCTruth = true;
@@ -239,7 +235,6 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
   std::vector<o2::itsmft::MC2ROFRecord> mMC2ROFRecordsAccum;
   std::vector<TChain*> mSimChains;
 
-  std::string mNoiseName{};                                                       // optional noise masks file path. FIXME to be removed once switch to CCDBFetcher
   int mFixMC2ROF = 0;                                                             // 1st entry in mc2rofRecordsAccum to be fixed for ROFRecordID
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::PRESENT; // readout mode
 };
@@ -281,10 +276,6 @@ class ITSDPLDigitizerTask : public ITSMFTDPLDigitizerTask
     digipar.setNSimSteps(dopt.nSimSteps);
     digipar.setIBVbb(dopt.IBVbb);
     digipar.setOBVbb(dopt.OBVbb);
-
-    // optional noise masks file path. FIXME to be removed once switch to CCDBFetcher
-    mNoiseName = dopt.noiseFilePath;
-    mNoiseName = o2::base::DetectorNameConf::getNoiseFileName(mID, mNoiseName, "root");
   }
 };
 
@@ -329,10 +320,6 @@ class MFTDPLDigitizerTask : public ITSMFTDPLDigitizerTask
     digipar.setTimeOffset(dopt.timeOffset);
     digipar.setNSimSteps(dopt.nSimSteps);
     digipar.setVbb(dopt.Vbb);
-
-    // optional noise masks file path. FIXME to be removed once switch to CCDBFetcher
-    mNoiseName = dopt.noiseFilePath;
-    mNoiseName = o2::base::DetectorNameConf::getNoiseFileName(mID, mNoiseName, "root");
   }
 };
 
@@ -363,14 +350,13 @@ DataProcessorSpec getITSDigitizerSpec(int channel, bool mctruth)
             << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::Instance();
   std::vector<InputSpec> inputs;
   inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
-  // inputs.emplace_back("noise", "ITS", "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/NoiseMap")); // FIXME to be deployed
+  inputs.emplace_back("noise", "ITS", "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/NoiseMap"));
+  inputs.emplace_back("dead", "ITS", "DEADMAP", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/DeadMap"));
   return DataProcessorSpec{(detStr + "Digitizer").c_str(),
                            inputs, makeOutChannels(detOrig, mctruth),
                            AlgorithmSpec{adaptFromTask<ITSDPLDigitizerTask>(mctruth)},
                            Options{
-                             {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}
-                             //  { "configKeyValues", VariantType::String, "", { parHelper.str().c_str() } }
-                           }};
+                             {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}}};
 }
 
 DataProcessorSpec getMFTDigitizerSpec(int channel, bool mctruth)
@@ -380,7 +366,8 @@ DataProcessorSpec getMFTDigitizerSpec(int channel, bool mctruth)
   std::stringstream parHelper;
   std::vector<InputSpec> inputs;
   inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
-  //  inputs.emplace_back("noise", "MFT", "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/NoiseMap")); // FIXME to be deployed
+  inputs.emplace_back("noise", "MFT", "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/NoiseMap"));
+  inputs.emplace_back("dead", "MFT", "DEADMAP", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/DeadMap"));
   parHelper << "Params as " << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
             << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::Instance()
             << " or " << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"

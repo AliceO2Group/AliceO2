@@ -38,6 +38,14 @@ void LookUp::loadDictionary(std::string fileName)
   mTopologiesOverThreshold = mDictionary.mCommonMap.size();
 }
 
+void LookUp::setDictionary(const TopologyDictionary* dict)
+{
+  if (dict) {
+    mDictionary = *dict;
+  }
+  mTopologiesOverThreshold = mDictionary.mCommonMap.size();
+}
+
 int LookUp::groupFinder(int nRow, int nCol)
 {
   int row_index = nRow / TopologyDictionary::RowClassSpan;

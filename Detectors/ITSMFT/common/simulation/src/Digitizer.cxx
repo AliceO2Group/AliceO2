@@ -340,7 +340,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
 
   xyzLocS.SetY(xyzLocS.Y() + resp->getDepthMax() - Segmentation::SensorLayerThickness / 2.);
 
-  // collect charge in evey pixel which might be affected by the hit
+  // collect charge in every pixel which might be affected by the hit
   for (int iStep = nSteps; iStep--;) {
     // Get the pixel ID
     Segmentation::localToDetector(xyzLocS.X(), xyzLocS.Z(), row, col);
@@ -391,6 +391,12 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
         continue;
       }
       uint16_t colIS = icol + colS;
+      if (mNoiseMap && mNoiseMap->isNoisy(chipID, rowIS, colIS)) {
+        continue;
+      }
+      if (mDeadChanMap && mDeadChanMap->isNoisy(chipID, rowIS, colIS)) {
+        continue;
+      }
       //
       registerDigits(chip, roFrameAbs, timeInROF, nFrames, rowIS, colIS, nEle, lbl);
     }
@@ -454,7 +460,17 @@ void Digitizer::registerDigits(ChipDigitsContainer& chip, uint32_t roFrame, floa
 void Digitizer::setNoiseMap(const o2::itsmft::NoiseMap* mp)
 {
   for (int i = 0; i < mNumberOfChips; i++) {
-    mChips[i].disable(mp->isFullChipMasked(i));
+    mChips[i].setNoiseMap(mp);
   }
   mNoiseMap = mp;
+}
+
+//________________________________________________________________________________
+void Digitizer::setDeadChannelsMap(const o2::itsmft::NoiseMap* mp)
+{
+  for (int i = 0; i < mNumberOfChips; i++) {
+    mChips[i].disable(mp->isFullChipMasked(i));
+    mChips[i].setDeadChanMap(mp);
+  }
+  mDeadChanMap = mp;
 }
