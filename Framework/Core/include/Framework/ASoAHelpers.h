@@ -525,7 +525,7 @@ struct CombinationsBlockUpperIndexPolicy : public CombinationsBlockIndexPolicyBa
   }
   void setTables(Ts&&... tables)
   {
-    CombinationsBlockIndexPolicyBase<T, Ts...>::setTables(std::forward<Ts>(tables)...);
+    CombinationsBlockIndexPolicyBase<BinningPolicy, T, Ts...>::setTables(std::forward<Ts>(tables)...);
     setRanges();
   }
 
@@ -638,7 +638,7 @@ struct CombinationsBlockFullIndexPolicy : public CombinationsBlockIndexPolicyBas
   }
   void setTables(Ts&&... tables)
   {
-    CombinationsBlockIndexPolicyBase<T, Ts...>::setTables(std::forward<Ts>(tables)...);
+    CombinationsBlockIndexPolicyBase<BinningPolicy, T, Ts...>::setTables(std::forward<Ts>(tables)...);
     setRanges();
   }
 
@@ -756,7 +756,7 @@ struct CombinationsBlockSameIndexPolicyBase : public CombinationsIndexPolicyBase
       setRanges(table);
     }
   }
-  CombinationsBlockSameIndexPolicyBase(const BinningPolicy& binningPolicy, int categoryNeighbours, const T1& outsider, int minWindowSize, T&& table, Ts&&... tables) : CombinationsIndexPolicyBase<BinningPolicy, T, Ts...>(std::forward<T>(table), std::forward<Ts>(tables)...), mSlidingWindowSize(categoryNeighbours + 1), mBinningPolicy(binningPolicy), mCategoryNeighbours(categoryNeighbours), mOutsider(outsider), mMinWindowSize(minWindowSize)
+  CombinationsBlockSameIndexPolicyBase(const BinningPolicy& binningPolicy, int categoryNeighbours, const T1& outsider, int minWindowSize, T&& table, Ts&&... tables) : CombinationsIndexPolicyBase<T, Ts...>(std::forward<T>(table), std::forward<Ts>(tables)...), mSlidingWindowSize(categoryNeighbours + 1), mBinningPolicy(binningPolicy), mCategoryNeighbours(categoryNeighbours), mOutsider(outsider), mMinWindowSize(minWindowSize)
   {
     if (!this->mIsEnd) {
       setRanges();
@@ -849,7 +849,7 @@ struct CombinationsBlockUpperSameIndexPolicy : public CombinationsBlockSameIndex
   }
   void setTables(Ts&&... tables)
   {
-    CombinationsBlockSameIndexPolicyBase<T1, Ts...>::setTables(std::forward<Ts>(tables)...);
+    CombinationsBlockSameIndexPolicyBase<BinningPolicy, T1, Ts...>::setTables(std::forward<Ts>(tables)...);
     setRanges();
   }
 
@@ -932,7 +932,7 @@ struct CombinationsBlockStrictlyUpperSameIndexPolicy : public CombinationsBlockS
     }
   }
 
-  CombinationsBlockStrictlyUpperSameIndexPolicy(const BinningPolicy& binningPolicy, int categoryNeighbours, const T1& outsider, Ts&&... tables) : CombinationsBlockSameIndexPolicyBase<BinningPolicy, T1, Ts...>(binningPolicy, categoryNeighbours, outsider, sizeof...(Ts) + 1, std::forward<Ts>(tables)...)
+  CombinationsBlockStrictlyUpperSameIndexPolicy(const BinningPolicy& binningPolicy, int categoryNeighbours, const T1& outsider, Ts&&... tables) : CombinationsBlockSameIndexPolicyBase<BinningPolicy, T1, Ts...>(binningPolicy, categoryNeighbours, outsider, sizeof...(Ts), std::forward<Ts>(tables)...)
   {
     if (!this->mIsEnd) {
       setRanges();
@@ -948,7 +948,7 @@ struct CombinationsBlockStrictlyUpperSameIndexPolicy : public CombinationsBlockS
   }
   void setTables(Ts&&... tables)
   {
-    CombinationsBlockSameIndexPolicyBase<T1, Ts...>::setTables(std::forward<Ts>(tables)...);
+    CombinationsBlockSameIndexPolicyBase<BinningPolicy, T1, Ts...>::setTables(std::forward<Ts>(tables)...);
     if (!this->mIsEnd) {
       setRanges();
     }
@@ -1049,7 +1049,7 @@ struct CombinationsBlockFullSameIndexPolicy : public CombinationsBlockSameIndexP
   }
   void setTables(Ts&&... tables)
   {
-    CombinationsBlockSameIndexPolicyBase<T1, Ts...>::setTables(std::forward<Ts>(tables)...);
+    CombinationsBlockSameIndexPolicyBase<BinningPolicy, T1, Ts...>::setTables(std::forward<Ts>(tables)...);
     setRanges();
   }
 
