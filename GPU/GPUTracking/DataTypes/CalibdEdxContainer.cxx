@@ -150,23 +150,6 @@ void CalibdEdxContainer::loadSplineTopologyCorrectionFromFile(std::string_view f
   loadTopologyCorrectionFromFile(fileName, mCalibTrackTopologySpline);
 }
 
-void CalibdEdxContainer::setPolTopologyCorrection(const CalibdEdxTrackTopologyPol& calibTrackTopology)
-{
-  setTopologyCorrection(calibTrackTopology, mCalibTrackTopologyPol);
-}
-
-void CalibdEdxContainer::setDefaultPolTopologyCorrection()
-{
-  CalibdEdxTrackTopologyPol calibTrackTopology;
-  calibTrackTopology.setDefaultPolynomials();
-  setTopologyCorrection(calibTrackTopology, mCalibTrackTopologyPol);
-}
-
-void CalibdEdxContainer::setSplineTopologyCorrection(const CalibdEdxTrackTopologySpline& calibTrackTopology)
-{
-  setTopologyCorrection(calibTrackTopology, mCalibTrackTopologySpline);
-}
-
 void CalibdEdxContainer::loadZeroSupresssionThresholdFromFile(std::string_view fileName, std::string_view objName, const float minCorrectionFactor, const float maxCorrectionFactor)
 {
   TFile fInp(fileName.data(), "READ");
@@ -180,18 +163,6 @@ void CalibdEdxContainer::setZeroSupresssionThreshold(const CalDet<float>& thresh
 {
   o2::gpu::TPCPadGainCalib thresholdMapTmp(thresholdMap, minCorrectionFactor, maxCorrectionFactor, false);
   mThresholdMap = thresholdMapTmp;
-}
-
-void CalibdEdxContainer::setGainMap(const CalDet<float>& gainMap, const float minGain, const float maxGain)
-{
-  o2::gpu::TPCPadGainCalib gainMapTmp(gainMap, minGain, maxGain, false);
-  mGainMap = gainMapTmp;
-}
-
-void CalibdEdxContainer::setGainMapResidual(const CalDet<float>& gainMapResidual, const float minResidualGain, const float maxResidualGain)
-{
-  o2::gpu::TPCPadGainCalib gainMapResTmp(gainMapResidual, minResidualGain, maxResidualGain, false);
-  mGainMapResidual = gainMapResTmp;
 }
 
 void CalibdEdxContainer::setDefaultZeroSupresssionThreshold()
@@ -209,15 +180,10 @@ void CalibdEdxContainer::setDefaultZeroSupresssionThreshold()
 template <class Type>
 void CalibdEdxContainer::loadTopologyCorrectionFromFile(std::string_view fileName, Type*& obj)
 {
+  FlatObject::startConstruction();
+
   // load and set-up container
   Type calibTrackTopologyTmp(fileName.data());
-  setTopologyCorrection(calibTrackTopologyTmp, obj);
-}
-
-template <class Type>
-void CalibdEdxContainer::setTopologyCorrection(const Type& calibTrackTopologyTmp, Type*& obj)
-{
-  FlatObject::startConstruction();
 
   // get size of the flat buffer of the splines
   const std::size_t flatbufferSize = calibTrackTopologyTmp.getFlatBufferSize();
