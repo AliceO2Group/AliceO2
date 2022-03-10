@@ -23,6 +23,13 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
+extern "C" char _binary_shaders_display_shaders_vertex_vert_spv_start[];
+extern "C" char _binary_shaders_display_shaders_vertex_vert_spv_end[];
+static size_t _binary_shaders_display_shaders_vertex_vert_spv_len = _binary_shaders_display_shaders_vertex_vert_spv_end - _binary_shaders_display_shaders_vertex_vert_spv_start;
+extern "C" char _binary_shaders_display_shaders_fragment_frag_spv_start[];
+extern "C" char _binary_shaders_display_shaders_fragment_frag_spv_end[];
+static size_t _binary_shaders_display_shaders_fragment_frag_spv_len = _binary_shaders_display_shaders_fragment_frag_spv_end - _binary_shaders_display_shaders_fragment_frag_spv_start;
+
 namespace GPUCA_NAMESPACE::gpu
 {
 struct QueueFamiyIndices {
@@ -204,29 +211,12 @@ static VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
   }
 }
 
-static std::vector<char> readShaderFile(const std::string& filename)
-{
-  std::vector<char> retVal;
-  FILE* f = fopen(filename.c_str(), "rb");
-  if (f == nullptr) {
-    throw std::runtime_error("Could not open shader spirv file");
-  }
-  fseek(f, 0, SEEK_END);
-  retVal.resize(ftell(f));
-  fseek(f, 0, SEEK_SET);
-  if (fread(retVal.data(), 1, retVal.size(), f) != retVal.size()) {
-    throw std::runtime_error("Error reading shader file");
-  }
-  fclose(f);
-  return retVal;
-}
-
-static VkShaderModule createShaderModule(const std::vector<char>& code, VkDevice device)
+static VkShaderModule createShaderModule(const char* code, size_t size, VkDevice device)
 {
   VkShaderModuleCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-  createInfo.codeSize = code.size();
-  createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+  createInfo.codeSize = size;
+  createInfo.pCode = reinterpret_cast<const uint32_t*>(code);
   VkShaderModule shaderModule;
   CHKERR(vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule));
   return shaderModule;
@@ -737,8 +727,8 @@ void GPUDisplayBackendVulkan::clearPipeline()
 
 void GPUDisplayBackendVulkan::createShaders()
 {
-  mModuleVertex = createShaderModule(readShaderFile("vertex.spv"), mDevice);
-  mModuleFragment = createShaderModule(readShaderFile("fragment.spv"), mDevice);
+  mModuleVertex = createShaderModule(_binary_shaders_display_shaders_vertex_vert_spv_start, _binary_shaders_display_shaders_vertex_vert_spv_len, mDevice);
+  mModuleFragment = createShaderModule(_binary_shaders_display_shaders_fragment_frag_spv_start, _binary_shaders_display_shaders_fragment_frag_spv_len, mDevice);
 }
 
 void GPUDisplayBackendVulkan::clearShaders()
