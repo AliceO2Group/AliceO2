@@ -28,6 +28,15 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
+extern "C" char _binary_shaders_display_shaders_vertex_vert_spv_start[];
+extern "C" char _binary_shaders_display_shaders_vertex_vert_spv_end[];
+static size_t _binary_shaders_display_shaders_vertex_vert_spv_len = _binary_shaders_display_shaders_vertex_vert_spv_end - _binary_shaders_display_shaders_vertex_vert_spv_start;
+extern "C" char _binary_shaders_display_shaders_fragment_frag_spv_start[];
+extern "C" char _binary_shaders_display_shaders_fragment_frag_spv_end[];
+static size_t _binary_shaders_display_shaders_fragment_frag_spv_len = _binary_shaders_display_shaders_fragment_frag_spv_end - _binary_shaders_display_shaders_fragment_frag_spv_start;
+#endif
+
 // Runtime minimum version defined in GPUDisplayFrontend.h, keep in sync!
 #if !defined(GL_VERSION_4_5) || GL_VERSION_4_5 != 1
 #ifdef GPUCA_STANDALONE
@@ -268,11 +277,22 @@ int GPUDisplayBackendOpenGL::InitBackend()
   setDepthBuffer();
   setQuality();
   CHKERR(mVertexShader = glCreateShader(GL_VERTEX_SHADER));
-  CHKERR(glShaderSource(mVertexShader, 1, &GPUDisplayShaders::vertexShader, nullptr));
-  CHKERR(glCompileShader(mVertexShader));
   CHKERR(mFragmentShader = glCreateShader(GL_FRAGMENT_SHADER));
-  CHKERR(glShaderSource(mFragmentShader, 1, &GPUDisplayShaders::fragmentShader, nullptr));
-  CHKERR(glCompileShader(mFragmentShader));
+#if defined(GL_VERSION_4_6) && GL_VERSION_4_6 == 1 && defined(GPUCA_BUILD_EVENT_DISPLAY_VULKAN)
+  if (getenv("USE_VULKAN_SHADERS") && atoi(getenv("USE_VULKAN_SHADERS"))) {
+    CHKERR(glShaderBinary(1, &mVertexShader, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB, _binary_shaders_display_shaders_vertex_vert_spv_start, _binary_shaders_display_shaders_vertex_vert_spv_len));
+    CHKERR(glSpecializeShader(mVertexShader, "main", 0, 0, 0));
+    CHKERR(glShaderBinary(1, &mFragmentShader, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB, _binary_shaders_display_shaders_fragment_frag_spv_start, _binary_shaders_display_shaders_fragment_frag_spv_len));
+    CHKERR(glSpecializeShader(mFragmentShader, "main", 0, 0, 0));
+    GPUInfo("Using Vulkan shaders");
+  } else
+#endif
+  {
+    CHKERR(glShaderSource(mVertexShader, 1, &GPUDisplayShaders::vertexShader, nullptr));
+    CHKERR(glCompileShader(mVertexShader));
+    CHKERR(glShaderSource(mFragmentShader, 1, &GPUDisplayShaders::fragmentShader, nullptr));
+    CHKERR(glCompileShader(mFragmentShader));
+  }
   CHKERR(mShaderProgram = glCreateProgram());
   CHKERR(glAttachShader(mShaderProgram, mVertexShader));
   CHKERR(glAttachShader(mShaderProgram, mFragmentShader));

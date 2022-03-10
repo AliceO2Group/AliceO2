@@ -14,7 +14,6 @@
 
 #ifndef GPUDISPLAYBACKENDOPENGL_H
 #define GPUDISPLAYBACKENDOPENGL_H
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
 
 #include "GPUDisplayBackend.h"
 
@@ -71,5 +70,4 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#endif
 #endif
