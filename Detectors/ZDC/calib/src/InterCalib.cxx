@@ -38,9 +38,9 @@ int InterCalib::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
               const gsl::span<const o2::zdc::ZDCTDCData>& TDCData,
               const gsl::span<const uint16_t>& Info)
 {
-  LOG(info) << "processing " << RecBC.size() << " b.c.";
+  LOG(info) << "o2::zdc::InterCalib processing " << RecBC.size() << " b.c.";
   o2::zdc::RecEventFlat ev;
-  ev.init(&RecBC, &Energy, &TDCData, &Info);
+  ev.init(RecBC, Energy, TDCData, Info);
   while (ev.next()) {
     /*
     int printed = 0;
