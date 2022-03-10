@@ -27,7 +27,9 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include <cstdlib>
 
 #include "utils/opencl_obtain_program.h"
-extern "C" char _makefile_opencl_program_Base_opencl_common_GPUReconstructionOCL_cl[];
+extern "C" char _binary_GPUReconstructionOCL1Code_bin_start[];
+extern "C" char _binary_GPUReconstructionOCL1Code_bin_end[];
+size_t _binary_GPUReconstructionOCL1Code_bin_len = _binary_GPUReconstructionOCL1Code_bin_end - _binary_GPUReconstructionOCL1Code_bin_start;
 
 GPUReconstruction* GPUReconstruction_Create_OCL(const GPUSettingsDeviceBackend& cfg) { return new GPUReconstructionOCL1(cfg); }
 
@@ -57,7 +59,7 @@ int GPUReconstructionOCL1Backend::GetOCLPrograms()
     return (1);
   }
 
-  if (_makefiles_opencl_obtain_program_helper(mInternals->context, count, mInternals->devices.get(), &mInternals->program, _makefile_opencl_program_Base_opencl_common_GPUReconstructionOCL_cl)) {
+  if (_makefiles_opencl_obtain_program_helper(mInternals->context, count, mInternals->devices.get(), &mInternals->program, _binary_GPUReconstructionOCL1Code_bin_start)) {
     clReleaseContext(mInternals->context);
     GPUError("Could not obtain OpenCL progarm");
     return 1;
