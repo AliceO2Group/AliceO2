@@ -58,6 +58,7 @@
 #include <TClonesArray.h>
 
 #include <algorithm>
+#include <numeric>
 #include <vector>
 #include <memory>
 #include <unordered_map>
