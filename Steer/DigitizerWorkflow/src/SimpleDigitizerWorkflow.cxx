@@ -668,7 +668,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::ctp::getDigitWriterSpec(false));
   }
   // GRP updater: must come after all detectors since requires their list
-  specs.emplace_back(o2::parameters::getGRPUpdaterSpec(grpfile, detList));
+  if (!configcontext.options().get<bool>("only-context")) {
+    specs.emplace_back(o2::parameters::getGRPUpdaterSpec(grpfile, detList));
+  }
 
   // The SIM Reader. NEEDS TO BE LAST
   specs[0] = o2::steer::getSimReaderSpec({firstOtherChannel, fanoutsize}, simPrefixes, tpcsectors);
