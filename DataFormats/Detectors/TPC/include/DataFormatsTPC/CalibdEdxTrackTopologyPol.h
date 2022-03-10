@@ -49,8 +49,6 @@ struct CalibdEdxTrackTopologyPolContainer {
   float mQTotMax{200};                                            ///< maximum qTot for which the correction is valid
   std::vector<float> mScalingFactorsqTot{};                       ///< value which is used to scale the result of the polynomial for qTot (can be used for normalization)
   std::vector<float> mScalingFactorsqMax{};                       ///< value which is used to scale the result of the polynomial for qMax (can be used for normalization)
-
-  ClassDefNV(CalibdEdxTrackTopologyPolContainer, 1);
 };
 #endif
 
@@ -208,9 +206,6 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   /// sets the polynomials from an input file. The names of the objects have to be the same as in the getPolyName() function
   /// \param inpf file where the polynomials are stored
   void setPolynomialsFromFile(TFile& inpf);
-
-  /// setting a default topology correction which just returns 1
-  void setDefaultPolynomials();
 #endif
 
   /// \return returns the name of the polynomial object which can be read in with the setPolynomialsFromFile() function

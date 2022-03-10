@@ -101,10 +101,6 @@ class MultivariatePolynomial : public FlatObject, public MultivariatePolynomialH
   /// \param params parameter for the coefficients
   void setParams(const float params[/*mNParams*/]) { std::copy(params, params + mNParams, mParams); }
 
-  /// \param parameter which will be set
-  /// \val value of the parameter
-  void setParam(const unsigned int param, const float val) { mParams[param] = val; };
-
   /// \return returns the paramaters of the coefficients
   const float* getParams() const { return mParams; }
 
