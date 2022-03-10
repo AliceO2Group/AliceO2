@@ -13,6 +13,24 @@ set(MODULE GPUTracking)
 
 #set(CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE} "${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}} -O0") # to uncomment if needed, tired of typing this...
 
+function(create_binary_resource RESOURCE OUTPUTFILE)
+  get_filename_component(input-file-abs ${RESOURCE} ABSOLUTE)
+  FILE(RELATIVE_PATH input-file-rel ${CMAKE_CURRENT_BINARY_DIR} ${input-file-abs})
+  add_custom_command(
+    OUTPUT ${OUTPUTFILE}
+    COMMAND ${CMAKE_LINKER} --relocatable --format binary --output ${OUTPUTFILE} ${input-file-rel}
+    DEPENDS ${RESOURCE}
+    COMMENT "Adding binary resource ${input-file-rel}"
+    VERBATIM
+  )
+endfunction(create_binary_resource)
+
+function(add_binary_resource TARGET RESOURCE)
+    set(output-file ${RESOURCE}.o)
+    create_binary_resource(${RESOURCE} ${output-file})
+    target_sources(${TARGET} PRIVATE ${output-file})
+endfunction(add_binary_resource)
+
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   if(ENABLE_CUDA OR ENABLE_OPENCL1 OR ENABLE_OPENCL2 OR ENABLE_HIP)
     cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
