@@ -185,7 +185,7 @@ inline bool Line::operator==(const Line& rhs) const
 {
   bool val;
   for (int i{0}; i < 3; ++i) {
-    val = this->originPoint[i] != rhs.originPoint[i] ? false : true;
+    val &= this->originPoint[i] == rhs.originPoint[i];
   }
   return val && this->isEmpty == rhs.isEmpty;
 }
@@ -194,7 +194,7 @@ inline bool Line::operator!=(const Line& rhs) const
 {
   bool val;
   for (int i{0}; i < 3; ++i) {
-    val = this->originPoint[i] != rhs.originPoint[i] ? true : false;
+    val &= this->originPoint[i] != rhs.originPoint[i];
   }
   return val || this->isEmpty != rhs.isEmpty;
 }
