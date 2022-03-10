@@ -59,16 +59,16 @@ constexpr float DefClusError2Row = DefClusErrorRow * DefClusErrorRow;
 constexpr float DefClusError2Col = DefClusErrorCol * DefClusErrorCol;
 
 void loadEventData(ROframe& events, gsl::span<const itsmft::CompClusterExt> clusters,
-                   gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
+                   gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary* dict,
                    const dataformats::MCTruthContainer<MCCompLabel>* clsLabels = nullptr);
 int loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& events, gsl::span<const itsmft::CompClusterExt> clusters,
-                    gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
+                    gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary* dict,
                     const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);
 
 void convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
                             gsl::span<const unsigned char>::iterator& pattIt,
                             std::vector<o2::BaseCluster<float>>& output,
-                            const itsmft::TopologyDictionary& dict);
+                            const itsmft::TopologyDictionary* dict);
 
 inline static const o2::itsmft::ChipMappingITS& getChipMappingITS()
 {

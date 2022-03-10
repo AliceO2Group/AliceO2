@@ -29,11 +29,13 @@
 #include "ReconstructionDataFormats/TrackCosmics.h"
 #include "ReconstructionDataFormats/TrackMCHMID.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 // FIXME: ideally, the data formats definition should be independent of the framework
 // collectData is using the input of ProcessingContext to extract the first valid
 // header and the TF orbit from it
 #include "Framework/ProcessingContext.h"
 #include "Framework/DataRefUtils.h"
+#include "Framework/CCDBParamSpec.h"
 
 using namespace o2::globaltracking;
 using namespace o2::framework;
@@ -214,6 +216,7 @@ void DataRequest::requestITSClusters(bool mc)
   addInput({"clusITS", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe});
   addInput({"clusITSPatt", "ITS", "PATTERNS", 0, Lifetime::Timeframe});
   addInput({"clusITSROF", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe});
+  addInput({"cldictITS", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary")});
   if (mc) {
     addInput({"clusITSMC", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe});
   }
@@ -225,6 +228,7 @@ void DataRequest::requestMFTClusters(bool mc)
   addInput({"clusMFT", "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe});
   addInput({"clusMFTPatt", "MFT", "PATTERNS", 0, Lifetime::Timeframe});
   addInput({"clusMFTROF", "MFT", "CLUSTERSROF", 0, Lifetime::Timeframe});
+  addInput({"cldictMFT", "MFT", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/ClusterDictionary")});
   if (mc) {
     addInput({"clusMFTMC", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe});
   }
@@ -858,6 +862,7 @@ void RecoContainer::addITSClusters(ProcessingContext& pc, bool mc)
   commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("clusITSROF"), CLUSREFS);
   commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("clusITS"), CLUSTERS);
   commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<unsigned char>>("clusITSPatt"), PATTERNS);
+  pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldictITS"); // just to trigger the finaliseCCDB
   if (mc) {
     mcITSClusters = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("clusITSMC");
   }
@@ -869,6 +874,7 @@ void RecoContainer::addMFTClusters(ProcessingContext& pc, bool mc)
   commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("clusMFTROF"), CLUSREFS);
   commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("clusMFT"), CLUSTERS);
   commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<unsigned char>>("clusMFTPatt"), PATTERNS);
+  pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldictMFT"); // just to trigger the finaliseCCDB
 }
 
 //__________________________________________________________

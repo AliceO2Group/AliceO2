@@ -43,6 +43,7 @@
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "Framework/Task.h"
+#include "Framework/CCDBParamSpec.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 
 using namespace o2::framework;
@@ -63,8 +64,10 @@ class CosmicsMatchingSpec : public Task
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
+  void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
+  void updateTimeDependentParams(ProcessingContext& pc);
   std::shared_ptr<DataRequest> mDataRequest;
   o2::globaltracking::MatchCosmics mMatching; // matching engine
   bool mUseMC = true;
@@ -86,17 +89,7 @@ void CosmicsMatchingSpec::init(InitContext& ic)
     mMatching.setITSROFrameLengthMUS(alpParams.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS * 1e-3); // ITS ROFrame duration in \mus
   }
   //
-  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(DetID::ITS, dictPath);
-  auto itsDict = std::make_unique<o2::itsmft::TopologyDictionary>();
-  if (o2::utils::Str::pathExists(dictFile)) {
-    itsDict->readFromFile(dictFile);
-    LOG(info) << "Matching is running with a provided ITS dictionary: " << dictFile;
-  } else {
-    LOG(info) << "Dictionary " << dictFile << " is absent, Matching expects ITS cluster patterns";
-  }
   o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2GRot) | o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L));
-  mMatching.setITSDict(itsDict);
 
   // this is a hack to provide Mat.LUT from the local file, in general will be provided by the framework from CCDB
   std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
@@ -119,7 +112,7 @@ void CosmicsMatchingSpec::init(InitContext& ic)
 void CosmicsMatchingSpec::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
-
+  updateTimeDependentParams(pc);
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
 
@@ -129,6 +122,19 @@ void CosmicsMatchingSpec::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"GLO", "COSMICTRC_MC", 0, Lifetime::Timeframe}, mMatching.getCosmicTracksLbl());
   }
   mTimer.Stop();
+}
+
+void CosmicsMatchingSpec::updateTimeDependentParams(ProcessingContext& pc)
+{
+  // pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // called by the RecoContainer
+}
+
+void CosmicsMatchingSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated";
+    mMatching.setITSDict((const o2::itsmft::TopologyDictionary*)obj);
+  }
 }
 
 void CosmicsMatchingSpec::endOfStream(EndOfStreamContext& ec)
@@ -145,6 +151,7 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
 
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestClusters(src, false); // no MC labels for clusters needed for refit only
+  dataRequest->inputs.emplace_back("cldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
 
   outputs.emplace_back("GLO", "COSMICTRC", 0, Lifetime::Timeframe);
   if (useMC) {

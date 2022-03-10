@@ -53,7 +53,7 @@ void from_json(const nlohmann::json& j, MemoryParameters& par);
 void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
                                      gsl::span<const unsigned char>::iterator& pattIt,
                                      std::vector<o2::BaseCluster<float>>& output,
-                                     const itsmft::TopologyDictionary& dict)
+                                     const itsmft::TopologyDictionary* dict)
 {
   GeometryTGeo* geom = GeometryTGeo::Instance();
   bool applyMisalignment = false;
@@ -71,17 +71,17 @@ void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clu
     o2::math_utils::Point3D<float> locXYZ;
     float sigmaY2 = ioutils::DefClusError2Row, sigmaZ2 = ioutils::DefClusError2Col, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
-      sigmaY2 = dict.getErr2X(pattID);
-      sigmaZ2 = dict.getErr2Z(pattID);
-      if (!dict.isGroup(pattID)) {
-        locXYZ = dict.getClusterCoordinates(c);
+      sigmaY2 = dict->getErr2X(pattID);
+      sigmaZ2 = dict->getErr2Z(pattID);
+      if (!dict->isGroup(pattID)) {
+        locXYZ = dict->getClusterCoordinates(c);
       } else {
         o2::itsmft::ClusterPattern patt(pattIt);
-        locXYZ = dict.getClusterCoordinates(c, patt);
+        locXYZ = dict->getClusterCoordinates(c, patt);
       }
     } else {
       o2::itsmft::ClusterPattern patt(pattIt);
-      locXYZ = dict.getClusterCoordinates(c, patt, false);
+      locXYZ = dict->getClusterCoordinates(c, patt, false);
     }
     auto& cl3d = output.emplace_back(c.getSensorID(), geom->getMatrixT2L(c.getSensorID()) ^ locXYZ); // local --> tracking
     if (applyMisalignment) {
@@ -94,7 +94,7 @@ void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clu
 }
 
 void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters,
-                            gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
+                            gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary* dict,
                             const dataformats::MCTruthContainer<MCCompLabel>* clsLabels)
 {
   if (clusters.empty()) {
@@ -113,17 +113,17 @@ void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterE
     o2::math_utils::Point3D<float> locXYZ;
     float sigmaY2 = ioutils::DefClusError2Row, sigmaZ2 = ioutils::DefClusError2Col, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
-      sigmaY2 = dict.getErr2X(pattID);
-      sigmaZ2 = dict.getErr2Z(pattID);
-      if (!dict.isGroup(pattID)) {
-        locXYZ = dict.getClusterCoordinates(c);
+      sigmaY2 = dict->getErr2X(pattID);
+      sigmaZ2 = dict->getErr2Z(pattID);
+      if (!dict->isGroup(pattID)) {
+        locXYZ = dict->getClusterCoordinates(c);
       } else {
         o2::itsmft::ClusterPattern patt(pattIt);
-        locXYZ = dict.getClusterCoordinates(c, patt);
+        locXYZ = dict->getClusterCoordinates(c, patt);
       }
     } else {
       o2::itsmft::ClusterPattern patt(pattIt);
-      locXYZ = dict.getClusterCoordinates(c, patt, false);
+      locXYZ = dict->getClusterCoordinates(c, patt, false);
     }
     auto sensorID = c.getSensorID();
     // Inverse transformation to the local --> tracking
@@ -146,7 +146,7 @@ void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterE
   }
 }
 
-int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
+int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary* dict,
                              const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   event.clear();
@@ -163,17 +163,17 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
     o2::math_utils::Point3D<float> locXYZ;
     float sigmaY2 = ioutils::DefClusError2Row, sigmaZ2 = ioutils::DefClusError2Col, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
-      sigmaY2 = dict.getErr2X(pattID);
-      sigmaZ2 = dict.getErr2Z(pattID);
-      if (!dict.isGroup(pattID)) {
-        locXYZ = dict.getClusterCoordinates(c);
+      sigmaY2 = dict->getErr2X(pattID);
+      sigmaZ2 = dict->getErr2Z(pattID);
+      if (!dict->isGroup(pattID)) {
+        locXYZ = dict->getClusterCoordinates(c);
       } else {
         o2::itsmft::ClusterPattern patt(pattIt);
-        locXYZ = dict.getClusterCoordinates(c, patt);
+        locXYZ = dict->getClusterCoordinates(c, patt);
       }
     } else {
       o2::itsmft::ClusterPattern patt(pattIt);
-      locXYZ = dict.getClusterCoordinates(c, patt, false);
+      locXYZ = dict->getClusterCoordinates(c, patt, false);
     }
     auto sensorID = c.getSensorID();
     // Inverse transformation to the local --> tracking

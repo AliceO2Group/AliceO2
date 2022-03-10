@@ -534,7 +534,7 @@ bool MatchTPCITS::prepareITSData()
   const auto patterns = inp.getITSClustersPatterns();
   auto pattIt = patterns.begin();
   mITSClustersArray.reserve(clusITS.size());
-  o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, *mITSDict);
+  o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mITSDict);
   if (mMCTruthON) {
     mITSClsLabels = inp.mcITSClusters.get();
   }

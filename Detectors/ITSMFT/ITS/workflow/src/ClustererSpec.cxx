@@ -136,7 +136,7 @@ void ClustererDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated" << (!mUseClusterDictionary ? " but its using is disabled" : "");
     if (mUseClusterDictionary) {
-      mClusterer->setDictionary((const TopologyDictionary*)obj);
+      mClusterer->setDictionary((const o2::itsmft::TopologyDictionary*)obj);
     }
   }
 }

@@ -18,9 +18,11 @@
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 
 #include "Framework/Logger.h"
 #include "Framework/ControlService.h"
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DeviceSpec.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
@@ -41,20 +43,11 @@ void NoiseCalibratorSpec::init(InitContext& ic)
 
   mCalibrator = std::make_unique<CALIBRATOR>(onepix, probT);
   mCalibrator->setNThreads(ic.options().get<int>("nthreads"));
-
-  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
-  if (o2::utils::Str::pathExists(dictFile)) {
-    mCalibrator->loadDictionary(dictFile);
-    LOG(info) << "ITS NoiseCalibrator is running with a provided dictionary: " << dictFile;
-  } else {
-    LOG(info) << "Dictionary " << dictFile
-              << " is absent, ITS NoiseCalibrator expects cluster patterns for all clusters";
-  }
 }
 
 void NoiseCalibratorSpec::run(ProcessingContext& pc)
 {
+  updateTimeDependentParams(pc);
   mTimer.Start(false);
   static bool firstCall = true;
   if (firstCall) {
@@ -121,6 +114,23 @@ void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
   sendOutput(ec.outputs());
 }
 
+///_______________________________________
+void NoiseCalibratorSpec::updateTimeDependentParams(ProcessingContext& pc)
+{
+  if (mUseClusters) {
+    pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+  }
+}
+
+///_______________________________________
+void NoiseCalibratorSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated";
+    mCalibrator->setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
+  }
+}
+
 DataProcessorSpec getNoiseCalibratorSpec(bool useClusters)
 {
   std::vector<InputSpec> inputs;
@@ -128,6 +138,7 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useClusters)
     inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
     inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
     inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
+    inputs.emplace_back("cldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
   } else {
     inputs.emplace_back("digits", "ITS", "DIGITS", 0, Lifetime::Timeframe);
     inputs.emplace_back("ROframes", "ITS", "DIGITSROF", 0, Lifetime::Timeframe);

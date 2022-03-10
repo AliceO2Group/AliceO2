@@ -65,11 +65,11 @@ class TPCITSMatchingDPL : public Task
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
+  void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
   std::shared_ptr<DataRequest> mDataRequest;
   o2::globaltracking::MatchTPCITS mMatching; // matching engine
-  o2::itsmft::TopologyDictionary mITSDict;   // cluster patterns dictionary
   bool mUseFT0 = false;
   bool mCalibMode = false;
   bool mSkipTPCOnly = false; // to use only externally constrained tracks (for test only)
@@ -99,16 +99,6 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   mMatching.setNThreads(std::max(1, ic.options().get<int>("nthreads")));
   mMatching.setUseBCFilling(!ic.options().get<bool>("ignore-bc-check"));
   //
-  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
-  if (o2::utils::Str::pathExists(dictFile)) {
-    mITSDict.readFromFile(dictFile);
-    LOG(info) << "Matching is running with a provided ITS dictionary: " << dictFile;
-  } else {
-    LOG(info) << "Dictionary " << dictFile << " is absent, Matching expects ITS cluster patterns";
-  }
-  mMatching.setITSDictionary(&mITSDict);
-
   // this is a hack to provide Mat.LUT from the local file, in general will be provided by the framework from CCDB
   std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
   std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
@@ -162,6 +152,14 @@ void TPCITSMatchingDPL::endOfStream(EndOfStreamContext& ec)
   mMatching.end();
   LOGF(info, "TPC-ITS matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+}
+
+void TPCITSMatchingDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated";
+    mMatching.setITSDictionary((const o2::itsmft::TopologyDictionary*)obj);
+  }
 }
 
 DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool calib, bool skipTPCOnly, bool useMC)

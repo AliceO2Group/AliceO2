@@ -68,7 +68,7 @@ class TimeFrame final
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
 
   int loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt,
-                      const itsmft::TopologyDictionary& dict, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
+                      const itsmft::TopologyDictionary* dict, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
   int getTotalClusters() const;
   bool empty() const;
 
