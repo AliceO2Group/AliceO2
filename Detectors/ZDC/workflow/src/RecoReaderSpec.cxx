@@ -22,8 +22,7 @@
 #include "DataFormatsZDC/OrbitData.h"
 #include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/ChannelData.h"
-#include "DataFormatsZDC/MCLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
+#include "DataFormatsZDC/RecEvent.h"
 #include "CommonUtils/NameConf.h"
 
 using namespace o2::framework;
@@ -52,47 +51,42 @@ void RecoReader::init(InitContext& ic)
 void RecoReader::run(ProcessingContext& pc)
 {
 
-  std::vector<o2::zdc::OrbitData> zdcOrbitData, *zdcOrbitDataPtr = &zdcOrbitData;
-  std::vector<o2::zdc::BCData> zdcBCData, *zdcBCDataPtr = &zdcBCData;
-  std::vector<o2::zdc::ChannelData> zdcChData, *zdcChDataPtr = &zdcChData;
+  std::vector<o2::zdc::BCRecData> RecBC, *RecBCPtr = &RecBC;
+  std::vector<o2::zdc::ZDCEnergy> Energy, *EnergyPtr = &Energy;
+  std::vector<o2::zdc::ZDCTDCData> TDCData, *TDCDataPtr = &TDCData;
+  std::vector<uint16_t> Info, *InfoPtr = &Info;
 
-  mTree->SetBranchAddress("ZDCDigitOrbit", &zdcOrbitDataPtr);
-  mTree->SetBranchAddress("ZDCDigitBC", &zdcBCDataPtr);
-  mTree->SetBranchAddress("ZDCDigitCh", &zdcChDataPtr);
-  o2::dataformats::MCTruthContainer<o2::zdc::MCLabel> labels, *plabels = &labels;
-  if (mUseMC) {
-    mTree->SetBranchAddress("ZDCDigitLabels", &plabels);
-  }
+  mTree->SetBranchAddress("ZDCRecBC", &RecBCPtr);
+  mTree->SetBranchAddress("ZDCRecE", &EnergyPtr);
+  mTree->SetBranchAddress("ZDCRecTDC", &TDCDataPtr);
+  mTree->SetBranchAddress("ZDCRecInfo", &InfoPtr);
+
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(info) << "ZDCRecoReader pushed " << zdcOrbitData.size() << " orbits with " << zdcBCData.size() << " bcs and " << zdcChData.size() << " digits";
-  pc.outputs().snapshot(Output{"ZDC", "DIGITSPD", 0, Lifetime::Timeframe}, zdcOrbitData);
-  pc.outputs().snapshot(Output{"ZDC", "DIGITSBC", 0, Lifetime::Timeframe}, zdcBCData);
-  pc.outputs().snapshot(Output{"ZDC", "DIGITSCH", 0, Lifetime::Timeframe}, zdcChData);
-  if (mUseMC) {
-    pc.outputs().snapshot(Output{"ZDC", "DIGITSLBL", 0, Lifetime::Timeframe}, labels);
-  }
+  LOG(info) << "ZDCRecoReader pushed " << RecBC.size() << " b.c. " << Energy.size() << " Energies " << TDCData.size() << " TDCs " << Info.size() << " Infos";
+  pc.outputs().snapshot(Output{"ZDC", "BCREC", 0, Lifetime::Timeframe}, RecBC);
+  pc.outputs().snapshot(Output{"ZDC", "ENERGY", 0, Lifetime::Timeframe}, Energy);
+  pc.outputs().snapshot(Output{"ZDC", "TDCDATA", 0, Lifetime::Timeframe}, TDCData);
+  pc.outputs().snapshot(Output{"ZDC", "INFO", 0, Lifetime::Timeframe}, Info);
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
 }
 
-DataProcessorSpec getRecoReaderSpec(bool useMC)
+DataProcessorSpec getRecoReaderSpec()
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("ZDC", "DIGITSBC", 0, Lifetime::Timeframe);
-  outputs.emplace_back("ZDC", "DIGITSCH", 0, Lifetime::Timeframe);
-  outputs.emplace_back("ZDC", "DIGITSPD", 0, Lifetime::Timeframe);
-  if (useMC) {
-    outputs.emplace_back("ZDC", "DIGITSLBL", 0, Lifetime::Timeframe);
-  }
+  outputs.emplace_back("ZDC", "BCREC", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ZDC", "ENERGY", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ZDC", "TDCDATA", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ZDC", "INFO", 0, Lifetime::Timeframe);
   return DataProcessorSpec{
     "zdc-reco-reader",
     Inputs{},
     outputs,
-    AlgorithmSpec{adaptFromTask<RecoReader>(useMC)},
+    AlgorithmSpec{adaptFromTask<RecoReader>()},
     Options{
       {"zdc-reco-infile", VariantType::String, "zdcreco.root", {"Name of the input file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};

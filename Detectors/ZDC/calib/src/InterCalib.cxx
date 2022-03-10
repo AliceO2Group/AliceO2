@@ -33,22 +33,22 @@ int InterCalib::init()
   return 0;
 }
 
-int InterCalib::process(const gsl::span<const o2::zdc::BCRecData>& bcrec,
-              const gsl::span<const o2::zdc::ZDCEnergy>& energy,
-              const gsl::span<const o2::zdc::ZDCTDCData>& tdc,
-              const gsl::span<const uint16_t>& info)
+int InterCalib::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
+              const gsl::span<const o2::zdc::ZDCEnergy>& Energy,
+              const gsl::span<const o2::zdc::ZDCTDCData>& TDCData,
+              const gsl::span<const uint16_t>& Info)
 {
-  /*
+  LOG(info) << "processing " << RecBC.size() << " b.c.";
   o2::zdc::RecEventFlat ev;
-  ev.init(RecBCPtr, EnergyPtr, TDCDataPtr, InfoPtr);
+  ev.init(&RecBC, &Energy, &TDCData, &Info);
   while (ev.next()) {
+    /*
     int printed = 0;
     if (ev.getNInfo() > 0) {
       auto& decodedInfo = ev.getDecodedInfo();
       for (uint16_t info : decodedInfo) {
         uint8_t ch = (info >> 10) & 0x1f;
         uint16_t code = info & 0x03ff;
-        ;
         hmsg->Fill(ch, code);
       }
       ev.print();
@@ -75,8 +75,8 @@ int InterCalib::process(const gsl::span<const o2::zdc::BCRecData>& bcrec,
         htznac->Fill(ev.tdcV(tdcid, ihit), ev.tdcA(tdcid, ihit));
       }
     }
+    */
   }
-  */
   return 0;
 }
 

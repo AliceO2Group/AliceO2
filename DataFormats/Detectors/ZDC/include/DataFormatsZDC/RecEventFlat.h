@@ -20,6 +20,7 @@
 #include "ZDCBase/Constants.h"
 #include "MathUtils/Cartesian.h"
 #include <Rtypes.h>
+#include <gsl/span>
 #include <array>
 #include <vector>
 #include <map>
@@ -43,10 +44,14 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   std::vector<float> TDCVal[NTDCChannels];    /// TDC values
   std::vector<float> TDCAmp[NTDCChannels];    /// TDC signal amplitudes
   std::vector<bool> TDCPile[NTDCChannels];    /// TDC pile-up correction flag (TODO)
-  std::vector<o2::zdc::BCRecData>* mRecBC;    //! Interaction record and references to data
-  std::vector<o2::zdc::ZDCEnergy>* mEnergy;   //! ZDC energy
-  std::vector<o2::zdc::ZDCTDCData>* mTDCData; //! ZDC TDC
-  std::vector<uint16_t>* mInfo;               //! Event quality information
+//   std::vector<o2::zdc::BCRecData>* mRecBC;    //! Interaction record and references to data
+//   std::vector<o2::zdc::ZDCEnergy>* mEnergy;   //! ZDC energy
+//   std::vector<o2::zdc::ZDCTDCData>* mTDCData; //! ZDC TDC
+//   std::vector<uint16_t>* mInfo;               //! Event quality information
+  gsl::span<const o2::zdc::BCRecData> mRecBC;    //! Interaction record and references to data
+  gsl::span<const o2::zdc::ZDCEnergy> mEnergy;   //! ZDC energy
+  gsl::span<const o2::zdc::ZDCTDCData> mTDCData; //! ZDC TDC
+  gsl::span<const uint16_t> mInfo;               //! Event quality information
   std::vector<uint16_t> mDecodedInfo;         //! Event quality information (decoded)
   uint64_t mEntry = 0;                        //! Current entry
   uint64_t mNEntries = 0;                     //! Number of entries
@@ -93,7 +98,8 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   uint8_t mVerbosity = DbgZero; //! Verbosity level
   uint32_t mTriggerMask = 0;    //! Trigger mask for printout
 
-  void init(std::vector<o2::zdc::BCRecData>* RecBC, std::vector<o2::zdc::ZDCEnergy>* Energy, std::vector<o2::zdc::ZDCTDCData>* TDCData, std::vector<uint16_t>* Info);
+  void init(const std::vector<o2::zdc::BCRecData>* RecBC, const std::vector<o2::zdc::ZDCEnergy>* Energy, const std::vector<o2::zdc::ZDCTDCData>* TDCData, const std::vector<uint16_t>* Info);
+  void init(gsl::span<const o2::zdc::BCRecData> RecBC, gsl::span<const o2::zdc::ZDCEnergy> Energy, gsl::span<const o2::zdc::ZDCTDCData> TDCData, gsl::span<const uint16_t> Info);
 
   int next();
 
