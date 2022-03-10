@@ -29,9 +29,12 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 #ifndef GPUCA_ALIROOT_LIB
-extern "C" char _curtc_GPUReconstructionCUDArtc_cu_src[];
-extern "C" unsigned int _curtc_GPUReconstructionCUDArtc_cu_src_size;
-extern "C" char _curtc_GPUReconstructionCUDArtc_cu_command[];
+extern "C" char _binary_GPUReconstructionCUDArtc_src_start[];
+extern "C" char _binary_GPUReconstructionCUDArtc_src_end[];
+size_t _binary_GPUReconstructionCUDArtc_src_len = _binary_GPUReconstructionCUDArtc_src_end - _binary_GPUReconstructionCUDArtc_src_start;
+extern "C" char _binary_GPUReconstructionCUDArtc_command_start[];
+extern "C" char _binary_GPUReconstructionCUDArtc_command_end[];
+size_t _binary_GPUReconstructionCUDArtc_command_len = _binary_GPUReconstructionCUDArtc_command_end - _binary_GPUReconstructionCUDArtc_command_start;
 #endif
 
 int GPUReconstructionCUDA::genRTC()
@@ -61,9 +64,9 @@ int GPUReconstructionCUDA::genRTC()
 #ifdef GPUCA_HAVE_O2HEADERS
   char shasource[21], shaparam[21], shacmd[21], shakernels[21];
   if (mProcessingSettings.rtc.cacheOutput) {
-    o2::framework::internal::SHA1(shasource, _curtc_GPUReconstructionCUDArtc_cu_src, _curtc_GPUReconstructionCUDArtc_cu_src_size);
+    o2::framework::internal::SHA1(shasource, _binary_GPUReconstructionCUDArtc_src_start, _binary_GPUReconstructionCUDArtc_src_len);
     o2::framework::internal::SHA1(shaparam, rtcparam.c_str(), rtcparam.size());
-    o2::framework::internal::SHA1(shacmd, _curtc_GPUReconstructionCUDArtc_cu_command, strlen(_curtc_GPUReconstructionCUDArtc_cu_command));
+    o2::framework::internal::SHA1(shacmd, _binary_GPUReconstructionCUDArtc_command_start, _binary_GPUReconstructionCUDArtc_command_len);
     o2::framework::internal::SHA1(shakernels, kernelsall.c_str(), kernelsall.size());
   }
 #endif
@@ -162,12 +165,12 @@ int GPUReconstructionCUDA::genRTC()
       kernel += "}";
 
       if (fwrite(rtcparam.c_str(), 1, rtcparam.size(), fp) != rtcparam.size() ||
-          fwrite(_curtc_GPUReconstructionCUDArtc_cu_src, 1, _curtc_GPUReconstructionCUDArtc_cu_src_size, fp) != _curtc_GPUReconstructionCUDArtc_cu_src_size ||
+          fwrite(_binary_GPUReconstructionCUDArtc_src_start, 1, _binary_GPUReconstructionCUDArtc_src_len, fp) != _binary_GPUReconstructionCUDArtc_src_len ||
           fwrite(kernel.c_str(), 1, kernel.size(), fp) != kernel.size()) {
         throw std::runtime_error("Error writing file");
       }
       fclose(fp);
-      std::string command = _curtc_GPUReconstructionCUDArtc_cu_command;
+      std::string command = std::string(_binary_GPUReconstructionCUDArtc_command_start, _binary_GPUReconstructionCUDArtc_command_len);
       command += " -cubin -c " + filename + "_" + std::to_string(i) + ".cu -o " + filename + "_" + std::to_string(i) + ".o";
       if (mProcessingSettings.debugLevel >= 3) {
         printf("Running command %s\n", command.c_str());
