@@ -14,7 +14,6 @@
 
 #ifndef GPUDISPLAYBACKENDVULKAN_H
 #define GPUDISPLAYBACKENDVULKAN_H
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
 
 #include "GPUDisplayBackend.h"
 #include <vulkan/vulkan.hpp>
@@ -130,5 +129,4 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#endif
 #endif
