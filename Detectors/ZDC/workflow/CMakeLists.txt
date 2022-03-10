@@ -16,13 +16,16 @@ o2_add_library(ZDCWorkflow
                        src/ZDCDataReaderDPLSpec.cxx
                        src/ZDCDigitWriterDPLSpec.cxx
                        src/ZDCRecoWriterDPLSpec.cxx
-         src/RecEventReaderSpec.cxx
+                       src/RecEventReaderSpec.cxx
                        src/RecoWorkflow.cxx
                        src/DigitRecoSpec.cxx
                        src/DigitReaderSpec.cxx
+                       src/InterCalibWorkflow.cxx
+                       src/InterCalibSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsZDC
                                      O2::ZDCRaw
+                                     O2::ZDCCalib
                                      O2::SimulationDataFormat
                                      O2::DPLUtils
                                      O2::ZDCReconstruction
@@ -51,4 +54,9 @@ o2_add_executable(digits-reco
 o2_add_executable(write-reco
                   COMPONENT_NAME zdc
                   SOURCES src/reco-writer-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow)
+
+o2_add_executable(intercalib-workflow
+                  COMPONENT_NAME zdc
+                  SOURCES src/zdc-intercalib-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow)

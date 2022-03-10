@@ -21,7 +21,10 @@ o2_add_library(ZDCCalib
                  O2::SimConfig
                  O2::SimulationDataFormat
                  O2::ZDCBase
-                 O2::ZDCSimulation)
+                 O2::ZDCSimulation
+                 ROOT::Core
+                 ROOT::Hist
+                 ROOT::Minuit)
 
 o2_target_root_dictionary(ZDCCalib
                           HEADERS include/ZDCCalib/InterCalib.h)

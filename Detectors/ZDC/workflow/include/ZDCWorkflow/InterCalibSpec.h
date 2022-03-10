@@ -31,7 +31,7 @@ class InterCalibSpec : public o2::framework::Task
 {
  public:
   InterCalibSpec();
-  InterCalibSpec(const int verbosity, const bool debugOut);
+  InterCalibSpec(const int verbosity);
   ~InterCalibSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;

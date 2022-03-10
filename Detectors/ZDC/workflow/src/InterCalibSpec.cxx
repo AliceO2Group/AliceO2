@@ -21,7 +21,6 @@
 #include "Framework/Logger.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "ZDCWorkflow/InterCalibSpec.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/ChannelData.h"
@@ -34,6 +33,8 @@
 #include "ZDCReconstruction/RecoConfigZDC.h"
 #include "ZDCReconstruction/ZDCTDCParam.h"
 #include "ZDCReconstruction/ZDCTDCCorr.h"
+#include "ZDCCalib/InterCalib.h"
+#include "ZDCWorkflow/InterCalibSpec.h"
 
 using namespace o2::framework;
 
@@ -80,14 +81,16 @@ void InterCalibSpec::run(ProcessingContext& pc)
   auto energy = pc.inputs().get<gsl::span<o2::zdc::ZDCEnergy>>("energy");
   auto tdc = pc.inputs().get<gsl::span<o2::zdc::ZDCTDCData>>("tdc");
   auto info = pc.inputs().get<gsl::span<uint16_t>>("info");
+  InterCalib work;
+  work.init();
+  work.process(bcrec, energy, tdc, info);
 
   mTimer.Stop();
 }
 
 void InterCalibSpec::endOfStream(EndOfStreamContext& ec)
 {
-  mDR.eor();
-  LOGF(info, "ZDC Reconstruction total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "ZDC Intercalibration total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
@@ -105,7 +108,7 @@ framework::DataProcessorSpec getInterCalibSpec(const int verbosity = 0)
     "zdc-intercalib",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<InterCalibSpec>(verbosity, enableDebugOut)},
+    AlgorithmSpec{adaptFromTask<InterCalibSpec>(verbosity)},
     o2::framework::Options{{"ccdb-url", o2::framework::VariantType::String, o2::base::NameConf::getCCDBServer(), {"CCDB Url"}}}};
 }
 
