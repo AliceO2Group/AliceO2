@@ -50,6 +50,14 @@ void setStyleHistogram2D(TH2& histo);
 /// Set nice style for vector of 2D histograms
 void setStyleHistogram2D(std::vector<TH2F>& histos);
 
+/// set nice style for 1D histograms ptr
+void setStyleHistogram1D(TH1* histo);
+
+/// set nice style for 2D histograms ptr
+void setStyleHistogram2D(TH2* histo);
+
+// set nice style of histograms in a map of vectors
+void setStyleHistogramsInMap(std::map<std::string_view, std::vector<TH1*>> mapOfvectors);
 /// Check if at least one pad in refPedestal and pedestal differs by 3*refNoise to see if new ZS calibration data should be uploaded to the FECs.
 /// @param refPedestal
 /// @param refNoise

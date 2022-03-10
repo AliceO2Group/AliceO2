@@ -72,7 +72,33 @@ void helpers::setStyleHistogram2D(std::vector<TH2F>& histos)
     helpers::setStyleHistogram2D(hist);
   }
 }
-
+//______________________________________________________________________________
+void helpers::setStyleHistogram1D(TH1* histo)
+{
+  histo->SetStats(1);
+}
+//______________________________________________________________________________
+void helpers::setStyleHistogram2D(TH2* histo)
+{
+  histo->SetOption("colz");
+  histo->SetStats(0);
+  histo->SetMinimum(0.9);
+}
+//______________________________________________________________________________
+void helpers::setStyleHistogramsInMap(std::map<std::string_view, std::vector<TH1*>> mapOfvectors){
+  for (auto const& [key, vecOfHist] : mapOfvectors) {
+    for (auto hist : vecOfHist) {
+      if (typeid(*hist) == typeid(TH1F)) {
+        helpers::setStyleHistogram1D(hist);
+      } else if (typeid(*hist) == typeid(TH2F)) {
+        //setStyleHistogram2D does not work here because hist points to a vector of TH1* but we fill TH2F* in the vector 
+        hist->SetOption("colz");
+        hist->SetStats(0);
+        hist->SetMinimum(0.9);
+      }
+    }
+  }
+}
 //______________________________________________________________________________
 bool helpers::newZSCalib(const o2::tpc::CalDet<float>& refPedestal, const o2::tpc::CalDet<float>& refNoise, const o2::tpc::CalDet<float>& pedestal)
 {
