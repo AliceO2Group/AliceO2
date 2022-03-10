@@ -206,7 +206,7 @@ void EveWorkflowHelper::prepareITSClusters(const o2::itsmft::TopologyDictionary&
     const auto& patterns = mRecoCont.getITSClustersPatterns();
     auto pattIt = patterns.begin();
     mITSClustersArray.reserve(clusITS.size());
-    o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, dict);
+    o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, &dict);
   }
 }
 
@@ -218,7 +218,7 @@ void EveWorkflowHelper::prepareMFTClusters(const o2::itsmft::TopologyDictionary&
     const auto& patterns = this->mRecoCont.getMFTClustersPatterns();
     auto pattIt = patterns.begin();
     this->mMFTClustersArray.reserve(clusMFT.size());
-    o2::mft::ioutils::convertCompactClusters(clusMFT, pattIt, this->mMFTClustersArray, dict);
+    o2::mft::ioutils::convertCompactClusters(clusMFT, pattIt, this->mMFTClustersArray, &dict);
   }
 }
 

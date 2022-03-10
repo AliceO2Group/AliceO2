@@ -53,7 +53,7 @@ bool NoiseCalibrator::processTimeFrameClusters(gsl::span<const o2::itsmft::CompC
       o2::itsmft::ClusterPattern patt;
       auto row = c.getRow();
       auto col = c.getCol();
-      if (mDict.getSize() == 0) {
+      if (mDict->getSize() == 0) {
         if (pattID == o2::itsmft::CompCluster::InvalidPatternID) {
           patt.acquirePattern(pattIt);
         } else {
@@ -61,14 +61,14 @@ bool NoiseCalibrator::processTimeFrameClusters(gsl::span<const o2::itsmft::CompC
         }
       } else if (pattID == o2::itsmft::CompCluster::InvalidPatternID) {
         patt.acquirePattern(pattIt);
-      } else if (mDict.isGroup(pattID)) {
+      } else if (mDict->isGroup(pattID)) {
         patt.acquirePattern(pattIt);
         float xCOG = 0., zCOG = 0.;
         patt.getCOG(xCOG, zCOG); // for grouped patterns the reference pixel is at COG
         row -= round(xCOG);
         col -= round(zCOG);
       } else {
-        patt = mDict.getPattern(pattID);
+        patt = mDict->getPattern(pattID);
       }
       auto colSpan = patt.getColumnSpan();
       auto rowSpan = patt.getRowSpan();

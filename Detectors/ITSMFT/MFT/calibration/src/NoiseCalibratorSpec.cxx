@@ -24,6 +24,7 @@
 #include "FairLogger.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 
 using namespace o2::framework;
@@ -43,15 +44,6 @@ void NoiseCalibratorSpec::init(InitContext& ic)
 {
   auto probT = ic.options().get<float>("prob-threshold");
   LOG(info) << "Setting the probability threshold to " << probT;
-  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath);
-  if (o2::utils::Str::pathExists(dictFile)) {
-    mCalibrator->loadDictionary(dictFile);
-    LOG(info) << "MFT NoiseCalibrator is running with a provided dictionary: " << dictFile;
-  } else {
-    LOG(info) << "Dictionary " << dictFile
-              << " is absent, MFT NoiseCalibrator expects cluster patterns for all clusters";
-  }
 
   mPath = ic.options().get<std::string>("path");
   mMeta = ic.options().get<std::string>("meta");
@@ -63,6 +55,7 @@ void NoiseCalibratorSpec::init(InitContext& ic)
 
 void NoiseCalibratorSpec::run(ProcessingContext& pc)
 {
+  updateTimeDependentParams(pc);
   if (mDigits) {
     const auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
     const auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("digitsROF");
@@ -139,6 +132,23 @@ void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
   sendOutput(ec.outputs());
 }
 
+///_______________________________________
+void NoiseCalibratorSpec::updateTimeDependentParams(ProcessingContext& pc)
+{
+  if (!mDigits) {
+    pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+  }
+}
+
+///_______________________________________
+void NoiseCalibratorSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("MFT", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated";
+    mCalibrator->setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
+  }
+}
+
 DataProcessorSpec getNoiseCalibratorSpec(bool useDigits)
 {
   o2::header::DataOrigin detOrig = o2::header::gDataOriginMFT;
@@ -150,6 +160,7 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useDigits)
     inputs.emplace_back("compClusters", detOrig, "COMPCLUSTERS", 0, Lifetime::Timeframe);
     inputs.emplace_back("patterns", detOrig, "PATTERNS", 0, Lifetime::Timeframe);
     inputs.emplace_back("ROframes", detOrig, "CLUSTERSROF", 0, Lifetime::Timeframe);
+    inputs.emplace_back("cldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/ClusterDictionary"));
   }
 
   using clbUtils = o2::calibration::Utils;

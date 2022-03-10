@@ -49,13 +49,14 @@ class GlobalFwdMatchingDPL : public Task
   ~GlobalFwdMatchingDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
-  void endOfStream(framework::EndOfStreamContext& ec) final;
+  void endOfStream(EndOfStreamContext& ec) final;
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
   std::shared_ptr<DataRequest> mDataRequest;
   bool mMatchRootOutput = false;
   o2::globaltracking::MatchGlobalFwd mMatching; // Forward matching engine
-  o2::itsmft::TopologyDictionary mMFTDict;      // cluster patterns dictionary
+  const o2::itsmft::TopologyDictionary* mMFTDict = nullptr; // cluster patterns dictionary
 
   bool mUseMC = true;
   TStopwatch mTimer;
@@ -79,16 +80,6 @@ void GlobalFwdMatchingDPL::init(InitContext& ic)
   const auto* digctx = o2::steer::DigitizationContext::loadFromFile();
   const auto& bcfill = digctx->getBunchFilling();
   mMatching.setBunchFilling(bcfill);
-
-  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath);
-  if (o2::utils::Str::pathExists(dictFile)) {
-    mMFTDict.readFromFile(dictFile);
-    LOG(info) << "Forward track-matching is running with a provided MFT dictionary: " << dictFile;
-  } else {
-    LOG(info) << "Dictionary " << dictFile << " is absent, Matching expects MFT cluster patterns";
-  }
-  mMatching.setMFTDictionary(&mMFTDict);
 
   const auto& matchingParam = GlobalFwdMatchingParam::Instance();
 
@@ -133,6 +124,14 @@ void GlobalFwdMatchingDPL::endOfStream(EndOfStreamContext& ec)
 {
   LOGF(info, "Forward matcher total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+}
+
+void GlobalFwdMatchingDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("MFT", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated";
+    mMatching.setMFTDictionary((const o2::itsmft::TopologyDictionary*)obj);
+  }
 }
 
 DataProcessorSpec getGlobalFwdMatchingSpec(bool useMC, bool matchRootOutput)
