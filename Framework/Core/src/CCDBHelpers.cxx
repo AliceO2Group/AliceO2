@@ -282,7 +282,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           if (!api.isSnapshotMode() || etag.empty()) { // in the snapshot mode the object needs to be fetched only once
             api.loadFileToMemory(v, path, metadata, timingInfo.creation, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
             if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
-              LOGP(error, "Unable to find object {}/{}", path, timingInfo.creation);
+              LOGP(fatal, "Unable to find object {}/{}", path, timingInfo.creation);
               // FIXME: I should send a dummy message.
               return;
             }
