@@ -99,7 +99,7 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   uint32_t mTriggerMask = 0;    //! Trigger mask for printout
 
   void init(const std::vector<o2::zdc::BCRecData>* RecBC, const std::vector<o2::zdc::ZDCEnergy>* Energy, const std::vector<o2::zdc::ZDCTDCData>* TDCData, const std::vector<uint16_t>* Info);
-  void init(gsl::span<const o2::zdc::BCRecData> RecBC, gsl::span<const o2::zdc::ZDCEnergy> Energy, gsl::span<const o2::zdc::ZDCTDCData> TDCData, gsl::span<const uint16_t> Info);
+  void init(const gsl::span<const o2::zdc::BCRecData> RecBC, const gsl::span<const o2::zdc::ZDCEnergy> Energy,const  gsl::span<const o2::zdc::ZDCTDCData> TDCData, const gsl::span<const uint16_t> Info);
 
   int next();
 

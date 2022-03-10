@@ -25,7 +25,7 @@ void RecEventFlat::init(const std::vector<o2::zdc::BCRecData>* RecBC, const std:
   mNEntries = mRecBC.size();
 }
 
-void RecEventFlat::init(gsl::span<const o2::zdc::BCRecData> RecBC, gsl::span<const o2::zdc::ZDCEnergy> Energy, gsl::span<const o2::zdc::ZDCTDCData> TDCData, gsl::span<const uint16_t> Info)
+void RecEventFlat::init(const gsl::span<const o2::zdc::BCRecData> RecBC, const gsl::span<const o2::zdc::ZDCEnergy> Energy, const gsl::span<const o2::zdc::ZDCTDCData> TDCData, const gsl::span<const uint16_t> Info)
 {
   mRecBC = RecBC;
   mEnergy = Energy;
