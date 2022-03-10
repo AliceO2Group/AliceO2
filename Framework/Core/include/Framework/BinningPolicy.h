@@ -97,7 +97,7 @@ struct SingleBinningPolicy : public BinningPolicyBase<C> {
     }
 
     unsigned int i = 2;
-    for (i; i < xBins.size(); i++) {
+    for (; i < xBins.size(); i++) {
       if (val1 < xBins[i]) {
         return i - 1;
       }
@@ -149,9 +149,9 @@ struct PairBinningPolicy : public BinningPolicyBase<C1, C2> {
     }
 
     unsigned int i = 2, j = 2;
-    for (i; i < xBins.size(); i++) {
+    for (; i < xBins.size(); i++) {
       if (val1 < xBins[i]) {
-        for (j; j < yBins.size(); j++) {
+        for (; j < yBins.size(); j++) {
           if (val2 < yBins[j]) {
             return getBinAt(i, j);
           }
@@ -236,11 +236,11 @@ struct TripleBinningPolicy : public BinningPolicyBase<C1, C2, C3> {
     }
 
     unsigned int i = 2, j = 2, k = 2;
-    for (i; i < xBins.size(); i++) {
+    for (; i < xBins.size(); i++) {
       if (val1 < xBins[i]) {
-        for (j; j < yBins.size(); j++) {
+        for (; j < yBins.size(); j++) {
           if (val2 < yBins[j]) {
-            for (k; k < zBins.size(); k++) {
+            for (; k < zBins.size(); k++) {
               if (val3 < zBins[k]) {
                 return getBinAt(i, j, k);
               }
