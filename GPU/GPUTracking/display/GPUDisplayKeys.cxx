@@ -79,6 +79,7 @@ void GPUDisplay::PrintHelp()
 void GPUDisplay::HandleKey(unsigned char key)
 {
   GPUSettingsDisplayHeavy oldCfgH = mCfgH;
+  GPUSettingsDisplayLight oldCfgL = mCfgL;
   GPUSettingsDisplayRenderer oldCfgR = mCfgR;
   if (key == 'n') {
     mFrontend->mDisplayControl = 1;
@@ -465,8 +466,12 @@ void GPUDisplay::HandleKey(unsigned char key)
   */
 
   if (memcmp((void*)&oldCfgH, (void*)&mCfgH, sizeof(mCfgH)) != 0) {
-    mUpdateDLList = true;
+    mUpdateEventData = true;
   }
+  if (memcmp((void*)&oldCfgL, (void*)&mCfgL, sizeof(mCfgL)) != 0 || memcmp((void*)&oldCfgR, (void*)&mCfgR, sizeof(mCfgR)) != 0) {
+    mUpdateDrawCommands = true;
+  }
+
   if (oldCfgR.drawQualityMSAA != mCfgR.drawQualityMSAA || oldCfgR.drawQualityDownsampleFSAA != mCfgR.drawQualityDownsampleFSAA) {
     UpdateOffscreenBuffers();
   }
@@ -483,7 +488,7 @@ void GPUDisplay::HandleKey(unsigned char key)
     mFrontend->mMaxFPSRate = mCfgR.maxFPSRate;
   }
   if (oldCfgR.useGLIndirectDraw != mCfgR.useGLIndirectDraw) {
-    mUpdateDLList = true;
+    mUpdateEventData = true;
   }
 }
 

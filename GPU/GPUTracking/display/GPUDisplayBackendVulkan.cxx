@@ -62,7 +62,7 @@ GPUDisplayBackendVulkan::GPUDisplayBackendVulkan()
   mQueueFamilyIndices = std::make_unique<QueueFamiyIndices>();
   mSwapChainDetails = std::make_unique<SwapChainSupportDetails>();
   mVBO.resize(GPUCA_NSLICES);
-  mVulkanCommandBuffer.resize(1);
+  mIndirectCommandBuffer.resize(1);
 }
 GPUDisplayBackendVulkan::~GPUDisplayBackendVulkan() = default;
 
@@ -102,13 +102,16 @@ unsigned int GPUDisplayBackendVulkan::drawVertices(const vboList& v, const drawT
   if (count == 0) {
     return 0;
   }
+  if (mCommandBufferUpToDate[mImageIndex]) {
+    return count;
+  }
 
-  vkCmdBindPipeline(mCommandBuffers[mCurrentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[tt]);
+  vkCmdBindPipeline(mCommandBuffers[mImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[tt]);
   if (mDisplay->cfgR().useGLIndirectDraw) {
-    vkCmdDrawIndirect(mCommandBuffers[mCurrentFrame], mVulkanCommandBuffer[0].buffer, (mIndirectSliceOffset[iSlice] + first) * sizeof(DrawArraysIndirectCommand), count, sizeof(DrawArraysIndirectCommand));
+    vkCmdDrawIndirect(mCommandBuffers[mImageIndex], mIndirectCommandBuffer[0].buffer, (mIndirectSliceOffset[iSlice] + first) * sizeof(DrawArraysIndirectCommand), count, sizeof(DrawArraysIndirectCommand));
   } else {
     for (unsigned int k = 0; k < count; k++) {
-      vkCmdDraw(mCommandBuffers[mCurrentFrame], mDisplay->vertexBufferCount()[iSlice][first + k], 1, mDisplay->vertexBufferStart()[iSlice][first + k], 0);
+      vkCmdDraw(mCommandBuffers[mImageIndex], mDisplay->vertexBufferCount()[iSlice][first + k], 1, mDisplay->vertexBufferStart()[iSlice][first + k], 0);
     }
   }
 
@@ -117,7 +120,7 @@ unsigned int GPUDisplayBackendVulkan::drawVertices(const vboList& v, const drawT
 
 void GPUDisplayBackendVulkan::ActivateColor(std::array<float, 3>& color)
 {
-  writeToBuffer(mUniformBuffersCol[mCurrentFrame], sizeof(color), color.data());
+  writeToBuffer(mUniformBuffersCol[mImageIndex], sizeof(color), color.data());
 }
 
 void GPUDisplayBackendVulkan::setQuality()
@@ -257,7 +260,7 @@ void GPUDisplayBackendVulkan::startFillCommandBuffer(VkCommandBuffer& commandBuf
 
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mVBO[0].buffer, offsets);
-  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[mCurrentFrame], 0, nullptr);
+  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[mImageIndex], 0, nullptr);
 }
 
 void GPUDisplayBackendVulkan::endFillCommandBuffer(VkCommandBuffer& commandBuffer, unsigned int imageIndex)
@@ -432,6 +435,12 @@ void GPUDisplayBackendVulkan::createDevice()
     throw std::runtime_error("All available Vulkan devices unsuited");
   }
   updateSwapChainDetails(mPhysicalDevice);
+  uint32_t imageCount = mSwapChainDetails->capabilities.minImageCount + 1;
+  if (mSwapChainDetails->capabilities.maxImageCount > 0 && imageCount > mSwapChainDetails->capabilities.maxImageCount) {
+    imageCount = mSwapChainDetails->capabilities.maxImageCount;
+  }
+  mImageCount = imageCount;
+  mFramesInFlight = mImageCount; // Simplifies reuse of command buffers
 
   VkDeviceQueueCreateInfo queueCreateInfo{};
   queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -464,6 +473,7 @@ void GPUDisplayBackendVulkan::createDevice()
   allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandBufferCount = mFramesInFlight;
   mCommandBuffers.resize(mFramesInFlight);
+  mCommandBufferUpToDate.resize(mFramesInFlight, false);
   CHKERR(vkAllocateCommandBuffers(mDevice, &allocInfo, mCommandBuffers.data()));
 
   VkSemaphoreCreateInfo semaphoreInfo{};
@@ -510,14 +520,10 @@ void GPUDisplayBackendVulkan::createSwapChain()
   mPresentMode = chooseSwapPresentMode(mSwapChainDetails->presentModes);
   mExtent = chooseSwapExtent(mSwapChainDetails->capabilities, ((GPUDisplayFrontendGlfw*)mDisplay->frontend())->Window());
 
-  uint32_t imageCount = mSwapChainDetails->capabilities.minImageCount + 1;
-  if (mSwapChainDetails->capabilities.maxImageCount > 0 && imageCount > mSwapChainDetails->capabilities.maxImageCount) {
-    imageCount = mSwapChainDetails->capabilities.maxImageCount;
-  }
   VkSwapchainCreateInfoKHR swapCreateInfo{};
   swapCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
   swapCreateInfo.surface = mSurface;
-  swapCreateInfo.minImageCount = imageCount;
+  swapCreateInfo.minImageCount = mImageCount;
   swapCreateInfo.imageFormat = mSurfaceFormat.format;
   swapCreateInfo.imageColorSpace = mSurfaceFormat.colorSpace;
   swapCreateInfo.imageExtent = mExtent;
@@ -533,9 +539,9 @@ void GPUDisplayBackendVulkan::createSwapChain()
   swapCreateInfo.oldSwapchain = VK_NULL_HANDLE;
   CHKERR(vkCreateSwapchainKHR(mDevice, &swapCreateInfo, nullptr, &mSwapChain));
 
-  vkGetSwapchainImagesKHR(mDevice, mSwapChain, &imageCount, nullptr);
-  mImages.resize(imageCount);
-  vkGetSwapchainImagesKHR(mDevice, mSwapChain, &imageCount, mImages.data());
+  vkGetSwapchainImagesKHR(mDevice, mSwapChain, &mImageCount, nullptr);
+  mImages.resize(mImageCount);
+  vkGetSwapchainImagesKHR(mDevice, mSwapChain, &mImageCount, mImages.data());
 
   VkAttachmentDescription colorAttachment{};
   colorAttachment.format = mSurfaceFormat.format;
@@ -880,6 +886,7 @@ void GPUDisplayBackendVulkan::resizeScene(unsigned int width, unsigned int heigh
   if (mExtent.width != width || mExtent.height != height) {
     // std::cout << "Unmatching window size: requested " << width << " x " << height << " - found " << mExtent.width << " x " << mExtent.height << "\n";
   }
+  needRecordCommandBuffers();
 }
 
 void GPUDisplayBackendVulkan::clearScreen(bool colorOnly)
@@ -953,10 +960,10 @@ void GPUDisplayBackendVulkan::clearVertexBuffers()
     clearBuffer(mVBO[i]);
   }
   mNVBOCreated = 0;
-  if (mCommandBufferCreated) {
-    clearBuffer(mVulkanCommandBuffer[0]);
+  if (mIndirectCommandBufferCreated) {
+    clearBuffer(mIndirectCommandBuffer[0]);
   }
-  mCommandBufferCreated = false;
+  mIndirectCommandBufferCreated = false;
 }
 
 void GPUDisplayBackendVulkan::loadDataToGPU(size_t totalVertizes)
@@ -967,31 +974,41 @@ void GPUDisplayBackendVulkan::loadDataToGPU(size_t totalVertizes)
   mNVBOCreated = 1;
   if (mDisplay->cfgR().useGLIndirectDraw) {
     fillIndirectCmdBuffer();
-    mVulkanCommandBuffer[0] = createBuffer(mCmdBuffer.size() * sizeof(mCmdBuffer[0]), mCmdBuffer.data(), VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT);
-    mCommandBufferCreated = true;
+    mIndirectCommandBuffer[0] = createBuffer(mCmdBuffer.size() * sizeof(mCmdBuffer[0]), mCmdBuffer.data(), VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT);
+    mIndirectCommandBufferCreated = true;
     mCmdBuffer.clear();
   }
+  needRecordCommandBuffers();
 }
 
 void GPUDisplayBackendVulkan::prepareDraw()
 {
+  if (mDisplay->updateDrawCommands()) {
+    needRecordCommandBuffers();
+  }
   vkWaitForFences(mDevice, 1, &mInFlightFence[mCurrentFrame], VK_TRUE, UINT64_MAX);
 
   VkResult retVal = vkAcquireNextImageKHR(mDevice, mSwapChain, UINT64_MAX, mImageAvailableSemaphore[mCurrentFrame], VK_NULL_HANDLE, &mImageIndex);
   if (retVal == VK_ERROR_OUT_OF_DATE_KHR || retVal == VK_SUBOPTIMAL_KHR) {
     std::cout << "Pipeline out of data / suboptimal, recreating\n";
     recreateSwapChain();
+    needRecordCommandBuffers();
     retVal = vkAcquireNextImageKHR(mDevice, mSwapChain, UINT64_MAX, mImageAvailableSemaphore[mCurrentFrame], VK_NULL_HANDLE, &mImageIndex);
   }
   CHKERR(retVal);
   vkResetFences(mDevice, 1, &mInFlightFence[mCurrentFrame]);
 
-  startFillCommandBuffer(mCommandBuffers[mCurrentFrame], mImageIndex);
+  if (!mCommandBufferUpToDate[mImageIndex]) {
+    startFillCommandBuffer(mCommandBuffers[mImageIndex], mImageIndex);
+  }
 }
 
 void GPUDisplayBackendVulkan::finishDraw()
 {
-  endFillCommandBuffer(mCommandBuffers[mCurrentFrame], mImageIndex);
+  if (!mCommandBufferUpToDate[mImageIndex]) {
+    endFillCommandBuffer(mCommandBuffers[mImageIndex], mImageIndex);
+    mCommandBufferUpToDate[mImageIndex] = true;
+  }
 
   VkSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1000,7 +1017,7 @@ void GPUDisplayBackendVulkan::finishDraw()
   submitInfo.pWaitSemaphores = &mImageAvailableSemaphore[mCurrentFrame];
   submitInfo.pWaitDstStageMask = waitStages;
   submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &mCommandBuffers[mCurrentFrame];
+  submitInfo.pCommandBuffers = &mCommandBuffers[mImageIndex];
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = &mRenderFinishedSemaphore[mCurrentFrame];
   CHKERR(vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, mInFlightFence[mCurrentFrame]));
@@ -1028,7 +1045,7 @@ void GPUDisplayBackendVulkan::renderOffscreenBuffer(GLfb& buffer, GLfb& bufferNo
 void GPUDisplayBackendVulkan::setMatrices(const hmm_mat4& proj, const hmm_mat4& view)
 {
   const hmm_mat4 modelViewProj = proj * view;
-  writeToBuffer(mUniformBuffersMat[mCurrentFrame], sizeof(modelViewProj), &modelViewProj);
+  writeToBuffer(mUniformBuffersMat[mImageIndex], sizeof(modelViewProj), &modelViewProj);
 }
 
 void GPUDisplayBackendVulkan::mixImages(GLfb& mixBuffer, float mixSlaveImage)
@@ -1048,4 +1065,9 @@ void GPUDisplayBackendVulkan::pointSizeFactor(float factor)
 
 void GPUDisplayBackendVulkan::lineWidthFactor(float factor)
 {
+}
+
+void GPUDisplayBackendVulkan::needRecordCommandBuffers()
+{
+  std::fill(mCommandBufferUpToDate.begin(), mCommandBufferUpToDate.end(), false);
 }

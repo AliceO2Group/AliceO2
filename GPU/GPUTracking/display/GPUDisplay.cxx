@@ -1276,12 +1276,15 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     mNCollissions = std::max(1u, mIOPtrs->nMCInfosTPCCol);
   }
 
-  if (!mixAnimation && (mUpdateDLList || mResetScene || !mGlDLrecent) && mIOPtrs) {
+  if (!mixAnimation && (mUpdateEventData || mResetScene || mUpdateVertexLists) && mIOPtrs) {
     disableUnsupportedOptions();
+  }
+  if (mUpdateEventData || mUpdateVertexLists) {
+    mUpdateDrawCommands = 1;
   }
 
   // Extract global cluster information
-  if (!mixAnimation && (mUpdateDLList || mResetScene) && mIOPtrs) {
+  if (!mixAnimation && (mUpdateEventData || mResetScene) && mIOPtrs) {
     showTimer = true;
     mTimerDraw.ResetStart();
     if (mIOPtrs->clustersNative) {
@@ -1512,8 +1515,8 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     mTimerFPS.ResetStart();
     mFramesDoneFPS = 0;
     mFPSScaleadjust = 0;
-    mGlDLrecent = 0;
-    mUpdateDLList = 0;
+    mUpdateVertexLists = 1;
+    mUpdateEventData = 0;
   }
 
   if (!mixAnimation && mOffscreenBuffer.created) {
@@ -1793,7 +1796,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
   mBackend->updateSettings();
 
   // Prepare Event
-  if (!mGlDLrecent && mIOPtrs) {
+  if (mUpdateVertexLists && mIOPtrs) {
     for (int i = 0; i < NSLICES; i++) {
       mVertexBuffer[i].clear();
       mVertexBufferStart[i].clear();
@@ -1991,7 +1994,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       break; // TODO: Only slice 0 filled for now
     }
 
-    mGlDLrecent = 1;
+    mUpdateVertexLists = 0;
     size_t totalVertizes = 0;
     for (int i = 0; i < NSLICES; i++) {
       totalVertizes += mVertexBuffer[i].size();
@@ -2222,6 +2225,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     }
   }
 
+  mUpdateDrawCommands = 0;
   mBackend->finishDraw();
 
   if (mixSlaveImage > 0) {
@@ -2378,7 +2382,7 @@ void GPUDisplay::ShowNextEvent(const GPUTrackingInOutPointers* ptrs)
   }
   mSemLockDisplay.Unlock();
   mFrontend->mNeedUpdate = 1;
-  mUpdateDLList = true;
+  mUpdateEventData = true;
 }
 
 void GPUDisplay::WaitForNextEvent() { mSemLockDisplay.Lock(); }
