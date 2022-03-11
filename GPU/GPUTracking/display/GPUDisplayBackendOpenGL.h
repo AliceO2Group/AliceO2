@@ -55,8 +55,6 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   backendTypes backendType() const override { return TYPE_OPENGL; }
   size_t needMultiVBO() override { return 0x100000000ll; }
 
-  vecpod<DrawArraysIndirectCommand> mCmdBuffer;
-
   unsigned int mVertexShader;
   unsigned int mFragmentShader;
   unsigned int mShaderProgram;
@@ -64,7 +62,6 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
 
   unsigned int mIndirectId;
   std::vector<unsigned int> mVBOId;
-  std::vector<int> mIndirectSliceOffset;
   int mModelViewProjId;
   int mColorId;
 };

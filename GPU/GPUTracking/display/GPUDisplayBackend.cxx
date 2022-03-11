@@ -37,3 +37,16 @@ GPUDisplayBackend* GPUDisplayBackend::getBackend(const char* type)
 #endif
   return nullptr;
 }
+
+void GPUDisplayBackend::fillIndirectCmdBuffer()
+{
+  mCmdBuffer.clear();
+  mIndirectSliceOffset.resize(GPUCA_NSLICES);
+  // TODO: Check if this can be parallelized
+  for (int iSlice = 0; iSlice < GPUCA_NSLICES; iSlice++) {
+    mIndirectSliceOffset[iSlice] = mCmdBuffer.size();
+    for (unsigned int k = 0; k < mDisplay->vertexBufferStart()[iSlice].size(); k++) {
+      mCmdBuffer.emplace_back(mDisplay->vertexBufferCount()[iSlice][k], 1, mDisplay->vertexBufferStart()[iSlice][k], 0);
+    }
+  }
+}

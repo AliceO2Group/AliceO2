@@ -1996,6 +1996,9 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     for (int i = 0; i < NSLICES; i++) {
       totalVertizes += mVertexBuffer[i].size();
     }
+    if (totalVertizes > 0xFFFFFFFF) {
+      throw std::runtime_error("Display vertex count exceeds 32bit uint counter");
+    }
     size_t needMultiVBOSize = mBackend->needMultiVBO();
     mUseMultiVBO = needMultiVBOSize && (totalVertizes * sizeof(mVertexBuffer[0][0]) >= needMultiVBOSize);
     if (!mUseMultiVBO) {

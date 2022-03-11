@@ -62,6 +62,7 @@ GPUDisplayBackendVulkan::GPUDisplayBackendVulkan()
   mQueueFamilyIndices = std::make_unique<QueueFamiyIndices>();
   mSwapChainDetails = std::make_unique<SwapChainSupportDetails>();
   mVBO.resize(GPUCA_NSLICES);
+  mVulkanCommandBuffer.resize(1);
 }
 GPUDisplayBackendVulkan::~GPUDisplayBackendVulkan() = default;
 
@@ -103,8 +104,12 @@ unsigned int GPUDisplayBackendVulkan::drawVertices(const vboList& v, const drawT
   }
 
   vkCmdBindPipeline(mCommandBuffers[mCurrentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[tt]);
-  for (unsigned int k = 0; k < count; k++) {
-    vkCmdDraw(mCommandBuffers[mCurrentFrame], mDisplay->vertexBufferCount()[iSlice][first + k], 1, mDisplay->vertexBufferStart()[iSlice][first + k], 0);
+  if (mDisplay->cfgR().useGLIndirectDraw) {
+    vkCmdDrawIndirect(mCommandBuffers[mCurrentFrame], mVulkanCommandBuffer[0].buffer, (mIndirectSliceOffset[iSlice] + first) * sizeof(DrawArraysIndirectCommand), count, sizeof(DrawArraysIndirectCommand));
+  } else {
+    for (unsigned int k = 0; k < count; k++) {
+      vkCmdDraw(mCommandBuffers[mCurrentFrame], mDisplay->vertexBufferCount()[iSlice][first + k], 1, mDisplay->vertexBufferStart()[iSlice][first + k], 0);
+    }
   }
 
   return count;
@@ -475,8 +480,8 @@ void GPUDisplayBackendVulkan::createDevice()
     CHKERR(vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mImageAvailableSemaphore[i]));
     CHKERR(vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mRenderFinishedSemaphore[i]));
     CHKERR(vkCreateFence(mDevice, &fenceInfo, nullptr, &mInFlightFence[i]));
-    mUniformBuffersMat[i] = createBuffer(sizeof(hmm_mat4), nullptr, true);
-    mUniformBuffersCol[i] = createBuffer(sizeof(float) * 3, nullptr, true);
+    mUniformBuffersMat[i] = createBuffer(sizeof(hmm_mat4), nullptr, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+    mUniformBuffersCol[i] = createBuffer(sizeof(float) * 3, nullptr, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
   }
 }
 
@@ -907,13 +912,13 @@ void GPUDisplayBackendVulkan::writeToBuffer(VulkanBuffer& buffer, size_t size, c
   vkUnmapMemory(mDevice, buffer.memory);
 }
 
-VulkanBuffer GPUDisplayBackendVulkan::createBuffer(size_t size, const void* srcData, bool uniform)
+VulkanBuffer GPUDisplayBackendVulkan::createBuffer(size_t size, const void* srcData, VkBufferUsageFlagBits type)
 {
   VulkanBuffer buffer;
   VkBufferCreateInfo bufferInfo{};
   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
   bufferInfo.size = size;
-  bufferInfo.usage = uniform ? VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT : VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+  bufferInfo.usage = type;
   bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
   CHKERR(vkCreateBuffer(mDevice, &bufferInfo, nullptr, &buffer.buffer));
 
@@ -948,20 +953,23 @@ void GPUDisplayBackendVulkan::clearVertexBuffers()
     clearBuffer(mVBO[i]);
   }
   mNVBOCreated = 0;
+  if (mCommandBufferCreated) {
+    clearBuffer(mVulkanCommandBuffer[0]);
+  }
+  mCommandBufferCreated = false;
 }
 
 void GPUDisplayBackendVulkan::loadDataToGPU(size_t totalVertizes)
 {
   vkDeviceWaitIdle(mDevice);
   clearVertexBuffers();
-  if (mDisplay->useMultiVBO()) {
-    for (int i = 0; i < GPUCA_NSLICES; i++) {
-      mVBO[i] = createBuffer(mDisplay->vertexBuffer()[i].size() * sizeof(mDisplay->vertexBuffer()[i][0]), mDisplay->vertexBuffer()[i].data());
-    }
-    mNVBOCreated = GPUCA_NSLICES;
-  } else {
-    mVBO[0] = createBuffer(totalVertizes * sizeof(mDisplay->vertexBuffer()[0][0]), mDisplay->vertexBuffer()[0].data());
-    mNVBOCreated = 1;
+  mVBO[0] = createBuffer(totalVertizes * sizeof(mDisplay->vertexBuffer()[0][0]), mDisplay->vertexBuffer()[0].data());
+  mNVBOCreated = 1;
+  if (mDisplay->cfgR().useGLIndirectDraw) {
+    fillIndirectCmdBuffer();
+    mVulkanCommandBuffer[0] = createBuffer(mCmdBuffer.size() * sizeof(mCmdBuffer[0]), mCmdBuffer.data(), VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT);
+    mCommandBufferCreated = true;
+    mCmdBuffer.clear();
   }
 }
 

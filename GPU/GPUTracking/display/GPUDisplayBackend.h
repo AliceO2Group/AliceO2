@@ -104,6 +104,9 @@ class GPUDisplayBackend
 
  protected:
   GPUDisplay* mDisplay = nullptr;
+  std::vector<int> mIndirectSliceOffset;
+  vecpod<DrawArraysIndirectCommand> mCmdBuffer;
+  void fillIndirectCmdBuffer();
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

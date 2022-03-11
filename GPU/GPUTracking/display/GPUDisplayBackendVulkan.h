@@ -65,7 +65,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   backendTypes backendType() const override { return TYPE_VULKAN; }
   void resizeScene(unsigned int width, unsigned int height) override;
 
-  VulkanBuffer createBuffer(size_t size, const void* srcData = nullptr, bool uniform = false);
+  VulkanBuffer createBuffer(size_t size, const void* srcData = nullptr, VkBufferUsageFlagBits type = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
   void writeToBuffer(VulkanBuffer& buffer, size_t size, const void* srcData);
   void clearBuffer(VulkanBuffer& buffer);
   void clearVertexBuffers();
@@ -84,11 +84,8 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void clearUniformLayouts();
   void recreateSwapChain();
 
-  vecpod<DrawArraysIndirectCommand> mCmdBuffer;
-
   unsigned int mIndirectId;
   std::vector<unsigned int> mVBOId;
-  std::vector<int> mIndirectSliceOffset;
   std::unique_ptr<QueueFamiyIndices> mQueueFamilyIndices;
   std::unique_ptr<SwapChainSupportDetails> mSwapChainDetails;
   int mModelViewProjId;
@@ -129,6 +126,8 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
 
   std::vector<VulkanBuffer> mVBO;
   unsigned int mNVBOCreated = 0;
+  std::vector<VulkanBuffer> mVulkanCommandBuffer;
+  bool mCommandBufferCreated = false;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
