@@ -265,7 +265,6 @@ int GPUDisplayBackendOpenGL::InitBackend()
     GPUError("Unsupported OpenGL runtime %d.%d < %d.%d", glVersion[0], glVersion[1], GPUDisplayFrontend::GL_MIN_VERSION_MAJOR, GPUDisplayFrontend::GL_MIN_VERSION_MINOR);
     return (1);
   }
-  mIndirectSliceOffset.resize(GPUCA_NSLICES);
   mVBOId.resize(GPUCA_NSLICES);
   CHKERR(glCreateBuffers(mVBOId.size(), mVBOId.data()));
   CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mVBOId[0]));
@@ -361,14 +360,7 @@ void GPUDisplayBackendOpenGL::loadDataToGPU(size_t totalVertizes)
   }
 
   if (mDisplay->cfgR().useGLIndirectDraw) {
-    mCmdBuffer.clear();
-    // TODO: Check if this can be parallelized
-    for (int iSlice = 0; iSlice < GPUCA_NSLICES; iSlice++) {
-      mIndirectSliceOffset[iSlice] = mCmdBuffer.size();
-      for (unsigned int k = 0; k < mDisplay->vertexBufferStart()[iSlice].size(); k++) {
-        mCmdBuffer.emplace_back(mDisplay->vertexBufferCount()[iSlice][k], 1, mDisplay->vertexBufferStart()[iSlice][k], 0);
-      }
-    }
+    fillIndirectCmdBuffer();
     CHKERR(glBufferData(GL_DRAW_INDIRECT_BUFFER, mCmdBuffer.size() * sizeof(mCmdBuffer[0]), mCmdBuffer.data(), GL_STATIC_DRAW));
     mCmdBuffer.clear();
   }
