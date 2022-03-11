@@ -83,6 +83,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void clearShaders();
   void clearUniformLayouts();
   void recreateSwapChain();
+  void needRecordCommandBuffers();
 
   unsigned int mIndirectId;
   std::vector<unsigned int> mVBOId;
@@ -111,10 +112,12 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   std::vector<VkPipeline> mPipelines;
   std::vector<VkFramebuffer> mFramebuffers;
   VkCommandPool mCommandPool;
+  unsigned int mImageCount = 0;
   unsigned int mFramesInFlight = 0;
   int mCurrentFrame = 0;
   uint32_t mImageIndex;
   std::vector<VkCommandBuffer> mCommandBuffers;
+  std::vector<bool> mCommandBufferUpToDate;
   std::vector<VkSemaphore> mImageAvailableSemaphore;
   std::vector<VkSemaphore> mRenderFinishedSemaphore;
   std::vector<VkFence> mInFlightFence;
@@ -126,8 +129,8 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
 
   std::vector<VulkanBuffer> mVBO;
   unsigned int mNVBOCreated = 0;
-  std::vector<VulkanBuffer> mVulkanCommandBuffer;
-  bool mCommandBufferCreated = false;
+  std::vector<VulkanBuffer> mIndirectCommandBuffer;
+  bool mIndirectCommandBufferCreated = false;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

@@ -94,6 +94,7 @@ class GPUDisplay
   int screenWidth() const { return mScreenwidth; }
   int screenHeight() const { return mScreenheight; }
   bool useMultiVBO() const { return mUseMultiVBO; }
+  int updateDrawCommands() const { return mUpdateDrawCommands; }
   const GPUDisplayBackend* backend() const { return mBackend.get(); }
   vecpod<int>* vertexBufferStart() { return mVertexBufferStart; }
   const vecpod<unsigned int>* vertexBufferCount() const { return mVertexBufferCount; }
@@ -304,8 +305,9 @@ class GPUDisplay
   std::vector<bool> mTrackFilter;
   bool mUpdateTrackFilter = false;
 
-  int mGlDLrecent = 0;
-  volatile int mUpdateDLList = 0;
+  int mUpdateVertexLists = 1;
+  int mUpdateEventData = 0;
+  int mUpdateDrawCommands = 1;
   volatile int mResetScene = 0;
 
   int mAnimate = 0;
