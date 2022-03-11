@@ -23,6 +23,8 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
+#include "CCDB/BasicCCDBManager.h"
+#include "CCDB/CCDBTimeStampUtils.h"
 
 #include "Field/MagneticField.h"
 
@@ -62,9 +64,9 @@ void run_trac_ca_its(bool cosmics = false,
                      std::string path = "./",
                      std::string outputfile = "o2trac_its.root",
                      std::string inputClustersITS = "o2clus_its.root",
-                     std::string dictfile = "",
                      std::string matLUTFile = "matbud.root",
-                     std::string inputGRP = "o2sim_grp.root")
+                     std::string inputGRP = "o2sim_grp.root",
+		     long timestamp = 0)
 {
 
   gSystem->Load("libO2ITStracking");
@@ -102,6 +104,11 @@ void run_trac_ca_its(bool cosmics = false,
   gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
                                                  o2::math_utils::TransformType::L2G)); // request cached transforms
 
+  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+  mgr.setURL("http://alice-ccdb.cern.ch");
+  mgr.setTimestamp(timestamp ? timestamp : o2::ccdb::getCurrentTimestamp());
+  const o2::itsmft::TopologyDictionary* dict = mgr.get<o2::itsmft::TopologyDictionary>("ITS/Calib/ClusterDictionary");
+  
   //>>>---------- attach input data --------------->>>
   TChain itsClusters("o2sim");
   itsClusters.AddFile((path + inputClustersITS).data());
@@ -139,23 +146,8 @@ void run_trac_ca_its(bool cosmics = false,
   itsClusters.SetBranchAddress("ITSClustersROF", &rofs);
 
   itsClusters.GetEntry(0);
-
-  //-------------------------------------------------
-
-  o2::itsmft::TopologyDictionary dict;
-  if (dictfile.empty()) {
-    dictfile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "");
-  }
-  std::ifstream file(dictfile.c_str());
-  if (file.good()) {
-    LOG(info) << "Running with dictionary: " << dictfile.c_str();
-    dict.readFromFile(dictfile);
-  } else {
-    LOG(info) << "Running without dictionary !";
-  }
-
-  //-------------------------------------------------
-
+  
+    
   std::vector<o2::its::TrackITSExt> tracks;
   // create/attach output tree
   TFile outFile((path + outputfile).data(), "recreate");
@@ -231,7 +223,7 @@ void run_trac_ca_its(bool cosmics = false,
   o2::its::TimeFrame tf;
   gsl::span<o2::itsmft::ROFRecord> rofspan(*rofs);
   std::vector<bool> processingMask(rofs->size(), true);
-  tf.loadROFrameData(rofspan, clSpan, pattIt_vertexer, &dict, labels);
+  tf.loadROFrameData(rofspan, clSpan, pattIt_vertexer, dict, labels);
   tf.setMultiplicityCutMask(processingMask);
 
   int rofId{0};

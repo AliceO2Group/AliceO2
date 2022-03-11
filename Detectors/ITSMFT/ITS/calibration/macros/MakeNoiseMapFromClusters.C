@@ -56,12 +56,7 @@ void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", bool only1p
   mgr.setURL("http://alice-ccdb.cern.ch");
   mgr.setTimestamp(timestamp ? timestamp : o2::ccdb::getCurrentTimestamp());
 
-  try {
-    calib.setClusterDictionary(mgr.get<o2::itsmft::TopologyDictionary>("ITS/Calib/ClusterDictionary"));
-  } catch (std::runtime_error) {
-    LOG(error) << "Cannot load the dictionary file";
-    LOG(info) << "Assuming that cluster shapes are not encoded...";
-  }
+  calib.setClusterDictionary(mgr.get<o2::itsmft::TopologyDictionary>("ITS/Calib/ClusterDictionary"));
 
   auto nevents = clusTree->GetEntries();
   for (int n = 0; n < nevents; n++) {

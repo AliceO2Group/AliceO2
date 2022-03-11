@@ -16,7 +16,6 @@
 
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -29,6 +28,9 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "ReconstructionDataFormats/Vertex.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
+#include "CCDB/BasicCCDBManager.h"
+#include "CCDB/CCDBTimeStampUtils.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 #endif
 
 #include "ReconstructionDataFormats/PrimaryVertex.h" // hack to silence JIT compiler
@@ -43,9 +45,9 @@ using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.root",
                   std::string inputClustersITS = "o2clus_its.root",
-                  std::string dictfile = "",
                   std::string inputGeom = "",
-                  std::string inputGRP = "o2sim_grp.root")
+                  std::string inputGRP = "o2sim_grp.root",
+		  long timestamp = 0)
 {
 
   FairLogger* logger = FairLogger::GetLogger();
@@ -82,6 +84,11 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
     LOG(fatal) << "Failed to load ma";
   }
 
+  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+  mgr.setURL("http://alice-ccdb.cern.ch");
+  mgr.setTimestamp(timestamp ? timestamp : o2::ccdb::getCurrentTimestamp());
+  const o2::itsmft::TopologyDictionary* dict = mgr.get<o2::itsmft::TopologyDictionary>("ITS/Calib/ClusterDictionary");
+
   //>>>---------- attach input data --------------->>>
   TChain itsClusters("o2sim");
   itsClusters.AddFile((path + inputClustersITS).data());
@@ -117,20 +124,6 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
 
   std::vector<o2::itsmft::ROFRecord>* rofs = nullptr;
   itsClusters.SetBranchAddress("ITSClustersROF", &rofs);
-
-  //<<<---------- attach input data ---------------<<<
-
-  o2::itsmft::TopologyDictionary dict;
-  if (dictfile.empty()) {
-    dictfile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "");
-  }
-  std::ifstream file(dictfile.c_str());
-  if (file.good()) {
-    LOG(info) << "Running with dictionary: " << dictfile.c_str();
-    dict.readFromFile(dictfile);
-  } else {
-    LOG(info) << "Running without dictionary !";
-  }
 
   //>>>--------- create/attach output ------------->>>
   // create/attach output tree
@@ -179,7 +172,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
     auto pattIt_vertexer = patt.begin();
     auto clSpan = gsl::span(cclusters->data(), cclusters->size());
     std::vector<bool> processingMask(rofs->size(), true);
-    tf.loadROFrameData(rofspan, clSpan, pattIt_vertexer, &dict, labels);
+    tf.loadROFrameData(rofspan, clSpan, pattIt_vertexer, dict, labels);
     tf.setMultiplicityCutMask(processingMask);
     vertexer.adoptTimeFrame(tf);
     vertexer.clustersToVertices(mcTruth);
@@ -200,12 +193,8 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
         verticesL.emplace_back();
       }
       tracker.setVertices(verticesL);
-<<<<<<< HEAD
-      tracker.process(clSpan, it, &dict, tracksITS, trackClIdx, rof);
-=======
       tracker.process(clSpan, it, dict, tracksITS, trackClIdx, rof);
       ++iRof;
->>>>>>> Fix cooked tracker macro
     }
     outTree.Fill();
     if (mcTruth) {
