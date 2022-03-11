@@ -495,12 +495,13 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
   }
 
+  ConcreteDataMatcher dstf{"FLP", "DISTSUBTIMEFRAME", 0xccdb};
   if (ccdbBackend.outputs.empty() == false) {
     ccdbBackend.outputs.push_back(OutputSpec{"CTP", "OrbitReset", 0});
+    InputSpec matcher{"dstf", "FLP", "DISTSUBTIMEFRAME", 0xccdb};
     bool providesDISTSTF = false;
-    InputSpec matcher{"dstf", "FLP", "DISTSUBTIMEFRAME"};
-    ConcreteDataMatcher dstf{"FLP", "DISTSUBTIMEFRAME", 0xccdb};
     // Check if any of the provided outputs is a DISTSTF
+    // Check if any of the requested inputs is for a 0xccdb message
     for (auto& dp : workflow) {
       for (auto& output : dp.outputs) {
         if (DataSpecUtils::match(matcher, output)) {
@@ -539,6 +540,34 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       }
     }
     extraSpecs.push_back(ccdbBackend);
+  } else {
+    // If there is no CCDB requested, but we still ask for a FLP/DISTSUBTIMEFRAME/0xccdb
+    // we add to the first data processor which has no inputs (apart from
+    // enumerations / timers) the responsibility to provide the DISTSUBTIMEFRAME
+    bool requiresDISTSUBTIMEFRAME = false;
+    for (auto& dp : workflow) {
+      for (auto& input : dp.inputs) {
+        if (DataSpecUtils::match(input, dstf)) {
+          requiresDISTSUBTIMEFRAME = true;
+          break;
+        }
+      }
+    }
+    if (requiresDISTSUBTIMEFRAME) {
+      for (auto& dp : workflow) {
+        bool enumOnly = dp.inputs.size() == 1 && dp.inputs[0].lifetime == Lifetime::Enumeration;
+        bool timerOnly = dp.inputs.size() == 1 && dp.inputs[0].lifetime == Lifetime::Timer;
+        if (enumOnly == true) {
+          dp.outputs.push_back(OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
+          ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
+          break;
+        } else if (timerOnly == true) {
+          dstf = DataSpecUtils::asConcreteDataMatcher(dp.outputs[0]);
+          ccdbBackend.inputs.push_back(InputSpec{{"tfn"}, dstf, Lifetime::Timeframe});
+          break;
+        }
+      }
+    }
   }
 
   // add the timer
