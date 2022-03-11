@@ -87,7 +87,12 @@ GPUDisplayFrontend* GPUDisplayFrontend::getFrontend(const char* type)
   return nullptr;
 }
 
-const GPUDisplayBackend* GPUDisplayFrontend::backend()
+GPUDisplayBackend* GPUDisplayFrontend::backend()
 {
   return mDisplay->backend();
+}
+
+int& GPUDisplayFrontend::drawTextFontSize()
+{
+  return mDisplay->drawTextFontSize();
 }

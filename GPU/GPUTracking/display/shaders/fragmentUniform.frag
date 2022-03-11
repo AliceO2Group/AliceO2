@@ -1,6 +1,6 @@
 #version 460 core
 layout (location = 0) out vec4 outColor;
-layout (push_constant) uniform UniformBufferObject { vec4 color; } ubo;
+layout (binding = 1) uniform UniformBufferObject { vec4 color; } ubo;
 
 void main()
 {

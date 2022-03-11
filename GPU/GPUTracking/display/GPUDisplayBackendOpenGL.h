@@ -34,18 +34,20 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   void deleteFB(GLfb& fb) override;
 
   unsigned int drawVertices(const vboList& v, const drawType t) override;
-  void ActivateColor(std::array<float, 3>& color) override;
+  void ActivateColor(std::array<float, 4>& color) override;
   void setQuality() override;
   void setDepthBuffer() override;
   void setFrameBuffer(int updateCurrent, unsigned int newID) override;
-  int InitBackend() override;
-  void ExitBackend() override;
+  int InitBackendA() override;
+  void ExitBackendA() override;
   void clearScreen(bool colorOnly = false) override;
   void updateSettings() override;
   void loadDataToGPU(size_t totalVertizes) override;
   void prepareDraw() override;
   void finishDraw() override;
+  void finishFrame() override;
   void prepareText() override;
+  void finishText() override;
   void setMatrices(const hmm_mat4& proj, const hmm_mat4& view) override;
   void mixImages(GLfb& mixBuffer, float mixSlaveImage) override;
   void renderOffscreenBuffer(GLfb& buffer, GLfb& bufferNoMSAA, int mainBuffer) override;
@@ -55,15 +57,31 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   backendTypes backendType() const override { return TYPE_OPENGL; }
   size_t needMultiVBO() override { return 0x100000000ll; }
 
+  void addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data) override;
+  void initializeTextDrawing() override;
+  void OpenGLPrint(const char* s, float x, float y, float* color, float scale) override;
+
+  struct FontSymbolOpenGL : public FontSymbol {
+    unsigned int texId;
+  };
+
   unsigned int mVertexShader;
   unsigned int mFragmentShader;
+  unsigned int mVertexShaderText;
+  unsigned int mFragmentShaderText;
   unsigned int mShaderProgram;
+  unsigned int mShaderProgramText;
   unsigned int mVertexArray;
 
   unsigned int mIndirectId;
   std::vector<unsigned int> mVBOId;
+  std::vector<FontSymbolOpenGL> mFontSymbols;
   int mModelViewProjId;
   int mColorId;
+  int mModelViewProjIdText;
+  int mColorIdText;
+
+  unsigned int VAO_text, VBO_text;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

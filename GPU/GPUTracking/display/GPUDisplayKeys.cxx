@@ -510,7 +510,7 @@ void GPUDisplay::HandleSendKey(int key)
 void GPUDisplay::PrintGLHelpText(float colorValue)
 {
   for (unsigned int i = 0; i < sizeof(HelpText) / sizeof(HelpText[0]); i++) {
-    mFrontend->OpenGLPrint(HelpText[i], 40.f, 35 + 20 * (1 + i), colorValue, colorValue, colorValue, mInfoHelpTimer.GetCurrentElapsedTime() >= 5 ? (6 - mInfoHelpTimer.GetCurrentElapsedTime()) : 1, false);
+    OpenGLPrint(HelpText[i], 40.f, 35 + (mDrawTextFontSize + 8) * (1 + i), colorValue, colorValue, colorValue, mInfoHelpTimer.GetCurrentElapsedTime() >= 5 ? (6 - mInfoHelpTimer.GetCurrentElapsedTime()) : 1, false);
   }
 }
 

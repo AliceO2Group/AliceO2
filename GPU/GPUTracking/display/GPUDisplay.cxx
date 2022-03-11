@@ -307,9 +307,9 @@ inline void GPUDisplay::SetColorClusters()
     return;
   }
   if (mCfgL.invertColors) {
-    mDrawColor = {0, 0.3, 0.7};
+    mDrawColor = {0, 0.3, 0.7, 1.f};
   } else {
-    mDrawColor = {0, 0.7, 1.0};
+    mDrawColor = {0, 0.7, 1.0, 1.f};
   }
   ActivateColor();
 }
@@ -319,9 +319,9 @@ inline void GPUDisplay::SetColorTRD()
     return;
   }
   if (mCfgL.invertColors) {
-    mDrawColor = {0.7, 0.3, 0};
+    mDrawColor = {0.7, 0.3, 0, 1.f};
   } else {
-    mDrawColor = {1.0, 0.7, 0};
+    mDrawColor = {1.0, 0.7, 0, 1.f};
   }
   ActivateColor();
 }
@@ -331,9 +331,9 @@ inline void GPUDisplay::SetColorITS()
     return;
   }
   if (mCfgL.invertColors) {
-    mDrawColor = {1.00, 0.1, 0.1};
+    mDrawColor = {1.00, 0.1, 0.1, 1.f};
   } else {
-    mDrawColor = {1.00, 0.3, 0.3};
+    mDrawColor = {1.00, 0.3, 0.3, 1.f};
   }
   ActivateColor();
 }
@@ -343,63 +343,63 @@ inline void GPUDisplay::SetColorTOF()
     return;
   }
   if (mCfgL.invertColors) {
-    mDrawColor = {0.1, 1.0, 0.1};
+    mDrawColor = {0.1, 1.0, 0.1, 1.f};
   } else {
-    mDrawColor = {0.5, 1.0, 0.5};
+    mDrawColor = {0.5, 1.0, 0.5, 1.f};
   }
   ActivateColor();
 }
 inline void GPUDisplay::SetColorInitLinks()
 {
   if (mCfgL.invertColors) {
-    mDrawColor = {0.42, 0.4, 0.1};
+    mDrawColor = {0.42, 0.4, 0.1, 1.f};
   } else {
-    mDrawColor = {0.42, 0.4, 0.1};
+    mDrawColor = {0.42, 0.4, 0.1, 1.f};
   }
   ActivateColor();
 }
 inline void GPUDisplay::SetColorLinks()
 {
   if (mCfgL.invertColors) {
-    mDrawColor = {0.6, 0.1, 0.1};
+    mDrawColor = {0.6, 0.1, 0.1, 1.f};
   } else {
-    mDrawColor = {0.8, 0.2, 0.2};
+    mDrawColor = {0.8, 0.2, 0.2, 1.f};
   }
   ActivateColor();
 }
 inline void GPUDisplay::SetColorSeeds()
 {
   if (mCfgL.invertColors) {
-    mDrawColor = {0.6, 0.0, 0.65};
+    mDrawColor = {0.6, 0.0, 0.65, 1.f};
   } else {
-    mDrawColor = {0.8, 0.1, 0.85};
+    mDrawColor = {0.8, 0.1, 0.85, 1.f};
   }
   ActivateColor();
 }
 inline void GPUDisplay::SetColorTracklets()
 {
   if (mCfgL.invertColors) {
-    mDrawColor = {0, 0, 0};
+    mDrawColor = {0, 0, 0, 1.f};
   } else {
-    mDrawColor = {1, 1, 1};
+    mDrawColor = {1, 1, 1, 1.f};
   }
   ActivateColor();
 }
 inline void GPUDisplay::SetColorTracks()
 {
   if (mCfgL.invertColors) {
-    mDrawColor = {0.6, 0, 0.1};
+    mDrawColor = {0.6, 0, 0.1, 1.f};
   } else {
-    mDrawColor = {0.8, 1., 0.15};
+    mDrawColor = {0.8, 1., 0.15, 1.f};
   }
   ActivateColor();
 }
 inline void GPUDisplay::SetColorGlobalTracks()
 {
   if (mCfgL.invertColors) {
-    mDrawColor = {0.8, 0.2, 0};
+    mDrawColor = {0.8, 0.2, 0, 1.f};
   } else {
-    mDrawColor = {1.0, 0.4, 0};
+    mDrawColor = {1.0, 0.4, 0, 1.f};
   }
   ActivateColor();
 }
@@ -409,36 +409,36 @@ inline void GPUDisplay::SetColorFinal()
     return;
   }
   if (mCfgL.invertColors) {
-    mDrawColor = {0, 0.6, 0.1};
+    mDrawColor = {0, 0.6, 0.1, 1.f};
   } else {
-    mDrawColor = {0, 0.7, 0.2};
+    mDrawColor = {0, 0.7, 0.2, 1.f};
   }
   ActivateColor();
 }
 inline void GPUDisplay::SetColorGrid()
 {
   if (mCfgL.invertColors) {
-    mDrawColor = {0.5, 0.5, 0.0};
+    mDrawColor = {0.5, 0.5, 0.0, 1.f};
   } else {
-    mDrawColor = {0.7, 0.7, 0.0};
+    mDrawColor = {0.7, 0.7, 0.0, 1.f};
   }
   ActivateColor();
 }
 inline void GPUDisplay::SetColorGridTRD()
 {
   if (mCfgL.invertColors) {
-    mDrawColor = {0.5, 0.5, 0.5};
+    mDrawColor = {0.5, 0.5, 0.5, 1.f};
   } else {
-    mDrawColor = {0.7, 0.7, 0.5};
+    mDrawColor = {0.7, 0.7, 0.5, 1.f};
   }
   ActivateColor();
 }
 inline void GPUDisplay::SetColorMarked()
 {
   if (mCfgL.invertColors) {
-    mDrawColor = {0.8, 0, 0};
+    mDrawColor = {0.8, 0, 0, 1.f};
   } else {
-    mDrawColor = {1.0, 0.0, 0.0};
+    mDrawColor = {1.0, 0.0, 0.0, 1.f};
   }
   ActivateColor();
 }
@@ -453,7 +453,7 @@ inline void GPUDisplay::SetCollisionColor(int col)
   if (!mCfgL.invertColors && red == 0 && blue == 0 && green == 0) {
     red = 4;
   }
-  mDrawColor = {red / 4.f, green / 5.f, blue / 6.f};
+  mDrawColor = {red / 4.f, green / 5.f, blue / 6.f, 1.f};
   ActivateColor();
 }
 
@@ -564,6 +564,7 @@ int GPUDisplay::InitDisplay_internal()
   if (mBackend->InitBackend()) {
     return 1;
   }
+  mDrawTextInCompatMode = !mBackend->mFreetypeInitialized && mFrontend->mCanDrawText == 1;
   ReSizeGLScene(GPUDisplayFrontend::INIT_WIDTH, GPUDisplayFrontend::INIT_HEIGHT, true);
   return 0;
 }
@@ -2274,6 +2275,8 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     }
   }
 
+  mBackend->finishFrame();
+
   if (mAnimateTime < 0) {
     mSemLockDisplay.Unlock();
   }
@@ -2355,12 +2358,12 @@ void GPUDisplay::showInfo(const char* info)
 {
   mBackend->prepareText();
   float colorValue = mCfgL.invertColors ? 0.f : 1.f;
-  mFrontend->OpenGLPrint(info, 40.f, 40.f, colorValue, colorValue, colorValue, 1);
+  OpenGLPrint(info, 40.f, 20.f + (mDrawTextFontSize + 8), colorValue, colorValue, colorValue, 1);
   if (mInfoText2Timer.IsRunning()) {
     if (mInfoText2Timer.GetCurrentElapsedTime() >= 6) {
       mInfoText2Timer.Reset();
     } else {
-      mFrontend->OpenGLPrint(mInfoText2, 40.f, 20.f, colorValue, colorValue, colorValue, 6 - mInfoText2Timer.GetCurrentElapsedTime());
+      OpenGLPrint(mInfoText2, 40.f, 20.f, colorValue, colorValue, colorValue, 6 - mInfoText2Timer.GetCurrentElapsedTime());
     }
   }
   if (mInfoHelpTimer.IsRunning()) {
@@ -2370,6 +2373,7 @@ void GPUDisplay::showInfo(const char* info)
       PrintGLHelpText(colorValue);
     }
   }
+  mBackend->finishText();
 }
 
 void GPUDisplay::ShowNextEvent(const GPUTrackingInOutPointers* ptrs)
@@ -2396,6 +2400,19 @@ int GPUDisplay::StartDisplay()
     Sleep(10);
   }
   return (mInitResult != 1);
+}
+
+void GPUDisplay::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
+{
+  if (mBackend->mFreetypeInitialized) {
+    if (!fromBotton) {
+      y = mRenderheight - y;
+    }
+    float color[4] = {r, g, b, a};
+    mBackend->OpenGLPrint(s, x, y, color, 1.0f);
+  } else if (mFrontend->mCanDrawText) {
+    mFrontend->OpenGLPrint(s, x, y, r, g, b, a, fromBotton);
+  }
 }
 
 #endif

@@ -216,6 +216,11 @@ int GPUDisplayFrontendGlut::FrontendMain()
     return 1;
   }
   me = this;
+  mCanDrawText = 1;
+  if (drawTextFontSize() == 0) {
+    drawTextFontSize() = 12;
+  }
+
   int nopts = 2;
   char opt1[] = "progname";
   char opt2[] = "-direct";

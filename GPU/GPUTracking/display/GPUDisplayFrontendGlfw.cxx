@@ -300,6 +300,13 @@ int GPUDisplayFrontendGlfw::FrontendMain()
   }
 #endif
 
+#ifdef GPUCA_O2_LIB
+  mCanDrawText = 2;
+  if (drawTextFontSize() == 0) {
+    drawTextFontSize() = 12;
+  }
+#endif
+
   if (InitDisplay()) {
     fprintf(stderr, "Error in GLFW display initialization\n");
     return (1);

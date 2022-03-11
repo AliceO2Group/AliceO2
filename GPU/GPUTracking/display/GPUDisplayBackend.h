@@ -19,6 +19,8 @@
 #include "../utils/vecpod.h"
 #include <array>
 #include <cstddef>
+#include <memory>
+#include <vector>
 
 #if defined(GPUCA_DISPLAY_GL3W) && !defined(GPUCA_DISPLAY_OPENGL_CORE)
 #define GPUCA_DISPLAY_OPENGL_CORE
@@ -37,8 +39,8 @@ class GPUDisplayBackend
   friend GPUDisplay;
 
  public:
-  GPUDisplayBackend() = default;
-  virtual ~GPUDisplayBackend() = default;
+  GPUDisplayBackend();
+  virtual ~GPUDisplayBackend();
 
   virtual int ExtInit() = 0;
   virtual bool CoreProfile() = 0;
@@ -74,22 +76,32 @@ class GPUDisplayBackend
     unsigned int baseInstance;
   };
 
+  struct FontSymbol {
+    int size[2];
+    int offset[2];
+    int advance;
+  };
+
   virtual void createFB(GLfb& fb, bool tex, bool withDepth, bool msaa) = 0;
   virtual void deleteFB(GLfb& fb) = 0;
 
   virtual unsigned int drawVertices(const vboList& v, const drawType t) = 0;
-  virtual void ActivateColor(std::array<float, 3>& color) = 0;
+  virtual void ActivateColor(std::array<float, 4>& color) = 0;
   virtual void setQuality() = 0;
   virtual void setDepthBuffer() = 0;
   virtual void setFrameBuffer(int updateCurrent, unsigned int newID) = 0;
-  virtual int InitBackend() = 0;
-  virtual void ExitBackend() = 0;
+  virtual int InitBackendA() = 0;
+  virtual void ExitBackendA() = 0;
+  int InitBackend();
+  void ExitBackend();
   virtual void clearScreen(bool colorOnly = false) = 0;
   virtual void updateSettings() = 0;
   virtual void loadDataToGPU(size_t totalVertizes) = 0;
   virtual void prepareDraw() = 0;
   virtual void finishDraw() = 0;
+  virtual void finishFrame() = 0;
   virtual void prepareText() = 0;
+  virtual void finishText() = 0;
   virtual void setMatrices(const hmm_mat4& proj, const hmm_mat4& view) = 0;
   virtual void mixImages(GLfb& mixBuffer, float mixSlaveImage) = 0;
   virtual void renderOffscreenBuffer(GLfb& buffer, GLfb& bufferNoMSAA, int mainBuffer) = 0;
@@ -99,7 +111,7 @@ class GPUDisplayBackend
   virtual backendTypes backendType() const = 0;
   virtual void resizeScene(unsigned int width, unsigned int height) {}
   virtual size_t needMultiVBO() { return 0; }
-
+  virtual void OpenGLPrint(const char* s, float x, float y, float* color, float scale) = 0;
   static GPUDisplayBackend* getBackend(const char* type);
 
  protected:
@@ -107,6 +119,10 @@ class GPUDisplayBackend
   std::vector<int> mIndirectSliceOffset;
   vecpod<DrawArraysIndirectCommand> mCmdBuffer;
   void fillIndirectCmdBuffer();
+  virtual void addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data) = 0;
+  virtual void initializeTextDrawing() = 0;
+  bool mFreetypeInitialized = false;
+  bool mFrontendCompatTextDraw = false;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

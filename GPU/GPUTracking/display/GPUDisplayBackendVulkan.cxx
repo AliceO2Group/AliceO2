@@ -16,7 +16,6 @@
 
 #include "GPUCommonDef.h"
 #include "GPUDisplayBackendVulkan.h"
-#include "GPUDisplayShaders.h"
 #include "GPUDisplay.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -24,6 +23,9 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "utils/qGetLdBinarySymbols.h"
 QGET_LD_BINARY_SYMBOLS(shaders_display_shaders_vertex_vert_spv);
 QGET_LD_BINARY_SYMBOLS(shaders_display_shaders_fragment_frag_spv);
+QGET_LD_BINARY_SYMBOLS(shaders_display_shaders_vertexPoint_vert_spv);
+QGET_LD_BINARY_SYMBOLS(shaders_display_shaders_fragmentText_frag_spv);
+QGET_LD_BINARY_SYMBOLS(shaders_display_shaders_vertexText_vert_spv);
 
 namespace GPUCA_NAMESPACE::gpu
 {
@@ -38,8 +40,24 @@ struct SwapChainSupportDetails {
 struct VulkanBuffer {
   VkBuffer buffer;
   VkDeviceMemory memory;
-  size_t size;
+  size_t size = 0;
   bool deviceMemory;
+};
+struct VulkanImage {
+  VkImage image;
+  VkImageView view;
+  VkDeviceMemory memory;
+  unsigned int sizex, sizey;
+  VkFormat format;
+};
+struct FontSymbolVulkan : public GPUDisplayBackend::FontSymbol {
+  std::unique_ptr<char[]> data;
+  float x0, x1, y0, y1;
+};
+struct TextDrawCommand {
+  size_t firstVertex;
+  size_t nVertices;
+  float color[4];
 };
 } // namespace GPUCA_NAMESPACE::gpu
 
@@ -114,9 +132,8 @@ unsigned int GPUDisplayBackendVulkan::drawVertices(const vboList& v, const drawT
   return count;
 }
 
-void GPUDisplayBackendVulkan::ActivateColor(std::array<float, 3>& color)
+void GPUDisplayBackendVulkan::ActivateColor(std::array<float, 4>& color)
 {
-  writeToBuffer(mUniformBuffersCol[mImageIndex], sizeof(color), color.data());
   if (mCommandBufferUpToDate[mImageIndex]) {
     return;
   }
@@ -134,6 +151,8 @@ void GPUDisplayBackendVulkan::setDepthBuffer()
 void GPUDisplayBackendVulkan::setFrameBuffer(int updateCurrent, unsigned int newID)
 {
 }
+
+// ---------------------------- VULKAN HELPERS ----------------------------
 
 static int checkValidationLayerSupport(const std::vector<const char*>& validationLayers)
 {
@@ -190,10 +209,25 @@ static void setupDebugMessenger(VkInstance& instance, VkDebugUtilsMessengerEXT& 
   }
 }
 
+static uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, VkPhysicalDevice physDev)
+{
+  VkPhysicalDeviceMemoryProperties memProperties;
+  vkGetPhysicalDeviceMemoryProperties(physDev, &memProperties);
+
+  for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+    if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+      return i;
+    }
+  }
+
+  throw std::runtime_error("failed to find suitable memory type!");
+}
+
 static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
 {
   for (const auto& availableFormat : availableFormats) {
-    if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+    // Could use VK_FORMAT_B8G8R8A8_SRGB for sRGB, but we don't have photos anyway...
+    if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
       return availableFormat;
     }
   }
@@ -235,39 +269,6 @@ static VkShaderModule createShaderModule(const char* code, size_t size, VkDevice
   return shaderModule;
 }
 
-void GPUDisplayBackendVulkan::startFillCommandBuffer(VkCommandBuffer& commandBuffer, unsigned int imageIndex)
-{
-  vkResetCommandBuffer(commandBuffer, 0);
-
-  VkCommandBufferBeginInfo beginInfo{};
-  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  beginInfo.flags = 0;                  // Optional
-  beginInfo.pInheritanceInfo = nullptr; // Optional
-  CHKERR(vkBeginCommandBuffer(commandBuffer, &beginInfo));
-
-  VkRenderPassBeginInfo renderPassInfo{};
-  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  renderPassInfo.renderPass = mRenderPass;
-  renderPassInfo.framebuffer = mFramebuffers[imageIndex];
-  renderPassInfo.renderArea.offset = {0, 0};
-  renderPassInfo.renderArea.extent = mExtent;
-
-  VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-  renderPassInfo.clearValueCount = 1;
-  renderPassInfo.pClearValues = &clearColor;
-  vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-  VkDeviceSize offsets[] = {0};
-  vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mVBO[0].buffer, offsets);
-  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[mImageIndex], 0, nullptr);
-}
-
-void GPUDisplayBackendVulkan::endFillCommandBuffer(VkCommandBuffer& commandBuffer, unsigned int imageIndex)
-{
-  vkCmdEndRenderPass(commandBuffer);
-  CHKERR(vkEndCommandBuffer(commandBuffer));
-}
-
 void GPUDisplayBackendVulkan::updateSwapChainDetails(const VkPhysicalDevice& device)
 {
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, mSurface, &mSwapChainDetails->capabilities);
@@ -280,6 +281,71 @@ void GPUDisplayBackendVulkan::updateSwapChainDetails(const VkPhysicalDevice& dev
   mSwapChainDetails->presentModes.resize(presentModeCount);
   vkGetPhysicalDeviceSurfacePresentModesKHR(device, mSurface, &presentModeCount, mSwapChainDetails->presentModes.data());
 }
+
+VkCommandBuffer GPUDisplayBackendVulkan::getSingleTimeCommandBuffer()
+{
+  VkCommandBufferAllocateInfo allocInfo{};
+  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  allocInfo.commandPool = mCommandPool;
+  allocInfo.commandBufferCount = 1;
+  VkCommandBuffer commandBuffer;
+  vkAllocateCommandBuffers(mDevice, &allocInfo, &commandBuffer);
+  VkCommandBufferBeginInfo beginInfo{};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+  vkBeginCommandBuffer(commandBuffer, &beginInfo);
+  return commandBuffer;
+}
+
+void GPUDisplayBackendVulkan::submitSingleTimeCommandBuffer(VkCommandBuffer commandBuffer)
+{
+  vkEndCommandBuffer(commandBuffer);
+  VkSubmitInfo submitInfo{};
+  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submitInfo.commandBufferCount = 1;
+  submitInfo.pCommandBuffers = &commandBuffer;
+  vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+  vkQueueWaitIdle(mGraphicsQueue);
+  vkFreeCommandBuffers(mDevice, mCommandPool, 1, &commandBuffer);
+}
+
+void GPUDisplayBackendVulkan::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
+{
+  VkCommandBuffer commandBuffer = getSingleTimeCommandBuffer();
+  VkImageMemoryBarrier barrier{};
+  barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+  barrier.oldLayout = oldLayout;
+  barrier.newLayout = newLayout;
+  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.image = image;
+  barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  barrier.subresourceRange.baseMipLevel = 0;
+  barrier.subresourceRange.levelCount = 1;
+  barrier.subresourceRange.baseArrayLayer = 0;
+  barrier.subresourceRange.layerCount = 1;
+  VkPipelineStageFlags sourceStage;
+  VkPipelineStageFlags destinationStage;
+  if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+    barrier.srcAccessMask = 0;
+    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+  } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+  } else {
+    throw std::invalid_argument("unsupported layout transition!");
+  }
+
+  vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+  submitSingleTimeCommandBuffer(commandBuffer);
+}
+
+// ---------------------------- VULKAN DEVICE MANAGEMENT ----------------------------
 
 void GPUDisplayBackendVulkan::createDevice()
 {
@@ -472,9 +538,12 @@ void GPUDisplayBackendVulkan::createDevice()
   allocInfo.commandPool = mCommandPool;
   allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandBufferCount = mFramesInFlight;
+  mFontVertexBuffer.resize(mFramesInFlight);
   mCommandBuffers.resize(mFramesInFlight);
+  mCommandBuffersText.resize(mFramesInFlight);
   mCommandBufferUpToDate.resize(mFramesInFlight, false);
   CHKERR(vkAllocateCommandBuffers(mDevice, &allocInfo, mCommandBuffers.data()));
+  CHKERR(vkAllocateCommandBuffers(mDevice, &allocInfo, mCommandBuffersText.data()));
 
   VkSemaphoreCreateInfo semaphoreInfo{};
   semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -483,15 +552,21 @@ void GPUDisplayBackendVulkan::createDevice()
   fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
   mImageAvailableSemaphore.resize(mFramesInFlight);
   mRenderFinishedSemaphore.resize(mFramesInFlight);
+  mTextFinishedSemaphore.resize(mFramesInFlight);
   mInFlightFence.resize(mFramesInFlight);
-  mUniformBuffersMat.resize(mFramesInFlight);
-  mUniformBuffersCol.resize(mFramesInFlight);
   for (unsigned int i = 0; i < mFramesInFlight; i++) {
     CHKERR(vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mImageAvailableSemaphore[i]));
     CHKERR(vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mRenderFinishedSemaphore[i]));
+    CHKERR(vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mTextFinishedSemaphore[i]));
     CHKERR(vkCreateFence(mDevice, &fenceInfo, nullptr, &mInFlightFence[i]));
-    mUniformBuffersMat[i] = createBuffer(sizeof(hmm_mat4), nullptr, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, false);
-    mUniformBuffersCol[i] = createBuffer(sizeof(float) * 3, nullptr, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, false);
+  }
+  for (int j = 0; j < 2; j++) {
+    mUniformBuffersMat[j].resize(mFramesInFlight);
+    mUniformBuffersCol[j].resize(mFramesInFlight);
+    for (unsigned int i = 0; i < mFramesInFlight; i++) {
+      mUniformBuffersMat[j][i] = createBuffer(sizeof(hmm_mat4), nullptr, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, false);
+      mUniformBuffersCol[j][i] = createBuffer(sizeof(float) * 4, nullptr, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, false);
+    }
   }
 }
 
@@ -500,9 +575,12 @@ void GPUDisplayBackendVulkan::clearDevice()
   for (unsigned int i = 0; i < mImageAvailableSemaphore.size(); i++) {
     vkDestroySemaphore(mDevice, mImageAvailableSemaphore[i], nullptr);
     vkDestroySemaphore(mDevice, mRenderFinishedSemaphore[i], nullptr);
+    vkDestroySemaphore(mDevice, mTextFinishedSemaphore[i], nullptr);
     vkDestroyFence(mDevice, mInFlightFence[i], nullptr);
-    clearBuffer(mUniformBuffersMat[i]);
-    clearBuffer(mUniformBuffersCol[i]);
+    for (int j = 0; j < 2; j++) {
+      clearBuffer(mUniformBuffersMat[j][i]);
+      clearBuffer(mUniformBuffersCol[j][i]);
+    }
   }
   vkDestroyCommandPool(mDevice, mCommandPool, nullptr);
   vkDestroyDevice(mDevice, nullptr);
@@ -512,6 +590,117 @@ void GPUDisplayBackendVulkan::clearDevice()
   }
   vkDestroyInstance(mInstance, nullptr);
 }
+
+// ---------------------------- VULKAN UNIFORM LAYOUTS ----------------------------
+
+void GPUDisplayBackendVulkan::createUniformLayouts()
+{
+  std::array<VkDescriptorPoolSize, 2> poolSizes{};
+  poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  poolSizes[0].descriptorCount = (uint32_t)mFramesInFlight * (2 * 2);
+  poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  poolSizes[1].descriptorCount = (uint32_t)mFramesInFlight;
+  VkDescriptorPoolCreateInfo poolInfo{};
+  poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+  poolInfo.poolSizeCount = poolSizes.size();
+  poolInfo.pPoolSizes = poolSizes.data();
+  poolInfo.maxSets = (uint32_t)mFramesInFlight * 2;
+  CHKERR(vkCreateDescriptorPool(mDevice, &poolInfo, nullptr, &mDescriptorPool));
+
+  VkDescriptorSetLayoutBinding uboLayoutBindingMat{};
+  uboLayoutBindingMat.binding = 0;
+  uboLayoutBindingMat.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  uboLayoutBindingMat.descriptorCount = 1;
+  uboLayoutBindingMat.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+  uboLayoutBindingMat.pImmutableSamplers = nullptr; // Optional
+  VkDescriptorSetLayoutBinding uboLayoutBindingCol = uboLayoutBindingMat;
+  uboLayoutBindingCol.binding = 1;
+  uboLayoutBindingCol.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+  samplerLayoutBinding.binding = 2;
+  samplerLayoutBinding.descriptorCount = 1;
+  samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  samplerLayoutBinding.pImmutableSamplers = nullptr;
+  samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  VkDescriptorSetLayoutBinding bindings[3] = {uboLayoutBindingMat, uboLayoutBindingCol, samplerLayoutBinding};
+
+  VkDescriptorSetLayoutCreateInfo layoutInfo{};
+  layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+  layoutInfo.bindingCount = 2;
+  layoutInfo.pBindings = bindings;
+  CHKERR(vkCreateDescriptorSetLayout(mDevice, &layoutInfo, nullptr, &mUniformDescriptor));
+  layoutInfo.bindingCount = 3;
+  CHKERR(vkCreateDescriptorSetLayout(mDevice, &layoutInfo, nullptr, &mUniformDescriptorText));
+
+  VkDescriptorSetAllocateInfo allocInfo{};
+  allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+  allocInfo.descriptorPool = mDescriptorPool;
+  allocInfo.descriptorSetCount = (uint32_t)mFramesInFlight;
+  for (int j = 0; j < 2; j++) {
+    mDescriptorSets[j].resize(mFramesInFlight);
+    std::vector<VkDescriptorSetLayout> layouts(mFramesInFlight, j ? mUniformDescriptorText : mUniformDescriptor);
+    allocInfo.pSetLayouts = layouts.data();
+    CHKERR(vkAllocateDescriptorSets(mDevice, &allocInfo, mDescriptorSets[j].data()));
+
+    for (int k = 0; k < 2; k++) {
+      auto& mUniformBuffers = k ? mUniformBuffersCol[j] : mUniformBuffersMat[j];
+      for (unsigned int i = 0; i < mFramesInFlight; i++) {
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = mUniformBuffers[i].buffer;
+        bufferInfo.offset = 0;
+        bufferInfo.range = mUniformBuffers[i].size;
+
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = mDescriptorSets[j][i];
+        descriptorWrite.dstBinding = k;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pBufferInfo = &bufferInfo;
+        descriptorWrite.pImageInfo = nullptr;       // Optional
+        descriptorWrite.pTexelBufferView = nullptr; // Optional
+        vkUpdateDescriptorSets(mDevice, 1, &descriptorWrite, 0, nullptr);
+      }
+    }
+  }
+}
+
+void GPUDisplayBackendVulkan::clearUniformLayouts()
+{
+  vkDestroyDescriptorSetLayout(mDevice, mUniformDescriptor, nullptr);
+  vkDestroyDescriptorSetLayout(mDevice, mUniformDescriptorText, nullptr);
+  vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
+}
+
+// ---------------------------- VULKAN TEXTURE SAMPLER ----------------------------
+
+void GPUDisplayBackendVulkan::createTextureSampler()
+{
+  VkSamplerCreateInfo samplerInfo{};
+  samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+  samplerInfo.magFilter = VK_FILTER_LINEAR;
+  samplerInfo.minFilter = VK_FILTER_LINEAR;
+  samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  samplerInfo.compareEnable = VK_FALSE;
+  samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+  samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+  samplerInfo.unnormalizedCoordinates = VK_FALSE;
+  samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+  samplerInfo.mipLodBias = 0.0f;
+  samplerInfo.minLod = 0.0f;
+  samplerInfo.maxLod = 0.0f;
+  CHKERR(vkCreateSampler(mDevice, &samplerInfo, nullptr, &mTextSampler));
+}
+
+void GPUDisplayBackendVulkan::clearTextureSampler()
+{
+  vkDestroySampler(mDevice, mTextSampler, nullptr);
+}
+
+// ---------------------------- VULKAN SWAPCHAIN MANAGEMENT ----------------------------
 
 void GPUDisplayBackendVulkan::createSwapChain()
 {
@@ -539,10 +728,6 @@ void GPUDisplayBackendVulkan::createSwapChain()
   swapCreateInfo.oldSwapchain = VK_NULL_HANDLE;
   CHKERR(vkCreateSwapchainKHR(mDevice, &swapCreateInfo, nullptr, &mSwapChain));
 
-  vkGetSwapchainImagesKHR(mDevice, mSwapChain, &mImageCount, nullptr);
-  mImages.resize(mImageCount);
-  vkGetSwapchainImagesKHR(mDevice, mSwapChain, &mImageCount, mImages.data());
-
   VkAttachmentDescription colorAttachment{};
   colorAttachment.format = mSurfaceFormat.format;
   colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -552,7 +737,6 @@ void GPUDisplayBackendVulkan::createSwapChain()
   colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
   colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
   VkAttachmentReference colorAttachmentRef{};
   colorAttachmentRef.attachment = 0;
   colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -576,6 +760,14 @@ void GPUDisplayBackendVulkan::createSwapChain()
   renderPassInfo.dependencyCount = 1;
   renderPassInfo.pDependencies = &dependency;
   CHKERR(vkCreateRenderPass(mDevice, &renderPassInfo, nullptr, &mRenderPass));
+
+  colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+  colorAttachment.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+  CHKERR(vkCreateRenderPass(mDevice, &renderPassInfo, nullptr, &mRenderPassText));
+
+  vkGetSwapchainImagesKHR(mDevice, mSwapChain, &mImageCount, nullptr);
+  mImages.resize(mImageCount);
+  vkGetSwapchainImagesKHR(mDevice, mSwapChain, &mImageCount, mImages.data());
 
   mImageViews.resize(mImages.size());
   mFramebuffers.resize(mImages.size());
@@ -608,29 +800,49 @@ void GPUDisplayBackendVulkan::createSwapChain()
   }
 }
 
+void GPUDisplayBackendVulkan::clearSwapChain()
+{
+  for (unsigned int i = 0; i < mImages.size(); i++) {
+    vkDestroyFramebuffer(mDevice, mFramebuffers[i], nullptr);
+    vkDestroyImageView(mDevice, mImageViews[i], nullptr);
+  }
+  vkDestroySwapchainKHR(mDevice, mSwapChain, nullptr);
+}
+
+void GPUDisplayBackendVulkan::recreateSwapChain()
+{
+  vkDeviceWaitIdle(mDevice);
+  clearPipeline();
+  clearSwapChain();
+  createSwapChain();
+  createPipeline();
+}
+
+// ---------------------------- VULKAN PIPELINE ----------------------------
+
 void GPUDisplayBackendVulkan::createPipeline()
 {
-  VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+  VkPipelineShaderStageCreateInfo shaderStages[2] = {VkPipelineShaderStageCreateInfo{}, VkPipelineShaderStageCreateInfo{}};
+  VkPipelineShaderStageCreateInfo& vertShaderStageInfo = shaderStages[0];
   vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-  vertShaderStageInfo.module = mModuleVertex;
+  // vertShaderStageInfo.module // below
   vertShaderStageInfo.pName = "main";
-  VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+  VkPipelineShaderStageCreateInfo& fragShaderStageInfo = shaderStages[1];
   fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-  fragShaderStageInfo.module = mModuleFragment;
+  // fragShaderStageInfo.module // below
   fragShaderStageInfo.pName = "main";
-  VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
   VkVertexInputBindingDescription bindingDescription{};
   bindingDescription.binding = 0;
-  bindingDescription.stride = 3 * sizeof(float);
+  // bindingDescription.stride // below
   bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
   VkVertexInputAttributeDescription attributeDescriptions{};
   attributeDescriptions.binding = 0;
   attributeDescriptions.location = 0;
-  attributeDescriptions.format = VK_FORMAT_R32G32B32_SFLOAT;
+  // attributeDescriptions.format // below
   attributeDescriptions.offset = 0;
 
   VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
@@ -687,7 +899,14 @@ void GPUDisplayBackendVulkan::createPipeline()
 
   VkPipelineColorBlendAttachmentState colorBlendAttachment{};
   colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-  colorBlendAttachment.blendEnable = VK_FALSE;
+  // colorBlendAttachment.blendEnable // below
+  colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+  colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+  colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+  colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+  colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+  colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+  colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
   VkPipelineColorBlendStateCreateInfo colorBlending{};
   colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -712,7 +931,7 @@ void GPUDisplayBackendVulkan::createPipeline()
   VkPushConstantRange pushConstantRange{};
   pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
   pushConstantRange.offset = 0;
-  pushConstantRange.size = sizeof(float) * 3;
+  pushConstantRange.size = sizeof(float) * 4;
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.setLayoutCount = 1;
@@ -720,11 +939,13 @@ void GPUDisplayBackendVulkan::createPipeline()
   pipelineLayoutInfo.pushConstantRangeCount = 1;
   pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
   CHKERR(vkCreatePipelineLayout(mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayout));
+  pipelineLayoutInfo.setLayoutCount = 1;
+  pipelineLayoutInfo.pSetLayouts = &mUniformDescriptorText;
+  CHKERR(vkCreatePipelineLayout(mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayoutText));
 
   VkGraphicsPipelineCreateInfo pipelineInfo{};
   pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
   pipelineInfo.stageCount = 2;
-  pipelineInfo.pStages = shaderStages;
   pipelineInfo.pVertexInputState = &vertexInputInfo;
   pipelineInfo.pInputAssemblyState = &inputAssembly;
   pipelineInfo.pViewportState = &viewportState;
@@ -733,27 +954,71 @@ void GPUDisplayBackendVulkan::createPipeline()
   pipelineInfo.pDepthStencilState = nullptr; // Optional
   pipelineInfo.pColorBlendState = &colorBlending;
   pipelineInfo.pDynamicState = nullptr; // Optional
-  pipelineInfo.layout = mPipelineLayout;
-  pipelineInfo.renderPass = mRenderPass;
+  // pipelineInfo.layout // below
+  // pipelineInfo.renderPass // below
   pipelineInfo.subpass = 0;
+  pipelineInfo.pStages = shaderStages;
   pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
   pipelineInfo.basePipelineIndex = -1;              // Optional
 
-  mPipelines.resize(3);
+  mPipelines.resize(4);
   static constexpr VkPrimitiveTopology types[3] = {VK_PRIMITIVE_TOPOLOGY_POINT_LIST, VK_PRIMITIVE_TOPOLOGY_LINE_LIST, VK_PRIMITIVE_TOPOLOGY_LINE_STRIP};
-  for (int i = 0; i < 3; i++) {
-    inputAssembly.topology = types[i];
+  for (int i = 0; i < 4; i++) {
+    if (i == 3) {
+      bindingDescription.stride = 4 * sizeof(float);
+      attributeDescriptions.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+      inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+      vertShaderStageInfo.module = mShaders["vertexText"];
+      fragShaderStageInfo.module = mShaders["fragmentText"];
+      pipelineInfo.layout = mPipelineLayoutText;
+      pipelineInfo.renderPass = mRenderPassText;
+      colorBlendAttachment.blendEnable = VK_TRUE;
+    } else {
+      bindingDescription.stride = 3 * sizeof(float);
+      attributeDescriptions.format = VK_FORMAT_R32G32B32_SFLOAT;
+      inputAssembly.topology = types[i];
+      vertShaderStageInfo.module = mShaders[types[i] == VK_PRIMITIVE_TOPOLOGY_POINT_LIST ? "vertexPoint" : "vertex"];
+      fragShaderStageInfo.module = mShaders["fragment"];
+      pipelineInfo.layout = mPipelineLayout;
+      pipelineInfo.renderPass = mRenderPass;
+      colorBlendAttachment.blendEnable = VK_FALSE;
+    }
+
     CHKERR(vkCreateGraphicsPipelines(mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipelines[i]));
   }
 }
 
-void GPUDisplayBackendVulkan::clearSwapChain()
+void GPUDisplayBackendVulkan::startFillCommandBuffer(VkCommandBuffer& commandBuffer, unsigned int imageIndex)
 {
-  for (unsigned int i = 0; i < mImages.size(); i++) {
-    vkDestroyFramebuffer(mDevice, mFramebuffers[i], nullptr);
-    vkDestroyImageView(mDevice, mImageViews[i], nullptr);
-  }
-  vkDestroySwapchainKHR(mDevice, mSwapChain, nullptr);
+  vkResetCommandBuffer(commandBuffer, 0);
+
+  VkCommandBufferBeginInfo beginInfo{};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  beginInfo.flags = 0;                  // Optional
+  beginInfo.pInheritanceInfo = nullptr; // Optional
+  CHKERR(vkBeginCommandBuffer(commandBuffer, &beginInfo));
+
+  VkRenderPassBeginInfo renderPassInfo{};
+  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+  renderPassInfo.renderPass = mRenderPass;
+  renderPassInfo.framebuffer = mFramebuffers[imageIndex];
+  renderPassInfo.renderArea.offset = {0, 0};
+  renderPassInfo.renderArea.extent = mExtent;
+
+  VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+  renderPassInfo.clearValueCount = 1;
+  renderPassInfo.pClearValues = &clearColor;
+  vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+  VkDeviceSize offsets[] = {0};
+  vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mVBO[0].buffer, offsets);
+  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[0][mImageIndex], 0, nullptr);
+}
+
+void GPUDisplayBackendVulkan::endFillCommandBuffer(VkCommandBuffer& commandBuffer, unsigned int imageIndex)
+{
+  vkCmdEndRenderPass(commandBuffer);
+  CHKERR(vkEndCommandBuffer(commandBuffer));
 }
 
 void GPUDisplayBackendVulkan::clearPipeline()
@@ -762,160 +1027,33 @@ void GPUDisplayBackendVulkan::clearPipeline()
     vkDestroyPipeline(mDevice, pipeline, nullptr);
   }
   vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
+  vkDestroyRenderPass(mDevice, mRenderPassText, nullptr);
   vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
+  vkDestroyPipelineLayout(mDevice, mPipelineLayoutText, nullptr);
 }
+
+// ---------------------------- VULKAN SHADERS ----------------------------
+
+#define LOAD_SHADER(file, ext) \
+  mShaders[#file] = createShaderModule(_binary_shaders_display_shaders_##file##_##ext##_spv_start, _binary_shaders_display_shaders_##file##_##ext##_spv_len, mDevice)
 
 void GPUDisplayBackendVulkan::createShaders()
 {
-  mModuleVertex = createShaderModule(_binary_shaders_display_shaders_vertex_vert_spv_start, _binary_shaders_display_shaders_vertex_vert_spv_len, mDevice);
-  mModuleFragment = createShaderModule(_binary_shaders_display_shaders_fragment_frag_spv_start, _binary_shaders_display_shaders_fragment_frag_spv_len, mDevice);
+  LOAD_SHADER(vertex, vert);
+  LOAD_SHADER(fragment, frag);
+  LOAD_SHADER(vertexPoint, vert);
+  LOAD_SHADER(vertexText, vert);
+  LOAD_SHADER(fragmentText, frag);
 }
 
 void GPUDisplayBackendVulkan::clearShaders()
 {
-  vkDestroyShaderModule(mDevice, mModuleVertex, nullptr);
-  vkDestroyShaderModule(mDevice, mModuleFragment, nullptr);
-}
-
-void GPUDisplayBackendVulkan::recreateSwapChain()
-{
-  vkDeviceWaitIdle(mDevice);
-  clearPipeline();
-  clearSwapChain();
-  createSwapChain();
-  createPipeline();
-}
-
-void GPUDisplayBackendVulkan::createUniformLayouts()
-{
-  VkDescriptorPoolSize poolSize{};
-  poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  poolSize.descriptorCount = (uint32_t)mFramesInFlight * 2;
-  VkDescriptorPoolCreateInfo poolInfo{};
-  poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  poolInfo.poolSizeCount = 1;
-  poolInfo.pPoolSizes = &poolSize;
-  poolInfo.maxSets = (uint32_t)mFramesInFlight;
-  CHKERR(vkCreateDescriptorPool(mDevice, &poolInfo, nullptr, &mDescriptorPool));
-
-  VkDescriptorSetLayoutBinding uboLayoutBindingMat{};
-  uboLayoutBindingMat.binding = 0;
-  uboLayoutBindingMat.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  uboLayoutBindingMat.descriptorCount = 1;
-  uboLayoutBindingMat.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-  uboLayoutBindingMat.pImmutableSamplers = nullptr; // Optional
-  VkDescriptorSetLayoutBinding uboLayoutBindingCol = uboLayoutBindingMat;
-  uboLayoutBindingCol.binding = 1;
-  uboLayoutBindingCol.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-  VkDescriptorSetLayoutBinding bindings[2] = {uboLayoutBindingMat, uboLayoutBindingCol};
-
-  VkDescriptorSetLayoutCreateInfo layoutInfo{};
-  layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  layoutInfo.bindingCount = 2;
-  layoutInfo.pBindings = bindings;
-  CHKERR(vkCreateDescriptorSetLayout(mDevice, &layoutInfo, nullptr, &mUniformDescriptor));
-
-  std::vector<VkDescriptorSetLayout> layouts(mFramesInFlight, mUniformDescriptor);
-  VkDescriptorSetAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-  allocInfo.descriptorPool = mDescriptorPool;
-  allocInfo.descriptorSetCount = (uint32_t)mFramesInFlight;
-  allocInfo.pSetLayouts = layouts.data();
-  mDescriptorSets.resize(mFramesInFlight);
-  CHKERR(vkAllocateDescriptorSets(mDevice, &allocInfo, mDescriptorSets.data()));
-
-  for (unsigned int j = 0; j < 2; j++) {
-    auto& mUniformBuffers = j ? mUniformBuffersCol : mUniformBuffersMat;
-    for (unsigned int i = 0; i < mFramesInFlight; i++) {
-      VkDescriptorBufferInfo bufferInfo{};
-      bufferInfo.buffer = mUniformBuffers[i].buffer;
-      bufferInfo.offset = 0;
-      bufferInfo.range = mUniformBuffers[i].size;
-
-      VkWriteDescriptorSet descriptorWrite{};
-      descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      descriptorWrite.dstSet = mDescriptorSets[i];
-      descriptorWrite.dstBinding = j;
-      descriptorWrite.dstArrayElement = 0;
-      descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-      descriptorWrite.descriptorCount = 1;
-      descriptorWrite.pBufferInfo = &bufferInfo;
-      descriptorWrite.pImageInfo = nullptr;       // Optional
-      descriptorWrite.pTexelBufferView = nullptr; // Optional
-      vkUpdateDescriptorSets(mDevice, 1, &descriptorWrite, 0, nullptr);
-    }
+  for (auto& module : mShaders) {
+    vkDestroyShaderModule(mDevice, module.second, nullptr);
   }
 }
 
-void GPUDisplayBackendVulkan::clearUniformLayouts()
-{
-  vkDestroyDescriptorSetLayout(mDevice, mUniformDescriptor, nullptr);
-  vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
-}
-
-int GPUDisplayBackendVulkan::InitBackend()
-{
-  std::cout << "Initializing Vulkan\n";
-
-  mEnableValidationLayers = mDisplay->param() && mDisplay->param()->par.debugLevel >= 2;
-  mFramesInFlight = 2;
-
-  createDevice();
-  createShaders();
-  createUniformLayouts();
-  createSwapChain();
-  createPipeline();
-
-  std::cout << "Vulkan initialized\n";
-  return (0);
-}
-
-void GPUDisplayBackendVulkan::ExitBackend()
-{
-  std::cout << "Exiting Vulkan\n";
-  vkDeviceWaitIdle(mDevice);
-  clearVertexBuffers();
-  clearPipeline();
-  clearSwapChain();
-  clearUniformLayouts();
-  clearShaders();
-  clearDevice();
-  std::cout << "Vulkan destroyed\n";
-}
-
-void GPUDisplayBackendVulkan::resizeScene(unsigned int width, unsigned int height)
-{
-  if (mExtent.width == width && mExtent.height == height) {
-    return;
-  }
-  recreateSwapChain();
-  if (mExtent.width != width || mExtent.height != height) {
-    // std::cout << "Unmatching window size: requested " << width << " x " << height << " - found " << mExtent.width << " x " << mExtent.height << "\n";
-  }
-  needRecordCommandBuffers();
-}
-
-void GPUDisplayBackendVulkan::clearScreen(bool colorOnly)
-{
-}
-
-void GPUDisplayBackendVulkan::updateSettings()
-{
-}
-
-static uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, VkPhysicalDevice physDev)
-{
-  VkPhysicalDeviceMemoryProperties memProperties;
-  vkGetPhysicalDeviceMemoryProperties(physDev, &memProperties);
-
-  for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-    if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-      return i;
-    }
-  }
-
-  throw std::runtime_error("failed to find suitable memory type!");
-}
+// ---------------------------- VULKAN BUFFERS ----------------------------
 
 void GPUDisplayBackendVulkan::writeToBuffer(VulkanBuffer& buffer, size_t size, const void* srcData)
 {
@@ -927,28 +1065,11 @@ void GPUDisplayBackendVulkan::writeToBuffer(VulkanBuffer& buffer, size_t size, c
   } else {
     auto tmp = createBuffer(size, srcData, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, false);
 
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandPool = mCommandPool;
-    allocInfo.commandBufferCount = 1;
-    VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(mDevice, &allocInfo, &commandBuffer);
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+    VkCommandBuffer commandBuffer = getSingleTimeCommandBuffer();
     VkBufferCopy copyRegion{};
     copyRegion.size = size;
     vkCmdCopyBuffer(commandBuffer, tmp.buffer, buffer.buffer, 1, &copyRegion);
-    vkEndCommandBuffer(commandBuffer);
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
-    vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(mGraphicsQueue);
-    vkFreeCommandBuffers(mDevice, mCommandPool, 1, &commandBuffer);
+    submitSingleTimeCommandBuffer(commandBuffer);
 
     clearBuffer(tmp);
   }
@@ -1005,6 +1126,154 @@ void GPUDisplayBackendVulkan::clearVertexBuffers()
     clearBuffer(mIndirectCommandBuffer[0]);
   }
   mIndirectCommandBufferCreated = false;
+  for (auto& buf : mFontVertexBuffer) {
+    if (buf.size) {
+      clearBuffer(buf);
+    }
+    buf.size = 0;
+  }
+}
+
+// ---------------------------- VULKAN TEXTURES ----------------------------
+
+void GPUDisplayBackendVulkan::writeToImage(VulkanImage& image, const void* srcData, size_t srcSize)
+{
+  auto tmp = createBuffer(srcSize, srcData, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, false);
+
+  transitionImageLayout(image.image, image.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+  VkCommandBuffer commandBuffer = getSingleTimeCommandBuffer();
+  VkBufferImageCopy region{};
+  region.bufferOffset = 0;
+  region.bufferRowLength = 0;
+  region.bufferImageHeight = 0;
+  region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  region.imageSubresource.mipLevel = 0;
+  region.imageSubresource.baseArrayLayer = 0;
+  region.imageSubresource.layerCount = 1;
+  region.imageOffset = {0, 0, 0};
+  region.imageExtent = {image.sizex, image.sizey, 1};
+  vkCmdCopyBufferToImage(commandBuffer, tmp.buffer, image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+  submitSingleTimeCommandBuffer(commandBuffer);
+  transitionImageLayout(image.image, image.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+  clearBuffer(tmp);
+}
+
+VulkanImage GPUDisplayBackendVulkan::createImage(unsigned int sizex, unsigned int sizey, const void* srcData, size_t srcSize, VkFormat format)
+{
+  VulkanImage image;
+  VkImageCreateInfo imageInfo{};
+  imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+  imageInfo.imageType = VK_IMAGE_TYPE_2D;
+  imageInfo.extent.width = sizex;
+  imageInfo.extent.height = sizey;
+  imageInfo.extent.depth = 1;
+  imageInfo.mipLevels = 1;
+  imageInfo.arrayLayers = 1;
+  imageInfo.format = format;
+  imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+  imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+  imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+  imageInfo.flags = 0; // Optional
+  CHKERR(vkCreateImage(mDevice, &imageInfo, nullptr, &image.image));
+
+  VkMemoryRequirements memRequirements;
+  vkGetImageMemoryRequirements(mDevice, image.image, &memRequirements);
+  VkMemoryAllocateInfo allocInfo{};
+  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+  allocInfo.allocationSize = memRequirements.size;
+  allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mPhysicalDevice);
+  CHKERR(vkAllocateMemory(mDevice, &allocInfo, nullptr, &image.memory));
+  vkBindImageMemory(mDevice, image.image, image.memory, 0);
+
+  VkImageViewCreateInfo viewInfo{};
+  viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+  viewInfo.image = image.image;
+  viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  viewInfo.format = format;
+  viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  viewInfo.subresourceRange.baseMipLevel = 0;
+  viewInfo.subresourceRange.levelCount = 1;
+  viewInfo.subresourceRange.baseArrayLayer = 0;
+  viewInfo.subresourceRange.layerCount = 1;
+  CHKERR(vkCreateImageView(mDevice, &viewInfo, nullptr, &image.view));
+
+  image.sizex = sizex;
+  image.sizey = sizey;
+  image.format = format;
+
+  if (srcData) {
+    writeToImage(image, srcData, srcSize);
+  }
+  return image;
+}
+
+void GPUDisplayBackendVulkan::clearImage(VulkanImage& image)
+{
+  vkDestroyImageView(mDevice, image.view, nullptr);
+  vkDestroyImage(mDevice, image.image, nullptr);
+  vkFreeMemory(mDevice, image.memory, nullptr);
+}
+
+// ---------------------------- VULKAN INIT EXIT ----------------------------
+
+int GPUDisplayBackendVulkan::InitBackendA()
+{
+  std::cout << "Initializing Vulkan\n";
+
+  mEnableValidationLayers = mDisplay->param() && mDisplay->param()->par.debugLevel >= 2;
+  mFramesInFlight = 2;
+
+  createDevice();
+  createShaders();
+  createUniformLayouts();
+  createTextureSampler();
+  createSwapChain();
+  createPipeline();
+
+  std::cout << "Vulkan initialized\n";
+  return (0);
+}
+
+void GPUDisplayBackendVulkan::ExitBackendA()
+{
+  std::cout << "Exiting Vulkan\n";
+  vkDeviceWaitIdle(mDevice);
+  if (mFontImage) {
+    clearImage(*mFontImage);
+  }
+  clearVertexBuffers();
+  clearPipeline();
+  clearSwapChain();
+  clearTextureSampler();
+  clearUniformLayouts();
+  clearShaders();
+  clearDevice();
+  std::cout << "Vulkan destroyed\n";
+}
+
+// ---------------------------- USER CODE ----------------------------
+
+void GPUDisplayBackendVulkan::resizeScene(unsigned int width, unsigned int height)
+{
+  if (mExtent.width == width && mExtent.height == height) {
+    return;
+  }
+  recreateSwapChain();
+  if (mExtent.width != width || mExtent.height != height) {
+    // std::cout << "Unmatching window size: requested " << width << " x " << height << " - found " << mExtent.width << " x " << mExtent.height << "\n";
+  }
+  needRecordCommandBuffers();
+}
+
+void GPUDisplayBackendVulkan::clearScreen(bool colorOnly)
+{
+}
+
+void GPUDisplayBackendVulkan::updateSettings()
+{
 }
 
 void GPUDisplayBackendVulkan::loadDataToGPU(size_t totalVertizes)
@@ -1024,6 +1293,7 @@ void GPUDisplayBackendVulkan::loadDataToGPU(size_t totalVertizes)
 
 void GPUDisplayBackendVulkan::prepareDraw()
 {
+  hasDrawnText = false;
   if (mDisplay->updateDrawCommands()) {
     needRecordCommandBuffers();
   }
@@ -1050,7 +1320,10 @@ void GPUDisplayBackendVulkan::finishDraw()
     endFillCommandBuffer(mCommandBuffers[mImageIndex], mImageIndex);
     mCommandBufferUpToDate[mImageIndex] = true;
   }
+}
 
+void GPUDisplayBackendVulkan::finishFrame()
+{
   VkSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
@@ -1061,12 +1334,19 @@ void GPUDisplayBackendVulkan::finishDraw()
   submitInfo.pCommandBuffers = &mCommandBuffers[mImageIndex];
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = &mRenderFinishedSemaphore[mCurrentFrame];
-  CHKERR(vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, mInFlightFence[mCurrentFrame]));
+  CHKERR(vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, hasDrawnText ? VK_NULL_HANDLE : mInFlightFence[mCurrentFrame]));
+
+  if (hasDrawnText) {
+    submitInfo.pWaitSemaphores = &mRenderFinishedSemaphore[mCurrentFrame];
+    submitInfo.pCommandBuffers = &mCommandBuffersText[mImageIndex];
+    submitInfo.pSignalSemaphores = &mTextFinishedSemaphore[mCurrentFrame];
+    CHKERR(vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, mInFlightFence[mCurrentFrame]));
+  }
 
   VkPresentInfoKHR presentInfo{};
   presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
   presentInfo.waitSemaphoreCount = 1;
-  presentInfo.pWaitSemaphores = &mRenderFinishedSemaphore[mCurrentFrame];
+  presentInfo.pWaitSemaphores = hasDrawnText ? &mTextFinishedSemaphore[mCurrentFrame] : &mRenderFinishedSemaphore[mCurrentFrame];
   presentInfo.swapchainCount = 1;
   presentInfo.pSwapchains = &mSwapChain;
   presentInfo.pImageIndices = &mImageIndex;
@@ -1077,6 +1357,55 @@ void GPUDisplayBackendVulkan::finishDraw()
 
 void GPUDisplayBackendVulkan::prepareText()
 {
+  hmm_mat4 proj = HMM_Orthographic(0.f, mDisplay->screenWidth(), 0.f, mDisplay->screenHeight(), -1, 1);
+  writeToBuffer(mUniformBuffersMat[1][mImageIndex], sizeof(proj), &proj);
+
+  mFontVertexBufferHost.clear();
+  mTextDrawCommands.clear();
+}
+
+void GPUDisplayBackendVulkan::finishText()
+{
+  if (!hasDrawnText) {
+    return;
+  }
+
+  vkResetCommandBuffer(mCommandBuffersText[mImageIndex], 0);
+
+  VkCommandBufferBeginInfo beginInfo{};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  beginInfo.flags = 0;                  // Optional
+  beginInfo.pInheritanceInfo = nullptr; // Optional
+  CHKERR(vkBeginCommandBuffer(mCommandBuffersText[mImageIndex], &beginInfo));
+
+  VkRenderPassBeginInfo renderPassInfo{};
+  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+  renderPassInfo.renderPass = mRenderPassText;
+  renderPassInfo.framebuffer = mFramebuffers[mImageIndex];
+  renderPassInfo.renderArea.offset = {0, 0};
+  renderPassInfo.renderArea.extent = mExtent;
+  renderPassInfo.clearValueCount = 0;
+  vkCmdBeginRenderPass(mCommandBuffersText[mImageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+  if (mFontVertexBuffer[mImageIndex].size) {
+    clearBuffer(mFontVertexBuffer[mImageIndex]);
+  }
+  mFontVertexBuffer[mImageIndex] = createBuffer(mFontVertexBufferHost.size() * sizeof(float), mFontVertexBufferHost.data(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, false);
+
+  vkCmdBindPipeline(mCommandBuffersText[mImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[3]);
+  vkCmdBindDescriptorSets(mCommandBuffersText[mImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayoutText, 0, 1, &mDescriptorSets[1][mImageIndex], 0, nullptr);
+  VkDeviceSize offsets[] = {0};
+  vkCmdBindVertexBuffers(mCommandBuffersText[mImageIndex], 0, 1, &mFontVertexBuffer[mImageIndex].buffer, offsets);
+
+  for (const auto& cmd : mTextDrawCommands) {
+    vkCmdPushConstants(mCommandBuffersText[mImageIndex], mPipelineLayoutText, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(cmd.color), cmd.color);
+    vkCmdDraw(mCommandBuffersText[mImageIndex], cmd.nVertices, 1, cmd.firstVertex, 0);
+  }
+
+  mFontVertexBufferHost.clear();
+
+  vkCmdEndRenderPass(mCommandBuffersText[mImageIndex]);
+  CHKERR(vkEndCommandBuffer(mCommandBuffersText[mImageIndex]));
 }
 
 void GPUDisplayBackendVulkan::renderOffscreenBuffer(GLfb& buffer, GLfb& bufferNoMSAA, int mainBuffer)
@@ -1086,7 +1415,7 @@ void GPUDisplayBackendVulkan::renderOffscreenBuffer(GLfb& buffer, GLfb& bufferNo
 void GPUDisplayBackendVulkan::setMatrices(const hmm_mat4& proj, const hmm_mat4& view)
 {
   const hmm_mat4 modelViewProj = proj * view;
-  writeToBuffer(mUniformBuffersMat[mImageIndex], sizeof(modelViewProj), &modelViewProj);
+  writeToBuffer(mUniformBuffersMat[0][mImageIndex], sizeof(modelViewProj), &modelViewProj);
 }
 
 void GPUDisplayBackendVulkan::mixImages(GLfb& mixBuffer, float mixSlaveImage)
@@ -1111,4 +1440,134 @@ void GPUDisplayBackendVulkan::lineWidthFactor(float factor)
 void GPUDisplayBackendVulkan::needRecordCommandBuffers()
 {
   std::fill(mCommandBufferUpToDate.begin(), mCommandBufferUpToDate.end(), false);
+}
+
+void GPUDisplayBackendVulkan::addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data)
+{
+  if (symbol != (int)mFontSymbols.size()) {
+    throw std::runtime_error("Incorrect symbol ID");
+  }
+  mFontSymbols.emplace_back(FontSymbolVulkan{sizex, sizey, offsetx, offsety, advance, nullptr, 0.f, 0.f, 0.f, 0.f});
+  auto& buffer = mFontSymbols.back().data;
+  buffer.reset(new char[sizex * sizey]);
+  memcpy(buffer.get(), data, sizex * sizey);
+}
+
+void GPUDisplayBackendVulkan::initializeTextDrawing()
+{
+  int maxSizeX = 0, maxSizeY = 0, maxBigX = 0, maxBigY = 0, maxRowY = 0;
+  // Build a mega texture containing all fonts
+  for (auto& symbol : mFontSymbols) {
+    maxSizeX = std::max(maxSizeX, symbol.size[0]);
+    maxSizeY = std::max(maxSizeY, symbol.size[1]);
+  }
+  unsigned int nn = ceil(std::sqrt(mFontSymbols.size()));
+  int sizex = nn * maxSizeX;
+  int sizey = nn * maxSizeY;
+  std::unique_ptr<char[]> bigImage{new char[sizex * sizey]};
+  memset(bigImage.get(), 0, sizex * sizey);
+  int rowy = 0, colx = 0;
+  for (unsigned int i = 0; i < mFontSymbols.size(); i++) {
+    auto& s = mFontSymbols[i];
+    if (colx + s.size[0] > sizex) {
+      colx = 0;
+      rowy += maxRowY;
+      maxRowY = 0;
+    }
+    for (int k = 0; k < s.size[1]; k++) {
+      for (int j = 0; j < s.size[0]; j++) {
+        bigImage.get()[(colx + j) + (rowy + k) * sizex] = s.data.get()[j + k * s.size[0]];
+      }
+    }
+    s.data.reset();
+    s.x0 = colx;
+    s.x1 = colx + s.size[0];
+    s.y0 = rowy;
+    s.y1 = rowy + s.size[1];
+    maxBigX = std::max(maxBigX, colx + s.size[0]);
+    maxBigY = std::max(maxBigY, rowy + s.size[1]);
+    maxRowY = std::max(maxRowY, s.size[1]);
+    colx += s.size[0];
+  }
+  if (maxBigX != sizex) {
+    for (int y = 1; y < maxBigY; y++) {
+      memcpy(bigImage.get() + y * maxBigX, bigImage.get() + y * sizex, maxBigX);
+    }
+  }
+  sizex = maxBigX;
+  sizey = maxBigY;
+  for (unsigned int i = 0; i < mFontSymbols.size(); i++) {
+    auto& s = mFontSymbols[i];
+    s.x0 /= sizex;
+    s.x1 /= sizex;
+    s.y0 /= sizey;
+    s.y1 /= sizey;
+  }
+
+  mFontImage = std::make_unique<VulkanImage>(createImage(sizex, sizey, bigImage.get(), sizex * sizey, VK_FORMAT_R8_UNORM));
+
+  VkDescriptorImageInfo imageInfo{};
+  imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  imageInfo.imageView = mFontImage->view;
+  imageInfo.sampler = mTextSampler;
+  for (unsigned int i = 0; i < mFramesInFlight; i++) {
+    VkWriteDescriptorSet descriptorWrite{};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = mDescriptorSets[1][i];
+    descriptorWrite.dstBinding = 2;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.pImageInfo = &imageInfo;
+    vkUpdateDescriptorSets(mDevice, 1, &descriptorWrite, 0, nullptr);
+  }
+}
+
+void GPUDisplayBackendVulkan::OpenGLPrint(const char* s, float x, float y, float* color, float scale)
+{
+  if (!mFreetypeInitialized || mDisplay->drawTextInCompatMode()) {
+    return;
+  }
+
+  size_t firstVertex = mFontVertexBufferHost.size() / 4;
+
+  float renderHeight = mDisplay->screenHeight() - 1;
+  scale *= 0.25f; // Font size is 48 to have nice bitmap, scale to size 12
+
+  for (const char* c = s; *c; c++) {
+    if ((int)*c > (int)mFontSymbols.size()) {
+      GPUError("Trying to draw unsupported symbol: %d > %d\n", (int)*c, (int)mFontSymbols.size());
+      continue;
+    }
+    const FontSymbolVulkan& sym = mFontSymbols[*c];
+    if (sym.size[0] && sym.size[1]) {
+      hasDrawnText = true;
+      float xpos = x + sym.offset[0] * scale;
+      float ypos = y - (sym.size[1] - sym.offset[1]) * scale;
+      float w = sym.size[0] * scale;
+      float h = sym.size[1] * scale;
+      float vertices[6][4] = {
+        {xpos, renderHeight - ypos, sym.x0, sym.y1},
+        {xpos, renderHeight - (ypos + h), sym.x0, sym.y0},
+        {xpos + w, renderHeight - ypos, sym.x1, sym.y1},
+        {xpos + w, renderHeight - ypos, sym.x1, sym.y1},
+        {xpos, renderHeight - (ypos + h), sym.x0, sym.y0},
+        {xpos + w, renderHeight - (ypos + h), sym.x1, sym.y0}};
+      size_t oldSize = mFontVertexBufferHost.size();
+      mFontVertexBufferHost.resize(oldSize + 4 * 6);
+      memcpy(&mFontVertexBufferHost[oldSize], &vertices[0][0], sizeof(vertices));
+    }
+    x += (sym.advance >> 6) * scale; // shift is in 1/64th of a pixel
+  }
+
+  size_t nVertices = mFontVertexBufferHost.size() / 4 - firstVertex;
+
+  if (nVertices) {
+    auto& c = mTextDrawCommands;
+    if (c.size() && c.back().color[0] == color[0] && c.back().color[1] == color[1] && c.back().color[2] == color[2] && c.back().color[3] == color[3]) {
+      c.back().nVertices += nVertices;
+    } else {
+      c.emplace_back(TextDrawCommand{firstVertex, nVertices, {color[0], color[1], color[2], color[3]}});
+    }
+  }
 }
