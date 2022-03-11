@@ -222,7 +222,6 @@ void TrackerDPL::run(ProcessingContext& pc)
   std::vector<int> savedROF;
   auto logger = [&](std::string s) { LOG(info) << s; };
   auto fatalLogger = [&](std::string s) { LOG(fatal) << s; };
-  float vertexerElapsedTime{0.f};
   int nclUsed = 0;
 
   std::vector<bool> processingMask;

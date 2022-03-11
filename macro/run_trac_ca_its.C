@@ -225,12 +225,15 @@ void run_trac_ca_its(bool cosmics = false,
   int currentEvent = -1;
   gsl::span<const unsigned char> patt(patterns->data(), patterns->size());
   auto pattIt = patt.begin();
+  auto pattIt_vertexer = patt.begin();
   auto clSpan = gsl::span(cclusters->data(), cclusters->size());
 
   o2::its::TimeFrame tf;
   gsl::span<o2::itsmft::ROFRecord> rofspan(*rofs);
-  tf.loadROFrameData(rofspan, clSpan, pattIt, &dict, labels);
-  pattIt = patt.begin();
+  std::vector<bool> processingMask(rofs->size(), true);
+  tf.loadROFrameData(rofspan, clSpan, pattIt_vertexer, &dict, labels);
+  tf.setMultiplicityCutMask(processingMask);
+
   int rofId{0};
   vertexer.adoptTimeFrame(tf);
   vertexer.clustersToVertices(false);
@@ -243,6 +246,7 @@ void run_trac_ca_its(bool cosmics = false,
   if (useLUT) {
     auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
     o2::base::Propagator::Instance()->setMatLUT(lut);
+    tracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
   } else {
     tracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrTGeo);
   }
@@ -276,9 +280,9 @@ void run_trac_ca_its(bool cosmics = false,
   outTree.Write();
   // outFile.Close();
 
-  TGraph* graph = new TGraph(ncls.size(), ncls.data(), time.data());
-  graph->SetMarkerStyle(20);
-  graph->Draw("AP");
+  // TGraph* graph = new TGraph(ncls.size(), ncls.data(), time.data());
+  // graph->SetMarkerStyle(20);
+  // graph->Draw("AP");
 }
 
 #endif
