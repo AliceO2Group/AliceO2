@@ -76,9 +76,7 @@ class TimeFrame final
                       gsl::span<const itsmft::CompClusterExt> clusters,
                       gsl::span<const unsigned char>::iterator& pattIt,
                       const itsmft::TopologyDictionary* dict,
-                      const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr,
-                      float cutMultClusLow = 0.f,
-                      float cutMultClusHigh = 0.f);
+                      const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
 
   int getTotalClusters() const;
   bool empty() const;

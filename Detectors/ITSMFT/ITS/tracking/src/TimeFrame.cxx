@@ -122,9 +122,7 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
                                gsl::span<const itsmft::CompClusterExt> clusters,
                                gsl::span<const unsigned char>::iterator& pattIt,
                                const itsmft::TopologyDictionary* dict,
-                               const dataformats::MCTruthContainer<MCCompLabel>* mcLabels,
-                               float cutMultClusLow,
-                               float cutMultClusHigh)
+                               const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
@@ -222,7 +220,6 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
       mUsedClusters[iLayer].resize(mUnsortedClusters[iLayer].size(), false);
       mPositionResolution[iLayer] = std::hypot(trkParam.LayerMisalignment[iLayer], trkParam.LayerResolution[iLayer]);
     }
-
     mIndexTables.resize(mNrof);
     mIndexTablesL0.resize(mNrof, std::vector<int>(trkParam.ZBins * trkParam.PhiBins + 1, 0));
     mLines.resize(mNrof);

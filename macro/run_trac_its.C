@@ -167,19 +167,24 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   o2::its::Vertexer vertexer(&vertexerTraits);
 
   int nTFs = itsClusters.GetEntries();
-  int iRof = 0;
+
   for (int nt = 0; nt < nTFs; nt++) {
+    LOGP(info, "Processing timeframe {}/{}", nt, nTFs);
     itsClusters.GetEntry(nt);
     o2::its::TimeFrame tf;
     gsl::span<o2::itsmft::ROFRecord> rofspan(*rofs);
-    gsl::span<const unsigned char> patt(patterns->data(), patterns->size());
+    gsl::span<const unsigned char> patt(*patterns);
+
     auto pattIt = patt.begin();
     auto pattIt_vertexer = patt.begin();
-
     auto clSpan = gsl::span(cclusters->data(), cclusters->size());
+    std::vector<bool> processingMask(rofs->size(), true);
+    LOGP(info, "{} clusters.", clSpan.size());
     tf.loadROFrameData(rofspan, clSpan, pattIt_vertexer, &dict, labels);
+    tf.setMultiplicityCutMask(processingMask);
+    vertexer.adoptTimeFrame(tf);
     vertexer.clustersToVertices(mcTruth);
-
+    int iRof = 0;
     for (auto& rof : *rofs) {
       auto it = pattIt;
 
@@ -196,7 +201,12 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
         verticesL.emplace_back();
       }
       tracker.setVertices(verticesL);
+<<<<<<< HEAD
       tracker.process(clSpan, it, &dict, tracksITS, trackClIdx, rof);
+=======
+      tracker.process(clSpan, it, dict, tracksITS, trackClIdx, rof);
+      ++iRof;
+>>>>>>> Fix cooked tracker macro
     }
     outTree.Fill();
     if (mcTruth) {
@@ -208,7 +218,6 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
     rofs->clear();
     verticesPtr->clear();
     vertROFvecPtr->clear();
-    ++iRof;
   }
   outFile.cd();
   outTree.Write();
