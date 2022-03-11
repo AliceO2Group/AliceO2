@@ -12,8 +12,8 @@
 /// \file GPUDisplayFrontendGlfw.h
 /// \author David Rohr
 
-#ifndef GPUDISPLAYFRONTENDGlfw_H
-#define GPUDISPLAYFRONTENDGlfw_H
+#ifndef GPUDISPLAYFRONTENDGLFW_H
+#define GPUDISPLAYFRONTENDGLFW_H
 
 #include "GPUDisplayFrontend.h"
 #include <pthread.h>
@@ -35,7 +35,9 @@ class GPUDisplayFrontendGlfw : public GPUDisplayFrontend
   void SetVSync(bool enable) override;
   void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
   bool EnableSendKey() override;
-  GLFWwindow* Window() { return mWindow; }
+  void getSize(int& width, int& height) override;
+  int getVulkanSurface(void* instance, void* surface) override;
+  unsigned int getReqVulkanExtensions(const char**& p) override;
 
  private:
   int FrontendMain() override;
