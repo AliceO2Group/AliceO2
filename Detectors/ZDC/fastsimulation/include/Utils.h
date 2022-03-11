@@ -23,7 +23,25 @@
 
 namespace o2::zdc::fastsim
 {
+/**
+ * @brief Generates a vector of numbers with a given normal distribution and length.
+ *
+ * @param mean normal distribution parameter
+ * @param stddev normal distribution parameter
+ * @param size size of generated vector
+ * @return std::vector<float> vector of numbers
+ */
 std::vector<float> normal_distribution(double mean, double stddev, size_t size);
+
+/**
+ * @brief Parses .txt file containing scales for model.
+ *        Function will search for given marker (option) and read 9 lines below that marker.
+ *
+ * @param input input stream (std::istream)
+ * @param option marker (std::string, implementation recognize two markers: #means, #scales)
+ * @return std::vector<float> loaded float numbers
+ */
 std::vector<float> parse_block(std::istream& input, const std::string option);
+
 } // namespace o2::zdc::fastsim
 #endif // ZDC_FAST_SIMULATION_UTILS_H

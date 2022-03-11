@@ -18,49 +18,60 @@
 
 #include <iostream>
 
+// Basic test which check if models can be properly loaded and run.
+// Models result is being displayed at stdout (to check if it looks correct).
 int main()
 {
-  std::array<float, 9> rawConditionalInput = {5.133179999999999836e+02,
-                                              1.454299999999999993e-08,
-                                              3.650509999999999381e-08,
-                                              -2.731009999999999861e-03,
-                                              3.545600000000000140e-02,
-                                              -5.182060000000000138e-02,
-                                              -5.133179999999999836e+02,
-                                              0.000000000000000000e+00,
-                                              0.000000000000000000e+00};
+  // Sample particle data
+  std::array<float, 9> particleData = {5.133179999999999836e+02,
+                                       1.454299999999999993e-08,
+                                       3.650509999999999381e-08,
+                                       -2.731009999999999861e-03,
+                                       3.545600000000000140e-02,
+                                       -5.182060000000000138e-02,
+                                       -5.133179999999999836e+02,
+                                       0.000000000000000000e+00,
+                                       0.000000000000000000e+00};
 
+  // Loading VAE scales
   std::cout << "Loading ONNX model VAE from: " << o2::zdc::fastsim::gZDCModelPath << std::endl;
-  auto vaeScales = o2::zdc::fastsim::loadVaeScales(o2::zdc::fastsim::gZDCModelConfig);
+  auto vaeScales = o2::zdc::fastsim::loadScales(o2::zdc::fastsim::gZDCModelConfig);
+
+  // If vaeScale.has_value() != true error occured during loading scales
   if (!vaeScales.has_value()) {
     std::cout << "error loading vae model scales" << std::endl;
     return 0;
   }
-  o2::zdc::fastsim::VAEModelSimulation onnxVAEDemo(vaeScales->first, vaeScales->second, 0.0);
+  // Loading actual model and setting scales
+  o2::zdc::fastsim::ConditionalModelSimulation onnxVAEDemo(
+    o2::zdc::fastsim::gZDCModelPath, vaeScales->first, vaeScales->second, 1.0);
   std::cout << " ONNX VAE model loaded: " << std::endl;
 
+  // Loading SAE scales
   std::cout << "Loading ONNX model SAE from: " << o2::zdc::fastsim::gSAEModelPath << std::endl;
-  auto saeScales = o2::zdc::fastsim::loadSaeScales(o2::zdc::fastsim::gSAEModelConfig);
+  auto saeScales = o2::zdc::fastsim::loadScales(o2::zdc::fastsim::gSAEModelConfig);
+
+  // If saeScale.has_value() != true error occured during loading scales
   if (!saeScales.has_value()) {
     std::cout << "error loading sae model scales" << std::endl;
     return 0;
   }
-  o2::zdc::fastsim::SAEModelSimulation onnxSAEDemo(saeScales->first, saeScales->second);
+  // Loading actual model and setting scales
+  o2::zdc::fastsim::ConditionalModelSimulation onnxSAEDemo(
+    o2::zdc::fastsim::gSAEModelPath, saeScales->first, saeScales->second, 1.0);
   std::cout << " ONNX SAE model loaded: " << std::endl;
 
-  onnxVAEDemo.setData(rawConditionalInput);
-  onnxVAEDemo.run();
-  auto vaeResult = onnxVAEDemo.getChannels();
+  auto vaeResult = onnxVAEDemo.getChannels(particleData);
+  auto saeResult = onnxSAEDemo.getChannels(particleData);
 
-  std::cout << "VAE results:" << std::endl;
-  std::cout << vaeResult[0] << ", " << vaeResult[1] << ", " << vaeResult[2] << ", " << vaeResult[3] << ", " << vaeResult[4] << std::endl;
-
-  onnxSAEDemo.setData(rawConditionalInput);
-  onnxSAEDemo.run();
-  auto saeResult = onnxSAEDemo.getChannels();
-
-  std::cout << "SAE results:" << std::endl;
-  std::cout << saeResult[0] << ", " << saeResult[1] << ", " << saeResult[2] << ", " << saeResult[3] << ", " << saeResult[4] << std::endl;
+  // Print output
+  for (auto& element : vaeResult) {
+    std::cout << element << ", ";
+  }
+  std::cout << std::endl;
+  for (auto& element : saeResult) {
+    std::cout << element << ", ";
+  }
 
   return 0;
 }
