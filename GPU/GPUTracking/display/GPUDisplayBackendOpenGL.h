@@ -53,6 +53,7 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   void pointSizeFactor(float factor) override;
   void lineWidthFactor(float factor) override;
   backendTypes backendType() const override { return TYPE_OPENGL; }
+  size_t needMultiVBO() override { return 0x100000000ll; }
 
   vecpod<DrawArraysIndirectCommand> mCmdBuffer;
 

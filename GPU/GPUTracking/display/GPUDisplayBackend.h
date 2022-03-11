@@ -98,6 +98,7 @@ class GPUDisplayBackend
   virtual void lineWidthFactor(float factor) = 0;
   virtual backendTypes backendType() const = 0;
   virtual void resizeScene(unsigned int width, unsigned int height) {}
+  virtual size_t needMultiVBO() { return 0; }
 
   static GPUDisplayBackend* getBackend(const char* type);
 
