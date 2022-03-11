@@ -44,27 +44,27 @@ int makeGRPCCDBEntryForDCS(const std::string url = "http://localhost:8080")
 
   DPID dpidtmp;
   for (size_t i = 0; i < aliasesBFieldDouble.size(); ++i) {
-    DPID::FILL(dpidtmp, aliasesBFieldDouble[i], o2::dcs::DeliveryType::RAW_DOUBLE);
+    DPID::FILL(dpidtmp, aliasesBFieldDouble[i], o2::dcs::DeliveryType::DPVAL_DOUBLE);
     dpid2DataDesc[dpidtmp] = "GRPDATAPOINTS";
   }
   for (size_t i = 0; i < aliasesBFieldBool.size(); ++i) {
-    DPID::FILL(dpidtmp, aliasesBFieldBool[i], o2::dcs::DeliveryType::RAW_BOOL);
+    DPID::FILL(dpidtmp, aliasesBFieldBool[i], o2::dcs::DeliveryType::DPVAL_BOOL);
     dpid2DataDesc[dpidtmp] = "GRPDATAPOINTS";
   }
   for (size_t i = 0; i < aliasesEnvVar.size(); ++i) {
-    DPID::FILL(dpidtmp, aliasesEnvVar[i], o2::dcs::DeliveryType::RAW_DOUBLE);
+    DPID::FILL(dpidtmp, aliasesEnvVar[i], o2::dcs::DeliveryType::DPVAL_DOUBLE);
     dpid2DataDesc[dpidtmp] = "GRPDATAPOINTS";
   }
   for (size_t i = 0; i < aliasesLHCIFDouble.size(); ++i) {
-    DPID::FILL(dpidtmp, aliasesLHCIFDouble[i], o2::dcs::DeliveryType::RAW_DOUBLE);
+    DPID::FILL(dpidtmp, aliasesLHCIFDouble[i], o2::dcs::DeliveryType::DPVAL_DOUBLE);
     dpid2DataDesc[dpidtmp] = "GRPDATAPOINTS";
   }
   for (size_t i = 0; i < aliasesLHCIFCollimators.size(); ++i) {
-    DPID::FILL(dpidtmp, aliasesLHCIFCollimators[i], o2::dcs::DeliveryType::RAW_DOUBLE);
+    DPID::FILL(dpidtmp, aliasesLHCIFCollimators[i], o2::dcs::DeliveryType::DPVAL_DOUBLE);
     dpid2DataDesc[dpidtmp] = "GRPDATAPOINTS";
   }
   for (size_t i = 0; i < aliasesLHCIFString.size(); ++i) {
-    DPID::FILL(dpidtmp, aliasesLHCIFString[i], o2::dcs::DeliveryType::RAW_STRING);
+    DPID::FILL(dpidtmp, aliasesLHCIFString[i], o2::dcs::DeliveryType::DPVAL_STRING);
     dpid2DataDesc[dpidtmp] = "GRPDATAPOINTS";
   }
 
