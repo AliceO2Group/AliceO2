@@ -107,6 +107,7 @@ unsigned int GPUDisplayBackendVulkan::drawVertices(const vboList& v, const drawT
 
 void GPUDisplayBackendVulkan::ActivateColor(std::array<float, 3>& color)
 {
+  writeToBuffer(mUniformBuffersCol[mCurrentFrame], sizeof(color), color.data());
 }
 
 void GPUDisplayBackendVulkan::setQuality()
@@ -462,11 +463,13 @@ void GPUDisplayBackendVulkan::createDevice()
   mRenderFinishedSemaphore.resize(mFramesInFlight);
   mInFlightFence.resize(mFramesInFlight);
   mUniformBuffersMat.resize(mFramesInFlight);
+  mUniformBuffersCol.resize(mFramesInFlight);
   for (unsigned int i = 0; i < mFramesInFlight; i++) {
     CHKERR(vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mImageAvailableSemaphore[i]));
     CHKERR(vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mRenderFinishedSemaphore[i]));
     CHKERR(vkCreateFence(mDevice, &fenceInfo, nullptr, &mInFlightFence[i]));
-    mUniformBuffersMat[i] = createBuffer(sizeof(hmm_mat4));
+    mUniformBuffersMat[i] = createBuffer(sizeof(hmm_mat4), nullptr, true);
+    mUniformBuffersCol[i] = createBuffer(sizeof(float) * 3, nullptr, true);
   }
 }
 
@@ -477,6 +480,7 @@ void GPUDisplayBackendVulkan::clearDevice()
     vkDestroySemaphore(mDevice, mRenderFinishedSemaphore[i], nullptr);
     vkDestroyFence(mDevice, mInFlightFence[i], nullptr);
     clearBuffer(mUniformBuffersMat[i]);
+    clearBuffer(mUniformBuffersCol[i]);
   }
   vkDestroyCommandPool(mDevice, mCommandPool, nullptr);
   vkDestroyDevice(mDevice, nullptr);
@@ -519,7 +523,6 @@ void GPUDisplayBackendVulkan::createPipeline()
 
   VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
   vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-
   vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
   vertShaderStageInfo.module = mModuleVertex;
   vertShaderStageInfo.pName = "main";
@@ -620,7 +623,7 @@ void GPUDisplayBackendVulkan::createPipeline()
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.setLayoutCount = 1;
-  pipelineLayoutInfo.pSetLayouts = &mUniformDescriptorMat;
+  pipelineLayoutInfo.pSetLayouts = &mUniformDescriptor;
   CHKERR(vkCreatePipelineLayout(mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayout));
 
   VkAttachmentDescription colorAttachment{};
@@ -708,7 +711,6 @@ void GPUDisplayBackendVulkan::createPipeline()
     framebufferInfo.width = mExtent.width;
     framebufferInfo.height = mExtent.height;
     framebufferInfo.layers = 1;
-
     CHKERR(vkCreateFramebuffer(mDevice, &framebufferInfo, nullptr, &mFramebuffers[i]));
   }
 }
@@ -746,23 +748,9 @@ void GPUDisplayBackendVulkan::recreatePipeline()
 
 void GPUDisplayBackendVulkan::createUniformLayouts()
 {
-  VkDescriptorSetLayoutBinding uboLayoutBinding{};
-  uboLayoutBinding.binding = 0;
-  uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  uboLayoutBinding.descriptorCount = 1;
-  uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-  uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-  VkDescriptorSetLayoutCreateInfo layoutInfo{};
-  layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  layoutInfo.bindingCount = 1;
-  layoutInfo.pBindings = &uboLayoutBinding;
-
-  CHKERR(vkCreateDescriptorSetLayout(mDevice, &layoutInfo, nullptr, &mUniformDescriptorMat));
-
   VkDescriptorPoolSize poolSize{};
   poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  poolSize.descriptorCount = (uint32_t)mFramesInFlight;
+  poolSize.descriptorCount = (uint32_t)mFramesInFlight * 2;
   VkDescriptorPoolCreateInfo poolInfo{};
   poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   poolInfo.poolSizeCount = 1;
@@ -770,39 +758,59 @@ void GPUDisplayBackendVulkan::createUniformLayouts()
   poolInfo.maxSets = (uint32_t)mFramesInFlight;
   CHKERR(vkCreateDescriptorPool(mDevice, &poolInfo, nullptr, &mDescriptorPool));
 
-  std::vector<VkDescriptorSetLayout> layouts(mFramesInFlight, mUniformDescriptorMat);
+  VkDescriptorSetLayoutBinding uboLayoutBindingMat{};
+  uboLayoutBindingMat.binding = 0;
+  uboLayoutBindingMat.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  uboLayoutBindingMat.descriptorCount = 1;
+  uboLayoutBindingMat.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+  uboLayoutBindingMat.pImmutableSamplers = nullptr; // Optional
+  VkDescriptorSetLayoutBinding uboLayoutBindingCol = uboLayoutBindingMat;
+  uboLayoutBindingCol.binding = 1;
+  uboLayoutBindingCol.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  VkDescriptorSetLayoutBinding bindings[2] = {uboLayoutBindingMat, uboLayoutBindingCol};
+
+  VkDescriptorSetLayoutCreateInfo layoutInfo{};
+  layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+  layoutInfo.bindingCount = 2;
+  layoutInfo.pBindings = bindings;
+  CHKERR(vkCreateDescriptorSetLayout(mDevice, &layoutInfo, nullptr, &mUniformDescriptor));
+
+  std::vector<VkDescriptorSetLayout> layouts(mFramesInFlight, mUniformDescriptor);
   VkDescriptorSetAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   allocInfo.descriptorPool = mDescriptorPool;
   allocInfo.descriptorSetCount = (uint32_t)mFramesInFlight;
   allocInfo.pSetLayouts = layouts.data();
-
   mDescriptorSets.resize(mFramesInFlight);
   CHKERR(vkAllocateDescriptorSets(mDevice, &allocInfo, mDescriptorSets.data()));
 
-  for (unsigned int i = 0; i < mFramesInFlight; i++) {
-    VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = mUniformBuffersMat[i].buffer;
-    bufferInfo.offset = 0;
-    bufferInfo.range = mUniformBuffersMat[i].size;
+  for (unsigned int j = 0; j < 2; j++) {
+    auto& mUniformBuffers = j ? mUniformBuffersCol : mUniformBuffersMat;
+    for (unsigned int i = 0; i < mFramesInFlight; i++) {
+      VkDescriptorBufferInfo bufferInfo{};
+      bufferInfo.buffer = mUniformBuffers[i].buffer;
+      bufferInfo.offset = 0;
+      bufferInfo.range = mUniformBuffers[i].size;
 
-    VkWriteDescriptorSet descriptorWrite{};
-    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrite.dstSet = mDescriptorSets[i];
-    descriptorWrite.dstBinding = 0;
-    descriptorWrite.dstArrayElement = 0;
-    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descriptorWrite.descriptorCount = 1;
-    descriptorWrite.pBufferInfo = &bufferInfo;
-    descriptorWrite.pImageInfo = nullptr;       // Optional
-    descriptorWrite.pTexelBufferView = nullptr; // Optional
-    vkUpdateDescriptorSets(mDevice, 1, &descriptorWrite, 0, nullptr);
+      VkWriteDescriptorSet descriptorWrite{};
+      descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      descriptorWrite.dstSet = mDescriptorSets[i];
+      descriptorWrite.dstBinding = j;
+      descriptorWrite.dstArrayElement = 0;
+      descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+      descriptorWrite.descriptorCount = 1;
+      descriptorWrite.pBufferInfo = &bufferInfo;
+      descriptorWrite.pImageInfo = nullptr;       // Optional
+      descriptorWrite.pTexelBufferView = nullptr; // Optional
+      vkUpdateDescriptorSets(mDevice, 1, &descriptorWrite, 0, nullptr);
+    }
   }
 }
 
 void GPUDisplayBackendVulkan::clearUniformLayouts()
 {
-  vkDestroyDescriptorSetLayout(mDevice, mUniformDescriptorMat, nullptr);
+  vkDestroyDescriptorSetLayout(mDevice, mUniformDescriptor, nullptr);
+  vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
 }
 
 int GPUDisplayBackendVulkan::InitBackend()
@@ -875,13 +883,13 @@ void GPUDisplayBackendVulkan::writeToBuffer(VulkanBuffer& buffer, size_t size, c
   vkUnmapMemory(mDevice, buffer.memory);
 }
 
-VulkanBuffer GPUDisplayBackendVulkan::createBuffer(size_t size, const void* srcData)
+VulkanBuffer GPUDisplayBackendVulkan::createBuffer(size_t size, const void* srcData, bool uniform)
 {
   VulkanBuffer buffer;
   VkBufferCreateInfo bufferInfo{};
   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
   bufferInfo.size = size;
-  bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+  bufferInfo.usage = uniform ? VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT : VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
   bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
   CHKERR(vkCreateBuffer(mDevice, &bufferInfo, nullptr, &buffer.buffer));
 
@@ -895,11 +903,11 @@ VulkanBuffer GPUDisplayBackendVulkan::createBuffer(size_t size, const void* srcD
 
   vkBindBufferMemory(mDevice, buffer.buffer, buffer.memory, 0);
 
+  buffer.size = size;
+
   if (srcData != nullptr) {
     writeToBuffer(buffer, size, srcData);
   }
-
-  buffer.size = size;
 
   return buffer;
 }
