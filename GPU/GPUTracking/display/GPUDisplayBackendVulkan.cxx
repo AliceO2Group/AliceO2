@@ -122,6 +122,10 @@ unsigned int GPUDisplayBackendVulkan::drawVertices(const vboList& v, const drawT
 void GPUDisplayBackendVulkan::ActivateColor(std::array<float, 3>& color)
 {
   writeToBuffer(mUniformBuffersCol[mImageIndex], sizeof(color), color.data());
+  if (mCommandBufferUpToDate[mImageIndex]) {
+    return;
+  }
+  vkCmdPushConstants(mCommandBuffers[mImageIndex], mPipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(color), color.data());
 }
 
 void GPUDisplayBackendVulkan::setQuality()
@@ -710,10 +714,16 @@ void GPUDisplayBackendVulkan::createPipeline()
   dynamicState.dynamicStateCount = 2;
   dynamicState.pDynamicStates = dynamicStates;*/
 
+  VkPushConstantRange pushConstantRange{};
+  pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  pushConstantRange.offset = 0;
+  pushConstantRange.size = sizeof(float) * 3;
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.setLayoutCount = 1;
   pipelineLayoutInfo.pSetLayouts = &mUniformDescriptor;
+  pipelineLayoutInfo.pushConstantRangeCount = 1;
+  pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
   CHKERR(vkCreatePipelineLayout(mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayout));
 
   VkGraphicsPipelineCreateInfo pipelineInfo{};
