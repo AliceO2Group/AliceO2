@@ -174,12 +174,12 @@ std::vector<std::pair<uint64_t, uint64_t>> doGroupTable(const T& table, const Bi
     auto chunks = o2::framework::binning_helpers::getChunks(arrowTable, binningColumns, ci);
     auto chunkLength = std::get<0>(chunks)->length();
     // TODO: Are such checks needed or can we safely assume chunks are always the same?
-    constexpr auto cn = binningPolicy.mColumnsCount - 1;
-    for_<cn>([&chunks, &chunkLength](auto i) {
-      if (std::get<i.value + 1>(chunks)->length() != chunkLength) {
-        throw o2::framework::runtime_error("Combinations: data size varies between selected columns");
-      }
-    });
+    //constexpr auto cn = binningPolicy.mColumnsCount - 1;
+    //for_<cn>([&chunks, &chunkLength](auto i) {
+    //  if (std::get<i.value + 1>(chunks)->length() != chunkLength) {
+    //    throw o2::framework::runtime_error("Combinations: data size varies between selected columns");
+    //  }
+    //});
 
     if constexpr (soa::is_soa_filtered_t<T>::value) {
       if (selectedRows[ind] >= selInd + chunkLength) {
