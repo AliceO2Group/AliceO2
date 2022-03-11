@@ -103,13 +103,13 @@ int GRPDCSDPsProcessor::processDP(const DPCOM& dpcom)
   const auto& type = dpid.get_type();
   auto& val = dpcom.data;
   if (mVerbose) {
-    if (type == RAW_DOUBLE) {
+    if (type == DPVAL_DOUBLE) {
       LOG(info);
       LOG(info) << "Processing DP = " << dpcom << ", with double value = " << o2::dcs::getValue<double>(dpcom);
-    } else if (type == RAW_BOOL) {
+    } else if (type == DPVAL_BOOL) {
       LOG(info);
       LOG(info) << "Processing DP = " << dpcom << ", with bool value = " << o2::dcs::getValue<bool>(dpcom);
-    } else if (type == RAW_STRING) {
+    } else if (type == DPVAL_STRING) {
       LOG(info);
       LOG(info) << "Processing DP = " << dpcom << ", with string value = " << o2::dcs::getValue<std::string>(dpcom);
     }

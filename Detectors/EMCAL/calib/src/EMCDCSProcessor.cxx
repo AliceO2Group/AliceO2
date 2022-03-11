@@ -97,16 +97,16 @@ int EMCDCSProcessor::processDP(const DPCOM& dp)
   auto& val = dp.data;
 
   if (mVerbose) {
-    if (type == RAW_DOUBLE) {
+    if (type == DPVAL_DOUBLE) {
       LOG(info) << "Processing DP = " << dp << ", with value = " << o2::dcs::getValue<double>(dp);
-    } else if (type == RAW_INT) {
+    } else if (type == DPVAL_INT) {
       LOG(info) << "Processing DP = " << dp << ", with value = " << o2::dcs::getValue<int32_t>(dp);
-    } else if (type == RAW_UINT) {
+    } else if (type == DPVAL_UINT) {
       LOG(info) << "Processing DP = " << dp << ", with value = " << o2::dcs::getValue<uint32_t>(dp);
     }
   }
 
-  if ((type == RAW_INT) || (type == RAW_UINT)) // FEE config params and STU_TRU error counters
+  if ((type == DPVAL_INT) || (type == DPVAL_UINT)) // FEE config params and STU_TRU error counters
   {
     auto& dpval_prev = mapFEEcfg[dpid];
     if (dpval_prev.size() == 0 || val.get_epoch_time() != dpval_prev.back().get_epoch_time()) //compate the time stamps
@@ -117,7 +117,7 @@ int EMCDCSProcessor::processDP(const DPCOM& dp)
       FillFeeDP(dp);
       setTF(val.get_epoch_time()); // fix: this must not be here!
     }
-  } else if (type == RAW_DOUBLE) { // ELMB data
+  } else if (type == DPVAL_DOUBLE) { // ELMB data
     FillElmbDP(dp);
   }
   //printPDCOM(dp);
@@ -149,7 +149,7 @@ void EMCDCSProcessor::FillElmbDP(const DPCOM& dpcom)
     }
     mELMB->addMeasurement(iPT, val);
   } else {
-    LOG(info) << "EMC_PT pattern not found for DPype = RAW_DOUBLE: alias = " << alias.data();
+    LOG(info) << "EMC_PT pattern not found for DPype = DPVAL_DOUBLE: alias = " << alias.data();
   }
   return;
 }

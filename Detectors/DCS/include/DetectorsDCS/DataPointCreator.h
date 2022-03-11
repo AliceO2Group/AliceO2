@@ -33,13 +33,13 @@ namespace o2::dcs
   *
   * Note that only a few relevant specialization are actually provided
   *
-  * - T=int32_t : DeliveryType = RAW_INT
-  * - T=uint32_t : DeliveryType = RAW_UINT
-  * - T=float : DeliveryType = RAW_FLOAT
-  * - T=double : DeliveryType = RAW_DOUBLE
-  * - T=bool : DeliveryType = RAW_BOOL
-  * - T=char : DeliveryType = RAW_CHAR
-  * - T=std::string : DeliveryType = RAW_STRING
+  * - T=int32_t : DeliveryType = DPVAL_INT
+  * - T=uint32_t : DeliveryType = DPVAL_UINT
+  * - T=float : DeliveryType = DPVAL_FLOAT
+  * - T=double : DeliveryType = DPVAL_DOUBLE
+  * - T=bool : DeliveryType = DPVAL_BOOL
+  * - T=char : DeliveryType = DPVAL_CHAR
+  * - T=std::string : DeliveryType = DPVAL_STRING
   *
   */
 template <typename T>
