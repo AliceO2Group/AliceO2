@@ -44,6 +44,7 @@ struct VulkanBuffer {
   VkBuffer buffer;
   VkDeviceMemory memory;
   size_t size;
+  bool deviceMemory;
 };
 } // namespace GPUCA_NAMESPACE::gpu
 
@@ -490,8 +491,8 @@ void GPUDisplayBackendVulkan::createDevice()
     CHKERR(vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mImageAvailableSemaphore[i]));
     CHKERR(vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mRenderFinishedSemaphore[i]));
     CHKERR(vkCreateFence(mDevice, &fenceInfo, nullptr, &mInFlightFence[i]));
-    mUniformBuffersMat[i] = createBuffer(sizeof(hmm_mat4), nullptr, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-    mUniformBuffersCol[i] = createBuffer(sizeof(float) * 3, nullptr, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+    mUniformBuffersMat[i] = createBuffer(sizeof(hmm_mat4), nullptr, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, false);
+    mUniformBuffersCol[i] = createBuffer(sizeof(float) * 3, nullptr, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, false);
   }
 }
 
@@ -913,14 +914,48 @@ static uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags proper
 
 void GPUDisplayBackendVulkan::writeToBuffer(VulkanBuffer& buffer, size_t size, const void* srcData)
 {
-  void* dstData;
-  vkMapMemory(mDevice, buffer.memory, 0, buffer.size, 0, &dstData);
-  memcpy(dstData, srcData, size);
-  vkUnmapMemory(mDevice, buffer.memory);
+  if (!buffer.deviceMemory) {
+    void* dstData;
+    vkMapMemory(mDevice, buffer.memory, 0, buffer.size, 0, &dstData);
+    memcpy(dstData, srcData, size);
+    vkUnmapMemory(mDevice, buffer.memory);
+  } else {
+    auto tmp = createBuffer(size, srcData, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, false);
+
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandPool = mCommandPool;
+    allocInfo.commandBufferCount = 1;
+    VkCommandBuffer commandBuffer;
+    vkAllocateCommandBuffers(mDevice, &allocInfo, &commandBuffer);
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+    VkBufferCopy copyRegion{};
+    copyRegion.size = size;
+    vkCmdCopyBuffer(commandBuffer, tmp.buffer, buffer.buffer, 1, &copyRegion);
+    vkEndCommandBuffer(commandBuffer);
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+    vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(mGraphicsQueue);
+    vkFreeCommandBuffers(mDevice, mCommandPool, 1, &commandBuffer);
+
+    clearBuffer(tmp);
+  }
 }
 
-VulkanBuffer GPUDisplayBackendVulkan::createBuffer(size_t size, const void* srcData, VkBufferUsageFlagBits type)
+VulkanBuffer GPUDisplayBackendVulkan::createBuffer(size_t size, const void* srcData, VkBufferUsageFlags type, int deviceMemory)
 {
+  VkMemoryPropertyFlags properties = deviceMemory ? VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT : (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  if (deviceMemory == 1) {
+    type |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+  }
+
   VulkanBuffer buffer;
   VkBufferCreateInfo bufferInfo{};
   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -934,12 +969,13 @@ VulkanBuffer GPUDisplayBackendVulkan::createBuffer(size_t size, const void* srcD
   VkMemoryAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
   allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, mPhysicalDevice);
+  allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties, mPhysicalDevice);
   CHKERR(vkAllocateMemory(mDevice, &allocInfo, nullptr, &buffer.memory));
 
   vkBindBufferMemory(mDevice, buffer.buffer, buffer.memory, 0);
 
   buffer.size = size;
+  buffer.deviceMemory = deviceMemory;
 
   if (srcData != nullptr) {
     writeToBuffer(buffer, size, srcData);
