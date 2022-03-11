@@ -85,13 +85,13 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
     // no explicit raw reader ??
 
     if (isEnabled(OutputType::Cells)) {
-      specs.emplace_back(o2::phos::reco_workflow::getRawToCellConverterSpec(flpId));
+      specs.emplace_back(o2::phos::reco_workflow::getRawToCellConverterSpec(static_cast<unsigned int>(flpId)));
       if (!disableRootOut) {
         specs.emplace_back(o2::phos::getCellWriterSpec(false));
       }
     }
     if (isEnabled(OutputType::Clusters)) {
-      specs.emplace_back(o2::phos::reco_workflow::getRawToCellConverterSpec(flpId));
+      specs.emplace_back(o2::phos::reco_workflow::getRawToCellConverterSpec(static_cast<unsigned int>(flpId)));
       specs.emplace_back(o2::phos::reco_workflow::getCellClusterizerSpec(false, fullCluOut)); // no MC propagation
       if (!disableRootOut) {
         specs.emplace_back(o2::phos::getClusterWriterSpec(false));
