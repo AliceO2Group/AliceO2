@@ -35,6 +35,9 @@ class GPUDisplayFrontendX11 : public GPUDisplayFrontend
   void ToggleMaximized(bool set) override;
   void SetVSync(bool enable) override;
   void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
+  void getSize(int& width, int& height) override;
+  int getVulkanSurface(void* instance, void* surface) override;
+  unsigned int getReqVulkanExtensions(const char**& p) override;
 
  private:
   int FrontendMain() override;

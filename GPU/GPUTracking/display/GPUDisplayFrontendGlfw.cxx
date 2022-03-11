@@ -404,3 +404,26 @@ bool GPUDisplayFrontendGlfw::EnableSendKey()
   return true;
 #endif
 }
+
+void GPUDisplayFrontendGlfw::getSize(int& width, int& height)
+{
+  glfwGetFramebufferSize(mWindow, &width, &height);
+}
+
+int GPUDisplayFrontendGlfw::getVulkanSurface(void* instance, void* surface)
+{
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
+  return glfwCreateWindowSurface(*(VkInstance*)instance, mWindow, nullptr, (VkSurfaceKHR*)surface) != VK_SUCCESS;
+#else
+  return 1;
+#endif
+}
+
+unsigned int GPUDisplayFrontendGlfw::getReqVulkanExtensions(const char**& p)
+{
+  uint32_t glfwExtensionCount = 0;
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
+  p = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+#endif
+  return glfwExtensionCount;
+}

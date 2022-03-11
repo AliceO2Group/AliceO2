@@ -65,6 +65,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   backendTypes backendType() const override { return TYPE_VULKAN; }
   void resizeScene(unsigned int width, unsigned int height) override;
 
+  VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
   VulkanBuffer createBuffer(size_t size, const void* srcData = nullptr, VkBufferUsageFlags type = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, int deviceMemory = 1);
   void writeToBuffer(VulkanBuffer& buffer, size_t size, const void* srcData);
   void clearBuffer(VulkanBuffer& buffer);

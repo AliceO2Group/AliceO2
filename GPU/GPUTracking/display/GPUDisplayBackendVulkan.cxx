@@ -13,13 +13,11 @@
 /// \author David Rohr
 
 #include <vulkan/vulkan.hpp>
-#include <GLFW/glfw3.h>
 
 #include "GPUCommonDef.h"
 #include "GPUDisplayBackendVulkan.h"
 #include "GPUDisplayShaders.h"
 #include "GPUDisplay.h"
-#include "GPUDisplayFrontendGlfw.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -215,14 +213,13 @@ static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR
   return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-static VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window)
+VkExtent2D GPUDisplayBackendVulkan::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities)
 {
   if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
     return capabilities.currentExtent;
   } else {
     int width, height;
-    glfwGetFramebufferSize(window, &width, &height);
-
+    mDisplay->frontend()->getSize(width, height);
     VkExtent2D actualExtent = {(uint32_t)width, (uint32_t)height};
     actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
     actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
@@ -301,10 +298,9 @@ void GPUDisplayBackendVulkan::createDevice()
   instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
   instanceCreateInfo.pApplicationInfo = &appInfo;
 
-  uint32_t glfwExtensionCount = 0;
-  const char** glfwExtensions;
-  glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-  std::vector<const char*> reqInstanceExtensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+  const char** frontendExtensions;
+  uint32_t frontendExtensionCount = mDisplay->frontend()->getReqVulkanExtensions(frontendExtensions);
+  std::vector<const char*> reqInstanceExtensions(frontendExtensions, frontendExtensions + frontendExtensionCount);
 
   const std::vector<const char*> reqValidationLayers = {
     "VK_LAYER_KHRONOS_validation"};
@@ -361,7 +357,9 @@ void GPUDisplayBackendVulkan::createDevice()
   surfaceCreateInfo.hwnd = glfwGetWin32Window(window);
   surfaceCreateInfo.hinstance = GetModuleHandle(nullptr);
   CHKERR(vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface))*/
-  CHKERR(glfwCreateWindowSurface(mInstance, ((GPUDisplayFrontendGlfw*)mDisplay->frontend())->Window(), nullptr, &mSurface));
+  if (mDisplay->frontend()->getVulkanSurface(&mInstance, &mSurface)) {
+    throw std::runtime_error("Frontend does not provide Vulkan surface");
+  }
 
   const std::vector<const char*> reqDeviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME};
@@ -523,7 +521,7 @@ void GPUDisplayBackendVulkan::createSwapChain()
   updateSwapChainDetails(mPhysicalDevice);
   mSurfaceFormat = chooseSwapSurfaceFormat(mSwapChainDetails->formats);
   mPresentMode = chooseSwapPresentMode(mSwapChainDetails->presentModes);
-  mExtent = chooseSwapExtent(mSwapChainDetails->capabilities, ((GPUDisplayFrontendGlfw*)mDisplay->frontend())->Window());
+  mExtent = chooseSwapExtent(mSwapChainDetails->capabilities);
 
   VkSwapchainCreateInfoKHR swapCreateInfo{};
   swapCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
