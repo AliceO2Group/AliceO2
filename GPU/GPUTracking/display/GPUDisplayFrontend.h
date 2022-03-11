@@ -44,7 +44,7 @@ class GPUDisplayFrontend
   virtual void SetVSync(bool enable) = 0;                                                                                    // Enable / disable vsync
   virtual bool EnableSendKey();                                                                                              // Request external keys (e.g. from terminal)
   virtual void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) = 0; // Print text on the display (needs the backend to build the font)
-  const GPUDisplayBackend* backend();
+  GPUDisplayBackend* backend();
   static GPUDisplayFrontend* getFrontend(const char* type);
   virtual void getSize(int& width, int& height) { width = height = 0; }
   virtual int getVulkanSurface(void* instance, void* surface) { return 1; }
@@ -102,6 +102,7 @@ class GPUDisplayFrontend
   bool mKeysShift[256] = {false}; // Array whether shift was held during key-press
   int mDisplayHeight = INIT_HEIGHT;
   int mDisplayWidth = INIT_WIDTH;
+  int mCanDrawText = 0; // 1 = in compat mode, 2 = with shader
 
   int mMaxFPSRate = 0; // run at highest possible frame rate, do not sleep in between frames
 
@@ -114,6 +115,7 @@ class GPUDisplayFrontend
   void ReSizeGLScene(int width, int height);                            // Callback when GL window is resized
   int InitDisplay(bool initFailure = false);                            // Callback to initialize the GL Display (to be called in StartDisplay)
   void ExitDisplay();                                                   // Callback to clean up the GL Display
+  int& drawTextFontSize();
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

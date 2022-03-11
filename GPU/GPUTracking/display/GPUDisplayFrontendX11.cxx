@@ -182,7 +182,7 @@ int GPUDisplayFrontendX11::FrontendMain()
   XVisualInfo* visualInfo = nullptr;
   XEvent event;
   Colormap colorMap;
-  GLXContext glxContext;
+  GLXContext glxContext = 0;
   int errorBase;
   int eventBase;
 
@@ -289,6 +289,10 @@ int GPUDisplayFrontendX11::FrontendMain()
       int last = font_info->max_char_or_byte2;
       glXUseXFont(font_info->fid, first, last - first + 1, mFontBase + first);
     }
+  }
+  mCanDrawText = 1;
+  if (drawTextFontSize() == 0) {
+    drawTextFontSize() = 12;
   }
 #endif
 
