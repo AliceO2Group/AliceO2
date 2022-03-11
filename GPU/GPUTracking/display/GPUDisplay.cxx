@@ -1996,7 +1996,8 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     for (int i = 0; i < NSLICES; i++) {
       totalVertizes += mVertexBuffer[i].size();
     }
-    mUseMultiVBO = (totalVertizes * sizeof(mVertexBuffer[0][0]) >= 0x100000000ll);
+    size_t needMultiVBOSize = mBackend->needMultiVBO();
+    mUseMultiVBO = needMultiVBOSize && (totalVertizes * sizeof(mVertexBuffer[0][0]) >= needMultiVBOSize);
     if (!mUseMultiVBO) {
       size_t totalYet = mVertexBuffer[0].size();
       mVertexBuffer[0].resize(totalVertizes);

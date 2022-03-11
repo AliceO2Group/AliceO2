@@ -69,17 +69,20 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void writeToBuffer(VulkanBuffer& buffer, size_t size, const void* srcData);
   void clearBuffer(VulkanBuffer& buffer);
   void clearVertexBuffers();
-  void fillCommandBuffer(VkCommandBuffer& commandBuffer, unsigned int imageIndex);
+  void startFillCommandBuffer(VkCommandBuffer& commandBuffer, unsigned int imageIndex);
+  void endFillCommandBuffer(VkCommandBuffer& commandBuffer, unsigned int imageIndex);
   void updateSwapChainDetails(const VkPhysicalDevice& device);
   void createDevice();
   void createPipeline();
+  void createSwapChain();
   void createShaders();
+  void createUniformLayouts();
   void clearDevice();
   void clearPipeline();
+  void clearSwapChain();
   void clearShaders();
-  void recreatePipeline();
-  void createUniformLayouts();
   void clearUniformLayouts();
+  void recreateSwapChain();
 
   vecpod<DrawArraysIndirectCommand> mCmdBuffer;
 
@@ -108,7 +111,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   VkShaderModule mModuleFragment;
   VkPipelineLayout mPipelineLayout;
   VkRenderPass mRenderPass;
-  VkPipeline mPipeline;
+  std::vector<VkPipeline> mPipelines;
   std::vector<VkFramebuffer> mFramebuffers;
   VkCommandPool mCommandPool;
   unsigned int mFramesInFlight = 0;

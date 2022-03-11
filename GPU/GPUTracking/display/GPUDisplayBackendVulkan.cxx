@@ -95,11 +95,16 @@ void GPUDisplayBackendVulkan::deleteFB(GLfb& fb)
 
 unsigned int GPUDisplayBackendVulkan::drawVertices(const vboList& v, const drawType tt)
 {
-  // auto first = std::get<0>(v);
+  auto first = std::get<0>(v);
   auto count = std::get<1>(v);
-  // auto iSlice = std::get<2>(v);
+  auto iSlice = std::get<2>(v);
   if (count == 0) {
     return 0;
+  }
+
+  vkCmdBindPipeline(mCommandBuffers[mCurrentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[tt]);
+  for (unsigned int k = 0; k < count; k++) {
+    vkCmdDraw(mCommandBuffers[mCurrentFrame], mDisplay->vertexBufferCount()[iSlice][first + k], 1, mDisplay->vertexBufferStart()[iSlice][first + k], 0);
   }
 
   return count;
@@ -223,7 +228,7 @@ static VkShaderModule createShaderModule(const char* code, size_t size, VkDevice
   return shaderModule;
 }
 
-void GPUDisplayBackendVulkan::fillCommandBuffer(VkCommandBuffer& commandBuffer, unsigned int imageIndex)
+void GPUDisplayBackendVulkan::startFillCommandBuffer(VkCommandBuffer& commandBuffer, unsigned int imageIndex)
 {
   vkResetCommandBuffer(commandBuffer, 0);
 
@@ -244,12 +249,14 @@ void GPUDisplayBackendVulkan::fillCommandBuffer(VkCommandBuffer& commandBuffer, 
   renderPassInfo.clearValueCount = 1;
   renderPassInfo.pClearValues = &clearColor;
   vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline);
 
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mVBO[0].buffer, offsets);
   vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[mCurrentFrame], 0, nullptr);
-  vkCmdDraw(commandBuffer, mVBO[0].size / sizeof(mDisplay->vertexBuffer()[0][0]), 1, 0, 0);
+}
+
+void GPUDisplayBackendVulkan::endFillCommandBuffer(VkCommandBuffer& commandBuffer, unsigned int imageIndex)
+{
   vkCmdEndRenderPass(commandBuffer);
   CHKERR(vkEndCommandBuffer(commandBuffer));
 }
@@ -491,7 +498,7 @@ void GPUDisplayBackendVulkan::clearDevice()
   vkDestroyInstance(mInstance, nullptr);
 }
 
-void GPUDisplayBackendVulkan::createPipeline()
+void GPUDisplayBackendVulkan::createSwapChain()
 {
   updateSwapChainDetails(mPhysicalDevice);
   mSurfaceFormat = chooseSwapSurfaceFormat(mSwapChainDetails->formats);
@@ -521,6 +528,77 @@ void GPUDisplayBackendVulkan::createPipeline()
   swapCreateInfo.oldSwapchain = VK_NULL_HANDLE;
   CHKERR(vkCreateSwapchainKHR(mDevice, &swapCreateInfo, nullptr, &mSwapChain));
 
+  vkGetSwapchainImagesKHR(mDevice, mSwapChain, &imageCount, nullptr);
+  mImages.resize(imageCount);
+  vkGetSwapchainImagesKHR(mDevice, mSwapChain, &imageCount, mImages.data());
+
+  VkAttachmentDescription colorAttachment{};
+  colorAttachment.format = mSurfaceFormat.format;
+  colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+  colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+  colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+  VkAttachmentReference colorAttachmentRef{};
+  colorAttachmentRef.attachment = 0;
+  colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  VkSubpassDescription subpass{};
+  subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+  subpass.colorAttachmentCount = 1;
+  subpass.pColorAttachments = &colorAttachmentRef;
+  VkSubpassDependency dependency{};
+  dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+  dependency.dstSubpass = 0;
+  dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependency.srcAccessMask = 0;
+  dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  VkRenderPassCreateInfo renderPassInfo{};
+  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+  renderPassInfo.attachmentCount = 1;
+  renderPassInfo.pAttachments = &colorAttachment;
+  renderPassInfo.subpassCount = 1;
+  renderPassInfo.pSubpasses = &subpass;
+  renderPassInfo.dependencyCount = 1;
+  renderPassInfo.pDependencies = &dependency;
+  CHKERR(vkCreateRenderPass(mDevice, &renderPassInfo, nullptr, &mRenderPass));
+
+  mImageViews.resize(mImages.size());
+  mFramebuffers.resize(mImages.size());
+  for (size_t i = 0; i < mImages.size(); i++) {
+    VkImageViewCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    createInfo.image = mImages[i];
+    createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    createInfo.format = mSurfaceFormat.format;
+    createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+    createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+    createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+    createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+    createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    createInfo.subresourceRange.baseMipLevel = 0;
+    createInfo.subresourceRange.levelCount = 1;
+    createInfo.subresourceRange.baseArrayLayer = 0;
+    createInfo.subresourceRange.layerCount = 1;
+    CHKERR(vkCreateImageView(mDevice, &createInfo, nullptr, &mImageViews[i]));
+
+    VkFramebufferCreateInfo framebufferInfo{};
+    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    framebufferInfo.renderPass = mRenderPass;
+    framebufferInfo.attachmentCount = 1;
+    framebufferInfo.pAttachments = &mImageViews[i];
+    framebufferInfo.width = mExtent.width;
+    framebufferInfo.height = mExtent.height;
+    framebufferInfo.layers = 1;
+    CHKERR(vkCreateFramebuffer(mDevice, &framebufferInfo, nullptr, &mFramebuffers[i]));
+  }
+}
+
+void GPUDisplayBackendVulkan::createPipeline()
+{
   VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
   vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -552,7 +630,7 @@ void GPUDisplayBackendVulkan::createPipeline()
   vertexInputInfo.pVertexAttributeDescriptions = &attributeDescriptions;
   VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
   inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-  inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST; // VK_PRIMITIVE_TOPOLOGY_LINE_STRIP; // TODO: change me!
+  // inputAssembly.topology
   inputAssembly.primitiveRestartEnable = VK_FALSE;
 
   VkViewport viewport{};
@@ -626,41 +704,6 @@ void GPUDisplayBackendVulkan::createPipeline()
   pipelineLayoutInfo.pSetLayouts = &mUniformDescriptor;
   CHKERR(vkCreatePipelineLayout(mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayout));
 
-  VkAttachmentDescription colorAttachment{};
-  colorAttachment.format = mSurfaceFormat.format;
-  colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-  colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-  colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-  colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-  colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-  colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-  VkAttachmentReference colorAttachmentRef{};
-  colorAttachmentRef.attachment = 0;
-  colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-  VkSubpassDescription subpass{};
-  subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-  subpass.colorAttachmentCount = 1;
-  subpass.pColorAttachments = &colorAttachmentRef;
-  VkSubpassDependency dependency{};
-  dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-  dependency.dstSubpass = 0;
-  dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  dependency.srcAccessMask = 0;
-  dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-  VkRenderPassCreateInfo renderPassInfo{};
-  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-  renderPassInfo.attachmentCount = 1;
-  renderPassInfo.pAttachments = &colorAttachment;
-  renderPassInfo.subpassCount = 1;
-  renderPassInfo.pSubpasses = &subpass;
-  renderPassInfo.dependencyCount = 1;
-  renderPassInfo.pDependencies = &dependency;
-
-  CHKERR(vkCreateRenderPass(mDevice, &renderPassInfo, nullptr, &mRenderPass));
-
   VkGraphicsPipelineCreateInfo pipelineInfo{};
   pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
   pipelineInfo.stageCount = 2;
@@ -678,53 +721,31 @@ void GPUDisplayBackendVulkan::createPipeline()
   pipelineInfo.subpass = 0;
   pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
   pipelineInfo.basePipelineIndex = -1;              // Optional
-  CHKERR(vkCreateGraphicsPipelines(mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipeline));
 
-  vkGetSwapchainImagesKHR(mDevice, mSwapChain, &imageCount, nullptr);
-  mImages.resize(imageCount);
-  vkGetSwapchainImagesKHR(mDevice, mSwapChain, &imageCount, mImages.data());
-
-  mImageViews.resize(mImages.size());
-  mFramebuffers.resize(mImages.size());
-  for (size_t i = 0; i < mImages.size(); i++) {
-    VkImageViewCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    createInfo.image = mImages[i];
-    createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    createInfo.format = mSurfaceFormat.format;
-    createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-    createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-    createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-    createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-    createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    createInfo.subresourceRange.baseMipLevel = 0;
-    createInfo.subresourceRange.levelCount = 1;
-    createInfo.subresourceRange.baseArrayLayer = 0;
-    createInfo.subresourceRange.layerCount = 1;
-    CHKERR(vkCreateImageView(mDevice, &createInfo, nullptr, &mImageViews[i]));
-
-    VkFramebufferCreateInfo framebufferInfo{};
-    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebufferInfo.renderPass = mRenderPass;
-    framebufferInfo.attachmentCount = 1;
-    framebufferInfo.pAttachments = &mImageViews[i];
-    framebufferInfo.width = mExtent.width;
-    framebufferInfo.height = mExtent.height;
-    framebufferInfo.layers = 1;
-    CHKERR(vkCreateFramebuffer(mDevice, &framebufferInfo, nullptr, &mFramebuffers[i]));
+  mPipelines.resize(3);
+  static constexpr VkPrimitiveTopology types[3] = {VK_PRIMITIVE_TOPOLOGY_POINT_LIST, VK_PRIMITIVE_TOPOLOGY_LINE_LIST, VK_PRIMITIVE_TOPOLOGY_LINE_STRIP};
+  for (int i = 0; i < 3; i++) {
+    inputAssembly.topology = types[i];
+    CHKERR(vkCreateGraphicsPipelines(mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipelines[i]));
   }
 }
 
-void GPUDisplayBackendVulkan::clearPipeline()
+void GPUDisplayBackendVulkan::clearSwapChain()
 {
-  vkDestroyPipeline(mDevice, mPipeline, nullptr);
-  vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
-  vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
   for (unsigned int i = 0; i < mImages.size(); i++) {
     vkDestroyFramebuffer(mDevice, mFramebuffers[i], nullptr);
     vkDestroyImageView(mDevice, mImageViews[i], nullptr);
   }
   vkDestroySwapchainKHR(mDevice, mSwapChain, nullptr);
+}
+
+void GPUDisplayBackendVulkan::clearPipeline()
+{
+  for (auto& pipeline : mPipelines) {
+    vkDestroyPipeline(mDevice, pipeline, nullptr);
+  }
+  vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
+  vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
 }
 
 void GPUDisplayBackendVulkan::createShaders()
@@ -739,10 +760,12 @@ void GPUDisplayBackendVulkan::clearShaders()
   vkDestroyShaderModule(mDevice, mModuleFragment, nullptr);
 }
 
-void GPUDisplayBackendVulkan::recreatePipeline()
+void GPUDisplayBackendVulkan::recreateSwapChain()
 {
   vkDeviceWaitIdle(mDevice);
   clearPipeline();
+  clearSwapChain();
+  createSwapChain();
   createPipeline();
 }
 
@@ -823,6 +846,7 @@ int GPUDisplayBackendVulkan::InitBackend()
   createDevice();
   createShaders();
   createUniformLayouts();
+  createSwapChain();
   createPipeline();
 
   std::cout << "Vulkan initialized\n";
@@ -832,10 +856,10 @@ int GPUDisplayBackendVulkan::InitBackend()
 void GPUDisplayBackendVulkan::ExitBackend()
 {
   std::cout << "Exiting Vulkan\n";
-
   vkDeviceWaitIdle(mDevice);
   clearVertexBuffers();
   clearPipeline();
+  clearSwapChain();
   clearUniformLayouts();
   clearShaders();
   clearDevice();
@@ -847,7 +871,7 @@ void GPUDisplayBackendVulkan::resizeScene(unsigned int width, unsigned int heigh
   if (mExtent.width == width && mExtent.height == height) {
     return;
   }
-  recreatePipeline();
+  recreateSwapChain();
   if (mExtent.width != width || mExtent.height != height) {
     // std::cout << "Unmatching window size: requested " << width << " x " << height << " - found " << mExtent.width << " x " << mExtent.height << "\n";
   }
@@ -948,15 +972,19 @@ void GPUDisplayBackendVulkan::prepareDraw()
   VkResult retVal = vkAcquireNextImageKHR(mDevice, mSwapChain, UINT64_MAX, mImageAvailableSemaphore[mCurrentFrame], VK_NULL_HANDLE, &mImageIndex);
   if (retVal == VK_ERROR_OUT_OF_DATE_KHR || retVal == VK_SUBOPTIMAL_KHR) {
     std::cout << "Pipeline out of data / suboptimal, recreating\n";
-    recreatePipeline();
+    recreateSwapChain();
     retVal = vkAcquireNextImageKHR(mDevice, mSwapChain, UINT64_MAX, mImageAvailableSemaphore[mCurrentFrame], VK_NULL_HANDLE, &mImageIndex);
   }
   CHKERR(retVal);
   vkResetFences(mDevice, 1, &mInFlightFence[mCurrentFrame]);
+
+  startFillCommandBuffer(mCommandBuffers[mCurrentFrame], mImageIndex);
 }
 
 void GPUDisplayBackendVulkan::finishDraw()
 {
+  endFillCommandBuffer(mCommandBuffers[mCurrentFrame], mImageIndex);
+
   VkSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
@@ -993,7 +1021,6 @@ void GPUDisplayBackendVulkan::setMatrices(const hmm_mat4& proj, const hmm_mat4& 
 {
   const hmm_mat4 modelViewProj = proj * view;
   writeToBuffer(mUniformBuffersMat[mCurrentFrame], sizeof(modelViewProj), &modelViewProj);
-  fillCommandBuffer(mCommandBuffers[mCurrentFrame], mImageIndex);
 }
 
 void GPUDisplayBackendVulkan::mixImages(GLfb& mixBuffer, float mixSlaveImage)
