@@ -45,220 +45,74 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, pack<Cs...>, ui
 }
 } // namespace binning_helpers
 
-template <typename... Cs>
-struct BinningPolicyBase {
-  BinningPolicyBase() = default;
-  BinningPolicyBase(std::array<std::vector<double>, sizeof...(Cs)> bins, bool ignoreOverflows = true) : mBins(bins), mIgnoreOverflows(ignoreOverflows) {}
-
-  int getBin(std::tuple<typename Cs::type...> const&) const
+template <typename C, typename... Cs>
+struct BinningPolicy {
+  BinningPolicy(std::array<std::vector<double>, sizeof...(Cs) + 1> bins, bool ignoreOverflows = true) : mBins(bins), mIgnoreOverflows(ignoreOverflows)
   {
-    return -1;
+    static_assert(sizeof...(Cs) < 3, "No default binning for more than 3 columns, you need to implement a binning class yourself");
+    for (int i = 0; i < sizeof...(Cs) + 1; i++) {
+      expandConstantBinning(bins[i], i);
+    }
   }
 
-  pack<Cs...> getColumns() const { return pack<Cs...>{}; }
-
-  std::array<std::vector<double>, sizeof...(Cs)> mBins;
-  bool mIgnoreOverflows;
-  static constexpr int mColumnsCount = sizeof...(Cs);
-};
-
-template <typename C>
-struct NoBinningPolicy : public BinningPolicyBase<C> {
-  // Just take the bin number from the column data
-  NoBinningPolicy() : BinningPolicyBase<C>() {}
-
-  int getBin(std::tuple<typename C::type> const& data) const
+  int getBin(std::tuple<typename C::type, typename Cs::type...> const& data) const
   {
-    return std::get<0>(data);
-  }
-
-  using BinningPolicyBase<C>::getColumns;
-};
-
-template <typename C>
-struct SingleBinningPolicy : public BinningPolicyBase<C> {
-  SingleBinningPolicy(std::vector<double>& xBins, bool ignoreOverflows = true) : BinningPolicyBase<C>({xBins}, ignoreOverflows)
-  {
-    expandConstantBinning(xBins);
-  }
-  SingleBinningPolicy(int xNBins, typename C::type xBinMin, typename C::type xBinMax, bool ignoreOverflows = true) : SingleBinningPolicy<C>({xNBins, xBinMin, xBinMax}, ignoreOverflows)
-  {
-  }
-
-  int getBin(std::tuple<typename C::type> const& data) const
-  {
-    auto val1 = std::get<0>(data);
-    auto xBins = this->mBins[0];
     if (this->mIgnoreOverflows) {
       // underflow
-      if (val1 < xBins[1]) { // xBins[0] is a dummy VARIABLE_WIDTH
+      if (std::get<0>(data) < this->mBins[0][1]) { // xBins[0] is a dummy VARIABLE_WIDTH
         return -1;
       }
-    }
-
-    unsigned int i = 2;
-    for (; i < xBins.size(); i++) {
-      if (val1 < xBins[i]) {
-        return i - 1;
-      }
-    }
-    // overflow
-    return this->mIgnoreOverflows ? -1 : i - 1;
-  }
-
-  using BinningPolicyBase<C>::getColumns;
-
- private:
-  void expandConstantBinning(std::vector<double> const& xBins)
-  {
-    if (xBins[0] != VARIABLE_WIDTH) {
-      int nBins = static_cast<int>(xBins[0]);
-      this->mBins[0].clear();
-      this->mBins[0].resize(nBins + 2);
-      this->mBins[0][0] = VARIABLE_WIDTH;
-      std::iota(std::begin(this->mBins[0]) + 1, std::end(this->mBins[0]), xBins[2] - xBins[1] / nBins);
-    }
-  }
-};
-
-template <typename C1, typename C2>
-struct PairBinningPolicy : public BinningPolicyBase<C1, C2> {
-  PairBinningPolicy(std::vector<double>& xBins, std::vector<double>& yBins, bool ignoreOverflows = true) : BinningPolicyBase<C1, C2>({xBins, yBins}, ignoreOverflows)
-  {
-    expandConstantBinning(xBins, yBins);
-  }
-  PairBinningPolicy(int xNBins, typename C1::type xBinMin, typename C1::type xBinMax, int yNBins, typename C2::type yBinMin, typename C2::type yBinMax, bool ignoreOverflows = true) : PairBinningPolicy<C1, C2>({xNBins, xBinMin, xBinMax}, {yNBins, yBinMin, yBinMax}, ignoreOverflows)
-  {
-  }
-
-  int getBin(std::tuple<typename C1::type, typename C2::type> const& data) const
-  {
-    auto val1 = std::get<0>(data);
-    auto val2 = std::get<1>(data);
-    auto xBins = this->mBins[0];
-    auto yBins = this->mBins[1];
-
-    if (this->mIgnoreOverflows) {
-      // underflow
-      if (val1 < xBins[1]) { // xBins[0] is a dummy VARIABLE_WIDTH
-        return -1;
-      }
-      if (val2 < yBins[1]) { // yBins[0] is a dummy VARIABLE_WIDTH
-        return -1;
-      }
-    }
-
-    unsigned int i = 2, j = 2;
-    for (; i < xBins.size(); i++) {
-      if (val1 < xBins[i]) {
-        for (; j < yBins.size(); j++) {
-          if (val2 < yBins[j]) {
-            return getBinAt(i, j);
-          }
+      if constexpr (sizeof...(Cs) > 0) {
+        if (std::get<1>(data) < this->mBins[1][1]) { // this->mBins[1][0] is a dummy VARIABLE_WIDTH
+          return -1;
         }
-        // overflow for yBins only
-        return this->mIgnoreOverflows ? -1 : getBinAt(i, j);
       }
-    }
-
-    if (this->mIgnoreOverflows) {
-      // overflow
-      return -1;
-    }
-
-    // overflow for xBins only
-    for (j = 2; j < yBins.size(); j++) {
-      if (val2 < yBins[j]) {
-        return getBinAt(i, j);
-      }
-    }
-
-    // overflow for both bins
-    return getBinAt(i, j);
-  }
-
-  using BinningPolicyBase<C1, C2>::getColumns;
-
- private:
-  int getBinAt(unsigned int i, unsigned int j) const
-  {
-    return (i - 1) + (j - 1) * this->mBins[0].size();
-  }
-
-  void expandConstantBinning(std::vector<double> const& xBins, std::vector<double> const& yBins)
-  {
-    if (xBins[0] != VARIABLE_WIDTH) {
-      int nBins = static_cast<int>(xBins[0]);
-      this->mBins[0].clear();
-      this->mBins[0].resize(nBins + 2);
-      this->mBins[0][0] = VARIABLE_WIDTH;
-      std::iota(std::begin(this->mBins[0]) + 1, std::end(this->mBins[0]), xBins[2] - xBins[1] / nBins);
-    }
-    if (yBins[0] != VARIABLE_WIDTH) {
-      int nBins = static_cast<int>(yBins[0]);
-      this->mBins[1].clear();
-      this->mBins[1].resize(nBins + 2);
-      this->mBins[1][0] = VARIABLE_WIDTH;
-      std::iota(std::begin(this->mBins[1]) + 1, std::end(this->mBins[1]), xBins[2] - xBins[1] / nBins);
-    }
-  }
-};
-
-template <typename C1, typename C2, typename C3>
-struct TripleBinningPolicy : public BinningPolicyBase<C1, C2, C3> {
-  TripleBinningPolicy(std::vector<double>& xBins, std::vector<double>& yBins, std::vector<double>& zBins, bool ignoreOverflows = true) : BinningPolicyBase<C1, C2, C3>({xBins, yBins, zBins}, ignoreOverflows)
-  {
-    expandConstantBinning(xBins, yBins, zBins);
-  }
-  TripleBinningPolicy(int xNBins, typename C1::type xBinMin, typename C1::type xBinMax, int yNBins, typename C2::type yBinMin, typename C2::type yBinMax, int zNBins, typename C2::type zBinMin, typename C3::type zBinMax, bool ignoreOverflows = true) : TripleBinningPolicy<C1, C2, C3>({xNBins, xBinMin, xBinMax}, {yNBins, yBinMin, yBinMax}, {zNBins, zBinMin, zBinMax}, ignoreOverflows)
-  {
-  }
-
-  int getBin(std::tuple<typename C1::type, typename C2::type, typename C3::type> const& data) const
-  {
-    auto val1 = std::get<0>(data);
-    auto val2 = std::get<1>(data);
-    auto val3 = std::get<2>(data);
-    auto xBins = this->mBins[0];
-    auto yBins = this->mBins[1];
-    auto zBins = this->mBins[2];
-    if (this->mIgnoreOverflows) {
-      // underflow
-      if (val1 < xBins[1]) { // xBins[0] is a dummy VARIABLE_WIDTH
-        return -1;
-      }
-      if (val2 < yBins[1]) { // yBins[0] is a dummy VARIABLE_WIDTH
-        return -1;
-      }
-      if (val3 < zBins[1]) { // zBins[0] is a dummy VARIABLE_WIDTH
-        return -1;
+      if constexpr (sizeof...(Cs) > 1) {
+        if (std::get<2>(data) < this->mBins[2][1]) { // this->mBins[2][0] is a dummy VARIABLE_WIDTH
+          return -1;
+        }
       }
     }
 
     unsigned int i = 2, j = 2, k = 2;
-    for (; i < xBins.size(); i++) {
-      if (val1 < xBins[i]) {
-        for (; j < yBins.size(); j++) {
-          if (val2 < yBins[j]) {
-            for (; k < zBins.size(); k++) {
-              if (val3 < zBins[k]) {
+    for (; i < this->mBins[0].size(); i++) {
+      if (std::get<0>(data) < this->mBins[0][i]) {
+
+        if constexpr (sizeof...(Cs) > 0) {
+          for (; j < this->mBins[1].size(); j++) {
+            if (std::get<1>(data) < this->mBins[1][j]) {
+
+              if constexpr (sizeof...(Cs) > 1) {
+                for (; k < this->mBins[2].size(); k++) {
+                  if (std::get<2>(data) < this->mBins[2][k]) {
+                    return getBinAt(i, j, k);
+                  }
+                }
+                if (this->mIgnoreOverflows) {
+                  return -1;
+                }
+              }
+
+              // overflow for this->mBins[2] only
+              return getBinAt(i, j, k);
+            }
+          }
+
+          if (this->mIgnoreOverflows) {
+            return -1;
+          }
+
+          // overflow for this->mBins[1] only
+          if constexpr (sizeof...(Cs) > 1) {
+            for (k = 2; k < this->mBins[2].size(); k++) {
+              if (std::get<2>(data) < this->mBins[2][k]) {
                 return getBinAt(i, j, k);
               }
             }
-            // overflow for zBins only
-            return this->mIgnoreOverflows ? -1 : getBinAt(i, j, k);
           }
         }
-        if (this->mIgnoreOverflows) {
-          return -1;
-        }
-        // overflow for yBins only
-        for (k = 2; k < zBins.size(); k++) {
-          if (val3 < zBins[k]) {
-            return getBinAt(i, j, k);
-          }
-        }
-        // overflow for zBins and yBins
+
+        // overflow for this->mBins[2] and this->mBins[1]
         return getBinAt(i, j, k);
       }
     }
@@ -268,24 +122,31 @@ struct TripleBinningPolicy : public BinningPolicyBase<C1, C2, C3> {
       return -1;
     }
 
-    // overflow for xBins only
-    for (j = 2; j < yBins.size(); j++) {
-      if (val2 < yBins[j]) {
-        for (k = 2; k < zBins.size(); k++) {
-          if (val3 < zBins[k]) {
-            return getBinAt(i, j, k);
-          }
-        }
+    // overflow for this->mBins[0] only
+    if constexpr (sizeof...(Cs) > 0) {
+      for (j = 2; j < this->mBins[1].size(); j++) {
+        if (std::get<1>(data) < this->mBins[1][j]) {
 
-        // overflow for xBins and zBins
-        return getBinAt(i, j, k);
+          if constexpr (sizeof...(Cs) > 1) {
+            for (k = 2; k < this->mBins[2].size(); k++) {
+              if (std::get<2>(data) < this->mBins[2][k]) {
+                return getBinAt(i, j, k);
+              }
+            }
+          }
+
+          // overflow for this->mBins[0] and this->mBins[2]
+          return getBinAt(i, j, k);
+        }
       }
     }
 
-    // overflow for xBins and yBins
-    for (k = 2; k < zBins.size(); k++) {
-      if (val3 < zBins[k]) {
-        return getBinAt(i, j, k);
+    // overflow for this->mBins[0] and this->mBins[1]
+    if constexpr (sizeof...(Cs) > 1) {
+      for (k = 2; k < this->mBins[2].size(); k++) {
+        if (std::get<2>(data) < this->mBins[2][k]) {
+          return getBinAt(i, j, k);
+        }
       }
     }
 
@@ -293,38 +154,50 @@ struct TripleBinningPolicy : public BinningPolicyBase<C1, C2, C3> {
     return getBinAt(i, j, k);
   }
 
-  using BinningPolicyBase<C1, C2, C3>::getColumns;
+  pack<C, Cs...> getColumns() const { return pack<C, Cs...>{}; }
+  static constexpr int mColumnsCount = sizeof...(Cs) + 1;
 
  private:
   int getBinAt(unsigned int i, unsigned int j, unsigned int k) const
   {
-    return (i - 1) + (j - 1) * this->mBins[0].size() + (k - 1) * (this->mBins[0].size() + this->mBins[1].size());
+    if constexpr (sizeof...(Cs) == 0) {
+      return i - 1;
+    } else if constexpr (sizeof...(Cs) == 1) {
+      return (i - 1) + (j - 1) * this->mBins[0].size();
+    } else if constexpr (sizeof...(Cs) == 2) {
+      return (i - 1) + (j - 1) * this->mBins[0].size() + (k - 1) * (this->mBins[0].size() + this->mBins[1].size());
+    } else {
+      return -1;
+    }
   }
 
-  void expandConstantBinning(std::vector<double> const& xBins, std::vector<double> const& yBins, std::vector<double> const& zBins)
+  void expandConstantBinning(std::vector<double> const& bins, int ind)
   {
-    if (xBins[0] != VARIABLE_WIDTH) {
-      int nBins = static_cast<int>(xBins[0]);
-      this->mBins[0].clear();
-      this->mBins[0].resize(nBins + 2);
-      this->mBins[0][0] = VARIABLE_WIDTH;
-      std::iota(std::begin(this->mBins[0]) + 1, std::end(this->mBins[0]), xBins[2] - xBins[1] / nBins);
-    }
-    if (yBins[0] != VARIABLE_WIDTH) {
-      int nBins = static_cast<int>(yBins[0]);
-      this->mBins[1].clear();
-      this->mBins[1].resize(nBins + 2);
-      this->mBins[1][0] = VARIABLE_WIDTH;
-      std::iota(std::begin(this->mBins[1]) + 1, std::end(this->mBins[1]), yBins[2] - yBins[1] / nBins);
-    }
-    if (zBins[0] != VARIABLE_WIDTH) {
-      int nBins = static_cast<int>(zBins[0]);
-      this->mBins[2].clear();
-      this->mBins[2].resize(nBins + 2);
-      this->mBins[2][0] = VARIABLE_WIDTH;
-      std::iota(std::begin(this->mBins[2]) + 1, std::end(this->mBins[2]), zBins[2] - zBins[1] / nBins);
+    if (bins[0] != VARIABLE_WIDTH) {
+      int nBins = static_cast<int>(bins[0]);
+      this->mBins[ind].clear();
+      this->mBins[ind].resize(nBins + 2);
+      this->mBins[ind][0] = VARIABLE_WIDTH;
+      std::iota(std::begin(this->mBins[ind]) + 1, std::end(this->mBins[ind]), bins[2] - bins[1] / nBins);
     }
   }
+
+  std::array<std::vector<double>, sizeof...(Cs) + 1> mBins;
+  bool mIgnoreOverflows;
+};
+
+template <typename C>
+struct NoBinningPolicy {
+  // Just take the bin number from the column data
+  NoBinningPolicy() = default;
+
+  int getBin(std::tuple<typename C::type> const& data) const
+  {
+    return std::get<0>(data);
+  }
+
+  pack<C> getColumns() const { return pack<C>{}; }
+  static constexpr int mColumnsCount = 1;
 };
 
 } // namespace o2::framework
