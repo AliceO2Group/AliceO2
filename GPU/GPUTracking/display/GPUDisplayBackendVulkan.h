@@ -65,7 +65,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   backendTypes backendType() const override { return TYPE_VULKAN; }
   void resizeScene(unsigned int width, unsigned int height) override;
 
-  VulkanBuffer createBuffer(size_t size, const void* srcData = nullptr);
+  VulkanBuffer createBuffer(size_t size, const void* srcData = nullptr, bool uniform = false);
   void writeToBuffer(VulkanBuffer& buffer, size_t size, const void* srcData);
   void clearBuffer(VulkanBuffer& buffer);
   void clearVertexBuffers();
@@ -119,8 +119,9 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   std::vector<VkSemaphore> mRenderFinishedSemaphore;
   std::vector<VkFence> mInFlightFence;
   std::vector<VulkanBuffer> mUniformBuffersMat;
+  std::vector<VulkanBuffer> mUniformBuffersCol;
   std::vector<VkDescriptorSet> mDescriptorSets;
-  VkDescriptorSetLayout mUniformDescriptorMat;
+  VkDescriptorSetLayout mUniformDescriptor;
   VkDescriptorPool mDescriptorPool;
 
   std::vector<VulkanBuffer> mVBO;
