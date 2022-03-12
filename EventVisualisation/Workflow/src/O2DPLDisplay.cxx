@@ -81,6 +81,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
     return; // skip this run - it is too often
   }
   this->mTimeStamp = currentTime;
+  updateTimeDependentParams(pc);
 
   EveWorkflowHelper helper;
   helper.getRecoContainer().collectData(pc, *mDataRequest);
@@ -100,6 +101,24 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
 
 void O2DPLDisplaySpec::endOfStream(EndOfStreamContext& ec)
 {
+}
+
+void O2DPLDisplaySpec::updateTimeDependentParams(ProcessingContext& pc)
+{
+  // pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldictITS"); // called by the RecoContainer
+  // pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldictMFT"); // called by the RecoContainer
+}
+
+void O2DPLDisplaySpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    LOG(info) << "ITS cluster dictionary updated";
+    mData.setITSDict((const o2::itsmft::TopologyDictionary*)obj);
+  }
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    LOG(info) << "MFT cluster dictionary updated";
+    mData.setMFTDict((const o2::itsmft::TopologyDictionary*)obj);
+  }
 }
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
