@@ -211,13 +211,14 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
         LOGP(info, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
         // one could modify the    adoptContainer to take optional old cacheID to clean:
         // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), true, mapURL2DPLCache[URL]);
+        continue;
       }
-      // cached object is fine
-      auto cacheId = helper->mapURL2DPLCache[path];
-      LOGP(info, "Reusing {} for {}", cacheId.value, path);
-      allocator.adoptFromCache(output, cacheId, header::gSerializationMethodCCDB);
-      // the outputBuffer was not used, can we destroy it?
     }
+    // cached object is fine
+    auto cacheId = helper->mapURL2DPLCache[path];
+    LOGP(info, "Reusing {} for {}", cacheId.value, path);
+    allocator.adoptFromCache(output, cacheId, header::gSerializationMethodCCDB);
+    // the outputBuffer was not used, can we destroy it?
   }
 };
 
