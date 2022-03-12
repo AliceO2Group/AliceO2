@@ -75,6 +75,7 @@ class RawReaderSpecs : public o2f::Task
   size_t mSentSize = 0;
   size_t mSentMessages = 0;
   bool mPartPerSP = true;                                          // fill part per superpage
+  bool mSup0xccdb = false;                                         // suppress explicit FLP/DISTSUBTIMEFRAME/0xccdb output
   std::string mRawChannelName = "";                                // name of optional non-DPL channel
   std::unique_ptr<o2::raw::RawFileReader> mReader;                 // matching engine
   std::unordered_map<std::string, std::pair<int, int>> mDropTFMap; // allows to drop certain fraction of TFs
@@ -88,7 +89,7 @@ class RawReaderSpecs : public o2f::Task
 
 //___________________________________________________________
 RawReaderSpecs::RawReaderSpecs(const ReaderInp& rinp)
-  : mLoop(rinp.loop < 0 ? INT_MAX : (rinp.loop < 1 ? 1 : rinp.loop)), mDelayUSec(rinp.delay_us), mMinTFID(rinp.minTF), mMaxTFID(rinp.maxTF), mPartPerSP(rinp.partPerSP), mReader(std::make_unique<o2::raw::RawFileReader>(rinp.inifile, rinp.verbosity, rinp.bufferSize)), mRawChannelName(rinp.rawChannelConfig), mVerbosity(rinp.verbosity), mPreferCalcTF(rinp.preferCalcTF)
+  : mLoop(rinp.loop < 0 ? INT_MAX : (rinp.loop < 1 ? 1 : rinp.loop)), mDelayUSec(rinp.delay_us), mMinTFID(rinp.minTF), mMaxTFID(rinp.maxTF), mPartPerSP(rinp.partPerSP), mSup0xccdb(rinp.sup0xccdb), mReader(std::make_unique<o2::raw::RawFileReader>(rinp.inifile, rinp.verbosity, rinp.bufferSize)), mRawChannelName(rinp.rawChannelConfig), mVerbosity(rinp.verbosity), mPreferCalcTF(rinp.preferCalcTF)
 {
   mReader->setCheckErrors(rinp.errMap);
   mReader->setMaxTFToRead(rinp.maxTF);
@@ -304,7 +305,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
 
   // send sTF acknowledge message
   unsigned stfSS[2] = {0, 0xccdb};
-  for (int iss = 0; iss < 2; iss++) {
+  for (int iss = 0; iss < (mSup0xccdb ? 1 : 2); iss++) {
     o2::header::STFHeader stfHeader{mTFCounter, firstOrbit, 0};
     o2::header::DataHeader stfDistDataHeader(o2::header::gDataDescriptionDISTSTF, o2::header::gDataOriginFLP, stfSS[iss], sizeof(o2::header::STFHeader), 0, 1);
     stfDistDataHeader.payloadSerializationMethod = o2h::gSerializationMethodNone;
@@ -360,7 +361,9 @@ o2f::DataProcessorSpec getReaderSpec(ReaderInp rinp)
     }
     // add output for DISTSUBTIMEFRAME
     spec.outputs.emplace_back(o2f::OutputSpec{{"stfDist"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0});
-    spec.outputs.emplace_back(o2f::OutputSpec{{"stfDistCCDB"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0xccdb}); // will be added automatically
+    if (!rinp.sup0xccdb) {
+      spec.outputs.emplace_back(o2f::OutputSpec{{"stfDistCCDB"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0xccdb}); // will be added automatically
+    }
   } else {
     auto nameStart = rinp.rawChannelConfig.find("name=");
     if (nameStart == std::string::npos) {
