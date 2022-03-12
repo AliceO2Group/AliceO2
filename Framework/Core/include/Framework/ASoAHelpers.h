@@ -72,85 +72,8 @@ inline bool diffCategory(BinningIndex const& a, BinningIndex const& b)
   return a.bin >= b.bin;
 }
 
-template <typename T2, typename ARRAY, typename T>
-std::vector<BinningIndex> oldGroupTable(const T& table, const std::string& categoryColumnName, int minCatSize, const T2& outsider)
-{
-  auto columnIndex = table.asArrowTable()->schema()->GetFieldIndex(categoryColumnName);
-  auto chunkedArray = table.asArrowTable()->column(columnIndex);
-
-  uint64_t ind = 0;
-  uint64_t selInd = 0;
-  gsl::span<int64_t const> selectedRows;
-  std::vector<BinningIndex> groupedIndices;
-
-  // Separate check to account for Filtered size different from arrow table
-  if (table.size() == 0) {
-    return groupedIndices;
-  }
-
-  if constexpr (soa::is_soa_filtered_t<T>::value) {
-    selectedRows = table.getSelectedRows(); // vector<int64_t>
-  }
-
-  for (uint64_t ci = 0; ci < chunkedArray->num_chunks(); ++ci) {
-    auto chunk = chunkedArray->chunk(ci);
-    if constexpr (soa::is_soa_filtered_t<T>::value) {
-      if (selectedRows[ind] >= selInd + chunk->length()) {
-        selInd += chunk->length();
-        continue; // Go to the next chunk, no value selected in this chunk
-      }
-    }
-
-    T2 const* data = std::static_pointer_cast<ARRAY>(chunk)->raw_values();
-    uint64_t ai = 0;
-    while (ai < chunk->length()) {
-      if constexpr (soa::is_soa_filtered_t<T>::value) {
-        ai += selectedRows[ind] - selInd;
-        selInd = selectedRows[ind];
-      }
-
-      if (data[ai] != outsider) {
-        groupedIndices.emplace_back(data[ai], ind);
-      }
-      ind++;
-
-      if constexpr (soa::is_soa_filtered_t<T>::value) {
-        if (ind >= selectedRows.size()) {
-          break;
-        }
-      } else {
-        ai++;
-      }
-    }
-
-    if constexpr (soa::is_soa_filtered_t<T>::value) {
-      if (ind == selectedRows.size()) {
-        break;
-      }
-    }
-  }
-
-  // Do a stable sort so that same categories entries are
-  // grouped together.
-  std::stable_sort(groupedIndices.begin(), groupedIndices.end());
-
-  // Remove categories of too small size
-  if (minCatSize > 1) {
-    auto catBegin = groupedIndices.begin();
-    while (catBegin != groupedIndices.end()) {
-      auto catEnd = std::upper_bound(catBegin, groupedIndices.end(), *catBegin, sameCategory);
-      if (std::distance(catBegin, catEnd) < minCatSize) {
-        catEnd = groupedIndices.erase(catBegin, catEnd);
-      }
-      catBegin = catEnd;
-    }
-  }
-
-  return groupedIndices;
-}
-
 template <template <typename... Cs> typename BP, typename T, typename... Cs>
-std::vector<BinningIndex> doGroupTable(const T& table, const BP<Cs...>& binningPolicy, int minCatSize, int outsider)
+std::vector<BinningIndex> groupTable(const T& table, const BP<Cs...>& binningPolicy, int minCatSize, int outsider)
 {
   arrow::Table* arrowTable = table.asArrowTable().get();
 
@@ -240,16 +163,6 @@ std::vector<BinningIndex> doGroupTable(const T& table, const BP<Cs...>& binningP
   }
 
   return groupedIndices;
-}
-
-template <typename BP, typename T>
-std::vector<BinningIndex> groupTable(const T& table, const BP& binningPolicy, int minCatSize, int outsider)
-{
-  if constexpr (framework::is_specialization_v<BP, framework::BinningPolicy> || framework::is_specialization_v<BP, framework::NoBinningPolicy>) {
-    return doGroupTable(table, binningPolicy, minCatSize, outsider);
-  } else {
-    return oldGroupTable<int, arrow::Int32Array>(table, binningPolicy, minCatSize, outsider);
-  }
 }
 
 // Synchronize categories so as groupedIndices contain elements only of categories common to all tables
@@ -1338,86 +1251,50 @@ template <typename BP, typename T1, typename... T2s>
 auto selfCombinations(const BP& binningPolicy, int categoryNeighbours, const T1& outsider, const T2s&... tables)
 {
   static_assert(isSameType<T2s...>(), "Tables must have the same type for self combinations");
-  if constexpr (framework::is_specialization_v<BP, framework::BinningPolicy> || framework::is_specialization_v<BP, framework::NoBinningPolicy>) {
-    return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2s...>>(CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2s...>(binningPolicy, categoryNeighbours, outsider, tables...));
-  } else {
-    return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<std::string, T1, T2s...>>(CombinationsBlockStrictlyUpperSameIndexPolicy<std::string, T1, T2s...>(std::string(binningPolicy), categoryNeighbours, outsider, tables...));
-  }
+  return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2s...>>(CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2s...>(binningPolicy, categoryNeighbours, outsider, tables...));
 }
 
 template <typename BP, typename T1, typename T2>
 auto selfPairCombinations(const BP& binningPolicy, int categoryNeighbours, const T1& outsider)
 {
-  if constexpr (framework::is_specialization_v<BP, framework::BinningPolicy> || framework::is_specialization_v<BP, framework::NoBinningPolicy>) {
-    return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2, T2>>(CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2, T2>(binningPolicy, categoryNeighbours, outsider));
-  } else {
-    return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<std::string, T1, T2, T2>>(CombinationsBlockStrictlyUpperSameIndexPolicy<std::string, T1, T2, T2>(std::string(binningPolicy), categoryNeighbours, outsider));
-  }
+  return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2, T2>>(CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2, T2>(binningPolicy, categoryNeighbours, outsider));
 }
 
 template <typename BP, typename T1, typename T2>
 auto selfPairCombinations(const BP& binningPolicy, int categoryNeighbours, const T1& outsider, const T2& table)
 {
-  if constexpr (framework::is_specialization_v<BP, framework::BinningPolicy> || framework::is_specialization_v<BP, framework::NoBinningPolicy>) {
-    return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2, T2>>(CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2, T2>(binningPolicy, categoryNeighbours, outsider, table, table));
-  } else {
-    return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<std::string, T1, T2, T2>>(CombinationsBlockStrictlyUpperSameIndexPolicy<std::string, T1, T2, T2>(std::string(binningPolicy), categoryNeighbours, outsider, table, table));
-  }
+  return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2, T2>>(CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2, T2>(binningPolicy, categoryNeighbours, outsider, table, table));
 }
 
 template <typename BP, typename T1, typename T2>
 auto selfTripleCombinations(const BP& binningPolicy, int categoryNeighbours, const T1& outsider)
 {
-  if constexpr (framework::is_specialization_v<BP, framework::BinningPolicy> || framework::is_specialization_v<BP, framework::NoBinningPolicy>) {
-    return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2, T2, T2>>(CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2, T2, T2>(binningPolicy, categoryNeighbours, outsider));
-  } else {
-    return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<std::string, T1, T2, T2, T2>>(CombinationsBlockStrictlyUpperSameIndexPolicy<std::string, T1, T2, T2, T2>(std::string(binningPolicy), categoryNeighbours, outsider));
-  }
+  return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2, T2, T2>>(CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2, T2, T2>(binningPolicy, categoryNeighbours, outsider));
 }
 
 template <typename BP, typename T1, typename T2>
 auto selfTripleCombinations(const BP& binningPolicy, int categoryNeighbours, const T1& outsider, const T2& table)
 {
-  if constexpr (framework::is_specialization_v<BP, framework::BinningPolicy> || framework::is_specialization_v<BP, framework::NoBinningPolicy>) {
-    return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2, T2, T2>>(CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2, T2, T2>(binningPolicy, categoryNeighbours, outsider, table, table, table));
-  } else {
-    return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<std::string, T1, T2, T2, T2>>(CombinationsBlockStrictlyUpperSameIndexPolicy<std::string, T1, T2, T2, T2>(std::string(binningPolicy), categoryNeighbours, outsider, table, table, table));
-  }
+  return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2, T2, T2>>(CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2, T2, T2>(binningPolicy, categoryNeighbours, outsider, table, table, table));
 }
 
 template <typename BP, typename T1, typename... T2s>
 auto combinations(const BP& binningPolicy, int categoryNeighbours, const T1& outsider, const T2s&... tables)
 {
-  if constexpr (framework::is_specialization_v<BP, framework::BinningPolicy> || framework::is_specialization_v<BP, framework::NoBinningPolicy>) {
-    if constexpr (isSameType<T2s...>()) {
-      return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2s...>>(CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2s...>(binningPolicy, categoryNeighbours, outsider, tables...));
-    } else {
-      return CombinationsGenerator<CombinationsBlockUpperIndexPolicy<BP, T1, T2s...>>(CombinationsBlockUpperIndexPolicy<BP, T1, T2s...>(binningPolicy, categoryNeighbours, outsider, tables...));
-    }
+  if constexpr (isSameType<T2s...>()) {
+    return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2s...>>(CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, T2s...>(binningPolicy, categoryNeighbours, outsider, tables...));
   } else {
-    if constexpr (isSameType<T2s...>()) {
-      return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<std::string, T1, T2s...>>(CombinationsBlockStrictlyUpperSameIndexPolicy<std::string, T1, T2s...>(std::string(binningPolicy), categoryNeighbours, outsider, tables...));
-    } else {
-      return CombinationsGenerator<CombinationsBlockUpperIndexPolicy<std::string, T1, T2s...>>(CombinationsBlockUpperIndexPolicy<std::string, T1, T2s...>(std::string(binningPolicy), categoryNeighbours, outsider, tables...));
-    }
+    return CombinationsGenerator<CombinationsBlockUpperIndexPolicy<BP, T1, T2s...>>(CombinationsBlockUpperIndexPolicy<BP, T1, T2s...>(binningPolicy, categoryNeighbours, outsider, tables...));
   }
 }
 
 template <typename BP, typename T1, typename... T2s>
 auto combinations(const BP& binningPolicy, int categoryNeighbours, const T1& outsider, const o2::framework::expressions::Filter& filter, const T2s&... tables)
 {
-  if constexpr (framework::is_specialization_v<BP, framework::BinningPolicy> || framework::is_specialization_v<BP, framework::NoBinningPolicy>) {
-    if constexpr (isSameType<T2s...>()) {
-      return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, Filtered<T2s>...>>(CombinationsBlockStrictlyUpperSameIndexPolicy(binningPolicy, categoryNeighbours, outsider, tables.select(filter)...));
-    } else {
-      return CombinationsGenerator<CombinationsBlockUpperIndexPolicy<BP, T1, Filtered<T2s>...>>(CombinationsBlockUpperIndexPolicy(binningPolicy, categoryNeighbours, outsider, tables.select(filter)...));
-    }
+  if constexpr (isSameType<T2s...>()) {
+    return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, Filtered<T2s>...>>(CombinationsBlockStrictlyUpperSameIndexPolicy(binningPolicy, categoryNeighbours, outsider, tables.select(filter)...));
   } else {
-    if constexpr (isSameType<T2s...>()) {
-      return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<std::string, T1, Filtered<T2s>...>>(CombinationsBlockStrictlyUpperSameIndexPolicy(std::string(binningPolicy), categoryNeighbours, outsider, tables.select(filter)...));
-    } else {
-      return CombinationsGenerator<CombinationsBlockUpperIndexPolicy<std::string, T1, Filtered<T2s>...>>(CombinationsBlockUpperIndexPolicy(std::string(binningPolicy), categoryNeighbours, outsider, tables.select(filter)...));
-    }
+    return CombinationsGenerator<CombinationsBlockUpperIndexPolicy<BP, T1, Filtered<T2s>...>>(CombinationsBlockUpperIndexPolicy(binningPolicy, categoryNeighbours, outsider, tables.select(filter)...));
   }
 }
 
