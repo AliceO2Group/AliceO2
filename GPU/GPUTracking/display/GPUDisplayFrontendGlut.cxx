@@ -42,68 +42,81 @@ void GPUDisplayFrontendGlut::glutLoopFunc()
 int GPUDisplayFrontendGlut::GetKey(int key)
 {
   if (key == GLUT_KEY_UP) {
-    return (KEY_UP);
+    return KEY_UP;
   }
   if (key == GLUT_KEY_DOWN) {
-    return (KEY_DOWN);
+    return KEY_DOWN;
   }
   if (key == GLUT_KEY_LEFT) {
-    return (KEY_LEFT);
+    return KEY_LEFT;
   }
   if (key == GLUT_KEY_RIGHT) {
-    return (KEY_RIGHT);
+    return KEY_RIGHT;
   }
   if (key == GLUT_KEY_PAGE_UP) {
-    return (KEY_PAGEUP);
+    return KEY_PAGEUP;
   }
   if (key == GLUT_KEY_PAGE_DOWN) {
-    return (KEY_PAGEDOWN);
+    return KEY_PAGEDOWN;
   }
   if (key == GLUT_KEY_HOME) {
-    return (KEY_HOME);
+    return KEY_HOME;
   }
   if (key == GLUT_KEY_END) {
-    return (KEY_END);
+    return KEY_END;
   }
   if (key == GLUT_KEY_INSERT) {
-    return (KEY_INSERT);
+    return KEY_INSERT;
   }
   if (key == GLUT_KEY_F1) {
-    return (KEY_F1);
+    return KEY_F1;
   }
   if (key == GLUT_KEY_F2) {
-    return (KEY_F2);
+    return KEY_F2;
   }
   if (key == GLUT_KEY_F3) {
-    return (KEY_F3);
+    return KEY_F3;
   }
   if (key == GLUT_KEY_F4) {
-    return (KEY_F4);
+    return KEY_F4;
   }
   if (key == GLUT_KEY_F5) {
-    return (KEY_F5);
+    return KEY_F5;
   }
   if (key == GLUT_KEY_F6) {
-    return (KEY_F6);
+    return KEY_F6;
   }
   if (key == GLUT_KEY_F7) {
-    return (KEY_F7);
+    return KEY_F7;
   }
   if (key == GLUT_KEY_F8) {
-    return (KEY_F8);
+    return KEY_F8;
   }
   if (key == GLUT_KEY_F9) {
-    return (KEY_F9);
+    return KEY_F9;
   }
   if (key == GLUT_KEY_F10) {
-    return (KEY_F10);
+    return KEY_F10;
   }
   if (key == GLUT_KEY_F11) {
-    return (KEY_F11);
+    return KEY_F11;
   }
   if (key == GLUT_KEY_F12) {
-    return (KEY_F12);
+    return KEY_F12;
   }
+  if (key == 112 || key == 113) {
+    return KEY_SHIFT;
+  }
+  if (key == 114) {
+    return KEY_CTRL;
+  }
+  if (key == 115) {
+    return KEY_RCTRL;
+  }
+  if (key == 116) {
+    return KEY_ALT;
+  }
+
   return (0);
 }
 
@@ -237,8 +250,6 @@ int GPUDisplayFrontendGlut::FrontendMain()
   glutMouseWheelFunc(mMouseWheelFunc);
   ToggleMaximized(true);
 
-  ExitDisplay();
-
   pthread_mutex_lock(&mSemLockExit);
   mGlutRunning = true;
   pthread_mutex_unlock(&mSemLockExit);
@@ -248,6 +259,7 @@ int GPUDisplayFrontendGlut::FrontendMain()
   mGlutRunning = false;
   pthread_mutex_unlock(&mSemLockExit);
 
+  ExitDisplay();
   return 0;
 }
 
