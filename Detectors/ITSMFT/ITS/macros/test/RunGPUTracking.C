@@ -26,6 +26,8 @@
 #include "ITStracking/Vertexer.h"
 #include "MathUtils/Utils.h"
 #include "DetectorsBase/Propagator.h"
+#include "CCDB/BasicCCDBManager.h"
+#include "CCDB/CCDBTimeStampUtils.h"
 
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -38,9 +40,9 @@ void RunGPUTracking(bool useLUT = true,
                     std::string path = "./",
                     std::string outputfile = "o2trac_its.root",
                     std::string inputClustersITS = "o2clus_its.root",
-                    std::string dictfile = "",
                     std::string matLUTFile = "matbud.root",
-                    std::string inputGRP = "o2sim_grp.root")
+                    std::string inputGRP = "o2sim_grp.root",
+                    long timestamp = 0)
 {
   o2::its::ROframe event(0, 7);
 
@@ -81,6 +83,11 @@ void RunGPUTracking(bool useLUT = true,
   gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
                                                  o2::math_utils::TransformType::L2G)); // request cached transforms
 
+  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+  mgr.setURL("http://alice-ccdb.cern.ch");
+  mgr.setTimestamp(timestamp ? timestamp : o2::ccdb::getCurrentTimestamp());
+  const o2::itsmft::TopologyDictionary* dict = mgr.get<o2::itsmft::TopologyDictionary>("ITS/Calib/ClusterDictionary");
+
   //>>>---------- attach input data --------------->>>
   TChain itsClusters("o2sim");
   itsClusters.AddFile((path + inputClustersITS).data());
@@ -118,17 +125,6 @@ void RunGPUTracking(bool useLUT = true,
   itsClusters.SetBranchAddress("ITSClustersROF", &rofs);
   itsClusters.GetEntry(0);
 
-  o2::itsmft::TopologyDictionary dict;
-  if (dictfile.empty()) {
-    dictfile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "");
-  }
-  std::ifstream file(dictfile.c_str());
-  if (file.good()) {
-    LOG(info) << "Running with dictionary: " << dictfile.c_str();
-    dict.readFromFile(dictfile);
-  } else {
-    LOG(info) << "Running without dictionary !";
-  }
   //-------------------------------------------------
   std::unique_ptr<o2::gpu::GPUReconstruction> recCUDA(o2::gpu::GPUReconstruction::CreateInstance(o2::gpu::GPUDataTypes::DeviceType::CUDA, true));
   auto* chainITSCUDA = recCUDA->AddChain<o2::gpu::GPUChainITS>();
