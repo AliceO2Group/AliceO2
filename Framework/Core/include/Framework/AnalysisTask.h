@@ -110,7 +110,7 @@ struct AnalysisDataProcessorBuilder {
       auto inputSources = getInputMetadata<std::decay_t<Arg>>();
       inputMetadata.insert(inputMetadata.end(), inputSources.begin(), inputSources.end());
     }
-    auto newInput = InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), Lifetime::Timeframe, inputMetadata};
+    auto newInput = InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), metadata::version(), Lifetime::Timeframe, inputMetadata};
     DataSpecUtils::updateInputList(inputs, std::move(newInput));
   }
 

@@ -274,7 +274,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(TPCFractionSharedCls, tpcFractionSharedCls, //! Fract
                            });
 } // namespace track
 
-DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK", //! On disk version of the Track table
+DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK", 0, //! On disk version of the Track table
                        o2::soa::Index<>, track::CollisionId, track::TrackType,
                        track::X, track::Alpha,
                        track::Y, track::Z, track::Snp, track::Tgl,
@@ -291,7 +291,7 @@ DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACK", //! Basic track proper
                            aod::track::Eta,
                            aod::track::Phi);
 
-DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACKCOV", //! On disk version of the TracksCov table
+DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACKCOV", 0, //! On disk version of the TracksCov table
                        track::SigmaY, track::SigmaZ, track::SigmaSnp, track::SigmaTgl, track::Sigma1Pt,
                        track::RhoZY, track::RhoSnpY, track::RhoSnpZ, track::RhoTglY, track::RhoTglZ,
                        track::RhoTglSnp, track::Rho1PtY, track::Rho1PtZ, track::Rho1PtSnp, track::Rho1PtTgl);
@@ -313,7 +313,7 @@ DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACKCOV", //! Track cov
                            aod::track::C1PtTgl,
                            aod::track::C1Pt21Pt2);
 
-DECLARE_SOA_TABLE_FULL(StoredTracksExtra, "TracksExtra", "AOD", "TRACKEXTRA", //! On disk version of TracksExtra
+DECLARE_SOA_TABLE_FULL(StoredTracksExtra, "TracksExtra", "AOD", "TRACKEXTRA", 0, //! On disk version of TracksExtra
                        track::TPCInnerParam, track::Flags, track::ITSClusterMap,
                        track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows,
                        track::TPCNClsShared, track::TRDPattern, track::ITSChi2NCl,
@@ -461,7 +461,7 @@ DECLARE_SOA_EXPRESSION_COLUMN(C1Pt21Pt2, c1Pt21Pt2, float, //!
 } // namespace fwdtrack
 
 // MFTStandalone tracks
-DECLARE_SOA_TABLE_FULL(StoredMFTTracks, "MFTTracks", "AOD", "MFTTRACK", //!
+DECLARE_SOA_TABLE_FULL(StoredMFTTracks, "MFTTracks", "AOD", "MFTTRACK", 0, //!
                        o2::soa::Index<>, fwdtrack::CollisionId,
                        fwdtrack::X, fwdtrack::Y, fwdtrack::Z, fwdtrack::Phi, fwdtrack::Tgl,
                        fwdtrack::Signed1Pt, fwdtrack::NClusters,
@@ -484,7 +484,7 @@ DECLARE_SOA_INDEX_COLUMN(MFTTrack, matchMFTTrack); //! ID of matching MFT track 
 }
 
 // Tracks including MCH and/or MCH (plus optionally MFT)          //!
-DECLARE_SOA_TABLE_FULL(StoredFwdTracks, "FwdTracks", "AOD", "FWDTRACK",
+DECLARE_SOA_TABLE_FULL(StoredFwdTracks, "FwdTracks", "AOD", "FWDTRACK", 0,
                        o2::soa::Index<>, fwdtrack::CollisionId, fwdtrack::TrackType,
                        fwdtrack::X, fwdtrack::Y, fwdtrack::Z, fwdtrack::Phi, fwdtrack::Tgl,
                        fwdtrack::Signed1Pt, fwdtrack::NClusters, fwdtrack::PDca, fwdtrack::RAtAbsorberEnd,
@@ -502,7 +502,7 @@ DECLARE_SOA_EXTENDED_TABLE(FwdTracks, StoredFwdTracks, "FWDTRACK", //!
                            aod::fwdtrack::Pt,
                            aod::fwdtrack::P);
 
-DECLARE_SOA_TABLE_FULL(StoredFwdTracksCov, "FwdTracksCov", "AOD", "FWDTRACKCOV", //!
+DECLARE_SOA_TABLE_FULL(StoredFwdTracksCov, "FwdTracksCov", "AOD", "FWDTRACKCOV", 0, //!
                        fwdtrack::SigmaX, fwdtrack::SigmaY, fwdtrack::SigmaPhi, fwdtrack::SigmaTgl, fwdtrack::Sigma1Pt,
                        fwdtrack::RhoXY, fwdtrack::RhoPhiY, fwdtrack::RhoPhiX, fwdtrack::RhoTglX, fwdtrack::RhoTglY,
                        fwdtrack::RhoTglPhi, fwdtrack::Rho1PtX, fwdtrack::Rho1PtY, fwdtrack::Rho1PtPhi, fwdtrack::Rho1PtTgl);
@@ -868,7 +868,7 @@ DECLARE_SOA_EXPRESSION_COLUMN(Y, y, float, //! Particle rapidity, conditionally 
                                                  (aod::mcparticle::e - aod::mcparticle::pz))));
 } // namespace mcparticle
 
-DECLARE_SOA_TABLE_FULL(StoredMcParticles_000, "McParticles", "AOD", "MCPARTICLE", //! MC particle table, version 000
+DECLARE_SOA_TABLE_FULL(StoredMcParticles_000, "McParticles", "AOD", "MCPARTICLE", 0, //! MC particle table, version 000
                        o2::soa::Index<>, mcparticle::McCollisionId,
                        mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
                        mcparticle::Mother0Id, mcparticle::Mother1Id,
@@ -881,7 +881,7 @@ DECLARE_SOA_TABLE_FULL(StoredMcParticles_000, "McParticles", "AOD", "MCPARTICLE"
                        mcparticle::GetProcess<mcparticle::Flags, mcparticle::StatusCode>,
                        mcparticle::IsPhysicalPrimary<mcparticle::Flags>);
 
-DECLARE_SOA_TABLE_FULL(StoredMcParticles_001, "McParticles_001", "AOD", "MCPARTICLE_001", //! MC particle table, version 001
+DECLARE_SOA_TABLE_FULL(StoredMcParticles_001, "McParticles_001", "AOD", "MCPARTICLE_001", 1, //! MC particle table, version 001
                        o2::soa::Index<>, mcparticle::McCollisionId,
                        mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
                        mcparticle::MothersIds, mcparticle::DaughtersIdSlice, mcparticle::Weight,

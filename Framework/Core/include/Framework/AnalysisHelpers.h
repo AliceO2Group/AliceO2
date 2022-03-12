@@ -144,7 +144,8 @@ struct TableTransform {
     return InputSpec{
       o_metadata::tableLabel(),
       header::DataOrigin{o_metadata::origin()},
-      header::DataDescription{o_metadata::description()}};
+      header::DataDescription{o_metadata::description()},
+      o_metadata::version()};
   }
 
   template <typename... Os>
