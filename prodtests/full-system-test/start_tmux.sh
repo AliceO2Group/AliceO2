@@ -5,6 +5,8 @@ if [ "0$1" != "0dd" ] && [ "0$1" != "0rr" ]; then
   exit 1
 fi
 
+[[ -z "${WORKFLOW_PARAMETERS+x}" ]] && export WORKFLOW_PARAMETERS="CALIB"
+
 MYDIR="$(dirname $(realpath $0))"
 source $MYDIR/setenv.sh
 
@@ -21,6 +23,9 @@ export SYNCMODE=1
 export SHMTHROW=0
 export SEVERITY=error
 export IS_SIMULATED_DATA=1
+export ALL_EXTRA_CONFIG="$ALL_EXTRA_CONFIG;NameConf.mCCDBServer=http://o2-ccdb.internal;"
+export DPL_CONDITION_BACKEND="http://o2-ccdb.internal"
+export DATADIST_NEW_DPL_CHAN=1
 
 if [ "0$FST_TMUX_MEM_OVERRIDE" != "0" ]; then
   export SHMSIZE=$(( $FST_TMUX_MEM_OVERRIDE << 30 ))
