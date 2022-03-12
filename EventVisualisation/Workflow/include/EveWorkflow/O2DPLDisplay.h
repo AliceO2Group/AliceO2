@@ -59,8 +59,11 @@ class O2DPLDisplaySpec : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
+  void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
+
   bool mUseMC = false;
   bool mEveHostNameMatch;                 // empty or correct hostname
   std::string mJsonPath;                  // folder where files are stored
