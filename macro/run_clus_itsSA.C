@@ -35,11 +35,6 @@ void run_clus_itsSA(std::string inputfile = "rawits.bin", // input file name
   FairLogger* logger = FairLogger::GetLogger();
   logger->SetLogVerbosityLevel("LOW");
   logger->SetLogScreenLevel("INFO");
-  
-  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-  mgr.setURL("http://alice-ccdb.cern.ch");
-  mgr.setTimestamp(timestamp ? timestamp : o2::ccdb::getCurrentTimestamp());
-  const o2::itsmft::TopologyDictionary* dict = mgr.get<o2::itsmft::TopologyDictionary>("ITS/Calib/ClusterDictionary");
 
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL("http://alice-ccdb.cern.ch");
