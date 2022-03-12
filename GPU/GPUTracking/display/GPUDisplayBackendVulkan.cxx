@@ -21,12 +21,9 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-extern "C" char _binary_shaders_display_shaders_vertex_vert_spv_start[];
-extern "C" char _binary_shaders_display_shaders_vertex_vert_spv_end[];
-static size_t _binary_shaders_display_shaders_vertex_vert_spv_len = _binary_shaders_display_shaders_vertex_vert_spv_end - _binary_shaders_display_shaders_vertex_vert_spv_start;
-extern "C" char _binary_shaders_display_shaders_fragment_frag_spv_start[];
-extern "C" char _binary_shaders_display_shaders_fragment_frag_spv_end[];
-static size_t _binary_shaders_display_shaders_fragment_frag_spv_len = _binary_shaders_display_shaders_fragment_frag_spv_end - _binary_shaders_display_shaders_fragment_frag_spv_start;
+#include "utils/qGetLdBinarySymbols.h"
+QGET_LD_BINARY_SYMBOLS(shaders_display_shaders_vertex_vert_spv);
+QGET_LD_BINARY_SYMBOLS(shaders_display_shaders_fragment_frag_spv);
 
 namespace GPUCA_NAMESPACE::gpu
 {

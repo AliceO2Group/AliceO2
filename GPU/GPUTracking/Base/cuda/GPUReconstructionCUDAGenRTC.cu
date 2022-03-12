@@ -29,12 +29,9 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 #ifndef GPUCA_ALIROOT_LIB
-extern "C" char _binary_GPUReconstructionCUDArtc_src_start[];
-extern "C" char _binary_GPUReconstructionCUDArtc_src_end[];
-size_t _binary_GPUReconstructionCUDArtc_src_len = _binary_GPUReconstructionCUDArtc_src_end - _binary_GPUReconstructionCUDArtc_src_start;
-extern "C" char _binary_GPUReconstructionCUDArtc_command_start[];
-extern "C" char _binary_GPUReconstructionCUDArtc_command_end[];
-size_t _binary_GPUReconstructionCUDArtc_command_len = _binary_GPUReconstructionCUDArtc_command_end - _binary_GPUReconstructionCUDArtc_command_start;
+#include "utils/qGetLdBinarySymbols.h"
+QGET_LD_BINARY_SYMBOLS(GPUReconstructionCUDArtc_src);
+QGET_LD_BINARY_SYMBOLS(GPUReconstructionCUDArtc_command);
 #endif
 
 int GPUReconstructionCUDA::genRTC()
