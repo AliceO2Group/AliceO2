@@ -26,19 +26,15 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include <typeinfo>
 #include <cstdlib>
 
+#include "utils/qGetLdBinarySymbols.h"
+QGET_LD_BINARY_SYMBOLS(GPUReconstructionOCL2Code_src);
 #ifdef OPENCL2_ENABLED_AMD
-extern "C" char _binary_GPUReconstructionOCL2Code_amd_start[];
-extern "C" char _binary_GPUReconstructionOCL2Code_amd_end[];
-size_t _binary_GPUReconstructionOCL2Code_amd_len = _binary_GPUReconstructionOCL2Code_amd_end - _binary_GPUReconstructionOCL2Code_amd_start;
+QGET_LD_BINARY_SYMBOLS(GPUReconstructionOCL2Code_amd);
+binary_GPUReconstructionOCL2Code_amd_end - _binary_GPUReconstructionOCL2Code_amd_start;
 #endif
 #ifdef OPENCL2_ENABLED_SPIRV
-extern "C" char _binary_GPUReconstructionOCL2Code_spirv_start[];
-extern "C" char _binary_GPUReconstructionOCL2Code_spirv_end[];
-size_t _binary_GPUReconstructionOCL2Code_spirv_len = _binary_GPUReconstructionOCL2Code_spirv_end - _binary_GPUReconstructionOCL2Code_spirv_start;
+QGET_LD_BINARY_SYMBOLS(GPUReconstructionOCL2Code_spirv);
 #endif
-extern "C" char _binary_GPUReconstructionOCL2Code_src_start[];
-extern "C" char _binary_GPUReconstructionOCL2Code_src_end[];
-size_t _binary_GPUReconstructionOCL2Code_src_len = _binary_GPUReconstructionOCL2Code_src_end - _binary_GPUReconstructionOCL2Code_src_start;
 
 GPUReconstruction* GPUReconstruction_Create_OCL2(const GPUSettingsDeviceBackend& cfg) { return new GPUReconstructionOCL2(cfg); }
 
