@@ -16,11 +16,13 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataTakingContext.h"
 #include "Framework/RawDeviceService.h"
+#include "Framework/DataSpecUtils.h"
 #include "CCDB/CcdbApi.h"
 #include "CommonConstants/LHCConstants.h"
 #include <typeinfo>
 #include <TError.h>
 #include <TMemFile.h>
+#include <functional>
 
 namespace o2::framework
 {
@@ -161,7 +163,6 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
 {
   // For Giulio: the dtc.orbitResetTime is wrong, it is assigned from the dph->creation, why?
   std::string ccdbMetadataPrefix = "ccdb-metadata-";
-
   for (auto& route : helper->routes) {
     LOGP(info, "Fetching object for route {}", route.matcher);
 
@@ -226,6 +227,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
 {
   return adaptStateful([](ConfigParamRegistry const& options, DeviceSpec const& spec) {
       std::shared_ptr<CCDBFetcherHelper> helper = std::make_shared<CCDBFetcherHelper>();
+      std::unordered_map<std::string, bool> accountedSpecs;
       auto backend = options.get<std::string>("condition-backend");
       LOGP(info, "CCDB Backend at: {}", backend);
       const auto& defHost = options.get<std::string>("condition-backend");
@@ -252,6 +254,11 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         if (route.matcher.lifetime != Lifetime::Condition) {
           continue;
         }
+        auto specStr = DataSpecUtils::describe(route.matcher);
+        if (accountedSpecs.find(specStr) != accountedSpecs.end()) {
+          continue;
+        }
+        accountedSpecs[specStr] = true;
         helper->routes.push_back(route);
         LOGP(info, "The following route is a condition {}", route.matcher);
         for (auto& metadata : route.matcher.metadata) {
