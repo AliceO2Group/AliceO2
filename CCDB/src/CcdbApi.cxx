@@ -953,8 +953,12 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
   // many isolated processes, all querying the CCDB (for potentially the same objects and same timestamp).
   // In addition, we can monitor exactly which objects are fetched and what is their content.
   // One can also distribute so obtained caches to sites without network access.
-  auto cachedir = getenv("ALICEO2_CCDB_LOCALCACHE");
+  const char* cachedir = getenv("ALICEO2_CCDB_LOCALCACHE");
+  const char* cwd = ".";
   if (cachedir) {
+    if (cachedir[0] == 0) {
+      cachedir = cwd;
+    }
     // protect this sensitive section by a multi-process named semaphore
     boost::interprocess::named_semaphore* sem = nullptr;
     std::hash<std::string> hasher;
@@ -1418,8 +1422,12 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
   // many isolated processes, all querying the CCDB (for potentially the same objects and same timestamp).
   // In addition, we can monitor exactly which objects are fetched and what is their content.
   // One can also distribute so obtained caches to sites without network access.
-  auto cachedir = getenv("ALICEO2_CCDB_LOCALCACHE");
+  const char* cachedir = getenv("ALICEO2_CCDB_LOCALCACHE");
+  const char* cwd = ".";
   if (cachedir) {
+    if (cachedir[0] == 0) {
+      cachedir = cwd;
+    }
     // protect this sensitive section by a multi-process named semaphore
     boost::interprocess::named_semaphore* sem = nullptr;
     std::hash<std::string> hasher;
@@ -1647,6 +1655,9 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, const std::string& p
     if (storedmeta) {
       *localHeaders = *storedmeta; // do a simple deep copy
       delete storedmeta;
+    }
+    if (isSnapshotMode()) { // generate dummy ETag to profit from the caching
+      (*localHeaders)["ETag"] = path;
     }
   }
   return;
