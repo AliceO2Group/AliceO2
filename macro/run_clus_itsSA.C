@@ -28,7 +28,7 @@ void run_clus_itsSA(std::string inputfile = "rawits.bin", // input file name
                     std::string outputfile = "clr.root",  // output file name (root or raw)
                     bool raw = true,                      // flag if this is raw data
                     int strobeBC = -1,                    // strobe length in BC for masking, if <0, get automatically (assume cont. readout)
-		    long timestamp = 0,
+                    long timestamp = 0,
                     bool withPatterns = true)
 {
   // Initialize logger
@@ -36,6 +36,11 @@ void run_clus_itsSA(std::string inputfile = "rawits.bin", // input file name
   logger->SetLogVerbosityLevel("LOW");
   logger->SetLogScreenLevel("INFO");
   
+  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+  mgr.setURL("http://alice-ccdb.cern.ch");
+  mgr.setTimestamp(timestamp ? timestamp : o2::ccdb::getCurrentTimestamp());
+  const o2::itsmft::TopologyDictionary* dict = mgr.get<o2::itsmft::TopologyDictionary>("ITS/Calib/ClusterDictionary");
+
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL("http://alice-ccdb.cern.ch");
   mgr.setTimestamp(timestamp ? timestamp : o2::ccdb::getCurrentTimestamp());

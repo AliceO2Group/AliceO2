@@ -66,7 +66,7 @@ void run_trac_ca_its(bool cosmics = false,
                      std::string inputClustersITS = "o2clus_its.root",
                      std::string matLUTFile = "matbud.root",
                      std::string inputGRP = "o2sim_grp.root",
-		     long timestamp = 0)
+                     long timestamp = 0)
 {
 
   gSystem->Load("libO2ITStracking");
@@ -108,7 +108,7 @@ void run_trac_ca_its(bool cosmics = false,
   mgr.setURL("http://alice-ccdb.cern.ch");
   mgr.setTimestamp(timestamp ? timestamp : o2::ccdb::getCurrentTimestamp());
   const o2::itsmft::TopologyDictionary* dict = mgr.get<o2::itsmft::TopologyDictionary>("ITS/Calib/ClusterDictionary");
-  
+
   //>>>---------- attach input data --------------->>>
   TChain itsClusters("o2sim");
   itsClusters.AddFile((path + inputClustersITS).data());
@@ -146,8 +146,7 @@ void run_trac_ca_its(bool cosmics = false,
   itsClusters.SetBranchAddress("ITSClustersROF", &rofs);
 
   itsClusters.GetEntry(0);
-  
-    
+
   std::vector<o2::its::TrackITSExt> tracks;
   // create/attach output tree
   TFile outFile((path + outputfile).data(), "recreate");

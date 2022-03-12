@@ -11,9 +11,8 @@
 
 #include <FairEventHeader.h>
 #include <FairGeoParSet.h>
-#include <FairLogger.h>
 #include <FairMCEventHeader.h>
-
+#include "Framework/Logger.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -47,12 +46,8 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
                   std::string inputClustersITS = "o2clus_its.root",
                   std::string inputGeom = "",
                   std::string inputGRP = "o2sim_grp.root",
-		  long timestamp = 0)
+                  long timestamp = 0)
 {
-
-  FairLogger* logger = FairLogger::GetLogger();
-  logger->SetLogVerbosityLevel("LOW");
-  logger->SetLogScreenLevel("INFO");
 
   // Setup timer
   TStopwatch timer;
