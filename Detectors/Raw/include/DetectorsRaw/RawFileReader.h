@@ -51,6 +51,7 @@ struct ReaderInp {
   bool cache = false;
   bool autodetectTF0 = false;
   bool preferCalcTF = false;
+  bool sup0xccdb = false;
 };
 
 class RawFileReader
