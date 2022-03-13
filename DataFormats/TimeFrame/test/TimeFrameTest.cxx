@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(MessageSizePair_test)
   MessageSizePair mes(S, buffer);
 
   // assert some properties on MessageSizePair
-  BOOST_CHECK(mes.size == S);
+  BOOST_CHECK(mes.size == (Int_t)S); // Force to use Int_t due to the requirement of ROOT
   BOOST_CHECK(mes.buffer = buffer);
 
   // check ROOT IO of MessageSizePair
@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(MessageSizePair_test)
     infile->Close();
     BOOST_CHECK(ptr != nullptr);
   }
-  BOOST_CHECK(ptr->size == S);
+  BOOST_CHECK(ptr->size == (Int_t)S); // Force to use Int_t due to the requirement of ROOT
   // test first and last characters in buffer to see if correctly streamed
   BOOST_CHECK(ptr->buffer[0] == buffer[0]);
   BOOST_CHECK(ptr->buffer[S - 1] == buffer[S - 1]);
@@ -106,8 +106,8 @@ BOOST_AUTO_TEST_CASE(TimeFrame_test)
 
   // test access to data
   BOOST_CHECK(ptr->GetNumParts() == 2);
-  for (int i = 0; i < ptr->GetNumParts(); ++i) {
-    BOOST_CHECK(ptr->GetPart(i).size == messages[i].GetSize());
+  for (size_t i = 0; i < ptr->GetNumParts(); ++i) {
+    BOOST_CHECK(ptr->GetPart(i).size == (Int_t)messages[i].GetSize()); // Force to use Int_t due to the requirement of ROOT
   }
 }
 
