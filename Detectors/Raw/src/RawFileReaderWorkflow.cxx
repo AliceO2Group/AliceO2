@@ -69,6 +69,7 @@ class RawReaderSpecs : public o2f::Task
   uint32_t mDelayUSec = 0;        // Delay in microseconds between TFs
   uint32_t mMinTFID = 0;          // 1st TF to extract
   uint32_t mMaxTFID = 0xffffffff; // last TF to extrct
+  int mRunNumber = 0;             // run number to pass
   int mVerbosity = 0;
   bool mPreferCalcTF = false;
   size_t mLoopsDone = 0;
@@ -89,7 +90,7 @@ class RawReaderSpecs : public o2f::Task
 
 //___________________________________________________________
 RawReaderSpecs::RawReaderSpecs(const ReaderInp& rinp)
-  : mLoop(rinp.loop < 0 ? INT_MAX : (rinp.loop < 1 ? 1 : rinp.loop)), mDelayUSec(rinp.delay_us), mMinTFID(rinp.minTF), mMaxTFID(rinp.maxTF), mPartPerSP(rinp.partPerSP), mSup0xccdb(rinp.sup0xccdb), mReader(std::make_unique<o2::raw::RawFileReader>(rinp.inifile, rinp.verbosity, rinp.bufferSize)), mRawChannelName(rinp.rawChannelConfig), mVerbosity(rinp.verbosity), mPreferCalcTF(rinp.preferCalcTF)
+  : mLoop(rinp.loop < 0 ? INT_MAX : (rinp.loop < 1 ? 1 : rinp.loop)), mDelayUSec(rinp.delay_us), mMinTFID(rinp.minTF), mMaxTFID(rinp.maxTF), mRunNumber(rinp.runNumber), mPartPerSP(rinp.partPerSP), mSup0xccdb(rinp.sup0xccdb), mReader(std::make_unique<o2::raw::RawFileReader>(rinp.inifile, rinp.verbosity, rinp.bufferSize)), mRawChannelName(rinp.rawChannelConfig), mVerbosity(rinp.verbosity), mPreferCalcTF(rinp.preferCalcTF)
 {
   mReader->setCheckErrors(rinp.errMap);
   mReader->setMaxTFToRead(rinp.maxTF);
@@ -266,6 +267,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
     hdrTmpl.payloadSerializationMethod = o2h::gSerializationMethodNone;
     hdrTmpl.splitPayloadParts = nParts;
     hdrTmpl.tfCounter = mTFCounter;
+    hdrTmpl.runNumber = mRunNumber;
     if (mVerbosity > 1) {
       LOG(info) << link.describe() << " will read " << nParts << " HBFs starting from block " << link.nextBlock2Read;
     }
@@ -303,11 +305,18 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
          mLoopsDone, link.origin.as<std::string>(), link.description.as<std::string>(), link.subspec);
   }
 
+  auto& timingInfo = ctx.services().get<TimingInfo>();
+  timingInfo.firstTFOrbit = firstOrbit;
+  timingInfo.creation = creationTime;
+  timingInfo.tfCounter = mTFCounter;
+  timingInfo.runNumber = mRunNumber;
+
   // send sTF acknowledge message
   unsigned stfSS[2] = {0, 0xccdb};
   for (int iss = 0; iss < (mSup0xccdb ? 1 : 2); iss++) {
     o2::header::STFHeader stfHeader{mTFCounter, firstOrbit, 0};
     o2::header::DataHeader stfDistDataHeader(o2::header::gDataDescriptionDISTSTF, o2::header::gDataOriginFLP, stfSS[iss], sizeof(o2::header::STFHeader), 0, 1);
+    stfDistDataHeader.runNumber = mRunNumber;
     stfDistDataHeader.payloadSerializationMethod = o2h::gSerializationMethodNone;
     stfDistDataHeader.firstTForbit = stfHeader.firstOrbit;
     stfDistDataHeader.tfCounter = mTFCounter;

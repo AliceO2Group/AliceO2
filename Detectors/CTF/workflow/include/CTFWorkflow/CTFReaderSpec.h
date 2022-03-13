@@ -31,6 +31,7 @@ struct CTFReaderInp {
   std::string remoteRegex{};
   std::vector<int> ctfIDs{};
   bool allowMissingDetectors = false;
+  bool sup0xccdb = false;
   int maxFileCache = 1;
   int64_t delay_us = 0;
   int maxLoops = 0;

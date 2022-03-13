@@ -149,6 +149,16 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
     LOGP(error, "Failed to find output channel for {}/{}/{} @ timeslice {}", h.dataOrigin.str, h.dataDescription.str, h.subSpecification, h.tfCounter);
     return std::string{};
   };
+  auto setTimingInfo = [&ctx](TFMap& msgMap) {
+    auto& timingInfo = ctx.services().get<TimingInfo>();
+    const auto* dataptr = (*msgMap.begin()->second.get())[0].GetData();
+    const auto* hd0 = o2h::get<o2h::DataHeader*>(dataptr);
+    const auto* dph = o2h::get<o2f::DataProcessingHeader*>(dataptr);
+    timingInfo.firstTFOrbit = hd0->firstTForbit;
+    timingInfo.creation = dph->creation;
+    timingInfo.tfCounter = hd0->tfCounter;
+    timingInfo.runNumber = hd0->runNumber;
+  };
 
   auto addMissingParts = [this, &findOutputChannel](TFMap& msgMap) {
     // at least the 1st header is guaranteed to be filled by the reader, use it for extra info
@@ -165,6 +175,7 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
       outHeader.payloadSerializationMethod = o2h::gSerializationMethodNone;
       outHeader.firstTForbit = hd0->firstTForbit;
       outHeader.tfCounter = hd0->tfCounter;
+      outHeader.runNumber = hd0->runNumber;
       const auto fmqChannel = findOutputChannel(outHeader);
       if (fmqChannel.empty()) { // no output channel
         continue;
@@ -196,6 +207,8 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
         LOG(error) << "Builder provided nullptr TF pointer";
         continue;
       }
+      setTimingInfo(*tfPtr.get());
+
       if (mInput.sendDummyForMissing) {
         for (auto& msgIt : *tfPtr.get()) { // complete with empty output for the specs which were requested but not seen in the data
           acknowledgeOutput(*msgIt.second.get());
@@ -311,7 +324,7 @@ void TFReaderSpec::TFBuilder()
           std::this_thread::sleep_for(sleepTime);
           continue;
         }
-        auto tf = reader.read(mDevice, mOutputRoutes, mInput.rawChannelConfig, mInput.verbosity);
+        auto tf = reader.read(mDevice, mOutputRoutes, mInput.rawChannelConfig, mInput.sup0xccdb, mInput.verbosity);
         if (tf) {
           mTFBuilderCounter++;
         }
@@ -387,7 +400,9 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
       }
     }
     spec.outputs.emplace_back(o2f::OutputSpec{{"stfDist"}, o2h::gDataOriginFLP, o2h::gDataDescriptionDISTSTF, 0});
-    spec.outputs.emplace_back(o2f::OutputSpec{{"stfDist"}, o2h::gDataOriginFLP, o2h::gDataDescriptionDISTSTF, 0xccdb});
+    if (!rinp.sup0xccdb) {
+      spec.outputs.emplace_back(o2f::OutputSpec{{"stfDistCCDB"}, o2h::gDataOriginFLP, o2h::gDataDescriptionDISTSTF, 0xccdb});
+    }
   } else {
     auto nameStart = rinp.rawChannelConfig.find("name=");
     if (nameStart == std::string::npos) {

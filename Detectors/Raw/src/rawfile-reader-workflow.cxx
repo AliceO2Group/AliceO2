@@ -28,6 +28,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"input-conf", VariantType::String, "", {"configuration file with input (obligatory)"}});
   options.push_back(ConfigParamSpec{"min-tf", VariantType::Int64, 0L, {"min TF ID to process"}});
   options.push_back(ConfigParamSpec{"max-tf", VariantType::Int64, 0xffffffffL, {"max TF ID to process"}});
+  options.push_back(ConfigParamSpec{"run-number", VariantType::Int, 0, {"impose run number"}});
   options.push_back(ConfigParamSpec{"loop", VariantType::Int, 1, {"loop N times (infinite for N<0)"}});
   options.push_back(ConfigParamSpec{"delay", VariantType::Float, 0.f, {"delay in seconds between consecutive TFs sending"}});
   options.push_back(ConfigParamSpec{"buffer-size", VariantType::Int64, 5 * 1024L, {"buffer size for files preprocessing"}});
@@ -62,6 +63,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   rinp.loop = configcontext.options().get<int>("loop");
   rinp.maxTF = uint32_t(configcontext.options().get<int64_t>("max-tf"));
   rinp.minTF = uint32_t(configcontext.options().get<int64_t>("min-tf"));
+  rinp.runNumber = configcontext.options().get<int>("run-number");
   rinp.bufferSize = uint64_t(configcontext.options().get<int64_t>("buffer-size"));
   rinp.spSize = uint64_t(configcontext.options().get<int64_t>("super-page-size"));
   rinp.partPerSP = configcontext.options().get<bool>("part-per-sp");

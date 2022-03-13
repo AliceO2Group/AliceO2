@@ -232,6 +232,12 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
 
   LOG(info) << ctfHeader;
 
+  auto& timingInfo = pc.services().get<TimingInfo>();
+  timingInfo.firstTFOrbit = ctfHeader.firstTForbit;
+  timingInfo.creation = ctfHeader.creationTime;
+  timingInfo.tfCounter = mCTFCounter;
+  timingInfo.runNumber = ctfHeader.run;
+
   // send CTF Header
   pc.outputs().snapshot({"header"}, ctfHeader);
   setMessageHeader(pc, ctfHeader, "header");
@@ -254,7 +260,7 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   processDetector<o2::ctp::CTF>(DetID::CTP, ctfHeader, pc);
 
   // send sTF acknowledge message
-  {
+  if (!mInput.sup0xccdb) {
     auto& stfDist = pc.outputs().make<o2::header::STFHeader>(OutputRef{"STFDist", 0xccdb});
     stfDist.id = uint64_t(mCurrTreeEntry);
     stfDist.firstOrbit = ctfHeader.firstTForbit;
@@ -385,7 +391,9 @@ DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
       outputs.emplace_back(OutputLabel{det.getName()}, det.getDataOrigin(), "CTFDATA", 0, Lifetime::Timeframe);
     }
   }
-  outputs.emplace_back(OutputSpec{{"STFDist"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0xccdb});
+  if (!inp.sup0xccdb) {
+    outputs.emplace_back(OutputSpec{{"STFDist"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0xccdb});
+  }
 
   return DataProcessorSpec{
     "ctf-reader",
