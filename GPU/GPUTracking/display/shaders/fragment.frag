@@ -1,8 +1,8 @@
 #version 460 core
 layout (location = 0) out vec4 outColor;
-layout (push_constant) uniform UniformBufferObject { vec4 color; } ubo;
+layout (push_constant) uniform pushColor { vec4 color; } pc;
 
 void main()
 {
-    outColor = vec4(ubo.color.x, ubo.color.y, ubo.color.z, 1.f);
+    outColor = vec4(pc.color.x, pc.color.y, pc.color.z, 1.f);
 }
