@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   sw.Start();
   o2::InteractionRecord ir(0, 0);
 
-  constexpr int MAXChan = Constants::nChannelsPerPm * Constants::nPms; // RSFIXME is this correct ?
+  constexpr int MAXChan = Constants::nChannelsPerPm * Constants::nPms;
   for (int idig = 0; idig < 1000; idig++) {
     ir += 1 + gRandom->Integer(200);
     uint8_t ich = gRandom->Poisson(10);
