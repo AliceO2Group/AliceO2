@@ -125,8 +125,9 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   VkPresentModeKHR mPresentMode;
   VkExtent2D mExtent;
   VkSwapchainKHR mSwapChain;
-  std::vector<VkImage> mImages;
-  std::vector<VkImageView> mImageViews;
+  std::vector<VkImage> mSwapChainImages;
+  std::vector<VkImageView> mSwapChainImageViews;
+  std::vector<VulkanImage> mMSAAImages;
   std::unordered_map<std::string, VkShaderModule> mShaders;
   VkPipelineLayout mPipelineLayout;
   VkPipelineLayout mPipelineLayoutText;
@@ -134,11 +135,12 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   VkRenderPass mRenderPassText;
   std::vector<VkPipeline> mPipelines;
   std::vector<VkFramebuffer> mFramebuffers;
+  std::vector<VkFramebuffer> mFramebuffersText;
   VkCommandPool mCommandPool;
   unsigned int mImageCount = 0;
   unsigned int mFramesInFlight = 0;
   int mCurrentFrame = 0;
-  uint32_t mImageIndex;
+  uint32_t mImageIndex = 0;
   std::vector<VkCommandBuffer> mCommandBuffers;
   std::vector<VkCommandBuffer> mCommandBuffersText;
   std::vector<bool> mCommandBufferUpToDate;
@@ -166,6 +168,9 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   VkSampler mTextSampler;
   vecpod<float> mFontVertexBufferHost;
   bool hasDrawnText = false;
+
+  VkSampleCountFlagBits mMSAASampleCount = VK_SAMPLE_COUNT_1_BIT;
+  unsigned int mMaxMSAAsupported = 0;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

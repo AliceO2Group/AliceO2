@@ -473,6 +473,10 @@ void GPUDisplay::HandleKey(unsigned char key)
   }
 
   if (oldCfgR.drawQualityMSAA != mCfgR.drawQualityMSAA || oldCfgR.drawQualityDownsampleFSAA != mCfgR.drawQualityDownsampleFSAA) {
+    mUpdateRenderPipeline = true;
+  }
+
+  if (oldCfgR.drawQualityMSAA != mCfgR.drawQualityMSAA || oldCfgR.drawQualityDownsampleFSAA != mCfgR.drawQualityDownsampleFSAA) {
     UpdateOffscreenBuffers();
   }
   if (oldCfgR.drawQualityVSync != mCfgR.drawQualityVSync) {
