@@ -342,11 +342,11 @@ void GPUDisplay::HandleKey(unsigned char key)
     mCfgH.drawTracksAndFilter ^= 1;
     SetInfo("Track filter: %s", mCfgH.drawTracksAndFilter ? "AND" : "OR");
   } else if (key == 't') {
-    GPUInfo("Taking screenshot");
     static int nScreenshot = 1;
     char fname[32];
     sprintf(fname, "screenshot%d.bmp", nScreenshot++);
-    DoScreenshot(fname);
+    mRequestScreenshot = true;
+    mScreenshotFile = fname;
     SetInfo("Taking screenshot (%s)", fname);
   } else if (key == 'Z') {
     mCfgR.screenshotScaleFactor += 1;

@@ -40,8 +40,6 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   GPUDisplayBackendVulkan();
   ~GPUDisplayBackendVulkan();
 
-  int ExtInit() override;
-  bool CoreProfile() override;
   unsigned int DepthBits() override;
 
  protected:
@@ -58,14 +56,13 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void ExitBackendA() override;
   void clearScreen(bool colorOnly = false) override;
   void loadDataToGPU(size_t totalVertizes) override;
-  void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view) override;
+  void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot) override;
   void finishDraw() override;
   void finishFrame() override;
   void prepareText() override;
   void finishText() override;
   void mixImages(GLfb& mixBuffer, float mixSlaveImage) override;
   void renderOffscreenBuffer(GLfb& buffer, GLfb& bufferNoMSAA, int mainBuffer) override;
-  void readPixels(unsigned char* pixels, bool needBuffer, unsigned int width, unsigned int height) override;
   void pointSizeFactor(float factor) override;
   void lineWidthFactor(float factor) override;
   backendTypes backendType() const override { return TYPE_VULKAN; }
@@ -73,7 +70,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
 
   double checkDevice(VkPhysicalDevice device, const std::vector<const char*>& reqDeviceExtensions);
   VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-  void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+  void transitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
   VulkanBuffer createBuffer(size_t size, const void* srcData = nullptr, VkBufferUsageFlags type = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, int deviceMemory = 1);
   void writeToBuffer(VulkanBuffer& buffer, size_t size, const void* srcData);
   void clearBuffer(VulkanBuffer& buffer);
@@ -86,6 +83,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void endFillCommandBuffer(VkCommandBuffer& commandBuffer, unsigned int imageIndex);
   VkCommandBuffer getSingleTimeCommandBuffer();
   void submitSingleTimeCommandBuffer(VkCommandBuffer commandBuffer);
+  void readImageToPixels(VkImage image, std::vector<char>& pixels);
 
   void updateSwapChainDetails(const VkPhysicalDevice& device);
   void createDevice();
@@ -125,6 +123,8 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   VkPresentModeKHR mPresentMode;
   VkExtent2D mExtent;
   VkSwapchainKHR mSwapChain;
+  bool mSwapchainImageReadable;
+  bool mMustUpdateSwapChain = false;
   std::vector<VkImage> mSwapChainImages;
   std::vector<VkImageView> mSwapChainImageViews;
   std::vector<VulkanImage> mMSAAImages;
@@ -171,6 +171,8 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
 
   VkSampleCountFlagBits mMSAASampleCount = VK_SAMPLE_COUNT_1_BIT;
   unsigned int mMaxMSAAsupported = 0;
+
+  int mScreenshotRequested = 0;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

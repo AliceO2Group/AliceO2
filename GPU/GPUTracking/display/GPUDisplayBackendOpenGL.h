@@ -42,14 +42,13 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   void ExitBackendA() override;
   void clearScreen(bool colorOnly = false) override;
   void loadDataToGPU(size_t totalVertizes) override;
-  void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view) override;
+  void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot) override;
   void finishDraw() override;
   void finishFrame() override;
   void prepareText() override;
   void finishText() override;
   void mixImages(GLfb& mixBuffer, float mixSlaveImage) override;
   void renderOffscreenBuffer(GLfb& buffer, GLfb& bufferNoMSAA, int mainBuffer) override;
-  void readPixels(unsigned char* pixels, bool needBuffer, unsigned int width, unsigned int height) override;
   void pointSizeFactor(float factor) override;
   void lineWidthFactor(float factor) override;
   backendTypes backendType() const override { return TYPE_OPENGL; }
@@ -83,6 +82,8 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
 
   unsigned int VAO_text, VBO_text;
   bool mSPIRVShaders = false;
+
+  bool mScreenshotRequested = false;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

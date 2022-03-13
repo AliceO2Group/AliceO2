@@ -243,7 +243,7 @@ class GPUDisplay
   void DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, std::array<vecpod<int>, 2>& trackList, threadVertexBuffer& threadBuffer);
   vboList DrawGrid(const GPUTPCTracker& tracker);
   vboList DrawGridTRD(int sector);
-  void DoScreenshot(char* filename, float mAnimateTime = -1.f);
+  void DoScreenshot(const char* filename, std::vector<char>& pixels, float mAnimateTime = -1.f);
   void PrintHelp();
   void createQuaternionFromMatrix(float* v, const float* mat);
   void drawVertices(const vboList& v, const GPUDisplayBackend::drawType t);
@@ -354,6 +354,9 @@ class GPUDisplay
   vecpod<vboList> mGlDLPoints[NSLICES][N_POINTS_TYPE];
   vboList mGlDLGrid[NSLICES];
   vboList mGlDLGridTRD[NSLICES / 2];
+
+  bool mRequestScreenshot = false;
+  std::string mScreenshotFile;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

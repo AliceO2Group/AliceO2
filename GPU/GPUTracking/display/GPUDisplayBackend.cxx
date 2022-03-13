@@ -143,3 +143,10 @@ void GPUDisplayBackend::ExitBackend()
 {
   ExitBackendA();
 }
+
+std::vector<char> GPUDisplayBackend::getPixels()
+{
+  auto retVal = std::move(mScreenshotPixels);
+  mScreenshotPixels = std::vector<char>();
+  return retVal;
+}

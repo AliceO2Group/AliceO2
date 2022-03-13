@@ -401,7 +401,7 @@ void GPUDisplayBackendOpenGL::loadDataToGPU(size_t totalVertizes)
   }
 }
 
-void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view)
+void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot)
 {
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
   if (mDisplay->cfgL().smoothPoints && !mDisplay->cfgR().openGLCore) {
@@ -449,6 +449,7 @@ void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
       CHKERR(glUniformMatrix4fv(mModelViewProjId, 1, GL_FALSE, &modelViewProj.Elements[0][0]));
     }
   }
+  mScreenshotRequested = requestScreenshot;
 }
 
 void GPUDisplayBackendOpenGL::finishDraw()
@@ -461,6 +462,14 @@ void GPUDisplayBackendOpenGL::finishDraw()
   {
     CHKERR(glDisableVertexAttribArray(0));
     CHKERR(glUseProgram(0));
+  }
+  if (mScreenshotRequested) {
+    mScreenshotRequested = false;
+    bool needBuffer = false;
+    CHKERR(glPixelStorei(GL_PACK_ALIGNMENT, 1));
+    CHKERR(glReadBuffer(needBuffer ? GL_COLOR_ATTACHMENT0 : GL_BACK));
+    mScreenshotPixels.resize(mDisplay->screenWidth() * mDisplay->screenHeight() * 4);
+    CHKERR(glReadPixels(0, 0, mDisplay->screenWidth(), mDisplay->screenHeight(), GL_BGRA, GL_UNSIGNED_BYTE, mScreenshotPixels.data()));
   }
 }
 
@@ -537,13 +546,6 @@ void GPUDisplayBackendOpenGL::mixImages(GLfb& mixBuffer, float mixSlaveImage)
   {
     GPUWarning("Image mixing unsupported in OpenGL CORE profile");
   }
-}
-
-void GPUDisplayBackendOpenGL::readPixels(unsigned char* pixels, bool needBuffer, unsigned int width, unsigned int height)
-{
-  CHKERR(glPixelStorei(GL_PACK_ALIGNMENT, 1));
-  CHKERR(glReadBuffer(needBuffer ? GL_COLOR_ATTACHMENT0 : GL_BACK));
-  CHKERR(glReadPixels(0, 0, width, height, GL_BGRA, GL_UNSIGNED_BYTE, pixels));
 }
 
 void GPUDisplayBackendOpenGL::pointSizeFactor(float factor)
