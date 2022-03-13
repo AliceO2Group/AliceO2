@@ -1100,14 +1100,14 @@ void GPUDisplayBackendVulkan::startFillCommandBuffer(VkCommandBuffer& commandBuf
   beginInfo.pInheritanceInfo = nullptr; // Optional
   CHKERR(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
+  VkClearValue clearColor = mDisplay->cfgL().invertColors ? VkClearValue{{{1.0f, 1.0f, 1.0f, 1.0f}}} : VkClearValue{{{0.0f, 0.0f, 0.0f, 1.0f}}};
+
   VkRenderPassBeginInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   renderPassInfo.renderPass = mRenderPass;
   renderPassInfo.framebuffer = mFramebuffers[imageIndex];
   renderPassInfo.renderArea.offset = {0, 0};
   renderPassInfo.renderArea.extent = mExtent;
-
-  VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
   renderPassInfo.clearValueCount = 1;
   renderPassInfo.pClearValues = &clearColor;
   vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
