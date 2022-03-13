@@ -57,6 +57,8 @@ enum GEMstack { IROCgem = 0,
                 OROC2gem = 2,
                 OROC3gem = 3 };
 constexpr unsigned short GEMSTACKSPERSECTOR = 4;
+constexpr unsigned short GEMSPERSTACK = 4;
+constexpr unsigned short GEMSTACKSPERSIDE = 144;
 
 /// Definition of the different pad subsets
 enum class PadSubset : char {

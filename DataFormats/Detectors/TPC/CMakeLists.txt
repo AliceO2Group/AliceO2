@@ -30,6 +30,7 @@ o2_add_library(
           src/CalibdEdxCorrection.cxx
           src/CalibdEdxTrackTopologyPol.cxx
           src/CalibdEdxTrackTopologySpline.cxx
+          src/DCS.cxx
   PUBLIC_LINK_LIBRARIES O2::GPUCommon
                         O2::TPCFastTransformation
                         O2::SimulationDataFormat
@@ -44,6 +45,7 @@ o2_target_root_dictionary(
           include/DataFormatsTPC/ClusterNativeHelper.h
           include/DataFormatsTPC/ClusterHardware.h
           include/DataFormatsTPC/Digit.h
+          include/DataFormatsTPC/DCS.h
           include/DataFormatsTPC/Helpers.h
           include/DataFormatsTPC/KrCluster.h
           include/DataFormatsTPC/TrackTPC.h
