@@ -243,7 +243,7 @@ void GPUDisplay::HandleKey(unsigned char key)
   } else if (key == 'D') {
     mCfgL.depthBuffer ^= true;
     SetInfo("Depth buffer (z-buffer, %u bits) %s", mBackend->DepthBits(), mCfgL.depthBuffer ? "enabled" : "disabled");
-    setDepthBuffer();
+    mBackend->setDepthBuffer();
   } else if (key == 'W') {
     mCfgR.drawQualityMSAA *= 2;
     if (mCfgR.drawQualityMSAA < 2) {
@@ -472,7 +472,7 @@ void GPUDisplay::HandleKey(unsigned char key)
     mUpdateDrawCommands = true;
   }
 
-  if (oldCfgR.drawQualityMSAA != mCfgR.drawQualityMSAA || oldCfgR.drawQualityDownsampleFSAA != mCfgR.drawQualityDownsampleFSAA) {
+  if (oldCfgR.drawQualityMSAA != mCfgR.drawQualityMSAA || oldCfgR.drawQualityDownsampleFSAA != mCfgR.drawQualityDownsampleFSAA || oldCfgL.depthBuffer != mCfgL.depthBuffer) {
     mUpdateRenderPipeline = true;
   }
 

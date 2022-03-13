@@ -49,7 +49,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   unsigned int drawVertices(const vboList& v, const drawType t) override;
   void ActivateColor(std::array<float, 4>& color) override;
   void SetVSync(bool enable) override { recreateSwapChain(); };
-  void setDepthBuffer() override;
+  void setDepthBuffer() override{};
   bool backendNeedRedraw() override;
   void setFrameBuffer(int updateCurrent, unsigned int newID) override;
   int InitBackendA() override;
@@ -129,6 +129,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   std::vector<VkImage> mSwapChainImages;
   std::vector<VkImageView> mSwapChainImageViews;
   std::vector<VulkanImage> mMSAAImages;
+  std::vector<VulkanImage> mZImages;
   std::unordered_map<std::string, VkShaderModule> mShaders;
   VkPipelineLayout mPipelineLayout;
   VkPipelineLayout mPipelineLayoutText;
@@ -172,6 +173,8 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
 
   VkSampleCountFlagBits mMSAASampleCount = VK_SAMPLE_COUNT_1_BIT;
   unsigned int mMaxMSAAsupported = 0;
+  bool mZActive = false;
+  bool mZSupported = false;
 
   int mScreenshotRequested = 0;
 };

@@ -457,11 +457,6 @@ inline void GPUDisplay::SetCollisionColor(int col)
   ActivateColor();
 }
 
-void GPUDisplay::setDepthBuffer()
-{
-  mBackend->setDepthBuffer();
-}
-
 void GPUDisplay::setFrameBuffer(int updateCurrent, unsigned int newID)
 {
   if (updateCurrent == 1) {
@@ -529,7 +524,7 @@ void GPUDisplay::ReSizeGLScene(int width, int height, bool init)
 void GPUDisplay::updateConfig()
 {
   mBackend->setQuality();
-  setDepthBuffer();
+  mBackend->setDepthBuffer();
 }
 
 inline void GPUDisplay::drawVertices(const vboList& v, const GPUDisplayBackend::drawType t)
