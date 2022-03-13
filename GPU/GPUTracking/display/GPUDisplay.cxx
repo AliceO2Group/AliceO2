@@ -1653,6 +1653,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     mCfgR.camLookOrigin = mCfgR.camYUp = false;
     mAngleRollOrigin = -1e9;
     mCfgR.fov = 45.f;
+    mUpdateDrawCommands = 1;
 
     mResetScene = 0;
   } else {
@@ -1771,6 +1772,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     }
     if (deltaLine) {
       SetInfo("%s line width: %f", deltaLine > 0 ? "Increasing" : "Decreasing", mCfgL.lineWidth);
+      mUpdateDrawCommands = 1;
     }
     minSize *= 2;
     int deltaPoint = mFrontend->mKeys['+'] * (!mFrontend->mKeysShift['+']) - mFrontend->mKeys['-'] * (!mFrontend->mKeysShift['-']);
@@ -1780,6 +1782,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     }
     if (deltaPoint) {
       SetInfo("%s point size: %f", deltaPoint > 0 ? "Increasing" : "Decreasing", mCfgL.pointSize);
+      mUpdateDrawCommands = 1;
     }
   }
 
@@ -1793,8 +1796,6 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     mFrontend->mMouseDnX = mFrontend->mouseMvX;
     mFrontend->mMouseDnY = mFrontend->mouseMvY;
   }
-
-  mBackend->updateSettings();
 
   // Prepare Event
   if (mUpdateVertexLists && mIOPtrs) {
@@ -2029,11 +2030,12 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
 
   // Draw Event
   mNDrawCalls = 0;
-  mBackend->prepareDraw();
   nextViewMatrix = nextViewMatrix * mModelMatrix;
   const float zFar = ((mParam->par.continuousTracking ? (mMaxClusterZ / GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
   const hmm_mat4 proj = HMM_Perspective(mCfgR.fov, (GLfloat)mScreenwidth / (GLfloat)mScreenheight, 0.1f, zFar);
-  mBackend->setMatrices(proj, nextViewMatrix);
+  mBackend->prepareDraw(proj, nextViewMatrix);
+  mBackend->pointSizeFactor(1);
+  mBackend->lineWidthFactor(1);
 
 #define LOOP_SLICE for (int iSlice = (mCfgL.drawSlice == -1 ? 0 : mCfgL.drawRelatedSlices ? (mCfgL.drawSlice % (NSLICES / 4)) : mCfgL.drawSlice); iSlice < NSLICES; iSlice += (mCfgL.drawSlice == -1 ? 1 : mCfgL.drawRelatedSlices ? (NSLICES / 4) : NSLICES))
 #define LOOP_SLICE2 for (int iSlice = (mCfgL.drawSlice == -1 ? 0 : mCfgL.drawRelatedSlices ? (mCfgL.drawSlice % (NSLICES / 4)) : mCfgL.drawSlice) % (NSLICES / 2); iSlice < NSLICES / 2; iSlice += (mCfgL.drawSlice == -1 ? 1 : mCfgL.drawRelatedSlices ? (NSLICES / 4) : NSLICES))
