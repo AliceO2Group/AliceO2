@@ -178,7 +178,7 @@ Stack SubTimeFrameFileReader::getHeaderStack(std::size_t& pOrigsize)
 std::uint64_t SubTimeFrameFileReader::sStfId = 0; // TODO: add id to files metadata
 
 std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* device, const std::vector<o2f::OutputRoute>& outputRoutes,
-                                                               const std::string& rawChannel, int verbosity)
+                                                               const std::string& rawChannel, bool sup0xccdb, int verbosity)
 {
   std::unique_ptr<MessagesPerRoute> messagesPerRoute = std::make_unique<MessagesPerRoute>();
   auto& msgMap = *messagesPerRoute.get();
@@ -393,7 +393,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
 
   // add TF acknowledge part
   unsigned stfSS[2] = {0, 0xccdb};
-  for (int iss = 0; iss < 2; iss++) {
+  for (int iss = 0; iss < (sup0xccdb ? 1 : 2); iss++) {
     o2::header::DataHeader stfDistDataHeader(o2::header::gDataDescriptionDISTSTF, o2::header::gDataOriginFLP, stfSS[iss], sizeof(STFHeader), 0, 1);
     stfDistDataHeader.payloadSerializationMethod = o2::header::gSerializationMethodNone;
     stfDistDataHeader.firstTForbit = stfHeader.firstOrbit;
