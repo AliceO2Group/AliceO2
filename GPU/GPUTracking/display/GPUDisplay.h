@@ -360,6 +360,8 @@ class GPUDisplay
 
   bool mRequestScreenshot = false;
   std::string mScreenshotFile;
+
+  float mYFactor = 1.0f;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

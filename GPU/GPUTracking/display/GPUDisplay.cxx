@@ -559,6 +559,7 @@ int GPUDisplay::InitDisplay_internal()
   if (mBackend->InitBackend()) {
     return 1;
   }
+  mYFactor = mBackend->getYFactor();
   mDrawTextInCompatMode = !mBackend->mFreetypeInitialized && mFrontend->mCanDrawText == 1;
   ReSizeGLScene(GPUDisplayFrontend::INIT_WIDTH, GPUDisplayFrontend::INIT_HEIGHT, true);
   return 0;
@@ -572,7 +573,7 @@ void GPUDisplay::ExitDisplay()
 
 inline void GPUDisplay::drawPointLinestrip(int iSlice, int cid, int id, int id_limit)
 {
-  mVertexBuffer[iSlice].emplace_back(mGlobalPos[cid].x, mGlobalPos[cid].y, mCfgH.projectXY ? 0 : mGlobalPos[cid].z);
+  mVertexBuffer[iSlice].emplace_back(mGlobalPos[cid].x, mGlobalPos[cid].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPos[cid].z);
   if (mGlobalPos[cid].w < id_limit) {
     mGlobalPos[cid].w = id;
   }
@@ -588,8 +589,8 @@ GPUDisplay::vboList GPUDisplay::DrawSpacePointsTRD(int iSlice, int select, int i
       int iSec = trdGeometry().GetSector(mIOPtrs->trdTracklets[i].GetDetector());
       bool draw = iSlice == iSec && mGlobalPosTRD[i].w == select;
       if (draw) {
-        mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD[i].x, mGlobalPosTRD[i].y, mCfgH.projectXY ? 0 : mGlobalPosTRD[i].z);
-        mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD2[i].x, mGlobalPosTRD2[i].y, mCfgH.projectXY ? 0 : mGlobalPosTRD2[i].z);
+        mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD[i].x, mGlobalPosTRD[i].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPosTRD[i].z);
+        mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD2[i].x, mGlobalPosTRD2[i].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPosTRD2[i].z);
       }
     }
   }
@@ -605,7 +606,7 @@ GPUDisplay::vboList GPUDisplay::DrawSpacePointsTOF(int iSlice, int select, int i
 
   if (iCol == 0 && iSlice == 0) {
     for (unsigned int i = 0; i < mIOPtrs->nTOFClusters; i++) {
-      mVertexBuffer[iSlice].emplace_back(mGlobalPosTOF[i].x, mGlobalPosTOF[i].y, mCfgH.projectXY ? 0 : mGlobalPosTOF[i].z);
+      mVertexBuffer[iSlice].emplace_back(mGlobalPosTOF[i].x, mGlobalPosTOF[i].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPosTOF[i].z);
     }
   }
 
@@ -620,7 +621,7 @@ GPUDisplay::vboList GPUDisplay::DrawSpacePointsITS(int iSlice, int select, int i
 
   if (iCol == 0 && iSlice == 0 && mIOPtrs->itsClusters) {
     for (unsigned int i = 0; i < mIOPtrs->nItsClusters; i++) {
-      mVertexBuffer[iSlice].emplace_back(mGlobalPosITS[i].x, mGlobalPosITS[i].y, mCfgH.projectXY ? 0 : mGlobalPosITS[i].z);
+      mVertexBuffer[iSlice].emplace_back(mGlobalPosITS[i].x, mGlobalPosITS[i].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPosITS[i].z);
     }
   }
 
@@ -677,7 +678,7 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(int iSlice, int select, unsigned in
         draw = (select == tMARKED) ? (fake) : (draw && !fake);
       }
       if (draw) {
-        mVertexBuffer[iSlice].emplace_back(mGlobalPos[cid].x, mGlobalPos[cid].y, mCfgH.projectXY ? 0 : mGlobalPos[cid].z);
+        mVertexBuffer[iSlice].emplace_back(mGlobalPos[cid].x, mGlobalPos[cid].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPos[cid].z);
       }
     }
   }
@@ -802,7 +803,7 @@ void GPUDisplay::DrawTrackITS(int trackId, int iSlice)
   const auto& trk = mIOPtrs->itsTracks[trackId];
   for (int k = 0; k < trk.getNClusters(); k++) {
     int cid = mIOPtrs->itsTrackClusIdx[trk.getFirstClusterEntry() + k];
-    mVertexBuffer[iSlice].emplace_back(mGlobalPosITS[cid].x, mGlobalPosITS[cid].y, mCfgH.projectXY ? 0 : mGlobalPosITS[cid].z);
+    mVertexBuffer[iSlice].emplace_back(mGlobalPosITS[cid].x, mGlobalPosITS[cid].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPosITS[cid].z);
     mGlobalPosITS[cid].w = tITSATTACHED;
   }
 }
@@ -874,7 +875,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
         if (mIOPtrs->tpcLinkTOF && mIOPtrs->tpcLinkTOF[i] != -1 && mIOPtrs->nTOFClusters) {
           int cid = mIOPtrs->tpcLinkTOF[i];
           drawing = true;
-          mVertexBuffer[iSlice].emplace_back(mGlobalPosTOF[cid].x, mGlobalPosTOF[cid].y, mCfgH.projectXY ? 0 : mGlobalPosTOF[cid].z);
+          mVertexBuffer[iSlice].emplace_back(mGlobalPosTOF[cid].x, mGlobalPosTOF[cid].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPosTOF[cid].z);
           mGlobalPosTOF[cid].w = tTOFATTACHED;
         }
       }
@@ -887,8 +888,8 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
             continue;
           }
           drawing = true;
-          mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD2[cid].x, mGlobalPosTRD2[cid].y, mCfgH.projectXY ? 0 : mGlobalPosTRD2[cid].z);
-          mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD[cid].x, mGlobalPosTRD[cid].y, mCfgH.projectXY ? 0 : mGlobalPosTRD[cid].z);
+          mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD2[cid].x, mGlobalPosTRD2[cid].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPosTRD2[cid].z);
+          mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD[cid].x, mGlobalPosTRD[cid].y * mYFactor, mCfgH.projectXY ? 0 : mGlobalPosTRD[cid].z);
           mGlobalPosTRD[cid].w = tTRDATTACHED;
         }
       };
@@ -1146,8 +1147,8 @@ GPUDisplay::vboList GPUDisplay::DrawGrid(const GPUTPCTracker& tracker)
         zz1 -= mCfgH.zAdd;
         zz2 -= mCfgH.zAdd;
       }
-      mVertexBuffer[iSlice].emplace_back(xx1 / GL_SCALE_FACTOR, yy1 / GL_SCALE_FACTOR, zz1 / GL_SCALE_FACTOR);
-      mVertexBuffer[iSlice].emplace_back(xx2 / GL_SCALE_FACTOR, yy2 / GL_SCALE_FACTOR, zz2 / GL_SCALE_FACTOR);
+      mVertexBuffer[iSlice].emplace_back(xx1 / GL_SCALE_FACTOR, yy1 / GL_SCALE_FACTOR * mYFactor, zz1 / GL_SCALE_FACTOR);
+      mVertexBuffer[iSlice].emplace_back(xx2 / GL_SCALE_FACTOR, yy2 / GL_SCALE_FACTOR * mYFactor, zz2 / GL_SCALE_FACTOR);
     }
     for (int j = 0; j <= (signed)row.Grid().Nz(); j++) {
       float y1 = row.Grid().YMin();
@@ -1164,8 +1165,8 @@ GPUDisplay::vboList GPUDisplay::DrawGrid(const GPUTPCTracker& tracker)
         zz1 -= mCfgH.zAdd;
         zz2 -= mCfgH.zAdd;
       }
-      mVertexBuffer[iSlice].emplace_back(xx1 / GL_SCALE_FACTOR, yy1 / GL_SCALE_FACTOR, zz1 / GL_SCALE_FACTOR);
-      mVertexBuffer[iSlice].emplace_back(xx2 / GL_SCALE_FACTOR, yy2 / GL_SCALE_FACTOR, zz2 / GL_SCALE_FACTOR);
+      mVertexBuffer[iSlice].emplace_back(xx1 / GL_SCALE_FACTOR, yy1 / GL_SCALE_FACTOR * mYFactor, zz1 / GL_SCALE_FACTOR);
+      mVertexBuffer[iSlice].emplace_back(xx2 / GL_SCALE_FACTOR, yy2 / GL_SCALE_FACTOR * mYFactor, zz2 / GL_SCALE_FACTOR);
     }
   }
   insertVertexList(tracker.ISlice(), startCountInner, mVertexBuffer[iSlice].size());
@@ -1210,8 +1211,8 @@ GPUDisplay::vboList GPUDisplay::DrawGridTRD(int sector)
           float x2Tmp = xyzGlb2[0];
           xyzGlb2[0] = xyzGlb2[0] * cosf(alpha) + xyzGlb2[1] * sinf(alpha);
           xyzGlb2[1] = -x2Tmp * sinf(alpha) + xyzGlb2[1] * cosf(alpha);
-          mVertexBuffer[sector].emplace_back(xyzGlb1[0] / GL_SCALE_FACTOR, xyzGlb1[1] / GL_SCALE_FACTOR, xyzGlb1[2] / GL_SCALE_FACTOR);
-          mVertexBuffer[sector].emplace_back(xyzGlb2[0] / GL_SCALE_FACTOR, xyzGlb2[1] / GL_SCALE_FACTOR, xyzGlb2[2] / GL_SCALE_FACTOR);
+          mVertexBuffer[sector].emplace_back(xyzGlb1[0] / GL_SCALE_FACTOR, xyzGlb1[1] / GL_SCALE_FACTOR * mYFactor, xyzGlb1[2] / GL_SCALE_FACTOR);
+          mVertexBuffer[sector].emplace_back(xyzGlb2[0] / GL_SCALE_FACTOR, xyzGlb2[1] / GL_SCALE_FACTOR * mYFactor, xyzGlb2[2] / GL_SCALE_FACTOR);
         }
         for (int j = 0; j < pp->GetNcols(); ++j) {
           float xyzLoc1[3];
@@ -1635,15 +1636,16 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(bool mixAnimation, float mAnimat
     float rotYaw = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[mFrontend->KEY_RIGHT] - mFrontend->mKeys[mFrontend->KEY_LEFT]);
     float rotPitch = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[mFrontend->KEY_DOWN] - mFrontend->mKeys[mFrontend->KEY_UP]);
 
+    float mouseScale = 1920.f / std::max<float>(1920.f, mScreenwidth);
     if (mFrontend->mMouseDnR && mFrontend->mMouseDn) {
-      moveZ += -scalefactor * ((float)mFrontend->mouseMvY - (float)mFrontend->mMouseDnY) / 4;
-      rotRoll += rotatescalefactor * ((float)mFrontend->mouseMvX - (float)mFrontend->mMouseDnX);
+      moveZ += -scalefactor * mouseScale * ((float)mFrontend->mouseMvY - (float)mFrontend->mMouseDnY) / 4;
+      rotRoll += -rotatescalefactor * mouseScale * ((float)mFrontend->mouseMvX - (float)mFrontend->mMouseDnX);
     } else if (mFrontend->mMouseDnR) {
-      moveX += -scalefactor * 0.5 * ((float)mFrontend->mMouseDnX - (float)mFrontend->mouseMvX) / 4;
-      moveY += -scalefactor * 0.5 * ((float)mFrontend->mouseMvY - (float)mFrontend->mMouseDnY) / 4;
+      moveX += scalefactor * 0.5 * mouseScale * ((float)mFrontend->mMouseDnX - (float)mFrontend->mouseMvX) / 4;
+      moveY += scalefactor * 0.5 * mouseScale * ((float)mFrontend->mouseMvY - (float)mFrontend->mMouseDnY) / 4;
     } else if (mFrontend->mMouseDn) {
-      rotYaw += rotatescalefactor * ((float)mFrontend->mouseMvX - (float)mFrontend->mMouseDnX);
-      rotPitch += rotatescalefactor * ((float)mFrontend->mouseMvY - (float)mFrontend->mMouseDnY);
+      rotYaw += rotatescalefactor * mouseScale * ((float)mFrontend->mouseMvX - (float)mFrontend->mMouseDnX);
+      rotPitch += rotatescalefactor * mouseScale * ((float)mFrontend->mouseMvY - (float)mFrontend->mMouseDnY);
     }
 
     if (mFrontend->mKeys['<'] && !mFrontend->mKeysShift['<']) {
@@ -1700,16 +1702,16 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(bool mixAnimation, float mAnimat
       }
       nextViewMatrix = nextViewMatrix * HMM_LookAt({mXYZ[0], mXYZ[1], mXYZ[2]}, {0, 0, 0}, {0, 1, 0});
     } else {
-      nextViewMatrix = nextViewMatrix * HMM_Translate({moveX, moveY, moveZ});
+      nextViewMatrix = nextViewMatrix * HMM_Translate({moveX, moveY * mYFactor, moveZ});
       if (!rotateModel) {
         if (rotYaw != 0.f) {
           nextViewMatrix = nextViewMatrix * HMM_Rotate(rotYaw, {0, 1, 0});
         }
         if (rotPitch != 0.f) {
-          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotPitch, {1, 0, 0});
+          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotPitch * mYFactor, {1, 0, 0});
         }
         if (!yUp && rotRoll != 0.f) {
-          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotRoll, {0, 0, 1});
+          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotRoll * mYFactor, {0, 0, 1});
         }
       }
       nextViewMatrix = nextViewMatrix * mViewMatrix; // Apply previous translation / rotation

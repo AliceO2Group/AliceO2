@@ -67,6 +67,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void lineWidthFactor(float factor) override;
   backendTypes backendType() const override { return TYPE_VULKAN; }
   void resizeScene(unsigned int width, unsigned int height) override;
+  float getYFactor() const override { return -1.0f; }
 
   double checkDevice(VkPhysicalDevice device, const std::vector<const char*>& reqDeviceExtensions);
   VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
