@@ -1647,11 +1647,12 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     mViewMatrix = MY_HMM_IDENTITY;
     mModelMatrix = MY_HMM_IDENTITY;
 
-    mCfgL.pointSize = 2.0;
+    mCfgL.pointSize = 2.0f;
+    mCfgL.lineWidth = 1.4f;
     mCfgL.drawSlice = -1;
     mCfgH.xAdd = mCfgH.zAdd = 0;
     mCfgR.camLookOrigin = mCfgR.camYUp = false;
-    mAngleRollOrigin = -1e9;
+    mAngleRollOrigin = -1e9f;
     mCfgR.fov = 45.f;
     mUpdateDrawCommands = 1;
 
