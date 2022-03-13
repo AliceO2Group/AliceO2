@@ -227,7 +227,6 @@ class GPUDisplay
   void SetColorGridTRD();
   void SetColorMarked();
   void SetCollisionColor(int col);
-  void setDepthBuffer();
   void setFrameBuffer(int updateCurrent = -1, unsigned int newID = 0);
   void UpdateOffscreenBuffers(bool clean = false);
   void updateConfig();

@@ -553,8 +553,11 @@ void GPUDisplayBackendVulkan::createDevice()
   vkGetPhysicalDeviceProperties(mPhysicalDevice, &deviceProperties);
   VkPhysicalDeviceFeatures deviceFeatures;
   vkGetPhysicalDeviceFeatures(mPhysicalDevice, &deviceFeatures);
+  VkFormatProperties depthFormatProperties;
+  vkGetPhysicalDeviceFormatProperties(mPhysicalDevice, VK_FORMAT_D32_SFLOAT, &depthFormatProperties);
   GPUInfo("Using physicak Vulkan device %s", deviceProperties.deviceName);
   mMaxMSAAsupported = getMaxUsableSampleCount(deviceProperties);
+  mZSupported = depthFormatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
   updateSwapChainDetails(mPhysicalDevice);
   uint32_t imageCount = mSwapChainDetails->capabilities.minImageCount + 1;
@@ -760,6 +763,7 @@ void GPUDisplayBackendVulkan::clearTextureSampler()
 void GPUDisplayBackendVulkan::createSwapChain()
 {
   mMSAASampleCount = getMSAASamplesFlag(std::min<unsigned int>(mMaxMSAAsupported, mDisplay->cfgR().drawQualityMSAA));
+  mZActive = mZSupported && mDisplay->cfgL().depthBuffer;
   mSwapchainImageReadable = mScreenshotRequested;
 
   updateSwapChainDetails(mPhysicalDevice);
@@ -798,6 +802,15 @@ void GPUDisplayBackendVulkan::createSwapChain()
   colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
   colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+  VkAttachmentDescription depthAttachment{};
+  depthAttachment.format = VK_FORMAT_D32_SFLOAT;
+  depthAttachment.samples = mMSAASampleCount;
+  depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
   VkAttachmentDescription colorAttachmentResolve{};
   colorAttachmentResolve.format = mSurfaceFormat.format;
   colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -807,11 +820,15 @@ void GPUDisplayBackendVulkan::createSwapChain()
   colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
   colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+  int nAttachments = 0;
   VkAttachmentReference colorAttachmentRef{};
-  colorAttachmentRef.attachment = 0;
+  colorAttachmentRef.attachment = nAttachments++;
   colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  VkAttachmentReference depthAttachmentRef{};
+  // depthAttachmentRef.attachment // below
+  depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
   VkAttachmentReference colorAttachmentResolveRef{};
-  colorAttachmentResolveRef.attachment = 1;
+  // colorAttachmentResolveRef.attachment // below
   colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
   VkSubpassDescription subpass{};
   subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -820,14 +837,20 @@ void GPUDisplayBackendVulkan::createSwapChain()
   VkSubpassDependency dependency{};
   dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
   dependency.dstSubpass = 0;
-  dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
   dependency.srcAccessMask = 0;
-  dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+  dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
   std::vector<VkAttachmentDescription> attachments = {colorAttachment};
-  if (mDisplay->cfgR().drawQualityMSAA) {
+  if (mZActive) {
+    attachments.emplace_back(depthAttachment);
+    depthAttachmentRef.attachment = nAttachments++;
+    subpass.pDepthStencilAttachment = &depthAttachmentRef;
+  }
+  if (mMSAASampleCount != VK_SAMPLE_COUNT_1_BIT) {
     attachments.emplace_back(colorAttachmentResolve);
+    colorAttachmentResolveRef.attachment = nAttachments++;
     subpass.pResolveAttachments = &colorAttachmentResolveRef;
     colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
   }
@@ -843,13 +866,17 @@ void GPUDisplayBackendVulkan::createSwapChain()
   CHKERR(vkCreateRenderPass(mDevice, &renderPassInfo, nullptr, &mRenderPass));
 
   // Text overlay goes as extra rendering path
-  renderPassInfo.attachmentCount = 1;
+  renderPassInfo.attachmentCount = 1; // Remove depth and MSAA attachments
   renderPassInfo.pAttachments = &colorAttachment;
-  colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-  colorAttachment.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-  colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+  subpass.pDepthStencilAttachment = nullptr;
   subpass.pResolveAttachments = nullptr;
-  colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+  dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT; // Remove depth/stencil dependencies
+  dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;             // Don't clear the frame buffer
+  colorAttachment.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // Initial layout is not undefined after 1st pass
+  colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;                 // No MSAA for Text
+  colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;   // Might have been overwritten above for 1st pass in case of MSAA
   CHKERR(vkCreateRenderPass(mDevice, &renderPassInfo, nullptr, &mRenderPassText));
 
   vkGetSwapchainImagesKHR(mDevice, mSwapChain, &mImageCount, nullptr);
@@ -857,19 +884,33 @@ void GPUDisplayBackendVulkan::createSwapChain()
   vkGetSwapchainImagesKHR(mDevice, mSwapChain, &mImageCount, mSwapChainImages.data());
   mSwapChainImageViews.resize(mSwapChainImages.size());
   mFramebuffers.resize(mSwapChainImages.size());
-  if (mDisplay->cfgR().drawQualityMSAA) {
-    mFramebuffersText.resize(mSwapChainImages.size());
+  if (mMSAASampleCount != VK_SAMPLE_COUNT_1_BIT) {
     mMSAAImages.resize(mSwapChainImages.size());
+  }
+  if (mZActive) {
+    mZImages.resize(mSwapChainImages.size());
+  }
+  if (mMSAASampleCount != VK_SAMPLE_COUNT_1_BIT || mZActive) {
+    mFramebuffersText.resize(mSwapChainImages.size());
   }
   for (size_t i = 0; i < mSwapChainImages.size(); i++) {
     mSwapChainImageViews[i] = createImageViewI(mDevice, mSwapChainImages[i], mSurfaceFormat.format);
     std::vector<VkImageView> att;
-    if (mDisplay->cfgR().drawQualityMSAA) {
+    if (mMSAASampleCount != VK_SAMPLE_COUNT_1_BIT) { // First attachment is the render target, either the MSAA buffer or the framebuffer
       createImageI(mDevice, mPhysicalDevice, mMSAAImages[i].image, mMSAAImages[i].memory, mExtent.width, mExtent.height, mSurfaceFormat.format, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_TILING_OPTIMAL, mMSAASampleCount);
       mMSAAImages[i].view = createImageViewI(mDevice, mMSAAImages[i].image, mSurfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
       att.emplace_back(mMSAAImages[i].view);
+    } else {
+      att.emplace_back(mSwapChainImageViews[i]);
     }
-    att.emplace_back(mSwapChainImageViews[i]);
+    if (mZActive) {
+      createImageI(mDevice, mPhysicalDevice, mZImages[i].image, mZImages[i].memory, mExtent.width, mExtent.height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_TILING_OPTIMAL, mMSAASampleCount);
+      mZImages[i].view = createImageViewI(mDevice, mZImages[i].image, VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+      att.emplace_back(mZImages[i].view);
+    }
+    if (mMSAASampleCount != VK_SAMPLE_COUNT_1_BIT) { // If we use MSAA, we have to resolve to the framebuffer as the last target
+      att.emplace_back(mSwapChainImageViews[i]);
+    }
 
     VkFramebufferCreateInfo framebufferInfo{};
     framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -881,7 +922,7 @@ void GPUDisplayBackendVulkan::createSwapChain()
     framebufferInfo.layers = 1;
     CHKERR(vkCreateFramebuffer(mDevice, &framebufferInfo, nullptr, &mFramebuffers[i]));
 
-    if (mDisplay->cfgR().drawQualityMSAA) {
+    if (mMSAASampleCount != VK_SAMPLE_COUNT_1_BIT || mZActive) {
       framebufferInfo.attachmentCount = 1;
       framebufferInfo.pAttachments = &mSwapChainImageViews[i];
       framebufferInfo.renderPass = mRenderPassText;
@@ -899,10 +940,14 @@ void GPUDisplayBackendVulkan::clearSwapChain()
   for (auto& img : mMSAAImages) {
     clearImage(img);
   }
+  for (auto& img : mZImages) {
+    clearImage(img);
+  }
   for (auto& fb : mFramebuffersText) {
     vkDestroyFramebuffer(mDevice, fb, nullptr);
   }
   mMSAAImages.resize(0);
+  mZImages.resize(0);
   mFramebuffersText.resize(0);
   vkDestroySwapchainKHR(mDevice, mSwapChain, nullptr);
 }
@@ -1018,6 +1063,14 @@ void GPUDisplayBackendVulkan::createPipeline()
   colorBlending.blendConstants[2] = 0.0f;
   colorBlending.blendConstants[3] = 0.0f;
 
+  VkPipelineDepthStencilStateCreateInfo depthStencil{};
+  depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+  depthStencil.depthTestEnable = VK_TRUE;
+  depthStencil.depthWriteEnable = VK_TRUE;
+  depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+  depthStencil.depthBoundsTestEnable = VK_FALSE;
+  depthStencil.stencilTestEnable = VK_FALSE;
+
   VkDynamicState dynamicStates[] = {
     VK_DYNAMIC_STATE_LINE_WIDTH};
   VkPipelineDynamicStateCreateInfo dynamicState{};
@@ -1051,7 +1104,7 @@ void GPUDisplayBackendVulkan::createPipeline()
   pipelineInfo.pViewportState = &viewportState;
   pipelineInfo.pRasterizationState = &rasterizer;
   pipelineInfo.pMultisampleState = &multisampling;
-  pipelineInfo.pDepthStencilState = nullptr; // Optional
+  // pipelineInfo.pDepthStencilState // below
   pipelineInfo.pColorBlendState = &colorBlending;
   pipelineInfo.pDynamicState = &dynamicState;
   // pipelineInfo.layout // below
@@ -1072,6 +1125,7 @@ void GPUDisplayBackendVulkan::createPipeline()
       fragShaderStageInfo.module = mShaders["fragmentText"];
       pipelineInfo.layout = mPipelineLayoutText;
       pipelineInfo.renderPass = mRenderPassText;
+      pipelineInfo.pDepthStencilState = nullptr;
       colorBlendAttachment.blendEnable = VK_TRUE;
       multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
     } else {
@@ -1082,6 +1136,7 @@ void GPUDisplayBackendVulkan::createPipeline()
       fragShaderStageInfo.module = mShaders["fragment"];
       pipelineInfo.layout = mPipelineLayout;
       pipelineInfo.renderPass = mRenderPass;
+      pipelineInfo.pDepthStencilState = mZActive ? &depthStencil : nullptr;
       colorBlendAttachment.blendEnable = VK_TRUE;
       multisampling.rasterizationSamples = mMSAASampleCount;
     }
@@ -1100,7 +1155,9 @@ void GPUDisplayBackendVulkan::startFillCommandBuffer(VkCommandBuffer& commandBuf
   beginInfo.pInheritanceInfo = nullptr; // Optional
   CHKERR(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
-  VkClearValue clearColor = mDisplay->cfgL().invertColors ? VkClearValue{{{1.0f, 1.0f, 1.0f, 1.0f}}} : VkClearValue{{{0.0f, 0.0f, 0.0f, 1.0f}}};
+  VkClearValue clearValues[2];
+  clearValues[0].color = mDisplay->cfgL().invertColors ? VkClearColorValue{{1.0f, 1.0f, 1.0f, 1.0f}} : VkClearColorValue{{0.0f, 0.0f, 0.0f, 1.0f}};
+  clearValues[1].depthStencil = {1.0f, 0};
 
   VkRenderPassBeginInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -1108,8 +1165,8 @@ void GPUDisplayBackendVulkan::startFillCommandBuffer(VkCommandBuffer& commandBuf
   renderPassInfo.framebuffer = mFramebuffers[imageIndex];
   renderPassInfo.renderArea.offset = {0, 0};
   renderPassInfo.renderArea.extent = mExtent;
-  renderPassInfo.clearValueCount = 1;
-  renderPassInfo.pClearValues = &clearColor;
+  renderPassInfo.clearValueCount = mZActive ? 2 : 1;
+  renderPassInfo.pClearValues = clearValues;
   vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
   VkDeviceSize offsets[] = {0};
@@ -1714,7 +1771,7 @@ void GPUDisplayBackendVulkan::readImageToPixels(VkImage image, std::vector<char>
 
 unsigned int GPUDisplayBackendVulkan::DepthBits()
 {
-  return 0;
+  return 32;
 }
 
 void GPUDisplayBackendVulkan::createFB(GLfb& fb, bool tex, bool withDepth, bool msaa)
@@ -1728,10 +1785,6 @@ void GPUDisplayBackendVulkan::createFB(GLfb& fb, bool tex, bool withDepth, bool 
 void GPUDisplayBackendVulkan::deleteFB(GLfb& fb)
 {
   fb.created = false;
-}
-
-void GPUDisplayBackendVulkan::setDepthBuffer()
-{
 }
 
 void GPUDisplayBackendVulkan::setFrameBuffer(int updateCurrent, unsigned int newID)
