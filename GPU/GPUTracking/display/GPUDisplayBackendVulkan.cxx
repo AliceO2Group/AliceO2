@@ -136,6 +136,12 @@ void GPUDisplayBackendVulkan::setQuality()
 {
 }
 
+void GPUDisplayBackendVulkan::SetVSync(bool enable)
+{
+  recreateSwapChain();
+  needRecordCommandBuffers();
+}
+
 void GPUDisplayBackendVulkan::setDepthBuffer()
 {
 }
@@ -226,10 +232,10 @@ static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFor
   return availableFormats[0];
 }
 
-static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
+static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes, VkPresentModeKHR desiredMode = VK_PRESENT_MODE_MAILBOX_KHR)
 {
   for (const auto& availablePresentMode : availablePresentModes) {
-    if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+    if (availablePresentMode == desiredMode) {
       return availablePresentMode;
     }
   }
@@ -692,7 +698,7 @@ void GPUDisplayBackendVulkan::createSwapChain()
 {
   updateSwapChainDetails(mPhysicalDevice);
   mSurfaceFormat = chooseSwapSurfaceFormat(mSwapChainDetails->formats);
-  mPresentMode = chooseSwapPresentMode(mSwapChainDetails->presentModes);
+  mPresentMode = chooseSwapPresentMode(mSwapChainDetails->presentModes, mDisplay->cfgR().drawQualityVSync ? VK_PRESENT_MODE_MAILBOX_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR);
   mExtent = chooseSwapExtent(mSwapChainDetails->capabilities);
 
   VkSwapchainCreateInfoKHR swapCreateInfo{};
@@ -1249,9 +1255,9 @@ void GPUDisplayBackendVulkan::resizeScene(unsigned int width, unsigned int heigh
     return;
   }
   recreateSwapChain();
-  if (mExtent.width != width || mExtent.height != height) {
-    // std::cout << "Unmatching window size: requested " << width << " x " << height << " - found " << mExtent.width << " x " << mExtent.height << "\n";
-  }
+  /*if (mExtent.width != width || mExtent.height != height) {
+    std::cout << "Unmatching window size: requested " << width << " x " << height << " - found " << mExtent.width << " x " << mExtent.height << "\n";
+  }*/
   needRecordCommandBuffers();
 }
 

@@ -477,6 +477,7 @@ void GPUDisplay::HandleKey(unsigned char key)
   }
   if (oldCfgR.drawQualityVSync != mCfgR.drawQualityVSync) {
     mFrontend->SetVSync(mCfgR.drawQualityVSync);
+    mBackend->SetVSync(mCfgR.drawQualityVSync);
   }
   if (oldCfgR.fullScreen != mCfgR.fullScreen) {
     mFrontend->SwitchFullscreen(mCfgR.fullScreen);
@@ -510,7 +511,7 @@ void GPUDisplay::HandleSendKey(int key)
 void GPUDisplay::PrintGLHelpText(float colorValue)
 {
   for (unsigned int i = 0; i < sizeof(HelpText) / sizeof(HelpText[0]); i++) {
-    OpenGLPrint(HelpText[i], 40.f, 35 + (mDrawTextFontSize + 8) * (1 + i), colorValue, colorValue, colorValue, mInfoHelpTimer.GetCurrentElapsedTime() >= 5 ? (6 - mInfoHelpTimer.GetCurrentElapsedTime()) : 1, false);
+    OpenGLPrint(HelpText[i], 40.f, 35 + std::max(20, mDrawTextFontSize + 4) * (1 + i), colorValue, colorValue, colorValue, mInfoHelpTimer.GetCurrentElapsedTime() >= 5 ? (6 - mInfoHelpTimer.GetCurrentElapsedTime()) : 1, false);
   }
 }
 

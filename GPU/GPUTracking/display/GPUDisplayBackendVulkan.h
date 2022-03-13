@@ -51,6 +51,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   unsigned int drawVertices(const vboList& v, const drawType t) override;
   void ActivateColor(std::array<float, 4>& color) override;
   void setQuality() override;
+  void SetVSync(bool enable) override;
   void setDepthBuffer() override;
   void setFrameBuffer(int updateCurrent, unsigned int newID) override;
   int InitBackendA() override;
