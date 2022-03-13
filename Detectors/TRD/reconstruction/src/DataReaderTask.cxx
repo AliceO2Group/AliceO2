@@ -268,7 +268,7 @@ void DataReaderTask::run(ProcessingContext& pc)
     tfCount = dh->tfCounter;
     auto payloadIn = ref.payload;
     auto payloadInSize = DataRefUtils::getPayloadSize(ref);
-    if (mVerbose) {
+    if (mHeaderVerbose) {
       LOGP(info, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : ",
            dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadInSize);
     }
