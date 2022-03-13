@@ -382,26 +382,6 @@ void GPUDisplayBackendOpenGL::clearScreen(bool colorOnly)
   }
 }
 
-void GPUDisplayBackendOpenGL::updateSettings()
-{
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (mDisplay->cfgL().smoothPoints && !mDisplay->cfgR().openGLCore) {
-    CHKERR(glEnable(GL_POINT_SMOOTH));
-  } else {
-    CHKERR(glDisable(GL_POINT_SMOOTH));
-  }
-  if (mDisplay->cfgL().smoothLines && !mDisplay->cfgR().openGLCore) {
-    CHKERR(glEnable(GL_LINE_SMOOTH));
-  } else {
-    CHKERR(glDisable(GL_LINE_SMOOTH));
-  }
-#endif
-  CHKERR(glEnable(GL_BLEND));
-  CHKERR(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-  pointSizeFactor(1);
-  lineWidthFactor(1);
-}
-
 void GPUDisplayBackendOpenGL::loadDataToGPU(size_t totalVertizes)
 {
   // TODO: Check if this can be parallelized
@@ -421,8 +401,23 @@ void GPUDisplayBackendOpenGL::loadDataToGPU(size_t totalVertizes)
   }
 }
 
-void GPUDisplayBackendOpenGL::prepareDraw()
+void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view)
 {
+#ifndef GPUCA_DISPLAY_OPENGL_CORE
+  if (mDisplay->cfgL().smoothPoints && !mDisplay->cfgR().openGLCore) {
+    CHKERR(glEnable(GL_POINT_SMOOTH));
+  } else {
+    CHKERR(glDisable(GL_POINT_SMOOTH));
+  }
+  if (mDisplay->cfgL().smoothLines && !mDisplay->cfgR().openGLCore) {
+    CHKERR(glEnable(GL_LINE_SMOOTH));
+  } else {
+    CHKERR(glDisable(GL_LINE_SMOOTH));
+  }
+#endif
+  CHKERR(glEnable(GL_BLEND));
+  CHKERR(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+
   glViewport(0, 0, mDisplay->renderWidth(), mDisplay->renderHeight());
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
   if (!mDisplay->cfgR().openGLCore) {
@@ -435,6 +430,24 @@ void GPUDisplayBackendOpenGL::prepareDraw()
     CHKERR(glUseProgram(mShaderProgram));
     CHKERR(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr));
     CHKERR(glEnableVertexAttribArray(0));
+  }
+#ifndef GPUCA_DISPLAY_OPENGL_CORE
+  if (!mDisplay->cfgR().openGLCore) {
+    CHKERR(glMatrixMode(GL_PROJECTION));
+    CHKERR(glLoadMatrixf(&proj.Elements[0][0]));
+    CHKERR(glMatrixMode(GL_MODELVIEW));
+    CHKERR(glLoadMatrixf(&view.Elements[0][0]));
+  } else
+#endif
+  {
+    const hmm_mat4 modelViewProj = proj * view;
+    if (mSPIRVShaders) {
+      glBindBuffer(GL_UNIFORM_BUFFER, mSPIRVModelViewBuffer);
+      glBufferData(GL_UNIFORM_BUFFER, sizeof(modelViewProj), &modelViewProj, GL_STATIC_DRAW);
+      glBindBufferBase(GL_UNIFORM_BUFFER, 0, mSPIRVModelViewBuffer);
+    } else {
+      CHKERR(glUniformMatrix4fv(mModelViewProjId, 1, GL_FALSE, &modelViewProj.Elements[0][0]));
+    }
   }
 }
 
@@ -491,28 +504,6 @@ void GPUDisplayBackendOpenGL::renderOffscreenBuffer(GLfb& buffer, GLfb& bufferNo
     srcid = bufferNoMSAA.fb_id;
   }
   CHKERR(glBlitNamedFramebuffer(srcid, mainBuffer, 0, 0, mDisplay->renderWidth(), mDisplay->renderHeight(), 0, 0, mDisplay->screenWidth(), mDisplay->screenHeight(), GL_COLOR_BUFFER_BIT, GL_LINEAR));
-}
-
-void GPUDisplayBackendOpenGL::setMatrices(const hmm_mat4& proj, const hmm_mat4& view)
-{
-#ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (!mDisplay->cfgR().openGLCore) {
-    CHKERR(glMatrixMode(GL_PROJECTION));
-    CHKERR(glLoadMatrixf(&proj.Elements[0][0]));
-    CHKERR(glMatrixMode(GL_MODELVIEW));
-    CHKERR(glLoadMatrixf(&view.Elements[0][0]));
-  } else
-#endif
-  {
-    const hmm_mat4 modelViewProj = proj * view;
-    if (mSPIRVShaders) {
-      glBindBuffer(GL_UNIFORM_BUFFER, mSPIRVModelViewBuffer);
-      glBufferData(GL_UNIFORM_BUFFER, sizeof(modelViewProj), &modelViewProj, GL_STATIC_DRAW);
-      glBindBufferBase(GL_UNIFORM_BUFFER, 0, mSPIRVModelViewBuffer);
-    } else {
-      CHKERR(glUniformMatrix4fv(mModelViewProjId, 1, GL_FALSE, &modelViewProj.Elements[0][0]));
-    }
-  }
 }
 
 void GPUDisplayBackendOpenGL::mixImages(GLfb& mixBuffer, float mixSlaveImage)

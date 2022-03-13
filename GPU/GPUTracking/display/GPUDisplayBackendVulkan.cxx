@@ -415,11 +415,6 @@ void GPUDisplayBackendVulkan::createDevice()
     }
   }
 
-  /*VkWin32SurfaceCreateInfoKHR surfaceCreateInfo{};
-  surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-  surfaceCreateInfo.hwnd = glfwGetWin32Window(window);
-  surfaceCreateInfo.hinstance = GetModuleHandle(nullptr);
-  CHKERR(vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface))*/
   if (mDisplay->frontend()->getVulkanSurface(&mInstance, &mSurface)) {
     throw std::runtime_error("Frontend does not provide Vulkan surface");
   }
@@ -440,8 +435,7 @@ void GPUDisplayBackendVulkan::createDevice()
     vkGetPhysicalDeviceProperties(device, &deviceProperties);
     VkPhysicalDeviceFeatures deviceFeatures;
     vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-    if (deviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU ||
-        !deviceFeatures.geometryShader) {
+    if (deviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU || !deviceFeatures.geometryShader || !deviceFeatures.wideLines || !deviceFeatures.largePoints) {
       continue;
     }
 
@@ -879,7 +873,7 @@ void GPUDisplayBackendVulkan::createPipeline()
   rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
   rasterizer.depthClampEnable = VK_FALSE;
   rasterizer.rasterizerDiscardEnable = VK_FALSE;
-  rasterizer.polygonMode = VK_POLYGON_MODE_FILL; // TODO: change me!
+  rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
   rasterizer.lineWidth = 1.0f;                   // TODO: change me
   rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
   rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
@@ -919,14 +913,12 @@ void GPUDisplayBackendVulkan::createPipeline()
   colorBlending.blendConstants[2] = 0.0f;
   colorBlending.blendConstants[3] = 0.0f;
 
-  /*VkDynamicState dynamicStates[] = {
-    VK_DYNAMIC_STATE_VIEWPORT,
-    VK_DYNAMIC_STATE_LINE_WIDTH
-  };
+  VkDynamicState dynamicStates[] = {
+    VK_DYNAMIC_STATE_LINE_WIDTH};
   VkPipelineDynamicStateCreateInfo dynamicState{};
   dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-  dynamicState.dynamicStateCount = 2;
-  dynamicState.pDynamicStates = dynamicStates;*/
+  dynamicState.dynamicStateCount = 1;
+  dynamicState.pDynamicStates = dynamicStates;
 
   VkPushConstantRange pushConstantRange{};
   pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -953,7 +945,7 @@ void GPUDisplayBackendVulkan::createPipeline()
   pipelineInfo.pMultisampleState = &multisampling;
   pipelineInfo.pDepthStencilState = nullptr; // Optional
   pipelineInfo.pColorBlendState = &colorBlending;
-  pipelineInfo.pDynamicState = nullptr; // Optional
+  pipelineInfo.pDynamicState = &dynamicState;
   // pipelineInfo.layout // below
   // pipelineInfo.renderPass // below
   pipelineInfo.subpass = 0;
@@ -1272,10 +1264,6 @@ void GPUDisplayBackendVulkan::clearScreen(bool colorOnly)
 {
 }
 
-void GPUDisplayBackendVulkan::updateSettings()
-{
-}
-
 void GPUDisplayBackendVulkan::loadDataToGPU(size_t totalVertizes)
 {
   vkDeviceWaitIdle(mDevice);
@@ -1291,7 +1279,7 @@ void GPUDisplayBackendVulkan::loadDataToGPU(size_t totalVertizes)
   needRecordCommandBuffers();
 }
 
-void GPUDisplayBackendVulkan::prepareDraw()
+void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view)
 {
   hasDrawnText = false;
   if (mDisplay->updateDrawCommands()) {
@@ -1308,6 +1296,9 @@ void GPUDisplayBackendVulkan::prepareDraw()
   }
   CHKERR(retVal);
   vkResetFences(mDevice, 1, &mInFlightFence[mCurrentFrame]);
+
+  const hmm_mat4 modelViewProj = proj * view;
+  writeToBuffer(mUniformBuffersMat[0][mImageIndex], sizeof(modelViewProj), &modelViewProj);
 
   if (!mCommandBufferUpToDate[mImageIndex]) {
     startFillCommandBuffer(mCommandBuffers[mImageIndex], mImageIndex);
@@ -1412,12 +1403,6 @@ void GPUDisplayBackendVulkan::renderOffscreenBuffer(GLfb& buffer, GLfb& bufferNo
 {
 }
 
-void GPUDisplayBackendVulkan::setMatrices(const hmm_mat4& proj, const hmm_mat4& view)
-{
-  const hmm_mat4 modelViewProj = proj * view;
-  writeToBuffer(mUniformBuffersMat[0][mImageIndex], sizeof(modelViewProj), &modelViewProj);
-}
-
 void GPUDisplayBackendVulkan::mixImages(GLfb& mixBuffer, float mixSlaveImage)
 {
   {
@@ -1435,6 +1420,10 @@ void GPUDisplayBackendVulkan::pointSizeFactor(float factor)
 
 void GPUDisplayBackendVulkan::lineWidthFactor(float factor)
 {
+  if (mCommandBufferUpToDate[mImageIndex]) {
+    return;
+  }
+  vkCmdSetLineWidth(mCommandBuffers[mImageIndex], mDisplay->cfgL().lineWidth * (mDisplay->cfgR().drawQualityDownsampleFSAA > 1 ? mDisplay->cfgR().drawQualityDownsampleFSAA : 1) * factor);
 }
 
 void GPUDisplayBackendVulkan::needRecordCommandBuffers()

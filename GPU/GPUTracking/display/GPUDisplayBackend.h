@@ -95,14 +95,12 @@ class GPUDisplayBackend
   int InitBackend();
   void ExitBackend();
   virtual void clearScreen(bool colorOnly = false) = 0;
-  virtual void updateSettings() = 0;
   virtual void loadDataToGPU(size_t totalVertizes) = 0;
-  virtual void prepareDraw() = 0;
+  virtual void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view) = 0;
   virtual void finishDraw() = 0;
   virtual void finishFrame() = 0;
   virtual void prepareText() = 0;
   virtual void finishText() = 0;
-  virtual void setMatrices(const hmm_mat4& proj, const hmm_mat4& view) = 0;
   virtual void mixImages(GLfb& mixBuffer, float mixSlaveImage) = 0;
   virtual void renderOffscreenBuffer(GLfb& buffer, GLfb& bufferNoMSAA, int mainBuffer) = 0;
   virtual void readPixels(unsigned char* pixels, bool needBuffer, unsigned int width, unsigned int height) = 0;

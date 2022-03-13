@@ -56,14 +56,12 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   int InitBackendA() override;
   void ExitBackendA() override;
   void clearScreen(bool colorOnly = false) override;
-  void updateSettings() override;
   void loadDataToGPU(size_t totalVertizes) override;
-  void prepareDraw() override;
+  void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view) override;
   void finishDraw() override;
   void finishFrame() override;
   void prepareText() override;
   void finishText() override;
-  void setMatrices(const hmm_mat4& proj, const hmm_mat4& view) override;
   void mixImages(GLfb& mixBuffer, float mixSlaveImage) override;
   void renderOffscreenBuffer(GLfb& buffer, GLfb& bufferNoMSAA, int mainBuffer) override;
   void readPixels(unsigned char* pixels, bool needBuffer, unsigned int width, unsigned int height) override;
