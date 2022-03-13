@@ -302,6 +302,16 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
          mLoopsDone, link.origin.as<std::string>(), link.description.as<std::string>(), link.subspec);
   }
 
+  // Update TimingInfo with the correct information so that we can
+  // create messages with the correct value when using DataAllocator
+  auto& timingInfo = ctx.services().get<TimingInfo>();
+  timingInfo.firstTFOrbit = firstOrbit;
+  timingInfo.creation = creationTime;
+  timingInfo.tfCounter = mTFCounter;
+  // The one from the inputs are proabably ok?
+  // timingInfo.runNumber = runNumber;
+  // timingInfo.timeslice = timeslice;
+
   // send sTF acknowledge message
   unsigned stfSS[2] = {0, 0xccdb};
   for (int iss = 0; iss < 2; iss++) {
