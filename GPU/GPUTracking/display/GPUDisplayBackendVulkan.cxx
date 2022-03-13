@@ -139,7 +139,6 @@ void GPUDisplayBackendVulkan::setQuality()
 void GPUDisplayBackendVulkan::SetVSync(bool enable)
 {
   recreateSwapChain();
-  needRecordCommandBuffers();
 }
 
 void GPUDisplayBackendVulkan::setDepthBuffer()
@@ -343,6 +342,91 @@ void GPUDisplayBackendVulkan::transitionImageLayout(VkImage image, VkFormat form
   submitSingleTimeCommandBuffer(commandBuffer);
 }
 
+static VkImageView createImageViewI(VkDevice device, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT, uint32_t mipLevels = 1)
+{
+  VkImageViewCreateInfo viewInfo{};
+  viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+  viewInfo.image = image;
+  viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  viewInfo.format = format;
+  viewInfo.subresourceRange.aspectMask = aspectFlags;
+  viewInfo.subresourceRange.baseMipLevel = 0;
+  viewInfo.subresourceRange.levelCount = mipLevels;
+  viewInfo.subresourceRange.baseArrayLayer = 0;
+  viewInfo.subresourceRange.layerCount = 1;
+  VkImageView imageView;
+  CHKERR(vkCreateImageView(device, &viewInfo, nullptr, &imageView));
+
+  return imageView;
+}
+
+static void createImageI(VkDevice device, VkPhysicalDevice physicalDevice, VkImage& image, VkDeviceMemory& imageMemory, uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL, VkSampleCountFlagBits numSamples = VK_SAMPLE_COUNT_1_BIT, uint32_t mipLevels = 1)
+{
+  VkImageCreateInfo imageInfo{};
+  imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+  imageInfo.imageType = VK_IMAGE_TYPE_2D;
+  imageInfo.extent.width = width;
+  imageInfo.extent.height = height;
+  imageInfo.extent.depth = 1;
+  imageInfo.mipLevels = mipLevels;
+  imageInfo.arrayLayers = 1;
+  imageInfo.format = format;
+  imageInfo.tiling = tiling;
+  imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  imageInfo.usage = usage;
+  imageInfo.samples = numSamples;
+  imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  CHKERR(vkCreateImage(device, &imageInfo, nullptr, &image));
+
+  VkMemoryRequirements memRequirements;
+  vkGetImageMemoryRequirements(device, image, &memRequirements);
+
+  VkMemoryAllocateInfo allocInfo{};
+  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+  allocInfo.allocationSize = memRequirements.size;
+  allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties, physicalDevice);
+  CHKERR(vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory));
+
+  vkBindImageMemory(device, image, imageMemory, 0);
+}
+
+VkSampleCountFlagBits getMaxUsableSampleCount(VkPhysicalDeviceProperties& physicalDeviceProperties)
+{
+  VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
+  if (counts & VK_SAMPLE_COUNT_64_BIT) {
+    return VK_SAMPLE_COUNT_64_BIT;
+  } else if (counts & VK_SAMPLE_COUNT_32_BIT) {
+    return VK_SAMPLE_COUNT_32_BIT;
+  } else if (counts & VK_SAMPLE_COUNT_16_BIT) {
+    return VK_SAMPLE_COUNT_16_BIT;
+  } else if (counts & VK_SAMPLE_COUNT_8_BIT) {
+    return VK_SAMPLE_COUNT_8_BIT;
+  } else if (counts & VK_SAMPLE_COUNT_4_BIT) {
+    return VK_SAMPLE_COUNT_4_BIT;
+  } else if (counts & VK_SAMPLE_COUNT_2_BIT) {
+    return VK_SAMPLE_COUNT_2_BIT;
+  }
+  return VK_SAMPLE_COUNT_1_BIT;
+}
+
+static VkSampleCountFlagBits getMSAASamplesFlag(unsigned int msaa)
+{
+  if (msaa == 2) {
+    return VK_SAMPLE_COUNT_2_BIT;
+  } else if (msaa == 4) {
+    return VK_SAMPLE_COUNT_4_BIT;
+  } else if (msaa == 8) {
+    return VK_SAMPLE_COUNT_8_BIT;
+  } else if (msaa == 16) {
+    return VK_SAMPLE_COUNT_16_BIT;
+  } else if (msaa == 32) {
+    return VK_SAMPLE_COUNT_32_BIT;
+  } else if (msaa == 64) {
+    return VK_SAMPLE_COUNT_64_BIT;
+  }
+  return VK_SAMPLE_COUNT_1_BIT;
+}
+
 // ---------------------------- VULKAN DEVICE MANAGEMENT ----------------------------
 
 double GPUDisplayBackendVulkan::checkDevice(VkPhysicalDevice device, const std::vector<const char*>& reqDeviceExtensions)
@@ -527,6 +611,7 @@ void GPUDisplayBackendVulkan::createDevice()
   VkPhysicalDeviceFeatures deviceFeatures;
   vkGetPhysicalDeviceFeatures(mPhysicalDevice, &deviceFeatures);
   GPUInfo("Using physicak Vulkan device %s", deviceProperties.deviceName);
+  mMaxMSAAsupported = getMaxUsableSampleCount(deviceProperties);
 
   updateSwapChainDetails(mPhysicalDevice);
   uint32_t imageCount = mSwapChainDetails->capabilities.minImageCount + 1;
@@ -731,6 +816,8 @@ void GPUDisplayBackendVulkan::clearTextureSampler()
 
 void GPUDisplayBackendVulkan::createSwapChain()
 {
+  mMSAASampleCount = getMSAASamplesFlag(std::min<unsigned int>(mMaxMSAAsupported, mDisplay->cfgR().drawQualityMSAA));
+
   updateSwapChainDetails(mPhysicalDevice);
   mSurfaceFormat = chooseSwapSurfaceFormat(mSwapChainDetails->formats);
   mPresentMode = chooseSwapPresentMode(mSwapChainDetails->presentModes, mDisplay->cfgR().drawQualityVSync ? VK_PRESENT_MODE_MAILBOX_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR);
@@ -757,16 +844,28 @@ void GPUDisplayBackendVulkan::createSwapChain()
 
   VkAttachmentDescription colorAttachment{};
   colorAttachment.format = mSurfaceFormat.format;
-  colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+  colorAttachment.samples = mMSAASampleCount;
   colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
   colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
   colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
   colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
   colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+  VkAttachmentDescription colorAttachmentResolve{};
+  colorAttachmentResolve.format = mSurfaceFormat.format;
+  colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
+  colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+  colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
   VkAttachmentReference colorAttachmentRef{};
   colorAttachmentRef.attachment = 0;
   colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  VkAttachmentReference colorAttachmentResolveRef{};
+  colorAttachmentResolveRef.attachment = 1;
+  colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
   VkSubpassDescription subpass{};
   subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
   subpass.colorAttachmentCount = 1;
@@ -778,61 +877,86 @@ void GPUDisplayBackendVulkan::createSwapChain()
   dependency.srcAccessMask = 0;
   dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
   dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+  std::vector<VkAttachmentDescription> attachments = {colorAttachment};
+  if (mDisplay->cfgR().drawQualityMSAA) {
+    attachments.emplace_back(colorAttachmentResolve);
+    subpass.pResolveAttachments = &colorAttachmentResolveRef;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  }
+
   VkRenderPassCreateInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-  renderPassInfo.attachmentCount = 1;
-  renderPassInfo.pAttachments = &colorAttachment;
+  renderPassInfo.attachmentCount = attachments.size();
+  renderPassInfo.pAttachments = attachments.data();
   renderPassInfo.subpassCount = 1;
   renderPassInfo.pSubpasses = &subpass;
   renderPassInfo.dependencyCount = 1;
   renderPassInfo.pDependencies = &dependency;
   CHKERR(vkCreateRenderPass(mDevice, &renderPassInfo, nullptr, &mRenderPass));
 
+  // Text overlay goes as extra rendering path
+  renderPassInfo.attachmentCount = 1;
+  renderPassInfo.pAttachments = &colorAttachment;
   colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
   colorAttachment.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+  colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+  subpass.pResolveAttachments = nullptr;
+  colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
   CHKERR(vkCreateRenderPass(mDevice, &renderPassInfo, nullptr, &mRenderPassText));
 
   vkGetSwapchainImagesKHR(mDevice, mSwapChain, &mImageCount, nullptr);
-  mImages.resize(mImageCount);
-  vkGetSwapchainImagesKHR(mDevice, mSwapChain, &mImageCount, mImages.data());
-
-  mImageViews.resize(mImages.size());
-  mFramebuffers.resize(mImages.size());
-  for (size_t i = 0; i < mImages.size(); i++) {
-    VkImageViewCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    createInfo.image = mImages[i];
-    createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    createInfo.format = mSurfaceFormat.format;
-    createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-    createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-    createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-    createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-    createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    createInfo.subresourceRange.baseMipLevel = 0;
-    createInfo.subresourceRange.levelCount = 1;
-    createInfo.subresourceRange.baseArrayLayer = 0;
-    createInfo.subresourceRange.layerCount = 1;
-    CHKERR(vkCreateImageView(mDevice, &createInfo, nullptr, &mImageViews[i]));
+  mSwapChainImages.resize(mImageCount);
+  vkGetSwapchainImagesKHR(mDevice, mSwapChain, &mImageCount, mSwapChainImages.data());
+  mSwapChainImageViews.resize(mSwapChainImages.size());
+  mFramebuffers.resize(mSwapChainImages.size());
+  if (mDisplay->cfgR().drawQualityMSAA) {
+    mFramebuffersText.resize(mSwapChainImages.size());
+    mMSAAImages.resize(mSwapChainImages.size());
+  }
+  for (size_t i = 0; i < mSwapChainImages.size(); i++) {
+    mSwapChainImageViews[i] = createImageViewI(mDevice, mSwapChainImages[i], mSurfaceFormat.format);
+    std::vector<VkImageView> att;
+    if (mDisplay->cfgR().drawQualityMSAA) {
+      createImageI(mDevice, mPhysicalDevice, mMSAAImages[i].image, mMSAAImages[i].memory, mExtent.width, mExtent.height, mSurfaceFormat.format, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_TILING_OPTIMAL, mMSAASampleCount);
+      mMSAAImages[i].view = createImageViewI(mDevice, mMSAAImages[i].image, mSurfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+      att.emplace_back(mMSAAImages[i].view);
+    }
+    att.emplace_back(mSwapChainImageViews[i]);
 
     VkFramebufferCreateInfo framebufferInfo{};
     framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     framebufferInfo.renderPass = mRenderPass;
-    framebufferInfo.attachmentCount = 1;
-    framebufferInfo.pAttachments = &mImageViews[i];
+    framebufferInfo.attachmentCount = att.size();
+    framebufferInfo.pAttachments = att.data();
     framebufferInfo.width = mExtent.width;
     framebufferInfo.height = mExtent.height;
     framebufferInfo.layers = 1;
     CHKERR(vkCreateFramebuffer(mDevice, &framebufferInfo, nullptr, &mFramebuffers[i]));
+
+    if (mDisplay->cfgR().drawQualityMSAA) {
+      framebufferInfo.attachmentCount = 1;
+      framebufferInfo.pAttachments = &mSwapChainImageViews[i];
+      framebufferInfo.renderPass = mRenderPassText;
+      CHKERR(vkCreateFramebuffer(mDevice, &framebufferInfo, nullptr, &mFramebuffersText[i]));
+    }
   }
 }
 
 void GPUDisplayBackendVulkan::clearSwapChain()
 {
-  for (unsigned int i = 0; i < mImages.size(); i++) {
+  for (unsigned int i = 0; i < mSwapChainImages.size(); i++) {
     vkDestroyFramebuffer(mDevice, mFramebuffers[i], nullptr);
-    vkDestroyImageView(mDevice, mImageViews[i], nullptr);
+    vkDestroyImageView(mDevice, mSwapChainImageViews[i], nullptr);
   }
+  for (auto& img : mMSAAImages) {
+    clearImage(img);
+  }
+  for (auto& fb : mFramebuffersText) {
+    vkDestroyFramebuffer(mDevice, fb, nullptr);
+  }
+  mMSAAImages.resize(0);
+  mFramebuffersText.resize(0);
   vkDestroySwapchainKHR(mDevice, mSwapChain, nullptr);
 }
 
@@ -843,6 +967,7 @@ void GPUDisplayBackendVulkan::recreateSwapChain()
   clearSwapChain();
   createSwapChain();
   createPipeline();
+  needRecordCommandBuffers();
 }
 
 // ---------------------------- VULKAN PIPELINE ----------------------------
@@ -918,7 +1043,7 @@ void GPUDisplayBackendVulkan::createPipeline()
   VkPipelineMultisampleStateCreateInfo multisampling{};
   multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
   multisampling.sampleShadingEnable = VK_FALSE;
-  multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+  // multisampling.rasterizationSamples // below
   multisampling.minSampleShading = 1.0f;          // Optional
   multisampling.pSampleMask = nullptr;            // Optional
   multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
@@ -1001,6 +1126,7 @@ void GPUDisplayBackendVulkan::createPipeline()
       pipelineInfo.layout = mPipelineLayoutText;
       pipelineInfo.renderPass = mRenderPassText;
       colorBlendAttachment.blendEnable = VK_TRUE;
+      multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
     } else {
       bindingDescription.stride = 3 * sizeof(float);
       attributeDescriptions.format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -1009,7 +1135,8 @@ void GPUDisplayBackendVulkan::createPipeline()
       fragShaderStageInfo.module = mShaders["fragment"];
       pipelineInfo.layout = mPipelineLayout;
       pipelineInfo.renderPass = mRenderPass;
-      colorBlendAttachment.blendEnable = VK_FALSE;
+      colorBlendAttachment.blendEnable = VK_TRUE;
+      multisampling.rasterizationSamples = mMSAASampleCount;
     }
 
     CHKERR(vkCreateGraphicsPipelines(mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipelines[i]));
@@ -1190,43 +1317,9 @@ void GPUDisplayBackendVulkan::writeToImage(VulkanImage& image, const void* srcDa
 VulkanImage GPUDisplayBackendVulkan::createImage(unsigned int sizex, unsigned int sizey, const void* srcData, size_t srcSize, VkFormat format)
 {
   VulkanImage image;
-  VkImageCreateInfo imageInfo{};
-  imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-  imageInfo.imageType = VK_IMAGE_TYPE_2D;
-  imageInfo.extent.width = sizex;
-  imageInfo.extent.height = sizey;
-  imageInfo.extent.depth = 1;
-  imageInfo.mipLevels = 1;
-  imageInfo.arrayLayers = 1;
-  imageInfo.format = format;
-  imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-  imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-  imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-  imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-  imageInfo.flags = 0; // Optional
-  CHKERR(vkCreateImage(mDevice, &imageInfo, nullptr, &image.image));
+  createImageI(mDevice, mPhysicalDevice, image.image, image.memory, sizex, sizey, format, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_TILING_OPTIMAL, VK_SAMPLE_COUNT_1_BIT);
 
-  VkMemoryRequirements memRequirements;
-  vkGetImageMemoryRequirements(mDevice, image.image, &memRequirements);
-  VkMemoryAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mPhysicalDevice);
-  CHKERR(vkAllocateMemory(mDevice, &allocInfo, nullptr, &image.memory));
-  vkBindImageMemory(mDevice, image.image, image.memory, 0);
-
-  VkImageViewCreateInfo viewInfo{};
-  viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-  viewInfo.image = image.image;
-  viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-  viewInfo.format = format;
-  viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  viewInfo.subresourceRange.baseMipLevel = 0;
-  viewInfo.subresourceRange.levelCount = 1;
-  viewInfo.subresourceRange.baseArrayLayer = 0;
-  viewInfo.subresourceRange.layerCount = 1;
-  CHKERR(vkCreateImageView(mDevice, &viewInfo, nullptr, &image.view));
+  image.view = createImageViewI(mDevice, image.image, format);
 
   image.sizex = sizex;
   image.sizey = sizey;
@@ -1293,7 +1386,6 @@ void GPUDisplayBackendVulkan::resizeScene(unsigned int width, unsigned int heigh
   /*if (mExtent.width != width || mExtent.height != height) {
     std::cout << "Unmatching window size: requested " << width << " x " << height << " - found " << mExtent.width << " x " << mExtent.height << "\n";
   }*/
-  needRecordCommandBuffers();
 }
 
 void GPUDisplayBackendVulkan::clearScreen(bool colorOnly)
@@ -1323,11 +1415,13 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
   }
   vkWaitForFences(mDevice, 1, &mInFlightFence[mCurrentFrame], VK_TRUE, UINT64_MAX);
 
+  if (mDisplay->updateRenderPipeline()) {
+    recreateSwapChain();
+  }
   VkResult retVal = vkAcquireNextImageKHR(mDevice, mSwapChain, UINT64_MAX, mImageAvailableSemaphore[mCurrentFrame], VK_NULL_HANDLE, &mImageIndex);
   if (retVal == VK_ERROR_OUT_OF_DATE_KHR || retVal == VK_SUBOPTIMAL_KHR) {
     std::cout << "Pipeline out of data / suboptimal, recreating\n";
     recreateSwapChain();
-    needRecordCommandBuffers();
     retVal = vkAcquireNextImageKHR(mDevice, mSwapChain, UINT64_MAX, mImageAvailableSemaphore[mCurrentFrame], VK_NULL_HANDLE, &mImageIndex);
   }
   CHKERR(retVal);
@@ -1408,7 +1502,7 @@ void GPUDisplayBackendVulkan::finishText()
   VkRenderPassBeginInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   renderPassInfo.renderPass = mRenderPassText;
-  renderPassInfo.framebuffer = mFramebuffers[mImageIndex];
+  renderPassInfo.framebuffer = mFramebuffersText.size() ? mFramebuffersText[mImageIndex] : mFramebuffers[mImageIndex];
   renderPassInfo.renderArea.offset = {0, 0};
   renderPassInfo.renderArea.extent = mExtent;
   renderPassInfo.clearValueCount = 0;

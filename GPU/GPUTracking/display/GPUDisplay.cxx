@@ -2229,7 +2229,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     }
   }
 
-  mUpdateDrawCommands = 0;
+  mUpdateDrawCommands = mUpdateRenderPipeline = 0;
   mBackend->finishDraw();
 
   if (mixSlaveImage > 0) {

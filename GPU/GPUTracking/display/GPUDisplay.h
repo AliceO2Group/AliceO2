@@ -102,6 +102,7 @@ class GPUDisplay
   int screenHeight() const { return mScreenheight; }
   bool useMultiVBO() const { return mUseMultiVBO; }
   int updateDrawCommands() const { return mUpdateDrawCommands; }
+  int updateRenderPipeline() const { return mUpdateRenderPipeline; }
   GPUDisplayBackend* backend() const { return mBackend.get(); }
   vecpod<int>* vertexBufferStart() { return mVertexBufferStart; }
   const vecpod<unsigned int>* vertexBufferCount() const { return mVertexBufferCount; }
@@ -321,6 +322,7 @@ class GPUDisplay
   int mUpdateVertexLists = 1;
   int mUpdateEventData = 0;
   int mUpdateDrawCommands = 1;
+  int mUpdateRenderPipeline = 0;
   volatile int mResetScene = 0;
 
   int mAnimate = 0;
