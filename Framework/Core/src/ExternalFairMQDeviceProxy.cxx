@@ -168,17 +168,16 @@ void sendOnChannel(FairMQDevice& device, FairMQMessagePtr&& headerMessage, FairM
   sendOnChannel(device, out, spec, tslice, channelRetriever);
 }
 
-InjectorFunction o2DataModelAdaptor(OutputSpec const& spec, uint64_t startTime, uint64_t step)
+InjectorFunction o2DataModelAdaptor(OutputSpec const& spec, uint64_t startTime, uint64_t /*step*/)
 {
   auto timesliceId = std::make_shared<size_t>(startTime);
-  return [timesliceId, step, spec](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
-    for (size_t i = 0; i < parts.Size() / 2; ++i) {
+  return [timesliceId, spec](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
+    for (int i = 0; i < parts.Size() / 2; ++i) {
       auto dh = o2::header::get<DataHeader*>(parts.At(i * 2)->GetData());
 
       DataProcessingHeader dph{*timesliceId, 0};
       o2::header::Stack headerStack{*dh, dph};
       sendOnChannel(device, std::move(headerStack), std::move(parts.At(i * 2 + 1)), spec, channelRetriever);
-      auto oldTimesliceId = *timesliceId;
       *timesliceId += 1;
     }
   };
@@ -197,7 +196,7 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
       warning();
     }
 
-    bool find(std::string const& desc) const
+    [[nodiscard]] bool find(std::string const& desc) const
     {
       return descriptions.find(desc) != std::string::npos;
     }
@@ -225,7 +224,7 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
     std::vector<std::string> unmatchedDescriptions;
     static int64_t dplCounter = -1;
     dplCounter++;
-    for (size_t msgidx = 0; msgidx < parts.Size(); msgidx += 2) {
+    for (int msgidx = 0; msgidx < parts.Size(); msgidx += 2) {
       const auto dh = o2::header::get<DataHeader*>(parts.At(msgidx)->GetData());
       if (!dh) {
         LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
@@ -244,7 +243,7 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
 
       OutputSpec query{dh->dataOrigin, dh->dataDescription, dh->subSpecification};
       LOG(debug) << "processing " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}) << " time slice " << dph->startTime << " part " << dh->splitPayloadIndex << " of " << dh->splitPayloadParts;
-      size_t finalBlockIndex = 0;
+      int finalBlockIndex = 0;
       std::string channelName = "";
 
       for (auto const& spec : filterSpecs) {
@@ -341,7 +340,7 @@ InjectorFunction incrementalConverter(OutputSpec const& spec, uint64_t startTime
   return [timesliceId, spec, step](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
     // We iterate on all the parts and we send them two by two,
     // adding the appropriate O2 header.
-    for (size_t i = 0; i < parts.Size(); ++i) {
+    for (int i = 0; i < parts.Size(); ++i) {
       DataHeader dh;
 
       // FIXME: this only supports fully specified output specs...
@@ -407,12 +406,12 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
             return route.channel;
           }
         }
-        return std::string("");
+        return {""};
       };
 
       auto checkEos = [&inputs]() -> bool {
         std::string channelNameForSplitParts;
-        for (size_t msgidx = 0; msgidx < inputs.Size() / 2; ++msgidx) {
+        for (int msgidx = 0; msgidx < inputs.Size() / 2; ++msgidx) {
           auto const sih = o2::header::get<SourceInfoHeader*>(inputs.At(msgidx * 2)->GetData());
           if (sih != nullptr && sih->state == InputChannelState::Completed) {
             return true;
@@ -450,7 +449,6 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
   return spec;
 }
 
-static char const* gDefaultChannel = "downstream";
 // Decide where to sent the output. Everything to "downstream" if there is such a channel.
 std::string defaultOutputProxyChannelSelector(InputSpec const& input, const std::unordered_map<std::string, std::vector<FairMQChannel>>& channels)
 {
@@ -470,7 +468,7 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
     // FIXME: even if a --channel-config option is specified on the command line, always the default string
     // is retrieved from the config registry. The channel name thus needs to be configured in the default
     // string AND must match the name in an optional channel config.
-    std::string channelConfig = options.get<std::string>("channel-config");
+    auto channelConfig = options.get<std::string>("channel-config");
     std::regex r{R"(name=([^,]*))"};
     std::vector<std::string> values{std::sregex_token_iterator{std::begin(channelConfig), std::end(channelConfig), r, 1},
                                     std::sregex_token_iterator{}};
@@ -530,13 +528,13 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
         FairMQParts out;
         out.AddPart(std::move(headerMessage));
         // add empty payload message
-        out.AddPart(std::move(device->NewMessageFor(channelName, 0, 0)));
+        out.AddPart(device->NewMessageFor(channelName, 0, 0));
         sendOnChannel(*device, out, channelName);
       }
     };
     callbacks.set(CallbackService::Id::EndOfStream, forwardEos);
 
-    return adaptStateless([lastDataProcessingHeader](RawDeviceService& rds, InputRecord& inputs) {
+    return adaptStateless([lastDataProcessingHeader](InputRecord& inputs) {
       for (size_t ii = 0; ii != inputs.size(); ++ii) {
         for (size_t pi = 0; pi < inputs.getNofParts(ii); ++pi) {
           auto part = inputs.getByPos(ii, pi);
@@ -635,13 +633,13 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
         FairMQParts out;
         out.AddPart(std::move(headerMessage));
         // add empty payload message
-        out.AddPart(std::move(device->NewMessageFor(channelName, 0, 0)));
+        out.AddPart(device->NewMessageFor(channelName, 0, 0));
         sendOnChannel(*device, out, channelName);
       }
     };
     callbacks.set(CallbackService::Id::EndOfStream, forwardEos);
 
-    return adaptStateless([channelSelector, lastDataProcessingHeader](RawDeviceService& rds, InputRecord& inputs) {
+    return adaptStateless([channelSelector, lastDataProcessingHeader](InputRecord& inputs) {
       // there is nothing to do if the forwarding is handled on the framework level
       // as forward routes but we need to keep a copy of the last DataProcessingHeader
       // for sending the EOS
