@@ -229,7 +229,6 @@ void GPUDisplayBackendOpenGL::ActivateColor(std::array<float, 4>& color)
 
 void GPUDisplayBackendOpenGL::setQuality()
 {
-  // Doesn't seem to make a difference in this applicattion
   if (mDisplay->cfgR().drawQualityMSAA > 1) {
     CHKERR(glEnable(GL_MULTISAMPLE));
   } else {

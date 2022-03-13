@@ -1730,15 +1730,6 @@ void GPUDisplayBackendVulkan::deleteFB(GLfb& fb)
   fb.created = false;
 }
 
-void GPUDisplayBackendVulkan::setQuality()
-{
-}
-
-void GPUDisplayBackendVulkan::SetVSync(bool enable)
-{
-  recreateSwapChain();
-}
-
 void GPUDisplayBackendVulkan::setDepthBuffer()
 {
 }
@@ -1756,4 +1747,9 @@ void GPUDisplayBackendVulkan::mixImages(GLfb& mixBuffer, float mixSlaveImage)
   {
     GPUWarning("Image mixing unsupported in Vulkan profile");
   }
+}
+
+bool GPUDisplayBackendVulkan::backendNeedRedraw()
+{
+  return !mCommandBufferUpToDate[mImageIndex];
 }
