@@ -106,7 +106,7 @@ void sendOnChannel(FairMQDevice& device, FairMQParts& messages, std::string cons
   // method to clear the content.
   // Maybe the FairMQ API can be improved at some point. Actually the ownership of all messages should be passed
   // on to the transport and the messages should be empty after sending and the parts content can be cleared.
-  //assert(std::accumulate(messages.begin(), messages.end(), true, [](bool a, auto const& msg) {return a && (msg.get() == nullptr);}));
+  // assert(std::accumulate(messages.begin(), messages.end(), true, [](bool a, auto const& msg) {return a && (msg.get() == nullptr);}));
   messages.fParts.clear();
 }
 
@@ -271,14 +271,14 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
       assert(finalBlockIndex >= msgidx + 2);
       if (finalBlockIndex > parts.Size()) {
         // TODO error handling
-        //LOGP(error, "DataHeader::splitPayloadParts invalid");
+        // LOGP(error, "DataHeader::splitPayloadParts invalid");
         continue;
       }
 
       if (!channelName.empty()) {
         // the checks for consistency of split payload parts are of informative nature
         // forwarding happens independently
-        //if (dh->splitPayloadParts > 1 && dh->splitPayloadParts != std::numeric_limits<decltype(dh->splitPayloadParts)>::max()) {
+        // if (dh->splitPayloadParts > 1 && dh->splitPayloadParts != std::numeric_limits<decltype(dh->splitPayloadParts)>::max()) {
         //  if (lastSplitPartIndex == -1 && dh->splitPayloadIndex != 0) {
         //    LOG(warning) << "wrong split part index, expecting the first of " << dh->splitPayloadParts << " part(s)";
         //  } else if (dh->splitPayloadIndex != lastSplitPartIndex + 1) {
@@ -352,7 +352,7 @@ InjectorFunction incrementalConverter(OutputSpec const& spec, uint64_t startTime
 
       DataProcessingHeader dph{*timesliceId, 0};
       *timesliceId += step;
-      //we have to move the incoming data
+      // we have to move the incoming data
       o2::header::Stack headerStack{dh, dph};
 
       sendOnChannel(device, std::move(headerStack), std::move(parts.At(i)), spec, channelRetriever);
@@ -438,6 +438,21 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
 
       FairMQParts parts;
       device->Receive(parts, channel, 0);
+      // Populate TimingInfo from the first message
+      if (parts.Size() != 0) {
+        auto const dh = o2::header::get<DataHeader*>(parts.At(0)->GetData());
+        auto& timingInfo = ctx.services().get<TimingInfo>();
+        if (dh != nullptr) {
+          timingInfo.runNumber = dh->runNumber;
+          timingInfo.firstTFOrbit = dh->firstTForbit;
+          timingInfo.tfCounter = dh->tfCounter;
+        }
+        auto const dph = o2::header::get<DataProcessingHeader*>(parts.At(0)->GetData());
+        if (dph != nullptr) {
+          timingInfo.timeslice = dph->startTime;
+          timingInfo.creation = dph->creation;
+        }
+      }
       dataHandler(parts, 0);
     };
 
