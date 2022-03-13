@@ -113,6 +113,7 @@ class GPUDisplayBackend
   virtual void OpenGLPrint(const char* s, float x, float y, float* color, float scale) = 0;
   static GPUDisplayBackend* getBackend(const char* type);
   std::vector<char> getPixels();
+  virtual float getYFactor() const { return 1.0f; }
 
  protected:
   GPUDisplay* mDisplay = nullptr;
