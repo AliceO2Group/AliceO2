@@ -2361,7 +2361,7 @@ void GPUDisplay::showInfo(const char* info)
 {
   mBackend->prepareText();
   float colorValue = mCfgL.invertColors ? 0.f : 1.f;
-  OpenGLPrint(info, 40.f, 20.f + (mDrawTextFontSize + 8), colorValue, colorValue, colorValue, 1);
+  OpenGLPrint(info, 40.f, 20.f + std::max(20, mDrawTextFontSize + 4), colorValue, colorValue, colorValue, 1);
   if (mInfoText2Timer.IsRunning()) {
     if (mInfoText2Timer.GetCurrentElapsedTime() >= 6) {
       mInfoText2Timer.Reset();

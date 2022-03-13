@@ -283,6 +283,7 @@ int GPUDisplayFrontendGlfw::FrontendMain()
   glfwSetScrollCallback(mWindow, scroll_callback);
   glfwSetCursorPosCallback(mWindow, cursorPos_callback);
   glfwSetWindowSizeCallback(mWindow, resize_callback);
+  glfwSwapInterval(1);
 
   pthread_mutex_lock(&mSemLockExit);
   mGlfwRunning = true;

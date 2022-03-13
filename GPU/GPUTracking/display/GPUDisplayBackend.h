@@ -88,6 +88,7 @@ class GPUDisplayBackend
   virtual unsigned int drawVertices(const vboList& v, const drawType t) = 0;
   virtual void ActivateColor(std::array<float, 4>& color) = 0;
   virtual void setQuality() = 0;
+  virtual void SetVSync(bool enable){};
   virtual void setDepthBuffer() = 0;
   virtual void setFrameBuffer(int updateCurrent, unsigned int newID) = 0;
   virtual int InitBackendA() = 0;

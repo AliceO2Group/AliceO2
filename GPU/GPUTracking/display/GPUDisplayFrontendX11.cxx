@@ -312,7 +312,7 @@ int GPUDisplayFrontendX11::FrontendMain()
       GPUError("Cannot enable vsync");
       return (-1);
     }
-    mGlXSwapIntervalEXT(mDisplay, glXGetCurrentDrawable(), 0);
+    mGlXSwapIntervalEXT(mDisplay, glXGetCurrentDrawable(), 1);
   }
 
   if (InitDisplay()) {
