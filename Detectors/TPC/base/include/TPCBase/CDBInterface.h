@@ -46,6 +46,9 @@ enum class CDBType {
   CalPadGainResidual, ///< ResidualpPad gain calibration (e.g. from tracks)
   CalLaserTracks,     ///< Laser track calibration data
   CalTimeGain,        ///< Gain variation over time
+  CalGas,             ///< DCS gas measurements
+  CalTemperature,     ///< DCS temperature measurements
+  CalHV,              ///< DCS HV measurements
                       ///
   ConfigFEEPad,       ///< FEE pad-by-pad configuration map
                       ///
@@ -72,6 +75,9 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalPadGainResidual, "TPC/Calib/PadGainResidual"},
   {CDBType::CalLaserTracks, "TPC/Calib/LaserTracks"},
   {CDBType::CalTimeGain, "TPC/Calib/TimeGain"},
+  {CDBType::CalGas, "TPC/Calib/Gas"},
+  {CDBType::CalTemperature, "TPC/Calib/Temperature"},
+  {CDBType::CalHV, "TPC/Calib/HV"},
   //
   {CDBType::ConfigFEEPad, "TPC/Config/FEEPad"},
   //
@@ -292,6 +298,11 @@ class CDBStorage
     mCCDB.init(url.data());
   }
 
+  void clearMetaData()
+  {
+    mMetaData.clear();
+  }
+
   void setResponsible(std::string_view responsible)
   {
     mMetaData["Responsible"] = responsible;
@@ -321,6 +332,8 @@ class CDBStorage
   {
     mMetaData[o2::base::NameConf::CCDBRunTag.data()] = std::to_string(run);
   }
+
+  const auto& getMetaData() const { return mMetaData; }
 
   void setSimulate(bool sim = true) { mSimulate = sim; }
 
