@@ -80,8 +80,11 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   int mColorId;
   int mModelViewProjIdText;
   int mColorIdText;
+  unsigned int mSPIRVModelViewBuffer;
+  unsigned int mSPIRVColorBuffer;
 
   unsigned int VAO_text, VBO_text;
+  bool mSPIRVShaders = false;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

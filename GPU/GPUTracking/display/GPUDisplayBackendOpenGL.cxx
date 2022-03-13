@@ -31,7 +31,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
 #include "utils/qGetLdBinarySymbols.h"
 QGET_LD_BINARY_SYMBOLS(shaders_display_shaders_vertex_vert_spv);
-QGET_LD_BINARY_SYMBOLS(shaders_display_shaders_fragment_frag_spv);
+QGET_LD_BINARY_SYMBOLS(shaders_display_shaders_fragmentUniform_frag_spv);
 #endif
 
 // Runtime minimum version defined in GPUDisplayFrontend.h, keep in sync!
@@ -217,7 +217,13 @@ void GPUDisplayBackendOpenGL::ActivateColor(std::array<float, 4>& color)
   } else
 #endif
   {
-    CHKERR(glUniform4fv(mColorId, 1, &color[0]));
+    if (mSPIRVShaders) {
+      CHKERR(glBindBuffer(GL_UNIFORM_BUFFER, mSPIRVColorBuffer));
+      CHKERR(glBufferData(GL_UNIFORM_BUFFER, sizeof(color), &color[0], GL_STATIC_DRAW));
+      CHKERR(glBindBufferBase(GL_UNIFORM_BUFFER, 1, mSPIRVColorBuffer));
+    } else {
+      CHKERR(glUniform4fv(mColorId, 1, &color[0]));
+    }
   }
 }
 
@@ -253,6 +259,22 @@ void GPUDisplayBackendOpenGL::setFrameBuffer(int updateCurrent, unsigned int new
   }
 }
 
+static int checkShaderStatus(unsigned int shader)
+{
+  int status, loglen;
+  glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+  if (!status) {
+    printf("failed to compile shader\n");
+    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &loglen);
+    std::vector<char> buf(loglen + 1);
+    glGetShaderInfoLog(shader, loglen, nullptr, buf.data());
+    buf[loglen] = 0;
+    printf("%s\n", buf.data());
+    return 1;
+  }
+  return 0;
+}
+
 int GPUDisplayBackendOpenGL::InitBackendA()
 {
   int glVersion[2] = {0, 0};
@@ -277,12 +299,13 @@ int GPUDisplayBackendOpenGL::InitBackendA()
   CHKERR(mVertexShaderText = glCreateShader(GL_VERTEX_SHADER));
   CHKERR(mFragmentShaderText = glCreateShader(GL_FRAGMENT_SHADER));
 #if defined(GL_VERSION_4_6) && GL_VERSION_4_6 == 1 && defined(GPUCA_BUILD_EVENT_DISPLAY_VULKAN)
-  if (getenv("USE_VULKAN_SHADERS") && atoi(getenv("USE_VULKAN_SHADERS"))) {
+  if (getenv("USE_SPIRV_SHADERS") && atoi(getenv("USE_SPIRV_SHADERS"))) {
     CHKERR(glShaderBinary(1, &mVertexShader, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB, _binary_shaders_display_shaders_vertex_vert_spv_start, _binary_shaders_display_shaders_vertex_vert_spv_len));
     CHKERR(glSpecializeShader(mVertexShader, "main", 0, 0, 0));
-    CHKERR(glShaderBinary(1, &mFragmentShader, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB, _binary_shaders_display_shaders_fragment_frag_spv_start, _binary_shaders_display_shaders_fragment_frag_spv_len));
+    CHKERR(glShaderBinary(1, &mFragmentShader, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB, _binary_shaders_display_shaders_fragmentUniform_frag_spv_start, _binary_shaders_display_shaders_fragmentUniform_frag_spv_len));
     CHKERR(glSpecializeShader(mFragmentShader, "main", 0, 0, 0));
-    GPUInfo("Using Vulkan shaders");
+    GPUInfo("Using SPIR-V shaders");
+    mSPIRVShaders = true;
   } else
 #endif
   {
@@ -290,18 +313,26 @@ int GPUDisplayBackendOpenGL::InitBackendA()
     CHKERR(glCompileShader(mVertexShader));
     CHKERR(glShaderSource(mFragmentShader, 1, &GPUDisplayShaders::fragmentShader, nullptr));
     CHKERR(glCompileShader(mFragmentShader));
-    CHKERR(glShaderSource(mVertexShaderText, 1, &GPUDisplayShaders::vertexShaderText, nullptr));
-    CHKERR(glCompileShader(mVertexShaderText));
-    CHKERR(glShaderSource(mFragmentShaderText, 1, &GPUDisplayShaders::fragmentShaderText, nullptr));
-    CHKERR(glCompileShader(mFragmentShaderText));
+  }
+  CHKERR(glShaderSource(mVertexShaderText, 1, &GPUDisplayShaders::vertexShaderText, nullptr));
+  CHKERR(glCompileShader(mVertexShaderText));
+  CHKERR(glShaderSource(mFragmentShaderText, 1, &GPUDisplayShaders::fragmentShaderText, nullptr));
+  CHKERR(glCompileShader(mFragmentShaderText));
+  if (checkShaderStatus(mVertexShader) || checkShaderStatus(mFragmentShader) || checkShaderStatus(mVertexShaderText) || checkShaderStatus(mFragmentShaderText)) {
+    return 1;
   }
   CHKERR(mShaderProgram = glCreateProgram());
   CHKERR(glAttachShader(mShaderProgram, mVertexShader));
   CHKERR(glAttachShader(mShaderProgram, mFragmentShader));
   CHKERR(glLinkProgram(mShaderProgram));
   CHKERR(glGenVertexArrays(1, &mVertexArray));
-  CHKERR(mModelViewProjId = glGetUniformLocation(mShaderProgram, "ModelViewProj"));
-  CHKERR(mColorId = glGetUniformLocation(mShaderProgram, "color"));
+  if (mSPIRVShaders) {
+    CHKERR(glGenBuffers(1, &mSPIRVModelViewBuffer));
+    CHKERR(glGenBuffers(1, &mSPIRVColorBuffer));
+  } else {
+    CHKERR(mModelViewProjId = glGetUniformLocation(mShaderProgram, "ModelViewProj"));
+    CHKERR(mColorId = glGetUniformLocation(mShaderProgram, "color"));
+  }
   CHKERR(mShaderProgramText = glCreateProgram());
   CHKERR(glAttachShader(mShaderProgramText, mVertexShaderText));
   CHKERR(glAttachShader(mShaderProgramText, mFragmentShaderText));
@@ -328,6 +359,10 @@ void GPUDisplayBackendOpenGL::ExitBackendA()
     for (auto& symbol : mFontSymbols) {
       CHKERR(glDeleteTextures(1, &symbol.texId));
     }
+  }
+  if (mSPIRVShaders) {
+    CHKERR(glDeleteBuffers(1, &mSPIRVModelViewBuffer));
+    CHKERR(glDeleteBuffers(1, &mSPIRVColorBuffer));
   }
 }
 
@@ -470,7 +505,13 @@ void GPUDisplayBackendOpenGL::setMatrices(const hmm_mat4& proj, const hmm_mat4& 
 #endif
   {
     const hmm_mat4 modelViewProj = proj * view;
-    CHKERR(glUniformMatrix4fv(mModelViewProjId, 1, GL_FALSE, &modelViewProj.Elements[0][0]));
+    if (mSPIRVShaders) {
+      glBindBuffer(GL_UNIFORM_BUFFER, mSPIRVModelViewBuffer);
+      glBufferData(GL_UNIFORM_BUFFER, sizeof(modelViewProj), &modelViewProj, GL_STATIC_DRAW);
+      glBindBufferBase(GL_UNIFORM_BUFFER, 0, mSPIRVModelViewBuffer);
+    } else {
+      CHKERR(glUniformMatrix4fv(mModelViewProjId, 1, GL_FALSE, &modelViewProj.Elements[0][0]));
+    }
   }
 }
 
