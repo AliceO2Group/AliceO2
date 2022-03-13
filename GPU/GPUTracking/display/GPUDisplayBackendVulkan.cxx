@@ -345,6 +345,82 @@ void GPUDisplayBackendVulkan::transitionImageLayout(VkImage image, VkFormat form
 
 // ---------------------------- VULKAN DEVICE MANAGEMENT ----------------------------
 
+double GPUDisplayBackendVulkan::checkDevice(VkPhysicalDevice device, const std::vector<const char*>& reqDeviceExtensions)
+{
+  double score = -1.;
+  VkPhysicalDeviceProperties deviceProperties;
+  vkGetPhysicalDeviceProperties(device, &deviceProperties);
+  VkPhysicalDeviceFeatures deviceFeatures;
+  vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+  VkPhysicalDeviceMemoryProperties memoryProperties;
+  vkGetPhysicalDeviceMemoryProperties(device, &memoryProperties);
+  if (!deviceFeatures.geometryShader || !deviceFeatures.wideLines || !deviceFeatures.largePoints) {
+    return (-1);
+  }
+
+  uint32_t queueFamilyCount = 0;
+  vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+  std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+  vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+  bool found = false;
+  for (unsigned int i = 0; i < queueFamilies.size(); i++) {
+    if (!(queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
+      return (-1);
+    }
+    VkBool32 presentSupport = false;
+    vkGetPhysicalDeviceSurfaceSupportKHR(device, i, mSurface, &presentSupport);
+    if (!presentSupport) {
+      return (-1);
+    }
+    mQueueFamilyIndices->graphicsFamily = i;
+    found = true;
+    break;
+  }
+  if (!found) {
+    GPUInfo("%s ignored due to missing queue properties", deviceProperties.deviceName);
+    return (-1);
+  }
+
+  uint32_t deviceExtensionCount;
+  vkEnumerateDeviceExtensionProperties(device, nullptr, &deviceExtensionCount, nullptr);
+  std::vector<VkExtensionProperties> availableExtensions(deviceExtensionCount);
+  vkEnumerateDeviceExtensionProperties(device, nullptr, &deviceExtensionCount, availableExtensions.data());
+  unsigned int extensionsFound = 0;
+  for (unsigned int i = 0; i < reqDeviceExtensions.size(); i++) {
+    for (unsigned int j = 0; j < availableExtensions.size(); j++) {
+      if (strcmp(reqDeviceExtensions[i], availableExtensions[j].extensionName) == 0) {
+        extensionsFound++;
+        break;
+      }
+    }
+  }
+  if (extensionsFound < reqDeviceExtensions.size()) {
+    GPUInfo("%s ignored due to missing extensions", deviceProperties.deviceName);
+    return (-1);
+  }
+
+  updateSwapChainDetails(device);
+  if (mSwapChainDetails->formats.empty() || mSwapChainDetails->presentModes.empty()) {
+    GPUInfo("%s ignored due to incompatible swap chain", deviceProperties.deviceName);
+    return (-1);
+  }
+
+  score = 1;
+  if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+    score += 1e12;
+  } else if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
+    score += 1e11;
+  }
+
+  for (unsigned int i = 0; i < memoryProperties.memoryHeapCount; i++) {
+    if (memoryProperties.memoryHeaps[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
+      score += memoryProperties.memoryHeaps[i].size;
+    }
+  }
+
+  return score;
+}
+
 void GPUDisplayBackendVulkan::createDevice()
 {
   VkApplicationInfo appInfo{};
@@ -428,70 +504,30 @@ void GPUDisplayBackendVulkan::createDevice()
   }
   std::vector<VkPhysicalDevice> devices(deviceCount);
   vkEnumeratePhysicalDevices(mInstance, &deviceCount, devices.data());
-  for (const auto& device : devices) {
-    VkPhysicalDeviceProperties deviceProperties;
-    vkGetPhysicalDeviceProperties(device, &deviceProperties);
-    VkPhysicalDeviceFeatures deviceFeatures;
-    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-    if (deviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU || !deviceFeatures.geometryShader || !deviceFeatures.wideLines || !deviceFeatures.largePoints) {
-      continue;
+  double bestScore = -1.;
+  for (unsigned int i = 0; i < devices.size(); i++) {
+    double score = checkDevice(devices[i], reqDeviceExtensions);
+    if (mDisplay->param()->par.debugLevel >= 2) {
+      VkPhysicalDeviceProperties deviceProperties;
+      vkGetPhysicalDeviceProperties(devices[i], &deviceProperties);
+      GPUInfo("Available Vulkan device %d: %s - Score %f", i, deviceProperties.deviceName, score);
     }
-
-    uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
-    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
-    bool found = false;
-    for (unsigned int i = 0; i < queueFamilies.size(); i++) {
-      if (!(queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
-        continue;
-      }
-      VkBool32 presentSupport = false;
-      vkGetPhysicalDeviceSurfaceSupportKHR(device, i, mSurface, &presentSupport);
-      if (!presentSupport) {
-        continue;
-      }
-      mQueueFamilyIndices->graphicsFamily = i;
-      found = true;
-      break;
+    if (score > bestScore && score > 0) {
+      mPhysicalDevice = devices[i];
+      bestScore = score;
     }
-    if (!found) {
-      GPUInfo("%s ignored due to missing queue properties", deviceProperties.deviceName);
-      continue;
-    }
-
-    uint32_t deviceExtensionCount;
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &deviceExtensionCount, nullptr);
-    std::vector<VkExtensionProperties> availableExtensions(deviceExtensionCount);
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &deviceExtensionCount, availableExtensions.data());
-    unsigned int extensionsFound = 0;
-    for (unsigned int i = 0; i < reqDeviceExtensions.size(); i++) {
-      for (unsigned int j = 0; j < availableExtensions.size(); j++) {
-        if (strcmp(reqDeviceExtensions[i], availableExtensions[j].extensionName) == 0) {
-          extensionsFound++;
-          break;
-        }
-      }
-    }
-    if (extensionsFound < reqDeviceExtensions.size()) {
-      GPUInfo("%s ignored due to missing extensions", deviceProperties.deviceName);
-      continue;
-    }
-
-    updateSwapChainDetails(device);
-    if (mSwapChainDetails->formats.empty() || mSwapChainDetails->presentModes.empty()) {
-      GPUInfo("%s ignored due to incompatible swap chain", deviceProperties.deviceName);
-      continue;
-    }
-
-    mPhysicalDevice = device;
-    GPUInfo("Using physicak Vulkan device %s", deviceProperties.deviceName);
-    break;
   }
 
   if (mPhysicalDevice == VK_NULL_HANDLE) {
     throw std::runtime_error("All available Vulkan devices unsuited");
   }
+
+  VkPhysicalDeviceProperties deviceProperties;
+  vkGetPhysicalDeviceProperties(mPhysicalDevice, &deviceProperties);
+  VkPhysicalDeviceFeatures deviceFeatures;
+  vkGetPhysicalDeviceFeatures(mPhysicalDevice, &deviceFeatures);
+  GPUInfo("Using physicak Vulkan device %s", deviceProperties.deviceName);
+
   updateSwapChainDetails(mPhysicalDevice);
   uint32_t imageCount = mSwapChainDetails->capabilities.minImageCount + 1;
   if (mSwapChainDetails->capabilities.maxImageCount > 0 && imageCount > mSwapChainDetails->capabilities.maxImageCount) {
@@ -506,7 +542,6 @@ void GPUDisplayBackendVulkan::createDevice()
   queueCreateInfo.queueCount = 1;
   float queuePriority = 1.0f;
   queueCreateInfo.pQueuePriorities = &queuePriority;
-  VkPhysicalDeviceFeatures deviceFeatures;
   VkDeviceCreateInfo deviceCreateInfo{};
   deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
   deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
