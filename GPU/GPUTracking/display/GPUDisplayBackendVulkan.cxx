@@ -132,14 +132,6 @@ unsigned int GPUDisplayBackendVulkan::drawVertices(const vboList& v, const drawT
   return count;
 }
 
-void GPUDisplayBackendVulkan::ActivateColor(std::array<float, 4>& color)
-{
-  if (mCommandBufferUpToDate[mImageIndex]) {
-    return;
-  }
-  vkCmdPushConstants(mCommandBuffers[mImageIndex], mPipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(color), color.data());
-}
-
 void GPUDisplayBackendVulkan::setQuality()
 {
 }
@@ -920,16 +912,19 @@ void GPUDisplayBackendVulkan::createPipeline()
   dynamicState.dynamicStateCount = 1;
   dynamicState.pDynamicStates = dynamicStates;
 
-  VkPushConstantRange pushConstantRange{};
-  pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-  pushConstantRange.offset = 0;
-  pushConstantRange.size = sizeof(float) * 4;
+  VkPushConstantRange pushConstantRanges[2] = {VkPushConstantRange{}, VkPushConstantRange{}};
+  pushConstantRanges[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  pushConstantRanges[0].offset = 0;
+  pushConstantRanges[0].size = sizeof(float) * 4;
+  pushConstantRanges[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+  pushConstantRanges[1].offset = pushConstantRanges[0].size;
+  pushConstantRanges[1].size = sizeof(float);
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.setLayoutCount = 1;
   pipelineLayoutInfo.pSetLayouts = &mUniformDescriptor;
-  pipelineLayoutInfo.pushConstantRangeCount = 1;
-  pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+  pipelineLayoutInfo.pushConstantRangeCount = 2;
+  pipelineLayoutInfo.pPushConstantRanges = pushConstantRanges;
   CHKERR(vkCreatePipelineLayout(mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayout));
   pipelineLayoutInfo.setLayoutCount = 1;
   pipelineLayoutInfo.pSetLayouts = &mUniformDescriptorText;
@@ -1414,8 +1409,21 @@ void GPUDisplayBackendVulkan::readPixels(unsigned char* pixels, bool needBuffer,
 {
 }
 
+void GPUDisplayBackendVulkan::ActivateColor(std::array<float, 4>& color)
+{
+  if (mCommandBufferUpToDate[mImageIndex]) {
+    return;
+  }
+  vkCmdPushConstants(mCommandBuffers[mImageIndex], mPipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(color), color.data());
+}
+
 void GPUDisplayBackendVulkan::pointSizeFactor(float factor)
 {
+  if (mCommandBufferUpToDate[mImageIndex]) {
+    return;
+  }
+  float size = mDisplay->cfgL().pointSize * (mDisplay->cfgR().drawQualityDownsampleFSAA > 1 ? mDisplay->cfgR().drawQualityDownsampleFSAA : 1) * factor;
+  vkCmdPushConstants(mCommandBuffers[mImageIndex], mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, sizeof(std::array<float, 4>), sizeof(size), &size);
 }
 
 void GPUDisplayBackendVulkan::lineWidthFactor(float factor)
