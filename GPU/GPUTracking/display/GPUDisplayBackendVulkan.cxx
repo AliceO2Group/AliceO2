@@ -80,75 +80,6 @@ GPUDisplayBackendVulkan::GPUDisplayBackendVulkan()
 }
 GPUDisplayBackendVulkan::~GPUDisplayBackendVulkan() = default;
 
-int GPUDisplayBackendVulkan::ExtInit()
-{
-  return 0;
-}
-
-bool GPUDisplayBackendVulkan::CoreProfile()
-{
-  return false;
-}
-
-unsigned int GPUDisplayBackendVulkan::DepthBits()
-{
-  return 0;
-}
-
-void GPUDisplayBackendVulkan::createFB(GLfb& fb, bool tex, bool withDepth, bool msaa)
-{
-  fb.tex = tex;
-  fb.depth = withDepth;
-  fb.msaa = msaa;
-  fb.created = true;
-}
-
-void GPUDisplayBackendVulkan::deleteFB(GLfb& fb)
-{
-  fb.created = false;
-}
-
-unsigned int GPUDisplayBackendVulkan::drawVertices(const vboList& v, const drawType tt)
-{
-  auto first = std::get<0>(v);
-  auto count = std::get<1>(v);
-  auto iSlice = std::get<2>(v);
-  if (count == 0) {
-    return 0;
-  }
-  if (mCommandBufferUpToDate[mImageIndex]) {
-    return count;
-  }
-
-  vkCmdBindPipeline(mCommandBuffers[mImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[tt]);
-  if (mDisplay->cfgR().useGLIndirectDraw) {
-    vkCmdDrawIndirect(mCommandBuffers[mImageIndex], mIndirectCommandBuffer[0].buffer, (mIndirectSliceOffset[iSlice] + first) * sizeof(DrawArraysIndirectCommand), count, sizeof(DrawArraysIndirectCommand));
-  } else {
-    for (unsigned int k = 0; k < count; k++) {
-      vkCmdDraw(mCommandBuffers[mImageIndex], mDisplay->vertexBufferCount()[iSlice][first + k], 1, mDisplay->vertexBufferStart()[iSlice][first + k], 0);
-    }
-  }
-
-  return count;
-}
-
-void GPUDisplayBackendVulkan::setQuality()
-{
-}
-
-void GPUDisplayBackendVulkan::SetVSync(bool enable)
-{
-  recreateSwapChain();
-}
-
-void GPUDisplayBackendVulkan::setDepthBuffer()
-{
-}
-
-void GPUDisplayBackendVulkan::setFrameBuffer(int updateCurrent, unsigned int newID)
-{
-}
-
 // ---------------------------- VULKAN HELPERS ----------------------------
 
 static int checkValidationLayerSupport(const std::vector<const char*>& validationLayers)
@@ -266,6 +197,20 @@ static VkShaderModule createShaderModule(const char* code, size_t size, VkDevice
   return shaderModule;
 }
 
+static void cmdImageMemoryBarrier(VkCommandBuffer cmdbuffer, VkImage image, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkImageLayout oldLayout, VkImageLayout newLayout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkImageSubresourceRange subresourceRange)
+{
+  VkImageMemoryBarrier barrier{};
+  barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+  barrier.srcAccessMask = srcAccessMask;
+  barrier.dstAccessMask = dstAccessMask;
+  barrier.oldLayout = oldLayout;
+  barrier.newLayout = newLayout;
+  barrier.image = image;
+  barrier.subresourceRange = subresourceRange;
+
+  vkCmdPipelineBarrier(cmdbuffer, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+}
+
 void GPUDisplayBackendVulkan::updateSwapChainDetails(const VkPhysicalDevice& device)
 {
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, mSurface, &mSwapChainDetails->capabilities);
@@ -307,9 +252,8 @@ void GPUDisplayBackendVulkan::submitSingleTimeCommandBuffer(VkCommandBuffer comm
   vkFreeCommandBuffers(mDevice, mCommandPool, 1, &commandBuffer);
 }
 
-void GPUDisplayBackendVulkan::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
+void GPUDisplayBackendVulkan::transitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
 {
-  VkCommandBuffer commandBuffer = getSingleTimeCommandBuffer();
   VkImageMemoryBarrier barrier{};
   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
   barrier.oldLayout = oldLayout;
@@ -339,7 +283,6 @@ void GPUDisplayBackendVulkan::transitionImageLayout(VkImage image, VkFormat form
   }
 
   vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-  submitSingleTimeCommandBuffer(commandBuffer);
 }
 
 static VkImageView createImageViewI(VkDevice device, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT, uint32_t mipLevels = 1)
@@ -817,6 +760,7 @@ void GPUDisplayBackendVulkan::clearTextureSampler()
 void GPUDisplayBackendVulkan::createSwapChain()
 {
   mMSAASampleCount = getMSAASamplesFlag(std::min<unsigned int>(mMaxMSAAsupported, mDisplay->cfgR().drawQualityMSAA));
+  mSwapchainImageReadable = mScreenshotRequested;
 
   updateSwapChainDetails(mPhysicalDevice);
   mSurfaceFormat = chooseSwapSurfaceFormat(mSwapChainDetails->formats);
@@ -840,6 +784,9 @@ void GPUDisplayBackendVulkan::createSwapChain()
   swapCreateInfo.presentMode = mPresentMode;
   swapCreateInfo.clipped = VK_TRUE;
   swapCreateInfo.oldSwapchain = VK_NULL_HANDLE;
+  if (mSwapchainImageReadable) {
+    swapCreateInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+  }
   CHKERR(vkCreateSwapchainKHR(mDevice, &swapCreateInfo, nullptr, &mSwapChain));
 
   VkAttachmentDescription colorAttachment{};
@@ -1295,8 +1242,8 @@ void GPUDisplayBackendVulkan::writeToImage(VulkanImage& image, const void* srcDa
 {
   auto tmp = createBuffer(srcSize, srcData, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, false);
 
-  transitionImageLayout(image.image, image.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
   VkCommandBuffer commandBuffer = getSingleTimeCommandBuffer();
+  transitionImageLayout(commandBuffer, image.image, image.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
   VkBufferImageCopy region{};
   region.bufferOffset = 0;
   region.bufferRowLength = 0;
@@ -1308,8 +1255,8 @@ void GPUDisplayBackendVulkan::writeToImage(VulkanImage& image, const void* srcDa
   region.imageOffset = {0, 0, 0};
   region.imageExtent = {image.sizex, image.sizey, 1};
   vkCmdCopyBufferToImage(commandBuffer, tmp.buffer, image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+  transitionImageLayout(commandBuffer, image.image, image.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
   submitSingleTimeCommandBuffer(commandBuffer);
-  transitionImageLayout(image.image, image.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
   clearBuffer(tmp);
 }
@@ -1382,7 +1329,7 @@ void GPUDisplayBackendVulkan::resizeScene(unsigned int width, unsigned int heigh
   if (mExtent.width == width && mExtent.height == height) {
     return;
   }
-  recreateSwapChain();
+  mMustUpdateSwapChain = true;
   /*if (mExtent.width != width || mExtent.height != height) {
     std::cout << "Unmatching window size: requested " << width << " x " << height << " - found " << mExtent.width << " x " << mExtent.height << "\n";
   }*/
@@ -1407,7 +1354,7 @@ void GPUDisplayBackendVulkan::loadDataToGPU(size_t totalVertizes)
   needRecordCommandBuffers();
 }
 
-void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view)
+void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot)
 {
   hasDrawnText = false;
   if (mDisplay->updateDrawCommands()) {
@@ -1415,16 +1362,22 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
   }
   vkWaitForFences(mDevice, 1, &mInFlightFence[mCurrentFrame], VK_TRUE, UINT64_MAX);
 
-  if (mDisplay->updateRenderPipeline()) {
-    recreateSwapChain();
+  VkResult retVal = VK_SUCCESS;
+  if (mDisplay->updateRenderPipeline() || (requestScreenshot && !mSwapchainImageReadable)) {
+    mMustUpdateSwapChain = true;
+  } else {
+    retVal = vkAcquireNextImageKHR(mDevice, mSwapChain, UINT64_MAX, mImageAvailableSemaphore[mCurrentFrame], VK_NULL_HANDLE, &mImageIndex);
   }
-  VkResult retVal = vkAcquireNextImageKHR(mDevice, mSwapChain, UINT64_MAX, mImageAvailableSemaphore[mCurrentFrame], VK_NULL_HANDLE, &mImageIndex);
-  if (retVal == VK_ERROR_OUT_OF_DATE_KHR || retVal == VK_SUBOPTIMAL_KHR) {
-    std::cout << "Pipeline out of data / suboptimal, recreating\n";
+  mScreenshotRequested = requestScreenshot;
+  if (mMustUpdateSwapChain || retVal == VK_ERROR_OUT_OF_DATE_KHR || retVal == VK_SUBOPTIMAL_KHR) {
+    if (!mMustUpdateSwapChain) {
+      GPUInfo("Pipeline out of data / suboptimal, recreating");
+    }
     recreateSwapChain();
     retVal = vkAcquireNextImageKHR(mDevice, mSwapChain, UINT64_MAX, mImageAvailableSemaphore[mCurrentFrame], VK_NULL_HANDLE, &mImageIndex);
   }
   CHKERR(retVal);
+  mMustUpdateSwapChain = false;
   vkResetFences(mDevice, 1, &mInFlightFence[mCurrentFrame]);
 
   const hmm_mat4 modelViewProj = proj * view;
@@ -1443,6 +1396,30 @@ void GPUDisplayBackendVulkan::finishDraw()
   }
 }
 
+unsigned int GPUDisplayBackendVulkan::drawVertices(const vboList& v, const drawType tt)
+{
+  auto first = std::get<0>(v);
+  auto count = std::get<1>(v);
+  auto iSlice = std::get<2>(v);
+  if (count == 0) {
+    return 0;
+  }
+  if (mCommandBufferUpToDate[mImageIndex]) {
+    return count;
+  }
+
+  vkCmdBindPipeline(mCommandBuffers[mImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[tt]);
+  if (mDisplay->cfgR().useGLIndirectDraw) {
+    vkCmdDrawIndirect(mCommandBuffers[mImageIndex], mIndirectCommandBuffer[0].buffer, (mIndirectSliceOffset[iSlice] + first) * sizeof(DrawArraysIndirectCommand), count, sizeof(DrawArraysIndirectCommand));
+  } else {
+    for (unsigned int k = 0; k < count; k++) {
+      vkCmdDraw(mCommandBuffers[mImageIndex], mDisplay->vertexBufferCount()[iSlice][first + k], 1, mDisplay->vertexBufferStart()[iSlice][first + k], 0);
+    }
+  }
+
+  return count;
+}
+
 void GPUDisplayBackendVulkan::finishFrame()
 {
   VkSubmitInfo submitInfo{};
@@ -1456,6 +1433,12 @@ void GPUDisplayBackendVulkan::finishFrame()
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = &mRenderFinishedSemaphore[mCurrentFrame];
   CHKERR(vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, hasDrawnText ? VK_NULL_HANDLE : mInFlightFence[mCurrentFrame]));
+
+  if (mScreenshotRequested) {
+    vkDeviceWaitIdle(mDevice);
+    readImageToPixels(mSwapChainImages[mImageIndex], mScreenshotPixels);
+    mScreenshotRequested = false;
+  }
 
   if (hasDrawnText) {
     submitInfo.pWaitSemaphores = &mRenderFinishedSemaphore[mCurrentFrame];
@@ -1527,21 +1510,6 @@ void GPUDisplayBackendVulkan::finishText()
 
   vkCmdEndRenderPass(mCommandBuffersText[mImageIndex]);
   CHKERR(vkEndCommandBuffer(mCommandBuffersText[mImageIndex]));
-}
-
-void GPUDisplayBackendVulkan::renderOffscreenBuffer(GLfb& buffer, GLfb& bufferNoMSAA, int mainBuffer)
-{
-}
-
-void GPUDisplayBackendVulkan::mixImages(GLfb& mixBuffer, float mixSlaveImage)
-{
-  {
-    GPUWarning("Image mixing unsupported in Vulkan profile");
-  }
-}
-
-void GPUDisplayBackendVulkan::readPixels(unsigned char* pixels, bool needBuffer, unsigned int width, unsigned int height)
-{
 }
 
 void GPUDisplayBackendVulkan::ActivateColor(std::array<float, 4>& color)
@@ -1701,5 +1669,91 @@ void GPUDisplayBackendVulkan::OpenGLPrint(const char* s, float x, float y, float
     } else {
       c.emplace_back(TextDrawCommand{firstVertex, nVertices, {color[0], color[1], color[2], color[3]}});
     }
+  }
+}
+
+void GPUDisplayBackendVulkan::readImageToPixels(VkImage image, std::vector<char>& pixels)
+{
+  pixels.resize(mExtent.width * mExtent.height * 4);
+
+  VkImage dstImage;
+  VkDeviceMemory dstImageMemory;
+  createImageI(mDevice, mPhysicalDevice, dstImage, dstImageMemory, mExtent.width, mExtent.height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VK_IMAGE_TILING_LINEAR);
+  VkCommandBuffer cmdBuffer = getSingleTimeCommandBuffer();
+
+  VkImageSubresourceRange range{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+  cmdImageMemoryBarrier(cmdBuffer, dstImage, 0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, range);
+  cmdImageMemoryBarrier(cmdBuffer, image, VK_ACCESS_MEMORY_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, range);
+
+  VkImageCopy imageCopyRegion{};
+  imageCopyRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  imageCopyRegion.srcSubresource.layerCount = 1;
+  imageCopyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  imageCopyRegion.dstSubresource.layerCount = 1;
+  imageCopyRegion.extent.width = mExtent.width;
+  imageCopyRegion.extent.height = mExtent.height;
+  imageCopyRegion.extent.depth = 1;
+
+  vkCmdCopyImage(cmdBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopyRegion);
+
+  cmdImageMemoryBarrier(cmdBuffer, dstImage, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, range);
+  cmdImageMemoryBarrier(cmdBuffer, image, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_MEMORY_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, range);
+  submitSingleTimeCommandBuffer(cmdBuffer);
+
+  VkImageSubresource subResource{VK_IMAGE_ASPECT_COLOR_BIT, 0, 0};
+  VkSubresourceLayout subResourceLayout;
+  vkGetImageSubresourceLayout(mDevice, dstImage, &subResource, &subResourceLayout);
+  const char* data;
+  vkMapMemory(mDevice, dstImageMemory, 0, VK_WHOLE_SIZE, 0, (void**)&data);
+  data += subResourceLayout.offset;
+  memcpy(pixels.data(), data, pixels.size());
+  vkUnmapMemory(mDevice, dstImageMemory);
+  vkFreeMemory(mDevice, dstImageMemory, nullptr);
+  vkDestroyImage(mDevice, dstImage, nullptr);
+}
+
+unsigned int GPUDisplayBackendVulkan::DepthBits()
+{
+  return 0;
+}
+
+void GPUDisplayBackendVulkan::createFB(GLfb& fb, bool tex, bool withDepth, bool msaa)
+{
+  fb.tex = tex;
+  fb.depth = withDepth;
+  fb.msaa = msaa;
+  fb.created = true;
+}
+
+void GPUDisplayBackendVulkan::deleteFB(GLfb& fb)
+{
+  fb.created = false;
+}
+
+void GPUDisplayBackendVulkan::setQuality()
+{
+}
+
+void GPUDisplayBackendVulkan::SetVSync(bool enable)
+{
+  recreateSwapChain();
+}
+
+void GPUDisplayBackendVulkan::setDepthBuffer()
+{
+}
+
+void GPUDisplayBackendVulkan::setFrameBuffer(int updateCurrent, unsigned int newID)
+{
+}
+
+void GPUDisplayBackendVulkan::renderOffscreenBuffer(GLfb& buffer, GLfb& bufferNoMSAA, int mainBuffer)
+{
+}
+
+void GPUDisplayBackendVulkan::mixImages(GLfb& mixBuffer, float mixSlaveImage)
+{
+  {
+    GPUWarning("Image mixing unsupported in Vulkan profile");
   }
 }

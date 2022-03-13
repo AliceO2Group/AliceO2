@@ -521,8 +521,8 @@ void GPUDisplay::ReSizeGLScene(int width, int height, bool init)
   }
   mScreenwidth = width;
   mScreenheight = height;
-  mBackend->resizeScene(width, height);
   UpdateOffscreenBuffers();
+  mBackend->resizeScene(width, height);
 
   if (init) {
     mResetScene = 1;
@@ -2034,7 +2034,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
   nextViewMatrix = nextViewMatrix * mModelMatrix;
   const float zFar = ((mParam->par.continuousTracking ? (mMaxClusterZ / GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
   const hmm_mat4 proj = HMM_Perspective(mCfgR.fov, (GLfloat)mScreenwidth / (GLfloat)mScreenheight, 0.1f, zFar);
-  mBackend->prepareDraw(proj, nextViewMatrix);
+  mBackend->prepareDraw(proj, nextViewMatrix, mRequestScreenshot);
   mBackend->pointSizeFactor(1);
   mBackend->lineWidthFactor(1);
 
@@ -2246,7 +2246,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
   if (mAnimate && mAnimateScreenshot && mAnimateTime < 0) {
     char mAnimateScreenshotFile[48];
     sprintf(mAnimateScreenshotFile, "mAnimation%d_%05d.bmp", mAnimationExport, mAnimationFrame);
-    DoScreenshot(mAnimateScreenshotFile, time);
+    // DoScreenshot(mAnimateScreenshotFile, time);
   }
 
   if (mAnimateTime < 0) {
@@ -2279,6 +2279,11 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
   }
 
   mBackend->finishFrame();
+  if (mRequestScreenshot) {
+    mRequestScreenshot = false;
+    std::vector<char> pixels = mBackend->getPixels();
+    DoScreenshot(mScreenshotFile.c_str(), pixels);
+  }
 
   if (mAnimateTime < 0) {
     mSemLockDisplay.Unlock();
@@ -2287,7 +2292,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
   return (0);
 }
 
-void GPUDisplay::DoScreenshot(char* filename, float mAnimateTime)
+void GPUDisplay::DoScreenshot(const char* filename, std::vector<char>& pixels, float mAnimateTime)
 {
   int SCALE_Y = mCfgR.screenshotScaleFactor, SCALE_X = mCfgR.screenshotScaleFactor;
 
@@ -2313,8 +2318,10 @@ void GPUDisplay::DoScreenshot(char* filename, float mAnimateTime)
     DrawGLScene(false, mAnimateTime);
   }
   size_t size = 4 * mScreenwidth * mScreenheight;
-  unsigned char* pixels = new unsigned char[size];
-  mBackend->readPixels(pixels, needBuffer, mScreenwidth, mScreenheight);
+  if (size != pixels.size()) {
+    GPUError("Pixel array of incorrect size obtained");
+    filename = nullptr;
+  }
 
   if (filename) {
     FILE* fp = fopen(filename, "w+b");
@@ -2340,10 +2347,9 @@ void GPUDisplay::DoScreenshot(char* filename, float mAnimateTime)
 
     fwrite(&bmpFH, 1, sizeof(bmpFH), fp);
     fwrite(&bmpIH, 1, sizeof(bmpIH), fp);
-    fwrite(pixels, 1, size, fp);
+    fwrite(pixels.data(), 1, size, fp);
     fclose(fp);
   }
-  delete[] pixels;
 
   mCfgL.pointSize = tmpPointSize;
   mCfgL.lineWidth = tmpLineWidth;

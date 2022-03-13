@@ -42,8 +42,8 @@ class GPUDisplayBackend
   GPUDisplayBackend();
   virtual ~GPUDisplayBackend();
 
-  virtual int ExtInit() = 0;
-  virtual bool CoreProfile() = 0;
+  virtual int ExtInit() { return 0; };
+  virtual bool CoreProfile() { return false; };
   virtual unsigned int DepthBits() = 0;
 
   typedef std::tuple<unsigned int, unsigned int, int> vboList;
@@ -97,14 +97,13 @@ class GPUDisplayBackend
   void ExitBackend();
   virtual void clearScreen(bool colorOnly = false) = 0;
   virtual void loadDataToGPU(size_t totalVertizes) = 0;
-  virtual void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view) = 0;
+  virtual void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot) = 0;
   virtual void finishDraw() = 0;
   virtual void finishFrame() = 0;
   virtual void prepareText() = 0;
   virtual void finishText() = 0;
   virtual void mixImages(GLfb& mixBuffer, float mixSlaveImage) = 0;
   virtual void renderOffscreenBuffer(GLfb& buffer, GLfb& bufferNoMSAA, int mainBuffer) = 0;
-  virtual void readPixels(unsigned char* pixels, bool needBuffer, unsigned int width, unsigned int height) = 0;
   virtual void pointSizeFactor(float factor) = 0;
   virtual void lineWidthFactor(float factor) = 0;
   virtual backendTypes backendType() const = 0;
@@ -112,6 +111,7 @@ class GPUDisplayBackend
   virtual size_t needMultiVBO() { return 0; }
   virtual void OpenGLPrint(const char* s, float x, float y, float* color, float scale) = 0;
   static GPUDisplayBackend* getBackend(const char* type);
+  std::vector<char> getPixels();
 
  protected:
   GPUDisplay* mDisplay = nullptr;
@@ -122,6 +122,7 @@ class GPUDisplayBackend
   virtual void initializeTextDrawing() = 0;
   bool mFreetypeInitialized = false;
   bool mFrontendCompatTextDraw = false;
+  std::vector<char> mScreenshotPixels;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
