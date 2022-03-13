@@ -457,11 +457,6 @@ inline void GPUDisplay::SetCollisionColor(int col)
   ActivateColor();
 }
 
-inline void GPUDisplay::setQuality()
-{
-  mBackend->setQuality();
-}
-
 void GPUDisplay::setDepthBuffer()
 {
   mBackend->setDepthBuffer();
@@ -511,7 +506,7 @@ void GPUDisplay::UpdateOffscreenBuffers(bool clean)
     }
   }
   mBackend->createFB(mMixBuffer, true, true, false);
-  setQuality();
+  mBackend->setQuality();
 }
 
 void GPUDisplay::ReSizeGLScene(int width, int height, bool init)
@@ -533,7 +528,7 @@ void GPUDisplay::ReSizeGLScene(int width, int height, bool init)
 
 void GPUDisplay::updateConfig()
 {
-  setQuality();
+  mBackend->setQuality();
   setDepthBuffer();
 }
 
@@ -1248,287 +1243,262 @@ GPUDisplay::vboList GPUDisplay::DrawGridTRD(int sector)
 
 int GPUDisplay::DrawGLScene(bool mixAnimation, float mAnimateTime)
 {
+  // Make sure event gets not overwritten during display
+  mSemLockDisplay.Lock();
+
+  int retVal = 0;
   if (mChain) {
     mIOPtrs = &mChain->mIOPtrs;
     mCalib = &mChain->calib();
   }
-  try {
-    if (DrawGLScene_internal(mixAnimation, mAnimateTime)) {
-      return (1);
-    }
-  } catch (const std::runtime_error& e) {
-    return (1);
-  }
-  return (0);
-}
-
-int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
-{
-  bool showTimer = false;
-
-  // Make sure event gets not overwritten during display
-  if (mAnimateTime < 0) {
-    mSemLockDisplay.Lock();
-  }
-
   if (!mIOPtrs) {
     mNCollissions = 0;
   } else if (!mCollisionClusters.size()) {
     mNCollissions = std::max(1u, mIOPtrs->nMCInfosTPCCol);
   }
-
-  if (!mixAnimation && (mUpdateEventData || mResetScene || mUpdateVertexLists) && mIOPtrs) {
-    disableUnsupportedOptions();
+  try {
+    DrawGLScene_internal(mixAnimation, mAnimateTime);
+  } catch (const std::runtime_error& e) {
+    GPUError("Runtime error %s during display", e.what());
+    retVal = 1;
   }
-  if (mUpdateEventData || mUpdateVertexLists) {
-    mUpdateDrawCommands = 1;
-  }
+  mSemLockDisplay.Unlock();
 
-  // Extract global cluster information
-  if (!mixAnimation && (mUpdateEventData || mResetScene) && mIOPtrs) {
-    showTimer = true;
-    mTimerDraw.ResetStart();
-    if (mIOPtrs->clustersNative) {
-      mCurrentClusters = mIOPtrs->clustersNative->nClustersTotal;
-    } else {
-      mCurrentClusters = 0;
-      for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-        mCurrentClusters += mIOPtrs->nClusterData[iSlice];
-      }
-    }
-    if (mNMaxClusters < mCurrentClusters) {
-      mNMaxClusters = mCurrentClusters;
-      mGlobalPosPtr.reset(new float4[mNMaxClusters]);
-      mGlobalPos = mGlobalPosPtr.get();
-    }
+  return retVal;
+}
 
-    mCurrentSpacePointsTRD = mIOPtrs->nTRDTracklets;
-    if (mCurrentSpacePointsTRD > mNMaxSpacePointsTRD) {
-      mNMaxSpacePointsTRD = mCurrentSpacePointsTRD;
-      mGlobalPosPtrTRD.reset(new float4[mNMaxSpacePointsTRD]);
-      mGlobalPosPtrTRD2.reset(new float4[mNMaxSpacePointsTRD]);
-      mGlobalPosTRD = mGlobalPosPtrTRD.get();
-      mGlobalPosTRD2 = mGlobalPosPtrTRD2.get();
-    }
-
-    mCurrentClustersITS = mIOPtrs->itsClusters ? mIOPtrs->nItsClusters : 0;
-    if (mNMaxClustersITS < mCurrentClustersITS) {
-      mNMaxClustersITS = mCurrentClustersITS;
-      mGlobalPosPtrITS.reset(new float4[mNMaxClustersITS]);
-      mGlobalPosITS = mGlobalPosPtrITS.get();
-    }
-
-    mCurrentClustersTOF = mIOPtrs->nTOFClusters;
-    if (mNMaxClustersTOF < mCurrentClustersTOF) {
-      mNMaxClustersTOF = mCurrentClustersTOF;
-      mGlobalPosPtrTOF.reset(new float4[mNMaxClustersTOF]);
-      mGlobalPosTOF = mGlobalPosPtrTOF.get();
-    }
-
-    unsigned int nTpcMergedTracks = mConfig.showTPCTracksFromO2Format ? mIOPtrs->nOutputTracksTPCO2 : mIOPtrs->nMergedTracks;
-    if ((size_t)nTpcMergedTracks > mTRDTrackIds.size()) {
-      mTRDTrackIds.resize(nTpcMergedTracks);
-    }
-    if (mIOPtrs->nItsTracks > mITSStandaloneTracks.size()) {
-      mITSStandaloneTracks.resize(mIOPtrs->nItsTracks);
-    }
-    for (unsigned int i = 0; i < nTpcMergedTracks; i++) {
-      mTRDTrackIds[i] = -1;
-    }
-    auto tmpDoTRDTracklets = [&](auto* trdTracks) {
-      for (unsigned int i = 0; i < mIOPtrs->nTRDTracks; i++) {
-        if (trdTracks[i].getNtracklets()) {
-          mTRDTrackIds[trdTracks[i].getRefGlobalTrackIdRaw()] = i;
-        }
-      }
-    };
-    mIOPtrs->trdTracksO2 ? tmpDoTRDTracklets(mIOPtrs->trdTracksO2) : tmpDoTRDTracklets(mIOPtrs->trdTracks);
-    if (mIOPtrs->nItsTracks) {
-      std::fill(mITSStandaloneTracks.begin(), mITSStandaloneTracks.end(), true);
-      if (mIOPtrs->tpcLinkITS) {
-        for (unsigned int i = 0; i < nTpcMergedTracks; i++) {
-          if (mIOPtrs->tpcLinkITS[i] != -1) {
-            mITSStandaloneTracks[mIOPtrs->tpcLinkITS[i]] = false;
-          }
-        }
-      }
-    }
-
-    if (mCfgH.trackFilter) {
-      unsigned int nTracks = mConfig.showTPCTracksFromO2Format ? mIOPtrs->nOutputTracksTPCO2 : mIOPtrs->nMergedTracks;
-      mTrackFilter.resize(nTracks);
-      std::fill(mTrackFilter.begin(), mTrackFilter.end(), true);
-      if (buildTrackFilter()) {
-        SetInfo("Error running track filter from %s", mConfig.filterMacros[mCfgH.trackFilter - 1].c_str());
-      } else {
-        unsigned int nFiltered = 0;
-        for (unsigned int i = 0; i < mTrackFilter.size(); i++) {
-          nFiltered += !mTrackFilter[i];
-        }
-        if (mUpdateTrackFilter) {
-          SetInfo("Applied track filter %s - filtered %u / %u", mConfig.filterMacros[mCfgH.trackFilter - 1].c_str(), nFiltered, (unsigned int)mTrackFilter.size());
-        }
-      }
-    }
-    mUpdateTrackFilter = false;
-
-    mMaxClusterZ = 0;
-    GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ))
+void GPUDisplay::DrawGLScene_updateEventData()
+{
+  mTimerDraw.ResetStart();
+  if (mIOPtrs->clustersNative) {
+    mCurrentClusters = mIOPtrs->clustersNative->nClustersTotal;
+  } else {
+    mCurrentClusters = 0;
     for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      int row = 0;
-      unsigned int nCls = mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSlice] : mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSlice] : 0;
-      for (unsigned int i = 0; i < nCls; i++) {
-        int cid;
-        if (mParam->par.earlyTpcTransform) {
-          const auto& cl = mIOPtrs->clusterData[iSlice][i];
-          cid = cl.id;
-          row = cl.row;
-        } else {
-          cid = mIOPtrs->clustersNative->clusterOffset[iSlice][0] + i;
-          while (row < GPUCA_ROW_COUNT && mIOPtrs->clustersNative->clusterOffset[iSlice][row + 1] <= (unsigned int)cid) {
-            row++;
-          }
-        }
-        if (cid >= mNMaxClusters) {
-          throw std::runtime_error("Cluster Buffer Size exceeded");
-        }
-        float4* ptr = &mGlobalPos[cid];
-        if (mParam->par.earlyTpcTransform) {
-          const auto& cl = mIOPtrs->clusterData[iSlice][i];
-          mParam->Slice2Global(iSlice, (mCfgH.clustersOnNominalRow ? mParam->tpcGeometry.Row2X(row) : cl.x) + mCfgH.xAdd, cl.y, cl.z, &ptr->x, &ptr->y, &ptr->z);
-        } else {
-          float x, y, z;
-          const auto& cln = mIOPtrs->clustersNative->clusters[iSlice][0][i];
-          GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, iSlice, row, cln.getPad(), cln.getTime(), x, y, z);
-          if (mCfgH.clustersOnNominalRow) {
-            x = mParam->tpcGeometry.Row2X(row);
-          }
-          mParam->Slice2Global(iSlice, x + mCfgH.xAdd, y, z, &ptr->x, &ptr->y, &ptr->z);
-        }
+      mCurrentClusters += mIOPtrs->nClusterData[iSlice];
+    }
+  }
+  if (mNMaxClusters < mCurrentClusters) {
+    mNMaxClusters = mCurrentClusters;
+    mGlobalPosPtr.reset(new float4[mNMaxClusters]);
+    mGlobalPos = mGlobalPosPtr.get();
+  }
 
+  mCurrentSpacePointsTRD = mIOPtrs->nTRDTracklets;
+  if (mCurrentSpacePointsTRD > mNMaxSpacePointsTRD) {
+    mNMaxSpacePointsTRD = mCurrentSpacePointsTRD;
+    mGlobalPosPtrTRD.reset(new float4[mNMaxSpacePointsTRD]);
+    mGlobalPosPtrTRD2.reset(new float4[mNMaxSpacePointsTRD]);
+    mGlobalPosTRD = mGlobalPosPtrTRD.get();
+    mGlobalPosTRD2 = mGlobalPosPtrTRD2.get();
+  }
+
+  mCurrentClustersITS = mIOPtrs->itsClusters ? mIOPtrs->nItsClusters : 0;
+  if (mNMaxClustersITS < mCurrentClustersITS) {
+    mNMaxClustersITS = mCurrentClustersITS;
+    mGlobalPosPtrITS.reset(new float4[mNMaxClustersITS]);
+    mGlobalPosITS = mGlobalPosPtrITS.get();
+  }
+
+  mCurrentClustersTOF = mIOPtrs->nTOFClusters;
+  if (mNMaxClustersTOF < mCurrentClustersTOF) {
+    mNMaxClustersTOF = mCurrentClustersTOF;
+    mGlobalPosPtrTOF.reset(new float4[mNMaxClustersTOF]);
+    mGlobalPosTOF = mGlobalPosPtrTOF.get();
+  }
+
+  unsigned int nTpcMergedTracks = mConfig.showTPCTracksFromO2Format ? mIOPtrs->nOutputTracksTPCO2 : mIOPtrs->nMergedTracks;
+  if ((size_t)nTpcMergedTracks > mTRDTrackIds.size()) {
+    mTRDTrackIds.resize(nTpcMergedTracks);
+  }
+  if (mIOPtrs->nItsTracks > mITSStandaloneTracks.size()) {
+    mITSStandaloneTracks.resize(mIOPtrs->nItsTracks);
+  }
+  for (unsigned int i = 0; i < nTpcMergedTracks; i++) {
+    mTRDTrackIds[i] = -1;
+  }
+  auto tmpDoTRDTracklets = [&](auto* trdTracks) {
+    for (unsigned int i = 0; i < mIOPtrs->nTRDTracks; i++) {
+      if (trdTracks[i].getNtracklets()) {
+        mTRDTrackIds[trdTracks[i].getRefGlobalTrackIdRaw()] = i;
+      }
+    }
+  };
+  mIOPtrs->trdTracksO2 ? tmpDoTRDTracklets(mIOPtrs->trdTracksO2) : tmpDoTRDTracklets(mIOPtrs->trdTracks);
+  if (mIOPtrs->nItsTracks) {
+    std::fill(mITSStandaloneTracks.begin(), mITSStandaloneTracks.end(), true);
+    if (mIOPtrs->tpcLinkITS) {
+      for (unsigned int i = 0; i < nTpcMergedTracks; i++) {
+        if (mIOPtrs->tpcLinkITS[i] != -1) {
+          mITSStandaloneTracks[mIOPtrs->tpcLinkITS[i]] = false;
+        }
+      }
+    }
+  }
+
+  if (mCfgH.trackFilter) {
+    unsigned int nTracks = mConfig.showTPCTracksFromO2Format ? mIOPtrs->nOutputTracksTPCO2 : mIOPtrs->nMergedTracks;
+    mTrackFilter.resize(nTracks);
+    std::fill(mTrackFilter.begin(), mTrackFilter.end(), true);
+    if (buildTrackFilter()) {
+      SetInfo("Error running track filter from %s", mConfig.filterMacros[mCfgH.trackFilter - 1].c_str());
+    } else {
+      unsigned int nFiltered = 0;
+      for (unsigned int i = 0; i < mTrackFilter.size(); i++) {
+        nFiltered += !mTrackFilter[i];
+      }
+      if (mUpdateTrackFilter) {
+        SetInfo("Applied track filter %s - filtered %u / %u", mConfig.filterMacros[mCfgH.trackFilter - 1].c_str(), nFiltered, (unsigned int)mTrackFilter.size());
+      }
+    }
+  }
+  mUpdateTrackFilter = false;
+
+  mMaxClusterZ = 0;
+  GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ))
+  for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
+    int row = 0;
+    unsigned int nCls = mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSlice] : mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSlice]
+                                                                                                                : 0;
+    for (unsigned int i = 0; i < nCls; i++) {
+      int cid;
+      if (mParam->par.earlyTpcTransform) {
+        const auto& cl = mIOPtrs->clusterData[iSlice][i];
+        cid = cl.id;
+        row = cl.row;
+      } else {
+        cid = mIOPtrs->clustersNative->clusterOffset[iSlice][0] + i;
+        while (row < GPUCA_ROW_COUNT && mIOPtrs->clustersNative->clusterOffset[iSlice][row + 1] <= (unsigned int)cid) {
+          row++;
+        }
+      }
+      if (cid >= mNMaxClusters) {
+        throw std::runtime_error("Cluster Buffer Size exceeded");
+      }
+      float4* ptr = &mGlobalPos[cid];
+      if (mParam->par.earlyTpcTransform) {
+        const auto& cl = mIOPtrs->clusterData[iSlice][i];
+        mParam->Slice2Global(iSlice, (mCfgH.clustersOnNominalRow ? mParam->tpcGeometry.Row2X(row) : cl.x) + mCfgH.xAdd, cl.y, cl.z, &ptr->x, &ptr->y, &ptr->z);
+      } else {
+        float x, y, z;
+        const auto& cln = mIOPtrs->clustersNative->clusters[iSlice][0][i];
+        GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, iSlice, row, cln.getPad(), cln.getTime(), x, y, z);
+        if (mCfgH.clustersOnNominalRow) {
+          x = mParam->tpcGeometry.Row2X(row);
+        }
+        mParam->Slice2Global(iSlice, x + mCfgH.xAdd, y, z, &ptr->x, &ptr->y, &ptr->z);
+      }
+
+      if (fabsf(ptr->z) > mMaxClusterZ) {
+        mMaxClusterZ = fabsf(ptr->z);
+      }
+      ptr->z += iSlice < 18 ? mCfgH.zAdd : -mCfgH.zAdd;
+      ptr->x /= GL_SCALE_FACTOR;
+      ptr->y /= GL_SCALE_FACTOR;
+      ptr->z /= GL_SCALE_FACTOR;
+      ptr->w = tCLUSTER;
+    }
+  }
+
+  int trdTriggerRecord = -1;
+  float trdZoffset = 0;
+  GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ) firstprivate(trdTriggerRecord, trdZoffset))
+  for (int i = 0; i < mCurrentSpacePointsTRD; i++) {
+    while (mParam->par.continuousTracking && trdTriggerRecord < (int)mIOPtrs->nTRDTriggerRecords - 1 && mIOPtrs->trdTrackletIdxFirst[trdTriggerRecord + 1] <= i) {
+      trdTriggerRecord++;
+      float trdTime = mIOPtrs->trdTriggerTimes[trdTriggerRecord] * 1e3 / o2::constants::lhc::LHCBunchSpacingNS / o2::tpc::constants::LHCBCPERTIMEBIN;
+      trdZoffset = fabsf(mCalib->fastTransform->convVertexTimeToZOffset(0, trdTime, mParam->par.continuousMaxTimeBin));
+    }
+    const auto& sp = mIOPtrs->trdSpacePoints[i];
+    int iSec = trdGeometry().GetSector(mIOPtrs->trdTracklets[i].GetDetector());
+    float4* ptr = &mGlobalPosTRD[i];
+    mParam->Slice2Global(iSec, sp.getX() + mCfgH.xAdd, sp.getY(), sp.getZ(), &ptr->x, &ptr->y, &ptr->z);
+    ptr->z += ptr->z > 0 ? trdZoffset : -trdZoffset;
+    if (fabsf(ptr->z) > mMaxClusterZ) {
+      mMaxClusterZ = fabsf(ptr->z);
+    }
+    ptr->x /= GL_SCALE_FACTOR;
+    ptr->y /= GL_SCALE_FACTOR;
+    ptr->z /= GL_SCALE_FACTOR;
+    ptr->w = tTRDCLUSTER;
+    ptr = &mGlobalPosTRD2[i];
+    mParam->Slice2Global(iSec, sp.getX() + mCfgH.xAdd + 4.5f, sp.getY() + 1.5f * sp.getDy(), sp.getZ(), &ptr->x, &ptr->y, &ptr->z);
+    ptr->z += ptr->z > 0 ? trdZoffset : -trdZoffset;
+    if (fabsf(ptr->z) > mMaxClusterZ) {
+      mMaxClusterZ = fabsf(ptr->z);
+    }
+    ptr->x /= GL_SCALE_FACTOR;
+    ptr->y /= GL_SCALE_FACTOR;
+    ptr->z /= GL_SCALE_FACTOR;
+    ptr->w = tTRDCLUSTER;
+  }
+
+  GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ))
+  for (int i = 0; i < mCurrentClustersTOF; i++) {
+#ifdef GPUCA_HAVE_O2HEADERS
+    float4* ptr = &mGlobalPosTOF[i];
+    mParam->Slice2Global(mIOPtrs->tofClusters[i].getSector(), mIOPtrs->tofClusters[i].getX() + mCfgH.xAdd, mIOPtrs->tofClusters[i].getY(), mIOPtrs->tofClusters[i].getZ(), &ptr->x, &ptr->y, &ptr->z);
+    float ZOffset = 0;
+    if (mParam->par.continuousTracking) {
+      float tofTime = mIOPtrs->tofClusters[i].getTime() * 1e-3 / o2::constants::lhc::LHCBunchSpacingNS / o2::tpc::constants::LHCBCPERTIMEBIN;
+      ZOffset = fabsf(mCalib->fastTransform->convVertexTimeToZOffset(0, tofTime, mParam->par.continuousMaxTimeBin));
+      ptr->z += ptr->z > 0 ? ZOffset : -ZOffset;
+    }
+    if (fabsf(ptr->z) > mMaxClusterZ) {
+      mMaxClusterZ = fabsf(ptr->z);
+    }
+    ptr->x /= GL_SCALE_FACTOR;
+    ptr->y /= GL_SCALE_FACTOR;
+    ptr->z /= GL_SCALE_FACTOR;
+    ptr->w = tTOFCLUSTER;
+#endif
+  }
+
+  if (mCurrentClustersITS) {
+#ifdef GPUCA_HAVE_O2HEADERS
+    float itsROFhalfLen = 0;
+#ifdef GPUCA_O2_LIB // Not available in standalone benchmark
+    if (mParam->par.continuousTracking) {
+      const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+      itsROFhalfLen = alpParams.roFrameLengthInBC / (float)o2::tpc::constants::LHCBCPERTIMEBIN / 2;
+    }
+#endif
+    int i = 0;
+    for (unsigned int j = 0; j < mIOPtrs->nItsClusterROF; j++) {
+      float ZOffset = 0;
+      if (mParam->par.continuousTracking) {
+        o2::InteractionRecord startIR = o2::InteractionRecord(0, mIOPtrs->settingsTF && mIOPtrs->settingsTF->hasTfStartOrbit ? mIOPtrs->settingsTF->tfStartOrbit : 0);
+        float itsROFtime = mIOPtrs->itsClusterROF[j].getBCData().differenceInBC(startIR) / (float)o2::tpc::constants::LHCBCPERTIMEBIN;
+        ZOffset = fabsf(mCalib->fastTransform->convVertexTimeToZOffset(0, itsROFtime + itsROFhalfLen, mParam->par.continuousMaxTimeBin));
+      }
+      if (i != mIOPtrs->itsClusterROF[j].getFirstEntry()) {
+        throw std::runtime_error("Inconsistent ITS data, number of clusters does not match ROF content");
+      }
+      for (int k = 0; k < mIOPtrs->itsClusterROF[j].getNEntries(); k++) {
+        float4* ptr = &mGlobalPosITS[i];
+        const auto& cl = mIOPtrs->itsClusters[i];
+        auto* itsGeo = o2::its::GeometryTGeo::Instance();
+        auto p = cl.getXYZGlo(*itsGeo);
+        ptr->x = p.X();
+        ptr->y = p.Y();
+        ptr->z = p.Z();
+        ptr->z += ptr->z > 0 ? ZOffset : -ZOffset;
         if (fabsf(ptr->z) > mMaxClusterZ) {
           mMaxClusterZ = fabsf(ptr->z);
         }
-        ptr->z += iSlice < 18 ? mCfgH.zAdd : -mCfgH.zAdd;
         ptr->x /= GL_SCALE_FACTOR;
         ptr->y /= GL_SCALE_FACTOR;
         ptr->z /= GL_SCALE_FACTOR;
-        ptr->w = tCLUSTER;
+        ptr->w = tITSCLUSTER;
+        i++;
       }
     }
-
-    int trdTriggerRecord = -1;
-    float trdZoffset = 0;
-    GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ) firstprivate(trdTriggerRecord, trdZoffset))
-    for (int i = 0; i < mCurrentSpacePointsTRD; i++) {
-      while (mParam->par.continuousTracking && trdTriggerRecord < (int)mIOPtrs->nTRDTriggerRecords - 1 && mIOPtrs->trdTrackletIdxFirst[trdTriggerRecord + 1] <= i) {
-        trdTriggerRecord++;
-        float trdTime = mIOPtrs->trdTriggerTimes[trdTriggerRecord] * 1e3 / o2::constants::lhc::LHCBunchSpacingNS / o2::tpc::constants::LHCBCPERTIMEBIN;
-        trdZoffset = fabsf(mCalib->fastTransform->convVertexTimeToZOffset(0, trdTime, mParam->par.continuousMaxTimeBin));
-      }
-      const auto& sp = mIOPtrs->trdSpacePoints[i];
-      int iSec = trdGeometry().GetSector(mIOPtrs->trdTracklets[i].GetDetector());
-      float4* ptr = &mGlobalPosTRD[i];
-      mParam->Slice2Global(iSec, sp.getX() + mCfgH.xAdd, sp.getY(), sp.getZ(), &ptr->x, &ptr->y, &ptr->z);
-      ptr->z += ptr->z > 0 ? trdZoffset : -trdZoffset;
-      if (fabsf(ptr->z) > mMaxClusterZ) {
-        mMaxClusterZ = fabsf(ptr->z);
-      }
-      ptr->x /= GL_SCALE_FACTOR;
-      ptr->y /= GL_SCALE_FACTOR;
-      ptr->z /= GL_SCALE_FACTOR;
-      ptr->w = tTRDCLUSTER;
-      ptr = &mGlobalPosTRD2[i];
-      mParam->Slice2Global(iSec, sp.getX() + mCfgH.xAdd + 4.5f, sp.getY() + 1.5f * sp.getDy(), sp.getZ(), &ptr->x, &ptr->y, &ptr->z);
-      ptr->z += ptr->z > 0 ? trdZoffset : -trdZoffset;
-      if (fabsf(ptr->z) > mMaxClusterZ) {
-        mMaxClusterZ = fabsf(ptr->z);
-      }
-      ptr->x /= GL_SCALE_FACTOR;
-      ptr->y /= GL_SCALE_FACTOR;
-      ptr->z /= GL_SCALE_FACTOR;
-      ptr->w = tTRDCLUSTER;
-    }
-
-    GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ))
-    for (int i = 0; i < mCurrentClustersTOF; i++) {
-#ifdef GPUCA_HAVE_O2HEADERS
-      float4* ptr = &mGlobalPosTOF[i];
-      mParam->Slice2Global(mIOPtrs->tofClusters[i].getSector(), mIOPtrs->tofClusters[i].getX() + mCfgH.xAdd, mIOPtrs->tofClusters[i].getY(), mIOPtrs->tofClusters[i].getZ(), &ptr->x, &ptr->y, &ptr->z);
-      float ZOffset = 0;
-      if (mParam->par.continuousTracking) {
-        float tofTime = mIOPtrs->tofClusters[i].getTime() * 1e-3 / o2::constants::lhc::LHCBunchSpacingNS / o2::tpc::constants::LHCBCPERTIMEBIN;
-        ZOffset = fabsf(mCalib->fastTransform->convVertexTimeToZOffset(0, tofTime, mParam->par.continuousMaxTimeBin));
-        ptr->z += ptr->z > 0 ? ZOffset : -ZOffset;
-      }
-      if (fabsf(ptr->z) > mMaxClusterZ) {
-        mMaxClusterZ = fabsf(ptr->z);
-      }
-      ptr->x /= GL_SCALE_FACTOR;
-      ptr->y /= GL_SCALE_FACTOR;
-      ptr->z /= GL_SCALE_FACTOR;
-      ptr->w = tTOFCLUSTER;
 #endif
-    }
-
-    if (mCurrentClustersITS) {
-#ifdef GPUCA_HAVE_O2HEADERS
-      float itsROFhalfLen = 0;
-#ifdef GPUCA_O2_LIB // Not available in standalone benchmark
-      if (mParam->par.continuousTracking) {
-        const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-        itsROFhalfLen = alpParams.roFrameLengthInBC / (float)o2::tpc::constants::LHCBCPERTIMEBIN / 2;
-      }
-#endif
-      int i = 0;
-      for (unsigned int j = 0; j < mIOPtrs->nItsClusterROF; j++) {
-        float ZOffset = 0;
-        if (mParam->par.continuousTracking) {
-          o2::InteractionRecord startIR = o2::InteractionRecord(0, mIOPtrs->settingsTF && mIOPtrs->settingsTF->hasTfStartOrbit ? mIOPtrs->settingsTF->tfStartOrbit : 0);
-          float itsROFtime = mIOPtrs->itsClusterROF[j].getBCData().differenceInBC(startIR) / (float)o2::tpc::constants::LHCBCPERTIMEBIN;
-          ZOffset = fabsf(mCalib->fastTransform->convVertexTimeToZOffset(0, itsROFtime + itsROFhalfLen, mParam->par.continuousMaxTimeBin));
-        }
-        if (i != mIOPtrs->itsClusterROF[j].getFirstEntry()) {
-          throw std::runtime_error("Inconsistent ITS data, number of clusters does not match ROF content");
-        }
-        for (int k = 0; k < mIOPtrs->itsClusterROF[j].getNEntries(); k++) {
-          float4* ptr = &mGlobalPosITS[i];
-          const auto& cl = mIOPtrs->itsClusters[i];
-          auto* itsGeo = o2::its::GeometryTGeo::Instance();
-          auto p = cl.getXYZGlo(*itsGeo);
-          ptr->x = p.X();
-          ptr->y = p.Y();
-          ptr->z = p.Z();
-          ptr->z += ptr->z > 0 ? ZOffset : -ZOffset;
-          if (fabsf(ptr->z) > mMaxClusterZ) {
-            mMaxClusterZ = fabsf(ptr->z);
-          }
-          ptr->x /= GL_SCALE_FACTOR;
-          ptr->y /= GL_SCALE_FACTOR;
-          ptr->z /= GL_SCALE_FACTOR;
-          ptr->w = tITSCLUSTER;
-          i++;
-        }
-      }
-#endif
-    }
-
-    mTimerFPS.ResetStart();
-    mFramesDoneFPS = 0;
-    mFPSScaleadjust = 0;
-    mUpdateVertexLists = 1;
-    mUpdateEventData = 0;
   }
+}
 
-  if (!mixAnimation && mOffscreenBuffer.created) {
-    setFrameBuffer(1, mOffscreenBuffer.fb_id);
-  }
-  // Initialize
-  if (!mixAnimation) {
-    mBackend->clearScreen();
-  }
-
-  hmm_mat4 nextViewMatrix = MY_HMM_IDENTITY;
+void GPUDisplay::DrawGLScene_cameraAndAnimation(bool mixAnimation, float mAnimateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix)
+{
   int mMouseWheelTmp = mFrontend->mMouseWheel;
   mFrontend->mMouseWheel = 0;
   bool lookOrigin = mCfgR.camLookOrigin ^ mFrontend->mKeys[mFrontend->KEY_ALT];
@@ -1551,7 +1521,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
   }
   scalefactor *= sqrdist;
 
-  float mixSlaveImage = 0.f;
+  mixSlaveImage = 0.f;
   float time = mAnimateTime;
   if (mAnimate && time < 0) {
     if (mAnimateScreenshot) {
@@ -1797,257 +1767,248 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     mFrontend->mMouseDnX = mFrontend->mouseMvX;
     mFrontend->mMouseDnY = mFrontend->mouseMvY;
   }
+}
 
-  // Prepare Event
-  if (mUpdateVertexLists && mIOPtrs) {
-    for (int i = 0; i < NSLICES; i++) {
-      mVertexBuffer[i].clear();
-      mVertexBufferStart[i].clear();
-      mVertexBufferCount[i].clear();
-    }
+size_t GPUDisplay::DrawGLScene_updateVertexList()
+{
+  for (int i = 0; i < NSLICES; i++) {
+    mVertexBuffer[i].clear();
+    mVertexBufferStart[i].clear();
+    mVertexBufferCount[i].clear();
+  }
 
-    for (int i = 0; i < mCurrentClusters; i++) {
-      mGlobalPos[i].w = tCLUSTER;
-    }
-    for (int i = 0; i < mCurrentSpacePointsTRD; i++) {
-      mGlobalPosTRD[i].w = tTRDCLUSTER;
-    }
+  for (int i = 0; i < mCurrentClusters; i++) {
+    mGlobalPos[i].w = tCLUSTER;
+  }
+  for (int i = 0; i < mCurrentSpacePointsTRD; i++) {
+    mGlobalPosTRD[i].w = tTRDCLUSTER;
+  }
 
-    for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      for (int i = 0; i < N_POINTS_TYPE; i++) {
-        mGlDLPoints[iSlice][i].resize(mNCollissions);
-      }
-      for (int i = 0; i < N_FINAL_TYPE; i++) {
-        mGlDLFinal[iSlice].resize(mNCollissions);
-      }
+  for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
+    for (int i = 0; i < N_POINTS_TYPE; i++) {
+      mGlDLPoints[iSlice][i].resize(mNCollissions);
     }
-    GPUCA_OPENMP(parallel num_threads(getNumThreads()))
-    {
+    for (int i = 0; i < N_FINAL_TYPE; i++) {
+      mGlDLFinal[iSlice].resize(mNCollissions);
+    }
+  }
+  GPUCA_OPENMP(parallel num_threads(getNumThreads()))
+  {
 #ifdef WITH_OPENMP
-      int numThread = omp_get_thread_num();
-      int numThreads = omp_get_num_threads();
+    int numThread = omp_get_thread_num();
+    int numThreads = omp_get_num_threads();
 #else
-      int numThread = 0, numThreads = 1;
+    int numThread = 0, numThreads = 1;
 #endif
-      if (mChain && (mChain->GetRecoSteps() & GPUDataTypes::RecoStep::TPCSliceTracking)) {
-        GPUCA_OPENMP(for)
-        for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-          GPUTPCTracker& tracker = (GPUTPCTracker&)sliceTracker(iSlice);
-          tracker.SetPointersDataLinks(tracker.LinkTmpMemory());
-          mGlDLLines[iSlice][tINITLINK] = DrawLinks(tracker, tINITLINK, true);
-          tracker.SetPointersDataLinks(mChain->rec()->Res(tracker.MemoryResLinks()).Ptr());
-        }
-        GPUCA_OPENMP(barrier)
-
-        GPUCA_OPENMP(for)
-        for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-          const GPUTPCTracker& tracker = sliceTracker(iSlice);
-
-          mGlDLLines[iSlice][tLINK] = DrawLinks(tracker, tLINK);
-          mGlDLLines[iSlice][tSEED] = DrawSeeds(tracker);
-          mGlDLLines[iSlice][tTRACKLET] = DrawTracklets(tracker);
-          mGlDLLines[iSlice][tSLICETRACK] = DrawTracks(tracker, 0);
-          mGlDLGrid[iSlice] = DrawGrid(tracker);
-          if (iSlice < NSLICES / 2) {
-            mGlDLGridTRD[iSlice] = DrawGridTRD(iSlice);
-          }
-        }
-        GPUCA_OPENMP(barrier)
-
-        GPUCA_OPENMP(for)
-        for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-          const GPUTPCTracker& tracker = sliceTracker(iSlice);
-          mGlDLLines[iSlice][tGLOBALTRACK] = DrawTracks(tracker, 1);
-        }
-        GPUCA_OPENMP(barrier)
+    if (mChain && (mChain->GetRecoSteps() & GPUDataTypes::RecoStep::TPCSliceTracking)) {
+      GPUCA_OPENMP(for)
+      for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
+        GPUTPCTracker& tracker = (GPUTPCTracker&)sliceTracker(iSlice);
+        tracker.SetPointersDataLinks(tracker.LinkTmpMemory());
+        mGlDLLines[iSlice][tINITLINK] = DrawLinks(tracker, tINITLINK, true);
+        tracker.SetPointersDataLinks(mChain->rec()->Res(tracker.MemoryResLinks()).Ptr());
       }
-      mThreadTracks[numThread].resize(mNCollissions);
-      for (int i = 0; i < mNCollissions; i++) {
-        for (int j = 0; j < NSLICES; j++) {
-          for (int k = 0; k < 2; k++) {
-            mThreadTracks[numThread][i][j][k].clear();
-          }
+      GPUCA_OPENMP(barrier)
+
+      GPUCA_OPENMP(for)
+      for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
+        const GPUTPCTracker& tracker = sliceTracker(iSlice);
+
+        mGlDLLines[iSlice][tLINK] = DrawLinks(tracker, tLINK);
+        mGlDLLines[iSlice][tSEED] = DrawSeeds(tracker);
+        mGlDLLines[iSlice][tTRACKLET] = DrawTracklets(tracker);
+        mGlDLLines[iSlice][tSLICETRACK] = DrawTracks(tracker, 0);
+        mGlDLGrid[iSlice] = DrawGrid(tracker);
+        if (iSlice < NSLICES / 2) {
+          mGlDLGridTRD[iSlice] = DrawGridTRD(iSlice);
         }
       }
-      if (mConfig.showTPCTracksFromO2Format) {
+      GPUCA_OPENMP(barrier)
+
+      GPUCA_OPENMP(for)
+      for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
+        const GPUTPCTracker& tracker = sliceTracker(iSlice);
+        mGlDLLines[iSlice][tGLOBALTRACK] = DrawTracks(tracker, 1);
+      }
+      GPUCA_OPENMP(barrier)
+    }
+    mThreadTracks[numThread].resize(mNCollissions);
+    for (int i = 0; i < mNCollissions; i++) {
+      for (int j = 0; j < NSLICES; j++) {
+        for (int k = 0; k < 2; k++) {
+          mThreadTracks[numThread][i][j][k].clear();
+        }
+      }
+    }
+    if (mConfig.showTPCTracksFromO2Format) {
+      unsigned int col = 0;
+      GPUCA_OPENMP(for)
+      for (unsigned int i = 0; i < mIOPtrs->nOutputTracksTPCO2; i++) {
+        uint8_t sector, row;
+        if (mIOPtrs->clustersNative) {
+          mIOPtrs->outputTracksTPCO2[i].getCluster(mIOPtrs->outputClusRefsTPCO2, 0, *mIOPtrs->clustersNative, sector, row);
+        } else {
+          sector = 0;
+        }
+        mThreadTracks[numThread][col][sector][0].emplace_back(i);
+      }
+    } else {
+      GPUCA_OPENMP(for)
+      for (unsigned int i = 0; i < mIOPtrs->nMergedTracks; i++) {
+        const GPUTPCGMMergedTrack* track = &mIOPtrs->mergedTracks[i];
+        if (track->NClusters() == 0) {
+          continue;
+        }
+        if (mCfgH.hideRejectedTracks && !track->OK()) {
+          continue;
+        }
+        int slice = mIOPtrs->mergedTrackHits[track->FirstClusterRef() + track->NClusters() - 1].slice;
         unsigned int col = 0;
-        GPUCA_OPENMP(for)
-        for (unsigned int i = 0; i < mIOPtrs->nOutputTracksTPCO2; i++) {
-          uint8_t sector, row;
-          if (mIOPtrs->clustersNative) {
-            mIOPtrs->outputTracksTPCO2[i].getCluster(mIOPtrs->outputClusRefsTPCO2, 0, *mIOPtrs->clustersNative, sector, row);
-          } else {
-            sector = 0;
+        if (mCollisionClusters.size() > 1) {
+          int label = mQA ? mQA->GetMCTrackLabel(i) : -1;
+          while (col < mCollisionClusters.size() && mCollisionClusters[col][NSLICES] < label) {
+            col++;
           }
-          mThreadTracks[numThread][col][sector][0].emplace_back(i);
         }
-      } else {
-        GPUCA_OPENMP(for)
-        for (unsigned int i = 0; i < mIOPtrs->nMergedTracks; i++) {
-          const GPUTPCGMMergedTrack* track = &mIOPtrs->mergedTracks[i];
-          if (track->NClusters() == 0) {
-            continue;
-          }
-          if (mCfgH.hideRejectedTracks && !track->OK()) {
-            continue;
-          }
-          int slice = mIOPtrs->mergedTrackHits[track->FirstClusterRef() + track->NClusters() - 1].slice;
-          unsigned int col = 0;
-          if (mCollisionClusters.size() > 1) {
-            int label = mQA ? mQA->GetMCTrackLabel(i) : -1;
-            while (col < mCollisionClusters.size() && mCollisionClusters[col][NSLICES] < label) {
-              col++;
-            }
-          }
-          mThreadTracks[numThread][col][slice][0].emplace_back(i);
-        }
+        mThreadTracks[numThread][col][slice][0].emplace_back(i);
       }
-      for (unsigned int col = 0; col < mIOPtrs->nMCInfosTPCCol; col++) {
-        GPUCA_OPENMP(for)
-        for (unsigned int i = mIOPtrs->mcInfosTPCCol[col].first; i < mIOPtrs->mcInfosTPCCol[col].first + mIOPtrs->mcInfosTPCCol[col].num; i++) {
-          const GPUTPCMCInfo& mc = mIOPtrs->mcInfosTPC[i];
-          if (mc.charge == 0.f) {
-            continue;
-          }
-          if (mc.pid < 0) {
-            continue;
-          }
-
-          float alpha = atan2f(mc.y, mc.x);
-          if (alpha < 0) {
-            alpha += 2 * CAMath::Pi();
-          }
-          int slice = alpha / (2 * CAMath::Pi()) * 18;
-          if (mc.z < 0) {
-            slice += 18;
-          }
-          mThreadTracks[numThread][col][slice][1].emplace_back(i);
-        }
-      }
-      GPUCA_OPENMP(barrier)
-
-      GPUTPCGMPropagator prop;
-      prop.SetMaxSinPhi(.999);
-      prop.SetMaterialTPC();
-      prop.SetPolynomialField(&mParam->polynomialField);
-
+    }
+    for (unsigned int col = 0; col < mIOPtrs->nMCInfosTPCCol; col++) {
       GPUCA_OPENMP(for)
-      for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-        for (int iCol = 0; iCol < mNCollissions; iCol++) {
-          mThreadBuffers[numThread].clear();
-          for (int iSet = 0; iSet < numThreads; iSet++) {
+      for (unsigned int i = mIOPtrs->mcInfosTPCCol[col].first; i < mIOPtrs->mcInfosTPCCol[col].first + mIOPtrs->mcInfosTPCCol[col].num; i++) {
+        const GPUTPCMCInfo& mc = mIOPtrs->mcInfosTPC[i];
+        if (mc.charge == 0.f) {
+          continue;
+        }
+        if (mc.pid < 0) {
+          continue;
+        }
+
+        float alpha = atan2f(mc.y, mc.x);
+        if (alpha < 0) {
+          alpha += 2 * CAMath::Pi();
+        }
+        int slice = alpha / (2 * CAMath::Pi()) * 18;
+        if (mc.z < 0) {
+          slice += 18;
+        }
+        mThreadTracks[numThread][col][slice][1].emplace_back(i);
+      }
+    }
+    GPUCA_OPENMP(barrier)
+
+    GPUTPCGMPropagator prop;
+    prop.SetMaxSinPhi(.999);
+    prop.SetMaterialTPC();
+    prop.SetPolynomialField(&mParam->polynomialField);
+
+    GPUCA_OPENMP(for)
+    for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
+      for (int iCol = 0; iCol < mNCollissions; iCol++) {
+        mThreadBuffers[numThread].clear();
+        for (int iSet = 0; iSet < numThreads; iSet++) {
 #ifdef GPUCA_HAVE_O2HEADERS
-            if (mConfig.showTPCTracksFromO2Format) {
-              DrawFinal<o2::tpc::TrackTPC>(iSlice, iCol, &prop, mThreadTracks[iSet][iCol][iSlice], mThreadBuffers[numThread]);
-            } else
+          if (mConfig.showTPCTracksFromO2Format) {
+            DrawFinal<o2::tpc::TrackTPC>(iSlice, iCol, &prop, mThreadTracks[iSet][iCol][iSlice], mThreadBuffers[numThread]);
+          } else
 #endif
-            {
-              DrawFinal<GPUTPCGMMergedTrack>(iSlice, iCol, &prop, mThreadTracks[iSet][iCol][iSlice], mThreadBuffers[numThread]);
-            }
-          }
-          vboList* list = &mGlDLFinal[iSlice][iCol][0];
-          for (int i = 0; i < N_FINAL_TYPE; i++) {
-            size_t startCount = mVertexBufferStart[iSlice].size();
-            for (unsigned int j = 0; j < mThreadBuffers[numThread].start[i].size(); j++) {
-              mVertexBufferStart[iSlice].emplace_back(mThreadBuffers[numThread].start[i][j]);
-              mVertexBufferCount[iSlice].emplace_back(mThreadBuffers[numThread].count[i][j]);
-            }
-            list[i] = vboList(startCount, mVertexBufferStart[iSlice].size() - startCount, iSlice);
+          {
+            DrawFinal<GPUTPCGMMergedTrack>(iSlice, iCol, &prop, mThreadTracks[iSet][iCol][iSlice], mThreadBuffers[numThread]);
           }
         }
-      }
-
-      GPUCA_OPENMP(barrier)
-      GPUCA_OPENMP(for)
-      for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-        for (int i = 0; i < N_POINTS_TYPE_TPC; i++) {
-          for (int iCol = 0; iCol < mNCollissions; iCol++) {
-            mGlDLPoints[iSlice][i][iCol] = DrawClusters(iSlice, i, iCol);
+        vboList* list = &mGlDLFinal[iSlice][iCol][0];
+        for (int i = 0; i < N_FINAL_TYPE; i++) {
+          size_t startCount = mVertexBufferStart[iSlice].size();
+          for (unsigned int j = 0; j < mThreadBuffers[numThread].start[i].size(); j++) {
+            mVertexBufferStart[iSlice].emplace_back(mThreadBuffers[numThread].start[i][j]);
+            mVertexBufferCount[iSlice].emplace_back(mThreadBuffers[numThread].count[i][j]);
           }
+          list[i] = vboList(startCount, mVertexBufferStart[iSlice].size() - startCount, iSlice);
         }
       }
     }
-    // End omp parallel
 
-    mGlDLFinalITS = DrawFinalITS();
-
+    GPUCA_OPENMP(barrier)
+    GPUCA_OPENMP(for)
     for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      for (int i = N_POINTS_TYPE_TPC; i < N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD; i++) {
+      for (int i = 0; i < N_POINTS_TYPE_TPC; i++) {
         for (int iCol = 0; iCol < mNCollissions; iCol++) {
-          mGlDLPoints[iSlice][i][iCol] = DrawSpacePointsTRD(iSlice, i, iCol);
+          mGlDLPoints[iSlice][i][iCol] = DrawClusters(iSlice, i, iCol);
         }
       }
     }
+  }
+  // End omp parallel
 
-    for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      for (int i = N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD; i < N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF; i++) {
-        for (int iCol = 0; iCol < mNCollissions; iCol++) {
-          mGlDLPoints[iSlice][i][iCol] = DrawSpacePointsTOF(iSlice, i, iCol);
-        }
+  mGlDLFinalITS = DrawFinalITS();
+
+  for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
+    for (int i = N_POINTS_TYPE_TPC; i < N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD; i++) {
+      for (int iCol = 0; iCol < mNCollissions; iCol++) {
+        mGlDLPoints[iSlice][i][iCol] = DrawSpacePointsTRD(iSlice, i, iCol);
       }
-      break; // TODO: Only slice 0 filled for now
-    }
-
-    for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      for (int i = N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF; i < N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF + N_POINTS_TYPE_ITS; i++) {
-        for (int iCol = 0; iCol < mNCollissions; iCol++) {
-          mGlDLPoints[iSlice][i][iCol] = DrawSpacePointsITS(iSlice, i, iCol);
-        }
-      }
-      break; // TODO: Only slice 0 filled for now
-    }
-
-    mUpdateVertexLists = 0;
-    size_t totalVertizes = 0;
-    for (int i = 0; i < NSLICES; i++) {
-      totalVertizes += mVertexBuffer[i].size();
-    }
-    if (totalVertizes > 0xFFFFFFFF) {
-      throw std::runtime_error("Display vertex count exceeds 32bit uint counter");
-    }
-    size_t needMultiVBOSize = mBackend->needMultiVBO();
-    mUseMultiVBO = needMultiVBOSize && (totalVertizes * sizeof(mVertexBuffer[0][0]) >= needMultiVBOSize);
-    if (!mUseMultiVBO) {
-      size_t totalYet = mVertexBuffer[0].size();
-      mVertexBuffer[0].resize(totalVertizes);
-      for (int i = 1; i < GPUCA_NSLICES; i++) {
-        for (unsigned int j = 0; j < mVertexBufferStart[i].size(); j++) {
-          mVertexBufferStart[i][j] += totalYet;
-        }
-        memcpy(&mVertexBuffer[0][totalYet], &mVertexBuffer[i][0], mVertexBuffer[i].size() * sizeof(mVertexBuffer[i][0]));
-        totalYet += mVertexBuffer[i].size();
-        mVertexBuffer[i].clear();
-      }
-    }
-    mBackend->loadDataToGPU(totalVertizes);
-    for (int i = 0; i < (mUseMultiVBO ? GPUCA_NSLICES : 1); i++) {
-      mVertexBuffer[i].clear();
-    }
-
-    if (showTimer) {
-      printf("Event visualization time: %'d us (vertices %'lld / %'lld bytes)\n", (int)(mTimerDraw.GetCurrentElapsedTime() * 1000000.), (long long int)totalVertizes, (long long int)(totalVertizes * sizeof(mVertexBuffer[0][0])));
     }
   }
 
-  // Draw Event
-  mNDrawCalls = 0;
-  nextViewMatrix = nextViewMatrix * mModelMatrix;
-  const float zFar = ((mParam->par.continuousTracking ? (mMaxClusterZ / GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
-  const hmm_mat4 proj = HMM_Perspective(mCfgR.fov, (GLfloat)mScreenwidth / (GLfloat)mScreenheight, 0.1f, zFar);
-  mBackend->prepareDraw(proj, nextViewMatrix, mRequestScreenshot);
-  mBackend->pointSizeFactor(1);
-  mBackend->lineWidthFactor(1);
+  for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
+    for (int i = N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD; i < N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF; i++) {
+      for (int iCol = 0; iCol < mNCollissions; iCol++) {
+        mGlDLPoints[iSlice][i][iCol] = DrawSpacePointsTOF(iSlice, i, iCol);
+      }
+    }
+    break; // TODO: Only slice 0 filled for now
+  }
 
+  for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
+    for (int i = N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF; i < N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF + N_POINTS_TYPE_ITS; i++) {
+      for (int iCol = 0; iCol < mNCollissions; iCol++) {
+        mGlDLPoints[iSlice][i][iCol] = DrawSpacePointsITS(iSlice, i, iCol);
+      }
+    }
+    break; // TODO: Only slice 0 filled for now
+  }
+
+  mUpdateVertexLists = 0;
+  size_t totalVertizes = 0;
+  for (int i = 0; i < NSLICES; i++) {
+    totalVertizes += mVertexBuffer[i].size();
+  }
+  if (totalVertizes > 0xFFFFFFFF) {
+    throw std::runtime_error("Display vertex count exceeds 32bit uint counter");
+  }
+  size_t needMultiVBOSize = mBackend->needMultiVBO();
+  mUseMultiVBO = needMultiVBOSize && (totalVertizes * sizeof(mVertexBuffer[0][0]) >= needMultiVBOSize);
+  if (!mUseMultiVBO) {
+    size_t totalYet = mVertexBuffer[0].size();
+    mVertexBuffer[0].resize(totalVertizes);
+    for (int i = 1; i < GPUCA_NSLICES; i++) {
+      for (unsigned int j = 0; j < mVertexBufferStart[i].size(); j++) {
+        mVertexBufferStart[i][j] += totalYet;
+      }
+      memcpy(&mVertexBuffer[0][totalYet], &mVertexBuffer[i][0], mVertexBuffer[i].size() * sizeof(mVertexBuffer[i][0]));
+      totalYet += mVertexBuffer[i].size();
+      mVertexBuffer[i].clear();
+    }
+  }
+  mBackend->loadDataToGPU(totalVertizes);
+  for (int i = 0; i < (mUseMultiVBO ? GPUCA_NSLICES : 1); i++) {
+    mVertexBuffer[i].clear();
+  }
+  return totalVertizes;
+}
+
+void GPUDisplay::DrawGLScene_drawCommands()
+{
 #define LOOP_SLICE for (int iSlice = (mCfgL.drawSlice == -1 ? 0 : mCfgL.drawRelatedSlices ? (mCfgL.drawSlice % (NSLICES / 4)) : mCfgL.drawSlice); iSlice < NSLICES; iSlice += (mCfgL.drawSlice == -1 ? 1 : mCfgL.drawRelatedSlices ? (NSLICES / 4) : NSLICES))
 #define LOOP_SLICE2 for (int iSlice = (mCfgL.drawSlice == -1 ? 0 : mCfgL.drawRelatedSlices ? (mCfgL.drawSlice % (NSLICES / 4)) : mCfgL.drawSlice) % (NSLICES / 2); iSlice < NSLICES / 2; iSlice += (mCfgL.drawSlice == -1 ? 1 : mCfgL.drawRelatedSlices ? (NSLICES / 4) : NSLICES))
 #define LOOP_COLLISION for (int iCol = (mCfgL.showCollision == -1 ? 0 : mCfgL.showCollision); iCol < mNCollissions; iCol += (mCfgL.showCollision == -1 ? 1 : mNCollissions))
-#define LOOP_COLLISION_COL(cmd) \
-  LOOP_COLLISION                \
-  {                             \
+#define LOOP_COLLISION_COL(cmd)  \
+  LOOP_COLLISION                 \
+  {                              \
     if (mCfgL.colorCollisions) { \
-      SetCollisionColor(iCol);  \
-    }                           \
-    cmd;                        \
+      SetCollisionColor(iCol);   \
+    }                            \
+    cmd;                         \
   }
 
   if (mCfgL.drawGrid) {
@@ -2228,6 +2189,60 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       }
     }
   }
+}
+
+void GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
+{
+  bool showTimer = false;
+
+  if (!mixAnimation && (mUpdateEventData || mResetScene || mUpdateVertexLists) && mIOPtrs) {
+    disableUnsupportedOptions();
+  }
+  if (mUpdateEventData || mUpdateVertexLists) {
+    mUpdateDrawCommands = 1;
+  }
+
+  if (!mixAnimation && (mUpdateEventData || mResetScene) && mIOPtrs) {
+    showTimer = true;
+    DrawGLScene_updateEventData();
+    mTimerFPS.ResetStart();
+    mFramesDoneFPS = 0;
+    mFPSScaleadjust = 0;
+    mUpdateVertexLists = 1;
+    mUpdateEventData = 0;
+  }
+
+  if (!mixAnimation && mOffscreenBuffer.created) {
+    setFrameBuffer(1, mOffscreenBuffer.fb_id);
+  }
+  if (!mixAnimation) {
+    mBackend->clearScreen();
+  }
+
+  hmm_mat4 nextViewMatrix = MY_HMM_IDENTITY;
+  float mixSlaveImage = 0.f;
+  DrawGLScene_cameraAndAnimation(mixAnimation, mAnimateTime, mixSlaveImage, nextViewMatrix);
+
+  // Prepare Event
+  if (mUpdateVertexLists && mIOPtrs) {
+    size_t totalVertizes = DrawGLScene_updateVertexList();
+    if (showTimer) {
+      printf("Event visualization time: %'d us (vertices %'lld / %'lld bytes)\n", (int)(mTimerDraw.GetCurrentElapsedTime() * 1000000.), (long long int)totalVertizes, (long long int)(totalVertizes * sizeof(mVertexBuffer[0][0])));
+    }
+  }
+
+  // Draw Event
+  nextViewMatrix = nextViewMatrix * mModelMatrix;
+  const float zFar = ((mParam->par.continuousTracking ? (mMaxClusterZ / GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
+  const hmm_mat4 proj = HMM_Perspective(mCfgR.fov, (GLfloat)mScreenwidth / (GLfloat)mScreenheight, 0.1f, zFar);
+  mBackend->prepareDraw(proj, nextViewMatrix, mRequestScreenshot);
+  mBackend->pointSizeFactor(1);
+  mBackend->lineWidthFactor(1);
+
+  if (mUpdateDrawCommands || mBackend->backendNeedRedraw()) {
+    mNDrawCalls = 0;
+    DrawGLScene_drawCommands();
+  }
 
   mUpdateDrawCommands = mUpdateRenderPipeline = 0;
   mBackend->finishDraw();
@@ -2284,12 +2299,6 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     std::vector<char> pixels = mBackend->getPixels();
     DoScreenshot(mScreenshotFile.c_str(), pixels);
   }
-
-  if (mAnimateTime < 0) {
-    mSemLockDisplay.Unlock();
-  }
-
-  return (0);
 }
 
 void GPUDisplay::DoScreenshot(const char* filename, std::vector<char>& pixels, float mAnimateTime)
@@ -2315,7 +2324,7 @@ void GPUDisplay::DoScreenshot(const char* filename, std::vector<char>& pixels, f
     mBackend->createFB(screenshotBuffer, 0, 1, false); // Create screenshotBuffer of size mScreenwidth * SCALE, mRenderwidth * SCALE
     UpdateOffscreenBuffers();                // Create other buffers of size mScreenwidth * SCALE * downscale, ...
     setFrameBuffer(1, screenshotBuffer.fb_id);
-    DrawGLScene(false, mAnimateTime);
+    DrawGLScene_internal(false, mAnimateTime);
   }
   size_t size = 4 * mScreenwidth * mScreenheight;
   if (size != pixels.size()) {
@@ -2359,7 +2368,7 @@ void GPUDisplay::DoScreenshot(const char* filename, std::vector<char>& pixels, f
     mScreenwidth = oldWidth;
     mScreenheight = oldHeight;
     UpdateOffscreenBuffers();
-    DrawGLScene(false, mAnimateTime);
+    DrawGLScene_internal(false, mAnimateTime);
   }
 }
 

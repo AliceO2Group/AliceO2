@@ -180,7 +180,11 @@ class GPUDisplay
     bool mVerbose = false;
   };
 
-  int DrawGLScene_internal(bool mixAnimation, float mAnimateTime);
+  void DrawGLScene_internal(bool mixAnimation, float mAnimateTime);
+  void DrawGLScene_updateEventData();
+  void DrawGLScene_cameraAndAnimation(bool mixAnimation, float mAnimateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix);
+  size_t DrawGLScene_updateVertexList();
+  void DrawGLScene_drawCommands();
   int InitDisplay_internal();
   int getNumThreads();
   void disableUnsupportedOptions();
@@ -223,7 +227,6 @@ class GPUDisplay
   void SetColorGridTRD();
   void SetColorMarked();
   void SetCollisionColor(int col);
-  void setQuality();
   void setDepthBuffer();
   void setFrameBuffer(int updateCurrent = -1, unsigned int newID = 0);
   void UpdateOffscreenBuffers(bool clean = false);
