@@ -34,14 +34,15 @@ std::array<int, 5> o2::zdc::fastsim::calculateChannels(Ort::Value& value)
   for (int i = 0; i < 44; i++) {
     for (int j = 0; j < 44; j++) {
       if (i % 2 == j % 2) {
-        if (i < 22 && j < 22)
+        if (i < 22 && j < 22) {
           channels[0] += std::expm1(flattedImageVector[j + i * 44]);
-        else if (i < 22 && j >= 22)
+        } else if (i < 22 && j >= 22) {
           channels[1] += std::expm1(flattedImageVector[j + i * 44]);
-        else if (i >= 22 && j < 22)
+        } else if (i >= 22 && j < 22) {
           channels[2] += std::expm1(flattedImageVector[j + i * 44]);
-        else if (i >= 22 && j >= 22)
+        } else if (i >= 22 && j >= 22) {
           channels[3] += std::expm1(flattedImageVector[j + i * 44]);
+        }
       } else {
         channels[4] += std::expm1(flattedImageVector[j + i * 44]);
       }
