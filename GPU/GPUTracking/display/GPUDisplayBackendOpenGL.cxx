@@ -295,7 +295,8 @@ int GPUDisplayBackendOpenGL::InitBackendA()
   setQuality();
   CHKERR(mVertexShader = glCreateShader(GL_VERTEX_SHADER));
   CHKERR(mFragmentShader = glCreateShader(GL_FRAGMENT_SHADER));
-  CHKERR(mVertexShaderText = glCreateShader(GL_VERTEX_SHADER));
+  CHKERR(mVertexShaderTexture = glCreateShader(GL_VERTEX_SHADER));
+  CHKERR(mFragmentShaderTexture = glCreateShader(GL_FRAGMENT_SHADER));
   CHKERR(mFragmentShaderText = glCreateShader(GL_FRAGMENT_SHADER));
 #if defined(GL_VERSION_4_6) && GL_VERSION_4_6 == 1 && defined(GPUCA_BUILD_EVENT_DISPLAY_VULKAN)
   if (getenv("USE_SPIRV_SHADERS") && atoi(getenv("USE_SPIRV_SHADERS"))) {
@@ -313,18 +314,19 @@ int GPUDisplayBackendOpenGL::InitBackendA()
     CHKERR(glShaderSource(mFragmentShader, 1, &GPUDisplayShaders::fragmentShader, nullptr));
     CHKERR(glCompileShader(mFragmentShader));
   }
-  CHKERR(glShaderSource(mVertexShaderText, 1, &GPUDisplayShaders::vertexShaderText, nullptr));
-  CHKERR(glCompileShader(mVertexShaderText));
+  CHKERR(glShaderSource(mVertexShaderTexture, 1, &GPUDisplayShaders::vertexShaderTexture, nullptr));
+  CHKERR(glCompileShader(mVertexShaderTexture));
+  CHKERR(glShaderSource(mFragmentShaderTexture, 1, &GPUDisplayShaders::fragmentShaderTexture, nullptr));
+  CHKERR(glCompileShader(mFragmentShaderTexture));
   CHKERR(glShaderSource(mFragmentShaderText, 1, &GPUDisplayShaders::fragmentShaderText, nullptr));
   CHKERR(glCompileShader(mFragmentShaderText));
-  if (checkShaderStatus(mVertexShader) || checkShaderStatus(mFragmentShader) || checkShaderStatus(mVertexShaderText) || checkShaderStatus(mFragmentShaderText)) {
+  if (checkShaderStatus(mVertexShader) || checkShaderStatus(mFragmentShader) || checkShaderStatus(mVertexShaderTexture) || checkShaderStatus(mFragmentShaderTexture) || checkShaderStatus(mFragmentShaderText)) {
     return 1;
   }
   CHKERR(mShaderProgram = glCreateProgram());
   CHKERR(glAttachShader(mShaderProgram, mVertexShader));
   CHKERR(glAttachShader(mShaderProgram, mFragmentShader));
   CHKERR(glLinkProgram(mShaderProgram));
-  CHKERR(glGenVertexArrays(1, &mVertexArray));
   if (mSPIRVShaders) {
     CHKERR(glGenBuffers(1, &mSPIRVModelViewBuffer));
     CHKERR(glGenBuffers(1, &mSPIRVColorBuffer));
@@ -333,11 +335,29 @@ int GPUDisplayBackendOpenGL::InitBackendA()
     CHKERR(mColorId = glGetUniformLocation(mShaderProgram, "color"));
   }
   CHKERR(mShaderProgramText = glCreateProgram());
-  CHKERR(glAttachShader(mShaderProgramText, mVertexShaderText));
+  CHKERR(glAttachShader(mShaderProgramText, mVertexShaderTexture));
   CHKERR(glAttachShader(mShaderProgramText, mFragmentShaderText));
   CHKERR(glLinkProgram(mShaderProgramText));
   CHKERR(mModelViewProjIdText = glGetUniformLocation(mShaderProgramText, "projection"));
   CHKERR(mColorIdText = glGetUniformLocation(mShaderProgramText, "textColor"));
+  CHKERR(mShaderProgramTexture = glCreateProgram());
+  CHKERR(glAttachShader(mShaderProgramTexture, mVertexShaderTexture));
+  CHKERR(glAttachShader(mShaderProgramTexture, mFragmentShaderTexture));
+  CHKERR(glLinkProgram(mShaderProgramTexture));
+  CHKERR(mModelViewProjIdTexture = glGetUniformLocation(mShaderProgramTexture, "projection"));
+  CHKERR(mAlphaIdTexture = glGetUniformLocation(mShaderProgramTexture, "alpha"));
+  CHKERR(glGenVertexArrays(1, &mVertexArray));
+
+  CHKERR(glGenVertexArrays(1, &VAO_texture));
+  CHKERR(glGenBuffers(1, &VBO_texture));
+  CHKERR(glBindVertexArray(VAO_texture));
+  CHKERR(glBindBuffer(GL_ARRAY_BUFFER, VBO_texture));
+  CHKERR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, nullptr, GL_DYNAMIC_DRAW));
+  CHKERR(glEnableVertexAttribArray(0));
+  CHKERR(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), nullptr));
+  CHKERR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+
+  CHKERR(glBindVertexArray(0));
   return (0); // Initialization Went OK
 }
 
@@ -350,9 +370,16 @@ void GPUDisplayBackendOpenGL::ExitBackendA()
   CHKERR(glDeleteShader(mVertexShader));
   CHKERR(glDeleteShader(mFragmentShader));
   CHKERR(glDeleteProgram(mShaderProgramText));
-  CHKERR(glDeleteShader(mVertexShaderText));
   CHKERR(glDeleteShader(mFragmentShaderText));
+  CHKERR(glDeleteProgram(mShaderProgramTexture));
+  CHKERR(glDeleteShader(mVertexShaderTexture));
+  CHKERR(glDeleteShader(mFragmentShaderTexture));
+
   CHKERR(glDeleteVertexArrays(1, &mVertexArray));
+
+  CHKERR(glDeleteBuffers(1, &VBO_texture));
+  CHKERR(glDeleteVertexArrays(1, &VAO_texture));
+
   if (mFreetypeInitialized) {
     CHKERR(glDeleteBuffers(1, &VBO_text));
     CHKERR(glDeleteVertexArrays(1, &VAO_text));
@@ -544,16 +571,29 @@ void GPUDisplayBackendOpenGL::finishText()
 
 void GPUDisplayBackendOpenGL::mixImages(float mixSlaveImage)
 {
+  hmm_mat4 proj = HMM_Orthographic(0.f, mRenderWidth, 0.f, mRenderHeight, -1.f, 1.f);
+  glDisable(GL_DEPTH_TEST);
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
   if (!mDisplay->cfgR().openGLCore) {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glMatrixMode(GL_PROJECTION);
-    hmm_mat4 proj = HMM_Orthographic(0.f, mRenderWidth, 0.f, mRenderHeight, -1.f, 1.f);
     glLoadMatrixf(&proj.Elements[0][0]);
     CHKERR(glEnable(GL_TEXTURE_2D));
-    glDisable(GL_DEPTH_TEST);
-    CHKERR(glBindTexture(GL_TEXTURE_2D, mMixBuffer.fbCol_id));
+  } else
+#endif
+  {
+    CHKERR(glUseProgram(mShaderProgramTexture));
+    CHKERR(glActiveTexture(GL_TEXTURE0));
+    CHKERR(glBindVertexArray(VAO_texture));
+    CHKERR(glUniformMatrix4fv(mModelViewProjIdTexture, 1, GL_FALSE, &proj.Elements[0][0]));
+    CHKERR(glUniform1f(mAlphaIdTexture, mixSlaveImage));
+  }
+
+  CHKERR(glBindTexture(GL_TEXTURE_2D, mMixBuffer.fbCol_id));
+
+#ifndef GPUCA_DISPLAY_OPENGL_CORE
+  if (!mDisplay->cfgR().openGLCore) {
     glColor4f(1, 1, 1, mixSlaveImage);
     glBegin(GL_QUADS);
     glTexCoord2f(0, 0);
@@ -567,12 +607,15 @@ void GPUDisplayBackendOpenGL::mixImages(float mixSlaveImage)
     glEnd();
     glColor4f(1, 1, 1, 0);
     CHKERR(glDisable(GL_TEXTURE_2D));
-    setDepthBuffer();
   } else
 #endif
   {
-    GPUWarning("Image mixing unsupported in OpenGL CORE profile");
+    CHKERR(glDrawArrays(GL_TRIANGLES, 0, 6));
+    CHKERR(glBindVertexArray(0));
+    CHKERR(glUseProgram(0));
   }
+  CHKERR(glBindTexture(GL_TEXTURE_2D, 0));
+  setDepthBuffer();
 }
 
 void GPUDisplayBackendOpenGL::pointSizeFactor(float factor)
@@ -651,7 +694,7 @@ void GPUDisplayBackendOpenGL::OpenGLPrint(const char* s, float x, float y, float
       CHKERR(glBindBuffer(GL_ARRAY_BUFFER, VBO_text));
       CHKERR(glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices));
       CHKERR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-      glDrawArrays(GL_TRIANGLES, 0, 6);
+      CHKERR(glDrawArrays(GL_TRIANGLES, 0, 6));
     }
     x += (sym.advance >> 6) * scale; // shift is in 1/64th of a pixel
   }
@@ -677,6 +720,20 @@ void GPUDisplayBackendOpenGL::resizeScene(unsigned int width, unsigned int heigh
 {
   mScreenWidth = width;
   mScreenHeight = height;
+
+  float vertices[6][4] = {
+    {0, (float)height, 0.0f, 1.0f},
+    {0, 0, 0.0f, 0.0f},
+    {(float)width, 0, 1.0f, 0.0f},
+    {0, (float)height, 0.0f, 1.0f},
+    {(float)width, 0, 1.0f, 0.0f},
+    {(float)width, (float)height, 1.0f, 1.0f}};
+  CHKERR(glBindBuffer(GL_ARRAY_BUFFER, VBO_texture));
+  CHKERR(glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices));
+  CHKERR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+  if (!mDisplay->useMultiVBO()) {
+    CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mVBOId[0])); // If we don't use multiple buffers, we keep the default buffer bound
+  }
   updateRenderer(false);
 }
 

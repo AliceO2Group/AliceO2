@@ -73,10 +73,12 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
 
   unsigned int mVertexShader;
   unsigned int mFragmentShader;
-  unsigned int mVertexShaderText;
+  unsigned int mVertexShaderTexture;
+  unsigned int mFragmentShaderTexture;
   unsigned int mFragmentShaderText;
   unsigned int mShaderProgram;
   unsigned int mShaderProgramText;
+  unsigned int mShaderProgramTexture;
   unsigned int mVertexArray;
 
   unsigned int mIndirectId;
@@ -84,12 +86,17 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   std::vector<FontSymbolOpenGL> mFontSymbols;
   int mModelViewProjId;
   int mColorId;
+  int mModelViewProjIdTexture;
+  int mAlphaIdTexture;
   int mModelViewProjIdText;
   int mColorIdText;
   unsigned int mSPIRVModelViewBuffer;
   unsigned int mSPIRVColorBuffer;
 
   unsigned int VAO_text, VBO_text;
+
+  unsigned int VAO_texture, VBO_texture;
+
   bool mSPIRVShaders = false;
 
   GLfb mMixBuffer;
