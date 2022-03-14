@@ -398,7 +398,7 @@ void GRPDCSDPsProcessor::updateMagFieldCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mMagField, mccdbMagFieldInfo, "GLO/Config/GRPMagField", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mMagField, mccdbMagFieldInfo, "GLO/Calib/GRPMagField", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
   return;
 }
 
@@ -414,7 +414,7 @@ void GRPDCSDPsProcessor::updateLHCIFInfoCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mLHCInfo, mccdbLHCIFInfo, "GLO/Config/LHCIF", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mLHCInfo, mccdbLHCIFInfo, "GLO/Calib/LHCIF", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
   return;
 }
 
@@ -430,7 +430,7 @@ void GRPDCSDPsProcessor::updateEnvVarsCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbEnvVarsInfo, "GLO/Config/EnvVars", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbEnvVarsInfo, "GLO/Calib/EnvVars", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
   return;
 }
 
@@ -446,6 +446,6 @@ void GRPDCSDPsProcessor::updateCollimatorsCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbCollimatorsInfo, "GLO/Config/Collimators", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbCollimatorsInfo, "GLO/Calib/Collimators", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
   return;
 }

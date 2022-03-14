@@ -17,6 +17,10 @@ o2_add_test_root_macro(
   readGRPDCSConfigEntry.C
   PUBLIC_LINK_LIBRARIES O2::DetectorsDCS)
 
+o2_add_test_root_macro(
+  readGRPCCDB.C
+  PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB O2::GRPCalibration O2::DataFormatsParameters)
+
 install(
   FILES makeGRPCCDBEntryForDCS.C
   readGRPDCSConfigEntry.C
