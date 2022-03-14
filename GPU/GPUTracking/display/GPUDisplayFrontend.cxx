@@ -36,7 +36,7 @@ void GPUDisplayFrontend::HandleSendKey()
 }
 
 void GPUDisplayFrontend::HandleKey(unsigned char key) { mDisplay->HandleKey(key); }
-int GPUDisplayFrontend::DrawGLScene(bool mixAnimation, float animateTime) { return mDisplay->DrawGLScene(mixAnimation, animateTime); }
+int GPUDisplayFrontend::DrawGLScene() { return mDisplay->DrawGLScene(); }
 void GPUDisplayFrontend::ReSizeGLScene(int width, int height)
 {
   mDisplayHeight = height;

@@ -43,26 +43,20 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   unsigned int DepthBits() override;
 
  protected:
-  void createFB(GLfb& fb, bool tex, bool withDepth, bool msaa) override;
-  void deleteFB(GLfb& fb) override;
-
   unsigned int drawVertices(const vboList& v, const drawType t) override;
   void ActivateColor(std::array<float, 4>& color) override;
   void SetVSync(bool enable) override { recreateSwapChain(); };
   void setDepthBuffer() override{};
   bool backendNeedRedraw() override;
-  void setFrameBuffer(int updateCurrent, unsigned int newID) override;
   int InitBackendA() override;
   void ExitBackendA() override;
-  void clearScreen(bool colorOnly = false) override;
   void loadDataToGPU(size_t totalVertizes) override;
   void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot) override;
-  void finishDraw() override;
+  void finishDraw(bool toMixBuffer, float includeMixImage) override;
   void finishFrame() override;
   void prepareText() override;
   void finishText() override;
-  void mixImages(GLfb& mixBuffer, float mixSlaveImage) override;
-  void renderOffscreenBuffer(GLfb& buffer, GLfb& bufferNoMSAA, int mainBuffer) override;
+  void mixImages(float mixSlaveImage) override;
   void pointSizeFactor(float factor) override;
   void lineWidthFactor(float factor) override;
   backendTypes backendType() const override { return TYPE_VULKAN; }
@@ -122,7 +116,6 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   VkSurfaceKHR mSurface;
   VkSurfaceFormatKHR mSurfaceFormat;
   VkPresentModeKHR mPresentMode;
-  VkExtent2D mExtent;
   VkSwapchainKHR mSwapChain;
   bool mSwapchainImageReadable;
   bool mMustUpdateSwapChain = false;

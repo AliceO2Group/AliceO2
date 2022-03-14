@@ -110,7 +110,7 @@ class GPUDisplayFrontend
   GPUDisplayBackend* mBackend = nullptr; // Ptr to backend, not owning
 
   void HandleKey(unsigned char key);                                    // Callback for handling key presses
-  int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f); // Callback to draw the GL scene
+  int DrawGLScene();                                                    // Callback to draw the GL scene
   void HandleSendKey();                                                 // Optional callback to handle key press from external source (e.g. stdin by default)
   void ReSizeGLScene(int width, int height);                            // Callback when GL window is resized
   int InitDisplay(bool initFailure = false);                            // Callback to initialize the GL Display (to be called in StartDisplay)
