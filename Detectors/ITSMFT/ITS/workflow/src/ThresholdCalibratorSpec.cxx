@@ -829,15 +829,6 @@ void ITSThresholdCalibrator::addDatabaseEntry(
   char stave[6];
   sprintf(stave, "L%d_%02d", lay, sta);
 
-  // Build string to be used to get configDB chipid
-  std::string key = "";
-  if (lay < 3) {
-    key = std::string(stave) + "_M" + std::to_string(mod) + "_C" + std::to_string(chipInMod);
-  } else {
-    std::string uorl = !ssta ? "L" : "U";
-    key = std::string(stave) + uorl + "_M" + std::to_string(mod) + "_C" + std::to_string(chipInMod);
-  }
-
   o2::dcs::addConfigItem(this->mTuning, "Stave", std::string(stave));
   o2::dcs::addConfigItem(this->mTuning, "Hs_pos", std::to_string(ssta));
   o2::dcs::addConfigItem(this->mTuning, "Hic_Pos", std::to_string(mod));

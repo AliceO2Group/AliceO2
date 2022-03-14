@@ -46,7 +46,6 @@
 #include "TTree.h"
 #include "TH1F.h"
 #include "TF1.h"
-#include "TStopwatch.h"
 
 using namespace o2::framework;
 using namespace o2::itsmft;
@@ -100,7 +99,6 @@ class ITSThresholdCalibrator : public Task
  private:
   // detector information
   static constexpr short int N_COL = 1024;  // column number in Alpide chip
-  static constexpr short int N_ROW_MEM = 5; // number of rows we keep in memory for each chip
 
   const short int N_RU = o2::itsmft::ChipMappingITS::getNRUs();
 
