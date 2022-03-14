@@ -38,11 +38,11 @@ int makeTRDCCDBEntryForDCS(const std::string url = "http://localhost:8080")
 
   DPID dpidTmp;
   for (size_t i = 0; i < expAliasesFloat.size(); ++i) {
-    DPID::FILL(dpidTmp, expAliasesFloat[i], o2::dcs::DeliveryType::RAW_DOUBLE);
+    DPID::FILL(dpidTmp, expAliasesFloat[i], o2::dcs::DeliveryType::DPVAL_DOUBLE);
     dpid2DataDesc[dpidTmp] = "TRDDATAPOINTS";
   }
   for (size_t i = 0; i < expAliasesInt.size(); ++i) {
-    DPID::FILL(dpidTmp, expAliasesInt[i], o2::dcs::DeliveryType::RAW_INT);
+    DPID::FILL(dpidTmp, expAliasesInt[i], o2::dcs::DeliveryType::DPVAL_INT);
     dpid2DataDesc[dpidTmp] = "TRDDATAPOINTS";
   }
 

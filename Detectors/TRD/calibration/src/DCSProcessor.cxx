@@ -110,15 +110,15 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
   auto& dpid = dpcom.id;
   const auto& type = dpid.get_type();
   if (mVerbose) {
-    if (type == RAW_DOUBLE) {
+    if (type == DPVAL_DOUBLE) {
       LOG(info) << "Processing DP = " << dpcom << ", with value = " << o2::dcs::getValue<double>(dpcom);
-    } else if (type == RAW_INT) {
+    } else if (type == DPVAL_INT) {
       LOG(info) << "Processing DP = " << dpcom << ", with value = " << o2::dcs::getValue<int32_t>(dpcom);
     }
   }
   auto flags = dpcom.data.get_flags();
   if (processFlags(flags, dpid.get_alias()) == 0) {
-    if (type == RAW_DOUBLE) {
+    if (type == DPVAL_DOUBLE) {
       auto& dvect = mDpsDoublesmap[dpid];
       LOG(info) << "mDpsDoublesmap[dpid].size() = " << dvect.size();
       auto etime = dpcom.data.get_epoch_time();
@@ -127,7 +127,7 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
         dvect.push_back(dpcom);
       }
     }
-    if (type == RAW_INT) {
+    if (type == DPVAL_INT) {
       // TODO so far there is no processing at all for these type of DCS data points
       if (std::strstr(dpid.get_alias(), "trd_runNo") != nullptr) { // DP is trd_runNo
         std::string aliasStr(dpid.get_alias());
@@ -219,7 +219,7 @@ void DCSProcessor::updateDPsCCDB()
 
   for (const auto& it : mPids) {
     const auto& type = it.first.get_type();
-    if (type == o2::dcs::RAW_DOUBLE) {
+    if (type == o2::dcs::DPVAL_DOUBLE) {
       auto& trddcs = mTRDDCS[it.first];
       if (it.second == true) { // we processed the DP at least 1x
         auto& dpVect = mDpsDoublesmap[it.first];
