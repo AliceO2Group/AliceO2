@@ -421,7 +421,7 @@ int GPUDisplayFrontendX11::FrontendMain()
         }
 
         case ConfigureNotify: {
-          ReSizeGLScene(event.xconfigure.width, event.xconfigure.height);
+          ResizeScene(event.xconfigure.width, event.xconfigure.height);
           break;
         }
 

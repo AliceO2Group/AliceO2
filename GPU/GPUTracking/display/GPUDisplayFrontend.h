@@ -112,7 +112,7 @@ class GPUDisplayFrontend
   void HandleKey(unsigned char key);                                    // Callback for handling key presses
   int DrawGLScene();                                                    // Callback to draw the GL scene
   void HandleSendKey();                                                 // Optional callback to handle key press from external source (e.g. stdin by default)
-  void ReSizeGLScene(int width, int height);                            // Callback when GL window is resized
+  void ResizeScene(int width, int height);                              // Callback when GL window is resized
   int InitDisplay(bool initFailure = false);                            // Callback to initialize the GL Display (to be called in StartDisplay)
   void ExitDisplay();                                                   // Callback to clean up the GL Display
   int& drawTextFontSize();

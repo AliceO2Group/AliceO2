@@ -169,13 +169,13 @@ void GPUDisplayFrontendGlut::specialUpFunc(int key, int x, int y)
   me->mKeysShift[keyPress] = false;
 }
 
-void GPUDisplayFrontendGlut::ReSizeGLSceneWrapper(int width, int height)
+void GPUDisplayFrontendGlut::ResizeSceneWrapper(int width, int height)
 {
   if (!me->mFullScreen) {
     me->mWidth = width;
     me->mHeight = height;
   }
-  me->ReSizeGLScene(width, height);
+  me->ResizeScene(width, height);
 }
 
 void GPUDisplayFrontendGlut::mouseFunc(int button, int state, int x, int y)
@@ -244,7 +244,7 @@ int GPUDisplayFrontendGlut::FrontendMain()
 
   glutDisplayFunc(displayFunc);
   glutIdleFunc(glutLoopFunc);
-  glutReshapeFunc(ReSizeGLSceneWrapper);
+  glutReshapeFunc(ResizeSceneWrapper);
   glutKeyboardFunc(keyboardDownFunc);
   glutKeyboardUpFunc(keyboardUpFunc);
   glutSpecialFunc(specialDownFunc);

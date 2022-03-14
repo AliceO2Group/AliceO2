@@ -42,7 +42,7 @@ class GPUDisplay
   void HandleSendKey(int key) {}
   int InitDisplay(bool initFailure = false) { return 1; }
   void ExitDisplay() {}
-  void ReSizeGLScene(int width, int height, bool init = false) {}
+  void ResizeScene(int width, int height, bool init = false) {}
 
   GPUDisplayBackend* backend() const { return nullptr; }
   int& drawTextFontSize()
@@ -90,7 +90,7 @@ class GPUDisplay
   void HandleSendKey(int key);
   int InitDisplay(bool initFailure = false);
   void ExitDisplay();
-  void ReSizeGLScene(int width, int height, bool init = false);
+  void ResizeScene(int width, int height, bool init = false);
 
   const GPUSettingsDisplayRenderer& cfgR() const { return mCfgR; }
   const GPUSettingsDisplayLight& cfgL() const { return mCfgL; }

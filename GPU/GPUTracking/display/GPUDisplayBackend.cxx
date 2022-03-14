@@ -150,7 +150,7 @@ void GPUDisplayBackend::fillIndirectCmdBuffer()
   }
 }
 
-float GPUDisplayBackend::getDownsampleFactor()
+float GPUDisplayBackend::getDownsampleFactor(bool screenshot)
 {
   float factor = 1.0f;
   int fsaa = mDisplay->cfgR().drawQualityDownsampleFSAA;
@@ -158,7 +158,7 @@ float GPUDisplayBackend::getDownsampleFactor()
   if (fsaa) {
     factor *= fsaa;
   }
-  if (screenshotScale) {
+  if (screenshotScale && screenshot) {
     factor *= screenshotScale;
   }
   return factor;

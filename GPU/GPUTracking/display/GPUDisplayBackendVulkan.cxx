@@ -765,19 +765,19 @@ void GPUDisplayBackendVulkan::clearTextureSampler()
 
 // ---------------------------- VULKAN SWAPCHAIN MANAGEMENT ----------------------------
 
-void GPUDisplayBackendVulkan::createSwapChain()
+void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot)
 {
   mMSAASampleCount = getMSAASamplesFlag(std::min<unsigned int>(mMaxMSAAsupported, mDisplay->cfgR().drawQualityMSAA));
-  mDownsampleFSAA = mDisplay->cfgR().drawQualityDownsampleFSAA;
+  mDownsampleFactor = getDownsampleFactor(forScreenshot);
+  mDownsampleFSAA = mDownsampleFactor != 1;
   mZActive = mZSupported && mDisplay->cfgL().depthBuffer;
-  mSwapchainImageReadable = mScreenshotRequested;
+  mSwapchainImageReadable = forScreenshot;
 
   updateSwapChainDetails(mPhysicalDevice);
   mSurfaceFormat = chooseSwapSurfaceFormat(mSwapChainDetails->formats);
   mPresentMode = chooseSwapPresentMode(mSwapChainDetails->presentModes, mDisplay->cfgR().drawQualityVSync ? VK_PRESENT_MODE_MAILBOX_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR);
   VkExtent2D extent = chooseSwapExtent(mSwapChainDetails->capabilities);
 
-  mDownsampleFactor = getDownsampleFactor();
   mScreenWidth = extent.width;
   mScreenHeight = extent.height;
   mRenderWidth = mScreenWidth * mDownsampleFactor;
@@ -983,12 +983,12 @@ void GPUDisplayBackendVulkan::clearSwapChain()
   vkDestroySwapchainKHR(mDevice, mSwapChain, nullptr);
 }
 
-void GPUDisplayBackendVulkan::recreateSwapChain()
+void GPUDisplayBackendVulkan::recreateSwapChain(bool forScreenshot)
 {
   vkDeviceWaitIdle(mDevice);
   clearPipeline();
   clearSwapChain();
-  createSwapChain();
+  createSwapChain(forScreenshot);
   createPipeline();
   needRecordCommandBuffers();
 }
@@ -1450,17 +1450,16 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
   vkWaitForFences(mDevice, 1, &mInFlightFence[mCurrentFrame], VK_TRUE, UINT64_MAX);
 
   VkResult retVal = VK_SUCCESS;
-  if (mDisplay->updateRenderPipeline() || (requestScreenshot && !mSwapchainImageReadable)) {
+  if (mDisplay->updateRenderPipeline() || (requestScreenshot && !mSwapchainImageReadable) || mDownsampleFactor != getDownsampleFactor(requestScreenshot)) {
     mMustUpdateSwapChain = true;
   } else {
     retVal = vkAcquireNextImageKHR(mDevice, mSwapChain, UINT64_MAX, mImageAvailableSemaphore[mCurrentFrame], VK_NULL_HANDLE, &mImageIndex);
   }
-  mScreenshotRequested = requestScreenshot;
   if (mMustUpdateSwapChain || retVal == VK_ERROR_OUT_OF_DATE_KHR || retVal == VK_SUBOPTIMAL_KHR) {
     if (!mMustUpdateSwapChain) {
       GPUInfo("Pipeline out of data / suboptimal, recreating");
     }
-    recreateSwapChain();
+    recreateSwapChain(requestScreenshot);
     retVal = vkAcquireNextImageKHR(mDevice, mSwapChain, UINT64_MAX, mImageAvailableSemaphore[mCurrentFrame], VK_NULL_HANDLE, &mImageIndex);
   }
   CHKERR(retVal);
@@ -1507,7 +1506,7 @@ unsigned int GPUDisplayBackendVulkan::drawVertices(const vboList& v, const drawT
   return count;
 }
 
-void GPUDisplayBackendVulkan::finishFrame()
+void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot)
 {
   VkSemaphore* stageFinishedSemaphore = &mRenderFinishedSemaphore[mCurrentFrame];
 
@@ -1523,50 +1522,22 @@ void GPUDisplayBackendVulkan::finishFrame()
   submitInfo.pSignalSemaphores = stageFinishedSemaphore;
   CHKERR(vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, hasDrawnText || mDownsampleFSAA ? VK_NULL_HANDLE : mInFlightFence[mCurrentFrame]));
 
-  if (mScreenshotRequested) {
-    vkDeviceWaitIdle(mDevice);
-    readImageToPixels(mSwapChainImages[mImageIndex], mScreenshotPixels);
-    mScreenshotRequested = false;
-  }
-
   if (mDownsampleFSAA) {
-    VkCommandBuffer& commandBuffer = mCommandBuffersDownsample[mImageIndex];
-    vkResetCommandBuffer(commandBuffer, 0);
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-    VkImageSubresourceRange range{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-    cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mImageIndex], 0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, range);
-    cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mImageIndex].image, VK_ACCESS_MEMORY_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, range);
-
-    VkOffset3D blitSizeSrc;
-    blitSizeSrc.x = mRenderWidth;
-    blitSizeSrc.y = mRenderHeight;
-    blitSizeSrc.z = 1;
-    VkOffset3D blitSizeDst;
-    blitSizeDst.x = mScreenWidth;
-    blitSizeDst.y = mScreenHeight;
-    blitSizeDst.z = 1;
-    VkImageBlit imageBlitRegion{};
-    imageBlitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    imageBlitRegion.srcSubresource.layerCount = 1;
-    imageBlitRegion.srcOffsets[1] = blitSizeSrc;
-    imageBlitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    imageBlitRegion.dstSubresource.layerCount = 1;
-    imageBlitRegion.dstOffsets[1] = blitSizeDst;
-    vkCmdBlitImage(commandBuffer, mDownsampleImages[mImageIndex].image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mSwapChainImages[mImageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion, VK_FILTER_LINEAR);
-
-    cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mImageIndex], VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, range);
-    cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mImageIndex].image, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_MEMORY_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, range);
-
-    vkEndCommandBuffer(commandBuffer);
-    submitInfo.pCommandBuffers = &commandBuffer;
+    downsampleToFramebuffer(mCommandBuffersDownsample[mImageIndex]);
+    submitInfo.pCommandBuffers = &mCommandBuffersDownsample[mImageIndex];
     submitInfo.pWaitSemaphores = stageFinishedSemaphore;
     stageFinishedSemaphore = &mDownsampleFinishedSemaphore[mCurrentFrame];
     submitInfo.pSignalSemaphores = stageFinishedSemaphore;
     CHKERR(vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, hasDrawnText ? VK_NULL_HANDLE : mInFlightFence[mCurrentFrame]));
+  }
+
+  if (doScreenshot) {
+    vkDeviceWaitIdle(mDevice);
+    if (mDisplay->cfgR().screenshotScaleFactor != 1) {
+      readImageToPixels(mDownsampleImages[mImageIndex].image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, mScreenshotPixels);
+    } else {
+      readImageToPixels(mSwapChainImages[mImageIndex], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, mScreenshotPixels);
+    }
   }
 
   if (hasDrawnText) {
@@ -1587,6 +1558,41 @@ void GPUDisplayBackendVulkan::finishFrame()
   presentInfo.pResults = nullptr;
   vkQueuePresentKHR(mGraphicsQueue, &presentInfo);
   mCurrentFrame = (mCurrentFrame + 1) % mFramesInFlight;
+}
+
+void GPUDisplayBackendVulkan::downsampleToFramebuffer(VkCommandBuffer& commandBuffer)
+{
+  vkResetCommandBuffer(commandBuffer, 0);
+  VkCommandBufferBeginInfo beginInfo{};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+  vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+  VkImageSubresourceRange range{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+  cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mImageIndex], 0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, range);
+  cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mImageIndex].image, VK_ACCESS_MEMORY_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, range);
+
+  VkOffset3D blitSizeSrc;
+  blitSizeSrc.x = mRenderWidth;
+  blitSizeSrc.y = mRenderHeight;
+  blitSizeSrc.z = 1;
+  VkOffset3D blitSizeDst;
+  blitSizeDst.x = mScreenWidth;
+  blitSizeDst.y = mScreenHeight;
+  blitSizeDst.z = 1;
+  VkImageBlit imageBlitRegion{};
+  imageBlitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  imageBlitRegion.srcSubresource.layerCount = 1;
+  imageBlitRegion.srcOffsets[1] = blitSizeSrc;
+  imageBlitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  imageBlitRegion.dstSubresource.layerCount = 1;
+  imageBlitRegion.dstOffsets[1] = blitSizeDst;
+  vkCmdBlitImage(commandBuffer, mDownsampleImages[mImageIndex].image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mSwapChainImages[mImageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion, VK_FILTER_LINEAR);
+
+  cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mImageIndex], VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, range);
+  cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mImageIndex].image, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_MEMORY_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, range);
+
+  vkEndCommandBuffer(commandBuffer);
 }
 
 void GPUDisplayBackendVulkan::prepareText()
@@ -1799,31 +1805,58 @@ void GPUDisplayBackendVulkan::OpenGLPrint(const char* s, float x, float y, float
   }
 }
 
-void GPUDisplayBackendVulkan::readImageToPixels(VkImage image, std::vector<char>& pixels)
+void GPUDisplayBackendVulkan::readImageToPixels(VkImage image, VkImageLayout layout, std::vector<char>& pixels)
 {
-  pixels.resize(mRenderWidth * mRenderHeight * 4);
+  unsigned int width = mScreenWidth * mDisplay->cfgR().screenshotScaleFactor;
+  unsigned int height = mScreenHeight * mDisplay->cfgR().screenshotScaleFactor;
+  pixels.resize(width * height * 4);
 
-  VkImage dstImage;
-  VkDeviceMemory dstImageMemory;
-  createImageI(mDevice, mPhysicalDevice, dstImage, dstImageMemory, mRenderWidth, mRenderHeight, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VK_IMAGE_TILING_LINEAR);
+  VkImage dstImage, dstImage2, src2;
+  VkDeviceMemory dstImageMemory, dstImageMemory2;
+  createImageI(mDevice, mPhysicalDevice, dstImage, dstImageMemory, width, height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VK_IMAGE_TILING_LINEAR);
   VkCommandBuffer cmdBuffer = getSingleTimeCommandBuffer();
 
   VkImageSubresourceRange range{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-  cmdImageMemoryBarrier(cmdBuffer, dstImage, 0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, range);
-  cmdImageMemoryBarrier(cmdBuffer, image, VK_ACCESS_MEMORY_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, range);
+  cmdImageMemoryBarrier(cmdBuffer, image, VK_ACCESS_MEMORY_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT, layout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, range);
 
+  if (mDisplay->cfgR().screenshotScaleFactor != 1) {
+    createImageI(mDevice, mPhysicalDevice, dstImage2, dstImageMemory2, width, height, mSurfaceFormat.format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_TILING_OPTIMAL);
+    cmdImageMemoryBarrier(cmdBuffer, dstImage2, 0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, range);
+    VkOffset3D blitSizeSrc;
+    blitSizeSrc.x = mRenderWidth;
+    blitSizeSrc.y = mRenderHeight;
+    blitSizeSrc.z = 1;
+    VkOffset3D blitSizeDst;
+    blitSizeDst.x = width;
+    blitSizeDst.y = height;
+    blitSizeDst.z = 1;
+    VkImageBlit imageBlitRegion{};
+    imageBlitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imageBlitRegion.srcSubresource.layerCount = 1;
+    imageBlitRegion.srcOffsets[1] = blitSizeSrc;
+    imageBlitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imageBlitRegion.dstSubresource.layerCount = 1;
+    imageBlitRegion.dstOffsets[1] = blitSizeDst;
+    vkCmdBlitImage(cmdBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstImage2, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion, VK_FILTER_LINEAR);
+    src2 = dstImage2;
+    cmdImageMemoryBarrier(cmdBuffer, dstImage2, VK_ACCESS_MEMORY_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, range);
+  } else {
+    src2 = image;
+  }
+
+  cmdImageMemoryBarrier(cmdBuffer, dstImage, 0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, range);
   VkImageCopy imageCopyRegion{};
   imageCopyRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
   imageCopyRegion.srcSubresource.layerCount = 1;
   imageCopyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
   imageCopyRegion.dstSubresource.layerCount = 1;
-  imageCopyRegion.extent.width = mRenderWidth;
-  imageCopyRegion.extent.height = mRenderHeight;
+  imageCopyRegion.extent.width = width;
+  imageCopyRegion.extent.height = height;
   imageCopyRegion.extent.depth = 1;
-  vkCmdCopyImage(cmdBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopyRegion);
+  vkCmdCopyImage(cmdBuffer, src2, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopyRegion);
 
   cmdImageMemoryBarrier(cmdBuffer, dstImage, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, range);
-  cmdImageMemoryBarrier(cmdBuffer, image, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_MEMORY_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, range);
+  cmdImageMemoryBarrier(cmdBuffer, image, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_MEMORY_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, layout, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, range);
   submitSingleTimeCommandBuffer(cmdBuffer);
 
   VkImageSubresource subResource{VK_IMAGE_ASPECT_COLOR_BIT, 0, 0};
@@ -1836,6 +1869,10 @@ void GPUDisplayBackendVulkan::readImageToPixels(VkImage image, std::vector<char>
   vkUnmapMemory(mDevice, dstImageMemory);
   vkFreeMemory(mDevice, dstImageMemory, nullptr);
   vkDestroyImage(mDevice, dstImage, nullptr);
+  if (mDisplay->cfgR().screenshotScaleFactor != 1) {
+    vkFreeMemory(mDevice, dstImageMemory2, nullptr);
+    vkDestroyImage(mDevice, dstImage2, nullptr);
+  }
 }
 
 unsigned int GPUDisplayBackendVulkan::DepthBits()

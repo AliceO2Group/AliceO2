@@ -37,11 +37,11 @@ void GPUDisplayFrontend::HandleSendKey()
 
 void GPUDisplayFrontend::HandleKey(unsigned char key) { mDisplay->HandleKey(key); }
 int GPUDisplayFrontend::DrawGLScene() { return mDisplay->DrawGLScene(); }
-void GPUDisplayFrontend::ReSizeGLScene(int width, int height)
+void GPUDisplayFrontend::ResizeScene(int width, int height)
 {
   mDisplayHeight = height;
   mDisplayWidth = width;
-  mDisplay->ReSizeGLScene(width, height);
+  mDisplay->ResizeScene(width, height);
 }
 int GPUDisplayFrontend::InitDisplay(bool initFailure) { return mDisplay->InitDisplay(initFailure); }
 void GPUDisplayFrontend::ExitDisplay() { return mDisplay->ExitDisplay(); }
