@@ -38,6 +38,7 @@ void ReconstructionDPL::init(InitContext& ic)
 
 void ReconstructionDPL::run(ProcessingContext& pc)
 {
+  const auto ref = pc.inputs().getFirstValid(true);
   auto creationTime =
     o2::framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(ref)->creation;
   auto& mCCDBManager = o2::ccdb::BasicCCDBManager::instance();
