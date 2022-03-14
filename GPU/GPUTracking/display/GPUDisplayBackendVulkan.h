@@ -45,15 +45,15 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
  protected:
   unsigned int drawVertices(const vboList& v, const drawType t) override;
   void ActivateColor(std::array<float, 4>& color) override;
-  void SetVSync(bool enable) override { recreateSwapChain(); };
+  void SetVSync(bool enable) override { mMustUpdateSwapChain = true; };
   void setDepthBuffer() override{};
   bool backendNeedRedraw() override;
   int InitBackendA() override;
   void ExitBackendA() override;
   void loadDataToGPU(size_t totalVertizes) override;
   void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot) override;
-  void finishDraw(bool toMixBuffer, float includeMixImage) override;
-  void finishFrame() override;
+  void finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage) override;
+  void finishFrame(bool doScreenshot) override;
   void prepareText() override;
   void finishText() override;
   void mixImages(float mixSlaveImage) override;
@@ -78,13 +78,14 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void endFillCommandBuffer(VkCommandBuffer& commandBuffer, unsigned int imageIndex);
   VkCommandBuffer getSingleTimeCommandBuffer();
   void submitSingleTimeCommandBuffer(VkCommandBuffer commandBuffer);
-  void readImageToPixels(VkImage image, std::vector<char>& pixels);
+  void readImageToPixels(VkImage image, VkImageLayout layout, std::vector<char>& pixels);
+  void downsampleToFramebuffer(VkCommandBuffer& commandBuffer);
 
   void updateSwapChainDetails(const VkPhysicalDevice& device);
   void createDevice();
   void createTextureSampler();
   void createPipeline();
-  void createSwapChain();
+  void createSwapChain(bool forScreenshot = false);
   void createShaders();
   void createUniformLayouts();
   void clearDevice();
@@ -93,7 +94,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void clearSwapChain();
   void clearShaders();
   void clearUniformLayouts();
-  void recreateSwapChain();
+  void recreateSwapChain(bool forScreenshot = false);
   void needRecordCommandBuffers();
 
   void addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data) override;
@@ -174,8 +175,6 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   bool mZSupported = false;
 
   bool mDownsampleFSAA = false;
-
-  int mScreenshotRequested = 0;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

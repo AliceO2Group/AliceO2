@@ -87,8 +87,8 @@ class GPUDisplayBackend
   void ExitBackend();
   virtual void loadDataToGPU(size_t totalVertizes) = 0;
   virtual void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot) = 0;
-  virtual void finishDraw(bool toMixBuffer = false, float includeMixImage = 0.f) = 0;
-  virtual void finishFrame() = 0;
+  virtual void finishDraw(bool doScreenshot, bool toMixBuffer = false, float includeMixImage = 0.f) = 0;
+  virtual void finishFrame(bool doScreenshot) = 0;
   virtual void prepareText() = 0;
   virtual void finishText() = 0;
   virtual void mixImages(float mixSlaveImage) = 0;
@@ -106,7 +106,7 @@ class GPUDisplayBackend
   virtual void addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data) = 0;
   virtual void initializeTextDrawing() = 0;
 
-  float getDownsampleFactor();
+  float getDownsampleFactor(bool screenshot = false);
   void fillIndirectCmdBuffer();
 
   GPUDisplay* mDisplay = nullptr;

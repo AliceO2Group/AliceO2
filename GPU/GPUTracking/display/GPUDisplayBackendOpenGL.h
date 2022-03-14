@@ -37,7 +37,7 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   unsigned int DepthBits() override;
 
  protected:
-  void createFB(GLfb& fb, bool tex, bool withDepth, bool msaa);
+  void createFB(GLfb& fb, bool tex, bool withDepth, bool msaa, unsigned int width, unsigned int height);
   void deleteFB(GLfb& fb);
 
   unsigned int drawVertices(const vboList& v, const drawType t) override;
@@ -51,9 +51,10 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   void loadDataToGPU(size_t totalVertizes) override;
   void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot) override;
   void resizeScene(unsigned int width, unsigned int height) override;
+  void updateRenderer(bool withScreenshot);
   void ClearOffscreenBuffers();
-  void finishDraw(bool toMixBuffer, float includeMixImage) override;
-  void finishFrame() override;
+  void finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage) override;
+  void finishFrame(bool doScreenshot) override;
   void prepareText() override;
   void finishText() override;
   void mixImages(float mixSlaveImage) override;

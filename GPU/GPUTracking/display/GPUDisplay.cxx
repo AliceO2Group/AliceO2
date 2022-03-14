@@ -457,7 +457,7 @@ inline void GPUDisplay::SetCollisionColor(int col)
   ActivateColor();
 }
 
-void GPUDisplay::ReSizeGLScene(int width, int height, bool init)
+void GPUDisplay::ResizeScene(int width, int height, bool init)
 {
   if (height == 0) { // Prevent A Divide By Zero By
     height = 1;      // Making Height Equal One
@@ -507,7 +507,7 @@ int GPUDisplay::InitDisplay_internal()
   }
   mYFactor = mBackend->getYFactor();
   mDrawTextInCompatMode = !mBackend->mFreetypeInitialized && mFrontend->mCanDrawText == 1;
-  ReSizeGLScene(GPUDisplayFrontend::INIT_WIDTH, GPUDisplayFrontend::INIT_HEIGHT, true);
+  ResizeScene(GPUDisplayFrontend::INIT_WIDTH, GPUDisplayFrontend::INIT_HEIGHT, true);
   return 0;
 }
 
@@ -2219,7 +2219,7 @@ void GPUDisplay::DrawGLScene_internal(float animateTime) // negative time = no m
     }
   }
 
-  mBackend->finishFrame();
+  mBackend->finishFrame(mRequestScreenshot);
   if (mRequestScreenshot) {
     mRequestScreenshot = false;
     std::vector<char> pixels = mBackend->getPixels();
