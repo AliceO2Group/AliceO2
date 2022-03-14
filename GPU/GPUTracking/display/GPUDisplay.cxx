@@ -1477,14 +1477,14 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
     }
 
     float maxTime = mAnimateVectors[0].back();
-    mAnimationFrame++;
     if (time >= maxTime) {
       time = maxTime;
-      mAnimate = 0;
+      mAnimate = mAnimateScreenshot = 0;
       SetInfo("Animation finished. (%1.2f seconds, %d frames)", time, mAnimationFrame);
     } else {
       SetInfo("Running mAnimation: time %1.2f/%1.2f, frames %d", time, maxTime, mAnimationFrame);
     }
+    mAnimationFrame++;
   }
   // Perform new rotation / translation
   if (mAnimate) {
@@ -1505,9 +1505,9 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
       if (base != mAnimationLastBase && mAnimateVectors[0][mAnimationLastBase] != mAnimateVectors[0][base] && memcmp(&mAnimateConfig[base], &mAnimateConfig[mAnimationLastBase], sizeof(mAnimateConfig[base]))) {
         mCfgL = mAnimateConfig[mAnimationLastBase];
         updateConfig();
-        mBackend->mRenderToMixBuffer = true;
+        mRenderToMixBuffer = true;
         DrawGLScene_internal(time);
-        mBackend->mRenderToMixBuffer = false;
+        mRenderToMixBuffer = false;
         mixSlaveImage = 1.f - (time - mAnimateVectors[0][mAnimationLastBase]) / (mAnimateVectors[0][base] - mAnimateVectors[0][mAnimationLastBase]);
       }
 
@@ -2140,6 +2140,7 @@ void GPUDisplay::DrawGLScene_drawCommands()
 void GPUDisplay::DrawGLScene_internal(float animateTime) // negative time = no mixing
 {
   bool showTimer = false;
+  bool doScreenshot = (mRequestScreenshot || mAnimateScreenshot) && animateTime < 0;
 
   if (animateTime < 0 && (mUpdateEventData || mResetScene || mUpdateVertexLists) && mIOPtrs) {
     disableUnsupportedOptions();
@@ -2174,7 +2175,7 @@ void GPUDisplay::DrawGLScene_internal(float animateTime) // negative time = no m
   nextViewMatrix = nextViewMatrix * mModelMatrix;
   const float zFar = ((mParam->par.continuousTracking ? (mMaxClusterZ / GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
   const hmm_mat4 proj = HMM_Perspective(mCfgR.fov, (GLfloat)mBackend->mRenderWidth / (GLfloat)mBackend->mRenderHeight, 0.1f, zFar);
-  mBackend->prepareDraw(proj, nextViewMatrix, mRequestScreenshot);
+  mBackend->prepareDraw(proj, nextViewMatrix, doScreenshot, mRenderToMixBuffer);
   mBackend->pointSizeFactor(1);
   mBackend->lineWidthFactor(1);
 
@@ -2184,13 +2185,7 @@ void GPUDisplay::DrawGLScene_internal(float animateTime) // negative time = no m
   }
 
   mUpdateDrawCommands = mUpdateRenderPipeline = 0;
-  mBackend->finishDraw(mRequestScreenshot, mixSlaveImage);
-
-  if (mAnimate && mAnimateScreenshot && animateTime < 0) {
-    char mAnimateScreenshotFile[48];
-    sprintf(mAnimateScreenshotFile, "mAnimation%d_%05d.bmp", mAnimationExport, mAnimationFrame);
-    // DoScreenshot(mAnimateScreenshotFile, time);
-  }
+  mBackend->finishDraw(doScreenshot, mRenderToMixBuffer, mixSlaveImage);
 
   if (animateTime < 0) {
     mFramesDone++;
@@ -2220,10 +2215,14 @@ void GPUDisplay::DrawGLScene_internal(float animateTime) // negative time = no m
   }
 
   mBackend->finishFrame(mRequestScreenshot);
-  if (mRequestScreenshot) {
+  if (doScreenshot) {
     mRequestScreenshot = false;
     std::vector<char> pixels = mBackend->getPixels();
-    DoScreenshot(mScreenshotFile.c_str(), pixels);
+    char tmpFileName[48];
+    if (mAnimateScreenshot) {
+      sprintf(tmpFileName, "mAnimation%d_%05d.bmp", mAnimationExport, mAnimationFrame);
+    }
+    DoScreenshot(mAnimateScreenshot ? tmpFileName : mScreenshotFile.c_str(), pixels);
   }
 }
 

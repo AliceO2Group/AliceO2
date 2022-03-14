@@ -401,12 +401,14 @@ void GPUDisplayBackendOpenGL::loadDataToGPU(size_t totalVertizes)
   }
 }
 
-void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot)
+void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer)
 {
   if (mDisplay->updateRenderPipeline() || mDownsampleFactor != getDownsampleFactor(requestScreenshot)) {
     updateRenderer(requestScreenshot);
   }
-  if (mRenderToMixBuffer) {
+  if (mOffscreenBufferMSAA.created) {
+    setFrameBuffer(mOffscreenBufferMSAA.fb_id);
+  } else if (toMixBuffer) {
     setFrameBuffer(mMixBuffer.fb_id);
   } else if (mOffscreenBuffer.created) {
     setFrameBuffer(mOffscreenBuffer.fb_id);
@@ -474,27 +476,28 @@ void GPUDisplayBackendOpenGL::finishDraw(bool doScreenshot, bool toMixBuffer, fl
     CHKERR(glUseProgram(0));
   }
 
+  if (mDisplay->cfgR().drawQualityMSAA) {
+    unsigned int dstId = toMixBuffer ? mMixBuffer.fb_id : (mDownsampleFactor != 1 ? mOffscreenBuffer.fb_id : 0);
+    CHKERR(glBlitNamedFramebuffer(mOffscreenBufferMSAA.fb_id, dstId, 0, 0, mRenderWidth, mRenderHeight, 0, 0, mRenderWidth, mRenderHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR));
+  }
   if (includeMixImage > 0) {
+    setFrameBuffer(mDownsampleFactor != 1 ? mOffscreenBuffer.fb_id : 0);
     mixImages(includeMixImage);
   }
-
-  if (mRenderToMixBuffer) {
-    clearScreen(true);
-  } else if (mOffscreenBuffer.created) {
-    setFrameBuffer(0);
-    renderOffscreenBuffer(mOffscreenBuffer.fb_id, mOffscreenBufferNoMSAA.fb_id, toMixBuffer ? mMixBuffer.fb_id : 0);
+  if (mDownsampleFactor != 1 && !toMixBuffer) {
+    CHKERR(glBlitNamedFramebuffer(mOffscreenBuffer.fb_id, 0, 0, 0, mRenderWidth, mRenderHeight, 0, 0, mScreenWidth, mScreenHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR));
   }
 
-  if (doScreenshot && !mRenderToMixBuffer) {
+  if (doScreenshot && !toMixBuffer) {
     int scaleFactor = mDisplay->cfgR().screenshotScaleFactor;
     unsigned int width = mScreenWidth * scaleFactor;
     unsigned int height = mScreenHeight * scaleFactor;
     GLfb tmpBuffer;
     if (mDisplay->cfgR().drawQualityDownsampleFSAA && mDisplay->cfgR().screenshotScaleFactor != 1) {
       createFB(tmpBuffer, false, true, false, width, height);
-      CHKERR(glBlitNamedFramebuffer(mDisplay->cfgR().drawQualityMSAA > 1 ? mOffscreenBufferNoMSAA.fb_id : mOffscreenBuffer.fb_id, tmpBuffer.fb_id, 0, 0, mRenderWidth, mRenderHeight, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR));
+      CHKERR(glBlitNamedFramebuffer(mOffscreenBuffer.fb_id, tmpBuffer.fb_id, 0, 0, mRenderWidth, mRenderHeight, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR));
     }
-    setFrameBuffer(tmpBuffer.created ? tmpBuffer.fb_id : (scaleFactor != 1 ? (mDisplay->cfgR().drawQualityMSAA > 1 ? mOffscreenBufferNoMSAA.fb_id : mOffscreenBuffer.fb_id) : 0));
+    setFrameBuffer(tmpBuffer.created ? tmpBuffer.fb_id : (scaleFactor != 1 ? mOffscreenBuffer.fb_id : 0));
     CHKERR(glPixelStorei(GL_PACK_ALIGNMENT, 1));
     CHKERR(glReadBuffer(scaleFactor != 1 ? GL_COLOR_ATTACHMENT0 : GL_BACK));
     mScreenshotPixels.resize(width * height * 4);
@@ -502,7 +505,6 @@ void GPUDisplayBackendOpenGL::finishDraw(bool doScreenshot, bool toMixBuffer, fl
     if (tmpBuffer.created) {
       deleteFB(tmpBuffer);
     }
-    setFrameBuffer(0);
   }
 }
 
@@ -538,16 +540,6 @@ void GPUDisplayBackendOpenGL::finishText()
     CHKERR(glBindTexture(GL_TEXTURE_2D, 0));
     CHKERR(glUseProgram(0));
   }
-}
-
-void GPUDisplayBackendOpenGL::renderOffscreenBuffer(unsigned int buffer, unsigned int bufferNoMSAA, unsigned int mainBuffer)
-{
-  GLuint srcid = buffer;
-  if (mDisplay->cfgR().drawQualityMSAA > 1 && mDownsampleFactor != 1) {
-    CHKERR(glBlitNamedFramebuffer(srcid, bufferNoMSAA, 0, 0, mRenderWidth, mRenderHeight, 0, 0, mRenderWidth, mRenderHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR));
-    srcid = bufferNoMSAA;
-  }
-  CHKERR(glBlitNamedFramebuffer(srcid, mainBuffer, 0, 0, mRenderWidth, mRenderHeight, 0, 0, mScreenWidth, mScreenHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR));
 }
 
 void GPUDisplayBackendOpenGL::mixImages(float mixSlaveImage)
@@ -652,7 +644,6 @@ void GPUDisplayBackendOpenGL::OpenGLPrint(const char* s, float x, float y, float
         {xpos, ypos + h, 0.0f, 0.0f},
         {xpos, ypos, 0.0f, 1.0f},
         {xpos + w, ypos, 1.0f, 1.0f},
-
         {xpos, ypos + h, 0.0f, 0.0f},
         {xpos + w, ypos, 1.0f, 1.0f},
         {xpos + w, ypos + h, 1.0f, 0.0f}};
@@ -674,11 +665,11 @@ void GPUDisplayBackendOpenGL::ClearOffscreenBuffers()
   if (mMixBuffer.created) {
     deleteFB(mMixBuffer);
   }
+  if (mOffscreenBufferMSAA.created) {
+    deleteFB(mOffscreenBufferMSAA);
+  }
   if (mOffscreenBuffer.created) {
     deleteFB(mOffscreenBuffer);
-  }
-  if (mOffscreenBufferNoMSAA.created) {
-    deleteFB(mOffscreenBufferNoMSAA);
   }
 }
 
@@ -695,11 +686,11 @@ void GPUDisplayBackendOpenGL::updateRenderer(bool withScreenshot)
   mRenderWidth = mScreenWidth * mDownsampleFactor;
   mRenderHeight = mScreenHeight * mDownsampleFactor;
   ClearOffscreenBuffers();
-  if (mDisplay->cfgR().drawQualityMSAA > 1 || mDownsampleFactor != 1) {
-    createFB(mOffscreenBuffer, false, true, mDisplay->cfgR().drawQualityMSAA > 1, mRenderWidth, mRenderHeight);
-    if (mDisplay->cfgR().drawQualityMSAA > 1 && mDownsampleFactor != 1) {
-      createFB(mOffscreenBufferNoMSAA, false, true, false, mRenderWidth, mRenderHeight);
-    }
+  if (mDisplay->cfgR().drawQualityMSAA > 1) {
+    createFB(mOffscreenBufferMSAA, false, true, true, mRenderWidth, mRenderHeight);
+  }
+  if (mDownsampleFactor != 1) {
+    createFB(mOffscreenBuffer, false, true, false, mRenderWidth, mRenderHeight);
   }
   createFB(mMixBuffer, true, true, false, mRenderWidth, mRenderHeight);
   setQuality();

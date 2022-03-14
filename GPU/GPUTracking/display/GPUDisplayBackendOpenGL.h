@@ -49,7 +49,7 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   void ExitBackendA() override;
   void clearScreen(bool alphaOnly = false);
   void loadDataToGPU(size_t totalVertizes) override;
-  void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot) override;
+  void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer) override;
   void resizeScene(unsigned int width, unsigned int height) override;
   void updateRenderer(bool withScreenshot);
   void ClearOffscreenBuffers();
@@ -58,7 +58,6 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   void prepareText() override;
   void finishText() override;
   void mixImages(float mixSlaveImage) override;
-  void renderOffscreenBuffer(unsigned buffer, unsigned int bufferNoMSAA, unsigned int mainBuffer);
   void pointSizeFactor(float factor) override;
   void lineWidthFactor(float factor) override;
   backendTypes backendType() const override { return TYPE_OPENGL; }
@@ -94,7 +93,7 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   bool mSPIRVShaders = false;
 
   GLfb mMixBuffer;
-  GLfb mOffscreenBuffer, mOffscreenBufferNoMSAA;
+  GLfb mOffscreenBufferMSAA, mOffscreenBuffer;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
