@@ -516,22 +516,27 @@ void GPUDisplayBackendOpenGL::finishDraw(bool doScreenshot, bool toMixBuffer, fl
   }
 
   if (doScreenshot && !toMixBuffer) {
-    int scaleFactor = mDisplay->cfgR().screenshotScaleFactor;
-    unsigned int width = mScreenWidth * scaleFactor;
-    unsigned int height = mScreenHeight * scaleFactor;
-    GLfb tmpBuffer;
-    if (mDisplay->cfgR().drawQualityDownsampleFSAA && mDisplay->cfgR().screenshotScaleFactor != 1) {
-      createFB(tmpBuffer, false, true, false, width, height);
-      CHKERR(glBlitNamedFramebuffer(mOffscreenBuffer.fb_id, tmpBuffer.fb_id, 0, 0, mRenderWidth, mRenderHeight, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR));
-    }
-    setFrameBuffer(tmpBuffer.created ? tmpBuffer.fb_id : (scaleFactor != 1 ? mOffscreenBuffer.fb_id : 0));
-    CHKERR(glPixelStorei(GL_PACK_ALIGNMENT, 1));
-    CHKERR(glReadBuffer(scaleFactor != 1 ? GL_COLOR_ATTACHMENT0 : GL_BACK));
-    mScreenshotPixels.resize(width * height * 4);
-    CHKERR(glReadPixels(0, 0, width, height, GL_BGRA, GL_UNSIGNED_BYTE, mScreenshotPixels.data()));
-    if (tmpBuffer.created) {
-      deleteFB(tmpBuffer);
-    }
+    readImageToPixels();
+  }
+}
+
+void GPUDisplayBackendOpenGL::readImageToPixels()
+{
+  int scaleFactor = mDisplay->cfgR().screenshotScaleFactor;
+  unsigned int width = mScreenWidth * scaleFactor;
+  unsigned int height = mScreenHeight * scaleFactor;
+  GLfb tmpBuffer;
+  if (mDisplay->cfgR().drawQualityDownsampleFSAA && mDisplay->cfgR().screenshotScaleFactor != 1) {
+    createFB(tmpBuffer, false, true, false, width, height);
+    CHKERR(glBlitNamedFramebuffer(mOffscreenBuffer.fb_id, tmpBuffer.fb_id, 0, 0, mRenderWidth, mRenderHeight, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR));
+  }
+  setFrameBuffer(tmpBuffer.created ? tmpBuffer.fb_id : (scaleFactor != 1 ? mOffscreenBuffer.fb_id : 0));
+  CHKERR(glPixelStorei(GL_PACK_ALIGNMENT, 1));
+  CHKERR(glReadBuffer(scaleFactor != 1 ? GL_COLOR_ATTACHMENT0 : GL_BACK));
+  mScreenshotPixels.resize(width * height * 4);
+  CHKERR(glReadPixels(0, 0, width, height, GL_BGRA, GL_UNSIGNED_BYTE, mScreenshotPixels.data()));
+  if (tmpBuffer.created) {
+    deleteFB(tmpBuffer);
   }
 }
 
@@ -638,6 +643,15 @@ void GPUDisplayBackendOpenGL::addFontSymbol(int symbol, int sizex, int sizey, in
   }
   unsigned int texId;
   glGenTextures(1, &texId);
+  std::vector<unsigned char> tmp;
+  if (!smoothFont()) {
+    tmp.resize(sizex * sizey);
+    unsigned char* src = (unsigned char*)data;
+    for (int i = 0; i < sizex * sizey; i++) {
+      tmp[i] = src[i] > 128 ? 255 : 0;
+    }
+    data = tmp.data();
+  }
   mFontSymbols.emplace_back(FontSymbolOpenGL{sizex, sizey, offsetx, offsety, advance, texId});
   if (sizex == 0 || sizey == 0) {
     return;
@@ -671,7 +685,9 @@ void GPUDisplayBackendOpenGL::OpenGLPrint(const char* s, float x, float y, float
   }
   CHKERR(glUniform4fv(mColorIdText, 1, color));
 
-  scale *= 0.25f; // Font size is 48 to have nice bitmap, scale to size 12
+  if (smoothFont()) {
+    scale *= 0.25f; // Font size is 48 to have nice bitmap, scale to size 12
+  }
   for (const char* c = s; *c; c++) {
     if ((int)*c > (int)mFontSymbols.size()) {
       GPUError("Trying to draw unsupported symbol: %d > %d\n", (int)*c, (int)mFontSymbols.size());

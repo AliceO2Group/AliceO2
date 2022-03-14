@@ -108,6 +108,7 @@ class GPUDisplayBackend
 
   float getDownsampleFactor(bool screenshot = false);
   void fillIndirectCmdBuffer();
+  bool smoothFont();
 
   GPUDisplay* mDisplay = nullptr;
   std::vector<int> mIndirectSliceOffset;

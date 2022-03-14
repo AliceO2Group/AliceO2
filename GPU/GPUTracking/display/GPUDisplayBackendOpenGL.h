@@ -62,6 +62,7 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   void lineWidthFactor(float factor) override;
   backendTypes backendType() const override { return TYPE_OPENGL; }
   size_t needMultiVBO() override { return 0x100000000ll; }
+  void readImageToPixels();
 
   void addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data) override;
   void initializeTextDrawing() override;

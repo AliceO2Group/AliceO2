@@ -263,6 +263,7 @@ BeginSubConfig(GPUSettingsDisplay, display, configStandalone, "GL", 'g', "OpenGL
 AddOption(showTPCTracksFromO2Format, bool, false, "", 0, "Use TPC tracks in O2 output format instead of GPU format")
 AddOption(font, std::string, "monospace", "", 0, "Font (search patter used for Fontconfig)")
 AddOption(fontSize, int, 14, "", 0, "Font size")
+AddOption(smoothFont, int, -1, "", 0, "Smoth font when rendering (-1 for auto-select based on size")
 AddOption(noFreetype, bool, false, "", 0, "Do not use Freetype for font rendering (can only draw text if supported by frontend)")
 AddOptionVec(filterMacros, std::string, "", 0, "ROOT macros used as track filter")
 AddSubConfig(GPUSettingsDisplayLight, light)
