@@ -79,7 +79,7 @@ class Detector : public o2::base::DetImpl<Detector>
   };
 
   std::vector<TGeoVolume*> mSensitiveVolumes; //!
-  
+
   // Define volume IDs
   int mHpad0VolID = -1;
   int mHpad1VolID = -1;
@@ -88,7 +88,7 @@ class Detector : public o2::base::DetImpl<Detector>
   int mHpad4VolID = -1;
   int mHpad5VolID = -1;
   int mHpad6VolID = -1;
-  
+
   int mHcel0VolID = -1;
   int mHcel1VolID = -1;
   int mHcel2VolID = -1;

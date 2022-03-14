@@ -87,7 +87,7 @@ bool Detector::ProcessHits(FairVolume* v)
       Double_t x[3];
       fMC->TrackPosition(x[0], x[1], x[2]);        //take MARS position at entrance to PC
       Float_t hitTime = (Float_t)fMC->TrackTime(); //hit formation time
-      Int_t idch; // chamber number
+      Int_t idch;                                  // chamber number
       if (volID == mHpad0VolID)
         idch = 0;
       else if (volID == mHpad1VolID)
