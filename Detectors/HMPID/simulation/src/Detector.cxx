@@ -88,13 +88,20 @@ bool Detector::ProcessHits(FairVolume* v)
       fMC->TrackPosition(x[0], x[1], x[2]);        //take MARS position at entrance to PC
       Float_t hitTime = (Float_t)fMC->TrackTime(); //hit formation time
       Int_t idch; // chamber number
-      if(volID == mHpad0VolID) idch = 0;
-      else if(volID == mHpad1VolID) idch = 1;
-      else if(volID == mHpad2VolID) idch = 2;
-      else if(volID == mHpad3VolID) idch = 3;
-      else if(volID == mHpad4VolID) idch = 4;
-      else if(volID == mHpad5VolID) idch = 5;
-      else if(volID == mHpad6VolID) idch = 6;
+      if (volID == mHpad0VolID)
+        idch = 0;
+      else if (volID == mHpad1VolID)
+        idch = 1;
+      else if (volID == mHpad2VolID)
+        idch = 2;
+      else if (volID == mHpad3VolID)
+        idch = 3;
+      else if (volID == mHpad4VolID)
+        idch = 4;
+      else if (volID == mHpad5VolID)
+        idch = 5;
+      else if (volID == mHpad6VolID)
+        idch = 6;
       Double_t xl, yl;
       o2::hmpid::Param::instance()->mars2Lors(idch, x, xl, yl); //take LORS position
       AddHit(x[0], x[1], x[2], hitTime, etot, tid, idch); //HIT for photon, position at P, etot will be set to Q
@@ -116,7 +123,8 @@ bool Detector::ProcessHits(FairVolume* v)
     stack->addTrackReference(tr);
   }
 
-  if (fMC->TrackCharge() && (volID == mHcel0VolID || volID == mHcel1VolID || volID == mHcel2VolID || volID == mHcel3VolID || volID == mHcel4VolID || volID == mHcel5VolID || volID == mHcel6VolID)) { // charged particle in amplification gap (Hcel)
+  if (fMC->TrackCharge() && (volID == mHcel0VolID || volID == mHcel1VolID || volID == mHcel2VolID || volID == mHcel3VolID || volID == mHcel4VolID || volID == mHcel5VolID || volID == mHcel6VolID)) {
+    // charged particle in amplification gap (Hcel)
     if (fMC->IsTrackEntering() || fMC->IsNewTrack()) {                                     //entering or newly created
       eloss = 0;                                                                           //reset Eloss collector
       fMC->TrackPosition(in[0], in[1], in[2]);                                             //take position at the entrance
@@ -131,13 +139,20 @@ bool Detector::ProcessHits(FairVolume* v)
       out[1] = 0.5 * (out[1] + in[1]);             //take hit position at the anod plane
       out[2] = 0.5 * (out[2] + in[2]);
       Int_t idch; // chamber number
-      if(volID == mHcel0VolID) idch = 0;
-      else if(volID == mHcel1VolID) idch = 1;
-      else if(volID == mHcel2VolID) idch = 2;
-      else if(volID == mHcel3VolID) idch = 3;
-      else if(volID == mHcel4VolID) idch = 4;
-      else if(volID == mHcel5VolID) idch = 5;
-      else if(volID == mHcel6VolID) idch = 6;
+      if (volID == mHcel0VolID)
+        idch = 0;
+      else if (volID == mHcel1VolID)
+        idch = 1;
+      else if (volID == mHcel2VolID)
+        idch = 2;
+      else if (volID == mHcel3VolID)
+        idch = 3;
+      else if (volID == mHcel4VolID)
+        idch = 4;
+      else if (volID == mHcel5VolID)
+        idch = 5;
+      else if (volID == mHcel6VolID)
+        idch = 6;
       Double_t xl, yl;
       o2::hmpid::Param::instance()->mars2Lors(idch, out, xl, yl); //take LORS position
       if (eloss > 0) {
