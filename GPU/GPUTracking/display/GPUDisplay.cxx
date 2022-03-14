@@ -2231,7 +2231,7 @@ void GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
   // Draw Event
   nextViewMatrix = nextViewMatrix * mModelMatrix;
   const float zFar = ((mParam->par.continuousTracking ? (mMaxClusterZ / GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
-  const hmm_mat4 proj = HMM_Perspective(mCfgR.fov, (GLfloat)mScreenwidth / (GLfloat)mScreenheight, 0.1f, zFar);
+  const hmm_mat4 proj = HMM_Perspective(mCfgR.fov, (GLfloat)std::max<int>(mBackend->mRenderWidth, mScreenwidth) / (GLfloat)std::max<int>(mBackend->mRenderHeight, mScreenheight), 0.1f, zFar);
   mBackend->prepareDraw(proj, nextViewMatrix, mRequestScreenshot);
   mBackend->pointSizeFactor(1);
   mBackend->lineWidthFactor(1);
@@ -2300,30 +2300,9 @@ void GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
 
 void GPUDisplay::DoScreenshot(const char* filename, std::vector<char>& pixels, float mAnimateTime)
 {
-  int SCALE_Y = mCfgR.screenshotScaleFactor, SCALE_X = mCfgR.screenshotScaleFactor;
-
-  float tmpPointSize = mCfgL.pointSize;
-  float tmpLineWidth = mCfgL.lineWidth;
-  mCfgL.pointSize *= (float)(SCALE_X + SCALE_Y) / 2.;
-  mCfgL.lineWidth *= (float)(SCALE_X + SCALE_Y) / 2.;
-
-  int oldWidth = mScreenwidth, oldHeight = mScreenheight;
-  GPUDisplayBackend::GLfb screenshotBuffer;
-
-  bool needBuffer = SCALE_X != 1 || SCALE_Y != 1;
-
-  if (needBuffer) {
-    mBackend->deleteFB(mMixBuffer);
-    mScreenwidth *= SCALE_X;
-    mScreenheight *= SCALE_Y;
-    mRenderwidth = mScreenwidth;
-    mRenderheight = mScreenheight;
-    mBackend->createFB(screenshotBuffer, 0, 1, false); // Create screenshotBuffer of size mScreenwidth * SCALE, mRenderwidth * SCALE
-    UpdateOffscreenBuffers();                // Create other buffers of size mScreenwidth * SCALE * downscale, ...
-    setFrameBuffer(1, screenshotBuffer.fb_id);
-    DrawGLScene_internal(false, mAnimateTime);
-  }
-  size_t size = 4 * mScreenwidth * mScreenheight;
+  size_t screenshot_x = mScreenwidth * mCfgR.screenshotScaleFactor;
+  size_t screenshot_y = mScreenheight * mCfgR.screenshotScaleFactor;
+  size_t size = 4 * screenshot_x * screenshot_y;
   if (size != pixels.size()) {
     GPUError("Pixel array of incorrect size obtained");
     filename = nullptr;
@@ -2331,6 +2310,10 @@ void GPUDisplay::DoScreenshot(const char* filename, std::vector<char>& pixels, f
 
   if (filename) {
     FILE* fp = fopen(filename, "w+b");
+    if (fp == nullptr) {
+      GPUError("Error opening screenshot file %s", filename);
+      return;
+    }
 
     BITMAPFILEHEADER bmpFH;
     BITMAPINFOHEADER bmpIH;
@@ -2342,8 +2325,8 @@ void GPUDisplay::DoScreenshot(const char* filename, std::vector<char>& pixels, f
     bmpFH.bfOffBits = sizeof(bmpFH) + sizeof(bmpIH);
 
     bmpIH.biSize = sizeof(bmpIH);
-    bmpIH.biWidth = mScreenwidth;
-    bmpIH.biHeight = mScreenheight;
+    bmpIH.biWidth = screenshot_x;
+    bmpIH.biHeight = screenshot_y;
     bmpIH.biPlanes = 1;
     bmpIH.biBitCount = 32;
     bmpIH.biCompression = BI_RGB;
@@ -2355,17 +2338,6 @@ void GPUDisplay::DoScreenshot(const char* filename, std::vector<char>& pixels, f
     fwrite(&bmpIH, 1, sizeof(bmpIH), fp);
     fwrite(pixels.data(), 1, size, fp);
     fclose(fp);
-  }
-
-  mCfgL.pointSize = tmpPointSize;
-  mCfgL.lineWidth = tmpLineWidth;
-  if (needBuffer) {
-    setFrameBuffer();
-    mBackend->deleteFB(screenshotBuffer);
-    mScreenwidth = oldWidth;
-    mScreenheight = oldHeight;
-    UpdateOffscreenBuffers();
-    DrawGLScene_internal(false, mAnimateTime);
   }
 }
 
