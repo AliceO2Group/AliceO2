@@ -16,6 +16,7 @@
 // system includes
 #include <cxxabi.h>
 #include <ctime>
+#include <memory>
 #include <fmt/format.h>
 #include <fmt/chrono.h>
 
@@ -92,6 +93,21 @@ const CalPad& CDBInterface::getNoise()
   }
 
   return *mNoise;
+}
+
+//______________________________________________________________________________
+const CalPad& CDBInterface::getZeroSuppressionThreshold()
+{
+  if (mUseDefaults) {
+    if (!mZeroSuppression) {
+      createDefaultZeroSuppression();
+    }
+    return *mZeroSuppression;
+  } else {
+    // return from CDB, assume that check for object existence are done there
+    return getObjectFromCDB<CalPadMapType>(CDBTypeMap.at(CDBType::ConfigFEEPad)).at("ThresholdMap");
+    ;
+  }
 }
 
 //______________________________________________________________________________
@@ -259,6 +275,19 @@ void CDBInterface::createDefaultNoise()
       }
       val = random;
     }
+  }
+}
+
+//______________________________________________________________________________
+void CDBInterface::createDefaultZeroSuppression()
+{
+  // default map is 3*noise
+  mZeroSuppression = std::unique_ptr<CalPad>(new CalPad(getNoise()));
+  mZeroSuppression->setName("ThresholdMap");
+
+  for (auto& calArray : mZeroSuppression->getData()) {
+    auto& data = calArray.getData();
+    std::transform(data.begin(), data.end(), data.begin(), [](const auto value) { return 3.f * value; });
   }
 }
 
