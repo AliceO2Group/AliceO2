@@ -294,8 +294,8 @@ void TrackerDPL::run(ProcessingContext& pc)
     LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", mTimeFrame.hasBogusClusters());
   }
 
-  for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
-
+  // for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
+  for (int iROF{0}; iROF < mTimeFrame.getNrof(); ++iROF) {
     auto& rof{rofs[iROF]};
     tracks = mTimeFrame.getTracks(iROF);
     trackLabels = mTimeFrame.getTracksLabel(iROF);
