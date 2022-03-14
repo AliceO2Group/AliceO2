@@ -348,6 +348,8 @@ class GPUDisplay
   std::string mScreenshotFile;
 
   float mYFactor = 1.0f;
+
+  bool mRenderToMixBuffer = false;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

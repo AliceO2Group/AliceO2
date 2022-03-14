@@ -51,7 +51,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   int InitBackendA() override;
   void ExitBackendA() override;
   void loadDataToGPU(size_t totalVertizes) override;
-  void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot) override;
+  void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer) override;
   void finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage) override;
   void finishFrame(bool doScreenshot) override;
   void prepareText() override;

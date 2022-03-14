@@ -86,7 +86,7 @@ class GPUDisplayBackend
   int InitBackend();
   void ExitBackend();
   virtual void loadDataToGPU(size_t totalVertizes) = 0;
-  virtual void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot) = 0;
+  virtual void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot = false, bool toMixBuffer = false) = 0;
   virtual void finishDraw(bool doScreenshot, bool toMixBuffer = false, float includeMixImage = 0.f) = 0;
   virtual void finishFrame(bool doScreenshot) = 0;
   virtual void prepareText() = 0;
@@ -122,8 +122,6 @@ class GPUDisplayBackend
   unsigned int mRenderHeight = 0;
   unsigned int mScreenWidth = 0;
   unsigned int mScreenHeight = 0;
-
-  bool mRenderToMixBuffer = false;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
