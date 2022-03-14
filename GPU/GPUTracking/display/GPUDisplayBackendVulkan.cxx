@@ -775,11 +775,13 @@ void GPUDisplayBackendVulkan::createSwapChain()
   updateSwapChainDetails(mPhysicalDevice);
   mSurfaceFormat = chooseSwapSurfaceFormat(mSwapChainDetails->formats);
   mPresentMode = chooseSwapPresentMode(mSwapChainDetails->presentModes, mDisplay->cfgR().drawQualityVSync ? VK_PRESENT_MODE_MAILBOX_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR);
-  mExtent = chooseSwapExtent(mSwapChainDetails->capabilities);
+  VkExtent2D extent = chooseSwapExtent(mSwapChainDetails->capabilities);
 
   mDownsampleFactor = getDownsampleFactor();
-  mRenderWidth = mExtent.width * mDownsampleFactor;
-  mRenderHeight = mExtent.height * mDownsampleFactor;
+  mScreenWidth = extent.width;
+  mScreenHeight = extent.height;
+  mRenderWidth = mScreenWidth * mDownsampleFactor;
+  mRenderHeight = mScreenHeight * mDownsampleFactor;
 
   VkSwapchainCreateInfoKHR swapCreateInfo{};
   swapCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -787,7 +789,7 @@ void GPUDisplayBackendVulkan::createSwapChain()
   swapCreateInfo.minImageCount = mImageCount;
   swapCreateInfo.imageFormat = mSurfaceFormat.format;
   swapCreateInfo.imageColorSpace = mSurfaceFormat.colorSpace;
-  swapCreateInfo.imageExtent = mExtent;
+  swapCreateInfo.imageExtent = extent;
   swapCreateInfo.imageArrayLayers = 1;
   swapCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
   swapCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -949,8 +951,8 @@ void GPUDisplayBackendVulkan::createSwapChain()
       framebufferInfo.attachmentCount = 1;
       framebufferInfo.pAttachments = &mSwapChainImageViews[i];
       framebufferInfo.renderPass = mRenderPassText;
-      framebufferInfo.width = mExtent.width;
-      framebufferInfo.height = mExtent.height;
+      framebufferInfo.width = mScreenWidth;
+      framebufferInfo.height = mScreenHeight;
       CHKERR(vkCreateFramebuffer(mDevice, &framebufferInfo, nullptr, &mFramebuffersText[i]));
     }
   }
@@ -1156,8 +1158,8 @@ void GPUDisplayBackendVulkan::createPipeline()
       pipelineInfo.pDepthStencilState = nullptr;
       colorBlendAttachment.blendEnable = VK_TRUE;
       multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-      viewport.width = scissor.extent.width = mExtent.width;
-      viewport.height = scissor.extent.height = mExtent.height;
+      viewport.width = scissor.extent.width = mScreenWidth;
+      viewport.height = scissor.extent.height = mScreenHeight;
     } else {
       bindingDescription.stride = 3 * sizeof(float);
       attributeDescriptions.format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -1415,17 +1417,13 @@ void GPUDisplayBackendVulkan::ExitBackendA()
 
 void GPUDisplayBackendVulkan::resizeScene(unsigned int width, unsigned int height)
 {
-  if (mExtent.width == width && mExtent.height == height) {
+  if (mScreenWidth == width && mScreenHeight == height) {
     return;
   }
   mMustUpdateSwapChain = true;
-  /*if (mExtent.width != width || mExtent.height != height) {
-    std::cout << "Unmatching window size: requested " << width << " x " << height << " - found " << mExtent.width << " x " << mExtent.height << "\n";
+  /*if (mScreenWidth != width || mScreenHeight != height) {
+    std::cout << "Unmatching window size: requested " << width << " x " << height << " - found " << mScreenWidth << " x " << mScreenHeight << "\n";
   }*/
-}
-
-void GPUDisplayBackendVulkan::clearScreen(bool colorOnly)
-{
 }
 
 void GPUDisplayBackendVulkan::loadDataToGPU(size_t totalVertizes)
@@ -1477,7 +1475,7 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
   }
 }
 
-void GPUDisplayBackendVulkan::finishDraw()
+void GPUDisplayBackendVulkan::finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage)
 {
   if (!mCommandBufferUpToDate[mImageIndex]) {
     endFillCommandBuffer(mCommandBuffers[mImageIndex], mImageIndex);
@@ -1548,8 +1546,8 @@ void GPUDisplayBackendVulkan::finishFrame()
     blitSizeSrc.y = mRenderHeight;
     blitSizeSrc.z = 1;
     VkOffset3D blitSizeDst;
-    blitSizeDst.x = mExtent.width;
-    blitSizeDst.y = mExtent.height;
+    blitSizeDst.x = mScreenWidth;
+    blitSizeDst.y = mScreenHeight;
     blitSizeDst.z = 1;
     VkImageBlit imageBlitRegion{};
     imageBlitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -1593,7 +1591,7 @@ void GPUDisplayBackendVulkan::finishFrame()
 
 void GPUDisplayBackendVulkan::prepareText()
 {
-  hmm_mat4 proj = HMM_Orthographic(0.f, mExtent.width, 0.f, mExtent.height, -1, 1);
+  hmm_mat4 proj = HMM_Orthographic(0.f, mScreenWidth, 0.f, mScreenHeight, -1, 1);
   writeToBuffer(mUniformBuffersMat[1][mImageIndex], sizeof(proj), &proj);
 
   mFontVertexBufferHost.clear();
@@ -1618,7 +1616,7 @@ void GPUDisplayBackendVulkan::finishText()
   renderPassInfo.renderPass = mRenderPassText;
   renderPassInfo.framebuffer = mFramebuffersText.size() ? mFramebuffersText[mImageIndex] : mFramebuffers[mImageIndex];
   renderPassInfo.renderArea.offset = {0, 0};
-  renderPassInfo.renderArea.extent = mExtent;
+  renderPassInfo.renderArea.extent = {mScreenWidth, mScreenHeight};
   renderPassInfo.clearValueCount = 0;
   vkCmdBeginRenderPass(mCommandBuffersText[mImageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -1761,8 +1759,6 @@ void GPUDisplayBackendVulkan::OpenGLPrint(const char* s, float x, float y, float
   }
 
   size_t firstVertex = mFontVertexBufferHost.size() / 4;
-
-  float renderHeight = mDisplay->screenHeight() - 1;
   scale *= 0.25f; // Font size is 48 to have nice bitmap, scale to size 12
 
   for (const char* c = s; *c; c++) {
@@ -1778,12 +1774,12 @@ void GPUDisplayBackendVulkan::OpenGLPrint(const char* s, float x, float y, float
       float w = sym.size[0] * scale;
       float h = sym.size[1] * scale;
       float vertices[6][4] = {
-        {xpos, renderHeight - ypos, sym.x0, sym.y1},
-        {xpos, renderHeight - (ypos + h), sym.x0, sym.y0},
-        {xpos + w, renderHeight - ypos, sym.x1, sym.y1},
-        {xpos + w, renderHeight - ypos, sym.x1, sym.y1},
-        {xpos, renderHeight - (ypos + h), sym.x0, sym.y0},
-        {xpos + w, renderHeight - (ypos + h), sym.x1, sym.y0}};
+        {xpos, mScreenHeight - 1 - ypos, sym.x0, sym.y1},
+        {xpos, mScreenHeight - 1 - (ypos + h), sym.x0, sym.y0},
+        {xpos + w, mScreenHeight - 1 - ypos, sym.x1, sym.y1},
+        {xpos + w, mScreenHeight - 1 - ypos, sym.x1, sym.y1},
+        {xpos, mScreenHeight - 1 - (ypos + h), sym.x0, sym.y0},
+        {xpos + w, mScreenHeight - 1 - (ypos + h), sym.x1, sym.y0}};
       size_t oldSize = mFontVertexBufferHost.size();
       mFontVertexBufferHost.resize(oldSize + 4 * 6);
       memcpy(&mFontVertexBufferHost[oldSize], &vertices[0][0], sizeof(vertices));
@@ -1847,28 +1843,7 @@ unsigned int GPUDisplayBackendVulkan::DepthBits()
   return 32;
 }
 
-void GPUDisplayBackendVulkan::createFB(GLfb& fb, bool tex, bool withDepth, bool msaa)
-{
-  fb.tex = tex;
-  fb.depth = withDepth;
-  fb.msaa = msaa;
-  fb.created = true;
-}
-
-void GPUDisplayBackendVulkan::deleteFB(GLfb& fb)
-{
-  fb.created = false;
-}
-
-void GPUDisplayBackendVulkan::setFrameBuffer(int updateCurrent, unsigned int newID)
-{
-}
-
-void GPUDisplayBackendVulkan::renderOffscreenBuffer(GLfb& buffer, GLfb& bufferNoMSAA, int mainBuffer)
-{
-}
-
-void GPUDisplayBackendVulkan::mixImages(GLfb& mixBuffer, float mixSlaveImage)
+void GPUDisplayBackendVulkan::mixImages(float mixSlaveImage)
 {
   {
     GPUWarning("Image mixing unsupported in Vulkan profile");

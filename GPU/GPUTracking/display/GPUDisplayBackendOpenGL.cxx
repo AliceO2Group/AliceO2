@@ -107,9 +107,9 @@ void GPUDisplayBackendOpenGL::createFB(GLfb& fb, bool tex, bool withDepth, bool 
     CHKERR(glGenTextures(1, &id));
     CHKERR(glBindTexture(textureType, id));
     if (fb.msaa) {
-      CHKERR(glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, mDisplay->cfgR().drawQualityMSAA, storage, mDisplay->renderWidth(), mDisplay->renderHeight(), false));
+      CHKERR(glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, mDisplay->cfgR().drawQualityMSAA, storage, mRenderWidth, mRenderHeight, false));
     } else {
-      CHKERR(glTexImage2D(GL_TEXTURE_2D, 0, storage, mDisplay->renderWidth(), mDisplay->renderHeight(), 0, storage, GL_UNSIGNED_BYTE, nullptr));
+      CHKERR(glTexImage2D(GL_TEXTURE_2D, 0, storage, mRenderWidth, mRenderHeight, 0, storage, GL_UNSIGNED_BYTE, nullptr));
       CHKERR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
       CHKERR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
     }
@@ -120,9 +120,9 @@ void GPUDisplayBackendOpenGL::createFB(GLfb& fb, bool tex, bool withDepth, bool 
     CHKERR(glGenRenderbuffers(1, &id));
     CHKERR(glBindRenderbuffer(GL_RENDERBUFFER, id));
     if (fb.msaa) {
-      CHKERR(glRenderbufferStorageMultisample(GL_RENDERBUFFER, mDisplay->cfgR().drawQualityMSAA, storage, mDisplay->renderWidth(), mDisplay->renderHeight()));
+      CHKERR(glRenderbufferStorageMultisample(GL_RENDERBUFFER, mDisplay->cfgR().drawQualityMSAA, storage, mRenderWidth, mRenderHeight));
     } else {
-      CHKERR(glRenderbufferStorage(GL_RENDERBUFFER, storage, mDisplay->renderWidth(), mDisplay->renderHeight()));
+      CHKERR(glRenderbufferStorage(GL_RENDERBUFFER, storage, mRenderWidth, mRenderHeight));
     }
     CHKERR(glFramebufferRenderbuffer(GL_FRAMEBUFFER, attachment, GL_RENDERBUFFER, id));
   };
@@ -246,7 +246,7 @@ void GPUDisplayBackendOpenGL::setDepthBuffer()
   }
 }
 
-void GPUDisplayBackendOpenGL::setFrameBuffer(int updateCurrent, unsigned int newID)
+void GPUDisplayBackendOpenGL::setFrameBuffer(unsigned int newID)
 {
   if (newID == 0) {
     CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, 0));
@@ -343,6 +343,7 @@ int GPUDisplayBackendOpenGL::InitBackendA()
 
 void GPUDisplayBackendOpenGL::ExitBackendA()
 {
+  ClearOffscreenBuffers();
   CHKERR(glDeleteBuffers(mVBOId.size(), mVBOId.data()));
   CHKERR(glDeleteBuffers(1, &mIndirectId));
   CHKERR(glDeleteProgram(mShaderProgram));
@@ -365,14 +366,14 @@ void GPUDisplayBackendOpenGL::ExitBackendA()
   }
 }
 
-void GPUDisplayBackendOpenGL::clearScreen(bool colorOnly)
+void GPUDisplayBackendOpenGL::clearScreen(bool alphaOnly)
 {
-  if (mDisplay->cfgL().invertColors && !colorOnly) {
+  if (mDisplay->cfgL().invertColors && !alphaOnly) {
     CHKERR(glClearColor(1.0f, 1.0f, 1.0f, 1.0f));
   } else {
     CHKERR(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
   }
-  if (colorOnly) {
+  if (alphaOnly) {
     glColorMask(false, false, false, true);
     glClear(GL_COLOR_BUFFER_BIT);
     glColorMask(true, true, true, true);
@@ -402,6 +403,17 @@ void GPUDisplayBackendOpenGL::loadDataToGPU(size_t totalVertizes)
 
 void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot)
 {
+  if (mDisplay->updateRenderPipeline()) {
+    resizeScene(mScreenWidth, mScreenHeight);
+  }
+  if (mRenderToMixBuffer) {
+    setFrameBuffer(mMixBuffer.fb_id);
+  } else if (mOffscreenBuffer.created) {
+    setFrameBuffer(mOffscreenBuffer.fb_id);
+  } else {
+    setFrameBuffer(0);
+  }
+  clearScreen();
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
   if (mDisplay->cfgL().smoothPoints && !mDisplay->cfgR().openGLCore) {
     CHKERR(glEnable(GL_POINT_SMOOTH));
@@ -417,7 +429,7 @@ void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
   CHKERR(glEnable(GL_BLEND));
   CHKERR(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 
-  glViewport(0, 0, mDisplay->renderWidth(), mDisplay->renderHeight());
+  glViewport(0, 0, mRenderWidth, mRenderHeight);
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
   if (!mDisplay->cfgR().openGLCore) {
     CHKERR(glEnableClientState(GL_VERTEX_ARRAY));
@@ -448,10 +460,9 @@ void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
       CHKERR(glUniformMatrix4fv(mModelViewProjId, 1, GL_FALSE, &modelViewProj.Elements[0][0]));
     }
   }
-  mScreenshotRequested = requestScreenshot;
 }
 
-void GPUDisplayBackendOpenGL::finishDraw()
+void GPUDisplayBackendOpenGL::finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage)
 {
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
   if (!mDisplay->cfgR().openGLCore) {
@@ -462,13 +473,24 @@ void GPUDisplayBackendOpenGL::finishDraw()
     CHKERR(glDisableVertexAttribArray(0));
     CHKERR(glUseProgram(0));
   }
-  if (mScreenshotRequested) {
-    mScreenshotRequested = false;
+
+  if (includeMixImage > 0) {
+    mixImages(includeMixImage);
+  }
+
+  if (mRenderToMixBuffer) {
+    clearScreen(true);
+  } else if (mOffscreenBuffer.created) {
+    setFrameBuffer(0);
+    renderOffscreenBuffer(mOffscreenBuffer.fb_id, mOffscreenBufferNoMSAA.fb_id, toMixBuffer ? mMixBuffer.fb_id : 0);
+  }
+
+  if (doScreenshot && !mRenderToMixBuffer) {
     bool needBuffer = false;
     CHKERR(glPixelStorei(GL_PACK_ALIGNMENT, 1));
     CHKERR(glReadBuffer(needBuffer ? GL_COLOR_ATTACHMENT0 : GL_BACK));
-    mScreenshotPixels.resize(mDisplay->screenWidth() * mDisplay->screenHeight() * 4);
-    CHKERR(glReadPixels(0, 0, mDisplay->screenWidth(), mDisplay->screenHeight(), GL_BGRA, GL_UNSIGNED_BYTE, mScreenshotPixels.data()));
+    mScreenshotPixels.resize(mScreenWidth * mScreenHeight * 4);
+    CHKERR(glReadPixels(0, 0, mScreenWidth, mScreenHeight, GL_BGRA, GL_UNSIGNED_BYTE, mScreenshotPixels.data()));
   }
 }
 
@@ -476,14 +498,16 @@ void GPUDisplayBackendOpenGL::finishFrame() {}
 
 void GPUDisplayBackendOpenGL::prepareText()
 {
-  hmm_mat4 proj = HMM_Orthographic(0.f, mDisplay->screenWidth(), 0.f, mDisplay->screenHeight(), -1, 1);
+  setFrameBuffer(0);
+  glViewport(0, 0, mScreenWidth, mScreenHeight);
+  hmm_mat4 proj = HMM_Orthographic(0.f, mScreenWidth, 0.f, mScreenHeight, -1, 1);
   if (mDisplay->drawTextInCompatMode()) {
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glMatrixMode(GL_PROJECTION);
     glLoadMatrixf(&proj.Elements[0][0]);
-    glViewport(0, 0, mDisplay->screenWidth(), mDisplay->screenHeight());
+    glViewport(0, 0, mScreenWidth, mScreenHeight);
 #endif
   } else if (mFreetypeInitialized) {
     CHKERR(glUseProgram(mShaderProgramText));
@@ -504,38 +528,38 @@ void GPUDisplayBackendOpenGL::finishText()
   }
 }
 
-void GPUDisplayBackendOpenGL::renderOffscreenBuffer(GLfb& buffer, GLfb& bufferNoMSAA, int mainBuffer)
+void GPUDisplayBackendOpenGL::renderOffscreenBuffer(unsigned int buffer, unsigned int bufferNoMSAA, unsigned int mainBuffer)
 {
-  GLuint srcid = buffer.fb_id;
+  GLuint srcid = buffer;
   if (mDisplay->cfgR().drawQualityMSAA > 1 && mDisplay->cfgR().drawQualityDownsampleFSAA > 1) {
-    CHKERR(glBlitNamedFramebuffer(srcid, bufferNoMSAA.fb_id, 0, 0, mDisplay->renderWidth(), mDisplay->renderHeight(), 0, 0, mDisplay->renderWidth(), mDisplay->renderHeight(), GL_COLOR_BUFFER_BIT, GL_LINEAR));
-    srcid = bufferNoMSAA.fb_id;
+    CHKERR(glBlitNamedFramebuffer(srcid, bufferNoMSAA, 0, 0, mRenderWidth, mRenderHeight, 0, 0, mRenderWidth, mRenderHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR));
+    srcid = bufferNoMSAA;
   }
-  CHKERR(glBlitNamedFramebuffer(srcid, mainBuffer, 0, 0, mDisplay->renderWidth(), mDisplay->renderHeight(), 0, 0, mDisplay->screenWidth(), mDisplay->screenHeight(), GL_COLOR_BUFFER_BIT, GL_LINEAR));
+  CHKERR(glBlitNamedFramebuffer(srcid, mainBuffer, 0, 0, mRenderWidth, mRenderHeight, 0, 0, mScreenWidth, mScreenHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR));
 }
 
-void GPUDisplayBackendOpenGL::mixImages(GLfb& mixBuffer, float mixSlaveImage)
+void GPUDisplayBackendOpenGL::mixImages(float mixSlaveImage)
 {
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
   if (!mDisplay->cfgR().openGLCore) {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glMatrixMode(GL_PROJECTION);
-    hmm_mat4 proj = HMM_Orthographic(0.f, mDisplay->renderWidth(), 0.f, mDisplay->renderHeight(), -1.f, 1.f);
+    hmm_mat4 proj = HMM_Orthographic(0.f, mRenderWidth, 0.f, mRenderHeight, -1.f, 1.f);
     glLoadMatrixf(&proj.Elements[0][0]);
     CHKERR(glEnable(GL_TEXTURE_2D));
     glDisable(GL_DEPTH_TEST);
-    CHKERR(glBindTexture(GL_TEXTURE_2D, mixBuffer.fbCol_id));
+    CHKERR(glBindTexture(GL_TEXTURE_2D, mMixBuffer.fbCol_id));
     glColor4f(1, 1, 1, mixSlaveImage);
     glBegin(GL_QUADS);
     glTexCoord2f(0, 0);
     glVertex3f(0, 0, 0);
     glTexCoord2f(0, 1);
-    glVertex3f(0, mDisplay->renderHeight(), 0);
+    glVertex3f(0, mRenderHeight, 0);
     glTexCoord2f(1, 1);
-    glVertex3f(mDisplay->renderWidth(), mDisplay->renderHeight(), 0);
+    glVertex3f(mRenderWidth, mRenderHeight, 0);
     glTexCoord2f(1, 0);
-    glVertex3f(mDisplay->renderWidth(), 0, 0);
+    glVertex3f(mRenderWidth, 0, 0);
     glEnd();
     glColor4f(1, 1, 1, 0);
     CHKERR(glDisable(GL_TEXTURE_2D));
@@ -631,6 +655,37 @@ void GPUDisplayBackendOpenGL::OpenGLPrint(const char* s, float x, float y, float
   if (!mDisplay->useMultiVBO()) {
     CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mVBOId[0])); // If we don't use multiple buffers, we keep the default buffer bound
   }
+}
+
+void GPUDisplayBackendOpenGL::ClearOffscreenBuffers()
+{
+  if (mMixBuffer.created) {
+    deleteFB(mMixBuffer);
+  }
+  if (mOffscreenBuffer.created) {
+    deleteFB(mOffscreenBuffer);
+  }
+  if (mOffscreenBufferNoMSAA.created) {
+    deleteFB(mOffscreenBufferNoMSAA);
+  }
+}
+
+void GPUDisplayBackendOpenGL::resizeScene(unsigned int width, unsigned int height)
+{
+  mScreenWidth = width;
+  mScreenHeight = height;
+  mDownsampleFactor = getDownsampleFactor();
+  mRenderWidth = mScreenWidth * mDownsampleFactor;
+  mRenderHeight = mScreenHeight * mDownsampleFactor;
+  ClearOffscreenBuffers();
+  if (mDisplay->cfgR().drawQualityMSAA > 1 || mDisplay->cfgR().drawQualityDownsampleFSAA > 1) {
+    createFB(mOffscreenBuffer, false, true, mDisplay->cfgR().drawQualityMSAA > 1);
+    if (mDisplay->cfgR().drawQualityMSAA > 1 && mDisplay->cfgR().drawQualityDownsampleFSAA > 1) {
+      createFB(mOffscreenBufferNoMSAA, false, true, false);
+    }
+  }
+  createFB(mMixBuffer, true, true, false);
+  setQuality();
 }
 
 #endif // GPUCA_BUILD_EVENT_DISPLAY

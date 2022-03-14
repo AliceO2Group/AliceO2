@@ -23,6 +23,13 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
+struct GLfb {
+  unsigned int fb_id = 0, fbCol_id = 0, fbDepth_id = 0;
+  bool tex = false;
+  bool msaa = false;
+  bool depth = false;
+  bool created = false;
+};
 class GPUDisplayBackendOpenGL : public GPUDisplayBackend
 {
   int ExtInit() override;
@@ -30,25 +37,27 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   unsigned int DepthBits() override;
 
  protected:
-  void createFB(GLfb& fb, bool tex, bool withDepth, bool msaa) override;
-  void deleteFB(GLfb& fb) override;
+  void createFB(GLfb& fb, bool tex, bool withDepth, bool msaa);
+  void deleteFB(GLfb& fb);
 
   unsigned int drawVertices(const vboList& v, const drawType t) override;
   void ActivateColor(std::array<float, 4>& color) override;
   void setQuality() override;
   void setDepthBuffer() override;
-  void setFrameBuffer(int updateCurrent, unsigned int newID) override;
+  void setFrameBuffer(unsigned int newID = 0);
   int InitBackendA() override;
   void ExitBackendA() override;
-  void clearScreen(bool colorOnly = false) override;
+  void clearScreen(bool alphaOnly = false);
   void loadDataToGPU(size_t totalVertizes) override;
   void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot) override;
-  void finishDraw() override;
+  void resizeScene(unsigned int width, unsigned int height) override;
+  void ClearOffscreenBuffers();
+  void finishDraw(bool toMixBuffer, float includeMixImage) override;
   void finishFrame() override;
   void prepareText() override;
   void finishText() override;
-  void mixImages(GLfb& mixBuffer, float mixSlaveImage) override;
-  void renderOffscreenBuffer(GLfb& buffer, GLfb& bufferNoMSAA, int mainBuffer) override;
+  void mixImages(float mixSlaveImage) override;
+  void renderOffscreenBuffer(unsigned buffer, unsigned int bufferNoMSAA, unsigned int mainBuffer);
   void pointSizeFactor(float factor) override;
   void lineWidthFactor(float factor) override;
   backendTypes backendType() const override { return TYPE_OPENGL; }
@@ -83,7 +92,8 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   unsigned int VAO_text, VBO_text;
   bool mSPIRVShaders = false;
 
-  bool mScreenshotRequested = false;
+  GLfb mMixBuffer;
+  GLfb mOffscreenBuffer, mOffscreenBufferNoMSAA;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

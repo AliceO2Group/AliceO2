@@ -471,14 +471,10 @@ void GPUDisplay::HandleKey(unsigned char key)
   if (memcmp((void*)&oldCfgL, (void*)&mCfgL, sizeof(mCfgL)) != 0 || memcmp((void*)&oldCfgR, (void*)&mCfgR, sizeof(mCfgR)) != 0) {
     mUpdateDrawCommands = true;
   }
-
   if (oldCfgR.drawQualityMSAA != mCfgR.drawQualityMSAA || oldCfgR.drawQualityDownsampleFSAA != mCfgR.drawQualityDownsampleFSAA || oldCfgL.depthBuffer != mCfgL.depthBuffer) {
     mUpdateRenderPipeline = true;
   }
 
-  if (oldCfgR.drawQualityMSAA != mCfgR.drawQualityMSAA || oldCfgR.drawQualityDownsampleFSAA != mCfgR.drawQualityDownsampleFSAA) {
-    UpdateOffscreenBuffers();
-  }
   if (oldCfgR.drawQualityVSync != mCfgR.drawQualityVSync) {
     mFrontend->SetVSync(mCfgR.drawQualityVSync);
     mBackend->SetVSync(mCfgR.drawQualityVSync);
