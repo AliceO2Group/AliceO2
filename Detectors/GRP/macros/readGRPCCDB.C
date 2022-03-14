@@ -31,7 +31,7 @@
 
 void readGRPCCDB(long ts = 9999999999000, const char* ccdb = "http://localhost:8080")
 {
-    o2::ccdb::CcdbApi api;
+  o2::ccdb::CcdbApi api;
   api.init(ccdb); // or http://ccdb-test.cern.ch:8080
   std::map<std::string, std::string> metadata;
   if (ts == 9999999999000) {
@@ -40,7 +40,7 @@ void readGRPCCDB(long ts = 9999999999000, const char* ccdb = "http://localhost:8
 
   std::unordered_map<o2::dcs::DataPointIdentifier, std::string>* m = api.retrieveFromTFileAny<std::unordered_map<o2::dcs::DataPointIdentifier, std::string>>("GRP/Config/DCSDPconfig", metadata, ts);
   std::cout << "size of map = " << m->size() << std::endl;
-  
+
   for (auto& i : *m) {
     std::cout << "id = " << i.first << ", " << i.second << std::endl;
   }
@@ -60,6 +60,6 @@ void readGRPCCDB(long ts = 9999999999000, const char* ccdb = "http://localhost:8
   o2::grp::GRPEnvVariables* envVar = api.retrieveFromTFileAny<o2::grp::GRPEnvVariables>("GLO/Calib/EnvVars", metadata, ts);
   std::cout << "\n*** Env Vars:" << std::endl;
   envVar->print();
-  
+
   return;
 }
