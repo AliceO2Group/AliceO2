@@ -46,6 +46,7 @@
 #include "TTree.h"
 #include "TH1F.h"
 #include "TF1.h"
+#include "TStopwatch.h"
 
 using namespace o2::framework;
 using namespace o2::itsmft;
@@ -98,7 +99,8 @@ class ITSThresholdCalibrator : public Task
   //////////////////////////////////////////////////////////////////
  private:
   // detector information
-  static constexpr short int N_COL = 1024; // column number in Alpide chip
+  static constexpr short int N_COL = 1024;  // column number in Alpide chip
+  static constexpr short int N_ROW_MEM = 5; // number of rows we keep in memory for each chip
 
   const short int N_RU = o2::itsmft::ChipMappingITS::getNRUs();
 
@@ -115,8 +117,8 @@ class ITSThresholdCalibrator : public Task
   short int* mX = nullptr;
 
   // Hash tables to store the hit and threshold information per pixel
-  std::unordered_map<short int, short int> mCurrentRow;
-  std::unordered_map<short int, std::vector<std::vector<char>>> mPixelHits;
+  std::unordered_map<short int, std::unordered_map<short int, std::vector<std::vector<char>>>> mPixelHits;
+  std::unordered_map<short int, std::vector<short int>> mForbiddenRows;
   //   Unordered map for saving sum of values (thr/ithr/vcasn) for avg calculation
   std::unordered_map<short int, std::array<int, 5>> mThresholds;
 
@@ -135,7 +137,7 @@ class ITSThresholdCalibrator : public Task
 
   // Some private helper functions
   // Helper functions related to the running over data
-  void extractAndUpdate(const short int&);
+  void extractAndUpdate(const short int&, const short int&);
   void extractThresholdRow(const short int&, const short int&);
   void finalizeOutput();
 
@@ -151,7 +153,7 @@ class ITSThresholdCalibrator : public Task
   bool findThresholdFit(const char*, const short int*, const short int&, float&, float&);
   bool findThresholdDerivative(const char*, const short int*, const short int&, float&, float&);
   bool findThresholdHitcounting(const char*, const short int*, const short int&, float&);
-  bool isScanFinished(const short int&);
+  bool isScanFinished(const short int&, const short int&);
   void findAverage(const std::array<int, 5>&, float&, float&, float&, float&);
   void saveThreshold();
 
@@ -197,7 +199,6 @@ class ITSThresholdCalibrator : public Task
 
   // Flag to check if endOfStream is available
   bool mCheckEos = false;
-  int mCounter = 0;
 };
 
 // Create a processor spec

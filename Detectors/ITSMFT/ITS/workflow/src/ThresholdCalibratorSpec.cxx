@@ -297,7 +297,7 @@ bool ITSThresholdCalibrator::findThresholdFit(
   // Clean up histogram for next time it is used
   this->mFitHist->Reset();
 
-  return (chi2 < 5 && noise < 15);
+  return (chi2 < 5);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -343,7 +343,7 @@ bool ITSThresholdCalibrator::findThresholdDerivative(
   stddev /= fx;
   noise = std::sqrt(stddev);
 
-  return (noise < 15);
+  return true;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -400,13 +400,13 @@ void ITSThresholdCalibrator::extractThresholdRow(const short int& chipID, const 
     // Do the threshold fit
     float thresh = 0., noise = 0.;
     bool success = false;
-    success = this->findThreshold(&(this->mPixelHits[chipID][col_i][0]),
+    success = this->findThreshold(&(this->mPixelHits[chipID][row][col_i][0]),
                                   this->mX, *(this->N_RANGE), thresh, noise);
 
     vChipid[col_i] = chipID;
     vRow[col_i] = row;
     vThreshold[col_i] = this->mScanType == 'T' ? (short int)(thresh * 10.) : (short int)(thresh);
-    vNoise[col_i] = this->mScanType == 'T' ? (unsigned char)(noise * 10.) : (short int)(noise);
+    vNoise[col_i] = (unsigned char)(noise * 10.); // always factor 10 also for ITHR/VCASN to not have all zeros
     vSuccess[col_i] = success;
   }
 
@@ -425,11 +425,6 @@ void ITSThresholdCalibrator::saveThreshold()
   // Save info in a map for later averaging
   int sumT = 0, sumSqT = 0, sumN = 0, sumSqN = 0;
   int countSuccess = 0;
-#ifdef WITH_OPENMP
-  omp_set_num_threads(mNThreads);
-#pragma omp parallel for default(shared) reduction(+ \
-                                                   : sumT, sumSqT, sumN, sumSqN, countSuccess)
-#endif
   for (int i = 0; i < this->N_COL; i++) {
     if (vSuccess[i]) {
       sumT += vThreshold[i];
@@ -606,17 +601,17 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
 
 //////////////////////////////////////////////////////////////////////////////
 // Check if scan has finished for extracting thresholds
-bool ITSThresholdCalibrator::isScanFinished(const short int& chipID)
+bool ITSThresholdCalibrator::isScanFinished(const short int& chipID, const short int& row)
 {
   // Require that the last entry has at least half the number of expected hits
   short int col = 0; // Doesn't matter which column
   short int chg = mScanType == 'I' ? 0 : (*(this->N_RANGE) - 1);
-  return (this->mPixelHits[chipID][col][chg] >= (N_INJ - 2.)); // TODO: -2 is a safety factor for now
+  return (this->mPixelHits[chipID][row][col][chg] >= (N_INJ - 5.)); // TODO: -5 is a safety factor for now
 }
 
 //////////////////////////////////////////////////////////////////////////////
 // Extract thresholds and update memory
-void ITSThresholdCalibrator::extractAndUpdate(const short int& chipID)
+void ITSThresholdCalibrator::extractAndUpdate(const short int& chipID, const short int& row)
 {
   // In threshold scan case, reset mThresholdTree before writing to a new file
   if ((this->mScanType == 'T') && ((this->mRowCounter)++ == N_ROWS_PER_FILE)) {
@@ -628,7 +623,7 @@ void ITSThresholdCalibrator::extractAndUpdate(const short int& chipID)
   }
 
   // Extract threshold values and save to memory
-  this->extractThresholdRow(chipID, this->mCurrentRow[chipID]);
+  this->extractThresholdRow(chipID, row);
 
   return;
 }
@@ -684,6 +679,7 @@ void ITSThresholdCalibrator::updateRunID(ProcessingContext& pc)
 //     (ROFs) to count hits and extract thresholds
 void ITSThresholdCalibrator::run(ProcessingContext& pc)
 {
+
   // Save environment ID and run number if needed
   if (this->mEnvironmentID.empty()) {
     this->updateEnvironmentID(pc);
@@ -756,23 +752,17 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
             this->mIsChipDone[chipID] = true;
           }
         }
-        // Row should be the same for the whole ROF
-        // Check if chip hasn't appeared before
-        if (!(this->mCurrentRow.count(chipID))) {
-          // Update current row and initialize hit map
-          this->mCurrentRow[chipID] = row;
-          this->mPixelHits[chipID] = std::vector<std::vector<char>>(
-            this->N_COL, std::vector<char>(*(this->N_RANGE), 0));
-
-          // Check if we have a new row on an already existing chip
-        } else if (this->mCurrentRow[chipID] != row) {
-
-          this->extractAndUpdate(chipID);
-          // Reset row & hit map for the new row
-          this->mCurrentRow[chipID] = row;
-          for (std::vector<char>& v : this->mPixelHits[chipID]) {
-            std::fill(v.begin(), v.end(), 0);
-          }
+        if (!this->mPixelHits.count(chipID)) { // allocate memory for chip = chipID , irow = row if not yet there
+          this->mPixelHits[chipID][row] = std::vector<std::vector<char>>(this->N_COL, std::vector<char>(*(this->N_RANGE), 0));
+        } else if (!this->mPixelHits[chipID].count(row)) { // chipID exists already but not the irow = row
+          this->mPixelHits[chipID][row] = std::vector<std::vector<char>>(this->N_COL, std::vector<char>(*(this->N_RANGE), 0));
+        }
+        // Check if the scan finished for the **current** chip and current row
+        if (this->isScanFinished(chipID, row)) {
+          this->extractAndUpdate(chipID, row);
+          // remove entry for this row whose scan is completed
+          mPixelHits[chipID].erase(row);
+          mForbiddenRows[chipID].push_back(row); // due to the loose cut in isScanFinished, extra hits may come for this deleted row. In this way the row is ignored afterwards
         }
 
         // Increment the number of counts for this pixel
@@ -782,7 +772,16 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
           throw charge;
         }
 
-        this->mPixelHits[chipID][col][charge - this->mMin]++;
+        bool isForb = false;
+        for (int ir = 0; ir < this->mForbiddenRows[chipID].size(); ir++) {
+          if (mForbiddenRows[chipID][ir] == row) {
+            isForb = true;
+            break;
+          }
+        }
+        if (!isForb) {
+          this->mPixelHits[chipID][row][col][charge - this->mMin]++;
+        }
 
       } // for (digits)
 
@@ -830,6 +829,15 @@ void ITSThresholdCalibrator::addDatabaseEntry(
   char stave[6];
   sprintf(stave, "L%d_%02d", lay, sta);
 
+  // Build string to be used to get configDB chipid
+  std::string key = "";
+  if (lay < 3) {
+    key = std::string(stave) + "_M" + std::to_string(mod) + "_C" + std::to_string(chipInMod);
+  } else {
+    std::string uorl = !ssta ? "L" : "U";
+    key = std::string(stave) + uorl + "_M" + std::to_string(mod) + "_C" + std::to_string(chipInMod);
+  }
+
   o2::dcs::addConfigItem(this->mTuning, "Stave", std::string(stave));
   o2::dcs::addConfigItem(this->mTuning, "Hs_pos", std::to_string(ssta));
   o2::dcs::addConfigItem(this->mTuning, "Hic_Pos", std::to_string(mod));
@@ -863,24 +871,7 @@ void ITSThresholdCalibrator::sendToAggregator(EndOfStreamContext* ec)
 void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
 {
 
-  for (auto const& [chipID, hits_vec] : this->mPixelHits) {
-    // Check that we have received all the data for this row
-    // Require that the last charge value has at least half counts
-    if (this->isScanFinished(chipID)) {
-      this->mCounter++;
-      this->extractAndUpdate(chipID);
-      if (!this->mCheckEos) {
-        short int chg = mScanType == 'I' ? 0 : (*(this->N_RANGE) - 1);
-        this->mPixelHits[chipID][0][chg] = 0; // so that at next call, if does not pass isScanFinished again
-      }
-    }
-  }
-
-  if (!this->mCheckEos && this->mCounter > 0) {
-    this->finalizeOutput();
-    this->initThresholdTree();
-    this->mCounter = 0;
-  } else if (this->mCheckEos) {
+  if (this->mCheckEos) { // in case of missing EoS, the finalizeOutput is done in stop()
     this->finalizeOutput();
   }
 
@@ -891,7 +882,7 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
     name = "VCASN";
     auto it = this->mThresholds.cbegin();
     while (it != this->mThresholds.cend()) {
-      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ - 2) { // TODO: -2 is a safety factor, to be modified once THR scan is stable enough
+      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ - 5) { // TODO: -5 is a safety factor, to be modified once THR scan is stable enough
         ++it;
         continue;
       }
@@ -912,7 +903,7 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
     name = "ITHR";
     auto it = this->mThresholds.cbegin();
     while (it != this->mThresholds.cend()) {
-      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ - 2) { // TODO: -2 is a safety factor, to be modified once THR scan is stable enough
+      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ - 5) { // TODO: -5 is a safety factor, to be modified once THR scan is stable enough
         ++it;
         continue;
       }
@@ -933,7 +924,7 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
     name = "THR";
     auto it = this->mThresholds.cbegin();
     while (it != this->mThresholds.cend()) {
-      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ - 2) { // TODO: -2 is a safety factor, to be modified once THR scan is stable enough
+      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ - 5) { // TODO: -5 is a safety factor, to be modified once THR scan is stable enough
         ++it;
         continue;
       }
