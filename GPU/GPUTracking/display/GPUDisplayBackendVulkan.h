@@ -128,7 +128,9 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   bool mMustUpdateSwapChain = false;
   std::vector<VkImage> mSwapChainImages;
   std::vector<VkImageView> mSwapChainImageViews;
+  std::vector<VkImageView*> mRenderTargetView;
   std::vector<VulkanImage> mMSAAImages;
+  std::vector<VulkanImage> mDownsampleImages;
   std::vector<VulkanImage> mZImages;
   std::unordered_map<std::string, VkShaderModule> mShaders;
   VkPipelineLayout mPipelineLayout;
@@ -144,11 +146,13 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   int mCurrentFrame = 0;
   uint32_t mImageIndex = 0;
   std::vector<VkCommandBuffer> mCommandBuffers;
+  std::vector<VkCommandBuffer> mCommandBuffersDownsample;
   std::vector<VkCommandBuffer> mCommandBuffersText;
   std::vector<bool> mCommandBufferUpToDate;
   std::vector<VkSemaphore> mImageAvailableSemaphore;
   std::vector<VkSemaphore> mRenderFinishedSemaphore;
   std::vector<VkSemaphore> mTextFinishedSemaphore;
+  std::vector<VkSemaphore> mDownsampleFinishedSemaphore;
   std::vector<VkFence> mInFlightFence;
   std::vector<VulkanBuffer> mUniformBuffersMat[2];
   std::vector<VulkanBuffer> mUniformBuffersCol[2];
@@ -175,6 +179,8 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   unsigned int mMaxMSAAsupported = 0;
   bool mZActive = false;
   bool mZSupported = false;
+
+  bool mDownsampleFSAA = false;
 
   int mScreenshotRequested = 0;
 };

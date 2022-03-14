@@ -57,21 +57,6 @@ GPUDisplayBackend* GPUDisplayBackend::getBackend(const char* type)
   return nullptr;
 }
 
-void GPUDisplayBackend::fillIndirectCmdBuffer()
-{
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
-  mCmdBuffer.clear();
-  mIndirectSliceOffset.resize(GPUCA_NSLICES);
-  // TODO: Check if this can be parallelized
-  for (int iSlice = 0; iSlice < GPUCA_NSLICES; iSlice++) {
-    mIndirectSliceOffset[iSlice] = mCmdBuffer.size();
-    for (unsigned int k = 0; k < mDisplay->vertexBufferStart()[iSlice].size(); k++) {
-      mCmdBuffer.emplace_back(mDisplay->vertexBufferCount()[iSlice][k], 1, mDisplay->vertexBufferStart()[iSlice][k], 0);
-    }
-  }
-#endif
-}
-
 int GPUDisplayBackend::InitBackend()
 {
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
@@ -150,3 +135,32 @@ std::vector<char> GPUDisplayBackend::getPixels()
   mScreenshotPixels = std::vector<char>();
   return retVal;
 }
+
+#ifdef GPUCA_BUILD_EVENT_DISPLAY
+void GPUDisplayBackend::fillIndirectCmdBuffer()
+{
+  mCmdBuffer.clear();
+  mIndirectSliceOffset.resize(GPUCA_NSLICES);
+  // TODO: Check if this can be parallelized
+  for (int iSlice = 0; iSlice < GPUCA_NSLICES; iSlice++) {
+    mIndirectSliceOffset[iSlice] = mCmdBuffer.size();
+    for (unsigned int k = 0; k < mDisplay->vertexBufferStart()[iSlice].size(); k++) {
+      mCmdBuffer.emplace_back(mDisplay->vertexBufferCount()[iSlice][k], 1, mDisplay->vertexBufferStart()[iSlice][k], 0);
+    }
+  }
+}
+
+float GPUDisplayBackend::getDownsampleFactor()
+{
+  float factor = 1.0f;
+  int fsaa = mDisplay->cfgR().drawQualityDownsampleFSAA;
+  int screenshotScale = mDisplay->cfgR().screenshotScaleFactor;
+  if (fsaa) {
+    factor *= fsaa;
+  }
+  if (screenshotScale) {
+    factor *= screenshotScale;
+  }
+  return factor;
+}
+#endif

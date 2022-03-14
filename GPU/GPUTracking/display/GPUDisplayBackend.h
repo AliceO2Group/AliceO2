@@ -116,15 +116,23 @@ class GPUDisplayBackend
   virtual float getYFactor() const { return 1.0f; }
 
  protected:
+  virtual void addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data) = 0;
+  virtual void initializeTextDrawing() = 0;
+
+  float getDownsampleFactor();
+  void fillIndirectCmdBuffer();
+
   GPUDisplay* mDisplay = nullptr;
   std::vector<int> mIndirectSliceOffset;
   vecpod<DrawArraysIndirectCommand> mCmdBuffer;
-  void fillIndirectCmdBuffer();
-  virtual void addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data) = 0;
-  virtual void initializeTextDrawing() = 0;
   bool mFreetypeInitialized = false;
   bool mFrontendCompatTextDraw = false;
   std::vector<char> mScreenshotPixels;
+
+  int mDownsampleFactor = 1;
+
+  unsigned int mRenderWidth = 0;
+  unsigned int mRenderHeight = 0;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
