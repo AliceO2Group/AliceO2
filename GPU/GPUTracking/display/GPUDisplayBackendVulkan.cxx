@@ -1691,6 +1691,7 @@ void GPUDisplayBackendVulkan::addFontSymbol(int symbol, int sizex, int sizey, in
 void GPUDisplayBackendVulkan::initializeTextDrawing()
 {
   int maxSizeX = 0, maxSizeY = 0, maxBigX = 0, maxBigY = 0, maxRowY = 0;
+  bool smooth = smoothFont();
   // Build a mega texture containing all fonts
   for (auto& symbol : mFontSymbols) {
     maxSizeX = std::max(maxSizeX, symbol.size[0]);
@@ -1711,7 +1712,11 @@ void GPUDisplayBackendVulkan::initializeTextDrawing()
     }
     for (int k = 0; k < s.size[1]; k++) {
       for (int j = 0; j < s.size[0]; j++) {
-        bigImage.get()[(colx + j) + (rowy + k) * sizex] = s.data.get()[j + k * s.size[0]];
+        char val = s.data.get()[j + k * s.size[0]];
+        if (!smooth) {
+          val = val < 0 ? 255 : 0;
+        }
+        bigImage.get()[(colx + j) + (rowy + k) * sizex] = val;
       }
     }
     s.data.reset();
@@ -1765,7 +1770,9 @@ void GPUDisplayBackendVulkan::OpenGLPrint(const char* s, float x, float y, float
   }
 
   size_t firstVertex = mFontVertexBufferHost.size() / 4;
-  scale *= 0.25f; // Font size is 48 to have nice bitmap, scale to size 12
+  if (smoothFont()) {
+    scale *= 0.25f; // Font size is 48 to have nice bitmap, scale to size 12
+  }
 
   for (const char* c = s; *c; c++) {
     if ((int)*c > (int)mFontSymbols.size()) {
