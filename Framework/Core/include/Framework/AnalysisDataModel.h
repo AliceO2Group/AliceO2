@@ -683,18 +683,30 @@ using FT0 = FT0s::iterator;
 namespace fdd
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);                      //! BC index
-DECLARE_SOA_COLUMN(AmplitudeA, amplitudeA, float[4]);  //!
-DECLARE_SOA_COLUMN(AmplitudeC, amplitudeC, float[4]);  //!
+DECLARE_SOA_COLUMN(AmplitudeA_000, amplitudeA_000, float[4]);  //!
+DECLARE_SOA_COLUMN(AmplitudeC_000, amplitudeC_000, float[4]);  //!
+
+DECLARE_SOA_COLUMN(AmplitudeA_001, amplitudeA_001, int16_t[8]);  //!
+DECLARE_SOA_COLUMN(AmplitudeC_001, amplitudeC_001, int16_t[8]);  //!
+
 DECLARE_SOA_COLUMN(TimeA, timeA, float);               //!
 DECLARE_SOA_COLUMN(TimeC, timeC, float);               //!
 DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint8_t); //!
 } // namespace fdd
 
-DECLARE_SOA_TABLE(FDDs, "AOD", "FDD", //!
+DECLARE_SOA_TABLE(FDDs_000, "AOD", "FDD", //!
                   o2::soa::Index<>, fdd::BCId,
-                  fdd::AmplitudeA, fdd::AmplitudeC,
+                  fdd::AmplitudeA_000, fdd::AmplitudeC_000,
                   fdd::TimeA, fdd::TimeC,
                   fdd::TriggerMask);
+
+DECLARE_SOA_TABLE(FDDs_001, "AOD", "FDD", //!
+                  o2::soa::Index<>, fdd::BCId,
+                  fdd::AmplitudeA_001, fdd::AmplitudeC_001,
+                  fdd::TimeA, fdd::TimeC,
+                  fdd::TriggerMask);
+
+using FDDs = FDDs_001; //! this defines the current default version
 using FDD = FDDs::iterator;
 
 namespace v0
