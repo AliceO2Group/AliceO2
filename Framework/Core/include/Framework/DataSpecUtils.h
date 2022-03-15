@@ -51,6 +51,16 @@ struct DataSpecUtils {
                     const o2::header::DataDescription& description,
                     const o2::header::DataHeader::SubSpecificationType& subSpec);
 
+  static bool match(const InputSpec& spec, o2::header::DataHeader const& dh)
+  {
+    return DataSpecUtils::match(spec, dh.dataOrigin, dh.dataDescription, dh.subSpecification);
+  }
+
+  static bool match(const OutputSpec& spec, o2::header::DataHeader const& dh)
+  {
+    return DataSpecUtils::match(spec, dh.dataOrigin, dh.dataDescription, dh.subSpecification);
+  }
+
   /// find a matching spec in the container
   /// @return std::optional with found spec or std::nullopt
   template <typename ContainerT>
