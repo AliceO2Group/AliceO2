@@ -27,6 +27,9 @@ struct ZDCSimParam : public o2::conf::ConfigurableParamHelper<ZDCSimParam> {
   int nBCAheadCont = 1;   ///< number of BC to read ahead of trigger in continuous mode
   int nBCAheadTrig = 3;   ///< number of BC to read ahead of trigger in triggered mode
   bool recordSpatialResponse = false; ///< whether to record 2D spatial response showering images in proton/neutron detector
+  bool useZDCFastSim = false; ///< whether to to use fastsim module on event
+  std::string ZDCFastSimModelPath = ""; ///< path to model file
+  std::string ZDCFastSimModelScales = ""; ///< path to scales file for model
 
   O2ParamDef(ZDCSimParam, "ZDCSimParam");
 };
