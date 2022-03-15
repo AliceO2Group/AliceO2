@@ -242,10 +242,15 @@ class Detector : public o2::base::DetImpl<Detector>
   static constexpr Float_t sPos1Y[4] = {3.6275, -2.4725, 2.2975, -3.8025};
   static constexpr Float_t sPos2X[4] = {3.69, -2.410, 2.360, -3.740};
   static constexpr Float_t sPos2Y[3] = {7.6875, 1.5875, -4.5125};
-  //END: Support structure constants
+  // END: Support structure constants
 
   /// Container for data points
   std::vector<o2::ft0::HitType>* mHits = nullptr;
+
+  // Define volume IDs
+  int mREGVolID = -1;
+  int mTOPVolID = -1;
+  int mMTOVolID = -1;
 
   /// Define the sensitive volumes of the geometry
   void defineSensitiveVolumes();
@@ -258,7 +263,7 @@ class Detector : public o2::base::DetImpl<Detector>
   friend class o2::base::DetImpl;
 
   int mTrackIdTop;
-  int mTrackIdMCPtop; //TEMPORARY
+  int mTrackIdMCPtop; // TEMPORARY
 
   int mSim2LUT[Geometry::Nchannels];
 

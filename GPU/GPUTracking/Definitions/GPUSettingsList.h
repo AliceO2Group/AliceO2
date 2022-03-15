@@ -250,7 +250,7 @@ AddOption(maximized, bool, false, "", 0, "Full Screen")
 AddOption(openGLCore, bool, false, "", 0, "Use renderer path for OpenGL core profile")
 AddOption(drawQualityMSAA, int, 0, "", 0, "MultiSample Anti Aliasing")
 AddOption(drawQualityDownsampleFSAA, int, 0, "", 0, "Downsampling Anti Aliasing")
-AddOption(drawQualityVSync, bool, false, "", 0, "Enable Vertical Sync")
+AddOption(drawQualityVSync, bool, true, "", 0, "Enable Vertical Sync")
 AddOption(maxFPSRate, int, 0, "", 0, "Do not limit FPS but run at maximum possible rate")
 AddOption(useGLIndirectDraw, bool, true, "", 0, "Use OpenGL indirect draws to reduce number of draw calls")
 AddOption(screenshotScaleFactor, int, 1, "", 0, "Resolution scale factor when taking screenshots")
@@ -261,6 +261,9 @@ EndConfig()
 // Settings concerning the event display (fixed settings, cannot be changed)
 BeginSubConfig(GPUSettingsDisplay, display, configStandalone, "GL", 'g', "OpenGL display settings", display)
 AddOption(showTPCTracksFromO2Format, bool, false, "", 0, "Use TPC tracks in O2 output format instead of GPU format")
+AddOption(font, std::string, "monospace", "", 0, "Font (search patter used for Fontconfig)")
+AddOption(fontSize, int, 14, "", 0, "Font size")
+AddOption(noFreetype, bool, false, "", 0, "Do not use Freetype for font rendering (can only draw text if supported by frontend)")
 AddOptionVec(filterMacros, std::string, "", 0, "ROOT macros used as track filter")
 AddSubConfig(GPUSettingsDisplayLight, light)
 AddSubConfig(GPUSettingsDisplayHeavy, heavy)
@@ -448,4 +451,5 @@ EndConfig()
 EndNamespace() // gpu
 EndNamespace() // GPUCA_NAMESPACE
 #endif // #ifdef BeginNamespace
+
   // clang-format on

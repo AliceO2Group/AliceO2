@@ -19,6 +19,7 @@
 #include <array>
 #include <vector>
 #include <utility>
+#include <numeric>
 #include <cassert>
 #include <gsl/gsl>
 
@@ -67,7 +68,7 @@ class TimeFrame final
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
 
   int loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt,
-                      const itsmft::TopologyDictionary& dict, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
+                      const itsmft::TopologyDictionary* dict, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
   int getTotalClusters() const;
   bool empty() const;
 
@@ -114,6 +115,9 @@ class TimeFrame final
   std::vector<Road>& getRoads();
   std::vector<TrackITSExt>& getTracks(int rof) { return mTracks[rof]; }
   std::vector<MCCompLabel>& getTracksLabel(int rof) { return mTracksLabel[rof]; }
+
+  bool checkMemory(unsigned long max) { return getArtefactsMemory() < max; }
+  unsigned long getArtefactsMemory();
 
   void initialiseRoadLabels();
   void setRoadLabel(int i, const unsigned long long& lab, bool fake);

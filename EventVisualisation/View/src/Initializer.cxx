@@ -59,7 +59,7 @@ void Initializer::setup()
 
   auto const options = Options::Instance();
 
-  if (options->online()) {
+  if (options->json()) {
     eventManager.setDataSource(new DataSourceOnline(options->dataFolder()));
   } else {
     eventManager.setDataSource(new DataSourceOffline(options->AODConverterPath(), options->dataFolder(), options->fileName(), options->hideDplGUI()));

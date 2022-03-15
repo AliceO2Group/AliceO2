@@ -231,7 +231,7 @@ void GPUDisplayFrontendGlfw::cursorPos_callback(GLFWwindow* window, double x, do
   me->mouseMvY = y;
 }
 
-void GPUDisplayFrontendGlfw::resize_callback(GLFWwindow* window, int width, int height) { me->ReSizeGLScene(width, height); }
+void GPUDisplayFrontendGlfw::resize_callback(GLFWwindow* window, int width, int height) { me->ResizeScene(width, height); }
 
 void GPUDisplayFrontendGlfw::DisplayLoop()
 {
@@ -283,6 +283,7 @@ int GPUDisplayFrontendGlfw::FrontendMain()
   glfwSetScrollCallback(mWindow, scroll_callback);
   glfwSetCursorPosCallback(mWindow, cursorPos_callback);
   glfwSetWindowSizeCallback(mWindow, resize_callback);
+  glfwSwapInterval(1);
 
   pthread_mutex_lock(&mSemLockExit);
   mGlfwRunning = true;
@@ -297,6 +298,13 @@ int GPUDisplayFrontendGlfw::FrontendMain()
   if (gl3wInit()) {
     fprintf(stderr, "Error initializing gl3w (2)\n");
     return (-1); // Hack: We have to initialize gl3w as well, as the DebugGUI uses it.
+  }
+#endif
+
+#ifdef GPUCA_O2_LIB
+  mCanDrawText = 2;
+  if (drawTextFontSize() == 0) {
+    drawTextFontSize() = 12;
   }
 #endif
 
@@ -403,4 +411,27 @@ bool GPUDisplayFrontendGlfw::EnableSendKey()
 #else
   return true;
 #endif
+}
+
+void GPUDisplayFrontendGlfw::getSize(int& width, int& height)
+{
+  glfwGetFramebufferSize(mWindow, &width, &height);
+}
+
+int GPUDisplayFrontendGlfw::getVulkanSurface(void* instance, void* surface)
+{
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
+  return glfwCreateWindowSurface(*(VkInstance*)instance, mWindow, nullptr, (VkSurfaceKHR*)surface) != VK_SUCCESS;
+#else
+  return 1;
+#endif
+}
+
+unsigned int GPUDisplayFrontendGlfw::getReqVulkanExtensions(const char**& p)
+{
+  uint32_t glfwExtensionCount = 0;
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
+  p = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+#endif
+  return glfwExtensionCount;
 }

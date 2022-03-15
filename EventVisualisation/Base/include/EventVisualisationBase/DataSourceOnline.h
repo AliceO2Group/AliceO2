@@ -49,7 +49,7 @@ class DataSourceOnline : public DataSource
 
   bool refresh() override; // recompute
 
-  std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> getVisualisationList(int no) override;
+  std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> getVisualisationList(int no, float minTime, float maxTime, float range) override;
   void changeDataFolder(std::string newFolder) override { mFileWatcher.changeFolder(newFolder); };
   void saveCurrentEvent(std::string targetFolder) override { mFileWatcher.saveCurrentFileToFolder(targetFolder); };
   int getRunNumber() const override { return this->mRunNumber; }

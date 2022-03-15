@@ -59,6 +59,7 @@
 
 #include <algorithm>
 #include <vector>
+#include <numeric>
 #include <memory>
 #include <unordered_map>
 #include <uv.h>

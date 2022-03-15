@@ -56,7 +56,7 @@ class RecordBatchWriter;
 
 namespace o2::framework
 {
-class ServiceRegistry;
+struct ServiceRegistry;
 
 #define ERROR_STRING                                          \
   "data type T not supported by API, "                        \
@@ -136,7 +136,7 @@ class DataAllocator
       FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodROOT, 0);
       return context.add<MessageContext::RootSerializedObject<T>>(std::move(headerMessage), channel, std::forward<Args>(args)...).get();
     } else if constexpr (std::is_base_of_v<std::string, T>) {
-      std::string* s = new std::string(args...);
+      auto* s = new std::string(args...);
       adopt(spec, s);
       return *s;
     } else if constexpr (std::is_base_of_v<struct TableBuilder, T>) {
@@ -421,7 +421,7 @@ class DataAllocator
   };
 
   template <typename ContainerT>
-  CacheId adoptContainer(const Output& spec, ContainerT& container, bool cache = false, o2::header::SerializationMethod method = header::gSerializationMethodNone)
+  CacheId adoptContainer(const Output& /*spec*/, ContainerT& /*container*/, bool /* cache  = false */, o2::header::SerializationMethod /* method = header::gSerializationMethodNone*/)
   {
     static_assert(always_static_assert_v<ContainerT>, "Container cannot be moved. Please make sure it is backed by a FairMQMemoryResource");
     return {0};

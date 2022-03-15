@@ -107,6 +107,8 @@ class AltroDecoder
   /// \brief Get list of hw errors found in decoding
   const std::vector<o2::phos::RawReaderError>& hwerrors() { return mOutputHWErrors; }
 
+  const std::vector<short>& chi2list() { return mOutputFitChi; }
+
   /// \brief Get reference to the RCU trailer object
   /// \return reference to the RCU trailers vector
   const RCUTrailer& getRCUTrailer() const { return mRCUTrailer; }

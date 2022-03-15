@@ -17,6 +17,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "ITSWorkflow/TrackerSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITS/TrackITS.h"
@@ -89,6 +90,7 @@ void TrackerDPL::init(InitContext& ic)
     std::vector<MemoryParameters> memParams;
 
     mRunVertexer = true;
+    mCosmicsProcessing = false;
     if (mMode == "async") {
 
       trackParams.resize(2);
@@ -122,6 +124,7 @@ void TrackerDPL::init(InitContext& ic)
       trackParams.resize(1);
       LOG(info) << "Initializing tracker in sync. phase reconstruction with " << trackParams.size() << " passes";
     } else if (mMode == "cosmics") {
+      mCosmicsProcessing = true;
       mRunVertexer = false;
       trackParams.resize(1);
       memParams.resize(1);
@@ -155,20 +158,12 @@ void TrackerDPL::init(InitContext& ic)
   } else {
     throw std::runtime_error(o2::utils::Str::concat_string("Cannot retrieve GRP from the ", filename));
   }
-
-  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
-  if (o2::utils::Str::pathExists(dictFile)) {
-    mDict.readFromFile(dictFile);
-    LOG(info) << "Tracker running with a provided dictionary: " << dictFile;
-  } else {
-    LOG(info) << "Dictionary " << dictFile << " is absent, Tracker expects cluster patterns";
-  }
 }
 
 void TrackerDPL::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
+  updateTimeDependentParams(pc);
   auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
   gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
 
@@ -224,6 +219,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   pattIt = patterns.begin();
   std::vector<int> savedROF;
   auto logger = [&](std::string s) { LOG(info) << s; };
+  auto fatalLogger = [&](std::string s) { LOG(fatal) << s; };
   float vertexerElapsedTime{0.f};
   int nclUsed = 0;
 
@@ -288,8 +284,12 @@ void TrackerDPL::run(ProcessingContext& pc)
   LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} clusters in {} ROFs", vertexerElapsedTime, nclUsed, rofspan.size());
   LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", mTimeFrame.getBeamX(), mTimeFrame.getBeamY());
 
+  if (mCosmicsProcessing && nclUsed > 1500 * rofspan.size()) {
+    LOG(fatal) << "Cosmics processing was requested with an average detector occupancy exceeding 1.e-7, aborting.";
+  }
+
   mTimeFrame.setMultiplicityCutMask(processingMask);
-  mTracker->clustersToTracks(logger);
+  mTracker->clustersToTracks(logger, fatalLogger);
   if (mTimeFrame.hasBogusClusters()) {
     LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", mTimeFrame.hasBogusClusters());
   }
@@ -336,6 +336,21 @@ void TrackerDPL::run(ProcessingContext& pc)
   mTimer.Stop();
 }
 
+///_______________________________________
+void TrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
+{
+  pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+}
+
+///_______________________________________
+void TrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated";
+    setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
+  }
+}
+
 void TrackerDPL::endOfStream(EndOfStreamContext& ec)
 {
   LOGF(info, "ITS CA-Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
@@ -348,6 +363,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, const std::string& trModeS, o2::gpu
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("cldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);

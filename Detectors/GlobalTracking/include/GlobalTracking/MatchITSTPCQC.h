@@ -82,9 +82,6 @@ class MatchITSTPCQC
   void setGeomFileName(std::string fn) { mGeomFileName = fn; }
   void setBz(float bz) { mBz = bz; }
 
-  // MC level selection
-  bool isPhysicalPrimary(MCTrack const* mcTrk);
-
   // track selection
   bool selectTrack(o2::tpc::TrackTPC const& track);
   void setPtCut(float v) { mPtCut = v; }
@@ -110,7 +107,7 @@ class MatchITSTPCQC
   bool mUseMC = false;
   std::string mGRPFileName = "o2sim_grp.root";
   std::string mGeomFileName = "o2sim_geometry.root";
-  float mBz = 0; ///< nominal Bz
+  float mBz = 0;                                              ///< nominal Bz
   std::unordered_map<o2::MCCompLabel, LblInfo> mMapLabels;    // map with labels that have been found for the matched ITSTPC tracks; key is the label,
                                                               // value is the LbLinfo with the id of the track with the highest pT found with that label so far,
                                                               // and the flag to say if it is a physical primary or not
@@ -149,7 +146,6 @@ class MatchITSTPCQC
 
   ClassDefNV(MatchITSTPCQC, 1);
 };
-
 } // namespace globaltracking
 } // namespace o2
 

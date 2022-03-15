@@ -27,7 +27,7 @@ namespace o2::framework
 {
 
 struct ConcreteDataMatcher;
-class EndOfStreamContext;
+struct EndOfStreamContext;
 
 // A service that data processors can register callback functions invoked by the
 // framework at defined steps in the process flow

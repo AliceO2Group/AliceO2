@@ -1272,7 +1272,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
       }
 
       /// Add libSegFault to the stack if provided.
-      if (varmap.count("stacktrace-on-signal") && varmap["stacktrace-on-signal"].as<std::string>() != "none") {
+      if (varmap.count("stacktrace-on-signal") && varmap["stacktrace-on-signal"].as<std::string>() != "none" && varmap["stacktrace-on-signal"].as<std::string>() != "simple") {
         char const* preload = getenv("LD_PRELOAD");
         if (preload == nullptr || strcmp(preload, "libSegFault.so") == 0) {
           tmpEnv.push_back("LD_PRELOAD=libSegFault.so");
@@ -1472,8 +1472,9 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("shm-no-cleanup", bpo::value<std::string>()->default_value("false"), "no shm cleanup")                                                                          //
     ("shmid", bpo::value<std::string>(), "shmid")                                                                                                                    //
     ("environment", bpo::value<std::string>(), "comma separated list of environment variables to set for the device")                                                //
-    ("stacktrace-on-signal", bpo::value<std::string>()->default_value("all"),                                                                                        //
-     "dump stacktrace on specified signal(s) (any of `all`, `segv`, `bus`, `ill`, `abrt`, `fpe`, `sys`.)")                                                           //
+    ("stacktrace-on-signal", bpo::value<std::string>()->default_value("simple"),                                                                                     //
+     "dump stacktrace on specified signal(s) (any of `all`, `segv`, `bus`, `ill`, `abrt`, `fpe`, `sys`.)"                                                            //
+     "Use `simple` to dump only the main thread in a reliable way")                                                                                                  //
     ("post-fork-command", bpo::value<std::string>(), "post fork command to execute (e.g. numactl {pid}")                                                             //
     ("session", bpo::value<std::string>(), "unique label for the shared memory session")                                                                             //
     ("network-interface", bpo::value<std::string>(), "network interface to which to bind tpc fmq ports without specified address")                                   //
@@ -1483,6 +1484,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                                                                                //
     ("infologger-mode", bpo::value<std::string>(), "O2_INFOLOGGER_MODE override")                                                                                    //
     ("infologger-severity", bpo::value<std::string>(), "minimun FairLogger severity which goes to info logger")                                                      //
+    ("dpl-tracing-flags", bpo::value<std::string>(), "pipe separated list of events to trace")                                                                       //
     ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)");                                                             //
 
   return forwardedDeviceOptions;

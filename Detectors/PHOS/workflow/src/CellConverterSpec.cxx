@@ -21,6 +21,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "PHOSBase/PHOSSimParams.h"
 #include "CCDB/CcdbApi.h"
+#include "CCDB/BasicCCDBManager.h"
 #include "CommonUtils/NameConf.h"
 
 using namespace o2::phos::reco_workflow;
@@ -63,24 +64,24 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
     LOG(info) << "[PHOSCellConverter - run]  Received " << digits.size() << " digits and " << digitsTR.size() << " TriggerRecords";
   }
 
-  //Get TimeStamp from TriggerRecord
+  // Get TimeStamp from TriggerRecord
   if (!mBadMap) {
     if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
       mBadMap = new BadChannelsMap(1); // test default map
       LOG(info) << "[PHOSCellConverter - run] No reading BadMap from ccdb requested, set default";
     } else {
       LOG(info) << "[PHOSCellConverter - run] getting BadMap object from ccdb";
-      o2::ccdb::CcdbApi ccdb;
-      std::map<std::string, std::string> metadata; // do we want to store any meta data?
-      ccdb.init(o2::base::NameConf::getCCDBServer()); // or http://localhost:8080 for a local installation
-      long bcTime = -1;                            //TODO!!! Convert BC time to time o2::InteractionRecord bcTime = digitsTR.front().getBCData() ;
-      mBadMap = ccdb.retrieveFromTFileAny<o2::phos::BadChannelsMap>("PHOS/BadMap", metadata, bcTime);
+      // Normally CCDB manager should get and own objects
+      auto& ccdbManager = o2::ccdb::BasicCCDBManager::instance();
+      ccdbManager.setURL(o2::base::NameConf::getCCDBServer());
+      LOG(info) << " set-up CCDB " << o2::base::NameConf::getCCDBServer();
+      mBadMap = ccdbManager.get<o2::phos::BadChannelsMap>("PHS/BadMap");
       if (!mBadMap) {
         LOG(fatal) << "[PHOSCellConverter - run] can not get Bad Map";
       }
     }
   }
-  //TODO!!! Should we check if BadMap should be updated/validity range still valid???
+  // TODO!!! Should we check if BadMap should be updated/validity range still valid???
   mOutputCells.reserve(digits.size()); // most of digits will be copied
   int icell = 0;
   int labelIndex = 0;
@@ -100,7 +101,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
         }
         mOutputCells.emplace_back(dig.getAbsId(), dig.getAmplitude(), dig.getTime(), chantype);
       } else {
-        //apply filter
+        // apply filter
         if (!mBadMap->isChannelGood(dig.getAbsId())) {
           continue;
         }
@@ -112,7 +113,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
           chantype = ChannelType_t::LOW_GAIN;
         }
         mOutputCells.emplace_back(dig.getAbsId(), dig.getAmplitude(), dig.getTime(), chantype);
-        if (mPropagateMC) { //copy MC info,
+        if (mPropagateMC) { // copy MC info,
           int iLab = dig.getLabel();
           if (iLab > -1) {
             mOutputTruthCont.addElements(icell, truthcont->getLabels(iLab));

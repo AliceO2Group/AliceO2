@@ -41,7 +41,7 @@ void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRe
                         std::vector<Cluster>& clusters, std::vector<CluElement>& cluelements, std::vector<TriggerRecord>& trigRec,
                         o2::dataformats::MCTruthContainer<MCLabel>& cluMC)
 {
-  clusters.clear(); //final out list of clusters
+  clusters.clear(); // final out list of clusters
   cluelements.clear();
   cluelements.reserve(digits.size());
   trigRec.clear();
@@ -49,10 +49,10 @@ void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRe
   mProcessMC = (dmc != nullptr);
 
   for (const auto& tr : dtr) {
-    int indexStart = clusters.size(); //final out list of clusters
+    int indexStart = clusters.size(); // final out list of clusters
 
     LOG(debug) << "Starting clusteriztion digits from " << mFirstElememtInEvent << " to " << mLastElementInEvent;
-    //Convert digits to cluelements
+    // Convert digits to cluelements
     int firstDigitInEvent = tr.getFirstEntry();
     int lastDigitInEvent = firstDigitInEvent + tr.getNumberOfObjects();
     mFirstElememtInEvent = cluelements.size();
@@ -96,7 +96,7 @@ void Clusterer::processCells(gsl::span<const Cell> cells, gsl::span<const Trigge
                              o2::dataformats::MCTruthContainer<MCLabel>& cluMC)
 {
   // Transform input Cells to digits and run standard recontruction
-  clusters.clear(); //final out list of clusters
+  clusters.clear(); // final out list of clusters
   trigRec.clear();
   cluelements.reserve(cells.size());
   cluMC.clear();
@@ -105,9 +105,9 @@ void Clusterer::processCells(gsl::span<const Cell> cells, gsl::span<const Trigge
   for (const auto& tr : ctr) {
     int firstCellInEvent = tr.getFirstEntry();
     int lastCellInEvent = firstCellInEvent + tr.getNumberOfObjects();
-    int indexStart = clusters.size(); //final out list of clusters
+    int indexStart = clusters.size(); // final out list of clusters
     LOG(debug) << "Starting clusteriztion cells from " << firstCellInEvent << " to " << lastCellInEvent;
-    //convert cells to cluelements
+    // convert cells to cluelements
     mFirstElememtInEvent = cluelements.size();
     mCluEl.clear();
     mTrigger.clear();
@@ -151,7 +151,7 @@ void Clusterer::makeClusters(std::vector<Cluster>& clusters, std::vector<CluElem
   int iFirst = 0; // first index of digit which potentially can be a part of cluster
   int n = mCluEl.size();
   for (int i = iFirst; i < n; i++) {
-    if (mCluEl[i].energy == 0) { //already used
+    if (mCluEl[i].energy == 0) { // already used
       continue;
     }
 
@@ -205,11 +205,12 @@ void Clusterer::makeClusters(std::vector<Cluster>& clusters, std::vector<CluElem
 
     // Unfold overlapped clusters
     // Split clusters with several local maxima if necessary
-    if (o2::phos::PHOSSimParams::Instance().mUnfoldClusters) {
+    if (o2::phos::PHOSSimParams::Instance().mUnfoldClusters &&
+        clu->getMultiplicity() < o2::phos::PHOSSimParams::Instance().mUnfoldMaxSize) { // Do not unfold huge clusters
       makeUnfolding(*clu, clusters, cluelements);
     } else {
       evalAll(*clu, cluelements);
-      if (clu->getEnergy() < 1.e-4) { //remove cluster and belonging to it elements
+      if (clu->getEnergy() < 1.e-4) { // remove cluster and belonging to it elements
         for (int i = clu->getMultiplicity(); i--;) {
           cluelements.pop_back();
         }
@@ -222,8 +223,8 @@ void Clusterer::makeClusters(std::vector<Cluster>& clusters, std::vector<CluElem
 //__________________________________________________________________________
 void Clusterer::makeUnfolding(Cluster& clu, std::vector<Cluster>& clusters, std::vector<CluElement>& cluelements)
 {
-  //Split cluster if several local maxima are found
-  if (clu.getNExMax() > -1) { //already unfolded
+  // Split cluster if several local maxima are found
+  if (clu.getNExMax() > -1) { // already unfolded
     return;
   }
 
@@ -233,7 +234,7 @@ void Clusterer::makeUnfolding(Cluster& clu, std::vector<Cluster>& clusters, std:
   } else {
     clu.setNExMax(nMax); // Only one local maximum
     evalAll(clu, cluelements);
-    if (clu.getEnergy() < 1.e-4) { //remove cluster and belonging to it elements
+    if (clu.getEnergy() < 1.e-4) { // remove cluster and belonging to it elements
       for (int i = clu.getMultiplicity(); i--;) {
         cluelements.pop_back();
       }
@@ -288,7 +289,7 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
       mxB[iclu] = 0;
       mzB[iclu] = 0;
     }
-    //Fill matrix and vector
+    // Fill matrix and vector
     for (int idig = firstCE; idig < lastCE; idig++) {
       CluElement& ce = cluelements[idig];
       double sumA = 0.;
@@ -300,7 +301,7 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
         double ss = showerShape(r2, deriv);
         mfij[iclu] = ss;
         mfijr[iclu] = deriv;
-        mfijx[iclu] = deriv * ce.localX; //derivatives
+        mfijx[iclu] = deriv * ce.localX; // derivatives
         mfijz[iclu] = deriv * ce.localZ;
         sumA += ss * meMax[iclu];
         C(iclu) += ce.energy * ss;
@@ -317,7 +318,7 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
         mProp[(idig - firstCE) * nMax + iclu] = mfij[iclu] * meMax[iclu] / sumA;
       }
     }
-    if (nIterations > 0 && chi2 > chi2Previous) { //too big step
+    if (nIterations > 0 && chi2 > chi2Previous) { // too big step
       step = 0.5 * step;
       for (int iclu = nMax; iclu--;) {
         mxMax[iclu] = mxMaxPrev[iclu] + step * mdx[iclu];
@@ -327,7 +328,7 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
       insuficientAccuracy = true;
       continue;
     }
-    //Good iteration, move further
+    // Good iteration, move further
     step = 0.2;
     chi2Previous = chi2;
     for (int iclu = nMax; iclu--;) {
@@ -335,8 +336,8 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
       mzMaxPrev[iclu] = mzMax[iclu];
     }
 
-    //calculate next step using derivative
-    //fill remaning part of B
+    // calculate next step using derivative
+    // fill remaning part of B
     for (int iclu = 1; iclu < nMax; iclu++) {
       for (int jclu = 0; jclu < iclu; jclu++) {
         B(iclu, jclu) = B(jclu, iclu);
@@ -350,7 +351,7 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
     }
 
     for (int iclu = nMax; iclu--;) {
-      //a-la Fletcher-Rivs algorithm
+      // a-la Fletcher-Rivs algorithm
       mdx[iclu] += 0.2 * mdxprev[iclu];
       mdz[iclu] += 0.2 * mdzprev[iclu];
       mdxprev[iclu] = mdx[iclu];
@@ -360,7 +361,7 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
       mxMax[iclu] = mxMaxPrev[iclu] + step * mdx[iclu];
       mzMax[iclu] = mzMaxPrev[iclu] + step * mdz[iclu];
     }
-    //now exact solution for amplitudes
+    // now exact solution for amplitudes
     bk.SetMatrix(B);
     if (bk.Solve(C)) {
       for (int iclu = 0; iclu < nMax; iclu++) {
@@ -375,7 +376,7 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
 
   // Iterations finished, put first new cluster into place of mother one, others to the end of list
   for (int iclu = 0; iclu < nMax; iclu++) {
-    //copy cluElements to the final list
+    // copy cluElements to the final list
     int start = cluelements.size();
     int nce = 0;
     for (int idig = firstCE; idig < lastCE; idig++) {
@@ -389,12 +390,12 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
         nce++;
       }
     }
-    if (iclu == 0) { //replace parent
+    if (iclu == 0) { // replace parent
       iniClu.setNExMax(nMax);
       iniClu.setFirstCluEl(start);
       iniClu.setLastCluEl(start + nce);
       evalAll(iniClu, cluelements);
-      if (iniClu.getEnergy() < 1.e-4) { //remove cluster and belonging to it elements
+      if (iniClu.getEnergy() < 1.e-4) { // remove cluster and belonging to it elements
         for (int i = iniClu.getMultiplicity(); i--;) {
           cluelements.pop_back();
         }
@@ -407,7 +408,7 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
       clu.setFirstCluEl(start);
       clu.setLastCluEl(start + nce);
       evalAll(clu, cluelements);
-      if (clu.getEnergy() < 1.e-4) { //remove cluster and belonging to it elements
+      if (clu.getEnergy() < 1.e-4) { // remove cluster and belonging to it elements
         for (int i = clu.getMultiplicity(); i--;) {
           cluelements.pop_back();
         }
@@ -427,17 +428,17 @@ void Clusterer::evalLabels(std::vector<Cluster>& clusters, std::vector<CluElemen
   auto clu = clusters.begin();
 
   while (clu != clusters.end()) {
-    //Calculate list of primaries
-    //loop over entries in digit MCTruthContainer
+    // Calculate list of primaries
+    // loop over entries in digit MCTruthContainer
     for (uint32_t id = clu->getFirstCluEl(); id < clu->getLastCluEl(); id++) {
       CluElement& ll = cluElements[id];
-      int i = ll.label; //index
+      int i = ll.label; // index
       float sc = ll.fraction;
       gsl::span<const MCLabel> spDigList = dmc->getLabels(i);
       if (spDigList.size() == 0 || spDigList.begin()->isFake()) {
         continue;
       }
-      gsl::span<MCLabel> spCluList = cluMC.getLabels(labelIndex); //get updated list
+      gsl::span<MCLabel> spCluList = cluMC.getLabels(labelIndex); // get updated list
       auto digL = spDigList.begin();
       while (digL != spDigList.end()) {
         if (digL->isFake()) {
@@ -454,10 +455,10 @@ void Clusterer::evalLabels(std::vector<Cluster>& clusters, std::vector<CluElemen
           }
           ++cluL;
         }
-        if (!merged) { //just add label
+        if (!merged) { // just add label
           if (sc == 1.) {
             cluMC.addElement(labelIndex, (*digL));
-          } else { //rare case of unfolded clusters
+          } else { // rare case of unfolded clusters
             MCLabel tmpL = (*digL);
             tmpL.scale(sc);
             cluMC.addElement(labelIndex, tmpL);
@@ -495,7 +496,7 @@ double Clusterer::showerShape(double r2, double& deriv)
 //____________________________________________________________________________
 void Clusterer::evalAll(Cluster& clu, std::vector<CluElement>& cluel) const
 {
-  //position, energy, coreEnergy, dispersion, time,
+  // position, energy, coreEnergy, dispersion, time,
 
   // Calculates the center of gravity in the local PHOS-module coordinates
   // Note that correction for non-perpendicular incidence will be applied later
@@ -544,7 +545,7 @@ void Clusterer::evalAll(Cluster& clu, std::vector<CluElement>& cluel) const
   }
   clu.setLocalPosition(localPosX, localPosZ);
 
-  //Dispersion, core energy
+  // Dispersion, core energy
   float coreRadius2 = o2::phos::PHOSSimParams::Instance().mCoreR;
   coreRadius2 *= coreRadius2;
   float coreE = 0.;
@@ -570,7 +571,7 @@ void Clusterer::evalAll(Cluster& clu, std::vector<CluElement>& cluel) const
     }
   }
   clu.setCoreEnergy(coreE);
-  //dispersion
+  // dispersion
   if (wtot > 0) {
     wtot = 1. / wtot;
     dispersion *= wtot;
@@ -598,7 +599,7 @@ void Clusterer::evalAll(Cluster& clu, std::vector<CluElement>& cluel) const
   }
   clu.setElipsAxis(lambdaShort, lambdaLong);
 
-  //Test trigger
+  // Test trigger
   char relId[3];
   Geometry::relPosToRelId(clu.module(), localPosX, localPosZ, relId);
 

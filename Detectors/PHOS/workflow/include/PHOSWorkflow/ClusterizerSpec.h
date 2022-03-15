@@ -62,6 +62,8 @@ class ClusterizerSpec : public framework::Task
   bool mUseDigits = false;          ///< Make clusters from digits or cells
   bool mFullCluOutput = false;      ///< Write full of reduced (no contributed digits) clusters
   o2::phos::Clusterer mClusterizer; ///< Clusterizer object
+  std::unique_ptr<CalibParams> mCalibParams;
+  std::unique_ptr<BadChannelsMap> mBadMap;
   std::vector<o2::phos::Cluster> mOutputClusters;
   std::vector<o2::phos::CluElement> mOutputCluElements;
   std::vector<o2::phos::TriggerRecord> mOutputClusterTrigRecs;

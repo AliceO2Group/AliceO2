@@ -79,6 +79,7 @@ void GPUDisplay::PrintHelp()
 void GPUDisplay::HandleKey(unsigned char key)
 {
   GPUSettingsDisplayHeavy oldCfgH = mCfgH;
+  GPUSettingsDisplayLight oldCfgL = mCfgL;
   GPUSettingsDisplayRenderer oldCfgR = mCfgR;
   if (key == 'n') {
     mFrontend->mDisplayControl = 1;
@@ -242,7 +243,7 @@ void GPUDisplay::HandleKey(unsigned char key)
   } else if (key == 'D') {
     mCfgL.depthBuffer ^= true;
     SetInfo("Depth buffer (z-buffer, %u bits) %s", mBackend->DepthBits(), mCfgL.depthBuffer ? "enabled" : "disabled");
-    setDepthBuffer();
+    mBackend->setDepthBuffer();
   } else if (key == 'W') {
     mCfgR.drawQualityMSAA *= 2;
     if (mCfgR.drawQualityMSAA < 2) {
@@ -341,11 +342,11 @@ void GPUDisplay::HandleKey(unsigned char key)
     mCfgH.drawTracksAndFilter ^= 1;
     SetInfo("Track filter: %s", mCfgH.drawTracksAndFilter ? "AND" : "OR");
   } else if (key == 't') {
-    GPUInfo("Taking screenshot");
     static int nScreenshot = 1;
     char fname[32];
     sprintf(fname, "screenshot%d.bmp", nScreenshot++);
-    DoScreenshot(fname);
+    mRequestScreenshot = true;
+    mScreenshotFile = fname;
     SetInfo("Taking screenshot (%s)", fname);
   } else if (key == 'Z') {
     mCfgR.screenshotScaleFactor += 1;
@@ -465,13 +466,18 @@ void GPUDisplay::HandleKey(unsigned char key)
   */
 
   if (memcmp((void*)&oldCfgH, (void*)&mCfgH, sizeof(mCfgH)) != 0) {
-    mUpdateDLList = true;
+    mUpdateEventData = true;
   }
-  if (oldCfgR.drawQualityMSAA != mCfgR.drawQualityMSAA || oldCfgR.drawQualityDownsampleFSAA != mCfgR.drawQualityDownsampleFSAA) {
-    UpdateOffscreenBuffers();
+  if (memcmp((void*)&oldCfgL, (void*)&mCfgL, sizeof(mCfgL)) != 0 || memcmp((void*)&oldCfgR, (void*)&mCfgR, sizeof(mCfgR)) != 0) {
+    mUpdateDrawCommands = true;
   }
+  if (oldCfgR.drawQualityMSAA != mCfgR.drawQualityMSAA || oldCfgR.drawQualityDownsampleFSAA != mCfgR.drawQualityDownsampleFSAA || oldCfgL.depthBuffer != mCfgL.depthBuffer || oldCfgR.screenshotScaleFactor != mCfgR.screenshotScaleFactor) {
+    mUpdateRenderPipeline = true;
+  }
+
   if (oldCfgR.drawQualityVSync != mCfgR.drawQualityVSync) {
     mFrontend->SetVSync(mCfgR.drawQualityVSync);
+    mBackend->SetVSync(mCfgR.drawQualityVSync);
   }
   if (oldCfgR.fullScreen != mCfgR.fullScreen) {
     mFrontend->SwitchFullscreen(mCfgR.fullScreen);
@@ -483,7 +489,7 @@ void GPUDisplay::HandleKey(unsigned char key)
     mFrontend->mMaxFPSRate = mCfgR.maxFPSRate;
   }
   if (oldCfgR.useGLIndirectDraw != mCfgR.useGLIndirectDraw) {
-    mUpdateDLList = true;
+    mUpdateEventData = true;
   }
 }
 
@@ -505,7 +511,7 @@ void GPUDisplay::HandleSendKey(int key)
 void GPUDisplay::PrintGLHelpText(float colorValue)
 {
   for (unsigned int i = 0; i < sizeof(HelpText) / sizeof(HelpText[0]); i++) {
-    mFrontend->OpenGLPrint(HelpText[i], 40.f, 35 + 20 * (1 + i), colorValue, colorValue, colorValue, mInfoHelpTimer.GetCurrentElapsedTime() >= 5 ? (6 - mInfoHelpTimer.GetCurrentElapsedTime()) : 1, false);
+    OpenGLPrint(HelpText[i], 40.f, 35 + std::max(20, mDrawTextFontSize + 4) * (1 + i), colorValue, colorValue, colorValue, mInfoHelpTimer.GetCurrentElapsedTime() >= 5 ? (6 - mInfoHelpTimer.GetCurrentElapsedTime()) : 1, false);
   }
 }
 

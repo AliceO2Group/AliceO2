@@ -28,6 +28,7 @@
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 
 #include <unordered_map>
+#include <numeric>
 
 using namespace o2::framework;
 using namespace o2::dataformats;

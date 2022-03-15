@@ -65,7 +65,6 @@ class RawToCellConverterSpec : public framework::Task
   bool mCombineGHLG = true;                                   ///< Combine or not HG and LG channels (def: combine, LED runs: not combine)
   bool mPedestalRun = false;                                  ///< Analyze pedestal run (calculate pedestal mean and RMS)
   int mLastSize = 0;                                          ///< size of last send list of cells to reserve same in next bunch
-  std::unique_ptr<CalibParams> mCalibParams;                  ///!<! PHOS calibration
   std::unique_ptr<AltroDecoder> mDecoder;                     ///!<! Raw decoder
   std::unique_ptr<CaloRawFitter> mRawFitter;                  ///!<! Raw fitter
   std::array<std::vector<Cell>, 14> mTmpCells;                ///< Temporary cells storage to all 14 DLL

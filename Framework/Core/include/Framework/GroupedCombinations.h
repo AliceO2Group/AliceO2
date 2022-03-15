@@ -258,15 +258,15 @@ struct GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<Us...>, As...
 // 'Pair' and 'Triple' can be used for same kind pair/triple, too, just specify the same type twice
 template <typename H, typename G>
 using joinedCollisions = typename soa::Join<H, G>::table_t;
-template <typename H, typename G, typename A1, typename A2, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<T1, joinedCollisions<H, G>, joinedCollisions<H, G>>>
+template <typename H, typename G, typename A1, typename A2, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<std::string, T1, joinedCollisions<H, G>, joinedCollisions<H, G>>>
 using Pair = GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, unique_pack_t<pack<A1, A2>>, A1, A2>;
-template <typename H, typename G, typename A, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<T1, joinedCollisions<H, G>, joinedCollisions<H, G>>>
+template <typename H, typename G, typename A, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<std::string, T1, joinedCollisions<H, G>, joinedCollisions<H, G>>>
 using SameKindPair = GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<A>, A, A>;
 
 // Aliases for 3-particle correlations
-template <typename H, typename G, typename A1, typename A2, typename A3, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<T1, joinedCollisions<H, G>, joinedCollisions<H, G>, joinedCollisions<H, G>>>
+template <typename H, typename G, typename A1, typename A2, typename A3, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<std::string, T1, joinedCollisions<H, G>, joinedCollisions<H, G>, joinedCollisions<H, G>>>
 using Triple = GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, unique_pack_t<pack<A1, A2, A3>>, A1, A2, A3>;
-template <typename H, typename G, typename A, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<T1, joinedCollisions<H, G>, joinedCollisions<H, G>, joinedCollisions<H, G>>>
+template <typename H, typename G, typename A, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<std::string, T1, joinedCollisions<H, G>, joinedCollisions<H, G>, joinedCollisions<H, G>>>
 using SameKindTriple = GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<A>, A, A, A>;
 
 } // namespace o2::framework

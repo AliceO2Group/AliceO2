@@ -57,15 +57,12 @@ class NoiseCalibrator
 
   void finalize();
 
-  void loadDictionary(std::string fname)
-  {
-    mDict.readBinaryFile(fname);
-  }
+  void setClusterDictionary(const o2::itsmft::TopologyDictionary* d) { mDict = d; }
 
   const o2::itsmft::NoiseMap& getNoiseMap() const { return mNoiseMap; }
 
  private:
-  o2::itsmft::TopologyDictionary mDict;
+  const o2::itsmft::TopologyDictionary* mDict = nullptr;
   o2::itsmft::NoiseMap mNoiseMap{936};
   float mProbabilityThreshold = 1e-6f;
   unsigned int mThreshold = 100;

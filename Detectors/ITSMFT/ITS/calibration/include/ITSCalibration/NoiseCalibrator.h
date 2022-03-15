@@ -57,10 +57,8 @@ class NoiseCalibrator
 
   void setNThreads(int n) { mNThreads = n > 0 ? n : 1; }
 
-  void loadDictionary(std::string fname)
-  {
-    mDict.readFromFile(fname);
-  }
+  void setClusterDictionary(const o2::itsmft::TopologyDictionary* d) { mDict = d; }
+
   const o2::itsmft::NoiseMap& getNoiseMap() const { return mNoiseMap; }
 
   void setInstanceID(size_t i) { mInstanceID = i; }
@@ -69,7 +67,7 @@ class NoiseCalibrator
   auto getNInstances() const { return mNInstances; }
 
  private:
-  o2::itsmft::TopologyDictionary mDict;
+  const o2::itsmft::TopologyDictionary* mDict = nullptr;
   o2::itsmft::NoiseMap mNoiseMap{24120};
   float mProbabilityThreshold = 3e-6f;
   unsigned int mThreshold = 100;

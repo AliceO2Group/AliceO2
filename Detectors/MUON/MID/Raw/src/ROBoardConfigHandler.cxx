@@ -31,14 +31,17 @@ namespace mid
 
 ROBoardConfigHandler::ROBoardConfigHandler()
 {
-  /// Default constructor
   set(makeDefaultROBoardConfig());
 }
 
 ROBoardConfigHandler::ROBoardConfigHandler(const char* filename)
 {
-  /// Construct from file
   load(filename);
+}
+
+ROBoardConfigHandler::ROBoardConfigHandler(std::istream& in)
+{
+  load(in);
 }
 
 ROBoardConfigHandler::ROBoardConfigHandler(const std::vector<ROBoardConfig>& configurations)
@@ -55,15 +58,11 @@ const ROBoardConfig ROBoardConfigHandler::getConfig(uint8_t uniqueLocId) const
   return cfgIt->second;
 }
 
-bool ROBoardConfigHandler::load(const char* filename)
+void ROBoardConfigHandler::load(std::istream& in)
 {
-  std::ifstream inFile(filename);
-  if (!inFile.is_open()) {
-    return false;
-  }
   std::vector<ROBoardConfig> configurations;
   std::string line, token;
-  while (std::getline(inFile, line)) {
+  while (std::getline(in, line)) {
     if (std::count(line.begin(), line.end(), ' ') < 5) {
       continue;
     }
@@ -84,15 +83,22 @@ bool ROBoardConfigHandler::load(const char* filename)
       cfg.masksNBP[ich] = (mask & 0xFFFF);
     }
     configurations.emplace_back(cfg);
-    inFile.close();
   }
   set(configurations);
+}
+
+bool ROBoardConfigHandler::load(const char* filename)
+{
+  std::ifstream inFile(filename);
+  if (!inFile.is_open()) {
+    return false;
+  }
+  load(inFile);
   return true;
 }
 
-void ROBoardConfigHandler::write(const char* filename) const
+void ROBoardConfigHandler::write(std::ostream& out) const
 {
-  /// Writes the masks to a configuration file
   std::vector<ROBoardConfig> configs;
   for (auto& cfgIt : mROBoardConfigs) {
     configs.emplace_back(cfgIt.second);
@@ -100,10 +106,15 @@ void ROBoardConfigHandler::write(const char* filename) const
 
   std::sort(configs.begin(), configs.end(), [](const ROBoardConfig& cfg1, const ROBoardConfig& cfg2) { return cfg1.boardId < cfg2.boardId; });
 
-  std::ofstream outFile(filename);
   for (auto& cfg : configs) {
-    outFile << cfg << std::endl;
+    out << cfg << "\n";
   }
+}
+
+void ROBoardConfigHandler::write(const char* filename) const
+{
+  std::ofstream outFile(filename);
+  write(outFile);
   outFile.close();
 }
 

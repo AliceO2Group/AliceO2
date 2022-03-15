@@ -25,6 +25,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -90,19 +91,11 @@ void TrackerDPL::init(InitContext& ic)
   } else {
     throw std::runtime_error(o2::utils::Str::concat_string("Cannot retrieve GRP from the ", filename));
   }
-
-  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath);
-  if (o2::utils::Str::pathExists(dictFile)) {
-    mDict.readFromFile(dictFile);
-    LOG(info) << "Tracker running with a provided dictionary: " << dictFile;
-  } else {
-    LOG(info) << "Dictionary " << dictFile << " is absent, Tracker expects cluster patterns";
-  }
 }
 
 void TrackerDPL::run(ProcessingContext& pc)
 {
+  updateTimeDependentParams(pc);
   gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   auto compClusters = pc.inputs().get<const std::vector<o2::itsmft::CompClusterExt>>("compClusters");
   auto ntracks = 0;
@@ -288,6 +281,20 @@ void TrackerDPL::endOfStream(EndOfStreamContext& ec)
     LOGF(info, "Timing %18s: Cpu: %.3e s; Real: %.3e s in %d slots", TimerName[i], mTimer[i].CpuTime(), mTimer[i].RealTime(), mTimer[i].Counter() - 1);
   }
 }
+///_______________________________________
+void TrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
+{
+  pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+}
+
+///_______________________________________
+void TrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("MFT", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated";
+    mDict = (const o2::itsmft::TopologyDictionary*)obj;
+  }
+}
 
 DataProcessorSpec getTrackerSpec(bool useMC)
 {
@@ -295,6 +302,7 @@ DataProcessorSpec getTrackerSpec(bool useMC)
   inputs.emplace_back("compClusters", "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   inputs.emplace_back("patterns", "MFT", "PATTERNS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ROframes", "MFT", "CLUSTERSROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("cldict", "MFT", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/ClusterDictionary"));
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("MFT", "TRACKS", 0, Lifetime::Timeframe);

@@ -29,6 +29,7 @@
 #include "Framework/DeviceConfigInfo.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceState.h"
+#include "DeviceStateHelpers.h"
 #include "Framework/DevicesManager.h"
 #include "Framework/DebugGUI.h"
 #include "Framework/LocalRootFileService.h"
@@ -672,6 +673,17 @@ void handleChildrenStdio(uv_loop_t* loop,
   }
 }
 
+void handle_crash(int /* sig */)
+{
+  // dump demangled stack trace
+  void* array[1024];
+
+  int size = backtrace(array, 1024);
+
+  demangled_backtrace_symbols(array, size, STDERR_FILENO);
+  _exit(1);
+}
+
 /// This will start a new device by forking and executing a
 /// new child
 void spawnDevice(DeviceRef ref,
@@ -1027,6 +1039,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("default"), "monitoring backend info")                                                           //
       ("driver-client-backend", bpo::value<std::string>()->default_value(defaultDriverClient), "backend for device -> driver communicataon: stdout://: use stdout, ws://: use websockets") //
       ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")                                                           //
+      ("dpl-tracing-flags", bpo::value<std::string>()->default_value(""), "pipe `|` separate list of events to be traced")                                                                 //
       ("expected-region-callbacks", bpo::value<std::string>()->default_value("0"), "how many region callbacks we are expecting")                                                           //
       ("exit-transition-timeout", bpo::value<std::string>()->default_value(defaultExitTransitionTimeout), "how many second to wait before switching from RUN to READY")                    //
       ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframe can be in fly at the same moment (0 disables)")                                         //
@@ -1055,6 +1068,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
 
     deviceState = std::make_unique<DeviceState>();
     deviceState->loop = loop;
+    deviceState->tracingFlags = DeviceStateHelpers::parseTracingFlags(r.fConfig.GetPropertyAsString("dpl-tracing-flags"));
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceState>(deviceState.get()));
 
     quotaEvaluator = std::make_unique<ComputingQuotaEvaluator>(uv_now(loop));
@@ -1646,6 +1660,14 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       case DriverState::MERGE_CONFIGS: {
         try {
           controls.resize(runningWorkflow.devices.size());
+          /// Set the default value for tracingFlags of each control
+          /// to the command line value --dpl-tracing-flags
+          if (varmap.count("dpl-tracing-flags")) {
+            for (auto& control : controls) {
+              auto tracingFlags = DeviceStateHelpers::parseTracingFlags(varmap["dpl-tracing-flags"].as<std::string>());
+              control.tracingFlags = tracingFlags;
+            }
+          }
           deviceExecutions.resize(runningWorkflow.devices.size());
 
           // Options  which should be uniform across all
@@ -2203,6 +2225,15 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     };
 
   } else if (varmap.count("id")) {
+    // Add our own stacktrace dumping
+    if (varmap["stacktrace-on-signal"].as<std::string>() == "simple" && (getenv("O2_NO_CATCHALL_EXCEPTIONS") == nullptr || strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0") == 0)) {
+      LOGP(info, "Instrumenting crash signals");
+      signal(SIGSEGV, handle_crash);
+      signal(SIGABRT, handle_crash);
+      signal(SIGBUS, handle_crash);
+      signal(SIGILL, handle_crash);
+      signal(SIGFPE, handle_crash);
+    }
     // FIXME: for the time being each child needs to recalculate the workflow,
     //        so that it can understand what it needs to do. This is obviously
     //        a bad idea. In the future we should have the client be pushed

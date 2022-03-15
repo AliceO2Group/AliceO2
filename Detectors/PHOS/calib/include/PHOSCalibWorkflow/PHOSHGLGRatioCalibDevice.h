@@ -40,7 +40,7 @@ class PHOSHGLGRatioCalibDevice : public o2::framework::Task
   };
 
  public:
-  explicit PHOSHGLGRatioCalibDevice(bool useCCDB, bool forceUpdate, std::string path) : mUseCCDB(useCCDB), mForceUpdate(forceUpdate), mCCDBPath(path) {}
+  explicit PHOSHGLGRatioCalibDevice(bool useCCDB, bool forceUpdate) : mUseCCDB(useCCDB), mForceUpdate(forceUpdate) {}
   void init(o2::framework::InitContext& ic) final;
 
   void run(o2::framework::ProcessingContext& pc) final;
@@ -59,8 +59,8 @@ class PHOSHGLGRatioCalibDevice : public o2::framework::Task
   bool mUpdateCCDB = true;                                        /// set is close to current and can update it
   static constexpr short kMinorChange = 10;                       /// ignore if number of channels changed smaller than...
   long mRunStartTime = 0;                                         /// start time of the run (sec)
-  std::string mCCDBPath{"http://alice-ccdb.cern.ch"};             ///< CCDB server path
   std::unique_ptr<CalibParams> mCalibParams;                      //! Final calibration object
+  int mStatistics = 100000;                                       /// number of events to calculate HG/LG ratio
   short mMinLG = 20;                                              /// minimal LG ampl used in ratio
   short minimalStatistics = 100;                                  /// minimal statistics per channel
   std::map<short, PairAmp> mMapPairs;                             //! HG/LG pair
@@ -68,7 +68,7 @@ class PHOSHGLGRatioCalibDevice : public o2::framework::Task
   std::array<float, o2::phos::Mapping::NCHANNELS + 1> mRatioDiff; //! Ratio variation wrt previous map
 };
 
-DataProcessorSpec getHGLGRatioCalibSpec(bool useCCDB, bool forceUpdate, std::string path);
+DataProcessorSpec getHGLGRatioCalibSpec(bool useCCDB, bool forceUpdate);
 
 } // namespace phos
 } // namespace o2

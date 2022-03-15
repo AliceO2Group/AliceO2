@@ -12,6 +12,7 @@
 o2_add_library(
   MIDBase
   SOURCES src/ChamberEfficiency.cxx
+          src/ColumnDataHandler.cxx
           src/DetectorParameters.cxx
           src/GeometryParameters.cxx
           src/GeometryTransformer.cxx
