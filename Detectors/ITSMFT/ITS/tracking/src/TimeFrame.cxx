@@ -65,7 +65,7 @@ TimeFrame::TimeFrame(int nLayers)
   mTrackingFrameInfo.resize(nLayers);
   mClusterExternalIndices.resize(nLayers);
   mUsedClusters.resize(nLayers);
-  mROframesClusters.resize(nLayers, {0}); ///TBC: if resetting the timeframe is required, then this has to be done
+  mROframesClusters.resize(nLayers, {0}); /// TBC: if resetting the timeframe is required, then this has to be done
 }
 
 void TimeFrame::addPrimaryVertices(const std::vector<Vertex>& vertices)
@@ -120,47 +120,46 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs, gsl::span<
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
 
   mNrof = 0;
-  for (int clusterId{0}; clusterId < clusters.size() && mNrof < rofs.size(); ++clusterId) {
-    auto& c = clusters[clusterId];
+  for (auto& rof : rofs) {
+    for (int clusterId{rof.getFirstEntry()}; clusterId < rof.getFirstEntry() + rof.getNEntries(); ++clusterId) {
+      auto& c = clusters[clusterId];
 
-    int layer = geom->getLayer(c.getSensorID());
+      int layer = geom->getLayer(c.getSensorID());
 
-    auto pattID = c.getPatternID();
-    o2::math_utils::Point3D<float> locXYZ;
-    float sigmaY2 = DefClusError2Row, sigmaZ2 = DefClusError2Col, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
-    if (pattID != itsmft::CompCluster::InvalidPatternID) {
-      sigmaY2 = dict->getErr2X(pattID);
-      sigmaZ2 = dict->getErr2Z(pattID);
-      if (!dict->isGroup(pattID)) {
-        locXYZ = dict->getClusterCoordinates(c);
+      auto pattID = c.getPatternID();
+      o2::math_utils::Point3D<float> locXYZ;
+      float sigmaY2 = DefClusError2Row, sigmaZ2 = DefClusError2Col, sigmaYZ = 0; // Dummy COG errors (about half pixel size)
+      if (pattID != itsmft::CompCluster::InvalidPatternID) {
+        sigmaY2 = dict->getErr2X(pattID);
+        sigmaZ2 = dict->getErr2Z(pattID);
+        if (!dict->isGroup(pattID)) {
+          locXYZ = dict->getClusterCoordinates(c);
+        } else {
+          o2::itsmft::ClusterPattern patt(pattIt);
+          locXYZ = dict->getClusterCoordinates(c, patt);
+        }
       } else {
         o2::itsmft::ClusterPattern patt(pattIt);
-        locXYZ = dict->getClusterCoordinates(c, patt);
+        locXYZ = dict->getClusterCoordinates(c, patt, false);
       }
-    } else {
-      o2::itsmft::ClusterPattern patt(pattIt);
-      locXYZ = dict->getClusterCoordinates(c, patt, false);
+      auto sensorID = c.getSensorID();
+      // Inverse transformation to the local --> tracking
+      auto trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;
+      // Transformation to the local --> global
+      auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;
+
+      addTrackingFrameInfoToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), trkXYZ.x(), geom->getSensorRefAlpha(sensorID),
+                                  std::array<float, 2>{trkXYZ.y(), trkXYZ.z()},
+                                  std::array<float, 3>{sigmaY2, sigmaYZ, sigmaZ2});
+
+      /// Rotate to the global frame
+      addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), mUnsortedClusters[layer].size());
+      addClusterExternalIndexToLayer(layer, clusterId);
     }
-    auto sensorID = c.getSensorID();
-    // Inverse transformation to the local --> tracking
-    auto trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;
-    // Transformation to the local --> global
-    auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;
-
-    addTrackingFrameInfoToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), trkXYZ.x(), geom->getSensorRefAlpha(sensorID),
-                                std::array<float, 2>{trkXYZ.y(), trkXYZ.z()},
-                                std::array<float, 3>{sigmaY2, sigmaYZ, sigmaZ2});
-
-    /// Rotate to the global frame
-    addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), mUnsortedClusters[layer].size());
-    addClusterExternalIndexToLayer(layer, clusterId);
-
-    while (mNrof < rofs.size() && clusterId >= rofs[mNrof].getFirstEntry() + rofs[mNrof].getNEntries() - 1) {
-      for (unsigned int iL{0}; iL < mUnsortedClusters.size(); ++iL) {
-        mROframesClusters[iL].push_back(mUnsortedClusters[iL].size());
-      }
-      mNrof++;
+    for (unsigned int iL{0}; iL < mUnsortedClusters.size(); ++iL) {
+      mROframesClusters[iL].push_back(mUnsortedClusters[iL].size());
     }
+    mNrof++;
   }
   if (mcLabels) {
     mClusterLabels = mcLabels;
