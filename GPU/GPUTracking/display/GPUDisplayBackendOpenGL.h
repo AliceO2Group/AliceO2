@@ -49,15 +49,15 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   void ExitBackendA() override;
   void clearScreen(bool alphaOnly = false);
   void loadDataToGPU(size_t totalVertizes) override;
-  void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer) override;
+  void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage) override;
   void resizeScene(unsigned int width, unsigned int height) override;
   void updateRenderer(bool withScreenshot);
   void ClearOffscreenBuffers();
   void finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage) override;
-  void finishFrame(bool doScreenshot) override;
+  void finishFrame(bool doScreenshot, bool toMixBuffer, float includeMixImage) override;
   void prepareText() override;
   void finishText() override;
-  void mixImages(float mixSlaveImage) override;
+  void mixImages(float mixSlaveImage);
   void pointSizeFactor(float factor) override;
   void lineWidthFactor(float factor) override;
   backendTypes backendType() const override { return TYPE_OPENGL; }
