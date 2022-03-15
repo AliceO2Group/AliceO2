@@ -29,7 +29,8 @@
 #include <SimConfig/SimConfig.h>
 #include <CommonUtils/ConfigurableParam.h>
 #include <CommonUtils/RngHelper.h>
-#include "Field/MagneticField.h"
+#include <DetectorsBase/SimFieldUtils.h>
+#include <Field/MagneticField.h>
 #include <TGeoGlobalMagField.h>
 #include <typeinfo>
 #include <thread>
@@ -76,8 +77,7 @@ class O2PrimaryServerDevice final : public FairMQDevice
 
     // init magnetic field as it might be needed by the generator
     if (TGeoGlobalMagField::Instance()->GetField() == nullptr) {
-      auto field = o2::field::MagneticField::createNominalField(conf.getConfigData().mField, conf.getConfigData().mUniformField);
-      TGeoGlobalMagField::Instance()->SetField(field);
+      TGeoGlobalMagField::Instance()->SetField(o2::base::SimFieldUtils::createMagField());
       TGeoGlobalMagField::Instance()->Lock();
     }
 

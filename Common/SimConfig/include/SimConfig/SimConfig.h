@@ -20,6 +20,12 @@ namespace o2
 namespace conf
 {
 
+enum SimFieldMode {
+  kDefault = 0,
+  kUniform = 1,
+  kCCDB = 2
+};
+
 // configuration struct (which can be passed around)
 struct SimConfigData {
   std::vector<std::string> mActiveModules;    // list of active modules
@@ -50,7 +56,7 @@ struct SimConfigData {
   std::string mCCDBUrl;                       // the URL where to find CCDB
   uint64_t mTimestamp;                        // timestamp in ms to anchor transport simulation to
   int mField;                                 // L3 field setting in kGauss: +-2,+-5 and 0
-  bool mUniformField = false;                 // uniform magnetic field
+  SimFieldMode mFieldMode = kDefault;         // uniform magnetic field
   bool mAsService = false;                    // if simulation should be run as service/deamon (does not exit after run)
   bool mNoGeant = false;                      // if Geant transport should be turned off (when one is only interested in the generated events)
 
