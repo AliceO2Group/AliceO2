@@ -59,8 +59,8 @@ void TrackerDPL::init(InitContext& ic)
   mTimer.Stop();
   mTimer.Reset();
 
-  auto* chainITS = mRecChain->AddChain<o2::gpu::GPUChainITS>();
-  mVertexer = std::make_unique<Vertexer>(chainITS->GetITSVertexerTraits());
+  mChainITS.reset(mRecChain->AddChain<o2::gpu::GPUChainITS>());
+  mVertexer = std::make_unique<Vertexer>(mChainITS->GetITSVertexerTraits());
   mTracker = std::make_unique<Tracker>(new TrackerTraitsCPU);
 
   auto filename = ic.options().get<std::string>("grp-file");
@@ -208,14 +208,14 @@ void TrackerDPL::run(ProcessingContext& pc)
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   FastMultEst multEst;                                     // mult estimator
 
-  TimeFrame mTimeFrame;
-  mTracker->adoptTimeFrame(mTimeFrame);
+  TimeFrame* timeFrame = mChainITS->GetITSTimeframe();
+  mTracker->adoptTimeFrame(*timeFrame);
   mTracker->setBz(mBz);
 
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
 
   gsl::span<itsmft::ROFRecord> rofspan(rofs);
-  mTimeFrame.loadROFrameData(rofspan, compClusters, pattIt, mDict, labels);
+  timeFrame->loadROFrameData(rofspan, compClusters, pattIt, mDict, labels);
   pattIt = patterns.begin();
   std::vector<int> savedROF;
   auto logger = [&](std::string s) { LOG(info) << s; };
@@ -268,7 +268,7 @@ void TrackerDPL::run(ProcessingContext& pc)
     }
     cutTotalMult += !multCut;
     processingMask.push_back(multCut);
-    mTimeFrame.addPrimaryVertices(vtxVecLoc);
+    timeFrame->addPrimaryVertices(vtxVecLoc);
 
     vtxROF.setNEntries(vtxVecLoc.size());
     for (const auto& vtx : vtxVecLoc) {
@@ -282,23 +282,23 @@ void TrackerDPL::run(ProcessingContext& pc)
   LOG(info) << fmt::format("\t - Cluster multiplicity selection rejected {}/{} ROFs", cutClusterMult, rofspan.size());
   LOG(info) << fmt::format("\t - Vertex multiplicity selection rejected {}/{} ROFs", cutVertexMult, rofspan.size());
   LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} clusters in {} ROFs", vertexerElapsedTime, nclUsed, rofspan.size());
-  LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", mTimeFrame.getBeamX(), mTimeFrame.getBeamY());
+  LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", timeFrame->getBeamX(), timeFrame->getBeamY());
 
   if (mCosmicsProcessing && nclUsed > 1500 * rofspan.size()) {
     LOG(fatal) << "Cosmics processing was requested with an average detector occupancy exceeding 1.e-7, aborting.";
   }
 
-  mTimeFrame.setMultiplicityCutMask(processingMask);
+  timeFrame->setMultiplicityCutMask(processingMask);
   mTracker->clustersToTracks(logger, fatalLogger);
-  if (mTimeFrame.hasBogusClusters()) {
-    LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", mTimeFrame.hasBogusClusters());
+  if (timeFrame->hasBogusClusters()) {
+    LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", timeFrame->hasBogusClusters());
   }
 
   for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
 
     auto& rof{rofs[iROF]};
-    tracks = mTimeFrame.getTracks(iROF);
-    trackLabels = mTimeFrame.getTracksLabel(iROF);
+    tracks = timeFrame->getTracks(iROF);
+    trackLabels = timeFrame->getTracksLabel(iROF);
     auto number{tracks.size()};
     auto first{allTracks.size()};
     int offset = -rof.getFirstEntry(); // cluster entry!!!
