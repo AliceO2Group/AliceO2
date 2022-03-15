@@ -101,7 +101,7 @@ static void configITS(Detector* its)
     {2.24, 2.34, 2.67, 9., 16.42, 12}, // for each inner layer: rMin,rMid,rMax,NChip/Stave, phi0, nStaves
     {3.01, 3.15, 3.46, 9., 12.18, 16},
     {3.78, 3.93, 4.21, 9., 9.55, 20},
-    {-1, 19.45, -1, 4., 7.5, 24},   // for others: -, rMid, -, NMod/HStave, phi0, nStaves // 24 was 49
+    {-1, 19.45, -1, 4., 7.5, 24},  // for others: -, rMid, -, NMod/HStave, phi0, nStaves // 24 was 49
     {-1, 24.40, -1, 4., 6., 30},   // 30 was 61
     {-1, 34.24, -1, 7., 4.29, 42}, // 42 was 88
     {-1, 39.20, -1, 7., 3.75, 48}  // 48 was 100
