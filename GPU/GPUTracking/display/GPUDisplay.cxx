@@ -1467,7 +1467,6 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
   }
   scalefactor *= sqrdist;
 
-  mixSlaveImage = 0.f;
   float time = animateTime;
   if (mAnimate && time < 0) {
     if (mAnimateScreenshot) {
@@ -1503,12 +1502,12 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
       }
 
       if (base != mAnimationLastBase && mAnimateVectors[0][mAnimationLastBase] != mAnimateVectors[0][base] && memcmp(&mAnimateConfig[base], &mAnimateConfig[mAnimationLastBase], sizeof(mAnimateConfig[base]))) {
-        mCfgL = mAnimateConfig[mAnimationLastBase];
-        updateConfig();
-        mRenderToMixBuffer = true;
-        DrawGLScene_internal(time);
-        mRenderToMixBuffer = false;
         mixSlaveImage = 1.f - (time - mAnimateVectors[0][mAnimationLastBase]) / (mAnimateVectors[0][base] - mAnimateVectors[0][mAnimationLastBase]);
+        if (mixSlaveImage > 0) {
+          mCfgL = mAnimateConfig[mAnimationLastBase];
+          updateConfig();
+          DrawGLScene_internal(time, true);
+        }
       }
 
       if (memcmp(&mAnimateConfig[base], &mCfgL, sizeof(mCfgL))) {
@@ -2137,7 +2136,7 @@ void GPUDisplay::DrawGLScene_drawCommands()
   }
 }
 
-void GPUDisplay::DrawGLScene_internal(float animateTime) // negative time = no mixing
+void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer) // negative time = no mixing
 {
   bool showTimer = false;
   bool doScreenshot = (mRequestScreenshot || mAnimateScreenshot) && animateTime < 0;
@@ -2175,7 +2174,7 @@ void GPUDisplay::DrawGLScene_internal(float animateTime) // negative time = no m
   nextViewMatrix = nextViewMatrix * mModelMatrix;
   const float zFar = ((mParam->par.continuousTracking ? (mMaxClusterZ / GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
   const hmm_mat4 proj = HMM_Perspective(mCfgR.fov, (GLfloat)mBackend->mRenderWidth / (GLfloat)mBackend->mRenderHeight, 0.1f, zFar);
-  mBackend->prepareDraw(proj, nextViewMatrix, doScreenshot, mRenderToMixBuffer);
+  mBackend->prepareDraw(proj, nextViewMatrix, doScreenshot || mRequestScreenshot, renderToMixBuffer, mixSlaveImage);
   mBackend->pointSizeFactor(1);
   mBackend->lineWidthFactor(1);
 
@@ -2185,7 +2184,7 @@ void GPUDisplay::DrawGLScene_internal(float animateTime) // negative time = no m
   }
 
   mUpdateDrawCommands = mUpdateRenderPipeline = 0;
-  mBackend->finishDraw(doScreenshot, mRenderToMixBuffer, mixSlaveImage);
+  mBackend->finishDraw(doScreenshot, renderToMixBuffer, mixSlaveImage);
 
   if (animateTime < 0) {
     mFramesDone++;
@@ -2214,7 +2213,7 @@ void GPUDisplay::DrawGLScene_internal(float animateTime) // negative time = no m
     }
   }
 
-  mBackend->finishFrame(mRequestScreenshot);
+  mBackend->finishFrame(mRequestScreenshot, renderToMixBuffer, mixSlaveImage);
   if (doScreenshot) {
     mRequestScreenshot = false;
     std::vector<char> pixels = mBackend->getPixels();

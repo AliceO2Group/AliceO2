@@ -428,7 +428,7 @@ void GPUDisplayBackendOpenGL::loadDataToGPU(size_t totalVertizes)
   }
 }
 
-void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer)
+void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage)
 {
   if (mDisplay->updateRenderPipeline() || mDownsampleFactor != getDownsampleFactor(requestScreenshot)) {
     updateRenderer(requestScreenshot);
@@ -540,7 +540,7 @@ void GPUDisplayBackendOpenGL::readImageToPixels()
   }
 }
 
-void GPUDisplayBackendOpenGL::finishFrame(bool doScreenshot) {}
+void GPUDisplayBackendOpenGL::finishFrame(bool doScreenshot, bool toMixBuffer, float includeMixImage) {}
 
 void GPUDisplayBackendOpenGL::prepareText()
 {
@@ -737,20 +737,21 @@ void GPUDisplayBackendOpenGL::resizeScene(unsigned int width, unsigned int heigh
   mScreenWidth = width;
   mScreenHeight = height;
 
+  updateRenderer(false);
+
   float vertices[6][4] = {
-    {0, (float)height, 0.0f, 1.0f},
+    {0, (float)mRenderHeight, 0.0f, 1.0f},
     {0, 0, 0.0f, 0.0f},
-    {(float)width, 0, 1.0f, 0.0f},
-    {0, (float)height, 0.0f, 1.0f},
-    {(float)width, 0, 1.0f, 0.0f},
-    {(float)width, (float)height, 1.0f, 1.0f}};
+    {(float)mRenderWidth, 0, 1.0f, 0.0f},
+    {0, (float)mRenderHeight, 0.0f, 1.0f},
+    {(float)mRenderWidth, 0, 1.0f, 0.0f},
+    {(float)mRenderWidth, (float)mRenderHeight, 1.0f, 1.0f}};
   CHKERR(glBindBuffer(GL_ARRAY_BUFFER, VBO_texture));
   CHKERR(glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices));
   CHKERR(glBindBuffer(GL_ARRAY_BUFFER, 0));
   if (!mDisplay->useMultiVBO()) {
     CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mVBOId[0])); // If we don't use multiple buffers, we keep the default buffer bound
   }
-  updateRenderer(false);
 }
 
 void GPUDisplayBackendOpenGL::updateRenderer(bool withScreenshot)
