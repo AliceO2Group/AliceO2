@@ -133,12 +133,66 @@ class SpaceCharge
   /// \param formulaStruct struct containing a method to evaluate the potential
   void setPotentialFromFormula(const AnalyticalFields<DataT>& formulaStruct);
 
+  /// setting the boundary potential of the GEM stack along the radius
+  /// \param potentialFunc potential funtion as a function of the radius
+  /// \side Side of the TPC
+  void setPotentialBoundaryGEMFrameAlongR(const std::function<DataT(DataT)>& potentialFunc, const Side side);
+
+  /// setting the boundary potential of the IROC on the bottom along phi
+  /// \param potentialFunc potential funtion as a function of global phi
+  /// \side Side of the TPC
+  void setPotentialBoundaryGEMFrameIROCBottomAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const Side side) { setPotentialBoundaryGEMFrameAlongPhi(potentialFunc, GEMstack::IROCgem, true, side); }
+
+  /// setting the boundary potential of the IROC on the top along phi
+  /// \param potentialFunc potential funtion as a function of global phi
+  /// \side Side of the TPC
+  void setPotentialBoundaryGEMFrameIROCTopAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const Side side) { setPotentialBoundaryGEMFrameAlongPhi(potentialFunc, GEMstack::IROCgem, false, side); }
+
+  /// setting the boundary potential of the OROC1 on the bottom along phi
+  /// \param potentialFunc potential funtion as a function of global phi
+  /// \side Side of the TPC
+  void setPotentialBoundaryGEMFrameOROC1BottomAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const Side side) { setPotentialBoundaryGEMFrameAlongPhi(potentialFunc, GEMstack::OROC1gem, true, side); }
+
+  /// setting the boundary potential of the OROC1 on the top along phi
+  /// \param potentialFunc potential funtion as a function of global phi
+  /// \side Side of the TPC
+  void setPotentialBoundaryGEMFrameOROC1TopAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const Side side) { setPotentialBoundaryGEMFrameAlongPhi(potentialFunc, GEMstack::OROC1gem, false, side); }
+
+  /// setting the boundary potential of the OROC2 on the bottom along phi
+  /// \param potentialFunc potential funtion as a function of global phi
+  /// \side Side of the TPC
+  void setPotentialBoundaryGEMFrameOROC2BottomAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const Side side) { setPotentialBoundaryGEMFrameAlongPhi(potentialFunc, GEMstack::OROC2gem, true, side); }
+
+  /// setting the boundary potential of the OROC2 on the top along phi
+  /// \param potentialFunc potential funtion as a function of global phi
+  /// \side Side of the TPC
+  void setPotentialBoundaryGEMFrameOROC2TopAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const Side side) { setPotentialBoundaryGEMFrameAlongPhi(potentialFunc, GEMstack::OROC2gem, false, side); }
+
+  /// setting the boundary potential of the OROC3 on the bottom along phi
+  /// \param potentialFunc potential funtion as a function of global phi
+  /// \side Side of the TPC
+  void setPotentialBoundaryGEMFrameOROC3BottomAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const Side side) { setPotentialBoundaryGEMFrameAlongPhi(potentialFunc, GEMstack::OROC3gem, true, side); }
+
+  /// setting the boundary potential of the OROC3 on the top along phi
+  /// \param potentialFunc potential funtion as a function of global phi
+  /// \side Side of the TPC
+  void setPotentialBoundaryGEMFrameOROC3TopAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const Side side) { setPotentialBoundaryGEMFrameAlongPhi(potentialFunc, GEMstack::OROC3gem, false, side); }
+
+  /// setting the boundary potential for the inner TPC radius along r
+  /// \param potentialFunc potential funtion as a function of z
+  /// \side Side of the TPC
+  void setPotentialBoundaryInnerRadius(const std::function<DataT(DataT)>& potentialFunc, const Side side);
+
+  /// setting the boundary potential for the outer TPC radius along r
+  /// \param potentialFunc potential funtion as a function of z
+  /// \side Side of the TPC
+  void setPotentialBoundaryOuterRadius(const std::function<DataT(DataT)>& potentialFunc, const Side side);
+
   /// step 1: use the O2TPCPoissonSolver class to numerically calculate the potential with set space charge density and boundary conditions from potential
   /// \param side side of the TPC
-  /// \param maxIteration maximum number of iterations used in the poisson solver
   /// \param stoppingConvergence stopping criterion used in the poisson solver
   /// \param symmetry use symmetry or not in the poisson solver
-  void poissonSolver(const Side side, const int maxIteration = 300, const DataT stoppingConvergence = 1e-6, const int symmetry = 0);
+  void poissonSolver(const Side side, const DataT stoppingConvergence = 1e-6, const int symmetry = 0);
 
   /// step 2: calculate numerically the electric field from the potential
   /// \param side side of the TPC
@@ -1000,6 +1054,18 @@ class SpaceCharge
 
   /// dump the created electron tracks with calculateElectronDriftPath function to a tree
   void dumpElectronTracksToTree(const std::vector<std::pair<std::vector<o2::math_utils::Point3D<float>>, std::array<DataT, 3>>>& electronTracks, const int nSamplingPoints, const char* outFile) const;
+
+  /// \return returns nearest phi vertex for given phi position
+  size_t getNearestPhiVertex(const DataT phi, const Side side) const { return std::round(phi / getGridSpacingPhi(side)); }
+
+  /// \return returns nearest r vertex for given radius position
+  size_t getNearestRVertex(const DataT r, const Side side) const { return std::round((r - getRMin(side)) / getGridSpacingR(side)); }
+
+  /// \return returns number of bins in phi direction for the gap between sectors and for the GEM frame
+  std::pair<size_t, size_t> getPhiBinsGapFrame(const Side side) const;
+
+  /// \return setting the boundary potential for given GEM stack
+  void setPotentialBoundaryGEMFrameAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const GEMstack stack, const bool bottom, const Side side);
 };
 
 ///
