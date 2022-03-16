@@ -1265,7 +1265,7 @@ struct CombinationsGenerator {
   using CombinationType = typename P::CombinationType;
 
  public:
-  struct CombinationsIterator : public std::iterator<std::forward_iterator_tag, CombinationType>, public P {
+  struct CombinationsIterator : public P {
    public:
     using reference = CombinationType&;
     using value_type = CombinationType;

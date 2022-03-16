@@ -83,9 +83,14 @@ class LabelContainer
   }
 
   // an iterator class to iterate over truthelements
-  class Iterator : public std::iterator<std::input_iterator_tag, LabelType>
+  class Iterator
   {
    private:
+    using iterator_category = std::input_iterator_tag;
+    using value_type = LabelType;
+    using difference_type = std::ptrdiff_t;
+    using pointer = LabelType*;
+    using reference = LabelType&;
     std::vector<StoredLabelType>& mLabelsRef; // reference to labels vector
     int index;                                // startindex
    public:
