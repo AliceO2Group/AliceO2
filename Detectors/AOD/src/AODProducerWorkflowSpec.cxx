@@ -1011,18 +1011,14 @@ void AODProducerWorkflowDPL::fillCaloTable(TEventHandler* caloEventHandler, cons
                      cell.getType(),
                      caloType); // 1 = emcal, -1 = undefined, 0 = phos
 
-      // once decided on final form, fill calotrigger table here:
-
-      // ...
+      // todo: fix dummy values in CellHelper when it is clear what is filled for trigger information
+      caloCellTRGTableCursor(0,
+                             bcID,
+                             CellHelper::getFastOrAbsID(cell),
+                             CellHelper::getLnAmplitude(cell),
+                             CellHelper::getTriggerBits(cell),
+                             caloType);
     }
-
-    // todo: fill with actual values once decided
-    caloCellTRGTableCursor(0,
-                           bcID,
-                           0,  // fastOrAbsId (dummy value)
-                           0., // lnAmplitude (dummy value)
-                           0,  // triggerBits (dummy value)
-                           caloType);
   }
 }
 

@@ -423,6 +423,16 @@ framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool en
 class CellHelper
 {
  public:
+  static int8_t getTriggerBits(const o2::emcal::Cell& cell)
+  {
+    return 0; // dummy value
+  }
+
+  static int8_t getTriggerBits(const o2::phos::Cell& cell)
+  {
+    return (cell.getType() == o2::phos::ChannelType_t::TRU2x2) ? 0 : 1;
+  }
+
   static int16_t getCellNumber(const o2::emcal::Cell& cell)
   {
     return cell.getTower();
@@ -430,7 +440,17 @@ class CellHelper
 
   static int16_t getCellNumber(const o2::phos::Cell& cell)
   {
-    return cell.getTRUId();
+    return cell.getAbsId();
+  }
+
+  static int16_t getFastOrAbsID(const o2::emcal::Cell& cell)
+  {
+    return 0; // dummy value
+  }
+
+  static int16_t getFastOrAbsID(const o2::phos::Cell& cell)
+  {
+    return cell.getAbsId();
   }
 
   static float getAmplitude(const o2::emcal::Cell& cell)
@@ -441,6 +461,16 @@ class CellHelper
   static float getAmplitude(const o2::phos::Cell& cell)
   {
     return cell.getEnergy();
+  }
+
+  static int16_t getLnAmplitude(const o2::emcal::Cell& cell)
+  {
+    return 0; // dummy value
+  }
+
+  static int16_t getLnAmplitude(const o2::phos::Cell& cell)
+  {
+    return cell.getEnergy(); // dummy value
   }
 
   static float getTimeStamp(const o2::emcal::Cell& cell)
