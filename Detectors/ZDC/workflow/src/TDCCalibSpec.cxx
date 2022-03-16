@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   InterCalibSpec.cxx
+/// @file   TDCCalibSpec.cxx
 /// @brief  ZDC reconstruction
 /// @author pietro.cortese@cern.ch
 
@@ -31,10 +31,9 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "ZDCReconstruction/RecoConfigZDC.h"
-#include "ZDCReconstruction/ZDCEnergyParam.h"
-#include "ZDCReconstruction/ZDCTowerParam.h"
+#include "ZDCReconstruction/ZDCTDCParam.h"
 #include "ZDCCalib/InterCalib.h"
-#include "ZDCWorkflow/InterCalibSpec.h"
+#include "ZDCWorkflow/TDCCalibSpec.h"
 
 using namespace o2::framework;
 
@@ -43,27 +42,26 @@ namespace o2
 namespace zdc
 {
 
-InterCalibSpec::InterCalibSpec()
+TDCCalibSpec::TDCCalibSpec()
 {
   mTimer.Stop();
   mTimer.Reset();
 }
 
-InterCalibSpec::InterCalibSpec(const int verbosity)
+TDCCalibSpec::TDCCalibSpec(const int verbosity)
   : mVerbosity(verbosity)
 {
   mTimer.Stop();
   mTimer.Reset();
 }
 
-void InterCalibSpec::init(o2::framework::InitContext& ic)
+void TDCCalibSpec::init(o2::framework::InitContext& ic)
 {
   mccdbHost = ic.options().get<std::string>("ccdb-url");
 }
 
-void InterCalibSpec::run(ProcessingContext& pc)
+void TDCCalibSpec::run(ProcessingContext& pc)
 {
-  InterCalib work;
   if (!mInitialized) {
     mInitialized = true;
     // Initialization from CCDB
@@ -71,32 +69,19 @@ void InterCalibSpec::run(ProcessingContext& pc)
     mgr.setURL(mccdbHost);
     std::string loadedConfFiles = "Loaded ZDC configuration files for timestamp " + std::to_string(mgr.getTimestamp()) + ":";
 
-    // Energy calibration
-    auto* energyParam = mgr.get<o2::zdc::ZDCEnergyParam>(o2::zdc::CCDBPathEnergyCalib);
-    if (!energyParam) {
-      LOG(fatal) << "Missing ZDCEnergyParam calibration object";
+    // TDC centering
+    auto* tdcParam = mgr.get<o2::zdc::ZDCTDCParam>(o2::zdc::CCDBPathTDCCalib);
+    if (!tdcParam) {
+      LOG(info) << loadedConfFiles;
+      LOG(fatal) << "Missing ZDCTDCParam calibration object";
+      return;
     } else {
-      loadedConfFiles += " ZDCEnergyParam";
-      if (mVerbosity > DbgZero) {
-        LOG(info) << "Loaded Energy calibration ZDCEnergyParam for timestamp " << mgr.getTimestamp();
-        energyParam->print();
-      }
+      loadedConfFiles += " ZDCTDCParam";
     }
-
-    // Tower calibration
-    auto* towerParam = mgr.get<o2::zdc::ZDCTowerParam>(o2::zdc::CCDBPathTowerCalib);
-    if (!towerParam) {
-      LOG(fatal) << "Missing ZDCTowerParam calibration object";
-    } else {
-      loadedConfFiles += " ZDCTowerParam";
-      if (mVerbosity > DbgZero) {
-        LOG(info) << "Loaded Tower calibration ZDCTowerParam for timestamp " << mgr.getTimestamp();
-        towerParam->print();
-      }
+    if (mVerbosity > DbgZero) {
+      LOG(info) << "Loaded TDC centering ZDCTDCParam for timestamp " << mgr.getTimestamp();
+      tdcParam->print();
     }
-    work.setEnergyParam(energyParam);
-    work.setTowerParam(towerParam);
-    LOG(info) << loadedConfFiles;
   }
 
   auto cput = mTimer.CpuTime();
@@ -105,19 +90,20 @@ void InterCalibSpec::run(ProcessingContext& pc)
   auto energy = pc.inputs().get<gsl::span<o2::zdc::ZDCEnergy>>("energy");
   auto tdc = pc.inputs().get<gsl::span<o2::zdc::ZDCTDCData>>("tdc");
   auto info = pc.inputs().get<gsl::span<uint16_t>>("info");
+  InterCalib work;
   work.init();
   work.process(bcrec, energy, tdc, info);
 
   mTimer.Stop();
 }
 
-void InterCalibSpec::endOfStream(EndOfStreamContext& ec)
+void TDCCalibSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(info, "ZDC Intercalibration total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "ZDC TDC calibration total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-framework::DataProcessorSpec getInterCalibSpec(const int verbosity = 0)
+framework::DataProcessorSpec getTDCCalibSpec(const int verbosity = 0)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("bcrec", "ZDC", "BCREC", 0, Lifetime::Timeframe);
@@ -128,10 +114,10 @@ framework::DataProcessorSpec getInterCalibSpec(const int verbosity = 0)
   std::vector<OutputSpec> outputs;
 
   return DataProcessorSpec{
-    "zdc-intercalib",
+    "zdc-tdc-calib",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<InterCalibSpec>(verbosity)},
+    AlgorithmSpec{adaptFromTask<TDCCalibSpec>(verbosity)},
     o2::framework::Options{{"ccdb-url", o2::framework::VariantType::String, o2::base::NameConf::getCCDBServer(), {"CCDB Url"}}}};
 }
 

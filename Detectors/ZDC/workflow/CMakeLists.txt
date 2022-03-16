@@ -23,6 +23,10 @@ o2_add_library(ZDCWorkflow
                        src/RecoReaderSpec.cxx
                        src/InterCalibWorkflow.cxx
                        src/InterCalibSpec.cxx
+                       src/EnergyCalibWorkflow.cxx
+                       src/EnergyCalibSpec.cxx
+                       src/TDCCalibWorkflow.cxx
+                       src/TDCCalibSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsZDC
                                      O2::ZDCRaw

@@ -108,6 +108,18 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
     return mNE;
   }
 
+  inline bool getEnergy(int32_t i, uint8_t& key, float& val) const
+  {
+    if(i<mNE){
+      auto it = ezdc.begin();
+      std::advance(it, i);
+      key = it->first;
+      val = it->second;
+      return true;
+    }
+    return false;
+  }
+
   inline NElem getNTDC() const
   {
     return mNT;

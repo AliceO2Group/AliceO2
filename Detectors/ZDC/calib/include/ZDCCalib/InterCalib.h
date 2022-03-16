@@ -15,6 +15,8 @@
 #include <TMinuit.h>
 #include "ZDCBase/Constants.h"
 #include "DataFormatsZDC/RecEvent.h"
+#include "ZDCReconstruction/ZDCEnergyParam.h"
+#include "ZDCReconstruction/ZDCTowerParam.h"
 #ifndef ALICEO2_ZDC_INTERCALIB_H_
 #define ALICEO2_ZDC_INTERCALIB_H_
 namespace o2
@@ -34,18 +36,28 @@ class InterCalib
   // Test of calibration using RUN2 data
   int process(const char* hname, int ic);
   int mini();
-  static constexpr int NPAR = 6; /// Dimension of matrix
+  static constexpr int NPAR = 6; /// Dimension of matrix (1 + 4 coefficients + offset)
+  static constexpr int NH = 5;   /// ZNA, ZPA, ZNC, ZPC, ZEM
   static double add[NPAR][NPAR];
   static void fcn(int& npar, double* gin, double& chi, double* par, int iflag);
   void cumulate(double tc, double t1, double t2, double t3, double t4, double w);
 
+  void setEnergyParam(const ZDCEnergyParam* param) { mEnergyParam = param; };
+  const ZDCEnergyParam* getEnergyParam() { return mEnergyParam; };
+  void setTowerParam(const ZDCTowerParam* param) { mTowerParam = param; };
+  const ZDCTowerParam* getTowerParam() { return mTowerParam; };
+
  private:
+  TH1* hb[NH] = {nullptr, nullptr, nullptr, nullptr, nullptr};
+  TH1* ha[NH] = {nullptr, nullptr, nullptr, nullptr, nullptr};
   static std::mutex mtx; /// mutex for critical section
   double sum[NPAR][NPAR] = {0};
   double par[NPAR] = {0};
   double err[NPAR] = {0};
   double mCutLow = -std::numeric_limits<float>::infinity();
   double mCutHigh = std::numeric_limits<float>::infinity();
+  const ZDCEnergyParam* mEnergyParam = nullptr; /// Energy calibration object
+  const ZDCTowerParam* mTowerParam = nullptr;   /// Tower calibration object
   std::vector<float> store[5];
 };
 } // namespace zdc

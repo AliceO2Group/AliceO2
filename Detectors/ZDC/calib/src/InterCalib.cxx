@@ -19,6 +19,8 @@
 #include <THnSparse.h>
 #include <TAxis.h>
 #include "ZDCCalib/InterCalib.h"
+#include "ZDCReconstruction/ZDCEnergyParam.h"
+#include "ZDCReconstruction/ZDCTowerParam.h"
 #include "Framework/Logger.h"
 
 using namespace o2::zdc;
@@ -42,40 +44,39 @@ int InterCalib::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
   o2::zdc::RecEventFlat ev;
   ev.init(RecBC, Energy, TDCData, Info);
   while (ev.next()) {
-    /*
-    int printed = 0;
     if (ev.getNInfo() > 0) {
       auto& decodedInfo = ev.getDecodedInfo();
       for (uint16_t info : decodedInfo) {
         uint8_t ch = (info >> 10) & 0x1f;
         uint16_t code = info & 0x03ff;
-        hmsg->Fill(ch, code);
+        //hmsg->Fill(ch, code);
       }
       ev.print();
-      printed = 1;
+      // Need clean data (no messages)
+      // We are sure there is no pile-up in any channel (too restrictive?)
+      continue;
     }
     if (ev.getNEnergy() > 0 && ev.mCurB.triggers == 0) {
       printf("%9u.%04u Untriggered bunch\n", ev.mCurB.ir.orbit, ev.mCurB.ir.bc);
-      if (printed == 0) {
-        ev.print();
-      }
-    }
-    heznac->Fill(ev.EZNAC());
-    auto tdcid = o2::zdc::TDCZNAC;
-    auto nhit = ev.NtdcV(tdcid);
-    if (ev.NtdcA(tdcid) != nhit) {
-      fprintf(stderr, "Mismatch in TDC data\n");
+      // Skip!
       continue;
     }
-    if (nhit > 0) {
-      double bc_d = uint32_t(ev.ir.bc / 100);
-      double bc_m = uint32_t(ev.ir.bc % 100);
-      hbznac->Fill(bc_m, -bc_d);
-      for (int ihit = 0; ihit < nhit; ihit++) {
-        htznac->Fill(ev.tdcV(tdcid, ihit), ev.tdcA(tdcid, ihit));
-      }
-    }
-    */
+//     // Trigger bits are not propagated!!!
+//     heznac->Fill(ev.EZNAC());
+//     auto tdcid = o2::zdc::TDCZNAC;
+//     auto nhit = ev.NtdcV(tdcid);
+//     if (ev.NtdcA(tdcid) != nhit) {
+//       fprintf(stderr, "Mismatch in TDC data\n");
+//       continue;
+//     }
+//     if (nhit > 0) {
+//       double bc_d = uint32_t(ev.ir.bc / 100);
+//       double bc_m = uint32_t(ev.ir.bc % 100);
+//       hbznac->Fill(bc_m, -bc_d);
+//       for (int ihit = 0; ihit < nhit; ihit++) {
+//         htznac->Fill(ev.tdcV(tdcid, ihit), ev.tdcA(tdcid, ihit));
+//       }
+//     }
   }
   return 0;
 }
