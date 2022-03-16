@@ -206,13 +206,10 @@ void TrackerDPL::run(ProcessingContext& pc)
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   FastMultEst multEst;                                     // mult estimator
 
-  // const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
-  // FastMultEst multEst;                                     // mult estimator
-
   TimeFrame* timeFrame = mChainITS->GetITSTimeframe();
   mTracker->adoptTimeFrame(*timeFrame);
   mTracker->setBz(mBz);
-  mVertexer->adoptTimeFrame(mTimeFrame);
+  mVertexer->adoptTimeFrame(*timeFrame);
 
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
 
@@ -239,7 +236,7 @@ void TrackerDPL::run(ProcessingContext& pc)
     }
     processingMask.push_back(multCut);
   }
-  mTimeFrame.setMultiplicityCutMask(processingMask);
+  timeFrame->setMultiplicityCutMask(processingMask);
 
   float vertexerElapsedTime{0.f};
   if (mRunVertexer) {
@@ -253,7 +250,7 @@ void TrackerDPL::run(ProcessingContext& pc)
     auto& vtxROF = vertROFvec.emplace_back(rofspan[iRof]);
     vtxROF.setFirstEntry(vertices.size());
     if (mRunVertexer) {
-      auto vtxSpan = mTimeFrame.getPrimaryVertices(iRof);
+      auto vtxSpan = timeFrame->getPrimaryVertices(iRof);
       vtxROF.setNEntries(vtxSpan.size());
       multCut = vtxSpan.size() == 0;
       for (auto& v : vtxSpan) {
