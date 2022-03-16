@@ -54,8 +54,8 @@ const Int_t V3Layer::sIBNChipRows = 1;
 const Double_t V3Layer::sIBChipZGap = 150.0 * sMicron;
 
 const Double_t V3Layer::sIBModuleZLength = 27.12 * sCm;
-const Double_t V3Layer::sIBFPCWiderXPlus = 850.0 * sMicron;
-const Double_t V3Layer::sIBFPCWiderXNeg = 300.0 * sMicron;
+const Double_t V3Layer::sIBFPCWiderXPlus = 950.0 * sMicron;
+const Double_t V3Layer::sIBFPCWiderXNeg = 400.0 * sMicron;
 const Double_t V3Layer::sIBFlexCableAlThick = 25.0 * sMicron;
 const Double_t V3Layer::sIBFPCAlGNDWidth = (4.1 + 11.15) * sMm;
 const Double_t V3Layer::sIBFPCAlAnodeWidth1 = 13.0 * sMm;
@@ -571,12 +571,11 @@ Double_t V3Layer::createStaveInnerB(TGeoVolume* mother, const TGeoManager* mgr)
   // Build up the stave
   // Chips are rotated by 180deg around Y axis
   // in order to have the correct X and Z axis orientation
-  xpos = -xtot + (static_cast<TGeoBBox*>(chipVol->GetShape()))->GetDX() + sIBFPCWiderXNeg;
   ypos = ymod - mChipThickness;
 
   for (Int_t j = 0; j < sIBChipsPerRow; j++) {
     zpos = ztot - j * (2 * zchip + sIBChipZGap) - zchip;
-    mother->AddNode(chipVol, j, new TGeoCombiTrans(xpos, ypos, zpos, new TGeoRotation("", 0, 180, 180)));
+    mother->AddNode(chipVol, j, new TGeoCombiTrans(0, ypos, zpos, new TGeoRotation("", 0, 180, 180)));
     mHierarchy[kChip]++;
   }
   ytot = ymod;
@@ -584,8 +583,9 @@ Double_t V3Layer::createStaveInnerB(TGeoVolume* mother, const TGeoManager* mgr)
   // Place the FPC and glue
   if (mStaveModel == Detector::kIBModel4) {
     Double_t yvol = (static_cast<TGeoBBox*>(ibModule->GetShape()))->GetDY();
+    xpos = 0.5 * (xtot - xchip);
     ypos += (ymod + yvol);
-    mother->AddNode(ibModule, 1, new TGeoTranslation(0, ypos, 0));
+    mother->AddNode(ibModule, 1, new TGeoTranslation(xpos, ypos, 0));
     ytot += yvol;
   }
 
