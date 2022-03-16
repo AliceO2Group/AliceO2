@@ -149,8 +149,8 @@ std::vector<BinningIndex> oldGroupTable(const T& table, const std::string& categ
   return groupedIndices;
 }
 
-template <typename BP, typename T>
-std::vector<BinningIndex> doGroupTable(const T& table, const BP& binningPolicy, int minCatSize, int outsider)
+template <template <typename... Cs> typename BP, typename T, typename... Cs>
+std::vector<BinningIndex> doGroupTable(const T& table, const BP<Cs...>& binningPolicy, int minCatSize, int outsider)
 {
   arrow::Table* arrowTable = table.asArrowTable().get();
 
@@ -171,7 +171,7 @@ std::vector<BinningIndex> doGroupTable(const T& table, const BP& binningPolicy, 
   auto binningColumns = binningPolicy.getColumns();
   auto arrowColumns = o2::framework::binning_helpers::getArrowColumns(arrowTable, binningColumns);
   auto chunksCount = arrowColumns[0]->num_chunks();
-  for (int i = 1; i < binningPolicy.mColumnsCount; i++) {
+  for (int i = 1; i < sizeof...(Cs); i++) {
     if (arrowColumns[i]->num_chunks() != chunksCount) {
       throw o2::framework::runtime_error("Combinations: data size varies between selected columns");
     }
@@ -180,7 +180,7 @@ std::vector<BinningIndex> doGroupTable(const T& table, const BP& binningPolicy, 
   for (uint64_t ci = 0; ci < chunksCount; ++ci) {
     auto chunks = o2::framework::binning_helpers::getChunks(arrowTable, binningColumns, ci);
     auto chunkLength = std::get<0>(chunks)->length();
-    for_<binningPolicy.mColumnsCount - 1>([&chunks, &chunkLength](auto i) {
+    for_<sizeof...(Cs) - 1>([&chunks, &chunkLength](auto i) {
       if (std::get<i.value + 1>(chunks)->length() != chunkLength) {
         throw o2::framework::runtime_error("Combinations: data size varies between selected columns");
       }
