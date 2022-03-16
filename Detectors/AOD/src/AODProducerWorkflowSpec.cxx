@@ -1402,15 +1402,15 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   int16_t aFDDAmplitudesC[8] = {0u};
   // filling FDD table
   for (const auto& fddRecPoint : fddRecPoints) {
-    for (int i = 0; i < 8; i++){
+    for (int i = 0; i < 8; i++) {
       aFDDAmplitudesA[i] = 0;
       aFDDAmplitudesC[i] = 0;
-      } 
-    
+    }
+
     const auto channelData = fddRecPoint.getBunchChannelData(fddChData);
     // TODO: switch to calibrated amplitude
     for (const auto& channel : channelData) {
-      if(channel.mPMNumber<8)
+      if (channel.mPMNumber < 8)
         aFDDAmplitudesC[channel.mPMNumber] = channel.mChargeADC; // amplitude
       else
         aFDDAmplitudesA[channel.mPMNumber - 8] = channel.mChargeADC; // amplitude
