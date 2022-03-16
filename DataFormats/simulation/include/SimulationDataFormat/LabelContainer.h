@@ -23,9 +23,7 @@
 #include <iterator>
 #include <gsl/gsl> // for guideline support library; array_view
 
-namespace o2
-{
-namespace dataformats
+namespace o2::dataformats
 {
 
 // a label container with both contiguous and non-contiguous modes
@@ -225,7 +223,6 @@ class LabelContainer
   }
 }; // end class
 
-} // namespace dataformats
 } // namespace o2
 
 #endif

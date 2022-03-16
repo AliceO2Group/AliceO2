@@ -24,9 +24,7 @@
 #include "ReconstructionDataFormats/TrackUtils.h"
 #include "MathUtils/Primitive2D.h"
 
-namespace o2
-{
-namespace track
+namespace o2::track
 {
 
 using SMatrix55Sym = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
@@ -180,7 +178,6 @@ class TrackParCovFwd : public TrackParFwd
   ClassDefNV(TrackParCovFwd, 1);
 };
 
-} // namespace track
 } // namespace o2
 
 #endif
