@@ -82,19 +82,18 @@ class InputSpan
     return get(i).payload;
   }
 
-  template <typename T>
-  using IteratorBase = std::iterator<std::forward_iterator_tag, T>;
-
   /// an iterator class working on position within the a parent class
   template <typename ParentT, typename T>
-  class Iterator : public IteratorBase<T>
+  class Iterator
   {
    public:
     using ParentType = ParentT;
     using SelfType = Iterator;
-    using value_type = typename IteratorBase<T>::value_type;
-    using reference = typename IteratorBase<T>::reference;
-    using pointer = typename IteratorBase<T>::pointer;
+    using iterator_category = std::forward_iterator_tag;
+    using value_type = T;
+    using reference = T&;
+    using pointer = T*;
+    using difference_type = std::ptrdiff_t;
     using ElementType = typename std::remove_const<value_type>::type;
 
     Iterator() = delete;
