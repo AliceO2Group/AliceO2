@@ -19,6 +19,8 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <set>
+#include <deque>
 
 #include <iostream>
 #include <fstream>
@@ -115,10 +117,10 @@ class ITSThresholdCalibrator : public Task
   short int* mX = nullptr;
 
   // Hash tables to store the hit and threshold information per pixel
-  std::unordered_map<short int, std::unordered_map<short int, std::vector<std::vector<char>>>> mPixelHits;
-  std::unordered_map<short int, std::vector<short int>> mForbiddenRows;
+  std::map<short int, std::map<int, std::vector<std::vector<char>>>> mPixelHits;
+  std::map<short int, std::deque<short int>> mForbiddenRows;
   //   Unordered map for saving sum of values (thr/ithr/vcasn) for avg calculation
-  std::unordered_map<short int, std::array<int, 5>> mThresholds;
+  std::map<short int, std::array<int, 5>> mThresholds;
 
   // Tree to save threshold info in full threshold scan case
   TFile* mRootOutfile = nullptr;
