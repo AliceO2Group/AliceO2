@@ -80,7 +80,7 @@ FITCalibrationApi::CalibObjWithInfoType FITCalibrationApi::doSerializationAndPre
   CalibObjWithInfoType result;
   auto clName = o2::utils::MemFileHelper::getClassName(calibrationObject);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-  stopping = 999999999999;
+  stopping = stopping + 86400000; // +1 day
   LOG(info) << " clName " << clName << " flName " << flName;
   result.first = o2::ccdb::CcdbObjectInfo(FITCalibrationApi::getObjectPath<CalibrationObjectType>(), clName, flName, metaData, starting, stopping);
   result.second = o2::ccdb::CcdbApi::createObjectImage(&calibrationObject, &result.first);
