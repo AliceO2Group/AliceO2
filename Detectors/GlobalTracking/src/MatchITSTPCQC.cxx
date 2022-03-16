@@ -16,10 +16,12 @@
 #include "ReconstructionDataFormats/TrackParametrization.h"
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "SimulationDataFormat/MCUtils.h"
 #include <algorithm>
 #include "TGraphAsymmErrors.h"
 
 using namespace o2::globaltracking;
+using namespace o2::mcutils;
 using MCTrack = o2::MCTrackT<float>;
 
 MatchITSTPCQC::~MatchITSTPCQC()
@@ -187,8 +189,11 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       if (std::any_of(mSelectedTPCtracks.begin(), mSelectedTPCtracks.end(), [idxTrkTpc](int el) { return el == idxTrkTpc; })) {
         auto lbl = mRecoCont.getTrackMCLabel({(unsigned int)(itrk), GID::Source::ITSTPC});
         if (mMapLabels.find(lbl) == mMapLabels.end()) {
-          auto const* mcParticle = mcReader.getTrack(lbl);
-          if (isPhysicalPrimary(mcParticle)) {
+          int source = lbl.getSourceID();
+          int event = lbl.getEventID();
+          const std::vector<o2::MCTrack>& pcontainer = mcReader.getTracks(source, event);
+          const o2::MCTrack& p = pcontainer[itrk];
+          if (MCTrackNavigator::isPhysicalPrimary(p, pcontainer)) {
             mMapLabels.insert({lbl, {itrk, true}});
           } else {
             mMapLabels.insert({lbl, {itrk, false}});
@@ -258,8 +263,11 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
           continue;
         }
         if (mMapTPCLabels.find(lbl) == mMapTPCLabels.end()) {
-          o2::MCTrack const* mcParticle = mcReader.getTrack(lbl);
-          if (isPhysicalPrimary(mcParticle)) {
+          int source = lbl.getSourceID();
+          int event = lbl.getEventID();
+          const std::vector<o2::MCTrack>& pcontainer = mcReader.getTracks(source, event);
+          const o2::MCTrack& p = pcontainer[itrk];
+          if (MCTrackNavigator::isPhysicalPrimary(p, pcontainer)) {
             mMapTPCLabels.insert({lbl, {itrk, true}});
           } else {
             mMapTPCLabels.insert({lbl, {itrk, false}});
@@ -403,13 +411,4 @@ void MatchITSTPCQC::getHistos(TObjArray& objar)
   objar.Add(mChi2Matching);
   objar.Add(mChi2Refit);
   objar.Add(mTimeResVsPt);
-}
-
-//__________________________________________________________
-
-bool MatchITSTPCQC::isPhysicalPrimary(o2::MCTrack const* mcTrk)
-{
-  // decide if the MC particle is a physical primary or not
-
-  return true;
 }

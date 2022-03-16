@@ -213,7 +213,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
   ShowWindow(hWnd, SW_SHOW);
   SetForegroundWindow(hWnd);
   SetFocus(hWnd);
-  ReSizeGLScene(width, height);
+  ResizeScene(width, height);
 
   return TRUE;
 }
@@ -273,7 +273,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
       return 0;
 
     case WM_SIZE:
-      ReSizeGLScene(LOWORD(lParam), HIWORD(lParam)); // LoWord=Width, HiWord=Height
+      ResizeScene(LOWORD(lParam), HIWORD(lParam)); // LoWord=Width, HiWord=Height
       return 0;
 
     case WM_LBUTTONDOWN:
@@ -360,6 +360,7 @@ int GPUDisplayFrontendWindows::FrontendMain()
   }
 
   // Shutdown
+  ExitDisplay();
   KillGLWindow();
   return (0);
 }

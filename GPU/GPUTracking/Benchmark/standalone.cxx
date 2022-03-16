@@ -356,6 +356,7 @@ int SetupReconstruction()
     }
 #endif
     procSet.eventDisplay = eventDisplay.get();
+    procSet.eventDisplayRenderer = configStandalone.displayRenderer.c_str();
   }
   if (procSet.runQA) {
     procSet.runMC = true;

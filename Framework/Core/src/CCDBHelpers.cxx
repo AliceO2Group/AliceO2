@@ -16,11 +16,13 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataTakingContext.h"
 #include "Framework/RawDeviceService.h"
+#include "Framework/DataSpecUtils.h"
 #include "CCDB/CcdbApi.h"
 #include "CommonConstants/LHCConstants.h"
 #include <typeinfo>
 #include <TError.h>
 #include <TMemFile.h>
+#include <functional>
 
 namespace o2::framework
 {
@@ -44,11 +46,15 @@ struct CCDBFetcherHelper {
   std::unordered_map<std::string, DataAllocator::CacheId> mapURL2DPLCache;
   std::string createdNotBefore = "0";
   std::string createdNotAfter = "3385078236000";
-
-  o2::ccdb::CcdbApi api;
+  std::unordered_map<std::string, o2::ccdb::CcdbApi> apis;
   std::vector<OutputRoute> routes;
   std::map<int64_t, CCDBCacheInfo> cache;
   std::unordered_map<std::string, std::string> remappings;
+  o2::ccdb::CcdbApi& getAPI(const std::string& path)
+  {
+    auto entry = remappings.find(path);
+    return apis[entry == remappings.end() ? "" : entry->second];
+  }
 };
 
 bool isPrefix(std::string_view prefix, std::string_view full)
@@ -79,8 +85,8 @@ CCDBHelpers::ParserResult CCDBHelpers::parseRemappings(char const* str)
         state = IN_BEGIN_URL;
       }
       case IN_BEGIN_URL: {
-        if (*str != '/' && (strncmp("http://", str, 6) != 0) && (strncmp("https://", str, 7) != 0)) {
-          return {remappings, "URL should start with either / or http:// / https://"};
+        if ((strncmp("http://", str, 7) != 0) && (strncmp("https://", str, 8) != 0 && (strncmp("file://", str, 7) != 0))) {
+          return {remappings, "URL should start with either http:// or https:// or file://"};
         }
         state = IN_END_URL;
       } break;
@@ -130,27 +136,129 @@ CCDBHelpers::ParserResult CCDBHelpers::parseRemappings(char const* str)
   }
 }
 
+auto getOrbitResetTime(o2::pmr::vector<char> const& v) -> Long64_t
+{
+  Int_t previousErrorLevel = gErrorIgnoreLevel;
+  gErrorIgnoreLevel = kFatal;
+  TMemFile memFile("name", const_cast<char*>(v.data()), v.size(), "READ");
+  gErrorIgnoreLevel = previousErrorLevel;
+  if (memFile.IsZombie()) {
+    throw runtime_error("CTP is Zombie");
+  }
+  TClass* tcl = TClass::GetClass(typeid(std::vector<Long64_t>));
+  void* result = ccdb::CcdbApi::extractFromTFile(memFile, tcl);
+  if (!result) {
+    throw runtime_error_f("Couldn't retrieve object corresponding to %s from TFile", tcl->GetName());
+  }
+  memFile.Close();
+  auto* ctp = (std::vector<Long64_t>*)result;
+  return (*ctp)[0];
+};
+
+auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
+                       int64_t timestamp,
+                       TimingInfo& timingInfo,
+                       DataTakingContext& dtc,
+                       DataAllocator& allocator) -> void
+{
+  // For Giulio: the dtc.orbitResetTime is wrong, it is assigned from the dph->creation, why?
+  std::string ccdbMetadataPrefix = "ccdb-metadata-";
+  for (auto& route : helper->routes) {
+    LOGP(info, "Fetching object for route {}", route.matcher);
+
+    auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
+    Output output{concrete.origin, concrete.description, concrete.subSpec, route.matcher.lifetime};
+    auto&& v = allocator.makeVector<char>(output);
+    std::map<std::string, std::string> metadata;
+    std::map<std::string, std::string> headers;
+    std::string path = "";
+    std::string etag = "";
+    for (auto& meta : route.matcher.metadata) {
+      if (meta.name == "ccdb-path") {
+        path = meta.defaultValue.get<std::string>();
+      } else if (meta.name == "ccdb-run-dependent" && meta.defaultValue.get<bool>() == true) {
+        metadata["runNumber"] = dtc.runNumber;
+      } else if (isPrefix(ccdbMetadataPrefix, meta.name)) {
+        std::string key = meta.name.substr(ccdbMetadataPrefix.size());
+        auto value = meta.defaultValue.get<std::string>();
+        LOGP(debug, "Adding metadata {}: {} to the request", key, value);
+        metadata[key] = value;
+      }
+    }
+    const auto url2uuid = helper->mapURL2UUID.find(path);
+    if (url2uuid != helper->mapURL2UUID.end()) {
+      etag = url2uuid->second;
+    }
+    const auto& api = helper->getAPI(path);
+    if (!api.isSnapshotMode() || etag.empty()) { // in the snapshot mode the object needs to be fetched only once
+      api.loadFileToMemory(v, path, metadata, timestamp, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
+      if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
+        LOGP(debug, "Unable to find object {}/{}", path, timingInfo.timeslice);
+        // FIXME: I should send a dummy message.
+        continue;
+      }
+      if (etag.empty()) {
+        helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
+        auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodCCDB);
+        helper->mapURL2DPLCache[path] = cacheId;
+        LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
+        continue;
+      }
+      if (v.size()) { // but should be overridden by fresh object
+        // somewhere here pruneFromCache should be called
+        helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
+        auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodCCDB);
+        helper->mapURL2DPLCache[path] = cacheId;
+        LOGP(info, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
+        // one could modify the    adoptContainer to take optional old cacheID to clean:
+        // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), true, mapURL2DPLCache[URL]);
+        continue;
+      }
+    }
+    // cached object is fine
+    auto cacheId = helper->mapURL2DPLCache[path];
+    LOGP(info, "Reusing {} for {}", cacheId.value, path);
+    allocator.adoptFromCache(output, cacheId, header::gSerializationMethodCCDB);
+    // the outputBuffer was not used, can we destroy it?
+  }
+};
+
 AlgorithmSpec CCDBHelpers::fetchFromCCDB()
 {
   return adaptStateful([](ConfigParamRegistry const& options, DeviceSpec const& spec) {
       std::shared_ptr<CCDBFetcherHelper> helper = std::make_shared<CCDBFetcherHelper>();
+      std::unordered_map<std::string, bool> accountedSpecs;
       auto backend = options.get<std::string>("condition-backend");
       LOGP(info, "CCDB Backend at: {}", backend);
-      helper->api.init(options.get<std::string>("condition-backend"));
-      helper->createdNotBefore = std::to_string(options.get<int64_t>("condition-not-before"));
-      helper->createdNotAfter = std::to_string(options.get<int64_t>("condition-not-after"));
+      const auto& defHost = options.get<std::string>("condition-backend");
       auto remapString = options.get<std::string>("condition-remap");
       ParserResult result = CCDBHelpers::parseRemappings(remapString.c_str());
       if (!result.error.empty()) {
         throw runtime_error_f("Error while parsing remapping string %s", result.error.c_str());
       }
-
       helper->remappings = result.remappings;
+      helper->apis[""].init(defHost); // default backend
+      LOGP(info, "Initialised default CCDB host {}", defHost);
+      //
+      for (auto& entry : helper->remappings) { // init api instances for every host seen in the remapping
+        if (helper->apis.find(entry.second) == helper->apis.end()) {
+          helper->apis[entry.second].init(entry.second);
+          LOGP(info, "Initialised custom CCDB host {}", entry.second);
+        }
+        LOGP(info, "{} is remapped to {}", entry.first, entry.second);
+      }
+      helper->createdNotBefore = std::to_string(options.get<int64_t>("condition-not-before"));
+      helper->createdNotAfter = std::to_string(options.get<int64_t>("condition-not-after"));
 
       for (auto &route : spec.outputs) {
         if (route.matcher.lifetime != Lifetime::Condition) {
           continue;
         }
+        auto specStr = DataSpecUtils::describe(route.matcher);
+        if (accountedSpecs.find(specStr) != accountedSpecs.end()) {
+          continue;
+        }
+        accountedSpecs[specStr] = true;
         helper->routes.push_back(route);
         LOGP(info, "The following route is a condition {}", route.matcher);
         for (auto& metadata : route.matcher.metadata) {
@@ -160,25 +268,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         }
       }
 
-      auto getOrbitResetTime = [](o2::pmr::vector<char> const& v) -> Long64_t {
-        Int_t previousErrorLevel = gErrorIgnoreLevel;
-        gErrorIgnoreLevel = kFatal;
-        TMemFile memFile("name", const_cast<char*>(v.data()), v.size(), "READ");
-        gErrorIgnoreLevel = previousErrorLevel;
-        if (memFile.IsZombie()) {
-          throw runtime_error("CTP is Zombie");
-        }
-        TClass* tcl = TClass::GetClass(typeid(std::vector<Long64_t>));
-        void* result = ccdb::CcdbApi::extractFromTFile(memFile, tcl);
-        if (!result) {
-          throw runtime_error_f("Couldn't retrieve object corresponding to %s from TFile", tcl->GetName());
-        }
-        memFile.Close();
-        std::vector<Long64_t>* ctp = (std::vector<Long64_t>*)result;
-        return (*ctp)[0];
-      };
-
-      return adaptStateless([helper, &getOrbitResetTime](DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo) {
+      return adaptStateless([helper](DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo) {
         static Long64_t orbitResetTime = -1;
         // Fetch the CCDB object for the CTP
         {
@@ -194,41 +284,41 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
             etag = url2uuid->second;
           }
           Output output{"CTP", "OrbitReset", 0, Lifetime::Condition};
-          auto&& v = allocator.makeVector<char>(output);
-          helper->api.loadFileToMemory(v, path, metadata, timingInfo.creation,
-                                       &headers, etag,
-                                       helper->createdNotAfter,
-                                       helper->createdNotBefore);
-
-          if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
-            LOGP(error, "Unable to find object {}/{}", path, timingInfo.creation);
-            //FIXME: I should send a dummy message.
-            return;
-          }
           Long64_t newOrbitResetTime = orbitResetTime;
-          if (etag.empty()) {
-            helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
-            newOrbitResetTime = getOrbitResetTime(v);
-            auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodNone);
-            helper->mapURL2DPLCache[path] = cacheId;
-            LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
-          } else if (v.size()) { // but should be overridden by fresh object
-            // somewhere here pruneFromCache should be called
-            helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
-            newOrbitResetTime = getOrbitResetTime(v);
-            auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodNone);
-            helper->mapURL2DPLCache[path] = cacheId;
-            LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
-            // one could modify the    adoptContainer to take optional old cacheID to clean:
-            // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), true, mapURL2DPLCache[URL]);
-          } else { // cached object is fine
-            auto cacheId = helper->mapURL2DPLCache[path];
-            LOGP(debug, "Reusing {} for {}", cacheId.value, path);
-            allocator.adoptFromCache(output, cacheId, header::gSerializationMethodNone);
-            // We need to find a way to get "v" also in this case.
-            // orbitResetTime = getOrbitResetTime(v);
-            // the outputBuffer was not used, can we destroy it?
+          auto&& v = allocator.makeVector<char>(output);
+          const auto& api = helper->getAPI(path);
+          if (!api.isSnapshotMode() || etag.empty()) { // in the snapshot mode the object needs to be fetched only once
+            api.loadFileToMemory(v, path, metadata, timingInfo.creation, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
+            if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
+              LOGP(fatal, "Unable to find object {}/{}", path, timingInfo.creation);
+              // FIXME: I should send a dummy message.
+              return;
+            }
+            if (etag.empty()) {
+              helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
+              newOrbitResetTime = getOrbitResetTime(v);
+              auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodNone);
+              helper->mapURL2DPLCache[path] = cacheId;
+              LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
+            } else if (v.size()) { // but should be overridden by fresh object
+              // somewhere here pruneFromCache should be called
+              helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
+              newOrbitResetTime = getOrbitResetTime(v);
+              auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodNone);
+              helper->mapURL2DPLCache[path] = cacheId;
+              LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
+              // one could modify the adoptContainer to take optional old cacheID to clean:
+              // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), true, mapURL2DPLCache[URL]);
+            }
+            // cached object is fine
           }
+          auto cacheId = helper->mapURL2DPLCache[path];
+          LOGP(debug, "Reusing {} for {}", cacheId.value, path);
+          allocator.adoptFromCache(output, cacheId, header::gSerializationMethodNone);
+          // We need to find a way to get "v" also in this case.
+          // orbitResetTime = getOrbitResetTime(v);
+          // the outputBuffer was not used, can we destroy it?
+
           if (newOrbitResetTime != orbitResetTime) {
             LOGP(info, "Orbit reset time now at {} (was {})",
                  newOrbitResetTime, orbitResetTime);
@@ -240,69 +330,8 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         // Fetch the rest of the objects.
         LOGP(info, "Fetching objects. Run: {}. OrbitResetTime: {}, Creation: {}, Timestamp: {}, firstTFOrbit: {}",
              dtc.runNumber, orbitResetTime, timingInfo.creation, timestamp, timingInfo.firstTFOrbit);
-        // For Giulio: the dtc.orbitResetTime is wrong, it is assigned from the dph->creation, why?
-        std::string ccdbMetadataPrefix = "ccdb-metadata-";
 
-        for (auto& route : helper->routes) {
-          LOGP(info, "Fetching object for route {}", route.matcher);
-
-          auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
-          Output output{concrete.origin, concrete.description, concrete.subSpec, route.matcher.lifetime};
-          auto&& v = allocator.makeVector<char>(output);
-          std::map<std::string, std::string> metadata;
-          std::map<std::string, std::string> headers;
-          std::string path = "";
-          std::string etag = "";
-          for (auto& meta : route.matcher.metadata) {
-            if (meta.name == "ccdb-path") {
-              path = meta.defaultValue.get<std::string>();
-              auto prefix = helper->remappings.find(path);
-              // FIXME: for now assume that we can pass the whole URL to
-              // the CCDB API. It might be better to have multiple instances...
-              if (prefix != helper->remappings.end()) {
-                LOGP(error, "Remapping {} to {}", path, prefix->second + path);
-                path = prefix->second + path;
-              }
-            } else if (isPrefix(ccdbMetadataPrefix, meta.name)) {
-              std::string key = meta.name.substr(ccdbMetadataPrefix.size());
-              auto value = meta.defaultValue.get<std::string>();
-              LOGP(debug, "Adding metadata {}: {} to the request", key, value);
-              metadata[key] = value;
-            }
-          }
-          const auto url2uuid = helper->mapURL2UUID.find(path);
-          if (url2uuid != helper->mapURL2UUID.end()) {
-            etag = url2uuid->second;
-          }
-
-          helper->api.loadFileToMemory(v, path, metadata, timestamp, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
-          if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
-            LOGP(debug, "Unable to find object {}/{}", path, timingInfo.timeslice);
-            //FIXME: I should send a dummy message.
-            continue;
-          }
-          if (etag.empty()) {
-            helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
-            auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodCCDB);
-            helper->mapURL2DPLCache[path] = cacheId;
-            LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
-            continue;
-          }
-          if (v.size()) { // but should be overridden by fresh object
-            // somewhere here pruneFromCache should be called
-            helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
-            auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodCCDB);
-            helper->mapURL2DPLCache[path] = cacheId;
-            LOGP(info, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
-            // one could modify the    adoptContainer to take optional old cacheID to clean:
-            // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), true, mapURL2DPLCache[URL]);
-          } else { // cached object is fine
-            auto cacheId = helper->mapURL2DPLCache[path];
-            LOGP(info, "Reusing {} for {}", cacheId.value, path);
-            allocator.adoptFromCache(output, cacheId, header::gSerializationMethodCCDB);
-            // the outputBuffer was not used, can we destroy it?
-          }
-        }
+        populateCacheWith(helper, timestamp, timingInfo, dtc, allocator);
       }); });
 }
 

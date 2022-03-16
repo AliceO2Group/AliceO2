@@ -56,7 +56,7 @@ Tracker::~Tracker()
 Tracker::~Tracker() = default;
 #endif
 
-void Tracker::clustersToTracks(std::function<void(std::string s)> logger)
+void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::function<void(std::string s)> fatal)
 {
   double total{0};
   for (int iteration = 0; iteration < mTrkParams.size(); ++iteration) {
@@ -65,7 +65,13 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger)
     total += evaluateTask(&Tracker::initialiseTimeFrame, "Timeframe initialisation",
                           logger, iteration, mMemParams[iteration], mTrkParams[iteration]);
     total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", logger);
+    if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
+      fatal("Too much memory used during trackleting, check the detector status and/or the selections.");
+    }
     total += evaluateTask(&Tracker::computeCells, "Cell finding", logger);
+    if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
+      fatal("Too much memory used during cell finding, check the detector status and/or the selections.");
+    }
     total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", logger, iteration);
     total += evaluateTask(&Tracker::findRoads, "Road finding", logger, iteration);
     total += evaluateTask(&Tracker::findTracks, "Track finding", logger);
@@ -671,6 +677,9 @@ void Tracker::getGlobalConfiguration()
       params.Diamond[iD] = tc.diamondPos[iD];
     }
     params.UseDiamond = tc.useDiamond;
+    if (tc.maxMemory) {
+      params.MaxMemory = tc.maxMemory;
+    }
   }
 }
 

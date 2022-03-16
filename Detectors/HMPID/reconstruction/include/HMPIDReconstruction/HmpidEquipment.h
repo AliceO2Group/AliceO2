@@ -116,6 +116,14 @@ class HmpidEquipment
     return (mEquipmentId);
   };
   int getEquipmentId(int cru, int link);
+  int getCruId()
+  {
+    return (mCruId);
+  };
+  int getLinkId()
+  {
+    return (mLinkId);
+  };
 
   void init();
   void resetPadMap();

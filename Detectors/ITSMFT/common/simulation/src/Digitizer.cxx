@@ -181,6 +181,9 @@ void Digitizer::fillOutputContainer(uint32_t frameLast)
 
     auto& extra = *(mExtraBuff.front().get());
     for (auto& chip : mChips) {
+      if (chip.isDisabled()) {
+        continue;
+      }
       chip.addNoise(mROFrameMin, mROFrameMin, &mParams);
       auto& buffer = chip.getPreDigits();
       if (buffer.empty()) {
@@ -228,6 +231,12 @@ void Digitizer::fillOutputContainer(uint32_t frameLast)
 void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID, int srcID)
 {
   // convert single hit to digits
+  int chipID = hit.GetDetectorID();
+  auto& chip = mChips[chipID];
+  if (chip.isDisabled()) {
+    LOG(debug) << "skip disabled chip " << chipID;
+    return;
+  }
   float timeInROF = hit.GetTime() * sec2ns;
   if (timeInROF > 20e3) {
     const int maxWarn = 10;
@@ -323,7 +332,6 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   int rowPrev = -1, colPrev = -1, row, col;
   float cRowPix = 0.f, cColPix = 0.f; // local coordinated of the current pixel center
 
-  int chipID = hit.GetDetectorID();
   const o2::itsmft::AlpideSimResponse* resp = getChipResponse(chipID);
 
   // take into account that the AlpideSimResponse depth defintion has different min/max boundaries
@@ -332,7 +340,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
 
   xyzLocS.SetY(xyzLocS.Y() + resp->getDepthMax() - Segmentation::SensorLayerThickness / 2.);
 
-  // collect charge in evey pixel which might be affected by the hit
+  // collect charge in every pixel which might be affected by the hit
   for (int iStep = nSteps; iStep--;) {
     // Get the pixel ID
     Segmentation::localToDetector(xyzLocS.X(), xyzLocS.Z(), row, col);
@@ -369,7 +377,6 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
 
   // fire the pixels assuming Poisson(n_response_electrons)
   o2::MCCompLabel lbl(hit.GetTrackID(), evID, srcID, false);
-  auto& chip = mChips[chipID];
   auto roFrameAbs = mNewROFrame + roFrameRel;
   for (int irow = rowSpan; irow--;) {
     uint16_t rowIS = irow + rowS;
@@ -384,6 +391,12 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
         continue;
       }
       uint16_t colIS = icol + colS;
+      if (mNoiseMap && mNoiseMap->isNoisy(chipID, rowIS, colIS)) {
+        continue;
+      }
+      if (mDeadChanMap && mDeadChanMap->isNoisy(chipID, rowIS, colIS)) {
+        continue;
+      }
       //
       registerDigits(chip, roFrameAbs, timeInROF, nFrames, rowIS, colIS, nEle, lbl);
     }
@@ -441,4 +454,23 @@ void Digitizer::registerDigits(ChipDigitsContainer& chip, uint32_t roFrame, floa
       extra->emplace_back(lbl);
     }
   }
+}
+
+//________________________________________________________________________________
+void Digitizer::setNoiseMap(const o2::itsmft::NoiseMap* mp)
+{
+  for (int i = 0; i < mNumberOfChips; i++) {
+    mChips[i].setNoiseMap(mp);
+  }
+  mNoiseMap = mp;
+}
+
+//________________________________________________________________________________
+void Digitizer::setDeadChannelsMap(const o2::itsmft::NoiseMap* mp)
+{
+  for (int i = 0; i < mNumberOfChips; i++) {
+    mChips[i].disable(mp->isFullChipMasked(i));
+    mChips[i].setDeadChanMap(mp);
+  }
+  mDeadChanMap = mp;
 }

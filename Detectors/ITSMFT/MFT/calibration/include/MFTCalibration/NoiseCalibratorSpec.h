@@ -44,8 +44,10 @@ class NoiseCalibratorSpec : public Task
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(EndOfStreamContext& ec) final;
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
+  void updateTimeDependentParams(ProcessingContext& pc);
   void sendOutput(DataAllocator& output);
   o2::itsmft::NoiseMap mNoiseMap{936};
   std::unique_ptr<CALIBRATOR> mCalibrator = nullptr;

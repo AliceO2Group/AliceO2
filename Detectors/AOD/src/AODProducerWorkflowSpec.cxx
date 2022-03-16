@@ -703,7 +703,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       if (source == 0) {
         flags |= o2::aod::mcparticle::enums::FromBackgroundEvent; // mark as particle from background event
       }
-      if (mcParticles[particle].isPrimary()) {
+      if (o2::mcutils::MCTrackNavigator::isPhysicalPrimary(mcParticles[particle], mcParticles)) {
         flags |= o2::aod::mcparticle::enums::PhysicalPrimary; // mark as physical primary
       }
       float weight = 0.f;
@@ -730,6 +730,9 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
         daughters[1] = item->second;
       } else {
         daughters[1] = daughters[0];
+      }
+      if (daughters[0] > daughters[1]) {
+        std::swap(daughters[0], daughters[1]);
       }
       auto pX = (float)mcParticles[particle].Px();
       auto pY = (float)mcParticles[particle].Py();

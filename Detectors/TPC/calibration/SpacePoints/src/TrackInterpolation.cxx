@@ -168,7 +168,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
   }
   if (gidTable[GTrackID::TRD].isIndexSet()) {
     LOG(debug) << "TRD available";
-    const auto& trkTRD = mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::TRD]);
+    const auto& trkTRD = mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::ITSTPCTRD]);
     for (int iLayer = o2::trd::constants::NLAYER - 1; iLayer >= 0; --iLayer) {
       int trkltIdx = trkTRD.getTrackletIndex(iLayer);
       if (trkltIdx < 0) {
@@ -271,7 +271,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
   trackData.chi2ITS = trkITS.getChi2();
   trackData.nClsTPC = trkTPC.getNClusterReferences();
   trackData.nClsITS = trkITS.getNumberOfClusters();
-  trackData.nTrkltsTRD = gidTable[GTrackID::TRD].isIndexSet() ? mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::TRD]).getNtracklets() : 0;
+  trackData.nTrkltsTRD = gidTable[GTrackID::TRD].isIndexSet() ? mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::ITSTPCTRD]).getNtracklets() : 0;
   trackData.clAvailTOF = gidTable[GTrackID::TOF].isIndexSet() ? 1 : 0;
   trackData.clIdx.setEntries(nMeasurements);
 

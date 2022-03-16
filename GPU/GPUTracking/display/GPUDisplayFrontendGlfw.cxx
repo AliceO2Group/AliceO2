@@ -22,6 +22,9 @@
 extern "C" int gl3wInit();
 #endif
 
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
+#define GLFW_INCLUDE_VULKAN
+#endif
 #include <GLFW/glfw3.h>
 
 #include <cstdio>
@@ -228,7 +231,7 @@ void GPUDisplayFrontendGlfw::cursorPos_callback(GLFWwindow* window, double x, do
   me->mouseMvY = y;
 }
 
-void GPUDisplayFrontendGlfw::resize_callback(GLFWwindow* window, int width, int height) { me->ReSizeGLScene(width, height); }
+void GPUDisplayFrontendGlfw::resize_callback(GLFWwindow* window, int width, int height) { me->ResizeScene(width, height); }
 
 void GPUDisplayFrontendGlfw::DisplayLoop()
 {
@@ -255,17 +258,24 @@ int GPUDisplayFrontendGlfw::FrontendMain()
   glfwSetErrorCallback(error_callback);
 
   glfwWindowHint(GLFW_MAXIMIZED, 1);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, GL_MIN_VERSION_MAJOR);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, GL_MIN_VERSION_MINOR);
-  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 0);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, mBackend->CoreProfile() ? GLFW_OPENGL_CORE_PROFILE : GLFW_OPENGL_COMPAT_PROFILE);
+  if (backend()->backendType() == GPUDisplayBackend::TYPE_VULKAN) {
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+  }
+  if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, GL_MIN_VERSION_MAJOR);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, GL_MIN_VERSION_MINOR);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 0);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, mBackend->CoreProfile() ? GLFW_OPENGL_CORE_PROFILE : GLFW_OPENGL_COMPAT_PROFILE);
+  }
   mWindow = glfwCreateWindow(INIT_WIDTH, INIT_HEIGHT, GL_WINDOW_NAME, nullptr, nullptr);
   if (!mWindow) {
     fprintf(stderr, "Error creating glfw window\n");
     glfwTerminate();
     return (-1);
   }
-  glfwMakeContextCurrent(mWindow);
+  if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
+    glfwMakeContextCurrent(mWindow);
+  }
 
   glfwSetKeyCallback(mWindow, key_callback);
   glfwSetCharCallback(mWindow, char_callback);
@@ -273,6 +283,7 @@ int GPUDisplayFrontendGlfw::FrontendMain()
   glfwSetScrollCallback(mWindow, scroll_callback);
   glfwSetCursorPosCallback(mWindow, cursorPos_callback);
   glfwSetWindowSizeCallback(mWindow, resize_callback);
+  glfwSwapInterval(1);
 
   pthread_mutex_lock(&mSemLockExit);
   mGlfwRunning = true;
@@ -290,8 +301,15 @@ int GPUDisplayFrontendGlfw::FrontendMain()
   }
 #endif
 
+#ifdef GPUCA_O2_LIB
+  mCanDrawText = 2;
+  if (drawTextFontSize() == 0) {
+    drawTextFontSize() = 12;
+  }
+#endif
+
   if (InitDisplay()) {
-    fprintf(stderr, "Error in OpenGL initialization\n");
+    fprintf(stderr, "Error in GLFW display initialization\n");
     return (1);
   }
 
@@ -306,11 +324,14 @@ int GPUDisplayFrontendGlfw::FrontendMain()
       fprintf(stderr, "Error drawing GL scene\n");
       return (1);
     }
-    glfwSwapBuffers(mWindow);
+    if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
+      glfwSwapBuffers(mWindow);
+    }
     glfwPollEvents();
   }
 #endif
 
+  ExitDisplay();
   mDisplayControl = 2;
   pthread_mutex_lock(&mSemLockExit);
 #ifdef GPUCA_O2_LIB
@@ -390,4 +411,27 @@ bool GPUDisplayFrontendGlfw::EnableSendKey()
 #else
   return true;
 #endif
+}
+
+void GPUDisplayFrontendGlfw::getSize(int& width, int& height)
+{
+  glfwGetFramebufferSize(mWindow, &width, &height);
+}
+
+int GPUDisplayFrontendGlfw::getVulkanSurface(void* instance, void* surface)
+{
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
+  return glfwCreateWindowSurface(*(VkInstance*)instance, mWindow, nullptr, (VkSurfaceKHR*)surface) != VK_SUCCESS;
+#else
+  return 1;
+#endif
+}
+
+unsigned int GPUDisplayFrontendGlfw::getReqVulkanExtensions(const char**& p)
+{
+  uint32_t glfwExtensionCount = 0;
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
+  p = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+#endif
+  return glfwExtensionCount;
 }

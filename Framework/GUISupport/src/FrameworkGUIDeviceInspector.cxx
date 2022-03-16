@@ -212,6 +212,7 @@ void displayDeviceInspector(DeviceSpec const& spec,
   } else {
     ImGui::Text("Pid: %d (exit status: %d)", info.pid, info.exitStatus);
   }
+  ImGui::Text("Device state: %s", info.deviceState.data());
 #ifdef DPL_ENABLE_TRACING
   ImGui::Text("Tracy Port: %d", info.tracyPort);
 #endif
@@ -338,6 +339,8 @@ void displayDeviceInspector(DeviceSpec const& spec,
     flagsChanged |= ImGui::CheckboxFlags("FIRST_LOOP", &control.tracingFlags, DeviceState::LoopReason::FIRST_LOOP);
     flagsChanged |= ImGui::CheckboxFlags("NEW_STATE_PENDING", &control.tracingFlags, DeviceState::LoopReason::NEW_STATE_PENDING);
     flagsChanged |= ImGui::CheckboxFlags("PREVIOUSLY_ACTIVE", &control.tracingFlags, DeviceState::LoopReason::PREVIOUSLY_ACTIVE);
+    flagsChanged |= ImGui::CheckboxFlags("TRACE_CALLBACKS", &control.tracingFlags, DeviceState::LoopReason::TRACE_CALLBACKS);
+    flagsChanged |= ImGui::CheckboxFlags("TRACE_USERCODE", &control.tracingFlags, DeviceState::LoopReason::TRACE_USERCODE);
     if (flagsChanged && control.controller) {
       std::string cmd = fmt::format("/trace {}", control.tracingFlags);
       control.controller->write(cmd.c_str(), cmd.size());

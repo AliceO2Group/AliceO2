@@ -1,3 +1,7 @@
+<!-- doxy
+\page refMFT MFTcalibrationTestWorkflow MFT calibration workflows
+/doxy -->
+
 
 # MFT calibration workflows
 

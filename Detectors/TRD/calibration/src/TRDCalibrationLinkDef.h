@@ -21,4 +21,7 @@
 #pragma link C++ class o2::trd::TrackBasedCalib + ;
 #pragma link C++ class o2::trd::KrClusterFinder + ;
 
+#pragma link C++ struct o2::trd::TRDDCSMinMaxMeanInfo + ;
+#pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, o2::trd::TRDDCSMinMaxMeanInfo> + ;
+
 #endif

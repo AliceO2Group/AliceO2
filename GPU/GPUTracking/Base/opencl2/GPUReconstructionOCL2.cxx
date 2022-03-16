@@ -26,16 +26,15 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include <typeinfo>
 #include <cstdlib>
 
+#include "utils/qGetLdBinarySymbols.h"
+QGET_LD_BINARY_SYMBOLS(GPUReconstructionOCL2Code_src);
 #ifdef OPENCL2_ENABLED_AMD
-extern "C" char _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_amd[];
-extern "C" unsigned int _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_amd_size;
+QGET_LD_BINARY_SYMBOLS(GPUReconstructionOCL2Code_amd);
+binary_GPUReconstructionOCL2Code_amd_end - _binary_GPUReconstructionOCL2Code_amd_start;
 #endif
 #ifdef OPENCL2_ENABLED_SPIRV
-extern "C" char _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_spirv[];
-extern "C" unsigned int _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_spirv_size;
+QGET_LD_BINARY_SYMBOLS(GPUReconstructionOCL2Code_spirv);
 #endif
-extern "C" char _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_src[];
-extern "C" unsigned int _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_src_size;
 
 GPUReconstruction* GPUReconstruction_Create_OCL2(const GPUSettingsDeviceBackend& cfg) { return new GPUReconstructionOCL2(cfg); }
 
@@ -69,21 +68,21 @@ int GPUReconstructionOCL2Backend::GetOCLPrograms()
   cl_int ocl_error;
 #ifdef OPENCL2_ENABLED_AMD
   if (strcmp(platform_vendor, "Advanced Micro Devices, Inc.") == 0) {
-    size_t program_sizes[1] = {_makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_amd_size};
-    char* program_binaries[1] = {_makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_amd};
+    size_t program_sizes[1] = {_binary_GPUReconstructionOCL2Code_amd_len};
+    char* program_binaries[1] = {_binary_GPUReconstructionOCL2Code_amd_start};
     mInternals->program = clCreateProgramWithBinary(mInternals->context, 1, &mInternals->device, program_sizes, (const unsigned char**)program_binaries, return_status, &ocl_error);
   } else
 #endif
 
 #ifdef OPENCL2_ENABLED_SPIRV // clang-format off
   if (ver >= 2.2) {
-    mInternals->program = clCreateProgramWithIL(mInternals->context, _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_spirv, _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_spirv_size, &ocl_error);
+    mInternals->program = clCreateProgramWithIL(mInternals->context, _binary_GPUReconstructionOCL2Code_spirv_start, _binary_GPUReconstructionOCL2Code_spirv_len, &ocl_error);
   } else
 #endif // clang-format on
 
   {
-    size_t program_sizes[1] = {_makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_src_size};
-    char* programs_sources[1] = {_makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_src};
+    size_t program_sizes[1] = {_binary_GPUReconstructionOCL2Code_src_len};
+    char* programs_sources[1] = {_binary_GPUReconstructionOCL2Code_src_start};
     mInternals->program = clCreateProgramWithSource(mInternals->context, (cl_uint)1, (const char**)&programs_sources, program_sizes, &ocl_error);
   }
 

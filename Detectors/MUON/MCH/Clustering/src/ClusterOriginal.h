@@ -14,8 +14,8 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#ifndef ALICEO2_MCH_CLUSTERORIGINAL_H_
-#define ALICEO2_MCH_CLUSTERORIGINAL_H_
+#ifndef O2_MCH_CLUSTERORIGINAL_H_
+#define O2_MCH_CLUSTERORIGINAL_H_
 
 #include <utility>
 #include <vector>
@@ -91,4 +91,4 @@ class ClusterOriginal
 } // namespace mch
 } // namespace o2
 
-#endif // ALICEO2_MCH_CLUSTERORIGINAL_H_
+#endif // O2_MCH_CLUSTERORIGINAL_H_

@@ -22,7 +22,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsMID/ROFRecord.h"
-#include "MIDSimulation/ColumnDataMC.h"
+#include "DataFormatsMID/ColumnData.h"
 #include "MIDSimulation/Digitizer.h"
 #include "MIDSimulation/DigitsMerger.h"
 #include "MIDSimulation/ChamberResponse.h"
@@ -64,7 +64,7 @@ class MIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     auto& irecords = context->getEventRecords();
 
     auto& eventParts = context->getEventParts();
-    std::vector<o2::mid::ColumnDataMC> digits, digitsAccum;
+    std::vector<o2::mid::ColumnData> digits, digitsAccum;
     std::vector<o2::mid::ROFRecord> rofRecords;
     o2::dataformats::MCTruthContainer<o2::mid::MCLabel> labels, labelsAccum;
 

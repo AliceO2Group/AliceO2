@@ -176,7 +176,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
     auto clSpan = gsl::span(cclusters->data(), cclusters->size());
     for (auto& rof : *rofs) {
       auto it = pattIt;
-      o2::its::ioutils::loadROFrameData(rof, event, clSpan, pattIt, dict, labels);
+      o2::its::ioutils::loadROFrameData(rof, event, clSpan, pattIt, &dict, labels);
       vertexer.clustersToVertices(event, mcTruth);
       auto verticesL = vertexer.exportVertices();
 
@@ -190,7 +190,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
         verticesL.emplace_back();
       }
       tracker.setVertices(verticesL);
-      tracker.process(clSpan, it, dict, tracksITS, trackClIdx, rof);
+      tracker.process(clSpan, it, &dict, tracksITS, trackClIdx, rof);
     }
     outTree.Fill();
     if (mcTruth) {

@@ -49,7 +49,7 @@ class VisualisationEvent
   bool fromFile(std::string fileName);
   VisualisationEvent();
   VisualisationEvent(std::string fileName);
-  VisualisationEvent(const VisualisationEvent& source, EVisualisationGroup filter);
+  VisualisationEvent(const VisualisationEvent& source, EVisualisationGroup filter, float minTime, float maxTime);
   void toFile(std::string fileName);
   static std::string fileNameIndexed(const std::string fileName, const int index);
 
@@ -123,7 +123,12 @@ class VisualisationEvent
   std::string getCollisionTime() const { return this->mCollisionTime; }
   void setCollisionTime(std::string collisionTime) { this->mCollisionTime = collisionTime; }
 
+  float getMinTimeOfTracks() const { return this->mMinTimeOfTracks; }
+  float getMaxTimeOfTracks() const { return this->mMaxTimeOfTracks; } /// maximum time of tracks in the event
+
  private:
+  float mMinTimeOfTracks;                           /// minimum time of tracks in the event
+  float mMaxTimeOfTracks;                           /// maximum time of tracks in the event
   float mWorkflowVersion;                           /// workflow version used to generate this Event
   std::string mWorkflowParameters;                  /// workflow parameters used to generate this Event
   int mEventNumber;                                 /// event number in file

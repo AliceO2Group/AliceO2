@@ -40,8 +40,8 @@ bool canDumpBacktrace()
 
 void clean_all_runtime_errors()
 {
-  for (size_t i = 0; i < RuntimeError::MAX_RUNTIME_ERRORS; ++i) {
-    gErrorBooking[i].store(false);
+  for (auto& i : gErrorBooking) {
+    i.store(false);
   }
 }
 

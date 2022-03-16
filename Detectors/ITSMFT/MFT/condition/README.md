@@ -1,4 +1,4 @@
 <!-- doxy
-\page refDetectorsMUONMFTConditions Conditions
+\page refMFTcondition Conditions
 /doxy -->
 # MFT Conditions

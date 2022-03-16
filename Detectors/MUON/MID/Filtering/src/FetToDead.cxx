@@ -24,61 +24,50 @@ namespace mid
 {
 FetToDead::FetToDead()
 {
-  /// Default ctr.
-  setMasks(makeDefaultMasks());
+  mRefMasks = makeDefaultMasks();
 }
 
-void FetToDead::setMasks(std::vector<ColumnData> masks)
+void FetToDead::checkChannels(const ColumnData& mask, ColumnData fet, std::vector<ColumnData>& badChannels) const
 {
-  /// Sets the default masks reflecting the active channels from the mapping
-  mMasksHandler.setFromChannelMasks(masks);
-  mInvertedActive.clear();
-  std::vector<ColumnData> inverted;
-  for (auto& col : masks) {
-    invertPattern(col, inverted);
+  bool isBad = false;
+  auto pattern = ((fet.getNonBendPattern() ^ mask.getNonBendPattern()) & mask.getNonBendPattern());
+  fet.setNonBendPattern(pattern);
+  if (pattern != 0) {
+    isBad = true;
   }
-  for (auto& col : inverted) {
-    mInvertedActive[getColumnDataUniqueId(col.deId, col.columnId)] = col;
+
+  for (int iline = 0; iline < 4; ++iline) {
+    pattern = ((fet.getBendPattern(iline) ^ mask.getBendPattern(iline)) & mask.getBendPattern(iline));
+    fet.setBendPattern(pattern, iline);
+    if (pattern != 0) {
+      isBad = true;
+    }
+  }
+  if (isBad) {
+    badChannels.emplace_back(fet);
   }
 }
 
 std::vector<ColumnData> FetToDead::process(gsl::span<const ColumnData> fetData)
 {
   /// Converts the FET result to a list of dead channels
-  std::vector<ColumnData> deadChannels;
-  std::unordered_map<uint16_t, bool> dataIds;
-  // First we loop on FET output and returns the empty strips
+  mFetData.clear();
   for (auto& col : fetData) {
-    invertPattern(col, deadChannels);
-    dataIds[getColumnDataUniqueId(col.deId, col.columnId)] = true;
+    mFetData.emplace(getColumnDataUniqueId(col.deId, col.columnId), col);
   }
-
-  // Then we loop on the active channels and check if they where among the FET data.
-  // If they are not there, it means that non of the channels answered.
-  // So the full board was dead.
-  for (auto& item : mInvertedActive) {
-    auto found = dataIds.find(item.first);
-    if (found == dataIds.end()) {
-      deadChannels.emplace_back(item.second);
+  std::vector<ColumnData> deadChannels;
+  for (auto& mask : mRefMasks) {
+    auto fetIt = mFetData.find(getColumnDataUniqueId(mask.deId, mask.columnId));
+    ColumnData fet;
+    if (fetIt == mFetData.end()) {
+      fet.deId = mask.deId;
+      fet.columnId = mask.columnId;
+    } else {
+      fet = fetIt->second;
     }
+    checkChannels(mask, fet, deadChannels);
   }
   return deadChannels;
-}
-
-bool FetToDead::invertPattern(const ColumnData& col, std::vector<ColumnData>& invertedData)
-{
-  /// Inverts the pattern and add it to the output data
-  ColumnData invertedCol{col.deId, col.columnId};
-  invertedCol.setNonBendPattern(~col.getNonBendPattern());
-  for (int iline = 0; iline < 4; ++iline) {
-    invertedCol.setBendPattern(~col.getBendPattern(iline), iline);
-  }
-  mMasksHandler.applyMask(invertedCol);
-  if (invertedCol.isEmpty()) {
-    return false;
-  }
-  invertedData.emplace_back(invertedCol);
-  return true;
 }
 
 } // namespace mid

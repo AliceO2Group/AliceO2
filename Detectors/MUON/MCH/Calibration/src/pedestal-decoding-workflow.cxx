@@ -9,13 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-///
-/// \file    DatDecoderSpec.cxx
-/// \author  Andrea Ferrero
-///
-/// \brief Implementation of a data processor to run the raw decoding
-///
-
 #include <random>
 #include <iostream>
 #include <fstream>

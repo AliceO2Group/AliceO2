@@ -38,6 +38,8 @@
 #include "ArrowSupport.h"
 #include "DPLMonitoringBackend.h"
 #include "TDatabasePDG.h"
+#include "Headers/STFHeader.h"
+#include "Headers/DataHeader.h"
 
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
@@ -277,24 +279,43 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
     .name = "infologger",
     .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto infoLoggerMode = options.GetPropertyAsString("infologger-mode");
+      auto infoLoggerSeverity = options.GetPropertyAsString("infologger-severity");
+      if (infoLoggerSeverity.empty() == false && options.GetPropertyAsString("infologger-mode") == "") {
+        LOGP(info, "Using O2_INFOLOGGER_MODE=infoLoggerD since infologger-severity is set");
+        infoLoggerMode = "infoLoggerD";
+      }
       if (infoLoggerMode != "") {
         setenv("O2_INFOLOGGER_MODE", infoLoggerMode.c_str(), 1);
       }
       char const* infoLoggerEnv = getenv("O2_INFOLOGGER_MODE");
       if (infoLoggerEnv == nullptr || strcmp(infoLoggerEnv, "none") == 0) {
-        return ServiceHandle{TypeIdHelpers::uniqueId<MissingService>(), nullptr};
+        return ServiceHandle{.hash = TypeIdHelpers::uniqueId<MissingService>(),
+                             .instance = nullptr,
+                             .kind = ServiceKind::Serial,
+                             .name = "infologger"};
       }
-      auto infoLoggerService = new InfoLogger;
+      InfoLogger* infoLoggerService = nullptr;
+      try {
+        infoLoggerService = new InfoLogger;
+      } catch (...) {
+        LOGP(error, "Unable to initialise InfoLogger with O2_INFOLOGGER_MODE={}.", infoLoggerMode);
+        return ServiceHandle{.hash = TypeIdHelpers::uniqueId<MissingService>(),
+                             .instance = nullptr,
+                             .kind = ServiceKind::Serial,
+                             .name = "infologger"};
+      }
       auto infoLoggerContext = &services.get<InfoLoggerContext>();
       infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, std::string("dpl/") + services.get<DeviceSpec const>().name);
       infoLoggerContext->setField(InfoLoggerContext::FieldName::System, std::string("DPL"));
       infoLoggerService->setContext(*infoLoggerContext);
 
-      auto infoLoggerSeverity = options.GetPropertyAsString("infologger-severity");
       if (infoLoggerSeverity != "") {
         fair::Logger::AddCustomSink("infologger", infoLoggerSeverity, createInfoLoggerSinkHelper(infoLoggerService, infoLoggerContext));
       }
-      return ServiceHandle{TypeIdHelpers::uniqueId<InfoLogger>(), infoLoggerService};
+      return ServiceHandle{.hash = TypeIdHelpers::uniqueId<InfoLogger>(),
+                           .instance = infoLoggerService,
+                           .kind = ServiceKind::Serial,
+                           .name = "infologger"};
     },
     .configure = noConfiguration(),
     .kind = ServiceKind::Serial};
@@ -434,17 +455,55 @@ o2::framework::ServiceSpec CommonServices::tracingSpec()
 {
   return ServiceSpec{
     .name = "tracing",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
-      return ServiceHandle{TypeIdHelpers::uniqueId<TracingInfrastructure>(), new TracingInfrastructure()};
+    .init = [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+      return ServiceHandle{.hash = TypeIdHelpers::uniqueId<TracingInfrastructure>(),
+                           .instance = new TracingInfrastructure(),
+                           .kind = ServiceKind::Serial};
     },
     .configure = noConfiguration(),
     .preProcessing = [](ProcessingContext&, void* service) {
-      TracingInfrastructure* t = reinterpret_cast<TracingInfrastructure*>(service);
+      auto* t = reinterpret_cast<TracingInfrastructure*>(service);
       t->processingCount += 1; },
     .postProcessing = [](ProcessingContext&, void* service) {
-      TracingInfrastructure* t = reinterpret_cast<TracingInfrastructure*>(service);
+      auto* t = reinterpret_cast<TracingInfrastructure*>(service);
       t->processingCount += 1; },
     .kind = ServiceKind::Serial};
+}
+
+struct CCDBSupport {
+};
+
+// CCDB Support service
+o2::framework::ServiceSpec CommonServices::ccdbSupportSpec()
+{
+  return ServiceSpec{
+    .name = "ccdb-support",
+    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+      // iterate on all the outputs matchers
+      auto& spec = services.get<DeviceSpec const>();
+      for (auto& outputs : spec.outputs) {
+        if (outputs.matcher.binding.value == "ccdb-diststf") {
+          LOGP(info, "CCDB support enabled");
+          return ServiceHandle{.hash = TypeIdHelpers::uniqueId<CCDBSupport>(), .instance = new CCDBSupport, .kind = ServiceKind::Serial};
+        }
+      }
+      return ServiceHandle{.hash = TypeIdHelpers::uniqueId<CCDBSupport>(), .instance = nullptr, .kind = ServiceKind::Serial};
+    },
+    .configure = noConfiguration(),
+    .postProcessing = [](ProcessingContext& pc, void* service) {
+      if (!service) {
+        return;
+      }
+      const auto ref = pc.inputs().getFirstValid(true);
+      const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      const auto* dph = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
+      auto& stfDist = pc.outputs().make<o2::header::STFHeader>(OutputRef{"ccdb-diststf", header::DataHeader::SubSpecificationType{0xccdb}});
+      LOG(info) << "CCDB support enabled: " << dh->firstTForbit;
+      stfDist.id = dph->startTime;
+      stfDist.firstOrbit = dh->firstTForbit;
+      stfDist.runNumber = dh->runNumber;
+    },
+    .kind = ServiceKind::Global};
 }
 
 // FIXME: allow configuring the default number of threads per device
@@ -671,6 +730,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     dataSender(),
     dataProcessingStats(),
     objectCache(),
+    ccdbSupportSpec(),
     CommonMessageBackends::fairMQBackendSpec(),
     ArrowSupport::arrowBackendSpec(),
     CommonMessageBackends::stringBackendSpec(),

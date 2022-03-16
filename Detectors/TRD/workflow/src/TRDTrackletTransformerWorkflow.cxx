@@ -25,7 +25,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"Disable MC labels"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
-    {"timestamp", o2::framework::VariantType::Int, 555555, {"timestamp for CCDB calibration objects"}},
+    {"timestamp", o2::framework::VariantType::Int, 5555555, {"timestamp for CCDB calibration objects"}},
     {"filter-trigrec", o2::framework::VariantType::Bool, false, {"ignore interaction records without ITS data"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 

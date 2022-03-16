@@ -203,6 +203,15 @@ void WorkflowHelpers::addMissingOutputsToBuilder(std::vector<InputSpec> const& r
   }
 }
 
+// get the default value for condition-backend
+std::string defaultConditionBackend()
+{
+  if (getenv("DDS_SESSION_ID") != nullptr || getenv("OCC_CONTROL_PORT") != nullptr) {
+    return getenv("DPL_CONDITION_BACKEND") ? getenv("DPL_CONDITION_BACKEND") : "http://o2-ccdb.internal";
+  }
+  return getenv("DPL_CONDITION_BACKEND") ? getenv("DPL_CONDITION_BACKEND") : "http://alice-ccdb.cern.ch";
+}
+
 void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx)
 {
   auto fakeCallback = AlgorithmSpec{[](InitContext& ic) {
@@ -221,7 +230,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     .name = "internal-dpl-ccdb-backend",
     .outputs = {},
     .algorithm = CCDBHelpers::fetchFromCCDB(),
-    .options = {{"condition-backend", VariantType::String, "http://alice-ccdb.cern.ch", {"URL for CCDB"}},
+    .options = {{"condition-backend", VariantType::String, defaultConditionBackend(), {"URL for CCDB"}},
                 {"condition-not-before", VariantType::Int64, 0ll, {"do not fetch from CCDB objects created before provide timestamp"}},
                 {"condition-not-after", VariantType::Int64, 3385078236000ll, {"do not fetch from CCDB objects created after the timestamp"}},
                 {"condition-remap", VariantType::String, "", {"remap condition path in CCDB based on the provided string."}},
@@ -352,7 +361,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
             }
           }
           if (hasConditionOption == false) {
-            processor.options.emplace_back(ConfigParamSpec{"condition-backend", VariantType::String, "http://localhost:8080", {"URL for CCDB"}});
+            processor.options.emplace_back(ConfigParamSpec{"condition-backend", VariantType::String, defaultConditionBackend(), {"URL for CCDB"}});
             processor.options.emplace_back(ConfigParamSpec{"condition-timestamp", VariantType::Int64, 0ll, {"Force timestamp for CCDB lookup"}});
             hasConditionOption = true;
           }
@@ -364,6 +373,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
           if (hasOption == false) {
             processor.options.push_back(ConfigParamSpec{"out-of-band-channel-name-" + input.binding, VariantType::String, "out-of-band", {"channel to listen for out of band data"}});
           }
+          timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
         } break;
         case Lifetime::QA:
         case Lifetime::Transient:
@@ -485,38 +495,79 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
   }
 
+  ConcreteDataMatcher dstf{"FLP", "DISTSUBTIMEFRAME", 0xccdb};
   if (ccdbBackend.outputs.empty() == false) {
     ccdbBackend.outputs.push_back(OutputSpec{"CTP", "OrbitReset", 0});
-    bool hasDISTSTF = false;
-    InputSpec matcher{"dstf", "FLP", "DISTSUBTIMEFRAME"};
-    ConcreteDataMatcher dstf{"FLP", "DISTSUBTIMEFRAME", 0};
+    InputSpec matcher{"dstf", "FLP", "DISTSUBTIMEFRAME", 0xccdb};
+    bool providesDISTSTF = false;
+    // Check if any of the provided outputs is a DISTSTF
+    // Check if any of the requested inputs is for a 0xccdb message
     for (auto& dp : workflow) {
       for (auto& output : dp.outputs) {
         if (DataSpecUtils::match(matcher, output)) {
-          hasDISTSTF = true;
+          providesDISTSTF = true;
           dstf = DataSpecUtils::asConcreteDataMatcher(output);
           break;
         }
       }
-      if (hasDISTSTF) {
+      if (providesDISTSTF) {
         break;
       }
     }
+    // * If there are AOD outputs we use TFNumber as the CCDB clock
+    // * If one device provides a DISTSTF we use that as the CCDB clock
+    // * If one of the devices provides a timer we use that as the CCDB clock
+    // * If none of the above apply add to the first data processor
+    //   which has no inputs apart from enumerations the responsibility
+    //   to provide the DISTSUBTIMEFRAME.
     if (aodReader.outputs.empty() == false) {
       ccdbBackend.inputs.push_back(InputSpec{"tfn", "TFN", "TFNumber"});
-    } else if (hasDISTSTF) {
-      ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf});
+    } else if (providesDISTSTF) {
+      ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
     } else {
-      InputSpec input{"enumeration",
-                      "DPL",
-                      "ENUM",
-                      static_cast<DataAllocator::SubSpecificationType>(compile_time_hash("internal-dpl-ccdb-backend")),
-                      Lifetime::Enumeration};
-      ccdbBackend.inputs.push_back(input);
-      auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
-      timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
+      for (auto& dp : workflow) {
+        bool enumOnly = dp.inputs.size() == 1 && dp.inputs[0].lifetime == Lifetime::Enumeration;
+        bool timerOnly = dp.inputs.size() == 1 && dp.inputs[0].lifetime == Lifetime::Timer;
+        if (enumOnly == true) {
+          dp.outputs.push_back(OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
+          ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
+          break;
+        } else if (timerOnly == true) {
+          dstf = DataSpecUtils::asConcreteDataMatcher(dp.outputs[0]);
+          ccdbBackend.inputs.push_back(InputSpec{{"tfn"}, dstf, Lifetime::Timeframe});
+          break;
+        }
+      }
     }
     extraSpecs.push_back(ccdbBackend);
+  } else {
+    // If there is no CCDB requested, but we still ask for a FLP/DISTSUBTIMEFRAME/0xccdb
+    // we add to the first data processor which has no inputs (apart from
+    // enumerations / timers) the responsibility to provide the DISTSUBTIMEFRAME
+    bool requiresDISTSUBTIMEFRAME = false;
+    for (auto& dp : workflow) {
+      for (auto& input : dp.inputs) {
+        if (DataSpecUtils::match(input, dstf)) {
+          requiresDISTSUBTIMEFRAME = true;
+          break;
+        }
+      }
+    }
+    if (requiresDISTSUBTIMEFRAME) {
+      for (auto& dp : workflow) {
+        bool enumOnly = dp.inputs.size() == 1 && dp.inputs[0].lifetime == Lifetime::Enumeration;
+        bool timerOnly = dp.inputs.size() == 1 && dp.inputs[0].lifetime == Lifetime::Timer;
+        if (enumOnly == true) {
+          dp.outputs.push_back(OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
+          ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
+          break;
+        } else if (timerOnly == true) {
+          dstf = DataSpecUtils::asConcreteDataMatcher(dp.outputs[0]);
+          ccdbBackend.inputs.push_back(InputSpec{{"tfn"}, dstf, Lifetime::Timeframe});
+          break;
+        }
+      }
+    }
   }
 
   // add the timer
@@ -606,6 +657,13 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     std::vector<InputSpec> ignored = unmatched;
     ignored.insert(ignored.end(), redirectedOutputsInputs.begin(), redirectedOutputsInputs.end());
     int rateLimitingIPCID = std::stoi(ctx.options().get<std::string>("timeframes-rate-limit-ipcid"));
+    for (auto& ignoredInput : ignored) {
+      if (ignoredInput.lifetime == Lifetime::OutOfBand) {
+        // FIXME: Use Lifetime::Dangling when fully working?
+        ignoredInput.lifetime = Lifetime::Timeframe;
+      }
+    }
+
     extraSpecs.push_back(CommonDataProcessors::getDummySink(ignored, rateLimitingIPCID));
   }
 

@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(TimeDiffSameOrbitNoRollover)
   uint32_t orbit2 = 1;
   uint32_t bc1 = 0;
   uint32_t bc2 = BCINORBIT - 10;
-  auto diff = DataDecoder::getDigitTime(orbit1, bc1, orbit2, bc2);
+  auto diff = DataDecoder::getDigitTimeHBPackets(orbit1, bc1, orbit2, bc2);
   BOOST_CHECK_EQUAL(diff, bc2);
 }
 
@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE(TimeDiffSameOrbitWithRollover)
   uint32_t orbit2 = 1;
   uint32_t bc1 = BCROLLOVER - 10;
   uint32_t bc2 = 10;
-  auto diff = DataDecoder::getDigitTime(orbit1, bc1, orbit2, bc2);
+  auto diff = DataDecoder::getDigitTimeHBPackets(orbit1, bc1, orbit2, bc2);
   BOOST_CHECK_EQUAL(diff, 20);
 }
 
@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(TimeDiffSameOrbitWithRollover2)
   uint32_t orbit2 = 1;
   uint32_t bc1 = 10;
   uint32_t bc2 = BCROLLOVER - 10;
-  auto diff = DataDecoder::getDigitTime(orbit1, bc1, orbit2, bc2);
+  auto diff = DataDecoder::getDigitTimeHBPackets(orbit1, bc1, orbit2, bc2);
   BOOST_CHECK_EQUAL(diff, -20);
 }
 

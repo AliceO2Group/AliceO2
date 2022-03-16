@@ -52,6 +52,7 @@ struct SimConfigData {
   int mField;                                 // L3 field setting in kGauss: +-2,+-5 and 0
   bool mUniformField = false;                 // uniform magnetic field
   bool mAsService = false;                    // if simulation should be run as service/deamon (does not exit after run)
+  bool mNoGeant = false;                      // if Geant transport should be turned off (when one is only interested in the generated events)
 
   ClassDefNV(SimConfigData, 4);
 };
@@ -118,6 +119,7 @@ class SimConfig
   bool isFilterOutNoHitEvents() const { return mConfigData.mFilterNoHitEvents; }
   bool asService() const { return mConfigData.mAsService; }
   uint64_t getTimestamp() const { return mConfigData.mTimestamp; }
+  bool isNoGeant() const { return mConfigData.mNoGeant; }
 
  private:
   SimConfigData mConfigData; //!

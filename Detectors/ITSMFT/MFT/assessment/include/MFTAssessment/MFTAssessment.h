@@ -76,14 +76,14 @@ class MFTAssessment
   void getHistos(TObjArray& objar);
   void deleteHistograms();
   void setBz(float bz) { mBz = bz; }
-
+  void setClusterDictionary(const o2::itsmft::TopologyDictionary* d) { mDictionary = d; }
   double orbitToSeconds(uint32_t orbit, uint32_t refOrbit)
   {
     return (orbit - refOrbit) * o2::constants::lhc::LHCOrbitNS / 1E9;
   }
 
  private:
-  o2::itsmft::TopologyDictionary mDictionary; // cluster patterns dictionary
+  const o2::itsmft::TopologyDictionary* mDictionary = nullptr; // cluster patterns dictionary
 
   gsl::span<const o2::mft::TrackMFT> mMFTTracks;
   gsl::span<const o2::itsmft::ROFRecord> mMFTTracksROF;

@@ -36,12 +36,12 @@ void GPUDisplayFrontend::HandleSendKey()
 }
 
 void GPUDisplayFrontend::HandleKey(unsigned char key) { mDisplay->HandleKey(key); }
-int GPUDisplayFrontend::DrawGLScene(bool mixAnimation, float animateTime) { return mDisplay->DrawGLScene(mixAnimation, animateTime); }
-void GPUDisplayFrontend::ReSizeGLScene(int width, int height)
+int GPUDisplayFrontend::DrawGLScene() { return mDisplay->DrawGLScene(); }
+void GPUDisplayFrontend::ResizeScene(int width, int height)
 {
   mDisplayHeight = height;
   mDisplayWidth = width;
-  mDisplay->ReSizeGLScene(width, height);
+  mDisplay->ResizeScene(width, height);
 }
 int GPUDisplayFrontend::InitDisplay(bool initFailure) { return mDisplay->InitDisplay(initFailure); }
 void GPUDisplayFrontend::ExitDisplay() { return mDisplay->ExitDisplay(); }
@@ -85,4 +85,14 @@ GPUDisplayFrontend* GPUDisplayFrontend::getFrontend(const char* type)
 #endif
 #endif
   return nullptr;
+}
+
+GPUDisplayBackend* GPUDisplayFrontend::backend()
+{
+  return mDisplay->backend();
+}
+
+int& GPUDisplayFrontend::drawTextFontSize()
+{
+  return mDisplay->drawTextFontSize();
 }

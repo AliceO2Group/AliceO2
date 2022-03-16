@@ -13,6 +13,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/Logger.h"
 #include "MFTWorkflow/MFTAssessmentSpec.h"
 #include "DetectorsBase/Propagator.h"
@@ -105,6 +106,20 @@ void MFTAssessmentSpec::sendOutput(DataAllocator& output)
   objar.Write();
   f->Close();
 }
+///_______________________________________
+void MFTAssessmentSpec::updateTimeDependentParams(ProcessingContext& pc)
+{
+  pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+}
+
+///_______________________________________
+void MFTAssessmentSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("MFT", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated";
+    mMFTAssessment->setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
+  }
+}
 
 //_____________________________________________________________
 DataProcessorSpec getMFTAssessmentSpec(bool useMC, bool processGen, bool finalizeAnalysis)
@@ -118,6 +133,7 @@ DataProcessorSpec getMFTAssessmentSpec(bool useMC, bool processGen, bool finaliz
   inputs.emplace_back("tracksrofs", "MFT", "MFTTrackROF", 0, Lifetime::Timeframe);
   inputs.emplace_back("tracks", "MFT", "TRACKS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackClIdx", "MFT", "TRACKCLSID", 0, Lifetime::Timeframe);
+  inputs.emplace_back("cldict", "MFT", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/ClusterDictionary"));
 
   if (useMC) {
     inputs.emplace_back("clslabels", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);

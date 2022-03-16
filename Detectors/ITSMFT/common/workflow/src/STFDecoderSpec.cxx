@@ -19,6 +19,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/CCDBParamSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/RawPixelDecoder.h"
@@ -74,16 +75,8 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   }
 
   auto detID = Mapping::getDetID();
-  if (detID == o2::detectors::DetID::ITS) {
-    mDictName = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-    mNoiseName = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().noiseFilePath;
-  } else {
-    mDictName = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-    mNoiseName = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().noiseFilePath;
-  }
-  mNoiseName = o2::base::DetectorNameConf::getNoiseFileName(detID, mNoiseName, "root");
-  mDictName = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(detID, mDictName);
-
+  mApplyNoiseMap = !ic.options().get<bool>("ignore-noise-map");
+  mUseClusterDictionary = !ic.options().get<bool>("ignore-cluster-dictionary");
   try {
     mNThreads = std::max(1, ic.options().get<int>("nthreads"));
     mDecoder->setNThreads(mNThreads);
@@ -94,15 +87,12 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     if (mDumpOnError < 0 || mDumpOnError >= int(GBTLink::RawDataDumps::DUMP_NTYPES)) {
       throw std::runtime_error(fmt::format("unknown raw data dump level {} requested", mDumpOnError));
     }
-    mDecoder->setFillCalibData(mDoCalibData);
-    if (o2::utils::Str::pathExists(mNoiseName)) {
-      TFile* f = TFile::Open(mNoiseName.data(), "old");
-      auto pnoise = (NoiseMap*)f->Get("ccdb_object");
-      AlpideCoder::setNoisyPixels(pnoise);
-      LOG(info) << mSelfName << " loading noise map file: " << mNoiseName;
-    } else {
-      LOG(info) << mSelfName << " Noise file " << mNoiseName << " is absent, " << Mapping::getName() << " running without noise suppression";
+    auto dumpDir = ic.options().get<std::string>("raw-data-dumps-directory");
+    if (mDumpOnError != int(GBTLink::RawDataDumps::DUMP_NONE) && o2::utils::Str::pathIsDirectory(dumpDir)) {
+      throw std::runtime_error(fmt::format("directory {} for raw data dumps does not exist", dumpDir));
     }
+    mDecoder->setRawDumpDirectory(dumpDir);
+    mDecoder->setFillCalibData(mDoCalibData);
   } catch (const std::exception& e) {
     LOG(error) << "exception was thrown in decoder configuration: " << e.what();
     throw;
@@ -129,13 +119,6 @@ void STFDecoder<Mapping>::init(InitContext& ic)
       nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
       mClusterer->setMaxBCSeparationToMask(nbc);
       mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
-
-      if (o2::utils::Str::pathExists(mDictName)) {
-        mClusterer->loadDictionary(mDictName);
-        LOG(info) << mSelfName << " clusterer running with a provided dictionary: " << mDictName;
-      } else {
-        LOG(info) << mSelfName << " Dictionary " << mDictName << " is absent, " << Mapping::getName() << " clusterer expects cluster patterns";
-      }
       mClusterer->print();
     } catch (const std::exception& e) {
       LOG(error) << "exception was thrown in clustrizer configuration: " << e.what();
@@ -151,6 +134,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
 template <class Mapping>
 void STFDecoder<Mapping>::run(ProcessingContext& pc)
 {
+  updateTimeDependentParams(pc);
   static bool firstCall = true;
   if (firstCall) {
     firstCall = false;
@@ -233,6 +217,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   LOG(debug) << mSelfName << " Total time for TF " << tfID << '(' << mTFCounter << ") : CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0;
   mTFCounter++;
 }
+
 ///_______________________________________
 template <class Mapping>
 void STFDecoder<Mapping>::finalize()
@@ -252,6 +237,34 @@ void STFDecoder<Mapping>::finalize()
   }
 }
 
+///_______________________________________
+template <class Mapping>
+void STFDecoder<Mapping>::updateTimeDependentParams(ProcessingContext& pc)
+{
+  // we call these methods just to trigger finaliseCCDB callback
+  pc.inputs().get<o2::itsmft::NoiseMap*>("noise");
+  pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict");
+}
+
+///_______________________________________
+template <class Mapping>
+void STFDecoder<Mapping>::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher(Mapping::getOrigin(), "NOISEMAP", 0)) {
+    LOG(info) << Mapping::getName() << " noise map updated" << (!mApplyNoiseMap ? " but masking is disabled" : "");
+    if (mApplyNoiseMap) {
+      AlpideCoder::setNoisyPixels((const NoiseMap*)obj);
+    }
+  }
+  if (matcher == ConcreteDataMatcher(Mapping::getOrigin(), "CLUSDICT", 0)) {
+    LOG(info) << Mapping::getName() << " cluster dictionary updated" << (!mUseClusterDictionary ? " but its using is disabled" : "");
+    if (mUseClusterDictionary) {
+      mClusterer->setDictionary((const TopologyDictionary*)obj);
+    }
+  }
+}
+
+///_______________________________________
 DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
 {
   std::vector<OutputSpec> outputs;
@@ -279,6 +292,10 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
     // request the input FLP/DISTSUBTIMEFRAME/0 that is _guaranteed_ to be present, even if none of our raw data is present.
     inputs.emplace_back("stfDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
   }
+  inputs.emplace_back("noise", inp.origin, "NOISEMAP", 0, Lifetime::Condition,
+                      o2::framework::ccdbParamSpec(fmt::format("{}/Calib/NoiseMap", inp.origin.as<std::string>())));
+  inputs.emplace_back("cldict", inp.origin, "CLUSDICT", 0, Lifetime::Condition,
+                      o2::framework::ccdbParamSpec(fmt::format("{}/Calib/ClusterDictionary", inp.origin.as<std::string>())));
 
   return DataProcessorSpec{
     inp.deviceName,
@@ -289,8 +306,11 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
       {"nthreads", VariantType::Int, 1, {"Number of decoding/clustering threads"}},
       {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},
       {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data) of 1st lane"}},
-      {"raw-data-dumps", VariantType::Int, int(GBTLink::RawDataDumps::DUMP_HBF), {"Raw data dumps on error (0: none, 1: HBF for link, 2: whole TF for all links"}},
-      {"unmute-extra-lanes", VariantType::Bool, false, {"allow extra lanes to be as verbose as 1st one"}}}};
+      {"raw-data-dumps", VariantType::Int, int(GBTLink::RawDataDumps::DUMP_NONE), {"Raw data dumps on error (0: none, 1: HBF for link, 2: whole TF for all links"}},
+      {"raw-data-dumps-directory", VariantType::String, "", {"Destination directory for the raw data dumps"}},
+      {"unmute-extra-lanes", VariantType::Bool, false, {"allow extra lanes to be as verbose as 1st one"}},
+      {"ignore-noise-map", VariantType::Bool, false, {"do not mask pixels flagged in the noise map"}},
+      {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}}}};
 }
 
 } // namespace itsmft

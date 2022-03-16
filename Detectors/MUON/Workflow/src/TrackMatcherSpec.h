@@ -14,8 +14,8 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#ifndef ALICEO2_MUON_TRACKMATCHERSPEC_H_
-#define ALICEO2_MUON_TRACKMATCHERSPEC_H_
+#ifndef O2_MUON_TRACKMATCHERSPEC_H_
+#define O2_MUON_TRACKMATCHERSPEC_H_
 
 #include "Framework/DataProcessorSpec.h"
 
@@ -29,4 +29,4 @@ framework::DataProcessorSpec getTrackMatcherSpec(const char* name = "TrackMatche
 } // namespace muon
 } // namespace o2
 
-#endif // ALICEO2_MUON_TRACKMATCHERSPEC_H_
+#endif // O2_MUON_TRACKMATCHERSPEC_H_

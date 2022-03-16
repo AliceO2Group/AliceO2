@@ -229,14 +229,14 @@ void run_trac_ca_its(bool cosmics = false,
 
   o2::its::TimeFrame tf;
   gsl::span<o2::itsmft::ROFRecord> rofspan(*rofs);
-  tf.loadROFrameData(rofspan, clSpan, pattIt, dict, labels);
+  tf.loadROFrameData(rofspan, clSpan, pattIt, &dict, labels);
   pattIt = patt.begin();
   int rofId{0};
   for (auto& rof : *rofs) {
 
     auto start = std::chrono::high_resolution_clock::now();
     auto it = pattIt;
-    o2::its::ioutils::loadROFrameData(rof, event, clSpan, pattIt, dict, labels);
+    o2::its::ioutils::loadROFrameData(rof, event, clSpan, pattIt, &dict, labels);
 
     vertexer.initialiseVertexer(&event);
     vertexer.findTracklets();

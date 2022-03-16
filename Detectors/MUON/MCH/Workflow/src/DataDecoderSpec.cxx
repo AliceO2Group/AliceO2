@@ -87,9 +87,17 @@ class DataDecoderTask
     auto mapFECfile = ic.options().get<std::string>("fec-map");
     auto useDummyElecMap = ic.options().get<bool>("dummy-elecmap");
     mErrorLogFrequency = ic.options().get<int>("error-log-frequency");
+    auto timeRecoModeString = ic.options().get<std::string>("time-reco-mode");
+
+    DataDecoder::TimeRecoMode timeRecoMode = DataDecoder::TimeRecoMode::HBPackets;
+    if (timeRecoModeString == "hbpackets") {
+      timeRecoMode = DataDecoder::TimeRecoMode::HBPackets;
+    } else if (timeRecoModeString == "bcreset") {
+      timeRecoMode = DataDecoder::TimeRecoMode::BCReset;
+    }
 
     mDecoder = new DataDecoder(channelHandler, rdhHandler, sampaBcOffset, mapCRUfile, mapFECfile, ds2manu, mDebug,
-                               useDummyElecMap);
+                               useDummyElecMap, timeRecoMode);
 
     auto stop = [this]() {
       LOG(info) << "mch-data-decoder: decoding duration = " << mTimeDecoding.count() * 1000 / mTFcount << " us / TF";
@@ -337,6 +345,7 @@ o2::framework::DataProcessorSpec getDecodingSpec(const char* specName, std::stri
             {"fec-map", VariantType::String, "", {"custom FEC mapping"}},
             {"dummy-elecmap", VariantType::Bool, false, {"use dummy electronic mapping (for debug, temporary)"}},
             {"ds2manu", VariantType::Bool, false, {"convert channel numbering from Run3 to Run1-2 order"}},
+            {"time-reco-mode", VariantType::String, "hbpackets", {"digit time reconstruction method [hbpackets, bcreset]"}},
             {"check-rofs", VariantType::Bool, false, {"perform consistency checks on the output ROFs"}},
             {"dummy-rofs", VariantType::Bool, false, {"disable the ROFs finding algorithm"}},
             {"error-log-frequency", VariantType::Int, 6000, {"log the error map at this frequency (in TF unit) (first TF is always logged, unless frequency is zero)"}}}};

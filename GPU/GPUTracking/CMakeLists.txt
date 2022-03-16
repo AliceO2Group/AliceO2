@@ -13,6 +13,24 @@ set(MODULE GPUTracking)
 
 #set(CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE} "${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}} -O0") # to uncomment if needed, tired of typing this...
 
+function(create_binary_resource RESOURCE OUTPUTFILE)
+  get_filename_component(input-file-abs ${RESOURCE} ABSOLUTE)
+  FILE(RELATIVE_PATH input-file-rel ${CMAKE_CURRENT_BINARY_DIR} ${input-file-abs})
+  add_custom_command(
+    OUTPUT ${OUTPUTFILE}
+    COMMAND ${CMAKE_LINKER} --relocatable --format binary --output ${OUTPUTFILE} ${input-file-rel}
+    DEPENDS ${RESOURCE}
+    COMMENT "Adding binary resource ${input-file-rel}"
+    VERBATIM
+  )
+endfunction(create_binary_resource)
+
+function(add_binary_resource TARGET RESOURCE)
+    set(output-file ${RESOURCE}.o)
+    create_binary_resource(${RESOURCE} ${output-file})
+    target_sources(${TARGET} PRIVATE ${output-file})
+endfunction(add_binary_resource)
+
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   if(ENABLE_CUDA OR ENABLE_OPENCL1 OR ENABLE_OPENCL2 OR ENABLE_HIP)
     cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
@@ -26,6 +44,13 @@ else()
      AND OPENGL_GLU_FOUND
      AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(GPUCA_EVENT_DISPLAY ON)
+    if(Vulkan_FOUND AND NOT Vulkan_GLSLC_EXECUTABLE STREQUAL "Vulkan_GLSLC_EXECUTABLE-NOTFOUND")
+      include(Standalone/cmake/vulkan_display.cmake)
+      set(GPUCA_EVENT_DISPLAY_VULKAN ON)
+    endif()
+    if(Freetype_FOUND)
+      set(GPUCA_EVENT_DISPLAY_FREETYPE ON)
+    endif()
   endif()
   if(ROOT_FOUND)
     set(GPUCA_QA ON)
@@ -241,6 +266,9 @@ if(GPUCA_EVENT_DISPLAY)
                    display/GPUDisplay.cxx
                    display/GPUDisplayBackendOpenGL.cxx
                    display/GPUDisplayFrontendGlfw.cxx)
+  if(GPUCA_EVENT_DISPLAY_VULKAN)
+    set(SRCS_NO_CINT ${SRCS_NO_CINT} display/GPUDisplayBackendVulkan.cxx)
+  endif()
   set(SRCS_NO_H ${SRCS_NO_H} display/GPUDisplayQuaternion.cxx
                 display/GPUDisplayInterpolation.cxx
                 display/GPUDisplayKeys.cxx
@@ -476,9 +504,29 @@ endif()
 endif()
 
 if(GPUCA_EVENT_DISPLAY)
-  message(STATUS "Building GPU Event Display")
+  message(STATUS "Building GPU Event Display (Vulkan ${GPUCA_EVENT_DISPLAY_VULKAN}, Freetype ${GPUCA_EVENT_DISPLAY_FREETYPE}, Fontconfig ${Fontconfig_FOUND})")
   target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY)
   target_link_libraries(${targetName} PUBLIC ${GLFW_LIBRARIES} OpenGL::GL OpenGL::GLU)
+  if(GPUCA_EVENT_DISPLAY_VULKAN)
+    target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_VULKAN)
+    target_link_libraries(${targetName} PUBLIC Vulkan::Vulkan)
+
+    add_glslc_shader(${targetName} display/shaders/fragment.frag)
+    add_glslc_shader(${targetName} display/shaders/vertex.vert)
+    add_glslc_shader(${targetName} display/shaders/fragmentText.frag)
+    add_glslc_shader(${targetName} display/shaders/vertexTexture.vert)
+    add_glslc_shader(${targetName} display/shaders/fragmentTexture.frag)
+    add_glslc_shader(${targetName} display/shaders/fragmentUniform.frag)
+    add_glslc_shader(${targetName} display/shaders/vertexPoint.vert)
+  endif()
+  if(GPUCA_EVENT_DISPLAY_FREETYPE)
+    target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_FREETYPE)
+    target_link_libraries(${targetName} PUBLIC Freetype::Freetype)
+    if(Fontconfig_FOUND)
+      target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_FONTCONFIG)
+      target_link_libraries(${targetName} PUBLIC Fontconfig::Fontconfig)
+    endif()
+  endif()
   if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     target_compile_definitions(${targetName} PRIVATE GPUCA_DISPLAY_GL3W GPUCA_DISPLAY_OPENGL_CORE)
   else()

@@ -16,6 +16,7 @@
 
 #include "MIDFiltering/MaskMaker.h"
 #include "MIDFiltering/ChannelMasksHandler.h"
+#include "MIDBase/ColumnDataHandler.h"
 #include "MIDBase/Mapping.h"
 #include "MIDBase/DetectorParameters.h"
 #include "DataFormatsMID/ROFRecord.h"
@@ -26,16 +27,24 @@ namespace o2
 {
 namespace mid
 {
-std::vector<ColumnData> makeMasks(const ChannelScalers& scalers, unsigned long nEvents, double threshold, const std::vector<ColumnData>& refMasks)
+std::vector<ColumnData> makeBadChannels(const ChannelScalers& scalers, unsigned long nEvents, double threshold)
 {
   /// Makes the mask from the scalers
   uint32_t nThresholdEvents = static_cast<uint32_t>(threshold * nEvents);
-  ChannelMasksHandler maskHandler;
+  ColumnDataHandler handler;
   for (const auto scaler : scalers.getScalers()) {
     if (scaler.second >= nThresholdEvents) {
-      maskHandler.switchOffChannel(scalers.getDeId(scaler.first), scalers.getColumnId(scaler.first), scalers.getLineId(scaler.first), scalers.getStrip(scaler.first), scalers.getCathode(scaler.first));
+      handler.add(scalers.getDeId(scaler.first), scalers.getColumnId(scaler.first), scalers.getLineId(scaler.first), scalers.getStrip(scaler.first), scalers.getCathode(scaler.first));
     }
   }
+  return handler.getMerged();
+}
+
+std::vector<ColumnData> makeMasks(const ChannelScalers& scalers, unsigned long nEvents, double threshold, const std::vector<ColumnData>& refMasks)
+{
+  auto badChannels = makeBadChannels(scalers, nEvents, threshold);
+  ChannelMasksHandler maskHandler;
+  maskHandler.switchOffChannels(badChannels);
   std::vector<ColumnData> masks(maskHandler.getMasks());
 
   if (!refMasks.empty()) {

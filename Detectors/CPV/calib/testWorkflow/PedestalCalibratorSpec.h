@@ -26,7 +26,7 @@ namespace o2
 {
 namespace calibration
 {
-class CPVPedestalCalibDevice : public o2::framework::Task
+class CPVPedestalCalibratorSpec : public o2::framework::Task
 {
  public:
   //_________________________________________________________________
@@ -43,7 +43,7 @@ class CPVPedestalCalibDevice : public o2::framework::Task
       mCalibrator->setUpdateAtTheEndOfRunOnly();
     }
     mCalibrator->setCheckIntervalInfiniteSlot(updateInterval);
-    LOG(info) << "CPVPedestalCalibDevice initialized";
+    LOG(info) << "CPVPedestalCalibratorSpec initialized";
     LOG(info) << "tf-per-slot = " << slotL;
     LOG(info) << "max-delay = " << delay;
     LOG(info) << "updateInterval = " << updateInterval;
@@ -115,7 +115,7 @@ class CPVPedestalCalibDevice : public o2::framework::Task
   }
 
   template <class Payload>
-  bool sendOutputWhat(const std::vector<Payload>& payloadVec, std::vector<o2::ccdb::CcdbObjectInfo>&& infoVec, header::DataDescription what, DataAllocator& output)
+  bool sendOutputWhat(const std::vector<Payload>& payloadVec, std::vector<o2::ccdb::CcdbObjectInfo>& infoVec, header::DataDescription what, DataAllocator& output)
   {
     assert(payloadVec.size() == infoVec.size());
     if (!payloadVec.size()) {
@@ -133,13 +133,13 @@ class CPVPedestalCalibDevice : public o2::framework::Task
 
     return true;
   }
-}; // class CPVPedestalCalibDevice
+}; // class CPVPedestalCalibratorSpec
 } // namespace calibration
 namespace framework
 {
-DataProcessorSpec getCPVPedestalCalibDeviceSpec()
+DataProcessorSpec getCPVPedestalCalibratorSpec()
 {
-  using device = o2::calibration::CPVPedestalCalibDevice;
+  using device = o2::calibration::CPVPedestalCalibratorSpec;
 
   std::vector<OutputSpec> outputs;
   // Length of data description ("CPV_Pedestals") must be < 16 characters.

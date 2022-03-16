@@ -12,10 +12,12 @@
 #include "DataFormatsITSMFT/ClusterPattern.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-
+#include "CCDB/BasicCCDBManager.h"
+#include "CCDB/CCDBTimeStampUtils.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 #endif
 
-void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", bool only1pix = false, float probT = 3e-6, std::string output = "noise.root", std::string dict = "ITSdictionary.bin")
+void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", bool only1pix = false, float probT = 3e-6, std::string output = "noise.root", long timestamp = 0)
 {
   TFile out(output.data(), "new");
   if (!out.IsOpen()) {
@@ -50,10 +52,14 @@ void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", bool only1p
   clusTree->SetBranchAddress("ITSClustersROF", &rofVec);
 
   o2::its::NoiseCalibrator calib(only1pix, probT);
+  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+  mgr.setURL("http://alice-ccdb.cern.ch");
+  mgr.setTimestamp(timestamp ? timestamp : o2::ccdb::getCurrentTimestamp());
+
   try {
-    calib.loadDictionary(dict.data());
+    calib.setClusterDictionary(mgr.get<o2::itsmft::TopologyDictionary>("ITS/Calib/ClusterDictionary"));
   } catch (std::runtime_error) {
-    LOG(error) << "Cannot load the dictionary file: " << dict << " !";
+    LOG(error) << "Cannot load the dictionary file";
     LOG(info) << "Assuming that cluster shapes are not encoded...";
   }
 

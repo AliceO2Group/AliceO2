@@ -40,13 +40,14 @@ void CalibPadGainTracks::processTrack(o2::tpc::TrackTPC track)
   }
 
   // clearing memory
-  mDEdxIROC.clear();
-  mDEdxOROC.clear();
-  mCLNat.clear();
+  for (auto& buffer : mDEdxBuffer) {
+    buffer.clear();
+  }
   mClTrk.clear();
 
   for (int iCl = 0; iCl < nClusters; iCl++) { // loop over cluster
-    mCLNat.emplace_back(track.getCluster(*mTPCTrackClIdxVecInput, iCl, *mClusterIndex));
+    const o2::tpc::ClusterNative& cl = track.getCluster(*mTPCTrackClIdxVecInput, iCl, *mClusterIndex);
+
     unsigned char sectorIndex = 0;
     unsigned char rowIndex = 0;
     unsigned int clusterIndexNumb = 0;
@@ -59,70 +60,135 @@ void CalibPadGainTracks::processTrack(o2::tpc::TrackTPC track)
       continue;
     }
 
-    const float effectiveLength = getTrackTopologyCorrection(track, rowIndex);
-    const unsigned char pad = static_cast<unsigned char>(mCLNat[static_cast<unsigned int>(iCl)].getPad() + 0.5f); // the left side of the pad ist defined at e.g. 3.5 and the right side at 4.5
+    const int region = Mapper::REGION[rowIndex];
+    const float effectiveLength = mCalibTrackTopologyPol ? getTrackTopologyCorrectionPol(track, cl, region) : getTrackTopologyCorrection(track, region);
 
+    const unsigned char pad = static_cast<unsigned char>(cl.getPad() + 0.5f); // the left side of the pad ist defined at e.g. 3.5 and the right side at 4.5
     const float gain = mGainMapRef ? mGainMapRef->getValue(sectorIndex, rowIndex, pad) : 1;
-    const float charge = mCLNat[static_cast<unsigned int>(iCl)].qMax / gain;
+    const float chargeNorm = cl.qMax / (effectiveLength * gain);
 
-    // fill IROC dedx
-    const float chargeNorm = charge / effectiveLength;
-    if (rowIndex < mapper.getNumberOfRowsROC(0)) {
-      mDEdxIROC.emplace_back(chargeNorm);
-    } else {
-      mDEdxOROC.emplace_back(chargeNorm);
+    if (mMode == dedxTracking) {
+      const auto& dEdx = track.getdEdx();
+      float dedx = -1;
+      const CRU cru(Sector(sectorIndex), region);
+
+      if (mDedxRegion == stack) {
+        const auto stack = cru.gemStack();
+        if (stack == GEMstack::IROCgem && dEdx.NHitsIROC > mMinClusters) {
+          dedx = dEdx.dEdxMaxIROC;
+        } else if (stack == GEMstack::OROC1gem && dEdx.dEdxMaxOROC1 > mMinClusters) {
+          dedx = dEdx.dEdxMaxOROC1;
+        } else if (stack == GEMstack::OROC2gem && dEdx.dEdxMaxOROC2 > mMinClusters) {
+          dedx = dEdx.dEdxMaxOROC2;
+        } else if (stack == GEMstack::OROC3gem && dEdx.dEdxMaxOROC3 > mMinClusters) {
+          dedx = dEdx.dEdxMaxOROC3;
+        }
+      } else if (mDedxRegion == chamber) {
+        if (cru.isIROC() && dEdx.NHitsIROC > mMinClusters) {
+          dedx = dEdx.dEdxMaxIROC;
+        } else {
+          int count = 0;
+          if (dEdx.NHitsOROC1 > mMinClusters) {
+            dedx += dEdx.dEdxMaxOROC1;
+            ++count;
+          }
+          if (dEdx.NHitsOROC2 > mMinClusters) {
+            dedx += dEdx.dEdxMaxOROC2;
+            ++count;
+          }
+          if (dEdx.NHitsOROC3 > mMinClusters) {
+            dedx += dEdx.dEdxMaxOROC3;
+            ++count;
+          }
+          if (count > 0) {
+            dedx /= count;
+          }
+        }
+      } else if (mDedxRegion == sector) {
+        dedx = dEdx.dEdxMaxTPC;
+      }
+
+      if (dedx <= 0) {
+        continue;
+      }
+
+      const float fillVal = chargeNorm / dedx;
+      int index = Mapper::GLOBALPADOFFSET[region] + Mapper::OFFSETCRUGLOBAL[rowIndex] + pad;
+      if (cru.isOROC()) {
+        index -= Mapper::getPadsInIROC();
+      }
+
+      fillPadByPadHistogram(cru.roc().getRoc(), index, fillVal);
     }
-    mClTrk.emplace_back(std::make_tuple(sectorIndex, rowIndex, pad, chargeNorm)); // fill with dummy dedx value
+
+    if (mMode == dedxTrack) {
+      const int indexBuffer = getdEdxBufferIndex(region);
+      mDEdxBuffer[indexBuffer].emplace_back(chargeNorm);
+      mClTrk.emplace_back(std::make_tuple(sectorIndex, rowIndex, pad, chargeNorm)); // fill with dummy dedx value
+    }
   }
 
-  // use dedx from track as reference
-  if (mMode == DedxTrack) {
-    const float dedxIROC = getTruncMean(mDEdxIROC);
-    const float dedxOROC = getTruncMean(mDEdxOROC);
+  if (mMode == dedxTrack) {
+    const auto dedx = getTruncMean(mDEdxBuffer);
 
     // set the dEdx
     for (auto& x : mClTrk) {
       const unsigned char globRow = std::get<1>(x);
-      const unsigned char pad = std::get<2>(x);
+      const int region = Mapper::REGION[globRow];
+      const int indexBuffer = getdEdxBufferIndex(region);
 
-      // get globalPadNumber (index)
-      const auto rowsIROC = mapper.getNumberOfRowsROC(0);
-      const auto roctype = (globRow < rowsIROC) ? RocType::IROC : RocType::OROC;
-      const float fillVal = (roctype == RocType::IROC) ? (std::get<3>(x) / dedxIROC) : (std::get<3>(x) / dedxOROC);
-      const ROC roc(std::get<0>(x), roctype);
-      const o2::tpc::PadSubset sub = getHistos()->getPadSubset();
-      const int num = getHistos()->getCalArray(roc.getRoc()).getPadSubsetNumber();
-      const int rowinROC = roctype == RocType::IROC ? std::get<1>(x) : std::get<1>(x) - rowsIROC;
-      const auto index = static_cast<unsigned int>(getIndex(sub, num, rowinROC, pad)); // index=globalpadnumber
+      const float dedxTmp = dedx[indexBuffer];
+      if (dedxTmp <= 0) {
+        continue;
+      }
+
+      const unsigned char pad = std::get<2>(x);
+      int index = Mapper::GLOBALPADOFFSET[region] + Mapper::OFFSETCRUGLOBAL[globRow] + pad;
+      const ROC roc = CRU(Sector(std::get<0>(x)), region).roc();
+      if (roc.isOROC()) {
+        index -= Mapper::getPadsInIROC();
+      }
+
       // fill the normalizes charge in pad histogram
+      const float fillVal = std::get<3>(x) / dedxTmp;
       fillPadByPadHistogram(roc.getRoc(), index, fillVal);
     }
   } else {
   }
 }
 
-float CalibPadGainTracks::getTruncMean(std::vector<float>& vCharge, float low, float high) const
+std::vector<float> CalibPadGainTracks::getTruncMean(std::vector<std::vector<float>>& vCharge, float low, float high) const
 {
+  std::vector<float> dedx;
+  dedx.reserve(vCharge.size());
   // returns the truncated mean for input vector
-  std::sort(vCharge.begin(), vCharge.end()); // sort the vector for performing truncated mean
+  for (auto& charge : vCharge) {
+    const int nClustersUsed = static_cast<int>(charge.size());
+    if (nClustersUsed < mMinClusters) {
+      dedx.emplace_back(-1);
+      continue;
+    }
 
-  const int nClustersUsed = static_cast<int>(vCharge.size());
-  const int startInd = static_cast<int>(low * nClustersUsed);
-  const int endInd = static_cast<int>(high * nClustersUsed);
+    std::sort(charge.begin(), charge.end()); // sort the vector for performing truncated mean
 
-  if (endInd <= startInd) {
-    return 0;
+    const int startInd = static_cast<int>(low * nClustersUsed);
+    const int endInd = static_cast<int>(high * nClustersUsed);
+
+    if (endInd <= startInd) {
+      dedx.emplace_back(-1);
+      continue;
+    }
+
+    const float dEdx = std::accumulate(charge.begin() + startInd, charge.begin() + endInd, 0.f);
+    const int nClustersTrunc = endInd - startInd; // count number of clusters
+    dedx.emplace_back(dEdx / nClustersTrunc);
   }
-
-  const float dEdx = std::accumulate(vCharge.begin() + startInd, vCharge.begin() + endInd, 0.f);
-  const int nClustersTrunc = endInd - startInd; // count number of clusters
-  return dEdx / nClustersTrunc;
+  return dedx;
 }
 
-float CalibPadGainTracks::getTrackTopologyCorrection(const o2::tpc::TrackTPC& track, const unsigned char rowIndex) const
+float CalibPadGainTracks::getTrackTopologyCorrection(const o2::tpc::TrackTPC& track, const unsigned int region) const
 {
-  const PadRegionInfo& region = mapper.getPadRegionInfo(Mapper::REGION[rowIndex]);
-  const float padLength = region.getPadHeight();
+  const float padLength = mapper.getPadRegionInfo(region).getPadHeight();
   const float sinPhi = track.getSnp();
   const float tgl = track.getTgl();
   const float snp2 = sinPhi * sinPhi;
@@ -130,12 +196,63 @@ float CalibPadGainTracks::getTrackTopologyCorrection(const o2::tpc::TrackTPC& tr
   return effectiveLength;
 }
 
+float CalibPadGainTracks::getTrackTopologyCorrectionPol(const o2::tpc::TrackTPC& track, const o2::tpc::ClusterNative& cl, const unsigned int region) const
+{
+  const float trackSnp = track.getSnp();
+  const float maxSnp = mCalibTrackTopologyPol->getMaxSinPhi();
+  float snp = std::abs(trackSnp);
+  if (snp > maxSnp) {
+    snp = maxSnp;
+  }
+
+  float snp2 = trackSnp * trackSnp;
+  const float sec2 = 1.f / (1.f - snp2);
+  const float trackTgl = track.getTgl();
+  const float tgl2 = trackTgl * trackTgl;
+  float tanTheta = std::sqrt(tgl2 * sec2);
+  const float maxTanTheta = mCalibTrackTopologyPol->getMaxTanTheta();
+  if (tanTheta > maxTanTheta) {
+    tanTheta = maxTanTheta;
+  }
+
+  const float z = std::abs(track.getParam(1));
+  const float padTmp = cl.getPad();
+  const float absRelPad = std::abs(padTmp - int(padTmp + 0.5f));
+  const float relTime = cl.getTime() - int(cl.getTime() + 0.5f);
+  const float effectiveLength = mCalibTrackTopologyPol->getCorrectionqMax(region, tanTheta, snp, z, absRelPad, relTime);
+  return effectiveLength;
+}
+
 void CalibPadGainTracks::reserveMemory()
 {
-  mDEdxIROC.reserve(Mapper::getNumberOfRowsInIROC());
-  mDEdxOROC.reserve(Mapper::getNumberOfRowsInOROC());
-  mCLNat.reserve(Mapper::PADROWS);
   mClTrk.reserve(Mapper::PADROWS);
+  resizedEdxBuffer();
+}
+
+void CalibPadGainTracks::resizedEdxBuffer()
+{
+  if (mDedxRegion == stack) {
+    mDEdxBuffer.resize(4);
+    mDEdxBuffer[0].reserve(Mapper::getNumberOfRowsInIROC());
+    mDEdxBuffer[1].reserve(Mapper::getNumberOfRowsInOROC());
+    mDEdxBuffer[2].reserve(Mapper::getNumberOfRowsInOROC());
+    mDEdxBuffer[3].reserve(Mapper::getNumberOfRowsInOROC());
+  } else if (mDedxRegion == chamber) {
+    mDEdxBuffer.resize(2);
+    mDEdxBuffer[0].reserve(Mapper::getNumberOfRowsInIROC());
+    mDEdxBuffer[1].reserve(Mapper::getNumberOfRowsInOROC());
+  } else if (mDedxRegion == sector) {
+    mDEdxBuffer.resize(1);
+    mDEdxBuffer[0].reserve(mapper.getNumberOfRows());
+  } else {
+    LOGP(warning, "wrong dE/dx type");
+  }
+}
+
+void CalibPadGainTracks::setdEdxRegion(const DEdxRegion dedx)
+{
+  mDedxRegion = dedx;
+  resizedEdxBuffer();
 }
 
 void CalibPadGainTracks::dumpToFile(const char* outFileName, const char* outName) const
@@ -170,4 +287,24 @@ void CalibPadGainTracks::setRefGainMap(const char* inpFile, const char* mapName)
   }
   setRefGainMap(*gainMap);
   delete gainMap;
+}
+
+int CalibPadGainTracks::getdEdxBufferIndex(const int region) const
+{
+  if (mDedxRegion == stack) {
+    return static_cast<int>(CRU(region).gemStack());
+  } else if (mDedxRegion == chamber) {
+    return static_cast<int>(CRU(region).rocType());
+  } else if (mDedxRegion == sector) {
+    return 0;
+  } else {
+    LOGP(warning, "wrong dE/dx type");
+    return -1;
+  }
+}
+
+void CalibPadGainTracks::loadPolTopologyCorrectionFromFile(std::string_view fileName)
+{
+  mCalibTrackTopologyPol = std::make_unique<CalibdEdxTrackTopologyPol>();
+  mCalibTrackTopologyPol->loadFromFile(fileName.data(), "CalibdEdxTrackTopologyPol");
 }

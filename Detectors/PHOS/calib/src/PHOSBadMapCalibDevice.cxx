@@ -9,372 +9,416 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "PHOSCalibWorkflow/PHOSCalibCollector.h"
-#include "DataFormatsPHOS/TriggerRecord.h"
-#include "Framework/ConfigParamRegistry.h"
-#include "DetectorsCalibration/Utils.h"
-#include "Framework/ControlService.h"
-
+#include "PHOSCalibWorkflow/PHOSBadMapCalibDevice.h"
 #include "FairLogger.h"
-#include <fstream> // std::ifstream
+#include "CommonDataFormat/InteractionRecord.h"
+#include "DetectorsCalibration/Utils.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "Framework/ControlService.h"
+#include "Framework/WorkflowSpec.h"
+#include "DataFormatsPHOS/TriggerRecord.h"
+#include "DataFormatsPHOS/Cell.h"
+#include "PHOSBase/Mapping.h"
+#include <TFile.h>
+#include "Framework/ConfigParamRegistry.h"
+#include "CommonUtils/NameConf.h"
+#include "CCDB/BasicCCDBManager.h"
 
 using namespace o2::phos;
 
-void PHOSCalibCollector::init(o2::framework::InitContext& ic)
+void PHOSBadMapCalibDevice::init(o2::framework::InitContext& ic)
 {
 
-  mEvent = 0;
-  //Create output histograms
-  const int nChannels = 14336; //4 full modules
-  const int nMass = 150.;
-  float massMax = 0.3;
-  //First create all histograms then get direct pointers
-  mHistos.emplace_back("hReInvMassPerCell", "Real inv. mass per cell", nChannels, 0., nChannels, nMass, 0., massMax);
-  mHistos.emplace_back("hMiInvMassPerCell", "Mixed inv. mass per cell", nChannels, 0., nChannels, nMass, 0., massMax);
+  mElowMin = ic.options().get<int>("ElowMin");
+  mElowMax = ic.options().get<int>("ElowMax");
+  mEhighMin = ic.options().get<int>("EhighMin");
+  mEhighMax = ic.options().get<int>("EhighMax");
 
-  int npt = 45;
-  float xpt[46] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.2, 1.4, 1.6, 1.8, 2., 2.2, 2.4, 2.6, 2.8, 3., 3.4, 3.8, 4.2, 4.6, 5.,
-                   5.5, 6., 6.5, 7., 7.5, 8., 9., 10., 12., 14., 16., 18., 20., 24., 28., 32., 36., 40., 50., 55., 60.};
-  float massbins[nMass + 1];
-  for (int i = 0; i <= nMass; i++) {
-    massbins[i] = i * massMax / nMass;
+  short n = o2::phos::Mapping::NCHANNELS - 1792;
+  if (mMode == 0) { //  Cell occupancy and time
+    // Create histograms for lowE and high E occupancy and  Time
+    mMeanLow.reset(new TH1F("MeanLowE", "Mean low E cut", n, 1792.5, n + 1792.5));
+    mMeanHigh.reset(new TH1F("MeanHighE", "Mean high E cut", n, 1792.5, n + 1792.5));
+    mMeanTime.reset(new TH1F("MeanTimeLow", "MeanTimeLow", n, 1792.5, n + 1792.5));
   }
-  mHistos.emplace_back("hReInvMassNonlin", "Real inv. mass vs Eclu", nMass, massbins, npt, xpt);
-  mHistos.emplace_back("hMiInvMassNonlin", "Mixed inv. mass vs Eclu", nMass, massbins, npt, xpt);
-
-  const int nTime = 200;
-  float timeMin = -100.e-9;
-  float timeMax = 100.e-9;
-  mHistos.emplace_back("hTimeHGPerCell", "time per cell, high gain", nChannels, 0., nChannels, nTime, timeMin, timeMax);
-  mHistos.emplace_back("hTimeLGPerCell", "time per cell, low gain", nChannels, 0., nChannels, nTime, timeMin, timeMax);
-  float timebins[nTime + 1];
-  for (int i = 0; i <= nTime; i++) {
-    timebins[i] = timeMin + i * timeMax / nTime;
+  if (mMode == 1) { // chi2 distribution
+    mChi2.reset(new TH1F("Chi2", "#chi^2", n, 1792.5, n + 1792.5));
+    mChi2norm.reset(new TH1F("Chi2Norm", "#chi^2 normalization", n, 1792.5, n + 1792.5));
   }
-  mHistos.emplace_back("hTimeHGSlewing", "time vs E, high gain", nTime, timebins, npt, xpt);
-  mHistos.emplace_back("hTimeLGSlewing", "time vs E, low gain", nTime, timebins, npt, xpt);
+  if (mMode == 2) { // Pedestals
+    mHGMean.reset(new TH1F("HGMean", "High Gain mean", n, 1792.5, n + 1792.5));
+    mHGRMS.reset(new TH1F("HGRMS", "High Gain RMS", n, 1792.5, n + 1792.5));
+    mHGNorm.reset(new TH1F("HGNorm", "High Gain normalization", n, 1792.5, n + 1792.5));
+    mLGMean.reset(new TH1F("LGMean", "Low Gain mean", n, 1792.5, n + 1792.5));
+    mLGRMS.reset(new TH1F("LGRMS", "Low Gain RMS", n, 1792.5, n + 1792.5));
+    mLGNorm.reset(new TH1F("LGNorm", "Low Gain normalization", n, 1792.5, n + 1792.5));
+  }
+}
 
-  if (mMode != 2) {
-    TFile fcalib(mfilenameCalib.data(), "READ");
-    if (fcalib.IsOpen()) {
-      CalibParams* cp = nullptr;
-      fcalib.GetObject("PHOSCalibration", cp);
-      mCalibParams.reset(cp);
-    } else {
-      LOG(error) << "can not read calibration <PHOSCalibration> from file " << mfilenameCalib;
+void PHOSBadMapCalibDevice::run(o2::framework::ProcessingContext& ctx)
+{
+  if (mRunStartTime == 0) {
+    if (mMode == 0 || mMode == 2) {
+      mRunStartTime = o2::header::get<o2::framework::DataProcessingHeader*>(ctx.inputs().get("cells").header)->startTime;
     }
-    fcalib.Close();
+    if (mMode == 1) {
+      mRunStartTime = o2::header::get<o2::framework::DataProcessingHeader*>(ctx.inputs().get("fitqa").header)->startTime;
+    }
+    mValidityTime = mRunStartTime + 31622400000; // one year validity range
   }
 
-  //TODO: configure reading bad map from file
-  // this is special bad map for calibration
-  mBadMap.reset(new BadChannelsMap());
+  // scan Cells stream, collect occupancy
+  if (mMode == 0) { //  Cell occupancy and time
+    auto cells = ctx.inputs().get<gsl::span<o2::phos::Cell>>("cells");
+    LOG(debug) << "[PHOSBadMapCalibDevice - run]  Received " << cells.size() << " cells, running calibration ...";
+    for (const auto& c : cells) {
+      float e = c.getEnergy();
+      if (e > mElowMin && e < mElowMax) {
+        mMeanLow->Fill(c.getAbsId() - 1792);
+      }
+      if (e > mEhighMin && e < mEhighMax) {
+        mMeanHigh->Fill(c.getAbsId() - 1792);
+        mMeanTime->Fill(c.getAbsId() - 1792, c.getTime());
+      }
+    }
+  } // mMode 0: cell occupancy
 
-  mGeom = Geometry::GetInstance("Run3");
-}
-
-void PHOSCalibCollector::run(o2::framework::ProcessingContext& pc)
-{
-
-  //select possible options
-  switch (mMode) {
-    case 0: // Read new data
-      scanClusters(pc);
-      writeOutputs();
-      break;
-    case 1: // Read and re-calibrate stored trees
-      readDigits();
-      writeOutputs();
-      break;
-    case 2: //Calculate calibration from stored histograms
-      calculateCalibrations();
-      compareCalib();
-      sendOutput(pc.outputs());
-      pc.services().get<ControlService>().endOfStream();
-      pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-      break;
+  if (mMode == 1) { // Raw data analysis, chi2
+    auto chi2list = ctx.inputs().get<gsl::span<short>>("fitqa");
+    LOG(info) << "[PHOSBadMapCalibDevice - run]  Received " << chi2list.size() << " Chi2, running calibration ...";
+    auto b = chi2list.begin();
+    while (b != chi2list.end()) {
+      short absId = *b;
+      ++b;
+      float c = 0.2 * (*b);
+      ++b;
+      mChi2norm->Fill(absId - 1792);
+      mChi2->Fill(absId - 1792, c);
+    }
   }
-}
 
-void PHOSCalibCollector::scanClusters(o2::framework::ProcessingContext& pc)
-{
-
-  //  auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime; // is this the timestamp of the current TF?
-
-  auto clusters = pc.inputs().get<gsl::span<o2::phos::Cluster>>("clusters");
-  auto cluTR = pc.inputs().get<gsl::span<o2::phos::TriggerRecord>>("cluTR");
-  LOG(info) << "Processing TF with " << clusters.size() << " clusters and " << cluTR.size() << " TriggerRecords";
-
-  for (auto& tr : cluTR) {
-
-    //Mark new event
-    //First goes new event marker + BC (16 bit), next word orbit (32 bit)
-    EventHeader h = {0};
-    h.mMarker = 16383;
-    h.mBC = tr.getBCData().bc;
-    mDigits.push_back(h.mDataWord);
-    mDigits.push_back(tr.getBCData().orbit);
-
-    int iclu = 0;
-    int firstCluInEvent = tr.getFirstEntry();
-    int lastCluInEvent = firstCluInEvent + tr.getNumberOfObjects();
-
-    mBuffer->startNewEvent(); // mark stored clusters to be used for Mixing
-    for (int i = firstCluInEvent; i < lastCluInEvent; i++) {
-      const Cluster& clu = clusters[i];
-
-      fillTimeMassHisto(clu);
-      bool isGood = checkCluster(clu);
-
-      auto cluList = clu.getElementList();
-      for (auto ce = cluList->begin(); ce != cluList->end(); ce++) {
-        short absId = ce->absId;
-        //Fill cells from cluster for next iterations
-        short adcCounts = ce->energy / mCalibParams->getGain(absId);
-        // Need to chale LG gain too to fit dynamic range
-        if (!ce->isHG) {
-          adcCounts /= mCalibParams->getHGLGRatio(absId);
-        }
-        CalibDigit d = {0};
-        d.mAddress = absId;
-        d.mAdcAmp = adcCounts;
-        d.mHgLg = ce->isHG;
-        d.mBadChannel = isGood;
-        d.mCluster = (i - firstCluInEvent) % kMaxCluInEvent;
-        mDigits.push_back(d.mDataWord);
-        if (i - firstCluInEvent > kMaxCluInEvent) {
-          //Normally this is not critical as indexes are used "locally", i.e. are compared to previous/next
-          LOG(info) << "Too many clusters per event:" << i - firstCluInEvent << ", apply more strict selection; clusters with same indexes will appear";
-        }
+  if (mMode == 2) { // Pedestals
+    auto cells = ctx.inputs().get<gsl::span<o2::phos::Cell>>("cells");
+    LOG(debug) << "[PHOSBadMapCalibDevice - run]  Received " << cells.size() << " cells, running calibration ...";
+    for (const auto& c : cells) {
+      float e = c.getEnergy();
+      if (c.getHighGain()) {
+        mHGMean->Fill(c.getAbsId() - 1792, c.getEnergy());
+        mHGRMS->Fill(c.getAbsId() - 1792, 1.e+7 * c.getTime());
+        mHGNorm->Fill(c.getAbsId() - 1792, 1.);
+      } else {
+        mLGMean->Fill(c.getAbsId() - 1792);
+        mLGRMS->Fill(c.getAbsId() - 1792, 1.e+7 * c.getTime());
+        mLGNorm->Fill(c.getAbsId() - 1792, 1.);
       }
     }
   }
 }
 
-void PHOSCalibCollector::readDigits()
+void PHOSBadMapCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
-  // open files from the list
-  // for each file read digits, calibrate them and form clusters
-  // fill inv mass and time (for check) histograms
-  std::ifstream ifs(mdigitsfilelist, std::ifstream::in);
-  if (!ifs.is_open()) {
-    LOG(error) << "can not open file " << mdigitsfilelist;
+
+  LOG(info) << "[PHOSBadMapCalibDevice - endOfStream]";
+  // calculate stuff here
+  if (calculateBadMap()) {
+    checkBadMap();
+    sendOutput(ec.outputs());
+  }
+}
+
+void PHOSBadMapCalibDevice::sendOutput(DataAllocator& output)
+{
+
+  // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
+  if (mUpdateCCDB || mForceUpdate) {
+    // prepare all info to be sent to CCDB
+    std::string flName = o2::ccdb::CcdbApi::generateFileName("BadMap");
+    std::string kind;
+    if (mMode == 0) { // Occupancy
+      kind = "PHS/Calib/BadMapOcc";
+    }
+    if (mMode == 1) { // Chi2
+      kind = "PHS/Calib/BadMapChi";
+    }
+    if (mMode == 2) { // Pedestals
+      kind = "PHS/Calib/BadMapPed";
+    }
+    std::map<std::string, std::string> md;
+    o2::ccdb::CcdbObjectInfo info(kind, "BadMap", flName, md, mRunStartTime, mValidityTime);
+    info.setMetaData(md);
+    auto image = o2::ccdb::CcdbApi::createObjectImage(mBadMap.get(), &info);
+
+    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
+              << " of size " << image->size()
+              << " bytes, valid for " << info.getStartValidityTimestamp()
+              << " : " << info.getEndValidityTimestamp();
+
+    header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_BadMap", subSpec}, *image.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_BadMap", subSpec}, info);
+  }
+  // Anyway send change to QC
+  LOG(info) << "[PHOSBadMapCalibDevice - run] Sending QC ";
+  output.snapshot(o2::framework::Output{"PHS", "CALIBDIFF", 0, o2::framework::Lifetime::Timeframe}, mBadMapDiff);
+}
+
+bool PHOSBadMapCalibDevice::calculateBadMap()
+{
+  mBadMap = std::make_unique<BadChannelsMap>();
+
+  if (mMode == 0) { // occupancy
+    // --check if statistics is sufficient
+    // --prepare map of pairs (number of entries in cell, number of such cells)
+    // --sort according number of entries
+    // --remove pairs in the beginning and the end of the list till variation of mean becomes small
+    if (mMeanLow->Integral() < 1.e+4) {
+      LOG(error) << "Insufficient statistics: " << mMeanLow->Integral() << " entries in lowE histo, do nothing";
+      return false;
+    }
+
+    float nMean, nRMS;
+    calculateLimits(mMeanLow.get(), nMean, nRMS); // for low E occupamcy
+    float nMinLow = std::max(float(1.), nMean - 6 * nRMS);
+    float nMaxLow = nMean + 6 * nRMS;
+    LOG(info) << "Limits for low E histo: " << nMinLow << "<n<" << nMaxLow;
+    for (int i = 1; i <= mMeanLow->GetNbinsX(); i++) {
+      int c = mMeanLow->GetBinContent(i);
+      if (c < nMinLow || c > nMaxLow) {
+        mBadMap->addBadChannel(i + 1792);
+      }
+    }
+    calculateLimits(mMeanHigh.get(), nMean, nRMS); // for high
+    float nMinHigh = std::max(float(1.), nMean - 6 * nRMS);
+    float nMaxHigh = nMean + 6 * nRMS;
+    LOG(info) << "Limits for high E histo: " << nMinHigh << "<n<" << nMaxHigh;
+    for (int i = 1; i <= mMeanHigh->GetNbinsX(); i++) {
+      int c = mMeanHigh->GetBinContent(i);
+      if (c < nMinHigh || c > nMaxHigh) {
+        mBadMap->addBadChannel(i + 1792);
+      }
+    }
+  }
+
+  if (mMode == 1) { // chi2 distribution
+    if (mChi2norm->Integral() < 1.e+4) {
+      LOG(error) << "Insufficient statistics: " << mChi2norm->Integral() << " entries in chi2Norm histo, do nothing";
+      return false;
+    }
+    mChi2->Divide(mChi2norm.get());
+    float nMean, nRMS;
+    calculateLimits(mChi2.get(), nMean, nRMS); // for low E occupamcy
+    float nMinHigh = std::max(float(0.), nMean - 6 * nRMS);
+    float nMaxHigh = nMean + 6 * nRMS;
+    for (int i = 1; i <= mChi2->GetNbinsX(); i++) {
+      int c = mChi2->GetBinContent(i);
+      if (c < nMinHigh || c > nMaxHigh) {
+        mBadMap->addBadChannel(i + 1792);
+      }
+    }
+  } // Chi2
+
+  if (mMode == 2) { // Pedestals
+    if (mHGNorm->Integral() < 2.e+4) {
+      LOG(error) << "Insufficient statistics: " << mHGNorm->Integral() << " entries in mHGNorm histo, do nothing";
+      return false;
+    }
+    float nMean, nRMS;
+    mHGMean->Divide(mHGNorm.get());
+    calculateLimits(mHGMean.get(), nMean, nRMS); // mean HG pedestals
+    float nMinHigh = std::max(float(0.), nMean - 6 * nRMS);
+    float nMaxHigh = nMean + 6 * nRMS;
+    for (int i = 1; i <= mHGMean->GetNbinsX(); i++) {
+      int c = mHGMean->GetBinContent(i);
+      if (c < nMinHigh || c > nMaxHigh) {
+        mBadMap->addBadChannel(i + 1792);
+      }
+    }
+    mLGMean->Divide(mLGNorm.get());
+    calculateLimits(mLGMean.get(), nMean, nRMS); // for low E occupamcy
+    nMinHigh = std::max(float(0.), nMean - 6 * nRMS);
+    nMaxHigh = nMean + 6 * nRMS;
+    for (int i = 1; i <= mLGMean->GetNbinsX(); i++) {
+      int c = mLGMean->GetBinContent(i);
+      if (c < nMinHigh || c > nMaxHigh) {
+        mBadMap->addBadChannel(i + 1792);
+      }
+    }
+    mHGRMS->Divide(mHGNorm.get());
+    calculateLimits(mHGRMS.get(), nMean, nRMS); // mean HG pedestals
+    nMinHigh = std::max(float(0.), nMean - 6 * nRMS);
+    nMaxHigh = nMean + 6 * nRMS;
+    for (int i = 1; i <= mHGRMS->GetNbinsX(); i++) {
+      int c = mHGRMS->GetBinContent(i);
+      if (c < nMinHigh || c > nMaxHigh) {
+        mBadMap->addBadChannel(i + 1792);
+      }
+    }
+    mLGRMS->Divide(mHGNorm.get());
+    calculateLimits(mLGRMS.get(), nMean, nRMS); // for low E occupamcy
+    nMinHigh = std::max(float(0.), nMean - 6 * nRMS);
+    nMaxHigh = nMean + 6 * nRMS;
+    for (int i = 1; i <= mLGRMS->GetNbinsX(); i++) {
+      int c = mLGRMS->GetBinContent(i);
+      if (c < nMinHigh || c > nMaxHigh) {
+        mBadMap->addBadChannel(i + 1792);
+      }
+    }
+
+  } // Pedestals
+
+  return true;
+}
+void PHOSBadMapCalibDevice::calculateLimits(TH1F* tmp, float& nMean, float& nRMS)
+{
+
+  // --prepare map of pairs (number of entries in cell, number of such cells)
+  // --sort according number of entries
+  // --remove pairs in the beginning and the end of the list till variation of mean becomes small
+
+  std::map<short, int> histo{};
+  for (int i = 1; i <= tmp->GetNbinsX(); i++) {
+    int c = tmp->GetBinContent(i);
+    if (c > 0) {
+      histo[c] = histo[c] + 1;
+    }
+  }
+  float mean = 0, rms = 0, nTot = 0, maxN = 0.;
+  for (const auto& [n, nCells] : histo) {
+    mean += n * nCells;
+    rms += n * n * nCells;
+    nTot += nCells;
+    if (n > maxN) {
+      maxN = n;
+    }
+  }
+  const float eps = 0.05; // maximal variation of mean if remove outlyers
+  // now remove largest entries till mean remains almost the same
+  for (std::map<short, int>::reverse_iterator iter = histo.rbegin(); iter != histo.rend(); ++iter) {
+    float nextMean = mean - iter->first * iter->second;
+    float nextRMS = rms - iter->first * iter->first * iter->second;
+    float nextTot = nTot - iter->second;
+    if (nTot == 0. || nextTot == 0.) {
+      break;
+    }
+    if (mean / nTot - nextMean / nextTot > eps * mean / nTot) {
+      mean = nextMean;
+      rms = nextRMS;
+      nTot = nextTot;
+    } else { // converged
+      break;
+    }
+  }
+  // now remove smallest entries till mean remains almost the same
+  for (std::map<short, int>::iterator iter = histo.begin(); iter != histo.end(); ++iter) {
+    float nextMean = mean - iter->first * iter->second;
+    float nextRMS = rms - iter->first * iter->first * iter->second;
+    float nextTot = nTot - iter->second;
+    if (nTot == 0. || nextTot == 0.) {
+      break;
+    }
+    if (mean / nTot - nextMean / nextTot > eps * mean / nTot) {
+      mean = nextMean;
+      rms = nextRMS;
+      nTot = nextTot;
+    } else { // converged
+      break;
+    }
+  }
+  // Now we have stable mean. calculate limits
+  if (nTot > 0) {
+    nMean = mean / nTot;
+    rms /= nTot;
+    nRMS = rms - nMean * nMean;
+    if (rms > 0) {
+      nRMS = sqrt(nRMS);
+    } else {
+      nRMS = 0.;
+    }
+  } else {
+    nMean = 0.5 * maxN;
+    nRMS = 0.5 * maxN;
+  }
+}
+
+void PHOSBadMapCalibDevice::checkBadMap()
+{
+  if (!mUseCCDB) {
+    mUpdateCCDB = true;
+    return;
+  }
+  LOG(info) << "Retrieving current BadMap from CCDB";
+  // Read current pedestals for comparison
+  // Normally CCDB manager should get and own objects
+  auto& ccdbManager = o2::ccdb::BasicCCDBManager::instance();
+  ccdbManager.setURL(o2::base::NameConf::getCCDBServer());
+  LOG(info) << " set-up CCDB " << o2::base::NameConf::getCCDBServer();
+
+  std::string kind;
+  if (mMode == 0) { // Occupancy
+    kind = "PHS/BadMapOcc";
+  }
+  if (mMode == 1) { // Chi2
+    kind = "PHS/BadMapChi";
+  }
+  if (mMode == 2) { // Pedestals
+    kind = "PHS/BadMapPed";
+  }
+
+  BadChannelsMap* badMap = ccdbManager.get<o2::phos::BadChannelsMap>(kind);
+
+  if (!badMap) { // was not read from CCDB, but expected
+    mUpdateCCDB = true;
     return;
   }
 
-  std::string filename;
-  while (ifs >> filename) {
-    TFile f(filename.data(), "READ");
-    if (!f.IsOpen()) {
-      LOG(error) << "can not read file " << filename;
-      continue;
-    }
-    std::vector<uint32_t>* digits;
-    f.GetObject("Digits", digits);
+  LOG(info) << "Got current Pedestals from CCDB";
 
-    std::vector<uint32_t>::const_iterator digIt = digits->cbegin();
-    std::vector<uint32_t>::const_iterator digEnd = digits->cend();
-    Cluster clu;
-    bool isNextNewEvent;
-    mBuffer->startNewEvent(); // mark stored clusters to be used for Mixing
-    while (nextCluster(digIt, digEnd, clu, isNextNewEvent)) {
-
-      fillTimeMassHisto(clu);
-      if (isNextNewEvent) {
-        mBuffer->startNewEvent(); // mark stored clusters to be used for Mixing
-      }
-    }
-    delete digits;
-    f.Close();
-  }
-}
-
-bool PHOSCalibCollector::nextCluster(std::vector<uint32_t>::const_iterator digitIt, std::vector<uint32_t>::const_iterator digitEnd,
-                                     Cluster& clu, bool& isNextNewEvent)
-{
-  //Scan digits belonging to cluster
-  // return true if cluster read
-  isNextNewEvent = false;
-  clu.reset();
-  int cluIndex = -1;
-  while (digitIt != digitEnd) {
-    CalibDigit d = {*digitIt};
-    if (d.mAddress == 16383) {         //impossible address, marker of new event
-      if (clu.getMultiplicity() > 0) { //already read cluster: calculate its parameters; do not go into next event
-        isNextNewEvent = true;
-        break;
-      }
-      //If just started cluster, read new event. Two first words event header
-      EventHeader h = {*digitIt};
-      mEvBC = h.mBC; //current event BC
-      digitIt++;
-      mEvOrbit = *digitIt; //current event orbit
-      digitIt++;
-      continue;
-    }
-    if (cluIndex == -1) { //start new cluster
-      cluIndex = d.mCluster;
-    } else {
-      if (cluIndex != d.mCluster) { //digit belongs to text cluster: all digits from current read
-        break;
-      }
-    }
-    short absId = d.mAddress;
-    float energy = d.mAdcAmp * mCalibParams->getGain(absId);
-    if (!d.mHgLg) {
-      energy *= mCalibParams->getHGLGRatio(absId);
-    }
-    clu.addDigit(absId, energy, 0., 0, 1.);
-    digitIt++;
-  }
-  if (digitIt == digitEnd && clu.getMultiplicity() == 0) {
-    return false;
-  }
-  //Evaluate clu parameters
-  clu.purify();
-  clu.evalAll();
-  return true;
-}
-
-//Write
-void PHOSCalibCollector::writeOutputs()
-{
-  //Write digits only in first scan
-  if (mMode == 0) {
-    TFile fout(mdigitsfilename.data(), "recreate");
-    fout.WriteObjectAny(&mDigits, "std::vector<uint32_t", "Digits");
-    fout.Close();
-  }
-
-  // in all cases write inv mass distributions
-  TFile fHistoOut(mhistosfilename.data(), "recreate");
-  for (auto h : mHistos) {
-    h.Write();
-  }
-  fHistoOut.Close();
-}
-
-void PHOSCalibCollector::fillTimeMassHisto(const Cluster& clu)
-{
-  // // Fill time distributions only for cells in cluster
-  // if (mMode == 0) {
-  //   auto cluList = clu.getElementList();
-  //   for (auto ce = cluList->begin(); ce != cluList->end(); ce++) {
-  //     short absId = ce->absId;
-  //     if (ce->isHG) {
-  //       if (ce->energy > mEminHGTime) {
-  //         mHistos[kTimeHGPerCell].Fill(absId, ce->time);
-  //       }
-  //       mHistos[kTimeHGSlewing].Fill(ce->time, ce->energy);
-  //     } else {
-  //       if (ce->energy > mEminLGTime) {
-  //         mHistos[kTimeLGPerCell].Fill(absId, ce->time);
-  //       }
-  //       mHistos[kTimeLGSlewing].Fill(ce->time, ce->energy);
-  //     }
-  //   }
-  // }
-
-  //Real and Mixed inv mass distributions
-  // prepare TLorentsVector
-  float posX, posZ;
-  clu.getLocalPosition(posX, posZ);
-  TVector3 vec3;
-  mGeom->local2Global(clu.module(), posX, posZ, vec3);
-  vec3 -= mVertex;
-  float e = clu.getEnergy();
-  short absId;
-  mGeom->relPosToAbsId(clu.module(), posX, posZ, absId);
-
-  TLorentzVector v(vec3.X() * e, vec3.Y() * e, vec3.Z() * e, e);
-  // Fill calibration histograms for all cells, even bad, but partners in inv, mass should be good
-  bool isGood = checkCluster(clu);
-  for (short ip = mBuffer->size(); --ip;) {
-    const TLorentzVector& vp = mBuffer->getEntry(ip);
-    TLorentzVector sum = v + vp;
-    if (mBuffer->isCurrentEvent(ip)) { //same (real) event
-      if (isGood) {
-        mHistos[kReInvMassNonlin].Fill(e, sum.M());
-      }
-      if (sum.Pt() > mPtMin) {
-        mHistos[kReInvMassPerCell].Fill(absId, sum.M());
-      }
-    } else { //Mixed
-      if (isGood) {
-        mHistos[kMiInvMassNonlin].Fill(e, sum.M());
-      }
-      if (sum.Pt() > mPtMin) {
-        mHistos[kMiInvMassPerCell].Fill(absId, sum.M());
-      }
+  // Compare to current
+  int nChanged = 0;
+  for (short i = o2::phos::Mapping::NCHANNELS; i > 1792; i--) {
+    mBadMapDiff[i] = mBadMap->isChannelGood(i) - badMap->isChannelGood(i);
+    if (mBadMapDiff[i] != 0) {
+      nChanged++;
     }
   }
-
-  //Add to list ot partners only if cluster is good
-  if (isGood) {
-    mBuffer->addEntry(v);
+  LOG(info) << nChanged << " channels changed";
+  if (nChanged > kMinorChange) { // serious change, do not update CCDB automatically, use "force" option to overwrite
+    LOG(error) << "too many channels changed: " << nChanged;
+    if (!mForceUpdate) {
+      LOG(error) << "you may use --forceupdate option to force updating ccdb";
+    }
+    mUpdateCCDB = false;
+  } else {
+    mUpdateCCDB = true;
   }
 }
 
-bool PHOSCalibCollector::checkCluster(const Cluster& clu)
+o2::framework::DataProcessorSpec o2::phos::getBadMapCalibSpec(int mode)
 {
-  //First check BadMap
-  float posX, posZ;
-  clu.getLocalPosition(posX, posZ);
-  short absId;
-  Geometry::relPosToAbsId(clu.module(), posX, posZ, absId);
-  if (!mBadMap->isChannelGood(absId)) {
-    return false;
-  }
-
-  return (clu.getEnergy() > 0.3 && clu.getMultiplicity() > 1);
-}
-
-void PHOSCalibCollector::endOfStream(o2::framework::EndOfStreamContext& ec)
-{
-  //Write Filledhistograms and estimate mean number of entries
-  switch (mMode) {
-    case 0: // Read new data
-      writeOutputs();
-      break;
-    case 1: // Read and re-calibrate stored trees
-      writeOutputs();
-      break;
-    case 2: //Calculate calibration from stored histograms
-      // do nothing, already sent
-      break;
-  }
-}
-
-void PHOSCalibCollector::sendOutput(DataAllocator& output)
-{
-  // If calibration OK, send calibration to CCDB
-  // and difference to last iteration to QC
-  //....
-}
-
-o2::framework::DataProcessorSpec o2::phos::getPHOSCalibCollectorDeviceSpec(int mode)
-{
-
-  std::vector<OutputSpec> outputs;
-  if (mode == 2) { //fit of inv masses: gain calculation: send to CCDB and QC
-    outputs.emplace_back(o2::header::gDataOriginPHS, "COLLECTEDINFO", 0, Lifetime::Timeframe);
-    outputs.emplace_back(o2::header::gDataOriginPHS, "ENTRIESCH", 0, Lifetime::Timeframe);
-  }
 
   std::vector<InputSpec> inputs;
   if (mode == 0) {
-    inputs.emplace_back("clusters", "PHS", "CLUSTERS");
-    inputs.emplace_back("cluTR", "PHS", "CLUSTERTRIGRECS");
+    inputs.emplace_back("cells", ConcreteDataTypeMatcher{o2::header::gDataOriginPHS, "CELLS"}, o2::framework::Lifetime::Timeframe);
+  }
+  if (mode == 1) {
+    inputs.emplace_back("fitqa", ConcreteDataTypeMatcher{o2::header::gDataOriginPHS, "CELLFITQA"}, o2::framework::Lifetime::Timeframe);
+  }
+  if (mode == 2) {
+    inputs.emplace_back("cells", ConcreteDataTypeMatcher{o2::header::gDataOriginPHS, "CELLS"}, o2::framework::Lifetime::Timeframe);
   }
 
-  return DataProcessorSpec{
-    "calib-phoscalib-collector",
-    inputs,
-    outputs,
-    AlgorithmSpec{adaptFromTask<PHOSCalibCollector>(mode)},
-    Options{
-      {"inputFileList", VariantType::String, "./calibDigits.txt", {"File with list of digit files to be scanned"}},
-      {"outputDigitDir", VariantType::String, "./", {"directory to write filtered Digits"}},
-      {"outputHistoDir", VariantType::String, "./", {"directory to write inv. mass histograms"}},
-      {"forceCCDBUpdate", VariantType::Bool, false, {"force updating CCDB bypassing quality check"}}}};
+  using clbUtils = o2::calibration::Utils;
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back(o2::header::gDataOriginPHS, "CALIBDIFF", 0, o2::framework::Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHS_BadMap"}, o2::framework::Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHS_BadMap"}, o2::framework::Lifetime::Sporadic);
+  return o2::framework::DataProcessorSpec{"BadMapCalibSpec",
+                                          inputs,
+                                          outputs,
+                                          o2::framework::adaptFromTask<PHOSBadMapCalibDevice>(mode),
+                                          o2::framework::Options{
+                                            {"ElowMin", o2::framework::VariantType::Int, 100, {"Low E minimum in ADC counts"}},
+                                            {"ElowMax", o2::framework::VariantType::Int, 200, {"Low E maximum in ADC counts"}},
+                                            {"EhighMin", o2::framework::VariantType::Int, 400, {"Low E minimum in ADC counts"}},
+                                            {"EhighMax", o2::framework::VariantType::Int, 900, {"Low E maximum in ADC counts"}}}};
 }

@@ -178,6 +178,7 @@ AddOption(calibObjectsExtraMemorySize, unsigned long, 10ul * 1024 * 1024, "", 0,
 AddOption(useInternalO2Propagator, bool, false, "", 0, "Uses an internal (in GPUChainTracking) version of o2::Propagator, which internal b-field, matlut, etc.")
 AddOption(internalO2PropagatorGPUField, bool, true, "", 0, "Makes the internal O2 propagator use the fast GPU polynomial b field approximation")
 AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayFrontend*, nullptr)
+AddVariable(eventDisplayRenderer, const char*, "opengl")
 AddSubConfig(GPUSettingsProcessingRTC, rtc)
 AddHelp("help", 'h')
 EndConfig()
@@ -249,7 +250,7 @@ AddOption(maximized, bool, false, "", 0, "Full Screen")
 AddOption(openGLCore, bool, false, "", 0, "Use renderer path for OpenGL core profile")
 AddOption(drawQualityMSAA, int, 0, "", 0, "MultiSample Anti Aliasing")
 AddOption(drawQualityDownsampleFSAA, int, 0, "", 0, "Downsampling Anti Aliasing")
-AddOption(drawQualityVSync, bool, false, "", 0, "Enable Vertical Sync")
+AddOption(drawQualityVSync, bool, true, "", 0, "Enable Vertical Sync")
 AddOption(maxFPSRate, int, 0, "", 0, "Do not limit FPS but run at maximum possible rate")
 AddOption(useGLIndirectDraw, bool, true, "", 0, "Use OpenGL indirect draws to reduce number of draw calls")
 AddOption(screenshotScaleFactor, int, 1, "", 0, "Resolution scale factor when taking screenshots")
@@ -260,6 +261,10 @@ EndConfig()
 // Settings concerning the event display (fixed settings, cannot be changed)
 BeginSubConfig(GPUSettingsDisplay, display, configStandalone, "GL", 'g', "OpenGL display settings", display)
 AddOption(showTPCTracksFromO2Format, bool, false, "", 0, "Use TPC tracks in O2 output format instead of GPU format")
+AddOption(font, std::string, "monospace", "", 0, "Font (search patter used for Fontconfig)")
+AddOption(fontSize, int, 14, "", 0, "Font size")
+AddOption(smoothFont, int, -1, "", 0, "Smoth font when rendering (-1 for auto-select based on size")
+AddOption(noFreetype, bool, false, "", 0, "Do not use Freetype for font rendering (can only draw text if supported by frontend)")
 AddOptionVec(filterMacros, std::string, "", 0, "ROOT macros used as track filter")
 AddSubConfig(GPUSettingsDisplayLight, light)
 AddSubConfig(GPUSettingsDisplayHeavy, heavy)
@@ -355,6 +360,7 @@ AddOption(runs2, int, 1, "runsExternal", 0, "Number of iterations to perform (re
 AddOption(runsInit, int, 1, "", 0, "Number of initial iterations excluded from average", min(0))
 AddOption(eventsDir, const char*, "pp", "events", 'e', "Directory with events to process", message("Reading events from Directory events/%s"))
 AddOption(eventDisplay, int, 0, "display", 'd', "Show standalone event display", def(1)) //1: default display (Windows / X11), 2: glut, 3: glfw
+AddOption(displayRenderer, std::string, "opengl", "renderer", 0, "Renderer for event display: opengl | vulkan")
 AddOption(eventGenerator, bool, false, "", 0, "Run event generator")
 AddOption(cont, bool, false, "", 0, "Process continuous timeframe data")
 AddOption(outputcontrolmem, unsigned long, 0, "outputMemory", 0, "Use predefined output buffer of this size", min(0ul), message("Using %s bytes as output memory"))
@@ -446,4 +452,5 @@ EndConfig()
 EndNamespace() // gpu
 EndNamespace() // GPUCA_NAMESPACE
 #endif // #ifdef BeginNamespace
+
   // clang-format on

@@ -21,6 +21,13 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <stdexcept>
+#include <chrono>
+
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_xlib.h>
+#endif
 
 typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
 
@@ -151,19 +158,21 @@ void GPUDisplayFrontendX11::GetKey(XEvent& event, int& keyOut, int& keyPressOut)
 void GPUDisplayFrontendX11::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
 {
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (!fromBotton) {
-    y = mDisplayHeight - y;
-  }
-  glColor4f(r, g, b, a);
-  glRasterPos2f(x, y);
-  if (!glIsList(mFontBase)) {
-    GPUError("print string: Bad display list.");
-    exit(1);
-  } else if (s && strlen(s)) {
-    glPushAttrib(GL_LIST_BIT);
-    glListBase(mFontBase);
-    glCallLists(strlen(s), GL_UNSIGNED_BYTE, (GLubyte*)s);
-    glPopAttrib();
+  if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
+    if (!fromBotton) {
+      y = mDisplayHeight - y;
+    }
+    glColor4f(r, g, b, a);
+    glRasterPos2f(x, y);
+    if (!glIsList(mFontBase)) {
+      GPUError("print string: Bad display list.");
+      exit(1);
+    } else if (s && strlen(s)) {
+      glPushAttrib(GL_LIST_BIT);
+      glListBase(mFontBase);
+      glCallLists(strlen(s), GL_UNSIGNED_BYTE, (GLubyte*)s);
+      glPopAttrib();
+    }
   }
 #endif
 }
@@ -174,7 +183,7 @@ int GPUDisplayFrontendX11::FrontendMain()
   XVisualInfo* visualInfo = nullptr;
   XEvent event;
   Colormap colorMap;
-  GLXContext glxContext;
+  GLXContext glxContext = 0;
   int errorBase;
   int eventBase;
 
@@ -202,8 +211,8 @@ int GPUDisplayFrontendX11::FrontendMain()
 
   // Require MSAA, double buffering, and Depth buffer
   int attribs[] = {GLX_X_RENDERABLE, True, GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT, GLX_RENDER_TYPE, GLX_RGBA_BIT, GLX_X_VISUAL_TYPE, GLX_TRUE_COLOR, GLX_RED_SIZE, 8, GLX_GREEN_SIZE, 8, GLX_BLUE_SIZE, 8, GLX_ALPHA_SIZE, 8, GLX_DEPTH_SIZE, 24, GLX_STENCIL_SIZE, 8, GLX_DOUBLEBUFFER, True,
-                   //		GLX_SAMPLE_BUFFERS  , 1, //Disable MSAA here, we do it by rendering to offscreenbuffer
-                   //		GLX_SAMPLES         , MSAA_SAMPLES,
+                   // GLX_SAMPLE_BUFFERS  , 1, //Disable MSAA here, we do it by rendering to offscreenbuffer
+                   // GLX_SAMPLES         , MSAA_SAMPLES,
                    None};
 
   GLXFBConfig fbconfig = nullptr;
@@ -222,21 +231,23 @@ int GPUDisplayFrontendX11::FrontendMain()
     return (-1);
   }
 
-  // Create an OpenGL rendering context
-  glXCreateContextAttribsARBProc glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc)glXGetProcAddressARB((const GLubyte*)"glXCreateContextAttribsARB");
-  if (glXCreateContextAttribsARB) {
-    int context_attribs[] = {
-      GLX_CONTEXT_MAJOR_VERSION_ARB, GL_MIN_VERSION_MAJOR,
-      GLX_CONTEXT_MINOR_VERSION_ARB, GL_MIN_VERSION_MINOR,
-      GLX_CONTEXT_PROFILE_MASK_ARB, mBackend->CoreProfile() ? GLX_CONTEXT_CORE_PROFILE_BIT_ARB : GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
-      None};
-    glxContext = glXCreateContextAttribsARB(mDisplay, fbconfig, nullptr, GL_TRUE, context_attribs);
-  } else {
-    glxContext = glXCreateContext(mDisplay, visualInfo, nullptr, GL_TRUE);
-  }
-  if (glxContext == nullptr) {
-    GPUError("could not create rendering context");
-    return (-1);
+  if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
+    // Create an OpenGL rendering context
+    glXCreateContextAttribsARBProc glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc)glXGetProcAddressARB((const GLubyte*)"glXCreateContextAttribsARB");
+    if (glXCreateContextAttribsARB) {
+      int context_attribs[] = {
+        GLX_CONTEXT_MAJOR_VERSION_ARB, GL_MIN_VERSION_MAJOR,
+        GLX_CONTEXT_MINOR_VERSION_ARB, GL_MIN_VERSION_MINOR,
+        GLX_CONTEXT_PROFILE_MASK_ARB, mBackend->CoreProfile() ? GLX_CONTEXT_CORE_PROFILE_BIT_ARB : GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
+        None};
+      glxContext = glXCreateContextAttribsARB(mDisplay, fbconfig, nullptr, GL_TRUE, context_attribs);
+    } else {
+      glxContext = glXCreateContext(mDisplay, visualInfo, nullptr, GL_TRUE);
+    }
+    if (glxContext == nullptr) {
+      GPUError("could not create rendering context");
+      return (-1);
+    }
   }
 
   Window win = RootWindow(mDisplay, visualInfo->screen);
@@ -249,7 +260,9 @@ int GPUDisplayFrontendX11::FrontendMain()
   mWindow = XCreateWindow(mDisplay, win, 50, 50, INIT_WIDTH, INIT_HEIGHT, // Position / Width and height of window
                           0, visualInfo->depth, InputOutput, visualInfo->visual, CWBorderPixel | CWColormap | CWEventMask, &windowAttributes);
   XSetStandardProperties(mDisplay, mWindow, GL_WINDOW_NAME, GL_WINDOW_NAME, None, nullptr, 0, nullptr);
-  glXMakeCurrent(mDisplay, mWindow, glxContext);
+  if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
+    glXMakeCurrent(mDisplay, mWindow, glxContext);
+  }
   XMapWindow(mDisplay, mWindow);
 
   // Maximize window
@@ -259,27 +272,33 @@ int GPUDisplayFrontendX11::FrontendMain()
   Atom WM_DELETE_WINDOW = XInternAtom(mDisplay, "WM_DELETE_WINDOW", False);
   XSetWMProtocols(mDisplay, mWindow, &WM_DELETE_WINDOW, 1);
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
-  // Prepare fonts
-  mFontBase = glGenLists(256);
-  if (!glIsList(mFontBase)) {
-    GPUError("Out of display lists.");
-    return (-1);
+  XFontStruct* font_info = nullptr;
+  if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
+    // Prepare fonts
+    mFontBase = glGenLists(256);
+    if (!glIsList(mFontBase)) {
+      GPUError("Out of display lists.");
+      return (-1);
+    }
+    const char* f = "fixed";
+    font_info = XLoadQueryFont(mDisplay, f);
+    if (!font_info) {
+      GPUError("XLoadQueryFont failed.");
+      return (-1);
+    } else {
+      int first = font_info->min_char_or_byte2;
+      int last = font_info->max_char_or_byte2;
+      glXUseXFont(font_info->fid, first, last - first + 1, mFontBase + first);
+    }
   }
-  const char* f = "fixed";
-  XFontStruct* font_info = XLoadQueryFont(mDisplay, f);
-  if (!font_info) {
-    GPUError("XLoadQueryFont failed.");
-    return (-1);
-  } else {
-    int first = font_info->min_char_or_byte2;
-    int last = font_info->max_char_or_byte2;
-    glXUseXFont(font_info->fid, first, last - first + 1, mFontBase + first);
+  mCanDrawText = 1;
+  if (drawTextFontSize() == 0) {
+    drawTextFontSize() = 12;
   }
 #endif
 
-  // Init OpenGL...
   if (mBackend->ExtInit()) {
-    fprintf(stderr, "Error initializing GL extension wrapper\n");
+    fprintf(stderr, "Error initializing backend\n");
     return (-1);
   }
 
@@ -288,13 +307,13 @@ int GPUDisplayFrontendX11::FrontendMain()
   int x11_fd = ConnectionNumber(mDisplay);
 
   // Enable vsync
-  if (vsync_supported) {
+  if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL && vsync_supported) {
     mGlXSwapIntervalEXT = (PFNGLXSWAPINTERVALEXTPROC)glXGetProcAddressARB((const GLubyte*)"glXSwapIntervalEXT");
     if (mGlXSwapIntervalEXT == nullptr) {
       GPUError("Cannot enable vsync");
       return (-1);
     }
-    mGlXSwapIntervalEXT(mDisplay, glXGetCurrentDrawable(), 0);
+    mGlXSwapIntervalEXT(mDisplay, glXGetCurrentDrawable(), 1);
   }
 
   if (InitDisplay()) {
@@ -305,6 +324,7 @@ int GPUDisplayFrontendX11::FrontendMain()
   mDisplayRunning = true;
   pthread_mutex_unlock(&mSemLockExit);
 
+  std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
   while (1) {
     int num_ready_fds;
     struct timeval tv;
@@ -315,7 +335,10 @@ int GPUDisplayFrontendX11::FrontendMain()
       FD_SET(x11_fd, &in_fds);
       tv.tv_usec = 10000;
       tv.tv_sec = 0;
-      num_ready_fds = mMaxFPSRate || XPending(mDisplay) || select(x11_fd + 1, &in_fds, nullptr, nullptr, &tv);
+      std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+      bool allowMax = mMaxFPSRate && std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count() < 0.01;
+      t1 = t2;
+      num_ready_fds = allowMax || XPending(mDisplay) || select(x11_fd + 1, &in_fds, nullptr, nullptr, &tv);
       if (num_ready_fds < 0) {
         GPUError("Error (num_ready_fds)");
       }
@@ -398,7 +421,7 @@ int GPUDisplayFrontendX11::FrontendMain()
         }
 
         case ConfigureNotify: {
-          ReSizeGLScene(event.xconfigure.width, event.xconfigure.height);
+          ResizeScene(event.xconfigure.width, event.xconfigure.height);
           break;
         }
 
@@ -417,15 +440,21 @@ int GPUDisplayFrontendX11::FrontendMain()
     }
 
     DrawGLScene();
-    glXSwapBuffers(mDisplay, mWindow); // Buffer swap does implicit glFlush
+    if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
+      glXSwapBuffers(mDisplay, mWindow);
+    }
   }
 
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
-  glDeleteLists(mFontBase, 256);
-  XUnloadFont(mDisplay, font_info->fid);
+  if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
+    glDeleteLists(mFontBase, 256);
+    XUnloadFont(mDisplay, font_info->fid);
+  }
 #endif
   ExitDisplay();
-  glXDestroyContext(mDisplay, glxContext);
+  if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
+    glXDestroyContext(mDisplay, glxContext);
+  }
   XFree(visualInfo);
   XDestroyWindow(mDisplay, mWindow);
   XCloseDisplay(mDisplay);
@@ -479,7 +508,7 @@ void GPUDisplayFrontendX11::ToggleMaximized(bool set)
 
 void GPUDisplayFrontendX11::SetVSync(bool enable)
 {
-  if (vsync_supported) {
+  if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL && vsync_supported) {
     mGlXSwapIntervalEXT(mDisplay, glXGetCurrentDrawable(), (int)enable);
   }
 }
@@ -488,8 +517,41 @@ int GPUDisplayFrontendX11::StartDisplay()
 {
   static pthread_t hThread;
   if (pthread_create(&hThread, nullptr, FrontendThreadWrapper, this)) {
-    GPUError("Coult not Create GL Thread...");
+    GPUError("Coult not Create frontend Thread...");
     return (1);
   }
   return (0);
+}
+
+void GPUDisplayFrontendX11::getSize(int& width, int& height)
+{
+  Window root_return;
+  int x_return, y_return;
+  unsigned int width_return, height_return, border_width_return, depth_return;
+  if (XGetGeometry(mDisplay, mWindow, &root_return, &x_return, &y_return, &width_return, &height_return, &border_width_return, &depth_return) == 0) {
+    throw std::runtime_error("Cannot query X11 window geometry");
+  }
+  width = width_return;
+  height = height_return;
+}
+
+int GPUDisplayFrontendX11::getVulkanSurface(void* instance, void* surface)
+{
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
+  VkXlibSurfaceCreateInfoKHR info{};
+  info.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
+  info.flags = 0;
+  info.dpy = mDisplay;
+  info.window = mWindow;
+  return vkCreateXlibSurfaceKHR(*(VkInstance*)instance, &info, nullptr, (VkSurfaceKHR*)surface) != VK_SUCCESS;
+#else
+  return 1;
+#endif
+}
+
+unsigned int GPUDisplayFrontendX11::getReqVulkanExtensions(const char**& p)
+{
+  static const char* exts[] = {"VK_KHR_surface", "VK_KHR_xlib_surface"};
+  p = exts;
+  return 2;
 }

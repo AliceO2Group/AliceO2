@@ -20,6 +20,7 @@
 #include "CommonUtils/MemFileHelper.h"
 #include "MemoryResources/MemoryResources.h"
 #include <chrono>
+#include <memory>
 #include <sstream>
 #include <TFile.h>
 #include <TGrid.h>
@@ -41,9 +42,7 @@
 #include <regex>
 #include <cstdio>
 
-namespace o2
-{
-namespace ccdb
+namespace o2::ccdb
 {
 
 using namespace std;
@@ -60,7 +59,7 @@ void CcdbApi::curlInit()
 {
   // todo : are there other things to initialize globally for curl ?
   curl_global_init(CURL_GLOBAL_DEFAULT);
-  CcdbApi::mJAlienCredentials.reset(new TJAlienCredentials());
+  CcdbApi::mJAlienCredentials = std::make_unique<TJAlienCredentials>();
   CcdbApi::mJAlienCredentials->loadCredentials();
   CcdbApi::mJAlienCredentials->selectPreferedCredentials();
 }
@@ -188,7 +187,7 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
 
     CURLcode res = CURL_LAST;
 
-    for (int hostIndex = 0; hostIndex < hostsPool.size() && res > 0; hostIndex++) {
+    for (size_t hostIndex = 0; hostIndex < hostsPool.size() && res > 0; hostIndex++) {
       string fullUrl = getFullUrlForStorage(curl, path, objectType, metadata, sanitizedStartValidityTimestamp, sanitizedEndValidityTimestamp, hostIndex);
       LOG(debug3) << "Full URL Encoded: " << fullUrl;
       /* what URL that receives this POST */
@@ -348,7 +347,7 @@ static size_t WriteToFileCallback(void* ptr, size_t size, size_t nmemb, FILE* st
  * @param parm
  * @return
  */
-static CURLcode ssl_ctx_callback(CURL* curl, void* ssl_ctx, void* parm)
+static CURLcode ssl_ctx_callback(CURL*, void*, void* parm)
 {
   std::string msg((const char*)parm);
   int start = 0, end = msg.find('\n');
@@ -391,7 +390,7 @@ void CcdbApi::curlSetSSLOptions(CURL* curl_handle)
   // CURLcode ret = curl_easy_setopt(curl_handle, CURLOPT_SSL_CTX_FUNCTION, *ssl_ctx_callback);
 }
 
-typedef size_t (*CurlWriteCallback)(void*, size_t, size_t, void*);
+using CurlWriteCallback = size_t (*)(void*, size_t, size_t, void*);
 
 void CcdbApi::initCurlOptionsForRetrieve(CURL* curlHandle, void* chunk, CurlWriteCallback writeCallback, bool followRedirect) const
 {
@@ -476,7 +475,7 @@ bool CcdbApi::receiveObject(void* dataHolder, std::string const& path, std::map<
     long responseCode = 0;
     CURLcode curlResultCode = CURL_LAST;
 
-    for (int hostIndex = 0; hostIndex < hostsPool.size() && (responseCode >= 400 || curlResultCode > 0); hostIndex++) {
+    for (size_t hostIndex = 0; hostIndex < hostsPool.size() && (responseCode >= 400 || curlResultCode > 0); hostIndex++) {
       string fullUrl = getFullUrlForRetrieval(curlHandle, path, metadata, timestamp, hostIndex);
       curl_easy_setopt(curlHandle, CURLOPT_URL, fullUrl.c_str());
 
@@ -537,6 +536,7 @@ std::string CcdbApi::generateFileName(const std::string& inp)
 {
   // generate file name for the CCDB object  (for now augment the input string by the timestamp)
   std::string str = inp;
+  str.erase(std::remove_if(str.begin(), str.end(), ::isspace), str.end());
   str += "_" + std::to_string(o2::ccdb::getCurrentTimestamp()) + ".root";
   return str;
 }
@@ -553,7 +553,7 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
 {
 
   // we setup the target path for this blob
-  std::string fulltargetdir = targetdir + '/' + (preservePath ? path : "");
+  std::string fulltargetdir = targetdir + (preservePath ? ('/' + path) : "");
 
   if (!std::filesystem::exists(fulltargetdir)) {
     if (!std::filesystem::create_directories(fulltargetdir)) {
@@ -585,7 +585,7 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
   bool onAlien = location.find("alien:") != std::string::npos;
 
   // determine local filename --> use user given one / default -- or if empty string determine from content
-  auto getFileName = [&headers, &path]() {
+  auto getFileName = [&headers]() {
     auto& s = headers["Content-Disposition"];
     if (s != "") {
       std::regex re("(.*;)filename=\"(.*)\"");
@@ -642,7 +642,7 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
 
     curlSetSSLOptions(curl_handle);
 
-    for (int i = 0; i < hostsPool.size() && res > 0 && response_code >= 400; i++) {
+    for (size_t i = 0; i < hostsPool.size() && res > 0 && response_code >= 400; i++) {
       // we can construct download URL direclty from the headers obtained above
       string fullUrl = getHostUrl(i) + "/download/" + ETag; // getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
 
@@ -652,7 +652,6 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
       /* get it! */
       res = curl_easy_perform(curl_handle);
 
-      void* result = nullptr;
       success = true;
       if (res == CURLE_OK) {
         res = curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
@@ -867,7 +866,6 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
   long response_code = -1;
   void* content = nullptr;
   bool errorflag = false;
-  bool cachingflag = false;
   if (res == CURLE_OK && curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code) == CURLE_OK) {
     if (headers) {
       for (auto& p : headerData) {
@@ -882,7 +880,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
       // it since it's already in your possession
 
       // there is nothing to be done here
-      cachingflag = true;
+      LOGP(debug, "Object exists but I am not serving it since it's already in your possession");
     }
     // this is a more general redirection
     else if (300 <= response_code && response_code < 400) {
@@ -956,10 +954,13 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
   // many isolated processes, all querying the CCDB (for potentially the same objects and same timestamp).
   // In addition, we can monitor exactly which objects are fetched and what is their content.
   // One can also distribute so obtained caches to sites without network access.
-  auto cachedir = getenv("ALICEO2_CCDB_LOCALCACHE");
+  const char* cachedir = getenv("ALICEO2_CCDB_LOCALCACHE");
+  const char* cwd = ".";
   if (cachedir) {
+    if (cachedir[0] == 0) {
+      cachedir = cwd;
+    }
     // protect this sensitive section by a multi-process named semaphore
-    bool use_sema = false;
     boost::interprocess::named_semaphore* sem = nullptr;
     std::hash<std::string> hasher;
     const auto semhashedstring = "aliceccdb" + std::to_string(hasher(std::string(cachedir) + path)).substr(0, 16);
@@ -1014,7 +1015,7 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
   initHeadersForRetrieve(curl_handle, timestamp, headers, etag, createdNotAfter, createdNotBefore);
   auto content = navigateURLsAndRetrieveContent(curl_handle, fullUrl, tinfo, headers);
 
-  for (int hostIndex = 1; hostIndex < hostsPool.size() && !(content); hostIndex++) {
+  for (size_t hostIndex = 1; hostIndex < hostsPool.size() && !(content); hostIndex++) {
     fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp, hostIndex);
     content = navigateURLsAndRetrieveContent(curl_handle, fullUrl, tinfo, headers);
   }
@@ -1058,7 +1059,7 @@ std::string CcdbApi::list(std::string const& path, bool latestOnly, std::string 
 
     string fullUrl;
     // Perform the request, res will get the return code
-    for (int hostIndex = 0; hostIndex < hostsPool.size() && res != CURLE_OK; hostIndex++) {
+    for (size_t hostIndex = 0; hostIndex < hostsPool.size() && res != CURLE_OK; hostIndex++) {
       fullUrl = getHostUrl(hostIndex);
       fullUrl += latestOnly ? "/latest/" : "/browse/";
       fullUrl += path;
@@ -1095,7 +1096,7 @@ void CcdbApi::deleteObject(std::string const& path, long timestamp) const
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
     curlSetSSLOptions(curl);
 
-    for (int hostIndex = 0; hostIndex < hostsPool.size(); hostIndex++) {
+    for (size_t hostIndex = 0; hostIndex < hostsPool.size(); hostIndex++) {
       fullUrl << getHostUrl(hostIndex) << "/" << path << "/" << timestampLocal;
       curl_easy_setopt(curl, CURLOPT_URL, fullUrl.str().c_str());
 
@@ -1114,7 +1115,7 @@ void CcdbApi::truncate(std::string const& path) const
   CURL* curl;
   CURLcode res;
   stringstream fullUrl;
-  for (int i = 0; i < hostsPool.size(); i++) {
+  for (size_t i = 0; i < hostsPool.size(); i++) {
     string url = getHostUrl(i);
     fullUrl << url << "/truncate/" << path;
 
@@ -1134,7 +1135,7 @@ void CcdbApi::truncate(std::string const& path) const
   }
 }
 
-size_t write_data(void* buffer, size_t size, size_t nmemb, void* userp)
+size_t write_data(void*, size_t size, size_t nmemb, void*)
 {
   return size * nmemb;
 }
@@ -1147,7 +1148,7 @@ bool CcdbApi::isHostReachable() const
 
   curl = curl_easy_init();
   if (curl) {
-    for (int hostIndex = 0; hostIndex < hostsPool.size() && res != CURLE_OK; hostIndex++) {
+    for (size_t hostIndex = 0; hostIndex < hostsPool.size() && res != CURLE_OK; hostIndex++) {
       curl_easy_setopt(curl, CURLOPT_URL, mUrl.data());
       curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
       curlSetSSLOptions(curl);
@@ -1172,8 +1173,7 @@ std::vector<std::string> CcdbApi::parseSubFolders(std::string const& reply) cons
   size_t numberoflines = std::count(reply.begin(), reply.end(), '\n');
   bool inSubFolderSection = false;
 
-  int counter = 0;
-  for (int linenumber = 0; linenumber < numberoflines; ++linenumber) {
+  for (size_t linenumber = 0; linenumber < numberoflines; ++linenumber) {
     std::getline(ss, line);
     if (inSubFolderSection && line.size() > 0) {
       // remove all white space
@@ -1191,7 +1191,7 @@ namespace
 {
 size_t header_callback(char* buffer, size_t size, size_t nitems, void* userdata)
 {
-  std::vector<std::string>* headers = static_cast<std::vector<std::string>*>(userdata);
+  auto* headers = static_cast<std::vector<std::string>*>(userdata);
   auto header = std::string(buffer, size * nitems);
   headers->emplace_back(std::string(header.data()));
   return size * nitems;
@@ -1223,7 +1223,7 @@ std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& p
 
     long httpCode = 404;
     CURLcode getCodeRes = CURL_LAST;
-    for (int hostIndex = 0; hostIndex < hostsPool.size() && (httpCode >= 400 || res > 0 || getCodeRes > 0); hostIndex++) {
+    for (size_t hostIndex = 0; hostIndex < hostsPool.size() && (httpCode >= 400 || res > 0 || getCodeRes > 0); hostIndex++) {
       curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
       res = curl_easy_perform(curl);
       if (res != CURLE_OK && res != CURLE_UNSUPPORTED_PROTOCOL) {
@@ -1352,7 +1352,7 @@ void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std:
   if (curl != nullptr) {
     CURLcode res;
     stringstream fullUrl;
-    for (int hostIndex = 0; hostIndex < hostsPool.size(); hostIndex++) {
+    for (size_t hostIndex = 0; hostIndex < hostsPool.size(); hostIndex++) {
       fullUrl << getHostUrl(hostIndex) << "/" << path << "/" << timestamp;
       if (!id.empty()) {
         fullUrl << "/" << id;
@@ -1394,7 +1394,7 @@ std::vector<std::string> CcdbApi::splitString(std::string string, const char* de
   strcpy(stringForStrTok, string.c_str());
   char* token = strtok(stringForStrTok, delimiters);
   while (token != nullptr) {
-    tokens.push_back(token);
+    tokens.emplace_back(token);
     token = strtok(nullptr, delimiters);
   }
   free(stringForStrTok);
@@ -1423,10 +1423,13 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
   // many isolated processes, all querying the CCDB (for potentially the same objects and same timestamp).
   // In addition, we can monitor exactly which objects are fetched and what is their content.
   // One can also distribute so obtained caches to sites without network access.
-  auto cachedir = getenv("ALICEO2_CCDB_LOCALCACHE");
+  const char* cachedir = getenv("ALICEO2_CCDB_LOCALCACHE");
+  const char* cwd = ".";
   if (cachedir) {
+    if (cachedir[0] == 0) {
+      cachedir = cwd;
+    }
     // protect this sensitive section by a multi-process named semaphore
-    bool use_sema = false;
     boost::interprocess::named_semaphore* sem = nullptr;
     std::hash<std::string> hasher;
     const auto semhashedstring = "aliceccdb" + std::to_string(hasher(std::string(cachedir) + path)).substr(0, 16);
@@ -1482,7 +1485,7 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
 
   navigateURLsAndLoadFileToMemory(dest, curl_handle, fullUrl, headers);
 
-  for (int hostIndex = 1; hostIndex < hostsPool.size() && isMemoryFileInvalid(dest); hostIndex++) {
+  for (size_t hostIndex = 1; hostIndex < hostsPool.size() && isMemoryFileInvalid(dest); hostIndex++) {
     fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp, hostIndex);
     loadFileToMemory(dest, fullUrl, headers);
   }
@@ -1534,7 +1537,6 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
 
   auto res = curl_easy_perform(curl_handle);
   long response_code = -1;
-  bool cachingflag = false;
   if (res == CURLE_OK && curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code) == CURLE_OK) {
     if (headers) {
       for (auto& p : headerData) {
@@ -1544,10 +1546,7 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
     if (200 <= response_code && response_code < 300) {
       // good response and the content is directly provided and should have been dumped into "chunk"
     } else if (response_code == 304) {
-      // this means the object exist but I am not serving
-      // it since it's already in your possession
-      // there is nothing to be done here
-      cachingflag = true;
+      LOGP(debug, "Object exists but I am not serving it since it's already in your possession");
     }
     // this is a more general redirection
     else if (300 <= response_code && response_code < 400) {
@@ -1658,9 +1657,11 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, const std::string& p
       *localHeaders = *storedmeta; // do a simple deep copy
       delete storedmeta;
     }
+    if (isSnapshotMode()) { // generate dummy ETag to profit from the caching
+      (*localHeaders)["ETag"] = path;
+    }
   }
   return;
 }
 
-} // namespace ccdb
 } // namespace o2

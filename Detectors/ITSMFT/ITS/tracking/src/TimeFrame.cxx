@@ -114,7 +114,7 @@ int TimeFrame::loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const
   return clusters_in_frame.size();
 }
 
-int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
+int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary* dict, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
@@ -129,17 +129,17 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs, gsl::span<
     o2::math_utils::Point3D<float> locXYZ;
     float sigmaY2 = DefClusError2Row, sigmaZ2 = DefClusError2Col, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
-      sigmaY2 = dict.getErr2X(pattID);
-      sigmaZ2 = dict.getErr2Z(pattID);
-      if (!dict.isGroup(pattID)) {
-        locXYZ = dict.getClusterCoordinates(c);
+      sigmaY2 = dict->getErr2X(pattID);
+      sigmaZ2 = dict->getErr2Z(pattID);
+      if (!dict->isGroup(pattID)) {
+        locXYZ = dict->getClusterCoordinates(c);
       } else {
         o2::itsmft::ClusterPattern patt(pattIt);
-        locXYZ = dict.getClusterCoordinates(c, patt);
+        locXYZ = dict->getClusterCoordinates(c, patt);
       }
     } else {
       o2::itsmft::ClusterPattern patt(pattIt);
-      locXYZ = dict.getClusterCoordinates(c, patt, false);
+      locXYZ = dict->getClusterCoordinates(c, patt, false);
     }
     auto sensorID = c.getSensorID();
     // Inverse transformation to the local --> tracking
@@ -314,6 +314,23 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
       mCellsNeighbours[iLayer].clear();
     }
   }
+}
+
+unsigned long TimeFrame::getArtefactsMemory()
+{
+  unsigned long size{0};
+  for (auto& trkl : mTracklets) {
+    size += sizeof(Tracklet) * trkl.size();
+  }
+  for (auto& cells : mCells) {
+    size += sizeof(Cell) * cells.size();
+  }
+  for (auto& cellsN : mCellsNeighbours) {
+    for (auto& vec : cellsN) {
+      size += sizeof(int) * vec.size();
+    }
+  }
+  return size + sizeof(Road) * mRoads.size();
 }
 
 void TimeFrame::checkTrackletLUTs()

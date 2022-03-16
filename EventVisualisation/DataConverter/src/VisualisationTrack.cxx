@@ -51,11 +51,12 @@ VisualisationTrack::VisualisationTrack(const VisualisationTrack& src)
   this->mEta = src.mEta;
   this->addStartCoordinates(src.getStartCoordinates());
   this->mSource = src.mSource;
+  this->mTime = src.mTime;
+
   this->mPolyX = src.mPolyX;
   this->mPolyY = src.mPolyY;
   this->mPolyZ = src.mPolyZ;
   this->mClusters = src.mClusters;
-  this->mTime = src.mTime;
 }
 
 void VisualisationTrack::addStartCoordinates(const float xyz[3])
@@ -86,8 +87,8 @@ VisualisationTrack::VisualisationTrack(rapidjson::Value& tree)
   } else {
     this->mSource = o2::dataformats::GlobalTrackID::TPC; // temporary
   }
-  this->mPID = (o2::dataformats::GlobalTrackID::Source)tree["source"].GetInt();
-  this->mTime = (o2::dataformats::GlobalTrackID::Source)tree["time"].GetFloat();
+  this->mPID = tree["source"].GetInt();
+  this->mTime = tree["time"].GetFloat();
   if (tree.HasMember("gid")) {
     this->mGID = tree["gid"].GetString();
   } else {

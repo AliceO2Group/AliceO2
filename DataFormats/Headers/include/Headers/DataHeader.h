@@ -550,7 +550,6 @@ using DataDescription = Descriptor<gSizeDataDescriptionString>;
 constexpr o2::header::DataOrigin gDataOriginAny{"***"};
 constexpr o2::header::DataOrigin gDataOriginInvalid{"NIL"};
 constexpr o2::header::DataOrigin gDataOriginFLP{"FLP"};
-constexpr o2::header::DataOrigin gDataOriginACO{"ACO"};
 constexpr o2::header::DataOrigin gDataOriginCPV{"CPV"};
 constexpr o2::header::DataOrigin gDataOriginCTP{"CTP"};
 constexpr o2::header::DataOrigin gDataOriginEMC{"EMC"};
@@ -567,6 +566,8 @@ constexpr o2::header::DataOrigin gDataOriginTOF{"TOF"};
 constexpr o2::header::DataOrigin gDataOriginTPC{"TPC"};
 constexpr o2::header::DataOrigin gDataOriginTRD{"TRD"};
 constexpr o2::header::DataOrigin gDataOriginZDC{"ZDC"};
+constexpr o2::header::DataOrigin gDataOriginTST{"TST"};
+constexpr o2::header::DataOrigin gDataOriginACO{"ACO"}; // for bwd compatibility with DD
 
 constexpr o2::header::DataOrigin gDataOriginIT3{"IT3"};
 constexpr o2::header::DataOrigin gDataOriginTRK{"TRK"};

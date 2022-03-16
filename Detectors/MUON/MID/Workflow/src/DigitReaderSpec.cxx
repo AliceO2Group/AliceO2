@@ -30,7 +30,6 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/ROFRecord.h"
-#include "MIDSimulation/ColumnDataMC.h"
 #include "MIDSimulation/MCLabel.h"
 #include "CommonUtils/NameConf.h"
 #include "CommonUtils/StringUtils.h"
@@ -55,7 +54,7 @@ class DigitsReaderDeviceDPL
     if (mUseMC) {
       mReader = std::make_unique<RootTreeReader>("o2sim", filename.c_str(), -1,
                                                  RootTreeReader::PublishingMode::Single,
-                                                 RootTreeReader::BranchDefinition<std::vector<ColumnDataMC>>{
+                                                 RootTreeReader::BranchDefinition<std::vector<ColumnData>>{
                                                    Output{header::gDataOriginMID, mDescriptions[0], 0, Lifetime::Timeframe}, "MIDDigit"},
                                                  RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{
                                                    Output{header::gDataOriginMID, mDescriptions[1], 0, Lifetime::Timeframe}, "MIDROFRecords"},
@@ -65,7 +64,7 @@ class DigitsReaderDeviceDPL
     } else {
       mReader = std::make_unique<RootTreeReader>("o2sim", filename.c_str(), -1,
                                                  RootTreeReader::PublishingMode::Single,
-                                                 RootTreeReader::BranchDefinition<std::vector<ColumnDataMC>>{
+                                                 RootTreeReader::BranchDefinition<std::vector<ColumnData>>{
                                                    Output{header::gDataOriginMID, mDescriptions[0], 0, Lifetime::Timeframe}, "MIDDigit"},
                                                  RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{
                                                    Output{header::gDataOriginMID, mDescriptions[1], 0, Lifetime::Timeframe}, "MIDROFRecords"},
@@ -89,7 +88,7 @@ class DigitsReaderDeviceDPL
   RootTreeReader::SpecialPublishHook mPublishDigits{
     [](std::string_view name, ProcessingContext& pc, Output const& output, char* data) -> bool {
       if (name == "MIDDigit") {
-        auto inputDigits = reinterpret_cast<std::vector<ColumnDataMC>*>(data);
+        auto inputDigits = reinterpret_cast<std::vector<ColumnData>*>(data);
         std::vector<ColumnData> digits{};
         digits.insert(digits.end(), inputDigits->begin(), inputDigits->end());
         pc.outputs().snapshot(output, digits);

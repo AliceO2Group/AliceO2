@@ -48,9 +48,11 @@ class NoiseCalibratorSpec : public Task
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(EndOfStreamContext& ec) final;
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
   void sendOutput(DataAllocator& output);
+  void updateTimeDependentParams(ProcessingContext& pc);
   std::unique_ptr<CALIBRATOR> mCalibrator = nullptr;
   size_t mDataSizeStat = 0;
   size_t mNClustersProc = 0;

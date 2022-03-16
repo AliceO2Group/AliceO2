@@ -5,7 +5,7 @@
 The comprehensive documentation of the O2 Analysis Framework is located at [https://aliceo2group.github.io/analysis-framework/](https://aliceo2group.github.io/analysis-framework/).
 
 ```note
-Please do not update this document, but contribute directly to the O2 Analysis Framework documentation at  
+Please do not update this document, but contribute directly to the O2 Analysis Framework documentation at
 
 https://github.com/AliceO2Group/analysis-framework/tree/master/docs/framework
 
@@ -50,7 +50,7 @@ defineDataProcessing() {
 
 > **Implementation details**: `AnalysisTask` is simply a `struct`. Since `struct` default inheritance policy is `public`, we can omit specifying it when declaring MyTask.
 >
-> `AnalysisTask` will not actually provide any virtual method, as the `adaptAnalysis` helper relies on template argument matching to discover the properties of the task. It will come clear in the next paragraph how this allow is used to avoid the proliferation of data subscription methods.   
+> `AnalysisTask` will not actually provide any virtual method, as the `adaptAnalysis` helper relies on template argument matching to discover the properties of the task. It will come clear in the next paragraph how this allow is used to avoid the proliferation of data subscription methods.
 
 ## Processing data
 
@@ -90,7 +90,7 @@ struct MyTask : AnalysisTask {
 
 This has the advantage that you might be able to benefit from vectorization / parallelization.
 
-> **Implementation notes**: as mentioned before, the arguments of the process method are inspected using template argument matching. This way the system knows at compile time what data types are requested by a given `process` method and can create the relevant DPL data descriptions. 
+> **Implementation notes**: as mentioned before, the arguments of the process method are inspected using template argument matching. This way the system knows at compile time what data types are requested by a given `process` method and can create the relevant DPL data descriptions.
 >
 > The distinction between `Tracks` and `Track` above is simply that one refers to the whole collection, while the second is an alias to `Tracks::iterator`.  Notice that we assume that each collection is of type `o2::soa::Table` which carries meta data about the dataOrigin and dataDescription to be used by DPL to subscribe to the associated data stream.
 
@@ -115,7 +115,7 @@ void process(o2::aod::Collection const& collision, o2::aod::Track const& track) 
 
 also in this case the advantage is that your code might be up for parallelization and vectorization.
 
-Notice that you are not limited to two different collections, but you could specify more. E.g.: 
+Notice that you are not limited to two different collections, but you could specify more. E.g.:
 
 ```cpp
 void process(o2::aod::Collection const& collision, o2::aod::V0 const& v0, o2::aod::Tracks const& tracks) {
@@ -266,7 +266,7 @@ however this has the disadvantage that the filtering will be done for every
 task which has similar or more restrictive conditions. By declaring your
 filters upfront you can not only simplify your code, but allow the framework to
 optimize your processing.  To do so, we provide two helpers: `Filter` and
-`Partition`. 
+`Partition`.
 
 ### Upfront filtering
 
@@ -284,7 +284,7 @@ struct MyTask : AnalysisTask {
 };
 ```
 
-filteredTracks will contain only the tracks in the table which pass the condition `track::pt > 1`. 
+filteredTracks will contain only the tracks in the table which pass the condition `track::pt > 1`.
 
 You can specify multiple filters which will be applied in a sequence effectively resulting in the intersection of all them.
 
@@ -325,7 +325,7 @@ struct MyTask : AnalysisTask {
 };
 ```
 
-i.e. `Filter` is applied to the objects before passing them to the `process` method, while `Select` objects can be used to do further reduction inside the `process` method itself. 
+i.e. `Filter` is applied to the objects before passing them to the `process` method, while `Select` objects can be used to do further reduction inside the `process` method itself.
 
 ### Filtering and partitioning together
 
@@ -446,7 +446,7 @@ table:tree:columns:file
 ```
 and instructs the internal-dpl-aod-writer, to save the columns `columns` of table `table` as TTree `tree` in folder `TF_x` of file `file.root`. The selected columns are saved as separate TBranches of TTree `tree`.
 
-By default `x` is incremented with every time frame. This behavior can be modified with the command line option `--ntfmerge`. The value of `aod-writer-ntfmerge` specifies the number of time frames to merge into one `TF_x` folder. 
+By default `x` is incremented with every time frame. This behavior can be modified with the command line option `--ntfmerge`. The value of `aod-writer-ntfmerge` specifies the number of time frames to merge into one `TF_x` folder.
 
 The first item of a `DataOuputDescriptor` (`table`) is mandatory and needs to be specified, otherwise the `DataOuputDescriptor` is ignored. The other three items are optional and are filled by default values if missing.
 
@@ -491,16 +491,16 @@ An example file is shown in the highlighted field below. The relevant
 information is contained in a json object `OutputDirector`. The
 `OutputDirector` can include three different items:
 
-  1. `resfile` is a string and corresponds to the `aod-writer-resfile` command line option  
-  2.`aod-writer-ntfmerge` is an integer and corresponds to the `aod-writer-ntfmerge` command line option  
+  1. `resfile` is a string and corresponds to the `aod-writer-resfile` command line option
+  2.`aod-writer-ntfmerge` is an integer and corresponds to the `aod-writer-ntfmerge` command line option
   3.`OutputDescriptors` is an array of objects and corresponds to the `aod-writer-keep` command line option. The objects are equivalent to the `DataOuputDescriptors` of the `aod-writer-keep` option and are composed of 4 items which correspond to the 4 items of a `DataOuputDescriptor`.
-  
-     a. `table` is a string  
-     b. `treename` is a string  
-     c. `columns` is an array of strings  
-     d. `filename` is a string  
-  
-  
+
+     a. `table` is a string
+     b. `treename` is a string
+     c. `columns` is an array of strings
+     d. `filename` is a string
+
+
 `Example json file for the internal-dpl-aod-writer`
 ```csh
 {
@@ -553,7 +553,7 @@ This hierarchy of the options is summarized in the following table. The columns 
 ```csh
 --aod-writer-keep AOD/UNO/0
  # save all columns of table 'UNO' to TTree 'O2uno' in file `AnalysisResults_trees.root`
-  
+
 --aod-writer-keep AOD/UNO/0::c2/c4:unoresults
  # save columns 'c2' and 'c4' of table 'UNO' to TTree 'O2uno' in file 'unoresults.root`
 
@@ -582,7 +582,7 @@ The internal-dpl-aod-reader reads trees from root files and provides them as arr
 
 #### --aod-file
 
-`aod-file` takes a string as option value, which either is the name of the input root file or, if starting with an `@`-character, is an ASCII-file which contains a list of input files. 
+`aod-file` takes a string as option value, which either is the name of the input root file or, if starting with an `@`-character, is an ASCII-file which contains a list of input files.
 
 ```csh
 --aod-file AnalysisResults_0.root
@@ -604,18 +604,18 @@ three items:
   1. `resfiles` is a string or an array of strings and corresponds to the `aod-file` command line option. As the `aod-file` option it can specify a single input file or, when the option value starts with a `@`-character, an ASCII file with a list of input files. In addition `resfiles` can be an array of strings, which contains a list of input files.
   2.`fileregex` is a regex string which is used to select the input files from the file list specified by `resfiles`.
   3.`InputDescriptors` is an array of objects, the so called `DataInputDescriptors`, which are composed of 4 items.
-  
-     a. `table` is a string and specifies the table to fill. The `table` needs to be provided in the format `AOD/tablename/0`, where `tablename` is the name of the table as defined in the workflow definition.  
-     b. `treename` is a string and specifies the tree which is to be used to fill `table`  
-     c. `resfiles` is either a string or an array of strings. It specifies a list of possible input files (see discussion of `resfiles` above).  
-     d. `fileregex` is a regular expression string which is used to select the input files from the file list specified by `resfiles`  
+
+     a. `table` is a string and specifies the table to fill. The `table` needs to be provided in the format `AOD/tablename/0`, where `tablename` is the name of the table as defined in the workflow definition.
+     b. `treename` is a string and specifies the tree which is to be used to fill `table`
+     c. `resfiles` is either a string or an array of strings. It specifies a list of possible input files (see discussion of `resfiles` above).
+     d. `fileregex` is a regular expression string which is used to select the input files from the file list specified by `resfiles`
 
 The information contained in a `DataInputDescriptor` instructs the internal-dpl-aod-reader to fill table `table` with the values from the tree `treename` in folders `TF_x` of the files which are defined by `resfiles` and which names match the regex `fileregex`.
 
 Of the four items of a `DataInputDescriptor`, `table` is the only required information. If one of the other items is missing its value will be set as follows:
 
-  1. `treename` is set to `O2tablename` of the respective `table` item.  
-  2. `resfiles` is set to `resfiles` of the `InputDirector` (1. item of the `InputDirector`). If that is missing, then the value of the `aod-file` option is used. If that is missing, then `AnalysisResults_trees.root` is used.  
+  1. `treename` is set to `O2tablename` of the respective `table` item.
+  2. `resfiles` is set to `resfiles` of the `InputDirector` (1. item of the `InputDirector`). If that is missing, then the value of the `aod-file` option is used. If that is missing, then `AnalysisResults_trees.root` is used.
   3. `fileregex` is set to `fileregex` of the `InputDirector` (2. item of the `InputDirector`). If that is missing, then `.*` is used.
 
 
@@ -683,7 +683,7 @@ to read these tables:
 ```
 
   2. In this case several tables need to be provided. All tables can be read from files `tableResult_n.root`, except for one table, namely `tableA`, which is saved as tree `treeA` in files `tableAResult_n.root`.
-  
+
 ```csh
   # file resfiles.txt lists all tableResults_n.root and tableAResults_n.root files.
 
@@ -706,7 +706,7 @@ to read these tables:
   2. The internal-dpl-aod-reader loops over the selected input files in the order as they are listed. It is the duty of the user to make sure that the order is correct and that the order in the file lists
 of the various `InputDescriptors` are corresponding to each other.
   3. The regular expression `fileregex` is evaluated with the c++ Regular expressions library. Thus check there for the proper syntax of regexes.
-  
+
 
 ### Possible ideas
 
@@ -716,5 +716,5 @@ even be used to specify if a given dynamic column should be precalculated (or no
 ```cpp
 for (auto twoD : points.reshuffle<point::X, point::Y, Cached<point::R>>()) {
 ...
-} 
+}
 ```

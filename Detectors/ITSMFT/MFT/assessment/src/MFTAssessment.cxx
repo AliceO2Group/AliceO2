@@ -31,17 +31,6 @@ void MFTAssessment::init(bool finalizeAnalysis)
   //get geometry
   o2::base::GeometryManager::loadGeometry("", true);
 
-  //load the cluster dictionary
-  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath);
-  if (o2::utils::Str::pathExists(dictFile)) {
-    mDictionary.readBinaryFile(dictFile);
-    LOG(info) << "MFTAssessment running with a provided dictionary: " << dictFile;
-    printf("DictPath is %s\n", dictPath.c_str());
-  } else {
-    LOG(fatal) << "Dictionary " << dictFile << " is absent, MFTAssessment expects cluster patterns";
-  }
-
   mUnusedChips.fill(true);
 }
 

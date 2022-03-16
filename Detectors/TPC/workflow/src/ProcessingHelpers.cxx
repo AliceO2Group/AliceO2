@@ -19,6 +19,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/InputRecord.h"
 #include "Framework/ServiceRegistry.h"
+#include "CommonConstants/LHCConstants.h"
 
 #include "TPCWorkflow/ProcessingHelpers.h"
 
@@ -50,4 +51,28 @@ uint64_t processing_helpers::getRunNumber(ProcessingContext& pc)
   }
 
   return run;
+}
+
+uint32_t processing_helpers::getCurrentTF(o2::framework::ProcessingContext& pc)
+{
+  return o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->tfCounter;
+}
+
+uint64_t processing_helpers::getCreationTime(o2::framework::ProcessingContext& pc)
+{
+  return DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
+}
+
+uint64_t processing_helpers::getTimeStamp(o2::framework::ProcessingContext& pc)
+{
+  const auto tfOrbitFirst = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->firstTForbit;
+  const long tPrec = getOrbitReset(pc) + tfOrbitFirst * o2::constants::lhc::LHCOrbitMUS; // microsecond-precise time stamp
+  return tPrec;
+}
+
+Long64_t processing_helpers::getOrbitReset(o2::framework::ProcessingContext& pc)
+{
+  auto tv = pc.inputs().get<std::vector<Long64_t>*>("orbitreset");
+  const auto orbitReset = tv->front();
+  return orbitReset;
 }

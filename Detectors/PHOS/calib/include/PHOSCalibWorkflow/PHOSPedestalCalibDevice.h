@@ -32,7 +32,7 @@ class PHOSPedestalCalibDevice : public o2::framework::Task
 {
 
  public:
-  explicit PHOSPedestalCalibDevice(bool useCCDB, bool forceUpdate, std::string path) : mUseCCDB(useCCDB), mForceUpdate(forceUpdate), mCCDBPath(path) {}
+  explicit PHOSPedestalCalibDevice(bool useCCDB, bool forceUpdate) : mUseCCDB(useCCDB), mForceUpdate(forceUpdate) {}
 
   void init(o2::framework::InitContext& ic) final;
 
@@ -52,7 +52,7 @@ class PHOSPedestalCalibDevice : public o2::framework::Task
   bool mUpdateCCDB = true;                                          /// set is close to current and can update it
   static constexpr short kMinorChange = 10;                         /// ignore if number of channels changed smaller than...
   long mRunStartTime = 0;                                           /// start time of the run (sec)
-  std::string mCCDBPath{"http://alice-ccdb.cern.ch"};               /// CCDB path to retrieve current CCDB objects for comparison
+  int mStatistics = 1000;                                           /// number of events to calculate pedestals
   std::unique_ptr<Pedestals> mPedestals;                            //! Final calibration object
   std::unique_ptr<Pedestals> mOldPed;                               //! Pedestals currently stored in CCDB for comparisoin
   std::unique_ptr<TH2F> mMeanHG;                                    //! Mean values in High Gain channels
@@ -62,7 +62,7 @@ class PHOSPedestalCalibDevice : public o2::framework::Task
   std::array<short, 2 * o2::phos::Mapping::NCHANNELS + 1> mPedDiff; //! Pedestal variation wrt previous map
 };
 
-o2::framework::DataProcessorSpec getPedestalCalibSpec(bool useCCDB, bool forceUpdate, std::string path);
+o2::framework::DataProcessorSpec getPedestalCalibSpec(bool useCCDB, bool forceUpdate);
 } // namespace phos
 } // namespace o2
 

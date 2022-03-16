@@ -15,6 +15,7 @@
 /// \date 01/08/2016
 
 #include "ITSMFTSimulation/Hit.h"
+#include "ITSMFTReconstruction/ChipMappingMFT.h"
 
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
@@ -704,7 +705,8 @@ void Detector::addAlignableVolumesChip(Int_t hf, Int_t dk, Int_t lr, Int_t ms,
   TString path = Form("%s/%s_%d_%d_%d_%d", parent.Data(), GeometryTGeo::getMFTChipPattern(), hf, dk, lr, ms);
   TString sname = mGeometryTGeo->composeSymNameChip(hf, dk, lr, ms);
 
-  Int_t uid = o2::base::GeometryManager::getSensID(o2::detectors::DetID::MFT, lastUID++);
+  Int_t chipID = itsmft::ChipMappingMFT::mChipIDGeoToRO[lastUID++];
+  Int_t uid = o2::base::GeometryManager::getSensID(o2::detectors::DetID::MFT, chipID);
 
   if (!gGeoManager->SetAlignableEntry(sname, path.Data(), uid)) {
     LOG(fatal) << "Unable to set alignable entry ! " << sname << " : " << path;
