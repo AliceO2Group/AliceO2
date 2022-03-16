@@ -55,21 +55,20 @@ class InputRecordWalker
   InputRecordWalker() = delete;
   InputRecordWalker(InputRecord& record, std::vector<InputSpec> filterSpecs = {}) : mRecord(record), mFilterSpecs(filterSpecs) {}
 
-  template <typename T>
-  using IteratorBase = std::iterator<std::forward_iterator_tag, T>;
-
   /// Iterator implementation
   /// Supports the following operations:
   /// - increment (there is no decrement, its not a bidirectional parser)
   /// - dereference operator returns @a RawDataHeaderInfo as common header
   template <typename T>
-  class Iterator : public IteratorBase<T>
+  class Iterator
   {
    public:
     using self_type = Iterator;
-    using value_type = typename IteratorBase<T>::value_type;
-    using reference = typename IteratorBase<T>::reference;
-    using pointer = typename IteratorBase<T>::pointer;
+    using iterator_category = std::input_iterator_tag;
+    using value_type = T;
+    using reference = T&;
+    using pointer = T*;
+    using difference_type = std::ptrdiff_t;
     // the iterator over the input routes
     using input_iterator = decltype(std::declval<InputRecord>().begin());
 
