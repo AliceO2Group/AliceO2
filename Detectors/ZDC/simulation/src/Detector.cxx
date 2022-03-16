@@ -62,6 +62,20 @@ Detector::Detector(Bool_t active)
   mMediumPMCid = -1; // minus for unitialized
   mMediumPMQid = -2; // different to PMC in any case
   resetHitIndices();
+
+#ifdef ZDC_FASTSIM_ONNX
+  // creating fastsim object
+  if (!o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPath.empty() && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales.empty()) {
+    auto scales = o2::zdc::fastsim::loadScales(o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales);
+    if (scales.has_value()) {
+      mFastSimModel = new o2::zdc::fastsim::ConditionalModelSimulation(o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPath, scales->first, scales->second, 1.0);
+    } else {
+      LOG(info) << "Error while reading model scales from: "
+                << "'" << o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales << "'";
+      LOG(info) << "Model won't be loaded";
+    }
+  }
+#endif
 }
 
 //_____________________________________________________________________________

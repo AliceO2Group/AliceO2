@@ -21,6 +21,7 @@
 #include "DataFormatsZDC/Hit.h"
 #include "ZDCSimulation/SpatialPhotonResponse.h"
 #include "TParticle.h"
+#include "FastSimulations.h" // for fastsim module
 #include <utility>
 
 class FairVolume;
@@ -214,6 +215,15 @@ class Detector : public o2::base::DetImpl<Detector>
 
   ParticlePhotonResponse mResponses;
   ParticlePhotonResponse* mResponsesPtr = &mResponses;
+
+// fastsim model wrapper
+#ifdef ZDC_FASTSIM_ONNX
+  fastsim::NeuralFastSimulation* mFastSimModel;
+
+  // container for fastsim model responses
+  using FastSimResults = std::vector<std::array<int, 5>>;
+  FastSimResults mFastSimResults;
+#endif
 
   template <typename Det>
   friend class o2::base::DetImpl;
