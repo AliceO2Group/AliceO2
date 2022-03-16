@@ -49,7 +49,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto resFile = configcontext.options().get<std::string>("aod-writer-resfile");
   bool enableSV = !configcontext.options().get<bool>("disable-secondary-vertices");
-  GID::mask_t allowedSrc = GID::getSourcesMask("ITS,MFT,MCH,TPC,ITS-TPC,ITS-TPC-TOF,TPC-TOF,MFT-MCH,FT0,FV0,FDD,TPC-TRD,ITS-TPC-TRD,FT0,FV0,FDD,ZDC,EMC,CTP");
+  GID::mask_t allowedSrc = GID::getSourcesMask("ITS,MFT,MCH,TPC,ITS-TPC,ITS-TPC-TOF,ITS-TPC-TRD-TOF,TPC-TOF,TPC-TRD-TOF,MFT-MCH,FT0,FV0,FDD,TPC-TRD,ITS-TPC-TRD,FT0,FV0,FDD,ZDC,EMC,CTP");
   GID::mask_t src = allowedSrc & GID::getSourcesMask(configcontext.options().get<std::string>("info-sources"));
 
   WorkflowSpec specs;
