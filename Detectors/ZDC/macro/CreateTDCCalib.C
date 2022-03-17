@@ -63,7 +63,7 @@ void CreateTDCCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "", fl
     ccdbHost = "http://localhost:8080";
   }
   api.init(ccdbHost.c_str());
-  LOG(info) << "CCDB server: " << api.getURL();
+  LOG(info) << "Storing " << o2::zdc::CCDBPathTDCCalib << " on CCDB server: " << api.getURL();
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(&conf, o2::zdc::CCDBPathTDCCalib, metadata, tmin, tmax);
 

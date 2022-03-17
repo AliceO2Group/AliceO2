@@ -107,7 +107,6 @@ void InterCalibSpec::run(ProcessingContext& pc)
   auto info = pc.inputs().get<gsl::span<uint16_t>>("info");
   work.init();
   work.process(bcrec, energy, tdc, info);
-
   mTimer.Stop();
 }
 

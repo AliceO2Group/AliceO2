@@ -12,6 +12,7 @@
 o2_add_library(ZDCCalib
                SOURCES
                  src/InterCalib.cxx
+                 src/InterCalibConfig.cxx
                PUBLIC_LINK_LIBRARIES
                  O2::CCDB
                  O2::DPLUtils
@@ -28,4 +29,4 @@ o2_add_library(ZDCCalib
                  ROOT::Minuit)
 
 o2_target_root_dictionary(ZDCCalib
-                          HEADERS include/ZDCCalib/InterCalib.h)
+                          HEADERS include/ZDCCalib/InterCalib.h include/ZDCCalib/InterCalibConfig.h)
