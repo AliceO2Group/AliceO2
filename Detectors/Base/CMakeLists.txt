@@ -21,6 +21,7 @@ o2_add_library(DetectorsBase
                        src/BaseDPLDigitizer.cxx
                        src/CTFCoderBase.cxx
                        src/Aligner.cxx
+                       src/SimFieldUtils.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::CommonUtils
                                      O2::DetectorsCommonDataFormats
@@ -48,7 +49,8 @@ o2_target_root_dictionary(DetectorsBase
                                   include/DetectorsBase/MatCell.h
                                   include/DetectorsBase/MatLayerCyl.h
                                   include/DetectorsBase/MatLayerCylSet.h
-                                  include/DetectorsBase/Aligner.h)
+                                  include/DetectorsBase/Aligner.h
+                                  include/DetectorsBase/SimFieldUtils.h)
 
 if(BUILD_SIMULATION)
   o2_add_test(

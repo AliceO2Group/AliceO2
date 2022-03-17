@@ -115,7 +115,7 @@ void O2DPLDisplaySpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     LOG(info) << "ITS cluster dictionary updated";
     mData.setITSDict((const o2::itsmft::TopologyDictionary*)obj);
   }
-  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+  if (matcher == ConcreteDataMatcher("MFT", "CLUSDICT", 0)) {
     LOG(info) << "MFT cluster dictionary updated";
     mData.setMFTDict((const o2::itsmft::TopologyDictionary*)obj);
   }

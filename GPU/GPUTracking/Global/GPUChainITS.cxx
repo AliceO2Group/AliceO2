@@ -64,6 +64,11 @@ VertexerTraits* GPUChainITS::GetITSVertexerTraits()
 #endif
   return mITSVertexerTraits.get();
 }
+TimeFrame* GPUChainITS::GetITSTimeframe()
+{
+  mRec->GetITSTimeframe(&mITSTimeFrame);
+  return mITSTimeFrame.get();
+}
 
 int GPUChainITS::PrepareEvent() { return 0; }
 

@@ -126,6 +126,11 @@ void GPUReconstruction::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* tr
   }
 }
 
+void GPUReconstruction::GetITSTimeframe(std::unique_ptr<o2::its::TimeFrame>* timeFrame)
+{
+  timeFrame->reset(new o2::its::TimeFrame);
+}
+
 int GPUReconstruction::SetNOMPThreads(int n)
 {
 #ifdef WITH_OPENMP

@@ -45,6 +45,7 @@
 #include <FairLogger.h>
 #include <algorithm>
 #include "DetectorsCommonDataFormats/UpgradesStatus.h"
+#include <DetectorsBase/SimFieldUtils.h>
 #endif
 
 #ifdef ENABLE_UPGRADES
@@ -103,8 +104,7 @@ void build_geometry(FairRunSim* run = nullptr)
   run->SetMaterials("media.geo"); // Materials
 
   // we need a field to properly init the media
-  auto field = o2::field::MagneticField::createNominalField(confref.getConfigData().mField, confref.getConfigData().mUniformField);
-  run->SetField(field);
+  run->SetField(o2::base::SimFieldUtils::createMagField());
 
   // Create geometry
   // we always need the cave

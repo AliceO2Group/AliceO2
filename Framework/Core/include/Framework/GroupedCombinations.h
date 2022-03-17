@@ -61,7 +61,7 @@ struct GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<Us...>, As...
   using joinIterator = typename soa::Join<H, G>::table_t::iterator;
   using GroupedIteratorType = pack_to_tuple_t<interleaved_pack_t<repeated_type_pack_t<joinIterator, sizeof...(As)>, pack<As...>>>;
 
-  struct GroupedIterator : public std::iterator<std::forward_iterator_tag, GroupedIteratorType>, public GroupingPolicy {
+  struct GroupedIterator : public GroupingPolicy {
    public:
     using reference = GroupedIteratorType&;
     using value_type = GroupedIteratorType;

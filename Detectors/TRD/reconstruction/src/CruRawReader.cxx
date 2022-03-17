@@ -49,7 +49,7 @@ bool CruRawReader::skipRDH()
   if (o2::raw::RDHUtils::getMemorySize(mOpenRDH) == o2::raw::RDHUtils::getHeaderSize(mOpenRDH)) {
     //empty rdh so we want to avoid parsing it for cru data.
     if (mVerbose) {
-      LOG(info) << " skipping rdh (empty) with packetcounter of: " << std::hex << o2::raw::RDHUtils::getPacketCounter(mOpenRDH);
+      LOG(info) << " skipping rdh (empty) packetcount of: " << std::hex << o2::raw::RDHUtils::getPacketCounter(mOpenRDH);
     }
     return true;
   } else {
@@ -116,7 +116,7 @@ void CruRawReader::OutputHalfCruRawData()
 
 bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
 {
-  if (mVerbose) {
+  if (mHeaderVerbose) {
     LOG(info) << "PROCESS HBF starting at " << std::hex << (void*)mDataPointer;
   }
   mDataRDH = reinterpret_cast<const o2::header::RDHAny*>(mDataPointer);
@@ -130,18 +130,18 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
   int loopcount = 0;
   // loop until RDH stop header
   while (!o2::raw::RDHUtils::getStop(rdh)) { // carry on till the end of the event.
-    //o2::raw::RDHUtils::printRDH(rdh);
-    if (mVerbose) {
+    if (mHeaderVerbose) {
       LOG(info) << "--- RDH open/continue detected loopcount :" << loopcount;
       LOG(info) << " rdh first word 0x" << std::hex << (uint32_t)*mDataPointer;
-      for (int i = 0; i < 64; ++i) {
-        LOG(info) << std::hex << " 0x" << *(mDataPointer + i);
-      }
-      LOG(info) << "---------------------- parsing that rdh";
+      o2::raw::RDHUtils::printRDH(rdh);
     }
     preceedingrdh = rdh;
     auto headerSize = o2::raw::RDHUtils::getHeaderSize(rdh);
     auto memorySize = o2::raw::RDHUtils::getMemorySize(rdh);
+    if (memorySize == 0) {
+      LOG(warn) << "rdh memory size is zero";
+      break; // get out of here if the rdh says it has nothing.
+    }
     auto offsetToNext = o2::raw::RDHUtils::getOffsetToNext(rdh);
     auto rdhpayload = memorySize - headerSize;
     mFEEID.word = o2::raw::RDHUtils::getFEEID(rdh);       //TODO change this and just carry around the curreht RDH
@@ -162,10 +162,10 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
       // we can still copy into this buffer.
     } else {
       if (mMaxWarnPrinted > 0) {
-        LOG(warn) << "next rdh exceeds the bounds of the cru payload buffer";
+        LOG(warn) << "rdh bounds fail offsetToNext:" << offsetToNext << " rdh 0x" << (char*)rdh << " bufsize:" << mDataBufferSize << " payload start: 0x" << (void*)&mHBFPayload[0];
         checkNoWarn();
         if (mVerbose) {
-          LOG(info) << "rdh position  is out of bounds of the buffer";
+          LOG(info) << "rdh bounds fail offsetToNext:" << offsetToNext << " rdh 0x" << (char*)rdh << " bufsize:" << mDataBufferSize << " payload start: 0x" << (void*)&mHBFPayload[0];
           o2::raw::RDHUtils::printRDH(rdh);
         }
       }
@@ -433,11 +433,11 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
       LOG(warn) << " Endpoint mismatch : CRU Half chamber header endpoint = " << mCurrentHalfCRUHeader.EndPoint << " rdh end point = " << mCRUEndpoint;
       checkNoWarn();
     }
-    //disaster dump the rest of this hbf
-    return 42;
     if (mVerbose) {
       LOG(info) << "******* LINK # " << currentlinkindex;
     }
+    //disaster dump the rest of this hbf
+    return 42;
   }
 
   // verify cru header vs rdh header
@@ -615,7 +615,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
               }
             }
             mTotalDigitsFound += mDigitsParser.getDigitsFound();
-            if (mVerbose) {
+            if (mDataVerbose) {
               LOG(info) << "mDigitWordsRead : " << mDigitWordsRead << " mem copy with offset of : " << cruhbfstartoffset << " parsing digits with linkstart: " << linkstart << " ending at : " << linkend << " linkhbf start pos:" << hbfoffsetatstartoflink;
             }
             mHBFoffset32 += mDigitWordsRead + mDigitWordsRejected; // all 3 in 32bit units
