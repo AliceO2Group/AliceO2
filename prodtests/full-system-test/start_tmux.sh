@@ -6,6 +6,7 @@ if [ "0$1" != "0dd" ] && [ "0$1" != "0rr" ]; then
 fi
 
 [[ -z "${WORKFLOW_PARAMETERS+x}" ]] && export WORKFLOW_PARAMETERS="CALIB"
+[[ -z "${SEVERITY}" ]] && export SEVERITY="error"
 
 MYDIR="$(dirname $(realpath $0))"
 source $MYDIR/setenv.sh
@@ -21,7 +22,6 @@ export EXTINPUT=1
 export EPNPIPELINES=1
 export SYNCMODE=1
 export SHMTHROW=0
-export SEVERITY=error
 export IS_SIMULATED_DATA=1
 export ALL_EXTRA_CONFIG="$ALL_EXTRA_CONFIG;NameConf.mCCDBServer=http://o2-ccdb.internal;"
 export DPL_CONDITION_BACKEND="http://o2-ccdb.internal"
