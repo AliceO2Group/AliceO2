@@ -309,7 +309,7 @@ struct ExpirationHandlerHelpers {
     return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::expireNever(); };
   }
 
-  static RouteConfigurator::ExpirationConfigurator expiringTransientConfigurator(InputSpec const& matcher)
+  static RouteConfigurator::ExpirationConfigurator expiringTransientConfigurator(InputSpec const&)
   {
     return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::fetchFromObjectRegistry(); };
   }
@@ -321,9 +321,9 @@ struct ExpirationHandlerHelpers {
   }
 
   /// This will always exipire an optional record when no data is received.
-  static RouteConfigurator::DanglingConfigurator danglingOptionalConfigurator()
+  static RouteConfigurator::DanglingConfigurator danglingOptionalConfigurator(std::vector<InputRoute> const& routes)
   {
-    return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::expireAlways(); };
+    return [routes](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::expireIfPresent(routes, ConcreteDataMatcher{"FLP", "DISTSUBTIMEFRAME", 0}); };
   }
 
   /// When the record expires, simply create a dummy entry.
@@ -331,13 +331,13 @@ struct ExpirationHandlerHelpers {
   {
     try {
       ConcreteDataMatcher concrete = DataSpecUtils::asConcreteDataMatcher(spec);
-      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
+      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const&) {
         return LifetimeHelpers::dummy(concrete, sourceChannel);
       };
     } catch (...) {
       ConcreteDataTypeMatcher dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
       ConcreteDataMatcher concrete{dataType.origin, dataType.description, 0xdeadbeef};
-      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
+      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const&) {
         return LifetimeHelpers::dummy(concrete, sourceChannel);
       };
       // We copy the matcher to avoid lifetime issues.
@@ -849,7 +849,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
         route.configurator = {
           .name = "optional",
           .creatorConfigurator = ExpirationHandlerHelpers::createOptionalConfigurator(),
-          .danglingConfigurator = ExpirationHandlerHelpers::danglingOptionalConfigurator(),
+          .danglingConfigurator = ExpirationHandlerHelpers::danglingOptionalConfigurator(consumerDevice.inputs),
           .expirationConfigurator = ExpirationHandlerHelpers::expiringOptionalConfigurator(inputSpec, sourceChannel)};
         break;
       default:
