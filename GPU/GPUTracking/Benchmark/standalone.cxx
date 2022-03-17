@@ -456,7 +456,7 @@ int SetupReconstruction()
     procSet.runCompressionStatistics = 0;
     recSet.tpc.disableRefitAttachment = 0xFF;
     recSet.tpc.loopInterpolationInExtraPass = 0;
-    recSet.maxTrackQPt = CAMath::Min(recSet.maxTrackQPt, recSet.tpc.rejectQPt);
+    recSet.maxTrackQPtB5 = CAMath::Min(recSet.maxTrackQPtB5, recSet.tpc.rejectQPtB5);
     recSet.useMatLUT = true;
     recAsync->SetSettings(&grp, &recSet, &procSet, &steps);
   }
