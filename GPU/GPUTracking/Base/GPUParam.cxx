@@ -139,10 +139,6 @@ void GPUParam::UpdateGRPSettings(const GPUSettingsGRP* g, const GPUSettingsProce
   if (p) {
     par.debugLevel = p->debugLevel;
     par.resetTimers = p->resetTimers;
-    if (p->automaticQPtThresholds) {
-      rec.maxTrackQPt = 1.f / GPUCA_MIN_TRACK_PTB5_DEFAULT / par.qptB5Scaler;
-      rec.tpc.rejectQPt = 1.f / GPUCA_MIN_TRACK_PTB5_REJECT / par.qptB5Scaler;
-    }
   }
 }
 
