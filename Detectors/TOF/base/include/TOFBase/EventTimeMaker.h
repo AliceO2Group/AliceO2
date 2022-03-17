@@ -38,17 +38,16 @@ struct eventTimeContainer {
   float mSumOfWeights = 0.f;      /// sum of weights of all track contributors
   std::vector<float> mWeights;    /// weights (1/sigma^2) associated to a track in event time computation, 0 if track not used
   std::vector<float> mTrackTimes; /// eventtime provided by a single track
-  float mDiamondSpread = 6.0;     /// spread of primary verdex in cm. Used when resetting the container to the default value
+  float mDiamondSpread = 6.f;     /// spread of primary verdex in cm. Used when resetting the container to the default value
 
   void reset()
   {
     // reset info
-    static const float& sigmaFill = mDiamondSpread * 33.356409; // move from diamond spread (cm) to spread on event time (ps)
     mSumOfWeights = 0.;
     mWeights.clear();
     mTrackTimes.clear();
     mEventTime = 0.;
-    mEventTimeError = sigmaFill;
+    mEventTimeError = mDiamondSpread * 33.356409f; // move from diamond spread (cm) to spread on event time (ps)
     mEventTimeMultiplicity = 0;
   }
 
@@ -58,7 +57,7 @@ struct eventTimeContainer {
                   int& nTrackIndex /* index of the track to remove the bias */,
                   float& eventTimeValue,
                   float& eventTimeError,
-                  const int& minimumMultiplicity = 2) const
+                  const unsigned short& minimumMultiplicity = 2) const
   {
     eventTimeValue = mEventTime;
     eventTimeError = mEventTimeError;
@@ -66,21 +65,21 @@ struct eventTimeContainer {
       nTrackIndex++;
       return;
     }
-    if (mEventTimeMultiplicity <= minimumMultiplicity && mWeights[nTrackIndex] > 1E-6) { // Check if a track was used for the event time and if the multiplicity is low
+    if (mEventTimeMultiplicity <= minimumMultiplicity && mWeights[nTrackIndex] > 1E-6f) { // Check if a track was used for the event time and if the multiplicity is low
       eventTimeValue = 0.f;
-      eventTimeError = mDiamondSpread * 33.356409; // move from diamond (cm) to spread on event time (ps)
+      eventTimeError = mDiamondSpread * 33.356409f; // move from diamond (cm) to spread on event time (ps)
       LOG(debug) << mEventTimeMultiplicity << " <= " << minimumMultiplicity << " and " << mWeights[nTrackIndex] << ": track was used, setting " << eventTimeValue << " " << eventTimeError;
       nTrackIndex++;
       return;
     }
     // Remove the bias
-    float sumw = 1. / eventTimeError / eventTimeError;
+    float sumw = 1.f / eventTimeError / eventTimeError;
     LOG(debug) << "sumw " << sumw;
     eventTimeValue *= sumw;
     eventTimeValue -= mWeights[nTrackIndex] * mTrackTimes[nTrackIndex];
     sumw -= mWeights[nTrackIndex];
     eventTimeValue /= sumw;
-    eventTimeError = sqrt(1. / sumw);
+    eventTimeError = sqrt(1.f / sumw);
     nTrackIndex++;
   }
 

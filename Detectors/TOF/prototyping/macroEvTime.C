@@ -38,7 +38,7 @@ void macroEvTime(bool removebias = true,
       float et2 = et;
       float erret2 = erret;
       if (removebias) {
-        evtime.removeBias<eventTimeTrackTest, filterDummy>(track, nt, et2, erret2, -2);
+        evtime.removeBias<eventTimeTrackTest, filterDummy>(track, nt, et2, erret2, 0);
         nt--;
       }
 
