@@ -64,7 +64,7 @@ Detector::Detector(Bool_t active)
   resetHitIndices();
 
 #ifdef ZDC_FASTSIM_ONNX
-  LOG(info) << "-------------------FASTSIM-------------------";
+  LOG(info) << "\n-------------------FASTSIM-------------------";
   // creating fastsim object
   if (!o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPath.empty() && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales.empty()) {
     auto scales = o2::zdc::fastsim::loadScales(o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales);
@@ -2402,6 +2402,22 @@ void Detector::FinishPrimary()
   // after each primary we should definitely reset
   mLastPrincipalTrackEntered = -1;
   flushSpatialResponse();
+#ifdef ZDC_FASTSIM_ONNX
+  if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim) {
+    std::fstream output("o2sim-FastSimResult", output.out | output.app);
+    if (!output.is_open()) {
+      LOG(error) << "Could not open file.";
+    }
+
+    for (auto& result : mFastSimResults) {
+      LOG(info) << "\n-------------FASTSIM REGISTER----------------";
+      output << result[0] << ", " << result[1] << ", " << result[2] << ", " << result[3] << ", " << result[4];
+      output << std::endl;
+    }
+    output.close();
+    mFastSimResults.clear();
+  }
+#endif
 }
 
 void Detector::BeginPrimary()
@@ -2415,15 +2431,14 @@ void Detector::BeginPrimary()
   mCurrentPrincipalParticle = *stack->GetCurrentTrack();
 
 #ifdef ZDC_FASTSIM_ONNX
+  LOG(info) << "\n-------------FASTSIM EVENT----------------";
   if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim) {
-    std::array<float, 9> particle = {mCurrentPrincipalParticle.Energy(),
-                                     mCurrentPrincipalParticle.Vx(), mCurrentPrincipalParticle.Vy(), mCurrentPrincipalParticle.Vz(),
-                                     mCurrentPrincipalParticle.Px(), mCurrentPrincipalParticle.Py(), mCurrentPrincipalParticle.Pz(),
-                                     mCurrentPrincipalParticle.GetMass() / 1000.0, mCurrentPrincipalParticle.GetPDG()->Charge()};
+    std::vector<float> particle = {mCurrentPrincipalParticle.Energy(),
+                                   mCurrentPrincipalParticle.Vx(), mCurrentPrincipalParticle.Vy(), mCurrentPrincipalParticle.Vz(),
+                                   mCurrentPrincipalParticle.Px(), mCurrentPrincipalParticle.Py(), mCurrentPrincipalParticle.Pz(),
+                                   mCurrentPrincipalParticle.GetMass() * 1000.0, mCurrentPrincipalParticle.GetPDG()->Charge()};
 
-    // mFastSimModel->setData(particle);
-    mFastSimModel->run();
-    mFastSimResults.push_back(mFastSimModel->getChannels());
+    mFastSimResults.push_back(mFastSimModel->getChannels(particle));
   }
 #endif
 }
@@ -2442,20 +2457,6 @@ void Detector::Register()
       FairRootManager::Instance()->RegisterAny(addNameTo("ResponseImage").data(), mResponsesPtr, kTRUE);
     }
   }
-#ifdef ZDC_FASTSIM_ONNX
-  if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim) {
-    std::fstream output("o2sim-FastSimResult", output.out | output.app);
-    if (!output.is_open()) {
-      LOG(error) << "Could not open file.";
-    }
-
-    for (auto& result : mFastSimResults) {
-      output << result[0] << ", " << result[1] << result[2] << ", " << result[3] << result[4];
-      output << std::endl;
-    }
-    output.close();
-  }
-#endif
 }
 
 //_____________________________________________________________________________
