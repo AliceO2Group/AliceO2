@@ -198,7 +198,7 @@ void EveWorkflowHelper::addTrackToEvent(const o2::track::TrackParCov& tr, GID gi
   }
 }
 
-void EveWorkflowHelper::prepareITSClusters(const o2::itsmft::TopologyDictionary& dict)
+void EveWorkflowHelper::prepareITSClusters(const o2::itsmft::TopologyDictionary* dict)
 {
   const auto& ITSClusterROFRec = mRecoCont.getITSClustersROFRecords();
   const auto& clusITS = mRecoCont.getITSClusters();
@@ -206,11 +206,11 @@ void EveWorkflowHelper::prepareITSClusters(const o2::itsmft::TopologyDictionary&
     const auto& patterns = mRecoCont.getITSClustersPatterns();
     auto pattIt = patterns.begin();
     mITSClustersArray.reserve(clusITS.size());
-    o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, &dict);
+    o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, dict);
   }
 }
 
-void EveWorkflowHelper::prepareMFTClusters(const o2::itsmft::TopologyDictionary& dict) // do we also have something as ITS...dict?
+void EveWorkflowHelper::prepareMFTClusters(const o2::itsmft::TopologyDictionary* dict) // do we also have something as ITS...dict?
 {
   const auto& MFTClusterROFRec = this->mRecoCont.getMFTClustersROFRecords();
   const auto& clusMFT = this->mRecoCont.getMFTClusters();
@@ -218,7 +218,7 @@ void EveWorkflowHelper::prepareMFTClusters(const o2::itsmft::TopologyDictionary&
     const auto& patterns = this->mRecoCont.getMFTClustersPatterns();
     auto pattIt = patterns.begin();
     this->mMFTClustersArray.reserve(clusMFT.size());
-    o2::mft::ioutils::convertCompactClusters(clusMFT, pattIt, this->mMFTClustersArray, &dict);
+    o2::mft::ioutils::convertCompactClusters(clusMFT, pattIt, this->mMFTClustersArray, dict);
   }
 }
 

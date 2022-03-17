@@ -24,15 +24,33 @@ namespace o2
 namespace mid
 {
 
+/// Electronics delays
+///
+/// The delays are in local clocks, and correspond to the LHC clocks (aka BCs)
 struct ElectronicsDelay {
-  // The delays are in local clocks, and correspond to the LHC clocks (aka BCs)
-  uint16_t calibToFET{19};
-  uint16_t BCToLocal{93};
-  uint16_t regToLocal{6};
+  uint16_t calibToFET{19}; ///< Delay between calibration and FET
+  uint16_t BCToLocal{93};  ///< Delay between collision BC and local clock
+  uint16_t regToLocal{6};  ///< Delay between regional board and local board answers
 };
 
+/// Output streamer for ElectronicsDelay
+/// \param os Output stream
+/// \param delay Electronics delay structure
 std::ostream& operator<<(std::ostream& os, const ElectronicsDelay& delay);
 
+/// Reads the electronic delays from file
+///
+/// The file must be in the form:
+/// - keyword1 value1
+/// - keyword2 value2
+/// The available keywords are:
+/// - calibToFET
+/// - BCToLocal
+/// - regToLocal
+/// with the same meaning as the corresponding data member of the ElectronicsDelay structure.
+/// If the keyword is not present in the file, the default value is used.
+/// \param filename Path to file with delays
+/// \return ElectronicDelay structure
 ElectronicsDelay readElectronicsDelay(const char* filename);
 
 } // namespace mid

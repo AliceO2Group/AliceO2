@@ -102,8 +102,12 @@ int GPUDisplayBackend::InitBackend()
     return 0;
   }
 
-  mDisplay->drawTextFontSize() = mDisplay->cfg().fontSize;
-  FT_Set_Pixel_Sizes(face, 0, mDisplay->cfg().fontSize * 4); // Font size scaled by 4, can be downsampled
+  int fontSize = mDisplay->cfg().fontSize;
+  mDisplay->drawTextFontSize() = fontSize;
+  if (smoothFont()) {
+    fontSize *= 4; // Font size scaled by 4, can be downsampled
+  }
+  FT_Set_Pixel_Sizes(face, 0, fontSize);
 
   for (unsigned int i = 0; i < 128; i++) {
     if (FT_Load_Char(face, i, FT_LOAD_RENDER)) {
@@ -163,4 +167,10 @@ float GPUDisplayBackend::getDownsampleFactor(bool screenshot)
   }
   return factor;
 }
+
+bool GPUDisplayBackend::smoothFont()
+{
+  return mDisplay->cfg().smoothFont < 0 ? (mDisplay->cfg().fontSize > 12) : mDisplay->cfg().smoothFont;
+}
+
 #endif

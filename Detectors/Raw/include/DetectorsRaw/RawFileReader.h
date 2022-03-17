@@ -42,6 +42,7 @@ struct ReaderInp {
   size_t spSize = 1024L * 1024L;
   size_t bufferSize = 1024L * 1024L;
   int loop = 1;
+  int runNumber = 0;
   uint32_t delay_us = 0;
   uint32_t errMap = 0xffffffff;
   uint32_t minTF = 0;
@@ -51,6 +52,7 @@ struct ReaderInp {
   bool cache = false;
   bool autodetectTF0 = false;
   bool preferCalcTF = false;
+  bool sup0xccdb = false;
 };
 
 class RawFileReader

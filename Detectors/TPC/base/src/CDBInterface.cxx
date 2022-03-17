@@ -24,11 +24,13 @@
 #include "TRandom.h"
 
 // o2 includes
+#include "DataFormatsTPC/CalibdEdxCorrection.h"
 #include "TPCBase/CDBInterface.h"
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGEM.h"
 #include "TPCBase/ParameterGas.h"
+#include "TPCBase/Utils.h"
 
 using namespace o2::tpc;
 
@@ -371,15 +373,14 @@ void CDBStorage::uploadGainMap(std::string_view fileName, bool isFull, long firs
 //______________________________________________________________________________
 void CDBStorage::uploadPulserOrCEData(CDBType type, std::string_view fileName, long first, long last)
 {
-  std::unique_ptr<TFile> f(TFile::Open(fileName.data()));
-  CalDet<float>*t0 = nullptr, *width = nullptr, *qtot = nullptr;
-  f->GetObject("T0", t0);
-  f->GetObject("Width", width);
-  f->GetObject("Qtot", qtot);
+  auto calPads = o2::tpc::utils::readCalPads(fileName, "T0,Width,Qtot");
 
-  if (!t0 || !width || !qtot) {
-    LOGP(fatal, "Missing pulser object in file {}: T0 ({}), Width ({}), Qtot({})", fileName, (void*)t0, (void*)width, (void*)qtot);
+  if (calPads.size() != 3) {
+    LOGP(fatal, "Missing pulser object in file {}", fileName);
   }
+  auto t0 = calPads[0];
+  auto width = calPads[1];
+  auto qtot = calPads[2];
 
   std::unordered_map<std::string, CalDet<float>> pulserCalib;
   pulserCalib["T0"] = *t0;
@@ -390,16 +391,47 @@ void CDBStorage::uploadPulserOrCEData(CDBType type, std::string_view fileName, l
 }
 
 //______________________________________________________________________________
+void CDBStorage::uploadFEEConfigPad(std::string_view fileName, long first, long last)
+{
+  auto calPads = o2::tpc::utils::readCalPads(fileName, "ThresholdMap");
+
+  if (calPads.size() != 1) {
+    LOGP(fatal, "Missing pulser object in file {}", fileName);
+  }
+  auto thresholdMap = calPads[0];
+
+  std::unordered_map<std::string, CalDet<float>> feeConfigPad;
+  feeConfigPad["ThresholdMap"] = *thresholdMap;
+
+  storeObject(&feeConfigPad, CDBType::ConfigFEEPad, first, last);
+}
+
+//______________________________________________________________________________
+void CDBStorage::uploadTimeGain(std::string_view fileName, long first, long last)
+{
+  std::unique_ptr<TFile> file(TFile::Open(fileName.data()));
+  auto timeGain = file->Get<o2::tpc::CalibdEdxCorrection>("CalibdEdxCorrection");
+
+  if (!timeGain) {
+    LOGP(fatal, "No valid timeGain object found in {}", fileName);
+  }
+
+  storeObject(timeGain, CDBType::CalTimeGain, first, last);
+}
+
+//______________________________________________________________________________
 void CDBStorage::printObjectSummary(std::string_view name, CDBType const type, MetaData_t const& metadata, long start, long end) const
 {
-  std::time_t tstart(start);
-  std::time_t tend(end);
+  std::time_t tstart(start / 1000);
+  std::time_t tend(end / 1000);
+  auto tstartms = start % 1000;
+  auto tendms = end % 1000;
 
   std::string message = fmt::format("Writing object of type '{}'\n", demangle(name)) +
                         fmt::format("          to storage '{}'\n", mCCDB.getURL()) +
                         fmt::format("          into path '{}'\n", CDBTypeMap.at(type)) +
                         fmt::format("          with validity [{}, {}] :", start, end) +
-                        fmt::format("          [{:%d.%m.%Y %H:%M:%S}, {:%d.%m.%Y %H:%M:%S}]\n", *std::localtime(&tstart), *std::localtime(&tend)) +
+                        fmt::format("          [{:%d.%m.%Y %H:%M:%S}.{:03d}, {:%d.%m.%Y %H:%M:%S}.{:03d}]\n", fmt::localtime(tstart), tstartms, fmt::localtime(tend), tendms) +
                         std::string("          Meta data:\n");
 
   for (const auto& [key, value] : metadata) {

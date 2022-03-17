@@ -248,6 +248,12 @@ struct AnalysisDataProcessorBuilder {
     (invokeProcess<o2::framework::has_type_at_v<T>(pack<T...>{})>(task, inputs, std::get<T>(processTuple), infos), ...);
   }
 
+  template <typename... As>
+  static void overwriteInternalIndices(std::tuple<As...>& dest, std::tuple<As...> const& src)
+  {
+    (std::get<As>(dest).bindInternalIndicesTo(&std::get<As>(src)), ...);
+  }
+
   template <typename Task, typename R, typename C, typename Grouping, typename... Associated>
   static void invokeProcess(Task& task, InputRecord& inputs, R (C::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo>& infos)
   {
@@ -329,7 +335,7 @@ struct AnalysisDataProcessorBuilder {
         auto slicer = GroupSlicer(groupingTable, associatedTables);
         for (auto& slice : slicer) {
           auto associatedSlices = slice.associatedTables();
-
+          overwriteInternalIndices(associatedSlices, associatedTables);
           std::apply(
             [&](auto&&... x) {
               (binder(x), ...);

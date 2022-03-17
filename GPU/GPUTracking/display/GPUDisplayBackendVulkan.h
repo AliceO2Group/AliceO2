@@ -51,12 +51,12 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   int InitBackendA() override;
   void ExitBackendA() override;
   void loadDataToGPU(size_t totalVertizes) override;
-  void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot) override;
+  void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage) override;
   void finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage) override;
-  void finishFrame(bool doScreenshot) override;
+  void finishFrame(bool doScreenshot, bool toMixBuffer, float includeMixImage) override;
   void prepareText() override;
   void finishText() override;
-  void mixImages(float mixSlaveImage) override;
+  void mixImages(VkCommandBuffer cmdBuffer, float mixSlaveImage);
   void pointSizeFactor(float factor) override;
   void lineWidthFactor(float factor) override;
   backendTypes backendType() const override { return TYPE_VULKAN; }
@@ -74,7 +74,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void clearImage(VulkanImage& image);
   void clearVertexBuffers();
 
-  void startFillCommandBuffer(VkCommandBuffer& commandBuffer, unsigned int imageIndex);
+  void startFillCommandBuffer(VkCommandBuffer& commandBuffer, unsigned int imageIndex, bool toMixBuffer = false);
   void endFillCommandBuffer(VkCommandBuffer& commandBuffer, unsigned int imageIndex);
   VkCommandBuffer getSingleTimeCommandBuffer();
   void submitSingleTimeCommandBuffer(VkCommandBuffer commandBuffer);
@@ -85,7 +85,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void createDevice();
   void createTextureSampler();
   void createPipeline();
-  void createSwapChain(bool forScreenshot = false);
+  void createSwapChain(bool forScreenshot = false, bool forMixing = false);
   void createShaders();
   void createUniformLayouts();
   void clearDevice();
@@ -94,7 +94,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void clearSwapChain();
   void clearShaders();
   void clearUniformLayouts();
-  void recreateSwapChain(bool forScreenshot = false);
+  void recreateSwapChain(bool forScreenshot = false, bool forMixing = false);
   void needRecordCommandBuffers();
 
   void addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data) override;
@@ -126,33 +126,43 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   std::vector<VulkanImage> mMSAAImages;
   std::vector<VulkanImage> mDownsampleImages;
   std::vector<VulkanImage> mZImages;
+  std::vector<VulkanImage> mMixImages;
   std::unordered_map<std::string, VkShaderModule> mShaders;
   VkPipelineLayout mPipelineLayout;
-  VkPipelineLayout mPipelineLayoutText;
+  VkPipelineLayout mPipelineLayoutTexture;
   VkRenderPass mRenderPass;
   VkRenderPass mRenderPassText;
+  VkRenderPass mRenderPassTexture;
   std::vector<VkPipeline> mPipelines;
   std::vector<VkFramebuffer> mFramebuffers;
   std::vector<VkFramebuffer> mFramebuffersText;
+  std::vector<VkFramebuffer> mFramebuffersTexture;
   VkCommandPool mCommandPool;
+
   unsigned int mImageCount = 0;
   unsigned int mFramesInFlight = 0;
   int mCurrentFrame = 0;
   uint32_t mImageIndex = 0;
+  VkCommandBuffer mCurrentCommandBuffer;
+  int mCurrentCommandBufferLastPipeline = -1;
+
   std::vector<VkCommandBuffer> mCommandBuffers;
   std::vector<VkCommandBuffer> mCommandBuffersDownsample;
   std::vector<VkCommandBuffer> mCommandBuffersText;
+  std::vector<VkCommandBuffer> mCommandBuffersTexture;
+  std::vector<VkCommandBuffer> mCommandBuffersMix;
   std::vector<bool> mCommandBufferUpToDate;
   std::vector<VkSemaphore> mImageAvailableSemaphore;
   std::vector<VkSemaphore> mRenderFinishedSemaphore;
   std::vector<VkSemaphore> mTextFinishedSemaphore;
+  std::vector<VkSemaphore> mMixFinishedSemaphore;
   std::vector<VkSemaphore> mDownsampleFinishedSemaphore;
   std::vector<VkFence> mInFlightFence;
-  std::vector<VulkanBuffer> mUniformBuffersMat[2];
-  std::vector<VulkanBuffer> mUniformBuffersCol[2];
-  std::vector<VkDescriptorSet> mDescriptorSets[2];
+  std::vector<VulkanBuffer> mUniformBuffersMat[3];
+  std::vector<VulkanBuffer> mUniformBuffersCol[3];
+  std::vector<VkDescriptorSet> mDescriptorSets[3];
   VkDescriptorSetLayout mUniformDescriptor;
-  VkDescriptorSetLayout mUniformDescriptorText;
+  VkDescriptorSetLayout mUniformDescriptorTexture;
   VkDescriptorPool mDescriptorPool;
 
   std::vector<VulkanBuffer> mVBO;
@@ -165,16 +175,20 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   std::vector<VulkanBuffer> mFontVertexBuffer;
   std::vector<TextDrawCommand> mTextDrawCommands;
   VkCommandBuffer mTmpTextCommandBuffer;
-  VkSampler mTextSampler;
+  VkSampler mTextureSampler;
   vecpod<float> mFontVertexBufferHost;
-  bool hasDrawnText = false;
+  bool mHasDrawnText = false;
 
   VkSampleCountFlagBits mMSAASampleCount = VK_SAMPLE_COUNT_1_BIT;
   unsigned int mMaxMSAAsupported = 0;
   bool mZActive = false;
   bool mZSupported = false;
-
   bool mDownsampleFSAA = false;
+
+  VkFence mSingleCommitFence;
+
+  bool mMixingSupported = 0;
+  std::unique_ptr<VulkanBuffer> mTextureVertexArray;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

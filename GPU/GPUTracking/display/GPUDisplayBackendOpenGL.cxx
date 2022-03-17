@@ -295,7 +295,8 @@ int GPUDisplayBackendOpenGL::InitBackendA()
   setQuality();
   CHKERR(mVertexShader = glCreateShader(GL_VERTEX_SHADER));
   CHKERR(mFragmentShader = glCreateShader(GL_FRAGMENT_SHADER));
-  CHKERR(mVertexShaderText = glCreateShader(GL_VERTEX_SHADER));
+  CHKERR(mVertexShaderTexture = glCreateShader(GL_VERTEX_SHADER));
+  CHKERR(mFragmentShaderTexture = glCreateShader(GL_FRAGMENT_SHADER));
   CHKERR(mFragmentShaderText = glCreateShader(GL_FRAGMENT_SHADER));
 #if defined(GL_VERSION_4_6) && GL_VERSION_4_6 == 1 && defined(GPUCA_BUILD_EVENT_DISPLAY_VULKAN)
   if (getenv("USE_SPIRV_SHADERS") && atoi(getenv("USE_SPIRV_SHADERS"))) {
@@ -313,18 +314,19 @@ int GPUDisplayBackendOpenGL::InitBackendA()
     CHKERR(glShaderSource(mFragmentShader, 1, &GPUDisplayShaders::fragmentShader, nullptr));
     CHKERR(glCompileShader(mFragmentShader));
   }
-  CHKERR(glShaderSource(mVertexShaderText, 1, &GPUDisplayShaders::vertexShaderText, nullptr));
-  CHKERR(glCompileShader(mVertexShaderText));
+  CHKERR(glShaderSource(mVertexShaderTexture, 1, &GPUDisplayShaders::vertexShaderTexture, nullptr));
+  CHKERR(glCompileShader(mVertexShaderTexture));
+  CHKERR(glShaderSource(mFragmentShaderTexture, 1, &GPUDisplayShaders::fragmentShaderTexture, nullptr));
+  CHKERR(glCompileShader(mFragmentShaderTexture));
   CHKERR(glShaderSource(mFragmentShaderText, 1, &GPUDisplayShaders::fragmentShaderText, nullptr));
   CHKERR(glCompileShader(mFragmentShaderText));
-  if (checkShaderStatus(mVertexShader) || checkShaderStatus(mFragmentShader) || checkShaderStatus(mVertexShaderText) || checkShaderStatus(mFragmentShaderText)) {
+  if (checkShaderStatus(mVertexShader) || checkShaderStatus(mFragmentShader) || checkShaderStatus(mVertexShaderTexture) || checkShaderStatus(mFragmentShaderTexture) || checkShaderStatus(mFragmentShaderText)) {
     return 1;
   }
   CHKERR(mShaderProgram = glCreateProgram());
   CHKERR(glAttachShader(mShaderProgram, mVertexShader));
   CHKERR(glAttachShader(mShaderProgram, mFragmentShader));
   CHKERR(glLinkProgram(mShaderProgram));
-  CHKERR(glGenVertexArrays(1, &mVertexArray));
   if (mSPIRVShaders) {
     CHKERR(glGenBuffers(1, &mSPIRVModelViewBuffer));
     CHKERR(glGenBuffers(1, &mSPIRVColorBuffer));
@@ -333,11 +335,29 @@ int GPUDisplayBackendOpenGL::InitBackendA()
     CHKERR(mColorId = glGetUniformLocation(mShaderProgram, "color"));
   }
   CHKERR(mShaderProgramText = glCreateProgram());
-  CHKERR(glAttachShader(mShaderProgramText, mVertexShaderText));
+  CHKERR(glAttachShader(mShaderProgramText, mVertexShaderTexture));
   CHKERR(glAttachShader(mShaderProgramText, mFragmentShaderText));
   CHKERR(glLinkProgram(mShaderProgramText));
   CHKERR(mModelViewProjIdText = glGetUniformLocation(mShaderProgramText, "projection"));
   CHKERR(mColorIdText = glGetUniformLocation(mShaderProgramText, "textColor"));
+  CHKERR(mShaderProgramTexture = glCreateProgram());
+  CHKERR(glAttachShader(mShaderProgramTexture, mVertexShaderTexture));
+  CHKERR(glAttachShader(mShaderProgramTexture, mFragmentShaderTexture));
+  CHKERR(glLinkProgram(mShaderProgramTexture));
+  CHKERR(mModelViewProjIdTexture = glGetUniformLocation(mShaderProgramTexture, "projection"));
+  CHKERR(mAlphaIdTexture = glGetUniformLocation(mShaderProgramTexture, "alpha"));
+  CHKERR(glGenVertexArrays(1, &mVertexArray));
+
+  CHKERR(glGenVertexArrays(1, &VAO_texture));
+  CHKERR(glGenBuffers(1, &VBO_texture));
+  CHKERR(glBindVertexArray(VAO_texture));
+  CHKERR(glBindBuffer(GL_ARRAY_BUFFER, VBO_texture));
+  CHKERR(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, nullptr, GL_DYNAMIC_DRAW));
+  CHKERR(glEnableVertexAttribArray(0));
+  CHKERR(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), nullptr));
+  CHKERR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+
+  CHKERR(glBindVertexArray(0));
   return (0); // Initialization Went OK
 }
 
@@ -350,9 +370,16 @@ void GPUDisplayBackendOpenGL::ExitBackendA()
   CHKERR(glDeleteShader(mVertexShader));
   CHKERR(glDeleteShader(mFragmentShader));
   CHKERR(glDeleteProgram(mShaderProgramText));
-  CHKERR(glDeleteShader(mVertexShaderText));
   CHKERR(glDeleteShader(mFragmentShaderText));
+  CHKERR(glDeleteProgram(mShaderProgramTexture));
+  CHKERR(glDeleteShader(mVertexShaderTexture));
+  CHKERR(glDeleteShader(mFragmentShaderTexture));
+
   CHKERR(glDeleteVertexArrays(1, &mVertexArray));
+
+  CHKERR(glDeleteBuffers(1, &VBO_texture));
+  CHKERR(glDeleteVertexArrays(1, &VAO_texture));
+
   if (mFreetypeInitialized) {
     CHKERR(glDeleteBuffers(1, &VBO_text));
     CHKERR(glDeleteVertexArrays(1, &VAO_text));
@@ -401,12 +428,14 @@ void GPUDisplayBackendOpenGL::loadDataToGPU(size_t totalVertizes)
   }
 }
 
-void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot)
+void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage)
 {
   if (mDisplay->updateRenderPipeline() || mDownsampleFactor != getDownsampleFactor(requestScreenshot)) {
     updateRenderer(requestScreenshot);
   }
-  if (mRenderToMixBuffer) {
+  if (mOffscreenBufferMSAA.created) {
+    setFrameBuffer(mOffscreenBufferMSAA.fb_id);
+  } else if (toMixBuffer) {
     setFrameBuffer(mMixBuffer.fb_id);
   } else if (mOffscreenBuffer.created) {
     setFrameBuffer(mOffscreenBuffer.fb_id);
@@ -474,39 +503,44 @@ void GPUDisplayBackendOpenGL::finishDraw(bool doScreenshot, bool toMixBuffer, fl
     CHKERR(glUseProgram(0));
   }
 
+  if (mDisplay->cfgR().drawQualityMSAA) {
+    unsigned int dstId = toMixBuffer ? mMixBuffer.fb_id : (mDownsampleFactor != 1 ? mOffscreenBuffer.fb_id : 0);
+    CHKERR(glBlitNamedFramebuffer(mOffscreenBufferMSAA.fb_id, dstId, 0, 0, mRenderWidth, mRenderHeight, 0, 0, mRenderWidth, mRenderHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR));
+  }
   if (includeMixImage > 0) {
+    setFrameBuffer(mDownsampleFactor != 1 ? mOffscreenBuffer.fb_id : 0);
     mixImages(includeMixImage);
   }
-
-  if (mRenderToMixBuffer) {
-    clearScreen(true);
-  } else if (mOffscreenBuffer.created) {
-    setFrameBuffer(0);
-    renderOffscreenBuffer(mOffscreenBuffer.fb_id, mOffscreenBufferNoMSAA.fb_id, toMixBuffer ? mMixBuffer.fb_id : 0);
+  if (mDownsampleFactor != 1 && !toMixBuffer) {
+    CHKERR(glBlitNamedFramebuffer(mOffscreenBuffer.fb_id, 0, 0, 0, mRenderWidth, mRenderHeight, 0, 0, mScreenWidth, mScreenHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR));
   }
 
-  if (doScreenshot && !mRenderToMixBuffer) {
-    int scaleFactor = mDisplay->cfgR().screenshotScaleFactor;
-    unsigned int width = mScreenWidth * scaleFactor;
-    unsigned int height = mScreenHeight * scaleFactor;
-    GLfb tmpBuffer;
-    if (mDisplay->cfgR().drawQualityDownsampleFSAA && mDisplay->cfgR().screenshotScaleFactor != 1) {
-      createFB(tmpBuffer, false, true, false, width, height);
-      CHKERR(glBlitNamedFramebuffer(mDisplay->cfgR().drawQualityMSAA > 1 ? mOffscreenBufferNoMSAA.fb_id : mOffscreenBuffer.fb_id, tmpBuffer.fb_id, 0, 0, mRenderWidth, mRenderHeight, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR));
-    }
-    setFrameBuffer(tmpBuffer.created ? tmpBuffer.fb_id : (scaleFactor != 1 ? (mDisplay->cfgR().drawQualityMSAA > 1 ? mOffscreenBufferNoMSAA.fb_id : mOffscreenBuffer.fb_id) : 0));
-    CHKERR(glPixelStorei(GL_PACK_ALIGNMENT, 1));
-    CHKERR(glReadBuffer(scaleFactor != 1 ? GL_COLOR_ATTACHMENT0 : GL_BACK));
-    mScreenshotPixels.resize(width * height * 4);
-    CHKERR(glReadPixels(0, 0, width, height, GL_BGRA, GL_UNSIGNED_BYTE, mScreenshotPixels.data()));
-    if (tmpBuffer.created) {
-      deleteFB(tmpBuffer);
-    }
-    setFrameBuffer(0);
+  if (doScreenshot && !toMixBuffer) {
+    readImageToPixels();
   }
 }
 
-void GPUDisplayBackendOpenGL::finishFrame(bool doScreenshot) {}
+void GPUDisplayBackendOpenGL::readImageToPixels()
+{
+  int scaleFactor = mDisplay->cfgR().screenshotScaleFactor;
+  unsigned int width = mScreenWidth * scaleFactor;
+  unsigned int height = mScreenHeight * scaleFactor;
+  GLfb tmpBuffer;
+  if (mDisplay->cfgR().drawQualityDownsampleFSAA && mDisplay->cfgR().screenshotScaleFactor != 1) {
+    createFB(tmpBuffer, false, true, false, width, height);
+    CHKERR(glBlitNamedFramebuffer(mOffscreenBuffer.fb_id, tmpBuffer.fb_id, 0, 0, mRenderWidth, mRenderHeight, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR));
+  }
+  setFrameBuffer(tmpBuffer.created ? tmpBuffer.fb_id : (scaleFactor != 1 ? mOffscreenBuffer.fb_id : 0));
+  CHKERR(glPixelStorei(GL_PACK_ALIGNMENT, 1));
+  CHKERR(glReadBuffer(scaleFactor != 1 ? GL_COLOR_ATTACHMENT0 : GL_BACK));
+  mScreenshotPixels.resize(width * height * 4);
+  CHKERR(glReadPixels(0, 0, width, height, GL_BGRA, GL_UNSIGNED_BYTE, mScreenshotPixels.data()));
+  if (tmpBuffer.created) {
+    deleteFB(tmpBuffer);
+  }
+}
+
+void GPUDisplayBackendOpenGL::finishFrame(bool doScreenshot, bool toMixBuffer, float includeMixImage) {}
 
 void GPUDisplayBackendOpenGL::prepareText()
 {
@@ -540,28 +574,31 @@ void GPUDisplayBackendOpenGL::finishText()
   }
 }
 
-void GPUDisplayBackendOpenGL::renderOffscreenBuffer(unsigned int buffer, unsigned int bufferNoMSAA, unsigned int mainBuffer)
-{
-  GLuint srcid = buffer;
-  if (mDisplay->cfgR().drawQualityMSAA > 1 && mDownsampleFactor != 1) {
-    CHKERR(glBlitNamedFramebuffer(srcid, bufferNoMSAA, 0, 0, mRenderWidth, mRenderHeight, 0, 0, mRenderWidth, mRenderHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR));
-    srcid = bufferNoMSAA;
-  }
-  CHKERR(glBlitNamedFramebuffer(srcid, mainBuffer, 0, 0, mRenderWidth, mRenderHeight, 0, 0, mScreenWidth, mScreenHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR));
-}
-
 void GPUDisplayBackendOpenGL::mixImages(float mixSlaveImage)
 {
+  hmm_mat4 proj = HMM_Orthographic(0.f, mRenderWidth, 0.f, mRenderHeight, -1.f, 1.f);
+  glDisable(GL_DEPTH_TEST);
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
   if (!mDisplay->cfgR().openGLCore) {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glMatrixMode(GL_PROJECTION);
-    hmm_mat4 proj = HMM_Orthographic(0.f, mRenderWidth, 0.f, mRenderHeight, -1.f, 1.f);
     glLoadMatrixf(&proj.Elements[0][0]);
     CHKERR(glEnable(GL_TEXTURE_2D));
-    glDisable(GL_DEPTH_TEST);
-    CHKERR(glBindTexture(GL_TEXTURE_2D, mMixBuffer.fbCol_id));
+  } else
+#endif
+  {
+    CHKERR(glUseProgram(mShaderProgramTexture));
+    CHKERR(glActiveTexture(GL_TEXTURE0));
+    CHKERR(glBindVertexArray(VAO_texture));
+    CHKERR(glUniformMatrix4fv(mModelViewProjIdTexture, 1, GL_FALSE, &proj.Elements[0][0]));
+    CHKERR(glUniform1f(mAlphaIdTexture, mixSlaveImage));
+  }
+
+  CHKERR(glBindTexture(GL_TEXTURE_2D, mMixBuffer.fbCol_id));
+
+#ifndef GPUCA_DISPLAY_OPENGL_CORE
+  if (!mDisplay->cfgR().openGLCore) {
     glColor4f(1, 1, 1, mixSlaveImage);
     glBegin(GL_QUADS);
     glTexCoord2f(0, 0);
@@ -575,12 +612,15 @@ void GPUDisplayBackendOpenGL::mixImages(float mixSlaveImage)
     glEnd();
     glColor4f(1, 1, 1, 0);
     CHKERR(glDisable(GL_TEXTURE_2D));
-    setDepthBuffer();
   } else
 #endif
   {
-    GPUWarning("Image mixing unsupported in OpenGL CORE profile");
+    CHKERR(glDrawArrays(GL_TRIANGLES, 0, 6));
+    CHKERR(glBindVertexArray(0));
+    CHKERR(glUseProgram(0));
   }
+  CHKERR(glBindTexture(GL_TEXTURE_2D, 0));
+  setDepthBuffer();
 }
 
 void GPUDisplayBackendOpenGL::pointSizeFactor(float factor)
@@ -603,6 +643,15 @@ void GPUDisplayBackendOpenGL::addFontSymbol(int symbol, int sizex, int sizey, in
   }
   unsigned int texId;
   glGenTextures(1, &texId);
+  std::vector<unsigned char> tmp;
+  if (!smoothFont()) {
+    tmp.resize(sizex * sizey);
+    unsigned char* src = (unsigned char*)data;
+    for (int i = 0; i < sizex * sizey; i++) {
+      tmp[i] = src[i] > 128 ? 255 : 0;
+    }
+    data = tmp.data();
+  }
   mFontSymbols.emplace_back(FontSymbolOpenGL{sizex, sizey, offsetx, offsety, advance, texId});
   if (sizex == 0 || sizey == 0) {
     return;
@@ -636,7 +685,9 @@ void GPUDisplayBackendOpenGL::OpenGLPrint(const char* s, float x, float y, float
   }
   CHKERR(glUniform4fv(mColorIdText, 1, color));
 
-  scale *= 0.25f; // Font size is 48 to have nice bitmap, scale to size 12
+  if (smoothFont()) {
+    scale *= 0.25f; // Font size is 48 to have nice bitmap, scale to size 12
+  }
   for (const char* c = s; *c; c++) {
     if ((int)*c > (int)mFontSymbols.size()) {
       GPUError("Trying to draw unsupported symbol: %d > %d\n", (int)*c, (int)mFontSymbols.size());
@@ -652,7 +703,6 @@ void GPUDisplayBackendOpenGL::OpenGLPrint(const char* s, float x, float y, float
         {xpos, ypos + h, 0.0f, 0.0f},
         {xpos, ypos, 0.0f, 1.0f},
         {xpos + w, ypos, 1.0f, 1.0f},
-
         {xpos, ypos + h, 0.0f, 0.0f},
         {xpos + w, ypos, 1.0f, 1.0f},
         {xpos + w, ypos + h, 1.0f, 0.0f}};
@@ -660,7 +710,7 @@ void GPUDisplayBackendOpenGL::OpenGLPrint(const char* s, float x, float y, float
       CHKERR(glBindBuffer(GL_ARRAY_BUFFER, VBO_text));
       CHKERR(glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices));
       CHKERR(glBindBuffer(GL_ARRAY_BUFFER, 0));
-      glDrawArrays(GL_TRIANGLES, 0, 6);
+      CHKERR(glDrawArrays(GL_TRIANGLES, 0, 6));
     }
     x += (sym.advance >> 6) * scale; // shift is in 1/64th of a pixel
   }
@@ -674,11 +724,11 @@ void GPUDisplayBackendOpenGL::ClearOffscreenBuffers()
   if (mMixBuffer.created) {
     deleteFB(mMixBuffer);
   }
+  if (mOffscreenBufferMSAA.created) {
+    deleteFB(mOffscreenBufferMSAA);
+  }
   if (mOffscreenBuffer.created) {
     deleteFB(mOffscreenBuffer);
-  }
-  if (mOffscreenBufferNoMSAA.created) {
-    deleteFB(mOffscreenBufferNoMSAA);
   }
 }
 
@@ -686,7 +736,22 @@ void GPUDisplayBackendOpenGL::resizeScene(unsigned int width, unsigned int heigh
 {
   mScreenWidth = width;
   mScreenHeight = height;
+
   updateRenderer(false);
+
+  float vertices[6][4] = {
+    {0, (float)mRenderHeight, 0.0f, 1.0f},
+    {0, 0, 0.0f, 0.0f},
+    {(float)mRenderWidth, 0, 1.0f, 0.0f},
+    {0, (float)mRenderHeight, 0.0f, 1.0f},
+    {(float)mRenderWidth, 0, 1.0f, 0.0f},
+    {(float)mRenderWidth, (float)mRenderHeight, 1.0f, 1.0f}};
+  CHKERR(glBindBuffer(GL_ARRAY_BUFFER, VBO_texture));
+  CHKERR(glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices));
+  CHKERR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+  if (!mDisplay->useMultiVBO()) {
+    CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mVBOId[0])); // If we don't use multiple buffers, we keep the default buffer bound
+  }
 }
 
 void GPUDisplayBackendOpenGL::updateRenderer(bool withScreenshot)
@@ -695,11 +760,11 @@ void GPUDisplayBackendOpenGL::updateRenderer(bool withScreenshot)
   mRenderWidth = mScreenWidth * mDownsampleFactor;
   mRenderHeight = mScreenHeight * mDownsampleFactor;
   ClearOffscreenBuffers();
-  if (mDisplay->cfgR().drawQualityMSAA > 1 || mDownsampleFactor != 1) {
-    createFB(mOffscreenBuffer, false, true, mDisplay->cfgR().drawQualityMSAA > 1, mRenderWidth, mRenderHeight);
-    if (mDisplay->cfgR().drawQualityMSAA > 1 && mDownsampleFactor != 1) {
-      createFB(mOffscreenBufferNoMSAA, false, true, false, mRenderWidth, mRenderHeight);
-    }
+  if (mDisplay->cfgR().drawQualityMSAA > 1) {
+    createFB(mOffscreenBufferMSAA, false, true, true, mRenderWidth, mRenderHeight);
+  }
+  if (mDownsampleFactor != 1) {
+    createFB(mOffscreenBuffer, false, true, false, mRenderWidth, mRenderHeight);
   }
   createFB(mMixBuffer, true, true, false, mRenderWidth, mRenderHeight);
   setQuality();

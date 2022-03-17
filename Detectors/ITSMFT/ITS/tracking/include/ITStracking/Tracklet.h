@@ -30,11 +30,11 @@ struct Tracklet final {
   Tracklet();
   GPUdi() Tracklet(const int, const int, const Cluster&, const Cluster&, int rof0, int rof1);
   GPUdi() Tracklet(const int, const int, float tanL, float phi, int rof0, int rof1);
-#ifdef _ALLOW_DEBUG_TREES_ITS_
+  bool operator==(const Tracklet&) const;
+  bool operator!=(const Tracklet&) const;
   unsigned char isEmpty() const;
   void dump();
   unsigned char operator<(const Tracklet&) const;
-#endif
 
   int firstClusterIndex;
   int secondClusterIndex;
@@ -71,7 +71,22 @@ GPUdi() Tracklet::Tracklet(const int idx0, const int idx1, float tanL, float phi
   // Nothing to do
 }
 
-#ifdef _ALLOW_DEBUG_TREES_ITS_
+inline bool Tracklet::operator==(const Tracklet& rhs) const
+{
+  return this->firstClusterIndex == rhs.firstClusterIndex &&
+         this->secondClusterIndex == rhs.secondClusterIndex &&
+         this->tanLambda == rhs.tanLambda &&
+         this->phi == rhs.phi;
+}
+
+inline bool Tracklet::operator!=(const Tracklet& rhs) const
+{
+  return this->firstClusterIndex != rhs.firstClusterIndex ||
+         this->secondClusterIndex != rhs.secondClusterIndex ||
+         this->tanLambda != rhs.tanLambda ||
+         this->phi != rhs.phi;
+}
+
 inline unsigned char Tracklet::isEmpty() const
 {
   return !firstClusterIndex && !secondClusterIndex && !tanLambda && !phi;
@@ -82,8 +97,9 @@ inline unsigned char Tracklet::operator<(const Tracklet& t) const
   if (isEmpty() && t.isEmpty()) {
     return false;
   } else {
-    if (isEmpty())
+    if (isEmpty()) {
       return false;
+    }
   }
   return true;
 }
@@ -95,7 +111,6 @@ inline void Tracklet::dump()
   std::cout << "tanLambda: " << tanLambda << std::endl;
   std::cout << "phi: " << phi << std::endl;
 }
-#endif
 
 } // namespace its
 } // namespace o2

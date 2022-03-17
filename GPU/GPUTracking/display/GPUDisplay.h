@@ -176,7 +176,7 @@ class GPUDisplay
     bool mVerbose = false;
   };
 
-  void DrawGLScene_internal(float animateTime = -1.f);
+  void DrawGLScene_internal(float animateTime = -1.f, bool renderToMixBuffer = false);
   void DrawGLScene_updateEventData();
   void DrawGLScene_cameraAndAnimation(float animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix);
   size_t DrawGLScene_updateVertexList();

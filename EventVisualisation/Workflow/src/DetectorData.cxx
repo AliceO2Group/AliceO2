@@ -49,26 +49,6 @@ void DetectorData::init()
   mTrdGeo.reset(new o2::trd::GeometryFlat(*gm));
   mConfig->configCalib.trdGeometry = mTrdGeo.get();
 
-  std::string dictFileITS = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  dictFileITS = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictFileITS);
-  if (o2::utils::Str::pathExists(dictFileITS)) {
-    mITSDict.readFromFile(dictFileITS);
-    LOG(info) << "Running with provided ITS clusters dictionary: " << dictFileITS;
-  } else {
-    LOG(info) << "Dictionary " << dictFileITS << " is absent, ITS expects cluster patterns for all clusters";
-  }
-  mConfig->configCalib.itsPatternDict = &mITSDict;
-
-  std::string dictFileMFT = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-  dictFileMFT = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictFileMFT);
-  if (o2::utils::Str::pathExists(dictFileMFT)) {
-    mMFTDict.readFromFile(dictFileMFT);
-    LOG(info) << "Running with provided MFT clusters dictionary: " << dictFileMFT;
-  } else {
-    LOG(info) << "Dictionary " << dictFileMFT << " is absent, MFT expects cluster patterns for all clusters";
-  }
-  mConfig->configCalib.mftPatternDict = &mMFTDict;
-
   o2::tof::Geo::Init();
 
   o2::its::GeometryTGeo::Instance()->fillMatrixCache(
@@ -76,4 +56,16 @@ void DetectorData::init()
                              o2::math_utils::TransformType::T2G,
                              o2::math_utils::TransformType::L2G,
                              o2::math_utils::TransformType::T2L));
+}
+
+void DetectorData::setITSDict(const o2::itsmft::TopologyDictionary* d)
+{
+  mITSDict = d;
+  mConfig->configCalib.itsPatternDict = d;
+}
+
+void DetectorData::setMFTDict(const o2::itsmft::TopologyDictionary* d)
+{
+  mMFTDict = d;
+  mConfig->configCalib.mftPatternDict = d;
 }

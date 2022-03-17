@@ -55,7 +55,6 @@ class EntropyDecoderSpec : public o2::framework::Task
   bool mUseClusterDictionary{true};
 
   std::string mCTFDictPath{};
-  std::string mClusDictPath{};
   TStopwatch mTimer;
 };
 

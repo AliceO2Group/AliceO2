@@ -16,6 +16,7 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "ITSReconstruction/CookedTracker.h"
+#include "ITStracking/TimeFrame.h"
 #include "ITStracking/Vertexer.h"
 #include "ITStracking/VertexerTraits.h"
 #include "DataFormatsParameters/GRPObject.h"

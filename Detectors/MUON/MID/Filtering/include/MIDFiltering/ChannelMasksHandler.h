@@ -55,7 +55,7 @@ class ChannelMasksHandler
 
   /// Applies the mask
   /// \param data Data to be masked. They will be modified
-  /// \return false if data is unmodified
+  /// \return false if the data is completely masked
   bool applyMask(ColumnData& data) const;
 
   /// Merges the masks

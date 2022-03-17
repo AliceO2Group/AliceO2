@@ -155,7 +155,6 @@ struct BinningPolicy {
   }
 
   pack<C, Cs...> getColumns() const { return pack<C, Cs...>{}; }
-  static constexpr int mColumnsCount = sizeof...(Cs) + 1;
 
  private:
   int getBinAt(unsigned int i, unsigned int j, unsigned int k) const
@@ -197,7 +196,6 @@ struct NoBinningPolicy {
   }
 
   pack<C> getColumns() const { return pack<C>{}; }
-  static constexpr int mColumnsCount = 1;
 };
 
 } // namespace o2::framework

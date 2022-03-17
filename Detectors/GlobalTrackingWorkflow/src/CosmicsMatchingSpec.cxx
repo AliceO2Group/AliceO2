@@ -151,7 +151,6 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
 
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestClusters(src, false); // no MC labels for clusters needed for refit only
-  dataRequest->inputs.emplace_back("cldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
 
   outputs.emplace_back("GLO", "COSMICTRC", 0, Lifetime::Timeframe);
   if (useMC) {

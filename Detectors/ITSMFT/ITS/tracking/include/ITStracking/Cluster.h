@@ -37,6 +37,7 @@ struct Cluster final {
   Cluster(const int, const IndexTableUtils& utils, const Cluster&);
   Cluster(const int, const float3&, const IndexTableUtils& utils, const Cluster&);
   void Init(const int, const float3&, const IndexTableUtils& utils, const Cluster&);
+  bool operator==(const Cluster&) const;
 
   float xCoordinate;      // = -999.f;
   float yCoordinate;      // = -999.f;

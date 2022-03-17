@@ -23,9 +23,7 @@
 #include <iterator>
 #include <gsl/gsl> // for guideline support library; array_view
 
-namespace o2
-{
-namespace dataformats
+namespace o2::dataformats
 {
 
 // a label container with both contiguous and non-contiguous modes
@@ -85,9 +83,14 @@ class LabelContainer
   }
 
   // an iterator class to iterate over truthelements
-  class Iterator : public std::iterator<std::input_iterator_tag, LabelType>
+  class Iterator
   {
    private:
+    using iterator_category = std::input_iterator_tag;
+    using value_type = LabelType;
+    using difference_type = std::ptrdiff_t;
+    using pointer = LabelType*;
+    using reference = LabelType&;
     std::vector<StoredLabelType>& mLabelsRef; // reference to labels vector
     int index;                                // startindex
    public:
@@ -225,7 +228,6 @@ class LabelContainer
   }
 }; // end class
 
-} // namespace dataformats
 } // namespace o2
 
 #endif

@@ -64,8 +64,6 @@ void ChannelMasksHandler::switchOffChannels(const std::vector<ColumnData>& badCh
 
 bool ChannelMasksHandler::applyMask(ColumnData& data) const
 {
-  /// Applies the mask to the data
-  /// Returns false if the data is completely masked
   auto uniqueId = getColumnDataUniqueId(data.deId, data.columnId);
   auto maskIt = mMasks.find(uniqueId);
   if (maskIt == mMasks.end()) {

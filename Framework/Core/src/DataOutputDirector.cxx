@@ -289,7 +289,6 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
     buffer.Clear();
     Writer<rapidjson::StringBuffer> writer(buffer);
     dodirItem.Accept(writer);
-    LOGP(info, "OutputDirector object: {}", std::string(buffer.GetString()));
   }
 
   itemName = "resfile";

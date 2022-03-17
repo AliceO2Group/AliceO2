@@ -179,13 +179,6 @@ ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const in
   // AvgDistance2
   mAvgDistance2 = std::move(Line::getDistanceFromPoint(firstLine, mVertex) * Line::getDistanceFromPoint(firstLine, mVertex));
   mAvgDistance2 += (Line::getDistanceFromPoint(secondLine, mVertex) * Line::getDistanceFromPoint(secondLine, mVertex) - mAvgDistance2) / mLabels.size();
-
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  mNVotes = 1;
-  mPoll = firstLine.evtId;
-  mMap.emplace(firstLine.evtId, 1);
-  vote(secondLine);
-#endif
 }
 
 ClusterLines::ClusterLines(const Line& firstLine, const Line& secondLine)
@@ -274,20 +267,11 @@ ClusterLines::ClusterLines(const Line& firstLine, const Line& secondLine)
     determinantSecond;
 
   computeClusterCentroid();
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  mNVotes = 1;
-  mPoll = firstLine.evtId;
-  mMap.emplace(firstLine.evtId, 1);
-  vote(secondLine);
-#endif
 }
 
 void ClusterLines::add(const int& lineLabel, const Line& line, const bool& weight)
 {
   mLabels.push_back(lineLabel);
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  vote(line);
-#endif
   std::array<float, 3> covariance{1., 1., 1.};
 
   for (int i{0}; i < 6; ++i) {
@@ -357,28 +341,23 @@ void ClusterLines::computeClusterCentroid()
                determinant;
 }
 
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-void ClusterLines::vote(const Line& line)
+bool ClusterLines::operator==(const ClusterLines& rhs) const
 {
-  if (mNVotes == 0) {
-    mPoll = line.evtId;
-    ++mNVotes;
+  bool retval{true};
+  for (auto i{0}; i < 6; ++i) {
+    retval &= this->mRMS2[i] == rhs.mRMS2[i];
+  }
+  for (auto i{0}; i < 3; ++i) {
+    retval &= this->mVertex[i] == rhs.mVertex[i];
+  }
+  if (this->mLabels.size() != rhs.mLabels.size()) {
+    retval = false;
   } else {
-    if (line.evtId == mPoll) {
-      ++mNVotes;
-    } else {
-      ++mSwitches;
-      --mNVotes;
+    for (size_t i{0}; i < this->mLabels.size(); ++i) {
+      retval &= this->mLabels[i] == rhs.mLabels[i];
     }
   }
-  auto it = mMap.find(line.evtId);
-  if (it == mMap.end()) {
-    mMap.emplace(line.evtId, 1);
-  } else {
-    it->second += 1;
-  }
+  return retval && this->mAvgDistance2 == rhs.mAvgDistance2;
 }
-#endif
-
 } // namespace its
 } // namespace o2

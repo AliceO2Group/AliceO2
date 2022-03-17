@@ -49,20 +49,20 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   void ExitBackendA() override;
   void clearScreen(bool alphaOnly = false);
   void loadDataToGPU(size_t totalVertizes) override;
-  void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot) override;
+  void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage) override;
   void resizeScene(unsigned int width, unsigned int height) override;
   void updateRenderer(bool withScreenshot);
   void ClearOffscreenBuffers();
   void finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage) override;
-  void finishFrame(bool doScreenshot) override;
+  void finishFrame(bool doScreenshot, bool toMixBuffer, float includeMixImage) override;
   void prepareText() override;
   void finishText() override;
-  void mixImages(float mixSlaveImage) override;
-  void renderOffscreenBuffer(unsigned buffer, unsigned int bufferNoMSAA, unsigned int mainBuffer);
+  void mixImages(float mixSlaveImage);
   void pointSizeFactor(float factor) override;
   void lineWidthFactor(float factor) override;
   backendTypes backendType() const override { return TYPE_OPENGL; }
   size_t needMultiVBO() override { return 0x100000000ll; }
+  void readImageToPixels();
 
   void addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data) override;
   void initializeTextDrawing() override;
@@ -74,10 +74,12 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
 
   unsigned int mVertexShader;
   unsigned int mFragmentShader;
-  unsigned int mVertexShaderText;
+  unsigned int mVertexShaderTexture;
+  unsigned int mFragmentShaderTexture;
   unsigned int mFragmentShaderText;
   unsigned int mShaderProgram;
   unsigned int mShaderProgramText;
+  unsigned int mShaderProgramTexture;
   unsigned int mVertexArray;
 
   unsigned int mIndirectId;
@@ -85,16 +87,21 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   std::vector<FontSymbolOpenGL> mFontSymbols;
   int mModelViewProjId;
   int mColorId;
+  int mModelViewProjIdTexture;
+  int mAlphaIdTexture;
   int mModelViewProjIdText;
   int mColorIdText;
   unsigned int mSPIRVModelViewBuffer;
   unsigned int mSPIRVColorBuffer;
 
   unsigned int VAO_text, VBO_text;
+
+  unsigned int VAO_texture, VBO_texture;
+
   bool mSPIRVShaders = false;
 
   GLfb mMixBuffer;
-  GLfb mOffscreenBuffer, mOffscreenBufferNoMSAA;
+  GLfb mOffscreenBufferMSAA, mOffscreenBuffer;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
