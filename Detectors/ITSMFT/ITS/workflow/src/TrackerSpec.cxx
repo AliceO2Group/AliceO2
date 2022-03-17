@@ -200,17 +200,16 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe});
 
   std::uint32_t roFrame = 0;
-  ROframe event(0, 7);
 
   bool continuous = mGRP->isDetContinuousReadOut("ITS");
   LOG(info) << "ITSTracker RO: continuous=" << continuous;
-
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   FastMultEst multEst;                                     // mult estimator
 
   TimeFrame* timeFrame = mChainITS->GetITSTimeframe();
   mTracker->adoptTimeFrame(*timeFrame);
   mTracker->setBz(mBz);
+  mVertexer->adoptTimeFrame(*timeFrame);
 
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
 
@@ -220,62 +219,63 @@ void TrackerDPL::run(ProcessingContext& pc)
   std::vector<int> savedROF;
   auto logger = [&](std::string s) { LOG(info) << s; };
   auto fatalLogger = [&](std::string s) { LOG(fatal) << s; };
-  float vertexerElapsedTime{0.f};
   int nclUsed = 0;
 
   std::vector<bool> processingMask;
   int cutClusterMult{0}, cutVertexMult{0}, cutTotalMult{0};
-  for (auto& rof : rofspan) {
-    nclUsed += ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels);
-    // prepare in advance output ROFRecords, even if this ROF to be rejected
-    int first = allTracks.size();
-
-    // for vertices output
-    auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
-    vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
-    vtxROF.setNEntries(0);
-
+  for (size_t iRof{0}; iRof < rofspan.size(); ++iRof) {
+    auto& rof = rofspan[iRof];
     bool multCut = (multEstConf.cutMultClusLow <= 0 && multEstConf.cutMultClusHigh <= 0); // cut was requested
     if (!multCut) {
       float mult = multEst.process(rof.getROFData(compClusters));
       multCut = mult >= multEstConf.cutMultClusLow && mult <= multEstConf.cutMultClusHigh;
-      LOG(debug) << fmt::format("ROF {} rejected by the cluster multiplicity selection [{},{}]", processingMask.size(), multEstConf.cutMultClusLow, multEstConf.cutMultClusHigh);
+      if (!multCut) {
+        LOG(debug) << fmt::format("ROF {} rejected by the cluster multiplicity selection [{},{}]", processingMask.size(), multEstConf.cutMultClusLow, multEstConf.cutMultClusHigh);
+      }
       cutClusterMult += !multCut;
     }
+    processingMask.push_back(multCut);
+  }
+  timeFrame->setMultiplicityCutMask(processingMask);
 
+  float vertexerElapsedTime{0.f};
+  if (mRunVertexer) {
+    // Run seeding vertexer
+    vertexerElapsedTime = mVertexer->clustersToVertices(false, logger);
+  }
+
+  for (auto iRof{0}; iRof < rofspan.size(); ++iRof) {
+    bool multCut;
     std::vector<Vertex> vtxVecLoc;
-    if (multCut) {
-      if (mRunVertexer) {
-        vertexerElapsedTime += mVertexer->clustersToVertices(event, false, logger);
-        auto allVerts = mVertexer->exportVertices();
-        multCut = allVerts.size() == 0;
-        for (const auto& vtx : allVerts) {
-          if (vtx.getNContributors() < multEstConf.cutMultVtxLow || (multEstConf.cutMultVtxHigh > 0 && vtx.getNContributors() > multEstConf.cutMultVtxHigh)) {
-            continue; // skip vertex of unwanted multiplicity
-          }
-          multCut = true; // At least one passes the selection
-          vtxVecLoc.push_back(vtx);
+    auto& vtxROF = vertROFvec.emplace_back(rofspan[iRof]);
+    vtxROF.setFirstEntry(vertices.size());
+    if (mRunVertexer) {
+      auto vtxSpan = timeFrame->getPrimaryVertices(iRof);
+      vtxROF.setNEntries(vtxSpan.size());
+      multCut = vtxSpan.size() == 0;
+      for (auto& v : vtxSpan) {
+        if (v.getNContributors() < multEstConf.cutMultVtxLow || (multEstConf.cutMultVtxHigh > 0 && v.getNContributors() > multEstConf.cutMultVtxHigh)) {
+          continue; // skip vertex of unwanted multiplicity
         }
-      } else {
-        vtxVecLoc.emplace_back(Vertex());
-        vtxVecLoc.back().setNContributors(1);
+        multCut = true;
+        vertices.push_back(v);
       }
-
-      if (!multCut) {
-        LOG(debug) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]", processingMask.size(), multEstConf.cutMultVtxLow, multEstConf.cutMultVtxHigh);
+      if (processingMask[iRof] && !multCut) { // passed selection in clusters and not in vertex multiplicity
+        LOG(debug) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]",
+                                  iRof,
+                                  multEstConf.cutMultVtxLow,
+                                  multEstConf.cutMultVtxHigh);
+        processingMask[iRof] = multCut;
         cutVertexMult++;
       }
+    } else { // cosmics
+      vtxVecLoc.emplace_back(Vertex());
+      vtxVecLoc.back().setNContributors(1);
+      vtxROF.setNEntries(vtxVecLoc.size());
+      for (auto& v : vtxVecLoc) {
+        vertices.push_back(v);
+      }
     }
-    cutTotalMult += !multCut;
-    processingMask.push_back(multCut);
-    timeFrame->addPrimaryVertices(vtxVecLoc);
-
-    vtxROF.setNEntries(vtxVecLoc.size());
-    for (const auto& vtx : vtxVecLoc) {
-      vertices.push_back(vtx);
-    }
-    savedROF.push_back(roFrame);
-    roFrame++;
   }
 
   LOG(info) << fmt::format(" - In total, multiplicity selection rejected {}/{} ROFs", cutTotalMult, rofspan.size());
@@ -325,11 +325,9 @@ void TrackerDPL::run(ProcessingContext& pc)
       allTracks.emplace_back(trc);
     }
   }
-
-  LOG(info) << "ITSTracker pushed " << allTracks.size() << " tracks";
+  LOGP(info, "ITSTracker pushed {} and {} vertices", allTracks.size(), vertices.size());
   if (mIsMC) {
-    LOG(info) << "ITSTracker pushed " << allTrackLabels.size() << " track labels";
-
+    LOGP(info, "ITSTracker pushed {} track labels", allTrackLabels.size());
     pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
     pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
   }
