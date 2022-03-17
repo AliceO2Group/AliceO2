@@ -67,6 +67,7 @@
 #include "PropertyTreeHelpers.h"
 #include "SimpleResourceManager.h"
 #include "WorkflowSerializationHelpers.h"
+#include "OptionsHelpers.h"
 
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
@@ -1044,6 +1045,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       ("exit-transition-timeout", bpo::value<std::string>()->default_value(defaultExitTransitionTimeout), "how many second to wait before switching from RUN to READY")                    //
       ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframe can be in fly at the same moment (0 disables)")                                         //
       ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                             //
+      ("condition-backend", bpo::value<std::string>()->default_value(""), "configuration backend")                                                                                         //
       ("infologger-mode", bpo::value<std::string>()->default_value(defaultInfologgerMode), "O2_INFOLOGGER_MODE override");
     r.fConfig.AddToCmdLineOptions(optsDesc, true);
   });
@@ -2381,8 +2383,10 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("resources", bpo::value<std::string>()->default_value(""), "resources allocated for the workflow")                                                   //                                                                                                                   //
     ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")                                                        //                                                                                                                     //
     ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                                                                //                                                                                                                       //
-    ("completion-policy,c", bpo::value<TerminationPolicy>(&processingPolicies.termination)->default_value(TerminationPolicy::QUIT),                       //                                                                                                                       //
+    ("completion-policy,c", bpo::value<std::string>()->default_value("quit"),                                                                             //                                                                                                                       //
      "what to do when processing is finished: quit, wait")                                                                                                //                                                                                                                      //
+    ("condition-backend", bpo::value<std::string>()->default_value("http://alice-ccdb.cern.ch"),                                                          //                                                                                                                       //
+     "URL to use to connect to CCDB")                                                                                                //                                                                                                                      //
     ("error-policy", bpo::value<TerminationPolicy>(&processingPolicies.error)->default_value(TerminationPolicy::QUIT),                                    //                                                                                                                          //
      "what to do when a device has an error: quit, wait")                                                                                                 //                                                                                                                            //
     ("min-failure-level", bpo::value<LogParsingHelpers::LogLevel>(&minFailureLevel)->default_value(LogParsingHelpers::LogLevel::Fatal),                   //                                                                                                                          //
@@ -2571,7 +2575,6 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     }
     apply_permutation(physicalWorkflow, newLocations);
   }
-
   // Use the hidden options as veto, all config specs matching a definition
   // in the hidden options are skipped in order to avoid duplicate definitions
   // in the main parser. Note: all config specs are forwarded to devices
@@ -2589,7 +2592,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   try {
     bpo::store(
       bpo::command_line_parser(argc, argv)
-        .options(od)
+        .options(OptionsHelpers::makeUniqueOptions(od))
         .style(style)
         .run(),
       varmap);
@@ -2630,7 +2633,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.argv = argv;
   driverInfo.batch = varmap["no-batch"].defaulted() ? varmap["batch"].as<bool>() : false;
   driverInfo.noSHMCleanup = varmap["no-cleanup"].as<bool>();
-  driverInfo.processingPolicies.termination = varmap["completion-policy"].as<TerminationPolicy>();
+  driverInfo.processingPolicies.termination = OptionsHelpers::as<TerminationPolicy>(varmap["completion-policy"]);
   driverInfo.processingPolicies.earlyForward = varmap["early-forward-policy"].as<EarlyForwardPolicy>();
   if (varmap["error-policy"].defaulted() && driverInfo.batch == false) {
     driverInfo.processingPolicies.error = TerminationPolicy::WAIT;

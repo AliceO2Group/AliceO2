@@ -1484,6 +1484,8 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("configuration,cfg", bpo::value<std::string>(), "configuration connection string")                                                                              //
     ("driver-client-backend", bpo::value<std::string>(), "driver connection string")                                                                                 //
     ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                                                                                //
+    ("condition-backend", bpo::value<std::string>()->default_value("http://alice-ccdb.cern.ch"), "CCDB connection string")                                                                                       //
+    ("completion-policy,c", bpo::value<std::string>()->default_value("quit"), "what to do when processing is finished: quit, wait")                                  //                                                                                                                       //
     ("infologger-mode", bpo::value<std::string>(), "O2_INFOLOGGER_MODE override")                                                                                    //
     ("infologger-severity", bpo::value<std::string>(), "minimun FairLogger severity which goes to info logger")                                                      //
     ("dpl-tracing-flags", bpo::value<std::string>(), "pipe separated list of events to trace")                                                                       //
