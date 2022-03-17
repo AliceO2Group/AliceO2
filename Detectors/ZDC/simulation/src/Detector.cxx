@@ -62,7 +62,7 @@ Detector::Detector(Bool_t active)
   mMediumPMCid = -1; // minus for unitialized
   mMediumPMQid = -2; // different to PMC in any case
   resetHitIndices();
-  
+
 #ifdef ZDC_FASTSIM_ONNX
   LOG(info) << "-------------------FASTSIM-------------------";
   // creating fastsim object
@@ -72,7 +72,7 @@ Detector::Detector(Bool_t active)
       mFastSimModel = new o2::zdc::fastsim::ConditionalModelSimulation(o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPath, scales->first, scales->second, 1.0);
     } else {
       LOG(error) << "Error while reading model scales from: "
-                << "'" << o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales << "'";
+                 << "'" << o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales << "'";
       LOG(error) << "Model won't be loaded";
     }
   }
@@ -2445,11 +2445,11 @@ void Detector::Register()
 #ifdef ZDC_FASTSIM_ONNX
   if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim) {
     std::fstream output("o2sim-FastSimResult", output.out | output.app);
-    if (!output.is_open()){
+    if (!output.is_open()) {
       LOG(error) << "Could not open file.";
     }
-    
-    for(auto &result : mFastSimResults) {
+
+    for (auto& result : mFastSimResults) {
       output << result[0] << ", " << result[1] << result[2] << ", " << result[3] << result[4];
       output << std::endl;
     }
