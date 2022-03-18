@@ -79,7 +79,7 @@ void ChannelCalibrator::finalizeSlot(Slot& slot)
   // Keep track of last TimeFrame, since the masks will be valid from now on
   mTFEnd = slot.getTFEnd();
 
-  mBadChannels = makeMasks(noiseData->getScalers(), mEventsCounter, mThreshold, mRefMasks);
+  mBadChannels = makeBadChannels(noiseData->getScalers(), mEventsCounter, mThreshold);
 
   // Get the masks for the electronics
   // First convert the dead channels into masks
@@ -91,7 +91,7 @@ void ChannelCalibrator::finalizeSlot(Slot& slot)
 
   // Convert column data masks to local board masks
   ColumnDataToLocalBoard colToBoard;
-  colToBoard.process(masksHandler.getMasks());
+  colToBoard.process(masksHandler.getMasks(), true);
 
   // Update local board configuration with the masks
   ROBoardConfigHandler roBoardCfgHandler;
@@ -101,13 +101,6 @@ void ChannelCalibrator::finalizeSlot(Slot& slot)
 
   mMasksString = ss.str();
 }
-
-// void ChannelCalibrator::endOfStream()
-// {
-//   // create the CCDB entry
-//   std::map<std::string, std::string> md;
-//   o2::calibration::Utils::prepareCCDBobjectInfo(mBadChannels, mBadChannelsInfo, "MID/Masks", md, mTFEnd, o2::calibration::Utils::INFINITE_TIME);
-// }
 
 } // namespace mid
 } // namespace o2
