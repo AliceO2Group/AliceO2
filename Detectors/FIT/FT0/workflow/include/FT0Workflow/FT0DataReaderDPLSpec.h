@@ -92,10 +92,11 @@ framework::DataProcessorSpec getFT0DataReaderDPLSpec(const RawReader& rawReader,
   LOG(info) << "DataProcessorSpec initDataProcSpec() for RawReaderFT0";
   std::vector<OutputSpec> outputSpec;
   RawReader::prepareOutputSpec(outputSpec);
-  std::vector<InputSpec> inputSpec{{"STF", ConcreteDataTypeMatcher{o2::header::gDataOriginFT0, "RAWDATA"}, Lifetime::Optional}};
+  std::vector<InputSpec> inputSpec;
   if (askSTFDist) {
-    inputSpec.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
+    inputSpec.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe); // Must be before RAWDATA spec
   }
+  inputs.emplace_back("STF", ConcreteDataTypeMatcher{o2::header::gDataOriginFT0, "RAWDATA"}, Lifetime::Optional);
   return DataProcessorSpec{
     "ft0-datareader-dpl",
     inputSpec,

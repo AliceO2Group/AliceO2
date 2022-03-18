@@ -292,7 +292,7 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
       ins.lifetime = Lifetime::Optional;
     }
     // request the input FLP/DISTSUBTIMEFRAME/0 that is _guaranteed_ to be present, even if none of our raw data is present.
-    inputs.emplace_back("stfDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
+    inputs.insert(inputs.begin(), InputSpec{"stfDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe}); // Must be inserted before RAWDATA spec
   }
   inputs.emplace_back("noise", inp.origin, "NOISEMAP", 0, Lifetime::Condition,
                       o2::framework::ccdbParamSpec(fmt::format("{}/Calib/NoiseMap", inp.origin.as<std::string>())));

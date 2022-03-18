@@ -205,10 +205,10 @@ void RawToDigitConverterSpec::makeGBTWordInverse(std::vector<gbtword80_t>& digle
 o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawToDigitConverterSpec(bool askDISTSTF)
 {
   std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back("TF", o2::framework::ConcreteDataTypeMatcher{"CTP", "RAWDATA"}, o2::framework::Lifetime::Optional);
   if (askDISTSTF) {
-    inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
+    inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe); // Must be before RAWDATA spec
   }
+  inputs.emplace_back("TF", o2::framework::ConcreteDataTypeMatcher{"CTP", "RAWDATA"}, o2::framework::Lifetime::Optional);
 
   std::vector<o2::framework::OutputSpec> outputs;
   outputs.emplace_back("CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe);

@@ -993,10 +993,10 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
     if (specconfig.zsDecoder) {
       // All ZS raw data is published with subspec 0 by the o2-raw-file-reader-workflow and DataDistribution
       // creates subspec fom CRU and endpoint id, we create one single input route subscribing to all TPC/RAWDATA
-      inputs.emplace_back(InputSpec{"zsraw", ConcreteDataTypeMatcher{"TPC", "RAWDATA"}, Lifetime::Optional});
       if (specconfig.askDISTSTF) {
-        inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
+        inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe); // Must be before RAWDATA spec
       }
+      inputs.emplace_back(InputSpec{"zsraw", ConcreteDataTypeMatcher{"TPC", "RAWDATA"}, Lifetime::Optional});
     }
     if (specconfig.zsOnTheFly) {
       inputs.emplace_back(InputSpec{"zsinput", ConcreteDataTypeMatcher{"TPC", "TPCZS"}, Lifetime::Timeframe});

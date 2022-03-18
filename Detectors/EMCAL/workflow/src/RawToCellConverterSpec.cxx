@@ -571,10 +571,11 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverter
     outputs.emplace_back(originEMC, "DECODERERR", subspecification, o2::framework::Lifetime::Timeframe);
   }
 
-  std::vector<o2::framework::InputSpec> inputs{{"stf", o2::framework::ConcreteDataTypeMatcher{originEMC, o2::header::gDataDescriptionRawData}, o2::framework::Lifetime::Optional}};
+  std::vector<o2::framework::InputSpec> inputs;
   if (askDISTSTF) {
-    inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
+    inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe); // Must be before RAWDATA spec
   }
+  inputs.emplace_back("stf", o2::framework::ConcreteDataTypeMatcher{originEMC, o2::header::gDataDescriptionRawData}, o2::framework::Lifetime::Optional);
 
   return o2::framework::DataProcessorSpec{"EMCALRawToCellConverterSpec",
                                           inputs,

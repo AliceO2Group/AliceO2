@@ -104,7 +104,7 @@ class RawDecoderDeviceDPL
 of::DataProcessorSpec getRawDecoderSpec(bool isDebugMode, const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay, std::vector<of::InputSpec> inputSpecs, bool askDISTSTF, o2::header::DataHeader::SubSpecificationType subSpecType)
 {
   if (askDISTSTF) {
-    inputSpecs.emplace_back(getDiSTSTFSpec());
+    inputSpecs.insert(inputSpecs.begin(), getDISTSTFSpec()); // Must be inserted before RAWDATA spec
   }
   std::vector<of::OutputSpec> outputSpecs{of::OutputSpec{header::gDataOriginMID, "DECODED", subSpecType, of::Lifetime::Timeframe}, of::OutputSpec{header::gDataOriginMID, "DECODEDROF", subSpecType, of::Lifetime::Timeframe}};
   return of::DataProcessorSpec{

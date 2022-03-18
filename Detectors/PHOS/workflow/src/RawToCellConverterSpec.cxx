@@ -268,9 +268,9 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 o2::framework::DataProcessorSpec o2::phos::reco_workflow::getRawToCellConverterSpec(unsigned int flpId)
 {
   std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"PHS", "RAWDATA"}, o2::framework::Lifetime::Optional);
   // receive at least 1 guaranteed input (which will allow to acknowledge the TF)
-  inputs.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
+  inputs.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe); // Must be before RAWDATA spec
+  inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"PHS", "RAWDATA"}, o2::framework::Lifetime::Optional);
 
   std::vector<o2::framework::OutputSpec> outputs;
   outputs.emplace_back("PHS", "CELLS", flpId, o2::framework::Lifetime::Timeframe);

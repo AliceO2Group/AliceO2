@@ -96,10 +96,11 @@ framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawRead
   LOG(info) << "DataProcessorSpec initDataProcSpec() for RawReaderZDC";
   std::vector<OutputSpec> outputSpec;
   RawReaderZDC::prepareOutputSpec(outputSpec);
-  std::vector<InputSpec> inputSpec{{"STF", ConcreteDataTypeMatcher{o2::header::gDataOriginZDC, "RAWDATA"}, Lifetime::Optional}};
+  std::vector<InputSpec> inputSpec;
   if (askSTFDist) {
-    inputSpec.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
+    inputSpec.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe); // Must be before RAWDATA spec
   }
+  inputSpec.emplace_back("STF", ConcreteDataTypeMatcher{o2::header::gDataOriginZDC, "RAWDATA"}, Lifetime::Optional);
   return DataProcessorSpec{
     "zdc-datareader-dpl",
     inputSpec,

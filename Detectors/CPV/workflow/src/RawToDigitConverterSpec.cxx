@@ -235,11 +235,11 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
 o2::framework::DataProcessorSpec o2::cpv::reco_workflow::getRawToDigitConverterSpec(bool askDISTSTF, bool isPedestal, bool useBadChannelMap, bool useGainCalibration)
 {
   std::vector<o2::framework::InputSpec> inputs;
+  if (askDISTSTF) {
+    inputs.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe); // Must be before RAWDATA spec
+  }
   inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"CPV", "RAWDATA"}, o2::framework::Lifetime::Optional);
   //receive at least 1 guaranteed input (which will allow to acknowledge the TF)
-  if (askDISTSTF) {
-    inputs.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
-  }
   if (!isPedestal) {
     inputs.emplace_back("peds", "CPV", "CPV_Pedestals", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("CPV/Calib/Pedestals"));
     if (useBadChannelMap) {

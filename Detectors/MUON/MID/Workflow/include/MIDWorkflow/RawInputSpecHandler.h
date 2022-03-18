@@ -26,9 +26,9 @@ namespace o2
 {
 namespace mid
 {
-inline o2::framework::InputSpec getDiSTSTFSpec()
+inline o2::framework::InputSpec getDISTSTFSpec()
 {
-  return {"stdDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe};
+  return {"stdDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe}; // Must be inserted before RAWDATA spec
 }
 
 bool isDroppedTF(o2::framework::ProcessingContext& pc, o2::header::DataOrigin origin = o2::header::gDataOriginMID);

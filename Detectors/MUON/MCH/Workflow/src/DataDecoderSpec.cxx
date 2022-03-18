@@ -330,7 +330,7 @@ o2::framework::DataProcessorSpec getDecodingSpec(const char* specName, std::stri
   if (askSTFDist) {
     // request the input FLP/DISTSUBTIMEFRAME/0 that is _guaranteed_
     // to be present, even if none of our raw data is present.
-    inputs.emplace_back("stfDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
+    inputs.insert(inputs.begin(), InputSpec{"stfDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe}); // Must be inserted before RAWDATA spec
   }
   o2::mch::raw::DataDecoderTask task(inputSpec);
   return DataProcessorSpec{

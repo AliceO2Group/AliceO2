@@ -103,7 +103,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
       for (auto& val : inputs) {
         val.lifetime = Lifetime::Optional;
       }
-      inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
+      inputs.insert(inputs.begin(), InputSpec{"stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe}); // Must be inserted before RAWDATA spec
     }
     workflow.emplace_back(DataProcessorSpec{
       std::string("tof-compressor-") + std::to_string(idevice),

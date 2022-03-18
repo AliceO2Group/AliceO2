@@ -110,10 +110,11 @@ framework::DataProcessorSpec getFITDataReaderDPLSpec(const RawReaderType& rawRea
 {
   std::vector<OutputSpec> outputSpec;
   rawReader.configureOutputSpec(outputSpec);
-  std::vector<InputSpec> inputSpec{{"STF", ConcreteDataTypeMatcher{rawReader.mDataOrigin, "RAWDATA"}, Lifetime::Optional}};
+  std::vector<InputSpec> inputSpec;
   if (askSTFDist) {
-    inputSpec.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
+    inputSpec.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe); // Must be before RAWDATA spec
   }
+  inputSpec.emplace_back("STF", ConcreteDataTypeMatcher{rawReader.mDataOrigin, "RAWDATA"}, Lifetime::Optional);
   std::string dataProcName = rawReader.mDataOrigin.template as<std::string>();
   std::for_each(dataProcName.begin(), dataProcName.end(), [](char& c) { c = ::tolower(c); });
   dataProcName += "-datareader-dpl";

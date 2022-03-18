@@ -408,7 +408,7 @@ DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool c
 {
   std::vector<InputSpec> inputs;
   if (askDISTSTF) {
-    inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
+    inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe); // Must be inserted before RAWDATA / CRAWDATA spec
   }
 
   //  inputs.emplace_back(std::string("x:TOF/" + inputDesc).c_str(), 0, Lifetime::Optional);
