@@ -32,6 +32,9 @@ class TrackerTraitsCPU : public TrackerTraits
 class VertexerTraits
 {
 };
+class TimeFrame
+{
+};
 } // namespace its
 } // namespace o2
 #if defined(GPUCA_HAVE_O2HEADERS)
