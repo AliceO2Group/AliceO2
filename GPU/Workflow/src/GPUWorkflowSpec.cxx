@@ -395,7 +395,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       if (info.size == 0) {
         return;
       }
-      if (confParam.registerSelectedSegmentIds != -1 && info.managed && info.id != confParam.registerSelectedSegmentIds) {
+      if (confParam.registerSelectedSegmentIds != -1 && info.managed && info.id != (unsigned int)confParam.registerSelectedSegmentIds) {
         return;
       }
       int fd = 0;
@@ -493,12 +493,11 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       auto cput = timer.CpuTime();
       auto realt = timer.RealTime();
       timer.Start(false);
-      auto& parser = processAttributes->parser;
       auto& tracker = processAttributes->tracker;
       auto& verbosity = processAttributes->verbosity;
       std::vector<gsl::span<const char>> inputs;
 
-      const CompressedClustersFlat* pCompClustersFlat;
+      const CompressedClustersFlat* pCompClustersFlat = nullptr;
       size_t compClustersFlatDummyMemory[(sizeof(CompressedClustersFlat) + sizeof(size_t) - 1) / sizeof(size_t)];
       CompressedClustersFlat& compClustersFlatDummy = reinterpret_cast<CompressedClustersFlat&>(compClustersFlatDummyMemory);
       CompressedClusters compClustersDummy;
@@ -714,10 +713,10 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         }
       };
 
-      auto downSizeBufferByName = [&outputBuffers, &outputRegions, &downSizeBuffer](GPUOutputControl& region, size_t size) {
+      /*auto downSizeBufferByName = [&outputBuffers, &outputRegions, &downSizeBuffer](GPUOutputControl& region, size_t size) {
         auto& buffer = outputBuffers[outputRegions.getIndex(region)];
         downSizeBuffer(buffer, size);
-      };
+      };*/
 
       auto downSizeBufferToSpan = [&outputBuffers, &outputRegions, &downSizeBuffer](GPUOutputControl& region, auto span) {
         auto& buffer = outputBuffers[outputRegions.getIndex(region)];
@@ -748,7 +747,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
 
       if (processAttributes->tpcSectorMask != 0xFFFFFFFFF) {
         // Clean out the unused sectors, such that if they were present by chance, they are not processed, and if the values are uninitialized, we should not crash
-        for (int i = 0; i < NSectors; i++) {
+        for (unsigned int i = 0; i < NSectors; i++) {
           if (!(processAttributes->tpcSectorMask & (1ul << i))) {
             if (ptrs.tpcZS) {
               for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
@@ -894,7 +893,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         ClusterNativeAccess const& accessIndex = *ptrs.clustersNative;
         if (specconfig.sendClustersPerSector) {
           // Clusters are shipped by sector, we are copying into per-sector buffers (anyway only for ROOT output)
-          for (int i = 0; i < NSectors; i++) {
+          for (unsigned int i = 0; i < NSectors; i++) {
             if (processAttributes->tpcSectorMask & (1ul << i)) {
               DataHeader::SubSpecificationType subspec = i;
               clusterOutputSectorHeader.sectorBits = (1ul << i);
@@ -907,7 +906,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
               memcpy(buffer + sizeof(*outIndex), accessIndex.clusters[i][0], accessIndex.nClustersSector[i] * sizeof(*accessIndex.clustersLinear));
               if (specconfig.processMC && accessIndex.clustersMCTruth) {
                 MCLabelContainer cont;
-                for (int j = 0; j < accessIndex.nClustersSector[i]; j++) {
+                for (unsigned int j = 0; j < accessIndex.nClustersSector[i]; j++) {
                   const auto& labels = accessIndex.clustersMCTruth->getLabels(accessIndex.clusterOffset[i][0] + j);
                   for (const auto& label : labels) {
                     cont.addElement(j, label);
@@ -1055,7 +1054,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
     if (specconfig.outputQA) {
       outputSpecs.emplace_back(gDataOriginTPC, "TRACKINGQA", 0, Lifetime::Timeframe);
     }
-    return std::move(outputSpecs);
+    return outputSpecs;
   };
 
   return DataProcessorSpec{processorName, // process id
