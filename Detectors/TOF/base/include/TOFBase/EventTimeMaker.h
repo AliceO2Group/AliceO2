@@ -40,6 +40,14 @@ struct eventTimeContainer {
   std::vector<float> mTrackTimes; /// eventtime provided by a single track
   float mDiamondSpread = 6.f;     /// spread of primary verdex in cm. Used when resetting the container to the default value
 
+  // Aliases
+  const float& eventTime = mEventTime;
+  const float& eventTimeError = mEventTimeError;
+  const unsigned short& eventTimeMultiplicity = mEventTimeMultiplicity;
+  const float& sumweights = mSumOfWeights;
+  const std::vector<float>& weights = mWeights;
+  const std::vector<float>& tracktime = mTrackTimes;
+
   void reset()
   {
     // reset info
