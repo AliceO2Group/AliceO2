@@ -24,7 +24,7 @@ namespace o2
 namespace mid
 {
 
-void ColumnDataToLocalBoard::process(gsl::span<const ColumnData> data)
+void ColumnDataToLocalBoard::process(gsl::span<const ColumnData> data, bool allowEmpty)
 {
   /// Converts incoming data to FEE format
   mLocalBoardsMap.clear();
@@ -33,7 +33,7 @@ void ColumnDataToLocalBoard::process(gsl::span<const ColumnData> data)
   // Each local board gets a unique id.
   for (auto& col : data) {
     for (int iline = mMapping.getFirstBoardBP(col.columnId, col.deId), lastLine = mMapping.getLastBoardBP(col.columnId, col.deId); iline <= lastLine; ++iline) {
-      if (col.getBendPattern(iline) || col.getNonBendPattern()) {
+      if (allowEmpty || col.getBendPattern(iline) || col.getNonBendPattern()) {
         auto uniqueLocId = mCrateMapper.deLocalBoardToRO(col.deId, col.columnId, iline);
         auto& roData = mLocalBoardsMap[uniqueLocId];
         roData.statusWord = raw::sSTARTBIT | raw::sCARDTYPE;
