@@ -34,12 +34,30 @@ struct InterCalibConfig {
   int nb2[NH] = {0};
   double amin2[NH] = {0};
   double amax2[NH] = {0};
+  double l_bnd[NH] = {0.1, 0.1, 0.1, 0.1, 0.1};
+  double u_bnd[NH] = {10., 10., 10., 10., 10.};
+  double l_bnd_o[NH] = {-20., -20., -20., -20., -20.};
+  double u_bnd_o[NH] = {20., 20., 20., 20., 20.};
+  double step_o[NH] = {0., 0., 0., 0., 0.};
+
   void print();
+  void resetCuts();
+  void resetCutLow();
+  void resetCutHigh();
+  void resetCutLow(int ih);
+  void resetCutHigh(int ih);
+  void setCutLow(double val);
+  void setCutHigh(double val);
+  void setCutLow(int ih, double val);
+  void setCutHigh(int ih, double val);
+  void setCuts(double low, double high);
+  void setCuts(int ih, double low, double high);
   void setBinning1D(int nb, double amin, double amax);
   void setBinning2D(int nb, double amin, double amax);
-  {
-    ClassDefNV(InterCalibConfig, 1);
-  };
+  void setBinning1D(int ih, int nb, double amin, double amax);
+  void setBinning2D(int ih, int nb, double amin, double amax);
+  ClassDefNV(InterCalibConfig, 1);
+};
 } // namespace zdc
 } // namespace o2
 

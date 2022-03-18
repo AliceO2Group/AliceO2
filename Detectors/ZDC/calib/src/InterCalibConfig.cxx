@@ -28,19 +28,104 @@ void InterCalibConfig::print()
   }
 }
 
-InterCalibConfig::void setBinning1D(int nb, double amin, double amax)
+void InterCalibConfig::resetCuts()
 {
-  for (int32_t ih = 0; ih < nh; ih++) {
+  for (int32_t ih = 0; ih < NH; ih++) {
+    cutLow[ih] = -std::numeric_limits<float>::infinity();
+    cutHigh[ih] = std::numeric_limits<float>::infinity();
+  }
+}
+
+void InterCalibConfig::resetCutLow()
+{
+  for (int32_t ih = 0; ih < NH; ih++) {
+    cutLow[ih] = -std::numeric_limits<float>::infinity();
+  }
+}
+
+void InterCalibConfig::resetCutHigh()
+{
+  for (int32_t ih = 0; ih < NH; ih++) {
+    cutHigh[ih] = std::numeric_limits<float>::infinity();
+  }
+}
+
+void InterCalibConfig::resetCutLow(int ih)
+{
+  cutLow[ih] = -std::numeric_limits<float>::infinity();
+}
+
+void InterCalibConfig::resetCutHigh(int ih)
+{
+  cutHigh[ih] = std::numeric_limits<float>::infinity();
+}
+
+void InterCalibConfig::setCutLow(double val)
+{
+  for (int32_t ih = 0; ih < NH; ih++) {
+    cutLow[ih] = val;
+  }
+}
+
+void InterCalibConfig::setCutHigh(double val)
+{
+  for (int32_t ih = 0; ih < NH; ih++) {
+    cutHigh[ih] = val;
+  }
+}
+
+void InterCalibConfig::setCutLow(int ih, double val)
+{
+  cutLow[ih] = val;
+}
+
+void InterCalibConfig::setCutHigh(int ih, double val)
+{
+  cutHigh[ih] = val;
+}
+
+void InterCalibConfig::setCuts(double low, double high)
+{
+  for (int32_t ih = 0; ih < NH; ih++) {
+    cutHigh[ih] = low;
+    cutLow[ih] = high;
+  }
+}
+
+void InterCalibConfig::setCuts(int ih, double low, double high)
+{
+  cutHigh[ih] = low;
+  cutLow[ih] = high;
+}
+
+void InterCalibConfig::setBinning1D(int nb, double amin, double amax)
+{
+  for (int32_t ih = 0; ih < NH; ih++) {
     nb1[ih] = nb;
     amin1[ih] = amin;
     amax1[ih] = amax;
   }
 }
-InterCalibConfig::void setBinning2D(int nb, double amin, double amax)
+
+void InterCalibConfig::setBinning2D(int nb, double amin, double amax)
 {
-  for (int32_t ih = 0; ih < nh; ih++) {
+  for (int32_t ih = 0; ih < NH; ih++) {
     nb2[ih] = nb;
     amin2[ih] = amin;
     amax2[ih] = amax;
   }
+}
+
+void InterCalibConfig::setBinning1D(int ih, int nb, double amin, double amax)
+{
+  nb1[ih] = nb;
+  amin1[ih] = amin;
+  amax1[ih] = amax;
+}
+
+void InterCalibConfig::setBinning2D(int ih, int nb, double amin, double amax)
+{
+  nb2[ih] = nb;
+  amin2[ih] = amin;
+  amax2[ih] = amax;
 }

@@ -36,6 +36,7 @@ class InterCalib
               const gsl::span<const uint16_t>& info);
   // Test of calibration using RUN2 data
   int process(const char* hname, int ic);
+  void replay(int ih, THnSparse* hs, int ic);
   int mini(int ih);
   static constexpr int NPAR = 6; /// Dimension of matrix (1 + 4 coefficients + offset)
   static constexpr int NH = 5;   /// ZNA, ZPA, ZNC, ZPC, ZEM
@@ -50,9 +51,16 @@ class InterCalib
   void setInterCalibConfig(const InterCalibConfig* param) { mInterCalibConfig = param; };
   const InterCalibConfig* getInterCalibConfig() { return mInterCalibConfig; };
 
+  int write(const std::string fn = "ZDCInterCalib.root");
+
  private:
   TH1* h[2 * NH] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
   TH2* hc[NH] = {nullptr, nullptr, nullptr, nullptr, nullptr};
+
+  TH1* h_corr[NH] = {nullptr, nullptr, nullptr, nullptr, nullptr};
+  TH2* hc_corr[NH] = {nullptr, nullptr, nullptr, nullptr, nullptr};
+
+  TMinuit *mn[NH] = {nullptr, nullptr, nullptr, nullptr, nullptr};
   bool mInitDone = false;
   static std::mutex mtx; /// mutex for critical section
   double sum[NH][NPAR][NPAR] = {0};

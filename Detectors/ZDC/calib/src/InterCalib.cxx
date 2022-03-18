@@ -10,11 +10,12 @@
 // or submit itself to any jurisdiction.
 
 #include <TROOT.h>
+#include <TFile.h>
 #include <TPad.h>
 #include <TString.h>
 #include <TStyle.h>
+#include <TDirectory.h>
 #include <TPaveStats.h>
-#include <TMinuit.h>
 #include <THnBase.h>
 #include <THnSparse.h>
 #include <TAxis.h>
@@ -30,7 +31,6 @@ std::mutex InterCalib::mtx;
 
 int InterCalib::init()
 {
-  std::string hn[NH] = {"ZNA", "ZPA", "ZNC", "ZPC", "ZEM"};
   if (mInterCalibConfig == nullptr) {
     LOG(fatal) << "o2::zdc::InterCalib: missing configuration object";
   }
@@ -38,11 +38,13 @@ int InterCalib::init()
   for (int32_t ih = 0; ih < (2 * NH); ih++) {
     if (h[ih]) {
       delete h[ih];
+      h[ih] = nullptr;
     }
   }
   for (int32_t ih = 0; ih < NH; ih++) {
     if (hc[ih]) {
       delete hc[ih];
+      hc[ih] = nullptr;
     }
   }
   int ih;
@@ -155,6 +157,9 @@ int InterCalib::process(const char* hname, int ic)
   int64_t nb = hs->GetNbins();
   int64_t nn = 0;
   printf("Histogram %s has %ld bins\n", hname, nb);
+  double cutl = mInterCalibConfig->cutLow[ih];
+  double cuth = mInterCalibConfig->cutHigh[ih];
+  double contt = 0;
   for (int64_t i = 0; i < nb; i++) {
     double cont = hs->GetBinContent(i, bins);
     if (cont <= 0) {
@@ -163,15 +168,71 @@ int InterCalib::process(const char* hname, int ic)
     for (int32_t d = 0; d < dim; ++d) {
       x[d] = hs->GetAxis(d)->GetBinCenter(bins[d]);
     }
-    if (TMath::Nint(x[5] - ic) == 0 && x[0] > mInterCalibConfig->cutLow[ih] && x[0] < mInterCalibConfig->cutHigh[ih]) {
+    if (TMath::Nint(x[5] - ic) == 0 && x[0] > cutl && x[0] < cuth) {
       nn++;
+      contt += cont;
       cumulate(ih, x[0], x[1], x[2], x[3], x[4], cont);
     }
   }
-  mini(ih);
-  printf("Processed RUN2 data for %s ih = %d\n", hname, ih);
-  printf("Trigger class selection %d and %d cuts (%g:%g): %ld\n", ic, nn);
+  int ierr = mini(ih);
+  if (h_corr[ih]) {
+    delete h_corr[ih];
+    h_corr[ih] = nullptr;
+  }
+  if (hc_corr[ih]) {
+    delete hc_corr[ih];
+    hc_corr[ih] = nullptr;
+  }
+  if (ierr) {
+    printf("FAILED processing RUN2 data for %s ih = %d\n", hname, ih);
+  } else {
+    printf("Processed RUN2 data for %s ih = %d\n", hname, ih);
+    replay(ih, hs, ic);
+  }
+  printf("Trigger class selection %d and %d bins %g events and cuts (%g:%g): %ld\n", ic, nn, contt, cutl, cuth);
   return 0;
+}
+
+void InterCalib::replay(int ih, THnSparse* hs, int ic)
+{
+  auto* cfg = mInterCalibConfig;
+  // clang-format off
+  if(ih == 0)h_corr[ih] = new TH1F("hZNASc","ZNA sum corr",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  if(ih == 1)h_corr[ih] = new TH1F("hZPASc","ZPA sum corr",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  if(ih == 2)h_corr[ih] = new TH1F("hZNCSc","ZNC sum corr",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  if(ih == 3)h_corr[ih] = new TH1F("hZPCSc","ZPC sum corr",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  if(ih == 4)h_corr[ih] = new TH1F("hZEM2c","ZEM2"   ,cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  if(ih == 0)hc_corr[ih] = new TH2F("cZNAc","ZNA;TC;SUM corr",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
+  if(ih == 1)hc_corr[ih] = new TH2F("cZPAc","ZPA;TC;SUM corr",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
+  if(ih == 2)hc_corr[ih] = new TH2F("cZNCc","ZNC;TC;SUM corr",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
+  if(ih == 3)hc_corr[ih] = new TH2F("cZPCc","ZPC;TC;SUM corr",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
+  if(ih == 4)hc_corr[ih] = new TH2F("cZEMc","ZEM;ZEM1;ZEM2 corr",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
+  // clang-format on
+  const int32_t dim = 6;
+  double x[dim];
+  int32_t bins[dim];
+  int64_t nb = hs->GetNbins();
+  double cutl = cfg->cutLow[ih];
+  double cuth = cfg->cutHigh[ih];
+  double c1 = par[ih][1];
+  double c2 = par[ih][2];
+  double c3 = par[ih][3];
+  double c4 = par[ih][4];
+  double of = par[ih][5];
+  for (int64_t i = 0; i < nb; i++) {
+    double cont = hs->GetBinContent(i, bins);
+    if (cont <= 0) {
+      continue;
+    }
+    for (int32_t d = 0; d < dim; ++d) {
+      x[d] = hs->GetAxis(d)->GetBinCenter(bins[d]);
+    }
+    if (TMath::Nint(x[5] - ic) == 0 && x[0] > cutl && x[0] < cuth) {
+      double sumquad = c1 * x[1] + c2 * x[2] + c3 * x[3] + c4 * x[4] + of;
+      h_corr[ih]->Fill(sumquad, cont);
+      hc_corr[ih]->Fill(x[0], sumquad, cont);
+    }
+  }
 }
 
 void InterCalib::clear(int ih)
@@ -187,6 +248,12 @@ void InterCalib::clear(int ih)
       for (int32_t j = 0; j < NPAR; j++) {
         sum[ii][i][j] = 0;
       }
+    }
+    if (h[ii]) {
+      h[ii]->Reset();
+    }
+    if (hc[ii]) {
+      hc[ii]->Reset();
     }
   }
 }
@@ -209,9 +276,10 @@ void InterCalib::cumulate(int ih, double tc, double t1, double t2, double t3, do
       sum[ih][i][j] += val[i] * val[j] * w;
     }
   }
-  h[ih]->Fill(val[1] + val[2] + val[3] + val[4]);
+  double sumquad = val[1] + val[2] + val[3] + val[4];
+  h[ih]->Fill(sumquad, w);
   h[ih + NH]->Fill(val[0]);
-  hc[ih]->Fill(val[0], val[1] + val[2] + val[3] + val[4]);
+  hc[ih]->Fill(val[0], sumquad, w);
 }
 
 void InterCalib::fcn(int& npar, double* gin, double& chi, double* par, int iflag)
@@ -241,14 +309,17 @@ int InterCalib::mini(int ih)
   }
   double arglist[10];
   int ierflg = 0;
-  double l_bnd = 0.2;
-  double u_bnd = 5.;
+  double l_bnd = mInterCalibConfig->l_bnd[ih];
+  double u_bnd = mInterCalibConfig->u_bnd[ih];
   double start = 1.0;
   double step = 0.1;
-  TMinuit minuit(NPAR);
-  minuit.SetFCN(fcn);
-  minuit.mnparm(0, "c0", 1., 0., 1., 1., ierflg);
-  minuit.mnparm(1, "c1", start, step, l_bnd, u_bnd, ierflg);
+  if (mn[ih] != nullptr) {
+    delete mn[ih];
+  }
+  mn[ih] = new TMinuit(NPAR);
+  mn[ih]->SetFCN(fcn);
+  mn[ih]->mnparm(0, "c0", 1., 0., 1., 1., ierflg);
+  mn[ih]->mnparm(1, "c1", start, step, l_bnd, u_bnd, ierflg);
   if (ih == 4) {
     // Only two ZEM calorimeters: equalize response
     l_bnd = 0;
@@ -256,19 +327,47 @@ int InterCalib::mini(int ih)
     start = 0;
     step = 0;
   }
-  minuit.mnparm(2, "c2", start, step, l_bnd, u_bnd, ierflg);
-  minuit.mnparm(3, "c3", start, step, l_bnd, u_bnd, ierflg);
-  minuit.mnparm(4, "c4", start, step, l_bnd, u_bnd, ierflg);
-  l_bnd = -20;
-  u_bnd = 20;
+  mn[ih]->mnparm(2, "c2", start, step, l_bnd, u_bnd, ierflg);
+  mn[ih]->mnparm(3, "c3", start, step, l_bnd, u_bnd, ierflg);
+  mn[ih]->mnparm(4, "c4", start, step, l_bnd, u_bnd, ierflg);
+  l_bnd = mInterCalibConfig->l_bnd_o[ih];
+  u_bnd = mInterCalibConfig->u_bnd_o[ih];
   start = 0;
-  step = 1;
-  step = 0;
-  minuit.mnparm(5, "offset", start, step, l_bnd, u_bnd, ierflg);
-  minuit.mnexcm("MIGRAD", arglist, 0, ierflg);
+  step = mInterCalibConfig->step_o[ih];
+  mn[ih]->mnparm(5, "offset", start, step, l_bnd, u_bnd, ierflg);
+  mn[ih]->mnexcm("MIGRAD", arglist, 0, ierflg);
   for (Int_t i = 0; i < NPAR; i++) {
-    minuit.GetParameter(i, par[ih][i], err[ih][i]);
+    mn[ih]->GetParameter(i, par[ih][i], err[ih][i]);
   }
   mtx.unlock();
+  return ierflg;
+}
+
+int InterCalib::write(const std::string fn)
+{
+  TDirectory* cwd = gDirectory;
+  TFile* f = new TFile(fn.data(), "recreate");
+  if (f->IsZombie()) {
+    LOG(error) << "Cannot create file: " << fn;
+    return 1;
+  }
+  for (int32_t ih = 0; ih < (2 * NH); ih++) {
+    if (h[ih]) {
+      h[ih]->Write("", TObject::kOverwrite);
+    }
+  }
+  for (int32_t ih = 0; ih < NH; ih++) {
+    if (hc[ih]) {
+      hc[ih]->Write("", TObject::kOverwrite);
+    }
+  }
+  std::string mntit[NH] = {"mZNA", "mZPA", "mZNC", "mZPC", "mZEM"};
+  for (int32_t ih = 0; ih < NH; ih++) {
+    if (mn[ih]) {
+      mn[ih]->Write(mntit[ih], TObject::kOverwrite);
+    }
+  }
+  f->Close();
+  cwd->cd();
   return 0;
 }
