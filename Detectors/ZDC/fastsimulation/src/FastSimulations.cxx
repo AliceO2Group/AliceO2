@@ -126,8 +126,9 @@ std::array<int, 5> ConditionalModelSimulation::getChannels()
 
 bool ConditionalModelSimulation::setData(const std::vector<float>& particleData)
 {
-  if (particleData.size() != 9)
+  if (particleData.size() != 9) {
     return false;
+  }
 
   mParticle = particleData;
   return true;

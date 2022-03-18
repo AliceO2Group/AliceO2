@@ -114,17 +114,5 @@ class ConditionalModelSimulation : public NeuralFastSimulation
 
 std::optional<std::pair<std::array<float, 9>, std::array<float, 9>>> loadScales(const std::string& path);
 
-class SimReaderBase
-{
- public:
-  virtual std::array<int, 5> visit(ConditionalModelSimulation& model) = 0;
-};
-
-class SimReader : public SimReaderBase
-{
- public:
-  std::array<int, 5> visit(ConditionalModelSimulation& model) override;
-};
-
 } // namespace o2::zdc::fastsim
 #endif // ONNX_API_FAST_SIMULATIONS_HPP
