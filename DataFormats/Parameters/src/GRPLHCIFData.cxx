@@ -80,7 +80,9 @@ void GRPLHCIFData::translateBucketsToBCNumbers(std::vector<int32_t>& bcNb, std::
 {
   // to translate the vector of bucket numbers to BC numbers
   for (auto i : buckets) {
-    bcNb.push_back(i = 0 ? 0 : (i / 10 + o2::constants::lhc::BunchOffsetsP2[beam]) % o2::constants::lhc::LHCMaxBunches);
+    if (i) {
+      bcNb.push_back((i / 10 + o2::constants::lhc::BunchOffsetsP2[beam]) % o2::constants::lhc::LHCMaxBunches);
+    }
   }
 }
 
