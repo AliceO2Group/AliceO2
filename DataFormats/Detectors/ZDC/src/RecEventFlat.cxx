@@ -15,14 +15,24 @@
 
 using namespace o2::zdc;
 
-void RecEventFlat::init(std::vector<o2::zdc::BCRecData>* RecBC, std::vector<o2::zdc::ZDCEnergy>* Energy, std::vector<o2::zdc::ZDCTDCData>* TDCData, std::vector<uint16_t>* Info)
+void RecEventFlat::init(const std::vector<o2::zdc::BCRecData>* RecBC, const std::vector<o2::zdc::ZDCEnergy>* Energy, const std::vector<o2::zdc::ZDCTDCData>* TDCData, const std::vector<uint16_t>* Info)
+{
+  mRecBC = *RecBC;
+  mEnergy = *Energy;
+  mTDCData = *TDCData;
+  mInfo = *Info;
+  mEntry = 0;
+  mNEntries = mRecBC.size();
+}
+
+void RecEventFlat::init(const gsl::span<const o2::zdc::BCRecData> RecBC, const gsl::span<const o2::zdc::ZDCEnergy> Energy, const gsl::span<const o2::zdc::ZDCTDCData> TDCData, const gsl::span<const uint16_t> Info)
 {
   mRecBC = RecBC;
   mEnergy = Energy;
   mTDCData = TDCData;
   mInfo = Info;
   mEntry = 0;
-  mNEntries = mRecBC->size();
+  mNEntries = mRecBC.size();
 }
 
 void RecEventFlat::clearBitmaps()
@@ -68,7 +78,7 @@ int RecEventFlat::next()
   }
 
   // Get References
-  mCurB = mRecBC->at(mEntry);
+  mCurB = mRecBC[mEntry];
   mCurB.getRef(mFirstE, mNE, mFirstT, mNT, mFirstI, mNI);
   mStopE = mFirstE + mNE;
   mStopT = mFirstT + mNT;
@@ -84,7 +94,7 @@ int RecEventFlat::next()
   uint16_t code = 0;
   uint32_t map = 0;
   for (int i = mFirstI; i < mStopI; i++) {
-    uint16_t info = mInfo->at(i);
+    uint16_t info = mInfo[i];
     if (infoState == 0) {
       if (info & 0x8000) {
         LOGF(error, "Inconsistent info stream at word %d: 0x%4u", i, info);
@@ -122,7 +132,7 @@ int RecEventFlat::next()
 
   // Decode energy
   for (int i = mFirstE; i < mStopE; i++) {
-    auto myenergy = mEnergy->at(i);
+    auto myenergy = mEnergy[i];
     auto ch = myenergy.ch();
     ezdc[ch] = myenergy.energy();
     // Assign implicit event info
@@ -133,7 +143,7 @@ int RecEventFlat::next()
 
   // Decode TDCs
   for (int i = mFirstT; i < mStopT; i++) {
-    auto mytdc = mTDCData->at(i);
+    auto mytdc = mTDCData[i];
     auto ch = mytdc.ch();
     if (ch < NTDCChannels) {
       if (mytdc.isBeg()) {
