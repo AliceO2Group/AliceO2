@@ -485,6 +485,8 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     trackTimeRes = o2::constants::lhc::LHCBunchSpacingNS * bcWidth / 2; // half interval
     errGaussian = false;
 
+    matchmchtrackid = trackID.getIndex();
+
   } else {
     // This is a GlobalMuonTrack or a GlobalForwardTrack
     const auto track = data.getGlobalFwdTrack(trackID);
