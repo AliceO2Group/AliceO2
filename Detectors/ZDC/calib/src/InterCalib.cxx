@@ -16,8 +16,6 @@
 #include <TStyle.h>
 #include <TDirectory.h>
 #include <TPaveStats.h>
-#include <THnBase.h>
-#include <THnSparse.h>
 #include <TAxis.h>
 #include "ZDCCalib/InterCalib.h"
 #include "ZDCReconstruction/ZDCEnergyParam.h"
@@ -361,7 +359,7 @@ int InterCalib::write(const std::string fn)
       hc[ih]->Write("", TObject::kOverwrite);
     }
   }
-  std::string mntit[NH] = {"mZNA", "mZPA", "mZNC", "mZPC", "mZEM"};
+  const char* mntit[NH] = {"mZNA", "mZPA", "mZNC", "mZPC", "mZEM"};
   for (int32_t ih = 0; ih < NH; ih++) {
     if (mn[ih]) {
       mn[ih]->Write(mntit[ih], TObject::kOverwrite);

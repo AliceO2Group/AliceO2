@@ -12,6 +12,8 @@
 #include <mutex>
 #include <TH1.h>
 #include <TH2.h>
+#include <THnBase.h>
+#include <THnSparse.h>
 #include <TMinuit.h>
 #include "ZDCBase/Constants.h"
 #include "DataFormatsZDC/RecEvent.h"
@@ -33,10 +35,9 @@ class InterCalib
   int process(const gsl::span<const o2::zdc::BCRecData>& bcrec,
               const gsl::span<const o2::zdc::ZDCEnergy>& energy,
               const gsl::span<const o2::zdc::ZDCTDCData>& tdc,
-              const gsl::span<const uint16_t>& info);
-  // Test of calibration using RUN2 data
-  int process(const char* hname, int ic);
-  void replay(int ih, THnSparse* hs, int ic);
+              const gsl::span<const uint16_t>& info); // Calibration of RUN3 data
+  int process(const char* hname, int ic);             // Calibration of RUN2 data
+  void replay(int ih, THnSparse* hs, int ic);         // Test of calibration using RUN2 data
   int mini(int ih);
   static constexpr int NPAR = 6; /// Dimension of matrix (1 + 4 coefficients + offset)
   static constexpr int NH = 5;   /// ZNA, ZPA, ZNC, ZPC, ZEM
@@ -60,7 +61,7 @@ class InterCalib
   TH1* h_corr[NH] = {nullptr, nullptr, nullptr, nullptr, nullptr};
   TH2* hc_corr[NH] = {nullptr, nullptr, nullptr, nullptr, nullptr};
 
-  TMinuit *mn[NH] = {nullptr, nullptr, nullptr, nullptr, nullptr};
+  TMinuit* mn[NH] = {nullptr, nullptr, nullptr, nullptr, nullptr};
   bool mInitDone = false;
   static std::mutex mtx; /// mutex for critical section
   double sum[NH][NPAR][NPAR] = {0};

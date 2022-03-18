@@ -87,8 +87,8 @@ void InterCalibConfig::setCutHigh(int ih, double val)
 void InterCalibConfig::setCuts(double low, double high)
 {
   for (int32_t ih = 0; ih < NH; ih++) {
-    cutHigh[ih] = low;
-    cutLow[ih] = high;
+    cutLow[ih] = low;
+    cutHigh[ih] = high;
   }
 }
 
