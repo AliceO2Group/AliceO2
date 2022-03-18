@@ -88,20 +88,21 @@ bool Detector::ProcessHits(FairVolume* v)
       fMC->TrackPosition(x[0], x[1], x[2]);        //take MARS position at entrance to PC
       Float_t hitTime = (Float_t)fMC->TrackTime(); //hit formation time
       Int_t idch;                                  // chamber number
-      if (volID == mHpad0VolID)
+      if (volID == mHpad0VolID) {
         idch = 0;
-      else if (volID == mHpad1VolID)
+      } else if (volID == mHpad1VolID) {
         idch = 1;
-      else if (volID == mHpad2VolID)
+      } else if (volID == mHpad2VolID) {
         idch = 2;
-      else if (volID == mHpad3VolID)
+      } else if (volID == mHpad3VolID) {
         idch = 3;
-      else if (volID == mHpad4VolID)
+      } else if (volID == mHpad4VolID) {
         idch = 4;
-      else if (volID == mHpad5VolID)
+      } else if (volID == mHpad5VolID) {
         idch = 5;
-      else if (volID == mHpad6VolID)
+      } else if (volID == mHpad6VolID) {
         idch = 6;
+      }
       Double_t xl, yl;
       o2::hmpid::Param::instance()->mars2Lors(idch, x, xl, yl); //take LORS position
       AddHit(x[0], x[1], x[2], hitTime, etot, tid, idch); //HIT for photon, position at P, etot will be set to Q
@@ -139,20 +140,21 @@ bool Detector::ProcessHits(FairVolume* v)
       out[1] = 0.5 * (out[1] + in[1]);             //take hit position at the anod plane
       out[2] = 0.5 * (out[2] + in[2]);
       Int_t idch; // chamber number
-      if (volID == mHcel0VolID)
+      if (volID == mHcel0VolID) {
         idch = 0;
-      else if (volID == mHcel1VolID)
+      } else if (volID == mHcel1VolID) {
         idch = 1;
-      else if (volID == mHcel2VolID)
+      } else if (volID == mHcel2VolID) {
         idch = 2;
-      else if (volID == mHcel3VolID)
+      } else if (volID == mHcel3VolID) {
         idch = 3;
-      else if (volID == mHcel4VolID)
+      } else if (volID == mHcel4VolID) {
         idch = 4;
-      else if (volID == mHcel5VolID)
+      } else if (volID == mHcel5VolID) {
         idch = 5;
-      else if (volID == mHcel6VolID)
+      } else if (volID == mHcel6VolID) {
         idch = 6;
+      }
       Double_t xl, yl;
       o2::hmpid::Param::instance()->mars2Lors(idch, out, xl, yl); //take LORS position
       if (eloss > 0) {
