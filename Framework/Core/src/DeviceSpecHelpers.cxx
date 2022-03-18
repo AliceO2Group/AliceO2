@@ -796,66 +796,6 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
       edge.producerTimeIndex,
       std::nullopt};
 
-    switch (consumer.inputs[edge.consumerInputIndex].lifetime) {
-      case Lifetime::OutOfBand:
-        route.configurator = {
-          .name = "oob",
-          .creatorConfigurator = ExpirationHandlerHelpers::loopEventDrivenConfigurator(inputSpec),
-          .danglingConfigurator = ExpirationHandlerHelpers::danglingOutOfBandConfigurator(),
-          .expirationConfigurator = ExpirationHandlerHelpers::expiringOOBConfigurator(inputSpec, sourceChannel)};
-        break;
-        //      case Lifetime::Condition:
-        //        route.configurator = {
-        //          ExpirationHandlerHelpers::dataDrivenConfigurator(),
-        //          ExpirationHandlerHelpers::danglingConditionConfigurator(),
-        //          ExpirationHandlerHelpers::expiringConditionConfigurator(inputSpec, sourceChannel)};
-        //        break;
-      case Lifetime::QA:
-        route.configurator = {
-          .name = "qa",
-          .creatorConfigurator = ExpirationHandlerHelpers::dataDrivenConfigurator(),
-          .danglingConfigurator = ExpirationHandlerHelpers::danglingQAConfigurator(),
-          .expirationConfigurator = ExpirationHandlerHelpers::expiringQAConfigurator()};
-        break;
-      case Lifetime::Timer:
-        route.configurator = {
-          .name = "timer",
-          .creatorConfigurator = ExpirationHandlerHelpers::timeDrivenConfigurator(inputSpec),
-          .danglingConfigurator = ExpirationHandlerHelpers::danglingTimerConfigurator(inputSpec),
-          .expirationConfigurator = ExpirationHandlerHelpers::expiringTimerConfigurator(inputSpec, sourceChannel)};
-        break;
-      case Lifetime::Enumeration:
-        route.configurator = {
-          .name = "enumeration",
-          .creatorConfigurator = ExpirationHandlerHelpers::enumDrivenConfigurator(inputSpec, consumerDevice.inputTimesliceId, consumerDevice.maxInputTimeslices),
-          .danglingConfigurator = ExpirationHandlerHelpers::danglingEnumerationConfigurator(inputSpec),
-          .expirationConfigurator = ExpirationHandlerHelpers::expiringEnumerationConfigurator(inputSpec, sourceChannel)};
-        break;
-      case Lifetime::Signal:
-        route.configurator = {
-          .name = "signal",
-          .creatorConfigurator = ExpirationHandlerHelpers::signalDrivenConfigurator(inputSpec, consumerDevice.inputTimesliceId, consumerDevice.maxInputTimeslices),
-          .danglingConfigurator = ExpirationHandlerHelpers::danglingEnumerationConfigurator(inputSpec),
-          .expirationConfigurator = ExpirationHandlerHelpers::expiringEnumerationConfigurator(inputSpec, sourceChannel)};
-        break;
-      case Lifetime::Transient:
-        route.configurator = {
-          .name = "transient",
-          .creatorConfigurator = ExpirationHandlerHelpers::dataDrivenConfigurator(),
-          .danglingConfigurator = ExpirationHandlerHelpers::danglingTransientConfigurator(),
-          .expirationConfigurator = ExpirationHandlerHelpers::expiringTransientConfigurator(inputSpec)};
-        break;
-      case Lifetime::Optional:
-        route.configurator = {
-          .name = "optional",
-          .creatorConfigurator = ExpirationHandlerHelpers::createOptionalConfigurator(),
-          .danglingConfigurator = ExpirationHandlerHelpers::danglingOptionalConfigurator(consumerDevice.inputs),
-          .expirationConfigurator = ExpirationHandlerHelpers::expiringOptionalConfigurator(inputSpec, sourceChannel)};
-        break;
-      default:
-        break;
-    }
-
     // In case we have wildcards, we must make sure that some other edge
     // produced the same route, i.e. has the same matcher.  Without this,
     // otherwise, we would end up with as many input routes as the outputs that
@@ -903,6 +843,72 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     }
     appendInputRouteToDestDeviceChannel(edge, consumerDevice, channel);
   }
+
+  // Bind the expiration mechanism to the input routes
+  for (auto& device : devices) {
+    for (auto& route : device.inputs) {
+      switch (route.matcher.lifetime) {
+        case Lifetime::OutOfBand:
+          route.configurator = {
+            .name = "oob",
+            .creatorConfigurator = ExpirationHandlerHelpers::loopEventDrivenConfigurator(route.matcher),
+            .danglingConfigurator = ExpirationHandlerHelpers::danglingOutOfBandConfigurator(),
+            .expirationConfigurator = ExpirationHandlerHelpers::expiringOOBConfigurator(route.matcher, route.sourceChannel)};
+          break;
+          //      case Lifetime::Condition:
+          //        route.configurator = {
+          //          ExpirationHandlerHelpers::dataDrivenConfigurator(),
+          //          ExpirationHandlerHelpers::danglingConditionConfigurator(),
+          //          ExpirationHandlerHelpers::expiringConditionConfigurator(inputSpec, sourceChannel)};
+          //        break;
+        case Lifetime::QA:
+          route.configurator = {
+            .name = "qa",
+            .creatorConfigurator = ExpirationHandlerHelpers::dataDrivenConfigurator(),
+            .danglingConfigurator = ExpirationHandlerHelpers::danglingQAConfigurator(),
+            .expirationConfigurator = ExpirationHandlerHelpers::expiringQAConfigurator()};
+          break;
+        case Lifetime::Timer:
+          route.configurator = {
+            .name = "timer",
+            .creatorConfigurator = ExpirationHandlerHelpers::timeDrivenConfigurator(route.matcher),
+            .danglingConfigurator = ExpirationHandlerHelpers::danglingTimerConfigurator(route.matcher),
+            .expirationConfigurator = ExpirationHandlerHelpers::expiringTimerConfigurator(route.matcher, route.sourceChannel)};
+          break;
+        case Lifetime::Enumeration:
+          route.configurator = {
+            .name = "enumeration",
+            .creatorConfigurator = ExpirationHandlerHelpers::enumDrivenConfigurator(route.matcher, device.inputTimesliceId, device.maxInputTimeslices),
+            .danglingConfigurator = ExpirationHandlerHelpers::danglingEnumerationConfigurator(route.matcher),
+            .expirationConfigurator = ExpirationHandlerHelpers::expiringEnumerationConfigurator(route.matcher, route.sourceChannel)};
+          break;
+        case Lifetime::Signal:
+          route.configurator = {
+            .name = "signal",
+            .creatorConfigurator = ExpirationHandlerHelpers::signalDrivenConfigurator(route.matcher, device.inputTimesliceId, device.maxInputTimeslices),
+            .danglingConfigurator = ExpirationHandlerHelpers::danglingEnumerationConfigurator(route.matcher),
+            .expirationConfigurator = ExpirationHandlerHelpers::expiringEnumerationConfigurator(route.matcher, route.sourceChannel)};
+          break;
+        case Lifetime::Transient:
+          route.configurator = {
+            .name = "transient",
+            .creatorConfigurator = ExpirationHandlerHelpers::dataDrivenConfigurator(),
+            .danglingConfigurator = ExpirationHandlerHelpers::danglingTransientConfigurator(),
+            .expirationConfigurator = ExpirationHandlerHelpers::expiringTransientConfigurator(route.matcher)};
+          break;
+        case Lifetime::Optional:
+          route.configurator = {
+            .name = "optional",
+            .creatorConfigurator = ExpirationHandlerHelpers::createOptionalConfigurator(),
+            .danglingConfigurator = ExpirationHandlerHelpers::danglingOptionalConfigurator(device.inputs),
+            .expirationConfigurator = ExpirationHandlerHelpers::expiringOptionalConfigurator(route.matcher, route.sourceChannel)};
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
   if (acceptedOffer.hostname != "") {
     resourceManager.notifyAcceptedOffer(acceptedOffer);
   }
