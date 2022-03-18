@@ -253,15 +253,15 @@ struct GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, pack<Us...>, As..
 
 // Aliases for 2-particle correlations
 // 'Pair' and 'Triple' can be used for same kind pair/triple, too, just specify the same type twice
-template <typename G, typename A1, typename A2, typename BP = BinningPolicy<G, G>, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, G, G>>
+template <typename G, typename A1, typename A2, typename BP, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, G, G>>
 using Pair = GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, unique_pack_t<pack<A1, A2>>, A1, A2>;
-template <typename G, typename A, typename BP = BinningPolicy<G, G>, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, G, G>>
+template <typename G, typename A, typename BP, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, G, G>>
 using SameKindPair = GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, pack<A>, A, A>;
 
 // Aliases for 3-particle correlations
-template <typename G, typename A1, typename A2, typename A3, typename BP = BinningPolicy<G, G, G>, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, G, G, G>>
+template <typename G, typename A1, typename A2, typename A3, typename BP, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, G, G, G>>
 using Triple = GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, unique_pack_t<pack<A1, A2, A3>>, A1, A2, A3>;
-template <typename G, typename A, typename BP = BinningPolicy<G, G, G>, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, G, G, G>>
+template <typename G, typename A, typename BP, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, G, G, G>>
 using SameKindTriple = GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, pack<A>, A, A, A>;
 
 } // namespace o2::framework
