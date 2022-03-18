@@ -38,35 +38,35 @@ using NElem = int;
 
 struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   o2::InteractionRecord ir;
-  uint32_t channels = 0;                      /// pattern of channels acquired
-  uint32_t triggers = 0;                      /// pattern of channels with autotrigger bit
-  std::map<uint8_t, float> ezdc;              /// signal in ZDCs
-  std::vector<float> TDCVal[NTDCChannels];    /// TDC values
-  std::vector<float> TDCAmp[NTDCChannels];    /// TDC signal amplitudes
-  std::vector<bool> TDCPile[NTDCChannels];    /// TDC pile-up correction flag (TODO)
-//   std::vector<o2::zdc::BCRecData>* mRecBC;    //! Interaction record and references to data
-//   std::vector<o2::zdc::ZDCEnergy>* mEnergy;   //! ZDC energy
-//   std::vector<o2::zdc::ZDCTDCData>* mTDCData; //! ZDC TDC
-//   std::vector<uint16_t>* mInfo;               //! Event quality information
+  uint32_t channels = 0;                         /// pattern of channels acquired
+  uint32_t triggers = 0;                         /// pattern of channels with autotrigger bit
+  std::map<uint8_t, float> ezdc;                 /// signal in ZDCs
+  std::vector<float> TDCVal[NTDCChannels];       /// TDC values
+  std::vector<float> TDCAmp[NTDCChannels];       /// TDC signal amplitudes
+  std::vector<bool> TDCPile[NTDCChannels];       /// TDC pile-up correction flag (TODO)
+                                                 //   std::vector<o2::zdc::BCRecData>* mRecBC;    //! Interaction record and references to data
+                                                 //   std::vector<o2::zdc::ZDCEnergy>* mEnergy;   //! ZDC energy
+                                                 //   std::vector<o2::zdc::ZDCTDCData>* mTDCData; //! ZDC TDC
+                                                 //   std::vector<uint16_t>* mInfo;               //! Event quality information
   gsl::span<const o2::zdc::BCRecData> mRecBC;    //! Interaction record and references to data
   gsl::span<const o2::zdc::ZDCEnergy> mEnergy;   //! ZDC energy
   gsl::span<const o2::zdc::ZDCTDCData> mTDCData; //! ZDC TDC
   gsl::span<const uint16_t> mInfo;               //! Event quality information
-  std::vector<uint16_t> mDecodedInfo;         //! Event quality information (decoded)
-  uint64_t mEntry = 0;                        //! Current entry
-  uint64_t mNEntries = 0;                     //! Number of entries
-  FirstEntry mFirstE = 0;                     //! First energy
-  FirstEntry mFirstT = 0;                     //! First TDC
-  FirstEntry mFirstI = 0;                     //! First info
-  FirstEntry mStopE = 0;                      //! Last + 1 energy
-  FirstEntry mStopT = 0;                      //! Last + 1 TDC
-  FirstEntry mStopI = 0;                      //! Last + 1 info
-  NElem mNE = 0;                              //! N energy
-  NElem mNT = 0;                              //! N TDC
-  NElem mNI = 0;                              //! N info
-  std::array<bool, NChannels> isBeg{};        //! Beginning of sequence
-  std::array<bool, NChannels> isEnd{};        //! End of sequence
-  o2::zdc::BCRecData mCurB;                   //! Current BC
+  std::vector<uint16_t> mDecodedInfo;            //! Event quality information (decoded)
+  uint64_t mEntry = 0;                           //! Current entry
+  uint64_t mNEntries = 0;                        //! Number of entries
+  FirstEntry mFirstE = 0;                        //! First energy
+  FirstEntry mFirstT = 0;                        //! First TDC
+  FirstEntry mFirstI = 0;                        //! First info
+  FirstEntry mStopE = 0;                         //! Last + 1 energy
+  FirstEntry mStopT = 0;                         //! Last + 1 TDC
+  FirstEntry mStopI = 0;                         //! Last + 1 info
+  NElem mNE = 0;                                 //! N energy
+  NElem mNT = 0;                                 //! N TDC
+  NElem mNI = 0;                                 //! N info
+  std::array<bool, NChannels> isBeg{};           //! Beginning of sequence
+  std::array<bool, NChannels> isEnd{};           //! End of sequence
+  o2::zdc::BCRecData mCurB;                      //! Current BC
 
   // Reconstruction messages
   std::array<bool, NChannels> genericE{};       ///  0 Generic error
@@ -99,7 +99,7 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   uint32_t mTriggerMask = 0;    //! Trigger mask for printout
 
   void init(const std::vector<o2::zdc::BCRecData>* RecBC, const std::vector<o2::zdc::ZDCEnergy>* Energy, const std::vector<o2::zdc::ZDCTDCData>* TDCData, const std::vector<uint16_t>* Info);
-  void init(const gsl::span<const o2::zdc::BCRecData> RecBC, const gsl::span<const o2::zdc::ZDCEnergy> Energy,const  gsl::span<const o2::zdc::ZDCTDCData> TDCData, const gsl::span<const uint16_t> Info);
+  void init(const gsl::span<const o2::zdc::BCRecData> RecBC, const gsl::span<const o2::zdc::ZDCEnergy> Energy, const gsl::span<const o2::zdc::ZDCTDCData> TDCData, const gsl::span<const uint16_t> Info);
 
   int next();
 
@@ -110,7 +110,7 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
 
   inline bool getEnergy(int32_t i, uint8_t& key, float& val) const
   {
-    if(i<mNE){
+    if (i < mNE) {
       auto it = ezdc.begin();
       std::advance(it, i);
       key = it->first;

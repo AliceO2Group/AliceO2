@@ -51,7 +51,7 @@ class InterCalib
   const InterCalibConfig* getInterCalibConfig() { return mInterCalibConfig; };
 
  private:
-  TH1* h[2*NH] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+  TH1* h[2 * NH] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
   TH2* hc[NH] = {nullptr, nullptr, nullptr, nullptr, nullptr};
   bool mInitDone = false;
   static std::mutex mtx; /// mutex for critical section

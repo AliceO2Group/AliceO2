@@ -39,8 +39,8 @@ class TDCCalibSpec : public o2::framework::Task
 
  private:
   std::string mccdbHost{o2::base::NameConf::getCCDBServer()}; // Alternative ccdb server
-  int mVerbosity = 0;                                     // Verbosity level during recostruction
-  bool mInitialized = false;                              // Connect once to CCDB during initialization
+  int mVerbosity = 0;                                         // Verbosity level during recostruction
+  bool mInitialized = false;                                  // Connect once to CCDB during initialization
   TStopwatch mTimer;
 };
 

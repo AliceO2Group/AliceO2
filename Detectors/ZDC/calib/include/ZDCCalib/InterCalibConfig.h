@@ -38,8 +38,8 @@ struct InterCalibConfig {
   void setBinning1D(int nb, double amin, double amax);
   void setBinning2D(int nb, double amin, double amax);
   {
-  ClassDefNV(InterCalibConfig, 1);
-};
+    ClassDefNV(InterCalibConfig, 1);
+  };
 } // namespace zdc
 } // namespace o2
 

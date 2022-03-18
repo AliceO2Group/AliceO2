@@ -74,7 +74,7 @@ void CreateSimCondition(long tmin = 0, long tmax = -1, std::string ccdbHost = ""
 -1, // pos_ZPC4
 -1, // pos_ZPCS
 0}; // pos_END
-// clang-format on
+  // clang-format on
 
   for (int ic = 0; ic < o2::zdc::NChannels; ic++) {
 
