@@ -64,17 +64,19 @@ Detector::Detector(Bool_t active)
   resetHitIndices();
 
 #ifdef ZDC_FASTSIM_ONNX
-  LOG(info) << "\n-------------------FASTSIM-------------------";
   // creating fastsim object
-  if (!o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPath.empty() && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales.empty()) {
+  if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPath.empty() && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales.empty()) {
     auto scales = o2::zdc::fastsim::loadScales(o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales);
     if (scales.has_value()) {
       mFastSimModel = new o2::zdc::fastsim::ConditionalModelSimulation(o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPath, scales->first, scales->second, 1.0);
+      LOG(info) << "\n FastSim module enabled";
     } else {
       LOG(error) << "Error while reading model scales from: "
                  << "'" << o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales << "'";
       LOG(error) << "Model won't be loaded";
     }
+  } else {
+    LOG(info) << "\n FastSim module disabled";
   }
 #endif
 }
@@ -2403,14 +2405,13 @@ void Detector::FinishPrimary()
   mLastPrincipalTrackEntered = -1;
   flushSpatialResponse();
 #ifdef ZDC_FASTSIM_ONNX
-  if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim) {
+  if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && mFastSimModel != nullptr) {
     std::fstream output("o2sim-FastSimResult", output.out | output.app);
     if (!output.is_open()) {
       LOG(error) << "Could not open file.";
     }
 
     for (auto& result : mFastSimResults) {
-      LOG(info) << "\n-------------FASTSIM REGISTER----------------";
       output << result[0] << ", " << result[1] << ", " << result[2] << ", " << result[3] << ", " << result[4];
       output << std::endl;
     }
@@ -2431,12 +2432,16 @@ void Detector::BeginPrimary()
   mCurrentPrincipalParticle = *stack->GetCurrentTrack();
 
 #ifdef ZDC_FASTSIM_ONNX
-  LOG(info) << "\n-------------FASTSIM EVENT----------------";
-  if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim) {
-    std::vector<float> particle = {mCurrentPrincipalParticle.Energy(),
-                                   mCurrentPrincipalParticle.Vx(), mCurrentPrincipalParticle.Vy(), mCurrentPrincipalParticle.Vz(),
-                                   mCurrentPrincipalParticle.Px(), mCurrentPrincipalParticle.Py(), mCurrentPrincipalParticle.Pz(),
-                                   mCurrentPrincipalParticle.GetMass() * 1000.0, mCurrentPrincipalParticle.GetPDG()->Charge()};
+  if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && mFastSimModel != nullptr) {
+    std::vector<float> particle = {static_cast<float>(mCurrentPrincipalParticle.Energy()),
+                                   static_cast<float>(mCurrentPrincipalParticle.Vx()),
+                                   static_cast<float>(mCurrentPrincipalParticle.Vy()),
+                                   static_cast<float>(mCurrentPrincipalParticle.Vz()),
+                                   static_cast<float>(mCurrentPrincipalParticle.Px()),
+                                   static_cast<float>(mCurrentPrincipalParticle.Py()),
+                                   static_cast<float>(mCurrentPrincipalParticle.Pz()),
+                                   static_cast<float>(mCurrentPrincipalParticle.GetMass() * 1000.0),
+                                   static_cast<float>(mCurrentPrincipalParticle.GetPDG()->Charge())};
 
     mFastSimResults.push_back(mFastSimModel->getChannels(particle));
   }

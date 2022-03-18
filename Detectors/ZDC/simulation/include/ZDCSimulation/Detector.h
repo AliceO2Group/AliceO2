@@ -218,7 +218,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
 // fastsim model wrapper
 #ifdef ZDC_FASTSIM_ONNX
-  fastsim::NeuralFastSimulation* mFastSimModel;
+  fastsim::NeuralFastSimulation* mFastSimModel = nullptr;
 
   // container for fastsim model responses
   using FastSimResults = std::vector<std::array<int, 5>>;
