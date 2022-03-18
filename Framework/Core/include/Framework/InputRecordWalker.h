@@ -64,7 +64,7 @@ class InputRecordWalker
   {
    public:
     using self_type = Iterator;
-    using iterator_category = std::input_iterator_tag;
+    using iterator_category = std::forward_iterator_tag;
     using value_type = T;
     using reference = T&;
     using pointer = T*;
