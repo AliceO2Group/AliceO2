@@ -150,6 +150,9 @@ ExpirationHandler::Checker LifetimeHelpers::expireIfPresent(std::vector<InputRou
   // find the position of the first route that matches the matcher
   auto pos = InputRecord::getPos(routes, matcher);
   return [pos, routes](ServiceRegistry&, int64_t, InputSpan const& span) -> bool {
+    if (pos.index == InputRecord::InputPos::INVALID) {
+      return false;
+    }
     auto ref = InputRecord::getByPos(routes, span, pos.index, 0);
     return ref.header != nullptr;
   };
