@@ -1244,7 +1244,9 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     ConfigParamsHelper::dpl2BoostOptions(spec.options, od);
     od.add_options()(name, bpo::value<std::string>());
     ConfigParamsHelper::dpl2BoostOptions(workflowOptions, foDesc);
-    foDesc.add(getForwardedDeviceOptions());
+    auto forwardedOptions = getForwardedDeviceOptions();
+    /// Add to foDesc the options which are not already there
+    foDesc.add(forwardedOptions);
 
     // has option --session been specified on the command line?
     bool haveSessionArg = false;
