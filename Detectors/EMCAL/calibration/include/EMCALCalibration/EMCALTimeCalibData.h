@@ -62,6 +62,7 @@ class EMCALTimeCalibData
   {
     // boost histogram with amplitude vs. cell ID, specify the range and binning of the amplitude axis
     mTimeHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(par.mTimeBins, par.mTimeRange.at(0), par.mTimeRange.at(1), "t (ns)"), boost::histogram::axis::integer<>(0, NCELLS, "CELL ID"));
+    LOG(debug) << "initialize time histogram with " << NCELLS << " cells";
   }
 
   ~EMCALTimeCalibData() = default;
@@ -73,7 +74,7 @@ class EMCALTimeCalibData
   void merge(const EMCALTimeCalibData* prev);
 
   /// \brief Check if enough data for calibration has been accumulated
-  bool hasEnoughData() const;
+  bool hasEnoughData(int minNEntries) const;
 
   /// \brief Print a useful message about the container.
   void print();
