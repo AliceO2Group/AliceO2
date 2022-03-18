@@ -180,6 +180,135 @@ void SpaceCharge<DataT>::setChargeDensityFromFormula(const AnalyticalFields<Data
 }
 
 template <typename DataT>
+std::pair<size_t, size_t> SpaceCharge<DataT>::getPhiBinsGapFrame(const Side side) const
+{
+  const auto& regInf = Mapper::instance().getPadRegionInfo(0);
+  const float localYEdgeIROC = regInf.getPadsInRowRegion(0) / 2 * regInf.getPadWidth();
+  const auto globalPosGap = Mapper::LocalToGlobal(LocalPosition2D(regInf.getRadiusFirstRow(), -(localYEdgeIROC + GEMFrameParameters<DataT>::WIDTHFRAME)), Sector(0));
+  const auto phiGap = std::atan(globalPosGap.Y() / globalPosGap.X());
+
+  auto nBinsPhiGap = getNearestPhiVertex(phiGap, side);
+  if (nBinsPhiGap == 0) {
+    nBinsPhiGap = 1;
+  }
+
+  const auto globalPosEdgeIROC = Mapper::LocalToGlobal(LocalPosition2D(regInf.getRadiusFirstRow(), -localYEdgeIROC), Sector(0));
+  const auto phiEdge = std::atan(globalPosEdgeIROC.Y() / globalPosEdgeIROC.X());
+  auto nBinsPhiGEMFrame = getNearestPhiVertex(phiEdge - phiGap, side);
+  if (nBinsPhiGEMFrame == 0) {
+    nBinsPhiGEMFrame = 1;
+  }
+
+  return std::pair<size_t, size_t>(nBinsPhiGap, nBinsPhiGEMFrame);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongR(const std::function<DataT(DataT)>& potentialFunc, const Side side)
+{
+  const auto radiusStart = std::sqrt(std::pow(GEMFrameParameters<DataT>::LENGTHFRAMEIROCBOTTOM / 2, 2) + std::pow(GEMFrameParameters<DataT>::POSBOTTOM[0], 2));
+  const auto rStart = getNearestRVertex(radiusStart, side);
+  const auto radiusEnd = std::sqrt(std::pow(GEMFrameParameters<DataT>::LENGTHFRAMEOROC3TOP / 2, 2) + std::pow(GEMFrameParameters<DataT>::POSTOP[GEMstack::OROC3gem], 2));
+  const auto rEnd = getNearestRVertex(radiusEnd, side);
+
+  const auto nBinsPhi = getPhiBinsGapFrame(side);
+  const int verticesPerSector = mParamGrid.NPhiVertices / SECTORSPERSIDE;
+  for (int sector = 0; sector < SECTORSPERSIDE; ++sector) {
+    for (size_t iPhiTmp = 0; iPhiTmp < nBinsPhi.second; ++iPhiTmp) {
+      const size_t iPhiLeft = sector * verticesPerSector + nBinsPhi.first + iPhiTmp;
+      const size_t iPhiRight = (sector + 1) * verticesPerSector - nBinsPhi.first - iPhiTmp;
+      for (size_t iR = rStart; iR < rEnd; ++iR) {
+        const DataT radius = getRVertex(iR, side);
+        const size_t iZ = mParamGrid.NZVertices - 1;
+        mPotential[side](iZ, iR, iPhiLeft) = potentialFunc(radius);
+        mPotential[side](iZ, iR, iPhiRight) = potentialFunc(radius);
+      }
+    }
+  }
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const GEMstack stack, const bool bottom, const Side side)
+{
+  int region = 0;
+  if (bottom) {
+    if (stack == GEMstack::IROCgem) {
+      region = 0;
+    } else if (stack == GEMstack::OROC1gem) {
+      region = 4;
+    } else if (stack == GEMstack::OROC2gem) {
+      region = 6;
+    } else if (stack == GEMstack::OROC3gem) {
+      region = 8;
+    }
+  } else {
+    if (stack == GEMstack::IROCgem) {
+      region = 3;
+    } else if (stack == GEMstack::OROC1gem) {
+      region = 5;
+    } else if (stack == GEMstack::OROC2gem) {
+      region = 7;
+    } else if (stack == GEMstack::OROC3gem) {
+      region = 9;
+    }
+  }
+
+  const auto& regInf = Mapper::instance().getPadRegionInfo(region);
+  const auto radiusFirstRow = regInf.getRadiusFirstRow();
+  const DataT radiusStart = bottom ? GEMFrameParameters<DataT>::POSBOTTOM[stack] : radiusFirstRow + regInf.getPadHeight() * regInf.getNumberOfPadRows();
+  const auto radiusMax = bottom ? radiusFirstRow : GEMFrameParameters<DataT>::POSTOP[stack];
+  auto nVerticesR = std::round((radiusMax - radiusStart) / getGridSpacingR(side));
+  if (nVerticesR == 0) {
+    nVerticesR = 1;
+  }
+
+  const int verticesPerSector = mParamGrid.NPhiVertices / SECTORSPERSIDE;
+  const auto nBinsPhi = getPhiBinsGapFrame(side);
+  for (int sector = 0; sector < SECTORSPERSIDE; ++sector) {
+    const auto offsetPhi = sector * verticesPerSector + verticesPerSector / 2;
+    for (size_t iPhiLocal = 0; iPhiLocal <= verticesPerSector / 2 - nBinsPhi.first; ++iPhiLocal) {
+      const auto iPhiLeft = offsetPhi + iPhiLocal;
+      const auto iPhiRight = offsetPhi - iPhiLocal;
+      const DataT phiLeft = getPhiVertex(iPhiLeft, side);
+      const DataT phiRight = getPhiVertex(iPhiRight, side);
+      const DataT localphi = getPhiVertex(iPhiLocal, side);
+      const DataT radiusBottom = radiusStart / std::cos(localphi);
+      const auto rStart = getNearestRVertex(radiusBottom, side);
+      for (size_t iR = rStart; iR < rStart + nVerticesR; ++iR) {
+        const size_t iZ = mParamGrid.NZVertices - 1;
+        mPotential[side](iZ, iR, iPhiLeft) = potentialFunc(phiLeft);
+        mPotential[side](iZ, iR, iPhiRight) = potentialFunc(phiRight);
+      }
+    }
+  }
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setPotentialBoundaryInnerRadius(const std::function<DataT(DataT)>& potentialFunc, const Side side)
+{
+  for (size_t iZ = 0; iZ < mParamGrid.NZVertices; ++iZ) {
+    const DataT z = getZVertex(iZ, side);
+    const auto pot = potentialFunc(z);
+    for (size_t iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
+      const size_t iR = 0;
+      mPotential[side](iZ, iR, iPhi) = pot;
+    }
+  }
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setPotentialBoundaryOuterRadius(const std::function<DataT(DataT)>& potentialFunc, const Side side)
+{
+  for (size_t iZ = 0; iZ < mParamGrid.NZVertices; ++iZ) {
+    const DataT z = getZVertex(iZ, side);
+    const auto pot = potentialFunc(z);
+    for (size_t iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
+      const size_t iR = mParamGrid.NRVertices - 1;
+      mPotential[side](iZ, iR, iPhi) = pot;
+    }
+  }
+}
+
+template <typename DataT>
 void SpaceCharge<DataT>::setPotentialFromFormula(const AnalyticalFields<DataT>& formulaStruct)
 {
   const Side side = formulaStruct.getSide();
@@ -241,7 +370,7 @@ void SpaceCharge<DataT>::setPotentialBoundaryFromFormula(const AnalyticalFields<
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::poissonSolver(const Side side, const int maxIteration, const DataT stoppingConvergence, const int symmetry)
+void SpaceCharge<DataT>::poissonSolver(const Side side, const DataT stoppingConvergence, const int symmetry)
 {
   PoissonSolver<DataT>::setConvergenceError(stoppingConvergence);
   PoissonSolver<DataT> poissonSolver(mGrid3D[0]);

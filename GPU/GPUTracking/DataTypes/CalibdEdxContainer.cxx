@@ -150,6 +150,23 @@ void CalibdEdxContainer::loadSplineTopologyCorrectionFromFile(std::string_view f
   loadTopologyCorrectionFromFile(fileName, mCalibTrackTopologySpline);
 }
 
+void CalibdEdxContainer::setPolTopologyCorrection(const CalibdEdxTrackTopologyPol& calibTrackTopology)
+{
+  setTopologyCorrection(calibTrackTopology, mCalibTrackTopologyPol);
+}
+
+void CalibdEdxContainer::setDefaultPolTopologyCorrection()
+{
+  CalibdEdxTrackTopologyPol calibTrackTopology;
+  calibTrackTopology.setDefaultPolynomials();
+  setTopologyCorrection(calibTrackTopology, mCalibTrackTopologyPol);
+}
+
+void CalibdEdxContainer::setSplineTopologyCorrection(const CalibdEdxTrackTopologySpline& calibTrackTopology)
+{
+  setTopologyCorrection(calibTrackTopology, mCalibTrackTopologySpline);
+}
+
 void CalibdEdxContainer::loadZeroSupresssionThresholdFromFile(std::string_view fileName, std::string_view objName, const float minCorrectionFactor, const float maxCorrectionFactor)
 {
   TFile fInp(fileName.data(), "READ");
@@ -161,8 +178,73 @@ void CalibdEdxContainer::loadZeroSupresssionThresholdFromFile(std::string_view f
 
 void CalibdEdxContainer::setZeroSupresssionThreshold(const CalDet<float>& thresholdMap, const float minCorrectionFactor, const float maxCorrectionFactor)
 {
-  o2::gpu::TPCPadGainCalib thresholdMapTmp(thresholdMap, minCorrectionFactor, maxCorrectionFactor, false);
+  const auto thresholdMapProcessed = processThresholdMap(thresholdMap, maxCorrectionFactor);
+  o2::gpu::TPCPadGainCalib thresholdMapTmp(thresholdMapProcessed, minCorrectionFactor, maxCorrectionFactor, false);
   mThresholdMap = thresholdMapTmp;
+}
+
+CalDet<float> CalibdEdxContainer::processThresholdMap(const CalDet<float>& thresholdMap, const float maxThreshold, const int nPadsInRowCl, const int nPadsInPadCl) const
+{
+  CalDet<float> thresholdMapProcessed(thresholdMap);
+
+  for (int sector = 0; sector < Mapper::NSECTORS; ++sector) {
+    for (int region = 0; region < Mapper::NREGIONS; ++region) {
+      const int maxRow = Mapper::ROWSPERREGION[region] - 1;
+      for (int lrow = 0; lrow <= maxRow; ++lrow) {
+        // find first row of the cluster
+        const int rowStart = std::clamp(lrow - nPadsInRowCl, 0, maxRow);
+        const int rowEnd = std::clamp(lrow + nPadsInRowCl, 0, maxRow);
+        const int addPadsStart = Mapper::ADDITIONALPADSPERROW[region][lrow];
+
+        for (int pad = 0; pad < Mapper::PADSPERROW[region][lrow]; ++pad) {
+          float sumThr = 0;
+          int countThr = 0;
+          // loop ove the rows from the cluster
+          for (int rowCl = rowStart; rowCl <= rowEnd; ++rowCl) {
+            // shift local pad in row in case current row from the cluster has more pads in the row
+            const int addPadsCl = Mapper::ADDITIONALPADSPERROW[region][rowCl];
+            const int diffAddPads = addPadsCl - addPadsStart;
+            const int padClCentre = pad + diffAddPads;
+
+            const int maxPad = Mapper::PADSPERROW[region][rowCl] - 1;
+            const int padStart = std::clamp(padClCentre - nPadsInPadCl, 0, maxPad);
+            const int padEnd = std::clamp(padClCentre + nPadsInPadCl, 0, maxPad);
+            for (int padCl = padStart; padCl <= padEnd; ++padCl) {
+              const int globalPad = Mapper::getGlobalPadNumber(rowCl, padCl, region);
+              // skip for current cluster position as the charge there is not effected from the thresold
+              if (padCl == pad && rowCl == lrow) {
+                continue;
+              }
+
+              float threshold = thresholdMap.getValue(sector, globalPad);
+              if (threshold > maxThreshold) {
+                threshold = maxThreshold;
+              }
+
+              sumThr += threshold;
+              ++countThr;
+            }
+          }
+          const float meanThresold = sumThr / countThr;
+          const int globalPad = Mapper::getGlobalPadNumber(lrow, pad, region);
+          thresholdMapProcessed.setValue(sector, globalPad, meanThresold);
+        }
+      }
+    }
+  }
+  return thresholdMapProcessed;
+}
+
+void CalibdEdxContainer::setGainMap(const CalDet<float>& gainMap, const float minGain, const float maxGain)
+{
+  o2::gpu::TPCPadGainCalib gainMapTmp(gainMap, minGain, maxGain, false);
+  mGainMap = gainMapTmp;
+}
+
+void CalibdEdxContainer::setGainMapResidual(const CalDet<float>& gainMapResidual, const float minResidualGain, const float maxResidualGain)
+{
+  o2::gpu::TPCPadGainCalib gainMapResTmp(gainMapResidual, minResidualGain, maxResidualGain, false);
+  mGainMapResidual = gainMapResTmp;
 }
 
 void CalibdEdxContainer::setDefaultZeroSupresssionThreshold()
@@ -180,10 +262,15 @@ void CalibdEdxContainer::setDefaultZeroSupresssionThreshold()
 template <class Type>
 void CalibdEdxContainer::loadTopologyCorrectionFromFile(std::string_view fileName, Type*& obj)
 {
-  FlatObject::startConstruction();
-
   // load and set-up container
   Type calibTrackTopologyTmp(fileName.data());
+  setTopologyCorrection(calibTrackTopologyTmp, obj);
+}
+
+template <class Type>
+void CalibdEdxContainer::setTopologyCorrection(const Type& calibTrackTopologyTmp, Type*& obj)
+{
+  FlatObject::startConstruction();
 
   // get size of the flat buffer of the splines
   const std::size_t flatbufferSize = calibTrackTopologyTmp.getFlatBufferSize();

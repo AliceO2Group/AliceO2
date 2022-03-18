@@ -95,6 +95,7 @@ o2_add_library(Framework
                        src/O2ControlHelpers.cxx
                        src/O2ControlLabels.cxx
                        src/OutputSpec.cxx
+                       src/OptionsHelpers.cxx
                        src/PropertyTreeHelpers.cxx
                        src/Plugins.cxx
                        src/RateLimiter.cxx
@@ -207,6 +208,7 @@ foreach(t
         InputSpec
         Kernels
         LogParsingHelpers
+        OptionsHelpers
         OverrideLabels
         PtrHelpers
         Root2ArrowTable

@@ -17,6 +17,7 @@
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/CalibratedTracklet.h"
 #include "CommonDataFormat/IRFrame.h"
+#include "Framework/CCDBParamSpec.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -28,23 +29,16 @@ namespace trd
 
 void TRDTrackletTransformerSpec::init(o2::framework::InitContext& ic)
 {
-  LOG(info) << "Initializing tracklet transformer";
-  mTransformer.loadCalibrationParameters(mTimestamp);
+  mTransformer.init();
 }
 
 void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
 {
   LOG(info) << "Running tracklet transformer";
-  if (!mTransformer.hasCalibration()) {
-    // ccdb object was not found for specified timestamp
-    return;
-  }
+  updateTimeDependentParams(pc);
 
   o2::globaltracking::RecoContainer inputData;
   inputData.collectData(pc, *mDataRequest);
-
-  //auto tracklets = inputData.getTRDTracklets();
-  //auto trigRecs = inputData.getTRDTriggerRecords();
 
   auto tracklets = pc.inputs().get<gsl::span<Tracklet64>>("trdtracklets");
   auto trigRecs = pc.inputs().get<gsl::span<TriggerRecord>>("trdtriggerrec");
@@ -116,7 +110,20 @@ void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
   pc.outputs().snapshot(Output{"TRD", "TRIGRECMASK", 0, Lifetime::Timeframe}, trigRecBitfield);
 }
 
-o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilterActive, int timestamp)
+void TRDTrackletTransformerSpec::updateTimeDependentParams(ProcessingContext& pc)
+{
+  pc.inputs().get<o2::trd::CalVdriftExB*>("calvdexb"); // just to trigger the finaliseCCDB
+}
+
+void TRDTrackletTransformerSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("TRD", "CALVDRIFTEXB", 0)) {
+    LOG(info) << "CalVdriftExB object has been updated";
+    mTransformer.setCalVdriftExB((const o2::trd::CalVdriftExB*)obj);
+  }
+}
+
+o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilterActive)
 {
   std::shared_ptr<DataRequest> dataRequest = std::make_shared<DataRequest>();
   if (trigRecFilterActive) {
@@ -125,6 +132,7 @@ o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilte
   auto& inputs = dataRequest->inputs;
   inputs.emplace_back("trdtracklets", "TRD", "TRACKLETS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trdtriggerrec", "TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
+  inputs.emplace_back("calvdexb", "TRD", "CALVDRIFTEXB", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CalVdriftExB"));
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("TRD", "CTRACKLETS", 0, Lifetime::Timeframe);
@@ -134,7 +142,7 @@ o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilte
     "TRDTRACKLETTRANSFORMER",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDTrackletTransformerSpec>(dataRequest, trigRecFilterActive, timestamp)},
+    AlgorithmSpec{adaptFromTask<TRDTrackletTransformerSpec>(dataRequest, trigRecFilterActive)},
     Options{}};
 }
 
