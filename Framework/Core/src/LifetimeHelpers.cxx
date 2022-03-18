@@ -145,16 +145,32 @@ ExpirationHandler::Checker LifetimeHelpers::expireAlways()
   return [](ServiceRegistry&, int64_t, InputSpan const&) -> bool { return true; };
 }
 
-ExpirationHandler::Checker LifetimeHelpers::expireIfPresent(std::vector<InputRoute> const& routes, ConcreteDataMatcher matcher)
+ExpirationHandler::Checker LifetimeHelpers::expireIfPresent(std::vector<InputRoute> const& routes, ConcreteDataMatcher)
 {
-  // find the position of the first route that matches the matcher
-  auto pos = InputRecord::getPos(routes, matcher);
-  return [pos, routes](ServiceRegistry&, int64_t, InputSpan const& span) -> bool {
-    if (pos.index == InputRecord::InputPos::INVALID) {
-      return false;
+  // find all the input routes which have timeframe data
+  // and store it in a vector for use inside the lambda
+  std::vector<InputRecord::InputPos> inputPositions;
+  size_t index = 0;
+  for (auto& route : routes) {
+    if (route.timeslice != 0) {
+      continue;
     }
-    auto ref = InputRecord::getByPos(routes, span, pos.index, 0);
-    return ref.header != nullptr;
+    if (route.matcher.lifetime != Lifetime::Optional) {
+      inputPositions.push_back({index});
+    }
+    index++;
+  }
+
+  return [inputPositions, routes](ServiceRegistry&, int64_t, InputSpan const& span) -> bool {
+    // Check if timeframe data is fully present.
+    // If yes, we expire the optional data.
+    // If not, we continue to wait for the data.
+    bool allPresent = true;
+    for (auto& inputPos : inputPositions) {
+      auto ref = InputRecord::getByPos(routes, span, inputPos.index, 0);
+      allPresent &= ref.header != nullptr;
+    }
+    return allPresent;
   };
 }
 
