@@ -728,6 +728,9 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       item = mToStore.find(Triplet_t(source, event, mcDaughterL));
       if (item != mToStore.end()) {
         daughters[1] = item->second;
+        if (daughters[0] < 0) {
+          daughters[0] = daughters[1]; /// Treat the case of first negative label (pruned in the kinematics)
+        }
       } else {
         daughters[1] = daughters[0];
       }
