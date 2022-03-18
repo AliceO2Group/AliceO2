@@ -586,6 +586,13 @@ int main(int argc, char* argv[])
       }
     }
   }
+  // definitely wait on all children
+  // otherwise this breaks accounting in the /usr/bin/time command
+  while ((cpid = wait(&status))) {
+    if (cpid == -1) {
+      break;
+    }
+  }
 
   LOG(debug) << "ShmManager operation " << o2::utils::ShmManager::Instance().isOperational() << "\n";
 
