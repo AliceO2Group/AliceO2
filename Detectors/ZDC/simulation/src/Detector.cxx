@@ -2433,17 +2433,17 @@ void Detector::BeginPrimary()
 
 #ifdef ZDC_FASTSIM_ONNX
   if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && mFastSimModel != nullptr) {
-    std::vector<float> particle = {static_cast<float>(mCurrentPrincipalParticle.Energy()),
-                                   static_cast<float>(mCurrentPrincipalParticle.Vx()),
-                                   static_cast<float>(mCurrentPrincipalParticle.Vy()),
-                                   static_cast<float>(mCurrentPrincipalParticle.Vz()),
-                                   static_cast<float>(mCurrentPrincipalParticle.Px()),
-                                   static_cast<float>(mCurrentPrincipalParticle.Py()),
-                                   static_cast<float>(mCurrentPrincipalParticle.Pz()),
-                                   static_cast<float>(mCurrentPrincipalParticle.GetMass() * 1000.0),
-                                   static_cast<float>(mCurrentPrincipalParticle.GetPDG()->Charge())};
+    mParticleData[0] = static_cast<float>(mCurrentPrincipalParticle.Energy());
+    mParticleData[1] = static_cast<float>(mCurrentPrincipalParticle.Vx());
+    mParticleData[2] = static_cast<float>(mCurrentPrincipalParticle.Vy());
+    mParticleData[3] = static_cast<float>(mCurrentPrincipalParticle.Vz());
+    mParticleData[4] = static_cast<float>(mCurrentPrincipalParticle.Px());
+    mParticleData[5] = static_cast<float>(mCurrentPrincipalParticle.Py());
+    mParticleData[6] = static_cast<float>(mCurrentPrincipalParticle.Pz());
+    mParticleData[7] = static_cast<float>(mCurrentPrincipalParticle.GetMass() * 1000.0);
+    mParticleData[8] = static_cast<float>(mCurrentPrincipalParticle.GetPDG()->Charge());
 
-    mFastSimResults.push_back(mFastSimModel->getChannels(particle));
+    mFastSimResults.push_back(mFastSimModel->getChannels(mParticleData));
   }
 #endif
 }

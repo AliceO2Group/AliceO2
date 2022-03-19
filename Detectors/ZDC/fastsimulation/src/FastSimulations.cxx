@@ -124,24 +124,19 @@ std::array<int, 5> ConditionalModelSimulation::getChannels()
   return calculateChannels(mModelOutput[0]);
 }
 
-bool ConditionalModelSimulation::setData(const std::vector<float>& particleData)
+void ConditionalModelSimulation::setData(const std::array<float, 9>& particleData)
 {
-  if (particleData.size() != 9) {
-    return false;
-  }
-
   mParticle = particleData;
-  return true;
 }
 
-std::array<int, 5> ConditionalModelSimulation::getChannels(const std::vector<float>& particle)
+std::array<int, 5> ConditionalModelSimulation::getChannels(const std::array<float, 9>& particle)
 {
   setData(particle);
   run();
   return calculateChannels(mModelOutput[0]);
 }
 
-std::array<float, 9> ConditionalModelSimulation::scaleConditionalInput(const std::vector<float>& rawConditionalInput)
+std::array<float, 9> ConditionalModelSimulation::scaleConditionalInput(const std::array<float, 9>& rawConditionalInput)
 {
   std::array<float, 9> scaledConditionalInput = {0, 0, 0, 0, 0, 0, 0, 0, 0};
   for (int i = 0; i < 9; ++i) {

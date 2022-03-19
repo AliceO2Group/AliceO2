@@ -41,14 +41,14 @@ class NeuralFastSimulation
   ~NeuralFastSimulation() = default;
 
   /// Required interface
-  /// setData(std::vector<float> &) - sets particle data, must check size of
+  /// setData(std::array<float, 9> &) - sets particle
   /// data run() - runs one simulation (single event), result should be stored as private member
   /// getChannels - caluclates 5 channels from result (stored as private member)
   /// second version should wrapp all function calls in one
-  virtual bool setData(const std::vector<float>& particleData) = 0;
+  virtual void setData(const std::array<float, 9>& particleData) = 0;
   virtual void run() = 0;
   virtual std::array<int, 5> getChannels() = 0;
-  virtual std::array<int, 5> getChannels(const std::vector<float>& particleData) = 0;
+  virtual std::array<int, 5> getChannels(const std::array<float, 9>& particleData) = 0;
 
  protected:
   /// Sets models metadata (input/output layers names, inputs shape) in onnx session
@@ -84,12 +84,10 @@ class ConditionalModelSimulation : public NeuralFastSimulation
   std::array<int, 5> getChannels() override;
   /**
    * @brief Set input data - particle information
-   * Checks if data is right size - this check should be present in all implementations
    *
    * @param particle std::array<float, 9> with particle data
-   * @return bool true if data is right size, false otherwise
    */
-  bool setData(const std::vector<float>& particleData) override;
+  void setData(const std::array<float, 9>& particleData) override;
   /**
    * @brief Wraps three functions for convinience.
    *        It sets particle data, runs simulation, calculates channels and returns them.
@@ -97,18 +95,17 @@ class ConditionalModelSimulation : public NeuralFastSimulation
    * @param particle std::array<float, 9> with particle data
    * @return std::array<int, 5> calculated channels
    */
-  std::array<int, 5> getChannels(const std::vector<float>& particleData) override;
+  std::array<int, 5> getChannels(const std::array<float, 9>& particleData) override;
 
  private:
   // Scales raw input using scales provided in seperate files
-  // Works on the assumption that provided data are right size - this is checked in setData method
-  std::array<float, 9> scaleConditionalInput(const std::vector<float>& rawConditionalInput);
+  std::array<float, 9> scaleConditionalInput(const std::array<float, 9>& rawConditionalInput);
 
   std::array<float, 9> mConditionalMeans;
   std::array<float, 9> mConditionalScales;
   float mNoiseStdDev;
   std::vector<float> mNoiseInput;
-  std::vector<float> mParticle;
+  std::array<float, 9> mParticle;
   std::vector<Ort::Value> mModelOutput;
 };
 

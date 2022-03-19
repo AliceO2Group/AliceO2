@@ -220,6 +220,8 @@ class Detector : public o2::base::DetImpl<Detector>
 #ifdef ZDC_FASTSIM_ONNX
   fastsim::NeuralFastSimulation* mFastSimModel = nullptr;
 
+  // container for particle data
+  std::array<float, 9> mParticleData{};
   // container for fastsim model responses
   using FastSimResults = std::vector<std::array<int, 5>>;
   FastSimResults mFastSimResults;
