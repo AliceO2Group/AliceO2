@@ -102,18 +102,25 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void downsampleToFramebuffer(vk::CommandBuffer& commandBuffer);
 
   void updateSwapChainDetails(const vk::PhysicalDevice& device);
+  void updateFontTextureDescriptor();
   void createDevice();
-  void createTextureSampler();
-  void createPipeline();
-  void createSwapChain(bool forScreenshot = false, bool forMixing = false);
   void createShaders();
-  void createUniformLayouts();
+  void createTextureSampler();
+  void createCommandBuffers();
+  void createSemaphoresAndFences();
+  void createUniformLayoutsAndBuffers();
+  void createSwapChain(bool forScreenshot = false, bool forMixing = false);
+  void createOffscreenBuffers();
+  void createPipeline();
   void clearDevice();
-  void clearTextureSampler();
-  void clearPipeline();
-  void clearSwapChain();
   void clearShaders();
-  void clearUniformLayouts();
+  void clearTextureSampler();
+  void clearCommandBuffers();
+  void clearSemaphoresAndFences();
+  void clearUniformLayoutsAndBuffers();
+  void clearOffscreenBuffers();
+  void clearSwapChain();
+  void clearPipeline();
   void recreateSwapChain(bool forScreenshot = false, bool forMixing = false);
   void needRecordCommandBuffers();
 
@@ -124,8 +131,6 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   unsigned int mIndirectId;
   unsigned int mGraphicsFamily;
   SwapChainSupportDetails mSwapChainDetails;
-  int mModelViewProjId;
-  int mColorId;
 
   bool mEnableValidationLayers = false;
   vk::Instance mInstance;
@@ -160,6 +165,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   std::vector<vk::Framebuffer> mFramebuffersTexture;
   vk::CommandPool mCommandPool;
 
+  bool mCommandInfrastructureCreated = false;
   unsigned int mImageCount = 0;
   unsigned int mFramesInFlight = 0;
   int mCurrentFrame = 0;
