@@ -79,7 +79,7 @@ GPUDisplayBackendVulkan::GPUDisplayBackendVulkan()
 {
   mQueueFamilyIndices = std::make_unique<QueueFamiyIndices>();
   mSwapChainDetails = std::make_unique<SwapChainSupportDetails>();
-  mVBO.resize(GPUCA_NSLICES);
+  mVBO.resize(1);
   mIndirectCommandBuffer.resize(1);
 }
 GPUDisplayBackendVulkan::~GPUDisplayBackendVulkan() = default;
@@ -288,6 +288,15 @@ static vk::SampleCountFlagBits getMSAASamplesFlag(unsigned int msaa)
     return vk::SampleCountFlagBits::e64;
   }
   return vk::SampleCountFlagBits::e1;
+}
+
+template <class T, class S>
+static inline void clearVector(T& v, S func, bool downsize = false)
+{
+  std::for_each(v.begin(), v.end(), func);
+  if (downsize) {
+    v.clear();
+  }
 }
 
 // ---------------------------- VULKAN DEVICE MANAGEMENT ----------------------------
@@ -536,17 +545,15 @@ void GPUDisplayBackendVulkan::createDevice()
 
 void GPUDisplayBackendVulkan::clearDevice()
 {
-  for (unsigned int i = 0; i < mImageAvailableSemaphore.size(); i++) {
-    mDevice.destroySemaphore(mImageAvailableSemaphore[i], nullptr);
-    mDevice.destroySemaphore(mRenderFinishedSemaphore[i], nullptr);
-    mDevice.destroySemaphore(mTextFinishedSemaphore[i], nullptr);
-    mDevice.destroySemaphore(mMixFinishedSemaphore[i], nullptr);
-    mDevice.destroySemaphore(mDownsampleFinishedSemaphore[i], nullptr);
-    mDevice.destroyFence(mInFlightFence[i], nullptr);
-    for (int j = 0; j < 3; j++) {
-      clearBuffer(mUniformBuffersMat[j][i]);
-      clearBuffer(mUniformBuffersCol[j][i]);
-    }
+  clearVector(mImageAvailableSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
+  clearVector(mRenderFinishedSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
+  clearVector(mTextFinishedSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
+  clearVector(mMixFinishedSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
+  clearVector(mDownsampleFinishedSemaphore, [&](auto& x) { mDevice.destroySemaphore(x, nullptr); });
+  clearVector(mInFlightFence, [&](auto& x) { mDevice.destroyFence(x, nullptr); });
+  for (int j = 0; j < 3; j++) {
+    clearVector(mUniformBuffersMat[j], [&](auto& x) { clearBuffer(x); });
+    clearVector(mUniformBuffersCol[j], [&](auto& x) { clearBuffer(x); });
   }
   mDevice.destroyFence(mSingleCommitFence, nullptr);
   mDevice.destroyCommandPool(mCommandPool, nullptr);
@@ -913,20 +920,14 @@ void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot, bool forMixing
 
 void GPUDisplayBackendVulkan::clearSwapChain()
 {
-  std::for_each(mFramebuffers.begin(), mFramebuffers.end(), [this](auto& x) { mDevice.destroyFramebuffer(x, nullptr); });
-  std::for_each(mSwapChainImageViews.begin(), mSwapChainImageViews.end(), [&](auto& x) { mDevice.destroyImageView(x, nullptr); });
-  std::for_each(mMSAAImages.begin(), mMSAAImages.end(), [&](auto& x) { clearImage(x); });
-  std::for_each(mDownsampleImages.begin(), mDownsampleImages.end(), [&](auto& x) { clearImage(x); });
-  std::for_each(mZImages.begin(), mZImages.end(), [&](auto& x) { clearImage(x); });
-  std::for_each(mMixImages.begin(), mMixImages.end(), [&](auto& x) { clearImage(x); });
-  std::for_each(mFramebuffersText.begin(), mFramebuffersText.end(), [&](auto& x) { mDevice.destroyFramebuffer(x, nullptr); });
-  std::for_each(mFramebuffersTexture.begin(), mFramebuffersTexture.end(), [&](auto& x) { mDevice.destroyFramebuffer(x, nullptr); });
-  mMSAAImages.resize(0);
-  mDownsampleImages.resize(0);
-  mZImages.resize(0);
-  mMixImages.resize(0);
-  mFramebuffersText.resize(0);
-  mFramebuffersTexture.resize(0);
+  clearVector(mFramebuffers, [&](auto& x) { mDevice.destroyFramebuffer(x, nullptr); });
+  clearVector(mSwapChainImageViews, [&](auto& x) { mDevice.destroyImageView(x, nullptr); });
+  clearVector(mMSAAImages, [&](auto& x) { clearImage(x); });
+  clearVector(mDownsampleImages, [&](auto& x) { clearImage(x); });
+  clearVector(mZImages, [&](auto& x) { clearImage(x); });
+  clearVector(mMixImages, [&](auto& x) { clearImage(x); });
+  clearVector(mFramebuffersText, [&](auto& x) { mDevice.destroyFramebuffer(x, nullptr); });
+  clearVector(mFramebuffersTexture, [&](auto& x) { mDevice.destroyFramebuffer(x, nullptr); });
   mDevice.destroyRenderPass(mRenderPass, nullptr);
   mDevice.destroyRenderPass(mRenderPassText, nullptr);
   if (mMixingSupported) {
@@ -1167,9 +1168,7 @@ void GPUDisplayBackendVulkan::endFillCommandBuffer(vk::CommandBuffer& commandBuf
 
 void GPUDisplayBackendVulkan::clearPipeline()
 {
-  for (auto& pipeline : mPipelines) {
-    mDevice.destroyPipeline(pipeline, nullptr);
-  }
+  clearVector(mPipelines, [&](auto& x) { mDevice.destroyPipeline(x, nullptr); });
   mDevice.destroyPipelineLayout(mPipelineLayout, nullptr);
   mDevice.destroyPipelineLayout(mPipelineLayoutTexture, nullptr);
 }
@@ -1191,9 +1190,7 @@ void GPUDisplayBackendVulkan::createShaders()
 
 void GPUDisplayBackendVulkan::clearShaders()
 {
-  for (auto& module : mShaders) {
-    mDevice.destroyShaderModule(module.second, nullptr);
-  }
+  clearVector(mShaders, [&](auto& x) { mDevice.destroyShaderModule(x.second, nullptr); });
 }
 
 // ---------------------------- VULKAN BUFFERS ----------------------------
@@ -1259,10 +1256,10 @@ void GPUDisplayBackendVulkan::clearBuffer(VulkanBuffer& buffer)
 
 void GPUDisplayBackendVulkan::clearVertexBuffers()
 {
-  for (unsigned int i = 0; i < mNVBOCreated; i++) {
-    clearBuffer(mVBO[i]);
+  if (mVBOCreated) {
+    clearBuffer(mVBO[0]);
   }
-  mNVBOCreated = 0;
+  mVBOCreated = 0;
   if (mIndirectCommandBufferCreated) {
     clearBuffer(mIndirectCommandBuffer[0]);
   }
@@ -1379,7 +1376,7 @@ void GPUDisplayBackendVulkan::loadDataToGPU(size_t totalVertizes)
   mDevice.waitIdle();
   clearVertexBuffers();
   mVBO[0] = createBuffer(totalVertizes * sizeof(mDisplay->vertexBuffer()[0][0]), mDisplay->vertexBuffer()[0].data());
-  mNVBOCreated = 1;
+  mVBOCreated = 1;
   if (mDisplay->cfgR().useGLIndirectDraw) {
     fillIndirectCmdBuffer();
     mIndirectCommandBuffer[0] = createBuffer(mCmdBuffer.size() * sizeof(mCmdBuffer[0]), mCmdBuffer.data(), vk::BufferUsageFlagBits::eIndirectBuffer);

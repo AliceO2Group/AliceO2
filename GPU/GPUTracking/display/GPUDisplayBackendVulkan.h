@@ -102,7 +102,6 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void OpenGLPrint(const char* s, float x, float y, float* color, float scale) override;
 
   unsigned int mIndirectId;
-  std::vector<unsigned int> mVBOId;
   std::unique_ptr<QueueFamiyIndices> mQueueFamilyIndices;
   std::unique_ptr<SwapChainSupportDetails> mSwapChainDetails;
   int mModelViewProjId;
@@ -168,7 +167,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   vk::DescriptorPool mDescriptorPool;
 
   std::vector<VulkanBuffer> mVBO;
-  unsigned int mNVBOCreated = 0;
+  unsigned int mVBOCreated = 0;
   std::vector<VulkanBuffer> mIndirectCommandBuffer;
   bool mIndirectCommandBufferCreated = false;
 
