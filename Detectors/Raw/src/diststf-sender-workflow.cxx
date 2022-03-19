@@ -32,7 +32,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   std::vector<ConfigParamSpec> options{
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"max-tf", o2::framework::VariantType::Int, 1, {"how many TFs to process"}},
-    {"dist-stf-subspec", o2::framework::VariantType::Int, 0xccdb, {"Subspec to use for FLP/DISTSUBTIMEFRAME"}}};
+    {"dist-tf-subspec", o2::framework::VariantType::Int, 0xccdb, {"Subspec to use for FLP/DISTSUBTIMEFRAME"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -44,7 +44,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
   int maxTF = configcontext.options().get<int>("max-tf");
-  unsigned subSpec = static_cast<unsigned>(configcontext.options().get<int>("dist-stf-subspec"));
+  unsigned subSpec = static_cast<unsigned>(configcontext.options().get<int>("dist-tf-subspec"));
   specs.push_back(o2::raw::getDistSTFSenderSpec(maxTF > 0 ? maxTF : 1, subSpec));
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);

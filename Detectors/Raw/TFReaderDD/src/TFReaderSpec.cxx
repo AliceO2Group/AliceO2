@@ -341,7 +341,7 @@ void TFReaderSpec::TFBuilder()
       }
     } /*catch (...) {
       LOGP(error, "Error when building {}-th TF from file {}", locID, tfFileName);
-      mFileFetcher->popFromQueue(mFileFetcher->getNLoops() >= mInput.maxLoops); // remove faile TF file
+      mFileFetcher->popFromQueue(mFileFetcher->getNLoops() >= mInput.maxLoops); // remove failed TF file
     } */
   }
 }

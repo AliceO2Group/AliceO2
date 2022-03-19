@@ -261,11 +261,11 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
 
   // send sTF acknowledge message
   if (!mInput.sup0xccdb) {
-    auto& stfDist = pc.outputs().make<o2::header::STFHeader>(OutputRef{"STFDist", 0xccdb});
+    auto& stfDist = pc.outputs().make<o2::header::STFHeader>(OutputRef{"TFDist", 0xccdb});
     stfDist.id = uint64_t(mCurrTreeEntry);
     stfDist.firstOrbit = ctfHeader.firstTForbit;
     stfDist.runNumber = uint32_t(ctfHeader.run);
-    setMessageHeader(pc, ctfHeader, "STFDist", 0xccdb);
+    setMessageHeader(pc, ctfHeader, "TFDist", 0xccdb);
   }
 
   auto entryStr = fmt::format("({} of {} in {})", mCurrTreeEntry, mCTFTree->GetEntries(), mCTFFile->GetName());
@@ -392,7 +392,7 @@ DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
     }
   }
   if (!inp.sup0xccdb) {
-    outputs.emplace_back(OutputSpec{{"STFDist"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0xccdb});
+    outputs.emplace_back(OutputSpec{{"TFDist"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0xccdb});
   }
 
   return DataProcessorSpec{
