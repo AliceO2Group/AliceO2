@@ -393,7 +393,7 @@ void TOFDCSProcessor::updateDPsCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mTOFDCS, mccdbDPsInfo, "TOF/Calib/DCSDPs", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mTOFDCS, mccdbDPsInfo, "TOF/Calib/DCSDPs", md, mStartValidity, 3 * 24L * 3600000);
 
   return;
 }
