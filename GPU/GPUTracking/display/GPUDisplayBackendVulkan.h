@@ -27,13 +27,6 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
-struct QueueFamiyIndices;
-struct SwapChainSupportDetails;
-struct VulkanBuffer;
-struct VulkanImage;
-struct FontSymbolVulkan;
-struct TextDrawCommand;
-
 class GPUDisplayBackendVulkan : public GPUDisplayBackend
 {
  public:
@@ -43,6 +36,33 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   unsigned int DepthBits() override;
 
  protected:
+  struct SwapChainSupportDetails {
+    vk::SurfaceCapabilitiesKHR capabilities;
+    std::vector<vk::SurfaceFormatKHR> formats;
+    std::vector<vk::PresentModeKHR> presentModes;
+  };
+  struct VulkanBuffer {
+    vk::Buffer buffer;
+    vk::DeviceMemory memory;
+    size_t size = 0;
+    bool deviceMemory;
+  };
+  struct VulkanImage {
+    vk::Image image;
+    vk::ImageView view;
+    vk::DeviceMemory memory;
+    unsigned int sizex = 0, sizey = 0;
+    vk::Format format;
+  };
+  struct FontSymbolVulkan : public GPUDisplayBackend::FontSymbol {
+    std::unique_ptr<char[]> data;
+    float x0, x1, y0, y1;
+  };
+  struct TextDrawCommand {
+    size_t firstVertex;
+    size_t nVertices;
+    float color[4];
+  };
   unsigned int drawVertices(const vboList& v, const drawType t) override;
   void ActivateColor(std::array<float, 4>& color) override;
   void SetVSync(bool enable) override { mMustUpdateSwapChain = true; };
@@ -102,8 +122,8 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void OpenGLPrint(const char* s, float x, float y, float* color, float scale) override;
 
   unsigned int mIndirectId;
-  std::unique_ptr<QueueFamiyIndices> mQueueFamilyIndices;
-  std::unique_ptr<SwapChainSupportDetails> mSwapChainDetails;
+  unsigned int mGraphicsFamily;
+  SwapChainSupportDetails mSwapChainDetails;
   int mModelViewProjId;
   int mColorId;
 
@@ -166,13 +186,11 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   vk::DescriptorSetLayout mUniformDescriptorTexture;
   vk::DescriptorPool mDescriptorPool;
 
-  std::vector<VulkanBuffer> mVBO;
-  unsigned int mVBOCreated = 0;
-  std::vector<VulkanBuffer> mIndirectCommandBuffer;
-  bool mIndirectCommandBufferCreated = false;
+  VulkanBuffer mVBO;
+  VulkanBuffer mIndirectCommandBuffer;
 
   std::vector<FontSymbolVulkan> mFontSymbols;
-  std::unique_ptr<VulkanImage> mFontImage;
+  VulkanImage mFontImage;
   std::vector<VulkanBuffer> mFontVertexBuffer;
   std::vector<TextDrawCommand> mTextDrawCommands;
   vk::CommandBuffer mTmpTextCommandBuffer;
@@ -189,7 +207,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   vk::Fence mSingleCommitFence;
 
   bool mMixingSupported = 0;
-  std::unique_ptr<VulkanBuffer> mTextureVertexArray;
+  VulkanBuffer mTextureVertexArray;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
