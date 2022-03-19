@@ -63,6 +63,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
     size_t nVertices;
     float color[4];
   };
+
   unsigned int drawVertices(const vboList& v, const drawType t) override;
   void ActivateColor(std::array<float, 4>& color) override;
   void SetVSync(bool enable) override { mMustUpdateSwapChain = true; };
@@ -110,7 +111,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void createSemaphoresAndFences();
   void createUniformLayoutsAndBuffers();
   void createSwapChain(bool forScreenshot = false, bool forMixing = false);
-  void createOffscreenBuffers();
+  void createOffscreenBuffers(bool forScreenshot = false, bool forMixing = false);
   void createPipeline();
   void clearDevice();
   void clearShaders();
@@ -121,7 +122,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void clearOffscreenBuffers();
   void clearSwapChain();
   void clearPipeline();
-  void recreateSwapChain(bool forScreenshot = false, bool forMixing = false);
+  void recreateRendering(bool forScreenshot = false, bool forMixing = false);
   void needRecordCommandBuffers();
 
   void addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data) override;
