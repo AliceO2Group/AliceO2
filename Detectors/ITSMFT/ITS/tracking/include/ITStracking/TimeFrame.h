@@ -143,16 +143,6 @@ class TimeFrame
   gsl::span<int> getNTrackletsCluster(int rofId, int combId);
   // \Vertexer
 
-  // Vertexer
-  void computeTrackletsScans();
-  std::vector<int>& getIndexTableL0(int tf);
-  std::array<std::vector<int>, 2>& getNTrackletsCluster(int tf);
-  int& getNTrackletsROf(int combId, int tf);
-  std::vector<Line>& getLines(int tf);
-  std::vector<ClusterLines>& getTrackletClusters(int tf);
-  gsl::span<const Tracklet> getFoundTracklets(int rofId, int combId) const;
-  // \Vertexer
-
   void initialiseRoadLabels();
   void setRoadLabel(int i, const unsigned long long& lab, bool fake);
   const unsigned long long& getRoadLabel(int i) const;
