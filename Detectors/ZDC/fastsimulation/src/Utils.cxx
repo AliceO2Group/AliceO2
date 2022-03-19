@@ -18,25 +18,29 @@
 
 std::vector<float> o2::zdc::fastsim::normal_distribution(double mean, double stddev, size_t size)
 {
+  // Creates 64bit random number generator
   std::random_device randomDevice{};
   std::mt19937_64 generator{randomDevice()};
 
   std::normal_distribution<> distribution{mean, stddev};
 
+  // Each value in vector is generated with the same distribution
   std::vector<float> result;
   for (size_t i = 0; i < size; ++i) {
     result.emplace_back(distribution(generator));
   }
-
   return result;
 }
 
 std::vector<float> o2::zdc::fastsim::parse_block(std::istream& input, const std::string option)
 {
+  // Marks if should start reading and parsing block
   bool read = false;
+  // Container for parsed data (data) and current line (line)
   std::vector<float> data;
   std::string line;
 
+  // read while eof if marker was found brake and start parsing
   while (std::getline(input, line)) {
     if (line == option) {
       read = true;

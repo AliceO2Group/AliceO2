@@ -109,7 +109,7 @@ void makeCCDBEntryForDCS(const std::string ccdbUrl, uint64_t timestamp)
   DPID dpidtmp;
   for (const auto& a : aliases) {
     auto legitName = o2::muon::replaceDotByUnderscore(a);
-    DPID::FILL(dpidtmp, legitName, o2::dcs::DeliveryType::RAW_DOUBLE);
+    DPID::FILL(dpidtmp, legitName, o2::dcs::DeliveryType::DPVAL_DOUBLE);
     dpid2DataDesc[dpidtmp] = fmt::format("{}DATAPOINTS", o2::muon ::subsysname());
   }
 
@@ -120,7 +120,10 @@ void makeCCDBEntryForDCS(const std::string ccdbUrl, uint64_t timestamp)
             << o2::muon::subsysname() << " data points to "
             << CcdbDpConfName() << "\n";
 
-  api.storeAsTFileAny(&dpid2DataDesc, CcdbDpConfName(), md, timestamp);
+  uint64_t endOfValidity = 99999999999999;
+
+  api.storeAsTFileAny(&dpid2DataDesc, CcdbDpConfName(), md, timestamp,
+                      endOfValidity);
 }
 
 bool match(const std::vector<std::string>& queries, const char* pattern)

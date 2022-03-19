@@ -547,7 +547,8 @@ void RawFileWriter::LinkData::openHBFPage(const RDHAny& rdhn, uint32_t trigger)
   bool forceNewPage = false;
   // for RORC detectors the TF flag is absent, instead the 1st trigger after the start of TF will define the 1st be interpreted as 1st TF
   if ((RDHUtils::getTriggerType(rdhn) & o2::trigger::TF) ||
-      (writer->isRORCDetector() && writer->mHBFUtils.getTF(updateIR - 1) < writer->mHBFUtils.getTF(RDHUtils::getTriggerIR(rdhn)))) {
+      (writer->isRORCDetector() &&
+       (updateIR == writer->mHBFUtils.getFirstIR() || writer->mHBFUtils.getTF(updateIR - 1) < writer->mHBFUtils.getTF(RDHUtils::getTriggerIR(rdhn))))) {
     if (writer->mVerbosity > -10) {
       LOGF(info, "Starting new TF for link FEEId 0x%04x", RDHUtils::getFEEID(rdhn));
     }

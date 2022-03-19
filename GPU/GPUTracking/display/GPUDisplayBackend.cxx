@@ -57,21 +57,6 @@ GPUDisplayBackend* GPUDisplayBackend::getBackend(const char* type)
   return nullptr;
 }
 
-void GPUDisplayBackend::fillIndirectCmdBuffer()
-{
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
-  mCmdBuffer.clear();
-  mIndirectSliceOffset.resize(GPUCA_NSLICES);
-  // TODO: Check if this can be parallelized
-  for (int iSlice = 0; iSlice < GPUCA_NSLICES; iSlice++) {
-    mIndirectSliceOffset[iSlice] = mCmdBuffer.size();
-    for (unsigned int k = 0; k < mDisplay->vertexBufferStart()[iSlice].size(); k++) {
-      mCmdBuffer.emplace_back(mDisplay->vertexBufferCount()[iSlice][k], 1, mDisplay->vertexBufferStart()[iSlice][k], 0);
-    }
-  }
-#endif
-}
-
 int GPUDisplayBackend::InitBackend()
 {
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
@@ -117,8 +102,12 @@ int GPUDisplayBackend::InitBackend()
     return 0;
   }
 
-  mDisplay->drawTextFontSize() = mDisplay->cfg().fontSize;
-  FT_Set_Pixel_Sizes(face, 0, mDisplay->cfg().fontSize * 4); // Font size scaled by 4, can be downsampled
+  int fontSize = mDisplay->cfg().fontSize;
+  mDisplay->drawTextFontSize() = fontSize;
+  if (smoothFont()) {
+    fontSize *= 4; // Font size scaled by 4, can be downsampled
+  }
+  FT_Set_Pixel_Sizes(face, 0, fontSize);
 
   for (unsigned int i = 0; i < 128; i++) {
     if (FT_Load_Char(face, i, FT_LOAD_RENDER)) {
@@ -143,3 +132,45 @@ void GPUDisplayBackend::ExitBackend()
 {
   ExitBackendA();
 }
+
+std::vector<char> GPUDisplayBackend::getPixels()
+{
+  auto retVal = std::move(mScreenshotPixels);
+  mScreenshotPixels = std::vector<char>();
+  return retVal;
+}
+
+#ifdef GPUCA_BUILD_EVENT_DISPLAY
+void GPUDisplayBackend::fillIndirectCmdBuffer()
+{
+  mCmdBuffer.clear();
+  mIndirectSliceOffset.resize(GPUCA_NSLICES);
+  // TODO: Check if this can be parallelized
+  for (int iSlice = 0; iSlice < GPUCA_NSLICES; iSlice++) {
+    mIndirectSliceOffset[iSlice] = mCmdBuffer.size();
+    for (unsigned int k = 0; k < mDisplay->vertexBufferStart()[iSlice].size(); k++) {
+      mCmdBuffer.emplace_back(mDisplay->vertexBufferCount()[iSlice][k], 1, mDisplay->vertexBufferStart()[iSlice][k], 0);
+    }
+  }
+}
+
+float GPUDisplayBackend::getDownsampleFactor(bool screenshot)
+{
+  float factor = 1.0f;
+  int fsaa = mDisplay->cfgR().drawQualityDownsampleFSAA;
+  int screenshotScale = mDisplay->cfgR().screenshotScaleFactor;
+  if (fsaa) {
+    factor *= fsaa;
+  }
+  if (screenshotScale && screenshot) {
+    factor *= screenshotScale;
+  }
+  return factor;
+}
+
+bool GPUDisplayBackend::smoothFont()
+{
+  return mDisplay->cfg().smoothFont < 0 ? (mDisplay->cfg().fontSize > 12) : mDisplay->cfg().smoothFont;
+}
+
+#endif

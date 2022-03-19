@@ -9,45 +9,23 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-// // we need to add workflow options before including Framework/runDataProcessing
-// void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
-// {
-//   // option allowing to set parameters
-// }
+/// \file DCSDPHints.cxx
+/// \brief DCS data point configuration for the TPC
+///
+/// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 
-// ------------------------------------------------------------------
+#include "DetectorsDCS/DCSDataPointHint.h"
+#include "TPCdcs/DCSDPHints.h"
 
-#include <fmt/format.h>
-
-#include "Framework/ConfigParamSpec.h"
-
-#include "DCStestWorkflow/DCSRandomDataGeneratorSpec.h"
-
-using namespace o2::framework;
-
-// we need to add workflow options before including Framework/runDataProcessing
-void customize(std::vector<ConfigParamSpec>& workflowOptions)
+std::vector<o2::dcs::test::HintType> o2::tpc::dcs::getTPCDCSDPHints(const int maxSectors)
 {
-  std::vector<ConfigParamSpec> options{
-    {"max-sectors", VariantType::Int, 0, {"max sector number to use for HV sensors, 0-17"}},
-  };
-
-  std::swap(workflowOptions, options);
-}
-
-#include "Framework/runDataProcessing.h"
-
-o2::framework::WorkflowSpec defineDataProcessing(ConfigContext const& config)
-{
-  const auto maxSectors = std::min(config.options().get<int>("max-sectors"), 17);
-
   std::vector<o2::dcs::test::HintType> dphints;
   // ===| Gas sensors and gas chromatograph values |============================
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"TPC_GC_ARGON", 0, 100.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"TPC_GC_CO2", 0, 100.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"TPC_GC_N2", 0, 100.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"TPC_GC_NEON", 0, 100.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"TPC_GC_O2", 0, 100.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"TPC_GC_ARGON", 0., 100.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"TPC_GC_CO2", 0., 20.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"TPC_GC_N2", 4., 6.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"TPC_GC_NEON", 85., 95.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"TPC_GC_O2", 0.02, 0.035});
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"TPC_GC_WATER", 0, 100.});
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"TPC_An_L1Sr141_H2O", 0, 1000.});
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"TPC_An_L1Sr141_O2", 0, 1000.});
@@ -113,7 +91,12 @@ o2::framework::WorkflowSpec defineDataProcessing(ConfigContext const& config)
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("TPC_HV_C[00..{:02}]_I_G[1..4]T_I", maxSectors), 0, 800.});
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("TPC_HV_C[00..{:02}]_O[1..3]_G[1..4]T_I", maxSectors), 0, 800.});
 
-  WorkflowSpec specs;
-  specs.emplace_back(o2::dcs::test::getDCSRandomDataGeneratorSpec(dphints, "TPC"));
-  return specs;
+  // ---| Stack status |--------------------------------------------------------
+  dphints.emplace_back(o2::dcs::test::DataPointHint<uint32_t>{fmt::format("TPC_HV_A[00..{:02}]_I_STATUS", maxSectors), 0, 29});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<uint32_t>{fmt::format("TPC_HV_A[00..{:02}]_O[1..3]_STATUS", maxSectors), 0, 29});
+
+  dphints.emplace_back(o2::dcs::test::DataPointHint<uint32_t>{fmt::format("TPC_HV_C[00..{:02}]_I_STATUS", maxSectors), 0, 29});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<uint32_t>{fmt::format("TPC_HV_C[00..{:02}]_O[1..3]_STATUS", maxSectors), 0, 29});
+
+  return dphints;
 }

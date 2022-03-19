@@ -21,6 +21,8 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include <CCDB/BasicCCDBManager.h>
+#include <DataFormatsParameters/GRPLHCIFData.h>
 #include <FairMQLogger.h>
 #include <TMessage.h> // object serialization
 #include <memory>     // std::unique_ptr
@@ -121,9 +123,22 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
       mgr.getInteractionSampler().setFirstIR({0, o2::raw::HBFUtils::Instance().orbitFirstSampled});
       mgr.getDigitizationContext().setFirstOrbitForSampling(o2::raw::HBFUtils::Instance().orbitFirstSampled);
 
+      auto setBCFillingHelper = [](auto& sampler, auto& bcPatternString) {
+        if (bcPatternString == "ccdb") {
+          LOG(info) << "Fetch bcPattern information from CCDB";
+          // fetch the GRP Object
+          auto& ccdb = o2::ccdb::BasicCCDBManager::instance();
+          auto grpLHC = ccdb.get<o2::parameters::GRPLHCIFData>("GLO/Config/GRPLHCIF");
+          LOG(info) << "Fetched injection scheme " << grpLHC->getInjectionScheme() << " from CCDB";
+          sampler.setBunchFilling(grpLHC->getBunchFilling());
+        } else {
+          sampler.setBunchFilling(bcPatternString);
+        }
+      };
+
       auto bcPatternFile = ctx.options().get<std::string>("bcPatternFile");
       if (!bcPatternFile.empty()) {
-        mgr.getInteractionSampler().setBunchFilling(bcPatternFile);
+        setBCFillingHelper(mgr.getInteractionSampler(), bcPatternFile);
       }
 
       mgr.getInteractionSampler().init();
@@ -145,7 +160,7 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
       if (qedprefix.size() > 0) {
         o2::steer::InteractionSampler qedInteractionSampler;
         if (!bcPatternFile.empty()) {
-          qedInteractionSampler.setBunchFilling(bcPatternFile);
+          setBCFillingHelper(qedInteractionSampler, bcPatternFile);
         }
 
         // get first and last "hadronic" interaction records and let

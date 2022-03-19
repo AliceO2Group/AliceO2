@@ -44,7 +44,7 @@ void main()
 }
 )";
 
-  static constexpr const char* vertexShaderText = R"(
+  static constexpr const char* vertexShaderTexture = R"(
 #version 450 core
 layout (location = 0) in vec4 vertex;
 out vec2 TexCoords;
@@ -58,6 +58,20 @@ void main()
 }
 )";
 
+  static constexpr const char* fragmentShaderTexture = R"(
+#version 450 core
+in vec2 TexCoords;
+out vec4 color;
+
+uniform sampler2D tex;
+uniform float alpha;
+
+void main()
+{
+    color = vec4(texture(tex, TexCoords).rgb, alpha);
+}
+)";
+
   static constexpr const char* fragmentShaderText = R"(
 #version 450 core
 in vec2 TexCoords;
@@ -68,8 +82,8 @@ uniform vec4 textColor;
 
 void main()
 {
-    vec4 sampled = vec4(1.0, 1.0, 1.0, texture(text, TexCoords).r);
-    color = textColor * sampled;
+  vec4 sampled = vec4(1.0, 1.0, 1.0, texture(text, TexCoords).r);
+  color = textColor * sampled;
 }
 )";
 };

@@ -38,11 +38,11 @@ class GPUDisplay
   void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster) {}
 
   void HandleKey(unsigned char key) {}
-  int DrawGLScene(bool mixAnimation = false, float mAnimateTime = -1.f) { return 1; }
+  int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f) { return 1; }
   void HandleSendKey(int key) {}
   int InitDisplay(bool initFailure = false) { return 1; }
   void ExitDisplay() {}
-  void ReSizeGLScene(int width, int height, bool init = false) {}
+  void ResizeScene(int width, int height, bool init = false) {}
 
   GPUDisplayBackend* backend() const { return nullptr; }
   int& drawTextFontSize()
@@ -86,22 +86,19 @@ class GPUDisplay
   void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster);
 
   void HandleKey(unsigned char key);
-  int DrawGLScene(bool mixAnimation = false, float mAnimateTime = -1.f);
+  int DrawGLScene();
   void HandleSendKey(int key);
   int InitDisplay(bool initFailure = false);
   void ExitDisplay();
-  void ReSizeGLScene(int width, int height, bool init = false);
+  void ResizeScene(int width, int height, bool init = false);
 
   const GPUSettingsDisplayRenderer& cfgR() const { return mCfgR; }
   const GPUSettingsDisplayLight& cfgL() const { return mCfgL; }
   const GPUSettingsDisplayHeavy& cfgH() const { return mCfgH; }
   const GPUSettingsDisplay& cfg() const { return mConfig; }
-  int renderWidth() const { return mRenderwidth; }
-  int renderHeight() const { return mRenderheight; }
-  int screenWidth() const { return mScreenwidth; }
-  int screenHeight() const { return mScreenheight; }
   bool useMultiVBO() const { return mUseMultiVBO; }
   int updateDrawCommands() const { return mUpdateDrawCommands; }
+  int updateRenderPipeline() const { return mUpdateRenderPipeline; }
   GPUDisplayBackend* backend() const { return mBackend.get(); }
   vecpod<int>* vertexBufferStart() { return mVertexBufferStart; }
   const vecpod<unsigned int>* vertexBufferCount() const { return mVertexBufferCount; }
@@ -179,7 +176,11 @@ class GPUDisplay
     bool mVerbose = false;
   };
 
-  int DrawGLScene_internal(bool mixAnimation, float mAnimateTime);
+  void DrawGLScene_internal(float animateTime = -1.f, bool renderToMixBuffer = false);
+  void DrawGLScene_updateEventData();
+  void DrawGLScene_cameraAndAnimation(float animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix);
+  size_t DrawGLScene_updateVertexList();
+  void DrawGLScene_drawCommands();
   int InitDisplay_internal();
   int getNumThreads();
   void disableUnsupportedOptions();
@@ -222,10 +223,6 @@ class GPUDisplay
   void SetColorGridTRD();
   void SetColorMarked();
   void SetCollisionColor(int col);
-  void setQuality();
-  void setDepthBuffer();
-  void setFrameBuffer(int updateCurrent = -1, unsigned int newID = 0);
-  void UpdateOffscreenBuffers(bool clean = false);
   void updateConfig();
   void drawPointLinestrip(int iSlice, int cid, int id, int id_limit = TRACK_TYPE_ID_LIMIT);
   vboList DrawClusters(int iSlice, int select, unsigned int iCol);
@@ -242,7 +239,7 @@ class GPUDisplay
   void DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, std::array<vecpod<int>, 2>& trackList, threadVertexBuffer& threadBuffer);
   vboList DrawGrid(const GPUTPCTracker& tracker);
   vboList DrawGridTRD(int sector);
-  void DoScreenshot(char* filename, float mAnimateTime = -1.f);
+  void DoScreenshot(const char* filename, std::vector<char>& pixels, float animateTime = -1.f);
   void PrintHelp();
   void createQuaternionFromMatrix(float* v, const float* mat);
   void drawVertices(const vboList& v, const GPUDisplayBackend::drawType t);
@@ -274,9 +271,6 @@ class GPUDisplay
   float mAngleRollOrigin = -1e9;
   float mMaxClusterZ = -1;
 
-  int mScreenwidth = GPUDisplayFrontend::INIT_WIDTH, mScreenheight = GPUDisplayFrontend::INIT_HEIGHT;
-  int mRenderwidth = GPUDisplayFrontend::INIT_WIDTH, mRenderheight = GPUDisplayFrontend::INIT_HEIGHT;
-
   hmm_mat4 mViewMatrix, mModelMatrix;
   float* const mViewMatrixP = &mViewMatrix.Elements[0][0];
   float mXYZ[3];
@@ -290,10 +284,6 @@ class GPUDisplay
   vecpod<vtx> mVertexBuffer[NSLICES];
   vecpod<int> mVertexBufferStart[NSLICES];
   vecpod<unsigned int> mVertexBufferCount[NSLICES];
-
-  vecpod<unsigned int> mMainBufferStack{0};
-  GPUDisplayBackend::GLfb mMixBuffer;
-  GPUDisplayBackend::GLfb mOffscreenBuffer, mOffscreenBufferNoMSAA;
 
   std::unique_ptr<float4[]> mGlobalPosPtr;
   std::unique_ptr<float4[]> mGlobalPosPtrTRD;
@@ -321,6 +311,7 @@ class GPUDisplay
   int mUpdateVertexLists = 1;
   int mUpdateEventData = 0;
   int mUpdateDrawCommands = 1;
+  int mUpdateRenderPipeline = 0;
   volatile int mResetScene = 0;
 
   int mAnimate = 0;
@@ -352,6 +343,11 @@ class GPUDisplay
   vecpod<vboList> mGlDLPoints[NSLICES][N_POINTS_TYPE];
   vboList mGlDLGrid[NSLICES];
   vboList mGlDLGridTRD[NSLICES / 2];
+
+  bool mRequestScreenshot = false;
+  std::string mScreenshotFile;
+
+  float mYFactor = 1.0f;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

@@ -55,8 +55,6 @@ class ClustererTask
   void run(const std::string inpName, const std::string outName);
   o2::itsmft::PixelReader* getReader() const { return (o2::itsmft::PixelReader*)mReader; }
 
-  void loadDictionary(std::string fileName) { mClusterer.loadDictionary(fileName); }
-
   void writeTree(std::string basename, int i);
   void setMaxROframe(int max) { maxROframe = max; }
   int getMaxROframe() const { return maxROframe; }

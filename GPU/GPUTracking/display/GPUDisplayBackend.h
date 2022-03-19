@@ -34,6 +34,7 @@ namespace gpu
 {
 class GPUDisplay;
 class GPUDisplayFrontend;
+struct GLfb;
 class GPUDisplayBackend
 {
   friend GPUDisplay;
@@ -42,8 +43,8 @@ class GPUDisplayBackend
   GPUDisplayBackend();
   virtual ~GPUDisplayBackend();
 
-  virtual int ExtInit() = 0;
-  virtual bool CoreProfile() = 0;
+  virtual int ExtInit() { return 0; };
+  virtual bool CoreProfile() { return false; };
   virtual unsigned int DepthBits() = 0;
 
   typedef std::tuple<unsigned int, unsigned int, int> vboList;
@@ -52,14 +53,6 @@ class GPUDisplayBackend
     POINTS = 0,
     LINES = 1,
     LINE_STRIP = 2
-  };
-
-  struct GLfb {
-    unsigned int fb_id = 0, fbCol_id = 0, fbDepth_id = 0;
-    bool tex = false;
-    bool msaa = false;
-    bool depth = false;
-    bool created = false;
   };
 
   enum backendTypes {
@@ -82,30 +75,22 @@ class GPUDisplayBackend
     int advance;
   };
 
-  virtual void createFB(GLfb& fb, bool tex, bool withDepth, bool msaa) = 0;
-  virtual void deleteFB(GLfb& fb) = 0;
-
   virtual unsigned int drawVertices(const vboList& v, const drawType t) = 0;
   virtual void ActivateColor(std::array<float, 4>& color) = 0;
-  virtual void setQuality() = 0;
+  virtual void setQuality(){};
+  virtual void SetVSync(bool enable){};
+  virtual bool backendNeedRedraw() { return true; }
   virtual void setDepthBuffer() = 0;
-  virtual void setFrameBuffer(int updateCurrent, unsigned int newID) = 0;
   virtual int InitBackendA() = 0;
   virtual void ExitBackendA() = 0;
   int InitBackend();
   void ExitBackend();
-  virtual void clearScreen(bool colorOnly = false) = 0;
-  virtual void updateSettings() = 0;
   virtual void loadDataToGPU(size_t totalVertizes) = 0;
-  virtual void prepareDraw() = 0;
-  virtual void finishDraw() = 0;
-  virtual void finishFrame() = 0;
+  virtual void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot = false, bool toMixBuffer = false, float includeMixImage = 0.f) = 0;
+  virtual void finishDraw(bool doScreenshot, bool toMixBuffer = false, float includeMixImage = 0.f) = 0;
+  virtual void finishFrame(bool doScreenshot, bool toMixBuffer = false, float includeMixImage = 0.f) = 0;
   virtual void prepareText() = 0;
   virtual void finishText() = 0;
-  virtual void setMatrices(const hmm_mat4& proj, const hmm_mat4& view) = 0;
-  virtual void mixImages(GLfb& mixBuffer, float mixSlaveImage) = 0;
-  virtual void renderOffscreenBuffer(GLfb& buffer, GLfb& bufferNoMSAA, int mainBuffer) = 0;
-  virtual void readPixels(unsigned char* pixels, bool needBuffer, unsigned int width, unsigned int height) = 0;
   virtual void pointSizeFactor(float factor) = 0;
   virtual void lineWidthFactor(float factor) = 0;
   virtual backendTypes backendType() const = 0;
@@ -113,16 +98,30 @@ class GPUDisplayBackend
   virtual size_t needMultiVBO() { return 0; }
   virtual void OpenGLPrint(const char* s, float x, float y, float* color, float scale) = 0;
   static GPUDisplayBackend* getBackend(const char* type);
+  std::vector<char> getPixels();
+  virtual float getYFactor() const { return 1.0f; }
 
  protected:
+  virtual void addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data) = 0;
+  virtual void initializeTextDrawing() = 0;
+
+  float getDownsampleFactor(bool screenshot = false);
+  void fillIndirectCmdBuffer();
+  bool smoothFont();
+
   GPUDisplay* mDisplay = nullptr;
   std::vector<int> mIndirectSliceOffset;
   vecpod<DrawArraysIndirectCommand> mCmdBuffer;
-  void fillIndirectCmdBuffer();
-  virtual void addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data) = 0;
-  virtual void initializeTextDrawing() = 0;
   bool mFreetypeInitialized = false;
   bool mFrontendCompatTextDraw = false;
+  std::vector<char> mScreenshotPixels;
+
+  int mDownsampleFactor = 1;
+
+  unsigned int mRenderWidth = 0;
+  unsigned int mRenderHeight = 0;
+  unsigned int mScreenWidth = 0;
+  unsigned int mScreenHeight = 0;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

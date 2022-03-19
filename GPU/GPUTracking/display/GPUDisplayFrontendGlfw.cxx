@@ -231,7 +231,7 @@ void GPUDisplayFrontendGlfw::cursorPos_callback(GLFWwindow* window, double x, do
   me->mouseMvY = y;
 }
 
-void GPUDisplayFrontendGlfw::resize_callback(GLFWwindow* window, int width, int height) { me->ReSizeGLScene(width, height); }
+void GPUDisplayFrontendGlfw::resize_callback(GLFWwindow* window, int width, int height) { me->ResizeScene(width, height); }
 
 void GPUDisplayFrontendGlfw::DisplayLoop()
 {
@@ -283,6 +283,7 @@ int GPUDisplayFrontendGlfw::FrontendMain()
   glfwSetScrollCallback(mWindow, scroll_callback);
   glfwSetCursorPosCallback(mWindow, cursorPos_callback);
   glfwSetWindowSizeCallback(mWindow, resize_callback);
+  glfwSwapInterval(1);
 
   pthread_mutex_lock(&mSemLockExit);
   mGlfwRunning = true;

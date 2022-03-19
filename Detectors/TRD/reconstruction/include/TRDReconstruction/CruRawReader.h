@@ -90,6 +90,11 @@ class CruRawReader
   void setDataBuffer(const char* val)
   {
     mDataBuffer = val;
+    if (mVerbose) {
+      if (val == nullptr) {
+        LOG(error) << "Data buffer is being assigned to a null ptr";
+      }
+    }
   };
   void setDataBufferSize(long val)
   {

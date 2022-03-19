@@ -23,7 +23,6 @@ namespace mid
 
 ColumnData& ChannelMasksHandler::getMask(uint8_t deId, uint8_t columnId)
 {
-  /// Gets the mask
   auto uniqueId = getColumnDataUniqueId(deId, columnId);
   auto maskIt = mMasks.find(uniqueId);
   if (maskIt == mMasks.end()) {
@@ -38,7 +37,6 @@ ColumnData& ChannelMasksHandler::getMask(uint8_t deId, uint8_t columnId)
 
 void ChannelMasksHandler::switchOffChannel(uint8_t deId, uint8_t columnId, int lineId, int strip, int cathode)
 {
-  /// Switches off one channel
   auto& mask = getMask(deId, columnId);
   uint16_t pattern = (1 << strip);
   if (cathode == 0) {
@@ -48,20 +46,24 @@ void ChannelMasksHandler::switchOffChannel(uint8_t deId, uint8_t columnId, int l
   }
 }
 
-void ChannelMasksHandler::switchOffChannels(const ColumnData& dead)
+void ChannelMasksHandler::switchOffChannels(const ColumnData& badChannels)
 {
-  /// Switches off the dead channels
-  auto& mask = getMask(dead.deId, dead.columnId);
-  mask.setNonBendPattern(mask.getNonBendPattern() & (~dead.getNonBendPattern()));
+  auto& mask = getMask(badChannels.deId, badChannels.columnId);
+  mask.setNonBendPattern(mask.getNonBendPattern() & (~badChannels.getNonBendPattern()));
   for (int iline = 0; iline < 4; ++iline) {
-    mask.setBendPattern(mask.getBendPattern(iline) & (~dead.getBendPattern(iline)), iline);
+    mask.setBendPattern(mask.getBendPattern(iline) & (~badChannels.getBendPattern(iline)), iline);
+  }
+}
+
+void ChannelMasksHandler::switchOffChannels(const std::vector<ColumnData>& badChannelsList)
+{
+  for (auto& bad : badChannelsList) {
+    switchOffChannels(bad);
   }
 }
 
 bool ChannelMasksHandler::applyMask(ColumnData& data) const
 {
-  /// Applies the mask to the data
-  /// Returns false if the data is completely masked
   auto uniqueId = getColumnDataUniqueId(data.deId, data.columnId);
   auto maskIt = mMasks.find(uniqueId);
   if (maskIt == mMasks.end()) {
@@ -87,32 +89,30 @@ std::vector<ColumnData> ChannelMasksHandler::getMasks() const
   return masks;
 }
 
-std::vector<ColumnData> ChannelMasksHandler::getMasksFull(std::vector<ColumnData> referenceMask) const
-{
-  /// Returns the computed masks merged with the reference masks,
-  /// which are the masks for non-existent channels
-  for (auto& mask : referenceMask) {
-    applyMask(mask);
-  }
-  return referenceMask;
-}
-
-bool ChannelMasksHandler::setFromChannelMask(const ColumnData& mask)
+void ChannelMasksHandler::setFromChannelMask(const ColumnData& mask)
 {
   /// Sets the mask from a channel mask
   auto uniqueColumnId = getColumnDataUniqueId(mask.deId, mask.columnId);
   mMasks[uniqueColumnId] = mask;
-  return true;
 }
 
-bool ChannelMasksHandler::setFromChannelMasks(const std::vector<ColumnData>& masks)
+void ChannelMasksHandler::setFromChannelMasks(const std::vector<ColumnData>& masks)
 {
   /// Sets the mask from a vector of channel masks
-  bool isDone = false;
+  mMasks.clear();
   for (auto& mask : masks) {
-    isDone |= setFromChannelMask(mask);
+    setFromChannelMask(mask);
   }
-  return isDone;
+}
+void ChannelMasksHandler::merge(const std::vector<ColumnData>& masks)
+{
+  for (auto& mask : masks) {
+    auto& inMask = getMask(mask.deId, mask.columnId);
+    inMask.setNonBendPattern(inMask.getNonBendPattern() & mask.getNonBendPattern());
+    for (int iline = 0; iline < 4; ++iline) {
+      inMask.setBendPattern(inMask.getBendPattern(iline) & mask.getBendPattern(iline), iline);
+    }
+  }
 }
 } // namespace mid
 } // namespace o2

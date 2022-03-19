@@ -193,7 +193,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
     if (!api.isSnapshotMode() || etag.empty()) { // in the snapshot mode the object needs to be fetched only once
       api.loadFileToMemory(v, path, metadata, timestamp, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
       if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
-        LOGP(debug, "Unable to find object {}/{}", path, timingInfo.timeslice);
+        LOGP(fatal, "Unable to find object {}/{}", path, timingInfo.timeslice);
         // FIXME: I should send a dummy message.
         continue;
       }

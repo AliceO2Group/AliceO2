@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
+#include <chrono>
 
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
 #include <vulkan/vulkan.h>
@@ -312,7 +313,7 @@ int GPUDisplayFrontendX11::FrontendMain()
       GPUError("Cannot enable vsync");
       return (-1);
     }
-    mGlXSwapIntervalEXT(mDisplay, glXGetCurrentDrawable(), 0);
+    mGlXSwapIntervalEXT(mDisplay, glXGetCurrentDrawable(), 1);
   }
 
   if (InitDisplay()) {
@@ -323,6 +324,7 @@ int GPUDisplayFrontendX11::FrontendMain()
   mDisplayRunning = true;
   pthread_mutex_unlock(&mSemLockExit);
 
+  std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
   while (1) {
     int num_ready_fds;
     struct timeval tv;
@@ -333,7 +335,10 @@ int GPUDisplayFrontendX11::FrontendMain()
       FD_SET(x11_fd, &in_fds);
       tv.tv_usec = 10000;
       tv.tv_sec = 0;
-      num_ready_fds = mMaxFPSRate || XPending(mDisplay) || select(x11_fd + 1, &in_fds, nullptr, nullptr, &tv);
+      std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+      bool allowMax = mMaxFPSRate && std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count() < 0.01;
+      t1 = t2;
+      num_ready_fds = allowMax || XPending(mDisplay) || select(x11_fd + 1, &in_fds, nullptr, nullptr, &tv);
       if (num_ready_fds < 0) {
         GPUError("Error (num_ready_fds)");
       }
@@ -416,7 +421,7 @@ int GPUDisplayFrontendX11::FrontendMain()
         }
 
         case ConfigureNotify: {
-          ReSizeGLScene(event.xconfigure.width, event.xconfigure.height);
+          ResizeScene(event.xconfigure.width, event.xconfigure.height);
           break;
         }
 

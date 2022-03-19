@@ -32,6 +32,8 @@
 #include "Framework/DataRefUtils.h"
 #include "TOFBase/Utils.h"
 #include "Steer/MCKinematicsReader.h"
+#include "Framework/CCDBParamSpec.h"
+#include "TSystem.h"
 
 #include <memory> // for make_shared, make_unique, unique_ptr
 #include <vector>
@@ -56,7 +58,10 @@ class TOFDPLClustererTask
   bool mIsCalib = false;
   bool mIsCosmic = false;
   int mTimeWin = 5000;
+  bool mUpdateCCDB = false;
+
   std::string mCCDBurl;
+  o2::tof::CalibTOFapi* mCalibApi = nullptr;
 
  public:
   explicit TOFDPLClustererTask(bool useMC, bool useCCDB, bool doCalib, bool isCosmic, std::string ccdb_url) : mUseMC(useMC), mUseCCDB(useCCDB), mIsCalib(doCalib), mIsCosmic(isCosmic), mCCDBurl(ccdb_url) {}
@@ -75,19 +80,38 @@ class TOFDPLClustererTask
     mClusterer.setDeltaTforClustering(mTimeWin);
 
     // initialize collision context
-    auto mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
-    auto context = mcReader->getDigitizationContext();
-    if (context) {
-      auto bcf = context->getBunchFilling();
-      std::bitset<3564> isInBC = bcf.getBCPattern();
-      for (unsigned int i = 0; i < isInBC.size(); i++) {
-        if (isInBC.test(i)) {
-          o2::tof::Utils::addInteractionBC(i, true);
+    if (gSystem->AccessPathName("collisioncontext.root")) {
+      LOG(info) << "collisioncontext.root not available, let's skip it (cosmics?) ";
+    } else {
+      auto mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
+      auto context = mcReader->getDigitizationContext();
+      if (context) {
+        auto bcf = context->getBunchFilling();
+        std::bitset<3564> isInBC = bcf.getBCPattern();
+        for (unsigned int i = 0; i < isInBC.size(); i++) {
+          if (isInBC.test(i)) {
+            o2::tof::Utils::addInteractionBC(i, true);
+          }
         }
       }
     }
   }
 
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher matcher, void* obj)
+  {
+    if (matcher == ConcreteDataMatcher("TOF", "DiagnosticCal", 0)) {
+      mUpdateCCDB = true;
+      return;
+    }
+    if (matcher == ConcreteDataMatcher("TOF", "LHCphaseCal", 0)) {
+      mUpdateCCDB = true;
+      return;
+    }
+    if (matcher == ConcreteDataMatcher("TOF", "ChannelCalibCal", 0)) {
+      mUpdateCCDB = true;
+      return;
+    }
+  }
   void run(framework::ProcessingContext& pc)
   {
     mTimer.Start(false);
@@ -108,53 +132,54 @@ class TOFDPLClustererTask
       mClsLabels.clear();
     }
 
-    o2::dataformats::CalibLHCphaseTOF lhcPhaseObj;
-    auto channelCalibObj = std::make_unique<o2::dataformats::CalibTimeSlewingParamTOF>();
-
-    /*
     if (mUseCCDB) { // read calibration objects from ccdb
       // check LHC phase
-      auto lhcPhase = pc.inputs().get<o2::dataformats::CalibLHCphaseTOF*>("tofccdbLHCphase");
-      auto channelCalib = pc.inputs().get<o2::dataformats::CalibTimeSlewingParamTOF*>("tofccdbChannelCalib");
+      const auto lhcPhaseIn = pc.inputs().get<o2::dataformats::CalibLHCphaseTOF*>("tofccdbLHCphase");
+      const auto channelCalibIn = pc.inputs().get<o2::dataformats::CalibTimeSlewingParamTOF*>("tofccdbChannelCalib");
+      const auto diagnosticIn = pc.inputs().get<o2::tof::Diagnostic*>("tofccdbDia");
 
-      o2::dataformats::CalibLHCphaseTOF lhcPhaseObjTmp = std::move(*lhcPhase);
-      o2::dataformats::CalibTimeSlewingParamTOF channelCalibObjTmp = std::move(*channelCalib);
+      if (!mCalibApi) {
+        o2::dataformats::CalibLHCphaseTOF* lhcPhase = new o2::dataformats::CalibLHCphaseTOF(std::move(*lhcPhaseIn));
+        o2::dataformats::CalibTimeSlewingParamTOF* channelCalib = new CalibTimeSlewingParamTOF(std::move(*channelCalibIn));
+        o2::tof::Diagnostic* diagnostic = new o2::tof::Diagnostic(std::move(*diagnosticIn));
+        mCalibApi = new o2::tof::CalibTOFapi(long(0), lhcPhase, channelCalib, diagnostic);
+        mCalibApi->loadDiagnosticFrequencies();
+        mUpdateCCDB = false;
+      } else { // update if necessary
+        if (mUpdateCCDB) {
+          LOG(info) << "Update CCDB objects since new";
+          delete mCalibApi;
+          o2::dataformats::CalibLHCphaseTOF* lhcPhase = new o2::dataformats::CalibLHCphaseTOF(*lhcPhaseIn);
+          o2::dataformats::CalibTimeSlewingParamTOF* channelCalib = new CalibTimeSlewingParamTOF(*channelCalibIn);
+          o2::tof::Diagnostic* diagnostic = new o2::tof::Diagnostic(std::move(*diagnosticIn));
+          mCalibApi = new o2::tof::CalibTOFapi(long(0), lhcPhase, channelCalib, diagnostic);
+          mCalibApi->loadDiagnosticFrequencies();
+          mUpdateCCDB = false;
+        } else {
+          // do nothing
+        }
+      }
+    } else if (!mCalibApi) { // calibration objects set to zero
+      auto* lhcPhaseDummy = new o2::dataformats::CalibLHCphaseTOF();
+      auto* channelCalibDummy = new o2::dataformats::CalibTimeSlewingParamTOF();
 
-      // make a copy in global scope
-      lhcPhaseObj = lhcPhaseObjTmp;
-      *channelCalibObj = channelCalibObjTmp;
-    } else { // calibration objects set to zero
-*/
-    lhcPhaseObj.addLHCphase(0, 0);
-    lhcPhaseObj.addLHCphase(2000000000, 0);
+      lhcPhaseDummy->addLHCphase(0, 0);
+      lhcPhaseDummy->addLHCphase(2000000000, 0);
 
-    for (int ich = 0; ich < o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELS; ich++) {
-      channelCalibObj->addTimeSlewingInfo(ich, 0, 0);
-      int sector = ich / o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
-      int channelInSector = ich % o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
-      channelCalibObj->setFractionUnderPeak(sector, channelInSector, 1);
+      for (int ich = 0; ich < o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELS; ich++) {
+        channelCalibDummy->addTimeSlewingInfo(ich, 0, 0);
+        int sector = ich / o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
+        int channelInSector = ich % o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
+        channelCalibDummy->setFractionUnderPeak(sector, channelInSector, 1);
+      }
+      mCalibApi = new o2::tof::CalibTOFapi(long(0), lhcPhaseDummy, channelCalibDummy);
     }
-    //    }
 
-    o2::tof::CalibTOFapi calibapi(long(0), &lhcPhaseObj, channelCalibObj.get());
+    const auto ref = pc.inputs().getFirstValid(true);
+    auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation;
+    mCalibApi->setTimeStamp(creationTime / 1000);
 
-    if (mUseCCDB) {
-      calibapi.setURL(mCCDBurl.c_str());
-      auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
-      calibapi.setTimeStamp(creationTime / 1000);
-      LOG(info) << "CCDB required from TOF clusterizer with timestamp " << creationTime / 1000 << " from URL " << mCCDBurl.c_str();
-
-      LOG(info) << "read LHCphase";
-      calibapi.readLHCphase();
-      LOG(info) << "read time slewing";
-      calibapi.readTimeSlewingParam();
-      LOG(info) << "read daignostic";
-      calibapi.readDiagnosticFrequencies();
-    } else {
-      LOG(info) << "No CCDB requested by TOF";
-    }
-
-    mClusterer.setCalibApi(&calibapi);
+    mClusterer.setCalibApi(mCalibApi);
 
     mClusterer.clearDiagnostic();
     mClusterer.addDiagnostic(*dia);
@@ -171,7 +196,7 @@ class TOFDPLClustererTask
 
     for (unsigned int i = 0; i < row.size(); i++) {
       //fill trm pattern but process them in clusterize since they are for readout windows
-      calibapi.resetTRMErrors();
+      mCalibApi->resetTRMErrors();
 
       // loop over crates
       int kw = 0;
@@ -182,7 +207,7 @@ class TOFDPLClustererTask
         for (; kw < nwords; kw++) {
           if (patterns[kw] > 28) { // new slot
             if (slot > -1) {       // fill previous
-              calibapi.processError(crate, slot, eword);
+              mCalibApi->processError(crate, slot, eword);
             }
             slot = patterns[kw] - 28;
             eword = 0;
@@ -263,10 +288,13 @@ o2::framework::DataProcessorSpec getTOFClusterizerSpec(bool useMC, bool useCCDB,
   inputs.emplace_back("diafreq", o2::header::gDataOriginTOF, "DIAFREQ", 0, Lifetime::Timeframe);
   inputs.emplace_back("patterns", o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe);
 
-  //  if (useCCDB) {
-  //    inputs.emplace_back("tofccdbLHCphase", o2::header::gDataOriginTOF, "LHCphase");
-  //    inputs.emplace_back("tofccdbChannelCalib", o2::header::gDataOriginTOF, "ChannelCalib");
-  //  }
+  if (useCCDB) {
+    //    inputs.emplace_back("tofccdbLHCphase", "TOF", "StatusTOF", 0, Lifetime::Condition, ccdbParamSpec("TOF/Calib/Status"));
+    inputs.emplace_back("tofccdbDia", "TOF", "DiagnosticCal", 0, Lifetime::Condition, ccdbParamSpec("TOF/Calib/Diagnostic"));
+    inputs.emplace_back("tofccdbLHCphase", "TOF", "LHCphaseCal", 0, Lifetime::Condition, ccdbParamSpec("TOF/Calib/LHCphase"));
+    inputs.emplace_back("tofccdbChannelCalib", "TOF", "ChannelCalibCal", 0, Lifetime::Condition, ccdbParamSpec("TOF/Calib/ChannelCalib"));
+    //    inputs.emplace_back("tofccdbChannelCalib", o2::header::gDataOriginTOF, "ChannelCalib");
+  }
   if (useMC) {
     inputs.emplace_back("tofdigitlabels", o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe);
   }

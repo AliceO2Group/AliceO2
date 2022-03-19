@@ -91,10 +91,10 @@ VertexerTraitsGPU::VertexerTraitsGPU()
 }
 #endif
 
-void VertexerTraitsGPU::initialise(ROframe* event)
+void VertexerTraitsGPU::initialise(const MemoryParameters& memParams, const TrackingParameters& trackingParams)
 {
-  reset();
-  arrangeClusters(event);
+  // reset();
+  // arrangeClusters(event);
   mStoreVertexerGPUPtr = mStoreVertexerGPU.initialise(mClusters, mIndexTables);
 }
 

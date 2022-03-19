@@ -162,7 +162,35 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
         badSlot++;
         continue;
       }
-      if (expirator.checker(services, timestamp.value) == false) {
+
+      auto getPartialRecord = [&cache = mCache, numInputTypes = mDistinctRoutesIndex.size()](int li) -> gsl::span<MessageSet const> {
+        auto offset = li * numInputTypes;
+        assert(cache.size() >= offset + numInputTypes);
+        auto const start = cache.data() + offset;
+        auto const end = cache.data() + offset + numInputTypes;
+        return {start, end};
+      };
+
+      auto partial = getPartialRecord(ti);
+      // TODO: get the data ref from message model
+      auto getter = [&partial](size_t idx, size_t part) {
+        if (partial[idx].size() > 0 && partial[idx].header(part).get()) {
+          auto header = partial[idx].header(part).get();
+          auto payload = partial[idx].payload(part).get();
+          return DataRef{nullptr,
+                         reinterpret_cast<const char*>(header->GetData()),
+                         reinterpret_cast<char const*>(payload ? payload->GetData() : nullptr),
+                         payload ? payload->GetSize() : 0};
+        }
+        return DataRef{};
+      };
+      auto nPartsGetter = [&partial](size_t idx) {
+        return partial[idx].size();
+      };
+      InputSpan span{getter, nPartsGetter, static_cast<size_t>(partial.size())};
+      // Setup the input span
+
+      if (expirator.checker(services, timestamp.value, span) == false) {
         checkerDenied++;
         continue;
       }

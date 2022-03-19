@@ -39,6 +39,7 @@ namespace its
 {
 class TrackerTraits;
 class VertexerTraits;
+class TimeFrame;
 } // namespace its
 } // namespace o2
 
@@ -221,6 +222,7 @@ class GPUReconstruction
 
   // Helpers to fetch processors from other shared libraries
   virtual void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits);
+  virtual void GetITSTimeframe(std::unique_ptr<o2::its::TimeFrame>* timeFrame);
   bool slavesExist() { return mSlaves.size() || mMaster; }
 
   // Getters / setters for parameters

@@ -143,6 +143,9 @@ void Encoder::encodeTRM(const std::vector<Digit>& summary, Int_t icrate, Int_t i
 // return next TRM index (-1 if not in the same crate)
 // start to convert digiti from istart --> then update istart to the starting position of the new TRM
 {
+
+  static unsigned long bc_shift = o2::raw::HBFUtils::Instance().orbitFirstSampled * Geo::BC_IN_ORBIT;
+
   if (mVerbose) {
     printf("Crate %d: encode TRM %d \n", icrate, itrm);
   }
@@ -180,11 +183,11 @@ void Encoder::encodeTRM(const std::vector<Digit>& summary, Int_t icrate, Int_t i
         break;
       }
 
-      int hittimeTDC = (summary[istart].getBC() - mEventCounter * Geo::BC_IN_WINDOW) * 1024 + summary[istart].getTDC(); // time in TDC bin within the TOF WINDOW
+      int hittimeTDC = (summary[istart].getBC() - bc_shift - mEventCounter * Geo::BC_IN_WINDOW) * 1024 + summary[istart].getTDC(); // time in TDC bin within the TOF WINDOW
 
       if (hittimeTDC < 0) {
         LOG(error) << "Negative hit encoded " << hittimeTDC << ", something went wrong in filling readout window";
-        printf("%llu %d %d\n", (unsigned long long)summary[istart].getBC(), mEventCounter * Geo::BC_IN_WINDOW, summary[istart].getTDC());
+        printf("%llu %d %d\n", (unsigned long long)summary[istart].getBC() - bc_shift, mEventCounter * Geo::BC_IN_WINDOW, summary[istart].getTDC());
       }
       // leading time
       mUnion[icrate]->trmDataHit.time = hittimeTDC;
@@ -256,7 +259,7 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
   auto start = std::chrono::high_resolution_clock::now();
 
   mEventCounter = tofwindow; // tof window index
-  mIR.orbit = mEventCounter / Geo::NWINDOW_IN_ORBIT;
+  mIR.orbit = mEventCounter / Geo::NWINDOW_IN_ORBIT + o2::raw::HBFUtils::Instance().getFirstSampledTFIR().orbit;
 
   for (int i = 0; i < 72; i++) {
     mNextWordStatus[i] = false;

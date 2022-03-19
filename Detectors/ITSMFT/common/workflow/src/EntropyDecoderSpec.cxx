@@ -41,8 +41,6 @@ void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
 {
   auto detID = mOrigin == o2::header::gDataOriginITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT;
   mCTFDictPath = ic.options().get<std::string>("ctf-dict");
-  mClusDictPath = o2::header::gDataOriginITS ? o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath : o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-  mClusDictPath = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(detID, mClusDictPath);
   mMaskNoise = ic.options().get<bool>("mask-noise");
   mUseClusterDictionary = !ic.options().get<bool>("ignore-cluster-dictionary");
 }

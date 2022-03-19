@@ -28,6 +28,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"input-conf", VariantType::String, "", {"configuration file with input (obligatory)"}});
   options.push_back(ConfigParamSpec{"min-tf", VariantType::Int64, 0L, {"min TF ID to process"}});
   options.push_back(ConfigParamSpec{"max-tf", VariantType::Int64, 0xffffffffL, {"max TF ID to process"}});
+  options.push_back(ConfigParamSpec{"run-number", VariantType::Int, 0, {"impose run number"}});
   options.push_back(ConfigParamSpec{"loop", VariantType::Int, 1, {"loop N times (infinite for N<0)"}});
   options.push_back(ConfigParamSpec{"delay", VariantType::Float, 0.f, {"delay in seconds between consecutive TFs sending"}});
   options.push_back(ConfigParamSpec{"buffer-size", VariantType::Int64, 5 * 1024L, {"buffer size for files preprocessing"}});
@@ -40,6 +41,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"drop-tf", VariantType::String, "none", {"Drop each TFid%(1)==(2) of detector, e.g. ITS,2,4;TPC,4[,0];..."}});
   options.push_back(ConfigParamSpec{"verbosity-level", VariantType::Int, 0, {"verbosity level"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings"}});
+  options.push_back(ConfigParamSpec{"suppress-diststf-0xccdb", VariantType::Bool, false, {"suppress explicit FLP/DISTSUBTIMEFRAME/0xccdb output"}});
   options.push_back(ConfigParamSpec{"hbfutils-config", VariantType::String, std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE), {"configKeyValues ini file for HBFUtils (used if exists)"}});
   // options for error-check suppression
 
@@ -61,6 +63,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   rinp.loop = configcontext.options().get<int>("loop");
   rinp.maxTF = uint32_t(configcontext.options().get<int64_t>("max-tf"));
   rinp.minTF = uint32_t(configcontext.options().get<int64_t>("min-tf"));
+  rinp.runNumber = configcontext.options().get<int>("run-number");
   rinp.bufferSize = uint64_t(configcontext.options().get<int64_t>("buffer-size"));
   rinp.spSize = uint64_t(configcontext.options().get<int64_t>("super-page-size"));
   rinp.partPerSP = configcontext.options().get<bool>("part-per-sp");
@@ -71,6 +74,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   rinp.delay_us = uint32_t(1e6 * configcontext.options().get<float>("delay")); // delay in microseconds
   rinp.dropTF = configcontext.options().get<std::string>("drop-tf");
   rinp.verbosity = configcontext.options().get<int>("verbosity-level");
+  rinp.sup0xccdb = configcontext.options().get<bool>("suppress-diststf-0xccdb");
   rinp.errMap = 0;
   for (int i = RawFileReader::NErrorsDefined; i--;) {
     auto ei = RawFileReader::ErrTypes(i);

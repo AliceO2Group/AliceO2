@@ -20,6 +20,7 @@
 #include "Framework/TimesliceIndex.h"
 #include "Framework/VariableContextHelpers.h"
 #include "Framework/DataTakingContext.h"
+#include "Framework/InputRecord.h"
 
 #include "Headers/DataHeader.h"
 #include "Headers/DataHeaderHelpers.h"
@@ -136,12 +137,25 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
 
 ExpirationHandler::Checker LifetimeHelpers::expireNever()
 {
-  return [](ServiceRegistry&, int64_t) -> bool { return false; };
+  return [](ServiceRegistry&, int64_t, InputSpan const&) -> bool { return false; };
 }
 
 ExpirationHandler::Checker LifetimeHelpers::expireAlways()
 {
-  return [](ServiceRegistry&, int64_t) -> bool { return true; };
+  return [](ServiceRegistry&, int64_t, InputSpan const&) -> bool { return true; };
+}
+
+ExpirationHandler::Checker LifetimeHelpers::expireIfPresent(std::vector<InputRoute> const& routes, ConcreteDataMatcher matcher)
+{
+  // find the position of the first route that matches the matcher
+  auto pos = InputRecord::getPos(routes, matcher);
+  return [pos, routes](ServiceRegistry&, int64_t, InputSpan const& span) -> bool {
+    if (pos.index == InputRecord::InputPos::INVALID) {
+      return false;
+    }
+    auto ref = InputRecord::getByPos(routes, span, pos.index, 0);
+    return ref.header != nullptr;
+  };
 }
 
 ExpirationHandler::Creator LifetimeHelpers::uvDrivenCreation(int requestedLoopReason, DeviceState& state)
@@ -200,7 +214,7 @@ ExpirationHandler::Checker LifetimeHelpers::expireTimed(std::chrono::microsecond
 {
   auto start = getCurrentTime();
   auto last = std::make_shared<decltype(start)>(start);
-  return [last, period](ServiceRegistry&, int64_t) -> bool {
+  return [last, period](ServiceRegistry&, int64_t, InputSpan const&) -> bool {
     auto current = getCurrentTime();
     auto delta = current - *last;
     if (delta > period.count()) {

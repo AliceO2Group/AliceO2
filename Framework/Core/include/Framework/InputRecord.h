@@ -101,6 +101,14 @@ class InputRecord
  public:
   using DataHeader = o2::header::DataHeader;
 
+  // Typesafe position inside a record of an input.
+  // Multiple routes by which the input gets in this
+  // position are multiplexed.
+  struct InputPos {
+    size_t index;
+    constexpr static size_t INVALID = -1LL;
+  };
+
   InputRecord(std::vector<InputRoute> const& inputs,
               InputSpan& span,
               ServiceRegistry&);
@@ -179,6 +187,9 @@ class InputRecord
   };
 
   int getPos(const char* name) const;
+  [[nodiscard]] static InputPos getPos(std::vector<InputRoute> const& routes, ConcreteDataMatcher matcher);
+  [[nodiscard]] static DataRef getByPos(std::vector<InputRoute> const& routes, InputSpan const& span, int pos, int part = 0);
+
   [[nodiscard]] int getPos(const std::string& name) const;
 
   [[nodiscard]] DataRef getByPos(int pos, int part = 0) const;
@@ -493,18 +504,17 @@ class InputRecord
   /// incomplete records to be consumed or processed.
   [[nodiscard]] size_t countValidInputs() const;
 
-  template <typename T>
-  using IteratorBase = std::iterator<std::forward_iterator_tag, T>;
-
   template <typename ParentT, typename T>
-  class Iterator : public IteratorBase<T>
+  class Iterator
   {
    public:
     using ParentType = ParentT;
     using SelfType = Iterator;
-    using value_type = typename IteratorBase<T>::value_type;
-    using reference = typename IteratorBase<T>::reference;
-    using pointer = typename IteratorBase<T>::pointer;
+    using iterator_category = std::forward_iterator_tag;
+    using value_type = T;
+    using reference = T&;
+    using pointer = T*;
+    using difference_type = std::ptrdiff_t;
     using ElementType = typename std::remove_const<value_type>::type;
 
     Iterator() = delete;

@@ -21,6 +21,11 @@
 
 namespace o2::zdc::fastsim
 {
+/**
+ * @brief Global paths to models and scales files.
+ *
+ */
+
 const std::string gZDCModelPath = "share/Detectors/ZDC/fastsimulation/onnx-models/generator.onnx"; // tmp path
 const std::string gZDCModelConfig = "share/Detectors/ZDC/fastsimulation/scales/sae_scales.txt";
 const std::string gSAEModelPath = "share/Detectors/ZDC/fastsimulation/onnx-models/sae_model.onnx"; // tmp path

@@ -21,6 +21,7 @@ o2_add_library(DataFormatsPHOS
                        src/CalibParams.cxx
                        src/Pedestals.cxx
                        src/TriggerMap.cxx
+                       src/EventHandler.cxx
                 PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
                                      O2::Headers
                                      O2::CCDB
@@ -41,7 +42,9 @@ o2_target_root_dictionary(DataFormatsPHOS
                                   include/DataFormatsPHOS/BadChannelsMap.h
                                   include/DataFormatsPHOS/CalibParams.h
                                   include/DataFormatsPHOS/Pedestals.h
-                                  include/DataFormatsPHOS/TriggerMap.h)
+                                  include/DataFormatsPHOS/TriggerMap.h
+                                  include/DataFormatsPHOS/EventData.h
+                                  include/DataFormatsPHOS/EventHandler.h)
 o2_add_test(Cell
             SOURCES test/testCell.cxx
             COMPONENT_NAME DataFormats-PHOS

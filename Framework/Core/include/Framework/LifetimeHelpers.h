@@ -13,6 +13,7 @@
 
 #include "Framework/ExpirationHandler.h"
 #include "Framework/PartRef.h"
+#include "InputRoute.h"
 
 #include <chrono>
 #include <functional>
@@ -50,6 +51,10 @@ struct LifetimeHelpers {
   /// Callback which always expires records. To be used with, e.g.
   /// Lifetime::Transient.
   static ExpirationHandler::Checker expireAlways();
+  /// Callback which expires records based on the content of the record.
+  /// To be used with, e.g. Lifetime::Optional.
+  static ExpirationHandler::Checker expireIfPresent(std::vector<InputRoute> const& schema, ConcreteDataMatcher matcher);
+
   /// Callback which expires records with the rate given by @a period, in
   /// microseconds.
   static ExpirationHandler::Checker expireTimed(std::chrono::microseconds period);

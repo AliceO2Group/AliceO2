@@ -36,7 +36,7 @@ ARGS_ALL="--session ${OVERRIDE_SESSION:-default} --severity $SEVERITY --shm-segm
 
 [[ ! -z $SHM_MANAGER_SHMID ]] && SHM_TOOL_OPTIONS=" --shmid $SHM_MANAGER_SHMID --data-source-region-shmid 100 --data-source-header-shmid 101"
 
-eval StfBuilder --id stfb --transport shmem \
+eval StfBuilder --id stfb --discovery-partition FST --transport shmem \
   --dpl-channel-name dpl-chan --channel-config "name=dpl-chan,type=push,method=bind,address=ipc://@$INRAWCHANNAME,transport=shmem,rateLogging=1" \
   $DD_INPUT_CMD \
   --data-source-rate=${TFRATE} \

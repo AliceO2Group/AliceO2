@@ -243,7 +243,9 @@ void STFDecoder<Mapping>::updateTimeDependentParams(ProcessingContext& pc)
 {
   // we call these methods just to trigger finaliseCCDB callback
   pc.inputs().get<o2::itsmft::NoiseMap*>("noise");
-  pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict");
+  if (mDoClusters) {
+    pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict");
+  }
 }
 
 ///_______________________________________
@@ -268,6 +270,7 @@ void STFDecoder<Mapping>::finaliseCCDB(o2::framework::ConcreteDataMatcher& match
 DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
 {
   std::vector<OutputSpec> outputs;
+  auto inputs = o2::framework::select(inp.inputSpec.c_str());
   if (inp.doDigits) {
     outputs.emplace_back(inp.origin, "DIGITS", 0, Lifetime::Timeframe);
     outputs.emplace_back(inp.origin, "DIGITSROF", 0, Lifetime::Timeframe);
@@ -284,7 +287,6 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
     outputs.emplace_back(inp.origin, "PATTERNS", 0, Lifetime::Timeframe);
   }
 
-  auto inputs = o2::framework::select(inp.inputSpec.c_str());
   if (inp.askSTFDist) {
     for (auto& ins : inputs) { // mark input as optional in order not to block the workflow if our raw data happen to be missing in some TFs
       ins.lifetime = Lifetime::Optional;
@@ -294,9 +296,10 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
   }
   inputs.emplace_back("noise", inp.origin, "NOISEMAP", 0, Lifetime::Condition,
                       o2::framework::ccdbParamSpec(fmt::format("{}/Calib/NoiseMap", inp.origin.as<std::string>())));
-  inputs.emplace_back("cldict", inp.origin, "CLUSDICT", 0, Lifetime::Condition,
-                      o2::framework::ccdbParamSpec(fmt::format("{}/Calib/ClusterDictionary", inp.origin.as<std::string>())));
-
+  if (inp.doClusters) {
+    inputs.emplace_back("cldict", inp.origin, "CLUSDICT", 0, Lifetime::Condition,
+                        o2::framework::ccdbParamSpec(fmt::format("{}/Calib/ClusterDictionary", inp.origin.as<std::string>())));
+  }
   return DataProcessorSpec{
     inp.deviceName,
     inputs,
