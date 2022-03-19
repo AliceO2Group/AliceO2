@@ -32,13 +32,13 @@ QGET_LD_BINARY_SYMBOLS(shaders_display_shaders_fragmentTexture_frag_spv);
 QGET_LD_BINARY_SYMBOLS(shaders_display_shaders_fragmentText_frag_spv);
 
 //#define CHKERR(cmd) {cmd;}
-#define CHKERR(cmd)                                                                                    \
-  do {                                                                                                 \
-    auto tmp_internal_retVal = cmd;                                                                    \
-    if ((int)tmp_internal_retVal < 0) {                                                                \
-      GPUError("Vulkan Error %d: %s (%s: %d)", (int)tmp_internal_retVal, "ERROR", __FILE__, __LINE__); \
-      throw std::runtime_error("Vulkan Failure");                                                      \
-    }                                                                                                  \
+#define CHKERR(cmd)                                                                                     \
+  do {                                                                                                  \
+    auto tmp_internal_retVal = cmd;                                                                     \
+    if ((int)tmp_internal_retVal < 0) {                                                                 \
+      GPUError("VULKAN ERROR: %d: %s (%s: %d)", (int)tmp_internal_retVal, "ERROR", __FILE__, __LINE__); \
+      throw std::runtime_error("Vulkan Failure");                                                       \
+    }                                                                                                   \
   } while (false)
 
 GPUDisplayBackendVulkan::GPUDisplayBackendVulkan() = default;
@@ -96,7 +96,11 @@ static vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentMod
       return availablePresentMode;
     }
   }
-  GPUError("Desired present mode not available, using FIFO mode");
+  static bool errorShown = false;
+  if (!errorShown) {
+    errorShown = true;
+    GPUError("VULKAN ERROR: Desired present mode not available, using FIFO mode");
+  }
   return vk::PresentModeKHR::eFifo;
 }
 
@@ -251,7 +255,7 @@ static vk::SampleCountFlagBits getMSAASamplesFlag(unsigned int msaa)
 }
 
 template <class T, class S>
-static inline void clearVector(T& v, S func, bool downsize = false)
+static inline void clearVector(T& v, S func, bool downsize = true)
 {
   std::for_each(v.begin(), v.end(), func);
   if (downsize) {
@@ -352,9 +356,11 @@ void GPUDisplayBackendVulkan::createDevice()
         break;
       case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
         GPUWarning("%s", pCallbackData->pMessage);
+        // throw std::logic_error("break_on_validation_warning");
         break;
       case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
         GPUError("%s", pCallbackData->pMessage);
+        // throw std::logic_error("break_on_validation_error");
         break;
       case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
       default:
@@ -650,12 +656,9 @@ void GPUDisplayBackendVulkan::clearTextureSampler()
 
 void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot, bool forMixing)
 {
-  mMSAASampleCount = getMSAASamplesFlag(std::min<unsigned int>(mMaxMSAAsupported, mDisplay->cfgR().drawQualityMSAA));
   mDownsampleFactor = getDownsampleFactor(forScreenshot);
   mDownsampleFSAA = mDownsampleFactor != 1;
-  mZActive = mZSupported && mDisplay->cfgL().depthBuffer;
   mSwapchainImageReadable = forScreenshot;
-  mMixingSupported = forMixing;
 
   updateSwapChainDetails(mPhysicalDevice);
   mSurfaceFormat = chooseSwapSurfaceFormat(mSwapChainDetails.formats);
@@ -725,22 +728,32 @@ void GPUDisplayBackendVulkan::clearSwapChain()
   mDevice.destroySwapchainKHR(mSwapChain, nullptr);
 }
 
-void GPUDisplayBackendVulkan::recreateSwapChain(bool forScreenshot, bool forMixing)
+void GPUDisplayBackendVulkan::recreateRendering(bool forScreenshot, bool forMixing)
 {
   mDevice.waitIdle();
+  bool needUpdateSwapChain = mMustUpdateSwapChain || mDownsampleFactor != getDownsampleFactor(forScreenshot) || mSwapchainImageReadable != forScreenshot;
+  bool needUpdateOffscreenBuffers = needUpdateSwapChain || mMSAASampleCount != getMSAASamplesFlag(std::min<unsigned int>(mMaxMSAAsupported, mDisplay->cfgR().drawQualityMSAA)) || mZActive != (mZSupported && mDisplay->cfgL().depthBuffer) || mMixingSupported != forMixing;
   clearPipeline();
-  clearOffscreenBuffers();
-  clearSwapChain();
-  createSwapChain(forScreenshot, forMixing);
-  createOffscreenBuffers();
+  if (needUpdateOffscreenBuffers) {
+    clearOffscreenBuffers();
+    if (needUpdateSwapChain) {
+      clearSwapChain();
+      createSwapChain(forScreenshot, forMixing);
+    }
+    createOffscreenBuffers(forScreenshot, forMixing);
+  }
   createPipeline();
   needRecordCommandBuffers();
 }
 
 // ---------------------------- VULKAN OFFSCREEN BUFFERS ----------------------------
 
-void GPUDisplayBackendVulkan::createOffscreenBuffers()
+void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool forMixing)
 {
+  mMSAASampleCount = getMSAASamplesFlag(std::min<unsigned int>(mMaxMSAAsupported, mDisplay->cfgR().drawQualityMSAA));
+  mZActive = mZSupported && mDisplay->cfgL().depthBuffer;
+  mMixingSupported = forMixing;
+
   vk::AttachmentDescription colorAttachment{};
   colorAttachment.format = mSurfaceFormat.format;
   colorAttachment.samples = mMSAASampleCount;
@@ -1417,16 +1430,20 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
     mHasDrawnText = false;
 
     vk::Result retVal = vk::Result::eSuccess;
+
+    bool mustUpdateRending = mMustUpdateSwapChain;
+    if (mMustUpdateSwapChain) {
+    }
     if (mDisplay->updateRenderPipeline() || (requestScreenshot && !mSwapchainImageReadable) || (toMixBuffer && !mMixingSupported) || mDownsampleFactor != getDownsampleFactor(requestScreenshot)) {
-      mMustUpdateSwapChain = true;
+      mustUpdateRending = true;
     } else if (!mMustUpdateSwapChain) {
       retVal = mDevice.acquireNextImageKHR(mSwapChain, UINT64_MAX, mImageAvailableSemaphore[mCurrentFrame], VK_NULL_HANDLE, &mImageIndex);
     }
-    if (mMustUpdateSwapChain || retVal == vk::Result::eErrorOutOfDateKHR || retVal == vk::Result::eSuboptimalKHR) {
-      if (!mMustUpdateSwapChain) {
+    if (mMustUpdateSwapChain || mustUpdateRending || retVal == vk::Result::eErrorOutOfDateKHR || retVal == vk::Result::eSuboptimalKHR) {
+      if (!mustUpdateRending) {
         GPUInfo("Pipeline out of data / suboptimal, recreating");
       }
-      recreateSwapChain(requestScreenshot, toMixBuffer);
+      recreateRendering(requestScreenshot, toMixBuffer);
       retVal = mDevice.acquireNextImageKHR(mSwapChain, UINT64_MAX, mImageAvailableSemaphore[mCurrentFrame], VK_NULL_HANDLE, &mImageIndex);
     }
     CHKERR(retVal);
