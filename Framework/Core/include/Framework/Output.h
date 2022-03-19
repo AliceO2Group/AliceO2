@@ -15,9 +15,7 @@
 #include "Framework/Lifetime.h"
 #include "Headers/Stack.h"
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// A concrete description of the output to be created
@@ -86,6 +84,5 @@ struct Output {
   };
 };
 
-} // namespace framework
 } // namespace o2
 #endif
