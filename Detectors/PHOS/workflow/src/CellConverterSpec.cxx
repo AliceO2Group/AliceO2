@@ -75,7 +75,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
       auto& ccdbManager = o2::ccdb::BasicCCDBManager::instance();
       ccdbManager.setURL(o2::base::NameConf::getCCDBServer());
       LOG(info) << " set-up CCDB " << o2::base::NameConf::getCCDBServer();
-      mBadMap = ccdbManager.get<o2::phos::BadChannelsMap>("PHS/BadMap");
+      mBadMap = ccdbManager.get<o2::phos::BadChannelsMap>("PHS/Calib/BadMap");
       if (!mBadMap) {
         LOG(fatal) << "[PHOSCellConverter - run] can not get Bad Map";
       }

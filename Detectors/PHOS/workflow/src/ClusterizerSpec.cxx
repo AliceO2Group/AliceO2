@@ -43,8 +43,8 @@ void ClusterizerSpec::init(framework::InitContext& ctx)
     ccdbManager.setURL(o2::base::NameConf::getCCDBServer());
     LOG(info) << " set-up CCDB " << o2::base::NameConf::getCCDBServer();
 
-    BadChannelsMap* badMap = ccdbManager.get<o2::phos::BadChannelsMap>("PHS/BadMap");
-    CalibParams* calibParams = ccdbManager.get<o2::phos::CalibParams>("PHS/Calib");
+    BadChannelsMap* badMap = ccdbManager.get<o2::phos::BadChannelsMap>("PHS/Calib/BadMap");
+    CalibParams* calibParams = ccdbManager.get<o2::phos::CalibParams>("PHS/Calib/CalibParams");
     if (badMap) {
       mClusterizer.setBadMap(badMap);
     } else {

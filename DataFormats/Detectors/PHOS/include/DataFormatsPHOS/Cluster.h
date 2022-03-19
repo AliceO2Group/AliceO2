@@ -63,7 +63,7 @@ class Cluster
   void setDispersion(float d) { mDispersion = d; }
 
   float getDistanceToBadChannel() const { return mDistToBadChannel; }
-  void getElipsAxis(float lambdaShort, float lambdaLong) const
+  void getElipsAxis(float& lambdaShort, float& lambdaLong) const
   {
     lambdaShort = mLambdaShort;
     lambdaLong = mLambdaLong;

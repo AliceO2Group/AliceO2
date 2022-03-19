@@ -131,10 +131,7 @@ void Clusterer::processCells(gsl::span<const Cell> cells, gsl::span<const Trigge
                           x, z, i, 1.);
     }
     mLastElementInEvent = cluelements.size();
-
     makeClusters(clusters, cluelements);
-
-    LOG(debug) << "Found clusters from " << indexStart << " to " << clusters.size();
     trigRec.emplace_back(tr.getBCData(), indexStart, clusters.size() - indexStart);
   }
   if (mProcessMC) {
