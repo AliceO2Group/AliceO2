@@ -507,7 +507,13 @@ int GPUDisplay::InitDisplay_internal()
   }
   mYFactor = mBackend->getYFactor();
   mDrawTextInCompatMode = !mBackend->mFreetypeInitialized && mFrontend->mCanDrawText == 1;
-  ResizeScene(GPUDisplayFrontend::INIT_WIDTH, GPUDisplayFrontend::INIT_HEIGHT, true);
+  int height = 0, width = 0;
+  mFrontend->getSize(width, height);
+  if (height == 0 || width == 0) {
+    width = GPUDisplayFrontend::INIT_WIDTH;
+    height = GPUDisplayFrontend::INIT_HEIGHT;
+  }
+  ResizeScene(width, height, true);
   return 0;
 }
 

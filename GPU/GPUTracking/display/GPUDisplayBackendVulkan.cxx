@@ -1386,10 +1386,11 @@ void GPUDisplayBackendVulkan::resizeScene(unsigned int width, unsigned int heigh
   if (mScreenWidth == width && mScreenHeight == height) {
     return;
   }
-  mMustUpdateSwapChain = true;
-  /*if (mScreenWidth != width || mScreenHeight != height) {
-    std::cout << "Unmatching window size: requested " << width << " x " << height << " - found " << mScreenWidth << " x " << mScreenHeight << "\n";
-  }*/
+  updateSwapChainDetails(mPhysicalDevice);
+  vk::Extent2D extent = chooseSwapExtent(mSwapChainDetails.capabilities);
+  if (extent.width != mScreenWidth || extent.height != mScreenHeight) {
+    mMustUpdateSwapChain = true;
+  }
 }
 
 void GPUDisplayBackendVulkan::loadDataToGPU(size_t totalVertizes)
