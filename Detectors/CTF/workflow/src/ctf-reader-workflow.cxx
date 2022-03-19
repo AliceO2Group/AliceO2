@@ -58,7 +58,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"remote-regex", VariantType::String, "^(alien://|)/alice/data/.+", {"regex string to identify remote files"}}); // Use "^/eos/aliceo2/.+" for direct EOS access
   options.push_back(ConfigParamSpec{"max-cached-files", VariantType::Int, 3, {"max CTF files queued (copied for remote source)"}});
   options.push_back(ConfigParamSpec{"allow-missing-detectors", VariantType::Bool, false, {"send empty message if detector is missing in the CTF (otherwise throw)"}});
-  options.push_back(ConfigParamSpec{"suppress-diststf-0xccdb", VariantType::Bool, false, {"suppress explicit FLP/DISTSUBTIMEFRAME/0xccdb output"}});
+  options.push_back(ConfigParamSpec{"send-diststf-0xccdb", VariantType::Bool, false, {"send explicit FLP/DISTSUBTIMEFRAME/0xccdb output"}});
   options.push_back(ConfigParamSpec{"ctf-reader-verbosity", VariantType::Int, 0, {"verbosity level (0: summary per detector, 1: summary per block"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
   //
@@ -111,7 +111,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   ctfInput.tffileRegex = configcontext.options().get<std::string>("ctf-file-regex");
   ctfInput.remoteRegex = configcontext.options().get<std::string>("remote-regex");
   ctfInput.allowMissingDetectors = configcontext.options().get<bool>("allow-missing-detectors");
-  ctfInput.sup0xccdb = configcontext.options().get<bool>("suppress-diststf-0xccdb");
+  ctfInput.sup0xccdb = !configcontext.options().get<bool>("send-diststf-0xccdb");
 
   specs.push_back(o2::ctf::getCTFReaderSpec(ctfInput));
   int verbosity = configcontext.options().get<int>("ctf-reader-verbosity");
