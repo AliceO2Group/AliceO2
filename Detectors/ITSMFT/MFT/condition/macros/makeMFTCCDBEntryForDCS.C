@@ -55,7 +55,7 @@ int makeMFTCCDBEntryForDCS(std::string ccdb_path = o2::base::NameConf::getCCDBSe
 
   DPID dpidtmp;
   for (size_t i = 0; i < expaliases.size(); ++i) {
-    DPID::FILL(dpidtmp, expaliases[i], o2::dcs::DeliveryType::RAW_DOUBLE);
+    DPID::FILL(dpidtmp, expaliases[i], o2::dcs::DeliveryType::DPVAL_DOUBLE);
     dpid2DataDesc[dpidtmp] = "MFTDATAPOINTS";
   }
 

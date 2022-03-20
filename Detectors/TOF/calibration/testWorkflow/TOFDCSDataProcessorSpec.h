@@ -82,10 +82,10 @@ class TOFDCSDataProcessor : public o2::framework::Task
       std::vector<std::string> expaliases = o2::dcs::expandAliases(aliases);
       std::vector<std::string> expaliasesInt = o2::dcs::expandAliases(aliasesInt);
       for (const auto& i : expaliases) {
-        vect.emplace_back(i, o2::dcs::RAW_DOUBLE);
+        vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
       }
       for (const auto& i : expaliasesInt) {
-        vect.emplace_back(i, o2::dcs::RAW_INT);
+        vect.emplace_back(i, o2::dcs::DPVAL_INT);
       }
     }
 

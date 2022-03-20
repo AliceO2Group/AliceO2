@@ -101,13 +101,13 @@ class EMCALDCSDataProcessor : public o2::framework::Task
       std::vector<std::string> expaliasesINT = o2::dcs::expandAliases(aliasesINT);
 
       for (const auto& i : expaliasesTEMP) {
-        vect.emplace_back(i, o2::dcs::RAW_DOUBLE);
+        vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
       }
       for (const auto& i : expaliasesINT) {
-        vect.emplace_back(i, o2::dcs::RAW_INT);
+        vect.emplace_back(i, o2::dcs::DPVAL_INT);
       }
       for (const auto& i : expaliasesUINT) {
-        vect.emplace_back(i, o2::dcs::RAW_UINT);
+        vect.emplace_back(i, o2::dcs::DPVAL_UINT);
       }
     }
 

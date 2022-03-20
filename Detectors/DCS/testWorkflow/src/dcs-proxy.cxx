@@ -64,13 +64,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   if (testMode) {
     DPID dpidtmp;
-    DPID::FILL(dpidtmp, "ADAPOS_LG/TEST_000100", DeliveryType::RAW_STRING);
+    DPID::FILL(dpidtmp, "ADAPOS_LG/TEST_000100", DeliveryType::DPVAL_STRING);
     dpid2DataDesc[dpidtmp] = "COMMON"; // i.e. this will go to {DCS/COMMON/0} OutputSpec
-    DPID::FILL(dpidtmp, "ADAPOS_LG/TEST_000110", DeliveryType::RAW_STRING);
+    DPID::FILL(dpidtmp, "ADAPOS_LG/TEST_000110", DeliveryType::DPVAL_STRING);
     dpid2DataDesc[dpidtmp] = "COMMON";
-    DPID::FILL(dpidtmp, "ADAPOS_LG/TEST_000200", DeliveryType::RAW_STRING);
+    DPID::FILL(dpidtmp, "ADAPOS_LG/TEST_000200", DeliveryType::DPVAL_STRING);
     dpid2DataDesc[dpidtmp] = "COMMON1";
-    DPID::FILL(dpidtmp, "ADAPOS_LG/TEST_000240", DeliveryType::RAW_INT);
+    DPID::FILL(dpidtmp, "ADAPOS_LG/TEST_000240", DeliveryType::DPVAL_INT);
     dpid2DataDesc[dpidtmp] = "COMMON1";
   }
 

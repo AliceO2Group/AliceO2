@@ -9,8 +9,20 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(calibration)
-add_subdirectory(workflows)
-if(BUILD_TESTING)
-  add_subdirectory(macros)
-endif()
+o2_add_test_root_macro(
+  makeGRPCCDBEntryForDCS.C
+  PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB)
+
+o2_add_test_root_macro(
+  readGRPDCSConfigEntry.C
+  PUBLIC_LINK_LIBRARIES O2::DetectorsDCS)
+
+o2_add_test_root_macro(
+  readGRPCCDB.C
+  PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB O2::GRPCalibration O2::DataFormatsParameters)
+
+install(
+  FILES makeGRPCCDBEntryForDCS.C
+  readGRPDCSConfigEntry.C
+  DESTINATION share/macro/)
+
