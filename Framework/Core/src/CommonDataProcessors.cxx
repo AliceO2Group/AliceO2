@@ -122,10 +122,10 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
           std::function<void(TList*, TDirectory*)> writeListToFile;
           writeListToFile = [&](TList* list, TDirectory* parentDir) {
             TIter next(list);
-            TNamed* object = nullptr;
-            while ((object = (TNamed*)next())) {
+            TObject* object = nullptr;
+            while ((object = next())) {
               if (object->InheritsFrom(TList::Class())) {
-                writeListToFile((TList*)object, parentDir->mkdir(object->GetName(), object->GetName(), true));
+                writeListToFile(static_cast<TList*>(object), parentDir->mkdir(object->GetName(), object->GetName(), true));
               } else {
                 parentDir->WriteObjectAny(object, object->Class(), object->GetName());
                 list->Remove(object);
@@ -135,11 +135,11 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
 
           TDirectory* currentDir = f[route.policy]->GetDirectory(currentDirectory.c_str());
           if (route.sourceType == OutputObjSourceType::HistogramRegistrySource) {
-            TList* outputList = (TList*)entry.obj;
+            TList* outputList = static_cast<TList*>(entry.obj);
             outputList->SetOwner(false);
 
             // if registry should live in dedicated folder a TNamed object is appended to the list
-            if (outputList->Last()->IsA() == TNamed::Class()) {
+            if (outputList->Last() && outputList->Last()->IsA() == TNamed::Class()) {
               delete outputList->Last();
               outputList->RemoveLast();
               currentDir = currentDir->mkdir(outputList->GetName(), outputList->GetName(), true);
