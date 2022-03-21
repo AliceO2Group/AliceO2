@@ -140,7 +140,7 @@ int RecEventFlat::next()
     if (adcPedOr[ch] == false && adcPedQC[ch] == false && adcPedMissing[ch] == false) {
       adcPedEv[ch] = true;
     }
-    ezdcDecoded |= (0x1<<ch);
+    ezdcDecoded |= (0x1 << ch);
   }
 
   // Decode TDCs
