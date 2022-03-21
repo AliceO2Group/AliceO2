@@ -28,17 +28,18 @@ struct InterCalibConfig {
   static constexpr int NH = 5; /// ZNA, ZPA, ZNC, ZPC, ZEM
   double cutLow[NH] = {-std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()};
   double cutHigh[NH] = {std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()};
-  int nb1[NH] = {0};
-  double amin1[NH] = {0};
-  double amax1[NH] = {0};
-  int nb2[NH] = {0};
-  double amin2[NH] = {0};
-  double amax2[NH] = {0};
+  int nb1[NH] = {0};      /// 1D histogram: number of bins
+  double amin1[NH] = {0}; /// minimum
+  double amax1[NH] = {0}; /// maximum
+  int nb2[NH] = {0};      /// 2D histogram: number of bins
+  double amin2[NH] = {0}; /// minimum
+  double amax2[NH] = {0}; /// maximum
   double l_bnd[NH] = {0.1, 0.1, 0.1, 0.1, 0.1};
   double u_bnd[NH] = {10., 10., 10., 10., 10.};
   double l_bnd_o[NH] = {-20., -20., -20., -20., -20.};
   double u_bnd_o[NH] = {20., 20., 20., 20., 20.};
   double step_o[NH] = {0., 0., 0., 0., 0.};
+  double min_e[NH] = {0., 0., 0., 0., 0.};
 
   void print();
   void resetCuts();
@@ -46,6 +47,8 @@ struct InterCalibConfig {
   void resetCutHigh();
   void resetCutLow(int ih);
   void resetCutHigh(int ih);
+  void setMinEntries(double val);
+  void setMinEntries(int ih, double val);
   void setCutLow(double val);
   void setCutHigh(double val);
   void setCutLow(int ih, double val);

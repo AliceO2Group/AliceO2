@@ -28,6 +28,18 @@ void InterCalibConfig::print()
   }
 }
 
+void InterCalibConfig::setMinEntries(double val)
+{
+  for (int32_t ih = 0; ih < NH; ih++) {
+    min_e[ih] = val;
+  }
+}
+
+void InterCalibConfig::setMinEntries(int ih, double val)
+{
+  min_e[ih] = val;
+}
+
 void InterCalibConfig::resetCuts()
 {
   for (int32_t ih = 0; ih < NH; ih++) {

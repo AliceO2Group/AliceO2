@@ -31,6 +31,11 @@ class InterCalib
  public:
   InterCalib() = default;
   int init();
+  const static int hidZNA = 0;
+  const static int hidZPA = 1;
+  const static int hidZNC = 2;
+  const static int hidZPC = 3;
+  const static int hidZEM = 4;
   void clear(int ih = -1);
   int process(const gsl::span<const o2::zdc::BCRecData>& bcrec,
               const gsl::span<const o2::zdc::ZDCEnergy>& energy,

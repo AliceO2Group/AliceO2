@@ -96,23 +96,37 @@ int InterCalib::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
       // Skip!
       continue;
     }
-    //     // Trigger bits are not propagated!!!
-    //     heznac->Fill(ev.EZNAC());
-    //     auto tdcid = o2::zdc::TDCZNAC;
-    //     auto nhit = ev.NtdcV(tdcid);
-    //     if (ev.NtdcA(tdcid) != nhit) {
-    //       fprintf(stderr, "Mismatch in TDC data\n");
-    //       continue;
-    //     }
-    //     if (nhit > 0) {
-    //       double bc_d = uint32_t(ev.ir.bc / 100);
-    //       double bc_m = uint32_t(ev.ir.bc % 100);
-    //       hbznac->Fill(bc_m, -bc_d);
-    //       for (int ihit = 0; ihit < nhit; ihit++) {
-    //         htznac->Fill(ev.tdcV(tdcid, ihit), ev.tdcA(tdcid, ihit));
-    //       }
-    //     }
+    if ((ev.ezdcDecoded & MaskZNA) == MaskZNA) {
+      cumulate(hidZNA, ev.EZDC(IdZNAC), ev.EZDC(IdZNA1), ev.EZDC(IdZNA2), ev.EZDC(IdZNA3), ev.EZDC(IdZNA4), 1.);
+    }
+    if ((ev.ezdcDecoded & MaskZPA) == MaskZPA) {
+      cumulate(hidZPA, ev.EZDC(IdZPAC), ev.EZDC(IdZPA1), ev.EZDC(IdZPA2), ev.EZDC(IdZPA3), ev.EZDC(IdZPA4), 1.);
+    }
+    if ((ev.ezdcDecoded & MaskZNC) == MaskZNC) {
+      cumulate(hidZNC, ev.EZDC(IdZNCC), ev.EZDC(IdZNC1), ev.EZDC(IdZNC2), ev.EZDC(IdZNC3), ev.EZDC(IdZNC4), 1.);
+    }
+    if ((ev.ezdcDecoded & MaskZPC) == MaskZPC) {
+      cumulate(hidZPC, ev.EZDC(IdZPCC), ev.EZDC(IdZPC1), ev.EZDC(IdZPC2), ev.EZDC(IdZPC3), ev.EZDC(IdZPC4), 1.);
+    }
+    if ((ev.ezdcDecoded & MaskZEM) == MaskZEM) {
+      cumulate(hidZEM, ev.EZDC(IdZEM1), ev.EZDC(IdZEM2), 0., 0., 0., 1.);
+    }
   }
+  for (int ih = 0; ih < NH; ih++) {
+    if (sum[ih][5][5] >= mInterCalibConfig->min_e[ih]) {
+      int ierr = mini(ih);
+      if (ierr) {
+        printf("FAILED processing RUN3 data for ih = %d - ", ih);
+      } else {
+        printf("Processed RUN3 data for ih = %d: ", ih);
+      }
+    } else {
+      printf("FAILED processing RUN3 data for ih = %d: TOO FEW EVENTS: ", ih);
+    }
+    printf("%g events and cuts (%g:%g)\n", sum[ih][5][5], mInterCalibConfig->cutLow[ih], mInterCalibConfig->cutHigh[ih]);
+    return 0;
+  }
+  write();
   return 0;
 }
 
@@ -135,15 +149,15 @@ int InterCalib::process(const char* hname, int ic)
   TString hn = hname;
   int ih = -1;
   if (hn.EqualTo("hZNA")) {
-    ih = 0;
+    ih = hidZNA;
   } else if (hn.EqualTo("hZPA")) {
-    ih = 1;
+    ih = hidZPA;
   } else if (hn.EqualTo("hZNC")) {
-    ih = 2;
+    ih = hidZNC;
   } else if (hn.EqualTo("hZPC")) {
-    ih = 3;
+    ih = hidZPC;
   } else if (hn.EqualTo("hZEM")) {
-    ih = 4;
+    ih = hidZEM;
   } else {
     printf("Not recognized histogram name: %s\n", hname);
     return -1;
@@ -274,6 +288,7 @@ void InterCalib::cumulate(int ih, double tc, double t1, double t2, double t3, do
       sum[ih][i][j] += val[i] * val[j] * w;
     }
   }
+  // sum[ih][5][5] contains the number of analyzed events
   double sumquad = val[1] + val[2] + val[3] + val[4];
   h[ih]->Fill(sumquad, w);
   h[ih + NH]->Fill(val[0]);

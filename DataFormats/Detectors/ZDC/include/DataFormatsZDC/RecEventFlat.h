@@ -39,15 +39,12 @@ using NElem = int;
 struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   o2::InteractionRecord ir;
   uint32_t channels = 0;                         /// pattern of channels acquired
+  uint32_t ezdcDecoded = 0;                      /// pattern of decoded energies
   uint32_t triggers = 0;                         /// pattern of channels with autotrigger bit
   std::map<uint8_t, float> ezdc;                 /// signal in ZDCs
   std::vector<float> TDCVal[NTDCChannels];       /// TDC values
   std::vector<float> TDCAmp[NTDCChannels];       /// TDC signal amplitudes
   std::vector<bool> TDCPile[NTDCChannels];       /// TDC pile-up correction flag (TODO)
-                                                 //   std::vector<o2::zdc::BCRecData>* mRecBC;    //! Interaction record and references to data
-                                                 //   std::vector<o2::zdc::ZDCEnergy>* mEnergy;   //! ZDC energy
-                                                 //   std::vector<o2::zdc::ZDCTDCData>* mTDCData; //! ZDC TDC
-                                                 //   std::vector<uint16_t>* mInfo;               //! Event quality information
   gsl::span<const o2::zdc::BCRecData> mRecBC;    //! Interaction record and references to data
   gsl::span<const o2::zdc::ZDCEnergy> mEnergy;   //! ZDC energy
   gsl::span<const o2::zdc::ZDCTDCData> mTDCData; //! ZDC TDC

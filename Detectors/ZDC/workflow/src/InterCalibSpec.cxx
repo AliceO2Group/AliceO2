@@ -34,6 +34,7 @@
 #include "ZDCReconstruction/ZDCEnergyParam.h"
 #include "ZDCReconstruction/ZDCTowerParam.h"
 #include "ZDCCalib/InterCalib.h"
+#include "ZDCCalib/InterCalibConfig.h"
 #include "ZDCWorkflow/InterCalibSpec.h"
 
 using namespace o2::framework;
@@ -94,8 +95,23 @@ void InterCalibSpec::run(ProcessingContext& pc)
         towerParam->print();
       }
     }
+
+    // InterCalib configuration
+    auto* interConfig = mgr.get<o2::zdc::InterCalibConfig>(o2::zdc::CCDBPathInterCalibConfig);
+    if (!interConfig) {
+      LOG(fatal) << "Missing InterCalibConfig calibration object";
+    } else {
+      loadedConfFiles += " InterCalibConfig";
+      if (mVerbosity > DbgZero) {
+        LOG(info) << "Loaded InterCalib configuration object for timestamp " << mgr.getTimestamp();
+        interConfig->print();
+      }
+    }
+
     work.setEnergyParam(energyParam);
     work.setTowerParam(towerParam);
+    work.setInterCalibConfig(interConfig);
+
     LOG(info) << loadedConfFiles;
   }
 

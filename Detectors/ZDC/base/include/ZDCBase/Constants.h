@@ -167,6 +167,16 @@ constexpr int IdZPC3 = 23;
 constexpr int IdZPC4 = 24;
 constexpr int IdZPCSum = 25;
 
+constexpr uint32_t MaskZNA = 0x0000001f;
+constexpr uint32_t MaskAllZNA = 0x0000003f;
+constexpr uint32_t MaskZPA = 0x000007c0;
+constexpr uint32_t MaskAllZPA = 0x00000fc0;
+constexpr uint32_t MaskZEM = 0x00003000;
+constexpr uint32_t MaskZNC = 0x000fc000;
+constexpr uint32_t MaskAllZNC = 0x0007f000;
+constexpr uint32_t MaskZPC = 0x01f00000;
+constexpr uint32_t MaskAllZPC = 0x03f00000;
+
 constexpr std::string_view ChannelNames[] = {
   "ZNAC",
   "ZNA1",
@@ -229,6 +239,7 @@ const std::string CCDBPathTDCCalib = "ZDC/Calib/TDCCalib";
 const std::string CCDBPathTDCCorr = "ZDC/Calib/TDCCorr";
 const std::string CCDBPathEnergyCalib = "ZDC/Calib/EnergyCalib";
 const std::string CCDBPathTowerCalib = "ZDC/Calib/TowerCalib";
+const std::string CCDBPathInterCalibConfig = "ZDC/Calib/InterCalibConfig";
 
 enum Ped { PedND = 0,
            PedEv = 1,
