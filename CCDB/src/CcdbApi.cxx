@@ -765,7 +765,7 @@ bool CcdbApi::checkAlienToken() const
 {
 #ifdef __APPLE__
   LOG(debug) << "On macOS we simply rely on TGrid::Connect(\"alien\").
-  return true;
+    return true;
 #endif
   // a somewhat weird construction to programmatically find out if we
   // have a GRID token; Can be replaced with something more elegant once
