@@ -147,6 +147,7 @@ class Detector : public o2::base::DetImpl<Detector>
   int mHitCounter = 0;
   int mElectronCounter = 0;
   int mStepCounter = 0;
+  ElementalHit mHitLast{}; ///<! buffer last processed hit to be able to fill it to mHitsPerSectorCollection
 
   /// Create the detector materials
   virtual void CreateMaterials();
