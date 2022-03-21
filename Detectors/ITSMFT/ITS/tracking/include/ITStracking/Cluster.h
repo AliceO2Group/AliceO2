@@ -51,8 +51,8 @@ struct Cluster final {
 };
 
 struct TrackingFrameInfo {
-  TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, GPUArray<float, 2>&& posTF, GPUArray<float, 3>&& covTF);
   TrackingFrameInfo() = default;
+  TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, GPUArray<float, 2>&& posTF, GPUArray<float, 3>&& covTF);
 
   float xCoordinate;
   float yCoordinate;

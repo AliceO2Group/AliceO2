@@ -32,12 +32,10 @@
 // #include "ReconstructionDataFormats/Vertex.h"
 
 #include "ITStracking/TimeFrame.h"
-#include "Array.h"
-#include "UniquePointer.h"
-#include "Vector.h"
+#include <thrust/host_vector.h>
+#include <thrust/device_vector.h>
 #include "GPUCommonDef.h"
 #include "GPUCommonMath.h"
-
 namespace o2
 {
 
@@ -45,19 +43,23 @@ namespace its
 {
 namespace gpu
 {
-template <int NLayers>
+template <int NLayers = 7>
 class TimeFrameGPU : public TimeFrame
 {
  public:
   TimeFrameGPU();
   ~TimeFrameGPU();
-  void loadToDevice();
+  void loadToDevice(const int maxLayers);
+  void initialise(const int iteration,
+                  const MemoryParameters& memParam,
+                  const TrackingParameters& trkParam,
+                  const int maxLayers);
 
  private:
-  Array<Vector<TrackingFrameInfo>, NLayers> mTrackingFrameInfoGPU;
-  Array<Vector<Cluster>, NLayers> mClustersGPU;
-  Array<Vector<int>, NLayers> mClusterExternalIndicesGPU;
-  Array<Vector<int>, NLayers> mROframesClustersGPU;
+  std::array<Cluster*, NLayers> mClustersD;
+  std::array<TrackingFrameInfo*, NLayers> mTrackingFrameInfoD;
+  std::array<int*, NLayers> mClusterExternalIndicesD;
+  std::array<int*, NLayers> mROframesClustersD;
 };
 
 } // namespace gpu

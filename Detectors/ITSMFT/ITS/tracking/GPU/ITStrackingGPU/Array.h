@@ -51,13 +51,7 @@ struct Array final {
 
   void copy(const Array<T, Size>& t)
   {
-#ifdef __OPENCL__
-    for (size_t i{0}; i < Size; ++i) {
-      InternalArray[i] = t[i];
-    }
-#else
     memcpy(InternalArray, t.data(), Size * sizeof(T));
-#endif
   }
 
   GPUhd() T* data() noexcept { return const_cast<T*>(InternalArray); }

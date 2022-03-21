@@ -61,7 +61,7 @@ void TrackerDPL::init(InitContext& ic)
 
   mChainITS.reset(mRecChain->AddChain<o2::gpu::GPUChainITS>());
   mVertexer = std::make_unique<Vertexer>(mChainITS->GetITSVertexerTraits());
-  mTracker = std::make_unique<Tracker>(new TrackerTraitsCPU);
+  mTracker = std::make_unique<Tracker>(mChainITS->GetITSTrackerTraits());
 
   auto filename = ic.options().get<std::string>("grp-file");
   const auto grp = parameters::GRPObject::loadFrom(filename);
@@ -205,7 +205,6 @@ void TrackerDPL::run(ProcessingContext& pc)
   LOG(info) << "ITSTracker RO: continuous=" << continuous;
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   FastMultEst multEst;                                     // mult estimator
-
   TimeFrame* timeFrame = mChainITS->GetITSTimeframe();
   mTracker->adoptTimeFrame(*timeFrame);
   mTracker->setBz(mBz);
@@ -234,7 +233,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       }
       cutClusterMult += !multCut;
     }
-    processingMask.push_back(multCut);
+    processingMask.push_back(false); // revert me!!!
   }
   timeFrame->setMultiplicityCutMask(processingMask);
 
@@ -243,7 +242,6 @@ void TrackerDPL::run(ProcessingContext& pc)
     // Run seeding vertexer
     vertexerElapsedTime = mVertexer->clustersToVertices(false, logger);
   }
-
   for (auto iRof{0}; iRof < rofspan.size(); ++iRof) {
     bool multCut;
     std::vector<Vertex> vtxVecLoc;

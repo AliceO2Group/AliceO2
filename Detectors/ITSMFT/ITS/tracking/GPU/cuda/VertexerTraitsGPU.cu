@@ -72,30 +72,17 @@ GPUh() void gpuThrowOnError()
   }
 }
 
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-VertexerTraitsGPU::VertexerTraitsGPU()
-{
-  setIsGPU(true);
-  std::cout << "[DEBUG] Creating file: dbg_ITSVertexerGPU.root" << std::endl;
-  mDebugger = new StandaloneDebugger::StandaloneDebugger("dbg_ITSVertexerGPU.root");
-}
-
-VertexerTraitsGPU::~VertexerTraitsGPU()
-{
-  delete mDebugger;
-}
-#else
 VertexerTraitsGPU::VertexerTraitsGPU()
 {
   setIsGPU(true);
 }
-#endif
 
 void VertexerTraitsGPU::initialise(const MemoryParameters& memParams, const TrackingParameters& trackingParams)
 {
-  // reset();
-  // arrangeClusters(event);
-  mStoreVertexerGPUPtr = mStoreVertexerGPU.initialise(mClusters, mIndexTables);
+  if (!mIndexTableUtils.getNzBins()) {
+    updateVertexingParameters(mVrtParams);
+  }
+  mTimeFrameGPU->initialise(0, memParams, trackingParams, 3);
 }
 
 namespace gpu
@@ -480,30 +467,30 @@ void VertexerTraitsGPU::computeVertices()
   gpuThrowOnError();
 }
 
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-void VertexerTraitsGPU::computeMCFiltering()
-{
-  std::vector<Tracklet> tracklets01 = mStoreVertexerGPU.getRawDupletsFromGPU(gpu::TrackletingLayerOrder::fromInnermostToMiddleLayer);
-  std::vector<Tracklet> tracklets12 = mStoreVertexerGPU.getRawDupletsFromGPU(gpu::TrackletingLayerOrder::fromMiddleToOuterLayer);
-  std::vector<int> labels01 = mStoreVertexerGPU.getNFoundTrackletsFromGPU(gpu::TrackletingLayerOrder::fromInnermostToMiddleLayer);
-  std::vector<int> labels12 = mStoreVertexerGPU.getNFoundTrackletsFromGPU(gpu::TrackletingLayerOrder::fromMiddleToOuterLayer);
-  VertexerStoreConfigurationGPU tmpGPUConf;
-  const int stride = tmpGPUConf.maxTrackletsPerCluster;
+// #ifdef _ALLOW_DEBUG_TREES_ITS_
+// void VertexerTraitsGPU::computeMCFiltering()
+// {
+//   std::vector<Tracklet> tracklets01 = mStoreVertexerGPU.getRawDupletsFromGPU(gpu::TrackletingLayerOrder::fromInnermostToMiddleLayer);
+//   std::vector<Tracklet> tracklets12 = mStoreVertexerGPU.getRawDupletsFromGPU(gpu::TrackletingLayerOrder::fromMiddleToOuterLayer);
+//   std::vector<int> labels01 = mStoreVertexerGPU.getNFoundTrackletsFromGPU(gpu::TrackletingLayerOrder::fromInnermostToMiddleLayer);
+//   std::vector<int> labels12 = mStoreVertexerGPU.getNFoundTrackletsFromGPU(gpu::TrackletingLayerOrder::fromMiddleToOuterLayer);
+//   VertexerStoreConfigurationGPU tmpGPUConf;
+//   const int stride = tmpGPUConf.maxTrackletsPerCluster;
 
-  filterTrackletsWithMC(tracklets01, tracklets12, labels01, labels12, stride);
-  mStoreVertexerGPU.updateFoundDuplets(gpu::TrackletingLayerOrder::fromInnermostToMiddleLayer, labels01);
-  mStoreVertexerGPU.updateDuplets(gpu::TrackletingLayerOrder::fromInnermostToMiddleLayer, tracklets01);
-  mStoreVertexerGPU.updateFoundDuplets(gpu::TrackletingLayerOrder::fromMiddleToOuterLayer, labels12);
-  mStoreVertexerGPU.updateDuplets(gpu::TrackletingLayerOrder::fromMiddleToOuterLayer, tracklets12);
+//   filterTrackletsWithMC(tracklets01, tracklets12, labels01, labels12, stride);
+//   mStoreVertexerGPU.updateFoundDuplets(gpu::TrackletingLayerOrder::fromInnermostToMiddleLayer, labels01);
+//   mStoreVertexerGPU.updateDuplets(gpu::TrackletingLayerOrder::fromInnermostToMiddleLayer, tracklets01);
+//   mStoreVertexerGPU.updateFoundDuplets(gpu::TrackletingLayerOrder::fromMiddleToOuterLayer, labels12);
+//   mStoreVertexerGPU.updateDuplets(gpu::TrackletingLayerOrder::fromMiddleToOuterLayer, tracklets12);
 
-  if (isDebugFlag(VertexerDebug::CombinatoricsTreeAll)) {
-    mDebugger->fillCombinatoricsTree(mClusters,
-                                     mStoreVertexerGPU.getDupletsFromGPU(gpu::TrackletingLayerOrder::fromInnermostToMiddleLayer),
-                                     mStoreVertexerGPU.getDupletsFromGPU(gpu::TrackletingLayerOrder::fromMiddleToOuterLayer),
-                                     mEvent);
-  }
-}
-#endif
+//   if (isDebugFlag(VertexerDebug::CombinatoricsTreeAll)) {
+//     mDebugger->fillCombinatoricsTree(mClusters,
+//                                      mStoreVertexerGPU.getDupletsFromGPU(gpu::TrackletingLayerOrder::fromInnermostToMiddleLayer),
+//                                      mStoreVertexerGPU.getDupletsFromGPU(gpu::TrackletingLayerOrder::fromMiddleToOuterLayer),
+//                                      mEvent);
+//   }
+// }
+// #endif
 
 VertexerTraits* createVertexerTraitsGPU()
 {

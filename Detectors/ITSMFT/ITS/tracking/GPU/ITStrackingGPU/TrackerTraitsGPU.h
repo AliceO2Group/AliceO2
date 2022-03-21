@@ -34,11 +34,6 @@ class TrackerTraitsGPU : public TrackerTraits
  public:
   TrackerTraitsGPU() = default;
   ~TrackerTraitsGPU() override = default;
-  void loadToDevice() override;
-  gpu::TimeFrameGPU<NLayers>* getTimeFrameGPU() override
-  {
-    return &mTimeFrameGPU;
-  }
 
   // void computeLayerCells() final;
   void computeLayerTracklets() final;

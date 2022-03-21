@@ -27,10 +27,7 @@
 
 #include "DeviceStoreVertexerGPU.h"
 #include "UniquePointer.h"
-
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-#include "ITStracking/StandaloneDebugger.h"
-#endif
+#include "ITStrackingGPU/TimeFrameGPU.h"
 
 namespace o2
 {
@@ -43,19 +40,14 @@ using constants::its2::InversePhiBinSize;
 class VertexerTraitsGPU : public VertexerTraits
 {
  public:
-#ifdef _ALLOW_DEBUG_TREES_ITS_
   VertexerTraitsGPU();
-  ~VertexerTraitsGPU() override;
-#else
-  VertexerTraitsGPU();
-#endif
+
   void initialise(const MemoryParameters& memParams, const TrackingParameters& trackingParams) override;
+  void adoptTimeFrame(TimeFrame* tf) override;
   void computeTracklets() override;
   void computeTrackletMatching() override;
   void computeVertices() override;
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  void computeMCFiltering() override;
-#endif
+  // void computeMCFiltering() override;
 
   // GPU-specific getters
   GPUd() static const int2 getBinsPhiRectWindow(const Cluster&, float maxdeltaphi);
@@ -64,6 +56,7 @@ class VertexerTraitsGPU : public VertexerTraits
  protected:
   gpu::DeviceStoreVertexerGPU mStoreVertexerGPU;
   gpu::UniquePointer<gpu::DeviceStoreVertexerGPU> mStoreVertexerGPUPtr;
+  gpu::TimeFrameGPU<7>* mTimeFrameGPU;
 };
 
 inline GPUd() const int2 VertexerTraitsGPU::getBinsPhiRectWindow(const Cluster& currentCluster, float phiCut)
@@ -80,7 +73,7 @@ GPUhd() gpu::DeviceStoreVertexerGPU& VertexerTraitsGPU::getDeviceContext()
   return *mStoreVertexerGPUPtr;
 }
 
-extern "C" VertexerTraits* createVertexerTraitsGPU();
+inline void VertexerTraitsGPU::adoptTimeFrame(TimeFrame* tf) { mTimeFrameGPU = static_cast<gpu::TimeFrameGPU<7>*>(tf); }
 
 } // namespace its
 } // namespace o2
