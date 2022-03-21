@@ -165,7 +165,7 @@ class TimeFrame
 
   IndexTableUtils mIndexTableUtils;
 
- protected:
+//  protected:
   std::vector<std::vector<Cluster>> mClusters;
   std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
   std::vector<std::vector<int>> mClusterExternalIndices;

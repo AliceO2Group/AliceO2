@@ -117,7 +117,7 @@ class VertexerTraits
   std::vector<lightVertex> getVertices() const { return mVertices; }
 
   // utils
-  void adoptTimeFrame(TimeFrame* tf) { mTimeFrame = tf; }
+  virtual void adoptTimeFrame(TimeFrame* tf);
   void setIsGPU(const unsigned char);
   unsigned char getIsGPU() const;
   void dumpVertexerTraits();
@@ -229,8 +229,8 @@ inline unsigned char VertexerTraits::isDebugFlag(const VertexerDebug& flags) con
   return mDBGFlags & static_cast<unsigned int>(flags);
 }
 
-// extern "C" VertexerTraits* createVertexerTraits();
+inline void VertexerTraits::adoptTimeFrame(TimeFrame* tf) { mTimeFrame = tf; }
 
 } // namespace its
 } // namespace o2
-#endif /* O2_ITS_TRACKING_VERTEXER_TRAITS_H_ */
+#endif

@@ -11,6 +11,7 @@
 ///
 
 #include "ITStrackingGPU/TimeFrameGPU.h"
+#include "fairlogger/Logger.h"
 
 namespace o2
 {
@@ -21,30 +22,48 @@ namespace gpu
 template <int NLayers>
 TimeFrameGPU<NLayers>::TimeFrameGPU()
 {
+  LOGP(info, ">>> Building TimeFrameGPU for {} layers", NLayers);
   for (auto iLayer{0}; iLayer < NLayers; ++iLayer) {
-    mClustersGPU[iLayer] = Vector<Cluster>{(int)5e5, (int)5e5};
-    mTrackingFrameInfoGPU[iLayer] = Vector<TrackingFrameInfo>{(int)5e5, (int)5e5};
-    mClusterExternalIndicesGPU[iLayer] = Vector<int>{(int)5e5, (int)5e5};
-    mROframesClustersGPU[iLayer] = Vector<int>{(int)5e5, (int)5e5};
+    cudaMalloc(reinterpret_cast<void**>(&(mClustersD[iLayer])), sizeof(Cluster) * 5e5);
+    cudaMalloc(reinterpret_cast<void**>(&(mTrackingFrameInfoD[iLayer])), sizeof(TrackingFrameInfo) * 5e5);
+    cudaMalloc(reinterpret_cast<void**>(&(mClusterExternalIndicesD[iLayer])), sizeof(int) * 5e5);
+    cudaMalloc(reinterpret_cast<void**>(&(mROframesClustersD[iLayer])), sizeof(int) * 5e5);
   }
+}
+
+template <int NLayers>
+void TimeFrameGPU<NLayers>::loadToDevice(const int maxLayers)
+{
+  LOGP(info, ">>> Loading data on device");
+  for (auto iLayer{0}; iLayer < std::min(maxLayers, NLayers); ++iLayer) {
+    cudaMemcpyAsync(mClustersD[iLayer], mClusters[iLayer].data(), mClusters[iLayer].size() * sizeof(Cluster), cudaMemcpyHostToDevice);
+    // cudaMemcpyAsync(mTrackingFrameInfoD[iLayer], mTrackingFrameInfo[iLayer].data(), mTrackingFrameInfo[iLayer].size() * sizeof(TrackingFrameInfo), cudaMemcpyHostToDevice);
+    // cudaMemcpyAsync(mClusterExternalIndicesD[iLayer], mClusterExternalIndices[iLayer].data(), mClusterExternalIndices[iLayer].size() * sizeof(int), cudaMemcpyHostToDevice);
+    // cudaMemcpyAsync(mROframesClustersD[iLayer], mROframesClusters[iLayer].data(), mROframesClusters[iLayer].size() * sizeof(int), cudaMemcpyHostToDevice);
+  }
+}
+
+template <int NLayers>
+void TimeFrameGPU<NLayers>::initialise(const int iteration,
+                                       const MemoryParameters& memParam,
+                                       const TrackingParameters& trkParam,
+                                       const int maxLayers)
+{
+  LOGP(info, ">>> Called GPU initalise");
+  o2::its::TimeFrame::initialise(iteration, memParam, trkParam, maxLayers);
+  loadToDevice(maxLayers);
 }
 
 template <int NLayers>
 TimeFrameGPU<NLayers>::~TimeFrameGPU()
 {
-}
-
-template <int NLayers>
-void TimeFrameGPU<NLayers>::loadToDevice()
-{
   for (auto iLayer{0}; iLayer < NLayers; ++iLayer) {
-    mClustersGPU[iLayer].reset(mClusters[iLayer].data(), mClusters[iLayer].size());
-    mTrackingFrameInfoGPU[iLayer].reset(mTrackingFrameInfo[iLayer].data(), mTrackingFrameInfo[iLayer].size());
-    mClusterExternalIndicesGPU[iLayer].reset(mClusterExternalIndices[iLayer].data(), mClusterExternalIndices[iLayer].size());
-    mROframesClustersGPU[iLayer].reset(mROframesClusters[iLayer].data(), mROframesClusters[iLayer].size());
+    cudaFree(mClustersD[iLayer]);
+    cudaFree(mTrackingFrameInfoD[iLayer]);
+    cudaFree(mClusterExternalIndicesD[iLayer]);
+    cudaFree(mROframesClustersD[iLayer]);
   }
 }
-
 template class TimeFrameGPU<7>;
 } // namespace gpu
 } // namespace its

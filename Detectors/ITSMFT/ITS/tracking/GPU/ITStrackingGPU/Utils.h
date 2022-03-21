@@ -49,10 +49,7 @@ void gpuMalloc(void**, const int);
 void gpuFree(void*);
 void gpuMemset(void*, int, int);
 void gpuMemcpyHostToDevice(void*, const void*, int);
-// void gpuMemcpyHostToDeviceAsync(void*, const void*, int, Stream&);
 void gpuMemcpyDeviceToHost(void*, const void*, int);
-// void gpuStartProfiler();
-// void gpuStopProfiler();
 } // namespace host
 
 namespace device

@@ -257,19 +257,19 @@ int StandaloneDebugger::getBinIndex(const float value, const int size, const flo
 }
 
 // Tracker
-void StandaloneDebugger::dumpTrackToBranchWithInfo(std::string branchName, o2::its::TrackITSExt track, const ROframe event, PrimaryVertexContext* pvc, const bool dumpClusters)
-{
-  FakeTrackInfo<7> t{pvc, event, track, dumpClusters};
+// void StandaloneDebugger::dumpTrackToBranchWithInfo(std::string branchName, o2::its::TrackITSExt track, const ROframe event, PrimaryVertexContext* pvc, const bool dumpClusters)
+// {
+//   FakeTrackInfo<7> t{pvc, event, track, dumpClusters};
 
-  (*mTreeStream)
-    << branchName.data()
-    << track
-    << "\n";
+//   (*mTreeStream)
+//     << branchName.data()
+//     << track
+//     << "\n";
 
-  (*mTreeStream)
-    << "TracksInfo"
-    << t
-    << "\n";
-}
+//   (*mTreeStream)
+//     << "TracksInfo"
+//     << t
+//     << "\n";
+// }
 } // namespace its
 } // namespace o2
