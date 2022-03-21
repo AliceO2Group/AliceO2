@@ -764,7 +764,7 @@ void* CcdbApi::extractFromLocalFile(std::string const& filename, std::type_info 
 bool CcdbApi::checkAlienToken() const
 {
 #ifdef __APPLE__
-  LOG(debug) << "On macOS we simply rely on TGrid::Connect(\"alien\").
+  LOG(debug) << "On macOS we simply rely on TGrid::Connect(\"alien\").";
   return true;
 #endif
   // a somewhat weird construction to programmatically find out if we
