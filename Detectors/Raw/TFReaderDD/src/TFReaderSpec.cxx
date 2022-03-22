@@ -20,6 +20,7 @@
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
+#include "Headers/DataHeaderHelpers.h"
 
 #include "DetectorsCommonDataFormats/DetID.h"
 #include <TStopwatch.h>
@@ -137,7 +138,7 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
     if (!this->mInput.rawChannelConfig.empty()) {
       return std::string{this->mInput.rawChannelConfig};
     } else {
-      auto outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
+      auto& outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
       for (auto& oroute : outputRoutes) {
         LOG(debug) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
         if (o2f::DataSpecUtils::match(oroute.matcher, h.dataOrigin, h.dataDescription, h.subSpecification) && ((h.tfCounter % oroute.maxTimeslices) == oroute.timeslice)) {
@@ -146,7 +147,11 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
         }
       }
     }
-    LOGP(error, "Failed to find output channel for {}/{}/{} @ timeslice {}", h.dataOrigin.str, h.dataDescription.str, h.subSpecification, h.tfCounter);
+    auto& outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
+    LOGP(error, "Failed to find output channel for {}/{}/{} @ timeslice {}", h.dataOrigin, h.dataDescription, h.subSpecification, h.tfCounter);
+    for (auto& oroute : outputRoutes) {
+      LOGP(info, "Available route  route {}", o2f::DataSpecUtils::describe(oroute.matcher));
+    }
     return std::string{};
   };
   auto setTimingInfo = [&ctx](TFMap& msgMap) {

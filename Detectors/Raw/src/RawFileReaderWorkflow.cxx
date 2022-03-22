@@ -26,6 +26,7 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Headers/DataHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "Headers/STFHeader.h"
 #include "Headers/Stack.h"
 
@@ -177,7 +178,11 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
         }
       }
     }
-    LOGP(error, "Failed to find output channel for {}/{}/{} @ timeslice {}", h.dataOrigin.str, h.dataDescription.str, h.subSpecification, h.tfCounter);
+    LOGP(error, "Failed to find output channel for {}/{}/{} @ timeslice {}", h.dataOrigin, h.dataDescription, h.subSpecification, h.tfCounter);
+    auto outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
+    for (auto& oroute : outputRoutes) {
+      LOGP(info, "Available output routes: {} channel: {}", o2f::DataSpecUtils::describe(oroute.matcher), oroute.channel);
+    }
     return std::string{};
   };
 
