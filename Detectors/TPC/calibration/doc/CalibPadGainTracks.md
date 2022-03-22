@@ -47,7 +47,7 @@ The full residual gainmap extraction workflow can be executed in the following w
 ```
 o2-tpc-file-reader --input-type "clusters,tracks" --disable-mc \
 | o2-tpc-calib-gainmap-tracks -b --publish-after-tfs 100 --overflowBin true --debug true \
-| o2-tpc-calibrator-gainmap-tracks --ccdb-uri "http://localhost:8080" --min-entries 30 --tf-per-slot 100 --file-dump true
+| o2-tpc-calibrator-gainmap-tracks --ccdb-uri "http://localhost:8080" --min-entries 0 --tf-per-slot 100 --file-dump true --shm-segment-size 100000000000
 ```
 
 
