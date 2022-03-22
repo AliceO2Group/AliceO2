@@ -68,8 +68,7 @@ struct HasherCRU {
 struct ComparerCRU {
   bool operator()(const EntryCRU& entry1, const EntryCRU& entry2) const
   {
-    return true;
-    //    return entry1.mLinkID<entry2.mLinkID || entry1.mEndPointID<entry2.mEndPointID;
+    return ((entry1.mLinkID << 4) | entry1.mEndPointID) == ((entry2.mLinkID << 4) | entry2.mEndPointID);
   }
 };
 
@@ -106,7 +105,7 @@ struct ComparerPM {
   //Always true due to perfect hasher
   bool operator()(const EntryPM& entry1, const EntryPM& entry2) const
   {
-    return true;
+    return ((entry1.mEntryCRU.mLinkID << 8) | (entry1.mLocalChannelID << 4) | (entry1.mEntryCRU.mEndPointID)) == ((entry2.mEntryCRU.mLinkID << 8) | (entry2.mLocalChannelID << 4) | (entry2.mEntryCRU.mEndPointID));
   }
 };
 
