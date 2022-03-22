@@ -17,17 +17,18 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicy.h"
-#include "Framework/CompletionPolicyHelpers.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "TPCWorkflow/TPCCalibPadGainTracksSpec.h"
+#include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
 
 using namespace o2::framework;
 
 // customize the completion policy
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
-  using o2::framework::CompletionPolicy;
-  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-calib-gainmap-tracks.*", CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("calib-tpc-gainmap-tracks",
+                                                        o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll,
+                                                        InputSpec{"cluster", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}})());
 }
 
 // we need to add workflow options before including Framework/runDataProcessing
@@ -37,6 +38,9 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"debug", VariantType::Bool, false, {"create debug tree"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
     {"publish-after-tfs", VariantType::Int, 0, {"number of time frames after which to force publishing the objects"}},
+    {"useLastExtractedMapAsReference", VariantType::Bool, false, {"enabling iterative extraction of the gain map: Using the extracted gain map from the previous iteration to correct the cluster charge"}},
+    {"polynomialsFile", VariantType::String, "", {"file containing the polynomials for the track topology correction"}},
+    {"disablePolynomialsCCDB", VariantType::Bool, false, {"Do not load the polynomials from the CCDB"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
@@ -55,7 +59,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   const auto debug = config.options().get<bool>("debug");
   const auto publishAfterTFs = (uint32_t)config.options().get<int>("publish-after-tfs");
+  const bool useLastExtractedMapAsReference = config.options().get<bool>("useLastExtractedMapAsReference");
+  const std::string polynomialsFile = config.options().get<std::string>("polynomialsFile");
+  const auto disablePolynomialsCCDB = config.options().get<bool>("disablePolynomialsCCDB");
 
-  WorkflowSpec workflow{getTPCCalibPadGainTracksSpec(publishAfterTFs, debug)};
+  WorkflowSpec workflow{getTPCCalibPadGainTracksSpec(publishAfterTFs, debug, useLastExtractedMapAsReference, polynomialsFile, disablePolynomialsCCDB)};
   return workflow;
 }
