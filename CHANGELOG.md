@@ -1,4 +1,4 @@
-# Changes since 2022-03-06
+# Changes since 2022-03-09
 
 ## Changes in Analysis
 
@@ -9,9 +9,11 @@
 - [#8368](https://github.com/AliceO2Group/AliceO2/pull/8368) 2022-03-18: Mch dcs fix start validity time by [@aphecetche](https://github.com/aphecetche)
 - [#8392](https://github.com/AliceO2Group/AliceO2/pull/8392) 2022-03-19: Fixes for GRPLHCIF parsing/filling by [@shahor02](https://github.com/shahor02)
 - [#8327](https://github.com/AliceO2Group/AliceO2/pull/8327) 2022-03-19: MCH: DCS DP change from RAW to DPVAL by [@aphecetche](https://github.com/aphecetche)
+- [#8337](https://github.com/AliceO2Group/AliceO2/pull/8337) 2022-03-21: switch the variable initialization order by [@zhaomr13](https://github.com/zhaomr13)
+- [#8411](https://github.com/AliceO2Group/AliceO2/pull/8411) 2022-03-22: Enable upgrade dets if requested by [@benedikt-voelkel](https://github.com/benedikt-voelkel)
+- [#8344](https://github.com/AliceO2Group/AliceO2/pull/8344) 2022-03-23: [FIT] Align dataformats, names and formatting of FV0 to match FT0 by [@mslupeck](https://github.com/mslupeck)
 ## Changes in DataFormats
 
-- [#8307](https://github.com/AliceO2Group/AliceO2/pull/8307) 2022-03-10: Revert "Merge pull request #8275 from matthias-kleiner/dedxdev" by [@davidrohr](https://github.com/davidrohr)
 - [#8369](https://github.com/AliceO2Group/AliceO2/pull/8369) 2022-03-17: Doxygen fixes and improvements for MID by [@dstocco](https://github.com/dstocco)
 - [#8375](https://github.com/AliceO2Group/AliceO2/pull/8375) 2022-03-17: Enable extra track types in dpl-workflow, related fixes in RecoContainer by [@shahor02](https://github.com/shahor02)
 - [#8372](https://github.com/AliceO2Group/AliceO2/pull/8372) 2022-03-17: Fix new xcode by [@ktf](https://github.com/ktf)
@@ -20,14 +22,14 @@
 - [#8352](https://github.com/AliceO2Group/AliceO2/pull/8352) 2022-03-18: Add PHOS table by [@nburmaso](https://github.com/nburmaso)
 - [#8393](https://github.com/AliceO2Group/AliceO2/pull/8393) 2022-03-18: GPU: Fix some compiler warnings by [@davidrohr](https://github.com/davidrohr)
 - [#8392](https://github.com/AliceO2Group/AliceO2/pull/8392) 2022-03-19: Fixes for GRPLHCIF parsing/filling by [@shahor02](https://github.com/shahor02)
-- [#8317](https://github.com/AliceO2Group/AliceO2/pull/8317) 2022-03-20: Adapt to type sent by DCS + macros to populate and read the GRP DCS config entry by [@chiarazampolli](https://github.com/chiarazampolli)
+- [#8337](https://github.com/AliceO2Group/AliceO2/pull/8337) 2022-03-21: switch the variable initialization order by [@zhaomr13](https://github.com/zhaomr13)
+- [#8415](https://github.com/AliceO2Group/AliceO2/pull/8415) 2022-03-22: FIT: fix undefined behaviour in LookUpTable by [@ktf](https://github.com/ktf)
+- [#8344](https://github.com/AliceO2Group/AliceO2/pull/8344) 2022-03-23: [FIT] Align dataformats, names and formatting of FV0 to match FT0 by [@mslupeck](https://github.com/mslupeck)
 ## Changes in Detectors
 
-- [#8307](https://github.com/AliceO2Group/AliceO2/pull/8307) 2022-03-10: Revert "Merge pull request #8275 from matthias-kleiner/dedxdev" by [@davidrohr](https://github.com/davidrohr)
 - [#8322](https://github.com/AliceO2Group/AliceO2/pull/8322) 2022-03-11: Avoid same alias for different specs by [@shahor02](https://github.com/shahor02)
 - [#8328](https://github.com/AliceO2Group/AliceO2/pull/8328) 2022-03-12: Fixes for CCDB fetcher by [@shahor02](https://github.com/shahor02)
 - [#8329](https://github.com/AliceO2Group/AliceO2/pull/8329) 2022-03-14: Fix for mc->raw with firstOrbit>0 in RORC detectors by [@shahor02](https://github.com/shahor02)
-- [#8320](https://github.com/AliceO2Group/AliceO2/pull/8320) 2022-03-15: Simplified and refactored code by [@SwirtaB](https://github.com/SwirtaB)
 - [#8325](https://github.com/AliceO2Group/AliceO2/pull/8325) 2022-03-16: Add standalone AOD producer by [@peressounko](https://github.com/peressounko)
 - [#8358](https://github.com/AliceO2Group/AliceO2/pull/8358) 2022-03-16: Fix IB and OB geometry to latest blueprints by [@mario6829](https://github.com/mario6829)
 - [#8359](https://github.com/AliceO2Group/AliceO2/pull/8359) 2022-03-16: ITS: Get ITS TimeFrame from GPUReco by [@mconcas](https://github.com/mconcas)
@@ -59,23 +61,21 @@
 - [#8392](https://github.com/AliceO2Group/AliceO2/pull/8392) 2022-03-19: Fixes for GRPLHCIF parsing/filling by [@shahor02](https://github.com/shahor02)
 - [#8340](https://github.com/AliceO2Group/AliceO2/pull/8340) 2022-03-19: Improving sensitive hit creation for HMPID in Detector.cxx by [@zovarga](https://github.com/zovarga)
 - [#8327](https://github.com/AliceO2Group/AliceO2/pull/8327) 2022-03-19: MCH: DCS DP change from RAW to DPVAL by [@aphecetche](https://github.com/aphecetche)
-- [#8317](https://github.com/AliceO2Group/AliceO2/pull/8317) 2022-03-20: Adapt to type sent by DCS + macros to populate and read the GRP DCS config entry by [@chiarazampolli](https://github.com/chiarazampolli)
+- [#8415](https://github.com/AliceO2Group/AliceO2/pull/8415) 2022-03-22: FIT: fix undefined behaviour in LookUpTable by [@ktf](https://github.com/ktf)
+- [#8391](https://github.com/AliceO2Group/AliceO2/pull/8391) 2022-03-22: Fix AO2Ds in case of negative first daughter  by [@mpuccio](https://github.com/mpuccio)
+- [#8414](https://github.com/AliceO2Group/AliceO2/pull/8414) 2022-03-22: Fix protection against concurrent lock directory creation by [@shahor02](https://github.com/shahor02)
+- [#8412](https://github.com/AliceO2Group/AliceO2/pull/8412) 2022-03-22: TPC simulation: fix bug where not all hits are stored when a track crosses the centre of a sector by [@matthias-kleiner](https://github.com/matthias-kleiner)
+- [#8344](https://github.com/AliceO2Group/AliceO2/pull/8344) 2022-03-23: [FIT] Align dataformats, names and formatting of FV0 to match FT0 by [@mslupeck](https://github.com/mslupeck)
 ## Changes in EventVisualisation
 
 - [#8374](https://github.com/AliceO2Group/AliceO2/pull/8374) 2022-03-16: Fixup in MFT dictionary update in eve by [@shahor02](https://github.com/shahor02)
 - [#8330](https://github.com/AliceO2Group/AliceO2/pull/8330) 2022-03-16: o2-eve loads ITS/MFT cluster dictionaries via CCDB fetcher by [@shahor02](https://github.com/shahor02)
 ## Changes in Framework
 
-- [#8308](https://github.com/AliceO2Group/AliceO2/pull/8308) 2022-03-10: Add missing include by [@davidrohr](https://github.com/davidrohr)
-- [#8316](https://github.com/AliceO2Group/AliceO2/pull/8316) 2022-03-11: DPL: detect default condition-backend by [@ktf](https://github.com/ktf)
-- [#8318](https://github.com/AliceO2Group/AliceO2/pull/8318) 2022-03-11: DPL: insert timeout to avoid OOM killer when runningh with DDS by [@ktf](https://github.com/ktf)
-- [#8314](https://github.com/AliceO2Group/AliceO2/pull/8314) 2022-03-11: DPL: make missing CCDB objects fatal by [@ktf](https://github.com/ktf)
-- [#8321](https://github.com/AliceO2Group/AliceO2/pull/8321) 2022-03-11: [OCTRL-609] AliECS dump: add O2_PARTITION to env by [@knopers8](https://github.com/knopers8)
 - [#8324](https://github.com/AliceO2Group/AliceO2/pull/8324) 2022-03-12: DPL: improve subscription to 0xccdb by [@ktf](https://github.com/ktf)
 - [#8328](https://github.com/AliceO2Group/AliceO2/pull/8328) 2022-03-12: Fixes for CCDB fetcher by [@shahor02](https://github.com/shahor02)
 - [#8323](https://github.com/AliceO2Group/AliceO2/pull/8323) 2022-03-13: DPL: cleanup CallbackRegistry by [@ktf](https://github.com/ktf)
 - [#8333](https://github.com/AliceO2Group/AliceO2/pull/8333) 2022-03-13: DPL: fix warnings in DataAllocator.h by [@ktf](https://github.com/ktf)
-- [#8315](https://github.com/AliceO2Group/AliceO2/pull/8315) 2022-03-13: Work on Vulkan backend, compile GLSL shaders at compile time with CMake, Render text with Freetype if frontend cannot draw text, unrelated fixes by [@davidrohr](https://github.com/davidrohr)
 - [#8335](https://github.com/AliceO2Group/AliceO2/pull/8335) 2022-03-14: DPL: make sure proxies set the correct TimingInfo from out of band data. by [@ktf](https://github.com/ktf)
 - [#8343](https://github.com/AliceO2Group/AliceO2/pull/8343) 2022-03-14: Restore ms_gsl < 4 support by [@davidrohr](https://github.com/davidrohr)
 - [#8351](https://github.com/AliceO2Group/AliceO2/pull/8351) 2022-03-15: Remove LOGP message to avoid crash with long log texts. by [@pbuehler](https://github.com/pbuehler)
@@ -88,8 +88,9 @@
 - [#8382](https://github.com/AliceO2Group/AliceO2/pull/8382) 2022-03-18: DPL: introduce OptionsHelpers by [@ktf](https://github.com/ktf)
 - [#8390](https://github.com/AliceO2Group/AliceO2/pull/8390) 2022-03-18: DPL: setup the expiration mechanism after all the input devices are in place by [@ktf](https://github.com/ktf)
 - [#8398](https://github.com/AliceO2Group/AliceO2/pull/8398) 2022-03-19: [DPL Analysis] [Event mixing] Upgrade event mixing to use BinningPolicy by [@saganatt](https://github.com/saganatt)
+- [#8381](https://github.com/AliceO2Group/AliceO2/pull/8381) 2022-03-21: DPL: fix deprecated inheritance of std::iterator by [@ktf](https://github.com/ktf)
 ## Changes in Steer
 
-- [#8312](https://github.com/AliceO2Group/AliceO2/pull/8312) 2022-03-11: Protect against use of GRPUpdater when not needed by [@sawenzel](https://github.com/sawenzel)
 - [#8376](https://github.com/AliceO2Group/AliceO2/pull/8376) 2022-03-18: TPC: Add possibility for MC anchoring of basic calibrations by [@wiechula](https://github.com/wiechula)
 - [#8378](https://github.com/AliceO2Group/AliceO2/pull/8378) 2022-03-18: digitizer: Ability to fetch bcFilling scheme from CCDB by [@sawenzel](https://github.com/sawenzel)
+- [#8344](https://github.com/AliceO2Group/AliceO2/pull/8344) 2022-03-23: [FIT] Align dataformats, names and formatting of FV0 to match FT0 by [@mslupeck](https://github.com/mslupeck)
