@@ -4,7 +4,7 @@
 3,"MissingQualityObject","Missing Quality Object",1,0
 4,"MissingQuality","Missing Quality",1,0
 5,"UnknownQuality","Unknown Quality",1,0
-6,"Certified","Certified",0,0
+6,"CertifiedByExpert","Certified by Expert",0,0
 10,"DetectorOff","Detector off",1,0
 11,"LimitedAcceptance","Limited acceptance",1,0
 12."BadPID","Bad PID",1,0
