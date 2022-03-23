@@ -20,9 +20,12 @@ namespace dataformats
 // .............................................................................
 struct bcRanges
 {
+ 
+  using limits = o2::dataformats::Pair<uint64_t, uint64_t>;
+ 
   // members
   const char* mlistName;
-  std::vector<o2::dataformats::Pair<uint64_t, uint64_t>> mbcRangesList;
+  std::vector<limits> mbcRangesList;
   bool isSorted;
   bool isMerged;
   bool isExtended;
@@ -53,7 +56,7 @@ struct bcRanges
 
   // add BC range
   void add (uint64_t first, uint64_t last) {
-    mbcRangesList.push_back(new o2::dataformats::Pair<uint64_t, uint64_t>(first, last));
+    mbcRangesList.push_back(limits(first, last));
     isSorted = false;
     isMerged = false;
     isExtended = false;
@@ -61,7 +64,9 @@ struct bcRanges
   
   // sort mbcRangesList according to first entries
   void sort() {
-    std::sort(mbcRangesList.begin(), mbcRangesList.end());
+    std::sort(mbcRangesList.begin(), mbcRangesList.end(), [](limits a, limits b) {
+      return a.first < b.first;
+    });
     isSorted = true;
   }
   
@@ -96,7 +101,7 @@ struct bcRanges
   // merge overlaping ranges
   void merge(bool toForce=false) {
     if (!isMerged || toForce) {
-      std::vector<std::pair<uint64_t, uint64_t>> tmpList;
+      std::vector<limits> tmpList;
       uint64_t ifirst=0, ilast;
   
       // apply sorting of the ranges
@@ -114,7 +119,7 @@ struct bcRanges
     
         if (iter->first > (ilast+1)) {
           // update tmpList
-          tmpList.push_back(std::make_pair(ifirst, ilast));
+          tmpList.push_back(limits(ifirst, ilast));
           ifirst = iter->first;
           ilast  = iter->second;
         } else {
@@ -123,8 +128,9 @@ struct bcRanges
           }
         }
       }
-      tmpList.push_back(std::make_pair(ifirst, ilast));
+      tmpList.push_back(limits(ifirst, ilast));
       
+      mbcRangesList.clear();
       mbcRangesList = tmpList;
       isMerged = true;
     }
@@ -193,8 +199,10 @@ struct bcRanges
     return mbcRangesList;
   }
 
+};
+
 // .............................................................................
-} // namespace framework
+} // namespace dataformats
 
 } // namespace o2
 
