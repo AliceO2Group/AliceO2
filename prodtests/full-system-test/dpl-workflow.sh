@@ -37,6 +37,12 @@ workflow_has_parameter GPU && { export GPUTYPE=HIP; export NGPUS=4; }
 MID_FEEID_MAP="$FILEWORKDIR/mid-feeId_mapper.txt"
 NITSDECTHREADS=2
 NMFTDECTHREADS=2
+# FIXME: multithreading in the itsmft reconstruction does not work
+#        on macOS.
+if [[ $(uname) == "Darwin" ]]; then
+    NITSDECTHREADS=1
+    NMFTDECTHREADS=1
+fi
 CTF_DICT=${CTF_DICT_DIR}/ctf_dictionary.root
 
 ITSMFT_FILES="ITSClustererParam.dictFilePath=$ITSCLUSDICT;MFTClustererParam.dictFilePath=$MFTCLUSDICT";
