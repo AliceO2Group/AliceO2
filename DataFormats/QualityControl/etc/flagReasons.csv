@@ -7,7 +7,7 @@
 6,"CertifiedByExpert","Certified by Expert",0,0
 10,"NoDetectorData","No Detector Data",1,0
 11,"LimitedAcceptance","Limited acceptance",1,0
-12."BadPID","Bad PID",1,0
+12,"BadPID","Bad PID",1,0
 13,"BadTracking","Bad Tracking",1,0
 14,"BadHadronPID","Bad Hadron PID",1,0
 15,"BadElectronPID","Bad Electron PID",1,0
