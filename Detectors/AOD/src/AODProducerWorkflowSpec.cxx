@@ -1273,7 +1273,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                aAmplitudes,
                aChannels,
                truncateFloatFraction(fv0RecPoint.getCollisionGlobalMeanTime() * 1E-3, mV0Time), // ps to ns
-               fv0RecPoint.getTrigger().triggerSignals);
+               fv0RecPoint.getTrigger().triggersignals);
   }
 
   for (auto zdcRecData : zdcBCRecData) {

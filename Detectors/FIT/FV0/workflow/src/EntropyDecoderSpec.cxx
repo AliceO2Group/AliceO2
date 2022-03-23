@@ -46,7 +46,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
 
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
 
-  auto& digits = pc.outputs().make<std::vector<o2::fv0::BCData>>(OutputRef{"digits"});
+  auto& digits = pc.outputs().make<std::vector<o2::fv0::Digit>>(OutputRef{"digits"});
   auto& channels = pc.outputs().make<std::vector<o2::fv0::ChannelData>>(OutputRef{"channels"});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object

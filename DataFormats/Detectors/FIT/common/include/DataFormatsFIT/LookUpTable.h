@@ -365,7 +365,10 @@ class LookupTableBase
       mapBuf.insert({entry.second, entry.first});
     }
     const auto& cru_tcm = getEntryCRU_TCM();
-    mapBuf.insert({static_cast<int>(mapBuf.size()), Topo_t{cru_tcm, 0}});
+
+    // FIXME: quick fix for to get the TCM into the right channel
+    // mapBuf.insert({static_cast<int>(mapBuf.size()), Topo_t{cru_tcm, 0}});
+    mapBuf.insert({1 + static_cast<int>((--mapBuf.end())->first), Topo_t{cru_tcm, 0}});
     //
     for (const auto& pairEntry : mapBuf) {
       auto en = pairEntry.second;

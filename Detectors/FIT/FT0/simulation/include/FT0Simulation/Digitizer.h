@@ -16,14 +16,12 @@
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/MCLabel.h"
-#include "MathUtils/RandomRing.h"
 #include "FT0Simulation/Detector.h"
 #include "FT0Base/Geometry.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "SimulationDataFormat/MCCompLabel.h"
 #include "FT0Simulation/DigitizationConstants.h"
-#include "FT0Simulation/DigitizationParameters.h"
-#include <TH1F.h>
+#include "FT0Simulation/FT0DigParam.h"
+#include "MathUtils/RandomRing.h"
 #include <array>
 #include <bitset>
 #include <vector>
@@ -103,7 +101,7 @@ class Digitizer
     if (x <= 0.0f) {
       return 0.0f;
     }
-    float const y = x / DigitizationParameters::Instance().mBunchWidth * DP::SIGNAL_TABLE_SIZE;
+    float const y = x / FT0DigParam::Instance().mBunchWidth * DP::SIGNAL_TABLE_SIZE;
     int const index = std::floor(y);
     if (index + 1 >= DP::SIGNAL_TABLE_SIZE) {
       return mSignalTable.back();
@@ -116,7 +114,7 @@ class Digitizer
   inline VcType signalFormVc(VcType x) const
   { // table lookup for the signal shape (SIMD version)
     // implemented as template function, so that we don't need to include <Vc/Vc> here
-    auto const y = x / DigitizationParameters::Instance().mBunchWidth * DP::SIGNAL_TABLE_SIZE;
+    auto const y = x / FT0DigParam::Instance().mBunchWidth * DP::SIGNAL_TABLE_SIZE;
     typename VcType::IndexType const index = floor(y);
     auto const rem = y - index;
     VcType val(0);

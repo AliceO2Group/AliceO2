@@ -11,8 +11,6 @@
 
 #include "FV0Calibration/FV0ChannelTimeTimeSlotContainer.h"
 #include "FV0Base/Constants.h"
-#include <numeric>
-#include <algorithm>
 #include "MathUtils/fit.h"
 
 using namespace o2::fv0;

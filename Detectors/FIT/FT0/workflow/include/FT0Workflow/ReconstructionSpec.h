@@ -35,7 +35,7 @@ class ReconstructionDPL : public Task
   static constexpr int NCHANNELS = o2::ft0::Geometry::Nchannels;
 
  public:
-  ReconstructionDPL(bool useMC, std::string ccdbpath) : mUseMC(useMC), mCCDBpath(ccdbpath) {}
+  ReconstructionDPL(bool useMC, const std::string ccdbpath) : mUseMC(useMC), mCCDBpath(ccdbpath) {}
   ~ReconstructionDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
