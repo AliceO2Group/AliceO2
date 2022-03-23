@@ -9,12 +9,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-list(APPEND LinkLibraries O2::SimulationDataFormat 
+list(APPEND LinkLibraries O2::SimulationDataFormat
                           O2::ZDCBase
-                          O2::DataFormatsZDC 
-                          O2::CCDB 
+                          O2::DataFormatsZDC
+                          O2::CCDB
                           O2::SimConfig
-                          O2::DetectorsRaw 
+                          O2::DetectorsRaw
                           O2::Headers)
 
 if (ONNXRuntime::ONNXRuntime_FOUND)

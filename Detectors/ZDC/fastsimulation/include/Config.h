@@ -27,7 +27,7 @@ namespace o2::zdc::fastsim
  */
 
 const std::string gZDCModelPath = "share/Detectors/ZDC/fastsimulation/onnx-models/generator.onnx"; // tmp path
-const std::string gZDCModelConfig = "share/Detectors/ZDC/fastsimulation/scales/vae_scales.txt";
+const std::string gZDCModelConfig = "share/Detectors/ZDC/fastsimulation/scales/sae_scales.txt";
 const std::string gSAEModelPath = "share/Detectors/ZDC/fastsimulation/onnx-models/sae_model.onnx"; // tmp path
 const std::string gSAEModelConfig = "share/Detectors/ZDC/fastsimulation/scales/sae_scales.txt";
 } // namespace o2::zdc::fastsim
