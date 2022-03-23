@@ -764,10 +764,8 @@ void* CcdbApi::extractFromLocalFile(std::string const& filename, std::type_info 
 bool CcdbApi::checkAlienToken() const
 {
 #ifdef __APPLE__
-  // not checking for token on Mac because
-  // a) we have seen problems where system call below hangs in some cases
-  // b) not the production plattform where the token would be beneficial
-  return false;
+  LOG(debug) << "On macOS we simply rely on TGrid::Connect(\"alien\").";
+  return true;
 #endif
   // a somewhat weird construction to programmatically find out if we
   // have a GRID token; Can be replaced with something more elegant once
