@@ -21,9 +21,11 @@
 #include "DataFormatsZDC/Hit.h"
 #include "ZDCSimulation/SpatialPhotonResponse.h"
 #include "TParticle.h"
+#include <utility>
+#ifdef ZDC_FASTSIM_ONNX
 #include "FastSimulations.h" // for fastsim module
 #include "Processors.h"      // for fastsim module
-#include <utility>
+#endif
 
 class FairVolume;
 

@@ -31,7 +31,9 @@
 #include <fstream>
 #include "ZDCSimulation/ZDCSimParam.h"
 #include "ZDCBase/Constants.h"
+#ifdef ZDC_FASTSIM_ONNX
 #include "Utils.h" // for normal_distribution()
+#endif
 
 using namespace o2::zdc;
 
