@@ -159,7 +159,6 @@ class DataProcessingDevice : public FairMQDevice
   std::function<void(RuntimeErrorRef e, InputRecord& record)> mErrorHandling;
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
   ServiceRegistry& mServiceRegistry;
-  TimingInfo mTimingInfo;
   DataAllocator mAllocator;
   DataRelayer* mRelayer = nullptr;
   /// Expiration handler
