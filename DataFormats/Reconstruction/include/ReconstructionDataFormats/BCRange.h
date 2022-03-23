@@ -18,58 +18,63 @@ namespace o2
 namespace dataformats
 {
 // .............................................................................
-struct bcRanges
-{
- 
+struct bcRanges {
+
   using limits = o2::dataformats::Pair<uint64_t, uint64_t>;
- 
+
   // members
   const char* mlistName;
   std::vector<limits> mbcRangesList;
   bool isSorted;
   bool isMerged;
   bool isExtended;
-  
-  public:
+
+ public:
   // constructor
-  bcRanges (const char* label) {
+  bcRanges(const char* label)
+  {
     mlistName = label;
     reset();
   }
-  
+
   // reset list
-  void reset () {
+  void reset()
+  {
     isSorted = false;
     isMerged = false;
     isExtended = false;
     mbcRangesList.clear();
   }
 
-  char status () {
-    return isSorted*(1<<0)+isMerged*(1<<1)+isExtended*(1<<2);
+  char status()
+  {
+    return isSorted * (1 << 0) + isMerged * (1 << 1) + isExtended * (1 << 2);
   }
 
   // return number of BC ranges in list
-  auto size () {
+  auto size()
+  {
     return mbcRangesList.size();
   }
 
   // add BC range
-  void add (uint64_t first, uint64_t last) {
+  void add(uint64_t first, uint64_t last)
+  {
     mbcRangesList.push_back(limits(first, last));
     isSorted = false;
     isMerged = false;
     isExtended = false;
   }
-  
+
   // sort mbcRangesList according to first entries
-  void sort() {
+  void sort()
+  {
     std::sort(mbcRangesList.begin(), mbcRangesList.end(), [](limits a, limits b) {
       return a.first < b.first;
     });
     isSorted = true;
   }
-  
+
   // get number of BCs not included in ranges
   template <typename BCs>
   uint64_t getnNotCompBCs(BCs bcs)
@@ -78,50 +83,51 @@ struct bcRanges
     if (!isMerged) {
       merge();
     }
-  
+
     // loop over ranges and count number of BCs not contained in a range
-    uint64_t nNotCompBCs=0;
-    uint64_t ilast=1, inext;
-    for(auto iter = mbcRangesList.begin(); iter != mbcRangesList.end(); ++iter) {
+    uint64_t nNotCompBCs = 0;
+    uint64_t ilast = 1, inext;
+    for (auto iter = mbcRangesList.begin(); iter != mbcRangesList.end(); ++iter) {
       inext = iter->first;
       if (iter == mbcRangesList.begin()) {
-        nNotCompBCs += (inext-ilast);
+        nNotCompBCs += (inext - ilast);
       } else {
-        nNotCompBCs += (inext-ilast-1);
+        nNotCompBCs += (inext - ilast - 1);
       }
       ilast = iter->second;
     }
     auto bclast = bcs.rawIteratorAt(bcs.size());
-    nNotCompBCs += (bclast.globalIndex()-ilast);
+    nNotCompBCs += (bclast.globalIndex() - ilast);
     LOGF(debug, "Number of BCs not in range of compatible BCs: %i", nNotCompBCs);
-  
+
     return nNotCompBCs;
   }
 
   // merge overlaping ranges
-  void merge(bool toForce=false) {
+  void merge(bool toForce = false)
+  {
     if (!isMerged || toForce) {
       std::vector<limits> tmpList;
-      uint64_t ifirst=0, ilast;
-  
+      uint64_t ifirst = 0, ilast;
+
       // apply sorting of the ranges
       if (!isSorted) {
         sort();
       }
-    
+
       // run over elements of mbcRangesList and merge lines where possible
-      for(auto iter = mbcRangesList.begin(); iter != mbcRangesList.end(); ++iter){
+      for (auto iter = mbcRangesList.begin(); iter != mbcRangesList.end(); ++iter) {
         if (iter == mbcRangesList.begin()) {
           ifirst = iter->first;
-          ilast  = iter->second;
+          ilast = iter->second;
           continue;
         }
-    
-        if (iter->first > (ilast+1)) {
+
+        if (iter->first > (ilast + 1)) {
           // update tmpList
           tmpList.push_back(limits(ifirst, ilast));
           ifirst = iter->first;
-          ilast  = iter->second;
+          ilast = iter->second;
         } else {
           if (iter->second > ilast) {
             ilast = iter->second;
@@ -129,44 +135,45 @@ struct bcRanges
         }
       }
       tmpList.push_back(limits(ifirst, ilast));
-      
+
       mbcRangesList.clear();
       mbcRangesList = tmpList;
       isMerged = true;
     }
   }
-  
+
   // add a factor fillFac of BCs not yet included in the BC ranges
   template <typename BCs>
-  void compact (BCs bcs, Double_t fillFac, bool toForce=false) {
-    if (!isExtended || toForce) {      
+  void compact(BCs bcs, Double_t fillFac, bool toForce = false)
+  {
+    if (!isExtended || toForce) {
       // apply merging of the ranges
       if (!isMerged || toForce) {
         merge(toForce);
       }
-  
+
       // find out number of BCs not in a compatible range
       auto nBCs = bcs.size();
       auto nNotCompBCs = getnNotCompBCs(bcs);
-  
+
       // keep adding BCs until the required number has been added
-      auto nToAdd = (uint64_t)(nNotCompBCs*fillFac);
-      int cnt=0;
+      auto nToAdd = (uint64_t)(nNotCompBCs * fillFac);
+      int cnt = 0;
       while (nToAdd > 0) {
         // add BC at the beginning
-        if (mbcRangesList[0].first>1) {
+        if (mbcRangesList[0].first > 1) {
           mbcRangesList[0].first--;
           nToAdd--;
         }
-    
+
         // number of BCs to add in this round
         auto nr = mbcRangesList.size();
         if (nr > nToAdd) {
           nr = nToAdd;
         }
-    
+
         // add BC after each range
-        for (auto ii=0; ii<nr; ii++) {
+        for (auto ii = 0; ii < nr; ii++) {
           if (mbcRangesList[ii].second < nBCs) {
             mbcRangesList[ii].second++;
             nToAdd--;
@@ -176,29 +183,33 @@ struct bcRanges
       }
       isExtended = true;
     }
-  }  
+  }
 
   // get BC range
-  auto operator[](int index) {
+  auto operator[](int index)
+  {
     return mbcRangesList[index];
   }
-  auto begin () {
+  auto begin()
+  {
     return mbcRangesList.begin();
   }
-  auto end () {
+  auto end()
+  {
     return mbcRangesList.end();
   }
-  
+
   // return list name
-  auto name() {
+  auto name()
+  {
     return mlistName;
   }
-    
+
   // return the list
-  auto list() {
+  auto list()
+  {
     return mbcRangesList;
   }
-
 };
 
 // .............................................................................
