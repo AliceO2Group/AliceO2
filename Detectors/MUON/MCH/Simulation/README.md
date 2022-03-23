@@ -42,5 +42,4 @@ stage :
 
 Of course, add other detectors (MID,MFT,ITS,...) if need be.
 
-Note that for the moment there's is no way to simply include the geometry of a detector, just to have its material budget in the picture, without also having it participating to the hit creation (see [JIRA
-O2-2378](https://alice.its.cern.ch/jira/browse/O2-2378)).
+Note that there is is a way to simply include the geometry of a detector, just to have its material budget in the picture, without also having it participating to the hit creation, see PR: https://github.com/AliceO2Group/AliceO2/pull/8149 for the options 
