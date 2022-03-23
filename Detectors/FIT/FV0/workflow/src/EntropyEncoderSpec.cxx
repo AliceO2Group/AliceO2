@@ -44,7 +44,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
-  auto digits = pc.inputs().get<gsl::span<o2::fv0::BCData>>("digits");
+  auto digits = pc.inputs().get<gsl::span<o2::fv0::Digit>>("digits");
   auto channels = pc.inputs().get<gsl::span<o2::fv0::ChannelData>>("channels");
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"FV0", "CTFDATA", 0, Lifetime::Timeframe});

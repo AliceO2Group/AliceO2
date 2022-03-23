@@ -9,16 +9,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file ChannelData.h
+/// \brief Container class to store time and charge values of single FV0 channel
+/// \author maciej.slupecki@cern.ch
+
 #ifndef _FV0_CHANNEL_DATA_H_
 #define _FV0_CHANNEL_DATA_H_
 
-#include <Framework/Logger.h>
-#include <array>
 #include <Rtypes.h>
 #include <tuple>
-/// \file ChannelData.h
-/// \brief Container class to store time and charge values of single FV0 channel
-
 namespace o2
 {
 namespace fv0
@@ -28,25 +27,52 @@ struct ChannelData {
   static constexpr char sChannelNameDPL[] = "DIGITSCH";
   static constexpr char sDigitName[] = "ChannelData";
   static constexpr char sDigitBranchName[] = "FV0DigitCh";
-  Short_t pmtNumber = -1; // PhotoMultiplier number (0 to 47)
-  Short_t time = -1;      // [ns] Time associated with rising edge of the singal in a given channel
-  Short_t chargeAdc = -1; // ADC sample as present in raw data
+  static constexpr uint8_t DUMMY_CHANNEL_ID = 0xff;
+  static constexpr uint8_t DUMMY_CHAIN_QTC = 0xff;
+  static constexpr int16_t DUMMY_CFD_TIME = -5000;
+  static constexpr int16_t DUMMY_QTC_AMPL = -5000;
+  uint8_t ChId = DUMMY_CHANNEL_ID;    // channel Id
+  uint8_t ChainQTC = DUMMY_CHAIN_QTC; // QTC chain
+  int16_t CFDTime = DUMMY_CFD_TIME;   // time in #CFD channels, 0 at the LHC clk center
+  int16_t QTCAmpl = DUMMY_QTC_AMPL;   // Amplitude #channels
+  enum EEventDataBit { kNumberADC,
+                       kIsDoubleEvent,
+                       kIsTimeInfoNOTvalid,
+                       kIsCFDinADCgate,
+                       kIsTimeInfoLate,
+                       kIsAmpHigh,
+                       kIsEventInTVDC,
+                       kIsTimeInfoLost
+  };
 
   ChannelData() = default;
-  ChannelData(Short_t iPmt, Float_t t, Short_t charge)
+  ChannelData(uint8_t iPmt, int time, int charge, uint8_t chainQTC)
   {
-    pmtNumber = iPmt;
-    time = t;
-    chargeAdc = charge;
+    ChId = iPmt;
+    CFDTime = time;
+    QTCAmpl = charge;
+    ChainQTC = chainQTC;
   }
-  Short_t getChannelID() const { return pmtNumber; }
+  void setFlag(uint8_t flag)
+  {
+    ChainQTC = flag;
+  }
+  void setFlag(EEventDataBit bitFlag, bool value)
+  {
+    ChainQTC |= (value << bitFlag);
+  }
+  bool getFlag(EEventDataBit bitFlag) const { return bool(ChainQTC & (1 << bitFlag)); }
   void print() const;
   void printLog() const;
+  [[nodiscard]] uint8_t getChannelID() const { return ChId; }
+  [[nodiscard]] uint16_t getTime() const { return CFDTime; }
+  [[nodiscard]] uint16_t getAmp() const { return QTCAmpl; }
+
   bool operator==(ChannelData const& other) const
   {
-    return std::tie(pmtNumber, time, chargeAdc) == std::tie(other.pmtNumber, other.time, other.chargeAdc);
+    return std::tie(ChId, CFDTime, QTCAmpl) == std::tie(other.ChId, other.CFDTime, other.QTCAmpl); // TODO: MS: include ChainQTC when FV0 CTF format is extended by trigger flags
   }
-  ClassDefNV(ChannelData, 1);
+  ClassDefNV(ChannelData, 2);
 };
 } // namespace fv0
 } // namespace o2

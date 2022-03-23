@@ -18,12 +18,13 @@ o2_add_library(FV0Workflow
                        src/EntropyDecoderSpec.cxx
                        src/DigitReaderSpec.cxx
                        src/FV0DigitWriterSpec.cxx
-               PUBLIC_LINK_LIBRARIES O2::Framework
-                                     O2::DataFormatsFV0
+               PUBLIC_LINK_LIBRARIES O2::DataFormatsFV0
                                      O2::FV0Reconstruction
+                                     O2::FV0Raw
                                      O2::DetectorsCommonDataFormats
+                                     O2::Framework
                                      O2::DPLUtils
-                                     O2::FV0Raw)
+                                     O2::CommonUtils)
 
 o2_add_executable(reco-workflow
                   SOURCES src/fv0-reco-workflow.cxx

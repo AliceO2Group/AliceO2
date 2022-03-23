@@ -26,7 +26,7 @@ using namespace o2::fv0;
 
 BOOST_AUTO_TEST_CASE(CTFTest)
 {
-  std::vector<BCData> digits;
+  std::vector<Digit> digits;
   std::vector<ChannelData> channels;
   Triggers trigger; // TODO: Actual values are not set
 
@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   sw.Start();
   o2::InteractionRecord ir(0, 0);
 
-  constexpr int MAXChan = Constants::nChannelsPerPm * Constants::nPms; // RSFIXME is this correct ?
+  constexpr int MAXChan = Constants::nChannelsPerPm * Constants::nPms;
   for (int idig = 0; idig < 1000; idig++) {
     ir += 1 + gRandom->Integer(200);
     uint8_t ich = gRandom->Poisson(10);
@@ -42,12 +42,13 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     while (ich < MAXChan) {
       int16_t t = -2048 + gRandom->Integer(2048 * 2);
       uint16_t q = gRandom->Integer(4096);
-      channels.emplace_back(ich, t, q);
+      uint8_t chain = gRandom->Rndm() > 0.5 ? 0 : 1;
+      channels.emplace_back(ich, t, q, chain);
       ich += 1 + gRandom->Poisson(10);
     }
     auto end = channels.size();
-    trigger.triggerSignals = gRandom->Integer(255);
-    digits.emplace_back(start, end - start, ir, trigger);
+    trigger.triggersignals = gRandom->Integer(255);
+    digits.emplace_back(start, end - start, ir, trigger, idig);
   }
 
   LOG(info) << "Generated " << channels.size() << " channels in " << digits.size() << " digits " << sw.CpuTime() << " s";
@@ -86,7 +87,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     LOG(info) << "Read back from tree in " << sw.CpuTime() << " s";
   }
 
-  std::vector<BCData> digitsD;
+  std::vector<Digit> digitsD;
   std::vector<ChannelData> channelsD;
 
   sw.Start();
@@ -114,9 +115,9 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     /*
     const auto& cor = channels[i];
     const auto& cdc = channelsD[i];
-    BOOST_CHECK(cor.pmtNumber == cdc.pmtNumber);
-    BOOST_CHECK(cor.time == cdc.time);
-    BOOST_CHECK(cor.chargeAdc == cdc.chargeAdc);
+    BOOST_CHECK(cor.ChId == cdc.ChId);
+    BOOST_CHECK(cor.CFDTime == cdc.CFDTime);
+    BOOST_CHECK(cor.QTCAmpl == cdc.QTCAmpl);
     */
     BOOST_CHECK(channels[i] == channelsD[i]);
   }

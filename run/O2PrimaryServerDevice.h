@@ -42,6 +42,7 @@
 #include "PrimaryServerState.h"
 #include "SimPublishChannelHelper.h"
 #include <chrono>
+#include <CCDB/BasicCCDBManager.h>
 
 namespace o2
 {
@@ -74,6 +75,9 @@ class O2PrimaryServerDevice final : public FairMQDevice
     TStopwatch timer;
     timer.Start();
     const auto& conf = mSimConfig;
+    auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
+    ccdbmgr.setURL(conf.getConfigData().mCCDBUrl);
+    ccdbmgr.setTimestamp(conf.getTimestamp());
 
     // init magnetic field as it might be needed by the generator
     if (TGeoGlobalMagField::Instance()->GetField() == nullptr) {

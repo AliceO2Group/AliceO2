@@ -52,9 +52,8 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   auto eeb = CTF::get(buffer.data()); // cast to container pointer
   eeb->compactify();                  // eliminate unnecessary padding
   buffer.resize(eeb->size());         // shrink buffer to strictly necessary size
-  //  eeb->print();
   mTimer.Stop();
-  LOG(info) << "Created encoded data of size " << eeb->size() << " for FT0 in " << mTimer.CpuTime() - cput << " s";
+  LOG(debug) << "Created encoded data of size " << eeb->size() << " for FT0 in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)

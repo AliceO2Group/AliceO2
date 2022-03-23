@@ -24,7 +24,7 @@
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFT0/ChannelData.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "FT0Simulation/DigitizationParameters.h"
+#include "FT0Simulation/FT0DigParam.h"
 #include "DetectorsBase/CTFCoderBase.h"
 #include "rANS/rans.h"
 
@@ -62,8 +62,6 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   void appendToTree(TTree& tree, CTF& ec);
   void readFromTree(TTree& tree, int entry, std::vector<Digit>& digitVec, std::vector<ChannelData>& channelVec);
-  // DigitizationParameters const &mParameters;
-  //  o2::ft0::Geometry mGeometry;
 };
 
 /// entropy-encode clusters to buffer with CTF
@@ -159,7 +157,7 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
     }
     Triggers trig;
     trig.triggersignals = cd.trigger[idig];
-    const auto& params = DigitizationParameters::Instance();
+    const auto& params = FT0DigParam::Instance();
     int triggerGate = params.mTime_trg_gate;
     firstEntry = channelVec.size();
     uint8_t chID = 0;
