@@ -640,19 +640,18 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
         // we store all primary particles == particles put by generator
         if (mcParticles[particle].isPrimary()) {
           mToStore[Triplet_t(source, event, particle)] = 1;
-          continue;
-        }
-        if (o2::mcutils::MCTrackNavigator::isPhysicalPrimary(mcParticles[particle], mcParticles)) {
+        } else if (o2::mcutils::MCTrackNavigator::isPhysicalPrimary(mcParticles[particle], mcParticles)) {
           mToStore[Triplet_t(source, event, particle)] = 1;
-          continue;
-        }
-        if (o2::mcutils::MCTrackNavigator::isKeepPhysics(mcParticles[particle], mcParticles)) {
+        } else if (o2::mcutils::MCTrackNavigator::isKeepPhysics(mcParticles[particle], mcParticles)) {
           mToStore[Triplet_t(source, event, particle)] = 1;
-          continue;
         }
+
+        // skip treatment if this particle has not been marked during reconstruction
+        // or based on criteria just above
         if (mToStore.find(Triplet_t(source, event, particle)) == mToStore.end()) {
           continue;
         }
+
         int mother0 = mcParticles[particle].getMotherTrackId();
         // we store mothers and daughters of particles that are reconstructed
         if (mother0 != -1) {
@@ -679,15 +678,15 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
           tableIndex++;
         }
       }
-    }
-    // if all mc particles are stored, all mc particles will be enumerated
-    if (!mRecoOnly) {
+    } else {
+      // if all mc particles are stored, all mc particles will be enumerated
       for (int particle = 0; particle < mcParticles.size(); particle++) {
         mToStore[Triplet_t(source, event, particle)] = tableIndex - 1;
         tableIndex++;
       }
     }
-    // fill survived mc tracks into the table
+
+    // second part: fill survived mc tracks into the AOD table
     for (int particle = 0; particle < mcParticles.size(); particle++) {
       if (mToStore.find(Triplet_t(source, event, particle)) == mToStore.end()) {
         continue;
@@ -729,6 +728,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       if (item != mToStore.end()) {
         daughters[1] = item->second;
         if (daughters[0] < 0) {
+          LOG(error) << "AOD problematic daughter case observed";
           daughters[0] = daughters[1]; /// Treat the case of first negative label (pruned in the kinematics)
         }
       } else {
