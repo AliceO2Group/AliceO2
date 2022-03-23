@@ -24,7 +24,6 @@
 #include "FastSimulations.h" // for fastsim module
 #include "Processors.h"      // for fastsim module
 #include <utility>
-#include <fstream> // for fastsim module
 
 class FairVolume;
 
@@ -239,9 +238,6 @@ class Detector : public o2::base::DetImpl<Detector>
   // container for fastsim model responses
   using FastSimResults = std::vector<std::array<long, 5>>;
   FastSimResults mFastSimResults;
-
-  // output handler
-  std::fstream mOutput;
 #endif
 
   template <typename Det>

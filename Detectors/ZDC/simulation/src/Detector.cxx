@@ -31,6 +31,7 @@
 #include <fstream>
 #include "ZDCSimulation/ZDCSimParam.h"
 #include "ZDCBase/Constants.h"
+#include "Utils.h" // for normal_distribution()
 
 using namespace o2::zdc;
 
@@ -85,6 +86,7 @@ Detector::Detector(Bool_t active)
         } else {
           mModelScaler.setScales(modelScales->first, modelScales->second);
           mFastSimModel = new o2::zdc::fastsim::ConditionalModelSimulation(o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPath);
+          mNoise = o2::zdc::fastsim::normal_distribution(0.0, 1.0, 10);
           LOG(info) << "\n FastSim module enabled";
         }
       }
@@ -106,7 +108,6 @@ Detector::~Detector()
 {
   delete (mFastSimClassifier);
   delete (mFastSimModel);
-  mOutput.close();
 }
 #endif
 
@@ -2429,15 +2430,14 @@ void Detector::FinishPrimary()
 
 #ifdef ZDC_FASTSIM_ONNX
   if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && mFastSimModel != nullptr && mFastSimClassifier != nullptr) {
-    if (!mOutput.is_open()) {
-      mOutput.open("o2sim-FastSimResult", mOutput.out | mOutput.app);
-      if (!mOutput.is_open()) {
-        LOG(error) << "Could not open file.";
-      }
+    std::fstream output("o2sim-FastSimResult", output.out | output.app);
+    if (!output.is_open()) {
+      LOG(error) << "Could not open file.";
     } else {
+
       for (auto& result : mFastSimResults) {
-        mOutput << result[0] << ", " << result[1] << ", " << result[2] << ", " << result[3] << ", " << result[4];
-        mOutput << std::endl;
+        output << result[0] << ", " << result[1] << ", " << result[2] << ", " << result[3] << ", " << result[4];
+        output << std::endl;
       }
       mFastSimResults.clear();
     }
