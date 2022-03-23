@@ -494,9 +494,14 @@ o2::framework::ServiceSpec CommonServices::ccdbSupportSpec()
       if (!service) {
         return;
       }
+      if (pc.services().get<DeviceState>().streaming == StreamingState::EndOfStreaming) {
+        LOGP(debug, "We are in EoS, do not automatically add DISTSUBTIMEFRAME to outgoing messages");
+        return;
+      }
       const auto ref = pc.inputs().getFirstValid(true);
       const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       const auto* dph = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
+
       // For any output that is a FLP/DISTSUBTIMEFRAME with subspec != 0,
       // we create a new message.
       InputSpec matcher{"matcher", ConcreteDataTypeMatcher{"FLP", "DISTSUBTIMEFRAME"}};
