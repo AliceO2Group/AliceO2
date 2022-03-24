@@ -78,6 +78,23 @@ o2::header::Stack* MessageContext::findMessageHeaderStack(const Output& spec)
   return nullptr;
 }
 
+int MessageContext::countDeviceOutputs(bool excludeDPLOrigin)
+{
+  int noutputs = 0;
+  constexpr o2::header::DataOrigin DataOriginDPL{"DPL"};
+  for (auto it = mMessages.rbegin(); it != mMessages.rend(); ++it) {
+    if (!excludeDPLOrigin || (*it)->header()->dataOrigin != DataOriginDPL) {
+      noutputs++;
+    }
+  }
+  for (auto it = mScheduledMessages.rbegin(); it != mScheduledMessages.rend(); ++it) {
+    if (!excludeDPLOrigin || (*it)->header()->dataOrigin != DataOriginDPL) {
+      noutputs++;
+    }
+  }
+  return noutputs;
+}
+
 int64_t MessageContext::addToCache(std::unique_ptr<FairMQMessage>& toCache)
 {
   auto&& cached = toCache->GetTransport()->CreateMessage();

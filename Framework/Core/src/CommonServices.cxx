@@ -495,8 +495,10 @@ o2::framework::ServiceSpec CommonServices::ccdbSupportSpec()
         return;
       }
       if (pc.services().get<DeviceState>().streaming == StreamingState::EndOfStreaming) {
-        LOGP(debug, "We are in EoS, do not automatically add DISTSUBTIMEFRAME to outgoing messages");
-        return;
+        if (pc.outputs().countDeviceOutputs(true) == 0) {
+          LOGP(debug, "We are in EoS w/o outputs, do not automatically add DISTSUBTIMEFRAME to outgoing messages");
+          return;
+        }
       }
       const auto ref = pc.inputs().getFirstValid(true);
       const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
