@@ -58,7 +58,7 @@ InterCalibSpec::InterCalibSpec(const int verbosity)
 
 void InterCalibSpec::init(o2::framework::InitContext& ic)
 {
-  mccdbHost = ic.options().get<std::string>("ccdb-url");
+  mVerbosity = ic.options().get<int>("verbosity-level");
 }
 
 void InterCalibSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -71,7 +71,6 @@ void InterCalibSpec::updateTimeDependentParams(ProcessingContext& pc)
 
 void InterCalibSpec::run(ProcessingContext& pc)
 {
-  InterCalib work;
   updateTimeDependentParams(pc);
   if (!mInitialized) {
     mInitialized = true;
@@ -81,6 +80,7 @@ void InterCalibSpec::run(ProcessingContext& pc)
     auto energyParam = pc.inputs().get<o2::zdc::ZDCEnergyParam*>("energycalib");
     if (!energyParam) {
       LOG(fatal) << "Missing ZDCEnergyParam calibration object";
+      return;
     } else {
       loadedConfFiles += " ZDCEnergyParam";
       if (mVerbosity > DbgZero) {
@@ -93,6 +93,7 @@ void InterCalibSpec::run(ProcessingContext& pc)
     auto towerParam = pc.inputs().get<o2::zdc::ZDCTowerParam*>("towercalib");
     if (!towerParam) {
       LOG(fatal) << "Missing ZDCTowerParam calibration object";
+      return;
     } else {
       loadedConfFiles += " ZDCTowerParam";
       if (mVerbosity > DbgZero) {
@@ -105,6 +106,7 @@ void InterCalibSpec::run(ProcessingContext& pc)
     auto interConfig = pc.inputs().get<o2::zdc::InterCalibConfig*>("intercalibconfig");
     if (!interConfig) {
       LOG(fatal) << "Missing InterCalibConfig calibration InterCalibConfig";
+      return;
     } else {
       loadedConfFiles += " InterCalibConfig";
       if (mVerbosity > DbgZero) {
@@ -113,26 +115,26 @@ void InterCalibSpec::run(ProcessingContext& pc)
       }
     }
 
-    work.setEnergyParam(energyParam.get());
-    work.setTowerParam(towerParam.get());
-    work.setInterCalibConfig(interConfig.get());
+    mInterCalib.setEnergyParam(energyParam.get());
+    mInterCalib.setTowerParam(towerParam.get());
+    mInterCalib.setInterCalibConfig(interConfig.get());
 
     LOG(info) << loadedConfFiles;
+    mTimer.CpuTime();
+    mTimer.Start(false);
   }
 
-  auto cput = mTimer.CpuTime();
-  mTimer.Start(false);
   auto bcrec = pc.inputs().get<gsl::span<o2::zdc::BCRecData>>("bcrec");
   auto energy = pc.inputs().get<gsl::span<o2::zdc::ZDCEnergy>>("energy");
   auto tdc = pc.inputs().get<gsl::span<o2::zdc::ZDCTDCData>>("tdc");
   auto info = pc.inputs().get<gsl::span<uint16_t>>("info");
-  work.init();
-  work.process(bcrec, energy, tdc, info);
-  mTimer.Stop();
+  mInterCalib.process(bcrec, energy, tdc, info);
 }
 
 void InterCalibSpec::endOfStream(EndOfStreamContext& ec)
 {
+  mInterCalib.endOfRun();
+  mTimer.Stop();
   LOGF(info, "ZDC Intercalibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
@@ -154,7 +156,7 @@ framework::DataProcessorSpec getInterCalibSpec(const int verbosity = 0)
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<InterCalibSpec>(verbosity)},
-    o2::framework::Options{{"ccdb-url", o2::framework::VariantType::String, o2::base::NameConf::getCCDBServer(), {"CCDB Url"}}}};
+    o2::framework::Options{{"verbosity-level", o2::framework::VariantType::Int, 0, {"Verbosity level"}}}};
 }
 
 } // namespace zdc

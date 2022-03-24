@@ -16,10 +16,10 @@
 #ifndef O2_ZDC_TDCCALIB_SPEC
 #define O2_ZDC_TDCCALIB_SPEC
 
+#include <TStopwatch.h>
 #include "Framework/Logger.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include <TStopwatch.h>
 #include "CommonUtils/NameConf.h"
 
 namespace o2
@@ -33,14 +33,14 @@ class TDCCalibSpec : public o2::framework::Task
   TDCCalibSpec();
   TDCCalibSpec(const int verbosity);
   ~TDCCalibSpec() override = default;
-  void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
+  void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
+  void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
-  std::string mccdbHost{o2::base::NameConf::getCCDBServer()}; // Alternative ccdb server
-  int mVerbosity = 0;                                         // Verbosity level during recostruction
-  bool mInitialized = false;                                  // Connect once to CCDB during initialization
+  int mVerbosity = 0;        // Verbosity level
+  bool mInitialized = false; // Connect once to CCDB during initialization
   TStopwatch mTimer;
 };
 

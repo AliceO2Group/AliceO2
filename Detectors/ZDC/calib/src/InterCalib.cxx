@@ -101,6 +101,11 @@ int InterCalib::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
       cumulate(HidZEM, ev.EZDC(IdZEM1), ev.EZDC(IdZEM2), 0., 0., 0., 1.);
     }
   }
+  return 0;
+}
+
+int InterCalib::endOfRun()
+{
   for (int ih = 0; ih < NH; ih++) {
     if (mSum[ih][5][5] >= mInterCalibConfig->min_e[ih]) {
       int ierr = mini(ih);
@@ -113,7 +118,6 @@ int InterCalib::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
       LOGF(info, "FAILED processing RUN3 data for ih = %d: TOO FEW EVENTS: ", ih);
     }
     LOGF(info, "%g events and cuts (%g:%g)\n", mSum[ih][5][5], mInterCalibConfig->cutLow[ih], mInterCalibConfig->cutHigh[ih]);
-    return 0;
   }
   write();
   return 0;

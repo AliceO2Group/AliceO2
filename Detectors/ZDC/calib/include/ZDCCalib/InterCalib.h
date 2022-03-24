@@ -42,9 +42,12 @@ class InterCalib
               const gsl::span<const o2::zdc::ZDCEnergy>& energy,
               const gsl::span<const o2::zdc::ZDCTDCData>& tdc,
               const gsl::span<const uint16_t>& info); // Calibration of RUN3 data
+  int endOfRun(); // Perform minimization
   int process(const char* hname, int ic);             // Calibration of RUN2 data
   void replay(int ih, THnSparse* hs, int ic);         // Test of calibration using RUN2 data
   int mini(int ih);
+  int write(const std::string fn = "ZDCInterCalib.root");
+
   static constexpr int NPAR = 6; /// Dimension of matrix (1 + 4 coefficients + offset)
   static constexpr int NH = 5;   /// ZNA, ZPA, ZNC, ZPC, ZEM
   static double mAdd[NPAR][NPAR]; /// Temporary copy of cumulated sums
@@ -58,7 +61,6 @@ class InterCalib
   void setInterCalibConfig(const InterCalibConfig* param) { mInterCalibConfig = param; };
   const InterCalibConfig* getInterCalibConfig() const { return mInterCalibConfig; };
 
-  int write(const std::string fn = "ZDCInterCalib.root");
 
  private:
   std::array<std::unique_ptr<TH1>, 2*NH> mHUnc{};

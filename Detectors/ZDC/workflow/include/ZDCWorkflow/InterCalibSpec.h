@@ -41,9 +41,9 @@ class InterCalibSpec : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
-  std::string mccdbHost{o2::base::NameConf::getCCDBServer()}; // Alternative ccdb server
-  int mVerbosity = 0;                                         // Verbosity level during recostruction
-  bool mInitialized = false;                                  // Connect once to CCDB during initialization
+  int mVerbosity = 0;        // Verbosity level
+  bool mInitialized = false; // Connect once to CCDB during initialization
+  InterCalib mInterCalib;    // Intercalibration object
   TStopwatch mTimer;
 };
 

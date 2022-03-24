@@ -21,6 +21,7 @@
 #include "Framework/Logger.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/ChannelData.h"
@@ -57,29 +58,34 @@ TDCCalibSpec::TDCCalibSpec(const int verbosity)
 
 void TDCCalibSpec::init(o2::framework::InitContext& ic)
 {
-  mccdbHost = ic.options().get<std::string>("ccdb-url");
+  mVerbosity = ic.options().get<int>("verbosity-level");
+}
+
+void TDCCalibSpec::updateTimeDependentParams(ProcessingContext& pc)
+{
+  // we call these methods just to trigger finaliseCCDB callback
+  pc.inputs().get<o2::zdc::ZDCEnergyParam*>("energycalib");
+  pc.inputs().get<o2::zdc::ZDCTowerParam*>("towercalib");
+  pc.inputs().get<o2::zdc::InterCalibConfig*>("intercalibconfig");
 }
 
 void TDCCalibSpec::run(ProcessingContext& pc)
 {
+  updateTimeDependentParams(pc);
   if (!mInitialized) {
     mInitialized = true;
-    // Initialization from CCDB
-    auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-    mgr.setURL(mccdbHost);
-    std::string loadedConfFiles = "Loaded ZDC configuration files for timestamp " + std::to_string(mgr.getTimestamp()) + ":";
+    std::string loadedConfFiles = "Loaded ZDC configuration files:";
 
     // TDC centering
-    auto* tdcParam = mgr.get<o2::zdc::ZDCTDCParam>(o2::zdc::CCDBPathTDCCalib);
+    auto tdcParam = pc.inputs().get<o2::zdc::ZDCTDCParam*>("tdccalib");
     if (!tdcParam) {
-      LOG(info) << loadedConfFiles;
       LOG(fatal) << "Missing ZDCTDCParam calibration object";
       return;
     } else {
       loadedConfFiles += " ZDCTDCParam";
     }
     if (mVerbosity > DbgZero) {
-      LOG(info) << "Loaded TDC centering ZDCTDCParam for timestamp " << mgr.getTimestamp();
+      LOG(info) << "Loaded TDC centering ZDCTDCParam";
       tdcParam->print();
     }
   }
@@ -110,6 +116,7 @@ framework::DataProcessorSpec getTDCCalibSpec(const int verbosity = 0)
   inputs.emplace_back("energy", "ZDC", "ENERGY", 0, Lifetime::Timeframe);
   inputs.emplace_back("tdc", "ZDC", "TDCDATA", 0, Lifetime::Timeframe);
   inputs.emplace_back("info", "ZDC", "INFO", 0, Lifetime::Timeframe);
+  inputs.emplace_back("tdccalib", "ZDC", "TDCCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathTDCCalib.data())));
 
   std::vector<OutputSpec> outputs;
 
@@ -118,7 +125,7 @@ framework::DataProcessorSpec getTDCCalibSpec(const int verbosity = 0)
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TDCCalibSpec>(verbosity)},
-    o2::framework::Options{{"ccdb-url", o2::framework::VariantType::String, o2::base::NameConf::getCCDBServer(), {"CCDB Url"}}}};
+    o2::framework::Options{{"verbosity-level", o2::framework::VariantType::Int, 0, {"Verbosity level"}}}};
 }
 
 } // namespace zdc
