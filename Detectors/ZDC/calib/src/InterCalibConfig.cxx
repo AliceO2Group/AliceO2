@@ -14,7 +14,7 @@
 
 using namespace o2::zdc;
 
-void InterCalibConfig::print()
+void InterCalibConfig::print() const
 {
   const char* hn[NH] = {"ZNA", "ZPA", "ZNC", "ZPC", "ZEM"};
   for (Int_t ih = 0; ih < NH; ih++) {

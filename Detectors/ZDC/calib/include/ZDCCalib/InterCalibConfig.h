@@ -41,7 +41,7 @@ struct InterCalibConfig {
   double step_o[NH] = {0., 0., 0., 0., 0.};
   double min_e[NH] = {0., 0., 0., 0., 0.};
 
-  void print();
+  void print() const;
   void resetCuts();
   void resetCutLow();
   void resetCutHigh();

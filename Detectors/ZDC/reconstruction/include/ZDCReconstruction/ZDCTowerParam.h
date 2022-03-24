@@ -28,7 +28,7 @@ struct ZDCTowerParam {
   float tower_calib[NChannels] = {0}; // Tower calibration coefficients
   void setTowerCalib(uint32_t ich, float val);
   float getTowerCalib(uint32_t ich) const;
-  void print();
+  void print() const;
   ClassDefNV(ZDCTowerParam, 1);
 };
 } // namespace zdc

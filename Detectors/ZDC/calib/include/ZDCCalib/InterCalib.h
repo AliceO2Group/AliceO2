@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include <mutex>
+#include <memory>
 #include <TH1.h>
 #include <TH2.h>
 #include <THnBase.h>
@@ -31,11 +32,11 @@ class InterCalib
  public:
   InterCalib() = default;
   int init();
-  const static int hidZNA = 0;
-  const static int hidZPA = 1;
-  const static int hidZNC = 2;
-  const static int hidZPC = 3;
-  const static int hidZEM = 4;
+  static constexpr int HidZNA = 0;
+  static constexpr int HidZPA = 1;
+  static constexpr int HidZNC = 2;
+  static constexpr int HidZPC = 3;
+  static constexpr int HidZEM = 4;
   void clear(int ih = -1);
   int process(const gsl::span<const o2::zdc::BCRecData>& bcrec,
               const gsl::span<const o2::zdc::ZDCEnergy>& energy,
@@ -46,36 +47,33 @@ class InterCalib
   int mini(int ih);
   static constexpr int NPAR = 6; /// Dimension of matrix (1 + 4 coefficients + offset)
   static constexpr int NH = 5;   /// ZNA, ZPA, ZNC, ZPC, ZEM
-  static double add[NPAR][NPAR]; /// Temporary copy of cumulated sums
+  static double mAdd[NPAR][NPAR]; /// Temporary copy of cumulated sums
   static void fcn(int& npar, double* gin, double& chi, double* par, int iflag);
   void cumulate(int ih, double tc, double t1, double t2, double t3, double t4, double w);
 
   void setEnergyParam(const ZDCEnergyParam* param) { mEnergyParam = param; };
-  const ZDCEnergyParam* getEnergyParam() { return mEnergyParam; };
+  const ZDCEnergyParam* getEnergyParam() const { return mEnergyParam; };
   void setTowerParam(const ZDCTowerParam* param) { mTowerParam = param; };
-  const ZDCTowerParam* getTowerParam() { return mTowerParam; };
+  const ZDCTowerParam* getTowerParam() const { return mTowerParam; };
   void setInterCalibConfig(const InterCalibConfig* param) { mInterCalibConfig = param; };
-  const InterCalibConfig* getInterCalibConfig() { return mInterCalibConfig; };
+  const InterCalibConfig* getInterCalibConfig() const { return mInterCalibConfig; };
 
   int write(const std::string fn = "ZDCInterCalib.root");
 
  private:
-  TH1* h[2 * NH] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
-  TH2* hc[NH] = {nullptr, nullptr, nullptr, nullptr, nullptr};
-
-  TH1* h_corr[NH] = {nullptr, nullptr, nullptr, nullptr, nullptr};
-  TH2* hc_corr[NH] = {nullptr, nullptr, nullptr, nullptr, nullptr};
-
-  TMinuit* mn[NH] = {nullptr, nullptr, nullptr, nullptr, nullptr};
+  std::array<std::unique_ptr<TH1>, 2*NH> mHUnc{};
+  std::array<std::unique_ptr<TH2>, NH> mCUnc{};
+  std::array<std::unique_ptr<TH1>, NH> mHCorr{};
+  std::array<std::unique_ptr<TH2>, NH> mCCorr{};
+  std::array<std::unique_ptr<TMinuit>, NH> mMn{};
   bool mInitDone = false;
-  static std::mutex mtx; /// mutex for critical section
-  double sum[NH][NPAR][NPAR] = {0};
-  double par[NH][NPAR] = {0};
-  double err[NH][NPAR] = {0};
+  static std::mutex mMtx; /// mutex for critical section
+  double mSum[NH][NPAR][NPAR] = {0};
+  double mPar[NH][NPAR] = {0};
+  double mErr[NH][NPAR] = {0};
   const ZDCEnergyParam* mEnergyParam = nullptr;        /// Energy calibration object
   const ZDCTowerParam* mTowerParam = nullptr;          /// Tower calibration object
   const InterCalibConfig* mInterCalibConfig = nullptr; /// Configuration of intercalibration
-  std::vector<float> store[5];
 };
 } // namespace zdc
 } // namespace o2

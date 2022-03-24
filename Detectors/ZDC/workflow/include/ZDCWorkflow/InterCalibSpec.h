@@ -16,11 +16,13 @@
 #ifndef O2_ZDC_INTERCALIB_SPEC
 #define O2_ZDC_INTERCALIB_SPEC
 
+#include <TStopwatch.h>
 #include "Framework/Logger.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include <TStopwatch.h>
 #include "CommonUtils/NameConf.h"
+#include "ZDCCalib/InterCalib.h"
+#include "ZDCCalib/InterCalibConfig.h"
 
 namespace o2
 {
@@ -33,8 +35,9 @@ class InterCalibSpec : public o2::framework::Task
   InterCalibSpec();
   InterCalibSpec(const int verbosity);
   ~InterCalibSpec() override = default;
-  void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
+  void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
+  void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:

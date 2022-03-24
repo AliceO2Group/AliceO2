@@ -43,7 +43,7 @@ float ZDCTowerParam::getTowerCalib(uint32_t ich) const
   }
 }
 
-void ZDCTowerParam::print()
+void ZDCTowerParam::print() const
 {
   for (Int_t ich = 0; ich < NChannels; ich++) {
     if (tower_calib[ich] > 0) {
