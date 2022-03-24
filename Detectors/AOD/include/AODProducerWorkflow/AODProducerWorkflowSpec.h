@@ -316,6 +316,50 @@ class AODProducerWorkflowDPL : public Task
     int bcSlice[2] = {-1, -1};
   };
 
+  // helper struct for addToFwdTracksTable()
+  struct FwdTrackInfo {
+    uint8_t trackTypeId = 0;
+    float x = 0.f;
+    float y = 0.f;
+    float z = 0.f;
+    float rabs = 0.f;
+    float phi = 0.f;
+    float tanl = 0.f;
+    float invqpt = 0.f;
+    float chi2 = 0.f;
+    float pdca = 0.f;
+    int nClusters = -1;
+    float chi2matchmchmid = -1.0;
+    float chi2matchmchmft = -1.0;
+    float matchscoremchmft = -1.0;
+    int matchmfttrackid = -1;
+    int matchmchtrackid = -1;
+    uint16_t mchBitMap = 0;
+    uint8_t midBitMap = 0;
+    uint32_t midBoards = 0;
+    float trackTime = -999.f;
+    float trackTimeRes = -999.f;
+  };
+
+  // helper struct for addToFwdTracksTable()
+  struct FwdTrackCovInfo {
+    float sigX = 0.f;
+    float sigY = 0.f;
+    float sigPhi = 0.f;
+    float sigTgl = 0.f;
+    float sig1Pt = 0.f;
+    int8_t rhoXY = 0;
+    int8_t rhoPhiX = 0;
+    int8_t rhoPhiY = 0;
+    int8_t rhoTglX = 0;
+    int8_t rhoTglY = 0;
+    int8_t rhoTglPhi = 0;
+    int8_t rho1PtX = 0;
+    int8_t rho1PtY = 0;
+    int8_t rho1PtPhi = 0;
+    int8_t rho1PtTgl = 0;
+  };
+
   // helper struct for mc track labels
   // using -1 as dummies for AOD
   struct MCLabels {
