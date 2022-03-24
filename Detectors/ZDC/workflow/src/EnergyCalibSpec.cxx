@@ -99,8 +99,6 @@ void EnergyCalibSpec::run(ProcessingContext& pc)
   InterCalib work;
   work.init();
   work.process(bcrec, energy, tdc, info);
-
-
 }
 
 void EnergyCalibSpec::endOfStream(EndOfStreamContext& ec)
