@@ -91,14 +91,13 @@ bool Tracks::processTrack(const o2::tpc::TrackTPC& track)
   const auto phi = track.getPhi();
   const auto pt = track.getPt();
   const auto sign = track.getSign();
-  const auto charge = track.getCharge();
+  const auto qOverPt = track.getQ2Pt();
   const auto nCls = track.getNClusterReferences();
   const auto dEdxTot = track.getdEdx().dEdxTotTPC;
   const auto hasASideOnly = track.hasASideClustersOnly();
   const auto hasCSideOnly = track.hasCSideClustersOnly();
 
   double absEta = TMath::Abs(eta);
-  double qOverPt = 0.;
 
   // ===| histogram filling before cuts |===
   mHist1D[0].Fill(nCls);
@@ -110,10 +109,6 @@ bool Tracks::processTrack(const o2::tpc::TrackTPC& track)
 
   // ===| histogram filling including cuts |===
   if (absEta < 1. && nCls > 60 && dEdxTot > 20) {
-
-    if (pt > 0) {
-      qOverPt = charge / pt;
-    }
 
     // ===| 1D histogram filling |===
     mHist1D[1].Fill(nCls);
