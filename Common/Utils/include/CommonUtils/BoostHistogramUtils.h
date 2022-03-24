@@ -398,8 +398,46 @@ std::vector<double> fitBoostHistoWithGaus(boost::histogram::histogram<axes...>& 
 /// \brief Convert a 1D root histogram to a Boost histogram
 boostHisto1d boosthistoFromRoot_1D(TH1D* inHist1D);
 
-// \brief Convert a 2D root histogram to a Boost histogram
+/// \brief Convert a 2D root histogram to a Boost histogram
 boostHisto2d boostHistoFromRoot_2D(TH2D* inHist2D);
+
+/// \brief Convert a 2D boost histogram to a root histogram
+template <class BoostHist>
+TH1F TH1FFromBoost(BoostHist hist, const char* name = "hist")
+{
+  const int nbinsx = hist.axis(0).size();
+  const double binxlow = hist.axis(0).bin(0).lower();
+  const double binxhigh = hist.axis(0).bin(nbinsx - 1).upper();
+
+  TH1F hRoot(name, name, nbinsx, binxlow, binxhigh);
+  // trasfer the acutal values
+  for (int x = 0; x < nbinsx; x++) {
+    hRoot.SetBinContent(x + 1, hist.at(x));
+  }
+  return hRoot;
+}
+
+/// \brief Convert a 2D boost histogram to a root histogram
+// template <typename valuetype, typename... axes>
+template <class BoostHist>
+TH2F TH2FFromBoost(BoostHist hist, const char* name = "hist")
+{
+  const int nbinsx = hist.axis(0).size();
+  const int nbinsy = hist.axis(1).size();
+  const double binxlow = hist.axis(0).bin(0).lower();
+  const double binxhigh = hist.axis(0).bin(nbinsx - 1).upper();
+  const double binylow = hist.axis(1).bin(0).lower();
+  const double binyhigh = hist.axis(1).bin(nbinsy - 1).upper();
+
+  TH2F hRoot(name, name, nbinsx, binxlow, binxhigh, nbinsy, binylow, binyhigh);
+  // trasfer the acutal values
+  for (int x = 0; x < nbinsx; x++) {
+    for (int y = 0; y < nbinsy; y++) {
+      hRoot.SetBinContent(x + 1, y + 1, hist.at(x, y));
+    }
+  }
+  return hRoot;
+}
 
 /// \brief Function to project 2d boost histogram onto x-axis
 /// \param hist2d 2d boost histogram

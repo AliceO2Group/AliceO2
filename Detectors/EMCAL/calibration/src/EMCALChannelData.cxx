@@ -67,7 +67,7 @@ void EMCALChannelData::merge(const EMCALChannelData* prev)
 }
 
 //_____________________________________________
-bool EMCALChannelData::hasEnoughData() const
+bool EMCALChannelData::hasEnoughData(const int minNEntries) const
 {
   // true if we have enough data, also want to check for the sync trigger
   // this is stil to be finalized, simply a skeletron for now
