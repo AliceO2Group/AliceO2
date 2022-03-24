@@ -135,13 +135,13 @@ void PHOSBadMapCalibDevice::sendOutput(DataAllocator& output)
     std::string flName = o2::ccdb::CcdbApi::generateFileName("BadMap");
     std::string kind;
     if (mMode == 0) { // Occupancy
-      kind = "PHS/Calib/BadMapOcc";
+      kind = "PHS/BadMap/Occ";
     }
     if (mMode == 1) { // Chi2
-      kind = "PHS/Calib/BadMapChi";
+      kind = "PHS/BadMap/Chi";
     }
     if (mMode == 2) { // Pedestals
-      kind = "PHS/Calib/BadMapPed";
+      kind = "PHS/BadMap/Ped";
     }
     std::map<std::string, std::string> md;
     o2::ccdb::CcdbObjectInfo info(kind, "BadMap", flName, md, mRunStartTime, mValidityTime);
