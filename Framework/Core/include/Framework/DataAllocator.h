@@ -476,6 +476,11 @@ class DataAllocator
     return mRegistry->get<MessageContext>().findMessageHeaderStack(getOutputByBind(std::move(ref)));
   }
 
+  int countDeviceOutputs(bool excludeDPLOrigin = false)
+  {
+    return mRegistry->get<MessageContext>().countDeviceOutputs(excludeDPLOrigin);
+  }
+
  private:
   AllowedOutputRoutes mAllowedOutputRoutes;
   ServiceRegistry* mRegistry;
