@@ -26,6 +26,7 @@
 
 #include "Headers/RDHAny.h"
 #include "DataFormatsMCH/Digit.h"
+#include "MCHBase/DecoderError.h"
 #include "MCHRawDecoder/OrbitInfo.h"
 #include "MCHRawDecoder/PageDecoder.h"
 
@@ -184,6 +185,8 @@ class DataDecoder
   const RawDigitVector& getDigits() const { return mDigits; }
   /// Get the list of orbits that have been found in the current TimeFrame for each CRU link
   const std::unordered_set<OrbitInfo, OrbitInfoHash>& getOrbits() const { return mOrbits; }
+  /// Get the list of decoding errors that have been found in the current TimeFrame
+  const std::vector<o2::mch::DecoderError>& getErrors() const { return mErrors; }
   /// Initialize the digits from an external vector. To be only used for unit tests.
   void setDigits(const RawDigitVector& digits) { mDigits = digits; }
 
@@ -234,6 +237,7 @@ class DataDecoder
 
   RawDigitVector mDigits;                               ///< vector of decoded digits
   std::unordered_set<OrbitInfo, OrbitInfoHash> mOrbits; ///< list of orbits in the processed buffer
+  std::vector<o2::mch::DecoderError> mErrors;           ///< list of decoding errors in the processed buffer
 
   uint32_t mOrbitsInTF{128};    ///< number of orbits in one time frame
   uint32_t mBcInOrbit;          ///< number of bunch crossings in one orbit
