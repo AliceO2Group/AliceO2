@@ -15,6 +15,7 @@
 #include "MemoryResources/MemoryResources.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
+#include "Framework/Logger.h"
 
 #include <FairMQDevice.h>
 
@@ -33,5 +34,6 @@ void DataProcessingHelpers::sendEndOfStream(FairMQDevice& device, OutputChannelS
   parts.AddPart(std::move(header));
   parts.AddPart(std::move(payload));
   device.Send(parts, channel.name, 0);
+  LOGP(info, "Sending end-of-stream message to channel {}", channel.name);
 }
 } // namespace o2::framework
