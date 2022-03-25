@@ -71,7 +71,7 @@ GPUd() TrackParametrization<value_T>::TrackParametrization(const dim3_t& xyz, co
   math_utils::detail::sincos(alp, sn, cs);
   // protection against cosp<0
   if (cs * pxpypz[0] + sn * pxpypz[1] < 0) {
-    LOG(debug) << "alpha from phiPos() will invalidate this track parameters, overriding to alpha from phi()";
+    LOGP(debug, "alpha from phiPos() will invalidate this track parameters, overriding to alpha from phi()");
     alp = math_utils::detail::atan2<value_T>(pxpypz[1], pxpypz[0]);
     if (sectorAlpha) {
       alp = math_utils::detail::angle2Alpha<value_t>(alp);

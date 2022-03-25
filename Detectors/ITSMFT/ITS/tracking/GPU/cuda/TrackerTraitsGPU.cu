@@ -34,8 +34,9 @@ namespace o2
 {
 namespace its
 {
-
+using gpu::utils::host::checkGPUError;
 using namespace constants::its2;
+
 GPUd() const int4 getBinsRect(const Cluster& currentCluster, const int layerIndex,
                               const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
 {
@@ -84,6 +85,7 @@ struct StaticTrackingParameters {
   // float NeighbourMaxDeltaCurvature[NLayers - 3] = {0.008f, 0.0025f, 0.003f, 0.0035f};
   // float NeighbourMaxDeltaN[NLayers - 3] = {0.002f, 0.0090f, 0.002f, 0.005f};
 };
+
 template struct gpu::StaticTrackingParameters<7>;
 __constant__ StaticTrackingParameters<7> kTrkPar;
 
@@ -322,7 +324,7 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets()
 {
   //   PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(nullptr); //TODO: FIX THIS with Time Frames
 
-  cudaMemcpyToSymbol(gpu::kTrkPar, &mTrkParams, sizeof(gpu::StaticTrackingParameters<7>));
+  checkGPUError(cudaMemcpyToSymbol(gpu::kTrkPar, &mTrkParams, sizeof(gpu::StaticTrackingParameters<7>)), __FILE__, __LINE__);
   //   std::array<size_t, constants::its2::CellsPerRoad> tempSize;
   //   std::array<int, constants::its2::CellsPerRoad> trackletsNum;
   //   std::array<gpu::Stream, constants::its2::TrackletsPerRoad> streamArray;
