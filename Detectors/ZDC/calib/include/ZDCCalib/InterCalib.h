@@ -18,6 +18,7 @@
 #include <TMinuit.h>
 #include "ZDCBase/Constants.h"
 #include "DataFormatsZDC/RecEvent.h"
+#include "DataFormatsZDC/InterCalibData.h"
 #include "ZDCReconstruction/ZDCEnergyParam.h"
 #include "ZDCReconstruction/ZDCTowerParam.h"
 #include "ZDCCalib/InterCalibConfig.h"
@@ -37,6 +38,8 @@ class InterCalib
   static constexpr int HidZNC = 2;
   static constexpr int HidZPC = 3;
   static constexpr int HidZEM = 4;
+  static constexpr int NH = InterCalibData::NH;
+  static constexpr int NPAR = InterCalibData::NPAR;
   void clear(int ih = -1);
   int process(const gsl::span<const o2::zdc::BCRecData>& bcrec,
               const gsl::span<const o2::zdc::ZDCEnergy>& energy,
@@ -48,8 +51,6 @@ class InterCalib
   int mini(int ih);
   int write(const std::string fn = "ZDCInterCalib.root");
 
-  static constexpr int NPAR = 6;  /// Dimension of matrix (1 + 4 coefficients + offset)
-  static constexpr int NH = 5;    /// ZNA, ZPA, ZNC, ZPC, ZEM
   static double mAdd[NPAR][NPAR]; /// Temporary copy of cumulated sums
   static void fcn(int& npar, double* gin, double& chi, double* par, int iflag);
   void cumulate(int ih, double tc, double t1, double t2, double t3, double t4, double w);
@@ -61,15 +62,16 @@ class InterCalib
   void setInterCalibConfig(const InterCalibConfig* param) { mInterCalibConfig = param; };
   const InterCalibConfig* getInterCalibConfig() const { return mInterCalibConfig; };
 
+
  private:
   std::array<std::unique_ptr<TH1>, 2 * NH> mHUnc{};
   std::array<std::unique_ptr<TH2>, NH> mCUnc{};
   std::array<std::unique_ptr<TH1>, NH> mHCorr{};
   std::array<std::unique_ptr<TH2>, NH> mCCorr{};
   std::array<std::unique_ptr<TMinuit>, NH> mMn{};
+  InterCalibData data;
   bool mInitDone = false;
   static std::mutex mMtx; /// mutex for critical section
-  double mSum[NH][NPAR][NPAR] = {0};
   double mPar[NH][NPAR] = {0};
   double mErr[NH][NPAR] = {0};
   const ZDCEnergyParam* mEnergyParam = nullptr;        /// Energy calibration object

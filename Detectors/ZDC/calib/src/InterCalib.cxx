@@ -20,6 +20,7 @@
 #include "ZDCCalib/InterCalib.h"
 #include "ZDCReconstruction/ZDCEnergyParam.h"
 #include "ZDCReconstruction/ZDCTowerParam.h"
+#include "DataFormatsZDC/InterCalibData.h"
 #include "Framework/Logger.h"
 
 using namespace o2::zdc;
@@ -34,23 +35,24 @@ int InterCalib::init()
     return -1;
   }
   clear();
+  auto* cfg = mInterCalibConfig;
   int ih;
   // clang-format off
-  ih = 0; mHUnc[ih] = std::make_unique<TH1F>("hZNAS","ZNA sum",mInterCalibConfig->nb1[ih],mInterCalibConfig->amin1[ih],mInterCalibConfig->amax1[ih]);
-  ih = 1; mHUnc[ih] = std::make_unique<TH1F>("hZPAS","ZPA sum",mInterCalibConfig->nb1[ih],mInterCalibConfig->amin1[ih],mInterCalibConfig->amax1[ih]);
-  ih = 2; mHUnc[ih] = std::make_unique<TH1F>("hZNCS","ZNC sum",mInterCalibConfig->nb1[ih],mInterCalibConfig->amin1[ih],mInterCalibConfig->amax1[ih]);
-  ih = 3; mHUnc[ih] = std::make_unique<TH1F>("hZPCS","ZPC sum",mInterCalibConfig->nb1[ih],mInterCalibConfig->amin1[ih],mInterCalibConfig->amax1[ih]);
-  ih = 4; mHUnc[ih] = std::make_unique<TH1F>("hZEM2","ZEM2"   ,mInterCalibConfig->nb1[ih],mInterCalibConfig->amin1[ih],mInterCalibConfig->amax1[ih]);
-  ih = 0; mHUnc[NH+ih] = std::make_unique<TH1F>("hZNAC","ZNA TC",mInterCalibConfig->nb1[ih],mInterCalibConfig->amin1[ih],mInterCalibConfig->amax1[ih]);
-  ih = 1; mHUnc[NH+ih] = std::make_unique<TH1F>("hZPAC","ZPA TC",mInterCalibConfig->nb1[ih],mInterCalibConfig->amin1[ih],mInterCalibConfig->amax1[ih]);
-  ih = 2; mHUnc[NH+ih] = std::make_unique<TH1F>("hZNCC","ZNC TC",mInterCalibConfig->nb1[ih],mInterCalibConfig->amin1[ih],mInterCalibConfig->amax1[ih]);
-  ih = 3; mHUnc[NH+ih] = std::make_unique<TH1F>("hZPCC","ZPC TC",mInterCalibConfig->nb1[ih],mInterCalibConfig->amin1[ih],mInterCalibConfig->amax1[ih]);
-  ih = 4; mHUnc[NH+ih] = std::make_unique<TH1F>("hZEM1","ZEM1",  mInterCalibConfig->nb1[ih],mInterCalibConfig->amin1[ih],mInterCalibConfig->amax1[ih]);
-  ih = 0; mCUnc[ih] = std::make_unique<TH2F>("cZNA","ZNA;TC;SUM",mInterCalibConfig->nb2[ih],mInterCalibConfig->amin2[ih],mInterCalibConfig->amax2[ih],mInterCalibConfig->nb2[ih],mInterCalibConfig->amin2[ih],mInterCalibConfig->amax2[ih]);
-  ih = 1; mCUnc[ih] = std::make_unique<TH2F>("cZPA","ZPA;TC;SUM",mInterCalibConfig->nb2[ih],mInterCalibConfig->amin2[ih],mInterCalibConfig->amax2[ih],mInterCalibConfig->nb2[ih],mInterCalibConfig->amin2[ih],mInterCalibConfig->amax2[ih]);
-  ih = 2; mCUnc[ih] = std::make_unique<TH2F>("cZNC","ZNC;TC;SUM",mInterCalibConfig->nb2[ih],mInterCalibConfig->amin2[ih],mInterCalibConfig->amax2[ih],mInterCalibConfig->nb2[ih],mInterCalibConfig->amin2[ih],mInterCalibConfig->amax2[ih]);
-  ih = 3; mCUnc[ih] = std::make_unique<TH2F>("cZPC","ZPC;TC;SUM",mInterCalibConfig->nb2[ih],mInterCalibConfig->amin2[ih],mInterCalibConfig->amax2[ih],mInterCalibConfig->nb2[ih],mInterCalibConfig->amin2[ih],mInterCalibConfig->amax2[ih]);
-  ih = 4; mCUnc[ih] = std::make_unique<TH2F>("cZEM","ZEM;ZEM1;ZEM2",mInterCalibConfig->nb2[ih],mInterCalibConfig->amin2[ih],mInterCalibConfig->amax2[ih],mInterCalibConfig->nb2[ih],mInterCalibConfig->amin2[ih],mInterCalibConfig->amax2[ih]);
+  ih = 0; mHUnc[ih] = std::make_unique<TH1F>("hZNAS","ZNA sum",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  ih = 1; mHUnc[ih] = std::make_unique<TH1F>("hZPAS","ZPA sum",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  ih = 2; mHUnc[ih] = std::make_unique<TH1F>("hZNCS","ZNC sum",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  ih = 3; mHUnc[ih] = std::make_unique<TH1F>("hZPCS","ZPC sum",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  ih = 4; mHUnc[ih] = std::make_unique<TH1F>("hZEM2","ZEM2"   ,cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  ih = 0; mHUnc[NH+ih] = std::make_unique<TH1F>("hZNAC","ZNA TC",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  ih = 1; mHUnc[NH+ih] = std::make_unique<TH1F>("hZPAC","ZPA TC",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  ih = 2; mHUnc[NH+ih] = std::make_unique<TH1F>("hZNCC","ZNC TC",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  ih = 3; mHUnc[NH+ih] = std::make_unique<TH1F>("hZPCC","ZPC TC",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  ih = 4; mHUnc[NH+ih] = std::make_unique<TH1F>("hZEM1","ZEM1",  cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  ih = 0; mCUnc[ih] = std::make_unique<TH2F>("cZNA","ZNA;TC;SUM",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
+  ih = 1; mCUnc[ih] = std::make_unique<TH2F>("cZPA","ZPA;TC;SUM",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
+  ih = 2; mCUnc[ih] = std::make_unique<TH2F>("cZNC","ZNC;TC;SUM",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
+  ih = 3; mCUnc[ih] = std::make_unique<TH2F>("cZPC","ZPC;TC;SUM",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
+  ih = 4; mCUnc[ih] = std::make_unique<TH2F>("cZEM","ZEM;ZEM1;ZEM2",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
   // clang-format on
   mInitDone = true;
   return 0;
@@ -107,7 +109,7 @@ int InterCalib::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
 int InterCalib::endOfRun()
 {
   for (int ih = 0; ih < NH; ih++) {
-    if (mSum[ih][5][5] >= mInterCalibConfig->min_e[ih]) {
+    if (data.mSum[ih][5][5] >= mInterCalibConfig->min_e[ih]) {
       int ierr = mini(ih);
       if (ierr) {
         LOGF(error, "FAILED processing RUN3 data for ih = %d - ", ih);
@@ -117,7 +119,7 @@ int InterCalib::endOfRun()
     } else {
       LOGF(info, "FAILED processing RUN3 data for ih = %d: TOO FEW EVENTS: ", ih);
     }
-    LOGF(info, "%g events and cuts (%g:%g)\n", mSum[ih][5][5], mInterCalibConfig->cutLow[ih], mInterCalibConfig->cutHigh[ih]);
+    LOGF(info, "%g events and cuts (%g:%g)\n", data.mSum[ih][5][5], mInterCalibConfig->cutLow[ih], mInterCalibConfig->cutHigh[ih]);
   }
   write();
   return 0;
@@ -243,7 +245,7 @@ void InterCalib::clear(int ih)
   for (int32_t ii = ihstart; ii < ihstop; ii++) {
     for (int32_t i = 0; i < NPAR; i++) {
       for (int32_t j = 0; j < NPAR; j++) {
-        mSum[ii][i][j] = 0;
+        data.mSum[ii][i][j] = 0;
       }
     }
     if (mHUnc[ii]) {
@@ -270,10 +272,10 @@ void InterCalib::cumulate(int ih, double tc, double t1, double t2, double t3, do
   val[4] = t4;
   for (int32_t i = 0; i < 6; i++) {
     for (int32_t j = i; j < 6; j++) {
-      mSum[ih][i][j] += val[i] * val[j] * w;
+      data.mSum[ih][i][j] += val[i] * val[j] * w;
     }
   }
-  // mSum[ih][5][5] contains the number of analyzed events
+  // data.mSum[ih][5][5] contains the number of analyzed events
   double sumquad = val[1] + val[2] + val[3] + val[4];
   mHUnc[ih]->Fill(sumquad, w);
   mHUnc[ih + NH]->Fill(val[0]);
@@ -298,9 +300,9 @@ int InterCalib::mini(int ih)
   for (int32_t i = 0; i < NPAR; i++) {
     for (int32_t j = 0; j < NPAR; j++) {
       if (j < i) {
-        mAdd[i][j] = mSum[ih][j][i];
+        mAdd[i][j] = data.mSum[ih][j][i];
       } else {
-        mAdd[i][j] = mSum[ih][i][j];
+        mAdd[i][j] = data.mSum[ih][i][j];
       }
     }
   }
