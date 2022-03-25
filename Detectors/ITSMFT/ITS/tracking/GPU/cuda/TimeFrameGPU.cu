@@ -12,6 +12,7 @@
 
 #include "ITStrackingGPU/TimeFrameGPU.h"
 #include "fairlogger/Logger.h"
+#include "ITStrackingGPU/Utils.h"
 
 namespace o2
 {
@@ -19,15 +20,16 @@ namespace its
 {
 namespace gpu
 {
+
 template <int NLayers>
 TimeFrameGPU<NLayers>::TimeFrameGPU()
 {
   LOGP(info, ">>> Building TimeFrameGPU for {} layers", NLayers);
-  for (auto iLayer{0}; iLayer < NLayers; ++iLayer) {
-    cudaMalloc(reinterpret_cast<void**>(&(mClustersD[iLayer])), sizeof(Cluster) * 5e5);
-    cudaMalloc(reinterpret_cast<void**>(&(mTrackingFrameInfoD[iLayer])), sizeof(TrackingFrameInfo) * 5e5);
-    cudaMalloc(reinterpret_cast<void**>(&(mClusterExternalIndicesD[iLayer])), sizeof(int) * 5e5);
-    cudaMalloc(reinterpret_cast<void**>(&(mROframesClustersD[iLayer])), sizeof(int) * 5e5);
+  for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
+    mClustersD[iLayer] = Vector<Cluster>{(int)4e4, (int)4e4};
+    mTrackingFrameInfoD[iLayer] = Vector<TrackingFrameInfo>{(int)5e5, (int)5e5};
+    mClusterExternalIndicesD[iLayer] = Vector<int>{(int)5e5, (int)5e5};
+    mROframesClustersD[iLayer] = Vector<int>{(int)5e5, (int)5e5};
   }
 }
 
@@ -35,11 +37,13 @@ template <int NLayers>
 void TimeFrameGPU<NLayers>::loadToDevice(const int maxLayers)
 {
   LOGP(info, ">>> Loading data on device");
-  for (auto iLayer{0}; iLayer < std::min(maxLayers, NLayers); ++iLayer) {
-    cudaMemcpyAsync(mClustersD[iLayer], mClusters[iLayer].data(), mClusters[iLayer].size() * sizeof(Cluster), cudaMemcpyHostToDevice);
-    // cudaMemcpyAsync(mTrackingFrameInfoD[iLayer], mTrackingFrameInfo[iLayer].data(), mTrackingFrameInfo[iLayer].size() * sizeof(TrackingFrameInfo), cudaMemcpyHostToDevice);
-    // cudaMemcpyAsync(mClusterExternalIndicesD[iLayer], mClusterExternalIndices[iLayer].data(), mClusterExternalIndices[iLayer].size() * sizeof(int), cudaMemcpyHostToDevice);
-    // cudaMemcpyAsync(mROframesClustersD[iLayer], mROframesClusters[iLayer].data(), mROframesClusters[iLayer].size() * sizeof(int), cudaMemcpyHostToDevice);
+
+  for (int iLayer{0}; iLayer < maxLayers; ++iLayer) {
+    LOGP(info, "Size: {}, {:f} MB, {} layers", mClusters[iLayer].size(), (float)mClusters[iLayer].size() * (float)sizeof(Cluster) / (float)(1024 * 1024), mClusters.size());
+    // mClustersD[iLayer].reset(v.data(), static_cast<int>(mClusters[iLayer].size()));
+    // mTrackingFrameInfoD[iLayer].reset(mTrackingFrameInfo[iLayer].data(), static_cast<int>(mTrackingFrameInfo[iLayer].size()));
+    // mClusterExternalIndicesD[iLayer].reset(mClusterExternalIndices[iLayer].data(), static_cast<int>(mClusterExternalIndices[iLayer].size()));
+    // mROframesClustersD[iLayer].reset(mROframesClusters[iLayer].data(), static_cast<int>(mROframesClusters[iLayer].size()));
   }
 }
 
@@ -57,12 +61,6 @@ void TimeFrameGPU<NLayers>::initialise(const int iteration,
 template <int NLayers>
 TimeFrameGPU<NLayers>::~TimeFrameGPU()
 {
-  for (auto iLayer{0}; iLayer < NLayers; ++iLayer) {
-    cudaFree(mClustersD[iLayer]);
-    cudaFree(mTrackingFrameInfoD[iLayer]);
-    cudaFree(mClusterExternalIndicesD[iLayer]);
-    cudaFree(mROframesClustersD[iLayer]);
-  }
 }
 template class TimeFrameGPU<7>;
 } // namespace gpu

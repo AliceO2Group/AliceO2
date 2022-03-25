@@ -60,7 +60,7 @@ TimeFrame::TimeFrame(int nLayers)
 {
   mMinR.resize(nLayers, 10000.);
   mMaxR.resize(nLayers, -1.);
-  mClusters.resize(nLayers);
+  // mClusters.resize(nLayers);
   mUnsortedClusters.resize(nLayers);
   mTrackingFrameInfo.resize(nLayers);
   mClusterExternalIndices.resize(nLayers);
@@ -300,6 +300,9 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
           }
         }
       }
+    }
+    for (auto& layer : mClusters) {
+      LOGP(info, "Initalised {} clusters", layer.size());
     }
   }
 

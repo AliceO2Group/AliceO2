@@ -36,6 +36,9 @@
 #include <thrust/device_vector.h>
 #include "GPUCommonDef.h"
 #include "GPUCommonMath.h"
+
+#include "Array.h"
+#include "Vector.h"
 namespace o2
 {
 
@@ -56,10 +59,10 @@ class TimeFrameGPU : public TimeFrame
                   const int maxLayers);
 
  private:
-  std::array<Cluster*, NLayers> mClustersD;
-  std::array<TrackingFrameInfo*, NLayers> mTrackingFrameInfoD;
-  std::array<int*, NLayers> mClusterExternalIndicesD;
-  std::array<int*, NLayers> mROframesClustersD;
+  Array<Vector<Cluster>, NLayers> mClustersD;
+  Array<Vector<TrackingFrameInfo>, NLayers> mTrackingFrameInfoD;
+  Array<Vector<int>, NLayers> mClusterExternalIndicesD;
+  Array<Vector<int>, NLayers> mROframesClustersD;
 };
 
 } // namespace gpu
