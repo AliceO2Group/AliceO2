@@ -73,7 +73,7 @@ class O2RunSim : public FairRunSim
         fApp = new O2MCApplicationBase("Fair", "The Fair VMC App", ListOfModules, MatFname);
       } else {
         fApp = new O2MCApplicationEvalMat("Fair", "The Fair VMC App", ListOfModules, MatFname);
-     }
+      }
     }
 
     fApp->SetGenerator(fGen);
@@ -127,7 +127,7 @@ class O2RunSim : public FairRunSim
       ContList->Add(new TObjString(cont->GetName()));
     }
     if (par) {
-      par->SetContListStr(ContList);  
+      par->SetContListStr(ContList);
       par->SetRndSeed(gRandom->GetSeed());
       par->setChanged();
       par->setInputVersion(fRunId, 1);
@@ -148,10 +148,9 @@ class O2RunSim : public FairRunSim
   }
 
  private:
-  
   bool mDeviceMode{false};
   bool mEvalMat{false};
- 
+
   ClassDefOverride(O2RunSim, 0);
 };
 } // namespace steer

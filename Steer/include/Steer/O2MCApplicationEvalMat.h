@@ -48,9 +48,9 @@ class O2MCApplicationEvalMat : public O2MCApplicationBase
 
  protected:
   MaterialBudgetMap* mMaterialBudgetMap;
-  Int_t   mMode;   // 0: theta-phi, 1: eta-phi, 2: z-phi
-  Float_t mC1[3];  // current coordinate 1
-  Float_t mPhi;    // current phi
+  Int_t mMode;    // 0: theta-phi, 1: eta-phi, 2: z-phi
+  Float_t mC1[3]; // current coordinate 1
+  Float_t mPhi;   // current phi
 
   ClassDefOverride(O2MCApplicationEvalMat, 1);
 };

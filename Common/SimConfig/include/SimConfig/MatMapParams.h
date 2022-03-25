@@ -21,7 +21,7 @@
 namespace o2
 {
 namespace conf
-{ 
+{
 /**
  ** A parameter class/struct holding values for
  ** material budget maps
@@ -35,15 +35,15 @@ struct MatMapParams : public o2::conf::ConfigurableParamHelper<MatMapParams> {
   float thetamax = 45.;
   int neta = 0;
   float etamin = -2.;
-  float etamax = 2.;  
+  float etamax = 2.;
   int nzv = 0;
   float zvmin = -50.;
-  float zvmax = 50.;  
+  float zvmax = 50.;
   float rmin = 0.;
   float rmax = 290.;
   float zmax = 2000;
   O2ParamDef(MatMapParams, "matm");
 };
-} // end namespace o2
-} // end namespace conf
+} // namespace conf
+} // namespace o2
 #endif // ALICEO2_SIMCONFIG_MATMAPPARAMS_H_

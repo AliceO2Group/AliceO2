@@ -28,7 +28,8 @@ void O2MCApplicationEvalMat::BeginPrimary()
   fMC->TrackPosition(x, y, z);
 
   mPhi = p.Phi() * 180. / TMath::Pi();
-  if (mPhi < 0.) mPhi += 360.;
+  if (mPhi < 0.)
+    mPhi += 360.;
 
   mC1[0] = p.Theta() * 180. / TMath::Pi();
   mC1[1] = p.Eta();
@@ -37,13 +38,13 @@ void O2MCApplicationEvalMat::BeginPrimary()
 
 void O2MCApplicationEvalMat::FinishPrimary()
 {
-   mMaterialBudgetMap->FinishPrimary(mC1[mMode], mPhi);
-   FairMCApplication::FinishPrimary();
+  mMaterialBudgetMap->FinishPrimary(mC1[mMode], mPhi);
+  FairMCApplication::FinishPrimary();
 }
 
 void O2MCApplicationEvalMat::Stepping()
 {
-   // dispatch first to stepping function in FairRoot
+  // dispatch to MaterialBudget Map
   mMaterialBudgetMap->Stepping();
 }
 
@@ -59,7 +60,7 @@ void O2MCApplicationEvalMat::BeginEvent()
       n1 = p.ntheta;
       c1min = p.thetamin;
       c1max = p.thetamax;
-    } else if (p.neta !=0) {
+    } else if (p.neta != 0) {
       // eta-phi binning
       mMode = 1;
       n1 = p.neta;
@@ -74,13 +75,12 @@ void O2MCApplicationEvalMat::BeginEvent()
     }
     printf("MaterialBudgetMap: %5d %13.3f %13.3f %5d %13.3f %13.3f %13.3f %13.3f\n", n1, c1min, c1max, p.nphi, p.phimin, p.phimax, p.rmax, p.zmax);
     mMaterialBudgetMap = new MaterialBudgetMap("Map", mMode,
-    n1, c1min, c1max, p.nphi, p.phimin, p.phimax, p.rmin, p.rmax, p.zmax);
-  
+                                               n1, c1min, c1max, p.nphi, p.phimin, p.phimax, p.rmin, p.rmax, p.zmax);
+
     auto gen = GetGenerator();
     gen->GetListOfGenerators()->Clear();
     gen->AddGenerator(new o2::eventgen::GeneratorGeantinos(mMode, n1, c1min, c1max, p.nphi, p.phimin, p.phimax, p.rmin, p.rmax, p.zmax));
   }
-  // dispatch first to function in FairRoot
   mMaterialBudgetMap->BeginEvent();
 }
 
@@ -92,4 +92,3 @@ void O2MCApplicationEvalMat::FinishEvent()
 
 } // namespace steer
 } // namespace o2
-
