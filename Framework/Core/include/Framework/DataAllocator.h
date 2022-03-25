@@ -478,7 +478,8 @@ class DataAllocator
 
   int countDeviceOutputs(bool excludeDPLOrigin = false)
   {
-    return mRegistry->get<MessageContext>().countDeviceOutputs(excludeDPLOrigin);
+    return mRegistry->get<MessageContext>().countDeviceOutputs(excludeDPLOrigin) +
+           mRegistry->get<RawBufferContext>().countDeviceOutputs(excludeDPLOrigin);
   }
 
  private:
