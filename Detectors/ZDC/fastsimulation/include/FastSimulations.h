@@ -33,7 +33,7 @@ class NeuralFastSimulation
                        Ort::SessionOptions sessionOptions,
                        OrtAllocatorType allocatorType,
                        OrtMemType memoryType);
-  ~NeuralFastSimulation() = default;
+  virtual ~NeuralFastSimulation() = default;
 
   /**
    * @brief Wrapper for converting raw input to Ort::Value.
@@ -82,7 +82,7 @@ class ConditionalModelSimulation : public NeuralFastSimulation
 {
  public:
   ConditionalModelSimulation(const std::string& modelPath);
-  ~ConditionalModelSimulation() = default;
+  virtual ~ConditionalModelSimulation() = default;
 
   /**
    * @brief Implements setInput
