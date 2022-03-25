@@ -132,6 +132,17 @@ taskwrapper hmpraw.log o2-hmpid-digits-to-raw-workflow --file-for cru --outdir r
 taskwrapper trdraw.log o2-trd-trap2raw -o raw/TRD --file-per cru
 taskwrapper ctpraw.log o2-ctp-digi2raw -o raw/CTP --file-for cru
 
+CHECK_DETECTORS_RAW="ITS MFT FT0 FV0 FDD TPC TOF MID MCH CPV ZDC TRD CTP"
+if [ $BEAMTYPE == "PbPb" ] && [ $NEvents -ge 5 ] ; then
+  CHECK_DETECTORS_RAW+=" EMC PHS HMP"
+fi
+for i in $CHECK_DETECTORS_RAW; do
+  if [ `du -hs --exclude '*.cfg' raw/$i | awk '{print $1}'` == "0" ]; then
+    echo "No raw data for $i"
+    exit 1
+  fi
+done
+
 cat raw/*/*.cfg > rawAll.cfg
 
 if [ "0$DISABLE_PROCESSING" == "01" ]; then
