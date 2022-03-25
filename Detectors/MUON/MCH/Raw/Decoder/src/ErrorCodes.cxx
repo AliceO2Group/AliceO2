@@ -48,7 +48,7 @@ std::string errorCodeAsString(uint32_t ec)
     append("Bad Packet Type", msg);
   }
   if (ec & ErrorBadHeartBeatPacket) {
-    append("Bad HeartBeat Packet", msg);
+    append("Bad HB Packet", msg);
   }
   if (ec & ErrorBadIncompleteWord) {
     append("Bad Incomplete Word", msg);
