@@ -80,7 +80,10 @@ o2::header::Stack* MessageContext::findMessageHeaderStack(const Output& spec)
 
 int MessageContext::countDeviceOutputs(bool excludeDPLOrigin)
 {
-  int noutputs = 0;
+  // If we dispatched some messages before the end of the callback
+  // we need to account for them as well.
+  int noutputs = mDidDispatch ? 1 : 0;
+  mDidDispatch = false;
   constexpr o2::header::DataOrigin DataOriginDPL{"DPL"};
   for (auto it = mMessages.rbegin(); it != mMessages.rend(); ++it) {
     if (!excludeDPLOrigin || (*it)->header()->dataOrigin != DataOriginDPL) {
