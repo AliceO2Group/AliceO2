@@ -82,7 +82,7 @@ class ConditionalModelSimulation : public NeuralFastSimulation
 {
  public:
   ConditionalModelSimulation(const std::string& modelPath);
-  virtual ~ConditionalModelSimulation() = default;
+  ~ConditionalModelSimulation() override = default;
 
   /**
    * @brief Implements setInput
