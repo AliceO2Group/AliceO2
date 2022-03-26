@@ -62,7 +62,6 @@ o2::framework::DataProcessingHeader* MessageContext::findMessageDataProcessingHe
 
 o2::header::Stack* MessageContext::findMessageHeaderStack(const Output& spec)
 {
-  std::pair<o2::header::DataHeader*, o2::framework::DataProcessingHeader*> h{};
   for (auto it = mMessages.rbegin(); it != mMessages.rend(); ++it) {
     const auto* hd = (*it)->header();
     if (hd->dataOrigin == spec.origin && hd->dataDescription == spec.description && hd->subSpecification == spec.subSpec) {
@@ -103,7 +102,7 @@ int64_t MessageContext::addToCache(std::unique_ptr<FairMQMessage>& toCache)
   auto&& cached = toCache->GetTransport()->CreateMessage();
   cached->Copy(*toCache);
   // The pointer is immutable!
-  int64_t cacheId = (int64_t)toCache->GetData();
+  auto cacheId = (int64_t)toCache->GetData();
   mMessageCache.insert({cacheId, std::move(cached)});
   return cacheId;
 }
