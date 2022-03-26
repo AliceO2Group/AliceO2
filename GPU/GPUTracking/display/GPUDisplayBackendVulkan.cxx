@@ -1854,7 +1854,8 @@ void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageLayout
 {
   unsigned int width = mScreenWidth * mDisplay->cfgR().screenshotScaleFactor;
   unsigned int height = mScreenHeight * mDisplay->cfgR().screenshotScaleFactor;
-  pixels.resize(width * height * 4);
+  static constexpr int bytesPerPixel = 4;
+  pixels.resize(width * height * bytesPerPixel);
 
   vk::Image dstImage, dstImage2, src2;
   vk::DeviceMemory dstImageMemory, dstImageMemory2;
@@ -1900,7 +1901,9 @@ void GPUDisplayBackendVulkan::readImageToPixels(vk::Image image, vk::ImageLayout
   const char* data;
   CHKERR(mDevice.mapMemory(dstImageMemory, 0, VK_WHOLE_SIZE, {}, (void**)&data));
   data += subResourceLayout.offset;
-  memcpy(pixels.data(), data, pixels.size());
+  for (unsigned int i = 0; i < height; i++) {
+    memcpy(pixels.data() + i * width * bytesPerPixel, data + (height - i - 1) * width * bytesPerPixel, width * bytesPerPixel);
+  }
   mDevice.unmapMemory(dstImageMemory);
   mDevice.freeMemory(dstImageMemory, nullptr);
   mDevice.destroyImage(dstImage, nullptr);
