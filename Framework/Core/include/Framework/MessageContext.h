@@ -500,6 +500,7 @@ class MessageContext
         for (auto& [channel, parts] : outputs) {
           mDispatchControl.dispatch(std::move(parts), *channel, DefaultChannelIndex);
         }
+        mDidDispatch = mScheduledMessages.empty() == false;
         mScheduledMessages.clear();
       }
     }
@@ -577,6 +578,7 @@ class MessageContext
   FairMQDeviceProxy mProxy;
   Messages mMessages;
   Messages mScheduledMessages;
+  bool mDidDispatch = false;
   DispatchControl mDispatchControl;
   std::unordered_map<std::string, std::unique_ptr<std::string>> mChannelRefs;
   /// Cached messages, in case we want to reuse them.
