@@ -86,3 +86,7 @@ else
     split-window "sleep $FST_SLEEP2; SEVERITY=debug numactl --interleave=all $MYDIR/$CMD; $KILLCMD $ENDCMD" \; \
     select-layout even-vertical
 fi
+
+if [[ -z $SHM_MANAGER_SHMID ]]; then
+  rm -f /dev/shm/*fmq*
+fi
