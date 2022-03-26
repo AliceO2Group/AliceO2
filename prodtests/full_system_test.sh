@@ -137,8 +137,8 @@ if [ $BEAMTYPE == "PbPb" ] && [ $NEvents -ge 5 ] ; then
   CHECK_DETECTORS_RAW+=" EMC PHS HMP"
 fi
 for i in $CHECK_DETECTORS_RAW; do
-  if [ `du -hs --exclude '*.cfg' raw/$i | awk '{print $1}'` == "0" ]; then
-    echo "No raw data for $i"
+  if [ `ls -l raw/$i/*.raw | awk '{print $5}' | grep -v "^0\$" | wc -l` == "0" ]; then
+    echo "ERROR: Full system test did generate no raw data for $i"
     exit 1
   fi
 done
