@@ -20,7 +20,6 @@
 #include "Array2D.h"
 #include "CfConsts.h"
 #include "GPUTPCClusterFinderKernels.h"
-#include "GPUTPCGeometry.h"
 
 namespace GPUCA_NAMESPACE::gpu
 {
@@ -31,9 +30,7 @@ class CfUtils
  public:
   static GPUdi() bool isAtEdge(const ChargePos& pos)
   {
-    static const o2::gpu::GPUTPCGeometry geo;
-    const unsigned char padsPerRow = geo.NPads(pos.row());
-    return (pos.pad() < 2 || pos.pad() >= padsPerRow - 2);
+    return (pos.pad() < 2 || pos.pad() >= TPC_PADS_PER_ROW - 2);
   }
 
   static GPUdi() bool innerAboveThreshold(uchar aboveThreshold, ushort outerIdx)
