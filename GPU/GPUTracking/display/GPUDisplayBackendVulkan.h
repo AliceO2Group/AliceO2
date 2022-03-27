@@ -45,7 +45,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
     vk::Buffer buffer;
     vk::DeviceMemory memory;
     size_t size = 0;
-    bool deviceMemory;
+    int deviceMemory;
   };
   struct VulkanImage {
     vk::Image image;
