@@ -121,6 +121,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
     bool updateCalibs = false;
     bool updateGainMapCalib = false;
     bool updateGainMapCCDB = true;
+    bool disableCalibUpdates = false;
     o2::gpu::GPUSettingsTF tfSettings;
   };
 
@@ -160,6 +161,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       processAttributes->allocateOutputOnTheFly = confParam.allocateOutputOnTheFly;
       processAttributes->outputBufferSize = confParam.outputBufferSize;
       processAttributes->suppressOutput = (confParam.dump == 2);
+      processAttributes->disableCalibUpdates = confParam.disableCalibUpdates;
       config.configInterface.dumpEvents = confParam.dump;
       if (confParam.display) {
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
@@ -319,7 +321,6 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
 
             LOGP(info, "Disabling loading of threshold map from CCDB as it was already loaded from input file");
             processAttributes->dEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalThresholdMap);
-
           } else {
             if (not confParam.thresholdCalibFile.empty()) {
               LOG(warn) << "Couldn't find tpc zero supression file " << confParam.thresholdCalibFile << ". Not setting any zero supression.";
@@ -341,7 +342,6 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
           LOGP(info, "Disabling loading of residual gain calibration from CCDB as it was already loaded from input file");
           processAttributes->dEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTimeGain);
         }
-
       } else {
         // setting default topology correction to allocate enough memory
         LOG(info) << "Setting default dE/dx polynomial track topology correction to allocate enough memory";
@@ -356,12 +356,12 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
 
         LOGP(info, "Disabling loading the TPC gain correction map from the CCDB as it was already loaded from input file");
         processAttributes->updateGainMapCCDB = false;
-
       } else {
         if (not confParam.gainCalibFile.empty()) {
           LOG(warn) << "Couldn't find tpc gain correction file " << confParam.gainCalibFile << ". Not applying any gain correction.";
         }
         processAttributes->tpcPadGainCalib = GPUO2Interface::getPadGainCalibDefault();
+        processAttributes->tpcPadGainCalib->getGainCorrection(30, 5, 5);
       }
       config.configCalib.tpcPadGain = processAttributes->tpcPadGainCalib.get();
 
@@ -767,7 +767,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       const auto& holdData = TPCTrackingDigitsPreCheck::runPrecheck(&ptrs, processAttributes->config.get());
 
       // update calibrations for clustering and tracking
-      if (specconfig.outputTracks || specconfig.caClusterer) {
+      if ((specconfig.outputTracks || specconfig.caClusterer) && (processAttributes->updateCalibs || processAttributes->updateGainMapCalib) && !processAttributes->disableCalibUpdates) {
         const CalibdEdxContainer* dEdxCalibContainer = processAttributes->dEdxCalibContainer.get();
 
         // this calibration is defined for clustering and tracking
