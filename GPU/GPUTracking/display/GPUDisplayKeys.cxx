@@ -249,7 +249,7 @@ void GPUDisplay::HandleKey(unsigned char key)
     if (mCfgR.drawQualityMSAA < 2) {
       mCfgR.drawQualityMSAA = 2;
     }
-    if (mCfgR.drawQualityMSAA > 16) {
+    if (mCfgR.drawQualityMSAA > 16 || mCfgR.drawQualityMSAA > mBackend->getMaxMSAA()) {
       mCfgR.drawQualityMSAA = 0;
     }
     SetInfo("Multisampling anti-aliasing factor set to %d", mCfgR.drawQualityMSAA);

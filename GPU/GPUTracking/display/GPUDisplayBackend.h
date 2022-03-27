@@ -100,6 +100,7 @@ class GPUDisplayBackend
   static GPUDisplayBackend* getBackend(const char* type);
   std::vector<char> getPixels();
   virtual float getYFactor() const { return 1.0f; }
+  virtual int getMaxMSAA() const { return 16; }
 
  protected:
   virtual void addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data) = 0;
