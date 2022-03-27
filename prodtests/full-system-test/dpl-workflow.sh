@@ -172,7 +172,7 @@ if [[ $GPUTYPE == "HIP" ]]; then
   else
     export TIMESLICEOFFSET=$NGPUS
   fi
-  if [[ -z $ROCR_VISIBLE_DEVICES ]]; then
+  if [[ -z $ROCR_VISIBLE_DEVICES || $ROCR_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7" ]]; then
     GPU_CONFIG_KEY+="GPU_proc.deviceNum=0;"
     GPU_CONFIG+=" --environment \"ROCR_VISIBLE_DEVICES={timeslice${TIMESLICEOFFSET}}\""
   fi
