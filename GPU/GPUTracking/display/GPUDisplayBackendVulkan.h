@@ -96,7 +96,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void clearVertexBuffers();
 
   void startFillCommandBuffer(vk::CommandBuffer& commandBuffer, unsigned int imageIndex, bool toMixBuffer = false);
-  void endFillCommandBuffer(vk::CommandBuffer& commandBuffer, unsigned int imageIndex);
+  void endFillCommandBuffer(vk::CommandBuffer& commandBuffer);
   vk::CommandBuffer getSingleTimeCommandBuffer();
   void submitSingleTimeCommandBuffer(vk::CommandBuffer commandBuffer);
   void readImageToPixels(vk::Image image, vk::ImageLayout layout, std::vector<char>& pixels);
@@ -164,11 +164,13 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   std::vector<vk::Framebuffer> mFramebuffersTexture;
   vk::CommandPool mCommandPool;
 
+  bool mCommandBufferPerImage = false;
   bool mCommandInfrastructureCreated = false;
   unsigned int mImageCount = 0;
   unsigned int mFramesInFlight = 0;
   int mCurrentFrame = 0;
   uint32_t mCurrentImageIndex = 0;
+  int mCurrentBufferSet = 0;
   vk::CommandBuffer mCurrentCommandBuffer;
   int mCurrentCommandBufferLastPipeline = -1;
 
