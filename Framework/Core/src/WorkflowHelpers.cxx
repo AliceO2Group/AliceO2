@@ -733,7 +733,7 @@ void WorkflowHelpers::adjustTopology(WorkflowSpec& workflow, ConfigContext const
         }
       }
       if (found) {
-        for (unsigned int i = 0; i < distSTFCount; ++i) {
+        for (unsigned int i = 1; i < distSTFCount; ++i) {
           spec.outputs.emplace_back(OutputSpec{ConcreteDataMatcher{"FLP", "DISTSUBTIMEFRAME", i}, Lifetime::Timeframe});
         }
         break;
