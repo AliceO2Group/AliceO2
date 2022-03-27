@@ -129,11 +129,10 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void initializeTextDrawing() override;
   void OpenGLPrint(const char* s, float x, float y, float* color, float scale) override;
 
-  unsigned int mIndirectId;
   unsigned int mGraphicsFamily;
   SwapChainSupportDetails mSwapChainDetails;
-
   bool mEnableValidationLayers = false;
+
   vk::Instance mInstance;
   vk::DynamicLoader mDL;
   vk::DispatchLoaderDynamic mDLD;
@@ -145,7 +144,6 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   vk::SurfaceFormatKHR mSurfaceFormat;
   vk::PresentModeKHR mPresentMode;
   vk::SwapchainKHR mSwapChain;
-  bool mSwapchainImageReadable;
   bool mMustUpdateSwapChain = false;
   std::vector<vk::Image> mSwapChainImages;
   std::vector<vk::ImageView> mSwapChainImageViews;
@@ -170,7 +168,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   unsigned int mImageCount = 0;
   unsigned int mFramesInFlight = 0;
   int mCurrentFrame = 0;
-  uint32_t mImageIndex = 0;
+  uint32_t mCurrentImageIndex = 0;
   vk::CommandBuffer mCurrentCommandBuffer;
   int mCurrentCommandBufferLastPipeline = -1;
 
@@ -205,16 +203,17 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   vecpod<float> mFontVertexBufferHost;
   bool mHasDrawnText = false;
 
+  bool mSwapchainImageReadable = false;
   vk::SampleCountFlagBits mMSAASampleCount = vk::SampleCountFlagBits::e16;
   unsigned int mMaxMSAAsupported = 0;
   bool mZActive = false;
   bool mZSupported = false;
   bool mDownsampleFSAA = false;
+  bool mMixingSupported = 0;
+
+  VulkanBuffer mMixingTextureVertexArray;
 
   vk::Fence mSingleCommitFence;
-
-  bool mMixingSupported = 0;
-  VulkanBuffer mTextureVertexArray;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
