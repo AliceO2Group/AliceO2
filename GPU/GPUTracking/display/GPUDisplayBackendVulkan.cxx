@@ -708,6 +708,7 @@ void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot, bool forMixing
   unsigned int oldImageCount = mImageCount;
   mImageCount = imageCount;
   mFramesInFlight = mImageCount; // Simplifies reuse of command buffers
+  mCommandBufferPerImage = mFramesInFlight == mImageCount;
 
   if (mSwapChainImages.size() > oldImageCount || !mCommandInfrastructureCreated) {
     if (mCommandInfrastructureCreated) {
@@ -1190,10 +1191,10 @@ void GPUDisplayBackendVulkan::startFillCommandBuffer(vk::CommandBuffer& commandB
 
   vk::DeviceSize offsets[] = {0};
   commandBuffer.bindVertexBuffers(0, 1, &mVBO.buffer, offsets);
-  commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipelineLayout, 0, 1, &mDescriptorSets[0][mCurrentImageIndex], 0, nullptr);
+  commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipelineLayout, 0, 1, &mDescriptorSets[0][mCurrentBufferSet], 0, nullptr);
 }
 
-void GPUDisplayBackendVulkan::endFillCommandBuffer(vk::CommandBuffer& commandBuffer, unsigned int imageIndex)
+void GPUDisplayBackendVulkan::endFillCommandBuffer(vk::CommandBuffer& commandBuffer)
 {
   commandBuffer.endRenderPass();
   commandBuffer.end();
@@ -1432,7 +1433,7 @@ unsigned int GPUDisplayBackendVulkan::drawVertices(const vboList& v, const drawT
   if (count == 0) {
     return 0;
   }
-  if (mCommandBufferUpToDate[mCurrentImageIndex]) {
+  if (mCommandBufferUpToDate[mCurrentBufferSet]) {
     return count;
   }
 
@@ -1458,47 +1459,57 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
   }
 
   if (includeMixImage == 0.f) {
+    mCurrentFrame = (mCurrentFrame + 1) % mFramesInFlight;
     CHKERR(mDevice.waitForFences(1, &mInFlightFence[mCurrentFrame], true, UINT64_MAX));
-    mHasDrawnText = false;
+    auto getImage = [&]() {
+      vk::Fence fen = mCommandBufferPerImage ? mInFlightFence[mCurrentFrame] : VK_NULL_HANDLE;
+      vk::Semaphore sem = mCommandBufferPerImage ? VK_NULL_HANDLE : mImageAvailableSemaphore[mCurrentFrame];
+      if (mCommandBufferPerImage) {
+        CHKERR(mDevice.resetFences(1, &fen));
+      }
+      return mDevice.acquireNextImageKHR(mSwapChain, UINT64_MAX, sem, fen, &mCurrentImageIndex);
+    };
 
     vk::Result retVal = vk::Result::eSuccess;
-
     bool mustUpdateRendering = mMustUpdateSwapChain;
-    if (mMustUpdateSwapChain) {
-    }
     if (mDisplay->updateRenderPipeline() || (requestScreenshot && !mSwapchainImageReadable) || (toMixBuffer && !mMixingSupported) || mDownsampleFactor != getDownsampleFactor(requestScreenshot)) {
       mustUpdateRendering = true;
     } else if (!mMustUpdateSwapChain) {
-      retVal = mDevice.acquireNextImageKHR(mSwapChain, UINT64_MAX, mImageAvailableSemaphore[mCurrentFrame], VK_NULL_HANDLE, &mCurrentImageIndex);
+      retVal = getImage();
     }
     if (mMustUpdateSwapChain || mustUpdateRendering || retVal == vk::Result::eErrorOutOfDateKHR || retVal == vk::Result::eSuboptimalKHR) {
       if (!mustUpdateRendering) {
         GPUInfo("Pipeline out of data / suboptimal, recreating");
       }
       recreateRendering(requestScreenshot, toMixBuffer);
-      retVal = mDevice.acquireNextImageKHR(mSwapChain, UINT64_MAX, mImageAvailableSemaphore[mCurrentFrame], VK_NULL_HANDLE, &mCurrentImageIndex);
+      retVal = getImage();
     }
     CHKERR(retVal);
+    if (mCommandBufferPerImage) {
+      CHKERR(mDevice.waitForFences(1, &mInFlightFence[mCurrentFrame], true, UINT64_MAX));
+    }
+    CHKERR(mDevice.resetFences(1, &mInFlightFence[mCurrentFrame]));
     mMustUpdateSwapChain = false;
+    mHasDrawnText = false;
+    mCurrentBufferSet = mCommandBufferPerImage ? mCurrentImageIndex : mCurrentFrame;
 
     const hmm_mat4 modelViewProj = proj * view;
-    writeToBuffer(mUniformBuffersMat[0][mCurrentImageIndex], sizeof(modelViewProj), &modelViewProj);
-    CHKERR(mDevice.resetFences(1, &mInFlightFence[mCurrentFrame]));
+    writeToBuffer(mUniformBuffersMat[0][mCurrentBufferSet], sizeof(modelViewProj), &modelViewProj);
   }
 
-  mCurrentCommandBuffer = toMixBuffer ? mCommandBuffersMix[mCurrentImageIndex] : mCommandBuffers[mCurrentImageIndex];
+  mCurrentCommandBuffer = toMixBuffer ? mCommandBuffersMix[mCurrentBufferSet] : mCommandBuffers[mCurrentBufferSet];
   mCurrentCommandBufferLastPipeline = -1;
-  if (!mCommandBufferUpToDate[mCurrentImageIndex]) {
+  if (!mCommandBufferUpToDate[mCurrentBufferSet]) {
     startFillCommandBuffer(mCurrentCommandBuffer, mCurrentImageIndex, toMixBuffer);
   }
 }
 
 void GPUDisplayBackendVulkan::finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage)
 {
-  if (!mCommandBufferUpToDate[mCurrentImageIndex]) {
-    endFillCommandBuffer(mCurrentCommandBuffer, mCurrentImageIndex);
+  if (!mCommandBufferUpToDate[mCurrentBufferSet]) {
+    endFillCommandBuffer(mCurrentCommandBuffer);
     if (!toMixBuffer && includeMixImage == 0.f) {
-      mCommandBufferUpToDate[mCurrentImageIndex] = true;
+      mCommandBufferUpToDate[mCurrentBufferSet] = true;
     }
   }
 }
@@ -1509,28 +1520,30 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
 
   vk::SubmitInfo submitInfo{};
   vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
-  submitInfo.waitSemaphoreCount = 1;
-  submitInfo.pWaitSemaphores = includeMixImage > 0.f ? &mRenderFinishedSemaphore[mCurrentFrame] : &mImageAvailableSemaphore[mCurrentFrame];
+  submitInfo.pWaitSemaphores = includeMixImage > 0.f ? &mRenderFinishedSemaphore[mCurrentFrame] : (!mCommandBufferPerImage ? &mImageAvailableSemaphore[mCurrentFrame] : nullptr);
+  submitInfo.waitSemaphoreCount = submitInfo.pWaitSemaphores != nullptr ? 1 : 0;
   submitInfo.pWaitDstStageMask = waitStages;
   submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = (const vk::CommandBuffer*)&mCurrentCommandBuffer; // FIXME
+  submitInfo.pCommandBuffers = &mCurrentCommandBuffer;
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = stageFinishedSemaphore;
   CHKERR(mGraphicsQueue.submit(1, &submitInfo, includeMixImage > 0 || toMixBuffer || mHasDrawnText || mDownsampleFSAA ? VK_NULL_HANDLE : mInFlightFence[mCurrentFrame]));
   if (!toMixBuffer) {
     if (includeMixImage > 0.f) {
-      mixImages(mCommandBuffersTexture[mCurrentImageIndex], includeMixImage);
+      mixImages(mCommandBuffersTexture[mCurrentBufferSet], includeMixImage);
       submitInfo.pWaitSemaphores = stageFinishedSemaphore;
-      submitInfo.pCommandBuffers = (const vk::CommandBuffer*)&mCommandBuffersTexture[mCurrentImageIndex]; // FIXME
+      submitInfo.waitSemaphoreCount = 1;
+      submitInfo.pCommandBuffers = &mCommandBuffersTexture[mCurrentBufferSet];
       stageFinishedSemaphore = &mMixFinishedSemaphore[mCurrentFrame];
       submitInfo.pSignalSemaphores = stageFinishedSemaphore;
       CHKERR(mGraphicsQueue.submit(1, &submitInfo, mHasDrawnText || mDownsampleFSAA ? VK_NULL_HANDLE : mInFlightFence[mCurrentFrame]));
     }
 
     if (mDownsampleFSAA) {
-      downsampleToFramebuffer(mCommandBuffersDownsample[mCurrentImageIndex]);
-      submitInfo.pCommandBuffers = (const vk::CommandBuffer*)&mCommandBuffersDownsample[mCurrentImageIndex]; // FIXME
+      downsampleToFramebuffer(mCommandBuffersDownsample[mCurrentBufferSet]);
+      submitInfo.pCommandBuffers = &mCommandBuffersDownsample[mCurrentBufferSet];
       submitInfo.pWaitSemaphores = stageFinishedSemaphore;
+      submitInfo.waitSemaphoreCount = 1;
       stageFinishedSemaphore = &mDownsampleFinishedSemaphore[mCurrentFrame];
       submitInfo.pSignalSemaphores = stageFinishedSemaphore;
       CHKERR(mGraphicsQueue.submit(1, &submitInfo, mHasDrawnText ? VK_NULL_HANDLE : mInFlightFence[mCurrentFrame]));
@@ -1539,7 +1552,7 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
     if (doScreenshot) {
       mDevice.waitIdle();
       if (mDisplay->cfgR().screenshotScaleFactor != 1) {
-        readImageToPixels(mDownsampleImages[mCurrentImageIndex].image, vk::ImageLayout::eColorAttachmentOptimal, mScreenshotPixels);
+        readImageToPixels(mDownsampleImages[mCurrentBufferSet].image, vk::ImageLayout::eColorAttachmentOptimal, mScreenshotPixels);
       } else {
         readImageToPixels(mSwapChainImages[mCurrentImageIndex], vk::ImageLayout::ePresentSrcKHR, mScreenshotPixels);
       }
@@ -1547,7 +1560,8 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
 
     if (mHasDrawnText) {
       submitInfo.pWaitSemaphores = stageFinishedSemaphore;
-      submitInfo.pCommandBuffers = (const vk::CommandBuffer*)&mCommandBuffersText[mCurrentImageIndex]; // FIXME
+      submitInfo.waitSemaphoreCount = 1;
+      submitInfo.pCommandBuffers = &mCommandBuffersText[mCurrentBufferSet];
       stageFinishedSemaphore = &mTextFinishedSemaphore[mCurrentFrame];
       submitInfo.pSignalSemaphores = stageFinishedSemaphore;
       CHKERR(mGraphicsQueue.submit(1, &submitInfo, mInFlightFence[mCurrentFrame]));
@@ -1557,7 +1571,7 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = stageFinishedSemaphore;
     presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = (const vk::SwapchainKHR*)&mSwapChain; // FIXME
+    presentInfo.pSwapchains = &mSwapChain;
     presentInfo.pImageIndices = &mCurrentImageIndex;
     presentInfo.pResults = nullptr;
     vk::Result retVal = mGraphicsQueue.presentKHR(&presentInfo);
@@ -1566,7 +1580,6 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
     } else {
       CHKERR(retVal);
     }
-    mCurrentFrame = (mCurrentFrame + 1) % mFramesInFlight;
   }
 }
 
@@ -1578,7 +1591,7 @@ void GPUDisplayBackendVulkan::downsampleToFramebuffer(vk::CommandBuffer& command
   commandBuffer.begin(beginInfo);
 
   cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mCurrentImageIndex], {}, vk::AccessFlagBits::eTransferWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
-  cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mCurrentImageIndex].image, vk::AccessFlagBits::eMemoryRead, vk::AccessFlagBits::eTransferRead, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
+  cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mCurrentBufferSet].image, vk::AccessFlagBits::eMemoryRead, vk::AccessFlagBits::eTransferRead, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
 
   vk::Offset3D blitSizeSrc;
   blitSizeSrc.x = mRenderWidth;
@@ -1595,10 +1608,10 @@ void GPUDisplayBackendVulkan::downsampleToFramebuffer(vk::CommandBuffer& command
   imageBlitRegion.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
   imageBlitRegion.dstSubresource.layerCount = 1;
   imageBlitRegion.dstOffsets[1] = blitSizeDst;
-  commandBuffer.blitImage(mDownsampleImages[mCurrentImageIndex].image, vk::ImageLayout::eTransferSrcOptimal, mSwapChainImages[mCurrentImageIndex], vk::ImageLayout::eTransferDstOptimal, 1, &imageBlitRegion, vk::Filter::eLinear);
+  commandBuffer.blitImage(mDownsampleImages[mCurrentBufferSet].image, vk::ImageLayout::eTransferSrcOptimal, mSwapChainImages[mCurrentImageIndex], vk::ImageLayout::eTransferDstOptimal, 1, &imageBlitRegion, vk::Filter::eLinear);
 
   cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mCurrentImageIndex], vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eMemoryRead, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
-  cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mCurrentImageIndex].image, vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eMemoryRead, vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eColorAttachmentOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
+  cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mCurrentBufferSet].image, vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eMemoryRead, vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eColorAttachmentOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
 
   commandBuffer.end();
 }
@@ -1606,7 +1619,7 @@ void GPUDisplayBackendVulkan::downsampleToFramebuffer(vk::CommandBuffer& command
 void GPUDisplayBackendVulkan::prepareText()
 {
   hmm_mat4 proj = HMM_Orthographic(0.f, mScreenWidth, 0.f, mScreenHeight, -1, 1);
-  writeToBuffer(mUniformBuffersMat[1][mCurrentImageIndex], sizeof(proj), &proj);
+  writeToBuffer(mUniformBuffersMat[1][mCurrentBufferSet], sizeof(proj), &proj);
 
   mFontVertexBufferHost.clear();
   mTextDrawCommands.clear();
@@ -1618,11 +1631,11 @@ void GPUDisplayBackendVulkan::finishText()
     return;
   }
 
-  mCommandBuffersText[mCurrentImageIndex].reset({});
+  mCommandBuffersText[mCurrentBufferSet].reset({});
 
   vk::CommandBufferBeginInfo beginInfo{};
   beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
-  mCommandBuffersText[mCurrentImageIndex].begin(beginInfo);
+  mCommandBuffersText[mCurrentBufferSet].begin(beginInfo);
 
   vk::RenderPassBeginInfo renderPassInfo{};
   renderPassInfo.renderPass = mRenderPassText;
@@ -1630,40 +1643,40 @@ void GPUDisplayBackendVulkan::finishText()
   renderPassInfo.renderArea.offset = vk::Offset2D{0, 0};
   renderPassInfo.renderArea.extent = vk::Extent2D{mScreenWidth, mScreenHeight};
   renderPassInfo.clearValueCount = 0;
-  mCommandBuffersText[mCurrentImageIndex].beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+  mCommandBuffersText[mCurrentBufferSet].beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 
-  if (mFontVertexBuffer[mCurrentImageIndex].size) {
-    clearBuffer(mFontVertexBuffer[mCurrentImageIndex]);
+  if (mFontVertexBuffer[mCurrentBufferSet].size) {
+    clearBuffer(mFontVertexBuffer[mCurrentBufferSet]);
   }
-  mFontVertexBuffer[mCurrentImageIndex] = createBuffer(mFontVertexBufferHost.size() * sizeof(float), mFontVertexBufferHost.data(), vk::BufferUsageFlagBits::eVertexBuffer, false);
+  mFontVertexBuffer[mCurrentBufferSet] = createBuffer(mFontVertexBufferHost.size() * sizeof(float), mFontVertexBufferHost.data(), vk::BufferUsageFlagBits::eVertexBuffer, false);
 
-  mCommandBuffersText[mCurrentImageIndex].bindPipeline(vk::PipelineBindPoint::eGraphics, mPipelines[3]);
-  mCommandBuffersText[mCurrentImageIndex].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipelineLayoutTexture, 0, 1, &mDescriptorSets[1][mCurrentImageIndex], 0, nullptr);
+  mCommandBuffersText[mCurrentBufferSet].bindPipeline(vk::PipelineBindPoint::eGraphics, mPipelines[3]);
+  mCommandBuffersText[mCurrentBufferSet].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipelineLayoutTexture, 0, 1, &mDescriptorSets[1][mCurrentBufferSet], 0, nullptr);
   vk::DeviceSize offsets[] = {0};
-  mCommandBuffersText[mCurrentImageIndex].bindVertexBuffers(0, 1, &mFontVertexBuffer[mCurrentImageIndex].buffer, offsets);
+  mCommandBuffersText[mCurrentBufferSet].bindVertexBuffers(0, 1, &mFontVertexBuffer[mCurrentBufferSet].buffer, offsets);
 
   for (const auto& cmd : mTextDrawCommands) {
-    mCommandBuffersText[mCurrentImageIndex].pushConstants(mPipelineLayoutTexture, vk::ShaderStageFlagBits::eFragment, 0, sizeof(cmd.color), cmd.color);
-    mCommandBuffersText[mCurrentImageIndex].draw(cmd.nVertices, 1, cmd.firstVertex, 0);
+    mCommandBuffersText[mCurrentBufferSet].pushConstants(mPipelineLayoutTexture, vk::ShaderStageFlagBits::eFragment, 0, sizeof(cmd.color), cmd.color);
+    mCommandBuffersText[mCurrentBufferSet].draw(cmd.nVertices, 1, cmd.firstVertex, 0);
   }
 
   mFontVertexBufferHost.clear();
 
-  mCommandBuffersText[mCurrentImageIndex].endRenderPass();
-  mCommandBuffersText[mCurrentImageIndex].end();
+  mCommandBuffersText[mCurrentBufferSet].endRenderPass();
+  mCommandBuffersText[mCurrentBufferSet].end();
 }
 
 void GPUDisplayBackendVulkan::mixImages(vk::CommandBuffer commandBuffer, float mixSlaveImage)
 {
   hmm_mat4 proj = HMM_Orthographic(0.f, mRenderWidth, 0.f, mRenderHeight, -1, 1);
-  writeToBuffer(mUniformBuffersMat[2][mCurrentImageIndex], sizeof(proj), &proj);
+  writeToBuffer(mUniformBuffersMat[2][mCurrentBufferSet], sizeof(proj), &proj);
 
   commandBuffer.reset({});
   vk::CommandBufferBeginInfo beginInfo{};
   beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
   commandBuffer.begin(beginInfo);
 
-  vk::Image& image = mDownsampleFSAA ? mDownsampleImages[mCurrentImageIndex + mImageCount].image : mMixImages[mCurrentImageIndex].image;
+  vk::Image& image = mDownsampleFSAA ? mDownsampleImages[mCurrentBufferSet + mImageCount].image : mMixImages[mCurrentBufferSet].image;
   vk::ImageLayout srcLayout = mDownsampleFSAA ? vk::ImageLayout::eColorAttachmentOptimal : vk::ImageLayout::ePresentSrcKHR;
   cmdImageMemoryBarrier(commandBuffer, image, {}, vk::AccessFlagBits::eMemoryRead, srcLayout, vk::ImageLayout::eShaderReadOnlyOptimal, vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eFragmentShader);
 
@@ -1676,7 +1689,7 @@ void GPUDisplayBackendVulkan::mixImages(vk::CommandBuffer commandBuffer, float m
   commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 
   commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, mPipelines[4]);
-  commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipelineLayoutTexture, 0, 1, &mDescriptorSets[2][mCurrentImageIndex], 0, nullptr);
+  commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipelineLayoutTexture, 0, 1, &mDescriptorSets[2][mCurrentBufferSet], 0, nullptr);
   vk::DeviceSize offsets[] = {0};
   commandBuffer.bindVertexBuffers(0, 1, &mMixingTextureVertexArray.buffer, offsets);
 
@@ -1689,7 +1702,7 @@ void GPUDisplayBackendVulkan::mixImages(vk::CommandBuffer commandBuffer, float m
 
 void GPUDisplayBackendVulkan::ActivateColor(std::array<float, 4>& color)
 {
-  if (mCommandBufferUpToDate[mCurrentImageIndex]) {
+  if (mCommandBufferUpToDate[mCurrentBufferSet]) {
     return;
   }
   mCurrentCommandBuffer.pushConstants(mPipelineLayout, vk::ShaderStageFlagBits::eFragment, 0, sizeof(color), color.data());
@@ -1697,7 +1710,7 @@ void GPUDisplayBackendVulkan::ActivateColor(std::array<float, 4>& color)
 
 void GPUDisplayBackendVulkan::pointSizeFactor(float factor)
 {
-  if (mCommandBufferUpToDate[mCurrentImageIndex]) {
+  if (mCommandBufferUpToDate[mCurrentBufferSet]) {
     return;
   }
   float size = mDisplay->cfgL().pointSize * mDownsampleFactor * factor;
@@ -1706,7 +1719,7 @@ void GPUDisplayBackendVulkan::pointSizeFactor(float factor)
 
 void GPUDisplayBackendVulkan::lineWidthFactor(float factor)
 {
-  if (mCommandBufferUpToDate[mCurrentImageIndex]) {
+  if (mCommandBufferUpToDate[mCurrentBufferSet]) {
     return;
   }
   mCurrentCommandBuffer.setLineWidth(mDisplay->cfgL().lineWidth * mDownsampleFactor * factor);
@@ -1927,5 +1940,5 @@ unsigned int GPUDisplayBackendVulkan::DepthBits()
 
 bool GPUDisplayBackendVulkan::backendNeedRedraw()
 {
-  return !mCommandBufferUpToDate[mCurrentImageIndex];
+  return !mCommandBufferUpToDate[mCurrentBufferSet];
 }
