@@ -260,6 +260,7 @@ EndConfig()
 // Vulkan Display Settings
 BeginSubConfig(GPUSettingsDisplayVulkan, vulkan, configStandalone.display, "GLV", 0, "Vulkan display settings", display_vulkan)
 AddOption(nFramesInFlight, int, 0, "", 0, "Max number of render frames in flight (0 = as many as swapchain images)")
+AddOption(uniformBuffersInDeviceMemory, bool, 1, "", 0, "Have uniform buffers in host-accessible device memory")
 AddHelp("help", 'h')
 EndConfig()
 
