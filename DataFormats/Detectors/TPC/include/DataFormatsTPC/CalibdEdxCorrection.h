@@ -99,7 +99,7 @@ class CalibdEdxCorrection
   int mEntries[FitSize];
   int mDims{-1}; ///< Fit dimension
 
-  ClassDefNV(CalibdEdxCorrection, 1);
+  ClassDefNV(CalibdEdxCorrection, 2);
 };
 
 } // namespace o2::tpc
