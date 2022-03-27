@@ -78,6 +78,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void prepareText() override;
   void finishText() override;
   void mixImages(vk::CommandBuffer cmdBuffer, float mixSlaveImage);
+  void setMixDescriptor(int descriptorIndex, int imageIndex);
   void pointSizeFactor(float factor) override;
   void lineWidthFactor(float factor) override;
   backendTypes backendType() const override { return TYPE_VULKAN; }
