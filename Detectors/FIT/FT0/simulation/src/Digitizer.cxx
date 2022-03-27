@@ -296,10 +296,10 @@ void Digitizer::storeBC(BCCache& bc,
   is_C = n_hit_C > 0;
   is_Central = summ_ampl_A + summ_ampl_C >= params.mtrg_central_trh;
   is_SemiCentral = summ_ampl_A + summ_ampl_C >= params.mtrg_semicentral_trh;
-  uint32_t amplA = is_A ? summ_ampl_A * 0.125 : 0;   // sum amplitude A side / 8 (hardware)
-  uint32_t amplC = is_C ? summ_ampl_C * 0.125 : 0;   // sum amplitude C side / 8 (hardware)
-  int timeA = is_A ? mean_time_A / n_hit_A : 0;      // average time A side
-  int timeC = is_C ? mean_time_C / n_hit_C : 0;      // average time C side
+  uint32_t amplA = is_A ? summ_ampl_A * 0.125 : -5000; // sum amplitude A side / 8 (hardware)
+  uint32_t amplC = is_C ? summ_ampl_C * 0.125 : -5000; // sum amplitude C side / 8 (hardware)
+  int timeA = is_A ? mean_time_A / n_hit_A : -5000;    // average time A side
+  int timeC = is_C ? mean_time_C / n_hit_C : -5000;    // average time C side
   vertex_time = (timeC - timeA) * 0.5;
   isVertex = is_A && is_C && (vertex_time > -params.mTime_trg_gate && vertex_time < params.mTime_trg_gate);
   LOG(debug) << " A " << is_A << " timeA " << timeA << " mean_time_A " << mean_time_A << "  n_hit_A " << n_hit_A << " C " << is_C << " timeC " << timeC << " mean_time_C " << mean_time_C << "  n_hit_C " << n_hit_C << " vertex_time " << vertex_time;
