@@ -1719,8 +1719,10 @@ void GPUDisplayBackendVulkan::addFontSymbol(int symbol, int sizex, int sizey, in
   }
   mFontSymbols.emplace_back(FontSymbolVulkan{sizex, sizey, offsetx, offsety, advance, nullptr, 0.f, 0.f, 0.f, 0.f});
   auto& buffer = mFontSymbols.back().data;
-  buffer.reset(new char[sizex * sizey]);
-  memcpy(buffer.get(), data, sizex * sizey);
+  if (sizex && sizey) {
+    buffer.reset(new char[sizex * sizey]);
+    memcpy(buffer.get(), data, sizex * sizey);
+  }
 }
 
 void GPUDisplayBackendVulkan::initializeTextDrawing()
@@ -1766,7 +1768,7 @@ void GPUDisplayBackendVulkan::initializeTextDrawing()
   }
   if (maxBigX != sizex) {
     for (int y = 1; y < maxBigY; y++) {
-      memcpy(bigImage.get() + y * maxBigX, bigImage.get() + y * sizex, maxBigX);
+      memmove(bigImage.get() + y * maxBigX, bigImage.get() + y * sizex, maxBigX);
     }
   }
   sizex = maxBigX;
