@@ -84,6 +84,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   backendTypes backendType() const override { return TYPE_VULKAN; }
   void resizeScene(unsigned int width, unsigned int height) override;
   float getYFactor() const override { return -1.0f; }
+  int getMaxMSAA() const override { return mMaxMSAAsupported; }
 
   double checkDevice(vk::PhysicalDevice device, const std::vector<const char*>& reqDeviceExtensions);
   vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
@@ -201,7 +202,6 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   VulkanImage mFontImage;
   std::vector<VulkanBuffer> mFontVertexBuffer;
   std::vector<TextDrawCommand> mTextDrawCommands;
-  vk::CommandBuffer mTmpTextCommandBuffer;
   vk::Sampler mTextureSampler;
   vecpod<float> mFontVertexBufferHost;
   bool mHasDrawnText = false;
@@ -211,6 +211,8 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   unsigned int mMaxMSAAsupported = 0;
   bool mZActive = false;
   bool mZSupported = false;
+  bool mStencilSupported = false;
+  bool mCubicFilterSupported = false;
   bool mDownsampleFSAA = false;
   bool mMixingSupported = 0;
 

@@ -402,7 +402,7 @@ void GPUDisplayBackendVulkan::createDevice()
   }
   std::vector<vk::ExtensionProperties> extensions = vk::enumerateInstanceExtensionProperties(nullptr);
   if (mEnableValidationLayers) {
-    std::cout << "available extensions: " << extensions.size() << "\n";
+    std::cout << "available instance extensions: " << extensions.size() << "\n";
     for (const auto& extension : extensions) {
       std::cout << '\t' << extension.extensionName << '\n';
     }
@@ -437,14 +437,21 @@ void GPUDisplayBackendVulkan::createDevice()
     throw std::runtime_error("All available Vulkan devices unsuited");
   }
 
+  updateSwapChainDetails(mPhysicalDevice);
   vk::PhysicalDeviceProperties deviceProperties = mPhysicalDevice.getProperties();
   vk::PhysicalDeviceFeatures deviceFeatures = mPhysicalDevice.getFeatures();
-  vk::FormatProperties depthFormatProperties = mPhysicalDevice.getFormatProperties(vk::Format::eD32Sfloat);
+  vk::FormatProperties depth32FormatProperties = mPhysicalDevice.getFormatProperties(vk::Format::eD32Sfloat);
+  vk::FormatProperties depth64FormatProperties = mPhysicalDevice.getFormatProperties(vk::Format::eD32SfloatS8Uint);
+  vk::FormatProperties formatProperties = mPhysicalDevice.getFormatProperties(mSurfaceFormat.format);
   GPUInfo("Using physicak Vulkan device %s", deviceProperties.deviceName.data());
   mMaxMSAAsupported = getMaxUsableSampleCount(deviceProperties);
-  mZSupported = (bool)(depthFormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
-
-  updateSwapChainDetails(mPhysicalDevice);
+  mZSupported = (bool)(depth32FormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
+  mStencilSupported = (bool)(depth64FormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
+  mCubicFilterSupported = (bool)(formatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eSampledImageFilterCubicEXT);
+  bool mailboxSupported = std::find(mSwapChainDetails.presentModes.begin(), mSwapChainDetails.presentModes.end(), vk::PresentModeKHR::eMailbox) != mSwapChainDetails.presentModes.end();
+  if (mDisplay->param()->par.debugLevel >= 2) {
+    GPUInfo("Max MSAA: %d, 32 bit Z buffer %d, 32 bit Z buffer + stencil buffer %d, Cubic Filtering %d, Mailbox present mode %d\n", (int)mMaxMSAAsupported, (int)mZSupported, (int)mStencilSupported, (int)mCubicFilterSupported, (int)mailboxSupported);
+  }
 
   vk::DeviceQueueCreateInfo queueCreateInfo{};
   queueCreateInfo.queueFamilyIndex = mGraphicsFamily;
@@ -1539,6 +1546,7 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
     if (includeMixImage > 0.f) {
       mixImages(mCommandBuffersTexture[mCurrentBufferSet], includeMixImage);
       submitInfo.pWaitSemaphores = stageFinishedSemaphore;
+      waitStages[0] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
       submitInfo.waitSemaphoreCount = 1;
       submitInfo.pCommandBuffers = &mCommandBuffersTexture[mCurrentBufferSet];
       stageFinishedSemaphore = &mMixFinishedSemaphore[mCurrentFrame];
@@ -1550,6 +1558,7 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
       downsampleToFramebuffer(mCommandBuffersDownsample[mCurrentBufferSet]);
       submitInfo.pCommandBuffers = &mCommandBuffersDownsample[mCurrentBufferSet];
       submitInfo.pWaitSemaphores = stageFinishedSemaphore;
+      waitStages[0] = {vk::PipelineStageFlagBits::eTransfer};
       submitInfo.waitSemaphoreCount = 1;
       stageFinishedSemaphore = &mDownsampleFinishedSemaphore[mCurrentFrame];
       submitInfo.pSignalSemaphores = stageFinishedSemaphore;
@@ -1567,6 +1576,7 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
 
     if (mHasDrawnText) {
       submitInfo.pWaitSemaphores = stageFinishedSemaphore;
+      waitStages[0] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
       submitInfo.waitSemaphoreCount = 1;
       submitInfo.pCommandBuffers = &mCommandBuffersText[mCurrentBufferSet];
       stageFinishedSemaphore = &mTextFinishedSemaphore[mCurrentFrame];
@@ -1618,7 +1628,7 @@ void GPUDisplayBackendVulkan::downsampleToFramebuffer(vk::CommandBuffer& command
   commandBuffer.blitImage(mDownsampleImages[mCurrentImageIndex].image, vk::ImageLayout::eTransferSrcOptimal, mSwapChainImages[mCurrentImageIndex], vk::ImageLayout::eTransferDstOptimal, 1, &imageBlitRegion, vk::Filter::eLinear);
 
   cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mCurrentImageIndex], vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eMemoryRead, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
-  cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mCurrentImageIndex].image, vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eMemoryRead, vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eColorAttachmentOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
+  cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mCurrentImageIndex].image, vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eMemoryRead, vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
 
   commandBuffer.end();
 }
