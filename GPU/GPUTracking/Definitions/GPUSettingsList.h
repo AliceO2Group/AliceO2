@@ -257,6 +257,13 @@ AddOption(fov, int, 45, "", 0, "Display FOV")
 AddHelp("help", 'h')
 EndConfig()
 
+// Vulkan Display Settings
+BeginSubConfig(GPUSettingsDisplayVulkan, vulkan, configStandalone.display, "GLV", 0, "Vulkan display settings", display_vulkan)
+AddOption(nFramesInFlight, int, 0, "", 0, "Max number of render frames in flight (0 = as many as swapchain images)")
+AddHelp("help", 'h')
+EndConfig()
+
+
 // Settings concerning the event display (fixed settings, cannot be changed)
 BeginSubConfig(GPUSettingsDisplay, display, configStandalone, "GL", 'g', "OpenGL display settings", display)
 AddOption(showTPCTracksFromO2Format, bool, false, "", 0, "Use TPC tracks in O2 output format instead of GPU format")
@@ -268,6 +275,7 @@ AddOptionVec(filterMacros, std::string, "", 0, "ROOT macros used as track filter
 AddSubConfig(GPUSettingsDisplayLight, light)
 AddSubConfig(GPUSettingsDisplayHeavy, heavy)
 AddSubConfig(GPUSettingsDisplayRenderer, renderer)
+AddSubConfig(GPUSettingsDisplayVulkan, vulkan)
 AddHelp("help", 'h')
 EndConfig()
 

@@ -631,6 +631,22 @@ void GPUDisplayBackendVulkan::clearUniformLayoutsAndBuffers()
   }
 }
 
+void GPUDisplayBackendVulkan::setMixDescriptor(int descriptorIndex, int imageIndex)
+{
+  vk::DescriptorImageInfo imageInfo{};
+  imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+  imageInfo.sampler = mTextureSampler;
+  imageInfo.imageView = *mRenderTargetView[imageIndex + mImageCount];
+  vk::WriteDescriptorSet descriptorWrite{};
+  descriptorWrite.dstSet = mDescriptorSets[2][descriptorIndex];
+  descriptorWrite.dstBinding = 2;
+  descriptorWrite.dstArrayElement = 0;
+  descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
+  descriptorWrite.descriptorCount = 1;
+  descriptorWrite.pImageInfo = &imageInfo;
+  mDevice.updateDescriptorSets(1, &descriptorWrite, 0, nullptr);
+}
+
 // ---------------------------- VULKAN TEXTURE SAMPLER ----------------------------
 
 void GPUDisplayBackendVulkan::createTextureSampler()
@@ -705,12 +721,12 @@ void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot, bool forMixing
   mSwapChain = mDevice.createSwapchainKHR(swapCreateInfo, nullptr);
 
   mSwapChainImages = mDevice.getSwapchainImagesKHR(mSwapChain);
-  unsigned int oldImageCount = mImageCount;
-  mImageCount = imageCount;
-  mFramesInFlight = mImageCount; // Simplifies reuse of command buffers
+  unsigned int oldFramesInFlight = mFramesInFlight;
+  mImageCount = mSwapChainImages.size();
+  mFramesInFlight = mDisplay->cfg().vulkan.nFramesInFlight == 0 ? mImageCount : mDisplay->cfg().vulkan.nFramesInFlight;
   mCommandBufferPerImage = mFramesInFlight == mImageCount;
 
-  if (mSwapChainImages.size() > oldImageCount || !mCommandInfrastructureCreated) {
+  if (mFramesInFlight > oldFramesInFlight || !mCommandInfrastructureCreated) {
     if (mCommandInfrastructureCreated) {
       clearUniformLayoutsAndBuffers();
       clearCommandBuffers();
@@ -945,19 +961,10 @@ void GPUDisplayBackendVulkan::createOffscreenBuffers(bool forScreenshot, bool fo
       {(float)mRenderWidth, (float)mRenderHeight, 1.0f, 1.0f}};
     mMixingTextureVertexArray = createBuffer(sizeof(vertices), &vertices[0][0], vk::BufferUsageFlagBits::eVertexBuffer, true);
 
-    vk::DescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-    imageInfo.sampler = mTextureSampler;
-    for (unsigned int i = 0; i < mFramesInFlight; i++) {
-      imageInfo.imageView = *mRenderTargetView[i + mImageCount];
-      vk::WriteDescriptorSet descriptorWrite{};
-      descriptorWrite.dstSet = mDescriptorSets[2][i];
-      descriptorWrite.dstBinding = 2;
-      descriptorWrite.dstArrayElement = 0;
-      descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
-      descriptorWrite.descriptorCount = 1;
-      descriptorWrite.pImageInfo = &imageInfo;
-      mDevice.updateDescriptorSets(1, &descriptorWrite, 0, nullptr);
+    if (mCommandBufferPerImage) {
+      for (unsigned int i = 0; i < mFramesInFlight; i++) {
+        setMixDescriptor(i, i);
+      }
     }
   }
 
@@ -1508,7 +1515,7 @@ void GPUDisplayBackendVulkan::finishDraw(bool doScreenshot, bool toMixBuffer, fl
 {
   if (!mCommandBufferUpToDate[mCurrentBufferSet]) {
     endFillCommandBuffer(mCurrentCommandBuffer);
-    if (!toMixBuffer && includeMixImage == 0.f) {
+    if (!toMixBuffer && includeMixImage == 0.f && mCommandBufferPerImage) {
       mCommandBufferUpToDate[mCurrentBufferSet] = true;
     }
   }
@@ -1552,7 +1559,7 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
     if (doScreenshot) {
       mDevice.waitIdle();
       if (mDisplay->cfgR().screenshotScaleFactor != 1) {
-        readImageToPixels(mDownsampleImages[mCurrentBufferSet].image, vk::ImageLayout::eColorAttachmentOptimal, mScreenshotPixels);
+        readImageToPixels(mDownsampleImages[mCurrentImageIndex].image, vk::ImageLayout::eColorAttachmentOptimal, mScreenshotPixels);
       } else {
         readImageToPixels(mSwapChainImages[mCurrentImageIndex], vk::ImageLayout::ePresentSrcKHR, mScreenshotPixels);
       }
@@ -1591,7 +1598,7 @@ void GPUDisplayBackendVulkan::downsampleToFramebuffer(vk::CommandBuffer& command
   commandBuffer.begin(beginInfo);
 
   cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mCurrentImageIndex], {}, vk::AccessFlagBits::eTransferWrite, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
-  cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mCurrentBufferSet].image, vk::AccessFlagBits::eMemoryRead, vk::AccessFlagBits::eTransferRead, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
+  cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mCurrentImageIndex].image, vk::AccessFlagBits::eMemoryRead, vk::AccessFlagBits::eTransferRead, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
 
   vk::Offset3D blitSizeSrc;
   blitSizeSrc.x = mRenderWidth;
@@ -1608,10 +1615,10 @@ void GPUDisplayBackendVulkan::downsampleToFramebuffer(vk::CommandBuffer& command
   imageBlitRegion.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
   imageBlitRegion.dstSubresource.layerCount = 1;
   imageBlitRegion.dstOffsets[1] = blitSizeDst;
-  commandBuffer.blitImage(mDownsampleImages[mCurrentBufferSet].image, vk::ImageLayout::eTransferSrcOptimal, mSwapChainImages[mCurrentImageIndex], vk::ImageLayout::eTransferDstOptimal, 1, &imageBlitRegion, vk::Filter::eLinear);
+  commandBuffer.blitImage(mDownsampleImages[mCurrentImageIndex].image, vk::ImageLayout::eTransferSrcOptimal, mSwapChainImages[mCurrentImageIndex], vk::ImageLayout::eTransferDstOptimal, 1, &imageBlitRegion, vk::Filter::eLinear);
 
   cmdImageMemoryBarrier(commandBuffer, mSwapChainImages[mCurrentImageIndex], vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eMemoryRead, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
-  cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mCurrentBufferSet].image, vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eMemoryRead, vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eColorAttachmentOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
+  cmdImageMemoryBarrier(commandBuffer, mDownsampleImages[mCurrentImageIndex].image, vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eMemoryRead, vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eColorAttachmentOptimal, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer);
 
   commandBuffer.end();
 }
@@ -1676,7 +1683,7 @@ void GPUDisplayBackendVulkan::mixImages(vk::CommandBuffer commandBuffer, float m
   beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
   commandBuffer.begin(beginInfo);
 
-  vk::Image& image = mDownsampleFSAA ? mDownsampleImages[mCurrentBufferSet + mImageCount].image : mMixImages[mCurrentBufferSet].image;
+  vk::Image& image = mDownsampleFSAA ? mDownsampleImages[mCurrentImageIndex + mImageCount].image : mMixImages[mCurrentImageIndex].image;
   vk::ImageLayout srcLayout = mDownsampleFSAA ? vk::ImageLayout::eColorAttachmentOptimal : vk::ImageLayout::ePresentSrcKHR;
   cmdImageMemoryBarrier(commandBuffer, image, {}, vk::AccessFlagBits::eMemoryRead, srcLayout, vk::ImageLayout::eShaderReadOnlyOptimal, vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eFragmentShader);
 
@@ -1689,6 +1696,9 @@ void GPUDisplayBackendVulkan::mixImages(vk::CommandBuffer commandBuffer, float m
   commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 
   commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, mPipelines[4]);
+  if (!mCommandBufferPerImage) {
+    setMixDescriptor(mCurrentBufferSet, mCurrentImageIndex);
+  }
   commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, mPipelineLayoutTexture, 0, 1, &mDescriptorSets[2][mCurrentBufferSet], 0, nullptr);
   vk::DeviceSize offsets[] = {0};
   commandBuffer.bindVertexBuffers(0, 1, &mMixingTextureVertexArray.buffer, offsets);
