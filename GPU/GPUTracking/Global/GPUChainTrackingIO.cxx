@@ -303,7 +303,6 @@ void GPUChainTracking::DumpSettings(const char* dir)
     f += "trdgeometry.dump";
     DumpStructToFile(processors()->calibObjects.trdGeometry, f.c_str());
   }
-
 #endif
 }
 
