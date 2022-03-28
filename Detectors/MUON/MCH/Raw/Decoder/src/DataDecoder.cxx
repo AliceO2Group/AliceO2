@@ -924,6 +924,7 @@ void DataDecoder::reset()
 {
   mDigits.clear();
   mOrbits.clear();
+  mErrors.clear();
   memset(mMergerRecordsReady.data(), 0, sizeof(uint64_t) * mMergerRecordsReady.size());
 }
 
