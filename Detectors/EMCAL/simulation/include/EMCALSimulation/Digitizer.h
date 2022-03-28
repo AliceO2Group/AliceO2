@@ -51,6 +51,9 @@ class Digitizer : public TObject
   void init();
   void clear();
 
+  /// clear DigitsVectorStream
+  void flush() { mDigits.flush(); }
+
   /// This is for the readout window that was interrupted by the end of the run
   void finish() { mDigits.finish(); }
 
@@ -79,9 +82,9 @@ class Digitizer : public TObject
   /// raw pointers used here to allow interface with TF1
   static double rawResponseFunction(double* x, double* par);
 
-  std::vector<o2::emcal::Digit> getDigits() { return mDigits.getDigits(); }
-  std::vector<o2::emcal::TriggerRecord> getTriggerRecords() { return mDigits.getTriggerRecords(); }
-  o2::dataformats::MCTruthContainer<o2::emcal::MCLabel> getMCLabels() { return mDigits.getMCLabels(); }
+  const std::vector<o2::emcal::Digit>& getDigits() const { return mDigits.getDigits(); }
+  const std::vector<o2::emcal::TriggerRecord>& getTriggerRecords() const { return mDigits.getTriggerRecords(); }
+  const o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>& getMCLabels() const { return mDigits.getMCLabels(); }
 
  private:
   short mEventTimeOffset = 0;          ///< event time difference from trigger time (in number of bins)

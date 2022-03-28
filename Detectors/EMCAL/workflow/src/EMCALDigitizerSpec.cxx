@@ -56,6 +56,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   if (mFinished) {
     return;
   }
+  mDigitizer.flush();
 
   // read collision context from input
   auto context = ctx.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");

@@ -66,9 +66,9 @@ class DigitsVectorStream
   void fill(std::deque<o2::emcal::DigitTimebin>& digitlist, o2::InteractionRecord record);
 
   /// Getters for the finals data vectors, digits vector, labels vector, and trigger records vector
-  std::vector<o2::emcal::Digit> getDigits() { return mDigits; }
-  std::vector<o2::emcal::TriggerRecord> getTriggerRecords() { return mTriggerRecords; }
-  o2::dataformats::MCTruthContainer<o2::emcal::MCLabel> getMCLabels() { return mLabels; }
+  const std::vector<o2::emcal::Digit>& getDigits() const { return mDigits; }
+  const std::vector<o2::emcal::TriggerRecord>& getTriggerRecords() const { return mTriggerRecords; }
+  const o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>& getMCLabels() const { return mLabels; }
 
   /// Flag whether to simulate noise to the digits
   void doSimulateNoiseDigits(bool doNoise = true) { mSimulateNoiseDigits = doNoise; }

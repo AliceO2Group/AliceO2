@@ -47,6 +47,9 @@ class DigitsWriteoutBuffer
   /// clear the container
   void clear();
 
+  /// clear DigitsVectorStream
+  void flush() { mDigitStream.clear(); }
+
   void init();
 
   /// Reserve space for the future container
@@ -87,9 +90,9 @@ class DigitsWriteoutBuffer
 
   unsigned int getPhase() const { return mPhase; }
 
-  std::vector<o2::emcal::Digit> getDigits() { return mDigitStream.getDigits(); }
-  std::vector<o2::emcal::TriggerRecord> getTriggerRecords() { return mDigitStream.getTriggerRecords(); }
-  o2::dataformats::MCTruthContainer<o2::emcal::MCLabel> getMCLabels() { return mDigitStream.getMCLabels(); }
+  const std::vector<o2::emcal::Digit>& getDigits() const { return mDigitStream.getDigits(); }
+  const std::vector<o2::emcal::TriggerRecord>& getTriggerRecords() const { return mDigitStream.getTriggerRecords(); }
+  const o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>& getMCLabels() const { return mDigitStream.getMCLabels(); }
 
  private:
   unsigned int mBufferSize = 15;                          ///< The size of the buffer
