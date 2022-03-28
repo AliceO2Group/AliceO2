@@ -89,6 +89,45 @@ using namespace o2::tpc;
 
 namespace o2::gpu
 {
+
+using ClusterGroupParser = o2::algorithm::ForwardParser<ClusterGroupHeader>;
+struct ProcessAttributes {
+  std::unique_ptr<ClusterGroupParser> parser;
+  std::unique_ptr<GPUO2Interface> tracker;
+  std::unique_ptr<GPUDisplayFrontend> displayFrontend;
+  std::unique_ptr<TPCFastTransform> fastTransform;
+  std::unique_ptr<TPCPadGainCalib> tpcPadGainCalib;
+  std::unique_ptr<TPCPadGainCalib> tpcPadGainCalibBufferNew;
+  std::unique_ptr<o2::tpc::CalibdEdxContainer> dEdxCalibContainer;
+  std::unique_ptr<o2::tpc::CalibdEdxContainer> dEdxCalibContainerBufferNew;
+  std::unique_ptr<o2::trd::GeometryFlat> trdGeometry;
+  std::unique_ptr<GPUO2InterfaceConfiguration> config;
+  int qaTaskMask = 0;
+  std::unique_ptr<GPUO2InterfaceQA> qa;
+  std::vector<int> clusterOutputIds;
+  unsigned long outputBufferSize = 0;
+  unsigned long tpcSectorMask = 0;
+  int verbosity = 0;
+  bool readyToQuit = false;
+  bool allocateOutputOnTheFly = false;
+  bool suppressOutput = false;
+  bool updateGainMapCCDB = true;
+  bool disableCalibUpdates = false;
+  o2::gpu::GPUSettingsTF tfSettings;
+};
+
+/// initialize TPC options from command line
+void initFunctionTPC(ProcessAttributes* processAttributes, const GPUSettingsO2& confParam);
+
+/// storing new calib objects in buffer
+void finaliseCCDBTPC(ProcessAttributes* processAttributes, gpuworkflow::Config const& specconfig, ConcreteDataMatcher& matcher, void* obj);
+
+/// asking for newer calib objects
+void fetchCalibsCCDBTPC(ProcessAttributes* processAttributes, gpuworkflow::Config const& specconfig, ProcessingContext& pc);
+
+/// storing the new calib objects by overwritting the old calibs
+void storeUpdatedCalibsTPCPtrs(ProcessAttributes* processAttributes);
+
 DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* policyData, gpuworkflow::Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask, std::string processorName)
 {
   if (specconfig.outputCAClusters && !specconfig.caClusterer && !specconfig.decompressTPC) {
@@ -99,32 +138,6 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
 
   constexpr static size_t NSectors = Sector::MAXSECTOR;
   constexpr static size_t NEndpoints = 20; // TODO: get from mapper?
-  using ClusterGroupParser = o2::algorithm::ForwardParser<ClusterGroupHeader>;
-  struct ProcessAttributes {
-    std::unique_ptr<ClusterGroupParser> parser;
-    std::unique_ptr<GPUO2Interface> tracker;
-    std::unique_ptr<GPUDisplayFrontend> displayFrontend;
-    std::unique_ptr<TPCFastTransform> fastTransform;
-    std::unique_ptr<TPCPadGainCalib> tpcPadGainCalib;
-    std::unique_ptr<o2::tpc::CalibdEdxContainer> dEdxCalibContainer;
-    std::unique_ptr<o2::trd::GeometryFlat> trdGeometry;
-    std::unique_ptr<GPUO2InterfaceConfiguration> config;
-    int qaTaskMask = 0;
-    std::unique_ptr<GPUO2InterfaceQA> qa;
-    std::vector<int> clusterOutputIds;
-    unsigned long outputBufferSize = 0;
-    unsigned long tpcSectorMask = 0;
-    int verbosity = 0;
-    bool readyToQuit = false;
-    bool allocateOutputOnTheFly = false;
-    bool suppressOutput = false;
-    bool updateCalibs = false;
-    bool updateGainMapCalib = false;
-    bool updateGainMapCCDB = true;
-    bool disableCalibUpdates = false;
-    o2::gpu::GPUSettingsTF tfSettings;
-  };
-
   auto processAttributes = std::make_shared<ProcessAttributes>();
   processAttributes->tpcSectorMask = tpcSectorMask;
 
@@ -268,102 +281,8 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         }
       }
 
-      processAttributes->dEdxCalibContainer.reset(new o2::tpc::CalibdEdxContainer());
-
-      if (confParam.dEdxDisableTopologyPol) {
-        LOGP(info, "Disabling loading of track topology correction using polynomials from CCDB");
-        processAttributes->dEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTopologyPol);
-      }
-
-      if (confParam.dEdxDisableThresholdMap) {
-        LOGP(info, "Disabling loading of threshold map from CCDB");
-        processAttributes->dEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalThresholdMap);
-      }
-
-      if (confParam.dEdxDisableGainMap) {
-        LOGP(info, "Disabling loading of gain map from CCDB");
-        processAttributes->dEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalGainMap);
-      }
-
-      if (confParam.dEdxDisableResidualGainMap) {
-        LOGP(info, "Disabling loading of residual gain map from CCDB");
-        processAttributes->dEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalResidualGainMap);
-      }
-
-      if (confParam.dEdxDisableResidualGain) {
-        LOGP(info, "Disabling loading of residual gain calibration from CCDB");
-        processAttributes->dEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTimeGain);
-      }
-
-      if (confParam.dEdxUseFullGainMap) {
-        LOGP(info, "Using the full gain map for correcting the cluster charge during calculation of the dE/dx");
-        processAttributes->dEdxCalibContainer->setUsageOfFullGainMap(true);
-      }
-
-      if (confParam.gainCalibDisableCCDB) {
-        LOGP(info, "Disabling loading the TPC pad gain calibration from the CCDB");
-        processAttributes->updateGainMapCCDB = false;
-      }
-
-      // load from file
-      if (!confParam.dEdxPolTopologyCorrFile.empty() || !confParam.dEdxCorrFile.empty() || !confParam.dEdxSplineTopologyCorrFile.empty()) {
-        if (!confParam.dEdxPolTopologyCorrFile.empty()) {
-          LOGP(info, "Loading dE/dx polynomial track topology correction from file: {}", confParam.dEdxPolTopologyCorrFile);
-          processAttributes->dEdxCalibContainer->loadPolTopologyCorrectionFromFile(confParam.dEdxPolTopologyCorrFile);
-
-          LOGP(info, "Disabling loading of track topology correction using polynomials from CCDB as it was already loaded from input file");
-          processAttributes->dEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTopologyPol);
-
-          if (std::filesystem::exists(confParam.thresholdCalibFile)) {
-            LOG(info) << "Loading tpc zero supression map from file " << confParam.thresholdCalibFile;
-            const auto* thresholdMap = o2::tpc::utils::readCalPads(confParam.thresholdCalibFile, "ThresholdMap")[0];
-            processAttributes->dEdxCalibContainer->setZeroSupresssionThreshold(*thresholdMap);
-
-            LOGP(info, "Disabling loading of threshold map from CCDB as it was already loaded from input file");
-            processAttributes->dEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalThresholdMap);
-          } else {
-            if (not confParam.thresholdCalibFile.empty()) {
-              LOG(warn) << "Couldn't find tpc zero supression file " << confParam.thresholdCalibFile << ". Not setting any zero supression.";
-            }
-            LOG(info) << "Setting default zero supression map";
-            processAttributes->dEdxCalibContainer->setDefaultZeroSupresssionThreshold();
-          }
-        } else if (!confParam.dEdxSplineTopologyCorrFile.empty()) {
-          LOGP(info, "Loading dE/dx spline track topology correction from file: {}", confParam.dEdxSplineTopologyCorrFile);
-          processAttributes->dEdxCalibContainer->loadSplineTopologyCorrectionFromFile(confParam.dEdxSplineTopologyCorrFile);
-
-          LOGP(info, "Disabling loading of track topology correction using polynomials from CCDB as splines were loaded from input file");
-          processAttributes->dEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTopologyPol);
-        }
-        if (!confParam.dEdxCorrFile.empty()) {
-          LOGP(info, "Loading dEdx correction from file: {}", confParam.dEdxCorrFile);
-          processAttributes->dEdxCalibContainer->loadResidualCorrectionFromFile(confParam.dEdxCorrFile);
-
-          LOGP(info, "Disabling loading of residual gain calibration from CCDB as it was already loaded from input file");
-          processAttributes->dEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTimeGain);
-        }
-      } else {
-        // setting default topology correction to allocate enough memory
-        LOG(info) << "Setting default dE/dx polynomial track topology correction to allocate enough memory";
-        processAttributes->dEdxCalibContainer->setDefaultPolTopologyCorrection();
-      }
-      config.configCalib.dEdxCalibContainer = processAttributes->dEdxCalibContainer.get();
-
-      if (std::filesystem::exists(confParam.gainCalibFile)) {
-        LOG(info) << "Loading tpc gain correction from file " << confParam.gainCalibFile;
-        const auto* gainMap = o2::tpc::utils::readCalPads(confParam.gainCalibFile, "GainMap")[0];
-        processAttributes->tpcPadGainCalib = GPUO2Interface::getPadGainCalib(*gainMap);
-
-        LOGP(info, "Disabling loading the TPC gain correction map from the CCDB as it was already loaded from input file");
-        processAttributes->updateGainMapCCDB = false;
-      } else {
-        if (not confParam.gainCalibFile.empty()) {
-          LOG(warn) << "Couldn't find tpc gain correction file " << confParam.gainCalibFile << ". Not applying any gain correction.";
-        }
-        processAttributes->tpcPadGainCalib = GPUO2Interface::getPadGainCalibDefault();
-        processAttributes->tpcPadGainCalib->getGainCorrection(30, 5, 5);
-      }
-      config.configCalib.tpcPadGain = processAttributes->tpcPadGainCalib.get();
+      // initialize TPC calib objects
+      initFunctionTPC(processAttributes.get(), confParam);
 
       config.configCalib.o2Propagator = Propagator::Instance();
 
@@ -438,50 +357,8 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, printTiming);
 
     auto finaliseCCDB = [processAttributes, specconfig](ConcreteDataMatcher& matcher, void* obj) {
-      LOGP(info, "checking for newer object....");
-      CalibdEdxContainer* dEdxCalibContainer = processAttributes->dEdxCalibContainer.get();
-
-      if (matcher == ConcreteDataMatcher(gDataOriginTPC, "PADGAINFULL", 0)) {
-        LOGP(info, "Updating gain map from CCDB");
-        const auto* gainMap = static_cast<o2::tpc::CalDet<float>*>(obj);
-
-        if (dEdxCalibContainer->isCorrectionCCDB(CalibsdEdx::CalGainMap) && specconfig.outputTracks) {
-          const float minGain = 0;
-          const float maxGain = 2;
-          processAttributes->dEdxCalibContainer.get()->setGainMap(*gainMap, minGain, maxGain);
-          processAttributes->updateCalibs = true;
-        }
-
-        if (processAttributes->updateGainMapCCDB && specconfig.caClusterer) {
-          processAttributes->tpcPadGainCalib = GPUO2Interface::getPadGainCalib(*gainMap);
-          processAttributes->updateGainMapCalib = true;
-        }
-
-      } else if (matcher == ConcreteDataMatcher(gDataOriginTPC, "PADGAINRESIDUAL", 0)) {
-        LOGP(info, "Updating residual gain map from CCDB");
-        const auto* gainMapResidual = static_cast<std::unordered_map<string, o2::tpc::CalDet<float>>*>(obj);
-        const float minResidualGain = 0.7f;
-        const float maxResidualGain = 1.3f;
-        processAttributes->dEdxCalibContainer.get()->setGainMapResidual(gainMapResidual->at("GainMap"), minResidualGain, maxResidualGain);
-        processAttributes->updateCalibs = true;
-      } else if (matcher == ConcreteDataMatcher(gDataOriginTPC, "PADTHRESHOLD", 0)) {
-        LOGP(info, "Updating threshold map from CCDB");
-        const auto* thresholdMap = static_cast<std::unordered_map<string, o2::tpc::CalDet<float>>*>(obj);
-        processAttributes->dEdxCalibContainer.get()->setZeroSupresssionThreshold(thresholdMap->at("ThresholdMap"));
-        processAttributes->updateCalibs = true;
-      } else if (matcher == ConcreteDataMatcher(gDataOriginTPC, "TOPOLOGYGAIN", 0) && !(dEdxCalibContainer->isTopologyCorrectionSplinesSet())) {
-        LOGP(info, "Updating Q topology correction from CCDB");
-        const auto* topologyCorr = static_cast<o2::tpc::CalibdEdxTrackTopologyPolContainer*>(obj);
-        CalibdEdxTrackTopologyPol calibTrackTopology;
-        calibTrackTopology.setFromContainer(*topologyCorr);
-        dEdxCalibContainer->setPolTopologyCorrection(calibTrackTopology);
-        processAttributes->updateCalibs = true;
-      } else if (matcher == ConcreteDataMatcher(gDataOriginTPC, "TIMEGAIN", 0)) {
-        LOGP(info, "Updating residual gain correction from CCDB");
-        const auto* residualCorr = static_cast<o2::tpc::CalibdEdxCorrection*>(obj);
-        dEdxCalibContainer->setResidualCorrection(*residualCorr);
-        processAttributes->updateCalibs = true;
-      }
+      // updating TPC calibration objects
+      finaliseCCDBTPC(processAttributes.get(), specconfig, matcher, obj);
     };
 
     ic.services().get<CallbackService>().set(CallbackService::Id::CCDBDeserialised, finaliseCCDB);
@@ -766,55 +643,13 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
 
       const auto& holdData = TPCTrackingDigitsPreCheck::runPrecheck(&ptrs, processAttributes->config.get());
 
-      // update calibrations for clustering and tracking
-      if ((specconfig.outputTracks || specconfig.caClusterer) && (processAttributes->updateCalibs || processAttributes->updateGainMapCalib) && !processAttributes->disableCalibUpdates) {
-        const CalibdEdxContainer* dEdxCalibContainer = processAttributes->dEdxCalibContainer.get();
-
-        // this calibration is defined for clustering and tracking
-        if (dEdxCalibContainer->isCorrectionCCDB(CalibsdEdx::CalGainMap) || processAttributes->updateGainMapCCDB) {
-          pc.inputs().get<o2::tpc::CalDet<float>*>("tpcgain");
-        }
-
-        // these calibrations are only defined for the tracking
-        if (specconfig.outputTracks) {
-          // update the calibration objects in case they changed in the CCDB
-          if (dEdxCalibContainer->isCorrectionCCDB(CalibsdEdx::CalThresholdMap)) {
-            pc.inputs().get<std::unordered_map<std::string, o2::tpc::CalDet<float>>*>("tpcthreshold");
-          }
-
-          if (dEdxCalibContainer->isCorrectionCCDB(CalibsdEdx::CalResidualGainMap)) {
-            pc.inputs().get<std::unordered_map<std::string, o2::tpc::CalDet<float>>*>("tpcgainresidual");
-          }
-
-          if (dEdxCalibContainer->isCorrectionCCDB(CalibsdEdx::CalTopologyPol)) {
-            pc.inputs().get<o2::tpc::CalibdEdxTrackTopologyPolContainer*>("tpctopologygain");
-          }
-
-          if (dEdxCalibContainer->isCorrectionCCDB(CalibsdEdx::CalTimeGain)) {
-            pc.inputs().get<o2::tpc::CalibdEdxCorrection*>("tpctimegain");
-          }
-        }
-
-        if (processAttributes->updateCalibs || processAttributes->updateGainMapCalib) {
-          // updating the calibration object
-          GPUCalibObjectsConst newTopologyCalib;
-
-          if (processAttributes->updateCalibs) {
-            newTopologyCalib.dEdxCalibContainer = dEdxCalibContainer;
-            processAttributes->updateCalibs = false;
-          }
-
-          if (processAttributes->updateGainMapCalib) {
-            newTopologyCalib.tpcPadGain = processAttributes->tpcPadGainCalib.get();
-            processAttributes->updateGainMapCalib = false;
-          }
-
-          auto& tracker = processAttributes->tracker;
-          tracker->UpdateCalibration(newTopologyCalib);
-        }
-      }
+      // check for updates of TPC calibration objects
+      fetchCalibsCCDBTPC(processAttributes.get(), specconfig, pc);
 
       int retVal = tracker->RunTracking(&ptrs, &outputRegions);
+
+      // setting TPC calibration objects
+      storeUpdatedCalibsTPCPtrs(processAttributes.get());
 
       tracker->Clear(false);
 
@@ -1062,4 +897,223 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
                            {createOutputSpecs()},
                            AlgorithmSpec(initFunction)};
 }
+
+void initFunctionTPC(ProcessAttributes* processAttributes, const GPUSettingsO2& confParam)
+{
+  processAttributes->dEdxCalibContainer.reset(new o2::tpc::CalibdEdxContainer());
+
+  if (confParam.dEdxDisableTopologyPol) {
+    LOGP(info, "Disabling loading of track topology correction using polynomials from CCDB");
+    processAttributes->dEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTopologyPol);
+  }
+
+  if (confParam.dEdxDisableThresholdMap) {
+    LOGP(info, "Disabling loading of threshold map from CCDB");
+    processAttributes->dEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalThresholdMap);
+  }
+
+  if (confParam.dEdxDisableGainMap) {
+    LOGP(info, "Disabling loading of gain map from CCDB");
+    processAttributes->dEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalGainMap);
+  }
+
+  if (confParam.dEdxDisableResidualGainMap) {
+    LOGP(info, "Disabling loading of residual gain map from CCDB");
+    processAttributes->dEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalResidualGainMap);
+  }
+
+  if (confParam.dEdxDisableResidualGain) {
+    LOGP(info, "Disabling loading of residual gain calibration from CCDB");
+    processAttributes->dEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTimeGain);
+  }
+
+  if (confParam.dEdxUseFullGainMap) {
+    LOGP(info, "Using the full gain map for correcting the cluster charge during calculation of the dE/dx");
+    processAttributes->dEdxCalibContainer->setUsageOfFullGainMap(true);
+  }
+
+  if (confParam.gainCalibDisableCCDB) {
+    LOGP(info, "Disabling loading the TPC pad gain calibration from the CCDB");
+    processAttributes->updateGainMapCCDB = false;
+  }
+
+  // load from file
+  if (!confParam.dEdxPolTopologyCorrFile.empty() || !confParam.dEdxCorrFile.empty() || !confParam.dEdxSplineTopologyCorrFile.empty()) {
+    if (!confParam.dEdxPolTopologyCorrFile.empty()) {
+      LOGP(info, "Loading dE/dx polynomial track topology correction from file: {}", confParam.dEdxPolTopologyCorrFile);
+      processAttributes->dEdxCalibContainer->loadPolTopologyCorrectionFromFile(confParam.dEdxPolTopologyCorrFile);
+
+      LOGP(info, "Disabling loading of track topology correction using polynomials from CCDB as it was already loaded from input file");
+      processAttributes->dEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTopologyPol);
+
+      if (std::filesystem::exists(confParam.thresholdCalibFile)) {
+        LOG(info) << "Loading tpc zero supression map from file " << confParam.thresholdCalibFile;
+        const auto* thresholdMap = o2::tpc::utils::readCalPads(confParam.thresholdCalibFile, "ThresholdMap")[0];
+        processAttributes->dEdxCalibContainer->setZeroSupresssionThreshold(*thresholdMap);
+
+        LOGP(info, "Disabling loading of threshold map from CCDB as it was already loaded from input file");
+        processAttributes->dEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalThresholdMap);
+      } else {
+        if (not confParam.thresholdCalibFile.empty()) {
+          LOG(warn) << "Couldn't find tpc zero supression file " << confParam.thresholdCalibFile << ". Not setting any zero supression.";
+        }
+        LOG(info) << "Setting default zero supression map";
+        processAttributes->dEdxCalibContainer->setDefaultZeroSupresssionThreshold();
+      }
+    } else if (!confParam.dEdxSplineTopologyCorrFile.empty()) {
+      LOGP(info, "Loading dE/dx spline track topology correction from file: {}", confParam.dEdxSplineTopologyCorrFile);
+      processAttributes->dEdxCalibContainer->loadSplineTopologyCorrectionFromFile(confParam.dEdxSplineTopologyCorrFile);
+
+      LOGP(info, "Disabling loading of track topology correction using polynomials from CCDB as splines were loaded from input file");
+      processAttributes->dEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTopologyPol);
+    }
+    if (!confParam.dEdxCorrFile.empty()) {
+      LOGP(info, "Loading dEdx correction from file: {}", confParam.dEdxCorrFile);
+      processAttributes->dEdxCalibContainer->loadResidualCorrectionFromFile(confParam.dEdxCorrFile);
+
+      LOGP(info, "Disabling loading of residual gain calibration from CCDB as it was already loaded from input file");
+      processAttributes->dEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTimeGain);
+    }
+  }
+
+  if (confParam.dEdxPolTopologyCorrFile.empty() && confParam.dEdxSplineTopologyCorrFile.empty()) {
+    // setting default topology correction to allocate enough memory
+    LOG(info) << "Setting default dE/dx polynomial track topology correction to allocate enough memory";
+    processAttributes->dEdxCalibContainer->setDefaultPolTopologyCorrection();
+  }
+
+  GPUO2InterfaceConfiguration& config = *processAttributes->config.get();
+  config.configCalib.dEdxCalibContainer = processAttributes->dEdxCalibContainer.get();
+
+  if (std::filesystem::exists(confParam.gainCalibFile)) {
+    LOG(info) << "Loading tpc gain correction from file " << confParam.gainCalibFile;
+    const auto* gainMap = o2::tpc::utils::readCalPads(confParam.gainCalibFile, "GainMap")[0];
+    processAttributes->tpcPadGainCalib = GPUO2Interface::getPadGainCalib(*gainMap);
+
+    LOGP(info, "Disabling loading the TPC gain correction map from the CCDB as it was already loaded from input file");
+    processAttributes->updateGainMapCCDB = false;
+  } else {
+    if (not confParam.gainCalibFile.empty()) {
+      LOG(warn) << "Couldn't find tpc gain correction file " << confParam.gainCalibFile << ". Not applying any gain correction.";
+    }
+    processAttributes->tpcPadGainCalib = GPUO2Interface::getPadGainCalibDefault();
+    processAttributes->tpcPadGainCalib->getGainCorrection(30, 5, 5);
+  }
+  config.configCalib.tpcPadGain = processAttributes->tpcPadGainCalib.get();
+}
+
+void finaliseCCDBTPC(ProcessAttributes* processAttributes, gpuworkflow::Config const& specconfig, ConcreteDataMatcher& matcher, void* obj)
+{
+  LOGP(info, "checking for newer object....");
+  const CalibdEdxContainer* dEdxCalibContainer = processAttributes->dEdxCalibContainer.get();
+
+  auto copyCalibsToBuffer = [processAttributes, dEdxCalibContainer]() {
+    if (!(processAttributes->dEdxCalibContainerBufferNew)) {
+      processAttributes->dEdxCalibContainerBufferNew = std::make_unique<o2::tpc::CalibdEdxContainer>();
+      processAttributes->dEdxCalibContainerBufferNew->cloneFromObject(*dEdxCalibContainer, nullptr);
+    }
+  };
+
+  if (matcher == ConcreteDataMatcher(gDataOriginTPC, "PADGAINFULL", 0)) {
+    LOGP(info, "Updating gain map from CCDB");
+    const auto* gainMap = static_cast<o2::tpc::CalDet<float>*>(obj);
+
+    if (dEdxCalibContainer->isCorrectionCCDB(CalibsdEdx::CalGainMap) && specconfig.outputTracks) {
+      copyCalibsToBuffer();
+      const float minGain = 0;
+      const float maxGain = 2;
+      processAttributes->dEdxCalibContainerBufferNew.get()->setGainMap(*gainMap, minGain, maxGain);
+    }
+
+    if (processAttributes->updateGainMapCCDB && specconfig.caClusterer) {
+      processAttributes->tpcPadGainCalibBufferNew = GPUO2Interface::getPadGainCalib(*gainMap);
+    }
+
+  } else if (matcher == ConcreteDataMatcher(gDataOriginTPC, "PADGAINRESIDUAL", 0)) {
+    LOGP(info, "Updating residual gain map from CCDB");
+    copyCalibsToBuffer();
+    const auto* gainMapResidual = static_cast<std::unordered_map<string, o2::tpc::CalDet<float>>*>(obj);
+    const float minResidualGain = 0.7f;
+    const float maxResidualGain = 1.3f;
+    processAttributes->dEdxCalibContainerBufferNew.get()->setGainMapResidual(gainMapResidual->at("GainMap"), minResidualGain, maxResidualGain);
+  } else if (matcher == ConcreteDataMatcher(gDataOriginTPC, "PADTHRESHOLD", 0)) {
+    LOGP(info, "Updating threshold map from CCDB");
+    copyCalibsToBuffer();
+    const auto* thresholdMap = static_cast<std::unordered_map<string, o2::tpc::CalDet<float>>*>(obj);
+    processAttributes->dEdxCalibContainerBufferNew.get()->setZeroSupresssionThreshold(thresholdMap->at("ThresholdMap"));
+  } else if (matcher == ConcreteDataMatcher(gDataOriginTPC, "TOPOLOGYGAIN", 0) && !(dEdxCalibContainer->isTopologyCorrectionSplinesSet())) {
+    LOGP(info, "Updating Q topology correction from CCDB");
+    copyCalibsToBuffer();
+    const auto* topologyCorr = static_cast<o2::tpc::CalibdEdxTrackTopologyPolContainer*>(obj);
+    CalibdEdxTrackTopologyPol calibTrackTopology;
+    calibTrackTopology.setFromContainer(*topologyCorr);
+    processAttributes->dEdxCalibContainerBufferNew->setPolTopologyCorrection(calibTrackTopology);
+  } else if (matcher == ConcreteDataMatcher(gDataOriginTPC, "TIMEGAIN", 0)) {
+    LOGP(info, "Updating residual gain correction from CCDB");
+    copyCalibsToBuffer();
+    const auto* residualCorr = static_cast<o2::tpc::CalibdEdxCorrection*>(obj);
+    processAttributes->dEdxCalibContainerBufferNew->setResidualCorrection(*residualCorr);
+  }
+}
+
+void fetchCalibsCCDBTPC(ProcessAttributes* processAttributes, gpuworkflow::Config const& specconfig, ProcessingContext& pc)
+{
+  // update calibrations for clustering and tracking
+  if ((specconfig.outputTracks || specconfig.caClusterer) && !processAttributes->disableCalibUpdates) {
+    const CalibdEdxContainer* dEdxCalibContainer = processAttributes->dEdxCalibContainer.get();
+
+    // this calibration is defined for clustering and tracking
+    if (dEdxCalibContainer->isCorrectionCCDB(CalibsdEdx::CalGainMap) || processAttributes->updateGainMapCCDB) {
+      pc.inputs().get<o2::tpc::CalDet<float>*>("tpcgain");
+    }
+
+    // these calibrations are only defined for the tracking
+    if (specconfig.outputTracks) {
+      // update the calibration objects in case they changed in the CCDB
+      if (dEdxCalibContainer->isCorrectionCCDB(CalibsdEdx::CalThresholdMap)) {
+        pc.inputs().get<std::unordered_map<std::string, o2::tpc::CalDet<float>>*>("tpcthreshold");
+      }
+
+      if (dEdxCalibContainer->isCorrectionCCDB(CalibsdEdx::CalResidualGainMap)) {
+        pc.inputs().get<std::unordered_map<std::string, o2::tpc::CalDet<float>>*>("tpcgainresidual");
+      }
+
+      if (dEdxCalibContainer->isCorrectionCCDB(CalibsdEdx::CalTopologyPol)) {
+        pc.inputs().get<o2::tpc::CalibdEdxTrackTopologyPolContainer*>("tpctopologygain");
+      }
+
+      if (dEdxCalibContainer->isCorrectionCCDB(CalibsdEdx::CalTimeGain)) {
+        pc.inputs().get<o2::tpc::CalibdEdxCorrection*>("tpctimegain");
+      }
+    }
+
+    if (processAttributes->dEdxCalibContainerBufferNew || processAttributes->tpcPadGainCalibBufferNew) {
+      // updating the calibration object
+      GPUCalibObjectsConst newTopologyCalib;
+
+      if (processAttributes->dEdxCalibContainerBufferNew) {
+        newTopologyCalib.dEdxCalibContainer = processAttributes->dEdxCalibContainerBufferNew.get();
+      }
+
+      if (processAttributes->tpcPadGainCalibBufferNew) {
+        newTopologyCalib.tpcPadGain = processAttributes->tpcPadGainCalibBufferNew.get();
+      }
+
+      auto& tracker = processAttributes->tracker;
+      tracker->UpdateCalibration(newTopologyCalib);
+    }
+  }
+}
+
+void storeUpdatedCalibsTPCPtrs(ProcessAttributes* processAttributes)
+{
+  if (processAttributes->dEdxCalibContainerBufferNew) {
+    processAttributes->dEdxCalibContainer = std::move(processAttributes->dEdxCalibContainerBufferNew);
+  }
+
+  if (processAttributes->tpcPadGainCalibBufferNew) {
+    processAttributes->tpcPadGainCalib = std::move(processAttributes->tpcPadGainCalibBufferNew);
+  }
+}
+
 } // namespace o2::gpu

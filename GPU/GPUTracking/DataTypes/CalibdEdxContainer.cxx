@@ -31,6 +31,10 @@ void CalibdEdxContainer::cloneFromObject(const CalibdEdxContainer& obj, char* ne
   FlatObject::cloneFromObject(obj, newFlatBufferPtr);
   mCalibResidualdEdx = obj.mCalibResidualdEdx;
   mThresholdMap = obj.mThresholdMap;
+  mGainMap = obj.mGainMap;
+  mGainMapResidual = obj.mGainMapResidual;
+  mApplyFullGainMap = obj.mApplyFullGainMap;
+  mCalibsLoad = obj.mCalibsLoad;
   if (obj.mCalibTrackTopologyPol) {
     cloneFromObject(mCalibTrackTopologyPol, obj.mCalibTrackTopologyPol, newFlatBufferPtr, oldFlatBufferPtr);
   }
