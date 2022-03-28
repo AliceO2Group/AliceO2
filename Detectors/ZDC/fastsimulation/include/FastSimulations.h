@@ -17,16 +17,11 @@
 #ifndef O2_ZDC_FAST_SIMULATIONS_H
 #define O2_ZDC_FAST_SIMULATIONS_H
 
-#include "Config.h"
 #include <onnxruntime/core/session/onnxruntime_cxx_api.h>
-
-#include <array>
 #include <optional>
 
 namespace o2::zdc::fastsim
 {
-std::array<int, 5> calculateChannels(Ort::Value& value);
-
 /**
  * @brief Abstract class providing interface for various specialized implementations.
  *
@@ -38,17 +33,30 @@ class NeuralFastSimulation
                        Ort::SessionOptions sessionOptions,
                        OrtAllocatorType allocatorType,
                        OrtMemType memoryType);
-  ~NeuralFastSimulation() = default;
+  virtual ~NeuralFastSimulation() = default;
 
-  /// Required interface
-  /// run() - runs one simulation (single event), result should be stored as private member
-  /// getChannels - caluclates 5 channels from result (stored as private member)
+  /**
+   * @brief Wrapper for converting raw input to Ort::Value.
+   *
+   * @param input flattened input data
+   * @return true on success
+   * @return false on failure
+   */
+  virtual bool setInput(std::vector<std::vector<float>>& input) = 0;
+  /**
+   * @brief Wraps Session.Run()
+   *        Result should be stored as private member.
+   */
   virtual void run() = 0;
-  virtual std::array<int, 5> getChannels() = 0;
+
+  /// returns model output as const &.
+  virtual const std::vector<Ort::Value>& getResult() = 0;
 
  protected:
   /// Sets models metadata (input/output layers names, inputs shape) in onnx session
   void setInputOutputData();
+  /// Converts flattend input data to Ort::Value. Tensor shapes are taken from loaded model metadata.
+  void setTensors(std::vector<std::vector<float>>& input);
 
   /// ONNX specific attributes
   /// User shoudn't has direct access to those in derived classes
@@ -61,6 +69,9 @@ class NeuralFastSimulation
   std::vector<char*> mInputNames;
   std::vector<char*> mOutputNames;
   std::vector<std::vector<int64_t>> mInputShapes;
+
+  /// Container for input tensors
+  std::vector<Ort::Value> mInputTensors;
 };
 
 /**
@@ -70,54 +81,35 @@ class NeuralFastSimulation
 class ConditionalModelSimulation : public NeuralFastSimulation
 {
  public:
-  ConditionalModelSimulation(const std::string& modelPath,
-                             std::array<float, 9>& conditionalMeans,
-                             std::array<float, 9>& conditionalScales,
-                             float noiseStdDev);
-  ~ConditionalModelSimulation() = default;
+  ConditionalModelSimulation(const std::string& modelPath);
+  ~ConditionalModelSimulation() override = default;
 
+  /**
+   * @brief Implements setInput
+   *
+   * @param input flattend input
+   * @return true on success
+   * @return false on failure
+   */
+  bool setInput(std::vector<std::vector<float>>& input) override;
+  /**
+   * @brief Implements run().
+   *
+   */
   void run() override;
-  std::array<int, 5> getChannels() override;
   /**
-   * @brief Set input data - particle information
+   * @brief Returns single model output as const&.
+   *        Returned vector is of size 1.
    *
-   * @param particle std::array<float, 9> with particle data
+   * @return std::vector<Ort::Value> model output
    */
-  void setData(std::array<float, 9>& particle);
-  /**
-   * @brief Wraps three functions for convinience.
-   *        It sets particle data, runs simulation, calculates channels and returns them.
-   *
-   * @param particle std::array<float, 9> with particle data
-   * @return std::array<int, 5> calculated channels
-   */
-  std::array<int, 5> getChannels(std::array<float, 9>& particle);
+  const std::vector<Ort::Value>& getResult() override;
 
  private:
-  // Scales raw input using scales provided in seperate files
-  std::array<float, 9> scaleConditionalInput(const std::array<float, 9>& rawConditionalInput);
-
-  std::array<float, 9> mConditionalMeans;
-  std::array<float, 9> mConditionalScales;
-  float mNoiseStdDev;
-  std::vector<float> mNoiseInput;
-  std::array<float, 9> mParticle{};
   std::vector<Ort::Value> mModelOutput;
 };
 
-std::optional<std::pair<std::array<float, 9>, std::array<float, 9>>> loadScales(const std::string& path);
-
-class SimReaderBase
-{
- public:
-  virtual std::array<int, 5> visit(ConditionalModelSimulation& model) = 0;
-};
-
-class SimReader : public SimReaderBase
-{
- public:
-  std::array<int, 5> visit(ConditionalModelSimulation& model) override;
-};
+std::optional<std::pair<std::vector<float>, std::vector<float>>> loadScales(const std::string& path);
 
 } // namespace o2::zdc::fastsim
-#endif // ONNX_API_FAST_SIMULATIONS_HPP
+#endif // ONNX_API_FAST_SIMULATIONS_H

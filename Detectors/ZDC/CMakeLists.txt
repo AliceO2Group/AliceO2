@@ -9,10 +9,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+if (ONNXRuntime::ONNXRuntime_FOUND)
+    add_subdirectory(fastsimulation)
+endif()
 add_subdirectory(base)
 add_subdirectory(simulation)
 add_subdirectory(reconstruction)
 add_subdirectory(macro)
 add_subdirectory(raw)
 add_subdirectory(workflow)
-add_subdirectory(fastsimulation)
