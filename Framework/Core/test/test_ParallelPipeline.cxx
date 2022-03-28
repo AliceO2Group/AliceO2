@@ -21,7 +21,7 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DataRefUtils.h"
-#include <FairMQDevice.h>
+#include <fairmq/Device.h>
 #include <iostream>
 #include <algorithm>
 #include <memory>

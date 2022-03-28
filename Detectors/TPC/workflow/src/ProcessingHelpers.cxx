@@ -11,7 +11,7 @@
 
 #include <string>
 
-#include <FairMQDevice.h>
+#include <fairmq/Device.h>
 #include "Headers/DataHeader.h"
 #include "Framework/Logger.h"
 #include "Framework/ProcessingContext.h"

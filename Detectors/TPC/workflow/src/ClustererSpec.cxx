@@ -24,7 +24,7 @@
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include <FairMQLogger.h>
+#include <FairLogger.h>
 #include <memory> // for make_shared
 #include <vector>
 #include <map>

@@ -28,7 +28,7 @@
 // GG
 #include <iostream>
 
-#include <FairMQLogger.h>
+#include <FairLogger.h>
 
 #include "MCHClustering/ClusterDump.h"
 

@@ -192,9 +192,9 @@ int Detector::registerSensitiveVolumeAndGetVolID(std::string const& name)
   return registerSensitiveVolumeAndGetVolID(vol);
 }
 
-#include <FairMQMessage.h>
-#include <FairMQParts.h>
-#include <FairMQChannel.h>
+#include <fairmq/Message.h>
+#include <fairmq/Parts.h>
+#include <fairmq/Channel.h>
 namespace o2
 {
 namespace base

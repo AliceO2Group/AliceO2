@@ -16,10 +16,10 @@
 #include <boost/program_options.hpp>
 #include <memory>
 #include <string>
-#include <FairMQChannel.h>
-#include <FairMQLogger.h>
-#include <FairMQParts.h>
-#include <FairMQTransportFactory.h>
+#include <fairmq/Channel.h>
+#include <FairLogger.h>
+#include <fairmq/Parts.h>
+#include <fairmq/TransportFactory.h>
 #include <TStopwatch.h>
 #include <sys/wait.h>
 #include <pthread.h> // to set cpu affinity

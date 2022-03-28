@@ -46,7 +46,7 @@
 #include <Monitoring/MonitoringFactory.h>
 #include <InfoLogger/InfoLogger.hxx>
 
-#include <FairMQDevice.h>
+#include <fairmq/Device.h>
 #include <fairmq/shmem/Monitor.h>
 #include <fairmq/shmem/Common.h>
 #include <options/FairMQProgOptions.h>

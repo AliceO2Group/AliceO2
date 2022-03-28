@@ -25,7 +25,7 @@
 #include "TPCReconstruction/HardwareClusterDecoder.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include <FairMQLogger.h>
+#include <FairLogger.h>
 #include <memory> // for make_shared
 #include <vector>
 #include <map>
