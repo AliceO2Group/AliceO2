@@ -47,6 +47,9 @@ else()
     if(Vulkan_FOUND AND NOT Vulkan_GLSLC_EXECUTABLE STREQUAL "Vulkan_GLSLC_EXECUTABLE-NOTFOUND")
       include(Standalone/cmake/vulkan_display.cmake)
       set(GPUCA_EVENT_DISPLAY_VULKAN ON)
+      if(Wayland_FOUND)
+        set(GPUCA_EVENT_DISPLAY_WAYLAND ON)
+      endif()
     endif()
     if(Freetype_FOUND)
       set(GPUCA_EVENT_DISPLAY_FREETYPE ON)
@@ -268,6 +271,33 @@ if(GPUCA_EVENT_DISPLAY)
                    display/GPUDisplayFrontendGlfw.cxx)
   if(GPUCA_EVENT_DISPLAY_VULKAN)
     set(SRCS_NO_CINT ${SRCS_NO_CINT} display/GPUDisplayBackendVulkan.cxx)
+    if(GPUCA_EVENT_DISPLAY_WAYLAND)
+      add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-client-protocol.h
+        COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/
+        COMMAND ${Wayland_SCANNER} client-header ${Wayland_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-client-protocol.h
+        MAIN_DEPENDENCY ${Wayland_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml)
+      add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-protocol.c
+        COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/
+        COMMAND ${Wayland_SCANNER} private-code ${Wayland_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-protocol.c
+        MAIN_DEPENDENCY ${Wayland_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml)
+      add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-client-protocol.h
+        COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/
+        COMMAND ${Wayland_SCANNER} client-header ${Wayland_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-client-protocol.h
+      MAIN_DEPENDENCY ${Wayland_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml)
+      add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-protocol.c
+        COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/
+        COMMAND ${Wayland_SCANNER} private-code ${Wayland_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-protocol.c
+      MAIN_DEPENDENCY ${Wayland_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml)
+    
+      set_property(SOURCE display/GPUDisplayFrontendWayland.cxx ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-protocol.c APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-client-protocol.h ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-client-protocol.h)
+      set_property(SOURCE display/GPUDisplayFrontendWayland.cxx APPEND PROPERTY INCLUDE_DIRECTORIES ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/)
+      
+      set(SRCS_NO_CINT ${SRCS_NO_CINT} display/GPUDisplayFrontendWayland.cxx ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-protocol.c ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-protocol.c)
+    endif()
   endif()
   set(SRCS_NO_H ${SRCS_NO_H} display/GPUDisplayQuaternion.cxx
                 display/GPUDisplayInterpolation.cxx
@@ -504,7 +534,7 @@ endif()
 endif()
 
 if(GPUCA_EVENT_DISPLAY)
-  message(STATUS "Building GPU Event Display (Vulkan ${GPUCA_EVENT_DISPLAY_VULKAN}, Freetype ${GPUCA_EVENT_DISPLAY_FREETYPE}, Fontconfig ${Fontconfig_FOUND})")
+  message(STATUS "Building GPU Event Display (Vulkan ${GPUCA_EVENT_DISPLAY_VULKAN}, Wayland ${GPUCA_EVENT_DISPLAY_WAYLAND}, Freetype ${GPUCA_EVENT_DISPLAY_FREETYPE}, Fontconfig ${Fontconfig_FOUND})")
   target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY)
   target_link_libraries(${targetName} PUBLIC ${GLFW_LIBRARIES} OpenGL::GL OpenGL::GLU)
   if(GPUCA_EVENT_DISPLAY_VULKAN)
@@ -518,6 +548,10 @@ if(GPUCA_EVENT_DISPLAY)
     add_glslc_shader(${targetName} display/shaders/fragmentTexture.frag)
     add_glslc_shader(${targetName} display/shaders/fragmentUniform.frag)
     add_glslc_shader(${targetName} display/shaders/vertexPoint.vert)
+    if(GPUCA_EVENT_DISPLAY_WAYLAND)
+      target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_WAYLAND)
+      target_link_libraries(${targetName} PUBLIC Wayland::wayland-client)
+    endif()
   endif()
   if(GPUCA_EVENT_DISPLAY_FREETYPE)
     target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_FREETYPE)

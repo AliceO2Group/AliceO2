@@ -1587,14 +1587,14 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
 
     float mouseScale = 1920.f / std::max<float>(1920.f, mBackend->mScreenWidth);
     if (mFrontend->mMouseDnR && mFrontend->mMouseDn) {
-      moveZ += -scalefactor * mouseScale * ((float)mFrontend->mouseMvY - (float)mFrontend->mMouseDnY) / 4;
-      rotRoll += -rotatescalefactor * mouseScale * ((float)mFrontend->mouseMvX - (float)mFrontend->mMouseDnX);
+      moveZ += -scalefactor * mouseScale * ((float)mFrontend->mMouseMvY - (float)mFrontend->mMouseDnY) / 4;
+      rotRoll += -rotatescalefactor * mouseScale * ((float)mFrontend->mMouseMvX - (float)mFrontend->mMouseDnX);
     } else if (mFrontend->mMouseDnR) {
-      moveX += scalefactor * 0.5 * mouseScale * ((float)mFrontend->mMouseDnX - (float)mFrontend->mouseMvX) / 4;
-      moveY += scalefactor * 0.5 * mouseScale * ((float)mFrontend->mouseMvY - (float)mFrontend->mMouseDnY) / 4;
+      moveX += scalefactor * 0.5 * mouseScale * ((float)mFrontend->mMouseDnX - (float)mFrontend->mMouseMvX) / 4;
+      moveY += scalefactor * 0.5 * mouseScale * ((float)mFrontend->mMouseMvY - (float)mFrontend->mMouseDnY) / 4;
     } else if (mFrontend->mMouseDn) {
-      rotYaw += rotatescalefactor * mouseScale * ((float)mFrontend->mouseMvX - (float)mFrontend->mMouseDnX);
-      rotPitch += rotatescalefactor * mouseScale * ((float)mFrontend->mouseMvY - (float)mFrontend->mMouseDnY);
+      rotYaw += rotatescalefactor * mouseScale * ((float)mFrontend->mMouseMvX - (float)mFrontend->mMouseDnX);
+      rotPitch += rotatescalefactor * mouseScale * ((float)mFrontend->mMouseMvY - (float)mFrontend->mMouseDnY);
     }
 
     if (mFrontend->mKeys['<'] && !mFrontend->mKeysShift['<']) {
@@ -1715,8 +1715,8 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
   }
 
   if (mFrontend->mMouseDn || mFrontend->mMouseDnR) {
-    mFrontend->mMouseDnX = mFrontend->mouseMvX;
-    mFrontend->mMouseDnY = mFrontend->mouseMvY;
+    mFrontend->mMouseDnX = mFrontend->mMouseMvX;
+    mFrontend->mMouseDnY = mFrontend->mMouseMvY;
   }
 }
 

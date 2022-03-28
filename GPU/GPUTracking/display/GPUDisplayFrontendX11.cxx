@@ -12,11 +12,9 @@
 /// \file GPUDisplayFrontendX11.cxx
 /// \author David Rohr
 
-// GL EXT must be the first header
-#include "GPUDisplayBackend.h"
-
 // Now the other headers
 #include "GPUDisplayFrontendX11.h"
+#include "GPUDisplayBackend.h"
 #include "GPULogging.h"
 #include <cstdio>
 #include <cstdlib>
@@ -259,7 +257,7 @@ int GPUDisplayFrontendX11::FrontendMain()
   // Create an X window with the selected visual
   mWindow = XCreateWindow(mDisplay, win, 50, 50, INIT_WIDTH, INIT_HEIGHT, // Position / Width and height of window
                           0, visualInfo->depth, InputOutput, visualInfo->visual, CWBorderPixel | CWColormap | CWEventMask, &windowAttributes);
-  XSetStandardProperties(mDisplay, mWindow, GL_WINDOW_NAME, GL_WINDOW_NAME, None, nullptr, 0, nullptr);
+  XSetStandardProperties(mDisplay, mWindow, DISPLAY_WINDOW_NAME, DISPLAY_WINDOW_NAME, None, nullptr, 0, nullptr);
   if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
     glXMakeCurrent(mDisplay, mWindow, glxContext);
   }
@@ -411,8 +409,8 @@ int GPUDisplayFrontendX11::FrontendMain()
         }
 
         case MotionNotify: {
-          mouseMvX = event.xmotion.x;
-          mouseMvY = event.xmotion.y;
+          mMouseMvX = event.xmotion.x;
+          mMouseMvY = event.xmotion.y;
           break;
         }
 

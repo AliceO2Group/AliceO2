@@ -60,7 +60,7 @@ class GPUDisplayFrontend
   static void* FrontendThreadWrapper(void*);
 
   static constexpr int INIT_WIDTH = 1024, INIT_HEIGHT = 768;                           // Initial window size, before maximizing
-  static constexpr const char* GL_WINDOW_NAME = "GPU CA TPC Standalone Event Display"; // Title of event display set by backend
+  static constexpr const char* DISPLAY_WINDOW_NAME = "GPU CA TPC Standalone Event Display"; // Title of event display set by backend
   // Constant key codes for special mKeys (to unify different treatment in X11 / Windows / GLUT / etc.)
   static constexpr int KEY_UP = 1;
   static constexpr int KEY_DOWN = 2;
@@ -96,7 +96,7 @@ class GPUDisplayFrontend
   bool mMouseDn = false;          // Mouse button down
   bool mMouseDnR = false;         // Right mouse button down
   float mMouseDnX, mMouseDnY;     // X/Y position where mouse button was pressed
-  float mouseMvX, mouseMvY;       // Current mouse pointer position
+  float mMouseMvX, mMouseMvY;     // Current mouse pointer position
   int mMouseWheel = 0;            // Incremental value of mouse wheel, ca +/- 100 per wheel tick
   bool mKeys[256] = {false};      // Array of mKeys currently pressed
   bool mKeysShift[256] = {false}; // Array whether shift was held during key-press

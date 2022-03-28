@@ -155,6 +155,8 @@ find_package(Freetype)
 set_package_properties(Freetype PROPERTIES TYPE OPTIONAL)
 find_package(Fontconfig)
 set_package_properties(Fontconfig PROPERTIES TYPE OPTIONAL)
+find_package(Wayland)
+set_package_properties(Wayland PROPERTIES TYPE OPTIONAL)
 
 find_package(LLVM)
 set_package_properties(LLVM PROPERTIES TYPE OPTIONAL)
