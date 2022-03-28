@@ -34,8 +34,8 @@ namespace phos
 class PHOSEnergyCalibDevice : public o2::framework::Task
 {
  public:
-  explicit PHOSEnergyCalibDevice(bool useCCDB, std::string path, std::string digitspath,
-                                 float ptMin, float eMinHGTime, float eMinLGTime) : mUseCCDB(useCCDB), mCCDBPath(path), mdigitsfilename(digitspath), mPtMin(ptMin), mEminHGTime(eMinHGTime), mEminLGTime(eMinLGTime) {}
+  explicit PHOSEnergyCalibDevice(bool useCCDB, float ptMin,
+                                 float eMinHGTime, float eMinLGTime, float eDigMin, float eCluMin) : mUseCCDB(useCCDB), mPtMin(ptMin), mEminHGTime(eMinHGTime), mEminLGTime(eMinLGTime), mEDigMin(eDigMin), mECluMin(eCluMin) {}
 
   void init(o2::framework::InitContext& ic) final;
 
@@ -49,20 +49,22 @@ class PHOSEnergyCalibDevice : public o2::framework::Task
  private:
   static constexpr short kMaxCluInEvent = 64; /// maximal number of clusters per event to separate digits from them (6 bits in digit map)
   bool mUseCCDB = false;
-  std::string mCCDBPath{"http://alice-ccdb.cern.ch"}; ///< CCDB server path
-  std::string mdigitsfilename = "./CalibDigits.root";
+  bool mHasCalib = false;
   bool mPostHistos = true; /// post colllected histos to ccdb
   long mRunStartTime = 0;  /// start time of the run (sec)
   float mPtMin = 1.5;      /// minimal energy to fill inv. mass histo
   float mEminHGTime = 1.5;
   float mEminLGTime = 5.;
+  float mEDigMin = 0.05;
+  float mECluMin = 0.4;
   std::unique_ptr<PHOSEnergyCalibrator> mCalibrator; /// Agregator of calibration TimeFrameSlots
-  std::unique_ptr<BadChannelsMap> mBadMap;           /// Latest bad channels map
-  std::unique_ptr<CalibParams> mCalibParams;         /// Latest bad channels map
-  ClassDefNV(PHOSEnergyCalibDevice, 1);
+  std::unique_ptr<const BadChannelsMap> mBadMap;     /// Latest bad channels map
+  std::unique_ptr<const CalibParams> mCalibParams;   /// Latest bad channels map
+  std::vector<uint32_t> mOutputDigits;               /// accumulated output digits
 };
 
-o2::framework::DataProcessorSpec getPHOSEnergyCalibDeviceSpec(bool useCCDB, std::string path, std::string digitspath, float ptMin, float eMinHGTime, float eMinLGTime);
+o2::framework::DataProcessorSpec getPHOSEnergyCalibDeviceSpec(bool useCCDB, float ptMin, float eMinHGTime,
+                                                              float eMinLGTime, float eD, float eCluMin);
 } // namespace phos
 } // namespace o2
 

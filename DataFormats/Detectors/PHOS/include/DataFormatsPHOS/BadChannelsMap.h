@@ -58,6 +58,9 @@ class BadChannelsMap
   /// \brief Constructor
   BadChannelsMap() = default;
 
+  /// \brief Constructor
+  BadChannelsMap(const BadChannelsMap& another) = default;
+
   /// \brief Constructur used to build test bad map
   BadChannelsMap(int test);
 

@@ -28,7 +28,6 @@
 
 #include <TLorentzVector.h>
 #include <TVector3.h>
-#include <TFile.h>
 #include <array>
 
 using namespace o2::framework;
@@ -70,43 +69,44 @@ class PHOSEnergySlot
 
   void print() const;
   void fill(const gsl::span<const Cluster>& clusters, const gsl::span<const CluElement>& cluelements, const gsl::span<const TriggerRecord>& cluTR);
-  void fill(const gsl::span<const Cluster>& /*c*/){}; //not used
-  void merge(const PHOSEnergySlot* /*prev*/) {}       //not used
+  void fill(const gsl::span<const Cluster>& /*c*/){}; // not used
+  void merge(const PHOSEnergySlot* /*prev*/) {}       // not used
   void clear();
 
-  ETCalibHistos& getCollectedHistos() { return mHistos; }
-  std::vector<uint32_t>& getCollectedDigits() { return mDigits; }
+  const ETCalibHistos* getCollectedHistos() const { return mHistos.get(); }
+  const std::vector<uint32_t>& getCollectedDigits() const { return mDigits; }
 
   void setRunStartTime(long tf) { mRunStartTime = tf; }
-  void setCalibration(CalibParams& c) { mCalibParams.reset(new CalibParams(c)); }
-  void setBadMap(BadChannelsMap& map) { mBadMap.reset(new BadChannelsMap(map)); }
-  void setCuts(float ptMin, float eminHGTime, float eminLGTime)
+  void setCalibration(const CalibParams* c) { mCalibParams = c; }
+  void setBadMap(const BadChannelsMap* map) { mBadMap = map; }
+  void setCuts(float ptMin, float eminHGTime, float eminLGTime, float eDigMin, float eCluMin)
   {
     mPtMin = ptMin;
     mEminHGTime = eminHGTime;
     mEminLGTime = eminLGTime;
+    mDigitEmin = eDigMin;
+    mClusterEmin = eCluMin;
   }
 
  private:
   void fillTimeMassHisto(const Cluster& clu, const gsl::span<const CluElement>& cluelements);
   bool checkCluster(const Cluster& clu);
 
-  long mRunStartTime = 0;                    /// start time of the run (sec)
-  std::unique_ptr<RingBuffer> mBuffer;       /// Buffer for current and previous events
-  std::unique_ptr<CalibParams> mCalibParams; /// Final calibration object
-  std::unique_ptr<BadChannelsMap> mBadMap;   /// Final calibration object
-  Geometry* mGeom;                           /// Pointer to PHOS singleton geometry
-  TVector3 mVertex;
-  ETCalibHistos mHistos; /// final histograms
+  long mRunStartTime = 0;                 /// start time of the run (sec)
+  std::unique_ptr<RingBuffer> mBuffer;    /// Buffer for current and previous events
+  const CalibParams* mCalibParams;        /// current calibration
+  const BadChannelsMap* mBadMap;          /// current bad map
+  Geometry* mGeom;                        /// Pointer to PHOS singleton geometry
+  std::unique_ptr<ETCalibHistos> mHistos; /// final histograms
   uint32_t mEvBC = 0;
   uint32_t mEvOrbit = 0;
   uint32_t mEvent = 0;
-  float mPtMin = 1.5; /// minimal energy to fill inv. mass histo
-  float mEminHGTime = 1.5;
-  float mEminLGTime = 5.;
-  std::vector<uint32_t> mDigits; /// list of calibration digits to fill
-
-  ClassDefNV(PHOSEnergySlot, 1);
+  float mPtMin = 1.5;            /// minimal pi0 pt to fill inv. mass histo
+  float mEminHGTime = 1.5;       /// minimal cell energy to fill HG time histo
+  float mEminLGTime = 5.;        /// minimal cell energy to fill LG time histo
+  float mDigitEmin = 0.05;       /// minimal energy of stored digits
+  float mClusterEmin = 0.4;      /// minimal energy of cluster which digits will be stored
+  std::vector<uint32_t> mDigits; /// list of calibration digits
 };
 
 class PHOSEnergyCalibrator final : public o2::calibration::TimeSlotCalibration<o2::phos::Cluster, o2::phos::PHOSEnergySlot>
@@ -116,42 +116,39 @@ class PHOSEnergyCalibrator final : public o2::calibration::TimeSlotCalibration<o
  public:
   PHOSEnergyCalibrator();
 
-  bool hasEnoughData(const Slot& slot) const final { return true; } //no need to merge Slots
+  bool hasEnoughData(const Slot& slot) const final { return true; } // no need to merge Slots
   void initOutput() final {}
   void finalizeSlot(Slot& slot) final;
   Slot& emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend) final;
-  bool process(uint64_t tf, const gsl::span<const Cluster>& clusters, const gsl::span<const CluElement>& cluelements, const gsl::span<const TriggerRecord>& cluTR);
+  bool process(uint64_t tf, const gsl::span<const Cluster>& clusters, const gsl::span<const CluElement>& cluelements, const gsl::span<const TriggerRecord>& cluTR, std::vector<uint32_t>& outputDigits);
 
   void endOfStream();
 
-  ETCalibHistos* getCollectedHistos() { return mHistos.get(); }
-  void setOutDigitsFile(std::string& name) { mdigitsfilename = name; };
-  void setCalibration(CalibParams& c) { mCalibParams.reset(new CalibParams(c)); }
-  void setBadMap(BadChannelsMap& map) { mBadMap.reset(new BadChannelsMap(map)); }
-  void setCuts(float ptMin, float eminHGTime, float eminLGTime)
+  const ETCalibHistos* getCollectedHistos() const { return mHistos.get(); }
+  void setCalibration(const CalibParams* c) { mCalibParams = c; }
+  void setBadMap(const BadChannelsMap* map) { mBadMap = map; }
+  void setCuts(float ptMin, float eminHGTime, float eminLGTime, float eDigMin, float eCluMin)
   {
     mPtMin = ptMin;
     mEminHGTime = eminHGTime;
     mEminLGTime = eminLGTime;
+    mDigitEmin = eDigMin;
+    mClusterEmin = eCluMin;
   }
 
  private:
   bool calculateCalibrations();
 
  private:
-  std::string mdigitsfilename = "CalibDigits.root";
-  long mRunStartTime = 0; /// start time of the run (sec)
-  int mChank = 0;         /// Number of digits chanks (==TF) wrote to file
-  float mPtMin = 1.5;     /// minimal energy to fill inv. mass histo
-  float mEminHGTime = 1.5;
-  float mEminLGTime = 5.;
-  std::unique_ptr<CalibParams> mCalibParams; /// Current calibration object
-  std::unique_ptr<BadChannelsMap> mBadMap;   /// Current BadMap
+  long mRunStartTime = 0;                    /// start time of the run (ns)
+  float mPtMin = 1.5;                        /// minimal pi0 pt to fill inv. mass histo
+  float mEminHGTime = 1.5;                   /// minimal cell energy to fill HG time histo
+  float mEminLGTime = 5.;                    /// minimal cell energy to fill LG time histo
+  float mDigitEmin = 0.05;                   /// minimal energy of stored digits
+  float mClusterEmin = 0.4;                  /// minimal energy of cluster which digits will be stored
+  const CalibParams* mCalibParams = nullptr; /// Current calibration object
+  const BadChannelsMap* mBadMap = nullptr;   /// Current BadMap
   std::unique_ptr<ETCalibHistos> mHistos;    /// final histograms
-  std::vector<uint32_t> mDigits;             /// list of calibration digits to fill
-  std::unique_ptr<TFile> mFout;              /// file to write calib digits
-
-  ClassDefOverride(PHOSEnergyCalibrator, 1);
 };
 
 } // namespace phos
