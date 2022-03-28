@@ -55,7 +55,7 @@ void MFTAssessmentSpec::init(InitContext& ic)
 //_____________________________________________________________
 void MFTAssessmentSpec::run(o2::framework::ProcessingContext& pc)
 {
-
+  updateTimeDependentParams(pc);
   mTimer[SWQCAsync].Start(false);
   mMFTAssessment->runASyncQC(pc);
   mTimer[SWQCAsync].Stop();
