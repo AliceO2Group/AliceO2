@@ -172,7 +172,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
       auto outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
       for (auto& oroute : outputRoutes) {
         LOG(debug) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
-        if (o2f::DataSpecUtils::match(oroute.matcher, h.dataOrigin, h.dataDescription, h.subSpecification) && ((h.tfCounter % oroute.maxTimeslices) == oroute.timeslice)) {
+        if (o2f::DataSpecUtils::match(oroute.matcher, h.dataOrigin, h.dataDescription, h.subSpecification) && ((mTFCounter % oroute.maxTimeslices) == oroute.timeslice)) {
           LOG(debug) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
           return std::string{oroute.channel};
         }
