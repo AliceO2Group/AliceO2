@@ -46,7 +46,7 @@
 #include <ROOT/RArrowDS.hxx>
 #include <ROOT/RVec.hxx>
 
-#include <FairMQDevice.h>
+#include <fairmq/Device.h>
 #include <chrono>
 #include <fstream>
 #include <functional>

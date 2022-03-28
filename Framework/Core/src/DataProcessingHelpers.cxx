@@ -17,7 +17,7 @@
 #include "Headers/Stack.h"
 #include "Framework/Logger.h"
 
-#include <FairMQDevice.h>
+#include <fairmq/Device.h>
 
 namespace o2::framework
 {

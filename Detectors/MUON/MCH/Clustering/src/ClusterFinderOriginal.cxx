@@ -33,7 +33,7 @@
 #include <TMath.h>
 #include <TRandom.h>
 
-#include <FairMQLogger.h>
+#include <FairLogger.h>
 
 #include "MCHClustering/ClusterizerParam.h"
 #include "PadOriginal.h"

@@ -18,7 +18,7 @@
 #include <string>
 #include <type_traits>
 #include "FairMQMessage.h"
-#include <FairMQDevice.h>
+#include <fairmq/Device.h>
 #include <FairLogger.h>
 #include <SimulationDataFormat/MCEventHeader.h>
 #include <SimulationDataFormat/Stack.h>
@@ -32,7 +32,7 @@
 #include "TROOT.h"
 #include <memory>
 #include <TMessage.h>
-#include <FairMQParts.h>
+#include <fairmq/Parts.h>
 #include <ctime>
 #include <TStopwatch.h>
 #include <sstream>

@@ -17,7 +17,7 @@
 #include "Framework/Configurable.h"
 #include "Framework/RunningWorkflowInfo.h"
 #include "Framework/CallbackService.h"
-#include <FairMQDevice.h>
+#include <fairmq/Device.h>
 
 #include <iostream>
 #include <chrono>

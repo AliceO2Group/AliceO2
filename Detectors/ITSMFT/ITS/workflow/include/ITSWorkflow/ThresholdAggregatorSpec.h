@@ -22,7 +22,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Task.h"
-#include <FairMQDevice.h>
+#include <fairmq/Device.h>
 
 #include <ITSMFTReconstruction/RawPixelDecoder.h> //o2::itsmft::RawPixelDecoder
 

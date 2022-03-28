@@ -18,7 +18,7 @@
 
 #include <TMath.h>
 
-#include <FairMQLogger.h>
+#include <FairLogger.h>
 
 #include "MCHMappingInterface/Segmentation.h"
 

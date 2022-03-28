@@ -11,9 +11,9 @@
 
 /// @author Sandro Wenzel
 
-#include <FairMQTransportFactory.h>
-#include <FairMQChannel.h>
-#include <FairMQMessage.h>
+#include <fairmq/TransportFactory.h>
+#include <fairmq/Channel.h>
+#include <fairmq/Message.h>
 
 #include <cstdlib>
 #include <unistd.h>

@@ -14,9 +14,9 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include "TimeFrame/TimeFrame.h"
-#include <FairMQMessage.h>
-#include <FairMQParts.h>
-#include <FairMQTransportFactory.h>
+#include <fairmq/Message.h>
+#include <fairmq/Parts.h>
+#include <fairmq/TransportFactory.h>
 #include "Headers/DataHeader.h"
 #include "TFile.h"
 

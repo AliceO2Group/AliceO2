@@ -13,7 +13,7 @@
 #define O2_SIMPUBLISHCHANNELHELPER_H
 
 #include <string>
-#include <FairMQChannel.h>
+#include <fairmq/Channel.h>
 
 namespace o2::simpubsub
 {
