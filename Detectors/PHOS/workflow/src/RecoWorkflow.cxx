@@ -59,7 +59,8 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
                                         std::string const& cfgInput,
                                         std::string const& cfgOutput,
                                         bool fullCluOut,
-                                        int flpId)
+                                        int flpId,
+                                        bool defBadMap)
 {
   InputType inputType;
 
@@ -92,7 +93,7 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
     }
     if (isEnabled(OutputType::Clusters)) {
       specs.emplace_back(o2::phos::reco_workflow::getRawToCellConverterSpec(static_cast<unsigned int>(flpId)));
-      specs.emplace_back(o2::phos::reco_workflow::getCellClusterizerSpec(false, fullCluOut)); // no MC propagation
+      specs.emplace_back(o2::phos::reco_workflow::getCellClusterizerSpec(false, fullCluOut, defBadMap)); // no MC propagation
       if (!disableRootOut) {
         specs.emplace_back(o2::phos::getClusterWriterSpec(false));
       }
@@ -106,13 +107,13 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
     }
     if (isEnabled(OutputType::Cells)) {
       // add converter for cells
-      specs.emplace_back(o2::phos::reco_workflow::getCellConverterSpec(propagateMC));
+      specs.emplace_back(o2::phos::reco_workflow::getCellConverterSpec(propagateMC, defBadMap));
       if (!disableRootOut) {
         specs.emplace_back(o2::phos::getCellWriterSpec(propagateMC));
       }
     } else {
       if (isEnabled(OutputType::Clusters)) {
-        specs.emplace_back(o2::phos::reco_workflow::getClusterizerSpec(propagateMC, fullCluOut));
+        specs.emplace_back(o2::phos::reco_workflow::getClusterizerSpec(propagateMC, fullCluOut, defBadMap));
         if (!disableRootOut) {
           specs.emplace_back(o2::phos::getClusterWriterSpec(propagateMC));
         }
@@ -127,7 +128,7 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
     }
     if (isEnabled(OutputType::Clusters)) {
       // add clusterizer
-      specs.emplace_back(o2::phos::reco_workflow::getCellClusterizerSpec(propagateMC, fullCluOut));
+      specs.emplace_back(o2::phos::reco_workflow::getCellClusterizerSpec(propagateMC, fullCluOut, defBadMap));
       if (!disableRootOut) {
         specs.emplace_back(o2::phos::getClusterWriterSpec(propagateMC));
       }

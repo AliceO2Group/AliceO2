@@ -40,7 +40,7 @@ class ClusterizerSpec : public framework::Task
 {
  public:
   /// \brief Constructor
-  ClusterizerSpec(bool propagateMC, bool scanDigits, bool outputFullClu) : framework::Task(), mPropagateMC(propagateMC), mUseDigits(scanDigits), mFullCluOutput(outputFullClu) {}
+  ClusterizerSpec(bool propagateMC, bool scanDigits, bool outputFullClu, bool defBadMap) : framework::Task(), mPropagateMC(propagateMC), mUseDigits(scanDigits), mFullCluOutput(outputFullClu), mDefBadMap(defBadMap) {}
 
   /// \brief Destructor
   ~ClusterizerSpec() override = default;
@@ -61,6 +61,8 @@ class ClusterizerSpec : public framework::Task
   bool mPropagateMC = false;        ///< Switch whether to process MC true labels
   bool mUseDigits = false;          ///< Make clusters from digits or cells
   bool mFullCluOutput = false;      ///< Write full of reduced (no contributed digits) clusters
+  bool mHasCalib = false;           ///< Were calibration objects received
+  bool mDefBadMap = false;          ///< Use default bad map and calibration or extract from CCDB
   o2::phos::Clusterer mClusterizer; ///< Clusterizer object
   std::unique_ptr<CalibParams> mCalibParams;
   std::unique_ptr<BadChannelsMap> mBadMap;
@@ -73,8 +75,8 @@ class ClusterizerSpec : public framework::Task
 /// \brief Creating DataProcessorSpec for the PHOS Clusterizer Spec
 ///
 /// Refer to ClusterizerSpec::run for input and output specs
-framework::DataProcessorSpec getClusterizerSpec(bool propagateMC, bool fillFullClu);
-framework::DataProcessorSpec getCellClusterizerSpec(bool propagateMC, bool fillFullClu);
+framework::DataProcessorSpec getClusterizerSpec(bool propagateMC, bool fillFullClu, bool defBadMap = false);
+framework::DataProcessorSpec getCellClusterizerSpec(bool propagateMC, bool fillFullClu, bool defBadMap = false);
 
 } // namespace reco_workflow
 

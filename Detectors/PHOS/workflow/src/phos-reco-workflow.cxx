@@ -43,6 +43,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"fullclu-output", o2::framework::VariantType::Bool, false, {"compact of full (with contr. digits) clusters output"}},
     {"flpId", o2::framework::VariantType::Int, 0, {"FLP identification: 0,1,..."}},
+    {"defbadmap", o2::framework::VariantType::Bool, false, {"Use default bad map and calib instead of CCDB"}},
     {"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -73,7 +74,8 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
                                                  cfgc.options().get<std::string>("input-type"),
                                                  cfgc.options().get<std::string>("output-type"),
                                                  cfgc.options().get<bool>("fullclu-output"),
-                                                 cfgc.options().get<int>("flpId"));
+                                                 cfgc.options().get<int>("flpId"),
+                                                 cfgc.options().get<bool>("defbadmap"));
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, wf);
 

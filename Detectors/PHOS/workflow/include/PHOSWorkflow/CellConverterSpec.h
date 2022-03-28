@@ -43,7 +43,7 @@ class CellConverterSpec : public framework::Task
  public:
   /// \brief Constructor
   /// \param propagateMC If true the MCTruthContainer is propagated to the output
-  CellConverterSpec(bool propagateMC) : framework::Task(), mPropagateMC(propagateMC){};
+  CellConverterSpec(bool propagateMC, bool defBadMap) : framework::Task(), mPropagateMC(propagateMC), mDefBadMap(defBadMap){};
 
   /// \brief Destructor
   ~CellConverterSpec() override = default;
@@ -73,17 +73,19 @@ class CellConverterSpec : public framework::Task
 
  private:
   bool mPropagateMC = false;                                   ///< Switch whether to process MC true labels
+  bool mDefBadMap = false;                                     ///< Use default bad map and calibration or extract from CCDB
+  bool mHasCalib = false;                                      ///< Were calibration objects received
   std::vector<Cell> mOutputCells;                              ///< Container with output cells
   std::vector<TriggerRecord> mOutputCellTrigRecs;              ///< Container with trigger records for output cells
   o2::dataformats::MCTruthContainer<MCLabel> mOutputTruthCont; ///< output MC labels
-  o2::phos::BadChannelsMap* mBadMap = nullptr;                 ///< Bad channels map
+  std::unique_ptr<BadChannelsMap> mBadMap;                     ///< Bad map
 };
 
 /// \brief Creating DataProcessorSpec for the PHOS Cell Converter Spec
 /// \param propagateMC If true the MC truth container is propagated to the output
 ///
 /// Refer to CellConverterSpec::run for input and output specs
-framework::DataProcessorSpec getCellConverterSpec(bool propagateMC);
+framework::DataProcessorSpec getCellConverterSpec(bool propagateMC, bool defBadMap);
 
 } // namespace reco_workflow
 

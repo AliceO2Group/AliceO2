@@ -45,13 +45,12 @@ class PHOSRunbyrunCalibDevice
 
  private:
   bool mUseCCDB = false;
-  long mRunStartTime = 0;                                 /// start time of the run (sec)
-  std::string mCCDBPath{"http://alice-ccdb.cern.ch"};     /// CCDB path to retrieve current CCDB objects for comparison
-  std::array<float, 8> mRunByRun;                         /// Final calibration object
-  std::unique_ptr<PHOSRunbyrunCalibrator> mCalibrator;    /// Agregator of calibration TimeFrameSlots
+  long mRunStartTime = 0;                              /// start time of the run (sec)
+  std::array<float, 8> mRunByRun;                      /// Final calibration object
+  std::unique_ptr<PHOSRunbyrunCalibrator> mCalibrator; /// Agregator of calibration TimeFrameSlots
 };
 
-o2::framework::DataProcessorSpec getPHOSRunbyrunCalibDeviceSpec(bool useCCDB, std::string path);
+o2::framework::DataProcessorSpec getPHOSRunbyrunCalibDeviceSpec(bool useCCDB);
 } // namespace phos
 } // namespace o2
 

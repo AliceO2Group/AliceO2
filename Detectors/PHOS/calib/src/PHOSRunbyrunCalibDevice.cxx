@@ -89,7 +89,7 @@ bool PHOSRunbyrunCalibDevice::checkFitResult()
   return res;
 }
 
-o2::framework::DataProcessorSpec o2::phos::getPHOSRunbyrunCalibDeviceSpec(bool useCCDB, std::string path)
+o2::framework::DataProcessorSpec o2::phos::getPHOSRunbyrunCalibDeviceSpec(bool useCCDB)
 {
 
   std::vector<OutputSpec> outputs;

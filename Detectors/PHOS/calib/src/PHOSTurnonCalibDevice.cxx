@@ -56,7 +56,7 @@ void PHOSTurnonCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
   mCalibrator->endOfStream();
   mTriggerMap.reset(new TriggerMap(mCalibrator->getCalibration()));
   if (checkFitResult()) {
-    //Calculate and send final object to CCDB
+    // Calculate and send final object to CCDB
     auto flName = o2::ccdb::CcdbApi::generateFileName("TriggerMap");
     std::map<std::string, std::string> md;
     o2::ccdb::CcdbObjectInfo info("PHS/Calib/TriggerMap", "TriggerMap", flName, md, mRunStartTime, 99999999999999);
@@ -79,7 +79,7 @@ void PHOSTurnonCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
   // ec.outputs().snapshot(o2::framework::Output{"PHS", "TURNONDIFF", 0, o2::framework::Lifetime::Timeframe}, mTurnOnDiff);
 }
 
-o2::framework::DataProcessorSpec o2::phos::getPHOSTurnonCalibDeviceSpec(bool useCCDB, std::string path)
+o2::framework::DataProcessorSpec o2::phos::getPHOSTurnonCalibDeviceSpec(bool useCCDB)
 {
 
   std::vector<InputSpec> inputs;
@@ -94,12 +94,12 @@ o2::framework::DataProcessorSpec o2::phos::getPHOSTurnonCalibDeviceSpec(bool use
     ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_Tunron"}, Lifetime::Sporadic);
   outputs.emplace_back(
     ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_Tunron"}, Lifetime::Sporadic);
-  //stream for QC data
-  //outputs.emplace_back("PHS", "TRIGGERQC", 0, o2::framework::Lifetime::Timeframe);
+  // stream for QC data
+  // outputs.emplace_back("PHS", "TRIGGERQC", 0, o2::framework::Lifetime::Timeframe);
 
   return o2::framework::DataProcessorSpec{"PHOSTurnonCalibDevice",
                                           inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<PHOSTurnonCalibDevice>(useCCDB, path),
+                                          o2::framework::adaptFromTask<PHOSTurnonCalibDevice>(useCCDB),
                                           o2::framework::Options{}};
 }
