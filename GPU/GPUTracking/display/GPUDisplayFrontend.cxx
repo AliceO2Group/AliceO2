@@ -59,6 +59,9 @@ bool GPUDisplayFrontend::EnableSendKey() { return true; }
 #ifdef GPUCA_STANDALONE
 #include "GPUDisplayFrontendGlut.h"
 #endif
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_WAYLAND
+#include "GPUDisplayFrontendWayland.h"
+#endif
 #endif
 
 GPUDisplayFrontend* GPUDisplayFrontend::getFrontend(const char* type)
@@ -81,6 +84,11 @@ GPUDisplayFrontend* GPUDisplayFrontend::getFrontend(const char* type)
 #ifdef GPUCA_STANDALONE
   if (strcmp(type, "glut") == 0) {
     return new GPUDisplayFrontendGlut;
+  }
+#endif
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_WAYLAND
+  if (strcmp(type, "wayland") == 0) {
+    return new GPUDisplayFrontendWayland;
   }
 #endif
 #endif

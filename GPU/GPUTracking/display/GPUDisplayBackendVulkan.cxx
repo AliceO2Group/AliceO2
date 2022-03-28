@@ -401,7 +401,7 @@ void GPUDisplayBackendVulkan::createDevice()
     mDebugMessenger = mInstance.createDebugUtilsMessengerEXT(createInfo, nullptr, mDLD);
   }
   std::vector<vk::ExtensionProperties> extensions = vk::enumerateInstanceExtensionProperties(nullptr);
-  if (mEnableValidationLayers) {
+  if (mDisplay->param()->par.debugLevel >= 3) {
     std::cout << "available instance extensions: " << extensions.size() << "\n";
     for (const auto& extension : extensions) {
       std::cout << '\t' << extension.extensionName << '\n';
