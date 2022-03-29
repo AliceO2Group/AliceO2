@@ -59,7 +59,7 @@ class EntropyDecoderSpec : public o2::framework::Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, int verbosity, bool getDigits = false);
+framework::DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, int verbosity, bool getDigits, unsigned int sspec);
 
 } // namespace itsmft
 } // namespace o2

@@ -108,7 +108,7 @@ void EntropyDecoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matche
   }
 }
 
-DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, int verbosity, bool getDigits)
+DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, int verbosity, bool getDigits, unsigned int sspec)
 {
   std::vector<OutputSpec> outputs;
   if (getDigits) {
@@ -120,7 +120,7 @@ DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, int verbosi
     outputs.emplace_back(OutputSpec{{"patterns"}, orig, "PATTERNS", 0, Lifetime::Timeframe});
   }
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("ctf", orig, "CTFDATA", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ctf", orig, "CTFDATA", sspec, Lifetime::Timeframe);
   inputs.emplace_back("noise", orig, "NOISEMAP", 0, Lifetime::Condition,
                       ccdbParamSpec(fmt::format("{}/Calib/NoiseMap", orig.as<std::string>())));
   inputs.emplace_back("cldict", orig, "CLUSDICT", 0, Lifetime::Condition,
