@@ -679,12 +679,19 @@ void WorkflowHelpers::adjustTopology(WorkflowSpec& workflow, ConfigContext const
     bool allSporadic = true;
     bool hasTimer = false;
     bool hasSporadic = false;
+    bool hasOptionals = false;
+    for (auto& input : inputs) {
+      if (input.lifetime == Lifetime::Optional) {
+        hasOptionals = true;
+      }
+    }
     for (auto& input : inputs) {
       // Any InputSpec that is DPL/DISTSUBTIMEFRAME/0 will actually be replaced by one
-      // which looks like DPL/DISTSUBTIMEFRAME/<incremental number>
+      // which looks like DPL/DISTSUBTIMEFRAME/<incremental number> for devices that
+      // have Optional inputs as well.
       // This is done to avoid the race condition where the DISTSUBTIMEFRAME/0 gets
       // forwarded before actual RAWDATA arrives.
-      if (DataSpecUtils::match(input, ConcreteDataMatcher{"FLP", "DISTSUBTIMEFRAME", 0})) {
+      if (hasOptionals && DataSpecUtils::match(input, ConcreteDataMatcher{"FLP", "DISTSUBTIMEFRAME", 0})) {
         // The first one remains unchanged, therefore we use the postincrement
         DataSpecUtils::updateMatchingSubspec(input, distSTFCount++);
         continue;
