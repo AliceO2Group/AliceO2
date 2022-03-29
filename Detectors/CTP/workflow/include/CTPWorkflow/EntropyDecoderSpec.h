@@ -40,7 +40,7 @@ class EntropyDecoderSpec : public o2::framework::Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getEntropyDecoderSpec(int verbosity);
+framework::DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec);
 
 } // namespace ctp
 } // namespace o2

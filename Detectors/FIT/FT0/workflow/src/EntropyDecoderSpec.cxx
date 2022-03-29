@@ -64,7 +64,7 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec(int verbosity)
+DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"digits"}, "FT0", "DIGITSBC", 0, Lifetime::Timeframe},
@@ -72,7 +72,7 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity)
 
   return DataProcessorSpec{
     "ft0-entropy-decoder",
-    Inputs{InputSpec{"ctf", "FT0", "CTFDATA", 0, Lifetime::Timeframe}},
+    Inputs{InputSpec{"ctf", "FT0", "CTFDATA", sspec, Lifetime::Timeframe}},
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
     Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};

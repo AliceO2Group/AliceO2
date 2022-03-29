@@ -388,7 +388,7 @@ DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
   for (auto id = DetID::First; id <= DetID::Last; id++) {
     if (inp.detMask[id]) {
       DetID det(id);
-      outputs.emplace_back(OutputLabel{det.getName()}, det.getDataOrigin(), "CTFDATA", 0, Lifetime::Timeframe);
+      outputs.emplace_back(OutputLabel{det.getName()}, det.getDataOrigin(), "CTFDATA", inp.subspec, Lifetime::Timeframe);
     }
   }
   if (!inp.sup0xccdb) {

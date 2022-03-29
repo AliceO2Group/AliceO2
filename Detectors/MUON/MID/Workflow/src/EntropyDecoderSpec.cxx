@@ -73,7 +73,7 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec(int verbosity)
+DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
 {
   std::vector<OutputSpec> outputs;
   for (o2::header::DataHeader::SubSpecificationType subSpec = 0; subSpec < NEvTypes; ++subSpec) {
@@ -83,7 +83,7 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity)
 
   return DataProcessorSpec{
     "mid-entropy-decoder",
-    Inputs{InputSpec{"ctf", "MID", "CTFDATA", 0, Lifetime::Timeframe}},
+    Inputs{InputSpec{"ctf", "MID", "CTFDATA", sspec, Lifetime::Timeframe}},
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
     Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};
