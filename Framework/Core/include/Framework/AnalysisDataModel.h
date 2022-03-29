@@ -715,7 +715,7 @@ DECLARE_SOA_TABLE(FDDs_001, "AOD", "FDD_001", //!
                   fdd::TimeA, fdd::TimeC,
                   fdd::TriggerMask);
 
-using FDDs = FDDs_001; //! this defines the current default version
+using FDDs = FDDs_000; //! this defines the current default version
 using FDD = FDDs::iterator;
 
 namespace v0
