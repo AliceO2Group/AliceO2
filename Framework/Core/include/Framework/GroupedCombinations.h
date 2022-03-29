@@ -69,8 +69,13 @@ struct GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, pack<Us...>, As..
     using iterator_category = std::forward_iterator_tag;
 
     GroupedIterator(const GroupingPolicy& groupingPolicy) : GroupingPolicy(groupingPolicy) {}
-    GroupedIterator(const GroupingPolicy& groupingPolicy, const G& grouping, const std::shared_ptr<GroupSlicer<G, Us...>>&& slicer_ptr) : GroupingPolicy(groupingPolicy), mSlicer{std::move(slicer_ptr)}, mGrouping{std::make_shared<G>(std::vector{grouping.asArrowTable()})}
+    GroupedIterator(const GroupingPolicy& groupingPolicy, const G& grouping, const std::shared_ptr<GroupSlicer<G, Us...>>&& slicer_ptr) : GroupingPolicy(groupingPolicy), mSlicer{std::move(slicer_ptr)}
     {
+      if constexpr (soa::is_soa_filtered_t<std::decay_t<G>>::value) {
+        mGrouping = std::make_shared<G>(std::vector{grouping.asArrowTable()}, grouping.getSelectedRows());
+      } else {
+        mGrouping = std::make_shared<G>(std::vector{grouping.asArrowTable()});
+      }
       setMultipleGroupingTables<sizeof...(As)>(grouping);
       if (!this->mIsEnd) {
         setCurrentGroupedCombination();
@@ -83,7 +88,11 @@ struct GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, pack<Us...>, As..
 
     void setTables(const G& grouping, std::shared_ptr<GroupSlicer<G, Us...>> slicer_ptr)
     {
-      mGrouping = std::make_shared<G>(std::vector{grouping.asArrowTable()});
+      if constexpr (soa::is_soa_filtered_t<std::decay_t<G>>::value) {
+        mGrouping = std::make_shared<G>(std::vector{grouping.asArrowTable()}, grouping.getSelectedRows());
+      } else {
+        mGrouping = std::make_shared<G>(std::vector{grouping.asArrowTable()});
+      }
       mSlicer = slicer_ptr;
       setMultipleGroupingTables<sizeof...(As)>(grouping);
       if (!this->mIsEnd) {
