@@ -709,7 +709,7 @@ DECLARE_SOA_TABLE(FDDs_000, "AOD", "FDD", //! FDD table, version 000
                   fdd::TimeA, fdd::TimeC,
                   fdd::TriggerMask);
 
-DECLARE_SOA_TABLE(FDDs_001, "AOD", "FDD_001", //!
+DECLARE_SOA_TABLE(FDDs_001, "AOD", "FDD_001", //! FDD table, version 001
                   o2::soa::Index<>, fdd::BCId,
                   fdd::ChargeA, fdd::ChargeC,
                   fdd::TimeA, fdd::TimeC,
