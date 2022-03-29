@@ -113,6 +113,8 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
     } else if (this->mScanType == 'T') {
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "THR", 0}, *image);
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "THR", 0}, info);
+    } else {
+      LOG(error) << "Nothing sent, mScanType does not match any known scan type";
     }
   }
 

@@ -9,20 +9,37 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITSWorkflow/ThresholdCalibrationWorkflow.h"
 #include "ITSWorkflow/ThresholdCalibratorSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "ITStracking/TrackingConfigParam.h"
 #include "ITStracking/Configuration.h"
+#include "Framework/ConfigParamSpec.h"
 
 using namespace o2::framework;
+
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+{
+  // option allowing to set parameters
+  std::vector<ConfigParamSpec> options{
+    ConfigParamSpec{"chip-mod-selector", VariantType::Int, 0, {"Integer to be used with chip-mod-base for parallel chip access: if(chipID %% chipModSel != chipModBase), chip id skipped"}},
+    ConfigParamSpec{"chip-mod-base", VariantType::Int, 1, {"Integer to be used with chip-mod-selector chip access: if(chipID %% chipModSel != chipModBase), chip id skipped"}}};
+
+  std::swap(workflowOptions, options);
+}
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/Logger.h"
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-  LOG(info) << "Initializing O2 ITS Threshold Calibration:-))))))";
+  LOG(info) << "Initializing O2 ITS Threshold Calibration";
 
-  return std::move(o2::its::threshold_calib_workflow::getWorkflow());
+  WorkflowSpec wf;
+  o2::its::ITSCalibInpConf inpConf;
+  inpConf.chipModSel = configcontext.options().get<int>("chip-mod-selector");
+  inpConf.chipModBase = configcontext.options().get<int>("chip-mod-base");
+
+  wf.emplace_back(o2::its::getITSThresholdCalibratorSpec(inpConf));
+
+  return wf;
 }

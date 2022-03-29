@@ -35,7 +35,7 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Task.h"
-#include <fairmq/Device.h>
+#include <FairMQDevice.h>
 
 #include <ITSMFTReconstruction/RawPixelDecoder.h> //o2::itsmft::RawPixelDecoder
 #include "DetectorsCalibration/Utils.h"
@@ -81,10 +81,16 @@ enum FitTypes {
   HITCOUNTING = 2
 };
 
+// To work with parallel chip access
+struct ITSCalibInpConf {
+  int chipModSel = 0;
+  int chipModBase = 1;
+};
+
 class ITSThresholdCalibrator : public Task
 {
  public:
-  ITSThresholdCalibrator();
+  ITSThresholdCalibrator(const ITSCalibInpConf& inpConf);
   ~ITSThresholdCalibrator() override;
 
   using ChipPixelData = o2::itsmft::ChipPixelData;
@@ -199,10 +205,14 @@ class ITSThresholdCalibrator : public Task
 
   // Flag to check if endOfStream is available
   bool mCheckEos = false;
+
+  // Chip mod selector and chip mod base for parallel chip access
+  int mChipModSel = 0;
+  int mChipModBase = 1;
 };
 
 // Create a processor spec
-o2::framework::DataProcessorSpec getITSThresholdCalibratorSpec();
+o2::framework::DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf);
 
 } // namespace its
 } // namespace o2

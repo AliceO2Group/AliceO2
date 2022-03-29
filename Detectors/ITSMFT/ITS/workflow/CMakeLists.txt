@@ -22,7 +22,6 @@ o2_add_library(ITSWorkflow
                        src/IRFrameReaderSpec.cxx
                        src/TrackReaderSpec.cxx
                        src/VertexReaderSpec.cxx
-                       src/ThresholdCalibrationWorkflow.cxx
                        src/ThresholdCalibratorSpec.cxx
                        src/ThresholdAggregatorWorkflow.cxx
                        src/ThresholdAggregatorSpec.cxx
