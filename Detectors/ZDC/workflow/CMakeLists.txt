@@ -21,8 +21,6 @@ o2_add_library(ZDCWorkflow
                        src/DigitRecoSpec.cxx
                        src/DigitReaderSpec.cxx
                        src/RecoReaderSpec.cxx
-                       src/InterCalibWorkflow.cxx
-                       src/InterCalibSpec.cxx
                        src/EnergyCalibWorkflow.cxx
                        src/EnergyCalibSpec.cxx
                        src/TDCCalibWorkflow.cxx
@@ -64,9 +62,4 @@ o2_add_executable(digits-reco
 o2_add_executable(write-reco
                   COMPONENT_NAME zdc
                   SOURCES src/reco-writer-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow)
-
-o2_add_executable(intercalib-workflow
-                  COMPONENT_NAME zdc
-                  SOURCES src/zdc-intercalib-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow)

@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// @file   InterCalibSpec.h
-/// @brief  Convert ZDC data to CTF (EncodedBlocks)
+/// @brief  ZDC intercalibration
 /// @author pietro.cortese@cern.ch
 
 #ifndef O2_ZDC_INTERCALIB_SPEC
@@ -23,6 +23,7 @@
 #include "CommonUtils/NameConf.h"
 #include "ZDCCalib/InterCalib.h"
 #include "ZDCCalib/InterCalibConfig.h"
+#include "DetectorsCalibration/Utils.h"
 
 namespace o2
 {
@@ -47,8 +48,7 @@ class InterCalibSpec : public o2::framework::Task
   TStopwatch mTimer;
 };
 
-/// create a processor spec
-framework::DataProcessorSpec getInterCalibSpec(const int verbosity);
+framework::DataProcessorSpec getInterCalibSpec();
 
 } // namespace zdc
 } // namespace o2

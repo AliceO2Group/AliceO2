@@ -34,7 +34,7 @@
 #include "ZDCReconstruction/RecoConfigZDC.h"
 #include "ZDCReconstruction/ZDCEnergyParam.h"
 #include "ZDCReconstruction/ZDCTowerParam.h"
-#include "ZDCWorkflow/InterCalibSpec.h"
+#include "ZDCCalib/InterCalibSpec.h"
 
 using namespace o2::framework;
 
@@ -58,6 +58,10 @@ InterCalibSpec::InterCalibSpec(const int verbosity)
 
 void InterCalibSpec::init(o2::framework::InitContext& ic)
 {
+//     int minEnt = std::max(300, ic.options().get<int>("min-entries"));
+//     int nb = std::max(500, ic.options().get<int>("nbins"));
+//     int slotL = ic.options().get<int>("tf-per-slot");
+//     int delay = ic.options().get<int>("max-delay");
   mVerbosity = ic.options().get<int>("verbosity-level");
 }
 
@@ -138,25 +142,53 @@ void InterCalibSpec::endOfStream(EndOfStreamContext& ec)
   LOGF(info, "ZDC Intercalibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-framework::DataProcessorSpec getInterCalibSpec(const int verbosity = 0)
+/*
+  //________________________________________________________________
+  void InterCalibSpec::sendOutput(DataAllocator& output)
+  {
+    // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
+    // TODO in principle, this routine is generic, can be moved to Utils.h
+    using clbUtils = o2::calibration::Utils;
+    const auto& payloadVec = mCalibrator->getLHCphaseVector();
+    auto& infoVec = mCalibrator->getLHCphaseInfoVector(); // use non-const version as we update it
+    assert(payloadVec.size() == infoVec.size());
+
+    for (uint32_t i = 0; i < payloadVec.size(); i++) {
+      auto& w = infoVec[i];
+      auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
+      LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
+                << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
+      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_LHCphase", i}, *image.get()); // vector<char>
+      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_LHCphase", i}, w);            // root-serialized
+    }
+    if (payloadVec.size()) {
+      mCalibrator->initOutput(); // reset the outputs once they are already sent
+    }
+  }
+*/
+
+framework::DataProcessorSpec getInterCalibSpec()
 {
+  using device = o2::zdc::InterCalibSpec;
+  using clbUtils = o2::calibration::Utils;
+
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("bcrec", "ZDC", "BCREC", 0, Lifetime::Timeframe);
-  inputs.emplace_back("energy", "ZDC", "ENERGY", 0, Lifetime::Timeframe);
-  inputs.emplace_back("tdc", "ZDC", "TDCDATA", 0, Lifetime::Timeframe);
-  inputs.emplace_back("info", "ZDC", "INFO", 0, Lifetime::Timeframe);
-  inputs.emplace_back("energycalib", "ZDC", "ENERGYCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathEnergyCalib.data())));
-  inputs.emplace_back("towercalib", "ZDC", "TOWERCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathTowerCalib.data())));
   inputs.emplace_back("intercalibconfig", "ZDC", "INTERCALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathInterCalibConfig.data())));
+  inputs.emplace_back("intercalibdata", "ZDC", "INTERCALIBDATA", 0, Lifetime::Condition);
 
   std::vector<OutputSpec> outputs;
-
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ZDC_Intercalib"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDC_Intercalib"}, Lifetime::Sporadic);
   return DataProcessorSpec{
-    "zdc-intercalib",
+    "zdc-calib-intercalibration",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<InterCalibSpec>(verbosity)},
-    o2::framework::Options{{"verbosity-level", o2::framework::VariantType::Int, 0, {"Verbosity level"}}}};
+    AlgorithmSpec{adaptFromTask<device>()},
+    Options{
+      {"tf-per-slot", VariantType::Int, 5, {"number of TFs per calibration time slot"}},
+      {"max-delay", VariantType::Int, 3, {"number of slots in past to consider"}},
+      {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit single time slot"}},
+      {"verbosity-level", o2::framework::VariantType::Int, 0, {"Verbosity level"}}}};
 }
 
 } // namespace zdc

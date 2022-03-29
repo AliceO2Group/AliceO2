@@ -13,6 +13,8 @@ o2_add_library(ZDCCalib
                SOURCES
                  src/InterCalib.cxx
                  src/InterCalibConfig.cxx
+                 src/InterCalibSpec.cxx
+                 src/InterCalibEPNSpec.cxx
                PUBLIC_LINK_LIBRARIES
                  O2::CCDB
                  O2::DPLUtils
@@ -24,9 +26,21 @@ o2_add_library(ZDCCalib
                  O2::ZDCBase
                  O2::ZDCSimulation
                  O2::ZDCReconstruction
+                 O2::DetectorsCalibration
                  ROOT::Core
                  ROOT::Hist
                  ROOT::Minuit)
 
 o2_target_root_dictionary(ZDCCalib
-                          HEADERS include/ZDCCalib/InterCalib.h include/ZDCCalib/InterCalibConfig.h)
+                          HEADERS include/ZDCCalib/InterCalib.h include/ZDCCalib/InterCalibConfig.h
+                          include/ZDCCalib/InterCalibSpec.h include/ZDCCalib/InterCalibEPNSpec.h)
+
+o2_add_executable(intercalib-workflow
+                  COMPONENT_NAME zdc
+                  SOURCES src/zdc-intercalib-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow O2::ZDCCalib)
+
+o2_add_executable(intercalib-epn-workflow
+                  COMPONENT_NAME zdc
+                  SOURCES src/zdc-intercalib-epn-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow O2::ZDCCalib)
