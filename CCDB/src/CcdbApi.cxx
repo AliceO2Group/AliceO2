@@ -164,6 +164,8 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
   curl = curl_easy_init();
   int returnValue = 0;
 
+  std::map<std::string, std::string> mdSanit = sanitizeMetaData(metadata);
+
   if (curl != nullptr) {
     struct curl_httppost* formpost = nullptr;
     struct curl_httppost* lastptr = nullptr;
@@ -188,7 +190,7 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
     CURLcode res = CURL_LAST;
 
     for (size_t hostIndex = 0; hostIndex < hostsPool.size() && res > 0; hostIndex++) {
-      string fullUrl = getFullUrlForStorage(curl, path, objectType, metadata, sanitizedStartValidityTimestamp, sanitizedEndValidityTimestamp, hostIndex);
+      string fullUrl = getFullUrlForStorage(curl, path, objectType, mdSanit, sanitizedStartValidityTimestamp, sanitizedEndValidityTimestamp, hostIndex);
       LOG(debug3) << "Full URL Encoded: " << fullUrl;
       /* what URL that receives this POST */
       curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
@@ -1660,6 +1662,26 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, const std::string& p
     }
   }
   return;
+}
+
+std::map<std::string, std::string> CcdbApi::sanitizeMetaData(std::map<std::string, std::string> const& metadata) const
+{
+
+  // function to remove forbitten characters from metadata keys
+
+  std::map<std::string, std::string> mdSanit = metadata;
+
+  for (auto el = metadata.begin(); el != metadata.end();) {
+    auto& keyMd = el->first;
+    std::string newKeyMd = std::regex_replace(keyMd, std::regex("[ :;.,\\\\/'?!\\(\\)\\{\\}\\[\\]@<>=+*#$&`|~^%]"), "_");
+    if (newKeyMd != keyMd) {
+      LOG(debug) << "old key " << keyMd << ", new key = " << newKeyMd;
+      mdSanit[newKeyMd] = el->second;
+      el = mdSanit.erase(el);
+    }
+    ++el;
+  }
+  return mdSanit;
 }
 
 } // namespace o2
