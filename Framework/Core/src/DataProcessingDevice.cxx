@@ -463,6 +463,12 @@ void DataProcessingDevice::initPollers()
         LOGP(debug, "{} is to send data. Not polling.", channelName);
         continue;
       }
+
+      if (channelName.rfind("from_") != 0) {
+        LOGP(info, "{} is not a DPL socket. Not polling.", channelName);
+        continue;
+      }
+
       // We assume there is always a ZeroMQ socket behind.
       int zmq_fd = 0;
       size_t zmq_fd_len = sizeof(zmq_fd);
