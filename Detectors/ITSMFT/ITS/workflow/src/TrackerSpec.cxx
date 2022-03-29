@@ -275,6 +275,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       for (auto& v : vtxVecLoc) {
         vertices.push_back(v);
       }
+      timeFrame->addPrimaryVertices(vtxVecLoc);
     }
   }
 
