@@ -184,7 +184,9 @@ struct BinningPolicy {
       this->mBins[ind].clear();
       this->mBins[ind].resize(nBins + 2);
       this->mBins[ind][0] = VARIABLE_WIDTH;
-      std::iota(std::begin(this->mBins[ind]) + 1, std::end(this->mBins[ind]), bins[2] - bins[1] / nBins);
+      for (int i = 0; i <= nBins; i++) {
+        this->mBins[ind][i + 1] = bins[1] + i * (bins[2] - bins[1]) / nBins;
+      }
     }
   }
 
