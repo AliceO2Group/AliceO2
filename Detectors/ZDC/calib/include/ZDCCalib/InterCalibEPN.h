@@ -51,11 +51,11 @@ class InterCalibEPN
   void cumulate(int ih, double tc, double t1, double t2, double t3, double t4, double w);
   void setInterCalibConfig(const InterCalibConfig* param) { mInterCalibConfig = param; };
   const InterCalibConfig* getInterCalibConfig() const { return mInterCalibConfig; };
+  InterCalibData mData;
 
  private:
   std::array<std::unique_ptr<TH1>, 2 * NH> mH{};
   std::array<std::unique_ptr<TH2>, NH> mC{};
-  InterCalibData data;
   bool mInitDone = false;
   const InterCalibConfig* mInterCalibConfig = nullptr; /// Configuration of intercalibration
 };

@@ -85,7 +85,7 @@ void InterCalibEPNSpec::run(ProcessingContext& pc)
       }
     }
 
-    mInterCalib.setInterCalibConfig(interConfig.get());
+    mInterCalibEPN.setInterCalibConfig(interConfig.get());
 
     LOG(info) << loadedConfFiles;
     mTimer.CpuTime();
@@ -96,12 +96,13 @@ void InterCalibEPNSpec::run(ProcessingContext& pc)
   auto energy = pc.inputs().get<gsl::span<o2::zdc::ZDCEnergy>>("energy");
   auto tdc = pc.inputs().get<gsl::span<o2::zdc::ZDCTDCData>>("tdc");
   auto info = pc.inputs().get<gsl::span<uint16_t>>("info");
-  mInterCalib.process(bcrec, energy, tdc, info);
+  mInterCalibEPN.process(bcrec, energy, tdc, info);
+  pc.outputs().snapshot(Output{"ZDC", "INTERCALIBDATA", 0, Lifetime::Timeframe}, mInterCalibEPN.mData);
 }
 
 void InterCalibEPNSpec::endOfStream(EndOfStreamContext& ec)
 {
-  mInterCalib.endOfRun();
+  mInterCalibEPN.endOfRun();
   mTimer.Stop();
   LOGF(info, "ZDC Intercalibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
@@ -116,6 +117,7 @@ framework::DataProcessorSpec getInterCalibEPNSpec()
   inputs.emplace_back("intercalibconfig", "ZDC", "INTERCALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathInterCalibConfig.data())));
 
   std::vector<OutputSpec> outputs;
+  outputs.emplace_back("ZDC", "INTERCALIBDATA", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "zdc-intercalib-epn",

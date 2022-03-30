@@ -109,7 +109,7 @@ int InterCalib::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
 int InterCalib::endOfRun()
 {
   for (int ih = 0; ih < NH; ih++) {
-    if (data.mSum[ih][5][5] >= mInterCalibConfig->min_e[ih]) {
+    if (mData.mSum[ih][5][5] >= mInterCalibConfig->min_e[ih]) {
       int ierr = mini(ih);
       if (ierr) {
         LOGF(error, "FAILED processing RUN3 data for ih = %d - ", ih);
@@ -119,7 +119,7 @@ int InterCalib::endOfRun()
     } else {
       LOGF(info, "FAILED processing RUN3 data for ih = %d: TOO FEW EVENTS: ", ih);
     }
-    LOGF(info, "%g events and cuts (%g:%g)\n", data.mSum[ih][5][5], mInterCalibConfig->cutLow[ih], mInterCalibConfig->cutHigh[ih]);
+    LOGF(info, "%g events and cuts (%g:%g)\n", mData.mSum[ih][5][5], mInterCalibConfig->cutLow[ih], mInterCalibConfig->cutHigh[ih]);
   }
   write();
   return 0;
@@ -245,7 +245,7 @@ void InterCalib::clear(int ih)
   for (int32_t ii = ihstart; ii < ihstop; ii++) {
     for (int32_t i = 0; i < NPAR; i++) {
       for (int32_t j = 0; j < NPAR; j++) {
-        data.mSum[ii][i][j] = 0;
+        mData.mSum[ii][i][j] = 0;
       }
     }
     if (mHUnc[ii]) {
@@ -255,6 +255,18 @@ void InterCalib::clear(int ih)
       mCUnc[ii]->Reset();
     }
   }
+}
+
+int InterCalib::process(const InterCalibData& data)
+{
+  for (int32_t ih = 0; ih < NH; ih++) {
+    for (int32_t i = 0; i < NPAR; i++) {
+      for (int32_t j = i; j < NPAR; j++) {
+        mData.mSum[ih][i][j] += data.mSum[ih][i][j];
+      }
+    }
+  }
+  return 0;
 }
 
 void InterCalib::cumulate(int ih, double tc, double t1, double t2, double t3, double t4, double w = 1)
@@ -270,12 +282,12 @@ void InterCalib::cumulate(int ih, double tc, double t1, double t2, double t3, do
   val[2] = t2;
   val[3] = t3;
   val[4] = t4;
-  for (int32_t i = 0; i < 6; i++) {
-    for (int32_t j = i; j < 6; j++) {
-      data.mSum[ih][i][j] += val[i] * val[j] * w;
+  for (int32_t i = 0; i < NPAR; i++) {
+    for (int32_t j = i; j < NPAR; j++) {
+      mData.mSum[ih][i][j] += val[i] * val[j] * w;
     }
   }
-  // data.mSum[ih][5][5] contains the number of analyzed events
+  // mData.mSum[ih][5][5] contains the number of analyzed events
   double sumquad = val[1] + val[2] + val[3] + val[4];
   mHUnc[ih]->Fill(sumquad, w);
   mHUnc[ih + NH]->Fill(val[0]);
@@ -300,9 +312,9 @@ int InterCalib::mini(int ih)
   for (int32_t i = 0; i < NPAR; i++) {
     for (int32_t j = 0; j < NPAR; j++) {
       if (j < i) {
-        mAdd[i][j] = data.mSum[ih][j][i];
+        mAdd[i][j] = mData.mSum[ih][j][i];
       } else {
-        mAdd[i][j] = data.mSum[ih][i][j];
+        mAdd[i][j] = mData.mSum[ih][i][j];
       }
     }
   }

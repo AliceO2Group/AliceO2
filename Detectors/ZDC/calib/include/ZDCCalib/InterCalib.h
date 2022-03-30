@@ -44,7 +44,8 @@ class InterCalib
   int process(const gsl::span<const o2::zdc::BCRecData>& bcrec,
               const gsl::span<const o2::zdc::ZDCEnergy>& energy,
               const gsl::span<const o2::zdc::ZDCTDCData>& tdc,
-              const gsl::span<const uint16_t>& info); // Calibration of RUN3 data
+              const gsl::span<const uint16_t>& info); // Calibration of RUN3 data - direct
+  int process(const InterCalibData &data);            // Calibration of RUN3 data - aggregator node
   int endOfRun();                                     // Perform minimization
   int process(const char* hname, int ic);             // Calibration of RUN2 data
   void replay(int ih, THnSparse* hs, int ic);         // Test of calibration using RUN2 data
@@ -62,14 +63,13 @@ class InterCalib
   void setInterCalibConfig(const InterCalibConfig* param) { mInterCalibConfig = param; };
   const InterCalibConfig* getInterCalibConfig() const { return mInterCalibConfig; };
 
-
  private:
   std::array<std::unique_ptr<TH1>, 2 * NH> mHUnc{};
   std::array<std::unique_ptr<TH2>, NH> mCUnc{};
   std::array<std::unique_ptr<TH1>, NH> mHCorr{};
   std::array<std::unique_ptr<TH2>, NH> mCCorr{};
   std::array<std::unique_ptr<TMinuit>, NH> mMn{};
-  InterCalibData data;
+  InterCalibData mData;
   bool mInitDone = false;
   static std::mutex mMtx; /// mutex for critical section
   double mPar[NH][NPAR] = {0};

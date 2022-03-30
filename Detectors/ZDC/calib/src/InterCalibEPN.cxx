@@ -106,7 +106,7 @@ int InterCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
 int InterCalibEPN::endOfRun()
 {
   for (int ih = 0; ih < NH; ih++) {
-    LOGF(info, "%g events and cuts (%g:%g)\n", data.mSum[ih][5][5], mInterCalibConfig->cutLow[ih], mInterCalibConfig->cutHigh[ih]);
+    LOGF(info, "%g events and cuts (%g:%g)", mData.mSum[ih][5][5], mInterCalibConfig->cutLow[ih], mInterCalibConfig->cutHigh[ih]);
   }
   write();
   return 0;
@@ -168,7 +168,7 @@ int InterCalibEPN::process(const char* hname, int ic)
       cumulate(ih, x[0], x[1], x[2], x[3], x[4], cont);
     }
   }
-  LOGF(info, "Trigger class selection %d and %d bins %g events and cuts (%g:%g): %ld\n", ic, nn, contt, cutl, cuth);
+  LOGF(info, "Trigger class selection %d and %d bins %g events and cuts (%g:%g): %ld", ic, nn, contt, cutl, cuth);
   return 0;
 }
 
@@ -183,7 +183,7 @@ void InterCalibEPN::clear(int ih)
   for (int32_t ii = ihstart; ii < ihstop; ii++) {
     for (int32_t i = 0; i < NPAR; i++) {
       for (int32_t j = 0; j < NPAR; j++) {
-        data.mSum[ii][i][j] = 0;
+        mData.mSum[ii][i][j] = 0;
       }
     }
     if (mH[ii]) {
@@ -210,10 +210,10 @@ void InterCalibEPN::cumulate(int ih, double tc, double t1, double t2, double t3,
   val[4] = t4;
   for (int32_t i = 0; i < 6; i++) {
     for (int32_t j = i; j < 6; j++) {
-      data.mSum[ih][i][j] += val[i] * val[j] * w;
+      mData.mSum[ih][i][j] += val[i] * val[j] * w;
     }
   }
-  // data.mSum[ih][5][5] contains the number of analyzed events
+  // mData.mSum[ih][5][5] contains the number of analyzed events
   double sumquad = val[1] + val[2] + val[3] + val[4];
   mH[ih]->Fill(sumquad, w);
   mH[ih + NH]->Fill(val[0]);

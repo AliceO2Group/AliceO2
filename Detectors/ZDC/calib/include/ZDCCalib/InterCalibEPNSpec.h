@@ -21,7 +21,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "CommonUtils/NameConf.h"
-#include "ZDCCalib/InterCalib.h"
+#include "ZDCCalib/InterCalibEPN.h"
 #include "ZDCCalib/InterCalibConfig.h"
 
 namespace o2
@@ -43,7 +43,7 @@ class InterCalibEPNSpec : public o2::framework::Task
  private:
   int mVerbosity = 0;        // Verbosity level
   bool mInitialized = false; // Connect once to CCDB during initialization
-  InterCalib mInterCalib;    // Intercalibration object
+  InterCalibEPN mInterCalibEPN;    // Intercalibration object
   TStopwatch mTimer;
 };
 

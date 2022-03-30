@@ -128,11 +128,8 @@ void InterCalibSpec::run(ProcessingContext& pc)
     mTimer.Start(false);
   }
 
-  auto bcrec = pc.inputs().get<gsl::span<o2::zdc::BCRecData>>("bcrec");
-  auto energy = pc.inputs().get<gsl::span<o2::zdc::ZDCEnergy>>("energy");
-  auto tdc = pc.inputs().get<gsl::span<o2::zdc::ZDCTDCData>>("tdc");
-  auto info = pc.inputs().get<gsl::span<uint16_t>>("info");
-  mInterCalib.process(bcrec, energy, tdc, info);
+  auto data = pc.inputs().get<InterCalibData>("intercalibdata");
+  mInterCalib.process(data);
 }
 
 void InterCalibSpec::endOfStream(EndOfStreamContext& ec)
