@@ -45,13 +45,13 @@ MaterialBudgetMap::MaterialBudgetMap() : mMode(-1),
                                          mTotRadl(0),
                                          mTotAbso(0),
                                          mTotGcm2(0),
-                                         mHistRadl(0),
-                                         mHistAbso(0),
-                                         mHistGcm2(0),
-                                         mHistReta(0),
-                                         mRZR(0),
-                                         mRZA(0),
-                                         mRZG(0),
+                                         mHistRadl(nullptr),
+                                         mHistAbso(nullptr),
+                                         mHistGcm2(nullptr),
+                                         mHistReta(nullptr),
+                                         mRZR(nullptr),
+                                         mRZA(nullptr),
+                                         mRZG(nullptr),
                                          mStopped(0)
 {
   //
@@ -66,13 +66,13 @@ MaterialBudgetMap::MaterialBudgetMap(const char* title, Int_t mode, Int_t nc1, F
                                                                                  mTotRadl(0),
                                                                                  mTotAbso(0),
                                                                                  mTotGcm2(0),
-                                                                                 mHistRadl(0),
-                                                                                 mHistAbso(0),
-                                                                                 mHistGcm2(0),
-                                                                                 mHistReta(0),
-                                                                                 mRZR(0),
-                                                                                 mRZA(0),
-                                                                                 mRZG(0),
+                                                                                 mHistRadl(nullptr),
+                                                                                 mHistAbso(nullptr),
+                                                                                 mHistGcm2(nullptr),
+                                                                                 mHistReta(nullptr),
+                                                                                 mRZR(nullptr),
+                                                                                 mRZA(nullptr),
+                                                                                 mRZG(nullptr),
                                                                                  mStopped(0),
                                                                                  mRmin(rmin),
                                                                                  mRmax(rmax),
@@ -159,11 +159,17 @@ void MaterialBudgetMap::FinishEvent()
   f->Close();
   // Delete histograms from memory
   mHistRadl->Delete();
-  mHistRadl = 0;
+  mHistRadl = nullptr;
   mHistAbso->Delete();
-  mHistAbso = 0;
+  mHistAbso = nullptr;
   mHistGcm2->Delete();
-  mHistGcm2 = 0;
+  mHistGcm2 = nullptr;
+  mRZR->Delete();
+  mRZR = nullptr;
+  mRZA->Delete();
+  mRZA = nullptr;
+  mRZG->Delete();
+  mRZG = nullptr;
 }
 
 //_______________________________________________________________________
@@ -188,29 +194,26 @@ void MaterialBudgetMap::Stepping()
   TLorentzVector pos;
   TVirtualMC::GetMC()->TrackPosition(pos);
 
-  Int_t status = 0;
-  if (TVirtualMC::GetMC()->IsTrackEntering())
-    status = 1;
-  if (TVirtualMC::GetMC()->IsTrackExiting())
-    status = 2;
-
   TVirtualMC::GetMC()->CurrentMaterial(a, z, dens, radl, absl);
   Double_t r = TMath::Sqrt(pos[0] * pos[0] + pos[1] * pos[1]);
 
   mRZR->Fill(pos[2], r, step / radl);
   mRZA->Fill(pos[2], r, step / absl);
   mRZG->Fill(pos[2], r, step * dens);
-  if (z < 1)
+  if (z < 1) {
     return;
+  }
   // --- See if we have to stop now
   if (TMath::Abs(pos[2]) > TMath::Abs(mZmax) || r > mRmax) {
     if (!TVirtualMC::GetMC()->IsNewTrack()) {
       // Not the first step, add past contribution
       if (!mStopped) {
-        if (absl)
+        if (absl) {
           mTotAbso += t / absl;
-        if (radl)
+        }
+        if (radl) {
           mTotRadl += t / radl;
+        }
         mTotGcm2 += t * dens;
       } // not stooped
     }   // not a new track !
@@ -219,10 +222,12 @@ void MaterialBudgetMap::Stepping()
     return;
   } // outside scoring region ?
   if (step) {
-    if (absl)
+    if (absl) {
       mTotAbso += step / absl;
-    if (radl)
+    }
+    if (radl) {
       mTotRadl += step / radl;
+    }
     mTotGcm2 += step * dens;
   } // step
 }

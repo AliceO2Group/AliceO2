@@ -35,7 +35,7 @@ class GeneratorGeantinos : public FairGenerator
   GeneratorGeantinos(Int_t mode, Int_t nc1, Float_t c1min, Float_t c1max,
                      Int_t nc2, Float_t c2min, Float_t c2max,
                      Float_t rmin, Float_t rmax, Float_t zmax);
-  ~GeneratorGeantinos() {}
+  ~GeneratorGeantinos() override = default;
   Bool_t ReadEvent(FairPrimaryGenerator* primGen) override;
   // Getters
   Float_t ZMax() const { return mZMax; }

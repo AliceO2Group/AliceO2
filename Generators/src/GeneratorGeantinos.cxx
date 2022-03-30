@@ -104,8 +104,9 @@ Bool_t GeneratorGeantinos::ReadEvent(FairPrimaryGenerator* primGen)
         orig[0] = pmom[0] * t;
         orig[1] = pmom[1] * t;
         orig[2] = pmom[2] * t;
-        if (TMath::Abs(orig[2]) > mZMax)
+        if (TMath::Abs(orig[2]) > mZMax) {
           return kFALSE;
+        }
       }
       Float_t polar[3] = {0., 0., 0.};
       primGen->AddTrack(0, pmom[0], pmom[1], pmom[2], orig[0], orig[1], orig[2], -1, true, 0, 0, 1.);
@@ -134,12 +135,13 @@ Float_t GeneratorGeantinos::PropagateCylinder(Float_t* x, Float_t* v, Float_t r,
   d[0] *= hnorm;
   d[1] *= hnorm;
   d[2] *= hnorm;
-  if (d[2] > kSmall)
+  if (d[2] > kSmall) {
     sz = (z - x[2]) / d[2];
-  else if (d[2] < -kSmall)
+  } else if (d[2] < -kSmall) {
     sz = -(z + x[2]) / d[2];
-  else
+  } else {
     sz = 1.e10; // ---> Direction parallel to X-Y, no intersection
+  }
 
   t1 = d[0] * d[0] + d[1] * d[1];
   if (t1 <= kSmall2) {

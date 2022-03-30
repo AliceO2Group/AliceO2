@@ -28,8 +28,9 @@ void O2MCApplicationEvalMat::BeginPrimary()
   fMC->TrackPosition(x, y, z);
 
   mPhi = p.Phi() * 180. / TMath::Pi();
-  if (mPhi < 0.)
+  if (mPhi < 0.) {
     mPhi += 360.;
+  }
 
   mC1[0] = p.Theta() * 180. / TMath::Pi();
   mC1[1] = p.Eta();
