@@ -18,7 +18,6 @@
 #include <boost/format.hpp>
 
 #include "ITStracking/VertexerTraits.h"
-#include "ITStracking/ROframe.h"
 #include "ITStracking/ClusterLines.h"
 #include "ITStracking/Tracklet.h"
 
@@ -33,11 +32,6 @@ namespace its
 {
 using boost::histogram::indexed;
 using constants::math::TwoPi;
-
-enum class TrackletMode {
-  Layer0Layer1 = 0,
-  Layer1Layer2 = 2
-};
 
 template <TrackletMode Mode>
 void trackleterKernelSerial(

@@ -73,6 +73,11 @@ enum class VertexerDebug : unsigned int {
   HistCentroids = 0x1 << 5
 };
 
+enum class TrackletMode {
+  Layer0Layer1 = 0,
+  Layer1Layer2 = 2
+};
+
 inline lightVertex::lightVertex(float x, float y, float z, std::array<float, 6> rms2, int cont, float avgdis2, int stamp) : mX{x}, mY{y}, mZ{z}, mRMS2{rms2}, mAvgDistance2{avgdis2}, mContributors{cont}, mTimeStamp{stamp}
 {
 }
@@ -118,8 +123,8 @@ class VertexerTraits
 
   // utils
   virtual void adoptTimeFrame(TimeFrame* tf);
-  void setIsGPU(const unsigned char);
-  unsigned char getIsGPU() const;
+  void setIsGPU(const unsigned char isgpu) { mIsGPU = isgpu; };
+  unsigned char getIsGPU() const { return mIsGPU; };
   void dumpVertexerTraits();
 
   void setDebugFlag(VertexerDebug flag, const unsigned char on);
@@ -157,13 +162,6 @@ inline void VertexerTraits::initialise(const MemoryParameters& memParams, const 
   mTimeFrame->initialise(0, memParams, trackingParams, 3);
   setIsGPU(false);
 }
-
-inline void VertexerTraits::setIsGPU(const unsigned char isgpu)
-{
-  mIsGPU = isgpu;
-}
-
-inline unsigned char VertexerTraits::getIsGPU() const { return mIsGPU; }
 
 inline void VertexerTraits::updateVertexingParameters(const VertexingParameters& vrtPar)
 {

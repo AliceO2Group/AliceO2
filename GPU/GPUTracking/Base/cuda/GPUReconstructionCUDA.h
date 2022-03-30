@@ -95,6 +95,7 @@ class GPUReconstructionCUDA : public GPUReconstructionKernels<GPUReconstructionC
   void RecordMarker(deviceEvent* ev, int stream) override;
 
   void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits) override;
+  void GetITSTimeframe(std::unique_ptr<o2::its::TimeFrame>* timeFrame) override;
 
  private:
   std::vector<void*> mDeviceConstantMemRTC;

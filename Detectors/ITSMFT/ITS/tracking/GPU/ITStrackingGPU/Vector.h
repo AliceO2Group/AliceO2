@@ -137,9 +137,7 @@ template <typename T>
 GPUhd() Vector<T>::~Vector()
 {
   if (mIsWeak) {
-
     return;
-
   } else {
 #if defined(TRACKINGITSU_GPU_DEVICE)
     assert(0);

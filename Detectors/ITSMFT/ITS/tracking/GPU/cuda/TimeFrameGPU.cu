@@ -12,12 +12,15 @@
 
 #include "ITStrackingGPU/TimeFrameGPU.h"
 #include "fairlogger/Logger.h"
+#include "ITStracking/Constants.h"
 #include "ITStrackingGPU/Utils.h"
 
 namespace o2
 {
 namespace its
 {
+using namespace constants::its2;
+
 namespace gpu
 {
 
@@ -30,6 +33,8 @@ TimeFrameGPU<NLayers>::TimeFrameGPU()
     mTrackingFrameInfoD[iLayer] = Vector<TrackingFrameInfo>{(int)5e5, (int)5e5};
     mClusterExternalIndicesD[iLayer] = Vector<int>{(int)5e5, (int)5e5};
     mROframesClustersD[iLayer] = Vector<int>{(int)5e5, (int)5e5};
+    mIndexTables[iLayer] = Vector<int>{ZBins * PhiBins + 1};
+    mIndexTablesLayer0D = Vector<int>{ZBins * PhiBins + 1};
   }
 }
 
@@ -37,13 +42,18 @@ template <int NLayers>
 void TimeFrameGPU<NLayers>::loadToDevice(const int maxLayers)
 {
   LOGP(info, ">>> Loading data on device");
-
   for (int iLayer{0}; iLayer < maxLayers; ++iLayer) {
-    LOGP(info, "Size: {}, {:f} MB, {} layers", mClusters[iLayer].size(), (float)mClusters[iLayer].size() * (float)sizeof(Cluster) / (float)(1024 * 1024), mClusters.size());
-    // mClustersD[iLayer].reset(v.data(), static_cast<int>(mClusters[iLayer].size()));
-    // mTrackingFrameInfoD[iLayer].reset(mTrackingFrameInfo[iLayer].data(), static_cast<int>(mTrackingFrameInfo[iLayer].size()));
-    // mClusterExternalIndicesD[iLayer].reset(mClusterExternalIndices[iLayer].data(), static_cast<int>(mClusterExternalIndices[iLayer].size()));
-    // mROframesClustersD[iLayer].reset(mROframesClusters[iLayer].data(), static_cast<int>(mROframesClusters[iLayer].size()));
+    mClustersD[iLayer].reset(mClusters[iLayer].data(), static_cast<int>(mClusters[iLayer].size()));
+    mROframesClustersD[iLayer].reset(mROframesClusters[iLayer].data(), static_cast<int>(mROframesClusters[iLayer].size()));
+  }
+  if (maxLayers == NLayers) {
+    // Tracker-only: we don't need to copy data in vertexer
+    for (int iLayer{0}; iLayer < maxLayers; ++iLayer) {
+      mTrackingFrameInfoD[iLayer].reset(mTrackingFrameInfo[iLayer].data(), static_cast<int>(mTrackingFrameInfo[iLayer].size()));
+      mClusterExternalIndicesD[iLayer].reset(mClusterExternalIndices[iLayer].data(), static_cast<int>(mClusterExternalIndices[iLayer].size()));
+    }
+  } else {
+    mIndexTablesLayer0D.reset(mIndexTablesL0.data(), static_cast<int>(mIndexTablesL0.size()));
   }
 }
 
