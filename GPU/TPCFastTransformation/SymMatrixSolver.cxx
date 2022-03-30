@@ -22,11 +22,6 @@
 #include <iomanip>
 #include <chrono>
 
-#include "TMath.h"
-#include "TMatrixD.h"
-#include "TVectorD.h"
-#include "TDecompBK.h"
-
 using namespace std;
 using namespace GPUCA_NAMESPACE::gpu;
 

@@ -14,8 +14,6 @@
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
-
 #include "Spline1DHelper.h"
 #include "BandMatrixSolver.h"
 #include "SymMatrixSolver.h"
@@ -736,5 +734,3 @@ int Spline1DHelper<DataT>::test(const bool draw, const bool drawDataPoints)
 
 template class GPUCA_NAMESPACE::gpu::Spline1DHelper<float>;
 template class GPUCA_NAMESPACE::gpu::Spline1DHelper<double>;
-
-#endif
