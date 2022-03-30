@@ -124,6 +124,12 @@ struct InteractionRecord {
     orbit = l / o2::constants::lhc::LHCMaxBunches;
   }
 
+  static InteractionRecord long2IR(int64_t l)
+  {
+    // set from long BC counter
+    return {uint16_t(l % o2::constants::lhc::LHCMaxBunches), uint32_t(l / o2::constants::lhc::LHCMaxBunches)};
+  }
+
   bool operator>(const InteractionRecord& other) const
   {
     return (orbit == other.orbit) ? (bc > other.bc) : (orbit > other.orbit);
