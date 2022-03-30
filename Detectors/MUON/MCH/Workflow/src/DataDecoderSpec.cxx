@@ -349,7 +349,7 @@ o2::framework::DataProcessorSpec getDecodingSpec(const char* specName, std::stri
             {"fec-map", VariantType::String, "", {"custom FEC mapping"}},
             {"dummy-elecmap", VariantType::Bool, false, {"use dummy electronic mapping (for debug, temporary)"}},
             {"ds2manu", VariantType::Bool, false, {"convert channel numbering from Run3 to Run1-2 order"}},
-            {"time-reco-mode", VariantType::String, "hbpackets", {"digit time reconstruction method [hbpackets, bcreset]"}},
+            {"time-reco-mode", VariantType::String, "bcreset", {"digit time reconstruction method [hbpackets, bcreset]"}},
             {"check-rofs", VariantType::Bool, false, {"perform consistency checks on the output ROFs"}},
             {"dummy-rofs", VariantType::Bool, false, {"disable the ROFs finding algorithm"}},
             {"error-log-frequency", VariantType::Int, 6000, {"log the error map at this frequency (in TF unit) (first TF is always logged, unless frequency is zero)"}}}};
