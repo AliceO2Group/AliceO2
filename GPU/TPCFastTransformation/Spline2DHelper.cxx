@@ -14,8 +14,6 @@
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
-
 #include "Spline2DHelper.h"
 #include "Spline1DHelper.h"
 
@@ -673,5 +671,3 @@ int Spline2DHelper<DataT>::test(const bool draw, const bool drawDataPoints)
 
 template class GPUCA_NAMESPACE::gpu::Spline2DHelper<float>;
 template class GPUCA_NAMESPACE::gpu::Spline2DHelper<double>;
-
-#endif

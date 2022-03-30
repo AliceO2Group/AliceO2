@@ -225,7 +225,7 @@ void TPCFastSpaceChargeCorrection::print() const
         for (int j = 0; j < spline.getGridX2().getNumberOfKnots(); j++, k++) {
           LOG(info) << d[k] << " ";
         }
-        LOG(info);
+        LOG(info) << "";
       }
     }
     //    LOG(info) << "inverse correction: slice " << slice

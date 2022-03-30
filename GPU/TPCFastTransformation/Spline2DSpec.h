@@ -318,10 +318,10 @@ class Spline2DSpec<DataT, YdimT, 0>
     const auto nYdimTmp = SplineUtil::getNdim<YdimT>(inpYdim);
     const int nYdim = nYdimTmp.get();
 
-    const auto maxYdim = SplineUtil::getMaxNdim<YdimT>(inpYdim);
-    const int maxYdim4 = 4 * maxYdim.get();
+    // const auto maxYdim = SplineUtil::getMaxNdim<YdimT>(inpYdim);
+    // const int maxYdim4 = 4 * maxYdim.get();
 
-    const auto nYdim2 = nYdim * 2;
+    // const auto nYdim2 = nYdim * 2;
     const auto nYdim4 = nYdim * 4;
 
     const DataT& u = u1;
