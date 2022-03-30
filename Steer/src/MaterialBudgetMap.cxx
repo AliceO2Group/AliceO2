@@ -37,6 +37,7 @@
 #include "TString.h"
 #include "TVirtualMC.h"
 #include "TFile.h"
+#include <Generators/GeneratorGeantinos.h>
 
 #include "Steer/MaterialBudgetMap.h"
 using namespace o2::steer;
@@ -193,6 +194,8 @@ void MaterialBudgetMap::Stepping()
 
   TLorentzVector pos;
   TVirtualMC::GetMC()->TrackPosition(pos);
+  TLorentzVector mom;
+  TVirtualMC::GetMC()->TrackMomentum(mom);
 
   TVirtualMC::GetMC()->CurrentMaterial(a, z, dens, radl, absl);
   Double_t r = TMath::Sqrt(pos[0] * pos[0] + pos[1] * pos[1]);
@@ -221,6 +224,15 @@ void MaterialBudgetMap::Stepping()
     TVirtualMC::GetMC()->StopTrack();
     return;
   } // outside scoring region ?
+
+  // --- See how long we have to go
+  for (i = 0; i < 3; ++i) {
+    vect[i] = pos[i];
+    dir[i] = mom[i];
+  }
+
+  t = eventgen::GeneratorGeantinos::PropagateCylinder(vect, dir, mRmax, mZmax);
+
   if (step) {
     if (absl) {
       mTotAbso += step / absl;

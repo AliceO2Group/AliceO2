@@ -43,7 +43,7 @@ class GeneratorGeantinos : public FairGenerator
   Int_t NCoor1() const { return mNCoor1; }
   Int_t NCoor2() const { return mNCoor2; }
   // Helpers
-  Float_t PropagateCylinder(Float_t* x, Float_t* v, Float_t r, Float_t z);
+  static Float_t PropagateCylinder(Float_t* x, Float_t* v, Float_t r, Float_t z);
 
  protected:
   Int_t mMode;     // generation mode
