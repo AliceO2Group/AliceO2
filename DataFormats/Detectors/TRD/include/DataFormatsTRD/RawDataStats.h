@@ -91,7 +91,8 @@ enum OptionBits {
   TRDEnableRootOutputBit,
   TRDFixSM1617Bit,
   TRDIgnore2StageTrigger,
-  TRDGenerateStats
+  TRDGenerateStats,
+  TRDM1Debug
 };
 
 class TRDDataCountersPerEvent
