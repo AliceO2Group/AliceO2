@@ -78,9 +78,9 @@ void CruRawReader::OutputHalfCruRawData()
     LOG(info) << "link " << z << " length : " << mCurrentHalfCRULinkLengths[z] << " (256bit rows)";
   }
   int linkcount = 0;
-  uint64_t linkzsum = 0;
+  uint32_t linkzsum = 0;
   int bufferoffset = 0;
-  uint64_t totalhalfcrulength = std::accumulate(mCurrentHalfCRULinkLengths.begin(),
+  uint32_t totalhalfcrulength = std::accumulate(mCurrentHalfCRULinkLengths.begin(),
                                                 mCurrentHalfCRULinkLengths.end(),
                                                 decltype(mCurrentHalfCRULinkLengths)::value_type(0));
   totalhalfcrulength *= 8; //convert from 256 bits to 32 bits.
@@ -117,13 +117,13 @@ void CruRawReader::OutputHalfCruRawData()
 bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
 {
   if (mHeaderVerbose) {
-    LOG(info) << "PROCESS HBF starting at " << std::hex << (void*)mDataPointer;
+    LOG(info) << "PROCESS HBF starting at " << std::hex << (void*)mDataPointer << " already read in : " << datasizealreadyread;
   }
   mDataRDH = reinterpret_cast<const o2::header::RDHAny*>(mDataPointer);
   mOpenRDH = reinterpret_cast<o2::header::RDHAny*>((char*)mDataPointer);
   auto rdh = mDataRDH;
   auto preceedingrdh = rdh;
-  uint64_t totaldataread = 0;
+  uint32_t totaldataread = 0;
   mState = CRUStateHalfCRUHeader;
   uint32_t currentsaveddatacount = 0;
   mTotalHBFPayLoad = 0;
@@ -162,12 +162,17 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
       // we can still copy into this buffer.
     } else {
       if (mMaxWarnPrinted > 0) {
-        LOG(warn) << "rdh bounds fail offsetToNext:" << offsetToNext << " rdh 0x" << (char*)rdh << " bufsize:" << mDataBufferSize << " payload start: 0x" << (void*)&mHBFPayload[0];
+        LOG(warn) << "rdh bounds fail offsetToNext:" << offsetToNext << " rdh 0x" << (void*)rdh << " bufsize:" << mDataBufferSize << " payload start: 0x" << (void*)&mHBFPayload[0];
         checkNoWarn();
         if (mVerbose) {
-          LOG(info) << "rdh bounds fail offsetToNext:" << offsetToNext << " rdh 0x" << (char*)rdh << " bufsize:" << mDataBufferSize << " payload start: 0x" << (void*)&mHBFPayload[0];
+          LOG(info) << "rdh bounds fail offsetToNext:" << offsetToNext << " rdh 0x" << (void*)rdh << " bufsize:" << mDataBufferSize << " payload start: 0x" << (void*)&mHBFPayload[0];
           o2::raw::RDHUtils::printRDH(rdh);
         }
+      }
+      if(mVerbose){
+        LOG(warn) << "returning from processHBFs with a false";
+        LOG(warn) << "rdh in question is : ";
+        o2::raw::RDHUtils::printRDH(rdh);
       }
       return false; //-1;
     }
@@ -480,7 +485,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
     if (currentlinksize == 0) {
       mEventRecords.incLinkNoData(mDetector[0], mHalfChamberSide[0], stack_layer);
     }
-    uint64_t linkzsum = 0;
+    uint32_t linkzsum = 0;
     int dioffset = dataoffsetstart32 + linksizeAccum32;
     if (dioffset % 8 != 0) {
       if (mMaxErrsPrinted > 0) {
@@ -694,7 +699,7 @@ void CruRawReader::checkSummary()
 bool CruRawReader::run()
 {
   uint32_t dowhilecount = 0;
-  uint64_t totaldataread = 0;
+  uint32_t totaldataread = 0;
   rewind();
   mTotalDigitWordsRead = 0;
   mTotalDigitWordsRejected = 0;
@@ -707,8 +712,13 @@ bool CruRawReader::run()
       LOG(info) << " mDataBuffer :" << (void*)mDataBuffer << " and offset to start on is :" << totaldataread;
     }
     mDatareadfromhbf = 0;
-    processHBFs(totaldataread, mVerbose);
+    auto goodprocessing = processHBFs(totaldataread, mVerbose);
     totaldataread += mDatareadfromhbf;
+    if(!goodprocessing){
+      //processHBFs returned false, get out of here ...
+      LOG(error) << "Error processing heart beat frame ... good luck";
+      break;
+    }
   } while (((char*)mDataPointer - mDataBuffer) < mDataBufferSize);
 
   return false;
