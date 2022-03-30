@@ -164,7 +164,8 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
   curl = curl_easy_init();
   int returnValue = 0;
 
-  std::map<std::string, std::string> mdSanit = sanitizeMetaData(metadata);
+  // checking that all metadata keys do not contain invalid characters
+  checkMetadataKeys(metadata);
 
   if (curl != nullptr) {
     struct curl_httppost* formpost = nullptr;
@@ -190,7 +191,7 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
     CURLcode res = CURL_LAST;
 
     for (size_t hostIndex = 0; hostIndex < hostsPool.size() && res > 0; hostIndex++) {
-      string fullUrl = getFullUrlForStorage(curl, path, objectType, mdSanit, sanitizedStartValidityTimestamp, sanitizedEndValidityTimestamp, hostIndex);
+      string fullUrl = getFullUrlForStorage(curl, path, objectType, metadata, sanitizedStartValidityTimestamp, sanitizedEndValidityTimestamp, hostIndex);
       LOG(debug3) << "Full URL Encoded: " << fullUrl;
       /* what URL that receives this POST */
       curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
@@ -1664,24 +1665,29 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, const std::string& p
   return;
 }
 
-std::map<std::string, std::string> CcdbApi::sanitizeMetaData(std::map<std::string, std::string> const& metadata) const
+void CcdbApi::checkMetadataKeys(std::map<std::string, std::string> const& metadata) const
 {
 
-  // function to remove forbitten characters from metadata keys
+  // function to check if any key contains invalid characters
+  // if so, a fatal will be issued
 
-  std::map<std::string, std::string> mdSanit = metadata;
+  const std::regex regexPatternSearch(R"([ :;.,\\/'?!\(\)\{\}\[\]@<>=+*#$&`|~^%])");
+  bool isInvalid = false;
 
-  for (auto el = metadata.begin(); el != metadata.end();) {
-    auto& keyMd = el->first;
-    std::string newKeyMd = std::regex_replace(keyMd, std::regex("[ :;.,\\\\/'?!\\(\\)\\{\\}\\[\\]@<>=+*#$&`|~^%]"), "_");
-    if (newKeyMd != keyMd) {
-      LOG(debug) << "old key " << keyMd << ", new key = " << newKeyMd;
-      mdSanit[newKeyMd] = el->second;
-      el = mdSanit.erase(el);
+  for (auto& el : metadata) {
+    auto keyMd = el.first;
+    auto tmp = keyMd;
+    std::smatch searchRes;
+    while (std::regex_search(keyMd, searchRes, regexPatternSearch)) {
+      isInvalid = true;
+      LOG(error) << "Invalid character found in metadata key '" << tmp << "\': '" << searchRes.str() << "\'";
+      keyMd = searchRes.suffix();
     }
-    ++el;
   }
-  return mdSanit;
+  if (isInvalid) {
+    LOG(fatal) << "Some metadata keys have invalid characters, please fix!";
+  }
+  return;
 }
 
 } // namespace o2

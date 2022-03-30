@@ -504,10 +504,10 @@ class CcdbApi //: public DatabaseInterface
   std::string getHostUrl(int hostIndex) const;
 
   /**
-   * Function to sanitize the keys for metadata
+   * Function to check the keys for metadata
    * see https://developers.cloudflare.com/rules/transform/request-header-modification/reference/header-format/
    */
-  std::map<std::string, std::string> sanitizeMetaData(std::map<std::string, std::string> const& metadata) const;
+  void checkMetadataKeys(std::map<std::string, std::string> const& metadata) const;
 
   /// Base URL of the CCDB (with port)
   std::string mUrl{};
