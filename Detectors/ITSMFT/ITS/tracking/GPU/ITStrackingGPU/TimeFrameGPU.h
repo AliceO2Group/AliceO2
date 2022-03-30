@@ -32,8 +32,6 @@
 // #include "ReconstructionDataFormats/Vertex.h"
 
 #include "ITStracking/TimeFrame.h"
-#include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
 #include "GPUCommonDef.h"
 #include "GPUCommonMath.h"
 
@@ -49,6 +47,7 @@ namespace gpu
 template <int NLayers = 7>
 class TimeFrameGPU : public TimeFrame
 {
+
  public:
   TimeFrameGPU();
   ~TimeFrameGPU();
@@ -57,13 +56,48 @@ class TimeFrameGPU : public TimeFrame
                   const MemoryParameters& memParam,
                   const TrackingParameters& trkParam,
                   const int maxLayers);
+  Cluster* getDeviceClustersOnLayer(const int rofId, const int layerId) const;
+  size_t getDeviceNClustersLayer(const int rofId, const int layerId) const;
+  Array<Vector<Tracklet>, NLayers>& getDeviceTracklets() { return mTrackletsD; }
+
+  // Vertexer only
+  int* getDeviceIndexTableL0() const { return mIndexTablesLayer0D.get(); }
+  int* getDeviceNTrackletsCluster() { return }
 
  private:
-  Array<Vector<Cluster>, NLayers> mClustersD;
-  Array<Vector<TrackingFrameInfo>, NLayers> mTrackingFrameInfoD;
-  Array<Vector<int>, NLayers> mClusterExternalIndicesD;
-  Array<Vector<int>, NLayers> mROframesClustersD;
+  // Per-layer information, do not expand at runtime
+  std::array<Vector<Cluster>, NLayers> mClustersD;
+  std::array<Vector<TrackingFrameInfo>, NLayers> mTrackingFrameInfoD;
+  std::array<Vector<int>, NLayers - 1> mIndexTablesD;
+  std::array<Vector<int>, NLayers> mClusterExternalIndicesD;
+  std::array<Vector<int>, NLayers> mROframesClustersD;
+  std::array<Vector<Tracklet>, NLayers - 1> mTrackletsD;
+
+  // Vertexer only
+  Vector<int> mIndexTablesLayer0D;
+  std::vector<std::array<Vector<int>, 2>> mNTrackletsPerClusterD; // TODO: remove in favour of mNTrackletsPerROf
+  std::vector < Vector<>
 };
+
+template <int NLayers>
+inline Cluster* TimeFrameGPU<NLayers>::getDeviceClustersOnLayer(const int rofId, const int layerId) const
+{
+  if (rofId < 0 || rofId >= mNrof) {
+    LOGP(info, "Invalid rofId: {}/{}, passing nullptr", rofId, mNrof);
+    return nullptr;
+  }
+  return mClustersD[layerId].get() + mROframesClusters[layerId][rofId];
+}
+
+template <int NLayers>
+inline size_t TimeFrameGPU<NLayers>::getDeviceNClustersLayer(const int rofId, const int layerId) const
+{
+  if (rofId < 0 || rofId >= mNrof) {
+    LOGP(info, "Invalid rofId: {}/{}, passing nullptr", rofId, mNrof);
+    return nullptr;
+  }
+  return mROframesClusters[layerId][rofId + 1] - mROframesClusters[layerId][rofId];
+}
 
 } // namespace gpu
 } // namespace its

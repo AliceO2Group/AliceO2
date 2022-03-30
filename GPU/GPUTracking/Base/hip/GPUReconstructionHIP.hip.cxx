@@ -12,7 +12,7 @@
 /// \file GPUReconstructionHIP.hip.cxx
 /// \author David Rohr
 
-#define __HIP_ENABLE_DEVICE_MALLOC__ 1 //Fix SWDEV-239120
+#define __HIP_ENABLE_DEVICE_MALLOC__ 1 // Fix SWDEV-239120
 #define GPUCA_GPUTYPE_VEGA
 #define GPUCA_UNROLL(CUDA, HIP) GPUCA_M_UNROLL_##HIP
 #define GPUdic(CUDA, HIP) GPUCA_GPUdic_select_##HIP()
@@ -64,6 +64,10 @@ class VertexerTraitsGPU : public VertexerTraits
 };
 template <int NLayers>
 class TrackerTraitsGPU : public TrackerTraits
+{
+};
+template <int NLayers>
+class gpu::TimeFrameGPU : public TimeFrame
 {
 };
 } // namespace o2::its
@@ -214,6 +218,11 @@ void GPUReconstructionHIPBackend::GetITSTraits(std::unique_ptr<o2::its::TrackerT
   if (vertexerTraits) {
     vertexerTraits->reset(new o2::its::VertexerTraitsGPU);
   }
+}
+
+void GPUReconstructionHIPBackend::GetITSTimeframe(std::unique_ptr<o2::its::TimeFrame>* timeFrame)
+{
+  timeFrame->reset(new o2::its::gpu::TimeFrameGPU);
 }
 
 void GPUReconstructionHIPBackend::UpdateSettings()
@@ -464,7 +473,9 @@ size_t GPUReconstructionHIPBackend::GPUMemCpy(void* dst, const void* src, size_t
     for (int k = 0; k < nEvents; k++) {
       GPUFailedMsg(hipStreamWaitEvent(mInternals->Streams[stream], ((hipEvent_t*)evList)[k], 0));
     }
-    GPUFailedMsg(hipMemcpyAsync(dst, src, size, toGPU == -2 ? hipMemcpyDeviceToDevice : toGPU ? hipMemcpyHostToDevice : hipMemcpyDeviceToHost, mInternals->Streams[stream]));
+    GPUFailedMsg(hipMemcpyAsync(dst, src, size, toGPU == -2 ? hipMemcpyDeviceToDevice : toGPU ? hipMemcpyHostToDevice
+                                                                                              : hipMemcpyDeviceToHost,
+                                mInternals->Streams[stream]));
   }
   if (ev) {
     GPUFailedMsg(hipEventRecord(*(hipEvent_t*)ev, mInternals->Streams[stream == -1 ? 0 : stream]));

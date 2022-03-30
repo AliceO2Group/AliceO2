@@ -193,7 +193,6 @@ int TimeFrame::getTotalClusters() const
 
 void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam, const TrackingParameters& trkParam, const int maxLayers)
 {
-  LOGP(info, ">>> Called init CPU");
   if (iteration == 0) {
     mTracks.clear();
     mTracksLabel.clear();
@@ -203,7 +202,7 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
     mCellsLookupTable.resize(trkParam.CellsPerRoad() - 1);
     mCellsNeighbours.resize(trkParam.CellsPerRoad() - 1);
     mCellLabels.resize(trkParam.CellsPerRoad());
-    mTracklets.resize(std::min(trkParam.TrackletsPerRoad(), maxLayers));
+    mTracklets.resize(std::min(trkParam.TrackletsPerRoad(), maxLayers - 1));
     mTrackletLabels.resize(trkParam.TrackletsPerRoad());
     mTrackletsLookupTable.resize(trkParam.CellsPerRoad());
     mIndexTables.clear();
@@ -300,9 +299,6 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
           }
         }
       }
-    }
-    for (auto& layer : mClusters) {
-      LOGP(info, "Initalised {} clusters", layer.size());
     }
   }
 

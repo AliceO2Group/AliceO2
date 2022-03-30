@@ -39,6 +39,7 @@ __global__ void dummyInitKernel(void*)
 #if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
 #include "ITStrackingGPU/TrackerTraitsGPU.h"
 #include "ITStrackingGPU/VertexerTraitsGPU.h"
+#include "ITStrackingGPU/TimeFrameGPU.h"
 #else
 namespace o2::its
 {
@@ -47,6 +48,10 @@ class VertexerTraitsGPU : public VertexerTraits
 };
 template <int NLayers>
 class TrackerTraitsGPU : public TrackerTraits
+{
+};
+template <int NLayers>
+class gpu::TimeFrameGPU : public TimeFrame
 {
 };
 } // namespace o2::its
@@ -89,6 +94,11 @@ void GPUReconstructionCUDA::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>
   if (vertexerTraits) {
     vertexerTraits->reset(new o2::its::VertexerTraitsGPU);
   }
+}
+
+void GPUReconstructionCUDA::GetITSTimeframe(std::unique_ptr<o2::its::TimeFrame>* timeFrame)
+{
+  timeFrame->reset(new o2::its::gpu::TimeFrameGPU);
 }
 
 void GPUReconstructionCUDA::UpdateSettings()
