@@ -56,9 +56,9 @@ int InterCalibEPN::init()
 }
 
 int InterCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
-                        const gsl::span<const o2::zdc::ZDCEnergy>& Energy,
-                        const gsl::span<const o2::zdc::ZDCTDCData>& TDCData,
-                        const gsl::span<const uint16_t>& Info)
+                           const gsl::span<const o2::zdc::ZDCEnergy>& Energy,
+                           const gsl::span<const o2::zdc::ZDCTDCData>& TDCData,
+                           const gsl::span<const uint16_t>& Info)
 {
   if (!mInitDone) {
     init();

@@ -80,7 +80,7 @@ int TDCCalib::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
           continue;
         }
         auto amp = ev.TDCAmp[itdc][0];
-        if(amp < mTDCCalibConfig.cutLow[itdc] || mTDCCalibConfig > cutHigh[itdc]){
+        if (amp < mTDCCalibConfig.cutLow[itdc] || mTDCCalibConfig > cutHigh[itdc]) {
           continue;
         }
         mHTDC[itdc]->Fill(ev.TDCVal[itdc][0]);
