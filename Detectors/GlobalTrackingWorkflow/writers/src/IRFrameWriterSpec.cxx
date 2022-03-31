@@ -13,27 +13,32 @@
 
 #include <vector>
 
-#include "ITSWorkflow/IRFrameWriterSpec.h"
+#include "GlobalTrackingWorkflowWriters/IRFrameWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "CommonDataFormat/IRFrame.h"
+#include "Framework/DataDescriptorQueryBuilder.h"
 
 using namespace o2::framework;
 
 namespace o2
 {
-namespace its
+namespace globaltracking
 {
 
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-DataProcessorSpec getIRFrameWriterSpec()
+DataProcessorSpec getIRFrameWriterSpec(const std::string& spec, const std::string& defFileName, const std::string& devName)
 {
-  return MakeRootTreeWriterSpec("its-irframe-writer",
-                                "o2_its_irframe.root",
-                                MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with reconstructed ITS IR Frames"},
-                                BranchDefinition<std::vector<o2::dataformats::IRFrame>>{InputSpec{"irfr", "ITS", "IRFRAMES", 0}, "IRFrames"})();
+  auto inputs = DataDescriptorQueryBuilder::parse(spec.c_str());
+  if (inputs.size() != 1) {
+    LOGP(fatal, "irframe-writer expects exactly 1 input spec, {} is received: {}", inputs.size(), spec);
+  }
+  return MakeRootTreeWriterSpec(devName.c_str(),
+                                defFileName.c_str(),
+                                MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with selected IR Frames"},
+                                BranchDefinition<std::vector<o2::dataformats::IRFrame>>{inputs.front(), "IRFrames"})();
 }
 
-} // namespace its
+} // namespace globaltracking
 } // namespace o2

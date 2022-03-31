@@ -18,8 +18,6 @@ o2_add_library(ITSWorkflow
                        src/TrackerSpec.cxx
                        src/CookedTrackerSpec.cxx
                        src/TrackWriterSpec.cxx
-                       src/IRFrameWriterSpec.cxx
-                       src/IRFrameReaderSpec.cxx
                        src/TrackReaderSpec.cxx
                        src/VertexReaderSpec.cxx
                        src/ThresholdCalibrationWorkflow.cxx
@@ -36,13 +34,15 @@ o2_add_library(ITSWorkflow
                                O2::ITSMFTReconstruction
                                O2::ITSMFTWorkflow
                                O2::DetectorsCalibration
+                               O2::GlobalTrackingWorkflowWriters
                                O2::CCDB
                                O2::GPUTracking)
 
 o2_add_executable(reco-workflow
                   SOURCES src/its-reco-workflow.cxx
                   COMPONENT_NAME its
-                  PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
+                  PUBLIC_LINK_LIBRARIES O2::ITSWorkflow
+                                        O2::GlobalTrackingWorkflowReaders)
 
 o2_add_executable(cluster-writer-workflow
                   SOURCES src/its-cluster-writer-workflow.cxx
