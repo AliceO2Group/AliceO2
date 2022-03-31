@@ -89,7 +89,7 @@ namespace o2::aodproducer
 
 void AODProducerWorkflowDPL::collectBCs(const o2::globaltracking::RecoContainer& data,
                                         const std::vector<o2::InteractionTimeRecord>& mcRecords,
-                                        std::map<uint64_t, int>& bcsMap)
+                                        std::map<uint64_t, int>& bcsMap, uint64_t initBC)
 {
   const auto& primVertices = data.getPrimaryVertices();
   const auto& fddRecPoints = data.getFDDRecPoints();
@@ -100,53 +100,53 @@ void AODProducerWorkflowDPL::collectBCs(const o2::globaltracking::RecoContainer&
   const auto& ctpDigits = data.getCTPDigits();
   const auto& zdcBCRecData = data.getZDCBCRecData();
 
-  bcsMap[mStartIR.toLong()] = 1; // store the start of TF
+  bcsMap[mStartIR.toLong() + initBC] = 1; // store the start of TF
 
   // collecting non-empty BCs and enumerating them
   for (auto& rec : mcRecords) {
-    uint64_t globalBC = rec.toLong();
+    uint64_t globalBC = rec.toLong() + initBC;
     bcsMap[globalBC] = 1;
   }
 
   for (auto& fddRecPoint : fddRecPoints) {
-    uint64_t globalBC = fddRecPoint.getInteractionRecord().toLong();
+    uint64_t globalBC = fddRecPoint.getInteractionRecord().toLong() + initBC;
     bcsMap[globalBC] = 1;
   }
 
   for (auto& ft0RecPoint : ft0RecPoints) {
-    uint64_t globalBC = ft0RecPoint.getInteractionRecord().toLong();
+    uint64_t globalBC = ft0RecPoint.getInteractionRecord().toLong() + initBC;
     bcsMap[globalBC] = 1;
   }
 
   for (auto& fv0RecPoint : fv0RecPoints) {
-    uint64_t globalBC = fv0RecPoint.getInteractionRecord().toLong();
+    uint64_t globalBC = fv0RecPoint.getInteractionRecord().toLong() + initBC;
     bcsMap[globalBC] = 1;
   }
 
   for (auto& zdcRecData : zdcBCRecData) {
-    uint64_t globalBC = zdcRecData.ir.toLong();
+    uint64_t globalBC = zdcRecData.ir.toLong() + initBC;
     bcsMap[globalBC] = 1;
   }
 
   for (auto& vertex : primVertices) {
     auto& timeStamp = vertex.getTimeStamp();
     double tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
-    uint64_t globalBC = relativeTime_to_GlobalBC(tsTimeStamp);
+    uint64_t globalBC = relativeTime_to_GlobalBC(tsTimeStamp) + initBC;
     bcsMap[globalBC] = 1;
   }
 
   for (auto& emcaltrg : caloEMCCellsTRGR) {
-    uint64_t globalBC = emcaltrg.getBCData().toLong();
+    uint64_t globalBC = emcaltrg.getBCData().toLong() + initBC;
     bcsMap[globalBC] = 1;
   }
 
   for (auto& phostrg : caloPHOSCellsTRGR) {
-    uint64_t globalBC = phostrg.getBCData().toLong();
+    uint64_t globalBC = phostrg.getBCData().toLong() + initBC;
     bcsMap[globalBC] = 1;
   }
 
   for (auto& ctpDigit : ctpDigits) {
-    uint64_t globalBC = ctpDigit.intRecord.toLong();
+    uint64_t globalBC = ctpDigit.intRecord.toLong() + initBC;
     bcsMap[globalBC] = 1;
   }
 
@@ -1233,12 +1233,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
 
-  std::map<uint64_t, int> bcsMap;
-  collectBCs(recoData, mUseMC ? mcReader->getDigitizationContext()->getEventRecords() : std::vector<o2::InteractionTimeRecord>{}, bcsMap);
-  if (!primVer2TRefs.empty()) { // if the vertexing was done, the last slot refers to orphan tracks
-    addRefGlobalBCsForTOF(primVer2TRefs.back(), primVerGIs, recoData, bcsMap);
-  }
-
   uint64_t tfNumber;
   const int runNumber = (mRunNumber == -1) ? int(dh->runNumber) : mRunNumber;
   if (mTFNumber == -1L) {
@@ -1246,6 +1240,25 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     tfNumber = uint64_t(dh->firstTForbit) + (uint64_t(dh->runNumber) << 32); // getTFNumber(mStartIR, runNumber);
   } else {
     tfNumber = mTFNumber;
+  }
+
+  std::map<uint64_t, int> bcsMap;
+  uint64_t initBC = 0;
+
+  if (mUseMC) {
+    // add initBC read from ccdb to look similar to data (we need to add it since it is subtracted in analysis)
+    auto& ccdb = o2::ccdb::BasicCCDBManager::instance();
+    std::string start_orbit_path("GRP/StartOrbit");
+    auto mapStartOrbit = ccdb.get<std::map<int, int>>(start_orbit_path);
+    if (!mapStartOrbit) {
+      LOGF(fatal, "Cannot find map of SOR orbits in CCDB in path %s", start_orbit_path.data());
+    }
+    auto initialOrbit = mapStartOrbit->at(runNumber);
+    initBC = initialOrbit * o2::constants::lhc::LHCMaxBunches;
+  }
+  collectBCs(recoData, mUseMC ? mcReader->getDigitizationContext()->getEventRecords() : std::vector<o2::InteractionTimeRecord>{}, bcsMap, initBC);
+  if (!primVer2TRefs.empty()) { // if the vertexing was done, the last slot refers to orphan tracks
+    addRefGlobalBCsForTOF(primVer2TRefs.back(), primVerGIs, recoData, bcsMap);
   }
 
   std::vector<float> aAmplitudes;

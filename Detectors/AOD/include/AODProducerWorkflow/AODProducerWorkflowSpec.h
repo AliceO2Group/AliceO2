@@ -333,7 +333,7 @@ class AODProducerWorkflowDPL : public Task
 
   void collectBCs(const o2::globaltracking::RecoContainer& data,
                   const std::vector<o2::InteractionTimeRecord>& mcRecords,
-                  std::map<uint64_t, int>& bcsMap);
+                  std::map<uint64_t, int>& bcsMap, uint64_t initBC);
 
   uint64_t getTFNumber(const o2::InteractionRecord& tfStartIR, int runNumber);
 
