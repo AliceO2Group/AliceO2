@@ -35,7 +35,7 @@ struct ZDCTowerParam {
   void setTowerCalib(uint32_t ich, float val, bool ismodified = true);
   float getTowerCalib(uint32_t ich) const;
   void print() const;
-  ClassDefNV(ZDCTowerParam, 1);
+  ClassDefNV(ZDCTowerParam, 2);
 };
 } // namespace zdc
 } // namespace o2

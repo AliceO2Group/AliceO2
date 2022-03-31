@@ -26,6 +26,7 @@ namespace zdc
 {
 struct InterCalibConfig {
   static constexpr int NH = 5; /// ZNA, ZPA, ZNC, ZPC, ZEM
+  bool enabled[NH] = {true, true, true, true, true};
   double cutLow[NH] = {-std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()};
   double cutHigh[NH] = {std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()};
   int nb1[NH] = {0};      /// 1D histogram: number of bins
@@ -59,7 +60,15 @@ struct InterCalibConfig {
   void setBinning2D(int nb, double amin, double amax);
   void setBinning1D(int ih, int nb, double amin, double amax);
   void setBinning2D(int ih, int nb, double amin, double amax);
-  ClassDefNV(InterCalibConfig, 1);
+  void enable(bool c0, bool c1, bool c2, bool c3, bool c4)
+  {
+    enabled[0] = c0;
+    enabled[1] = c1;
+    enabled[2] = c2;
+    enabled[3] = c3;
+    enabled[4] = c4;
+  }
+  ClassDefNV(InterCalibConfig, 2);
 };
 } // namespace zdc
 } // namespace o2

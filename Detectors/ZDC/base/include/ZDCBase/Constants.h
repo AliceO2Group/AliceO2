@@ -298,10 +298,11 @@ constexpr std::array<int, 10> ChEnergyCalib{IdZNAC, IdZNASum, IdZPAC, IdZPASum,
                                             IdZEM1, IdZEM2,
                                             IdZNCC, IdZNCSum, IdZPCC, IdZPCSum};
 
-constexpr std::array<int, 16> ChTowerCalib{IdZNA1, IdZNA2, IdZNA3, IdZNA4,
+constexpr std::array<int, 17> ChTowerCalib{IdZNA1, IdZNA2, IdZNA3, IdZNA4,
                                            IdZPA1, IdZPA2, IdZPA3, IdZPA4,
                                            IdZNC1, IdZNC2, IdZNC3, IdZNC4,
-                                           IdZPC1, IdZPC2, IdZPC3, IdZPC4};
+                                           IdZPC1, IdZPC2, IdZPC3, IdZPC4,
+                                           IdZEM2};
 
 constexpr std::array<int, NChannels> CaloCommonPM{IdZNAC, IdZNAC, IdZNAC, IdZNAC, IdZNAC, IdZNAC,
                                                   IdZPAC, IdZPAC, IdZPAC, IdZPAC, IdZPAC, IdZPAC,

@@ -33,6 +33,12 @@ void CreateInterCalibConfig(long tmin = 0, long tmax = -1, std::string ccdbHost 
 
   InterCalibConfig conf;
 
+  // Enable intercalibration for all calorimeters
+  // If intercalibration is disabled the intercalibration coefficients
+  // are copied from previous valid object and flagged as not modified
+  //          ZNA   ZPA   ZNC   ZPC   ZEM2
+  conf.enable(true, true, true, true, true);
+
   // The version for this macro considers NO energy calibration, i.e. all coefficients = 1
   // It is necessary to set the binning
   conf.setBinning1D(1200, 0, 12000);

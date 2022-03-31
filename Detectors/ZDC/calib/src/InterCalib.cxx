@@ -112,20 +112,23 @@ int InterCalib::endOfRun()
     LOGF(info, "Computing intercalibration coefficients");
   }
   for (int ih = 0; ih < NH; ih++) {
-    if (mData.mSum[ih][5][5] >= mInterCalibConfig->min_e[ih]) {
+    LOGF(info, "%s %g events and cuts (%g:%g)", InterCalibData::DN[ih], mData.mSum[ih][5][5], mInterCalibConfig->cutLow[ih], mInterCalibConfig->cutHigh[ih]);
+    if (!mInterCalibConfig->enabled[ih]) {
+      LOGF(info, "DISABLED processing of RUN3 data for ih = %d: %s", ih, InterCalibData::DN[ih]);
+      assign(ih, false);
+    } else if (mData.mSum[ih][5][5] >= mInterCalibConfig->min_e[ih]) {
       int ierr = mini(ih);
       if (ierr) {
+        LOGF(error, "FAILED processing RUN3 data for ih = %d: %s", ih, InterCalibData::DN[ih]);
         assign(ih, false);
-        LOGF(error, "FAILED processing RUN3 data for ih = %d - ", ih);
       } else {
+        LOGF(info, "Processed RUN3 data for ih = %d: %s", ih, InterCalibData::DN[ih]);
         assign(ih, true);
-        LOGF(info, "Processed RUN3 data for ih = %d: ", ih);
       }
     } else {
+      LOGF(info, "FAILED processing RUN3 data for ih = %d: %s: TOO FEW EVENTS: %g", ih, InterCalibData::DN[ih], mData.mSum[ih][5][5]);
       assign(ih, false);
-      LOGF(info, "FAILED processing RUN3 data for ih = %d: TOO FEW EVENTS: ", ih);
     }
-    LOGF(info, "%g events and cuts (%g:%g)\n", mData.mSum[ih][5][5], mInterCalibConfig->cutLow[ih], mInterCalibConfig->cutHigh[ih]);
   }
   write();
   return 0;
@@ -164,7 +167,7 @@ void InterCalib::assign(int ih, bool ismod)
     if (ismod == true) {
       auto val = oldval;
       if (oldval > 0) {
-        val = val * mPar[ih][ich + 1];
+        val = val * mPar[ih][iid + 1];
       }
       if (mVerbosity > DbgZero) {
         LOGF(info, "%s updated %8.6f -> %8.6f", ChannelNames[ich].data(), oldval, val);
