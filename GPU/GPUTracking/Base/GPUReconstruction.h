@@ -116,6 +116,7 @@ class GPUReconstruction
   static GPUReconstruction* CreateInstance(DeviceType type = DeviceType::CPU, bool forceType = true, GPUReconstruction* master = nullptr);
   static GPUReconstruction* CreateInstance(int type, bool forceType, GPUReconstruction* master = nullptr) { return CreateInstance((DeviceType)type, forceType, master); }
   static GPUReconstruction* CreateInstance(const char* type, bool forceType, GPUReconstruction* master = nullptr);
+  static bool CheckInstanceAvailable(DeviceType type);
 
   // Helpers for kernel launches
   template <class T, int I = 0>
