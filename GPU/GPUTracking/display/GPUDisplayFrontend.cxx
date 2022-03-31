@@ -15,7 +15,35 @@
 #include "GPUDisplayFrontend.h"
 #include "GPUDisplay.h"
 
+#ifdef _WIN32
+#include "GPUDisplayFrontendWindows.h"
+#elif defined(GPUCA_BUILD_EVENT_DISPLAY_X11)
+#include "GPUDisplayFrontendX11.h"
+#endif
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_GLFW
+#include "GPUDisplayFrontendGlfw.h"
+#endif
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_GLUT
+#include "GPUDisplayFrontendGlut.h"
+#endif
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_WAYLAND
+#include "GPUDisplayFrontendWayland.h"
+#endif
+
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_QT
+#include "GPUDisplayGUIWrapper.h"
+#else
+namespace GPUCA_NAMESPACE::gpu
+{
+class GPUDisplayGUIWrapper
+{
+};
+} // namespace GPUCA_NAMESPACE::gpu
+#endif
+
 using namespace GPUCA_NAMESPACE::gpu;
+
+GPUDisplayFrontend::~GPUDisplayFrontend() = default;
 
 void* GPUDisplayFrontend::FrontendThreadWrapper(void* ptr)
 {
@@ -44,23 +72,38 @@ void GPUDisplayFrontend::ResizeScene(int width, int height)
   mDisplay->ResizeScene(width, height);
 }
 int GPUDisplayFrontend::InitDisplay(bool initFailure) { return mDisplay->InitDisplay(initFailure); }
-void GPUDisplayFrontend::ExitDisplay() { return mDisplay->ExitDisplay(); }
+void GPUDisplayFrontend::ExitDisplay()
+{
+  mDisplay->ExitDisplay();
+  stopGUI();
+  mGUI.reset(nullptr);
+}
 bool GPUDisplayFrontend::EnableSendKey() { return true; }
 
-#ifdef _WIN32
-#include "GPUDisplayFrontendWindows.h"
-#elif defined(GPUCA_BUILD_EVENT_DISPLAY_X11)
-#include "GPUDisplayFrontendX11.h"
+void GPUDisplayFrontend::stopGUI()
+{
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_QT
+  if (mGUI) {
+    mGUI->stop();
+  }
 #endif
-#ifdef GPUCA_BUILD_EVENT_DISPLAY_GLFW
-#include "GPUDisplayFrontendGlfw.h"
+}
+
+int GPUDisplayFrontend::startGUI()
+{
+  int retVal = 1;
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_QT
+  if (!mGUI) {
+    mGUI.reset(new GPUDisplayGUIWrapper);
+  }
+  if (!mGUI->isRunning()) {
+    mGUI->start();
+  } else {
+    mGUI->focus();
+  }
 #endif
-#ifdef GPUCA_BUILD_EVENT_DISPLAY_GLUT
-#include "GPUDisplayFrontendGlut.h"
-#endif
-#ifdef GPUCA_BUILD_EVENT_DISPLAY_WAYLAND
-#include "GPUDisplayFrontendWayland.h"
-#endif
+  return retVal;
+}
 
 GPUDisplayFrontend* GPUDisplayFrontend::getFrontend(const char* type)
 {
