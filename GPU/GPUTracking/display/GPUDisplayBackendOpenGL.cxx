@@ -39,18 +39,19 @@ QGET_LD_BINARY_SYMBOLS(shaders_shaders_fragmentUniform_frag_spv);
 #endif
 
 // Runtime minimum version defined in GPUDisplayFrontend.h, keep in sync!
+#define GPUCA_BUILD_EVENT_DISPLAY_OPENGL
 #if !defined(GL_VERSION_4_5) || GL_VERSION_4_5 != 1
 #ifdef GPUCA_STANDALONE
-#error Unsupported OpenGL version < 4.5
+//#error Unsupported OpenGL version < 4.5
 #elif defined(GPUCA_O2_LIB)
 #pragma message "Unsupported OpenGL version < 4.5, disabling standalone event display"
 #else
 #warning Unsupported OpenGL version < 4.5, disabling standalone event display
 #endif
-#undef GPUCA_BUILD_EVENT_DISPLAY
+#undef GPUCA_BUILD_EVENT_DISPLAY_OPENGL
 #endif
 
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_OPENGL
 
 #ifdef GPUCA_DISPLAY_GL3W
 int GPUDisplayBackendOpenGL::ExtInit()
@@ -774,4 +775,29 @@ void GPUDisplayBackendOpenGL::updateRenderer(bool withScreenshot)
   setQuality();
 }
 
-#endif // GPUCA_BUILD_EVENT_DISPLAY
+#else  // GPUCA_BUILD_EVENT_DISPLAY_OPENGL
+int GPUDisplayBackendOpenGL::ExtInit()
+{
+  throw std::runtime_error("Insufficnet OpenGL version");
+}
+bool GPUDisplayBackendOpenGL::CoreProfile() { return false; }
+unsigned int GPUDisplayBackendOpenGL::DepthBits() { return 0; }
+unsigned int GPUDisplayBackendOpenGL::drawVertices(const vboList& v, const drawType t) { return 0; }
+void GPUDisplayBackendOpenGL::ActivateColor(std::array<float, 4>& color) {}
+void GPUDisplayBackendOpenGL::setQuality() {}
+void GPUDisplayBackendOpenGL::setDepthBuffer() {}
+int GPUDisplayBackendOpenGL::InitBackendA() { throw std::runtime_error("Insufficnet OpenGL version"); }
+void GPUDisplayBackendOpenGL::ExitBackendA() {}
+void GPUDisplayBackendOpenGL::loadDataToGPU(size_t totalVertizes) {}
+void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage) {}
+void GPUDisplayBackendOpenGL::resizeScene(unsigned int width, unsigned int height) {}
+void GPUDisplayBackendOpenGL::finishDraw(bool doScreenshot, bool toMixBuffer, float includeMixImage) {}
+void GPUDisplayBackendOpenGL::finishFrame(bool doScreenshot, bool toMixBuffer, float includeMixImage) {}
+void GPUDisplayBackendOpenGL::prepareText() {}
+void GPUDisplayBackendOpenGL::finishText() {}
+void GPUDisplayBackendOpenGL::pointSizeFactor(float factor) {}
+void GPUDisplayBackendOpenGL::lineWidthFactor(float factor) {}
+void GPUDisplayBackendOpenGL::addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data) {}
+void GPUDisplayBackendOpenGL::initializeTextDrawing() {}
+void GPUDisplayBackendOpenGL::OpenGLPrint(const char* s, float x, float y, float* color, float scale) {}
+#endif // GPUCA_BUILD_EVENT_DISPLAY_OPENGL

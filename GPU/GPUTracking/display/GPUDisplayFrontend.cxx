@@ -47,41 +47,38 @@ int GPUDisplayFrontend::InitDisplay(bool initFailure) { return mDisplay->InitDis
 void GPUDisplayFrontend::ExitDisplay() { return mDisplay->ExitDisplay(); }
 bool GPUDisplayFrontend::EnableSendKey() { return true; }
 
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
 #ifdef _WIN32
 #include "GPUDisplayFrontendWindows.h"
-#else
-#ifdef GPUCA_STANDALONE
+#elif defined(GPUCA_BUILD_EVENT_DISPLAY_X11)
 #include "GPUDisplayFrontendX11.h"
 #endif
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_GLFW
 #include "GPUDisplayFrontendGlfw.h"
 #endif
-#ifdef GPUCA_STANDALONE
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_GLUT
 #include "GPUDisplayFrontendGlut.h"
 #endif
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_WAYLAND
 #include "GPUDisplayFrontendWayland.h"
 #endif
-#endif
 
 GPUDisplayFrontend* GPUDisplayFrontend::getFrontend(const char* type)
 {
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
 #ifdef _WIN32
   if (strcmp(type, "windows") == 0) {
     return new GPUDisplayFrontendWindows;
   }
-#else
-#ifdef GPUCA_STANDALONE
+#elif defined(GPUCA_BUILD_EVENT_DISPLAY_X11)
   if (strcmp(type, "x11") == 0) {
     return new GPUDisplayFrontendX11;
   }
 #endif
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_GLFW
   if (strcmp(type, "glfw") == 0) {
     return new GPUDisplayFrontendGlfw;
   }
 #endif
-#ifdef GPUCA_STANDALONE
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_GLUT
   if (strcmp(type, "glut") == 0) {
     return new GPUDisplayFrontendGlut;
   }
@@ -90,7 +87,6 @@ GPUDisplayFrontend* GPUDisplayFrontend::getFrontend(const char* type)
   if (strcmp(type, "wayland") == 0) {
     return new GPUDisplayFrontendWayland;
   }
-#endif
 #endif
   return nullptr;
 }
