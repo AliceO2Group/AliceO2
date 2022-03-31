@@ -108,25 +108,75 @@ int InterCalib::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
 
 int InterCalib::endOfRun()
 {
-  if(mVerbosity > DbgZero){
+  if (mVerbosity > DbgZero) {
     LOGF(info, "Computing intercalibration coefficients");
   }
   for (int ih = 0; ih < NH; ih++) {
     if (mData.mSum[ih][5][5] >= mInterCalibConfig->min_e[ih]) {
       int ierr = mini(ih);
       if (ierr) {
+        assign(ih, false);
         LOGF(error, "FAILED processing RUN3 data for ih = %d - ", ih);
       } else {
+        assign(ih, true);
         LOGF(info, "Processed RUN3 data for ih = %d: ", ih);
-        
       }
     } else {
+      assign(ih, false);
       LOGF(info, "FAILED processing RUN3 data for ih = %d: TOO FEW EVENTS: ", ih);
     }
     LOGF(info, "%g events and cuts (%g:%g)\n", mData.mSum[ih][5][5], mInterCalibConfig->cutLow[ih], mInterCalibConfig->cutHigh[ih]);
   }
   write();
   return 0;
+}
+
+void InterCalib::assign(int ih, bool ismod)
+{
+  int id_0[4] = {IdZNA1, IdZNA2, IdZNA3, IdZNA4};
+  int id_1[4] = {IdZPA1, IdZPA2, IdZPA3, IdZPA4};
+  int id_2[4] = {IdZNC1, IdZNC2, IdZNC3, IdZNC4};
+  int id_3[4] = {IdZPC1, IdZPC2, IdZPC3, IdZPC4};
+  int id_4[1] = {IdZEM2};
+  int nid = 0;
+  int* id = nullptr;
+  if (ih == 0) {
+    nid = 4;
+    id = id_0;
+  } else if (ih == 1) {
+    nid = 4;
+    id = id_1;
+  } else if (ih == 2) {
+    nid = 4;
+    id = id_2;
+  } else if (ih == 3) {
+    nid = 4;
+    id = id_3;
+  } else if (ih == 4) {
+    nid = 1;
+    id = id_4;
+  } else {
+    LOG(fatal) << "InterCalib::assign accessing not existing ih = " << ih;
+  }
+  for (int iid = 0; iid < nid; iid++) {
+    auto ich = id[iid];
+    auto oldval = mTowerParam->getTowerCalib(ich);
+    if (ismod == true) {
+      auto val = oldval;
+      if (oldval > 0) {
+        val = val * mPar[ih][ich + 1];
+      }
+      if (mVerbosity > DbgZero) {
+        LOGF(info, "%s updated %8.6f -> %8.6f", ChannelNames[ich].data(), oldval, val);
+      }
+      mTowerParamUpd.setTowerCalib(ich, val, true);
+    } else {
+      if (mVerbosity > DbgZero) {
+        LOGF(info, "%s NOT CHANGED %8.6f", ChannelNames[ich].data(), oldval);
+      }
+      mTowerParamUpd.setTowerCalib(ich, oldval, false);
+    }
+  }
 }
 
 int InterCalib::process(const char* hname, int ic)

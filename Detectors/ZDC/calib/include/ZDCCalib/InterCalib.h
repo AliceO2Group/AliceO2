@@ -58,12 +58,8 @@ class InterCalib
 
   void setEnergyParam(const ZDCEnergyParam* param) { mEnergyParam = param; };
   const ZDCEnergyParam* getEnergyParam() const { return mEnergyParam; };
-  void setTowerParam(const ZDCTowerParam* param)
-  {
-    mTowerParam = *param;
-    mTowerParam.clearFlags();
-  };
-  const ZDCTowerParam* getTowerParam() const { return &mTowerParam; };
+  void setTowerParam(const ZDCTowerParam* param) { mTowerParam = param; };
+  const ZDCTowerParam* getTowerParam() const { return mTowerParam; };
   void setInterCalibConfig(const InterCalibConfig* param) { mInterCalibConfig = param; };
   const InterCalibConfig* getInterCalibConfig() const { return mInterCalibConfig; };
 
@@ -82,9 +78,11 @@ class InterCalib
   static std::mutex mMtx; /// mutex for critical section
   double mPar[NH][NPAR] = {0};
   double mErr[NH][NPAR] = {0};
-  const ZDCEnergyParam* mEnergyParam = nullptr;        /// Energy calibration object
-  ZDCTowerParam mTowerParam;                           /// Tower calibration object
   const InterCalibConfig* mInterCalibConfig = nullptr; /// Configuration of intercalibration
+  const ZDCEnergyParam* mEnergyParam = nullptr;        /// Energy calibration object
+  const ZDCTowerParam* mTowerParam = nullptr;          /// Tower calibration object
+  ZDCTowerParam mTowerParamUpd;                        /// Updated tower calibration object
+  void assign(int ih, bool ismod);                     /// Assign updated calibration object
 };
 } // namespace zdc
 } // namespace o2
