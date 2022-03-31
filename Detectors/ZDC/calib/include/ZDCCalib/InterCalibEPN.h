@@ -16,9 +16,9 @@
 #include <THnBase.h>
 #include <THnSparse.h>
 #include <TMinuit.h>
+#include "ZDCBase/Constants.h"
 #include "CommonDataFormat/FlatHisto1D.h"
 #include "CommonDataFormat/FlatHisto2D.h"
-#include "ZDCBase/Constants.h"
 #include "DataFormatsZDC/RecEvent.h"
 #include "DataFormatsZDC/InterCalibData.h"
 #include "ZDCReconstruction/ZDCEnergyParam.h"
@@ -59,6 +59,7 @@ class InterCalibEPN
 
  private:
   bool mInitDone = false;
+  int32_t mVerbosity = DbgMinimal;
   const InterCalibConfig* mInterCalibConfig = nullptr; /// Configuration of intercalibration
 };
 } // namespace zdc

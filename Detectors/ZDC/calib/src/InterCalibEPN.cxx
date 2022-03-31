@@ -107,7 +107,9 @@ int InterCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
 int InterCalibEPN::endOfRun()
 {
   for (int ih = 0; ih < NH; ih++) {
-    LOGF(info, "%s %g events and cuts (%g:%g)", InterCalibData::DN[ih], mData.mSum[ih][5][5], mInterCalibConfig->cutLow[ih], mInterCalibConfig->cutHigh[ih]);
+    if (mVerbosity > DbgZero) {
+      LOGF(info, "%s %g events and cuts (%g:%g)", InterCalibData::DN[ih], mData.mSum[ih][5][5], mInterCalibConfig->cutLow[ih], mInterCalibConfig->cutHigh[ih]);
+    }
   }
   write();
   return 0;
@@ -209,8 +211,8 @@ void InterCalibEPN::cumulate(int ih, double tc, double t1, double t2, double t3,
   val[2] = t2;
   val[3] = t3;
   val[4] = t4;
-  for (int32_t i = 0; i < 6; i++) {
-    for (int32_t j = i; j < 6; j++) {
+  for (int32_t i = 0; i < NPAR; i++) {
+    for (int32_t j = i; j < NPAR; j++) {
       mData.mSum[ih][i][j] += val[i] * val[j] * w;
     }
   }

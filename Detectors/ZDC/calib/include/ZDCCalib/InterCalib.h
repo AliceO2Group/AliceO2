@@ -74,10 +74,12 @@ class InterCalib
   static constexpr const char* mCUncT[NH] = {"ZNA;TC;SUM", "ZPA;TC;SUM", "ZNC;TC;SUM", "ZPC;TC;SUM", "ZEM;ZEM1;ZEM2"};
 
  private:
-  std::array<std::unique_ptr<TH1>, 2 * NH> mHUnc{};
-  std::array<std::unique_ptr<TH2>, NH> mCUnc{};
+  std::array<o2::dataformats::FlatHisto1D<float>*, 2 * NH> mHUnc{};
+  std::array<o2::dataformats::FlatHisto2D<float>*, NH> mCUnc{};
   std::array<std::unique_ptr<TH1>, NH> mHCorr{};
   std::array<std::unique_ptr<TH2>, NH> mCCorr{};
+  //std::array<o2::dataformats::FlatHisto1D<float>*, NH> mHCorr{};
+  //std::array<o2::dataformats::FlatHisto2D<float>*, NH> mCCorr{};
   std::array<std::unique_ptr<TMinuit>, NH> mMn{};
   InterCalibData mData;
   bool mInitDone = false;
