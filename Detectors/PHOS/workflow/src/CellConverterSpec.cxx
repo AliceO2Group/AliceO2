@@ -69,11 +69,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
 
   // get BadMap from CCDB, once
   if (!mHasCalib) {
-    std::decay_t<decltype(ctx.inputs().get<o2::phos::BadChannelsMap*>("badmap"))> badMapPtr{};
-    badMapPtr = ctx.inputs().get<o2::phos::BadChannelsMap*>("badmap");
-    if (badMapPtr.get()) {
-      LOG(fatal) << "[PHOSCellConverter - run] can not get Bad Map";
-    }
+    auto badMapPtr = ctx.inputs().get<o2::phos::BadChannelsMap*>("badmap");
     mBadMap = std::make_unique<BadChannelsMap>(*(badMapPtr.get()));
     mHasCalib = true;
   }
