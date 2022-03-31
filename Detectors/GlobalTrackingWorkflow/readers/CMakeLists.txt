@@ -18,5 +18,5 @@ o2_add_library(GlobalTrackingWorkflowReaders
                        src/MatchedMFTMCHReaderSpec.cxx
                        src/MatchedMCHMIDReaderSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
-                                     O2::GlobalTracking
+                                     O2::DataFormatsITSMFT
                                      O2::SimulationDataFormat)
