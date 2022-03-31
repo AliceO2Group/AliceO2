@@ -177,7 +177,6 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       processAttributes->disableCalibUpdates = confParam.disableCalibUpdates;
       config.configInterface.dumpEvents = confParam.dump;
       if (confParam.display) {
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
         processAttributes->displayFrontend.reset(GPUDisplayFrontendInterface::getFrontend("glfw"));
         config.configProcessing.eventDisplay = processAttributes->displayFrontend.get();
         if (config.configProcessing.eventDisplay != nullptr) {
@@ -185,9 +184,6 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         } else {
           throw std::runtime_error("GPU Event Display frontend could not be created!");
         }
-#else
-        throw std::runtime_error("GPU Event Display not enabled at build time!");
-#endif
       }
 
       if (config.configGRP.continuousMaxTimeBin == -1) {
