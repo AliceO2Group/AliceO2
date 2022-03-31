@@ -14,7 +14,7 @@
 
 #include "GPUReconstructionTimeframe.h"
 #include "GPUReconstruction.h"
-#include "GPUDisplay.h"
+#include "display/GPUDisplayInterface.h"
 #include "GPUQA.h"
 #include "AliHLTTPCClusterMCData.h"
 #include "GPUTPCMCInfo.h"

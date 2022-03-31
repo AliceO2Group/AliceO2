@@ -34,7 +34,7 @@
 #include "GPUTRDTracker.h"
 #include "AliHLTTPCRawCluster.h"
 #include "GPUTRDTrackletLabels.h"
-#include "GPUDisplay.h"
+#include "display/GPUDisplayInterface.h"
 #include "GPUQA.h"
 #include "GPULogging.h"
 #include "GPUMemorySizeScalers.h"
@@ -363,7 +363,10 @@ int GPUChainTracking::Init()
     mQA.reset(new GPUQA(this));
   }
   if (GetProcessingSettings().eventDisplay) {
-    mEventDisplay.reset(new GPUDisplay(GetProcessingSettings().eventDisplay, this, mQA.get(), GetProcessingSettings().eventDisplayRenderer));
+    mEventDisplay.reset(GPUDisplayInterface::getDisplay(GetProcessingSettings().eventDisplay, this, mQA.get(), GetProcessingSettings().eventDisplayRenderer));
+    if (mEventDisplay == nullptr) {
+      throw std::runtime_error("Error loading event display");
+    }
   }
 
   processors()->errorCodes.setMemory(mInputsHost->mErrorCodes);
@@ -736,24 +739,24 @@ int GPUChainTracking::RunChainFinalize()
       if (GetProcessingSettings().eventDisplay->EnableSendKey()) {
         iKey = kbhit() ? getch() : 0;
         if (iKey == 'q') {
-          GetProcessingSettings().eventDisplay->mDisplayControl = 2;
+          GetProcessingSettings().eventDisplay->setDisplayControl(2);
         } else if (iKey == 'n') {
           break;
         } else if (iKey) {
-          while (GetProcessingSettings().eventDisplay->mSendKey != 0) {
+          while (GetProcessingSettings().eventDisplay->getSendKey() != 0) {
             Sleep(1);
           }
-          GetProcessingSettings().eventDisplay->mSendKey = iKey;
+          GetProcessingSettings().eventDisplay->setSendKey(iKey);
         }
       }
-    } while (GetProcessingSettings().eventDisplay->mDisplayControl == 0);
-    if (GetProcessingSettings().eventDisplay->mDisplayControl == 2) {
+    } while (GetProcessingSettings().eventDisplay->getDisplayControl() == 0);
+    if (GetProcessingSettings().eventDisplay->getDisplayControl() == 2) {
       mDisplayRunning = false;
       GetProcessingSettings().eventDisplay->DisplayExit();
       ProcessingSettings().eventDisplay = nullptr;
       return (2);
     }
-    GetProcessingSettings().eventDisplay->mDisplayControl = 0;
+    GetProcessingSettings().eventDisplay->setDisplayControl(0);
     GPUInfo("Loading next event");
 
     mEventDisplay->WaitForNextEvent();

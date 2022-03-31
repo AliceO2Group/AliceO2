@@ -18,43 +18,7 @@
 #include "GPUSettings.h"
 #include "GPUDisplayFrontend.h"
 #include "GPUDisplayBackend.h"
-
-#ifndef GPUCA_BUILD_EVENT_DISPLAY
-
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
-{
-class GPUDisplay
-{
- public:
-  GPUDisplay(void* frontend, void* chain, void* qa, const char* backend = "", const void* param = nullptr, const void* calib = nullptr, const void* config = nullptr) {}
-  ~GPUDisplay() = default;
-  GPUDisplay(const GPUDisplay&) = delete;
-
-  int StartDisplay() { return 1; }
-  void ShowNextEvent(const GPUTrackingInOutPointers* ptrs = nullptr) {}
-  void WaitForNextEvent() {}
-  void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster) {}
-
-  void HandleKey(unsigned char key) {}
-  int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f) { return 1; }
-  void HandleSendKey(int key) {}
-  int InitDisplay(bool initFailure = false) { return 1; }
-  void ExitDisplay() {}
-  void ResizeScene(int width, int height, bool init = false) {}
-
-  GPUDisplayBackend* backend() const { return nullptr; }
-  int& drawTextFontSize()
-  {
-    static int foo = 0;
-    return foo;
-  }
-};
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
-
-#else
+#include "GPUDisplayInterface.h"
 
 #include "GPUChainTracking.h"
 #include "../utils/vecpod.h"
@@ -73,17 +37,17 @@ class GPUTPCTracker;
 struct GPUParam;
 class GPUQA;
 
-class GPUDisplay
+class GPUDisplay : public GPUDisplayInterface
 {
  public:
   GPUDisplay(GPUDisplayFrontend* frontend, GPUChainTracking* chain, GPUQA* qa, const char* backend = "opengl", const GPUParam* param = nullptr, const GPUCalibObjectsConst* calib = nullptr, const GPUSettingsDisplay* config = nullptr);
-  ~GPUDisplay() = default;
   GPUDisplay(const GPUDisplay&) = delete;
+  ~GPUDisplay() override = default;
 
-  int StartDisplay();
-  void ShowNextEvent(const GPUTrackingInOutPointers* ptrs = nullptr);
-  void WaitForNextEvent();
-  void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster);
+  int StartDisplay() override;
+  void ShowNextEvent(const GPUTrackingInOutPointers* ptrs = nullptr) override;
+  void WaitForNextEvent() override;
+  void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster) override;
 
   void HandleKey(unsigned char key);
   int DrawGLScene();
@@ -352,5 +316,4 @@ class GPUDisplay
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#endif
 #endif

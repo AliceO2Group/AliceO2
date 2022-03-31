@@ -32,6 +32,7 @@ struct GLfb {
 };
 class GPUDisplayBackendOpenGL : public GPUDisplayBackend
 {
+  ~GPUDisplayBackendOpenGL() override = default;
   int ExtInit() override;
   bool CoreProfile() override;
   unsigned int DepthBits() override;

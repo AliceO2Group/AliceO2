@@ -18,7 +18,6 @@
 
 #include "GPUDisplay.h"
 
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
 #include "GPUTPCDef.h"
 
 #include <vector>
@@ -92,7 +91,7 @@ static const GPUSettingsDisplay& GPUDisplay_GetConfig(GPUChainTracking* chain)
   }
 }
 
-GPUDisplay::GPUDisplay(GPUDisplayFrontend* frontend, GPUChainTracking* chain, GPUQA* qa, const char* backend, const GPUParam* param, const GPUCalibObjectsConst* calib, const GPUSettingsDisplay* config) : mFrontend(frontend), mChain(chain), mConfig(config ? *config : GPUDisplay_GetConfig(chain)), mQA(qa)
+GPUDisplay::GPUDisplay(GPUDisplayFrontend* frontend, GPUChainTracking* chain, GPUQA* qa, const char* backend, const GPUParam* param, const GPUCalibObjectsConst* calib, const GPUSettingsDisplay* config) : GPUDisplayInterface(), mFrontend(frontend), mChain(chain), mConfig(config ? *config : GPUDisplay_GetConfig(chain)), mQA(qa)
 {
   mBackend.reset(GPUDisplayBackend::getBackend(backend));
   if (!mBackend) {
@@ -2333,5 +2332,3 @@ void GPUDisplay::OpenGLPrint(const char* s, float x, float y, float r, float g, 
     mFrontend->OpenGLPrint(s, x, y, r, g, b, a, fromBotton);
   }
 }
-
-#endif

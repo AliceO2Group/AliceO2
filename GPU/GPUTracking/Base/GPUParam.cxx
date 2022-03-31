@@ -245,7 +245,7 @@ std::string GPUParamRTC::generateRTCCode(const GPUParam& param, bool useConstexp
   return "#ifndef GPUCA_GPUCODE_DEVICE\n"
          "#include <string>\n"
          "#endif\n"
-         "namespace o2::gpu { class GPUDisplayFrontend; }\n" +
+         "namespace o2::gpu { class GPUDisplayFrontendInterface; }\n" +
          qConfigPrintRtc(std::make_tuple(&param.rec.tpc, &param.rec.trd, &param.rec, &param.par), useConstexpr);
 }
 

@@ -176,11 +176,11 @@ int GPUDisplayFrontendWayland::FrontendMain()
 
   mWayland = wl_display_connect(nullptr);
   if (mWayland == nullptr) {
-    throw("Could not connect to wayland display");
+    throw std::runtime_error("Could not connect to wayland display");
   }
   mRegistry = wl_display_get_registry(mWayland);
   if (mRegistry == nullptr) {
-    throw("Could not create wayland registry");
+    throw std::runtime_error("Could not create wayland registry");
   }
 
   mFd = memfd_create("/tmp/ca-gpu-display-wayland-memfile", 0);

@@ -38,21 +38,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
     find_package(O2GPU)
   endif()
 else()
-  if(OPENGL_FOUND
-     AND GLFW_FOUND
-     AND ((ALIGPU_BUILD_TYPE STREQUAL "O2" AND TARGET AliceO2::DebugGUI) OR GLEW_FOUND)
-     AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  if((ALIGPU_BUILD_TYPE STREQUAL "Standalone" AND BUILD_EVENT_DISPLAY) OR (ALIGPU_BUILD_TYPE STREQUAL "O2" AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND TARGET AliceO2::DebugGUI AND OPENGL_FOUND AND GLFW_FOUND))
     set(GPUCA_EVENT_DISPLAY ON)
-    if(Vulkan_FOUND AND NOT Vulkan_GLSLC_EXECUTABLE STREQUAL "Vulkan_GLSLC_EXECUTABLE-NOTFOUND")
-      include(Standalone/cmake/vulkan_display.cmake)
-      set(GPUCA_EVENT_DISPLAY_VULKAN ON)
-      if(Wayland_FOUND)
-        set(GPUCA_EVENT_DISPLAY_WAYLAND ON)
-      endif()
-    endif()
-    if(Freetype_FOUND)
-      set(GPUCA_EVENT_DISPLAY_FREETYPE ON)
-    endif()
   endif()
   if(ROOT_FOUND)
     set(GPUCA_QA ON)
@@ -188,9 +175,7 @@ set(HDRS_INSTALL
 
 # Sources for O2 and for Standalone if requested in config file
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR ALIGPU_BUILD_TYPE STREQUAL "Standalone")
-  set(SRCS_NO_CINT ${SRCS_NO_CINT}
-                   display/GPUDisplayFrontend.cxx
-                   display/GPUDisplayBackend.cxx)
+  set(SRCS_NO_CINT ${SRCS_NO_CINT} display/GPUDisplayInterface.cxx)
 endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
     set(SRCS_NO_CINT
@@ -264,54 +249,7 @@ endif()
 
 # Optional sources depending on optional dependencies
 if(GPUCA_EVENT_DISPLAY)
-  set(SRCS_NO_CINT ${SRCS_NO_CINT} utils/qsem.cxx
-                   display/GPUDisplay.cxx
-                   display/GPUDisplayBackendOpenGL.cxx
-                   display/GPUDisplayFrontendGlfw.cxx)
-  if(GPUCA_EVENT_DISPLAY_VULKAN)
-    set(SRCS_NO_CINT ${SRCS_NO_CINT} display/GPUDisplayBackendVulkan.cxx)
-    if(GPUCA_EVENT_DISPLAY_WAYLAND)
-      add_custom_command(
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-client-protocol.h
-        COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/
-        COMMAND ${Wayland_SCANNER} client-header ${Wayland_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-client-protocol.h
-        MAIN_DEPENDENCY ${Wayland_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml)
-      add_custom_command(
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-protocol.c
-        COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/
-        COMMAND ${Wayland_SCANNER} private-code ${Wayland_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-protocol.c
-        MAIN_DEPENDENCY ${Wayland_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml)
-      add_custom_command(
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-client-protocol.h
-        COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/
-        COMMAND ${Wayland_SCANNER} client-header ${Wayland_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-client-protocol.h
-      MAIN_DEPENDENCY ${Wayland_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml)
-      add_custom_command(
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-protocol.c
-        COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/
-        COMMAND ${Wayland_SCANNER} private-code ${Wayland_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-protocol.c
-      MAIN_DEPENDENCY ${Wayland_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml)
-    
-      set_property(SOURCE display/GPUDisplayFrontendWayland.cxx ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-protocol.c APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-client-protocol.h ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-client-protocol.h)
-      set_property(SOURCE display/GPUDisplayFrontendWayland.cxx APPEND PROPERTY INCLUDE_DIRECTORIES ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/)
-      
-      set(SRCS_NO_CINT ${SRCS_NO_CINT} display/GPUDisplayFrontendWayland.cxx ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-protocol.c ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-protocol.c)
-    endif()
-  endif()
-  set(SRCS_NO_H ${SRCS_NO_H} display/GPUDisplayQuaternion.cxx
-                display/GPUDisplayInterpolation.cxx
-                display/GPUDisplayKeys.cxx
-                display/GPUDisplayROOT.cxx)
-  set(HDRS_INSTALL ${HDRS_INSTALL}
-                   display/GPUDisplayShaders.h)
-  if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
-    install(DIRECTORY display/filterMacros/ DESTINATION displayTrackFilter FILES_MATCHING PATTERN "*.C")
-    get_property(GPU_DISPLAY_INCLUDE_PATH DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
-    configure_file(display/filterMacros/setinclude.sh.in setinclude.sh @ONLY)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/setinclude.sh PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE DESTINATION displayTrackFilter)
-  endif()
-else()
-  set(HDRS_INSTALL ${HDRS_INSTALL} display/GPUDisplay.h)
+  add_subdirectory(display)
 endif()
 
 if(GPUCA_QA)
@@ -326,11 +264,6 @@ string(REPLACE ".cxx" ".h" HDRS_TMP "${SRCS_NO_CINT}")
 set(HDRS_INSTALL ${HDRS_INSTALL} ${HDRS_TMP})
 unset(HDRS_TMP)
 
-# the internal copy of ImgGUI has been removed in commit 64a93f3f and there is
-# only the optional external package
-if (TARGET AliceO2::DebugGUI)
-  set(DEBUGGUI_TARGET AliceO2::DebugGUI)
-endif()
 # Main CMake part for O2
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(GPUDataTypeHeaders
@@ -368,7 +301,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                        O2::ITStracking
                                        O2::TPCFastTransformation
                                        O2::DetectorsRaw
-                                       ${DEBUGGUI_TARGET}
                                        O2::Steer
                  PUBLIC_INCLUDE_DIRECTORIES .
                                             Definitions
@@ -380,7 +312,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                             ITS
                                             TRDTracking
                                             qa
-                                            display
                                             Global
                                             HLTHeaders
                                             Interface
@@ -389,7 +320,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                             Debug
                                             DataCompression
                                             TPCClusterFinder
-                 TARGETVARNAME targetName
                  SOURCES ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H})
 
   target_include_directories(
@@ -424,7 +354,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   set(HDRS_CINT_ALIROOT ${HDRS_CINT_ALIROOT}
                         DataTypes/GPUO2DataTypes.h)
   add_definitions(-DGPUCA_ALIROOT_LIB)
-  include_directories(display qa)
+  include_directories(qa)
   include_directories(SYSTEM ${ROOT_INCLUDE_DIR})
   include_directories(${CMAKE_SOURCE_DIR}/HLT/BASE
                       ${CMAKE_SOURCE_DIR}/HLT/BASE/util
@@ -517,57 +447,10 @@ endif()
 
 # Main CMake part for Standalone
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
-  if(GPUCA_EVENT_DISPLAY)
-    set(SRCS ${SRCS}
-             display/GPUDisplayFrontendX11.cxx
-             display/GPUDisplayFrontendGlut.cxx)
-  endif()
-
   add_library(${MODULE} SHARED ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H} ${SRCS_DATATYPES})
   set(targetName ${MODULE})
   add_library(O2::${MODULE} ALIAS ${MODULE})
-
-if(GPUCA_EVENT_DISPLAY)
-  target_link_libraries(${targetName} PUBLIC X11::X11 glut)
-endif()
-endif()
-
-if(GPUCA_EVENT_DISPLAY)
-  message(STATUS "Building GPU Event Display (Vulkan ${GPUCA_EVENT_DISPLAY_VULKAN}, Wayland ${GPUCA_EVENT_DISPLAY_WAYLAND}, Freetype ${GPUCA_EVENT_DISPLAY_FREETYPE}, Fontconfig ${Fontconfig_FOUND})")
-  target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY)
-  target_link_libraries(${targetName} PUBLIC ${GLFW_LIBRARIES} OpenGL::GL)
-  if (OPENGL_GLU_FOUND)
-    target_link_libraries(${targetName} PUBLIC OpenGL::GLU)
-  endif()
-  if(GPUCA_EVENT_DISPLAY_VULKAN)
-    target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_VULKAN)
-    target_link_libraries(${targetName} PUBLIC Vulkan::Vulkan)
-
-    add_glslc_shader(${targetName} display/shaders/fragment.frag)
-    add_glslc_shader(${targetName} display/shaders/vertex.vert)
-    add_glslc_shader(${targetName} display/shaders/fragmentText.frag)
-    add_glslc_shader(${targetName} display/shaders/vertexTexture.vert)
-    add_glslc_shader(${targetName} display/shaders/fragmentTexture.frag)
-    add_glslc_shader(${targetName} display/shaders/fragmentUniform.frag)
-    add_glslc_shader(${targetName} display/shaders/vertexPoint.vert)
-    if(GPUCA_EVENT_DISPLAY_WAYLAND)
-      target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_WAYLAND)
-      target_link_libraries(${targetName} PUBLIC Wayland::wayland-client)
-    endif()
-  endif()
-  if(GPUCA_EVENT_DISPLAY_FREETYPE)
-    target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_FREETYPE)
-    target_link_libraries(${targetName} PUBLIC Freetype::Freetype)
-    if(Fontconfig_FOUND)
-      target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_FONTCONFIG)
-      target_link_libraries(${targetName} PUBLIC Fontconfig::Fontconfig)
-    endif()
-  endif()
-  if(ALIGPU_BUILD_TYPE STREQUAL "O2")
-    target_compile_definitions(${targetName} PRIVATE GPUCA_DISPLAY_GL3W GPUCA_DISPLAY_OPENGL_CORE)
-  else()
-    target_link_libraries(${targetName} PUBLIC ${GLEW_LIBRARIES})
-  endif()
+  install(TARGETS ${MODULE})
 endif()
 
 # Add compile definitions and libraries depending on available optional dependencies
@@ -620,7 +503,7 @@ if(CUDA_ENABLED OR OPENCL1_ENABLED OR OPENCL2_ENABLED OR HIP_ENABLED)
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR ALIGPU_BUILD_TYPE STREQUAL "Standalone")
-  if(NOT ${CMAKE_SYSTEM} MATCHES Darwin AND (NOT GPUCA_EVENT_DISPLAY OR (GLUT_FOUND AND GLEW_FOUND AND X11_FOUND)))
+  if(NOT ${CMAKE_SYSTEM} MATCHES Darwin)
     add_subdirectory(Benchmark)
   endif()
 endif()

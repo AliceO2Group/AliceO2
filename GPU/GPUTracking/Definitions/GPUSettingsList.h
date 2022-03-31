@@ -176,7 +176,7 @@ AddOption(noGPUMemoryRegistration, bool, false, "", 0, "Do not register input / 
 AddOption(calibObjectsExtraMemorySize, unsigned long, 10ul * 1024 * 1024, "", 0, "Extra spare memory added for calibration object buffer, to allow fow updates with larger objects")
 AddOption(useInternalO2Propagator, bool, false, "", 0, "Uses an internal (in GPUChainTracking) version of o2::Propagator, which internal b-field, matlut, etc.")
 AddOption(internalO2PropagatorGPUField, bool, true, "", 0, "Makes the internal O2 propagator use the fast GPU polynomial b field approximation")
-AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayFrontend*, nullptr)
+AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayFrontendInterface*, nullptr)
 AddVariable(eventDisplayRenderer, const char*, "opengl")
 AddSubConfig(GPUSettingsProcessingRTC, rtc)
 AddHelp("help", 'h')

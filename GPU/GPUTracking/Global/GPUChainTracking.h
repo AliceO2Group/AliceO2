@@ -55,7 +55,7 @@ namespace gpu
 {
 //class GPUTRDTrackerGPU;
 class GPUTPCGPUTracker;
-class GPUDisplay;
+class GPUDisplayInterface;
 class GPUQA;
 class GPUTPCClusterStatistics;
 class GPUTRDGeometry;
@@ -149,7 +149,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   const GPUTPCTracker* GetTPCSliceTrackers() const { return processors()->tpcTrackers; }
   const GPUTPCGMMerger& GetTPCMerger() const { return processors()->tpcMerger; }
   GPUTPCGMMerger& GetTPCMerger() { return processors()->tpcMerger; }
-  GPUDisplay* GetEventDisplay() { return mEventDisplay.get(); }
+  GPUDisplayInterface* GetEventDisplay() { return mEventDisplay.get(); }
   const GPUQA* GetQA() const { return mQA.get(); }
   GPUQA* GetQA() { return mQA.get(); }
   int ForceInitQA();
@@ -252,7 +252,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   // Display / QA
   bool mDisplayRunning = false;
-  std::unique_ptr<GPUDisplay> mEventDisplay;
+  std::unique_ptr<GPUDisplayInterface> mEventDisplay;
   std::unique_ptr<GPUQA> mQA;
   std::unique_ptr<GPUTPCClusterStatistics> mCompressionStatistics;
 
