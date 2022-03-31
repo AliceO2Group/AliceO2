@@ -41,9 +41,9 @@ class InterCalibEPNSpec : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
-  int mVerbosity = 0;        // Verbosity level
-  bool mInitialized = false; // Connect once to CCDB during initialization
-  InterCalibEPN mInterCalibEPN;    // Intercalibration object
+  int mVerbosity = 0;           // Verbosity level
+  bool mInitialized = false;    // Connect once to CCDB during initialization
+  InterCalibEPN mInterCalibEPN; // Intercalibration object
   TStopwatch mTimer;
 };
 

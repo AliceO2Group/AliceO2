@@ -27,7 +27,8 @@ namespace zdc
 struct ZDCTowerParam {
   float tower_calib[NChannels] = {0}; // Tower calibration coefficients
   std::array<bool, NChannels> modified{};
-  ZDCTowerParam(){
+  ZDCTowerParam()
+  {
     modified.fill(false);
   }
   void clearFlags();
