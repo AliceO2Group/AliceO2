@@ -249,7 +249,6 @@ struct GPUTrackingInOutDigits {
 
 struct GPUTrackingInOutPointers {
   GPUTrackingInOutPointers() = default;
-  GPUTrackingInOutPointers(const GPUTrackingInOutPointers&) = default;
 
   // TPC
   static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;

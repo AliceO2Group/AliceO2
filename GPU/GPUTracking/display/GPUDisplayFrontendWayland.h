@@ -80,7 +80,7 @@ class GPUDisplayFrontendWayland : public GPUDisplayFrontend
   xkb_state* mXKBstate = nullptr;
 
   zxdg_decoration_manager_v1* mDecManager = nullptr;
-  zxdg_toplevel_decoration_v1* mXdgDecoration = nullptr;
+  // zxdg_toplevel_decoration_v1* mXdgDecoration = nullptr;
 
   int mWidthRequested = 0;
   int mHeightRequested = 0;

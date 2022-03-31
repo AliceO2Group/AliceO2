@@ -657,7 +657,7 @@ void GPUDisplayBackendOpenGL::addFontSymbol(int symbol, int sizex, int sizey, in
     }
     data = tmp.data();
   }
-  mFontSymbols.emplace_back(FontSymbolOpenGL{sizex, sizey, offsetx, offsety, advance, texId});
+  mFontSymbols.emplace_back(FontSymbolOpenGL{{{sizex, sizey}, {offsetx, offsety}, advance}, texId});
   if (sizex == 0 || sizey == 0) {
     return;
   }

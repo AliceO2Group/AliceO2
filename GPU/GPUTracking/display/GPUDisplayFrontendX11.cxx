@@ -181,7 +181,7 @@ int GPUDisplayFrontendX11::FrontendMain()
   XVisualInfo* visualInfo = nullptr;
   XEvent event;
   Colormap colorMap;
-  GLXContext glxContext = 0;
+  GLXContext glxContext = nullptr;
   int errorBase;
   int eventBase;
 

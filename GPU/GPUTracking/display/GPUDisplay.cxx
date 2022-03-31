@@ -1576,10 +1576,10 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
 
     mResetScene = 0;
   } else {
-    float moveZ = scalefactor * ((float)mMouseWheelTmp / 150 + (float)(mFrontend->mKeys['W'] - mFrontend->mKeys['S']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2 * mFPSScale);
+    float moveZ = scalefactor * ((float)mMouseWheelTmp / 150 + (float)(mFrontend->mKeys[(unsigned char)'W'] - mFrontend->mKeys[(unsigned char)'S']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2 * mFPSScale);
     float moveY = scalefactor * ((float)(mFrontend->mKeys[mFrontend->KEY_PAGEDOWN] - mFrontend->mKeys[mFrontend->KEY_PAGEUP]) * 0.2 * mFPSScale);
-    float moveX = scalefactor * ((float)(mFrontend->mKeys['A'] - mFrontend->mKeys['D']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2 * mFPSScale);
-    float rotRoll = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys['E'] - mFrontend->mKeys['F']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]);
+    float moveX = scalefactor * ((float)(mFrontend->mKeys[(unsigned char)'A'] - mFrontend->mKeys[(unsigned char)'D']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2 * mFPSScale);
+    float rotRoll = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[(unsigned char)'E'] - mFrontend->mKeys[(unsigned char)'F']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]);
     float rotYaw = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[mFrontend->KEY_RIGHT] - mFrontend->mKeys[mFrontend->KEY_LEFT]);
     float rotPitch = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[mFrontend->KEY_DOWN] - mFrontend->mKeys[mFrontend->KEY_UP]);
 
@@ -1595,7 +1595,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
       rotPitch += rotatescalefactor * mouseScale * ((float)mFrontend->mMouseMvY - (float)mFrontend->mMouseDnY);
     }
 
-    if (mFrontend->mKeys['<'] && !mFrontend->mKeysShift['<']) {
+    if (mFrontend->mKeys[(unsigned char)'<'] && !mFrontend->mKeysShift[(unsigned char)'<']) {
       mAnimationDelay += moveX;
       if (mAnimationDelay < 0.05) {
         mAnimationDelay = 0.05;
@@ -1685,7 +1685,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
 
     // Graphichs Options
     float minSize = 0.4 / (mCfgR.drawQualityDownsampleFSAA > 1 ? mCfgR.drawQualityDownsampleFSAA : 1);
-    int deltaLine = mFrontend->mKeys['+'] * mFrontend->mKeysShift['+'] - mFrontend->mKeys['-'] * mFrontend->mKeysShift['-'];
+    int deltaLine = mFrontend->mKeys[(unsigned char)'+'] * mFrontend->mKeysShift[(unsigned char)'+'] - mFrontend->mKeys[(unsigned char)'-'] * mFrontend->mKeysShift[(unsigned char)'-'];
     mCfgL.lineWidth += (float)deltaLine * mFPSScale * 0.02 * mCfgL.lineWidth;
     if (mCfgL.lineWidth < minSize) {
       mCfgL.lineWidth = minSize;
@@ -1695,7 +1695,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
       mUpdateDrawCommands = 1;
     }
     minSize *= 2;
-    int deltaPoint = mFrontend->mKeys['+'] * (!mFrontend->mKeysShift['+']) - mFrontend->mKeys['-'] * (!mFrontend->mKeysShift['-']);
+    int deltaPoint = mFrontend->mKeys[(unsigned char)'+'] * (!mFrontend->mKeysShift[(unsigned char)'+']) - mFrontend->mKeys[(unsigned char)'-'] * (!mFrontend->mKeysShift[(unsigned char)'-']);
     mCfgL.pointSize += (float)deltaPoint * mFPSScale * 0.02 * mCfgL.pointSize;
     if (mCfgL.pointSize < minSize) {
       mCfgL.pointSize = minSize;

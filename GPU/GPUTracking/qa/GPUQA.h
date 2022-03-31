@@ -84,7 +84,7 @@ struct AliHLTTPCClusterMCLabel;
 namespace GPUCA_NAMESPACE::gpu
 {
 class GPUChainTracking;
-class GPUParam;
+struct GPUParam;
 struct GPUTPCMCInfo;
 struct GPUQAGarbageCollection;
 
