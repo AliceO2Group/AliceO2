@@ -16,6 +16,7 @@
 #define GPUDISPLAYFRONTEND_H
 
 #include "GPUCommonDef.h"
+#include "GPUDisplayInterface.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -25,30 +26,37 @@ class GPUReconstruction;
 class GPUDisplay;
 class GPUDisplayBackend;
 
-class GPUDisplayFrontend
+class GPUDisplayFrontend : public GPUDisplayFrontendInterface
 {
   friend class GPUDisplay;
 
  public:
   GPUDisplayFrontend() = default;
-  virtual ~GPUDisplayFrontend() = default;
+  ~GPUDisplayFrontend() override = default;
 
   // Compile time minimum version defined in GPUDisplay.h, keep in sync!
   static constexpr int GL_MIN_VERSION_MAJOR = 4;
   static constexpr int GL_MIN_VERSION_MINOR = 5;
 
   virtual int StartDisplay() = 0;                                                                                            // Start the display. This function returns, and should spawn a thread that runs the display, and calls InitDisplay
-  virtual void DisplayExit() = 0;                                                                                            // Stop the display. Display thread should call ExitDisplay and the function returns after the thread has terminated
+  void DisplayExit() override = 0;                                                                                           // Stop the display. Display thread should call ExitDisplay and the function returns after the thread has terminated
   virtual void SwitchFullscreen(bool set) = 0;                                                                               // Toggle full-screen mode
   virtual void ToggleMaximized(bool set) = 0;                                                                                // Maximize window
   virtual void SetVSync(bool enable) = 0;                                                                                    // Enable / disable vsync
-  virtual bool EnableSendKey();                                                                                              // Request external keys (e.g. from terminal)
+  bool EnableSendKey() override;                                                                                             // Request external keys (e.g. from terminal)
   virtual void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) = 0; // Print text on the display (needs the backend to build the font)
   GPUDisplayBackend* backend();
   static GPUDisplayFrontend* getFrontend(const char* type);
   virtual void getSize(int& width, int& height) { width = height = 0; }
   virtual int getVulkanSurface(void* instance, void* surface) { return 1; }
   virtual unsigned int getReqVulkanExtensions(const char**& p) { return 0; };
+
+  int getDisplayControl() const override { return mDisplayControl; }
+  int getSendKey() const override { return mSendKey; }
+  int getNeedUpdate() const override { return mNeedUpdate; }
+  void setDisplayControl(int v) override { mDisplayControl = v; }
+  void setSendKey(int v) override { mSendKey = v; }
+  void setNeedUpdate(int v) override { mNeedUpdate = v; }
 
   // volatile variables to exchange control informations between display and backend
   volatile int mDisplayControl = 0; // Control for next event (=1) or quit (=2)

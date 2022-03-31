@@ -31,7 +31,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
 {
  public:
   GPUDisplayBackendVulkan();
-  ~GPUDisplayBackendVulkan();
+  ~GPUDisplayBackendVulkan() override;
 
   unsigned int DepthBits() override;
 

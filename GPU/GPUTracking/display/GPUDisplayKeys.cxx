@@ -13,7 +13,6 @@
 /// \author David Rohr
 
 #include "GPUDisplay.h"
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -514,5 +513,3 @@ void GPUDisplay::PrintGLHelpText(float colorValue)
     OpenGLPrint(HelpText[i], 40.f, 35 + std::max(20, mDrawTextFontSize + 4) * (1 + i), colorValue, colorValue, colorValue, mInfoHelpTimer.GetCurrentElapsedTime() >= 5 ? (6 - mInfoHelpTimer.GetCurrentElapsedTime()) : 1, false);
   }
 }
-
-#endif

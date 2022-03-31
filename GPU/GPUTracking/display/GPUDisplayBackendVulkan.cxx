@@ -24,12 +24,12 @@ VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 using namespace GPUCA_NAMESPACE::gpu;
 
 #include "utils/qGetLdBinarySymbols.h"
-QGET_LD_BINARY_SYMBOLS(shaders_display_shaders_vertex_vert_spv);
-QGET_LD_BINARY_SYMBOLS(shaders_display_shaders_fragment_frag_spv);
-QGET_LD_BINARY_SYMBOLS(shaders_display_shaders_vertexPoint_vert_spv);
-QGET_LD_BINARY_SYMBOLS(shaders_display_shaders_vertexTexture_vert_spv);
-QGET_LD_BINARY_SYMBOLS(shaders_display_shaders_fragmentTexture_frag_spv);
-QGET_LD_BINARY_SYMBOLS(shaders_display_shaders_fragmentText_frag_spv);
+QGET_LD_BINARY_SYMBOLS(shaders_shaders_vertex_vert_spv);
+QGET_LD_BINARY_SYMBOLS(shaders_shaders_fragment_frag_spv);
+QGET_LD_BINARY_SYMBOLS(shaders_shaders_vertexPoint_vert_spv);
+QGET_LD_BINARY_SYMBOLS(shaders_shaders_vertexTexture_vert_spv);
+QGET_LD_BINARY_SYMBOLS(shaders_shaders_fragmentTexture_frag_spv);
+QGET_LD_BINARY_SYMBOLS(shaders_shaders_fragmentText_frag_spv);
 
 //#define CHKERR(cmd) {cmd;}
 #define CHKERR(cmd)                                                                                     \
@@ -1224,7 +1224,7 @@ void GPUDisplayBackendVulkan::clearPipeline()
 // ---------------------------- VULKAN SHADERS ----------------------------
 
 #define LOAD_SHADER(file, ext) \
-  mShaders[#file] = createShaderModule(_binary_shaders_display_shaders_##file##_##ext##_spv_start, _binary_shaders_display_shaders_##file##_##ext##_spv_len, mDevice)
+  mShaders[#file] = createShaderModule(_binary_shaders_shaders_##file##_##ext##_spv_start, _binary_shaders_shaders_##file##_##ext##_spv_len, mDevice)
 
 void GPUDisplayBackendVulkan::createShaders()
 {

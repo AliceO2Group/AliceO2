@@ -45,6 +45,8 @@
 #include "GPUMemorySizeScalers.h"
 
 #include "utils/strtag.h"
+#include "utils/qlibload.h"
+
 #define GPUCA_LOGGING_PRINTF
 #include "GPULogging.h"
 
@@ -1155,28 +1157,6 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const char* type, bool forc
   }
   return CreateInstance(t, forceType, master);
 }
-
-#ifdef _WIN32
-#define LIBRARY_EXTENSION ".dll"
-#define LIBRARY_TYPE HMODULE
-#define LIBRARY_LOAD(name) LoadLibraryEx(name, nullptr, nullptr)
-#define LIBRARY_CLOSE FreeLibrary
-#define LIBRARY_FUNCTION GetProcAddress
-#else
-#define LIBRARY_EXTENSION ".so"
-#define LIBRARY_TYPE void*
-#define LIBRARY_LOAD(name) dlopen(name, RTLD_NOW)
-#define LIBRARY_CLOSE dlclose
-#define LIBRARY_FUNCTION dlsym
-#endif
-
-#if defined(GPUCA_ALIROOT_LIB)
-#define LIBRARY_PREFIX "Ali"
-#elif defined(GPUCA_O2_LIB)
-#define LIBRARY_PREFIX "O2"
-#else
-#define LIBRARY_PREFIX ""
-#endif
 
 std::shared_ptr<GPUReconstruction::LibraryLoader> GPUReconstruction::sLibCUDA(new GPUReconstruction::LibraryLoader("lib" LIBRARY_PREFIX "GPUTracking"
                                                                                                                    "CUDA" LIBRARY_EXTENSION,

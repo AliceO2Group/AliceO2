@@ -34,8 +34,8 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
 #include "utils/qGetLdBinarySymbols.h"
-QGET_LD_BINARY_SYMBOLS(shaders_display_shaders_vertex_vert_spv);
-QGET_LD_BINARY_SYMBOLS(shaders_display_shaders_fragmentUniform_frag_spv);
+QGET_LD_BINARY_SYMBOLS(shaders_shaders_vertex_vert_spv);
+QGET_LD_BINARY_SYMBOLS(shaders_shaders_fragmentUniform_frag_spv);
 #endif
 
 // Runtime minimum version defined in GPUDisplayFrontend.h, keep in sync!
@@ -304,9 +304,9 @@ int GPUDisplayBackendOpenGL::InitBackendA()
   CHKERR(mFragmentShaderText = glCreateShader(GL_FRAGMENT_SHADER));
 #if defined(GL_VERSION_4_6) && GL_VERSION_4_6 == 1 && defined(GPUCA_BUILD_EVENT_DISPLAY_VULKAN)
   if (getenv("USE_SPIRV_SHADERS") && atoi(getenv("USE_SPIRV_SHADERS"))) {
-    CHKERR(glShaderBinary(1, &mVertexShader, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB, _binary_shaders_display_shaders_vertex_vert_spv_start, _binary_shaders_display_shaders_vertex_vert_spv_len));
+    CHKERR(glShaderBinary(1, &mVertexShader, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB, _binary_shaders_shaders_vertex_vert_spv_start, _binary_shaders_shaders_vertex_vert_spv_len));
     CHKERR(glSpecializeShader(mVertexShader, "main", 0, 0, 0));
-    CHKERR(glShaderBinary(1, &mFragmentShader, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB, _binary_shaders_display_shaders_fragmentUniform_frag_spv_start, _binary_shaders_display_shaders_fragmentUniform_frag_spv_len));
+    CHKERR(glShaderBinary(1, &mFragmentShader, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB, _binary_shaders_shaders_fragmentUniform_frag_spv_start, _binary_shaders_shaders_fragmentUniform_frag_spv_len));
     CHKERR(glSpecializeShader(mFragmentShader, "main", 0, 0, 0));
     GPUInfo("Using SPIR-V shaders");
     mSPIRVShaders = true;
