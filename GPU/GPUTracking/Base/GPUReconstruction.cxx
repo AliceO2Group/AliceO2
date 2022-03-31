@@ -1135,7 +1135,7 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const GPUSettingsDeviceBack
   if (retVal == nullptr) {
     if (cfg.forceDeviceType) {
       GPUError("Error: Could not load GPUReconstruction for specified device: %s (%u)", GPUDataTypes::DEVICE_TYPE_NAMES[type], type);
-    } else {
+    } else if (type != DeviceType::CPU) {
       GPUError("Could not load GPUReconstruction for device type %s (%u), falling back to CPU version", GPUDataTypes::DEVICE_TYPE_NAMES[type], type);
       GPUSettingsDeviceBackend cfg2 = cfg;
       cfg2.deviceType = DeviceType::CPU;
@@ -1146,6 +1146,24 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const GPUSettingsDeviceBack
   }
 
   return retVal;
+}
+
+bool GPUReconstruction::CheckInstanceAvailable(DeviceType type)
+{
+  if (type == DeviceType::CPU) {
+    return true;
+  } else if (type == DeviceType::CUDA) {
+    return sLibCUDA->LoadLibrary() == 0;
+  } else if (type == DeviceType::HIP) {
+    return sLibHIP->LoadLibrary() == 0;
+  } else if (type == DeviceType::OCL) {
+    return sLibOCL->LoadLibrary() == 0;
+  } else if (type == DeviceType::OCL2) {
+    return sLibOCL2->LoadLibrary() == 0;
+  } else {
+    GPUError("Error: Invalid device type %u", type);
+    return false;
+  }
 }
 
 GPUReconstruction* GPUReconstruction::CreateInstance(const char* type, bool forceType, GPUReconstruction* master)

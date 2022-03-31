@@ -247,16 +247,21 @@ int ReadConfiguration(int argc, char** argv)
     inputmemory.reset((char*)operator new(configStandalone.inputcontrolmem GPUCA_OPERATOR_NEW_ALIGNMENT));
   }
 
-#if !(defined(CUDA_ENABLED) || defined(OPENCL1_ENABLED) || defined(HIP_ENABLED))
-  if (configStandalone.runGPU) {
-    printf("GPU disables at build time!\n");
-    printf("Press a key to exit!\n");
-    getchar();
-    return 1;
-  }
-#endif
-
   configStandalone.proc.showOutputStat = true;
+
+  if (configStandalone.runGPU && configStandalone.gpuType == "AUTO") {
+    if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::CUDA)) {
+      configStandalone.gpuType = "CUDA";
+    } else if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::HIP)) {
+      configStandalone.gpuType = "HIP";
+    } else if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::OCL2)) {
+      configStandalone.gpuType = "OCL2";
+    } else if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::OCL)) {
+      configStandalone.gpuType = "OCL";
+    } else {
+      configStandalone.runGPU = false;
+    }
+  }
 
   if (configStandalone.printSettings) {
     qConfigPrint();

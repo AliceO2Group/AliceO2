@@ -340,23 +340,9 @@ EndConfig()
 
 // Settings for the standalone benchmark
 BeginConfig(GPUSettingsStandalone, configStandalone)
-#if defined(CUDA_ENABLED) || defined(OPENCL1_ENABLED) || defined(OPENCL2_ENABLED) || defined(HIP_ENABLED)
 AddOption(runGPU, bool, true, "", 'g', "Use GPU for processing", message("GPU processing: %s"))
-#else
-AddOption(runGPU, bool, false, "", 'g', "Use GPU for processing", message("GPU processing: %s"))
-#endif
 AddOptionSet(runGPU, bool, false, "", 'c', "Use CPU for processing", message("CPU enabled"))
-#if defined(CUDA_ENABLED)
-AddOption(gpuType, std::string, "CUDA", "", 0, "GPU type (CUDA / HIP / OCL / OCL2)")
-#elif defined(OPENCL2_ENABLED)
-AddOption(gpuType, std::string, "OCL2", "", 0, "GPU type (CUDA / HIP / OCL / OCL2)")
-#elif defined(OPENCL1_ENABLED)
-AddOption(gpuType, std::string, "OCL", "", 0, "GPU type (CUDA / HIP / OCL / OCL2)")
-#elif defined(HIP_ENABLED)
-AddOption(gpuType, std::string, "HIP", "", 0, "GPU type (CUDA / HIP / OCL / OCL2)")
-#else
-AddOption(gpuType, std::string, "", "", 0, "GPU type (CUDA / HIP / OCL / OCL2)")
-#endif
+AddOption(gpuType, std::string, "AUTO", "", 0, "GPU type (CUDA / HIP / OCL / OCL2)")
 AddOption(runGPUforce, bool, true, "", 0, "Force usage of the specified GPU device type, no CPU fallback")
 AddOption(noprompt, bool, true, "", 0, "Do prompt for keypress before exiting")
 AddOption(continueOnError, bool, false, "", 0, "Continue processing after an error")
