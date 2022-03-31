@@ -108,7 +108,7 @@ int TimeFrame::loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const
   for (unsigned int iL{0}; iL < mUnsortedClusters.size(); ++iL) {
     mROframesClusters[iL].push_back(mUnsortedClusters[iL].size());
     if (iL < 2) {
-      mTrackletsIndexROf[iL].push_back(mUnsortedClusters[1].size()); // Tracklets used in vertexer are always computed wrt clusters on the second layer
+      mTrackletsIndexROf[iL].push_back(mUnsortedClusters[1].size()); // Tracklets used in vertexer are always computed starting from L1
     }
   }
   if (mcLabels) {
@@ -169,6 +169,11 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
     }
     mNrof++;
   }
+
+  for (auto& v : mNTrackletsPerCluster) {
+    v.resize(mUnsortedClusters[1].size());
+  }
+
   if (mcLabels) {
     mClusterLabels = mcLabels;
   }
@@ -221,7 +226,6 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
     mLines.resize(mNrof);
     mTrackletClusters.resize(mNrof);
     mNTrackletsPerROf.resize(2, std::vector<int>(mNrof + 1, 0));
-    mNTrackletsPerCluster.resize(mNrof);
 
     std::vector<ClusterHelper> cHelper;
     std::vector<int> clsPerBin(trkParam.PhiBins * trkParam.ZBins, 0);

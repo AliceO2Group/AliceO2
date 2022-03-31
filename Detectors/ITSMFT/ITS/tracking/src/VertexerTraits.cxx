@@ -49,14 +49,13 @@ void trackleterKernelSerial(
   int* indexTableNext,
   const float phiCut,
   std::vector<Tracklet>& Tracklets,
-  std::vector<int>& foundTracklets,
+  gsl::span<int> foundTracklets,
   const IndexTableUtils& utils,
   const int maxTrackletsPerCluster = static_cast<int>(2e3))
 {
   const int PhiBins{utils.getNphiBins()};
   const int ZBins{utils.getNzBins()};
 
-  foundTracklets.resize(clustersCurrentLayer.size(), 0);
   // loop on layer1 clusters
   for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < clustersCurrentLayer.size(); ++iCurrentLayerClusterIndex) {
     int storedTracklets{0};
@@ -98,8 +97,8 @@ void trackletSelectionKernelSerial(
   const gsl::span<const Cluster> clustersCurrentLayer, // 1
   const gsl::span<const Tracklet>& tracklets01,
   const gsl::span<const Tracklet>& tracklets12,
-  const std::vector<int>& foundTracklets01,
-  const std::vector<int>& foundTracklets12,
+  const gsl::span<int> foundTracklets01,
+  const gsl::span<int> foundTracklets12,
   std::vector<Line>& destTracklets,
   const float tanLambdaCut = 0.025f,
   const float phiCut = 0.005f,
@@ -184,16 +183,13 @@ void VertexerTraits::computeTrackletsPureMontecarlo()
 void VertexerTraits::computeTracklets()
 {
   for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
-    mTimeFrame->getNTrackletsCluster(rofId)[0].resize(mTimeFrame->getClustersOnLayer(rofId, 1).size());
-    mTimeFrame->getNTrackletsCluster(rofId)[1].resize(mTimeFrame->getClustersOnLayer(rofId, 1).size());
-
     trackleterKernelSerial<TrackletMode::Layer0Layer1>(
       mTimeFrame->getClustersOnLayer(rofId, 0),
       mTimeFrame->getClustersOnLayer(rofId, 1),
       mTimeFrame->getIndexTableL0(rofId).data(),
       mVrtParams.phiCut,
       mTimeFrame->getTracklets()[0],
-      mTimeFrame->getNTrackletsCluster(rofId)[0],
+      mTimeFrame->getNTrackletsCluster(rofId, 0),
       mIndexTableUtils);
 
     trackleterKernelSerial<TrackletMode::Layer1Layer2>(
@@ -202,11 +198,11 @@ void VertexerTraits::computeTracklets()
       mTimeFrame->getIndexTables(rofId)[1].data(),
       mVrtParams.phiCut,
       mTimeFrame->getTracklets()[1],
-      mTimeFrame->getNTrackletsCluster(rofId)[1],
+      mTimeFrame->getNTrackletsCluster(rofId, 1),
       mIndexTableUtils);
 
-    mTimeFrame->getNTrackletsROf(0, rofId) = std::accumulate(mTimeFrame->getNTrackletsCluster(rofId)[0].begin(), mTimeFrame->getNTrackletsCluster(rofId)[0].end(), 0);
-    mTimeFrame->getNTrackletsROf(1, rofId) = std::accumulate(mTimeFrame->getNTrackletsCluster(rofId)[1].begin(), mTimeFrame->getNTrackletsCluster(rofId)[1].end(), 0);
+    mTimeFrame->getNTrackletsROf(0, rofId) = std::accumulate(mTimeFrame->getNTrackletsCluster(rofId, 0).begin(), mTimeFrame->getNTrackletsCluster(rofId, 0).end(), 0);
+    mTimeFrame->getNTrackletsROf(1, rofId) = std::accumulate(mTimeFrame->getNTrackletsCluster(rofId, 1).begin(), mTimeFrame->getNTrackletsCluster(rofId, 1).end(), 0);
   }
   mTimeFrame->computeTrackletsScans();
 
@@ -261,8 +257,8 @@ void VertexerTraits::computeTrackletMatching()
       mTimeFrame->getClustersOnLayer(rofId, 1),
       mTimeFrame->getFoundTracklets(rofId, 0),
       mTimeFrame->getFoundTracklets(rofId, 1),
-      mTimeFrame->getNTrackletsCluster(rofId)[0],
-      mTimeFrame->getNTrackletsCluster(rofId)[1],
+      mTimeFrame->getNTrackletsCluster(rofId, 0),
+      mTimeFrame->getNTrackletsCluster(rofId, 1),
       mTimeFrame->getLines(rofId),
       mVrtParams.tanLambdaCut,
       mVrtParams.phiCut);
@@ -284,10 +280,10 @@ void VertexerTraits::computeTrackletMatching()
     for (auto& ln : mTimeFrame->getLines(rofId)) {
       lines_vec.push_back(ln);
     }
-    for (auto& n : mTimeFrame->getNTrackletsCluster(rofId)[0]) {
+    for (auto& n : mTimeFrame->getNTrackletsCluster(rofId, 0)) {
       nTrackl01.push_back(n);
     }
-    for (auto& n : mTimeFrame->getNTrackletsCluster(rofId)[1]) {
+    for (auto& n : mTimeFrame->getNTrackletsCluster(rofId, 1)) {
       nTrackl12.push_back(n);
     }
 
