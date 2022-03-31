@@ -17,7 +17,11 @@
 #else
 #include <GL/glew.h>
 #endif
+#if __has_include(<GL/glu.h>)
 #include <GL/glu.h>
+#else
+#define gluErrorString(err) ""
+#endif
 
 #include "GPUCommonDef.h"
 #include "GPUDisplayBackendOpenGL.h"

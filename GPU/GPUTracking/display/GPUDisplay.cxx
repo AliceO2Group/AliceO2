@@ -21,7 +21,6 @@
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
 #include "GPUTPCDef.h"
 
-#include <GL/glu.h>
 #include <vector>
 #include <array>
 #include <tuple>
@@ -2179,7 +2178,7 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
   // Draw Event
   nextViewMatrix = nextViewMatrix * mModelMatrix;
   const float zFar = ((mParam->par.continuousTracking ? (mMaxClusterZ / GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
-  const hmm_mat4 proj = HMM_Perspective(mCfgR.fov, (GLfloat)mBackend->mRenderWidth / (GLfloat)mBackend->mRenderHeight, 0.1f, zFar);
+  const hmm_mat4 proj = HMM_Perspective(mCfgR.fov, (float)mBackend->mRenderWidth / (float)mBackend->mRenderHeight, 0.1f, zFar);
   mBackend->prepareDraw(proj, nextViewMatrix, doScreenshot || mRequestScreenshot, renderToMixBuffer, mixSlaveImage);
   mBackend->pointSizeFactor(1);
   mBackend->lineWidthFactor(1);
