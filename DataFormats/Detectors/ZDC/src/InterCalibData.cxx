@@ -16,9 +16,8 @@ using namespace o2::zdc;
 
 void InterCalibData::print() const
 {
-  const char* dn[NH] = {"ZNA", "ZPA", "ZNC", "ZPC", "ZEM"};
   for (int i = 0; i < NH; i++) {
-    LOGF(info, "%s", dn[i]);
+    LOGF(info, "%s", DN[i]);
     for (int j = 0; j < NPAR; j++) {
       for (int k = 0; k < NPAR; k++) {
         if (k == 0) {
@@ -30,4 +29,16 @@ void InterCalibData::print() const
       printf("\n");
     }
   }
+}
+
+InterCalibData& InterCalibData::operator+=(const InterCalibData& other)
+{
+  for (int32_t ih = 0; ih < NH; ih++) {
+    for (int32_t i = 0; i < NPAR; i++) {
+      for (int32_t j = 0; j < NPAR; j++) {
+        mSum[ih][i][j] += other.mSum[ih][i][j];
+      }
+    }
+  }
+  return *this;
 }

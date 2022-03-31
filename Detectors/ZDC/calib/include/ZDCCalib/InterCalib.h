@@ -45,7 +45,7 @@ class InterCalib
               const gsl::span<const o2::zdc::ZDCEnergy>& energy,
               const gsl::span<const o2::zdc::ZDCTDCData>& tdc,
               const gsl::span<const uint16_t>& info); // Calibration of RUN3 data - direct
-  int process(const InterCalibData &data);            // Calibration of RUN3 data - aggregator node
+  int process(const InterCalibData& data);            // Calibration of RUN3 data - aggregator node
   int endOfRun();                                     // Perform minimization
   int process(const char* hname, int ic);             // Calibration of RUN2 data
   void replay(int ih, THnSparse* hs, int ic);         // Test of calibration using RUN2 data
@@ -58,10 +58,17 @@ class InterCalib
 
   void setEnergyParam(const ZDCEnergyParam* param) { mEnergyParam = param; };
   const ZDCEnergyParam* getEnergyParam() const { return mEnergyParam; };
-  void setTowerParam(const ZDCTowerParam* param) { mTowerParam = param; };
-  const ZDCTowerParam* getTowerParam() const { return mTowerParam; };
+  void setTowerParam(const ZDCTowerParam* param)
+  {
+    mTowerParam = *param;
+    mTowerParam.clearFlags();
+  };
+  const ZDCTowerParam* getTowerParam() const { return &mTowerParam; };
   void setInterCalibConfig(const InterCalibConfig* param) { mInterCalibConfig = param; };
   const InterCalibConfig* getInterCalibConfig() const { return mInterCalibConfig; };
+
+  void setVerbosity(int v) { mVerbosity = v; }
+  int getVerbosity() const { return mVerbosity; }
 
  private:
   std::array<std::unique_ptr<TH1>, 2 * NH> mHUnc{};
@@ -71,11 +78,12 @@ class InterCalib
   std::array<std::unique_ptr<TMinuit>, NH> mMn{};
   InterCalibData mData;
   bool mInitDone = false;
+  int32_t mVerbosity = DbgMinimal;
   static std::mutex mMtx; /// mutex for critical section
   double mPar[NH][NPAR] = {0};
   double mErr[NH][NPAR] = {0};
   const ZDCEnergyParam* mEnergyParam = nullptr;        /// Energy calibration object
-  const ZDCTowerParam* mTowerParam = nullptr;          /// Tower calibration object
+  ZDCTowerParam mTowerParam;                           /// Tower calibration object
   const InterCalibConfig* mInterCalibConfig = nullptr; /// Configuration of intercalibration
 };
 } // namespace zdc

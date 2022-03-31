@@ -108,6 +108,9 @@ int InterCalib::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
 
 int InterCalib::endOfRun()
 {
+  if(mVerbosity > DbgZero){
+    LOGF(info, "Computing intercalibration coefficients");
+  }
   for (int ih = 0; ih < NH; ih++) {
     if (mData.mSum[ih][5][5] >= mInterCalibConfig->min_e[ih]) {
       int ierr = mini(ih);
@@ -115,6 +118,7 @@ int InterCalib::endOfRun()
         LOGF(error, "FAILED processing RUN3 data for ih = %d - ", ih);
       } else {
         LOGF(info, "Processed RUN3 data for ih = %d: ", ih);
+        
       }
     } else {
       LOGF(info, "FAILED processing RUN3 data for ih = %d: TOO FEW EVENTS: ", ih);

@@ -106,7 +106,7 @@ int InterCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
 int InterCalibEPN::endOfRun()
 {
   for (int ih = 0; ih < NH; ih++) {
-    LOGF(info, "%g events and cuts (%g:%g)", mData.mSum[ih][5][5], mInterCalibConfig->cutLow[ih], mInterCalibConfig->cutHigh[ih]);
+    LOGF(info, "%s %g events and cuts (%g:%g)", InterCalibData::DN[ih], mData.mSum[ih][5][5], mInterCalibConfig->cutLow[ih], mInterCalibConfig->cutHigh[ih]);
   }
   write();
   return 0;

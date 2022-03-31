@@ -19,6 +19,7 @@
 #include <TStopwatch.h>
 #include "Framework/Logger.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DataAllocator.h"
 #include "Framework/Task.h"
 #include "CommonUtils/NameConf.h"
 #include "ZDCCalib/InterCalib.h"
@@ -40,11 +41,12 @@ class InterCalibSpec : public o2::framework::Task
   void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
+  void sendOutput(o2::framework::DataAllocator& output);
 
  private:
-  int mVerbosity = 0;        // Verbosity level
-  bool mInitialized = false; // Connect once to CCDB during initialization
-  InterCalib mInterCalib;    // Intercalibration object
+  int mVerbosity = DbgMinimal; // Verbosity level
+  bool mInitialized = false;   // Connect once to CCDB during initialization
+  InterCalib mInterCalib;      // Intercalibration object
   TStopwatch mTimer;
 };
 

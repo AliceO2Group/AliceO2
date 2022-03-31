@@ -29,6 +29,8 @@ struct InterCalibData {
   static constexpr int NPAR = 6;     /// Dimension of matrix (1 + 4 coefficients + offset)
   static constexpr int NH = 5;       /// ZNA, ZPA, ZNC, ZPC, ZEM
   double mSum[NH][NPAR][NPAR] = {0}; /// Cumulated sums
+  static constexpr const char* DN[NH] = {"ZNA", "ZPA", "ZNC", "ZPC", "ZEM"};
+  InterCalibData& operator+=(const InterCalibData& other);
   void print() const;
   ClassDefNV(InterCalibData, 1);
 };

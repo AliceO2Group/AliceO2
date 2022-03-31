@@ -49,8 +49,7 @@ InterCalibSpec::InterCalibSpec()
   mTimer.Reset();
 }
 
-InterCalibSpec::InterCalibSpec(const int verbosity)
-  : mVerbosity(verbosity)
+InterCalibSpec::InterCalibSpec(const int verbosity) : mVerbosity(verbosity)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -58,11 +57,12 @@ InterCalibSpec::InterCalibSpec(const int verbosity)
 
 void InterCalibSpec::init(o2::framework::InitContext& ic)
 {
-//     int minEnt = std::max(300, ic.options().get<int>("min-entries"));
-//     int nb = std::max(500, ic.options().get<int>("nbins"));
-//     int slotL = ic.options().get<int>("tf-per-slot");
-//     int delay = ic.options().get<int>("max-delay");
+  //     int minEnt = std::max(300, ic.options().get<int>("min-entries"));
+  //     int nb = std::max(500, ic.options().get<int>("nbins"));
+  //     int slotL = ic.options().get<int>("tf-per-slot");
+  //     int delay = ic.options().get<int>("max-delay");
   mVerbosity = ic.options().get<int>("verbosity-level");
+  mInterCalib.setVerbosity(mVerbosity);
 }
 
 void InterCalibSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -139,30 +139,28 @@ void InterCalibSpec::endOfStream(EndOfStreamContext& ec)
   LOGF(info, "ZDC Intercalibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-/*
-  //________________________________________________________________
-  void InterCalibSpec::sendOutput(DataAllocator& output)
-  {
-    // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
-    // TODO in principle, this routine is generic, can be moved to Utils.h
-    using clbUtils = o2::calibration::Utils;
-    const auto& payloadVec = mCalibrator->getLHCphaseVector();
-    auto& infoVec = mCalibrator->getLHCphaseInfoVector(); // use non-const version as we update it
-    assert(payloadVec.size() == infoVec.size());
-
-    for (uint32_t i = 0; i < payloadVec.size(); i++) {
-      auto& w = infoVec[i];
-      auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
-      LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
-                << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_LHCphase", i}, *image.get()); // vector<char>
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_LHCphase", i}, w);            // root-serialized
-    }
-    if (payloadVec.size()) {
-      mCalibrator->initOutput(); // reset the outputs once they are already sent
-    }
-  }
-*/
+//________________________________________________________________
+void InterCalibSpec::sendOutput(o2::framework::DataAllocator& output)
+{
+  // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
+  // TODO in principle, this routine is generic, can be moved to Utils.h
+  using clbUtils = o2::calibration::Utils;
+  //     const auto& payloadVec = mCalibrator->getLHCphaseVector();
+  //     auto& infoVec = mCalibrator->getLHCphaseInfoVector(); // use non-const version as we update it
+  //     assert(payloadVec.size() == infoVec.size());
+  //
+  //     for (uint32_t i = 0; i < payloadVec.size(); i++) {
+  //       auto& w = infoVec[i];
+  //       auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
+  //       LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
+  //                 << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
+  //       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_LHCphase", i}, *image.get()); // vector<char>
+  //       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_LHCphase", i}, w);            // root-serialized
+  //     }
+  //     if (payloadVec.size()) {
+  //       mCalibrator->initOutput(); // reset the outputs once they are already sent
+  //     }
+}
 
 framework::DataProcessorSpec getInterCalibSpec()
 {
@@ -176,8 +174,9 @@ framework::DataProcessorSpec getInterCalibSpec()
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ZDC_Intercalib"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDC_Intercalib"}, Lifetime::Sporadic);
+
   return DataProcessorSpec{
-    "zdc-calib-intercalibration",
+    "zdc-calib-towers",
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},
