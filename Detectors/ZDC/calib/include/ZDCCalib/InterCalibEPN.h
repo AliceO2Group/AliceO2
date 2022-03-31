@@ -16,6 +16,8 @@
 #include <THnBase.h>
 #include <THnSparse.h>
 #include <TMinuit.h>
+#include "CommonDataFormat/FlatHisto1D.h"
+#include "CommonDataFormat/FlatHisto2D.h"
 #include "ZDCBase/Constants.h"
 #include "DataFormatsZDC/RecEvent.h"
 #include "DataFormatsZDC/InterCalibData.h"
@@ -52,10 +54,10 @@ class InterCalibEPN
   void setInterCalibConfig(const InterCalibConfig* param) { mInterCalibConfig = param; };
   const InterCalibConfig* getInterCalibConfig() const { return mInterCalibConfig; };
   InterCalibData mData;
+  std::array<o2::dataformats::FlatHisto1D<float>*, 2 * NH> mH{};
+  std::array<o2::dataformats::FlatHisto2D<float>*, NH> mC{};
 
  private:
-  std::array<std::unique_ptr<TH1>, 2 * NH> mH{};
-  std::array<std::unique_ptr<TH2>, NH> mC{};
   bool mInitDone = false;
   const InterCalibConfig* mInterCalibConfig = nullptr; /// Configuration of intercalibration
 };

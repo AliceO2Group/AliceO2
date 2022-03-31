@@ -18,6 +18,7 @@
 #include <TPaveStats.h>
 #include <TAxis.h>
 #include "ZDCCalib/InterCalibEPN.h"
+#include "ZDCCalib/InterCalib.h"
 #include "ZDCReconstruction/ZDCEnergyParam.h"
 #include "ZDCReconstruction/ZDCTowerParam.h"
 #include "DataFormatsZDC/InterCalibData.h"
@@ -35,21 +36,21 @@ int InterCalibEPN::init()
   auto* cfg = mInterCalibConfig;
   int ih;
   // clang-format off
-  ih = 0; mH[ih] = std::make_unique<TH1F>("hZNAS","ZNA sum",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 1; mH[ih] = std::make_unique<TH1F>("hZPAS","ZPA sum",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 2; mH[ih] = std::make_unique<TH1F>("hZNCS","ZNC sum",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 3; mH[ih] = std::make_unique<TH1F>("hZPCS","ZPC sum",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 4; mH[ih] = std::make_unique<TH1F>("hZEM2","ZEM2"   ,cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 0; mH[NH+ih] = std::make_unique<TH1F>("hZNAC","ZNA TC",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 1; mH[NH+ih] = std::make_unique<TH1F>("hZPAC","ZPA TC",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 2; mH[NH+ih] = std::make_unique<TH1F>("hZNCC","ZNC TC",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 3; mH[NH+ih] = std::make_unique<TH1F>("hZPCC","ZPC TC",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 4; mH[NH+ih] = std::make_unique<TH1F>("hZEM1","ZEM1",  cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 0; mC[ih] = std::make_unique<TH2F>("cZNA","ZNA;TC;SUM",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
-  ih = 1; mC[ih] = std::make_unique<TH2F>("cZPA","ZPA;TC;SUM",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
-  ih = 2; mC[ih] = std::make_unique<TH2F>("cZNC","ZNC;TC;SUM",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
-  ih = 3; mC[ih] = std::make_unique<TH2F>("cZPC","ZPC;TC;SUM",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
-  ih = 4; mC[ih] = std::make_unique<TH2F>("cZEM","ZEM;ZEM1;ZEM2",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
+  ih = 0; mH[ih] =    new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  ih = 1; mH[ih] =    new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  ih = 2; mH[ih] =    new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  ih = 3; mH[ih] =    new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  ih = 4; mH[ih] =    new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  ih = 0; mH[NH+ih] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  ih = 1; mH[NH+ih] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  ih = 2; mH[NH+ih] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  ih = 3; mH[NH+ih] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  ih = 4; mH[NH+ih] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+  ih = 0; mC[ih] =    new o2::dataformats::FlatHisto2D<float>(cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
+  ih = 1; mC[ih] =    new o2::dataformats::FlatHisto2D<float>(cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
+  ih = 2; mC[ih] =    new o2::dataformats::FlatHisto2D<float>(cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
+  ih = 3; mC[ih] =    new o2::dataformats::FlatHisto2D<float>(cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
+  ih = 4; mC[ih] =    new o2::dataformats::FlatHisto2D<float>(cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
   // clang-format on
   mInitDone = true;
   return 0;
@@ -187,10 +188,10 @@ void InterCalibEPN::clear(int ih)
       }
     }
     if (mH[ii]) {
-      mH[ii]->Reset();
+      mH[ii]->clear();
     }
     if (mC[ii]) {
-      mC[ii]->Reset();
+      mC[ii]->clear();
     }
   }
 }
@@ -215,9 +216,9 @@ void InterCalibEPN::cumulate(int ih, double tc, double t1, double t2, double t3,
   }
   // mData.mSum[ih][5][5] contains the number of analyzed events
   double sumquad = val[1] + val[2] + val[3] + val[4];
-  mH[ih]->Fill(sumquad, w);
-  mH[ih + NH]->Fill(val[0]);
-  mC[ih]->Fill(val[0], sumquad, w);
+  mH[ih]->fill(sumquad, w);
+  mH[ih + NH]->fill(val[0]);
+  mC[ih]->fill(val[0], sumquad, w);
 }
 
 int InterCalibEPN::write(const std::string fn)
@@ -230,12 +231,16 @@ int InterCalibEPN::write(const std::string fn)
   }
   for (int32_t ih = 0; ih < (2 * NH); ih++) {
     if (mH[ih]) {
-      mH[ih]->Write("", TObject::kOverwrite);
+      auto p = mH[ih]->createTH1F(InterCalib::mHUncN[ih]);
+      p->SetTitle(InterCalib::mHUncT[ih]);
+      p->Write("", TObject::kOverwrite);
     }
   }
   for (int32_t ih = 0; ih < NH; ih++) {
     if (mC[ih]) {
-      mC[ih]->Write("", TObject::kOverwrite);
+      auto p = mC[ih]->createTH2F(InterCalib::mCUncN[ih]);
+      p->SetTitle(InterCalib::mCUncT[ih]);
+      p->Write("", TObject::kOverwrite);
     }
   }
   f->Close();

@@ -122,6 +122,8 @@ void InterCalibSpec::run(ProcessingContext& pc)
   updateTimeDependentParams(pc);
   auto data = pc.inputs().get<InterCalibData>("intercalibdata");
   mInterCalib.process(data);
+  auto h1 = pc.inputs().get<std::array<o2::dataformats::FlatHisto1D<float>*, 2 * InterCalibData::NH>>("intercalib1dh");
+  auto h2 = pc.inputs().get<std::array<o2::dataformats::FlatHisto2D<float>*, InterCalibData::NH>>("intercalib2dh");
 }
 
 void InterCalibSpec::endOfStream(EndOfStreamContext& ec)
@@ -164,6 +166,8 @@ framework::DataProcessorSpec getInterCalibSpec()
   inputs.emplace_back("energycalib", "ZDC", "ENERGYCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathEnergyCalib.data())));
   inputs.emplace_back("towercalib", "ZDC", "TOWERCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathTowerCalib.data())));
   inputs.emplace_back("intercalibdata", "ZDC", "INTERCALIBDATA", 0, Lifetime::Timeframe);
+  inputs.emplace_back("intercalib1dh", "ZDC", "INTERCALIB1DH", 0, Lifetime::Timeframe);
+  inputs.emplace_back("intercalib2dh", "ZDC", "INTERCALIB2DH", 0, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ZDC_Intercalib"}, Lifetime::Sporadic);

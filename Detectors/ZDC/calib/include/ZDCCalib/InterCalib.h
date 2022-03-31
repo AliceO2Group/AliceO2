@@ -17,6 +17,8 @@
 #include <THnSparse.h>
 #include <TMinuit.h>
 #include "ZDCBase/Constants.h"
+#include "CommonDataFormat/FlatHisto1D.h"
+#include "CommonDataFormat/FlatHisto2D.h"
 #include "DataFormatsZDC/RecEvent.h"
 #include "DataFormatsZDC/InterCalibData.h"
 #include "ZDCReconstruction/ZDCEnergyParam.h"
@@ -65,6 +67,11 @@ class InterCalib
 
   void setVerbosity(int v) { mVerbosity = v; }
   int getVerbosity() const { return mVerbosity; }
+
+  static constexpr const char* mHUncN[2 * NH] = {"hZNAS", "hZPAS", "hZNCS", "hZPCS", "hZEM2", "hZNAC", "hZPAC", "hZNCC", "hZPCC", "hZEM1"};
+  static constexpr const char* mHUncT[2 * NH] = {"ZNA sum", "ZPA sum", "ZNC sum", "ZPC sum", "ZEM2", "ZNA TC", "ZPA TC", "ZNC TC", "ZPC TC", "ZEM1"};
+  static constexpr const char* mCUncN[NH] = {"cZNA", "cZPA", "cZNC", "cZPC", "cZEM"};
+  static constexpr const char* mCUncT[NH] = {"ZNA;TC;SUM", "ZPA;TC;SUM", "ZNC;TC;SUM", "ZPC;TC;SUM", "ZEM;ZEM1;ZEM2"};
 
  private:
   std::array<std::unique_ptr<TH1>, 2 * NH> mHUnc{};

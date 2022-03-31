@@ -98,13 +98,15 @@ void InterCalibEPNSpec::run(ProcessingContext& pc)
   auto info = pc.inputs().get<gsl::span<uint16_t>>("info");
   mInterCalibEPN.process(bcrec, energy, tdc, info);
   pc.outputs().snapshot(Output{"ZDC", "INTERCALIBDATA", 0, Lifetime::Timeframe}, mInterCalibEPN.mData);
+  pc.outputs().snapshot(Output{"ZDC", "INTERCALIB1DH", 0, Lifetime::Timeframe}, mInterCalibEPN.mH);
+  pc.outputs().snapshot(Output{"ZDC", "INTERCALIB2DH", 0, Lifetime::Timeframe}, mInterCalibEPN.mC);
 }
 
 void InterCalibEPNSpec::endOfStream(EndOfStreamContext& ec)
 {
   mInterCalibEPN.endOfRun();
   mTimer.Stop();
-  LOGF(info, "ZDC Intercalibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  LOGF(info, "ZDC EPN Intercalibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 framework::DataProcessorSpec getInterCalibEPNSpec()
@@ -118,6 +120,8 @@ framework::DataProcessorSpec getInterCalibEPNSpec()
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ZDC", "INTERCALIBDATA", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ZDC", "INTERCALIB1DH", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ZDC", "INTERCALIB2DH", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "zdc-intercalib-epn",
