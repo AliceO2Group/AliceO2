@@ -17,6 +17,13 @@ o2_add_library(GlobalTrackingWorkflowReaders
                        src/GlobalFwdTrackReaderSpec.cxx
                        src/MatchedMFTMCHReaderSpec.cxx
                        src/MatchedMCHMIDReaderSpec.cxx
+                       src/IRFrameReaderSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
                                      O2::DataFormatsITSMFT
                                      O2::SimulationDataFormat)
+
+o2_add_executable(reader-workflow
+                  COMPONENT_NAME irframe
+                  SOURCES src/irframe-reader-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflowReaders
+                                        O2::DetectorsRaw)

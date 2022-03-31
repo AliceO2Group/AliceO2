@@ -9,23 +9,23 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   IRFramesReaderSpec.h
+/// @file   IRFrameWriterSpec.h
 
-#ifndef O2_ITS_IRFRAMES_READER
-#define O2_ITS_IRFRAMES_READER
+#ifndef O2_IRFRAMEWRITER
+#define O2_IRFRAMEWRITER
 
 #include "Framework/DataProcessorSpec.h"
 
 namespace o2
 {
-namespace its
+namespace globaltracking
 {
 
 /// create a processor spec
-/// read ITS IRFrames data from a root file
-framework::DataProcessorSpec getIRFrameReaderSpec();
+/// write IRFrames for which data was selected
+o2::framework::DataProcessorSpec getIRFrameWriterSpec(const std::string& spec, const std::string& defFileName = "o2_irframe.root", const std::string& devName = "irframe-writer");
 
-} // namespace its
+} // namespace globaltracking
 } // namespace o2
 
 #endif
