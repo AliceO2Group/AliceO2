@@ -1761,7 +1761,7 @@ void GPUDisplayBackendVulkan::addFontSymbol(int symbol, int sizex, int sizey, in
   if (symbol != (int)mFontSymbols.size()) {
     throw std::runtime_error("Incorrect symbol ID");
   }
-  mFontSymbols.emplace_back(FontSymbolVulkan{sizex, sizey, offsetx, offsety, advance, nullptr, 0.f, 0.f, 0.f, 0.f});
+  mFontSymbols.emplace_back(FontSymbolVulkan{{{sizex, sizey}, {offsetx, offsety}, advance}, nullptr, 0.f, 0.f, 0.f, 0.f});
   auto& buffer = mFontSymbols.back().data;
   if (sizex && sizey) {
     buffer.reset(new char[sizex * sizey]);
@@ -1795,7 +1795,7 @@ void GPUDisplayBackendVulkan::initializeTextDrawing()
       for (int j = 0; j < s.size[0]; j++) {
         char val = s.data.get()[j + k * s.size[0]];
         if (!smooth) {
-          val = val < 0 ? 255 : 0;
+          val = val < 0 ? 0xFF : 0;
         }
         bigImage.get()[(colx + j) + (rowy + k) * sizex] = val;
       }

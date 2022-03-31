@@ -28,9 +28,7 @@
 
 union hmm_mat4;
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 class GPUDisplay;
 class GPUDisplayFrontend;
@@ -124,7 +122,6 @@ class GPUDisplayBackend
   unsigned int mScreenWidth = 0;
   unsigned int mScreenHeight = 0;
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

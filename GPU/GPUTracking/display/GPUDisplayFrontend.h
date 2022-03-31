@@ -18,9 +18,7 @@
 #include "GPUCommonDef.h"
 #include "GPUDisplayInterface.h"
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 class GPUReconstruction;
 class GPUDisplay;
@@ -68,7 +66,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   static void* FrontendThreadWrapper(void*);
 
   static constexpr int INIT_WIDTH = 1024, INIT_HEIGHT = 768;                           // Initial window size, before maximizing
-  static constexpr const char* DISPLAY_WINDOW_NAME = "GPU CA TPC Standalone Event Display"; // Title of event display set by backend
+  static constexpr const char* DISPLAY_WINDOW_NAME = "GPU CA Standalone Event Display"; // Title of event display set by backend
   // Constant key codes for special mKeys (to unify different treatment in X11 / Windows / GLUT / etc.)
   static constexpr int KEY_UP = 1;
   static constexpr int KEY_DOWN = 2;
@@ -125,7 +123,6 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   void ExitDisplay();                                                   // Callback to clean up the GL Display
   int& drawTextFontSize();
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif
