@@ -47,6 +47,7 @@ const char* HelpText[] = {
   "[o] / [p] / [O] / [P]         Save / restore current camera position / Animation path",
   "[h]                           Print Help",
   "[H]                           Show info texts",
+  "[q] / [Q]                     Start / Stop Qt GUI",
   "[w] / [s] / [a] / [d]         Zoom / Strafe Left and Right",
   "[pgup] / [pgdn]               Strafe up / down",
   "[e] / [f]                     Rotate left / right",
@@ -455,6 +456,12 @@ void GPUDisplay::HandleKey(unsigned char key)
   } else if (key == 'h') {
     PrintHelp();
     SetInfo("Showing help text", 1);
+  } else if (key == 'q') {
+    SetInfo("Starting GUI");
+    mFrontend->startGUI();
+  } else if (key == 'Q') {
+    SetInfo("Stopping GUI");
+    mFrontend->stopGUI();
   }
   /*
   else if (key == '^')

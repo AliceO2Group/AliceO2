@@ -141,22 +141,8 @@ set_package_properties(AliRoot
                        TYPE OPTIONAL
                        PURPOSE "For very specific use cases only")
 
-find_package(GLEW)
-set_package_properties(GLEW PROPERTIES TYPE OPTIONAL)
-find_package(X11)
-set_package_properties(X11 PROPERTIES TYPE OPTIONAL)
-find_package(GLUT)
-set_package_properties(GLUT PROPERTIES TYPE OPTIONAL)
 find_package(OpenGL)
 set_package_properties(OpenGL PROPERTIES TYPE OPTIONAL)
-find_package(Vulkan)
-set_package_properties(Vulkan PROPERTIES TYPE OPTIONAL)
-find_package(Freetype)
-set_package_properties(Freetype PROPERTIES TYPE OPTIONAL)
-find_package(Fontconfig)
-set_package_properties(Fontconfig PROPERTIES TYPE OPTIONAL)
-find_package(O2GPUWayland)
-set_package_properties(O2GPUWayland PROPERTIES TYPE OPTIONAL)
 
 find_package(LLVM)
 set_package_properties(LLVM PROPERTIES TYPE OPTIONAL)

@@ -17,12 +17,14 @@
 
 #include "GPUCommonDef.h"
 #include "GPUDisplayInterface.h"
+#include <memory>
 
 namespace GPUCA_NAMESPACE::gpu
 {
 class GPUReconstruction;
 class GPUDisplay;
 class GPUDisplayBackend;
+class GPUDisplayGUIWrapper;
 
 class GPUDisplayFrontend : public GPUDisplayFrontendInterface
 {
@@ -30,7 +32,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
 
  public:
   GPUDisplayFrontend() = default;
-  ~GPUDisplayFrontend() override = default;
+  ~GPUDisplayFrontend() override;
 
   // Compile time minimum version defined in GPUDisplay.h, keep in sync!
   static constexpr int GL_MIN_VERSION_MAJOR = 4;
@@ -55,6 +57,9 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   void setDisplayControl(int v) override { mDisplayControl = v; }
   void setSendKey(int v) override { mSendKey = v; }
   void setNeedUpdate(int v) override { mNeedUpdate = v; }
+
+  int startGUI();
+  void stopGUI();
 
   // volatile variables to exchange control informations between display and backend
   volatile int mDisplayControl = 0; // Control for next event (=1) or quit (=2)
@@ -114,6 +119,8 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
 
   GPUDisplay* mDisplay = nullptr;        // Ptr to display, not owning, set by display when it connects to backend
   GPUDisplayBackend* mBackend = nullptr; // Ptr to backend, not owning
+
+  std::unique_ptr<GPUDisplayGUIWrapper> mGUI;
 
   void HandleKey(unsigned char key);                                    // Callback for handling key presses
   int DrawGLScene();                                                    // Callback to draw the GL scene

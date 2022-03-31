@@ -11,6 +11,25 @@
 
 set(MODULE GPUTrackingDisplay)
 
+if(ALIGPU_BUILD_TYPE STREQUAL "O2")
+  find_package(GLEW)
+  set_package_properties(GLEW PROPERTIES TYPE OPTIONAL)
+  find_package(X11)
+  set_package_properties(X11 PROPERTIES TYPE OPTIONAL)
+  find_package(GLUT)
+  set_package_properties(GLUT PROPERTIES TYPE OPTIONAL)
+  find_package(Vulkan)
+  set_package_properties(Vulkan PROPERTIES TYPE OPTIONAL)
+  find_package(Freetype)
+  set_package_properties(Freetype PROPERTIES TYPE OPTIONAL)
+  find_package(Fontconfig)
+  set_package_properties(Fontconfig PROPERTIES TYPE OPTIONAL)
+  find_package(O2GPUWayland)
+  set_package_properties(O2GPUWayland PROPERTIES TYPE OPTIONAL)
+  find_package(Qt5 COMPONENTS Widgets)
+  set_package_properties(Qt5 PROPERTIES TYPE OPTIONAL)
+endif()
+
 if(Vulkan_FOUND AND NOT Vulkan_GLSLC_EXECUTABLE STREQUAL "Vulkan_GLSLC_EXECUTABLE-NOTFOUND")
   include(../Standalone/cmake/vulkan_display.cmake)
   set(GPUCA_EVENT_DISPLAY_VULKAN ON)
@@ -20,6 +39,9 @@ if(Vulkan_FOUND AND NOT Vulkan_GLSLC_EXECUTABLE STREQUAL "Vulkan_GLSLC_EXECUTABL
 endif()
 if(Freetype_FOUND)
   set(GPUCA_EVENT_DISPLAY_FREETYPE ON)
+endif()
+if(Qt5_FOUND)
+  set(GPUCA_EVENT_DISPLAY_QT ON)
 endif()
 
 set(SRCS ../utils/qsem.cxx
@@ -76,6 +98,15 @@ if(GLUT_FOUND)
   set(SRCS ${SRCS} GPUDisplayFrontendGlut.cxx)
 endif()
 
+if(GPUCA_EVENT_DISPLAY_QT)
+  set(CMAKE_AUTOMOC ON)
+  set(CMAKE_AUTORCC ON)
+  set(CMAKE_AUTOUIC ON)
+  
+  set(SRCS ${SRCS} GPUDisplayGUI.cxx GPUDisplayGUIWrapper.cxx)
+  set(SRCS_NO_H ${SRCS_NO_H} GPUDisplayGUI.ui)
+endif()
+
 string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
@@ -104,7 +135,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/setinclude.sh PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE DESTINATION displayTrackFilter)
 endif()
 
-message(STATUS "Building GPU Event Display (Vulkan ${GPUCA_EVENT_DISPLAY_VULKAN}, Wayland ${GPUCA_EVENT_DISPLAY_WAYLAND}, Freetype ${GPUCA_EVENT_DISPLAY_FREETYPE}, Fontconfig ${Fontconfig_FOUND})")
+message(STATUS "Building GPU Event Display (Vulkan ${GPUCA_EVENT_DISPLAY_VULKAN}, Wayland ${GPUCA_EVENT_DISPLAY_WAYLAND}, Freetype ${GPUCA_EVENT_DISPLAY_FREETYPE}, Fontconfig ${Fontconfig_FOUND}, Qt ${GPUCA_EVENT_DISPLAY_QT})")
 target_link_libraries(${targetName} PUBLIC ${GLFW_LIBRARIES} OpenGL::GL)
 
 if(X11_FOUND)
@@ -157,6 +188,11 @@ if(GPUCA_EVENT_DISPLAY_FREETYPE)
     target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_FONTCONFIG)
     target_link_libraries(${targetName} PRIVATE Fontconfig::Fontconfig)
   endif()
+endif()
+
+if(GPUCA_EVENT_DISPLAY_QT)
+  target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_QT)
+  target_link_libraries(${targetName} PRIVATE Qt5::Widgets)
 endif()
 
 if(OpenMP_CXX_FOUND)
