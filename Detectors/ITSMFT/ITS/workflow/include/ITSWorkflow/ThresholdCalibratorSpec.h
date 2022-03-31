@@ -61,7 +61,7 @@ constexpr int N_INJ = 50;
 
 // List of the possible run types for reference
 enum RunTypes {
-  THR_SCAN = 41,
+  THR_SCAN = 42,
   THR_SCAN_SHORT = 43,
   THR_SCAN_SHORT_100HZ = 101,
   THR_SCAN_SHORT_200HZ = 102,
