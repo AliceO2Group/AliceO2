@@ -283,8 +283,8 @@ class CruRawReader
   TrackletsParser mTrackletsParser;
   DigitsParser mDigitsParser;
   //used to surround the outgoing data with a coherent rdh coming from the incoming stream.
-  o2::header::RDHAny* mOpenRDH;
-  o2::header::RDHAny* mCloseRDH;
+  const o2::header::RDHAny* mOpenRDH;
+  const o2::header::RDHAny* mCloseRDH;
 
   uint32_t mEventCounter;
   uint32_t mFatalCounter;
