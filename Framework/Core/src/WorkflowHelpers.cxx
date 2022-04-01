@@ -487,7 +487,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       return;
     }
     DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
-    AlgorithmPlugin* creator = PluginManager::getByName<AlgorithmPlugin>(pluginInstance, "ROOTFileReader");
+    auto* creator = PluginManager::getByName<AlgorithmPlugin>(pluginInstance, "ROOTFileReader");
     aodReader.algorithm = creator->create();
     aodReader.outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
     extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
@@ -671,15 +671,31 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   extraSpecs.clear();
 }
 
-void WorkflowHelpers::adjustTopology(WorkflowSpec& workflow, ConfigContext const& ctx)
+void WorkflowHelpers::adjustTopology(WorkflowSpec& workflow, ConfigContext const&)
 {
+  unsigned int distSTFCount = 0;
   for (auto& spec : workflow) {
     auto& inputs = spec.inputs;
     bool allSporadic = true;
     bool hasTimer = false;
     bool hasSporadic = false;
-    for (size_t ii = 0; ii < inputs.size(); ++ii) {
-      auto& input = inputs[ii];
+    bool hasOptionals = false;
+    for (auto& input : inputs) {
+      if (input.lifetime == Lifetime::Optional) {
+        hasOptionals = true;
+      }
+    }
+    for (auto& input : inputs) {
+      // Any InputSpec that is DPL/DISTSUBTIMEFRAME/0 will actually be replaced by one
+      // which looks like DPL/DISTSUBTIMEFRAME/<incremental number> for devices that
+      // have Optional inputs as well.
+      // This is done to avoid the race condition where the DISTSUBTIMEFRAME/0 gets
+      // forwarded before actual RAWDATA arrives.
+      if (hasOptionals && DataSpecUtils::match(input, ConcreteDataMatcher{"FLP", "DISTSUBTIMEFRAME", 0})) {
+        // The first one remains unchanged, therefore we use the postincrement
+        DataSpecUtils::updateMatchingSubspec(input, distSTFCount++);
+        continue;
+      }
       // Timers are sporadic only when they are not
       // alone.
       if (input.lifetime == Lifetime::Timer) {
@@ -692,6 +708,9 @@ void WorkflowHelpers::adjustTopology(WorkflowSpec& workflow, ConfigContext const
         allSporadic = false;
       }
     }
+
+    LOGP(debug, "WorkflowHelpers::adjustTopology: spec {} hasTimer {} hasSporadic {} allSporadic {}", spec.name, hasTimer, hasSporadic, allSporadic);
+
     // If they are not all sporadic (excluding timers)
     // we leave things as they are.
     if (allSporadic == false) {
@@ -707,6 +726,24 @@ void WorkflowHelpers::adjustTopology(WorkflowSpec& workflow, ConfigContext const
     for (auto& output : spec.outputs) {
       if (output.lifetime == Lifetime::Timeframe) {
         output.lifetime = Lifetime::Sporadic;
+      }
+    }
+  }
+
+  if (distSTFCount > 0) {
+    bool found = false;
+    for (auto& spec : workflow) {
+      for (auto& output : spec.outputs) {
+        if (DataSpecUtils::match(output, ConcreteDataMatcher{"FLP", "DISTSUBTIMEFRAME", 0})) {
+          found = true;
+          break;
+        }
+      }
+      if (found) {
+        for (unsigned int i = 1; i < distSTFCount; ++i) {
+          spec.outputs.emplace_back(OutputSpec{ConcreteDataMatcher{"FLP", "DISTSUBTIMEFRAME", i}, Lifetime::Timeframe});
+        }
+        break;
       }
     }
   }

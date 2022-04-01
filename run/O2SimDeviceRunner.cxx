@@ -16,10 +16,10 @@
 #include <boost/program_options.hpp>
 #include <memory>
 #include <string>
-#include <FairMQChannel.h>
-#include <FairMQLogger.h>
-#include <FairMQParts.h>
-#include <FairMQTransportFactory.h>
+#include <fairmq/Channel.h>
+#include <FairLogger.h>
+#include <fairmq/Parts.h>
+#include <fairmq/TransportFactory.h>
 #include <TStopwatch.h>
 #include <sys/wait.h>
 #include <pthread.h> // to set cpu affinity
@@ -55,6 +55,13 @@ void sigaction_handler(int signal, siginfo_t* signal_info, void*)
   }
   if (signal == SIGTERM) {
     // normal termination is not error
+    // need to wait for children
+    int status, cpid;
+    while ((cpid = wait(&status))) {
+      if (cpid == -1) {
+        break;
+      }
+    }
     _exit(0);
   }
   // we treat internal signal interruption as an error
@@ -426,8 +433,13 @@ int main(int argc, char* argv[])
         gChildProcesses.push_back(pid);
       }
     }
-    int status;
-    wait(&status); /* only the parent waits */
+    int status, cpid;
+    while ((cpid = wait(&status))) {
+      // LOG(info) << "normal wait " << cpid << " returned ";
+      if (cpid == -1) {
+        break;
+      }
+    }
     _exit(0);
   } else {
     // This the solution where we setup an ordinary FairMQDevice

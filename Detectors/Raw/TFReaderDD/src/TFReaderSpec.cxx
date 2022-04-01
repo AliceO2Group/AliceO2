@@ -20,6 +20,7 @@
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
+#include "Headers/DataHeaderHelpers.h"
 
 #include "DetectorsCommonDataFormats/DetID.h"
 #include <TStopwatch.h>
@@ -133,20 +134,24 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
     }
   };
 
-  auto findOutputChannel = [&ctx, this](o2h::DataHeader& h) {
+  auto findOutputChannel = [&ctx, this](o2h::DataHeader& h, size_t tslice) {
     if (!this->mInput.rawChannelConfig.empty()) {
       return std::string{this->mInput.rawChannelConfig};
     } else {
-      auto outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
+      auto& outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
       for (auto& oroute : outputRoutes) {
         LOG(debug) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
-        if (o2f::DataSpecUtils::match(oroute.matcher, h.dataOrigin, h.dataDescription, h.subSpecification) && ((h.tfCounter % oroute.maxTimeslices) == oroute.timeslice)) {
+        if (o2f::DataSpecUtils::match(oroute.matcher, h.dataOrigin, h.dataDescription, h.subSpecification) && ((tslice % oroute.maxTimeslices) == oroute.timeslice)) {
           LOG(debug) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
           return std::string{oroute.channel};
         }
       }
     }
-    LOGP(error, "Failed to find output channel for {}/{}/{} @ timeslice {}", h.dataOrigin.str, h.dataDescription.str, h.subSpecification, h.tfCounter);
+    auto& outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
+    LOGP(error, "Failed to find output channel for {}/{}/{} @ timeslice {}", h.dataOrigin, h.dataDescription, h.subSpecification, h.tfCounter);
+    for (auto& oroute : outputRoutes) {
+      LOGP(info, "Available route  route {}", o2f::DataSpecUtils::describe(oroute.matcher));
+    }
     return std::string{};
   };
   auto setTimingInfo = [&ctx](TFMap& msgMap) {
@@ -176,7 +181,7 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
       outHeader.firstTForbit = hd0->firstTForbit;
       outHeader.tfCounter = hd0->tfCounter;
       outHeader.runNumber = hd0->runNumber;
-      const auto fmqChannel = findOutputChannel(outHeader);
+      const auto fmqChannel = findOutputChannel(outHeader, dph->startTime);
       if (fmqChannel.empty()) { // no output channel
         continue;
       }
@@ -341,7 +346,7 @@ void TFReaderSpec::TFBuilder()
       }
     } /*catch (...) {
       LOGP(error, "Error when building {}-th TF from file {}", locID, tfFileName);
-      mFileFetcher->popFromQueue(mFileFetcher->getNLoops() >= mInput.maxLoops); // remove faile TF file
+      mFileFetcher->popFromQueue(mFileFetcher->getNLoops() >= mInput.maxLoops); // remove failed TF file
     } */
   }
 }

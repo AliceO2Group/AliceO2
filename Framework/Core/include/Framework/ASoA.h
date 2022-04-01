@@ -1858,6 +1858,7 @@ void notBoundTable(const char* tableName);
       auto a = *mColumnIterator;                                                           \
       auto t = static_cast<T const*>(mBinding)->rawSlice(a[0], a[1]);                      \
       static_cast<T const*>(mBinding)->copyIndexBindings(t);                               \
+      t.bindInternalIndicesTo(mBinding);                                                   \
       return t;                                                                            \
     }                                                                                      \
                                                                                            \

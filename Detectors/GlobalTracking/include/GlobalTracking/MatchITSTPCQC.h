@@ -77,6 +77,7 @@ class MatchITSTPCQC
   void getHistos(TObjArray& objar);
   void setSources(GID::mask_t src) { mSrc = src; }
   void setUseMC(bool b) { mUseMC = b; }
+  bool getUseMC() const { return mUseMC; }
   void deleteHistograms();
   void setGRPFileName(std::string fn) { mGRPFileName = fn; }
   void setGeomFileName(std::string fn) { mGeomFileName = fn; }

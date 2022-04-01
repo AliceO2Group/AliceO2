@@ -85,7 +85,7 @@ class EMCALChannelData
   /// \brief Merge the data of two slots.
   void merge(const EMCALChannelData* prev);
   int findBin(float v) const;
-  bool hasEnoughData() const;
+  bool hasEnoughData(const int minNEntries) const;
   boostHisto& getHisto() { return mHisto; }
   const boostHisto& getHisto() const { return mHisto; }
 

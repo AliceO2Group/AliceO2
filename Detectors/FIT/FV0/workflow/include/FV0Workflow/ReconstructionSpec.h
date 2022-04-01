@@ -41,8 +41,8 @@ class ReconstructionDPL : public Task
   void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
-  bool mUseMC = true;
-  std::string mCCDBpath = "";
+  bool mUseMC = false;
+  const std::string mCCDBpath = o2::base::NameConf::getCCDBServer();
   std::vector<o2::fv0::RecPoints> mRecPoints;
   std::vector<o2::fv0::ChannelDataFloat> mRecChData;
   o2::fv0::BaseRecoTask mReco;
@@ -51,7 +51,7 @@ class ReconstructionDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getReconstructionSpec(bool useMC = true, const std::string ccdbpath = "http://alice-ccdb.cern.ch/");
+framework::DataProcessorSpec getReconstructionSpec(bool useMC = false, const std::string ccdbpath = "http://alice-ccdb.cern.ch");
 
 } // namespace fv0
 } // namespace o2

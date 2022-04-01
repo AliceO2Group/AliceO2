@@ -16,16 +16,11 @@
 #ifndef O2_FV0_CTFCODER_H
 #define O2_FV0_CTFCODER_H
 
-#include <algorithm>
-#include <iterator>
-#include <string>
-#include "FV0Base/Geometry.h"
 #include "DataFormatsFV0/CTF.h"
-#include "DataFormatsFV0/BCData.h"
+#include "DataFormatsFV0/Digit.h"
 #include "DataFormatsFV0/ChannelData.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/CTFCoderBase.h"
-#include "rANS/rans.h"
 
 class TTree;
 
@@ -42,7 +37,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   /// entropy-encode digits to buffer with CTF
   template <typename VEC>
-  void encode(VEC& buff, const gsl::span<const BCData>& digitVec, const gsl::span<const ChannelData>& channelVec);
+  void encode(VEC& buff, const gsl::span<const Digit>& digitVec, const gsl::span<const ChannelData>& channelVec);
 
   /// entropy decode clusters from buffer with CTF
   template <typename VDIG, typename VCHAN>
@@ -52,7 +47,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
  private:
   /// compres digits clusters to CompressedDigits
-  void compress(CompressedDigits& cd, const gsl::span<const BCData>& digitVec, const gsl::span<const ChannelData>& channelVec);
+  void compress(CompressedDigits& cd, const gsl::span<const Digit>& digitVec, const gsl::span<const ChannelData>& channelVec);
   size_t estimateCompressedSize(const CompressedDigits& cc);
 
   /// decompress CompressedDigits to digits
@@ -60,12 +55,12 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   void decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& channelVec);
 
   void appendToTree(TTree& tree, CTF& ec);
-  void readFromTree(TTree& tree, int entry, std::vector<BCData>& digitVec, std::vector<ChannelData>& channelVec);
+  void readFromTree(TTree& tree, int entry, std::vector<Digit>& digitVec, std::vector<ChannelData>& channelVec);
 };
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
-void CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& digitVec, const gsl::span<const ChannelData>& channelVec)
+void CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const gsl::span<const ChannelData>& channelVec)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
@@ -165,11 +160,11 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
     uint8_t chID = 0;
     for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
       auto icc = channelVec.size();
-      const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.time[icc], cd.charge[icc]);
+      const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.time[icc], cd.charge[icc], -1); // TODO: MS: modify the CTF format and fill the chain correctly, not with -1
     }
     Triggers triggers;
-    triggers.triggerSignals = cd.trigger[idig];
-    digitVec.emplace_back(firstEntry, cd.nChan[idig], ir, triggers);
+    triggers.triggersignals = cd.trigger[idig];
+    digitVec.emplace_back(firstEntry, cd.nChan[idig], ir, triggers, idig);
   }
 }
 

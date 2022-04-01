@@ -119,6 +119,8 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     mWithMCTruth = o2::conf::DigiParams::Instance().mctruth;
     auto useDistortions = ic.options().get<int>("distortionType");
     auto triggeredMode = ic.options().get<bool>("TPCtriggered");
+    mUseCalibrationsFromCCDB = ic.options().get<bool>("TPCuseCCDB");
+    LOG(info) << "TPC calibrations from CCDB: " << mUseCalibrationsFromCCDB;
 
     if (useDistortions > 0) {
       if (useDistortions == 1) {
@@ -233,7 +235,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
 
     /// For the time being use the defaults for the CDB
     auto& cdb = o2::tpc::CDBInterface::instance();
-    cdb.setUseDefaults();
+    cdb.setUseDefaults(!mUseCalibrationsFromCCDB);
     if (std::filesystem::exists("GainMap.root")) {
       LOG(info) << "TPC: Using gain map from 'GainMap.root'";
       cdb.setGainMapFromFile("GainMap.root");
@@ -250,7 +252,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
           delete mInternalROOTFlushFile;
           mInternalROOTFlushFile = nullptr;
         }
-        //TODO: make generic reset method?
+        // TODO: make generic reset method?
         mFlushCounter = 0;
         mDigitCounter = 0;
       }
@@ -466,6 +468,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
   bool mWriteGRP = false;
   bool mWithMCTruth = true;
   bool mInternalWriter = false;
+  bool mUseCalibrationsFromCCDB = false;
 };
 
 o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP, bool mctruth, bool internalwriter)
@@ -498,10 +501,13 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP,
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
     outputs,
     AlgorithmSpec{adaptFromTask<TPCDPLDigitizerTask>(internalwriter)},
-    Options{{"distortionType", VariantType::Int, 0, {"Distortion type to be used. 0 = no distortions (default), 1 = realistic distortions (not implemented yet), 2 = constant distortions"}},
-            {"initialSpaceChargeDensity", VariantType::String, "", {"Path to root file containing TH3 with initial space-charge density and name of the TH3 (comma separated)"}},
-            {"readSpaceCharge", VariantType::String, "", {"Path to root file containing pre-calculated space-charge object and name of the object (comma separated)"}},
-            {"TPCtriggered", VariantType::Bool, false, {"Impose triggered RO mode (default: continuous)"}}}};
+    Options{
+      {"distortionType", VariantType::Int, 0, {"Distortion type to be used. 0 = no distortions (default), 1 = realistic distortions (not implemented yet), 2 = constant distortions"}},
+      {"initialSpaceChargeDensity", VariantType::String, "", {"Path to root file containing TH3 with initial space-charge density and name of the TH3 (comma separated)"}},
+      {"readSpaceCharge", VariantType::String, "", {"Path to root file containing pre-calculated space-charge object and name of the object (comma separated)"}},
+      {"TPCtriggered", VariantType::Bool, false, {"Impose triggered RO mode (default: continuous)"}},
+      {"TPCuseCCDB", VariantType::Bool, false, {"true: load calibrations from CCDB; false: use random calibratoins"}},
+    }};
 }
 
 o2::framework::WorkflowSpec getTPCDigitizerSpec(int nLanes, std::vector<int> const& sectors, bool mctruth, bool internalwriter)

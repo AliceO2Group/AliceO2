@@ -72,6 +72,8 @@ class RawBufferContext
     return mProxy;
   }
 
+  int countDeviceOutputs(bool excludeDPLOrigin);
+
  private:
   FairMQDeviceProxy mProxy;
   Messages mMessages;

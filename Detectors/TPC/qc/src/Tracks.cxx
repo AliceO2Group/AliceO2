@@ -33,8 +33,8 @@ void Tracks::initializeHistograms()
 {
   const auto logPtBinning = helpers::makeLogBinning(100, 0.05, 20);
 
-  mHist1D.emplace_back("hNClustersBeforeCuts", "Number of clusters (before cuts);# TPC clusters", 160, -0.5, 159.5);            //| mHist1D[0]
-  mHist1D.emplace_back("hNClustersAfterCuts", "Number of clusters;# TPC clusters", 160, -0.5, 159.5);                           //| mHist1D[1]
+  mHist1D.emplace_back("hNClustersBeforeCuts", "Number of clusters (before cuts);# TPC clusters", 400, -0.5, 399.5);            //| mHist1D[0]
+  mHist1D.emplace_back("hNClustersAfterCuts", "Number of clusters;# TPC clusters", 400, -0.5, 399.5);                           //| mHist1D[1]
   mHist1D.emplace_back("hEta", "Pseudorapidity;eta", 400, -2., 2.);                                                             //| mHist1D[2]
   mHist1D.emplace_back("hPhiAside", "Azimuthal angle, A side;phi", 360, 0., 2 * M_PI);                                          //| mHist1D[3]
   mHist1D.emplace_back("hPhiCside", "Azimuthal angle, C side;phi", 360, 0., 2 * M_PI);                                          //| mHist1D[4]
@@ -50,17 +50,21 @@ void Tracks::initializeHistograms()
   mHist1D.emplace_back("hPtPos", "Transverse momentum, pos. tracks;p_T", logPtBinning.size() - 1, logPtBinning.data());         //| mHist1D[14]
   mHist1D.emplace_back("hEtaBeforeCuts", "Pseudorapidity (before cuts);eta", 400, -2., 2.);                                     //| mHist1D[15]
   mHist1D.emplace_back("hPtBeforeCuts", "Transverse momentum (before cuts);p_T", logPtBinning.size() - 1, logPtBinning.data()); //| mHist1D[16]
+  mHist1D.emplace_back("hQOverPt", "Charge over transverse momentum;q/p_T", 400, -20., 20.);                                    //| mHist1D[17]
+  mHist1D.emplace_back("hPhiBothSides", "Azimuthal angle, both sides clusters;phi", 360, 0., 2 * M_PI);                         //| mHist1D[18]
 
-  mHist2D.emplace_back("h2DNClustersEta", "Number of clusters vs. eta;eta;# TPC clusters", 400, -2., 2., 160, -0.5, 159.5);                                               //| mHist2D[0]
-  mHist2D.emplace_back("h2DNClustersPhiAside", "Number of clusters vs. phi, A side ;phi;# TPC clusters", 360, 0., 2 * M_PI, 160, -0.5, 159.5);                            //| mHist2D[1]
-  mHist2D.emplace_back("h2DNClustersPhiCside", "Number of clusters vs. phi, C side ;phi;# TPC clusters", 360, 0., 2 * M_PI, 160, -0.5, 159.5);                            //| mHist2D[2]
-  mHist2D.emplace_back("h2DNClustersPt", "Number of clusters vs. p_T;p_T;# TPC clusters", logPtBinning.size() - 1, logPtBinning.data(), 160, -0.5, 159.5);                //| mHist2D[3]
+  mHist2D.emplace_back("h2DNClustersEta", "Number of clusters vs. eta;eta;# TPC clusters", 400, -2., 2., 200, -0.5, 199.5);                                               //| mHist2D[0]
+  mHist2D.emplace_back("h2DNClustersPhiAside", "Number of clusters vs. phi, A side ;phi;# TPC clusters", 360, 0., 2 * M_PI, 200, -0.5, 199.5);                            //| mHist2D[1]
+  mHist2D.emplace_back("h2DNClustersPhiCside", "Number of clusters vs. phi, C side ;phi;# TPC clusters", 360, 0., 2 * M_PI, 200, -0.5, 199.5);                            //| mHist2D[2]
+  mHist2D.emplace_back("h2DNClustersPt", "Number of clusters vs. p_T;p_T;# TPC clusters", logPtBinning.size() - 1, logPtBinning.data(), 200, -0.5, 199.5);                //| mHist2D[3]
   mHist2D.emplace_back("h2DEtaPhi", "Tracks in eta vs. phi;phi;eta", 360, 0., 2 * M_PI, 400, -2., 2.);                                                                    //| mHist2D[4]
   mHist2D.emplace_back("h2DEtaPhiNeg", "Negative tracks in eta vs. phi;phi;eta", 360, 0., 2 * M_PI, 400, -2., 2.);                                                        //| mHist2D[5]
   mHist2D.emplace_back("h2DEtaPhiPos", "Positive tracks in eta vs. phi;phi;eta", 360, 0., 2 * M_PI, 400, -2., 2.);                                                        //| mHist2D[6]
-  mHist2D.emplace_back("h2DNClustersEtaBeforeCuts", "NClusters vs. eta (before cuts);eta;# TPC clusters", 400, -2., 2., 160, -0.5, 159.5);                                //| mHist2D[7]
-  mHist2D.emplace_back("h2DNClustersPtBeforeCuts", "NClusters vs. p_T (before cuts);p_T;# TPC clusters", logPtBinning.size() - 1, logPtBinning.data(), 160, -0.5, 159.5); //| mHist2D[8]
+  mHist2D.emplace_back("h2DNClustersEtaBeforeCuts", "NClusters vs. eta (before cuts);eta;# TPC clusters", 400, -2., 2., 200, -0.5, 199.5);                                //| mHist2D[7]
+  mHist2D.emplace_back("h2DNClustersPtBeforeCuts", "NClusters vs. p_T (before cuts);p_T;# TPC clusters", logPtBinning.size() - 1, logPtBinning.data(), 200, -0.5, 199.5); //| mHist2D[8]
   mHist2D.emplace_back("h2DEtaPhiBeforeCuts", "Tracks in eta vs. phi (before cuts);phi;eta", 360, 0., 2 * M_PI, 400, -2., 2.);                                            //| mHist2D[9]
+  mHist2D.emplace_back("h2DQOverPtPhiAside", "Charger over p_T vs. phi, A side;phi;q/p_T", 360, 0., 2 * M_PI, 400, -20., 20.);                                            //| mHist2D[10]
+  mHist2D.emplace_back("h2DQOverPtPhiCside", "Charger over p_T vs. phi, C side;phi;q/p_T", 360, 0., 2 * M_PI, 400, -20., 20.);                                            //| mHist2D[11]
 
   mHistRatio1D.emplace_back("hEtaRatio", "Pseudorapidity, ratio neg./pos. ;eta", 400, -2., 2.);                                     //| mHistRatio1D[0]
   mHistRatio1D.emplace_back("hPhiAsideRatio", "Azimuthal angle, A side, ratio neg./pos. ;phi", 360, 0., 2 * M_PI);                  //| mHistRatio1D[1]
@@ -87,8 +91,11 @@ bool Tracks::processTrack(const o2::tpc::TrackTPC& track)
   const auto phi = track.getPhi();
   const auto pt = track.getPt();
   const auto sign = track.getSign();
+  const auto qOverPt = track.getQ2Pt();
   const auto nCls = track.getNClusterReferences();
   const auto dEdxTot = track.getdEdx().dEdxTotTPC;
+  const auto hasASideOnly = track.hasASideClustersOnly();
+  const auto hasCSideOnly = track.hasCSideClustersOnly();
 
   double absEta = TMath::Abs(eta);
 
@@ -107,29 +114,32 @@ bool Tracks::processTrack(const o2::tpc::TrackTPC& track)
     mHist1D[1].Fill(nCls);
     mHist1D[2].Fill(eta);
 
-    if (eta > 0.) {
+    if (hasASideOnly == 1) {
       mHist1D[3].Fill(phi);
-    } else {
+    } else if (hasCSideOnly == 1) {
       mHist1D[4].Fill(phi);
+    } else {
+      mHist1D[18].Fill(phi);
     }
 
     mHist1D[5].Fill(pt);
     mHist1D[6].Fill(sign);
+    mHist1D[17].Fill(qOverPt);
 
     if (sign < 0.) {
       mHist1D[7].Fill(eta);
       mHist1D[13].Fill(pt);
-      if (eta > 0.) {
+      if (hasASideOnly == 1) {
         mHist1D[9].Fill(phi);
-      } else {
+      } else if (hasCSideOnly == 1) {
         mHist1D[11].Fill(phi);
       }
     } else {
       mHist1D[8].Fill(eta);
       mHist1D[14].Fill(pt);
-      if (eta > 0.) {
+      if (hasASideOnly == 1) {
         mHist1D[10].Fill(phi);
-      } else {
+      } else if (hasCSideOnly == 1) {
         mHist1D[12].Fill(phi);
       }
     }
@@ -137,10 +147,12 @@ bool Tracks::processTrack(const o2::tpc::TrackTPC& track)
     // ===| 2D histogram filling |===
     mHist2D[0].Fill(eta, nCls);
 
-    if (eta > 0.) {
+    if (hasASideOnly == 1) {
       mHist2D[1].Fill(phi, nCls);
-    } else {
+      mHist2D[10].Fill(phi, qOverPt);
+    } else if (hasCSideOnly == 1) {
       mHist2D[2].Fill(phi, nCls);
+      mHist2D[11].Fill(phi, qOverPt);
     }
 
     mHist2D[3].Fill(pt, nCls);

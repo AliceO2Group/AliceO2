@@ -12,7 +12,7 @@
 #define O2_FRAMEWORK_CHANNELINFO_H
 
 #include <string>
-#include <FairMQParts.h>
+#include <fairmq/Parts.h>
 
 #include <fairmq/FwdDecls.h>
 

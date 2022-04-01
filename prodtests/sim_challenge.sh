@@ -127,7 +127,7 @@ if [ "$doreco" == "1" ]; then
 
   echo "Running TPC reco flow"
   #needs TPC digitized data
-  taskwrapper tpcreco.log o2-tpc-reco-workflow $gloOpt --input-type digits --output-type clusters,tracks,send-clusters-per-sector  --configKeyValues "GPU_rec.maxTrackQPt=20"
+  taskwrapper tpcreco.log o2-tpc-reco-workflow $gloOpt --input-type digits --output-type clusters,tracks,send-clusters-per-sector  --configKeyValues "GPU_rec.maxTrackQPtB5=20"
   echo "Return status of tpcreco: $?"
 
   echo "Running ITS reco flow"

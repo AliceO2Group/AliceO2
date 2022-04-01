@@ -47,43 +47,43 @@ T getValueImpl(const DataPointCompositeObject& dpcom)
 template <>
 double getValue(const DataPointCompositeObject& dpcom)
 {
-  return getValueImpl<double, DeliveryType::RAW_DOUBLE>(dpcom);
+  return getValueImpl<double, DeliveryType::DPVAL_DOUBLE>(dpcom);
 }
 
 template <>
 float getValue(const DataPointCompositeObject& dpcom)
 {
-  return getValueImpl<float, DeliveryType::RAW_FLOAT>(dpcom);
+  return getValueImpl<float, DeliveryType::DPVAL_FLOAT>(dpcom);
 }
 
 template <>
 uint32_t getValue(const DataPointCompositeObject& dpcom)
 {
-  return getValueImpl<uint32_t, DeliveryType::RAW_UINT>(dpcom);
+  return getValueImpl<uint32_t, DeliveryType::DPVAL_UINT>(dpcom);
 }
 
 template <>
 int32_t getValue(const DataPointCompositeObject& dpcom)
 {
-  return getValueImpl<int32_t, DeliveryType::RAW_INT>(dpcom);
+  return getValueImpl<int32_t, DeliveryType::DPVAL_INT>(dpcom);
 }
 
 template <>
 char getValue(const DataPointCompositeObject& dpcom)
 {
-  return getValueImpl<char, DeliveryType::RAW_CHAR>(dpcom);
+  return getValueImpl<char, DeliveryType::DPVAL_CHAR>(dpcom);
 }
 
 template <>
 bool getValue(const DataPointCompositeObject& dpcom)
 {
-  return getValueImpl<bool, DeliveryType::RAW_BOOL>(dpcom);
+  return getValueImpl<bool, DeliveryType::DPVAL_BOOL>(dpcom);
 }
 
 template <>
 std::string getValue(const DataPointCompositeObject& dpcom)
 {
-  if (dpcom.id.get_type() != o2::dcs::DeliveryType::RAW_STRING) {
+  if (dpcom.id.get_type() != o2::dcs::DeliveryType::DPVAL_STRING) {
     throw std::runtime_error("DPCOM is of unexpected type " + o2::dcs::show(dpcom.id.get_type()));
   }
   return std::string((char*)&dpcom.data.payload_pt1);

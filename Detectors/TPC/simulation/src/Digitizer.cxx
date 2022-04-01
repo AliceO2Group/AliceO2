@@ -40,6 +40,12 @@ void Digitizer::init()
   if (mUseSCDistortions) {
     mSpaceCharge->init();
   }
+  auto& gemAmplification = GEMAmplification::instance();
+  gemAmplification.updateParameters();
+  auto& electronTransport = ElectronTransport::instance();
+  electronTransport.updateParameters();
+  auto& sampaProcessing = SAMPAProcessing::instance();
+  sampaProcessing.updateParameters();
 }
 
 void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
@@ -50,12 +56,9 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
   auto& eleParam = ParameterElectronics::Instance();
   auto& gemParam = ParameterGEM::Instance();
 
-  static GEMAmplification& gemAmplification = GEMAmplification::instance();
-  gemAmplification.updateParameters();
-  static ElectronTransport& electronTransport = ElectronTransport::instance();
-  electronTransport.updateParameters();
-  static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
-  sampaProcessing.updateParameters();
+  auto& gemAmplification = GEMAmplification::instance();
+  auto& electronTransport = ElectronTransport::instance();
+  auto& sampaProcessing = SAMPAProcessing::instance();
 
   const int nShapedPoints = eleParam.NShapedPoints;
   const auto amplificationMode = gemParam.AmplMode;

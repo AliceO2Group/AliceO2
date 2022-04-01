@@ -249,7 +249,7 @@ void GPUDisplay::HandleKey(unsigned char key)
     if (mCfgR.drawQualityMSAA < 2) {
       mCfgR.drawQualityMSAA = 2;
     }
-    if (mCfgR.drawQualityMSAA > 16) {
+    if (mCfgR.drawQualityMSAA > 16 || mCfgR.drawQualityMSAA > mBackend->getMaxMSAA()) {
       mCfgR.drawQualityMSAA = 0;
     }
     SetInfo("Multisampling anti-aliasing factor set to %d", mCfgR.drawQualityMSAA);
@@ -355,10 +355,10 @@ void GPUDisplay::HandleKey(unsigned char key)
     }
     SetInfo("Screenshot scaling factor set to %d", mCfgR.screenshotScaleFactor);
   } else if (key == 'y' || key == 'T') {
-    if ((mAnimateScreenshot = (key == 'T'))) {
-      mAnimationExport++;
-    }
     if (mAnimateVectors[0].size() > 1) {
+      if ((mAnimateScreenshot = (key == 'T'))) {
+        mAnimationExport++;
+      }
       startAnimation();
       SetInfo("Starting Animation", 1);
     } else {

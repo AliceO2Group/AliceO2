@@ -11,9 +11,9 @@
 
 /// @author Sandro Wenzel
 
-#include <FairMQTransportFactory.h>
-#include <FairMQChannel.h>
-#include <FairMQMessage.h>
+#include <fairmq/TransportFactory.h>
+#include <fairmq/Channel.h>
+#include <fairmq/Message.h>
 
 #include <cstdlib>
 #include <unistd.h>
@@ -584,6 +584,13 @@ int main(int argc, char* argv[])
         LOG(info) << "SHUTTING DOWN CHILD PROCESS " << p;
         killpg(p, SIGTERM);
       }
+    }
+  }
+  // definitely wait on all children
+  // otherwise this breaks accounting in the /usr/bin/time command
+  while ((cpid = wait(&status))) {
+    if (cpid == -1) {
+      break;
     }
   }
 

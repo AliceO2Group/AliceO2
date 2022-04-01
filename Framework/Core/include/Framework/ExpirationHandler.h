@@ -15,6 +15,7 @@
 #include "Framework/Lifetime.h"
 #include "Framework/RoutingIndices.h"
 #include "Framework/DataDescriptorMatcher.h"
+#include "Framework/InputSpan.h"
 #include <cstdint>
 #include <functional>
 
@@ -25,11 +26,12 @@ struct PartRef;
 struct ServiceRegistry;
 struct TimesliceIndex;
 struct TimesliceSlot;
+struct InputRecord;
 
 struct ExpirationHandler {
   using Creator = std::function<TimesliceSlot(TimesliceIndex&)>;
   /// Callback type to check if the record must be expired
-  using Checker = std::function<bool(ServiceRegistry&, uint64_t timestamp)>;
+  using Checker = std::function<bool(ServiceRegistry&, uint64_t timestamp, InputSpan const& record)>;
   /// Callback type to actually materialise a given record
   using Handler = std::function<void(ServiceRegistry&, PartRef& expiredInput, data_matcher::VariableContext& variables)>;
 

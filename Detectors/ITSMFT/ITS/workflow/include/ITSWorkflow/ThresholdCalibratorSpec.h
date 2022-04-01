@@ -19,6 +19,8 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <set>
+#include <deque>
 
 #include <iostream>
 #include <fstream>
@@ -33,7 +35,7 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Task.h"
-#include <FairMQDevice.h>
+#include <fairmq/Device.h>
 
 #include <ITSMFTReconstruction/RawPixelDecoder.h> //o2::itsmft::RawPixelDecoder
 #include "DetectorsCalibration/Utils.h"
@@ -115,10 +117,10 @@ class ITSThresholdCalibrator : public Task
   short int* mX = nullptr;
 
   // Hash tables to store the hit and threshold information per pixel
-  std::unordered_map<short int, short int> mCurrentRow;
-  std::unordered_map<short int, std::vector<std::vector<char>>> mPixelHits;
+  std::map<short int, std::map<int, std::vector<std::vector<char>>>> mPixelHits;
+  std::map<short int, std::deque<short int>> mForbiddenRows;
   //   Unordered map for saving sum of values (thr/ithr/vcasn) for avg calculation
-  std::unordered_map<short int, std::array<int, 5>> mThresholds;
+  std::map<short int, std::array<int, 5>> mThresholds;
 
   // Tree to save threshold info in full threshold scan case
   TFile* mRootOutfile = nullptr;
@@ -135,7 +137,7 @@ class ITSThresholdCalibrator : public Task
 
   // Some private helper functions
   // Helper functions related to the running over data
-  void extractAndUpdate(const short int&);
+  void extractAndUpdate(const short int&, const short int&);
   void extractThresholdRow(const short int&, const short int&);
   void finalizeOutput();
 
@@ -151,7 +153,7 @@ class ITSThresholdCalibrator : public Task
   bool findThresholdFit(const char*, const short int*, const short int&, float&, float&);
   bool findThresholdDerivative(const char*, const short int*, const short int&, float&, float&);
   bool findThresholdHitcounting(const char*, const short int*, const short int&, float&);
-  bool isScanFinished(const short int&);
+  bool isScanFinished(const short int&, const short int&);
   void findAverage(const std::array<int, 5>&, float&, float&, float&, float&);
   void saveThreshold();
 
@@ -197,7 +199,6 @@ class ITSThresholdCalibrator : public Task
 
   // Flag to check if endOfStream is available
   bool mCheckEos = false;
-  int mCounter = 0;
 };
 
 // Create a processor spec

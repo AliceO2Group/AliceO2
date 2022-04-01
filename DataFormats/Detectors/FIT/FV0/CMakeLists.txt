@@ -12,7 +12,7 @@
 o2_add_library(DataFormatsFV0
         SOURCES src/Hit.cxx
                 src/ChannelData.cxx
-                src/BCData.cxx
+                src/Digit.cxx
                 src/RecPoints.cxx
                 src/RawEventData.cxx
                 src/CTF.cxx
@@ -24,7 +24,7 @@ o2_add_library(DataFormatsFV0
 
 o2_target_root_dictionary(DataFormatsFV0
         HEADERS include/DataFormatsFV0/Hit.h
-                include/DataFormatsFV0/BCData.h
+                include/DataFormatsFV0/Digit.h
                 include/DataFormatsFV0/MCLabel.h
                 include/DataFormatsFV0/ChannelData.h
                 include/DataFormatsFV0/RecPoints.h

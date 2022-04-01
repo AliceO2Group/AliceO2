@@ -559,6 +559,27 @@ void GPUChainTracking::SetTRDGeometry(std::unique_ptr<o2::trd::GeometryFlat>&& g
   processors()->calibObjects.trdGeometry = mTRDGeometryU.get();
 }
 
+void GPUChainTracking::DoQueuedCalibUpdates(int stream)
+{
+  if (mUpdateNewCalibObjects) {
+    void** pSrc = (void**)&mNewCalibObjects;
+    void** pDst = (void**)&processors()->calibObjects;
+    for (unsigned int i = 0; i < sizeof(mNewCalibObjects) / sizeof(void*); i++) {
+      if (pSrc[i]) {
+        pDst[i] = pSrc[i];
+      }
+    }
+    if (mRec->IsGPU()) {
+      mRec->ResetRegisteredMemoryPointers(mFlatObjectsShadow.mMemoryResFlat);
+      UpdateGPUCalibObjects(stream);
+    }
+  }
+  if ((mUpdateNewCalibObjects || mRec->slavesExist()) && mRec->IsGPU()) {
+    UpdateGPUCalibObjectsPtrs(stream); // Reinitialize
+  }
+  mUpdateNewCalibObjects = false;
+}
+
 int GPUChainTracking::RunChain()
 {
   if (GetProcessingSettings().ompAutoNThreads && !mRec->IsGPU()) {
@@ -577,23 +598,7 @@ int GPUChainTracking::RunChain()
   if (GetProcessingSettings().debugLevel >= 6) {
     *mDebugFile << "\n\nProcessing event " << mRec->getNEventsProcessed() << std::endl;
   }
-  if (mUpdateNewCalibObjects) {
-    void** pSrc = (void**)&mNewCalibObjects;
-    void** pDst = (void**)&processors()->calibObjects;
-    for (unsigned int i = 0; i < sizeof(mNewCalibObjects) / sizeof(void*); i++) {
-      if (pSrc[i]) {
-        pDst[i] = pSrc[i];
-      }
-    }
-    if (mRec->IsGPU()) {
-      mRec->ResetRegisteredMemoryPointers(mFlatObjectsShadow.mMemoryResFlat);
-      UpdateGPUCalibObjects(0);
-    }
-  }
-  if ((mUpdateNewCalibObjects || mRec->slavesExist()) && mRec->IsGPU()) {
-    UpdateGPUCalibObjectsPtrs(0); // Reinitialize
-  }
-  mUpdateNewCalibObjects = false;
+  DoQueuedCalibUpdates(0);
 
   mRec->getGeneralStepTimer(GeneralStep::Prepare).Start();
   try {

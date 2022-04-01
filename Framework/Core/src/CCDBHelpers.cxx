@@ -164,7 +164,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
   // For Giulio: the dtc.orbitResetTime is wrong, it is assigned from the dph->creation, why?
   std::string ccdbMetadataPrefix = "ccdb-metadata-";
   for (auto& route : helper->routes) {
-    LOGP(info, "Fetching object for route {}", route.matcher);
+    LOGP(debug, "Fetching object for route {}", route.matcher);
 
     auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
     Output output{concrete.origin, concrete.description, concrete.subSpec, route.matcher.lifetime};
@@ -193,7 +193,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
     if (!api.isSnapshotMode() || etag.empty()) { // in the snapshot mode the object needs to be fetched only once
       api.loadFileToMemory(v, path, metadata, timestamp, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
       if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
-        LOGP(debug, "Unable to find object {}/{}", path, timingInfo.timeslice);
+        LOGP(fatal, "Unable to find object {}/{}", path, timingInfo.timeslice);
         // FIXME: I should send a dummy message.
         continue;
       }
@@ -209,7 +209,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
         helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
         auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodCCDB);
         helper->mapURL2DPLCache[path] = cacheId;
-        LOGP(info, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
+        LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
         // one could modify the    adoptContainer to take optional old cacheID to clean:
         // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), true, mapURL2DPLCache[URL]);
         continue;
@@ -217,7 +217,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
     }
     // cached object is fine
     auto cacheId = helper->mapURL2DPLCache[path];
-    LOGP(info, "Reusing {} for {}", cacheId.value, path);
+    LOGP(debug, "Reusing {} for {}", cacheId.value, path);
     allocator.adoptFromCache(output, cacheId, header::gSerializationMethodCCDB);
     // the outputBuffer was not used, can we destroy it?
   }
@@ -320,7 +320,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           // the outputBuffer was not used, can we destroy it?
 
           if (newOrbitResetTime != orbitResetTime) {
-            LOGP(info, "Orbit reset time now at {} (was {})",
+            LOGP(debug, "Orbit reset time now at {} (was {})",
                  newOrbitResetTime, orbitResetTime);
             orbitResetTime = newOrbitResetTime;
           }
@@ -328,7 +328,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
 
         int64_t timestamp = ceil((timingInfo.firstTFOrbit * o2::constants::lhc::LHCOrbitNS / 1000 + orbitResetTime) / 1000); // RS ceilf precision is not enough
         // Fetch the rest of the objects.
-        LOGP(info, "Fetching objects. Run: {}. OrbitResetTime: {}, Creation: {}, Timestamp: {}, firstTFOrbit: {}",
+        LOGP(debug, "Fetching objects. Run: {}. OrbitResetTime: {}, Creation: {}, Timestamp: {}, firstTFOrbit: {}",
              dtc.runNumber, orbitResetTime, timingInfo.creation, timestamp, timingInfo.firstTFOrbit);
 
         populateCacheWith(helper, timestamp, timingInfo, dtc, allocator);

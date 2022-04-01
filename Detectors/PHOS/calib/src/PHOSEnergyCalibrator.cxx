@@ -22,16 +22,14 @@ using namespace o2::phos;
 
 PHOSEnergySlot::PHOSEnergySlot()
 {
-  mHistos.reset();
-  mBuffer.reset(new RingBuffer());
+  mHistos = std::make_unique<ETCalibHistos>();
+  mBuffer = std::make_unique<RingBuffer>();
   mGeom = Geometry::GetInstance();
 }
 PHOSEnergySlot::PHOSEnergySlot(const PHOSEnergySlot& other)
 {
   mRunStartTime = other.mRunStartTime;
-  mBuffer.reset(new RingBuffer());
-  mCalibParams.reset(new CalibParams(*(other.mCalibParams)));
-  mBadMap.reset(new BadChannelsMap(*(other.mBadMap)));
+  mBuffer = std::make_unique<RingBuffer>();
   mEvBC = other.mEvBC;
   mEvOrbit = other.mEvOrbit;
   mEvent = 0;
@@ -39,7 +37,7 @@ PHOSEnergySlot::PHOSEnergySlot(const PHOSEnergySlot& other)
   mEminHGTime = other.mEminHGTime;
   mEminLGTime = other.mEminLGTime;
   mDigits.clear();
-  mHistos.reset();
+  mHistos = std::make_unique<ETCalibHistos>();
 }
 
 void PHOSEnergySlot::print() const
@@ -49,13 +47,13 @@ void PHOSEnergySlot::print() const
 
 void PHOSEnergySlot::fill(const gsl::span<const Cluster>& clusters, const gsl::span<const CluElement>& cluelements, const gsl::span<const TriggerRecord>& cluTR)
 {
-  //Scan current list of clusters
-  //Fill time, non-linearity and mgg histograms
-  //Fill list of re-calibraiable digits
+  // Scan current list of clusters
+  // Fill time, non-linearity and mgg histograms
+  // Fill list of re-calibraiable digits
+  mDigits.clear();
   for (auto& tr : cluTR) {
-
-    //Mark new event
-    //First goes new event marker + BC (16 bit), next word orbit (32 bit)
+    // Mark new event
+    // First goes new event marker + BC (16 bit), next word orbit (32 bit)
     EventHeader h = {0};
     h.mMarker = 16383;
     h.mBC = tr.getBCData().bc;
@@ -69,7 +67,7 @@ void PHOSEnergySlot::fill(const gsl::span<const Cluster>& clusters, const gsl::s
     mBuffer->startNewEvent(); // mark stored clusters to be used for Mixing
     for (int i = firstCluInEvent; i < lastCluInEvent; i++) {
       const Cluster& clu = clusters[i];
-      if (clu.getEnergy() < 1.e-4) { //There was problem in unfolding and cluster parameters not calculated
+      if (clu.getEnergy() < mClusterEmin) { // There was problem in unfolding and cluster parameters not calculated
         continue;
       }
       fillTimeMassHisto(clu, cluelements);
@@ -78,8 +76,11 @@ void PHOSEnergySlot::fill(const gsl::span<const Cluster>& clusters, const gsl::s
       uint32_t lastCE = clu.getLastCluEl();
       for (int idig = firstCE; idig < lastCE; idig++) {
         const CluElement& ce = cluelements[idig];
+        if (ce.energy < mDigitEmin) {
+          continue;
+        }
         short absId = ce.absId;
-        //Fill cells from cluster for next iterations
+        // Fill cells from cluster for next iterations
         short adcCounts = ce.energy / mCalibParams->getGain(absId);
         // Need to chale LG gain too to fit dynamic range
         if (!ce.isHG) {
@@ -92,8 +93,8 @@ void PHOSEnergySlot::fill(const gsl::span<const Cluster>& clusters, const gsl::s
         d.mCluster = (i - firstCluInEvent) % kMaxCluInEvent;
         mDigits.push_back(d.mDataWord);
         if (i - firstCluInEvent > kMaxCluInEvent) {
-          //Normally this is not critical as indexes are used "locally", i.e. are compared to previous/next
-          LOG(info) << "Too many clusters per event:" << i - firstCluInEvent << ", apply more strict selection; clusters with same indexes will appear";
+          // Normally this is not critical as indexes are used "locally", i.e. are compared to previous/next
+          LOG(important) << "Too many clusters per event:" << i - firstCluInEvent << ", apply more strict selection; clusters with same indexes will appear";
         }
       }
     }
@@ -101,7 +102,7 @@ void PHOSEnergySlot::fill(const gsl::span<const Cluster>& clusters, const gsl::s
 }
 void PHOSEnergySlot::clear()
 {
-  mHistos.reset();
+  mHistos->reset();
   mDigits.clear();
 }
 
@@ -116,24 +117,23 @@ void PHOSEnergySlot::fillTimeMassHisto(const Cluster& clu, const gsl::span<const
     short absId = ce.absId;
     if (ce.isHG) {
       if (ce.energy > mEminHGTime) {
-        mHistos.fill(ETCalibHistos::kTimeHGPerCell, absId, ce.time);
+        mHistos->fill(ETCalibHistos::kTimeHGPerCell, absId, ce.time);
       }
-      mHistos.fill(ETCalibHistos::kTimeHGSlewing, ce.time, ce.energy);
+      mHistos->fill(ETCalibHistos::kTimeHGSlewing, ce.time, ce.energy);
     } else {
       if (ce.energy > mEminLGTime) {
-        mHistos.fill(ETCalibHistos::kTimeLGPerCell, absId, ce.time);
+        mHistos->fill(ETCalibHistos::kTimeLGPerCell, absId, ce.time);
       }
-      mHistos.fill(ETCalibHistos::kTimeLGSlewing, ce.time, ce.energy);
+      mHistos->fill(ETCalibHistos::kTimeLGSlewing, ce.time, ce.energy);
     }
   }
 
-  //Real and Mixed inv mass distributions
-  // prepare TLorentsVector
+  // Real and Mixed inv mass distributions
+  //  prepare TLorentsVector
   float posX, posZ;
   clu.getLocalPosition(posX, posZ);
   TVector3 vec3;
   mGeom->local2Global(clu.module(), posX, posZ, vec3);
-  vec3 -= mVertex;
   float e = clu.getEnergy();
   short absId;
   mGeom->relPosToAbsId(clu.module(), posX, posZ, absId);
@@ -145,24 +145,24 @@ void PHOSEnergySlot::fillTimeMassHisto(const Cluster& clu, const gsl::span<const
   for (short ip = mBuffer->size(); ip--;) {
     const TLorentzVector& vp = mBuffer->getEntry(ip);
     TLorentzVector sum = v + vp;
-    if (mBuffer->isCurrentEvent(ip)) { //same (real) event
+    if (mBuffer->isCurrentEvent(ip)) { // same (real) event
       if (isGood) {
-        mHistos.fill(ETCalibHistos::kReInvMassNonlin, e, sum.M());
+        mHistos->fill(ETCalibHistos::kReInvMassNonlin, e, sum.M());
       }
       if (sum.Pt() > mPtMin) {
-        mHistos.fill(ETCalibHistos::kReInvMassPerCell, absId, sum.M());
+        mHistos->fill(ETCalibHistos::kReInvMassPerCell, absId, sum.M());
       }
-    } else { //Mixed
+    } else { // Mixed
       if (isGood) {
-        mHistos.fill(ETCalibHistos::kMiInvMassNonlin, e, sum.M());
+        mHistos->fill(ETCalibHistos::kMiInvMassNonlin, e, sum.M());
       }
       if (sum.Pt() > mPtMin) {
-        mHistos.fill(ETCalibHistos::kMiInvMassPerCell, absId, sum.M());
+        mHistos->fill(ETCalibHistos::kMiInvMassPerCell, absId, sum.M());
       }
     }
   }
 
-  //Add to list ot partners only if cluster is good
+  // Add to list ot partners only if cluster is good
   if (isGood) {
     mBuffer->addEntry(v);
   }
@@ -170,7 +170,7 @@ void PHOSEnergySlot::fillTimeMassHisto(const Cluster& clu, const gsl::span<const
 
 bool PHOSEnergySlot::checkCluster(const Cluster& clu)
 {
-  //First check BadMap
+  // First check BadMap
   float posX, posZ;
   clu.getLocalPosition(posX, posZ);
   short absId;
@@ -189,27 +189,16 @@ using Slot = o2::calibration::TimeSlot<o2::phos::PHOSEnergySlot>;
 PHOSEnergyCalibrator::PHOSEnergyCalibrator()
 {
   // create final histos
-  mHistos.reset(new ETCalibHistos());
+  mHistos = std::make_unique<ETCalibHistos>();
 }
 
 void PHOSEnergyCalibrator::finalizeSlot(Slot& slot)
 {
-
   // Extract results for the single slot
   es* c = slot.getContainer();
-  LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
-  //Add histos
+  LOG(debug) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
+  // Add histos
   mHistos->merge(c->getCollectedHistos());
-  //Add collected Digits
-  auto tmpD = c->getCollectedDigits();
-  //Add to list or write to file directly?
-  if (!mFout) { //not open yet?
-    LOG(info) << "Writing CalibDigits to file " << mdigitsfilename.data();
-    mFout.reset(TFile::Open(mdigitsfilename.data(), "recreate"));
-  }
-  int nbites = mFout->WriteObjectAny(&tmpD, "std::vector<uint32_t>", Form("Digits%d", mChank++));
-  LOG(info) << "Writing " << tmpD.size() << " CalibDigits, wrote " << nbites << "bytes";
-  c->clear();
 }
 
 Slot& PHOSEnergyCalibrator::emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend)
@@ -217,22 +206,25 @@ Slot& PHOSEnergyCalibrator::emplaceNewSlot(bool front, uint64_t tstart, uint64_t
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
   slot.setContainer(std::make_unique<es>());
-  slot.getContainer()->setBadMap(*mBadMap);
-  slot.getContainer()->setCalibration(*mCalibParams);
-  slot.getContainer()->setCuts(mPtMin, mEminHGTime, mEminLGTime);
+  slot.getContainer()->setBadMap(mBadMap);
+  slot.getContainer()->setCalibration(mCalibParams);
+  slot.getContainer()->setCuts(mPtMin, mEminHGTime, mEminLGTime, mDigitEmin, mClusterEmin);
   return slot;
 }
 
 bool PHOSEnergyCalibrator::process(uint64_t tf, const gsl::span<const Cluster>& clusters,
                                    const gsl::span<const CluElement>& cluelements,
-                                   const gsl::span<const TriggerRecord>& cluTR)
+                                   const gsl::span<const TriggerRecord>& cluTR,
+                                   std::vector<uint32_t>& outputDigits)
 {
   // process current TF
-  //First receive bad map and calibration if not received yet
-
+  // First receive bad map and calibration if not received yet
   auto& slotTF = getSlotForTF(tf);
   slotTF.getContainer()->setRunStartTime(tf);
   slotTF.getContainer()->fill(clusters, cluelements, cluTR);
+  // Add collected Digits
+  auto tmpD = slotTF.getContainer()->getCollectedDigits();
+  outputDigits.insert(outputDigits.end(), tmpD.begin(), tmpD.end());
   return true;
 }
 

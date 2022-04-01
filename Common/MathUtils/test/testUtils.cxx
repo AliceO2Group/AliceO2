@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(Utils_test)
     // dry run
     sum = 0;
     auto begin = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < iterations; ++i) {
+    for (size_t i = 0; i < iterations; ++i) {
       for (int j = 0; j < M; ++j) {
         sum += vx[j] + vy[j];
       }
@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(Utils_test)
     // double precision
     double dsum = 0;
     begin = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < iterations; ++i) {
+    for (size_t i = 0; i < iterations; ++i) {
       for (int j = 0; j < M; ++j) {
         dsum += std::atan2(vyd[j], vxd[j]);
       }
@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE(Utils_test)
     // single precision
     sum = 0;
     begin = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < iterations; ++i) {
+    for (size_t i = 0; i < iterations; ++i) {
       for (int j = 0; j < M; ++j) {
         sum += atan2f(vy[j], vx[j]);
       }
@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(Utils_test)
     // fast method
     sum = 0;
     begin = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < iterations; ++i) {
+    for (size_t i = 0; i < iterations; ++i) {
       for (int j = 0; j < M; ++j) {
         sum += math_utils::fastATan2(vy[j], vx[j]);
       }

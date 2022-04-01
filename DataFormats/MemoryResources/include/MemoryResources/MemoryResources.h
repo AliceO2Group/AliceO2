@@ -37,8 +37,8 @@
 #include <utility>
 #include <vector>
 #include <unordered_map>
-#include <FairMQMessage.h>
-#include <FairMQTransportFactory.h>
+#include <fairmq/Message.h>
+#include <fairmq/TransportFactory.h>
 #include <fairmq/MemoryResources.h>
 #include <fairmq/MemoryResourceTools.h>
 

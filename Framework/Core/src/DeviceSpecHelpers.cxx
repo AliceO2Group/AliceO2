@@ -309,7 +309,7 @@ struct ExpirationHandlerHelpers {
     return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::expireNever(); };
   }
 
-  static RouteConfigurator::ExpirationConfigurator expiringTransientConfigurator(InputSpec const& matcher)
+  static RouteConfigurator::ExpirationConfigurator expiringTransientConfigurator(InputSpec const&)
   {
     return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::fetchFromObjectRegistry(); };
   }
@@ -321,9 +321,9 @@ struct ExpirationHandlerHelpers {
   }
 
   /// This will always exipire an optional record when no data is received.
-  static RouteConfigurator::DanglingConfigurator danglingOptionalConfigurator()
+  static RouteConfigurator::DanglingConfigurator danglingOptionalConfigurator(std::vector<InputRoute> const& routes)
   {
-    return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::expireAlways(); };
+    return [routes](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::expireIfPresent(routes, ConcreteDataMatcher{"FLP", "DISTSUBTIMEFRAME", 0}); };
   }
 
   /// When the record expires, simply create a dummy entry.
@@ -331,13 +331,13 @@ struct ExpirationHandlerHelpers {
   {
     try {
       ConcreteDataMatcher concrete = DataSpecUtils::asConcreteDataMatcher(spec);
-      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
+      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const&) {
         return LifetimeHelpers::dummy(concrete, sourceChannel);
       };
     } catch (...) {
       ConcreteDataTypeMatcher dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
       ConcreteDataMatcher concrete{dataType.origin, dataType.description, 0xdeadbeef};
-      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
+      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const&) {
         return LifetimeHelpers::dummy(concrete, sourceChannel);
       };
       // We copy the matcher to avoid lifetime issues.
@@ -796,66 +796,6 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
       edge.producerTimeIndex,
       std::nullopt};
 
-    switch (consumer.inputs[edge.consumerInputIndex].lifetime) {
-      case Lifetime::OutOfBand:
-        route.configurator = {
-          .name = "oob",
-          .creatorConfigurator = ExpirationHandlerHelpers::loopEventDrivenConfigurator(inputSpec),
-          .danglingConfigurator = ExpirationHandlerHelpers::danglingOutOfBandConfigurator(),
-          .expirationConfigurator = ExpirationHandlerHelpers::expiringOOBConfigurator(inputSpec, sourceChannel)};
-        break;
-        //      case Lifetime::Condition:
-        //        route.configurator = {
-        //          ExpirationHandlerHelpers::dataDrivenConfigurator(),
-        //          ExpirationHandlerHelpers::danglingConditionConfigurator(),
-        //          ExpirationHandlerHelpers::expiringConditionConfigurator(inputSpec, sourceChannel)};
-        //        break;
-      case Lifetime::QA:
-        route.configurator = {
-          .name = "qa",
-          .creatorConfigurator = ExpirationHandlerHelpers::dataDrivenConfigurator(),
-          .danglingConfigurator = ExpirationHandlerHelpers::danglingQAConfigurator(),
-          .expirationConfigurator = ExpirationHandlerHelpers::expiringQAConfigurator()};
-        break;
-      case Lifetime::Timer:
-        route.configurator = {
-          .name = "timer",
-          .creatorConfigurator = ExpirationHandlerHelpers::timeDrivenConfigurator(inputSpec),
-          .danglingConfigurator = ExpirationHandlerHelpers::danglingTimerConfigurator(inputSpec),
-          .expirationConfigurator = ExpirationHandlerHelpers::expiringTimerConfigurator(inputSpec, sourceChannel)};
-        break;
-      case Lifetime::Enumeration:
-        route.configurator = {
-          .name = "enumeration",
-          .creatorConfigurator = ExpirationHandlerHelpers::enumDrivenConfigurator(inputSpec, consumerDevice.inputTimesliceId, consumerDevice.maxInputTimeslices),
-          .danglingConfigurator = ExpirationHandlerHelpers::danglingEnumerationConfigurator(inputSpec),
-          .expirationConfigurator = ExpirationHandlerHelpers::expiringEnumerationConfigurator(inputSpec, sourceChannel)};
-        break;
-      case Lifetime::Signal:
-        route.configurator = {
-          .name = "signal",
-          .creatorConfigurator = ExpirationHandlerHelpers::signalDrivenConfigurator(inputSpec, consumerDevice.inputTimesliceId, consumerDevice.maxInputTimeslices),
-          .danglingConfigurator = ExpirationHandlerHelpers::danglingEnumerationConfigurator(inputSpec),
-          .expirationConfigurator = ExpirationHandlerHelpers::expiringEnumerationConfigurator(inputSpec, sourceChannel)};
-        break;
-      case Lifetime::Transient:
-        route.configurator = {
-          .name = "transient",
-          .creatorConfigurator = ExpirationHandlerHelpers::dataDrivenConfigurator(),
-          .danglingConfigurator = ExpirationHandlerHelpers::danglingTransientConfigurator(),
-          .expirationConfigurator = ExpirationHandlerHelpers::expiringTransientConfigurator(inputSpec)};
-        break;
-      case Lifetime::Optional:
-        route.configurator = {
-          .name = "optional",
-          .creatorConfigurator = ExpirationHandlerHelpers::createOptionalConfigurator(),
-          .danglingConfigurator = ExpirationHandlerHelpers::danglingOptionalConfigurator(),
-          .expirationConfigurator = ExpirationHandlerHelpers::expiringOptionalConfigurator(inputSpec, sourceChannel)};
-        break;
-      default:
-        break;
-    }
-
     // In case we have wildcards, we must make sure that some other edge
     // produced the same route, i.e. has the same matcher.  Without this,
     // otherwise, we would end up with as many input routes as the outputs that
@@ -903,6 +843,72 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     }
     appendInputRouteToDestDeviceChannel(edge, consumerDevice, channel);
   }
+
+  // Bind the expiration mechanism to the input routes
+  for (auto& device : devices) {
+    for (auto& route : device.inputs) {
+      switch (route.matcher.lifetime) {
+        case Lifetime::OutOfBand:
+          route.configurator = {
+            .name = "oob",
+            .creatorConfigurator = ExpirationHandlerHelpers::loopEventDrivenConfigurator(route.matcher),
+            .danglingConfigurator = ExpirationHandlerHelpers::danglingOutOfBandConfigurator(),
+            .expirationConfigurator = ExpirationHandlerHelpers::expiringOOBConfigurator(route.matcher, route.sourceChannel)};
+          break;
+          //      case Lifetime::Condition:
+          //        route.configurator = {
+          //          ExpirationHandlerHelpers::dataDrivenConfigurator(),
+          //          ExpirationHandlerHelpers::danglingConditionConfigurator(),
+          //          ExpirationHandlerHelpers::expiringConditionConfigurator(inputSpec, sourceChannel)};
+          //        break;
+        case Lifetime::QA:
+          route.configurator = {
+            .name = "qa",
+            .creatorConfigurator = ExpirationHandlerHelpers::dataDrivenConfigurator(),
+            .danglingConfigurator = ExpirationHandlerHelpers::danglingQAConfigurator(),
+            .expirationConfigurator = ExpirationHandlerHelpers::expiringQAConfigurator()};
+          break;
+        case Lifetime::Timer:
+          route.configurator = {
+            .name = "timer",
+            .creatorConfigurator = ExpirationHandlerHelpers::timeDrivenConfigurator(route.matcher),
+            .danglingConfigurator = ExpirationHandlerHelpers::danglingTimerConfigurator(route.matcher),
+            .expirationConfigurator = ExpirationHandlerHelpers::expiringTimerConfigurator(route.matcher, route.sourceChannel)};
+          break;
+        case Lifetime::Enumeration:
+          route.configurator = {
+            .name = "enumeration",
+            .creatorConfigurator = ExpirationHandlerHelpers::enumDrivenConfigurator(route.matcher, device.inputTimesliceId, device.maxInputTimeslices),
+            .danglingConfigurator = ExpirationHandlerHelpers::danglingEnumerationConfigurator(route.matcher),
+            .expirationConfigurator = ExpirationHandlerHelpers::expiringEnumerationConfigurator(route.matcher, route.sourceChannel)};
+          break;
+        case Lifetime::Signal:
+          route.configurator = {
+            .name = "signal",
+            .creatorConfigurator = ExpirationHandlerHelpers::signalDrivenConfigurator(route.matcher, device.inputTimesliceId, device.maxInputTimeslices),
+            .danglingConfigurator = ExpirationHandlerHelpers::danglingEnumerationConfigurator(route.matcher),
+            .expirationConfigurator = ExpirationHandlerHelpers::expiringEnumerationConfigurator(route.matcher, route.sourceChannel)};
+          break;
+        case Lifetime::Transient:
+          route.configurator = {
+            .name = "transient",
+            .creatorConfigurator = ExpirationHandlerHelpers::dataDrivenConfigurator(),
+            .danglingConfigurator = ExpirationHandlerHelpers::danglingTransientConfigurator(),
+            .expirationConfigurator = ExpirationHandlerHelpers::expiringTransientConfigurator(route.matcher)};
+          break;
+        case Lifetime::Optional:
+          route.configurator = {
+            .name = "optional",
+            .creatorConfigurator = ExpirationHandlerHelpers::createOptionalConfigurator(),
+            .danglingConfigurator = ExpirationHandlerHelpers::danglingOptionalConfigurator(device.inputs),
+            .expirationConfigurator = ExpirationHandlerHelpers::expiringOptionalConfigurator(route.matcher, route.sourceChannel)};
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
   if (acceptedOffer.hostname != "") {
     resourceManager.notifyAcceptedOffer(acceptedOffer);
   }
@@ -1244,7 +1250,9 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     ConfigParamsHelper::dpl2BoostOptions(spec.options, od);
     od.add_options()(name, bpo::value<std::string>());
     ConfigParamsHelper::dpl2BoostOptions(workflowOptions, foDesc);
-    foDesc.add(getForwardedDeviceOptions());
+    auto forwardedOptions = getForwardedDeviceOptions();
+    /// Add to foDesc the options which are not already there
+    foDesc.add(forwardedOptions);
 
     // has option --session been specified on the command line?
     bool haveSessionArg = false;

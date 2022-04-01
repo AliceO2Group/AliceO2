@@ -56,6 +56,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   if (mFinished) {
     return;
   }
+  mDigitizer.flush();
 
   // read collision context from input
   auto context = ctx.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
@@ -73,64 +74,17 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
 
   LOG(info) << " CALLING EMCAL DIGITIZATION ";
   o2::dataformats::MCTruthContainer<o2::emcal::MCLabel> labelAccum;
-  std::vector<TriggerRecord> triggers;
 
   auto& eventParts = context->getEventParts();
-  mDigitizer.clear();
-  mAccumulatedDigits.clear();
-  int trigID = 0;
-  int indexStart = mAccumulatedDigits.size();
 
-  bool preTriggerColl = false;
   // loop over all composite collisions given from context
   // (aka loop over all the interaction records)
   for (int collID = 0; collID < timesview.size(); ++collID) {
 
-    mDigitizer.setEventTime(timesview[collID].getTimeNS());
-
-    if (!mDigitizer.isEmpty() && (o2::emcal::SimParam::Instance().isDisablePileup() || !mDigitizer.isLive()) && !preTriggerColl) {
-      // copy digits into accumulator
-      mDigits.clear();
-      mLabels.clear();
-      mDigitizer.fillOutputContainer(mDigits, mLabels);
-      std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(mAccumulatedDigits));
-      labelAccum.mergeAtBack(mLabels);
-      LOG(info) << "Have " << mAccumulatedDigits.size() << " digits ";
-      triggers.emplace_back(timesview[trigID], o2::trigger::PhT, indexStart, mDigits.size());
-      indexStart = mAccumulatedDigits.size();
-      mDigits.clear();
-      mLabels.clear();
-    }
+    mDigitizer.setEventTime(timesview[collID]);
 
     if (!mDigitizer.isLive()) {
-      // Take collisions that occurs 600 ns before the readout window is open
-      if (mDigitizer.preTriggerCollision()) {
-        for (auto& part : eventParts[collID]) {
-          mSumDigitizer.setCurrEvID(part.entryID);
-          mSumDigitizer.setCurrSrcID(part.sourceID);
-
-          // get the hits for this event and this source
-          mHits.clear();
-          context->retrieveHits(mSimChains, "EMCHit", part.sourceID, part.entryID, &mHits);
-
-          LOG(info) << "For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
-
-          std::vector<o2::emcal::LabeledDigit> summedDigits = mSumDigitizer.process(mHits);
-
-          // call actual digitization procedure
-          mDigitizer.process(summedDigits);
-
-          preTriggerColl = true;
-        }
-      }
       continue;
-    } else {
-      preTriggerColl = false;
-    }
-
-    if (mDigitizer.isEmpty()) {
-      mDigitizer.initCycle();
-      trigID = collID;
     }
 
     // for each collision, loop over the constituents event and source IDs
@@ -153,26 +107,13 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
     }
   }
 
-  if (!mDigitizer.isEmpty()) {
-    // copy digits into accumulator
-    mDigits.clear();
-    mLabels.clear();
-    mDigitizer.fillOutputContainer(mDigits, mLabels);
-    std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(mAccumulatedDigits));
-    labelAccum.mergeAtBack(mLabels);
-    LOG(info) << "Have " << mAccumulatedDigits.size() << " digits ";
-    triggers.emplace_back(timesview[trigID], o2::trigger::PhT, indexStart, mDigits.size());
-    indexStart = mAccumulatedDigits.size();
-    mDigits.clear();
-    mLabels.clear();
-  }
+  mDigitizer.finish();
 
-  LOG(info) << "Have " << labelAccum.getNElements() << " EMCAL labels ";
   // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-  ctx.outputs().snapshot(Output{"EMC", "DIGITS", 0, Lifetime::Timeframe}, mAccumulatedDigits);
-  ctx.outputs().snapshot(Output{"EMC", "TRGRDIG", 0, Lifetime::Timeframe}, triggers);
+  ctx.outputs().snapshot(Output{"EMC", "DIGITS", 0, Lifetime::Timeframe}, mDigitizer.getDigits());
+  ctx.outputs().snapshot(Output{"EMC", "TRGRDIG", 0, Lifetime::Timeframe}, mDigitizer.getTriggerRecords());
   if (ctx.outputs().isAllowed({"EMC", "DIGITSMCTR", 0})) {
-    ctx.outputs().snapshot(Output{"EMC", "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
+    ctx.outputs().snapshot(Output{"EMC", "DIGITSMCTR", 0, Lifetime::Timeframe}, mDigitizer.getMCLabels());
   }
   // EMCAL is always a triggering detector
   const o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::TRIGGERING;

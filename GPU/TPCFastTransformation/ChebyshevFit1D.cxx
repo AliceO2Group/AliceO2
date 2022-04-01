@@ -17,8 +17,8 @@
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
 
 #include "ChebyshevFit1D.h"
+#include "GPUCommonLogger.h"
 #include <cmath>
-#include "Riostream.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -54,13 +54,13 @@ void ChebyshevFit1D::reset()
 
 void ChebyshevFit1D::print()
 {
-  std::cout << std::endl;
+  LOG(info) << "";
   double* Ai = mA.data();
   for (int i = 0; i < mN; i++, Ai += mN) {
     for (int j = 0; j < mN; j++) {
-      std::cout << Ai[j] << " ";
+      LOG(info) << Ai[j] << " ";
     }
-    std::cout << " | " << mB[i] << std::endl;
+    LOG(info) << " | " << mB[i];
   }
 }
 
@@ -103,9 +103,9 @@ void ChebyshevFit1D::fit()
   }
   /*
   for (int i = 0; i < mN; i++) {
-    std::cout << mC[i] << " ";
+    LOG(info) << mC[i] << " ";
   }
-  std::cout << std::endl;
+  LOG(info) ;
   */
 }
 

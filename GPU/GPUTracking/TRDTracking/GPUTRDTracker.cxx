@@ -518,7 +518,10 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
   // -> returns false if prolongation could not be executed fully
   //    or track does not fullfill threshold conditions
   //--------------------------------------------------------------------
-  //GPUInfo("Start track following for track %i at x=%f with pt=%f", t->getRefGlobalTrackIdRaw(), t->getX(), t->getPt());
+
+  if (ENABLE_INFO) {
+    GPUInfo("Start track following for track %i at x=%f with pt=%f", t->getRefGlobalTrackIdRaw(), t->getX(), t->getPt());
+  }
   mDebug->Reset();
   t->setChi2(0.f);
   float zShiftTrk = 0.f;

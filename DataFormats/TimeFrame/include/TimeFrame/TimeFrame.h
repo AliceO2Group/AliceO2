@@ -12,7 +12,7 @@
 #ifndef ALICEO2_TIMEFRAME_H
 #define ALICEO2_TIMEFRAME_H
 
-#include <FairMQParts.h>
+#include <fairmq/Parts.h>
 #include "TObject.h" // for ClassDef
 #include "Headers/TimeStamp.h"
 

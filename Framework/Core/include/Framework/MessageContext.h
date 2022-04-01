@@ -500,6 +500,7 @@ class MessageContext
         for (auto& [channel, parts] : outputs) {
           mDispatchControl.dispatch(std::move(parts), *channel, DefaultChannelIndex);
         }
+        mDidDispatch = mScheduledMessages.empty() == false;
         mScheduledMessages.clear();
       }
     }
@@ -569,6 +570,7 @@ class MessageContext
   /// return the headers of the 1st (from the end) matching message checking first in mMessages then in mScheduledMessages
   o2::header::DataHeader* findMessageHeader(const Output& spec);
   o2::header::Stack* findMessageHeaderStack(const Output& spec);
+  int countDeviceOutputs(bool excludeDPLOrigin = false);
   o2::framework::DataProcessingHeader* findMessageDataProcessingHeader(const Output& spec);
   std::pair<o2::header::DataHeader*, o2::framework::DataProcessingHeader*> findMessageHeaders(const Output& spec);
 
@@ -576,6 +578,7 @@ class MessageContext
   FairMQDeviceProxy mProxy;
   Messages mMessages;
   Messages mScheduledMessages;
+  bool mDidDispatch = false;
   DispatchControl mDispatchControl;
   std::unordered_map<std::string, std::unique_ptr<std::string>> mChannelRefs;
   /// Cached messages, in case we want to reuse them.

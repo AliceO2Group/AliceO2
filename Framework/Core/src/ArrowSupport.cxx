@@ -463,7 +463,11 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         WorkflowHelpers::addMissingOutputsToSpawner(requestedDYNs, requestedAODs, *spawner);
       }
 
-      if (reader != workflow.end() && (spawner != workflow.end() || builder != workflow.end())) {
+      if (writer != workflow.end()) {
+        workflow.erase(writer);
+      }
+
+      if (reader != workflow.end()) {
         // If reader and/or builder were adjusted, remove unneeded outputs
         // update currently requested AODs
         for (auto& d : workflow) {
@@ -482,10 +486,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         reader->outputs.erase(o_end, reader->outputs.end());
       }
 
-      if (writer != workflow.end()) {
-        workflow.erase(writer);
-      }
-        // replace writer as some outputs may have become dangling and some are now consumed
+      // replace writer as some outputs may have become dangling and some are now consumed
       auto [outputsInputs, isDangling] = WorkflowHelpers::analyzeOutputs(workflow);
 
       // create DataOutputDescriptor

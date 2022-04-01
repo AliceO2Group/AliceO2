@@ -86,7 +86,7 @@ int MFTDCSProcessor::process(const gsl::span<const DPCOM> dps)
     }
     /*
     //it.id = DataPointIdentifier
-    //id.data = DataPointValue    
+    //id.data = DataPointValue
     const DPCOM new_it(new_id,it.data);
     processDP(new_it);
     */
@@ -112,10 +112,10 @@ int MFTDCSProcessor::processDP(const DPCOM& dpcom)
   const auto& type = dpid.get_type();
   auto& val = dpcom.data;
   if (mVerbose) {
-    if (type == RAW_DOUBLE) {
+    if (type == DPVAL_DOUBLE) {
       LOG(info);
       LOG(info) << "Processing DP = " << dpcom << ", with value = " << o2::dcs::getValue<double>(dpcom);
-    } else if (type == RAW_INT) {
+    } else if (type == DPVAL_INT) {
       LOG(info);
       LOG(info) << "Processing DP = " << dpcom << ", with value = " << o2::dcs::getValue<int32_t>(dpcom);
     }
@@ -124,7 +124,7 @@ int MFTDCSProcessor::processDP(const DPCOM& dpcom)
   auto flags = val.get_flags();
 
   // now I need to access the correct element
-  if (type == RAW_DOUBLE) {
+  if (type == DPVAL_DOUBLE) {
     // for these DPs, we will store the first, last, mid value, plus the value where the maximum variation occurred
     auto& dvect = mDpsdoublesmap[dpid];
     LOG(info) << "mDpsdoublesmap[dpid].size() = " << dvect.size();
@@ -154,7 +154,7 @@ void MFTDCSProcessor::updateDPsCCDB()
 
   for (const auto& it : mPids) {
     const auto& type = it.first.get_type();
-    if (type == o2::dcs::RAW_DOUBLE) {
+    if (type == o2::dcs::DPVAL_DOUBLE) {
       auto& mftdcs = mMFTDCS[it.first];
       if (it.second == true) { // we processed the DP at least 1x
         auto& dpvect = mDpsdoublesmap[it.first];

@@ -10,10 +10,10 @@
 // or submit itself to any jurisdiction.
 
 #include <Steer/O2MCApplication.h>
-#include <FairMQChannel.h>
-#include <FairMQMessage.h>
-#include <FairMQDevice.h>
-#include <FairMQParts.h>
+#include <fairmq/Channel.h>
+#include <fairmq/Message.h>
+#include <fairmq/Device.h>
+#include <fairmq/Parts.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <TMessage.h>
 #include <sstream>

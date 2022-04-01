@@ -20,6 +20,7 @@
 #include "Framework/TimesliceIndex.h"
 #include "Framework/VariableContextHelpers.h"
 #include "Framework/DataTakingContext.h"
+#include "Framework/InputRecord.h"
 
 #include "Headers/DataHeader.h"
 #include "Headers/DataHeaderHelpers.h"
@@ -136,12 +137,56 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
 
 ExpirationHandler::Checker LifetimeHelpers::expireNever()
 {
-  return [](ServiceRegistry&, int64_t) -> bool { return false; };
+  return [](ServiceRegistry&, int64_t, InputSpan const&) -> bool { return false; };
 }
 
 ExpirationHandler::Checker LifetimeHelpers::expireAlways()
 {
-  return [](ServiceRegistry&, int64_t) -> bool { return true; };
+  return [](ServiceRegistry&, int64_t, InputSpan const&) -> bool { return true; };
+}
+
+ExpirationHandler::Checker LifetimeHelpers::expireIfPresent(std::vector<InputRoute> const& routes, ConcreteDataMatcher)
+{
+  // find all the input routes which have timeframe data
+  // and store it in a vector for use inside the lambda
+  std::vector<InputRecord::InputPos> inputPositions;
+  std::vector<InputRecord::InputPos> optionalPositions;
+  size_t index = 0;
+  for (auto& route : routes) {
+    if (route.timeslice != 0) {
+      continue;
+    }
+    if (route.matcher.lifetime != Lifetime::Optional) {
+      LOGP(debug, "Lifetime of input route {} is not optional at position {}", route.matcher.binding, index);
+      inputPositions.push_back({index});
+    } else {
+      LOGP(debug, "Lifetime of input route {} is optional at position {}", route.matcher.binding, index);
+      optionalPositions.push_back({index});
+    }
+    index++;
+  }
+
+  return [inputPositions, optionalPositions, routes](ServiceRegistry&, int64_t, InputSpan const& span) -> bool {
+    // Check if timeframe data is fully present.
+    // If yes, we expire the optional data.
+    // If not, we continue to wait for the data.
+    size_t requiredCount = 0;
+    size_t optionalCount = 0;
+    for (auto& inputPos : inputPositions) {
+      auto ref = InputRecord::getByPos(routes, span, inputPos.index, 0);
+      if (ref.header != nullptr) {
+        requiredCount++;
+      }
+    }
+    for (auto& inputPos : optionalPositions) {
+      auto ref = InputRecord::getByPos(routes, span, inputPos.index, 0);
+      if (ref.header != nullptr) {
+        optionalCount++;
+      }
+    }
+    LOGP(debug, "ExpireIfPresent: allRequired={}/{}, allOptional={}/{}", requiredCount, inputPositions.size(), optionalCount, optionalPositions.size());
+    return (requiredCount == inputPositions.size()) && (optionalCount != optionalPositions.size());
+  };
 }
 
 ExpirationHandler::Creator LifetimeHelpers::uvDrivenCreation(int requestedLoopReason, DeviceState& state)
@@ -200,7 +245,7 @@ ExpirationHandler::Checker LifetimeHelpers::expireTimed(std::chrono::microsecond
 {
   auto start = getCurrentTime();
   auto last = std::make_shared<decltype(start)>(start);
-  return [last, period](ServiceRegistry&, int64_t) -> bool {
+  return [last, period](ServiceRegistry&, int64_t, InputSpan const&) -> bool {
     auto current = getCurrentTime();
     auto delta = current - *last;
     if (delta > period.count()) {
@@ -439,6 +484,8 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
 
     variables.put({data_matcher::FIRSTTFORBIT_POS, dh.firstTForbit});
     variables.put({data_matcher::TFCOUNTER_POS, dh.tfCounter});
+    variables.put({data_matcher::STARTTIME_POS, dph.startTime});
+    variables.put({data_matcher::CREATIONTIME_POS, dph.creation});
 
     auto&& transport = rawDeviceService.device()->GetChannel(sourceChannel, 0).Transport();
     auto channelAlloc = o2::pmr::getTransportAllocator(transport);

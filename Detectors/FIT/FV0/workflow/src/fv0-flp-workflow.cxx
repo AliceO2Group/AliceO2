@@ -66,6 +66,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto askSTFDist = !configcontext.options().get<bool>("ignore-dist-stf");
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+  LOG(info) << "WorkflowSpec FLPWorkflow";
   //Type aliases
   //using RawReaderFV0trgInput = o2::fit::RawReaderFIT<o2::fv0::RawReaderFV0BaseNorm,true>;
   using RawReaderFV0 = o2::fit::RawReaderFIT<o2::fv0::RawReaderFV0BaseNorm, false>;

@@ -24,7 +24,7 @@ namespace o2::framework
 /// A callback function to retrieve the FairMQChannel name to be used for sending
 /// messages of the specified OutputSpec
 using ChannelRetriever = std::function<std::string(OutputSpec const&, DataProcessingHeader::StartTime)>;
-using InjectorFunction = std::function<void(FairMQDevice& device, FairMQParts& inputs, ChannelRetriever)>;
+using InjectorFunction = std::function<void(TimingInfo&, FairMQDevice& device, FairMQParts& inputs, ChannelRetriever)>;
 using ChannelSelector = std::function<std::string(InputSpec const& input, const std::unordered_map<std::string, std::vector<FairMQChannel>>& channels)>;
 
 struct InputChannelSpec;

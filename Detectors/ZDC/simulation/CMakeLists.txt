@@ -9,13 +9,24 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+list(APPEND LinkLibraries O2::SimulationDataFormat
+                          O2::ZDCBase
+                          O2::DataFormatsZDC
+                          O2::CCDB
+                          O2::SimConfig
+                          O2::DetectorsRaw
+                          O2::Headers)
+
+if (ONNXRuntime::ONNXRuntime_FOUND)
+        list(APPEND LinkLibraries O2::FASTSimulation)
+endif()
+
 o2_add_library(ZDCSimulation
                SOURCES src/Detector.cxx src/Digitizer.cxx src/SimCondition.cxx
-               src/ZDCSimParam.cxx src/SpatialPhotonResponse.cxx src/Digits2Raw.cxx
-               src/DigitizerTest.cxx
-               PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::ZDCBase
-                                     O2::DataFormatsZDC O2::CCDB O2::SimConfig
-                                     O2::DetectorsRaw O2::Headers)
+                       src/ZDCSimParam.cxx src/SpatialPhotonResponse.cxx src/Digits2Raw.cxx
+                       src/DigitizerTest.cxx
+               PUBLIC_LINK_LIBRARIES ${LinkLibraries})
+
 
 o2_target_root_dictionary(ZDCSimulation
                           HEADERS include/ZDCSimulation/Digitizer.h

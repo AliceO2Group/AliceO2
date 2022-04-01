@@ -36,6 +36,7 @@ o2_add_executable(emcal-channel-calib-workflow
                   SOURCES testWorkflow/emc-channel-calib-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                         O2::EMCALCalibration
+                                        O2::DetectorsRaw
                                         O2::DetectorsCalibration)
 
 o2_add_executable(run-calib-offline

@@ -23,19 +23,21 @@ namespace trd
 class TRDTrackletTransformerSpec : public o2::framework::Task
 {
  public:
-  TRDTrackletTransformerSpec(std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, bool trigRecFilterActive, int timestamp) : mDataRequest(dataRequest), mTrigRecFilterActive(trigRecFilterActive), mTimestamp(timestamp){};
+  TRDTrackletTransformerSpec(std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, bool trigRecFilterActive) : mDataRequest(dataRequest), mTrigRecFilterActive(trigRecFilterActive){};
   ~TRDTrackletTransformerSpec() override = default;
   void init(o2::framework::InitContext& ic) override;
   void run(o2::framework::ProcessingContext& pc) override;
+  void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
+  void updateTimeDependentParams(framework::ProcessingContext& pc);
+
   bool mTrigRecFilterActive; ///< if true, transform only TRD tracklets for which ITS data is available
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;
-  int mTimestamp;
   TrackletTransformer mTransformer;
 };
 
-o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilterActive, int timestamp);
+o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilterActive);
 
 } // end namespace trd
 } // end namespace o2

@@ -15,6 +15,7 @@
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
 #include "TPCFastSpaceChargeCorrection.h"
+#include "GPUCommonLogger.h"
 
 #if !defined(GPUCA_GPUCODE)
 #include <iostream>
@@ -199,36 +200,36 @@ void TPCFastSpaceChargeCorrection::setFutureBufferAddress(char* futureFlatBuffer
 
 void TPCFastSpaceChargeCorrection::print() const
 {
-  std::cout << " TPC Correction: " << std::endl;
+  LOG(info) << " TPC Correction: ";
   mGeo.print();
-  std::cout << "  mNumberOfScenarios = " << mNumberOfScenarios << std::endl;
-  std::cout << "  mTimeStamp = " << mTimeStamp << std::endl;
-  std::cout << "  mSliceDataSizeBytes = " << mSliceDataSizeBytes << std::endl;
-  std::cout << "  TPC rows: " << std::endl;
+  LOG(info) << "  mNumberOfScenarios = " << mNumberOfScenarios;
+  LOG(info) << "  mTimeStamp = " << mTimeStamp;
+  LOG(info) << "  mSliceDataSizeBytes = " << mSliceDataSizeBytes;
+  LOG(info) << "  TPC rows: ";
   for (int i = 0; i < mGeo.getNumberOfRows(); i++) {
     RowInfo& r = mRowInfoPtr[i];
-    std::cout << " tpc row " << i << ": splineScenarioID = " << r.splineScenarioID << " dataOffsetBytes = " << r.dataOffsetBytes << std::endl;
+    LOG(info) << " tpc row " << i << ": splineScenarioID = " << r.splineScenarioID << " dataOffsetBytes = " << r.dataOffsetBytes;
   }
   for (int i = 0; i < mNumberOfScenarios; i++) {
-    std::cout << " SplineScenario " << i << ": " << std::endl;
+    LOG(info) << " SplineScenario " << i << ": ";
     mScenarioPtr[i].print();
   }
-  std::cout << " Spline Data: " << std::endl;
+  LOG(info) << " Spline Data: ";
   for (int is = 0; is < mGeo.getNumberOfSlices(); is++) {
     for (int ir = 0; ir < mGeo.getNumberOfRows(); ir++) {
-      std::cout << "slice " << is << " row " << ir << ": " << std::endl;
+      LOG(info) << "slice " << is << " row " << ir << ": ";
       const SplineType& spline = getSpline(is, ir);
       const float* d = getSplineData(is, ir);
       int k = 0;
       for (int i = 0; i < spline.getGridX1().getNumberOfKnots(); i++) {
         for (int j = 0; j < spline.getGridX2().getNumberOfKnots(); j++, k++) {
-          std::cout << d[k] << " ";
+          LOG(info) << d[k] << " ";
         }
-        std::cout << std::endl;
+        LOG(info) << "";
       }
     }
-    //    std::cout << "inverse correction: slice " << slice
-    //            << " dx " << maxDslice[0] << " du " << maxDslice[1] << " dv " << maxDslice[2] << std::endl;
+    //    LOG(info) << "inverse correction: slice " << slice
+    //            << " dx " << maxDslice[0] << " du " << maxDslice[1] << " dv " << maxDslice[2] ;
   }
 }
 
@@ -433,7 +434,7 @@ void TPCFastSpaceChargeCorrection::initMaxDriftLength(bool prn)
 
   for (int slice = 0; slice < mGeo.getNumberOfSlices(); slice++) {
     if (prn) {
-      std::cout << "init MaxDriftLength for slice " << slice << std::endl;
+      LOG(info) << "init MaxDriftLength for slice " << slice;
     }
     double vLength = (slice < mGeo.getNumberOfSlicesA()) ? mGeo.getTPCzLengthA() : mGeo.getTPCzLengthC();
     SliceInfo& sliceInfo = getSliceInfo(slice);
@@ -511,7 +512,7 @@ void TPCFastSpaceChargeCorrection::initInverse(bool prn)
   tpcR2max = tpcR2max * tpcR2max;
 
   for (int slice = 0; slice < mGeo.getNumberOfSlices(); slice++) {
-    //std::cout << "inverse transform for slice " << slice << std::endl;
+    // LOG(info) << "inverse transform for slice " << slice ;
     double vLength = (slice < mGeo.getNumberOfSlicesA()) ? mGeo.getTPCzLengthA() : mGeo.getTPCzLengthC();
     for (int row = 0; row < mGeo.getNumberOfRows(); row++) {
       const SplineType& spline = getSpline(slice, row);
@@ -526,7 +527,7 @@ void TPCFastSpaceChargeCorrection::initInverse(bool prn)
       double stepV = (v1 - v0) / (1. * (helper.getNumberOfDataPointsU2() - 1));
 
       if (prn) {
-        std::cout << "u0 " << u0 << " u1 " << u1 << " v0 " << v0 << " v1 " << v1 << std::endl;
+        LOG(info) << "u0 " << u0 << " u1 " << u1 << " v0 " << v0 << " v1 " << v1;
       }
       RowActiveArea& area = getSliceRowInfo(slice, row).activeArea;
       area.cuMin = 1.e10;
@@ -551,7 +552,7 @@ void TPCFastSpaceChargeCorrection::initInverse(bool prn)
         //double vvMax = 0;
         for (double v = v0; v < v1 + stepV; v += stepV) {
           float dx, du, dv;
-          getCorrection(slice, row, u, v, dx, du, dv);
+          getCorrectionOld(slice, row, u, v, dx, du, dv);
           double cx = x + dx;
           double cu = u + du;
           double cv = v + dv;
@@ -569,25 +570,24 @@ void TPCFastSpaceChargeCorrection::initInverse(bool prn)
           //vvMax = v;
           //}
           if (prn) {
-            std::cout << "measurement cu " << cu << " cv " << cv << " dx " << dx << " du " << du << " dv " << dv << std::endl;
+            LOG(info) << "measurement cu " << cu << " cv " << cv << " dx " << dx << " du " << du << " dv " << dv;
           }
           chebFitterV.addMeasurement(cv, dv);
         } // v
         if (prn) {
-          std::cout << "u " << u << " nmeas " << chebFitterV.getNmeasurements() << std::endl;
+          LOG(info) << "u " << u << " nmeas " << chebFitterV.getNmeasurements();
         }
         if (chebFitterV.getNmeasurements() < 1) {
           continue;
         }
         chebFitterV.fit();
         if (prn) {
-          std::cout << "slice " << slice << " row " << row << " u " << u << std::endl;
-          std::cout << "n cheb " << nCheb << " n measurements " << chebFitterV.getNmeasurements()
-                    << std::endl;
+          LOG(info) << "slice " << slice << " row " << row << " u " << u;
+          LOG(info) << "n cheb " << nCheb << " n measurements " << chebFitterV.getNmeasurements();
           for (int i = 0; i < nCheb; i++) {
-            std::cout << i << " " << chebFitterV.getCoefficients()[i] << " ";
+            LOG(info) << i << " " << chebFitterV.getCoefficients()[i] << " ";
           }
-          std::cout << std::endl;
+          LOG(info);
           //exit(0);
         }
         // TODO: refit with extra measurements close to cv == data points cv
@@ -604,8 +604,8 @@ void TPCFastSpaceChargeCorrection::initInverse(bool prn)
           //}
 
           float dx, du, dv;
-          getCorrection(slice, row, u, v, dx, du, dv);
-          //std::cout<<" u "<<u<<" cv0 "<<cv<<" v "<<v<<" cu "<<u+du<<" cv "<<v+dv<<std::endl;
+          getCorrectionOld(slice, row, u, v, dx, du, dv);
+          // LOG(info)<<" u "<<u<<" cv0 "<<cv<<" v "<<v<<" cu "<<u+du<<" cv "<<v+dv;
           double cu = u + du;
           cv = v + dv;
           double cx = x + dx;
@@ -620,7 +620,7 @@ void TPCFastSpaceChargeCorrection::initInverse(bool prn)
       } // u
 
       if (prn) {
-        std::cout << " cuMin " << area.cuMin << " cuMax " << area.cuMax << " cvMax " << area.cvMax << std::endl;
+        LOG(info) << " cuMin " << area.cuMin << " cuMax " << area.cuMax << " cvMax " << area.cvMax;
       }
       if (area.cuMax - area.cuMin < 0.2) {
         area.cuMax = .1;
@@ -694,7 +694,7 @@ void TPCFastSpaceChargeCorrection::initInverse(bool prn)
 double TPCFastSpaceChargeCorrection::testInverse(bool prn)
 {
   if (prn) {
-    std::cout << "Test inverse transform " << std::endl;
+    LOG(info) << "Test inverse transform ";
   }
 
   double tpcR2min = mGeo.getRowInfo(0).x - 1.;
@@ -708,7 +708,7 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
 
   for (int slice = 0; slice < mGeo.getNumberOfSlices(); slice++) {
     if (prn) {
-      std::cout << "check inverse transform for slice " << slice << std::endl;
+      LOG(info) << "check inverse transform for slice " << slice;
     }
     double vLength = (slice < mGeo.getNumberOfSlicesA()) ? mGeo.getTPCzLengthA() : mGeo.getTPCzLengthC();
     double maxDslice[3] = {0, 0, 0};
@@ -743,16 +743,16 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
           }
 
           if (prn && fabs(d[0]) + fabs(d[1]) + fabs(d[2]) > 0.1) {
-            std::cout << nx - cx << " " << nu - u << " " << nv - v
+            LOG(info) << nx - cx << " " << nu - u << " " << nv - v
                       << " x,u,v " << x << ", " << u << ", " << v
                       << " dx,du,dv " << cx - x << ", " << cu - u << ", " << cv - v
-                      << " nx,nu,nv " << nx - x << ", " << cu - nu << ", " << cv - nv << std::endl;
+                      << " nx,nu,nv " << nx - x << ", " << cu - nu << ", " << cv - nv;
           }
         }
       }
       if (prn) {
-        std::cout << "slice " << slice << " row " << row
-                  << " dx " << maxDrow[0] << " du " << maxDrow[1] << " dv " << maxDrow[2] << std::endl;
+        LOG(info) << "slice " << slice << " row " << row
+                  << " dx " << maxDrow[0] << " du " << maxDrow[1] << " dv " << maxDrow[2];
       }
       for (int i = 0; i < 3; i++) {
         if (fabs(maxDslice[i]) < fabs(maxDrow[i])) {
@@ -767,13 +767,13 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
       }
     }
     if (prn) {
-      std::cout << "inverse correction: slice " << slice
-                << " dx " << maxDslice[0] << " du " << maxDslice[1] << " dv " << maxDslice[2] << std::endl;
+      LOG(info) << "inverse correction: slice " << slice
+                << " dx " << maxDslice[0] << " du " << maxDslice[1] << " dv " << maxDslice[2];
     }
   } // slice
 
-  std::cout << "Test inverse TPC correction. max deviations: "
-            << " dx " << maxDtpc[0] << " du " << maxDtpc[1] << " dv " << maxDtpc[2] << " cm" << std::endl;
+  LOG(info) << "Test inverse TPC correction. max deviations: "
+            << " dx " << maxDtpc[0] << " du " << maxDtpc[1] << " dv " << maxDtpc[2] << " cm";
 
   return maxD;
 }

@@ -26,6 +26,7 @@
 #include "DataFormatsTRD/TrackTRD.h"
 #include "DataFormatsZDC/BCRecData.h"
 #include "DataFormatsEMCAL/EventHandler.h"
+#include "DataFormatsPHOS/EventHandler.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/DataProcessorSpec.h"
@@ -409,15 +410,79 @@ class AODProducerWorkflowDPL : public Task
   // helper for trd pattern
   uint8_t getTRDPattern(const o2::trd::TrackTRD& track);
 
-  o2::emcal::EventHandler<o2::emcal::Cell>* mCaloEventHandler = nullptr; ///< Pointer to the event builder for emcal cells
-
-  template <typename TCaloCells, typename TCaloTriggerRecord, typename TCaloCursor, typename TCaloTRGTableCursor>
-  void fillCaloTable(const TCaloCells& calocells, const TCaloTriggerRecord& caloCellTRGR, const TCaloCursor& caloCellCursor,
-                     const TCaloTRGTableCursor& caloCellTRGTableCursor, std::map<uint64_t, int>& bcsMap);
+  template <typename TEventHandler, typename TCaloCells, typename TCaloTriggerRecord, typename TCaloCursor, typename TCaloTRGTableCursor>
+  void fillCaloTable(TEventHandler* caloEventHandler, const TCaloCells& calocells, const TCaloTriggerRecord& caloCellTRGR,
+                     const TCaloCursor& caloCellCursor, const TCaloTRGTableCursor& caloCellTRGTableCursor,
+                     std::map<uint64_t, int>& bcsMap, int8_t caloType);
 };
 
 /// create a processor spec
 framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool useMC, std::string resFile);
+
+// helper interface for calo cells to "befriend" emcal and phos cells
+class CellHelper
+{
+ public:
+  static int8_t getTriggerBits(const o2::emcal::Cell& cell)
+  {
+    return 0; // dummy value
+  }
+
+  static int8_t getTriggerBits(const o2::phos::Cell& cell)
+  {
+    return (cell.getType() == o2::phos::ChannelType_t::TRU2x2) ? 0 : 1;
+  }
+
+  static int16_t getCellNumber(const o2::emcal::Cell& cell)
+  {
+    return cell.getTower();
+  }
+
+  static int16_t getCellNumber(const o2::phos::Cell& cell)
+  {
+    return cell.getAbsId();
+  }
+
+  static int16_t getFastOrAbsID(const o2::emcal::Cell& cell)
+  {
+    return 0; // dummy value
+  }
+
+  static int16_t getFastOrAbsID(const o2::phos::Cell& cell)
+  {
+    return cell.getAbsId();
+  }
+
+  static float getAmplitude(const o2::emcal::Cell& cell)
+  {
+    return cell.getAmplitude();
+  }
+
+  static float getAmplitude(const o2::phos::Cell& cell)
+  {
+    return cell.getEnergy();
+  }
+
+  static int16_t getLnAmplitude(const o2::emcal::Cell& cell)
+  {
+    return 0; // dummy value
+  }
+
+  static int16_t getLnAmplitude(const o2::phos::Cell& cell)
+  {
+    return cell.getEnergy(); // dummy value
+  }
+
+  static float getTimeStamp(const o2::emcal::Cell& cell)
+  {
+    return cell.getTimeStamp();
+  }
+
+  static float getTimeStamp(const o2::phos::Cell& cell)
+  {
+    return cell.getTime();
+  }
+};
 
 } // namespace o2::aodproducer
 

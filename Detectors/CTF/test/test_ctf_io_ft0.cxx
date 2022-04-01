@@ -15,7 +15,7 @@
 #include <boost/test/unit_test.hpp>
 #include "CommonUtils/NameConf.h"
 #include "FT0Reconstruction/CTFCoder.h"
-#include "FT0Simulation/DigitizationParameters.h"
+#include "FT0Simulation/FT0DigParam.h"
 #include "Framework/Logger.h"
 #include <TFile.h>
 #include <TRandom.h>
@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   sw.Start();
   o2::InteractionRecord ir(0, 0);
 
-  int trg_gate = DigitizationParameters::Instance().mTime_trg_gate;
+  int trg_gate = FT0DigParam::Instance().mTime_trg_gate;
   constexpr int MAXChan = 4 * (Geometry::NCellsA + Geometry::NCellsC);
   for (int idig = 0; idig < 1000; idig++) {
     ir += 1 + gRandom->Integer(200);
