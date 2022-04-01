@@ -140,7 +140,7 @@ int InterCalib::endOfRun()
 
 //______________________________________________________________________________
 // Update calibration object for the five detectors
-// ismod=false if it was not possible to update the calibration coefficients 
+// ismod=false if it was not possible to update the calibration coefficients
 // due to low statistics or minimization error
 // ismod=true if the calibration was updated
 void InterCalib::assign(int ih, bool ismod)
