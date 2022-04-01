@@ -152,9 +152,12 @@ void Encoder::finalize(bool closeFile)
   }
 }
 
-void Encoder::process(gsl::span<const ColumnData> data, const InteractionRecord& ir, EventType eventType)
+void Encoder::process(gsl::span<const ColumnData> data, InteractionRecord ir, EventType eventType)
 {
   /// Encodes data
+
+  // The CTP trigger arrives to the electronics with a delay
+  applyElectronicsDelay(ir.orbit, ir.bc, -mElectronicsDelay.localToBC);
 
   if (ir.orbit != mLastIR.orbit) {
     onOrbitChange(mLastIR.orbit);

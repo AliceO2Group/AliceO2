@@ -28,6 +28,7 @@
 #include "DataFormatsMID/ROBoard.h"
 #include "MIDRaw/ColumnDataToLocalBoard.h"
 #include "MIDRaw/CrateParameters.h"
+#include "MIDRaw/ElectronicsDelay.h"
 #include "MIDRaw/FEEIdConfig.h"
 #include "MIDRaw/GBTUserLogicEncoder.h"
 
@@ -41,7 +42,7 @@ class Encoder
 {
  public:
   void init(std::string_view outDir = ".", std::string_view fileFor = "all", int verbosity = 0, std::vector<ROBoardConfig> configurations = makeDefaultROBoardConfig());
-  void process(gsl::span<const ColumnData> data, const InteractionRecord& ir, EventType eventType = EventType::Standard);
+  void process(gsl::span<const ColumnData> data, InteractionRecord ir, EventType eventType = EventType::Standard);
   /// Sets the maximum size of the superpage
   void setSuperpageSize(int maxSize) { mRawWriter.setSuperPageSize(maxSize); }
 
@@ -65,6 +66,7 @@ class Encoder
   std::unordered_map<uint16_t, std::vector<ROBoard>> mGBTMap; /// ROBoard per GBT link
   FEEIdConfig mFEEIdConfig;                                   /// Crate FEEId mapper
   InteractionRecord mLastIR;                                  /// Last interaction record
+  ElectronicsDelay mElectronicsDelay;                         /// Delays in the electronics
 
   std::array<GBTUserLogicEncoder, crateparams::sNGBTs> mGBTEncoders{}; /// Array of encoders per link
   std::array<std::vector<char>, 4> mOrbitResponse{};                   /// Response to orbit trigger

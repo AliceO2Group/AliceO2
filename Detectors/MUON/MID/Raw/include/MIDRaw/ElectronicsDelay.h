@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <iostream>
+#include "CommonConstants/LHCConstants.h"
 
 namespace o2
 {
@@ -28,9 +29,9 @@ namespace mid
 ///
 /// The delays are in local clocks, and correspond to the LHC clocks (aka BCs)
 struct ElectronicsDelay {
-  uint16_t calibToFET{20}; ///< Delay between calibration and FET
-  uint16_t BCToLocal{93};  ///< Delay between collision BC and local clock
-  uint16_t regToLocal{6};  ///< Delay between regional board and local board answers
+  int16_t calibToFET{20}; ///< Delay between FET and calibration event
+  int16_t localToBC{92};  ///< Delay between collision BC and local clock
+  int16_t localToReg{6};  ///< Delay between regional board and local board answers
 };
 
 /// Output streamer for ElectronicsDelay
@@ -45,13 +46,20 @@ std::ostream& operator<<(std::ostream& os, const ElectronicsDelay& delay);
 /// - keyword2 value2
 /// The available keywords are:
 /// - calibToFET
-/// - BCToLocal
-/// - regToLocal
+/// - localToBC
+/// - localToReg
 /// with the same meaning as the corresponding data member of the ElectronicsDelay structure.
 /// If the keyword is not present in the file, the default value is used.
 /// \param filename Path to file with delays
 /// \return ElectronicDelay structure
 ElectronicsDelay readElectronicsDelay(const char* filename);
+
+/// Applies the electronics delay
+/// \param orbit Orbit ID
+/// \param bc Bunch-crossing ID
+/// \param delay Electronics delay to be applied
+/// \param maxBunches Maximum number of BCs before changing orbit
+void applyElectronicsDelay(uint32_t& orbit, uint16_t& bc, int16_t delay, uint16_t maxBunches = constants::lhc::LHCMaxBunches);
 
 } // namespace mid
 } // namespace o2
