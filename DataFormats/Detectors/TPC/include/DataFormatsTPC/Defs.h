@@ -28,9 +28,7 @@
 #include "MathUtils/Cartesian.h"
 #endif
 
-namespace o2
-{
-namespace tpc
+namespace o2::tpc
 {
 
 /// TPC readout sidE
@@ -58,7 +56,8 @@ enum GEMstack { IROCgem = 0,
                 OROC3gem = 3 };
 constexpr unsigned short GEMSTACKSPERSECTOR = 4;
 constexpr unsigned short GEMSPERSTACK = 4;
-constexpr unsigned short GEMSTACKSPERSIDE = 144;
+constexpr unsigned short GEMSTACKSPERSIDE = GEMSTACKSPERSECTOR * SECTORSPERSIDE;
+constexpr unsigned short GEMSTACKS = GEMSTACKSPERSECTOR * SECTORSPERSIDE * SIDES;
 
 /// Definition of the different pad subsets
 enum class PadSubset : char {
@@ -164,7 +163,6 @@ typename Enum<T>::Iterator end(Enum<T>)
 {
   return typename Enum<T>::Iterator(((int)T::Last) + 1);
 }
-} // namespace tpc
-} // namespace o2
+} // namespace o2::tpc
 
 #endif
