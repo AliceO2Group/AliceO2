@@ -76,7 +76,7 @@ void Config()
   ///    where EMonly = emStandard
   ///    Hadron = FTFP_BERT FTFP_BERT_TRV FTFP_BERT_HP FTFP_INCLXX FTFP_INCLXX_HP FTF_BIC LBE QBBC QGSP_BERT
   ///             QGSP_BERT_HP QGSP_BIC QGSP_BIC_HP QGSP_FTFP_BERT QGSP_INCLXX QGSP_INCLXX_HP QGS_BIC
-  ///	          Shielding ShieldingLEND
+  ///                  Shielding ShieldingLEND
   ///    EM =  _EMV _EMX _EMY _EMZ _LIV _PEN
   ///    Extra = extra optical radDecay
   ///    The Extra selections are cumulative, while Hadron selections are exlusive.
