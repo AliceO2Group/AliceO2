@@ -61,7 +61,7 @@ constexpr int N_INJ = 50;
 
 // List of the possible run types for reference
 enum RunTypes {
-  THR_SCAN = 41,
+  THR_SCAN = 42,
   THR_SCAN_SHORT = 43,
   THR_SCAN_SHORT_100HZ = 101,
   THR_SCAN_SHORT_200HZ = 102,
@@ -81,10 +81,16 @@ enum FitTypes {
   HITCOUNTING = 2
 };
 
+// To work with parallel chip access
+struct ITSCalibInpConf {
+  int chipModSel = 0;
+  int chipModBase = 1;
+};
+
 class ITSThresholdCalibrator : public Task
 {
  public:
-  ITSThresholdCalibrator();
+  ITSThresholdCalibrator(const ITSCalibInpConf& inpConf);
   ~ITSThresholdCalibrator() override;
 
   using ChipPixelData = o2::itsmft::ChipPixelData;
@@ -199,10 +205,14 @@ class ITSThresholdCalibrator : public Task
 
   // Flag to check if endOfStream is available
   bool mCheckEos = false;
+
+  // Chip mod selector and chip mod base for parallel chip access
+  int mChipModSel = 0;
+  int mChipModBase = 1;
 };
 
 // Create a processor spec
-o2::framework::DataProcessorSpec getITSThresholdCalibratorSpec();
+o2::framework::DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf);
 
 } // namespace its
 } // namespace o2

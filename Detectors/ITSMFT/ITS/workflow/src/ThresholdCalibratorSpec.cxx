@@ -37,7 +37,8 @@ double erf_ithr(double* xx, double* par)
 
 //////////////////////////////////////////////////////////////////////////////
 // Default constructor
-ITSThresholdCalibrator::ITSThresholdCalibrator()
+ITSThresholdCalibrator::ITSThresholdCalibrator(const ITSCalibInpConf& inpConf)
+  : mChipModSel(inpConf.chipModSel), mChipModBase(inpConf.chipModBase)
 {
   mSelfName = o2::utils::Str::concat_string(ChipMappingITS::getName(), "ITSThresholdCalibrator");
 }
@@ -142,7 +143,7 @@ void ITSThresholdCalibrator::initThresholdTree(bool recreate /*=true*/)
   }
 
   std::string filename = dir + std::to_string(this->mRunNumber) + '_' +
-                         std::to_string(this->mFileNumber) + '_' + this->mHostname + ".root.part";
+                         std::to_string(this->mFileNumber) + '_' + this->mHostname + "_modSel" + std::to_string(mChipModSel) + ".root.part";
 
   // Check if file already exists
   struct stat buffer;
@@ -477,7 +478,7 @@ void ITSThresholdCalibrator::finalizeOutput()
 
   // Expected ROOT output filename
   std::string filename = std::to_string(this->mRunNumber) + '_' +
-                         std::to_string(this->mFileNumber) + '_' + this->mHostname;
+                         std::to_string(this->mFileNumber) + '_' + this->mHostname + "_modSel" + std::to_string(mChipModSel);
   std::string filenameFull = dir + filename;
   try {
     std::rename((filenameFull + ".root.part").c_str(),
@@ -747,6 +748,9 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
       for (unsigned int idig = rofIndex; idig < rofIndex + rofNEntries; idig++) { // gets chipid
         auto& d = digits[idig];
         short int chipID = (short int)d.getChipIndex();
+        if ((chipID % mChipModBase) != mChipModSel) {
+          continue;
+        }
         if (std::find(mChips.begin(), mChips.end(), chipID) != mChips.end())
           continue;
         mChips.push_back(chipID);
@@ -777,6 +781,10 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
         auto& d = digits[idig];
         short int chipID = (short int)d.getChipIndex();
         short int col = (short int)d.getColumn();
+
+        if ((chipID % mChipModBase) != mChipModSel) {
+          continue;
+        }
 
         if (!mChipsForbRows[chipID]) {
           // Increment the number of counts for this pixel
@@ -973,7 +981,7 @@ void ITSThresholdCalibrator::stop()
 }
 
 //////////////////////////////////////////////////////////////////////////////
-DataProcessorSpec getITSThresholdCalibratorSpec()
+DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
 {
   o2::header::DataOrigin detOrig = o2::header::gDataOriginITS;
   std::vector<InputSpec> inputs;
@@ -988,10 +996,10 @@ DataProcessorSpec getITSThresholdCalibratorSpec()
   outputs.emplace_back("ITS", "FITT", 0);
 
   return DataProcessorSpec{
-    "its-calibrator",
+    "its-calibrator_" + std::to_string(inpConf.chipModSel),
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<ITSThresholdCalibrator>()},
+    AlgorithmSpec{adaptFromTask<ITSThresholdCalibrator>(inpConf)},
     Options{{"fittype", VariantType::String, "derivative", {"Fit type to extract thresholds, with options: fit, derivative (default), hitcounting"}},
             {"verbose", VariantType::Bool, false, {"Use verbose output mode"}},
             {"output-dir", VariantType::String, "./", {"ROOT trees output directory"}},
