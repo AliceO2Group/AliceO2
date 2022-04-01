@@ -19,10 +19,13 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/WorkflowSpec.h"
+#include "DetectorsCommonDataFormats/FileMetaData.h"
 #include "DataFormatsPHOS/Cluster.h"
 #include "DataFormatsPHOS/BadChannelsMap.h"
 #include "DataFormatsPHOS/CalibParams.h"
 #include "PHOSCalibWorkflow/PHOSEnergyCalibrator.h"
+#include "TFile.h"
+#include "TTree.h"
 
 using namespace o2::framework;
 
@@ -34,8 +37,7 @@ namespace phos
 class PHOSEnergyCalibDevice : public o2::framework::Task
 {
  public:
-  explicit PHOSEnergyCalibDevice(bool useCCDB, float ptMin,
-                                 float eMinHGTime, float eMinLGTime, float eDigMin, float eCluMin) : mUseCCDB(useCCDB), mPtMin(ptMin), mEminHGTime(eMinHGTime), mEminLGTime(eMinLGTime), mEDigMin(eDigMin), mECluMin(eCluMin) {}
+  explicit PHOSEnergyCalibDevice(bool useCCDB) : mUseCCDB(useCCDB) {}
 
   void init(o2::framework::InitContext& ic) final;
 
@@ -43,8 +45,12 @@ class PHOSEnergyCalibDevice : public o2::framework::Task
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
+  void stop() final;
+
  protected:
   void postHistosCCDB(o2::framework::EndOfStreamContext& ec);
+  void fillOutputTree();
+  void writeOutFile();
 
  private:
   static constexpr short kMaxCluInEvent = 64; /// maximal number of clusters per event to separate digits from them (6 bits in digit map)
@@ -57,14 +63,21 @@ class PHOSEnergyCalibDevice : public o2::framework::Task
   float mEminLGTime = 5.;
   float mEDigMin = 0.05;
   float mECluMin = 0.4;
+  std::string mOutputDir;   /// where to write calibration digits
+  std::string mFileName;    /// file name of output calib digits
+  std::string mMetaFileDir; /// where to store meta files
+  std::string mLHCPeriod;
+  int mRunNumber = -1;
   std::unique_ptr<PHOSEnergyCalibrator> mCalibrator; /// Agregator of calibration TimeFrameSlots
   std::unique_ptr<const BadChannelsMap> mBadMap;     /// Latest bad channels map
   std::unique_ptr<const CalibParams> mCalibParams;   /// Latest bad channels map
   std::vector<uint32_t> mOutputDigits;               /// accumulated output digits
+  std::unique_ptr<TFile> mFileOut;                   /// File to store output calib digits
+  std::unique_ptr<TTree> mTreeOut;                   /// Tree to store output calib digits
+  std::unique_ptr<o2::dataformats::FileMetaData> mFileMetaData;
 };
 
-o2::framework::DataProcessorSpec getPHOSEnergyCalibDeviceSpec(bool useCCDB, float ptMin, float eMinHGTime,
-                                                              float eMinLGTime, float eD, float eCluMin);
+o2::framework::DataProcessorSpec getPHOSEnergyCalibDeviceSpec(bool useCCDB);
 } // namespace phos
 } // namespace o2
 

@@ -50,19 +50,11 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
     // update BadMap and calibration if necessary
     std::decay_t<decltype(ctx.inputs().get<o2::phos::BadChannelsMap*>("badmap"))> badMapPtr{};
     badMapPtr = ctx.inputs().get<o2::phos::BadChannelsMap*>("badmap");
-    const o2::phos::BadChannelsMap* badMap = badMapPtr.get();
-    if (!badMap) {
-      LOG(fatal) << "[PHOSCellConverter - run] can not get Bad Map";
-    }
-    mClusterizer.setBadMap(badMap);
+    mClusterizer.setBadMap(badMapPtr.get());
 
     std::decay_t<decltype(ctx.inputs().get<o2::phos::CalibParams*>("calib"))> calibPtr{};
     calibPtr = ctx.inputs().get<o2::phos::CalibParams*>("calib");
-    const o2::phos::CalibParams* calib = calibPtr.get();
-    if (!calib) {
-      LOG(fatal) << "[PHOSCellConverter - run] can not get CalibParams";
-    }
-    mClusterizer.setCalibration(calib);
+    mClusterizer.setCalibration(calibPtr.get());
     mHasCalib = true;
   }
 

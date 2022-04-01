@@ -21,7 +21,6 @@
 
 #include <array>
 #include <cstring>
-#include "TObject.h"
 
 namespace o2
 {
@@ -161,6 +160,8 @@ class ETCalibHistos
   std::array<std::array<float, nTime>, nChannels> mTimeLGPerCell;    ///< time per cell
   std::array<std::array<float, npt>, nTime> mTimeHGSlewing;          ///< time vs pT
   std::array<std::array<float, npt>, nTime> mTimeLGSlewing;          ///< time vs pT
+
+  ClassDef(ETCalibHistos, 1);
 };
 
 } // namespace phos
