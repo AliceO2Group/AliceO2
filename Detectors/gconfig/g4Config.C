@@ -46,7 +46,6 @@ R__LOAD_LIBRARY(libXmlVGM)
 R__LOAD_LIBRARY(libVMCLibrary)
 R__LOAD_LIBRARY(libg4root)
 R__LOAD_LIBRARY(libgeant4vmc)
-R__LOAD_LIBRARY(libmtroot)
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <iostream>
