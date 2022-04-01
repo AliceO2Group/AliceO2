@@ -151,6 +151,9 @@ void InterCalibSpec::sendOutput(o2::framework::DataAllocator& output)
   const auto& payload = mInterCalib.getTowerParamUpd();
   auto& info = mInterCalib.getCcdbObjectInfo();
   auto image = o2::ccdb::CcdbApi::createObjectImage<ZDCTowerParam>(&payload, &info);
+  if (mVerbosity > DbgMinimal) {
+    payload.print();
+  }
   LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ZDC_Intercalib", 0}, *image.get()); // vector<char>

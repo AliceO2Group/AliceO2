@@ -148,6 +148,7 @@ int InterCalib::endOfRun()
   long end = 0;
   mInfo.setStartValidityTimestamp(start);
   mInfo.setEndValidityTimestamp(end);
+
   if (mSaveDebugHistos) {
     write();
   }

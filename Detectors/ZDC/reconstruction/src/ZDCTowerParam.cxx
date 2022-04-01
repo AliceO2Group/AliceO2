@@ -53,7 +53,7 @@ void ZDCTowerParam::print() const
 {
   for (Int_t ich = 0; ich < NChannels; ich++) {
     if (tower_calib[ich] > 0) {
-      LOG(info) << ChannelNames[ich] << " calibration factor = " << tower_calib[ich] << " modified = " << modified[ich];
+      LOG(info) << ChannelNames[ich] << (modified[ich]?" NEW" : " OLD") << " calibration factor = " << tower_calib[ich];
     }
   }
 }
