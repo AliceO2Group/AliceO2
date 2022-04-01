@@ -142,18 +142,20 @@ inline VertexerHistogramsConfiguration::VertexerHistogramsConfiguration(int nBin
   binSizeHistZ = (highHistBoundariesXYZ[2] - lowHistBoundariesXYZ[2]) / (nBinsXYZ[2] - 1);
 }
 
-struct VertexerStoreConfigurationGPU {
-  VertexerStoreConfigurationGPU() = default;
-  VertexerStoreConfigurationGPU(int cubBufferSize,
-                                int maxTrkClu,
-                                int cluLayCap,
-                                int maxTrkCap,
-                                int maxVert);
+struct TimeFrameGPUConfig {
+  TimeFrameGPUConfig() = default;
+  TimeFrameGPUConfig(int cubBufferSize,
+                     int maxTrkClu,
+                     int cluLayCap,
+                     int cluROfCap,
+                     int maxTrkCap,
+                     int maxVert);
 
   // o2::its::gpu::Vector constructor requires signed size for initialisation
   int tmpCUBBufferSize = 25e5;
   int maxTrackletsPerCluster = 2e2;
-  int clustersPerLayerCapacity = 4e4;
+  int clustersPerLayerCapacity = 5e5;
+  int clustersPerROfCapacity = 1e4;
   int dupletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
   int processedTrackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
   int maxTrackletCapacity = 2e4;
@@ -163,15 +165,17 @@ struct VertexerStoreConfigurationGPU {
   VertexerHistogramsConfiguration histConf;
 };
 
-inline VertexerStoreConfigurationGPU::VertexerStoreConfigurationGPU(int cubBufferSize,
-                                                                    int maxTrkClu,
-                                                                    int cluLayCap,
-                                                                    int maxTrkCap,
-                                                                    int maxVert) : tmpCUBBufferSize{cubBufferSize},
-                                                                                   maxTrackletsPerCluster{maxTrkClu},
-                                                                                   clustersPerLayerCapacity{cluLayCap},
-                                                                                   maxTrackletCapacity{maxTrkCap},
-                                                                                   nMaxVertices{maxVert}
+inline TimeFrameGPUConfig::TimeFrameGPUConfig(int cubBufferSize,
+                                              int maxTrkClu,
+                                              int cluLayCap,
+                                              int cluROfCap,
+                                              int maxTrkCap,
+                                              int maxVert) : tmpCUBBufferSize{cubBufferSize},
+                                                             maxTrackletsPerCluster{maxTrkClu},
+                                                             clustersPerLayerCapacity{cluLayCap},
+                                                             clustersPerROfCapacity{cluROfCap},
+                                                             maxTrackletCapacity{maxTrkCap},
+                                                             nMaxVertices{maxVert}
 {
   maxCentroidsXYCapacity = std::ceil(maxTrackletCapacity * (maxTrackletCapacity - 1) / 2);
   dupletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;

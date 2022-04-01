@@ -73,7 +73,7 @@ class DeviceStoreVertexerGPU final
     return mClusters;
   }
   GPUd() const Vector<int>& getIndexTable(const VertexerLayerName);
-  GPUhd() VertexerStoreConfigurationGPU& getConfig() { return mGPUConf; }
+  GPUhd() TimeFrameGPUConfig& getConfig() { return mGPUConf; }
 
   // Writable APIs
   GPUd() Vector<Tracklet>& getDuplets01() { return mDuplets01; }
@@ -128,7 +128,7 @@ class DeviceStoreVertexerGPU final
   GPUh() std::vector<Line> getLinesFromGPU();
 
  private:
-  VertexerStoreConfigurationGPU mGPUConf;
+  TimeFrameGPUConfig mGPUConf;
   Array<Vector<Cluster>, constants::its::LayersNumberVertexer> mClusters;
   Vector<Line> mTracklets;
   Array<Vector<int>, 2> mIndexTables;

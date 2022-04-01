@@ -169,6 +169,7 @@ class TimeFrame
   std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
   std::vector<std::vector<int>> mClusterExternalIndices;
   std::vector<std::vector<int>> mROframesClusters;
+  int mNrof = 0;
 
  private:
   template <typename... T>
@@ -178,7 +179,6 @@ class TimeFrame
   void addClusterExternalIndexToLayer(int layer, const int idx);
 
   float mBz = 5.;
-  int mNrof = 0;
   int mBeamPosWeight = 0;
   float mBeamPos[2] = {0.f, 0.f};
   std::vector<float> mMinR;
