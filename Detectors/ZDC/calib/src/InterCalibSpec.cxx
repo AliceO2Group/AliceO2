@@ -122,11 +122,11 @@ void InterCalibSpec::run(ProcessingContext& pc)
   updateTimeDependentParams(pc);
   auto data = pc.inputs().get<InterCalibData>("intercalibdata");
   mInterCalib.process(data);
-  for (int ih = 0; ih < (2 * InterCalibData::NH); ih++){
+  for (int ih = 0; ih < (2 * InterCalibData::NH); ih++) {
     o2::dataformats::FlatHisto1D<float> histoView(pc.inputs().get<gsl::span<float>>(fmt::format("inter_1dh{}", ih).data()));
     mInterCalib.add(ih, histoView);
   }
-  for (int ih = 0; ih < InterCalibData::NH; ih++){
+  for (int ih = 0; ih < InterCalibData::NH; ih++) {
     o2::dataformats::FlatHisto2D<float> histoView(pc.inputs().get<gsl::span<float>>(fmt::format("inter_2dh{}", ih).data()));
     mInterCalib.add(ih, histoView);
   }
@@ -175,12 +175,12 @@ framework::DataProcessorSpec getInterCalibSpec()
 
   char outputa[o2::header::gSizeDataDescriptionString];
   char outputd[o2::header::gSizeDataDescriptionString];
-  for (int ih = 0; ih < (2 * InterCalibData::NH); ih++){
+  for (int ih = 0; ih < (2 * InterCalibData::NH); ih++) {
     snprintf(outputa, o2::header::gSizeDataDescriptionString, "inter_1dh%d", ih);
     snprintf(outputd, o2::header::gSizeDataDescriptionString, "INTER_1DH%d", ih);
     inputs.emplace_back(outputa, "ZDC", outputd, 0, Lifetime::Timeframe);
   }
-  for (int ih = 0; ih < InterCalibData::NH; ih++){
+  for (int ih = 0; ih < InterCalibData::NH; ih++) {
     snprintf(outputa, o2::header::gSizeDataDescriptionString, "inter_2dh%d", ih);
     snprintf(outputd, o2::header::gSizeDataDescriptionString, "INTER_2DH%d", ih);
     inputs.emplace_back(outputa, "ZDC", outputd, 0, Lifetime::Timeframe);
