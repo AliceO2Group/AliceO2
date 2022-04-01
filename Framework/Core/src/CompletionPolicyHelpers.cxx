@@ -94,6 +94,9 @@ CompletionPolicy CompletionPolicyHelpers::defineByName(std::string const& name, 
     case CompletionPolicy::CompletionOp::Discard:
       return CompletionPolicy{"always-discard", matcher, callback};
       break;
+    case CompletionPolicy::CompletionOp::ConsumeAndRescan:
+      return CompletionPolicy{"always-rescan", matcher, callback};
+      break;
   }
   O2_BUILTIN_UNREACHABLE();
 }
