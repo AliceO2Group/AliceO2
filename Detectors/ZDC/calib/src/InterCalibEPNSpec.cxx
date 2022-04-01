@@ -96,10 +96,24 @@ void InterCalibEPNSpec::run(ProcessingContext& pc)
   auto energy = pc.inputs().get<gsl::span<o2::zdc::ZDCEnergy>>("energy");
   auto tdc = pc.inputs().get<gsl::span<o2::zdc::ZDCTDCData>>("tdc");
   auto info = pc.inputs().get<gsl::span<uint16_t>>("info");
+
+  // Process reconstructed data
   mInterCalibEPN.process(bcrec, energy, tdc, info);
-  pc.outputs().snapshot(Output{"ZDC", "INTERCALIBDATA", 0, Lifetime::Timeframe}, mInterCalibEPN.mData);
-  pc.outputs().snapshot(Output{"ZDC", "INTERCALIB1DH", 0, Lifetime::Timeframe}, mInterCalibEPN.mH);
-  pc.outputs().snapshot(Output{"ZDC", "INTERCALIB2DH", 0, Lifetime::Timeframe}, mInterCalibEPN.mC);
+
+  // Send intermediate calibration data and debug histograms
+  o2::framework::Output output("ZDC", "INTERCALIBDATA", 0, Lifetime::Timeframe);
+  pc.outputs().snapshot(output, mInterCalibEPN.mData);
+  char outputd[o2::header::gSizeDataDescriptionString];
+  for (int ih = 0; ih < (2 * InterCalibData::NH); ih++){
+    snprintf(outputd, o2::header::gSizeDataDescriptionString, "INTER_1DH%d", ih);
+    o2::framework::Output output("ZDC", outputd, 0, Lifetime::Timeframe);
+    pc.outputs().snapshot(output, mInterCalibEPN.mH[ih]->getBase());
+  }
+  for (int ih = 0; ih < InterCalibData::NH; ih++){
+    snprintf(outputd, o2::header::gSizeDataDescriptionString, "INTER_2DH%d", ih);
+    o2::framework::Output output("ZDC", outputd, 0, Lifetime::Timeframe);
+    pc.outputs().snapshot(output, mInterCalibEPN.mC[ih]->getBase());
+  }
 }
 
 void InterCalibEPNSpec::endOfStream(EndOfStreamContext& ec)
@@ -120,9 +134,15 @@ framework::DataProcessorSpec getInterCalibEPNSpec()
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ZDC", "INTERCALIBDATA", 0, Lifetime::Timeframe);
-  outputs.emplace_back("ZDC", "INTERCALIB1DH", 0, Lifetime::Timeframe);
-  outputs.emplace_back("ZDC", "INTERCALIB2DH", 0, Lifetime::Timeframe);
-
+  char outputd[o2::header::gSizeDataDescriptionString];
+  for (int ih = 0; ih < (2 * InterCalibData::NH); ih++){
+    snprintf(outputd, o2::header::gSizeDataDescriptionString, "INTER_1DH%d", ih);
+    outputs.emplace_back("ZDC", outputd, 0, Lifetime::Timeframe);
+  }
+  for (int ih = 0; ih < InterCalibData::NH; ih++){
+    snprintf(outputd, o2::header::gSizeDataDescriptionString, "INTER_2DH%d", ih);
+    outputs.emplace_back("ZDC", outputd, 0, Lifetime::Timeframe);
+  }
   return DataProcessorSpec{
     "zdc-intercalib-epn",
     inputs,

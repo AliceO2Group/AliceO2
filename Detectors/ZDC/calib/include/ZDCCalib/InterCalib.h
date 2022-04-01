@@ -52,13 +52,15 @@ class InterCalib
   int process(const char* hname, int ic);             // Calibration of RUN2 data
   void replay(int ih, THnSparse* hs, int ic);         // Test of calibration using RUN2 data
   int mini(int ih);
-  void add(std::array<o2::dataformats::FlatHisto1D<float>*, 2 * InterCalibData::NH> &h1);
-  void add(std::array<o2::dataformats::FlatHisto2D<float>*, InterCalibData::NH> &h2);
+  void add(int ih, o2::dataformats::FlatHisto1D<float> &h1);
+  void add(int ih, o2::dataformats::FlatHisto2D<float> &h2);
   int write(const std::string fn = "ZDCInterCalib.root");
 
   static double mAdd[NPAR][NPAR]; /// Temporary copy of cumulated sums
   static void fcn(int& npar, double* gin, double& chi, double* par, int iflag);
   void cumulate(int ih, double tc, double t1, double t2, double t3, double t4, double w);
+
+  const ZDCTowerParam& getTowerParamUpd() const { return mTowerParamUpd; };
 
   void setEnergyParam(const ZDCEnergyParam* param) { mEnergyParam = param; };
   const ZDCEnergyParam* getEnergyParam() const { return mEnergyParam; };

@@ -122,9 +122,14 @@ void InterCalibSpec::run(ProcessingContext& pc)
   updateTimeDependentParams(pc);
   auto data = pc.inputs().get<InterCalibData>("intercalibdata");
   mInterCalib.process(data);
-  auto h1 = pc.inputs().get<std::array<o2::dataformats::FlatHisto1D<float>*, 2 * InterCalibData::NH>>("intercalib1dh");
-  auto h2 = pc.inputs().get<std::array<o2::dataformats::FlatHisto2D<float>*, InterCalibData::NH>>("intercalib2dh");
-  mInterCalib.add(h1);
+  for (int ih = 0; ih < (2 * InterCalibData::NH); ih++){
+    o2::dataformats::FlatHisto1D<float> histoView(pc.inputs().get<gsl::span<float>>(fmt::format("inter_1dh{}", ih).data()));
+    mInterCalib.add(ih, histoView);
+  }
+  for (int ih = 0; ih < InterCalibData::NH; ih++){
+    o2::dataformats::FlatHisto2D<float> histoView(pc.inputs().get<gsl::span<float>>(fmt::format("inter_2dh{}", ih).data()));
+    mInterCalib.add(ih, histoView);
+  }
 }
 
 void InterCalibSpec::endOfStream(EndOfStreamContext& ec)
@@ -140,7 +145,7 @@ void InterCalibSpec::sendOutput(o2::framework::DataAllocator& output)
   // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
   // TODO in principle, this routine is generic, can be moved to Utils.h
   using clbUtils = o2::calibration::Utils;
-  //     const auto& payloadVec = mCalibrator->getLHCphaseVector();
+  //const auto& param = mInterCalib->getLHCphaseVector();
   //     auto& infoVec = mCalibrator->getLHCphaseInfoVector(); // use non-const version as we update it
   //     assert(payloadVec.size() == infoVec.size());
   //
@@ -167,8 +172,19 @@ framework::DataProcessorSpec getInterCalibSpec()
   inputs.emplace_back("energycalib", "ZDC", "ENERGYCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathEnergyCalib.data())));
   inputs.emplace_back("towercalib", "ZDC", "TOWERCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathTowerCalib.data())));
   inputs.emplace_back("intercalibdata", "ZDC", "INTERCALIBDATA", 0, Lifetime::Timeframe);
-  inputs.emplace_back("intercalib1dh", "ZDC", "INTERCALIB1DH", 0, Lifetime::Timeframe);
-  inputs.emplace_back("intercalib2dh", "ZDC", "INTERCALIB2DH", 0, Lifetime::Timeframe);
+
+  char outputa[o2::header::gSizeDataDescriptionString];
+  char outputd[o2::header::gSizeDataDescriptionString];
+  for (int ih = 0; ih < (2 * InterCalibData::NH); ih++){
+    snprintf(outputa, o2::header::gSizeDataDescriptionString, "inter_1dh%d", ih);
+    snprintf(outputd, o2::header::gSizeDataDescriptionString, "INTER_1DH%d", ih);
+    inputs.emplace_back(outputa, "ZDC", outputd, 0, Lifetime::Timeframe);
+  }
+  for (int ih = 0; ih < InterCalibData::NH; ih++){
+    snprintf(outputa, o2::header::gSizeDataDescriptionString, "inter_2dh%d", ih);
+    snprintf(outputd, o2::header::gSizeDataDescriptionString, "INTER_2DH%d", ih);
+    inputs.emplace_back(outputa, "ZDC", outputd, 0, Lifetime::Timeframe);
+  }
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ZDC_Intercalib"}, Lifetime::Sporadic);

@@ -77,13 +77,15 @@ int InterCalib::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
         uint16_t code = info & 0x03ff;
         // hmsg->Fill(ch, code);
       }
-      ev.print();
+      if (mVerbosity > DbgMinimal) {
+        ev.print();
+      }
       // Need clean data (no messages)
       // We are sure there is no pile-up in any channel (too restrictive?)
       continue;
     }
     if (ev.getNEnergy() > 0 && ev.mCurB.triggers == 0) {
-      LOGF(info, "%9u.%04u Untriggered bunch\n", ev.mCurB.ir.orbit, ev.mCurB.ir.bc);
+      LOGF(info, "%9u.%04u Untriggered bunch", ev.mCurB.ir.orbit, ev.mCurB.ir.bc);
       // Skip!
       continue;
     }
@@ -106,6 +108,8 @@ int InterCalib::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
   return 0;
 }
 
+//______________________________________________________________________________
+// Update calibration coefficients
 int InterCalib::endOfRun()
 {
   if (mVerbosity > DbgZero) {
@@ -134,6 +138,11 @@ int InterCalib::endOfRun()
   return 0;
 }
 
+//______________________________________________________________________________
+// Update calibration object for the five detectors
+// ismod=false if it was not possible to update the calibration coefficients 
+// due to low statistics or minimization error
+// ismod=true if the calibration was updated
 void InterCalib::assign(int ih, bool ismod)
 {
   int id_0[4] = {IdZNA1, IdZNA2, IdZNA3, IdZNA4};
@@ -326,31 +335,33 @@ int InterCalib::process(const InterCalibData& data)
   return 0;
 }
 
-void InterCalib::add(std::array<o2::dataformats::FlatHisto1D<float>*, 2 * InterCalibData::NH> &h1){
+void InterCalib::add(int ih, o2::dataformats::FlatHisto1D<float>& h1)
+{
   if (!mInitDone) {
     init();
   }
-  int nh = 2 * InterCalibData::NH;
-  for(int ih = 0; ih < nh; ih++){
-    auto h = *(h1[ih]);
-    LOG(info) << "adding H1(" << h.getNBins() << "," << h.getXMin() << "," << h.getXMax() << ")";
-    mHUnc[ih]->add(h);
+  constexpr int nh = 2 * InterCalibData::NH;
+  if (ih >= 0 && ih < nh) {
+    mHUnc[ih]->add(h1);
+  } else {
+    LOG(error) << "InterCalib::add: unsupported FlatHisto1D " << ih;
   }
 }
 
-void InterCalib::add(std::array<o2::dataformats::FlatHisto2D<float>*, InterCalibData::NH> &h2){
+void InterCalib::add(int ih, o2::dataformats::FlatHisto2D<float>& h2)
+{
   if (!mInitDone) {
     init();
   }
-  for(int ih = 0; ih < InterCalibData::NH; ih++){
-    mCUnc[ih]->add(*(h2[ih]));
+  if (ih >= 0 && ih < InterCalibData::NH) {
+    mCUnc[ih]->add(h2);
+  } else {
+    LOG(error) << "InterCalib::add: unsupported FlatHisto2D " << ih;
   }
 }
 
 void InterCalib::cumulate(int ih, double tc, double t1, double t2, double t3, double t4, double w = 1)
 {
-  // TODO: add histogram
-  // TODO: store data to redraw histograms
   if (tc < mInterCalibConfig->cutLow[ih] || tc > mInterCalibConfig->cutHigh[ih]) {
     return;
   }
@@ -372,6 +383,8 @@ void InterCalib::cumulate(int ih, double tc, double t1, double t2, double t3, do
   mCUnc[ih]->fill(val[0], sumquad, w);
 }
 
+//______________________________________________________________________________
+// Compute chi2 for minimization (static function)
 void InterCalib::fcn(int& npar, double* gin, double& chi, double* par, int iflag)
 {
   chi = 0;
@@ -451,6 +464,7 @@ int InterCalib::write(const std::string fn)
       p->Write("", TObject::kOverwrite);
     }
   }
+  // Only after replay of RUN2 data
   for (int32_t ih = 0; ih < NH; ih++) {
     if (mHCorr[ih]) {
       mHCorr[ih]->Write("", TObject::kOverwrite);
@@ -461,6 +475,7 @@ int InterCalib::write(const std::string fn)
       mCCorr[ih]->Write("", TObject::kOverwrite);
     }
   }
+  // Minimization output
   const char* mntit[NH] = {"mZNA", "mZPA", "mZNC", "mZPC", "mZEM"};
   for (int32_t ih = 0; ih < NH; ih++) {
     if (mMn[ih]) {
