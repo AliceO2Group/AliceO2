@@ -267,7 +267,7 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
 
 #if !defined(GPUCA_GPUCODE)
   template <class Type>
-  void cloneFromObject(Type*& obj, const Type* objOld, char* newFlatBufferPtr, const char* oldFlatBufferPtr);
+  void subobjectCloneFromObject(Type*& obj, const Type* objOld);
 
   /// this functions 'smoothes' a CalDet by calculating for each value in a pad the average value using the neighbouring pads, but do not take into account the current pad
   /// \return returns 'smoothed' CalDet object
