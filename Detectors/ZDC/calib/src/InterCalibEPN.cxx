@@ -113,9 +113,9 @@ int InterCalibEPN::endOfRun()
       LOGF(info, "%s %g events and cuts (%g:%g)", InterCalibData::DN[ih], mData.mSum[ih][5][5], mInterCalibConfig->cutLow[ih], mInterCalibConfig->cutHigh[ih]);
     }
   }
-  if (mSaveDebugHistos){
-  write();
-}
+  if (mSaveDebugHistos) {
+    write();
+  }
   return 0;
 }
 
