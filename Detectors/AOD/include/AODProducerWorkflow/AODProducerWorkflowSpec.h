@@ -230,6 +230,11 @@ class AODProducerWorkflowDPL : public Task
   std::unordered_map<GIndex, int> mV0ToTableID;
   int mTableV0ID{0};
 
+  std::unordered_map<int, int> mIndexTableFwd;
+  int mIndexFwdID{0};
+  std::unordered_map<int, int> mIndexTableMFT;
+  int mIndexMFTID{0};
+
   // zdc helper maps to avoid a number of "if" statements
   // when filling ZDC table
   map<string, float> mZDCEnergyMap; // mapping detector name to a corresponding energy
@@ -378,6 +383,8 @@ class AODProducerWorkflowDPL : public Task
                                    FwdTracksCovCursorType& fwdTracksCovCursor,
                                    AmbigFwdTracksCursorType& ambigFwdTracksCursor,
                                    const std::map<uint64_t, int>& bcsMap);
+
+  void fillFwdIndexTablesPerCollision(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices);
 
   template <typename V0CursorType, typename CascadeCursorType>
   void fillSecondaryVertices(const o2::globaltracking::RecoContainer& data, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor);
