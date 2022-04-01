@@ -141,6 +141,11 @@ Note that the necessary cluster topology dictionary and noise mask file paths ne
 
 By default an exception will be thrown if detector is requested but missing in the CTF. To enable injection of the empty output in such case one should use option `--allow-missing-detectors`.
 
+```
+--ctf-data-subspec arg (=0)
+```
+allows to alter the `subSpecification` used to send the CTFDATA from the reader to decoders. Non-0 value must be used in case the data extracted by the CTF-reader should be processed and stored in new CTFs (in order to avoid clash of CTFDATA messages of the reader and writer).
+
 ## Support for externally provided encoding dictionaries
 
 By default encoding with generate for every TF and store in the CTF the dictionary information necessary to decode the CTF.

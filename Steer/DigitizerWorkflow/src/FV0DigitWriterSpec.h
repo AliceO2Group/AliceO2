@@ -16,7 +16,7 @@
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
 #include "DataFormatsFV0/ChannelData.h"
-#include "DataFormatsFV0/BCData.h"
+#include "DataFormatsFV0/Digit.h"
 #include "DataFormatsFV0/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -37,7 +37,7 @@ o2::framework::DataProcessorSpec getFV0DigitWriterSpec(bool mctruth = true)
                                 "fv0digits.root",
                                 "o2sim",
                                 1,
-                                BranchDefinition<std::vector<o2::fv0::BCData>>{InputSpec{"digitBCinput", "FV0", "DIGITSBC"}, "FV0DigitBC"},
+                                BranchDefinition<std::vector<o2::fv0::Digit>>{InputSpec{"digitBCinput", "FV0", "DIGITSBC"}, "FV0DigitBC"},
                                 BranchDefinition<std::vector<o2::fv0::ChannelData>>{InputSpec{"digitChinput", "FV0", "DIGITSCH"}, "FV0DigitCh"},
                                 BranchDefinition<std::vector<o2::fv0::DetTrigInput>>{InputSpec{"digitTrinput", "FV0", "TRIGGERINPUT"}, "TRIGGERINPUT"},
                                 BranchDefinition<o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>>{InputSpec{"labelinput", "FV0", "DIGITLBL"}, "FV0DigitLabels", mctruth ? 1 : 0})();

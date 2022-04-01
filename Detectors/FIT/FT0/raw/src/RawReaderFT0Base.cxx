@@ -10,4 +10,3 @@
 // or submit itself to any jurisdiction.
 
 #include "FT0Raw/RawReaderFT0Base.h"
-//using namespace o2::ft0;

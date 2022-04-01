@@ -80,9 +80,14 @@ struct StackID {
   GEMstack type{};
 
   /// Single number identification for the stacks
-  GPUdi() int index() const
+  GPUdi() int getIndex() const
   {
     return sector + type * SECTORSPERSIDE * SIDES;
+  }
+  GPUdi() void setIndex(int index)
+  {
+    sector = index % (SECTORSPERSIDE * SIDES);
+    type = static_cast<GEMstack>((index / (SECTORSPERSIDE * SIDES)) % GEMSTACKSPERSECTOR);
   }
 };
 

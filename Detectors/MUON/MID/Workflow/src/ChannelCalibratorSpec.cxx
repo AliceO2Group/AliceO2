@@ -102,7 +102,7 @@ class ChannelCalibratorDeviceDPL
   {
     // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
     // TODO in principle, this routine is generic, can be moved to Utils.h
-    sendOutput(output, mCalibrator.getBadChannels(), "MID/BadChannels", 0);
+    sendOutput(output, mCalibrator.getBadChannels(), "MID/Calib/BadChannels", 0);
 
     TObjString masks(mCalibrator.getMasksAsString().c_str());
     sendOutput(output, masks, "MID/ElectronicsMasks", 1);

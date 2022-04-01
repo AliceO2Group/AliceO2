@@ -11,12 +11,14 @@
 
 #include "PHOSCalibWorkflow/PHOSEnergyCalibDevice.h"
 #include "DataFormatsPHOS/TriggerRecord.h"
+#include "DataFormatsPHOS/PHOSBlockHeader.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "DetectorsCalibration/Utils.h"
 #include "Framework/ControlService.h"
+#include "Framework/CCDBParamSpec.h"
 
 #include "FairLogger.h"
 #include <string>
@@ -25,37 +27,18 @@ using namespace o2::phos;
 
 void PHOSEnergyCalibDevice::init(o2::framework::InitContext& ic)
 {
-  mCalibrator.reset(new PHOSEnergyCalibrator());
-
-  // Configure output Digits file
-  mCalibrator->setOutDigitsFile(mdigitsfilename);
+  mCalibrator = std::make_unique<PHOSEnergyCalibrator>();
 
   // read calibration and bad map objects and send them to calibrator
-  if (!mBadMap) {
-    if (mUseCCDB) {
-      LOG(info) << "Retrieving BadMap from CCDB";
-      // Normally CCDB manager should get and own objects
-      auto& ccdbManager = o2::ccdb::BasicCCDBManager::instance();
-      ccdbManager.setURL(o2::base::NameConf::getCCDBServer());
-      LOG(info) << " set-up CCDB " << o2::base::NameConf::getCCDBServer();
-      mBadMap = std::make_unique<o2::phos::BadChannelsMap>(*(ccdbManager.get<o2::phos::BadChannelsMap>("PHS/BadMap")));
-      if (!mBadMap) {
-        LOG(fatal) << "[PHOSCellConverter - run] can not get Bad Map";
-      }
-
-      mCalibParams = std::make_unique<CalibParams>(*(ccdbManager.get<o2::phos::CalibParams>("PHS/Calib/CalibParams")));
-      if (!mCalibParams) { // was not read from CCDB, but expected
-        LOG(fatal) << "Can not read current CalibParams from ccdb";
-      }
-    } else {
-      LOG(info) << "Do not use CCDB, create default BadMap and calibration";
-      mBadMap.reset(new BadChannelsMap(1));
-      mCalibParams.reset(new CalibParams(1));
-    }
+  if (!mHasCalib && !mUseCCDB) {
+    mCalibParams = std::make_unique<CalibParams>(1); // Create test calibration coefficients
+    mCalibrator->setCalibration(mCalibParams.get());
+    mBadMap = std::make_unique<BadChannelsMap>(); // Create empty bad map
+    mCalibrator->setBadMap(mBadMap.get());
+    LOG(info) << "No reading BadMap/Calibration from ccdb requested, set default";
+    mHasCalib = true;
   }
-  mCalibrator->setBadMap(*mBadMap);
-  mCalibrator->setCalibration(*mCalibParams);
-  mCalibrator->setCuts(mPtMin, mEminHGTime, mEminLGTime);
+  mCalibrator->setCuts(mPtMin, mEminHGTime, mEminLGTime, mEminHGTime, mEminLGTime);
 
   // Create geometry instance (inclusing reading mis-alignement)
   // instance will be pick up by Calibrator
@@ -64,18 +47,34 @@ void PHOSEnergyCalibDevice::init(o2::framework::InitContext& ic)
 
 void PHOSEnergyCalibDevice::run(o2::framework::ProcessingContext& pc)
 {
-  // TODO! extract vertex information and send to Calibrator
+
+  // Do not use ccdb if already created
+  if (!mHasCalib) { // Default map and calibration was not set, use CCDB
+    LOG(info) << "Getting calib from CCDB";
+    // update BadMap and calibration if necessary
+    auto badMapPtr = pc.inputs().get<o2::phos::BadChannelsMap*>("bdmap");
+    mCalibrator->setBadMap(badMapPtr.get());
+
+    auto calibPtr = pc.inputs().get<o2::phos::CalibParams*>("clb");
+    mCalibrator->setCalibration(calibPtr.get());
+    mHasCalib = true;
+  }
+  mOutputDigits.clear();
+
   auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("clusters").header)->startTime; // is this the timestamp of the current TF?
   const gsl::span<const Cluster>& clusters = pc.inputs().get<gsl::span<Cluster>>("clusters");
   const gsl::span<const CluElement>& cluelements = pc.inputs().get<gsl::span<CluElement>>("cluelements");
   const gsl::span<const TriggerRecord>& cluTR = pc.inputs().get<gsl::span<TriggerRecord>>("clusterTriggerRecords");
 
-  LOG(info) << "[PHOSEnergyCalibDevice - run]  Received " << clusters.size() << " clusters and " << clusters.size() << " clusters, running calibration";
+  LOG(debug) << "[PHOSEnergyCalibDevice - run]  Received " << cluTR.size() << " TRs and " << clusters.size() << " clusters, running calibration";
   if (mRunStartTime == 0) {
-    mRunStartTime = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("clusterTriggerRecords").header)->startTime;
+    const auto ref = pc.inputs().getFirstValid(true);
+    mRunStartTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
   }
+  mCalibrator->process(tfcounter, clusters, cluelements, cluTR, mOutputDigits);
 
-  mCalibrator->process(tfcounter, clusters, cluelements, cluTR);
+  LOG(debug) << "[PHOSEnergyCalibDevice - run]  sending " << mOutputDigits.size() << " calib digits";
+  pc.outputs().snapshot(o2::framework::Output{"PHS", "CALIBDIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
 }
 
 void PHOSEnergyCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
@@ -106,27 +105,27 @@ void PHOSEnergyCalibDevice::postHistosCCDB(o2::framework::EndOfStreamContext& ec
   ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_TEHistos", subSpec}, *image.get());
   ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_TEHistos", subSpec}, info);
 }
-o2::framework::DataProcessorSpec o2::phos::getPHOSEnergyCalibDeviceSpec(bool useCCDB, std::string path, std::string digitspath,
-                                                                        float ptMin, float eMinHGTime, float eMinLGTime)
+o2::framework::DataProcessorSpec o2::phos::getPHOSEnergyCalibDeviceSpec(bool useCCDB, float ptMin, float eMinHGTime,
+                                                                        float eMinLGTime, float edigMin, float ecluMin)
 {
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("clusters", o2::header::gDataOriginPHS, "CLUSTERS", 0, o2::framework::Lifetime::Timeframe);
   inputs.emplace_back("cluelements", o2::header::gDataOriginPHS, "CLUELEMENTS", 0, o2::framework::Lifetime::Timeframe);
   inputs.emplace_back("clusterTriggerRecords", o2::header::gDataOriginPHS, "CLUSTERTRIGREC", 0, o2::framework::Lifetime::Timeframe);
-
+  if (useCCDB) {
+    inputs.emplace_back("bdmap", o2::header::gDataOriginPHS, "PHS_BM", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Calib/BadMap"));
+    inputs.emplace_back("clb", o2::header::gDataOriginPHS, "PHS_Calibr", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Calib/CalibParams"));
+  }
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(
-    ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_TEHistos"}, Lifetime::Sporadic);
-  outputs.emplace_back(
-    ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_TEHistos"}, Lifetime::Sporadic);
-  // stream for QC data
-  // outputs.emplace_back("PHS", "TRIGGERQC", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_TEHistos"}, o2::framework::Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_TEHistos"}, o2::framework::Lifetime::Sporadic);
+  outputs.emplace_back("PHS", "CALIBDIGITS", 0, o2::framework::Lifetime::Timeframe);
 
   return o2::framework::DataProcessorSpec{"PHOSEnergyCalibDevice",
                                           inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<PHOSEnergyCalibDevice>(useCCDB, path, digitspath, ptMin, eMinHGTime, eMinLGTime),
+                                          o2::framework::adaptFromTask<PHOSEnergyCalibDevice>(useCCDB, ptMin, eMinHGTime, eMinLGTime, edigMin, ecluMin),
                                           o2::framework::Options{}};
 }

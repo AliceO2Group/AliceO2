@@ -39,17 +39,16 @@ struct GroupedCombinationManager {
   }
 };
 
-template <typename T1, typename GroupingPolicy, typename H, typename G, typename... Us, typename... As>
-struct GroupedCombinationManager<GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<Us...>, As...>> {
-  template <typename TH, typename TG, typename... T2s>
-  static void setGroupedCombination(GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<Us...>, As...>& comb, TH& hashes, TG& grouping, std::tuple<T2s...>& associated)
+template <typename T1, typename GroupingPolicy, typename BP, typename G, typename... Us, typename... As>
+struct GroupedCombinationManager<GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, pack<Us...>, As...>> {
+  template <typename TG, typename... T2s>
+  static void setGroupedCombination(GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, pack<Us...>, As...>& comb, TG& grouping, std::tuple<T2s...>& associated)
   {
     static_assert(sizeof...(T2s) > 0, "There must be associated tables in process() for a correct pair");
-    static_assert(!soa::is_soa_iterator_t<std::decay_t<H>>::value, "Only full tables can be in process(), no grouping");
-    if constexpr (std::is_same_v<G, TG> && std::is_same_v<H, TH>) {
+    if constexpr (std::is_same_v<G, TG>) {
       // Take respective unique associated tables for grouping
       auto associatedTuple = std::tuple<Us...>(std::get<Us>(associated)...);
-      comb.setTables(hashes, grouping, associatedTuple);
+      comb.setTables(grouping, associatedTuple);
     }
   }
 };

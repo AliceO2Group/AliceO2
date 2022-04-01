@@ -91,9 +91,9 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
                                 c.getEnergy(),                   // lnAmplitude (dummy value)
                                 (c.getType() == TRU2x2) ? 0 : 1, // triggerBits 0:L0 2x2, 1: L1 4x4
                                 0);                              // caloType 0: PHOS
-        continue;
       }
 
+      // TODO: should bad map be applied here? Unrecoverable loss of channels: special loose map?
       // short absId = c.getAbsId();
       // if (isBadChannel(absId)) {
       //   continue;

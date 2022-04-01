@@ -105,7 +105,6 @@ class BenchClustering : public benchmark::Fixture
  public:
   BenchClustering() : midMapping(), preClusterizer(), clusterizer()
   {
-    preClusterizer.init();
     clusterizer.init();
   }
   o2::mid::Mapping midMapping;

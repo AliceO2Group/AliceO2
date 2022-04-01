@@ -15,25 +15,16 @@
 /// \author Maciej Slupecki, University of Jyvaskyla, Finland
 /// \author Andreas Molander, University of Helsinki, Finland
 
-#include "FV0Simulation/Detector.h"
-
-#include <sstream>
-
 #include <TGeoManager.h>
-#include <TGraph.h>
 #include <TLorentzVector.h>
-#include <TMath.h>
 #include <TString.h>
-#include <TSystem.h>
-#include <TVector3.h>
 #include <TVirtualMC.h>
-
-#include <FairLogger.h>
 #include <FairRootManager.h>
 #include <FairVolume.h>
-
-#include "FV0Base/Geometry.h"
+#include "FV0Simulation/Detector.h"
+#include "Framework/Logger.h"
 #include "SimulationDataFormat/Stack.h"
+#include "FV0Base/Geometry.h"
 
 using namespace o2::fv0;
 using o2::fv0::Geometry;
@@ -181,9 +172,7 @@ void Detector::createMaterials()
   const Int_t nScint = 2;
   Float_t aScint[nScint] = {1.00784, 12.0107};
   Float_t zScint[nScint] = {1, 6};
-  // TODO: Verify which of the following 2 lines is correct
   Float_t wScint[nScint] = {0.07085, 0.92915}; // based on EJ-204 datasheet: n_atoms/cm3
-  // Float_t wScint[nScint] = { 0.08528, 0.91472 }; // based on chemical composition of base: polyvinyltoluene
   const Float_t dScint = 1.023;
 
   // PMMA plastic mixture: (C5O2H8)n, same for plastic fiber support and for the fiber core

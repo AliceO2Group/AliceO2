@@ -19,10 +19,6 @@
 #include "ITStracking/Tracklet.h"
 #include "GPUCommonMath.h"
 
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-#include <unordered_map>
-#endif
-
 namespace o2
 {
 namespace its
@@ -35,16 +31,14 @@ struct Line final {
   GPUhd() Line(const float firstPoint[3], const float secondPoint[3]);
   GPUhd() Line(const Tracklet&, const Cluster*, const Cluster*);
 
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  GPUhd() Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters, const int evId);
-#endif
-
   inline static float getDistanceFromPoint(const Line& line, const std::array<float, 3>& point);
   GPUhd() static float getDistanceFromPoint(const Line& line, const float point[3]);
   static std::array<float, 6> getDCAComponents(const Line& line, const std::array<float, 3> point);
   GPUhd() static void getDCAComponents(const Line& line, const float point[3], float destArray[6]);
   GPUhd() static float getDCA(const Line&, const Line&, const float precision = 1e-14);
   static bool areParallel(const Line&, const Line&, const float precision = 1e-14);
+  bool operator==(const Line&) const;
+  bool operator!=(const Line&) const;
 
   float originPoint[3], cosinesDirector[3];         // std::array<float, 3> originPoint, cosinesDirector;
   float weightMatrix[6] = {1., 0., 0., 1., 0., 1.}; // std::array<float, 6> weightMatrix;
@@ -57,9 +51,6 @@ struct Line final {
   //    4 --> 1,2
   //    5 --> 2,2
   // Debug quantities
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  int evtId; // -1 if fake
-#endif
 };
 
 GPUhdi() Line::Line() : weightMatrix{1., 0., 0., 1., 0., 1.}
@@ -77,7 +68,7 @@ GPUhdi() Line::Line(const Line& other)
   for (int i{0}; i < 6; ++i) {
     weightMatrix[i] = other.weightMatrix[i];
   }
-#ifdef _ALLOW_DEBUG_TREES_ITS_
+#ifdef CA_DEBUG
   evtId = other.evtId;
 #endif
 }
@@ -114,25 +105,6 @@ GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, cons
     cosinesDirector[index] *= inverseNorm;
   }
 }
-
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters, const int evId) : evtId{evId}
-{
-  originPoint[0] = innerClusters[tracklet.firstClusterIndex].xCoordinate;
-  originPoint[1] = innerClusters[tracklet.firstClusterIndex].yCoordinate;
-  originPoint[2] = innerClusters[tracklet.firstClusterIndex].zCoordinate;
-
-  cosinesDirector[0] = outerClusters[tracklet.secondClusterIndex].xCoordinate - innerClusters[tracklet.firstClusterIndex].xCoordinate;
-  cosinesDirector[1] = outerClusters[tracklet.secondClusterIndex].yCoordinate - innerClusters[tracklet.firstClusterIndex].yCoordinate;
-  cosinesDirector[2] = outerClusters[tracklet.secondClusterIndex].zCoordinate - innerClusters[tracklet.firstClusterIndex].zCoordinate;
-
-  float inverseNorm{1.f / o2::gpu::CAMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
-                                                cosinesDirector[2] * cosinesDirector[2])};
-
-  for (int index{0}; index < 3; ++index)
-    cosinesDirector[index] *= inverseNorm;
-}
-#endif
 
 // static functions
 inline float Line::getDistanceFromPoint(const Line& line, const std::array<float, 3>& point)
@@ -209,11 +181,28 @@ GPUhdi() void Line::getDCAComponents(const Line& line, const float point[3], flo
   destArray[4] = std::sqrt(destArray[3] * destArray[3] + destArray[5] * destArray[5]);
 }
 
-///
+inline bool Line::operator==(const Line& rhs) const
+{
+  bool val;
+  for (int i{0}; i < 3; ++i) {
+    val &= this->originPoint[i] == rhs.originPoint[i];
+  }
+  return val && this->isEmpty == rhs.isEmpty;
+}
+
+inline bool Line::operator!=(const Line& rhs) const
+{
+  bool val;
+  for (int i{0}; i < 3; ++i) {
+    val &= this->originPoint[i] != rhs.originPoint[i];
+  }
+  return val || this->isEmpty != rhs.isEmpty;
+}
 
 class ClusterLines final
 {
  public:
+  ClusterLines() = default;
   ClusterLines(const int firstLabel, const Line& firstLine, const int secondLabel, const Line& secondLine,
                const bool weight = false);
   ClusterLines(const Line& firstLine, const Line& secondLine);
@@ -228,38 +217,16 @@ class ClusterLines final
   inline std::array<float, 6> getRMS2() const { return mRMS2; }
   inline float getAvgDistance2() const { return mAvgDistance2; }
 
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  inline std::vector<Line> getLines()
-  {
-    return mLines;
-  }
-  void vote(const Line& line);
-  inline int getEventId() const { return mPoll; }
-  inline float getPurity()
-  {
-    auto id = getEventId();
-    auto it = mMap.find(id);
-    assert(it != mMap.end());
-    return (float)it->second / (float)mLabels.size();
-  }
-#endif
+  bool operator==(const ClusterLines&) const;
 
  protected:
   std::array<float, 6> mAMatrix;         // AX=B
   std::array<float, 3> mBMatrix;         // AX=B
   std::vector<int> mLabels;              // labels
-  std::array<float, 3> mVertexCandidate; // vertex candidate
   std::array<float, 9> mWeightMatrix;    // weight matrix
   std::array<float, 3> mVertex;          // cluster centroid position
   std::array<float, 6> mRMS2;            // symmetric matrix: diagonal is RMS2
   float mAvgDistance2;                   // substitute for chi2
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  std::vector<Line> mLines;
-  int mPoll;
-  int mNVotes;
-  std::unordered_map<int, int> mMap;
-  int mSwitches;
-#endif
 };
 
 } // namespace its

@@ -184,7 +184,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
   auto& msgMap = *messagesPerRoute.get();
   assert(device);
   std::unordered_map<o2::header::DataHeader, std::pair<std::string, bool>> channelsMap;
-  auto findOutputChannel = [&outputRoutes, &rawChannel, &channelsMap](const o2::header::DataHeader* h) -> const std::string& {
+  auto findOutputChannel = [&outputRoutes, &rawChannel, &channelsMap](const o2::header::DataHeader* h, size_t tslice) -> const std::string& {
     if (!rawChannel.empty()) {
       return rawChannel;
     }
@@ -193,7 +193,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
       chFromMap.second = true;                          // flag that it was already checked
       for (auto& oroute : outputRoutes) {
         LOG(debug) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
-        if (o2f::DataSpecUtils::match(oroute.matcher, h->dataOrigin, h->dataDescription, h->subSpecification) && ((h->tfCounter % oroute.maxTimeslices) == oroute.timeslice)) {
+        if (o2f::DataSpecUtils::match(oroute.matcher, h->dataOrigin, h->dataDescription, h->subSpecification) && ((tslice % oroute.maxTimeslices) == oroute.timeslice)) {
           LOG(debug) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
           chFromMap.first = oroute.channel;
           break;
@@ -338,7 +338,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
 #ifdef _RUN_TIMING_MEASUREMENT_
     findChanSW.Start(false);
 #endif
-    const auto& fmqChannel = findOutputChannel(lDataHeader);
+    const auto& fmqChannel = findOutputChannel(lDataHeader, tfID);
 #ifdef _RUN_TIMING_MEASUREMENT_
     findChanSW.Stop();
 #endif
@@ -400,7 +400,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
     stfDistDataHeader.runNumber = stfHeader.runNumber;
     stfDistDataHeader.tfCounter = stfHeader.id;
     stfHeader.id = tfID;
-    const auto fmqChannel = findOutputChannel(&stfDistDataHeader);
+    const auto fmqChannel = findOutputChannel(&stfDistDataHeader, tfID);
     if (!fmqChannel.empty()) { // no output channel
       auto fmqFactory = device->GetChannel(fmqChannel, 0).Transport();
       o2::header::Stack headerStackSTF{stfDistDataHeader, o2f::DataProcessingHeader{tfID, 1, lStfFileMeta.mWriteTimeMs}};

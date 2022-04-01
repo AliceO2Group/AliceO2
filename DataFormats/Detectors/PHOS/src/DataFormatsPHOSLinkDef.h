@@ -35,6 +35,11 @@
 #pragma link C++ struct o2::phos::CTF + ;
 #pragma link C++ class o2::ctf::EncodedBlocks < o2::phos::CTFHeader, 7, uint32_t> + ;
 
+#pragma link C++ class o2::phos::EventData < o2::phos::Cell> + ;
+#pragma link C++ class o2::phos::EventData < o2::phos::Digit> + ;
+#pragma link C++ class o2::phos::EventHandler < o2::phos::Cell> + ;
+#pragma link C++ class o2::phos::EventHandler < o2::phos::Digit> + ;
+
 #pragma link C++ class o2::phos::BadChannelsMap + ;
 #pragma link C++ class o2::phos::CalibParams + ;
 #pragma link C++ class o2::phos::Pedestals + ;

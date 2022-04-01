@@ -115,7 +115,7 @@ class MFTDCSDataProcessor : public o2::framework::Task
 
       std::vector<std::string> expaliases = o2::dcs::expandAliases(aliases);
       for (const auto& i : expaliases) {
-        vect.emplace_back(i, o2::dcs::RAW_DOUBLE);
+        vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
       }
     }
 

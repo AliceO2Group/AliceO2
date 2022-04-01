@@ -16,11 +16,10 @@
 #include "FT0Workflow/DigitReaderSpec.h"
 #include "FT0Workflow/RecPointWriterSpec.h"
 #include "FT0Workflow/ReconstructionSpec.h"
-//#include "FT0Workflow/FT0DataReaderDPLSpec.h"
 
 namespace o2
 {
-namespace fit
+namespace ft0
 {
 
 framework::WorkflowSpec getRecoWorkflow(bool useMC, std::string ccdbpath, bool disableRootInp, bool disableRootOut)
@@ -36,5 +35,5 @@ framework::WorkflowSpec getRecoWorkflow(bool useMC, std::string ccdbpath, bool d
   return specs;
 }
 
-} // namespace fit
+} // namespace ft0
 } // namespace o2

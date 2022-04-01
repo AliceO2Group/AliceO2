@@ -33,7 +33,7 @@ namespace phos
 class PHOSTurnonCalibDevice : public o2::framework::Task
 {
  public:
-  explicit PHOSTurnonCalibDevice(bool useCCDB, std::string path) : mUseCCDB(useCCDB), mCCDBPath(path) {}
+  explicit PHOSTurnonCalibDevice(bool useCCDB) : mUseCCDB(useCCDB) {}
 
   void init(o2::framework::InitContext& ic) final;
 
@@ -42,17 +42,16 @@ class PHOSTurnonCalibDevice : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  protected:
-  bool checkFitResult() { return true; } //TODO!! implement true check
+  bool checkFitResult() { return true; } // TODO!! implement true check
 
  private:
   bool mUseCCDB = false;
-  std::string mCCDBPath{"http://alice-ccdb.cern.ch"};     ///< CCDB server path
-  long mRunStartTime = 0;                                 /// start time of the run (sec)
-  std::unique_ptr<TriggerMap> mTriggerMap;                /// Final calibration object
-  std::unique_ptr<PHOSTurnonCalibrator> mCalibrator;      /// Agregator of calibration TimeFrameSlots
+  long mRunStartTime = 0;                            /// start time of the run (sec)
+  std::unique_ptr<TriggerMap> mTriggerMap;           /// Final calibration object
+  std::unique_ptr<PHOSTurnonCalibrator> mCalibrator; /// Agregator of calibration TimeFrameSlots
 };
 
-o2::framework::DataProcessorSpec getPHOSTurnonCalibDeviceSpec(bool useCCDB, std::string path);
+o2::framework::DataProcessorSpec getPHOSTurnonCalibDeviceSpec(bool useCCDB);
 } // namespace phos
 } // namespace o2
 

@@ -32,6 +32,10 @@ void PHOSRunbyrunCalibDevice::init(o2::framework::InitContext& ic)
 }
 void PHOSRunbyrunCalibDevice::run(o2::framework::ProcessingContext& pc)
 {
+  if (mRunStartTime == 0) {
+    const auto ref = pc.inputs().getFirstValid(true);
+    mRunStartTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
+  }
   auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("clusters").header)->startTime; // is this the timestamp of the current TF?
   auto clusters = pc.inputs().get<gsl::span<Cluster>>("clusters");
   auto cluTR = pc.inputs().get<gsl::span<TriggerRecord>>("cluTR");
@@ -68,10 +72,10 @@ void PHOSRunbyrunCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
                << mRunByRun[4] << "+-" << mRunByRun[5] << ", "
                << mRunByRun[6] << "+-" << mRunByRun[7];
   }
-  //TODO! Send mRunByRun for QC and trending plots
+  // TODO! Send mRunByRun for QC and trending plots
   //
 
-  //Get ready for next run
+  // Get ready for next run
   mCalibrator->initOutput(); // reset the outputs once they are already sent
 }
 bool PHOSRunbyrunCalibDevice::checkFitResult()
@@ -85,7 +89,7 @@ bool PHOSRunbyrunCalibDevice::checkFitResult()
   return res;
 }
 
-o2::framework::DataProcessorSpec o2::phos::getPHOSRunbyrunCalibDeviceSpec(bool useCCDB, std::string path)
+o2::framework::DataProcessorSpec o2::phos::getPHOSRunbyrunCalibDeviceSpec(bool useCCDB)
 {
 
   std::vector<OutputSpec> outputs;

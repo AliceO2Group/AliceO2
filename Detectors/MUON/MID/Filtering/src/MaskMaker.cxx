@@ -119,7 +119,7 @@ std::vector<ColumnData> makeDefaultMasksFromCrateConfig(const FEEIdConfig& feeId
   std::vector<ColumnData> maskedBoards(aggregator.getData());
   ChannelMasksHandler masksHandler;
   masksHandler.setFromChannelMasks(makeDefaultMasks());
-  for (auto col : maskedBoards) {
+  for (auto& col : maskedBoards) {
     masksHandler.applyMask(col);
   }
 

@@ -131,7 +131,7 @@ void GRPLHCIFfileProcessor::run(o2::framework::ProcessingContext& pc)
   if (nMeas == 0) {
     LOG(fatal) << "Bunch Config Beam 1 not present";
   }
-  if (nEle != 1 || nMeas != 1) {
+  if (nMeas != 1) {
     LOG(error) << "More than one value/measurement found for Bunch Config Beam 1, keeping the last one";
   }
 
@@ -140,28 +140,14 @@ void GRPLHCIFfileProcessor::run(o2::framework::ProcessingContext& pc)
   if (nMeas == 0) {
     LOG(fatal) << "Bunch Config Beam 2 not present";
   }
-  if (nEle != 1 || nMeas != 1) {
+  if (nMeas != 1) {
     LOG(error) << "More than one value/measurement found for Bunch Config Beam 2, keeping the last one";
-  }
-  if (nMeas != o2::constants::lhc::LHCMaxBunches) {
-    LOG(error) << "We don't have the right number of bunches information for Beam 2";
   }
 
   // Building Bunch Filling
-  std::vector<int32_t> bcNumbersB1, bcNumbersB2;
-  lhcifdata.translateBucketsToBCNumbers(bcNumbersB1, bunchConfigB1.back().second, 1);
-  lhcifdata.translateBucketsToBCNumbers(bcNumbersB2, bunchConfigB2.back().second, 2);
   o2::BunchFilling bunchFilling;
-  for (int i = 0; i < bcNumbersB1.size(); ++i) {
-    int bc = bcNumbersB1[i];
-    int val = (bc == 0 ? 0 : 1);
-    bunchFilling.setBC(bc, val, 0);
-  }
-  for (int i = 0; i < bcNumbersB2.size(); ++i) {
-    int bc = bcNumbersB2[i];
-    int val = (bc == 0 ? 0 : 1);
-    bunchFilling.setBC(bc, val, 1);
-  }
+  bunchFilling.buckets2BeamPattern(bunchConfigB1.back().second, 0);
+  bunchFilling.buckets2BeamPattern(bunchConfigB2.back().second, 1);
   bunchFilling.setInteractingBCsFromBeams();
 
   lhcifdata.setBunchFillingWithTime((bunchConfigB1.back().first + bunchConfigB2.back().first) / 2, bunchFilling);

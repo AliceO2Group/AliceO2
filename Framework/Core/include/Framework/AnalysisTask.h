@@ -322,10 +322,8 @@ struct AnalysisDataProcessorBuilder {
         associatedTables);
 
       // GroupedCombinations bound separately, as they should be set once for all associated tables
-      auto hashes = std::get<0>(associatedTables);
-      auto realAssociated = tuple_tail(associatedTables);
-      homogeneous_apply_refs([&groupingTable, &hashes, &realAssociated](auto& t) {
-        GroupedCombinationManager<std::decay_t<decltype(t)>>::setGroupedCombination(t, hashes, groupingTable, realAssociated);
+      homogeneous_apply_refs([&groupingTable, &associatedTables](auto& t) {
+        GroupedCombinationManager<std::decay_t<decltype(t)>>::setGroupedCombination(t, groupingTable, associatedTables);
         return true;
       },
                              task);

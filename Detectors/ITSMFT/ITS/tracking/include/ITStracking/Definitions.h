@@ -15,7 +15,6 @@
 #ifndef TRACKINGITS_DEFINITIONS_H_
 #define TRACKINGITS_DEFINITIONS_H_
 
-// #define _ALLOW_DEBUG_TREES_ITS_ // to allow debug (vertexer only)
 // #define CA_DEBUG
 
 template <typename T>

@@ -31,7 +31,6 @@ struct DataRelayer;
 /// Callback is the partial input record received that far.
 struct CompletionPolicy {
   /// Action to take with the InputRecord:
-  ///
   enum struct CompletionOp {
     /// Run the ProcessCallback on the InputRecord, consuming
     /// its contents. Messages which have to be forwarded downstream

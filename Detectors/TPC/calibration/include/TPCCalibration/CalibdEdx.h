@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file CalibdEdx.h
-/// \brief This file provides the container used for time based dE/dx calibration.
+/// \brief This file provides the container used for time based residual dE/dx calibration.
 /// \author Thiago Badaró <thiago.saramela@usp.br>
 
 #ifndef ALICEO2_TPC_CALIBDEDX_H_
@@ -22,21 +22,17 @@
 #include <array>
 
 // o2 includes
+#include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/TrackCuts.h"
 #include "DataFormatsTPC/Defs.h"
 #include "DataFormatsTPC/CalibdEdxCorrection.h"
 
 // boost includes
 #include <boost/histogram.hpp>
-
-// forward declarations
-class TH2F;
+#include "THn.h"
 
 namespace o2::tpc
 {
-
-// forward declaration
-class TrackTPC;
 
 /// Class that creates dE/dx histograms from a sequence of tracks objects
 class CalibdEdx
@@ -44,9 +40,8 @@ class CalibdEdx
  public:
   enum Axis {
     dEdx,
-    Z,
     Tgl,
-    // Snp,
+    Snp,
     Sector,
     Stack,
     Charge,
@@ -58,23 +53,21 @@ class CalibdEdx
   // Float axis to store data, without under and overflow bins.
   using FloatAxis = boost::histogram::axis::regular<float, boost::histogram::use_default, boost::histogram::use_default, boost::histogram::axis::option::none_t>;
 
-  // Define histogram axes types
-  // on changing the axis order also change the constructor and fill functions order in de .cxx
-  // and the HistAxis enum
+  // Histogram axes types
   using AxesType = std::tuple<
     FloatAxis, // dEdx
-    FloatAxis, // Z
     FloatAxis, // Tgl
-    // FloatAxis, // Snp
-    IntAxis, // sector
-    IntAxis, // stackType
-    IntAxis  // Charge
+    FloatAxis, // Snp
+    IntAxis,   // sector
+    IntAxis,   // stackType
+    IntAxis    // Charge
     >;
 
   using Hist = boost::histogram::histogram<AxesType>;
-  using FitCuts = std::array<int, 3>;
 
-  CalibdEdx(float mindEdx = 5, float maxdEdx = 70, int dEdxBins = 100, int zBins = 20, int angularBins = 18);
+  /// \param angularBins number of bins for Tgl and Snp
+  /// \param fitSnp enable Snp correction
+  CalibdEdx(int dEdxBins = 60, float mindEdx = 20, float maxdEdx = 90, int angularBins = 36, bool fitSnp = false);
 
   void setCuts(const TrackCuts& cuts) { mCuts = cuts; }
   void setApplyCuts(bool apply) { mApplyCuts = apply; }
@@ -83,62 +76,81 @@ class CalibdEdx
   float getField() const { return mField; };
   void setField(float field) { mField = field; }
 
-  FitCuts getFitCuts() const { return mFitCuts; }
-  void setFitCuts(const FitCuts& cuts) { mFitCuts = cuts; }
+  /// \param minEntries per GEM stack to enable sector by sector correction. Below this value we only perform one fit per ROC type (IROC, OROC1, ...; no side nor sector information).
+  void setSectorFitThreshold(int minEntries) { mSectorThreshold = minEntries; }
+  /// \param minEntries per GEM stack to enable Tgl fit
+  void set1DFitThreshold(int minEntries) { m1DThreshold = minEntries; }
+  /// \param minEntries per GEM stack to enable Tgl and Snp fit
+  /// has no effect if fitSnp = false
+  void set2DFitThreshold(int minEntries) { m2DThreshold = minEntries; }
+
+  int getSectorFitThreshold() const { return mSectorThreshold; }
+  int getTglFitThreshold() const { return m1DThreshold; }
+  int getSnpFitThreshold() const { return m2DThreshold; }
+
+  /// \brief Params used to remove electron points from the fit.
+  /// The fit to find the MIP peak will be performed \p passes times, from the second time
+  /// and afterwords any points with dEdx values above the previous fit * (1 + \p cut) will be cut out.
+  /// \note you can set \p passes = 0 to disable this functionality
+  void setElectronCut(float cut, int passes = 3)
+  {
+    mFitCut = cut;
+    mFitPasses = passes;
+  }
 
   /// Fill histograms using tracks data.
   void fill(const TrackTPC& tracks);
   void fill(const gsl::span<const TrackTPC>);
   void fill(const std::vector<TrackTPC>& tracks) { fill(gsl::span(tracks)); }
 
-  /// Add counts from other container.
+  /// Add counts from another container.
   void merge(const CalibdEdx* other);
 
-  /// Compute MIP position from dEdx histograms, and save result in the calib container.
-  /// \param minEntries required to fit the mean, 1D and 2D functions.
+  /// Compute MIP position from dEdx histograms and save result in the correction container.
+  /// To retrieve the correction call `CalibdEdx::getCalib()`
   void finalize();
 
-  /// Return the full histogram.
+  /// Return calib data histogram
   const Hist& getHist() const { return mHist; }
-  /// Return the projected histogram, the projected axes are summed over.
-  auto getHist(const std::vector<int>& projected_axis) const
-  {
-    return boost::histogram::algorithm::project(mHist, projected_axis);
-  }
-
-  /// Return the projected histogram as a TH2F, the unkept axis are summed over.
-  TH2F getRootHist(const std::vector<int>& projected_axis) const;
-  /// Keep all axes
-  TH2F getRootHist() const;
+  /// Return calib data as a THn
+  THnF* getRootHist() const;
 
   const CalibdEdxCorrection& getCalib() const { return mCalib; }
 
-  ///< Return the number of hist entries of the gem stack with less statistics
-  float minStackEntries() const;
+  /// Return the number of hist entries of the gem stack with less statistics
+  int minStackEntries() const;
 
   /// \brief Check if there are enough data to compute the calibration.
-  /// \param minEntries in each histogram
   /// \return false if any of the GEM stacks has less entries than minEntries
   bool hasEnoughData(float minEntries) const;
 
   /// Find the sector of a track at a given GEM stack type.
   static int findTrackSector(const TrackTPC& track, GEMstack, bool& ok);
 
-  /// Print the number of entries in each histogram.
+  /// Print statistics info.
   void print() const;
 
   /// Save the histograms to a TTree.
   void writeTTree(std::string_view fileName) const;
 
+  constexpr static float MipScale = 1.0 / 50.0;                         ///< Inverse of target dE/dx value for MIPs
+  constexpr static std::array<float, 4> TglScale{1.9, 1.5, 1.22, 1.02}; ///< Max Tgl values for each ROC type
+
+  constexpr static float scaleTgl(float tgl, GEMstack roc) { return tgl / CalibdEdx::TglScale[roc]; }
+  constexpr static float recoverTgl(float scaledTgl, GEMstack roc) { return scaledTgl * CalibdEdx::TglScale[roc]; }
+
  private:
-  constexpr static float mipScale = 1.0 / 50.0; ///< Target value for MIP dE/dx
+  bool mFitSnp{};
+  float mField = -5;             ///< Magnetic field in kG, used in track propagation
+  bool mApplyCuts{true};         ///< Wether or not to apply tracks cuts
+  TrackCuts mCuts{0.3, 0.7, 60}; ///< MIP
+  int mSectorThreshold = 1000;   ///< Minimum entries per stack to perform a sector by sector fit.
+  int m1DThreshold = 500;        ///< Minimum entries per stack to perform a Tgl fit
+  int m2DThreshold = 5000;       ///< Minimum entries per stack to perform a Snp fit
+  float mFitCut = 0.2;           ///< dEdx cut value used to remove electron tracks
+  int mFitPasses = 3;            ///< number of fit passes used to remove electron tracks
 
-  float mField = -5;                ///< Magnetic field in kG, used for track propagation
-  bool mApplyCuts{true};            ///< Wether or not to apply tracks cuts
-  TrackCuts mCuts{0.4, 0.6, 60};    ///< Cut values
-  FitCuts mFitCuts{100, 500, 2500}; ///< Minimum entries per stack to perform a mean, 1D and 2D fit, for each GEM stack
-
-  Hist mHist;                   ///< TotdEdx multidimensional histogram
+  Hist mHist;                   ///< dEdx multidimensional histogram
   CalibdEdxCorrection mCalib{}; ///< Calibration output
 
   ClassDefNV(CalibdEdx, 1);

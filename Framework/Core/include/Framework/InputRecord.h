@@ -101,6 +101,14 @@ class InputRecord
  public:
   using DataHeader = o2::header::DataHeader;
 
+  // Typesafe position inside a record of an input.
+  // Multiple routes by which the input gets in this
+  // position are multiplexed.
+  struct InputPos {
+    size_t index;
+    constexpr static size_t INVALID = -1LL;
+  };
+
   InputRecord(std::vector<InputRoute> const& inputs,
               InputSpan& span,
               ServiceRegistry&);
@@ -179,6 +187,9 @@ class InputRecord
   };
 
   int getPos(const char* name) const;
+  [[nodiscard]] static InputPos getPos(std::vector<InputRoute> const& routes, ConcreteDataMatcher matcher);
+  [[nodiscard]] static DataRef getByPos(std::vector<InputRoute> const& routes, InputSpan const& span, int pos, int part = 0);
+
   [[nodiscard]] int getPos(const std::string& name) const;
 
   [[nodiscard]] DataRef getByPos(int pos, int part = 0) const;

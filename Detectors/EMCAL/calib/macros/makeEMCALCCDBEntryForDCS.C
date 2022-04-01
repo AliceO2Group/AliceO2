@@ -46,15 +46,15 @@ int makeEMCALCCDBEntryForDCS(const std::string url = "http://ccdb-test.cern.ch:8
 
   DPID dpidtmp;
   for (size_t i = 0; i < expaliasesTEMP.size(); ++i) {
-    DPID::FILL(dpidtmp, expaliasesTEMP[i], o2::dcs::DeliveryType::RAW_DOUBLE);
+    DPID::FILL(dpidtmp, expaliasesTEMP[i], o2::dcs::DeliveryType::DPVAL_DOUBLE);
     dpid2DataDesc[dpidtmp] = "EMCDATAPOINTS";
   }
   for (size_t i = 0; i < expaliasesINT.size(); ++i) {
-    DPID::FILL(dpidtmp, expaliasesINT[i], o2::dcs::DeliveryType::RAW_INT);
+    DPID::FILL(dpidtmp, expaliasesINT[i], o2::dcs::DeliveryType::DPVAL_INT);
     dpid2DataDesc[dpidtmp] = "EMCDATAPOINTS";
   }
   for (size_t i = 0; i < expaliasesUINT.size(); ++i) {
-    DPID::FILL(dpidtmp, expaliasesUINT[i], o2::dcs::DeliveryType::RAW_UINT);
+    DPID::FILL(dpidtmp, expaliasesUINT[i], o2::dcs::DeliveryType::DPVAL_UINT);
     dpid2DataDesc[dpidtmp] = "EMCDATAPOINTS";
   }
 

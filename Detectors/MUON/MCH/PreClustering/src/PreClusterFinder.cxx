@@ -17,7 +17,7 @@
 #include <vector>
 
 #include <fairmq/Tools.h>
-#include <FairMQLogger.h>
+#include <FairLogger.h>
 
 #include "PreClusterFinderMapping.h"
 

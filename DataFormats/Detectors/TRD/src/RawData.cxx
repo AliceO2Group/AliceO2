@@ -61,6 +61,8 @@ uint16_t buildTRDFeeID(int supermodule, int side, int endpoint)
   feeid.supermodule = supermodule;
   feeid.side = side;
   feeid.endpoint = endpoint;
+  feeid.unused1 = 0;
+  feeid.unused2 = 0;
   return feeid.word;
 }
 

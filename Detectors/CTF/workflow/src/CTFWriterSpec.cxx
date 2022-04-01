@@ -17,7 +17,7 @@
 #include "Framework/InputSpec.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/CommonServices.h"
-#include <FairMQDevice.h>
+#include <fairmq/Device.h>
 
 #include "CTFWorkflow/CTFWriterSpec.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
@@ -228,8 +228,8 @@ void CTFWriterSpec::init(InitContext& ic)
   mChkSize = std::max(size_t(mMinSize * 1.1), mMaxSize);
   if (!std::filesystem::exists(LOCKFileDir)) {
     if (!std::filesystem::create_directories(LOCKFileDir)) {
-      usleep(10); // protection in case the directory was created by other process at the time of query
-      if (std::filesystem::exists(LOCKFileDir)) {
+      usleep(10); // protection in case the directory was being created by other process at the time of query
+      if (!std::filesystem::exists(LOCKFileDir)) {
         throw std::runtime_error(fmt::format("Failed to create {} directory", LOCKFileDir));
       }
     }

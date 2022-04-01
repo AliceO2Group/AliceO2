@@ -16,6 +16,7 @@
 #include "DetectorsCalibration/Utils.h"
 #include <boost/histogram.hpp>
 #include <boost/histogram/ostream.hpp>
+#include <boost/histogram/algorithm/sum.hpp>
 #include <boost/format.hpp>
 #include <cassert>
 #include <iostream>
@@ -55,7 +56,7 @@ void EMCALTimeCalibData::merge(const EMCALTimeCalibData* prev)
   mTimeHisto += prev->getHisto();
 }
 //_____________________________________________
-bool EMCALTimeCalibData::hasEnoughData() const
+bool EMCALTimeCalibData::hasEnoughData(int minNEntries) const
 {
   // true if we have enough data, also want to check for the sync trigger
   // this is stil to be finalized, simply a skeletron for now
@@ -67,7 +68,12 @@ bool EMCALTimeCalibData::hasEnoughData() const
   // TODO: use event counter here to specify the value of enough
   // guess and then adjust number of events as needed
   // checking mEvents
-  bool enough;
+  bool enough = false;
+  double entries = boost::histogram::algorithm::sum(mTimeHisto);
+  LOG(debug) << "entries: " << entries << " needed: " << minNEntries;
+  if (entries > minNEntries) {
+    enough = true;
+  }
 
   return enough;
 }
@@ -75,10 +81,13 @@ bool EMCALTimeCalibData::hasEnoughData() const
 void EMCALTimeCalibData::fill(const gsl::span<const o2::emcal::Cell> data)
 {
   for (auto cell : data) {
-    Double_t cellEnergy = cell.getEnergy();
-    Int_t id = cell.getTower();
-    LOG(debug) << "inserting in cell ID " << id << ": energy = " << cellEnergy;
-    mTimeHisto(cellEnergy, id);
+    double cellEnergy = cell.getEnergy();
+    double cellTime = cell.getTimeStamp();
+    int id = cell.getTower();
+    LOG(debug) << "inserting in cell ID " << id << ": cellTime = " << cellTime;
+    if (cellEnergy > 0.3) {
+      mTimeHisto(cellTime, id);
+    }
   }
 }
 

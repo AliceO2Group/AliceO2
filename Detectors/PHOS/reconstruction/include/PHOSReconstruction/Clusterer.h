@@ -46,8 +46,8 @@ class Clusterer
 
   void makeClusters(std::vector<Cluster>& clusters, std::vector<o2::phos::CluElement>& cluel);
 
-  void setBadMap(o2::phos::BadChannelsMap* m) { mBadMap = m; }
-  void setCalibration(o2::phos::CalibParams* c) { mCalibParams = c; }
+  void setBadMap(const o2::phos::BadChannelsMap* m) { mBadMap = m; }
+  void setCalibration(const o2::phos::CalibParams* c) { mCalibParams = c; }
 
  protected:
   // Calibrate energy
@@ -87,10 +87,10 @@ class Clusterer
   static constexpr short NLOCMAX = 30; // Maximal number of local maxima in cluster
   bool mProcessMC = false;
   int miCellLabel = 0;
-  bool mFullCluOutput = false;         ///< Write output full of reduced (no contributed digits) clusters
-  Geometry* mPHOSGeom = nullptr;       ///! PHOS geometry
-  CalibParams* mCalibParams = nullptr; ///! Calibration coefficients, Clusterizer not owner
-  BadChannelsMap* mBadMap = nullptr;   ///! Bad map, Clusterizer not owner
+  bool mFullCluOutput = false;               ///< Write output full of reduced (no contributed digits) clusters
+  Geometry* mPHOSGeom = nullptr;             ///! PHOS geometry
+  const CalibParams* mCalibParams = nullptr; ///! Calibration coefficients, Clusterizer not owner
+  const BadChannelsMap* mBadMap = nullptr;   ///! Bad map, Clusterizer not owner
 
   std::vector<CluElement> mCluEl; ///< internal vector of clusters
   std::vector<Digit> mTrigger;    ///< internal vector of clusters

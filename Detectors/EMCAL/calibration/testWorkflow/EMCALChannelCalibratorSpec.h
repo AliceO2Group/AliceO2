@@ -46,26 +46,41 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   EMCALChannelCalibDevice() = default;
   void init(o2::framework::InitContext& ic) final
   {
+    mCalibExtractor = std::make_shared<o2::emcal::EMCALCalibExtractor>();
+
     int isTest = ic.options().get<bool>("do-EMCAL-channel-calib-in-test-mode");
-    mBadChannelCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap, o2::emcal::ChannelCalibInitParams>>();
-    mBadChannelCalibrator->setUpdateAtTheEndOfRunOnly();
-    mBadChannelCalibrator->setIsTest(isTest);
-    if (ic.options().get<bool>("useScaledHistoForBadChannelMap")) {
-      mBadChannelCalibrator->getCalibExtractor()->setUseScaledHistoForBadChannels(true);
+    std::string calibType = ic.options().get<std::string>("calibType");
+    minNEntries = ic.options().get<int>("minNEntries");
+    std::string localStorePath = ic.options().get<std::string>("localFilePath");
+
+    if (calibType.find("time") != std::string::npos) { // time calibration
+      if (!mTimeCalibrator) {
+        mTimeCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibrationParams, o2::emcal::TimeCalibInitParams>>();
+      }
+      mTimeCalibrator->SetCalibExtractor(mCalibExtractor);
+      mTimeCalibrator->setMinNEntries(minNEntries);
+      mTimeCalibrator->setLocalStorePath(localStorePath);
+    } else { // bad cell calibration
+      if (!mBadChannelCalibrator) {
+        mBadChannelCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap, o2::emcal::ChannelCalibInitParams>>();
+      }
+      mBadChannelCalibrator->SetCalibExtractor(mCalibExtractor);
+      mBadChannelCalibrator->setUpdateAtTheEndOfRunOnly();
+      mBadChannelCalibrator->setIsTest(isTest);
+      if (ic.options().get<bool>("useScaledHistoForBadChannelMap")) {
+        mBadChannelCalibrator->getCalibExtractor()->setUseScaledHistoForBadChannels(true);
+      }
+      mBadChannelCalibrator->setMinNEntries(minNEntries);
     }
   }
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-
     long startTimeChCalib;
+    auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get(getCellBinding()).header)->startTime;
 
-    auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime; // is this the timestamp of the current TF?
-
-    LOG(debug) << "  startTimeChCalib = " << startTimeChCalib;
-
-    auto data = pc.inputs().get<gsl::span<o2::emcal::Cell>>("input");
-    LOG(info) << "Processing TF " << tfcounter << " with " << data.size() << " cells";
+    auto data = pc.inputs().get<gsl::span<o2::emcal::Cell>>(getCellBinding());
+    LOG(debug) << "Processing TF " << tfcounter << " with " << data.size() << " cells";
     mTimeCalibrator->process(tfcounter, data);
   }
 
@@ -76,9 +91,14 @@ class EMCALChannelCalibDevice : public o2::framework::Task
     sendOutput<o2::emcal::BadChannelMap>(ec.outputs());
   }
 
+  static const char* getCellBinding() { return "EMCCells"; }
+  static const char* getCellTriggerRecordBinding() { return "EMCCellsTrgR"; }
+
  private:
   std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap, o2::emcal::ChannelCalibInitParams>> mBadChannelCalibrator;
   std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibrationParams, o2::emcal::TimeCalibInitParams>> mTimeCalibrator;
+  std::shared_ptr<o2::emcal::EMCALCalibExtractor> mCalibExtractor;
+  int minNEntries; // minimum number of entries in histogram needed for calibration
 
   //________________________________________________________________
   template <typename DataOutput>
@@ -130,18 +150,18 @@ class EMCALChannelCalibDevice : public o2::framework::Task
 namespace framework
 {
 
-DataProcessorSpec getEMCALChannelCalibDeviceSpec()
+DataProcessorSpec getEMCALChannelCalibDeviceSpec(const int minNEntries, std::string calibType = "badcell", std::string localStorePath = "")
 {
   using device = o2::calibration::EMCALChannelCalibDevice;
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_CHANNEL"}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_CHANNEL"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_BADCHANNELS"}, Lifetime::Sporadic); // This needs to match with the output!
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_BADCHANNELS"}, Lifetime::Sporadic); // This needs to match with the output!
 
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("input", o2::header::gDataOriginEMC, "CELLS");
-
+  inputs.emplace_back(device::getCellBinding(), o2::header::gDataOriginEMC, "CELLS", 0, o2::framework::Lifetime::Timeframe);
+  inputs.emplace_back(device::getCellTriggerRecordBinding(), o2::header::gDataOriginEMC, "CELLSTRGR", 0, o2::framework::Lifetime::Timeframe);
   return DataProcessorSpec{
     "calib-emcalchannel-calibration",
     inputs,
@@ -150,6 +170,9 @@ DataProcessorSpec getEMCALChannelCalibDeviceSpec()
     Options{
       {"do-EMCAL-channel-calib-in-test-mode", VariantType::Bool, false, {"to run in test mode for simplification"}},
       {"ccdb-path", VariantType::String, o2::base::NameConf::getCCDBServer(), {"Path to CCDB"}},
+      {"minNEntries", VariantType::Int, minNEntries, {"minimum number of entries to trigger calibration"}},
+      {"localFilePath", VariantType::String, localStorePath, {"path to file for local storage of TC params"}},
+      {"calibType", VariantType::String, calibType, {"switch between time and bad cell calib"}},
       {"useScaledHistoForBadChannelMap", VariantType::Bool, false, {"Use scaled histogram for bad channel extraction"}}}};
 }
 

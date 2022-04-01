@@ -37,6 +37,12 @@ workflow_has_parameter GPU && { export GPUTYPE=HIP; export NGPUS=4; }
 MID_FEEID_MAP="$FILEWORKDIR/mid-feeId_mapper.txt"
 NITSDECTHREADS=2
 NMFTDECTHREADS=2
+# FIXME: multithreading in the itsmft reconstruction does not work
+#        on macOS.
+if [[ $(uname) == "Darwin" ]]; then
+    NITSDECTHREADS=1
+    NMFTDECTHREADS=1
+fi
 CTF_DICT=${CTF_DICT_DIR}/ctf_dictionary.root
 
 ITSMFT_FILES="ITSClustererParam.dictFilePath=$ITSCLUSDICT;MFTClustererParam.dictFilePath=$MFTCLUSDICT";
@@ -81,7 +87,9 @@ fi
 [[ $SHMTHROW == 0 ]] && ARGS_ALL+=" --shm-throw-bad-alloc 0"
 [[ ! -z $SHM_MANAGER_SHMID ]] && ARGS_ALL+=" --shm-no-cleanup on --shmid $SHM_MANAGER_SHMID"
 [[ $NORATELOG == 1 ]] && ARGS_ALL+=" --fairmq-rate-logging 0"
-[[ $NUMAGPUIDS != 0 ]] && ARGS_ALL+=" --child-driver 'numactl --membind $NUMAID --cpunodebind $NUMAID'"
+if [[ $EPNSYNCMODE == 1 ]] || [[ `which numactl 2> /dev/null | wc -l` != "0" && `numactl -H | grep "node . size" | wc -l` -ge 2 ]]; then
+  [[ $NUMAGPUIDS != 0 ]] && ARGS_ALL+=" --child-driver 'numactl --membind $NUMAID --cpunodebind $NUMAID'"
+fi
 [[ ! -z $TIMEFRAME_RATE_LIMIT ]] && [[ $TIMEFRAME_RATE_LIMIT != 0 ]] && ARGS_ALL+=" --timeframes-rate-limit $TIMEFRAME_RATE_LIMIT --timeframes-rate-limit-ipcid $NUMAID"
 
 
@@ -166,7 +174,7 @@ if [[ $GPUTYPE == "HIP" ]]; then
   else
     export TIMESLICEOFFSET=$NGPUS
   fi
-  if [[ -z $ROCR_VISIBLE_DEVICES ]]; then
+  if [[ -z $ROCR_VISIBLE_DEVICES || $ROCR_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7" ]]; then
     GPU_CONFIG_KEY+="GPU_proc.deviceNum=0;"
     GPU_CONFIG+=" --environment \"ROCR_VISIBLE_DEVICES={timeslice${TIMESLICEOFFSET}}\""
   fi
@@ -329,7 +337,7 @@ elif [[ $RAWTFINPUT == 1 ]]; then
   if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--max-tf $NTIMEFRAMES"; fi
   add_W o2-raw-tf-reader-workflow "--delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD --input-data ${TFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD} --onlyDet $WORKFLOW_DETECTORS"
 elif [[ $EXTINPUT == 1 ]]; then
-  PROXY_CHANNEL="name=readout-proxy,type=pull,method=connect,address=ipc://@$INRAWCHANNAME,transport=shmem,rateLogging=$EPNSYNCMODE"
+  PROXY_CHANNEL="name=readout-proxy,type=pull,method=connect,address=ipc://${UDS_PREFIX}${INRAWCHANNAME},transport=shmem,rateLogging=$EPNSYNCMODE"
   PROXY_INSPEC="dd:FLP/DISTSUBTIMEFRAME/0"
   PROXY_IN_N=0
   for i in `echo "$WORKFLOW_DETECTORS" | sed "s/,/ /g"`; do
@@ -379,7 +387,7 @@ fi
 # ---------------------------------------------------------------------------------------------------------------------
 # Raw decoder workflows - disabled in async mode
 if [[ $CTFINPUT == 0 && $DIGITINPUT == 0 ]]; then
-  if has_detector TPC && [[ $EPNSYNCMODE == 1 || "0$TPC_CONVERT_LINKZS_TO_RAW" == "01" ]]; then
+  if has_detector TPC && [[ $EPNSYNCMODE == 1 || "0$TPC_CONVERT_LINKZS_TO_RAW" == "01" ]] && [[ "0$TPC_NO_CONVERT_LINKZS_TO_RAW" != "01" ]]; then
     GPU_INPUT=zsonthefly
     add_W o2-tpc-raw-to-digits-workflow "--input-spec \"A:TPC/RAWDATA;dd:FLP/DISTSUBTIMEFRAME/0\" --remove-duplicates --pipeline $(get_N tpc-raw-to-digits-0 TPC RAW TPCRAWDEC)"
     add_W o2-tpc-reco-workflow "--input-type digitizer --output-type zsraw,disable-writer --pipeline $(get_N tpc-zsEncoder TPC RAW TPCRAWDEC)"
@@ -409,8 +417,8 @@ has_detector_reco ITS && add_W o2-its-reco-workflow "--trackerCA $ITS_CONFIG $DI
 has_detectors_reco ITS TPC && has_detector_matching ITSTPC && add_W o2-tpcits-match-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N itstpc-track-matcher MATCH REST TPCITS)" "$ITSMFT_FILES"
 has_detector_reco FT0 && add_W o2-ft0-reco-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N ft0-reconstructor FT0 REST)"
 has_detector_reco TRD && add_W o2-trd-tracklet-transformer "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_FILTER_CONFIG --pipeline $(get_N TRDTRACKLETTRANSFORMER TRD REST TRDTRK)"
-has_detectors_reco TRD TPC ITS && [[ ! -z "$TRD_SOURCES" ]] && add_W o2-trd-global-tracking "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_CONFIG $TRD_FILTER_CONFIG --track-sources $TRD_SOURCES" "$TRD_CONFIG_KEY;$ITSMFT_FILES"
-has_detectors_reco TOF TRD TPC ITS && [[ ! -z "$TOF_SOURCES" ]] && add_W o2-tof-matcher-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --track-sources $TOF_SOURCES --pipeline $(get_N tof-matcher TOF REST TOFMATCH)" "$ITSMFT_FILES"
+has_detector_reco TRD && [[ ! -z "$TRD_SOURCES" ]] && add_W o2-trd-global-tracking "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_CONFIG $TRD_FILTER_CONFIG --track-sources $TRD_SOURCES" "$TRD_CONFIG_KEY;$ITSMFT_FILES"
+has_detector_reco TOF && [[ ! -z "$TOF_SOURCES" ]] && add_W o2-tof-matcher-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --track-sources $TOF_SOURCES --pipeline $(get_N tof-matcher TOF REST TOFMATCH)" "$ITSMFT_FILES"
 has_detectors TPC && [ -z "$DISABLE_ROOT_OUTPUT" ] && add_W o2-tpc-reco-workflow "--input-type pass-through --output-type clusters,tracks,send-clusters-per-sector $DISABLE_MC"
 
 # ---------------------------------------------------------------------------------------------------------------------

@@ -13,15 +13,10 @@
 /// \author ruben.shahoyan@cern.ch afurs@cern.ch
 
 #include <boost/program_options.hpp>
-#include <filesystem>
-#include <TFile.h>
 #include <TStopwatch.h>
-#include "Framework/Logger.h"
 #include <string>
-#include <iomanip>
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/ConfigurableParam.h"
-#include "CommonUtils/NameConf.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "FT0Raw/RawWriterFT0.h"
 #include "DataFormatsParameters/GRPObject.h"

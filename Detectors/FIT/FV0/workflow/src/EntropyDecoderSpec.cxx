@@ -46,7 +46,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
 
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
 
-  auto& digits = pc.outputs().make<std::vector<o2::fv0::BCData>>(OutputRef{"digits"});
+  auto& digits = pc.outputs().make<std::vector<o2::fv0::Digit>>(OutputRef{"digits"});
   auto& channels = pc.outputs().make<std::vector<o2::fv0::ChannelData>>(OutputRef{"channels"});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
@@ -64,7 +64,7 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec(int verbosity)
+DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"digits"}, "FV0", "DIGITSBC", 0, Lifetime::Timeframe},
@@ -72,7 +72,7 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity)
 
   return DataProcessorSpec{
     "fv0-entropy-decoder",
-    Inputs{InputSpec{"ctf", "FV0", "CTFDATA", 0, Lifetime::Timeframe}},
+    Inputs{InputSpec{"ctf", "FV0", "CTFDATA", sspec, Lifetime::Timeframe}},
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
     Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};

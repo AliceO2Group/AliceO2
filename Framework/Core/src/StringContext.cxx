@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/StringContext.h"
-#include <FairMQMessage.h>
+#include <fairmq/Message.h>
 #include <cassert>
 
 namespace o2::framework

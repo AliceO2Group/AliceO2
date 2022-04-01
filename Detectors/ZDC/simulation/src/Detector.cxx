@@ -31,6 +31,9 @@
 #include <fstream>
 #include "ZDCSimulation/ZDCSimParam.h"
 #include "ZDCBase/Constants.h"
+#ifdef ZDC_FASTSIM_ONNX
+#include "Utils.h" // for normal_distribution()
+#endif
 
 using namespace o2::zdc;
 
@@ -62,6 +65,36 @@ Detector::Detector(Bool_t active)
   mMediumPMCid = -1; // minus for unitialized
   mMediumPMQid = -2; // different to PMC in any case
   resetHitIndices();
+
+#ifdef ZDC_FASTSIM_ONNX
+  // creating classifier object
+  if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierPath.empty() && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierScales.empty()) {
+    auto eonScales = o2::zdc::fastsim::loadScales(o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierScales);
+    if (!eonScales.has_value()) {
+      LOG(error) << "Error while reading model scales from: "
+                 << "'" << o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierScales << "'";
+      LOG(error) << "FastSim module disabled.";
+    } else {
+      mClassifierScaler.setScales(eonScales->first, eonScales->second);
+      mFastSimClassifier = new o2::zdc::fastsim::ConditionalModelSimulation(o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierPath);
+
+      if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPath.empty() && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales.empty()) {
+        auto modelScales = o2::zdc::fastsim::loadScales(o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales);
+
+        if (!modelScales.has_value()) {
+          LOG(error) << "Error while reading model scales from: "
+                     << "'" << o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales << "'";
+          LOG(error) << "FastSim module disabled";
+        } else {
+          mModelScaler.setScales(modelScales->first, modelScales->second);
+          mFastSimModel = new o2::zdc::fastsim::ConditionalModelSimulation(o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPath);
+          mNoise = o2::zdc::fastsim::normal_distribution(0.0, 1.0, 10);
+          LOG(info) << "\n FastSim module enabled";
+        }
+      }
+    }
+  }
+#endif
 }
 
 //_____________________________________________________________________________
@@ -70,6 +103,15 @@ Detector::Detector(const Detector& rhs)
     mHits(new std::vector<o2::zdc::Hit>)
 {
 }
+
+//_____________________________________________________________________________
+#ifdef ZDC_FASTSIM_ONNX
+Detector::~Detector()
+{
+  delete (mFastSimClassifier);
+  delete (mFastSimModel);
+}
+#endif
 
 //_____________________________________________________________________________
 template <typename T>
@@ -2387,6 +2429,22 @@ void Detector::FinishPrimary()
   // after each primary we should definitely reset
   mLastPrincipalTrackEntered = -1;
   flushSpatialResponse();
+
+#ifdef ZDC_FASTSIM_ONNX
+  if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && mFastSimModel != nullptr && mFastSimClassifier != nullptr) {
+    std::fstream output("o2sim-FastSimResult", output.out | output.app);
+    if (!output.is_open()) {
+      LOG(error) << "Could not open file.";
+    } else {
+
+      for (auto& result : mFastSimResults) {
+        output << result[0] << ", " << result[1] << ", " << result[2] << ", " << result[3] << ", " << result[4];
+        output << std::endl;
+      }
+      mFastSimResults.clear();
+    }
+  }
+#endif
 }
 
 void Detector::BeginPrimary()
@@ -2398,6 +2456,36 @@ void Detector::BeginPrimary()
   resetHitIndices();
 
   mCurrentPrincipalParticle = *stack->GetCurrentTrack();
+
+#ifdef ZDC_FASTSIM_ONNX
+  if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && mFastSimModel != nullptr && mFastSimClassifier != nullptr) {
+    const std::vector<float> rawInput = {static_cast<float>(mCurrentPrincipalParticle.Energy()),
+                                         static_cast<float>(mCurrentPrincipalParticle.Vx()),
+                                         static_cast<float>(mCurrentPrincipalParticle.Vy()),
+                                         static_cast<float>(mCurrentPrincipalParticle.Vz()),
+                                         static_cast<float>(mCurrentPrincipalParticle.Px()),
+                                         static_cast<float>(mCurrentPrincipalParticle.Py()),
+                                         static_cast<float>(mCurrentPrincipalParticle.Pz()),
+                                         static_cast<float>(mCurrentPrincipalParticle.GetMass() * 1000.0),
+                                         static_cast<float>(mCurrentPrincipalParticle.GetPDG()->Charge())};
+
+    auto scaledClassParticle = mClassifierScaler.scale(rawInput);
+    if (scaledClassParticle.has_value()) {
+      std::vector<std::vector<float>> classifierInput = {std::move(*scaledClassParticle)};
+      mFastSimClassifier->setInput(classifierInput);
+      mFastSimClassifier->run();
+      if (fastsim::processors::readClassifier(mFastSimClassifier->getResult()[0])) {
+        auto scaledModelParticle = mModelScaler.scale(rawInput);
+        std::vector<std::vector<float>> modelInput = {mNoise, std::move(*scaledModelParticle)};
+        mFastSimModel->setInput(modelInput);
+        mFastSimModel->run();
+        mFastSimResults.push_back(fastsim::processors::calculateChannels(mFastSimModel->getResult()[0]));
+      } else {
+        mFastSimResults.push_back({0, 0, 0, 0, 0});
+      }
+    }
+  }
+#endif
 }
 
 //_____________________________________________________________________________
