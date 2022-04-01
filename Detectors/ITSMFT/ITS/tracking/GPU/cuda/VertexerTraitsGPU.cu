@@ -331,16 +331,18 @@ void VertexerTraitsGPU::computeTracklets()
   const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
 
   for (int rofId{0}; rofId < 1 /*mTimeFrame->getNrof()*/; ++rofId) {
-    gpu::trackleterKernel<TrackletMode::Layer0Layer1><<<blocksGrid, threadsPerBlock>>>(
-      mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 0),
-      mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 1),
-      mTimeFrameGPU->getDeviceNClustersLayer(rofId, 0),
-      mTimeFrameGPU->getDeviceNClustersLayer(rofId, 1),
-      mTimeFrameGPU->getDeviceIndexTableL0(rofId),
-      mVrtParams.phiCut,
-      mTimeFrame->getDeviceTracklets()[0],
-      mTimeFrame->getDeviceNTrackletsCluster(rofId)[0],
-      mIndexTableUtils);
+    // Ugly, let's check if it works
+    mTimeFrameGPU->getDeviceIndexTableL0().reset(mTimeFrameGPU->getIndexTableL0(rofId).data(), static_cast<int>(mTimeFrameGPU->getIndexTableL0(rofId).size()));
+    // gpu::trackleterKernel<TrackletMode::Layer0Layer1><<<blocksGrid, threadsPerBlock>>>(
+    //   mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 0),
+    //   mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 1),
+    //   mTimeFrameGPU->getDeviceNClustersLayer(rofId, 0),
+    //   mTimeFrameGPU->getDeviceNClustersLayer(rofId, 1),
+    //   mTimeFrameGPU->getDeviceIndexTableL0(),
+    //   mVrtParams.phiCut,
+    //   mTimeFrame->getDeviceTracklets()[0],
+    //   mTimeFrame->getDeviceNTrackletsCluster(rofId)[0],
+    //   mIndexTableUtils);
 
     // gpu::trackleterKernel<<<blocksGrid, threadsPerBlock>>>(
     //   getDeviceContext(),
