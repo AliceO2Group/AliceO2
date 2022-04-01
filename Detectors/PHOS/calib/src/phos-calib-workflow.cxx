@@ -33,15 +33,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"energy", o2::framework::VariantType::Bool, false, {"collect tree for E calib"}});
   workflowOptions.push_back(ConfigParamSpec{"badmap", o2::framework::VariantType::Bool, false, {"do bad map calculation"}});
 
-  //
   workflowOptions.push_back(ConfigParamSpec{"not-use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb phos calibration objects"}});
   workflowOptions.push_back(ConfigParamSpec{"forceupdate", o2::framework::VariantType::Bool, false, {"update ccdb even difference to previous object large"}});
-
-  workflowOptions.push_back(ConfigParamSpec{"ptminmgg", o2::framework::VariantType::Float, 1.5f, {"minimal pt to fill mgg calib histos"}});
-  workflowOptions.push_back(ConfigParamSpec{"eminhgtime", o2::framework::VariantType::Float, 1.5f, {"minimal E (GeV) to fill HG time calib histos"}});
-  workflowOptions.push_back(ConfigParamSpec{"eminlgtime", o2::framework::VariantType::Float, 5.f, {"minimal E (GeV) to fill LG time calib histos"}});
-  workflowOptions.push_back(ConfigParamSpec{"ecalibdigitmin", o2::framework::VariantType::Float, 0.05f, {"minimal digtit E (GeV) to keep digit for calibration"}});
-  workflowOptions.push_back(ConfigParamSpec{"ecalibclumin", o2::framework::VariantType::Float, 0.4f, {"minimal cluster E (GeV) to keep digit for calibration"}});
 
   // BadMap
   workflowOptions.push_back(ConfigParamSpec{"mode", o2::framework::VariantType::Int, 0, {"operation mode: 0: occupancy, 1: chi2, 2: pedestals"}});
@@ -66,12 +59,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useCCDB = !configcontext.options().get<bool>("not-use-ccdb");
   auto forceUpdate = configcontext.options().get<bool>("forceupdate");
 
-  float ptMin = configcontext.options().get<float>("ptminmgg");
-  float eMinHGTime = configcontext.options().get<float>("eminhgtime");
-  float eMinLGTime = configcontext.options().get<float>("eminlgtime");
-  float eCalibDigitMin = configcontext.options().get<float>("ecalibdigitmin");
-  float eCalibCluMin = configcontext.options().get<float>("ecalibclumin");
-
   if (doPedestals && doHgLgRatio) {
     LOG(fatal) << "Can not run pedestal and HG/LG calibration simulteneously";
   }
@@ -88,8 +75,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
   if (doEnergy) {
-    LOG(info) << "Filling tree for energy and time calibration ";
-    specs.emplace_back(o2::phos::getPHOSEnergyCalibDeviceSpec(useCCDB, ptMin, eMinHGTime, eMinLGTime, eCalibDigitMin, eCalibCluMin));
+    specs.emplace_back(o2::phos::getPHOSEnergyCalibDeviceSpec(useCCDB));
   }
   if (doTurnOn) {
     LOG(info) << "TurnOn curves calculation";
