@@ -560,9 +560,10 @@ bool MatchTPCITS::prepareITSData()
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mITSTrackROFRec[irof];
     int nBC = rofRec.getBCData().differenceInBC(mStartIR);
-    if (nBC < 0) {
+    if (nBC < 0 || nBC > 256 * o2::constants::lhc::LHCMaxBunches) { // RS: fixme: use real NHBFPerTF from GRP
       if (++errCount < MaxErrors2Report) {
-        LOG(error) << "ITS ROF start " << rofRec.getBCData() << " precedes TF 1st orbit " << mStartIR;
+        LOG(alarm) << "ITS ROF start " << rofRec.getBCData() << " does not match to TF with 1st orbit " << mStartIR;
+        return false;
       }
       continue;
     }
