@@ -47,7 +47,6 @@ void trackleterKernelSerial(
   const int PhiBins{utils.getNphiBins()};
   const int ZBins{utils.getNzBins()};
 
-  foundTracklets.resize(clustersCurrentLayer.size(), 0);
   // loop on layer1 clusters
   for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < clustersCurrentLayer.size(); ++iCurrentLayerClusterIndex) {
     int storedTracklets{0};

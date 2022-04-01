@@ -50,6 +50,8 @@ void gpuFree(void*);
 void gpuMemset(void*, int, int);
 void gpuMemcpyHostToDevice(void*, const void*, int);
 void gpuMemcpyDeviceToHost(void*, const void*, int);
+void gpuMemcpyToSymbol(const void* symbol, const void* src, int size);
+void gpuMemcpyFromSymbol(void* dst, const void* symbol, int size);
 } // namespace host
 
 namespace device

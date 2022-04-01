@@ -74,7 +74,13 @@ GPUh() void gpuThrowOnError()
 
 VertexerTraitsGPU::VertexerTraitsGPU()
 {
+  gpu::utils::host::gpuMalloc((void**)&mDeviceIndexTableUtils, sizeof(IndexTableUtils));
   setIsGPU(true);
+}
+
+VertexerTraitsGPU::~VertexerTraitsGPU()
+{
+  gpu::utils::host::gpuFree(mDeviceIndexTableUtils);
 }
 
 void VertexerTraitsGPU::initialise(const MemoryParameters& memParams, const TrackingParameters& trackingParams)
@@ -82,6 +88,7 @@ void VertexerTraitsGPU::initialise(const MemoryParameters& memParams, const Trac
   if (!mIndexTableUtils.getNzBins()) {
     updateVertexingParameters(mVrtParams);
   }
+  gpu::utils::host::gpuMemcpyHostToDevice(mDeviceIndexTableUtils, &mIndexTableUtils, sizeof(mIndexTableUtils));
   mTimeFrameGPU->initialise(0, memParams, trackingParams, 3);
   setIsGPU(true);
 }
@@ -142,12 +149,12 @@ GPUg() void trackleterKernel(
   const Cluster* clustersCurrentLayer, // 1 1
   const size_t sizeNextLClusters,
   const size_t sizeCurrentLClusters,
-  int* indexTableNext,
+  const Vector<int>& indexTableNext,
   const float phiCut,
   Vector<Tracklet>& Tracklets,
-  Vector<int>& foundTracklets,
-  const IndexTableUtils& utils,
-  const int maxTrackletsPerCluster = static_cast<int>(2e3))
+  int* foundTracklets,
+  const IndexTableUtils* utils,
+  const int maxTrackletsPerCluster = static_cast<int>(10))
 {
   // loop on layer1 clusters
   for (size_t currentClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; currentClusterIndex < sizeCurrentLClusters; currentClusterIndex += blockDim.x * gridDim.x) {
@@ -155,7 +162,7 @@ GPUg() void trackleterKernel(
       int storedTracklets{0};
       const size_t stride{currentClusterIndex * maxTrackletsPerCluster};
       const Cluster& currentCluster = clustersCurrentLayer[currentClusterIndex];
-      const int4 selectedBinsRect{VertexerTraits::getBinsRect(currentCluster, (int)Mode, 0.f, 50.f, phiCut / 2, utils)};
+      const int4 selectedBinsRect{VertexerTraits::getBinsRect(currentCluster, (int)Mode, 0.f, 50.f, phiCut / 2, *utils)};
 
       if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
         int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
@@ -164,7 +171,7 @@ GPUg() void trackleterKernel(
         }
         // loop on phi bins next layer
         for (size_t iPhiBin{(size_t)selectedBinsRect.y}, iPhiCount{0}; iPhiCount < (size_t)phiBinsNum; iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
-          const int firstBinIndex{utils.getBinIndex(selectedBinsRect.x, iPhiBin)};
+          const int firstBinIndex{utils->getBinIndex(selectedBinsRect.x, iPhiBin)};
           const int firstRowClusterIndex{indexTableNext[firstBinIndex]};
           const int maxRowClusterIndex{indexTableNext[firstBinIndex + ZBins]};
           // loop on clusters next layer
@@ -183,7 +190,7 @@ GPUg() void trackleterKernel(
           }
         }
       }
-      foundTracklets.emplace(currentClusterIndex, storedTracklets);
+      foundTracklets[currentClusterIndex] = storedTracklets;
     }
   }
 }
@@ -340,10 +347,9 @@ void VertexerTraitsGPU::computeTracklets()
     //   mTimeFrameGPU->getDeviceNClustersLayer(rofId, 1),
     //   mTimeFrameGPU->getDeviceIndexTableL0(),
     //   mVrtParams.phiCut,
-    //   mTimeFrame->getDeviceTracklets()[0],
-    //   mTimeFrame->getDeviceNTrackletsCluster(rofId)[0],
-    //   mIndexTableUtils);
-
+    //   mTimeFrameGPU->getDeviceTracklets()[0],
+    //   mTimeFrameGPU->getDeviceNTrackletsCluster(rofId, 0),
+    //   mDeviceIndexTableUtils);
     // gpu::trackleterKernel<<<blocksGrid, threadsPerBlock>>>(
     //   getDeviceContext(),
     //   gpu::TrackletingLayerOrder::fromMiddleToOuterLayer,
@@ -353,125 +359,125 @@ void VertexerTraitsGPU::computeTracklets()
   gpuThrowOnError();
 }
 
-void VertexerTraitsGPU::computeTrackletMatching()
-{
-  if (!mClusters[1].size()) {
-    return;
-  }
-  const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mClusters[1].capacity())};
-  const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
-  size_t bufferSize = mStoreVertexerGPU.getConfig().tmpCUBBufferSize * sizeof(int);
+// void VertexerTraitsGPU::computeTrackletMatching()
+// {
+//   if (!mClusters[1].size()) {
+//     return;
+//   }
+//   const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mClusters[1].capacity())};
+//   const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
+//   size_t bufferSize = mStoreVertexerGPU.getConfig().tmpCUBBufferSize * sizeof(int);
 
-  gpu::trackletSelectionKernel<<<blocksGrid, threadsPerBlock>>>(
-    getDeviceContext(),
-    true, // isInitRun
-    mVrtParams.tanLambdaCut,
-    mVrtParams.phiCut);
+//   gpu::trackletSelectionKernel<<<blocksGrid, threadsPerBlock>>>(
+//     getDeviceContext(),
+//     true, // isInitRun
+//     mVrtParams.tanLambdaCut,
+//     mVrtParams.phiCut);
 
-  discardResult(cub::DeviceScan::ExclusiveSum(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()),
-                                              bufferSize,
-                                              mStoreVertexerGPU.getNFoundLines().get(),
-                                              mStoreVertexerGPU.getNExclusiveFoundLines().get(),
-                                              mClusters[1].size()));
+//   discardResult(cub::DeviceScan::ExclusiveSum(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()),
+//                                               bufferSize,
+//                                               mStoreVertexerGPU.getNFoundLines().get(),
+//                                               mStoreVertexerGPU.getNExclusiveFoundLines().get(),
+//                                               mClusters[1].size()));
 
-  gpu::trackletSelectionKernel<<<blocksGrid, threadsPerBlock>>>(
-    getDeviceContext(),
-    false, // isInitRun
-    mVrtParams.tanLambdaCut,
-    mVrtParams.phiCut);
+//   gpu::trackletSelectionKernel<<<blocksGrid, threadsPerBlock>>>(
+//     getDeviceContext(),
+//     false, // isInitRun
+//     mVrtParams.tanLambdaCut,
+//     mVrtParams.phiCut);
 
-  gpuThrowOnError();
+//   gpuThrowOnError();
 
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  if (isDebugFlag(VertexerDebug::TrackletTreeAll)) {
-    mDebugger->fillTrackletSelectionTree(mClusters,
-                                         mStoreVertexerGPU.getRawDupletsFromGPU(gpu::TrackletingLayerOrder::fromInnermostToMiddleLayer),
-                                         mStoreVertexerGPU.getRawDupletsFromGPU(gpu::TrackletingLayerOrder::fromMiddleToOuterLayer),
-                                         mStoreVertexerGPU.getDupletIndicesFromGPU(),
-                                         mEvent);
-  }
-  mTracklets = mStoreVertexerGPU.getLinesFromGPU();
-  if (isDebugFlag(VertexerDebug::LineTreeAll)) {
-    mDebugger->fillPairsInfoTree(mTracklets, mEvent);
-  }
-  if (isDebugFlag(VertexerDebug::LineSummaryAll)) {
-    mDebugger->fillLinesSummaryTree(mTracklets, mEvent);
-  }
-#endif
-}
+// #ifdef _ALLOW_DEBUG_TREES_ITS_
+//   if (isDebugFlag(VertexerDebug::TrackletTreeAll)) {
+//     mDebugger->fillTrackletSelectionTree(mClusters,
+//                                          mStoreVertexerGPU.getRawDupletsFromGPU(gpu::TrackletingLayerOrder::fromInnermostToMiddleLayer),
+//                                          mStoreVertexerGPU.getRawDupletsFromGPU(gpu::TrackletingLayerOrder::fromMiddleToOuterLayer),
+//                                          mStoreVertexerGPU.getDupletIndicesFromGPU(),
+//                                          mEvent);
+//   }
+//   mTracklets = mStoreVertexerGPU.getLinesFromGPU();
+//   if (isDebugFlag(VertexerDebug::LineTreeAll)) {
+//     mDebugger->fillPairsInfoTree(mTracklets, mEvent);
+//   }
+//   if (isDebugFlag(VertexerDebug::LineSummaryAll)) {
+//     mDebugger->fillLinesSummaryTree(mTracklets, mEvent);
+//   }
+// #endif
+// }
 
-void VertexerTraitsGPU::computeVertices()
-{
-  if (!mClusters[1].size()) {
-    return;
-  }
-  const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mClusters[1].capacity())};
-  const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
-  size_t bufferSize = mStoreVertexerGPU.getConfig().tmpCUBBufferSize * sizeof(int);
-  int nLines = mStoreVertexerGPU.getNExclusiveFoundLines().getElementFromDevice(mClusters[1].size() - 1) + mStoreVertexerGPU.getNFoundLines().getElementFromDevice(mClusters[1].size() - 1);
-  int nCentroids{static_cast<int>(nLines * (nLines - 1) / 2)};
-  int* histogramXY[2] = {mStoreVertexerGPU.getHistogramXYZ()[0].get(), mStoreVertexerGPU.getHistogramXYZ()[1].get()};
-  float tmpArrayLow[2] = {mStoreVertexerGPU.getConfig().histConf.lowHistBoundariesXYZ[0], mStoreVertexerGPU.getConfig().histConf.lowHistBoundariesXYZ[1]};
-  float tmpArrayHigh[2] = {mStoreVertexerGPU.getConfig().histConf.highHistBoundariesXYZ[0], mStoreVertexerGPU.getConfig().histConf.highHistBoundariesXYZ[1]};
-  gpu::computeCentroidsKernel<<<blocksGrid, threadsPerBlock>>>(getDeviceContext(),
-                                                               mVrtParams.histPairCut);
+// void VertexerTraitsGPU::computeVertices()
+// {
+//   if (!mClusters[1].size()) {
+//     return;
+//   }
+//   const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mClusters[1].capacity())};
+//   const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
+//   size_t bufferSize = mStoreVertexerGPU.getConfig().tmpCUBBufferSize * sizeof(int);
+//   int nLines = mStoreVertexerGPU.getNExclusiveFoundLines().getElementFromDevice(mClusters[1].size() - 1) + mStoreVertexerGPU.getNFoundLines().getElementFromDevice(mClusters[1].size() - 1);
+//   int nCentroids{static_cast<int>(nLines * (nLines - 1) / 2)};
+//   int* histogramXY[2] = {mStoreVertexerGPU.getHistogramXYZ()[0].get(), mStoreVertexerGPU.getHistogramXYZ()[1].get()};
+//   float tmpArrayLow[2] = {mStoreVertexerGPU.getConfig().histConf.lowHistBoundariesXYZ[0], mStoreVertexerGPU.getConfig().histConf.lowHistBoundariesXYZ[1]};
+//   float tmpArrayHigh[2] = {mStoreVertexerGPU.getConfig().histConf.highHistBoundariesXYZ[0], mStoreVertexerGPU.getConfig().histConf.highHistBoundariesXYZ[1]};
+//   gpu::computeCentroidsKernel<<<blocksGrid, threadsPerBlock>>>(getDeviceContext(),
+//                                                                mVrtParams.histPairCut);
 
-  discardResult(cub::DeviceHistogram::MultiHistogramEven<2, 2>(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()), // d_temp_storage
-                                                               bufferSize,                                                         // temp_storage_bytes
-                                                               mStoreVertexerGPU.getXYCentroids().get(),                           // d_samples
-                                                               histogramXY,                                                        // d_histogram
-                                                               mStoreVertexerGPU.getConfig().histConf.nBinsXYZ,                    // num_levels
-                                                               tmpArrayLow,                                                        // lower_level
-                                                               tmpArrayHigh,                                                       // fupper_level
-                                                               nCentroids));                                                       // num_row_pixels
-  discardResult(cub::DeviceReduce::ArgMax(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()),
-                                          bufferSize,
-                                          histogramXY[0],
-                                          mStoreVertexerGPU.getTmpVertexPositionBins().get(),
-                                          mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[0]));
-  discardResult(cub::DeviceReduce::ArgMax(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()),
-                                          bufferSize,
-                                          histogramXY[1],
-                                          mStoreVertexerGPU.getTmpVertexPositionBins().get() + 1,
-                                          mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[0]));
-  gpu::computeZCentroidsKernel<<<blocksGrid, threadsPerBlock>>>(getDeviceContext(), mVrtParams.histPairCut, mStoreVertexerGPU.getConfig().histConf.binSpanXYZ[0], mStoreVertexerGPU.getConfig().histConf.binSpanXYZ[1]);
-  discardResult(cub::DeviceHistogram::HistogramEven(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()), // d_temp_storage
-                                                    bufferSize,                                                         // temp_storage_bytes
-                                                    mStoreVertexerGPU.getZCentroids().get(),                            // d_samples
-                                                    mStoreVertexerGPU.getHistogramXYZ()[2].get(),                       // d_histogram
-                                                    mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[2],                 // num_levels
-                                                    mStoreVertexerGPU.getConfig().histConf.lowHistBoundariesXYZ[2],     // lower_level
-                                                    mStoreVertexerGPU.getConfig().histConf.highHistBoundariesXYZ[2],    // fupper_level
-                                                    nLines));                                                           // num_row_pixels
-  for (int iVertex{0}; iVertex < mStoreVertexerGPU.getConfig().nMaxVertices; ++iVertex) {
-    discardResult(cub::DeviceReduce::ArgMax(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()),
-                                            bufferSize,
-                                            mStoreVertexerGPU.getHistogramXYZ()[2].get(),
-                                            mStoreVertexerGPU.getTmpVertexPositionBins().get() + 2,
-                                            mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[2]));
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-    if (isDebugFlag(VertexerDebug::HistCentroids) && !iVertex) {
-      mDebugger->fillXYZHistogramTree(std::array<std::vector<int>, 3>{mStoreVertexerGPU.getHistogramXYFromGPU()[0],
-                                                                      mStoreVertexerGPU.getHistogramXYFromGPU()[1], mStoreVertexerGPU.getHistogramZFromGPU()},
-                                      std::array<int, 3>{mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[0] - 1,
-                                                         mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[1] - 1,
-                                                         mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[2] - 1});
-    }
-#endif
-    gpu::computeVertexKernel<<<blocksGrid, 5>>>(getDeviceContext(), iVertex, mVrtParams.clusterContributorsCut, mStoreVertexerGPU.getConfig().histConf.binSpanXYZ[2]);
-  }
-  std::vector<gpu::GPUVertex> vertices;
-  vertices.resize(mStoreVertexerGPU.getConfig().nMaxVertices);
-  mStoreVertexerGPU.getVertices().copyIntoSizedVector(vertices);
+//   discardResult(cub::DeviceHistogram::MultiHistogramEven<2, 2>(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()), // d_temp_storage
+//                                                                bufferSize,                                                         // temp_storage_bytes
+//                                                                mStoreVertexerGPU.getXYCentroids().get(),                           // d_samples
+//                                                                histogramXY,                                                        // d_histogram
+//                                                                mStoreVertexerGPU.getConfig().histConf.nBinsXYZ,                    // num_levels
+//                                                                tmpArrayLow,                                                        // lower_level
+//                                                                tmpArrayHigh,                                                       // fupper_level
+//                                                                nCentroids));                                                       // num_row_pixels
+//   discardResult(cub::DeviceReduce::ArgMax(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()),
+//                                           bufferSize,
+//                                           histogramXY[0],
+//                                           mStoreVertexerGPU.getTmpVertexPositionBins().get(),
+//                                           mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[0]));
+//   discardResult(cub::DeviceReduce::ArgMax(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()),
+//                                           bufferSize,
+//                                           histogramXY[1],
+//                                           mStoreVertexerGPU.getTmpVertexPositionBins().get() + 1,
+//                                           mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[0]));
+//   gpu::computeZCentroidsKernel<<<blocksGrid, threadsPerBlock>>>(getDeviceContext(), mVrtParams.histPairCut, mStoreVertexerGPU.getConfig().histConf.binSpanXYZ[0], mStoreVertexerGPU.getConfig().histConf.binSpanXYZ[1]);
+//   discardResult(cub::DeviceHistogram::HistogramEven(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()), // d_temp_storage
+//                                                     bufferSize,                                                         // temp_storage_bytes
+//                                                     mStoreVertexerGPU.getZCentroids().get(),                            // d_samples
+//                                                     mStoreVertexerGPU.getHistogramXYZ()[2].get(),                       // d_histogram
+//                                                     mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[2],                 // num_levels
+//                                                     mStoreVertexerGPU.getConfig().histConf.lowHistBoundariesXYZ[2],     // lower_level
+//                                                     mStoreVertexerGPU.getConfig().histConf.highHistBoundariesXYZ[2],    // fupper_level
+//                                                     nLines));                                                           // num_row_pixels
+//   for (int iVertex{0}; iVertex < mStoreVertexerGPU.getConfig().nMaxVertices; ++iVertex) {
+//     discardResult(cub::DeviceReduce::ArgMax(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()),
+//                                             bufferSize,
+//                                             mStoreVertexerGPU.getHistogramXYZ()[2].get(),
+//                                             mStoreVertexerGPU.getTmpVertexPositionBins().get() + 2,
+//                                             mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[2]));
+// #ifdef _ALLOW_DEBUG_TREES_ITS_
+//     if (isDebugFlag(VertexerDebug::HistCentroids) && !iVertex) {
+//       mDebugger->fillXYZHistogramTree(std::array<std::vector<int>, 3>{mStoreVertexerGPU.getHistogramXYFromGPU()[0],
+//                                                                       mStoreVertexerGPU.getHistogramXYFromGPU()[1], mStoreVertexerGPU.getHistogramZFromGPU()},
+//                                       std::array<int, 3>{mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[0] - 1,
+//                                                          mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[1] - 1,
+//                                                          mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[2] - 1});
+//     }
+// #endif
+//     gpu::computeVertexKernel<<<blocksGrid, 5>>>(getDeviceContext(), iVertex, mVrtParams.clusterContributorsCut, mStoreVertexerGPU.getConfig().histConf.binSpanXYZ[2]);
+//   }
+//   std::vector<gpu::GPUVertex> vertices;
+//   vertices.resize(mStoreVertexerGPU.getConfig().nMaxVertices);
+//   mStoreVertexerGPU.getVertices().copyIntoSizedVector(vertices);
 
-  for (auto& vertex : vertices) {
-    if (vertex.realVertex) {
-      mVertices.emplace_back(vertex.xCoord, vertex.yCoord, vertex.zCoord, std::array<float, 6>{0.f, 0.f, 0.f, 0.f, 0.f, 0.f}, vertex.contributors, 0.f, -9);
-    }
-  }
+//   for (auto& vertex : vertices) {
+//     if (vertex.realVertex) {
+//       mVertices.emplace_back(vertex.xCoord, vertex.yCoord, vertex.zCoord, std::array<float, 6>{0.f, 0.f, 0.f, 0.f, 0.f, 0.f}, vertex.contributors, 0.f, -9);
+//     }
+//   }
 
-  gpuThrowOnError();
-}
+//   gpuThrowOnError();
+// }
 
 // #ifdef _ALLOW_DEBUG_TREES_ITS_
 // void VertexerTraitsGPU::computeMCFiltering()
@@ -503,5 +509,6 @@ VertexerTraits* createVertexerTraitsGPU()
   return new VertexerTraitsGPU;
 }
 
+// template GPUg() gpu::trackleterKernel<TrackletMode::Layer0Layer1>;
 } // namespace its
 } // namespace o2
