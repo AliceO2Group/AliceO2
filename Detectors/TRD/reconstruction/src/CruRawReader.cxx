@@ -149,7 +149,10 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
     mCRUID = o2::raw::RDHUtils::getCRUID(rdh);
     mIR = o2::raw::RDHUtils::getTriggerIR(rdh);
     auto packetCount = o2::raw::RDHUtils::getPacketCounter(rdh);
-    mDataEndPointer = (uint32_t*)((char*)rdh + offsetToNext);
+    //mDataEndPointer = (uint32_t*)((char*)rdh + offsetToNext);
+    if (mOptions[TRDM1Debug]) { 
+      LOG(info) << "mFEEID:" << mFEEID.word << " mCRUEndpoint:" << mCRUEndpoint << " mCRUID:" << mCRUID << " packetCount:" << packetCount << "rdhpayload:"<< rdhpayload << " offsettonext:"<< offsetToNext << " dmDataEndPointer(after move to rdh+offsetToNext): 0x"<< std::hex << (void*)mDataEndPointer;
+    }
     // copy the contents of the current rdh into the buffer to be parsed
     std::memcpy((char*)&mHBFPayload[0] + currentsaveddatacount, ((char*) rdh) + headerSize, rdhpayload);
     mTotalHBFPayLoad += rdhpayload;
@@ -157,22 +160,36 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
     totaldataread += offsetToNext;
     // move to next rdh
     auto oldRDH = rdh;
-    if (mOptions[TRDM1Debug]) { 
+    rdh = reinterpret_cast<const o2::header::RDHAny*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
+  //increment the data pointer by the size of the stop rdh.
+  mDataPointer = reinterpret_cast<const uint32_t*>(reinterpret_cast<const char*>(rdh) + o2::raw::RDHUtils::getOffsetToNext(rdh));
+  if(mOptions[TRDM1Debug]){
+    LOG(info) << "mDataPointer incremented to : " << std::hex << (void*)mDataPointer;
+  }
+    if (mOptions[TRDM1Debug]) {
       LOG(info) << "Before looping around old assigned rdh is : ";
       o2::raw::RDHUtils::printRDH(oldRDH);
       LOG(info) << "it used to be: ";
       o2::raw::RDHUtils::printRDH(rdh);
       LOG(info) << "offset to next is : " << offsetToNext;
       o2::header::RDHAny* oldrdha=(o2::header::RDHAny*)mDataPointer;
-      char* b;
-      b=(char*) oldrdha;
-      b+=offsetToNext;
-
+    LOG(info) << " check 2 versions of proceeding in loop";
+    if (reinterpret_cast<const char*>(rdh) < ((char*)&mHBFPayload[0] + mDataBufferSize)) {
+      LOG(info) << "next rdh is within the buffer calculated via reinterpret_cast";
+    }
+    if ((char*)(rdh) < (char*)&mHBFPayload[0] + mDataBufferSize) {
+      LOG(info) << "next rdh is within the buffer calculated without reinterpret_cast";
     }
 
-    if (reinterpret_cast<const char*>(rdh) < mHBFPayload + mDataBufferSize) {
-    rdh = reinterpret_cast<const o2::header::RDHAny*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
-    if ((char*)(rdh) < (char*)&mHBFPayload[0] + mDataBufferSize) {
+    LOG(info) << std::hex <<  " rdh char cast : " << (void*)rdh; 
+    LOG(info) << std::hex <<  " rdh reinterpret_cast : " << reinterpret_cast<const void*>(rdh);
+    LOG(info) << "caculation 1 : " <<std::hex <<  (const void*)(rdh) << " < " << ((void*)&mHBFPayload[0])  << "+" <<  mDataBufferSize << " which is : 0x" << std::hex << ((char*)&mHBFPayload[0] + mDataBufferSize);
+    LOG(info) << "caculation 2 : " <<std::hex <<  (void*)reinterpret_cast<const char*>(rdh)  << " < " << ((void*)&mHBFPayload[0])  << "+" <<  mDataBufferSize << " which is : 0x" << std::hex << ((char*)&mHBFPayload[0] + mDataBufferSize);
+    LOG(info) << "finished checking 2 versions of proceeding in loop";
+    }
+
+    //if (reinterpret_cast<const char*>(rdh) < ((char*)&mHBFPayload[0] + mDataBufferSize)) {
+    if ((const char*)(rdh) < ((char*)&mHBFPayload[0] + mDataBufferSize)) {
       //if (reinterpret_cast<const o2::header::RDHAny*>(rdh) < (char*)&mHBFPayload[0] + mDataBufferSize) {
       // we can still copy into this buffer.
     } else {
@@ -193,16 +210,6 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
     }
   } 
 
-    // from tof ....
-      /* * move to next RDH **/
-        rdh = reinterpret_cast<const RDH*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
-         /* * check next RDH is within buffer **/
-        if (reinterpret_cast<const char*>(rdh) < mDecoderBuffer + mDecoderBufferSize) {
-                      continue;
-                          }
-    // from tof ....
-  //increment the data pointer by the size of the stop rdh.
-  mDataPointer = reinterpret_cast<const uint32_t*>(reinterpret_cast<const char*>(rdh) + o2::raw::RDHUtils::getOffsetToNext(rdh));
   // at this point the entire HBF data payload is sitting in mHBFPayload and the total data count is mTotalHBFPayLoad
   int counthalfcru = 0;
   mHBFoffset32 = 0;
