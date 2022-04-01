@@ -326,6 +326,27 @@ int InterCalib::process(const InterCalibData& data)
   return 0;
 }
 
+void InterCalib::add(std::array<o2::dataformats::FlatHisto1D<float>*, 2 * InterCalibData::NH> &h1){
+  if (!mInitDone) {
+    init();
+  }
+  int nh = 2 * InterCalibData::NH;
+  for(int ih = 0; ih < nh; ih++){
+    auto h = *(h1[ih]);
+    LOG(info) << "adding H1(" << h.getNBins() << "," << h.getXMin() << "," << h.getXMax() << ")";
+    mHUnc[ih]->add(h);
+  }
+}
+
+void InterCalib::add(std::array<o2::dataformats::FlatHisto2D<float>*, InterCalibData::NH> &h2){
+  if (!mInitDone) {
+    init();
+  }
+  for(int ih = 0; ih < InterCalibData::NH; ih++){
+    mCUnc[ih]->add(*(h2[ih]));
+  }
+}
+
 void InterCalib::cumulate(int ih, double tc, double t1, double t2, double t3, double t4, double w = 1)
 {
   // TODO: add histogram
@@ -428,6 +449,16 @@ int InterCalib::write(const std::string fn)
       auto p = mCUnc[ih]->createTH2F(InterCalib::mCUncN[ih]);
       p->SetTitle(InterCalib::mCUncT[ih]);
       p->Write("", TObject::kOverwrite);
+    }
+  }
+  for (int32_t ih = 0; ih < NH; ih++) {
+    if (mHCorr[ih]) {
+      mHCorr[ih]->Write("", TObject::kOverwrite);
+    }
+  }
+  for (int32_t ih = 0; ih < NH; ih++) {
+    if (mCCorr[ih]) {
+      mCCorr[ih]->Write("", TObject::kOverwrite);
     }
   }
   const char* mntit[NH] = {"mZNA", "mZPA", "mZNC", "mZPC", "mZEM"};

@@ -124,6 +124,7 @@ void InterCalibSpec::run(ProcessingContext& pc)
   mInterCalib.process(data);
   auto h1 = pc.inputs().get<std::array<o2::dataformats::FlatHisto1D<float>*, 2 * InterCalibData::NH>>("intercalib1dh");
   auto h2 = pc.inputs().get<std::array<o2::dataformats::FlatHisto2D<float>*, InterCalibData::NH>>("intercalib2dh");
+  mInterCalib.add(h1);
 }
 
 void InterCalibSpec::endOfStream(EndOfStreamContext& ec)
