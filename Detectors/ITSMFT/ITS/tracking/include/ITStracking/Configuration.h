@@ -153,7 +153,7 @@ struct TimeFrameGPUConfig {
 
   // o2::its::gpu::Vector constructor requires signed size for initialisation
   int tmpCUBBufferSize = 25e5;
-  int maxTrackletsPerCluster = 2e2;
+  int maxTrackletsPerCluster = 10;
   int clustersPerLayerCapacity = 5e5;
   int clustersPerROfCapacity = 1e4;
   int dupletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;

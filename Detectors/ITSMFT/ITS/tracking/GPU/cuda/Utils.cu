@@ -136,6 +136,16 @@ void utils::host::gpuMemcpyDeviceToHost(void* dst, const void* src, int size)
   checkGPUError(cudaMemcpy(dst, src, size, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
 }
 
+void utils::host::gpuMemcpyToSymbol(const void* symbol, const void* src, int size)
+{
+  checkGPUError(cudaMemcpyToSymbol(symbol, src, size, 0, cudaMemcpyHostToDevice), __FILE__, __LINE__);
+}
+
+void utils::host::gpuMemcpyFromSymbol(void* dst, const void* symbol, int size)
+{
+  checkGPUError(cudaMemcpyFromSymbol(dst, symbol, size, 0, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+}
+
 GPUd() int utils::device::getLaneIndex()
 {
   uint32_t laneIndex;

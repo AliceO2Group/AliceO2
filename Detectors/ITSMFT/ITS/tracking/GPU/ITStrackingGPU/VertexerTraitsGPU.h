@@ -41,12 +41,12 @@ class VertexerTraitsGPU : public VertexerTraits
 {
  public:
   VertexerTraitsGPU();
-
+  ~VertexerTraitsGPU() override;
   void initialise(const MemoryParameters& memParams, const TrackingParameters& trackingParams) override;
   void adoptTimeFrame(TimeFrame* tf) override;
   void computeTracklets() override;
-  void computeTrackletMatching() override;
-  void computeVertices() override;
+  // void computeTrackletMatching() override;
+  // void computeVertices() override;
   // void computeMCFiltering() override;
 
   // GPU-specific getters
@@ -54,8 +54,9 @@ class VertexerTraitsGPU : public VertexerTraits
   GPUhd() gpu::DeviceStoreVertexerGPU& getDeviceContext();
 
  protected:
-  gpu::DeviceStoreVertexerGPU mStoreVertexerGPU;
-  gpu::UniquePointer<gpu::DeviceStoreVertexerGPU> mStoreVertexerGPUPtr;
+  // gpu::DeviceStoreVertexerGPU mStoreVertexerGPU;
+  // gpu::UniquePointer<gpu::DeviceStoreVertexerGPU> mStoreVertexerGPUPtr;
+  IndexTableUtils* mDeviceIndexTableUtils;
   gpu::TimeFrameGPU<7>* mTimeFrameGPU;
 };
 
@@ -68,10 +69,10 @@ inline GPUd() const int2 VertexerTraitsGPU::getBinsPhiRectWindow(const Cluster& 
   return int2{phiBinMin, phiBinSpan};
 }
 
-GPUhd() gpu::DeviceStoreVertexerGPU& VertexerTraitsGPU::getDeviceContext()
-{
-  return *mStoreVertexerGPUPtr;
-}
+// GPUhd() gpu::DeviceStoreVertexerGPU& VertexerTraitsGPU::getDeviceContext()
+// {
+//   return *mStoreVertexerGPUPtr;
+// }
 
 inline void VertexerTraitsGPU::adoptTimeFrame(TimeFrame* tf) { mTimeFrameGPU = static_cast<gpu::TimeFrameGPU<7>*>(tf); }
 
