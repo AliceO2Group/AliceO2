@@ -82,8 +82,6 @@ class InterCalib
   std::array<o2::dataformats::FlatHisto2D<float>*, NH> mCUnc{};
   std::array<std::unique_ptr<TH1>, NH> mHCorr{};
   std::array<std::unique_ptr<TH2>, NH> mCCorr{};
-  //std::array<o2::dataformats::FlatHisto1D<float>*, NH> mHCorr{};
-  //std::array<o2::dataformats::FlatHisto2D<float>*, NH> mCCorr{};
   std::array<std::unique_ptr<TMinuit>, NH> mMn{};
   InterCalibData mData;
   bool mInitDone = false;

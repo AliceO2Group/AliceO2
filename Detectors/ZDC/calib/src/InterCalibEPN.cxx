@@ -75,13 +75,15 @@ int InterCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
         uint16_t code = info & 0x03ff;
         // hmsg->Fill(ch, code);
       }
-      ev.print();
+      if (mVerbosity > DbgMinimal) {
+        ev.print();
+      }
       // Need clean data (no messages)
       // We are sure there is no pile-up in any channel (too restrictive?)
       continue;
     }
     if (ev.getNEnergy() > 0 && ev.mCurB.triggers == 0) {
-      LOGF(info, "%9u.%04u Untriggered bunch\n", ev.mCurB.ir.orbit, ev.mCurB.ir.bc);
+      LOGF(info, "%9u.%04u Untriggered bunch", ev.mCurB.ir.orbit, ev.mCurB.ir.bc);
       // Skip!
       continue;
     }
@@ -111,7 +113,9 @@ int InterCalibEPN::endOfRun()
       LOGF(info, "%s %g events and cuts (%g:%g)", InterCalibData::DN[ih], mData.mSum[ih][5][5], mInterCalibConfig->cutLow[ih], mInterCalibConfig->cutHigh[ih]);
     }
   }
+  if (mSaveDebugHistos){
   write();
+}
   return 0;
 }
 
@@ -200,8 +204,6 @@ void InterCalibEPN::clear(int ih)
 
 void InterCalibEPN::cumulate(int ih, double tc, double t1, double t2, double t3, double t4, double w = 1)
 {
-  // TODO: add histogram
-  // TODO: store data to redraw histograms
   if (tc < mInterCalibConfig->cutLow[ih] || tc > mInterCalibConfig->cutHigh[ih]) {
     return;
   }
