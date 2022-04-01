@@ -161,15 +161,16 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
     // move to next rdh
     auto oldRDH = rdh;
     rdh = reinterpret_cast<const o2::header::RDHAny*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
-  //increment the data pointer by the size of the stop rdh.
-  mDataPointer = reinterpret_cast<const uint32_t*>(reinterpret_cast<const char*>(rdh) + o2::raw::RDHUtils::getOffsetToNext(rdh));
-  if(mOptions[TRDM1Debug]){
-    LOG(info) << "mDataPointer incremented to : " << std::hex << (void*)mDataPointer;
-  }
+    //increment the data pointer by the size of the stop rdh.
+    mDataPointer = reinterpret_cast<const uint32_t*>(reinterpret_cast<const char*>(rdh) + o2::raw::RDHUtils::getOffsetToNext(rdh));
+    if(mOptions[TRDM1Debug]){
+      LOG(info) << "mDataPointer incremented to : " << std::hex << (void*)mDataPointer;
+      LOG(info) << "rdh incremented to : " << std::hex << (void*)mDataPointer;
+    }
     if (mOptions[TRDM1Debug]) {
       LOG(info) << "Before looping around old assigned rdh is : ";
       o2::raw::RDHUtils::printRDH(oldRDH);
-      LOG(info) << "it used to be: ";
+      LOG(info) << "Now its : ";
       o2::raw::RDHUtils::printRDH(rdh);
       LOG(info) << "offset to next is : " << offsetToNext;
       o2::header::RDHAny* oldrdha=(o2::header::RDHAny*)mDataPointer;
