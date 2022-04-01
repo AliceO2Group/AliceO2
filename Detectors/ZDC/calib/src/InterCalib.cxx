@@ -326,23 +326,25 @@ int InterCalib::process(const InterCalibData& data)
   return 0;
 }
 
-void InterCalib::add(std::array<o2::dataformats::FlatHisto1D<float>*, 2 * InterCalibData::NH> &h1){
+void InterCalib::add(std::array<o2::dataformats::FlatHisto1D<float>*, 2 * InterCalibData::NH>& h1)
+{
   if (!mInitDone) {
     init();
   }
   int nh = 2 * InterCalibData::NH;
-  for(int ih = 0; ih < nh; ih++){
+  for (int ih = 0; ih < nh; ih++) {
     auto h = *(h1[ih]);
     LOG(info) << "adding H1(" << h.getNBins() << "," << h.getXMin() << "," << h.getXMax() << ")";
     mHUnc[ih]->add(h);
   }
 }
 
-void InterCalib::add(std::array<o2::dataformats::FlatHisto2D<float>*, InterCalibData::NH> &h2){
+void InterCalib::add(std::array<o2::dataformats::FlatHisto2D<float>*, InterCalibData::NH>& h2)
+{
   if (!mInitDone) {
     init();
   }
-  for(int ih = 0; ih < InterCalibData::NH; ih++){
+  for (int ih = 0; ih < InterCalibData::NH; ih++) {
     mCUnc[ih]->add(*(h2[ih]));
   }
 }

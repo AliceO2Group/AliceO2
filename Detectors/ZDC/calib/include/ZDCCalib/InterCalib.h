@@ -52,8 +52,8 @@ class InterCalib
   int process(const char* hname, int ic);             // Calibration of RUN2 data
   void replay(int ih, THnSparse* hs, int ic);         // Test of calibration using RUN2 data
   int mini(int ih);
-  void add(std::array<o2::dataformats::FlatHisto1D<float>*, 2 * InterCalibData::NH> &h1);
-  void add(std::array<o2::dataformats::FlatHisto2D<float>*, InterCalibData::NH> &h2);
+  void add(std::array<o2::dataformats::FlatHisto1D<float>*, 2 * InterCalibData::NH>& h1);
+  void add(std::array<o2::dataformats::FlatHisto2D<float>*, InterCalibData::NH>& h2);
   int write(const std::string fn = "ZDCInterCalib.root");
 
   static double mAdd[NPAR][NPAR]; /// Temporary copy of cumulated sums
