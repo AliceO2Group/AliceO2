@@ -36,18 +36,19 @@ void CalibdEdxContainer::cloneFromObject(const CalibdEdxContainer& obj, char* ne
   mApplyFullGainMap = obj.mApplyFullGainMap;
   mCalibsLoad = obj.mCalibsLoad;
   if (obj.mCalibTrackTopologyPol) {
-    cloneFromObject(mCalibTrackTopologyPol, obj.mCalibTrackTopologyPol, newFlatBufferPtr, oldFlatBufferPtr);
+    subobjectCloneFromObject(mCalibTrackTopologyPol, obj.mCalibTrackTopologyPol);
   }
   if (obj.mCalibTrackTopologySpline) {
-    cloneFromObject(mCalibTrackTopologySpline, obj.mCalibTrackTopologySpline, newFlatBufferPtr, oldFlatBufferPtr);
+    subobjectCloneFromObject(mCalibTrackTopologySpline, obj.mCalibTrackTopologySpline);
   }
 }
 
 template <class Type>
-void CalibdEdxContainer::cloneFromObject(Type*& obj, const Type* objOld, char* newFlatBufferPtr, const char* oldFlatBufferPtr)
+void CalibdEdxContainer::subobjectCloneFromObject(Type*& obj, const Type* objOld)
 {
-  obj = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, objOld);
-  obj->cloneFromObject(*objOld, newFlatBufferPtr);
+  obj = reinterpret_cast<Type*>(mFlatBufferPtr);
+  memset((void*)obj, 0, sizeof(*obj));
+  obj->cloneFromObject(*objOld, mFlatBufferPtr + sizeOfCalibdEdxTrackTopologyObj<Type>());
 }
 #endif
 
@@ -157,6 +158,7 @@ void CalibdEdxContainer::loadSplineTopologyCorrectionFromFile(std::string_view f
 void CalibdEdxContainer::setPolTopologyCorrection(const CalibdEdxTrackTopologyPol& calibTrackTopology)
 {
   setTopologyCorrection(calibTrackTopology, mCalibTrackTopologyPol);
+  mCalibTrackTopologySpline = nullptr;
 }
 
 void CalibdEdxContainer::setDefaultPolTopologyCorrection()
@@ -164,11 +166,13 @@ void CalibdEdxContainer::setDefaultPolTopologyCorrection()
   CalibdEdxTrackTopologyPol calibTrackTopology;
   calibTrackTopology.setDefaultPolynomials();
   setTopologyCorrection(calibTrackTopology, mCalibTrackTopologyPol);
+  mCalibTrackTopologySpline = nullptr;
 }
 
 void CalibdEdxContainer::setSplineTopologyCorrection(const CalibdEdxTrackTopologySpline& calibTrackTopology)
 {
   setTopologyCorrection(calibTrackTopology, mCalibTrackTopologySpline);
+  mCalibTrackTopologyPol = nullptr;
 }
 
 void CalibdEdxContainer::loadZeroSupresssionThresholdFromFile(std::string_view fileName, std::string_view objName, const float minCorrectionFactor, const float maxCorrectionFactor)
