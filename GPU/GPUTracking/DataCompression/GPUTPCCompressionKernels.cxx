@@ -266,7 +266,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
       for (unsigned int j = get_local_id(0); j < count; j += get_local_size(0)) {
         int outidx = idOffsetOut + totalCount + j;
         if (outidx >= idOffsetOutMax) {
-          compressor.raiseError(GPUErrors::ERROR_COMPRESSION_ROW_HIT_OVERFLOW, outidx, idOffsetOutMax);
+          compressor.raiseError(GPUErrors::ERROR_COMPRESSION_ROW_HIT_OVERFLOW, iSlice * 1000 + iRow, outidx, idOffsetOutMax);
           count = 0;
           break;
         }

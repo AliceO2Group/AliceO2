@@ -43,12 +43,12 @@ GPUdii() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, in
       GPUglobalref() GPUTPCHitId* const GPUrestrict() startHits = tracker.mTrackletTmpStartHits + s.mIRow * tracker.mNMaxRowStartHits;
       unsigned int nextRowStartHits = CAMath::AtomicAddShared(&s.mNRowStartHits, 1u);
       if (nextRowStartHits >= tracker.mNMaxRowStartHits) {
-        tracker.raiseError(GPUErrors::ERROR_ROWSTARTHIT_OVERFLOW, nextRowStartHits, tracker.mNMaxRowStartHits);
+        tracker.raiseError(GPUErrors::ERROR_ROWSTARTHIT_OVERFLOW, tracker.ISlice(), nextRowStartHits, tracker.mNMaxRowStartHits);
 #else
       GPUglobalref() GPUTPCHitId* const GPUrestrict() startHits = tracker.mTrackletStartHits;
       unsigned int nextRowStartHits = CAMath::AtomicAdd(&tracker.mCommonMem->nStartHits, 1u);
       if (nextRowStartHits >= tracker.mNMaxStartHits) {
-        tracker.raiseError(GPUErrors::ERROR_STARTHIT_OVERFLOW, nextRowStartHits, tracker.mNMaxStartHits);
+        tracker.raiseError(GPUErrors::ERROR_STARTHIT_OVERFLOW, tracker.ISlice(), nextRowStartHits, tracker.mNMaxStartHits);
 #endif
         CAMath::AtomicExch(&tracker.mCommonMem->nStartHits, 0u);
         break;
@@ -63,7 +63,7 @@ GPUdii() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, in
     unsigned int nOffset = CAMath::AtomicAdd(&tracker.mCommonMem->nStartHits, s.mNRowStartHits);
     tracker.mRowStartHitCountOffset[s.mIRow] = s.mNRowStartHits;
     if (nOffset + s.mNRowStartHits > tracker.mNMaxStartHits) {
-      tracker.raiseError(GPUErrors::ERROR_STARTHIT_OVERFLOW, nOffset + s.mNRowStartHits, tracker.mNMaxStartHits);
+      tracker.raiseError(GPUErrors::ERROR_STARTHIT_OVERFLOW, tracker.ISlice(), nOffset + s.mNRowStartHits, tracker.mNMaxStartHits);
       CAMath::AtomicExch(&tracker.mCommonMem->nStartHits, 0u);
     }
   }
