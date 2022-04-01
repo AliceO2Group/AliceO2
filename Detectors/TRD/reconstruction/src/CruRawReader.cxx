@@ -148,7 +148,7 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
     mCRUEndpoint = o2::raw::RDHUtils::getEndPointID(rdh); // the upper or lower half of the currently parsed cru 0-14 or 15-29
     mCRUID = o2::raw::RDHUtils::getCRUID(rdh);
     mIR = o2::raw::RDHUtils::getTriggerIR(rdh);
-    auto packetCount = o2::raw::RDHUtils::getPacketCounter(rdh);
+    int packetCount = o2::raw::RDHUtils::getPacketCounter(rdh);
     //mDataEndPointer = (uint32_t*)((char*)rdh + offsetToNext);
     if (mOptions[TRDM1Debug]) { 
       LOG(info) << "mFEEID:" << mFEEID.word << " mCRUEndpoint:" << mCRUEndpoint << " mCRUID:" << mCRUID << " packetCount:" << packetCount << "rdhpayload:"<< rdhpayload << " offsettonext:"<< offsetToNext << " dmDataEndPointer(after move to rdh+offsetToNext): 0x"<< std::hex << (void*)mDataEndPointer;
@@ -184,8 +184,8 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
 
     LOG(info) << std::hex <<  " rdh char cast : " << (void*)rdh; 
     LOG(info) << std::hex <<  " rdh reinterpret_cast : " << reinterpret_cast<const void*>(rdh);
-    LOG(info) << "caculation 1 : " <<std::hex <<  (const void*)(rdh) << " < " << ((void*)&mHBFPayload[0])  << "+" <<  mDataBufferSize << " which is : 0x" << std::hex << ((char*)&mHBFPayload[0] + mDataBufferSize);
-    LOG(info) << "caculation 2 : " <<std::hex <<  (void*)reinterpret_cast<const char*>(rdh)  << " < " << ((void*)&mHBFPayload[0])  << "+" <<  mDataBufferSize << " which is : 0x" << std::hex << ((char*)&mHBFPayload[0] + mDataBufferSize);
+    LOG(info) << "caculation 1 : " <<std::hex <<  (const void*)(rdh) << " < " << ((void*)&mHBFPayload[0])  << "+" <<  mDataBufferSize << " which is : 0x" << std::hex << (void*) ((char*)&mHBFPayload[0] + mDataBufferSize);
+    LOG(info) << "caculation 2 : " <<std::hex <<  (void*)reinterpret_cast<const char*>(rdh)  << " < " << ((void*)&mHBFPayload[0])  << "+" <<  mDataBufferSize << " which is : 0x" << std::hex << (void*)((char*)&mHBFPayload[0] + mDataBufferSize);
     LOG(info) << "finished checking 2 versions of proceeding in loop";
     }
 
