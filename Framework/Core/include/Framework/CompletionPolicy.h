@@ -50,7 +50,12 @@ struct CompletionPolicy {
     /// we are done, the processed payloads will be deallocated (but
     /// not the headers) while we wait for the record to be actually fully
     /// Consumed.
-    ConsumeExisting
+    ConsumeExisting,
+    /// ConsumeAndRescan: run the ProcessCallback on the InputRecord.
+    /// Messages which have to be forwarded downstream will be forwarded.
+    /// Invalidate the TimesliceIndex so that all the entries are checked
+    /// again.
+    ConsumeAndRescan
   };
 
   using Matcher = std::function<bool(DeviceSpec const& device)>;
