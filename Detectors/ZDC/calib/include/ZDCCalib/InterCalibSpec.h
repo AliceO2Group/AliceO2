@@ -28,6 +28,7 @@
 #include "ZDCCalib/InterCalib.h"
 #include "ZDCCalib/InterCalibConfig.h"
 #include "DetectorsCalibration/Utils.h"
+#include "CCDB/CcdbObjectInfo.h"
 
 namespace o2
 {

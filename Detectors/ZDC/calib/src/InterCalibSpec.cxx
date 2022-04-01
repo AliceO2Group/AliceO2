@@ -18,6 +18,7 @@
 #include <string>
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
+#include "CCDB/CcdbApi.h"
 #include "Framework/Logger.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -29,6 +30,7 @@
 #include "DataFormatsZDC/RecEvent.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "CommonUtils/NameConf.h"
+#include "CommonUtils/MemFileHelper.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "ZDCReconstruction/RecoConfigZDC.h"
@@ -136,6 +138,7 @@ void InterCalibSpec::endOfStream(EndOfStreamContext& ec)
 {
   mInterCalib.endOfRun();
   mTimer.Stop();
+  sendOutput(ec.outputs());
   LOGF(info, "ZDC Intercalibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
@@ -145,21 +148,15 @@ void InterCalibSpec::sendOutput(o2::framework::DataAllocator& output)
   // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
   // TODO in principle, this routine is generic, can be moved to Utils.h
   using clbUtils = o2::calibration::Utils;
-  //const auto& param = mInterCalib->getLHCphaseVector();
-  //     auto& infoVec = mCalibrator->getLHCphaseInfoVector(); // use non-const version as we update it
-  //     assert(payloadVec.size() == infoVec.size());
-  //
-  //     for (uint32_t i = 0; i < payloadVec.size(); i++) {
-  //       auto& w = infoVec[i];
-  //       auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
-  //       LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
-  //                 << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
-  //       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_LHCphase", i}, *image.get()); // vector<char>
-  //       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_LHCphase", i}, w);            // root-serialized
-  //     }
-  //     if (payloadVec.size()) {
-  //       mCalibrator->initOutput(); // reset the outputs once they are already sent
-  //     }
+  const auto& payload = mInterCalib.getTowerParamUpd();
+  auto& info = mInterCalib.getCcdbObjectInfo();
+  auto image = o2::ccdb::CcdbApi::createObjectImage<ZDCTowerParam>(&payload, &info);
+  LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
+            << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
+  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ZDC_Intercalib", 0}, *image.get()); // vector<char>
+  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDC_Intercalib", 0}, info);            // root-serialized
+  // TODO: reset the outputs once they are already sent (is it necessary?)
+  // mInterCalib.init();
 }
 
 framework::DataProcessorSpec getInterCalibSpec()

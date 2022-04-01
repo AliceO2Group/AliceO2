@@ -17,11 +17,13 @@
 #include <TDirectory.h>
 #include <TPaveStats.h>
 #include <TAxis.h>
+#include "CommonUtils/MemFileHelper.h"
 #include "ZDCCalib/InterCalib.h"
 #include "ZDCReconstruction/ZDCEnergyParam.h"
 #include "ZDCReconstruction/ZDCTowerParam.h"
 #include "DataFormatsZDC/InterCalibData.h"
 #include "Framework/Logger.h"
+#include "CCDB/CcdbApi.h"
 
 using namespace o2::zdc;
 
@@ -134,7 +136,21 @@ int InterCalib::endOfRun()
       assign(ih, false);
     }
   }
-  write();
+
+  auto clName = o2::utils::MemFileHelper::getClassName(mTowerParamUpd);
+  mInfo.setObjectType(clName);
+  auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
+  mInfo.setFileName(flName);
+  mInfo.setPath(CCDBPathTowerCalib);
+  std::map<std::string, std::string> md;
+  mInfo.setMetaData(md);
+  long start = 0;
+  long end = 0;
+  mInfo.setStartValidityTimestamp(start);
+  mInfo.setEndValidityTimestamp(end);
+  if (mSaveDebugHistos) {
+    write();
+  }
   return 0;
 }
 
@@ -206,6 +222,9 @@ int InterCalib::process(const char* hname, int ic)
     LOGF(error, "Not a THnSparse: %s\n", hname);
     hs->IsA()->Print();
     return -1;
+  }
+  if (!mInitDone) {
+    init();
   }
   TString hn = hname;
   int ih = -1;
@@ -325,6 +344,9 @@ void InterCalib::clear(int ih)
 
 int InterCalib::process(const InterCalibData& data)
 {
+  if (!mInitDone) {
+    init();
+  }
   for (int32_t ih = 0; ih < NH; ih++) {
     for (int32_t i = 0; i < NPAR; i++) {
       for (int32_t j = i; j < NPAR; j++) {

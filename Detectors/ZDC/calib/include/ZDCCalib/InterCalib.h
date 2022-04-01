@@ -24,6 +24,7 @@
 #include "ZDCReconstruction/ZDCEnergyParam.h"
 #include "ZDCReconstruction/ZDCTowerParam.h"
 #include "ZDCCalib/InterCalibConfig.h"
+#include "CCDB/CcdbObjectInfo.h"
 #ifndef ALICEO2_ZDC_INTERCALIB_H_
 #define ALICEO2_ZDC_INTERCALIB_H_
 namespace o2
@@ -32,6 +33,8 @@ namespace zdc
 {
 class InterCalib
 {
+  using CcdbObjectInfo = o2::ccdb::CcdbObjectInfo;
+
  public:
   InterCalib() = default;
   int init();
@@ -61,6 +64,7 @@ class InterCalib
   void cumulate(int ih, double tc, double t1, double t2, double t3, double t4, double w);
 
   const ZDCTowerParam& getTowerParamUpd() const { return mTowerParamUpd; };
+  CcdbObjectInfo& getCcdbObjectInfo() { return mInfo; }
 
   void setEnergyParam(const ZDCEnergyParam* param) { mEnergyParam = param; };
   const ZDCEnergyParam* getEnergyParam() const { return mEnergyParam; };
@@ -71,6 +75,9 @@ class InterCalib
 
   void setVerbosity(int v) { mVerbosity = v; }
   int getVerbosity() const { return mVerbosity; }
+
+  void setSaveDebugHistos() { mSaveDebugHistos = true; }
+  void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
 
   static constexpr const char* mHUncN[2 * NH] = {"hZNAS", "hZPAS", "hZNCS", "hZPCS", "hZEM2", "hZNAC", "hZPAC", "hZNCC", "hZPCC", "hZEM1"};
   static constexpr const char* mHUncT[2 * NH] = {"ZNA sum", "ZPA sum", "ZNC sum", "ZPC sum", "ZEM2", "ZNA TC", "ZPA TC", "ZNC TC", "ZPC TC", "ZEM1"};
@@ -85,6 +92,7 @@ class InterCalib
   std::array<std::unique_ptr<TMinuit>, NH> mMn{};
   InterCalibData mData;
   bool mInitDone = false;
+  bool mSaveDebugHistos = false;
   int32_t mVerbosity = DbgMinimal;
   static std::mutex mMtx; /// mutex for critical section
   double mPar[NH][NPAR] = {0};
@@ -93,6 +101,7 @@ class InterCalib
   const ZDCEnergyParam* mEnergyParam = nullptr;        /// Energy calibration object
   const ZDCTowerParam* mTowerParam = nullptr;          /// Tower calibration object
   ZDCTowerParam mTowerParamUpd;                        /// Updated tower calibration object
+  CcdbObjectInfo mInfo;                                /// CCDB Info
   void assign(int ih, bool ismod);                     /// Assign updated calibration object
 };
 } // namespace zdc

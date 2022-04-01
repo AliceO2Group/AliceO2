@@ -53,12 +53,15 @@ class InterCalibEPN
   void cumulate(int ih, double tc, double t1, double t2, double t3, double t4, double w);
   void setInterCalibConfig(const InterCalibConfig* param) { mInterCalibConfig = param; };
   const InterCalibConfig* getInterCalibConfig() const { return mInterCalibConfig; };
+  void setSaveDebugHistos() { mSaveDebugHistos = true; }
+  void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
   InterCalibData mData;
   std::array<o2::dataformats::FlatHisto1D<float>*, 2 * NH> mH{};
   std::array<o2::dataformats::FlatHisto2D<float>*, NH> mC{};
 
  private:
   bool mInitDone = false;
+  bool mSaveDebugHistos = false;
   int32_t mVerbosity = DbgMinimal;
   const InterCalibConfig* mInterCalibConfig = nullptr; /// Configuration of intercalibration
 };
