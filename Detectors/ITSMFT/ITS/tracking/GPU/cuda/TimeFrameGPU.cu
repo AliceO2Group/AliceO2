@@ -45,7 +45,8 @@ TimeFrameGPU<NLayers>::TimeFrameGPU()
   for (auto iComb{0}; iComb < 2; ++iComb) { // Vertexer only
     mNTrackletsPerClusterD[iComb] = Vector<int>{conf.clustersPerLayerCapacity, conf.clustersPerLayerCapacity};
   }
-  mIndexTablesLayer0D = Vector<int>{ZBins * PhiBins + 1};
+  mIndexTablesLayer0D = Vector<int>{ZBins * PhiBins + 1, ZBins * PhiBins + 1};
+  mIndexTablesLayer2D = Vector<int>{ZBins * PhiBins + 1, ZBins * PhiBins + 1};
 }
 
 template <int NLayers>

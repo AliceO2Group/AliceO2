@@ -46,11 +46,13 @@ class TimeFrameGPU : public TimeFrame
                   const TrackingParameters& trkParam,
                   const int maxLayers);
   Cluster* getDeviceClustersOnLayer(const int rofId, const int layerId) const;
-  size_t getDeviceNClustersLayer(const int rofId, const int layerId) const;
+  int getDeviceNClustersLayer(const int rofId, const int layerId) const;
   std::array<Vector<Tracklet>, NLayers - 1>& getDeviceTracklets() { return mTrackletsD; }
 
   // Vertexer only
   Vector<int>& getDeviceIndexTableL0() { return mIndexTablesLayer0D; }
+  Vector<int>& getDeviceIndexTableL2() { return mIndexTablesLayer2D; }
+  // std::array<Vector<int>, NLayers - 1>& getDeviceIndexTables(int rofid) { return mIndexTablesD};
   int* getDeviceNTrackletsCluster(int rofId, int combId);
 
  private:
@@ -66,6 +68,7 @@ class TimeFrameGPU : public TimeFrame
 
   // Vertexer only
   Vector<int> mIndexTablesLayer0D;
+  Vector<int> mIndexTablesLayer2D;
   std::array<Vector<int>, 2> mNTrackletsPerClusterD;
 };
 
@@ -80,13 +83,13 @@ inline Cluster* TimeFrameGPU<NLayers>::getDeviceClustersOnLayer(const int rofId,
 }
 
 template <int NLayers>
-inline size_t TimeFrameGPU<NLayers>::getDeviceNClustersLayer(const int rofId, const int layerId) const
+inline int TimeFrameGPU<NLayers>::getDeviceNClustersLayer(const int rofId, const int layerId) const
 {
   if (rofId < 0 || rofId >= mNrof) {
     std::cout << "Invalid rofId: " << rofId << "/" << mNrof << ", returning 0 as value" << std::endl;
     return 0;
   }
-  return mROframesClusters[layerId][rofId + 1] - mROframesClusters[layerId][rofId];
+  return static_cast<int>(mROframesClusters[layerId][rofId + 1] - mROframesClusters[layerId][rofId]);
 }
 
 template <int NLayers>
@@ -95,7 +98,7 @@ inline int* TimeFrameGPU<NLayers>::getDeviceNTrackletsCluster(int rofId, int com
   if (rofId < 0 || rofId >= mNrof) {
     std::cout << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr" << std::endl;
   }
-   return mNTrackletsPerClusterD[combId].get() + mROframesClusters[1][rofId];
+  return mNTrackletsPerClusterD[combId].get() + mROframesClusters[1][rofId];
 }
 
 } // namespace gpu
