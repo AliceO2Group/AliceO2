@@ -50,6 +50,7 @@ struct CCDBFetcherHelper {
   std::vector<OutputRoute> routes;
   std::map<int64_t, CCDBCacheInfo> cache;
   std::unordered_map<std::string, std::string> remappings;
+  size_t queryDownScaleRate = 1;
   o2::ccdb::CcdbApi& getAPI(const std::string& path)
   {
     auto entry = remappings.find(path);
@@ -161,8 +162,8 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
                        DataTakingContext& dtc,
                        DataAllocator& allocator) -> void
 {
-  // For Giulio: the dtc.orbitResetTime is wrong, it is assigned from the dph->creation, why?
   std::string ccdbMetadataPrefix = "ccdb-metadata-";
+  bool checkValidity = timingInfo.timeslice % helper->queryDownScaleRate == 0;
   for (auto& route : helper->routes) {
     LOGP(debug, "Fetching object for route {}", route.matcher);
 
@@ -188,9 +189,11 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
     const auto url2uuid = helper->mapURL2UUID.find(path);
     if (url2uuid != helper->mapURL2UUID.end()) {
       etag = url2uuid->second;
+    } else {
+      checkValidity = true; // never skip check if the cache is empty
     }
     const auto& api = helper->getAPI(path);
-    if (!api.isSnapshotMode() || etag.empty()) { // in the snapshot mode the object needs to be fetched only once
+    if (checkValidity && (!api.isSnapshotMode() || etag.empty())) { // in the snapshot mode the object needs to be fetched only once
       api.loadFileToMemory(v, path, metadata, timestamp, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
       if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
         LOGP(fatal, "Unable to find object {}/{}", path, timingInfo.timeslice);
@@ -228,9 +231,10 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
   return adaptStateful([](ConfigParamRegistry const& options, DeviceSpec const& spec) {
       std::shared_ptr<CCDBFetcherHelper> helper = std::make_shared<CCDBFetcherHelper>();
       std::unordered_map<std::string, bool> accountedSpecs;
-      auto backend = options.get<std::string>("condition-backend");
-      LOGP(info, "CCDB Backend at: {}", backend);
-      const auto& defHost = options.get<std::string>("condition-backend");
+      auto defHost = options.get<std::string>("condition-backend");
+      size_t checkRate = static_cast<size_t>(options.get<int64_t>("condition-tf-per-query"));
+      helper->queryDownScaleRate = checkRate > 0 ? checkRate : static_cast<size_t>(-1l);
+      LOGP(info, "CCDB Backend at: {}, validity check for every {} TF", defHost, helper->queryDownScaleRate);
       auto remapString = options.get<std::string>("condition-remap");
       ParserResult result = CCDBHelpers::parseRemappings(remapString.c_str());
       if (!result.error.empty()) {
@@ -279,15 +283,19 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           std::map<std::string, std::string> metadata;
           std::map<std::string, std::string> headers;
           std::string etag;
+          bool checkValidity = timingInfo.timeslice % helper->queryDownScaleRate == 0;
           const auto url2uuid = helper->mapURL2UUID.find(path);
           if (url2uuid != helper->mapURL2UUID.end()) {
             etag = url2uuid->second;
+          } else {
+            checkValidity = true; // never skip check if the cache is empty
           }
+          LOG(debug) << "checkValidity = " << checkValidity << " for TF " << timingInfo.timeslice;
           Output output{"CTP", "OrbitReset", 0, Lifetime::Condition};
           Long64_t newOrbitResetTime = orbitResetTime;
           auto&& v = allocator.makeVector<char>(output);
           const auto& api = helper->getAPI(path);
-          if (!api.isSnapshotMode() || etag.empty()) { // in the snapshot mode the object needs to be fetched only once
+          if (checkValidity && (!api.isSnapshotMode() || etag.empty())) { // in the snapshot mode the object needs to be fetched only once
             api.loadFileToMemory(v, path, metadata, timingInfo.creation, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
             if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
               LOGP(fatal, "Unable to find object {}/{}", path, timingInfo.creation);
