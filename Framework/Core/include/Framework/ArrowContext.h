@@ -12,6 +12,7 @@
 #define O2_FRAMEWORK_ARROWCONTEXT_H_
 
 #include "Framework/FairMQDeviceProxy.h"
+#include "Framework/RoutingIndices.h"
 #include <cassert>
 #include <functional>
 #include <memory>
@@ -31,7 +32,7 @@ class FairMQResizableBuffer;
 class ArrowContext
 {
  public:
-  ArrowContext(FairMQDeviceProxy proxy)
+  ArrowContext(FairMQDeviceProxy& proxy)
     : mProxy{proxy}
   {
   }
@@ -43,7 +44,7 @@ class ArrowContext
     std::shared_ptr<FairMQResizableBuffer> buffer;
     /// The function to call to finalise the builder into the message
     std::function<void(std::shared_ptr<FairMQResizableBuffer>)> finalize;
-    std::string channel;
+    RouteIndex routeIndex;
   };
 
   using Messages = std::vector<MessageRef>;
@@ -51,12 +52,12 @@ class ArrowContext
   void addBuffer(std::unique_ptr<FairMQMessage> header,
                  std::shared_ptr<FairMQResizableBuffer> buffer,
                  std::function<void(std::shared_ptr<FairMQResizableBuffer>)> finalize,
-                 const std::string& channel)
+                 RouteIndex routeIndex)
   {
     mMessages.push_back(std::move(MessageRef{std::move(header),
                                              std::move(buffer),
                                              std::move(finalize),
-                                             channel}));
+                                             routeIndex}));
   }
 
   Messages::iterator begin()
@@ -128,7 +129,7 @@ class ArrowContext
   }
 
  private:
-  FairMQDeviceProxy mProxy;
+  FairMQDeviceProxy& mProxy;
   Messages mMessages;
   size_t mBytesSent = 0;
   size_t mBytesDestroyed = 0;

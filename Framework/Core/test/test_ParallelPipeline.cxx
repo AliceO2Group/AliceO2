@@ -193,11 +193,12 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       });
       return adaptStateless([checkMap, bindings = std::move(bindings)](InputRecord& inputs) {
         bool haveDataIn = false;
+        size_t index = 0;
         for (auto const& input : inputs) {
           if (!DataRefUtils::isValid(input)) {
             continue;
           }
-          LOG(debug) << "consuming : " << *input.spec << ": " << *((int*)input.payload);
+          LOG(info) << "consuming : " << *input.spec << ": " << *((int*)input.payload);
           auto const* dataheader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
           if (input.spec->binding.compare(0, 6, "datain") == 0) {
             if (input.spec->binding != bindings.at(dataheader->subSpecification)) {

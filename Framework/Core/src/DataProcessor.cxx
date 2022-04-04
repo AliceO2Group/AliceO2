@@ -18,6 +18,7 @@
 #include "Framework/ServiceRegistry.h"
 #include "FairMQResizableBuffer.h"
 #include "CommonUtils/BoostSerializer.h"
+#include "Framework/FairMQDeviceProxy.h"
 #include "Headers/DataHeader.h"
 #include "Headers/DataHeaderHelpers.h"
 
@@ -27,7 +28,6 @@
 #include <arrow/io/memory.h>
 #include <arrow/ipc/writer.h>
 #include <cstddef>
-#include <unordered_map>
 
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
@@ -35,9 +35,11 @@ using DataHeader = o2::header::DataHeader;
 namespace o2::framework
 {
 
-void DataProcessor::doSend(DataSender& sender, MessageContext& context, ServiceRegistry&)
+void DataProcessor::doSend(DataSender& sender, MessageContext& context, ServiceRegistry& services)
 {
-  std::unordered_map<std::string const*, FairMQParts> outputs;
+  auto& proxy = services.get<FairMQDeviceProxy>();
+  std::vector<FairMQParts> outputsPerChannel;
+  outputsPerChannel.resize(proxy.getNumChannels());
   auto contextMessages = context.getMessagesForSending();
   for (auto& message : contextMessages) {
     //     monitoringService.send({ message->parts.Size(), "outputs/total" });
@@ -45,19 +47,24 @@ void DataProcessor::doSend(DataSender& sender, MessageContext& context, ServiceR
     assert(message->empty());
     assert(parts.Size() == 2);
     for (auto& part : parts) {
-      outputs[&(message->channel())].AddPart(std::move(part));
+      outputsPerChannel[proxy.getChannelIndex((message->route())).value].AddPart(std::move(part));
     }
   }
-  for (auto& [channel, parts] : outputs) {
-    sender.send(parts, *channel);
+  for (int ci = 0; ci < outputsPerChannel.size(); ++ci) {
+    auto& parts = outputsPerChannel[ci];
+    if (parts.Size() == 0) {
+      continue;
+    }
+    sender.send(parts, {ci});
   }
 }
 
-void DataProcessor::doSend(DataSender& sender, StringContext& context, ServiceRegistry&)
+void DataProcessor::doSend(DataSender& sender, StringContext& context, ServiceRegistry& services)
 {
+  FairMQDeviceProxy& proxy = services.get<FairMQDeviceProxy>();
   for (auto& messageRef : context) {
     FairMQParts parts;
-    FairMQMessagePtr payload(sender.create());
+    FairMQMessagePtr payload(sender.create(messageRef.routeIndex));
     auto a = messageRef.payload.get();
     // Rebuild the message using the string as input. For now it involves a copy.
     payload->Rebuild(reinterpret_cast<void*>(const_cast<char*>(strdup(a->data()))), a->size(), nullptr, nullptr);
@@ -68,7 +75,7 @@ void DataProcessor::doSend(DataSender& sender, StringContext& context, ServiceRe
     dh->payloadSize = payload->GetSize();
     parts.AddPart(std::move(messageRef.header));
     parts.AddPart(std::move(payload));
-    sender.send(parts, messageRef.channel);
+    sender.send(parts, proxy.getChannelIndex(messageRef.routeIndex));
   }
 }
 
@@ -81,6 +88,7 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
   auto& monitoring = registry.get<Monitoring>();
 
   std::regex invalid_metric(" ");
+  FairMQDeviceProxy& proxy = registry.get<FairMQDeviceProxy>();
   for (auto& messageRef : context) {
     FairMQParts parts;
     // Depending on how the arrow table is constructed, we finalize
@@ -108,7 +116,7 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
     context.updateMessagesSent(1);
     parts.AddPart(std::move(messageRef.header));
     parts.AddPart(std::move(payload));
-    sender.send(parts, messageRef.channel);
+    sender.send(parts, proxy.getChannelIndex(messageRef.routeIndex));
   }
   static int64_t previousBytesSent = 0;
   auto disposeResources = [bs = context.bytesSent() - previousBytesSent](int taskId,
@@ -139,11 +147,12 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
   monitoring.flushBuffer();
 }
 
-void DataProcessor::doSend(DataSender& sender, RawBufferContext& context, ServiceRegistry&)
+void DataProcessor::doSend(DataSender& sender, RawBufferContext& context, ServiceRegistry& registry)
 {
+  FairMQDeviceProxy& proxy = registry.get<FairMQDeviceProxy>();
   for (auto& messageRef : context) {
     FairMQParts parts;
-    FairMQMessagePtr payload(sender.create());
+    FairMQMessagePtr payload(sender.create(messageRef.routeIndex));
     auto buffer = messageRef.serializeMsg().str();
     // Rebuild the message using the serialized ostringstream as input. For now it involves a copy.
     size_t size = buffer.length();
@@ -156,7 +165,7 @@ void DataProcessor::doSend(DataSender& sender, RawBufferContext& context, Servic
     dh->payloadSize = size;
     parts.AddPart(std::move(messageRef.header));
     parts.AddPart(std::move(payload));
-    sender.send(parts, messageRef.channel);
+    sender.send(parts, proxy.getChannelIndex(messageRef.routeIndex));
   }
 }
 

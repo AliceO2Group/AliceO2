@@ -18,11 +18,11 @@ namespace o2::framework
 
 void RawBufferContext::addRawBuffer(std::unique_ptr<FairMQMessage> header,
                                     char* payload,
-                                    std::string channel,
+                                    RouteIndex routeIndex,
                                     std::function<std::ostringstream()> serialize,
                                     std::function<void()> destructor)
 {
-  mMessages.push_back(MessageRef{std::move(header), std::move(payload), std::move(channel), std::move(serialize), std::move(destructor)});
+  mMessages.push_back(MessageRef{std::move(header), std::move(payload), routeIndex, std::move(serialize), std::move(destructor)});
 }
 
 void RawBufferContext::clear()
