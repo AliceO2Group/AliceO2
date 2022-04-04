@@ -746,6 +746,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     parallelSpec(),
     callbacksSpec(),
     dataRelayer(),
+    CommonMessageBackends::fairMQDeviceProxy(),
     dataSender(),
     dataProcessingStats(),
     objectCache(),

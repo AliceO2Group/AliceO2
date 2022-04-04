@@ -1053,6 +1053,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
   std::unique_ptr<SimpleRawDeviceService> simpleRawDeviceService;
   std::unique_ptr<DeviceState> deviceState;
   std::unique_ptr<ComputingQuotaEvaluator> quotaEvaluator;
+  std::unique_ptr<FairMQDeviceProxy> deviceProxy;
 
   auto afterConfigParsingCallback = [&simpleRawDeviceService,
                                      &runningWorkflow,
@@ -1061,6 +1062,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
                                      &quotaEvaluator,
                                      &serviceRegistry,
                                      &deviceState,
+                                     &deviceProxy,
                                      &processingPolicies,
                                      &loop](fair::mq::DeviceRunner& r) {
     simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);

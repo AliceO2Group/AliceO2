@@ -24,6 +24,13 @@ struct RouteIndex {
   explicit operator int() const { return value; }
 };
 
+/// An index in the space of the available channels.
+/// Keep in mind that multiple inputs, routes can
+/// use the same channel.
+struct ChannelIndex {
+  int value;
+};
+
 // An index in the space of the declared InputSpec
 // This does not take multiple input routes into account
 struct InputIndex {

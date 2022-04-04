@@ -11,19 +11,22 @@
 
 #include "Framework/Output.h"
 #include "Framework/MessageContext.h"
+#include "Framework/OutputRoute.h"
 #include "fairmq/FairMQDevice.h"
 
 namespace o2::framework
 {
 
-FairMQMessagePtr MessageContext::createMessage(const std::string& channel, int index, size_t size)
+FairMQMessagePtr MessageContext::createMessage(RouteIndex routeIndex, int index, size_t size)
 {
-  return proxy().getDevice()->NewMessageFor(channel, 0, size, fair::mq::Alignment{64});
+  auto* transport = mProxy.getTransport(routeIndex);
+  return transport->CreateMessage(size, fair::mq::Alignment{64});
 }
 
-FairMQMessagePtr MessageContext::createMessage(const std::string& channel, int index, void* data, size_t size, fairmq_free_fn* ffn, void* hint)
+FairMQMessagePtr MessageContext::createMessage(RouteIndex routeIndex, int index, void* data, size_t size, fairmq_free_fn* ffn, void* hint)
 {
-  return proxy().getDevice()->NewMessageFor(channel, 0, data, size, ffn, hint);
+  auto* transport = mProxy.getTransport(routeIndex);
+  return transport->CreateMessage(data, size, ffn, hint);
 }
 
 o2::header::DataHeader* MessageContext::findMessageHeader(const Output& spec)
