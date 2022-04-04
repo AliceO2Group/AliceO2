@@ -19,6 +19,7 @@ o2_add_library(
           src/EntropyDecoderSpec.cxx
           src/EntropyEncoderSpec.cxx
           src/FetToDeadSpec.cxx
+          src/FilteringSpec.cxx
           src/MaskHandlerSpec.cxx
           src/MaskMakerSpec.cxx
           src/ChannelCalibratorSpec.cxx

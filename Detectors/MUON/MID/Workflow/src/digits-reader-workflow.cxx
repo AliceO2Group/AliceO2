@@ -23,6 +23,7 @@
 #include "DataFormatsMID/ROFRecord.h"
 #include "DataFormatsMID/MCLabel.h"
 #include "MIDWorkflow/DigitReaderSpec.h"
+#include "MIDWorkflow/FilteringSpec.h"
 #include "MIDWorkflow/ZeroSuppressionSpec.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
@@ -56,9 +57,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   WorkflowSpec specs;
-  specs.emplace_back(o2::mid::getDigitReaderSpec(useMC, disableZS ? "DATA" : "DATAMC"));
+  std::string dataDesc = disableZS ? "DATA" : "DATAMC";
+  specs.emplace_back(o2::mid::getDigitReaderSpec(useMC, dataDesc.data()));
   if (!disableZS) {
-    specs.emplace_back(o2::mid::getZeroSuppressionSpec(useMC));
+    std::string outDesc = "MFDATA";
+    specs.emplace_back(o2::mid::getFilteringSpec(useMC, dataDesc, outDesc));
+    specs.emplace_back(o2::mid::getZeroSuppressionSpec(useMC, outDesc));
   }
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit

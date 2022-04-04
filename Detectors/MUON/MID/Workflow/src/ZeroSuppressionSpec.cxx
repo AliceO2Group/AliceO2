@@ -27,6 +27,7 @@
 #include "MIDRaw/ColumnDataToLocalBoard.h"
 #include "MIDRaw/DecodedDataAggregator.h"
 #include "MIDRaw/ROBoardResponse.h"
+#include "MIDWorkflow/ColumnDataSpecsUtils.h"
 
 namespace of = o2::framework;
 
@@ -46,16 +47,19 @@ class ZeroSuppressionDeviceDPL
 
   void run(o2::framework::ProcessingContext& pc)
   {
-    const auto patterns = pc.inputs().get<gsl::span<ColumnData>>("mid_data_mc");
-
-    const auto inROFRecords = pc.inputs().get<gsl::span<ROFRecord>>("mid_data_mc_rof");
-
-    const auto inMCContainer = mUseMC ? pc.inputs().get<const o2::dataformats::MCTruthContainer<MCLabel>*>("mid_data_mc_labels") : nullptr;
+    const auto patterns = specs::getData(pc, "mid_zs_in", EventType::Standard);
+    const auto inROFRecords = specs::getRofs(pc, "mid_zs_in", EventType::Standard);
+    const auto inMCContainer = mUseMC ? specs::getLabels(pc, "mid_zs_in") : nullptr;
 
     o2::dataformats::MCTruthContainer<MCLabel> outMCContainer;
 
-    std::vector<ROFRecord> zsROFs, tmpROFs(1);
-    std::vector<ColumnData> zsData;
+    auto& zsData = pc.outputs().make<std::vector<ColumnData>>(of::OutputRef{"mid_zs_out_0"});
+    auto& zsROFs = pc.outputs().make<std::vector<ROFRecord>>(of::OutputRef{"mid_zs_out_rof_0"});
+
+    zsData.reserve(patterns.size());
+    zsROFs.reserve(inROFRecords.size());
+
+    std::vector<ROFRecord> tmpROFs(1);
     for (auto& rof : inROFRecords) {
       mConverter.process(patterns.subspan(rof.firstEntry, rof.nEntries));
       if (!mConverter.getData().empty()) {
@@ -85,8 +89,6 @@ class ZeroSuppressionDeviceDPL
       }
     }
 
-    pc.outputs().snapshot(of::Output{header::gDataOriginMID, "DATA", 0, of::Lifetime::Timeframe}, zsData);
-    pc.outputs().snapshot(of::Output{header::gDataOriginMID, "DATAROF", 0, of::Lifetime::Timeframe}, zsROFs);
     if (mUseMC) {
       pc.outputs().snapshot(of::Output{header::gDataOriginMID, "DATALABELS", 0, of::Lifetime::Timeframe}, outMCContainer);
     }
@@ -99,15 +101,10 @@ class ZeroSuppressionDeviceDPL
   bool mUseMC{true};
 };
 
-framework::DataProcessorSpec getZeroSuppressionSpec(bool useMC)
+framework::DataProcessorSpec getZeroSuppressionSpec(bool useMC, std::string_view dataDesc)
 {
-  std::vector<of::InputSpec> inputSpecs{of::InputSpec{"mid_data_mc", header::gDataOriginMID, "DATAMC"}, of::InputSpec{"mid_data_mc_rof", header::gDataOriginMID, "DATAMCROF"}};
-
-  std::vector<of::OutputSpec> outputSpecs{of::OutputSpec{header::gDataOriginMID, "DATA"}, of::OutputSpec{header::gDataOriginMID, "DATAROF"}};
-  if (useMC) {
-    inputSpecs.emplace_back(of::InputSpec{"mid_data_mc_labels", header::gDataOriginMID, "DATAMCLABELS"});
-    outputSpecs.emplace_back(of::OutputSpec{header::gDataOriginMID, "DATALABELS"});
-  }
+  auto inputSpecs = specs::buildInputSpecs("mid_zs_in", dataDesc, useMC);
+  auto outputSpecs = specs::buildStandardOutputSpecs("mid_zs_out", "DATA", useMC);
 
   return of::DataProcessorSpec{
     "MIDZeroSuppression",

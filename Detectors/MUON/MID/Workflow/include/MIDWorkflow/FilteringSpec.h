@@ -9,23 +9,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MIDWorkflow/ZeroSuppressionSpec.h
-/// \brief  MID zero suppression spec
+/// \file   MIDWorkflow/FilteringSpec.h
+/// \brief  MID filtering spec
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
-/// \date   23 October 2020
+/// \date   16 March 2022
 
-#ifndef O2_MID_ZEROSUPPRESSIONSPEC_H
-#define O2_MID_ZEROSUPPRESSIONSPEC_H
+#ifndef O2_MID_FILTERINGSPEC_H
+#define O2_MID_FILTERINGSPEC_H
 
 #include "Framework/DataProcessorSpec.h"
+
 #include <string_view>
 
 namespace o2
 {
 namespace mid
 {
-framework::DataProcessorSpec getZeroSuppressionSpec(bool useMC = true, std::string_view dataDesc = "DATAMC");
+framework::DataProcessorSpec getFilteringSpec(bool useMC = true, std::string_view inDesc = "DATA", std::string_view outDesc = "FDATA");
 }
 } // namespace o2
 
-#endif // O2_MID_ZEROSUPPRESSIONSPEC_H
+#endif // O2_MID_FILTERINGSPEC_H
