@@ -21,6 +21,7 @@
 
 namespace o2
 {
+
 namespace calibration
 {
 
@@ -75,13 +76,23 @@ class TimeSlotCalibration
 
   virtual void print() const;
 
+  void setCurrentTFInfo(uint32_t firstOrbit, uint32_t tfCounter, uint32_t runNumber, uint64_t creation);
+  auto getTFfirstOrbit() const { return mTFfirstOrbit; }
+  auto getTFcounter() const { return mTFcounter; }
+  auto getTFrunNumber() const { return mTFrunNumber; }
+  auto getTFcreationTime() const { return mTFcreationTime; }
+
  protected:
   auto& getSlots() { return mSlots; }
 
- private:
   TFType tf2SlotMin(TFType tf) const;
 
   std::deque<Slot> mSlots;
+
+  uint32_t mTFfirstOrbit = 0;
+  uint32_t mTFcounter = 0;
+  uint32_t mTFrunNumber = 0;
+  uint64_t mTFcreationTime = 0;
 
   TFType mLastClosedTF = 0;
   TFType mFirstTF = 0;
@@ -313,6 +324,16 @@ TimeSlot<Container>& TimeSlotCalibration<Input, Container>::getSlotForTF(TFType 
   } while (tf > mSlots.back().getTFEnd());
 
   return mSlots.back();
+}
+
+//_________________________________________________
+template <typename Input, typename Container>
+void TimeSlotCalibration<Input, Container>::setCurrentTFInfo(uint32_t firstOrbit, uint32_t tfCounter, uint32_t runNumber, uint64_t creation)
+{
+  mTFfirstOrbit = firstOrbit;
+  mTFcounter = tfCounter;
+  mTFrunNumber = runNumber;
+  mTFcreationTime = creation;
 }
 
 //_________________________________________________
