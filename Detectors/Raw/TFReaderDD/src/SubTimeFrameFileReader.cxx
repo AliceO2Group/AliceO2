@@ -18,6 +18,7 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataProcessingHeader.h"
 #include <fairmq/FairMQDevice.h>
+#include <mutex>
 
 #if __linux__
 #include <sys/mman.h>
@@ -176,6 +177,9 @@ Stack SubTimeFrameFileReader::getHeaderStack(std::size_t& pOrigsize)
 }
 
 std::uint64_t SubTimeFrameFileReader::sStfId = 0; // TODO: add id to files metadata
+std::uint32_t sRunNumber = 0;                     // TODO: add id to files metadata
+std::uint32_t sFirstTForbit = 0;                  // TODO: add id to files metadata
+std::mutex stfMtx;
 
 std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* device, const std::vector<o2f::OutputRoute>& outputRoutes,
                                                                const std::string& rawChannel, bool sup0xccdb, int verbosity)
@@ -221,6 +225,8 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
     return nullptr;
   }
   auto tfID = sStfId++;
+  uint32_t runNumberFallBack = sRunNumber;
+  uint32_t firstTForbitFallBack = sFirstTForbit;
   std::size_t lMetaHdrStackSize = 0;
   const DataHeader* lStfMetaDataHdr = nullptr;
   SubTimeFrameFileMeta lStfFileMeta;
@@ -241,7 +247,6 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
     mFileMap.close();
     return nullptr;
   }
-
   lStfMetaDataHdr = o2::header::DataHeader::Get(lMetaHdrStack.first());
   if (!read_advance(&lStfFileMeta, sizeof(SubTimeFrameFileMeta))) {
     return nullptr;
@@ -323,6 +328,9 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
       stfHeader.id = lDataHeader->tfCounter;
       stfHeader.runNumber = lDataHeader->runNumber;
       stfHeader.firstOrbit = lDataHeader->firstTForbit;
+      std::lock_guard<std::mutex> lock(stfMtx);
+      sRunNumber = stfHeader.runNumber;
+      sFirstTForbit = stfHeader.firstOrbit;
     }
 
     const std::uint64_t lDataSize = lDataHeader->payloadSize;
@@ -390,8 +398,14 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
     LOG(error) << "FileRead: Read more data than it is indicated in the META header!";
     return nullptr;
   }
-
   // add TF acknowledge part
+  // in case of empty TF fall-back to previous runNumber and fistTForbit
+  if (stfHeader.runNumber == -1u) {
+    stfHeader.runNumber = runNumberFallBack;
+    stfHeader.firstOrbit = firstTForbitFallBack;
+    LOGP(info, "Empty TF#{}, fallback to previous runNumber:{} firstTForbit:{}", tfID, stfHeader.runNumber, stfHeader.firstOrbit);
+  }
+
   unsigned stfSS[2] = {0, 0xccdb};
   for (int iss = 0; iss < (sup0xccdb ? 1 : 2); iss++) {
     o2::header::DataHeader stfDistDataHeader(o2::header::gDataDescriptionDISTSTF, o2::header::gDataOriginFLP, stfSS[iss], sizeof(STFHeader), 0, 1);
