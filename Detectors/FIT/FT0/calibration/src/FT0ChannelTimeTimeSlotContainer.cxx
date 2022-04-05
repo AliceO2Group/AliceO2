@@ -63,8 +63,6 @@ void FT0ChannelTimeTimeSlotContainer::fill(const gsl::span<const FT0CalibrationI
       mHistogram[chID]->Fill(chTime);
       ++mEntriesPerChannel[chID];
       LOG(debug) << "@@@@entries " << mEntriesPerChannel[chID] << " chID " << int(chID) << " time " << chTime << " tiestamp " << uint64_t(entry.getTimeStamp());
-    } else {
-      LOG(fatal) << "Invalid channel data";
     }
   }
 }
