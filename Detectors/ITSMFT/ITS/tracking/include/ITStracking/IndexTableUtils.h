@@ -27,6 +27,7 @@
 #include "ITStracking/Definitions.h"
 #include "GPUCommonMath.h"
 #include "GPUCommonDef.h"
+#include <fairlogger/Logger.h>
 
 namespace o2
 {
@@ -59,10 +60,13 @@ template <class T>
 inline void IndexTableUtils::setTrackingParameters(const T& params)
 {
   mInversePhiBinSize = params.PhiBins / constants::math::TwoPi;
+  LOGP(info, "params.LayerZ.size() = {}", params.LayerZ.size());
   mNzBins = params.ZBins;
   mNphiBins = params.PhiBins;
   for (int iLayer{0}; iLayer < params.LayerZ.size(); ++iLayer) {
     mLayerZ[iLayer] = params.LayerZ[iLayer];
+  }
+  for (unsigned int iLayer{0}; iLayer < params.LayerZ.size(); ++iLayer) {
     mInverseZBinSize[iLayer] = 0.5f * params.ZBins / params.LayerZ[iLayer];
   }
 }

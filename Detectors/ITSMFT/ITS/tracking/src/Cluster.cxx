@@ -90,6 +90,10 @@ bool Cluster::operator==(const Cluster& rhs) const
          this->indexTableBinIndex == rhs.indexTableBinIndex;
 }
 
+void Cluster::print() const {
+  printf("Cluster: %f %f %f %f %f %d %d\n", xCoordinate, yCoordinate, zCoordinate, phi, radius, clusterId, indexTableBinIndex);
+}
+
 TrackingFrameInfo::TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, GPUArray<float, 2>&& posTF,
                                      GPUArray<float, 3>&& covTF)
   : xCoordinate{x}, yCoordinate{y}, zCoordinate{z}, xTrackingFrame{xTF}, alphaTrackingFrame{alpha}, positionTrackingFrame{posTF}, covarianceTrackingFrame{covTF}
