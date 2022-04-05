@@ -1388,17 +1388,16 @@ void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std:
   }
 }
 
-std::vector<std::string> CcdbApi::splitString(std::string string, const char* delimiters)
+std::vector<std::string> CcdbApi::splitString(const std::string& str, const char* delimiters)
 {
   std::vector<std::string> tokens;
-  char* stringForStrTok = new char[string.length() + 1];
-  strcpy(stringForStrTok, string.c_str());
+  char stringForStrTok[str.length() + 1];
+  strcpy(stringForStrTok, str.c_str());
   char* token = strtok(stringForStrTok, delimiters);
   while (token != nullptr) {
     tokens.emplace_back(token);
     token = strtok(nullptr, delimiters);
   }
-  free(stringForStrTok);
   return tokens;
 }
 
