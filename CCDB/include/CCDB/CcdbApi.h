@@ -474,7 +474,7 @@ class CcdbApi //: public DatabaseInterface
   static TClass* tinfo2TClass(std::type_info const& tinfo);
 
   // split string on delimiters and return tokens as vector
-  std::vector<std::string> splitString(std::string string, const char* delimiters);
+  std::vector<std::string> splitString(const std::string& str, const char* delimiters);
 
   typedef size_t (*CurlWriteCallback)(void*, size_t, size_t, void*);
 
