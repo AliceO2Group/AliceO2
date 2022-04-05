@@ -38,7 +38,7 @@ struct Cluster final {
   Cluster(const int, const float3&, const IndexTableUtils& utils, const Cluster&);
   void Init(const int, const float3&, const IndexTableUtils& utils, const Cluster&);
   bool operator==(const Cluster&) const;
-  void print() const;
+  GPUhd() void print() const;
 
   float xCoordinate;      // = -999.f;
   float yCoordinate;      // = -999.f;
@@ -50,6 +50,10 @@ struct Cluster final {
 
   ClassDefNV(Cluster, 1);
 };
+
+GPUhdi() void Cluster::print() const {
+  printf("Cluster: %f %f %f %f %f %d %d\n", xCoordinate, yCoordinate, zCoordinate, phi, radius, clusterId, indexTableBinIndex);
+}
 
 struct TrackingFrameInfo {
   TrackingFrameInfo() = default;

@@ -159,6 +159,8 @@ GPUg() void trackleterKernel(
   const IndexTableUtils* utils,
   const int maxTrackletsPerCluster = 10)
 {
+  const int phiBins{utils->getNphiBins()};
+  const int zBins{utils->getNzBins()};
   // loop on layer1 clusters
   for (int iCurrentLayerClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentLayerClusterIndex < sizeCurrentLClusters; iCurrentLayerClusterIndex += blockDim.x * gridDim.x) {
     if (iCurrentLayerClusterIndex < sizeCurrentLClusters) {
@@ -169,13 +171,13 @@ GPUg() void trackleterKernel(
       if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
         int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
         if (phiBinsNum < 0) {
-          phiBinsNum += PhiBins;
+          phiBinsNum += phiBins;
         }
         // loop on phi bins next layer
-        for (unsigned int iPhiBin{(unsigned int)selectedBinsRect.y}, iPhiCount{0}; iPhiCount < (unsigned int)phiBinsNum; iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
+        for (unsigned int iPhiBin{(unsigned int)selectedBinsRect.y}, iPhiCount{0}; iPhiCount < (unsigned int)phiBinsNum; iPhiBin = ++iPhiBin == phiBins ? 0 : iPhiBin, iPhiCount++) {
           const int firstBinIndex{utils->getBinIndex(selectedBinsRect.x, iPhiBin)};
           const int firstRowClusterIndex{indexTableNext[firstBinIndex]};
-          const int maxRowClusterIndex{indexTableNext[firstBinIndex + ZBins]};
+          const int maxRowClusterIndex{indexTableNext[firstBinIndex + zBins]};
           // loop on clusters next layer
           for (int iNextLayerClusterIndex{firstRowClusterIndex}; iNextLayerClusterIndex < maxRowClusterIndex && iNextLayerClusterIndex < sizeNextLClusters; ++iNextLayerClusterIndex) {
             const Cluster& nextCluster = clustersNextLayer[iNextLayerClusterIndex];
@@ -336,43 +338,40 @@ GPUg() void computeVertexKernel(DeviceStoreVertexerGPU& store, const int vertInd
 
 void VertexerTraitsGPU::computeTracklets()
 {
-  for (int rofId{0}; rofId < mTimeFrameGPU->getNrof(); ++rofId) {
-    // Ugly, let's check if it works <<<----- GET RID OF THIS
-    mTimeFrameGPU->getDeviceIndexTableL0().reset(mTimeFrameGPU->getIndexTableL0(rofId).data(),
-                                                 static_cast<int>(mTimeFrameGPU->getIndexTableL0(rofId).size()));
-    mTimeFrameGPU->getDeviceIndexTableL2().reset(mTimeFrameGPU->getIndexTables(rofId)[1].data(),
-                                                 static_cast<int>(mTimeFrameGPU->getIndexTables(rofId)[1].size()));
-
+  for (int rofId{926}; rofId < /*mTimeFrame->getNrof()*/927; ++rofId) {
     const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mTimeFrameGPU->getDeviceNClustersLayer(rofId, 1))};
     const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getDeviceNClustersLayer(rofId, 1))};
-    gpu::trackleterKernel<TrackletMode::Layer0Layer1><<<blocksGrid, threadsPerBlock>>>(
-      mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 0),
-      mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 1),
-      mTimeFrameGPU->getDeviceNClustersLayer(rofId, 0),
-      mTimeFrameGPU->getDeviceNClustersLayer(rofId, 1),
-      mTimeFrameGPU->getDeviceIndexTableL0().get(),
-      mVrtParams.phiCut,
-      mTimeFrameGPU->getDeviceTracklets()[0].get(),
-      mTimeFrameGPU->getDeviceNTrackletsCluster(rofId, 0),
-      mDeviceIndexTableUtils);
+    std::cout << "feeding: " << mTimeFrameGPU->getDeviceIndexTableL0(rofId) << " and " << mTimeFrameGPU->getDeviceIndexTableL2(rofId) << std::endl;
+    // gpu::trackleterKernel<TrackletMode::Layer0Layer1><<<1, 1>>>(
+    //   mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 0),
+    //   mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 1),
+    //   mTimeFrameGPU->getDeviceNClustersLayer(rofId, 0),
+    //   mTimeFrameGPU->getDeviceNClustersLayer(rofId, 1),
+    //   mTimeFrameGPU->getDeviceIndexTableL0(rofId),
+    //   mVrtParams.phiCut,
+    //   mTimeFrameGPU->getDeviceTracklets()[0].get(),
+    //   mTimeFrameGPU->getDeviceNTrackletsCluster(rofId, 0),
+    //   mDeviceIndexTableUtils,
+    //   mTimeFrameGPU->getConfig().maxTrackletsPerCluster);
 
-    gpu::trackleterKernel<TrackletMode::Layer1Layer2><<<blocksGrid, threadsPerBlock>>>(
-      mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 2),
-      mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 1),
-      mTimeFrameGPU->getDeviceNClustersLayer(rofId, 2),
-      mTimeFrameGPU->getDeviceNClustersLayer(rofId, 1),
-      mTimeFrameGPU->getDeviceIndexTableL2().get(),
-      mVrtParams.phiCut,
-      mTimeFrameGPU->getDeviceTracklets()[1].get(),
-      mTimeFrameGPU->getDeviceNTrackletsCluster(rofId, 1),
-      mDeviceIndexTableUtils);
+    // gpu::trackleterKernel<TrackletMode::Layer1Layer2><<<1, 1>>>(
+    //   mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 2),
+    //   mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 1),
+    //   mTimeFrameGPU->getDeviceNClustersLayer(rofId, 2),
+    //   mTimeFrameGPU->getDeviceNClustersLayer(rofId, 1),
+    //   mTimeFrameGPU->getDeviceIndexTableL2(rofId),
+    //   mVrtParams.phiCut,
+    //   mTimeFrameGPU->getDeviceTracklets()[1].get(),
+    //   mTimeFrameGPU->getDeviceNTrackletsCluster(rofId, 1),
+    //   mDeviceIndexTableUtils,
+    //   mTimeFrameGPU->getConfig().maxTrackletsPerCluster);
   }
   gpuThrowOnError();
   // #ifdef VTX_DEBUG
   std::ofstream out01("NTC01.txt"), out12("NTC12.txt");
   std::vector<std::vector<int>> NtrackletsClusters01(mTimeFrameGPU->getNrof());
   std::vector<std::vector<int>> NtrackletsClusters12(mTimeFrameGPU->getNrof());
-  for (int iRof{0}; iRof < mTimeFrameGPU->getNrof(); ++iRof) {
+  for (int iRof{0}; iRof < 1 /*mTimeFrame->getNrof()*/; ++iRof) {
     NtrackletsClusters01[iRof].resize(mTimeFrameGPU->getClustersOnLayer(iRof, 1).size());
     NtrackletsClusters12[iRof].resize(mTimeFrameGPU->getClustersOnLayer(iRof, 1).size());
     cudaMemcpy(NtrackletsClusters01[iRof].data(), mTimeFrameGPU->getDeviceNTrackletsCluster(iRof, 0), sizeof(int) * mTimeFrameGPU->getClustersOnLayer(iRof, 1).size(), cudaMemcpyDeviceToHost);

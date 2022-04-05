@@ -54,8 +54,6 @@ class VertexerTraitsGPU : public VertexerTraits
   GPUhd() gpu::DeviceStoreVertexerGPU& getDeviceContext();
 
  protected:
-  // gpu::DeviceStoreVertexerGPU mStoreVertexerGPU;
-  // gpu::UniquePointer<gpu::DeviceStoreVertexerGPU> mStoreVertexerGPUPtr;
   IndexTableUtils* mDeviceIndexTableUtils;
   gpu::TimeFrameGPU<7>* mTimeFrameGPU;
 };
@@ -68,11 +66,6 @@ inline GPUd() const int2 VertexerTraitsGPU::getBinsPhiRectWindow(const Cluster& 
   const int phiBinSpan{static_cast<int>(MATH_CEIL(phiCut * InversePhiBinSize))};
   return int2{phiBinMin, phiBinSpan};
 }
-
-// GPUhd() gpu::DeviceStoreVertexerGPU& VertexerTraitsGPU::getDeviceContext()
-// {
-//   return *mStoreVertexerGPUPtr;
-// }
 
 inline void VertexerTraitsGPU::adoptTimeFrame(TimeFrame* tf) { mTimeFrameGPU = static_cast<gpu::TimeFrameGPU<7>*>(tf); }
 
