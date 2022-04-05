@@ -56,6 +56,7 @@ class NoiseCalibratorSpec : public Task
   std::unique_ptr<CALIBRATOR> mCalibrator = nullptr;
   size_t mDataSizeStat = 0;
   size_t mNClustersProc = 0;
+  int mValidityDays = 3;
   bool mUseClusters = false;
   TStopwatch mTimer{};
 };
