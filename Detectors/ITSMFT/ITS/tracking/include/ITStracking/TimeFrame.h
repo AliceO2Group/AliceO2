@@ -117,7 +117,7 @@ class TimeFrame
   std::vector<std::vector<Tracklet>>& getTracklets();
   std::vector<std::vector<int>>& getTrackletsLookupTable();
 
-  std::array<std::vector<Cluster>, 7>& getClusters();
+  std::vector<std::vector<Cluster>>& getClusters();
   std::vector<std::vector<Cluster>>& getUnsortedClusters();
   int getClusterROF(int iLayer, int iCluster);
   std::vector<std::vector<Cell>>& getCells();
@@ -165,7 +165,7 @@ class TimeFrame
 
   IndexTableUtils mIndexTableUtils;
 
-  std::array<std::vector<Cluster>, 7> mClusters;
+  std::vector<std::vector<Cluster>> mClusters;
   std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
   std::vector<std::vector<int>> mClusterExternalIndices;
   std::vector<std::vector<int>> mROframesClusters;
@@ -408,7 +408,7 @@ inline bool TimeFrame::isRoadFake(int i) const
   return mRoadLabels[i].second;
 }
 
-inline std::array<std::vector<Cluster>, 7>& TimeFrame::getClusters()
+inline std::vector<std::vector<Cluster>>& TimeFrame::getClusters()
 {
   return mClusters;
 }
