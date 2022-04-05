@@ -594,9 +594,9 @@ DECLARE_SOA_COLUMN(CellType, cellType, int8_t);      //!
 DECLARE_SOA_COLUMN(CaloType, caloType, int8_t);      //!
 } // namespace calo
 
-DECLARE_SOA_TABLE(Calos, "AOD", "CALO", calo::BCId, //!
-                  calo::CellNumber, calo::Amplitude, calo::Time,
-                  calo::CellType, calo::CaloType);
+DECLARE_SOA_TABLE(Calos, "AOD", "CALO", //! Calorimeter cells
+                  o2::soa::Index<>, calo::BCId, calo::CellNumber, calo::Amplitude,
+                  calo::Time, calo::CellType, calo::CaloType);
 using Calo = Calos::iterator;
 
 namespace calotrigger
@@ -609,8 +609,8 @@ DECLARE_SOA_COLUMN(CaloType, caloType, int8_t);        //! Calorimeter type (-1 
 } // namespace calotrigger
 
 DECLARE_SOA_TABLE(CaloTriggers, "AOD", "CALOTRIGGER", //! Trigger information from the calorimeter detectors
-                  calotrigger::BCId, calotrigger::FastOrAbsID, calotrigger::LnAmplitude,
-                  calotrigger::TriggerBits, calotrigger::CaloType);
+                  o2::soa::Index<>, calotrigger::BCId, calotrigger::FastOrAbsID,
+                  calotrigger::LnAmplitude, calotrigger::TriggerBits, calotrigger::CaloType);
 using CaloTrigger = CaloTriggers::iterator;
 
 namespace zdc
