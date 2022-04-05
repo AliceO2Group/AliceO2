@@ -36,17 +36,9 @@ namespace fit
 //Temporary helper
 namespace DigitBlockFIThelper
 {
-template <typename T, typename = void>
-struct IsFV0;
-//FV0 Digit recognition
-template <typename T>
-struct IsFV0<T, std::enable_if_t<std::is_same<decltype(std::declval<T>().mIntRecord), o2::InteractionRecord>::value>> : std::false_type {
-};
-template <typename T>
-struct IsFV0<T, std::enable_if_t<std::is_same<decltype(std::declval<T>().ir), o2::InteractionRecord>::value>> : std::true_type {
-};
-//Temporary, PM module convertation
-//FT0
+
+// Temporary, PM module conversion
+// FT0 & FV0
 template <typename ChannelDataType, typename PMDataType>
 auto ConvertChData2EventData(const ChannelDataType& chData, PMDataType& pmData, int channelID) -> std::enable_if_t<std::is_same<decltype(std::declval<ChannelDataType>().QTCAmpl), int16_t>::value>
 {
@@ -55,15 +47,7 @@ auto ConvertChData2EventData(const ChannelDataType& chData, PMDataType& pmData, 
   pmData.time = chData.CFDTime;
   pmData.charge = chData.QTCAmpl;
 }
-//FV0
-template <typename ChannelDataType, typename PMDataType>
-auto ConvertChData2EventData(const ChannelDataType& chData, PMDataType& pmData, int channelID) -> std::enable_if_t<std::is_same<decltype(std::declval<ChannelDataType>().chargeAdc), Short_t>::value>
-{
-  pmData.channelID = channelID;
-  pmData.time = chData.time;
-  pmData.charge = chData.chargeAdc;
-}
-//FDD
+// FDD
 template <typename ChannelDataType, typename PMDataType>
 auto ConvertChData2EventData(const ChannelDataType& chData, PMDataType& pmData, int channelID) -> std::enable_if_t<std::is_same<decltype(std::declval<ChannelDataType>().mChargeADC), int16_t>::value>
 {
@@ -72,114 +56,52 @@ auto ConvertChData2EventData(const ChannelDataType& chData, PMDataType& pmData, 
   pmData.time = chData.mTime;
   pmData.charge = chData.mChargeADC;
 }
-//Temporary, TCM module convertation
-//FT0 and FDD
+
+// Temporary, TCM module conversion
+// FT0, FV0 and FDD
 template <typename DigitType, typename TCMDataType>
-auto ConvertDigit2TCMData(const DigitType& digit, TCMDataType& tcmData) -> std::enable_if_t<!IsFV0<DigitType>::value>
+auto ConvertDigit2TCMData(const DigitType& digit, TCMDataType& tcmData)
 {
   tcmData.orA = digit.mTriggers.getOrA();
   tcmData.orC = digit.mTriggers.getOrC();
   tcmData.sCen = digit.mTriggers.getSCen();
   tcmData.cen = digit.mTriggers.getCen();
   tcmData.vertex = digit.mTriggers.getVertex();
-  tcmData.laser = bool(digit.mTriggers.triggersignals & (1 << 5));
-  tcmData.outputsAreBlocked = bool(digit.mTriggers.triggersignals & (1 << 6));
-  tcmData.dataIsValid = bool(digit.mTriggers.triggersignals & (1 << 7));
-  tcmData.nChanA = digit.mTriggers.nChanA;
-  tcmData.nChanC = digit.mTriggers.nChanC;
+  tcmData.laser = digit.mTriggers.getLaser();
+  tcmData.outputsAreBlocked = digit.mTriggers.getOutputsAreBlocked();
+  tcmData.dataIsValid = digit.mTriggers.getDataIsValid();
+  tcmData.nChanA = digit.mTriggers.getNChanA();
+  tcmData.nChanC = digit.mTriggers.getNChanC();
   const int64_t thresholdSignedInt17bit = 65535; //pow(2,17)/2-1
-  if (digit.mTriggers.amplA > thresholdSignedInt17bit) {
+  if (digit.mTriggers.getAmplA() > thresholdSignedInt17bit) {
     tcmData.amplA = thresholdSignedInt17bit;
   } else {
-    tcmData.amplA = digit.mTriggers.amplA;
+    tcmData.amplA = digit.mTriggers.getAmplA();
   }
-  if (digit.mTriggers.amplC > thresholdSignedInt17bit) {
+  if (digit.mTriggers.getAmplC() > thresholdSignedInt17bit) {
     tcmData.amplC = thresholdSignedInt17bit;
   } else {
-    tcmData.amplC = digit.mTriggers.amplC;
+    tcmData.amplC = digit.mTriggers.getAmplC();
   }
-  tcmData.timeA = digit.mTriggers.timeA;
-  tcmData.timeC = digit.mTriggers.timeC;
+  tcmData.timeA = digit.mTriggers.getTimeA();
+  tcmData.timeC = digit.mTriggers.getTimeC();
 }
-//FV0
+
+// Digit to raw helper functions, temporary
+// TCM to Digit convertation
+// FT0, FV0 and FDD
 template <typename DigitType, typename TCMDataType>
-auto ConvertDigit2TCMData(const DigitType& digit, TCMDataType& tcmData) -> std::enable_if_t<IsFV0<DigitType>::value>
-{
-  tcmData.orA = bool(digit.mTriggers.triggerSignals & (1 << 0));
-  tcmData.orC = bool(digit.mTriggers.triggerSignals & (1 << 1));
-  tcmData.sCen = bool(digit.mTriggers.triggerSignals & (1 << 2));
-  tcmData.cen = bool(digit.mTriggers.triggerSignals & (1 << 3));
-  tcmData.vertex = bool(digit.mTriggers.triggerSignals & (1 << 4));
-  tcmData.laser = bool(digit.mTriggers.triggerSignals & (1 << 5));
-  tcmData.outputsAreBlocked = bool(digit.mTriggers.triggerSignals & (1 << 6));
-  tcmData.dataIsValid = bool(digit.mTriggers.triggerSignals & (1 << 7));
-  tcmData.nChanA = digit.mTriggers.nChanA;
-  //tcmData.nChanC = digit.mTriggers.nChanC;
-  tcmData.nChanC = 0;
-  tcmData.amplA = digit.mTriggers.amplA;
-  //tcmdata.amplC = digit.mTriggers.amplA;
-  tcmData.amplC = 0;
-  //tcmData.timeA = digit.mTriggers.timeA
-  //tcmData.timeC = digit.mTriggers.timeC;
-  tcmData.timeA = 0;
-  tcmData.timeC = 0;
-}
-//Digit to raw helper functions, temporary
-//TCM to Digit convertation
-//FT0 and FDD
-template <typename DigitType, typename TCMDataType>
-auto ConvertTCMData2Digit(DigitType& digit, const TCMDataType& tcmData) -> std::enable_if_t<!IsFV0<DigitType>::value>
+auto ConvertTCMData2Digit(DigitType& digit, const TCMDataType& tcmData)
 {
   using TriggerType = decltype(digit.mTriggers);
   auto& trg = digit.mTriggers;
-  trg.triggersignals = ((bool)tcmData.orA << TriggerType::bitA) |
-                       ((bool)tcmData.orC << TriggerType::bitC) |
-                       ((bool)tcmData.vertex << TriggerType::bitVertex) |
-                       ((bool)tcmData.cen << TriggerType::bitCen) |
-                       ((bool)tcmData.sCen << TriggerType::bitSCen) |
-                       ((bool)tcmData.laser << 5) |
-                       ((bool)tcmData.outputsAreBlocked << 6) |
-                       ((bool)tcmData.dataIsValid << 7);
-  trg.nChanA = (int8_t)tcmData.nChanA;
-  trg.nChanC = (int8_t)tcmData.nChanC;
-  trg.amplA = (int32_t)tcmData.amplA;
-  trg.amplC = (int32_t)tcmData.amplC;
-  trg.timeA = (int16_t)tcmData.timeA;
-  trg.timeC = (int16_t)tcmData.timeC;
+  trg.setTriggers((bool)tcmData.orA, (bool)tcmData.orC, (bool)tcmData.vertex, (bool)tcmData.cen, (bool)tcmData.sCen,
+                  (int8_t)tcmData.nChanA, (int8_t)tcmData.nChanC, (int32_t)tcmData.amplA, (int32_t)tcmData.amplC,
+                  (int16_t)tcmData.timeA, (int16_t)tcmData.timeC, (bool)tcmData.laser, (bool)tcmData.outputsAreBlocked, (bool)tcmData.dataIsValid);
 }
-//FV0
-template <typename DigitType, typename TCMDataType>
-auto ConvertTCMData2Digit(DigitType& digit, const TCMDataType& tcmData) -> std::enable_if_t<IsFV0<DigitType>::value>
-{
-  using TriggerType = decltype(digit.mTriggers);
-  auto& trg = digit.mTriggers;
-  //Taken from FT0
-  /*
-  trg.triggersignals = ((bool)tcmData.orA << TriggerType::bitA) |
-                       ((bool)tcmData.orC << TriggerType::bitC) |
-                       ((bool)tcmData.vertex << TriggerType::bitVertex) |
-                       ((bool)tcmData.cen << TriggerType::bitCen) |
-                       ((bool)tcmData.sCen << TriggerType::bitSCen) |
-                       ((bool)tcmData.laser << TriggerType::bitLaser);
-  */
-  //Temporary
-  trg.triggerSignals = ((bool)tcmData.orA << 0) |
-                       ((bool)tcmData.orC << 1) |
-                       ((bool)tcmData.sCen << 2) |
-                       ((bool)tcmData.cen << 3) |
-                       ((bool)tcmData.vertex << 4) |
-                       ((bool)tcmData.laser << 5) |
-                       ((bool)tcmData.outputsAreBlocked << 6) |
-                       ((bool)tcmData.dataIsValid << 7);
-  trg.nChanA = (int8_t)tcmData.nChanA;
-  //trg.nChanC = (int8_t)tcmData.nChanC;
-  trg.amplA = (int32_t)tcmData.amplA;
-  //trg.amplC = (int32_t)tcmData.amplC;
-  //trg.timeA = (int16_t)tcmData.timeA;
-  //trg.timeC = (int16_t)tcmData.timeC;
-}
-//PM to ChannelData convertation
-//FT0
+
+// PM to ChannelData convertation
+// FT0 and FV0
 template <typename LookupTableType, typename ChannelDataType, typename PMDataType>
 auto ConvertEventData2ChData(std::vector<ChannelDataType>& vecChData, const PMDataType& pmData, int linkID, int ep) -> std::enable_if_t<std::is_same<decltype(std::declval<ChannelDataType>().QTCAmpl), int16_t>::value>
 {
@@ -191,19 +113,7 @@ auto ConvertEventData2ChData(std::vector<ChannelDataType>& vecChData, const PMDa
     LOG(warning) << "Incorrect global channel! linkID: " << linkID << " | EndPoint: " << ep << " | LocalChID: " << pmData.channelID;
   }
 }
-//FV0
-template <typename LookupTableType, typename ChannelDataType, typename PMDataType>
-auto ConvertEventData2ChData(std::vector<ChannelDataType>& vecChData, const PMDataType& pmData, int linkID, int ep) -> std::enable_if_t<std::is_same<decltype(std::declval<ChannelDataType>().chargeAdc), Short_t>::value>
-{
-  bool isValid{};
-  const auto globalChID = LookupTableType::Instance().getChannel(linkID, ep, pmData.channelID, isValid);
-  if (isValid) {
-    vecChData.emplace_back(static_cast<Short_t>(globalChID), static_cast<Float_t>(pmData.time), static_cast<Short_t>(pmData.charge));
-  } else {
-    LOG(warning) << "Incorrect global channel! linkID: " << linkID << " | EndPoint: " << ep << " | LocalChID: " << pmData.channelID;
-  }
-}
-//FDD
+// FDD
 template <typename LookupTableType, typename ChannelDataType, typename PMDataType>
 auto ConvertEventData2ChData(std::vector<ChannelDataType>& vecChData, const PMDataType& pmData, int linkID, int ep) -> std::enable_if_t<std::is_same<decltype(std::declval<ChannelDataType>().mChargeADC), int16_t>::value>
 {
@@ -217,14 +127,9 @@ auto ConvertEventData2ChData(std::vector<ChannelDataType>& vecChData, const PMDa
 }
 //Interface for extracting interaction record from Digit
 template <typename T>
-auto GetIntRecord(const T& digit) -> std::enable_if_t<!IsFV0<T>::value, o2::InteractionRecord>
+auto GetIntRecord(const T& digit)
 {
   return digit.mIntRecord;
-}
-template <typename T>
-auto GetIntRecord(const T& digit) -> std::enable_if_t<IsFV0<T>::value, o2::InteractionRecord>
-{
-  return digit.ir;
 }
 } // namespace DigitBlockFIThelper
 

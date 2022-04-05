@@ -155,16 +155,31 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
     } else {
       ir.bc += cd.bcInc[idig];
     }
-
+    int triggerGate = 153; // TODO: Add to FV0DgiParam (following FT0)
     firstEntry = channelVec.size();
     uint8_t chID = 0;
+    int8_t nChanA = 0, nChanC = 0;
+    int32_t amplA = 0, amplC = Triggers::DEFAULT_AMP;
+    int16_t timeA = 0, timeC = Triggers::DEFAULT_TIME;
     for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
       auto icc = channelVec.size();
       const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.time[icc], cd.charge[icc], -1); // TODO: MS: modify the CTF format and fill the chain correctly, not with -1
+      if (std::abs(chan.time) < triggerGate) {
+        amplA += chan.QTCAmpl;
+        timeA += chan.CFDTime;
+        nChanA++;
+      }
     }
-    Triggers triggers;
-    triggers.triggersignals = cd.trigger[idig];
-    digitVec.emplace_back(firstEntry, cd.nChan[idig], ir, triggers, idig);
+    if (nChanA) {
+      timeA /= nChanA;
+      amplA *= 0.125;
+    } else {
+      timeA = Triggers::DEFAULT_TIME;
+      amplA = Triggers::DEFAULT_AMP;
+    }
+    Triggers trig;
+    trig.setTriggers(cd.trigger[idig], nChanA, nChanC, amplA, amplC, timeA, timeC);
+    digitVec.emplace_back(firstEntry, cd.nChan[idig], ir, trig, idig);
   }
 }
 

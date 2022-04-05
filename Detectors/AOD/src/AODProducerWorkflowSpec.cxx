@@ -1273,7 +1273,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                aAmplitudes,
                aChannels,
                truncateFloatFraction(fv0RecPoint.getCollisionGlobalMeanTime() * 1E-3, mV0Time), // ps to ns
-               fv0RecPoint.getTrigger().triggersignals);
+               fv0RecPoint.getTrigger().getTriggersignals());
   }
 
   for (auto zdcRecData : zdcBCRecData) {
@@ -1427,7 +1427,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
               aFDDAmplitudesC,
               truncateFloatFraction(fddRecPoint.getCollisionTimeA() * 1E-3, mFDDTime), // ps to ns
               truncateFloatFraction(fddRecPoint.getCollisionTimeC() * 1E-3, mFDDTime), // ps to ns
-              fddRecPoint.getTrigger().triggersignals);
+              fddRecPoint.getTrigger().getTriggersignals());
   }
 
   // filling FT0 table
@@ -1469,7 +1469,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
               aChannelsC,
               truncateFloatFraction(ft0RecPoint.getCollisionTimeA() * 1E-3, mT0Time), // ps to ns
               truncateFloatFraction(ft0RecPoint.getCollisionTimeC() * 1E-3, mT0Time), // ps to ns
-              ft0RecPoint.getTrigger().triggersignals);
+              ft0RecPoint.getTrigger().getTriggersignals());
   }
 
   if (mUseMC) {
