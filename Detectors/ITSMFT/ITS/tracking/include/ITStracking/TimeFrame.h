@@ -56,7 +56,6 @@ class ROFRecord;
 
 namespace its
 {
-
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 class TimeFrame
@@ -136,7 +135,7 @@ class TimeFrame
   // Vertexer
   void computeTrackletsScans();
   std::vector<int>& getIndexTableL0(int tf);
-  int& getNTrackletsROf(int combId, int tf);
+  int& getNTrackletsROf(int tf, int combId);
   std::vector<Line>& getLines(int tf);
   std::vector<ClusterLines>& getTrackletClusters(int tf);
   gsl::span<const Tracklet> getFoundTracklets(int rofId, int combId) const;
@@ -169,6 +168,8 @@ class TimeFrame
   std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
   std::vector<std::vector<int>> mClusterExternalIndices;
   std::vector<std::vector<int>> mROframesClusters;
+  std::vector<std::vector<int>> mIndexTablesL0;
+  std::vector<index_table_t> mIndexTables;
   int mNrof = 0;
 
  private:
@@ -202,7 +203,6 @@ class TimeFrame
   std::vector<std::vector<TrackITSExt>> mTracks;
   std::vector<int> mBogusClusters; /// keep track of clusters with wild coordinates
 
-  std::vector<index_table_t> mIndexTables;
   std::vector<std::vector<Tracklet>> mTracklets;
   std::vector<std::vector<int>> mTrackletsLookupTable;
 
@@ -211,12 +211,13 @@ class TimeFrame
   int mCutVertexMult;
 
   // Vertexer
-  std::vector<std::vector<int>> mIndexTablesL0;
+
   std::array<std::vector<int>, 2> mNTrackletsPerCluster; // TODO: remove in favour of mNTrackletsPerROf
   std::vector<std::vector<int>> mNTrackletsPerROf;
   std::vector<std::vector<Line>> mLines;
   std::vector<std::vector<ClusterLines>> mTrackletClusters;
   std::vector<std::vector<int>> mTrackletsIndexROf;
+  // \Vertexer
 };
 
 inline const Vertex& TimeFrame::getPrimaryVertex(const int vertexIndex) const { return mPrimaryVertices[vertexIndex]; }
@@ -226,6 +227,7 @@ inline gsl::span<const Vertex> TimeFrame::getPrimaryVertices(int rof) const
   const int start = mROframesPV[rof];
   const int stop_idx = rof >= mNrof - 1 ? mNrof : rof + 1;
   int delta = mMultiplicityCutMask[rof] ? mROframesPV[stop_idx] - start : 0; // return empty span if Rof is excluded
+  LOGP(info, "delta: {}", delta);
   return {&mPrimaryVertices[start], static_cast<gsl::span<const Vertex>::size_type>(delta)};
 }
 
@@ -398,7 +400,7 @@ inline gsl::span<int> TimeFrame::getNTrackletsCluster(int rofId, int combId)
   return {&mNTrackletsPerCluster[combId][startIdx], static_cast<gsl::span<int>::size_type>(mROframesClusters[1][rofId + 1] - startIdx)};
 }
 
-inline int& TimeFrame::getNTrackletsROf(int combId, int tf)
+inline int& TimeFrame::getNTrackletsROf(int tf, int combId)
 {
   return mNTrackletsPerROf[combId][tf];
 }

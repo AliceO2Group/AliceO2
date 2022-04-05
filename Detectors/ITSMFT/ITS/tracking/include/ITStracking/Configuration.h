@@ -153,7 +153,7 @@ struct TimeFrameGPUConfig {
 
   // o2::its::gpu::Vector constructor requires signed size for initialisation
   int tmpCUBBufferSize = 25e5;
-  int maxTrackletsPerCluster = 10;
+  int maxTrackletsPerCluster = 50;
   int clustersPerLayerCapacity = 5e5;
   int clustersPerROfCapacity = 1e4;
   int dupletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
@@ -161,8 +161,9 @@ struct TimeFrameGPUConfig {
   int maxTrackletCapacity = 2e4;
   int maxCentroidsXYCapacity = std::ceil(maxTrackletCapacity * (maxTrackletCapacity - 1) / 2);
   int nMaxVertices = 10;
+  int nMaxROFs = 1e3;
 
-  VertexerHistogramsConfiguration histConf;
+  VertexerHistogramsConfiguration histConf; // <==== split into separate configs
 };
 
 inline TimeFrameGPUConfig::TimeFrameGPUConfig(int cubBufferSize,

@@ -50,9 +50,8 @@ void trackleterKernelSerial(
   for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < clustersCurrentLayer.size(); ++iCurrentLayerClusterIndex) {
     int storedTracklets{0};
     const Cluster& currentCluster{clustersCurrentLayer[iCurrentLayerClusterIndex]};
-    const int4 selectedBinsRect{VertexerTraits::getBinsRect(currentCluster, (int)Mode, 0.f, 50.f, phiCut / 2, utils)};
     currentCluster.print();
-    LOGP(info, "selectedBinsRect: {} {} {} {}", selectedBinsRect.x, selectedBinsRect.y, selectedBinsRect.z, selectedBinsRect.w);
+    const int4 selectedBinsRect{VertexerTraits::getBinsRect(currentCluster, (int)Mode, 0.f, 50.f, phiCut / 2, utils)};
     if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
       int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
       if (phiBinsNum < 0) {
@@ -65,15 +64,13 @@ void trackleterKernelSerial(
         const int maxRowClusterIndex{indexTableNext[firstBinIndex + ZBins]};
         // loop on clusters next layer
         for (int iNextLayerClusterIndex{firstRowClusterIndex}; iNextLayerClusterIndex < maxRowClusterIndex && iNextLayerClusterIndex < static_cast<int>(clustersNextLayer.size()); ++iNextLayerClusterIndex) {
-          LOGP(info, "OOOOOOOOOOOOOOOOO");
           const Cluster& nextCluster{clustersNextLayer[iNextLayerClusterIndex]};
+          nextCluster.print();
           if (o2::gpu::GPUCommonMath::Abs(currentCluster.phi - nextCluster.phi) < phiCut) {
             if (storedTracklets < maxTrackletsPerCluster) {
               if constexpr (Mode == TrackletMode::Layer0Layer1) {
-                LOGP(info, "<><><><><><><>");
                 Tracklets.emplace_back(iNextLayerClusterIndex, iCurrentLayerClusterIndex, nextCluster, currentCluster);
               } else {
-                LOGP(info, "||||||||||||||");
                 Tracklets.emplace_back(iCurrentLayerClusterIndex, iNextLayerClusterIndex, currentCluster, nextCluster);
               }
               ++storedTracklets;
@@ -101,7 +98,6 @@ void trackletSelectionKernelSerial(
   int offset01{0}, offset12{0};
   std::vector<bool> usedTracklets(tracklets01.size(), false);
   for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < clustersCurrentLayer.size(); ++iCurrentLayerClusterIndex) {
-    LOGP(info, "{}", iCurrentLayerClusterIndex);
     int validTracklets{0};
     for (int iTracklet12{offset12}; iTracklet12 < offset12 + foundTracklets12[iCurrentLayerClusterIndex]; ++iTracklet12) {
       for (int iTracklet01{offset01}; iTracklet01 < offset01 + foundTracklets01[iCurrentLayerClusterIndex]; ++iTracklet01) {
@@ -177,12 +173,6 @@ const std::vector<std::pair<int, int>> VertexerTraits::selectClusters(const int*
 void VertexerTraits::computeTracklets()
 {
   for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
-    LOGP(info, "processing: {} {} {} clusters", mTimeFrame->getClustersOnLayer(rofId, 0).size(),
-         mTimeFrame->getClustersOnLayer(rofId, 1).size(),
-         mTimeFrame->getClustersOnLayer(rofId, 2).size());
-    for (auto c : mTimeFrame->getClustersOnLayer(rofId, 0)) {
-      c.print();
-    }
     trackleterKernelSerial<TrackletMode::Layer0Layer1>(
       mTimeFrame->getClustersOnLayer(rofId, 0),
       mTimeFrame->getClustersOnLayer(rofId, 1),
@@ -191,7 +181,6 @@ void VertexerTraits::computeTracklets()
       mTimeFrame->getTracklets()[0],
       mTimeFrame->getNTrackletsCluster(rofId, 0),
       mIndexTableUtils);
-
     trackleterKernelSerial<TrackletMode::Layer1Layer2>(
       mTimeFrame->getClustersOnLayer(rofId, 2),
       mTimeFrame->getClustersOnLayer(rofId, 1),
@@ -200,9 +189,8 @@ void VertexerTraits::computeTracklets()
       mTimeFrame->getTracklets()[1],
       mTimeFrame->getNTrackletsCluster(rofId, 1),
       mIndexTableUtils);
-    mTimeFrame->getNTrackletsROf(0, rofId) = std::accumulate(mTimeFrame->getNTrackletsCluster(rofId, 0).begin(), mTimeFrame->getNTrackletsCluster(rofId, 0).end(), 0);
-    mTimeFrame->getNTrackletsROf(1, rofId) = std::accumulate(mTimeFrame->getNTrackletsCluster(rofId, 1).begin(), mTimeFrame->getNTrackletsCluster(rofId, 1).end(), 0);
-    // LOGP(info, "found {} {}", mTimeFrame->getNTrackletsROf(0, rofId), mTimeFrame->getNTrackletsROf(1, rofId));
+    mTimeFrame->getNTrackletsROf(rofId, 0) = std::accumulate(mTimeFrame->getNTrackletsCluster(rofId, 0).begin(), mTimeFrame->getNTrackletsCluster(rofId, 0).end(), 0);
+    mTimeFrame->getNTrackletsROf(rofId, 1) = std::accumulate(mTimeFrame->getNTrackletsCluster(rofId, 1).begin(), mTimeFrame->getNTrackletsCluster(rofId, 1).end(), 0);
   }
   mTimeFrame->computeTrackletsScans();
 
@@ -249,7 +237,7 @@ void VertexerTraits::computeTracklets()
 #endif
 
   std::ofstream out01("NTC01_cpu.txt"), out12("NTC12_cpu.txt");
-  for (int iRof{0}; iRof < mTimeFrame->getNrof(); ++iRof) {
+  for (int iRof{926}; iRof < 927/*mTimeFrame->getNrof()*/; ++iRof) {
     std::copy(mTimeFrame->getNTrackletsCluster(iRof, 0).begin(), mTimeFrame->getNTrackletsCluster(iRof, 0).end(), std::ostream_iterator<double>(out01, "\t"));
     std::copy(mTimeFrame->getNTrackletsCluster(iRof, 1).begin(), mTimeFrame->getNTrackletsCluster(iRof, 1).end(), std::ostream_iterator<double>(out12, "\t"));
     out01 << std::endl;
