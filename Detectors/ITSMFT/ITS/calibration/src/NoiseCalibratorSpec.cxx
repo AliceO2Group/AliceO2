@@ -12,6 +12,7 @@
 /// @file   NoiseCalibratorSpec.cxx
 
 #include "CCDB/CcdbApi.h"
+#include "CCDB/CCDBTimeStampUtils.h"
 #include "DetectorsCalibration/Utils.h"
 #include "ITSCalibration/NoiseCalibratorSpec.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
@@ -43,6 +44,11 @@ void NoiseCalibratorSpec::init(InitContext& ic)
 
   mCalibrator = std::make_unique<CALIBRATOR>(onepix, probT);
   mCalibrator->setNThreads(ic.options().get<int>("nthreads"));
+
+  mValidityDays = ic.options().get<int>("validity-days");
+  if (mValidityDays < 1) {
+    mValidityDays = 1;
+  }
 }
 
 void NoiseCalibratorSpec::run(ProcessingContext& pc)
@@ -85,7 +91,8 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
 {
   mCalibrator->finalize();
 
-  long tstart = 0, tend = 9999999;
+  long tstart = o2::ccdb::getCurrentTimestamp();
+  long tend = o2::ccdb::getFutureTimestamp(3600 * 24 * mValidityDays);
 #ifdef TIME_SLOT_CALIBRATION
   const auto& payload = mCalibrator->getNoiseMap(tstart, tend);
 #else
@@ -156,7 +163,8 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useClusters)
     Options{
       {"1pix-only", VariantType::Bool, false, {"Fast 1-pixel calibration only (cluster input only)"}},
       {"prob-threshold", VariantType::Float, 3.e-6f, {"Probability threshold for noisy pixels"}},
-      {"nthreads", VariantType::Int, 1, {"Number of map-filling threads"}}}};
+      {"nthreads", VariantType::Int, 1, {"Number of map-filling threads"}},
+      {"validity-days", VariantType::Int, 3, {"Validity on days from upload time"}}}};
 }
 
 } // namespace its
