@@ -15,6 +15,7 @@ o2_add_library(SpacePoints
                        src/TrackInterpolation.cxx
                        src/ResidualAggregator.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
+                                     O2::CommonUtils
                                      O2::TPCBase
                                      O2::TRDBase
                                      O2::TPCReconstruction
