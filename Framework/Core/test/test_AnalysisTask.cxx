@@ -57,7 +57,7 @@ struct ATask {
 };
 
 struct BTask {
-  void process(o2::aod::Collision const&, o2::soa::Join<o2::aod::Tracks, o2::aod::TracksExtra, o2::aod::TracksCov> const&, o2::aod::AmbiguousTracks const&, o2::soa::Join<o2::aod::Calos, o2::aod::CaloTriggers> const&)
+  void process(o2::aod::Collision const&, o2::soa::Join<o2::aod::Tracks, o2::aod::TracksExtra, o2::aod::TracksCov> const&, o2::aod::AmbiguousTracks const&, o2::aod::Calos const&, o2::aod::CaloTriggers const&)
   {
   }
 };
