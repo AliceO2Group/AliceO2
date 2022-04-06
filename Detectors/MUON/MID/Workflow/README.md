@@ -89,7 +89,7 @@ The MID contribution can be added to CTF by attaching the `o2-mid-entropy-encode
 o2-raw-file-reader-workflow --input-conf MIDraw.cfg | o2-mid-raw-to-digits-workflow | o2-mid-entropy-encoder-workflow | o2-ctf-writer-workflow
 ```
 
-### Timing
+### CPU timing
 
 In each device belonging to the reconstruction workflow, the execution time is measured using the `chrono` c++ library.
 At the end of the execution, when the *stop* command is launched, the execution time is written to the `LOG(info)`.
@@ -101,6 +101,19 @@ Processing time / 90 ROFs: full: 3.55542 us  tracking: 2.02182 us
 
 Two timing values are provided: one is for the full execution of the device (including retrieval and sending of the DPL messages) and one which concerns only the execution of the algorithm (the tracking algorithm in the above example)
 The timing refers to the time needed to process one read-out-frame, i.e. one event.
+
+### Afterburner
+
+There is an offset between the collision BC and the BC that can be obtained from the electronics clock.
+This offset is in principle accounted for when decoding the raw data.
+However, the precise value of this offset depends on the delays that chosen electronics delay, and some adjustment might be needed.
+To avoid having to regenerate the CTF, the time offset of the digits can be adjusted on-the-fly by running the reconstruction with the option:
+
+```bash
+o2-mid-reco-workflow --change-local-to-BC <value>
+```
+
+where `<value>` is the chosen offset in number of BCs (can be negative).
 
 ### Reconstruction options
 

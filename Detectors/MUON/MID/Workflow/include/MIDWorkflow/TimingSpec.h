@@ -9,23 +9,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MIDWorkflow/ClusterizerSpec.h
-/// \brief  Data processor specs for MID clustering device
-/// \author Gabriele G. Fronze <gfronze at cern.ch>
-/// \date   9 July 2018
+/// \file   MIDWorkflow/TimingSpec.h
+/// \brief  Device to synchronize MID clock with collision BC
+/// \author Diego Stocco <Diego.Stocco at cern.ch>
+/// \date   04 Avril 2022
 
-#ifndef O2_MID_CLUSTERIZERSPEC_H
-#define O2_MID_CLUSTERIZERSPEC_H
+#ifndef O2_MID_TIMINGSPEC_H
+#define O2_MID_TIMINGSPEC_H
 
 #include "Framework/DataProcessorSpec.h"
+#include <string>
 #include <string_view>
 
 namespace o2
 {
 namespace mid
 {
-framework::DataProcessorSpec getClusterizerSpec(bool isMC, std::string_view inDataDesc, std::string_view inRofDesc, std::string_view inLabelsDesc);
+framework::DataProcessorSpec getTimingSpec(int localToBC, std::string_view inRofDesc);
 }
 } // namespace o2
 
-#endif // O2_MID_CLUSTERIZERSPEC_H
+#endif // O2_MID_TIMINGSPEC_H
