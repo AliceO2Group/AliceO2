@@ -80,6 +80,10 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
   // Create metadata for database object
   std::string ft = this->mFitType == 0 ? "derivative" : this->mFitType == 1 ? "fit"
                                                                             : "hitcounting";
+  if (mScanType == 'D' || mScanType == 'A') {
+    ft = "null";
+  }
+
   std::map<std::string, std::string> md = {
     {"fittype", ft}, {"runtype", std::to_string(this->mRunType)}};
   if (!(this->mLHCPeriod.empty())) {
@@ -90,8 +94,10 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
   }
 
   std::string path("ITS/Calib/");
-  std::string name_str = this->mScanType == 'V' ? "VCASN" : this->mScanType == 'I' ? "ITHR"
-                                                                                   : "THR";
+  std::string name_str = mScanType == 'V' ? "VCASN" : mScanType == 'I' ? "ITHR"
+                                                    : mScanType == 'D' ? "DIG"
+                                                    : mScanType == 'A' ? "ANA"
+                                                                       : "THR";
   o2::ccdb::CcdbObjectInfo info((path + name_str), "threshold_map", "calib_scan.root", md, tstart, tend);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&tuningMerge, &info);
   std::string file_name = "calib_scan_" + name_str + ".root";
@@ -113,8 +119,14 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
     } else if (this->mScanType == 'T') {
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "THR", 0}, *image);
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "THR", 0}, info);
+    } else if (this->mScanType == 'D') {
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "DIG", 0}, *image);
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "DIG", 0}, info);
+    } else if (this->mScanType == 'A') {
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ANA", 0}, *image);
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ANA", 0}, info);
     } else {
-      LOG(error) << "Nothing sent, mScanType does not match any known scan type";
+      LOG(error) << "Nothing sent to ccdb-populator, mScanType does not match any known scan type";
     }
   }
 
@@ -205,6 +217,12 @@ DataProcessorSpec getITSThresholdAggregatorSpec()
 
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "THR"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "THR"});
+
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "DIG"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "DIG"});
+
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ANA"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ANA"});
 
   return DataProcessorSpec{
     "its-aggregator",
