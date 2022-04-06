@@ -1379,8 +1379,6 @@ void GPUDisplayBackendVulkan::clearImage(VulkanImage& image)
 
 int GPUDisplayBackendVulkan::InitBackendA()
 {
-  std::cout << "Initializing Vulkan\n";
-
   mEnableValidationLayers = mDisplay->param() && mDisplay->param()->par.debugLevel >= 2;
   mFramesInFlight = 2;
 
@@ -1391,13 +1389,11 @@ int GPUDisplayBackendVulkan::InitBackendA()
   createOffscreenBuffers();
   createPipeline();
 
-  std::cout << "Vulkan initialized\n";
   return (0);
 }
 
 void GPUDisplayBackendVulkan::ExitBackendA()
 {
-  std::cout << "Exiting Vulkan\n";
   mDevice.waitIdle();
   if (mFontImage.sizex && mFontImage.sizey) {
     clearImage(mFontImage);
@@ -1415,7 +1411,6 @@ void GPUDisplayBackendVulkan::ExitBackendA()
   clearTextureSampler();
   clearShaders();
   clearDevice();
-  std::cout << "Vulkan destroyed\n";
 }
 
 // ---------------------------- USER CODE ----------------------------

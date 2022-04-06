@@ -91,9 +91,14 @@ static const GPUSettingsDisplay& GPUDisplay_GetConfig(GPUChainTracking* chain)
   }
 }
 
-GPUDisplay::GPUDisplay(GPUDisplayFrontend* frontend, GPUChainTracking* chain, GPUQA* qa, const char* backend, const GPUParam* param, const GPUCalibObjectsConst* calib, const GPUSettingsDisplay* config) : GPUDisplayInterface(), mFrontend(frontend), mChain(chain), mConfig(config ? *config : GPUDisplay_GetConfig(chain)), mQA(qa)
+GPUDisplay::GPUDisplay(GPUDisplayFrontend* frontend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param, const GPUCalibObjectsConst* calib, const GPUSettingsDisplay* config) : GPUDisplayInterface(), mFrontend(frontend), mChain(chain), mConfig(config ? *config : GPUDisplay_GetConfig(chain)), mQA(qa)
 {
-  mBackend.reset(GPUDisplayBackend::getBackend(backend));
+  mParam = param ? param : &mChain->GetParam();
+  mCalib = calib;
+  mCfgL = mConfig.light;
+  mCfgH = mConfig.heavy;
+  mCfgR = mConfig.renderer;
+  mBackend.reset(GPUDisplayBackend::getBackend(mConfig.displayRenderer.c_str()));
   if (!mBackend) {
     throw std::runtime_error("Error obtaining display backend");
   }
@@ -101,11 +106,6 @@ GPUDisplay::GPUDisplay(GPUDisplayFrontend* frontend, GPUChainTracking* chain, GP
   frontend->mDisplay = this;
   frontend->mBackend = mBackend.get();
   mCfgR.openGLCore = mBackend->CoreProfile();
-  mParam = param ? param : &mChain->GetParam();
-  mCalib = calib;
-  mCfgL = mConfig.light;
-  mCfgH = mConfig.heavy;
-  mCfgR = mConfig.renderer;
 }
 
 inline const GPUTRDGeometry* GPUDisplay::trdGeometry() { return (GPUTRDGeometry*)mCalib->trdGeometry; }

@@ -356,7 +356,6 @@ int SetupReconstruction()
       throw std::runtime_error("Requested display not available");
     }
     procSet.eventDisplay = eventDisplay.get();
-    procSet.eventDisplayRenderer = configStandalone.displayRenderer.c_str();
   }
   if (procSet.runQA) {
     procSet.runMC = true;

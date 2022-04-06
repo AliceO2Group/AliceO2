@@ -32,7 +32,7 @@ static inline T* createHelper(Args... args)
 void* GPUTrackingDisplayLoader(const char* type, void* args)
 {
   if (strcmp(type, "display") == 0) {
-    auto x = (std::tuple<GPUDisplayFrontend*, GPUChainTracking*, GPUQA*, const char*, const GPUParam*, const GPUCalibObjectsConst*, const GPUSettingsDisplay*>*)args;
+    auto x = (std::tuple<GPUDisplayFrontend*, GPUChainTracking*, GPUQA*, const GPUParam*, const GPUCalibObjectsConst*, const GPUSettingsDisplay*>*)args;
     return std::apply([](auto&&... y) { return createHelper<GPUDisplay>(y...); }, *x);
   } else if (strcmp(type, "frontend") == 0) {
     auto x = (std::tuple<const char*>*)args;
