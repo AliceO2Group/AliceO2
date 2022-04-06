@@ -64,9 +64,9 @@ static void* loadUnloadLib(bool load)
   return nullptr;
 }
 
-GPUDisplayInterface* GPUDisplayInterface::getDisplay(GPUDisplayFrontendInterface* frontend, GPUChainTracking* chain, GPUQA* qa, const char* backend, const GPUParam* param, const GPUCalibObjectsConst* calib, const GPUSettingsDisplay* config)
+GPUDisplayInterface* GPUDisplayInterface::getDisplay(GPUDisplayFrontendInterface* frontend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param, const GPUCalibObjectsConst* calib, const GPUSettingsDisplay* config)
 {
-  std::tuple args = {frontend, chain, qa, backend, param, calib, config};
+  std::tuple args = {frontend, chain, qa, param, calib, config};
   auto func = (GPUDisplayInterface * (*)(const char*, void*)) loadUnloadLib(true);
   return func ? func("display", &args) : nullptr;
 }

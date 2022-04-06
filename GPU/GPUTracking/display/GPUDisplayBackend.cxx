@@ -42,14 +42,14 @@ GPUDisplayBackend::~GPUDisplayBackend() = default;
 
 GPUDisplayBackend* GPUDisplayBackend::getBackend(const char* type)
 {
-  if (strcmp(type, "opengl") == 0) {
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
+  if (strcmp(type, "vulkan") == 0 || strcmp(type, "auto") == 0) {
+    return new GPUDisplayBackendVulkan;
+  } else
+#endif
+    if (strcmp(type, "opengl") == 0 || strcmp(type, "auto") == 0) {
     return new GPUDisplayBackendOpenGL;
   }
-#ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
-  if (strcmp(type, "vulkan") == 0) {
-    return new GPUDisplayBackendVulkan;
-  }
-#endif
   return nullptr;
 }
 
