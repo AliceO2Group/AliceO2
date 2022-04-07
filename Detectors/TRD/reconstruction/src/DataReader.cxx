@@ -19,18 +19,12 @@
 #include "Framework/ConfigParamSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConcreteDataMatcher.h"
-#include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/Logger.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "TRDWorkflowIO/TRDTrackletWriterSpec.h"
 #include "TRDWorkflowIO/TRDDigitWriterSpec.h"
 #include "DataFormatsTRD/RawDataStats.h"
-
-void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
-{
-  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
-}
 
 // add workflow options, note that customization needs to be declared before
 // including Framework/runDataProcessing
@@ -58,7 +52,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"histogramsfile", VariantType::String, "histos.root", {"Name of the histogram file, so one can run multiple per node"}},
     //{"generate-stats", VariantType::Bool, true, {"Generate the state message sent to qc"}},
     {"trd-datareader-enablebyteswapdata", VariantType::Bool, false, {"byteswap the incoming data, raw data needs it and simulation does not."}}};
-  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -138,9 +131,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     workflow.emplace_back(o2::trd::getTRDDigitWriterSpec(false, false));
     workflow.emplace_back(o2::trd::getTRDTrackletWriterSpec(false));
   }
-
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
-  o2::raw::HBFUtilsInitializer hbfIni(cfgc, workflow);
 
   return workflow;
 }
