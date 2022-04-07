@@ -44,6 +44,8 @@ void CreateInterCalibConfig(long tmin = 0, long tmax = -1, std::string ccdbHost 
   conf.setBinning1D(1200, 0, 12000);
   conf.setBinning2D(300, 0, 12000);
 
+  conf.setDescription("Simulated, no energy scaling");
+
   conf.setMinEntries(100);
 
   conf.print();

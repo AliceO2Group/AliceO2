@@ -15,6 +15,7 @@
 #include "ZDCBase/Constants.h"
 #include <Rtypes.h>
 #include <array>
+#include <string>
 
 /// \file InterCalibConfig.h
 /// \brief Configuration of ZDC Tower intercalibration procedure
@@ -41,6 +42,7 @@ struct InterCalibConfig {
   double u_bnd_o[NH] = {20., 20., 20., 20., 20.};
   double step_o[NH] = {0., 0., 0., 0., 0.};
   double min_e[NH] = {0., 0., 0., 0., 0.};
+  std::string desc = "";
 
   void print() const;
   void resetCuts();
@@ -60,6 +62,7 @@ struct InterCalibConfig {
   void setBinning2D(int nb, double amin, double amax);
   void setBinning1D(int ih, int nb, double amin, double amax);
   void setBinning2D(int ih, int nb, double amin, double amax);
+  void setDescription(std::string d){ desc = d; }
   void enable(bool c0, bool c1, bool c2, bool c3, bool c4)
   {
     enabled[0] = c0;
@@ -68,7 +71,7 @@ struct InterCalibConfig {
     enabled[3] = c3;
     enabled[4] = c4;
   }
-  ClassDefNV(InterCalibConfig, 2);
+  ClassDefNV(InterCalibConfig, 3);
 };
 } // namespace zdc
 } // namespace o2

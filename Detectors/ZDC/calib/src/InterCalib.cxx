@@ -143,6 +143,7 @@ int InterCalib::endOfRun()
   mInfo.setFileName(flName);
   mInfo.setPath(CCDBPathTowerCalib);
   std::map<std::string, std::string> md;
+  md["config"] = mInterCalibConfig->desc;
   mInfo.setMetaData(md);
   long start = 0;
   long end = 0;
