@@ -28,8 +28,6 @@
 
 #include "ITStrackingGPU/Utils.h"
 #include "ITStrackingGPU/ClusterLinesGPU.h"
-#include "ITStrackingGPU/Context.h"
-#include "ITStrackingGPU/Stream.h"
 #include "ITStrackingGPU/VertexerTraitsGPU.h"
 
 #include <fairlogger/Logger.h>
@@ -338,40 +336,38 @@ GPUg() void computeVertexKernel(DeviceStoreVertexerGPU& store, const int vertInd
 
 void VertexerTraitsGPU::computeTracklets()
 {
-  for (int rofId{926}; rofId < /*mTimeFrame->getNrof()*/927; ++rofId) {
-    const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mTimeFrameGPU->getDeviceNClustersLayer(rofId, 1))};
-    const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getDeviceNClustersLayer(rofId, 1))};
-    std::cout << "feeding: " << mTimeFrameGPU->getDeviceIndexTableL0(rofId) << " and " << mTimeFrameGPU->getDeviceIndexTableL2(rofId) << std::endl;
-    // gpu::trackleterKernel<TrackletMode::Layer0Layer1><<<1, 1>>>(
-    //   mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 0),
-    //   mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 1),
-    //   mTimeFrameGPU->getDeviceNClustersLayer(rofId, 0),
-    //   mTimeFrameGPU->getDeviceNClustersLayer(rofId, 1),
-    //   mTimeFrameGPU->getDeviceIndexTableL0(rofId),
-    //   mVrtParams.phiCut,
-    //   mTimeFrameGPU->getDeviceTracklets()[0].get(),
-    //   mTimeFrameGPU->getDeviceNTrackletsCluster(rofId, 0),
-    //   mDeviceIndexTableUtils,
-    //   mTimeFrameGPU->getConfig().maxTrackletsPerCluster);
+  for (int rofId{0}; rofId < mTimeFrameGPU->getNrof(); ++rofId) {
+    // const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mTimeFrameGPU->getNClustersLayer(rofId, 1))};
+    // const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getNClustersLayer(rofId, 1))};
+    gpu::trackleterKernel<TrackletMode::Layer0Layer1><<<1, 1>>>(
+      mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 0),
+      mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 1),
+      mTimeFrameGPU->getNClustersLayer(rofId, 0),
+      mTimeFrameGPU->getNClustersLayer(rofId, 1),
+      mTimeFrameGPU->getDeviceIndexTableL0(rofId),
+      mVrtParams.phiCut,
+      mTimeFrameGPU->getDeviceTracklets()[0].get(),
+      mTimeFrameGPU->getDeviceNTrackletsCluster(rofId, 0),
+      mDeviceIndexTableUtils,
+      mTimeFrameGPU->getConfig().maxTrackletsPerCluster);
 
-    // gpu::trackleterKernel<TrackletMode::Layer1Layer2><<<1, 1>>>(
-    //   mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 2),
-    //   mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 1),
-    //   mTimeFrameGPU->getDeviceNClustersLayer(rofId, 2),
-    //   mTimeFrameGPU->getDeviceNClustersLayer(rofId, 1),
-    //   mTimeFrameGPU->getDeviceIndexTableL2(rofId),
-    //   mVrtParams.phiCut,
-    //   mTimeFrameGPU->getDeviceTracklets()[1].get(),
-    //   mTimeFrameGPU->getDeviceNTrackletsCluster(rofId, 1),
-    //   mDeviceIndexTableUtils,
-    //   mTimeFrameGPU->getConfig().maxTrackletsPerCluster);
+    gpu::trackleterKernel<TrackletMode::Layer1Layer2><<<1, 1>>>(
+      mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 2),
+      mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 1),
+      mTimeFrameGPU->getNClustersLayer(rofId, 2),
+      mTimeFrameGPU->getNClustersLayer(rofId, 1),
+      mTimeFrameGPU->getDeviceIndexTableL2(rofId),
+      mVrtParams.phiCut,
+      mTimeFrameGPU->getDeviceTracklets()[1].get(),
+      mTimeFrameGPU->getDeviceNTrackletsCluster(rofId, 1),
+      mDeviceIndexTableUtils,
+      mTimeFrameGPU->getConfig().maxTrackletsPerCluster);
   }
-  gpuThrowOnError();
   // #ifdef VTX_DEBUG
   std::ofstream out01("NTC01.txt"), out12("NTC12.txt");
   std::vector<std::vector<int>> NtrackletsClusters01(mTimeFrameGPU->getNrof());
   std::vector<std::vector<int>> NtrackletsClusters12(mTimeFrameGPU->getNrof());
-  for (int iRof{0}; iRof < 1 /*mTimeFrame->getNrof()*/; ++iRof) {
+  for (int iRof{0}; iRof < mTimeFrameGPU->getNrof(); ++iRof) {
     NtrackletsClusters01[iRof].resize(mTimeFrameGPU->getClustersOnLayer(iRof, 1).size());
     NtrackletsClusters12[iRof].resize(mTimeFrameGPU->getClustersOnLayer(iRof, 1).size());
     cudaMemcpy(NtrackletsClusters01[iRof].data(), mTimeFrameGPU->getDeviceNTrackletsCluster(iRof, 0), sizeof(int) * mTimeFrameGPU->getClustersOnLayer(iRof, 1).size(), cudaMemcpyDeviceToHost);

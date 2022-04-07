@@ -50,7 +50,6 @@ void trackleterKernelSerial(
   for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < clustersCurrentLayer.size(); ++iCurrentLayerClusterIndex) {
     int storedTracklets{0};
     const Cluster& currentCluster{clustersCurrentLayer[iCurrentLayerClusterIndex]};
-    currentCluster.print();
     const int4 selectedBinsRect{VertexerTraits::getBinsRect(currentCluster, (int)Mode, 0.f, 50.f, phiCut / 2, utils)};
     if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
       int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
@@ -65,7 +64,6 @@ void trackleterKernelSerial(
         // loop on clusters next layer
         for (int iNextLayerClusterIndex{firstRowClusterIndex}; iNextLayerClusterIndex < maxRowClusterIndex && iNextLayerClusterIndex < static_cast<int>(clustersNextLayer.size()); ++iNextLayerClusterIndex) {
           const Cluster& nextCluster{clustersNextLayer[iNextLayerClusterIndex]};
-          nextCluster.print();
           if (o2::gpu::GPUCommonMath::Abs(currentCluster.phi - nextCluster.phi) < phiCut) {
             if (storedTracklets < maxTrackletsPerCluster) {
               if constexpr (Mode == TrackletMode::Layer0Layer1) {
@@ -237,7 +235,7 @@ void VertexerTraits::computeTracklets()
 #endif
 
   std::ofstream out01("NTC01_cpu.txt"), out12("NTC12_cpu.txt");
-  for (int iRof{926}; iRof < 927/*mTimeFrame->getNrof()*/; ++iRof) {
+  for (int iRof{0}; iRof < mTimeFrame->getNrof(); ++iRof) {
     std::copy(mTimeFrame->getNTrackletsCluster(iRof, 0).begin(), mTimeFrame->getNTrackletsCluster(iRof, 0).end(), std::ostream_iterator<double>(out01, "\t"));
     std::copy(mTimeFrame->getNTrackletsCluster(iRof, 1).begin(), mTimeFrame->getNTrackletsCluster(iRof, 1).end(), std::ostream_iterator<double>(out12, "\t"));
     out01 << std::endl;
