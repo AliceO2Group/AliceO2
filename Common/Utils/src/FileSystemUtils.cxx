@@ -42,7 +42,6 @@ std::vector<std::string> listFiles(std::string const& dir, std::string const& se
       	}
     	}
     }catch(...){
-      LOG(info) << "Invalid file " << p << " from /tmp ";
       continue;
    }
   }
