@@ -71,17 +71,29 @@ void remove_tmp_files()
 {
   // remove all (known) socket files in /tmp
   // using the naming convention /tmp/o2sim-.*PID
+  //printf("remove_tmp_files\n");     
+  LOG(info) << "remove_tmp_files: BEGIN ";
   std::stringstream searchstr;
   searchstr << "o2sim-.*-" << getpid() << "$";
   auto filenames = o2::utils::listFiles("/tmp/", searchstr.str());
+  LOG(info) << "remove_tmp_files: list files ";
   // remove those files
   for (auto& fn : filenames) {
-    std::filesystem::remove(std::filesystem::path(fn));
+    LOG(info) << "Removing file " << fn << " from /tmp ";
+    continue;
+    try{
+    	std::filesystem::remove(std::filesystem::path(fn));
+    }
+    catch(...){
+        LOG(info) << "Invalid file " << fn << " from /tmp ";
+    }
   }
+  LOG(info) << "remove_tmp_files: END ";
 }
 
 void cleanup()
 {
+  LOG(info) << "cleanup: BEGIN ";
   remove_tmp_files();
   o2::utils::ShmManager::Instance().release();
 

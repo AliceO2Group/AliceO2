@@ -18,6 +18,8 @@
 #include <vector>
 #include <regex>
 #include <iostream>
+#include "FairLogger.h"
+
 
 namespace o2::utils
 {
@@ -32,12 +34,17 @@ std::vector<std::string> listFiles(std::string const& dir, std::string const& se
   std::regex str_expr(rs);
 
   for (auto& p : std::filesystem::directory_iterator(dir)) {
-    if (!p.is_directory()) {
-      auto fn = p.path().filename().string();
-      if (regex_match(fn, str_expr)) {
-        filenames.push_back(p.path().string());
-      }
-    }
+    try {
+    	if (!p.is_directory()) {
+     		 auto fn = p.path().filename().string();
+      		if (regex_match(fn, str_expr)) {
+        	filenames.push_back(p.path().string());
+      	}
+    	}
+    }catch(...){
+      LOG(info) << "Invalid file " << p << " from /tmp ";
+      continue;
+   }
   }
   return filenames;
 }
