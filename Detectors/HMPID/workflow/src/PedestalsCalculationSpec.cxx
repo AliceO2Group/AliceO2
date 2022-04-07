@@ -90,6 +90,10 @@ void PedestalsCalculationTask::init(framework::InitContext& ic)
   }
 
   mPedestalTag = ic.options().get<std::string>("pedestals-tag");
+  if(mPedestalTag == "run_number") { // if the Tag is run_number, then substitute the Tag with RN
+    const std::string NAStr = "NA";
+    mPedestalTag = pc.services().get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", NAStr); 
+  }
   mFastAlgorithm = ic.options().get<bool>("fast-decode");
 
   mWriteToDCSDB = ic.options().get<bool>("use-dcsccdb");
