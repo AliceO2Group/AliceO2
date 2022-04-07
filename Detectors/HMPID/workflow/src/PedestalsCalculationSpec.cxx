@@ -41,7 +41,7 @@
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Logger.h"
-
+#include "Framework/RawDeviceService.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 
