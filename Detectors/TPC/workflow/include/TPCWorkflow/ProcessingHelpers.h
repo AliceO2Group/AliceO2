@@ -35,5 +35,12 @@ uint64_t getTimeStamp(o2::framework::ProcessingContext& pc);
 /// Note that the input spec has to be defined as: inputSpecs.emplace_back("orbitreset", "CTP", "ORBITRESET", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/OrbitReset"));
 Long64_t getOrbitReset(o2::framework::ProcessingContext& pc);
 
+/// \return returns time stamp in time frame units of time
+uint64_t getAbsoluteTF(o2::framework::ProcessingContext& pc);
+
+/// \return returns time stamp in miliseconds-precission
+/// \param timeFrame time stamp in time frame units of time, same as returned by \ref getAbsoluteTF
+uint64_t toTimeStamp(uint64_t timeFrame);
+
 } // namespace processing_helpers
 } // namespace o2::tpc

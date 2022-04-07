@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <cstdint>
 #include <string>
 
 #include <fairmq/Device.h>
@@ -20,6 +21,7 @@
 #include "Framework/InputRecord.h"
 #include "Framework/ServiceRegistry.h"
 #include "CommonConstants/LHCConstants.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 #include "TPCWorkflow/ProcessingHelpers.h"
 
@@ -75,4 +77,17 @@ Long64_t processing_helpers::getOrbitReset(o2::framework::ProcessingContext& pc)
   auto tv = pc.inputs().get<std::vector<Long64_t>*>("orbitreset");
   const auto orbitReset = tv->front();
   return orbitReset;
+}
+
+uint64_t processing_helpers::getAbsoluteTF(o2::framework::ProcessingContext& pc)
+{
+  static const double TFlength = 1e-3 * o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCOrbitMUS; // in ms
+  const double creation = static_cast<double>(processing_helpers::getCreationTime(pc));
+  return static_cast<uint64_t>(creation / TFlength);
+}
+
+uint64_t processing_helpers::toTimeStamp(uint64_t timeFrame)
+{
+  static const double TFlength = 1e-3 * o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCOrbitMUS; // in ms
+  return static_cast<uint64_t>(static_cast<double>(timeFrame) * TFlength);
 }

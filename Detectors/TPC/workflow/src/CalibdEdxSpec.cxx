@@ -28,6 +28,9 @@
 #include "TPCCalibration/CalibdEdx.h"
 #include "TPCWorkflow/ProcessingHelpers.h"
 
+#include <cstdint>
+#include <utility>
+
 using namespace o2::framework;
 
 namespace o2::tpc
@@ -73,10 +76,11 @@ class CalibdEdxDevice : public Task
 
   void run(ProcessingContext& pc) final
   {
-    const auto tfcounter = o2::header::get<DataProcessingHeader*>(pc.inputs().get("tracks").header)->startTime;
+    const auto tfcounter = processing_helpers::getAbsoluteTF(pc);
     const auto tracks = pc.inputs().get<gsl::span<TrackTPC>>("tracks");
 
-    LOGP(info, "Processing TF {} with {} tracks", tfcounter, tracks.size());
+    registerTF(tfcounter);
+    LOGP(info, "Processing TF {} with {} tracks", processing_helpers::getCurrentTF(pc), tracks.size());
     mRunNumber = processing_helpers::getRunNumber(pc);
     mCalib->fill(tracks);
   }
@@ -101,13 +105,9 @@ class CalibdEdxDevice : public Task
 
     o2::ccdb::CcdbObjectInfo info;
 
-    const auto now = std::chrono::system_clock::now();
-    const long timeStart = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-    const long timeEnd = 99999999999999;
-
-    info.setPath("TPC/Calib/dEdx");
-    info.setStartValidityTimestamp(timeStart);
-    info.setEndValidityTimestamp(timeEnd);
+    info.setPath("TPC/Calib/TimeGain");
+    info.setStartValidityTimestamp(processing_helpers::toTimeStamp(mTFinterval.first));
+    info.setEndValidityTimestamp(processing_helpers::toTimeStamp(mTFinterval.second + 1));
 
     auto md = info.getMetaData();
     md["runNumber"] = std::to_string(mRunNumber);
@@ -120,9 +120,22 @@ class CalibdEdxDevice : public Task
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibdEdx", 0}, info);
   }
 
+  void registerTF(uint64_t tf)
+  {
+    if (mTFinterval.first == 0) {
+      mTFinterval.first = tf;
+      mTFinterval.second = tf;
+    } else if (tf > mTFinterval.second) {
+      mTFinterval.second = tf;
+    } else if (tf < mTFinterval.first) {
+      mTFinterval.first = tf;
+    }
+  }
+
   bool mDumpToFile{};
   uint64_t mRunNumber{0}; ///< processed run number
   std::unique_ptr<CalibdEdx> mCalib;
+  std::pair<uint64_t, uint64_t> mTFinterval{0, 0};
 };
 
 DataProcessorSpec getCalibdEdxSpec()
@@ -139,9 +152,9 @@ DataProcessorSpec getCalibdEdxSpec()
     outputs,
     adaptFromTask<CalibdEdxDevice>(),
     Options{
-      {"min-entries-sector", VariantType::Int, 1000, {"min entries per GEM stack to enable sector by sector correction. Below this value we only perform one fit per ROC type (IROC, OROC1, ...; no side nor sector information)."}},
-      {"min-entries-1d", VariantType::Int, 10000, {"minimum entries per stack to fit 1D correction"}},
-      {"min-entries-2d", VariantType::Int, 50000, {"minimum entries per stack to fit 2D correction"}},
+      {"min-entries-sector", VariantType::Int, 3000, {"min entries per GEM stack to enable sector by sector correction. Below this value we only perform one fit per ROC type (IROC, OROC1, ...; no side nor sector information)."}},
+      {"min-entries-1d", VariantType::Int, 200, {"minimum entries per stack to fit 1D correction"}},
+      {"min-entries-2d", VariantType::Int, 10000, {"minimum entries per stack to fit 2D correction"}},
       {"fit-passes", VariantType::Int, 3, {"number of fit iterations"}},
       {"fit-threshold", VariantType::Float, 0.2f, {"dEdx width around the MIP peak used in the fit"}},
 

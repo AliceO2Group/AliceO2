@@ -86,16 +86,16 @@ class CalibratordEdxDevice : public Task
 
   void run(ProcessingContext& pc) final
   {
-    const auto tfcounter = o2::header::get<DataProcessingHeader*>(pc.inputs().get("tracks").header)->startTime;
+    const auto tfcounter = processing_helpers::getAbsoluteTF(pc);
     const auto tracks = pc.inputs().get<gsl::span<tpc::TrackTPC>>("tracks");
 
-    LOGP(info, "Processing TF {} with {} tracks", tfcounter, tracks.size());
+    LOGP(info, "Processing TF {} with {} tracks", processing_helpers::getCurrentTF(pc), tracks.size());
     mRunNumber = processing_helpers::getRunNumber(pc);
     mCalibrator->process(tfcounter, tracks);
     sendOutput(pc.outputs());
 
     const auto& infoVec = mCalibrator->getTFinterval();
-    LOGP(info, "Created {} objects for TF {}", infoVec.size(), tfcounter);
+    LOGP(info, "Created {} objects for TF {}", infoVec.size(), processing_helpers::getCurrentTF(pc));
   }
 
   void endOfStream(EndOfStreamContext& eos) final
@@ -114,7 +114,7 @@ class CalibratordEdxDevice : public Task
   void sendOutput(DataAllocator& output)
   {
     const auto& calibrations = mCalibrator->getCalibs();
-    auto& intervals = mCalibrator->getTFinterval();
+    auto& tfIntervals = mCalibrator->getTFinterval();
     const long timeEnd = o2::calibration::Utils::INFINITE_TIME;
 
     for (unsigned int i = 0; i < calibrations.size(); i++) {
@@ -122,10 +122,9 @@ class CalibratordEdxDevice : public Task
       o2::ccdb::CcdbObjectInfo info;
       auto image = o2::ccdb::CcdbApi::createObjectImage(&object, &info);
 
-      info.setPath("TPC/Calib/dEdx");
-      // FIXME: use time frame timestamp
-      info.setStartValidityTimestamp(intervals[i].first);
-      info.setEndValidityTimestamp(timeEnd);
+      info.setPath("TPC/Calib/TimeGain");
+      info.setStartValidityTimestamp(processing_helpers::toTimeStamp(tfIntervals[i].first));
+      info.setEndValidityTimestamp(processing_helpers::toTimeStamp(tfIntervals[i].second + 1));
 
       auto md = info.getMetaData();
       md["runNumber"] = std::to_string(mRunNumber);
@@ -161,9 +160,9 @@ DataProcessorSpec getCalibratordEdxSpec()
       {"max-delay", VariantType::Int, 10, {"number of slots in past to consider"}},
       {"min-entries", VariantType::Int, 10000, {"minimum entries per stack to fit a single time slot"}},
 
-      {"min-entries-sector", VariantType::Int, 1000, {"min entries per GEM stack to enable sector by sector correction. Below this value we only perform one fit per ROC type (IROC, OROC1, ...; no side nor sector information)."}},
-      {"min-entries-1d", VariantType::Int, 10000, {"minimum entries per stack to fit 1D correction"}},
-      {"min-entries-2d", VariantType::Int, 50000, {"minimum entries per stack to fit 2D correction"}},
+      {"min-entries-sector", VariantType::Int, 3000, {"min entries per GEM stack to enable sector by sector correction. Below this value we only perform one fit per ROC type (IROC, OROC1, ...; no side nor sector information)."}},
+      {"min-entries-1d", VariantType::Int, 200, {"minimum entries per stack to fit 1D correction"}},
+      {"min-entries-2d", VariantType::Int, 10000, {"minimum entries per stack to fit 2D correction"}},
       {"fit-passes", VariantType::Int, 3, {"number of fit iterations"}},
       {"fit-threshold", VariantType::Float, 0.2f, {"dEdx width around the MIP peak used in the fit"}},
 
