@@ -62,7 +62,7 @@ struct InterCalibConfig {
   void setBinning2D(int nb, double amin, double amax);
   void setBinning1D(int ih, int nb, double amin, double amax);
   void setBinning2D(int ih, int nb, double amin, double amax);
-  void setDescription(std::string d){ desc = d; }
+  void setDescription(std::string d) { desc = d; }
   void enable(bool c0, bool c1, bool c2, bool c3, bool c4)
   {
     enabled[0] = c0;

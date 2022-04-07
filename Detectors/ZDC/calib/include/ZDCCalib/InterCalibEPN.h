@@ -33,6 +33,7 @@ namespace zdc
 class InterCalibEPN
 {
   typedef o2::calibration::TimeSlot<o2::zdc::InterCalibData> Slot;
+
  public:
   InterCalibEPN() = default;
   int init();

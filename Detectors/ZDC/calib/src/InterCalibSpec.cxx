@@ -157,7 +157,7 @@ void InterCalibSpec::sendOutput(o2::framework::DataAllocator& output)
   LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ZDC_Intercalib", 0}, *image.get()); // vector<char>
-  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDC_Intercalib", 0}, info);            // root-serialized
+  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDC_Intercalib", 0}, info);         // root-serialized
   // TODO: reset the outputs once they are already sent (is it necessary?)
   // mInterCalib.init();
 }
