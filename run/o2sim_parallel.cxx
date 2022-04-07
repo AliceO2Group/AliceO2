@@ -76,7 +76,11 @@ void remove_tmp_files()
   auto filenames = o2::utils::listFiles("/tmp/", searchstr.str());
   // remove those files
   for (auto& fn : filenames) {
-    std::filesystem::remove(std::filesystem::path(fn));
+    try {
+      std::filesystem::remove(std::filesystem::path(fn));
+    } catch (...) {
+      LOG(warn) << "Couldn't remove tmp file " << fn;
+    }
   }
 }
 
