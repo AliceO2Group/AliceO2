@@ -63,7 +63,7 @@ class DumpPagesTask
   void init(framework::InitContext& ic)
   {
     /// Get the input file and other options from the context
-    LOG(INFO) << "initializing pager dumper";
+    LOG(info) << "initializing pager dumper";
 
     auto outputFileName = ic.options().get<std::string>("outfile");
     mOutputFile.open(outputFileName, std::ios::binary);
@@ -73,7 +73,7 @@ class DumpPagesTask
 
     auto stop = [this]() {
       /// close the input file
-      LOG(INFO) << "stop file reader";
+      LOG(info) << "stop file reader";
       this->mOutputFile.close();
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
@@ -91,23 +91,14 @@ class DumpPagesTask
         continue;
       }
       size_t payloadSize = it.size();
-//
-//      auto rdhVersion = o2::raw::RDHUtils::getVersion(rdh);
-//      auto rdhHeaderSize = o2::raw::RDHUtils::getHeaderSize(rdh);
-//      if (mPrint) {
-//        std::cout << "header_version=" << (int)rdhVersion << std::endl;
-//      }
-//      if (rdhVersion < 4 || rdhVersion > 6 || rdhHeaderSize != 64) {
-//        return;
-//      }
 
       mOutputFile.write(reinterpret_cast<const char*>(raw), sizeof(RDH) + payloadSize);
     }
   }
 
  private:
-  std::string mInputSpec{"TF:MCH/RAWDATA"};            /// selection string for the input data
-  std::ofstream mOutputFile{}; ///< input file
+  std::string mInputSpec{"TF:MCH/RAWDATA"}; /// selection string for the input data
+  std::ofstream mOutputFile{};              ///< input file
 };
 
 //_________________________________________________________________________________________________
