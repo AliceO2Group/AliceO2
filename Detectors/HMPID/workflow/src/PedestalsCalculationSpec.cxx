@@ -42,6 +42,9 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Logger.h"
 #include "Framework/RawDeviceService.h"
+#include "Framework/CommonServices.h"
+#include <fairmq/Device.h>
+
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 
