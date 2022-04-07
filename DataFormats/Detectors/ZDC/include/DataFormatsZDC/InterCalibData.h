@@ -12,6 +12,7 @@
 #ifndef _ZDC_INTERCALIB_DATA_H_
 #define _ZDC_INTERCALIB_DATA_H_
 
+#include "DetectorsCalibration/TimeSlot.h"
 #include "ZDCBase/Constants.h"
 #include <array>
 #include <Rtypes.h>
@@ -34,6 +35,7 @@ struct InterCalibData {
   void print() const;
   ClassDefNV(InterCalibData, 1);
 };
+
 } // namespace zdc
 } // namespace o2
 

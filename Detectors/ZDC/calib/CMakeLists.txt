@@ -43,9 +43,9 @@ o2_target_root_dictionary(ZDCCalib
 o2_add_executable(intercalib-workflow
                   COMPONENT_NAME zdc
                   SOURCES src/zdc-intercalib-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow O2::ZDCCalib)
+                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow O2::ZDCCalib O2::DetectorsCalibration)
 
 o2_add_executable(intercalib-epn-workflow
                   COMPONENT_NAME zdc
                   SOURCES src/zdc-intercalib-epn-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow O2::ZDCCalib)
+                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow O2::ZDCCalib O2::DetectorsCalibration)
