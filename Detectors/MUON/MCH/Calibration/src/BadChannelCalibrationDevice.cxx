@@ -88,7 +88,7 @@ ccdb::CcdbObjectInfo createCcdbInfo(const T& object, uint64_t timeStamp, std::st
   auto clName = o2::utils::MemFileHelper::getClassName(object);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   std::map<std::string, std::string> md;
-  md["upload reason"] = reason;
+  md["upload-reason"] = reason;
   return o2::ccdb::CcdbObjectInfo("MCH/BadChannelCalib", clName, flName, md, timeStamp, 99999999999999);
 }
 
