@@ -25,6 +25,17 @@ namespace its
 namespace gpu
 {
 
+GPUh() void gpuThrowOnError()
+{
+  cudaError_t error = cudaGetLastError();
+
+  if (error != cudaSuccess) {
+    std::ostringstream errorString{};
+    errorString << GPU_ARCH << " API returned error  [" << cudaGetErrorString(error) << "] (code " << error << ")" << std::endl;
+    throw std::runtime_error{errorString.str()};
+  }
+}
+
 template <int NLayers>
 TimeFrameGPU<NLayers>::TimeFrameGPU()
 {
@@ -66,13 +77,14 @@ void TimeFrameGPU<NLayers>::loadToDevice(const int maxLayers)
     flatTables2.reserve(mConfig.nMaxROFs * (ZBins * PhiBins + 1));
     for (size_t rofId{0}; rofId < mNrof; ++rofId) {
       const auto& v0 = mIndexTablesL0[rofId];
-      const auto& v2 = mIndexTables[rofId][2];
+      const auto& v2 = mIndexTables[rofId][1];
       flatTables0.insert(flatTables0.end(), v0.begin(), v0.end());
       flatTables2.insert(flatTables2.end(), v2.begin(), v2.end());
     }
     mIndexTablesLayer0D.reset(flatTables0.data(), static_cast<int>(flatTables0.size()));
     mIndexTablesLayer2D.reset(flatTables2.data(), static_cast<int>(flatTables2.size()));
   }
+  gpuThrowOnError();
 }
 
 template <int NLayers>

@@ -51,7 +51,8 @@ struct Cluster final {
   ClassDefNV(Cluster, 1);
 };
 
-GPUhdi() void Cluster::print() const {
+GPUhdi() void Cluster::print() const
+{
   printf("Cluster: %f %f %f %f %f %d %d\n", xCoordinate, yCoordinate, zCoordinate, phi, radius, clusterId, indexTableBinIndex);
 }
 

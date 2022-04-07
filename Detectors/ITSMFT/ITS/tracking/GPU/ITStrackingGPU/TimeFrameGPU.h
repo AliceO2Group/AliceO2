@@ -50,19 +50,17 @@ class TimeFrameGPU : public TimeFrame
                   const TrackingParameters& trkParam,
                   const int maxLayers);
   Cluster* getDeviceClustersOnLayer(const int rofId, const int layerId) const;
-  int getDeviceNClustersLayer(const int rofId, const int layerId) const;
+  int getNClustersLayer(const int rofId, const int layerId) const;
   std::array<Vector<Tracklet>, NLayers - 1>& getDeviceTracklets() { return mTrackletsD; }
   const TimeFrameGPUConfig& getConfig() const { return mConfig; }
 
   // Vertexer only
   int* getDeviceIndexTableL0(const int rofId)
   {
-    std::cout << "start: " << mIndexTablesLayer0D.get() << " finish: " << mIndexTablesLayer0D.get() + rofId * (ZBins * PhiBins + 1) << std::endl;
     return mIndexTablesLayer0D.get() + rofId * (ZBins * PhiBins + 1);
   }
   int* getDeviceIndexTableL2(const int rofId)
   {
-    std::cout << "start: " << mIndexTablesLayer2D.get() << " finish: " << mIndexTablesLayer2D.get() + rofId * (ZBins * PhiBins + 1) << std::endl;
     return mIndexTablesLayer2D.get() + rofId * (ZBins * PhiBins + 1);
   }
   int* getDeviceNTrackletsCluster(int rofId, int combId);
@@ -95,7 +93,7 @@ inline Cluster* TimeFrameGPU<NLayers>::getDeviceClustersOnLayer(const int rofId,
 }
 
 template <int NLayers>
-inline int TimeFrameGPU<NLayers>::getDeviceNClustersLayer(const int rofId, const int layerId) const
+inline int TimeFrameGPU<NLayers>::getNClustersLayer(const int rofId, const int layerId) const
 {
   if (rofId < 0 || rofId >= mNrof) {
     std::cout << "Invalid rofId: " << rofId << "/" << mNrof << ", returning 0 as value" << std::endl;
