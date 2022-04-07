@@ -7,7 +7,7 @@ fi
 echo Generating $1 timeframe files
 
 # Defaults for 128 orbit TF, feel free to override
-NEvents=${NEvents:-600}
+NEvents=${NEvents:-650}
 NEventsQED=${NEventsQED:-35000}
 SHMSIZE=${SHMSIZE:-128000000000}
 TPCTRACKERSCRATCHMEMORY=${SHMSIZE:-25000000000}
@@ -42,7 +42,7 @@ for i in `seq $1`; do
   cp ITSdictionary.bin sim
   pushd sim
   ln -s ../simqed qed
-  SPLITTRDDIGI=0 DISABLE_PROCESSING=1 $O2_ROOT/prodtests/full_system_test.sh
+  SPLITTRDDIGI=0 DISABLE_PROCESSING=1 FIRSTSAMPLEDORBIT=$(($i * 128)) $O2_ROOT/prodtests/full_system_test.sh
   $O2_ROOT/prodtests/full-system-test/convert-raw-to-tf-file.sh
   popd
   mv sim/raw/timeframe/00000001.tf raw/timeframe/`ls raw/timeframe/*.tf | wc -l | awk '{printf("%08d.tf", $1+1)}'`
