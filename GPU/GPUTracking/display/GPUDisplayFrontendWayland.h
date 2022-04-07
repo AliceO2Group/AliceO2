@@ -33,7 +33,7 @@ namespace GPUCA_NAMESPACE::gpu
 class GPUDisplayFrontendWayland : public GPUDisplayFrontend
 {
  public:
-  GPUDisplayFrontendWayland() = default;
+  GPUDisplayFrontendWayland();
   ~GPUDisplayFrontendWayland() override = default;
 
   int StartDisplay() override;

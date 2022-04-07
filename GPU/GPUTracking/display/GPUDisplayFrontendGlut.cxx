@@ -15,6 +15,7 @@
 // Now the other headers
 #include "GPUDisplayFrontendGlut.h"
 #include "GPUDisplayBackend.h"
+#include "GPUDisplayGUIWrapper.h"
 #include "GPULogging.h"
 #include <cstdio>
 #include <cstring>
@@ -24,6 +25,12 @@
 #include <pthread.h>
 using namespace GPUCA_NAMESPACE::gpu;
 static GPUDisplayFrontendGlut* me = nullptr;
+
+GPUDisplayFrontendGlut::GPUDisplayFrontendGlut()
+{
+  mFrontendType = TYPE_GLUT;
+  mFrontendName = "GLUT";
+}
 
 void GPUDisplayFrontendGlut::displayFunc()
 {

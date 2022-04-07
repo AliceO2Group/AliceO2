@@ -34,6 +34,15 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   GPUDisplayFrontend() = default;
   ~GPUDisplayFrontend() override;
 
+  enum frontendTypes {
+    TYPE_INVALID = -1,
+    TYPE_WIN32 = 0,
+    TYPE_X11 = 1,
+    TYPE_GLUT = 2,
+    TYPE_GLFW = 3,
+    TYPE_WAYLAND = 4
+  };
+
   // Compile time minimum version defined in GPUDisplay.h, keep in sync!
   static constexpr int GL_MIN_VERSION_MAJOR = 4;
   static constexpr int GL_MIN_VERSION_MINOR = 5;
@@ -57,6 +66,9 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   void setDisplayControl(int v) override { mDisplayControl = v; }
   void setSendKey(int v) override { mSendKey = v; }
   void setNeedUpdate(int v) override { mNeedUpdate = v; }
+
+  frontendTypes frontendType() const { return mFrontendType; }
+  const char* frontendName() const override { return mFrontendName; }
 
   int startGUI();
   void stopGUI();
@@ -119,6 +131,9 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
 
   GPUDisplay* mDisplay = nullptr;        // Ptr to display, not owning, set by display when it connects to backend
   GPUDisplayBackend* mBackend = nullptr; // Ptr to backend, not owning
+
+  frontendTypes mFrontendType = TYPE_INVALID;
+  const char* mFrontendName = nullptr;
 
   std::unique_ptr<GPUDisplayGUIWrapper> mGUI;
 

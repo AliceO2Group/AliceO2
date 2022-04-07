@@ -107,30 +107,38 @@ int GPUDisplayFrontend::startGUI()
 
 GPUDisplayFrontend* GPUDisplayFrontend::getFrontend(const char* type)
 {
-#ifdef _WIN32
-  if (strcmp(type, "windows") == 0) {
-    return new GPUDisplayFrontendWindows;
-  }
-#elif defined(GPUCA_BUILD_EVENT_DISPLAY_X11)
-  if (strcmp(type, "x11") == 0) {
-    return new GPUDisplayFrontendX11;
-  }
-#endif
-#ifdef GPUCA_BUILD_EVENT_DISPLAY_GLFW
-  if (strcmp(type, "glfw") == 0) {
+#if !defined(GPUCA_STANDALONE) && defined(GPUCA_BUILD_EVENT_DISPLAY_GLFW)
+  if (strcmp(type, "glfw") == 0 || strcmp(type, "auto") == 0) {
     return new GPUDisplayFrontendGlfw;
-  }
+  } else
 #endif
-#ifdef GPUCA_BUILD_EVENT_DISPLAY_GLUT
-  if (strcmp(type, "glut") == 0) {
-    return new GPUDisplayFrontendGlut;
-  }
+#ifdef _WIN32
+  if (strcmp(type, "windows") == 0 || strcmp(type, "auto") == 0) {
+    return new GPUDisplayFrontendWindows;
+  } else
+#elif defined(GPUCA_BUILD_EVENT_DISPLAY_X11)
+  if (strcmp(type, "x11") == 0 || strcmp(type, "auto") == 0) {
+    return new GPUDisplayFrontendX11;
+  } else
+#endif
+#if defined(GPUCA_STANDALONE) && defined(GPUCA_BUILD_EVENT_DISPLAY_GLFW)
+  if (strcmp(type, "glfw") == 0 || strcmp(type, "auto") == 0) {
+    return new GPUDisplayFrontendGlfw;
+  } else
 #endif
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_WAYLAND
-  if (strcmp(type, "wayland") == 0) {
+  if (strcmp(type, "wayland") == 0 || (strcmp(type, "auto") == 0 && getenv("XDG_SESSION_TYPE") && strcmp(getenv("XDG_SESSION_TYPE"), "wayland") == 0)) {
     return new GPUDisplayFrontendWayland;
-  }
+  } else
 #endif
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_GLUT
+  if (strcmp(type, "glut") == 0 || strcmp(type, "auto") == 0) {
+    return new GPUDisplayFrontendGlut;
+  } else
+#endif
+  {
+    GPUError("Requested frontend not available");
+  }
   return nullptr;
 }
 

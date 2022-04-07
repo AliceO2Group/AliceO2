@@ -53,6 +53,7 @@ class GPUDisplayFrontendInterface
   virtual void setDisplayControl(int v) = 0;
   virtual void setSendKey(int v) = 0;
   virtual void setNeedUpdate(int v) = 0;
+  virtual const char* frontendName() const = 0;
 
  protected:
   GPUDisplayFrontendInterface();

@@ -331,32 +331,14 @@ int SetupReconstruction()
 
   configStandalone.proc.forceMemoryPoolSize = (configStandalone.proc.forceMemoryPoolSize == 1 && configStandalone.eventDisplay) ? 2 : configStandalone.proc.forceMemoryPoolSize;
   if (configStandalone.eventDisplay) {
-    if (configStandalone.eventDisplay == 1) {
-#ifdef _WIN32
-      eventDisplay.reset(GPUDisplayFrontendInterface::getFrontend("windows"));
-      printf("Enabling event display (windows backend)\n");
-#else
-      eventDisplay.reset(GPUDisplayFrontendInterface::getFrontend("x11"));
-      printf("Enabling event display (X11 backend)\n");
-#endif
-    }
-    if (configStandalone.eventDisplay == 2) {
-      eventDisplay.reset(GPUDisplayFrontendInterface::getFrontend("glut"));
-      printf("Enabling event display (GLUT backend)\n");
-    }
-    if (configStandalone.eventDisplay == 3) {
-      eventDisplay.reset(GPUDisplayFrontendInterface::getFrontend("glfw"));
-      printf("Enabling event display (GLFW backend)\n");
-    }
-    if (configStandalone.eventDisplay == 4) {
-      eventDisplay.reset(GPUDisplayFrontendInterface::getFrontend("wayland"));
-      printf("Enabling event display (Wayland backend)\n");
-    }
+    eventDisplay.reset(GPUDisplayFrontendInterface::getFrontend(configStandalone.display.displayFrontend.c_str()));
     if (eventDisplay.get() == nullptr) {
       throw std::runtime_error("Requested display not available");
     }
+    printf("Enabling event display (%s backend)\n", eventDisplay->frontendName());
     procSet.eventDisplay = eventDisplay.get();
   }
+
   if (procSet.runQA) {
     procSet.runMC = true;
   }

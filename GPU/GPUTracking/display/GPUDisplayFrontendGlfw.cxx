@@ -14,6 +14,7 @@
 
 #include "GPUDisplayFrontendGlfw.h"
 #include "GPUDisplayBackend.h"
+#include "GPUDisplayGUIWrapper.h"
 #include "GPULogging.h"
 
 #if defined(GPUCA_O2_LIB) && !defined(GPUCA_DISPLAY_GL3W) // Hack: we have to define this in order to initialize gl3w, cannot include the header as it clashes with glew
@@ -42,6 +43,12 @@ extern "C" int gl3wInit();
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
+
+GPUDisplayFrontendGlfw::GPUDisplayFrontendGlfw()
+{
+  mFrontendType = TYPE_GLFW;
+  mFrontendName = "GLFW";
+}
 
 static GPUDisplayFrontendGlfw* me = nullptr;
 
