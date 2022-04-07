@@ -109,9 +109,9 @@ void PedestalsCalculationTask::init(framework::InitContext& ic)
 
 void PedestalsCalculationTask::run(framework::ProcessingContext& pc)
 {
-  if(mPedestalTag == "run_number") { // if the Tag is run_number, then substitute the Tag with RN
+  if (mPedestalTag == "run_number") { // if the Tag is run_number, then substitute the Tag with RN
     const std::string NAStr = "NA";
-    mPedestalTag = pc.services().get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", NAStr); 
+    mPedestalTag = pc.services().get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", NAStr);
   }
   decodeTF(pc);
   mExTimer.elapseMes("Decoding... Digits decoded = " + std::to_string(mTotalDigits) + " Frames received = " + std::to_string(mTotalFrames));
