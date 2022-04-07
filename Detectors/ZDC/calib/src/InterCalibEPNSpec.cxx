@@ -22,6 +22,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
+#include "Framework/DataRefUtils.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/ChannelData.h"
@@ -91,6 +92,10 @@ void InterCalibEPNSpec::run(ProcessingContext& pc)
     mTimer.CpuTime();
     mTimer.Start(false);
   }
+
+  const auto ref = pc.inputs().getFirstValid(true);
+  auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
+  mInterCalibEPN.getData().setCreationTime(creationTime);
 
   auto bcrec = pc.inputs().get<gsl::span<o2::zdc::BCRecData>>("bcrec");
   auto energy = pc.inputs().get<gsl::span<o2::zdc::ZDCEnergy>>("energy");

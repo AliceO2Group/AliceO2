@@ -40,5 +40,33 @@ InterCalibData& InterCalibData::operator+=(const InterCalibData& other)
       }
     }
   }
+  if (mCTimeBeg == 0 || other.mCTimeBeg < mCTimeBeg) {
+    mCTimeBeg = other.mCTimeBeg;
+  }
+  if (other.mCTimeEnd > mCTimeEnd) {
+    mCTimeEnd = other.mCTimeEnd;
+  }
+  //#ifdef O2_ZDC_DEBUG
+  LOGF(info, "InterCalibData [%llu : %llu]: %s=%d %s=%d %s=%d %s=%d %s=%d", mCTimeBeg, mCTimeEnd, DN[0], getEntries(0), DN[1], getEntries(1),
+       DN[2], getEntries(2), DN[3], getEntries(3), DN[4], getEntries(4));
+  //#endif
   return *this;
+}
+
+void InterCalibData::setCreationTime(uint64_t ctime)
+{
+  mCTimeBeg = ctime;
+  mCTimeEnd = ctime;
+#ifdef O2_ZDC_DEBUG
+  LOGF(info, "InterCalibData::setCreationTime %llu", ctime);
+#endif
+}
+
+int InterCalibData::getEntries(int ih) const
+{
+  if (ih < 0 || ih >= NH) {
+    LOGF(error, "InterCalibData::getEntries ih = %d is out of range", ih);
+    return 0;
+  }
+  return mSum[ih][5][5];
 }

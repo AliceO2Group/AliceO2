@@ -145,10 +145,13 @@ int InterCalib::endOfRun()
   std::map<std::string, std::string> md;
   md["config"] = mInterCalibConfig->desc;
   mInfo.setMetaData(md);
-  long start = 0;
-  long end = 0;
-  mInfo.setStartValidityTimestamp(start);
-  mInfo.setEndValidityTimestamp(end);
+  uint64_t starting = mData.mCTimeBeg;
+  if (starting >= 10000) {
+    starting = starting - 10000; // start 10 seconds before
+  }
+  uint64_t stopping = mData.mCTimeEnd + 10000; // stop 10 seconds after
+  mInfo.setStartValidityTimestamp(starting);
+  mInfo.setEndValidityTimestamp(stopping);
 
   if (mSaveDebugHistos) {
     write();
@@ -349,13 +352,7 @@ int InterCalib::process(const InterCalibData& data)
   if (!mInitDone) {
     init();
   }
-  for (int32_t ih = 0; ih < NH; ih++) {
-    for (int32_t i = 0; i < NPAR; i++) {
-      for (int32_t j = i; j < NPAR; j++) {
-        mData.mSum[ih][i][j] += data.mSum[ih][i][j];
-      }
-    }
-  }
+  mData += data;
   return 0;
 }
 

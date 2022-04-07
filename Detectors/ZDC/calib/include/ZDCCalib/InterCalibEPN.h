@@ -32,8 +32,6 @@ namespace zdc
 {
 class InterCalibEPN
 {
-  typedef o2::calibration::TimeSlot<o2::zdc::InterCalibData> Slot;
-
  public:
   InterCalibEPN() = default;
   int init();
@@ -57,6 +55,7 @@ class InterCalibEPN
   const InterCalibConfig* getInterCalibConfig() const { return mInterCalibConfig; };
   void setSaveDebugHistos() { mSaveDebugHistos = true; }
   void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
+  InterCalibData& getData() { return mData; }
   InterCalibData mData;
   std::array<o2::dataformats::FlatHisto1D<float>*, 2 * NH> mH{};
   std::array<o2::dataformats::FlatHisto2D<float>*, NH> mC{};

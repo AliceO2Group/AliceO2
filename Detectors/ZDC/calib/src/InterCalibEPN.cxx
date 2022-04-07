@@ -64,7 +64,7 @@ int InterCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
   if (!mInitDone) {
     init();
   }
-  LOG(info) << "o2::zdc::InterCalibEPN processing " << RecBC.size() << " b.c.";
+  LOG(info) << "o2::zdc::InterCalibEPN processing " << RecBC.size() << " b.c. @ TS " << mData.mCTimeBeg << " : " << mData.mCTimeEnd;
   o2::zdc::RecEventFlat ev;
   ev.init(RecBC, Energy, TDCData, Info);
   while (ev.next()) {
@@ -108,8 +108,9 @@ int InterCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
 
 int InterCalibEPN::endOfRun()
 {
-  for (int ih = 0; ih < NH; ih++) {
-    if (mVerbosity > DbgZero) {
+  if (mVerbosity > DbgZero) {
+    LOGF(info, "InterCalibEPN::endOfRun ts (%llu:%llu)", mData.mCTimeBeg, mData.mCTimeEnd);
+    for (int ih = 0; ih < NH; ih++) {
       LOGF(info, "%s %g events and cuts (%g:%g)", InterCalibData::DN[ih], mData.mSum[ih][5][5], mInterCalibConfig->cutLow[ih], mInterCalibConfig->cutHigh[ih]);
     }
   }
