@@ -53,6 +53,12 @@ QGET_LD_BINARY_SYMBOLS(shaders_shaders_fragmentUniform_frag_spv);
 
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_OPENGL
 
+GPUDisplayBackendOpenGL::GPUDisplayBackendOpenGL()
+{
+  mBackendType = TYPE_OPENGL;
+  mBackendName = "OpenGL";
+}
+
 #ifdef GPUCA_DISPLAY_GL3W
 int GPUDisplayBackendOpenGL::ExtInit()
 {
@@ -776,10 +782,10 @@ void GPUDisplayBackendOpenGL::updateRenderer(bool withScreenshot)
 }
 
 #else  // GPUCA_BUILD_EVENT_DISPLAY_OPENGL
-int GPUDisplayBackendOpenGL::ExtInit()
+GPUDisplayBackendOpenGL::GPUDisplayBackendOpenGL()
 {
-  throw std::runtime_error("Insufficnet OpenGL version");
 }
+int GPUDisplayBackendOpenGL::ExtInit() { throw std::runtime_error("Insufficnet OpenGL version"); }
 bool GPUDisplayBackendOpenGL::CoreProfile() { return false; }
 unsigned int GPUDisplayBackendOpenGL::DepthBits() { return 0; }
 unsigned int GPUDisplayBackendOpenGL::drawVertices(const vboList& v, const drawType t) { return 0; }

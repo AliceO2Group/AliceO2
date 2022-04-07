@@ -30,6 +30,8 @@ struct GLfb {
 };
 class GPUDisplayBackendOpenGL : public GPUDisplayBackend
 {
+ public:
+  GPUDisplayBackendOpenGL();
   ~GPUDisplayBackendOpenGL() override = default;
   int ExtInit() override;
   bool CoreProfile() override;
@@ -59,7 +61,6 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   void mixImages(float mixSlaveImage);
   void pointSizeFactor(float factor) override;
   void lineWidthFactor(float factor) override;
-  backendTypes backendType() const override { return TYPE_OPENGL; }
   size_t needMultiVBO() override { return 0x100000000ll; }
   void readImageToPixels();
 

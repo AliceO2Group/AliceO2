@@ -15,6 +15,7 @@
 // Now the other headers
 #include "GPUDisplayFrontendWayland.h"
 #include "GPUDisplayBackend.h"
+#include "GPUDisplayGUIWrapper.h"
 #include "GPUDisplay.h"
 #include "GPULogging.h"
 #include <cstdio>
@@ -37,6 +38,12 @@
 #include <linux/input-event-codes.h>
 
 using namespace GPUCA_NAMESPACE::gpu;
+
+GPUDisplayFrontendWayland::GPUDisplayFrontendWayland()
+{
+  mFrontendType = TYPE_WAYLAND;
+  mFrontendName = "Wayland";
+}
 
 void GPUDisplayFrontendWayland::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
 {

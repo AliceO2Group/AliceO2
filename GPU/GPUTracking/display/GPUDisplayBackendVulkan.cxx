@@ -41,7 +41,11 @@ QGET_LD_BINARY_SYMBOLS(shaders_shaders_fragmentText_frag_spv);
     }                                                                                                   \
   } while (false)
 
-GPUDisplayBackendVulkan::GPUDisplayBackendVulkan() = default;
+GPUDisplayBackendVulkan::GPUDisplayBackendVulkan()
+{
+  mBackendType = TYPE_VULKAN;
+  mBackendName = "Vulkan";
+}
 GPUDisplayBackendVulkan::~GPUDisplayBackendVulkan() = default;
 
 // ---------------------------- VULKAN HELPERS ----------------------------

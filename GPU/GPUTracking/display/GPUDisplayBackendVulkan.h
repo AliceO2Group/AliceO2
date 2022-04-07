@@ -79,7 +79,6 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void setMixDescriptor(int descriptorIndex, int imageIndex);
   void pointSizeFactor(float factor) override;
   void lineWidthFactor(float factor) override;
-  backendTypes backendType() const override { return TYPE_VULKAN; }
   void resizeScene(unsigned int width, unsigned int height) override;
   float getYFactor() const override { return -1.0f; }
   int getMaxMSAA() const override { return mMaxMSAAsupported; }

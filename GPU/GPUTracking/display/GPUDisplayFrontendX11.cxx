@@ -15,6 +15,7 @@
 // Now the other headers
 #include "GPUDisplayFrontendX11.h"
 #include "GPUDisplayBackend.h"
+#include "GPUDisplayGUIWrapper.h"
 #include "GPULogging.h"
 #include <cstdio>
 #include <cstdlib>
@@ -30,6 +31,12 @@
 typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
 
 using namespace GPUCA_NAMESPACE::gpu;
+
+GPUDisplayFrontendX11::GPUDisplayFrontendX11()
+{
+  mFrontendType = TYPE_X11;
+  mFrontendName = "X11";
+}
 
 int GPUDisplayFrontendX11::GetKey(int key)
 {

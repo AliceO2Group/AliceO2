@@ -18,6 +18,7 @@
 #include <cstring>
 #include "GPUDisplayFrontendWindows.h"
 #include "GPUDisplayBackend.h"
+#include "GPUDisplayGUIWrapper.h"
 #include "GPULogging.h"
 #include <windows.h>
 #include <winbase.h>
@@ -313,6 +314,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
   // Pass All Unhandled Messages To DefWindowProc
   return DefWindowProc(hWnd, uMsg, wParam, lParam);
+}
+
+GPUDisplayFrontendWindows::GPUDisplayFrontendWindows()
+{
+  mFrontendType = TYPE_WIN32;
+  mFrontendName = "Win32";
 }
 
 int GPUDisplayFrontendWindows::FrontendMain()

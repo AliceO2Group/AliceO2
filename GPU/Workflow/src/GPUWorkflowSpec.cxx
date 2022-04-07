@@ -177,7 +177,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       processAttributes->disableCalibUpdates = confParam.disableCalibUpdates;
       config.configInterface.dumpEvents = confParam.dump;
       if (confParam.display) {
-        processAttributes->displayFrontend.reset(GPUDisplayFrontendInterface::getFrontend("glfw"));
+        processAttributes->displayFrontend.reset(GPUDisplayFrontendInterface::getFrontend(config.configDisplay.displayFrontend.c_str()));
         config.configProcessing.eventDisplay = processAttributes->displayFrontend.get();
         if (config.configProcessing.eventDisplay != nullptr) {
           LOG(info) << "Event display enabled";
