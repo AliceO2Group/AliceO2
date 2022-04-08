@@ -9,7 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
 #include "Framework/Logger.h"
