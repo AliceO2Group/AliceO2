@@ -56,9 +56,10 @@ TimeFrameGPU<NLayers>::TimeFrameGPU()
   mIndexTablesLayer0D = Vector<int>{mConfig.nMaxROFs * (ZBins * PhiBins + 1), mConfig.nMaxROFs * (ZBins * PhiBins + 1)};
   mIndexTablesLayer2D = Vector<int>{mConfig.nMaxROFs * (ZBins * PhiBins + 1), mConfig.nMaxROFs * (ZBins * PhiBins + 1)};
   mLines = Vector<Line>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
-  // mNFoundLines = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};          // 4e4 * sizeof(int) = 160KB
-  // mNExclusiveFoundLines = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity}; // 4e4 * sizeof(int) = 160KB, tot = <10MB
-  getDeviceMemory();
+  mNFoundLines = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
+  mNExclusiveFoundLines = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
+  mUsedTracklets = Vector<unsigned char>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
+  getDeviceMemory(); // We don't check if we can store the data in the GPU for the moment.
 }
 
 template <int NLayers>
@@ -72,15 +73,23 @@ float TimeFrameGPU<NLayers>::getDeviceMemory()
   totalMemory += (NLayers - 1) * mConfig.trackletsCapacity * sizeof(Tracklet);
   totalMemory += 2 * mConfig.clustersPerLayerCapacity * sizeof(int);
   totalMemory += 2 * mConfig.nMaxROFs * (ZBins * PhiBins + 1) * sizeof(int);
+  totalMemory += mConfig.trackletsCapacity * sizeof(Line);
+  totalMemory += mConfig.clustersPerLayerCapacity * sizeof(int);
+  totalMemory += mConfig.clustersPerLayerCapacity * sizeof(int);
+  totalMemory += mConfig.trackletsCapacity * sizeof(unsigned char);
 
   LOGP(info, "Total requested memory for GPU: {:.2f} MB", totalMemory / MB);
-  LOGP(info, "\t- clusters: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(Cluster) / MB);
-  LOGP(info, "\t- tracking frame info: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(TrackingFrameInfo) / MB);
-  LOGP(info, "\t- cluster external indices: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
-  LOGP(info, "\t- clusters per ROf: {:.2f} MB", NLayers * mConfig.clustersPerROfCapacity * sizeof(int) / MB);
-  LOGP(info, "\t- tracklets: {:.2f} MB", (NLayers - 1) * mConfig.trackletsCapacity * sizeof(Tracklet) / MB);
-  LOGP(info, "\t- n tracklets per cluster: {:.2f} MB", 2 * mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
-  LOGP(info, "\t- index tables: {:.2f} MB", 2 * mConfig.nMaxROFs * (ZBins * PhiBins + 1) * sizeof(int) / MB);
+  LOGP(info, "\t- Clusters: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(Cluster) / MB);
+  LOGP(info, "\t- Tracking frame info: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(TrackingFrameInfo) / MB);
+  LOGP(info, "\t- Cluster external indices: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
+  LOGP(info, "\t- Clusters per ROf: {:.2f} MB", NLayers * mConfig.clustersPerROfCapacity * sizeof(int) / MB);
+  LOGP(info, "\t- Tracklets: {:.2f} MB", (NLayers - 1) * mConfig.trackletsCapacity * sizeof(Tracklet) / MB);
+  LOGP(info, "\t- N tracklets per cluster: {:.2f} MB", 2 * mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
+  LOGP(info, "\t- Index tables: {:.2f} MB", 2 * mConfig.nMaxROFs * (ZBins * PhiBins + 1) * sizeof(int) / MB);
+  LOGP(info, "\t- Lines: {:.2f} MB", mConfig.trackletsCapacity * sizeof(Line) / MB);
+  LOGP(info, "\t- N found lines: {:.2f} MB", mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
+  LOGP(info, "\t- N exclusive-scan found lines: {:.2f} MB", mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
+  LOGP(info, "\t- Used tracklets: {:.2f} MB", mConfig.trackletsCapacity * sizeof(unsigned char) / MB);
 
   return totalMemory;
 }
