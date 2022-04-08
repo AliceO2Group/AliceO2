@@ -209,6 +209,7 @@ foreach(t
         InputSpec
         Kernels
         LogParsingHelpers
+        Mermaid
         OptionsHelpers
         OverrideLabels
         PtrHelpers

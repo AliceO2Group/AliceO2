@@ -24,28 +24,16 @@ namespace
 std::string quote(std::string const& s) { return R"(")" + s + R"(")"; }
 } // namespace
 
-/// Helper to dump a workflow as a mermaid file
-void MermaidHelpers::dumpDataProcessorSpec2Mermaid(std::ostream& out, const std::vector<DataProcessorSpec>& specs)
-{
-  out << "flowchart DPL \n";
-  for (auto& spec : specs) {
-    out << R"(  struct [label=")" << spec.name << R"("];)"
-        << "\n";
-  }
-  out << "}\n";
-}
-
 /// Helper to dump a set of devices as a mermaid file
 void MermaidHelpers::dumpDeviceSpec2Mermaid(std::ostream& out, const std::vector<DeviceSpec>& specs)
 {
-  out << R"(flowchart TD
-)";
+  out << "flowchart TD\n";
   std::map<std::string, std::string> outputChannel2Device;
   std::map<std::string, unsigned int> outputChannel2Port;
 
   for (auto& spec : specs) {
     auto id = spec.id;
-    out << "    " << id << "\n"; // << R"(-- )";
+    out << "    " << id << "\n";
     for (auto&& output : spec.outputChannels) {
       outputChannel2Device.insert(std::make_pair(output.name, id));
       outputChannel2Port.insert(std::make_pair(output.name, output.port));
@@ -54,7 +42,7 @@ void MermaidHelpers::dumpDeviceSpec2Mermaid(std::ostream& out, const std::vector
   for (auto& spec : specs) {
     for (auto& input : spec.inputChannels) {
       auto outputName = input.name;
-      out << "    " << outputChannel2Device[outputName] << " --" << input.port << ":" << outputName << " -->" << spec.id << "\n";
+      out << "    " << outputChannel2Device[outputName] << "-- " << input.port << ":" << outputName << " -->" << spec.id << "\n";
     }
   }
 }
