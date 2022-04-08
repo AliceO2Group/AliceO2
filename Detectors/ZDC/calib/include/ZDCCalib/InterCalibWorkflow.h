@@ -9,35 +9,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_ZDC_TOWERPARAM_H
-#define O2_ZDC_TOWERPARAM_H
+#ifndef O2_ZDC_INTERCALIBWORKFLOW_H
+#define O2_ZDC_INTERCALIBWORKFLOW_H
 
-#include "ZDCBase/Constants.h"
-#include <Rtypes.h>
-#include <array>
+/// @file   InterCalibWorkflow.h
 
-/// \file ZDCTowerParam.h
-/// \brief ZDC Tower calibration
-/// \author P. Cortese
+#include "Framework/WorkflowSpec.h"
 
 namespace o2
 {
 namespace zdc
 {
-struct ZDCTowerParam {
-  float tower_calib[NChannels] = {0}; // Tower calibration coefficients
-  std::array<bool, NChannels> modified{};
-  ZDCTowerParam()
-  {
-    modified.fill(false);
-  }
-  void clearFlags();
-  void setTowerCalib(uint32_t ich, float val, bool ismodified = true);
-  float getTowerCalib(uint32_t ich) const;
-  void print() const;
-  ClassDefNV(ZDCTowerParam, 2);
-};
+framework::WorkflowSpec getInterCalibWorkflow(const int verbosity);
 } // namespace zdc
 } // namespace o2
-
 #endif

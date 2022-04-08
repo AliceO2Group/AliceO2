@@ -20,6 +20,7 @@
 #include "ZDCBase/Constants.h"
 #include "MathUtils/Cartesian.h"
 #include <Rtypes.h>
+#include <gsl/span>
 #include <array>
 #include <vector>
 #include <map>

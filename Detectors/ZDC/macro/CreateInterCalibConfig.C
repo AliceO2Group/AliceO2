@@ -13,8 +13,9 @@
 
 #include "Framework/Logger.h"
 #include "CCDB/CcdbApi.h"
+#include "ZDCCalib/InterCalib.h"
+#include "ZDCCalib/InterCalibConfig.h"
 #include "ZDCBase/Constants.h"
-#include "ZDCReconstruction/ZDCTowerParam.h"
 #include <string>
 #include <TFile.h>
 #include <map>
@@ -24,41 +25,28 @@
 using namespace o2::zdc;
 using namespace std;
 
-void CreateTowerCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "")
+void CreateInterCalibConfig(long tmin = 0, long tmax = -1, std::string ccdbHost = "")
 {
 
-  ZDCTowerParam conf;
+  // This object allows for the configuration of the intercalibration of the 4 towers of each calorimeter
+  // and the calibration of ZEM2 relative to ZEM1
 
-  // This object allows for the calibration of the 4 towers of each calorimeter
-  // The relative calibration coefficients of towers w.r.t. the common PM
-  // need to be provided
-  // I.e. energy calibration is the product of Common PM calibration (or ZEM1)
-  // and tower intercalibration coefficient (or ZEM2)
+  InterCalibConfig conf;
 
-  conf.setTowerCalib(IdZNA1, 1.);
-  conf.setTowerCalib(IdZNA2, 1.);
-  conf.setTowerCalib(IdZNA3, 1.);
-  conf.setTowerCalib(IdZNA4, 1.);
+  // Enable intercalibration for all calorimeters
+  // If intercalibration is disabled the intercalibration coefficients
+  // are copied from previous valid object and flagged as not modified
+  //          ZNA   ZPA   ZNC   ZPC   ZEM2
+  conf.enable(true, true, true, true, true);
 
-  conf.setTowerCalib(IdZPA1, 1.);
-  conf.setTowerCalib(IdZPA2, 1.);
-  conf.setTowerCalib(IdZPA3, 1.);
-  conf.setTowerCalib(IdZPA4, 1.);
+  // The version for this macro considers NO energy calibration, i.e. all coefficients = 1
+  // It is necessary to set the binning
+  conf.setBinning1D(1200, 0, 12000);
+  conf.setBinning2D(300, 0, 12000);
 
-  conf.setTowerCalib(IdZNC1, 1.);
-  conf.setTowerCalib(IdZNC2, 1.);
-  conf.setTowerCalib(IdZNC3, 1.);
-  conf.setTowerCalib(IdZNC4, 1.);
+  conf.setDescription("Simulated, no energy scaling");
 
-  conf.setTowerCalib(IdZPC1, 1.);
-  conf.setTowerCalib(IdZPC2, 1.);
-  conf.setTowerCalib(IdZPC3, 1.);
-  conf.setTowerCalib(IdZPC4, 1.);
-
-  // ZEM2 has special calibration: can be calibrated
-  // as a common PM and as a tower (equalized to ZEM1)
-  // The coefficient applied is the product of the two
-  conf.setTowerCalib(IdZEM2, 1.);
+  conf.setMinEntries(100);
 
   conf.print();
 
@@ -76,7 +64,7 @@ void CreateTowerCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "")
   api.init(ccdbHost.c_str());
   LOG(info) << "CCDB server: " << api.getURL();
   // store abitrary user object in strongly typed manner
-  api.storeAsTFileAny(&conf, CCDBPathTowerCalib, metadata, tmin, tmax);
+  api.storeAsTFileAny(&conf, CCDBPathInterCalibConfig, metadata, tmin, tmax);
 
   // return conf;
 }
