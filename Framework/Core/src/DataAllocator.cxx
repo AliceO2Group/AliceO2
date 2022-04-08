@@ -108,7 +108,7 @@ FairMQMessagePtr DataAllocator::headerMessageFromOutput(Output const& spec,     
   DataProcessingHeader dph{timingInfo.timeslice, 1, timingInfo.creation};
   auto& context = mRegistry->get<MessageContext>();
   auto& proxy = mRegistry->get<FairMQDeviceProxy>();
-  auto* transport = proxy.getTransport(routeIndex);
+  auto* transport = proxy.getOutputTransport(routeIndex);
 
   auto channelAlloc = o2::pmr::getTransportAllocator(transport);
   return o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph, spec.metaHeader});
@@ -198,7 +198,7 @@ void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
   RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
   auto header = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodArrow, 0);
   auto& context = mRegistry->get<ArrowContext>();
-  auto* transport = context.proxy().getTransport(routeIndex);
+  auto* transport = context.proxy().getOutputTransport(routeIndex);
   assert(transport != nullptr);
 
   auto creator = [transport](size_t s) -> std::unique_ptr<FairMQMessage> {
@@ -226,7 +226,7 @@ void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
   auto header = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodArrow, 0);
   auto& context = mRegistry->get<ArrowContext>();
 
-  auto creator = [transport = context.proxy().getTransport(routeIndex)](size_t s) -> std::unique_ptr<FairMQMessage> {
+  auto creator = [transport = context.proxy().getOutputTransport(routeIndex)](size_t s) -> std::unique_ptr<FairMQMessage> {
     return transport->CreateMessage(s);
   };
   auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
@@ -250,7 +250,7 @@ void DataAllocator::adopt(const Output& spec, std::shared_ptr<arrow::Table> ptr)
   auto header = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodArrow, 0);
   auto& context = mRegistry->get<ArrowContext>();
 
-  auto creator = [transport = context.proxy().getTransport(routeIndex)](size_t s) -> std::unique_ptr<FairMQMessage> {
+  auto creator = [transport = context.proxy().getOutputTransport(routeIndex)](size_t s) -> std::unique_ptr<FairMQMessage> {
     return transport->CreateMessage(s);
   };
   auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
@@ -269,7 +269,7 @@ void DataAllocator::snapshot(const Output& spec, const char* payload, size_t pay
   auto& timingInfo = mRegistry->get<TimingInfo>();
 
   RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
-  FairMQMessagePtr payloadMessage(proxy.createMessage(routeIndex, payloadSize));
+  FairMQMessagePtr payloadMessage(proxy.createOutputMessage(routeIndex, payloadSize));
   memcpy(payloadMessage->GetData(), payload, payloadSize);
 
   addPartToContext(std::move(payloadMessage), spec, serializationMethod);

@@ -78,9 +78,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
       OutputSpec{{"a2"}, "TST", "A2"}},
      AlgorithmSpec{adaptStateless(
        [](DataAllocator& outputs, RawDeviceService& device, DataTakingContext& context) {
-         device.device()->WaitFor(std::chrono::seconds(rand() % 2));
-         auto& aData = outputs.make<int>(OutputRef{"a1"}, 1);
-         auto& bData = outputs.make<int>(OutputRef{"a2"}, 1);
+         auto r = rand() % 2;
+         device.device()->WaitFor(std::chrono::seconds(r));
+         if (r == 0) {
+           outputs.make<int>(OutputRef{"a1"}, 1);
+         } else {
+           outputs.make<int>(OutputRef{"a2"}, 1);
+         }
        })},
      {ConfigParamSpec{"some-device-param", VariantType::Int, 1, {"Some device parameter"}}}},
     {"B",

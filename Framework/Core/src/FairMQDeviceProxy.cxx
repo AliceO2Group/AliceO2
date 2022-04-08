@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/FairMQDeviceProxy.h"
+#include "InputRouteHelpers.h"
 
 #include <fairmq/FairMQDevice.h>
 #include <fairmq/Channel.h>
@@ -18,69 +19,159 @@
 namespace o2::framework
 {
 
-ChannelIndex FairMQDeviceProxy::getChannelIndex(RouteIndex index) const
+ChannelIndex FairMQDeviceProxy::getOutputChannelIndex(RouteIndex index) const
 {
-  assert(mRoutes.size());
-  assert(index.value < mRoutes.size());
-  assert(mRoutes[index.value].channel.value != -1);
-  assert(mChannels.size());
-  assert(mRoutes[index.value].channel.value < mChannels.size());
-  return mRoutes[index.value].channel;
+  assert(mOutputRoutes.size());
+  assert(index.value < mOutputRoutes.size());
+  assert(mOutputRoutes[index.value].channel.value != -1);
+  assert(mOutputChannels.size());
+  assert(mOutputRoutes[index.value].channel.value < mOutputChannels.size());
+  return mOutputRoutes[index.value].channel;
 }
 
-fair::mq::Channel* FairMQDeviceProxy::getChannel(ChannelIndex index) const
+ChannelIndex FairMQDeviceProxy::getInputChannelIndex(RouteIndex index) const
 {
-  assert(mChannels.size());
-  assert(index.value < mChannels.size());
-  return mChannels[index.value];
+  assert(mInputRoutes.size());
+  assert(index.value < mInputRoutes.size());
+  assert(mInputRoutes[index.value].channel.value != -1);
+  assert(mInputChannels.size());
+  assert(mInputRoutes[index.value].channel.value < mInputChannels.size());
+  return mInputRoutes[index.value].channel;
 }
 
-FairMQTransportFactory* FairMQDeviceProxy::getTransport(RouteIndex index) const
+fair::mq::Channel* FairMQDeviceProxy::getOutputChannel(ChannelIndex index) const
 {
-  auto transport = getChannel(getChannelIndex(index))->Transport();
+  assert(mOutputChannels.size());
+  assert(index.value < mOutputChannels.size());
+  return mOutputChannels[index.value];
+}
+
+fair::mq::Channel* FairMQDeviceProxy::getInputChannel(ChannelIndex index) const
+{
+  assert(mInputChannels.size());
+  assert(index.value < mInputChannels.size());
+  return mInputChannels[index.value];
+}
+
+ChannelIndex FairMQDeviceProxy::getOutputChannelIndexByName(std::string const& name) const
+{
+  for (int i = 0; i < mOutputChannels.size(); i++) {
+    if (mOutputChannelNames[i] == name) {
+      return {i};
+    }
+  }
+  return {ChannelIndex::INVALID};
+}
+
+ChannelIndex FairMQDeviceProxy::getInputChannelIndexByName(std::string const& name) const
+{
+  for (int i = 0; i < mInputChannelNames.size(); i++) {
+    if (mInputChannelNames[i] == name) {
+      return {i};
+    }
+  }
+  return {ChannelIndex::INVALID};
+}
+
+FairMQTransportFactory* FairMQDeviceProxy::getOutputTransport(RouteIndex index) const
+{
+  auto transport = getOutputChannel(getOutputChannelIndex(index))->Transport();
   assert(transport);
   return transport;
 }
 
-std::unique_ptr<FairMQMessage> FairMQDeviceProxy::createMessage(RouteIndex routeIndex) const
+FairMQTransportFactory* FairMQDeviceProxy::getInputTransport(RouteIndex index) const
 {
-  return getTransport(routeIndex)->CreateMessage(fair::mq::Alignment{64});
+  auto transport = getInputChannel(getInputChannelIndex(index))->Transport();
+  assert(transport);
+  return transport;
 }
 
-std::unique_ptr<FairMQMessage> FairMQDeviceProxy::createMessage(RouteIndex routeIndex, const size_t size) const
+std::unique_ptr<FairMQMessage> FairMQDeviceProxy::createOutputMessage(RouteIndex routeIndex) const
 {
-  return getTransport(routeIndex)->CreateMessage(size, fair::mq::Alignment{64});
+  return getOutputTransport(routeIndex)->CreateMessage(fair::mq::Alignment{64});
 }
 
-void FairMQDeviceProxy::bindRoutes(std::vector<OutputRoute> const& outputs, fair::mq::Device& device)
+std::unique_ptr<FairMQMessage> FairMQDeviceProxy::createOutputMessage(RouteIndex routeIndex, const size_t size) const
 {
-  mRoutes.reserve(outputs.size());
-  size_t ri = 0;
-  std::unordered_map<std::string, ChannelIndex> channelNameToChannel;
-  for (auto& route : outputs) {
-    // If the channel is not yet registered, register it.
-    // If the channel is already registered, use the existing index.
-    auto channelPos = channelNameToChannel.find(route.channel);
-    ChannelIndex channelIndex;
+  return getOutputTransport(routeIndex)->CreateMessage(size, fair::mq::Alignment{64});
+}
 
-    if (channelPos == channelNameToChannel.end()) {
-      channelIndex = ChannelIndex{(int)mChannels.size()};
-      mChannels.push_back(&device.fChannels.at(route.channel).at(0));
-      channelNameToChannel[route.channel] = channelIndex;
-      LOGP(debug, "Binding channel {} to channel index {}", route.channel, channelIndex.value);
-    } else {
-      LOGP(debug, "Using index {} for channel {}", channelPos->second.value, route.channel);
-      channelIndex = channelPos->second;
+std::unique_ptr<FairMQMessage> FairMQDeviceProxy::createInputMessage(RouteIndex routeIndex) const
+{
+  return getInputTransport(routeIndex)->CreateMessage(fair::mq::Alignment{64});
+}
+
+std::unique_ptr<FairMQMessage> FairMQDeviceProxy::createInputMessage(RouteIndex routeIndex, const size_t size) const
+{
+  return getInputTransport(routeIndex)->CreateMessage(size, fair::mq::Alignment{64});
+}
+
+void FairMQDeviceProxy::bindRoutes(std::vector<OutputRoute> const& outputs, std::vector<InputRoute> const& inputs, fair::mq::Device& device)
+{
+  {
+    mOutputRoutes.reserve(outputs.size());
+    size_t ri = 0;
+    std::unordered_map<std::string, ChannelIndex> channelNameToChannel;
+    for (auto& route : outputs) {
+      // If the channel is not yet registered, register it.
+      // If the channel is already registered, use the existing index.
+      auto channelPos = channelNameToChannel.find(route.channel);
+      ChannelIndex channelIndex;
+
+      if (channelPos == channelNameToChannel.end()) {
+        channelIndex = ChannelIndex{(int)mOutputChannels.size()};
+        mOutputChannels.push_back(&device.fChannels.at(route.channel).at(0));
+        mOutputChannelNames.push_back(route.channel);
+        channelNameToChannel[route.channel] = channelIndex;
+        LOGP(debug, "Binding channel {} to channel index {}", route.channel, channelIndex.value);
+      } else {
+        LOGP(debug, "Using index {} for channel {}", channelPos->second.value, route.channel);
+        channelIndex = channelPos->second;
+      }
+      LOGP(debug, "Binding route {}@{}%{} to index {} and channelIndex {}", route.matcher, route.timeslice, route.maxTimeslices, ri, channelIndex.value);
+      mOutputRoutes.emplace_back(RouteState{channelIndex, false});
+      ri++;
     }
-    LOGP(debug, "Binding route {}@{}%{} to index {} and channelIndex {}", route.matcher, route.timeslice, route.maxTimeslices, ri, channelIndex.value);
-    mRoutes.emplace_back(RouteState{channelIndex, false});
-    ri++;
+    for (auto& route : mOutputRoutes) {
+      assert(route.channel.value != -1);
+      assert(route.channel.value < mOutputChannels.size());
+    }
+    LOGP(debug, "Total channels found {}, total routes {}", mOutputChannels.size(), mOutputRoutes.size());
+    assert(mOutputRoutes.size() == outputs.size());
   }
-  for (auto& route : mRoutes) {
-    assert(route.channel.value != -1);
-    assert(route.channel.value < mChannels.size());
+
+  {
+    auto maxLanes = InputRouteHelpers::maxLanes(inputs);
+    mInputRoutes.reserve(inputs.size());
+    size_t ri = 0;
+    std::unordered_map<std::string, ChannelIndex> channelNameToChannel;
+    for (auto& route : inputs) {
+      // If the channel is not yet registered, register it.
+      // If the channel is already registered, use the existing index.
+      auto channelPos = channelNameToChannel.find(route.sourceChannel);
+      ChannelIndex channelIndex;
+
+      if (channelPos == channelNameToChannel.end()) {
+        channelIndex = ChannelIndex{(int)mInputChannels.size()};
+        mInputChannels.push_back(&device.fChannels.at(route.sourceChannel).at(0));
+        mInputChannelNames.push_back(route.sourceChannel);
+        channelNameToChannel[route.sourceChannel] = channelIndex;
+        LOGP(debug, "Binding channel {} to channel index {}", route.sourceChannel, channelIndex.value);
+      } else {
+        LOGP(debug, "Using index {} for channel {}", channelPos->second.value, route.sourceChannel);
+        channelIndex = channelPos->second;
+      }
+      LOGP(debug, "Binding route {}@{}%{} to index {} and channelIndex {}", route.matcher, route.timeslice, maxLanes, ri, channelIndex.value);
+      mInputRoutes.emplace_back(RouteState{channelIndex, false});
+      ri++;
+    }
+    for (auto& route : mInputRoutes) {
+      assert(route.channel.value != -1);
+      assert(route.channel.value < mInputChannels.size());
+    }
+    LOGP(debug, "Total input channels found {}, total routes {}", mInputChannels.size(), mInputRoutes.size());
+    assert(mInputRoutes.size() == inputs.size());
   }
-  LOGP(debug, "Total channels found {}, total routes {}", mChannels.size(), mRoutes.size());
-  assert(mRoutes.size() == outputs.size());
 }
 } // namespace o2::framework

@@ -285,7 +285,7 @@ class DataAllocator
     RouteIndex routeIndex = matchDataHeader(spec, mRegistry->get<TimingInfo>().timeslice);
     if constexpr (is_messageable<T>::value == true) {
       // Serialize a snapshot of a trivially copyable, non-polymorphic object,
-      payloadMessage = proxy.createMessage(routeIndex, sizeof(T));
+      payloadMessage = proxy.createOutputMessage(routeIndex, sizeof(T));
       memcpy(payloadMessage->GetData(), &object, sizeof(T));
 
       serializationType = o2::header::gSerializationMethodNone;
@@ -298,7 +298,7 @@ class DataAllocator
         // reference object
         constexpr auto elementSizeInBytes = sizeof(ElementType);
         auto sizeInBytes = elementSizeInBytes * object.size();
-        payloadMessage = proxy.createMessage(routeIndex, sizeInBytes);
+        payloadMessage = proxy.createOutputMessage(routeIndex, sizeInBytes);
 
         if constexpr (std::is_pointer<typename T::value_type>::value == false) {
           // vector of elements
@@ -326,7 +326,7 @@ class DataAllocator
       }
     } else if constexpr (has_root_dictionary<T>::value == true || is_specialization_v<T, ROOTSerialized> == true) {
       // Serialize a snapshot of an object with root dictionary
-      payloadMessage = proxy.createMessage(routeIndex);
+      payloadMessage = proxy.createOutputMessage(routeIndex);
       if constexpr (is_specialization_v<T, ROOTSerialized> == true) {
         // Explicitely ROOT serialize a snapshot of object.
         // An object wrapped into type `ROOTSerialized` is explicitely marked to be ROOT serialized
@@ -407,7 +407,7 @@ class DataAllocator
     auto& timingInfo = mRegistry->get<TimingInfo>();
     auto& proxy = mRegistry->get<FairMQDeviceProxy>();
     RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
-    return *proxy.getTransport(routeIndex);
+    return *proxy.getOutputTransport(routeIndex);
   }
 
   //make a stl (pmr) vector
@@ -509,7 +509,7 @@ DataAllocator::CacheId DataAllocator::adoptContainer(const Output& spec, Contain
   auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
 
   auto& context = mRegistry->get<MessageContext>();
-  auto* transport = mRegistry->get<FairMQDeviceProxy>().getTransport(routeIndex);
+  auto* transport = mRegistry->get<FairMQDeviceProxy>().getOutputTransport(routeIndex);
   FairMQMessagePtr payloadMessage = o2::pmr::getMessage(std::forward<ContainerT>(container), *transport);
   FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex,         //
                                                            method,                   //

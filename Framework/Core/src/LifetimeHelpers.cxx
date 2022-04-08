@@ -21,6 +21,7 @@
 #include "Framework/VariableContextHelpers.h"
 #include "Framework/DataTakingContext.h"
 #include "Framework/InputRecord.h"
+#include "Framework/FairMQDeviceProxy.h"
 
 #include "Headers/DataHeader.h"
 #include "Headers/DataHeaderHelpers.h"
@@ -464,10 +465,12 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
   using counter_t = int64_t;
   auto counter = std::make_shared<counter_t>(0);
   return [matcher, counter, sourceChannel, orbitOffset, orbitMultiplier](ServiceRegistry& services, PartRef& ref, data_matcher::VariableContext& variables) -> void {
+    // Get the ChannelIndex associated to a given channel name
+    auto& deviceProxy = services.get<FairMQDeviceProxy>();
+    auto channelIndex = deviceProxy.getInputChannelIndexByName(sourceChannel);
     // We should invoke the handler only once.
     assert(!ref.header);
     assert(!ref.payload);
-    auto& rawDeviceService = services.get<RawDeviceService>();
 
     auto timestamp = VariableContextHelpers::getTimeslice(variables).value;
     LOGP(debug, "Enumerating record");
@@ -487,15 +490,19 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     variables.put({data_matcher::STARTTIME_POS, dph.startTime});
     variables.put({data_matcher::CREATIONTIME_POS, dph.creation});
 
-    auto&& transport = rawDeviceService.device()->GetChannel(sourceChannel, 0).Transport();
+    auto&& transport = deviceProxy.getInputChannel(channelIndex)->Transport();
     auto channelAlloc = o2::pmr::getTransportAllocator(transport);
     auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
     ref.header = std::move(header);
 
-    auto payload = rawDeviceService.device()->NewMessage(sizeof(counter_t));
+    auto payload = transport->CreateMessage(sizeof(counter_t));
     *(counter_t*)payload->GetData() = *counter;
     ref.payload = std::move(payload);
     (*counter)++;
+
+    auto& timesliceIndex = services.get<TimesliceIndex>();
+    auto newOldest = timesliceIndex.setOldestPossibleInput({dph.startTime}, channelIndex);
+    timesliceIndex.updateOldestPossibleOutput();
   };
 }
 
@@ -508,7 +515,9 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
     // We should invoke the handler only once.
     assert(!ref.header);
     assert(!ref.payload);
-    auto& rawDeviceService = services.get<RawDeviceService>();
+    // Get the ChannelIndex associated to a given channel name
+    auto& deviceProxy = services.get<FairMQDeviceProxy>();
+    auto channelIndex = deviceProxy.getInputChannelIndexByName(sourceChannel);
 
     auto timestamp = VariableContextHelpers::getTimeslice(variables).value;
     DataHeader dh;
@@ -537,12 +546,16 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
 
     DataProcessingHeader dph{timestamp, 1};
 
-    auto&& transport = rawDeviceService.device()->GetChannel(sourceChannel, 0).Transport();
+    auto&& transport = deviceProxy.getInputChannel(channelIndex)->Transport();
     auto channelAlloc = o2::pmr::getTransportAllocator(transport);
     auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
     ref.header = std::move(header);
-    auto payload = rawDeviceService.device()->NewMessage(0);
+    auto payload = transport->CreateMessage(0);
     ref.payload = std::move(payload);
+
+    auto& timesliceIndex = services.get<TimesliceIndex>();
+    auto newOldest = timesliceIndex.setOldestPossibleInput({dph.startTime}, channelIndex);
+    timesliceIndex.updateOldestPossibleOutput();
   };
   return f;
 }

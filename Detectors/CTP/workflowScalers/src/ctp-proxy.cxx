@@ -81,7 +81,7 @@ InjectorFunction dcs2dpl()
     FairMQParts outParts;
     outParts.AddPart(std::move(hdMessageF));
     outParts.AddPart(std::move(plMessageF));
-    sendOnChannel(device, outParts, channel);
+    sendOnChannel(device, outParts, channel, *timesliceId);
     // LOG(info) << "Sent CTP counters DPL message";
   };
 }
