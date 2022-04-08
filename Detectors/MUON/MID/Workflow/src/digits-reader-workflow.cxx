@@ -41,7 +41,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
     {"disable-mc", VariantType::Bool, false, {"Do not propagate MC info"}},
-    {"disable-zero-suppression", VariantType::Bool, false, {"Do not apply zero suppression"}},
+    {"disable-zero-suppression", VariantType::Bool, true, {"Do not apply zero suppression. Option is disabled since ZS cannot be applied right now (see ROBoradConfigHanler)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -52,6 +52,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   bool disableZS = cfgc.options().get<bool>("disable-zero-suppression");
+  disableZS = true; // Option is disabled
   bool useMC = !cfgc.options().get<bool>("disable-mc");
 
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
