@@ -277,6 +277,12 @@ class RootTreeWriter
   /// default constructor forbidden
   RootTreeWriter() = delete;
 
+  /// a destructor making sure that the Writer is closed (if didn't happen before)
+  ~RootTreeWriter()
+  {
+    close();
+  }
+
   /// constructor
   /// @param treename  name of file
   /// @param treename  name of tree to write
@@ -305,6 +311,7 @@ class RootTreeWriter
   {
     mFile = std::make_unique<TFile>(filename, "RECREATE");
     mTree = std::make_unique<TTree>(treename, treetitle != nullptr ? treetitle : treename);
+    mTree->SetDirectory(mFile.get());
     mTreeStructure->setup(mBranchSpecs, mTree.get());
   }
 
@@ -347,22 +354,25 @@ class RootTreeWriter
   /// the writer is invalid after calling close
   void close()
   {
-    mIsClosed = true;
-    if (!mFile) {
-      return;
+    if (!mIsClosed) {
+      mIsClosed = true;
+      if (!mFile) {
+        return;
+      }
+      if (mCustomClose) {
+        mCustomClose(mFile.get(), mTree.get());
+      } else {
+        // set the number of elements according to branch content and write tree
+        mTree->SetEntries();
+        // use TFile::Write rather then TTree::Write since latter writes to default gDirectory
+        mFile->Write();
+        mFile->Close();
+      }
+      // this is a feature of ROOT, the tree belongs to the file and will be deleted
+      // automatically
+      mTree.release();
+      mFile.reset(nullptr);
     }
-    if (mCustomClose) {
-      mCustomClose(mFile.get(), mTree.get());
-    } else {
-      // set the number of elements according to branch content and write tree
-      mTree->SetEntries();
-      mTree->Write();
-      mFile->Close();
-    }
-    // this is a feature of ROOT, the tree belongs to the file and will be deleted
-    // automatically
-    mTree.release();
-    mFile.reset(nullptr);
   }
 
   /// autosave the tree

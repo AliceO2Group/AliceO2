@@ -37,10 +37,10 @@ o2::framework::DataProcessorSpec getFV0DigitWriterSpec(bool mctruth = true)
                                 "fv0digits.root",
                                 "o2sim",
                                 1,
-                                BranchDefinition<std::vector<o2::fv0::Digit>>{InputSpec{"digitBCinput", "FV0", "DIGITSBC"}, "FV0DigitBC"},
-                                BranchDefinition<std::vector<o2::fv0::ChannelData>>{InputSpec{"digitChinput", "FV0", "DIGITSCH"}, "FV0DigitCh"},
-                                BranchDefinition<std::vector<o2::fv0::DetTrigInput>>{InputSpec{"digitTrinput", "FV0", "TRIGGERINPUT"}, "TRIGGERINPUT"},
-                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>>{InputSpec{"labelinput", "FV0", "DIGITLBL"}, "FV0DigitLabels", mctruth ? 1 : 0})();
+                                BranchDefinition<std::vector<o2::fv0::Digit>>{InputSpec{"fv0digitBCinput", "FV0", "DIGITSBC"}, "FV0DigitBC"},
+                                BranchDefinition<std::vector<o2::fv0::ChannelData>>{InputSpec{"fv0digitChinput", "FV0", "DIGITSCH"}, "FV0DigitCh"},
+                                BranchDefinition<std::vector<o2::fv0::DetTrigInput>>{InputSpec{"fv0digitTrinput", "FV0", "TRIGGERINPUT"}, "TRIGGERINPUT"},
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>>{InputSpec{"fv0labelinput", "FV0", "DIGITLBL"}, "FV0DigitLabels", mctruth ? 1 : 0})();
 }
 
 } // namespace fv0
