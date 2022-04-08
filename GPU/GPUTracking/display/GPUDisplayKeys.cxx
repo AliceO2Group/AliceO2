@@ -457,7 +457,7 @@ void GPUDisplay::HandleKey(unsigned char key)
     PrintHelp();
     SetInfo("Showing help text", 1);
   } else if (key == 'q') {
-    SetInfo("Starting GUI");
+    SetInfo("Starting GUI", 1);
     mFrontend->startGUI();
   } else if (key == 'Q') {
     SetInfo("Stopping GUI");
