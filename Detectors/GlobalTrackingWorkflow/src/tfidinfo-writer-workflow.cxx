@@ -11,6 +11,7 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigParamSpec.h"
+#include "DetectorsBase/TFIDInfoHelper.h"
 
 using namespace o2::framework;
 
@@ -26,6 +27,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 }
 
 #include "Framework/runDataProcessing.h"
+#include "Framework/DataProcessingHeader.h"
 #include "Framework/Task.h"
 #include "CommonDataFormat/TFIDInfo.h"
 #include "CommonUtils/NameConf.h"
@@ -44,8 +46,7 @@ class TFIDInfoWriter : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
-    mData.emplace_back(o2::dataformats::TFIDInfo{dh->firstTForbit, dh->tfCounter, dh->runNumber});
+    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mData.emplace_back());
   }
 
   void endOfStream(EndOfStreamContext& ec) final
