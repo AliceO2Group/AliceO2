@@ -56,7 +56,7 @@ class ResidualAggregatorDevice : public o2::framework::Task
     auto data = pc.inputs().get<gsl::span<o2::tpc::TrackResiduals::UnbinnedResid>>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mAggregator->getCurrentTFInfo());
     LOG(debug) << "Processing TF " << mAggregator->getCurrentTFInfo().tfCounter << " with " << data.size() << " unbinned residuals";
-    mAggregator->process(mAggregator->getCurrentTFInfo().tfCounter, data);
+    mAggregator->process(data);
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
