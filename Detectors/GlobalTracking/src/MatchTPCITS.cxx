@@ -559,13 +559,12 @@ bool MatchTPCITS::prepareITSData()
 
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mITSTrackROFRec[irof];
-    int nBC = rofRec.getBCData().differenceInBC(mStartIR);
-    if (nBC < 0 || nBC > 256 * o2::constants::lhc::LHCMaxBunches) { // RS: fixme: use real NHBFPerTF from GRP
+    auto nBC = rofRec.getBCData().differenceInBC(mStartIR);
+    if (uint64_t(nBC) > 256 * uint64_t(o2::constants::lhc::LHCMaxBunches)) { // RS: fixme: use real NHBFPerTF from GRP
       if (++errCount < MaxErrors2Report) {
         LOG(alarm) << "ITS ROF start " << rofRec.getBCData() << " does not match to TF with 1st orbit " << mStartIR;
-        return false;
       }
-      continue;
+      return false;
     }
     float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
     float tMax = (nBC + mITSROFrameLengthInBC) * o2::constants::lhc::LHCBunchSpacingMUS;
