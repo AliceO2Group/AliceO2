@@ -188,26 +188,24 @@ GPUg() void trackletSelectionKernel(
   Tracklet* tracklets12,
   const int* nFoundTracklet01,
   const int* nFoundTracklet12,
+  unsigned char* usedTracklets,
   Line* lines,
   int* nFoundLines,
   int* nExclusiveFoundLines,
-  const unsigned char isInitRun = false,
   const float tanLambdaCut = 0.025f,
   const float phiCut = 0.002f,
   const int maxTrackletsPerCluster = 10)
 {
-  for (size_t iCurrentLayerClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentLayerClusterIndex < nClustersMiddleLayer; iCurrentLayerClusterIndex += blockDim.x * gridDim.x) {
+  for (int iCurrentLayerClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentLayerClusterIndex < nClustersMiddleLayer; iCurrentLayerClusterIndex += blockDim.x * gridDim.x) {
     const int stride{static_cast<int>(iCurrentLayerClusterIndex * maxTrackletsPerCluster)};
     int validTracklets{0};
     for (int iTracklet12{0}; iTracklet12 < nFoundTracklet12[iCurrentLayerClusterIndex]; ++iTracklet12) {
       for (int iTracklet01{0}; iTracklet01 < nFoundTracklet01[iCurrentLayerClusterIndex] && validTracklets < maxTrackletsPerCluster; ++iTracklet01) {
         const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(tracklets01[stride + iTracklet01].tanLambda - tracklets12[stride + iTracklet12].tanLambda)};
         const float deltaPhi{o2::gpu::GPUCommonMath::Abs(tracklets01[stride + iTracklet01].phi - tracklets12[stride + iTracklet12].phi)};
-        if (deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTrackletsPerCluster) {
-          if (tracklets01[stride + iTracklet01].secondClusterIndex == tracklets12[stride + iTracklet12].firstClusterIndex) {
-            printf("disastro\n");
-          }
+        if (!usedTracklets[iTracklet01] && deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTrackletsPerCluster) {
           if constexpr (!initRun) {
+            usedTracklets[iTracklet01] = true;
             new (lines + nExclusiveFoundLines[iCurrentLayerClusterIndex] + validTracklets) Line{tracklets01[stride + iTracklet01], clusters0, clusters1};
           }
           ++validTracklets;
@@ -217,7 +215,7 @@ GPUg() void trackletSelectionKernel(
     if constexpr (initRun) {
       nFoundLines[iCurrentLayerClusterIndex] = validTracklets;
       if (validTracklets >= maxTrackletsPerCluster) {
-        printf("Warning: not enough space for tracklet selection, some lines will be left behind\n");
+        printf("gpu tracklet selection: some lines will be left behind for cluster %d. valid: %d max: %d\n", iCurrentLayerClusterIndex, validTracklets, maxTrackletsPerCluster);
       }
     }
   }
@@ -387,16 +385,18 @@ void VertexerTraitsGPU::computeTrackletMatching()
 
     size_t bufferSize = mTimeFrameGPU->getConfig().tmpCUBBufferSize * sizeof(int);
 
-    // gpu::trackletSelectionKernel<true><<<blocksGrid, threadsPerBlock>>>(
-    //   mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 0),
-    //   mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 1),
-    //   mTimeFrameGPU->getNClustersLayer(rofId, 1),
-    //   mTimeFrameGPU->getDeviceTracklets()[0].get(),
-    //   mTimeFrameGPU->getDeviceTracklets()[1].get(),
-    //   mTimeFrameGPU->getDeviceNTrackletsCluster(rofId, 0),
-    //   mTimeFrameGPU->getDeviceNTrackletsCluster(rofId, 1),
-
-    // );
+    gpu::trackletSelectionKernel<true><<<blocksGrid, threadsPerBlock>>>(
+      mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 0),
+      mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 1),
+      mTimeFrameGPU->getNClustersLayer(rofId, 1),
+      mTimeFrameGPU->getDeviceTracklets()[0].get(),
+      mTimeFrameGPU->getDeviceTracklets()[1].get(),
+      mTimeFrameGPU->getDeviceNTrackletsCluster(rofId, 0),
+      mTimeFrameGPU->getDeviceNTrackletsCluster(rofId, 1),
+      mTimeFrameGPU->getDeviceUsedTracklets(rofId),
+      mTimeFrameGPU->getDeviceLines(rofId),
+      mTimeFrameGPU->getDeviceNFoundLines(rofId),
+      mTimeFrameGPU->getDeviceExclusiveNFoundLines(rofId));
 
     // discardResult(cub::DeviceScan::ExclusiveSum(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()),
     //                                             bufferSize,
