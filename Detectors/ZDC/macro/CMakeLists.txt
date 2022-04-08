@@ -56,4 +56,5 @@ o2_add_test_root_macro(CreateTDCCorr.C
 o2_add_test_root_macro(CreateInterCalibConfig.C
                        PUBLIC_LINK_LIBRARIES O2::ZDCBase O2::ZDCReconstruction
                                              O2::SimulationDataFormat O2::CCDB
+                                             O2::ZDCCalib
                        LABELS zdc)
