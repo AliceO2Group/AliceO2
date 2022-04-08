@@ -21,7 +21,7 @@ namespace o2
 {
 namespace its
 {
-
+using constants::MB;
 namespace gpu
 {
 
@@ -45,8 +45,8 @@ TimeFrameGPU<NLayers>::TimeFrameGPU()
     mClusterExternalIndicesD[iLayer] = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
     mROframesClustersD[iLayer] = Vector<int>{mConfig.clustersPerROfCapacity, mConfig.clustersPerROfCapacity};
     if (iLayer < NLayers - 1) {
-      mTrackletsD[iLayer] = Vector<Tracklet>{mConfig.clustersPerLayerCapacity * mConfig.maxTrackletsPerCluster,
-                                             mConfig.clustersPerLayerCapacity * mConfig.maxTrackletsPerCluster};
+      mTrackletsD[iLayer] = Vector<Tracklet>{mConfig.trackletsCapacity,
+                                             mConfig.trackletsCapacity};
     }
   }
 
@@ -55,6 +55,34 @@ TimeFrameGPU<NLayers>::TimeFrameGPU()
   }
   mIndexTablesLayer0D = Vector<int>{mConfig.nMaxROFs * (ZBins * PhiBins + 1), mConfig.nMaxROFs * (ZBins * PhiBins + 1)};
   mIndexTablesLayer2D = Vector<int>{mConfig.nMaxROFs * (ZBins * PhiBins + 1), mConfig.nMaxROFs * (ZBins * PhiBins + 1)};
+  mLines = Vector<Line>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
+  // mNFoundLines = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};          // 4e4 * sizeof(int) = 160KB
+  // mNExclusiveFoundLines = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity}; // 4e4 * sizeof(int) = 160KB, tot = <10MB
+  getDeviceMemory();
+}
+
+template <int NLayers>
+float TimeFrameGPU<NLayers>::getDeviceMemory()
+{
+  float totalMemory{0};
+  totalMemory += NLayers * mConfig.clustersPerLayerCapacity * sizeof(Cluster);
+  totalMemory += NLayers * mConfig.clustersPerLayerCapacity * sizeof(TrackingFrameInfo);
+  totalMemory += NLayers * mConfig.clustersPerLayerCapacity * sizeof(int);
+  totalMemory += NLayers * mConfig.clustersPerROfCapacity * sizeof(int);
+  totalMemory += (NLayers - 1) * mConfig.trackletsCapacity * sizeof(Tracklet);
+  totalMemory += 2 * mConfig.clustersPerLayerCapacity * sizeof(int);
+  totalMemory += 2 * mConfig.nMaxROFs * (ZBins * PhiBins + 1) * sizeof(int);
+
+  LOGP(info, "Total requested memory for GPU: {:.2f} MB", totalMemory / MB);
+  LOGP(info, "\t- clusters: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(Cluster) / MB);
+  LOGP(info, "\t- tracking frame info: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(TrackingFrameInfo) / MB);
+  LOGP(info, "\t- cluster external indices: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
+  LOGP(info, "\t- clusters per ROf: {:.2f} MB", NLayers * mConfig.clustersPerROfCapacity * sizeof(int) / MB);
+  LOGP(info, "\t- tracklets: {:.2f} MB", (NLayers - 1) * mConfig.trackletsCapacity * sizeof(Tracklet) / MB);
+  LOGP(info, "\t- n tracklets per cluster: {:.2f} MB", 2 * mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
+  LOGP(info, "\t- index tables: {:.2f} MB", 2 * mConfig.nMaxROFs * (ZBins * PhiBins + 1) * sizeof(int) / MB);
+
+  return totalMemory;
 }
 
 template <int NLayers>

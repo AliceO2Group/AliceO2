@@ -116,33 +116,15 @@ GPUd() void printVectorOnThread(const char* name, Vector<int>& vector, size_t si
   }
 }
 
-GPUg() void printVectorKernel(DeviceStoreVertexerGPU& store, const unsigned int threadId)
-{
-  if (blockIdx.x * blockDim.x + threadIdx.x == threadId) {
-    for (int i{0}; i < store.getConfig().histConf.nBinsXYZ[0] - 1; ++i) {
-      printf("%d: %d\n", i, store.getHistogramXYZ()[0].get()[i]);
-    }
-    printf("\n");
-    for (int i{0}; i < store.getConfig().histConf.nBinsXYZ[1] - 1; ++i) {
-      printf("%d: %d\n", i, store.getHistogramXYZ()[1].get()[i]);
-    }
-    printf("\n");
-    for (int i{0}; i < store.getConfig().histConf.nBinsXYZ[2] - 1; ++i) {
-      printf("%d: %d\n", i, store.getHistogramXYZ()[2].get()[i]);
-    }
-    printf("\n");
-  }
-}
-
-GPUg() void dumpMaximaKernel(DeviceStoreVertexerGPU& store, const unsigned int threadId)
-{
-  if (blockIdx.x * blockDim.x + threadIdx.x == threadId) {
-    printf("XmaxBin: %d at index: %d | YmaxBin: %d at index: %d | ZmaxBin: %d at index: %d\n",
-           store.getTmpVertexPositionBins()[0].value, store.getTmpVertexPositionBins()[0].key,
-           store.getTmpVertexPositionBins()[1].value, store.getTmpVertexPositionBins()[1].key,
-           store.getTmpVertexPositionBins()[2].value, store.getTmpVertexPositionBins()[2].key);
-  }
-}
+// GPUg() void dumpMaximaKernel(DeviceStoreVertexerGPU& store, const int threadId)
+// {
+//   if (blockIdx.x * blockDim.x + threadIdx.x == threadId) {
+//     printf("XmaxBin: %d at index: %d | YmaxBin: %d at index: %d | ZmaxBin: %d at index: %d\n",
+//            store.getTmpVertexPositionBins()[0].value, store.getTmpVertexPositionBins()[0].key,
+//            store.getTmpVertexPositionBins()[1].value, store.getTmpVertexPositionBins()[1].key,
+//            store.getTmpVertexPositionBins()[2].value, store.getTmpVertexPositionBins()[2].key);
+//   }
+// }
 
 template <TrackletMode Mode>
 GPUg() void trackleterKernel(
@@ -197,148 +179,159 @@ GPUg() void trackleterKernel(
   }
 }
 
+template <bool initRun>
 GPUg() void trackletSelectionKernel(
-  DeviceStoreVertexerGPU& store,
+  const Cluster* clusters0,
+  const Cluster* clusters1,
+  const size_t nClustersMiddleLayer,
+  Tracklet* tracklets01,
+  Tracklet* tracklets12,
+  const int* nFoundTracklet01,
+  const int* nFoundTracklet12,
+  Line* lines,
+  int* nFoundLines,
+  int* nExclusiveFoundLines,
   const unsigned char isInitRun = false,
   const float tanLambdaCut = 0.025f,
-  const float phiCut = 0.002f)
+  const float phiCut = 0.002f,
+  const int maxTrackletsPerCluster = 10)
 {
-  const size_t nClustersMiddleLayer = store.getClusters()[1].size();
   for (size_t iCurrentLayerClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentLayerClusterIndex < nClustersMiddleLayer; iCurrentLayerClusterIndex += blockDim.x * gridDim.x) {
-    const int stride{static_cast<int>(iCurrentLayerClusterIndex * store.getConfig().maxTrackletsPerCluster)};
+    const int stride{static_cast<int>(iCurrentLayerClusterIndex * maxTrackletsPerCluster)};
     int validTracklets{0};
-    for (int iTracklet12{0}; iTracklet12 < store.getNFoundTracklets(TrackletingLayerOrder::fromMiddleToOuterLayer)[iCurrentLayerClusterIndex]; ++iTracklet12) {
-      for (int iTracklet01{0}; iTracklet01 < store.getNFoundTracklets(TrackletingLayerOrder::fromInnermostToMiddleLayer)[iCurrentLayerClusterIndex] && validTracklets < store.getConfig().maxTrackletsPerCluster; ++iTracklet01) {
-        const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(store.getDuplets01()[stride + iTracklet01].tanLambda - store.getDuplets12()[stride + iTracklet12].tanLambda)};
-        const float deltaPhi{o2::gpu::GPUCommonMath::Abs(store.getDuplets01()[stride + iTracklet01].phi - store.getDuplets12()[stride + iTracklet12].phi)};
-        if (deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != store.getConfig().maxTrackletsPerCluster) {
-          assert(store.getDuplets01()[stride + iTracklet01].secondClusterIndex == store.getDuplets12()[stride + iTracklet12].firstClusterIndex);
-          if (!isInitRun) {
-            store.getLines().emplace(store.getNExclusiveFoundLines()[iCurrentLayerClusterIndex] + validTracklets, store.getDuplets01()[stride + iTracklet01], store.getClusters()[0].get(), store.getClusters()[1].get());
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-            store.getDupletIndices()[0].emplace(store.getNExclusiveFoundLines()[iCurrentLayerClusterIndex] + validTracklets, stride + iTracklet01);
-            store.getDupletIndices()[1].emplace(store.getNExclusiveFoundLines()[iCurrentLayerClusterIndex] + validTracklets, stride + iTracklet12);
-#endif
+    for (int iTracklet12{0}; iTracklet12 < nFoundTracklet12[iCurrentLayerClusterIndex]; ++iTracklet12) {
+      for (int iTracklet01{0}; iTracklet01 < nFoundTracklet01[iCurrentLayerClusterIndex] && validTracklets < maxTrackletsPerCluster; ++iTracklet01) {
+        const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(tracklets01[stride + iTracklet01].tanLambda - tracklets12[stride + iTracklet12].tanLambda)};
+        const float deltaPhi{o2::gpu::GPUCommonMath::Abs(tracklets01[stride + iTracklet01].phi - tracklets12[stride + iTracklet12].phi)};
+        if (deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTrackletsPerCluster) {
+          if (tracklets01[stride + iTracklet01].secondClusterIndex == tracklets12[stride + iTracklet12].firstClusterIndex) {
+            printf("disastro\n");
+          }
+          if constexpr (!initRun) {
+            new (lines + nExclusiveFoundLines[iCurrentLayerClusterIndex] + validTracklets) Line{tracklets01[stride + iTracklet01], clusters0, clusters1};
           }
           ++validTracklets;
         }
       }
     }
-    if (isInitRun) {
-      store.getNFoundLines().emplace(iCurrentLayerClusterIndex, validTracklets);
-      if (validTracklets >= store.getConfig().maxTrackletsPerCluster) {
+    if constexpr (initRun) {
+      nFoundLines[iCurrentLayerClusterIndex] = validTracklets;
+      if (validTracklets >= maxTrackletsPerCluster) {
         printf("Warning: not enough space for tracklet selection, some lines will be left behind\n");
       }
     }
   }
 }
 
-GPUg() void computeCentroidsKernel(DeviceStoreVertexerGPU& store,
-                                   const float pairCut)
-{
-  const size_t nLines = store.getNExclusiveFoundLines()[store.getClusters()[1].size() - 1] + store.getNFoundLines()[store.getClusters()[1].size() - 1];
-  const size_t maxIterations{nLines * (nLines - 1) / 2};
-  for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < maxIterations; currentThreadIndex += blockDim.x * gridDim.x) {
-    int iFirstLine = currentThreadIndex / nLines;
-    int iSecondLine = currentThreadIndex % nLines;
-    if (iSecondLine <= iFirstLine) {
-      iFirstLine = nLines - iFirstLine - 2;
-      iSecondLine = nLines - iSecondLine - 1;
-    }
-    if (Line::getDCA(store.getLines()[iFirstLine], store.getLines()[iSecondLine]) < pairCut) {
-      ClusterLinesGPU cluster{store.getLines()[iFirstLine], store.getLines()[iSecondLine]};
-      if (cluster.getVertex()[0] * cluster.getVertex()[0] + cluster.getVertex()[1] * cluster.getVertex()[1] < 1.98f * 1.98f) {
-        // printOnThread(0, "xCentr: %f, yCentr: %f \n", cluster.getVertex()[0], cluster.getVertex()[1]);
-        store.getXYCentroids().emplace(2 * currentThreadIndex, cluster.getVertex()[0]);
-        store.getXYCentroids().emplace(2 * currentThreadIndex + 1, cluster.getVertex()[1]);
-      } else {
-        // writing some data anyway outside the histogram, they will not be put in the histogram, by construction.
-        store.getXYCentroids().emplace(2 * currentThreadIndex, 2 * store.getConfig().histConf.lowHistBoundariesXYZ[0]);
-        store.getXYCentroids().emplace(2 * currentThreadIndex + 1, 2 * store.getConfig().histConf.lowHistBoundariesXYZ[1]);
-      }
-    } else {
-      // writing some data anyway outside the histogram, they will not be put in the histogram, by construction.
-      store.getXYCentroids().emplace(2 * currentThreadIndex, 2 * store.getConfig().histConf.lowHistBoundariesXYZ[0]);
-      store.getXYCentroids().emplace(2 * currentThreadIndex + 1, 2 * store.getConfig().histConf.lowHistBoundariesXYZ[1]);
-    }
-  }
-}
+// GPUg() void computeCentroidsKernel(DeviceStoreVertexerGPU& store,
+//                                    const float pairCut)
+// {
+//   const int nLines = store.getNExclusiveFoundLines()[store.getClusters()[1].size() - 1] + store.getNFoundLines()[store.getClusters()[1].size() - 1];
+//   const int maxIterations{nLines * (nLines - 1) / 2};
+//   for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < maxIterations; currentThreadIndex += blockDim.x * gridDim.x) {
+//     int iFirstLine = currentThreadIndex / nLines;
+//     int iSecondLine = currentThreadIndex % nLines;
+//     if (iSecondLine <= iFirstLine) {
+//       iFirstLine = nLines - iFirstLine - 2;
+//       iSecondLine = nLines - iSecondLine - 1;
+//     }
+//     if (Line::getDCA(store.getLines()[iFirstLine], store.getLines()[iSecondLine]) < pairCut) {
+//       ClusterLinesGPU cluster{store.getLines()[iFirstLine], store.getLines()[iSecondLine]};
+//       if (cluster.getVertex()[0] * cluster.getVertex()[0] + cluster.getVertex()[1] * cluster.getVertex()[1] < 1.98f * 1.98f) {
+//         // printOnThread(0, "xCentr: %f, yCentr: %f \n", cluster.getVertex()[0], cluster.getVertex()[1]);
+//         store.getXYCentroids().emplace(2 * currentThreadIndex, cluster.getVertex()[0]);
+//         store.getXYCentroids().emplace(2 * currentThreadIndex + 1, cluster.getVertex()[1]);
+//       } else {
+//         // writing some data anyway outside the histogram, they will not be put in the histogram, by construction.
+//         store.getXYCentroids().emplace(2 * currentThreadIndex, 2 * store.getConfig().histConf.lowHistBoundariesXYZ[0]);
+//         store.getXYCentroids().emplace(2 * currentThreadIndex + 1, 2 * store.getConfig().histConf.lowHistBoundariesXYZ[1]);
+//       }
+//     } else {
+//       // writing some data anyway outside the histogram, they will not be put in the histogram, by construction.
+//       store.getXYCentroids().emplace(2 * currentThreadIndex, 2 * store.getConfig().histConf.lowHistBoundariesXYZ[0]);
+//       store.getXYCentroids().emplace(2 * currentThreadIndex + 1, 2 * store.getConfig().histConf.lowHistBoundariesXYZ[1]);
+//     }
+//   }
+// }
 
-GPUg() void computeZCentroidsKernel(DeviceStoreVertexerGPU& store,
-                                    const float pairCut, const int binOpeningX, const int binOpeningY)
-{
-  const int nLines = store.getNExclusiveFoundLines()[store.getClusters()[1].size() - 1] + store.getNFoundLines()[store.getClusters()[1].size() - 1];
-  for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < nLines; currentThreadIndex += blockDim.x * gridDim.x) {
-    if (store.getTmpVertexPositionBins()[0].value || store.getTmpVertexPositionBins()[1].value) {
-      float tmpX{store.getConfig().histConf.lowHistBoundariesXYZ[0] + store.getTmpVertexPositionBins()[0].key * store.getConfig().histConf.binSizeHistX + store.getConfig().histConf.binSizeHistX / 2};
-      int sumWX{store.getTmpVertexPositionBins()[0].value};
-      float wX{tmpX * store.getTmpVertexPositionBins()[0].value};
-      for (int iBin{o2::gpu::GPUCommonMath::Max(0, store.getTmpVertexPositionBins()[0].key - binOpeningX)}; iBin < o2::gpu::GPUCommonMath::Min(store.getTmpVertexPositionBins()[0].key + binOpeningX + 1, store.getConfig().histConf.nBinsXYZ[0] - 1); ++iBin) {
-        if (iBin != store.getTmpVertexPositionBins()[0].key) {
-          wX += (store.getConfig().histConf.lowHistBoundariesXYZ[0] + iBin * store.getConfig().histConf.binSizeHistX + store.getConfig().histConf.binSizeHistX / 2) * store.getHistogramXYZ()[0].get()[iBin];
-          sumWX += store.getHistogramXYZ()[0].get()[iBin];
-        }
-      }
-      float tmpY{store.getConfig().histConf.lowHistBoundariesXYZ[1] + store.getTmpVertexPositionBins()[1].key * store.getConfig().histConf.binSizeHistY + store.getConfig().histConf.binSizeHistY / 2};
-      int sumWY{store.getTmpVertexPositionBins()[1].value};
-      float wY{tmpY * store.getTmpVertexPositionBins()[1].value};
-      for (int iBin{o2::gpu::GPUCommonMath::Max(0, store.getTmpVertexPositionBins()[1].key - binOpeningY)}; iBin < o2::gpu::GPUCommonMath::Min(store.getTmpVertexPositionBins()[1].key + binOpeningY + 1, store.getConfig().histConf.nBinsXYZ[1] - 1); ++iBin) {
-        if (iBin != store.getTmpVertexPositionBins()[1].key) {
-          wY += (store.getConfig().histConf.lowHistBoundariesXYZ[1] + iBin * store.getConfig().histConf.binSizeHistY + store.getConfig().histConf.binSizeHistY / 2) * store.getHistogramXYZ()[1].get()[iBin];
-          sumWY += store.getHistogramXYZ()[1].get()[iBin];
-        }
-      }
-      store.getBeamPosition().emplace(0, wX / sumWX);
-      store.getBeamPosition().emplace(1, wY / sumWY);
-      float fakeBeamPoint1[3] = {store.getBeamPosition()[0], store.getBeamPosition()[1], -1}; // get two points laying at different z, to create line object
-      float fakeBeamPoint2[3] = {store.getBeamPosition()[0], store.getBeamPosition()[1], 1};
-      Line pseudoBeam = {fakeBeamPoint1, fakeBeamPoint2};
-      if (Line::getDCA(store.getLines()[currentThreadIndex], pseudoBeam) < pairCut) {
-        ClusterLinesGPU cluster{store.getLines()[currentThreadIndex], pseudoBeam};
-        store.getZCentroids().emplace(currentThreadIndex, cluster.getVertex()[2]);
-      } else {
-        store.getZCentroids().emplace(currentThreadIndex, 2 * store.getConfig().histConf.lowHistBoundariesXYZ[2]);
-      }
-    }
-  }
-}
+// GPUg() void computeZCentroidsKernel(DeviceStoreVertexerGPU& store,
+//                                     const float pairCut, const int binOpeningX, const int binOpeningY)
+// {
+//   const int nLines = store.getNExclusiveFoundLines()[store.getClusters()[1].size() - 1] + store.getNFoundLines()[store.getClusters()[1].size() - 1];
+//   for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < nLines; currentThreadIndex += blockDim.x * gridDim.x) {
+//     if (store.getTmpVertexPositionBins()[0].value || store.getTmpVertexPositionBins()[1].value) {
+//       float tmpX{store.getConfig().histConf.lowHistBoundariesXYZ[0] + store.getTmpVertexPositionBins()[0].key * store.getConfig().histConf.binSizeHistX + store.getConfig().histConf.binSizeHistX / 2};
+//       int sumWX{store.getTmpVertexPositionBins()[0].value};
+//       float wX{tmpX * store.getTmpVertexPositionBins()[0].value};
+//       for (int iBin{o2::gpu::GPUCommonMath::Max(0, store.getTmpVertexPositionBins()[0].key - binOpeningX)}; iBin < o2::gpu::GPUCommonMath::Min(store.getTmpVertexPositionBins()[0].key + binOpeningX + 1, store.getConfig().histConf.nBinsXYZ[0] - 1); ++iBin) {
+//         if (iBin != store.getTmpVertexPositionBins()[0].key) {
+//           wX += (store.getConfig().histConf.lowHistBoundariesXYZ[0] + iBin * store.getConfig().histConf.binSizeHistX + store.getConfig().histConf.binSizeHistX / 2) * store.getHistogramXYZ()[0].get()[iBin];
+//           sumWX += store.getHistogramXYZ()[0].get()[iBin];
+//         }
+//       }
+//       float tmpY{store.getConfig().histConf.lowHistBoundariesXYZ[1] + store.getTmpVertexPositionBins()[1].key * store.getConfig().histConf.binSizeHistY + store.getConfig().histConf.binSizeHistY / 2};
+//       int sumWY{store.getTmpVertexPositionBins()[1].value};
+//       float wY{tmpY * store.getTmpVertexPositionBins()[1].value};
+//       for (int iBin{o2::gpu::GPUCommonMath::Max(0, store.getTmpVertexPositionBins()[1].key - binOpeningY)}; iBin < o2::gpu::GPUCommonMath::Min(store.getTmpVertexPositionBins()[1].key + binOpeningY + 1, store.getConfig().histConf.nBinsXYZ[1] - 1); ++iBin) {
+//         if (iBin != store.getTmpVertexPositionBins()[1].key) {
+//           wY += (store.getConfig().histConf.lowHistBoundariesXYZ[1] + iBin * store.getConfig().histConf.binSizeHistY + store.getConfig().histConf.binSizeHistY / 2) * store.getHistogramXYZ()[1].get()[iBin];
+//           sumWY += store.getHistogramXYZ()[1].get()[iBin];
+//         }
+//       }
+//       store.getBeamPosition().emplace(0, wX / sumWX);
+//       store.getBeamPosition().emplace(1, wY / sumWY);
+//       float fakeBeamPoint1[3] = {store.getBeamPosition()[0], store.getBeamPosition()[1], -1}; // get two points laying at different z, to create line object
+//       float fakeBeamPoint2[3] = {store.getBeamPosition()[0], store.getBeamPosition()[1], 1};
+//       Line pseudoBeam = {fakeBeamPoint1, fakeBeamPoint2};
+//       if (Line::getDCA(store.getLines()[currentThreadIndex], pseudoBeam) < pairCut) {
+//         ClusterLinesGPU cluster{store.getLines()[currentThreadIndex], pseudoBeam};
+//         store.getZCentroids().emplace(currentThreadIndex, cluster.getVertex()[2]);
+//       } else {
+//         store.getZCentroids().emplace(currentThreadIndex, 2 * store.getConfig().histConf.lowHistBoundariesXYZ[2]);
+//       }
+//     }
+//   }
+// }
 
-GPUg() void computeVertexKernel(DeviceStoreVertexerGPU& store, const int vertIndex, const int minContributors, const int binOpeningZ)
-{
-  for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < binOpeningZ; currentThreadIndex += blockDim.x * gridDim.x) {
-    if (currentThreadIndex == 0) {
-      if (store.getTmpVertexPositionBins()[2].value > 1 && (store.getTmpVertexPositionBins()[0].value || store.getTmpVertexPositionBins()[1].value)) {
-        float z{store.getConfig().histConf.lowHistBoundariesXYZ[2] + store.getTmpVertexPositionBins()[2].key * store.getConfig().histConf.binSizeHistZ + store.getConfig().histConf.binSizeHistZ / 2};
-        float ex{0.f};
-        float ey{0.f};
-        float ez{0.f};
-        int sumWZ{store.getTmpVertexPositionBins()[2].value};
-        float wZ{z * store.getTmpVertexPositionBins()[2].value};
-        for (int iBin{o2::gpu::GPUCommonMath::Max(0, store.getTmpVertexPositionBins()[2].key - binOpeningZ)}; iBin < o2::gpu::GPUCommonMath::Min(store.getTmpVertexPositionBins()[2].key + binOpeningZ + 1, store.getConfig().histConf.nBinsXYZ[2] - 1); ++iBin) {
-          if (iBin != store.getTmpVertexPositionBins()[2].key) {
-            wZ += (store.getConfig().histConf.lowHistBoundariesXYZ[2] + iBin * store.getConfig().histConf.binSizeHistZ + store.getConfig().histConf.binSizeHistZ / 2) * store.getHistogramXYZ()[2].get()[iBin];
-            sumWZ += store.getHistogramXYZ()[2].get()[iBin];
-          }
-          store.getHistogramXYZ()[2].get()[iBin] = 0;
-        }
-        if (sumWZ > minContributors || vertIndex == 0) {
-          store.getVertices().emplace(vertIndex, store.getBeamPosition()[0], store.getBeamPosition()[1], wZ / sumWZ, ex, ey, ez, sumWZ);
-        } else {
-          store.getVertices().emplace(vertIndex);
-        }
-      } else {
-        store.getVertices().emplace(vertIndex);
-      }
-    }
-  }
-}
+// GPUg() void computeVertexKernel(DeviceStoreVertexerGPU& store, const int vertIndex, const int minContributors, const int binOpeningZ)
+// {
+//   for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < binOpeningZ; currentThreadIndex += blockDim.x * gridDim.x) {
+//     if (currentThreadIndex == 0) {
+//       if (store.getTmpVertexPositionBins()[2].value > 1 && (store.getTmpVertexPositionBins()[0].value || store.getTmpVertexPositionBins()[1].value)) {
+//         float z{store.getConfig().histConf.lowHistBoundariesXYZ[2] + store.getTmpVertexPositionBins()[2].key * store.getConfig().histConf.binSizeHistZ + store.getConfig().histConf.binSizeHistZ / 2};
+//         float ex{0.f};
+//         float ey{0.f};
+//         float ez{0.f};
+//         int sumWZ{store.getTmpVertexPositionBins()[2].value};
+//         float wZ{z * store.getTmpVertexPositionBins()[2].value};
+//         for (int iBin{o2::gpu::GPUCommonMath::Max(0, store.getTmpVertexPositionBins()[2].key - binOpeningZ)}; iBin < o2::gpu::GPUCommonMath::Min(store.getTmpVertexPositionBins()[2].key + binOpeningZ + 1, store.getConfig().histConf.nBinsXYZ[2] - 1); ++iBin) {
+//           if (iBin != store.getTmpVertexPositionBins()[2].key) {
+//             wZ += (store.getConfig().histConf.lowHistBoundariesXYZ[2] + iBin * store.getConfig().histConf.binSizeHistZ + store.getConfig().histConf.binSizeHistZ / 2) * store.getHistogramXYZ()[2].get()[iBin];
+//             sumWZ += store.getHistogramXYZ()[2].get()[iBin];
+//           }
+//           store.getHistogramXYZ()[2].get()[iBin] = 0;
+//         }
+//         if (sumWZ > minContributors || vertIndex == 0) {
+//           store.getVertices().emplace(vertIndex, store.getBeamPosition()[0], store.getBeamPosition()[1], wZ / sumWZ, ex, ey, ez, sumWZ);
+//         } else {
+//           store.getVertices().emplace(vertIndex);
+//         }
+//       } else {
+//         store.getVertices().emplace(vertIndex);
+//       }
+//     }
+//   }
+// }
 } // namespace gpu
 
 void VertexerTraitsGPU::computeTracklets()
 {
+  if (!mTimeFrameGPU->getClusters().size()) {
+    return;
+  }
   for (int rofId{0}; rofId < mTimeFrameGPU->getNrof(); ++rofId) {
-    // const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mTimeFrameGPU->getNClustersLayer(rofId, 1))};
-    // const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getNClustersLayer(rofId, 1))};
+    const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mTimeFrameGPU->getNClustersLayer(rofId, 1))};
+    const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getNClustersLayer(rofId, 1))};
     gpu::trackleterKernel<TrackletMode::Layer0Layer1><<<1, 1>>>(
       mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 0),
       mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 1),
@@ -383,52 +376,43 @@ void VertexerTraitsGPU::computeTracklets()
   // #endif
 }
 
-// void VertexerTraitsGPU::computeTrackletMatching()
-// {
-//   if (!mClusters[1].size()) {
-//     return;
-//   }
-//   const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mClusters[1].capacity())};
-//   const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
-//   size_t bufferSize = mStoreVertexerGPU.getConfig().tmpCUBBufferSize * sizeof;
+void VertexerTraitsGPU::computeTrackletMatching()
+{
+  if (!mTimeFrameGPU->getClusters().size()) {
+    return;
+  }
+  for (int rofId{0}; rofId < mTimeFrameGPU->getNrof(); ++rofId) {
+    const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mTimeFrameGPU->getNClustersLayer(rofId, 1))};
+    const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getNClustersLayer(rofId, 1))};
 
-//   gpu::trackletSelectionKernel<<<blocksGrid, threadsPerBlock>>>(
-//     getDeviceContext(),
-//     true, // isInitRun
-//     mVrtParams.tanLambdaCut,
-//     mVrtParams.phiCut);
+    size_t bufferSize = mTimeFrameGPU->getConfig().tmpCUBBufferSize * sizeof(int);
 
-//   discardResult(cub::DeviceScan::ExclusiveSum(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()),
-//                                               bufferSize,
-//                                               mStoreVertexerGPU.getNFoundLines().get(),
-//                                               mStoreVertexerGPU.getNExclusiveFoundLines().get(),
-//                                               mClusters[1].size()));
+    // gpu::trackletSelectionKernel<true><<<blocksGrid, threadsPerBlock>>>(
+    //   mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 0),
+    //   mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 1),
+    //   mTimeFrameGPU->getNClustersLayer(rofId, 1),
+    //   mTimeFrameGPU->getDeviceTracklets()[0].get(),
+    //   mTimeFrameGPU->getDeviceTracklets()[1].get(),
+    //   mTimeFrameGPU->getDeviceNTrackletsCluster(rofId, 0),
+    //   mTimeFrameGPU->getDeviceNTrackletsCluster(rofId, 1),
 
-//   gpu::trackletSelectionKernel<<<blocksGrid, threadsPerBlock>>>(
-//     getDeviceContext(),
-//     false, // isInitRun
-//     mVrtParams.tanLambdaCut,
-//     mVrtParams.phiCut);
+    // );
 
-//   gpuThrowOnError();
+    // discardResult(cub::DeviceScan::ExclusiveSum(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()),
+    //                                             bufferSize,
+    //                                             mStoreVertexerGPU.getNFoundLines().get(),
+    //                                             mStoreVertexerGPU.getNExclusiveFoundLines().get(),
+    //                                             mClusters[1].size()));
 
-// #ifdef _ALLOW_DEBUG_TREES_ITS_
-//   if (isDebugFlag(VertexerDebug::TrackletTreeAll)) {
-//     mDebugger->fillTrackletSelectionTree(mClusters,
-//                                          mStoreVertexerGPU.getRawDupletsFromGPU(gpu::TrackletingLayerOrder::fromInnermostToMiddleLayer),
-//                                          mStoreVertexerGPU.getRawDupletsFromGPU(gpu::TrackletingLayerOrder::fromMiddleToOuterLayer),
-//                                          mStoreVertexerGPU.getDupletIndicesFromGPU(),
-//                                          mEvent);
-//   }
-//   mTracklets = mStoreVertexerGPU.getLinesFromGPU();
-//   if (isDebugFlag(VertexerDebug::LineTreeAll)) {
-//     mDebugger->fillPairsInfoTree(mTracklets, mEvent);
-//   }
-//   if (isDebugFlag(VertexerDebug::LineSummaryAll)) {
-//     mDebugger->fillLinesSummaryTree(mTracklets, mEvent);
-//   }
-// #endif
-// }
+    // gpu::trackletSelectionKernel<<<blocksGrid, threadsPerBlock>>>(
+    //   getDeviceContext(),
+    //   false, // isInitRun
+    //   mVrtParams.tanLambdaCut,
+    //   mVrtParams.phiCut);
+
+    gpuThrowOnError();
+  }
+}
 
 // void VertexerTraitsGPU::computeVertices()
 // {
