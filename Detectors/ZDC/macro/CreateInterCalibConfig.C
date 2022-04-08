@@ -9,18 +9,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
 #include "Framework/Logger.h"
 #include "CCDB/CcdbApi.h"
-#include "ZDCCalib/InterCalib.h"
-#include "ZDCCalib/InterCalibConfig.h"
-#include "ZDCBase/Constants.h"
 #include <string>
-#include <TFile.h>
 #include <map>
 
 #endif
+
+#include "ZDCBase/Constants.h"
+#include "ZDCCalib/InterCalibConfig.h"
 
 using namespace o2::zdc;
 using namespace std;
