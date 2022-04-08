@@ -15,6 +15,7 @@
 #include <DataFormatsParameters/GRPObject.h>
 #include <DetectorsBase/Propagator.h>
 #include <FairLogger.h>
+#include <TGeoGlobalMagField.h>
 
 using namespace o2::base;
 
@@ -29,22 +30,28 @@ void BaseDPLDigitizer::init(o2::framework::InitContext& ic)
   // init basic stuff when this was asked for
   if (mNeedGeom) {
     LOG(info) << "Initializing geometry service";
-    o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry_prefix, true, true /* read from existing aligned file */);
+    if (!gGeoManager) {
+      o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry_prefix, true, true /* read from existing aligned file */);
+    }
   }
 
   if (mNeedField) {
-    LOG(info) << "Initializing field service";
-    // load from GRP
-    auto inputGRP = o2::conf::DigiParams::Instance().grpfile;
-    if (inputGRP.empty()) {
-      LOG(error) << "GRP filename not initialized in DigiParams";
+    if (TGeoGlobalMagField::Instance()->GetField() == nullptr) {
+      LOG(info) << "Initializing field service";
+      // load from GRP
+      auto inputGRP = o2::conf::DigiParams::Instance().grpfile;
+      if (inputGRP.empty()) {
+        LOG(error) << "GRP filename not initialized in DigiParams";
+      }
+      auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
+      if (!grp) {
+        LOG(error) << "This workflow needs a valid GRP file to start";
+      }
+      // init magnetic field
+      o2::base::Propagator::initFieldFromGRP(grp);
+    } else {
+      LOG(info) << "Field exists; Not reinitializing";
     }
-    auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
-    if (!grp) {
-      LOG(error) << "This workflow needs a valid GRP file to start";
-    }
-    // init magnetic field
-    o2::base::Propagator::initFieldFromGRP(grp);
   }
 
   // finally call specific init

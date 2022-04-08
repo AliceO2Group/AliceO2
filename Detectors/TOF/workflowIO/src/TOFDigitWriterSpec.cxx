@@ -39,9 +39,9 @@ DataProcessorSpec getTOFDigitWriterSpec(bool useMC, bool writeErr)
   *nCalls = 0;
   // the callback to be set as hook at stop of processing for the framework
   auto finishWriting = [nCalls](TFile* outputfile, TTree* outputtree) {
-    printf("finish writing with %d entries in the tree\n", *nCalls);
+    printf("TOF finish writing with %d entries in the tree\n", *nCalls);
     outputtree->SetEntries(*nCalls);
-    outputtree->Write();
+    outputfile->Write();
     outputfile->Close();
   };
   // preprocessor callback
@@ -52,16 +52,16 @@ DataProcessorSpec getTOFDigitWriterSpec(bool useMC, bool writeErr)
   auto loggerH = [nCalls](HeaderType const& indata) {
   };
   auto logger = [nCalls](OutputType const& indata) {
-    //    LOG(info) << "RECEIVED DIGITS SIZE " << indata.size();
+    //    LOG(info) << "TOF: RECEIVED DIGITS SIZE " << indata.size();
   };
   auto loggerROW = [nCalls](ReadoutWinType const& row) {
-    //    LOG(info) << "RECEIVED READOUT WINDOWS " << row.size();
+    //    LOG(info) << "TOF: RECEIVED READOUT WINDOWS " << row.size();
   };
   auto loggerPatterns = [nCalls](PatternType const& patterns) {
-    //    LOG(info) << "RECEIVED PATTERNS " << patterns.size();
+    //    LOG(info) << "TOF: RECEIVED PATTERNS " << patterns.size();
   };
   auto loggerErrors = [nCalls](ErrorType const& errors) {
-    //    LOG(info) << "RECEIVED PATTERNS " << patterns.size();
+    //    LOG(info) << "TOF: Error logger ";
   };
   return MakeRootTreeWriterSpec("TOFDigitWriter",
                                 "tofdigits.root",
@@ -69,32 +69,32 @@ DataProcessorSpec getTOFDigitWriterSpec(bool useMC, bool writeErr)
                                 // the preprocessor only increments the call count, we keep this functionality
                                 // of the original implementation
                                 MakeRootTreeWriterSpec::Preprocessor{preprocessor},
-                                BranchDefinition<HeaderType>{InputSpec{"digitheader", gDataOriginTOF, "DIGITHEADER", 0},
+                                BranchDefinition<HeaderType>{InputSpec{"tofdigitheader", gDataOriginTOF, "DIGITHEADER", 0},
                                                              "TOFHeader",
                                                              "tofdigitheader-branch-name",
                                                              1,
                                                              loggerH},
-                                BranchDefinition<OutputType>{InputSpec{"digits", gDataOriginTOF, "DIGITS", 0},
+                                BranchDefinition<OutputType>{InputSpec{"tofdigits", gDataOriginTOF, "DIGITS", 0},
                                                              "TOFDigit",
                                                              "tofdigits-branch-name",
                                                              1,
                                                              logger},
-                                BranchDefinition<ReadoutWinType>{InputSpec{"rowindow", gDataOriginTOF, "READOUTWINDOW", 0},
+                                BranchDefinition<ReadoutWinType>{InputSpec{"tofrowindow", gDataOriginTOF, "READOUTWINDOW", 0},
                                                                  "TOFReadoutWindow",
                                                                  "rowindow-branch-name",
                                                                  1,
                                                                  loggerROW},
-                                BranchDefinition<PatternType>{InputSpec{"patterns", gDataOriginTOF, "PATTERNS", 0},
+                                BranchDefinition<PatternType>{InputSpec{"tofpatterns", gDataOriginTOF, "PATTERNS", 0},
                                                               "TOFPatterns",
                                                               "patterns-branch-name",
                                                               1,
                                                               loggerPatterns},
-                                BranchDefinition<ErrorType>{InputSpec{"errors", gDataOriginTOF, "ERRORS", 0},
+                                BranchDefinition<ErrorType>{InputSpec{"toferrors", gDataOriginTOF, "ERRORS", 0},
                                                             "TOFErrors",
                                                             "errors-branch-name",
                                                             (writeErr ? 1 : 0), // one branch if mc labels enabled
                                                             loggerErrors},
-                                BranchDefinition<LabelsType>{InputSpec{"labels", gDataOriginTOF, "DIGITSMCTR", 0},
+                                BranchDefinition<LabelsType>{InputSpec{"toflabels", gDataOriginTOF, "DIGITSMCTR", 0},
                                                              "TOFDigitMCTruth",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              "digitlabels-branch-name"})();

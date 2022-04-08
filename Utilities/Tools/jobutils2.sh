@@ -206,9 +206,9 @@ taskwrapper() {
   fi
 
   # with or without memory monitoring ?
-  finalcommand="TIME=\"#walltime %e\" ${TIMECOMMAND} ./${SCRIPTNAME}"
+  finalcommand="TIME=\"#walltime %e\\n#systime %S\\n#usertime %U\" ${TIMECOMMAND} ./${SCRIPTNAME}"
   if [[ "$(uname)" != "Darwin" && "${JOBUTILS_MONITORMEM}" ]]; then
-    finalcommand="TIME=\"#walltime %e\" ${O2_ROOT}/share/scripts/monitor-mem.sh ${TIMECOMMAND} './${SCRIPTNAME}'"
+    finalcommand="TIME=\"#walltime %e\\n#systime %S\\n#usertime %U\" ${O2_ROOT}/share/scripts/monitor-mem.sh ${TIMECOMMAND} './${SCRIPTNAME}'"
   fi
   echo "Running: ${finalcommand}" > ${logfile}
 
