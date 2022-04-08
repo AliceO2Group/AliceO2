@@ -53,15 +53,10 @@ class ResidualAggregatorDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
     auto data = pc.inputs().get<gsl::span<o2::tpc::TrackResiduals::UnbinnedResid>>("input");
-    LOG(debug) << "Processing TF " << tfcounter << " with " << data.size() << " unbinned residuals";
-
-    const auto ref = pc.inputs().getFirstValid(true);
-    const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-    const auto* dph = DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(ref);
-    mAggregator->setCurrentTFInfo(dh->firstTForbit, dh->tfCounter, dh->runNumber, dph->creation);
-    mAggregator->process(tfcounter, data);
+    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mAggregator->getCurrentTFInfo());
+    LOG(debug) << "Processing TF " << mAggregator->getCurrentTFInfo().tfCounter << " with " << data.size() << " unbinned residuals";
+    mAggregator->process(mAggregator->getCurrentTFInfo().tfCounter, data);
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
