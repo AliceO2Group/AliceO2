@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/DataProcessorSpec.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "ZDCCalib/InterCalibSpec.h"
 
 using namespace o2::framework;
@@ -18,6 +19,7 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
+  o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
 }
 
 // ------------------------------------------------------------------
@@ -28,5 +30,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
   specs.emplace_back(o2::zdc::getInterCalibSpec());
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
   return specs;
 }
