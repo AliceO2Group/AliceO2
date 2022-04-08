@@ -36,7 +36,7 @@
 #include "MIDClustering/PreClusterizer.h"
 #include "MIDClustering/Clusterizer.h"
 #include "MIDSimulation/ClusterLabeler.h"
-#include "MIDSimulation/MCLabel.h"
+#include "DataFormatsMID/MCLabel.h"
 #include "MIDSimulation/PreClusterLabeler.h"
 #include "MIDWorkflow/ColumnDataSpecsUtils.h"
 

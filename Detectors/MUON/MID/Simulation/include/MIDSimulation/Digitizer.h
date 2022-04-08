@@ -27,7 +27,7 @@
 #include "MIDSimulation/ChamberResponse.h"
 #include "MIDSimulation/ChamberEfficiencyResponse.h"
 #include "MIDSimulation/Hit.h"
-#include "MIDSimulation/MCLabel.h"
+#include "DataFormatsMID/MCLabel.h"
 
 namespace o2
 {

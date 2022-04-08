@@ -21,7 +21,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/ROFRecord.h"
-#include "MIDSimulation/MCLabel.h"
+#include "DataFormatsMID/MCLabel.h"
 #include "MIDWorkflow/DigitReaderSpec.h"
 #include "MIDWorkflow/ZeroSuppressionSpec.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
