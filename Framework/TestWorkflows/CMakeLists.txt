@@ -48,6 +48,10 @@ o2_add_dpl_workflow(simple-tracks-analysis
                   SOURCES src/o2SimpleTracksAnalysis.cxx
                   COMPONENT_NAME TestWorkflows)
 
+o2_add_dpl_workflow(combined-devices
+                  SOURCES src/o2DeviceCombine.cxx
+                  COMPONENT_NAME TestWorkflows)
+
 o2_add_dpl_workflow(analysis-task-example
                   SOURCES src/o2AnalysisTaskExample.cxx
                   COMPONENT_NAME TestWorkflows)
