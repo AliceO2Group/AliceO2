@@ -44,6 +44,7 @@ class TimeFrameGPU : public TimeFrame
   TimeFrameGPU();
   ~TimeFrameGPU();
   void loadToDevice(const int maxLayers);
+  float getDeviceMemory();
   void checkBufferSizes();
   void initialise(const int iteration,
                   const MemoryParameters& memParam,
@@ -55,15 +56,9 @@ class TimeFrameGPU : public TimeFrame
   const TimeFrameGPUConfig& getConfig() const { return mConfig; }
 
   // Vertexer only
-  int* getDeviceIndexTableL0(const int rofId)
-  {
-    return mIndexTablesLayer0D.get() + rofId * (ZBins * PhiBins + 1);
-  }
-  int* getDeviceIndexTableL2(const int rofId)
-  {
-    return mIndexTablesLayer2D.get() + rofId * (ZBins * PhiBins + 1);
-  }
   int* getDeviceNTrackletsCluster(int rofId, int combId);
+  int* getDeviceIndexTableL0(const int rofId) { return mIndexTablesLayer0D.get() + rofId * (ZBins * PhiBins + 1); }
+  int* getDeviceIndexTableL2(const int rofId) { return mIndexTablesLayer2D.get() + rofId * (ZBins * PhiBins + 1); }
 
  private:
   TimeFrameGPUConfig mConfig;
@@ -75,10 +70,14 @@ class TimeFrameGPU : public TimeFrame
   std::array<Vector<int>, NLayers> mClusterExternalIndicesD;
   std::array<Vector<int>, NLayers> mROframesClustersD;
   std::array<Vector<Tracklet>, NLayers - 1> mTrackletsD;
+  Vector<int> mCUBTmpBuffer; // don't know whether will be used by the tracker
 
   // Vertexer only
+  Vector<Line> mLines;
   Vector<int> mIndexTablesLayer0D;
   Vector<int> mIndexTablesLayer2D;
+  Vector<int> mNFoundLines;
+  Vector<int> mNExclusiveFoundLines;
   std::array<Vector<int>, 2> mNTrackletsPerClusterD;
 };
 

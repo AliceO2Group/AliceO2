@@ -156,8 +156,7 @@ struct TimeFrameGPUConfig {
   int maxTrackletsPerCluster = 50;
   int clustersPerLayerCapacity = 5e5;
   int clustersPerROfCapacity = 1e4;
-  int dupletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
-  int processedTrackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
+  int trackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
   int maxTrackletCapacity = 2e4;
   int maxCentroidsXYCapacity = std::ceil(maxTrackletCapacity * (maxTrackletCapacity - 1) / 2);
   int nMaxVertices = 10;
@@ -179,8 +178,7 @@ inline TimeFrameGPUConfig::TimeFrameGPUConfig(int cubBufferSize,
                                                              nMaxVertices{maxVert}
 {
   maxCentroidsXYCapacity = std::ceil(maxTrackletCapacity * (maxTrackletCapacity - 1) / 2);
-  dupletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
-  processedTrackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
+  trackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
 }
 
 } // namespace its

@@ -82,8 +82,8 @@ void trackleterKernelSerial(
 }
 
 void trackletSelectionKernelSerial(
-  const gsl::span<const Cluster> clustersNextLayer,    // 0
-  const gsl::span<const Cluster> clustersCurrentLayer, // 1
+  const gsl::span<const Cluster> clusters0, // 0
+  const gsl::span<const Cluster> clusters1, // 1
   const gsl::span<const Tracklet>& tracklets01,
   const gsl::span<const Tracklet>& tracklets12,
   const gsl::span<int> foundTracklets01,
@@ -95,7 +95,7 @@ void trackletSelectionKernelSerial(
 {
   int offset01{0}, offset12{0};
   std::vector<bool> usedTracklets(tracklets01.size(), false);
-  for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < clustersCurrentLayer.size(); ++iCurrentLayerClusterIndex) {
+  for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < clusters1.size(); ++iCurrentLayerClusterIndex) {
     int validTracklets{0};
     for (int iTracklet12{offset12}; iTracklet12 < offset12 + foundTracklets12[iCurrentLayerClusterIndex]; ++iTracklet12) {
       for (int iTracklet01{offset01}; iTracklet01 < offset01 + foundTracklets01[iCurrentLayerClusterIndex]; ++iTracklet01) {
@@ -103,7 +103,7 @@ void trackletSelectionKernelSerial(
         const float deltaPhi{o2::gpu::GPUCommonMath::Abs(tracklets01[iTracklet01].phi - tracklets12[iTracklet12].phi)};
         if (!usedTracklets[iTracklet01] && deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTracklets) {
           usedTracklets[iTracklet01] = true;
-          destTracklets.emplace_back(tracklets01[iTracklet01], clustersNextLayer.data(), clustersCurrentLayer.data());
+          destTracklets.emplace_back(tracklets01[iTracklet01], clusters0.data(), clusters1.data());
           ++validTracklets;
         }
       }

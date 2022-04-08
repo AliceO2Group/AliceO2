@@ -46,7 +46,7 @@ float Vertexer::clustersToVertices(const bool useMc, std::function<void(std::str
   // if (useMc) {
   //   total += evaluateTask(&Vertexer::filterMCTracklets, false, "MC tracklets filtering", logger);
   // }
-  // total += evaluateTask(&Vertexer::validateTracklets, false, "Adjacent tracklets validation", logger);
+  total += evaluateTask(&Vertexer::validateTracklets, false, "Adjacent tracklets validation", logger);
   // total += evaluateTask(&Vertexer::findVertices, false, "Vertex finding", logger);
 
   return total;

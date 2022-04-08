@@ -25,7 +25,7 @@
 #include "ITStracking/Definitions.h"
 #include "ITStracking/Tracklet.h"
 
-#include "DeviceStoreVertexerGPU.h"
+// #include "DeviceStoreVertexerGPU.h"
 #include "UniquePointer.h"
 #include "ITStrackingGPU/TimeFrameGPU.h"
 
@@ -45,13 +45,12 @@ class VertexerTraitsGPU : public VertexerTraits
   void initialise(const MemoryParameters& memParams, const TrackingParameters& trackingParams) override;
   void adoptTimeFrame(TimeFrame* tf) override;
   void computeTracklets() override;
-  // void computeTrackletMatching() override;
+  void computeTrackletMatching() override;
   // void computeVertices() override;
   // void computeMCFiltering() override;
 
   // GPU-specific getters
   GPUd() static const int2 getBinsPhiRectWindow(const Cluster&, float maxdeltaphi);
-  GPUhd() gpu::DeviceStoreVertexerGPU& getDeviceContext();
 
  protected:
   IndexTableUtils* mDeviceIndexTableUtils;
