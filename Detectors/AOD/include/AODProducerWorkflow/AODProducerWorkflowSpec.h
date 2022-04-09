@@ -442,6 +442,16 @@ class CellHelper
   {
     return cell.getAbsId();
   }
+  // If this cell - trigger one?
+  static bool isTRU(const o2::emcal::Cell& cell)
+  {
+    return cell.getTRU();
+  }
+
+  static bool isTRU(const o2::phos::Cell& cell)
+  {
+    return cell.getTRU();
+  }
 
   static int16_t getFastOrAbsID(const o2::emcal::Cell& cell)
   {
@@ -450,7 +460,7 @@ class CellHelper
 
   static int16_t getFastOrAbsID(const o2::phos::Cell& cell)
   {
-    return cell.getAbsId();
+    return cell.getTRUId();
   }
 
   static float getAmplitude(const o2::emcal::Cell& cell)
