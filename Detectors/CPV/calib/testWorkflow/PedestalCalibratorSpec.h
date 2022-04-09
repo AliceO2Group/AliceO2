@@ -52,7 +52,8 @@ class CPVPedestalCalibratorSpec : public o2::framework::Task
   //_________________________________________________________________
   void run(o2::framework::ProcessingContext& pc) final
   {
-    auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("digits").header)->startTime;
+    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
+    TFType tfcounter = mCalibrator->getCurrentTFInfo().startTime;
     auto&& digits = pc.inputs().get<gsl::span<o2::cpv::Digit>>("digits");
     auto&& trigrecs = pc.inputs().get<gsl::span<o2::cpv::TriggerRecord>>("trigrecs");
     LOG(info) << "Processing TF " << tfcounter << " with " << digits.size() << " digits in " << trigrecs.size() << " trigger records.";
@@ -64,7 +65,7 @@ class CPVPedestalCalibratorSpec : public o2::framework::Task
       auto&& digitsInOneEvent = digits.subspan((*trigrec).getFirstEntry(), (*trigrec).getNumberOfObjects());
       if ((trigrec + 1) == trigrecs.end()) { //last event in current TF, let's process corresponding TimeSlot
         //LOG(info) << "last event, I call mCalibrator->process()";
-        mCalibrator->process(tfcounter, digitsInOneEvent); //fill TimeSlot with digits from 1 event and check slots for finalization
+        mCalibrator->process(digitsInOneEvent); // fill TimeSlot with digits from 1 event and check slots for finalization
       } else {
         slotTF.getContainer()->fill(digitsInOneEvent); //fill TimeSlot with digits from 1 event
       }

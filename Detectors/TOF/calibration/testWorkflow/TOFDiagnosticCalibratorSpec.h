@@ -47,16 +47,10 @@ class TOFDiagnosticCalibDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-
-    static const double TFlengthInv = 1E6 / o2::raw::HBFUtils::Instance().getNOrbitsPerTF() / o2::constants::lhc::LHCOrbitMUS;
-
-    auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
-
+    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
     auto const data = pc.inputs().get<o2::tof::Diagnostic*>("input");
-    tfcounter = uint64_t(data->getTimeStamp() * TFlengthInv);
-
-    LOG(info) << "Processing TF " << tfcounter;
-    mCalibrator->process<o2::tof::Diagnostic>(tfcounter, *data);
+    LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter;
+    mCalibrator->process<o2::tof::Diagnostic>(*data);
     sendOutput(pc.outputs());
   }
 

@@ -76,12 +76,10 @@ class EMCALChannelCalibDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    long startTimeChCalib;
-    auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get(getCellBinding()).header)->startTime;
-
+    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mTimeCalibrator->getCurrentTFInfo());
     auto data = pc.inputs().get<gsl::span<o2::emcal::Cell>>(getCellBinding());
-    LOG(debug) << "Processing TF " << tfcounter << " with " << data.size() << " cells";
-    mTimeCalibrator->process(tfcounter, data);
+    LOG(debug) << "Processing TF " << mTimeCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() << " cells";
+    mTimeCalibrator->process(data);
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final

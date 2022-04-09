@@ -41,6 +41,9 @@ The TimeSlot is a templated class which takes as input type the Container that w
 The Container class needs to implement the following methods:
 
 `void fill(const gsl::span<const Input> data)`  : method to decide how to use the calibration data within the container (e.g. fill a vector);
+or
+`void fill(o2::dataformats::TFIDInfo& ti, const gsl::span<const Input> data)`  : method to decide how to use the calibration data within the container (e.g. fill a vector) and having access to the TFIDInfo struct providing relevant info for current TF (tfCounter, runNumber, creationTime etc.)
+If provided, this latter method will be used.
 
 `void merge(const Container* prev)` : method to allow merging of the content of a TimeSlot to the content of the following one, when stastics is limited.
 
