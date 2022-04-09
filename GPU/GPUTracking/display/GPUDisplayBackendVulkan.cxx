@@ -419,7 +419,7 @@ void GPUDisplayBackendVulkan::createDevice()
   const std::vector<const char*> reqDeviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
-  mPhysicalDevice = VK_NULL_HANDLE;
+  mPhysicalDevice = static_cast<std::nullptr_t>(VK_NULL_HANDLE);
   std::vector<vk::PhysicalDevice> devices = mInstance.enumeratePhysicalDevices();
   if (devices.size() == 0) {
     throw std::runtime_error("No Vulkan device present!");
@@ -722,7 +722,7 @@ void GPUDisplayBackendVulkan::createSwapChain(bool forScreenshot, bool forMixing
   swapCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
   swapCreateInfo.presentMode = mPresentMode;
   swapCreateInfo.clipped = true;
-  swapCreateInfo.oldSwapchain = VK_NULL_HANDLE;
+  swapCreateInfo.oldSwapchain = static_cast<std::nullptr_t>(VK_NULL_HANDLE);
   if (mSwapchainImageReadable) {
     swapCreateInfo.imageUsage |= vk::ImageUsageFlagBits::eTransferSrc;
   }
@@ -1135,7 +1135,7 @@ void GPUDisplayBackendVulkan::createPipeline()
   // pipelineInfo.renderPass // below
   pipelineInfo.subpass = 0;
   pipelineInfo.pStages = shaderStages;
-  pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
+  pipelineInfo.basePipelineHandle = static_cast<std::nullptr_t>(VK_NULL_HANDLE); // Optional
   pipelineInfo.basePipelineIndex = -1;              // Optional
 
   mPipelines.resize(mMixingSupported ? 5 : 4);
@@ -1182,7 +1182,7 @@ void GPUDisplayBackendVulkan::createPipeline()
       viewport.height = scissor.extent.height = mRenderHeight;
     }
 
-    CHKERR(mDevice.createGraphicsPipelines(VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipelines[i])); // TODO: multiple at once + cache?
+    CHKERR(mDevice.createGraphicsPipelines(static_cast<std::nullptr_t>(VK_NULL_HANDLE), 1, &pipelineInfo, nullptr, &mPipelines[i])); // TODO: multiple at once + cache?
   }
 }
 
@@ -1481,8 +1481,8 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
     mCurrentFrame = (mCurrentFrame + 1) % mFramesInFlight;
     CHKERR(mDevice.waitForFences(1, &mInFlightFence[mCurrentFrame], true, UINT64_MAX));
     auto getImage = [&]() {
-      vk::Fence fen = mCommandBufferPerImage ? mInFlightFence[mCurrentFrame] : VK_NULL_HANDLE;
-      vk::Semaphore sem = mCommandBufferPerImage ? VK_NULL_HANDLE : mImageAvailableSemaphore[mCurrentFrame];
+      vk::Fence fen = mCommandBufferPerImage ? mInFlightFence[mCurrentFrame] : static_cast<std::nullptr_t>(VK_NULL_HANDLE);
+      vk::Semaphore sem = mCommandBufferPerImage ? static_cast<std::nullptr_t>(VK_NULL_HANDLE) : mImageAvailableSemaphore[mCurrentFrame];
       if (mCommandBufferPerImage) {
         CHKERR(mDevice.resetFences(1, &fen));
       }
@@ -1546,7 +1546,7 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
   submitInfo.pCommandBuffers = &mCurrentCommandBuffer;
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = stageFinishedSemaphore;
-  CHKERR(mGraphicsQueue.submit(1, &submitInfo, includeMixImage > 0 || toMixBuffer || mHasDrawnText || mDownsampleFSAA ? VK_NULL_HANDLE : mInFlightFence[mCurrentFrame]));
+  CHKERR(mGraphicsQueue.submit(1, &submitInfo, includeMixImage > 0 || toMixBuffer || mHasDrawnText || mDownsampleFSAA ? static_cast<std::nullptr_t>(VK_NULL_HANDLE) : mInFlightFence[mCurrentFrame]));
   if (!toMixBuffer) {
     if (includeMixImage > 0.f) {
       mixImages(mCommandBuffersTexture[mCurrentBufferSet], includeMixImage);
@@ -1556,7 +1556,7 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
       submitInfo.pCommandBuffers = &mCommandBuffersTexture[mCurrentBufferSet];
       stageFinishedSemaphore = &mMixFinishedSemaphore[mCurrentFrame];
       submitInfo.pSignalSemaphores = stageFinishedSemaphore;
-      CHKERR(mGraphicsQueue.submit(1, &submitInfo, mHasDrawnText || mDownsampleFSAA ? VK_NULL_HANDLE : mInFlightFence[mCurrentFrame]));
+      CHKERR(mGraphicsQueue.submit(1, &submitInfo, mHasDrawnText || mDownsampleFSAA ? static_cast<std::nullptr_t>(VK_NULL_HANDLE) : mInFlightFence[mCurrentFrame]));
     }
 
     if (mDownsampleFSAA) {
@@ -1567,7 +1567,7 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
       submitInfo.waitSemaphoreCount = 1;
       stageFinishedSemaphore = &mDownsampleFinishedSemaphore[mCurrentFrame];
       submitInfo.pSignalSemaphores = stageFinishedSemaphore;
-      CHKERR(mGraphicsQueue.submit(1, &submitInfo, mHasDrawnText ? VK_NULL_HANDLE : mInFlightFence[mCurrentFrame]));
+      CHKERR(mGraphicsQueue.submit(1, &submitInfo, mHasDrawnText ? static_cast<std::nullptr_t>(VK_NULL_HANDLE) : mInFlightFence[mCurrentFrame]));
     }
 
     if (doScreenshot) {
