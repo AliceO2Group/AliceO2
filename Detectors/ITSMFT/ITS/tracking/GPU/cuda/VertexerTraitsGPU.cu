@@ -30,7 +30,7 @@
 #include "ITStrackingGPU/ClusterLinesGPU.h"
 #include "ITStrackingGPU/VertexerTraitsGPU.h"
 
-#include <fairlogger/Logger.h>
+// #include <fairlogger/Logger.h>  <===== Bugged in hip code atm
 
 namespace o2
 {
@@ -361,8 +361,8 @@ void VertexerTraitsGPU::computeTracklets()
   for (int iRof{0}; iRof < mTimeFrameGPU->getNrof(); ++iRof) {
     NtrackletsClusters01[iRof].resize(mTimeFrameGPU->getClustersOnLayer(iRof, 1).size());
     NtrackletsClusters12[iRof].resize(mTimeFrameGPU->getClustersOnLayer(iRof, 1).size());
-    cudaMemcpy(NtrackletsClusters01[iRof].data(), mTimeFrameGPU->getDeviceNTrackletsCluster(iRof, 0), sizeof(int) * mTimeFrameGPU->getClustersOnLayer(iRof, 1).size(), cudaMemcpyDeviceToHost);
-    cudaMemcpy(NtrackletsClusters12[iRof].data(), mTimeFrameGPU->getDeviceNTrackletsCluster(iRof, 1), sizeof(int) * mTimeFrameGPU->getClustersOnLayer(iRof, 1).size(), cudaMemcpyDeviceToHost);
+    discardResult(cudaMemcpy(NtrackletsClusters01[iRof].data(), mTimeFrameGPU->getDeviceNTrackletsCluster(iRof, 0), sizeof(int) * mTimeFrameGPU->getClustersOnLayer(iRof, 1).size(), cudaMemcpyDeviceToHost));
+    discardResult(cudaMemcpy(NtrackletsClusters12[iRof].data(), mTimeFrameGPU->getDeviceNTrackletsCluster(iRof, 1), sizeof(int) * mTimeFrameGPU->getClustersOnLayer(iRof, 1).size(), cudaMemcpyDeviceToHost));
 
     std::copy(NtrackletsClusters01[iRof].begin(), NtrackletsClusters01[iRof].end(), std::ostream_iterator<double>(out01, "\t"));
     std::copy(NtrackletsClusters12[iRof].begin(), NtrackletsClusters12[iRof].end(), std::ostream_iterator<double>(out12, "\t"));

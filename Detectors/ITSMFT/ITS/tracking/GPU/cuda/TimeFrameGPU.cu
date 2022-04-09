@@ -10,7 +10,8 @@
 // or submit itself to any jurisdiction.
 ///
 
-#include "fairlogger/Logger.h"
+// #include "fairlogger/Logger.h" <===== Bugged in hip code atm
+#include <fmt/format.h>
 
 #include "ITStracking/Constants.h"
 
@@ -78,18 +79,18 @@ float TimeFrameGPU<NLayers>::getDeviceMemory()
   totalMemory += mConfig.clustersPerLayerCapacity * sizeof(int);
   totalMemory += mConfig.trackletsCapacity * sizeof(unsigned char);
 
-  LOGP(info, "Total requested memory for GPU: {:.2f} MB", totalMemory / MB);
-  LOGP(info, "\t- Clusters: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(Cluster) / MB);
-  LOGP(info, "\t- Tracking frame info: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(TrackingFrameInfo) / MB);
-  LOGP(info, "\t- Cluster external indices: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
-  LOGP(info, "\t- Clusters per ROf: {:.2f} MB", NLayers * mConfig.clustersPerROfCapacity * sizeof(int) / MB);
-  LOGP(info, "\t- Tracklets: {:.2f} MB", (NLayers - 1) * mConfig.trackletsCapacity * sizeof(Tracklet) / MB);
-  LOGP(info, "\t- N tracklets per cluster: {:.2f} MB", 2 * mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
-  LOGP(info, "\t- Index tables: {:.2f} MB", 2 * mConfig.nMaxROFs * (ZBins * PhiBins + 1) * sizeof(int) / MB);
-  LOGP(info, "\t- Lines: {:.2f} MB", mConfig.trackletsCapacity * sizeof(Line) / MB);
-  LOGP(info, "\t- N found lines: {:.2f} MB", mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
-  LOGP(info, "\t- N exclusive-scan found lines: {:.2f} MB", mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
-  LOGP(info, "\t- Used tracklets: {:.2f} MB", mConfig.trackletsCapacity * sizeof(unsigned char) / MB);
+  std::cout << fmt::format("Total requested memory for GPU: {:.2f} MB", totalMemory / MB);
+  std::cout << fmt::format("\t- Clusters: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(Cluster) / MB);
+  std::cout << fmt::format("\t- Tracking frame info: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(TrackingFrameInfo) / MB);
+  std::cout << fmt::format("\t- Cluster external indices: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
+  std::cout << fmt::format("\t- Clusters per ROf: {:.2f} MB", NLayers * mConfig.clustersPerROfCapacity * sizeof(int) / MB);
+  std::cout << fmt::format("\t- Tracklets: {:.2f} MB", (NLayers - 1) * mConfig.trackletsCapacity * sizeof(Tracklet) / MB);
+  std::cout << fmt::format("\t- N tracklets per cluster: {:.2f} MB", 2 * mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
+  std::cout << fmt::format("\t- Index tables: {:.2f} MB", 2 * mConfig.nMaxROFs * (ZBins * PhiBins + 1) * sizeof(int) / MB);
+  std::cout << fmt::format("\t- Lines: {:.2f} MB", mConfig.trackletsCapacity * sizeof(Line) / MB);
+  std::cout << fmt::format("\t- N found lines: {:.2f} MB", mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
+  std::cout << fmt::format("\t- N exclusive-scan found lines: {:.2f} MB", mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
+  std::cout << fmt::format("\t- Used tracklets: {:.2f} MB", mConfig.trackletsCapacity * sizeof(unsigned char) / MB);
 
   return totalMemory;
 }
@@ -145,20 +146,20 @@ void TimeFrameGPU<NLayers>::checkBufferSizes()
 {
   for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
     if (mClusters[iLayer].size() > mConfig.clustersPerLayerCapacity) {
-      LOGP(error, "Number of clusters on layer {} is {} and exceeds the GPU configuration defined one: {}", iLayer, mClusters[iLayer].size(), mConfig.clustersPerLayerCapacity);
+      std::cerr << fmt::format("Number of clusters on layer {} is {} and exceeds the GPU configuration defined one: {}", iLayer, mClusters[iLayer].size(), mConfig.clustersPerLayerCapacity);
     }
     if (mTrackingFrameInfo[iLayer].size() > mConfig.clustersPerLayerCapacity) {
-      LOGP(error, "Number of tracking frame info on layer {} is {} and exceeds the GPU configuration defined one: {}", iLayer, mTrackingFrameInfo[iLayer].size(), mConfig.clustersPerLayerCapacity);
+      std::cerr << fmt::format("Number of tracking frame info on layer {} is {} and exceeds the GPU configuration defined one: {}", iLayer, mTrackingFrameInfo[iLayer].size(), mConfig.clustersPerLayerCapacity);
     }
     if (mClusterExternalIndices[iLayer].size() > mConfig.clustersPerLayerCapacity) {
-      LOGP(error, "Number of external indices on layer {} is {} and exceeds the GPU configuration defined one: {}", iLayer, mClusterExternalIndices[iLayer].size(), mConfig.clustersPerLayerCapacity);
+      std::cerr << fmt::format("Number of external indices on layer {} is {} and exceeds the GPU configuration defined one: {}", iLayer, mClusterExternalIndices[iLayer].size(), mConfig.clustersPerLayerCapacity);
     }
     if (mROframesClusters[iLayer].size() > mConfig.clustersPerROfCapacity) {
-      LOGP(error, "Size of clusters per roframe on layer {} is {} and exceeds the GPU configuration defined one: {}", iLayer, mROframesClusters[iLayer].size(), mConfig.clustersPerROfCapacity);
+      std::cerr << fmt::format("Size of clusters per roframe on layer {} is {} and exceeds the GPU configuration defined one: {}", iLayer, mROframesClusters[iLayer].size(), mConfig.clustersPerROfCapacity);
     }
   }
   if (mNrof > mConfig.nMaxROFs) {
-    LOGP(error, "Number of ROFs in timeframe is {} and exceeds the GPU configuration defined one: {}", mNrof, mConfig.nMaxROFs);
+    std::cerr << fmt::format("Number of ROFs in timeframe is {} and exceeds the GPU configuration defined one: {}", mNrof, mConfig.nMaxROFs);
   }
 }
 template class TimeFrameGPU<7>;
