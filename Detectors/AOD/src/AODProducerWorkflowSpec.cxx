@@ -1015,12 +1015,14 @@ void AODProducerWorkflowDPL::fillCaloTable(TEventHandler* caloEventHandler, cons
                      caloType); // 1 = emcal, -1 = undefined, 0 = phos
 
       // todo: fix dummy values in CellHelper when it is clear what is filled for trigger information
-      caloCellTRGTableCursor(0,
-                             bcID,
-                             CellHelper::getFastOrAbsID(cell),
-                             CellHelper::getLnAmplitude(cell),
-                             CellHelper::getTriggerBits(cell),
-                             caloType);
+      if (CellHelper::isTRU(cell)) { // Write only trigger cells into this table
+        caloCellTRGTableCursor(0,
+                               bcID,
+                               CellHelper::getFastOrAbsID(cell),
+                               CellHelper::getLnAmplitude(cell),
+                               CellHelper::getTriggerBits(cell),
+                               caloType);
+      }
     }
   }
 }
@@ -1742,7 +1744,7 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
     auto tofSignal = (tofMatch.getSignal() - exp) * 1e-3; // time in ns wrt TF start
     setTrackTime(tofSignal, 0.2, true);                   // FIXME: calculate actual resolution (if possible?)
   }
-  if (contributorsGID[GIndex::Source::TRD].isIndexSet()) { // ITS-TPC-TRD-TOF, TPC-TRD-TOF, TPC-TRD, ITS-TPC-TRD
+  if (contributorsGID[GIndex::Source::TRD].isIndexSet()) {                                        // ITS-TPC-TRD-TOF, TPC-TRD-TOF, TPC-TRD, ITS-TPC-TRD
     const auto& trdOrig = data.getTrack<o2::trd::TrackTRD>(contributorsGID[GIndex::Source::TRD]); // refitted TRD trac
     extraInfoHolder.trdChi2 = trdOrig.getChi2();
     extraInfoHolder.trdPattern = getTRDPattern(trdOrig);
