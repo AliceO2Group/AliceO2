@@ -25,7 +25,7 @@ namespace zdc
 class RecoReader : public framework::Task
 {
  public:
-  RecoReader() {}
+  RecoReader() = default;
   ~RecoReader() override = default;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;

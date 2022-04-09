@@ -219,7 +219,7 @@ int InterCalib::process(const char* hname, int ic)
   // TC, T1, T2, T3, T4, Trigger
   // ic is the number of the selected trigger class
   THnSparse* hs = (THnSparse*)gROOT->FindObject(hname);
-  if (hs == 0) {
+  if (hs == nullptr) {
     LOGF(error, "Not found: %s\n", hname);
     return -1;
   }
@@ -286,16 +286,16 @@ void InterCalib::replay(int ih, THnSparse* hs, int ic)
 {
   auto* cfg = mInterCalibConfig;
   // clang-format off
-  if(ih == 0)mHCorr[ih] = std::make_unique<TH1F>("hZNASc","ZNA sum corr",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  if(ih == 1)mHCorr[ih] = std::make_unique<TH1F>("hZPASc","ZPA sum corr",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  if(ih == 2)mHCorr[ih] = std::make_unique<TH1F>("hZNCSc","ZNC sum corr",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  if(ih == 3)mHCorr[ih] = std::make_unique<TH1F>("hZPCSc","ZPC sum corr",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  if(ih == 4)mHCorr[ih] = std::make_unique<TH1F>("hZEM2c","ZEM2"   ,cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  if(ih == 0)mCCorr[ih] = std::make_unique<TH2F>("cZNAc","ZNA;TC;SUM corr",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
-  if(ih == 1)mCCorr[ih] = std::make_unique<TH2F>("cZPAc","ZPA;TC;SUM corr",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
-  if(ih == 2)mCCorr[ih] = std::make_unique<TH2F>("cZNCc","ZNC;TC;SUM corr",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
-  if(ih == 3)mCCorr[ih] = std::make_unique<TH2F>("cZPCc","ZPC;TC;SUM corr",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
-  if(ih == 4)mCCorr[ih] = std::make_unique<TH2F>("cZEMc","ZEM;ZEM1;ZEM2 corr",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
+  if(ih == 0){ mHCorr[ih] = std::make_unique<TH1F>("hZNASc","ZNA sum corr",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]); }
+  if(ih == 1){ mHCorr[ih] = std::make_unique<TH1F>("hZPASc","ZPA sum corr",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]); }
+  if(ih == 2){ mHCorr[ih] = std::make_unique<TH1F>("hZNCSc","ZNC sum corr",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]); }
+  if(ih == 3){ mHCorr[ih] = std::make_unique<TH1F>("hZPCSc","ZPC sum corr",cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]); }
+  if(ih == 4){ mHCorr[ih] = std::make_unique<TH1F>("hZEM2c","ZEM2"   ,cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]); }
+  if(ih == 0){ mCCorr[ih] = std::make_unique<TH2F>("cZNAc","ZNA;TC;SUM corr",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]); }
+  if(ih == 1){ mCCorr[ih] = std::make_unique<TH2F>("cZPAc","ZPA;TC;SUM corr",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]); }
+  if(ih == 2){ mCCorr[ih] = std::make_unique<TH2F>("cZNCc","ZNC;TC;SUM corr",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]); }
+  if(ih == 3){ mCCorr[ih] = std::make_unique<TH2F>("cZPCc","ZPC;TC;SUM corr",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]); }
+  if(ih == 4){ mCCorr[ih] = std::make_unique<TH2F>("cZEMc","ZEM;ZEM1;ZEM2 corr",cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]); }
   // clang-format on
   const int32_t dim = 6;
   double x[dim];

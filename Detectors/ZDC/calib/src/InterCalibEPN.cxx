@@ -127,7 +127,7 @@ int InterCalibEPN::process(const char* hname, int ic)
   // TC, T1, T2, T3, T4, Trigger
   // ic is the number of the selected trigger class
   THnSparse* hs = (THnSparse*)gROOT->FindObject(hname);
-  if (hs == 0) {
+  if (hs == nullptr) {
     LOGF(error, "Not found: %s\n", hname);
     return -1;
   }
