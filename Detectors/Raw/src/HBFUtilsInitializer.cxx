@@ -132,8 +132,9 @@ void HBFUtilsInitializer::addNewTimeSliceCallback(std::vector<o2::framework::Cal
         const auto& hbfu = o2::raw::HBFUtils::Instance();
         service.set(o2::framework::CallbackService::Id::NewTimeslice,
                     [offset = int64_t(hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit), increment = int64_t(hbfu.nHBFPerTF),
-                     startTime = hbfu.startTime, orbitFirst = hbfu.orbitFirst](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) {
+                     startTime = hbfu.startTime, orbitFirst = hbfu.orbitFirst, runNumber = hbfu.runNumber](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) {
                       dh.firstTForbit = offset + increment * dh.tfCounter;
+                      dh.runNumber = runNumber;
                       dph.creation = startTime + (dh.firstTForbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
                     });
       }
