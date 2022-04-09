@@ -35,7 +35,7 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Task.h"
-#include <fairmq/Device.h>
+#include <FairMQDevice.h>
 
 #include <ITSMFTReconstruction/RawPixelDecoder.h> //o2::itsmft::RawPixelDecoder
 #include "DetectorsCalibration/Utils.h"
@@ -131,7 +131,7 @@ class ITSThresholdCalibrator : public Task
   short int* mX = nullptr;
 
   // Hash tables to store the hit and threshold information per pixel
-  std::map<short int, std::map<int, std::vector<std::vector<char>>>> mPixelHits;
+  std::map<short int, std::map<int, std::vector<std::vector<unsigned short int>>>> mPixelHits;
   std::map<short int, std::deque<short int>> mForbiddenRows;
   // Unordered map for saving sum of values (thr/ithr/vcasn) for avg calculation
   std::map<short int, std::array<int, 5>> mThresholds;
@@ -164,11 +164,11 @@ class ITSThresholdCalibrator : public Task
 
   // Helper functions related to threshold extraction
   void initThresholdTree(bool recreate = true);
-  bool findUpperLower(const char*, const short int*, const short int&, short int&, short int&, bool);
-  bool findThreshold(const char*, const short int*, const short int&, float&, float&);
-  bool findThresholdFit(const char*, const short int*, const short int&, float&, float&);
-  bool findThresholdDerivative(const char*, const short int*, const short int&, float&, float&);
-  bool findThresholdHitcounting(const char*, const short int*, const short int&, float&);
+  bool findUpperLower(const unsigned short int*, const short int*, const short int&, short int&, short int&, bool);
+  bool findThreshold(const unsigned short int*, const short int*, const short int&, float&, float&);
+  bool findThresholdFit(const unsigned short int*, const short int*, const short int&, float&, float&);
+  bool findThresholdDerivative(const unsigned short int*, const short int*, const short int&, float&, float&);
+  bool findThresholdHitcounting(const unsigned short int*, const short int*, const short int&, float&);
   bool isScanFinished(const short int&, const short int&, const short int&);
   void findAverage(const std::array<int, 5>&, float&, float&, float&, float&);
   void saveThreshold();
@@ -221,6 +221,9 @@ class ITSThresholdCalibrator : public Task
 
   // Flag to tag single noisy pix in digital scan
   bool mTagSinglePix = false;
+
+  // Bool to check exact row when counting hits
+  bool mCheckExactRow = false;
 
   // Chip mod selector and chip mod base for parallel chip access
   int mChipModSel = 0;
