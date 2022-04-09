@@ -114,8 +114,9 @@ namespace pdgcodes
 constexpr int PionCode{211};
 }
 } // namespace constants
-
+#ifndef __OPENCL__ /// FIXME: this is for compatibility with OCL
 typedef std::vector<std::vector<int>> index_table_t;
+#endif
 } // namespace its
 } // namespace o2
 
