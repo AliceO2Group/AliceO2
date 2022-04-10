@@ -42,7 +42,6 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Logger.h"
 #include "Framework/RawDeviceService.h"
-#include "Framework/CommonServices.h"
 #include <fairmq/Device.h>
 
 #include "CCDB/CcdbApi.h"
@@ -197,6 +196,7 @@ void PedestalsCalculationTask::recordPedInDcsCcdb()
   float xb, yb, ch, Samples;
   double SumOfCharge, SumOfSquares, Average, Variance;
   uint32_t Pedestal, Threshold, PedThr;
+  std::string PedestalFixedTag = "Latest";
 
   o2::dcs::DCSconfigObject_t pedestalsConfig;
 
@@ -252,13 +252,13 @@ void PedestalsCalculationTask::recordPedInDcsCcdb()
   long maxTimeStamp = minTimeStamp + (3600L * mDcsCcdbAliveHours * 1000);
 
   char filename[1024];
-  sprintf(filename, "%s/%s/PedThre.root", mPedestalsCCDBBasePath.c_str(), mPedestalTag.c_str());
-  mExTimer.logMes("File name = >" + std::string(filename) + "< (" + mPedestalsCCDBBasePath + "," + mPedestalTag);
+  sprintf(filename, "%s/%s/PedThre.root", mPedestalsCCDBBasePath.c_str(), PedestalFixedTag.c_str());
+  mExTimer.logMes("File name = >" + std::string(filename) + "< (" + mPedestalsCCDBBasePath + "," + PedestalFixedTag);
   TFile outputFile(filename, "recreate");
   outputFile.WriteObjectAny(&pedestalsConfig, "std::vector<char>", "DCSConfig");
   outputFile.Close();
 
-  mDbMetadata.emplace("Tag", mPedestalTag.c_str());
+  mDbMetadata.emplace("Tag", PedestalFixedTag.c_str());
   mDCSDBapi.storeAsTFileAny(&pedestalsConfig, filename, mDbMetadata, minTimeStamp, maxTimeStamp);
 
   mExTimer.logMes("End Writing the pedestals ! Digits decoded = " + std::to_string(mTotalDigits) + " Frames received = " + std::to_string(mTotalFrames));
