@@ -21,6 +21,7 @@
 #include <vector>
 #include <bitset>
 #include <map>
+#include <set>
 namespace o2
 {
 namespace ctp
@@ -28,14 +29,20 @@ namespace ctp
 /// Database constants
 const std::string CCDBPathCTPConfig = "CTP/Config/Config";
 ///
-bool isDetector(o2::detectors::DetID& det);
 /// CTP Config items
 struct BCMask {
   BCMask() = default;
   std::string name;
   std::bitset<o2::constants::lhc::LHCMaxBunches> BCmask;
-  void printStream(std::ostream& strem) const;
+  void printStream(std::ostream& stream) const;
   ClassDefNV(BCMask, 1);
+};
+struct CTPGenerator {
+  static const std::set<std::string> Generators;
+  std::string name;
+  std::string frequency;
+  void printStream(std::ostream& stream) const;
+  ClassDefNV(CTPGenerator, 1);
 };
 struct CTPInput {
   CTPInput() = default;
@@ -61,15 +68,18 @@ struct CTPDetector {
   o2::detectors::DetID::ID detID;
   const char* getName() const { return o2::detectors::DetID::getName(detID); }
   uint32_t HBaccepted; /// Number of HB frames in TF to be accepted
-  void printStream(std::ostream& strem) const;
+  std::string mode;
+  uint32_t ferst;
+  void printStream(std::ostream& stream) const;
 };
 struct CTPCluster {
   CTPCluster() = default;
   std::string name;
+  uint32_t hwMask;
   o2::detectors::DetID::mask_t maskCluster;
   std::string getClusterDetNames() const { return o2::detectors::DetID::getNames(maskCluster, ' '); }
   void printStream(std::ostream& strem) const;
-  ClassDefNV(CTPCluster, 2)
+  ClassDefNV(CTPCluster, 3)
 };
 struct CTPClass {
   CTPClass() = default;
@@ -77,14 +87,25 @@ struct CTPClass {
   std::uint64_t classMask;
   CTPDescriptor const* descriptor;
   CTPCluster const* cluster;
+  int clusterIndex;
+  ;
   void printStream(std::ostream& strem) const;
-  ClassDefNV(CTPClass, 1);
+  ClassDefNV(CTPClass, 2);
 };
 class CTPConfiguration
 {
  public:
   CTPConfiguration() = default;
   bool isDetector(const o2::detectors::DetID& det);
+  void capitaliseString(std::string& str);
+  enum ConfigPart { MASKS,
+                    GENS,
+                    INPUT,
+                    LTG,
+                    LTGitems,
+                    CLUSTER,
+                    CLASS };
+  int loadConfigurationRun3(const std::string& ctpconfiguartion);
   int loadConfiguration(const std::string& ctpconfiguartion);
   void addBCMask(const BCMask& bcmask);
   void addCTPInput(const CTPInput& input);
@@ -97,6 +118,7 @@ class CTPConfiguration
   std::vector<CTPClass>& getCTPClasses() { return mCTPClasses; }
   uint64_t getInputMask(const std::string& name);
   bool isMaskInInputs(const uint64_t& mask) const;
+  bool isBCMaskInConfig(const std::string maskname) const;
   CTPInput* isInputInConfig(const std::string inpname);
   uint64_t getDecrtiptorInputsMask(const std::string& name) const;
   std::map<o2::detectors::DetID::ID, std::vector<CTPInput>> getDet2InputMap();
@@ -107,11 +129,13 @@ class CTPConfiguration
   std::string mName;
   std::string mVersion;
   std::vector<BCMask> mBCMasks;
+  std::vector<CTPGenerator> mGenerators;
   std::vector<CTPInput> mInputs;
   std::vector<CTPDescriptor> mDescriptors;
   std::vector<CTPDetector> mDetectors;
   std::vector<CTPCluster> mClusters;
   std::vector<CTPClass> mCTPClasses;
+  int processConfigurationLineRun3(std::string& line, int& level);
   int processConfigurationLine(std::string& line, int& level);
   ClassDefNV(CTPConfiguration, 2);
 };
