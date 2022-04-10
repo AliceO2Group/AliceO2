@@ -43,6 +43,7 @@ class ClustererDPL : public Task
   int mState = 0;
   bool mUseMC = true;
   bool mPatterns = true;
+  bool mUseCCDBClusterDictionary = true;
   bool mUseClusterDictionary = true;
   int mNThreads = 1;
   std::unique_ptr<std::ifstream> mFile = nullptr;

@@ -47,8 +47,9 @@ void ClustererDPL::init(InitContext& ic)
   mClusterer = std::make_unique<o2::itsmft::Clusterer>();
   mClusterer->setNChips(o2::itsmft::ChipMappingMFT::getNChips());
   LOG(info) << "MFT ClustererDPL::init total number of sensors " << o2::itsmft::ChipMappingMFT::getNChips() << "\n";
+  mUseClusterDictionary = !ic.options().get<bool>("ignore-cluster-dictionary");
 
-  //mClusterer->setMaskOverflowPixels(false);
+  // mClusterer->setMaskOverflowPixels(false);
 
   auto filenameGRP = ic.options().get<std::string>("grp-file");
   const auto grp = o2::parameters::GRPObject::loadFrom(filenameGRP.c_str());
@@ -73,12 +74,11 @@ void ClustererDPL::init(InitContext& ic)
   mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
 
   std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath);
-  if (o2::utils::Str::pathExists(dictFile)) {
+  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath, "root");
+  if (o2::utils::Str::pathExists(dictFile) && mUseClusterDictionary) {
     mClusterer->loadDictionary(dictFile);
-    LOG(info) << "MFTClusterer running with a provided dictionary: " << dictFile;
-  } else {
-    LOG(info) << "Dictionary " << dictFile << " is absent, MFTClusterer expects cluster patterns";
+    LOG(info) << "MFTClusterer running with a provided dictionary: " << dictFile << "; Disabling CCDB dictionary fetcher";
+    mUseCCDBClusterDictionary = false; // Disables CCDB fetcher if local cluster dictionary is provided
   }
   mState = 1;
   mClusterer->print();
@@ -146,9 +146,10 @@ void ClustererDPL::updateTimeDependentParams(ProcessingContext& pc)
 ///_______________________________________
 void ClustererDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
+  auto updateDict = mUseClusterDictionary && mUseCCDBClusterDictionary;
   if (matcher == ConcreteDataMatcher("MFT", "CLUSDICT", 0)) {
-    LOG(info) << "cluster dictionary updated" << (!mUseClusterDictionary ? " but its using is disabled" : "");
-    if (mUseClusterDictionary) {
+    LOG(info) << "cluster dictionary updated" << (!updateDict ? " but its using is disabled" : "");
+    if (updateDict) {
       mClusterer->setDictionary((const TopologyDictionary*)obj);
     }
   }

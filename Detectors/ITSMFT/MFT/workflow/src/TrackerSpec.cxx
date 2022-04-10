@@ -63,7 +63,7 @@ void TrackerDPL::init(InitContext& ic)
     Bool_t continuous = mGRP->isDetContinuousReadOut("MFT");
     LOG(info) << "MFTTracker RO: continuous=" << continuous;
 
-    o2::base::GeometryManager::loadGeometry("", true, true);
+    o2::base::GeometryManager::loadGeometry();
     o2::mft::GeometryTGeo* geom = o2::mft::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
                                                    o2::math_utils::TransformType::T2G));
@@ -81,7 +81,7 @@ void TrackerDPL::init(InitContext& ic)
       mTrackerL->initConfig(trackingParam, true);
       mTrackerL->initialize(trackingParam.FullClusterScan);
     } else {
-      LOG(info) << "Starting MFT tracker: Field is on!";
+      LOG(info) << "Starting MFT tracker: Field is on; Bz = " << Bz;
       mFieldOn = true;
       mTracker = std::make_unique<o2::mft::Tracker<TrackLTF>>(mUseMC);
       mTracker->setBz(Bz);
