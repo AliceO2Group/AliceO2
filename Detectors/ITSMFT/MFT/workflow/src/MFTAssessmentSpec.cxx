@@ -40,7 +40,10 @@ void MFTAssessmentSpec::init(InitContext& ic)
     auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
     double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
     auto Bz = field->getBz(centerMFT);
+    LOG(info) << "Setting MFT Assessment Bz = " << Bz;
     mMFTAssessment->setBz(Bz);
+  } else {
+    LOG(fatal) << "Magnetic field not initialized";
   }
 
   for (int sw = 0; sw < NStopWatches; sw++) {
@@ -72,7 +75,8 @@ void MFTAssessmentSpec::run(o2::framework::ProcessingContext& pc)
       mTimer[SWGenerated].Stop();
     }
     mTimer[SWRecoAndTrue].Start(false);
-    mMFTAssessment->processRecoAndTrueTracks();
+    mMFTAssessment->processRecoTracks();
+    mMFTAssessment->processTrueTracks();
     mTimer[SWRecoAndTrue].Stop();
   }
 }
