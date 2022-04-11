@@ -533,68 +533,81 @@ Double_t MagneticField::getFactorDipole() const
   }
 }
 
-MagneticField* MagneticField::createFieldMap(Float_t l3Cur, Float_t diCur, Int_t convention, Bool_t uniform,
-                                             Float_t beamenergy, const Char_t* beamtype, const std::string path)
+void MagneticField::rescaleField(float l3Cur, float diCur, bool uniform, int convention)
 {
-  const Float_t l3NominalCurrent1 = 30000.f; // (A)
-  const Float_t l3NominalCurrent2 = 12000.f; // (A)
-  const Float_t diNominalCurrent = 6000.f;   // (A)
+  // this function taks as input magnet currents and rescales existing field if the map is compatible
+  float sclL3 = l3Cur, sclDip = diCur;
+  MagFieldParam::BMap_t map = getFieldMapScale(sclL3, sclDip, uniform);
+  if (map != mMapType) {
+    LOGP(fatal, "Provided L3current={} DipCurrent={} uniform={} leads to map type {}, incompatible with loaded {}", l3Cur, diCur, uniform, map, mMapType);
+  }
+  setFactorSolenoid(sclL3);
+  setFactorDipole(sclDip);
+  LOGP(info, "Updating magnetic field: L3current={} DipCurrent={} uniform={}", l3Cur, diCur, uniform);
+}
 
-  const Float_t tolerance = 0.03; // relative current tolerance
-  const Float_t zero = 77.f;      // "zero" current (A)
+MagFieldParam::BMap_t MagneticField::getFieldMapScale(float& l3, float& dip, bool uniform, int convention)
+{
+  // this function taks as input magnet currents and returns the field type and scalings for L3 and dipole
+  const float l3NominalCurrent1 = 30000.f; // (A)
+  const float l3NominalCurrent2 = 12000.f; // (A)
+  const float diNominalCurrent = 6000.f;   // (A)
+
+  const float tolerance = 0.03; // relative current tolerance
+  const float zero = 77.f;      // "zero" current (A)
 
   MagFieldParam::BMap_t map = MagFieldParam::k5kG;
-  double sclL3, sclDip;
+  float sclL3, sclDip;
 
-  Float_t l3Pol = l3Cur > 0 ? 1 : -1;
-  Float_t diPol = diCur > 0 ? 1 : -1;
+  float l3Pol = l3 > 0 ? 1 : -1;
+  float diPol = dip > 0 ? 1 : -1;
 
-  l3Cur = TMath::Abs(l3Cur);
-  diCur = TMath::Abs(diCur);
+  l3 = TMath::Abs(l3);
+  dip = TMath::Abs(dip);
 
-  if (TMath::Abs((sclDip = diCur / diNominalCurrent) - 1.) > tolerance && !uniform) {
-    if (diCur <= zero) {
+  if (TMath::Abs((sclDip = dip / diNominalCurrent) - 1.) > tolerance && !uniform) {
+    if (dip <= zero) {
       sclDip = 0.; // some small current.. -> Dipole OFF
     } else {
-      LOG(fatal) << "MagneticField::createFieldMap: Wrong dipole current (" << diCur << " A)!";
+      LOG(fatal) << "MagneticField::createFieldMap: Wrong dipole current (" << dip << " A)!";
     }
   }
-
   if (uniform) {
     // special treatment of special MC with uniform mag field (normalized to 0.5 T)
     // no check for scaling/polarities are done
     map = MagFieldParam::k5kGUniform;
-    sclL3 = l3Cur / l3NominalCurrent1;
+    sclL3 = l3 / l3NominalCurrent1;
   } else {
-    if (TMath::Abs((sclL3 = l3Cur / l3NominalCurrent1) - 1.) < tolerance) {
+    if (TMath::Abs((sclL3 = l3 / l3NominalCurrent1) - 1.) < tolerance) {
       map = MagFieldParam::k5kG;
-    } else if (TMath::Abs((sclL3 = l3Cur / l3NominalCurrent2) - 1.) < tolerance) {
+    } else if (TMath::Abs((sclL3 = l3 / l3NominalCurrent2) - 1.) < tolerance) {
       map = MagFieldParam::k2kG;
-    } else if (l3Cur <= zero && diCur <= zero) {
+    } else if (l3 <= zero && dip <= zero) {
       sclL3 = 0;
       sclDip = 0;
       map = MagFieldParam::k5kGUniform;
     } else {
-      LOG(fatal) << "MagneticField::createFieldMap: Wrong L3 current (" << l3Cur << "  A)!";
+      LOG(fatal) << "MagneticField::createFieldMap: Wrong L3 current (" << l3 << "  A)!";
     }
   }
-
   if (sclDip != 0 && map != MagFieldParam::k5kGUniform) {
-    if ((l3Cur <= zero) ||
+    if ((l3 <= zero) ||
         ((convention == kConvLHC && l3Pol != diPol) || (convention == kConvDCS2008 && l3Pol == diPol))) {
       LOG(fatal) << "MagneticField::createFieldMap: Wrong combination for L3/Dipole polarities ("
                  << (l3Pol > 0 ? '+' : '-') << "/" << (diPol > 0 ? '+' : '-') << ") for convention "
                  << getPolarityConvention();
     }
   }
+  l3 = (l3Pol < 0) ? -sclL3 : sclL3;
+  dip = (diPol < 0) ? -sclDip : sclDip;
+  return map;
+}
 
-  if (l3Pol < 0) {
-    sclL3 = -sclL3;
-  }
-  if (diPol < 0) {
-    sclDip = -sclDip;
-  }
-
+MagneticField* MagneticField::createFieldMap(float l3Cur, float diCur, Int_t convention, Bool_t uniform,
+                                             float beamenergy, const Char_t* beamtype, const std::string path)
+{
+  float sclL3 = l3Cur, sclDip = diCur;
+  MagFieldParam::BMap_t map = getFieldMapScale(sclL3, sclDip, uniform);
   MagFieldParam::BeamType_t btype = MagFieldParam::kNoBeamField;
   TString btypestr = beamtype;
   btypestr.ToLower();
