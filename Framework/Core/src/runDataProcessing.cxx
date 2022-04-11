@@ -2175,14 +2175,19 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     control.state = DriverControlState::PLAY;
   }
 
-  if (varmap["mermaid"].as<bool>()) {
+  if (!varmap["mermaid"].as<std::string>().empty()) {
     // Dump a mermaid representation of what I will do.
-    control.callbacks = {[](WorkflowSpec const&,
+    control.callbacks = {[filename = varmap["mermaid"].as<std::string>()](WorkflowSpec const&,
                             DeviceSpecs const& specs,
                             DeviceExecutions const&,
                             DataProcessorInfos&,
                             CommandInfo const&) {
-      MermaidHelpers::dumpDeviceSpec2Mermaid(std::cout, specs);
+      if (filename == "-") {
+        MermaidHelpers::dumpDeviceSpec2Mermaid(std::cout, specs);
+      } else {
+        std::ofstream output(filename);
+        MermaidHelpers::dumpDeviceSpec2Mermaid(output, specs);
+      }
     }};
     control.forcedTransitions = {
       DriverState::EXIT,                    //
@@ -2406,8 +2411,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
      "what to do when a device has an error: quit, wait")                                                                                                 //                                                                                                                            //
     ("min-failure-level", bpo::value<LogParsingHelpers::LogLevel>(&minFailureLevel)->default_value(LogParsingHelpers::LogLevel::Fatal),                   //                                                                                                                          //
      "minimum message level which will be considered as fatal and exit with 1")                                                                           //                                                                                                                            //
-    ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graphviz output")                                                    //                                                                                                                              //
-    ("mermaid", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output in mermaid format")                                        //                                                                                                                              //
+    ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graphviz output")                                                       //                                                                                                                              //
+    ("mermaid", bpo::value<std::string>()->default_value(""), "produce graph output in mermaid format in file under specified name or on stdout if argument is \"-\"")                                                       //                                                                                                                              //
     ("timeout,t", bpo::value<uint64_t>()->default_value(0), "forced exit timeout (in seconds)")                                                           //                                                                                                                                //
     ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")                                                        //                                                                                                                                  //
     ("dds-workflow-suffix,D", bpo::value<std::string>()->default_value(""), "suffix for DDS names")                                                       //                                                                                                                                  //
