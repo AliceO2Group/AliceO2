@@ -34,7 +34,9 @@
 
 #include "RawFileReaderWorkflow.h" // not installed
 #include <TStopwatch.h>
-#include <fairmq/FairMQDevice.h>
+#include <fairmq/Device.h>
+#include <fairmq/Message.h>
+#include <fairmq/Parts.h>
 
 #include <unistd.h>
 #include <algorithm>
@@ -189,13 +191,13 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
   };
 
   size_t tfNParts = 0, tfSize = 0;
-  std::unordered_map<std::string, std::unique_ptr<FairMQParts>> messagesPerRoute;
+  std::unordered_map<std::string, std::unique_ptr<fair::mq::Parts>> messagesPerRoute;
 
-  auto addPart = [&messagesPerRoute, &tfNParts, &tfSize](FairMQMessagePtr hd, FairMQMessagePtr pl, const std::string& fairMQChannel) {
-    FairMQParts* parts = nullptr;
-    parts = messagesPerRoute[fairMQChannel].get(); // FairMQParts*
+  auto addPart = [&messagesPerRoute, &tfNParts, &tfSize](fair::mq::MessagePtr hd, fair::mq::MessagePtr pl, const std::string& fairMQChannel) {
+    fair::mq::Parts* parts = nullptr;
+    parts = messagesPerRoute[fairMQChannel].get(); // fair::mq::Parts*
     if (!parts) {
-      messagesPerRoute[fairMQChannel] = std::make_unique<FairMQParts>();
+      messagesPerRoute[fairMQChannel] = std::make_unique<fair::mq::Parts>();
       parts = messagesPerRoute[fairMQChannel].get();
     }
     tfSize += pl->GetSize();
@@ -227,7 +229,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
         auto hdEOSMessage = fmqFactory->CreateMessage(exitStack.size(), fair::mq::Alignment{64});
         auto plEOSMessage = fmqFactory->CreateMessage(0, fair::mq::Alignment{64});
         memcpy(hdEOSMessage->GetData(), exitStack.data(), exitStack.size());
-        FairMQParts eosMsg;
+        fair::mq::Parts eosMsg;
         eosMsg.AddPart(std::move(hdEOSMessage));
         eosMsg.AddPart(std::move(plEOSMessage));
         device->Send(eosMsg, mRawChannelName);

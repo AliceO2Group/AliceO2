@@ -14,9 +14,10 @@
 #include "InputRouteHelpers.h"
 #include "Framework/DataProcessingHeader.h"
 
-#include <fairmq/FairMQDevice.h>
 #include <fairmq/Channel.h>
-#include <fairmq/FairMQMessage.h>
+#include <fairmq/Device.h>
+#include <fairmq/Message.h>
+#include <fairmq/TransportFactory.h>
 
 namespace o2::framework
 {
@@ -89,36 +90,36 @@ ChannelIndex FairMQDeviceProxy::getInputChannelIndexByName(std::string const& na
   return {ChannelIndex::INVALID};
 }
 
-FairMQTransportFactory* FairMQDeviceProxy::getOutputTransport(RouteIndex index) const
+fair::mq::TransportFactory* FairMQDeviceProxy::getOutputTransport(RouteIndex index) const
 {
   auto transport = getOutputChannel(getOutputChannelIndex(index))->Transport();
   assert(transport);
   return transport;
 }
 
-FairMQTransportFactory* FairMQDeviceProxy::getInputTransport(RouteIndex index) const
+fair::mq::TransportFactory* FairMQDeviceProxy::getInputTransport(RouteIndex index) const
 {
   auto transport = getInputChannel(getInputChannelIndex(index))->Transport();
   assert(transport);
   return transport;
 }
 
-std::unique_ptr<FairMQMessage> FairMQDeviceProxy::createOutputMessage(RouteIndex routeIndex) const
+std::unique_ptr<fair::mq::Message> FairMQDeviceProxy::createOutputMessage(RouteIndex routeIndex) const
 {
   return getOutputTransport(routeIndex)->CreateMessage(fair::mq::Alignment{64});
 }
 
-std::unique_ptr<FairMQMessage> FairMQDeviceProxy::createOutputMessage(RouteIndex routeIndex, const size_t size) const
+std::unique_ptr<fair::mq::Message> FairMQDeviceProxy::createOutputMessage(RouteIndex routeIndex, const size_t size) const
 {
   return getOutputTransport(routeIndex)->CreateMessage(size, fair::mq::Alignment{64});
 }
 
-std::unique_ptr<FairMQMessage> FairMQDeviceProxy::createInputMessage(RouteIndex routeIndex) const
+std::unique_ptr<fair::mq::Message> FairMQDeviceProxy::createInputMessage(RouteIndex routeIndex) const
 {
   return getInputTransport(routeIndex)->CreateMessage(fair::mq::Alignment{64});
 }
 
-std::unique_ptr<FairMQMessage> FairMQDeviceProxy::createInputMessage(RouteIndex routeIndex, const size_t size) const
+std::unique_ptr<fair::mq::Message> FairMQDeviceProxy::createInputMessage(RouteIndex routeIndex, const size_t size) const
 {
   return getInputTransport(routeIndex)->CreateMessage(size, fair::mq::Alignment{64});
 }

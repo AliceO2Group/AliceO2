@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "FairMQResizableBuffer.h"
-#include <fairmq/FairMQMessage.h>
+#include <fairmq/Message.h>
 #include <arrow/status.h>
 #include <arrow/util/config.h>
 #include <cassert>
@@ -158,7 +158,7 @@ arrow::Status FairMQResizableBuffer::Reserve(const int64_t capacity)
   return arrow::Status::OK();
 }
 
-std::unique_ptr<FairMQMessage> FairMQResizableBuffer::Finalise()
+std::unique_ptr<fair::mq::Message> FairMQResizableBuffer::Finalise()
 {
   auto oldSize = mMessage->GetSize();
   bool resized = mMessage->SetUsedSize(this->size_);

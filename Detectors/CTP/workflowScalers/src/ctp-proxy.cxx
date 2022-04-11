@@ -34,7 +34,8 @@
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Headers/DataHeaderHelpers.h"
-#include <fairmq/FairMQDevice.h>
+#include <fairmq/Device.h>
+#include <fairmq/Parts.h>
 #include "CommonUtils/StringUtils.h"
 #include "DataFormatsCTP/Configuration.h"
 #include <vector>
@@ -47,7 +48,7 @@ InjectorFunction dcs2dpl()
   auto timesliceId = std::make_shared<size_t>(0);
   auto runMgr = std::make_shared<o2::ctp::CTPRunManager>();
   runMgr->init();
-  return [timesliceId, runMgr](TimingInfo&, FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
+  return [timesliceId, runMgr](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever) {
     // make sure just 2 messages received
     if (parts.Size() != 2) {
       LOG(error) << "received " << parts.Size() << " instead of 2 expected";
@@ -80,7 +81,7 @@ InjectorFunction dcs2dpl()
     memcpy(hdMessageF->GetData(), headerStackF.data(), headerStackF.size());
     memcpy(plMessageF->GetData(), parts.At(1)->GetData(), hdrF.payloadSize);
 
-    FairMQParts outParts;
+    fair::mq::Parts outParts;
     outParts.AddPart(std::move(hdMessageF));
     outParts.AddPart(std::move(plMessageF));
     sendOnChannel(device, outParts, channel, *timesliceId);

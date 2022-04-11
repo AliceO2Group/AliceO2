@@ -205,7 +205,7 @@ void ServiceRegistry::postForwardingCallbacks(ProcessingContext& processContext)
   }
 }
 
-/// Callbacks to be called in FairMQDevice::PreRun()
+/// Callbacks to be called in fair::mq::Device::PreRun()
 void ServiceRegistry::preStartCallbacks()
 {
   // FIXME: we need to call the callback only once for the global services
