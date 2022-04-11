@@ -76,6 +76,7 @@ o2_add_library(Framework
                        src/ConfigurationOptionsRetriever.cxx
                        src/FreePortFinder.cxx
                        src/GraphvizHelpers.cxx
+                       src/MermaidHelpers.cxx
                        src/HTTPParser.cxx
                        src/InputRecord.cxx
                        src/InputRouteHelpers.cxx
@@ -208,6 +209,7 @@ foreach(t
         InputSpec
         Kernels
         LogParsingHelpers
+        Mermaid
         OptionsHelpers
         OverrideLabels
         PtrHelpers
