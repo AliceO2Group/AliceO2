@@ -1,7 +1,7 @@
-.\" Manpage for general FairMQDevice properties and options.
-.TH AliceO2 1 "12 Jun 2017" "1.0" "FairMQDevice man page"
+.\" Manpage for general FairMQ device properties and options.
+.TH AliceO2 1 "10 Apr 2022" "1.1" "FairMQ device man page"
 .SH NAME
-FairMQDevice - The basis for software devices in O2
+fair::mq::Device - The basis for software devices in O2
 
 .SH SYNOPSIS
 .I deviceapp
@@ -15,11 +15,11 @@ FairMQDevice - The basis for software devices in O2
 .BI --config-xml-string " arg"
 
 .SH DESCRIPTION
-All AliceO2 devices derive from FairMQDevice which provides the
+All AliceO2 devices derive from fair::mq::Device which provides the
 transport functionality.
 
 .SH OPTIONS
-.SS Common FairMQDevice options
+.SS Common FairMQ device options
 .TP 2
 .BI --id " id"
 A unique identifier of the device
@@ -37,7 +37,7 @@ Verbosity level :
 .B NOLOG
 .RE
 
-.SS FairMQDevice channel configuration
+.SS FairMQ device channel configuration
 .TP 2
 .BI --config-xml-string " arg "
 XML input as command line string.

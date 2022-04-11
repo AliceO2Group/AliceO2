@@ -54,7 +54,7 @@ class CallbackService
     ///
     /// return AlgorithmSpec::InitCallback{[=](InitContext& ic) {
     ///    auto& callbacks = ic.services().get<CallbackService>();
-    ///    callbacks.set(CallbackService::Id::RegionInfoCallback, [](FairMQRegionInfo const& info) {
+    ///    callbacks.set(CallbackService::Id::RegionInfoCallback, [](fair::mq::RegionInfo const& info) {
     ///    ... do GPU init ...
     ///    });
     ///  }
@@ -87,7 +87,7 @@ class CallbackService
   using ClockTickCallback = std::function<void()>;
   using DataConsumedCallback = std::function<void(ServiceRegistry&)>;
   using EndOfStreamCallback = std::function<void(EndOfStreamContext&)>;
-  using RegionInfoCallback = std::function<void(FairMQRegionInfo const&)>;
+  using RegionInfoCallback = std::function<void(fair::mq::RegionInfo const&)>;
   using NewTimesliceCallback = std::function<void(o2::header::DataHeader&, DataProcessingHeader&)>;
   using PreProcessingCallback = std::function<void(ServiceRegistry&, int)>;
   using PostProcessingCallback = std::function<void(ServiceRegistry&, int)>;

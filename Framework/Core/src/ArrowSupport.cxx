@@ -31,7 +31,7 @@
 #include "Headers/DataHeader.h"
 #include "Headers/DataHeaderHelpers.h"
 
-#include <options/FairMQProgOptions.h>
+#include <fairmq/ProgOptions.h>
 
 #include <uv.h>
 #include <boost/program_options/variables_map.hpp>

@@ -23,7 +23,8 @@
 #include "Framework/InputRecordWalker.h"
 #include "CommonUtils/VerbosityConfig.h"
 
-#include <fairmq/FairMQDevice.h>
+#include <fairmq/Device.h>
+#include <fairmq/Parts.h>
 
 using namespace o2::framework;
 
@@ -63,7 +64,7 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
   auto device = pc.services().get<o2::framework::RawDeviceService>().device();
   auto outputRoutes = pc.services().get<o2::framework::RawDeviceService>().spec().outputs;
   auto fairMQChannel = outputRoutes.at(0).channel;
-  FairMQParts partsOut;
+  fair::mq::Parts partsOut;
 
   /** to store data sorted by subspec id **/
   std::map<int, std::vector<o2::framework::DataRef>> subspecPartMap;

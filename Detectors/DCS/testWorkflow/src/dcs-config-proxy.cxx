@@ -23,7 +23,8 @@
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Headers/DataHeaderHelpers.h"
-#include <fairmq/FairMQDevice.h>
+#include <fairmq/Device.h>
+#include <fairmq/Parts.h>
 #include "CommonUtils/StringUtils.h"
 #include <vector>
 #include <string>
@@ -34,13 +35,13 @@ using DetID = o2::detectors::DetID;
 
 std::array<o2::header::DataOrigin, 1> exceptionsDetID{"GRP"};
 
-void sendAnswer(const std::string& what, const std::string& ack_chan, FairMQDevice& device)
+void sendAnswer(const std::string& what, const std::string& ack_chan, fair::mq::Device& device)
 {
   if (!ack_chan.empty()) {
     auto fmqFactory = device.GetChannel(ack_chan).Transport();
     auto msg = fmqFactory->CreateMessage(what.size(), fair::mq::Alignment{64});
     memcpy(msg->GetData(), what.c_str(), what.size());
-    FairMQParts outParts;
+    fair::mq::Parts outParts;
     outParts.AddPart(std::move(msg));
     sendOnChannel(device, outParts, ack_chan, (size_t)-1);
   }
@@ -68,7 +69,7 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
 
   auto timesliceId = std::make_shared<size_t>(0);
 
-  return [acknowledge, timesliceId](TimingInfo&, FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
+  return [acknowledge, timesliceId](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever) {
     if (parts.Size() == 0) { // received at ^c, ignore
       LOG(info) << "ignoring empty message";
       return;
@@ -128,12 +129,12 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     memcpy(hdMessageN->GetData(), headerStackN.data(), headerStackN.size());
     memcpy(plMessageN->GetData(), parts.At(0)->GetData(), hdrN.payloadSize);
 
-    FairMQParts outPartsF;
+    fair::mq::Parts outPartsF;
     outPartsF.AddPart(std::move(hdMessageF));
     outPartsF.AddPart(std::move(plMessageF));
     sendOnChannel(device, outPartsF, channel, (size_t)-1);
 
-    FairMQParts outPartsN;
+    fair::mq::Parts outPartsN;
     outPartsN.AddPart(std::move(hdMessageN));
     outPartsN.AddPart(std::move(plMessageN));
     sendOnChannel(device, outPartsN, channel, *timesliceId);

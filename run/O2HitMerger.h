@@ -17,7 +17,7 @@
 #include <memory>
 #include <string>
 #include <type_traits>
-#include "FairMQMessage.h"
+#include <fairmq/Message.h>
 #include <fairmq/Device.h>
 #include <FairLogger.h>
 #include <SimulationDataFormat/MCEventHeader.h>
@@ -92,7 +92,7 @@ void sighandler(int signal)
   }
 }
 
-class O2HitMerger : public FairMQDevice
+class O2HitMerger : public fair::mq::Device
 {
 
   class TMessageWrapper : public TMessage
@@ -122,7 +122,7 @@ class O2HitMerger : public FairMQDevice
   }
 
  private:
-  /// Overloads the InitTask() method of FairMQDevice
+  /// Overloads the InitTask() method of fair::mq::Device
   void InitTask() final
   {
     LOG(info) << "INIT HIT MERGER";
@@ -257,7 +257,7 @@ class O2HitMerger : public FairMQDevice
     return checksum == nparts * (nparts + 1) / 2;
   }
 
-  void consumeHits(int eventID, FairMQParts& data, int& index)
+  void consumeHits(int eventID, fair::mq::Parts& data, int& index)
   {
     auto detIDmessage = std::move(data.At(index++));
     // this should be a detector ID
@@ -276,7 +276,7 @@ class O2HitMerger : public FairMQDevice
   }
 
   template <typename T, typename BT>
-  void consumeData(int eventID, FairMQParts& data, int& index, BT& buffer)
+  void consumeData(int eventID, fair::mq::Parts& data, int& index, BT& buffer)
   {
     auto decodeddata = o2::base::decodeTMessage<T*>(data, index);
     if (buffer.find(eventID) == buffer.end()) {
@@ -302,13 +302,13 @@ class O2HitMerger : public FairMQDevice
   {
     o2::simpubsub::publishMessage(fChannels["merger-notifications"].at(0), o2::simpubsub::simStatusString("MERGER", "STATUS", "AWAITING INPUT"));
 
-    auto factory = FairMQTransportFactory::CreateTransportFactory("zeromq");
-    auto channel = FairMQChannel{"o2sim-control", "sub", factory};
+    auto factory = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+    auto channel = fair::mq::Channel{"o2sim-control", "sub", factory};
     auto controlsocketname = getenv("ALICE_O2SIMCONTROL");
     LOG(info) << "SOCKETNAME " << controlsocketname;
     channel.Connect(std::string(controlsocketname));
     channel.Validate();
-    std::unique_ptr<FairMQMessage> reply(channel.NewMessage());
+    std::unique_ptr<fair::mq::Message> reply(channel.NewMessage());
 
     LOG(info) << "WAITING FOR INPUT";
     if (channel.Receive(reply) > 0) {
@@ -330,7 +330,7 @@ class O2HitMerger : public FairMQDevice
   bool ConditionalRun() override
   {
     auto& channel = fChannels.at("simdata").at(0);
-    FairMQParts request;
+    fair::mq::Parts request;
     auto bytes = channel.Receive(request);
     if (bytes < 0) {
       LOG(error) << "Some error occurred on socket during receive on sim data";
@@ -349,7 +349,7 @@ class O2HitMerger : public FairMQDevice
     return more;
   }
 
-  bool handleSimData(FairMQParts& data, int /*index*/)
+  bool handleSimData(fair::mq::Parts& data, int /*index*/)
   {
     bool expectmore = true;
     int index = 0;
@@ -809,7 +809,7 @@ class O2HitMerger : public FairMQDevice
   std::string mCurrentOutputDir; // current output folder asked
 
   // channel to PUB status messages to outside subscribers
-  FairMQChannel mPubChannel;
+  fair::mq::Channel mPubChannel;
 
   // init detector instances
   void initDetInstances();

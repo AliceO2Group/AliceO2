@@ -59,32 +59,17 @@ BOOST_AUTO_TEST_CASE(MessageSizePair_test)
   BOOST_CHECK(ptr->buffer[S - 1] == buffer[S - 1]);
 }
 
-// some (modified) convenience functions to be able to create messages
-// copied from FairRoot
-template <typename T>
-inline static void SimpleMsgCleanup(void* /*data*/, void* obj)
-{
-  delete static_cast<T*>(obj);
-}
-
-template <typename Factory, typename T>
-inline static FairMQMessagePtr NewSimpleMessage(Factory& f, const T& data)
-{
-  auto* dataCopy = new T(data);
-  return f.CreateMessage(dataCopy, sizeof(T), SimpleMsgCleanup<T>, dataCopy);
-}
-
 BOOST_AUTO_TEST_CASE(TimeFrame_test)
 {
-  FairMQParts messages;
+  fair::mq::Parts messages;
 
   // we use the ZMQ Factory to create some messages
-  std::shared_ptr<FairMQTransportFactory> zmq(FairMQTransportFactory::CreateTransportFactory("zeromq"));
+  auto zmq(fair::mq::TransportFactory::CreateTransportFactory("zeromq"));
   BOOST_CHECK(zmq);
   messages.AddPart(zmq->CreateMessage(1000));
 
   o2::header::DataHeader dh;
-  messages.AddPart(NewSimpleMessage(*zmq, dh));
+  messages.AddPart(zmq->NewSimpleMessage(dh));
 
   TimeFrame frame(messages);
   BOOST_CHECK(frame.GetNumParts() == 2);

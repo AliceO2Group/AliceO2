@@ -25,7 +25,7 @@ static std::atomic<unsigned int> blockId = 0;
 
 InjectorFunction dataSamplingReadoutAdapter(OutputSpec const& spec)
 {
-  return [spec](TimingInfo&, FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
+  return [spec](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever) {
     for (size_t i = 0; i < parts.Size(); ++i) {
 
       DataHeader dh;

@@ -69,8 +69,8 @@ void TMessageSerializer::fillSchema(FairTMessage& msg, const StreamerList& strea
   serialize(msg, &infoArray);
 }
 
-void TMessageSerializer::loadSchema(const FairMQMessage& msg) { loadSchema(as_span(msg)); }
-void TMessageSerializer::fillSchema(FairMQMessage& msg, const StreamerList& streamers)
+void TMessageSerializer::loadSchema(const fair::mq::Message& msg) { loadSchema(as_span(msg)); }
+void TMessageSerializer::fillSchema(fair::mq::Message& msg, const StreamerList& streamers)
 {
   // TODO: this is a bit of a problem in general: non-owning ROOT containers should become
   // owners at deserialize, otherwise there is a leak. Switch to a better container.

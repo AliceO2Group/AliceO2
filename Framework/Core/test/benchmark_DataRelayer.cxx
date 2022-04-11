@@ -16,7 +16,7 @@
 #include "Framework/DataRelayer.h"
 #include "Framework/DataProcessingHeader.h"
 #include <Monitoring/Monitoring.h>
-#include <fairmq/FairMQTransportFactory.h>
+#include <fairmq/TransportFactory.h>
 #include <cstring>
 #include <vector>
 
@@ -39,11 +39,11 @@ static void BM_RelayMessageCreation(benchmark::State& state)
 
   DataProcessingHeader dph{0, 1};
   Stack stack{dh, dph};
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
 
   for (auto _ : state) {
-    FairMQMessagePtr header = transport->CreateMessage(stack.size());
-    FairMQMessagePtr payload = transport->CreateMessage(1000);
+    fair::mq::MessagePtr header = transport->CreateMessage(stack.size());
+    fair::mq::MessagePtr payload = transport->CreateMessage(1000);
     memcpy(header->GetData(), stack.data(), stack.size());
   }
 }
@@ -77,11 +77,11 @@ static void BM_RelaySingleSlot(benchmark::State& state)
 
   DataProcessingHeader dph{0, 1};
   Stack stack{dh, dph};
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   // we are creating the inflight messages once outside the benchmark
   // loop and make sure that they are moved back to the original vector
   // when processed by the relayer
-  std::vector<FairMQMessagePtr> inflightMessages;
+  std::vector<fair::mq::MessagePtr> inflightMessages;
   inflightMessages.emplace_back(transport->CreateMessage(stack.size()));
   inflightMessages.emplace_back(transport->CreateMessage(1000));
   memcpy(inflightMessages[0]->GetData(), stack.data(), stack.size());
@@ -126,7 +126,7 @@ static void BM_RelayMultipleSlots(benchmark::State& state)
   dh.dataOrigin = "TPC";
   dh.subSpecification = 0;
 
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   size_t timeslice = 0;
 
   DataProcessingHeader dph{timeslice, 1};
@@ -135,7 +135,7 @@ static void BM_RelayMultipleSlots(benchmark::State& state)
   // we are creating the inflight messages once outside the benchmark
   // loop and make sure that they are moved back to the original vector
   // when processed by the relayer
-  std::vector<FairMQMessagePtr> inflightMessages;
+  std::vector<fair::mq::MessagePtr> inflightMessages;
   inflightMessages.emplace_back(transport->CreateMessage(placeholder.size()));
   inflightMessages.emplace_back(transport->CreateMessage(1000));
 
@@ -188,13 +188,13 @@ static void BM_RelayMultipleRoutes(benchmark::State& state)
   dh2.dataOrigin = "TPC";
   dh2.subSpecification = 0;
 
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   size_t timeslice = 0;
 
   DataProcessingHeader dph1{timeslice, 1};
   Stack stack1{dh1, dph1};
 
-  std::vector<FairMQMessagePtr> inflightMessages;
+  std::vector<fair::mq::MessagePtr> inflightMessages;
   inflightMessages.emplace_back(transport->CreateMessage(stack1.size()));
   inflightMessages.emplace_back(transport->CreateMessage(1000));
 
@@ -258,11 +258,11 @@ static void BM_RelaySplitParts(benchmark::State& state)
   dh.subSpecification = 0;
   dh.payloadSize = 100;
 
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   size_t timeslice = 0;
   const int nSplitParts = state.range(0);
 
-  std::vector<std::unique_ptr<FairMQMessage>> inflightMessages;
+  std::vector<std::unique_ptr<fair::mq::Message>> inflightMessages;
   inflightMessages.reserve(2 * nSplitParts);
 
   for (size_t i = 0; i < nSplitParts; ++i) {
@@ -271,8 +271,8 @@ static void BM_RelaySplitParts(benchmark::State& state)
     dh.splitPayloadParts = nSplitParts;
     Stack stack{dh, dph};
 
-    FairMQMessagePtr header = transport->CreateMessage(stack.size());
-    FairMQMessagePtr payload = transport->CreateMessage(dh.payloadSize);
+    fair::mq::MessagePtr header = transport->CreateMessage(stack.size());
+    fair::mq::MessagePtr payload = transport->CreateMessage(dh.payloadSize);
 
     memcpy(header->GetData(), stack.data(), stack.size());
     inflightMessages.emplace_back(std::move(header));
@@ -315,17 +315,17 @@ static void BM_RelayMultiplePayloads(benchmark::State& state)
   dh.subSpecification = 0;
   dh.payloadSize = 100;
 
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   size_t timeslice = 0;
   const int nPayloads = state.range(0);
-  std::vector<std::unique_ptr<FairMQMessage>> inflightMessages;
+  std::vector<std::unique_ptr<fair::mq::Message>> inflightMessages;
   inflightMessages.reserve(nPayloads + 1);
 
   DataProcessingHeader dph{timeslice, 1};
   dh.splitPayloadIndex = nPayloads;
   dh.splitPayloadParts = nPayloads;
   Stack stack{dh, dph};
-  FairMQMessagePtr header = transport->CreateMessage(stack.size());
+  fair::mq::MessagePtr header = transport->CreateMessage(stack.size());
   memcpy(header->GetData(), stack.data(), stack.size());
   inflightMessages.emplace_back(std::move(header));
   for (size_t i = 0; i < nPayloads; ++i) {

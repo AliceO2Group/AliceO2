@@ -18,21 +18,21 @@ namespace o2::framework
 {
 
 /// Fairly unsophisticated service which simply stores and returns the
-/// requested FairMQDevice and DeviceSpec
+/// requested fair::mq::Device and DeviceSpec
 class SimpleRawDeviceService : public RawDeviceService
 {
  public:
-  SimpleRawDeviceService(FairMQDevice* device, DeviceSpec const& spec)
+  SimpleRawDeviceService(fair::mq::Device* device, DeviceSpec const& spec)
     : mDevice(device), mSpec(spec)
   {
   }
 
-  FairMQDevice* device() final
+  fair::mq::Device* device() final
   {
     return mDevice;
   }
 
-  void setDevice(FairMQDevice* device) final
+  void setDevice(fair::mq::Device* device) final
   {
     mDevice = device;
   }
@@ -45,7 +45,7 @@ class SimpleRawDeviceService : public RawDeviceService
   void waitFor(unsigned int ms) final;
 
  private:
-  FairMQDevice* mDevice;
+  fair::mq::Device* mDevice;
   DeviceSpec const& mSpec;
 };
 

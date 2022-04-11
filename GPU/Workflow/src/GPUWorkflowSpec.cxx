@@ -309,7 +309,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
     }
 
     auto& callbacks = ic.services().get<CallbackService>();
-    callbacks.set(CallbackService::Id::RegionInfoCallback, [&processAttributes, confParam](FairMQRegionInfo const& info) {
+    callbacks.set(CallbackService::Id::RegionInfoCallback, [&processAttributes, confParam](fair::mq::RegionInfo const& info) {
       if (info.size == 0) {
         return;
       }

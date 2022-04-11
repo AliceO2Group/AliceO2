@@ -13,7 +13,7 @@
 #include "Framework/InputSpec.h"
 #include "Framework/ObjectCache.h"
 #include "Framework/CallbackService.h"
-#include <fairmq/FairMQMessage.h>
+#include <fairmq/Message.h>
 #include <cassert>
 
 #if defined(__GNUC__)
