@@ -217,7 +217,7 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
           nodes.push_back(DescriptionValueMatcher{*currentDescription});
         } else if (*next == '?' && assignLastStringMatch("description", 16, currentDescription, IN_BEGIN_ATTRIBUTES)) {
           nodes.push_back(DescriptionValueMatcher{*currentDescription});
-        } else if (*next == '\0' && assignLastStringMatch("description", 16, currentDescription, IN_BEGIN_ATTRIBUTES)) {
+        } else if (*next == '\0' && assignLastStringMatch("description", 16, currentDescription, IN_END_MATCHER)) {
           nodes.push_back(DescriptionValueMatcher{*currentDescription});
         } else {
           error("description needs to be between 1 and 16 char long");
