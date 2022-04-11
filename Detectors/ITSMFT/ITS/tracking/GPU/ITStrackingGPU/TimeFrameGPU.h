@@ -76,7 +76,7 @@ class TimeFrameGPU : public TimeFrame
   std::array<Vector<int>, NLayers> mClusterExternalIndicesD;
   std::array<Vector<int>, NLayers> mROframesClustersD;
   std::array<Vector<Tracklet>, NLayers - 1> mTrackletsD;
-  Vector<int> mCUBTmpBuffer; // don't know whether will be used by the tracker
+  Vector<int> mCUBTmpBuffers; // don't know whether will be used by the tracker
 
   // Vertexer only
   Vector<Line> mLines;
