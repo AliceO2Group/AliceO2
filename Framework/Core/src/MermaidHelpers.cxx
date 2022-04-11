@@ -27,7 +27,8 @@ std::string quote(std::string const& s) { return R"(")" + s + R"(")"; }
 /// Helper to dump a set of devices as a mermaid file
 void MermaidHelpers::dumpDeviceSpec2Mermaid(std::ostream& out, const std::vector<DeviceSpec>& specs)
 {
-  out << "flowchart TD\n";
+  out << R"(graph TD
+)";
   std::map<std::string, std::string> outputChannel2Device;
   std::map<std::string, unsigned int> outputChannel2Port;
 
