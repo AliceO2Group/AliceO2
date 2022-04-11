@@ -1408,7 +1408,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     }
 
     const auto channelData = fddRecPoint.getBunchChannelData(fddChData);
-    // TODO: switch to calibrated amplitude
     for (const auto& channel : channelData) {
       if (channel.mPMNumber < 8)
         aFDDAmplitudesC[channel.mPMNumber] = channel.mChargeADC; // amplitude
