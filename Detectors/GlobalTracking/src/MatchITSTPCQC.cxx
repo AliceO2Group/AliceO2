@@ -10,10 +10,12 @@
 // or submit itself to any jurisdiction.
 
 #include "GlobalTracking/MatchITSTPCQC.h"
+#include "GlobalTracking/TrackCuts.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "Framework/InputSpec.h"
 #include "ReconstructionDataFormats/TrackParametrization.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "SimulationDataFormat/MCUtils.h"
@@ -164,6 +166,7 @@ void MatchITSTPCQC::initDataRequest()
 void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
 {
   static int evCount = 0;
+  o2::globaltracking::RecoContainer mRecoCont;
   mRecoCont.collectData(ctx, *mDataRequest.get());
   mTPCTracks = mRecoCont.getTPCTracks();
   mITSTPCTracks = mRecoCont.getTPCITSTracks();
@@ -175,7 +178,11 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
   std::vector<bool> isTPCTrackSelectedEntry(mTPCTracks.size(), false);
   for (auto itrk = 0; itrk < mTPCTracks.size(); ++itrk) {
     auto const& trkTpc = mTPCTracks[itrk];
-    if (selectTrack(trkTpc)) {
+    // if (selectTrack(trkTpc)) {
+    //   isTPCTrackSelectedEntry[itrk] = true;
+    // }
+    o2::dataformats::GlobalTrackID id(itrk,o2::dataformats::GlobalTrackID::TPC);
+    if (TrackCuts::isSelected(id, mRecoCont)) {
       isTPCTrackSelectedEntry[itrk] = true;
     }
   }
