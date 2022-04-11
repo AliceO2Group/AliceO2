@@ -220,7 +220,7 @@ namespace bpo = boost::program_options;
 struct EPNstderrMonitor : fair::mq::Device {
   void InitTask() override
   {
-    std::string path = ".";
+    std::string path = getenv("DDS_LOCATION") ? (std::string(getenv("DDS_LOCATION")) + "/") : std::string(".");
     bool infoLogger = fConfig->GetProperty<int>("infologger");
     bool dds = false;
 
