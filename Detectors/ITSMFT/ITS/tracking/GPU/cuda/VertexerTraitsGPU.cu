@@ -192,9 +192,9 @@ GPUg() void trackletSelectionKernel(
   Line* lines,
   int* nFoundLines,
   int* nExclusiveFoundLines,
+  const int maxTrackletsPerCluster = 10,
   const float tanLambdaCut = 0.025f,
-  const float phiCut = 0.002f,
-  const int maxTrackletsPerCluster = 10)
+  const float phiCut = 0.002f)
 {
   for (int iCurrentLayerClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentLayerClusterIndex < nClustersMiddleLayer; iCurrentLayerClusterIndex += blockDim.x * gridDim.x) {
     const int stride{static_cast<int>(iCurrentLayerClusterIndex * maxTrackletsPerCluster)};
@@ -396,7 +396,8 @@ void VertexerTraitsGPU::computeTrackletMatching()
       mTimeFrameGPU->getDeviceUsedTracklets(rofId),
       mTimeFrameGPU->getDeviceLines(rofId),
       mTimeFrameGPU->getDeviceNFoundLines(rofId),
-      mTimeFrameGPU->getDeviceExclusiveNFoundLines(rofId));
+      mTimeFrameGPU->getDeviceExclusiveNFoundLines(rofId),
+      mTimeFrameGPU->getConfig().maxTrackletsPerCluster);
 
     // discardResult(cub::DeviceScan::ExclusiveSum(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()),
     //                                             bufferSize,
@@ -412,6 +413,17 @@ void VertexerTraitsGPU::computeTrackletMatching()
 
     gpuThrowOnError();
   }
+  // #ifdef VTX_DEBUG
+  // std::ofstream out01("NL01.txt");
+  // std::vector<std::vector<int>> NtrackletsClusters01(mTimeFrameGPU->getNrof());
+  // for (int iRof{0}; iRof < mTimeFrameGPU->getNrof(); ++iRof) {
+  //   NtrackletsClusters01[iRof].resize(mTimeFrameGPU->getClustersOnLayer(iRof, 1).size());
+  //   discardResult(cudaMemcpy(NtrackletsClusters01[iRof].data(), mTimeFrameGPU->getDeviceNFoundLines(iRof), sizeof(int) * mTimeFrameGPU->getClustersOnLayer(iRof, 1).size(), cudaMemcpyDeviceToHost));
+  //   std::copy(NtrackletsClusters01[iRof].begin(), NtrackletsClusters01[iRof].end(), std::ostream_iterator<double>(out01, "\t"));
+  //   out01 << std::endl;
+  // }
+  // out01.close();
+  // #endif
 }
 
 // void VertexerTraitsGPU::computeVertices()

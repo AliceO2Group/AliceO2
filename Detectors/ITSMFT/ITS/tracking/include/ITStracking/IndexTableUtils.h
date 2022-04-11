@@ -27,7 +27,7 @@
 #include "ITStracking/Definitions.h"
 #include "GPUCommonMath.h"
 #include "GPUCommonDef.h"
-#include <fairlogger/Logger.h>
+#include "GPUCommonLogger.h"
 
 namespace o2
 {

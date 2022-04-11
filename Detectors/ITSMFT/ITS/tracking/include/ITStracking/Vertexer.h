@@ -33,7 +33,7 @@
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/Cluster.h"
 
-#include "Framework/Logger.h"
+#include "GPUCommonLogger.h"
 
 class TTree;
 
