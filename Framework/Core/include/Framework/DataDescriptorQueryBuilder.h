@@ -54,20 +54,15 @@ struct DataDescriptorQueryBuilder {
   /// config := spec;spec;...
   ///
   /// Example for config: x:TPC/CLUSTER/0;y:ITS/TRACKS/1
+  ///
+  /// FIXME: grammar has been extended, add documentation
   static std::vector<InputSpec> parse(const char* s = "");
 
-  /// Creates an inputspec from a configuration @a config string with the
-  /// following grammar.
-  ///
-  /// string := [a-zA-Z0-9_]*
-  /// origin := string
-  /// description := string
-  /// subspec := [0-9]*
-  /// spec := origin/description/subspec
-  /// config := spec;spec;...
-  ///
-  /// Example for config: TPC/CLUSTER/0;ITS/TRACKS/1
+  /// Internal method to build matcher list from a string of verified specs,
+  /// the fixed and verified input format allows simple scanning, no state based
+  /// parsing nor error handling implemented
   static DataDescriptorQuery buildFromKeepConfig(std::string const& config);
+  /// deprecated?
   static DataDescriptorQuery buildFromExtendedKeepConfig(std::string const& config);
   static std::unique_ptr<data_matcher::DataDescriptorMatcher> buildNode(std::string const& nodeString);
   static std::smatch getTokens(std::string const& nodeString);
