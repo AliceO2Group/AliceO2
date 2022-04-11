@@ -101,8 +101,8 @@ struct Produces {
 /// given analysis task. Notice how the actual cursor is implemented by the
 /// means of the WritingCursor helper class, from which produces actually
 /// derives.
-template <typename... C>
-struct Produces<soa::Table<C...>> : WritingCursor<typename soa::PackToTable<typename soa::Table<C...>::persistent_columns_t>::table> {
+template <template <typename...> class T, typename... C>
+struct Produces<T<C...>> : WritingCursor<typename soa::PackToTable<typename T<C...>::table_t::persistent_columns_t>::table> {
   using table_t = soa::Table<C...>;
   using metadata = typename aod::MetadataTrait<table_t>::metadata;
 
