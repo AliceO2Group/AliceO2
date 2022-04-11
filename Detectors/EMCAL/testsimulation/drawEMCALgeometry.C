@@ -3,6 +3,7 @@
 #include "DetectorsPassive/FrameStructure.h"
 #include "EMCALSimulation/Detector.h"
 #include "FairRunSim.h"
+#include <FairRootFileSink.h>
 #include "TGeoManager.h"
 #include "TObjArray.h"
 #include "TObjString.h"
@@ -28,7 +29,7 @@ void drawEMCALgeometry()
 
   // Create simulation run
   FairRunSim* run = new FairRunSim();
-  run->SetOutputFile("foo.root"); // Output file
+  run->SetSink(new FairRootFileSink("foo.root")); // Output file
   run->SetName("TGeant3");        // Transport engine
   // Create media
   run->SetMaterials("media.geo"); // Materials
