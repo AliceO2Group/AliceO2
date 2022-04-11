@@ -98,7 +98,7 @@ class MatchITSTPCQC
 
  private:
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;
-  o2::globaltracking::RecoContainer mRecoCont;
+  // o2::globaltracking::RecoContainer mRecoCont;
   GID::mask_t mSrc = GID::getSourcesMask("TPC,ITS-TPC");
   GID::mask_t mAllowedSources = GID::getSourcesMask("TPC,ITS-TPC");
   // TPC
