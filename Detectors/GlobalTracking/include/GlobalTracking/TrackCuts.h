@@ -20,7 +20,6 @@
 #include "Framework/DataTypes.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
-#include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "GlobalTracking/TrackMethods.h"
@@ -30,12 +29,11 @@
 namespace o2
 {
 using GID = o2::dataformats::GlobalTrackID;
-using GIndex = o2::dataformats::VtxTrackIndex;
 class TrackCuts
 {
  public:
   //////////////////////////////// O2 ////////////////////////////////
-  bool isSelected(GIndex trackIndex, const o2::globaltracking::RecoContainer& data)
+  bool isSelected(GID trackIndex, o2::globaltracking::RecoContainer& data)
   {
     o2::track::TrackParCov trk;
     auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
@@ -47,7 +45,7 @@ class TrackCuts
     } else if (src == GID::ITSTPCTOF) {
       trk = data.getTrack<o2::track::TrackParCov>(data.getTOFMatch(trackIndex).getTrackRef()); // ITSTPCTOF is ITSTPC + TOF cluster
     } else if (src == GID::TPC) { //TPC tracks selection
-      const auto& tpcTrk = data.getTPCTrack(contributorsGID[GIndex::TPC]);
+      const auto& tpcTrk = data.getTPCTrack(src);
       uint8_t tpcNClsShared, tpcNClsFound, tpcNClsCrossed, tpcNClsFindable, tpcChi2NCl;
       tpcNClsFindable = tpcTrk.getNClusters();
       tpcChi2NCl = tpcTrk.getNClusters() ? tpcTrk.getChi2() / tpcTrk.getNClusters() : 0;
@@ -64,7 +62,7 @@ class TrackCuts
         return false;
       }
     } else if (src == GID::ITS) { //ITS tracks selection
-      const auto& itsTrk = data.getITSTrack(contributorsGID[GIndex::ITS]);
+      const auto& itsTrk = data.getITSTrack(contributorsGID[src]);
       int ITSnClusters = itsTrk.getNClusters();
       float ITSchi2 = itsTrk.getChi2();
       float itsChi2NCl = ITSnClusters != 0 ? ITSchi2 / (float)ITSnClusters : 0;
@@ -263,8 +261,8 @@ class TrackCuts
   o2::aod::track::TrackTypeEnum mTrackType{o2::aod::track::TrackTypeEnum::Track};
 
   // kinematic cuts
-  float mMinPt{0.f},
-    mMaxPt{1e10f};                       // range in pT
+  float mMinPt{5},
+    mMaxPt{6};                       // range in pT
   float mMinEta{-1e10f}, mMaxEta{1e10f}; // range in eta
 
   // track quality cuts
