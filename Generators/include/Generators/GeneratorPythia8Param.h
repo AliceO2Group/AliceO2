@@ -26,7 +26,7 @@ namespace eventgen
 /**
  ** a parameter class/struct to keep the settings of
  ** the Pythia8 event generator and
- ** allow the user to modify them 
+ ** allow the user to modify them
  **/
 
 struct GeneratorPythia8Param : public o2::conf::ConfigurableParamHelper<GeneratorPythia8Param> {
