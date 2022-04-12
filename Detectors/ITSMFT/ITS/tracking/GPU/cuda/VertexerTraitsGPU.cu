@@ -102,14 +102,14 @@ namespace gpu
 {
 
 template <typename... Args>
-GPUd() void printOnThread(const int tId, const char* str, Args... args)
+GPUd() void printOnThread(const unsigned int tId, const char* str, Args... args)
 {
   if (blockIdx.x * blockDim.x + threadIdx.x == tId) {
     printf(str, args...);
   }
 }
 
-GPUd() void printVectorOnThread(const char* name, Vector<int>& vector, size_t size, const int tId = 0)
+GPUd() void printVectorOnThread(const char* name, Vector<int>& vector, size_t size, const unsigned int tId = 0)
 {
   if (blockIdx.x * blockDim.x + threadIdx.x == tId) {
     printf("vector %s :", name);
@@ -120,7 +120,7 @@ GPUd() void printVectorOnThread(const char* name, Vector<int>& vector, size_t si
   }
 }
 
-GPUg() void printVectorKernel(DeviceStoreVertexerGPU& store, const int threadId)
+GPUg() void printVectorKernel(DeviceStoreVertexerGPU& store, const unsigned int threadId)
 {
   if (blockIdx.x * blockDim.x + threadIdx.x == threadId) {
     for (int i{0}; i < store.getConfig().histConf.nBinsXYZ[0] - 1; ++i) {
@@ -138,7 +138,7 @@ GPUg() void printVectorKernel(DeviceStoreVertexerGPU& store, const int threadId)
   }
 }
 
-GPUg() void dumpMaximaKernel(DeviceStoreVertexerGPU& store, const int threadId)
+GPUg() void dumpMaximaKernel(DeviceStoreVertexerGPU& store, const unsigned int threadId)
 {
   if (blockIdx.x * blockDim.x + threadIdx.x == threadId) {
     printf("XmaxBin: %d at index: %d | YmaxBin: %d at index: %d | ZmaxBin: %d at index: %d\n",
@@ -232,8 +232,8 @@ GPUg() void trackletSelectionKernel(
 GPUg() void computeCentroidsKernel(DeviceStoreVertexerGPU& store,
                                    const float pairCut)
 {
-  const int nLines = store.getNExclusiveFoundLines()[store.getClusters()[1].size() - 1] + store.getNFoundLines()[store.getClusters()[1].size() - 1];
-  const int maxIterations{nLines * (nLines - 1) / 2};
+  const size_t nLines = store.getNExclusiveFoundLines()[store.getClusters()[1].size() - 1] + store.getNFoundLines()[store.getClusters()[1].size() - 1];
+  const size_t maxIterations{nLines * (nLines - 1) / 2};
   for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < maxIterations; currentThreadIndex += blockDim.x * gridDim.x) {
     int iFirstLine = currentThreadIndex / nLines;
     int iSecondLine = currentThreadIndex % nLines;

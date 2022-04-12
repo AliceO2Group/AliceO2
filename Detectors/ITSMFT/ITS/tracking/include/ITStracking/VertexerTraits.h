@@ -81,7 +81,7 @@ class VertexerTraits
 {
  public:
   VertexerTraits() = default;
-  ~VertexerTraits() = default;
+  virtual ~VertexerTraits() = default;
 
   GPUhd() static constexpr int4 getEmptyBinsRect()
   {
