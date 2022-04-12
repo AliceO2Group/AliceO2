@@ -164,7 +164,7 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
     for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
       auto icc = channelVec.size();
       const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.time[icc], cd.charge[icc], -1); // TODO: MS: modify the CTF format and fill the chain correctly, not with -1
-      if (std::abs(chan.time) < triggerGate) {
+      if (std::abs(chan.CFDTime) < triggerGate) {
         amplA += chan.QTCAmpl;
         timeA += chan.CFDTime;
         nChanA++;
