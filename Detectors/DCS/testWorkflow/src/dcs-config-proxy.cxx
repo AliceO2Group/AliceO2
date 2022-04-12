@@ -134,7 +134,7 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     outPartsN.AddPart(std::move(plMessageN));
     sendOnChannel(device, outPartsN, channel);
 
-    sendAnswer("OK", acknowledge, device);
+    sendAnswer(fmt::format("{}:ok", filename), acknowledge, device);
     LOG(info) << "Sent DPL message and acknowledgment for file " << filename;
     (*timesliceId)++;
   };
