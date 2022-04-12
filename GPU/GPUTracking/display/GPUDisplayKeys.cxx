@@ -460,7 +460,7 @@ void GPUDisplay::HandleKey(unsigned char key)
     SetInfo("Starting GUI", 1);
     mFrontend->startGUI();
   } else if (key == 'Q') {
-    SetInfo("Stopping GUI");
+    SetInfo("Stopping GUI", 1);
     mFrontend->stopGUI();
   }
   /*
