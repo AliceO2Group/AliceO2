@@ -183,7 +183,7 @@ GPUhdi() void Line::getDCAComponents(const Line& line, const float point[3], flo
 
 inline bool Line::operator==(const Line& rhs) const
 {
-  bool val;
+  bool val{false};
   for (int i{0}; i < 3; ++i) {
     val &= this->originPoint[i] == rhs.originPoint[i];
   }
