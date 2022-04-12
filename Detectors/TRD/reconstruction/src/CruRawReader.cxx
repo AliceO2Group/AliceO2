@@ -182,6 +182,9 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
     if ((char*)(rdh) < (char*)&mHBFPayload[0] + mDataBufferSize) {
       LOG(info) << "next rdh is within the buffer calculated without reinterpret_cast";
     }
+    if ((char*)(rdh) < (char*)mDataBuffer + mDataBufferSize) {
+      LOG(info) << "next rdh is within the buffer calculated with mDataBuffer ptr";
+    }
 
     LOG(info) << std::hex <<  " rdh char cast : " << (void*)rdh; 
     LOG(info) << std::hex <<  " rdh reinterpret_cast : " << reinterpret_cast<const void*>(rdh);
