@@ -133,6 +133,7 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
     if (mHeaderVerbose) {
       LOG(info) << "--- RDH open/continue detected loopcount :" << loopcount;
       LOG(info) << " rdh first word 0x" << std::hex << (uint32_t)*mDataPointer;
+      LOG(info) << " rdh first word is sitting at 0x" << std::hex << (void*)mDataPointer;
       o2::raw::RDHUtils::printRDH(rdh);
     }
     preceedingrdh = rdh;
