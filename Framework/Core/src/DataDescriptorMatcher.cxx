@@ -243,6 +243,8 @@ bool DataDescriptorMatcher::match(char const* d, VariableContext& context) const
   //     return std::visit(eval, mLeft) ^ std::visit(eval, mRight);
   //   case Op::Just:
   //     return std::visit(eval, mLeft);
+  //   case Op::Not:
+  //     return !std::visit(eval, mLeft);
   // }
   //  When we drop support for macOS 10.13
   if (auto pval0 = std::get_if<OriginValueMatcher>(&mLeft)) {
@@ -287,6 +289,9 @@ bool DataDescriptorMatcher::match(char const* d, VariableContext& context) const
   if (mOp == Op::Just) {
     return leftValue;
   }
+  if (mOp == Op::Not) {
+    return !leftValue;
+  }
 
   if (auto pval0 = std::get_if<OriginValueMatcher>(&mRight)) {
     auto dh = o2::header::get<header::DataHeader*>(d);
@@ -317,6 +322,8 @@ bool DataDescriptorMatcher::match(char const* d, VariableContext& context) const
       return leftValue ^ rightValue;
     case Op::Just:
       return leftValue;
+    case Op::Not:
+      return !leftValue;
   }
   throw runtime_error("Bad parsing tree");
 };
@@ -383,7 +390,11 @@ bool DataDescriptorMatcher::operator==(DataDescriptorMatcher const& other) const
   }
 
   if (mOp == Op::Just) {
-    return true;
+    return leftValue;
+  }
+
+  if (mOp == Op::Not) {
+    return leftValue;
   }
 
   {
@@ -478,6 +489,9 @@ std::ostream& operator<<(std::ostream& os, DataDescriptorMatcher::Op const& op)
       break;
     case DataDescriptorMatcher::Op::Just:
       os << "just";
+      break;
+    case DataDescriptorMatcher::Op::Not:
+      os << "not";
       break;
     case DataDescriptorMatcher::Op::Xor:
       os << "xor";
