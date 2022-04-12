@@ -230,9 +230,11 @@ class AODProducerWorkflowDPL : public Task
   std::unordered_map<GIndex, int> mV0ToTableID;
   int mTableV0ID{0};
 
-  std::unordered_map<int, int> mIndexTableFwd;
+//  std::unordered_map<int, int> mIndexTableFwd;
+  std::vector<int> mIndexTableFwd;
   int mIndexFwdID{0};
-  std::unordered_map<int, int> mIndexTableMFT;
+//  std::unordered_map<int, int> mIndexTableMFT;
+  std::vector<int> mIndexTableMFT;
   int mIndexMFTID{0};
 
   // zdc helper maps to avoid a number of "if" statements
@@ -384,7 +386,7 @@ class AODProducerWorkflowDPL : public Task
                                    AmbigFwdTracksCursorType& ambigFwdTracksCursor,
                                    const std::map<uint64_t, int>& bcsMap);
 
-  void fillFwdIndexTablesPerCollision(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices);
+  void fillIndexTablesPerCollision(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices);
 
   template <typename V0CursorType, typename CascadeCursorType>
   void fillSecondaryVertices(const o2::globaltracking::RecoContainer& data, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor);

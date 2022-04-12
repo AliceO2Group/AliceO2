@@ -350,7 +350,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
   }
 }
 
-void AODProducerWorkflowDPL::fillFwdIndexTablesPerCollision(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices)
+void AODProducerWorkflowDPL::fillIndexTablesPerCollision(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices)
 {
 //  for (int src = GIndex::NSources; src--;) {
   for (int src : {GIndex::Source::MFTMCH, GIndex::Source::MCH, GIndex::Source::MFT}) {
@@ -365,7 +365,8 @@ void AODProducerWorkflowDPL::fillFwdIndexTablesPerCollision(const o2::dataformat
           }
 
           mGIDToTableMFTID.emplace(trackIndex, mIndexMFTID);
-          mIndexTableMFT.emplace(trackIndex.getIndex(), mIndexMFTID);
+//          mIndexTableMFT.emplace(trackIndex.getIndex(), mIndexMFTID);
+	  mIndexTableMFT[trackIndex.getIndex()] = mIndexMFTID;
           mIndexMFTID++;
 
         } else if (src == GIndex::Source::MCH || src == GIndex::Source::MFTMCH) {
@@ -375,7 +376,8 @@ void AODProducerWorkflowDPL::fillFwdIndexTablesPerCollision(const o2::dataformat
 
           mGIDToTableFwdID.emplace(trackIndex, mIndexFwdID);
           if (src == GIndex::Source::MCH){
-            mIndexTableFwd.emplace(trackIndex.getIndex(), mIndexFwdID);
+//            mIndexTableFwd.emplace(trackIndex.getIndex(), mIndexFwdID);
+  	    mIndexTableFwd[trackIndex.getIndex()] = mIndexFwdID;
           }
           mIndexFwdID++;
         }
@@ -1518,12 +1520,16 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   cacheTriggers(recoData);
 
-  auto& trackReffwd = primVer2TRefs.back();
-  fillFwdIndexTablesPerCollision(trackReffwd, primVerGIs);
   int collisionID = 0;
+  mIndexTableMFT.resize(recoData.getMFTTracks().size());
+  mIndexTableFwd.resize(recoData.getMCHTracks().size()*3);
+
+  auto& trackReffwd = primVer2TRefs.back();
+  fillIndexTablesPerCollision(trackReffwd, primVerGIs);
+  collisionID = 0;
   for (auto& vertex : primVertices) {
     auto& trackReffwd = primVer2TRefs[collisionID];
-    fillFwdIndexTablesPerCollision(trackReffwd, primVerGIs);
+    fillIndexTablesPerCollision(trackReffwd, primVerGIs);
     collisionID++;
   }
 
