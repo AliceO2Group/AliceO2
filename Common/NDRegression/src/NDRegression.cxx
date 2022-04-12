@@ -465,3 +465,66 @@ Bool_t NDRegression::MakeFit(TTree* tree, const char* formulaVal, const char* fo
 
   return kTRUE;
 }
+
+void PlotData(TH1F* hData, TString xTitle = "xTitle", TString yTitle = "yTitle", Color_t color = kBlack, TString zTitle = "zTitle", Double_t rms = 999999., Double_t eRms = 0., Double_t mean = 999999., Double_t eMean = 0.)
+{
+  //
+  //
+  gStyle->SetPadRightMargin(0.05);
+  gStyle->SetPadTopMargin(0.05);
+  gStyle->SetPadLeftMargin(0.14);
+  gStyle->SetPadBottomMargin(0.12);
+  gStyle->SetPadTickX(1);
+  gStyle->SetPadTickY(1);
+  gStyle->SetPadGridX(1);
+  gStyle->SetPadGridY(1);
+  gStyle->SetOptStat(0);
+  //
+  if (color == (kRed + 2)) {
+    hData->SetMarkerStyle(20);
+  }
+  if (color == (kBlue + 2)) {
+    hData->SetMarkerStyle(21);
+  }
+  if (color == (kGreen + 2)) {
+    hData->SetMarkerStyle(22);
+    hData->SetMarkerSize(1.3);
+  }
+
+  hData->SetMarkerColor(color);
+  hData->SetLineColor(color);
+  hData->GetXaxis()->SetTitle(xTitle.Data());
+  hData->GetYaxis()->SetTitle(yTitle.Data());
+  hData->GetZaxis()->SetTitle(zTitle.Data());
+  hData->GetXaxis()->SetTitleOffset(1.2);
+  hData->GetXaxis()->SetTitleSize(0.05);
+  hData->GetYaxis()->SetTitleOffset(1.3);
+  hData->GetYaxis()->SetTitleSize(0.05);
+  hData->GetXaxis()->SetLabelSize(0.035);
+  hData->GetYaxis()->SetLabelSize(0.035);
+  hData->GetXaxis()->SetDecimals();
+  hData->GetYaxis()->SetDecimals();
+  hData->GetZaxis()->SetDecimals();
+  hData->Sumw2();
+  hData->Draw("pe1");
+
+  if (mean != 999999.) {
+    TPaveText* text1 = new TPaveText(0.21, 0.82, 0.51, 0.92, "NDC");
+    text1->SetTextFont(43);
+    text1->SetTextSize(30.);
+    text1->SetBorderSize(1);
+    text1->SetFillColor(kWhite);
+    text1->AddText(Form("Mean: %0.2f #pm %0.2f", mean, eMean));
+    text1->AddText(Form("RMS: %0.2f #pm %0.2f", rms, eRms));
+    text1->Draw();
+  }
+  if (rms != 999999. && mean == 999999.) {
+    TPaveText* text1 = new TPaveText(0.21, 0.87, 0.51, 0.92, "NDC");
+    text1->SetTextFont(43);
+    text1->SetTextSize(30.);
+    text1->SetBorderSize(1);
+    text1->SetFillColor(kWhite);
+    text1->AddText(Form("RMS: %0.2f", rms));
+    text1->Draw();
+  }
+}
