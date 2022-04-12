@@ -27,7 +27,6 @@ using namespace o2::tpc;
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 void CalibdEdxContainer::cloneFromObject(const CalibdEdxContainer& obj, char* newFlatBufferPtr)
 {
-  const char* oldFlatBufferPtr = obj.mFlatBufferPtr;
   FlatObject::cloneFromObject(obj, newFlatBufferPtr);
   mCalibResidualdEdx = obj.mCalibResidualdEdx;
   mThresholdMap = obj.mThresholdMap;
@@ -195,8 +194,8 @@ CalDet<float> CalibdEdxContainer::processThresholdMap(const CalDet<float>& thres
 {
   CalDet<float> thresholdMapProcessed(thresholdMap);
 
-  for (int sector = 0; sector < Mapper::NSECTORS; ++sector) {
-    for (int region = 0; region < Mapper::NREGIONS; ++region) {
+  for (unsigned int sector = 0; sector < Mapper::NSECTORS; ++sector) {
+    for (unsigned int region = 0; region < Mapper::NREGIONS; ++region) {
       const int maxRow = Mapper::ROWSPERREGION[region] - 1;
       for (int lrow = 0; lrow <= maxRow; ++lrow) {
         // find first row of the cluster
@@ -204,7 +203,7 @@ CalDet<float> CalibdEdxContainer::processThresholdMap(const CalDet<float>& thres
         const int rowEnd = std::clamp(lrow + nPadsInRowCl, 0, maxRow);
         const int addPadsStart = Mapper::ADDITIONALPADSPERROW[region][lrow];
 
-        for (int pad = 0; pad < Mapper::PADSPERROW[region][lrow]; ++pad) {
+        for (unsigned int pad = 0; pad < Mapper::PADSPERROW[region][lrow]; ++pad) {
           float sumThr = 0;
           int countThr = 0;
           // loop ove the rows from the cluster
