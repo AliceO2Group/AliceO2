@@ -26,6 +26,7 @@
 #include <set>
 #include <vector>
 #include "Rtypes.h"
+#include <gsl/span>
 namespace o2
 {
 using GID = o2::dataformats::GlobalTrackID;
@@ -37,32 +38,34 @@ class TrackCuts
   {
     o2::track::TrackParCov trk;
     auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
-    auto src = trackIndex.getSource(); //make selections depending on track source
+    auto src = trackIndex.getSource(); // make selections depending on track source
     if (src == GID::ITSTPCTRDTOF) {
       trk = data.getTrack<o2::track::TrackParCov>(data.getITSTPCTRDTOFMatches()[trackIndex].getTrackRef()); // ITSTPCTRDTOF is ITSTPCTRD + TOF cluster
     } else if (src == GID::TPCTRDTOF) {
       trk = data.getTrack<o2::track::TrackParCov>(data.getTPCTRDTOFMatches()[trackIndex].getTrackRef()); // TPCTRDTOF is TPCTRD + TOF cluster
     } else if (src == GID::ITSTPCTOF) {
       trk = data.getTrack<o2::track::TrackParCov>(data.getTOFMatch(trackIndex).getTrackRef()); // ITSTPCTOF is ITSTPC + TOF cluster
-    } else if (src == GID::TPC) { //TPC tracks selection
-      const auto& tpcTrk = data.getTPCTrack(src);
+    } else if (src == GID::TPC) {                                                              // TPC tracks selection
+      const auto& tpcTrk = data.getTPCTrack(contributorsGID[GID::TPC]);
       uint8_t tpcNClsShared, tpcNClsFound, tpcNClsCrossed, tpcNClsFindable, tpcChi2NCl;
       tpcNClsFindable = tpcTrk.getNClusters();
       tpcChi2NCl = tpcTrk.getNClusters() ? tpcTrk.getChi2() / tpcTrk.getNClusters() : 0;
-      TrackMethods::countTPCClusters(tpcTrk, data.getTPCTracksClusterRefs(), data.clusterShMapTPC, data.getTPCClusters(), tpcNClsShared, tpcNClsFound, tpcNClsCrossed);
-      double tpcCrossedRowsOverFindableCls = tpcNClsCrossed / tpcNClsFindable;
-      if (tpcTrk.getPt() >= mMinPt && tpcTrk.getPt() <= mMaxPt && 
-          tpcTrk.getEta() >= mMinEta && tpcTrk.getEta() <= mMaxEta &&
-          tpcNClsFound >= mMinNClustersTPC &&
-          tpcNClsCrossed >= mMinNCrossedRowsTPC &&
-          tpcCrossedRowsOverFindableCls >= mMinNCrossedRowsOverFindableClustersTPC &&
-          tpcChi2NCl <= mMaxChi2PerClusterTPC) {
-        return true;
-      } else {
-        return false;
-      }
-    } else if (src == GID::ITS) { //ITS tracks selection
-      const auto& itsTrk = data.getITSTrack(contributorsGID[src]);
+      o2::TrackMethods::countTPCClusters(tpcTrk, data.getTPCTracksClusterRefs(), data.clusterShMapTPC, data.getTPCClusters(), tpcNClsShared, tpcNClsFound, tpcNClsCrossed);
+      // double tpcCrossedRowsOverFindableCls = tpcNClsCrossed / tpcNClsFindable;
+      // if (tpcTrk.getPt() >= mMinPt && tpcTrk.getPt() <= mMaxPt &&
+      //     tpcTrk.getEta() >= mMinEta && tpcTrk.getEta() <= mMaxEta &&
+      //     tpcNClsFound >= mMinNClustersTPC &&
+      //     tpcNClsCrossed >= mMinNCrossedRowsTPC &&
+      //     tpcCrossedRowsOverFindableCls >= mMinNCrossedRowsOverFindableClustersTPC &&
+      //     tpcChi2NCl <= mMaxChi2PerClusterTPC) {
+      //   return true;
+      // } else {
+      //   return false;
+      std::cout << "is selected method" << std::endl;
+      return true;
+      // }
+    } else if (src == GID::ITS) { // ITS tracks selection
+      const auto& itsTrk = data.getITSTrack(contributorsGID[GID::ITS]);
       int ITSnClusters = itsTrk.getNClusters();
       float ITSchi2 = itsTrk.getChi2();
       float itsChi2NCl = ITSnClusters != 0 ? ITSchi2 / (float)ITSnClusters : 0;
@@ -262,7 +265,7 @@ class TrackCuts
 
   // kinematic cuts
   float mMinPt{5},
-    mMaxPt{6};                       // range in pT
+    mMaxPt{6};                           // range in pT
   float mMinEta{-1e10f}, mMaxEta{1e10f}; // range in eta
 
   // track quality cuts
