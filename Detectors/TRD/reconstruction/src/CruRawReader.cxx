@@ -151,7 +151,7 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
     int packetCount = o2::raw::RDHUtils::getPacketCounter(rdh);
     //mDataEndPointer = (uint32_t*)((char*)rdh + offsetToNext);
     if (mOptions[TRDM1Debug]) { 
-      LOG(info) << "mFEEID:" << mFEEID.word << " mCRUEndpoint:" << mCRUEndpoint << " mCRUID:" << mCRUID << " packetCount:" << packetCount << "rdhpayload:"<< rdhpayload << " offsettonext:"<< offsetToNext << " dmDataEndPointer(after move to rdh+offsetToNext): 0x"<< std::hex << (void*)mDataEndPointer;
+      LOG(info) << "mFEEID:" << mFEEID.word << " mCRUEndpoint:" << mCRUEndpoint << " mCRUID:" << mCRUID << " packetCount:" << packetCount << "rdhpayload:"<< rdhpayload << " offsettonext:"<< offsetToNext << " dmDataEndPointer(after move to rdh+offsetToNext): 0x"<< std::hex << (void*)mDataEndPointer << " rdh is currently at 0x" << std::hex << (void*)rdh;
     }
     // copy the contents of the current rdh into the buffer to be parsed
     std::memcpy((char*)&mHBFPayload[0] + currentsaveddatacount, ((char*) rdh) + headerSize, rdhpayload);
