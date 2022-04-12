@@ -1409,10 +1409,11 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
     const auto channelData = fddRecPoint.getBunchChannelData(fddChData);
     for (const auto& channel : channelData) {
-      if (channel.mPMNumber < 8)
+      if (channel.mPMNumber < 8) {
         aFDDAmplitudesC[channel.mPMNumber] = channel.mChargeADC; // amplitude
-      else
+      } else {
         aFDDAmplitudesA[channel.mPMNumber - 8] = channel.mChargeADC; // amplitude
+      }
     }
 
     uint64_t globalBC = fddRecPoint.getInteractionRecord().toLong();
