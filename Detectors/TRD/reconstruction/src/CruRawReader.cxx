@@ -194,7 +194,7 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
     }
 
     //if (reinterpret_cast<const char*>(rdh) < ((char*)&mHBFPayload[0] + mDataBufferSize)) {
-    if ((const char*)(rdh) < ((char*)&mHBFPayload[0] + mDataBufferSize)) {
+    if ((const char*)(rdh) < ((char*)&mDataBuffer + mDataBufferSize)) {
       //if (reinterpret_cast<const o2::header::RDHAny*>(rdh) < (char*)&mHBFPayload[0] + mDataBufferSize) {
       // we can still copy into this buffer.
     } else {
