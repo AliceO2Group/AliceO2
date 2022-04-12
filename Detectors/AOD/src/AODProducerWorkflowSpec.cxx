@@ -352,7 +352,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
 
 void AODProducerWorkflowDPL::fillIndexTablesPerCollision(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices)
 {
-//  for (int src = GIndex::NSources; src--;) {
+  //  for (int src = GIndex::NSources; src--;) {
   for (int src : {GIndex::Source::MFTMCH, GIndex::Source::MCH, GIndex::Source::MFT}) {
     int start = trackRef.getFirstEntryOfSource(src);
     int end = start + trackRef.getEntriesOfSource(src);
@@ -365,8 +365,8 @@ void AODProducerWorkflowDPL::fillIndexTablesPerCollision(const o2::dataformats::
           }
 
           mGIDToTableMFTID.emplace(trackIndex, mIndexMFTID);
-//          mIndexTableMFT.emplace(trackIndex.getIndex(), mIndexMFTID);
-    mIndexTableMFT[trackIndex.getIndex()] = mIndexMFTID;
+          //          mIndexTableMFT.emplace(trackIndex.getIndex(), mIndexMFTID);
+          mIndexTableMFT[trackIndex.getIndex()] = mIndexMFTID;
           mIndexMFTID++;
 
         } else if (src == GIndex::Source::MCH || src == GIndex::Source::MFTMCH) {
@@ -375,9 +375,9 @@ void AODProducerWorkflowDPL::fillIndexTablesPerCollision(const o2::dataformats::
           }
 
           mGIDToTableFwdID.emplace(trackIndex, mIndexFwdID);
-          if (src == GIndex::Source::MCH){
-//            mIndexTableFwd.emplace(trackIndex.getIndex(), mIndexFwdID);
-        mIndexTableFwd[trackIndex.getIndex()] = mIndexFwdID;
+          if (src == GIndex::Source::MCH) {
+            //            mIndexTableFwd.emplace(trackIndex.getIndex(), mIndexFwdID);
+            mIndexTableFwd[trackIndex.getIndex()] = mIndexFwdID;
           }
           mIndexFwdID++;
         }
@@ -1522,7 +1522,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   int collisionID = 0;
   mIndexTableMFT.resize(recoData.getMFTTracks().size());
-  mIndexTableFwd.resize(recoData.getMCHTracks().size()*3);// take an upperbound to the size of the FwdTrack table
+  mIndexTableFwd.resize(recoData.getMCHTracks().size() * 3); // take an upperbound to the size of the FwdTrack table
 
   auto& trackReffwd = primVer2TRefs.back();
   fillIndexTablesPerCollision(trackReffwd, primVerGIs);
