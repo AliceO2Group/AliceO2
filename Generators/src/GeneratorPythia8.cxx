@@ -41,7 +41,6 @@ GeneratorPythia8::GeneratorPythia8() : Generator("ALICEo2", "ALICEo2 Pythia8 Gen
   LOG(info) << "Instance \'Pythia8\' generator with following parameters";
   LOG(info) << param;
 
-  setConfig(param.config);
   setHooksFileName(param.hooksFileName);
   setHooksFuncName(param.hooksFuncName);
 }
@@ -66,17 +65,17 @@ Bool_t GeneratorPythia8::Init()
   Generator::Init();
 
   /** read configuration **/
-  if (!mConfig.empty()) {
-    std::stringstream ss(mConfig);
-    std::string config;
-    while (getline(ss, config, ' ')) {
-      config = gSystem->ExpandPathName(config.c_str());
-      LOG(info) << "Reading configuration from file: " << config;
-      if (!mPythia.readFile(config, true)) {
-        LOG(fatal) << "Failed to init \'Pythia8\': problems with configuration file "
-                   << config;
-        return false;
-      }
+  auto& param = GeneratorPythia8Param::Instance();
+  for (int i = 0; i < 8; ++i) {
+    if (param.config[i].empty()) {
+      continue;
+    }
+    std::string config = gSystem->ExpandPathName(param.config[i].c_str());
+    LOG(info) << "Reading configuration from file: " << config;
+    if (!mPythia.readFile(config, true)) {
+      LOG(fatal) << "Failed to init \'GeneratorPythia8\': problems with configuration file "
+                 << config;
+      return false;
     }
   }
 
