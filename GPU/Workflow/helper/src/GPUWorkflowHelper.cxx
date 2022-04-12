@@ -225,5 +225,5 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
   ioPtr.globalTracks = retVal->globalTracks.data();
   ioPtr.globalTrackTimes = retVal->globalTrackTimes.data();
 
-  return std::move(retVal);
+  return retVal;
 }

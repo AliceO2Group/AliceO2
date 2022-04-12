@@ -29,7 +29,7 @@ void GPUO2InterfaceRefit::fillSharedClustersMap(const ClusterNativeAccess* cl, c
   }
   memset(shmap, 0, sizeof(char) * cl->nClustersTotal);
   for (unsigned int i = 0; i < trks.size(); i++) {
-    for (unsigned int j = 0; j < trks[i].getNClusterReferences(); j++) {
+    for (int j = 0; j < trks[i].getNClusterReferences(); j++) {
       size_t idx = &trks[i].getCluster(trackRef, j, *cl) - cl->clustersLinear;
       shmap[idx] = shmap[idx] ? 2 : 1;
     }

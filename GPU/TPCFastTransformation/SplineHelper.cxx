@@ -177,11 +177,11 @@ void SplineHelper<DataT>::approximateFunctionBatch(
   }
 
   std::vector<double> x[mXdimensions];
-  for (unsigned int iDim = 0; iDim < mXdimensions; ++iDim) {
+  for (int iDim = 0; iDim < mXdimensions; ++iDim) {
     x[iDim].reserve(batchsize);
   }
 
-  int ibatch = 0;
+  unsigned int ibatch = 0;
   int index = 0;
   for (int d = 0; d < nrOfAllPoints; d++) { // for all DataPoints
     int indices[mXdimensions];
@@ -204,7 +204,7 @@ void SplineHelper<DataT>::approximateFunctionBatch(
       F(x, &dataPointF[index]);
       index = (d + 1) * mFdimensions;
 
-      for (unsigned int iDim = 0; iDim < mXdimensions; ++iDim) {
+      for (int iDim = 0; iDim < mXdimensions; ++iDim) {
         x[iDim].clear();
       }
     }
@@ -303,7 +303,7 @@ void SplineHelper<DataT>::approximateFunction(
 
   //STARTING MAIN-LOOP, for all Parametertypes:
   for (int p = 1; p < numberOfParameterTypes; p++) { // p = 1!! Wir kriegen s (p0) durch approximateFunction()oben
-    int dimension;                                   // find the dimension for approximation
+    int dimension = 0;                               // find the dimension for approximation
     for (int i = (int)(log2f((float)p)); i >= 0; i--) {
       if (p % (int)(pow(2.0, i)) == 0) {
         dimension = i;

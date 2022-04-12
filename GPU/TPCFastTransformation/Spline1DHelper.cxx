@@ -178,7 +178,7 @@ void Spline1DHelper<DataT>::approximateDataPoints(
   for (int iKnot = 0; iKnot < spline.getNumberOfKnots() - 2; ++iKnot) {
     const typename Spline1D<double>::Knot& knot0 = mSpline.getKnot(iKnot);
     const typename Spline1D<double>::Knot& knot1 = mSpline.getKnot(iKnot + 1);
-    const typename Spline1D<double>::Knot& knot2 = mSpline.getKnot(iKnot + 2);
+    // const typename Spline1D<double>::Knot& knot2 = mSpline.getKnot(iKnot + 2);
 
     // set S'' and S''' at knot1 equal at both sides
     // chi2 += w^2*(S''from the left - S'' from the right)^2
@@ -694,7 +694,7 @@ int Spline1DHelper<DataT>::test(const bool draw, const bool drawDataPoints)
         std::vector<double> vx;
         std::vector<double> vf;
         helper.makeDataPoints(spline1, 0., TMath::Pi(), F, nAuxiliaryPoints, vx, vf);
-        for (int j = 0; j < vx.size(); j++) {
+        for (unsigned int j = 0; j < vx.size(); j++) {
           DataT s[Ndim];
           spline1.interpolate(vx[j], s);
           knots->Fill(2, spline1.convXtoU(vx[j]), s[0]);
