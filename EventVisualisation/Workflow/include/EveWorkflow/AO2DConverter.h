@@ -38,14 +38,14 @@ namespace o2::event_visualisation
 class TPCFastTransform;
 
 struct AO2DConverter {
-  o2::framework::Configurable<std::string> jsonPath{"jsons-folder", "./jsons", "name of the folder to store json files"};
+  o2::framework::Configurable<std::string> jsonPath{"jsons-folder", "./json", "name of the folder to store json files"};
 
   static constexpr float mWorkflowVersion = 1.00;
   o2::header::DataHeader::RunNumberType mRunNumber = 1;
   o2::framework::DataProcessingHeader::CreationTime mCreationTime;
 
   void init(o2::framework::InitContext& ic);
-  void process(o2::aod::Collisions const& collisions, EveWorkflowHelper::AODFullTracks const& tracks);
+  void process(o2::aod::Collisions const& collisions, EveWorkflowHelper::AODBarrelTracks const& barrelTracks, EveWorkflowHelper::AODForwardTracks const& fwdTracks, EveWorkflowHelper::AODMFTTracks const& mftTracks);
 
   DetectorData mData;
   std::shared_ptr<EveWorkflowHelper> mHelper;
