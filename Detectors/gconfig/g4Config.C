@@ -5,10 +5,11 @@
  *         GNU Lesser General Public Licence version 3 (LGPL) version 3,        *
  *                  copied verbatim in the file "LICENSE"                       *
  ********************************************************************************/
+R__LOAD_LIBRARY(libG4ptl)
 R__LOAD_LIBRARY(libG4zlib)
 R__LOAD_LIBRARY(libG4expat)
 R__LOAD_LIBRARY(libG4clhep)
-R__LOAD_LIBRARY(libG4ptl)
+R__LOAD_LIBRARY(libG4tools)
 R__LOAD_LIBRARY(libG4global)
 R__LOAD_LIBRARY(libG4intercoms)
 R__LOAD_LIBRARY(libG4graphics_reps)
