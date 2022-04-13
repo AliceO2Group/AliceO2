@@ -16,7 +16,7 @@ message(STATUS "Building ITS CUDA tracker")
 o2_add_library(ITStrackingCUDA
                SOURCES ClusterLinesGPU.cu
                        Context.cu
-                       DeviceStoreGPU.cu
+                #        DeviceStoreGPU.cu
                 #        DeviceStoreVertexerGPU.cu
                        Stream.cu
                        TrackerTraitsGPU.cu

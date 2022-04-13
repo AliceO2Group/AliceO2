@@ -61,7 +61,7 @@ TimeFrameGPU<NLayers>::TimeFrameGPU()
   mNFoundLines = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
   mNExclusiveFoundLines = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
   mUsedTracklets = Vector<unsigned char>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
-  mCUBTmpBuffers = Vector<int>{mConfig.nMaxROFs * mConfig.tmpCUBBufferSize, mConfig.nMaxROFs * mConfig.tmpCUBBufferSize};
+  mCUBTmpBuffers = Vector<int>{mConfig.nMaxROFs * mConfig.tmpCUBBufferSize / sizeof(int), mConfig.nMaxROFs * mConfig.tmpCUBBufferSize / sizeof(int)};
 
   getDeviceMemory(); // We don't check if we can store the data in the GPU for the moment.
 }
@@ -81,6 +81,7 @@ float TimeFrameGPU<NLayers>::getDeviceMemory()
   totalMemory += mConfig.clustersPerLayerCapacity * sizeof(int);
   totalMemory += mConfig.clustersPerLayerCapacity * sizeof(int);
   totalMemory += mConfig.trackletsCapacity * sizeof(unsigned char);
+  totalMemory += mConfig.nMaxROFs * mConfig.tmpCUBBufferSize * sizeof(int);
 
   LOGP(info, "Total requested memory for GPU: {:.2f} MB", totalMemory / MB);
   LOGP(info, "\t- Clusters: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(Cluster) / MB);
@@ -94,6 +95,7 @@ float TimeFrameGPU<NLayers>::getDeviceMemory()
   LOGP(info, "\t- N found lines: {:.2f} MB", mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
   LOGP(info, "\t- N exclusive-scan found lines: {:.2f} MB", mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
   LOGP(info, "\t- Used tracklets: {:.2f} MB", mConfig.trackletsCapacity * sizeof(unsigned char) / MB);
+  LOGP(info, "\t- CUB tmp buffers: {:.2f} MB", mConfig.nMaxROFs * mConfig.tmpCUBBufferSize / MB);
 
   return totalMemory;
 }

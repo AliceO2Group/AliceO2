@@ -58,7 +58,6 @@ namespace device
 {
 GPUd() int getLaneIndex();
 GPUd() int shareToWarp(const int, const int);
-GPUd() int gpuAtomicAdd(int*, const int);
 } // namespace device
 } // namespace utils
 } // namespace gpu

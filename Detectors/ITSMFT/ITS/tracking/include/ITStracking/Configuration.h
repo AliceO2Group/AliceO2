@@ -144,38 +144,38 @@ inline VertexerHistogramsConfiguration::VertexerHistogramsConfiguration(int nBin
 
 struct TimeFrameGPUConfig {
   TimeFrameGPUConfig() = default;
-  TimeFrameGPUConfig(int cubBufferSize,
-                     int maxTrkClu,
-                     int cluLayCap,
-                     int cluROfCap,
-                     int maxTrkCap,
-                     int maxVert);
+  TimeFrameGPUConfig(size_t cubBufferSize,
+                     size_t maxTrkClu,
+                     size_t cluLayCap,
+                     size_t cluROfCap,
+                     size_t maxTrkCap,
+                     size_t maxVert);
 
   // o2::its::gpu::Vector constructor requires signed size for initialisation
-  int tmpCUBBufferSize = 25e5;
-  int maxTrackletsPerCluster = 50;
-  int clustersPerLayerCapacity = 5e5;
-  int clustersPerROfCapacity = 1e4;
-  int trackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
-  int maxTrackletCapacity = 2e4;
-  int maxCentroidsXYCapacity = std::ceil(maxTrackletCapacity * (maxTrackletCapacity - 1) / 2);
-  int nMaxVertices = 10;
-  int nMaxROFs = 1e3;
+  size_t tmpCUBBufferSize = 1e3; // In average pp events there are required 767 bytes
+  size_t maxTrackletsPerCluster = 50;
+  size_t clustersPerLayerCapacity = 5e5;
+  size_t clustersPerROfCapacity = 1e4;
+  size_t trackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
+  size_t maxTrackletCapacity = 2e4;
+  size_t maxCentroidsXYCapacity = std::ceil(maxTrackletCapacity * (maxTrackletCapacity - 1) / 2);
+  size_t nMaxVertices = 10;
+  size_t nMaxROFs = 1e3;
 
   VertexerHistogramsConfiguration histConf; // <==== split into separate configs
 };
 
-inline TimeFrameGPUConfig::TimeFrameGPUConfig(int cubBufferSize,
-                                              int maxTrkClu,
-                                              int cluLayCap,
-                                              int cluROfCap,
-                                              int maxTrkCap,
-                                              int maxVert) : tmpCUBBufferSize{cubBufferSize},
-                                                             maxTrackletsPerCluster{maxTrkClu},
-                                                             clustersPerLayerCapacity{cluLayCap},
-                                                             clustersPerROfCapacity{cluROfCap},
-                                                             maxTrackletCapacity{maxTrkCap},
-                                                             nMaxVertices{maxVert}
+inline TimeFrameGPUConfig::TimeFrameGPUConfig(size_t cubBufferSize,
+                                              size_t maxTrkClu,
+                                              size_t cluLayCap,
+                                              size_t cluROfCap,
+                                              size_t maxTrkCap,
+                                              size_t maxVert) : tmpCUBBufferSize{cubBufferSize},
+                                                                maxTrackletsPerCluster{maxTrkClu},
+                                                                clustersPerLayerCapacity{cluLayCap},
+                                                                clustersPerROfCapacity{cluROfCap},
+                                                                maxTrackletCapacity{maxTrkCap},
+                                                                nMaxVertices{maxVert}
 {
   maxCentroidsXYCapacity = std::ceil(maxTrackletCapacity * (maxTrackletCapacity - 1) / 2);
   trackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
