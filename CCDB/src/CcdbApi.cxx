@@ -916,7 +916,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
       for (auto& l : locs) {
         if (l.size() > 0) {
           LOG(debug) << "Trying content location " << l;
-          content = navigateURLsAndRetrieveContent(curl_handle, l, tinfo, nullptr);
+          content = navigateURLsAndRetrieveContent(curl_handle, l, tinfo, headers);
           if (content /* or other success marker in future */) {
             break;
           }
