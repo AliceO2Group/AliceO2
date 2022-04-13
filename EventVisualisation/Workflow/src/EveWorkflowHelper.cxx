@@ -275,7 +275,7 @@ void EveWorkflowHelper::drawTPCTOF(GID gid, float trackTime)
   drawTOFClusters(gid, trackTime);
 }
 
-void EveWorkflowHelper::drawAOD(EveWorkflowHelper::AODFullTrack const& track, float trackTime)
+void EveWorkflowHelper::drawAODBarrel(EveWorkflowHelper::AODBarrelTrack const& track, float trackTime)
 {
   std::array<float, 5> const arraypar = {track.y(), track.z(), track.snp(),
                                          track.tgl(), track.signed1Pt()};
@@ -288,7 +288,33 @@ void EveWorkflowHelper::drawAOD(EveWorkflowHelper::AODFullTrack const& track, fl
 
   auto const tr = o2::track::TrackParCov(track.x(), track.alpha(), arraypar, covpar);
 
-  addTrackToEvent(tr, GID::ITSTPCTRDTOF, trackTime, 0., GID::ITSTPCTRD);
+  addTrackToEvent(tr, GID{0, detectorMapToGIDSource(track.detectorMap())}, trackTime, 0.);
+}
+
+void EveWorkflowHelper::drawAODMFT(AODMFTTrack const& track, float trackTime)
+{
+  auto tr = o2::track::TrackParFwd();
+
+  tr.setZ(track.z());
+  tr.setParameters({track.x(), track.y(), track.phi(), track.tgl(), track.signed1Pt()});
+
+  std::vector<float> zPositions = {-40.f, -45.f, -65.f, -85.f}; // Selected z positions to draw the track
+  tr.propagateParamToZlinear(zPositions[0]);                    // Fix the track starting position.
+
+  auto vTrack = mEvent.addTrack({.time = static_cast<float>(trackTime),
+                                 .charge = (int)tr.getCharge(),
+                                 .PID = o2::track::PID::Muon,
+                                 .startXYZ = {(float)tr.getX(), (float)tr.getY(), (float)tr.getZ()},
+                                 .phi = (float)tr.getPhi(),
+                                 .theta = (float)tr.getTanl(),
+                                 .eta = (float)tr.getEta(),
+                                 .gid = GID::getSourceName(GID::MFT),
+                                 .source = GID::MFT});
+
+  for (auto zPos : zPositions) {
+    tr.propagateParamToZlinear(zPos);
+    vTrack->addPolyPoint((float)tr.getX(), (float)tr.getY(), (float)tr.getZ());
+  }
 }
 
 void EveWorkflowHelper::drawTOFClusters(GID gid, float trackTime)
@@ -559,4 +585,32 @@ EveWorkflowHelper::EveWorkflowHelper()
   this->mTPCFastTransform = (o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
   const auto& elParams = o2::tpc::ParameterElectronics::Instance();
   mMUS2TPCTimeBins = 1. / elParams.ZbinWidth;
+}
+
+GID::Source EveWorkflowHelper::detectorMapToGIDSource(uint8_t dm)
+{
+  switch (dm) {
+    case static_cast<uint8_t>(o2::aod::track::ITS):
+      return GID::ITS;
+    case static_cast<uint8_t>(o2::aod::track::TPC):
+      return GID::TPC;
+    case static_cast<uint8_t>(o2::aod::track::TRD):
+      return GID::TRD;
+    case static_cast<uint8_t>(o2::aod::track::TOF):
+      return GID::TOF;
+    case static_cast<uint8_t>(o2::aod::track::ITS) | static_cast<uint8_t>(o2::aod::track::TPC):
+      return GID::ITSTPC;
+    case static_cast<uint8_t>(o2::aod::track::TPC) | static_cast<uint8_t>(o2::aod::track::TOF):
+      return GID::TPCTOF;
+    case static_cast<uint8_t>(o2::aod::track::TPC) | static_cast<uint8_t>(o2::aod::track::TRD):
+      return GID::TPCTRD;
+    case static_cast<uint8_t>(o2::aod::track::ITS) | static_cast<uint8_t>(o2::aod::track::TPC) | static_cast<uint8_t>(o2::aod::track::TRD):
+      return GID::ITSTPCTRD;
+    case static_cast<uint8_t>(o2::aod::track::ITS) | static_cast<uint8_t>(o2::aod::track::TPC) | static_cast<uint8_t>(o2::aod::track::TOF):
+      return GID::ITSTPCTOF;
+    case static_cast<uint8_t>(o2::aod::track::TPC) | static_cast<uint8_t>(o2::aod::track::TRD) | static_cast<uint8_t>(o2::aod::track::TOF):
+      return GID::TPCTRDTOF;
+    default:
+      return GID::ITSTPCTRDTOF;
+  }
 }
