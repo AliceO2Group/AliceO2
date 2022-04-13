@@ -157,7 +157,6 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   const o2::tpc::ClusterNativeAccess* mClusterIndex{nullptr};                         ///<! needed to access clusternative with tpctracks
   DEdxType mMode = dedxTrack;                                                         ///< normalization type: type=DedxTrack use truncated mean, type=DedxBB use value from BB fit
   DEdxRegion mDedxRegion = stack;                                                     ///<  using the dE/dx per chamber, stack or per sector
-  inline static auto& mapper = Mapper::instance();                                    ///< initialize mapper object
   float mField{-5};                                                                   ///< Magnetic field in kG, used for track propagation
   float mMomMin{0.1f};                                                                ///< minimum momentum which is required by tracks
   float mMomMax{5.f};                                                                 ///< maximum momentum which is required by tracks
@@ -177,7 +176,7 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   /// \param padSubsetNumber index of the pad subset
   /// \param row corresponding pad row
   /// \param pad pad in row
-  static int getIndex(o2::tpc::PadSubset padSub, int padSubsetNumber, const int row, const int pad) { return mapper.getPadNumber(padSub, padSubsetNumber, row, pad); }
+  static int getIndex(o2::tpc::PadSubset padSub, int padSubsetNumber, const int row, const int pad) { return Mapper::instance().getPadNumber(padSub, padSubsetNumber, row, pad); }
 
   float getTrackTopologyCorrection(const o2::tpc::TrackTPC& track, const unsigned int region) const;
 
