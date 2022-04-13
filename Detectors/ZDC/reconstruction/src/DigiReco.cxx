@@ -127,7 +127,8 @@ void DigiReco::init()
       if (!mTDCParam) {
         LOG(fatal) << "TDC " << itdc << " missing configuration object and no manual override";
       } else {
-        fval = mTDCParam->getShift(itdc) / FTDCVal;
+        // Encode TDC shift
+        fval = mTDCParam->getShift(itdc) / o2::zdc::FTDCVal;
       }
     }
     auto val = std::nearbyint(fval);
@@ -139,7 +140,7 @@ void DigiReco::init()
     }
     tdc_shift[itdc] = val;
     if (mVerbosity > DbgZero) {
-      LOG(info) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " shift= " << tdc_shift[itdc] << " i.s. = " << val * FTDCVal << " ns";
+      LOG(info) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " shift= " << tdc_shift[itdc] << " i.s. = " << val * o2::zdc::FTDCVal << " ns";
     }
   }
   // Amplitude calibration
@@ -174,7 +175,7 @@ void DigiReco::init()
       }
     }
     if (mVerbosity > DbgZero) {
-      LOG(info) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << ropt.tdc_search[itdc] << " i.s. = " << ropt.tdc_search[itdc] * FTDCVal << " ns";
+      LOG(info) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << ropt.tdc_search[itdc] << " i.s. = " << ropt.tdc_search[itdc] * o2::zdc::FTDCVal << " ns";
     }
   }
 
@@ -1413,7 +1414,7 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
   }
 
   // Encode amplitude and assign
-  auto myamp = TDCAmp / FTDCAmp;
+  auto myamp = TDCAmp / o2::zdc::FTDCAmp;
   rec.TDCVal[itdc].push_back(TDCVal);
   rec.TDCAmp[itdc].push_back(myamp);
   int& ihit = mReco[ibun].ntdc[itdc];
@@ -1423,7 +1424,7 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
     rec.tdcAmp[itdc][ihit] = myamp;
   } else {
     LOG(error) << rec.ir.orbit << "." << rec.ir.bc << " "
-               << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " TDCVal=" << TDCVal * FTDCVal << " TDCAmp=" << TDCAmp * FTDCAmp << " OVERFLOW";
+               << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " TDCVal=" << TDCVal * o2::zdc::FTDCVal << " TDCAmp=" << TDCAmp * o2::zdc::FTDCAmp << " OVERFLOW";
   }
 #endif
   // Assign info about pedestal subtration
@@ -1439,7 +1440,7 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
   }
 #ifdef O2_ZDC_DEBUG
   LOG(info) << __func__ << " itdc=" << itdc << " " << ChannelNames[isig] << " @ ibun=" << ibun << " " << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
-            << " tdc=" << tdc << " -> " << TDCValCorr << " shift=" << tdc_shift[itdc] << " -> TDCVal=" << TDCVal << "=" << TDCVal * FTDCVal
+            << " tdc=" << tdc << " -> " << TDCValCorr << " shift=" << tdc_shift[itdc] << " -> TDCVal=" << TDCVal << "=" << TDCVal * o2::zdc::FTDCVal
             << " mSource[" << isig << "] = " << unsigned(mSource[isig]) << " = " << mOffset[isig]
             << " amp=" << amp << " -> " << TDCAmpCorr << " calib=" << tdc_calib[itdc] << " -> TDCAmp=" << TDCAmp << "=" << myamp
             << (ibun == ibeg ? " B" : "") << (ibun == iend ? " E" : "");
@@ -1644,7 +1645,7 @@ void DigiReco::correctTDCPile()
 
 //#define O2_ZDC_DEBUG_CORR
 
-int DigiReco::correctTDCSignal(int itdc, int16_t TDCVal, float TDCAmp, float& FTDCVal, float& FTDCAmp, bool isbeg, bool isend)
+int DigiReco::correctTDCSignal(int itdc, int16_t TDCVal, float TDCAmp, float& fTDCVal, float& fTDCAmp, bool isbeg, bool isend)
 {
   // Correction of single TDC signals
   // This function takes into account the position of the signal in the sequence
@@ -1653,8 +1654,8 @@ int DigiReco::correctTDCSignal(int itdc, int16_t TDCVal, float TDCAmp, float& FT
   constexpr int TDCMax = TDCRange - TSNH - 1;
 
   // Fallback is no correction appliead
-  FTDCVal = TDCVal;
-  FTDCAmp = TDCAmp;
+  fTDCVal = TDCVal;
+  fTDCAmp = TDCAmp;
 
   if (mTDCCorr == nullptr) {
 #ifdef O2_ZDC_DEBUG
@@ -1665,8 +1666,8 @@ int DigiReco::correctTDCSignal(int itdc, int16_t TDCVal, float TDCAmp, float& FT
 
   if (isbeg == false && isend == false) {
     // Mid bunch
-    FTDCAmp = TDCAmp / mTDCCorr->mAFMidC[itdc][0];
-    FTDCVal = TDCVal - mTDCCorr->mTSMidC[itdc][0];
+    fTDCAmp = TDCAmp / mTDCCorr->mAFMidC[itdc][0];
+    fTDCVal = TDCVal - mTDCCorr->mTSMidC[itdc][0];
   } else if (isbeg == true) {
     {
       auto p0 = mTDCCorr->mTSBegC[itdc][0];
@@ -1675,9 +1676,9 @@ int DigiReco::correctTDCSignal(int itdc, int16_t TDCVal, float TDCAmp, float& FT
         auto diff = TDCVal - p0;
         auto p2 = mTDCCorr->mTSBegC[itdc][2];
         auto p3 = mTDCCorr->mTSBegC[itdc][3];
-        FTDCVal = TDCVal - (p1 + p2 * diff + p3 * diff * diff);
+        fTDCVal = TDCVal - (p1 + p2 * diff + p3 * diff * diff);
       } else {
-        FTDCVal = TDCVal - p1;
+        fTDCVal = TDCVal - p1;
       }
     }
     {
@@ -1687,9 +1688,9 @@ int DigiReco::correctTDCSignal(int itdc, int16_t TDCVal, float TDCAmp, float& FT
         auto diff = TDCVal - p0;
         auto p2 = mTDCCorr->mAFBegC[itdc][2];
         auto p3 = mTDCCorr->mAFBegC[itdc][3];
-        FTDCAmp = TDCAmp / (p1 + p2 * diff + p3 * diff * diff);
+        fTDCAmp = TDCAmp / (p1 + p2 * diff + p3 * diff * diff);
       } else {
-        FTDCAmp = TDCAmp / p1;
+        fTDCAmp = TDCAmp / p1;
       }
     }
   } else if (isend == true) {
@@ -1700,9 +1701,9 @@ int DigiReco::correctTDCSignal(int itdc, int16_t TDCVal, float TDCAmp, float& FT
         auto diff = TDCVal - p0;
         auto p2 = mTDCCorr->mTSEndC[itdc][2];
         auto p3 = mTDCCorr->mTSEndC[itdc][3];
-        FTDCVal = TDCVal - (p1 + p2 * diff + p3 * diff * diff);
+        fTDCVal = TDCVal - (p1 + p2 * diff + p3 * diff * diff);
       } else {
-        FTDCVal = TDCVal - p1;
+        fTDCVal = TDCVal - p1;
       }
     }
     {
@@ -1712,9 +1713,9 @@ int DigiReco::correctTDCSignal(int itdc, int16_t TDCVal, float TDCAmp, float& FT
         auto diff = TDCVal - p0;
         auto p2 = mTDCCorr->mAFEndC[itdc][2];
         auto p3 = mTDCCorr->mAFEndC[itdc][3];
-        FTDCAmp = TDCAmp / (p1 + p2 * diff + p3 * diff * diff);
+        fTDCAmp = TDCAmp / (p1 + p2 * diff + p3 * diff * diff);
       } else {
-        FTDCAmp = TDCAmp / p1;
+        fTDCAmp = TDCAmp / p1;
       }
     }
   } else {

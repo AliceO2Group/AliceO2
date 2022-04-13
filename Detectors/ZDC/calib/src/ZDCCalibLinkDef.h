@@ -9,29 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_ZDC_ENERGYPARAM_H
-#define O2_ZDC_ENERGYPARAM_H
+#ifdef __CLING__
 
-#include "ZDCBase/Constants.h"
-#include <Rtypes.h>
-#include <array>
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
 
-/// \file ZDCEnergyParam.h
-/// \brief ZDC Energy calibration
-/// \author P. Cortese
-
-namespace o2
-{
-namespace zdc
-{
-struct ZDCEnergyParam {
-  float energy_calib[NChannels] = {0}; // Energy calibration coefficients
-  void setEnergyCalib(uint32_t ich, float val);
-  float getEnergyCalib(uint32_t ich) const;
-  void print() const;
-  ClassDefNV(ZDCEnergyParam, 1);
-};
-} // namespace zdc
-} // namespace o2
+#pragma link C++ class o2::zdc::InterCalibConfig + ;
 
 #endif
