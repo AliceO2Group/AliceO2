@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(TestMermaid)
   DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext);
   str.str("");
   MermaidHelpers::dumpDeviceSpec2Mermaid(str, devices);
-  lineByLineComparison(str.str(), R"EXPECTED(flowchart TD
+  lineByLineComparison(str.str(), R"EXPECTED(graph TD
     A
     B
     C
@@ -126,7 +126,7 @@ BOOST_AUTO_TEST_CASE(TestMermaidWithPipeline)
   DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext);
   str.str("");
   MermaidHelpers::dumpDeviceSpec2Mermaid(str, devices);
-  lineByLineComparison(str.str(), R"EXPECTED(flowchart TD
+  lineByLineComparison(str.str(), R"EXPECTED(graph TD
     A
     B_t0
     B_t1
