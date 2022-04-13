@@ -164,48 +164,28 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
     rdh = reinterpret_cast<const o2::header::RDHAny*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
     //increment the data pointer by the size of the stop rdh.
     mDataPointer = reinterpret_cast<const uint32_t*>(reinterpret_cast<const char*>(rdh) + o2::raw::RDHUtils::getOffsetToNext(rdh));
-    if(mOptions[TRDM1Debug]){
-      LOG(info) << "mDataPointer incremented to : " << std::hex << (void*)mDataPointer;
-      LOG(info) << "rdh incremented to : " << std::hex << (void*)mDataPointer;
+
+    if (o2::raw::RDHUtils::getStop(rdh)) {
+      LOG(info) << "Next rdh is a stop, and we have moved to it.";
     }
-    if (mOptions[TRDM1Debug]) {
-      LOG(info) << "Before looping around old assigned rdh is : ";
-      o2::raw::RDHUtils::printRDH(oldRDH);
-      LOG(info) << "Now its : ";
-      o2::raw::RDHUtils::printRDH(rdh);
-      LOG(info) << "offset to next is : " << offsetToNext;
-      o2::header::RDHAny* oldrdha=(o2::header::RDHAny*)mDataPointer;
-    LOG(info) << " check 2 versions of proceeding in loop";
-    if (reinterpret_cast<const char*>(rdh) < ((char*)&mHBFPayload[0] + mDataBufferSize)) {
-      LOG(info) << "next rdh is within the buffer calculated via reinterpret_cast";
-    }
-    if ((char*)(rdh) < (char*)&mHBFPayload[0] + mDataBufferSize) {
-      LOG(info) << "next rdh is within the buffer calculated without reinterpret_cast";
-    }
-    if ((char*)(rdh) < (char*)mDataBuffer + mDataBufferSize) {
-      LOG(info) << "next rdh is within the buffer calculated with mDataBuffer ptr";
-    }
-    LOG(info) << std::hex <<  " mDataBuffer is at : " << (void*)mDataBuffer << " and &mHBFPayload[0] is at : " << (void*)mHBFPayload[0];
-    LOG(info) << std::hex <<  " rdh char cast : " << (void*)rdh; 
-    LOG(info) << std::hex <<  " rdh reinterpret_cast : " << reinterpret_cast<const void*>(rdh);
-    LOG(info) << "caculation 1 : " <<std::hex <<  (const void*)(rdh) << " < " << ((void*)&mHBFPayload[0])  << "+" <<  mDataBufferSize << " which is : 0x" << std::hex << (void*) ((char*)&mHBFPayload[0] + mDataBufferSize);
-    LOG(info) << "caculation 2 : " <<std::hex <<  (void*)reinterpret_cast<const char*>(rdh)  << " < " << ((void*)&mHBFPayload[0])  << "+" <<  mDataBufferSize << " which is : 0x" << std::hex << (void*)((char*)&mHBFPayload[0] + mDataBufferSize);
-    LOG(info) << "finished checking 2 versions of proceeding in loop";
+    else {
+      LOG(info) << "Next rdh is not a stop, and has a header size of " << o2::raw::RDHUtils::getHeaderSize(rdh) << " and memsize of : " << o2::raw::RDHUtils::getMemorySize(rdh);
+      LOG(info) << "rdh 0x" << (void*)rdh << " bufsize:" << mDataBufferSize << " payload start: 0x" << (void*)&mHBFPayload[0] << " mHBFoffset32 " << std::dec << mHBFoffset32;
+      LOGP(info, " rdh::: {0:08x}{1:08x} {2:08x}  {3:08x} {4:08x} {5:08x} {6:08x} {7:08x} ",*((uint32_t*)rdh),*((uint32_t*)rdh+1),*((uint32_t*)rdh+2),*((uint32_t*)rdh+3),*((uint32_t*)rdh+4),*((uint32_t*)rdh+5),*((uint32_t*)rdh+6),*((uint32_t*)rdh+7),*((uint32_t*)rdh+8));
+        o2::raw::RDHUtils::printRDH(rdh);
     }
 
-    //if (reinterpret_cast<const char*>(rdh) < ((char*)&mHBFPayload[0] + mDataBufferSize)) {
-    if ((const char*)(rdh) < ((char*)mDataBuffer + mDataBufferSize)) {
-      //if (reinterpret_cast<const o2::header::RDHAny*>(rdh) < (char*)&mHBFPayload[0] + mDataBufferSize) {
+    if (o2::raw::RDHUtils::getStop(rdh) || o2::raw::RDHUtils::getOffsetToNext(rdh) <  mDataBufferSize - mHBFoffset32   ) {
       // we can still copy into this buffer.
     } else {
       if (mMaxWarnPrinted > 0) {
-        LOG(warn) << "rdh bounds fail offsetToNext:" << offsetToNext << " rdh 0x" << (void*)rdh << " bufsize:" << mDataBufferSize << " payload start: 0x" << (void*)&mHBFPayload[0];
+        LOG(warn) << "rdh bounds fail offsetToNext:" << offsetToNext << " rdh 0x" << (void*)rdh << " bufsize:" << mDataBufferSize << " payload start: 0x" << (void*)&mHBFPayload[0] << " mHBFoffset32 " << std::dec << mHBFoffset32;
         checkNoWarn();
+      }
         if (mVerbose) {
-          LOG(info) << "rdh bounds fail offsetToNext:" << offsetToNext << " rdh 0x" << (void*)rdh << " bufsize:" << mDataBufferSize << " payload start: 0x" << (void*)&mHBFPayload[0];
+          LOG(info) << "rdh bounds fail offsetToNext:" << offsetToNext << " rdh 0x" << (void*)rdh << " bufsize:" << mDataBufferSize << " payload start: 0x" << (void*)&mHBFPayload[0] << " mHBFoffset32 " << std::dec << mHBFoffset32;
           o2::raw::RDHUtils::printRDH(rdh);
         }
-      }
       if(mVerbose || mOptions[TRDM1Debug]){
         LOG(warn) << "returning from processHBFs with a false";
         LOG(warn) << "rdh in question is : ";
@@ -234,6 +214,9 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
           break;
         case 1:
           LOG(info) << "all good parsing half cru";
+          break;
+        case 2:
+          LOG(info) << "all good parsing half cru was blank double 0xe event";
           break;
         default:
           return true;
@@ -426,9 +409,10 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
   //this should only hit that instance where the cru payload is a "blank event" of o2::trd::constants::CRUPADDING32
   if (mHBFPayload[cruhbfstartoffset] == o2::trd::constants::CRUPADDING32 && mHBFPayload[cruhbfstartoffset + 1] == o2::trd::constants::CRUPADDING32) {
     if (mVerbose) {
-      LOG(info) << "blank rdh payload";
+      LOG(info) << "blank rdh payload data at " << cruhbfstartoffset << ": 0x "<< std::hex << mHBFPayload[cruhbfstartoffset] << " and 0x"<< mHBFPayload[cruhbfstartoffset+1];
     }
-    return -1;
+    mHBFoffset32+=2;
+    return 2;
   }
   if (mTotalHBFPayLoad == 0) {
     //empty payload
