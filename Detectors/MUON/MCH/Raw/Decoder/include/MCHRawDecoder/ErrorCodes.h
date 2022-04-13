@@ -32,8 +32,13 @@ enum ErrorCodes {
   ErrorTruncatedData = 1 << 7,        // 128
   ErrorBadELinkID = 1 << 8,           // 256
   ErrorBadLinkID = 1 << 9,            // 512
-  ErrorUnknownLinkID = 1 << 10        // 1024
+  ErrorUnknownLinkID = 1 << 10,       // 1024
+  ErrorBadDigitTime = 1 << 11,        // 2048
+  ErrorInvalidDigitTime = 1 << 12     // 4096
+
 };
+
+uint32_t getErrorCodesSize();
 
 std::string errorCodeAsString(uint32_t code);
 
