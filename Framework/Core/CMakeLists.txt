@@ -182,6 +182,7 @@ foreach(t
         ConfigParamStore
         ConfigParamRegistry
         DataDescriptorMatcher
+        DataDescriptorQueryBuilder
         DataProcessorSpec
         DataRefUtils
         DataRelayer
