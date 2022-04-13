@@ -62,9 +62,10 @@ class TimeFrameGPU : public TimeFrame
   int* getDeviceIndexTableL0(const int rofId) { return mIndexTablesLayer0D.get() + rofId * (ZBins * PhiBins + 1); }
   int* getDeviceIndexTableL2(const int rofId) { return mIndexTablesLayer2D.get() + rofId * (ZBins * PhiBins + 1); }
   unsigned char* getDeviceUsedTracklets(const int rofId);
-  Line* getDeviceLines(const int rofid);
-  int* getDeviceNFoundLines(const int rofid);
-  int* getDeviceExclusiveNFoundLines(const int rofid);
+  Line* getDeviceLines(const int rofId);
+  int* getDeviceNFoundLines(const int rofId);
+  int* getDeviceExclusiveNFoundLines(const int rofId);
+  int* getDeviceCUBBuffer(const int rofId);
 
  private:
   TimeFrameGPUConfig mConfig;
@@ -127,30 +128,39 @@ inline unsigned char* TimeFrameGPU<NLayers>::getDeviceUsedTracklets(const int ro
 }
 
 template <int NLayers>
-inline Line* TimeFrameGPU<NLayers>::getDeviceLines(const int rofid)
+inline Line* TimeFrameGPU<NLayers>::getDeviceLines(const int rofId)
 {
-  if (rofid < 0 || rofid >= mNrof) {
-    std::cout << "Invalid rofId: " << rofid << "/" << mNrof << ", returning nullptr" << std::endl;
+  if (rofId < 0 || rofId >= mNrof) {
+    std::cout << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr" << std::endl;
   }
-  return mLines.get() + mROframesClusters[1][rofid];
+  return mLines.get() + mROframesClusters[1][rofId];
 }
 
 template <int NLayers>
-inline int* TimeFrameGPU<NLayers>::getDeviceNFoundLines(const int rofid)
+inline int* TimeFrameGPU<NLayers>::getDeviceNFoundLines(const int rofId)
 {
-  if (rofid < 0 || rofid >= mNrof) {
-    std::cout << "Invalid rofId: " << rofid << "/" << mNrof << ", returning nullptr" << std::endl;
+  if (rofId < 0 || rofId >= mNrof) {
+    std::cout << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr" << std::endl;
   }
-  return mNFoundLines.get() + mROframesClusters[1][rofid];
+  return mNFoundLines.get() + mROframesClusters[1][rofId];
 }
 
 template <int NLayers>
-inline int* TimeFrameGPU<NLayers>::getDeviceExclusiveNFoundLines(const int rofid)
+inline int* TimeFrameGPU<NLayers>::getDeviceExclusiveNFoundLines(const int rofId)
 {
-  if (rofid < 0 || rofid >= mNrof) {
-    std::cout << "Invalid rofId: " << rofid << "/" << mNrof << ", returning nullptr" << std::endl;
+  if (rofId < 0 || rofId >= mNrof) {
+    std::cout << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr" << std::endl;
   }
-  return mNExclusiveFoundLines.get() + mROframesClusters[1][rofid];
+  return mNExclusiveFoundLines.get() + mROframesClusters[1][rofId];
+}
+
+template <int NLayers>
+inline int* TimeFrameGPU<NLayers>::getDeviceCUBBuffer(const int rofId)
+{
+  if (rofId < 0 || rofId >= mNrof) {
+    std::cout << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr" << std::endl;
+  }
+  return mCUBTmpBuffers.get() + rofId * mConfig.tmpCUBBufferSize;
 }
 
 } // namespace gpu

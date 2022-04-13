@@ -101,7 +101,6 @@ dim3 utils::host::getBlockSize(const int colsNum, const int rowsNum, const int m
 
 dim3 utils::host::getBlocksGrid(const dim3& threadsPerBlock, const int rowsNum)
 {
-
   return getBlocksGrid(threadsPerBlock, rowsNum, 1);
 }
 

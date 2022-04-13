@@ -354,7 +354,7 @@ void VertexerTraitsGPU::computeTracklets()
       mDeviceIndexTableUtils,
       mTimeFrameGPU->getConfig().maxTrackletsPerCluster);
   }
-  // #ifdef VTX_DEBUG
+#ifdef VTX_DEBUG
   std::ofstream out01("NTC01.txt"), out12("NTC12.txt");
   std::vector<std::vector<int>> NtrackletsClusters01(mTimeFrameGPU->getNrof());
   std::vector<std::vector<int>> NtrackletsClusters12(mTimeFrameGPU->getNrof());
@@ -371,7 +371,7 @@ void VertexerTraitsGPU::computeTracklets()
   }
   out01.close();
   out12.close();
-  // #endif
+#endif
 }
 
 void VertexerTraitsGPU::computeTrackletMatching()
@@ -383,7 +383,7 @@ void VertexerTraitsGPU::computeTrackletMatching()
     const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mTimeFrameGPU->getNClustersLayer(rofId, 1))};
     const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getNClustersLayer(rofId, 1))};
 
-    size_t bufferSize = mTimeFrameGPU->getConfig().tmpCUBBufferSize * sizeof(int);
+    size_t bufferSize{0}; // = mTimeFrameGPU->getConfig().tmpCUBBufferSize * sizeof(int);
 
     gpu::trackletSelectionKernel<true><<<blocksGrid, threadsPerBlock>>>(
       mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 0),
@@ -399,17 +399,25 @@ void VertexerTraitsGPU::computeTrackletMatching()
       mTimeFrameGPU->getDeviceExclusiveNFoundLines(rofId),
       mTimeFrameGPU->getConfig().maxTrackletsPerCluster);
 
-    // discardResult(cub::DeviceScan::ExclusiveSum(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()),
-    //                                             bufferSize,
-    //                                             mStoreVertexerGPU.getNFoundLines().get(),
-    //                                             mStoreVertexerGPU.getNExclusiveFoundLines().get(),
-    //                                             mClusters[1].size()));
+    discardResult(cub::DeviceScan::ExclusiveSum(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(rofId)),
+                                                bufferSize,
+                                                mTimeFrameGPU->getDeviceNFoundLines(rofId),
+                                                mTimeFrameGPU->getDeviceExclusiveNFoundLines(rofId),
+                                                mTimeFrameGPU->getNClustersLayer(rofId, 1)));
 
-    // gpu::trackletSelectionKernel<<<blocksGrid, threadsPerBlock>>>(
-    //   getDeviceContext(),
-    //   false, // isInitRun
-    //   mVrtParams.tanLambdaCut,
-    //   mVrtParams.phiCut);
+    gpu::trackletSelectionKernel<false><<<blocksGrid, threadsPerBlock>>>(
+      mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 0),
+      mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 1),
+      mTimeFrameGPU->getNClustersLayer(rofId, 1),
+      mTimeFrameGPU->getDeviceTracklets()[0].get(),
+      mTimeFrameGPU->getDeviceTracklets()[1].get(),
+      mTimeFrameGPU->getDeviceNTrackletsCluster(rofId, 0),
+      mTimeFrameGPU->getDeviceNTrackletsCluster(rofId, 1),
+      mTimeFrameGPU->getDeviceUsedTracklets(rofId),
+      mTimeFrameGPU->getDeviceLines(rofId),
+      mTimeFrameGPU->getDeviceNFoundLines(rofId),
+      mTimeFrameGPU->getDeviceExclusiveNFoundLines(rofId),
+      mTimeFrameGPU->getConfig().maxTrackletsPerCluster);
 
     gpuThrowOnError();
   }
