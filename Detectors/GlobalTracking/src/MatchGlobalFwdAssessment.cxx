@@ -50,6 +50,8 @@ void GloFwdAssessment::reset()
 
   if (mUseMC) {
     mPairables.clear();
+    mTrueTracksMap.clear();
+    mPairableTracksMap.clear();
 
     mHistPhiRecVsPhiGen->Reset();
     mHistEtaRecVsEtaGen->Reset();
@@ -240,8 +242,8 @@ void GloFwdAssessment::processGeneratedTracks()
   for (auto src = 0; src < mcReader.getNSources(); src++) {
     for (Int_t event = 0; event < mcReader.getNEvents(src); event++) {
       const auto& mcTracks = mcReader.getTracks(src, event);
+      auto evh = mcReader.getMCEventHeader(src, event);
       for (const auto& mcParticle : mcTracks) {
-        auto evh = mcReader.getMCEventHeader(src, event);
         addMCParticletoHistos(&mcParticle, kGen, evh);
       } // mcTracks
       mcReader.releaseTracksForSourceAndEvent(src, event);
@@ -283,28 +285,38 @@ void GloFwdAssessment::processPairables()
     }
   }
 
-  // Identify and process pairables
+  // Identify pairables
+  mPairableTracksMap.resize(mcReader.getNSources());
+  auto src = 0;
+  for (auto& map : mPairableTracksMap) {
+    map.resize(mcReader.getNEvents(src++));
+  }
   for (auto& testPair : mcPairables) {
     auto& boolPair = testPair.second;
     if (boolPair[0] and boolPair[1]) {
       mPairables[testPair.first] = true;
-      auto const* mcParticle = mcReader.getTrack(testPair.first);
-      srcID = testPair.first.getSourceID();
-      evnID = testPair.first.getEventID();
-      auto evH = mcReader.getMCEventHeader(srcID, evnID);
-      addMCParticletoHistos(mcParticle, kPairable, evH);
+      mPairableTracksMap[testPair.first.getSourceID()][testPair.first.getEventID()].push_back(testPair.first);
     }
   }
+
+  // Process pairables per source and event
+  for (auto src = 0; src < mcReader.getNSources(); src++) {
+    for (Int_t event = 0; event < mcReader.getNEvents(src); event++) {
+      auto evH = mcReader.getMCEventHeader(src, event);
+      for (auto& pairable : mPairableTracksMap[src][event]) {
+        auto const* mcParticle = mcReader.getTrack(pairable);
+        addMCParticletoHistos(mcParticle, kPairable, evH);
+      }
+      mcReader.releaseTracksForSourceAndEvent(src, event);
+    } // events
+  }   // sources
 }
-
 //__________________________________________________________
-void GloFwdAssessment::processRecoAndTrueTracks()
+void GloFwdAssessment::processRecoTracks()
 {
-
-  auto trkId = 0;
+  // For this moment this is used for MC-based assessment, but could be merged into runBasicQC(...)
   for (auto fwdTrack : mGlobalFwdTracks) {
     if (mMIDFilterEnabled and (fwdTrack.getMIDMatchingChi2() < 0)) { // MID filter
-      trkId++;
       continue;
     }
     auto pt_Rec = fwdTrack.getPt();
@@ -320,10 +332,9 @@ void GloFwdAssessment::processRecoAndTrueTracks()
     auto matchChi2 = fwdTrack.getMFTMCHMatchingChi2();
     auto matchMatchScore = fwdTrack.getMFTMCHMatchingScore();
 
-    auto TrackType = kReco;
-    mHistPtVsEta[TrackType]->Fill(eta_Rec, pt_Rec);
-    mHistPhiVsEta[TrackType]->Fill(eta_Rec, phi_Rec);
-    mHistPhiVsPt[TrackType]->Fill(pt_Rec, phi_Rec);
+    mHistPtVsEta[kReco]->Fill(eta_Rec, pt_Rec);
+    mHistPhiVsEta[kReco]->Fill(eta_Rec, phi_Rec);
+    mHistPhiVsPt[kReco]->Fill(pt_Rec, phi_Rec);
 
     mTH3Histos[kTH3GMTrackPtEtaChi2]->Fill(pt_Rec, eta_Rec, matchChi2);
     mTH3Histos[kTH3GMTrackPtEtaMatchScore]->Fill(pt_Rec, eta_Rec, matchMatchScore);
@@ -331,69 +342,98 @@ void GloFwdAssessment::processRecoAndTrueTracks()
       mTH3Histos[kTH3GMCloseMatchPtEtaChi2]->Fill(pt_Rec, eta_Rec, matchChi2);
       mTH3Histos[kTH3GMCloseMatchPtEtaMatchScore]->Fill(pt_Rec, eta_Rec, matchMatchScore);
     }
-
-    auto trackLabel = mFwdTrackLabels[trkId];
-    if (trackLabel.isCorrect()) {
-      TrackType = kRecoTrue;
-      auto evH = mcReader.getMCEventHeader(trackLabel.getSourceID(), trackLabel.getEventID());
-      auto zVtx = evH.GetZ();
-
-      auto const* mcParticle = mcReader.getTrack(trackLabel);
-      auto etaGen = std::abs(mcParticle->GetEta());
-      auto phiGen = TMath::ATan2(mcParticle->Py(), mcParticle->Px());
-      auto ptGen = mcParticle->GetPt();
-      auto vxGen = mcParticle->GetStartVertexCoordinatesX();
-      auto vyGen = mcParticle->GetStartVertexCoordinatesY();
-      auto vzGen = mcParticle->GetStartVertexCoordinatesZ();
-      auto tanlGen = mcParticle->Pz() / mcParticle->GetPt();
-
-      auto pdgcode_MC = mcParticle->GetPdgCode();
-      int Q_Gen;
-      if (TDatabasePDG::Instance()->GetParticle(pdgcode_MC)) {
-        Q_Gen = TDatabasePDG::Instance()->GetParticle(pdgcode_MC)->Charge() / 3;
-      } else {
-        continue;
-      }
-      auto invQPtGen = 1.0 * Q_Gen / ptGen;
-      fwdTrack.propagateToZ(vzGen, mBz);
-
-      // Residuals at vertex
-      auto x_res = fwdTrack.getX() - vxGen;
-      auto y_res = fwdTrack.getY() - vyGen;
-      auto eta_res = fwdTrack.getEta() - etaGen;
-      auto phi_res = fwdTrack.getPhi() - phiGen;
-      auto tanl_res = fwdTrack.getTanl() - tanlGen;
-      auto invQPt_res = invQPt_Rec - invQPtGen;
-      mHistPtVsEta[TrackType]->Fill(eta_Rec, pt_Rec);
-      mHistPhiVsEta[TrackType]->Fill(eta_Rec, phi_Rec);
-      mHistPhiVsPt[TrackType]->Fill(pt_Rec, phi_Rec);
-      mHistZvtxVsEta[TrackType]->Fill(eta_Rec, zVtx);
-
-      mHistPhiRecVsPhiGen->Fill(phiGen, phi_Rec);
-      mHistEtaRecVsEtaGen->Fill(etaGen, eta_Rec);
-
-      /// Reco assessment histos
-      auto d_Charge = Q_Rec - Q_Gen;
-      mChargeMatchEff->Fill(!d_Charge, ptGen);
-
-      mTH3Histos[kTH3GMTrackDeltaXVertexPtEta]->Fill(ptGen, etaGen, 1e4 * x_res);
-      mTH3Histos[kTH3GMTrackDeltaYVertexPtEta]->Fill(ptGen, etaGen, 1e4 * y_res);
-      mTH3Histos[kTH3GMTrackDeltaXDeltaYEta]->Fill(etaGen, 1e4 * x_res, 1e4 * y_res);
-      mTH3Histos[kTH3GMTrackDeltaXDeltaYPt]->Fill(ptGen, 1e4 * x_res, 1e4 * y_res);
-      mTH3Histos[kTH3GMTrackXPullPtEta]->Fill(ptGen, etaGen, x_res / sqrt(fwdTrack.getCovariances()(0, 0)));
-      mTH3Histos[kTH3GMTrackYPullPtEta]->Fill(ptGen, etaGen, y_res / sqrt(fwdTrack.getCovariances()(1, 1)));
-      mTH3Histos[kTH3GMTrackPhiPullPtEta]->Fill(ptGen, etaGen, phi_res / sqrt(fwdTrack.getCovariances()(2, 2)));
-      mTH3Histos[kTH3GMTrackTanlPullPtEta]->Fill(ptGen, etaGen, tanl_res / sqrt(fwdTrack.getCovariances()(3, 3)));
-      mTH3Histos[kTH3GMTrackInvQPtPullPtEta]->Fill(ptGen, etaGen, invQPt_res / sqrt(fwdTrack.getCovariances()(4, 4)));
-      mTH3Histos[kTH3GMTrackInvQPtResolutionPtEta]->Fill(ptGen, etaGen, (invQPt_Rec - invQPtGen) / invQPtGen);
-      mTH3Histos[kTH3GMTrackInvQPtResMCHPtEta]->Fill(ptGen, etaGen, (invQPt_MCH - invQPtGen) / invQPtGen);
-      mTH3Histos[kTH3GMTrackReducedChi2PtEta]->Fill(ptGen, etaGen, Chi2_Rec / (2 * nMFTClusters - 5));
-      mTH3Histos[kTH3GMTruePtEtaChi2]->Fill(pt_Rec, eta_Rec, matchChi2);
-      mTH3Histos[kTH3GMTruePtEtaMatchScore]->Fill(pt_Rec, eta_Rec, matchMatchScore);
-      mTH3Histos[kTH3GMTruePtEtaMatchScore_MC]->Fill(ptGen, etaGen, matchMatchScore);
-    }
-    trkId++;
   }
+}
+
+//__________________________________________________________
+void GloFwdAssessment::processTrueTracks()
+{
+  fillTrueRecoTracksMap();
+  for (auto src = 0; src < mcReader.getNSources(); src++) {
+    for (Int_t event = 0; event < mcReader.getNEvents(src); event++) {
+      const auto& evH = mcReader.getMCEventHeader(src, event);
+      const auto& zVtx = evH.GetZ();
+
+      for (const auto& trueFwdTrackID : mTrueTracksMap[src][event]) {
+        auto fwdTrack = mGlobalFwdTracks[trueFwdTrackID];
+        if (mMIDFilterEnabled and (fwdTrack.getMIDMatchingChi2() < 0)) { // MID filter
+          continue;
+        }
+
+        const auto& trackLabel = mFwdTrackLabels[trueFwdTrackID];
+        if (trackLabel.isCorrect()) {
+
+          auto const* mcParticle = mcReader.getTrack(trackLabel);
+          const auto etaGen = std::abs(mcParticle->GetEta());
+          const auto phiGen = TMath::ATan2(mcParticle->Py(), mcParticle->Px());
+          const auto& ptGen = mcParticle->GetPt();
+          const auto& vxGen = mcParticle->GetStartVertexCoordinatesX();
+          const auto& vyGen = mcParticle->GetStartVertexCoordinatesY();
+          const auto& vzGen = mcParticle->GetStartVertexCoordinatesZ();
+          auto tanlGen = mcParticle->Pz() / mcParticle->GetPt();
+
+          const auto& pdgcode_MC = mcParticle->GetPdgCode();
+          int Q_Gen;
+          if (TDatabasePDG::Instance()->GetParticle(pdgcode_MC)) {
+            Q_Gen = TDatabasePDG::Instance()->GetParticle(pdgcode_MC)->Charge() / 3;
+          } else {
+            continue;
+          }
+          const auto invQPtGen = 1.0 * Q_Gen / ptGen;
+          fwdTrack.propagateToZ(vzGen, mBz);
+
+          const auto& pt_Rec = fwdTrack.getPt();
+          const auto& invQPt_Rec = fwdTrack.getInvQPt();
+          const auto& px_mch = mMCHTracks[fwdTrack.getMCHTrackID()].getPx();
+          const auto& py_mch = mMCHTracks[fwdTrack.getMCHTrackID()].getPy();
+          const auto& invQPt_MCH = mMCHTracks[fwdTrack.getMCHTrackID()].getSign() / sqrt(px_mch * px_mch + py_mch * py_mch);
+          const auto& eta_Rec = std::abs(fwdTrack.getEta());
+          const auto& phi_Rec = fwdTrack.getPhi();
+          const auto& nMFTClusters = mMFTTracks[fwdTrack.getMFTTrackID()].getNumberOfPoints();
+          const auto& Chi2_Rec = fwdTrack.getTrackChi2();
+          const int Q_Rec = fwdTrack.getCharge();
+          const auto& matchChi2 = fwdTrack.getMFTMCHMatchingChi2();
+          const auto& matchMatchScore = fwdTrack.getMFTMCHMatchingScore();
+
+          // Residuals at vertex
+          const auto x_res = fwdTrack.getX() - vxGen;
+          const auto y_res = fwdTrack.getY() - vyGen;
+          const auto eta_res = fwdTrack.getEta() - etaGen;
+          const auto phi_res = fwdTrack.getPhi() - phiGen;
+          const auto tanl_res = fwdTrack.getTanl() - tanlGen;
+          const auto invQPt_res = invQPt_Rec - invQPtGen;
+          mHistPtVsEta[kRecoTrue]->Fill(eta_Rec, pt_Rec);
+          mHistPhiVsEta[kRecoTrue]->Fill(eta_Rec, phi_Rec);
+          mHistPhiVsPt[kRecoTrue]->Fill(pt_Rec, phi_Rec);
+          mHistZvtxVsEta[kRecoTrue]->Fill(eta_Rec, zVtx);
+
+          mHistPhiRecVsPhiGen->Fill(phiGen, phi_Rec);
+          mHistEtaRecVsEtaGen->Fill(etaGen, eta_Rec);
+
+          /// Reco assessment histos
+          auto d_Charge = Q_Rec - Q_Gen;
+          mChargeMatchEff->Fill(!d_Charge, ptGen);
+
+          mTH3Histos[kTH3GMTrackDeltaXVertexPtEta]->Fill(ptGen, etaGen, 1e4 * x_res);
+          mTH3Histos[kTH3GMTrackDeltaYVertexPtEta]->Fill(ptGen, etaGen, 1e4 * y_res);
+          mTH3Histos[kTH3GMTrackDeltaXDeltaYEta]->Fill(etaGen, 1e4 * x_res, 1e4 * y_res);
+          mTH3Histos[kTH3GMTrackDeltaXDeltaYPt]->Fill(ptGen, 1e4 * x_res, 1e4 * y_res);
+          mTH3Histos[kTH3GMTrackXPullPtEta]->Fill(ptGen, etaGen, x_res / sqrt(fwdTrack.getCovariances()(0, 0)));
+          mTH3Histos[kTH3GMTrackYPullPtEta]->Fill(ptGen, etaGen, y_res / sqrt(fwdTrack.getCovariances()(1, 1)));
+          mTH3Histos[kTH3GMTrackPhiPullPtEta]->Fill(ptGen, etaGen, phi_res / sqrt(fwdTrack.getCovariances()(2, 2)));
+          mTH3Histos[kTH3GMTrackTanlPullPtEta]->Fill(ptGen, etaGen, tanl_res / sqrt(fwdTrack.getCovariances()(3, 3)));
+          mTH3Histos[kTH3GMTrackInvQPtPullPtEta]->Fill(ptGen, etaGen, invQPt_res / sqrt(fwdTrack.getCovariances()(4, 4)));
+          mTH3Histos[kTH3GMTrackInvQPtResolutionPtEta]->Fill(ptGen, etaGen, (invQPt_Rec - invQPtGen) / invQPtGen);
+          mTH3Histos[kTH3GMTrackInvQPtResMCHPtEta]->Fill(ptGen, etaGen, (invQPt_MCH - invQPtGen) / invQPtGen);
+          mTH3Histos[kTH3GMTrackReducedChi2PtEta]->Fill(ptGen, etaGen, Chi2_Rec / (2 * nMFTClusters - 5));
+          mTH3Histos[kTH3GMTruePtEtaChi2]->Fill(pt_Rec, eta_Rec, matchChi2);
+          mTH3Histos[kTH3GMTruePtEtaMatchScore]->Fill(pt_Rec, eta_Rec, matchMatchScore);
+          mTH3Histos[kTH3GMTruePtEtaMatchScore_MC]->Fill(ptGen, etaGen, matchMatchScore);
+        }
+      }
+      mcReader.releaseTracksForSourceAndEvent(src, event);
+    } // events
+  }   // sources
 }
 
 //__________________________________________________________
@@ -461,6 +501,10 @@ void GloFwdAssessment::getHistos(TObjArray& objar)
     objar.Add(mChargeMatchEff.get());
     objar.Add(mPairingEtaPt.get());
     objar.Add(mTruePairingEtaPt.get());
+
+    if (mFinalizeAnalysis) {
+      objar.Add(mHistVxtOffsetProjection.get());
+    }
 
     if (mFinalizeAnalysis) {
       for (int slicedCanvas = 0; slicedCanvas < kNSlicedTH3; slicedCanvas++) {
@@ -547,6 +591,11 @@ void GloFwdAssessment::loadHistos()
 //__________________________________________________________
 void GloFwdAssessment::finalizeAnalysis()
 {
+
+  mHistVxtOffsetProjection = std::unique_ptr<TH2F>((TH2F*)mTH3Histos[kTH3GMTrackDeltaXDeltaYEta]->Project3D("colz yz"));
+  mHistVxtOffsetProjection->SetNameTitle("Vertex_XY_OffSet", "Vertex Offset");
+  mHistVxtOffsetProjection->SetOption("COLZ");
+
   finalizeRecoAndPairables();
   finalizePurityAndEff();
 }

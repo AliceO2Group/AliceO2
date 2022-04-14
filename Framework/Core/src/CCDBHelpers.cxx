@@ -53,7 +53,18 @@ struct CCDBFetcherHelper {
   size_t queryDownScaleRate = 1;
   o2::ccdb::CcdbApi& getAPI(const std::string& path)
   {
-    auto entry = remappings.find(path);
+    // find the first = sign in the string. If present drop everything after it
+    // and between it and the previous /.
+    auto pos = path.find('=');
+    if (pos == std::string::npos) {
+      auto entry = remappings.find(path);
+      return apis[entry == remappings.end() ? "" : entry->second];
+    }
+    auto pos2 = path.rfind('/', pos);
+    if (pos2 == std::string::npos || pos2 == pos - 1 || pos2 == 0) {
+      throw runtime_error_f("Malformed path %s", path.c_str());
+    }
+    auto entry = remappings.find(path.substr(0, pos2));
     return apis[entry == remappings.end() ? "" : entry->second];
   }
 };
@@ -274,6 +285,12 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
 
       return adaptStateless([helper](DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo) {
         static Long64_t orbitResetTime = -1;
+        static size_t lastTimeUsed = -1;
+        if (timingInfo.creation & DataProcessingHeader::DUMMY_CREATION_TIME_OFFSET) {
+          LOGP(error, "Dummy creation time is not supported for CCDB objects. Setting creation to last one used.");
+          timingInfo.creation = lastTimeUsed;
+        }
+        lastTimeUsed = timingInfo.creation;
         // Fetch the CCDB object for the CTP
         {
           // FIXME: this (the static) is needed because for now I cannot get

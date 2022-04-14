@@ -56,7 +56,7 @@ Tracker::~Tracker()
 Tracker::~Tracker() = default;
 #endif
 
-void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::function<void(std::string s)> fatal)
+void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::function<void(std::string s)> error)
 {
   double total{0};
   for (int iteration = 0; iteration < mTrkParams.size(); ++iteration) {
@@ -66,11 +66,13 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
                           logger, iteration, mMemParams[iteration], mTrkParams[iteration]);
     total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", logger);
     if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
-      fatal("Too much memory used during trackleting, check the detector status and/or the selections.");
+      error("Too much memory used during trackleting, check the detector status and/or the selections.");
+      break;
     }
     total += evaluateTask(&Tracker::computeCells, "Cell finding", logger);
     if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
-      fatal("Too much memory used during cell finding, check the detector status and/or the selections.");
+      error("Too much memory used during cell finding, check the detector status and/or the selections.");
+      break;
     }
     total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", logger, iteration);
     total += evaluateTask(&Tracker::findRoads, "Road finding", logger, iteration);

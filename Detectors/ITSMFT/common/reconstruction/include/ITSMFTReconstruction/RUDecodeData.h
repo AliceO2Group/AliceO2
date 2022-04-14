@@ -73,6 +73,7 @@ int RUDecodeData::decodeROF(const Mapping& mp)
   nChipsFired = 0;
   lastChipChecked = 0;
   int ntot = 0;
+  std::array<bool, Mapping::getNChips()> doneChips{};
   auto* chipData = &chipsData[0];
   for (int icab = 0; icab < nCables; icab++) { // cableData is ordered in such a way to have chipIDs in increasing order
     if (!cableData[icab].getSize()) {
@@ -87,16 +88,26 @@ int RUDecodeData::decodeROF(const Mapping& mp)
     int ret = 0;
     while ((ret = AlpideCoder::decodeChip(*chipData, cableData[icab], chIdGetter)) || chipData->isErrorSet()) { // we register only chips with hits or errors flags set
       setROFInfo(chipData, cableLinkPtr[icab]);
+      auto nhits = chipData->getData().size();
+      if (nhits && doneChips[chipData->getChipID()]) {
+        if (chipData->getChipID() == chipsData[nChipsFired - 1].getChipID()) {
+          LOGP(debug, "re-entry into the data of the chip {} after previously detector error", chipData->getChipID());
+        }
+#ifdef ALPIDE_DECODING_STAT
+        else {
+          chipData->setError(ChipStat::InterleavedChipData);
+        }
+#endif
+        ret = -1; // discard decoded data
+      }
 #ifdef ALPIDE_DECODING_STAT
       fillChipStatistics(icab, chipData);
 #endif
       if (ret >= 0 && chipData->getChipID() < Mapping::getNChips()) { // make sure there was no error | upd: why? if there was a non fatal error, we use chip data
-        if (chipData->isErrorSet() && nChipsFired && chipData->getChipID() == chipsData[nChipsFired - 1].getChipID()) {
-          // we are still in the chip data whose decoding was aborted due to the error, reuse this chip data
-          LOGP(debug, "re-entry into the data of the chip {} after previously detector error", chipData->getChipID());
-          continue;
+        if (nhits) {
+          doneChips[chipData->getChipID()] = true;
+          ntot += nhits;
         }
-        ntot += chipData->getData().size();
         if (++nChipsFired < chipsData.size()) { // fetch next free chip
           chipData = &chipsData[nChipsFired];
         } else {

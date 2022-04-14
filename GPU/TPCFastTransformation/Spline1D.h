@@ -149,6 +149,11 @@ class Spline1D
   using TBase::TBase; // inherit constructors
 
   /// Assignment operator
+  Spline1D() = default;
+  Spline1D(const Spline1D& v)
+  {
+    TVeryBase::cloneFromObject(v, nullptr);
+  }
   Spline1D& operator=(const Spline1D& v)
   {
     TVeryBase::cloneFromObject(v, nullptr);

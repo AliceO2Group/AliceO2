@@ -58,6 +58,7 @@ struct ChipStat {
     APE_OCCUPANCY_RATE_LIMIT,     // pending detector events limit (FATAL)
     APE_OCCUPANCY_RATE_LIMIT_2,   // pending detector events limit in packager(FATAL)
     WrongDColOrder,               // DColumns non increasing
+    InterleavedChipData,          // Chip data interleaved on the cable
     NErrorsDefined
   };
 
@@ -85,7 +86,8 @@ struct ChipStat {
     "APE_FSM_ERROR",                                // FSM error (FATAL, SEU error, reached an unknown state)
     "APE_OCCUPANCY_RATE_LIMIT",                     // pending detector events limit (FATAL)
     "APE_OCCUPANCY_RATE_LIMIT_2",                   // pending detector events limit in packager(FATAL)
-    "DColumns non-increasing"                       // DColumns non increasing
+    "DColumns non-increasing",                      // DColumns non increasing
+    "Chip data interleaved on the cable"            // Chip data interleaved on the cable
   };
 
   static constexpr std::array<uint32_t, NErrorsDefined> ErrActions = {
@@ -112,7 +114,8 @@ struct ChipStat {
     ErrActPropagate | ErrActDump, // FSM error (FATAL, SEU error, reached an unknown state)
     ErrActPropagate | ErrActDump, // pending detector events limit (FATAL)
     ErrActPropagate | ErrActDump, // pending detector events limit in packager(FATAL)
-    ErrActPropagate | ErrActDump  // DColumns non increasing
+    ErrActPropagate | ErrActDump, // DColumns non increasing
+    ErrActPropagate | ErrActDump  // Chip data interleaved on the cable
   };
   uint16_t feeID = -1;
   size_t nHits = 0;

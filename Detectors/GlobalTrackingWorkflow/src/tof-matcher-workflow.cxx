@@ -26,6 +26,9 @@
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
+#include "TOFBase/Utils.h"
+#include "Steer/MCKinematicsReader.h"
+#include "TSystem.h"
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
@@ -122,6 +125,23 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, clustermask, nonemask, src, useMC, mcmaskcl, GID::getSourcesMask(GID::ALL), strict);
 
   specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, useMC, useFIT, false, strict)); // doTPCrefit not yet supported (need to load TPC clusters?)
+
+  // initialize collision context
+  if (gSystem->AccessPathName("collisioncontext.root")) {
+    LOG(info) << "collisioncontext.root not available, let's skip it (cosmics?) ";
+  } else {
+    auto mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
+    auto context = mcReader->getDigitizationContext();
+    if (context) {
+      auto bcf = context->getBunchFilling();
+      std::bitset<3564> isInBC = bcf.getBCPattern();
+      for (unsigned int i = 0; i < isInBC.size(); i++) {
+        if (isInBC.test(i)) {
+          o2::tof::Utils::addInteractionBC(i, true);
+        }
+      }
+    }
+  }
 
   if (!disableRootOut) {
     if (writematching) {

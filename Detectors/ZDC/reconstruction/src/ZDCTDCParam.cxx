@@ -52,7 +52,7 @@ float ZDCTDCParam::getFactor(uint32_t ich) const
   }
 }
 
-void ZDCTDCParam::print()
+void ZDCTDCParam::print() const
 {
   for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
     LOG(info) << ChannelNames[TDCSignal[itdc]] << " shift = " << tdc_shift[itdc] << " ns factor = " << tdc_calib[itdc];

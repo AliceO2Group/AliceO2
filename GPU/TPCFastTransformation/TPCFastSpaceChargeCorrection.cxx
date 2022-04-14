@@ -608,8 +608,8 @@ void TPCFastSpaceChargeCorrection::initInverse(bool prn)
           // LOG(info)<<" u "<<u<<" cv0 "<<cv<<" v "<<v<<" cu "<<u+du<<" cv "<<v+dv;
           double cu = u + du;
           cv = v + dv;
-          double cx = x + dx;
-          double r2 = cx * cx + cu * cu;
+          // double cx = x + dx;
+          // double r2 = cx * cx + cu * cu;
 
           //if (cv < 0 || cv > vLength || r2 < tpcR2min || r2 > tpcR2max) {
           //continue;
@@ -643,10 +643,10 @@ void TPCFastSpaceChargeCorrection::initInverse(bool prn)
       chebFitterU.reset(nCheb - 1, area.cuMin, area.cuMax);
       chebFitterV.reset(nCheb - 1, area.cuMin, area.cuMax);
 
-      double drow = area.cvMax / (helper.getNumberOfDataPointsU2() - 1);
+      // double drow = area.cvMax / (helper.getNumberOfDataPointsU2() - 1);
       double dcol = (area.cuMax - area.cuMin) / (helper.getNumberOfDataPointsU1() - 1);
       for (int iv = 0; iv < helper.getNumberOfDataPointsU2(); iv++) {
-        double cv = iv * drow;
+        // double cv = iv * drow;
         double* dataPointFrow = &dataPointF[iv * helper.getNumberOfDataPointsU1() * 3];
         for (int iu = 0; iu < helper.getNumberOfDataPointsU1(); iu++) {
           dataPointFrow[iu * 3 + 0] = 0;
@@ -713,7 +713,6 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
     double vLength = (slice < mGeo.getNumberOfSlicesA()) ? mGeo.getTPCzLengthA() : mGeo.getTPCzLengthC();
     double maxDslice[3] = {0, 0, 0};
     for (int row = 0; row < mGeo.getNumberOfRows(); row++) {
-      const SplineType& spline = getSpline(slice, row);
       float u0, u1, v0, v1;
       mGeo.convScaledUVtoUV(slice, row, 0., 0, u0, v0);
       mGeo.convScaledUVtoUV(slice, row, 1., 1, u1, v1);
