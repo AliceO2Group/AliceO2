@@ -33,7 +33,10 @@ struct TPCZSHDR {
   static constexpr unsigned int TPC_ZS_NBITS_V1 = 10;
   static constexpr unsigned int TPC_ZS_NBITS_V2 = 12;
 
-  unsigned char version;
+  unsigned char version; // ZS format version:
+                         // 1: original row-based format with 10-bit ADC values
+                         // 2: original row-based format with 12-bit ADC values
+                         // 3: improved link-based format with extra META header
   unsigned char nTimeBins;
   unsigned short cruID;
   unsigned short timeOffset;
