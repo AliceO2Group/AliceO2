@@ -48,6 +48,7 @@ enum mMFTTrackTypes { kReco,
                       kGen,
                       kTrackable,
                       kRecoTrue,
+                      kRecoTrueMC,
                       kNumberOfTrackTypes };
 
 using ClusterLabelsType = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
@@ -146,7 +147,8 @@ class MFTAssessment
   std::vector<std::string> mNameOfTrackTypes = {"Rec",
                                                 "Gen",
                                                 "Trackable",
-                                                "RecoTrue"};
+                                                "RecoTrue",
+                                                "RecotrueMC"};
 
   std::unique_ptr<TH2F> mHistPhiRecVsPhiGen = nullptr;
   std::unique_ptr<TH2F> mHistEtaRecVsEtaGen = nullptr;
