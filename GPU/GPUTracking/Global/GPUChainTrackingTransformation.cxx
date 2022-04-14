@@ -129,7 +129,7 @@ void GPUChainTracking::ConvertZSEncoder(bool zs12bit)
   mIOMem.tpcZSmeta2.reset(new GPUTrackingInOutZS::GPUTrackingInOutZSMeta);
   mIOMem.tpcZSmeta.reset(new GPUTrackingInOutZS);
   o2::InteractionRecord ir{0, mIOPtrs.settingsTF && mIOPtrs.settingsTF->hasTfStartOrbit ? mIOPtrs.settingsTF->tfStartOrbit : 0u};
-  GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit>(*mIOPtrs.tpcPackedDigits, &mIOMem.tpcZSpages, &mIOMem.tpcZSmeta2->n[0][0], nullptr, &ir, param(), zs12bit, true);
+  GPUReconstructionConvert::RunZSEncoder(*mIOPtrs.tpcPackedDigits, &mIOMem.tpcZSpages, &mIOMem.tpcZSmeta2->n[0][0], nullptr, &ir, param(), zs12bit, true);
   GPUReconstructionConvert::RunZSEncoderCreateMeta(mIOMem.tpcZSpages.get(), &mIOMem.tpcZSmeta2->n[0][0], &mIOMem.tpcZSmeta2->ptr[0][0], mIOMem.tpcZSmeta.get());
   mIOPtrs.tpcZS = mIOMem.tpcZSmeta.get();
   if (GetProcessingSettings().registerStandaloneInputMemory) {
