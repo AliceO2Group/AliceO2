@@ -127,7 +127,7 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   static constexpr std::string_view NOISEFILENAME = "NoiseMap";
   static constexpr std::string_view MATBUDLUT = "matbud";
   static constexpr std::string_view COLLISIONCONTEXT = "collisioncontext";
-  static constexpr std::string_view ALIGNPATH = "Align";
+  static constexpr std::string_view ALIGNPATH = "Calib/Align";
   static constexpr std::string_view TFIDINFO = "tfidinfo";
 
   // these are configurable paths for some commonly used files
