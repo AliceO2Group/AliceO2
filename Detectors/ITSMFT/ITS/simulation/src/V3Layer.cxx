@@ -476,10 +476,6 @@ TGeoVolume* V3Layer::createStave(const TGeoManager* /*mgr*/)
   char volumeName[nameLen];
 
   Double_t xpos, ypos, ymod;
-  Double_t alpha;
-
-  // First create all needed shapes
-  alpha = (360. / (2 * mNumberOfStaves)) * DegToRad();
 
   // The stave
   snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSStavePattern(), mLayerNumber);
