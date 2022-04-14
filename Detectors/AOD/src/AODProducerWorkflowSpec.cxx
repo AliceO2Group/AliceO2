@@ -286,7 +286,7 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
   if (needBCSlice) {
     ambigMFTTracksCursor(0, mTableTrMFTID, bcSlice);
   }
-  mGIDToTableMFTID.emplace(trackID, mTableTrMFTID);
+//  mGIDToTableMFTID.emplace(trackID, mTableTrMFTID);
   mTableTrMFTID++;
 }
 
@@ -365,7 +365,6 @@ void AODProducerWorkflowDPL::fillIndexTablesPerCollision(const o2::dataformats::
           }
 
           mGIDToTableMFTID.emplace(trackIndex, mIndexMFTID);
-          //          mIndexTableMFT.emplace(trackIndex.getIndex(), mIndexMFTID);
           mIndexTableMFT[trackIndex.getIndex()] = mIndexMFTID;
           mIndexMFTID++;
 
@@ -376,7 +375,6 @@ void AODProducerWorkflowDPL::fillIndexTablesPerCollision(const o2::dataformats::
 
           mGIDToTableFwdID.emplace(trackIndex, mIndexFwdID);
           if (src == GIndex::Source::MCH) {
-            //            mIndexTableFwd.emplace(trackIndex.getIndex(), mIndexFwdID);
             mIndexTableFwd[trackIndex.getIndex()] = mIndexFwdID;
           }
           mIndexFwdID++;
@@ -613,7 +611,7 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
   if (needBCSlice) {
     ambigFwdTracksCursor(0, mTableTrFwdID, bcSlice);
   }
-  mGIDToTableFwdID.emplace(trackID, mTableTrFwdID);
+//  mGIDToTableFwdID.emplace(trackID, mTableTrFwdID);
   mTableTrFwdID++;
 }
 
@@ -1533,9 +1531,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     collisionID++;
   }
 
-  mGIDToTableFwdID.clear();
-  mGIDToTableMFTID.clear();
-
   // filling unassigned tracks first
   // so that all unassigned tracks are stored in the beginning of the table together
   auto& trackRef = primVer2TRefs.back(); // references to unassigned tracks are at the end
@@ -1668,6 +1663,11 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   mTableCollID = 0;
   mV0ToTableID.clear();
   mTableV0ID = 0;
+
+  mIndexTableFwd.clear();
+  mIndexFwdID=0;
+  mIndexTableMFT.clear();
+  mIndexMFTID=0;
 
   originCursor(0, tfNumber);
 
