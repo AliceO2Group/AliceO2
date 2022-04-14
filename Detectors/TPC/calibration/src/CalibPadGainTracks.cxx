@@ -54,7 +54,7 @@ void CalibPadGainTracks::processTrack(o2::tpc::TrackTPC track)
 
     // this function sets sectorIndex, rowIndex, clusterIndexNumb
     track.getClusterReference(*mTPCTrackClIdxVecInput, iCl, sectorIndex, rowIndex, clusterIndexNumb);
-    const float xPosition = mapper.getPadCentre(PadPos(rowIndex, 0)).X();
+    const float xPosition = Mapper::instance().getPadCentre(PadPos(rowIndex, 0)).X();
     const bool check = track.propagateTo(xPosition, mField); // propagate this track to the plane X=xk (cm) in the field "b" (kG)
     if (!check) {
       continue;
@@ -188,7 +188,7 @@ std::vector<float> CalibPadGainTracks::getTruncMean(std::vector<std::vector<floa
 
 float CalibPadGainTracks::getTrackTopologyCorrection(const o2::tpc::TrackTPC& track, const unsigned int region) const
 {
-  const float padLength = mapper.getPadRegionInfo(region).getPadHeight();
+  const float padLength = Mapper::instance().getPadRegionInfo(region).getPadHeight();
   const float sinPhi = track.getSnp();
   const float tgl = track.getTgl();
   const float snp2 = sinPhi * sinPhi;
@@ -243,7 +243,7 @@ void CalibPadGainTracks::resizedEdxBuffer()
     mDEdxBuffer[1].reserve(Mapper::getNumberOfRowsInOROC());
   } else if (mDedxRegion == sector) {
     mDEdxBuffer.resize(1);
-    mDEdxBuffer[0].reserve(mapper.getNumberOfRows());
+    mDEdxBuffer[0].reserve(Mapper::instance().getNumberOfRows());
   } else {
     LOGP(warning, "wrong dE/dx type");
   }

@@ -51,7 +51,6 @@ struct ZeroSuppressedContainer { // Struct for the TPC zero suppressed data form
                                  // Time bin information
   unsigned long int rdh[8] = {}; //< 8 * 64 bit RDH (raw data header)
   TPCZSHDR hdr;                  // ZS header
-  TPCZSTBHDR tbhdr;              // ZS timebin header
 };
 
 } // namespace tpc

@@ -537,7 +537,7 @@ int Spline1DHelperOld<DataT>::setSpline(
   for (int iKnot = 0; iKnot < nKnots - 2; ++iKnot) {
     const typename Spline1D<double>::Knot& knot0 = mSpline.getKnot(iKnot);
     const typename Spline1D<double>::Knot& knot1 = mSpline.getKnot(iKnot + 1);
-    const typename Spline1D<double>::Knot& knot2 = mSpline.getKnot(iKnot + 2);
+    // const typename Spline1D<double>::Knot& knot2 = mSpline.getKnot(iKnot + 2);
     /*
     another way to calculate f(u):
      T uu = T(u - knotL.u);

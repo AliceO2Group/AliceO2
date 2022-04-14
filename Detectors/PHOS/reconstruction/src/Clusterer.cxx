@@ -362,12 +362,18 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
     }
     // now exact solution for amplitudes
     bk.SetMatrix(B);
-    if (bk.Solve(C)) {
-      for (int iclu = 0; iclu < nMax; iclu++) {
-        double eOld = meMax[iclu];
-        meMax[iclu] = C(iclu);
-        // insuficientAccuracy|=fabs(meMax[iclu]-eOld)> meMax[iclu]*o2::phos::PHOSSimParams::Instance().mUnfogingEAccuracy ;
+    if (bk.Decompose()) {
+      if (bk.Solve(C)) {
+        for (int iclu = 0; iclu < nMax; iclu++) {
+          double eOld = meMax[iclu];
+          meMax[iclu] = C(iclu);
+          // insuficientAccuracy|=fabs(meMax[iclu]-eOld)> meMax[iclu]*o2::phos::PHOSSimParams::Instance().mUnfogingEAccuracy ;
+        }
+      } else {
+        LOG(warning) << "Failed to decompose matrix of size " << nMax;
       }
+    } else {
+      LOG(warning) << "Failed to decompose matrix of size " << nMax;
     }
     insuficientAccuracy &= (chi2 > o2::phos::PHOSSimParams::Instance().mUnfogingChi2Accuracy * nMax);
     nIterations++;

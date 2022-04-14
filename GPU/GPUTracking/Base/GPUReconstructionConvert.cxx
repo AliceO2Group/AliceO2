@@ -356,7 +356,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
           size = CAMath::nextMultipleOf<o2::raw::RDHUtils::GBTWord>(size);
 #ifdef GPUCA_O2_LIB
           if (raw) {
-            raw->addData(rawfeeid, rawcru, rawlnk, rawendpoint, *ir + (hbf - orbitShift) * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)page + sizeof(o2::header::RAWDataHeader), (char*)page + size), true);
+            raw->addData(rawfeeid, rawcru, rawlnk, rawendpoint, *ir + hbf * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)page + sizeof(o2::header::RAWDataHeader), (char*)page + size), true);
           } else
 #endif
           {

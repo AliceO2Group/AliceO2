@@ -10,8 +10,9 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/ConfigParamSpec.h"
-#include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
 
@@ -26,6 +27,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"subspec", o2::framework::VariantType::Int, 0, {"ouput subspec"}});
   workflowOptions.push_back(ConfigParamSpec{"device-name", o2::framework::VariantType::String, "irframe-reader", {"device name"}});
   workflowOptions.push_back(ConfigParamSpec{"file-name", o2::framework::VariantType::String, "o2_irframe.root", {"default input file name"}});
+  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}});
   o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
 }
 
@@ -35,6 +37,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& cc)
 {
   WorkflowSpec specs;
+  o2::conf::ConfigurableParam::updateFromString(cc.options().get<std::string>("configKeyValues"));
   o2::header::DataOrigin origin;
   origin.runtimeInit(cc.options().get<std::string>("data-origin").c_str());
 

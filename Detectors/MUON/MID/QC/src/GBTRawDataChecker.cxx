@@ -244,14 +244,11 @@ InteractionRecord GBTRawDataChecker::getRawIR(uint8_t id, bool isTrigger, Intera
   if (isTrigger) {
     return ir;
   }
-  ir.bc += mElectronicsDelay.BCToLocal;
+  auto delay = mElectronicsDelay.localToBC;
   if (id >= crateparams::sMaxNBoardsInLink) {
-    ir.bc += mElectronicsDelay.regToLocal;
+    delay -= mElectronicsDelay.localToReg;
   }
-  if (ir.bc >= mResetVal) {
-    ir.bc = ir.bc % mResetVal;
-    ++ir.orbit;
-  }
+  applyElectronicsDelay(ir.orbit, ir.bc, -delay, mResetVal);
   return ir;
 }
 

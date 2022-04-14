@@ -146,7 +146,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(header);
       auto ddl = o2::raw::RDHUtils::getFEEID(header);
 
-      if (ddl > o2::phos::Mapping::NDDL || ddl < 0) { // only 14 correct DDLs
+      if (ddl >= o2::phos::Mapping::NDDL || ddl < 0) { // only 0..13 correct DDLs
         LOG(error) << "DDL=" << ddl;
         mOutputHWErrors.emplace_back(14, 16, char(ddl)); // Add non-existing DDL as DDL 15
         continue;                                        // skip STU ddl

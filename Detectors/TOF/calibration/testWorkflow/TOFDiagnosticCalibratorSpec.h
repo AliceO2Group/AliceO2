@@ -36,6 +36,7 @@ namespace calibration
 class TOFDiagnosticCalibDevice : public o2::framework::Task
 {
  public:
+  TOFDiagnosticCalibDevice(int runnumber = -1) : mRunNumber(runnumber) {}
   void init(o2::framework::InitContext& ic) final
   {
     int slotL = ic.options().get<int>("tf-per-slot");
@@ -43,6 +44,7 @@ class TOFDiagnosticCalibDevice : public o2::framework::Task
     mCalibrator = std::make_unique<o2::tof::TOFDiagnosticCalibrator>();
     mCalibrator->setSlotLength(slotL);
     mCalibrator->setMaxSlotsDelay(delay);
+    mCalibrator->setRunNumber(mRunNumber);
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -64,6 +66,7 @@ class TOFDiagnosticCalibDevice : public o2::framework::Task
 
  private:
   std::unique_ptr<o2::tof::TOFDiagnosticCalibrator> mCalibrator;
+  int mRunNumber = -1;
 
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
@@ -93,7 +96,7 @@ class TOFDiagnosticCalibDevice : public o2::framework::Task
 namespace framework
 {
 
-DataProcessorSpec getTOFDiagnosticCalibDeviceSpec()
+DataProcessorSpec getTOFDiagnosticCalibDeviceSpec(int runnumber)
 {
   using device = o2::calibration::TOFDiagnosticCalibDevice;
   using clbUtils = o2::calibration::Utils;
@@ -105,7 +108,7 @@ DataProcessorSpec getTOFDiagnosticCalibDeviceSpec()
     "tof-diagnostic-calibration",
     Inputs{{"input", "TOF", "DIAFREQ"}},
     outputs,
-    AlgorithmSpec{adaptFromTask<device>()},
+    AlgorithmSpec{adaptFromTask<device>(runnumber)},
     Options{
       {"tf-per-slot", VariantType::Int, 5, {"number of TFs per calibration time slot"}},
       {"max-delay", VariantType::Int, 3, {"number of slots in past to consider"}}}};

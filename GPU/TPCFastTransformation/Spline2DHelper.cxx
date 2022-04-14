@@ -98,7 +98,7 @@ void Spline2DHelper<DataT>::approximateFunctionBatch(
   index.reserve(batchsize);
 
   std::vector<double> dataPointFTmp[mFdimensions];
-  for (unsigned int iDim = 0; iDim < mFdimensions; ++iDim) {
+  for (int iDim = 0; iDim < mFdimensions; ++iDim) {
     dataPointFTmp[iDim].reserve(batchsize);
   }
 
@@ -119,7 +119,7 @@ void Spline2DHelper<DataT>::approximateFunctionBatch(
 
         for (unsigned int i = 0; i < entries; ++i) {
           const unsigned int indexTmp = index[i];
-          for (unsigned int iDim = 0; iDim < mFdimensions; ++iDim) {
+          for (int iDim = 0; iDim < mFdimensions; ++iDim) {
             dataPointF[indexTmp + iDim] = dataPointFTmp[iDim][i];
           }
         }
@@ -127,7 +127,7 @@ void Spline2DHelper<DataT>::approximateFunctionBatch(
         x1.clear();
         x2.clear();
         index.clear();
-        for (unsigned int iDim = 0; iDim < mFdimensions; ++iDim) {
+        for (int iDim = 0; iDim < mFdimensions; ++iDim) {
           dataPointFTmp[iDim].clear();
         }
       }

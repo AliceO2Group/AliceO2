@@ -139,6 +139,7 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
   uint32_t orbitFirst = 0; ///< orbit of 1st TF of the run
 
   // used for MC
+  uint32_t runNumber = 0;           ///< run number
   uint32_t orbitFirstSampled = 0;   ///< 1st orbit sampled in the MC
   uint32_t maxNOrbits = 0xffffffff; ///< max number of orbits to accept, used in digit->raw conversion
   uint64_t startTime = 0;           ///< absolute time in ms corresponding to the start of the MC run

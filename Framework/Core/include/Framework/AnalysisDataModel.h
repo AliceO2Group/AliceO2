@@ -691,19 +691,31 @@ using FT0 = FT0s::iterator;
 
 namespace fdd
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                      //! BC index
-DECLARE_SOA_COLUMN(AmplitudeA, amplitudeA, float[4]);  //!
-DECLARE_SOA_COLUMN(AmplitudeC, amplitudeC, float[4]);  //!
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                     //! BC index
+DECLARE_SOA_COLUMN(AmplitudeA, amplitudeA, float[4]); //! Amplitude in adjacent pairs A-side
+DECLARE_SOA_COLUMN(AmplitudeC, amplitudeC, float[4]); //! Amplitude in adjacent pairs C-side
+
+DECLARE_SOA_COLUMN(ChargeA, chargeA, int16_t[8]); //! Amplitude per channel A-side
+DECLARE_SOA_COLUMN(ChargeC, chargeC, int16_t[8]); //! Amplitude per channel C-side
+
 DECLARE_SOA_COLUMN(TimeA, timeA, float);               //!
 DECLARE_SOA_COLUMN(TimeC, timeC, float);               //!
 DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint8_t); //!
 } // namespace fdd
 
-DECLARE_SOA_TABLE(FDDs, "AOD", "FDD", //!
+DECLARE_SOA_TABLE(FDDs_000, "AOD", "FDD", //! FDD table, version 000
                   o2::soa::Index<>, fdd::BCId,
                   fdd::AmplitudeA, fdd::AmplitudeC,
                   fdd::TimeA, fdd::TimeC,
                   fdd::TriggerMask);
+
+DECLARE_SOA_TABLE(FDDs_001, "AOD", "FDD_001", //! FDD table, version 001
+                  o2::soa::Index<>, fdd::BCId,
+                  fdd::ChargeA, fdd::ChargeC,
+                  fdd::TimeA, fdd::TimeC,
+                  fdd::TriggerMask);
+
+using FDDs = FDDs_000; //! this defines the current default version
 using FDD = FDDs::iterator;
 
 namespace v0
@@ -990,6 +1002,19 @@ DECLARE_SOA_INDEX_TABLE(Run3MatchedToBCSparse, BCs, "MA_RN3_BC_SP", //!
 
 DECLARE_SOA_INDEX_TABLE(Run2MatchedToBCSparse, BCs, "MA_RN2_BC_SP", //!
                         indices::BCId, indices::ZdcId, indices::FT0Id, indices::FV0AId, indices::FV0CId, indices::FDDId);
+
+// temporary code during transition from FDD_000 to FDD_001
+namespace indices_fdd_001
+{
+using FDD_001 = FDDs_001::iterator;
+DECLARE_SOA_INDEX_COLUMN_FULL(FDD_001, fdd, int, FDDs_001, ""); //!
+} // namespace indices_fdd_001
+DECLARE_SOA_INDEX_TABLE(Run3MatchedToBCSparseFDD_001, BCs, "MA_RN3_BC_SP2", //!
+                        indices::BCId, indices::ZdcId, indices::FT0Id, indices::FV0AId, indices_fdd_001::FDD_001Id);
+
+DECLARE_SOA_INDEX_TABLE(Run2MatchedToBCSparseFDD_001, BCs, "MA_RN2_BC_SP2", //!
+                        indices::BCId, indices::ZdcId, indices::FT0Id, indices::FV0AId, indices::FV0CId, indices_fdd_001::FDD_001Id);
+// temporary code end
 
 // Joins with collisions (only for sparse ones)
 // NOTE: index table needs to be always last argument

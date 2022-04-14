@@ -17,17 +17,11 @@
 #include "CTPWorkflow/RecoWorkflow.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "CommonUtils/ConfigurableParam.h"
-#include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
 
 #include <string>
 #include <stdexcept>
 #include <unordered_map>
-
-void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
-{
-  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
-}
 
 // add workflow options, note that customization needs to be declared before
 // including Framework/runDataProcessing
@@ -36,7 +30,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::vector<o2::framework::ConfigParamSpec> options{
     {"ignore-dist-stf", o2::framework::VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
-  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -60,7 +53,5 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   auto wf = o2::ctp::reco_workflow::getWorkflow(!cfgc.options().get<bool>("ignore-dist-stf"));
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
-  o2::raw::HBFUtilsInitializer hbfIni(cfgc, wf);
   return std::move(wf);
 }

@@ -46,6 +46,12 @@ o2_add_executable(
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsRaw O2::DPLUtils Boost::program_options)
 
+o2_add_executable(
+        dump-pages-workflow
+        SOURCES src/dump-pages-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsRaw O2::DPLUtils Boost::program_options)
+
 # to be deprecated : use DevIO/digits-writer instead
 o2_add_executable(
         digits-sink-workflow

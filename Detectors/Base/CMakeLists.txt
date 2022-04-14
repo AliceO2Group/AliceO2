@@ -23,6 +23,7 @@ o2_add_library(DetectorsBase
                        src/Aligner.cxx
                        src/SimFieldUtils.cxx
                        src/TFIDInfoHelper.cxx
+                       src/GRPGeomHelper.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::CommonUtils
                                      O2::DetectorsCommonDataFormats

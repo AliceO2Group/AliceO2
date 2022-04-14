@@ -181,7 +181,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
       const auto& trig = trigITSTPCTRD[itr];
       auto bcdiff = getBCDiff(trig.getBCData());
       float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
-      for (unsigned i = trig.getTrackRefs().getFirstEntry(); i < trig.getTrackRefs().getEntriesBound(); i++) {
+      for (unsigned int i = trig.getTrackRefs().getFirstEntry(); i < (unsigned int)trig.getTrackRefs().getEntriesBound(); i++) {
         const auto& trc = tracksITSTPCTRD[i];
         if (isUsed2(i, GTrackID::ITSTPCTRD)) {
           flagUsed(trc.getRefGlobalTrackId()); // flag seeding ITS-TPC track
@@ -226,7 +226,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
       const auto& trig = trigTPCTRD[itr];
       auto bcdiff = getBCDiff(trig.getBCData());
       float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
-      for (unsigned i = trig.getTrackRefs().getFirstEntry(); i < trig.getTrackRefs().getEntriesBound(); i++) {
+      for (unsigned int i = trig.getTrackRefs().getFirstEntry(); i < (unsigned int)trig.getTrackRefs().getEntriesBound(); i++) {
         const auto& trc = tracksTPCTRD[i];
         if (isUsed2(i, GTrackID::TPCTRD)) {
           flagUsed(trc.getRefGlobalTrackId()); // flag seeding TPC track

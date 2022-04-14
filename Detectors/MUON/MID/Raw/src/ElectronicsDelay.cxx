@@ -28,8 +28,8 @@ namespace mid
 std::ostream& operator<<(std::ostream& os, const ElectronicsDelay& delay)
 {
   os << "calibToFET: " << delay.calibToFET << "\n";
-  os << "BCToLocal: " << delay.BCToLocal << "\n";
-  os << "regToLocal: " << delay.regToLocal << "\n";
+  os << "localToBC: " << delay.localToBC << "\n";
+  os << "localToReg: " << delay.localToReg << "\n";
   return os;
 }
 
@@ -44,13 +44,13 @@ ElectronicsDelay readElectronicsDelay(const char* filename)
       auto pos = line.find(":");
       if (pos != std::string::npos) {
         std::string key = line.substr(0, pos);
-        uint16_t val = std::atoi(line.substr(pos + 1).c_str());
+        int16_t val = std::atoi(line.substr(pos + 1).c_str());
         if (key == "calibToFET") {
           electronicsDelay.calibToFET = val;
-        } else if (key == "BCToLocal") {
-          electronicsDelay.BCToLocal = val;
-        } else if (key == "regToLocal") {
-          electronicsDelay.regToLocal = val;
+        } else if (key == "localToBC") {
+          electronicsDelay.localToBC = val;
+        } else if (key == "localToReg") {
+          electronicsDelay.localToReg = val;
         }
       }
     }
@@ -58,6 +58,27 @@ ElectronicsDelay readElectronicsDelay(const char* filename)
     std::cout << "Error: cannot open file " << filename << std::endl;
   }
   return electronicsDelay;
+}
+
+void applyElectronicsDelay(uint32_t& orbit, uint16_t& bc, int16_t delay, uint16_t maxBunches)
+{
+  int16_t val = static_cast<int16_t>(bc) + delay;
+  int16_t resetPeriod = static_cast<int16_t>(maxBunches);
+  if (val < 0) {
+    // If corrected clock is smaller than 0 it means that the local clock was reset
+    // This event therefore belongs to the previous orbit.
+    // We therefore add the value of the last BC (+1 to account for the reset)
+    // and we decrease the orbit by 1.
+    --orbit;
+    val += resetPeriod;
+  } else if (val >= resetPeriod) {
+    // If the corrected clock is larger than the maximum clock (corresponding to the reset)
+    // it means that this event belongs to the next orbit
+    ++orbit;
+    val -= resetPeriod;
+  }
+  // The previous line ensure that 0<val<maxBunches, so we can safely convert the int in unit16_t
+  bc = static_cast<uint16_t>(val);
 }
 
 } // namespace mid
