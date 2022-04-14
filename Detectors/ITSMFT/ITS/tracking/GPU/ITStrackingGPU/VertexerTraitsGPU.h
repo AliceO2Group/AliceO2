@@ -46,7 +46,7 @@ class VertexerTraitsGPU : public VertexerTraits
   void adoptTimeFrame(TimeFrame* tf) override;
   void computeTracklets() override;
   void computeTrackletMatching() override;
-  // void computeVertices() override;
+  void computeVertices() override;
   // void computeMCFiltering() override;
 
   // GPU-specific getters

@@ -10,7 +10,6 @@
 // or submit itself to any jurisdiction.
 ///
 
-// #include "fairlogger/Logger.h" <===== Bugged in hip code atm
 #include <fmt/format.h>
 #include <sstream>
 
@@ -41,6 +40,8 @@ GPUh() void gpuThrowOnError()
 template <int NLayers>
 TimeFrameGPU<NLayers>::TimeFrameGPU()
 {
+  getDeviceMemory(); // We don't check if we can store the data in the GPU for the moment, only log it.
+
   for (int iLayer{0}; iLayer < NLayers; ++iLayer) { // Tracker and vertexer
     mClustersD[iLayer] = Vector<Cluster>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
     mTrackingFrameInfoD[iLayer] = Vector<TrackingFrameInfo>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
@@ -61,9 +62,8 @@ TimeFrameGPU<NLayers>::TimeFrameGPU()
   mNFoundLines = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
   mNExclusiveFoundLines = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
   mUsedTracklets = Vector<unsigned char>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
-  mCUBTmpBuffers = Vector<int>{mConfig.nMaxROFs * mConfig.tmpCUBBufferSize / sizeof(int), mConfig.nMaxROFs * mConfig.tmpCUBBufferSize / sizeof(int)};
-
-  getDeviceMemory(); // We don't check if we can store the data in the GPU for the moment.
+  discardResult(cudaMalloc(&mCUBTmpBuffers, mConfig.nMaxROFs * mConfig.tmpCUBBufferSize));
+  mXYCentroids = Vector<float>{2 * mConfig.nMaxROFs * mConfig.maxCentroidsXYCapacity, 2 * mConfig.nMaxROFs * mConfig.maxCentroidsXYCapacity};
 }
 
 template <int NLayers>
@@ -82,6 +82,7 @@ float TimeFrameGPU<NLayers>::getDeviceMemory()
   totalMemory += mConfig.clustersPerLayerCapacity * sizeof(int);
   totalMemory += mConfig.trackletsCapacity * sizeof(unsigned char);
   totalMemory += mConfig.nMaxROFs * mConfig.tmpCUBBufferSize * sizeof(int);
+  totalMemory += 2 * mConfig.nMaxROFs * mConfig.maxCentroidsXYCapacity * sizeof(float);
 
   LOGP(info, "Total requested memory for GPU: {:.2f} MB", totalMemory / MB);
   LOGP(info, "\t- Clusters: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(Cluster) / MB);
@@ -96,6 +97,7 @@ float TimeFrameGPU<NLayers>::getDeviceMemory()
   LOGP(info, "\t- N exclusive-scan found lines: {:.2f} MB", mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
   LOGP(info, "\t- Used tracklets: {:.2f} MB", mConfig.trackletsCapacity * sizeof(unsigned char) / MB);
   LOGP(info, "\t- CUB tmp buffers: {:.2f} MB", mConfig.nMaxROFs * mConfig.tmpCUBBufferSize / MB);
+  LOGP(info, "\t- XY centroids: {:.2f} MB", 2 * mConfig.nMaxROFs * mConfig.maxCentroidsXYCapacity * sizeof(float) / MB);
 
   return totalMemory;
 }
@@ -167,6 +169,7 @@ void TimeFrameGPU<NLayers>::checkBufferSizes()
     LOGP(error, "Number of ROFs in timeframe is {} and exceeds the GPU configuration defined one: {}", mNrof, mConfig.nMaxROFs);
   }
 }
+
 template class TimeFrameGPU<7>;
 } // namespace gpu
 } // namespace its
