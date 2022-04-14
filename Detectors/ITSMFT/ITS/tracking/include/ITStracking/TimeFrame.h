@@ -211,7 +211,6 @@ class TimeFrame
   int mCutVertexMult;
 
   // Vertexer
-
   std::array<std::vector<int>, 2> mNTrackletsPerCluster; // TODO: remove in favour of mNTrackletsPerROf
   std::vector<std::vector<int>> mNTrackletsPerROf;
   std::vector<std::vector<Line>> mLines;
