@@ -341,9 +341,6 @@ struct Column {
   Column(Column const&) = default;
   Column& operator=(Column const&) = default;
 
-  Column(Column&&) = default;
-  Column& operator=(Column&&) = default;
-
   using persistent = std::true_type;
   using type = T;
   static constexpr const char* const& columnLabel() { return INHERIT::mLabel; }
@@ -828,8 +825,8 @@ struct RowViewCore : public IP, C... {
     (Cs::setCurrentRaw(ptrs[framework::has_type_at_v<Cs>(p)]), ...);
   }
 
-  template <typename... Cs, typename E>
-  void doSetCurrentInternal(framework::pack<Cs...>, E* ptr)
+  template <typename... Cs>
+  void doSetCurrentInternal(framework::pack<Cs...>, void const* ptr)
   {
     (Cs::setCurrentRaw(ptr), ...);
   }
@@ -839,8 +836,7 @@ struct RowViewCore : public IP, C... {
     doSetCurrentIndexRaw(external_index_columns_t{}, std::forward<std::vector<void const*>>(ptrs));
   }
 
-  template <typename E>
-  void bindInternalIndices(E* table)
+  void bindInternalIndices(void const* table)
   {
     doSetCurrentInternal(internal_index_columns_t{}, table);
   }
@@ -1075,7 +1071,7 @@ class Table
         mColumnChunks[ci] = lookups[ci];
       }
       mBegin = unfiltered_iterator{mColumnChunks, {table->num_rows(), offset}};
-      bindInternalIndices();
+      mBegin.bindInternalIndices(this);
     }
   }
 
@@ -1157,13 +1153,7 @@ class Table
     mBegin.bindExternalIndices(current...);
   }
 
-  void bindInternalIndices()
-  {
-    mBegin.bindInternalIndices(this);
-  }
-
-  template <typename T>
-  void bindInternalIndicesTo(T* ptr)
+  void bindInternalIndicesTo(void const* ptr)
   {
     mBegin.bindInternalIndices(ptr);
   }
@@ -2124,8 +2114,8 @@ struct Join : JoinBase<Ts...> {
   using base = JoinBase<Ts...>;
   using originals = originals_pack_t<Ts...>;
 
-  template <typename... TA>
-  void bindExternalIndices(TA*... externals);
+  using base::bindExternalIndices;
+  using base::bindInternalIndicesTo;
 
   using table_t = base;
   using persistent_columns_t = typename table_t::persistent_columns_t;
@@ -2139,6 +2129,7 @@ template <typename... Ts>
 Join<Ts...>::Join(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset)
   : JoinBase<Ts...>{ArrowHelpers::joinTables(std::move(tables)), offset}
 {
+  bindInternalIndicesTo(this);
 }
 
 template <typename... Ts>
@@ -2146,30 +2137,27 @@ template <typename... ATs>
 Join<Ts...>::Join(uint64_t offset, std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2, ATs... ts)
   : Join<Ts...>(std::vector<std::shared_ptr<arrow::Table>>{t1, t2, ts...}, offset)
 {
-}
-
-template <typename... Ts>
-template <typename... TA>
-void Join<Ts...>::bindExternalIndices(TA*... externals)
-{
-  base::bindExternalIndices(externals...);
+  bindInternalIndicesTo(this);
 }
 
 template <typename T1, typename T2>
 struct Concat : ConcatBase<T1, T2> {
   Concat(std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2, uint64_t offset = 0)
-    : ConcatBase<T1, T2>{ArrowHelpers::concatTables({t1, t2}), offset} {}
+    : ConcatBase<T1, T2>{ArrowHelpers::concatTables({t1, t2}), offset}
+  {
+    bindInternalIndicesTo(this);
+  }
   Concat(std::vector<std::shared_ptr<arrow::Table>> tables, uint64_t offset = 0)
-    : ConcatBase<T1, T2>{ArrowHelpers::concatTables(std::move(tables)), offset} {}
+    : ConcatBase<T1, T2>{ArrowHelpers::concatTables(std::move(tables)), offset}
+  {
+    bindInternalIndicesTo(this);
+  }
 
   using base = ConcatBase<T1, T2>;
   using originals = framework::concatenated_pack_t<originals_pack_t<T1>, originals_pack_t<T2>>;
 
-  template <typename... TA>
-  void bindExternalIndices(TA*... externals)
-  {
-    base::bindExternalIndices(externals...);
-  }
+  using base::bindExternalIndices;
+  using base::bindInternalIndicesTo;
 
   // FIXME: can be remove when we do the same treatment we did for Join to Concatenate
   using left_t = T1;
@@ -2216,6 +2204,7 @@ class FilteredBase : public T
       mSelectedRows{getSpan(selection)}
   {
     resetRanges();
+    mFilteredBegin.bindInternalIndices(this);
   }
 
   FilteredBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
@@ -2224,6 +2213,7 @@ class FilteredBase : public T
       mCached{true}
   {
     resetRanges();
+    mFilteredBegin.bindInternalIndices(this);
   }
 
   FilteredBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, gsl::span<int64_t const> const& selection, uint64_t offset = 0)
@@ -2231,6 +2221,7 @@ class FilteredBase : public T
       mSelectedRows{selection}
   {
     resetRanges();
+    mFilteredBegin.bindInternalIndices(this);
   }
 
   iterator begin()
@@ -2296,6 +2287,11 @@ class FilteredBase : public T
   void bindExternalIndicesRaw(std::vector<void const*>&& ptrs)
   {
     mFilteredBegin.bindExternalIndicesRaw(std::forward<std::vector<void const*>>(ptrs));
+  }
+
+  void bindInternalIndicesTo(void const* ptr)
+  {
+    mFilteredBegin.bindInternalIndices(ptr);
   }
 
   template <typename T1, typename... Cs>
