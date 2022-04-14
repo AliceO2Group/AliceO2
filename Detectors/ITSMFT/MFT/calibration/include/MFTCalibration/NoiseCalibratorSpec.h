@@ -48,11 +48,19 @@ class NoiseCalibratorSpec : public Task
 
  private:
   void updateTimeDependentParams(ProcessingContext& pc);
-  void sendOutput(DataAllocator& output);
+  void sendOutputCcdb(DataAllocator& output);
+  void sendOutputCcdbDcs(DataAllocator& output);
+  void sendOutputDcs(DataAllocator& output);
+  void setOutputDcs(const o2::itsmft::NoiseMap& payload);
   o2::itsmft::NoiseMap mNoiseMap{936};
   std::unique_ptr<CALIBRATOR> mCalibrator = nullptr;
   std::string mPath;
   std::string mMeta;
+
+  std::vector<std::array<int, 4>> mNoiseMapForDcs;
+  std::string mPathDcs;
+  std::string mOutputType;
+
   double mThresh;
   int64_t mStart;
   int64_t mEnd;

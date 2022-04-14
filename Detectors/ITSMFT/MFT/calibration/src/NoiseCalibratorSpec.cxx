@@ -45,12 +45,16 @@ void NoiseCalibratorSpec::init(InitContext& ic)
   auto probT = ic.options().get<float>("prob-threshold");
   LOG(info) << "Setting the probability threshold to " << probT;
 
-  mPath = ic.options().get<std::string>("path");
+  mPath = ic.options().get<std::string>("path-CCDB");
   mMeta = ic.options().get<std::string>("meta");
   mStart = ic.options().get<int64_t>("tstart");
   mEnd = ic.options().get<int64_t>("tend");
 
   mCalibrator = std::make_unique<CALIBRATOR>(probT);
+
+  mPathDcs = ic.options().get<std::string>("path-DCS");
+  mOutputType = ic.options().get<std::string>("send-to-server");
+  mNoiseMapForDcs.clear();
 }
 
 void NoiseCalibratorSpec::run(ProcessingContext& pc)
@@ -63,7 +67,7 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
 
     if (mCalibrator->processTimeFrame(tfcounter, digits, rofs)) {
       LOG(info) << "Minimum number of noise counts has been reached !";
-      sendOutput(pc.outputs());
+      sendOutputCcdb(pc.outputs());
       pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
     }
   } else {
@@ -74,14 +78,98 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
 
     if (mCalibrator->processTimeFrame(tfcounter, compClusters, patterns, rofs)) {
       LOG(info) << "Minimum number of noise counts has been reached !";
-      sendOutput(pc.outputs());
+      sendOutputCcdb(pc.outputs());
       pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
     }
   }
 }
 
-void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
+void NoiseCalibratorSpec::setOutputDcs(const o2::itsmft::NoiseMap& payload)
 {
+  for (int iChip = 0; iChip < 936; ++iChip) {
+    for (int iRow = 0; iRow < 512; ++iRow) {
+      for (int iCol = 0; iCol < 1024; ++iCol) {
+
+        if (!payload.isNoisy(iChip, iRow, iCol)) {
+          continue;
+        }
+        std::array<int, 4> noise = {iChip, iRow, iCol, 0};
+        mNoiseMapForDcs.emplace_back(noise);
+      }
+    }
+  }
+}
+
+void NoiseCalibratorSpec::sendOutputCcdbDcs(DataAllocator& output)
+{
+
+  LOG(info) << "CCDB-DCS mode";
+
+  mCalibrator->finalize();
+
+  long tstart = mStart;
+  if (tstart == -1) {
+    tstart = o2::ccdb::getCurrentTimestamp();
+  }
+  long tend = mEnd;
+  if (tend == -1) {
+    constexpr long SECONDSPERYEAR = 365 * 24 * 60 * 60;
+    tend = o2::ccdb::getFutureTimestamp(SECONDSPERYEAR);
+  }
+
+  std::map<std::string, std::string> meta;
+  auto toKeyValPairs = [&meta](std::vector<std::string> const& tokens) {
+    for (auto& token : tokens) {
+      auto keyval = Str::tokenize(token, '=', false);
+      if (keyval.size() != 2) {
+        LOG(error) << "Illegal command-line key/value string: " << token;
+        continue;
+      }
+      Str::trim(keyval[1]);
+      meta[keyval[0]] = keyval[1];
+    }
+  };
+  toKeyValPairs(Str::tokenize(mMeta, ';', true));
+
+  long startTF, endTF;
+
+  const auto& payload = mCalibrator->getNoiseMap();
+  //  const auto& payload = mCalibrator->getNoiseMap(starTF, endTF); //For TimeSlot calibration
+
+  o2::ccdb::CcdbObjectInfo info(mPath, "NoiseMap", "noise.root", meta, tstart, tend);
+  auto flName = o2::ccdb::CcdbApi::generateFileName("noise");
+  auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
+  info.setFileName(flName);
+  LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
+            << " of size " << image->size()
+            << " bytes, valid for " << info.getStartValidityTimestamp()
+            << " : " << info.getEndValidityTimestamp();
+
+  using clbUtils = o2::calibration::Utils;
+  output.snapshot(Output{clbUtils::gDataOriginCDBPayload, "MFT_NoiseMap", 0}, *image.get());
+  output.snapshot(Output{clbUtils::gDataOriginCDBWrapper, "MFT_NoiseMap", 0}, info);
+
+  setOutputDcs(payload);
+
+  o2::ccdb::CcdbObjectInfo infoDcs(mPathDcs, "NoiseMap", "noise.root", meta, tstart, tend);
+  auto flNameDcs = o2::ccdb::CcdbApi::generateFileName("noise");
+  auto imageDcs = o2::ccdb::CcdbApi::createObjectImage(&mNoiseMapForDcs, &infoDcs);
+  infoDcs.setFileName(flNameDcs);
+  LOG(info) << "Sending object " << infoDcs.getPath() << "/" << infoDcs.getFileName()
+            << " of size " << imageDcs->size()
+            << " bytes, valid for " << infoDcs.getStartValidityTimestamp()
+            << " : " << infoDcs.getEndValidityTimestamp();
+
+  using clbUtilsDcs = o2::calibration::Utils;
+  output.snapshot(Output{clbUtilsDcs::gDataOriginCDBPayload, "MFT_NoiseMap", 1}, *imageDcs.get());
+  output.snapshot(Output{clbUtilsDcs::gDataOriginCDBWrapper, "MFT_NoiseMap", 1}, infoDcs);
+}
+
+void NoiseCalibratorSpec::sendOutputCcdb(DataAllocator& output)
+{
+
+  LOG(info) << "CCDB mode";
+
   mCalibrator->finalize();
 
   long tstart = mStart;
@@ -127,9 +215,70 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
   output.snapshot(Output{clbUtils::gDataOriginCDBWrapper, "MFT_NoiseMap", 0}, info);
 }
 
+void NoiseCalibratorSpec::sendOutputDcs(DataAllocator& output)
+{
+
+  LOG(info) << "DCS mode";
+
+  mCalibrator->finalize();
+
+  long tstart = mStart;
+  if (tstart == -1) {
+    tstart = o2::ccdb::getCurrentTimestamp();
+  }
+  long tend = mEnd;
+  if (tend == -1) {
+    constexpr long SECONDSPERYEAR = 365 * 24 * 60 * 60;
+    tend = o2::ccdb::getFutureTimestamp(SECONDSPERYEAR);
+  }
+
+  std::map<std::string, std::string> meta;
+  auto toKeyValPairs = [&meta](std::vector<std::string> const& tokens) {
+    for (auto& token : tokens) {
+      auto keyval = Str::tokenize(token, '=', false);
+      if (keyval.size() != 2) {
+        LOG(error) << "Illegal command-line key/value string: " << token;
+        continue;
+      }
+      Str::trim(keyval[1]);
+      meta[keyval[0]] = keyval[1];
+    }
+  };
+  toKeyValPairs(Str::tokenize(mMeta, ';', true));
+
+  long startTF, endTF;
+
+  const auto& payload = mCalibrator->getNoiseMap();
+  //  const auto& payload = mCalibrator->getNoiseMap(starTF, endTF); //For TimeSlot calibration
+
+  setOutputDcs(payload);
+
+  o2::ccdb::CcdbObjectInfo infoDcs(mPathDcs, "NoiseMap", "noise.root", meta, tstart, tend);
+  auto flNameDcs = o2::ccdb::CcdbApi::generateFileName("noise");
+  auto imageDcs = o2::ccdb::CcdbApi::createObjectImage(&mNoiseMapForDcs, &infoDcs);
+  infoDcs.setFileName(flNameDcs);
+  LOG(info) << "Sending object " << infoDcs.getPath() << "/" << infoDcs.getFileName()
+            << " of size " << imageDcs->size()
+            << " bytes, valid for " << infoDcs.getStartValidityTimestamp()
+            << " : " << infoDcs.getEndValidityTimestamp();
+
+  using clbUtilsDcs = o2::calibration::Utils;
+  output.snapshot(Output{clbUtilsDcs::gDataOriginCDBPayload, "MFT_NoiseMap", 0}, *imageDcs.get());
+  output.snapshot(Output{clbUtilsDcs::gDataOriginCDBWrapper, "MFT_NoiseMap", 0}, infoDcs);
+}
+
 void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
-  sendOutput(ec.outputs());
+  if (mOutputType.compare("CCDB") == 0) {
+    LOG(info) << "Sending an object to Production-CCDB";
+    sendOutputCcdb(ec.outputs());
+  } else if (mOutputType.compare("DCS") == 0) {
+    LOG(info) << "Sending an object to DCS-CCDB";
+    sendOutputDcs(ec.outputs());
+  } else {
+    LOG(info) << "Sending an object to Production-CCDB and DCS-CCDB";
+    sendOutputCcdbDcs(ec.outputs());
+  }
 }
 
 ///_______________________________________
@@ -177,8 +326,10 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useDigits)
       {"prob-threshold", VariantType::Float, 1.e-6f, {"Probability threshold for noisy pixels"}},
       {"tstart", VariantType::Int64, -1ll, {"Start of validity timestamp"}},
       {"tend", VariantType::Int64, -1ll, {"End of validity timestamp"}},
-      {"path", VariantType::String, "/MFT/Calib/NoiseMap", {"Path to write to in CCDB"}},
+      {"path-CCDB", VariantType::String, "/MFT/Calib/NoiseMap", {"Path to write to in CCDB"}},
+      {"path-DCS", VariantType::String, "/MFT/Config/NoiseMap", {"Path to write to in CCDB"}},
       {"meta", VariantType::String, "", {"meta data to write in CCDB"}},
+      {"send-to-server", VariantType::String, "CCDB-DCS", {"meta data to write in DCS-CCDB"}},
       {"hb-per-tf", VariantType::Int, 256, {"Number of HBF per TF"}}}};
 }
 
