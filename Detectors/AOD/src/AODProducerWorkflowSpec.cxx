@@ -286,7 +286,7 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
   if (needBCSlice) {
     ambigMFTTracksCursor(0, mTableTrMFTID, bcSlice);
   }
-//  mGIDToTableMFTID.emplace(trackID, mTableTrMFTID);
+  //  mGIDToTableMFTID.emplace(trackID, mTableTrMFTID);
   mTableTrMFTID++;
 }
 
@@ -611,7 +611,7 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
   if (needBCSlice) {
     ambigFwdTracksCursor(0, mTableTrFwdID, bcSlice);
   }
-//  mGIDToTableFwdID.emplace(trackID, mTableTrFwdID);
+  //  mGIDToTableFwdID.emplace(trackID, mTableTrFwdID);
   mTableTrFwdID++;
 }
 
@@ -1665,9 +1665,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   mTableV0ID = 0;
 
   mIndexTableFwd.clear();
-  mIndexFwdID=0;
+  mIndexFwdID = 0;
   mIndexTableMFT.clear();
-  mIndexMFTID=0;
+  mIndexMFTID = 0;
 
   originCursor(0, tfNumber);
 
