@@ -18,14 +18,6 @@
 
 using namespace o2::fv0;
 
-void Triggers::printLog() const
-{
-  LOG(info) << "mTrigger: " << static_cast<uint16_t>(triggersignals);
-  LOG(info) << "nChanA: " << static_cast<uint16_t>(nChanA);
-  LOG(info) << "amplA: " << amplA;
-  LOG(info) << "timeA: " << timeA;
-}
-
 gsl::span<const ChannelData> Digit::getBunchChannelData(const gsl::span<const ChannelData> tfdata) const
 {
   // extract the span of channel data for this bunch from the whole TF data
@@ -35,7 +27,7 @@ gsl::span<const ChannelData> Digit::getBunchChannelData(const gsl::span<const Ch
 void Digit::printStream(std::ostream& stream) const
 {
   stream << "FV0 Digit:  BC " << mIntRecord.bc << " orbit " << mIntRecord.orbit << std::endl;
-  stream << " A amp " << mTriggers.amplA << " time A " << mTriggers.timeA << " signals " << int(mTriggers.triggersignals) << std::endl;
+  mTriggers.print(stream);
 }
 
 std::ostream& operator<<(std::ostream& stream, const Digit& digi)

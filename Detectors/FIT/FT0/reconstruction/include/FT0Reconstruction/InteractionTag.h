@@ -30,7 +30,7 @@ struct InteractionTag : public o2::conf::ConfigurableParamHelper<InteractionTag>
 
   bool isSelected(const RecPoints& rp) const
   {
-    return rp.isValidTime(RecPoints::TimeMean) && (rp.getTrigger().amplA + rp.getTrigger().amplC) > minAmplitudeAC;
+    return rp.isValidTime(RecPoints::TimeMean) && (rp.getTrigger().getAmplA() + rp.getTrigger().getAmplC()) > minAmplitudeAC;
   }
 
   O2ParamDef(InteractionTag, "ft0tag");
