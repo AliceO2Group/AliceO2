@@ -57,8 +57,14 @@ struct ChipStat {
     APE_FSM_ERROR,                // FSM error (FATAL, SEU error, reached an unknown state)
     APE_OCCUPANCY_RATE_LIMIT,     // pending detector events limit (FATAL)
     APE_OCCUPANCY_RATE_LIMIT_2,   // pending detector events limit in packager(FATAL)
+    APE_LANE_PROTOCOL_ERROR,      // lane protocol error
+    APE_RESERVED_FC,              // reserved FC
+    APE_ERROR_NON_CRITICAL_BYTE,  // Error in non critical byte
+    APE_OOT_NON_CRITICAL,         // OOT non-critical
     WrongDColOrder,               // DColumns non increasing
     InterleavedChipData,          // Chip data interleaved on the cable
+    TruncatedBuffer,              // truncated buffer, 0 padding
+    TrailerAfterHeader,           // trailer seen after header w/o FE of FD set
     NErrorsDefined
   };
 
@@ -86,8 +92,14 @@ struct ChipStat {
     "APE_FSM_ERROR",                                // FSM error (FATAL, SEU error, reached an unknown state)
     "APE_OCCUPANCY_RATE_LIMIT",                     // pending detector events limit (FATAL)
     "APE_OCCUPANCY_RATE_LIMIT_2",                   // pending detector events limit in packager(FATAL)
+    "APE_LANE_PROTOCOL_ERROR",                      // lane protocol error
+    "APE_RESERVED_FC",                              // reserved
+    "APE_ERROR_IN_NON_CRITICAL_BYTE",               // Error in non critical byte
+    "APE_OOT_NON_CRITICAL",                         // OOT non-critical
     "DColumns non-increasing",                      // DColumns non increasing
-    "Chip data interleaved on the cable"            // Chip data interleaved on the cable
+    "Chip data interleaved on the cable",           // Chip data interleaved on the cable
+    "TruncatedBuffer",                              // truncated buffer, 0 padding
+    "TrailerAfterHeader"                            // trailer seen after header w/o FE of FD set
   };
 
   static constexpr std::array<uint32_t, NErrorsDefined> ErrActions = {
@@ -114,8 +126,14 @@ struct ChipStat {
     ErrActPropagate | ErrActDump, // FSM error (FATAL, SEU error, reached an unknown state)
     ErrActPropagate | ErrActDump, // pending detector events limit (FATAL)
     ErrActPropagate | ErrActDump, // pending detector events limit in packager(FATAL)
+    ErrActPropagate | ErrActDump, // lane protocol error
+    ErrActPropagate | ErrActDump, // reserved FC
+    ErrActPropagate | ErrActDump, // Error in non critical byte
+    ErrActPropagate | ErrActDump, // OOT non-critical
     ErrActPropagate | ErrActDump, // DColumns non increasing
-    ErrActPropagate | ErrActDump  // Chip data interleaved on the cable
+    ErrActPropagate | ErrActDump, // Chip data interleaved on the cable
+    ErrActPropagate | ErrActDump, // Truncated buffer while something was expected
+    ErrActPropagate | ErrActDump  // trailer seen after header w/o FE of FD set
   };
   uint16_t feeID = -1;
   size_t nHits = 0;
@@ -128,14 +146,23 @@ struct ChipStat {
     memset(errorCounts.data(), 0, sizeof(uint32_t) * errorCounts.size());
     nHits = 0;
   }
+
+  static int getAPENonCritical(uint8_t c)
+  {
+    if (c == 0xfd || c == 0xfe) {
+      return APE_STRIP_START + c - 0xf2;
+    }
+    return -1;
+  }
+
   // return APE DecErrors code or -1 if not APE error, set fatal flag if needd
   static int getAPECode(uint8_t c, bool& ft)
   {
-    if (c < 0xf2 || c > 0xfa) {
+    if (c < 0xf2 || c > 0xfe) {
       ft = false;
       return -1;
     }
-    ft = c >= 0xf4;
+    ft = c >= 0xf2 && c <= 0xfe;
     return APE_STRIP_START + c - 0xf2;
   }
   uint32_t getNErrors() const;

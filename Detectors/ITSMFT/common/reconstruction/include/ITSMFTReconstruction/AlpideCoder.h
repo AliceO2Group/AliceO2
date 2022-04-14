@@ -150,8 +150,10 @@ class AlpideCoder
     uint32_t expectInp = ExpectChipHeader | ExpectChipEmpty; // data must always start with chip header or chip empty flag
 
     chipData.clear();
+    LOG(debug) << "NewEntry";
     while (buffer.next(dataC)) {
       //
+      LOGP(debug, "dataC: {:#x} expect {:#b}", int(dataC), int(expectInp));
       // ---------- chip info ?
       uint8_t dataCM = dataC & (~MaskChipID);
       //
@@ -161,7 +163,7 @@ class AlpideCoder
 #ifdef ALPIDE_DECODING_STAT
           chipData.setError(ChipStat::TruncatedChipEmpty);
 #endif
-          return unexpectedEOF("CHIP_EMPTY:Timestamp");
+          return unexpectedEOF("CHIP_EMPTY:Timestamp"); // abandon cable data
         }
         chipData.resetChipID();
         expectInp = ExpectChipHeader | ExpectChipEmpty;
@@ -174,7 +176,7 @@ class AlpideCoder
 #ifdef ALPIDE_DECODING_STAT
           chipData.setError(ChipStat::TruncatedChipHeader);
 #endif
-          return unexpectedEOF("CHIP_HEADER");
+          return unexpectedEOF("CHIP_HEADER"); // abandon cable data
         }
         expectInp = ExpectRegion; // now expect region info
         continue;
@@ -188,7 +190,6 @@ class AlpideCoder
       }
 
       if ((expectInp & ExpectChipTrailer) && dataCM == CHIPTRAILER) { // chip trailer was expected
-        expectInp = ExpectChipHeader | ExpectChipEmpty;
         chipData.setROFlags(dataC & MaskROFlags);
 #ifdef ALPIDE_DECODING_STAT
         uint8_t roErr = dataC & MaskROFlags;
@@ -205,10 +206,10 @@ class AlpideCoder
         }
 
         if (!chipData.getData().size() && !chipData.isErrorSet()) {
-          nRightCHits = 0;
-          colDPrev = 0xffff;
-          chipData.clear();
-          continue;
+#ifdef ALPIDE_DECODING_STAT
+          chipData.setError(ChipStat::TrailerAfterHeader);
+#endif
+          return unexpectedEOF("Trailer after header"); // abandon cable data
         }
         break;
       }
@@ -222,9 +223,11 @@ class AlpideCoder
 #ifdef ALPIDE_DECODING_STAT
             chipData.setError(ChipStat::TruncatedRegion);
 #endif
-            return unexpectedEOF("CHIPDATA");
+            return unexpectedEOF("CHIPDATA"); // abandon cable data
           }
           dataS |= dataC;
+          LOGP(debug, "dataC: {:#x} dataS: {:#x} expect {:#b} in ExpectData", int(dataC), int(dataS), int(expectInp));
+
           // we are decoding the pixel addres, if this is a DATALONG, we will fetch the mask later
           uint16_t dColID = (dataS & MaskEncoder) >> 10;
           uint16_t pixID = dataS & MaskPixID;
@@ -237,10 +240,11 @@ class AlpideCoder
           // if we start new double column, transfer the hits accumulated in the right column buffer of prev. double column
           if (colD != colDPrev) {
             if (colD < colDPrev && colDPrev != 0xffff) {
-              needSorting = true;
 #ifdef ALPIDE_DECODING_STAT
-              chipData.setError(ChipStat::WrongDColOrder);
+              chipData.setError(ChipStat::WrongDColOrder); // abandon cable data
 #endif
+              return unexpectedEOF("Wrong column order"); // abandon cable data
+              needSorting = true;                         // effectively disabled
             }
             colDPrev++;
             for (int ihr = 0; ihr < nRightCHits; ihr++) {
@@ -259,11 +263,13 @@ class AlpideCoder
               uint8_t hitsPattern = 0;
               if (!buffer.next(hitsPattern)) {
                 chipData.setError(ChipStat::TruncatedLondData);
-                return unexpectedEOF("CHIP_DATA_LONG:Pattern");
+                return unexpectedEOF("CHIP_DATA_LONG:Pattern"); // abandon cable data
               }
               if (hitsPattern & (~MaskHitMap)) {
-                return unexpectedEOF("CHIP_DATA_LONG:Pattern");
+                chipData.setError(ChipStat::WrongDataLongPattern);
+                return unexpectedEOF("CHIP_DATA_LONG:Pattern"); // abandon cable data
               }
+              LOGP(debug, "hitsPattern: {:#b} expect {:#b}", int(hitsPattern), int(expectInp));
             }
             expectInp = ExpectChipTrailer | ExpectData | ExpectRegion;
             continue; // end of DATA(SHORT or LONG) processing
@@ -287,13 +293,14 @@ class AlpideCoder
 #ifdef ALPIDE_DECODING_STAT
               chipData.setError(ChipStat::TruncatedLondData);
 #endif
-              return unexpectedEOF("CHIP_DATA_LONG:Pattern");
+              return unexpectedEOF("CHIP_DATA_LONG:Pattern"); // abandon cable data
             }
+            LOGP(debug, "hitsPattern: {:#b} expect {:#b}", int(hitsPattern), int(expectInp));
             if (hitsPattern & (~MaskHitMap)) {
 #ifdef ALPIDE_DECODING_STAT
               chipData.setError(ChipStat::WrongDataLongPattern);
 #endif
-              return unexpectedEOF("CHIP_DATA_LONG:Pattern");
+              return unexpectedEOF("CHIP_DATA_LONG:Pattern"); // abandon cable data
             }
             for (int ip = 0; ip < HitMapSize; ip++) {
               if (hitsPattern & (0x1 << ip)) {
@@ -302,7 +309,7 @@ class AlpideCoder
 #ifdef ALPIDE_DECODING_STAT
                   chipData.setError(ChipStat::WrongRow);
 #endif
-                  return unexpectedEOF(fmt::format("Non-existing encoder {} decoded, DataLong was {:x}", pixID, dataS));
+                  return unexpectedEOF(fmt::format("Non-existing encoder {} decoded, DataLong was {:x}", pixID, dataS)); // abandon cable data
                 }
                 rightC = ((rowE & 0x1) ? !(addr & 0x1) : (addr & 0x1)); // true for right column / lalse for left
                 // the real columnt is int colE = colD + rightC;
@@ -314,11 +321,15 @@ class AlpideCoder
               }
             }
           }
+        } else if (ChipStat::getAPENonCritical(dataC) >= 0) { // check for recoverable APE, if on: continue with ExpectChipTrailer | ExpectData | ExpectRegion expectation
+#ifdef ALPIDE_DECODING_STAT
+          chipData.setError(ChipStat::DecErrors(ChipStat::getAPENonCritical(dataC)));
+#endif
         } else {
 #ifdef ALPIDE_DECODING_STAT
           chipData.setError(ChipStat::NoDataFound);
 #endif
-          return unexpectedEOF(fmt::format("Expected DataShort or DataLong mask, got {:x}", dataS));
+          return unexpectedEOF(fmt::format("Expected DataShort or DataLong mask, got {:x}", dataS)); // abandon cable data
         }
         expectInp = ExpectChipTrailer | ExpectData | ExpectRegion;
         continue; // end of DATA(SHORT or LONG) processing
@@ -338,8 +349,11 @@ class AlpideCoder
       }
 
       if (!dataC) {
-        buffer.clear(); // 0 padding reached (end of the cable data), no point in continuing
-        break;
+        if (expectInp == (ExpectChipHeader | ExpectChipEmpty)) {
+          continue;
+        }
+        chipData.setError(ChipStat::TruncatedBuffer);
+        return unexpectedEOF("Abandon on 0-padding"); // abandon cable data
       }
 
       // in case of BUSY VIOLATION the Trailer may come directly after the Header
@@ -358,17 +372,11 @@ class AlpideCoder
         chipData.setError(ChipStat::DecErrors(codeAPE));
 #endif
         if (fatalAPE) {
-          buffer.clear(); // no point in contiunuing with this cable data
-        } else {          // skip eventual padding
-          while (buffer.next(dataC)) {
-            if (dataC) { // padding is over, make 1 step back in the buffer
-              auto currPtr = buffer.getPtr();
-              buffer.setPtr(--currPtr);
-              break;
-            }
-          }
+          return unexpectedEOF(fmt::format("APE error {:#02x} [expectation = {:#02x}]", int(dataC), int(expectInp))); // abandon cable data
+        } else {
+          LOGP(error, "Code should not have entered here, APE: {:#02x}, expectation: {:#02x}", codeAPE, int(expectInp));
+          return unexpectedEOF(fmt::format("APE error {:#02x} [expectation = {:#02x}]", int(dataC), int(expectInp))); // abandon cable data
         }
-        return unexpectedEOF(fmt::format("APE error {:#02x} [expectation = 0x{:#02x}]", int(dataC), int(expectInp)));
       }
 #ifdef ALPIDE_DECODING_STAT
       chipData.setError(ChipStat::UnknownWord);
@@ -381,10 +389,11 @@ class AlpideCoder
       std::memcpy(chipData.getRawErrBuff().data(), curPtr - offsBack, offsBack + offsAfter);
       chipData.setNBytesInRawBuff(offsBack + offsAfter);
 #endif
-      return unexpectedEOF(fmt::format("Unknown word 0x{:x} [expectation = 0x{:x}]", int(dataC), int(expectInp))); // error
+      return unexpectedEOF(fmt::format("Unknown word 0x{:x} [expectation = 0x{:x}]", int(dataC), int(expectInp))); // abandon cable data
     }
 
-    if (needSorting && chipData.getData().size()) { // d.columns were in a wrong order, need to sort the data
+    if (needSorting && chipData.getData().size()) { // d.columns were in a wrong order, need to sort the data, RS: effectively disabled
+      LOGP(error, "This code path should have been disabled");
       auto& pixData = chipData.getData();
       std::sort(pixData.begin(), pixData.end(),
                 [](PixelData& a, PixelData& b) { return a.getCol() < b.getCol() || (a.getCol() == b.getCol() && a.getRowDirect() < b.getRowDirect()); });

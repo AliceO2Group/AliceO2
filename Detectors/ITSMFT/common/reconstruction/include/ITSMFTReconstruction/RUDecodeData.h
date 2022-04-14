@@ -99,20 +99,22 @@ int RUDecodeData::decodeROF(const Mapping& mp)
         }
 #endif
         ret = -1; // discard decoded data
+        nhits = 0;
       }
 #ifdef ALPIDE_DECODING_STAT
       fillChipStatistics(icab, chipData);
 #endif
-      if (ret >= 0 && chipData->getChipID() < Mapping::getNChips()) { // make sure there was no error | upd: why? if there was a non fatal error, we use chip data
-        if (nhits) {
-          doneChips[chipData->getChipID()] = true;
-          ntot += nhits;
-        }
+      if (nhits && chipData->getChipID() < Mapping::getNChips()) {
+        doneChips[chipData->getChipID()] = true;
+        ntot += nhits;
         if (++nChipsFired < chipsData.size()) { // fetch next free chip
           chipData = &chipsData[nChipsFired];
         } else {
           break; // last chip decoded
         }
+      }
+      if (ret < 0) {
+        break; // negative code was returned by decoder: abandon cable data
       }
     }
   }
