@@ -58,10 +58,6 @@ class GPUReconstructionConvert
   static int GetMaxTimeBin(const o2::tpc::ClusterNativeAccess& native);
   static int GetMaxTimeBin(const GPUTrackingInOutDigits& digits);
   static int GetMaxTimeBin(const GPUTrackingInOutZS& zspages);
-
- private:
-  static void ZSstreamOut(unsigned short* bufIn, unsigned int& lenIn, unsigned char* bufOut, unsigned int& lenOut, unsigned int nBits);
-  static void ZSfillEmpty(void* ptr, int shift, unsigned int feeId, int orbit);
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
