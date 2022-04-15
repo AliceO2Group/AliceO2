@@ -206,8 +206,8 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
   auto tfID = mReader->getNextTFToRead();
   int nlinks = mReader->getNLinks();
 
-  if (tfID > mMaxTFID) {
-    if (!mReader->isEmpty() && --mLoop) {
+  if (tfID > mMaxTFID || mReader->isProcessingStopped()) {
+    if (!mReader->isProcessingStopped() && !mReader->isEmpty() && --mLoop) {
       mLoopsDone++;
       tfID = 0;
       LOG(info) << "Starting new loop " << mLoopsDone << " from the beginning of data";
