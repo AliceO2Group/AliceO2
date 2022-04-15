@@ -66,7 +66,7 @@ RawErrorType_t RawReaderMemory::next()
         e == RawErrorType_t::kRDH_DECODING ||       // incorrect rdh -> fatal error
         e == RawErrorType_t::kPAYLOAD_INCOMPLETE || // we reached end of mRawMemoryBuffer but payload size from rdh tells to read more
         e == RawErrorType_t::kSTOPBIT_NOTFOUND) {   //new HBF orbit started but no stop bit found, need to return
-      return e;                                     //some principal error occured -> stop reading.
+      throw e;                                      //some principal error occured -> stop reading.
     }
     isStopBitFound = RDHDecoder::getStop(mRawHeader);
   } while (!isStopBitFound);
@@ -102,7 +102,8 @@ RawErrorType_t RawReaderMemory::nextPage()
     } else if (mCurrentHBFOrbit != RDHDecoder::getHeartBeatOrbit(rawHeader)) {
       //next HBF started but we didn't find stop bit.
       mStopBitWasNotFound = true;
-      return RawErrorType_t::kSTOPBIT_NOTFOUND; //Stop reading, this will be read again by calling next()
+      mCurrentPosition += RDHDecoder::getOffsetToNext(mRawHeader); // moving on
+      return RawErrorType_t::kSTOPBIT_NOTFOUND;                    // Stop reading, this will be read again by calling next()
     }
   } catch (...) {
     return RawErrorType_t::kRDH_DECODING; //this is fatal error
