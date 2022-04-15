@@ -28,7 +28,7 @@
 #include "Headers/Stack.h"
 
 #include "./DeviceSpecHelpers.h"
-#include "./DataProcessingHelpers.h"
+#include "Framework/DataProcessingHelpers.h"
 
 #include <fairmq/FairMQParts.h>
 #include <fairmq/FairMQDevice.h>

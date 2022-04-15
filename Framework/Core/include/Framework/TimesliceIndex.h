@@ -14,11 +14,12 @@
 
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/CompilerBuiltins.h"
+#include "Framework/RoutingIndices.h"
 #include "Framework/ServiceHandle.h"
 
 #include <cstdint>
-#include <tuple>
 #include <vector>
+#include <algorithm>
 
 namespace o2::framework
 {
@@ -67,7 +68,32 @@ class TimesliceIndex
     DropObsolete     /// An obsolete context is not inserted in the index and dropped
   };
 
-  TimesliceIndex(size_t maxLanes);
+  /// The result of the replacing the LRU slot with a new one
+  struct ActionSpec {
+    /// The action taken
+    ActionTaken action;
+    /// The slot which was replaced
+    TimesliceSlot slot;
+  };
+
+  /// Information about what is the oldest possible input and from which
+  /// channel.
+  struct OldestInputInfo {
+    /// The timeslice of the the oldest input. Notice that we use zero,
+    /// so any input which did not provide information will keep this
+    /// to 0, effectively making the the dropping mechanism not working.
+    TimesliceId timeslice = {0};
+    /// The actual channel id of the oldest input.
+    ChannelIndex channel = {ChannelIndex::INVALID};
+  };
+
+  struct OldestOutputInfo {
+    TimesliceId timeslice = {0};
+    ChannelIndex channel = {ChannelIndex::INVALID};
+    TimesliceSlot slot = {(size_t)-1};
+  };
+
+  TimesliceIndex(size_t maxLanes, size_t maxChannels);
   inline void resize(size_t s);
   [[nodiscard]] inline size_t size() const;
   [[nodiscard]] inline bool isValid(TimesliceSlot const& slot) const;
@@ -78,6 +104,7 @@ class TimesliceIndex
   inline void rescan();
   /// Publish a slot to be sent via metrics.
   inline void publishSlot(TimesliceSlot slot);
+
   /// Associated the @a timestamp to the given @a slot. Notice that
   /// now the information about the timeslot to associate needs to be
   /// determined outside the TimesliceIndex.
@@ -100,6 +127,21 @@ class TimesliceIndex
   ///         of the messages.
   inline std::tuple<ActionTaken, TimesliceSlot> replaceLRUWith(data_matcher::VariableContext& newContext, TimesliceId timestamp);
 
+  /// Set the older possible input per channel
+  /// @return the updated oldest possible input. Notice that this should be
+  /// used with the validateSlots below to actually discard the slots.
+  [[nodiscard]] inline OldestInputInfo setOldestPossibleInput(TimesliceId timeslice, ChannelIndex channel);
+  /// Validate that the slot @a slot is still not older than @a currentOldest
+  /// @return true if the slot was not invalidated by the new currentOldest
+  inline bool validateSlot(TimesliceSlot slot, TimesliceId currentOldest);
+
+  /// Find the lowest value for the timeslices in this instance.
+  /// This is the minimum between all the per channel oldest possible timeslices
+  /// and the oldest possible timeslice in-fly which is still dirty.
+  [[nodiscard]] inline OldestInputInfo getOldestPossibleInput() const;
+  [[nodiscard]] inline OldestOutputInfo getOldestPossibleOutput() const;
+  inline OldestOutputInfo updateOldestPossibleOutput();
+
  private:
   /// @return the oldest slot possible so that we can eventually override it.
   /// This is the timeslices for all the in flight parts.
@@ -114,6 +156,14 @@ class TimesliceIndex
   /// This keeps track whether or not something was relayed
   /// since last time we called getReadyToProcess()
   std::vector<bool> mDirty;
+
+  /// This is the oldest possible timeslice for any given channel
+  /// The cardinality of this vector is the number of input channels
+  std::vector<TimesliceId> mOldestPossibleTimeslices;
+  /// This is the oldest possible timeslice for this index.
+  /// By default we use -1, which means that we don't have any.
+  OldestInputInfo mOldestPossibleInput = {};
+  OldestOutputInfo mOldestPossibleOutput = {};
 
   /// What to do in case of backpressure
   BackpressureOp mBackpressurePolicy = BackpressureOp::Wait;

@@ -29,6 +29,7 @@ struct RouteIndex {
 /// use the same channel.
 struct ChannelIndex {
   int value;
+  static constexpr int INVALID = -1;
 };
 
 // An index in the space of the declared InputSpec

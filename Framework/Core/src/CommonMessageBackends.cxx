@@ -54,9 +54,10 @@ o2::framework::ServiceSpec CommonMessageBackends::fairMQDeviceProxy()
     },
     .start = [](ServiceRegistry& services, void* instance) {
       auto* proxy = static_cast<FairMQDeviceProxy*>(instance);
-      auto& routes = services.get<DeviceSpec const>().outputs;
+      auto& outputs = services.get<DeviceSpec const>().outputs;
+      auto& inputs = services.get<DeviceSpec const>().inputs;
       auto* device = services.get<RawDeviceService>().device();
-      proxy->bindRoutes(routes, *device); },
+      proxy->bindRoutes(outputs, inputs, *device); },
   };
 }
 

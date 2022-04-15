@@ -13,7 +13,7 @@
 #include "Framework/TableTreeHelpers.h"
 #include "Framework/AnalysisHelpers.h"
 #include "AnalysisDataModelHelpers.h"
-#include "DataProcessingHelpers.h"
+#include "Framework/DataProcessingHelpers.h"
 #include "Framework/ExpressionHelpers.h"
 #include "Framework/RootTableBuilderHelpers.h"
 #include "Framework/AlgorithmSpec.h"
