@@ -94,6 +94,7 @@ ferst 1 \n\
   // ctpcfg.loadConfiguration(cfgstr);
   ctpcfg.loadConfigurationRun3(cfgRun3str);
   ctpcfg.printStream(std::cout);
+  std::cout << "Going write to db" << std::endl;
   // return;
   ///
   /// add to database

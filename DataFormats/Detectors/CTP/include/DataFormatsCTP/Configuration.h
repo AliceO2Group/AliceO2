@@ -71,6 +71,7 @@ struct CTPDetector {
   std::string mode;
   uint32_t ferst;
   void printStream(std::ostream& stream) const;
+  ClassDefNV(CTPDetector, 1)
 };
 struct CTPCluster {
   CTPCluster() = default;
@@ -85,8 +86,8 @@ struct CTPClass {
   CTPClass() = default;
   std::string name;
   std::uint64_t classMask;
-  CTPDescriptor const* descriptor;
-  CTPCluster const* cluster;
+  CTPDescriptor const* descriptor = nullptr;
+  CTPCluster const* cluster = nullptr;
   int clusterIndex;
   ;
   void printStream(std::ostream& strem) const;
@@ -137,7 +138,7 @@ class CTPConfiguration
   std::vector<CTPClass> mCTPClasses;
   int processConfigurationLineRun3(std::string& line, int& level);
   int processConfigurationLine(std::string& line, int& level);
-  ClassDefNV(CTPConfiguration, 2);
+  ClassDefNV(CTPConfiguration, 3);
 };
 } // namespace ctp
 } // namespace o2

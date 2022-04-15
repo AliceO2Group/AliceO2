@@ -88,9 +88,14 @@ void CTPCluster::printStream(std::ostream& stream) const
 //
 void CTPClass::printStream(std::ostream& stream) const
 {
-  stream << "CTP Class:" << name << " Hardware mask:" << classMask <<
-    //" Descriptor:" << descriptor->name <<
-    " Cluster:" << cluster->name << std::endl;
+  stream << "CTP Class:" << name << " Hardware mask:" << classMask;
+  if(descriptor != nullptr) {
+    stream << " Descriptor:" << descriptor->name;
+  }
+  if(cluster != nullptr) {
+    stream << " Cluster:" << cluster->name;
+  }
+  stream << std::endl;
 }
 /// CTP configuration
 /// Assuming Run2 format + LTG

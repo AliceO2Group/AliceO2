@@ -22,7 +22,7 @@
 
 // example to run:
 // o2-ctp-proxy --ctp-proxy '--channel-config "name=ctp-proxy,type=sub,method=connect,address=tcp://127.0.0.1:5556,rateLogging=1,transport=zeromq"'
-// o2-ctp-proxy --ctp-proxy '--channel-config "name=ctp-proxy,type=sub,method=connect,address=tcp://188.185.88.65:50090,rateLogging=1,transport=zeromq"' -b2-ctp-proxy --ctp-proxy '--channel-config "name=ctp-proxy,type=sub,method=connect,address=tcp://188.185.88.65:50090,rateLogging=20,transport=zeromq"' -b
+// o2-ctp-proxy --ctp-proxy '--channel-config "name=ctp-proxy,type=sub,method=connect,address=tcp://188.185.88.65:50090,rateLogging=1,transport=zeromq"' -b
 
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
