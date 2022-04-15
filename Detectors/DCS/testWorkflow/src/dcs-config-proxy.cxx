@@ -42,7 +42,7 @@ void sendAnswer(const std::string& what, const std::string& ack_chan, FairMQDevi
     memcpy(msg->GetData(), what.c_str(), what.size());
     FairMQParts outParts;
     outParts.AddPart(std::move(msg));
-    sendOnChannel(device, outParts, ack_chan);
+    sendOnChannel(device, outParts, ack_chan, (size_t)-1);
   }
 }
 
@@ -127,12 +127,12 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     FairMQParts outPartsF;
     outPartsF.AddPart(std::move(hdMessageF));
     outPartsF.AddPart(std::move(plMessageF));
-    sendOnChannel(device, outPartsF, channel);
+    sendOnChannel(device, outPartsF, channel, (size_t)-1);
 
     FairMQParts outPartsN;
     outPartsN.AddPart(std::move(hdMessageN));
     outPartsN.AddPart(std::move(plMessageN));
-    sendOnChannel(device, outPartsN, channel);
+    sendOnChannel(device, outPartsN, channel, *timesliceId);
 
     sendAnswer("OK", acknowledge, device);
     LOG(info) << "Sent DPL message and acknowledgment for file " << filename;

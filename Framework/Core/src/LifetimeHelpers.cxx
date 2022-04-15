@@ -490,7 +490,6 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     variables.put({data_matcher::STARTTIME_POS, dph.startTime});
     variables.put({data_matcher::CREATIONTIME_POS, dph.creation});
 
-    LOG(error) << channelIndex.value;
     auto&& transport = deviceProxy.getInputChannel(channelIndex)->Transport();
     auto channelAlloc = o2::pmr::getTransportAllocator(transport);
     auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
@@ -547,7 +546,6 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
 
     DataProcessingHeader dph{timestamp, 1};
 
-    LOG(error) << channelIndex.value;
     auto&& transport = deviceProxy.getInputChannel(channelIndex)->Transport();
     auto channelAlloc = o2::pmr::getTransportAllocator(transport);
     auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
