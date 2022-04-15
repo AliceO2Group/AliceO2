@@ -41,7 +41,7 @@ o2::header::RDHAny RawReaderMemory::decodeRawHeader(const void* payloadwords)
     return o2::header::RDHAny(*reinterpret_cast<const o2::header::RAWDataHeaderV6*>(payloadwords));
   }
   LOG(error) << "RawReaderMemory::decodeRawHeader() : Unknown RDH version";
-  return o2::header::RDHAny(*reinterpret_cast<const o2::header::RAWDataHeaderV6*>(payloadwords));
+  throw RawErrorType_t::kRDH_DECODING;
 }
 
 void RawReaderMemory::init()
@@ -88,24 +88,24 @@ RawErrorType_t RawReaderMemory::nextPage()
   o2::header::RDHAny rawHeader;
   try {
     rawHeader = decodeRawHeader(mRawMemoryBuffer.data() + mCurrentPosition);
+    if (RDHDecoder::getSourceID(rawHeader) != 0x8) {
+      // Not a CPV RDH
+      mCurrentPosition += RDHDecoder::getOffsetToNext(rawHeader); //moving on
+      return RawErrorType_t::kNOT_CPV_RDH;
+    }
+    if (mIsJustInited || mStopBitWasNotFound) { //reading first time after init() or stopbit was not found
+      mCurrentHBFOrbit = RDHDecoder::getHeartBeatOrbit(rawHeader);
+      mRawHeader = rawHeader; //save RDH of first page as mRawHeader
+      mRawHeaderInitialized = true;
+      mStopBitWasNotFound = false; //reset this flag as we start to read again
+      mIsJustInited = false;
+    } else if (mCurrentHBFOrbit != RDHDecoder::getHeartBeatOrbit(rawHeader)) {
+      //next HBF started but we didn't find stop bit.
+      mStopBitWasNotFound = true;
+      return RawErrorType_t::kSTOPBIT_NOTFOUND; //Stop reading, this will be read again by calling next()
+    }
   } catch (...) {
     return RawErrorType_t::kRDH_DECODING; //this is fatal error
-  }
-  if (RDHDecoder::getSourceID(rawHeader) != 0x8) {
-    // Not a CPV RDH
-    mCurrentPosition += RDHDecoder::getOffsetToNext(rawHeader); //moving on
-    return RawErrorType_t::kNOT_CPV_RDH;
-  }
-  if (mIsJustInited || mStopBitWasNotFound) { //reading first time after init() or stopbit was not found
-    mCurrentHBFOrbit = RDHDecoder::getHeartBeatOrbit(rawHeader);
-    mRawHeader = rawHeader; //save RDH of first page as mRawHeader
-    mRawHeaderInitialized = true;
-    mStopBitWasNotFound = false; //reset this flag as we start to read again
-    mIsJustInited = false;
-  } else if (mCurrentHBFOrbit != RDHDecoder::getHeartBeatOrbit(rawHeader)) {
-    //next HBF started but we didn't find stop bit.
-    mStopBitWasNotFound = true;
-    return RawErrorType_t::kSTOPBIT_NOTFOUND; //Stop reading, this will be read again by calling next()
   }
   mRawHeader = rawHeader; //save RDH of current page as mRawHeader
   mRawHeaderInitialized = true;
