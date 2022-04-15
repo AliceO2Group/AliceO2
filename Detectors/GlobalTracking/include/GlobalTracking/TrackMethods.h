@@ -33,6 +33,9 @@ class TrackMethods
                                const o2::tpc::ClusterNativeAccess& tpcClusAcc,
                                uint8_t& shared, uint8_t& found, uint8_t& crossed)
   {
+    LOGP(info, "tpcClusRefs {}/{}", (void*)tpcClusRefs.data(), tpcClusRefs.size());
+    LOGP(info, "tpcClusShMap {}/{}", (void*)tpcClusShMap.data(), tpcClusShMap.size());
+    LOGP(info, " tpcClusAcc{}/{}", (void*)tpcClusAcc.clustersLinear, tpcClusAcc.nClustersTotal);
     constexpr int maxRows = 152;
     constexpr int neighbour = 2;
     std::array<bool, maxRows> clMap{}, shMap{};
@@ -85,8 +88,6 @@ class TrackMethods
     }
     return true;
   }
-
-  
 
   ClassDefNV(TrackMethods, 1);
 };

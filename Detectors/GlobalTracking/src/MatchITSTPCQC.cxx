@@ -25,7 +25,6 @@ using namespace o2::globaltracking;
 using namespace o2::mcutils;
 using MCTrack = o2::MCTrackT<float>;
 
-
 MatchITSTPCQC::~MatchITSTPCQC()
 {
 
@@ -181,7 +180,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     // if (selectTrack(trkTpc)) {
     //   isTPCTrackSelectedEntry[itrk] = true;
     // }
-    o2::dataformats::GlobalTrackID id(itrk,GID::TPC);
+    o2::dataformats::GlobalTrackID id(itrk, GID::TPC);
     if (cuts.isSelected(id, mRecoCont)) {
       isTPCTrackSelectedEntry[itrk] = true;
     }

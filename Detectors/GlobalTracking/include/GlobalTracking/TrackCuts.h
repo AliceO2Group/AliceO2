@@ -56,10 +56,10 @@ class TrackCuts
       math_utils::Point3D<float> v{};
       std::array<float, 2> dca;
       if (tpcTrk.getPt() < mPtTPCCut ||
-            std::abs(tpcTrk.getEta()) > mEtaTPCCut ||
-            tpcTrk.getNClusters() < mNTPCClustersCut ||
-            (!(const_cast<o2::tpc::TrackTPC&>(tpcTrk).propagateParamToDCA(v, mBz, &dca, mDCACut)) ||
-          std::abs(dca[0]) > mDCACutY)) {
+          std::abs(tpcTrk.getEta()) > mEtaTPCCut ||
+          tpcTrk.getNClusters() < mNTPCClustersCut ||
+          (!(const_cast<o2::tpc::TrackTPC&>(tpcTrk).propagateParamToDCA(v, mBz, &dca, mDCACut)) ||
+           std::abs(dca[0]) > mDCACutY)) {
         return false;
       } else {
         return true;
