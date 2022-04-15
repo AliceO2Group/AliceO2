@@ -56,6 +56,10 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     IN_INPUT_DESCRIPTION,
     IN_INPUT_SUBSPEC,
     IN_INPUT_LIFETIME,
+    IN_INPUT_MATCHER,
+    IN_INPUT_MATCHER_OPERATION,
+    IN_INPUT_LEFT_MATCHER,
+    IN_INPUT_RIGHT_MATCHER,
     IN_INPUT_OPTIONS,
     IN_OUTPUT,
     IN_OUTPUT_BINDING,
@@ -146,6 +150,18 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
         break;
       case State::IN_INPUT_SUBSPEC:
         s << "IN_INPUT_SUBSPEC";
+        break;
+      case State::IN_INPUT_MATCHER:
+        s << "IN_INPUT_MATCHER";
+        break;
+      case State::IN_INPUT_MATCHER_OPERATION:
+        s << "IN_INPUT_MATCHER_OPERATION";
+        break;
+      case State::IN_INPUT_LEFT_MATCHER:
+        s << "IN_INPUT_LEFT_MATCHER";
+        break;
+      case State::IN_INPUT_RIGHT_MATCHER:
+        s << "IN_INPUT_RIGHT_MATCHER";
         break;
       case State::IN_INPUT_LIFETIME:
         s << "IN_INPUT_LIFETIME";
@@ -249,8 +265,13 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       dataProcessors.push_back(DataProcessorSpec{});
     } else if (in(State::IN_INPUTS)) {
       push(State::IN_INPUT);
-      inputHasDescription = false;
-      inputHasSubSpec = false;
+      inputMatcherNodes.clear();
+    } else if (in(State::IN_INPUT_MATCHER)) {
+      assert(0); // to be implemented
+    } else if (in(State::IN_INPUT_LEFT_MATCHER)) {
+      assert(0); // to be implemented
+    } else if (in(State::IN_INPUT_RIGHT_MATCHER)) {
+      assert(0); // to be implemented
     } else if (in(State::IN_OUTPUTS)) {
       push(State::IN_OUTPUT);
       outputHasSubSpec = false;
@@ -277,34 +298,32 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   {
     enter("END_OBJECT");
     if (in(State::IN_INPUT)) {
-      if (!inputHasDescription && !inputHasSubSpec) {
-
-        DataDescriptorMatcher expectedMatcher00{
-          DataDescriptorMatcher::Op::And,
-          OriginValueMatcher{origin.str},
-          std::make_unique<DataDescriptorMatcher>(
-            DataDescriptorMatcher::Op::And,
-            DescriptionValueMatcher{ContextRef{1}},
-            std::make_unique<DataDescriptorMatcher>(
-              DataDescriptorMatcher::Op::And,
-              SubSpecificationTypeValueMatcher{ContextRef{2}},
-              std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
-                                                      StartTimeValueMatcher{ContextRef{0}})))};
-
-        dataProcessors.back().inputs.push_back(InputSpec({binding}, std::move(expectedMatcher00)));
-      } else if (inputHasDescription) {
-        if (inputHasSubSpec) {
-          dataProcessors.back().inputs.push_back(InputSpec(binding, origin, description, subspec, lifetime, inputOptions));
-        } else {
-          dataProcessors.back().inputs.push_back(InputSpec(binding, {origin, description}, lifetime, inputOptions));
+      auto buildMatcher = [](auto& nodes) -> std::unique_ptr<DataDescriptorMatcher> {
+        auto lastMatcher =
+          std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
+                                                  StartTimeValueMatcher(ContextRef{ContextPos::STARTTIME_POS}));
+        for (size_t ni = 0, ne = nodes.size(); ni < ne; ++ni) {
+          auto& node = nodes[nodes.size() - 1 - ni];
+          auto tmp = std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::And,
+                                                             std::move(node),
+                                                             std::move(lastMatcher));
+          assert(lastMatcher.get() == nullptr);
+          lastMatcher = std::move(tmp);
         }
-      } else {
-        LOG(error) << "Input w/o description but with subspec is not supported";
-      }
+        return lastMatcher;
+      };
 
+      auto matcher = buildMatcher(inputMatcherNodes);
+      auto concrete = DataSpecUtils::optionalConcreteDataMatcherFrom(*matcher);
+      if (concrete.has_value()) {
+        // the matcher is fully qualified with unique parameters so we add ConcreteDataMatcher
+        dataProcessors.back().inputs.push_back(InputSpec({binding}, (*concrete).origin, (*concrete).description, (*concrete).subSpec, lifetime, inputOptions));
+      } else {
+        dataProcessors.back().inputs.push_back(InputSpec({binding}, std::move(*matcher), lifetime, inputOptions));
+      }
+      inputMatcherNodes.clear();
       inputOptions.clear();
-      inputHasDescription = false;
-      inputHasSubSpec = false;
+
     } else if (in(State::IN_OUTPUT)) {
       if (outputHasSubSpec) {
         dataProcessors.back().outputs.push_back(OutputSpec({binding}, origin, description, subspec, lifetime));
@@ -412,8 +431,6 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       push(State::IN_DATAPROCESSORS);
     } else if (in(State::IN_INPUTS)) {
       push(State::IN_INPUT);
-      inputHasDescription = false;
-      inputHasSubSpec = false;
     } else if (in(State::IN_INPUT_OPTIONS)) {
       push(State::IN_OPTION);
     } else if (in(State::IN_OUTPUT_OPTIONS)) {
@@ -459,10 +476,35 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       push(State::IN_INPUT_ORIGIN);
     } else if (in(State::IN_INPUT) && strncmp(str, "description", length) == 0) {
       push(State::IN_INPUT_DESCRIPTION);
-      inputHasDescription = true;
     } else if (in(State::IN_INPUT) && strncmp(str, "subspec", length) == 0) {
       push(State::IN_INPUT_SUBSPEC);
-      inputHasSubSpec = true;
+    } else if (in(State::IN_INPUT) && strncmp(str, "matcher", length) == 0) {
+      assert(0);
+      // the outermost matcher is starting here
+      // we create a placeholder which is being updated later
+      inputMatcherNodes.push_back(std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::And, ConstantValueMatcher{false}));
+      push(State::IN_INPUT_MATCHER);
+    } else if (in(State::IN_INPUT_MATCHER) && strncmp(str, "matcher", length) == 0) {
+      // recursive matchers, can maybe combine with above
+      push(State::IN_INPUT_MATCHER);
+    } else if (in(State::IN_INPUT_MATCHER) && strncmp(str, "operation", length) == 0) {
+      push(State::IN_INPUT_MATCHER_OPERATION);
+    } else if (in(State::IN_INPUT_MATCHER) && strncmp(str, "left", length) == 0) {
+      push(State::IN_INPUT_LEFT_MATCHER);
+    } else if (in(State::IN_INPUT_MATCHER) && strncmp(str, "right", length) == 0) {
+      push(State::IN_INPUT_RIGHT_MATCHER);
+    } else if (in(State::IN_INPUT_LEFT_MATCHER) && strncmp(str, "origin", length) == 0) {
+      push(State::IN_INPUT_ORIGIN);
+    } else if (in(State::IN_INPUT_RIGHT_MATCHER) && strncmp(str, "origin", length) == 0) {
+      push(State::IN_INPUT_ORIGIN);
+    } else if (in(State::IN_INPUT_LEFT_MATCHER) && strncmp(str, "description", length) == 0) {
+      push(State::IN_INPUT_DESCRIPTION);
+    } else if (in(State::IN_INPUT_RIGHT_MATCHER) && strncmp(str, "description", length) == 0) {
+      push(State::IN_INPUT_DESCRIPTION);
+    } else if (in(State::IN_INPUT_LEFT_MATCHER) && strncmp(str, "subspec", length) == 0) {
+      push(State::IN_INPUT_SUBSPEC);
+    } else if (in(State::IN_INPUT_RIGHT_MATCHER) && strncmp(str, "subspec", length) == 0) {
+      push(State::IN_INPUT_SUBSPEC);
     } else if (in(State::IN_INPUT) && strncmp(str, "lifetime", length) == 0) {
       push(State::IN_INPUT_LIFETIME);
     } else if (in(State::IN_INPUT) && strncmp(str, "metadata", length) == 0) {
@@ -546,8 +588,14 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       binding = s;
     } else if (in(State::IN_INPUT_ORIGIN)) {
       origin.runtimeInit(s.c_str(), std::min(s.size(), 4UL));
+      std::string v(s.c_str(), std::min(s.size(), 4UL));
+      inputMatcherNodes.push_back(OriginValueMatcher{v});
     } else if (in(State::IN_INPUT_DESCRIPTION)) {
       description.runtimeInit(s.c_str(), std::min(s.size(), 16UL));
+      std::string v(s.c_str(), std::min(s.size(), 16UL));
+      inputMatcherNodes.push_back(DescriptionValueMatcher{v});
+    } else if (in(State::IN_INPUT_MATCHER_OPERATION)) {
+      // FIXME: read operation
     } else if (in(State::IN_OUTPUT_BINDING)) {
       binding = s;
     } else if (in(State::IN_OUTPUT_ORIGIN)) {
@@ -591,6 +639,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     debug << "Uint(" << i << ")" << std::endl;
     if (in(State::IN_INPUT_SUBSPEC)) {
       subspec = i;
+      inputMatcherNodes.push_back(SubSpecificationTypeValueMatcher{i});
     } else if (in(State::IN_OUTPUT_SUBSPEC)) {
       subspec = i;
     } else if (in(State::IN_INPUT_LIFETIME)) {
@@ -681,8 +730,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   std::string optionHelp;
   ConfigParamKind optionKind;
   bool outputHasSubSpec;
-  bool inputHasSubSpec;
-  bool inputHasDescription;
+  std::vector<data_matcher::Node> inputMatcherNodes;
 };
 
 bool WorkflowSerializationHelpers::import(std::istream& s,
