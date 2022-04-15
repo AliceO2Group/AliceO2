@@ -61,6 +61,10 @@ TPCTrackingDigitsPreCheck::precheckModifiedData TPCTrackingDigitsPreCheck::runPr
       }
       for (int j = 0; j < d->nTPCDigits[i]; j++) {
         if (maxContTimeBin && d->tpcDigits[i][j].getTimeStamp() >= maxContTimeBin) {
+          static bool filterOutOfTF = getenv("TPC_WORKFLOW_FILTER_DIGITS_OUTSIDE_OF_TF") && atoi(getenv("TPC_WORKFLOW_FILTER_DIGITS_OUTSIDE_OF_TF"));
+          if (filterOutOfTF) {
+            continue;
+          }
           throw std::runtime_error("Digit time bin exceeds time frame length");
         }
         if (updateDigits) {
