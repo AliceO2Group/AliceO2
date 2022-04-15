@@ -170,8 +170,8 @@ void PayloadEncoderImpl<FORMAT, CHARGESUM, VERSION>::addHeartbeatHeaders(const s
   if (dsids.empty()) {
     return;
   }
-  // get first orbit of the run
-  auto firstIR = o2::raw::HBFUtils::Instance().getFirstIR();
+  // get first orbit of the TF
+  auto firstIR = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();
   auto sampaBXCount = sampaBunchCrossingCounter(firstIR.orbit, firstIR.bc, firstIR.orbit);
   for (auto dsElecId : dsids) {
     auto solarId = dsElecId.solarId();
