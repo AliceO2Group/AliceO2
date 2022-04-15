@@ -57,7 +57,7 @@ void DigitPayloadEncoder::encodeDigits(gsl::span<o2::mch::Digit> digits,
     int dualSampaChannelId = optElecId.value().second;
     // FIXME : what to put as rel time ?
     uint10_t ts = 0;
-    auto firstIR = o2::raw::HBFUtils::Instance().getFirstIR();
+    auto firstIR = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();
     uint20_t bxCount = sampaBunchCrossingCounter(orbit, bc, firstIR.orbit);
     auto clusters = {raw::SampaCluster(ts, bxCount, d.getADC(), d.getNofSamples())};
     mEncoder.addChannelData(elecId, dualSampaChannelId, clusters);
