@@ -157,8 +157,8 @@ class GloFwdAssessment
   std::unique_ptr<TH2D> mTruePairingEtaPt = nullptr;
   std::unique_ptr<TH2F> mHistVxtOffsetProjection = nullptr;
 
-  std::vector<std::unique_ptr<TH2D>> mPurityPtInnerVecTH2;
-  std::vector<std::unique_ptr<TH2D>> mPurityPtOuterVecTH2;
+  std::vector<std::unique_ptr<TEfficiency>> mPurityPtInnerVecTEff;
+  std::vector<std::unique_ptr<TEfficiency>> mPurityPtOuterVecTEff;
   std::vector<std::unique_ptr<TH1D>> mPairingPtInnerVecTH1;
   std::vector<std::unique_ptr<TH1D>> mPairingPtOuterVecTH1;
   std::vector<std::unique_ptr<TH1D>> mTruePairingPtInnerVecTH1;
