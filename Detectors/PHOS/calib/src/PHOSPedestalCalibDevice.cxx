@@ -103,7 +103,7 @@ void PHOSPedestalCalibDevice::sendOutput(DataAllocator& output)
     // prepare all info to be sent to CCDB
     auto flName = o2::ccdb::CcdbApi::generateFileName("Pedestals");
     std::map<std::string, std::string> md;
-    long validityTime = mRunStartTime + 7776000000; //3 months validity time
+    long validityTime = mRunStartTime + 7776000000; // 3 months validity time
     o2::ccdb::CcdbObjectInfo info("PHS/Calib/Pedestals", "Pedestals", flName, md, mRunStartTime, validityTime);
     info.setMetaData(md);
     auto image = o2::ccdb::CcdbApi::createObjectImage(mPedestals.get(), &info);

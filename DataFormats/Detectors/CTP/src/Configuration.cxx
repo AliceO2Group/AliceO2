@@ -89,10 +89,10 @@ void CTPCluster::printStream(std::ostream& stream) const
 void CTPClass::printStream(std::ostream& stream) const
 {
   stream << "CTP Class:" << name << " Hardware mask:" << classMask;
-  if(descriptor != nullptr) {
+  if (descriptor != nullptr) {
     stream << " Descriptor:" << descriptor->name;
   }
-  if(cluster != nullptr) {
+  if (cluster != nullptr) {
     stream << " Cluster:" << cluster->name;
   }
   stream << std::endl;
