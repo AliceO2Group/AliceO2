@@ -186,113 +186,24 @@ void digi2raw(std::string_view inpName, std::string_view outDir, std::string_vie
   swTot.Print();
 }
 
-struct MFTRUMapping {
-  std::string flp{};
-  int feeID;
-  int cruHWID = 0;
-  int idInCRU = 0;
-  int endpoint = 0;
-};
-
-// FLP_Name, FEEId, CRU_HW, idInCRU, endpoint
-const MFTRUMapping mftHWMap[o2::itsmft::ChipMappingMFT::getNRUs()] = {
-  {"alio2-cr1-flp182", 0, 570, 0, 0},
-  {"alio2-cr1-flp182", 1, 570, 1, 0},
-  {"alio2-cr1-flp182", 2, 570, 2, 0},
-  {"alio2-cr1-flp182", 3, 570, 3, 0},
-  {"alio2-cr1-flp186", 64, 542, 4, 0},
-  {"alio2-cr1-flp186", 65, 542, 5, 0},
-  {"alio2-cr1-flp186", 66, 542, 6, 0},
-  {"alio2-cr1-flp186", 67, 542, 7, 0},
-  {"alio2-cr1-flp182", 4, 570, 4, 1},
-  {"alio2-cr1-flp182", 5, 570, 5, 1},
-  {"alio2-cr1-flp182", 6, 570, 6, 1},
-  {"alio2-cr1-flp182", 7, 570, 7, 1},
-  {"alio2-cr1-flp186", 68, 542, 8, 1},
-  {"alio2-cr1-flp186", 69, 542, 9, 1},
-  {"alio2-cr1-flp186", 70, 542, 10, 1},
-  {"alio2-cr1-flp186", 71, 542, 11, 1},
-  {"alio2-cr1-flp183", 8, 548, 0, 0},
-  {"alio2-cr1-flp183", 9, 548, 1, 0},
-  {"alio2-cr1-flp183", 10, 548, 2, 0},
-  {"alio2-cr1-flp183", 11, 548, 3, 0},
-  {"alio2-cr1-flp185", 72, 541, 4, 0},
-  {"alio2-cr1-flp185", 73, 541, 5, 0},
-  {"alio2-cr1-flp185", 74, 541, 6, 0},
-  {"alio2-cr1-flp185", 75, 541, 7, 0},
-  {"alio2-cr1-flp183", 12, 548, 4, 1},
-  {"alio2-cr1-flp183", 13, 548, 5, 1},
-  {"alio2-cr1-flp183", 14, 548, 6, 1},
-  {"alio2-cr1-flp183", 15, 548, 7, 1},
-  {"alio2-cr1-flp185", 76, 541, 8, 1},
-  {"alio2-cr1-flp185", 77, 541, 9, 1},
-  {"alio2-cr1-flp185", 78, 541, 10, 1},
-  {"alio2-cr1-flp185", 79, 541, 11, 1},
-  {"alio2-cr1-flp184", 16, 569, 0, 0},
-  {"alio2-cr1-flp184", 17, 569, 1, 0},
-  {"alio2-cr1-flp184", 18, 569, 2, 0},
-  {"alio2-cr1-flp184", 19, 569, 3, 0},
-  {"alio2-cr1-flp184", 80, 543, 4, 0},
-  {"alio2-cr1-flp184", 81, 543, 5, 0},
-  {"alio2-cr1-flp184", 82, 543, 6, 0},
-  {"alio2-cr1-flp184", 83, 543, 7, 0},
-  {"alio2-cr1-flp184", 20, 569, 4, 1},
-  {"alio2-cr1-flp184", 21, 569, 5, 1},
-  {"alio2-cr1-flp184", 22, 569, 6, 1},
-  {"alio2-cr1-flp184", 23, 569, 7, 1},
-  {"alio2-cr1-flp184", 84, 543, 8, 1},
-  {"alio2-cr1-flp184", 85, 543, 9, 1},
-  {"alio2-cr1-flp184", 86, 543, 10, 1},
-  {"alio2-cr1-flp184", 87, 543, 11, 1},
-  {"alio2-cr1-flp185", 24, 552, 0, 0},
-  {"alio2-cr1-flp185", 25, 552, 1, 0},
-  {"alio2-cr1-flp185", 26, 552, 2, 0},
-  {"alio2-cr1-flp185", 27, 552, 3, 0},
-  {"alio2-cr1-flp183", 88, 554, 4, 0},
-  {"alio2-cr1-flp183", 89, 554, 5, 0},
-  {"alio2-cr1-flp183", 90, 554, 6, 0},
-  {"alio2-cr1-flp183", 91, 554, 7, 0},
-  {"alio2-cr1-flp185", 28, 552, 4, 1},
-  {"alio2-cr1-flp185", 29, 552, 5, 1},
-  {"alio2-cr1-flp185", 30, 552, 6, 1},
-  {"alio2-cr1-flp185", 31, 552, 7, 1},
-  {"alio2-cr1-flp183", 92, 554, 8, 1},
-  {"alio2-cr1-flp183", 93, 554, 9, 1},
-  {"alio2-cr1-flp183", 94, 554, 10, 1},
-  {"alio2-cr1-flp183", 95, 554, 11, 1},
-  {"alio2-cr1-flp186", 32, 547, 0, 0},
-  {"alio2-cr1-flp186", 33, 547, 1, 0},
-  {"alio2-cr1-flp186", 34, 547, 2, 0},
-  {"alio2-cr1-flp186", 35, 547, 3, 0},
-  {"alio2-cr1-flp182", 96, 567, 4, 0},
-  {"alio2-cr1-flp182", 97, 567, 5, 0},
-  {"alio2-cr1-flp182", 98, 567, 6, 0},
-  {"alio2-cr1-flp182", 99, 567, 7, 0},
-  {"alio2-cr1-flp186", 36, 547, 4, 1},
-  {"alio2-cr1-flp186", 37, 547, 5, 1},
-  {"alio2-cr1-flp186", 38, 547, 6, 1},
-  {"alio2-cr1-flp186", 39, 547, 7, 1},
-  {"alio2-cr1-flp182", 100, 567, 8, 1},
-  {"alio2-cr1-flp182", 101, 567, 9, 1},
-  {"alio2-cr1-flp182", 102, 567, 10, 1},
-  {"alio2-cr1-flp182", 103, 567, 11, 1}};
-
 void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, std::string_view outPrefix, std::string_view fileFor)
 {
   // see the same file from ITS
   const auto& mp = m2r.getMapping();
   std::string outFileLink;
   o2::itsmft::ChipMappingMFT mftMapping;
+  auto& ruMapping = mftMapping.getRUMappingData();
 
-  for (int ruID = 0; ruID < mftMapping.getNRUs(); ruID++) {
+  for (UInt_t ruID = 0; ruID < mftMapping.getNRUs(); ruID++) {
 
     if (ruID < m2r.getRUSWMin() || ruID > m2r.getRUSWMax()) { // ignored RUs ?
       continue;
     }
 
-    auto FEEId = mftMapping.RUSW2FEEId(ruID);
-    uint16_t layer, ruOnLayer, linkId, zone = FEEId & 0x3;
-    mftMapping.expandFEEId(FEEId, layer, ruOnLayer, linkId);
+    auto linkID = ruMapping[ruID].idInCRU;
+    auto feeID = mftMapping.RUSW2FEEId(ruID, linkID);
+    uint16_t layer, ruOnLayer, zone = feeID & 0x3;
+    mftMapping.expandFEEId(feeID, layer, ruOnLayer, linkID);
 
     m2r.getCreateRUDecode(ruID); // create RU container
 
@@ -301,15 +212,15 @@ void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, st
     uint32_t lanes = mp.getCablesOnRUType(mp.getRUType(zone, layer)); // lanes pattern of this RU
     auto link = m2r.getGBTLink(ru.links[0]);
     link->lanes = lanes;
-    link->feeID = mftHWMap[ruID].feeID;
-    link->idInCRU = mftHWMap[ruID].idInCRU;     // linkID
-    link->cruID = mftHWMap[ruID].cruHWID;       // CRU Serial Number
-    link->endPointID = mftHWMap[ruID].endpoint; // endpoint = face
+    link->feeID = feeID;
+    link->idInCRU = linkID;
+    link->cruID = ruMapping[ruID].cruHWID;       // CRU Serial Number
+    link->endPointID = ruMapping[ruID].endpoint; // endpoint = face
     outFileLink = o2::utils::Str::concat_string(outDir, "/", outPrefix);
     if (fileFor != "all") { // single file for all links
-      outFileLink += fmt::format("_{}", mftHWMap[ruID].flp);
+      outFileLink += fmt::format("_{}", ruMapping[ruID].flp);
       if (fileFor != "flp") {
-        outFileLink += fmt::format("_cru{}_{}", mftHWMap[ruID].cruHWID, link->endPointID);
+        outFileLink += fmt::format("_cru{}_{}", ruMapping[ruID].cruHWID, link->endPointID);
         if (fileFor != "cru") {
           outFileLink += fmt::format("_lnk{}_feeid{}", link->idInCRU, link->feeID);
           if (fileFor != "link") {
@@ -321,7 +232,7 @@ void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, st
     outFileLink += ".raw";
     m2r.getWriter().registerLink(link->feeID, link->cruID, link->idInCRU, link->endPointID, outFileLink);
     if (m2r.getVerbosity()) {
-      LOG(info) << "RU" << ruID << '(' << mftHWMap[ruID].cruHWID << " on idInCRU " << mftHWMap[ruID].idInCRU << ") " << link->describe()
+      LOG(info) << "RU" << ruID << '(' << ruMapping[ruID].cruHWID << " on idInCRU " << ruMapping[ruID].idInCRU << ") " << link->describe()
                 << " -> " << outFileLink;
     }
   }

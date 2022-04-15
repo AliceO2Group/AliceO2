@@ -1619,12 +1619,97 @@ const std::array<MFTModuleMappingData, ChipMappingMFT::NModules> ChipMappingMFT:
 
 }};
 
+const std::array<MFTRUMappingData, ChipMappingMFT::NRUs> ChipMappingMFT::RUMappingData{{
+
+  // { flpname, feeID (RU HW ID), cruHWID, idInCRU (link ID), endpoint }
+
+  {"alio2-cr1-flp182", 0, 570, 0, 0},
+  {"alio2-cr1-flp182", 1, 570, 1, 0},
+  {"alio2-cr1-flp182", 2, 570, 2, 0},
+  {"alio2-cr1-flp182", 3, 570, 3, 0},
+  {"alio2-cr1-flp182", 4, 570, 4, 1},
+  {"alio2-cr1-flp182", 5, 570, 5, 1},
+  {"alio2-cr1-flp182", 6, 570, 6, 1},
+  {"alio2-cr1-flp182", 7, 570, 7, 1},
+  {"alio2-cr1-flp183", 8, 548, 0, 0},
+  {"alio2-cr1-flp183", 9, 548, 1, 0},
+  {"alio2-cr1-flp183", 10, 548, 2, 0},
+  {"alio2-cr1-flp183", 11, 548, 3, 0},
+  {"alio2-cr1-flp183", 12, 548, 4, 1},
+  {"alio2-cr1-flp183", 13, 548, 5, 1},
+  {"alio2-cr1-flp183", 14, 548, 6, 1},
+  {"alio2-cr1-flp183", 15, 548, 7, 1},
+  {"alio2-cr1-flp184", 16, 569, 0, 0},
+  {"alio2-cr1-flp184", 17, 569, 1, 0},
+  {"alio2-cr1-flp184", 18, 569, 2, 0},
+  {"alio2-cr1-flp184", 19, 569, 3, 0},
+  {"alio2-cr1-flp184", 20, 569, 4, 1},
+  {"alio2-cr1-flp184", 21, 569, 5, 1},
+  {"alio2-cr1-flp184", 22, 569, 6, 1},
+  {"alio2-cr1-flp184", 23, 569, 7, 1},
+  {"alio2-cr1-flp185", 24, 552, 0, 0},
+  {"alio2-cr1-flp185", 25, 552, 1, 0},
+  {"alio2-cr1-flp185", 26, 552, 2, 0},
+  {"alio2-cr1-flp185", 27, 552, 3, 0},
+  {"alio2-cr1-flp185", 28, 552, 4, 1},
+  {"alio2-cr1-flp185", 29, 552, 5, 1},
+  {"alio2-cr1-flp185", 30, 552, 6, 1},
+  {"alio2-cr1-flp185", 31, 552, 7, 1},
+  {"alio2-cr1-flp186", 32, 547, 0, 0},
+  {"alio2-cr1-flp186", 33, 547, 1, 0},
+  {"alio2-cr1-flp186", 34, 547, 2, 0},
+  {"alio2-cr1-flp186", 35, 547, 3, 0},
+  {"alio2-cr1-flp186", 36, 547, 4, 1},
+  {"alio2-cr1-flp186", 37, 547, 5, 1},
+  {"alio2-cr1-flp186", 38, 547, 6, 1},
+  {"alio2-cr1-flp186", 39, 547, 7, 1},
+  {"alio2-cr1-flp186", 64, 542, 4, 0},
+  {"alio2-cr1-flp186", 65, 542, 5, 0},
+  {"alio2-cr1-flp186", 66, 542, 6, 0},
+  {"alio2-cr1-flp186", 67, 542, 7, 0},
+  {"alio2-cr1-flp186", 68, 542, 8, 1},
+  {"alio2-cr1-flp186", 69, 542, 9, 1},
+  {"alio2-cr1-flp186", 70, 542, 10, 1},
+  {"alio2-cr1-flp186", 71, 542, 11, 1},
+  {"alio2-cr1-flp185", 72, 541, 4, 0},
+  {"alio2-cr1-flp185", 73, 541, 5, 0},
+  {"alio2-cr1-flp185", 74, 541, 6, 0},
+  {"alio2-cr1-flp185", 75, 541, 7, 0},
+  {"alio2-cr1-flp185", 76, 541, 8, 1},
+  {"alio2-cr1-flp185", 77, 541, 9, 1},
+  {"alio2-cr1-flp185", 78, 541, 10, 1},
+  {"alio2-cr1-flp185", 79, 541, 11, 1},
+  {"alio2-cr1-flp184", 80, 543, 4, 0},
+  {"alio2-cr1-flp184", 81, 543, 5, 0},
+  {"alio2-cr1-flp184", 82, 543, 6, 0},
+  {"alio2-cr1-flp184", 83, 543, 7, 0},
+  {"alio2-cr1-flp184", 84, 543, 8, 1},
+  {"alio2-cr1-flp184", 85, 543, 9, 1},
+  {"alio2-cr1-flp184", 86, 543, 10, 1},
+  {"alio2-cr1-flp184", 87, 543, 11, 1},
+  {"alio2-cr1-flp183", 88, 554, 4, 0},
+  {"alio2-cr1-flp183", 89, 554, 5, 0},
+  {"alio2-cr1-flp183", 90, 554, 6, 0},
+  {"alio2-cr1-flp183", 91, 554, 7, 0},
+  {"alio2-cr1-flp183", 92, 554, 8, 1},
+  {"alio2-cr1-flp183", 93, 554, 9, 1},
+  {"alio2-cr1-flp183", 94, 554, 10, 1},
+  {"alio2-cr1-flp183", 95, 554, 11, 1},
+  {"alio2-cr1-flp182", 96, 567, 4, 0},
+  {"alio2-cr1-flp182", 97, 567, 5, 0},
+  {"alio2-cr1-flp182", 98, 567, 6, 0},
+  {"alio2-cr1-flp182", 99, 567, 7, 0},
+  {"alio2-cr1-flp182", 100, 567, 8, 1},
+  {"alio2-cr1-flp182", 101, 567, 9, 1},
+  {"alio2-cr1-flp182", 102, 567, 10, 1},
+  {"alio2-cr1-flp182", 103, 567, 11, 1}}};
+
 //_____________________________________________________________________________
 ChipMappingMFT::ChipMappingMFT()
 {
   // init chips info
 
-  uint32_t maxRUHW = composeFEEId(NLayers - 1, NZonesPerLayer - 1, NLinks - 1); // Max possible FEE ID
+  uint32_t maxRUHW = composeFEEId(NLayers - 1, NZonesPerLayer - 1); // Max possible RU HW ID
   mFEEId2RUSW.resize(maxRUHW + 1, 0xff);
 
   int curLayer = -1, curZone = -1, curHalf = -1;
@@ -1692,14 +1777,15 @@ ChipMappingMFT::ChipMappingMFT()
     }
   }
 
-  int ctrRU = 0;
+  int linkID, ctrRU = 0;
   for (int iLayer = 0; iLayer < NLayers; ++iLayer) {
     for (int iZone = 0; iZone < NZonesPerLayer; ++iZone) {
       auto& ruInfo = mRUInfo[ctrRU];
       ruInfo.idSW = ctrRU++;
 
-      // map FEEIds (RU read out by at most 3 GBT links) to SW ID
-      ruInfo.idHW = composeFEEId(iLayer, iZone, 0); // FEEId for link 0
+      // map FEEIds to SW ID
+      linkID = RUMappingData[ruInfo.idSW].idInCRU;
+      ruInfo.idHW = composeFEEId(iLayer, iZone); // only the RU HW part, no link information
       mFEEId2RUSW[ruInfo.idHW] = ruInfo.idSW;
       ruInfo.layer = iLayer;
       ruInfo.ruType = ZoneRUType[iZone % 4][iLayer / 2];

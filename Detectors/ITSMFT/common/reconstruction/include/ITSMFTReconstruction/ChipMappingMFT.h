@@ -58,6 +58,15 @@ struct MFTModuleMappingData {
   ClassDefNV(MFTModuleMappingData, 1);
 };
 
+struct MFTRUMappingData {
+  std::string flp{};
+  uint16_t feeID;
+  uint16_t cruHWID = 0;
+  uint16_t idInCRU = 0;
+  uint16_t endpoint = 0;
+  ClassDefNV(MFTRUMappingData, 1);
+};
+
 class ChipMappingMFT
 {
  public:
@@ -77,10 +86,10 @@ class ChipMappingMFT
   uint8_t FEEId2RUSW(uint16_t hw) const { return mFEEId2RUSW[hw & 0xff]; }
 
   ///< get HW id of the RU (software id of the RU)
-  uint16_t RUSW2FEEId(uint16_t sw, uint16_t linkID = 0) const { return ((linkID << 8) + mRUInfo[sw].idHW); }
+  uint16_t RUSW2FEEId(uint16_t sw, uint16_t linkID) const { return ((linkID << 8) + mRUInfo[sw].idHW); }
 
   ///< compose FEEid for given stave (ru) relative to layer and link, see documentation in the constructor
-  uint16_t composeFEEId(uint16_t layer, uint16_t ruOnLayer, uint16_t link) const
+  uint16_t composeFEEId(uint16_t layer, uint16_t ruOnLayer, uint16_t link = 0) const
   {
     // only one link is used
     // ruOnLayer is 0, 1, 2, 3 for half = 0
@@ -97,7 +106,7 @@ class ChipMappingMFT
   ///< decompose FEEid to layer, stave (ru) relative to layer, link, see documentation in the constructor
   void expandFEEId(uint16_t feeID, uint16_t& layer, uint16_t& ruOnLayer, uint16_t& link) const
   {
-    link = feeID >> 8;
+    link = (feeID >> 8) & 0xf;
     uint16_t half = (feeID >> 6) & 0x1;
     uint16_t disk = (feeID >> 3) & 0x7;
     uint16_t plane = (feeID >> 2) & 0x1;
@@ -201,7 +210,7 @@ class ChipMappingMFT
     chInfo.ruType = ZoneRUType[zone][layer / 2];
 
     // count RU SW per half layers
-    //chInfo.ru = NLayers * (NZonesPerLayer / 2) * half + (NZonesPerLayer / 2) * layer + zone;
+    // chInfo.ru = NLayers * (NZonesPerLayer / 2) * half + (NZonesPerLayer / 2) * layer + zone;
 
     // count RU SW per full layers
     chInfo.ru = NZonesPerLayer * layer + (NZonesPerLayer / 2) * half + zone;
@@ -254,8 +263,11 @@ class ChipMappingMFT
   int getRUType(int zone, int layer) const { return ZoneRUType[zone % 4][layer / 2]; }
 
   static constexpr int NChips = 936, NLayers = 10, NZonesPerLayer = 2 * 4, NRUTypes = 13;
+  static constexpr Int_t NRUs = NLayers * NZonesPerLayer;
 
   const std::array<MFTChipMappingData, NChips>& getChipMappingData() const { return ChipMappingData; }
+
+  const std::array<MFTRUMappingData, NRUs>& getRUMappingData() const { return RUMappingData; }
 
   void print() const;
 
@@ -378,14 +390,96 @@ class ChipMappingMFT
     876, 877, 878, 879, 880, 881, 882, 883, 884, 885, 886, 887, 926, 927, 928,
     929, 930, 931, 932, 933, 934, 935, 888, 889, 890, 891, 892, 893, 894, 895,
     818, 819, 820, 821, 822, 823};
-
+  /*
+  // FLP_Name, FEEId, CRU_HW, idInCRU, endpoint
+  const MFTRUMapping mftHWMap[NRUs] = {
+    {"alio2-cr1-flp182", 0, 570, 0, 0},
+    {"alio2-cr1-flp182", 1, 570, 1, 0},
+    {"alio2-cr1-flp182", 2, 570, 2, 0},
+    {"alio2-cr1-flp182", 3, 570, 3, 0},
+    {"alio2-cr1-flp186", 64, 542, 4, 0},
+    {"alio2-cr1-flp186", 65, 542, 5, 0},
+    {"alio2-cr1-flp186", 66, 542, 6, 0},
+    {"alio2-cr1-flp186", 67, 542, 7, 0},
+    {"alio2-cr1-flp182", 4, 570, 4, 1},
+    {"alio2-cr1-flp182", 5, 570, 5, 1},
+    {"alio2-cr1-flp182", 6, 570, 6, 1},
+    {"alio2-cr1-flp182", 7, 570, 7, 1},
+    {"alio2-cr1-flp186", 68, 542, 8, 1},
+    {"alio2-cr1-flp186", 69, 542, 9, 1},
+    {"alio2-cr1-flp186", 70, 542, 10, 1},
+    {"alio2-cr1-flp186", 71, 542, 11, 1},
+    {"alio2-cr1-flp183", 8, 548, 0, 0},
+    {"alio2-cr1-flp183", 9, 548, 1, 0},
+    {"alio2-cr1-flp183", 10, 548, 2, 0},
+    {"alio2-cr1-flp183", 11, 548, 3, 0},
+    {"alio2-cr1-flp185", 72, 541, 4, 0},
+    {"alio2-cr1-flp185", 73, 541, 5, 0},
+    {"alio2-cr1-flp185", 74, 541, 6, 0},
+    {"alio2-cr1-flp185", 75, 541, 7, 0},
+    {"alio2-cr1-flp183", 12, 548, 4, 1},
+    {"alio2-cr1-flp183", 13, 548, 5, 1},
+    {"alio2-cr1-flp183", 14, 548, 6, 1},
+    {"alio2-cr1-flp183", 15, 548, 7, 1},
+    {"alio2-cr1-flp185", 76, 541, 8, 1},
+    {"alio2-cr1-flp185", 77, 541, 9, 1},
+    {"alio2-cr1-flp185", 78, 541, 10, 1},
+    {"alio2-cr1-flp185", 79, 541, 11, 1},
+    {"alio2-cr1-flp184", 16, 569, 0, 0},
+    {"alio2-cr1-flp184", 17, 569, 1, 0},
+    {"alio2-cr1-flp184", 18, 569, 2, 0},
+    {"alio2-cr1-flp184", 19, 569, 3, 0},
+    {"alio2-cr1-flp184", 80, 543, 4, 0},
+    {"alio2-cr1-flp184", 81, 543, 5, 0},
+    {"alio2-cr1-flp184", 82, 543, 6, 0},
+    {"alio2-cr1-flp184", 83, 543, 7, 0},
+    {"alio2-cr1-flp184", 20, 569, 4, 1},
+    {"alio2-cr1-flp184", 21, 569, 5, 1},
+    {"alio2-cr1-flp184", 22, 569, 6, 1},
+    {"alio2-cr1-flp184", 23, 569, 7, 1},
+    {"alio2-cr1-flp184", 84, 543, 8, 1},
+    {"alio2-cr1-flp184", 85, 543, 9, 1},
+    {"alio2-cr1-flp184", 86, 543, 10, 1},
+    {"alio2-cr1-flp184", 87, 543, 11, 1},
+    {"alio2-cr1-flp185", 24, 552, 0, 0},
+    {"alio2-cr1-flp185", 25, 552, 1, 0},
+    {"alio2-cr1-flp185", 26, 552, 2, 0},
+    {"alio2-cr1-flp185", 27, 552, 3, 0},
+    {"alio2-cr1-flp183", 88, 554, 4, 0},
+    {"alio2-cr1-flp183", 89, 554, 5, 0},
+    {"alio2-cr1-flp183", 90, 554, 6, 0},
+    {"alio2-cr1-flp183", 91, 554, 7, 0},
+    {"alio2-cr1-flp185", 28, 552, 4, 1},
+    {"alio2-cr1-flp185", 29, 552, 5, 1},
+    {"alio2-cr1-flp185", 30, 552, 6, 1},
+    {"alio2-cr1-flp185", 31, 552, 7, 1},
+    {"alio2-cr1-flp183", 92, 554, 8, 1},
+    {"alio2-cr1-flp183", 93, 554, 9, 1},
+    {"alio2-cr1-flp183", 94, 554, 10, 1},
+    {"alio2-cr1-flp183", 95, 554, 11, 1},
+    {"alio2-cr1-flp186", 32, 547, 0, 0},
+    {"alio2-cr1-flp186", 33, 547, 1, 0},
+    {"alio2-cr1-flp186", 34, 547, 2, 0},
+    {"alio2-cr1-flp186", 35, 547, 3, 0},
+    {"alio2-cr1-flp182", 96, 567, 4, 0},
+    {"alio2-cr1-flp182", 97, 567, 5, 0},
+    {"alio2-cr1-flp182", 98, 567, 6, 0},
+    {"alio2-cr1-flp182", 99, 567, 7, 0},
+    {"alio2-cr1-flp186", 36, 547, 4, 1},
+    {"alio2-cr1-flp186", 37, 547, 5, 1},
+    {"alio2-cr1-flp186", 38, 547, 6, 1},
+    {"alio2-cr1-flp186", 39, 547, 7, 1},
+    {"alio2-cr1-flp182", 100, 567, 8, 1},
+    {"alio2-cr1-flp182", 101, 567, 9, 1},
+    {"alio2-cr1-flp182", 102, 567, 10, 1},
+    {"alio2-cr1-flp182", 103, 567, 11, 1}};
+  */
  private:
   Int_t invalid() const;
-  static constexpr Int_t NRUs = NLayers * NZonesPerLayer;
   static constexpr Int_t NModules = 280;
   static constexpr Int_t NChipsInfo = 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 16 + 17 + 18 + 19 + 14;
   static constexpr Int_t NChipsPerCable = 1;
-  static constexpr Int_t NLinks = 1;
+  static constexpr Int_t NLinks = 12;
   static constexpr Int_t NConnectors = 5;
   static constexpr Int_t NMaxChipsPerLadder = 5;
   static constexpr Int_t NRUCables = 25;
@@ -416,6 +510,7 @@ class ChipMappingMFT
 
   static const std::array<MFTChipMappingData, NChips> ChipMappingData;
   static const std::array<MFTModuleMappingData, NModules> ModuleMappingData;
+  static const std::array<MFTRUMappingData, NRUs> RUMappingData;
 
   ///< number of chips per zone (RU)
   static constexpr std::array<int, NRUTypes> NChipsOnRUType{7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 14};
