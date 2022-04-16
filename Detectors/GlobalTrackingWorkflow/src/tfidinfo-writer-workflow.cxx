@@ -12,8 +12,15 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigParamSpec.h"
 #include "DetectorsBase/TFIDInfoHelper.h"
+#include "Framework/CompletionPolicyHelpers.h"
 
 using namespace o2::framework;
+
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*tfid-info-writer.*"));
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)

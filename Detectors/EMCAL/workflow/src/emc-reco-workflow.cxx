@@ -16,6 +16,7 @@
 
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/CompletionPolicyHelpers.h"
 #include "EMCALWorkflow/RecoWorkflow.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
@@ -26,9 +27,17 @@
 #include <stdexcept>
 #include <unordered_map>
 
+using namespace o2::framework;
+
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
   o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
+
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:EMC|emc).*[W,w]riter.*"));
 }
 
 // add workflow options, note that customization needs to be declared before
