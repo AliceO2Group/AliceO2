@@ -21,8 +21,10 @@ o2_add_library(DetectorsCalibration
                    O2::CCDB
                    O2::CommonUtils
                    ROOT::Minuit
+                   O2::Framework
                    Microsoft.GSL::GSL
                    O2::ReconstructionDataFormats
+                   O2::DetectorsBase
                    O2::SimConfig
                    O2::DataFormatsCalibration)
 

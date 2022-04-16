@@ -105,8 +105,8 @@ class TOFChannelCalibDevice : public o2::framework::Task
 
     long startTimeLHCphase;
     long startTimeChCalib;
-
-    auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime; // is this the timestamp of the current TF?
+    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
+    auto tfcounter = mCalibrator->getCurrentTFInfo().tfCounter;
 
     if (mUseCCDB) { // read calibration objects from ccdb
       LHCphase lhcPhaseObjTmp;
@@ -167,12 +167,12 @@ class TOFChannelCalibDevice : public o2::framework::Task
     if (!mCosmics) {
       auto data = pc.inputs().get<gsl::span<T>>("input");
       LOG(info) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
-      mCalibrator->process(tfcounter, data);
+      mCalibrator->process(data);
       sendOutput(pc.outputs());
     } else {
       auto data = pc.inputs().get<gsl::span<T>>("input");
       LOG(info) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
-      mCalibrator->process(tfcounter, data);
+      mCalibrator->process(data);
       sendOutput(pc.outputs());
     }
   }

@@ -77,15 +77,12 @@ class ChannelCalibratorDeviceDPL
     auto noise = pc.inputs().get<gsl::span<ColumnData>>("mid_noise");
     auto dead = pc.inputs().get<gsl::span<ColumnData>>("mid_dead");
 
-    const auto ref = pc.inputs().getFirstValid(true);
-    auto creationTime = of::DataRefUtils::getHeader<of::DataProcessingHeader*>(ref)->creation; // approximate time in ms
-
     std::vector<ColumnData> calibData;
     calibData.insert(calibData.end(), noise.begin(), noise.end());
     calibData.insert(calibData.end(), dead.begin(), dead.end());
-
     mCalibrator.addEvents(nEvents);
-    mCalibrator.process(creationTime, calibData);
+    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator.getCurrentTFInfo());
+    mCalibrator.process(calibData);
   }
 
   void endOfStream(of::EndOfStreamContext& ec)

@@ -15,6 +15,7 @@
 #include <memory>
 #include <Rtypes.h>
 #include "Framework/Logger.h"
+#include "CommonDataFormat/TFIDInfo.h"
 
 /// @brief Wrapper for the container of calibration data for single time slot
 

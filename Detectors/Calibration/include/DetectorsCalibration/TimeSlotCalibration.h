@@ -15,13 +15,19 @@
 /// @brief Processor for the multiple time slots calibration
 
 #include "DetectorsCalibration/TimeSlot.h"
+#include "DetectorsBase/TFIDInfoHelper.h"
+#include "CommonDataFormat/TFIDInfo.h"
 #include <deque>
 #include <gsl/gsl>
 #include <limits>
+#include <type_traits>
 
 namespace o2
 {
-
+namespace framework
+{
+class ProcessingContext;
+}
 namespace calibration
 {
 
@@ -58,8 +64,8 @@ class TimeSlotCalibration
   const Slot& getFirstSlot() const { return (Slot&)mSlots.front(); }
 
   template <typename DATA>
-  bool process(TFType tf, const DATA& data);
-  virtual bool process(TFType tf, const gsl::span<const Input> data);
+  bool process(const DATA& data);
+  virtual bool process(const gsl::span<const Input> data);
   virtual void checkSlotsToFinalize(TFType tf, int maxDelay = 0);
   virtual void finalizeOldestSlot();
 
@@ -76,11 +82,36 @@ class TimeSlotCalibration
 
   virtual void print() const;
 
-  void setCurrentTFInfo(uint32_t firstOrbit, uint32_t tfCounter, uint32_t runNumber, uint64_t creation);
-  auto getTFfirstOrbit() const { return mTFfirstOrbit; }
-  auto getTFcounter() const { return mTFcounter; }
-  auto getTFrunNumber() const { return mTFrunNumber; }
-  auto getTFcreationTime() const { return mTFcreationTime; }
+  const o2::dataformats::TFIDInfo& getCurrentTFInfo() const { return mCurrentTFInfo; }
+  o2::dataformats::TFIDInfo& getCurrentTFInfo() { return mCurrentTFInfo; }
+
+  // from  https://stackoverflow.com/questions/87372/check-if-a-class-has-a-member-function-of-a-given-signature
+  // Primary template with a static assertion
+  // for a meaningful error message
+  // if it ever gets instantiated.
+  // We could leave it undefined if we didn't care.
+  template <typename, typename T>
+  struct has_fill_method {
+    static_assert(
+      std::integral_constant<T, false>::value,
+      "Second template parameter needs to be of function type.");
+  };
+
+  // specialization that does the checking
+
+  template <typename C, typename Ret, typename... Args>
+  struct has_fill_method<C, Ret(Args...)> {
+   private:
+    template <typename T>
+    static constexpr auto check(T*)
+      -> typename std::is_same<decltype(std::declval<T>().fill(std::declval<Args>()...)), Ret>::type; // attempt to call it and see if the return type is correct
+    template <typename>
+    static constexpr std::false_type check(...);
+    typedef decltype(check<C>(nullptr)) type;
+
+   public:
+    static constexpr bool value = type::value;
+  };
 
  protected:
   auto& getSlots() { return mSlots; }
@@ -89,10 +120,7 @@ class TimeSlotCalibration
 
   std::deque<Slot> mSlots;
 
-  uint32_t mTFfirstOrbit = 0;
-  uint32_t mTFcounter = 0;
-  uint32_t mTFrunNumber = 0;
-  uint64_t mTFcreationTime = 0;
+  o2::dataformats::TFIDInfo mCurrentTFInfo{};
 
   TFType mLastClosedTF = 0;
   TFType mFirstTF = 0;
@@ -117,10 +145,11 @@ class TimeSlotCalibration
 //_________________________________________________
 template <typename Input, typename Container>
 template <typename DATA>
-bool TimeSlotCalibration<Input, Container>::process(TFType tf, const DATA& data)
+bool TimeSlotCalibration<Input, Container>::process(const DATA& data)
 {
 
   // process current TF
+  TFType tf = mCurrentTFInfo.startTime;
 
   int maxDelay = mMaxSlotsDelay * mSlotLength;
   if (!mUpdateAtTheEndOfRunOnly) {                                                               // if you update at the end of run only, then you accept everything
@@ -132,9 +161,13 @@ bool TimeSlotCalibration<Input, Container>::process(TFType tf, const DATA& data)
       return false;
     }
   }
-
   auto& slotTF = getSlotForTF(tf);
-  slotTF.getContainer()->fill(data);
+  using Cont_t = typename std::remove_pointer<decltype(slotTF.getContainer())>::type;
+  if constexpr (has_fill_method<Cont_t, void(const o2::dataformats::TFIDInfo&, const DATA&)>::value) {
+    slotTF.getContainer()->fill(mCurrentTFInfo, data);
+  } else {
+    slotTF.getContainer()->fill(data);
+  }
   if (tf > mMaxSeenTF) {
     mMaxSeenTF = tf; // keep track of the most recent TF processed
   }
@@ -148,10 +181,11 @@ bool TimeSlotCalibration<Input, Container>::process(TFType tf, const DATA& data)
 
 //_________________________________________________
 template <typename Input, typename Container>
-bool TimeSlotCalibration<Input, Container>::process(TFType tf, const gsl::span<const Input> data)
+bool TimeSlotCalibration<Input, Container>::process(const gsl::span<const Input> data)
 {
 
   // process current TF
+  TFType tf = mCurrentTFInfo.startTime;
 
   int maxDelay = mMaxSlotsDelay * mSlotLength;
   if (!mUpdateAtTheEndOfRunOnly) {                                                               // if you update at the end of run only, then you accept everything
@@ -165,7 +199,12 @@ bool TimeSlotCalibration<Input, Container>::process(TFType tf, const gsl::span<c
   }
 
   auto& slotTF = getSlotForTF(tf);
-  slotTF.getContainer()->fill(data);
+  using Cont_t = typename std::remove_pointer<decltype(slotTF.getContainer())>::type;
+  if constexpr (has_fill_method<Cont_t, void(const o2::dataformats::TFIDInfo&, const gsl::span<const Input>)>::value) {
+    slotTF.getContainer()->fill(mCurrentTFInfo, data);
+  } else {
+    slotTF.getContainer()->fill(data);
+  }
   if (tf > mMaxSeenTF) {
     mMaxSeenTF = tf; // keep track of the most recent TF processed
   }
@@ -325,7 +364,7 @@ TimeSlot<Container>& TimeSlotCalibration<Input, Container>::getSlotForTF(TFType 
 
   return mSlots.back();
 }
-
+/*
 //_________________________________________________
 template <typename Input, typename Container>
 void TimeSlotCalibration<Input, Container>::setCurrentTFInfo(uint32_t firstOrbit, uint32_t tfCounter, uint32_t runNumber, uint64_t creation)
@@ -335,7 +374,7 @@ void TimeSlotCalibration<Input, Container>::setCurrentTFInfo(uint32_t firstOrbit
   mTFrunNumber = runNumber;
   mTFcreationTime = creation;
 }
-
+*/
 //_________________________________________________
 template <typename Input, typename Container>
 void TimeSlotCalibration<Input, Container>::print() const

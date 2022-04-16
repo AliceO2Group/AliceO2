@@ -86,16 +86,15 @@ class CalibratordEdxDevice : public Task
 
   void run(ProcessingContext& pc) final
   {
-    const auto tfcounter = o2::header::get<DataProcessingHeader*>(pc.inputs().get("tracks").header)->startTime;
     const auto tracks = pc.inputs().get<gsl::span<tpc::TrackTPC>>("tracks");
-
-    LOGP(info, "Processing TF {} with {} tracks", tfcounter, tracks.size());
-    mRunNumber = processing_helpers::getRunNumber(pc);
-    mCalibrator->process(tfcounter, tracks);
+    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
+    LOGP(info, "Processing TF {} with {} tracks", mCalibrator->getCurrentTFInfo().tfCounter, tracks.size());
+    mRunNumber = mCalibrator->getCurrentTFInfo().runNumber;
+    mCalibrator->process(tracks);
     sendOutput(pc.outputs());
 
     const auto& infoVec = mCalibrator->getTFinterval();
-    LOGP(info, "Created {} objects for TF {}", infoVec.size(), tfcounter);
+    LOGP(info, "Created {} objects for TF {}", infoVec.size(), mCalibrator->getCurrentTFInfo().tfCounter);
   }
 
   void endOfStream(EndOfStreamContext& eos) final
