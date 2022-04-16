@@ -12,6 +12,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicy.h"
 #include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
+#include "Framework/CompletionPolicyHelpers.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
 #include "TPCReaderWorkflow/TrackReaderSpec.h"
 #include "TOFWorkflowIO/ClusterReaderSpec.h"
@@ -37,6 +38,12 @@ using GID = o2::dataformats::GlobalTrackID;
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
   o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
+
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:TOF|tof).*[W,w]riter.*"));
 }
 
 // we need to add workflow options before including Framework/runDataProcessing

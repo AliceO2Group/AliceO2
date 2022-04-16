@@ -25,6 +25,7 @@
 #include "Algorithm/RangeTokenizer.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
+#include "Framework/CompletionPolicyHelpers.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 
 using namespace o2::framework;
@@ -36,14 +37,18 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
   o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
 }
 
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:ITS|its).*[W,w]riter.*"));
+}
+
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
-    {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
-    {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use: allowed TPC-TOF,ITS-TPC-TOF,TPC-TRD-TOF,ITS-TPC-TRD-TOF (all)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -64,14 +69,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::writeINI("o2match-check-tof-workflow_configuration.ini");
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
-  auto disableRootIn = configcontext.options().get<bool>("disable-root-input");
-  auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
 
   LOG(debug) << "TOF MATCHER WORKFLOW configuration";
   LOG(debug) << "TOF track inputs = " << configcontext.options().get<std::string>("track-sources");
   LOG(debug) << "TOF disable-mc = " << configcontext.options().get<std::string>("disable-mc");
-  LOG(debug) << "TOF disable-root-input = " << disableRootIn;
-  LOG(debug) << "TOF disable-root-output = " << disableRootOut;
 
   GID::mask_t alowedSources = GID::getSourcesMask("ITS-TPC-TOF,TPC-TOF,ITS-TPC-TRD-TOF,TPC-TRD-TOF");
 
