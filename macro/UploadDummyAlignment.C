@@ -27,7 +27,7 @@ void UploadDummyAlignment(const std::string& ccdbHost = "http://ccdb-test.cern.c
     map<string, string> metadata; // can be empty
     DetID det(id);
     metadata["comment"] = fmt::format("Empty alignment object for {}", det.getName());
-    metadata["default"] = "true";
+    metadata["default"] = "true"; // tag default objects
     api.storeAsTFileAny(&params, o2::base::DetectorNameConf::getAlignmentPath(det), metadata, tmin, tmax);
     LOG(info) << "Uploaded dummy alignment for " << det.getName();
   }
