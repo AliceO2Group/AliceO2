@@ -123,13 +123,13 @@ void GPUChainTracking::ConvertRun2RawToNative()
   }
 }
 
-void GPUChainTracking::ConvertZSEncoder(bool zs12bit)
+void GPUChainTracking::ConvertZSEncoder(int version)
 {
 #ifdef GPUCA_HAVE_O2HEADERS
   mIOMem.tpcZSmeta2.reset(new GPUTrackingInOutZS::GPUTrackingInOutZSMeta);
   mIOMem.tpcZSmeta.reset(new GPUTrackingInOutZS);
   o2::InteractionRecord ir{0, mIOPtrs.settingsTF && mIOPtrs.settingsTF->hasTfStartOrbit ? mIOPtrs.settingsTF->tfStartOrbit : 0u};
-  GPUReconstructionConvert::RunZSEncoder(*mIOPtrs.tpcPackedDigits, &mIOMem.tpcZSpages, &mIOMem.tpcZSmeta2->n[0][0], nullptr, &ir, param(), zs12bit, true);
+  GPUReconstructionConvert::RunZSEncoder(*mIOPtrs.tpcPackedDigits, &mIOMem.tpcZSpages, &mIOMem.tpcZSmeta2->n[0][0], nullptr, &ir, param(), version, true);
   GPUReconstructionConvert::RunZSEncoderCreateMeta(mIOMem.tpcZSpages.get(), &mIOMem.tpcZSmeta2->n[0][0], &mIOMem.tpcZSmeta2->ptr[0][0], mIOMem.tpcZSmeta.get());
   mIOPtrs.tpcZS = mIOMem.tpcZSmeta.get();
   if (GetProcessingSettings().registerStandaloneInputMemory) {

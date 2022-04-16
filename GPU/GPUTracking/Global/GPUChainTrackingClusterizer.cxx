@@ -525,7 +525,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 
         if (mIOPtrs.tpcZS) {
           int firstHBF = (mIOPtrs.settingsTF && mIOPtrs.settingsTF->hasTfStartOrbit) ? mIOPtrs.settingsTF->tfStartOrbit : (mIOPtrs.tpcZS->slice[iSlice].count[0] && mIOPtrs.tpcZS->slice[iSlice].nZSPtr[0][0]) ? o2::raw::RDHUtils::getHeartBeatOrbit(*(const o2::header::RAWDataHeader*)mIOPtrs.tpcZS->slice[iSlice].zsPtr[0][0]) : 0;
-          if (mCFContext->zsVersion >= 1 || mCFContext->zsVersion <= 2) {
+          if (mCFContext->zsVersion >= 1 && mCFContext->zsVersion <= 2) {
             runKernel<GPUTPCCFDecodeZS, GPUTPCCFDecodeZS::decodeZS>(GetGridBlk(doGPU ? clusterer.mPmemory->counters.nPagesSubslice : GPUTrackingInOutZS::NENDPOINTS, lane), {iSlice}, {}, firstHBF);
           } else {
             GPUFatal("Data with invalid TPC ZS mode received");
