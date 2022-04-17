@@ -233,24 +233,24 @@ class Mapper
     return pos;
   }
 
-  const PadPos padPosRegion(const int cruNumber, const int fecInRegion, const int sampaOnFEC,
+  const PadPos padPosRegion(const int cruNumber, const int fecInPartition, const int sampaOnFEC,
                             const int channelOnSAMPA) const
   {
     const CRU cru(cruNumber);
     const PadRegionInfo& regionInfo = mMapPadRegionInfo[cru.region()];
     const PartitionInfo& partInfo = mMapPartitionInfo[cru.partition()];
-    const int fecInSector = partInfo.getSectorFECOffset() + fecInRegion;
+    const int fecInSector = partInfo.getSectorFECOffset() + fecInPartition;
     const GlobalPadNumber padNumber = globalPadNumber(fecInSector, sampaOnFEC, channelOnSAMPA);
     PadPos pos = padPos(padNumber);
     pos.setRow(pos.getRow() - regionInfo.getGlobalRowOffset());
     return pos;
   }
 
-  const PadROCPos padROCPos(const CRU cru, const int fecInRegion, const int sampaOnFEC,
+  const PadROCPos padROCPos(const CRU cru, const int fecInPartition, const int sampaOnFEC,
                             const int channelOnSAMPA) const
   {
     const PartitionInfo& partInfo = mMapPartitionInfo[cru.partition()];
-    const int fecInSector = partInfo.getSectorFECOffset() + fecInRegion;
+    const int fecInSector = partInfo.getSectorFECOffset() + fecInPartition;
     const GlobalPadNumber padNumber = globalPadNumber(fecInSector, sampaOnFEC, channelOnSAMPA);
     const ROC roc = cru.roc();
     PadROCPos pos(roc, padPos(padNumber));
@@ -260,11 +260,11 @@ class Mapper
     return pos;
   }
 
-  const PadSecPos padSecPos(const CRU cru, const int fecInRegion, const int sampaOnFEC,
+  const PadSecPos padSecPos(const CRU cru, const int fecInPartition, const int sampaOnFEC,
                             const int channelOnSAMPA) const
   {
     const PartitionInfo& partInfo = mMapPartitionInfo[cru.partition()];
-    const int fecInSector = partInfo.getSectorFECOffset() + fecInRegion;
+    const int fecInSector = partInfo.getSectorFECOffset() + fecInPartition;
     const GlobalPadNumber padNumber = globalPadNumber(fecInSector, sampaOnFEC, channelOnSAMPA);
     PadSecPos pos(cru.sector(), padPos(padNumber));
     return pos;
