@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <vector>
 #include <map>
+#include "DataFormatsEMCAL/MCLabel.h"
 #include "DataFormatsEMCAL/Digit.h"
 #include "EMCALReconstruction/Bunch.h"
 
@@ -30,6 +31,8 @@ namespace emcal
 struct AltroBunch {
   int mStarttime;         ///< Start time of the bunch
   std::vector<int> mADCs; ///< ADCs belonging to the bunch
+  std::multimap<int, std::vector<o2::emcal::MCLabel>> mEnergyLabels;
+  std::vector<o2::emcal::MCLabel> mLabels;
 };
 
 /// \struct ChannelData
@@ -52,6 +55,7 @@ struct SRUDigitContainer {
 struct ChannelDigits {
   o2::emcal::ChannelType_t mChanType;
   std::vector<const o2::emcal::Digit*> mChannelDigits;
+  std::vector<gsl::span<const o2::emcal::MCLabel>> mChannelLabels;
 };
 
 /// \struct DigitContainerPerSRU
@@ -63,7 +67,10 @@ struct DigitContainerPerSRU {
 
 struct ChannelBunchData {
   o2::emcal::ChannelType_t mChanType;
-  std::vector<o2::emcal::Bunch> mChannelsBunches;
+  std::vector<o2::emcal::Bunch> mChannelsBunchesHG;
+  std::vector<o2::emcal::Bunch> mChannelsBunchesLG;
+  std::vector<std::vector<o2::emcal::MCLabel>> mChannelLabelsHG;
+  std::vector<std::vector<o2::emcal::MCLabel>> mChannelLabelsLG;
 };
 
 /// \struct SRUBunchContainer
