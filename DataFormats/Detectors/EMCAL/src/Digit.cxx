@@ -14,93 +14,132 @@
 
 using namespace o2::emcal;
 
-Digit::Digit(Short_t tower, Double_t amplitudeGeV, Double_t time, ChannelType_t ctype)
-  : DigitBase(time), mTower(tower), mChannelType(ctype)
+Digit::Digit(Short_t tower, Double_t amplitudeGeV, Double_t time)
+  : DigitBase(time), mTower(tower), mAmplitudeGeV(amplitudeGeV)
 {
-  setAmplitude(amplitudeGeV);
+}
+
+Digit::Digit(Short_t tower, uint16_t noiseLG, uint16_t noiseHG, Double_t time)
+  : DigitBase(time), mNoiseLG(noiseLG), mNoiseHG(noiseHG), mTower(tower)
+{
 }
 
 Digit& Digit::operator+=(const Digit& other)
 {
   if (canAdd(other)) {
-    Int_t a = getAmplitudeADC() + other.getAmplitudeADC();
-    Short_t s = (Short_t)(a);
-
-    if (a < -0x8000) {
-      setAmplitudeADC(-0x8000);
-    } else if (a <= constants::EMCAL_HGLGTRANSITION) {
-      setAmplitudeADC(s);
-    } else if (a <= 0x7fff * constants::EMCAL_HGLGFACTOR) {
-      setAmplitudeADC(s / constants::EMCAL_HGLGFACTOR, ChannelType_t::LOW_GAIN);
-    } else {
-      setAmplitudeADC(0x7fff, ChannelType_t::LOW_GAIN);
-    }
+    mAmplitudeGeV += other.mAmplitudeGeV;
+    mNoiseHG += other.mNoiseHG;
+    mNoiseLG += other.mNoiseLG;
   }
-  // Does nothing if the digits are in different towers or have incompatible times.
   return *this;
 }
 
 void Digit::setAmplitudeADC(Short_t amplitude, ChannelType_t ctype)
 {
-  if (ctype == ChannelType_t::LOW_GAIN) {
-    if (amplitude > (constants::EMCAL_HGLGTRANSITION / constants::EMCAL_HGLGFACTOR)) {
-      mAmplitude = amplitude;
-      mChannelType = ChannelType_t::LOW_GAIN;
-    } else if (amplitude < (-0x8000 / constants::EMCAL_HGLGFACTOR)) {
-      mAmplitude = -0x8000;
-      mChannelType = ChannelType_t::HIGH_GAIN;
-    } else {
-      mAmplitude = amplitude * constants::EMCAL_HGLGFACTOR;
-      mChannelType = ChannelType_t::HIGH_GAIN;
-    }
-  } else {
-    if (amplitude > constants::EMCAL_HGLGTRANSITION) {
-      mAmplitude = amplitude / constants::EMCAL_HGLGFACTOR;
-      mChannelType = ChannelType_t::LOW_GAIN;
-    } else {
-      mAmplitude = amplitude;
-      mChannelType = ctype;
-    }
+
+  // truncate energy in case dynamic range is saturated
+  if (amplitude >= constants::MAX_RANGE_ADC) {
+    amplitude = constants::MAX_RANGE_ADC;
   }
+
+  switch (ctype) {
+    case ChannelType_t::HIGH_GAIN: {
+      mAmplitudeGeV = amplitude * constants::EMCAL_ADCENERGY;
+      break;
+    };
+    case ChannelType_t::LOW_GAIN: {
+      mAmplitudeGeV = amplitude * (constants::EMCAL_ADCENERGY * constants::EMCAL_HGLGFACTOR);
+      break;
+    };
+    case ChannelType_t::TRU: {
+      mAmplitudeGeV = amplitude * constants::EMCAL_TRU_ADCENERGY;
+      break;
+    };
+
+    default:
+      // can only be LEDMon which is not simulated
+      mAmplitudeGeV = 0.;
+      break;
+  };
 }
 
 Int_t Digit::getAmplitudeADC(ChannelType_t ctype) const
 {
-  if (ctype == ChannelType_t::LOW_GAIN) {
-    // return in units of Low-Gain ADC counts
-    if (mChannelType == ChannelType_t::LOW_GAIN) {
-      return (Int_t)(mAmplitude);
-    } else {
-      return mAmplitude / constants::EMCAL_HGLGFACTOR;
-    }
-  }
 
-  // return in units of High-Gain ADC counts (default)
-  if (mChannelType == ChannelType_t::LOW_GAIN) {
-    return mAmplitude * constants::EMCAL_HGLGFACTOR;
-  }
+  switch (ctype) {
+    case ChannelType_t::HIGH_GAIN: {
+      int ampADC = std::floor(mAmplitudeGeV / constants::EMCAL_ADCENERGY);
+      // truncate energy in case dynamic range is saturated
+      if (ampADC >= constants::MAX_RANGE_ADC) {
+        return constants::MAX_RANGE_ADC;
+      }
+      return ampADC + mNoiseHG;
+    };
+    case ChannelType_t::LOW_GAIN: {
+      int ampADC = std::floor(mAmplitudeGeV / (constants::EMCAL_ADCENERGY * constants::EMCAL_HGLGFACTOR));
+      // truncate energy in case dynamic range is saturated
+      if (ampADC >= constants::MAX_RANGE_ADC) {
+        return constants::MAX_RANGE_ADC;
+      }
+      return ampADC + mNoiseLG;
+    };
+    case ChannelType_t::TRU: {
+      int ampADC = std::floor(mAmplitudeGeV / constants::EMCAL_TRU_ADCENERGY);
+      // truncate energy in case dynamic range is saturated
+      if (ampADC >= constants::EMCAL_TRU_ADCENERGY) {
+        return constants::EMCAL_TRU_ADCENERGY;
+      }
+      return ampADC;
+    };
 
-  return (Int_t)(mAmplitude);
+    default:
+      // can only be LEDMon which is not simulated
+      return 0;
+  };
 }
 
-void Digit::setAmplitude(Double_t amplitude)
+Double_t Digit::getAmplitude() const
 {
-  if (amplitude < (-0x8000 * constants::EMCAL_ADCENERGY)) {
-    setAmplitudeADC(-0x8000, ChannelType_t::HIGH_GAIN);
-  } else if (amplitude <= (constants::EMCAL_HGLGTRANSITION * constants::EMCAL_ADCENERGY)) {
-    Short_t a = (Short_t)(std::floor(amplitude / constants::EMCAL_ADCENERGY));
-    setAmplitudeADC(a, ChannelType_t::HIGH_GAIN);
-  } else if (amplitude <= (0x7fff * constants::EMCAL_ADCENERGY * constants::EMCAL_HGLGFACTOR)) {
-    Short_t a = (Short_t)(std::floor(amplitude / (constants::EMCAL_ADCENERGY * constants::EMCAL_HGLGFACTOR)));
-    setAmplitudeADC(a, ChannelType_t::LOW_GAIN);
-  } else {
-    setAmplitudeADC(0x7fff, ChannelType_t::LOW_GAIN);
+  double noise = 0;
+
+  switch (getType()) {
+    case ChannelType_t::HIGH_GAIN: {
+      noise = mNoiseHG * constants::EMCAL_ADCENERGY;
+      return mAmplitudeGeV + noise;
+    };
+    case ChannelType_t::LOW_GAIN: {
+      noise = mNoiseLG * (constants::EMCAL_ADCENERGY * constants::EMCAL_HGLGFACTOR);
+      return mAmplitudeGeV + noise;
+    };
+    case ChannelType_t::TRU: {
+      noise = mNoiseHG * constants::EMCAL_TRU_ADCENERGY;
+      return mAmplitudeGeV + noise;
+    };
+
+    default:
+      // can only be LEDMon which is not simulated
+      return 0;
+  };
+}
+
+ChannelType_t Digit::getType() const
+{
+
+  if (mIsTRU) {
+    return ChannelType_t::TRU;
   }
+  constexpr double ENERGYHGLGTRANISITION = (constants::EMCAL_HGLGTRANSITION * constants::EMCAL_ADCENERGY);
+
+  if (mAmplitudeGeV < ENERGYHGLGTRANISITION) {
+    return ChannelType_t::HIGH_GAIN;
+  }
+
+  return ChannelType_t::LOW_GAIN;
 }
 
 void Digit::PrintStream(std::ostream& stream) const
 {
-  stream << "EMCAL Digit: Tower " << mTower << ", Time " << getTimeStamp() << ", Amplitude " << getAmplitude() << " GeV, Type " << mChannelType;
+  stream << "EMCAL Digit: Tower " << mTower << ", Time " << getTimeStamp() << ", Amplitude " << getAmplitude() << " GeV, Type " << channelTypeToString(getType());
 }
 
 std::ostream& operator<<(std::ostream& stream, const Digit& digi)
