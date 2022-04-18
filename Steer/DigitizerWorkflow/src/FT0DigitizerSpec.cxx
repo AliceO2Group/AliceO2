@@ -157,8 +157,12 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
   //
   bool mDisableQED = false;
+<<<<<<< HEAD
   bool mUseCCDB = true;
   bool mUpdateCCDB = true;
+=======
+  bool mUseCCDB = false;
+>>>>>>> miscalibration
   std::vector<TChain*> mSimChains;
 };
 
@@ -181,8 +185,13 @@ o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel, bool mctruth, 
   inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   if (useCCDB) {
     inputs.emplace_back("ft0offsets", "FT0", "TimeOffset", 0,
+<<<<<<< HEAD
                         Lifetime::Condition,
                         ccdbParamSpec("FT0/Calibration/ChannelTimeOffset"));
+=======
+                         Lifetime::Condition,
+                         ccdbParamSpec("FT0/Calibration/ChannelTimeOffset"));
+>>>>>>> miscalibration
   }
   return DataProcessorSpec{
     "FT0Digitizer",
