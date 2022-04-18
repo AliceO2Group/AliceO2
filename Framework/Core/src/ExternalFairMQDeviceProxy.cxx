@@ -241,6 +241,10 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
       }
       const_cast<DataProcessingHeader*>(dph)->startTime = dplCounter;
       timingInfo.timeslice = dph->startTime;
+      timingInfo.creation = dph->creation;
+      timingInfo.firstTFOrbit = dh->firstTForbit;
+      timingInfo.runNumber = dh->runNumber;
+      timingInfo.tfCounter = dh->tfCounter;
       LOG(debug) << msgidx << ": " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}) << " part " << dh->splitPayloadIndex << " of " << dh->splitPayloadParts << "  payload " << parts.At(msgidx + 1)->GetSize();
 
       OutputSpec query{dh->dataOrigin, dh->dataDescription, dh->subSpecification};
