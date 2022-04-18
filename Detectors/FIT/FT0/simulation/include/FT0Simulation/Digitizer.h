@@ -162,6 +162,7 @@ class Digitizer
                std::vector<o2::ft0::ChannelData>& digitsCh,
                std::vector<o2::ft0::DetTrigInput>& digitsTrig,
                o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels);
+
   o2::ft0::FT0ChannelTimeCalibrationObject const* mCalibOffset = nullptr;
 
 <<<<<<< HEAD

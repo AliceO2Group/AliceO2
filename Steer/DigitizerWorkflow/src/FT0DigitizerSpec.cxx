@@ -81,9 +81,16 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     context->initSimChains(o2::detectors::DetID::FT0, mSimChains);
     const bool withQED = context->isQEDProvided() && !mDisableQED;
     auto& timesview = context->getEventRecords(withQED);
+<<<<<<< HEAD
     //set CCDB for miscalibration
     if (mUseCCDB) {
       auto caliboffsets = pc.inputs().get<o2::ft0::FT0ChannelTimeCalibrationObject*>("ft0offsets");
+=======
+
+    if (mUseCCDB) {
+      //     mCalibApi->setTimeStamp(o2::raw::HBFUtils::Instance().startTime);
+     auto caliboffsets = pc.inputs().get<o2::ft0::FT0ChannelTimeCalibrationObject*>("ft0offsets");
+>>>>>>> miscalibration
       mDigitizer.SetChannelOffset(caliboffsets.get());
     }
     // if there is nothing to do ... return
@@ -157,8 +164,15 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
   //
   bool mDisableQED = false;
+<<<<<<< HEAD
   bool mUseCCDB = true;
+<<<<<<< HEAD
   bool mUpdateCCDB = true;
+=======
+=======
+  bool mUseCCDB = false;
+>>>>>>> miscalibration
+>>>>>>> miscalibration
   std::vector<TChain*> mSimChains;
 };
 
