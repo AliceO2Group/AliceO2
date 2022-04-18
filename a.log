@@ -1,0 +1,749 @@
+Steer/DigitizerWorkflow/src/ZDCDigitizerSpec.cxx:    // TODO: this should eventually come from the framework and depend on the TF timestamp
+Steer/DigitizerWorkflow/src/PHOSDigitizerSpec.cxx:    mDigitizer.setRunStartTime(runStartTime); //set timestamp to access CCDB if necessary
+Steer/DigitizerWorkflow/src/FDDDigitizerSpec.cxx:    // TODO: this should eventually come from the framework and depend on the TF timestamp
+CCDB/src/UploadTool.cxx:    "starttimestamp,st", bpo::value<long>()->default_value(-1), "timestamp - default -1 = now")(
+CCDB/src/UploadTool.cxx:    "endtimestamp,et", bpo::value<long>()->default_value(-1), "end of validity - default -1 = 1 day from now")(
+CCDB/src/UploadTool.cxx:  long starttimestamp = vm["starttimestamp"].as<long>();
+CCDB/src/UploadTool.cxx:  if (starttimestamp == -1) {
+CCDB/src/UploadTool.cxx:    starttimestamp = o2::ccdb::getCurrentTimestamp();
+CCDB/src/UploadTool.cxx:  long endtimestamp = vm["endtimestamp"].as<long>();
+CCDB/src/UploadTool.cxx:  if (endtimestamp == -1) {
+CCDB/src/UploadTool.cxx:    endtimestamp = o2::ccdb::getFutureTimestamp(SECONDSPERDAY);
+CCDB/src/UploadTool.cxx:              << " to path " << path << " with timestamp validy from " << starttimestamp
+CCDB/src/UploadTool.cxx:              << " to " << endtimestamp << "\n";
+CCDB/src/UploadTool.cxx:    api.storeAsTFile_impl(object, *ti, path, meta, starttimestamp, endtimestamp);
+CCDB/src/DownloadCCDBFile.cxx:    "timestamp,t", bpo::value<long>()->default_value(-1), "timestamp - default -1 = now")(
+CCDB/src/DownloadCCDBFile.cxx:  long timestamp = vm["timestamp"].as<long>();
+CCDB/src/DownloadCCDBFile.cxx:  if (timestamp == -1) {
+CCDB/src/DownloadCCDBFile.cxx:    timestamp = o2::ccdb::getCurrentTimestamp();
+CCDB/src/DownloadCCDBFile.cxx:  std::cout << "Querying host " << host << " for path " << path << " and timestamp " << timestamp << "\n";
+CCDB/src/DownloadCCDBFile.cxx:  auto success = api.retrieveBlob(path, dest, filter, timestamp, no_preserve_path, filename);
+CCDB/src/CCDBTimeStampUtils.cxx:/// returns the timestamp in long corresponding to "now"
+CCDB/src/CcdbApi.cxx:    cout << "Start of Validity not set, current timestamp used." << endl;
+CCDB/src/CcdbApi.cxx:  // Prepare timestamps
+CCDB/src/CcdbApi.cxx:string CcdbApi::getFullUrlForRetrieval(CURL* curl, const string& path, const map<string, string>& metadata, long timestamp) const
+CCDB/src/CcdbApi.cxx:  // Prepare timestamps
+CCDB/src/CcdbApi.cxx:  string validityString = getTimestampString(timestamp < 0 ? getCurrentTimestamp() : timestamp);
+CCDB/src/CcdbApi.cxx:                           long timestamp) const
+CCDB/src/CcdbApi.cxx:  string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
+CCDB/src/CcdbApi.cxx:  // generate file name for the CCDB object  (for now augment the input string by the timestamp)
+CCDB/src/CcdbApi.cxx:                                    long timestamp, std::map<std::string, std::string>* headers, std::string const& etag,
+CCDB/src/CcdbApi.cxx:  string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
+CCDB/src/CcdbApi.cxx:    list = curl_slist_append(list, ("If-None-Match: " + to_string(timestamp)).c_str());
+CCDB/src/CcdbApi.cxx:                           long timestamp, bool preservePath, std::string const& localFileName) const
+CCDB/src/CcdbApi.cxx:  auto headers = retrieveHeaders(path, metadata, timestamp);
+CCDB/src/CcdbApi.cxx:  string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
+CCDB/src/CcdbApi.cxx:    CCDBQuery querysummary(path, metadata, timestamp);
+CCDB/src/CcdbApi.cxx:void CcdbApi::snapshot(std::string const& ccdbrootpath, std::string const& localDir, long timestamp) const
+CCDB/src/CcdbApi.cxx:    retrieveBlob(folder, localDir, metadata, timestamp);
+CCDB/src/CcdbApi.cxx:                                 std::map<std::string, std::string> const& metadata, long timestamp,
+CCDB/src/CcdbApi.cxx:  // many isolated processes, all querying the CCDB (for potentially the same objects and same timestamp).
+CCDB/src/CcdbApi.cxx:      out << "CCDB-access[" << getpid() << "] to " << path << " timestamp " << timestamp << "\n";
+CCDB/src/CcdbApi.cxx:      retrieveBlob(path, cachedir, metadata, timestamp);
+CCDB/src/CcdbApi.cxx:  string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
+CCDB/src/CcdbApi.cxx:    list = curl_slist_append(list, ("If-None-Match: " + to_string(timestamp)).c_str());
+CCDB/src/CcdbApi.cxx:std::string CcdbApi::getTimestampString(long timestamp) const
+CCDB/src/CcdbApi.cxx:  ss << timestamp;
+CCDB/src/CcdbApi.cxx:void CcdbApi::deleteObject(std::string const& path, long timestamp) const
+CCDB/src/CcdbApi.cxx:  long timestampLocal = timestamp == -1 ? getCurrentTimestamp() : timestamp;
+CCDB/src/CcdbApi.cxx:  fullUrl << mUrl << "/" << path << "/" << timestampLocal;
+CCDB/src/CcdbApi.cxx:std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp) const
+CCDB/src/CcdbApi.cxx:  string fullUrl = getFullUrlForRetrieval(curl, path, metadata, timestamp);
+CCDB/src/CcdbApi.cxx:    list = curl_slist_append(list, ("If-None-Match: " + std::to_string(timestamp)).c_str());
+CCDB/src/CcdbApi.cxx:void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id)
+CCDB/src/CcdbApi.cxx:  fullUrl << mUrl << "/" << path << "/" << timestamp;
+CCDB/src/CCDBQuery.cxx:  std::cout << "timestamp : " << timestamp << "\n";
+CCDB/test/testCcdbApi.cxx:/// A test verifying that the DB responds the correct result for given timestamps
+CCDB/test/testCcdbApi.cxx:BOOST_AUTO_TEST_CASE(timestamptest, *utf::precondition(if_reachable()))
+CCDB/test/testCcdbApi.cxx:  const long timestamp = 1000;             // inclusive start of validity
+CCDB/test/testCcdbApi.cxx:  const long endvalidity = timestamp + 10; // exclusive end of validitiy
+CCDB/test/testCcdbApi.cxx:  f.api.storeAsTFileAny(&path, basePath + "CCDBPathUnitTest", f.metadata, timestamp, endvalidity);
+CCDB/test/testCcdbApi.cxx:  path2 = f.api.retrieveFromTFileAny<o2::ccdb::IdPath>(basePath + "CCDBPathUnitTest", f.metadata, timestamp);
+CCDB/test/testCcdbApi.cxx:  for (int t = timestamp; t < endvalidity; ++t) {
+CCDB/test/testCcdbApi.cxx:  auto plower = f.api.retrieveFromTFileAny<o2::ccdb::IdPath>(basePath + "CCDBPathUnitTest", f.metadata, timestamp - 1);
+CCDB/include/CCDB/BasicCCDBManager.h:/// The class encapsulates timestamp and URL and is easily usable from detector code.
+CCDB/include/CCDB/BasicCCDBManager.h:  /// set timestamp cache for all queries
+CCDB/include/CCDB/BasicCCDBManager.h:  /// query timestamp
+CCDB/include/CCDB/BasicCCDBManager.h:  /// retrieve an object of type T from CCDB as stored under path and timestamp
+CCDB/include/CCDB/BasicCCDBManager.h:  T* getForTimeStamp(std::string const& path, long timestamp);
+CCDB/include/CCDB/BasicCCDBManager.h:  /// retrieve an object of type T from CCDB as stored under path, timestamp and metaData
+CCDB/include/CCDB/BasicCCDBManager.h:  T* getSpecific(std::string const& path, long timestamp = -1, std::map<std::string, std::string> metaData = std::map<std::string, std::string>())
+CCDB/include/CCDB/BasicCCDBManager.h:    return getForTimeStamp<T>(path, timestamp);
+CCDB/include/CCDB/BasicCCDBManager.h:  /// retrieve an object of type T from CCDB as stored under path; will use the timestamp member
+CCDB/include/CCDB/BasicCCDBManager.h:  long mTimestamp{o2::ccdb::getCurrentTimestamp()};     // timestamp to be used for query (by default "now")
+CCDB/include/CCDB/BasicCCDBManager.h:  long mCreatedNotAfter = 0;                            // upper limit for object creation timestamp (TimeMachine mode) - If-Not-After HTTP header
+CCDB/include/CCDB/BasicCCDBManager.h:  long mCreatedNotBefore = 0;                           // lower limit for object creation timestamp (TimeMachine mode) - If-Not-Before HTTP header
+CCDB/include/CCDB/BasicCCDBManager.h:T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp)
+CCDB/include/CCDB/BasicCCDBManager.h:    return mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, nullptr, "",
+CCDB/include/CCDB/BasicCCDBManager.h:  if (mCheckObjValidityEnabled && cached.isValid(timestamp)) {
+CCDB/include/CCDB/BasicCCDBManager.h:  T* ptr = mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, &mHeaders, cached.uuid,
+CCDB/include/CCDB/CCDBTimeStampUtils.h:/// a couple of static helper functions to create timestamp values for CCDB queries
+CCDB/include/CCDB/CCDBTimeStampUtils.h:/// returns the timestamp in long corresponding to "now + secondsInFuture"
+CCDB/include/CCDB/CCDBTimeStampUtils.h:/// returns the timestamp in long corresponding to "now"
+CCDB/include/CCDB/CCDBQuery.h:  CCDBQuery(std::string const& p, std::map<std::string, std::string> const& f, long ts) : path{p}, metafilter{f}, timestamp{ts} {}
+CCDB/include/CCDB/CCDBQuery.h:  long timestamp = -1;                           // the timestamp of the query
+CCDB/include/CCDB/CcdbApi.h:     * @param startValidityTimestamp Start of validity. If omitted, current timestamp is used.
+CCDB/include/CCDB/CcdbApi.h:     * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 day is used.
+CCDB/include/CCDB/CcdbApi.h:     * @param startValidityTimestamp Start of validity. If omitted, current timestamp is used.
+CCDB/include/CCDB/CcdbApi.h:     * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 day is used.
+CCDB/include/CCDB/CcdbApi.h:   * Retrieve object at the given path for the given timestamp.
+CCDB/include/CCDB/CcdbApi.h:   * @param timestamp Timestamp of the object to retrieve. If omitted, current timestamp is used.
+CCDB/include/CCDB/CcdbApi.h:   * @param optional createdNotAfter upper time limit for the object creation timestamp (TimeMachine mode)
+CCDB/include/CCDB/CcdbApi.h:   * @param optional createdNotBefore lower time limit for the object creation timestamp (TimeMachine mode)
+CCDB/include/CCDB/CcdbApi.h:                         long timestamp = -1, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
+CCDB/include/CCDB/CcdbApi.h:                         long timestamp = -1, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
+CCDB/include/CCDB/CcdbApi.h:   * @param timestamp Timestamp of the object to delete.
+CCDB/include/CCDB/CcdbApi.h:  void deleteObject(std::string const& path, long timestamp = -1) const;
+CCDB/include/CCDB/CcdbApi.h:   * Update the metadata of the object defined by the provided timestamp, and id if provided.
+CCDB/include/CCDB/CcdbApi.h:   * @param timestamp The timestamp to select the object
+CCDB/include/CCDB/CcdbApi.h:  void updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id = "");
+CCDB/include/CCDB/CcdbApi.h:   * Make a local snapshot of all valid objects, given a timestamp, of the CCDB under a given local path.
+CCDB/include/CCDB/CcdbApi.h:  void snapshot(std::string const& ccdbrootpath, std::string const& localDir, long timestamp) const;
+CCDB/include/CCDB/CcdbApi.h:   *  Simple function to retrieve the blob corresponding to some path and timestamp.
+CCDB/include/CCDB/CcdbApi.h:  bool retrieveBlob(std::string const& path, std::string const& targetdir, std::map<std::string, std::string> const& metadata, long timestamp,
+CCDB/include/CCDB/CcdbApi.h:   * @param timestamp Timestamp of the object to retrieve. If omitted, current timestamp is used.
+CCDB/include/CCDB/CcdbApi.h:  std::map<std::string, std::string> retrieveHeaders(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp = -1) const;
+CCDB/include/CCDB/CcdbApi.h:  TObject* retrieve(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp) const;
+CCDB/include/CCDB/CcdbApi.h:  TObject* retrieveFromTFile(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp,
+CCDB/include/CCDB/CcdbApi.h:   * Transform and return a string representation of the given timestamp.
+CCDB/include/CCDB/CcdbApi.h:   * @param timestamp
+CCDB/include/CCDB/CcdbApi.h:   * @return a string representation of the given timestamp.
+CCDB/include/CCDB/CcdbApi.h:  std::string getTimestampString(long timestamp) const;
+CCDB/include/CCDB/CcdbApi.h:   * @param startValidityTimestamp Start of validity. If omitted or negative, the current timestamp is used.
+CCDB/include/CCDB/CcdbApi.h:   * @param endValidityTimestamp End of validity. If omitted or negative, current timestamp + 1 day is used.
+CCDB/include/CCDB/CcdbApi.h:   * @param timestamp When the object we retrieve must be valid. If omitted or negative, the current timestamp is used.
+CCDB/include/CCDB/CcdbApi.h:                                     long timestamp = -1) const;
+CCDB/include/CCDB/CcdbApi.h:                          long timestamp = -1, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
+CCDB/include/CCDB/CcdbApi.h:                                long timestamp, std::map<std::string, std::string>* headers, std::string const& etag,
+CCDB/include/CCDB/CcdbApi.h:  return static_cast<T*>(retrieveFromTFile(typeid(T), path, metadata, timestamp, headers, etag, createdNotAfter, createdNotBefore));
+CCDB/include/CCDB/CcdbApi.h:                                long timestamp, std::map<std::string, std::string>* headers, std::string const& etag,
+CCDB/include/CCDB/CcdbApi.h:  auto obj = retrieveFromTFile(typeid(T), path, metadata, timestamp, headers, etag, createdNotAfter, createdNotBefore);
+CCDB/README.md:auto deadpixelsback = api.retrieveFromTFileAny<o2::FOO::DeadPixelMap>("FOO/DeadPixels", metadata /* constraint the objects retrieved to those matching the metadata */, -1 /* timestamp */, &headers /* the headers attached to the returned object */); 
+CCDB/README.md:// create a local snapshot of everthing in or below the FOO folder valid for timestamp 12345
+CCDB/README.md:* Encapsulates the timestamp.
+CCDB/README.md:mgr.setTimestamp(timestamp_which_we_want_to_anchor_to);
+CCDB/README.md:unless the validity range of the cached object does not match to requested timestamp.
+CCDB/README.md:Upper and lower limits on the object creation time can be set by `mgr.setCreatedNotAfter(upper_limit_timestamp)` and `mgr.setCreatedNotBefore(lower_limit_timestamp)`, it specifies the fields "If-Not-After" and "If-Not-Before" when retrieving an object from CCDB.
+CCDB/README.md:     o2-ccdb-downloadccdbfile --path /Detector1/QA/ --dest /tmp/CCDB --timestamp xxx
+EventVisualisation/View/src/EventManagerFrame.cxx:    std::string timestampString = "Timestamp:";
+EventVisualisation/DataConverter/include/EventVisualisationDataConverter/VisualisationEvent.h:  std::time_t mTimeStamp;                      /// collision timestamp
+Detectors/AOD/src/AODProducerWorkflowSpec.cxx:  // ccdb returns timestamp in mus
+Detectors/AOD/src/AODProducerWorkflowSpec.cxx:    // collision timestamp in ns wrt the beginning of collision BC
+Detectors/CPV/reconstruction/include/CPVReconstruction/CTFHelper.h:    CTFHeader h{o2::detectors::DetID::CPV, 0, 1, 0, // dummy timestamp, version 1.0
+Detectors/CPV/calib/CPVCalibWorkflow/src/CPVBadMapCalibDevice.cxx:  //         if (wrp->getStartValidityTimestamp() > tfcounter) { // replace tfcounter with the timestamp of the TF
+Detectors/CPV/workflow/include/CPVWorkflow/RawToDigitConverterSpec.h:  long mCurrentTimeStamp;                           ///< Current timestamp for CCDB querying
+Detectors/CTP/reconstruction/include/CTPReconstruction/CTFHelper.h:    CTFHeader h{o2::detectors::DetID::CTP, 0, 1, 0, // dummy timestamp, version 1.0
+Detectors/CTP/workflow/src/RawToDigitConverterSpec.cxx:                LOG(error) << "Two CTP IRs with the same timestamp.";
+Detectors/CTP/workflow/src/RawToDigitConverterSpec.cxx:                LOG(error) << "Two CTP Class masks for same timestamp";
+Detectors/Base/src/Aligner.cxx:void Aligner::applyAlignment(long timestamp, DetID::mask_t addMask) const
+Detectors/Base/src/Aligner.cxx:  if (timestamp == 0) {
+Detectors/Base/src/Aligner.cxx:    timestamp = getTimeStamp();
+Detectors/Base/src/Aligner.cxx:  ccdbmgr.setTimestamp(timestamp);
+Detectors/Base/src/Aligner.cxx:  std::string log = fmt::format("Alignment from {} for timestamp {}: ", getCCDB(), timestamp);
+Detectors/Base/include/DetectorsBase/Aligner.h:  void applyAlignment(long timestamp = 0, o2::detectors::DetID::mask_t addMask = o2::detectors::DetID::FullMask) const;
+Detectors/DCS/include/DetectorsDCS/DataPointCompositeObject.h:         * timestamp, and the payload data.
+Detectors/DCS/include/DetectorsDCS/DeliveryType.h:         * the milliseconds and secodns of a UNIX timestamp. This is the raw
+Detectors/DCS/include/DetectorsDCS/DeliveryType.h:         * the milliseconds and secodns of a UNIX timestamp. This is the DPVAL
+Detectors/DCS/include/DetectorsDCS/Clock.h:     * Returns a simple timestamp presenting the milliseconds of time passed
+Detectors/DCS/include/DetectorsDCS/Clock.h:     * Returns a timestamp using steady clock. This function is suitable for
+Detectors/DCS/include/DetectorsDCS/Clock.h:     * Returns a timestamp of the current point of time in the local timezone.
+Detectors/DCS/include/DetectorsDCS/Clock.h:     * @return A simple ISO-8601-esque timestamp (<tt>YYYY-MM-DD HH:MM:SS</tt>).
+Detectors/DCS/include/DetectorsDCS/Clock.h:     * @see ADAPRO::Control::fs_timestamp
+Detectors/DCS/include/DetectorsDCS/Clock.h:inline std::string timestamp() noexcept
+Detectors/DCS/include/DetectorsDCS/Clock.h:     * Returns a timestamp of the current point of time in the local timezone.
+Detectors/DCS/include/DetectorsDCS/Clock.h:     * The format of the timestamp is specified with the parameter
+Detectors/DCS/include/DetectorsDCS/Clock.h:     * @return A simple timestamp in a format specified with the parameter
+Detectors/DCS/include/DetectorsDCS/Clock.h:inline std::string timestamp(const std::string& format) noexcept
+Detectors/DCS/include/DetectorsDCS/Clock.h:     * Generates a simple timestamp usable file paths. This function is like
+Detectors/DCS/include/DetectorsDCS/Clock.h:     * <tt>ADAPRO::Control::timestamp</tt>, but with spaces replaced with
+Detectors/DCS/include/DetectorsDCS/Clock.h:     * @return A simple ISO-8601-esque timestamp (<tt>YYYY-MM-DD_HH.MM.SS</tt>).
+Detectors/DCS/include/DetectorsDCS/Clock.h:     * @see ADAPRO::Control::timestamp
+Detectors/DCS/include/DetectorsDCS/Clock.h:inline std::string fs_timestamp() noexcept
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:     * timestamp, and payload value of a data point. It represents a discrete
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:         * <p>This flag should be set if and only if the timestamp is
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:         * Milliseconds of the timestamp. This is the measured number of
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:         * together with <tt>sec</tt> is to store a timestamp indicating the
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:         * Seconds of the timestamp. This is the measured number of seconds
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:         * timestamp indicating the moment of creation/modification of the
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:         * @param milliseconds  Milliseconds of the timestamp.
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:         * @param seconds       Seconds of the timestamp.
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:         * @param milliseconds  Milliseconds of the timestamp.
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:         * @param seconds       Seconds of the timestamp.
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:         * Updates the timestamp of this DataPointValue object using system
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:  inline void update_timestamp() noexcept
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:         * containing an ISO 8601 timestamp. The value of the timestamp will be
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:         * <tt>sec</tt> and assuming the UTC timezone. The timestamp has the
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:         * @return An ISO 8601 compliant timestamp.
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:  inline std::unique_ptr<std::string> get_timestamp() const noexcept
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:         * Returns a 64-bit unsigned integer containing the timestamp value of
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:         * @param milliseconds  Milliseconds of the new timestamp.
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:         * @param seconds       Seconds of the new timestamp.
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:         * contain data for the flags and the timestamp with their respective
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:         * Prints the flags and timestamp of the DataPointValue object into the
+Detectors/DCS/include/DetectorsDCS/DataPointValue.h:              << *(dpval.get_timestamp());
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationDevice.h:  int64_t timestampManual = context.options().get<int64_t>("manual-timestamp");
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationDevice.h:  mCalibrator->setTimestampManual(timestampManual);
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrator.h:  void setTimestampManual(int64_t timestamp) {mTimestampManual = timestamp;}
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrator.h:    long timestamp = getTimestamp(*container);
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrator.h:    //    auto preparedCalibObjects = FITCalibrationApi::prepareCalibrationObjectToSend(calibrationObject, timestamp);
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:  [[nodiscard]] static const CalibrationObjectType& getCalibrationObjectForGivenTimestamp(long timestamp);
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:  [[nodiscard]] static std::vector<CalibObjWithInfoType> prepareCalibrationObjectToSend(const CalibrationObjectType& calibrationObject, long timestamp);
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:  [[nodiscard]] static CalibObjWithInfoType doSerializationAndPrepareObjectInfo(const CalibrationObjectType& calibrationObject, long timestamp);
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:FITCalibrationApi::CalibObjWithInfoType FITCalibrationApi::doSerializationAndPrepareObjectInfo(const CalibrationObjectType& calibrationObject, long timestamp)
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:  LOG(INFO)<<"@@@FITCalibrationApi::CalibObjWithInfoType FITCalibrationApi::doSerializationAndPrepareObjectInfo "<< o2::ccdb::BasicCCDBManager::instance().getTimestamp()<<" current "<<o2::ccdb::getCurrentTimestamp() << " real " << timestamp;
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:  result.first = o2::ccdb::CcdbObjectInfo(FITCalibrationApi::getObjectPath<CalibrationObjectType>(), dummyStringVariableThatWillBeChangedAnyway, dummyStringVariableThatWillBeChangedAnyway, metaData, timestamp, 99999999999999);
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:const CalibrationObjectType& FITCalibrationApi::getCalibrationObjectForGivenTimestamp(long timestamp)
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:  o2::ccdb::BasicCCDBManager::instance().setTimestamp(timestamp);
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend(const CalibrationObjectType& calibrationObject, long timestamp)
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend<o2::ft0::FT0ChannelTimeCalibrationObject>(const o2::ft0::FT0ChannelTimeCalibrationObject& calibrationObject, long timestamp)
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:  result.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject, timestamp));
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend<o2::ft0::FT0CalibTimeSlewing>(const o2::ft0::FT0CalibTimeSlewing& calibrationObject, long timestamp)
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:  result.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject, timestamp));
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend<o2::fv0::FV0ChannelTimeCalibrationObject>(const o2::fv0::FV0ChannelTimeCalibrationObject& calibrationObject, long timestamp)
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:  result.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject, timestamp));
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend<o2::ft0::GlobalOffsetsCalibrationObject>(const o2::ft0::GlobalOffsetsCalibrationObject& calibrationObject, long timestamp)
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:  result.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject, timestamp));
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend<o2::ft0::FT0DummyCalibrationObject>(const o2::ft0::FT0DummyCalibrationObject& calibrationObject, long timestamp)
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:  result.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject.mChargeCalibrationObject, timestamp));
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:  result.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject.mTimeCalibrationObject, timestamp));
+Detectors/FIT/FV0/simulation/include/FV0Simulation/Digitizer.h:  long mTimeStamp;                  // TF (run) timestamp
+Detectors/FIT/FT0/calibration/testWorkflow/FT0TFProcessor-Workflow.cxx:      long timestamp = o2::InteractionRecord::bc2ns(digit.getBC(), digit.getOrbit());
+Detectors/FIT/FT0/calibration/testWorkflow/FT0TFProcessor-Workflow.cxx:      LOG(DEBUG) << " ndig " << id << " bc " << digit.getBC() << " orbit " << digit.getOrbit()<<" timestamp  "<<timestamp;
+Detectors/FIT/FT0/calibration/testWorkflow/FT0TFProcessor-Workflow.cxx:        calib_data.emplace_back(timestamp, channel.ChId, channel.CFDTime, channel.QTCAmpl);
+Detectors/FIT/FT0/calibration/testWorkflow/FT0CalibSlewingCollectorSpec.h:    auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime; // is this the timestamp of the current TF?
+Detectors/FIT/FT0/calibration/testWorkflow/FT0ChannelTimeCalibrationSpec.h:      {"manual-timestamp", o2::framework::VariantType::Int64, 1636216452362 , {"manual set timestamp for given run"}}}};
+Detectors/FIT/FT0/calibration/src/FT0ChannelTimeTimeSlotContainer.cxx:    const long timestampCurrent = entry.getTimestamp();
+Detectors/FIT/FT0/calibration/src/FT0ChannelTimeTimeSlotContainer.cxx:    // LOG(INFO) << " timestamp " << timestampCurrent << " chID " << int(chID) << " time " << chTime;
+Detectors/FIT/FT0/calibration/src/FT0ChannelTimeTimeSlotContainer.cxx:    if (timestampCurrent < mTimestamp) {
+Detectors/FIT/FT0/calibration/src/FT0ChannelTimeTimeSlotContainer.cxx:      mTimestamp = timestampCurrent;
+Detectors/FIT/FT0/calibration/src/FT0ChannelTimeTimeSlotContainer.cxx:  //  LOG(INFO) << " timestamp " << mTimestamp;
+Detectors/FIT/FT0/calibration/include/FT0Calibration/FT0CalibrationInfoObject.h:  FT0CalibrationInfoObject(long timestamp, uint8_t channel, int16_t time, int32_t amp) : mTimestamp(timestamp), mChannelIndex(channel), mTime(time), mAmp(amp){};
+Detectors/FIT/FT0/workflow/src/ReconstructionSpec.cxx:  long timestamp;
+Detectors/FIT/FT0/workflow/src/ReconstructionSpec.cxx:    timestamp = o2::InteractionRecord::bc2ns(digit.getBC(), digit.getOrbit());
+Detectors/FIT/FT0/workflow/src/ReconstructionSpec.cxx:    LOG(DEBUG) << " ndig " << id << " bc " << digit.getBC() << " orbit " << digit.getOrbit() <<" timestamp " <<timestamp ;
+Detectors/FIT/FT0/workflow/src/ReconstructionSpec.cxx:  auto caliboffsets = mCCDBManager.getForTimeStamp<o2::ft0::FT0ChannelTimeCalibrationObject>("FT0/Calibration/ChannelTimeOffset",timestamp);
+Detectors/FIT/FDD/simulation/include/FDDSimulation/Digitizer.h:  long mEventTime;                      // TF (run) timestamp
+Detectors/MUON/MCH/CTF/include/MCHCTF/CTFHelper.h:    CTFHeader h{o2::detectors::DetID::MCH, 0, 1, 0, // dummy timestamp, version 1.0
+Detectors/MUON/MCH/Raw/ElecMap/src/ElectronicMapperDummy.cxx:  createElec2DetMapper<ElectronicMapperDummy>(uint64_t timestamp)
+Detectors/MUON/MCH/Raw/ElecMap/src/ElectronicMapperGenerated.cxx:  createElec2DetMapper<ElectronicMapperGenerated>(uint64_t /*timestamp*/)
+Detectors/MUON/MCH/Raw/ElecMap/src/ElectronicMapperString.cxx:Elec2DetMapper createElec2DetMapper<ElectronicMapperString>(uint64_t /*timestamp*/)
+Detectors/MUON/MCH/Raw/ElecMap/include/MCHRawElecMap/Mapper.h:/// timestamp is foreseen to specify a data taking period (not used for the moment)
+Detectors/MUON/MCH/Raw/ElecMap/include/MCHRawElecMap/Mapper.h:Elec2DetMapper createElec2DetMapper(uint64_t timestamp = 0);
+Detectors/MUON/MCH/Raw/Decoder/src/BareElinkDecoder.h:    ReadingTimestamp,  //< we're (about to) read a timestamp (for the current cluster)
+Detectors/MUON/MCH/Raw/Decoder/README.md:    std::cout << fmt::format("{}-ch-{}-ts-{}-q-{}", asString(dsId), channel, sc.timestamp, sc.chargeSum));
+Detectors/MUON/MCH/Calibration/src/PedestalCalibSpec.h:    auto tfcounter = header->startTime; // is this the timestamp of the current TF?
+Detectors/MUON/MID/QC/src/GBTRawDataChecker.cxx:    // All of these boards have the same timestamp
+Detectors/MUON/MID/QC/exe/README.md:The error typically consists of the timestamp of the event, in the form of orbit and bunch crossing id, the type of error and the corresponding decoded board information.
+Detectors/MUON/MID/CTF/include/MIDCTF/CTFHelper.h:    CTFHeader h{o2::detectors::DetID::MID, 0, 1, 0, // dummy timestamp, version 1.0
+Detectors/MUON/MID/Simulation/test/testSimulation.cxx:    // Generate digits per event. Each event has a different timestamp
+Detectors/MUON/MID/Raw/src/ELinkDataShaper.cxx:/// \brief  Properly formats and sets the absolute timestamp of the raw data
+Detectors/MUON/MID/Raw/src/DecodedDataAggregator.cxx:        // In principle all of these ROF records have the same timestamp
+Detectors/MUON/MID/Raw/include/MIDRaw/ELinkDataShaper.h:/// \brief  Properly formats and sets the absolute timestamp of the raw data
+Detectors/MUON/Common/src/dcs-ccdb.cxx:void doQueryHVLV(const std::string ccdbUrl, uint64_t timestamp, bool hv, bool lv)
+Detectors/MUON/Common/src/dcs-ccdb.cxx:    auto* m = api.retrieveFromTFileAny<DPMAP>(w, metadata, timestamp);
+Detectors/MUON/Common/src/dcs-ccdb.cxx:void doQueryDataPointConfig(const std::string ccdbUrl, uint64_t timestamp,
+Detectors/MUON/Common/src/dcs-ccdb.cxx:  auto* m = api.retrieveFromTFileAny<DPCONF>(dpConfName.c_str(), metadata, timestamp);
+Detectors/MUON/Common/src/dcs-ccdb.cxx:void makeCCDBEntryForDCS(const std::string ccdbUrl, uint64_t timestamp)
+Detectors/MUON/Common/src/dcs-ccdb.cxx:  api.storeAsTFileAny(&dpid2DataDesc, CcdbDpConfName(), md, timestamp);
+Detectors/MUON/Common/src/dcs-ccdb.cxx:  uint64_t timestamp;
+Detectors/MUON/Common/src/dcs-ccdb.cxx:      ("timestamp,t",po::value<uint64_t>(&timestamp)->default_value(now),"timestamp for query or put")
+Detectors/MUON/Common/src/dcs-ccdb.cxx:      doQueryHVLV(ccdbUrl, timestamp, hv, lv);
+Detectors/MUON/Common/src/dcs-ccdb.cxx:      doQueryDataPointConfig(ccdbUrl, timestamp, dpConfName);
+Detectors/MUON/Common/src/dcs-ccdb.cxx:    makeCCDBEntryForDCS(ccdbUrl, timestamp);
+Detectors/MUON/Common/src/dcs-processor-workflow.cxx:    //FIXME: check we're not adding twice the same dp (i.e. check timestamp ?)
+Detectors/MUON/Common/README.md: the datapoint config valid at a given timestamp.
+Detectors/EMCAL/calibration/testWorkflow/EMCALChannelCalibratorSpec.h:    auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime; // is this the timestamp of the current TF?
+Detectors/EMCAL/reconstruction/include/EMCALReconstruction/CTFHelper.h:    CTFHeader h{o2::detectors::DetID::EMC, 0, 1, 0, // dummy timestamp, version 1.0
+Detectors/EMCAL/calib/src/CalibDB.cxx:BadChannelMap* CalibDB::readBadChannelMap(ULong_t timestamp, const std::map<std::string, std::string>& metadata)
+Detectors/EMCAL/calib/src/CalibDB.cxx:  BadChannelMap* result = mCCDBManager.retrieveFromTFileAny<o2::emcal::BadChannelMap>("EMC/BadChannelMap", metadata, timestamp);
+Detectors/EMCAL/calib/src/CalibDB.cxx:    throw ObjectNotFoundException(mCCDBServer, "EMC/BadChannelMap", metadata, timestamp);
+Detectors/EMCAL/calib/src/CalibDB.cxx:TimeCalibrationParams* CalibDB::readTimeCalibParam(ULong_t timestamp, const std::map<std::string, std::string>& metadata)
+Detectors/EMCAL/calib/src/CalibDB.cxx:  TimeCalibrationParams* result = mCCDBManager.retrieveFromTFileAny<o2::emcal::TimeCalibrationParams>("EMC/TimeCalibParams", metadata, timestamp);
+Detectors/EMCAL/calib/src/CalibDB.cxx:    throw ObjectNotFoundException(mCCDBServer, "EMC/TimeCalibParams", metadata, timestamp);
+Detectors/EMCAL/calib/src/CalibDB.cxx:TimeCalibParamL1Phase* CalibDB::readTimeCalibParamL1Phase(ULong_t timestamp, const std::map<std::string, std::string>& metadata)
+Detectors/EMCAL/calib/src/CalibDB.cxx:  TimeCalibParamL1Phase* result = mCCDBManager.retrieveFromTFileAny<o2::emcal::TimeCalibParamL1Phase>("EMC/TimeCalibParamsL1Phase", metadata, timestamp);
+Detectors/EMCAL/calib/src/CalibDB.cxx:    throw ObjectNotFoundException(mCCDBServer, "EMC/TimeCalibParamsL1Phase", metadata, timestamp);
+Detectors/EMCAL/calib/src/CalibDB.cxx:TempCalibrationParams* CalibDB::readTempCalibParam(ULong_t timestamp, const std::map<std::string, std::string>& metadata)
+Detectors/EMCAL/calib/src/CalibDB.cxx:  TempCalibrationParams* result = mCCDBManager.retrieveFromTFileAny<o2::emcal::TempCalibrationParams>("EMC/TempCalibParams", metadata, timestamp);
+Detectors/EMCAL/calib/src/CalibDB.cxx:    throw ObjectNotFoundException(mCCDBServer, "EMC/TempCalibParams", metadata, timestamp);
+Detectors/EMCAL/calib/src/CalibDB.cxx:TempCalibParamSM* CalibDB::readTempCalibParamSM(ULong_t timestamp, const std::map<std::string, std::string>& metadata)
+Detectors/EMCAL/calib/src/CalibDB.cxx:  TempCalibParamSM* result = mCCDBManager.retrieveFromTFileAny<o2::emcal::TempCalibParamSM>("EMC/TempCalibParamsSM", metadata, timestamp);
+Detectors/EMCAL/calib/src/CalibDB.cxx:    throw ObjectNotFoundException(mCCDBServer, "EMC/TempCalibParamsSM", metadata, timestamp);
+Detectors/EMCAL/calib/src/CalibDB.cxx:GainCalibrationFactors* CalibDB::readGainCalibFactors(ULong_t timestamp, const std::map<std::string, std::string>& metadata)
+Detectors/EMCAL/calib/src/CalibDB.cxx:  GainCalibrationFactors* result = mCCDBManager.retrieveFromTFileAny<o2::emcal::GainCalibrationFactors>("EMC/GainCalibFactors", metadata, timestamp);
+Detectors/EMCAL/calib/src/CalibDB.cxx:    throw ObjectNotFoundException(mCCDBServer, "EMC/GainCalibFactors", metadata, timestamp);
+Detectors/EMCAL/calib/src/CalibDB.cxx:TriggerDCS* CalibDB::readTriggerDCSData(ULong_t timestamp, const std::map<std::string, std::string>& metadata)
+Detectors/EMCAL/calib/src/CalibDB.cxx:  TriggerDCS* result = mCCDBManager.retrieveFromTFileAny<o2::emcal::TriggerDCS>("EMC/TriggerDCS", metadata, timestamp);
+Detectors/EMCAL/calib/src/CalibDB.cxx:    throw ObjectNotFoundException(mCCDBServer, "EMC/TriggerDCS", metadata, timestamp);
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:/// Users only need to specify the CCDB server, the timestamp and
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:/// (wrong server / path / timestamp) or the object type is different
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// - Wrong timestamp
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:    /// \param timestamp Timestamp used in the query
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:    ObjectNotFoundException(const std::string_view server, const std::string_view path, const std::map<std::string, std::string>& metadata, ULong_t timestamp) : std::exception(),
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:                                                                                                                                                                 mTimestamp(timestamp)
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:      mMessage = "Not possible to access entry \"" + mPath + "\" on " + mServ + " for timestamp " + std::to_string(mTimestamp);
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:    /// \brief Accessor to timestamp used in the query
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// a certain path and with a certain timestamp was valid, the object
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// \brief Find bad channel map in the CCDB for given timestamp
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// \param timestamp Timestamp used in query
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// \throw ObjectNotFoundException if object is not found for the given timestamp
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  BadChannelMap* readBadChannelMap(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// \brief Find time calibration coefficiencts in the CCDB for given timestamp
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// \param timestamp Timestamp used in query
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// \throw ObjectNotFoundException if object is not found for the given timestamp
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  TimeCalibrationParams* readTimeCalibParam(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// \brief Find L1 phase shifts in the CCDB for given timestamp
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// \param timestamp Timestamp used in query
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// \throw ObjectNotFoundException if object is not found for the given timestamp
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  TimeCalibParamL1Phase* readTimeCalibParamL1Phase(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// \brief Find temperature calibration coefficiencts in the CCDB for given timestamp
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// \param timestamp Timestamp used in query
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// \throw ObjectNotFoundException if object is not found for the given timestamp
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  TempCalibrationParams* readTempCalibParam(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// \brief Find temperature calibration coefficiencts per SM in the CCDB for given timestamp
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// \param timestamp Timestamp used in query
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// \throw ObjectNotFoundException if object is not found for the given timestamp
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  TempCalibParamSM* readTempCalibParamSM(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// \brief Find gain calibration factors in the CCDB for given timestamp
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// \param timestamp Timestamp used in query
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// \throw ObjectNotFoundException if object is not found for the given timestamp
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  GainCalibrationFactors* readGainCalibFactors(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// \brief Find trigger DCS data in the CCDB for given timestamp
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// \param timestamp Timestamp used in query
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  /// \throw ObjectNotFoundException if object is not found for the given timestamp
+Detectors/EMCAL/calib/include/EMCALCalib/CalibDB.h:  TriggerDCS* readTriggerDCSData(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
+Detectors/EMCAL/calib/macros/TimeCalibParamsL1Phase_CalibDBTest.C:unsigned long create_timestamp(int year, int month, int day, int hour, int minutes, int seconds)
+Detectors/EMCAL/calib/macros/TimeCalibParamsL1Phase_CalibDBTest.C:  auto rangestart = create_timestamp(2018, 11, 8, 21, 57, 7),
+Detectors/EMCAL/calib/macros/TimeCalibParamsL1Phase_CalibDBTest.C:       rangeend = create_timestamp(2018, 11, 8, 22, 17, 4);
+Detectors/EMCAL/calib/macros/TimeCalibParamsL1Phase_CalibDBTest.C:  //auto rangestart = create_timestamp(2018, 11, 21, 6, 27, 28),
+Detectors/EMCAL/calib/macros/TimeCalibParamsL1Phase_CalibDBTest.C:  //     rangeend = create_timestamp(2018, 11, 21, 7, 34, 53);
+Detectors/EMCAL/calib/macros/TimeCalibParamsL1Phase_CalibDBTest.C:  auto rangetest = create_timestamp(2018, 11, 8, 21, 57, 7); //LHC18q 295585
+Detectors/EMCAL/calib/macros/TimeCalibParamsL1Phase_CalibDBTest.C:  //auto rangetest = create_timestamp(2018, 11, 21, 6, 27, 28); //LHC18q 296623
+Detectors/EMCAL/calib/macros/TimeCalibParamsL1Phase_CalibDBTest.C:  std::cout << "Using read timestamp " << rangetest << "(omitted untill function is implemented server side)" << std::endl;
+Detectors/EMCAL/calib/macros/ReadTestBadChannelMap_CCDBApi.C:unsigned long create_timestamp(int year, int month, int day, int hour, int minutes, int seconds)
+Detectors/EMCAL/calib/macros/TimeCalibrationParams_CCDBApiTest.C:unsigned long create_timestamp(int year, int month, int day, int hour, int minutes, int seconds)
+Detectors/EMCAL/calib/macros/TimeCalibrationParams_CCDBApiTest.C:  auto rangestart = create_timestamp(2018, 4, 18, 23, 58, 48),
+Detectors/EMCAL/calib/macros/TimeCalibrationParams_CCDBApiTest.C:       rangeend = create_timestamp(2018, 4, 27, 1, 5, 52);
+Detectors/EMCAL/calib/macros/TimeCalibrationParams_CCDBApiTest.C:  //auto rangestart = create_timestamp(2017, 5, 28, 9, 6, 42),
+Detectors/EMCAL/calib/macros/TimeCalibrationParams_CCDBApiTest.C:  //     rangeend = create_timestamp(2017, 6, 12, 22, 39, 50);
+Detectors/EMCAL/calib/macros/TimeCalibrationParams_CCDBApiTest.C:  auto rangetest = create_timestamp(2018, 4, 21, 23, 18, 54); //LHC18b run 285165
+Detectors/EMCAL/calib/macros/TimeCalibrationParams_CCDBApiTest.C:  //auto rangetest = create_timestamp(2017, 6, 5, 5, 25, 28); //LHC17g run 271381
+Detectors/EMCAL/calib/macros/TimeCalibrationParams_CCDBApiTest.C:  std::cout << "Using read timestamp " << rangetest << std::endl;
+Detectors/EMCAL/calib/macros/BadChannelMap_CCDBApitest.C:unsigned long create_timestamp(int year, int month, int day, int hour, int minutes, int seconds)
+Detectors/EMCAL/calib/macros/BadChannelMap_CCDBApitest.C:  auto rangestart = create_timestamp(2018, 7, 30, 10, 48, 44),
+Detectors/EMCAL/calib/macros/BadChannelMap_CCDBApitest.C:       rangeend = create_timestamp(2018, 8, 6, 0, 31, 52);
+Detectors/EMCAL/calib/macros/BadChannelMap_CCDBApitest.C:  // using test timestamp from next run (290223)
+Detectors/EMCAL/calib/macros/BadChannelMap_CCDBApitest.C:  auto rangetest = create_timestamp(2018, 7, 30, 12, 13, 20);
+Detectors/EMCAL/calib/macros/BadChannelMap_CCDBApitest.C:  std::cout << "Using read timestamp " << rangetest << std::endl;
+Detectors/EMCAL/calib/macros/GainCalibrationFactors_CalibDBTest.C:unsigned long create_timestamp(int year, int month, int day, int hour, int minutes, int seconds)
+Detectors/EMCAL/calib/macros/GainCalibrationFactors_CalibDBTest.C:  auto rangestart = create_timestamp(2018, 11, 3, 13, 51, 41),
+Detectors/EMCAL/calib/macros/GainCalibrationFactors_CalibDBTest.C:       rangeend = create_timestamp(2018, 12, 2, 13, 39, 47);
+Detectors/EMCAL/calib/macros/GainCalibrationFactors_CalibDBTest.C:  //auto rangestart = create_timestamp(2015, 11, 19, 15, 55, 58),
+Detectors/EMCAL/calib/macros/GainCalibrationFactors_CalibDBTest.C:  //    rangeend = create_timestamp(2018, 11, 3, 13, 51, 16);
+Detectors/EMCAL/calib/macros/GainCalibrationFactors_CalibDBTest.C:  auto rangetest = create_timestamp(2018, 11, 16, 20, 55, 3); //LHC18q run 296273
+Detectors/EMCAL/calib/macros/GainCalibrationFactors_CalibDBTest.C:  //auto rangetest = create_timestamp(2015, 12, 9, 23, 10, 3); //LHC15 run 246583
+Detectors/EMCAL/calib/macros/GainCalibrationFactors_CalibDBTest.C:  std::cout << "Using read timestamp " << rangetest << std::endl;
+Detectors/EMCAL/calib/macros/BadChannelMap_CalibDBtest.C:unsigned long create_timestamp(int year, int month, int day, int hour, int minutes, int seconds)
+Detectors/EMCAL/calib/macros/BadChannelMap_CalibDBtest.C:  auto rangestart = create_timestamp(2018, 7, 30, 10, 48, 44),
+Detectors/EMCAL/calib/macros/BadChannelMap_CalibDBtest.C:       rangeend = create_timestamp(2018, 8, 6, 0, 31, 52);
+Detectors/EMCAL/calib/macros/BadChannelMap_CalibDBtest.C:  // using test timestamp from next run (290223)
+Detectors/EMCAL/calib/macros/BadChannelMap_CalibDBtest.C:  auto rangetest = create_timestamp(2018, 7, 30, 12, 13, 20);
+Detectors/EMCAL/calib/macros/BadChannelMap_CalibDBtest.C:  std::cout << "Using read timestamp " << rangetest << std::endl;
+Detectors/EMCAL/calib/macros/TriggerDCS_CalibDBTest.C:unsigned long create_timestamp(int year, int month, int day, int hour, int minutes, int seconds)
+Detectors/EMCAL/calib/macros/TriggerDCS_CalibDBTest.C:  auto rangestart = create_timestamp(2016, 4, 23, 0, 58, 40),
+Detectors/EMCAL/calib/macros/TriggerDCS_CalibDBTest.C:       rangeend = create_timestamp(2016, 12, 5, 6, 3, 19);
+Detectors/EMCAL/calib/macros/TriggerDCS_CalibDBTest.C:  auto rangetest = create_timestamp(2016, 4, 23, 0, 58, 40); //LHC16
+Detectors/EMCAL/calib/macros/TriggerDCS_CalibDBTest.C:  std::cout << "Using read timestamp " << rangetest << std::endl;
+Detectors/EMCAL/calib/macros/TimeCalibrationParams_CalibDBTest.C:unsigned long create_timestamp(int year, int month, int day, int hour, int minutes, int seconds)
+Detectors/EMCAL/calib/macros/TimeCalibrationParams_CalibDBTest.C:  auto rangestart = create_timestamp(2018, 4, 18, 23, 58, 48),
+Detectors/EMCAL/calib/macros/TimeCalibrationParams_CalibDBTest.C:       rangeend = create_timestamp(2018, 4, 27, 1, 5, 52);
+Detectors/EMCAL/calib/macros/TimeCalibrationParams_CalibDBTest.C:  //auto rangestart = create_timestamp(2017, 5, 28, 9, 6, 42),
+Detectors/EMCAL/calib/macros/TimeCalibrationParams_CalibDBTest.C:  //     rangeend = create_timestamp(2017, 6, 12, 22, 39, 50);
+Detectors/EMCAL/calib/macros/TimeCalibrationParams_CalibDBTest.C:  auto rangetest = create_timestamp(2018, 4, 21, 23, 18, 54); //LHC18b run 285165
+Detectors/EMCAL/calib/macros/TimeCalibrationParams_CalibDBTest.C:  //auto rangetest = create_timestamp(2017, 6, 5, 5, 25, 28); //LHC17g run 271381
+Detectors/EMCAL/calib/macros/TimeCalibrationParams_CalibDBTest.C:  std::cout << "Using read timestamp " << rangetest << std::endl;
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CCDBApiTest.C:unsigned long create_timestamp(int year, int month, int day, int hour, int minutes, int seconds)
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CCDBApiTest.C:  auto rangestart = create_timestamp(2018, 4, 18, 23, 58, 48),
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CCDBApiTest.C:       rangeend = create_timestamp(2018, 12, 2, 13, 39, 47);
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CCDBApiTest.C:  //auto rangestart = create_timestamp(2017, 5, 23, 23, 7, 44),
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CCDBApiTest.C:  //     rangeend = create_timestamp(2017, 11, 26, 11, 32, 38);
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CCDBApiTest.C:  //auto rangestart = create_timestamp(2016, 4, 23, 0, 58, 40),
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CCDBApiTest.C:  //    rangeend = create_timestamp(2016, 12, 5, 6, 3, 19);
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CCDBApiTest.C:  //auto rangestart = create_timestamp(2015, 9, 12, 5, 7, 8),
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CCDBApiTest.C:  //    rangeend = create_timestamp(2015, 12, 13, 11, 46, 20);
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CCDBApiTest.C:  auto rangetest = create_timestamp(2018, 4, 27, 1, 5, 52); //LHC18 run 285396
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CCDBApiTest.C:  //auto rangetest = create_timestamp(2017, 6, 12, 22, 39, 50); //LHC17 run 271777
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CCDBApiTest.C:  //auto rangetest = create_timestamp(2016, 7, 9, 2, 0, 8); //LHC16 run 257735
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CCDBApiTest.C:  //auto rangetest = create_timestamp(2015, 12, 9, 23, 10, 3); //LHC15 run 246583
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CCDBApiTest.C:  std::cout << "Using read timestamp " << rangetest << std::endl;
+Detectors/EMCAL/calib/macros/TempCalibParamSM_CalibDBTest.C:unsigned long create_timestamp(int year, int month, int day, int hour, int minutes, int seconds)
+Detectors/EMCAL/calib/macros/TempCalibParamSM_CalibDBTest.C:  auto rangestart = create_timestamp(2018, 7, 8, 7, 22, 0),
+Detectors/EMCAL/calib/macros/TempCalibParamSM_CalibDBTest.C:       rangeend = create_timestamp(2018, 7, 8, 8, 3, 15);
+Detectors/EMCAL/calib/macros/TempCalibParamSM_CalibDBTest.C:  //auto rangestart = create_timestamp(2018, 7, 9, 1, 1, 17),
+Detectors/EMCAL/calib/macros/TempCalibParamSM_CalibDBTest.C:  //     rangeend = create_timestamp(2018, 7, 9, 3, 22, 9);
+Detectors/EMCAL/calib/macros/TempCalibParamSM_CalibDBTest.C:  auto rangetest = create_timestamp(2018, 7, 8, 7, 22, 0); //LHC18k 289166
+Detectors/EMCAL/calib/macros/TempCalibParamSM_CalibDBTest.C:  //auto rangetest = create_timestamp(2018, 7, 9, 1, 1, 17); //LHC18k 289201
+Detectors/EMCAL/calib/macros/TempCalibParamSM_CalibDBTest.C:  std::cout << "Using read timestamp " << rangetest << "(omitted untill function is implemented server side)" << std::endl;
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CalibDBTest.C:unsigned long create_timestamp(int year, int month, int day, int hour, int minutes, int seconds)
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CalibDBTest.C:  auto rangestart = create_timestamp(2018, 4, 18, 23, 58, 48),
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CalibDBTest.C:       rangeend = create_timestamp(2018, 12, 2, 13, 39, 47);
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CalibDBTest.C:  //auto rangestart = create_timestamp(2017, 5, 23, 23, 7, 44),
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CalibDBTest.C:  //     rangeend = create_timestamp(2017, 11, 26, 11, 32, 38);
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CalibDBTest.C:  //auto rangestart = create_timestamp(2016, 4, 23, 0, 58, 40),
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CalibDBTest.C:  //    rangeend = create_timestamp(2016, 12, 5, 6, 3, 19);
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CalibDBTest.C:  //auto rangestart = create_timestamp(2015, 9, 12, 5, 7, 8),
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CalibDBTest.C:  //    rangeend = create_timestamp(2015, 12, 13, 11, 46, 20);
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CalibDBTest.C:  auto rangetest = create_timestamp(2018, 4, 18, 23, 58, 48); //LHC18
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CalibDBTest.C:  //auto rangetest = create_timestamp(2017, 5, 23, 23, 7, 44); //LHC17
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CalibDBTest.C:  //auto rangetest = create_timestamp(2016, 4, 23, 0, 58, 40); //LHC16
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CalibDBTest.C:  //auto rangetest = create_timestamp(2015, 9, 12, 5, 7, 8); //LHC15
+Detectors/EMCAL/calib/macros/TempCalibrationParams_CalibDBTest.C:  std::cout << "Using read timestamp " << rangetest << std::endl;
+Detectors/EMCAL/calib/macros/TriggerDCS_CCDBApiTest.C:unsigned long create_timestamp(int year, int month, int day, int hour, int minutes, int seconds)
+Detectors/EMCAL/calib/macros/TriggerDCS_CCDBApiTest.C:  auto rangestart = create_timestamp(2016, 4, 23, 0, 58, 40),
+Detectors/EMCAL/calib/macros/TriggerDCS_CCDBApiTest.C:       rangeend = create_timestamp(2016, 12, 5, 6, 3, 19);
+Detectors/EMCAL/calib/macros/TriggerDCS_CCDBApiTest.C:  auto rangetest = create_timestamp(2016, 4, 23, 0, 58, 40); //LHC16
+Detectors/EMCAL/calib/macros/TriggerDCS_CCDBApiTest.C:  std::cout << "Using read timestamp " << rangetest << std::endl;
+Detectors/EMCAL/calib/macros/TempCalibParamSM_CCDBApiTest.C:unsigned long create_timestamp(int year, int month, int day, int hour, int minutes, int seconds)
+Detectors/EMCAL/calib/macros/TempCalibParamSM_CCDBApiTest.C:  auto rangestart = create_timestamp(2018, 7, 8, 7, 22, 0),
+Detectors/EMCAL/calib/macros/TempCalibParamSM_CCDBApiTest.C:       rangeend = create_timestamp(2018, 7, 8, 8, 3, 15);
+Detectors/EMCAL/calib/macros/TempCalibParamSM_CCDBApiTest.C:  //auto rangestart = create_timestamp(2018, 7, 9, 1, 1, 17),
+Detectors/EMCAL/calib/macros/TempCalibParamSM_CCDBApiTest.C:  //     rangeend = create_timestamp(2018, 7, 9, 3, 22, 9);
+Detectors/EMCAL/calib/macros/TempCalibParamSM_CCDBApiTest.C:  auto rangetest = create_timestamp(2018, 7, 8, 7, 22, 0); //LHC18k 289166
+Detectors/EMCAL/calib/macros/TempCalibParamSM_CCDBApiTest.C:  //auto rangetest = create_timestamp(2018, 7, 9, 1, 1, 17); //LHC18k 289201
+Detectors/EMCAL/calib/macros/TempCalibParamSM_CCDBApiTest.C:  std::cout << "Using read timestamp " << rangetest << "(omitted untill function is implemented server side)" << std::endl;
+Detectors/EMCAL/calib/macros/TimeCalibParamsL1Phase_CCDBApiTest.C:unsigned long create_timestamp(int year, int month, int day, int hour, int minutes, int seconds)
+Detectors/EMCAL/calib/macros/TimeCalibParamsL1Phase_CCDBApiTest.C:  auto rangestart = create_timestamp(2018, 11, 8, 21, 57, 7),
+Detectors/EMCAL/calib/macros/TimeCalibParamsL1Phase_CCDBApiTest.C:       rangeend = create_timestamp(2018, 11, 8, 22, 17, 4);
+Detectors/EMCAL/calib/macros/TimeCalibParamsL1Phase_CCDBApiTest.C:  //auto rangestart = create_timestamp(2018, 11, 21, 6, 27, 28),
+Detectors/EMCAL/calib/macros/TimeCalibParamsL1Phase_CCDBApiTest.C:  //     rangeend = create_timestamp(2018, 11, 21, 7, 34, 53);
+Detectors/EMCAL/calib/macros/TimeCalibParamsL1Phase_CCDBApiTest.C:  auto rangetest = create_timestamp(2018, 11, 8, 21, 57, 7); //LHC18q 295585
+Detectors/EMCAL/calib/macros/TimeCalibParamsL1Phase_CCDBApiTest.C:  //auto rangetest = create_timestamp(2018, 11, 21, 6, 27, 28); //LHC18q 296623
+Detectors/EMCAL/calib/macros/TimeCalibParamsL1Phase_CCDBApiTest.C:  std::cout << "Using read timestamp " << rangetest << "(omitted untill function is implemented server side)" << std::endl;
+Detectors/EMCAL/calib/macros/GainCalibrationFactors_CCDBApiTest.C:unsigned long create_timestamp(int year, int month, int day, int hour, int minutes, int seconds)
+Detectors/EMCAL/calib/macros/GainCalibrationFactors_CCDBApiTest.C:  auto rangestart = create_timestamp(2018, 11, 3, 13, 51, 41),
+Detectors/EMCAL/calib/macros/GainCalibrationFactors_CCDBApiTest.C:       rangeend = create_timestamp(2018, 12, 2, 13, 39, 47);
+Detectors/EMCAL/calib/macros/GainCalibrationFactors_CCDBApiTest.C:  //auto rangestart = create_timestamp(2015, 11, 19, 15, 55, 58),
+Detectors/EMCAL/calib/macros/GainCalibrationFactors_CCDBApiTest.C:  //    rangeend = create_timestamp(2018, 11, 3, 13, 51, 16);
+Detectors/EMCAL/calib/macros/GainCalibrationFactors_CCDBApiTest.C:  auto rangetest = create_timestamp(2018, 11, 16, 20, 55, 3); //LHC18q run 296273
+Detectors/EMCAL/calib/macros/GainCalibrationFactors_CCDBApiTest.C:  //auto rangetest = create_timestamp(2015, 12, 9, 23, 10, 3); //LHC15 run 246583
+Detectors/EMCAL/calib/macros/GainCalibrationFactors_CCDBApiTest.C:  std::cout << "Using read timestamp " << rangetest << std::endl;
+Detectors/ZDC/reconstruction/include/ZDCReconstruction/CTFHelper.h:    CTFHeader h{o2::detectors::DetID::ZDC, 0, 1, 0, // dummy timestamp, version 1.0
+Detectors/ZDC/workflow/src/DigitRecoSpec.cxx:    std::string loadedConfFiles = "Loaded ZDC configuration files for timestamp " + std::to_string(timeStamp) + ":";
+Detectors/ZDC/workflow/src/DigitRecoSpec.cxx:      LOG(info) << "Loaded ZDC module configuration for timestamp " << timeStamp;
+Detectors/ZDC/workflow/src/DigitRecoSpec.cxx:      LOG(info) << "Loaded RecoConfigZDC for timestamp " << timeStamp;
+Detectors/ZDC/workflow/src/DigitRecoSpec.cxx:      LOG(info) << "Loaded TDC centering ZDCTDCParam for timestamp " << timeStamp;
+Detectors/ZDC/workflow/src/DigitRecoSpec.cxx:        LOG(info) << "Loaded Energy calibration ZDCEnergyParam for timestamp " << timeStamp;
+Detectors/ZDC/workflow/src/DigitRecoSpec.cxx:        LOG(info) << "Loaded Tower calibration ZDCTowerParam for timestamp " << timeStamp;
+Detectors/ZDC/workflow/src/ZDCDataReaderDPLSpec.cxx:      LOG(fatal) << "Cannot module configuratio for timestamp " << timeStamp;
+Detectors/ZDC/workflow/src/ZDCDataReaderDPLSpec.cxx:      LOG(info) << "Loaded module configuration for timestamp " << timeStamp;
+Detectors/ZDC/simulation/src/Digitizer.cxx:    LOG(info) << "Loaded module configuration for timestamp " << mTimeStamp;
+Detectors/ZDC/simulation/src/Digitizer.cxx:    LOG(info) << "Loaded simulation configuration for timestamp " << mTimeStamp;
+Detectors/ZDC/simulation/src/digi2raw.cxx:    LOG(fatal) << "Cannot module configuratio for timestamp " << timeStamp;
+Detectors/ZDC/simulation/src/digi2raw.cxx:  LOG(info) << "Loaded module configuration for timestamp " << timeStamp;
+Detectors/ZDC/simulation/src/digi2raw.cxx:    LOG(fatal) << "Cannot get simulation configuration for timestamp " << timeStamp;
+Detectors/ZDC/simulation/src/digi2raw.cxx:  LOG(info) << "Loaded simulation configuration for timestamp " << timeStamp;
+Detectors/ZDC/simulation/include/ZDCSimulation/Digitizer.h:  long mTimeStamp = 0; // TF (run) timestamp
+Detectors/GRP/calibration/include/GRPCalibration/LHCIFfileReader.h:    LOG(fatal) << "Number of tokens too small: " << tokensStr.size() << ", should be at 5 (alias, type, nelements, value(s), timestamp(s)";
+Detectors/GRP/calibration/include/GRPCalibration/LHCIFfileReader.h:  if ((tokensStr.size() - shift) != (nele + 1) * nmeas) { // +1 to account for the timestamp
+Detectors/GRP/calibration/include/GRPCalibration/LHCIFfileReader.h:    LOG(fatal) << "Wrong number of pairs (value(s), timestamp): " << tokensStr.size() - 3 << ", should be " << (nele + 1) * nmeas;
+Detectors/GRP/calibration/include/GRPCalibration/LHCIFfileReader.h:    LOG(debug) << "timestamp = " << std::stof(tokensStr[shift + nele]);
+Detectors/HMPID/reconstruction/include/HMPIDReconstruction/CTFHelper.h:    CTFHeader h{o2::detectors::DetID::HMP, 0, 1, 0, // dummy timestamp, version 1.0
+Detectors/TRD/reconstruction/include/TRDReconstruction/CTFHelper.h:    CTFHeader h{o2::detectors::DetID::TRD, 0, 1, 0, // dummy timestamp, version 1.0
+Detectors/TRD/base/src/TrackletTransformer.cxx:void TrackletTransformer::loadCalibrationParameters(int timestamp)
+Detectors/TRD/base/src/TrackletTransformer.cxx:  LOG(info) << "loading calibration parameters with timestamp: " << timestamp;
+Detectors/TRD/base/src/TrackletTransformer.cxx:  ccdbmgr.setTimestamp(timestamp);
+Detectors/TRD/base/src/Calibrations.cxx:void Calibrations::getCCDBObjects(long timestamp)
+Detectors/TRD/base/src/Calibrations.cxx:  mTimeStamp = timestamp;
+Detectors/TRD/base/src/Calibrations.cxx:  ccdbmgr.setTimestamp(timestamp); // set which time stamp of data we want this is called per timeframe, and removes the need to call it when querying a value.
+Detectors/TRD/base/include/TRDBase/TrackletTransformer.h:  void loadCalibrationParameters(int timestamp);
+Detectors/TRD/base/include/TRDBase/Calibrations.h:  void getCCDBObjects(long timestamp);
+Detectors/TRD/base/macros/OCDB2CCDB.C:  ccdb.storeAsTFileAny(o2gtbl, Form("%s/OnlineGainTables/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1, 1670700184549); //no uppper timestamp to leave it "always" valid.
+Detectors/TRD/base/macros/OCDB2CCDB.C:  ccdb.storeAsTFileAny(o2gtbl, Form("%s/OnlineGainTables/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1, 1670700184549); //no uppper timestamp to leave it "always" valid.
+Detectors/TRD/base/macros/OCDB2CCDB.C:  ccdb.storeAsTFileAny(o2gtbl, Form("%s/OnlineGainTables/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1, 1670700184549); //no uppper timestamp to leave it "always" valid.
+Detectors/TRD/base/macros/OCDB2CCDB.C:  ccdb.storeAsTFileAny(o2gtbl, Form("%s/OnlineGainTables/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1, 1670700184549); //no uppper timestamp to leave it "always" valid.
+Detectors/TRD/base/macros/OCDB2CCDB.C:  ccdb.storeAsTFileAny(o2gtbl, Form("%s/OnlineGainTables/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1, 1670700184549); //no uppper timestamp to leave it "always" valid.
+Detectors/TRD/base/macros/OCDB2CCDB.C:  ccdb.storeAsTFileAny(o2gtbl, Form("%s/OnlineGainTables/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1, 1670700184549); //no uppper timestamp to leave it "always" valid.
+Detectors/TRD/base/macros/OCDB2CCDB.C:  ccdb.storeAsTFileAny(o2gtbl, Form("%s/OnlineGainTables/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1, 1670700184549); //no uppper timestamp to leave it "always" valid.
+Detectors/TRD/base/macros/OCDB2CCDB.C:  ccdb.storeAsTFileAny(o2gtbl, Form("%s/OnlineGainTables/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1, 1670700184549); //no uppper timestamp to leave it "always" valid.
+Detectors/TRD/base/macros/OCDB2CCDB.C:  ccdb.storeAsTFileAny(o2gtbl, Form("%s/OnlineGainTables/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1, 1670700184549); //no uppper timestamp to leave it "always" valid.
+Detectors/TRD/workflow/src/TRDTrackletTransformerWorkflow.cxx:    {"timestamp", o2::framework::VariantType::Int, 555555, {"timestamp for CCDB calibration objects"}},
+Detectors/TRD/workflow/src/TRDTrackletTransformerWorkflow.cxx:  int timestamp = configcontext.options().get<int>("timestamp");
+Detectors/TRD/workflow/src/TRDTrackletTransformerWorkflow.cxx:  spec.emplace_back(o2::trd::getTRDTrackletTransformerSpec(trigRecFilterActive, timestamp));
+Detectors/TRD/workflow/src/TRDTrackletTransformerSpec.cxx:    // ccdb object was not found for specified timestamp
+Detectors/TRD/workflow/src/TRDTrackletTransformerSpec.cxx:o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilterActive, int timestamp)
+Detectors/TRD/workflow/src/TRDTrackletTransformerSpec.cxx:    AlgorithmSpec{adaptFromTask<TRDTrackletTransformerSpec>(dataRequest, trigRecFilterActive, timestamp)},
+Detectors/TRD/workflow/include/TRDWorkflow/TRDTrackletTransformerSpec.h:  TRDTrackletTransformerSpec(std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, bool trigRecFilterActive, int timestamp) : mDataRequest(dataRequest), mTrigRecFilterActive(trigRecFilterActive), mTimestamp(timestamp){};
+Detectors/TRD/workflow/include/TRDWorkflow/TRDTrackletTransformerSpec.h:o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilterActive, int timestamp);
+Detectors/TRD/workflow/io/src/TRDTrackletWriterSpec.cxx:      //filename format is : E#.sector#.stack#.json E=Eventnumber(nominal) ... will use timestamp
+Detectors/PHOS/reconstruction/src/CaloRawFitter.cxx:  // Find index posK (kLevel is a level of "timestamp" point Tk):
+Detectors/PHOS/reconstruction/include/PHOSReconstruction/CTFHelper.h:    CTFHeader h{o2::detectors::DetID::PHS, 0, 1, 0, // dummy timestamp, version 1.0
+Detectors/PHOS/calib/src/PHOSBadMapCalibDevice.cxx:  //  auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime; // is this the timestamp of the current TF?
+Detectors/PHOS/calib/src/PHOSEnergyCalibDevice.cxx:  auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("clusters").header)->startTime; // is this the timestamp of the current TF?
+Detectors/PHOS/calib/src/PHOSRunbyrunCalibDevice.cxx:  auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("clusters").header)->startTime; // is this the timestamp of the current TF?
+Detectors/PHOS/calib/src/PHOSTurnonCalibDevice.cxx:  auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("clusters").header)->startTime; // is this the timestamp of the current TF?
+Detectors/ITSMFT/common/reconstruction/include/ITSMFTReconstruction/AlpideCoder.h:    uint8_t dataC = 0, timestamp = 0;
+Detectors/ITSMFT/common/reconstruction/include/ITSMFTReconstruction/AlpideCoder.h:        if (!buffer.next(timestamp)) {
+Detectors/ITSMFT/common/reconstruction/include/ITSMFTReconstruction/AlpideCoder.h:        if (!buffer.next(timestamp)) {
+Detectors/ITSMFT/MFT/calibration/testWorkflow/README.md:  --tstart <start timestamp> : defines the start of validity timestamp of the file written in the CCDB (default is -1 : current timestamp)
+Detectors/ITSMFT/MFT/calibration/testWorkflow/README.md:  --tend <end timestamp> : defines the start of validity timestamp of the file written in the CCDB (defult is -1 : one year from the current timestamp)
+Detectors/ITSMFT/MFT/calibration/src/NoiseCalibratorSpec.cxx:      {"tstart", VariantType::Int64, -1ll, {"Start of validity timestamp"}},
+Detectors/ITSMFT/MFT/calibration/src/NoiseCalibratorSpec.cxx:      {"tend", VariantType::Int64, -1ll, {"End of validity timestamp"}},
+Detectors/ITSMFT/MFT/condition/testWorkflow/MFTDCSDataProcessorSpec.h:      {"tstart", VariantType::Int64, -1ll, {"Start of validity timestamp"}},
+Detectors/ITSMFT/MFT/condition/testWorkflow/MFTDCSDataProcessorSpec.h:      {"tend", VariantType::Int64, -1ll, {"End of validity timestamp"}},
+Detectors/ITSMFT/MFT/condition/src/MFTDCSProcessor.cxx:  LOG(info) << "First Value: timestamp = " << firstValue.first << ", value = " << firstValue.second;
+Detectors/ITSMFT/MFT/condition/src/MFTDCSProcessor.cxx:  LOG(info) << "Last Value:  timestamp = " << lastValue.first << ", value = " << lastValue.second;
+Detectors/ITSMFT/MFT/condition/src/MFTDCSProcessor.cxx:  LOG(info) << "Mid Value:   timestamp = " << midValue.first << ", value = " << midValue.second;
+Detectors/ITSMFT/MFT/condition/src/MFTDCSProcessor.cxx:  LOG(info) << "Max Change:  timestamp = " << maxChange.first << ", value = " << maxChange.second;
+Detectors/ITSMFT/MFT/condition/src/MFTDCSProcessor.cxx:                                                                       // same timestamp as the
+Detectors/ITSMFT/MFT/condition/src/dcs-check-ccdb.cxx:  uint64_t timestamp;
+Detectors/ITSMFT/MFT/condition/src/dcs-check-ccdb.cxx:    ("timestamp,t",po::value<uint64_t>(&timestamp)->default_value(now),"timestamp to query")
+Detectors/ITSMFT/MFT/condition/src/dcs-check-ccdb.cxx:    auto* m = api.retrieveFromTFileAny<DPMAP>(w, metadata, timestamp);
+Detectors/Raw/include/DetectorsRaw/HBFUtils.h:  ///< calculate TF timestamp in ms
+Detectors/Vertexing/include/DetectorsVertexing/PVertexerHelpers.h:/// generic track with timestamp
+Detectors/Calibration/src/MeanVertexCalibrator.cxx:  // TODO: the timestamp is now given with the TF index, but it will have
+Detectors/TPC/calibration/include/TPCCalibration/IDCCCDBHelper.h:  /// update timestamp (time frame)
+Detectors/TPC/calibration/include/TPCCalibration/IDCCCDBHelper.h:  void setTimeStamp(const long long timestamp) { mCCDBManager.setTimestamp(timestamp); }
+Detectors/TPC/reconstruction/src/RawReader.cxx:          LOG(debug) << "Setting timestamp of first data to " << eventInfo.header.timeStamp() + 1 + i / indexStep << " for half SAMPA " << iHalfSampa << " (" << 1 + i / indexStep << ")";
+Detectors/TPC/reconstruction/src/HwClusterer.cxx:     * This needs to be done only of the timestamps changes, otherwise it was
+Detectors/TPC/reconstruction/src/GBTFrameContainer.cxx:      uint64_t timestamp = words[2];
+Detectors/TPC/reconstruction/src/GBTFrameContainer.cxx:      timestamp = (timestamp << 32) | words[3];
+Detectors/TPC/reconstruction/src/GBTFrameContainer.cxx:      LOG(debug) << "Timestamp: 0x" << std::hex << std::setfill('0') << std::right << std::setw(16) << timestamp << std::dec;
+Detectors/TPC/reconstruction/include/TPCReconstruction/CTFCoder.h:  ec->setHeader(CTFHeader{o2::detectors::DetID::TPC, 0, 1, 0, // dummy timestamp, version 1.0
+Detectors/TPC/base/include/TPCBase/CDBInterface.h:  /// The function returns the object stored at the given path, timestamp and metaData in the CCDB
+Detectors/TPC/base/include/TPCBase/CDBInterface.h:  T& getSpecificObjectFromCDB(const std::string_view path, long timestamp = -1, const std::map<std::string, std::string>& metaData = std::map<std::string, std::string>());
+Detectors/TPC/base/include/TPCBase/CDBInterface.h:/// @param timestamp
+Detectors/TPC/base/include/TPCBase/CDBInterface.h:inline T& CDBInterface::getSpecificObjectFromCDB(std::string_view path, long timestamp, const std::map<std::string, std::string>& metaData)
+Detectors/TPC/base/include/TPCBase/CDBInterface.h:  auto* object = cdb.getSpecific<T>(path.data(), timestamp, metaData);
+Detectors/TPC/base/include/TPCBase/CDBInterface.h:template CalPad& CDBInterface::getSpecificObjectFromCDB(const std::string_view path, long timestamp, const std::map<std::string, std::string>& metaData);
+Detectors/TPC/base/include/TPCBase/CDBInterface.h:template std::vector<CalPad>& CDBInterface::getSpecificObjectFromCDB(const std::string_view path, long timestamp, const std::map<std::string, std::string>& metaData);
+Detectors/TPC/base/include/TPCBase/CDBInterface.h:template std::unordered_map<std::string, o2::tpc::CalPad>& CDBInterface::getSpecificObjectFromCDB(const std::string_view path, long timestamp, const std::map<std::string, std::string>& metaData);
+Detectors/TPC/base/include/TPCBase/CDBInterface.h:template LtrCalibData& CDBInterface::getSpecificObjectFromCDB(const std::string_view path, long timestamp, const std::map<std::string, std::string>& metaData);
+Detectors/TOF/calibration/testWorkflow/TOFChannelCalibratorSpec.h:    auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime; // is this the timestamp of the current TF?
+Detectors/TOF/calibration/testWorkflow/TOFChannelCalibratorSpec.h:          if (wrp->getStartValidityTimestamp() > tfcounter) { // replace tfcounter with the timestamp of the TF
+Detectors/TOF/calibration/testWorkflow/TOFChannelCalibratorSpec.h:    mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), &mPhase, &mTimeSlewing); // TODO: should we replace long(0) with tfcounter defined at the beginning of the method? we need the timestamp of the TF
+Detectors/TOF/calibration/testWorkflow/TOFCalibCollectorSpec.h:    auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime; // is this the timestamp of the current TF?
+Detectors/TOF/calibration/src/LHCClockCalibrator.cxx:  // TODO: the timestamp is now given with the TF index, but it will have
+Detectors/TOF/calibration/src/TOFDCSProcessor.cxx:  LOG(info) << "First Value: timestamp = " << firstValue.first << ", value = " << firstValue.second;
+Detectors/TOF/calibration/src/TOFDCSProcessor.cxx:  LOG(info) << "Last Value:  timestamp = " << lastValue.first << ", value = " << lastValue.second;
+Detectors/TOF/calibration/src/TOFDCSProcessor.cxx:  LOG(info) << "Mid Value:   timestamp = " << midValue.first << ", value = " << midValue.second;
+Detectors/TOF/calibration/src/TOFDCSProcessor.cxx:  LOG(info) << "Max Change:  timestamp = " << maxChange.first << ", value = " << maxChange.second;
+Detectors/TOF/calibration/src/TOFDCSProcessor.cxx:                                                    // same timestamp as the
+Detectors/TOF/calibration/src/CalibTOF.cxx:  mHistoLHCphase = new TH2F("hLHCphase", ";clock offset (ps); timestamp (s)", 1000, -24400, 24400, nbinsLHCphase, mMinTimestamp, mMaxTimestamp);
+Detectors/TOF/calibration/src/CalibTOF.cxx:      mCalibTOFapi.writeLHCphase(mLHCphaseObj, metadataLHCphase, (uint64_t)mMinTimestamp * 1000, (uint64_t)mMaxTimestamp * 1000);           // we use as validity the timestamps that we got from the input for the calibration; but we need to convert to ms for the CCDB (at least for now that we use an integer for the timestamp)
+Detectors/TOF/calibration/src/CalibTOF.cxx:      mCalibTOFapi.writeTimeSlewingParam(mTimeSlewingObj, metadataChannelCalib, (uint64_t)mMinTimestamp * 1000);      // contains both offset and time slewing; we use as validity the START ONLY timestamp that we got from the input for the calibration; but we need to convert to ms for the CCDB (at least for now that we use an integer for the timestamp), END is default
+Detectors/TOF/calibration/include/TOFCalibration/CalibTOF.h:  int mMinTimestamp = 0; ///< minimum timestamp over the hits that we collect; we need it to
+Detectors/TOF/calibration/include/TOFCalibration/CalibTOF.h:  int mMaxTimestamp = 1; ///< maximum timestamp over the hits that we collect; we need it to
+Detectors/TOF/calibration/include/TOFCalibration/CollectCalibInfoTOF.h:  ///< get the min/max timestamp for following calibration of LHCPhase
+Detectors/TOF/calibration/include/TOFCalibration/CollectCalibInfoTOF.h:  TParameter<int> mMinTimestamp; ///< minimum timestamp over the hits that we collect; we will need it at calibration time to
+Detectors/TOF/calibration/include/TOFCalibration/CollectCalibInfoTOF.h:  TParameter<int> mMaxTimestamp; ///< maximum timestamp over the hits that we collect; we will need it at calibration time to
+Detectors/TOF/base/src/WindowFiller.cxx:    double timestamp = digit->getBC() * Geo::BC_TIME + digit->getTDC() * Geo::TDCBIN * 1E-3; // in ns
+Detectors/TOF/base/src/WindowFiller.cxx:    int isnext = Int_t(timestamp * Geo::READOUTWINDOW_INV) - (mReadoutWindowCurrent + 1);    // to be replaced with uncalibrated time
+Detectors/TOF/base/src/CalibTOFapi.cxx:  corr += mLHCphase->getLHCphase(int(mTimeStamp / 1000)); // timestamp that we use in LHCPhase is in seconds, but for CCDB we need it in ms
+Detectors/TOF/base/include/TOFBase/CalibTOFapi.h:  CalibTOFapi(long timestamp, o2::dataformats::CalibLHCphaseTOF* phase, o2::dataformats::CalibTimeSlewingParamTOF* slew) : mTimeStamp(timestamp), mLHCphase(phase), mSlewParam(slew) { CalibTOFapi(); }
+Detectors/TOF/prototyping/convertTreeTo02object.C:      mCalibInfoTOF.emplace_back(t->GetLeaf("index")->GetValue(i), t->GetLeaf("timestamp")->GetValue(), t->GetLeaf("time")->GetValue(i) - t->GetLeaf("texp")->GetValue(i), t->GetLeaf("tot")->GetValue(i));
+Detectors/TOF/simulation/src/Digitizer.cxx:    double timestamp = digit->getBC() * Geo::BC_TIME + digit->getTDC() * Geo::TDCBIN * 1E-3; // in ns
+Detectors/TOF/simulation/src/Digitizer.cxx:    int isnext = Int_t(timestamp * Geo::READOUTWINDOW_INV) - (mReadoutWindowCurrent + 1); // to be replaced with uncalibrated time
+Detectors/TOF/simulation/src/Digitizer.cxx:    int isIfOverlap = Int_t((timestamp - Geo::BC_TIME_INPS * Geo::OVERLAP_IN_BC * 1E-3) * Geo::READOUTWINDOW_INV) - (mReadoutWindowCurrent + 1); // to be replaced with uncalibrated time;
+macro/o2sim.C:    LOG(info) << "Initialized CCDB Manager with timestamp : " << ccdbmgr.getTimestamp();
+macro/o2sim.C:  // we can update the binary CCDB entry something like this ( + timestamp key )
+CHANGELOG.md:- [#7753](https://github.com/AliceO2Group/AliceO2/pull/7753) 2021-11-28: Changes to inject MC TF timestamp to DPH.creation time by [@shahor02](https://github.com/shahor02)
+CHANGELOG.md:- [#7753](https://github.com/AliceO2Group/AliceO2/pull/7753) 2021-11-28: Changes to inject MC TF timestamp to DPH.creation time by [@shahor02](https://github.com/shahor02)
+CHANGELOG.md:- [#7753](https://github.com/AliceO2Group/AliceO2/pull/7753) 2021-11-28: Changes to inject MC TF timestamp to DPH.creation time by [@shahor02](https://github.com/shahor02)
+DataFormats/Detectors/EMCAL/src/Cell.cxx:void Cell::setTimeStamp(float timestamp)
+DataFormats/Detectors/EMCAL/src/Cell.cxx:  if (timestamp < TIME_MIN) {
+DataFormats/Detectors/EMCAL/src/Cell.cxx:    timestamp = TIME_MIN;
+DataFormats/Detectors/EMCAL/src/Cell.cxx:  } else if (timestamp > TIME_MAX) {
+DataFormats/Detectors/EMCAL/src/Cell.cxx:    timestamp = TIME_MAX;
+DataFormats/Detectors/EMCAL/src/Cell.cxx:  getDataRepresentation()->mTime = static_cast<uint16_t>((timestamp + TIME_SHIFT) / TIME_RESOLUTION);
+DataFormats/Detectors/EMCAL/include/DataFormatsEMCAL/EMCALChannelData.h:  EMCALChannelData(int cellID, int timestamp, int flags = 0, int events) : mEMCALCellID(cellID), mTimestamp(timestamp), mFlags(flags){};
+DataFormats/Detectors/EMCAL/include/DataFormatsEMCAL/EMCALChannelData.h:  int mTimestamp;       ///< timestamp in seconds
+DataFormats/Detectors/Common/src/CTFDictHeader.cxx:/// \brief Header: timestamps and format version for detector CTF dictionary
+DataFormats/Detectors/Common/include/DetectorsCommonDataFormats/CTFDictHeader.h:/// \brief Header: timestamps and format version for detector CTF dictionary
+DataFormats/Detectors/Common/include/DetectorsCommonDataFormats/FileMetaData.h:  long ctime{};              // 5, default the timestamp of the lurl file, optional
+DataFormats/Detectors/TOF/src/CalibLHCphaseTOF.cxx:float CalibLHCphaseTOF::getLHCphase(int timestamp) const
+DataFormats/Detectors/TOF/src/CalibLHCphaseTOF.cxx:  while (n < mLHCphase.size() && mLHCphase[n].first <= timestamp) {
+DataFormats/Detectors/TOF/src/CalibLHCphaseTOF.cxx:  if (n < 0) { // timestamp is before of the first available value
+DataFormats/Detectors/TOF/src/CalibLHCphaseTOF.cxx:void CalibLHCphaseTOF::addLHCphase(int timestamp, float phaseLHC)
+DataFormats/Detectors/TOF/src/CalibLHCphaseTOF.cxx:  // optimized if timestamp are given in increasing order
+DataFormats/Detectors/TOF/src/CalibLHCphaseTOF.cxx:  mLHCphase.emplace_back(timestamp, phaseLHC);
+DataFormats/Detectors/TOF/include/DataFormatsTOF/CalibLHCphaseTOF.h:  float getLHCphase(int timestamp) const;
+DataFormats/Detectors/TOF/include/DataFormatsTOF/CalibLHCphaseTOF.h:  void addLHCphase(int timestamp, float phaseLHC);
+DataFormats/Detectors/TOF/include/DataFormatsTOF/CalibLHCphaseTOF.h:  int timestamp(int i) const { return mLHCphase[i].first; }
+DataFormats/Detectors/TOF/include/DataFormatsTOF/CalibLHCphaseTOF.h:  std::vector<std::pair<int, float>> mLHCphase; ///< <timestamp,LHCphase> from which the LHCphase measurement is valid
+DataFormats/Detectors/TOF/include/DataFormatsTOF/CalibInfoTOFshort.h:  CalibInfoTOFshort(int timestamp, float DeltaTimePi, float tot, int flags = 0) : mTimestamp(timestamp), mDeltaTimePi(DeltaTimePi), mTot(tot), mFlags(flags){};
+DataFormats/Detectors/TOF/include/DataFormatsTOF/CalibInfoTOFshort.h:  int mTimestamp;       // timestamp in seconds
+DataFormats/Detectors/TOF/include/DataFormatsTOF/CalibInfoTOF.h:  CalibInfoTOF(int indexTOFCh, int timestamp, float DeltaTimePi, float tot, int flags = 0) : mTOFChIndex(indexTOFCh), mTimestamp(timestamp), mDeltaTimePi(DeltaTimePi), mTot(tot), mFlags(flags){};
+DataFormats/Detectors/TOF/include/DataFormatsTOF/CalibInfoTOF.h:  int mTimestamp;       // timestamp in seconds
+DataFormats/Headers/src/TimeStamp.cxx:/// @brief  A std chrono implementation of LHC clock and timestamp
+DataFormats/Headers/test/testTimeStamp.cxx:  TimeStamp timestamp("AC", orbits, bunches);
+DataFormats/Headers/test/testTimeStamp.cxx:  BOOST_CHECK(ts64 == timestamp);
+DataFormats/Headers/test/testTimeStamp.cxx:  auto timeInLHCOrbitClock = timestamp.get<LHCOrbitClock>();
+DataFormats/Headers/test/testTimeStamp.cxx:  auto timeInLHCBunchClock = timestamp.get<LHCBunchClock>();
+DataFormats/Headers/test/testTimeStamp.cxx:  auto timeInSeconds = std::chrono::duration_cast<std::chrono::seconds>(timestamp.get<LHCOrbitClock>());
+DataFormats/Headers/test/testTimeStamp.cxx:  auto timeInHours = timestamp.get<std::chrono::hours>();
+DataFormats/Headers/test/testTimeStamp.cxx:  // setting timestamp with a value in unit mico seconds
+DataFormats/Headers/test/testTimeStamp.cxx:  timestamp = String2<uint16_t>("US") | tenSeconds << 32;
+DataFormats/Headers/test/testTimeStamp.cxx:  auto timeInOrbitPrecision = timestamp.get<LHCOrbitClock>();
+DataFormats/Headers/test/testTimeStamp.cxx:  auto timeInBunchPrecision = timestamp.get<LHCBunchClock>();
+DataFormats/Headers/include/Headers/SubframeMetadata.h:  // TODO: replace with timestamp struct
+DataFormats/Headers/include/Headers/SubframeMetadata.h:// Helper function to derive the timeframe id from the actual timestamp.
+DataFormats/Headers/include/Headers/SubframeMetadata.h:  timeframeIdFromTimestamp(uint64_t timestamp, uint64_t timeFrameDuration)
+DataFormats/Headers/include/Headers/SubframeMetadata.h:  return (timestamp / timeFrameDuration) & 0xffff;
+DataFormats/Headers/include/Headers/TimeStamp.h:/// @brief  A std chrono implementation of LHC clock and timestamp
+doc/data/2021-03-o2_prs.json:                    "path": "Analysis/Tasks/timestamp.cxx"
+doc/data/2021-03-o2_prs.json:                    "path": "Analysis/Tasks/timestamp.cxx"
+doc/data/2021-12-o2_prs.json:            "title": "Changes to inject MC TF timestamp to DPH.creation time",
+Framework/GUISupport/src/FrameworkGUIDebugger.cxx:    data.mod = std::min(metric.filledMetrics, metricsInfo.timestamps[index.metricIndex].size());
+Framework/GUISupport/src/FrameworkGUIDebugger.cxx:    data.time = metricsInfo.timestamps[index.metricIndex].data();
+Framework/GUISupport/src/FrameworkGUIDebugger.cxx:        data.mod = std::min(metric.filledMetrics, metricsInfos[di].timestamps[mi].size());
+Framework/GUISupport/src/FrameworkGUIDebugger.cxx:        data.X = metricsInfos[di].timestamps[mi].data();
+Framework/GUISupport/src/FrameworkGUIDebugger.cxx:    auto time = metricsInfo.timestamps[index.metricIndex][row];
+Framework/GUISupport/src/FrameworkGUIDebugger.cxx:  // Calculate the full timestamp range for the selected metric
+Framework/GUISupport/src/FrameworkGUIDebugger.cxx:          auto& timestamps = metricInfo.timestamps[mi];
+Framework/GUISupport/src/FrameworkGUIDebugger.cxx:          for (size_t ti = 0; ti != metricInfo.timestamps.size(); ++ti) {
+Framework/GUISupport/src/FrameworkGUIDebugger.cxx:            size_t minRangePos = (metric.pos + ti) % metricInfo.timestamps.size();
+Framework/GUISupport/src/FrameworkGUIDebugger.cxx:            size_t curMinTime = timestamps[minRangePos];
+Framework/GUISupport/src/FrameworkGUIDebugger.cxx:          size_t maxRangePos = (size_t)(metric.pos) - 1 % metricInfo.timestamps.size();
+Framework/GUISupport/src/FrameworkGUIDebugger.cxx:          size_t curMaxTime = timestamps[maxRangePos];
+Framework/TestWorkflows/src/test_CCDBFetcher.cxx:            LOGP(info, "Phase at {} for timestamp {} is {}", pi, condition->timestamp(pi), condition->LHCphase(pi));
+Framework/TestWorkflows/src/test_CCDBFetchToTimeframe.cxx:// Set a start value which might correspond to a real timestamp of an object in CCDB, for example:
+Framework/Core/src/runDataProcessing.cxx:    size_t timestamp = uv_now(mContext.loop);
+Framework/Core/src/runDataProcessing.cxx:      callback(*mContext.registry, *mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics, timestamp);
+Framework/Core/src/runDataProcessing.cxx:            size_t timestamp = uv_now(loop);
+Framework/Core/src/runDataProcessing.cxx:              callback(serviceRegistry, metricsInfos, runningWorkflow.devices, infos, driverInfo.metrics, timestamp);
+Framework/Core/src/runDataProcessing.cxx:          size_t timestamp = uv_now(loop);
+Framework/Core/src/runDataProcessing.cxx:            callback(serviceRegistry, metricsInfos, runningWorkflow.devices, infos, driverInfo.metrics, timestamp);
+Framework/Core/src/DeviceConfigInfo.cxx:// [CONFIG] <key>=<vaue> <timestamp> <provenance>
+Framework/Core/src/DeviceConfigInfo.cxx:  match.timestamp = strtoll(match.endValue + 1, &next, 10);
+Framework/Core/src/DPLMonitoringBackend.cxx:inline unsigned long convertTimestamp(const std::chrono::time_point<std::chrono::system_clock>& timestamp)
+Framework/Core/src/DPLMonitoringBackend.cxx:           timestamp.time_since_epoch())
+Framework/Core/src/ResourcesMonitoringHelper.cxx:    values.add("timestamp", deviceMetrics.timestamps[labelIndex][idx]);
+Framework/Core/src/DataRelayer.cxx:    auto timestamp = VariableContextHelpers::getTimeslice(variables);
+Framework/Core/src/DataRelayer.cxx:      if (expirator.checker(services, timestamp.value) == false) {
+Framework/Core/src/LifetimeHelpers.cxx:        TimesliceId timestamp{*last};
+Framework/Core/src/LifetimeHelpers.cxx:        index.associate(timestamp, slot);
+Framework/Core/src/LifetimeHelpers.cxx:  return [serverUrl, waitForCTP](ServiceRegistry& services, int64_t timestamp) -> bool {
+Framework/Core/src/LifetimeHelpers.cxx:    auto url = fmt::format("{}/{}/{}", serverUrl, path, timestamp / 1000);
+Framework/Core/src/LifetimeHelpers.cxx:    throw runtime_error("fetchFromCCDBCache: Unable to parse forced timestamp for conditions");
+Framework/Core/src/LifetimeHelpers.cxx:    LOGP(info, "fetchFromCCDBCache: forcing timestamp for conditions to {} milliseconds from epoch UTC", overrideTimestampMilliseconds);
+Framework/Core/src/LifetimeHelpers.cxx:    //   timestamp evaluation via the firstTFOrbit
+Framework/Core/src/LifetimeHelpers.cxx:    uint64_t timestamp = -1;
+Framework/Core/src/LifetimeHelpers.cxx:      timestamp = overrideTimestampMilliseconds;
+Framework/Core/src/LifetimeHelpers.cxx:      timestamp = ceilf((VariableContextHelpers::getFirstTFOrbit(variables) * o2::constants::lhc::LHCOrbitNS / 1000 + dataTakingContext.orbitResetTime) / 1000);
+Framework/Core/src/LifetimeHelpers.cxx:      // The timestamp used by DPL is in nanoseconds
+Framework/Core/src/LifetimeHelpers.cxx:      timestamp = ceilf(VariableContextHelpers::getTimeslice(variables).value / 1000);
+Framework/Core/src/LifetimeHelpers.cxx:      url = fmt::format("{}/{}/{}", serverUrl, path, timestamp);
+Framework/Core/src/LifetimeHelpers.cxx:      url = fmt::format("{}/{}/{}/runNumber={}", serverUrl, path, timestamp, dataTakingContext.runNumber);
+Framework/Core/src/LifetimeHelpers.cxx:    DataProcessingHeader dph{timestamp, 1};
+Framework/Core/src/LifetimeHelpers.cxx:    auto timestamp = VariableContextHelpers::getTimeslice(variables).value;
+Framework/Core/src/LifetimeHelpers.cxx:    dh.tfCounter = timestamp;
+Framework/Core/src/LifetimeHelpers.cxx:    dh.firstTForbit = timestamp * orbitMultiplier + orbitOffset;
+Framework/Core/src/LifetimeHelpers.cxx:    DataProcessingHeader dph{timestamp, 1};
+Framework/Core/src/LifetimeHelpers.cxx:    auto timestamp = VariableContextHelpers::getTimeslice(variables).value;
+Framework/Core/src/LifetimeHelpers.cxx:        dh.tfCounter = timestamp;
+Framework/Core/src/LifetimeHelpers.cxx:    DataProcessingHeader dph{timestamp, 1};
+Framework/Core/src/DeviceSpecHelpers.cxx:      auto forceTimestamp = options.get<std::string>("condition-timestamp");
+Framework/Core/src/WorkflowHelpers.cxx:            processor.options.emplace_back(ConfigParamSpec{"condition-timestamp", VariantType::Int64, 0ll, {"Force timestamp for CCDB lookup"}});
+Framework/Core/src/ControlWebSocketHandler.h:    size_t timestamp = uv_now(mContext.loop);
+Framework/Core/src/ControlWebSocketHandler.h:      callback(*mContext.registry, *mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics, timestamp);
+Framework/Core/src/DeviceMetricsHelper.cxx:// [METRIC] <name>,<type> <value> <timestamp> [<tag>,<tag>]
+Framework/Core/src/DeviceMetricsHelper.cxx:  match.timestamp = strtol(*(space - 2) + 1, &ep, 10);
+Framework/Core/src/DeviceMetricsHelper.cxx:  // Add the timestamp buffer for it
+Framework/Core/src/DeviceMetricsHelper.cxx:  info.timestamps.emplace_back(std::array<size_t, 1024>{});
+Framework/Core/src/DeviceMetricsHelper.cxx:    // Add the timestamp buffer for it
+Framework/Core/src/DeviceMetricsHelper.cxx:    info.timestamps.emplace_back(std::array<size_t, 1024>{});
+Framework/Core/src/DeviceMetricsHelper.cxx:  //  auto mod = info.timestamps[metricIndex].size();
+Framework/Core/src/DeviceMetricsHelper.cxx:  // We do all the updates here, so that not update timestamps for broken metrics
+Framework/Core/src/DeviceMetricsHelper.cxx:  info.minDomain[metricIndex] = std::min(info.minDomain[metricIndex], (size_t)match.timestamp);
+Framework/Core/src/DeviceMetricsHelper.cxx:  info.maxDomain[metricIndex] = std::max(info.maxDomain[metricIndex], (size_t)match.timestamp);
+Framework/Core/src/DeviceMetricsHelper.cxx:  info.timestamps[metricIndex][metricInfo.pos] = match.timestamp;
+Framework/Core/src/ArrowSupport.cxx:                         size_t timestamp) {
+Framework/Core/src/ArrowSupport.cxx:                       // Find  the last timestamp when we signaled.
+Framework/Core/src/ArrowSupport.cxx:                             lastTimestamp = std::max(lastTimestamp, deviceMetrics.timestamps[index][(info.pos - 1) % data.size()]);
+Framework/Core/src/ArrowSupport.cxx:                             lastTimestamp = std::max(lastTimestamp, deviceMetrics.timestamps[index][(info.pos - 1) % data.size()]);
+Framework/Core/src/ArrowSupport.cxx:                         totalBytesCreatedMetric(driverMetrics, totalBytesCreated, timestamp);
+Framework/Core/src/ArrowSupport.cxx:                         totalBytesDestroyedMetric(driverMetrics, totalBytesDestroyed, timestamp);
+Framework/Core/src/ArrowSupport.cxx:                         totalBytesExpiredMetric(driverMetrics, totalBytesExpired, timestamp);
+Framework/Core/src/ArrowSupport.cxx:                         shmOfferConsumedMetric(driverMetrics, shmOfferConsumed, timestamp);
+Framework/Core/src/ArrowSupport.cxx:                         totalMessagesCreatedMetric(driverMetrics, totalMessagesCreated, timestamp);
+Framework/Core/src/ArrowSupport.cxx:                         totalMessagesDestroyedMetric(driverMetrics, totalMessagesDestroyed, timestamp);
+Framework/Core/src/ArrowSupport.cxx:                         totalTimeframesReadMetric(driverMetrics, totalTimeframesRead, timestamp);
+Framework/Core/src/ArrowSupport.cxx:                         totalTimeframesConsumedMetric(driverMetrics, totalTimeframesConsumed, timestamp);
+Framework/Core/src/ArrowSupport.cxx:                         totalTimeframesInFlyMetric(driverMetrics, (int)(totalTimeframesRead - totalTimeframesConsumed), timestamp);
+Framework/Core/src/ArrowSupport.cxx:                         totalBytesDeltaMetric(driverMetrics, totalBytesCreated - totalBytesExpired - totalBytesDestroyed, timestamp);
+Framework/Core/src/ArrowSupport.cxx:                       availableSharedMemoryMetric(driverMetrics, availableSharedMemory, timestamp);
+Framework/Core/src/ArrowSupport.cxx:                       unusedOfferedMemoryMetric(driverMetrics, unusedOfferedMemory, timestamp);
+Framework/Core/src/ArrowSupport.cxx:                       offeredSharedMemoryMetric(driverMetrics, offeredSharedMemory, timestamp); },
+Framework/Core/test/test_DeviceConfigInfo.cxx:  BOOST_CHECK_EQUAL(match.timestamp, 1789372894);
+Framework/Core/test/test_DeviceConfigInfo.cxx:  BOOST_CHECK_EQUAL(match.timestamp, 1789372894);
+Framework/Core/test/test_DeviceMetricsInfo.cxx:  BOOST_CHECK_EQUAL(match.timestamp, 1789372894);
+Framework/Core/test/test_DeviceMetricsInfo.cxx:  BOOST_CHECK_EQUAL(info.timestamps.size(), 1);
+Framework/Core/test/test_DeviceMetricsInfo.cxx:  BOOST_CHECK_EQUAL(info.timestamps[0][0], 1789372894);
+Framework/Core/test/test_DeviceMetricsInfo.cxx:  BOOST_CHECK_EQUAL(info.timestamps.size(), 3);
+Framework/Core/test/test_DeviceMetricsInfo.cxx:  BOOST_CHECK_EQUAL(info.timestamps[0][0], 1000);
+Framework/Core/test/test_DeviceMetricsInfo.cxx:  BOOST_CHECK_EQUAL(info.timestamps[0][1], 1001);
+Framework/Core/test/test_DeviceMetricsInfo.cxx:  BOOST_CHECK_EQUAL(info.timestamps[0][2], 1002);
+Framework/Core/test/test_DeviceMetricsInfo.cxx:  BOOST_CHECK_EQUAL(info.timestamps[0][3], 1003);
+Framework/Core/test/test_DeviceMetricsInfo.cxx:  BOOST_CHECK_EQUAL(info.timestamps[0][4], 1004);
+Framework/Core/test/test_DeviceMetricsInfo.cxx:  BOOST_CHECK_EQUAL(info.timestamps[0][5], 1005);
+Framework/Core/test/test_DeviceMetricsInfo.cxx:  BOOST_CHECK_EQUAL(info.timestamps[1][0], 1007);
+Framework/Core/test/test_DeviceMetricsInfo.cxx:  BOOST_CHECK_EQUAL(info.timestamps[1][1], 1008);
+Framework/Core/test/test_DeviceMetricsInfo.cxx:  BOOST_CHECK_EQUAL(info.timestamps[1][2], 1009);
+Framework/Core/test/test_DeviceMetricsInfo.cxx:  BOOST_CHECK_EQUAL(info.timestamps[1][3], 1010);
+Framework/Core/test/benchmark_DeviceMetricsInfo.cxx:  char const* timestamp;
+Framework/Core/test/benchmark_DeviceMetricsInfo.cxx:    timestamp = it->first;
+Framework/Core/include/Framework/DeviceMetricsHelper.h:    return [metricIndex](DeviceMetricsInfo& metrics, T value, size_t timestamp) {
+Framework/Core/include/Framework/DeviceMetricsHelper.h:      metrics.minDomain[metricIndex] = std::min(metrics.minDomain[metricIndex], timestamp);
+Framework/Core/include/Framework/DeviceMetricsHelper.h:      metrics.maxDomain[metricIndex] = std::max(metrics.maxDomain[metricIndex], timestamp);
+Framework/Core/include/Framework/DeviceMetricsHelper.h:      metrics.timestamps[metricIndex][pos] = timestamp;
+Framework/Core/include/Framework/DeviceMetricsHelper.h:  static std::function<void(DeviceMetricsInfo&, T value, size_t timestamp)>
+Framework/Core/include/Framework/ExpirationHandler.h:  using Checker = std::function<bool(ServiceRegistry&, uint64_t timestamp)>;
+Framework/Core/include/Framework/TimesliceIndex.h:    DropAncient, // Drop the message with the least recent timestamp
+Framework/Core/include/Framework/TimesliceIndex.h:    DropRecent   // Drop the message with the most recent timestamp
+Framework/Core/include/Framework/TimesliceIndex.h:  /// Associated the @a timestamp to the given @a slot. Notice that
+Framework/Core/include/Framework/TimesliceIndex.h:  inline void associate(TimesliceId timestamp, TimesliceSlot slot);
+Framework/Core/include/Framework/TimesliceIndex.h:  /// @a timestamp must be provided to select the correct lane, in case of pipelining
+Framework/Core/include/Framework/TimesliceIndex.h:  inline std::tuple<ActionTaken, TimesliceSlot> replaceLRUWith(data_matcher::VariableContext& newContext, TimesliceId timestamp);
+Framework/Core/include/Framework/DataProcessingStats.h:  std::atomic<uint64_t> lastSlowMetricSentTimestamp = 0; /// The timestamp of the last time we sent slow metrics
+Framework/Core/include/Framework/DataProcessingStats.h:  std::atomic<uint64_t> lastVerySlowMetricSentTimestamp = 0; /// The timestamp of the last time we sent very slow metrics
+Framework/Core/include/Framework/DataProcessingStats.h:  std::atomic<uint64_t> lastMetricFlushedTimestamp = 0;  /// The timestamp of the last time we actually flushed metrics
+Framework/Core/include/Framework/DataProcessingStats.h:  std::atomic<uint64_t> beginIterationTimestamp = 0;     /// The timestamp of when the current ConditionalRun was started
+Framework/Core/include/Framework/DeviceConfigInfo.h:  std::size_t timestamp;
+Framework/Core/include/Framework/DeviceConfigInfo.h:  /// [CONFIG]: key=value timestamp provenance
+Framework/Core/include/Framework/DataProcessingDevice.h:  uint64_t mLastSlowMetricSentTimestamp = 0;         /// The timestamp of the last time we sent slow metrics
+Framework/Core/include/Framework/DataProcessingDevice.h:  uint64_t mLastMetricFlushedTimestamp = 0;          /// The timestamp of the last time we actually flushed metrics
+Framework/Core/include/Framework/DataProcessingDevice.h:  uint64_t mBeginIterationTimestamp = 0;             /// The timestamp of when the current ConditionalRun was started
+Framework/Core/include/Framework/DeviceMetricsInfo.h:  size_t timestamp;
+Framework/Core/include/Framework/DeviceMetricsInfo.h:  std::vector<std::array<size_t, 1024>> timestamps;
+Framework/Core/include/Framework/ServiceSpec.h:                                                 size_t timestamp)>;
+Framework/Core/include/Framework/LifetimeHelpers.h:  /// uses an incremental number as timestamp.
+Framework/Core/include/Framework/LifetimeHelpers.h:  /// @a overrideTimestamp can be used to override the timestamp found in the data.
+Framework/Core/include/Framework/TimesliceIndex.inc:inline void TimesliceIndex::associate(TimesliceId timestamp, TimesliceSlot slot)
+Framework/Core/include/Framework/TimesliceIndex.inc:  mVariables[slot.index].put({0, static_cast<uint64_t>(timestamp.value)});
+Framework/Core/include/Framework/TimesliceIndex.inc:inline TimesliceSlot TimesliceIndex::findOldestSlot(TimesliceId timestamp) const
+Framework/Core/include/Framework/TimesliceIndex.inc:  size_t lane = timestamp.value % mMaxLanes;
+Framework/Core/include/Framework/TimesliceIndex.inc:inline std::tuple<TimesliceIndex::ActionTaken, TimesliceSlot> TimesliceIndex::replaceLRUWith(data_matcher::VariableContext& newContext, TimesliceId timestamp)
+Framework/Core/include/Framework/TimesliceIndex.inc:  auto oldestSlot = findOldestSlot(timestamp);
+Framework/Core/include/Framework/AnalysisDataModel.h:namespace timestamp
+Framework/Core/include/Framework/AnalysisDataModel.h:DECLARE_SOA_COLUMN(Timestamp, timestamp, uint64_t); //! Timestamp of a BC in ms (epoch style)
+Framework/Core/include/Framework/AnalysisDataModel.h:} // namespace timestamp
+Framework/Core/include/Framework/AnalysisDataModel.h:DECLARE_SOA_TABLE(Timestamps, "AOD", "TIMESTAMPS", //! Table which holds the timestamp of a BC
+Framework/Core/include/Framework/AnalysisDataModel.h:                  timestamp::Timestamp);
+Framework/Core/include/Framework/DataRelayer.h:  /// This is the index which maps a given timestamp to the associated
+Framework/Core/COOKBOOK.md:It is also possible to specify a given timestamp for the object via the option
+Framework/Core/COOKBOOK.md:`--condition-timestamp <timestamp>`. The final url is completed by the value of
+Framework/Core/COOKBOOK.md:<backend-url>/<origin>/<description>/<timestamp>
+Framework/Core/COOKBOOK.md:If the timestamp is not specified, DPL will look it up in the `DataProcessingHeader`.
+Framework/Core/COOKBOOK.md:A second type of parallelism is time based pipelining. This assumes that the data can be subdivided in subsequent "time periods" that are independent one from the other and which are each identified by some timestamp entity. In this particular case it could result handy that some part of the workflow are actually processing different time periods. This can be expressed via the `timePipeline`, directive, e.g.:
+Utilities/Tools/cpulimit/process_iterator.h:	//start time (unix timestamp)
+.git/logs/refs/heads/calib:3f2ac97f322dc2fec42b6d5cfafab284683da414 a07c2de4af5de49148f6e62c1283f96b6c5face1 Alla Maevskaya <Alla.Maevskaya@cern.ch> 1636373764 +0300	commit: timestamp for calibration
+.git/logs/HEAD:3f2ac97f322dc2fec42b6d5cfafab284683da414 a07c2de4af5de49148f6e62c1283f96b6c5face1 Alla Maevskaya <Alla.Maevskaya@cern.ch> 1636373764 +0300	commit: timestamp for calibration
+.git/logs/HEAD:8f162c2f54821eaaedd2c90e077ddfd81f113cee 52762e12149bb4a5219dbb5ec9a3155a56c5dfe6 Alla Maevskaya <Alla.Maevskaya@cern.ch> 1638516274 +0300	rebase: timestamp for calibration
+Common/SimConfig/src/SimConfig.cxx:    "timestamp", bpo::value<long>()->default_value(-1), "global timestamp value (for anchoring) - default is now")(
+Common/SimConfig/src/SimConfig.cxx:  mConfigData.mTimestamp = vm["timestamp"].as<long>();
+Common/SimConfig/include/SimConfig/SimConfig.h:  long mTimestamp;                           // timestamp to anchor transport simulation to
+scripts/py-analysis-benchmark.py:'input_size' (MB), 'input_length', 'timestamp', 'cpu_load', 'ncpu', 'machine'
+scripts/py-analysis-benchmark.py:def get_timestamp():
+scripts/py-analysis-benchmark.py:                     'input_size', 'input_length', 'timestamp', 'cpu_load', 'ncpu', 'machine'))
+scripts/py-analysis-benchmark.py:                          INPUT_SIZE, INPUT_LENGTH, get_timestamp(), get_cpu_load(), NCPU, MACHINE) )
+scripts/py-analysis-benchmark.py:                              INPUT_SIZE, INPUT_LENGTH, get_timestamp(), get_cpu_load(), NCPU, MACHINE) )
