@@ -22,8 +22,10 @@
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
 #include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsTRD/TrackTRD.h"
 #include "GlobalTracking/TrackMethods.h"
 #include "DetectorsBase/Propagator.h"
+#include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include <set>
 #include <vector>
 #include "Rtypes.h"
@@ -31,6 +33,7 @@
 namespace o2
 {
 using GID = o2::dataformats::GlobalTrackID;
+using GIndex = o2::dataformats::VtxTrackIndex;
 class TrackCuts
 {
  public:
@@ -39,14 +42,23 @@ class TrackCuts
   {
     o2::track::TrackParCov trk;
     auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
-    auto src = trackIndex.getSource(); // make selections depending on track source
-    if (src == GID::ITSTPCTRDTOF) {
-      trk = data.getTrack<o2::track::TrackParCov>(data.getITSTPCTRDTOFMatches()[trackIndex].getTrackRef()); // ITSTPCTRDTOF is ITSTPCTRD + TOF cluster
-    } else if (src == GID::TPCTRDTOF) {
-      trk = data.getTrack<o2::track::TrackParCov>(data.getTPCTRDTOFMatches()[trackIndex].getTrackRef()); // TPCTRDTOF is TPCTRD + TOF cluster
-    } else if (src == GID::ITSTPCTOF) {
-      trk = data.getTrack<o2::track::TrackParCov>(data.getTOFMatch(trackIndex).getTrackRef()); // ITSTPCTOF is ITSTPC + TOF cluster
-    } else if (src == GID::TPC) {                                                              // TPC tracks selection
+    auto src = trackIndex.getSource();                       // make selections depending on track source
+    if (contributorsGID[GIndex::Source::ITS].isIndexSet()) { // ITS tracks selection
+      const auto& itsTrk = data.getITSTrack(contributorsGID[GID::ITS]);
+      int ITSnClusters = itsTrk.getNClusters();
+      float ITSchi2 = itsTrk.getChi2();
+      float itsChi2NCl = ITSnClusters != 0 ? ITSchi2 / (float)ITSnClusters : 0;
+      uint8_t itsClusterMap = itsTrk.getPattern();
+      if (itsTrk.getPt() >= mMinPt && itsTrk.getPt() <= mMaxPt &&
+          itsTrk.getEta() >= mMinEta && itsTrk.getEta() <= mMaxEta &&
+          ITSnClusters >= mMinNClustersITS &&
+          itsChi2NCl <= mMaxChi2PerClusterITS &&
+          TrackMethods::FulfillsITSHitRequirements(itsClusterMap, mRequiredITSHits)) {
+        return true;
+      } else {
+        return false;
+      }
+    } else if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
       const auto& tpcTrk = data.getTPCTrack(contributorsGID[GID::TPC]);
       uint8_t tpcNClsShared, tpcNClsFound, tpcNClsCrossed, tpcNClsFindable, tpcChi2NCl;
       // tpcNClsFindable = tpcTrk.getNClusters();
@@ -64,22 +76,17 @@ class TrackCuts
       } else {
         return true;
       }
-    } else if (src == GID::ITS) { // ITS tracks selection
-      const auto& itsTrk = data.getITSTrack(contributorsGID[GID::ITS]);
-      int ITSnClusters = itsTrk.getNClusters();
-      float ITSchi2 = itsTrk.getChi2();
-      float itsChi2NCl = ITSnClusters != 0 ? ITSchi2 / (float)ITSnClusters : 0;
-      uint8_t itsClusterMap = itsTrk.getPattern();
-      if (itsTrk.getPt() >= mMinPt && itsTrk.getPt() <= mMaxPt &&
-          itsTrk.getEta() >= mMinEta && itsTrk.getEta() <= mMaxEta &&
-          ITSnClusters >= mMinNClustersITS &&
-          itsChi2NCl <= mMaxChi2PerClusterITS &&
-          TrackMethods::FulfillsITSHitRequirements(itsClusterMap, mRequiredITSHits)) {
-        return true;
-      } else {
-        return false;
-      }
-    } else { // for the rest, get the track directly
+    } else if (contributorsGID[GIndex::Source::TRD].isIndexSet()) {
+      const auto& trdTrk = data.getTrack<o2::trd::TrackTRD>(contributorsGID[GID::TRD]);
+    } else if (contributorsGID[GIndex::Source::TOF].isIndexSet()) {
+      const auto& tofMatch = data.getTOFMatch(trackIndex);
+    } else if (contributorsGID[GIndex::Source::TPCTRDTOF].isIndexSet()) {
+      trk = data.getTrack<o2::track::TrackParCov>(data.getTPCTRDTOFMatches()[trackIndex].getTrackRef());
+    } else if (contributorsGID[GIndex::Source::ITSTPCTRDTOF].isIndexSet()) {
+      trk = data.getTrack<o2::track::TrackParCov>(data.getITSTPCTRDTOFMatches()[trackIndex].getTrackRef()); // ITSTPCTRDTOF is ITSTPCTRD + TOF cluster
+    } else if (contributorsGID[GIndex::Source::ITSTPCTOF].isIndexSet()) {
+      trk = data.getTrack<o2::track::TrackParCov>(data.getTOFMatch(trackIndex).getTrackRef()); // ITSTPCTOF is ITSTPC + TOF cluster
+    } else {                                                                                   // for the rest, get the track directly
       trk = data.getTrack<o2::track::TrackParCov>(trackIndex);
     }
     if (trk.getPt() >= mMinPt && trk.getPt() <= mMaxPt &&
