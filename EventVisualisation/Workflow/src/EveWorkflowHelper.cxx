@@ -54,11 +54,7 @@ void EveWorkflowHelper::draw(const std::string& jsonPath,
                              o2::framework::DataProcessingHeader::CreationTime creation,
                              float workflowVersion)
 {
-  size_t nTracks = mTrackSet.trackGID.size();
-  if (numberOfTracks != -1 && numberOfTracks < nTracks) {
-    nTracks = numberOfTracks; // less than available
-  }
-  for (size_t it = 0; it < nTracks; it++) {
+  auto compute = [this](int it) {
     const auto& gid = mTrackSet.trackGID[it];
     auto tim = mTrackSet.trackTime[it];
     // LOG(info) << "EveWorkflowHelper::draw " << gid.asString();
@@ -102,6 +98,27 @@ void EveWorkflowHelper::draw(const std::string& jsonPath,
       default:
         LOG(info) << "Track type " << gid.getSource() << " not handled";
     }
+  };
+
+  int numberOfSlots = 360;
+
+  size_t nTracks = mTrackSet.trackGID.size();
+  int slotSize = nTracks / numberOfSlots;
+  if (numberOfTracks != -1 && numberOfTracks < nTracks) {
+    nTracks = numberOfTracks; // less than available
+  }
+
+  size_t it = 0;
+  // probe evenly whole buffer so reduction number of tracks is not only at the beginning
+  while (it < nTracks && it < slotSize * numberOfSlots) {
+    int slot = it % numberOfSlots;
+    int offset = it / numberOfSlots;
+    compute(slot * slotSize + offset);
+    it++;
+  }
+  while (it < nTracks) {
+    compute(it);
+    it++;
   }
 
   // save json file
