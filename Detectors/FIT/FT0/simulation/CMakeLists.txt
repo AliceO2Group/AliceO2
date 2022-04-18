@@ -18,6 +18,7 @@ o2_add_library(FT0Simulation
                               O2::Headers
                               O2::FT0Base
                               O2::DataFormatsFT0
+                              O2::FT0Calibration
                               O2::CCDB
                               O2::DetectorsCalibration)
 

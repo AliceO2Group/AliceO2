@@ -27,6 +27,10 @@
 #include "Framework/Task.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
+#include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
 #include <TChain.h>
 #include <TStopwatch.h>
 
@@ -67,6 +71,11 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     const bool withQED = context->isQEDProvided() && !mDisableQED;
     auto& timesview = context->getEventRecords(withQED);
 
+    if (mUseCCDB) {
+      //     mCalibApi->setTimeStamp(o2::raw::HBFUtils::Instance().startTime);
+     auto caliboffsets = pc.inputs().get<o2::ft0::FT0ChannelTimeCalibrationObject*>("ft0offsets");
+      mDigitizer.SetChannelOffset(caliboffsets.get());
+    }
     // if there is nothing to do ... return
     if (timesview.size() == 0) {
       return;
@@ -138,11 +147,11 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
   //
   bool mDisableQED = false;
-
+  bool mUseCCDB = false;
   std::vector<TChain*> mSimChains;
 };
 
-o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel, bool mctruth)
+o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel, bool mctruth, bool useCCDB)
 {
   // create the full data processor spec using
   //  a name identifier
@@ -158,10 +167,16 @@ o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel, bool mctruth)
     outputs.emplace_back("FT0", "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
   outputs.emplace_back("FT0", "ROMode", 0, Lifetime::Timeframe);
-
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  if (useCCDB) {
+    inputs.emplace_back("ft0offsets", "FT0", "TimeOffset", 0,
+                         Lifetime::Condition,
+                         ccdbParamSpec("FT0/Calibration/ChannelTimeOffset"));
+  }
   return DataProcessorSpec{
     "FT0Digitizer",
-    Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
+    inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<FT0DPLDigitizerTask>()},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}},

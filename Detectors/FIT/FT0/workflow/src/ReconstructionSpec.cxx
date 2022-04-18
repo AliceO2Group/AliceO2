@@ -21,6 +21,7 @@
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/MCLabel.h"
 #include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
+#include "Framework/CCDBParamSpec.h"
 
 using namespace o2::framework;
 
@@ -38,6 +39,7 @@ void ReconstructionDPL::init(InitContext& ic)
 
 void ReconstructionDPL::run(ProcessingContext& pc)
 {
+  /*
   const auto ref = pc.inputs().getFirstValid(true);
   auto creationTime =
     o2::framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(ref)->creation;
@@ -45,6 +47,7 @@ void ReconstructionDPL::run(ProcessingContext& pc)
   mCCDBManager.setURL(mCCDBpath);
   mCCDBManager.setTimestamp(creationTime);
   LOG(debug) << " set-up CCDB " << mCCDBpath << " creationTime " << creationTime;
+  */
   mTimer.Start(false);
   mRecPoints.clear();
   auto digits = pc.inputs().get<gsl::span<o2::ft0::Digit>>("digits");
@@ -55,10 +58,10 @@ void ReconstructionDPL::run(ProcessingContext& pc)
   if (mUseMC) {
     LOG(info) << "Ignoring MC info";
   }
-  // auto caliboffsets = pc.inputs().get<o2::ft0::FT0ChannelTimeCalibrationObject*>("ft0offsets");
-  //  mReco.SetChannelOffset(caliboffsets.get());
-  auto caliboffsets = mCCDBManager.get<o2::ft0::FT0ChannelTimeCalibrationObject>("FT0/Calibration/ChannelTimeOffset");
-  mReco.SetChannelOffset(caliboffsets);
+  auto caliboffsets = pc.inputs().get<o2::ft0::FT0ChannelTimeCalibrationObject*>("ft0offsets");
+  mReco.SetChannelOffset(caliboffsets.get());
+  //auto caliboffsets = mCCDBManager.get<o2::ft0::FT0ChannelTimeCalibrationObject>("FT0/Calibration/ChannelTimeOffset");
+  // mReco.SetChannelOffset(caliboffsets);
   LOG(debug) << " RecoSpec  mReco.SetChannelOffset(&caliboffsets)";
   /*
   auto calibslew = mCCDBManager.get<std::array<TGraph, NCHANNELS>>("FT0/SlewingCorr");
