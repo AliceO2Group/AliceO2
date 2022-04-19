@@ -55,7 +55,7 @@ class TimeFrameGPU : public TimeFrame
   Cluster* getDeviceClustersOnLayer(const int rofId, const int layerId) const;
   int getNClustersLayer(const int rofId, const int layerId) const;
   std::array<Vector<Tracklet>, NLayers - 1>& getDeviceTracklets() { return mTrackletsD; }
-  const TimeFrameGPUConfig& getConfig() const { return mConfig; }
+  TimeFrameGPUConfig& getConfig() { return mConfig; }
 
   // Vertexer only
   int* getDeviceNTrackletsCluster(int rofId, int combId);
@@ -67,9 +67,12 @@ class TimeFrameGPU : public TimeFrame
   int* getDeviceExclusiveNFoundLines(const int rofId);
   int* getDeviceCUBBuffer(const size_t rofId);
   float* getDeviceXYCentroids(const int rofId);
+  float* getDeviceZCentroids(const int rofId);
   int* getDeviceXHistograms(const int rofId);
   int* getDeviceYHistograms(const int rofId);
   int* getDeviceZHistograms(const int rofId);
+  cub::KeyValuePair<int, int>* getTmpVertexPositionBins(const int rofId);
+  float* getDeviceBeamPosition(const int rofId);
 
  private:
   TimeFrameGPUConfig mConfig;
@@ -91,8 +94,11 @@ class TimeFrameGPU : public TimeFrame
   Vector<int> mNExclusiveFoundLines;
   Vector<unsigned char> mUsedTracklets;
   Vector<float> mXYCentroids;
+  Vector<float> mZCentroids;
   std::array<Vector<int>, 2> mNTrackletsPerClusterD;
   std::array<Vector<int>, 3> mXYZHistograms;
+  Vector<cub::KeyValuePair<int, int>> mTmpVertexPositionBins;
+  Vector<float> mBeamPosition;
 };
 
 template <int NLayers>
@@ -185,6 +191,16 @@ inline float* TimeFrameGPU<NLayers>::getDeviceXYCentroids(const int rofId)
 }
 
 template <int NLayers>
+inline float* TimeFrameGPU<NLayers>::getDeviceZCentroids(const int rofId)
+{
+  if (rofId < 0 || rofId >= mNrof) {
+    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
+    return nullptr;
+  }
+  return mZCentroids.get() + rofId * mConfig.maxLinesCapacity;
+}
+
+template <int NLayers>
 inline int* TimeFrameGPU<NLayers>::getDeviceXHistograms(const int rofId)
 {
   if (rofId < 0 || rofId >= mNrof) {
@@ -212,6 +228,26 @@ inline int* TimeFrameGPU<NLayers>::getDeviceZHistograms(const int rofId)
     return nullptr;
   }
   return mXYZHistograms[2].get() + rofId * mConfig.histConf.nBinsXYZ[2];
+}
+
+template <int NLayers>
+inline cub::KeyValuePair<int, int>* TimeFrameGPU<NLayers>::getTmpVertexPositionBins(const int rofId)
+{
+  if (rofId < 0 || rofId >= mNrof) {
+    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
+    return nullptr;
+  }
+  return mTmpVertexPositionBins.get() + 3 * rofId;
+}
+
+template <int NLayers>
+inline float* TimeFrameGPU<NLayers>::getDeviceBeamPosition(const int rofId)
+{
+  if (rofId < 0 || rofId >= mNrof) {
+    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
+    return nullptr;
+  }
+  return mBeamPosition.get() + 2 * rofId;
 }
 
 } // namespace gpu
