@@ -151,14 +151,13 @@ struct TimeFrameGPUConfig {
                      size_t maxTrkCap,
                      size_t maxVert);
 
-  // o2::its::gpu::Vector constructor requires signed size for initialisation
-  size_t tmpCUBBufferSize = 1e3; // In average pp events there are required 767 bytes
+  size_t tmpCUBBufferSize = 1e3; // In average in pp events there are required 767 bytes
   size_t maxTrackletsPerCluster = 50;
   size_t clustersPerLayerCapacity = 5e5;
   size_t clustersPerROfCapacity = 1e4;
   size_t trackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
-  size_t maxTrackletCapacity = 2e4;
-  size_t maxCentroidsXYCapacity = std::ceil(maxTrackletCapacity * (maxTrackletCapacity - 1) / 2);
+  size_t maxLinesCapacity = 1e2;
+  size_t maxCentroidsXYCapacity = std::ceil(maxLinesCapacity * (maxLinesCapacity - 1) / (float)2);
   size_t nMaxVertices = 10;
   size_t nMaxROFs = 1e3;
 
@@ -174,10 +173,10 @@ inline TimeFrameGPUConfig::TimeFrameGPUConfig(size_t cubBufferSize,
                                                                 maxTrackletsPerCluster{maxTrkClu},
                                                                 clustersPerLayerCapacity{cluLayCap},
                                                                 clustersPerROfCapacity{cluROfCap},
-                                                                maxTrackletCapacity{maxTrkCap},
+                                                                maxLinesCapacity{maxTrkCap},
                                                                 nMaxVertices{maxVert}
 {
-  maxCentroidsXYCapacity = std::ceil(maxTrackletCapacity * (maxTrackletCapacity - 1) / 2);
+  maxCentroidsXYCapacity = std::ceil(maxLinesCapacity * (maxLinesCapacity - 1) / 2);
   trackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
 }
 
