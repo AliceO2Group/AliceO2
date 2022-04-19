@@ -857,6 +857,67 @@ MatchGlobalFwd::MatchGlobalFwd()
   return matchChi2Track; };
 
   //________________________________________________________________________________
+  mMatchingFunctionMap["matchXYPhi"] = [](const GlobalFwdTrack& mchTrack, const TrackParCovFwd& mftTrack) -> double {
+
+  // Calculate Matching Chi2 - X, Y positions and phi angle
+
+  SMatrix55Sym I = ROOT::Math::SMatrixIdentity();
+  SMatrix35 H_k;
+  SMatrix33 V_k;
+  SVector3 m_k(mftTrack.getX(), mftTrack.getY(), mftTrack.getPhi()), r_k_kminus1;
+  SVector5 GlobalMuonTrackParameters = mchTrack.getParameters();
+  SMatrix55Sym GlobalMuonTrackCovariances = mchTrack.getCovariances();
+  V_k(0, 0) = mftTrack.getCovariances()(0, 0);
+  V_k(1, 1) = mftTrack.getCovariances()(1, 1);
+  V_k(2, 2) = mftTrack.getCovariances()(3, 3);
+  H_k(0, 0) = 1.0;
+  H_k(1, 1) = 1.0;
+  H_k(2, 2) = 1.0;
+
+  // Covariance of residuals
+  SMatrix33 invResCov = (V_k + ROOT::Math::Similarity(H_k, GlobalMuonTrackCovariances));
+  invResCov.Invert();
+
+  // Kalman Gain Matrix
+  SMatrix53 K_k = GlobalMuonTrackCovariances * ROOT::Math::Transpose(H_k) * invResCov;
+
+  // Residuals of prediction
+  r_k_kminus1 = m_k - H_k * GlobalMuonTrackParameters;
+  auto matchChi2Track = ROOT::Math::Similarity(r_k_kminus1, invResCov);
+
+  return matchChi2Track; };
+
+//________________________________________________________________________________
+  mMatchingFunctionMap["matchTanlInvQPt"] = [](const GlobalFwdTrack& mchTrack, const TrackParCovFwd& mftTrack) -> double {
+
+  // Calculate Matching Chi2 - Tanl and InvQPt
+  
+  SVector2 m_k(mftTrack.getTanl(), mftTrack.getInvQPt()), r_k_kminus1;
+  SVector5 GlobalMuonTrackParameters = mchTrack.getParameters();
+  SMatrix55Sym GlobalMuonTrackCovariances = mchTrack.getCovariances();
+
+  SMatrix22 V_k;
+  V_k(0,0) = mftTrack.getCovariances()(3,3);
+  V_k(1,1) = mftTrack.getCovariances()(4,4);
+  
+  SMatrix25 H_k;
+  H_k(0, 3) = 1.0;
+  H_k(1, 4) = 1.0;
+
+  // Covariance of residuals
+  SMatrix22 invResCov = (V_k + ROOT::Math::Similarity(H_k, GlobalMuonTrackCovariances));
+  invResCov.Invert();
+
+  // Kalman Gain Matrix
+  SMatrix52 K_k = GlobalMuonTrackCovariances * ROOT::Math::Transpose(H_k) * invResCov;
+
+  // Residuals of prediction
+  r_k_kminus1 = m_k - H_k * GlobalMuonTrackParameters;
+  auto matchChi2Track = ROOT::Math::Similarity(r_k_kminus1, invResCov);
+
+  return matchChi2Track; };
+
+  //________________________________________________________________________________
   mMatchingFunctionMap["matchNeedsName"] = [this](const GlobalFwdTrack& mchTrack, const TrackParCovFwd& mftTrack) -> double {
 
   //Hiroshima's Matching function needs a physics-based name
