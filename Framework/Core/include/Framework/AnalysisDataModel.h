@@ -703,17 +703,18 @@ DECLARE_SOA_COLUMN(TimeC, timeC, float);               //!
 DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint8_t); //!
 } // namespace fdd
 
-DECLARE_SOA_TABLE(FDDs_000, "AOD", "FDD", //! FDD table, version 000
-                  o2::soa::Index<>, fdd::BCId,
-                  fdd::AmplitudeA, fdd::AmplitudeC,
-                  fdd::TimeA, fdd::TimeC,
-                  fdd::TriggerMask);
+DECLARE_SOA_TABLE_VERSIONED(FDDs_000, "AOD", "FDD", 0, //! FDD table, version 000
+                            o2::soa::Index<>, fdd::BCId,
+                            fdd::AmplitudeA, fdd::AmplitudeC,
+                            fdd::TimeA, fdd::TimeC,
+                            fdd::TriggerMask);
 
-DECLARE_SOA_TABLE(FDDs_001, "AOD", "FDD_001", //! FDD table, version 001
-                  o2::soa::Index<>, fdd::BCId,
-                  fdd::ChargeA, fdd::ChargeC,
-                  fdd::TimeA, fdd::TimeC,
-                  fdd::TriggerMask);
+DECLARE_SOA_TABLE_VERSIONED(FDDs_001, "AOD", "FDD", 1, //! FDD table, version 001
+                            o2::soa::Index<>,
+                            fdd::BCId,
+                            fdd::ChargeA, fdd::ChargeC,
+                            fdd::TimeA, fdd::TimeC,
+                            fdd::TriggerMask);
 
 using FDDs = FDDs_001; //! this defines the current default version
 using FDD = FDDs::iterator;
@@ -725,12 +726,12 @@ DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, Tracks, "_Neg"); //! Nega
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);                         //! Collision index
 } // namespace v0
 
-DECLARE_SOA_TABLE(V0s_000, "AOD", "V0", //! Run 2 V0 table (version 000)
-                  o2::soa::Index<>,
-                  v0::PosTrackId, v0::NegTrackId);
-DECLARE_SOA_TABLE(V0s_001, "AOD", "V0_001", //! Run 3 V0 table (version 001)
-                  o2::soa::Index<>, v0::CollisionId,
-                  v0::PosTrackId, v0::NegTrackId);
+DECLARE_SOA_TABLE_VERSIONED(V0s_000, "AOD", "V0", 0, //! Run 2 V0 table (version 000)
+                            o2::soa::Index<>,
+                            v0::PosTrackId, v0::NegTrackId);
+DECLARE_SOA_TABLE_VERSIONED(V0s_001, "AOD", "V0", 1, //! Run 3 V0 table (version 001)
+                            o2::soa::Index<>, v0::CollisionId,
+                            v0::PosTrackId, v0::NegTrackId);
 
 using V0s = V0s_001; //! this defines the current default version
 using V0 = V0s::iterator;
@@ -742,10 +743,10 @@ DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, Tracks, ""); //! Bachelor
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);                     //! Collision index
 } // namespace cascade
 
-DECLARE_SOA_TABLE(Cascades_000, "AOD", "CASCADE", //! Run 2 cascade table
-                  o2::soa::Index<>, cascade::V0Id, cascade::BachelorId);
-DECLARE_SOA_TABLE(Cascades_001, "AOD", "CASCADE_001", //! Run 3 cascade table
-                  o2::soa::Index<>, cascade::CollisionId, cascade::V0Id, cascade::BachelorId);
+DECLARE_SOA_TABLE_VERSIONED(Cascades_000, "AOD", "CASCADE", 0, //! Run 2 cascade table
+                            o2::soa::Index<>, cascade::V0Id, cascade::BachelorId);
+DECLARE_SOA_TABLE_VERSIONED(Cascades_001, "AOD", "CASCADE", 1, //! Run 3 cascade table
+                            o2::soa::Index<>, cascade::CollisionId, cascade::V0Id, cascade::BachelorId);
 
 using Cascades = Cascades_001; //! this defines the current default version
 using Cascade = Cascades::iterator;
