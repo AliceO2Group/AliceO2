@@ -2050,7 +2050,7 @@ void notBoundTable(const char* tableName);
     using expression_pack_t = typename _Name_##Extension::expression_pack_t;                                                    \
     using originals = soa::originals_pack_t<_Table_>;                                                                           \
     using sources = originals;                                                                                                  \
-    static constexpr o2::header::DataHeader::SubSpecificationType mVersion = 0;                                                 \
+    static constexpr o2::header::DataHeader::SubSpecificationType mVersion = MetadataTrait<_Table_>::metadata::version();       \
     static constexpr char const* mLabel = #_Name_ "Extension";                                                                  \
     static constexpr char const mOrigin[4] = _Origin_;                                                                          \
     static constexpr char const mDescription[16] = _Description_;                                                               \
