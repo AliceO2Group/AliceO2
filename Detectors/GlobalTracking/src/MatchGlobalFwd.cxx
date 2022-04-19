@@ -887,7 +887,7 @@ MatchGlobalFwd::MatchGlobalFwd()
 
   return matchChi2Track; };
 
-//________________________________________________________________________________
+  //________________________________________________________________________________
   mMatchingFunctionMap["matchTanlInvQPt"] = [](const GlobalFwdTrack& mchTrack, const TrackParCovFwd& mftTrack) -> double {
 
   // Calculate Matching Chi2 - Tanl and InvQPt

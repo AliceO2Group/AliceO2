@@ -742,10 +742,10 @@ void GloFwdAssessment::finalizePurityAndEff()
     mTruePairingEtaPtVec.emplace_back((std::unique_ptr<TH2D>)static_cast<TH2D*>(TrueEtaPt_MC->Clone()));
     mTruePairingEtaPtVec.back()->Divide(PairableEtaPt);
     mTruePairingEtaPtVec.back()->SetNameTitle(Form("GMTrackTruePairingEffEtaPtCut_%.2f", scoreCut), Form("%.2f", scoreCut));
-    mTruePairingEtaPtVec.back()->SetOption("COLZ");    
+    mTruePairingEtaPtVec.back()->SetOption("COLZ");
   }
 
-  // Purity 
+  // Purity
   auto nCanvas = kPurityPtOuter;
   auto canvasName = GMAssesmentNames[nCanvas];
   mAssessmentCanvas[nCanvas] = new TCanvas(canvasName, canvasName, 1080, 800);
@@ -814,7 +814,7 @@ void GloFwdAssessment::finalizePurityAndEff()
   mAssessmentCanvas[nCanvas]->UseCurrentStyle();
   mAssessmentCanvas[nCanvas]->cd();
   first = true;
-  icolor=0;
+  icolor = 0;
 
   for (auto& teff : mPurityPtInnerVecTEff) {
     if (first) {
@@ -851,7 +851,7 @@ void GloFwdAssessment::finalizePurityAndEff()
   mAssessmentCanvas[nCanvas]->UseCurrentStyle();
   mAssessmentCanvas[nCanvas]->cd();
   first = true;
-  icolor=0;
+  icolor = 0;
 
   for (auto& th1 : mPairingPtOuterVecTH1) {
     if (first) {
@@ -1004,7 +1004,7 @@ void GloFwdAssessment::finalizePurityAndEff()
 
   gr->SetTitle("p_{t} = 0.25 || (2.4 < #eta < 3.0)");
 
-  mAssessmentCanvas[nCanvas]->BuildLegend(0.589,0.125,0.89,0.335);
+  mAssessmentCanvas[nCanvas]->BuildLegend(0.589, 0.125, 0.89, 0.335);
   mAssessmentCanvas[nCanvas]->SetTicky();
   mAssessmentCanvas[nCanvas]->SetGridy();
 
@@ -1048,7 +1048,7 @@ void GloFwdAssessment::finalizePurityAndEff()
 
   gr2->SetTitle("p_{t} = 0.25 || (2.4 < #eta < 3.0)");
 
-  mAssessmentCanvas[nCanvas]->BuildLegend(0.589,0.125,0.89,0.335);
+  mAssessmentCanvas[nCanvas]->BuildLegend(0.589, 0.125, 0.89, 0.335);
   mAssessmentCanvas[nCanvas]->SetTicky();
   mAssessmentCanvas[nCanvas]->SetGridy();
 }
