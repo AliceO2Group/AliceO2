@@ -129,7 +129,7 @@ std::vector<TopoIndexInfo>
 }
 
 void WorkflowHelpers::addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
-                                                std::vector<InputSpec> requestedInputs,
+                                                std::vector<InputSpec> const& requestedInputs,
                                                 DataProcessorSpec& publisher)
 {
   auto matchingOutputFor = [](InputSpec const& requested) {

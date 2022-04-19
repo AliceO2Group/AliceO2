@@ -109,12 +109,12 @@ struct Produces<T<C...>> : WritingCursor<typename soa::PackToTable<typename T<C.
   // @return the associated OutputSpec
   OutputSpec const spec()
   {
-    return OutputSpec{OutputLabel{metadata::tableLabel()}, metadata::origin(), metadata::description()};
+    return OutputSpec{OutputLabel{metadata::tableLabel()}, metadata::origin(), metadata::description(), metadata::version()};
   }
 
   OutputRef ref()
   {
-    return OutputRef{metadata::tableLabel(), 0};
+    return OutputRef{metadata::tableLabel(), metadata::version()};
   }
 };
 
@@ -161,17 +161,17 @@ struct TableTransform {
 
   constexpr auto spec() const
   {
-    return OutputSpec{OutputLabel{METADATA::tableLabel()}, METADATA::origin(), METADATA::description()};
+    return OutputSpec{OutputLabel{METADATA::tableLabel()}, METADATA::origin(), METADATA::description(), METADATA::version()};
   }
 
   constexpr auto output() const
   {
-    return Output{METADATA::origin(), METADATA::description()};
+    return Output{METADATA::origin(), METADATA::description(), METADATA::version()};
   }
 
   constexpr auto ref() const
   {
-    return OutputRef{METADATA::tableLabel(), 0};
+    return OutputRef{METADATA::tableLabel(), METADATA::version()};
   }
 };
 

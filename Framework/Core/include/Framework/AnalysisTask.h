@@ -554,11 +554,6 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
     },
     *task.get());
 
-  // avoid self-forwarding if process methods subscribe to same tables
-  std::sort(inputs.begin(), inputs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding < b.binding; });
-  auto last = std::unique(inputs.begin(), inputs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding == b.binding; });
-  inputs.erase(last, inputs.end());
-
   // request base tables for spawnable extended tables
   // this checks for duplications
   homogeneous_apply_refs([&inputs](auto& x) {

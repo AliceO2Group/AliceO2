@@ -881,7 +881,7 @@ DECLARE_SOA_TABLE_FULL(StoredMcParticles_000, "McParticles", "AOD", "MCPARTICLE"
                        mcparticle::GetProcess<mcparticle::Flags, mcparticle::StatusCode>,
                        mcparticle::IsPhysicalPrimary<mcparticle::Flags>);
 
-DECLARE_SOA_TABLE_FULL(StoredMcParticles_001, "McParticles_001", "AOD", "MCPARTICLE_001", 1, //! MC particle table, version 001
+DECLARE_SOA_TABLE_FULL(StoredMcParticles_001, "McParticles", "AOD", "MCPARTICLE", 1, //! MC particle table, version 001
                        o2::soa::Index<>, mcparticle::McCollisionId,
                        mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
                        mcparticle::MothersIds, mcparticle::DaughtersIdSlice, mcparticle::Weight,
@@ -900,7 +900,7 @@ DECLARE_SOA_EXTENDED_TABLE(McParticles_000, StoredMcParticles_000, "MCPARTICLE",
                            mcparticle::P,
                            mcparticle::Y);
 
-DECLARE_SOA_EXTENDED_TABLE(McParticles_001, StoredMcParticles_001, "MCPARTICLE_001", //! Basic MC particle properties
+DECLARE_SOA_EXTENDED_TABLE(McParticles_001, StoredMcParticles_001, "MCPARTICLE", //! Basic MC particle properties
                            mcparticle::Phi,
                            mcparticle::Eta,
                            mcparticle::Pt,

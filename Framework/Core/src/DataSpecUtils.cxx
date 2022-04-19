@@ -691,7 +691,7 @@ bool DataSpecUtils::includes(const InputSpec& left, const InputSpec& right)
 
 void DataSpecUtils::updateInputList(std::vector<InputSpec>& list, InputSpec&& input)
 {
-  auto locate = std::find_if(list.begin(), list.end(), [&](InputSpec& entry) { return entry.binding == input.binding; });
+  auto locate = std::find(list.begin(), list.end(), input);
   if (locate != list.end()) {
     // amend entry
     auto& entryMetadata = locate->metadata;
