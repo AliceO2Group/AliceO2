@@ -22,6 +22,7 @@
 #endif
 #include <vector>
 #include <gsl/gsl>
+#include "Framework/Logger.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "MIDRaw/CrateMasks.h"
@@ -51,7 +52,12 @@ class Decoder
 #if defined(MID_RAW_VECTORS)
     mLinkDecoders[feeId]->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), mData, mROFRecords);
 #else
-    mLinkDecoders.find(feeId)->second->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), mData, mROFRecords);
+    auto linkDecoder = mLinkDecoders.find(feeId);
+    if (linkDecoder != mLinkDecoders.end()) {
+      linkDecoder->second->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), mData, mROFRecords);
+    } else {
+      LOG(alarm) << "Unexpected feeId " << feeId << " in RDH";
+    }
 #endif
   }
   /// Gets the vector of data
