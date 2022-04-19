@@ -492,14 +492,8 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     int midTrackID = track.getMIDTrackID();
     if (midTrackID != -1) { // check matching just in case
       const auto midTrack = midTracks[midTrackID];
-      for (int icath = 0; icath < 2; icath++) {
-        for (int ich = 0; ich < 4; ich++) {
-          if (midTrack.idFiredChamber(ich, icath)) {
-            fwdInfo.midBitMap |= 1 << (ich + icath * 4);
-          }
-        }
-      }
-      fwdInfo.midBoards = midTrack.getFiredLocalBoard();
+      fwdInfo.midBitMap = midTrack.getHitMap();
+      fwdInfo.midBoards = midTrack.getEfficiencyWord();
     }
 
     fwdCovInfo.sigX = TMath::Sqrt(track.getCovariances()(0, 0));
