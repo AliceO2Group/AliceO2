@@ -118,12 +118,12 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   usedData[GTrackID::TPCTRDTOF].resize(getTPCTRDTOFMatches().size());       // to flag used ITSTPC-TOF matches
   usedData[GTrackID::ITSTPCTRDTOF].resize(getITSTPCTRDTOFMatches().size()); // to flag used ITSTPC-TOF matches
 
+  static int BCDiffErrCount = 0;
+  constexpr int MAXBCDiffErrCount = 5;
   auto getBCDiff = [startIR = this->startIR](const o2::InteractionRecord& ir) {
-    static int BCDiffErrCount = 0;
-    constexpr int MAXBCDiffErrCount = 5;
     auto bcd = ir.differenceInBC(startIR);
     if (uint64_t(bcd) > o2::constants::lhc::LHCMaxBunches * 256 && BCDiffErrCount < MAXBCDiffErrCount) {
-      LOGP(error, "ATTENTION: wrong bunches diff. {} for current IR {} wrt 1st TF orbit {}", bcd, ir, startIR);
+      LOGP(alarm, "ATTENTION: wrong bunches diff. {} for current IR {} wrt 1st TF orbit {}", bcd, ir, startIR);
       BCDiffErrCount++;
     }
     return bcd;
@@ -374,8 +374,14 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     for (const auto& rof : rofs) {
       float t0err = 0.0005;
       auto bcdiff = getBCDiff(rof.interactionRecord);
+      if (bcdiff < 0) {
+        if (BCDiffErrCount < MAXBCDiffErrCount) {
+          LOGP(alarm, "Skipping MID ROF with {} entries since it precedes TF start", rof.nEntries);
+        }
+        continue;
+      }
       float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingMUS;
-      for (int idx = rof.firstEntry; idx <= rof.getEndIndex(); ++idx) {
+      for (int idx = rof.firstEntry; idx < rof.getEndIndex(); ++idx) {
         if (isUsed2(idx, GTrackID::MID)) {
           continue;
         }
