@@ -151,8 +151,13 @@ void o2::tpc::IDCFactorization::calcIDCZero(const bool norm)
       }
     }
   }
-  std::transform(mIDCZero.mIDCZero[Side::A].begin(), mIDCZero.mIDCZero[Side::A].end(), mIDCZero.mIDCZero[Side::A].begin(), [normVal = getNIntegrationIntervals(mCRUs.front())](auto& val) { return val / normVal; });
-  std::transform(mIDCZero.mIDCZero[Side::C].begin(), mIDCZero.mIDCZero[Side::C].end(), mIDCZero.mIDCZero[Side::C].begin(), [normVal = getNIntegrationIntervals(mCRUs.front())](auto& val) { return val / normVal; });
+  const auto normFac = getNIntegrationIntervals(mCRUs.front());
+  if (normFac == 0) {
+    LOGP(error, "number of integraion intervals is zero! Skipping normalization of IDC0");
+  } else {
+    std::transform(mIDCZero.mIDCZero[Side::A].begin(), mIDCZero.mIDCZero[Side::A].end(), mIDCZero.mIDCZero[Side::A].begin(), [normVal = normFac](auto& val) { return val / normVal; });
+    std::transform(mIDCZero.mIDCZero[Side::C].begin(), mIDCZero.mIDCZero[Side::C].end(), mIDCZero.mIDCZero[Side::C].begin(), [normVal = normFac](auto& val) { return val / normVal; });
+  }
 }
 
 void o2::tpc::IDCFactorization::fillIDCZeroDeadPads()
@@ -202,20 +207,10 @@ void o2::tpc::IDCFactorization::calcIDCOne()
   const unsigned int integrationIntervals = getNIntegrationIntervals(mCRUs.front());
   mIDCOne.clear();
   mIDCOne.resize(integrationIntervals);
-  const unsigned int crusPerSide = Mapper::NREGIONS * SECTORSPERSIDE;
-
-  unsigned int crusPerSideA = 0;
-  unsigned int crusPerSideC = 0;
-  for (unsigned int cru = 0; cru < crusPerSide; ++cru) {
-    if (mIDCs[cru].front().size() > 0) {
-      ++crusPerSideA;
-    }
-    if (mIDCs[cru + crusPerSide].front().size() > 0) {
-      ++crusPerSideC;
-    }
-  }
 
   std::array<std::vector<std::vector<float>>, SIDES> idcOneSafe;
+  std::array<std::vector<std::vector<unsigned int>>, SIDES> weightsSafe;
+
   for (auto& vecSide : idcOneSafe) {
     vecSide.resize(sNThreads);
     for (auto& interavalvec : vecSide) {
@@ -223,55 +218,68 @@ void o2::tpc::IDCFactorization::calcIDCOne()
     }
   }
 
-#pragma omp parallel for num_threads(sNThreads)
-  for (unsigned int cruInd = 0; cruInd < mCRUs.size(); ++cruInd) {
-    const unsigned int cru = mCRUs[cruInd];
-    const o2::tpc::CRU cruTmp(cru);
-    const unsigned int region = cruTmp.region();
-    const auto side = cruTmp.side();
-    const auto factorIndexGlob = mRegionOffs[region] + mNIDCsPerSector * (cruTmp.sector() % o2::tpc::SECTORSPERSIDE);
-    unsigned int integrationIntervallast = 0;
-    std::vector<unsigned short> count(integrationIntervals);
-    std::vector<float> idcOneTmp(integrationIntervals);
-    for (unsigned int timeframe = 0; timeframe < mTimeFrames; ++timeframe) {
-      for (unsigned int idcs = 0; idcs < mIDCs[cru][timeframe].size(); ++idcs) {
-        const unsigned int integrationInterval = idcs / mNIDCsPerCRU[region] + integrationIntervallast;
-        const unsigned int localPad = (idcs % mNIDCsPerCRU[region]);
-        const unsigned int indexGlob = localPad + factorIndexGlob;
-        const auto idcZeroVal = mIDCZero.mIDCZero[side][indexGlob];
-
-        // check pad in case of input is not grouped
-        if (!mInputGrouped && mPadFlagsMap) {
-          const o2::tpc::PadFlags flag = mPadFlagsMap->getCalArray(cru).getValue(localPad);
-          if ((flag & PadFlags::flagSkip) == PadFlags::flagSkip) {
-            continue;
-          }
-        }
-
-        if (idcZeroVal > 0 && mIDCs[cru][timeframe][idcs] > 0) {
-          idcOneTmp[integrationInterval] += mIDCs[cru][timeframe][idcs] / idcZeroVal;
-          ++count[integrationInterval];
-        }
-      }
-      integrationIntervallast += mIDCs[cru][timeframe].size() / mNIDCsPerCRU[region];
+  for (auto& vecSide : weightsSafe) {
+    vecSide.resize(sNThreads);
+    for (auto& interavalvec : vecSide) {
+      interavalvec.resize(integrationIntervals);
     }
-    const float crusTmp = (side == Side::A) ? crusPerSideA : crusPerSideC;
+  }
+
+#pragma omp parallel for num_threads(sNThreads)
+  for (unsigned int cru = 0; cru < mCRUs.size(); ++cru) {
 #ifdef WITH_OPENMP
     const int ithread = omp_get_thread_num();
 #else
     const int ithread = 0;
 #endif
-    for (int i = 0; i < integrationIntervals; ++i) {
-      if (count[i] == 0) {
-        continue;
-      }
-      idcOneSafe[side][ithread][i] += idcOneTmp[i] / (crusTmp * count[i]);
+    const o2::tpc::CRU cruTmp(cru);
+    const unsigned int region = cruTmp.region();
+    const auto side = cruTmp.side();
+    const auto factorIndexGlob = mRegionOffs[region] + mNIDCsPerSector * (cruTmp.sector() % o2::tpc::SECTORSPERSIDE);
+    unsigned int integrationIntervalOffset = 0;
+    for (unsigned int timeframe = 0; timeframe < mTimeFrames; ++timeframe) {
+      calcIDCOne(mIDCs[cru][timeframe], mNIDCsPerCRU[region], integrationIntervalOffset, factorIndexGlob, cru, idcOneSafe[side][ithread], weightsSafe[side][ithread], &mIDCZero, mInputGrouped ? nullptr : mPadFlagsMap.get());
+      integrationIntervalOffset += mIDCs[cru][timeframe].size() / mNIDCsPerCRU[region];
     }
   }
 
+#pragma omp parallel for num_threads(sNThreads)
   for (int side = 0; side < SIDES; ++side) {
-    for (const auto& interavalvec : idcOneSafe[side]) {
-      std::transform(mIDCOne.mIDCOne[side].begin(), mIDCOne.mIDCOne[side].end(), interavalvec.begin(), mIDCOne.mIDCOne[side].begin(), std::plus<float>());
+    for (int i = 1; i < sNThreads; ++i) {
+      std::transform(idcOneSafe[side].front().begin(), idcOneSafe[side].front().end(), idcOneSafe[side][i].begin(), idcOneSafe[side].front().begin(), std::plus<float>());
+      std::transform(weightsSafe[side].front().begin(), weightsSafe[side].front().end(), weightsSafe[side][i].begin(), weightsSafe[side].front().begin(), std::plus<unsigned int>());
+    }
+    // replace all 0 with 1 to avoid division by 0
+    std::replace(weightsSafe[side].front().begin(), weightsSafe[side].front().end(), 0, 1);
+
+    // move IDC1 to member
+    mIDCOne.mIDCOne[side] = std::move(idcOneSafe[side].front());
+
+    // normalize IDC1 to number of IDC values used
+    std::transform(mIDCOne.mIDCOne[side].begin(), mIDCOne.mIDCOne[side].end(), weightsSafe[side].front().begin(), mIDCOne.mIDCOne[side].begin(), std::divides<float>());
+  }
+}
+
+void o2::tpc::IDCFactorization::calcIDCOne(const std::vector<float>& idcsData, const int idcsPerCRU, const int integrationIntervalOffset, const unsigned int indexOffset, const CRU cru, std::vector<float>& idcOneTmp, std::vector<unsigned int>& weights, const IDCZero* idcZero, const CalDet<PadFlags>* flagMap)
+{
+  const Side side = cru.side();
+  for (unsigned int idcs = 0; idcs < idcsData.size(); ++idcs) {
+    const unsigned int integrationInterval = idcs / idcsPerCRU + integrationIntervalOffset;
+    const unsigned int localPad = (idcs % idcsPerCRU);
+    const unsigned int indexGlob = localPad + indexOffset;
+    const auto idcZeroVal = idcZero ? idcZero->mIDCZero[side][indexGlob] : 1;
+
+    // check pad in case of input is not grouped
+    if (flagMap) {
+      const o2::tpc::PadFlags flag = flagMap->getCalArray(cru).getValue(localPad);
+      if ((flag & PadFlags::flagSkip) == PadFlags::flagSkip) {
+        continue;
+      }
+    }
+
+    if (idcZeroVal > 0 && idcsData[idcs] >= 0) {
+      idcOneTmp[integrationInterval] += idcsData[idcs] / idcZeroVal;
+      ++weights[integrationInterval];
     }
   }
 }
