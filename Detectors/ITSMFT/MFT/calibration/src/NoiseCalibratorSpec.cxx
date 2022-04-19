@@ -105,6 +105,12 @@ void NoiseCalibratorSpec::sendOutputCcdbDcs(DataAllocator& output)
 
   LOG(info) << "CCDB-DCS mode";
 
+  static bool done = false;
+  if (done) {
+    return;
+  }
+  done = true;
+
   mCalibrator->finalize();
 
   long tstart = mStart;
@@ -170,6 +176,12 @@ void NoiseCalibratorSpec::sendOutputCcdb(DataAllocator& output)
 
   LOG(info) << "CCDB mode";
 
+  static bool done = false;
+  if (done) {
+    return;
+  }
+  done = true;
+
   mCalibrator->finalize();
 
   long tstart = mStart;
@@ -219,6 +231,12 @@ void NoiseCalibratorSpec::sendOutputDcs(DataAllocator& output)
 {
 
   LOG(info) << "DCS mode";
+
+  static bool done = false;
+  if (done) {
+    return;
+  }
+  done = true;
 
   mCalibrator->finalize();
 
