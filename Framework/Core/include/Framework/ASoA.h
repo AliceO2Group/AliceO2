@@ -340,6 +340,9 @@ struct Column {
   Column() = default;
   Column(Column const&) = default;
   Column& operator=(Column const&) = default;
+  
+  Column(Column&&) = default;
+  Column& operator=(Column&&) = default;
 
   using persistent = std::true_type;
   using type = T;
