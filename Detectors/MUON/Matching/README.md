@@ -24,7 +24,7 @@ The sigma cut is configurable via the command line or an INI or JSON configurati
 
 ## Example of workflow
 
-`o2-mch-tracks-reader-workflow | o2-mid-tracks-reader-workflow | o2-muon-tracks-matcher-workflow | o2-muon-tracks-writer-workflow`
+`o2-muon-tracks-matcher-workflow --disable-mc`
 
 This takes as input the root files with MCH and MID tracks and ROFs and gives as ouput a root file with the matched tracks.
 
