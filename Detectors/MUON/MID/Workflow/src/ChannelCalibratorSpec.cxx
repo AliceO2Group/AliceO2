@@ -72,18 +72,17 @@ class ChannelCalibratorDeviceDPL
     if (nEvents == 0) {
       return;
     }
+
     auto deadRof = pc.inputs().get<gsl::span<ROFRecord>>("mid_dead_rof");
     auto noise = pc.inputs().get<gsl::span<ColumnData>>("mid_noise");
     auto dead = pc.inputs().get<gsl::span<ColumnData>>("mid_dead");
 
-    auto tfCounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("mid_noise").header)->startTime;
-
     std::vector<ColumnData> calibData;
     calibData.insert(calibData.end(), noise.begin(), noise.end());
     calibData.insert(calibData.end(), dead.begin(), dead.end());
-
     mCalibrator.addEvents(nEvents);
-    mCalibrator.process(tfCounter, calibData);
+    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator.getCurrentTFInfo());
+    mCalibrator.process(calibData);
   }
 
   void endOfStream(of::EndOfStreamContext& ec)
@@ -105,7 +104,7 @@ class ChannelCalibratorDeviceDPL
     sendOutput(output, mCalibrator.getBadChannels(), "MID/Calib/BadChannels", 0);
 
     TObjString masks(mCalibrator.getMasksAsString().c_str());
-    sendOutput(output, masks, "MID/ElectronicsMasks", 1);
+    sendOutput(output, masks, "MID/Calib/ElectronicsMasks", 1);
 
     mCalibrator.initOutput(); // reset the outputs once they are already sent
   }

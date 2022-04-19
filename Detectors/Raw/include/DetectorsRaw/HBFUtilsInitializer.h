@@ -30,6 +30,7 @@ namespace framework
 {
 class ConfigContext;
 class DataProcessorSpec;
+class DataProcessingHeader;
 class DeviceSpec;
 class ConfigParamSpec;
 class CallbacksPolicy;
@@ -50,7 +51,7 @@ struct HBFUtilsInitializer {
   HBFUtilsInitializer(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& wf);
   static HBFOpt getOptType(const std::string& optString);
   static std::vector<o2::dataformats::TFIDInfo> readTFIDInfoVector(const std::string& fname);
-  static void assignDataHeader(const std::vector<o2::dataformats::TFIDInfo>& tfinfoVec, o2::header::DataHeader& dh);
+  static void assignDataHeader(const std::vector<o2::dataformats::TFIDInfo>& tfinfoVec, o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph);
   static void addNewTimeSliceCallback(std::vector<o2::framework::CallbacksPolicy>& policies);
   static void addConfigOption(std::vector<o2::framework::ConfigParamSpec>& opts);
 };

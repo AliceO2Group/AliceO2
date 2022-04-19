@@ -16,7 +16,7 @@
 #include <chrono>
 #include <thread>
 #include <vector>
-#include <FairMQDevice.h>
+#include <fairmq/Device.h>
 #include "Framework/runDataProcessing.h"
 
 using namespace o2::framework;

@@ -23,7 +23,7 @@ namespace GPUCA_NAMESPACE::gpu
 class GPUDisplayFrontendGlut : public GPUDisplayFrontend
 {
  public:
-  GPUDisplayFrontendGlut() = default;
+  GPUDisplayFrontendGlut();
   ~GPUDisplayFrontendGlut() override = default;
 
   int StartDisplay() override;

@@ -32,7 +32,9 @@ void PHOSPedestalCalibDevice::init(o2::framework::InitContext& ic)
 {
 
   mStatistics = ic.options().get<int>("statistics"); // desired number of events
-
+  LOG(info) << "PHOS pedestal init: will collect " << mStatistics << " events";
+  LOG(info) << "mUseCCDB (try to get current object) = " << mUseCCDB;
+  LOG(info) << "mForceUpdate (update CCDB anyway) =" << mForceUpdate;
   // Create histograms for mean and RMS
   short n = o2::phos::Mapping::NCHANNELS - 1792;
   mMeanHG.reset(new TH2F("MeanHighGain", "MeanHighGain", n, 1792.5, n + 1792.5, 100, 0., 100.));
@@ -43,13 +45,18 @@ void PHOSPedestalCalibDevice::init(o2::framework::InitContext& ic)
 
 void PHOSPedestalCalibDevice::run(o2::framework::ProcessingContext& ctx)
 {
-  // scan Cells stream, collect mean and RMS then calculateaverage and post
+  // scan Cells stream, collect mean and RMS then calculate average and post
+
   if (mRunStartTime == 0) {
-    mRunStartTime = o2::header::get<o2::framework::DataProcessingHeader*>(ctx.inputs().get("cellTriggerRecords").header)->startTime;
+    const auto ref = ctx.inputs().getFirstValid(true);
+    mRunStartTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
   }
 
   if (mStatistics <= 0) { // skip the rest of the run
     return;
+  }
+  if (mStatistics % 100 == 0) {
+    LOG(info) << mStatistics << " left to produce calibration";
   }
   auto cells = ctx.inputs().get<gsl::span<o2::phos::Cell>>("cells");
   LOG(debug) << "[PHOSPedestalCalibDevice - run]  Received " << cells.size() << " cells, running calibration ...";
@@ -70,6 +77,7 @@ void PHOSPedestalCalibDevice::run(o2::framework::ProcessingContext& ctx)
     --mStatistics;
   }
   if (mStatistics <= 0) {
+    LOG(info) << "Start calculating pedestals";
     calculatePedestals();
     checkPedestals();
     sendOutput(ctx.outputs());
@@ -95,7 +103,8 @@ void PHOSPedestalCalibDevice::sendOutput(DataAllocator& output)
     // prepare all info to be sent to CCDB
     auto flName = o2::ccdb::CcdbApi::generateFileName("Pedestals");
     std::map<std::string, std::string> md;
-    o2::ccdb::CcdbObjectInfo info("PHS/Calib/Pedestals", "Pedestals", flName, md, mRunStartTime, 99999999999999);
+    long validityTime = mRunStartTime + 7776000000; //3 months validity time
+    o2::ccdb::CcdbObjectInfo info("PHS/Calib/Pedestals", "Pedestals", flName, md, mRunStartTime, validityTime);
     info.setMetaData(md);
     auto image = o2::ccdb::CcdbApi::createObjectImage(mPedestals.get(), &info);
 
@@ -107,6 +116,19 @@ void PHOSPedestalCalibDevice::sendOutput(DataAllocator& output)
     header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_Pedestal", subSpec}, *image.get());
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_Pedestal", subSpec}, info);
+    // Now same for DCS as vector
+    std::vector<short> dcsPedestals(2 * (o2::phos::Mapping::NCHANNELS - 1792));
+    // copy HG then LG pedestals
+    for (short absId = 1793; absId <= o2::phos::Mapping::NCHANNELS; absId++) {
+      dcsPedestals.emplace_back(mPedestals->getHGPedestal(absId));
+    }
+    for (short absId = 1793; absId <= o2::phos::Mapping::NCHANNELS; absId++) {
+      dcsPedestals.emplace_back(mPedestals->getLGPedestal(absId));
+    }
+    auto imageDCS = o2::ccdb::CcdbApi::createObjectImage(&dcsPedestals, &info);
+    header::DataHeader::SubSpecificationType subSpec1{(header::DataHeader::SubSpecificationType)1};
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_Pedestal", subSpec1}, *imageDCS.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_Pedestal", subSpec1}, info);
   }
   // Anyway send change to QC
   LOG(info) << "[PHOSPedestalCalibDevice - run] Sending QC ";
@@ -137,6 +159,7 @@ void PHOSPedestalCalibDevice::calculatePedestals()
     mPedestals->setLGRMS(cellId, a);
     pr->Delete();
   }
+  LOG(info) << "Pedestals calculated";
 }
 
 void PHOSPedestalCalibDevice::checkPedestals()

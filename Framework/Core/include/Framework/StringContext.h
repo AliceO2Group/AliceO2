@@ -12,6 +12,8 @@
 #define O2_FRAMEWORK_STRINGCONTEXT_H_
 
 #include "Framework/FairMQDeviceProxy.h"
+#include "Framework/RouteState.h"
+#include "Framework/RoutingIndices.h"
 #include <vector>
 #include <string>
 #include <memory>
@@ -27,22 +29,22 @@ namespace o2::framework
 class StringContext
 {
  public:
-  StringContext(FairMQDeviceProxy proxy)
-    : mProxy{proxy}
+  StringContext(FairMQDeviceProxy& proxy)
+    : mProxy(proxy)
   {
   }
 
   struct MessageRef {
     std::unique_ptr<FairMQMessage> header;
     std::unique_ptr<std::string> payload;
-    std::string channel;
+    RouteIndex routeIndex;
   };
 
   using Messages = std::vector<MessageRef>;
 
   void addString(std::unique_ptr<FairMQMessage> header,
                  std::unique_ptr<std::string> s,
-                 const std::string& channel);
+                 RouteIndex routeIndex);
 
   Messages::iterator begin()
   {
@@ -61,13 +63,8 @@ class StringContext
 
   void clear();
 
-  FairMQDeviceProxy& proxy()
-  {
-    return mProxy;
-  }
-
  private:
-  FairMQDeviceProxy mProxy;
+  FairMQDeviceProxy& mProxy;
   Messages mMessages;
 };
 

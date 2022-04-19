@@ -22,16 +22,14 @@
 #include <unordered_map>
 #include <utils/vecpod.h>
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 
 class GPUDisplayBackendVulkan : public GPUDisplayBackend
 {
  public:
   GPUDisplayBackendVulkan();
-  ~GPUDisplayBackendVulkan();
+  ~GPUDisplayBackendVulkan() override;
 
   unsigned int DepthBits() override;
 
@@ -45,7 +43,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
     vk::Buffer buffer;
     vk::DeviceMemory memory;
     size_t size = 0;
-    bool deviceMemory;
+    int deviceMemory;
   };
   struct VulkanImage {
     vk::Image image;
@@ -78,11 +76,12 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void prepareText() override;
   void finishText() override;
   void mixImages(vk::CommandBuffer cmdBuffer, float mixSlaveImage);
+  void setMixDescriptor(int descriptorIndex, int imageIndex);
   void pointSizeFactor(float factor) override;
   void lineWidthFactor(float factor) override;
-  backendTypes backendType() const override { return TYPE_VULKAN; }
   void resizeScene(unsigned int width, unsigned int height) override;
   float getYFactor() const override { return -1.0f; }
+  int getMaxMSAA() const override { return mMaxMSAAsupported; }
 
   double checkDevice(vk::PhysicalDevice device, const std::vector<const char*>& reqDeviceExtensions);
   vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
@@ -96,7 +95,7 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void clearVertexBuffers();
 
   void startFillCommandBuffer(vk::CommandBuffer& commandBuffer, unsigned int imageIndex, bool toMixBuffer = false);
-  void endFillCommandBuffer(vk::CommandBuffer& commandBuffer, unsigned int imageIndex);
+  void endFillCommandBuffer(vk::CommandBuffer& commandBuffer);
   vk::CommandBuffer getSingleTimeCommandBuffer();
   void submitSingleTimeCommandBuffer(vk::CommandBuffer commandBuffer);
   void readImageToPixels(vk::Image image, vk::ImageLayout layout, std::vector<char>& pixels);
@@ -129,11 +128,10 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   void initializeTextDrawing() override;
   void OpenGLPrint(const char* s, float x, float y, float* color, float scale) override;
 
-  unsigned int mIndirectId;
   unsigned int mGraphicsFamily;
   SwapChainSupportDetails mSwapChainDetails;
-
   bool mEnableValidationLayers = false;
+
   vk::Instance mInstance;
   vk::DynamicLoader mDL;
   vk::DispatchLoaderDynamic mDLD;
@@ -145,7 +143,6 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   vk::SurfaceFormatKHR mSurfaceFormat;
   vk::PresentModeKHR mPresentMode;
   vk::SwapchainKHR mSwapChain;
-  bool mSwapchainImageReadable;
   bool mMustUpdateSwapChain = false;
   std::vector<vk::Image> mSwapChainImages;
   std::vector<vk::ImageView> mSwapChainImageViews;
@@ -166,11 +163,13 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   std::vector<vk::Framebuffer> mFramebuffersTexture;
   vk::CommandPool mCommandPool;
 
+  bool mCommandBufferPerImage = false;
   bool mCommandInfrastructureCreated = false;
   unsigned int mImageCount = 0;
   unsigned int mFramesInFlight = 0;
   int mCurrentFrame = 0;
-  uint32_t mImageIndex = 0;
+  uint32_t mCurrentImageIndex = 0;
+  int mCurrentBufferSet = 0;
   vk::CommandBuffer mCurrentCommandBuffer;
   int mCurrentCommandBufferLastPipeline = -1;
 
@@ -200,23 +199,24 @@ class GPUDisplayBackendVulkan : public GPUDisplayBackend
   VulkanImage mFontImage;
   std::vector<VulkanBuffer> mFontVertexBuffer;
   std::vector<TextDrawCommand> mTextDrawCommands;
-  vk::CommandBuffer mTmpTextCommandBuffer;
   vk::Sampler mTextureSampler;
   vecpod<float> mFontVertexBufferHost;
   bool mHasDrawnText = false;
 
+  bool mSwapchainImageReadable = false;
   vk::SampleCountFlagBits mMSAASampleCount = vk::SampleCountFlagBits::e16;
   unsigned int mMaxMSAAsupported = 0;
   bool mZActive = false;
   bool mZSupported = false;
+  bool mStencilSupported = false;
+  bool mCubicFilterSupported = false;
   bool mDownsampleFSAA = false;
+  bool mMixingSupported = 0;
+
+  VulkanBuffer mMixingTextureVertexArray;
 
   vk::Fence mSingleCommitFence;
-
-  bool mMixingSupported = 0;
-  VulkanBuffer mTextureVertexArray;
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

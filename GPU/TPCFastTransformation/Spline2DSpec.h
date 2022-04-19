@@ -73,6 +73,10 @@ class Spline2DContainer : public FlatObject
   void approximateFunction(double x1Min, double x1Max, double x2Min, double x2Max,
                            std::function<void(double x1, double x2, double f[/*mYdim*/])> F,
                            int nAuxiliaryDataPointsU1 = 4, int nAuxiliaryDataPointsU2 = 4);
+
+  void approximateFunctionViaDataPoints(double x1Min, double x1Max, double x2Min, double x2Max,
+                                        std::function<void(double x1, double x2, double f[])> F,
+                                        int nAuxiliaryDataPointsX1, int nAuxiliaryDataPointsX2);
 #endif
 
   /// _______________  IO   ________________________
@@ -242,8 +246,8 @@ class Spline2DSpec<DataT, YdimT, 0>
 
   /// Get interpolated value for an inpYdim-dimensional S(u1,u2) using spline parameters Parameters.
   template <SafetyLevel SafeT = SafetyLevel::kSafe>
-  GPUd() void interpolateU(int inpYdim, GPUgeneric() const DataT Parameters[],
-                           DataT u1, DataT u2, GPUgeneric() DataT S[/*inpYdim*/]) const
+  GPUd() void interpolateUold(int inpYdim, GPUgeneric() const DataT Parameters[],
+                              DataT u1, DataT u2, GPUgeneric() DataT S[/*inpYdim*/]) const
   {
 
     const auto nYdimTmp = SplineUtil::getNdim<YdimT>(inpYdim);
@@ -255,8 +259,8 @@ class Spline2DSpec<DataT, YdimT, 0>
     const auto nYdim2 = nYdim * 2;
     const auto nYdim4 = nYdim * 4;
 
-    const float& u = u1;
-    const float& v = u2;
+    const DataT& u = u1;
+    const DataT& v = u2;
     int nu = mGridX1.getNumberOfKnots();
     int iu = mGridX1.template getLeftKnotIndexForU<SafeT>(u);
     int iv = mGridX2.template getLeftKnotIndexForU<SafeT>(v);
@@ -303,6 +307,59 @@ class Spline2DSpec<DataT, YdimT, 0>
     typedef Spline1DSpec<DataT, YdimT, 0> TGridX2;
     const TGridX2& gridX2 = reinterpret_cast<const TGridX2&>(mGridX2);
     gridX2.interpolateU(nYdim, knotV, Sv0, Dv0, Sv1, Dv1, v, S);
+  }
+
+  /// Get interpolated value for an inpYdim-dimensional S(u1,u2) using spline parameters Parameters.
+  template <SafetyLevel SafeT = SafetyLevel::kSafe>
+  GPUd() void interpolateU(int inpYdim, GPUgeneric() const DataT Parameters[],
+                           DataT u1, DataT u2, GPUgeneric() DataT S[/*inpYdim*/]) const
+  {
+
+    const auto nYdimTmp = SplineUtil::getNdim<YdimT>(inpYdim);
+    const int nYdim = nYdimTmp.get();
+
+    // const auto maxYdim = SplineUtil::getMaxNdim<YdimT>(inpYdim);
+    // const int maxYdim4 = 4 * maxYdim.get();
+
+    // const auto nYdim2 = nYdim * 2;
+    const auto nYdim4 = nYdim * 4;
+
+    const DataT& u = u1;
+    const DataT& v = u2;
+    int nu = mGridX1.getNumberOfKnots();
+    int iu = mGridX1.template getLeftKnotIndexForU<SafeT>(u);
+    int iv = mGridX2.template getLeftKnotIndexForU<SafeT>(v);
+
+    const typename TBase::Knot& knotU = mGridX1.template getKnot<SafetyLevel::kNotSafe>(iu);
+    const typename TBase::Knot& knotV = mGridX2.template getKnot<SafetyLevel::kNotSafe>(iv);
+
+    const DataT* A = Parameters + (nu * iv + iu) * nYdim4; // values { {Y1,Y2,Y3}, {Y1,Y2,Y3}'v, {Y1,Y2,Y3}'u, {Y1,Y2,Y3}''vu } at {u0, v0}
+    const DataT* B = A + nYdim4 * nu;                      // values { ... } at {u0, v1}
+
+    DataT dSl, dDl, dSr, dDr;
+    mGridX1.getUderivatives(knotU, u, dSl, dDl, dSr, dDr);
+    DataT dSd, dDd, dSu, dDu;
+    mGridX2.getUderivatives(knotV, v, dSd, dDd, dSu, dDu);
+
+    // when nYdim == 1:
+    // S = dSl * (dSd * A[0] + dDd * A[1]) + dDl * (dSd * A[2] + dDd * A[3]) +
+    //     dSr * (dSd * A[4] + dDd * A[5]) + dDr * (dSd * A[6] + dDd * A[7]) +
+    //     dSl * (dSu * B[0] + dDu * B[1]) + dDl * (dSu * B[2] + dDu * B[3]) +
+    //     dSr * (dSu * B[4] + dDu * B[5]) + dDr * (dSu * B[6] + dDu * B[7]);
+
+    DataT a[8] = {dSl * dSd, dSl * dDd, dDl * dSd, dDl * dDd,
+                  dSr * dSd, dSr * dDd, dDr * dSd, dDr * dDd};
+    DataT b[8] = {dSl * dSu, dSl * dDu, dDl * dSu, dDl * dDu,
+                  dSr * dSu, dSr * dDu, dDr * dSu, dDr * dDu};
+
+    // S = sum a[i]*A[i] + b[i]*B[i]
+
+    for (int dim = 0; dim < nYdim; dim++) {
+      S[dim] = 0;
+      for (int i = 0; i < 8; i++) {
+        S[dim] += a[i] * A[nYdim * i + dim] + b[i] * B[nYdim * i + dim];
+      }
+    }
   }
 
  protected:
@@ -379,6 +436,14 @@ class Spline2DSpec<DataT, YdimT, 1>
                            DataT u1, DataT u2, GPUgeneric() DataT S[/*nYdim*/]) const
   {
     TBase::template interpolateU<SafeT>(YdimT, Parameters, u1, u2, S);
+  }
+
+  /// Get interpolated value for an YdimT-dimensional S(u1,u2) using spline parameters Parameters.
+  template <SafetyLevel SafeT = SafetyLevel::kSafe>
+  GPUd() void interpolateUold(GPUgeneric() const DataT Parameters[],
+                              DataT u1, DataT u2, GPUgeneric() DataT S[/*nYdim*/]) const
+  {
+    TBase::template interpolateUold<SafeT>(YdimT, Parameters, u1, u2, S);
   }
 
   using TBase::getNumberOfKnots;

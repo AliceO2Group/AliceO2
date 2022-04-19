@@ -68,7 +68,23 @@ class GloFwdAssessment
   void runBasicQC(o2::framework::ProcessingContext& ctx);
   void processPairables();
   void processGeneratedTracks();
-  void processRecoAndTrueTracks();
+  void processRecoTracks();
+  void processTrueTracks();
+  void fillTrueRecoTracksMap()
+  {
+    mTrueTracksMap.resize(mcReader.getNSources());
+    auto src = 0;
+    for (auto& map : mTrueTracksMap) {
+      map.resize(mcReader.getNEvents(src++));
+    }
+    auto id = 0;
+    for (const auto& trackLabel : mFwdTrackLabels) {
+      if (trackLabel.isCorrect()) {
+        mTrueTracksMap[trackLabel.getSourceID()][trackLabel.getEventID()].push_back(id);
+      }
+      id++;
+    }
+  }
   void addMCParticletoHistos(const MCTrack* mcTr, const int TrackType, const o2::dataformats::MCEventHeader& evH);
 
   void finalizeAnalysis();
@@ -139,6 +155,7 @@ class GloFwdAssessment
   std::unique_ptr<TEfficiency> mChargeMatchEff = nullptr;
   std::unique_ptr<TH2D> mPairingEtaPt = nullptr;
   std::unique_ptr<TH2D> mTruePairingEtaPt = nullptr;
+  std::unique_ptr<TH2F> mHistVxtOffsetProjection = nullptr;
 
   std::vector<std::unique_ptr<TH2D>> mPurityPtInnerVecTH2;
   std::vector<std::unique_ptr<TH2D>> mPurityPtOuterVecTH2;
@@ -372,6 +389,8 @@ class GloFwdAssessment
   void TH3Slicer(TCanvas* canvas, std::unique_ptr<TH3F>& histo3D, std::vector<float> list, double window, int iPar, float marker_size = 1.5);
 
   std::unordered_map<o2::MCCompLabel, bool> mPairables;
+  std::vector<std::vector<std::vector<int>>> mTrueTracksMap;                 // Maps srcIDs and eventIDs to true reco tracks
+  std::vector<std::vector<std::vector<o2::MCCompLabel>>> mPairableTracksMap; // Maps srcIDs and eventIDs to pairable tracks
 
   enum GMAssesmentCanvases {
     kPurityPtOuter,

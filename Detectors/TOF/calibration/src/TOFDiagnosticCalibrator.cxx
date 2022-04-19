@@ -39,6 +39,10 @@ void TOFDiagnosticCalibrator::finalizeSlot(Slot& slot)
   LOG(info) << "Finalizing slot";
   diag->print();
   std::map<std::string, std::string> md;
+  if (mRunNumber > -1) {
+    md["runNumber"] = std::to_string(mRunNumber);
+  }
+
   auto clName = o2::utils::MemFileHelper::getClassName(*diag);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
 

@@ -9,23 +9,26 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   IRFrameWriterSpec.h
+#ifndef _BASE_TFIDINFOHELPER_H_
+#define _BASE_TFIDINFOHELPER_H_
 
-#ifndef O2_ITS_IRFRAMEWRITER
-#define O2_ITS_IRFRAMEWRITER
-
-#include "Framework/DataProcessorSpec.h"
+#include "CommonDataFormat/TFIDInfo.h"
 
 namespace o2
 {
-namespace its
+namespace framework
+{
+class ProcessingContext;
+}
+
+namespace base
 {
 
-/// create a processor spec
-/// write IRFrames for which ITS was reconstructed and tracks found
-o2::framework::DataProcessorSpec getIRFrameWriterSpec();
+struct TFIDInfoHelper {
+  static void fillTFIDInfo(o2::framework::ProcessingContext& pc, o2::dataformats::TFIDInfo& ti);
+};
 
-} // namespace its
+} // namespace base
 } // namespace o2
 
 #endif

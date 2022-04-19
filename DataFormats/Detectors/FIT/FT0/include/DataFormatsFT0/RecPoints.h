@@ -64,7 +64,7 @@ class RecPoints
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
   RecPoints() = default;
   RecPoints(const std::array<short, 4>& collisiontime,
-            int first, int ne, o2::InteractionRecord iRec, o2::ft0::Triggers chTrig)
+            int first, int ne, o2::InteractionRecord iRec, o2::fit::Triggers chTrig)
     : mCollisionTime(collisiontime)
   {
     ref.setFirstEntry(first);
@@ -86,8 +86,8 @@ class RecPoints
   short getVertex() const { return getCollisionTime(Vertex); }
   void setVertex(short vertex) { mCollisionTime[Vertex] = vertex; }
 
-  o2::ft0::Triggers getTrigger() const { return mTriggers; }
-  void setTriggers(o2::ft0::Triggers trig) { mTriggers = trig; }
+  o2::fit::Triggers getTrigger() const { return mTriggers; }
+  void setTriggers(o2::fit::Triggers trig) { mTriggers = trig; }
 
   o2::InteractionRecord getInteractionRecord() const { return mIntRecord; };
 
@@ -101,7 +101,7 @@ class RecPoints
                                          sDummyCollissionTime,
                                          sDummyCollissionTime,
                                          sDummyCollissionTime};
-  o2::ft0::Triggers mTriggers; // pattern of triggers  in this BC
+  o2::fit::Triggers mTriggers; // pattern of triggers  in this BC
 
   ClassDefNV(RecPoints, 3);
 };

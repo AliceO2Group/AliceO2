@@ -108,15 +108,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
     gains = gainsPtr.get();
   }
 
-  /*if (!mIsPedestalData) {
-    pedestals = const_cast<o2::cpv::Pedestals*>((ctx.inputs().get<o2::cpv::Pedestals*>("peds")).get());
-  }
-  if (mIsUsingBadMap) {
-    badMap = const_cast<o2::cpv::BadChannelMap*>((ctx.inputs().get<o2::cpv::BadChannelMap*>("peds")).get());
-  }
-  if (mIsUsingGainCalibration) {
-    gains = const_cast<o2::cpv::CalibParams*>((ctx.inputs().get<o2::cpv::CalibParams*>("peds")).get());
-  }*/
+  bool skipTF = false; // skip TF due to fatal error?
 
   std::vector<o2::framework::InputSpec> rawFilter{
     {"RAWDATA", o2::framework::ConcreteDataTypeMatcher{"CPV", "RAWDATA"}, o2::framework::Lifetime::Timeframe},
@@ -135,6 +127,8 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
         mOutputHWErrors.emplace_back(25, 0, 0, 0, e); //Put general errors to non-existing ccId 25
         //if problem in header, abandon this page
         if (e == RawErrorType_t::kRDH_DECODING) {
+          LOG(error) << "RDH decoding error. Skipping this TF";
+          skipTF = true;
           break;
         }
         //if problem in payload, try to continue
@@ -205,7 +199,18 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       for (auto& er : decoder.getErrors()) {
         mOutputHWErrors.push_back(er);
       }
-    } //RawReader::hasNext
+    }
+    // if corrupted raw data is present in this TF -> skip it
+    if (skipTF) {
+      // Send no digits
+      mOutputDigits.clear();
+      ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
+      mOutputTriggerRecords.clear();
+      ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
+      // Send errors
+      ctx.outputs().snapshot(o2::framework::Output{"CPV", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
+      return;
+    }
   }
 
   // Loop over BCs, sort digits with increasing digit ID and write to output containers

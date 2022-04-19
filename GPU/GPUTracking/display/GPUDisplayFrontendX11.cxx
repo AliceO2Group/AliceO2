@@ -12,11 +12,10 @@
 /// \file GPUDisplayFrontendX11.cxx
 /// \author David Rohr
 
-// GL EXT must be the first header
-#include "GPUDisplayBackend.h"
-
 // Now the other headers
 #include "GPUDisplayFrontendX11.h"
+#include "GPUDisplayBackend.h"
+#include "GPUDisplayGUIWrapper.h"
 #include "GPULogging.h"
 #include <cstdio>
 #include <cstdlib>
@@ -32,6 +31,12 @@
 typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
 
 using namespace GPUCA_NAMESPACE::gpu;
+
+GPUDisplayFrontendX11::GPUDisplayFrontendX11()
+{
+  mFrontendType = TYPE_X11;
+  mFrontendName = "X11";
+}
 
 int GPUDisplayFrontendX11::GetKey(int key)
 {
@@ -183,7 +188,7 @@ int GPUDisplayFrontendX11::FrontendMain()
   XVisualInfo* visualInfo = nullptr;
   XEvent event;
   Colormap colorMap;
-  GLXContext glxContext = 0;
+  GLXContext glxContext = nullptr;
   int errorBase;
   int eventBase;
 
@@ -259,7 +264,7 @@ int GPUDisplayFrontendX11::FrontendMain()
   // Create an X window with the selected visual
   mWindow = XCreateWindow(mDisplay, win, 50, 50, INIT_WIDTH, INIT_HEIGHT, // Position / Width and height of window
                           0, visualInfo->depth, InputOutput, visualInfo->visual, CWBorderPixel | CWColormap | CWEventMask, &windowAttributes);
-  XSetStandardProperties(mDisplay, mWindow, GL_WINDOW_NAME, GL_WINDOW_NAME, None, nullptr, 0, nullptr);
+  XSetStandardProperties(mDisplay, mWindow, DISPLAY_WINDOW_NAME, DISPLAY_WINDOW_NAME, None, nullptr, 0, nullptr);
   if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
     glXMakeCurrent(mDisplay, mWindow, glxContext);
   }
@@ -411,8 +416,8 @@ int GPUDisplayFrontendX11::FrontendMain()
         }
 
         case MotionNotify: {
-          mouseMvX = event.xmotion.x;
-          mouseMvY = event.xmotion.y;
+          mMouseMvX = event.xmotion.x;
+          mMouseMvY = event.xmotion.y;
           break;
         }
 

@@ -18,7 +18,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
-#include <FairMQLogger.h>
+#include <FairLogger.h>
 
 #include "TFile.h"
 #include "TTree.h"

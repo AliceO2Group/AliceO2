@@ -8,26 +8,25 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
-/// @file   ThresholdCalibrationWorkflow.h
-
-#ifndef O2_ITS_THRESHOLD_CALIBRATION_WORKFLOW_H
-#define O2_ITS_THRESHOLD_CALIBRATION_WORKFLOW_H
+#ifndef FRAMEWORK_MERMAIDHELPERS_H
+#define FRAMEWORK_MERMAIDHELPERS_H
 
 #include "Framework/WorkflowSpec.h"
+#include "Framework/DeviceSpec.h"
+#include <vector>
+#include <iosfwd>
 
 namespace o2
 {
-namespace its
+namespace framework
 {
 
-namespace threshold_calib_workflow
-{
+struct MermaidHelpers {
+  using Devices = std::vector<DeviceSpec>;
+  static void dumpDataProcessorSpec2Mermaid(std::ostream&, const WorkflowSpec& specs);
+  static void dumpDeviceSpec2Mermaid(std::ostream&, const Devices& specs);
+};
 
-framework::WorkflowSpec getWorkflow();
-
-}
-
-} // namespace its
+} // namespace framework
 } // namespace o2
-#endif
+#endif // FRAMEWORK_MERMAIDHELPERS_H

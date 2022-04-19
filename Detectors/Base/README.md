@@ -2,6 +2,50 @@
 \page refDetectorsBase Detectors base support
 /doxy -->
 
+# Geometry and GRPs CCDB fetcher helper
+
+Consist of 2 classes:
+
+1) `o2::base::GRPGeomRequest` class to formulate the request of what is needed: put in the device spec definition:
+
+```cpp
+DataProcessorSpec getMyDeviceSpec()
+{
+ std::vector<InputSpec> inputs;
+ // fill your input requests then:
+ auto ccdbRequest = std::make_shared<GRPGeomRequest>(orbitResetTime=true, GRPECS=true, GRPLHCIF=false, GRPMagField=true, askMatLUT=true, geom=GRPGeomRequest::Aligned, inputs);
+ // ...
+ return DataProcessorSpec{ "my-device", inputs, outputs, AlgorithmSpec{adaptFromTask<MyTaskClass>(ccdbRequest,...), Options{..}} };
+}
+```
+
+2) Instanciate helper in the device class constructor and make sure that the method `GRPGeomRequest::instance()->finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)` is called from the device finaliseCCDB method
+and the method `GRPGeomRequest::instance()->checkUpdates(pc)` is called in the beginning of the run method, i.e.
+
+```cpp
+class MyTask {
+ public:
+  MyTask(std::shared_ptr<GRPGeomRequest> req, ...)
+  {
+    GRPGeomRequest::instance()->setRequest(req);
+    ...
+  }
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+  {
+    GRPGeomRequest::instance()->finaliseCCDB(matcher, obj);
+    ...
+  }
+  void run(ProcessingContext& pc)
+  {
+    GRPGeomRequest::instance()->checkUpdates(pc);
+    ...
+  }
+};
+```
+
+Requested objects can be accessed via getters, e.g. `GRPGeomRequest::instance()->getGRPECS()` and finaliseCCDB will update the `o2::base::Propagator` with the fields and material LUT
+if the GRPMagField and MatLUT arguments were set to true in the request.
+
 # Geometry
 
 ## Loading geometry

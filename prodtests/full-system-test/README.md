@@ -82,7 +82,7 @@ The environment variables are documented here: https://github.com/AliceO2Group/O
 The full system test can use the following input files:
 * Material budget: `matbud.root` with the material budget (used if available by the workflows to speed up material queries).
 * CTF ANS dictionaries: `ctf_dictionary.root` (if `CREATECTFDICT=0` is set).
-* ITS and MFT pattern dictionaries: `ITSdictionary.bin` and `MFTdictionary.bin` can be provided externally, or they can be produced automatically if `GENERATE_ITSMFT_DICTIONARIES=1` is set.
+* ITS and MFT pattern dictionaries are normally loaded from the CCDB. (Alternatively, `ITSdictionary.bin` and `MFTdictionary.bin` can be provided externally, or they can be produced automatically if `GENERATE_ITSMFT_DICTIONARIES=1` is set.)
 
 The full system test produces the following output:
 * QED simulation output in the folder `qed`.

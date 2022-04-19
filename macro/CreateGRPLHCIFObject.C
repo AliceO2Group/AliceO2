@@ -38,7 +38,7 @@ void CreateGRPLHCIFObject(timePoint start, int egev, int fill, const std::string
   grp.setBeamAZ();
   grp.setCrossingAngleWithTime(start, crossAngle);
   o2::BunchFilling bf(beamAFilling, beamCFilling);
-
+  grp.setBunchFillingWithTime(start, bf);
   CcdbApi api;
   api.init(ccdbPath);
   std::map<std::string, std::string> metadata;

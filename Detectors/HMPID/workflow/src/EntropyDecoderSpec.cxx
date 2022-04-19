@@ -80,7 +80,7 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec(int verbosity)
+DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"triggers"}, "HMP", "INTRECORDS", 0, Lifetime::Timeframe},
@@ -88,7 +88,7 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity)
 
   return DataProcessorSpec{
     "hmpid-entropy-decoder",
-    Inputs{InputSpec{"ctf", "HMP", "CTFDATA", 0, Lifetime::Timeframe}},
+    Inputs{InputSpec{"ctf", "HMP", "CTFDATA", sspec, Lifetime::Timeframe}},
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
     Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};

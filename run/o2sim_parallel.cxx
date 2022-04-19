@@ -11,9 +11,9 @@
 
 /// @author Sandro Wenzel
 
-#include <FairMQTransportFactory.h>
-#include <FairMQChannel.h>
-#include <FairMQMessage.h>
+#include <fairmq/TransportFactory.h>
+#include <fairmq/Channel.h>
+#include <fairmq/Message.h>
 
 #include <cstdlib>
 #include <unistd.h>
@@ -76,7 +76,11 @@ void remove_tmp_files()
   auto filenames = o2::utils::listFiles("/tmp/", searchstr.str());
   // remove those files
   for (auto& fn : filenames) {
-    std::filesystem::remove(std::filesystem::path(fn));
+    try {
+      std::filesystem::remove(std::filesystem::path(fn));
+    } catch (...) {
+      LOG(warn) << "Couldn't remove tmp file " << fn;
+    }
   }
 }
 

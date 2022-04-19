@@ -246,6 +246,7 @@ class DataDecoderTask
 
     auto& digits = mDecoder->getDigits();
     auto& orbits = mDecoder->getOrbits();
+    auto& errors = mDecoder->getErrors();
 
 #ifdef MCH_RAW_DATADECODER_DEBUG_DIGIT_TIME
     constexpr int BCINORBIT = o2::constants::lhc::LHCMaxBunches;
@@ -279,13 +280,14 @@ class DataDecoderTask
     }
 
     // send the output buffer via DPL
-    size_t digitsSize, rofsSize, orbitsSize;
+    size_t digitsSize, rofsSize, orbitsSize, errorsSize;
     char* digitsBuffer = rofFinder.saveDigitsToBuffer(digitsSize);
     char* rofsBuffer = rofFinder.saveROFRsToBuffer(rofsSize);
     char* orbitsBuffer = createBuffer(orbits, orbitsSize);
+    char* errorsBuffer = createBuffer(errors, errorsSize);
 
     if (mDebug) {
-      std::cout << "digitsSize " << digitsSize << "  rofsSize " << rofsSize << "  orbitsSize " << orbitsSize << std::endl;
+      LOGP(info, "digitsSize {}  rofsSize {}  orbitsSize {}  errorsSize {}", digitsSize, rofsSize, orbitsSize, errorsSize);
     }
 
     // create the output message
@@ -293,6 +295,7 @@ class DataDecoderTask
     pc.outputs().adoptChunk(Output{header::gDataOriginMCH, "DIGITS", 0}, digitsBuffer, digitsSize, freefct, nullptr);
     pc.outputs().adoptChunk(Output{header::gDataOriginMCH, "DIGITROFS", 0}, rofsBuffer, rofsSize, freefct, nullptr);
     pc.outputs().adoptChunk(Output{header::gDataOriginMCH, "ORBITS", 0}, orbitsBuffer, orbitsSize, freefct, nullptr);
+    pc.outputs().adoptChunk(Output{header::gDataOriginMCH, "ERRORS", 0}, errorsBuffer, errorsSize, freefct, nullptr);
 
     mTFcount += 1;
     if (mErrorLogFrequency) {
@@ -338,14 +341,15 @@ o2::framework::DataProcessorSpec getDecodingSpec(const char* specName, std::stri
     inputs,
     Outputs{OutputSpec{header::gDataOriginMCH, "DIGITS", 0, Lifetime::Timeframe},
             OutputSpec{header::gDataOriginMCH, "DIGITROFS", 0, Lifetime::Timeframe},
-            OutputSpec{header::gDataOriginMCH, "ORBITS", 0, Lifetime::Timeframe}},
+            OutputSpec{header::gDataOriginMCH, "ORBITS", 0, Lifetime::Timeframe},
+            OutputSpec{header::gDataOriginMCH, "ERRORS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<DataDecoderTask>(std::move(task))},
     Options{{"mch-debug", VariantType::Bool, false, {"enable verbose output"}},
             {"cru-map", VariantType::String, "", {"custom CRU mapping"}},
             {"fec-map", VariantType::String, "", {"custom FEC mapping"}},
             {"dummy-elecmap", VariantType::Bool, false, {"use dummy electronic mapping (for debug, temporary)"}},
             {"ds2manu", VariantType::Bool, false, {"convert channel numbering from Run3 to Run1-2 order"}},
-            {"time-reco-mode", VariantType::String, "hbpackets", {"digit time reconstruction method [hbpackets, bcreset]"}},
+            {"time-reco-mode", VariantType::String, "bcreset", {"digit time reconstruction method [hbpackets, bcreset]"}},
             {"check-rofs", VariantType::Bool, false, {"perform consistency checks on the output ROFs"}},
             {"dummy-rofs", VariantType::Bool, false, {"disable the ROFs finding algorithm"}},
             {"error-log-frequency", VariantType::Int, 6000, {"log the error map at this frequency (in TF unit) (first TF is always logged, unless frequency is zero)"}}}};

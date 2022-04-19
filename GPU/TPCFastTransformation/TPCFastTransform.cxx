@@ -19,6 +19,7 @@
 #endif
 
 #include "TPCFastTransform.h"
+#include "GPUCommonLogger.h"
 
 #if !defined(GPUCA_GPUCODE)
 #include <iostream>
@@ -139,15 +140,15 @@ void TPCFastTransform::finishConstruction()
 void TPCFastTransform::print() const
 {
 #if !defined(GPUCA_GPUCODE)
-  std::cout << "TPC Fast Transformation: " << std::endl;
-  std::cout << "mTimeStamp = " << mTimeStamp << std::endl;
-  std::cout << "mApplyCorrection = " << mApplyCorrection << std::endl;
-  std::cout << "mT0 = " << mT0 << std::endl;
-  std::cout << "mVdrift = " << mVdrift << std::endl;
-  std::cout << "mVdriftCorrY = " << mVdriftCorrY << std::endl;
-  std::cout << "mLdriftCorr = " << mLdriftCorr << std::endl;
-  std::cout << "mTOFcorr = " << mTOFcorr << std::endl;
-  std::cout << "mPrimVtxZ = " << mPrimVtxZ << std::endl;
+  LOG(info) << "TPC Fast Transformation: ";
+  LOG(info) << "mTimeStamp = " << mTimeStamp;
+  LOG(info) << "mApplyCorrection = " << mApplyCorrection;
+  LOG(info) << "mT0 = " << mT0;
+  LOG(info) << "mVdrift = " << mVdrift;
+  LOG(info) << "mVdriftCorrY = " << mVdriftCorrY;
+  LOG(info) << "mLdriftCorr = " << mLdriftCorr;
+  LOG(info) << "mTOFcorr = " << mTOFcorr;
+  LOG(info) << "mPrimVtxZ = " << mPrimVtxZ;
   mCorrection.print();
 #endif
 }

@@ -134,17 +134,17 @@ static const GPUSettingsQA& GPUQA_GetConfig(GPUChainTracking* chain)
   }
 }
 
-static const constexpr bool PLOT_ROOT = 0;
-static const constexpr bool FIX_SCALES = 0;
+// static const constexpr bool PLOT_ROOT = 0;
+// static const constexpr bool FIX_SCALES = 0;
 static const constexpr bool PERF_FIGURE = 0;
-static const constexpr float FIXED_SCALES_MIN[5] = {-0.05, -0.05, -0.2, -0.2, -0.5};
-static const constexpr float FIXED_SCALES_MAX[5] = {0.4, 0.7, 5, 3, 6.5};
+// static const constexpr float FIXED_SCALES_MIN[5] = {-0.05, -0.05, -0.2, -0.2, -0.5};
+// static const constexpr float FIXED_SCALES_MAX[5] = {0.4, 0.7, 5, 3, 6.5};
 static const constexpr float LOG_PT_MIN = -1.;
 
 static constexpr float Y_MAX = 40;
 static constexpr float Z_MAX = 100;
 static constexpr float PT_MIN = GPUCA_MIN_TRACK_PTB5_DEFAULT;
-static constexpr float PT_MIN2 = 0.1;
+// static constexpr float PT_MIN2 = 0.1;
 static constexpr float PT_MIN_PRIM = 0.1;
 static constexpr float PT_MIN_CLUST = GPUCA_MIN_TRACK_PTB5_DEFAULT;
 static constexpr float PT_MAX = 20;

@@ -23,7 +23,7 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include <CCDB/BasicCCDBManager.h>
 #include <DataFormatsParameters/GRPLHCIFData.h>
-#include <FairMQLogger.h>
+#include <FairLogger.h>
 #include <TMessage.h> // object serialization
 #include <memory>     // std::unique_ptr
 #include <cstring>    // memcpy

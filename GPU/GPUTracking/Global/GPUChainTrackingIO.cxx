@@ -27,7 +27,6 @@
 #include "GPUTRDTracker.h"
 #include "AliHLTTPCRawCluster.h"
 #include "GPUTRDTrackletLabels.h"
-#include "GPUDisplay.h"
 #include "GPUQA.h"
 #include "GPULogging.h"
 #include "GPUReconstructionConvert.h"
@@ -303,7 +302,6 @@ void GPUChainTracking::DumpSettings(const char* dir)
     f += "trdgeometry.dump";
     DumpStructToFile(processors()->calibObjects.trdGeometry, f.c_str());
   }
-
 #endif
 }
 

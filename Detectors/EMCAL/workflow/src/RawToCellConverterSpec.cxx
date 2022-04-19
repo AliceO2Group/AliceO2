@@ -269,189 +269,24 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         mRawFitter->setIsZeroSuppressed(decoder.getRCUTrailer().hasZeroSuppression());
       }
 
-      const auto& map = mMapper->getMappingForDDL(feeID);
-      int iSM = feeID / 2;
+      try {
 
-      // Loop over all the channels
-      int nBunchesNotOK = 0;
-      for (auto& chan : decoder.getChannels()) {
+        const auto& map = mMapper->getMappingForDDL(feeID);
+        uint16_t iSM = feeID / 2;
 
-        int iRow, iCol;
-        ChannelType_t chantype;
-        try {
-          iRow = map.getRow(chan.getHardwareAddress());
-          iCol = map.getColumn(chan.getHardwareAddress());
-          chantype = map.getChannelType(chan.getHardwareAddress());
-        } catch (Mapper::AddressNotFoundException& ex) {
-          if (mNumErrorMessages < mMaxErrorMessages) {
-            LOG(error) << "Mapping error DDL " << feeID << ": " << ex.what();
-            mNumErrorMessages++;
-            if (mNumErrorMessages == mMaxErrorMessages) {
-              LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
-            }
-          } else {
-            mErrorMessagesSuppressed++;
-          }
-          continue;
-        }
+        // Loop over all the channels
+        int nBunchesNotOK = 0;
+        for (auto& chan : decoder.getChannels()) {
 
-        if (!(chantype == o2::emcal::ChannelType_t::HIGH_GAIN || chantype == o2::emcal::ChannelType_t::LOW_GAIN)) {
-          continue;
-        }
-
-        auto [phishift, etashift] = mGeometry->ShiftOnlineToOfflineCellIndexes(iSM, iRow, iCol);
-        int CellID = mGeometry->GetAbsCellIdFromCellIndexes(iSM, phishift, etashift);
-        if (CellID > 17664) {
-          if (mNumErrorMessages < mMaxErrorMessages) {
-            std::string celltypename;
-            switch (chantype) {
-              case o2::emcal::ChannelType_t::HIGH_GAIN:
-                celltypename = "high gain";
-                break;
-              case o2::emcal::ChannelType_t::LOW_GAIN:
-                celltypename = "low-gain";
-                break;
-              case o2::emcal::ChannelType_t::TRU:
-                celltypename = "TRU";
-                break;
-              case o2::emcal::ChannelType_t::LEDMON:
-                celltypename = "LEDMON";
-                break;
-            };
-            LOG(error) << "Sending invalid cell ID " << CellID << "(SM " << iSM << ", row " << iRow << " - shift " << phishift << ", col " << iCol << " - shift " << etashift << ") of type " << celltypename;
-            mNumErrorMessages++;
-            if (mNumErrorMessages == mMaxErrorMessages) {
-              LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
-            }
-          } else {
-            mErrorMessagesSuppressed++;
-          }
-          if (mCreateRawDataErrors) {
-            mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, 0); // 0 -> Cell ID out of range
-          }
-          continue;
-        }
-        if (CellID < 0) {
-          if (mNumErrorMessages < mMaxErrorMessages) {
-            std::string celltypename;
-            switch (chantype) {
-              case o2::emcal::ChannelType_t::HIGH_GAIN:
-                celltypename = "high gain";
-                break;
-              case o2::emcal::ChannelType_t::LOW_GAIN:
-                celltypename = "low-gain";
-                break;
-              case o2::emcal::ChannelType_t::TRU:
-                celltypename = "TRU";
-                break;
-              case o2::emcal::ChannelType_t::LEDMON:
-                celltypename = "LEDMON";
-                break;
-            };
-            LOG(error) << "Sending negative cell ID " << CellID << "(SM " << iSM << ", row " << iRow << " - shift " << phishift << ", col " << iCol << " - shift " << etashift << ") of type " << celltypename;
-            mNumErrorMessages++;
-            if (mNumErrorMessages == mMaxErrorMessages) {
-              LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
-            }
-          } else {
-            mErrorMessagesSuppressed++;
-          }
-          if (mCreateRawDataErrors) {
-            mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, -1); // Geometry error codes will start from 100
-          }
-          continue;
-        }
-
-        // define the conatiner for the fit results, and perform the raw fitting using the stadnard raw fitter
-        CaloFitResults fitResults;
-        try {
-          fitResults = mRawFitter->evaluate(chan.getBunches());
-          // Prevent negative entries - we should no longer get here as the raw fit usually will end in an error state
-          if (fitResults.getAmp() < 0) {
-            fitResults.setAmp(0.);
-          }
-          if (fitResults.getTime() < 0) {
-            fitResults.setTime(0.);
-          }
-          double amp = fitResults.getAmp() * CONVADCGEV;
-          if (mMergeLGHG) {
-            // Handling of HG/LG for ceratin cells
-            // Keep the high gain if it is below the threshold, otherwise
-            // change to the low gain
-            auto res = std::find_if(currentCellContainer->begin(), currentCellContainer->end(), [CellID](const RecCellInfo& test) { return test.mCellData.getTower() == CellID; });
-            if (res != currentCellContainer->end()) {
-              // Cell already existing, store LG if HG is larger then the overflow cut
-              if (chantype == o2::emcal::ChannelType_t::LOW_GAIN) {
-                res->mHWAddressLG = chan.getHardwareAddress();
-                res->mHGOutOfRange = false; // LG is found so it can replace the HG if the HG is out of range
-                if (res->mCellData.getHighGain()) {
-                  double ampOld = res->mCellData.getEnergy() / CONVADCGEV; // cut applied on ADC and not on energy
-                  if (ampOld > o2::emcal::constants::OVERFLOWCUT) {
-                    // High gain digit has energy above overflow cut, use low gain instead
-                    res->mCellData.setEnergy(amp * o2::emcal::constants::EMCAL_HGLGFACTOR);
-                    res->mCellData.setTimeStamp(fitResults.getTime() - timeshift);
-                    res->mCellData.setLowGain();
-                  }
-                  res->mIsLGnoHG = false;
-                }
-              } else {
-                // new channel would be HG use that if it is belpw ADC cut
-                // as the channel existed before it must have been a LG channel,
-                /// whixh would be used in case the HG is out-of-range
-                res->mIsLGnoHG = false;
-                res->mHGOutOfRange = false;
-                res->mHWAddressHG = chan.getHardwareAddress();
-                if (amp / CONVADCGEV <= o2::emcal::constants::OVERFLOWCUT) {
-                  res->mCellData.setEnergy(amp);
-                  res->mCellData.setTimeStamp(fitResults.getTime() - timeshift);
-                  res->mCellData.setHighGain();
-                }
-              }
-            } else {
-              // New cell
-              bool lgNoHG = false;       // Flag for filter of cells which have only low gain but no high gain
-              bool hgOutOfRange = false; // Flag if only a HG is present which is out-of-range
-              int hwAddressLG = -1,      // Hardware address of the LG of the tower (for monitoring)
-                hwAddressHG = -1;        // Hardware address of the HG of the tower (for monitoring)
-              auto flagChanType = chantype;
-              if (chantype == o2::emcal::ChannelType_t::LOW_GAIN) {
-                lgNoHG = true;
-                amp *= o2::emcal::constants::EMCAL_HGLGFACTOR;
-                hwAddressLG = chan.getHardwareAddress();
-              } else {
-                // High gain cell: Flag as low gain if above threshold
-                if (amp / CONVADCGEV > o2::emcal::constants::OVERFLOWCUT) {
-                  flagChanType = ChannelType_t::LOW_GAIN;
-                  hgOutOfRange = true;
-                }
-                hwAddressHG = chan.getHardwareAddress();
-              }
-              int fecID = mMapper->getFEEForChannelInDDL(feeID, chan.getFECIndex(), chan.getBranchIndex());
-              currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, fitResults.getTime() - timeshift, chantype),
-                                               lgNoHG,
-                                               hgOutOfRange,
-                                               fecID, feeID, hwAddressLG, hwAddressHG});
-            }
-          } else {
-            // No merge of HG/LG cells (usually MC where either
-            // of the two is simulated)
-            int hwAddressLG = chantype == ChannelType_t::LOW_GAIN ? chan.getHardwareAddress() : -1,
-                hwAddressHG = chantype == ChannelType_t::HIGH_GAIN ? chan.getHardwareAddress() : -1;
-            // New cell
-            if (chantype == o2::emcal::ChannelType_t::LOW_GAIN) {
-              amp *= o2::emcal::constants::EMCAL_HGLGFACTOR;
-            }
-            int fecID = mMapper->getFEEForChannelInDDL(feeID, chan.getFECIndex(), chan.getBranchIndex());
-            currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, fitResults.getTime() - timeshift, chantype),
-                                             false,
-                                             false,
-                                             fecID, feeID, hwAddressLG, hwAddressHG});
-          }
-        } catch (CaloRawFitter::RawFitterError_t& fiterror) {
-          if (fiterror != CaloRawFitter::RawFitterError_t::BUNCH_NOT_OK) {
-            // Display
+          int iRow, iCol;
+          ChannelType_t chantype;
+          try {
+            iRow = map.getRow(chan.getHardwareAddress());
+            iCol = map.getColumn(chan.getHardwareAddress());
+            chantype = map.getChannelType(chan.getHardwareAddress());
+          } catch (Mapper::AddressNotFoundException& ex) {
             if (mNumErrorMessages < mMaxErrorMessages) {
-              LOG(error) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
+              LOG(error) << "Mapping error DDL " << feeID << ": " << ex.what();
               mNumErrorMessages++;
               if (mNumErrorMessages == mMaxErrorMessages) {
                 LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
@@ -459,17 +294,194 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             } else {
               mErrorMessagesSuppressed++;
             }
-          } else {
-            LOG(debug2) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
-            nBunchesNotOK++;
+            continue;
           }
-          if (mCreateRawDataErrors) {
-            mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::FIT_ERROR, CaloRawFitter::getErrorNumber(fiterror));
+
+          if (!(chantype == o2::emcal::ChannelType_t::HIGH_GAIN || chantype == o2::emcal::ChannelType_t::LOW_GAIN)) {
+            continue;
+          }
+
+          auto [phishift, etashift] = mGeometry->ShiftOnlineToOfflineCellIndexes(iSM, iRow, iCol);
+          int CellID = mGeometry->GetAbsCellIdFromCellIndexes(iSM, phishift, etashift);
+          if (CellID > 17664) {
+            if (mNumErrorMessages < mMaxErrorMessages) {
+              std::string celltypename;
+              switch (chantype) {
+                case o2::emcal::ChannelType_t::HIGH_GAIN:
+                  celltypename = "high gain";
+                  break;
+                case o2::emcal::ChannelType_t::LOW_GAIN:
+                  celltypename = "low-gain";
+                  break;
+                case o2::emcal::ChannelType_t::TRU:
+                  celltypename = "TRU";
+                  break;
+                case o2::emcal::ChannelType_t::LEDMON:
+                  celltypename = "LEDMON";
+                  break;
+              };
+              LOG(error) << "Sending invalid cell ID " << CellID << "(SM " << iSM << ", row " << iRow << " - shift " << phishift << ", col " << iCol << " - shift " << etashift << ") of type " << celltypename;
+              mNumErrorMessages++;
+              if (mNumErrorMessages == mMaxErrorMessages) {
+                LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+              }
+            } else {
+              mErrorMessagesSuppressed++;
+            }
+            if (mCreateRawDataErrors) {
+              mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, 0); // 0 -> Cell ID out of range
+            }
+            continue;
+          }
+          if (CellID < 0) {
+            if (mNumErrorMessages < mMaxErrorMessages) {
+              std::string celltypename;
+              switch (chantype) {
+                case o2::emcal::ChannelType_t::HIGH_GAIN:
+                  celltypename = "high gain";
+                  break;
+                case o2::emcal::ChannelType_t::LOW_GAIN:
+                  celltypename = "low-gain";
+                  break;
+                case o2::emcal::ChannelType_t::TRU:
+                  celltypename = "TRU";
+                  break;
+                case o2::emcal::ChannelType_t::LEDMON:
+                  celltypename = "LEDMON";
+                  break;
+              };
+              LOG(error) << "Sending negative cell ID " << CellID << "(SM " << iSM << ", row " << iRow << " - shift " << phishift << ", col " << iCol << " - shift " << etashift << ") of type " << celltypename;
+              mNumErrorMessages++;
+              if (mNumErrorMessages == mMaxErrorMessages) {
+                LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+              }
+            } else {
+              mErrorMessagesSuppressed++;
+            }
+            if (mCreateRawDataErrors) {
+              mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, -1); // Geometry error codes will start from 100
+            }
+            continue;
+          }
+
+          // define the conatiner for the fit results, and perform the raw fitting using the stadnard raw fitter
+          CaloFitResults fitResults;
+          try {
+            fitResults = mRawFitter->evaluate(chan.getBunches());
+            // Prevent negative entries - we should no longer get here as the raw fit usually will end in an error state
+            if (fitResults.getAmp() < 0) {
+              fitResults.setAmp(0.);
+            }
+            if (fitResults.getTime() < 0) {
+              fitResults.setTime(0.);
+            }
+            double amp = fitResults.getAmp() * CONVADCGEV;
+            if (mMergeLGHG) {
+              // Handling of HG/LG for ceratin cells
+              // Keep the high gain if it is below the threshold, otherwise
+              // change to the low gain
+              auto res = std::find_if(currentCellContainer->begin(), currentCellContainer->end(), [CellID](const RecCellInfo& test) { return test.mCellData.getTower() == CellID; });
+              if (res != currentCellContainer->end()) {
+                // Cell already existing, store LG if HG is larger then the overflow cut
+                if (chantype == o2::emcal::ChannelType_t::LOW_GAIN) {
+                  res->mHWAddressLG = chan.getHardwareAddress();
+                  res->mHGOutOfRange = false; // LG is found so it can replace the HG if the HG is out of range
+                  if (res->mCellData.getHighGain()) {
+                    double ampOld = res->mCellData.getEnergy() / CONVADCGEV; // cut applied on ADC and not on energy
+                    if (ampOld > o2::emcal::constants::OVERFLOWCUT) {
+                      // High gain digit has energy above overflow cut, use low gain instead
+                      res->mCellData.setEnergy(amp * o2::emcal::constants::EMCAL_HGLGFACTOR);
+                      res->mCellData.setTimeStamp(fitResults.getTime() - timeshift);
+                      res->mCellData.setLowGain();
+                    }
+                    res->mIsLGnoHG = false;
+                  }
+                } else {
+                  // new channel would be HG use that if it is belpw ADC cut
+                  // as the channel existed before it must have been a LG channel,
+                  /// whixh would be used in case the HG is out-of-range
+                  res->mIsLGnoHG = false;
+                  res->mHGOutOfRange = false;
+                  res->mHWAddressHG = chan.getHardwareAddress();
+                  if (amp / CONVADCGEV <= o2::emcal::constants::OVERFLOWCUT) {
+                    res->mCellData.setEnergy(amp);
+                    res->mCellData.setTimeStamp(fitResults.getTime() - timeshift);
+                    res->mCellData.setHighGain();
+                  }
+                }
+              } else {
+                // New cell
+                bool lgNoHG = false;       // Flag for filter of cells which have only low gain but no high gain
+                bool hgOutOfRange = false; // Flag if only a HG is present which is out-of-range
+                int hwAddressLG = -1,      // Hardware address of the LG of the tower (for monitoring)
+                  hwAddressHG = -1;        // Hardware address of the HG of the tower (for monitoring)
+                auto flagChanType = chantype;
+                if (chantype == o2::emcal::ChannelType_t::LOW_GAIN) {
+                  lgNoHG = true;
+                  amp *= o2::emcal::constants::EMCAL_HGLGFACTOR;
+                  hwAddressLG = chan.getHardwareAddress();
+                } else {
+                  // High gain cell: Flag as low gain if above threshold
+                  if (amp / CONVADCGEV > o2::emcal::constants::OVERFLOWCUT) {
+                    flagChanType = ChannelType_t::LOW_GAIN;
+                    hgOutOfRange = true;
+                  }
+                  hwAddressHG = chan.getHardwareAddress();
+                }
+                int fecID = mMapper->getFEEForChannelInDDL(feeID, chan.getFECIndex(), chan.getBranchIndex());
+                currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, fitResults.getTime() - timeshift, chantype),
+                                                 lgNoHG,
+                                                 hgOutOfRange,
+                                                 fecID, feeID, hwAddressLG, hwAddressHG});
+              }
+            } else {
+              // No merge of HG/LG cells (usually MC where either
+              // of the two is simulated)
+              int hwAddressLG = chantype == ChannelType_t::LOW_GAIN ? chan.getHardwareAddress() : -1,
+                  hwAddressHG = chantype == ChannelType_t::HIGH_GAIN ? chan.getHardwareAddress() : -1;
+              // New cell
+              if (chantype == o2::emcal::ChannelType_t::LOW_GAIN) {
+                amp *= o2::emcal::constants::EMCAL_HGLGFACTOR;
+              }
+              int fecID = mMapper->getFEEForChannelInDDL(feeID, chan.getFECIndex(), chan.getBranchIndex());
+              currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, fitResults.getTime() - timeshift, chantype),
+                                               false,
+                                               false,
+                                               fecID, feeID, hwAddressLG, hwAddressHG});
+            }
+          } catch (CaloRawFitter::RawFitterError_t& fiterror) {
+            if (fiterror != CaloRawFitter::RawFitterError_t::BUNCH_NOT_OK) {
+              // Display
+              if (mNumErrorMessages < mMaxErrorMessages) {
+                LOG(error) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
+                mNumErrorMessages++;
+                if (mNumErrorMessages == mMaxErrorMessages) {
+                  LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+                }
+              } else {
+                mErrorMessagesSuppressed++;
+              }
+            } else {
+              LOG(debug2) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
+              nBunchesNotOK++;
+            }
+            if (mCreateRawDataErrors) {
+              mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::FIT_ERROR, CaloRawFitter::getErrorNumber(fiterror));
+            }
           }
         }
-      }
-      if (nBunchesNotOK) {
-        LOG(debug) << "Number of failed bunches: " << nBunchesNotOK;
+      } catch (o2::emcal::MappingHandler::DDLInvalid& ddlerror) {
+        // Unable to catch mapping
+        if (mNumErrorMessages < mMaxErrorMessages) {
+          LOG(error) << "Failed obtaining mapping for DDL " << ddlerror.getDDDL();
+          mNumErrorMessages++;
+          if (mNumErrorMessages == mMaxErrorMessages) {
+            LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+          }
+        }
+        if (mCreateRawDataErrors) {
+          mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(AltroDecoderError::ErrorType_t::ALTRO_MAPPING_ERROR));
+        }
       }
     }
   }

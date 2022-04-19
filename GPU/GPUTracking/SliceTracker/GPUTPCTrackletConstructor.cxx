@@ -71,9 +71,9 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThr
   unsigned int hitout = CAMath::AtomicAdd(tracker.NRowHits(), nHits);
   if (itrout >= tracker.NMaxTracklets() || hitout + nHits > tracker.NMaxRowHits()) {
     if (itrout >= tracker.NMaxTracklets()) {
-      tracker.raiseError(GPUErrors::ERROR_TRACKLET_OVERFLOW, itrout, tracker.NMaxTracklets());
+      tracker.raiseError(GPUErrors::ERROR_TRACKLET_OVERFLOW, tracker.ISlice(), itrout, tracker.NMaxTracklets());
     } else {
-      tracker.raiseError(GPUErrors::ERROR_TRACKLET_HIT_OVERFLOW, hitout + nHits, tracker.NMaxRowHits());
+      tracker.raiseError(GPUErrors::ERROR_TRACKLET_HIT_OVERFLOW, tracker.ISlice(), hitout + nHits, tracker.NMaxRowHits());
     }
     CAMath::AtomicExch(tracker.NTracklets(), 0u);
     if (hitout + nHits > tracker.NMaxRowHits()) {

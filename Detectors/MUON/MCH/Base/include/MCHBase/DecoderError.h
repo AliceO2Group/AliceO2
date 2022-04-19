@@ -31,7 +31,7 @@ class DecoderError
  public:
   DecoderError() = default;
 
-  DecoderError(int solarid, int dsid, int chip, uint32_t error) : mSolarID(solarid), mChipID(dsid * 2 + chip), mError(error) {}
+  DecoderError(int solarid, int dsid, int chip, uint32_t error) : mSolarID(solarid), mChipID(dsid * 2 + (chip % 2)), mError(error) {}
   ~DecoderError() = default;
 
   uint16_t getSolarID() const { return mSolarID; }

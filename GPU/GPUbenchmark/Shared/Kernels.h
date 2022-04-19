@@ -63,7 +63,7 @@ class GPUbenchmark final
   float runDistributed(void (*kernel)(chunk_t**, size_t*, T...),
                        std::vector<std::pair<float, float>>& chunkRanges,
                        int nLaunches,
-                       int nBlocks,
+                       size_t nBlocks,
                        int nThreads,
                        T&... args);
 

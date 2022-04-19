@@ -34,21 +34,21 @@ struct CommonHeader {
   static constexpr uint32_t MagicWordTrigger = 0xAA;
 
   union {
-    uint64_t word0 = 0;                  ///< lower 64 bits
-    struct {                             ///
-      uint64_t bitMaskLow : 64;          ///< lower bits of the 80 bit bitmask
-    };                                   ///
-  };                                     ///
-                                         ///
-  union {                                ///
-    uint64_t word1 = 0;                  ///< upper bits of the 80 bit bitmask
-    struct {                             ///
-      uint64_t bitMaskHigh : 16;         ///< higher bits of the 80 bit bitmask
-      uint32_t bunchCrossing : 12;       ///< bunch crossing number
-      uint32_t numWordsPayload : 4;      ///< number of 128bit words with 12bit ADC values
-      uint32_t syncOffsetBC : 8;         ///< sync offset in bunch crossings
-      uint32_t syncOffsetCRUCycles : 16; ///< sync offset in 240MHz CRU clock cycles
-      uint32_t magicWord : 8;            ///< not used
+    uint64_t word0 = 0;                        ///< lower 64 bits
+    struct {                                   ///
+      uint64_t bitMaskLow : 64;                ///< lower bits of the 80 bit bitmask
+    };                                         ///
+  };                                           ///
+                                               ///
+  union {                                      ///
+    uint64_t word1 = 0;                        ///< upper bits of the 80 bit bitmask
+    struct {                                   ///
+      uint64_t bitMaskHigh : 16;               ///< higher bits of the 80 bit bitmask
+      uint32_t bunchCrossing : 12;             ///< bunch crossing number
+      uint32_t numWordsPayload : 4;            ///< number of 128bit words with 12bit ADC values
+      uint32_t syncOffsetBC : 8;               ///< sync offset in bunch crossings
+      uint32_t syncOffsetCRUCyclesOrLink : 16; ///< sync offset in 240MHz CRU clock cycles, or link ID in improved format
+      uint32_t magicWord : 8;                  ///< magic word, identifies package
     };
   };
 

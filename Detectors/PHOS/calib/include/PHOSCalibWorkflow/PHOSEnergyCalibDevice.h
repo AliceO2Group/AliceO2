@@ -19,10 +19,13 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/WorkflowSpec.h"
+#include "DetectorsCommonDataFormats/FileMetaData.h"
 #include "DataFormatsPHOS/Cluster.h"
 #include "DataFormatsPHOS/BadChannelsMap.h"
 #include "DataFormatsPHOS/CalibParams.h"
 #include "PHOSCalibWorkflow/PHOSEnergyCalibrator.h"
+#include "TFile.h"
+#include "TTree.h"
 
 using namespace o2::framework;
 
@@ -34,8 +37,7 @@ namespace phos
 class PHOSEnergyCalibDevice : public o2::framework::Task
 {
  public:
-  explicit PHOSEnergyCalibDevice(bool useCCDB, std::string path, std::string digitspath,
-                                 float ptMin, float eMinHGTime, float eMinLGTime) : mUseCCDB(useCCDB), mCCDBPath(path), mdigitsfilename(digitspath), mPtMin(ptMin), mEminHGTime(eMinHGTime), mEminLGTime(eMinLGTime) {}
+  explicit PHOSEnergyCalibDevice(bool useCCDB) : mUseCCDB(useCCDB) {}
 
   void init(o2::framework::InitContext& ic) final;
 
@@ -43,26 +45,39 @@ class PHOSEnergyCalibDevice : public o2::framework::Task
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
+  void stop() final;
+
  protected:
   void postHistosCCDB(o2::framework::EndOfStreamContext& ec);
+  void fillOutputTree();
+  void writeOutFile();
 
  private:
   static constexpr short kMaxCluInEvent = 64; /// maximal number of clusters per event to separate digits from them (6 bits in digit map)
   bool mUseCCDB = false;
-  std::string mCCDBPath{"http://alice-ccdb.cern.ch"}; ///< CCDB server path
-  std::string mdigitsfilename = "./CalibDigits.root";
+  bool mHasCalib = false;
   bool mPostHistos = true; /// post colllected histos to ccdb
   long mRunStartTime = 0;  /// start time of the run (sec)
   float mPtMin = 1.5;      /// minimal energy to fill inv. mass histo
   float mEminHGTime = 1.5;
   float mEminLGTime = 5.;
+  float mEDigMin = 0.05;
+  float mECluMin = 0.4;
+  std::string mOutputDir;   /// where to write calibration digits
+  std::string mFileName;    /// file name of output calib digits
+  std::string mMetaFileDir; /// where to store meta files
+  std::string mLHCPeriod;
+  int mRunNumber = -1;
   std::unique_ptr<PHOSEnergyCalibrator> mCalibrator; /// Agregator of calibration TimeFrameSlots
-  std::unique_ptr<BadChannelsMap> mBadMap;           /// Latest bad channels map
-  std::unique_ptr<CalibParams> mCalibParams;         /// Latest bad channels map
-  ClassDefNV(PHOSEnergyCalibDevice, 1);
+  std::unique_ptr<const BadChannelsMap> mBadMap;     /// Latest bad channels map
+  std::unique_ptr<const CalibParams> mCalibParams;   /// Latest bad channels map
+  std::vector<uint32_t> mOutputDigits;               /// accumulated output digits
+  std::unique_ptr<TFile> mFileOut;                   /// File to store output calib digits
+  std::unique_ptr<TTree> mTreeOut;                   /// Tree to store output calib digits
+  std::unique_ptr<o2::dataformats::FileMetaData> mFileMetaData;
 };
 
-o2::framework::DataProcessorSpec getPHOSEnergyCalibDeviceSpec(bool useCCDB, std::string path, std::string digitspath, float ptMin, float eMinHGTime, float eMinLGTime);
+o2::framework::DataProcessorSpec getPHOSEnergyCalibDeviceSpec(bool useCCDB);
 } // namespace phos
 } // namespace o2
 

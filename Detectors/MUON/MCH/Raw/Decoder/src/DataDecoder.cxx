@@ -19,7 +19,7 @@
 #include "MCHRawDecoder/DataDecoder.h"
 
 #include <fstream>
-#include <FairMQLogger.h>
+#include <FairLogger.h>
 #include "Headers/RAWDataHeader.h"
 #include "CommonConstants/LHCConstants.h"
 #include "DetectorsRaw/RDHUtils.h"
@@ -612,11 +612,15 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
     updateMergerRecord(mergerChannelId, mergerBoardId, mergerChannelBitmask, mDigits.size() - 1);
   };
 
-  auto errorHandler = [&](DsElecId dsId,
+  auto errorHandler = [&](DsElecId dsElecId,
                           int8_t chip,
                           uint32_t error) {
-    std::string msg = fmt::format("{} chip {:2d} error {:4d} ({})", asString(dsId), chip, error, errorCodeAsString(error));
+    std::string msg = fmt::format("{} chip {:2d} error {:4d} ({})", asString(dsElecId), chip, error, errorCodeAsString(error));
     mErrorMap[msg]++;
+
+    auto solarId = dsElecId.solarId();
+    auto dsId = dsElecId.elinkId();
+    mErrors.emplace_back(o2::mch::DecoderError(solarId, dsId, chip, error));
   };
 
   patchPage(page, mDebug);
@@ -920,6 +924,7 @@ void DataDecoder::reset()
 {
   mDigits.clear();
   mOrbits.clear();
+  mErrors.clear();
   memset(mMergerRecordsReady.data(), 0, sizeof(uint64_t) * mMergerRecordsReady.size());
 }
 

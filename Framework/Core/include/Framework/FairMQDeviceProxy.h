@@ -8,16 +8,18 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_FAIRMQDEVICEPROXY_H
-#define FRAMEWORK_FAIRMQDEVICEPROXY_H
+#ifndef O2_FRAMEWORK_FAIRMQDEVICEPROXY_H_
+#define O2_FRAMEWORK_FAIRMQDEVICEPROXY_H_
 
 #include <memory>
 
+#include "Framework/RoutingIndices.h"
+#include "Framework/RouteState.h"
+#include "Framework/OutputRoute.h"
 #include <fairmq/FwdDecls.h>
+#include <vector>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 /// Helper class to hide FairMQDevice headers in the DataAllocator header.
 /// This is done because FairMQDevice brings in a bunch of boost.mpl /
@@ -25,29 +27,26 @@ namespace framework
 class FairMQDeviceProxy
 {
  public:
-  FairMQDeviceProxy(FairMQDevice* device)
-    : mDevice{device}
-  {
-  }
+  FairMQDeviceProxy() = default;
+  FairMQDeviceProxy(FairMQDeviceProxy const&) = delete;
+  void bindRoutes(std::vector<OutputRoute> const& routes, FairMQDevice& device);
 
-  /// To be used in DataAllocator.cxx to avoid reimplenting any device
-  /// API.
-  FairMQDevice* getDevice()
-  {
-    return mDevice;
-  }
+  /// Retrieve the transport associated to a given route.
+  fair::mq::TransportFactory* getTransport(RouteIndex routeIndex) const;
+  /// ChannelIndex from a RouteIndex
+  ChannelIndex getChannelIndex(RouteIndex routeIndex) const;
+  /// Retrieve the channel associated to a given route.
+  fair::mq::Channel* getChannel(ChannelIndex channelIndex) const;
 
-  /// Looks like what we really need in the headers is just the transport.
-  FairMQTransportFactory* getTransport();
-  FairMQTransportFactory* getTransport(const std::string& channel, int index = 0);
-  std::unique_ptr<FairMQMessage> createMessage() const;
-  std::unique_ptr<FairMQMessage> createMessage(const size_t size) const;
+  std::unique_ptr<FairMQMessage> createMessage(RouteIndex routeIndex) const;
+  std::unique_ptr<FairMQMessage> createMessage(RouteIndex routeIndex, const size_t size) const;
+  size_t getNumChannels() const { return mChannels.size(); }
 
  private:
-  FairMQDevice* mDevice;
+  std::vector<RouteState> mRoutes;
+  std::vector<fair::mq::Channel*> mChannels;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_FAIRMQDEVICEPROXY_H
+#endif // O2_FRAMEWORK_FAIRMQDEVICEPROXY_H_

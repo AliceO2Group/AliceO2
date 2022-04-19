@@ -13,6 +13,7 @@
 #include "FairLogger.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DetectorsCalibration/Utils.h"
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/WorkflowSpec.h"
@@ -22,7 +23,6 @@
 #include <TFile.h>
 #include "Framework/ConfigParamRegistry.h"
 #include "CommonUtils/NameConf.h"
-#include "CCDB/BasicCCDBManager.h"
 
 using namespace o2::phos;
 
@@ -58,19 +58,20 @@ void PHOSBadMapCalibDevice::init(o2::framework::InitContext& ic)
 void PHOSBadMapCalibDevice::run(o2::framework::ProcessingContext& ctx)
 {
   if (mRunStartTime == 0) {
-    if (mMode == 0 || mMode == 2) {
-      mRunStartTime = o2::header::get<o2::framework::DataProcessingHeader*>(ctx.inputs().get("cells").header)->startTime;
-    }
-    if (mMode == 1) {
-      mRunStartTime = o2::header::get<o2::framework::DataProcessingHeader*>(ctx.inputs().get("fitqa").header)->startTime;
-    }
-    mValidityTime = mRunStartTime + 31622400000; // one year validity range
+    const auto ref = ctx.inputs().getFirstValid(true);
+    mRunStartTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
+    mValidityTime = mRunStartTime + 31622400000;                                   // one year validity range
+  }
+
+  // Read previous bad map if not read yet
+  if (!mOldBadMap) {
+    mOldBadMap = ctx.inputs().get<o2::phos::BadChannelsMap*>("prevbdmap").get();
   }
 
   // scan Cells stream, collect occupancy
   if (mMode == 0) { //  Cell occupancy and time
     auto cells = ctx.inputs().get<gsl::span<o2::phos::Cell>>("cells");
-    LOG(debug) << "[PHOSBadMapCalibDevice - run]  Received " << cells.size() << " cells, running calibration ...";
+    LOG(info) << "[PHOSBadMapCalibDevice - run]  Received " << cells.size() << " cells, running calibration ...";
     for (const auto& c : cells) {
       float e = c.getEnergy();
       if (e > mElowMin && e < mElowMax) {
@@ -101,7 +102,6 @@ void PHOSBadMapCalibDevice::run(o2::framework::ProcessingContext& ctx)
     auto cells = ctx.inputs().get<gsl::span<o2::phos::Cell>>("cells");
     LOG(debug) << "[PHOSBadMapCalibDevice - run]  Received " << cells.size() << " cells, running calibration ...";
     for (const auto& c : cells) {
-      float e = c.getEnergy();
       if (c.getHighGain()) {
         mHGMean->Fill(c.getAbsId() - 1792, c.getEnergy());
         mHGRMS->Fill(c.getAbsId() - 1792, 1.e+7 * c.getTime());
@@ -130,34 +130,37 @@ void PHOSBadMapCalibDevice::sendOutput(DataAllocator& output)
 {
 
   // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
-  if (mUpdateCCDB || mForceUpdate) {
-    // prepare all info to be sent to CCDB
-    std::string flName = o2::ccdb::CcdbApi::generateFileName("BadMap");
-    std::string kind;
-    if (mMode == 0) { // Occupancy
-      kind = "PHS/Calib/BadMapOcc";
-    }
-    if (mMode == 1) { // Chi2
-      kind = "PHS/Calib/BadMapChi";
-    }
-    if (mMode == 2) { // Pedestals
-      kind = "PHS/Calib/BadMapPed";
-    }
-    std::map<std::string, std::string> md;
-    o2::ccdb::CcdbObjectInfo info(kind, "BadMap", flName, md, mRunStartTime, mValidityTime);
-    info.setMetaData(md);
-    auto image = o2::ccdb::CcdbApi::createObjectImage(mBadMap.get(), &info);
-
-    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
-              << " of size " << image->size()
-              << " bytes, valid for " << info.getStartValidityTimestamp()
-              << " : " << info.getEndValidityTimestamp();
-
-    header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_BadMap", subSpec}, *image.get());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_BadMap", subSpec}, info);
+  // prepare all info to be sent to CCDB
+  std::string kind;
+  switch (mMode) {
+    case 0:
+      kind = "PHS/BadMap/Occ";
+      break;
+    case 1:
+      kind = "PHS/BadMap/Chi";
+      break;
+    case 2:
+      kind = "PHS/BadMap/Ped";
+      break;
+    default:
+      kind = "";
   }
-  // Anyway send change to QC
+  std::string flName = o2::ccdb::CcdbApi::generateFileName("BadMap");
+  std::map<std::string, std::string> md;
+  o2::ccdb::CcdbObjectInfo info(kind, "BadMap", flName, md, mRunStartTime, mValidityTime);
+  info.setMetaData(md);
+  auto image = o2::ccdb::CcdbApi::createObjectImage(mBadMap.get(), &info);
+
+  LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
+            << " of size " << image->size()
+            << " bytes, valid for " << info.getStartValidityTimestamp()
+            << " : " << info.getEndValidityTimestamp();
+
+  header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
+  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHS_BadMap", subSpec}, *image.get());
+  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHS_BadMap", subSpec}, info);
+
+  // Send change to QC
   LOG(info) << "[PHOSBadMapCalibDevice - run] Sending QC ";
   output.snapshot(o2::framework::Output{"PHS", "CALIBDIFF", 0, o2::framework::Lifetime::Timeframe}, mBadMapDiff);
 }
@@ -201,7 +204,7 @@ bool PHOSBadMapCalibDevice::calculateBadMap()
 
   if (mMode == 1) { // chi2 distribution
     if (mChi2norm->Integral() < 1.e+4) {
-      LOG(error) << "Insufficient statistics: " << mChi2norm->Integral() << " entries in chi2Norm histo, do nothing";
+      LOG(important) << "Insufficient statistics: " << mChi2norm->Integral() << " entries in chi2Norm histo, do nothing";
       return false;
     }
     mChi2->Divide(mChi2norm.get());
@@ -219,7 +222,7 @@ bool PHOSBadMapCalibDevice::calculateBadMap()
 
   if (mMode == 2) { // Pedestals
     if (mHGNorm->Integral() < 2.e+4) {
-      LOG(error) << "Insufficient statistics: " << mHGNorm->Integral() << " entries in mHGNorm histo, do nothing";
+      LOG(important) << "Insufficient statistics: " << mHGNorm->Integral() << " entries in mHGNorm histo, do nothing";
       return false;
     }
     float nMean, nRMS;
@@ -227,42 +230,58 @@ bool PHOSBadMapCalibDevice::calculateBadMap()
     calculateLimits(mHGMean.get(), nMean, nRMS); // mean HG pedestals
     float nMinHigh = std::max(float(0.), nMean - 6 * nRMS);
     float nMaxHigh = nMean + 6 * nRMS;
+    LOG(info) << "Limits for HG mean: " << nMinHigh << " < meanHG < " << nMaxHigh;
+    int nBad = 0;
     for (int i = 1; i <= mHGMean->GetNbinsX(); i++) {
       int c = mHGMean->GetBinContent(i);
       if (c < nMinHigh || c > nMaxHigh) {
         mBadMap->addBadChannel(i + 1792);
+        nBad++;
       }
     }
+    LOG(info) << "HG mean: removed " << nBad << " channels";
     mLGMean->Divide(mLGNorm.get());
     calculateLimits(mLGMean.get(), nMean, nRMS); // for low E occupamcy
     nMinHigh = std::max(float(0.), nMean - 6 * nRMS);
     nMaxHigh = nMean + 6 * nRMS;
+    LOG(info) << "Limits for LG mean: " << nMinHigh << " < meanHG < " << nMaxHigh;
+    nBad = 0;
     for (int i = 1; i <= mLGMean->GetNbinsX(); i++) {
       int c = mLGMean->GetBinContent(i);
       if (c < nMinHigh || c > nMaxHigh) {
         mBadMap->addBadChannel(i + 1792);
+        nBad++;
       }
     }
+    LOG(info) << " LG mean: removed " << nBad << " channels";
     mHGRMS->Divide(mHGNorm.get());
     calculateLimits(mHGRMS.get(), nMean, nRMS); // mean HG pedestals
     nMinHigh = std::max(float(0.), nMean - 6 * nRMS);
     nMaxHigh = nMean + 6 * nRMS;
+    LOG(info) << "Limits for HG RMS: " << nMinHigh << " < HG rms < " << nMaxHigh;
+    nBad = 0;
     for (int i = 1; i <= mHGRMS->GetNbinsX(); i++) {
       int c = mHGRMS->GetBinContent(i);
       if (c < nMinHigh || c > nMaxHigh) {
         mBadMap->addBadChannel(i + 1792);
+        nBad++;
       }
     }
+    LOG(info) << " HG RMS: removed " << nBad << " channels";
     mLGRMS->Divide(mHGNorm.get());
     calculateLimits(mLGRMS.get(), nMean, nRMS); // for low E occupamcy
     nMinHigh = std::max(float(0.), nMean - 6 * nRMS);
     nMaxHigh = nMean + 6 * nRMS;
+    LOG(info) << "Limits for LG RMS: " << nMinHigh << " < LG rms < " << nMaxHigh;
+    nBad = 0;
     for (int i = 1; i <= mLGRMS->GetNbinsX(); i++) {
       int c = mLGRMS->GetBinContent(i);
       if (c < nMinHigh || c > nMaxHigh) {
         mBadMap->addBadChannel(i + 1792);
+        nBad++;
       }
     }
+    LOG(info) << " LG RMS: removed " << nBad << " channels";
 
   } // Pedestals
 
@@ -342,54 +361,25 @@ void PHOSBadMapCalibDevice::calculateLimits(TH1F* tmp, float& nMean, float& nRMS
 
 void PHOSBadMapCalibDevice::checkBadMap()
 {
-  if (!mUseCCDB) {
-    mUpdateCCDB = true;
-    return;
-  }
-  LOG(info) << "Retrieving current BadMap from CCDB";
-  // Read current pedestals for comparison
-  // Normally CCDB manager should get and own objects
-  auto& ccdbManager = o2::ccdb::BasicCCDBManager::instance();
-  ccdbManager.setURL(o2::base::NameConf::getCCDBServer());
-  LOG(info) << " set-up CCDB " << o2::base::NameConf::getCCDBServer();
-
-  std::string kind;
-  if (mMode == 0) { // Occupancy
-    kind = "PHS/BadMapOcc";
-  }
-  if (mMode == 1) { // Chi2
-    kind = "PHS/BadMapChi";
-  }
-  if (mMode == 2) { // Pedestals
-    kind = "PHS/BadMapPed";
-  }
-
-  BadChannelsMap* badMap = ccdbManager.get<o2::phos::BadChannelsMap>(kind);
-
-  if (!badMap) { // was not read from CCDB, but expected
-    mUpdateCCDB = true;
+  if (!mOldBadMap) {
     return;
   }
 
-  LOG(info) << "Got current Pedestals from CCDB";
-
-  // Compare to current
-  int nChanged = 0;
+  // Compare old to current
+  int nNewBad = 0;
+  int nNewGood = 0;
   for (short i = o2::phos::Mapping::NCHANNELS; i > 1792; i--) {
-    mBadMapDiff[i] = mBadMap->isChannelGood(i) - badMap->isChannelGood(i);
-    if (mBadMapDiff[i] != 0) {
-      nChanged++;
+    mBadMapDiff[i] = mBadMap->isChannelGood(i) - mOldBadMap->isChannelGood(i);
+    if (mBadMapDiff[i] > 0) { // new good channel
+      nNewGood++;
+    }
+    if (mBadMapDiff[i] < 0) { // new bad channel
+      nNewBad++;
     }
   }
-  LOG(info) << nChanged << " channels changed";
-  if (nChanged > kMinorChange) { // serious change, do not update CCDB automatically, use "force" option to overwrite
-    LOG(error) << "too many channels changed: " << nChanged;
-    if (!mForceUpdate) {
-      LOG(error) << "you may use --forceupdate option to force updating ccdb";
-    }
-    mUpdateCCDB = false;
-  } else {
-    mUpdateCCDB = true;
+  LOG(info) << nNewBad + nNewGood << " channels changed: " << nNewGood << " new good ch., " << nNewBad << " new bad ch.";
+  if (nNewBad + nNewGood > kMinorChange) { // serious change, do not update CCDB automatically, use "force" option to overwrite
+    LOG(important) << "too many channels changed: " << nNewGood << " new good ch., " << nNewBad << " new bad ch.";
   }
 }
 
@@ -399,12 +389,15 @@ o2::framework::DataProcessorSpec o2::phos::getBadMapCalibSpec(int mode)
   std::vector<InputSpec> inputs;
   if (mode == 0) {
     inputs.emplace_back("cells", ConcreteDataTypeMatcher{o2::header::gDataOriginPHS, "CELLS"}, o2::framework::Lifetime::Timeframe);
+    inputs.emplace_back("prevbdmap", o2::header::gDataOriginPHS, "PHS_BM", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/BadMap/Occ"));
   }
   if (mode == 1) {
     inputs.emplace_back("fitqa", ConcreteDataTypeMatcher{o2::header::gDataOriginPHS, "CELLFITQA"}, o2::framework::Lifetime::Timeframe);
+    inputs.emplace_back("prevbdmap", o2::header::gDataOriginPHS, "PHS_BM", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/BadMap/Chi"));
   }
   if (mode == 2) {
     inputs.emplace_back("cells", ConcreteDataTypeMatcher{o2::header::gDataOriginPHS, "CELLS"}, o2::framework::Lifetime::Timeframe);
+    inputs.emplace_back("prevbdmap", o2::header::gDataOriginPHS, "PHS_BM", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/BadMap/Ped"));
   }
 
   using clbUtils = o2::calibration::Utils;

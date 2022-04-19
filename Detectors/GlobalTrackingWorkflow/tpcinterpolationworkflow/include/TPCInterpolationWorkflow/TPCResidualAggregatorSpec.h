@@ -53,10 +53,10 @@ class ResidualAggregatorDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
     auto data = pc.inputs().get<gsl::span<o2::tpc::TrackResiduals::UnbinnedResid>>("input");
-    LOG(debug) << "Processing TF " << tfcounter << " with " << data.size() << " unbinned residuals";
-    mAggregator->process(tfcounter, data);
+    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mAggregator->getCurrentTFInfo());
+    LOG(debug) << "Processing TF " << mAggregator->getCurrentTFInfo().tfCounter << " with " << data.size() << " unbinned residuals";
+    mAggregator->process(data);
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final

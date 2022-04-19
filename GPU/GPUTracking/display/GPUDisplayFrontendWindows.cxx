@@ -12,14 +12,13 @@
 /// \file GPUDisplayFrontendWindows.cxx
 /// \author David Rohr
 
-// GLEW must be the first header
-#include <GL/glew.h>
-
 // Now the other headers
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include "GPUDisplayFrontendWindows.h"
+#include "GPUDisplayBackend.h"
+#include "GPUDisplayGUIWrapper.h"
 #include "GPULogging.h"
 #include <windows.h>
 #include <winbase.h>
@@ -304,8 +303,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         mMouseDnY = GET_Y_LPARAM(lParam);
         mouseReset = 0;
       }
-      mouseMvX = GET_X_LPARAM(lParam);
-      mouseMvY = GET_Y_LPARAM(lParam);
+      mMouseMvX = GET_X_LPARAM(lParam);
+      mMouseMvY = GET_Y_LPARAM(lParam);
       return 0;
 
     case WM_MOUSEWHEEL:
@@ -315,6 +314,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
   // Pass All Unhandled Messages To DefWindowProc
   return DefWindowProc(hWnd, uMsg, wParam, lParam);
+}
+
+GPUDisplayFrontendWindows::GPUDisplayFrontendWindows()
+{
+  mFrontendType = TYPE_WIN32;
+  mFrontendName = "Win32";
 }
 
 int GPUDisplayFrontendWindows::FrontendMain()
@@ -327,7 +332,7 @@ int GPUDisplayFrontendWindows::FrontendMain()
     return (-1);
   }
 
-  if (!CreateGLWindow(GL_WINDOW_NAME, INIT_WIDTH, INIT_HEIGHT, 32, fullscreen)) {
+  if (!CreateGLWindow(DISPLAY_WINDOW_NAME, INIT_WIDTH, INIT_HEIGHT, 32, fullscreen)) {
     return -1;
   }
 

@@ -33,7 +33,7 @@
 #include <TMath.h>
 #include <TRandom.h>
 
-#include <FairMQLogger.h>
+#include <FairLogger.h>
 
 // GG
 #include "PadOriginal.h"

@@ -21,7 +21,7 @@
 #include <fmt/format.h>
 
 #include <fairmq/Tools.h>
-#include <FairMQLogger.h>
+#include <FairLogger.h>
 
 #include "MCHMappingInterface/Segmentation.h"
 #include "CommonConstants/LHCConstants.h"

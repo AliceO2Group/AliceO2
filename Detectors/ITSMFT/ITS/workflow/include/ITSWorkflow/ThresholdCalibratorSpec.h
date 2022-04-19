@@ -35,7 +35,7 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Task.h"
-#include <FairMQDevice.h>
+#include <fairmq/Device.h>
 
 #include <ITSMFTReconstruction/RawPixelDecoder.h> //o2::itsmft::RawPixelDecoder
 #include "DetectorsCalibration/Utils.h"
@@ -61,7 +61,7 @@ constexpr int N_INJ = 50;
 
 // List of the possible run types for reference
 enum RunTypes {
-  THR_SCAN = 41,
+  THR_SCAN = 42,
   THR_SCAN_SHORT = 43,
   THR_SCAN_SHORT_100HZ = 101,
   THR_SCAN_SHORT_200HZ = 102,
@@ -71,6 +71,9 @@ enum RunTypes {
   ITHR150 = 62,
   ITHR100 = 82,
   ITHR100_100HZ = 104,
+  DIGITAL_SCAN = 44,
+  DIGITAL_SCAN_100HZ = 105,
+  ANALOGUE_SCAN = 63,
   END_RUN = 0
 };
 
@@ -78,13 +81,20 @@ enum RunTypes {
 enum FitTypes {
   DERIVATIVE = 0,
   FIT = 1,
-  HITCOUNTING = 2
+  HITCOUNTING = 2,
+  NO_FIT = 3
+};
+
+// To work with parallel chip access
+struct ITSCalibInpConf {
+  int chipModSel = 0;
+  int chipModBase = 1;
 };
 
 class ITSThresholdCalibrator : public Task
 {
  public:
-  ITSThresholdCalibrator();
+  ITSThresholdCalibrator(const ITSCalibInpConf& inpConf);
   ~ITSThresholdCalibrator() override;
 
   using ChipPixelData = o2::itsmft::ChipPixelData;
@@ -110,17 +120,23 @@ class ITSThresholdCalibrator : public Task
   static constexpr short int N_VCASN = 51;
   // Number of points in a ITHR tuning (from 30 to 100 inclusive)
   static constexpr short int N_ITHR = 71;
+  // Number of points in a digital scan and analog scan
+  static constexpr short int N_DIGANA = 1;
   // Refernce to one of the above values; updated during runtime
   const short int* N_RANGE = nullptr;
+  // Min number of noisy pix in a dcol for bad dcol tagging
+  static constexpr short int N_PIX_DCOL = 50;
 
   // The x-axis of the correct data fit chosen above
   short int* mX = nullptr;
 
   // Hash tables to store the hit and threshold information per pixel
-  std::map<short int, std::map<int, std::vector<std::vector<char>>>> mPixelHits;
+  std::map<short int, std::map<int, std::vector<std::vector<unsigned short int>>>> mPixelHits;
   std::map<short int, std::deque<short int>> mForbiddenRows;
-  //   Unordered map for saving sum of values (thr/ithr/vcasn) for avg calculation
+  // Unordered map for saving sum of values (thr/ithr/vcasn) for avg calculation
   std::map<short int, std::array<int, 5>> mThresholds;
+  // Map including PixID for noisy pixels
+  std::map<short int, std::vector<int>> mNoisyPixID;
 
   // Tree to save threshold info in full threshold scan case
   TFile* mRootOutfile = nullptr;
@@ -148,12 +164,12 @@ class ITSThresholdCalibrator : public Task
 
   // Helper functions related to threshold extraction
   void initThresholdTree(bool recreate = true);
-  bool findUpperLower(const char*, const short int*, const short int&, short int&, short int&, bool);
-  bool findThreshold(const char*, const short int*, const short int&, float&, float&);
-  bool findThresholdFit(const char*, const short int*, const short int&, float&, float&);
-  bool findThresholdDerivative(const char*, const short int*, const short int&, float&, float&);
-  bool findThresholdHitcounting(const char*, const short int*, const short int&, float&);
-  bool isScanFinished(const short int&, const short int&);
+  bool findUpperLower(const unsigned short int*, const short int*, const short int&, short int&, short int&, bool);
+  bool findThreshold(const unsigned short int*, const short int*, const short int&, float&, float&);
+  bool findThresholdFit(const unsigned short int*, const short int*, const short int&, float&, float&);
+  bool findThresholdDerivative(const unsigned short int*, const short int*, const short int&, float&, float&);
+  bool findThresholdHitcounting(const unsigned short int*, const short int*, const short int&, float&);
+  bool isScanFinished(const short int&, const short int&, const short int&);
   void findAverage(const std::array<int, 5>&, float&, float&, float&, float&);
   void saveThreshold();
 
@@ -181,7 +197,7 @@ class ITSThresholdCalibrator : public Task
   unsigned int mRowCounter = 0;
 
   short int mRunType = -1;
-  short int mRunTypeUp;
+  short int mRunTypeUp = -1;
   short int mRunTypeChip[24120] = {0};
   bool mIsChipDone[24120] = {false};
   // Either "T" for threshold, "V" for VCASN, or "I" for ITHR
@@ -199,10 +215,23 @@ class ITSThresholdCalibrator : public Task
 
   // Flag to check if endOfStream is available
   bool mCheckEos = false;
+
+  // Flag to enable cw counter check
+  bool mCheckCw = false;
+
+  // Flag to tag single noisy pix in digital scan
+  bool mTagSinglePix = false;
+
+  // Bool to check exact row when counting hits
+  bool mCheckExactRow = false;
+
+  // Chip mod selector and chip mod base for parallel chip access
+  int mChipModSel = 0;
+  int mChipModBase = 1;
 };
 
 // Create a processor spec
-o2::framework::DataProcessorSpec getITSThresholdCalibratorSpec();
+o2::framework::DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf);
 
 } // namespace its
 } // namespace o2

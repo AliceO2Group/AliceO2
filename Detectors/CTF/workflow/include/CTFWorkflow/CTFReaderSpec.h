@@ -36,6 +36,7 @@ struct CTFReaderInp {
   int64_t delay_us = 0;
   int maxLoops = 0;
   int maxTFs = -1;
+  unsigned int subspec = 0;
 };
 
 /// create a processor spec

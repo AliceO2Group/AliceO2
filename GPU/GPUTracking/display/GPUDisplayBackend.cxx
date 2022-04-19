@@ -14,9 +14,7 @@
 
 #include "GPUDisplayBackend.h"
 
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
 #include "GPUDisplayBackendOpenGL.h"
-#endif
 
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
 #include "GPUDisplayBackendVulkan.h"
@@ -44,22 +42,21 @@ GPUDisplayBackend::~GPUDisplayBackend() = default;
 
 GPUDisplayBackend* GPUDisplayBackend::getBackend(const char* type)
 {
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
-  if (strcmp(type, "opengl") == 0) {
-    return new GPUDisplayBackendOpenGL;
-  }
-#endif
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
-  if (strcmp(type, "vulkan") == 0) {
+  if (strcmp(type, "vulkan") == 0 || strcmp(type, "auto") == 0) {
     return new GPUDisplayBackendVulkan;
-  }
+  } else
 #endif
+  if (strcmp(type, "opengl") == 0 || strcmp(type, "auto") == 0) {
+    return new GPUDisplayBackendOpenGL;
+  } else {
+    GPUError("Requested renderer not available");
+  }
   return nullptr;
 }
 
 int GPUDisplayBackend::InitBackend()
 {
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
   int retVal = InitBackendA();
   if (retVal) {
     return retVal;
@@ -123,9 +120,6 @@ int GPUDisplayBackend::InitBackend()
   mFreetypeInitialized = true;
 #endif // GPUCA_BUILD_EVENT_DISPLAY_FREETYPE
   return retVal;
-#else  // GPUCA_BUILD_EVENT_DISPLAY
-  return 0;
-#endif // GPUCA_BUILD_EVENT_DISPLAY
 }
 
 void GPUDisplayBackend::ExitBackend()
@@ -140,7 +134,6 @@ std::vector<char> GPUDisplayBackend::getPixels()
   return retVal;
 }
 
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
 void GPUDisplayBackend::fillIndirectCmdBuffer()
 {
   mCmdBuffer.clear();
@@ -172,5 +165,3 @@ bool GPUDisplayBackend::smoothFont()
 {
   return mDisplay->cfg().smoothFont < 0 ? (mDisplay->cfg().fontSize > 12) : mDisplay->cfg().smoothFont;
 }
-
-#endif

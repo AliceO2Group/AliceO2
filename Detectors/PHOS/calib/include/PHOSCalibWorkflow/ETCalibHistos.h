@@ -21,7 +21,6 @@
 
 #include <array>
 #include <cstring>
-#include "TObject.h"
 
 namespace o2
 {
@@ -32,7 +31,7 @@ namespace phos
 class ETCalibHistos
 {
  public:
-  //Histogram kinds to be filled
+  // Histogram kinds to be filled
   enum hnames { kReInvMassPerCell,
                 kMiInvMassPerCell,
                 kReInvMassNonlin,
@@ -41,19 +40,19 @@ class ETCalibHistos
                 kTimeLGPerCell,
                 kTimeHGSlewing,
                 kTimeLGSlewing };
-  static constexpr int nChannels = 14336 - 1793; //4 full modules -1/2
-  static constexpr int offset = 1793;            //1/2 full module
-  //mgg histos
+  static constexpr int nChannels = 14336 - 1793; // 4 full modules -1/2
+  static constexpr int offset = 1793;            // 1/2 full module
+  // mgg histos
   static constexpr int nMass = 150.;
   static constexpr float massMax = 0.3;
   static constexpr float dm = massMax / nMass;
-  //time histograms
+  // time histograms
   static constexpr int nTime = 200;
   static constexpr float timeMin = -100.e-9;
   static constexpr float timeMax = 100.e-9;
   static constexpr float dt = (timeMax - timeMin) / nTime;
 
-  //pt
+  // pt
   static constexpr int npt = 200;
   static constexpr float ptMax = 20;
   static constexpr float dpt = ptMax / npt;
@@ -68,26 +67,26 @@ class ETCalibHistos
 
   /// \brief Merge statistics in two containers
   /// \param other Another container to be added to current
-  void merge(ETCalibHistos& other)
+  void merge(const ETCalibHistos* other)
   {
     for (int i = nChannels; --i;) {
       for (int j = nMass; --j;) {
-        mReInvMassPerCell[i][j] += other.mReInvMassPerCell[i][j];
-        mMiInvMassPerCell[i][j] += other.mMiInvMassPerCell[i][j];
+        mReInvMassPerCell[i][j] += other->mReInvMassPerCell[i][j];
+        mMiInvMassPerCell[i][j] += other->mMiInvMassPerCell[i][j];
       }
       for (int j = nTime; --j;) {
-        mTimeHGPerCell[i][j] += other.mTimeHGPerCell[i][j];
-        mTimeLGPerCell[i][j] += other.mTimeLGPerCell[i][j];
+        mTimeHGPerCell[i][j] += other->mTimeHGPerCell[i][j];
+        mTimeLGPerCell[i][j] += other->mTimeLGPerCell[i][j];
       }
     }
     for (int i = npt; --i;) {
       for (int j = nMass; --j;) {
-        mReInvMassNonlin[i][j] += other.mReInvMassNonlin[i][j];
-        mMiInvMassNonlin[i][j] += other.mMiInvMassNonlin[i][j];
+        mReInvMassNonlin[i][j] += other->mReInvMassNonlin[i][j];
+        mMiInvMassNonlin[i][j] += other->mMiInvMassNonlin[i][j];
       }
       for (int j = nTime; --j;) {
-        mTimeHGSlewing[i][j] += other.mTimeHGSlewing[i][j];
-        mTimeLGSlewing[i][j] += other.mTimeLGSlewing[i][j];
+        mTimeHGSlewing[i][j] += other->mTimeHGSlewing[i][j];
+        mTimeLGSlewing[i][j] += other->mTimeLGSlewing[i][j];
       }
     }
   }
@@ -162,7 +161,7 @@ class ETCalibHistos
   std::array<std::array<float, npt>, nTime> mTimeHGSlewing;          ///< time vs pT
   std::array<std::array<float, npt>, nTime> mTimeLGSlewing;          ///< time vs pT
 
-  ClassDefNV(ETCalibHistos, 1);
+  ClassDef(ETCalibHistos, 1);
 };
 
 } // namespace phos

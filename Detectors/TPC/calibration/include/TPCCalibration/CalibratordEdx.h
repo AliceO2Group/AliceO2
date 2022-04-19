@@ -19,6 +19,7 @@
 #include <array>
 #include <cstdint>
 #include <string_view>
+#include <utility>
 
 // o2 includes
 #include "DataFormatsTPC/TrackTPC.h"
@@ -44,20 +45,20 @@ class CalibratordEdx final : public o2::calibration::TimeSlotCalibration<o2::tpc
  public:
   CalibratordEdx() = default;
 
-  void setHistParams(float mindEdx, float maxdEdx, int dEdxBins, int zBins, int angularBins)
+  void setHistParams(int dEdxBins, float mindEdx, float maxdEdx, int angularBins, bool fitSnp)
   {
+    mdEdxBins = dEdxBins;
     mMindEdx = mindEdx;
     mMaxdEdx = maxdEdx;
-    mdEdxBins = dEdxBins;
-    mZBins = zBins;
     mAngularBins = angularBins;
+    mFitSnp = fitSnp;
   }
   void setCuts(const TrackCuts& cuts) { mCuts = cuts; }
   void setField(float field) { mField = field; }
   void setMinEntries(int minEntries) { mMinEntries = minEntries; }
-  void setFitCuts(const CalibdEdx::FitCuts& cuts) { mFitCuts = cuts; }
+  void setFitThresholds(int minEntriesSector, int minEntries1D, int minEntries2D) { mFitThreshold = {minEntriesSector, minEntries1D, minEntriesSector}; }
   void setApplyCuts(bool apply) { mApplyCuts = apply; }
-  bool getApplyCuts() { return mApplyCuts; }
+  void setElectronCut(std::pair<float, int> values) { mElectronCut = values; }
 
   /// \brief Check if there are enough data to compute the calibration.
   /// \return false if any of the histograms has less entries than mMinEntries
@@ -91,16 +92,17 @@ class CalibratordEdx final : public o2::calibration::TimeSlotCalibration<o2::tpc
   void finalizeDebugOutput() const;
 
  private:
-  int mdEdxBins{};               ///< Number of dEdx bins
-  int mZBins{};                  ///< Number of Z bins
-  int mAngularBins{};            ///< Number of bins for angular data, like Tgl and Snp
-  float mMindEdx{};              ///< Minimum value for the dEdx histograms
-  float mMaxdEdx{};              ///< Maximum value for the dEdx histograms
-  int mMinEntries{};             ///< Minimum amount of tracks in each time slot, to get enough statics
-  CalibdEdx::FitCuts mFitCuts{}; ///< Minimum entries per stack to perform a 1D and 2D fit
-  float mField{};                ///< Magnetic field
-  bool mApplyCuts{true};         ///< Flag to enable tracks cuts
-  TrackCuts mCuts;               ///< Cut object
+  int mdEdxBins{};                      ///< Number of dEdx bins
+  float mMindEdx{};                     ///< Minimum value for the dEdx histograms
+  float mMaxdEdx{};                     ///< Maximum value for the dEdx histograms
+  int mAngularBins{};                   ///< Number of bins for angular data, like Tgl and Snp
+  bool mFitSnp{};                       ///< enable Snp correction
+  int mMinEntries{};                    ///< Minimum amount of tracks in each time slot, to get enough statics
+  std::array<int, 3> mFitThreshold{};   ///< Minimum entries per stack to perform sector, 1D and 2D fit
+  float mField{};                       ///< Magnetic field
+  bool mApplyCuts{true};                ///< Flag to enable tracks cuts
+  std::pair<float, int> mElectronCut{}; ///< Values passed to CalibdEdx::setElectronCut
+  TrackCuts mCuts;                      ///< Cut object
 
   TFinterval mIntervals; ///< start and end time frames of each calibration time slots
   CalibVector mCalibs;   ///< vector of MIP positions, each element is filled in "process" when we finalize one slot (multiple can be finalized during the same "process", which is why we have a vector. Each element is to be considered the output of the device

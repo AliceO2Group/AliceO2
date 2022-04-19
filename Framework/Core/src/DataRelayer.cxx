@@ -597,6 +597,13 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
         countConsume++;
         updateCompletionResults(slot, action);
         break;
+      case CompletionPolicy::CompletionOp::ConsumeAndRescan:
+        // This is just like Consume, but we also mark all slots as dirty
+        countConsume++;
+        action = CompletionPolicy::CompletionOp::Consume;
+        updateCompletionResults(slot, action);
+        mTimesliceIndex.rescan();
+        break;
       case CompletionPolicy::CompletionOp::ConsumeExisting:
         countConsumeExisting++;
         updateCompletionResults(slot, action);

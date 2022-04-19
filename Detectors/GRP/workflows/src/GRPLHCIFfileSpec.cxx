@@ -210,7 +210,7 @@ void GRPLHCIFfileProcessor::sendOutput(DataAllocator& output, long start, const 
   auto clName = o2::utils::MemFileHelper::getClassName(lhcifdata);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   std::map<std::string, std::string> md;
-  md.emplace("created by", "dpl");
+  md.emplace("created_by", "dpl");
   o2::ccdb::CcdbObjectInfo info("GLO/Config/GRPLHCIFData", clName, flName, md, start, o2::calibration::Utils::INFINITE_TIME);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&lhcifdata, &info);
   LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()

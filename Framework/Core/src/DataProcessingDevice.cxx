@@ -1239,6 +1239,8 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
             case DataRelayer::Backpressured:
               if (info.normalOpsNotified == true && info.backpressureNotified == false) {
                 LOGP(alarm, "Backpressure on channel {}. Waiting.", info.channel->GetName());
+                auto& monitoring = context.registry->get<o2::monitoring::Monitoring>();
+                monitoring.send(o2::monitoring::Metric{1, fmt::format("backpressure_{}", info.channel->GetName())});
                 info.backpressureNotified = true;
                 info.normalOpsNotified = false;
               }
@@ -1249,6 +1251,8 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
             case DataRelayer::WillRelay:
               if (info.normalOpsNotified == false && info.backpressureNotified == true) {
                 LOGP(info, "Back to normal on channel {}.", info.channel->GetName());
+                auto& monitoring = context.registry->get<o2::monitoring::Monitoring>();
+                monitoring.send(o2::monitoring::Metric{0, fmt::format("backpressure_{}", info.channel->GetName())});
                 info.normalOpsNotified = true;
                 info.backpressureNotified = false;
               }

@@ -50,14 +50,13 @@ void MeanVertexCalibDevice::init(InitContext& ic)
 
 void MeanVertexCalibDevice::run(o2::framework::ProcessingContext& pc)
 {
-
-  auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
   auto data = pc.inputs().get<gsl::span<o2::dataformats::PrimaryVertex>>("input");
-  LOG(info) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
-  mCalibrator->process(tfcounter, data);
+  o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
+  LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() << " tracks";
+  mCalibrator->process(data);
   sendOutput(pc.outputs());
   const auto& infoVec = mCalibrator->getMeanVertexObjectInfoVector();
-  LOG(info) << "Created " << infoVec.size() << " objects for TF " << tfcounter;
+  LOG(info) << "Created " << infoVec.size() << " objects for TF " << mCalibrator->getCurrentTFInfo().tfCounter;
 }
 
 //_____________________________________________________________

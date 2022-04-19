@@ -19,6 +19,7 @@
 #include <vector>
 #include "Framework/Variant.h"
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/CompletionPolicyHelpers.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -27,10 +28,17 @@
 #include "DataFormatsMID/ROFRecord.h"
 #include "DataFormatsMID/MCClusterLabel.h"
 #include "MIDWorkflow/ClusterizerSpec.h"
+#include "MIDWorkflow/TimingSpec.h"
 #include "MIDWorkflow/TrackerSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
+
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:MID|mid).*[W,w]riter.*"));
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
@@ -40,6 +48,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
       {"disable-mc", VariantType::Bool, false, {"Do not propagate MC labels"}},
       {"disable-tracking", VariantType::Bool, false, {"Only run clustering"}},
       {"disable-root-output", VariantType::Bool, false, {"Do not write output to file"}},
+      {"change-local-to-BC", VariantType::Int, 0, {"Change the delay between the MID local clock and the BC"}},
       {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
@@ -52,10 +61,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool disableMC = cfgc.options().get<bool>("disable-mc");
   bool disableTracking = cfgc.options().get<bool>("disable-tracking");
   bool disableFile = cfgc.options().get<bool>("disable-root-output");
+  auto localToBC = cfgc.options().get<int>("change-local-to-BC");
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   WorkflowSpec specs;
-  specs.emplace_back(o2::mid::getClusterizerSpec(!disableMC));
+  std::string dataDesc = "DATA";
+  std::string rofDesc = "DATAROF";
+  std::string labelsDesc = "DATALABELS";
+  if (localToBC != 0) {
+    specs.emplace_back(o2::mid::getTimingSpec(localToBC, "DATAROF"));
+    rofDesc = "TDATAROF";
+  }
+  specs.emplace_back(o2::mid::getClusterizerSpec(!disableMC, dataDesc, rofDesc, labelsDesc));
   if (!disableTracking) {
     specs.emplace_back(o2::mid::getTrackerSpec(!disableMC));
   }

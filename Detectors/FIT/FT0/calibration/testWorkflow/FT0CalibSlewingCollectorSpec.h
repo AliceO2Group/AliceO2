@@ -47,9 +47,9 @@ class FT0CalibCollectorDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime; // is this the timestamp of the current TF?
     auto data = pc.inputs().get<gsl::span<o2::ft0::FT0CalibrationInfoObject>>("input");
-    mCollector->process(tfcounter, data);
+    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCollector->getCurrentTFInfo());
+    mCollector->process(data);
     sendOutput(pc.outputs());
   }
 

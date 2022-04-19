@@ -164,6 +164,9 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
   curl = curl_easy_init();
   int returnValue = 0;
 
+  // checking that all metadata keys do not contain invalid characters
+  checkMetadataKeys(metadata);
+
   if (curl != nullptr) {
     struct curl_httppost* formpost = nullptr;
     struct curl_httppost* lastptr = nullptr;
@@ -913,7 +916,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
       for (auto& l : locs) {
         if (l.size() > 0) {
           LOG(debug) << "Trying content location " << l;
-          content = navigateURLsAndRetrieveContent(curl_handle, l, tinfo, nullptr);
+          content = navigateURLsAndRetrieveContent(curl_handle, l, tinfo, headers);
           if (content /* or other success marker in future */) {
             break;
           }
@@ -1385,17 +1388,16 @@ void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std:
   }
 }
 
-std::vector<std::string> CcdbApi::splitString(std::string string, const char* delimiters)
+std::vector<std::string> CcdbApi::splitString(const std::string& str, const char* delimiters)
 {
   std::vector<std::string> tokens;
-  char* stringForStrTok = new char[string.length() + 1];
-  strcpy(stringForStrTok, string.c_str());
+  char stringForStrTok[str.length() + 1];
+  strcpy(stringForStrTok, str.c_str());
   char* token = strtok(stringForStrTok, delimiters);
   while (token != nullptr) {
     tokens.emplace_back(token);
     token = strtok(nullptr, delimiters);
   }
-  free(stringForStrTok);
   return tokens;
 }
 
@@ -1658,6 +1660,31 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, const std::string& p
     if (isSnapshotMode()) { // generate dummy ETag to profit from the caching
       (*localHeaders)["ETag"] = path;
     }
+  }
+  return;
+}
+
+void CcdbApi::checkMetadataKeys(std::map<std::string, std::string> const& metadata) const
+{
+
+  // function to check if any key contains invalid characters
+  // if so, a fatal will be issued
+
+  const std::regex regexPatternSearch(R"([ :;.,\\/'?!\(\)\{\}\[\]@<>=+*#$&`|~^%])");
+  bool isInvalid = false;
+
+  for (auto& el : metadata) {
+    auto keyMd = el.first;
+    auto tmp = keyMd;
+    std::smatch searchRes;
+    while (std::regex_search(keyMd, searchRes, regexPatternSearch)) {
+      isInvalid = true;
+      LOG(error) << "Invalid character found in metadata key '" << tmp << "\': '" << searchRes.str() << "\'";
+      keyMd = searchRes.suffix();
+    }
+  }
+  if (isInvalid) {
+    LOG(fatal) << "Some metadata keys have invalid characters, please fix!";
   }
   return;
 }

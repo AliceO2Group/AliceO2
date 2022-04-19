@@ -46,7 +46,7 @@
 #include <Monitoring/MonitoringFactory.h>
 #include <InfoLogger/InfoLogger.hxx>
 
-#include <FairMQDevice.h>
+#include <fairmq/Device.h>
 #include <fairmq/shmem/Monitor.h>
 #include <fairmq/shmem/Common.h>
 #include <options/FairMQProgOptions.h>
@@ -481,9 +481,9 @@ o2::framework::ServiceSpec CommonServices::ccdbSupportSpec()
     .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
       // iterate on all the outputs matchers
       auto& spec = services.get<DeviceSpec const>();
-      for (auto& outputs : spec.outputs) {
-        if (outputs.matcher.binding.value == "ccdb-diststf") {
-          LOGP(info, "CCDB support enabled");
+      for (auto& output : spec.outputs) {
+        if (DataSpecUtils::match(output.matcher, ConcreteDataTypeMatcher{"FLP", "DISTSUBTIMEFRAME"})) {
+          LOGP(debug, "Optional inputs support enabled");
           return ServiceHandle{.hash = TypeIdHelpers::uniqueId<CCDBSupport>(), .instance = new CCDBSupport, .kind = ServiceKind::Serial};
         }
       }
@@ -494,15 +494,34 @@ o2::framework::ServiceSpec CommonServices::ccdbSupportSpec()
       if (!service) {
         return;
       }
+      if (pc.services().get<DeviceState>().streaming == StreamingState::EndOfStreaming) {
+        if (pc.outputs().countDeviceOutputs(true) == 0) {
+          LOGP(debug, "We are in EoS w/o outputs, do not automatically add DISTSUBTIMEFRAME to outgoing messages");
+          return;
+        }
+      }
       const auto ref = pc.inputs().getFirstValid(true);
       const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       const auto* dph = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
-      auto& stfDist = pc.outputs().make<o2::header::STFHeader>(OutputRef{"ccdb-diststf", header::DataHeader::SubSpecificationType{0xccdb}});
-      LOG(info) << "CCDB support enabled: " << dh->firstTForbit;
-      stfDist.id = dph->startTime;
-      stfDist.firstOrbit = dh->firstTForbit;
-      stfDist.runNumber = dh->runNumber;
-    },
+
+      // For any output that is a FLP/DISTSUBTIMEFRAME with subspec != 0,
+      // we create a new message.
+      InputSpec matcher{"matcher", ConcreteDataTypeMatcher{"FLP", "DISTSUBTIMEFRAME"}};
+      for (auto& output : pc.services().get<DeviceSpec const>().outputs) {
+        if ((output.timeslice % output.maxTimeslices) != 0) {
+          continue;
+        }
+        if (DataSpecUtils::match(output.matcher, ConcreteDataTypeMatcher{"FLP", "DISTSUBTIMEFRAME"})) {
+          auto concrete = DataSpecUtils::asConcreteDataMatcher(output.matcher);
+          if (concrete.subSpec == 0) {
+            continue;
+          }
+          auto& stfDist = pc.outputs().make<o2::header::STFHeader>(Output{concrete.origin, concrete.description, concrete.subSpec, output.matcher.lifetime});
+          stfDist.id = dph->startTime;
+          stfDist.firstOrbit = dh->firstTForbit;
+          stfDist.runNumber = dh->runNumber;
+        }
+      } },
     .kind = ServiceKind::Global};
 }
 
@@ -727,6 +746,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     parallelSpec(),
     callbacksSpec(),
     dataRelayer(),
+    CommonMessageBackends::fairMQDeviceProxy(),
     dataSender(),
     dataProcessingStats(),
     objectCache(),

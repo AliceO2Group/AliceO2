@@ -218,7 +218,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
       hbfEntry = hbfEntrySav; // critical check of RDH passed
       lastRDH = rdh;
       statistics.nPackets++;
-      if (RDHUtils::getPageCounter(*rdh) == 0) {
+      if (RDHUtils::getPageCounter(*rdh) == 0 || irHBF.isDummy()) { // for the threshold scan data it is not guaranteed that the page0 is found)
         irHBF = RDHUtils::getHeartBeatIR(*rdh);
         hbfEntry = rawData.currentPieceID();
       }

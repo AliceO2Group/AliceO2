@@ -64,15 +64,10 @@ void BadChannelCalibrationDevice::logStats(size_t dataSize)
 
 void BadChannelCalibrationDevice::run(o2::framework::ProcessingContext& pc)
 {
-  const o2::framework::DataProcessingHeader* header = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("digits").header);
-  if (!header) {
-    return;
-  }
-
-  mTimeStamp = std::min(mTimeStamp, header->creation);
-
+  o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
+  mTimeStamp = std::min(mTimeStamp, mCalibrator->getCurrentTFInfo().creation);
   auto data = pc.inputs().get<gsl::span<o2::mch::calibration::PedestalDigit>>("digits");
-  mCalibrator->process(header->startTime, data);
+  mCalibrator->process(data);
 
   std::string reason;
   if (mCalibrator->readyToSend(reason)) {
@@ -88,7 +83,7 @@ ccdb::CcdbObjectInfo createCcdbInfo(const T& object, uint64_t timeStamp, std::st
   auto clName = o2::utils::MemFileHelper::getClassName(object);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   std::map<std::string, std::string> md;
-  md["upload reason"] = reason;
+  md["upload-reason"] = reason;
   return o2::ccdb::CcdbObjectInfo("MCH/BadChannelCalib", clName, flName, md, timeStamp, 99999999999999);
 }
 

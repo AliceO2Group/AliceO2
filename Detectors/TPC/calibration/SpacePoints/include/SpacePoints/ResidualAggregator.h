@@ -45,7 +45,7 @@ struct ResidualsContainer {
   void fillStatisticsBranches();
   uint64_t getNEntries() const { return nResidualsTotal; }
 
-  void fill(const gsl::span<const TrackResiduals::UnbinnedResid> data);
+  void fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const TrackResiduals::UnbinnedResid> data);
   void merge(ResidualsContainer* prev);
   void print();
 

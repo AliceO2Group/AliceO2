@@ -296,17 +296,18 @@ void Digitizer::storeBC(BCCache& bc,
   is_C = n_hit_C > 0;
   is_Central = summ_ampl_A + summ_ampl_C >= params.mtrg_central_trh;
   is_SemiCentral = summ_ampl_A + summ_ampl_C >= params.mtrg_semicentral_trh;
-  uint32_t amplA = is_A ? summ_ampl_A * 0.125 : 0;   // sum amplitude A side / 8 (hardware)
-  uint32_t amplC = is_C ? summ_ampl_C * 0.125 : 0;   // sum amplitude C side / 8 (hardware)
-  int timeA = is_A ? mean_time_A / n_hit_A : 0;      // average time A side
-  int timeC = is_C ? mean_time_C / n_hit_C : 0;      // average time C side
+  uint32_t amplA = is_A ? summ_ampl_A * 0.125 : -5000; // sum amplitude A side / 8 (hardware)
+  uint32_t amplC = is_C ? summ_ampl_C * 0.125 : -5000; // sum amplitude C side / 8 (hardware)
+  int timeA = is_A ? mean_time_A / n_hit_A : -5000;    // average time A side
+  int timeC = is_C ? mean_time_C / n_hit_C : -5000;    // average time C side
   vertex_time = (timeC - timeA) * 0.5;
   isVertex = is_A && is_C && (vertex_time > -params.mTime_trg_gate && vertex_time < params.mTime_trg_gate);
   LOG(debug) << " A " << is_A << " timeA " << timeA << " mean_time_A " << mean_time_A << "  n_hit_A " << n_hit_A << " C " << is_C << " timeC " << timeC << " mean_time_C " << mean_time_C << "  n_hit_C " << n_hit_C << " vertex_time " << vertex_time;
   Triggers triggers;
+  const bool unusedBitsInSim = false; // bits related to laser and data validity
   if (nStored > 0) {
     triggers.setTriggers(is_A, is_C, isVertex, is_Central, is_SemiCentral, int8_t(n_hit_A), int8_t(n_hit_C),
-                         amplA, amplC, timeA, timeC);
+                         amplA, amplC, timeA, timeC, unusedBitsInSim, unusedBitsInSim, unusedBitsInSim);
     digitsBC.emplace_back(first, nStored, firstBCinDeque, triggers, mEventID - 1);
     digitsTrig.emplace_back(firstBCinDeque, is_A, is_C, isVertex, is_Central, is_SemiCentral);
     size_t const nBC = digitsBC.size();
@@ -317,9 +318,9 @@ void Digitizer::storeBC(BCCache& bc,
   // Debug output -------------------------------------------------------------
 
   LOG(info) << "Event ID: " << mEventID << ", bc " << firstBCinDeque.bc << ", N hit " << bc.hits.size();
-  LOG(info) << "N hit A: " << int(triggers.nChanA) << " N hit C: " << int(triggers.nChanC) << " summ ampl A: " << int(triggers.amplA)
-            << " summ ampl C: " << int(triggers.amplC) << " mean time A: " << triggers.timeA
-            << " mean time C: " << triggers.timeC << " nStored " << nStored;
+  LOG(info) << "N hit A: " << int(triggers.getNChanA()) << " N hit C: " << int(triggers.getNChanC()) << " summ ampl A: " << int(triggers.getAmplA())
+            << " summ ampl C: " << int(triggers.getAmplC()) << " mean time A: " << triggers.getTimeA()
+            << " mean time C: " << triggers.getTimeC() << " nStored " << nStored;
 
   LOG(info) << "IS A " << triggers.getOrA() << " IsC " << triggers.getOrC() << " vertex " << triggers.getVertex() << " is Central " << triggers.getCen() << " is SemiCentral " << triggers.getSCen();
 }

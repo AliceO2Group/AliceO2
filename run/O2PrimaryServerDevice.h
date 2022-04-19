@@ -14,11 +14,11 @@
 #ifndef O2_DEVICES_PRIMSERVDEVICE_H_
 #define O2_DEVICES_PRIMSERVDEVICE_H_
 
-#include <FairMQDevice.h>
-#include <FairMQTransportFactory.h>
+#include <fairmq/Device.h>
+#include <fairmq/TransportFactory.h>
 #include <FairPrimaryGenerator.h>
 #include <Generators/GeneratorFactory.h>
-#include <FairMQMessage.h>
+#include <fairmq/Message.h>
 #include <SimulationDataFormat/Stack.h>
 #include <SimulationDataFormat/MCEventHeader.h>
 #include <TMessage.h>

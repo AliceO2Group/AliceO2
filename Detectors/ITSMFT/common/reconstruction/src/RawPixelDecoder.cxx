@@ -84,9 +84,8 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
   int nLinksWithData = 0, nru = mRUDecodeVec.size();
   do {
 #ifdef WITH_OPENMP
-    omp_set_num_threads(mNThreads);
-#pragma omp parallel for schedule(dynamic) reduction(+ \
-                                                     : nLinksWithData, mNChipsFiredROF, mNPixelsFiredROF)
+#pragma omp parallel for schedule(dynamic) num_threads(mNThreads) reduction(+ \
+                                                                            : nLinksWithData, mNChipsFiredROF, mNPixelsFiredROF)
 #endif
     for (int iru = 0; iru < nru; iru++) {
       nLinksWithData += decodeNextTrigger(iru);

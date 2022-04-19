@@ -12,29 +12,75 @@
 #include "Framework/FairMQDeviceProxy.h"
 
 #include <fairmq/FairMQDevice.h>
+#include <fairmq/Channel.h>
 #include <fairmq/FairMQMessage.h>
 
 namespace o2::framework
 {
 
-FairMQTransportFactory* FairMQDeviceProxy::getTransport()
+ChannelIndex FairMQDeviceProxy::getChannelIndex(RouteIndex index) const
 {
-  return mDevice->Transport();
+  assert(mRoutes.size());
+  assert(index.value < mRoutes.size());
+  assert(mRoutes[index.value].channel.value != -1);
+  assert(mChannels.size());
+  assert(mRoutes[index.value].channel.value < mChannels.size());
+  return mRoutes[index.value].channel;
 }
 
-FairMQTransportFactory* FairMQDeviceProxy::getTransport(const std::string& channel, const int index)
+fair::mq::Channel* FairMQDeviceProxy::getChannel(ChannelIndex index) const
 {
-  return mDevice->GetChannel(channel, index).Transport();
+  assert(mChannels.size());
+  assert(index.value < mChannels.size());
+  return mChannels[index.value];
 }
 
-std::unique_ptr<FairMQMessage> FairMQDeviceProxy::createMessage() const
+FairMQTransportFactory* FairMQDeviceProxy::getTransport(RouteIndex index) const
 {
-  return mDevice->Transport()->CreateMessage(fair::mq::Alignment{64});
+  auto transport = getChannel(getChannelIndex(index))->Transport();
+  assert(transport);
+  return transport;
 }
 
-std::unique_ptr<FairMQMessage> FairMQDeviceProxy::createMessage(const size_t size) const
+std::unique_ptr<FairMQMessage> FairMQDeviceProxy::createMessage(RouteIndex routeIndex) const
 {
-  return mDevice->Transport()->CreateMessage(size, fair::mq::Alignment{64});
+  return getTransport(routeIndex)->CreateMessage(fair::mq::Alignment{64});
 }
 
+std::unique_ptr<FairMQMessage> FairMQDeviceProxy::createMessage(RouteIndex routeIndex, const size_t size) const
+{
+  return getTransport(routeIndex)->CreateMessage(size, fair::mq::Alignment{64});
+}
+
+void FairMQDeviceProxy::bindRoutes(std::vector<OutputRoute> const& outputs, fair::mq::Device& device)
+{
+  mRoutes.reserve(outputs.size());
+  size_t ri = 0;
+  std::unordered_map<std::string, ChannelIndex> channelNameToChannel;
+  for (auto& route : outputs) {
+    // If the channel is not yet registered, register it.
+    // If the channel is already registered, use the existing index.
+    auto channelPos = channelNameToChannel.find(route.channel);
+    ChannelIndex channelIndex;
+
+    if (channelPos == channelNameToChannel.end()) {
+      channelIndex = ChannelIndex{(int)mChannels.size()};
+      mChannels.push_back(&device.fChannels.at(route.channel).at(0));
+      channelNameToChannel[route.channel] = channelIndex;
+      LOGP(debug, "Binding channel {} to channel index {}", route.channel, channelIndex.value);
+    } else {
+      LOGP(debug, "Using index {} for channel {}", channelPos->second.value, route.channel);
+      channelIndex = channelPos->second;
+    }
+    LOGP(debug, "Binding route {}@{}%{} to index {} and channelIndex {}", route.matcher, route.timeslice, route.maxTimeslices, ri, channelIndex.value);
+    mRoutes.emplace_back(RouteState{channelIndex, false});
+    ri++;
+  }
+  for (auto& route : mRoutes) {
+    assert(route.channel.value != -1);
+    assert(route.channel.value < mChannels.size());
+  }
+  LOGP(debug, "Total channels found {}, total routes {}", mChannels.size(), mRoutes.size());
+  assert(mRoutes.size() == outputs.size());
+}
 } // namespace o2::framework

@@ -25,7 +25,7 @@ namespace GPUCA_NAMESPACE::gpu
 class GPUDisplayFrontendGlfw : public GPUDisplayFrontend
 {
  public:
-  GPUDisplayFrontendGlfw() = default;
+  GPUDisplayFrontendGlfw();
   ~GPUDisplayFrontendGlfw() override = default;
 
   int StartDisplay() override;

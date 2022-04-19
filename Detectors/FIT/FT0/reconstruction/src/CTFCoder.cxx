@@ -72,7 +72,7 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
     const auto chanels = digit.getBunchChannelData(channelVec); // we assume the channels are sorted
 
     // fill trigger info
-    cd.trigger[idig] = digit.getTriggers().triggersignals;
+    cd.trigger[idig] = digit.getTriggers().getTriggersignals();
     cd.eventStatus[idig] = digit.getEventStatusWord();
     if (prevOrbit == digit.getOrbit()) {
       cd.bcInc[idig] = digit.getBC() - prevBC;

@@ -34,7 +34,7 @@
 #include "GPUTRDTracker.h"
 #include "AliHLTTPCRawCluster.h"
 #include "GPUTRDTrackletLabels.h"
-#include "GPUDisplay.h"
+#include "display/GPUDisplayInterface.h"
 #include "GPUQA.h"
 #include "GPULogging.h"
 #include "GPUMemorySizeScalers.h"
@@ -363,7 +363,10 @@ int GPUChainTracking::Init()
     mQA.reset(new GPUQA(this));
   }
   if (GetProcessingSettings().eventDisplay) {
-    mEventDisplay.reset(new GPUDisplay(GetProcessingSettings().eventDisplay, this, mQA.get(), GetProcessingSettings().eventDisplayRenderer));
+    mEventDisplay.reset(GPUDisplayInterface::getDisplay(GetProcessingSettings().eventDisplay, this, mQA.get()));
+    if (mEventDisplay == nullptr) {
+      throw std::runtime_error("Error loading event display");
+    }
   }
 
   processors()->errorCodes.setMemory(mInputsHost->mErrorCodes);
@@ -559,6 +562,27 @@ void GPUChainTracking::SetTRDGeometry(std::unique_ptr<o2::trd::GeometryFlat>&& g
   processors()->calibObjects.trdGeometry = mTRDGeometryU.get();
 }
 
+void GPUChainTracking::DoQueuedCalibUpdates(int stream)
+{
+  if (mUpdateNewCalibObjects) {
+    void** pSrc = (void**)&mNewCalibObjects;
+    void** pDst = (void**)&processors()->calibObjects;
+    for (unsigned int i = 0; i < sizeof(mNewCalibObjects) / sizeof(void*); i++) {
+      if (pSrc[i]) {
+        pDst[i] = pSrc[i];
+      }
+    }
+    if (mRec->IsGPU()) {
+      mRec->ResetRegisteredMemoryPointers(mFlatObjectsShadow.mMemoryResFlat);
+      UpdateGPUCalibObjects(stream);
+    }
+  }
+  if ((mUpdateNewCalibObjects || mRec->slavesExist()) && mRec->IsGPU()) {
+    UpdateGPUCalibObjectsPtrs(stream); // Reinitialize
+  }
+  mUpdateNewCalibObjects = false;
+}
+
 int GPUChainTracking::RunChain()
 {
   if (GetProcessingSettings().ompAutoNThreads && !mRec->IsGPU()) {
@@ -577,23 +601,7 @@ int GPUChainTracking::RunChain()
   if (GetProcessingSettings().debugLevel >= 6) {
     *mDebugFile << "\n\nProcessing event " << mRec->getNEventsProcessed() << std::endl;
   }
-  if (mUpdateNewCalibObjects) {
-    void** pSrc = (void**)&mNewCalibObjects;
-    void** pDst = (void**)&processors()->calibObjects;
-    for (unsigned int i = 0; i < sizeof(mNewCalibObjects) / sizeof(void*); i++) {
-      if (pSrc[i]) {
-        pDst[i] = pSrc[i];
-      }
-    }
-    if (mRec->IsGPU()) {
-      mRec->ResetRegisteredMemoryPointers(mFlatObjectsShadow.mMemoryResFlat);
-      UpdateGPUCalibObjects(0);
-    }
-  }
-  if ((mUpdateNewCalibObjects || mRec->slavesExist()) && mRec->IsGPU()) {
-    UpdateGPUCalibObjectsPtrs(0); // Reinitialize
-  }
-  mUpdateNewCalibObjects = false;
+  DoQueuedCalibUpdates(0);
 
   mRec->getGeneralStepTimer(GeneralStep::Prepare).Start();
   try {
@@ -731,24 +739,24 @@ int GPUChainTracking::RunChainFinalize()
       if (GetProcessingSettings().eventDisplay->EnableSendKey()) {
         iKey = kbhit() ? getch() : 0;
         if (iKey == 'q') {
-          GetProcessingSettings().eventDisplay->mDisplayControl = 2;
+          GetProcessingSettings().eventDisplay->setDisplayControl(2);
         } else if (iKey == 'n') {
           break;
         } else if (iKey) {
-          while (GetProcessingSettings().eventDisplay->mSendKey != 0) {
+          while (GetProcessingSettings().eventDisplay->getSendKey() != 0) {
             Sleep(1);
           }
-          GetProcessingSettings().eventDisplay->mSendKey = iKey;
+          GetProcessingSettings().eventDisplay->setSendKey(iKey);
         }
       }
-    } while (GetProcessingSettings().eventDisplay->mDisplayControl == 0);
-    if (GetProcessingSettings().eventDisplay->mDisplayControl == 2) {
+    } while (GetProcessingSettings().eventDisplay->getDisplayControl() == 0);
+    if (GetProcessingSettings().eventDisplay->getDisplayControl() == 2) {
       mDisplayRunning = false;
       GetProcessingSettings().eventDisplay->DisplayExit();
       ProcessingSettings().eventDisplay = nullptr;
       return (2);
     }
-    GetProcessingSettings().eventDisplay->mDisplayControl = 0;
+    GetProcessingSettings().eventDisplay->setDisplayControl(0);
     GPUInfo("Loading next event");
 
     mEventDisplay->WaitForNextEvent();

@@ -50,9 +50,21 @@ struct CCDBFetcherHelper {
   std::vector<OutputRoute> routes;
   std::map<int64_t, CCDBCacheInfo> cache;
   std::unordered_map<std::string, std::string> remappings;
+  size_t queryDownScaleRate = 1;
   o2::ccdb::CcdbApi& getAPI(const std::string& path)
   {
-    auto entry = remappings.find(path);
+    // find the first = sign in the string. If present drop everything after it
+    // and between it and the previous /.
+    auto pos = path.find('=');
+    if (pos == std::string::npos) {
+      auto entry = remappings.find(path);
+      return apis[entry == remappings.end() ? "" : entry->second];
+    }
+    auto pos2 = path.rfind('/', pos);
+    if (pos2 == std::string::npos || pos2 == pos - 1 || pos2 == 0) {
+      throw runtime_error_f("Malformed path %s", path.c_str());
+    }
+    auto entry = remappings.find(path.substr(0, pos2));
     return apis[entry == remappings.end() ? "" : entry->second];
   }
 };
@@ -161,10 +173,10 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
                        DataTakingContext& dtc,
                        DataAllocator& allocator) -> void
 {
-  // For Giulio: the dtc.orbitResetTime is wrong, it is assigned from the dph->creation, why?
   std::string ccdbMetadataPrefix = "ccdb-metadata-";
+  bool checkValidity = timingInfo.timeslice % helper->queryDownScaleRate == 0;
   for (auto& route : helper->routes) {
-    LOGP(info, "Fetching object for route {}", route.matcher);
+    LOGP(debug, "Fetching object for route {}", route.matcher);
 
     auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
     Output output{concrete.origin, concrete.description, concrete.subSpec, route.matcher.lifetime};
@@ -188,9 +200,11 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
     const auto url2uuid = helper->mapURL2UUID.find(path);
     if (url2uuid != helper->mapURL2UUID.end()) {
       etag = url2uuid->second;
+    } else {
+      checkValidity = true; // never skip check if the cache is empty
     }
     const auto& api = helper->getAPI(path);
-    if (!api.isSnapshotMode() || etag.empty()) { // in the snapshot mode the object needs to be fetched only once
+    if (checkValidity && (!api.isSnapshotMode() || etag.empty())) { // in the snapshot mode the object needs to be fetched only once
       api.loadFileToMemory(v, path, metadata, timestamp, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
       if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
         LOGP(fatal, "Unable to find object {}/{}", path, timingInfo.timeslice);
@@ -209,7 +223,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
         helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
         auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodCCDB);
         helper->mapURL2DPLCache[path] = cacheId;
-        LOGP(info, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
+        LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
         // one could modify the    adoptContainer to take optional old cacheID to clean:
         // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), true, mapURL2DPLCache[URL]);
         continue;
@@ -217,7 +231,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
     }
     // cached object is fine
     auto cacheId = helper->mapURL2DPLCache[path];
-    LOGP(info, "Reusing {} for {}", cacheId.value, path);
+    LOGP(debug, "Reusing {} for {}", cacheId.value, path);
     allocator.adoptFromCache(output, cacheId, header::gSerializationMethodCCDB);
     // the outputBuffer was not used, can we destroy it?
   }
@@ -228,9 +242,10 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
   return adaptStateful([](ConfigParamRegistry const& options, DeviceSpec const& spec) {
       std::shared_ptr<CCDBFetcherHelper> helper = std::make_shared<CCDBFetcherHelper>();
       std::unordered_map<std::string, bool> accountedSpecs;
-      auto backend = options.get<std::string>("condition-backend");
-      LOGP(info, "CCDB Backend at: {}", backend);
-      const auto& defHost = options.get<std::string>("condition-backend");
+      auto defHost = options.get<std::string>("condition-backend");
+      size_t checkRate = static_cast<size_t>(options.get<int64_t>("condition-tf-per-query"));
+      helper->queryDownScaleRate = checkRate > 0 ? checkRate : static_cast<size_t>(-1l);
+      LOGP(info, "CCDB Backend at: {}, validity check for every {} TF", defHost, helper->queryDownScaleRate);
       auto remapString = options.get<std::string>("condition-remap");
       ParserResult result = CCDBHelpers::parseRemappings(remapString.c_str());
       if (!result.error.empty()) {
@@ -270,6 +285,12 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
 
       return adaptStateless([helper](DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo) {
         static Long64_t orbitResetTime = -1;
+        static size_t lastTimeUsed = -1;
+        if (timingInfo.creation & DataProcessingHeader::DUMMY_CREATION_TIME_OFFSET) {
+          LOGP(error, "Dummy creation time is not supported for CCDB objects. Setting creation to last one used.");
+          timingInfo.creation = lastTimeUsed;
+        }
+        lastTimeUsed = timingInfo.creation;
         // Fetch the CCDB object for the CTP
         {
           // FIXME: this (the static) is needed because for now I cannot get
@@ -279,15 +300,19 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           std::map<std::string, std::string> metadata;
           std::map<std::string, std::string> headers;
           std::string etag;
+          bool checkValidity = timingInfo.timeslice % helper->queryDownScaleRate == 0;
           const auto url2uuid = helper->mapURL2UUID.find(path);
           if (url2uuid != helper->mapURL2UUID.end()) {
             etag = url2uuid->second;
+          } else {
+            checkValidity = true; // never skip check if the cache is empty
           }
+          LOG(debug) << "checkValidity = " << checkValidity << " for TF " << timingInfo.timeslice;
           Output output{"CTP", "OrbitReset", 0, Lifetime::Condition};
           Long64_t newOrbitResetTime = orbitResetTime;
           auto&& v = allocator.makeVector<char>(output);
           const auto& api = helper->getAPI(path);
-          if (!api.isSnapshotMode() || etag.empty()) { // in the snapshot mode the object needs to be fetched only once
+          if (checkValidity && (!api.isSnapshotMode() || etag.empty())) { // in the snapshot mode the object needs to be fetched only once
             api.loadFileToMemory(v, path, metadata, timingInfo.creation, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
             if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
               LOGP(fatal, "Unable to find object {}/{}", path, timingInfo.creation);
@@ -320,7 +345,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           // the outputBuffer was not used, can we destroy it?
 
           if (newOrbitResetTime != orbitResetTime) {
-            LOGP(info, "Orbit reset time now at {} (was {})",
+            LOGP(debug, "Orbit reset time now at {} (was {})",
                  newOrbitResetTime, orbitResetTime);
             orbitResetTime = newOrbitResetTime;
           }
@@ -328,7 +353,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
 
         int64_t timestamp = ceil((timingInfo.firstTFOrbit * o2::constants::lhc::LHCOrbitNS / 1000 + orbitResetTime) / 1000); // RS ceilf precision is not enough
         // Fetch the rest of the objects.
-        LOGP(info, "Fetching objects. Run: {}. OrbitResetTime: {}, Creation: {}, Timestamp: {}, firstTFOrbit: {}",
+        LOGP(debug, "Fetching objects. Run: {}. OrbitResetTime: {}, Creation: {}, Timestamp: {}, firstTFOrbit: {}",
              dtc.runNumber, orbitResetTime, timingInfo.creation, timestamp, timingInfo.firstTFOrbit);
 
         populateCacheWith(helper, timestamp, timingInfo, dtc, allocator);

@@ -43,7 +43,7 @@ float ZDCEnergyParam::getEnergyCalib(uint32_t ich) const
   }
 }
 
-void ZDCEnergyParam::print()
+void ZDCEnergyParam::print() const
 {
   for (Int_t ich = 0; ich < NChannels; ich++) {
     if (energy_calib[ich] > 0) {

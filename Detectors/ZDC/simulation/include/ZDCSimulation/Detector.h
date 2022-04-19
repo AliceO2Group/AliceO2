@@ -22,6 +22,10 @@
 #include "ZDCSimulation/SpatialPhotonResponse.h"
 #include "TParticle.h"
 #include <utility>
+#ifdef ZDC_FASTSIM_ONNX
+#include "FastSimulations.h" // for fastsim module
+#include "Processors.h"      // for fastsim module
+#endif
 
 class FairVolume;
 
@@ -52,7 +56,13 @@ class Detector : public o2::base::DetImpl<Detector>
 
   Detector(Bool_t active = true);
 
+// if building fastsim non trivial destructor is required
+#ifdef ZDC_FASTSIM_ONNX
+  ~Detector() override;
+#endif
+#ifndef ZDC_FASTSIM_ONNX
   ~Detector() override = default;
+#endif
 
   void InitializeO2Detector() final;
 
@@ -214,6 +224,23 @@ class Detector : public o2::base::DetImpl<Detector>
 
   ParticlePhotonResponse mResponses;
   ParticlePhotonResponse* mResponsesPtr = &mResponses;
+
+// fastsim model wrapper
+#ifdef ZDC_FASTSIM_ONNX
+  fastsim::NeuralFastSimulation* mFastSimClassifier = nullptr;
+  fastsim::NeuralFastSimulation* mFastSimModel = nullptr;
+
+  // Scalers for models inputs
+  fastsim::processors::StandardScaler mClassifierScaler;
+  fastsim::processors::StandardScaler mModelScaler;
+
+  // Noise vector - will be generate once for whole simulation
+  std::vector<float> mNoise;
+
+  // container for fastsim model responses
+  using FastSimResults = std::vector<std::array<long, 5>>;
+  FastSimResults mFastSimResults;
+#endif
 
   template <typename Det>
   friend class o2::base::DetImpl;

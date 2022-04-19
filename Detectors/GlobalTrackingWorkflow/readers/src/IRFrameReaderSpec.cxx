@@ -17,31 +17,31 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
-#include "ITSWorkflow/IRFrameReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/IRFrameReaderSpec.h"
 #include "CommonDataFormat/IRFrame.h"
 #include "CommonUtils/StringUtils.h"
 #include "TFile.h"
 #include "TTree.h"
 
 using namespace o2::framework;
-using namespace o2::its;
 
 namespace o2
 {
-namespace its
+namespace globaltracking
 {
 
 class IRFrameReaderSpec : public o2::framework::Task
 {
  public:
-  IRFrameReaderSpec() = default;
+  IRFrameReaderSpec(o2::header::DataOrigin origin, uint32_t subSpec) : mDataOrigin(origin), mSubSpec(subSpec) {}
   ~IRFrameReaderSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
 
  protected:
   void connectTree(const std::string& filename);
-
+  o2::header::DataOrigin mDataOrigin = o2::header::gDataOriginInvalid;
+  uint32_t mSubSpec = 0;
   std::vector<o2::dataformats::IRFrame> mIRF, *mIRFInp = &mIRF;
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
@@ -53,7 +53,7 @@ class IRFrameReaderSpec : public o2::framework::Task
 void IRFrameReaderSpec::init(InitContext& ic)
 {
   mInputFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
-                                                 ic.options().get<std::string>("its-irframe-infile"));
+                                                 ic.options().get<std::string>("irframe-infile"));
   connectTree(mInputFileName);
 }
 
@@ -62,8 +62,8 @@ void IRFrameReaderSpec::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(info) << "Pushing " << mIRF.size() << " IR-frames in at entry " << ent;
-  pc.outputs().snapshot(Output{"ITS", "IRFRAMES", 0, Lifetime::Timeframe}, mIRF);
+  LOG(debug) << "Pushing " << mIRF.size() << " IR-frames in at entry " << ent;
+  pc.outputs().snapshot(Output{mDataOrigin, "IRFRAMES", mSubSpec, Lifetime::Timeframe}, mIRF);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
@@ -84,19 +84,19 @@ void IRFrameReaderSpec::connectTree(const std::string& filename)
   LOG(info) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
-DataProcessorSpec getIRFrameReaderSpec()
+DataProcessorSpec getIRFrameReaderSpec(o2::header::DataOrigin origin, uint32_t subSpec, const std::string& devName, const std::string& defFileName)
 {
   std::vector<OutputSpec> outputSpec;
 
   return DataProcessorSpec{
-    "its-irframe-reader",
+    devName,
     Inputs{},
-    Outputs{{"ITS", "IRFRAMES", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<IRFrameReaderSpec>()},
+    Outputs{{origin, "IRFRAMES", subSpec, Lifetime::Timeframe}},
+    AlgorithmSpec{adaptFromTask<IRFrameReaderSpec>(origin, subSpec)},
     Options{
-      {"its-irframe-infile", VariantType::String, "o2_its_irframe.root", {"Name of the input IRFrames file"}},
+      {"irframe-infile", VariantType::String, defFileName, {"Name of the input IRFrames file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
-} // namespace its
+} // namespace globaltracking
 } // namespace o2

@@ -33,4 +33,7 @@
 #pragma link C++ struct o2::conf::G4Params + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::conf::G4Params> + ;
 
+#pragma link C++ struct o2::conf::MatMapParams + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::conf::MatMapParams> + ;
+
 #endif

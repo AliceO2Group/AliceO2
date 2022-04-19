@@ -58,14 +58,14 @@ class CalibratorPadGainTracksDevice : public Task
 
   void run(ProcessingContext& pc) final
   {
-    const auto tfcounter = o2::header::get<DataProcessingHeader*>(pc.inputs().get("gainhistos").header)->startTime;
     const auto histomaps = pc.inputs().get<CalibPadGainTracksBase::DataTHistos*>("gainhistos");
-    mCalibrator->process(tfcounter, *histomaps.get());
+    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
+    mCalibrator->process(*histomaps.get());
     const auto& infoVec = mCalibrator->getTFinterval();
-    LOGP(info, "Created {} objects for TF {}", infoVec.size(), tfcounter);
+    LOGP(info, "Created {} objects for TF {}", infoVec.size(), mCalibrator->getCurrentTFInfo().tfCounter);
 
     if (mCalibrator->hasCalibrationData()) {
-      mRunNumber = processing_helpers::getRunNumber(pc);
+      mRunNumber = mCalibrator->getCurrentTFInfo().runNumber;
       sendOutput(pc.outputs());
     }
   }
