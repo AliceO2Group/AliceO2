@@ -52,15 +52,16 @@ class TrackerDeviceDPL
       o2::base::GeometryManager::loadGeometry();
     }
 
+    auto keepAll = !ic.options().get<bool>("mid-tracker-keep-best");
+
     auto geoTrans = createTransformationFromManager(gGeoManager);
 
     mTracker = std::make_unique<Tracker>(geoTrans);
-
-    mHitMapBuilder = std::make_unique<HitMapBuilder>(geoTrans);
-
-    if (!mTracker->init(true)) {
+    if (!mTracker->init(keepAll)) {
       LOG(error) << "Initialization of MID tracker device failed";
     }
+
+    mHitMapBuilder = std::make_unique<HitMapBuilder>(geoTrans);
 
     auto stop = [this]() {
       LOG(info) << "Capacities: ROFRecords: " << mTracker->getTrackROFRecords().capacity() << "  tracks: " << mTracker->getTracks().capacity() << "  clusters: " << mTracker->getClusters().capacity();
@@ -143,7 +144,7 @@ framework::DataProcessorSpec getTrackerSpec(bool isMC)
     {inputSpecs},
     {outputSpecs},
     of::adaptFromTask<o2::mid::TrackerDeviceDPL>(isMC),
-    of::Options{}};
+    of::Options{{"mid-tracker-keep-best", of::VariantType::Bool, false, {"Keep only best track (default is keep all)"}}}};
 }
 } // namespace mid
 } // namespace o2
