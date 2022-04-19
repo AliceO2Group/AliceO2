@@ -235,7 +235,7 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   auto& timingInfo = pc.services().get<TimingInfo>();
   timingInfo.firstTFOrbit = ctfHeader.firstTForbit;
   timingInfo.creation = ctfHeader.creationTime;
-  timingInfo.tfCounter = mCTFCounter;
+  timingInfo.tfCounter = ctfHeader.tfCounter;
   timingInfo.runNumber = ctfHeader.run;
 
   // send CTF Header
