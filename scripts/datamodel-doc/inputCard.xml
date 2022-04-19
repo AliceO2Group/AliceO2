@@ -112,13 +112,13 @@
           o2::aod::V0s, o2::aod::TransientV0s, o2::aod::StoredV0s, o2::aod::Cascades, o2::aod::TransientCascades, o2::aod::StoredCascades
         </category>
         <category name="Indices">
-          o2::aod::Run3MatchedExclusive, o2::aod::Run3MatchedSparse, o2::aod::MatchedBCCollisionsExclusive, o2::aod::MatchedBCCollisionsSparse, o2::aod::Run3MatchedToBCExclusive, o2::aod::Run3MatchedToBCSparse
+          o2::aod::Run3MatchedExclusive, o2::aod::Run3MatchedSparse, o2::aod::MatchedBCCollisionsExclusive, o2::aod::MatchedBCCollisionsSparse, o2::aod::Run3MatchedToBCExclusive, o2::aod::Run3MatchedToBCSparse, o2::aod::Run3MatchedToBCSparseFDD_001
         </category>
         <category name="MonteCarlo">
           o2::aod::McCollisions, o2::aod::McParticles, o2::aod::StoredMcParticles, o2::aod::McTrackLabels, o2::aod::McMFTTrackLabels, o2::aod::McFwdTrackLabels, o2::aod::McCaloLabels, o2::aod::McCollisionLabels
         </category>
         <category name="Run2">
-          o2::aod::Run2BCInfos, o2::aod::Run2MatchedExclusive, o2::aod::Run2MatchedSparse, o2::aod::Run2MatchedToBCSparse
+          o2::aod::Run2BCInfos, o2::aod::Run2MatchedExclusive, o2::aod::Run2MatchedSparse, o2::aod::Run2MatchedToBCSparse, o2::aod::Run2MatchedToBCSparseFDD_001
         </category>
       </categories>
       
