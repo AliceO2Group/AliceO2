@@ -10,19 +10,20 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(DataFormatsFDD
-               SOURCES  src/RawEventData.cxx
-                        src/CTF.cxx
-               PUBLIC_LINK_LIBRARIES O2::FDDBase
-                                     O2::DataFormatsFIT
-                                     O2::CommonDataFormat
-                                     O2::SimulationDataFormat)
+  SOURCES src/RawEventData.cxx
+          src/CTF.cxx
+  PUBLIC_LINK_LIBRARIES O2::FDDBase
+                        O2::DataFormatsFIT
+                        O2::SimulationDataFormat
+                        O2::CommonDataFormat
+)
 
 o2_target_root_dictionary(DataFormatsFDD
-                          HEADERS include/DataFormatsFDD/Digit.h
-                                  include/DataFormatsFDD/ChannelData.h
-                                  include/DataFormatsFDD/RecPoint.h
-                                  include/DataFormatsFDD/MCLabel.h
-                                  include/DataFormatsFDD/Hit.h
-                                  include/DataFormatsFDD/RawEventData.h
-                                  include/DataFormatsFDD/LookUpTable.h
-                                  include/DataFormatsFDD/CTF.h)
+  HEADERS include/DataFormatsFDD/ChannelData.h
+          include/DataFormatsFDD/Digit.h
+          include/DataFormatsFDD/MCLabel.h
+          include/DataFormatsFDD/Hit.h
+          include/DataFormatsFDD/RecPoint.h
+          include/DataFormatsFDD/RawEventData.h
+          include/DataFormatsFDD/LookUpTable.h
+          include/DataFormatsFDD/CTF.h)

@@ -101,6 +101,8 @@ void Config()
   std::cout << "PhysicsSetup wanted " << physicsSetup << "\n";
   auto runConfiguration = new TG4RunConfiguration("geomRoot", physicsSetup, "stepLimiter+specialCuts",
                                                   specialStacking, mtMode);
+  /// avoid the use of G4BACKTRACE (it seems to inferfere with process logic in o2-sim)
+  setenv("G4BACKTRACE", "none", 1);
 
   /// Create the G4 VMC
   TGeant4* geant4 = new TGeant4("TGeant4", "The Geant4 Monte Carlo", runConfiguration);

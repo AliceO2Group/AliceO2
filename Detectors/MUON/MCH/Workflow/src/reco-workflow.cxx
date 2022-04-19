@@ -15,6 +15,7 @@
 #include "DigitFilteringSpec.h"
 #include "DigitReaderSpec.h"
 #include "Framework/CallbacksPolicy.h"
+#include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/Logger.h"
 #include "Framework/Variant.h"
@@ -28,14 +29,17 @@
 #include "TrackFitterSpec.h"
 #include "TrackMCLabelFinderSpec.h"
 
-using o2::framework::ConfigContext;
-using o2::framework::ConfigParamSpec;
-using o2::framework::VariantType;
-using o2::framework::WorkflowSpec;
+using namespace o2::framework;
 
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
   o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
+
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:MCH|mch).*[W,w]riter.*"));
 }
 
 void customize(std::vector<ConfigParamSpec>& workflowOptions)

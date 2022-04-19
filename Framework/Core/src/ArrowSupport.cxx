@@ -417,6 +417,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
       auto writer = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-writer"; });
       std::vector<InputSpec> requestedAODs;
       std::vector<InputSpec> requestedDYNs;
+      std::vector<OutputSpec> providedDYNs;
 
       if (builder != workflow.end()) {
         // collect currently requested IDXs
@@ -453,6 +454,11 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
               DataSpecUtils::updateInputList(requestedDYNs, std::move(copy));
             }
           }
+          for (auto const& o : d.outputs) {
+            if (DataSpecUtils::partialMatch(o, header::DataOrigin{"DYN"})) {
+              providedDYNs.emplace_back(o);
+            }
+          }
         }
         // recreate inputs and outputs
         spawner->outputs.clear();
@@ -460,7 +466,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         // replace AlgorithmSpec
         // FIXME: it should be made more generic, so it does not need replacement...
         spawner->algorithm = readers::AODReaderHelpers::aodSpawnerCallback(requestedDYNs);
-        WorkflowHelpers::addMissingOutputsToSpawner(requestedDYNs, requestedAODs, *spawner);
+        WorkflowHelpers::addMissingOutputsToSpawner(providedDYNs, requestedDYNs, requestedAODs, *spawner);
       }
 
       if (writer != workflow.end()) {

@@ -49,10 +49,10 @@ class VdAndExBCalibDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
     auto data = pc.inputs().get<o2::trd::AngularResidHistos>("input");
-    LOG(info) << "Processing TF " << tfcounter << " with " << data.getNEntries() << " AngularResidHistos entries";
-    mCalibrator->process(tfcounter, data);
+    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
+    LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.getNEntries() << " AngularResidHistos entries";
+    mCalibrator->process(data);
     sendOutput(pc.outputs());
   }
 

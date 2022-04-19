@@ -11,6 +11,7 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicy.h"
+#include "Framework/CompletionPolicyHelpers.h"
 #include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
@@ -63,6 +64,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   policies.push_back(o2::tpc::TPCSectorCompletionPolicy("cosmics-matcher",
                                                         o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll,
                                                         InputSpec{"cluster", o2::framework::ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}})());
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*cosm.*[W,w]riter.*"));
 }
 
 // ------------------------------------------------------------------

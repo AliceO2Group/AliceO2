@@ -16,6 +16,7 @@
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/ConfigContext.h"
+#include "Framework/CompletionPolicyHelpers.h"
 
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
@@ -27,6 +28,13 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
   o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
+
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:ITS|its).*[W,w]riter.*"));
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*irframe-writer.*"));
 }
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)

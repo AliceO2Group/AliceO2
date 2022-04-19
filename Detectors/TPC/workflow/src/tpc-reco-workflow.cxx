@@ -97,12 +97,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   policies.push_back(CompletionPolicyHelpers::defineByName("tpc-cluster-decoder.*", CompletionPolicy::CompletionOp::Consume));
   policies.push_back(CompletionPolicyHelpers::defineByName("tpc-clusterer.*", CompletionPolicy::CompletionOp::Consume));
   // ordered policies for the writers
-  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered("tpc-digits-writer.*"));
-  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered("tpc-clusterhardware-writer.*"));
-  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered("tpc-native-cluster-writer.*"));
-  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered("tpc-track-writer.*"));
-  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered("tpc-compcluster-writer.*"));
-
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:TPC|tpc).*[w,W]riter.*"));
   // the custom completion policy for the tracker
   policies.push_back(o2::tpc::TPCSectorCompletionPolicy("tpc-tracker.*", o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll, &gPolicyData, &gTpcSectorMask)());
 }

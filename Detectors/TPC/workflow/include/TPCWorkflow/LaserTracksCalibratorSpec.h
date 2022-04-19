@@ -49,14 +49,12 @@ class LaserTracksCalibratorDevice : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final
   {
     const auto dph = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("laserTracks").header);
-    const auto startTime = dph->startTime;
-    const auto endTime = dph->startTime + dph->duration - 1;
 
+    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
     auto data = pc.inputs().get<gsl::span<TrackTPC>>("laserTracks");
-    LOGP(info, "Processing TF with start time {} and {} tracks", startTime, data.size());
+    LOGP(info, "Processing TF {} and {} tracks", mCalibrator->getCurrentTFInfo().tfCounter, data.size());
 
-    mCalibrator->getSlotForTF(startTime).getContainer()->setTFtimes(startTime, endTime);
-    mCalibrator->process(startTime, data);
+    mCalibrator->process(data);
 
     if (mCalibrator->hasCalibrationData()) {
       sendOutput(pc.outputs());

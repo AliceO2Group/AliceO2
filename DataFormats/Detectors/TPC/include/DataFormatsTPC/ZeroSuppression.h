@@ -33,11 +33,21 @@ struct TPCZSHDR {
   static constexpr unsigned int TPC_ZS_NBITS_V1 = 10;
   static constexpr unsigned int TPC_ZS_NBITS_V2 = 12;
 
-  unsigned char version;
-  unsigned char nTimeBins;
-  unsigned short cruID;
-  unsigned short timeOffset;
-  unsigned short nADCsamples;
+  unsigned char version; // ZS format version:
+                         // 1: original row-based format with 10-bit ADC values
+                         // 2: original row-based format with 12-bit ADC values
+                         // 3: improved link-based format with extra META header
+  unsigned char nTimeBins;    // Number of time bins in this raw page
+  unsigned short cruID;       // CRU id
+  unsigned short timeOffset;  // Time offset in BC after orbit in RDH
+  unsigned short nADCsamples; // Total number of ADC samples in this raw page
+};
+struct TPCZSHDRV2 : public TPCZSHDR {
+  static constexpr unsigned int TPC_ZS_NBITS_V3 = 12;
+  unsigned short magicWord;         // Magic word
+  unsigned short firstZSDataOffset; // Offset (after the TPCZSHDRV2 header) in 128bit words to first ZS data (in between can be trigger words, etc.)
+  unsigned short nTimebinHeaders;   // Number of timebin headers
+  unsigned short reserved;          // 16 reserved bits, header is 128 bit
 };
 struct TPCZSTBHDR {
   unsigned short rowMask;

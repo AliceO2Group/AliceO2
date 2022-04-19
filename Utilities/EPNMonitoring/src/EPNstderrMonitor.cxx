@@ -42,6 +42,7 @@ struct fileMon {
   std::string name;
   unsigned int nLines = 0;
   unsigned int nBytes = 0;
+  bool stopped = false;
 
   fileMon(const std::string& path, const std::string& filename);
 };
@@ -166,6 +167,9 @@ void EPNMonitor::thread()
       std::string line;
       for (auto fit = mFiles.begin(); fit != mFiles.end(); fit++) {
         auto& f = fit->second;
+        if (f.stopped) {
+          continue;
+        }
         auto& file = f.file;
         file.clear();
         do {
@@ -187,7 +191,7 @@ void EPNMonitor::thread()
             nBytes += line.size();
             if (f.nLines >= MAX_LINES_FILE || f.nBytes >= MAX_BYTES_FILE) {
               sendLog(f.name, "Exceeded log size for process " + f.name + " (" + std::to_string(f.nLines) + " lines, " + std::to_string(f.nBytes) + " bytes), not reporting any more errors from this file...");
-              fit = mFiles.erase(fit);
+              f.stopped = true;
               break;
             }
             if (nLines >= MAX_LINES_TOTAL || nBytes >= MAX_BYTES_TOTAL) {

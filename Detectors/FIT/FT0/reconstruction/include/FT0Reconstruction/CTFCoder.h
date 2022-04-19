@@ -155,14 +155,13 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
     } else {
       ir.bc += cd.bcInc[idig];
     }
-    Triggers trig;
-    trig.triggersignals = cd.trigger[idig];
     const auto& params = FT0DigParam::Instance();
     int triggerGate = params.mTime_trg_gate;
     firstEntry = channelVec.size();
     uint8_t chID = 0;
-    int amplA = 0, amplC = 0, timeA = 0, timeC = 0;
-
+    int8_t nChanA = 0, nChanC = 0;
+    int32_t amplA = 0, amplC = 0;
+    int16_t timeA = 0, timeC = 0;
     for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
       auto icc = channelVec.size();
       const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.cfdTime[icc], cd.qtcAmpl[icc], cd.qtcChain[icc]);
@@ -170,23 +169,30 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
         if (chan.ChId < 4 * uint8_t(Geometry::NCellsA)) { // A side
           amplA += chan.QTCAmpl;
           timeA += chan.CFDTime;
-          trig.nChanA++;
-
+          nChanA++;
         } else {
           amplC += chan.QTCAmpl;
           timeC += chan.CFDTime;
-          trig.nChanC++;
+          nChanC++;
         }
       }
     }
-    if (trig.nChanA) {
-      trig.timeA = timeA / trig.nChanA;
-      trig.amplA = amplA / 8;
+    if (nChanA) {
+      timeA /= nChanA;
+      amplA *= 0.125;
+    } else {
+      timeA = Triggers::DEFAULT_TIME;
+      amplA = Triggers::DEFAULT_AMP;
     }
-    if (trig.nChanC) {
-      trig.timeC = timeC / trig.nChanC;
-      trig.amplC = amplC / 8;
+    if (nChanC) {
+      timeC /= nChanC;
+      amplC *= 0.125;
+    } else {
+      timeC = Triggers::DEFAULT_TIME;
+      amplC = Triggers::DEFAULT_AMP;
     }
+    Triggers trig;
+    trig.setTriggers(cd.trigger[idig], nChanA, nChanC, amplA, amplC, timeA, timeC);
     auto& d = digitVec.emplace_back(firstEntry, cd.nChan[idig], ir, trig, idig);
     d.setEventStatus(cd.eventStatus[idig]);
   }

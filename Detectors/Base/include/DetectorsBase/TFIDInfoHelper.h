@@ -9,6 +9,26 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DetectorsCalibration/TimeSlotCalibration.h"
+#ifndef _BASE_TFIDINFOHELPER_H_
+#define _BASE_TFIDINFOHELPER_H_
 
-using namespace o2::calibration;
+#include "CommonDataFormat/TFIDInfo.h"
+
+namespace o2
+{
+namespace framework
+{
+class ProcessingContext;
+}
+
+namespace base
+{
+
+struct TFIDInfoHelper {
+  static void fillTFIDInfo(o2::framework::ProcessingContext& pc, o2::dataformats::TFIDInfo& ti);
+};
+
+} // namespace base
+} // namespace o2
+
+#endif

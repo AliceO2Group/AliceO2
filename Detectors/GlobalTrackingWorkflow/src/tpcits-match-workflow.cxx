@@ -22,6 +22,7 @@
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/ConfigContext.h"
+#include "Framework/CompletionPolicyHelpers.h"
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
@@ -55,6 +56,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   policies.push_back(o2::tpc::TPCSectorCompletionPolicy("itstpc-track-matcher",
                                                         o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll,
                                                         o2::framework::InputSpec{"cluster", o2::framework::ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}})());
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*itstpc-track-writer.*"));
 }
 
 // ------------------------------------------------------------------

@@ -74,17 +74,9 @@ void FIT_CALIBRATION_DEVICE_TYPE::init(o2::framework::InitContext& context)
 FIT_CALIBRATION_DEVICE_TEMPLATES
 void FIT_CALIBRATION_DEVICE_TYPE::run(o2::framework::ProcessingContext& context)
 {
-  auto TFCounter = o2::header::get<o2::framework::DataProcessingHeader*>(context.inputs().get(mInputDataLabel).header)->startTime;
   auto data = context.inputs().get<gsl::span<InputCalibrationInfoType>>(mInputDataLabel);
-  const auto ref = context.inputs().getFirstValid(true);
-  auto tfOrbitFirst =
-    o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref)->firstTForbit;
-  auto creationTime =
-    o2::framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(ref)->creation;
-  mCalibrator->process(TFCounter, data);
-  auto& slot = mCalibrator->getSlotForTF(TFCounter);
-  auto* container = slot.getContainer();
-  LOG(debug) << "@@@ calibrator::run tfOrbitFirst " << tfOrbitFirst << " creationTime " << creationTime << " tf " << slot.getTFStart() << "-" << slot.getTFEnd();
+  o2::base::TFIDInfoHelper::fillTFIDInfo(context, mCalibrator->getCurrentTFInfo());
+  mCalibrator->process(data);
 
   _sendCalibrationObjectIfSlotFinalized(context.outputs());
 }
