@@ -67,6 +67,9 @@ class TimeFrameGPU : public TimeFrame
   int* getDeviceExclusiveNFoundLines(const int rofId);
   int* getDeviceCUBBuffer(const size_t rofId);
   float* getDeviceXYCentroids(const int rofId);
+  int* getDeviceXHistograms(const int rofId);
+  int* getDeviceYHistograms(const int rofId);
+  int* getDeviceZHistograms(const int rofId);
 
  private:
   TimeFrameGPUConfig mConfig;
@@ -89,13 +92,14 @@ class TimeFrameGPU : public TimeFrame
   Vector<unsigned char> mUsedTracklets;
   Vector<float> mXYCentroids;
   std::array<Vector<int>, 2> mNTrackletsPerClusterD;
+  std::array<Vector<int>, 3> mXYZHistograms;
 };
 
 template <int NLayers>
 inline Cluster* TimeFrameGPU<NLayers>::getDeviceClustersOnLayer(const int rofId, const int layerId) const
 {
   if (rofId < 0 || rofId >= mNrof) {
-    std::cout << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr" << std::endl;
+    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
     return nullptr;
   }
   return mClustersD[layerId].get() + mROframesClusters[layerId][rofId];
@@ -105,7 +109,7 @@ template <int NLayers>
 inline int TimeFrameGPU<NLayers>::getNClustersLayer(const int rofId, const int layerId) const
 {
   if (rofId < 0 || rofId >= mNrof) {
-    std::cout << "Invalid rofId: " << rofId << "/" << mNrof << ", returning 0 as value" << std::endl;
+    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning 0 as value";
     return 0;
   }
   return static_cast<int>(mROframesClusters[layerId][rofId + 1] - mROframesClusters[layerId][rofId]);
@@ -115,7 +119,7 @@ template <int NLayers>
 inline int* TimeFrameGPU<NLayers>::getDeviceNTrackletsCluster(int rofId, int combId)
 {
   if (rofId < 0 || rofId >= mNrof) {
-    std::cout << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr" << std::endl;
+    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
     return nullptr;
   }
   return mNTrackletsPerClusterD[combId].get() + mROframesClusters[1][rofId];
@@ -125,7 +129,7 @@ template <int NLayers>
 inline unsigned char* TimeFrameGPU<NLayers>::getDeviceUsedTracklets(const int rofId)
 {
   if (rofId < 0 || rofId >= mNrof) {
-    std::cout << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr" << std::endl;
+    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
     return nullptr;
   }
   return mUsedTracklets.get() + mROframesClusters[1][rofId];
@@ -135,7 +139,7 @@ template <int NLayers>
 inline Line* TimeFrameGPU<NLayers>::getDeviceLines(const int rofId)
 {
   if (rofId < 0 || rofId >= mNrof) {
-    std::cout << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr" << std::endl;
+    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
     return nullptr;
   }
   return mLines.get() + mROframesClusters[1][rofId];
@@ -145,7 +149,7 @@ template <int NLayers>
 inline int* TimeFrameGPU<NLayers>::getDeviceNFoundLines(const int rofId)
 {
   if (rofId < 0 || rofId >= mNrof) {
-    std::cout << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr" << std::endl;
+    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
     return nullptr;
   }
   return mNFoundLines.get() + mROframesClusters[1][rofId];
@@ -155,7 +159,7 @@ template <int NLayers>
 inline int* TimeFrameGPU<NLayers>::getDeviceExclusiveNFoundLines(const int rofId)
 {
   if (rofId < 0 || rofId >= mNrof) {
-    std::cout << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr" << std::endl;
+    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
     return nullptr;
   }
   return mNExclusiveFoundLines.get() + mROframesClusters[1][rofId];
@@ -165,7 +169,7 @@ template <int NLayers>
 inline int* TimeFrameGPU<NLayers>::getDeviceCUBBuffer(const size_t rofId)
 {
   if (rofId >= mNrof) {
-    std::cout << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr" << std::endl;
+    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
   }
   return reinterpret_cast<int*>(reinterpret_cast<char*>(mCUBTmpBuffers) + (static_cast<size_t>(rofId * mConfig.tmpCUBBufferSize) & 0xFFFFFFFFFFFFF000));
 }
@@ -174,11 +178,42 @@ template <int NLayers>
 inline float* TimeFrameGPU<NLayers>::getDeviceXYCentroids(const int rofId)
 {
   if (rofId < 0 || rofId >= mNrof) {
-    std::cout << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr" << std::endl;
+    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
     return nullptr;
   }
   return mXYCentroids.get() + 2 * rofId * mConfig.maxCentroidsXYCapacity;
 }
+
+template <int NLayers>
+inline int* TimeFrameGPU<NLayers>::getDeviceXHistograms(const int rofId)
+{
+  if (rofId < 0 || rofId >= mNrof) {
+    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
+    return nullptr;
+  }
+  return mXYZHistograms[0].get() + rofId * mConfig.histConf.nBinsXYZ[0];
+}
+
+template <int NLayers>
+inline int* TimeFrameGPU<NLayers>::getDeviceYHistograms(const int rofId)
+{
+  if (rofId < 0 || rofId >= mNrof) {
+    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
+    return nullptr;
+  }
+  return mXYZHistograms[1].get() + rofId * mConfig.histConf.nBinsXYZ[1];
+}
+
+template <int NLayers>
+inline int* TimeFrameGPU<NLayers>::getDeviceZHistograms(const int rofId)
+{
+  if (rofId < 0 || rofId >= mNrof) {
+    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
+    return nullptr;
+  }
+  return mXYZHistograms[2].get() + rofId * mConfig.histConf.nBinsXYZ[2];
+}
+
 } // namespace gpu
 } // namespace its
 } // namespace o2

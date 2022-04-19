@@ -64,6 +64,9 @@ TimeFrameGPU<NLayers>::TimeFrameGPU()
   mUsedTracklets = Vector<unsigned char>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
   discardResult(cudaMalloc(&mCUBTmpBuffers, mConfig.nMaxROFs * mConfig.tmpCUBBufferSize));
   mXYCentroids = Vector<float>{2 * mConfig.nMaxROFs * mConfig.maxCentroidsXYCapacity, 2 * mConfig.nMaxROFs * mConfig.maxCentroidsXYCapacity};
+  for (size_t i{0}; i < 3; ++i) {
+    mXYZHistograms[i] = Vector<int>{mConfig.nMaxROFs * mConfig.histConf.nBinsXYZ[i], mConfig.nMaxROFs * mConfig.histConf.nBinsXYZ[i]};
+  }
 }
 
 template <int NLayers>
@@ -83,6 +86,9 @@ float TimeFrameGPU<NLayers>::getDeviceMemory()
   totalMemory += mConfig.trackletsCapacity * sizeof(unsigned char);
   totalMemory += mConfig.nMaxROFs * mConfig.tmpCUBBufferSize * sizeof(int);
   totalMemory += 2 * mConfig.nMaxROFs * mConfig.maxCentroidsXYCapacity * sizeof(float);
+  for (size_t i{0}; i < 3; ++i) {
+    totalMemory += mConfig.nMaxROFs * mConfig.histConf.nBinsXYZ[i] * sizeof(float);
+  }
 
   LOGP(info, "Total requested memory for GPU: {:.2f} MB", totalMemory / MB);
   LOGP(info, "\t- Clusters: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(Cluster) / MB);
@@ -98,6 +104,8 @@ float TimeFrameGPU<NLayers>::getDeviceMemory()
   LOGP(info, "\t- Used tracklets: {:.2f} MB", mConfig.trackletsCapacity * sizeof(unsigned char) / MB);
   LOGP(info, "\t- CUB tmp buffers: {:.2f} MB", mConfig.nMaxROFs * mConfig.tmpCUBBufferSize / MB);
   LOGP(info, "\t- XY centroids: {:.2f} MB", 2 * mConfig.nMaxROFs * mConfig.maxCentroidsXYCapacity * sizeof(float) / MB);
+  LOGP(info, "\t- XY histograms: {:.2f} MB", 2 * mConfig.nMaxROFs * mConfig.histConf.nBinsXYZ[0] * sizeof(int) / MB);
+  LOGP(info, "\t- Z histograms: {:.2f} MB", mConfig.nMaxROFs * mConfig.histConf.nBinsXYZ[2] * sizeof(int) / MB);
 
   return totalMemory;
 }
