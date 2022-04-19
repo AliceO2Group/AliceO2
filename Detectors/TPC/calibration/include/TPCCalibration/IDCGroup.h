@@ -104,15 +104,6 @@ class IDCGroup : public IDCGroupHelperRegion
   /// \param filename name of the output file. If empty the canvas is drawn.
   void draw(const unsigned int integrationInterval = 0, const std::string filename = "IDCsGrouped.pdf") const;
 
-  /// calculate and return 1D-IDCs for this CRU
-  std::vector<float> get1DIDCs() const;
-
-  /// calculate and return 1D-IDCs for ungrouped IDCs
-  /// \param idc vector containing the ungrouped IDCs for one region
-  /// \param cru cru index
-  /// \param flagMap map which can be used to exclude pads during calculation of the 1D-IDCs
-  static std::vector<float> get1DIDCsUngrouped(const std::vector<float> idc, const unsigned short cru, const CalDet<PadFlags>* flagMap = nullptr);
-
   /// \return returns cru
   unsigned short getCRU() const { return mCRU; }
 

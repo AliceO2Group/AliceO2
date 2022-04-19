@@ -48,8 +48,8 @@ struct IDCDelta;
  TODO add drawing of 1D-distributions
 */
 
-/// \tparam DataT the data type for the IDCDelta which are stored in the CCDB (short, char, float)
-template <typename DataT = short>
+/// \tparam DataT the data type for the IDCDelta which are stored in the CCDB (unsigned short, unsigned char, float)
+template <typename DataT = unsigned short>
 class IDCCCDBHelper
 {
  public:

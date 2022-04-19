@@ -169,5 +169,5 @@ void o2::tpc::IDCCCDBHelper<DataT>::dumpToTree(int integrationIntervals, const c
 }
 
 template class o2::tpc::IDCCCDBHelper<float>;
-template class o2::tpc::IDCCCDBHelper<short>;
-template class o2::tpc::IDCCCDBHelper<char>;
+template class o2::tpc::IDCCCDBHelper<unsigned short>;
+template class o2::tpc::IDCCCDBHelper<unsigned char>;
