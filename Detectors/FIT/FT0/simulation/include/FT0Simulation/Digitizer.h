@@ -21,7 +21,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "FT0Simulation/DigitizationConstants.h"
 #include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
-#include "FT0Simulation/FT0DigParam.h"
+#include "FT0Base/FT0DigParam.h"
 #include "MathUtils/RandomRing.h"
 #include <array>
 #include <bitset>

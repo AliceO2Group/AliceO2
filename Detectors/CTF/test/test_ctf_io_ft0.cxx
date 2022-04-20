@@ -15,7 +15,7 @@
 #include <boost/test/unit_test.hpp>
 #include "CommonUtils/NameConf.h"
 #include "FT0Reconstruction/CTFCoder.h"
-#include "FT0Simulation/FT0DigParam.h"
+#include "FT0Base/FT0DigParam.h"
 #include "Framework/Logger.h"
 #include <TFile.h>
 #include <TRandom.h>

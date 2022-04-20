@@ -18,6 +18,5 @@
 #pragma link C++ class o2::ft0::Detector + ;
 #pragma link C++ class o2::base::DetImpl < o2::ft0::Detector> + ;
 #pragma link C++ class o2::ft0::Digitizer + ;
-#pragma link C++ class o2::ft0::FT0DigParam + ;
 
 #endif

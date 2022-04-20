@@ -20,7 +20,6 @@ o2_add_library(FT0Calibration
          O2::MathUtils
          O2::DataFormatsFT0
          O2::DetectorsCalibration
-         O2::FT0Simulation
          O2::DataFormatsGlobalTracking
          ROOT::Minuit
          Microsoft.GSL::GSL

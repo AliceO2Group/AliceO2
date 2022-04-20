@@ -26,7 +26,7 @@ o2_target_root_dictionary(FT0Simulation
         HEADERS include/FT0Simulation/Detector.h
                 include/FT0Simulation/DigitizationConstants.h
                 include/FT0Simulation/Digitizer.h
-                include/FT0Simulation/FT0DigParam.h)
+                )
 
 o2_add_executable(digi2raw
         COMPONENT_NAME ft0
