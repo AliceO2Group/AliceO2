@@ -102,6 +102,7 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
       assert(registry.get<DeviceSpec const>().name.empty() == false);
       monitoring->addGlobalTag("dataprocessor_id", registry.get<DeviceSpec const>().id);
       monitoring->addGlobalTag("dataprocessor_name", registry.get<DeviceSpec const>().name);
+      monitoring->addGlobalTag("dpl_instance", options.GetPropertyAsString("shm-segment-id"));
       return ServiceHandle{TypeIdHelpers::uniqueId<Monitoring>(), service};
     },
     .configure = noConfiguration(),
