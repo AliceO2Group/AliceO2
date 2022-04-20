@@ -20,6 +20,8 @@
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Configuration.h"
 
+#include "ITStrackingGPU/ClusterLinesGPU.h"
+
 #include "Array.h"
 #include "Vector.h"
 
@@ -73,6 +75,7 @@ class TimeFrameGPU : public TimeFrame
   int* getDeviceZHistograms(const int rofId);
   cub::KeyValuePair<int, int>* getTmpVertexPositionBins(const int rofId);
   float* getDeviceBeamPosition(const int rofId);
+  Vertex* getDeviceVertices(const int rofId);
 
  private:
   TimeFrameGPUConfig mConfig;
@@ -99,6 +102,7 @@ class TimeFrameGPU : public TimeFrame
   std::array<Vector<int>, 3> mXYZHistograms;
   Vector<cub::KeyValuePair<int, int>> mTmpVertexPositionBins;
   Vector<float> mBeamPosition;
+  Vector<Vertex> mGPUVertices;
 };
 
 template <int NLayers>
@@ -248,6 +252,16 @@ inline float* TimeFrameGPU<NLayers>::getDeviceBeamPosition(const int rofId)
     return nullptr;
   }
   return mBeamPosition.get() + 2 * rofId;
+}
+
+template <int NLayers>
+inline Vertex* TimeFrameGPU<NLayers>::getDeviceVertices(const int rofId)
+{
+  if (rofId < 0 || rofId >= mNrof) {
+    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
+    return nullptr;
+  }
+  return mGPUVertices.get() + rofId * mConfig.maxVerticesCapacity;
 }
 
 } // namespace gpu

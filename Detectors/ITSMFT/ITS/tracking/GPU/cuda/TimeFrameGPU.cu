@@ -70,6 +70,7 @@ TimeFrameGPU<NLayers>::TimeFrameGPU()
   }
   mTmpVertexPositionBins = Vector<cub::KeyValuePair<int, int>>{3 * mConfig.nMaxROFs, 3 * mConfig.nMaxROFs};
   mBeamPosition = Vector<float>{2 * mConfig.nMaxROFs, 2 * mConfig.nMaxROFs};
+  mGPUVertices = Vector<Vertex>{mConfig.nMaxROFs * mConfig.maxVerticesCapacity, mConfig.nMaxROFs * mConfig.maxVerticesCapacity};
 }
 
 template <int NLayers>
@@ -95,6 +96,7 @@ float TimeFrameGPU<NLayers>::getDeviceMemory()
   }
   totalMemory += 3 * mConfig.nMaxROFs * sizeof(cub::KeyValuePair<int, int>);
   totalMemory += 2 * mConfig.nMaxROFs * sizeof(float);
+  totalMemory += mConfig.nMaxROFs * mConfig.maxVerticesCapacity * sizeof(Vertex);
 
   LOGP(info, "Total requested memory for GPU: {:.2f} MB", totalMemory / MB);
   LOGP(info, "\t- Clusters: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(Cluster) / MB);
@@ -115,6 +117,7 @@ float TimeFrameGPU<NLayers>::getDeviceMemory()
   LOGP(info, "\t- Z histograms: {:.2f} MB", mConfig.nMaxROFs * mConfig.histConf.nBinsXYZ[2] * sizeof(int) / MB);
   LOGP(info, "\t- TMP Vertex position bins: {:.2f} MB", 3 * mConfig.nMaxROFs * sizeof(cub::KeyValuePair<int, int>) / MB);
   LOGP(info, "\t- Beam positions: {:.2f} MB", 2 * mConfig.nMaxROFs * sizeof(float) / MB);
+  LOGP(info, "\t- Vertices: {:.2f} MB", mConfig.nMaxROFs * mConfig.maxVerticesCapacity * sizeof(Vertex) / MB);
 
   return totalMemory;
 }

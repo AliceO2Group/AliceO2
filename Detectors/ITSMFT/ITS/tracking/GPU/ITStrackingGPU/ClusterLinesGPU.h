@@ -51,6 +51,7 @@ struct GPUVertex final {
   float errorY;
   float errorZ;
   int contributors;
+  int timeStamp;
   unsigned char realVertex;
 };
 

@@ -30,11 +30,12 @@
 #include "ITStrackingGPU/ClusterLinesGPU.h"
 #include "ITStrackingGPU/VertexerTraitsGPU.h"
 
+#include "GPUCommonArray.h"
+
 namespace o2
 {
 namespace its
 {
-
 using constants::its::VertexerHistogramVolume;
 using constants::math::TwoPi;
 using gpu::utils::host::checkGPUError;
@@ -119,9 +120,9 @@ GPUd() void printVectorOnThread(const char* name, Vector<int>& vector, size_t si
 // {
 //   if (blockIdx.x * blockDim.x + threadIdx.x == threadId) {
 //     printf("XmaxBin: %d at index: %d | YmaxBin: %d at index: %d | ZmaxBin: %d at index: %d\n",
-//            store.getTmpVertexPositionBins()[0].value, store.getTmpVertexPositionBins()[0].key,
-//            store.getTmpVertexPositionBins()[1].value, store.getTmpVertexPositionBins()[1].key,
-//            store.getTmpVertexPositionBins()[2].value, store.getTmpVertexPositionBins()[2].key);
+//            tmpVertexBins[0].value, tmpVertexBins[0].key,
+//            tmpVertexBins[1].value, tmpVertexBins[1].key,
+//            tmpVertexBins[2].value, tmpVertexBins[2].key);
 //   }
 // }
 
@@ -313,35 +314,44 @@ GPUg() void computeZCentroidsKernel(const int nLines,
   }
 }
 
-// GPUg() void computeVertexKernel(DeviceStoreVertexerGPU& store, const int vertIndex, const int minContributors, const int binOpeningZ)
-// {
-//   for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < binOpeningZ; currentThreadIndex += blockDim.x * gridDim.x) {
-//     if (currentThreadIndex == 0) {
-//       if (store.getTmpVertexPositionBins()[2].value > 1 && (store.getTmpVertexPositionBins()[0].value || store.getTmpVertexPositionBins()[1].value)) {
-//         float z{store.getConfig().histConf.lowHistBoundariesXYZ[2] + store.getTmpVertexPositionBins()[2].key * store.getConfig().histConf.binSizeHistZ + store.getConfig().histConf.binSizeHistZ / 2};
-//         float ex{0.f};
-//         float ey{0.f};
-//         float ez{0.f};
-//         int sumWZ{store.getTmpVertexPositionBins()[2].value};
-//         float wZ{z * store.getTmpVertexPositionBins()[2].value};
-//         for (int iBin{o2::gpu::GPUCommonMath::Max(0, store.getTmpVertexPositionBins()[2].key - binOpeningZ)}; iBin < o2::gpu::GPUCommonMath::Min(store.getTmpVertexPositionBins()[2].key + binOpeningZ + 1, store.getConfig().histConf.nBinsXYZ[2] - 1); ++iBin) {
-//           if (iBin != store.getTmpVertexPositionBins()[2].key) {
-//             wZ += (store.getConfig().histConf.lowHistBoundariesXYZ[2] + iBin * store.getConfig().histConf.binSizeHistZ + store.getConfig().histConf.binSizeHistZ / 2) * store.getHistogramXYZ()[2].get()[iBin];
-//             sumWZ += store.getHistogramXYZ()[2].get()[iBin];
-//           }
-//           store.getHistogramXYZ()[2].get()[iBin] = 0;
-//         }
-//         if (sumWZ > minContributors || vertIndex == 0) {
-//           store.getVertices().emplace(vertIndex, store.getBeamPosition()[0], store.getBeamPosition()[1], wZ / sumWZ, ex, ey, ez, sumWZ);
-//         } else {
-//           store.getVertices().emplace(vertIndex);
-//         }
-//       } else {
-//         store.getVertices().emplace(vertIndex);
-//       }
-//     }
-//   }
-// }
+GPUg() void computeVertexKernel(cub::KeyValuePair<int, int>* tmpVertexBins,
+                                int* histZ, // Z
+                                const float lowHistZ,
+                                const float binSizeHistZ,
+                                const int nBinsHistZ,
+                                Vertex* vertices,
+                                float* beamPosition,
+                                const int vertIndex,
+                                const int minContributors,
+                                const int binOpeningZ)
+{
+  for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < binOpeningZ; currentThreadIndex += blockDim.x * gridDim.x) {
+    if (currentThreadIndex == 0) {
+      if (tmpVertexBins[2].value > 1 && (tmpVertexBins[0].value || tmpVertexBins[1].value)) {
+        float z{lowHistZ + tmpVertexBins[2].key * binSizeHistZ + binSizeHistZ / 2};
+        float ex{0.f};
+        float ey{0.f};
+        float ez{0.f};
+        int sumWZ{tmpVertexBins[2].value};
+        float wZ{z * tmpVertexBins[2].value};
+        for (int iBin{o2::gpu::GPUCommonMath::Max(0, tmpVertexBins[2].key - binOpeningZ)}; iBin < o2::gpu::GPUCommonMath::Min(tmpVertexBins[2].key + binOpeningZ + 1, nBinsHistZ - 1); ++iBin) {
+          if (iBin != tmpVertexBins[2].key) {
+            wZ += (lowHistZ + iBin * binSizeHistZ + binSizeHistZ / 2) * histZ[iBin];
+            sumWZ += histZ[iBin];
+          }
+          histZ[iBin] = 0;
+        }
+        if (sumWZ > minContributors || vertIndex == 0) {
+          new (vertices + vertIndex) Vertex{o2::math_utils::Point3D<float>(beamPosition[0], beamPosition[1], wZ / sumWZ), o2::gpu::gpustd::array<float, 6>{ex, 0, ey, 0, 0, ez}, sumWZ, 0};
+        } else {
+          new (vertices + vertIndex) Vertex{};
+        }
+      } else {
+        new (vertices + vertIndex) Vertex{};
+      }
+    }
+  }
+}
 } // namespace gpu
 
 void VertexerTraitsGPU::computeTracklets()
@@ -538,23 +548,34 @@ void VertexerTraitsGPU::computeVertices()
                                                       mTimeFrameGPU->getConfig().histConf.lowHistBoundariesXYZ[2],       // lower_level
                                                       mTimeFrameGPU->getConfig().histConf.highHistBoundariesXYZ[2],      // fupper_level
                                                       nLines));                                                          // num_row_pixels
-    //   for (int iVertex{0}; iVertex < mStoreVertexerGPU.getConfig().nMaxVertices; ++iVertex) {
-    //     discardResult(cub::DeviceReduce::ArgMax(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()),
-    //                                             bufferSize,
-    //                                             mStoreVertexerGPU.getHistogramXYZ()[2].get(),
-    //                                             mStoreVertexerGPU.getTmpVertexPositionBins().get() + 2,
-    //                                             mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[2]));
-    //     gpu::computeVertexKernel<<<blocksGrid, 5>>>(getDeviceContext(), iVertex, mVrtParams.clusterContributorsCut, mStoreVertexerGPU.getConfig().histConf.binSpanXYZ[2]);
-    //   }
-    //   std::vector<gpu::GPUVertex> vertices;
-    //   vertices.resize(mStoreVertexerGPU.getConfig().nMaxVertices);
-    //   mStoreVertexerGPU.getVertices().copyIntoSizedVector(vertices);
+    for (int iVertex{0}; iVertex < mTimeFrameGPU->getConfig().maxVerticesCapacity; ++iVertex) {
+      discardResult(cub::DeviceReduce::ArgMax(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(rofId)),
+                                              bufferSize,
+                                              mTimeFrameGPU->getDeviceZHistograms(rofId),
+                                              mTimeFrameGPU->getTmpVertexPositionBins(rofId) + 2,
+                                              mTimeFrameGPU->getConfig().histConf.nBinsXYZ[2]));
 
-    //   for (auto& vertex : vertices) {
-    //     if (vertex.realVertex) {
-    //       mVertices.emplace_back(vertex.xCoord, vertex.yCoord, vertex.zCoord, std::array<float, 6>{0.f, 0.f, 0.f, 0.f, 0.f, 0.f}, vertex.contributors, 0.f, -9);
-    //     }
-    //   }
+      gpu::computeVertexKernel<<<blocksGrid, 5>>>(mTimeFrameGPU->getTmpVertexPositionBins(rofId),
+                                                  mTimeFrameGPU->getDeviceZHistograms(rofId),
+                                                  mTimeFrameGPU->getConfig().histConf.lowHistBoundariesXYZ[2],
+                                                  mTimeFrameGPU->getConfig().histConf.binSizeHistZ,
+                                                  mTimeFrameGPU->getConfig().histConf.nBinsXYZ[2],
+                                                  mTimeFrameGPU->getDeviceVertices(rofId),
+                                                  mTimeFrameGPU->getDeviceBeamPosition(rofId),
+                                                  iVertex,
+                                                  mVrtParams.clusterContributorsCut,
+                                                  mTimeFrameGPU->getConfig().histConf.binSpanXYZ[2]);
+    }
+    std::vector<Vertex> GPUvertices;
+    GPUvertices.resize(mTimeFrameGPU->getConfig().maxVerticesCapacity);
+    checkGPUError(cudaMemcpy(GPUvertices.data(), mTimeFrameGPU->getDeviceVertices(rofId), sizeof(gpu::GPUVertex) * mTimeFrameGPU->getConfig().maxVerticesCapacity, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+    int nRealVertices{0};
+    for (auto& vertex : GPUvertices) {
+      if (vertex.getX() || vertex.getY() || vertex.getZ()) {
+        ++nRealVertices;
+      }
+    }
+    mTimeFrameGPU->addPrimaryVertices(gsl::span<const Vertex>{GPUvertices.data(), static_cast<gsl::span<const Vertex>::size_type>(nRealVertices)});
   }
   gpuThrowOnError();
 }
