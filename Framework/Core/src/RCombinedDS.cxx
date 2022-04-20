@@ -42,7 +42,9 @@ double loop on the entries of the two RDataSources.
 #endif
 
 #include <ROOT/TSeq.hxx>
+#if __has_include(<ROOT/RMakeUnique.hxx>)
 #include <ROOT/RMakeUnique.hxx>
+#endif
 #include <ROOT/RDataFrame.hxx>
 
 #include <algorithm>
