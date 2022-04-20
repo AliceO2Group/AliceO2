@@ -98,7 +98,7 @@ struct Digit {
     return std::tie(ref, mTriggers, mIntRecord) == std::tie(other.ref, other.mTriggers, other.mIntRecord);
   }
   void printLog() const;
-  ClassDefNV(Digit, 6);
+  ClassDefNV(Digit, 7);
 };
 
 //For TCM extended mode (calibration mode), TCMdataExtended digit
