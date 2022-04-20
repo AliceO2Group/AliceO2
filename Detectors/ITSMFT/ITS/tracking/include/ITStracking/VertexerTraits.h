@@ -35,14 +35,8 @@ namespace o2
 {
 class MCCompLabel;
 
-namespace utils
-{
-class TreeStreamRedirector;
-}
-
 namespace its
 {
-class StandaloneDebugger;
 class ROframe;
 
 using constants::its::LayersNumberVertexer;

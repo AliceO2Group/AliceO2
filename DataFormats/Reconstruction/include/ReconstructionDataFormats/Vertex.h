@@ -52,9 +52,9 @@ class VertexBase
 #endif
 
   // getting the cartesian coordinates and errors
-  GPUd() float getX() const { return mPos.X(); }
-  GPUd() float getY() const { return mPos.Y(); }
-  GPUd() float getZ() const { return mPos.Z(); }
+  GPUhd() float getX() const { return mPos.X(); }
+  GPUhd() float getY() const { return mPos.Y(); }
+  GPUhd() float getZ() const { return mPos.Z(); }
   GPUd() float getSigmaX2() const { return mCov[kCovXX]; }
   GPUd() float getSigmaY2() const { return mCov[kCovYY]; }
   GPUd() float getSigmaZ2() const { return mCov[kCovZZ]; }

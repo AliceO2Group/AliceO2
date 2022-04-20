@@ -26,8 +26,8 @@ template <typename T, int I>
 struct GPUPoint2D {
   GPUdDefault() GPUPoint2D() = default;
   GPUd() GPUPoint2D(T a, T b) : xx(a), yy(b) {}
-  GPUd() float X() const { return xx; }
-  GPUd() float Y() const { return yy; }
+  GPUhd() float X() const { return xx; }
+  GPUhd() float Y() const { return yy; }
   GPUd() float R() const { return o2::gpu::CAMath::Sqrt(xx * xx + yy * yy); }
   GPUd() void SetX(float v) { xx = v; }
   GPUd() void SetY(float v) { yy = v; }
@@ -39,7 +39,7 @@ template <typename T, int I>
 struct GPUPoint3D : public GPUPoint2D<T, I> {
   GPUdDefault() GPUPoint3D() = default;
   GPUd() GPUPoint3D(T a, T b, T c) : GPUPoint2D<T, I>(a, b), zz(c) {}
-  GPUd() float Z() const { return zz; }
+  GPUhd() float Z() const { return zz; }
   GPUd() float R() const { return o2::gpu::CAMath::Sqrt(GPUPoint2D<T, I>::xx * GPUPoint2D<T, I>::xx + GPUPoint2D<T, I>::yy * GPUPoint2D<T, I>::yy + zz * zz); }
   GPUd() void SetZ(float v) { zz = v; }
   T zz;
