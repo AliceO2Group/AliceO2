@@ -126,6 +126,8 @@ class VisualisationEvent
   float getMinTimeOfTracks() const { return this->mMinTimeOfTracks; }
   float getMaxTimeOfTracks() const { return this->mMaxTimeOfTracks; } /// maximum time of tracks in the event
 
+  bool isEmpty() const { return getTrackCount() == 0 && getClusterCount() == 0; }
+
  private:
   float mMinTimeOfTracks;                           /// minimum time of tracks in the event
   float mMaxTimeOfTracks;                           /// maximum time of tracks in the event
