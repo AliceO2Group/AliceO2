@@ -2133,6 +2133,20 @@ struct Join : JoinBase<Ts...> {
   using const_iterator = iterator;
   using filtered_iterator = typename table_t::template RowViewFiltered<Join<Ts...>, Ts...>;
   using filtered_const_iterator = filtered_iterator;
+
+  auto sliceByCached(framework::expressions::BindingNode const& node, int value)
+  {
+    uint64_t offset = 0;
+    std::shared_ptr<arrow::Table> result = nullptr;
+    auto status = this->getSliceFor(value, node.name.c_str(), result, offset);
+    if (status.ok()) {
+      auto t = Join<Ts...>({result}, offset);
+      this->copyIndexBindings(t);
+      return t;
+    }
+    o2::framework::throw_error(o2::framework::runtime_error("Failed to slice table"));
+    O2_BUILTIN_UNREACHABLE();
+  }
 };
 
 template <typename... Ts>
@@ -2321,6 +2335,11 @@ class FilteredBase : public T
     std::shared_ptr<arrow::Table> result = nullptr;
     auto status = ((table_t*)this)->getSliceFor(value, node.name.c_str(), result, offset);
     if (status.ok()) {
+      if (offset >= this->tableSize()) {
+        self_t fresult{{result}, SelectionVector{}, 0}; // empty slice
+        this->copyIndexBindings(fresult);
+        return fresult;
+      }
       auto start = offset;
       auto end = start + result->num_rows();
       auto start_iterator = std::lower_bound(mSelectedRows.begin(), mSelectedRows.end(), start);
@@ -2441,6 +2460,8 @@ class Filtered : public FilteredBase<T>
 {
  public:
   using self_t = Filtered<T>;
+  using table_t = typename FilteredBase<T>::table_t;
+
   Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
     : FilteredBase<T>(std::move(tables), selection, offset) {}
 
@@ -2521,7 +2542,35 @@ class Filtered : public FilteredBase<T>
   {
     return operator*=(other.getSelectedRows());
   }
-  using FilteredBase<T>::sliceByCached;
+
+  auto sliceByCached(framework::expressions::BindingNode const& node, int value)
+  {
+    uint64_t offset = 0;
+    std::shared_ptr<arrow::Table> result = nullptr;
+    auto status = ((table_t*)this)->getSliceFor(value, node.name.c_str(), result, offset);
+    if (status.ok()) {
+      if (offset >= this->tableSize()) {
+        self_t fresult{{result}, SelectionVector{}, 0}; // empty slice
+        this->copyIndexBindings(fresult);
+        return fresult;
+      }
+      auto start = offset;
+      auto end = start + result->num_rows();
+      auto start_iterator = std::lower_bound(this->getSelectedRows().begin(), this->getSelectedRows().end(), start);
+      auto stop_iterator = std::lower_bound(start_iterator, this->getSelectedRows().end(), end);
+      SelectionVector slicedSelection{start_iterator, stop_iterator};
+      std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
+                     [&](int64_t idx) {
+                       return idx - static_cast<int64_t>(start);
+                     });
+      auto slicedSize = slicedSelection.size();
+      self_t fresult{{result}, std::move(slicedSelection), start};
+      this->copyIndexBindings(fresult);
+      return fresult;
+    }
+    o2::framework::throw_error(o2::framework::runtime_error("Failed to slice table"));
+    O2_BUILTIN_UNREACHABLE();
+  }
 };
 
 template <typename T>
@@ -2532,7 +2581,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
   using table_t = typename FilteredBase<typename T::table_t>::table_t;
 
   Filtered(std::vector<Filtered<T>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
-    : FilteredBase<typename T::table_t>(std::move(extractTablesFromFiltered(std::move(tables))), selection, offset)
+    : FilteredBase<typename T::table_t>(std::move(extractTablesFromFiltered(tables)), selection, offset)
   {
     for (auto& table : tables) {
       *this *= table;
@@ -2540,7 +2589,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
   }
 
   Filtered(std::vector<Filtered<T>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
-    : FilteredBase<typename T::table_t>(std::move(extractTablesFromFiltered(std::move(tables))), std::forward<SelectionVector>(selection), offset)
+    : FilteredBase<typename T::table_t>(std::move(extractTablesFromFiltered(tables)), std::forward<SelectionVector>(selection), offset)
   {
     for (auto& table : tables) {
       *this *= table;
@@ -2548,7 +2597,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
   }
 
   Filtered(std::vector<Filtered<T>>&& tables, gsl::span<int64_t const> const& selection, uint64_t offset = 0)
-    : FilteredBase<typename T::table_t>(std::move(extractTablesFromFiltered(std::move(tables))), selection, offset)
+    : FilteredBase<typename T::table_t>(std::move(extractTablesFromFiltered(tables)), selection, offset)
   {
     for (auto& table : tables) {
       *this *= table;
@@ -2627,10 +2676,34 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     return operator*=(other.getSelectedRows());
   }
 
-  using FilteredBase<typename T::table_t>::sliceByCached;
+  auto sliceByCached(framework::expressions::BindingNode const& node, int value)
+  {
+    uint64_t offset = 0;
+    std::shared_ptr<arrow::Table> result = nullptr;
+    auto status = ((table_t*)this)->getSliceFor(value, node.name.c_str(), result, offset);
+    if (status.ok()) {
+      auto start = offset;
+      auto end = start + result->num_rows();
+      auto start_iterator = std::lower_bound(this->getSelectedRows().begin(), this->getSelectedRows().end(), start);
+      auto stop_iterator = std::lower_bound(start_iterator, this->getSelectedRows().end(), end);
+      SelectionVector slicedSelection{start_iterator, stop_iterator};
+      std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
+                     [&](int64_t idx) {
+                       return idx - static_cast<int64_t>(start);
+                     });
+      SelectionVector copy = slicedSelection;
+      Filtered<T> filteredTable{{result}, std::move(slicedSelection), start};
+      std::vector<Filtered<T>> filtered{filteredTable};
+      self_t fresult{std::move(filtered), std::move(copy), start};
+      this->copyIndexBindings(fresult);
+      return fresult;
+    }
+    o2::framework::throw_error(o2::framework::runtime_error("Failed to slice table"));
+    O2_BUILTIN_UNREACHABLE();
+  }
 
  private:
-  std::vector<std::shared_ptr<arrow::Table>> extractTablesFromFiltered(std::vector<Filtered<T>>&& tables)
+  std::vector<std::shared_ptr<arrow::Table>> extractTablesFromFiltered(std::vector<Filtered<T>>& tables)
   {
     std::vector<std::shared_ptr<arrow::Table>> outTables;
     for (auto& table : tables) {
