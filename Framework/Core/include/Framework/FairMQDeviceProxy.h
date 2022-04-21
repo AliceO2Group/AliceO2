@@ -30,7 +30,7 @@ class FairMQDeviceProxy
  public:
   FairMQDeviceProxy() = default;
   FairMQDeviceProxy(FairMQDeviceProxy const&) = delete;
-  void bindRoutes(std::vector<OutputRoute> const& outputs, std::vector<InputRoute> const& inputs, FairMQDevice& device);
+  void bind(std::vector<OutputRoute> const& outputs, std::vector<InputRoute> const& inputs, FairMQDevice& device);
 
   /// Retrieve the transport associated to a given route.
   fair::mq::TransportFactory* getOutputTransport(RouteIndex routeIndex) const;
@@ -57,6 +57,8 @@ class FairMQDeviceProxy
   size_t getNumOutputChannels() const { return mOutputChannels.size(); }
   size_t getNumInputChannels() const { return mInputChannels.size(); }
 
+  bool newStateRequested() const { return mStateChangeCallback(); }
+
  private:
   std::vector<OutputRoute> mOutputs;
   std::vector<RouteState> mOutputRoutes;
@@ -67,6 +69,7 @@ class FairMQDeviceProxy
   std::vector<RouteState> mInputRoutes;
   std::vector<fair::mq::Channel*> mInputChannels;
   std::vector<std::string> mInputChannelNames;
+  std::function<bool()> mStateChangeCallback;
 };
 
 } // namespace o2::framework
