@@ -112,11 +112,12 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::sp
     auto& residVecOut = residuals[sec];
     auto& statVecOut = stats[sec];
     std::array<unsigned char, TrackResiduals::VoxDim> bvox;
+    float xPos = param::RowX[residIn.row];
     float yPos = residIn.y * param::MaxY / 0x7fff;
     float zPos = residIn.z * param::MaxZ / 0x7fff;
-    if (!trackResiduals->findVoxelBin(sec, param::RowX[residIn.row], yPos, zPos, bvox)) {
+    if (!trackResiduals->findVoxelBin(sec, xPos, yPos, zPos, bvox)) {
       // we are not inside any voxel
-      LOGF(debug, "Dropping residual in sec(%i), x(%f), y(%f), z(%f)", sec, param::RowX[residIn.row], yPos, zPos);
+      LOGF(debug, "Dropping residual in sec(%i), x(%f), y(%f), z(%f)", sec, xPos, yPos, zPos);
       continue;
     }
     residVecOut.emplace_back(residIn.dy, residIn.dz, residIn.tgSlp, bvox);
@@ -124,9 +125,11 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::sp
     float& binEntries = stat.nEntries;
     float oldEntries = binEntries++;
     float norm = 1.f / binEntries;
-    // update COG for voxel bvox (don't need to update X here, it stays at the pad row radius)
-    stat.meanPos[TrackResiduals::VoxF] = (stat.meanPos[TrackResiduals::VoxF] * oldEntries + yPos / param::RowX[residIn.row]) * norm;
-    stat.meanPos[TrackResiduals::VoxZ] = (stat.meanPos[TrackResiduals::VoxZ] * oldEntries + zPos / param::RowX[residIn.row]) * norm;
+    // update COG for voxel bvox (update for X only needed in case binning is not per pad row)
+    float xPosInv = 1.f / xPos;
+    stat.meanPos[TrackResiduals::VoxX] = (stat.meanPos[TrackResiduals::VoxX] * oldEntries + xPos) * norm;
+    stat.meanPos[TrackResiduals::VoxF] = (stat.meanPos[TrackResiduals::VoxF] * oldEntries + yPos * xPosInv) * norm;
+    stat.meanPos[TrackResiduals::VoxZ] = (stat.meanPos[TrackResiduals::VoxZ] * oldEntries + zPos * xPosInv) * norm;
     ++nResidualsTotal;
     ++nResidualsInTF;
   }
@@ -155,6 +158,7 @@ void ResidualsContainer::merge(ResidualsContainer* prev)
         // if there is at least a single entry in either of the containers we need the proper norm
         norm /= (statPrev.nEntries + stat.nEntries);
       }
+      stat.meanPos[TrackResiduals::VoxX] = (stat.meanPos[TrackResiduals::VoxX] * stat.nEntries + statPrev.meanPos[TrackResiduals::VoxX] * statPrev.nEntries) * norm;
       stat.meanPos[TrackResiduals::VoxF] = (stat.meanPos[TrackResiduals::VoxF] * stat.nEntries + statPrev.meanPos[TrackResiduals::VoxF] * statPrev.nEntries) * norm;
       stat.meanPos[TrackResiduals::VoxZ] = (stat.meanPos[TrackResiduals::VoxZ] * stat.nEntries + statPrev.meanPos[TrackResiduals::VoxZ] * statPrev.nEntries) * norm;
       stat.nEntries += statPrev.nEntries;
