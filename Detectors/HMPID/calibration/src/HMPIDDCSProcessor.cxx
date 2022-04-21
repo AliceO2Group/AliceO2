@@ -440,6 +440,11 @@ void HMPIDDCSProcessor::finalize() // after run is finished,
         arNmean[42] = *(new TF1("HMP_PhotEmean",Form("%f",eMean),startTimeTemp,endTimeTemp));//fStartTime,fEndTime); //Photon energy mean
 
 
+	 // is it enough to make a 
+	 //std::unordered_map<DPID_arrMean,TimeRange_arrMeanr> mArrMeanInfo;
+	 // containing all the DPIDs and a struct of first and last value of timestamps?
+
+	 //std::unordered_map<DPID_arQthre,TimeRange_arQthre> mQThreshInfo;
 
 	
 	 // prepare CCDB: 
@@ -447,10 +452,12 @@ void HMPIDDCSProcessor::finalize() // after run is finished,
 	 md["responsible"] = "NB!! CHANGE RESPONSIBLE";
 	
 		 // Refractive index (T_out, T_in, mean photon energy)
-		 o2::calibration::Utils::prepareCCDBobjectInfo(arNmean, mccdbREF_INDEX_Info, "HMPID/Calib/RefIndex", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
+		 // arNmean -> mArrMeanInfo
+		 o2::calibration::Utils::prepareCCDBobjectInfo(mArrMeanInfo, mccdbREF_INDEX_Info, "HMPID/Calib/RefIndex", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
 
 		 // charge threshold 
-		 o2::calibration::Utils::prepareCCDBobjectInfo(arQthre,mccdbCHARGE_CUT_Info , "HMPID/Calib/ChargeCut", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
+		 // arQthre -> mQThreshInfo
+		 o2::calibration::Utils::prepareCCDBobjectInfo(mQThreshInfo,mccdbCHARGE_CUT_Info , "HMPID/Calib/ChargeCut", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
 
 }
 
