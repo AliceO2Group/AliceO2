@@ -1,21 +1,32 @@
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+// calibration/HMPIDCalibration header-files:
 #include "HMPIDCalibration/HMPIDDCSProcessor.h"
-
-
 #include "HMPIDCalibration/HMPIDDCSTime.h"
-
+// HMPID Base  
 #include "HMPIDBase/Geo.h"
 #include "HMPIDBase/Param.h"
 
+// Root classes:
+#include <TF1.h>                  
+#include <TF2.h>                  
+#include <TGraph.h>            
 
-#include <TF1.h>                  //Process()
-#include <TF2.h>                  //Process()
-#include <TGraph.h>               //Process()
-
-
+// miscallanous libraries
 #include <memory>
 #include <deque> 
 #include <gsl/gsl> 
 
+// O2 includes: 
 #include "Framework/Logger.h"
 #include "DetectorsDCS/DataPointCompositeObject.h" 
 #include "DetectorsDCS/DataPointIdentifier.h"
@@ -23,7 +34,7 @@
 #include "CCDB/CcdbObjectInfo.h" 
 #include "CCDB/CcdbApi.h"
 #include "CommonUtils/MemFileHelper.h"
-#include "DetectorsCalibration/Utils.h" // o2::calibration::dcs
+#include "DetectorsCalibration/Utils.h" // o2::calibration::dcs,  o2::calibration::Utils
 //using DeliveryType = o2::dcs::DeliveryType;
 //using DPID = o2::dcs::DataPointIdentifier;
 //using DPVAL = o2::dcs::DataPointValue;
@@ -31,6 +42,7 @@ using DPCOM = o2::dcs::DataPointCompositeObject;
 
 
 using namespace o2::dcs;
+
 
 
 
@@ -353,7 +365,6 @@ void HMPIDDCSProcessor::finalizeTempOutEntry(Int_t iCh,Int_t iRad) // after run 
 		for(DPCOM dp : tempOut[3*iCh+iRad]){
 			pGrTOut->SetPoint(cntTOut++,dp.data.get_epoch_time(),o2::dcs::getValue<double>(dp));
 		}
-		// might need to initialize pTout[3*iCh+iRad] here 
 		pTout[3*iCh+iRad] = new TF1(Form("Tout%i%i",iCh,iRad),"[0]+[1]*x",minTime,maxTime);
 		if(cntTOut==1) { 
 		 pGrTOut->GetPoint(0,xP,yP);
@@ -379,7 +390,6 @@ void HMPIDDCSProcessor::finalizeTempInEntry(Int_t iCh,Int_t iRad) // after run i
 		for(DPCOM dp : tempIn[3*iCh+iRad]){
 			pGrTIn->SetPoint(cntTin++,dp.data.get_epoch_time(),o2::dcs::getValue<double>(dp));
 		}
-		// might need to initialize pTin[3*iCh+iRad] here 
 		pTin[3*iCh+iRad]  = new TF1(Form("Tin%i%i" ,iCh,iRad),"[0]+[1]*x",minTime,maxTime);
 		if(cntTin==1) { 
 		 pGrTIn->GetPoint(0,xP,yP);
@@ -544,7 +554,7 @@ uint64_t HMPIDDCSProcessor::processFlags(const uint64_t flags, const char* pid)
 	
   int HMPIDDCSProcessor::subStringToInt(std::string inputString, std::size_t startIndex, std::size_t endIndex)
   { 
-  	// legg til sjekk om begge verdiene er det samme?
+
   	char stringPos = inputString.at(startIndex);
   	return ((int)stringPos) - ((int)'0');
  }	
