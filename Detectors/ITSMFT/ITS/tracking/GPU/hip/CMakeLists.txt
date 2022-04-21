@@ -36,7 +36,6 @@ if(HIP_ENABLED)
                  SOURCES ClusterLinesGPU.hip.cxx
                          Context.hip.cxx
                          TimeFrameGPU.hip.cxx
-                         #  DeviceStoreVertexerGPU.hip.cxx
                          Stream.hip.cxx
                          TrackerTraitsGPU.hip.cxx
                          VertexerTraitsGPU.hip.cxx

@@ -93,7 +93,6 @@ class VertexerTraits
   GPUhd() static const int2 getPhiBins(float phi, float deltaPhi, const IndexTableUtils&);
 
   // virtual vertexer interface
-  // virtual void reset();
   virtual void initialise(const MemoryParameters& memParams, const TrackingParameters& trackingParams);
   virtual void computeTracklets();
   virtual void computeTrackletMatching();
@@ -127,25 +126,14 @@ class VertexerTraits
 
  protected:
   unsigned char mIsGPU;
-
-  // std::vector<Line> mTracklets;
-  // std::vector<Tracklet> mComb01;
-  // std::vector<Tracklet> mComb12;
-  // std::vector<int> mFoundTracklets01;
-  // std::vector<int> mFoundTracklets12;
-  // std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer> mClusters;
-
   unsigned int mDBGFlags = 0;
 
   VertexingParameters mVrtParams;
   IndexTableUtils mIndexTableUtils;
-  // std::array<std::vector<int>, LayersNumberVertexer> mIndexTables;
   std::vector<lightVertex> mVertices;
 
   // Frame related quantities
-  // std::array<std::vector<unsigned char>, 2> mUsedClusters;
   TimeFrame* mTimeFrame = nullptr;
-  // std::vector<ClusterLines> mTrackletClusters;
 };
 
 inline void VertexerTraits::initialise(const MemoryParameters& memParams, const TrackingParameters& trackingParams)
@@ -164,9 +152,6 @@ inline void VertexerTraits::updateVertexingParameters(const VertexingParameters&
   mVrtParams.phiSpan = static_cast<int>(std::ceil(mIndexTableUtils.getNphiBins() * mVrtParams.phiCut /
                                                   constants::math::TwoPi));
   mVrtParams.zSpan = static_cast<int>(std::ceil(mVrtParams.zCut * mIndexTableUtils.getInverseZCoordinate(0)));
-  // for (auto& table : mIndexTables) {
-  //   table.resize(mIndexTableUtils.getNphiBins() * mIndexTableUtils.getNzBins() + 1, 0);
-  // }
 }
 
 GPUhdi() const int2 VertexerTraits::getPhiBins(float phi, float dPhi)

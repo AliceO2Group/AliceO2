@@ -71,7 +71,7 @@ GPUd() TrackParametrization<value_T>::TrackParametrization(const dim3_t& xyz, co
   math_utils::detail::sincos(alp, sn, cs);
   // protection against cosp<0
   if (cs * pxpypz[0] + sn * pxpypz[1] < 0) {
-    LOGP(debug, "alpha from phiPos() will invalidate this track parameters, overriding to alpha from phi()");
+    LOG(debug) << "alpha from phiPos() will invalidate this track parameters, overriding to alpha from phi()";
     alp = math_utils::detail::atan2<value_T>(pxpypz[1], pxpypz[0]);
     if (sectorAlpha) {
       alp = math_utils::detail::angle2Alpha<value_t>(alp);
@@ -182,7 +182,7 @@ GPUd() bool TrackParametrization<value_T>::rotateParam(value_t alpha)
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
   if ((csp * ca + snp * sa) < 0) {
-    //LOGF(warning,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
+    // LOGF(warning,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
     return false;
   }
   //
@@ -382,7 +382,7 @@ GPUd() bool TrackParametrization<value_T>::propagateParamToDCA(const math_utils:
   value_t xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
   x -= xv;
   y -= yv;
-  //Estimate the impact parameter neglecting the track curvature
+  // Estimate the impact parameter neglecting the track curvature
   value_t d = math_utils::detail::abs<value_T>(x * snp - y * csp);
   if (d > maxD) {
     return false;

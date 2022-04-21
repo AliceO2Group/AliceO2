@@ -473,9 +473,7 @@ size_t GPUReconstructionHIPBackend::GPUMemCpy(void* dst, const void* src, size_t
     for (int k = 0; k < nEvents; k++) {
       GPUFailedMsg(hipStreamWaitEvent(mInternals->Streams[stream], ((hipEvent_t*)evList)[k], 0));
     }
-    GPUFailedMsg(hipMemcpyAsync(dst, src, size, toGPU == -2 ? hipMemcpyDeviceToDevice : toGPU ? hipMemcpyHostToDevice
-                                                                                              : hipMemcpyDeviceToHost,
-                                mInternals->Streams[stream]));
+    GPUFailedMsg(hipMemcpyAsync(dst, src, size, toGPU == -2 ? hipMemcpyDeviceToDevice : toGPU ? hipMemcpyHostToDevice : hipMemcpyDeviceToHost, mInternals->Streams[stream]));
   }
   if (ev) {
     GPUFailedMsg(hipEventRecord(*(hipEvent_t*)ev, mInternals->Streams[stream == -1 ? 0 : stream]));
