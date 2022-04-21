@@ -24,9 +24,7 @@ namespace o2
 namespace cpv
 {
 
-class RawDecoderError
-{
- public:
+struct RawDecoderError {
   RawDecoderError() = default; //Constructors for vector::emplace_back methods
   RawDecoderError(short c, short d, short g, short p, RawErrorType_t e) : ccId(c), dil(d), gas(g), pad(p), errortype(e) {}
   RawDecoderError(const RawDecoderError& e) = default;
@@ -37,7 +35,6 @@ class RawDecoderError
   short gas;
   short pad;
   RawErrorType_t errortype;
-  ClassDefNV(RawDecoderError, 1);
 };
 
 union AddressCharge {
@@ -99,6 +96,9 @@ class RawDecoder
   /// \return Reference to the list of decoding errors
   const std::vector<o2::cpv::RawDecoderError>& getErrors() const { return mErrors; }
 
+  /// \brief mute error reporting
+  void muteErrors() { mIsMuteErrors = true; }
+
  protected:
   /// \brief Read channels for the current event in the raw buffer
   RawErrorType_t readChannels();
@@ -111,9 +111,10 @@ class RawDecoder
   std::vector<uint32_t> mDigits;             ///< vector of channels and BCs in the raw stream
   std::vector<o2::cpv::BCRecord> mBCRecords; ///< vector of bc references to digits
   std::vector<RawDecoderError> mErrors;      ///< vector of decoding errors
-  bool mChannelsInitialized = false;         ///< check whether the channels are initialized
+  bool mChannelsInitialized;                 ///< check whether the channels are initialized
+  bool mIsMuteErrors;                        ///< mute errors
 
-  ClassDefNV(RawDecoder, 2);
+  ClassDefNV(RawDecoder, 3);
 };
 
 } // namespace cpv
