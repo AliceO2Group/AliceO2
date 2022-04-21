@@ -1,32 +1,21 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
-// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
-// All rights not expressly granted are reserved.
-//
-// This software is distributed under the terms of the GNU General Public
-// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
-//
-// In applying this license CERN does not waive the privileges and immunities
-// granted to it by virtue of its status as an Intergovernmental Organization
-// or submit itself to any jurisdiction.
-
-// calibration/HMPIDCalibration header-files:
 #include "HMPIDCalibration/HMPIDDCSProcessor.h"
+
+
 #include "HMPIDCalibration/HMPIDDCSTime.h"
-// HMPID Base  
+
 #include "HMPIDBase/Geo.h"
 #include "HMPIDBase/Param.h"
 
-// Root classes:
-#include <TF1.h>                  
-#include <TF2.h>                  
-#include <TGraph.h>            
 
-// miscallanous libraries
+#include <TF1.h>                  //Process()
+#include <TF2.h>                  //Process()
+#include <TGraph.h>               //Process()
+
+
 #include <memory>
 #include <deque> 
 #include <gsl/gsl> 
 
-// O2 includes: 
 #include "Framework/Logger.h"
 #include "DetectorsDCS/DataPointCompositeObject.h" 
 #include "DetectorsDCS/DataPointIdentifier.h"
@@ -34,7 +23,7 @@
 #include "CCDB/CcdbObjectInfo.h" 
 #include "CCDB/CcdbApi.h"
 #include "CommonUtils/MemFileHelper.h"
-#include "DetectorsCalibration/Utils.h" // o2::calibration::dcs,  o2::calibration::Utils
+#include "DetectorsCalibration/Utils.h" // o2::calibration::dcs
 //using DeliveryType = o2::dcs::DeliveryType;
 //using DPID = o2::dcs::DataPointIdentifier;
 //using DPVAL = o2::dcs::DataPointValue;
@@ -183,7 +172,7 @@ double HMPIDDCSProcessor::ProcTrans()
             dpFreonRef  =  (freonRef[i]).at(0); //pVal=(AliDCSValue*)pFreonRef->At(0);  
             aRefFreon = o2::dcs::getValue<double>(dpFreonRef);//   Double_t aRefFreon = pVal->GetFloat(); 
       
-			       
+			        
             //evaluate phototube current for freon cell
             if(freonCell[i].size() == 0)
             {
@@ -238,6 +227,15 @@ double HMPIDDCSProcessor::ProcTrans()
             sEnergProb+=aTotConvolution*photEn;  
           
             sProb+=aTotConvolution;  
+
+	    // Evaluate timestamps : 
+	    const std::vector<DPCOM> arr[5] = {waveLen[i], argonRef[i], argonCell[i], freonRef[i], freonCell[i]};
+		
+	    auto minTime = HMPIDDCSTime::getMinTimeArr(arr);
+	    auto maxTime = HMPIDDCSTime::getMaxTimeArr(arr);
+	    if(minTime < mTimeArNmean.first) mTimeArNmean.first = minTime;    
+	    if(maxTime > mTimeArNmean.last) mTimeArNmean.last = maxTime;
+		
         }
       if(sProb>0) 
       {
@@ -256,7 +254,7 @@ double HMPIDDCSProcessor::ProcTrans()
 } // end ProcTrans
 
 double HMPIDDCSProcessor::DefaultEMean(){
-	eMean = 6.675;
+	double eMean = 6.675;
         LOG(debug) << Form(" Mean energy photon calculated ---> %f eV ",eMean);
 	return eMean;
 }
@@ -277,14 +275,20 @@ void HMPIDDCSProcessor::finalizeEnvPressure() // after run is finished,
 { 
 	if(pEnv.size() != 0){ // if environment-pressure has entries 
 		TGraph *pGrPenv=new TGraph; //  cntEnvPressure=0;
+
+		auto minTime = HMPIDDCSTime::getMinTime(pEnv);
+		if(minTime < mTimeQThresh.first) mTimeQThresh.first = minTime;
+		auto maxTime = HMPIDDCSTime::getMaxTime(pEnv);
+		if(maxTime > mTimeQThresh.last) mTimeQThresh.last = maxTime;
+
 		for(DPCOM dp : pEnv){
 			pGrPenv->SetPoint(cntEnvPressure++,dp.data.get_epoch_time(),o2::dcs::getValue<double>(dp));
 		}
 		if(cntEnvPressure==1) { 
 		 pGrPenv->GetPoint(0,xP,yP);       
-		 new TF1("Penv",Form("%f",yP), HMPIDDCSTime::getMinTime(pEnv), HMPIDDCSTime::getMaxTime(pEnv));//fStartTime,fEndTime);
+		 new TF1("Penv",Form("%f",yP), minTime,maxTime);//fStartTime,fEndTime);
 		} else {
-		  pGrPenv->Fit(new TF1("Penv","1000+x*[0]", HMPIDDCSTime::getMinTime(pEnv), HMPIDDCSTime::getMaxTime(pEnv)),"Q");
+		  pGrPenv->Fit(new TF1("Penv","1000+x*[0]",minTime,maxTime),"Q");
 		}  delete pGrPenv;
 	} else LOG(debug) << Form("No entries in environment pressure");
 }
@@ -294,31 +298,43 @@ void HMPIDDCSProcessor::finalizeHV_Entry(Int_t iCh,Int_t iSec) // after run is f
 { 
 	// check if given element has entries
 	if(dpcomHV[3*iCh+iSec].size() != 0){
-		TGraph *pGrHV=new TGraph; cntHV=0; 		
+		TGraph *pGrHV=new TGraph; cntHV=0; 
+
+		auto minTime = HMPIDDCSTime::getMinTime(dpcomHV[3*iCh+iSec]);
+		if(minTime < mTimeQThresh.first) mTimeQThresh.first = minTime;
+		auto maxTime = HMPIDDCSTime::getMaxTime(dpcomHV[3*iCh+iSec]);
+		if(maxTime > mTimeQThresh.last) mTimeQThresh.last = maxTime;
+		
 		for(DPCOM dp : dpcomHV[3*iCh+iSec]){
 			pGrHV->SetPoint(cntHV++,dp.data.get_epoch_time(),o2::dcs::getValue<double>(dp));
 		}
 		if(cntHV==1) { 
 		 pGrHV->GetPoint(0,xP,yP);           
-		new TF1(Form("HV%i_%i",iCh,iSec),Form("%f",yP), HMPIDDCSTime::getMinTime(dpcomHV[3*iCh+iSec]), HMPIDDCSTime::getMaxTime( dpcomHV[3*iCh+iSec]));             
+		new TF1(Form("HV%i_%i",iCh,iSec),Form("%f",yP),minTime,maxTime);       
 		} else {
-		pGrHV->Fit(new TF1(Form("HV%i_%i",iCh,iSec),"[0]+x*[1]",HMPIDDCSTime::getMinTime(dpcomHV[3*iCh+iSec]), HMPIDDCSTime::getMaxTime(dpcomHV[3*iCh+iSec])),"Q");      
+		pGrHV->Fit(new TF1(Form("HV%i_%i",iCh,iSec),"[0]+x*[1]",minTime,maxTime,"Q"));      
 		}  delete pGrHV;
 	} else LOG(debug) << Form("No entries in HV for chamber %i, section %i",iCh,iSec);
 }
 
 void HMPIDDCSProcessor::finalizeChPressureEntry(Int_t iCh) // after run is finished, 
-{ 
+{ 	
 	if(pChamber[iCh].size() != 0){
-		TGraph *pGrP=new TGraph; cntChPressure=0; 		
+		TGraph *pGrP=new TGraph; cntChPressure=0;
+
+		auto minTime = HMPIDDCSTime::getMinTime(pChamber[iCh]);
+		if(minTime < mTimeQThresh.first) mTimeQThresh.first = minTime;
+		auto maxTime = HMPIDDCSTime::getMaxTime(pChamber[iCh]);
+		if(maxTime > mTimeQThresh.last) mTimeQThresh.last = maxTime;
+		 		
 		for(DPCOM dp : pChamber[iCh]){
 			pGrP->SetPoint(cntChPressure++,dp.data.get_epoch_time(),o2::dcs::getValue<double>(dp));
 		}
 		if(cntChPressure==1) { 
 			pGrP->GetPoint(0,xP,yP);           
-		 	new  TF1(Form("P%i",iCh),Form("%f",yP),HMPIDDCSTime::getMinTime(pChamber[iCh]), HMPIDDCSTime::getMaxTime(pChamber[iCh]));              
+		 	new  TF1(Form("P%i",iCh),Form("%f",yP),minTime, maxTime);              
 		} else {
-		pGrP->Fit(new TF1(Form("P%i",iCh),"[0] + x*[1]",HMPIDDCSTime::getMinTime(pChamber[iCh]), HMPIDDCSTime::getMaxTime(pChamber[iCh])),"Q");       
+		pGrP->Fit(new TF1(Form("P%i",iCh),"[0] + x*[1]",minTime,maxTime),"Q");       
 		}  delete pGrP;
 	} else  LOG(debug) << Form("No entries in chamber-pressure for chamber %i",iCh); 	
 }
@@ -328,12 +344,18 @@ void HMPIDDCSProcessor::finalizeChPressureEntry(Int_t iCh) // after run is finis
 void HMPIDDCSProcessor::finalizeTempOutEntry(Int_t iCh,Int_t iRad) // after run is finished, 
 { 
 	if(tempOut[3*iCh+iRad].size() != 0){
+
+		auto minTime = HMPIDDCSTime::getMinTime(tempOut[3*iCh+iRad]);
+		if(minTime < mTimeArNmean.first) mTimeArNmean.first = minTime;
+		auto maxTime = HMPIDDCSTime::getMaxTime(tempOut[3*iCh+iRad]);
+		if(maxTime > mTimeArNmean.last) mTimeArNmean.last = maxTime;
+
 		TGraph *pGrTOut = new TGraph; cntTOut=0;
 		for(DPCOM dp : tempOut[3*iCh+iRad]){
 			pGrTOut->SetPoint(cntTOut++,dp.data.get_epoch_time(),o2::dcs::getValue<double>(dp));
 		}
-
-		pTout[3*iCh+iRad] = new TF1(Form("Tout%i%i",iCh,iRad),"[0]+[1]*x",HMPIDDCSTime::getMinTime(tempOut[3*iCh+iRad]),HMPIDDCSTime::getMaxTime(tempOut[3*iCh+iRad]));
+		// might need to initialize pTout[3*iCh+iRad] here 
+		pTout[3*iCh+iRad] = new TF1(Form("Tout%i%i",iCh,iRad),"[0]+[1]*x",minTime,maxTime);
 		if(cntTOut==1) { 
 		 pGrTOut->GetPoint(0,xP,yP);
 		 pTout[3*iCh+iRad]->SetParameter(0,yP);
@@ -348,12 +370,18 @@ void HMPIDDCSProcessor::finalizeTempOutEntry(Int_t iCh,Int_t iRad) // after run 
 void HMPIDDCSProcessor::finalizeTempInEntry(Int_t iCh,Int_t iRad) // after run is finished, 
 { 
 	if(tempIn[3*iCh+iRad].size() != 0){
+
+		auto minTime = HMPIDDCSTime::getMinTime(tempIn[3*iCh+iRad]);
+		if(minTime < mTimeArNmean.first) mTimeArNmean.first = minTime;
+		auto maxTime = HMPIDDCSTime::getMaxTime(tempIn[3*iCh+iRad]);
+		if(maxTime > mTimeArNmean.last) mTimeArNmean.last = maxTime;
+
 		TGraph *pGrTIn = new TGraph; cntTin=0;
 		for(DPCOM dp : tempIn[3*iCh+iRad]){
 			pGrTIn->SetPoint(cntTin++,dp.data.get_epoch_time(),o2::dcs::getValue<double>(dp));
 		}
-
-		pTin[3*iCh+iRad]  = new TF1(Form("Tin%i%i" ,iCh,iRad),"[0]+[1]*x",HMPIDDCSTime::getMinTime(tempIn[3*iCh+iRad]),HMPIDDCSTime::getMaxTime(tempIn[3*iCh+iRad]));
+		// might need to initialize pTin[3*iCh+iRad] here 
+		pTin[3*iCh+iRad]  = new TF1(Form("Tin%i%i" ,iCh,iRad),"[0]+[1]*x",minTime,maxTime);
 		if(cntTin==1) { 
 		 pGrTIn->GetPoint(0,xP,yP);
 		 pTin[3*iCh+iRad]->SetParameter(0,yP);
@@ -389,25 +417,31 @@ void HMPIDDCSProcessor::finalize() // after run is finished,
 		}
 	}
 
-	eMean = ProcTrans(); // Mean photon-energy
+
+	
+
+
+	double eMean = ProcTrans();	 
 	
 	// startTimeTemp and endTimeTemp: min and max in 1d array of vectors of Tin/Tout
-	startTimeTemp = std::max(HMPIDDCSTime::getMinTimeArr(tempOut),HMPIDDCSTime::getMinTimeArr(tempIn));
+	uint64_t startTimeTemp = std::max(HMPIDDCSTime::getMinTimeArr(tempOut),HMPIDDCSTime::getMinTimeArr(tempIn));
 	
-	endTimeTemp = std::min(HMPIDDCSTime::getMaxTimeArr(tempOut),HMPIDDCSTime::getMaxTimeArr(tempIn)); // ?? 
+	uint64_t endTimeTemp = std::min(HMPIDDCSTime::getMaxTimeArr(tempOut),HMPIDDCSTime::getMaxTimeArr(tempIn)); // ?? 
 	// startTime is from temperature, but endTime should be from last entry in  ProcTrans()? 
-        arNmean[42] = *(new TF1("HMP_PhotEmean",Form("%f",eMean),startTimeTemp,endTimeTemp)); //Photon energy mean
+        arNmean[42] = *(new TF1("HMP_PhotEmean",Form("%f",eMean),startTimeTemp,endTimeTemp));//fStartTime,fEndTime); //Photon energy mean
 
 
+
+	
 	 // prepare CCDB: 
 	 std::map<std::string, std::string> md;
 	 md["responsible"] = "NB!! CHANGE RESPONSIBLE";
 	
-		 // Refractive index (T_out, T_in, mean photon energy):
-		 o2::calibration::Utils::prepareCCDBobjectInfo(arNmean, mccdbNMEANInfo, "HMPID/Calib/RefIndex", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
-		 // charge threshold :
-	       o2::calibration::Utils::prepareCCDBobjectInfo(arQthre,mccdbQTHRESHInfo , "HMPID/Calib/ChargeCut", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
-	       
+		 // Refractive index (T_out, T_in, mean photon energy)
+		 o2::calibration::Utils::prepareCCDBobjectInfo(arNmean, mccdbREF_INDEX_Info, "HMPID/Calib/RefIndex", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
+
+		 // charge threshold 
+		 o2::calibration::Utils::prepareCCDBobjectInfo(arQthre,mccdbCHARGE_CUT_Info , "HMPID/Calib/ChargeCut", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
 
 }
 
@@ -424,10 +458,12 @@ void HMPIDDCSProcessor::fillChamberPressures(const DPCOM& dpcom)
   const std::string aliasStr(dpid.get_alias());  
   
   if(type == DeliveryType::DPVAL_INT || type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
-  {  
+  {
+
  	// find chamber number:  
 	auto chNum = subStringToInt(aliasStr, startI_chamberPressure, startI_chamberPressure);
 	pChamber[chNum].push_back(dpcom);
+	//mChamberPressure.fill(chamberNumber,aliasStr, time, value);
   } else LOG(debug)<< "Not correct specification for Environment-pressure DP: {}"<< aliasStr;
 }
 
@@ -441,8 +477,9 @@ void HMPIDDCSProcessor::fillEnvironmentPressure(const DPCOM& dpcom) // A :better
 
   if(type == DeliveryType::DPVAL_INT || type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
 	{
-  		pEnv.push_back(dpcom); 
-
+		
+	  	pEnv.push_back(dpcom); 
+		//mEnvironmentPressure.fill(aliasStr, time, value);
   } else {
 	LOG(debug)<< "Not correct specification for Environment-pressure DP: {}" << aliasStr;
   }
@@ -458,6 +495,7 @@ void HMPIDDCSProcessor::fillHV(const DPCOM& dpcom)
 
   if(type == DeliveryType::DPVAL_INT || type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected
   { 
+	
 	auto chNum = subStringToInt(aliasStr, startI_chamberHV,  startI_chamberHV);
 	auto secNum = subStringToInt(aliasStr,  startI_sectorHV,  startI_sectorHV);
 	dpcomHV[6*chNum+secNum].push_back(dpcom);
@@ -466,20 +504,25 @@ void HMPIDDCSProcessor::fillHV(const DPCOM& dpcom)
 }
 	
 // Temp in (T1) and out (T2), in each chamber_radiator = 7*6  
-void HMPIDDCSProcessor::fillTemperature(const DPCOM& dpcom, bool in) 
+void HMPIDDCSProcessor::fillTemperature(const DPCOM& dpcom, bool in) // A :better to pass string ? 
 {
   auto& dpid = dpcom.id;
   const auto& type = dpid.get_type();
   const std::string aliasStr(dpid.get_alias());  
 	
   if(type == DeliveryType::DPVAL_INT || type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
-  {
+  {	
+	
 	auto chNum = subStringToInt(aliasStr,  startI_chamberTemp,  startI_chamberTemp);
 	auto radNum = subStringToInt(aliasStr,  startI_radiatorTemp,  startI_radiatorTemp);
 
 	
-	if(in){ tempIn[3*chNum+radNum].push_back(dpcom); 
-	} else{	tempOut[3*chNum+radNum].push_back(dpcom); 
+	if(in){
+		tempIn[3*chNum+radNum].push_back( dpcom); 
+		//mTemperature.fill(aliasStr,chamberNumber,radiatorNumber, time, value);
+
+	} else{
+		tempOut[3*chNum+radNum].push_back(dpcom); 
 	} 
   } else LOG(debug) << "Not correct Data-type for Temperature DP: {}" << aliasStr;
 
