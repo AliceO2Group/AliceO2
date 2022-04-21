@@ -127,7 +127,9 @@ int MFTDCSProcessor::processDP(const DPCOM& dpcom)
   if (type == DPVAL_DOUBLE) {
     // for these DPs, we will store the first, last, mid value, plus the value where the maximum variation occurred
     auto& dvect = mDpsdoublesmap[dpid];
-    LOG(info) << "mDpsdoublesmap[dpid].size() = " << dvect.size();
+    if (mVerbose) {
+      LOG(info) << "mDpsdoublesmap[dpid].size() = " << dvect.size();
+    }
     auto etime = val.get_epoch_time();
     if (dvect.size() == 0 || etime != dvect.back().get_epoch_time()) { // we check
                                                                        // that we did not get the
@@ -146,7 +148,9 @@ void MFTDCSProcessor::updateDPsCCDB()
 {
 
   // here we create the object to then be sent to CCDB
-  LOG(info) << "Finalizing";
+  if (mVerbose) {
+    LOG(info) << "Finalizing";
+  }
   union Converter {
     uint64_t raw_data;
     double double_value;
