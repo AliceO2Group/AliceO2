@@ -1196,7 +1196,7 @@ class Table
   {
     uint64_t offset = 0;
     std::shared_ptr<arrow::Table> result = nullptr;
-    if (!this->getSliceFor(value, node.name.c_str(), result, offset)) {
+    if (!this->getSliceFor(value, node.name.c_str(), result, offset).ok()) {
       o2::framework::throw_error(o2::framework::runtime_error("Failed to slice table"));
     }
     auto t = table_t({result}, offset);
@@ -2136,7 +2136,7 @@ struct Join : JoinBase<Ts...> {
   {
     uint64_t offset = 0;
     std::shared_ptr<arrow::Table> result = nullptr;
-    if (!this->getSliceFor(value, node.name.c_str(), result, offset)) {
+    if (!this->getSliceFor(value, node.name.c_str(), result, offset).ok()) {
       o2::framework::throw_error(o2::framework::runtime_error("Failed to slice table"));
     }
     auto t = Join<Ts...>({result}, offset);
@@ -2329,7 +2329,7 @@ class FilteredBase : public T
   {
     uint64_t offset = 0;
     std::shared_ptr<arrow::Table> result = nullptr;
-    if (!((table_t*)this)->getSliceFor(value, node.name.c_str(), result, offset)) {
+    if (!((table_t*)this)->getSliceFor(value, node.name.c_str(), result, offset).ok()) {
       o2::framework::throw_error(o2::framework::runtime_error("Failed to slice table"));
     }
     if (offset >= this->tableSize()) {
@@ -2541,7 +2541,7 @@ class Filtered : public FilteredBase<T>
   {
     uint64_t offset = 0;
     std::shared_ptr<arrow::Table> result = nullptr;
-    if (!((table_t*)this)->getSliceFor(value, node.name.c_str(), result, offset)) {
+    if (!((table_t*)this)->getSliceFor(value, node.name.c_str(), result, offset).ok()) {
       o2::framework::throw_error(o2::framework::runtime_error("Failed to slice table"));
     }
     if (offset >= this->tableSize()) {
@@ -2672,7 +2672,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
   {
     uint64_t offset = 0;
     std::shared_ptr<arrow::Table> result = nullptr;
-    if (!((table_t*)this)->getSliceFor(value, node.name.c_str(), result, offset)) {
+    if (!((table_t*)this)->getSliceFor(value, node.name.c_str(), result, offset).ok()) {
       o2::framework::throw_error(o2::framework::runtime_error("Failed to slice table"));
     }
     auto start = offset;
