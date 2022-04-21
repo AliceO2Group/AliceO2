@@ -112,6 +112,17 @@ std::vector<InputSpec> select(char const* matcher = "");
 
 namespace workflow
 {
+
+/// This allows to optionally merge @a specs into a single DataProcessorSpec named @a name
+/// if the @a doIt variable is true. If @a doIt is false, the function will simply return
+/// the original @a specs.
+///
+/// This implements at a different level the functionality proposed by Sandro in
+/// https://github.com/AliceO2Group/AliceO2/pull/8529 which was working at the reconstruction task level.
+/// This is a bit more general and can be used for analysis tasks as well (T).
+/// In the long term it might make sense to automatically apply this after the topological sort
+/// and to automatically merge the parallel paths of the workflow. Merging serial steps is more
+/// complicated because it would require to abstract out the FairMQ channel model.
 WorkflowSpec combine(const char* name, std::vector<DataProcessorSpec> const& specs, bool doIt);
 
 template <typename T, typename... ARGS>
