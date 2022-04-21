@@ -122,7 +122,7 @@ class HMPIDDataProcessor : public o2::framework::Task
       std::vector<std::string> expaliases = o2::dcs::expandAliases(aliases);
       
       for (const auto& i : expaliases) {
-        vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE); // ok (?)
+        vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
       }
       //std::vector<std::string> aliasesInt = {"TOF_FEACSTATUS_[00..71]"};
       //std::vector<std::string> expaliasesInt = o2::dcs::expandAliases(aliasesInt);
@@ -147,40 +147,35 @@ class HMPIDDataProcessor : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final
   {
     /* //NOT NECESSARY??
-          auto startValidity = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
-          auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
-          auto timeNow = HighResClock::now();
-
-          if (startValidity == 0xffffffffffffffff) {                                                                   // it means it is not set
-            startValidity = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow.time_since_epoch()).count(); // in ms
-          }
-          mProcessor->setStartValidity(startValidity);
+    auto startValidity = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
+    auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
+    auto timeNow = HighResClock::now();
+    
+    if (startValidity == 0xffffffffffffffff) {                                                                   // it means it is not set
+      startValidity = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow.time_since_epoch()).count(); // in ms
+    }
+    mProcessor->setStartValidity(startValidity);
    */ //NOT NECESSARY??
-   
-   
-   
     // process datapoints: 
     mProcessor->process(dps);
-    
     /* // not necessary for HMPID??: 
-          Duration elapsedTime = timeNow - mTimer; // in seconds
-          if (elapsedTime.count() >= mDPsUpdateInterval) {
-            sendDPsoutput(pc.outputs());
-            mTimer = timeNow;
-          } 
-    */ // not necessary for HMPID?? 
+    Duration elapsedTime = timeNow - mTimer; // in seconds
+    if (elapsedTime.count() >= mDPsUpdateInterval) {
+      sendDPsoutput(pc.outputs());
+      mTimer = timeNow;
+    } */ 
+    //sendLVandHVoutput(pc.outputs());
+        // as of now, the finalize-function processes both RefIndex and ChargeCut
+    mProcessor->finalize(); // finalize, in HMPID-function
     
-    
-      //sendLVandHVoutput(pc.outputs());
-    
-    // finalize()-function call here? 
-    sendChargeThresOutput(pc.outputs());
-    sendRefIndexOutput(pc.outputs());
+    //sendChargeThresOutput(pc.outputs()); // should be in run ??
+    //sendRefIndexOutput(pc.outputs());
   }
+  
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
-    sendChargeThresOutput(ec.outputs());
+    sendChargeThresOutput(ec.outputs()); // should be in run ??
     sendRefIndexOutput(ec.outputs());
   }
 
@@ -192,12 +187,13 @@ class HMPIDDataProcessor : public o2::framework::Task
   //___send charge threshold (arQthre)____________________________________________________________
   void sendChargeThresOutput(DataAllocator& output)
   {
-    // extract CCDB infos and calibration object for DPs
-    // as of now, the finalize-function processes both RefIndex and ChargeCut
-    mProcessor->finalize(); // finalize, in HMPID-function
-    const auto& payload = mProcessor->();   
-    //mProcessor->getLVStatus();
-    
+    // fill CCDB with ChargeThres (arQthre)   
+   const auto& payload = mProcessor->getChargeCutObj();   
+   //HMPIDThreshVars mChargeThresh; in private
+    // CZ/GV? what should the struct contain? TF1 object 
+		  // for calculating refractive index: 
+	   //TF1 arNmean[43]; /// 21* Tin and 21*Tout (1 per radiator, 3 radiators per chambers)
+				// + 1 for ePhotMean (mean photon energy)  
     
     auto& info = mProcessor->getHmpidChargeCutInfo();   // OK, but maybe change function and var names  
     
@@ -209,20 +205,20 @@ class HMPIDDataProcessor : public o2::framework::Task
               << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ChargeCut", 0}, *image.get());
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ChargeCut", 0}, info);
-    mProcessor->clearDPsinfo();
   }
 
   //____send RefIndex (arrMean)__________________________________________________________
   void sendRefIndexOutput(DataAllocator& output)
   {
-    // extract CCDB infos and calibration objects for LV and HV, convert it to TMemFile and send them to the output
-    // as of now, the finalize-function processes both RefIndex and ChargeCut
+    // fill CCDB with RefIndex (arrMean)   
       
-      // not necessary ?: function call to mProcessor->finalize() in "global scope"??
-      mProcessor->finalize(); //  mProcessor->updateDPsCCDB(); // finalize, in HMPID-function
+      //struct HMPIDRefIndexVars mRefIndex; in private
+       // CZ/GV? what should the struct contain? TF1 object 
+		   // Charge Threshold: 
+		   // TF1 arQthre[42];  //42 Qthre=f(time) one per sector
       
-      const auto& payload = mProcessor->finalize();   
-      // mProcessor->getTOFDPsInfo(); ==>  returns:
+      const auto& payload = mProcessor->getRefIndexObj();   // based on GRP
+      // returns struct: HMPIDRefIndexVars mRefIndex        // GRP
       //unordered_map<DPID, TOFDCSinfo> mTOFDCS;  // this is the object that will go to the CCDB
 
    
