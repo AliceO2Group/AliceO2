@@ -2343,7 +2343,7 @@ class FilteredBase : public T
     auto stop_iterator = std::lower_bound(start_iterator, mSelectedRows.end(), end);
     SelectionVector slicedSelection{start_iterator, stop_iterator};
     std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
-                   [&](int64_t idx) {
+                   [&start](int64_t idx) {
                      return idx - static_cast<int64_t>(start);
                    });
     self_t fresult{{result}, std::move(slicedSelection), start};
@@ -2555,7 +2555,7 @@ class Filtered : public FilteredBase<T>
     auto stop_iterator = std::lower_bound(start_iterator, this->getSelectedRows().end(), end);
     SelectionVector slicedSelection{start_iterator, stop_iterator};
     std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
-                   [&](int64_t idx) {
+                   [&start](int64_t idx) {
                      return idx - static_cast<int64_t>(start);
                    });
     auto slicedSize = slicedSelection.size();
@@ -2681,7 +2681,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     auto stop_iterator = std::lower_bound(start_iterator, this->getSelectedRows().end(), end);
     SelectionVector slicedSelection{start_iterator, stop_iterator};
     std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
-                   [&](int64_t idx) {
+                   [&start](int64_t idx) {
                      return idx - static_cast<int64_t>(start);
                    });
     SelectionVector copy = slicedSelection;
