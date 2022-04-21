@@ -1,29 +1,42 @@
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 #ifndef HMPIDDCSPROCESSOR_H
 #define HMPIDDCSPROCESSOR_H
 
+// calibration/HMPIDCalibration header-files:
 #include "HMPIDCalibration/HMPIDDCSTime.h"
-
+// HMPID Base  
 #include "HMPIDBase/Geo.h"
 #include "HMPIDBase/Param.h"
 
+// Root classes:
+#include <TF1.h>                  
+#include <TF2.h>                  
+#include <TGraph.h>            
 
-#include <TF1.h>                  //Process()
-#include <TF2.h>                  //Process()
-#include <TGraph.h>               //Process()
-
-
+// miscallanous libraries
 #include <memory>
 #include <deque> 
 #include <gsl/gsl> 
 
+// O2 includes: 
 #include "Framework/Logger.h"
- #include "DetectorsDCS/DataPointCompositeObject.h" 
+#include "DetectorsDCS/DataPointCompositeObject.h" 
 #include "DetectorsDCS/DataPointIdentifier.h"
- #include "DetectorsDCS/DataPointValue.h" 
- #include "CCDB/CcdbObjectInfo.h" 
- #include "CCDB/CcdbApi.h"
+#include "DetectorsDCS/DataPointValue.h" 
+#include "CCDB/CcdbObjectInfo.h" 
+#include "CCDB/CcdbApi.h"
 #include "CommonUtils/MemFileHelper.h"
-#include "DetectorsCalibration/Utils.h" // o2::calibration::dcs
+#include "DetectorsCalibration/Utils.h" // o2::calibration::dcs,  o2::calibration::Utils
 //using DeliveryType = o2::dcs::DeliveryType;
 //using DPID = o2::dcs::DataPointIdentifier;
 //using DPVAL = o2::dcs::DataPointValue;
@@ -194,6 +207,9 @@ class HMPIDDCSProcessor{
 		// 1d-array of vectors of HV
 		uint64_t hvFirstTime, hvLastTime; 
 
+		uint64_t pChFirstTime, pChLastTime; 	// chamberprssure timestamps
+		uint64_t pEnvFirstTime, pEnvLastTime;   // envPressure timestamps
+
 
 
 		TimeRange mTimeQThresh; // Timerange for QThresh (ChargeCut)
@@ -201,7 +217,9 @@ class HMPIDDCSProcessor{
  
 
  
-
+		uint64_t tempFirstTime, tempLastTime; 
+		uint64_t tOutFirstTime, tOutLastTime; 
+		uint64_t procTransFirstTime, procTransLastTime; 
 
 		TimeRange mTimeArNmean;	// Timerange for arNmean (RefIndex)
 					// min, max of timestamps {Tin, Tout, ProcTrans}
@@ -217,13 +235,45 @@ class HMPIDDCSProcessor{
 #endif 
 
 
+/*
+ Strings for HMPID_ID =  "HMP_DET",
+  %-signs are omitted when counting character position in string
+ 
+ temp-out TEMP_OUT_ID: 
+ Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iOut_Temp",iCh,iCh,iRad) 
+  
+ temp-in TEMP_IN_ID: 
+ Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iIn_Temp",iCh,iCh,iRad) 
+ 
+ Environment pressure ENV_PRESS_ID: 
+ "HMP_DET/HMP_ENV/HMP_ENV_PENV.actual.value" 
+ 
+ Chamber pressure CH_PRESS_ID: 
+ Form("HMP_DET/HMP_MP%i/HMP_MP%i_GAS/HMP_MP%i_GAS_PMWPC.actual.value",iCh,iCh,iCh)
+ 
+ High Voltage HV_ID:  
+ Form("HMP_DET/HMP_MP%i/HMP_MP%i_PW/HMP_MP%i_SEC%i/  HMP_MP%i_SEC%i_HV.actual.vMon",iCh,iCh,iCh,iSec,iCh,iSec)
+*/
+     
 
-//Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iOut_Temp",iCh,iCh,iRad) 8 npos-8, npos
-//Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iIn_Temp",iCh,iCh,iRad) 7
-//"HMP_DET/HMP_ENV/HMP_ENV_PENV.actual.value" av = 12 +5 = 17
-//Form("HMP_DET/HMP_MP%i/HMP_MP%i_GAS/HMP_MP%i_GAS_PMWPC.actual.value",iCh,iCh,iCh) 18
-//Form("HMP_DET/HMP_MP%i/HMP_MP%i_PW/HMP_MP%i_SEC%i/HMP_MP%i_SEC%i_HV.actual.vMon",iCh,iCh,iCh,iSec,iCh,iSec)
+  /*  Strings for HMPID-IR IDs "HMP_DET/HMP_INFR"
 
+
+	waveLenght WAVE_LEN_ID : 
+		Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.waveLenght",i));
+
+      	argonReference ARGON_REF_ID:
+      		Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonReference",i)
+
+      	argonCell ARGON_CELL_ID:
+      		Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/		HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonCell)
+
+      	c6f14Cell FREON_CELL_ID:
+      		Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Cell)
+
+      	c6f14Reference FREON_REF_ID:
+      		Form(HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Reference) 
+*/
      
 
 
