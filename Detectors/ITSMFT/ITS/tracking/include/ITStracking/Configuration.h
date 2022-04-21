@@ -170,11 +170,11 @@ inline TimeFrameGPUConfig::TimeFrameGPUConfig(size_t cubBufferSize,
                                               size_t cluROfCap,
                                               size_t maxTrkCap,
                                               size_t maxVertCap) : tmpCUBBufferSize{cubBufferSize},
-                                                                maxTrackletsPerCluster{maxTrkClu},
-                                                                clustersPerLayerCapacity{cluLayCap},
-                                                                clustersPerROfCapacity{cluROfCap},
-                                                                maxLinesCapacity{maxTrkCap},
-                                                                maxVerticesCapacity{maxVertCap}
+                                                                   maxTrackletsPerCluster{maxTrkClu},
+                                                                   clustersPerLayerCapacity{cluLayCap},
+                                                                   clustersPerROfCapacity{cluROfCap},
+                                                                   maxLinesCapacity{maxTrkCap},
+                                                                   maxVerticesCapacity{maxVertCap}
 {
   maxCentroidsXYCapacity = std::ceil(maxLinesCapacity * (maxLinesCapacity - 1) / 2);
   trackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;

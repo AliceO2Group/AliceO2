@@ -42,16 +42,8 @@ Tracker::Tracker(o2::its::TrackerTraits* traits)
   mTrkParams.resize(1);
   mMemParams.resize(1);
   mTraits = traits;
-#ifdef CA_DEBUG
-  mDebugger = new StandaloneDebugger("dbg_ITSTrackerCPU.root");
-#endif
 }
-#ifdef CA_DEBUG
-Tracker::~Tracker()
-{
-  delete mDebugger;
-}
-#else
+
 Tracker::~Tracker() = default;
 #endif
 

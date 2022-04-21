@@ -98,26 +98,26 @@ float TimeFrameGPU<NLayers>::getDeviceMemory()
   totalMemory += 2 * mConfig.nMaxROFs * sizeof(float);
   totalMemory += mConfig.nMaxROFs * mConfig.maxVerticesCapacity * sizeof(Vertex);
 
-  LOGP(info, "Total requested memory for GPU: {:.2f} MB", totalMemory / MB);
-  LOGP(info, "\t- Clusters: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(Cluster) / MB);
-  LOGP(info, "\t- Tracking frame info: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(TrackingFrameInfo) / MB);
-  LOGP(info, "\t- Cluster external indices: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
-  LOGP(info, "\t- Clusters per ROf: {:.2f} MB", NLayers * mConfig.clustersPerROfCapacity * sizeof(int) / MB);
-  LOGP(info, "\t- Tracklets: {:.2f} MB", (NLayers - 1) * mConfig.trackletsCapacity * sizeof(Tracklet) / MB);
-  LOGP(info, "\t- N tracklets per cluster: {:.2f} MB", 2 * mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
-  LOGP(info, "\t- Index tables: {:.2f} MB", 2 * mConfig.nMaxROFs * (ZBins * PhiBins + 1) * sizeof(int) / MB);
-  LOGP(info, "\t- Lines: {:.2f} MB", mConfig.trackletsCapacity * sizeof(Line) / MB);
-  LOGP(info, "\t- N found lines: {:.2f} MB", mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
-  LOGP(info, "\t- N exclusive-scan found lines: {:.2f} MB", mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
-  LOGP(info, "\t- Used tracklets: {:.2f} MB", mConfig.trackletsCapacity * sizeof(unsigned char) / MB);
-  LOGP(info, "\t- CUB tmp buffers: {:.2f} MB", mConfig.nMaxROFs * mConfig.tmpCUBBufferSize / MB);
-  LOGP(info, "\t- XY centroids: {:.2f} MB", 2 * mConfig.nMaxROFs * mConfig.maxCentroidsXYCapacity * sizeof(float) / MB);
-  LOGP(info, "\t- Z centroids: {:.2f} MB", mConfig.nMaxROFs * mConfig.maxLinesCapacity * sizeof(float) / MB);
-  LOGP(info, "\t- XY histograms: {:.2f} MB", 2 * mConfig.nMaxROFs * mConfig.histConf.nBinsXYZ[0] * sizeof(int) / MB);
-  LOGP(info, "\t- Z histograms: {:.2f} MB", mConfig.nMaxROFs * mConfig.histConf.nBinsXYZ[2] * sizeof(int) / MB);
-  LOGP(info, "\t- TMP Vertex position bins: {:.2f} MB", 3 * mConfig.nMaxROFs * sizeof(cub::KeyValuePair<int, int>) / MB);
-  LOGP(info, "\t- Beam positions: {:.2f} MB", 2 * mConfig.nMaxROFs * sizeof(float) / MB);
-  LOGP(info, "\t- Vertices: {:.2f} MB", mConfig.nMaxROFs * mConfig.maxVerticesCapacity * sizeof(Vertex) / MB);
+  LOGP(debug, "Total requested memory for GPU: {:.2f} MB", totalMemory / MB);
+  LOGP(debug, "\t- Clusters: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(Cluster) / MB);
+  LOGP(debug, "\t- Tracking frame info: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(TrackingFrameInfo) / MB);
+  LOGP(debug, "\t- Cluster external indices: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
+  LOGP(debug, "\t- Clusters per ROf: {:.2f} MB", NLayers * mConfig.clustersPerROfCapacity * sizeof(int) / MB);
+  LOGP(debug, "\t- Tracklets: {:.2f} MB", (NLayers - 1) * mConfig.trackletsCapacity * sizeof(Tracklet) / MB);
+  LOGP(debug, "\t- N tracklets per cluster: {:.2f} MB", 2 * mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
+  LOGP(debug, "\t- Index tables: {:.2f} MB", 2 * mConfig.nMaxROFs * (ZBins * PhiBins + 1) * sizeof(int) / MB);
+  LOGP(debug, "\t- Lines: {:.2f} MB", mConfig.trackletsCapacity * sizeof(Line) / MB);
+  LOGP(debug, "\t- N found lines: {:.2f} MB", mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
+  LOGP(debug, "\t- N exclusive-scan found lines: {:.2f} MB", mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
+  LOGP(debug, "\t- Used tracklets: {:.2f} MB", mConfig.trackletsCapacity * sizeof(unsigned char) / MB);
+  LOGP(debug, "\t- CUB tmp buffers: {:.2f} MB", mConfig.nMaxROFs * mConfig.tmpCUBBufferSize / MB);
+  LOGP(debug, "\t- XY centroids: {:.2f} MB", 2 * mConfig.nMaxROFs * mConfig.maxCentroidsXYCapacity * sizeof(float) / MB);
+  LOGP(debug, "\t- Z centroids: {:.2f} MB", mConfig.nMaxROFs * mConfig.maxLinesCapacity * sizeof(float) / MB);
+  LOGP(debug, "\t- XY histograms: {:.2f} MB", 2 * mConfig.nMaxROFs * mConfig.histConf.nBinsXYZ[0] * sizeof(int) / MB);
+  LOGP(debug, "\t- Z histograms: {:.2f} MB", mConfig.nMaxROFs * mConfig.histConf.nBinsXYZ[2] * sizeof(int) / MB);
+  LOGP(debug, "\t- TMP Vertex position bins: {:.2f} MB", 3 * mConfig.nMaxROFs * sizeof(cub::KeyValuePair<int, int>) / MB);
+  LOGP(debug, "\t- Beam positions: {:.2f} MB", 2 * mConfig.nMaxROFs * sizeof(float) / MB);
+  LOGP(debug, "\t- Vertices: {:.2f} MB", mConfig.nMaxROFs * mConfig.maxVerticesCapacity * sizeof(Vertex) / MB);
 
   return totalMemory;
 }
