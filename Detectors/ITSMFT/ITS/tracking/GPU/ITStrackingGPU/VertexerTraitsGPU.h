@@ -25,8 +25,6 @@
 #include "ITStracking/Definitions.h"
 #include "ITStracking/Tracklet.h"
 
-// #include "DeviceStoreVertexerGPU.h"
-#include "UniquePointer.h"
 #include "ITStrackingGPU/TimeFrameGPU.h"
 
 namespace o2

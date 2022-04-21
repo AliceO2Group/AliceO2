@@ -45,7 +45,6 @@ Tracker::Tracker(o2::its::TrackerTraits* traits)
 }
 
 Tracker::~Tracker() = default;
-#endif
 
 void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::function<void(std::string s)> error)
 {
