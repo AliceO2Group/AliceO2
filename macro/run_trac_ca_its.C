@@ -230,7 +230,7 @@ void run_trac_ca_its(bool cosmics = false,
 
   tf.printVertices();
 
-  o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU);
+  o2::its::Tracker tracker(new o2::its::TrackerTraits);
   tracker.adoptTimeFrame(tf);
 
   if (useLUT) {
