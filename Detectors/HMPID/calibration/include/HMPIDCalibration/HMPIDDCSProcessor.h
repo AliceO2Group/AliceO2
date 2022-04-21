@@ -58,15 +58,9 @@ class HMPIDDCSProcessor{
 		HMPIDDCSProcessor() = default;
 		~HMPIDDCSProcessor() = default;
 	
-		const CcdbObjectInfo& getccdbREF_INDEXsInfo() const { return mccdbREF_INDEX_Info; }
-         	CcdbObjectInfo& getccdbREF_INDEXsInfo() { return mccdbREF_INDEX_Info; }
-      
-          
-   		const CcdbObjectInfo& getHmpidChargeCutInfo() const { return mccdbCHARGE_CUT_Info; }
-    		CcdbObjectInfo& getHmpidChargeCutInfo() { return mccdbCHARGE_CUT_Info; }	
-	
-	
 		// procTrans
+
+
 
 		double DefaultEMean();					//just set a refractive index for C6F14 at ephot=6.675 eV @ T=25 C
      		double  sEnergProb=0, sProb=0; 				// energy probaility, probability
@@ -201,10 +195,8 @@ class HMPIDDCSProcessor{
 	
 		uint64_t hvFirstTime, hvLastTime; // timestamps of last and first HV-datapoint entry in 
 						  // 1d-array of vectors of HV
-		
-	
-		CcdbObjectInfo mccdbREF_INDEX_Info;
-		CcdbObjectInfo mccdbCHARGE_CUT_Info;
+		CcdbObjectInfo mccdbNMEANInfo;
+		CcdbObjectInfo mccdbQTHRESHInfo;
 		long mStartValidity = 0; // from TOFDCSProcessor.h
 	ClassDefNV(HMPIDDCSProcessor,0);
 };// end class 
