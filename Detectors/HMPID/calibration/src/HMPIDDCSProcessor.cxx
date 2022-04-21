@@ -34,7 +34,6 @@ using namespace o2::dcs;
 
 
 
-
 namespace o2::hmpid {
 	
 void HMPIDDCSProcessor::process(const gsl::span<const DPCOM> dps)
