@@ -25,7 +25,7 @@ template <typename T>
 class TimeStamp
 {
  public:
-  GPUdDefault() TimeStamp() CON_DEFAULT;
+  GPUhd() TimeStamp() CON_DEFAULT;
   GPUdDefault() ~TimeStamp() CON_DEFAULT;
   GPUdi() TimeStamp(T time) { mTimeStamp = time; }
   GPUdi() T getTimeStamp() const { return mTimeStamp; }
