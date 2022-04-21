@@ -1,42 +1,29 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
-// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
-// All rights not expressly granted are reserved.
-//
-// This software is distributed under the terms of the GNU General Public
-// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
-//
-// In applying this license CERN does not waive the privileges and immunities
-// granted to it by virtue of its status as an Intergovernmental Organization
-// or submit itself to any jurisdiction.
-
 #ifndef HMPIDDCSPROCESSOR_H
 #define HMPIDDCSPROCESSOR_H
 
-// calibration/HMPIDCalibration header-files:
 #include "HMPIDCalibration/HMPIDDCSTime.h"
-// HMPID Base  
+
 #include "HMPIDBase/Geo.h"
 #include "HMPIDBase/Param.h"
 
-// Root classes:
-#include <TF1.h>                  
-#include <TF2.h>                  
-#include <TGraph.h>            
 
-// miscallanous libraries
+#include <TF1.h>                  //Process()
+#include <TF2.h>                  //Process()
+#include <TGraph.h>               //Process()
+
+
 #include <memory>
 #include <deque> 
 #include <gsl/gsl> 
 
-// O2 includes: 
 #include "Framework/Logger.h"
-#include "DetectorsDCS/DataPointCompositeObject.h" 
+ #include "DetectorsDCS/DataPointCompositeObject.h" 
 #include "DetectorsDCS/DataPointIdentifier.h"
-#include "DetectorsDCS/DataPointValue.h" 
-#include "CCDB/CcdbObjectInfo.h" 
-#include "CCDB/CcdbApi.h"
+ #include "DetectorsDCS/DataPointValue.h" 
+ #include "CCDB/CcdbObjectInfo.h" 
+ #include "CCDB/CcdbApi.h"
 #include "CommonUtils/MemFileHelper.h"
-#include "DetectorsCalibration/Utils.h" // o2::calibration::dcs,  o2::calibration::Utils
+#include "DetectorsCalibration/Utils.h" // o2::calibration::dcs
 //using DeliveryType = o2::dcs::DeliveryType;
 //using DPID = o2::dcs::DataPointIdentifier;
 //using DPVAL = o2::dcs::DataPointValue;
@@ -51,21 +38,32 @@ namespace o2::hmpid
 class HMPIDDCSProcessor{
 
 
-	public:
+	public:	
+
+		struct TimeRange {
+			uint64_t first{};
+			uint64_t last{};		
+		};
   
                 using CcdbObjectInfo = o2::ccdb::CcdbObjectInfo;
 		   
 		HMPIDDCSProcessor() = default;
 		~HMPIDDCSProcessor() = default;
+			
+		const CcdbObjectInfo& getccdbREF_INDEXsInfo() const { return mccdbREF_INDEX_Info; }
+         	CcdbObjectInfo& getccdbREF_INDEXsInfo() { return mccdbREF_INDEX_Info; }
+      
+          
+   		const CcdbObjectInfo& getHmpidChargeCutInfo() const { return mccdbCHARGE_CUT_Info; }
+    		CcdbObjectInfo& getHmpidChargeCutInfo() { return mccdbCHARGE_CUT_Info; }
+	
+	
 	
 		// procTrans
-
-
-
 		double DefaultEMean();					//just set a refractive index for C6F14 at ephot=6.675 eV @ T=25 C
      		double  sEnergProb=0, sProb=0; 				// energy probaility, probability
      		// Double_t tRefCR5 = 19. ;                             // mean temperature of CR5 where the system is in place
-     		double  eMean = 0;					// initialize eMean (Photon energy mean) to 0, return value of procTrans()
+     		double  eMean = 0;					// initialize eMean (Photon energy mean) to 0
      		int indexOfIR = 69; 
 		
 		double  aCorrFactor[30] = {0.937575212,0.93805688,0.938527113,0.938986068,0.939433897,0.939870746,0.940296755,0.94071206,0.941116795,0.941511085,0.941895054,0.942268821,0.942632502,
@@ -87,7 +85,7 @@ class HMPIDDCSProcessor{
 		double  aTransSiO2;	       // evaluate 0.5 mm of thickness SiO2 Trans
 		double  aTransGap;	       // evaluate 80 cm of thickness Gap (low density CH4) transparency 
 		double  aCsIQE; 	       // evaluate CsI quantum efficiency
-		double  aTotConvolution;       // evaluate total convolution of all material optical properties
+		double  aTotConvolution;      // evaluate total convolution of all material optical properties
  		
 		double ProcTrans();
 		
@@ -109,7 +107,7 @@ class HMPIDDCSProcessor{
 		void fillTemperature(const DPCOM& dpcom, bool in); 		// fill element[0-41] in tempOut or tempIn vector
 
 		uint64_t processFlags(const uint64_t flags, const char* pid);
-		//Bool_t stDcsStore=kFALSE; used in AliRoot, not necessary here (?)
+		Bool_t stDcsStore=kFALSE;
 
 		Double_t xP,yP;
 		TF2 *thr = new TF2("RthrCH4"  ,"3*10^(3.01e-3*x-4.72)+170745848*exp(-y*0.0162012)"             ,2000,3000,900,1200); 
@@ -149,9 +147,7 @@ class HMPIDDCSProcessor{
 		 void finalizeTempInEntry(Int_t iCh,Int_t iRad); 
 		 void finalize(); 
 
-		// values of timestamps of DPs in 1d array of vectors of Tin/Tout
-		uint64_t startTimeTemp; // min value 
-		uint64_t endTimeTemp;	// max value 
+
 
 		// indexes for getting chamber-numbers etc
 		std::size_t startI_chamberPressure = 14, endI_chamberPressure = 6;
@@ -181,66 +177,53 @@ class HMPIDDCSProcessor{
 			static constexpr auto CH_PRESS_ID{"PMWPC.actual.value"sv};
 	
 			// HMPID-IR IDs (IR_ID{"HMP_DET/HMP_INFR"sv})
-			static constexpr auto WAVE_LEN_ID{"waveLenght"sv}; 
+			static constexpr auto WAVE_LEN_ID{"waveLenght"sv}; // 0-9 
 			static constexpr auto REF_ID{"Reference"sv}; // argonReference and freonRef
 			static constexpr auto ARGON_CELL_ID{"argonCell"sv}; // argon Cell reference 
 			static constexpr auto FREON_CELL_ID{"c6f14Cell"sv}; // fron Cell Reference
 
 			static constexpr auto ARGON_REF_ID{"argonReference"sv}; // argonReference 
 			static constexpr auto FREON_REF_ID{"c6f14Reference"sv}; // freonReference
-	
-		
+			const auto& getTimeQThresh() const { return mTimeQThresh;}
+			const auto& getTimeArNmean() const { return mTimeArNmean;}
 		//end  ProcDCS: 
             private:
 	
-		uint64_t hvFirstTime, hvLastTime; // timestamps of last and first HV-datapoint entry in 
-						  // 1d-array of vectors of HV
-		CcdbObjectInfo mccdbNMEANInfo;
-		CcdbObjectInfo mccdbQTHRESHInfo;
+
+		// timestamps of last and first HV-datapoint entry in 
+		// 1d-array of vectors of HV
+		uint64_t hvFirstTime, hvLastTime; 
+
+
+
+		TimeRange mTimeQThresh; // Timerange for QThresh (ChargeCut)
+					// min, max of timestamps {envP, chP, HV}
+ 
+
+ 
+
+
+		TimeRange mTimeArNmean;	// Timerange for arNmean (RefIndex)
+					// min, max of timestamps {Tin, Tout, ProcTrans}
+
+
+
+		CcdbObjectInfo mccdbREF_INDEX_Info;
+		CcdbObjectInfo mccdbCHARGE_CUT_Info;
 		long mStartValidity = 0; // from TOFDCSProcessor.h
 	ClassDefNV(HMPIDDCSProcessor,0);
 };// end class 
 } // end o2::hmpid
 #endif 
 
-/*
- Strings for HMPID_ID =  "HMP_DET",
-  %-signs are omitted when counting character position in string
- 
- temp-out TEMP_OUT_ID: 
- Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iOut_Temp",iCh,iCh,iRad) 
-  
- temp-in TEMP_IN_ID: 
- Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iIn_Temp",iCh,iCh,iRad) 
- 
- Environment pressure ENV_PRESS_ID: 
- "HMP_DET/HMP_ENV/HMP_ENV_PENV.actual.value" 
- 
- Chamber pressure CH_PRESS_ID: 
- Form("HMP_DET/HMP_MP%i/HMP_MP%i_GAS/HMP_MP%i_GAS_PMWPC.actual.value",iCh,iCh,iCh)
- 
- High Voltage HV_ID:  
- Form("HMP_DET/HMP_MP%i/HMP_MP%i_PW/HMP_MP%i_SEC%i/  HMP_MP%i_SEC%i_HV.actual.vMon",iCh,iCh,iCh,iSec,iCh,iSec)
-*/
+
+
+//Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iOut_Temp",iCh,iCh,iRad) 8 npos-8, npos
+//Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iIn_Temp",iCh,iCh,iRad) 7
+//"HMP_DET/HMP_ENV/HMP_ENV_PENV.actual.value" av = 12 +5 = 17
+//Form("HMP_DET/HMP_MP%i/HMP_MP%i_GAS/HMP_MP%i_GAS_PMWPC.actual.value",iCh,iCh,iCh) 18
+//Form("HMP_DET/HMP_MP%i/HMP_MP%i_PW/HMP_MP%i_SEC%i/HMP_MP%i_SEC%i_HV.actual.vMon",iCh,iCh,iCh,iSec,iCh,iSec)
+
      
-
-  /*  Strings for HMPID-IR IDs "HMP_DET/HMP_INFR"
-
-
-	waveLenght WAVE_LEN_ID : 
-		Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.waveLenght",i));
-
-      	argonReference ARGON_REF_ID:
-      		Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonReference",i)
-
-      	argonCell ARGON_CELL_ID:
-      		Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/		HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonCell)
-
-      	c6f14Cell FREON_CELL_ID:
-      		Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Cell)
-
-      	c6f14Reference FREON_REF_ID:
-      		Form(HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Reference) 
-*/
 
 
