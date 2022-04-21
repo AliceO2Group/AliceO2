@@ -63,15 +63,21 @@ class HMPIDDCSProcessor{
 		HMPIDDCSProcessor() = default;
 		~HMPIDDCSProcessor() = default;
 			
+	
+	 	
+	
 		const CcdbObjectInfo& getccdbREF_INDEXsInfo() const { return mccdbREF_INDEX_Info; }
          	CcdbObjectInfo& getccdbREF_INDEXsInfo() { return mccdbREF_INDEX_Info; }
-      
+	
+		const HMPIDRefIndexVars& getRefIndexObj() const { return mRefIndex; }
+		//HMPIDRefIndexVars mRefIndex; in private
           
    		const CcdbObjectInfo& getHmpidChargeCutInfo() const { return mccdbCHARGE_CUT_Info; }
     		CcdbObjectInfo& getHmpidChargeCutInfo() { return mccdbCHARGE_CUT_Info; }
 	
-	
-	
+		const HMPIDThreshVars& getChargeCutObj() const { return mChargeCut; }
+		//HMPIDThreshVars mChargeThresh; in private
+
 		// procTrans
 		double DefaultEMean();					//just set a refractive index for C6F14 at ephot=6.675 eV @ T=25 C
      		double  sEnergProb=0, sProb=0; 				// energy probaility, probability
@@ -209,7 +215,10 @@ class HMPIDDCSProcessor{
 
 		uint64_t pChFirstTime, pChLastTime; 	// chamberprssure timestamps
 		uint64_t pEnvFirstTime, pEnvLastTime;   // envPressure timestamps
-
+		
+		// structs 
+		//HMPIDThreshVars mChargeThresh; 
+		//HMPIDRefIndexVars mRefIndex; 
 
 
 		TimeRange mTimeQThresh; // Timerange for QThresh (ChargeCut)
