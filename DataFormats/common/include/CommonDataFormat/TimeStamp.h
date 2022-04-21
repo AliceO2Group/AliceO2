@@ -26,7 +26,7 @@ class TimeStamp
 {
  public:
   GPUhd() TimeStamp() CON_DEFAULT;
-  GPUdDefault() ~TimeStamp() CON_DEFAULT;
+  GPUhd() ~TimeStamp() CON_DEFAULT;
   GPUdi() TimeStamp(T time) { mTimeStamp = time; }
   GPUdi() T getTimeStamp() const { return mTimeStamp; }
   GPUdi() void setTimeStamp(T t) { mTimeStamp = t; }
