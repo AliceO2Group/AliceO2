@@ -351,7 +351,7 @@ struct AnalysisDataProcessorBuilder {
         }
       } else {
         // non-grouping case
-
+        overwriteInternalIndices(associatedTables, associatedTables);
         // bind partitions and grouping table
         homogeneous_apply_refs([&groupingTable](auto& x) {
           PartitionManager<std::decay_t<decltype(x)>>::bindExternalIndices(x, &groupingTable);
