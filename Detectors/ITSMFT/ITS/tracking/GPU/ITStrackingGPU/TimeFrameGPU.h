@@ -73,7 +73,11 @@ class TimeFrameGPU : public TimeFrame
   int* getDeviceXHistograms(const int rofId);
   int* getDeviceYHistograms(const int rofId);
   int* getDeviceZHistograms(const int rofId);
+#ifdef __HIPCC__
+  hipcub::KeyValuePair<int, int>* getTmpVertexPositionBins(const int rofId);
+#else
   cub::KeyValuePair<int, int>* getTmpVertexPositionBins(const int rofId);
+#endif
   float* getDeviceBeamPosition(const int rofId);
   Vertex* getDeviceVertices(const int rofId);
 
@@ -100,9 +104,13 @@ class TimeFrameGPU : public TimeFrame
   Vector<float> mZCentroids;
   std::array<Vector<int>, 2> mNTrackletsPerClusterD;
   std::array<Vector<int>, 3> mXYZHistograms;
-  Vector<cub::KeyValuePair<int, int>> mTmpVertexPositionBins;
   Vector<float> mBeamPosition;
   Vector<Vertex> mGPUVertices;
+#ifdef __HIPCC__
+  Vector<hipcub::KeyValuePair<int, int>> mTmpVertexPositionBins;
+#else
+  Vector<cub::KeyValuePair<int, int>> mTmpVertexPositionBins;
+#endif
 };
 
 template <int NLayers>
@@ -235,7 +243,11 @@ inline int* TimeFrameGPU<NLayers>::getDeviceZHistograms(const int rofId)
 }
 
 template <int NLayers>
+#ifdef __HIPCC__
+inline hipcub::KeyValuePair<int, int>* TimeFrameGPU<NLayers>::getTmpVertexPositionBins(const int rofId)
+#else
 inline cub::KeyValuePair<int, int>* TimeFrameGPU<NLayers>::getTmpVertexPositionBins(const int rofId)
+#endif
 {
   if (rofId < 0 || rofId >= mNrof) {
     LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";

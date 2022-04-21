@@ -342,7 +342,7 @@ GPUg() void computeVertexKernel(cub::KeyValuePair<int, int>* tmpVertexBins,
           histZ[iBin] = 0;
         }
         if (sumWZ > minContributors || vertIndex == 0) {
-          new (vertices + vertIndex) Vertex{o2::math_utils::Point3D<float>(beamPosition[0], beamPosition[1], wZ / sumWZ), o2::gpu::gpustd::array<float, 6>{ex, 0, ey, 0, 0, ez}, sumWZ, 0};
+          new (vertices + vertIndex) Vertex{o2::math_utils::Point3D<float>(beamPosition[0], beamPosition[1], wZ / sumWZ), o2::gpu::gpustd::array<float, 6>{ex, 0, ey, 0, 0, ez}, static_cast<ushort>(sumWZ), 0};
         } else {
           new (vertices + vertIndex) Vertex{};
         }
