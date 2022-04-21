@@ -78,6 +78,10 @@ namespace o2::hmpid {
       return lastTime;
     }
 
+
+
+
+
 // iterates through 1d-array of DPCOM-vectors, for arNmean[42] startTimeTemp endTimeTemp
 TimeStampType HMPIDDCSTime::getMinTimeArr(const std::vector<DPCOM> dataArray[])
   {
@@ -110,4 +114,3 @@ TimeStampType HMPIDDCSTime::getMinTimeArr(const std::vector<DPCOM> dataArray[])
     return lastTime;
   } 
 }
-
