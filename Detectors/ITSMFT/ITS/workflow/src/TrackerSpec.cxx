@@ -242,42 +242,42 @@ void TrackerDPL::run(ProcessingContext& pc)
     // Run seeding vertexer
     vertexerElapsedTime = mVertexer->clustersToVertices(false, logger);
   }
-  timeFrame->setMultiplicityCutMask(std::vector<bool>(false, processingMask.size())); // <===== THIS BREAKS EVERYTHING
+  // timeFrame->setMultiplicityCutMask(std::vector<bool>(false, processingMask.size())); // <===== THIS BREAKS EVERYTHING
 
-  // for (auto iRof{0}; iRof < rofspan.size(); ++iRof) {
-  //   bool multCut;
-  //   std::vector<Vertex> vtxVecLoc;
-  //   auto& vtxROF = vertROFvec.emplace_back(rofspan[iRof]);
-  //   vtxROF.setFirstEntry(vertices.size());
-  //   if (mRunVertexer) {
-  //     auto vtxSpan = timeFrame->getPrimaryVertices(iRof);
-  //     vtxROF.setNEntries(vtxSpan.size());
-  //     multCut = vtxSpan.size() == 0;
-  //     for (auto& v : vtxSpan) {
-  //       if (v.getNContributors() < multEstConf.cutMultVtxLow || (multEstConf.cutMultVtxHigh > 0 && v.getNContributors() > multEstConf.cutMultVtxHigh)) {
-  //         continue; // skip vertex of unwanted multiplicity
-  //       }
-  //       multCut = true;
-  //       vertices.push_back(v);
-  //     }
-  //     if (processingMask[iRof] && !multCut) { // passed selection in clusters and not in vertex multiplicity
-  //       LOG(debug) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]",
-  //                                 iRof,
-  //                                 multEstConf.cutMultVtxLow,
-  //                                 multEstConf.cutMultVtxHigh);
-  //       processingMask[iRof] = multCut;
-  //       cutVertexMult++;
-  //     }
-  //   } else { // cosmics
-  //     vtxVecLoc.emplace_back(Vertex());
-  //     vtxVecLoc.back().setNContributors(1);
-  //     vtxROF.setNEntries(vtxVecLoc.size());
-  //     for (auto& v : vtxVecLoc) {
-  //       vertices.push_back(v);
-  //     }
-  //     timeFrame->addPrimaryVertices(vtxVecLoc);
-  //   }
-  // }
+  for (auto iRof{0}; iRof < rofspan.size(); ++iRof) {
+    bool multCut;
+    std::vector<Vertex> vtxVecLoc;
+    auto& vtxROF = vertROFvec.emplace_back(rofspan[iRof]);
+    vtxROF.setFirstEntry(vertices.size());
+    if (mRunVertexer) {
+      auto vtxSpan = timeFrame->getPrimaryVertices(iRof);
+      vtxROF.setNEntries(vtxSpan.size());
+      multCut = vtxSpan.size() == 0;
+      for (auto& v : vtxSpan) {
+        if (v.getNContributors() < multEstConf.cutMultVtxLow || (multEstConf.cutMultVtxHigh > 0 && v.getNContributors() > multEstConf.cutMultVtxHigh)) {
+          continue; // skip vertex of unwanted multiplicity
+        }
+        multCut = true;
+        vertices.push_back(v);
+      }
+      if (processingMask[iRof] && !multCut) { // passed selection in clusters and not in vertex multiplicity
+        LOG(debug) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]",
+                                  iRof,
+                                  multEstConf.cutMultVtxLow,
+                                  multEstConf.cutMultVtxHigh);
+        processingMask[iRof] = multCut;
+        cutVertexMult++;
+      }
+    } else { // cosmics
+      vtxVecLoc.emplace_back(Vertex());
+      vtxVecLoc.back().setNContributors(1);
+      vtxROF.setNEntries(vtxVecLoc.size());
+      for (auto& v : vtxVecLoc) {
+        vertices.push_back(v);
+      }
+      timeFrame->addPrimaryVertices(vtxVecLoc);
+    }
+  }
 
   LOG(info) << fmt::format(" - In total, multiplicity selection rejected {}/{} ROFs", cutTotalMult, rofspan.size());
   LOG(info) << fmt::format("\t - Cluster multiplicity selection rejected {}/{} ROFs", cutClusterMult, rofspan.size());
