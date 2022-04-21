@@ -70,14 +70,23 @@ class HMPIDDCSProcessor{
          	CcdbObjectInfo& getccdbREF_INDEXsInfo() { return mccdbREF_INDEX_Info; }
 	
 		const HMPIDRefIndexVars& getRefIndexObj() const { return mRefIndex; }
-		//HMPIDRefIndexVars mRefIndex; in private
-          
+		//struct HMPIDRefIndexVars mRefIndex; in private
+          	// CZ/GV? what should the struct contain? TF1 object 
+		// Charge Threshold: 
+		// TF1 arQthre[42];  //42 Qthre=f(time) one per sector
+	
+	
    		const CcdbObjectInfo& getHmpidChargeCutInfo() const { return mccdbCHARGE_CUT_Info; }
     		CcdbObjectInfo& getHmpidChargeCutInfo() { return mccdbCHARGE_CUT_Info; }
 	
 		const HMPIDThreshVars& getChargeCutObj() const { return mChargeCut; }
 		//HMPIDThreshVars mChargeThresh; in private
-
+          	// CZ/GV? what should the struct contain? TF1 object 
+		// for calculating refractive index: 
+		//TF1 arNmean[43]; /// 21* Tin and 21*Tout (1 per radiator, 3 radiators per chambers)
+				 // + 1 for ePhotMean (mean photon energy) 
+	
+	
 		// procTrans
 		double DefaultEMean();					//just set a refractive index for C6F14 at ephot=6.675 eV @ T=25 C
      		double  sEnergProb=0, sProb=0; 				// energy probaility, probability
