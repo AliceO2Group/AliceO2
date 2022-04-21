@@ -8,8 +8,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_WORKFLOWSPEC_H
-#define FRAMEWORK_WORKFLOWSPEC_H
+#ifndef O2_FRAMEWORK_WORKFLOWSPEC_H_
+#define O2_FRAMEWORK_WORKFLOWSPEC_H_
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/AlgorithmSpec.h"
@@ -18,9 +18,7 @@
 #include <functional>
 #include <cstddef>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 using WorkflowSpec = std::vector<DataProcessorSpec>;
 
@@ -112,7 +110,24 @@ DataProcessorSpec timePipeline(DataProcessorSpec original,
 /// Each ; delimits an InputSpec.
 std::vector<InputSpec> select(char const* matcher = "");
 
-} // namespace framework
-} // namespace o2
+namespace workflow
+{
+WorkflowSpec combine(const char* name, std::vector<DataProcessorSpec> const& specs, bool doIt);
 
-#endif // FRAMEWORK_WORKFLOWSPEC_H
+template <typename T, typename... ARGS>
+WorkflowSpec concat(T&& t, ARGS&&... args)
+{
+  if constexpr (sizeof...(args) == 0) {
+    return t;
+  } else {
+    auto rest = concat(std::forward<ARGS>(args)...);
+    // insert rest at the end of t
+    t.insert(t.end(), rest.begin(), rest.end());
+    return t;
+  }
+}
+} // namespace workflow
+
+} // namespace o2::framework
+
+#endif // O2_FRAMEWORK_WORKFLOWSPEC_H_
