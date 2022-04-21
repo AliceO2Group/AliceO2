@@ -73,7 +73,7 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
     if (mUseCCDB) {
       //     mCalibApi->setTimeStamp(o2::raw::HBFUtils::Instance().startTime);
-     auto caliboffsets = pc.inputs().get<o2::ft0::FT0ChannelTimeCalibrationObject*>("ft0offsets");
+      auto caliboffsets = pc.inputs().get<o2::ft0::FT0ChannelTimeCalibrationObject*>("ft0offsets");
       mDigitizer.SetChannelOffset(caliboffsets.get());
     }
     // if there is nothing to do ... return
@@ -171,8 +171,8 @@ o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel, bool mctruth, 
   inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   if (useCCDB) {
     inputs.emplace_back("ft0offsets", "FT0", "TimeOffset", 0,
-                         Lifetime::Condition,
-                         ccdbParamSpec("FT0/Calibration/ChannelTimeOffset"));
+                        Lifetime::Condition,
+                        ccdbParamSpec("FT0/Calibration/ChannelTimeOffset"));
   }
   return DataProcessorSpec{
     "FT0Digitizer",
