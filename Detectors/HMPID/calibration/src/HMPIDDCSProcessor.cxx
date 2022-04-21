@@ -462,7 +462,6 @@ void HMPIDDCSProcessor::fillChamberPressures(const DPCOM& dpcom)
  	// find chamber number:  
 	auto chNum = subStringToInt(aliasStr, startI_chamberPressure, startI_chamberPressure);
 	pChamber[chNum].push_back(dpcom);
-	//mChamberPressure.fill(chamberNumber,aliasStr, time, value);
   } else LOG(debug)<< "Not correct specification for Environment-pressure DP: {}"<< aliasStr;
 }
 
@@ -478,7 +477,6 @@ void HMPIDDCSProcessor::fillEnvironmentPressure(const DPCOM& dpcom) // A :better
 	{
 		
 	  	pEnv.push_back(dpcom); 
-		//mEnvironmentPressure.fill(aliasStr, time, value);
   } else {
 	LOG(debug)<< "Not correct specification for Environment-pressure DP: {}" << aliasStr;
   }
@@ -518,7 +516,6 @@ void HMPIDDCSProcessor::fillTemperature(const DPCOM& dpcom, bool in) // A :bette
 	
 	if(in){
 		tempIn[3*chNum+radNum].push_back( dpcom); 
-		//mTemperature.fill(aliasStr,chamberNumber,radiatorNumber, time, value);
 
 	} else{
 		tempOut[3*chNum+radNum].push_back(dpcom); 
