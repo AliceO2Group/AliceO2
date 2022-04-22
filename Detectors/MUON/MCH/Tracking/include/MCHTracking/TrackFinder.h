@@ -93,9 +93,9 @@ class TrackFinder
   bool propagateCurrentParam(Track& track, int chamber);
 
   bool areUsed(const Cluster& cl1, const Cluster& cl2, const std::vector<std::array<uint32_t, 4>>& usedClusters);
-  void excludeClustersFromIdenticalTracks(const std::list<Track>::iterator& itTrack,
-                                          std::unordered_map<int, std::unordered_set<uint32_t>>& excludedClusters,
-                                          const std::list<Track>::iterator& itEndTrack);
+  void excludeClustersFromIdenticalTracks(const std::array<uint32_t, 4>& currentClusters,
+                                          const std::vector<std::array<uint32_t, 8>>& usedClusters,
+                                          std::unordered_map<int, std::unordered_set<uint32_t>>& excludedClusters);
   void moveClusters(std::unordered_map<int, std::unordered_set<uint32_t>>& source, std::unordered_map<int, std::unordered_set<uint32_t>>& destination);
 
   bool isCompatible(const TrackParam& param, const Cluster& cluster, TrackParam& paramAtCluster);
