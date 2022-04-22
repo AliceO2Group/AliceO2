@@ -32,6 +32,9 @@
 
 #include "GPUCommonArray.h"
 
+#include "TTree.h"
+#include "TFile.h"
+
 namespace o2
 {
 namespace its
@@ -453,14 +456,14 @@ void VertexerTraitsGPU::computeTrackletMatching()
 
     gpuThrowOnError();
   }
-#ifdef VTX_DEBUG
+  // #ifdef VTX_DEBUG
   std::vector<std::vector<int>> NFoundLines(mTimeFrameGPU->getNrof()), ExcNFoundLines(mTimeFrameGPU->getNrof());
   std::ofstream nlines_out("N_lines_gpu.txt");
   for (size_t rofId{0}; rofId < mTimeFrameGPU->getNrof(); ++rofId) {
     NFoundLines[rofId].resize(mTimeFrameGPU->getNClustersLayer(rofId, 1));
     ExcNFoundLines[rofId].resize(mTimeFrameGPU->getNClustersLayer(rofId, 1));
-    checkGPUError(cudaMemcpy(NFoundLines[rofId].data(), mTimeFrameGPU->getDeviceNFoundLines(rofId), sizeof(int) * mTimeFrameGPU->getNClustersLayer(rofId, 1), cudaMemcpyDeviceToHost));
-    checkGPUError(cudaMemcpy(ExcNFoundLines[rofId].data(), mTimeFrameGPU->getDeviceExclusiveNFoundLines(rofId), sizeof(int) * mTimeFrameGPU->getNClustersLayer(rofId, 1), cudaMemcpyDeviceToHost));
+    checkGPUError(cudaMemcpy(NFoundLines[rofId].data(), mTimeFrameGPU->getDeviceNFoundLines(rofId), sizeof(int) * mTimeFrameGPU->getNClustersLayer(rofId, 1), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+    checkGPUError(cudaMemcpy(ExcNFoundLines[rofId].data(), mTimeFrameGPU->getDeviceExclusiveNFoundLines(rofId), sizeof(int) * mTimeFrameGPU->getNClustersLayer(rofId, 1), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
     std::copy(NFoundLines[rofId].begin(), NFoundLines[rofId].end(), std::ostream_iterator<double>(nlines_out, "\t"));
     nlines_out << std::endl;
     std::copy(ExcNFoundLines[rofId].begin(), ExcNFoundLines[rofId].end(), std::ostream_iterator<double>(nlines_out, "\t"));
@@ -468,7 +471,23 @@ void VertexerTraitsGPU::computeTrackletMatching()
                << " ---\n";
   }
   nlines_out.close();
-#endif
+
+  // Dump lines on root file
+  TFile* trackletFile = TFile::Open("artefacts_tf_gpu.root", "recreate");
+  TTree* ln_tre = new TTree("lines", "tf");
+  std::vector<o2::its::Line> lines_vec(0);
+  ln_tre->Branch("Lines", &lines_vec);
+  for (int rofId{0}; rofId < mTimeFrameGPU->getNrof(); ++rofId) {
+    lines_vec.clear();
+    auto sum = std::accumulate(NFoundLines[rofId].begin(), NFoundLines[rofId].end(), 0);
+    lines_vec.resize(sum);
+    checkGPUError(cudaMemcpy(lines_vec.data(), mTimeFrameGPU->getDeviceLines(rofId), sizeof(Line) * sum, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+    ln_tre->Fill();
+  }
+  trackletFile->cd();
+  ln_tre->Write();
+  trackletFile->Close();
+  // #endif
 }
 
 void VertexerTraitsGPU::computeVertices()

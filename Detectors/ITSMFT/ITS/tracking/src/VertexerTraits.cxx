@@ -260,7 +260,7 @@ void VertexerTraits::computeTrackletMatching()
       mVrtParams.phiCut);
   }
 
-#ifdef VTX_DEBUG
+// #ifdef VTX_DEBUG
   TFile* trackletFile = TFile::Open("artefacts_tf.root", "update");
   TTree* ln_tre = new TTree("lines", "tf");
   std::vector<o2::its::Line> lines_vec(0);
@@ -288,7 +288,7 @@ void VertexerTraits::computeTrackletMatching()
   trackletFile->cd();
   ln_tre->Write();
   trackletFile->Close();
-#endif
+// #endif
 }
 
 void VertexerTraits::computeVertices()
