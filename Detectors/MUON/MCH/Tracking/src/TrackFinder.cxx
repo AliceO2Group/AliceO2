@@ -161,38 +161,46 @@ const std::list<Track>& TrackFinder::findTracks(const std::unordered_map<int, st
   // use the chamber resolution when fitting the tracks during the tracking
   mTrackFitter.useChamberResolution();
 
-  // find track candidates on stations 4 and 5
-  auto tStart = std::chrono::high_resolution_clock::now();
-  findTrackCandidates();
-  auto tEnd = std::chrono::high_resolution_clock::now();
-  mTimeFindCandidates += tEnd - tStart;
-  if (TrackerParam::Instance().moreCandidates) {
-    tStart = std::chrono::high_resolution_clock::now();
-    findMoreTrackCandidates();
-    tEnd = std::chrono::high_resolution_clock::now();
-    mTimeFindMoreCandidates += tEnd - tStart;
-  }
-  mNCandidates += mTracks.size();
-  print("------ list of track candidates ------");
-  printTracks();
+  try {
 
-  // track each candidate down to chamber 1 and remove it
-  tStart = std::chrono::high_resolution_clock::now();
-  for (auto itTrack = mTracks.begin(); itTrack != mTracks.end();) {
-    std::unordered_map<int, std::unordered_set<uint32_t>> excludedClusters{};
-    followTrackInChamber(itTrack, 5, 0, false, excludedClusters);
-    print("findTracks: removing candidate at position #", getTrackIndex(itTrack));
-    itTrack = mTracks.erase(itTrack);
+    // find track candidates on stations 4 and 5
+    auto tStart = std::chrono::high_resolution_clock::now();
+    findTrackCandidates();
+    auto tEnd = std::chrono::high_resolution_clock::now();
+    mTimeFindCandidates += tEnd - tStart;
+    if (TrackerParam::Instance().moreCandidates) {
+      tStart = std::chrono::high_resolution_clock::now();
+      findMoreTrackCandidates();
+      tEnd = std::chrono::high_resolution_clock::now();
+      mTimeFindMoreCandidates += tEnd - tStart;
+    }
+    mNCandidates += mTracks.size();
+    print("------ list of track candidates ------");
+    printTracks();
+
+    // track each candidate down to chamber 1 and remove it
+    tStart = std::chrono::high_resolution_clock::now();
+    for (auto itTrack = mTracks.begin(); itTrack != mTracks.end();) {
+      std::unordered_map<int, std::unordered_set<uint32_t>> excludedClusters{};
+      followTrackInChamber(itTrack, 5, 0, false, excludedClusters);
+      print("findTracks: removing candidate at position #", getTrackIndex(itTrack));
+      itTrack = mTracks.erase(itTrack);
+    }
+    tEnd = std::chrono::high_resolution_clock::now();
+    mTimeFollowTracks += tEnd - tStart;
+    print("------ list of tracks before improvement and cleaning ------");
+    printTracks();
+
+  } catch (exception const& e) {
+    LOG(error) << e.what() << " --> abort";
+    mTracks.clear();
+    return mTracks;
   }
-  tEnd = std::chrono::high_resolution_clock::now();
-  mTimeFollowTracks += tEnd - tStart;
-  print("------ list of tracks before improvement and cleaning ------");
-  printTracks();
 
   // improve the reconstructed tracks
-  tStart = std::chrono::high_resolution_clock::now();
+  auto tStart = std::chrono::high_resolution_clock::now();
   improveTracks();
-  tEnd = std::chrono::high_resolution_clock::now();
+  auto tEnd = std::chrono::high_resolution_clock::now();
   mTimeImproveTracks += tEnd - tStart;
 
   // remove connected tracks in stations(1..) 3, 4 and 5
@@ -746,7 +754,7 @@ std::list<Track>::iterator TrackFinder::followTrackInOverlapDE(const std::list<T
       }
 
       // duplicate the track and add the new cluster
-      itNewTrack = mTracks.emplace(itNewTrack, *itTrack);
+      itNewTrack = addTrack(itNewTrack, *itTrack);
       print("followTrackInOverlapDE: duplicating candidate at position #", getTrackIndex(itNewTrack), " to add cluster ", cluster->getIdAsString());
       itNewTrack->addParamAtCluster(paramAtCluster);
 
@@ -844,7 +852,7 @@ std::list<Track>::iterator TrackFinder::followTrackInChamber(std::list<Track>::i
     // or if one reaches station 1 and it is not requested, whether a cluster has been found on it or not
     if ((!isFirstOnStation && canSkip && excludedClusters.empty()) ||
         (chamber / 2 == 0 && !TrackerParam::Instance().requestStation[0] && (isFirstOnStation || !canSkip))) {
-      auto itNewTrack = mTracks.emplace(itTrack, *itTrack);
+      auto itNewTrack = addTrack(itTrack, *itTrack);
       if (itFirstNewTrack == mTracks.end()) {
         itFirstNewTrack = itNewTrack;
       }
@@ -1107,7 +1115,7 @@ std::list<Track>::iterator TrackFinder::addClustersAndFollowTrack(std::list<Trac
   } else {
 
     // or duplicate the track and add the new cluster(s)
-    itFirstNewTrack = mTracks.emplace(itTrack, *itTrack);
+    itFirstNewTrack = addTrack(itTrack, *itTrack);
     itFirstNewTrack->addParamAtCluster(paramAtCluster1);
     if (paramAtCluster2) {
       itFirstNewTrack->addParamAtCluster(*paramAtCluster2);
@@ -1302,6 +1310,11 @@ void TrackFinder::createTrack(const Cluster& cl1, const Cluster& cl2)
 {
   /// Create a new track with these 2 clusters and store it at the end of the list of tracks
   /// Compute the track parameters and covariance matrices at the 2 clusters
+  /// Throw an exception if the maximum number of tracks is exceeded
+
+  if (mTracks.size() >= TrackerParam::Instance().maxCandidates) {
+    throw length_error(string("Too many track candidates (") + mTracks.size() + ")");
+  }
 
   // create the track and the trackParam at each cluster
   Track& track = mTracks.emplace_back();
@@ -1317,6 +1330,17 @@ void TrackFinder::createTrack(const Cluster& cl1, const Cluster& cl2)
     print("... fit failed --> removing it");
     mTracks.erase(std::prev(mTracks.end()));
   }
+}
+
+//_________________________________________________________________________________________________
+std::list<Track>::iterator TrackFinder::addTrack(const std::list<Track>::iterator& pos, const Track& track)
+{
+  /// Add the given track at the requested position in the list of tracks
+  /// Throw an exception if the maximum number of tracks is exceeded
+  if (mTracks.size() >= TrackerParam::Instance().maxCandidates) {
+    throw length_error(string("Too many track candidates (") + mTracks.size() + ")");
+  }
+  return mTracks.emplace(pos, track);
 }
 
 //_________________________________________________________________________________________________

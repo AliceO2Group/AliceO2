@@ -79,39 +79,47 @@ const std::list<Track>& TrackFinderOriginal::findTracks(const std::array<std::li
   // Use the chamber resolution when fitting the tracks during the tracking
   mTrackFitter.useChamberResolution();
 
-  // Look for candidates from clusters in stations(1..) 4 and 5
-  print("\n--> Step 1: find track candidates\n");
-  auto tStart = std::chrono::high_resolution_clock::now();
-  findTrackCandidates();
-  auto tEnd = std::chrono::high_resolution_clock::now();
-  mTimeFindCandidates += tEnd - tStart;
-  if (TrackerParam::Instance().moreCandidates) {
-    tStart = std::chrono::high_resolution_clock::now();
-    findMoreTrackCandidates();
-    tEnd = std::chrono::high_resolution_clock::now();
-    mTimeFindMoreCandidates += tEnd - tStart;
-  }
-  mNCandidates += mTracks.size();
+  try {
 
-  // Stop tracking if no candidate found
-  if (mTracks.empty()) {
+    // Look for candidates from clusters in stations(1..) 4 and 5
+    print("\n--> Step 1: find track candidates\n");
+    auto tStart = std::chrono::high_resolution_clock::now();
+    findTrackCandidates();
+    auto tEnd = std::chrono::high_resolution_clock::now();
+    mTimeFindCandidates += tEnd - tStart;
+    if (TrackerParam::Instance().moreCandidates) {
+      tStart = std::chrono::high_resolution_clock::now();
+      findMoreTrackCandidates();
+      tEnd = std::chrono::high_resolution_clock::now();
+      mTimeFindMoreCandidates += tEnd - tStart;
+    }
+    mNCandidates += mTracks.size();
+
+    // Stop tracking if no candidate found
+    if (mTracks.empty()) {
+      return mTracks;
+    }
+
+    // Follow tracks in stations(1..) 3, 2 then 1
+    print("\n--> Step 2: Follow track candidates\n");
+    tStart = std::chrono::high_resolution_clock::now();
+    followTracks(mTracks.begin(), mTracks.end(), 2);
+    tEnd = std::chrono::high_resolution_clock::now();
+    mTimeFollowTracks += tEnd - tStart;
+
+  } catch (exception const& e) {
+    LOG(error) << e.what() << " --> abort";
+    mTracks.clear();
     return mTracks;
   }
 
-  // Follow tracks in stations(1..) 3, 2 then 1
-  print("\n--> Step 2: Follow track candidates\n");
-  tStart = std::chrono::high_resolution_clock::now();
-  followTracks(mTracks.begin(), mTracks.end(), 2);
-  tEnd = std::chrono::high_resolution_clock::now();
-  mTimeFollowTracks += tEnd - tStart;
-
   // Complete the reconstructed tracks
-  tStart = std::chrono::high_resolution_clock::now();
+  auto tStart = std::chrono::high_resolution_clock::now();
   if (completeTracks()) {
     printTracks();
     removeDuplicateTracks();
   }
-  tEnd = std::chrono::high_resolution_clock::now();
+  auto tEnd = std::chrono::high_resolution_clock::now();
   mTimeCompleteTracks += tEnd - tStart;
   print("Currently ", mTracks.size(), " candidates");
   printTracks();
@@ -388,6 +396,11 @@ void TrackFinderOriginal::createTrack(const Cluster& cl1, const Cluster& cl2)
 {
   /// Create a new track with these 2 clusters and store it at the end of the list of tracks
   /// Compute the track parameters and covariance matrices at the 2 clusters
+  /// Throw an exception if the maximum number of tracks is exceeded
+
+  if (mTracks.size() >= TrackerParam::Instance().maxCandidates) {
+    throw length_error(string("Too many track candidates (") + mTracks.size() + ")");
+  }
 
   print("Creating a new candidate");
 
@@ -467,6 +480,17 @@ void TrackFinderOriginal::createTrack(const Cluster& cl1, const Cluster& cl2)
   param2.setCovariances(paramCov);
 
   printTrackParam(param1);
+}
+
+//_________________________________________________________________________________________________
+std::list<Track>::iterator TrackFinderOriginal::addTrack(const std::list<Track>::iterator& pos, const Track& track)
+{
+  /// Add the given track at the requested position in the list of tracks
+  /// Throw an exception if the maximum number of tracks is exceeded
+  if (mTracks.size() >= TrackerParam::Instance().maxCandidates) {
+    throw length_error(string("Too many track candidates (") + mTracks.size() + ")");
+  }
+  return mTracks.emplace(pos, track);
 }
 
 //_________________________________________________________________________________________________
@@ -617,7 +641,7 @@ void TrackFinderOriginal::followTracks(const std::list<Track>::iterator& itTrack
       // Keep the case where no cluster is found as a possible candidate if the next station is not requested
       if (!TrackerParam::Instance().requestStation[nextStation]) {
         print("Duplicate original candidate");
-        itTrack = mTracks.emplace(itTrack, *itTrack);
+        itTrack = addTrack(itTrack, *itTrack);
       }
 
       // Try to recover
@@ -704,7 +728,7 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
     TrackExtrap::addMCSEffect(extrapTrackParamAtCh, SChamberThicknessInX0[currentChamber], -1.);
   }
 
-  //Extrapolate the track candidate to chamber 2
+  // Extrapolate the track candidate to chamber 2
   if (!TrackExtrap::extrapToZCov(extrapTrackParamAtCh, SDefaultChamberZ[ch2], mTrackFitter.isSmootherEnabled())) {
     return mTracks.end();
   }
@@ -753,7 +777,7 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
       extrapTrackParam.resetPropagator();
     }
 
-    //Extrapolate the track candidate to chamber 1
+    // Extrapolate the track candidate to chamber 1
     bool foundSecondCluster(false);
     if (TrackExtrap::extrapToZCov(extrapTrackParam, SDefaultChamberZ[ch1], mTrackFitter.isSmootherEnabled())) {
 
@@ -794,7 +818,7 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
 
         // Copy the initial candidate into a new track with these 2 clusters added
         print("Duplicate the candidate");
-        itNewTrack = mTracks.emplace(itNewTrack, *itTrack);
+        itNewTrack = addTrack(itNewTrack, *itTrack);
         updateTrack(*itNewTrack, extrapTrackParamAtCluster1, extrapTrackParamAtCluster2);
 
         // Tag clusterCh1 as used
@@ -806,7 +830,7 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
     // If no clusterCh1 found then copy the initial candidate into a new track with only clusterCh2 added
     if (!foundSecondCluster) {
       print("Duplicate the candidate");
-      itNewTrack = mTracks.emplace(itNewTrack, *itTrack);
+      itNewTrack = addTrack(itNewTrack, *itTrack);
       updateTrack(*itNewTrack, extrapTrackParamAtCluster2);
     }
   }
@@ -814,7 +838,7 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
   // Add MCS effects in chamber 2
   TrackExtrap::addMCSEffect(extrapTrackParamAtCh, SChamberThicknessInX0[ch2], -1.);
 
-  //Extrapolate the track candidate to chamber 1
+  // Extrapolate the track candidate to chamber 1
   if (!TrackExtrap::extrapToZCov(extrapTrackParamAtCh, SDefaultChamberZ[ch1], mTrackFitter.isSmootherEnabled())) {
     return (itNewTrack == itTrack) ? mTracks.end() : itNewTrack;
   }
@@ -859,7 +883,7 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
 
     // Copy the initial candidate into a new track with clusterCh1 added
     print("Duplicate the candidate");
-    itNewTrack = mTracks.emplace(itNewTrack, *itTrack);
+    itNewTrack = addTrack(itNewTrack, *itTrack);
     updateTrack(*itNewTrack, extrapTrackParamAtCluster1);
   }
 
@@ -906,7 +930,7 @@ std::list<Track>::iterator TrackFinderOriginal::followLinearTrackInChamber(const
 
     // Copy the initial candidate into a new track with cluster added
     print("Duplicate the candidate");
-    itNewTrack = mTracks.emplace(itNewTrack, *itTrack);
+    itNewTrack = addTrack(itNewTrack, *itTrack);
     updateTrack(*itNewTrack, extrapTrackParamAtCluster);
   }
 
