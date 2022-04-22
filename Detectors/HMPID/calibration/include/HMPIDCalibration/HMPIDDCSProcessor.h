@@ -191,33 +191,25 @@ class HMPIDDCSProcessor{
 		void processIR(DPCOM dp);    // if it mathces IR_ID = "HMP_DET/HMP_INFR"
 		void processHMPID(DPCOM dp); // if it matches HMPID_ID = "HMP_DET", but not IR_ID
 		
-		// constExpression string-literals to assign DPs to the correct method: 
 		
-			// check if IR or other HMPID specifciation
-			static constexpr auto IR_ID{"HMP_DET/HMP_INFR"sv};
-			static constexpr auto HMPID_ID{"HMP_DET"sv};
-		
-			// HMPID-temp, HV, pressure IDs (HMPID_ID{"HMP_DET"sv};)
-			static constexpr auto TEMP_OUT_ID{"Out_Temp"sv};
-			static constexpr auto TEMP_IN_ID{"In_Temp"sv};
-			static constexpr auto HV_ID{"vMon"sv};
-			static constexpr auto ENV_PRESS_ID{"PENV.actual.value"sv};
-			static constexpr auto CH_PRESS_ID{"PMWPC.actual.value"sv};
-	
-			// HMPID-IR IDs (IR_ID{"HMP_DET/HMP_INFR"sv})
-			static constexpr auto WAVE_LEN_ID{"waveLenght"sv}; // 0-9 
-			static constexpr auto REF_ID{"Reference"sv}; // argonReference and freonRef
-			static constexpr auto ARGON_CELL_ID{"argonCell"sv}; // argon Cell reference 
-			static constexpr auto FREON_CELL_ID{"c6f14Cell"sv}; // fron Cell Reference
-
-			static constexpr auto ARGON_REF_ID{"argonReference"sv}; // argonReference 
-			static constexpr auto FREON_REF_ID{"c6f14Reference"sv}; // freonReference
 			const auto& getTimeQThresh() const { return mTimeQThresh;}
 			const auto& getTimeArNmean() const { return mTimeArNmean;}
-		//end  ProcDCS: 
+		//end  ProcDCS:
+			
+		  void setStartValidity(long t) { mStartValidity = t; }
+		  void useVerboseMode() { mVerbose = true; }
             private:
+	 	long mFirstTime;         // time when a CCDB object was stored first
+	  	long mStartValidity = 0; // TF index for processing, used to store CCDB object
+	  	bool mFirstTimeSet = false; 	
 	
+		bool mVerbose = false;
 
+	
+	
+		
+	
+	
 		// timestamps of last and first HV-datapoint entry in 
 		// 1d-array of vectors of HV
 		uint64_t hvFirstTime, hvLastTime; 
@@ -246,7 +238,32 @@ class HMPIDDCSProcessor{
 
 		CcdbObjectInfo mccdbREF_INDEX_Info;
 		CcdbObjectInfo mccdbCHARGE_CUT_Info;
-		long mStartValidity = 0; // from TOFDCSProcessor.h
+	
+	
+	
+		// constExpression string-literals to assign DPs to the correct method: 
+		
+			// check if IR or other HMPID specifciation
+			static constexpr auto IR_ID{"HMP_DET/HMP_INFR"sv};
+			static constexpr auto HMPID_ID{"HMP_DET"sv};
+		
+			// HMPID-temp, HV, pressure IDs (HMPID_ID{"HMP_DET"sv};)
+			static constexpr auto TEMP_OUT_ID{"Out_Temp"sv};
+			static constexpr auto TEMP_IN_ID{"In_Temp"sv};
+			static constexpr auto HV_ID{"vMon"sv};
+			static constexpr auto ENV_PRESS_ID{"PENV.actual.value"sv};
+			static constexpr auto CH_PRESS_ID{"PMWPC.actual.value"sv};
+	
+			// HMPID-IR IDs (IR_ID{"HMP_DET/HMP_INFR"sv})
+			static constexpr auto WAVE_LEN_ID{"waveLenght"sv}; // 0-9 
+			static constexpr auto REF_ID{"Reference"sv}; // argonReference and freonRef
+			static constexpr auto ARGON_CELL_ID{"argonCell"sv}; // argon Cell reference 
+			static constexpr auto FREON_CELL_ID{"c6f14Cell"sv}; // fron Cell Reference
+
+			static constexpr auto ARGON_REF_ID{"argonReference"sv}; // argonReference 
+			static constexpr auto FREON_REF_ID{"c6f14Reference"sv}; // freonReference
+	
+	
 	ClassDefNV(HMPIDDCSProcessor,0);
 };// end class 
 } // end o2::hmpid
