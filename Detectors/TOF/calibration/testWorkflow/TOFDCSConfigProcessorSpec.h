@@ -81,7 +81,7 @@ class TOFDCSConfigProcessor : public o2::framework::Task
     auto clName = o2::utils::MemFileHelper::getClassName(payload);
     auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
     std::map<std::string, std::string> md;
-    md.emplace("created by", "dpl");
+    md.emplace("created_by", "dpl");
     o2::ccdb::CcdbObjectInfo info("TOF/Calib/FEELIGHT", clName, flName, md, tf, INFINITE_TF);
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
     LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()

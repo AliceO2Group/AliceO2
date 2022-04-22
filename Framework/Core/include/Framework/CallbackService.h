@@ -71,6 +71,8 @@ class CallbackService
     NewTimeslice,
     /// Invoked before the processing callback
     PreProcessing,
+    /// Invoked after the processing callback,
+    PostProcessing,
     CCDBDeserialised
   };
 
@@ -84,6 +86,7 @@ class CallbackService
   using RegionInfoCallback = std::function<void(FairMQRegionInfo const&)>;
   using NewTimesliceCallback = std::function<void(o2::header::DataHeader&, DataProcessingHeader&)>;
   using PreProcessingCallback = std::function<void(ServiceRegistry&, int)>;
+  using PostProcessingCallback = std::function<void(ServiceRegistry&, int)>;
   using CCDBDeserializedCallback = std::function<void(ConcreteDataMatcher&, void*)>;
 
   using Callbacks = CallbackRegistry<Id,                                                              //
@@ -97,6 +100,7 @@ class CallbackService
                                      RegistryPair<Id, Id::RegionInfoCallback, RegionInfoCallback>,    //
                                      RegistryPair<Id, Id::NewTimeslice, NewTimesliceCallback>,        //
                                      RegistryPair<Id, Id::PreProcessing, PreProcessingCallback>,      //
+                                     RegistryPair<Id, Id::PostProcessing, PostProcessingCallback>,    //
                                      RegistryPair<Id, Id::CCDBDeserialised, CCDBDeserializedCallback> //
                                      >;                                                               //
 

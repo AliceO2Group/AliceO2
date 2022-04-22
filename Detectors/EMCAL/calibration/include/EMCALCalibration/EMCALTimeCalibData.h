@@ -24,6 +24,7 @@
 #include "EMCALBase/Geometry.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "EMCALCalib/TimeCalibrationParams.h"
+#include "EMCALCalibration/EMCALCalibParams.h"
 
 #include "Framework/Logger.h"
 #include "CommonUtils/MemFileHelper.h"
@@ -74,20 +75,21 @@ class EMCALTimeCalibData
   void merge(const EMCALTimeCalibData* prev);
 
   /// \brief Check if enough data for calibration has been accumulated
-  bool hasEnoughData(int minNEntries) const;
+  bool hasEnoughData() const;
 
   /// \brief Print a useful message about the container.
   void print();
 
+  /// \brief Set number of events available for calibration
+  void setNEvents(int nevt) { mEvents = nevt; }
+  /// \brief Add number of events available for calibration
+  void AddEvents(int nevt) { mEvents += nevt; }
   /// \brief Get number of events currently available for calibration
   int getNEvents() const { return mEvents; }
 
   /// \brief Get current histogram
   boostHisto& getHisto() { return mTimeHisto; }
   const boostHisto& getHisto() const { return mTimeHisto; }
-
-  /// \brief Set number of events available for calibration
-  void setNEvents(int ne) { mEvents = ne; }
 
   void PrintStream(std::ostream& stream) const;
 

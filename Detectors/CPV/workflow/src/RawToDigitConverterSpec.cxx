@@ -35,6 +35,10 @@ using Lifetime = o2::framework::Lifetime;
 
 void RawToDigitConverterSpec::init(framework::InitContext& ctx)
 {
+  mStartTime = std::chrono::system_clock::now();
+  mDecoderErrorsPerMinute = 0;
+  mIsMuteDecoderErrors = false;
+
   LOG(debug) << "Initializing RawToDigitConverterSpec...";
   // Pedestal flag true/false
   LOG(info) << "Pedestal run: " << (mIsPedestalData ? "YES" : "NO");
@@ -56,6 +60,23 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
 
 void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
 {
+  // check timers if we need mute/unmute error reporting
+  auto now = std::chrono::system_clock::now();
+  if (mIsMuteDecoderErrors) { // check if 10-minutes muting period passed
+    if (((now - mTimeWhenMuted) / std::chrono::minutes(1)) >= 10) {
+      mIsMuteDecoderErrors = false; //unmute
+      if (mDecoderErrorsCounterWhenMuted) {
+        LOG(error) << "RawToDigitConverterSpec::run() : " << mDecoderErrorsCounterWhenMuted << " errors happened while it was muted ((";
+      }
+      mDecoderErrorsCounterWhenMuted = 0;
+    }
+  }
+  if (((now - mStartTime) / std::chrono::minutes(1)) > mMinutesPassed) {
+    mMinutesPassed = (now - mStartTime) / std::chrono::minutes(1);
+    LOG(debug) << "minutes passed: " << mMinutesPassed;
+    mDecoderErrorsPerMinute = 0;
+  }
+
   // Cache digits from bunch crossings as the component reads timeframes from many links consecutively
   std::map<o2::InteractionRecord, std::shared_ptr<std::vector<o2::cpv::Digit>>> digitBuffer; // Internal digit buffer
   int firstEntry = 0;
@@ -120,11 +141,13 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       try {
         rawreader.next();
       } catch (RawErrorType_t e) {
-        LOG(error) << "Raw decoding error " << (int)e;
+        if (!mIsMuteDecoderErrors) {
+          LOG(error) << "Raw decoding error " << (int)e;
+        }
         //add error list
         //RawErrorType_t is defined in O2/Detectors/CPV/reconstruction/include/CPVReconstruction/RawReaderMemory.h
         //RawDecoderError(short c, short d, short g, short p, RawErrorType_t e)
-        mOutputHWErrors.emplace_back(25, 0, 0, 0, e); //Put general errors to non-existing ccId 25
+        mOutputHWErrors.emplace_back(-1, 0, 0, 0, e); //Put general errors to non-existing ccId -1
         //if problem in header, abandon this page
         if (e == RawErrorType_t::kRDH_DECODING) {
           LOG(error) << "RDH decoding error. Skipping this TF";
@@ -139,17 +162,40 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       auto mod = o2::raw::RDHUtils::getLinkID(rdh) + 2; //link=0,1,2 -> mod=2,3,4
       //for now all modules are written to one LinkID
       if (mod > o2::cpv::Geometry::kNMod || mod < 2) { //only 3 correct modules:2,3,4
-        LOG(error) << "module=" << mod << "do not exist";
-        mOutputHWErrors.emplace_back(25, mod, 0, 0, kRDH_INVALID); //Add non-existing modules to non-existing ccId 25 and dilogic = mod
-        continue;                                                  //skip STU mod
+        if (!mIsMuteDecoderErrors) {
+          LOG(error) << "RDH linkId corresponds to module " << mod << " which does not exist";
+        }
+        mOutputHWErrors.emplace_back(-1, mod, 0, 0, kRDH_INVALID); //Add non-existing modules to non-existing ccId -1 and dilogic = mod
+        continue;
       }
       o2::cpv::RawDecoder decoder(rawreader);
+      if (mIsMuteDecoderErrors) {
+        decoder.muteErrors();
+      }
       RawErrorType_t err = decoder.decode();
+      int decoderErrors = 0;
+      for (auto errs : decoder.getErrors()) {
+        if (errs.ccId == -1) { // error related to wrong data format
+          decoderErrors++;
+        }
+      }
+      mDecoderErrorsPerMinute += decoderErrors;
+      // LOG(debug) << "RawDecoder found " << decoderErrors << " raw format errors";
+      // LOG(debug) << "Now I have " << mDecoderErrorsPerMinute << " errors for current minute";
+      if (mIsMuteDecoderErrors) {
+        mDecoderErrorsCounterWhenMuted += decoder.getErrors().size();
+      } else {
+        if (mDecoderErrorsPerMinute > 10) { // mute error reporting for 10 minutes
+          LOG(warning) << "> 10 raw decoder error messages per minute, muting it for 10 minutes";
+          mIsMuteDecoderErrors = true;
+          mTimeWhenMuted = std::chrono::system_clock::now();
+        }
+      }
 
       if (!(err == kOK || err == kOK_NO_PAYLOAD)) {
         //TODO handle severe errors
         //TODO: probably careful conversion of decoder errors to Fitter errors?
-        mOutputHWErrors.emplace_back(25, mod, 0, 0, err); //assign general RDH errors to non-existing ccId 25 and dilogic = mod
+        mOutputHWErrors.emplace_back(-1, mod, 0, 0, err); //assign general RDH errors to non-existing ccId -1 and dilogic = mod
       }
 
       std::shared_ptr<std::vector<o2::cpv::Digit>> currentDigitContainer;

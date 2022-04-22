@@ -106,12 +106,7 @@ class EveWorkflowHelper
   void selectTracks(const CalibObjectsConst* calib, GID::mask_t maskCl,
                     GID::mask_t maskTrk, GID::mask_t maskMatch);
   void addTrackToEvent(const o2::track::TrackParCov& tr, GID gid, float trackTime, float dz, GID::Source source = GID::NSources);
-  void draw(const std::string& jsonPath, int numberOfFiles, int numberOfTracks,
-            o2::dataformats::GlobalTrackID::mask_t trkMask,
-            o2::dataformats::GlobalTrackID::mask_t clMask,
-            o2::header::DataHeader::RunNumberType runNumber,
-            o2::framework::DataProcessingHeader::CreationTime creation,
-            float mWorkflowVersion);
+  void draw(int numberOfTracks);
   void drawTPC(GID gid, float trackTime);
   void drawITS(GID gid, float trackTime);
   void drawMFT(GID gid, float trackTime);
@@ -136,6 +131,7 @@ class EveWorkflowHelper
   void prepareITSClusters(const o2::itsmft::TopologyDictionary* dict); // fills mITSClustersArray
   void prepareMFTClusters(const o2::itsmft::TopologyDictionary* dict); // fills mMFTClustersArray
   void clear() { mEvent.clear(); }
+  bool isEmpty() { return mEvent.isEmpty(); }
 
   void save(const std::string& jsonPath,
             int numberOfFiles,

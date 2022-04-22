@@ -78,10 +78,12 @@ int DCSProcessor::process(const gsl::span<const DPCOM> dps)
   }
   for (auto& it : mPids) {
     const auto& el = mapin.find(it.first);
-    if (el == mapin.end()) {
-      LOG(info) << "DP " << it.first << " not found in map";
-    } else {
-      LOG(info) << "DP " << it.first << " found in map";
+    if (mVerbose) {
+      if (el == mapin.end()) {
+        LOG(info) << "DP " << it.first << " not found in map";
+      } else {
+        LOG(info) << "DP " << it.first << " found in map";
+      }
     }
   }
 
@@ -90,7 +92,9 @@ int DCSProcessor::process(const gsl::span<const DPCOM> dps)
     // we process only the DPs defined in the configuration
     const auto& el = mPids.find(it.id);
     if (el == mPids.end()) {
-      LOG(info) << "DP " << it.id << " not found in DCSProcessor, we will not process it";
+      if (mVerbose) {
+        LOG(info) << "DP " << it.id << " not found in DCSProcessor, we will not process it";
+      }
       continue;
     }
     processDP(it);
@@ -120,7 +124,9 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
   if (processFlags(flags, dpid.get_alias()) == 0) {
     if (type == DPVAL_DOUBLE) {
       auto& dvect = mDpsDoublesmap[dpid];
-      LOG(info) << "mDpsDoublesmap[dpid].size() = " << dvect.size();
+      if (mVerbose) {
+        LOG(info) << "mDpsDoublesmap[dpid].size() = " << dvect.size();
+      }
       auto etime = dpcom.data.get_epoch_time();
       if (dvect.size() == 0 || etime != dvect.back().data.get_epoch_time()) {
         // only add data point in case it was not already read before
@@ -158,53 +164,55 @@ int DCSProcessor::processFlags(const uint64_t flags, const char* pid)
 
   // for now, I don't know how to use the flags, so I do nothing
 
-  if (flags & DataPointValue::KEEP_ALIVE_FLAG) {
-    LOG(info) << "KEEP_ALIVE_FLAG active for DP " << pid;
-  }
-  if (flags & DataPointValue::END_FLAG) {
-    LOG(info) << "END_FLAG active for DP " << pid;
-  }
-  if (flags & DataPointValue::FBI_FLAG) {
-    LOG(info) << "FBI_FLAG active for DP " << pid;
-  }
-  if (flags & DataPointValue::NEW_FLAG) {
-    LOG(info) << "NEW_FLAG active for DP " << pid;
-  }
-  if (flags & DataPointValue::DIRTY_FLAG) {
-    LOG(info) << "DIRTY_FLAG active for DP " << pid;
-  }
-  if (flags & DataPointValue::TURN_FLAG) {
-    LOG(info) << "TURN_FLAG active for DP " << pid;
-  }
-  if (flags & DataPointValue::WRITE_FLAG) {
-    LOG(info) << "WRITE_FLAG active for DP " << pid;
-  }
-  if (flags & DataPointValue::READ_FLAG) {
-    LOG(info) << "READ_FLAG active for DP " << pid;
-  }
-  if (flags & DataPointValue::OVERWRITE_FLAG) {
-    LOG(info) << "OVERWRITE_FLAG active for DP " << pid;
-  }
-  if (flags & DataPointValue::VICTIM_FLAG) {
-    LOG(info) << "VICTIM_FLAG active for DP " << pid;
-  }
-  if (flags & DataPointValue::DIM_ERROR_FLAG) {
-    LOG(info) << "DIM_ERROR_FLAG active for DP " << pid;
-  }
-  if (flags & DataPointValue::BAD_DPID_FLAG) {
-    LOG(info) << "BAD_DPID_FLAG active for DP " << pid;
-  }
-  if (flags & DataPointValue::BAD_FLAGS_FLAG) {
-    LOG(info) << "BAD_FLAGS_FLAG active for DP " << pid;
-  }
-  if (flags & DataPointValue::BAD_TIMESTAMP_FLAG) {
-    LOG(info) << "BAD_TIMESTAMP_FLAG active for DP " << pid;
-  }
-  if (flags & DataPointValue::BAD_PAYLOAD_FLAG) {
-    LOG(info) << "BAD_PAYLOAD_FLAG active for DP " << pid;
-  }
-  if (flags & DataPointValue::BAD_FBI_FLAG) {
-    LOG(info) << "BAD_FBI_FLAG active for DP " << pid;
+  if (mVerbose) {
+    if (flags & DataPointValue::KEEP_ALIVE_FLAG) {
+      LOG(info) << "KEEP_ALIVE_FLAG active for DP " << pid;
+    }
+    if (flags & DataPointValue::END_FLAG) {
+      LOG(info) << "END_FLAG active for DP " << pid;
+    }
+    if (flags & DataPointValue::FBI_FLAG) {
+      LOG(info) << "FBI_FLAG active for DP " << pid;
+    }
+    if (flags & DataPointValue::NEW_FLAG) {
+      LOG(info) << "NEW_FLAG active for DP " << pid;
+    }
+    if (flags & DataPointValue::DIRTY_FLAG) {
+      LOG(info) << "DIRTY_FLAG active for DP " << pid;
+    }
+    if (flags & DataPointValue::TURN_FLAG) {
+      LOG(info) << "TURN_FLAG active for DP " << pid;
+    }
+    if (flags & DataPointValue::WRITE_FLAG) {
+      LOG(info) << "WRITE_FLAG active for DP " << pid;
+    }
+    if (flags & DataPointValue::READ_FLAG) {
+      LOG(info) << "READ_FLAG active for DP " << pid;
+    }
+    if (flags & DataPointValue::OVERWRITE_FLAG) {
+      LOG(info) << "OVERWRITE_FLAG active for DP " << pid;
+    }
+    if (flags & DataPointValue::VICTIM_FLAG) {
+      LOG(info) << "VICTIM_FLAG active for DP " << pid;
+    }
+    if (flags & DataPointValue::DIM_ERROR_FLAG) {
+      LOG(info) << "DIM_ERROR_FLAG active for DP " << pid;
+    }
+    if (flags & DataPointValue::BAD_DPID_FLAG) {
+      LOG(info) << "BAD_DPID_FLAG active for DP " << pid;
+    }
+    if (flags & DataPointValue::BAD_FLAGS_FLAG) {
+      LOG(info) << "BAD_FLAGS_FLAG active for DP " << pid;
+    }
+    if (flags & DataPointValue::BAD_TIMESTAMP_FLAG) {
+      LOG(info) << "BAD_TIMESTAMP_FLAG active for DP " << pid;
+    }
+    if (flags & DataPointValue::BAD_PAYLOAD_FLAG) {
+      LOG(info) << "BAD_PAYLOAD_FLAG active for DP " << pid;
+    }
+    if (flags & DataPointValue::BAD_FBI_FLAG) {
+      LOG(info) << "BAD_FBI_FLAG active for DP " << pid;
+    }
   }
 
   return 0;

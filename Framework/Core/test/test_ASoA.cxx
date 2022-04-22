@@ -811,7 +811,7 @@ BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
   }
   auto t3 = b3.finalize();
   auto pst = PointsSelfIndex{t3};
-  pst.bindInternalIndices();
+  pst.bindInternalIndicesTo(&pst);
   auto i = 0;
   c1 = 0;
   c2 = 0;

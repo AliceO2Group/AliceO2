@@ -45,14 +45,7 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
   this->mRecoCont.createTracksVariadic(creator);
 }
 
-void EveWorkflowHelper::draw(const std::string& jsonPath,
-                             int numberOfFiles,
-                             int numberOfTracks,
-                             o2::dataformats::GlobalTrackID::mask_t trkMask,
-                             o2::dataformats::GlobalTrackID::mask_t clMask,
-                             o2::header::DataHeader::RunNumberType runNumber,
-                             o2::framework::DataProcessingHeader::CreationTime creation,
-                             float workflowVersion)
+void EveWorkflowHelper::draw(int numberOfTracks)
 {
   size_t nTracks = mTrackSet.trackGID.size();
   if (numberOfTracks != -1 && numberOfTracks < nTracks) {
@@ -103,9 +96,6 @@ void EveWorkflowHelper::draw(const std::string& jsonPath,
         LOG(info) << "Track type " << gid.getSource() << " not handled";
     }
   }
-
-  // save json file
-  save(jsonPath, numberOfFiles, trkMask, clMask, workflowVersion, runNumber, creation);
 }
 
 void EveWorkflowHelper::save(const std::string& jsonPath, int numberOfFiles,

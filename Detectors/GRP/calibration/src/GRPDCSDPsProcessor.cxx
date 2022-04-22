@@ -194,7 +194,9 @@ void GRPDCSDPsProcessor::processCollimators(const DPCOM& dpcom)
   processPair(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_upstream", mCollimators.mleft_upstream, mUpdateCollimators);
   processPair(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_downstream", mCollimators.mright_downstream, mUpdateCollimators);
   processPair(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_upstream", mCollimators.mright_upstream, mUpdateCollimators);
-  LOG(info) << "update collimators = " << mUpdateCollimators;
+  if (mVerbose) {
+    LOG(info) << "update collimators = " << mUpdateCollimators;
+  }
   return;
 }
 
@@ -209,7 +211,9 @@ void GRPDCSDPsProcessor::processEnvVar(const DPCOM& dpcom)
   processPair(dpcom, "CavernAtmosPressure", mEnvVars.mCavernAtmosPressure, mUpdateEnvVars);
   processPair(dpcom, "SurfaceAtmosPressure", mEnvVars.mSurfaceAtmosPressure, mUpdateEnvVars);
   processPair(dpcom, "CavernAtmosPressure2", mEnvVars.mCavernAtmosPressure2, mUpdateEnvVars);
-  LOG(info) << "update env vars = " << mUpdateEnvVars;
+  if (mVerbose) {
+    LOG(info) << "update env vars = " << mUpdateEnvVars;
+  }
   return;
 }
 

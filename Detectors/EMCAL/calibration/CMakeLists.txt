@@ -14,6 +14,7 @@ o2_add_library(EMCALCalibration
                SOURCES  src/EMCALChannelData.cxx
                         src/EMCALTimeCalibData.cxx
                         src/EMCALCalibExtractor.cxx
+                        src/EMCALCalibParams.cxx
                PUBLIC_LINK_LIBRARIES O2::CCDB O2::EMCALBase
                                      O2::EMCALCalib
                                      O2::CommonUtils
@@ -29,6 +30,7 @@ o2_target_root_dictionary(EMCALCalibration
                                   include/EMCALCalibration/EMCALChannelCalibrator.h
                                   include/EMCALCalibration/EMCALChannelData.h
                                   include/EMCALCalibration/EMCALTimeCalibData.h
+                                  include/EMCALCalibration/EMCALCalibParams.h
                           LINKDEF src/EMCALCalibrationLinkDef.h)
 
 o2_add_executable(emcal-channel-calib-workflow

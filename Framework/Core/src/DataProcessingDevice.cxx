@@ -1763,6 +1763,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
 
         {
           ZoneScopedN("service post processing");
+          context.registry->get<CallbackService>()(CallbackService::Id::PostProcessing, *(context.registry), (int)action.op);
           context.registry->postProcessingCallbacks(processContext);
         }
       }

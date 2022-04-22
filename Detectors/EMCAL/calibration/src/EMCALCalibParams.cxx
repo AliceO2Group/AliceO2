@@ -9,20 +9,5 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DetectorsCommonDataFormats/CTFHeader.h"
-#include <Framework/Logger.h>
-
-using namespace o2::ctf;
-using DetID = o2::detectors::DetID;
-
-/// describe itsel as a string
-std::string CTFHeader::describe() const
-{
-  return fmt::format("Run:{:07d} TF{} Orbit:{:08d} CteationTime:{} Detectors: {}", run, tfCounter, firstTForbit, creationTime, DetID::getNames(detectors));
-}
-
-std::ostream& o2::ctf::operator<<(std::ostream& stream, const CTFHeader& h)
-{
-  stream << h.describe();
-  return stream;
-}
+#include "EMCALCalibration/EMCALCalibParams.h"
+O2ParamImpl(o2::emcal::EMCALCalibParams);

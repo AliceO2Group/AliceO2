@@ -35,8 +35,7 @@ using namespace o2::emcal;
 // including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  std::vector<ConfigParamSpec> options{{"minNumEntries", VariantType::Int, 10000, {"minimum number of entries in histogram to trigger calibration"}},
-                                       {"calibMode", VariantType::String, "badcell", {"specify time for time calib or badcell for bad channel calib"}},
+  std::vector<ConfigParamSpec> options{{"calibMode", VariantType::String, "badcell", {"specify time for time calib or badcell for bad channel calib"}},
                                        {"localRootFilePath", VariantType::String, "", {"path to local root file for storage of calibration params"}},
                                        {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
@@ -47,13 +46,13 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  int minNEntries = cfgc.options().get<int>("minNumEntries");
   std::string strCalibType = cfgc.options().get<std::string>("calibMode");
   std::string strFilePath = cfgc.options().get<std::string>("localRootFilePath");
 
   WorkflowSpec specs;
+  specs.emplace_back(getEMCALChannelCalibDeviceSpec(strCalibType, strFilePath));
+
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-  specs.emplace_back(getEMCALChannelCalibDeviceSpec(minNEntries, strCalibType, strFilePath));
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   // o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
