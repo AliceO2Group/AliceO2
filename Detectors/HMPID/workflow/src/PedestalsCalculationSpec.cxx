@@ -143,12 +143,12 @@ void PedestalsCalculationTask::recordPedInFiles()
   uint32_t Buffer;
   uint32_t Pedestal;
   uint32_t Threshold;
-  
+
   for (int e = 0; e < Geo::MAXEQUIPMENTS; e++) {
     if (mDeco->getAverageEventSize(e) == 0) {
       continue;
     }
-    auto padsFileName = fmt::format("{}_{}.dat",mPedestalsBasePath, std::to_string(e));
+    auto padsFileName = fmt::format("{}_{}.dat", mPedestalsBasePath, std::to_string(e));
     FILE* fpads = fopen(padsFileName.c_str(), "w");
     if (fpads == nullptr) {
       mExTimer.logMes("error creating the file = " + std::string(padsFileName));
@@ -250,7 +250,7 @@ void PedestalsCalculationTask::recordPedInDcsCcdb()
   long minTimeStamp = o2::ccdb::getCurrentTimestamp();
   long maxTimeStamp = minTimeStamp + (3600L * mDcsCcdbAliveHours * 1000);
 
-  auto filename = fmt::format("{}_{}.dat",mPedestalsBasePath, PedestalFixedTag);
+  auto filename = fmt::format("{}_{}.dat", mPedestalsBasePath, PedestalFixedTag);
   mExTimer.logMes("File name = >" + filename + "< (" + mPedestalsCCDBBasePath + "," + PedestalFixedTag);
   TFile outputFile(filename.c_str(), "recreate");
   outputFile.WriteObjectAny(&pedestalsConfig, "std::vector<char>", "DCSConfig");
