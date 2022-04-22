@@ -84,7 +84,7 @@ else
 fi
 
 [[ -z $startTime ]] && startTime=$startTimeDef
-[[ -z $runNumber ]] && runNumber=$runNumberDef
+[[ -z $runNumber ]] && runNumber=$runNumDef
 
 dosim="0"
 dodigi="0"
