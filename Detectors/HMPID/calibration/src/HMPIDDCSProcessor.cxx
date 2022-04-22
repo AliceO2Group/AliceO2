@@ -53,7 +53,13 @@ void HMPIDDCSProcessor::process(const gsl::span<const DPCOM> dps)
   if (dps.size() == 0) {
     return;
   }
-  
+   if (mVerbose) {
+    LOG(info) << "\n\n\nProcessing new DCS DP map\n-----------------";
+  }
+  if (!mFirstTimeSet) {
+    mFirstTime = mStartValidity;
+    mFirstTimeSet = true;
+  }
 
   for (const auto& dp : dps) {
     const std::string_view alias(dp.id.get_alias());
