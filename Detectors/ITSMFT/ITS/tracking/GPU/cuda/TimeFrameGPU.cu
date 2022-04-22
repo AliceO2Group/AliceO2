@@ -164,9 +164,7 @@ void TimeFrameGPU<NLayers>::initialise(const int iteration,
 }
 
 template <int NLayers>
-TimeFrameGPU<NLayers>::~TimeFrameGPU()
-{
-}
+TimeFrameGPU<NLayers>::~TimeFrameGPU() = default;
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::checkBufferSizes()
