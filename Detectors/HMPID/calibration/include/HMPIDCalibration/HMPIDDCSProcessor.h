@@ -27,6 +27,7 @@
 #include <memory>
 #include <deque> 
 #include <gsl/gsl> 
+#include <string>
 
 // O2 includes: 
 #include "Framework/Logger.h"
@@ -69,18 +70,20 @@ class HMPIDDCSProcessor{
 		const CcdbObjectInfo& getccdbREF_INDEXsInfo() const { return mccdbREF_INDEX_Info; }
          	CcdbObjectInfo& getccdbREF_INDEXsInfo() { return mccdbREF_INDEX_Info; }
 	
-		const TF1[42]& getRefIndexObj() const { return mRefIndex; }
-		// Charge Threshold: 
-		// TF1 arQthre[42];  //42 Qthre=f(time) one per sector
-	
+		const std::array<TF1,43>& getRefIndexObj() const { return mRefIndex; }
+// for calculating refractive index: 
+		//TF1 arNmean[43]; /// 21* Tin and 21*Tout (1 per radiator, 3 radiators per chambers)
+				 // + 1 for ePhotMean (mean photon energy) 		
+
+
 	
    		const CcdbObjectInfo& getHmpidChargeCutInfo() const { return mccdbCHARGE_CUT_Info; }
     		CcdbObjectInfo& getHmpidChargeCutInfo() { return mccdbCHARGE_CUT_Info; }
 	
-		const TF1[43]& getChargeCutObj() const { return mChargeCut; }
-		// for calculating refractive index: 
-		//TF1 arNmean[43]; /// 21* Tin and 21*Tout (1 per radiator, 3 radiators per chambers)
-				 // + 1 for ePhotMean (mean photon energy) 
+		const std::array<TF1,42>& getChargeCutObj() const { return mChargeCut; }
+		// Charge Threshold: 
+		// TF1 arQthre[42];  //42 Qthre=f(time) one per sector
+	
 		 // DCS-CCDB methods and members
 
 	
@@ -112,8 +115,6 @@ class HMPIDDCSProcessor{
 		double  aCsIQE; 	       // evaluate CsI quantum efficiency
 		double  aTotConvolution;      // evaluate total convolution of all material optical properties
  		
-		// array of DPCOM-vectors, to evaluate timestamps at each iteration in for-loop of IR
-	        const std::vector<DPCOM> irTSArray[5];// = {waveLen[i], argonRef[i], argonCell[i], freonRef[i], freonCell[i]};
 
 		
 		double ProcTrans();
@@ -142,12 +143,12 @@ class HMPIDDCSProcessor{
 	
 	
 		// for calculating refractive index: 
-		TF1 arNmean[43]; /// 21* Tin and 21*Tout (1 per radiator, 3 radiators per chambers)
+		std::array<TF1,43> arNmean;//[43]; /// 21* Tin and 21*Tout (1 per radiator, 3 radiators per chambers)
 				 // + 1 for ePhotMean (mean photon energy) 
 	
 	
 		// Charge Threshold: 
-		TF1 arQthre[42];  //42 Qthre=f(time) one per sector
+		std::array<TF1,42> arQthre;//[42];  //42 Qthre=f(time) one per sector
 
 	
 		// env pressure 
@@ -211,11 +212,12 @@ class HMPIDDCSProcessor{
 	  	bool mFirstTimeSet = false; 	
 	
 		bool mVerbose = false;
+
 		CcdbObjectInfo mccdbREF_INDEX_Info;
-		TF1 mRefIndex[42];
+		const std::array<TF1,43> mRefIndex;//TF1 mRefIndex[43];
 	
 		CcdbObjectInfo mccdbCHARGE_CUT_Info;
-		TF1 mChargeCut[43];
+		const std::array<TF1,42> mChargeCut;//TF1 mChargeCut[42];
 	
 		
 		// Timestamps and TimeRanges ======================================================================================
@@ -313,5 +315,6 @@ class HMPIDDCSProcessor{
       		Form(HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Reference) 
 */
      
+
 
 

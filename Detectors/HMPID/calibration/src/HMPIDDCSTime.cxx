@@ -114,3 +114,4 @@ TimeStampType HMPIDDCSTime::getMinTimeArr(const std::vector<DPCOM> dataArray[])
     return lastTime;
   } 
 }
+

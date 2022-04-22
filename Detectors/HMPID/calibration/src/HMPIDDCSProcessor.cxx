@@ -25,6 +25,7 @@
 #include <memory>
 #include <deque> 
 #include <gsl/gsl> 
+#include <string>
 
 // O2 includes: 
 #include "Framework/Logger.h"
@@ -245,12 +246,12 @@ double HMPIDDCSProcessor::ProcTrans()
 
 	    // Evaluate timestamps : 
 	    //const std::vector<DPCOM> arr[5] = {waveLen[i], argonRef[i], argonCell[i], freonRef[i], freonCell[i]};
-	    irTSArray[5] = {waveLen[i], argonRef[i], argonCell[i], freonRef[i], freonCell[i]};
-	    
-	    auto minTime = HMPIDDCSTime::getMinTimeArr(arr);
-	    auto maxTime = HMPIDDCSTime::getMaxTimeArr(arr);
+	    std::vector<DPCOM> irTSArray[5] = {waveLen[i], argonRef[i], argonCell[i], freonRef[i], freonCell[i]};
+	   
+	    auto minTime = HMPIDDCSTime::getMinTimeArr(irTSArray);
+	    auto maxTime = HMPIDDCSTime::getMaxTimeArr(irTSArray);
 	    if(minTime < mTimeArNmean.first) mTimeArNmean.first = minTime;    
-	    if(maxTime > mTimeArNmean.last) mTimeArNmean.last = maxTime;
+	    if(maxTime > mTimeArNmean.last) mTimeArNmean.last = maxTime; 
 		
         }
       if(sProb>0) 
@@ -547,3 +548,4 @@ uint64_t HMPIDDCSProcessor::processFlags(const uint64_t flags, const char* pid)
  }	
 	
 }	// end namespace
+

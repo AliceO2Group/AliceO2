@@ -12,13 +12,14 @@
 o2_add_library(HMPIDCalibration
 		TARGETVARNAME targetName
                 SOURCES src/HMPIDDCSProcessor.cxx 
-			#src/HMPIDTestComp.cxx 
 			src/HMPIDDCSTime.cxx
+			src/HMPIDDataProcessorSpec.cxx
 #                       src/HmpidDecoder2.cxx
 #                       src/HmpidEquipment.cxx
 #                       src/CTFHelper.cxx
 #                       src/CTFCoder.cxx
                 PUBLIC_LINK_LIBRARIES O2::HMPIDBase
+				      O2::Framework
                                       O2::DataFormatsHMP
                                       O2::HMPIDSimulation
                                       O2::SimulationDataFormat
@@ -51,8 +52,15 @@ o2_add_executable(dcs-sim-workflow # run with o2-hmpid-dcs-sim-workflow
                    COMPONENT_NAME hmpid # adds hmpid to the above command
                    SOURCES testWorkflow/hmpid-dcs-sim-workflow.cxx
                    PUBLIC_LINK_LIBRARIES O2::Framework
+					 O2::DetectorsCalibration
+					 O2::HMPIDCalibration
 					 O2::DCStestWorkflow)
 
-
+o2_add_executable(data-sim-workflow # run with o2-hmpid-dcs-sim-workflow
+                   COMPONENT_NAME hmpid # adds hmpid to the above command
+                   SOURCES testWorkflow/hmpid-dcs-data-workflow.cxx
+                   PUBLIC_LINK_LIBRARIES O2::Framework
+					 O2::HMPIDCalibration
+					 O2::DCStestWorkflow)
 
  

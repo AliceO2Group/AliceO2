@@ -60,7 +60,7 @@
 #include "DetectorsDCS/AliasExpander.h"
 #include "HMPIDCalibration/HMPIDDCSProcessor.h"
 //#include "HMPIDWorkFlows/HMPIDDataProcessorSpec.h" // headerfile currently 
-#include "HMPIDDataProcessorSpec.h"		     // in same folder 	
+#include "HMPIDCalibration/HMPIDDataProcessorSpec.h"		     // in same folder 	
 
 
 #include "DetectorsCalibration/Utils.h"

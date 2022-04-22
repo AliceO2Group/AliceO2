@@ -20,7 +20,7 @@ struct has_root_dictionary<std::unordered_map<o2::dcs::DataPointIdentifier, o2::
 };
 } // namespace o2::framework
 #include "Framework/DataProcessorSpec.h"
-#include "HMPIDDCSDataProcessorSpec.h" // #include "TOFDCSDataProcessorSpec.h"
+#include "HMPIDDataProcessorSpec.h" // #include "TOFDCSDataProcessorSpec.h"
 
 using namespace o2::framework;
 
@@ -41,3 +41,4 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // https://github.com/AliceO2Group/AliceO2/blob/cf037a010c365e8a7fd4f2dd7b126ba595b280a2/Detectors/TOF/calibration/testWorkflow/TOFDCSDataProcessorSpec.h#L183
   return specs;
 }
+
