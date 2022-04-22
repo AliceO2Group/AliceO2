@@ -16,5 +16,8 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::hmpid::HMPIDDCSProcessor +;
+#pragma link C++ class o2::hmpid::HMPIDDCSTime +;
 
+#pragma link C++ class TF1[] + ; // 	e.g.	const TF1[42]& getRefIndexObj() const { return mRefIndex; }
+                              
 #endif
