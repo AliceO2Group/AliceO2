@@ -39,7 +39,7 @@ void DataProcessor::doSend(DataSender& sender, MessageContext& context, ServiceR
 {
   auto& proxy = services.get<FairMQDeviceProxy>();
   std::vector<FairMQParts> outputsPerChannel;
-  outputsPerChannel.resize(proxy.getNumChannels());
+  outputsPerChannel.resize(proxy.getNumOutputChannels());
   auto contextMessages = context.getMessagesForSending();
   for (auto& message : contextMessages) {
     //     monitoringService.send({ message->parts.Size(), "outputs/total" });
@@ -47,7 +47,7 @@ void DataProcessor::doSend(DataSender& sender, MessageContext& context, ServiceR
     assert(message->empty());
     assert(parts.Size() == 2);
     for (auto& part : parts) {
-      outputsPerChannel[proxy.getChannelIndex((message->route())).value].AddPart(std::move(part));
+      outputsPerChannel[proxy.getOutputChannelIndex((message->route())).value].AddPart(std::move(part));
     }
   }
   for (int ci = 0; ci < outputsPerChannel.size(); ++ci) {
@@ -75,7 +75,7 @@ void DataProcessor::doSend(DataSender& sender, StringContext& context, ServiceRe
     dh->payloadSize = payload->GetSize();
     parts.AddPart(std::move(messageRef.header));
     parts.AddPart(std::move(payload));
-    sender.send(parts, proxy.getChannelIndex(messageRef.routeIndex));
+    sender.send(parts, proxy.getOutputChannelIndex(messageRef.routeIndex));
   }
 }
 
@@ -116,7 +116,7 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
     context.updateMessagesSent(1);
     parts.AddPart(std::move(messageRef.header));
     parts.AddPart(std::move(payload));
-    sender.send(parts, proxy.getChannelIndex(messageRef.routeIndex));
+    sender.send(parts, proxy.getOutputChannelIndex(messageRef.routeIndex));
   }
   static int64_t previousBytesSent = 0;
   auto disposeResources = [bs = context.bytesSent() - previousBytesSent](int taskId,
@@ -165,7 +165,7 @@ void DataProcessor::doSend(DataSender& sender, RawBufferContext& context, Servic
     dh->payloadSize = size;
     parts.AddPart(std::move(messageRef.header));
     parts.AddPart(std::move(payload));
-    sender.send(parts, proxy.getChannelIndex(messageRef.routeIndex));
+    sender.send(parts, proxy.getOutputChannelIndex(messageRef.routeIndex));
   }
 }
 

@@ -23,6 +23,7 @@
 #include "Framework/DispatchPolicy.h"
 #include "Framework/DispatchControl.h"
 #include "Framework/DanglingContext.h"
+#include "Framework/DomainInfoHeader.h"
 #include "Framework/DriverClient.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/FairOptionsRetriever.h"
@@ -39,7 +40,7 @@
 #include "Framework/Monitoring.h"
 #include "PropertyTreeHelpers.h"
 #include "DataProcessingStatus.h"
-#include "DataProcessingHelpers.h"
+#include "Framework/DataProcessingHelpers.h"
 #include "DataRelayerHelpers.h"
 #include "ProcessingPoliciesHelpers.h"
 #include "Headers/DataHeader.h"
@@ -363,10 +364,15 @@ void DataProcessingDevice::Init()
   /// Internal channels which will never create an actual message
   /// should be considered as in "Pull" mode, since we do not
   /// expect them to create any data.
+  int validChannelId = 0;
   for (size_t ci = 0; ci < mSpec.inputChannels.size(); ++ci) {
     auto& name = mSpec.inputChannels[ci].name;
     if (name.find(mSpec.channelPrefix + "from_internal-dpl-clock") == 0) {
       mState.inputChannelInfos[ci].state = InputChannelState::Pull;
+      mState.inputChannelInfos[ci].id = {ChannelIndex::INVALID};
+      validChannelId++;
+    } else {
+      mState.inputChannelInfos[ci].id = {validChannelId++};
     }
   }
 
@@ -435,6 +441,7 @@ void DataProcessingDevice::initPollers()
 {
   // We add a timer only in case a channel poller is not there.
   if ((mStatefulProcess != nullptr) || (mStatelessProcess != nullptr)) {
+    int ci = 0;
     for (auto& [channelName, channel] : fChannels) {
       InputChannelInfo* channelInfo;
       for (size_t ci = 0; ci < mDeviceContext.spec->inputChannels.size(); ++ci) {
@@ -1112,7 +1119,8 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
   enum struct InputType {
     Invalid,
     Data,
-    SourceInfo
+    SourceInfo,
+    DomainInfo
   };
 
   struct InputInfo {
@@ -1125,12 +1133,14 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
     InputType type;
   };
 
+  size_t oldestPossibleTimeslice = (size_t)-1;
+
   // This is how we validate inputs. I.e. we try to enforce the O2 Data model
   // and we do a few stats. We bind parts as a lambda captured variable, rather
   // than an input, because we do not want the outer loop actually be exposed
   // to the implementation details of the messaging layer.
   auto getInputTypes = [&stats = context.registry->get<DataProcessingStats>(),
-                        &info, &context]() -> std::optional<std::vector<InputInfo>> {
+                        &info, &context, &oldestPossibleTimeslice]() -> std::optional<std::vector<InputInfo>> {
     auto& parts = info.parts;
     stats.inputParts = parts.Size();
 
@@ -1148,14 +1158,22 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
     };
 
     for (size_t pi = 0; pi < parts.Size(); pi += 2) {
-      auto sih = o2::header::get<SourceInfoHeader*>(parts.At(pi)->GetData());
+      auto* headerData = parts.At(pi)->GetData();
+      auto sih = o2::header::get<SourceInfoHeader*>(headerData);
       if (sih) {
         info.state = sih->state;
         insertInputInfo(pi, 2, InputType::SourceInfo);
         *context.wasActive = true;
         continue;
       }
-      auto dh = o2::header::get<DataHeader*>(parts.At(pi)->GetData());
+      auto dih = o2::header::get<DomainInfoHeader*>(headerData);
+      if (dih) {
+        oldestPossibleTimeslice = std::min(oldestPossibleTimeslice, dih->oldestPossibleTimeslice);
+        insertInputInfo(pi, 2, InputType::DomainInfo);
+        *context.wasActive = true;
+        continue;
+      }
+      auto dh = o2::header::get<DataHeader*>(headerData);
       if (!dh) {
         insertInputInfo(pi, 0, InputType::Invalid);
         LOGP(error, "Header is not a DataHeader?");
@@ -1167,7 +1185,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
         continue;
       }
       TracyPlot("payload size", (int64_t)dh->payloadSize);
-      auto dph = o2::header::get<DataProcessingHeader*>(parts.At(pi)->GetData());
+      auto dph = o2::header::get<DataProcessingHeader*>(headerData);
       TracyAlloc(parts.At(pi + 1)->GetData(), parts.At(pi + 1)->GetSize());
       if (!dph) {
         insertInputInfo(pi, 2, InputType::Invalid);
@@ -1275,6 +1293,17 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
           // pi += dh->splitPayloadParts > 0 ? dh->splitPayloadParts - 1 : 0;
 
         } break;
+        case InputType::DomainInfo: {
+          *context.wasActive = true;
+          auto headerIndex = input.position;
+          auto payloadIndex = input.position + 1;
+          assert(payloadIndex < parts.Size());
+          auto dh = o2::header::get<DataHeader*>(parts.At(headerIndex)->GetData());
+          // FIXME: the message with the end of stream cannot contain
+          //        split parts.
+          parts.At(headerIndex).reset(nullptr);
+          parts.At(payloadIndex).reset(nullptr);
+        }
         case InputType::Invalid: {
           reportError("Invalid part found.");
         } break;
@@ -1300,6 +1329,9 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
   if (bool(inputTypes) == false) {
     reportError("Parts should come in couples. Dropping it.");
     return;
+  }
+  if (oldestPossibleTimeslice != (size_t)-1) {
+    context.relayer->setOldestPossibleInput({oldestPossibleTimeslice}, info.id);
   }
   handleValidMessages(*inputTypes);
   return;
@@ -1486,6 +1518,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // FIXME: do it in a smarter way than O(N^2)
   auto forwardInputs = [&reportError,
                         &spec = context.deviceContext->spec,
+                        &timesliceIndex = context.registry->get<TimesliceIndex>(),
                         &device = context.deviceContext->device, &currentSetOfInputs](TimesliceSlot slot, InputRecord& record, bool copy, bool consume = true) {
     ZoneScopedN("forward inputs");
     LOGP(debug, "DataProcessingDevice::tryDispatchComputation::forwardInputs");
@@ -1516,9 +1549,14 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         continue;
       }
 
+      auto dih = o2::header::get<DomainInfoHeader*>(input.header);
+      if (dih) {
+        continue;
+      }
+
       auto dh = o2::header::get<DataHeader*>(input.header);
       if (!dh) {
-        reportError("Header is not a DataHeader?");
+        reportError("Forwarding a non-DataHeader?");
         continue;
       }
       auto dph = o2::header::get<DataProcessingHeader*>(input.header);
@@ -1602,8 +1640,15 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
       if (forwardedParts[fi].Size() == 0) {
         continue;
       }
+      auto& channel = device->GetChannel(spec->forwards[fi].channel, 0);
       // in DPL we are using subchannel 0 only
-      device->Send(forwardedParts[fi], spec->forwards[fi].channel, 0);
+      channel.Send(forwardedParts[fi]);
+
+      // The oldest possible timeslice for a forwarded message
+      // is conservatively the one of the device doing the forwarding.
+      auto oldestTimeslice = timesliceIndex.getOldestPossibleOutput();
+      DataProcessingHelpers::sendOldestPossibleTimeframe(channel, oldestTimeslice.timeslice.value);
+      LOGP(debug, "Forwarding to channel {} oldest possible timeslice {}", spec->forwards[fi].channel, oldestTimeslice.timeslice.value);
     }
   };
 

@@ -41,7 +41,7 @@ std::string formatExternalChannelConfiguration(OutputChannelSpec const&);
 /// FIXME: can in principle drop the OutputSpec parameter and take the DataHeader
 void sendOnChannel(FairMQDevice& device, o2::header::Stack&& headerStack, FairMQMessagePtr&& payloadMessage, OutputSpec const& spec, ChannelRetriever& channelRetriever);
 
-void sendOnChannel(FairMQDevice& device, FairMQParts& messages, std::string const& channel);
+void sendOnChannel(FairMQDevice& device, FairMQParts& messages, std::string const& channel, size_t timeSlice);
 
 /// Helper function which takes a set of inputs coming from a device,
 /// massages them so that they are valid DPL messages using @param spec as header

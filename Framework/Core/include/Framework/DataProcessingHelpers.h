@@ -11,12 +11,14 @@
 #ifndef O2_FRAMEWORK_DATAPROCESSINGHELPERS_H_
 #define O2_FRAMEWORK_DATAPROCESSINGHELPERS_H_
 
+#include "Framework/TimesliceIndex.h"
 #include <fairmq/FwdDecls.h>
 
 namespace o2::framework
 {
 
 struct OutputChannelSpec;
+class FairMQDeviceProxy;
 
 /// Generic helpers for DataProcessing releated functions.
 struct DataProcessingHelpers {
@@ -25,6 +27,8 @@ struct DataProcessingHelpers {
   /// @param channel the OutputChannelSpec of the channel which needs to be signaled
   ///        for EndOfStream
   static void sendEndOfStream(FairMQDevice& device, OutputChannelSpec const& channel);
+  static void sendOldestPossibleTimeframe(fair::mq::Channel& channel, size_t timeslice);
+  static void broadcastOldestPossibleTimeslice(FairMQDeviceProxy& proxy, size_t timeslice);
 };
 
 } // namespace o2::framework

@@ -8,16 +8,19 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "DataProcessingHelpers.h"
+#include "Framework/DataProcessingHelpers.h"
 #include "Framework/SourceInfoHeader.h"
+#include "Framework/DomainInfoHeader.h"
 #include "Framework/ChannelSpec.h"
 #include "Framework/ChannelInfo.h"
 #include "MemoryResources/MemoryResources.h"
+#include "Framework/FairMQDeviceProxy.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 #include "Framework/Logger.h"
 
 #include <fairmq/Device.h>
+#include <fairmq/Channel.h>
 
 namespace o2::framework
 {
@@ -36,4 +39,30 @@ void DataProcessingHelpers::sendEndOfStream(FairMQDevice& device, OutputChannelS
   device.Send(parts, channel.name, 0);
   LOGP(info, "Sending end-of-stream message to channel {}", channel.name);
 }
+
+void DataProcessingHelpers::sendOldestPossibleTimeframe(fair::mq::Channel& channel, size_t timeslice)
+{
+  FairMQParts oldestParts;
+  FairMQMessagePtr payload(channel.Transport()->CreateMessage());
+  o2::framework::DomainInfoHeader dih;
+  dih.oldestPossibleTimeslice = timeslice;
+  auto channelAlloc = o2::pmr::getTransportAllocator(channel.Transport());
+  auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dih});
+  // sigh... See if we can avoid having it const by not
+  // exposing it to the user in the first place.
+  oldestParts.AddPart(std::move(header));
+  oldestParts.AddPart(std::move(payload));
+  LOGP(debug, "Notifying {} about oldest possible timeslice being {}", channel.GetName(), timeslice);
+  channel.Send(oldestParts);
+}
+
+void DataProcessingHelpers::broadcastOldestPossibleTimeslice(FairMQDeviceProxy& proxy, size_t timeslice)
+{
+  for (int ci = 0; ci < proxy.getNumOutputChannels(); ++ci) {
+    auto* channel = proxy.getOutputChannel({ci});
+    assert(channel);
+    sendOldestPossibleTimeframe(*channel, timeslice);
+  }
+}
+
 } // namespace o2::framework

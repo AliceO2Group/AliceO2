@@ -403,8 +403,9 @@ o2::framework::ServiceSpec CommonServices::timesliceIndex()
   return ServiceSpec{
     .name = "timesliceindex",
     .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+      auto& spec = services.get<DeviceSpec const>();
       return ServiceHandle{TypeIdHelpers::uniqueId<TimesliceIndex>(),
-                           new TimesliceIndex(InputRouteHelpers::maxLanes(services.get<DeviceSpec const>().inputs))};
+                           new TimesliceIndex(InputRouteHelpers::maxLanes(spec.inputs), spec.inputChannels.size())};
     },
     .configure = noConfiguration(),
     .kind = ServiceKind::Serial};
