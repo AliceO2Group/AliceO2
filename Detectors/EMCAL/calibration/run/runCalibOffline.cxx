@@ -15,7 +15,7 @@
 #include <iostream>
 #include <boost/program_options.hpp>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "CommonUtils/BoostHistogramUtils.h"
 #include "EMCALCalib/TimeCalibrationParams.h"
@@ -43,6 +43,7 @@ int main(int argc, char** argv)
   std::string CalibInputPath;
   std::string ccdbServerPath;
   bool doBadChannelCalib;
+  bool debugMode = false;
   std::string nameCalibInputHist; // hCellIdVsTimeAbove300 for time, hCellIdVsEnergy for bad channel
   std::string namePathStoreLocal; // name for path + histogram to store the calibration locally in root TH1 format
 
@@ -56,7 +57,7 @@ int main(int argc, char** argv)
 
   try {
     bpo::options_description desc("Allowed options");
-    desc.add_options()("help", "Print this help message")("CalibInputPath", bpo::value<std::string>()->required(), "Set root input histogram")("ccdbServerPath", bpo::value<std::string>()->default_value(o2::base::NameConf::getCCDBServer()), "Set path to ccdb server")("mode", bpo::value<std::string>()->required(), "Set if time or bad channel calib")("nameInputHisto", bpo::value<std::string>()->default_value("hCellIdVsTimeAbove300"), "Set name of input histogram")("nthreads", bpo::value<unsigned int>()->default_value(1), "Set number of threads for OpenMP")("timestampStart", bpo::value<unsigned long>()->default_value(1635548552000), "Set timestamp from start of run")("timestampEnd", bpo::value<unsigned long>()->default_value(1635553870000), "Set timestamp from end of run")("namePathStoreLocal", bpo::value<std::string>()->default_value(""), "Set path to store histo of time calib locally")("timeRangeLow", bpo::value<double>()->default_value(1), "Set lower boundary of fit interval for time calibration (in ns)")("timeRangeHigh", bpo::value<double>()->default_value(1000), "Set upper boundary of fit interval for time calibration (in ns)");
+    desc.add_options()("help", "Print this help message")("CalibInputPath", bpo::value<std::string>()->required(), "Set root input histogram")("ccdbServerPath", bpo::value<std::string>()->default_value(o2::base::NameConf::getCCDBServer()), "Set path to ccdb server")("debug", bpo::value<bool>()->default_value(false), "Enable debug statements")("mode", bpo::value<std::string>()->required(), "Set if time or bad channel calib")("nameInputHisto", bpo::value<std::string>()->default_value("hCellIdVsTimeAbove300"), "Set name of input histogram")("nthreads", bpo::value<unsigned int>()->default_value(1), "Set number of threads for OpenMP")("timestampStart", bpo::value<unsigned long>()->default_value(1635548552000), "Set timestamp from start of run")("timestampEnd", bpo::value<unsigned long>()->default_value(1635553870000), "Set timestamp from end of run")("namePathStoreLocal", bpo::value<std::string>()->default_value(""), "Set path to store histo of time calib locally")("timeRangeLow", bpo::value<double>()->default_value(1), "Set lower boundary of fit interval for time calibration (in ns)")("timeRangeHigh", bpo::value<double>()->default_value(1000), "Set upper boundary of fit interval for time calibration (in ns)");
 
     bpo::store(bpo::parse_command_line(argc, argv, desc), vm);
 
@@ -78,6 +79,11 @@ int main(int argc, char** argv)
       ccdbServerPath = vm["ccdbServerPath"].as<std::string>();
     } else {
       printf("ccdbServerPath was not set.\nWill use standard path %s", ccdbServerPath.c_str());
+    }
+
+    if (vm.count("debug")) {
+      std::cout << "Enable debug mode" << std::endl;
+      debugMode = vm["debug"].as<bool>();
     }
 
     if (vm.count("mode")) {
@@ -147,6 +153,12 @@ int main(int argc, char** argv)
     exit(2);
   }
 
+  if (debugMode) {
+    fair::Logger::SetConsoleSeverity("debug");
+  } else {
+    fair::Logger::SetConsoleSeverity("info");
+  }
+
   // Set input file and get histogram
   TFile* fTimeCalibInput = TFile::Open(CalibInputPath.c_str());
   if (!fTimeCalibInput) {
@@ -164,7 +176,7 @@ int main(int argc, char** argv)
   o2::emcal::EMCALCalibExtractor CalibExtractor;
   CalibExtractor.setNThreads(nthreads);
 
-  // get boost histo from root input histogram
+  // convert the test root histogram to boost
   auto hCalibInputHist = o2::utils::boostHistoFromRoot_2D(hCalibInputHist_ROOT);
 
   // instance of CalibDB
@@ -174,7 +186,11 @@ int main(int argc, char** argv)
     printf("perform bad channel analysis\n");
     o2::emcal::BadChannelMap BCMap;
 
-    // BCMap = CalibExtractor.calibrateBadChannels(hCalibInputHist);
+    BCMap = CalibExtractor.calibrateBadChannels(hCalibInputHist);
+
+    // store bad channel map in ccdb via emcal calibdb
+    std::map<std::string, std::string> metadata;
+    calibdb.storeBadChannelMap(&BCMap, metadata, rangestart, rangeend);
   } else {
     printf("perform time calibration analysis\n");
 
