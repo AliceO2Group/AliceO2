@@ -1003,19 +1003,6 @@ DECLARE_SOA_INDEX_TABLE(Run3MatchedToBCSparse, BCs, "MA_RN3_BC_SP", //!
 DECLARE_SOA_INDEX_TABLE(Run2MatchedToBCSparse, BCs, "MA_RN2_BC_SP", //!
                         indices::BCId, indices::ZdcId, indices::FT0Id, indices::FV0AId, indices::FV0CId, indices::FDDId);
 
-// temporary code during transition from FDD_000 to FDD_001
-namespace indices_fdd_001
-{
-using FDD_001 = FDDs_001::iterator;
-DECLARE_SOA_INDEX_COLUMN_FULL(FDD_001, fdd, int, FDDs_001, ""); //!
-} // namespace indices_fdd_001
-DECLARE_SOA_INDEX_TABLE(Run3MatchedToBCSparseFDD_001, BCs, "MA_RN3_BC_SP2", //!
-                        indices::BCId, indices::ZdcId, indices::FT0Id, indices::FV0AId, indices_fdd_001::FDD_001Id);
-
-DECLARE_SOA_INDEX_TABLE(Run2MatchedToBCSparseFDD_001, BCs, "MA_RN2_BC_SP2", //!
-                        indices::BCId, indices::ZdcId, indices::FT0Id, indices::FV0AId, indices::FV0CId, indices_fdd_001::FDD_001Id);
-// temporary code end
-
 // Joins with collisions (only for sparse ones)
 // NOTE: index table needs to be always last argument
 } // namespace aod
