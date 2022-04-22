@@ -41,6 +41,8 @@
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Logger.h"
+#include "Framework/RawDeviceService.h"
+#include <fairmq/Device.h>
 
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CCDBTimeStampUtils.h"
@@ -106,6 +108,10 @@ void PedestalsCalculationTask::init(framework::InitContext& ic)
 
 void PedestalsCalculationTask::run(framework::ProcessingContext& pc)
 {
+  if (mPedestalTag == "run_number") { // if the Tag is run_number, then substitute the Tag with RN
+    const std::string NAStr = "NA";
+    mPedestalTag = pc.services().get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", NAStr);
+  }
   decodeTF(pc);
   mExTimer.elapseMes("Decoding... Digits decoded = " + std::to_string(mTotalDigits) + " Frames received = " + std::to_string(mTotalFrames));
   return;
@@ -137,14 +143,13 @@ void PedestalsCalculationTask::recordPedInFiles()
   uint32_t Buffer;
   uint32_t Pedestal;
   uint32_t Threshold;
-  char padsFileName[1024];
 
   for (int e = 0; e < Geo::MAXEQUIPMENTS; e++) {
     if (mDeco->getAverageEventSize(e) == 0) {
       continue;
     }
-    sprintf(padsFileName, "%s_%d.dat", mPedestalsBasePath.c_str(), e);
-    FILE* fpads = fopen(padsFileName, "w");
+    auto padsFileName = fmt::format("{}_{}.dat", mPedestalsBasePath, std::to_string(e));
+    FILE* fpads = fopen(padsFileName.c_str(), "w");
     if (fpads == nullptr) {
       mExTimer.logMes("error creating the file = " + std::string(padsFileName));
       LOG(error) << "error creating the file = " << padsFileName;
@@ -190,6 +195,7 @@ void PedestalsCalculationTask::recordPedInDcsCcdb()
   float xb, yb, ch, Samples;
   double SumOfCharge, SumOfSquares, Average, Variance;
   uint32_t Pedestal, Threshold, PedThr;
+  std::string PedestalFixedTag = "Latest";
 
   o2::dcs::DCSconfigObject_t pedestalsConfig;
 
@@ -244,15 +250,14 @@ void PedestalsCalculationTask::recordPedInDcsCcdb()
   long minTimeStamp = o2::ccdb::getCurrentTimestamp();
   long maxTimeStamp = minTimeStamp + (3600L * mDcsCcdbAliveHours * 1000);
 
-  char filename[1024];
-  sprintf(filename, "%s/%s/PedThre.root", mPedestalsCCDBBasePath.c_str(), mPedestalTag.c_str());
-  mExTimer.logMes("File name = >" + std::string(filename) + "< (" + mPedestalsCCDBBasePath + "," + mPedestalTag);
-  TFile outputFile(filename, "recreate");
+  auto filename = fmt::format("{}_{}.dat", mPedestalsBasePath, PedestalFixedTag);
+  mExTimer.logMes("File name = >" + filename + "< (" + mPedestalsCCDBBasePath + "," + PedestalFixedTag);
+  TFile outputFile(filename.c_str(), "recreate");
   outputFile.WriteObjectAny(&pedestalsConfig, "std::vector<char>", "DCSConfig");
   outputFile.Close();
 
-  mDbMetadata.emplace("Tag", mPedestalTag.c_str());
-  mDCSDBapi.storeAsTFileAny(&pedestalsConfig, filename, mDbMetadata, minTimeStamp, maxTimeStamp);
+  mDbMetadata.emplace("Tag", PedestalFixedTag.c_str());
+  mDCSDBapi.storeAsTFileAny(&pedestalsConfig, filename.c_str(), mDbMetadata, minTimeStamp, maxTimeStamp);
 
   mExTimer.logMes("End Writing the pedestals ! Digits decoded = " + std::to_string(mTotalDigits) + " Frames received = " + std::to_string(mTotalFrames));
 
