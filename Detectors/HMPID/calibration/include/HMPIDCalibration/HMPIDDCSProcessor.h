@@ -64,14 +64,12 @@ class HMPIDDCSProcessor{
 		~HMPIDDCSProcessor() = default;
 			
 	
-	 	
+	 	// DCS-CCDB methods and members ===================================================================================================
 	
 		const CcdbObjectInfo& getccdbREF_INDEXsInfo() const { return mccdbREF_INDEX_Info; }
          	CcdbObjectInfo& getccdbREF_INDEXsInfo() { return mccdbREF_INDEX_Info; }
 	
-		const HMPIDRefIndexVars& getRefIndexObj() const { return mRefIndex; }
-		//struct HMPIDRefIndexVars mRefIndex; in private
-          	// CZ/GV? what should the struct contain? TF1 object 
+		const TF1[42]& getRefIndexObj() const { return mRefIndex; }
 		// Charge Threshold: 
 		// TF1 arQthre[42];  //42 Qthre=f(time) one per sector
 	
@@ -79,15 +77,14 @@ class HMPIDDCSProcessor{
    		const CcdbObjectInfo& getHmpidChargeCutInfo() const { return mccdbCHARGE_CUT_Info; }
     		CcdbObjectInfo& getHmpidChargeCutInfo() { return mccdbCHARGE_CUT_Info; }
 	
-		const HMPIDThreshVars& getChargeCutObj() const { return mChargeCut; }
-		//HMPIDThreshVars mChargeThresh; in private
-          	// CZ/GV? what should the struct contain? TF1 object 
+		const TF1[43]& getChargeCutObj() const { return mChargeCut; }
 		// for calculating refractive index: 
 		//TF1 arNmean[43]; /// 21* Tin and 21*Tout (1 per radiator, 3 radiators per chambers)
 				 // + 1 for ePhotMean (mean photon energy) 
+		 // DCS-CCDB methods and members
+
 	
-	
-		// procTrans
+		// procTrans	 ===================================================================================================
 		double DefaultEMean();					//just set a refractive index for C6F14 at ephot=6.675 eV @ T=25 C
      		double  sEnergProb=0, sProb=0; 				// energy probaility, probability
      		// Double_t tRefCR5 = 19. ;                             // mean temperature of CR5 where the system is in place
@@ -115,17 +112,20 @@ class HMPIDDCSProcessor{
 		double  aCsIQE; 	       // evaluate CsI quantum efficiency
 		double  aTotConvolution;      // evaluate total convolution of all material optical properties
  		
-		double ProcTrans();
+		// array of DPCOM-vectors, to evaluate timestamps at each iteration in for-loop of IR
+	        const std::vector<DPCOM> irTSArray[5];// = {waveLen[i], argonRef[i], argonCell[i], freonRef[i], freonCell[i]};
+
 		
+		double ProcTrans();
 	
-		// ProcDCS: 
+		// Process Datapoints:  ===================================================================================================
 		//void initTempArr();						// initialize tOut/tIn arrays  pTin[3*iCh+iRad]	= new TF1		
 		//void init(const std::vector<DPID>& pids);
 
 		void process(const gsl::span<const DPCOM> dps); 		// process DPs, fetch IDs and call relevant fill-method
-	
-		
+
 		void fillChamberPressures(const DPCOM& dpcom);			// fill element[0-6] in chamber-pressure vector
+
 		void fillEnvironmentPressure(const DPCOM& dpcom);		// fill environment-pressure vector 
 	
 		// HV in each chamber_section = 7*3 --> will result in Q_thre  
@@ -135,39 +135,45 @@ class HMPIDDCSProcessor{
 		void fillTemperature(const DPCOM& dpcom, bool in); 		// fill element[0-41] in tempOut or tempIn vector
 
 		uint64_t processFlags(const uint64_t flags, const char* pid);
-		Bool_t stDcsStore=kFALSE;
+		//Bool_t stDcsStore=kFALSE;
 
 		Double_t xP,yP;
 		TF2 *thr = new TF2("RthrCH4"  ,"3*10^(3.01e-3*x-4.72)+170745848*exp(-y*0.0162012)"             ,2000,3000,900,1200); 
-		
+	
+	
 		// for calculating refractive index: 
 		TF1 arNmean[43]; /// 21* Tin and 21*Tout (1 per radiator, 3 radiators per chambers)
 				 // + 1 for ePhotMean (mean photon energy) 
-		
+	
+	
 		// Charge Threshold: 
 		TF1 arQthre[42];  //42 Qthre=f(time) one per sector
 
+	
 		// env pressure 
 		Int_t cntEnvPressure=0;  	 // cnt Environment-pressure entries
 		std::vector<DPCOM> pEnv; 	 // environment-pressure vector
 
+	
 		// ch pressure 
 		std::vector<DPCOM> pChamber[7];  //  chamber-pressure vector [0..6]
 		Int_t cntChPressure = 0; 	 // cnt chamber-pressure entries in element iCh[0..6] 
 
-		// temp  
-		TF1  *pTin[21]; 		  // in temp array
-		TF1 *pTout[21]; 		  // out temp array 
+	
+		// temp in and out of radiators 
+		TF1  *pTin[21]; 		  // in temp array	//  7 chambers * 3 radiators
+		TF1 *pTout[21]; 		  // out temp array 	//  7 chambers * 3 radiators
+	
 		Int_t cntTin = 0, cntTOut = 0; 	  // cnt tempereature entries in element i[0..20]; i = 3*iCh+iSec
 		std::vector<DPCOM> tempIn[21];    //  tempIn vector [0..20]
 		std::vector<DPCOM> tempOut[21];   //  tempOut vector [0..20]		
 
+	
 		// HV 
-		std::vector<DPCOM> dpcomHV[42];   //  HV vector [0..41]; 
+		std::vector<DPCOM> dpcomHV[42];   //  HV vector [0..41]; 7 chambers * 6 sectors
 		Int_t cntHV=0;			  // cnt HV entries in element i[0..41];  i = iCh*6 + iSec
 
-
-		// finalize DPs, after run is finished 
+		 // finalize DPs, after run is finished  ===================================================================================================
 		 void finalizeEnvPressure(); 
 		 void finalizeHV_Entry(Int_t iCh,Int_t iSec); 
 		 void finalizeChPressureEntry(Int_t iCh); 
@@ -177,7 +183,7 @@ class HMPIDDCSProcessor{
 
 
 
-		// indexes for getting chamber-numbers etc
+		// indexes for getting chamber-numbers etc ==================================================================================================
 		std::size_t startI_chamberPressure = 14, endI_chamberPressure = 6;
 		std::size_t startI_chamberHV = 14, endI_chamberHV = 6;
 		std::size_t startI_sectorHV = 38, endI_sectorHV = 51;
@@ -199,17 +205,20 @@ class HMPIDDCSProcessor{
 		  void setStartValidity(long t) { mStartValidity = t; }
 		  void useVerboseMode() { mVerbose = true; }
             private:
+		// DCS-CCDB ====================================================================================================
 	 	long mFirstTime;         // time when a CCDB object was stored first
 	  	long mStartValidity = 0; // TF index for processing, used to store CCDB object
 	  	bool mFirstTimeSet = false; 	
 	
 		bool mVerbose = false;
-
+		CcdbObjectInfo mccdbREF_INDEX_Info;
+		TF1 mRefIndex[42];
 	
+		CcdbObjectInfo mccdbCHARGE_CUT_Info;
+		TF1 mChargeCut[43];
 	
 		
-	
-	
+		// Timestamps and TimeRanges ======================================================================================
 		// timestamps of last and first HV-datapoint entry in 
 		// 1d-array of vectors of HV
 		uint64_t hvFirstTime, hvLastTime; 
@@ -217,15 +226,12 @@ class HMPIDDCSProcessor{
 		uint64_t pChFirstTime, pChLastTime; 	// chamberprssure timestamps
 		uint64_t pEnvFirstTime, pEnvLastTime;   // envPressure timestamps
 		
-		// structs 
-		//HMPIDThreshVars mChargeThresh; 
-		//HMPIDRefIndexVars mRefIndex; 
+	
 
 
 		TimeRange mTimeQThresh; // Timerange for QThresh (ChargeCut)
 					// min, max of timestamps {envP, chP, HV}
  
-
  
 		uint64_t tempFirstTime, tempLastTime; 
 		uint64_t tOutFirstTime, tOutLastTime; 
@@ -235,13 +241,10 @@ class HMPIDDCSProcessor{
 					// min, max of timestamps {Tin, Tout, ProcTrans}
 
 
+		
 
-		CcdbObjectInfo mccdbREF_INDEX_Info;
-		CcdbObjectInfo mccdbCHARGE_CUT_Info;
 	
-	
-	
-		// constExpression string-literals to assign DPs to the correct method: 
+		// constExpression string-literals to assign DPs to the correct method: =================================================================
 		
 			// check if IR or other HMPID specifciation
 			static constexpr auto IR_ID{"HMP_DET/HMP_INFR"sv};
