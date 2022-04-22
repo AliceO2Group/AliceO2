@@ -21,23 +21,42 @@ using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis
 boostHisto EMCALCalibExtractor::buildHitAndEnergyMean(double emin, double emax, boostHisto cellAmplitude)
 {
   // create the output histo
-  auto eSumHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0, 100, "t-texp"), boost::histogram::axis::integer<>(0, 17665, "CELL ID"));
-  // The outline for this function goes as follows
-  // (1) loop over the total number of cells
-  // (2) slice the existing histogram for one cell ranging from emin to emax
-  // (3) calculate the mean of that sliced histogram using BoostHistoramUtils.h
-  // (4) fill the next histogram with this value
+  std::map<int, double> histMap;
+// The outline for this function goes as follows
+// (1) loop over the total number of cells
+// (2) slice the existing histogram for one cell ranging from emin to emax
+// (3) calculate the mean of that sliced histogram using BoostHistoramUtils.h
+// (4) fill the next histogram with this value
+#if (defined(WITH_OPENMP))
+  if (mNThreads < 1) {
+    mNThreads = std::min(omp_get_max_threads(), mNcells);
+  }
+  LOG(info) << "Number of threads that will be used = " << mNThreads;
+#pragma omp parallel for num_threads(mNThreads)
+#else
+  LOG(info) << "OPEN MP will not be used for the bad channel calibration";
+  mNThreads = 1;
+#endif
   for (int cellID = 0; cellID < mNcells; cellID++) {
     // create a slice for each cell with energies ranging from emin to emax
-    auto tempSlice = boost::histogram::algorithm::reduce(cellAmplitude, boost::histogram::algorithm::shrink(cellID, cellID), boost::histogram::algorithm::shrink(emin, emax));
-    // calculate the mean of the slice
-    std::vector<double> result = o2::utils::fitBoostHistoWithGaus<double>(tempSlice);
-    double meanVal = result.at(1);
-    double sumVal = result.at(3);
+    LOG(info) << "before making a slice of cell ID " << cellID << " shrink (" << cellAmplitude.axis(1).index(cellID) << " -> " << cellAmplitude.axis(1).index(cellID + 1) << ") y axis: (" << cellAmplitude.axis(0).index(emin) << ", " << cellAmplitude.axis(0).index(emax) << ")";
+    auto tempSlice = o2::utils::ReduceBoostHistoFastSlice(cellAmplitude, cellAmplitude.axis(0).index(emin), cellAmplitude.axis(0).index(emax), cellAmplitude.axis(1).index(cellID), cellAmplitude.axis(1).index(cellID + 1), false); //boost::histogram::algorithm::reduce(cellAmplitude, boost::histogram::algorithm::shrink(cellAmplitude.axis(0).index(emin), cellAmplitude.axis(0).index(emax)), boost::histogram::algorithm::shrink(cellAmplitude.axis(1).index(cellID), cellAmplitude.axis(1).index(cellID + 1)));
+    LOG(info) << "after making a slice of cell ID " << cellID;
+    // calculate the geometric mean of the slice
+    // use the accumulators for the mean
+    double meanVal = 0.3; //o2::utils::getMeanBoost1D(tempSlice);
+    double sumVal = boost::histogram::algorithm::sum(tempSlice);
     //..Set the values only for cells that are not yet marked as bad
     if (sumVal > 0.) {
-      eSumHisto(cellID, meanVal / (sumVal)); //..average energy per hit
+#if (defined(WITH_OPENMP))
+#pragma omp critical
+#endif
+      histMap.insert(std::pair<int, double>(cellID, meanVal / (sumVal))); //eSumHisto(cellID, meanVal / (sumVal)); //..average energy per hit
     }
+  }
+  auto eSumHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0, 0.35, "t-texp"), boost::histogram::axis::integer<>(0, mNcells, "CELL ID"));
+  for (const auto& [cellID, val] : histMap) {
+    eSumHisto(cellID, val); //..average energy per hit
   }
   return eSumHisto;
 }

@@ -107,6 +107,9 @@ class EMCALChannelData
   int getNEvents() const { return mEvents; }
   void setNEvents(int nevt) { mEvents = nevt; }
 
+  /// \brief Actual function where calibration is done. Has to be called in has enough data when enough data is there
+  BadChannelMap process();
+
  private:
   float mRange = 0.35; // looked at old QA plots where max was 0.35 GeV, might need to be changed
   int mNBins = 1000;

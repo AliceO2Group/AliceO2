@@ -54,17 +54,16 @@ class EMCALChannelCalibDevice : public o2::framework::Task
     std::string localStorePath = ic.options().get<std::string>("localFilePath");
 
     mCalibExtractor = std::make_shared<o2::emcal::EMCALCalibExtractor>();
+    mCalibExtractor->setNThreads(emcal::EMCALCalibParams::Instance().mNThreads);
 
-    if (calibType.find("time") != std::string::npos) { // time calibration
-      isBadChannelCalib = false;
+    if (calibType.find("time") != std::string::npos || calibType.find("all") != std::string::npos) { // time calibration
       if (!mTimeCalibrator) {
         mTimeCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibrationParams, o2::emcal::TimeCalibInitParams>>();
       }
       mTimeCalibrator->SetCalibExtractor(mCalibExtractor);
       mTimeCalibrator->setLocalStorePath(localStorePath);
-
-    } else { // bad cell calibration
-      isBadChannelCalib = true;
+    }
+    if (calibType.find("badcells") != std::string::npos || calibType.find("all") != std::string::npos) { // bad cell calibration
       if (!mBadChannelCalibrator) {
         mBadChannelCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap, o2::emcal::ChannelCalibInitParams>>();
       }
@@ -79,16 +78,21 @@ class EMCALChannelCalibDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mTimeCalibrator->getCurrentTFInfo());
+    if (mBadChannelCalibrator) {
+      o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mBadChannelCalibrator->getCurrentTFInfo());
+    }
+    if (mTimeCalibrator) {
+      o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mTimeCalibrator->getCurrentTFInfo());
+    }
 
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get(getCellBinding()).header)->startTime;
 
     auto data = pc.inputs().get<gsl::span<o2::emcal::Cell>>(getCellBinding());
 
     auto InputTriggerRecord = pc.inputs().get<gsl::span<o2::emcal::TriggerRecord>>(getCellTriggerRecordBinding());
-    LOG(debug) << "[EMCALCalibrator - run]  Received " << InputTriggerRecord.size() << " Trigger Records, running calibration ...";
+    LOG(info) << "[EMCALCalibrator - run]  Received " << InputTriggerRecord.size() << " Trigger Records, running calibration ...";
 
-    LOG(debug) << "Processing TF " << tfcounter << " with " << data.size() << " cells";
+    LOG(info) << "Processing TF " << tfcounter << " with " << data.size() << " cells";
 
     // call process for every event in the trigger record to ensure correct event counting for the calibration.
     for (const auto& trg : InputTriggerRecord) {
@@ -97,15 +101,17 @@ class EMCALChannelCalibDevice : public o2::framework::Task
       }
       gsl::span<const o2::emcal::Cell> eventData(data.data() + trg.getFirstEntry(), trg.getNumberOfObjects());
 
-      if (isBadChannelCalib) {
+      if (mBadChannelCalibrator) {
         mBadChannelCalibrator->process(eventData);
-      } else {
+      }
+      if (mTimeCalibrator) {
         mTimeCalibrator->process(eventData);
       }
     }
-    if (isBadChannelCalib) {
+    if (mBadChannelCalibrator) {
       sendOutput<o2::emcal::BadChannelMap>(pc.outputs());
-    } else {
+    }
+    if (mTimeCalibrator) {
       sendOutput<o2::emcal::TimeCalibrationParams>(pc.outputs());
     }
   }
@@ -113,10 +119,11 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
     constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
-    if (isBadChannelCalib) {
+    if (mBadChannelCalibrator) {
       mBadChannelCalibrator->checkSlotsToFinalize(INFINITE_TF);
       sendOutput<o2::emcal::BadChannelMap>(ec.outputs());
-    } else {
+    }
+    if (mTimeCalibrator) {
       mTimeCalibrator->checkSlotsToFinalize(INFINITE_TF);
       sendOutput<o2::emcal::TimeCalibrationParams>(ec.outputs());
     }
@@ -129,7 +136,6 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap, o2::emcal::ChannelCalibInitParams>> mBadChannelCalibrator;
   std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibrationParams, o2::emcal::TimeCalibInitParams>> mTimeCalibrator;
   std::shared_ptr<o2::emcal::EMCALCalibExtractor> mCalibExtractor;
-  bool isBadChannelCalib = true;
 
   //________________________________________________________________
   template <typename DataOutput>
@@ -187,10 +193,11 @@ DataProcessorSpec getEMCALChannelCalibDeviceSpec(std::string calibType = "badcel
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
-  if (calibType.find("time") != std::string::npos) {                                                                                     // time calibration
-    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_TIMECALIB"}, Lifetime::Sporadic);   // This needs to match with the output!
-    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_TIMECALIB"}, Lifetime::Sporadic);   // This needs to match with the output!
-  } else {                                                                                                                               // bad channel calibration
+  if (calibType.find("time") != std::string::npos || calibType.find("all") != std::string::npos) {                                     // time calibration
+    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_TIMECALIB"}, Lifetime::Sporadic); // This needs to match with the output!
+    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_TIMECALIB"}, Lifetime::Sporadic); // This needs to match with the output!
+  }
+  if (calibType.find("badcells") != std::string::npos || calibType.find("all") != std::string::npos) {                                   // bad channel calibration
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_BADCHANNELS"}, Lifetime::Sporadic); // This needs to match with the output!
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_BADCHANNELS"}, Lifetime::Sporadic); // This needs to match with the output!
   }

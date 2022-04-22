@@ -62,5 +62,19 @@ std::string createErrorMessage(o2::utils::FitGausError_t errorcode)
 {
   return "[Error]: Fit return an invalid result.";
 }
+
+double getMeanBoost1D(boostHisto1d inHist1D)
+{
+  o2::math_utils::detail::StatAccumulator stats;
+  auto histiter = inHist1D.begin() + 1;
+  for (auto bcentiter = BinCenterView(inHist1D.axis(0).begin());
+       bcentiter != BinCenterView(inHist1D.axis(0).end());
+       bcentiter++, histiter++) {
+    stats.add(*bcentiter, *histiter);
+  }
+  double mean = stats.getMean();
+  return mean;
+}
+
 } // namespace utils
 } // namespace o2

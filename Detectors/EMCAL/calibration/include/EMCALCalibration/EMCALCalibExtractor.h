@@ -74,26 +74,58 @@ class EMCALCalibExtractor
   template <typename... axes>
   o2::emcal::BadChannelMap calibrateBadChannels(boost::histogram::histogram<axes...>& hist)
   {
-    // calculate the mean and sigma of the mEsumHisto
-    auto fitValues = o2::utils::fitBoostHistoWithGaus<double>(hist);
-    double mean = fitValues.at(1);
-    double sigma = fitValues.at(2);
+    LOG(info) << "In the calibrateBadChannels function";
+    std::map<int, std::pair<double, double>> slices = {{0, {0., 0.35}}, {1, {0.35, 0.5}}};
+    std::map<int, std::pair<double, double>> accept_energyRange;
 
-    // calculate the "good cell window from the mean"
-    double maxVal = mean + mSigma * sigma;
-    double minVal = mean - mSigma * sigma;
+    for (auto& [index, slice] : slices) {
+      LOG(debug) << "Before running the buildHitAndEnergyMean";
+      auto histProjected = buildHitAndEnergyMean(slice.first, slice.second, hist);
+      auto fitValues = o2::utils::fitBoostHistoWithGaus<double>(histProjected);
+      double mean = fitValues.at(1);
+      double sigma = fitValues.at(2);
+      LOG(debug) << "Done calculating the mean and the sigma from the EsumHisto Mean: " << mean << " sigma: " << sigma;
+
+      // calculate the "good cell window from the mean"
+      double maxVal = mean + mSigma * sigma;
+      double minVal = mean - mSigma * sigma;
+      accept_energyRange[index] = {minVal, maxVal};
+      LOG(info) << "Calculating the good cell window in slice " << slice.first << " , " << slice.second << " from the maxVal" << maxVal << " minVal: " << minVal;
+    }
+
     o2::emcal::BadChannelMap mOutputBCM;
     // now loop through the cells and determine the mask for a given cell
-    for (int cellID = 0; cellID < 17664; cellID++) {
-      double E = hist.at(cellID);
-      // if in the good window, mark the cell as good
-      // for now we won't do warm cells - the definition of this is unclear.
-      if (E == 0) {
+
+#if (defined(WITH_OPENMP) && !defined(__CLING__))
+    if (mNThreads < 1) {
+      mNThreads = std::min(omp_get_max_threads(), mNcells);
+    }
+    LOG(info) << "Number of threads that will be used = " << mNThreads;
+#pragma omp parallel for num_threads(mNThreads)
+#else
+    LOG(info) << "OPEN MP will not be used for the bad channel calibration";
+    mNThreads = 1;
+#endif
+
+    for (int cellID = 0; cellID < mNcells; cellID++) {
+      auto projected = o2::utils::ProjectBoostHistoXFast(hist, cellID, cellID);
+      if (std::accumulate(projected.begin(), projected.end(), 0) == 0) {
         mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::DEAD_CELL);
-      } else if (E < maxVal || E > minVal) {
-        mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::GOOD_CELL);
       } else {
-        mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::BAD_CELL);
+        bool failed = false;
+        for (auto& [index, slice] : slices) {
+          auto ranges = accept_energyRange[index];
+          auto dummyMean = 0.3; // mean in the slice (range)
+          if (dummyMean < ranges.first || dummyMean > ranges.second) {
+            failed = true;
+            break;
+          }
+        }
+        if (failed) {
+          mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::BAD_CELL);
+        } else {
+          mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::GOOD_CELL);
+        }
       }
     }
 

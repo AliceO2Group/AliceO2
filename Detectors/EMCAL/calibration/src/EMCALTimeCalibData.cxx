@@ -62,11 +62,11 @@ bool EMCALTimeCalibData::hasEnoughData() const
   double entries = boost::histogram::algorithm::sum(mTimeHisto);
   LOG(debug) << "entries: " << entries << " needed: " << EMCALCalibParams::Instance().minNEntries << "  mEvents = " << mEvents;
   // use enrties in histogram for calibration
-  if (!EMCALCalibParams::Instance().useNEventsForCalib && entries > EMCALCalibParams::Instance().minNEntries) {
+  if (!EMCALCalibParams::Instance().mUseNEventsForCalib && entries > EMCALCalibParams::Instance().minNEntries) {
     enough = true;
   }
   // use number of events (from emcal trigger record) for calibration
-  if (EMCALCalibParams::Instance().useNEventsForCalib && mEvents > EMCALCalibParams::Instance().minNEvents) {
+  if (EMCALCalibParams::Instance().mUseNEventsForCalib && mEvents > EMCALCalibParams::Instance().minNEvents) {
     enough = true;
   }
 

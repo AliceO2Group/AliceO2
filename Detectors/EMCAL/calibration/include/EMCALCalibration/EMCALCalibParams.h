@@ -29,9 +29,10 @@ namespace emcal
 // class containing the parameters to trigger the calibrations
 struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibParams> {
 
-  unsigned int minNEvents = 1e6;
+  unsigned int minNEvents = 1e3;
   unsigned int minNEntries = 1e5;
-  bool useNEventsForCalib = true;
+  bool mUseNEventsForCalib = true;
+  unsigned int mNThreads = 10;
 
   O2ParamDef(EMCALCalibParams, "EMCALCalibParams");
 };

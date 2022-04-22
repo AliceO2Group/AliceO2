@@ -37,6 +37,7 @@
 #include "Fit/Fitter.h"
 #include "Fit/BinData.h"
 #include "Math/WrappedMultiTF1.h"
+#include "MathUtils/detail/StatAccumulator.h"
 #include <boost/histogram.hpp>
 #include <boost/histogram/histogram.hpp>
 #include <boost/format.hpp>
@@ -73,6 +74,11 @@ class BinCenterView
     return result;
   }
 
+  bool operator!=(const BinCenterView& rhs) const
+  {
+    return mBaseIterator != rhs.mBaseIterator;
+  }
+
   decltype(auto) operator*() { return mBaseIterator->center(); }
 
  private:
@@ -100,6 +106,11 @@ class BinUpperView
     return result;
   }
 
+  bool operator!=(const BinUpperView& rhs) const
+  {
+    return mBaseIterator != rhs.mBaseIterator;
+  }
+
   decltype(auto) operator*() { return mBaseIterator->upper(); }
 
  private:
@@ -125,6 +136,10 @@ class BinLowerView
     AxisIterator result(mBaseIterator);
     mBaseIterator++;
     return result;
+  }
+  bool operator!=(const BinLowerView& rhs) const
+  {
+    return mBaseIterator != rhs.mBaseIterator;
   }
 
   decltype(auto) operator*() { return mBaseIterator->lower(); }
@@ -401,6 +416,9 @@ boostHisto1d boosthistoFromRoot_1D(TH1D* inHist1D);
 /// \brief Convert a 2D root histogram to a Boost histogram
 boostHisto2d boostHistoFromRoot_2D(TH2D* inHist2D);
 
+/// \brief Get the mean of a 1D boost histogram
+double getMeanBoost1D(boostHisto1d inHist1D);
+
 /// \brief Convert a 2D boost histogram to a root histogram
 template <class BoostHist>
 TH1F TH1FFromBoost(BoostHist hist, const char* name = "hist")
@@ -488,6 +506,73 @@ auto ProjectBoostHistoXFast(boost::histogram::histogram<axes...>& hist2d, const 
   }
 
   return histoProj;
+}
+
+/// \brief Function to project 2d boost histogram onto x-axis
+/// \param hist2d 2d boost histogram
+/// \param binXLow lower bin in x for the reduction
+/// \param binXHigh lower bin in x for the reduction
+/// \param binYLow lower bin in y for the reduction
+/// \param binYHigh lower bin in y for the reduction
+/// \param includeOverflowUnderflow option to include overflow and underflow bins
+/// \return result
+///      1d boost histogram from projection of the input 2d boost histogram
+template <typename... axes>
+auto ReduceBoostHistoFastSlice(boost::histogram::histogram<axes...>& hist2d, int binXLow, int binXHigh, int binYLow, int binYHigh, bool includeOverflowUnderflow)
+{
+  int nXbins = binXHigh - binXLow;
+  int nYbins = binYHigh - binYLow;
+  double valueStartX = hist2d.axis(0).bin(binXLow).lower();
+  double valueEndX = hist2d.axis(0).bin(binXHigh).upper();
+  double valueStartY = hist2d.axis(1).bin(binYLow).lower();
+  double valueEndY = hist2d.axis(1).bin(binYHigh).upper();
+
+  auto histoReduced = boost::histogram::make_histogram(boost::histogram::axis::regular<>(nXbins, valueStartX, valueEndX), boost::histogram::axis::regular<>(nYbins, valueStartY, valueEndY));
+
+  int nbinsxOld = hist2d.axis(0).size();
+  int nbinsyOld = hist2d.axis(1).size();
+  // Now rewrite the bin content of the 1d histogram to get the summed bin content in the specified range
+  for (int x = -1; x < nbinsxOld + 1; ++x) {
+    for (int y = -1; y < nbinsyOld + 1; ++y) {
+      int nXbinsNew = x - binXLow;
+      int nYbinsNew = y - binYLow;
+      if (nXbinsNew < 0 || nYbinsNew < 0 || nXbinsNew >= nXbins || nYbinsNew >= nYbins) {
+        if (!includeOverflowUnderflow) {
+          continue;
+        } else {
+          // handle the over and underflow
+          nXbinsNew = int(std::min(int(std::max(nXbinsNew, -1)), nXbins));
+          nYbinsNew = int(std::min(int(std::max(nYbinsNew, -1)), nYbins));
+          histoReduced.at(nXbinsNew, nYbinsNew) += hist2d.at(x, y);
+        }
+      } else {
+        histoReduced.at(nXbinsNew, nYbinsNew) = hist2d.at(x, y);
+      }
+    }
+  }
+
+  return histoReduced;
+}
+
+/// \brief Function to project 2d boost histogram onto x-axis
+/// \param hist2d 2d boost histogram
+/// \param xLow lower value in x for the reduction
+/// \param xHigh lower value in x for the reduction
+/// \param yLow lower value in y for the reduction
+/// \param yHigh lower value in y for the reduction
+/// \param includeOverflowUnderflow option to include overflow and underflow bins
+/// \return result
+///      1d boost histogram from projection of the input 2d boost histogram
+template <typename... axes>
+auto ReduceBoostHistoFastSliceByValue(boost::histogram::histogram<axes...>& hist2d, double xLow, double xHigh, double yLow, double yHigh, bool includeOverflowUnderflow)
+{
+
+  int binXLow = hist2d.axis(0).index(xLow);
+  int binXHigh = hist2d.axis(0).index(xHigh);
+  int binYLow = hist2d.axis(1).index(yLow);
+  int binYHigh = hist2d.axis(1).index(yHigh);
+
+  return ReduceBoostHistoFastSlice(hist2d, binXLow, binXHigh, binYLow, binYHigh, includeOverflowUnderflow);
 }
 
 } // end namespace utils

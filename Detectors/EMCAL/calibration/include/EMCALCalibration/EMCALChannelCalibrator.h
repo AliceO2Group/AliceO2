@@ -129,7 +129,9 @@ void EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::finalizeSlot(
 
   std::map<std::string, std::string> md;
   if constexpr (std::is_same<DataInput, o2::emcal::EMCALChannelData>::value) {
+    LOG(info) << "Launching the calibration.";
     auto bcm = mCalibrator->calibrateBadChannels(c->getHisto());
+    LOG(info) << "Done with the calibraiton";
     // for the CCDB entry
     auto clName = o2::utils::MemFileHelper::getClassName(bcm);
     auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
