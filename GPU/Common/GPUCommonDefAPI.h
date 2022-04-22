@@ -162,6 +162,7 @@
 #elif defined(__CUDACC__) //Defines for CUDA
   #define GPUd() __device__
   #define GPUdDefault()
+  #define GPUhdDefault()
   #define GPUdi() __device__ inline
   #define GPUdii() __device__ inline
   #define GPUdni() __device__ __attribute__((noinline))
