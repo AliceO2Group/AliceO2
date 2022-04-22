@@ -44,8 +44,6 @@ using DPCOM = o2::dcs::DataPointCompositeObject;
 using namespace o2::dcs;
 
 
-
-
 namespace o2::hmpid {
 	
 void HMPIDDCSProcessor::process(const gsl::span<const DPCOM> dps)
@@ -246,8 +244,9 @@ double HMPIDDCSProcessor::ProcTrans()
             sProb+=aTotConvolution;  
 
 	    // Evaluate timestamps : 
-	    const std::vector<DPCOM> arr[5] = {waveLen[i], argonRef[i], argonCell[i], freonRef[i], freonCell[i]};
-		
+	    //const std::vector<DPCOM> arr[5] = {waveLen[i], argonRef[i], argonCell[i], freonRef[i], freonCell[i]};
+	    irTSArray[5] = {waveLen[i], argonRef[i], argonCell[i], freonRef[i], freonCell[i]};
+	    
 	    auto minTime = HMPIDDCSTime::getMinTimeArr(arr);
 	    auto maxTime = HMPIDDCSTime::getMaxTimeArr(arr);
 	    if(minTime < mTimeArNmean.first) mTimeArNmean.first = minTime;    
@@ -290,8 +289,9 @@ void HMPIDTestComp::initTempArr()
 
 void HMPIDDCSProcessor::finalizeEnvPressure() // after run is finished, 
 { 
-	if(pEnv.size() != 0){ // if environment-pressure has entries 
-		TGraph *pGrPenv=new TGraph; //  cntEnvPressure=0;
+	// if environment-pressure has entries 
+	if(pEnv.size() != 0){ 
+		TGraph *pGrPenv=new TGraph; 
 
 		auto minTime = HMPIDDCSTime::getMinTime(pEnv);
 		if(minTime < mTimeQThresh.first) mTimeQThresh.first = minTime;
@@ -314,7 +314,7 @@ void HMPIDDCSProcessor::finalizeEnvPressure() // after run is finished,
 void HMPIDDCSProcessor::finalizeHV_Entry(Int_t iCh,Int_t iSec) // after run is finished, 
 { 
 	// check if given element has entries
-	if(dpcomHV[3*iCh+iSec].size() != 0){
+	if(dpcomHV[3*iCh+iSec].size() != 0){     
 		TGraph *pGrHV=new TGraph; cntHV=0; 
 
 		auto minTime = HMPIDDCSTime::getMinTime(dpcomHV[3*iCh+iSec]);
@@ -334,9 +334,11 @@ void HMPIDDCSProcessor::finalizeHV_Entry(Int_t iCh,Int_t iSec) // after run is f
 	} else LOG(debug) << Form("No entries in HV for chamber %i, section %i",iCh,iSec);
 }
 
+	
 void HMPIDDCSProcessor::finalizeChPressureEntry(Int_t iCh) // after run is finished, 
 { 	
-	if(pChamber[iCh].size() != 0){
+	// check if given element has entries
+	if(pChamber[iCh].size() != 0){	
 		TGraph *pGrP=new TGraph; cntChPressure=0;
 
 		auto minTime = HMPIDDCSTime::getMinTime(pChamber[iCh]);
@@ -356,12 +358,11 @@ void HMPIDDCSProcessor::finalizeChPressureEntry(Int_t iCh) // after run is finis
 	} else  LOG(debug) << Form("No entries in chamber-pressure for chamber %i",iCh); 	
 }
 
-
 			
 void HMPIDDCSProcessor::finalizeTempOutEntry(Int_t iCh,Int_t iRad) // after run is finished, 
 { 
-	if(tempOut[3*iCh+iRad].size() != 0){
-
+	// check if given element has entries
+	if(tempOut[3*iCh+iRad].size() != 0){	
 		auto minTime = HMPIDDCSTime::getMinTime(tempOut[3*iCh+iRad]);
 		if(minTime < mTimeArNmean.first) mTimeArNmean.first = minTime;
 		auto maxTime = HMPIDDCSTime::getMaxTime(tempOut[3*iCh+iRad]);
@@ -380,13 +381,12 @@ void HMPIDDCSProcessor::finalizeTempOutEntry(Int_t iCh,Int_t iRad) // after run 
 		pGrTOut->Fit(pTout[3*iCh+iRad],"Q");
 		}  delete pGrTOut;
 	} else  LOG(debug) << Form("No entries in temp-out for chamber %i, radiator %i",iCh,iRad); 
-
 }
 
+	
 void HMPIDDCSProcessor::finalizeTempInEntry(Int_t iCh,Int_t iRad) // after run is finished, 
 { 
 	if(tempIn[3*iCh+iRad].size() != 0){
-
 		auto minTime = HMPIDDCSTime::getMinTime(tempIn[3*iCh+iRad]);
 		if(minTime < mTimeArNmean.first) mTimeArNmean.first = minTime;
 		auto maxTime = HMPIDDCSTime::getMaxTime(tempIn[3*iCh+iRad]);
@@ -403,10 +403,8 @@ void HMPIDDCSProcessor::finalizeTempInEntry(Int_t iCh,Int_t iRad) // after run i
 		 pTin[3*iCh+iRad]->SetParameter(1,0);
 		} else {
 		pGrTIn->Fit(pTin[3*iCh+iRad],"Q");
-		}  delete pGrTIn;
-		
+		}  delete pGrTIn;		
 	} else { LOG(debug) << Form("No entries in temp-in for chamber %i, radiator %i",iCh,iRad); }
-
 }
 
 void HMPIDDCSProcessor::finalize() // after run is finished, 
@@ -432,10 +430,7 @@ void HMPIDDCSProcessor::finalize() // after run is finished,
 		}
 	}
 
-
 	
-
-
 	double eMean = ProcTrans();	 
 	
 	// startTimeTemp and endTimeTemp: min and max in 1d array of vectors of Tin/Tout
@@ -446,34 +441,21 @@ void HMPIDDCSProcessor::finalize() // after run is finished,
         arNmean[42] = *(new TF1("HMP_PhotEmean",Form("%f",eMean),startTimeTemp,endTimeTemp));//fStartTime,fEndTime); //Photon energy mean
 
 
-	 // is it enough to make a 
-	 //std::unordered_map<DPID_arrMean,TimeRange_arrMeanr> mArrMeanInfo;
-	 // containing all the DPIDs and a struct of first and last value of timestamps?
-
-	 //std::unordered_map<DPID_arQthre,TimeRange_arQthre> mQThreshInfo;
 
 	
-	 // prepare CCDB: 
+	 /* prepare CCDB: =============================================================================
+	 static void prepareCCDBobjectInfo(T& obj, o2::ccdb::CcdbObjectInfo& info, const std::string& path,
+	                   const std::map<std::string, std::string>& md, long start, long end = -1); */ 
+
 	 std::map<std::string, std::string> md;
 	 md["responsible"] = "NB!! CHANGE RESPONSIBLE";
 	
-		 // Refractive index (T_out, T_in, mean photon energy); mRefIndex contains class-def
-		 // arNmean -> mArrMeanInfo
-		 o2::calibration::Utils::prepareCCDBobjectInfo(mRefIndex, mccdbREF_INDEX_Info, "HMPID/Calib/RefIndex", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
+	 // Refractive index (T_out, T_in, mean photon energy); mRefIndex contains class-def
+	 o2::calibration::Utils::prepareCCDBobjectInfo(mRefIndex, mccdbREF_INDEX_Info, "HMPID/Calib/RefIndex", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
 
-		 // charge threshold; mChargeCut contains class-definition
-		 // arQthre -> mQThreshInfo
-		 o2::calibration::Utils::prepareCCDBobjectInfo(mChargeCut,mccdbCHARGE_CUT_Info , "HMPID/Calib/ChargeCut", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
-
-		//static void prepareCCDBobjectInfo(T& obj, o2::ccdb::CcdbObjectInfo& info, const std::string& path,
-                //                   const std::map<std::string, std::string>& md, long start, long end = -1);
-	
-	
+	 // charge threshold; mChargeCut contains class-definition
+	 o2::calibration::Utils::prepareCCDBobjectInfo(mChargeCut,mccdbCHARGE_CUT_Info , "HMPID/Calib/ChargeCut", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);	
 }
-
-
-
-
 
 
 void HMPIDDCSProcessor::fillChamberPressures(const DPCOM& dpcom)
@@ -493,16 +475,14 @@ void HMPIDDCSProcessor::fillChamberPressures(const DPCOM& dpcom)
 }
 
 
-
-void HMPIDDCSProcessor::fillEnvironmentPressure(const DPCOM& dpcom) // A :better to pass string ? 
+void HMPIDDCSProcessor::fillEnvironmentPressure(const DPCOM& dpcom) 
 {	
   auto& dpid = dpcom.id;
   const auto& type = dpid.get_type();
   const std::string aliasStr(dpid.get_alias());  
 
   if(type == DeliveryType::DPVAL_INT || type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
-	{
-		
+	{	
 	  	pEnv.push_back(dpcom); 
   } else {
 	LOG(debug)<< "Not correct specification for Environment-pressure DP: {}" << aliasStr;
@@ -518,13 +498,11 @@ void HMPIDDCSProcessor::fillHV(const DPCOM& dpcom)
   const std::string aliasStr(dpid.get_alias());  
 
   if(type == DeliveryType::DPVAL_INT || type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected
-  { 
-	
+  { 	
 	auto chNum = subStringToInt(aliasStr, startI_chamberHV,  startI_chamberHV);
 	auto secNum = subStringToInt(aliasStr,  startI_sectorHV,  startI_sectorHV);
 	dpcomHV[6*chNum+secNum].push_back(dpcom);
-  } else LOG(debug)<< "Not correct datatype for HV DP: {}"<< aliasStr;
-	
+  } else LOG(debug)<< "Not correct datatype for HV DP: {}"<< aliasStr;	
 }
 	
 // Temp in (T1) and out (T2), in each chamber_radiator = 7*6  
@@ -535,20 +513,13 @@ void HMPIDDCSProcessor::fillTemperature(const DPCOM& dpcom, bool in) // A :bette
   const std::string aliasStr(dpid.get_alias());  
 	
   if(type == DeliveryType::DPVAL_INT || type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
-  {	
-	
+  {		
 	auto chNum = subStringToInt(aliasStr,  startI_chamberTemp,  startI_chamberTemp);
 	auto radNum = subStringToInt(aliasStr,  startI_radiatorTemp,  startI_radiatorTemp);
-
 	
-	if(in){
-		tempIn[3*chNum+radNum].push_back( dpcom); 
-
-	} else{
-		tempOut[3*chNum+radNum].push_back(dpcom); 
-	} 
+	if(in){	tempIn[3*chNum+radNum].push_back( dpcom); 
+	} else{	tempOut[3*chNum+radNum].push_back(dpcom); } 
   } else LOG(debug) << "Not correct Data-type for Temperature DP: {}" << aliasStr;
-
 }
 
 	
@@ -571,14 +542,8 @@ uint64_t HMPIDDCSProcessor::processFlags(const uint64_t flags, const char* pid)
 	
   int HMPIDDCSProcessor::subStringToInt(std::string inputString, std::size_t startIndex, std::size_t endIndex)
   { 
-
   	char stringPos = inputString.at(startIndex);
   	return ((int)stringPos) - ((int)'0');
  }	
 	
 }	// end namespace
-
-
-      
-
-
