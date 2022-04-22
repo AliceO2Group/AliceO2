@@ -149,7 +149,7 @@ void PedestalsCalculationTask::recordPedInFiles()
       continue;
     }
     auto padsFileName = fmt::format("{}_{}.dat",mPedestalsBasePath, std::to_string(e));
-    FILE* fpads = fopen(padsFileName, "w");
+    FILE* fpads = fopen(padsFileName.c_str(), "w");
     if (fpads == nullptr) {
       mExTimer.logMes("error creating the file = " + std::string(padsFileName));
       LOG(error) << "error creating the file = " << padsFileName;
