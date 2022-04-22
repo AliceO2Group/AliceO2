@@ -66,22 +66,25 @@ class DCSConfigUtils
   {
     if (mType == 0) {
       return mMapAddNameRU.find(mAdd)->second;
+    } else {
+      return mMapAddNameALPIDE.find(mAdd)->second;
     }
-    return mMapAddNameALPIDE.find(mAdd)->second;
   }
 
   const std::string& getTypeStr() const
   {
     if (mType == 0 || mType == 1) {
       return mTypeNameList[mType];
+    } else {
+      return mTypeNameList[2];
     }
-    return mTypeNameList[2];
   }
 
  private:
   int mData;
   int mAdd;
   int mType;
+
   std::string mVersion;
 
   std::string mTypeNameList[3] = {"RU", "ALPIDE", "UNKNOWN"};
@@ -91,7 +94,6 @@ class DCSConfigUtils
 
   void connectNameAdd()
   {
-
     mMapAddNameRU.clear();
     mMapAddNameALPIDE.clear();
 
@@ -109,6 +111,7 @@ class DCSConfigUtils
     mMapAddNameRU[5376] = "TIMEOUT_TO_START";
     mMapAddNameRU[5377] = "TIMEOUT_TO_STOP";
     mMapAddNameRU[5378] = "TIMEOUT_IN_IDLE";
+    mMapAddNameRU[5631] = "GBT_LOAD_BALANCING";
 
     mMapAddNameALPIDE[1] = "Mode Control Register";
     mMapAddNameALPIDE[4] = "FROMU Configration Register 1";
@@ -125,6 +128,11 @@ class DCSConfigUtils
     mMapAddNameALPIDE[1539] = "VCASP";
     mMapAddNameALPIDE[1544] = "VCLIP";
     mMapAddNameALPIDE[1549] = "IBIAS";
+    mMapAddNameALPIDE[255] = "VPULSEH";
+    mMapAddNameALPIDE[0] = "VPULSEL";
+    mMapAddNameALPIDE[1538] = "VRESETD";
+    mMapAddNameALPIDE[1548] = "IDB";
+    mMapAddNameALPIDE[65535] = "AUTO_ROF, NOISE_MASK, MASK_LEV, MC_HIT, MC_ID";
   }
 
   ClassDefNV(DCSConfigUtils, 1);
