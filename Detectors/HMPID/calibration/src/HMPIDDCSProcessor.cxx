@@ -457,14 +457,18 @@ void HMPIDDCSProcessor::finalize() // after run is finished,
 	 std::map<std::string, std::string> md;
 	 md["responsible"] = "NB!! CHANGE RESPONSIBLE";
 	
-		 // Refractive index (T_out, T_in, mean photon energy)
+		 // Refractive index (T_out, T_in, mean photon energy); mRefIndex contains class-def
 		 // arNmean -> mArrMeanInfo
-		 o2::calibration::Utils::prepareCCDBobjectInfo(mArrMeanInfo, mccdbREF_INDEX_Info, "HMPID/Calib/RefIndex", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
+		 o2::calibration::Utils::prepareCCDBobjectInfo(mRefIndex, mccdbREF_INDEX_Info, "HMPID/Calib/RefIndex", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
 
-		 // charge threshold 
+		 // charge threshold; mChargeCut contains class-definition
 		 // arQthre -> mQThreshInfo
-		 o2::calibration::Utils::prepareCCDBobjectInfo(mQThreshInfo,mccdbCHARGE_CUT_Info , "HMPID/Calib/ChargeCut", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
+		 o2::calibration::Utils::prepareCCDBobjectInfo(mChargeCut,mccdbCHARGE_CUT_Info , "HMPID/Calib/ChargeCut", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
 
+		//static void prepareCCDBobjectInfo(T& obj, o2::ccdb::CcdbObjectInfo& info, const std::string& path,
+                //                   const std::map<std::string, std::string>& md, long start, long end = -1);
+	
+	
 }
 
 
