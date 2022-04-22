@@ -83,6 +83,7 @@ class TrackFinder
   void finalize();
 
   void createTrack(const Cluster& cl1, const Cluster& cl2);
+  std::list<Track>::iterator addTrack(const std::list<Track>::iterator& pos, const Track& track);
 
   bool isAcceptable(const TrackParam& param) const;
 
