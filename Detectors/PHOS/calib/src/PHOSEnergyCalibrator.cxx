@@ -201,7 +201,7 @@ void PHOSEnergyCalibrator::finalizeSlot(Slot& slot)
   mHistos->merge(c->getCollectedHistos());
 }
 
-Slot& PHOSEnergyCalibrator::emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend)
+Slot& PHOSEnergyCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType tend)
 {
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);

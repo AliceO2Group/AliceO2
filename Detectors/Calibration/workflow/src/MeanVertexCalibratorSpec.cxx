@@ -39,8 +39,8 @@ void MeanVertexCalibDevice::init(InitContext& ic)
   float rangeZ = params->rangeZ;
   int nSlots4SMA = params->nSlots4SMA;
   bool useFit = params->useFit;
-  int slotL = params->tfPerSlot;
-  int delay = params->maxTFdelay;
+  auto slotL = params->tfPerSlot;
+  auto delay = params->maxTFdelay;
   mCalibrator = std::make_unique<o2::calibration::MeanVertexCalibrator>(minEnt, useFit, nbX, rangeX, nbY, rangeY, nbZ, rangeZ, nSlots4SMA);
   mCalibrator->setSlotLength(slotL);
   mCalibrator->setMaxSlotsDelay(delay);
@@ -65,8 +65,7 @@ void MeanVertexCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
 
   LOG(info) << "Finalizing calibration";
-  constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
-  mCalibrator->checkSlotsToFinalize(INFINITE_TF);
+  mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
   sendOutput(ec.outputs());
 }
 

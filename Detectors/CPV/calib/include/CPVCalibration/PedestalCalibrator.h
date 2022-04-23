@@ -94,7 +94,7 @@ class PedestalCalibrator final : public o2::calibration::TimeSlotCalibration<o2:
   }
   void initOutput() final;
   void finalizeSlot(PedestalTimeSlot& slot) final;
-  PedestalTimeSlot& emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend) final;
+  PedestalTimeSlot& emplaceNewSlot(bool front, TFType tstart, TFType tend) final;
 
  private:
   int mMinEvents = 100;

@@ -26,6 +26,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 
@@ -37,18 +38,26 @@ namespace calibration
 class VdAndExBCalibDevice : public o2::framework::Task
 {
  public:
+  VdAndExBCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
   void init(o2::framework::InitContext& ic) final
   {
+    o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     int minEnt = ic.options().get<int>("min-entries");
-    int slotL = ic.options().get<int>("tf-per-slot");
-    int delay = ic.options().get<int>("max-delay");
+    auto slotL = ic.options().get<uint32_t>("tf-per-slot");
+    auto delay = ic.options().get<uint32_t>("max-delay");
     mCalibrator = std::make_unique<o2::trd::CalibratorVdExB>(minEnt);
     mCalibrator->setSlotLength(slotL);
     mCalibrator->setMaxSlotsDelay(delay);
   }
 
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
+  {
+    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+  }
+
   void run(o2::framework::ProcessingContext& pc) final
   {
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     auto data = pc.inputs().get<o2::trd::AngularResidHistos>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
     LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.getNEntries() << " AngularResidHistos entries";
@@ -59,14 +68,13 @@ class VdAndExBCalibDevice : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
     LOG(info) << "Finalizing calibration";
-    constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
-    mCalibrator->checkSlotsToFinalize(INFINITE_TF);
+    mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
     sendOutput(ec.outputs());
   }
 
  private:
   std::unique_ptr<o2::trd::CalibratorVdExB> mCalibrator;
-
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
   {
@@ -89,14 +97,22 @@ DataProcessorSpec getTRDVdAndExBCalibSpec()
   std::vector<OutputSpec> outputs;
   //outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload});
   //outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
+  std::vector<InputSpec> inputs{{"input", "TRD", "ANGRESHISTS"}};
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
+                                                                true,                           // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
   return DataProcessorSpec{
     "calib-vdexb-calibration",
-    Inputs{{"input", "TRD", "ANGRESHISTS"}},
+    inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>()},
+    AlgorithmSpec{adaptFromTask<device>(ccdbRequest)},
     Options{
-      {"tf-per-slot", VariantType::Int, 5, {"number of TFs per calibration time slot"}},
-      {"max-delay", VariantType::Int, 90'000, {"number of slots in past to consider"}}, // 15 minutes delay, 10ms TF
+      {"tf-per-slot", VariantType::UInt32, 5u, {"number of TFs per calibration time slot"}},
+      {"max-delay", VariantType::UInt32, 90'000u, {"number of slots in past to consider"}}, // 15 minutes delay, 10ms TF
       {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit single time slot"}}}};
 }
 

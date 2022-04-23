@@ -26,6 +26,7 @@
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 
@@ -40,12 +41,15 @@ class LHCClockCalibDevice : public o2::framework::Task
   using LHCphase = o2::dataformats::CalibLHCphaseTOF;
 
  public:
+  LHCClockCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
+
   void init(o2::framework::InitContext& ic) final
   {
+    o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     int minEnt = std::max(300, ic.options().get<int>("min-entries"));
     int nb = std::max(500, ic.options().get<int>("nbins"));
-    int slotL = ic.options().get<int>("tf-per-slot");
-    int delay = ic.options().get<int>("max-delay");
+    auto slotL = ic.options().get<uint32_t>("tf-per-slot");
+    auto delay = ic.options().get<uint32_t>("max-delay");
     mCalibrator = std::make_unique<o2::tof::LHCClockCalibrator>(minEnt, nb);
     mCalibrator->setSlotLength(slotL);
     mCalibrator->setMaxSlotsDelay(delay);
@@ -71,6 +75,7 @@ class LHCClockCalibDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     auto data = pc.inputs().get<gsl::span<o2::dataformats::CalibInfoTOF>>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
 
@@ -90,11 +95,15 @@ class LHCClockCalibDevice : public o2::framework::Task
     LOG(info) << "Created " << infoVec.size() << " objects for TF " << mCalibrator->getCurrentTFInfo().tfCounter;
   }
 
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
+  {
+    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+  }
+
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
     LOG(info) << "Finalizing calibration";
-    constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
-    mCalibrator->checkSlotsToFinalize(INFINITE_TF);
+    mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
     sendOutput(ec.outputs());
   }
 
@@ -103,6 +112,7 @@ class LHCClockCalibDevice : public o2::framework::Task
   LHCphase mPhase;
   TimeSlewing mTimeSlewing;
   std::unique_ptr<o2::tof::LHCClockCalibrator> mCalibrator;
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
 
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
@@ -137,18 +147,25 @@ DataProcessorSpec getLHCClockCalibDeviceSpec()
 {
   using device = o2::calibration::LHCClockCalibDevice;
   using clbUtils = o2::calibration::Utils;
-
+  std::vector<InputSpec> inputs{{"input", "TOF", "CALIBDATA"}};
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
+                                                                true,                           // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_LHCphase"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_LHCphase"}, Lifetime::Sporadic);
   return DataProcessorSpec{
     "calib-lhcclock-calibration",
-    Inputs{{"input", "TOF", "CALIBDATA"}},
+    inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>()},
+    AlgorithmSpec{adaptFromTask<device>(ccdbRequest)},
     Options{
-      {"tf-per-slot", VariantType::Int, 5, {"number of TFs per calibration time slot"}},
-      {"max-delay", VariantType::Int, 3, {"number of slots in past to consider"}},
+      {"tf-per-slot", VariantType::UInt32, 5u, {"number of TFs per calibration time slot"}},
+      {"max-delay", VariantType::UInt32, 3u, {"number of slots in past to consider"}},
       {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit single time slot"}},
       {"nbins", VariantType::Int, 1000, {"number of bins for "}}}};
 }

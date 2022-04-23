@@ -49,8 +49,7 @@ class TPCVDriftTglCalibSpec : public Task
   void endOfStream(EndOfStreamContext& ec) final
   {
     LOG(info) << "Finalizing calibration";
-    constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
-    mCalibrator->checkSlotsToFinalize(INFINITE_TF);
+    mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
     sendOutput(ec.outputs());
   }
 

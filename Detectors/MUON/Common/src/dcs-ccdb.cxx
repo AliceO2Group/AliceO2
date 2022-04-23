@@ -120,10 +120,7 @@ void makeCCDBEntryForDCS(const std::string ccdbUrl, uint64_t timestamp)
             << o2::muon::subsysname() << " data points to "
             << CcdbDpConfName() << "\n";
 
-  uint64_t endOfValidity = 99999999999999;
-
-  api.storeAsTFileAny(&dpid2DataDesc, CcdbDpConfName(), md, timestamp,
-                      endOfValidity);
+  api.storeAsTFileAny(&dpid2DataDesc, CcdbDpConfName(), md, timestamp, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
 }
 
 bool match(const std::vector<std::string>& queries, const char* pattern)

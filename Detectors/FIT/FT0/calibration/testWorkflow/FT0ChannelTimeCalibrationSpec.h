@@ -33,15 +33,21 @@ o2::framework::DataProcessorSpec getFT0ChannelTimeCalibrationSpec()
 
   std::vector<o2::framework::InputSpec> inputs;
   inputs.emplace_back(DEFAULT_INPUT_LABEL, "FT0", "CALIB_INFO");
-
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
+                                                                true,                           // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
   return o2::framework::DataProcessorSpec{
     "calib-ft0-channel-time",
     inputs,
     outputs,
-    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<CalibrationDeviceType>(DEFAULT_INPUT_LABEL)},
+    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<CalibrationDeviceType>(DEFAULT_INPUT_LABEL, ccdbRequest)},
     o2::framework::Options{
-      {"tf-per-slot", o2::framework::VariantType::Int, 56000, {""}},
-      {"max-delay", o2::framework::VariantType::Int, 3, {""}}}};
+      {"tf-per-slot", o2::framework::VariantType::UInt32, 56000u, {""}},
+      {"max-delay", o2::framework::VariantType::UInt32, 3u, {""}}}};
 }
 } // namespace o2::ft0
 

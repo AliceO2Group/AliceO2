@@ -106,7 +106,7 @@ void CPVPedestalCalibDevice::sendOutput(DataAllocator& output)
     const auto now = std::chrono::system_clock::now();
     long timeStart = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
     info.setStartValidityTimestamp(timeStart);
-    info.setEndValidityTimestamp(99999999999999);
+    info.setEndValidityTimestamp(o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
     std::map<std::string, std::string> md;
     info.setMetaData(md);
 

@@ -62,15 +62,14 @@ struct TPCVDTglContainer {
 
 class TPCVDriftTglCalibration : public o2::calibration::TimeSlotCalibration<o2::dataformats::Pair<float, float>, TPCVDTglContainer>
 {
-  using TFType = uint64_t;
   using Slot = o2::calibration::TimeSlot<TPCVDTglContainer>;
 
  public:
   TPCVDriftTglCalibration() = default;
-  TPCVDriftTglCalibration(int ntgl, float tglMax, int ndtgl, float dtglMax, size_t slotL, size_t minEnt) : mNBinsTgl(ntgl), mMaxTgl(tglMax), mNBinsDTgl(ndtgl), mMaxDTgl(dtglMax), mMineEntriesPerSlot(minEnt)
+  TPCVDriftTglCalibration(int ntgl, float tglMax, int ndtgl, float dtglMax, uint32_t slotL, size_t minEnt) : mNBinsTgl(ntgl), mMaxTgl(tglMax), mNBinsDTgl(ndtgl), mMaxDTgl(dtglMax), mMineEntriesPerSlot(minEnt)
   {
     setSlotLength(slotL);
-    setMaxSlotsDelay(slotL);
+    setMaxSlotsDelay(10);
   }
 
   ~TPCVDriftTglCalibration() final = default;

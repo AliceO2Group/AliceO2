@@ -22,6 +22,7 @@
 #include <optional>
 #include <utility>
 #include <type_traits>
+#include "DetectorsBase/GRPGeomHelper.h"
 
 namespace o2::fit
 {
@@ -40,13 +41,18 @@ class FITCalibrationDevice : public o2::framework::Task
   using CalibratorType = FITCalibrator<InputCalibrationInfoType, TimeSlotStorageType, CalibrationObjectType>;
 
  public:
-  explicit FITCalibrationDevice(std::string inputDataLabel = DEFAULT_INPUT_DATA_LABEL)
-    : mInputDataLabel(std::move(inputDataLabel)) {}
+  explicit FITCalibrationDevice(std::string inputDataLabel = DEFAULT_INPUT_DATA_LABEL, std::shared_ptr<o2::base::GRPGeomRequest> req = {})
+    : mInputDataLabel(std::move(inputDataLabel)), mCCDBRequest(req) {}
 
   void init(o2::framework::InitContext& context) final;
   void run(o2::framework::ProcessingContext& context) final;
 
   void endOfStream(o2::framework::EndOfStreamContext& context) final;
+
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
+  {
+    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+  }
 
  private:
   void _sendOutputs(o2::framework::DataAllocator& outputs);
@@ -55,13 +61,15 @@ class FITCalibrationDevice : public o2::framework::Task
  private:
   const std::string mInputDataLabel;
   std::unique_ptr<CalibratorType> mCalibrator;
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
 };
 
 FIT_CALIBRATION_DEVICE_TEMPLATES
 void FIT_CALIBRATION_DEVICE_TYPE::init(o2::framework::InitContext& context)
 {
-  int slotL = context.options().get<int>("tf-per-slot");
-  int delay = context.options().get<int>("max-delay");
+  o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
+  auto slotL = context.options().get<uint32_t>("tf-per-slot");
+  auto delay = context.options().get<uint32_t>("max-delay");
 
   mCalibrator = std::make_unique<CalibratorType>();
 
@@ -74,6 +82,7 @@ void FIT_CALIBRATION_DEVICE_TYPE::init(o2::framework::InitContext& context)
 FIT_CALIBRATION_DEVICE_TEMPLATES
 void FIT_CALIBRATION_DEVICE_TYPE::run(o2::framework::ProcessingContext& context)
 {
+  o2::base::GRPGeomHelper::instance().checkUpdates(context);
   auto data = context.inputs().get<gsl::span<InputCalibrationInfoType>>(mInputDataLabel);
   o2::base::TFIDInfoHelper::fillTFIDInfo(context, mCalibrator->getCurrentTFInfo());
   mCalibrator->process(data);
@@ -86,8 +95,7 @@ void FIT_CALIBRATION_DEVICE_TYPE::endOfStream(o2::framework::EndOfStreamContext&
 {
 
   //nope, we have to check if we can finalize slot anyway - scenario with one batch
-  static constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
-  mCalibrator->checkSlotsToFinalize(INFINITE_TF);
+  mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
   _sendCalibrationObjectIfSlotFinalized(context.outputs());
 }
 
