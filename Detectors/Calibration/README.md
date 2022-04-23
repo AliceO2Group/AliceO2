@@ -9,15 +9,17 @@ The calibration flow of O2 foresees that every calibration device (expected to a
 ## TimeSlotCalibration<Input, Container>
 Each calibration device (to be run in a workflow) has to derive from `o2::calibration::TimeSlotCalibration`, which is a templated class that takes as types the Input type (i.e. the object to be processed, coming from the upstream device) and the Container type (i.e. the object that will contain the calibration data per TimeSlot). Each calibration device has to be configured with the following parameters:
 
-```cpp
-tf-per-slot               : default length of a TiemSlot in TFs (will be widened in case of too little statistics). If this is set to `std::numeric_limits<long>::max()`, then there will be
-                            only 1 slot at a time, valid till infinity.
-updateInterval            : to be used together with `tf-per-slot = std::numeric_limits<long>::max()`: it allows to try to finalize the slot (and produce calibration) when the `updateInterval`
-                            has passed. Note that this is an approximation (as explained in the code) due to the fact that TFs will come asynchronously (not ordered in time).
-max-delay                 : maximum arrival delay of a TF with respect to the most recent one processed; units in number of TimeSlots; if beyond this, the TF will be considered too old, and discarded.
-                            If `tf-per-slot == std::numeric_limits<long>::max()`, or `updateAtTheEndOfRunOnly == true`, its value is irrelevant.
-updateAtTheEndOfRunOnly   : to tell the TimeCalibration to finalize the slots and prepare the CCDB entries only at the end of the run.
-```
+`tf-per-slot` : default length of a TiemSlot in TFs (will be widened in case of too little statistics). If this is set to `o2::calibration::INFINITE_TF`, then there will be only 1 slot at a time, valid till infinity. Value 0 is reserved for a special mode: a single slot w/o explicit boundaries is
+filled until the requested statistics is reached. Once `hasEnoughData` return true, the slot will be closed with really seen min/max TFs and new one will be created with lower boundary equal the end of the previous slot.
+The slot duration can be also set via methods `setSlotLengthInSeconds(int s)` or `setSlotLengthInOrbits(int n)`, which will be internally converted (and rounded) to the number of TFs at the 1st TF processing (when the NHBF per orbit will be available from the GRPECS).
+
+`updateInterval` : to be used together with `tf-per-slot = o2::calibration::INFINITE_TF`: it allows to try to finalize the slot (and produce calibration) when the `updateInterval` has passed. Note that this is an approximation (as explained in the code) due to the fact that TFs will come asynchronously (not ordered in time).
+
+`max-delay` : maximum arrival delay of a TF with respect to the most recent one processed; units in number of TimeSlots; if beyond this, the TF will be considered too old, and discarded.
+If `tf-per-slot == o2::calibration::INFINITE_TF`, or `updateAtTheEndOfRunOnly == true`, its value is irrelevant.
+
+`updateAtTheEndOfRunOnly` : to tell the TimeCalibration to finalize the slots and prepare the CCDB entries only at the end of the run.
+
 Example for the options above:
 `tf-per-slot = 20`
 `max-delay = 3`
@@ -31,7 +33,7 @@ Each calibration device has to implement the following methods:
 
 `void finalizeSlot(o2::calibration::TimeSlot<Container>& slot)` : method to process the calibration data accumulated in each TimeSlot;
 
-`o2::calibration::TimeSlot<Container>& slot emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend` : method to creata a new TimeSlot; this is specific to the calibration procedure as it instantiates the detector-calibration-specific object.
+`o2::calibration::TimeSlot<Container>& slot emplaceNewSlot(bool front, TFType tstart, TFType tend)` : method to creata a new TimeSlot; this is specific to the calibration procedure as it instantiates the detector-calibration-specific object.
 
 See e.g. LHCClockCalibrator.h/cxx in AliceO2/Detectors/TOF/calibration/include/TOFCalibration/LHCClockCalibrator.h and  AliceO2/Detectors/TOF/calibration/srcLHCClockCalibrator.cxx
 
@@ -51,6 +53,8 @@ If provided, this latter method will be used.
 
 See e.g. LHCClockCalibrator.h/cxx in AliceO2/Detectors/TOF/calibration/include/TOFCalibration/LHCClockCalibrator.h and  AliceO2/Detectors/TOF/calibration/srcLHCClockCalibrator.cxx
 
+The Slot provides a generic methods to access its boundaries: `getTFStart()` and `getTFEnd()` in terms of TF counter (as assigned by the DataDistribution) and `getStartTimeMS()`, `getEndTimeMS()` for the absolute time stamp in milleseconds.
+
 ## detector-specific-calibrator-workflow
 
 Each calibration will need to be implemented in the form of a workflow, whose options should include those for the calibration device itself (`tf-per-slot` and `max-delay`, see above).
@@ -67,6 +71,8 @@ The origins of the pair of outputs will always be `o2::calibration::Utils::gData
 output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_LHCphase", i}, *image.get()); // vector<char>
 output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_LHCphase", i}, w);            // root-serialized
 ```
+
+Note that in order to access the absolute time of the slot boundaries, one should subscribe to CTP orbit reset time object (at least) via GRPGeomHelper class.
 
 See e.g. AliceO2/Detectors/TOF/calibration/testWorkflow/LHCClockCalibratorSpec.h,  AliceO2/Detectors/TOF/calibration/testWorkflow/lhc-clockphase-workflow.cxx
 
