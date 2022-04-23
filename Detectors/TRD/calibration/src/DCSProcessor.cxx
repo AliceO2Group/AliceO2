@@ -243,7 +243,7 @@ void DCSProcessor::updateDPsCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Ole Schmidt";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCS, mCcdbDPsInfo, "TRD/Calib/DCSDPs", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCS, mCcdbDPsInfo, "TRD/Calib/DCSDPs", md, mStartValidity, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
 
   return;
 }

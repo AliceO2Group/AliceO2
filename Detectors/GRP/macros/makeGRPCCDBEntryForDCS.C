@@ -72,7 +72,7 @@ int makeGRPCCDBEntryForDCS(const std::string url = "http://localhost:8080")
   api.init(url); // or http://localhost:8080 for a local installation
   std::map<std::string, std::string> md;
   long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-  api.storeAsTFileAny(&dpid2DataDesc, "GRP/Config/DCSDPconfig", md, ts, 99999999999999);
+  api.storeAsTFileAny(&dpid2DataDesc, "GRP/Config/DCSDPconfig", md, ts, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
 
   return 0;
 }

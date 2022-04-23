@@ -74,15 +74,13 @@ class TOFDCSConfigProcessor : public o2::framework::Task
   {
     // sending output to CCDB
 
-    constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
-
     using clbUtils = o2::calibration::Utils;
     const auto& payload = mTOFFEElightReader.getTOFFEElightInfo();
     auto clName = o2::utils::MemFileHelper::getClassName(payload);
     auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
     std::map<std::string, std::string> md;
     md.emplace("created_by", "dpl");
-    o2::ccdb::CcdbObjectInfo info("TOF/Calib/FEELIGHT", clName, flName, md, tf, INFINITE_TF);
+    o2::ccdb::CcdbObjectInfo info("TOF/Calib/FEELIGHT", clName, flName, md, tf, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
     LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
               << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();

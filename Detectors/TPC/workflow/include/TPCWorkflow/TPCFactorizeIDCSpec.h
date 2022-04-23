@@ -108,9 +108,9 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
       if (mWriteToDB && mUpdateGroupingPar) {
         // validity for grouping parameters is from first TF to some really large TF (until it is updated) TODO do somewhere else?!
         if constexpr (std::is_same_v<Type, TPCFactorizeIDCSpecGroup>) {
-          mDBapi.storeAsTFileAny<o2::tpc::ParameterIDCGroupCCDB>(&mIDCStruct.mIDCs.getIDCGroupHelperSector().getGroupingParameter(), "TPC/Calib/IDC/GROUPINGPAR", mMetadata, mTimeStampFirst, 99999999999999);
+          mDBapi.storeAsTFileAny<o2::tpc::ParameterIDCGroupCCDB>(&mIDCStruct.mIDCs.getIDCGroupHelperSector().getGroupingParameter(), "TPC/Calib/IDC/GROUPINGPAR", mMetadata, mTimeStampFirst, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
         } else {
-          mDBapi.storeAsTFileAny<o2::tpc::ParameterIDCGroupCCDB>(&mIDCFactorization.getGroupingParameter(), "TPC/Calib/IDC/GROUPINGPAR", mMetadata, mTimeStampFirst, 99999999999999);
+          mDBapi.storeAsTFileAny<o2::tpc::ParameterIDCGroupCCDB>(&mIDCFactorization.getGroupingParameter(), "TPC/Calib/IDC/GROUPINGPAR", mMetadata, mTimeStampFirst, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
         }
         mUpdateGroupingPar = false; // write grouping parameters only once
       }
@@ -232,7 +232,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
 
     if (mWriteToDB) {
       const auto timeStampStart = mTimeStampFirst;
-      const auto timeStampEnd = 99999999999999;
+      const auto timeStampEnd = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP;
 
       LOGP(info, "Writing IDCs to CCDB");
       mDBapi.storeAsTFileAny<o2::tpc::IDCZero>(&mIDCFactorization.getIDCZero(), "TPC/Calib/IDC/IDC0", mMetadata, timeStampStart, timeStampEnd);
