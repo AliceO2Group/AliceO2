@@ -24,6 +24,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 
@@ -33,11 +34,13 @@ namespace o2::tpc
 class LaserTracksCalibratorDevice : public o2::framework::Task
 {
  public:
+  LaserTracksCalibratorDevice(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
   void init(o2::framework::InitContext& ic) final
   {
+    o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     const int minTFs = ic.options().get<int>("min-tfs");
-    const int slotL = ic.options().get<int>("tf-per-slot");
-    const int delay = ic.options().get<int>("max-delay");
+    const auto slotL = ic.options().get<uint32_t>("tf-per-slot");
+    const auto delay = ic.options().get<uint32_t>("max-delay");
     const bool debug = ic.options().get<bool>("write-debug");
 
     mCalibrator = std::make_unique<LaserTracksCalibrator>(minTFs);
@@ -48,8 +51,8 @@ class LaserTracksCalibratorDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     const auto dph = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("laserTracks").header);
-
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
     auto data = pc.inputs().get<gsl::span<TrackTPC>>("laserTracks");
     LOGP(info, "Processing TF {} and {} tracks", mCalibrator->getCurrentTFInfo().tfCounter, data.size());
@@ -61,23 +64,28 @@ class LaserTracksCalibratorDevice : public o2::framework::Task
     }
   }
 
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
+  {
+    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+  }
+
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
     LOGP(info, "LaserTracksCalibratorDevice::endOfStream: Finalizing calibration");
-    constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
-    mCalibrator->checkSlotsToFinalize(INFINITE_TF);
+    mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
     sendOutput(ec.outputs());
   }
 
  private:
   std::unique_ptr<LaserTracksCalibrator> mCalibrator;
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
 
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
   {
     using clbUtils = o2::calibration::Utils;
     const auto& calibrations = mCalibrator->getCalibPerSlot();
-    const long timeEnd = 99999999999999;
+    const long timeEnd = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP;
     for (uint32_t iCalib = 0; iCalib < calibrations.size(); ++iCalib) {
       const auto& object = calibrations[iCalib];
       o2::ccdb::CcdbObjectInfo w;
@@ -104,14 +112,22 @@ DataProcessorSpec getLaserTracksCalibrator()
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibLtr"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibLtr"}, Lifetime::Sporadic);
+  std::vector<InputSpec> inputs{{"laserTracks", "TPC", "LASERTRACKS"}};
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
+                                                                true,                           // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
   return DataProcessorSpec{
     "tpc-laser-tracks-calibrator",
-    Inputs{{"laserTracks", "TPC", "LASERTRACKS"}},
+    inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>()},
+    AlgorithmSpec{adaptFromTask<device>(ccdbRequest)},
     Options{
-      {"tf-per-slot", VariantType::Int, 5000, {"number of TFs per calibration time slot"}},
-      {"max-delay", VariantType::Int, 3, {"number of slots in past to consider"}},
+      {"tf-per-slot", VariantType::UInt32, 5000u, {"number of TFs per calibration time slot"}},
+      {"max-delay", VariantType::UInt32, 3u, {"number of slots in past to consider"}},
       {"min-tfs", VariantType::Int, 100, {"minimum number of TFs with enough laser tracks to finalize a slot"}},
       {"write-debug", VariantType::Bool, false, {"write a debug output tree."}},
     }};

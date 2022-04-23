@@ -24,6 +24,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/WorkflowSpec.h"
 #include "FairLogger.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 
@@ -36,27 +37,35 @@ class FT0CalibCollectorDevice : public o2::framework::Task
 {
 
  public:
+  FT0CalibCollectorDevice(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
   void init(o2::framework::InitContext& ic) final
   {
+    o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     bool isTFsendingPolicy = ic.options().get<bool>("tf-sending-policy");
     int maxEnt = ic.options().get<int>("max-number-hits-to-fill-tree");
-    int slotL = ic.options().get<int>("tf-per-slot");
+    auto slotL = ic.options().get<uint32_t>("tf-per-slot");
     bool absMaxEnt = ic.options().get<bool>("is-max-number-hits-to-fill-tree-absolute");
     mCollector = std::make_unique<o2::ft0::FT0CalibCollector>(isTFsendingPolicy, maxEnt);
+    mCollector->setSlotLength(slotL);
+  }
+
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
+  {
+    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
   }
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    auto data = pc.inputs().get<gsl::span<o2::ft0::FT0CalibrationInfoObject>>("input");
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCollector->getCurrentTFInfo());
+    auto data = pc.inputs().get<gsl::span<o2::ft0::FT0CalibrationInfoObject>>("input");
     mCollector->process(data);
     sendOutput(pc.outputs());
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
-    constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
-    mCollector->checkSlotsToFinalize(INFINITE_TF);
+    mCollector->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
     // we force finalizing slot zero (unless everything was already finalized), no matter how many entries we had
     if (mCollector->getNSlots() != 0) {
       mCollector->finalizeSlot(mCollector->getSlot(0));
@@ -66,6 +75,7 @@ class FT0CalibCollectorDevice : public o2::framework::Task
 
  private:
   std::unique_ptr<o2::ft0::FT0CalibCollector> mCollector;
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   int mMaxNumOfHits = 0;
 
   //________________________________________________________________
@@ -101,17 +111,23 @@ DataProcessorSpec getFT0CalibCollectorDeviceSpec()
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("input", "FT0", "CALIB_INFO");
-
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
+                                                                true,                           // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
   return DataProcessorSpec{
     "calib-ft0calib-collector",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>()},
+    AlgorithmSpec{adaptFromTask<device>(ccdbRequest)},
     Options{
       {"max-number-hits-to-fill-tree", VariantType::Int, 1000, {"maximum number of entries in one channel to trigger teh filling of the tree"}},
       {"is-max-number-hits-to-fill-tree-absolute", VariantType::Bool, false, {"to decide if we want to multiply the max-number-hits-to-fill-tree by the number of channels (when set to true), or not (when set to false) for fast checks"}},
       {"tf-sending-policy", VariantType::Bool, false, {"if we are sending output at every TF; otherwise, we use the max-number-hits-to-fill-tree"}},
-      {"tf-per-slot", o2::framework::VariantType::Int, 200000, {"TF per slot "}}}};
+      {"tf-per-slot", o2::framework::VariantType::UInt32, 200000u, {"TF per slot "}}}};
 }
 
 } // namespace framework

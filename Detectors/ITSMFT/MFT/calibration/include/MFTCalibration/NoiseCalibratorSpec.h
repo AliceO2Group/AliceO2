@@ -20,6 +20,7 @@
 #include "Framework/Task.h"
 
 #include "MFTCalibration/NoiseCalibrator.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 using CALIBRATOR = o2::mft::NoiseCalibrator;
 
 //#include "MFTCalibration/NoiseSlotCalibrator.h" //For TimeSlot calibration
@@ -38,7 +39,7 @@ namespace mft
 class NoiseCalibratorSpec : public Task
 {
  public:
-  NoiseCalibratorSpec(bool digits = false);
+  NoiseCalibratorSpec(bool digits = false, std::shared_ptr<o2::base::GRPGeomRequest> req = {});
   ~NoiseCalibratorSpec() override = default;
 
   void init(InitContext& ic) final;
@@ -54,6 +55,7 @@ class NoiseCalibratorSpec : public Task
   void setOutputDcs(const o2::itsmft::NoiseMap& payload);
   o2::itsmft::NoiseMap mNoiseMap{936};
   std::unique_ptr<CALIBRATOR> mCalibrator = nullptr;
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   std::string mPath;
   std::string mMeta;
 

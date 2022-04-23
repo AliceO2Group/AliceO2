@@ -17,6 +17,7 @@
 #define ALICEO2_GRPGEOM_HELPER
 
 #include <vector>
+#include <memory>
 #include "DetectorsCommonDataFormats/DetID.h"
 
 namespace o2::framework
@@ -60,18 +61,23 @@ class MatLayerCylSet;
  I.e the task should look like:
  class MyTask {
   public:
-   MyTask(std::shared_ptr<GRPGeomRequest> req, ...) {
-     GRPGeomRequest::instance()->setRequest(req);
+   MyTask(std::shared_ptr<GRPGeomRequest> req, ...) : mCCDBReq(req) {
+     ...
+   }
+   void init(o2::framework::InitContext& ic) {
+     GRPGeomHelper::instance()->setRequest(mCCDBReq);
      ...
    }
    void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) {
-     GRPGeomRequest::instance()->finaliseCCDB(matcher, obj);
+     GRPGeomHelper::instance()->finaliseCCDB(matcher, obj);
      ...
    }
    void run(ProcessingContext& pc) {
-     GRPGeomRequest::instance()->checkUpdates(pc);
+     GRPGeomHelper::instance()->checkUpdates(pc);
      ...
    }
+   protected:
+     std::shared_ptr<GRPGeomRequest> mCCDBReq;
  }
 */
 
@@ -116,6 +122,8 @@ class GRPGeomHelper
   auto getGRPLHCIF() const { return mGRPLHCIF; }
   auto getGRPMagField() const { return mGRPMagField; }
   auto getOrbitResetTimeMS() const { return mOrbitResetTimeMS; }
+
+  static int getNHBFPerTF();
 
  private:
   GRPGeomHelper() = default;

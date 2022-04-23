@@ -41,7 +41,7 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
   o2::calibration::MeanVertexData* c = slot.getContainer();
   LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with "
             << c->getEntries() << " entries";
-  mTmpMVobjDqTime.emplace_back(slot.getTFStart(), slot.getTFEnd());
+  mTmpMVobjDqTime.emplace_back(slot.getStartTimeMS(), slot.getEndTimeMS());
 
   if (mUseFit) {
     MeanVertexObject mvo;
@@ -135,18 +135,15 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
     mSMAMVobj.setSigmaZ(fitValues[2]);
   }
 
-  // TODO: the timestamp is now given with the TF index, but it will have
-  // to become an absolute time. This is true both for the lhc phase object itself
-  // and the CCDB entry
   if (mTmpMVobjDqTime.size() > mSMAslots) {
     mTmpMVobjDqTime.pop_front();
   }
-  TFType startValidity = (mTmpMVobjDqTime.front().getMin() + mTmpMVobjDqTime.back().getMax()) / 2; // will be rounded to uint64_t
+  long startValidity = (mTmpMVobjDqTime.front().getMin() + mTmpMVobjDqTime.back().getMax()) / 2;
   LOG(info) << "start validity = " << startValidity;
   std::map<std::string, std::string> md;
   auto clName = o2::utils::MemFileHelper::getClassName(mSMAMVobj);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-  mInfoVector.emplace_back("GLO/Calib/MeanVertex", clName, flName, md, startValidity, 99999999999999);
+  mInfoVector.emplace_back("GLO/Calib/MeanVertex", clName, flName, md, startValidity - 10 * o2::ccdb::CcdbObjectInfo::SECOND, startValidity + o2::ccdb::CcdbObjectInfo::MONTH);
   mMeanVertexVector.emplace_back(mSMAMVobj);
 
   slot.print();

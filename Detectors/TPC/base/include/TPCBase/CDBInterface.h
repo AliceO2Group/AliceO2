@@ -369,11 +369,11 @@ class CDBStorage
     storeObject(obj, type, mMetaData, start, end);
   }
 
-  void uploadNoiseAndPedestal(std::string_view fileName, long first = -1, long last = 99999999999999);
-  void uploadGainMap(std::string_view fileName, bool isFull = true, long first = -1, long last = 99999999999999);
-  void uploadPulserOrCEData(CDBType type, std::string_view fileName, long first = -1, long last = 99999999999999);
-  void uploadFEEConfigPad(std::string_view fileName, long first = -1, long last = 99999999999999);
-  void uploadTimeGain(std::string_view fileName, long first = -1, long last = 99999999999999);
+  void uploadNoiseAndPedestal(std::string_view fileName, long first = -1, long last = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  void uploadGainMap(std::string_view fileName, bool isFull = true, long first = -1, long last = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  void uploadPulserOrCEData(CDBType type, std::string_view fileName, long first = -1, long last = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  void uploadFEEConfigPad(std::string_view fileName, long first = -1, long last = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  void uploadTimeGain(std::string_view fileName, long first = -1, long last = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
 
  private:
   bool checkMetaData(MetaData_t metaData) const;

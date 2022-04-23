@@ -52,7 +52,7 @@ namespace emcal
 template <typename DataInput, typename DataOutput, typename HistContainer>
 class EMCALChannelCalibrator : public o2::calibration::TimeSlotCalibration<o2::emcal::Cell, DataInput>
 {
-  using TFType = uint64_t;
+  using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<DataInput>;
   using Cell = o2::emcal::Cell;
   using CcdbObjectInfo = o2::ccdb::CcdbObjectInfo;
@@ -133,7 +133,7 @@ void EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::finalizeSlot(
     // for the CCDB entry
     auto clName = o2::utils::MemFileHelper::getClassName(bcm);
     auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-    mInfoVector.emplace_back(CalibDB::getCDBPathBadChannelMap(), clName, flName, md, slot.getTFStart(), 99999999999999);
+    mInfoVector.emplace_back(CalibDB::getCDBPathBadChannelMap(), clName, flName, md, slot.getStartTimeMS(), o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
     mCalibObjectVector.push_back(bcm);
   } else if constexpr (std::is_same<DataInput, o2::emcal::EMCALTimeCalibData>::value) {
     auto tcd = mCalibrator->calibrateTime(c->getHisto());
@@ -143,18 +143,18 @@ void EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::finalizeSlot(
     auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
 
     //prepareCCDBobjectInfo
-    mInfoVector.emplace_back(CalibDB::getCDBPathTimeCalibrationParams(), clName, flName, md, slot.getTFStart(), 99999999999999);
+    mInfoVector.emplace_back(CalibDB::getCDBPathTimeCalibrationParams(), clName, flName, md, slot.getStartTimeMS(), o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
     mCalibObjectVector.push_back(tcd);
 
     if (namePathStoreLocal.find(".root") != std::string::npos) {
       TFile fLocalStorage(namePathStoreLocal.c_str(), "update");
       fLocalStorage.cd();
       TH1F* histTCparams = (TH1F*)tcd.getHistogramRepresentation(false);
-      std::string nameTCHist = "TCParams_" + std::to_string(slot.getTFStart());
+      std::string nameTCHist = "TCParams_" + std::to_string(slot.getStartTimeMS());
       histTCparams->Write(nameTCHist.c_str(), TObject::kOverwrite);
 
       TH2F hCalibHist = o2::utils::TH2FFromBoost(c->getHisto());
-      std::string nameTCInputHist = "TimeVsCellID_" + std::to_string(slot.getTFStart());
+      std::string nameTCInputHist = "TimeVsCellID_" + std::to_string(slot.getStartTimeMS());
       hCalibHist.Write(nameTCInputHist.c_str(), TObject::kOverwrite);
       fLocalStorage.Close();
     }

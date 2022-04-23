@@ -12,7 +12,7 @@
 using DetID = o2::detectors::DetID;
 
 // upload dummy alignment objects to CCDB
-void UploadDummyAlignment(const std::string& ccdbHost = "http://ccdb-test.cern.ch:8080", long tmin = 1, long tmax = 99999999999999, DetID::mask_t msk = DetID::FullMask)
+void UploadDummyAlignment(const std::string& ccdbHost = "http://ccdb-test.cern.ch:8080", long tmin = 1, long tmax = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP, DetID::mask_t msk = DetID::FullMask)
 {
   DetID::mask_t dets = msk & DetID::FullMask & (~DetID::getMask(DetID::CTP));
   LOG(info) << "Mask = " << dets;

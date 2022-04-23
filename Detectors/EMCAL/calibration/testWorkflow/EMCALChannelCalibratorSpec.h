@@ -30,6 +30,7 @@
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "CommonUtils/NameConf.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 
@@ -45,10 +46,11 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   //using LHCphase = o2::dataformats::CalibLHCphaseEMCAL;
 
  public:
-  EMCALChannelCalibDevice() = default;
+  EMCALChannelCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
+
   void init(o2::framework::InitContext& ic) final
   {
-
+    o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     int isTest = ic.options().get<bool>("do-EMCAL-channel-calib-in-test-mode");
     std::string calibType = ic.options().get<std::string>("calibType");
     std::string localStorePath = ic.options().get<std::string>("localFilePath");
@@ -77,8 +79,15 @@ class EMCALChannelCalibDevice : public o2::framework::Task
     }
   }
 
+  //_________________________________________________________________
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
+  {
+    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+  }
+
   void run(o2::framework::ProcessingContext& pc) final
   {
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mTimeCalibrator->getCurrentTFInfo());
 
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get(getCellBinding()).header)->startTime;
@@ -112,12 +121,11 @@ class EMCALChannelCalibDevice : public o2::framework::Task
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
-    constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
     if (isBadChannelCalib) {
-      mBadChannelCalibrator->checkSlotsToFinalize(INFINITE_TF);
+      mBadChannelCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
       sendOutput<o2::emcal::BadChannelMap>(ec.outputs());
     } else {
-      mTimeCalibrator->checkSlotsToFinalize(INFINITE_TF);
+      mTimeCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
       sendOutput<o2::emcal::TimeCalibrationParams>(ec.outputs());
     }
   }
@@ -129,6 +137,7 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap, o2::emcal::ChannelCalibInitParams>> mBadChannelCalibrator;
   std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibrationParams, o2::emcal::TimeCalibInitParams>> mTimeCalibrator;
   std::shared_ptr<o2::emcal::EMCALCalibExtractor> mCalibExtractor;
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   bool isBadChannelCalib = true;
 
   //________________________________________________________________
@@ -198,11 +207,18 @@ DataProcessorSpec getEMCALChannelCalibDeviceSpec(std::string calibType = "badcel
   std::vector<InputSpec> inputs;
   inputs.emplace_back(device::getCellBinding(), o2::header::gDataOriginEMC, "CELLS", 0, o2::framework::Lifetime::Timeframe);
   inputs.emplace_back(device::getCellTriggerRecordBinding(), o2::header::gDataOriginEMC, "CELLSTRGR", 0, o2::framework::Lifetime::Timeframe);
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
+                                                                true,                           // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
   return DataProcessorSpec{
     "calib-emcalchannel-calibration",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>()},
+    AlgorithmSpec{adaptFromTask<device>(ccdbRequest)},
     Options{
       {"do-EMCAL-channel-calib-in-test-mode", VariantType::Bool, false, {"to run in test mode for simplification"}},
       {"ccdb-path", VariantType::String, o2::base::NameConf::getCCDBServer(), {"Path to CCDB"}},

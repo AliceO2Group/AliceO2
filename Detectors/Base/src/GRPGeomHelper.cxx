@@ -176,3 +176,8 @@ void GRPGeomHelper::checkUpdates(ProcessingContext& pc) const
     }
   }
 }
+
+int GRPGeomHelper::getNHBFPerTF()
+{
+  return instance().mGRPECS ? instance().mGRPECS->getNHBFPerTF() : 128;
+}

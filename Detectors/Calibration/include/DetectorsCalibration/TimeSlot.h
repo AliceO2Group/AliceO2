@@ -16,6 +16,8 @@
 #include <Rtypes.h>
 #include "Framework/Logger.h"
 #include "CommonDataFormat/TFIDInfo.h"
+#include "CommonConstants/LHCConstants.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 /// @brief Wrapper for the container of calibration data for single time slot
 
@@ -24,7 +26,8 @@ namespace o2
 namespace calibration
 {
 
-using TFType = uint64_t;
+using TFType = uint32_t;
+inline constexpr TFType INFINITE_TF = std::numeric_limits<TFType>::max();
 
 template <typename Container>
 class TimeSlot
@@ -47,12 +50,18 @@ class TimeSlot
 
   TFType getTFStart() const { return mTFStart; }
   TFType getTFEnd() const { return mTFEnd; }
+
+  long getStartTimeMS() const { return o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS() + (mRunStartOrbit + long(o2::base::GRPGeomHelper::getNHBFPerTF()) * mTFStart) * o2::constants::lhc::LHCOrbitMUS / 1000; }
+  long getEndTimeMS() const { return o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS() + (mRunStartOrbit + long(o2::base::GRPGeomHelper::getNHBFPerTF()) * (mTFEnd + 1)) * o2::constants::lhc::LHCOrbitMUS / 1000; }
+
   const Container* getContainer() const { return mContainer.get(); }
   Container* getContainer() { return mContainer.get(); }
   void setContainer(std::unique_ptr<Container> ptr) { mContainer = std::move(ptr); }
 
   void setTFStart(TFType v) { mTFStart = v; }
   void setTFEnd(TFType v) { mTFEnd = v; }
+  void setRunStartOrbit(long t) { mRunStartOrbit = t; }
+  auto getRunStartOrbit() const { return mRunStartOrbit; }
 
   // compare the TF with this slot boundaties
   int relateToTF(TFType tf) { return tf < mTFStart ? -1 : (tf > mTFEnd ? 1 : 0); }
@@ -74,6 +83,7 @@ class TimeSlot
   TFType mTFStart = 0;
   TFType mTFEnd = 0;
   size_t mEntries = 0;
+  long mRunStartOrbit = 0;
   std::unique_ptr<Container> mContainer; // user object to accumulate the calibration data for this slot
 
   ClassDefNV(TimeSlot, 1);

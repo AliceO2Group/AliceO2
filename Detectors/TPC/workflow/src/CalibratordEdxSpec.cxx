@@ -30,6 +30,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "TPCCalibration/CalibratordEdx.h"
 #include "TPCWorkflow/ProcessingHelpers.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 
@@ -39,10 +40,12 @@ namespace o2::tpc
 class CalibratordEdxDevice : public Task
 {
  public:
+  CalibratordEdxDevice(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
   void init(framework::InitContext& ic) final
   {
-    const auto slotLength = ic.options().get<int>("tf-per-slot");
-    const auto maxDelay = ic.options().get<int>("max-delay");
+    o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
+    const auto slotLength = ic.options().get<uint32_t>("tf-per-slot");
+    const auto maxDelay = ic.options().get<uint32_t>("max-delay");
     const auto minEntries = ic.options().get<int>("min-entries");
 
     const auto minEntriesSector = ic.options().get<int>("min-entries-sector");
@@ -83,9 +86,14 @@ class CalibratordEdxDevice : public Task
       mCalibrator->enableDebugOutput("calibratordEdx.root");
     }
   }
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
+  {
+    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+  }
 
   void run(ProcessingContext& pc) final
   {
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     const auto tracks = pc.inputs().get<gsl::span<tpc::TrackTPC>>("tracks");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
     LOGP(info, "Processing TF {} with {} tracks", mCalibrator->getCurrentTFInfo().tfCounter, tracks.size());
@@ -100,8 +108,7 @@ class CalibratordEdxDevice : public Task
   void endOfStream(EndOfStreamContext& eos) final
   {
     LOGP(info, "Finalizing calibration");
-    static constexpr calibration::TFType INFINITE_TF = 0xffffffffffffffff;
-    mCalibrator->checkSlotsToFinalize(INFINITE_TF);
+    mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
     sendOutput(eos.outputs());
 
     if (mCalibrator->hasDebugOutput()) {
@@ -114,7 +121,7 @@ class CalibratordEdxDevice : public Task
   {
     const auto& calibrations = mCalibrator->getCalibs();
     auto& intervals = mCalibrator->getTFinterval();
-    const long timeEnd = o2::calibration::Utils::INFINITE_TIME;
+    const long timeEnd = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP;
 
     for (unsigned int i = 0; i < calibrations.size(); i++) {
       const auto& object = calibrations[i];
@@ -139,6 +146,7 @@ class CalibratordEdxDevice : public Task
   }
 
   std::unique_ptr<CalibratordEdx> mCalibrator;
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   uint64_t mRunNumber{0}; ///< processed run number
 };
 
@@ -147,17 +155,22 @@ DataProcessorSpec getCalibratordEdxSpec()
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibdEdx"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibdEdx"}, Lifetime::Sporadic);
-
+  std::vector<InputSpec> inputs{{"tracks", "TPC", "MIPS"}};
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
+                                                                true,                           // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
   return DataProcessorSpec{
     "tpc-calibrator-dEdx",
-    Inputs{
-      InputSpec{"tracks", "TPC", "MIPS"},
-    },
+    inputs,
     outputs,
-    adaptFromTask<CalibratordEdxDevice>(),
+    adaptFromTask<CalibratordEdxDevice>(ccdbRequest),
     Options{
-      {"tf-per-slot", VariantType::Int, 6000, {"number of TFs per calibration time slot"}},
-      {"max-delay", VariantType::Int, 10, {"number of slots in past to consider"}},
+      {"tf-per-slot", VariantType::UInt32, 6000u, {"number of TFs per calibration time slot"}},
+      {"max-delay", VariantType::UInt32, 10u, {"number of slots in past to consider"}},
       {"min-entries", VariantType::Int, 10000, {"minimum entries per stack to fit a single time slot"}},
 
       {"min-entries-sector", VariantType::Int, 1000, {"min entries per GEM stack to enable sector by sector correction. Below this value we only perform one fit per ROC type (IROC, OROC1, ...; no side nor sector information)."}},

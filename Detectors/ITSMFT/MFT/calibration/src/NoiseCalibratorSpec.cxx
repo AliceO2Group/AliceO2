@@ -35,13 +35,14 @@ namespace o2
 namespace mft
 {
 
-NoiseCalibratorSpec::NoiseCalibratorSpec(bool useDigits)
-  : mDigits(useDigits)
+NoiseCalibratorSpec::NoiseCalibratorSpec(bool useDigits, std::shared_ptr<o2::base::GRPGeomRequest> req)
+  : mDigits(useDigits), mCCDBRequest(req)
 {
 }
 
 void NoiseCalibratorSpec::init(InitContext& ic)
 {
+  o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
   auto probT = ic.options().get<float>("prob-threshold");
   LOG(info) << "Setting the probability threshold to " << probT;
 
@@ -302,6 +303,7 @@ void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
 ///_______________________________________
 void NoiseCalibratorSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   if (!mDigits) {
     pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
   }
@@ -310,6 +312,7 @@ void NoiseCalibratorSpec::updateTimeDependentParams(ProcessingContext& pc)
 ///_______________________________________
 void NoiseCalibratorSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
+  o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
   if (matcher == ConcreteDataMatcher("MFT", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated";
     mCalibrator->setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
@@ -329,7 +332,13 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useDigits)
     inputs.emplace_back("ROframes", detOrig, "CLUSTERSROF", 0, Lifetime::Timeframe);
     inputs.emplace_back("cldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/ClusterDictionary"));
   }
-
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
+                                                                true,                           // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "MFT_NoiseMap"}, Lifetime::Sporadic);
@@ -339,7 +348,7 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useDigits)
     "mft-noise-calibrator",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<NoiseCalibratorSpec>(useDigits)},
+    AlgorithmSpec{adaptFromTask<NoiseCalibratorSpec>(useDigits, ccdbRequest)},
     Options{
       {"prob-threshold", VariantType::Float, 1.e-6f, {"Probability threshold for noisy pixels"}},
       {"tstart", VariantType::Int64, -1ll, {"Start of validity timestamp"}},

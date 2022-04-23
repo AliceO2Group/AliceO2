@@ -328,7 +328,7 @@ void PedestalCalibrator::finalizeSlot(PedestalTimeSlot& slot)
   mCcdbInfoHighPedChannelsVec.emplace_back("CPV/PedestalRun/HighPedChannels", className, fileName, metaData, timeStamp, timeStamp + 31536000000); // one year validity time (in milliseconds!)
 }
 //___________________________________________________________________
-PedestalTimeSlot& PedestalCalibrator::emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend)
+PedestalTimeSlot& PedestalCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType tend)
 {
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);

@@ -22,6 +22,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/WorkflowSpec.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 #include <limits>
 
@@ -36,24 +37,33 @@ class TOFCalibCollectorDevice : public o2::framework::Task
 {
 
  public:
+  TOFCalibCollectorDevice(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
+
   void init(o2::framework::InitContext& ic) final
   {
-
+    o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     bool isTFsendingPolicy = ic.options().get<bool>("tf-sending-policy");
     int maxEnt = ic.options().get<int>("max-number-hits-to-fill-tree");
     bool isTest = ic.options().get<bool>("running-in-test-mode");
     bool absMaxEnt = ic.options().get<bool>("is-max-number-hits-to-fill-tree-absolute");
-    int updateInterval = ic.options().get<int64_t>("update-interval");
+    auto updateInterval = ic.options().get<uint32_t>("update-interval");
     mCollector = std::make_unique<o2::tof::TOFCalibCollector>(isTFsendingPolicy, maxEnt);
     mCollector->setIsTest(isTest);
     mCollector->setIsMaxNumberOfHitsAbsolute(absMaxEnt);
-    mCollector->setSlotLength(std::numeric_limits<long>::max());
+    mCollector->setFinalizeWhenReady(); // finalize slot once stat is ok and create next one
     mCollector->setCheckIntervalInfiniteSlot(updateInterval);
     mCollector->setMaxSlotsDelay(0);
   }
 
+  //_________________________________________________________________
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
+  {
+    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+  }
+
   void run(o2::framework::ProcessingContext& pc) final
   {
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     auto data = pc.inputs().get<gsl::span<o2::dataformats::CalibInfoTOF>>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCollector->getCurrentTFInfo());
     LOG(info) << "Processing TF " << mCollector->getCurrentTFInfo().tfCounter << " with " << data.size() << " tracks";
@@ -63,8 +73,7 @@ class TOFCalibCollectorDevice : public o2::framework::Task
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
-    constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
-    mCollector->checkSlotsToFinalize(INFINITE_TF);
+    mCollector->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
     // we force finalizing slot zero (unless everything was already finalized), no matter how many entries we had
     if (mCollector->getNSlots() != 0) {
       mCollector->finalizeSlot(mCollector->getSlot(0));
@@ -74,6 +83,7 @@ class TOFCalibCollectorDevice : public o2::framework::Task
 
  private:
   std::unique_ptr<o2::tof::TOFCalibCollector> mCollector;
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   int mMaxNumOfHits = 0;
 
   //________________________________________________________________
@@ -109,18 +119,24 @@ DataProcessorSpec getTOFCalibCollectorDeviceSpec()
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("input", "TOF", "CALIBDATA");
-
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
+                                                                true,                           // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
   return DataProcessorSpec{
     "calib-tofcalib-collector",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>()},
+    AlgorithmSpec{adaptFromTask<device>(ccdbRequest)},
     Options{
       {"max-number-hits-to-fill-tree", VariantType::Int, 500, {"maximum number of entries in one channel to trigger teh filling of the tree"}},
       {"is-max-number-hits-to-fill-tree-absolute", VariantType::Bool, false, {"to decide if we want to multiply the max-number-hits-to-fill-tree by the number of channels (when set to true), or not (when set to false) for fast checks"}},
       {"tf-sending-policy", VariantType::Bool, false, {"if we are sending output at every TF; otherwise, we use the max-number-hits-to-fill-tree"}},
       {"running-in-test-mode", VariantType::Bool, false, {"to run in test mode for simplification"}},
-      {"update-interval", VariantType::Int64, 10ll, {"number of TF after which to try to finalize calibration"}}}};
+      {"update-interval", VariantType::UInt32, 10u, {"number of TF after which to try to finalize calibration"}}}};
 }
 
 } // namespace framework

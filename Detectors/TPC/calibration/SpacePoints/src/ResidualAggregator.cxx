@@ -199,7 +199,7 @@ void ResidualAggregator::finalizeSlot(Slot& slot)
   cont->fileOut.reset();
 }
 
-Slot& ResidualAggregator::emplaceNewSlot(bool front, uint64_t tStart, uint64_t tEnd)
+Slot& ResidualAggregator::emplaceNewSlot(bool front, TFType tStart, TFType tEnd)
 {
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tStart, tEnd) : cont.emplace_back(tStart, tEnd);
