@@ -26,7 +26,8 @@ o2_add_library(DetectorsCalibration
                    O2::ReconstructionDataFormats
                    O2::DetectorsBase
                    O2::SimConfig
-                   O2::DataFormatsCalibration)
+                   O2::DataFormatsCalibration
+		   CURL::libcurl)
 
 o2_target_root_dictionary(DetectorsCalibration
                           HEADERS include/DetectorsCalibration/TimeSlotCalibration.h
