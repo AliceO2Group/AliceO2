@@ -144,18 +144,19 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
                                long startValidityTimestamp, long endValidityTimestamp, std::vector<char>::size_type maxSize) const
 {
   if (maxSize > 0 && size > maxSize) {
+    LOGP(alarm, "Object will not be uploaded to {} since its size {} exceeds max allowed {}", path, size, maxSize);
     return -1;
   }
 
   // Prepare URL
   long sanitizedStartValidityTimestamp = startValidityTimestamp;
   if (startValidityTimestamp == -1) {
-    cout << "Start of Validity not set, current timestamp used." << endl;
+    LOGP(info, "Start of Validity not set, current timestamp used.");
     sanitizedStartValidityTimestamp = getCurrentTimestamp();
   }
   long sanitizedEndValidityTimestamp = endValidityTimestamp;
   if (endValidityTimestamp == -1) {
-    cout << "End of Validity not set, start of validity plus 1 day used." << endl;
+    LOGP(info, "End of Validity not set, start of validity plus 1 day used.");
     sanitizedEndValidityTimestamp = getFutureTimestamp(60 * 60 * 24 * 1);
   }
 
@@ -200,8 +201,7 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
       res = curl_easy_perform(curl);
       /* Check for errors */
       if (res != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n",
-                curl_easy_strerror(res));
+        LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
         returnValue = res;
       }
     }
@@ -214,7 +214,7 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
     /* free slist */
     curl_slist_free_all(headerlist);
   } else {
-    cerr << "curl initialization failure" << endl;
+    LOGP(alarm, "curl initialization failure");
     returnValue = -2;
   }
   return returnValue;
@@ -485,8 +485,7 @@ bool CcdbApi::receiveObject(void* dataHolder, std::string const& path, std::map<
       curlResultCode = curl_easy_perform(curlHandle);
 
       if (curlResultCode != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n",
-                curl_easy_strerror(curlResultCode));
+        LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(curlResultCode));
       } else {
         curlResultCode = curl_easy_getinfo(curlHandle, CURLINFO_RESPONSE_CODE, &responseCode);
         if ((curlResultCode == CURLE_OK) && (responseCode < 300)) {
@@ -494,9 +493,9 @@ bool CcdbApi::receiveObject(void* dataHolder, std::string const& path, std::map<
           return true;
         } else {
           if (curlResultCode != CURLE_OK) {
-            cerr << "invalid URL : " << fullUrl << endl;
+            LOGP(alarm, "invalid URL {}", fullUrl);
           } else {
-            cerr << "not found under link: " << fullUrl << endl;
+            LOGP(alarm, "not found under link {}", fullUrl);
           }
         }
       }
@@ -526,7 +525,7 @@ TObject* CcdbApi::retrieve(std::string const& path, std::map<std::string, std::s
     mess.Reset();
     result = (TObject*)(mess.ReadObjectAny(mess.GetClass()));
     if (result == nullptr) {
-      cerr << "couldn't retrieve the object " << path << endl;
+      LOGP(info, "couldn't retrieve the object {}", path);
     }
   }
 
@@ -1068,7 +1067,7 @@ std::string CcdbApi::list(std::string const& path, bool latestOnly, std::string 
 
       res = curl_easy_perform(curl);
       if (res != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+        LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
       }
     }
     curl_slist_free_all(headers);
@@ -1104,7 +1103,7 @@ void CcdbApi::deleteObject(std::string const& path, long timestamp) const
       // Perform the request, res will get the return code
       res = curl_easy_perform(curl);
       if (res != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+        LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
       }
       curl_easy_cleanup(curl);
     }
@@ -1129,7 +1128,7 @@ void CcdbApi::truncate(std::string const& path) const
       // Perform the request, res will get the return code
       res = curl_easy_perform(curl);
       if (res != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+        LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
       }
       curl_easy_cleanup(curl);
     }
@@ -1380,7 +1379,7 @@ void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std:
         // Perform the request, res will get the return code
         res = curl_easy_perform(curl);
         if (res != CURLE_OK) {
-          fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+          LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
         }
         curl_easy_cleanup(curl);
       }
