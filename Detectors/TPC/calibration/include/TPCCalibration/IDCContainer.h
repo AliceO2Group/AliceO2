@@ -332,7 +332,7 @@ class IDCOneAggregator
   /// \return normalize aggregated IDC1 to number of channels
   void normalizeIDCOne(const o2::tpc::Side side)
   {
-    std::transform(mIDCOneAgg.mIDCOne[side].begin(), mIDCOneAgg.mIDCOne[side].end(), mWeight[side].begin(), mIDCOneAgg.mIDCOne[side].begin(), std::divides<float>());
+    std::transform(mIDCOneAgg.mIDCOne[side].begin(), mIDCOneAgg.mIDCOne[side].end(), mWeight[side].begin(), mIDCOneAgg.mIDCOne[side].begin(), std::divides<>());
   }
 
   /// \return returns IDC1 data by move and clears weights
