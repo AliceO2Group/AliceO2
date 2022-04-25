@@ -51,18 +51,19 @@ using clbUtils = o2::calibration::Utils;
 using HighResClock = std::chrono::high_resolution_clock;
 using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
 
-
+//==========================================================================
   void HMPIDDCSDataProcessor::init(o2::framework::InitContext& ic)
   {
    
     std::vector<DPID> vect;
-    /*
-    mDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval");
-    if (mDPsUpdateInterval == 0) {
-      LOG(error) << "TOF DPs update interval set to zero seconds --> changed to 60";
-      mDPsUpdateInterval = 60;
-    }*/
+     // GV/CZ: is this necessary for HMPID?
+	    mDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval");
+	    if (mDPsUpdateInterval == 0) {
+	      LOG(error) << "HMPID DPs update interval set to zero seconds --> changed to 60";
+	      mDPsUpdateInterval = 60;
+	    }
     bool useCCDBtoConfigure = ic.options().get<bool>("use-ccdb-to-configure");
+
     if (useCCDBtoConfigure) {
       LOG(info) << "Configuring via CCDB";
       std::string ccdbpath = ic.options().get<std::string>("ccdb-path");
@@ -96,12 +97,14 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
     mProcessor = std::make_unique<o2::hmpid::HMPIDDCSProcessor>();
     bool useVerboseMode = ic.options().get<bool>("use-verbose-mode");
     LOG(info) << " ************************* Verbose?" << useVerboseMode;
-    if (useVerboseMode) {
+    if (useVerboseMode) { // def in HMPIDCSProcessor.h
       mProcessor->useVerboseMode();
     }
     mProcessor->init(vect);
     mTimer = HighResClock::now();
   }
+
+//==========================================================================
 
   void HMPIDDCSDataProcessor::run(o2::framework::ProcessingContext& pc) 
   {
@@ -112,17 +115,18 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
     if (startValidity == 0xffffffffffffffff) {                                                                   // it means it is not set
       startValidity = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow.time_since_epoch()).count(); // in ms
     }
-    mProcessor->setStartValidity(startValidity);
+    mProcessor->setStartValidity(startValidity); // in HMPIDDCSProcessor.h
     
     
     // process datapoints: 
     mProcessor->process(dps);
-    /* // not necessary for HMPID??: 
+     // not necessary for HMPID??: 
+    /*
     Duration elapsedTime = timeNow - mTimer; // in seconds
     if (elapsedTime.count() >= mDPsUpdateInterval) {
       sendDPsoutput(pc.outputs());
       mTimer = timeNow;
-    } */ 
+    }  */
     
     
     // as of now, the finalize-function processes both RefIndex and ChargeCut
@@ -132,7 +136,7 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
     //sendRefIndexOutput(pc.outputs());
   }
   
-
+//==========================================================================
   void HMPIDDCSDataProcessor::endOfStream(o2::framework::EndOfStreamContext& ec) 
   {
     sendChargeThresOutput(ec.outputs()); // should be in run ??
@@ -141,11 +145,12 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
 
 
 
-  //___send charge threshold (arQthre)____________________________________________________________
+  //=== send charge threshold(arQthre)=========================================
   void HMPIDDCSDataProcessor::sendChargeThresOutput(DataAllocator& output)
   {
     // fill CCDB with ChargeThres (arQthre)   
-   const auto& payload = mProcessor->getChargeCutObj();    
+    const auto& payload = mProcessor->getChargeCutObj();    
+    //const std::array<TF1,42> mChargeCut;
     
     auto& info = mProcessor->getHmpidChargeCutInfo();   // OK, but maybe change function and var names  
     
@@ -157,16 +162,12 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ChargeCut", 0}, info);
   }
 
-  //____send RefIndex (arrMean)__________________________________________________________
+  //====send RefIndex (arrMean)=====================================================
   void HMPIDDCSDataProcessor::sendRefIndexOutput(DataAllocator& output)
   {
-    // fill CCDB with RefIndex (arrMean)   
-      
-    
-      
+      // fill CCDB with RefIndex (arrMean)            
       const auto& payload = mProcessor->getRefIndexObj();   
-    
-
+      //const std::array<TF1,43> mRefIndex;
    
       auto& info = mProcessor->getccdbREF_INDEXsInfo(); // OK, but maybe change function and var names  
 
@@ -178,7 +179,7 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "RefIndex", 0}, *image.get());
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "RefIndex", 0}, info);
 
-  }
+  } // end class HMPIDDCSDataProcessor
 
 } // namespace hmpid
 
