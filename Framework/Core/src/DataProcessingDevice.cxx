@@ -1646,9 +1646,11 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
 
       // The oldest possible timeslice for a forwarded message
       // is conservatively the one of the device doing the forwarding.
-      auto oldestTimeslice = timesliceIndex.getOldestPossibleOutput();
-      DataProcessingHelpers::sendOldestPossibleTimeframe(channel, oldestTimeslice.timeslice.value);
-      LOGP(debug, "Forwarding to channel {} oldest possible timeslice {}", spec->forwards[fi].channel, oldestTimeslice.timeslice.value);
+      if (spec->forwards[fi].channel.rfind("from_", 0) == 0) {
+        auto oldestTimeslice = timesliceIndex.getOldestPossibleOutput();
+        DataProcessingHelpers::sendOldestPossibleTimeframe(channel, oldestTimeslice.timeslice.value);
+        LOGP(debug, "Forwarding to channel {} oldest possible timeslice {}", spec->forwards[fi].channel, oldestTimeslice.timeslice.value);
+      }
     }
   };
 
