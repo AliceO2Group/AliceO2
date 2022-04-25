@@ -16,6 +16,45 @@
 /// @brief  TOF Processor for DCS Data Points
 
 
+
+
+/*
+
+ // is it enough to make a 
+ std::unordered_map<DPID,HMPIDDCSinfo> mHMPIDDCS;
+  containing all the DPIDs and a struct of first and last value of timestamps?
+ 
+ 
+  //TOFCalibration/TOFDCSProcessor.h
+      const std::unordered_map<DPID, TOFDCSinfo>& getTOFDPsInfo() const { return mTOFDCS; }
+      std::unordered_map<DPID, TOFDCSinfo> mTOFDCS;                // this is the object that will go to the CCDB
+
+      const CcdbObjectInfo& getccdbDPsInfo() const { return mccdbDPsInfo; }
+      CcdbObjectInfo mccdbDPsInfo;
+
+   //TOFCalibration/TOFDCSProcessor.cxx::updateDPsCCDB
+       o2::calibration::Utils::prepareCCDBobjectInfo(mTOFDCS, mccdbDPsInfo, "TOF/Calib/DCSDPs", md, mStartValidity, 3 * 24L * 3600000);
+
+   ///testWorkflow/TOFDCSDataProcessorSpec.h
+       void sendDPsoutput(DataAllocator& output)
+            const auto& payload = mProcessor->getTOFDPsInfo();
+            auto& info = mProcessor->getccdbDPsInfo();
+            auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
+=======================================================================================
+  //TOFCalibration/TOFDCSProcessor.h
+  const std::bitset<Geo::NCHANNELS>& getLVStatus() const { return mFeac; }
+  std::bitset<Geo::NCHANNELS> mFeac;    // bitset with feac status per channel
+          //  static constexpr int NCHANNELS = NSTRIPS * NPADS;
+          
+  const CcdbObjectInfo& getccdbLVInfo() const { return mccdbLVInfo; }
+  CcdbObjectInfo mccdbLVInfo;
+  
+  ///testWorkflow/TOFDCSDataProcessorSpec.h
+  void sendLVandHVoutput(DataAllocator& output)
+      const auto& payload = mProcessor->getLVStatus();
+      auto& info = mProcessor->getccdbLVInfo();
+      auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
+*/ 
 #include <unistd.h>
 #include <TRandom.h>
 #include <TStopwatch.h>
@@ -52,7 +91,7 @@ using clbUtils = o2::calibration::Utils;
 using HighResClock = std::chrono::high_resolution_clock;
 using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
 
-class HMPIDDCSDataProcessor : public o2::framework::Task
+class HMPIDDataProcessor : public o2::framework::Task
 {
  public:
   void init(o2::framework::InitContext& ic) final;

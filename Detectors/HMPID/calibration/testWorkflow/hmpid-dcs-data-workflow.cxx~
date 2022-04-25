@@ -20,7 +20,7 @@ struct has_root_dictionary<std::unordered_map<o2::dcs::DataPointIdentifier, o2::
 };
 } // namespace o2::framework
 #include "Framework/DataProcessorSpec.h"
-#include "HMPIDCalibration/HMPIDDCSDataProcessorSpec.h" // #include "TOFDCSDataProcessorSpec.h"
+#include "HMPIDDataProcessorSpec.h" // #include "TOFDCSDataProcessorSpec.h"
 
 using namespace o2::framework;
 

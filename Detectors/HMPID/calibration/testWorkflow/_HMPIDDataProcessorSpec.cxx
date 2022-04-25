@@ -10,6 +10,46 @@
 // or submit itself to any jurisdiction.
 
 
+
+
+
+/*
+
+ // is it enough to make a 
+ std::unordered_map<DPID,HMPIDDCSinfo> mHMPIDDCS;
+  containing all the DPIDs and a struct of first and last value of timestamps?
+ 
+ 
+  //TOFCalibration/TOFDCSProcessor.h
+      const std::unordered_map<DPID, TOFDCSinfo>& getTOFDPsInfo() const { return mTOFDCS; }
+      std::unordered_map<DPID, TOFDCSinfo> mTOFDCS;                // this is the object that will go to the CCDB
+
+      const CcdbObjectInfo& getccdbDPsInfo() const { return mccdbDPsInfo; }
+      CcdbObjectInfo mccdbDPsInfo;
+
+   //TOFCalibration/TOFDCSProcessor.cxx::updateDPsCCDB
+       o2::calibration::Utils::prepareCCDBobjectInfo(mTOFDCS, mccdbDPsInfo, "TOF/Calib/DCSDPs", md, mStartValidity, 3 * 24L * 3600000);
+
+   ///testWorkflow/TOFDCSDataProcessorSpec.h
+       void sendDPsoutput(DataAllocator& output)
+            const auto& payload = mProcessor->getTOFDPsInfo();
+            auto& info = mProcessor->getccdbDPsInfo();
+            auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
+=======================================================================================
+  //TOFCalibration/TOFDCSProcessor.h
+  const std::bitset<Geo::NCHANNELS>& getLVStatus() const { return mFeac; }
+  std::bitset<Geo::NCHANNELS> mFeac;    // bitset with feac status per channel
+          //  static constexpr int NCHANNELS = NSTRIPS * NPADS;
+          
+  const CcdbObjectInfo& getccdbLVInfo() const { return mccdbLVInfo; }
+  CcdbObjectInfo mccdbLVInfo;
+  
+  ///testWorkflow/TOFDCSDataProcessorSpec.h
+  void sendLVandHVoutput(DataAllocator& output)
+      const auto& payload = mProcessor->getLVStatus();
+      auto& info = mProcessor->getccdbLVInfo();
+      auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
+*/ 
 #include <unistd.h>
 #include <TRandom.h>
 #include <TStopwatch.h>
@@ -19,9 +59,8 @@
 #include "DetectorsDCS/DeliveryType.h"
 #include "DetectorsDCS/AliasExpander.h"
 #include "HMPIDCalibration/HMPIDDCSProcessor.h"
-//#include "HMPIDWorkFlows/HMPIDDataProcessorSpec.h" // headerfile currently
-//#include "testWorkflow/HMPIDDCSDataProcessorSpec.h" // headerfile currently  
-#include "HMPIDCalibration/HMPIDDCSDataProcessorSpec.h"		     // in same folder 	
+//#include "HMPIDWorkFlows/HMPIDDataProcessorSpec.h" // headerfile currently 
+#include "HMPIDDataProcessorSpec.h"		     // in same folder 	
 
 
 #include "DetectorsCalibration/Utils.h"
@@ -52,7 +91,7 @@ using HighResClock = std::chrono::high_resolution_clock;
 using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
 
 
-  void HMPIDDCSDataProcessor::init(o2::framework::InitContext& ic)
+  void HMPIDDataProcessor::init(o2::framework::InitContext& ic) final
   {
    
     std::vector<DPID> vect;
@@ -103,7 +142,7 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
     mTimer = HighResClock::now();
   }
 
-  void HMPIDDCSDataProcessor::run(o2::framework::ProcessingContext& pc) 
+  void HMPIDDataProcessor::run(o2::framework::ProcessingContext& pc) final
   {
     auto startValidity = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
     auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
@@ -133,7 +172,7 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
   }
   
 
-  void HMPIDDCSDataProcessor::endOfStream(o2::framework::EndOfStreamContext& ec) 
+  void HMPIDDataProcessor::endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
     sendChargeThresOutput(ec.outputs()); // should be in run ??
     sendRefIndexOutput(ec.outputs());
@@ -142,14 +181,26 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
 
 
   //___send charge threshold (arQthre)____________________________________________________________
-  void HMPIDDCSDataProcessor::sendChargeThresOutput(DataAllocator& output)
+  void HMPIDDataProcessor::sendChargeThresOutput(DataAllocator& output)
   {
     // fill CCDB with ChargeThres (arQthre)   
-   const auto& payload = mProcessor->getChargeCutObj();    
+   const auto& payload = mProcessor->getChargeCutObj();   
+   //HMPIDThreshVars mChargeThresh; in private
+    // CZ/GV? what should the struct contain? TF1 object 
+		  // for calculating refractive index: 
+	   //TF1 arNmean[43]; /// 21* Tin and 21*Tout (1 per radiator, 3 radiators per chambers)
+				// + 1 for ePhotMean (mean photon energy)  
+    
+     // is it enough to make a 
+     // std::unordered_map<DPID,HMPIDDCSinfo> mHMPIDDCS;
+     //  containing all the DPIDs and a struct of first and last value of timestamps?
+    
     
     auto& info = mProcessor->getHmpidChargeCutInfo();   // OK, but maybe change function and var names  
     
-   
+    //const CcdbObjectInfo& getHmpidChargeCutInfo() const { return mccdbCHARGE_CUT_Info; }
+    //CcdbObjectInfo& getHmpidChargeCutInfo() { return mccdbCHARGE_CUT_Info; }
+  
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
     LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
               << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
@@ -158,18 +209,25 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
   }
 
   //____send RefIndex (arrMean)__________________________________________________________
-  void HMPIDDCSDataProcessor::sendRefIndexOutput(DataAllocator& output)
+  void HMPIDDataProcessor::sendRefIndexOutput(DataAllocator& output)
   {
     // fill CCDB with RefIndex (arrMean)   
       
-    
+      //struct HMPIDRefIndexVars mRefIndex; in private
+       // CZ/GV? what should the struct contain? TF1 object 
+		   // Charge Threshold: 
+		   // TF1 arQthre[42];  //42 Qthre=f(time) one per sector
       
-      const auto& payload = mProcessor->getRefIndexObj();   
-    
+      const auto& payload = mProcessor->getRefIndexObj();   // based on GRP
+      // returns struct: HMPIDRefIndexVars mRefIndex        // GRP
+      //unordered_map<DPID, TOFDCSinfo> mTOFDCS;  // this is the object that will go to the CCDB
 
    
       auto& info = mProcessor->getccdbREF_INDEXsInfo(); // OK, but maybe change function and var names  
-
+      //const CcdbObjectInfo& getccdbREF_INDEXsInfo() const { return mccdbREF_INDEX_Info; }
+      //CcdbObjectInfo& getccdbREF_INDEXsInfo() { return mccdbREF_INDEX_Info; }
+      
+     
       
       auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
       LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
@@ -203,7 +261,7 @@ DataProcessorSpec getHMPIDDCSDataProcessorSpec()
     "HMPID-dcs-data-processor",
     Inputs{{"input", "DCS", "HMPIDDATAPOINTS"}},
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::hmpid::HMPIDDCSDataProcessor>()},
+    AlgorithmSpec{adaptFromTask<o2::tof::HMPIDDCSDataProcessor>()},
     Options{{"ccdb-path", VariantType::String, "http://localhost:8080", {"Path to CCDB"}},
             {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
             {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}}//,

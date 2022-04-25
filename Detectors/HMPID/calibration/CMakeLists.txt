@@ -56,11 +56,12 @@ o2_add_executable(dcs-sim-workflow # run with o2-hmpid-dcs-sim-workflow
 					 O2::HMPIDCalibration
 					 O2::DCStestWorkflow)
 
-o2_add_executable(data-sim-workflow # run with o2-hmpid-dcs-sim-workflow
+o2_add_executable(data-sim-workflow # run with o2-hmpid-data-sim-workflow
                    COMPONENT_NAME hmpid # adds hmpid to the above command
                    SOURCES testWorkflow/hmpid-dcs-data-workflow.cxx
                    PUBLIC_LINK_LIBRARIES O2::Framework
 					 O2::HMPIDCalibration
+					 O2::DetectorsCalibration
 					 O2::DCStestWorkflow)
 
  
