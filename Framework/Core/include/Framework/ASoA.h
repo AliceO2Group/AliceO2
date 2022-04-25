@@ -1402,22 +1402,22 @@ constexpr bool is_binding_compatible_v()
 void notBoundTable(const char* tableName);
 } // namespace o2::soa
 
-#define DECLARE_SOA_STORE()                                                                                \
-  template <typename T>                                                                                    \
-  struct MetadataTrait {                                                                                   \
-    using metadata = std::void_t<T>;                                                                       \
-  };                                                                                                       \
-                                                                                                           \
-  template <typename T>                                                                                    \
-  constexpr int getVersion()                                                                               \
-  {                                                                                                        \
-    if constexpr (o2::soa::is_type_with_metadata_v<MetadataTrait<T>>) {                                    \
-      return MetadataTrait<T>::metadata::version();                                                        \
-    } else if constexpr (o2::soa::is_type_with_originals_v<T>) {                                           \
-      return MetadataTrait<o2::framework::pack_head_t<typename T::originals_pack_t>>::metadata::version(); \
-    } else {                                                                                               \
-      static_assert(o2::framework::always_static_assert_v<T>, "Not a versioned type");                     \
-    }                                                                                                      \
+#define DECLARE_SOA_STORE()                                                                         \
+  template <typename T>                                                                             \
+  struct MetadataTrait {                                                                            \
+    using metadata = std::void_t<T>;                                                                \
+  };                                                                                                \
+                                                                                                    \
+  template <typename T>                                                                             \
+  constexpr int getVersion()                                                                        \
+  {                                                                                                 \
+    if constexpr (o2::soa::is_type_with_metadata_v<MetadataTrait<T>>) {                             \
+      return MetadataTrait<T>::metadata::version();                                                 \
+    } else if constexpr (o2::soa::is_type_with_originals_v<T>) {                                    \
+      return MetadataTrait<o2::framework::pack_head_t<typename T::originals>>::metadata::version(); \
+    } else {                                                                                        \
+      static_assert(o2::framework::always_static_assert_v<T>, "Not a versioned type");              \
+    }                                                                                               \
   }
 
 #define DECLARE_EQUIVALENT_FOR_INDEX(_Base_, _Equiv_) \
