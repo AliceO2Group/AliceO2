@@ -231,7 +231,7 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
     dplCounter++;
     for (int msgidx = 0; msgidx < parts.Size(); msgidx += 2) {
       const auto dih = o2::header::get<DomainInfoHeader*>(parts.At(msgidx)->GetData());
-      if (dih == nullptr) {
+      if (dih != nullptr) {
         continue;
       }
       const auto dh = o2::header::get<DataHeader*>(parts.At(msgidx)->GetData());
