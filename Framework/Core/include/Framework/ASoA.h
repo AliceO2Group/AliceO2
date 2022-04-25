@@ -2018,31 +2018,33 @@ void notBoundTable(const char* tableName);
     std::tuple<o2::soa::ColumnIterator<typename Bindings::type> const*...> boundIterators;                                 \
   }
 
-#define DECLARE_SOA_TABLE_FULL(_Name_, _Label_, _Origin_, _Description_, _Version_, ...) \
-  using _Name_ = o2::soa::Table<__VA_ARGS__>;                                            \
-                                                                                         \
-  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {                   \
-    using table_t = _Name_;                                                              \
-    static constexpr o2::header::DataHeader::SubSpecificationType mVersion = _Version_;  \
-    static constexpr char const* mLabel = _Label_;                                       \
-    static constexpr char const mOrigin[4] = _Origin_;                                   \
-    static constexpr char const mDescription[16] = _Description_;                        \
-  };                                                                                     \
-                                                                                         \
-  template <>                                                                            \
-  struct MetadataTrait<_Name_> {                                                         \
-    using metadata = _Name_##Metadata;                                                   \
-  };                                                                                     \
-                                                                                         \
-  template <>                                                                            \
-  struct MetadataTrait<_Name_::unfiltered_iterator> {                                    \
-    using metadata = _Name_##Metadata;                                                   \
+#define DECLARE_SOA_TABLE_FULL_VERSIONED(_Name_, _Label_, _Origin_, _Description_, _Version_, ...) \
+  using _Name_ = o2::soa::Table<__VA_ARGS__>;                                                      \
+                                                                                                   \
+  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {                             \
+    using table_t = _Name_;                                                                        \
+    static constexpr o2::header::DataHeader::SubSpecificationType mVersion = _Version_;            \
+    static constexpr char const* mLabel = _Label_;                                                 \
+    static constexpr char const mOrigin[4] = _Origin_;                                             \
+    static constexpr char const mDescription[16] = _Description_;                                  \
+  };                                                                                               \
+                                                                                                   \
+  template <>                                                                                      \
+  struct MetadataTrait<_Name_> {                                                                   \
+    using metadata = _Name_##Metadata;                                                             \
+  };                                                                                               \
+                                                                                                   \
+  template <>                                                                                      \
+  struct MetadataTrait<_Name_::unfiltered_iterator> {                                              \
+    using metadata = _Name_##Metadata;                                                             \
   };
 
+#define DECLARE_SOA_TABLE_FULL(_Name_, _Label_, _Origin_, _Description_, ...) \
+  DECLARE_SOA_TABLE_FULL_VERSIONED(_Name_, _Label_, _Origin_, _Description_, 0, __VA_ARGS__);
 #define DECLARE_SOA_TABLE(_Name_, _Origin_, _Description_, ...) \
-  DECLARE_SOA_TABLE_FULL(_Name_, #_Name_, _Origin_, _Description_, 0, __VA_ARGS__);
+  DECLARE_SOA_TABLE_FULL(_Name_, #_Name_, _Origin_, _Description_, __VA_ARGS__);
 #define DECLARE_SOA_TABLE_VERSIONED(_Name_, _Origin_, _Description_, _Version_, ...) \
-  DECLARE_SOA_TABLE_FULL(_Name_, #_Name_, _Origin_, _Description_, _Version_, __VA_ARGS__);
+  DECLARE_SOA_TABLE_FULL_VERSIONED(_Name_, #_Name_, _Origin_, _Description_, _Version_, __VA_ARGS__);
 
 #define DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, _Origin_, _Description_, ...)                                          \
   struct _Name_##Extension : o2::soa::Table<__VA_ARGS__> {                                                                      \
