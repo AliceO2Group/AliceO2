@@ -30,8 +30,9 @@ struct DataOutputDescriptor {
   /// The information includes the table specification, treename,
   /// columns to save, and the file name
 
-  std::string tablename = "";
-  std::string treename = "";
+  std::string tablename;
+  std::string treename;
+  std::string version;
   std::vector<std::string> colnames;
   std::unique_ptr<data_matcher::DataDescriptorMatcher> matcher;
 

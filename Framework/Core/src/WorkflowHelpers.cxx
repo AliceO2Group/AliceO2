@@ -1125,7 +1125,7 @@ std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(Confi
 
         // use the dangling outputs
         std::vector<InputSpec> danglingOutputs;
-        for (auto ii = 0; ii < OutputsInputs.size(); ii++) {
+        for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
           if (isAOD(OutputsInputs[ii]) && isDangling[ii]) {
             danglingOutputs.emplace_back(OutputsInputs[ii]);
           }

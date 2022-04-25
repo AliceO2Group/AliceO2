@@ -28,15 +28,13 @@ std::string getTreeName(header::DataHeader dh)
 {
   auto description = std::string(dh.dataDescription.str);
   auto origin = std::string(dh.dataOrigin.str);
-  int iver = dh.subSpecification;
+  auto iver = (float)dh.subSpecification;
 
   // lower case of first part of description
   auto found = description.find_first_of(':');
   std::string treeName = str_tolower(description).substr(0, found);
   if (iver > 0) {
-    auto ver = std::to_string(iver);
-    auto version = std::string(3 - ver.length(), '0').append(ver);
-    treeName += std::string{"_"} + version;
+    treeName += std::string{"_"}.append(std::string(2 - (int)std::log10(iver), '0')).append(std::to_string(iver));
   }
 
   // add prefix according to origin
