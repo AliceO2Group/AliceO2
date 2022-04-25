@@ -90,7 +90,6 @@ using SMatrix55Std = ROOT::Math::SMatrix<double, 5>;
 using SMatrix55Sym = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
 
 using SVector2 = ROOT::Math::SVector<double, 2>;
-using SVector3 = ROOT::Math::SVector<double, 3>;
 using SVector4 = ROOT::Math::SVector<double, 4>;
 using SVector5 = ROOT::Math::SVector<double, 5>;
 
@@ -100,9 +99,6 @@ using SMatrix54 = ROOT::Math::SMatrix<double, 5, 4>;
 using SMatrix22 = ROOT::Math::SMatrix<double, 2>;
 using SMatrix25 = ROOT::Math::SMatrix<double, 2, 5>;
 using SMatrix52 = ROOT::Math::SMatrix<double, 5, 2>;
-using SMatrix33 = ROOT::Math::SMatrix<double, 3>;
-using SMatrix35 = ROOT::Math::SMatrix<double, 3, 5>;
-using SMatrix53 = ROOT::Math::SMatrix<double, 5, 3>;
 
 class MatchGlobalFwd
 {
