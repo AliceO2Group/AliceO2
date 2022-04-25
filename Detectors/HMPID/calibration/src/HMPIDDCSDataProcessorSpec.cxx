@@ -60,8 +60,8 @@
 #include "DetectorsDCS/AliasExpander.h"
 #include "HMPIDCalibration/HMPIDDCSProcessor.h"
 //#include "HMPIDWorkFlows/HMPIDDataProcessorSpec.h" // headerfile currently
-#include "testWorkflow/HMPIDDataProcessorSpec.h" // headerfile currently  
-//#include "HMPIDCalibration/HMPIDDataProcessorSpec.h"		     // in same folder 	
+//#include "testWorkflow/HMPIDDCSDataProcessorSpec.h" // headerfile currently  
+#include "HMPIDCalibration/HMPIDDCSDataProcessorSpec.h"		     // in same folder 	
 
 
 #include "DetectorsCalibration/Utils.h"
@@ -92,7 +92,7 @@ using HighResClock = std::chrono::high_resolution_clock;
 using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
 
 
-  void HMPIDDataProcessor::init(o2::framework::InitContext& ic) final
+  void HMPIDDCSDataProcessor::init(o2::framework::InitContext& ic)
   {
    
     std::vector<DPID> vect;
@@ -143,7 +143,7 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
     mTimer = HighResClock::now();
   }
 
-  void HMPIDDataProcessor::run(o2::framework::ProcessingContext& pc) final
+  void HMPIDDCSDataProcessor::run(o2::framework::ProcessingContext& pc) 
   {
     auto startValidity = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
     auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
@@ -173,7 +173,7 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
   }
   
 
-  void HMPIDDataProcessor::endOfStream(o2::framework::EndOfStreamContext& ec) final
+  void HMPIDDCSDataProcessor::endOfStream(o2::framework::EndOfStreamContext& ec) 
   {
     sendChargeThresOutput(ec.outputs()); // should be in run ??
     sendRefIndexOutput(ec.outputs());
@@ -182,7 +182,7 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
 
 
   //___send charge threshold (arQthre)____________________________________________________________
-  void HMPIDDataProcessor::sendChargeThresOutput(DataAllocator& output)
+  void HMPIDDCSDataProcessor::sendChargeThresOutput(DataAllocator& output)
   {
     // fill CCDB with ChargeThres (arQthre)   
    const auto& payload = mProcessor->getChargeCutObj();   
@@ -210,7 +210,7 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
   }
 
   //____send RefIndex (arrMean)__________________________________________________________
-  void HMPIDDataProcessor::sendRefIndexOutput(DataAllocator& output)
+  void HMPIDDCSDataProcessor::sendRefIndexOutput(DataAllocator& output)
   {
     // fill CCDB with RefIndex (arrMean)   
       
@@ -262,7 +262,7 @@ DataProcessorSpec getHMPIDDCSDataProcessorSpec()
     "HMPID-dcs-data-processor",
     Inputs{{"input", "DCS", "HMPIDDATAPOINTS"}},
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::tof::HMPIDDCSDataProcessor>()},
+    AlgorithmSpec{adaptFromTask<o2::hmpid::HMPIDDCSDataProcessor>()},
     Options{{"ccdb-path", VariantType::String, "http://localhost:8080", {"Path to CCDB"}},
             {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
             {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}}//,

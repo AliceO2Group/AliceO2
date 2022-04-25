@@ -39,7 +39,7 @@
 #include "CommonUtils/MemFileHelper.h"
 #include "DetectorsCalibration/Utils.h" // o2::calibration::dcs,  o2::calibration::Utils
 //using DeliveryType = o2::dcs::DeliveryType;
-//using DPID = o2::dcs::DataPointIdentifier;
+using DPID = o2::dcs::DataPointIdentifier;
 //using DPVAL = o2::dcs::DataPointValue;
 using DPCOM = o2::dcs::DataPointCompositeObject;
 
@@ -63,7 +63,8 @@ class HMPIDDCSProcessor{
 		   
 		HMPIDDCSProcessor() = default;
 		~HMPIDDCSProcessor() = default;
-			
+		
+		void init(const std::vector<DPID>& pids);	
 	
 	 	// DCS-CCDB methods and members ===================================================================================================
 	

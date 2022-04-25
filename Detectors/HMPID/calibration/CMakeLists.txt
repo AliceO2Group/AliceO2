@@ -13,7 +13,7 @@ o2_add_library(HMPIDCalibration
 		TARGETVARNAME targetName
                 SOURCES src/HMPIDDCSProcessor.cxx 
 			src/HMPIDDCSTime.cxx
-			src/HMPIDDataProcessorSpec.cxx
+			src/HMPIDDCSDataProcessorSpec.cxx
 #                       src/HmpidDecoder2.cxx
 #                       src/HmpidEquipment.cxx
 #                       src/CTFHelper.cxx
@@ -36,8 +36,8 @@ o2_add_library(HMPIDCalibration
 
 o2_target_root_dictionary(HMPIDCalibration
                           HEADERS  include/HMPIDCalibration/HMPIDDCSProcessor.h
-                            	   include/HMPIDCalibration/HMPIDDCSTime.h)
-                            	   #include/HMPIDCalibration/HMPIDTestComp.h)
+                            	   include/HMPIDCalibration/HMPIDDCSTime.h
+                            	   include/HMPIDCalibration/HMPIDDCSDataProcessorSpec.h)
 #                                  include/HMPIDCalibration/HmpidDecoder2.h
 #                                  include/HMPIDCalibration/HmpidEquipment.h)
 #                                  include/HMPIDSimulation/Detector.h

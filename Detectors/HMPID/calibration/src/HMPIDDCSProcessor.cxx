@@ -37,7 +37,7 @@
 #include "CommonUtils/MemFileHelper.h"
 #include "DetectorsCalibration/Utils.h" // o2::calibration::dcs,  o2::calibration::Utils
 //using DeliveryType = o2::dcs::DeliveryType;
-//using DPID = o2::dcs::DataPointIdentifier;
+using DPID = o2::dcs::DataPointIdentifier;
 //using DPVAL = o2::dcs::DataPointValue;
 using DPCOM = o2::dcs::DataPointCompositeObject;
 
@@ -47,6 +47,12 @@ using namespace o2::dcs;
 
 namespace o2::hmpid {
 	
+
+void HMPIDDCSProcessor::init(const std::vector<DPID>& pids)
+{
+
+}	
+
 void HMPIDDCSProcessor::process(const gsl::span<const DPCOM> dps)
 {
   if (dps.size() == 0) {

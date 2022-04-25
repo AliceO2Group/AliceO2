@@ -91,7 +91,7 @@ using clbUtils = o2::calibration::Utils;
 using HighResClock = std::chrono::high_resolution_clock;
 using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
 
-class HMPIDDataProcessor : public o2::framework::Task
+class HMPIDDCSDataProcessor : public o2::framework::Task
 {
  public:
   void init(o2::framework::InitContext& ic) final;
