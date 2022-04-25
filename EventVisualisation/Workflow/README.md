@@ -50,13 +50,11 @@ o2-eve -j -d /home/ed/jsons -o
 |eve-hostname     |   |name of the host allowed to produce files (empty means no limit)   |
 |eve-dds-collection-index     |-1   |number of dpl collection allowed to produce files (-1 means no limit)   |  
 |number-of_files     |300   |maximum number of json files in folder (newer one will replace oldest)   |  
-|number-of_tracks     |-1   |maximum number of track stored in json file (-1 means no limit)   |  
-|enable-mc     |false   |enable visualization of MC data   |  
+|number-of_tracks     |-1   |maximum number of track stored in json file (-1 means no limit)   |
 |disable-mc     |false   |disable visualization of MC data   |  
 |display-clusters     |ITS,TPC,TRD,TOF   |comma-separated list of clusters to display   |  
 |display-tracks     |TPC,ITS,ITS-TPC,TPC-TRD,ITS-TPC-TRD,TPC-TOF,ITS-TPC-TOF   |comma-separated list of tracks to display   |  
-|read-from-files     |false   |   |  
-|disable-root-input     |false   |Disable root input overriding read-from-files   |  
+|disable-root-input     |false   | disable root-files input reader  |
 |configKeyValues     |   |Semicolon separated key=value strings ..."   | 
 
 
