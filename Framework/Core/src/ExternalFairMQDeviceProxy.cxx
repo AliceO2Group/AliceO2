@@ -24,6 +24,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/RateLimiter.h"
 #include "Framework/TimingInfo.h"
+#include "Framework/DomainInfoHeader.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 
@@ -229,6 +230,10 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
     static int64_t dplCounter = -1;
     dplCounter++;
     for (int msgidx = 0; msgidx < parts.Size(); msgidx += 2) {
+      const auto dih = o2::header::get<DomainInfoHeader*>(parts.At(msgidx)->GetData());
+      if (dih == nullptr) {
+        continue;
+      }
       const auto dh = o2::header::get<DataHeader*>(parts.At(msgidx)->GetData());
       if (!dh) {
         LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
