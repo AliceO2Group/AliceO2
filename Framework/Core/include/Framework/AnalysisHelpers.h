@@ -103,7 +103,7 @@ struct Produces {
 /// derives.
 template <template <typename...> class T, typename... C>
 struct Produces<T<C...>> : WritingCursor<typename soa::PackToTable<typename T<C...>::table_t::persistent_columns_t>::table> {
-  using table_t = soa::Table<C...>;
+  using table_t = T<C...>;
   using metadata = typename aod::MetadataTrait<table_t>::metadata;
 
   // @return the associated OutputSpec

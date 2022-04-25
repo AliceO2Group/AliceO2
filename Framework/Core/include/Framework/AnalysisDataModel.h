@@ -703,11 +703,11 @@ DECLARE_SOA_COLUMN(TimeC, timeC, float);               //!
 DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint8_t); //!
 } // namespace fdd
 
-DECLARE_SOA_TABLE_VERSIONED(FDDs_000, "AOD", "FDD", 0, //! FDD table, version 000
-                            o2::soa::Index<>, fdd::BCId,
-                            fdd::AmplitudeA, fdd::AmplitudeC,
-                            fdd::TimeA, fdd::TimeC,
-                            fdd::TriggerMask);
+DECLARE_SOA_TABLE(FDDs_000, "AOD", "FDD", //! FDD table, version 000
+                  o2::soa::Index<>, fdd::BCId,
+                  fdd::AmplitudeA, fdd::AmplitudeC,
+                  fdd::TimeA, fdd::TimeC,
+                  fdd::TriggerMask);
 
 DECLARE_SOA_TABLE_VERSIONED(FDDs_001, "AOD", "FDD", 1, //! FDD table, version 001
                             o2::soa::Index<>,
