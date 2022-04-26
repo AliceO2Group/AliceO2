@@ -75,10 +75,12 @@ if [[ $SYNCMODE == 1 ]]; then
     ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;"
     [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode sync"
     [[ -z ${PVERTEXING_CONFIG_KEY+x} ]] && PVERTEXING_CONFIG_KEY+="pvertexer.maxChi2TZDebris=2000;"
+    workflow_has_parameter CALIB && TRD_CONFIG+=" --enable-trackbased-calib"
   elif [[ $BEAMTYPE == "pp" ]]; then
     ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=-1;fastMultConfig.cutMultClusHigh=-1;fastMultConfig.cutMultVtxHigh=-1;ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2"
     [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode sync"
     [[ -z ${PVERTEXING_CONFIG_KEY+x} ]] && PVERTEXING_CONFIG_KEY+="pvertexer.maxChi2TZDebris=10;"
+    workflow_has_parameter CALIB && TRD_CONFIG+=" --enable-trackbased-calib"
   elif [[ $BEAMTYPE == "cosmic" ]]; then
     [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode cosmics"
   else
@@ -91,10 +93,12 @@ else
   if [[ $BEAMTYPE == "PbPb" ]]; then
     [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode async"
     [[ -z ${PVERTEXING_CONFIG_KEY+x} ]] && PVERTEXING_CONFIG_KEY+="pvertexer.maxChi2TZDebris=2000;"
+    workflow_has_parameter CALIB && TRD_CONFIG+=" --enable-trackbased-calib"
   elif [[ $BEAMTYPE == "pp" ]]; then
     ITS_CONFIG_KEY+="ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2"
     [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode async"
     [[ -z ${PVERTEXING_CONFIG_KEY+x} ]] && PVERTEXING_CONFIG_KEY+="pvertexer.maxChi2TZDebris=10;"
+    workflow_has_parameter CALIB && TRD_CONFIG+=" --enable-trackbased-calib"
   elif [[ $BEAMTYPE == "cosmic" ]]; then
     [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode cosmics"
   else
