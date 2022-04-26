@@ -276,7 +276,7 @@ void Digitizer::storeBC(BCCache& bc,
       amp = 4095;
     }
 
-    LOG(info) << mEventID << " bc " << firstBCinDeque.bc << " orbit " << firstBCinDeque.orbit << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored << " offset " << miscalib;
+    LOG(debug) << mEventID << " bc " << firstBCinDeque.bc << " orbit " << firstBCinDeque.orbit << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored << " offset " << miscalib;
     digitsCh.emplace_back(ipmt, smeared_time, int(amp), chain);
     nStored++;
 

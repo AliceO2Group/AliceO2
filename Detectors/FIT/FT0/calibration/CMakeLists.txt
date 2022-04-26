@@ -69,6 +69,5 @@ o2_add_library(FT0Calibration
         PUBLIC_LINK_LIBRARIES
         O2::DataFormatsFT0 O2::FITCalibration O2::DetectorsCalibration
         )
-   
 
 o2_data_file(COPY files DESTINATION Detectors/FT0/)

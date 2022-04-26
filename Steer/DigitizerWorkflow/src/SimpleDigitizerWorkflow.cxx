@@ -1,3 +1,4 @@
+
 // Copyright 2019-2020 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
@@ -571,6 +572,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // the FT0 part
   if (isEnabled(o2::detectors::DetID::FT0)) {
     auto useCCDB = configcontext.options().get<bool>("use-ccdb-ft0");
+    auto timestamp = o2::raw::HBFUtils::Instance().startTime;
     detList.emplace_back(o2::detectors::DetID::FT0);
     // connect the FT0 digitization
     specs.emplace_back(o2::ft0::getFT0DigitizerSpec(fanoutsize++, mctruth, useCCDB));
