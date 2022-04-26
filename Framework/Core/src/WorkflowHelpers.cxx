@@ -174,7 +174,7 @@ void WorkflowHelpers::addMissingOutputsToSpawner(std::vector<OutputSpec> const& 
     for (auto& i : input.metadata) {
       if ((i.type == VariantType::String) && (i.name.find("input:") != std::string::npos)) {
         auto spec = DataSpecUtils::fromMetadataString(i.defaultValue.get<std::string>());
-        auto j = std::find_if(publisher.inputs.begin(), publisher.inputs.end(), [&](auto x) { return x.binding == spec.binding; });
+        auto j = std::find(publisher.inputs.begin(), publisher.inputs.end(), spec);
         if (j == publisher.inputs.end()) {
           publisher.inputs.push_back(spec);
         }

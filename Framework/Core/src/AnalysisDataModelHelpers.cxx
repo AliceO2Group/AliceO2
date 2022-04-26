@@ -34,7 +34,7 @@ std::string getTreeName(header::DataHeader dh)
   auto found = description.find_first_of(':');
   std::string treeName = str_tolower(description).substr(0, found);
   if (iver > 0) {
-    treeName += std::string{"_"}.append(std::string(2 - (int)std::log10(iver), '0')).append(std::to_string(iver));
+    treeName += std::string{"_"}.append(std::string(2 - (int)std::log10(iver), '0')).append(std::to_string((int)iver));
   }
 
   // add prefix according to origin
