@@ -466,6 +466,53 @@ Bool_t NDRegression::MakeFit(TTree* tree, const char* formulaVal, const char* fo
   return kTRUE;
 }
 
+Double_t NDRegression::GetCorrND(Double_t index, Double_t par0)
+{
+  //
+  //
+  NDRegression* corr =
+    (NDRegression*)fgVisualCorrection->At(index);
+  if (!corr)
+    return 0;
+  return corr->Eval(&par0);
+}
+
+Double_t NDRegression::GetCorrNDError(Double_t index, Double_t par0)
+{
+  //
+  //
+  NDRegression* corr =
+    (NDRegression*)fgVisualCorrection->At(index);
+  if (!corr)
+    return 0;
+  return corr->EvalError(&par0);
+}
+
+Double_t NDRegression::GetCorrND(Double_t index, Double_t par0,
+                                 Double_t par1)
+{
+  //
+  //
+  NDRegression* corr =
+    (NDRegression*)fgVisualCorrection->At(index);
+  if (!corr)
+    return 0;
+  Double_t par[2] = {par0, par1};
+  return corr->Eval(par);
+}
+Double_t NDRegression::GetCorrNDError(Double_t index, Double_t par0,
+                                      Double_t par1)
+{
+  //
+  //
+  NDRegression* corr =
+    (NDRegression*)fgVisualCorrection->At(index);
+  if (!corr)
+    return 0;
+  Double_t par[2] = {par0, par1};
+  return corr->EvalError(par);
+}
+
 void PlotData(TH1F* hData, TString xTitle = "xTitle", TString yTitle = "yTitle", Color_t color = kBlack, TString zTitle = "zTitle", Double_t rms = 999999., Double_t eRms = 0., Double_t mean = 999999., Double_t eMean = 0.)
 {
   //

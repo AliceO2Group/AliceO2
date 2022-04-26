@@ -24,10 +24,14 @@
 #include "TMinuit.h"
 #include "TVectorD.h"
 #include "THn.h"
+#include "TH1.h"
 #include "Rtypes.h"
 #include <memory>
 #include "CommonUtils/TreeStream.h"
 #include "CommonUtils/TreeStreamRedirector.h"
+#include "TStyle.h"
+#include "TPaveText.h"
+#include "TCanvas.h"
 
 class TreeStreamRedirector;
 class THn;

@@ -112,8 +112,8 @@ BOOST_AUTO_TEST_CASE(NDRegression2DIdeal_test)
   } else {
     ::Error("AliNDLocalRegressionTest::UnitTestBreitWignerNoise", " rms pull NOT OK %3.3f\t+-%3.3f", rmsPullsBreitWigner, rmsPullsBreitWignerErr);
   }
-  PlotData(pullsBreiWigner54, "BreitWigner pulls", "counts (arb. units)", kBlue + 2, "zTitle", rmsPullsBreitWigner, rmsPullsBreitWignerErr, meanPullsBreitWigner, meanPullsBreitWignerErr);
-  canvasUnitBreitWigner->SaveAs("AliNDLocalRegressionTest.canvasUnitBreitWigner.png");
+  // PlotData(pullsBreiWigner54, "BreitWigner pulls", "counts (arb. units)", kBlue + 2, "zTitle", rmsPullsBreitWigner, rmsPullsBreitWignerErr, meanPullsBreitWigner, meanPullsBreitWignerErr);
+  // canvasUnitBreitWigner->SaveAs("AliNDLocalRegressionTest.canvasUnitBreitWigner.png");
 
   inpf.Close();
 }
