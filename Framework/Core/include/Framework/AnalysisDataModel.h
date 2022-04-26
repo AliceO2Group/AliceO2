@@ -726,9 +726,9 @@ DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, Tracks, "_Neg"); //! Nega
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);                         //! Collision index
 } // namespace v0
 
-DECLARE_SOA_TABLE_VERSIONED(V0s_000, "AOD", "V0", 0, //! Run 2 V0 table (version 000)
-                            o2::soa::Index<>,
-                            v0::PosTrackId, v0::NegTrackId);
+DECLARE_SOA_TABLE(V0s_000, "AOD", "V0", //! Run 2 V0 table (version 000)
+                  o2::soa::Index<>,
+                  v0::PosTrackId, v0::NegTrackId);
 DECLARE_SOA_TABLE_VERSIONED(V0s_001, "AOD", "V0", 1, //! Run 3 V0 table (version 001)
                             o2::soa::Index<>, v0::CollisionId,
                             v0::PosTrackId, v0::NegTrackId);
@@ -743,8 +743,8 @@ DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, Tracks, ""); //! Bachelor
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);                     //! Collision index
 } // namespace cascade
 
-DECLARE_SOA_TABLE_VERSIONED(Cascades_000, "AOD", "CASCADE", 0, //! Run 2 cascade table
-                            o2::soa::Index<>, cascade::V0Id, cascade::BachelorId);
+DECLARE_SOA_TABLE(Cascades_000, "AOD", "CASCADE", //! Run 2 cascade table
+                  o2::soa::Index<>, cascade::V0Id, cascade::BachelorId);
 DECLARE_SOA_TABLE_VERSIONED(Cascades_001, "AOD", "CASCADE", 1, //! Run 3 cascade table
                             o2::soa::Index<>, cascade::CollisionId, cascade::V0Id, cascade::BachelorId);
 
