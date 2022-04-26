@@ -185,11 +185,24 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
     std::map<std::string, std::string> headers;
     std::string path = "";
     std::string etag = "";
+    bool isGLOobject = false;
+    for (auto& meta : route.matcher.metadata) {
+      if (meta.name == "ccdb-path") {
+        path = meta.defaultValue.get<std::string>();
+        if (path.find("GLO/Config") != std::string::npos) {
+          isGLOobject = true;
+        }
+      }
+    }
     for (auto& meta : route.matcher.metadata) {
       if (meta.name == "ccdb-path") {
         path = meta.defaultValue.get<std::string>();
       } else if (meta.name == "ccdb-run-dependent" && meta.defaultValue.get<bool>() == true) {
-        metadata["runNumber"] = dtc.runNumber;
+        if (isGLOobject) {
+          metadata["runNumber"] = dtc.runNumber;
+        } else {
+          LOGP(fatal, "Only GLO/Config/* can be run dependent, but {} was declared as such", path);
+        }
       } else if (isPrefix(ccdbMetadataPrefix, meta.name)) {
         std::string key = meta.name.substr(ccdbMetadataPrefix.size());
         auto value = meta.defaultValue.get<std::string>();
