@@ -2759,7 +2759,7 @@ template <typename T>
 using is_soa_index_table_t = typename framework::is_base_of_template<soa::IndexTable, T>;
 
 template <typename T>
-struct SmallGroups : Filtered<T> {
+struct SmallGroups : public Filtered<T> {
   SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
     : Filtered<T>(std::move(tables), selection, offset) {}
 

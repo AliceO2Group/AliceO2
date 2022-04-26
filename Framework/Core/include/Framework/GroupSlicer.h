@@ -47,23 +47,31 @@ struct GroupSlicer {
     template <typename Z>
     std::string getLabelFromType()
     {
+      auto cutString = [](std::string&& str) -> std::string {
+        auto pos = str.find('_');
+        if (pos != std::string::npos) {
+          str.erase(pos);
+        }
+        return str;
+      };
+
       if constexpr (soa::is_soa_index_table_t<std::decay_t<Z>>::value) {
         using T = typename std::decay_t<Z>::first_t;
         if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
           using O = typename framework::pack_element_t<0, typename std::decay_t<Z>::originals>;
           using groupingMetadata = typename aod::MetadataTrait<O>::metadata;
-          return groupingMetadata::tableLabel();
+          return cutString(std::string{groupingMetadata::tableLabel()});
         } else {
           using groupingMetadata = typename aod::MetadataTrait<T>::metadata;
-          return groupingMetadata::tableLabel();
+          return cutString(std::string{groupingMetadata::tableLabel()});
         }
       } else if constexpr (soa::is_type_with_originals_v<std::decay_t<Z>>) {
         using T = typename framework::pack_element_t<0, typename std::decay_t<Z>::originals>;
         using groupingMetadata = typename aod::MetadataTrait<T>::metadata;
-        return groupingMetadata::tableLabel();
+        return cutString(std::string{groupingMetadata::tableLabel()});
       } else {
         using groupingMetadata = typename aod::MetadataTrait<std::decay_t<Z>>::metadata;
-        return groupingMetadata::tableLabel();
+        return cutString(std::string{groupingMetadata::tableLabel()});
       }
     }
 
