@@ -43,10 +43,10 @@ class VdAndExBCalibDevice : public o2::framework::Task
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     int minEnt = ic.options().get<int>("min-entries");
-    auto slotL = ic.options().get<uint32_t>("tf-per-slot");
+    auto slotL = ic.options().get<uint32_t>("sec-per-slot");
     auto delay = ic.options().get<uint32_t>("max-delay");
     mCalibrator = std::make_unique<o2::trd::CalibratorVdExB>(minEnt);
-    mCalibrator->setSlotLength(slotL);
+    mCalibrator->setSlotLengthInSeconds(slotL);
     mCalibrator->setMaxSlotsDelay(delay);
   }
 
@@ -78,9 +78,26 @@ class VdAndExBCalibDevice : public o2::framework::Task
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
   {
-    // See LHCClockCalibratorSpec.h
-    // Before this can be implemented the output CCDB objects need to be defined
-    // and added to CalibratorVdExB
+    // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
+    // TODO in principle, this routine is generic, can be moved to Utils.h
+
+    using clbUtils = o2::calibration::Utils;
+    const auto& payloadVec = mCalibrator->getCcdbObjectVector();
+    auto& infoVec = mCalibrator->getCcdbObjectInfoVector(); // use non-const version as we update it
+    assert(payloadVec.size() == infoVec.size());
+
+    for (uint32_t i = 0; i < payloadVec.size(); i++) {
+      auto& w = infoVec[i];
+      auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
+      LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
+                << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
+
+      output.snapshot(Output{clbUtils::gDataOriginCDBPayload, "VDRIFTEXB", i}, *image.get()); // vector<char>
+      output.snapshot(Output{clbUtils::gDataOriginCDBWrapper, "VDRIFTEXB", i}, w);            // root-serialized
+    }
+    if (payloadVec.size()) {
+      mCalibrator->initOutput(); // reset the outputs once they are already sent
+    }
   }
 };
 
@@ -95,8 +112,8 @@ DataProcessorSpec getTRDVdAndExBCalibSpec()
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
-  //outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload});
-  //outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "VDRIFTEXB"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "VDRIFTEXB"}, Lifetime::Sporadic);
   std::vector<InputSpec> inputs{{"input", "TRD", "ANGRESHISTS"}};
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
@@ -111,9 +128,9 @@ DataProcessorSpec getTRDVdAndExBCalibSpec()
     outputs,
     AlgorithmSpec{adaptFromTask<device>(ccdbRequest)},
     Options{
-      {"tf-per-slot", VariantType::UInt32, 5u, {"number of TFs per calibration time slot"}},
-      {"max-delay", VariantType::UInt32, 90'000u, {"number of slots in past to consider"}}, // 15 minutes delay, 10ms TF
-      {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit single time slot"}}}};
+      {"sec-per-slot", VariantType::UInt32, 900u, {"number of seconds per calibration time slot"}},
+      {"max-delay", VariantType::UInt32, 2u, {"number of slots in past to consider"}},
+      {"min-entries", VariantType::Int, 40'000, {"minimum number of entries to fit single time slot"}}}}; // around 3 entries per bin per chamber
 }
 
 } // namespace framework
