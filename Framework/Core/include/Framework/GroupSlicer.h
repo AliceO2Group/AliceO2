@@ -151,80 +151,28 @@ struct GroupSlicer {
         at);
     }
 
-    template <typename B, typename C>
-    constexpr static bool isIndexTo()
-    {
-      if constexpr (soa::is_type_with_binding_v<C>) {
-        if constexpr (soa::is_soa_index_table_t<std::decay_t<B>>::value) {
-          using T = typename std::decay_t<B>::first_t;
-          if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
-            using TT = typename framework::pack_element_t<0, typename std::decay_t<T>::originals>;
-            return std::is_same_v<typename C::binding_t, TT>;
-          } else {
-            using TT = std::decay_t<T>;
-            return std::is_same_v<typename C::binding_t, TT>;
-          }
-        } else {
-          if constexpr (soa::is_type_with_originals_v<std::decay_t<B>>) {
-            using TT = typename framework::pack_element_t<0, typename std::decay_t<B>::originals>;
-            return std::is_same_v<typename C::binding_t, TT>;
-          } else {
-            using TT = std::decay_t<B>;
-            return std::is_same_v<typename C::binding_t, TT>;
-          }
-        }
-      }
-      return false;
-    }
-
-    template <typename B, typename C>
-    constexpr static bool isSortedIndexTo()
-    {
-      if constexpr (soa::is_type_with_binding_v<C>) {
-        if constexpr (soa::is_soa_index_table_t<std::decay_t<B>>::value) {
-          using T = typename std::decay_t<B>::first_t;
-          if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
-            using TT = typename framework::pack_element_t<0, typename std::decay_t<T>::originals>;
-            return std::is_same_v<typename C::binding_t, TT> && C::sorted;
-          } else {
-            using TT = std::decay_t<T>;
-            return std::is_same_v<typename C::binding_t, TT> && C::sorted;
-          }
-        } else {
-          if constexpr (soa::is_type_with_originals_v<std::decay_t<B>>) {
-            using TT = typename framework::pack_element_t<0, typename std::decay_t<B>::originals>;
-            return std::is_same_v<typename C::binding_t, TT> && C::sorted;
-          } else {
-            using TT = std::decay_t<B>;
-            return std::is_same_v<typename C::binding_t, TT> && C::sorted;
-          }
-        }
-      }
-      return false;
-    }
-
     template <typename B, typename... C>
     constexpr static bool hasIndexTo(framework::pack<C...>&&)
     {
-      return (isIndexTo<B, C>() || ...);
+      return (o2::soa::is_binding_compatible_v<B, typename C::binding_t>() || ...);
     }
 
     template <typename B, typename... C>
     constexpr static bool hasSortedIndexTo(framework::pack<C...>&&)
     {
-      return (isSortedIndexTo<B, C>() || ...);
+      return ((C::sorted && o2::soa::is_binding_compatible_v<B, typename C::binding_t>()) || ...);
     }
 
     template <typename B, typename Z>
     constexpr static bool relatedByIndex()
     {
-      return hasIndexTo<B>(typename Z::persistent_columns_t{});
+      return hasIndexTo<B>(typename Z::table_t::external_index_columns_t{});
     }
 
     template <typename B, typename Z>
     constexpr static bool relatedBySortedIndex()
     {
-      return hasSortedIndexTo<B>(typename Z::persistent_columns_t{});
+      return hasSortedIndexTo<B>(typename Z::table_t::external_index_columns_t{});
     }
 
     GroupSlicerIterator& operator++()
