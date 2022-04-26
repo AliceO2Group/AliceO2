@@ -23,7 +23,6 @@
 #include <TError.h>
 #include <TMemFile.h>
 #include <functional>
-#include <boost/algorithm/string/predicate.hpp>
 
 namespace o2::framework
 {
@@ -213,23 +212,8 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
         continue;
       }
       // printing in case we find a default entry
-      // we allow "default", "Default", "DEFAULT",
-      // and they can be equal to a case-insensitive "true" or "1"
-      auto defMetaData = headers.find("default");
-      auto defMetaDataInCap = headers.find("Default");
-      auto defMetaDataCap = headers.find("DEFAULT");
-      if (defMetaData != headers.end()) {
-        if (boost::iequals((*defMetaData).second, "true") || (*defMetaData).second == "1") {
-          LOGP(info, "******** Default entry used for {} ********", path);
-        }
-      } else if (defMetaDataInCap != headers.end()) {
-        if (boost::iequals((*defMetaDataInCap).second, "true") || (*defMetaDataInCap).second == "1") {
-          LOGP(info, "******** Default entry used for {} ********", path);
-        }
-      } else if (defMetaDataCap != headers.end()) {
-        if (boost::iequals((*defMetaDataCap).second, "true") || (*defMetaDataCap).second == "1") {
-          LOGP(info, "******** Default entry used for {} ********", path);
-        }
+      if (headers.find("default") != headers.end()) {
+        LOGP(detail, "******** Default entry used for {} ********", path);
       }
       if (etag.empty()) {
         helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
