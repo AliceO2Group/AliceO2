@@ -267,11 +267,13 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       push(State::IN_INPUT);
       inputMatcherNodes.clear();
     } else if (in(State::IN_INPUT_MATCHER)) {
-      assert(0); // to be implemented
+      // start a new embedded matcher
     } else if (in(State::IN_INPUT_LEFT_MATCHER)) {
-      assert(0); // to be implemented
+      // this is a matcher leaf, i.e. last matcher of a branch
+      // will be merged into the parent matcher
     } else if (in(State::IN_INPUT_RIGHT_MATCHER)) {
-      assert(0); // to be implemented
+      // this is a matcher leaf, i.e. last matcher of a branch
+      // will be merged into the parent matcher
     } else if (in(State::IN_OUTPUTS)) {
       push(State::IN_OUTPUT);
       outputHasSubSpec = false;
@@ -324,6 +326,60 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       inputMatcherNodes.clear();
       inputOptions.clear();
 
+    } else if (in(State::IN_INPUT_MATCHER) && inputMatcherNodes.size() > 1) {
+      data_matcher::Node child = std::move(inputMatcherNodes.back());
+      inputMatcherNodes.pop_back();
+      auto* matcher = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&child);
+      assert(matcher != nullptr);
+      auto* parent = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&inputMatcherNodes.back());
+      assert(parent != nullptr);
+      std::unique_ptr<DataDescriptorMatcher> node;
+      auto mergeDown = [&node, &parent, &child]() -> bool {
+        // FIXME: do we need a dedicated default state, or can we simply use ConstantValueMatcher
+        if (auto* pval1 = std::get_if<ConstantValueMatcher>(&((*parent)->getLeft()))) {
+          if (*pval1 == ConstantValueMatcher{false}) {
+            node = std::make_unique<DataDescriptorMatcher>((*parent)->getOp(),
+                                                           std::move(child),
+                                                           std::move((*parent)->getRight()));
+            return true;
+          }
+        }
+        if (auto* pval2 = std::get_if<ConstantValueMatcher>(&((*parent)->getRight()))) {
+          if (*pval2 == ConstantValueMatcher{false}) {
+            node = std::make_unique<DataDescriptorMatcher>((*parent)->getOp(),
+                                                           std::move((*parent)->getLeft()),
+                                                           std::move(child));
+            return true;
+          }
+        }
+        return false;
+      };
+      if (!mergeDown()) {
+        states.push_back(State::IN_ERROR);
+      }
+      inputMatcherNodes.pop_back();
+      inputMatcherNodes.push_back(std::move(node));
+    } else if (in(State::IN_INPUT_LEFT_MATCHER)) {
+      assert(inputMatcherNodes.size() >= 2);
+      size_t nMatchers = inputMatcherNodes.size();
+      auto* parent = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&inputMatcherNodes[nMatchers - 2]);
+      assert(parent != nullptr);
+      auto node = std::make_unique<DataDescriptorMatcher>((*parent)->getOp(),
+                                                          std::move(inputMatcherNodes[nMatchers - 1]),
+                                                          std::move((*parent)->getRight()));
+      inputMatcherNodes.pop_back();
+      inputMatcherNodes.pop_back();
+      inputMatcherNodes.push_back(std::move(node));
+    } else if (in(State::IN_INPUT_RIGHT_MATCHER)) {
+      data_matcher::Node child = std::move(inputMatcherNodes.back());
+      inputMatcherNodes.pop_back();
+      auto* parent = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&inputMatcherNodes.back());
+      assert(parent != nullptr);
+      auto node = std::make_unique<DataDescriptorMatcher>((*parent)->getOp(),
+                                                          std::move((*parent)->getLeft()),
+                                                          std::move(child));
+      inputMatcherNodes.pop_back();
+      inputMatcherNodes.push_back(std::move(node));
     } else if (in(State::IN_OUTPUT)) {
       if (outputHasSubSpec) {
         dataProcessors.back().outputs.push_back(OutputSpec({binding}, origin, description, subspec, lifetime));
@@ -479,13 +535,13 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     } else if (in(State::IN_INPUT) && strncmp(str, "subspec", length) == 0) {
       push(State::IN_INPUT_SUBSPEC);
     } else if (in(State::IN_INPUT) && strncmp(str, "matcher", length) == 0) {
-      assert(0);
       // the outermost matcher is starting here
       // we create a placeholder which is being updated later
       inputMatcherNodes.push_back(std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::And, ConstantValueMatcher{false}));
       push(State::IN_INPUT_MATCHER);
     } else if (in(State::IN_INPUT_MATCHER) && strncmp(str, "matcher", length) == 0) {
-      // recursive matchers, can maybe combine with above
+      // recursive matchers
+      inputMatcherNodes.push_back(std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::And, ConstantValueMatcher{false}));
       push(State::IN_INPUT_MATCHER);
     } else if (in(State::IN_INPUT_MATCHER) && strncmp(str, "operation", length) == 0) {
       push(State::IN_INPUT_MATCHER_OPERATION);
