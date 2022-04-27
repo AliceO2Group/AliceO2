@@ -29,6 +29,16 @@
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"
 
+
+
+/*
+https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/GRP/workflows/src/GRPDCSDPsSpec.cxx
+https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/TOF/calibration/testWorkflow/TOFDCSDataProcessorSpec.h
+https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/EMCAL/workflow/include/EMCALWorkflow/EMCALDCSDataProcessorSpec.h
+https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/ITSMFT/MFT/condition/testWorkflow/MFTDCSDataProcessorSpec.h
+*/
+
+
 using namespace o2::framework;
 
 namespace o2
