@@ -54,19 +54,21 @@ void RawReaderMemory::init()
   mIsJustInited = true;
 }
 
-//Read the next pages until the stop bit is found or new HBF reached
-//it means we read 1 HBF per next() call
+// Read the next pages until the stop bit is found or new HBF reached
+// it means we read 1 HBF per next() call
 RawErrorType_t RawReaderMemory::next()
 {
   mRawPayload.clear();
   bool isStopBitFound = false;
   do {
     RawErrorType_t e = nextPage();
-    if (e == RawErrorType_t::kPAGE_NOTFOUND ||      // nothing left to read...
-        e == RawErrorType_t::kRDH_DECODING ||       // incorrect rdh -> fatal error
-        e == RawErrorType_t::kPAYLOAD_INCOMPLETE || // we reached end of mRawMemoryBuffer but payload size from rdh tells to read more
-        e == RawErrorType_t::kSTOPBIT_NOTFOUND) {   //new HBF orbit started but no stop bit found, need to return
-      throw e;                                      //some principal error occured -> stop reading.
+    if (e == RawErrorType_t::kPAGE_NOTFOUND ||       // nothing left to read...
+        e == RawErrorType_t::kRDH_DECODING ||        // incorrect rdh -> fatal error
+        e == RawErrorType_t::kPAYLOAD_INCOMPLETE ||  // we reached end of mRawMemoryBuffer but payload size from rdh tells to read more
+        e == RawErrorType_t::kSTOPBIT_NOTFOUND ||    // new HBF orbit started but no stop bit found, need to return
+        e == RawErrorType_t::kNOT_CPV_RDH ||         // not cpv rdh -> most probably
+        e == RawErrorType_t::kOFFSET_TO_NEXT_IS_0) { // offset to next package is 0 -> do not know how to read next
+      throw e;                                       // some principal error occured -> stop reading.
     }
     isStopBitFound = RDHDecoder::getStop(mRawHeader);
   } while (!isStopBitFound);
@@ -74,8 +76,8 @@ RawErrorType_t RawReaderMemory::next()
   return RawErrorType_t::kOK;
 }
 
-//Read the next ONLY ONE page from the stream (single DMA page)
-//note: 1 raw header per page
+// Read the next ONLY ONE page from the stream (single DMA page)
+// note: 1 raw header per page
 RawErrorType_t RawReaderMemory::nextPage()
 {
   if (!hasNext()) {
@@ -88,27 +90,30 @@ RawErrorType_t RawReaderMemory::nextPage()
   o2::header::RDHAny rawHeader;
   try {
     rawHeader = decodeRawHeader(mRawMemoryBuffer.data() + mCurrentPosition);
+    if (RDHDecoder::getOffsetToNext(rawHeader) == 0) { // dont' know how to read next -> skip to next HBF
+      return RawErrorType_t::kOFFSET_TO_NEXT_IS_0;
+    }
     if (RDHDecoder::getSourceID(rawHeader) != 0x8) {
       // Not a CPV RDH
-      mCurrentPosition += RDHDecoder::getOffsetToNext(rawHeader); //moving on
+      mCurrentPosition += RDHDecoder::getOffsetToNext(rawHeader); // not cpv rdh -> skip to next HBF
       return RawErrorType_t::kNOT_CPV_RDH;
     }
-    if (mIsJustInited || mStopBitWasNotFound) { //reading first time after init() or stopbit was not found
+    if (mIsJustInited || mStopBitWasNotFound) { // reading first time after init() or stopbit was not found
       mCurrentHBFOrbit = RDHDecoder::getHeartBeatOrbit(rawHeader);
-      mRawHeader = rawHeader; //save RDH of first page as mRawHeader
+      mRawHeader = rawHeader; // save RDH of first page as mRawHeader
       mRawHeaderInitialized = true;
-      mStopBitWasNotFound = false; //reset this flag as we start to read again
+      mStopBitWasNotFound = false; // reset this flag as we start to read again
       mIsJustInited = false;
     } else if (mCurrentHBFOrbit != RDHDecoder::getHeartBeatOrbit(rawHeader)) {
-      //next HBF started but we didn't find stop bit.
+      // next HBF started but we didn't find stop bit.
       mStopBitWasNotFound = true;
-      mCurrentPosition += RDHDecoder::getOffsetToNext(mRawHeader); // moving on
-      return RawErrorType_t::kSTOPBIT_NOTFOUND;                    // Stop reading, this will be read again by calling next()
+      mCurrentPosition += RDHDecoder::getOffsetToNext(rawHeader); // moving on
+      return RawErrorType_t::kSTOPBIT_NOTFOUND;                   // Stop bit was not found -> skip to next HBF
     }
   } catch (...) {
-    return RawErrorType_t::kRDH_DECODING; //this is fatal error
+    return RawErrorType_t::kRDH_DECODING; // this is fatal error -> skip whole TF
   }
-  mRawHeader = rawHeader; //save RDH of current page as mRawHeader
+  mRawHeader = rawHeader; // save RDH of current page as mRawHeader
   mRawHeaderInitialized = true;
 
   auto tmp = mRawMemoryBuffer.data();
@@ -117,7 +122,8 @@ RawErrorType_t RawReaderMemory::nextPage()
   bool isPayloadIncomplete = false;
   if (mCurrentPosition + RDHDecoder::getMemorySize(mRawHeader) > mRawMemoryBuffer.size()) {
     // Payload incomplete
-    end = mRawMemoryBuffer.size(); //OK, lets read it anyway. Maybe there still are some completed events...
+    isPayloadIncomplete = true;
+    end = mRawMemoryBuffer.size(); // OK, lets read it anyway. Maybe there still are some completed events...
   }
   for (auto iword = start; iword < end; iword++) {
     mRawPayload.push_back(tmp[iword]);
@@ -126,7 +132,7 @@ RawErrorType_t RawReaderMemory::nextPage()
 
   mCurrentPosition += RDHDecoder::getOffsetToNext(mRawHeader); /// Assume fixed 8 kB page size
   if (isPayloadIncomplete) {
-    return RawErrorType_t::kPAYLOAD_INCOMPLETE; //return error so we can it handle later
+    return RawErrorType_t::kPAYLOAD_INCOMPLETE; // skip to next HBF
   }
   return RawErrorType_t::kOK;
 }
