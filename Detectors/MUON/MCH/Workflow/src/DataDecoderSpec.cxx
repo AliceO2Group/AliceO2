@@ -122,7 +122,8 @@ class DataDecoderTask
     // get the input buffer
     auto& inputs = pc.inputs();
     DPLRawParser parser(inputs, o2::framework::select(mInputSpec.c_str()));
-    for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
+    bool abort{false};
+    for (auto it = parser.begin(), end = parser.end(); it != end && abort == false; ++it) {
       auto const* raw = it.raw();
       if (!raw) {
         continue;
@@ -130,7 +131,11 @@ class DataDecoderTask
       size_t payloadSize = it.size();
 
       gsl::span<const std::byte> buffer(reinterpret_cast<const std::byte*>(raw), sizeof(RDH) + payloadSize);
-      mDecoder->decodeBuffer(buffer);
+      bool ok = mDecoder->decodeBuffer(buffer);
+      if (!ok) {
+        LOG(alarm) << "critical decoding error : aborting this TF decoding\n";
+        abort = true;
+      }
     }
   }
 

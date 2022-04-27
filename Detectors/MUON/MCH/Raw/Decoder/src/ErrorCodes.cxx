@@ -20,7 +20,7 @@ namespace raw
 
 uint32_t getErrorCodesSize()
 {
-  return 13;
+  return 14;
 }
 
 void append(const char* msg, std::string& to)
@@ -75,6 +75,9 @@ std::string errorCodeAsString(uint32_t ec)
   }
   if (ec & ErrorInvalidDigitTime) {
     append("Invalid Digit Time", msg);
+  }
+  if (ec & ErrorNonRecoverableDecodingError) {
+    append("Non Recoverable", msg);
   }
   return msg;
 }
