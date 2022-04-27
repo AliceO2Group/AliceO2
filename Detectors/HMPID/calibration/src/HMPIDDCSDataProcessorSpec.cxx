@@ -80,28 +80,8 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
       }
     } else {
       LOG(info) << "Configuring via hardcoded strings";
-      std::vector<std::string> aliases;
-      aliases.push_back("HMP_DET/HMP_ENV/HMP_ENV_PENV.actual.value"); // environment pressure 
-      std::vector<std::string> tempInString, tempOutString, chamberPressureString, highVoltageString;
-      for(size_t iCh = 0; iCh < 6; iCh++)
-      {
-           chamberPressureString.push_back( Form("HMP_DET/HMP_MP%i/HMP_MP%i_GAS/HMP_MP%i_GAS_PMWPC.actual.value",iCh,iCh,iCh));
-           for(size_t iRad = 0; iRad < 3; iRad++)
-           {  
-               tempOutString.push_back(Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iOut_Temp",iCh,iCh,iRad)); 
-               tempInString.push_back(Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iIn_Temp",iCh,iCh,iRad)); 
-           }        
-           for(size_t iSec = 0; iSec < 3; iSec++)
-           {  
-               highVoltageString.push_back(Form("HMP_DET/HMP_MP%i/HMP_MP%i_PW/HMP_MP%i_SEC%i/HMP_MP%i_SEC%i_HV.actual.vMon",iCh,iCh,iCh,iSec,iCh,iSec)); 
-           } 
-      }
-      aliases.insert(aliases.end(), chamberPressureString.begin(), chamberPressureString.end()); 
-      aliases.insert(aliases.end(), tempOutString.begin(), tempOutString.end()); 
-      aliases.insert(aliases.end(), tempInString.begin(), tempInString.end()); 
-      aliases.insert(aliases.end(), highVoltageString.begin(), highVoltageString.end()); 
       
-      std::vector<std::string> expaliases = o2::dcs::expandAliases(aliases);
+      std::vector<std::string> expaliases = o2::dcs::expandAliases(aliases); // aliases defined in header-file
       
       for (const auto& i : expaliases) {
         vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
