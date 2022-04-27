@@ -45,6 +45,10 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
   
+  
+  
+  // is for-loop ok, or should use something like
+  // https://github.com/AliceO2Group/AliceO2/blob/f76eb23c3fa8d81c5bfea9071d047ef548059fd4/Detectors/ITSMFT/MFT/condition/testWorkflow/MFTDCSDataProcessorSpec.h#L92-L115
   void aliasString()
   {
    aliases.push_back("HMP_DET/HMP_ENV/HMP_ENV_PENV.actual.value"); // environment pressure 
