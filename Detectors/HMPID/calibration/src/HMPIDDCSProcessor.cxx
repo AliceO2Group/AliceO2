@@ -100,10 +100,10 @@ void HMPIDDCSProcessor::processHMPID(DPCOM dp)
 
  if ( alias.substr(alias.length()-7) == TEMP_IN_ID ) {
       LOG(info) << "Temperature_in DP: {}"<< alias;
-      fillTemperature(dp, true); 
+      fill_InTemperature(dp, true); 
     } else if (alias.substr(alias.length()-8) == TEMP_OUT_ID) {
       LOG(info) << "Temperature_out DP: {}"<< alias;
-      fillTemperature(dp, false);
+      fill_OutTemperature(dp, false);
     } else if (alias.substr(alias.length()-4) == HV_ID) {
       LOG(info) << "HV DP: {}"<< alias;
       fillHV(dp);
@@ -564,9 +564,10 @@ void HMPIDDCSProcessor::fillHV(const DPCOM& dpcom)
 	dpcomHV[6*chNum+secNum].push_back(dpcom);
   } else LOG(debug)<< "Not correct datatype for HV DP: {}"<< aliasStr;	
 }
+
 	
-// Temp in (T1) and out (T2), in each chamber_radiator = 7*6  
-void HMPIDDCSProcessor::fillTemperature(const DPCOM& dpcom, bool in) // A :better to pass string ? 
+// Temp in (T1)  in each chamber_radiator = 7*3  
+void HMPIDDCSProcessor::fill_InTemperature(const DPCOM& dpcom) 
 {
   auto& dpid = dpcom.id;
   const auto& type = dpid.get_type();
@@ -576,10 +577,26 @@ void HMPIDDCSProcessor::fillTemperature(const DPCOM& dpcom, bool in) // A :bette
   {		
 	auto chNum = subStringToInt(aliasStr,  startI_chamberTemp,  startI_chamberTemp);
 	auto radNum = subStringToInt(aliasStr,  startI_radiatorTemp,  startI_radiatorTemp);
+	if(type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
+  	{	
+	tempIn[3*chNum+radNum].push_back( dpcom); 
+	}
+}	
 	
-	if(in){	tempIn[3*chNum+radNum].push_back( dpcom); 
-	} else{	tempOut[3*chNum+radNum].push_back(dpcom); } 
-  } else LOG(debug) << "Not correct Data-type for Temperature DP: {}" << aliasStr;
+	
+// Temp out (T2), in each chamber_radiator = 7*3  
+void HMPIDDCSProcessor::fill_OutTemperature(const DPCOM& dpcom) 
+{
+  auto& dpid = dpcom.id;
+  const auto& type = dpid.get_type();
+  const std::string aliasStr(dpid.get_alias());  
+	
+  if(type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
+  {		
+	auto chNum = subStringToInt(aliasStr,  startI_chamberTemp,  startI_chamberTemp);
+	auto radNum = subStringToInt(aliasStr,  startI_radiatorTemp,  startI_radiatorTemp);	
+       	tempOut[3*chNum+radNum].push_back(dpcom);
+  }
 }
 
 	
