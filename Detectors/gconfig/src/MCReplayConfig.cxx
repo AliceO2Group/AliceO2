@@ -37,6 +37,8 @@ void Config()
   replay->setStepFilename(params.stepFilename);
   replay->setStepTreename(params.stepTreename);
   replay->SetCut("CUTALLE", params.energyCut);
+  replay->cutsFromConfig(params.cutFile);
+  replay->blockSetProcessesCuts();
 }
 
 void MCReplayConfig()
