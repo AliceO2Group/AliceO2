@@ -14,6 +14,7 @@
 
 #include "CommonUtils/FileFetcher.h"
 #include "CommonUtils/StringUtils.h"
+#include "CommonUtils/FileSystemUtils.h"
 #include "Framework/Logger.h"
 #include <filesystem>
 #include <fstream>
@@ -55,7 +56,7 @@ FileFetcher::FileFetcher(const std::string& input, const std::string& selRegex, 
         throw std::runtime_error(fmt::format("remote files asked but copy cmd \"{}\" is not valid", mCopyCmd));
       }
       try {
-        fs::create_directories(mCopyDirName);
+        o2::utils::createDirectoriesIfAbsent(mCopyDirName);
       } catch (...) {
         throw std::runtime_error(fmt::format("failed to create scratch directory {}", mCopyDirName));
       }

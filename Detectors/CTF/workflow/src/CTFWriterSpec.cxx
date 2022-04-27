@@ -22,6 +22,7 @@
 #include "CTFWorkflow/CTFWriterSpec.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "CommonUtils/NameConf.h"
+#include "CommonUtils/FileSystemUtils.h"
 #include "DetectorsCommonDataFormats/EncodedBlocks.h"
 #include "DetectorsCommonDataFormats/FileMetaData.h"
 #include "CommonUtils/StringUtils.h"
@@ -226,14 +227,7 @@ void CTFWriterSpec::init(InitContext& ic)
     }
   }
   mChkSize = std::max(size_t(mMinSize * 1.1), mMaxSize);
-  if (!std::filesystem::exists(LOCKFileDir)) {
-    if (!std::filesystem::create_directories(LOCKFileDir)) {
-      usleep(10); // protection in case the directory was being created by other process at the time of query
-      if (!std::filesystem::exists(LOCKFileDir)) {
-        throw std::runtime_error(fmt::format("Failed to create {} directory", LOCKFileDir));
-      }
-    }
-  }
+  o2::utils::createDirectoriesIfAbsent(LOCKFileDir);
 
   if (mCreateDict) { // make sure that there is no local dictonary
     for (int id = 0; id < DetID::nDetectors; id++) {
@@ -501,13 +495,8 @@ void CTFWriterSpec::prepareTFTreeAndFile(const o2::header::DataHeader* dh)
     }
     if (mCreateRunEnvDir && !mEnvironmentID.empty()) {
       ctfDir += fmt::format("{}_{}/", mEnvironmentID, mRun);
-      if (!std::filesystem::exists(ctfDir)) {
-        if (!std::filesystem::create_directories(ctfDir)) {
-          throw std::runtime_error(fmt::format("Failed to create {} directory", ctfDir));
-        } else {
-          LOG(info) << "Created {} directory for CTFs output" << ctfDir;
-        }
-      }
+      o2::utils::createDirectoriesIfAbsent(ctfDir);
+      LOG(info) << "Created {} directory for CTFs output" << ctfDir;
     }
     mCurrentCTFFileName = o2::base::NameConf::getCTFFileName(mRun, dh->firstTForbit, dh->tfCounter);
     mCurrentCTFFileNameFull = fmt::format("{}{}", ctfDir, mCurrentCTFFileName);
