@@ -25,7 +25,6 @@
 #include "TPCBase/CDBInterface.h"
 #include "TPCWorkflow/ProcessingHelpers.h"
 #include "DetectorsBase/GRPGeomHelper.h"
-#include "DetectorsCalibration/Utils.h"
 
 using namespace o2::framework;
 using o2::header::gDataOriginTPC;
@@ -109,8 +108,7 @@ class CalibratorPadGainTracksDevice : public Task
       if (mWriteToDB) {
         LOGP(info, "Writing pad-by-pad gain map to CCDB for TF {} to {}", firstTF, lastTF);
         mMetadata["runNumber"] = std::to_string(mRunNumber);
-        const auto timeStampEnd = o2::calibration::Utils::INFINITE_TIME;
-        mDBapi.storeAsTFileAny<std::unordered_map<std::string, CalPad>>(&calib, CDBTypeMap.at(CDBType::CalPadGainResidual), mMetadata, mCreationTime, timeStampEnd);
+        mDBapi.storeAsTFileAny<std::unordered_map<std::string, CalPad>>(&calib, CDBTypeMap.at(CDBType::CalPadGainResidual), mMetadata, mCreationTime, o2::calibration::INFINITE_TF);
       }
     }
     mCalibrator->initOutput(); // empty the outputs after they are send
@@ -119,11 +117,11 @@ class CalibratorPadGainTracksDevice : public Task
   const bool mUseLastExtractedMapAsReference{false};    ///< whether to use the last extracted gain map as a reference gain map
   std::unique_ptr<CalibratorPadGainTracks> mCalibrator; ///< calibrator object for creating the pad-by-pad gain map
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
-  bool mWriteToDB{};                                    ///< flag if writing to CCDB will be done
-  o2::ccdb::CcdbApi mDBapi;                             ///< API for storing the gain map in the CCDB
-  std::map<std::string, std::string> mMetadata;         ///< meta data of the stored object in CCDB
-  uint64_t mRunNumber{0};                               ///< processed run number
-  uint64_t mCreationTime{0};                            ///< creation time of current TF
+  bool mWriteToDB{};                            ///< flag if writing to CCDB will be done
+  o2::ccdb::CcdbApi mDBapi;                     ///< API for storing the gain map in the CCDB
+  std::map<std::string, std::string> mMetadata; ///< meta data of the stored object in CCDB
+  uint64_t mRunNumber{0};                       ///< processed run number
+  uint64_t mCreationTime{0};                    ///< creation time of current TF
 };
 
 /// create a processor spec
