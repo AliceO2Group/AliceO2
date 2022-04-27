@@ -100,10 +100,10 @@ void HMPIDDCSProcessor::processHMPID(DPCOM dp)
 
  if ( alias.substr(alias.length()-7) == TEMP_IN_ID ) {
       LOG(info) << "Temperature_in DP: {}"<< alias;
-      fill_InTemperature(dp, true); 
+      fill_InTemperature(dp); 
     } else if (alias.substr(alias.length()-8) == TEMP_OUT_ID) {
       LOG(info) << "Temperature_out DP: {}"<< alias;
-      fill_OutTemperature(dp, false);
+      fill_OutTemperature(dp);
     } else if (alias.substr(alias.length()-4) == HV_ID) {
       LOG(info) << "HV DP: {}"<< alias;
       fillHV(dp);
@@ -573,13 +573,14 @@ void HMPIDDCSProcessor::fill_InTemperature(const DPCOM& dpcom)
   const auto& type = dpid.get_type();
   const std::string aliasStr(dpid.get_alias());  
 	
-  if(type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
-  {		
-	auto chNum = subStringToInt(aliasStr,  startI_chamberTemp,  startI_chamberTemp);
-	auto radNum = subStringToInt(aliasStr,  startI_radiatorTemp,  startI_radiatorTemp);
-	if(type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
-  	{	
-	tempIn[3*chNum+radNum].push_back( dpcom); 
+	  if(type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
+	  {		
+		auto chNum = subStringToInt(aliasStr,  startI_chamberTemp,  startI_chamberTemp);
+		auto radNum = subStringToInt(aliasStr,  startI_radiatorTemp,  startI_radiatorTemp);
+		if(type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
+	  	{	
+		tempIn[3*chNum+radNum].push_back( dpcom); 
+		}
 	}
 }	
 	
@@ -617,11 +618,12 @@ uint64_t HMPIDDCSProcessor::processFlags(const uint64_t flags, const char* pid)
   return 0;
 }	
 	
-  int HMPIDDCSProcessor::subStringToInt(std::string inputString, std::size_t startIndex, std::size_t endIndex)
-  { 
+int HMPIDDCSProcessor::subStringToInt(std::string inputString, std::size_t startIndex, std::size_t endIndex)
+{ 
   	char stringPos = inputString.at(startIndex);
   	return ((int)stringPos) - ((int)'0');
- }	
+}	
 	
 }	// end namespace
+
 
