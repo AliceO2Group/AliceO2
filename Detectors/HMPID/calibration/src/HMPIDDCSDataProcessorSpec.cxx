@@ -52,14 +52,14 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
     std::vector<DPID> vect;
      
 
-    // GV/CZ: is this necessary for HMPID?
-	    mDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval");
-	    if (mDPsUpdateInterval == 0) {
-	      LOG(error) << "HMPID DPs update interval set to zero seconds --> changed to 60";
-	      mDPsUpdateInterval = 60;
-	    }
+    // GV: is this necessary for HMPID?
+   /*	We only need to process datapoints and make fits after run is over-->   
+    mDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval");
+    if (mDPsUpdateInterval == 0) {
+      LOG(error) << "HMPID DPs update interval set to zero seconds --> changed to 60";
+      mDPsUpdateInterval = 60;
+    } */ 
 
-   // GV/CZ:
 
 
     bool useCCDBtoConfigure = ic.options().get<bool>("use-ccdb-to-configure");
@@ -73,12 +73,14 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
       api.init(mgr.getURL());
       long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
       std::unordered_map<DPID, std::string>* dpid2DataDesc = mgr.getForTimeStamp<std::unordered_map<DPID, std::string>>("HMPID/Config/DCSDPconfig", ts); // correct??
-      for (auto& i : *dpid2DataDesc) {
+     // "HMPID/Config/DCSDPconfig", from : 
+     // https://github.com/AliceO2Group/AliceO2/blob/f76eb23c3fa8d81c5bfea9071d047ef548059fd4/Detectors/TOF/calibration/macros/makeTOFCCDBEntryForDCS.C#L49-L50
+      for (auto& i : *dpid2DataDesc) {	
         vect.push_back(i.first);
       }
     } else {
       LOG(info) << "Configuring via hardcoded strings";
-      std::vector<std::string> aliases = {"tof_hv_vp_[00..89]", "tof_hv_vn_[00..89]", "tof_hv_ip_[00..89]", "tof_hv_in_[00..89]"};
+      std::vector<std::string> aliases = {"tof_hv_vp_[00..89]", "CHANGE TO HMPID STRINGS"};
       std::vector<std::string> expaliases = o2::dcs::expandAliases(aliases);
       
       for (const auto& i : expaliases) {
@@ -120,8 +122,8 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
     
     // process datapoints: 
     mProcessor->process(dps);
-     // not necessary for HMPID??: 
-    /*
+ 
+    /*   not necessary for HMPID: we only process the DPs after run is finished: 
     Duration elapsedTime = timeNow - mTimer; // in seconds
     if (elapsedTime.count() >= mDPsUpdateInterval) {
       sendDPsoutput(pc.outputs());
