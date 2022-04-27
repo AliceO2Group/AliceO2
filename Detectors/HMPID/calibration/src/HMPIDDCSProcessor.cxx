@@ -145,8 +145,7 @@ void HMPIDDCSProcessor::processIR(DPCOM dp)
 double HMPIDDCSProcessor::ProcTrans()
 {   
     for(int i=0; i<30; i++) 
-      {
-    		
+      {    		
             // evaluate wavelenght 
             //("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.waveLenght",i)); 
             if(waveLen[i].size() == 0) // if there is no entries 
@@ -156,7 +155,16 @@ double HMPIDDCSProcessor::ProcTrans()
             }  
 	    //  pVal=(AliDCSValue*)pWaveLenght->At(0); // get first element, (i.e. pointer to TObject at index 0)
             	dpWaveLen =  (waveLen[i]).at(0);   
+	    	
+	    if(dpWaveLen.id.get_type() == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
+	    {
 	        lambda = o2::dcs::getValue<double>(dpWaveLen); // Double_t lambda = pVal->GetFloat();
+	    } else {
+                LOG(debug) << Form("Not correct datatype for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.waveLenght  -----> Default E mean used!!!!!",i);
+                return DefaultEMean();
+	    }
+	    
+	    
             if(lambda<150. || lambda>230.)
             { 
                 LOG(debug) << Form("Wrong value for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.waveLenght  -----> Default E mean used!!!!!",i);
@@ -173,6 +181,7 @@ double HMPIDDCSProcessor::ProcTrans()
 	    //O2: static double https://github.com/AliceO2Group/AliceO2/blob/3603ce32b2cddccfd94deb70b70628f3ff0846cd/Detectors/HMPID/base/include/HMPIDBase/Param.h#L136
             if(photEn<o2::hmpid::Param::ePhotMin() || photEn>o2::hmpid::Param::ePhotMax()) continue; // if photon energy is out of range
             
+	    
             // evaluate phototube current for argon reference
             if(argonRef[i].size() == 0)
             { 
@@ -181,8 +190,17 @@ double HMPIDDCSProcessor::ProcTrans()
             } 
       	
             dpArgonRef =  (argonRef[i]).at(0); // pVal=(AliDCSValue*)pArgonRef->At(0);    
-            aRefArgon = o2::dcs::getValue<double>(dpArgonRef);// Double_t aRefArgon = pVal->GetFloat();
+	    
+	    if(dpArgonRef.id.get_type() == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
+	    {
+            	aRefArgon = o2::dcs::getValue<double>(dpArgonRef);// Double_t aRefArgon = pVal->GetFloat();
+	    } else {
+                LOG(debug) << Form("Not correct datatype for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonReference  -----> Default E mean used!!!!!",i);
+                return DefaultEMean();
+	    }
+	    
         
+	    
             // evaluate phototube current for argon cell
             if(argonCell[i].size() == 0)
             { 
@@ -190,29 +208,55 @@ double HMPIDDCSProcessor::ProcTrans()
                 return DefaultEMean(); // to be checked
             } 
 	    
-            dpArgonCell  =  (argonCell[i]).at(0); // pVal=(AliDCSValue*)pArgonRef->At(0);    
-            aCellArgon = o2::dcs::getValue<double>(dpArgonCell);// Double_t aCellArgon = pVal->GetFloat(); 
+            dpArgonCell  =  (argonCell[i]).at(0); // pVal=(AliDCSValue*)pArgonRef->At(0);  
+	    
+	    if(dpArgonCell.id.get_type() == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
+	    {
+            	aCellArgon = o2::dcs::getValue<double>(dpArgonCell);// Double_t aCellArgon = pVal->GetFloat(); 
+	    } else {
+                LOG(debug) << Form("Not correct datatype for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonCell  -----> Default E mean used!!!!!",i);
+                return DefaultEMean();
+	    }
+		
             
-        
+	    
             //evaluate phototube current for freon reference
             if(freonRef[i].size() == 0)
             { 
                 LOG(debug) << Form("No Data Point values for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Reference  -----> Default E mean used!!!!!",i);
                 return DefaultEMean(); // to be checked
             } 
-            dpFreonRef  =  (freonRef[i]).at(0); //pVal=(AliDCSValue*)pFreonRef->At(0);  
-            aRefFreon = o2::dcs::getValue<double>(dpFreonRef);//   Double_t aRefFreon = pVal->GetFloat(); 
+            
+	    dpFreonRef  =  (freonRef[i]).at(0); //pVal=(AliDCSValue*)pFreonRef->At(0);  
       
-			        
+	    if(dpFreonRef.id.get_type() == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
+	    {
+            	aRefFreon = o2::dcs::getValue<double>(dpFreonRef);//   Double_t aRefFreon = pVal->GetFloat(); 
+	    } else {
+                LOG(debug) << Form("Not correct datatype for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Reference  -----> Default E mean used!!!!!",i);
+                return DefaultEMean();
+	    }
+	    
+		
+	    
             //evaluate phototube current for freon cell
             if(freonCell[i].size() == 0)
             {
                 LOG(debug) << Form("No Data Point values for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Cell  -----> Default E mean used!!!!!",i);
                 return DefaultEMean(); // to be checked
             }
-             dpFreonCell =  (freonCell[i]).at(0); // pVal=(AliDCSValue*)pFreonCell->At(0);
-             aCellFreon = o2::dcs::getValue<double>(dpFreonCell);//   Double_t aCellFreon = pVal->GetFloat();
-           
+            
+	    dpFreonCell =  (freonCell[i]).at(0); // pVal=(AliDCSValue*)pFreonCell->At(0);
+            
+	    if(dpFreonCell.id.get_type() == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
+	    {
+	     	aCellFreon = o2::dcs::getValue<double>(dpFreonCell);//   Double_t aCellFreon = pVal->GetFloat();
+	    } else {
+                LOG(debug) << Form("Not correct datatype for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Cell  -----> Default E mean used!!!!!",i);
+                return DefaultEMean();
+	    }
+		    
+	    
          
            //evaluate correction factor to calculate trasparency (Ref. NIMA 486 (2002) 590-609)
             
@@ -481,7 +525,7 @@ void HMPIDDCSProcessor::fillChamberPressures(const DPCOM& dpcom)
   const auto& type = dpid.get_type();
   const std::string aliasStr(dpid.get_alias());  
   
-  if(type == DeliveryType::DPVAL_INT || type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
+  if(type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
   {
 
  	// find chamber number:  
@@ -497,7 +541,7 @@ void HMPIDDCSProcessor::fillEnvironmentPressure(const DPCOM& dpcom)
   const auto& type = dpid.get_type();
   const std::string aliasStr(dpid.get_alias());  
 
-  if(type == DeliveryType::DPVAL_INT || type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
+  if(type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
 	{	
 	  	pEnv.push_back(dpcom); 
   } else {
@@ -513,7 +557,7 @@ void HMPIDDCSProcessor::fillHV(const DPCOM& dpcom)
   const auto& type = dpid.get_type();
   const std::string aliasStr(dpid.get_alias());  
 
-  if(type == DeliveryType::DPVAL_INT || type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected
+  if(type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
   { 	
 	auto chNum = subStringToInt(aliasStr, startI_chamberHV,  startI_chamberHV);
 	auto secNum = subStringToInt(aliasStr,  startI_sectorHV,  startI_sectorHV);
@@ -528,7 +572,7 @@ void HMPIDDCSProcessor::fillTemperature(const DPCOM& dpcom, bool in) // A :bette
   const auto& type = dpid.get_type();
   const std::string aliasStr(dpid.get_alias());  
 	
-  if(type == DeliveryType::DPVAL_INT || type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
+  if(type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
   {		
 	auto chNum = subStringToInt(aliasStr,  startI_chamberTemp,  startI_chamberTemp);
 	auto radNum = subStringToInt(aliasStr,  startI_radiatorTemp,  startI_radiatorTemp);
