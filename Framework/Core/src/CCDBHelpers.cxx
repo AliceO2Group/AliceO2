@@ -211,6 +211,10 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
         // FIXME: I should send a dummy message.
         continue;
       }
+      // printing in case we find a default entry
+      if (headers.find("default") != headers.end()) {
+        LOGP(detail, "******** Default entry used for {} ********", path);
+      }
       if (etag.empty()) {
         helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
         auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodCCDB);
