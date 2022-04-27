@@ -11,8 +11,6 @@
 
 
 #include <unistd.h>
-#include <TRandom.h>
-#include <TStopwatch.h>
 #include "DetectorsDCS/DataPointIdentifier.h"
 #include "DetectorsDCS/DataPointValue.h"
 #include "DetectorsDCS/DataPointCompositeObject.h"
@@ -27,12 +25,8 @@
 #include "DetectorsCalibration/Utils.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/BasicCCDBManager.h"
-#include "Framework/DataProcessorSpec.h"
-#include "Framework/DeviceSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
-#include "Framework/WorkflowSpec.h"
-#include "Framework/Task.h"
 #include "Framework/Logger.h"
 
 using namespace o2::framework;
@@ -56,12 +50,18 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
   {
    
     std::vector<DPID> vect;
-     // GV/CZ: is this necessary for HMPID?
+     
+
+    // GV/CZ: is this necessary for HMPID?
 	    mDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval");
 	    if (mDPsUpdateInterval == 0) {
 	      LOG(error) << "HMPID DPs update interval set to zero seconds --> changed to 60";
 	      mDPsUpdateInterval = 60;
 	    }
+
+   // GV/CZ:
+
+
     bool useCCDBtoConfigure = ic.options().get<bool>("use-ccdb-to-configure");
 
     if (useCCDBtoConfigure) {
@@ -87,7 +87,7 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
       //std::vector<std::string> aliasesInt = {"TOF_FEACSTATUS_[00..71]"};
       //std::vector<std::string> expaliasesInt = o2::dcs::expandAliases(aliasesInt);
       //for (const auto& i : expaliasesInt) {  vect.emplace_back(i, o2::dcs::DPVAL_INT);}
-    }
+    } // end else 
 
     LOG(info) << "Listing Data Points for HMPID:";
     for (auto& i : vect) {
@@ -100,7 +100,7 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
     if (useVerboseMode) { // def in HMPIDCSProcessor.h
       mProcessor->useVerboseMode();
     }
-    mProcessor->init(vect);
+    //mProcessor->init(vect); hmp??
     mTimer = HighResClock::now();
   }
 
@@ -149,8 +149,9 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
   void HMPIDDCSDataProcessor::sendChargeThresOutput(DataAllocator& output)
   {
     // fill CCDB with ChargeThres (arQthre)   
-    const auto& payload = mProcessor->getChargeCutObj();    
-    //const std::array<TF1,42> mChargeCut;
+    const auto& payload = mProcessor->getChargeCutObj();   // arQthre
+     // const std::array<TF1,42> arQthre;  --> current, filled up array
+    //const std::array<TF1,42> mChargeCut; --> only declared
     
     auto& info = mProcessor->getHmpidChargeCutInfo();   // OK, but maybe change function and var names  
     
@@ -167,8 +168,10 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
   {
       // fill CCDB with RefIndex (arrMean)            
       const auto& payload = mProcessor->getRefIndexObj();   
-      //const std::array<TF1,43> mRefIndex;
-   
+       // const std::array<TF1,42> arrMean;  --> current, filled up array
+    //const std::array<TF1,42> mRefIndex; --> only declared
+
+
       auto& info = mProcessor->getccdbREF_INDEXsInfo(); // OK, but maybe change function and var names  
 
       
@@ -194,11 +197,9 @@ DataProcessorSpec getHMPIDDCSDataProcessorSpec()
   std::vector<OutputSpec> outputs;
  
   // NB! probably change Lifetime::Sporadic
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ChargeCut"}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ChargeCut"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ChargeCut"}, Lifetime::Sporadic); outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ChargeCut"}, Lifetime::Sporadic);
 
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "RefIndex"}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "RefIndex"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "RefIndex"}, Lifetime::Sporadic); outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "RefIndex"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "HMPID-dcs-data-processor",

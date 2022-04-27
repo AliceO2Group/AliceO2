@@ -71,7 +71,7 @@ class HMPIDDCSProcessor{
 		const CcdbObjectInfo& getccdbREF_INDEXsInfo() const { return mccdbREF_INDEX_Info; }
          	CcdbObjectInfo& getccdbREF_INDEXsInfo() { return mccdbREF_INDEX_Info; }
 	
-		const std::array<TF1,43>& getRefIndexObj() const { return mRefIndex; }
+		const std::array<TF1,43>& getRefIndexObj() const { return arNmean; } // mRefIndex
 // for calculating refractive index: 
 		//TF1 arNmean[43]; /// 21* Tin and 21*Tout (1 per radiator, 3 radiators per chambers)
 				 // + 1 for ePhotMean (mean photon energy) 		
@@ -81,7 +81,7 @@ class HMPIDDCSProcessor{
    		const CcdbObjectInfo& getHmpidChargeCutInfo() const { return mccdbCHARGE_CUT_Info; }
     		CcdbObjectInfo& getHmpidChargeCutInfo() { return mccdbCHARGE_CUT_Info; }
 	
-		const std::array<TF1,42>& getChargeCutObj() const { return mChargeCut; }
+		const std::array<TF1,42>& getChargeCutObj() const { return arQthre; }// mChargeCut
 		// Charge Threshold: 
 		// TF1 arQthre[42];  //42 Qthre=f(time) one per sector
 	
@@ -208,11 +208,14 @@ class HMPIDDCSProcessor{
 		  void useVerboseMode() { mVerbose = true; }
             private:
 		// DCS-CCDB ====================================================================================================
+
+		std::unordered_map<DPID, bool> mPids;
+
 	 	long mFirstTime;         // time when a CCDB object was stored first
 	  	long mStartValidity = 0; // TF index for processing, used to store CCDB object
 	  	bool mFirstTimeSet = false; 	
 	
-		bool mVerbose = false;
+		bool mVerbose = false;		
 
 		CcdbObjectInfo mccdbREF_INDEX_Info;
 		const std::array<TF1,43> mRefIndex;//TF1 mRefIndex[43];

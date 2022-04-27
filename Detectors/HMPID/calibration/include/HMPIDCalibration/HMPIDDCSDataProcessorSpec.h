@@ -17,24 +17,10 @@
 
 
 #include <unistd.h>
-#include <TRandom.h>
-#include <TStopwatch.h>
-#include "DetectorsDCS/DataPointIdentifier.h"
-#include "DetectorsDCS/DataPointValue.h"
-#include "DetectorsDCS/DataPointCompositeObject.h"
-#include "DetectorsDCS/DeliveryType.h"
-#include "DetectorsDCS/AliasExpander.h"
-#include "HMPIDCalibration/HMPIDDCSProcessor.h"
-#include "DetectorsCalibration/Utils.h"
-#include "CCDB/CcdbApi.h"
-#include "CCDB/BasicCCDBManager.h"
-#include "Framework/DeviceSpec.h"
-#include "Framework/DataProcessorSpec.h"
-#include "Framework/ConfigParamRegistry.h"
-#include "Framework/ControlService.h"
-#include "Framework/WorkflowSpec.h"
 #include "Framework/Task.h"
-#include "Framework/Logger.h"
+#include "HMPIDCalibration/HMPIDDCSProcessor.h"
+#include "Framework/DataProcessorSpec.h"
+#include "CCDB/BasicCCDBManager.h"
 
 using namespace o2::framework;
 

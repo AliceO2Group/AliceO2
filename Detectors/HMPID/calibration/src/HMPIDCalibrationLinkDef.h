@@ -15,7 +15,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-// need to add?: #pragma link C++ class o2::hmpid::HMPIDDataProcessorSpec +;
+// need to add?: 
+#pragma link C++ class o2::hmpid::HMPIDDCSDataProcessor +;
 #pragma link C++ class o2::hmpid::HMPIDDCSProcessor +;
 #pragma link C++ class o2::hmpid::HMPIDDCSTime +;
 //#pragma link C++ class const std::array<TF1,42> +;

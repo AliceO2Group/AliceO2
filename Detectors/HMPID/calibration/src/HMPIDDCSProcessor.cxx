@@ -47,11 +47,11 @@ using namespace o2::dcs;
 
 namespace o2::hmpid {
 	
-
+/*
 void HMPIDDCSProcessor::init(const std::vector<DPID>& pids)
-{
-
-}	
+{	
+	for(const auto& it:pids) mPids[it] = false;
+} */	
 
 void HMPIDDCSProcessor::process(const gsl::span<const DPCOM> dps)
 {
@@ -67,6 +67,15 @@ void HMPIDDCSProcessor::process(const gsl::span<const DPCOM> dps)
   }
 
   for (const auto& dp : dps) {
+
+    const auto& el = mPids.find(dp.id); // hmp?
+    if (el == mPids.end()){		// hmp?	
+	LOG(info) << "DP " << dp.id << "Not found, will not be processed";
+	continue;			// hmp?
+    }					// hmp?
+
+    //mPids[it.id] = true;// hmp?
+	
     const std::string_view alias(dp.id.get_alias());
     const auto detector_id = alias.substr(0, 7);
     const auto ir_id = alias.substr(0,16);
