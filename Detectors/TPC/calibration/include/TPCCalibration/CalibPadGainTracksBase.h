@@ -158,13 +158,9 @@ class CalibPadGainTracksBase
   /// \param outName name of the object in the output file
   void dumpToFile(const char* outFileName = "calPadGainTracksBase.root", const char* outName = "calPadGain") const;
 
-  /// dump extracted gain map to tree
+  /// dump extracted gain and sigma map to tree
   /// \filename name of the output file
-  void dumpGainMapToTree(const std::string filename = "gainmap_debug.root") const;
-
-  /// dump extracted sigma map to tree
-  /// \filename name of the output file
-  void dumpSigmaMapToTree(const std::string filename = "sigmamap_debug.root") const;
+  void dumpToTree(const std::string filename = "map_debug.root") const;
 
   /// setting a gain map from a file
   /// \param inpFile input file containing some caldet

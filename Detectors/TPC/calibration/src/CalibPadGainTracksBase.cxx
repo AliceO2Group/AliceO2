@@ -71,25 +71,19 @@ void CalibPadGainTracksBase::drawExtractedGainMapHelper(const bool type, const i
   type ? IDCDrawHelper::drawSide(drawFun, sector.side(), zAxisTitle, filename, minZ, maxZ) : IDCDrawHelper::drawSector(drawFun, 0, Mapper::NREGIONS, sector, zAxisTitle, filename, minZ, maxZ);
 }
 
-void CalibPadGainTracksBase::dumpGainMapToTree(const std::string filename) const
+void CalibPadGainTracksBase::dumpToTree(const std::string filename) const
 {
   if (!mGainMap) {
     LOGP(error, "Map not set. Returning");
     return;
   }
   CalibTreeDump dump;
-  dump.add(mGainMap.get());
-  dump.dumpToFile(filename);
-}
-
-void CalibPadGainTracksBase::dumpSigmaMapToTree(const std::string filename) const
-{
-  if (!mSigmaMap) {
-    LOGP(error, "Map not set. Returning");
-    return;
+  if (mGainMap) {
+    dump.add(mGainMap.get());
   }
-  CalibTreeDump dump;
-  dump.add(mSigmaMap.get());
+  if (mSigmaMap) {
+    dump.add(mSigmaMap.get());
+  }
   dump.dumpToFile(filename);
 }
 
