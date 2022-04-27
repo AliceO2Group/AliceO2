@@ -16,6 +16,7 @@
 
 #include <string>
 #include <vector>
+#include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/WorkflowSpec.h"
@@ -27,6 +28,12 @@
 #include "TrackWriterSpec.h"
 
 using namespace o2::framework;
+
+void customize(std::vector<CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:MUON|muon).*[W,w]riter.*"));
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
