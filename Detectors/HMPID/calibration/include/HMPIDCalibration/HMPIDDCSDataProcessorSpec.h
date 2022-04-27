@@ -44,8 +44,36 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
+  
+  void aliasString()
+  {
+   aliases.push_back("HMP_DET/HMP_ENV/HMP_ENV_PENV.actual.value"); // environment pressure 
+      for(size_t iCh = 0; iCh < 6; iCh++)
+      {
+           chamberPressureString.push_back( Form("HMP_DET/HMP_MP%i/HMP_MP%i_GAS/HMP_MP%i_GAS_PMWPC.actual.value",iCh,iCh,iCh));
+           for(size_t iRad = 0; iRad < 3; iRad++)
+           {  
+               tempOutString.push_back(Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iOut_Temp",iCh,iCh,iRad)); 
+               tempInString.push_back(Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iIn_Temp",iCh,iCh,iRad)); 
+           }        
+           for(size_t iSec = 0; iSec < 3; iSec++)
+           {  
+               highVoltageString.push_back(Form("HMP_DET/HMP_MP%i/HMP_MP%i_PW/HMP_MP%i_SEC%i/HMP_MP%i_SEC%i_HV.actual.vMon",iCh,iCh,iCh,iSec,iCh,iSec)); 
+           } 
+      }
+      aliases.insert(aliases.end(), chamberPressureString.begin(), chamberPressureString.end()); 
+      aliases.insert(aliases.end(), tempOutString.begin(), tempOutString.end()); 
+      aliases.insert(aliases.end(), tempInString.begin(), tempInString.end()); 
+      aliases.insert(aliases.end(), highVoltageString.begin(), highVoltageString.end()); 
+  }
+
 
  private:
+ 
+  std::vector<std::string> aliases;
+  std::vector<std::string> tempInString, tempOutString, chamberPressureString, highVoltageString;
+
+ 
   std::unique_ptr<HMPIDDCSProcessor> mProcessor;
   HighResClock::time_point mTimer;
   int64_t mDPsUpdateInterval;
