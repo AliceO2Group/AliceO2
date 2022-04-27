@@ -732,6 +732,10 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       push(State::IN_METADATUM_CHANNEL);
     } else if (in(State::IN_COMMAND)) {
       command.merge({s});
+    } else {
+      std::stringstream errstr;
+      errstr << "No string handling for argument '" << std::string(str, length) << "' in state " << states.back() << std::endl;
+      throw std::runtime_error(errstr.str());
     }
     pop();
     return true;
