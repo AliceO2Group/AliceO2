@@ -78,7 +78,7 @@ class MatchCosmics
     int matchID = MinusOne; ///< entry (none if MinusOne) of its match in the vector of matches
   };
   void setITSROFrameLengthMUS(float fums) { mITSROFrameLengthMUS = fums; }
-  void setITSDict(std::unique_ptr<o2::itsmft::TopologyDictionary>& dict) { mITSDict = std::move(dict); }
+  void setITSDict(const o2::itsmft::TopologyDictionary* dict) { mITSDict = dict; }
   void process(const o2::globaltracking::RecoContainer& data);
   void setUseMC(bool mc) { mUseMC = mc; }
   void init();
@@ -128,7 +128,7 @@ class MatchCosmics
   std::vector<MatchRecord> mRecords;
   std::vector<int> mWinners;
   std::unique_ptr<o2::gpu::TPCFastTransform> mTPCTransform; ///< TPC cluster transformation
-  std::unique_ptr<o2::itsmft::TopologyDictionary> mITSDict; // cluster patterns dictionary
+  const o2::itsmft::TopologyDictionary* mITSDict = nullptr; // cluster patterns dictionary
 
   int mTFCount = 0;
   float mTPCTBinMUS = 0.; ///< TPC time bin duration in microseconds

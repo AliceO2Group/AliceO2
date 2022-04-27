@@ -15,6 +15,7 @@
 /// \author  Julian Myrcha
 
 #include "EventVisualisationView/EventManager.h"
+#include "EventVisualisationView/EventManagerFrame.h"
 #include "EventVisualisationView/MultiView.h"
 #include "EventVisualisationView/Options.h"
 #include "EventVisualisationDataConverter/VisualisationEvent.h"
@@ -66,7 +67,7 @@ void EventManager::displayCurrentEvent()
       dataTypeLists[i] = new TEveElementList(gDataTypeNames[i].c_str());
     }
 
-    auto displayList = getDataSource()->getVisualisationList(no);
+    auto displayList = getDataSource()->getVisualisationList(no, EventManagerFrame::getInstance().getMinTimeFrameSliderValue(), EventManagerFrame::getInstance().getMaxTimeFrameSliderValue(), EventManagerFrame::MaxRange);
     for (auto it = displayList.begin(); it != displayList.end(); ++it) {
       displayVisualisationEvent(it->first, gVisualisationGroupName[it->second]);
     }
@@ -105,6 +106,13 @@ void EventManager::PrevEvent()
     if (this->getDataSource()->getCurrentEvent() > 0) {
       GotoEvent(this->getDataSource()->getCurrentEvent() - 1);
     }
+  }
+}
+
+void EventManager::CurrentEvent()
+{
+  if (getDataSource()->getEventCount() > 0) {
+    GotoEvent(this->getDataSource()->getCurrentEvent());
   }
 }
 

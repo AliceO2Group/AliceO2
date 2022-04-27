@@ -21,5 +21,19 @@ namespace processing_helpers
 
 uint64_t getRunNumber(o2::framework::ProcessingContext& pc);
 
-}
+/// \return returns tf from tfCounter
+uint32_t getCurrentTF(o2::framework::ProcessingContext& pc);
+
+/// \return returns creation time of tf
+uint64_t getCreationTime(o2::framework::ProcessingContext& pc);
+
+/// \return returns time stamp in microsecond-precission
+/// Note that the input spec has to be defined as: inputSpecs.emplace_back("orbitreset", "CTP", "ORBITRESET", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/OrbitReset"));
+uint64_t getTimeStamp(o2::framework::ProcessingContext& pc);
+
+/// \return returns the orbit reset time
+/// Note that the input spec has to be defined as: inputSpecs.emplace_back("orbitreset", "CTP", "ORBITRESET", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/OrbitReset"));
+Long64_t getOrbitReset(o2::framework::ProcessingContext& pc);
+
+} // namespace processing_helpers
 } // namespace o2::tpc

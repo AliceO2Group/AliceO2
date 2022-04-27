@@ -15,10 +15,12 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "ITSWorkflow/ClustererSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
@@ -30,6 +32,7 @@
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 
 using namespace o2::framework;
+using namespace o2::itsmft;
 
 namespace o2
 {
@@ -40,7 +43,7 @@ void ClustererDPL::init(InitContext& ic)
 {
   mClusterer = std::make_unique<o2::itsmft::Clusterer>();
   mClusterer->setNChips(o2::itsmft::ChipMappingITS::getNChips());
-
+  mUseClusterDictionary = !ic.options().get<bool>("ignore-cluster-dictionary");
   auto filenameGRP = ic.options().get<std::string>("grp-file");
   const auto grp = o2::parameters::GRPObject::loadFrom(filenameGRP.c_str());
 
@@ -63,20 +66,13 @@ void ClustererDPL::init(InitContext& ic)
   mClusterer->setMaxBCSeparationToMask(nbc);
   mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
 
-  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
-  if (o2::utils::Str::pathExists(dictFile)) {
-    mClusterer->loadDictionary(dictFile);
-    LOG(info) << "ITSClusterer running with a provided dictionary: " << dictFile;
-  } else {
-    LOG(info) << "Dictionary " << dictFile << " is absent, ITSClusterer expects cluster patterns";
-  }
   mState = 1;
   mClusterer->print();
 }
 
 void ClustererDPL::run(ProcessingContext& pc)
 {
+  updateTimeDependentParams(pc);
   auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
   auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
 
@@ -128,11 +124,29 @@ void ClustererDPL::run(ProcessingContext& pc)
   LOG(info) << "ITSClusterer pushed " << clusCompVec.size() << " clusters, in " << clusROFVec.size() << " RO frames";
 }
 
+///_______________________________________
+void ClustererDPL::updateTimeDependentParams(ProcessingContext& pc)
+{
+  pc.inputs().get<TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+}
+
+///_______________________________________
+void ClustererDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated" << (!mUseClusterDictionary ? " but its using is disabled" : "");
+    if (mUseClusterDictionary) {
+      mClusterer->setDictionary((const o2::itsmft::TopologyDictionary*)obj);
+    }
+  }
+}
+
 DataProcessorSpec getClustererSpec(bool useMC)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("digits", "ITS", "DIGITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ROframes", "ITS", "DIGITSROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("cldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
@@ -154,6 +168,7 @@ DataProcessorSpec getClustererSpec(bool useMC)
     Options{
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
       {"no-patterns", o2::framework::VariantType::Bool, false, {"Do not save rare cluster patterns"}},
+      {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}},
       {"nthreads", VariantType::Int, 1, {"Number of clustering threads"}}}};
 }
 

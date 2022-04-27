@@ -27,7 +27,7 @@ boostHisto EMCALCalibExtractor::buildHitAndEnergyMean(double emin, double emax, 
   // (2) slice the existing histogram for one cell ranging from emin to emax
   // (3) calculate the mean of that sliced histogram using BoostHistoramUtils.h
   // (4) fill the next histogram with this value
-  for (int cellID = 0; cellID < NCELLS; cellID++) {
+  for (int cellID = 0; cellID < mNcells; cellID++) {
     // create a slice for each cell with energies ranging from emin to emax
     auto tempSlice = boost::histogram::algorithm::reduce(cellAmplitude, boost::histogram::algorithm::shrink(cellID, cellID), boost::histogram::algorithm::shrink(emin, emax));
     // calculate the mean of the slice
@@ -56,13 +56,13 @@ boostHisto EMCALCalibExtractor::buildHitAndEnergyMean(double emin, double emax, 
 boostHisto EMCALCalibExtractor::buildHitAndEnergyMeanScaled(double emin, double emax, boostHisto cellAmplitude)
 {
   // create the output histogram
-  auto eSumHistoScaled = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0, 100, "t-texp"), boost::histogram::axis::integer<>(0, 17665, "CELL ID"));
+  auto eSumHistoScaled = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0, 100, "t-texp"), boost::histogram::axis::integer<>(0, mNcells, "CELL ID"));
 
   // create a slice for each cell with energies ranging from emin to emax
   auto hEnergyCol = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0, 100., "t-texp"));
   auto hEnergyRow = boost::histogram::make_histogram(boost::histogram::axis::regular<>(250, 0, 250., "t-texp"));
   // temp histogram used to get the scaled energies
-  auto hEnergyScaled = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0, 100, "t-texp"), boost::histogram::axis::integer<>(0, NCELLS, "CELL ID"));
+  auto hEnergyScaled = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0, 100, "t-texp"), boost::histogram::axis::integer<>(0, mNcells, "CELL ID"));
 
   //...........................................
   //start iterative process of scaling of cells
@@ -72,7 +72,7 @@ boostHisto EMCALCalibExtractor::buildHitAndEnergyMeanScaled(double emin, double 
     std::vector<double> vecCol[100];
     std::vector<double> vecRow[250];
 
-    for (int cellID = 0; cellID < NCELLS; cellID++) {
+    for (int cellID = 0; cellID < mNcells; cellID++) {
       auto tempSlice = boost::histogram::algorithm::reduce(cellAmplitude, boost::histogram::algorithm::shrink(cellID, cellID), boost::histogram::algorithm::shrink(emin, emax));
       auto geo = Geometry::GetInstance();
       // (0 - row, 1 - column)
@@ -127,7 +127,7 @@ boostHisto EMCALCalibExtractor::buildHitAndEnergyMeanScaled(double emin, double 
     double meanValCol = colResult.at(1);
 
     //Scale each cell by the deviation of the mean of the column and the global mean
-    for (int iCell = 0; iCell < NCELLS; iCell++) {
+    for (int iCell = 0; iCell < mNcells; iCell++) {
       auto geo = Geometry::GetInstance();
       // (0 - row, 1 - column)
       auto position = geo->GlobalRowColFromIndex(iCell);
@@ -141,7 +141,7 @@ boostHisto EMCALCalibExtractor::buildHitAndEnergyMeanScaled(double emin, double 
     }
 
     //Scale each cell by the deviation of the mean of the row and the global mean
-    for (int iCell = 0; iCell < NCELLS; iCell++) {
+    for (int iCell = 0; iCell < mNcells; iCell++) {
       auto geo = Geometry::GetInstance();
       // (0 - row, 1 - column)
       auto position = geo->GlobalRowColFromIndex(iCell);
@@ -163,7 +163,7 @@ boostHisto EMCALCalibExtractor::buildHitAndEnergyMeanScaled(double emin, double 
   //............................................................................................
   //..here the average hit per event and the average energy per hit is caluclated for each cell.
   //............................................................................................
-  for (Int_t cell = 0; cell < NCELLS; cell++) {
+  for (Int_t cell = 0; cell < mNcells; cell++) {
     Double_t Esum = 0;
     Double_t Nsum = 0;
 

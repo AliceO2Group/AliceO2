@@ -23,10 +23,7 @@
 #include "Align/AlignableVolume.h"
 #include "Align/DOFStatistics.h"
 #include "Align/utils.h"
-
-//class AliTrackPointArray;
-//class AliESDtrack;
-class TCloneArray;
+#include <vector>
 
 namespace o2
 {
@@ -82,7 +79,7 @@ class AlignableSensor : public AlignableVolume
   void Print(const Option_t* opt = "") const override;
   //
   virtual void updatePointByTrackInfo(AlignmentPoint* pnt, const trackParam_t* t) const;
-  void updateL2GRecoMatrices(const TClonesArray* algArr, const TGeoHMatrix* cumulDelta) override;
+  void updateL2GRecoMatrices(const std::vector<o2::detectors::AlignParam>& algArr, const TGeoHMatrix* cumulDelta) override;
   //
   //  virtual AlignmentPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t) = 0; TODO(milettri): needs AliTrackPointArray AliESDtrack
   //

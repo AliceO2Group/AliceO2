@@ -153,6 +153,28 @@ BOOST_AUTO_TEST_CASE(TestMatcherInvariants)
           ConstantValueMatcher{true}))};
     BOOST_CHECK_EQUAL(matcherA, matcherB);
   }
+
+  {
+    DataDescriptorMatcher matcherA{
+      DataDescriptorMatcher::Op::Not,
+      OriginValueMatcher{"TPC"}};
+    DataDescriptorMatcher matcherB{
+      DataDescriptorMatcher::Op::Not,
+      DescriptionValueMatcher{"TRACKLET"}};
+    DataDescriptorMatcher matcherC{
+      DataDescriptorMatcher::Op::Not,
+      SubSpecificationTypeValueMatcher{1}};
+
+    BOOST_CHECK(matcherA.match(header0, context) == false);
+    BOOST_CHECK(matcherA.match(header1, context) == true);
+    BOOST_CHECK(matcherA.match(header4, context) == true);
+    BOOST_CHECK(matcherB.match(header0, context) == true);
+    BOOST_CHECK(matcherB.match(header1, context) == false);
+    BOOST_CHECK(matcherB.match(header4, context) == false);
+    BOOST_CHECK(matcherC.match(header0, context) == false);
+    BOOST_CHECK(matcherC.match(header1, context) == true);
+    BOOST_CHECK(matcherC.match(header4, context) == true);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(TestSimpleMatching)
@@ -537,6 +559,15 @@ BOOST_AUTO_TEST_CASE(DataQuery)
     BOOST_CHECK_EQUAL(ex.what(), "Parse error: Remove trailing ;");
     return true;
   };
+
+  auto missing_value = [](std::runtime_error const& ex) -> bool {
+    BOOST_CHECK_EQUAL(ex.what(), "Parse error: value needs to be between 1 and 1000 char long");
+    return true;
+  };
+  auto missing_key = [](std::runtime_error const& ex) -> bool {
+    BOOST_CHECK_EQUAL(ex.what(), "Parse error: missing value for attribute key");
+    return true;
+  };
   // Empty query.
   BOOST_CHECK(DataDescriptorQueryBuilder::parse().empty() == true);
   // Empty bindings.
@@ -606,4 +637,28 @@ BOOST_AUTO_TEST_CASE(DataQuery)
       << DataDescriptorMatcher::Op::Xor
       << DataDescriptorMatcher::Op::Just;
   BOOST_CHECK_EQUAL(ops.str(), "andorxorjust");
+
+  // Let's check the metadata associated to a query
+  auto result2 = DataDescriptorQueryBuilder::parse("x:TST/A1/0?lifetime=condition");
+  BOOST_CHECK(result2[0].lifetime == Lifetime::Condition);
+
+  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/A1/0?lifetime="), std::runtime_error, missing_value);
+  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/A1/0?"), std::runtime_error, missing_key);
+
+  auto result3 = DataDescriptorQueryBuilder::parse("x:TST/A1/0?key=value&key2=value2");
+  BOOST_CHECK_EQUAL(result3[0].metadata.size(), 2);
+
+  auto result4 = DataDescriptorQueryBuilder::parse("x:TST/A1/0?lifetime=condition&ccdb-path=GLO/Config/GRPECS&key3=value3");
+  BOOST_CHECK_EQUAL(result4.size(), 1);
+  result4[0].lifetime = Lifetime::Condition;
+  BOOST_CHECK_EQUAL(result4[0].metadata.size(), 3);
+  BOOST_CHECK_EQUAL(result4[0].metadata[0].name, "lifetime");
+  BOOST_CHECK_EQUAL(result4[0].metadata[0].defaultValue.get<std::string>(), "condition");
+  BOOST_CHECK_EQUAL(result4[0].metadata[1].name, "ccdb-path");
+  BOOST_CHECK_EQUAL(result4[0].metadata[1].defaultValue.get<std::string>(), "GLO/Config/GRPECS");
+  BOOST_CHECK_EQUAL(result4[0].metadata[2].name, "key3");
+  BOOST_CHECK_EQUAL(result4[0].metadata[2].defaultValue.get<std::string>(), "value3");
+
+  // This is valid.
+  BOOST_CHECK_NO_THROW(DataDescriptorQueryBuilder::parse("x:TST/A1/0xccdb"));
 }

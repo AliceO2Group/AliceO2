@@ -17,6 +17,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "ITSWorkflow/TrackerSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITS/TrackITS.h"
@@ -58,8 +59,8 @@ void TrackerDPL::init(InitContext& ic)
   mTimer.Stop();
   mTimer.Reset();
 
-  auto* chainITS = mRecChain->AddChain<o2::gpu::GPUChainITS>();
-  mVertexer = std::make_unique<Vertexer>(chainITS->GetITSVertexerTraits());
+  mChainITS.reset(mRecChain->AddChain<o2::gpu::GPUChainITS>());
+  mVertexer = std::make_unique<Vertexer>(mChainITS->GetITSVertexerTraits());
   mTracker = std::make_unique<Tracker>(new TrackerTraitsCPU);
 
   auto filename = ic.options().get<std::string>("grp-file");
@@ -89,6 +90,7 @@ void TrackerDPL::init(InitContext& ic)
     std::vector<MemoryParameters> memParams;
 
     mRunVertexer = true;
+    mCosmicsProcessing = false;
     if (mMode == "async") {
 
       trackParams.resize(2);
@@ -122,6 +124,7 @@ void TrackerDPL::init(InitContext& ic)
       trackParams.resize(1);
       LOG(info) << "Initializing tracker in sync. phase reconstruction with " << trackParams.size() << " passes";
     } else if (mMode == "cosmics") {
+      mCosmicsProcessing = true;
       mRunVertexer = false;
       trackParams.resize(1);
       memParams.resize(1);
@@ -155,20 +158,12 @@ void TrackerDPL::init(InitContext& ic)
   } else {
     throw std::runtime_error(o2::utils::Str::concat_string("Cannot retrieve GRP from the ", filename));
   }
-
-  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
-  if (o2::utils::Str::pathExists(dictFile)) {
-    mDict.readFromFile(dictFile);
-    LOG(info) << "Tracker running with a provided dictionary: " << dictFile;
-  } else {
-    LOG(info) << "Dictionary " << dictFile << " is absent, Tracker expects cluster patterns";
-  }
 }
 
 void TrackerDPL::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
+  updateTimeDependentParams(pc);
   auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
   gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
 
@@ -205,135 +200,155 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe});
 
   std::uint32_t roFrame = 0;
-  ROframe event(0, 7);
 
   bool continuous = mGRP->isDetContinuousReadOut("ITS");
   LOG(info) << "ITSTracker RO: continuous=" << continuous;
-
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   FastMultEst multEst;                                     // mult estimator
 
-  TimeFrame mTimeFrame;
-  mTracker->adoptTimeFrame(mTimeFrame);
+  TimeFrame* timeFrame = mChainITS->GetITSTimeframe();
+  mTracker->adoptTimeFrame(*timeFrame);
   mTracker->setBz(mBz);
+  mVertexer->adoptTimeFrame(*timeFrame);
 
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
 
   gsl::span<itsmft::ROFRecord> rofspan(rofs);
-  mTimeFrame.loadROFrameData(rofspan, compClusters, pattIt, mDict, labels);
+  timeFrame->loadROFrameData(rofspan, compClusters, pattIt, mDict, labels);
   pattIt = patterns.begin();
   std::vector<int> savedROF;
   auto logger = [&](std::string s) { LOG(info) << s; };
-  float vertexerElapsedTime{0.f};
+  auto errorLogger = [&](std::string s) { LOG(error) << s; };
   int nclUsed = 0;
 
   std::vector<bool> processingMask;
   int cutClusterMult{0}, cutVertexMult{0}, cutTotalMult{0};
-  for (auto& rof : rofspan) {
-    nclUsed += ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels);
-    // prepare in advance output ROFRecords, even if this ROF to be rejected
-    int first = allTracks.size();
-
-    // for vertices output
-    auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
-    vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
-    vtxROF.setNEntries(0);
-
+  for (size_t iRof{0}; iRof < rofspan.size(); ++iRof) {
+    auto& rof = rofspan[iRof];
     bool multCut = (multEstConf.cutMultClusLow <= 0 && multEstConf.cutMultClusHigh <= 0); // cut was requested
     if (!multCut) {
       float mult = multEst.process(rof.getROFData(compClusters));
       multCut = mult >= multEstConf.cutMultClusLow && mult <= multEstConf.cutMultClusHigh;
-      LOG(debug) << fmt::format("ROF {} rejected by the cluster multiplicity selection [{},{}]", processingMask.size(), multEstConf.cutMultClusLow, multEstConf.cutMultClusHigh);
+      if (!multCut) {
+        LOG(debug) << fmt::format("ROF {} rejected by the cluster multiplicity selection [{},{}]", processingMask.size(), multEstConf.cutMultClusLow, multEstConf.cutMultClusHigh);
+      }
       cutClusterMult += !multCut;
     }
+    processingMask.push_back(multCut);
+  }
+  timeFrame->setMultiplicityCutMask(processingMask);
 
+  float vertexerElapsedTime{0.f};
+  if (mRunVertexer) {
+    // Run seeding vertexer
+    vertexerElapsedTime = mVertexer->clustersToVertices(false, logger);
+  }
+
+  for (auto iRof{0}; iRof < rofspan.size(); ++iRof) {
+    bool multCut;
     std::vector<Vertex> vtxVecLoc;
-    if (multCut) {
-      if (mRunVertexer) {
-        vertexerElapsedTime += mVertexer->clustersToVertices(event, false, logger);
-        auto allVerts = mVertexer->exportVertices();
-        multCut = allVerts.size() == 0;
-        for (const auto& vtx : allVerts) {
-          if (vtx.getNContributors() < multEstConf.cutMultVtxLow || (multEstConf.cutMultVtxHigh > 0 && vtx.getNContributors() > multEstConf.cutMultVtxHigh)) {
-            continue; // skip vertex of unwanted multiplicity
-          }
-          multCut = true; // At least one passes the selection
-          vtxVecLoc.push_back(vtx);
+    auto& vtxROF = vertROFvec.emplace_back(rofspan[iRof]);
+    vtxROF.setFirstEntry(vertices.size());
+    if (mRunVertexer) {
+      auto vtxSpan = timeFrame->getPrimaryVertices(iRof);
+      vtxROF.setNEntries(vtxSpan.size());
+      multCut = vtxSpan.size() == 0;
+      for (auto& v : vtxSpan) {
+        if (v.getNContributors() < multEstConf.cutMultVtxLow || (multEstConf.cutMultVtxHigh > 0 && v.getNContributors() > multEstConf.cutMultVtxHigh)) {
+          continue; // skip vertex of unwanted multiplicity
         }
-      } else {
-        vtxVecLoc.emplace_back(Vertex());
-        vtxVecLoc.back().setNContributors(1);
+        multCut = true;
+        vertices.push_back(v);
       }
-
-      if (!multCut) {
-        LOG(debug) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]", processingMask.size(), multEstConf.cutMultVtxLow, multEstConf.cutMultVtxHigh);
+      if (processingMask[iRof] && !multCut) { // passed selection in clusters and not in vertex multiplicity
+        LOG(debug) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]",
+                                  iRof,
+                                  multEstConf.cutMultVtxLow,
+                                  multEstConf.cutMultVtxHigh);
+        processingMask[iRof] = multCut;
         cutVertexMult++;
       }
+    } else { // cosmics
+      vtxVecLoc.emplace_back(Vertex());
+      vtxVecLoc.back().setNContributors(1);
+      vtxROF.setNEntries(vtxVecLoc.size());
+      for (auto& v : vtxVecLoc) {
+        vertices.push_back(v);
+      }
+      timeFrame->addPrimaryVertices(vtxVecLoc);
     }
-    cutTotalMult += !multCut;
-    processingMask.push_back(multCut);
-    mTimeFrame.addPrimaryVertices(vtxVecLoc);
-
-    vtxROF.setNEntries(vtxVecLoc.size());
-    for (const auto& vtx : vtxVecLoc) {
-      vertices.push_back(vtx);
-    }
-    savedROF.push_back(roFrame);
-    roFrame++;
   }
 
   LOG(info) << fmt::format(" - In total, multiplicity selection rejected {}/{} ROFs", cutTotalMult, rofspan.size());
   LOG(info) << fmt::format("\t - Cluster multiplicity selection rejected {}/{} ROFs", cutClusterMult, rofspan.size());
   LOG(info) << fmt::format("\t - Vertex multiplicity selection rejected {}/{} ROFs", cutVertexMult, rofspan.size());
   LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} clusters in {} ROFs", vertexerElapsedTime, nclUsed, rofspan.size());
-  LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", mTimeFrame.getBeamX(), mTimeFrame.getBeamY());
+  LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", timeFrame->getBeamX(), timeFrame->getBeamY());
 
-  mTimeFrame.setMultiplicityCutMask(processingMask);
-  mTracker->clustersToTracks(logger);
-  if (mTimeFrame.hasBogusClusters()) {
-    LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", mTimeFrame.hasBogusClusters());
-  }
+  if (mCosmicsProcessing && nclUsed > 1500 * rofspan.size()) {
+    LOG(error) << "Cosmics processing was requested with an average detector occupancy exceeding 1.e-7, skipping TF processing.";
+  } else {
 
-  for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
-
-    auto& rof{rofs[iROF]};
-    tracks = mTimeFrame.getTracks(iROF);
-    trackLabels = mTimeFrame.getTracksLabel(iROF);
-    auto number{tracks.size()};
-    auto first{allTracks.size()};
-    int offset = -rof.getFirstEntry(); // cluster entry!!!
-    rof.setFirstEntry(first);
-    rof.setNEntries(number);
-
-    if (tracks.size()) {
-      irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1);
+    timeFrame->setMultiplicityCutMask(processingMask);
+    mTracker->clustersToTracks(logger, errorLogger);
+    if (timeFrame->hasBogusClusters()) {
+      LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", timeFrame->hasBogusClusters());
     }
-    std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
-    // Some conversions that needs to be moved in the tracker internals
-    for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
-      auto& trc{tracks[iTrk]};
-      trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
-      int ncl = trc.getNumberOfClusters(), nclf = 0;
-      for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
-        auto clid = trc.getClusterIndex(ic);
-        if (clid >= 0) {
-          allClusIdx.push_back(clid);
-          nclf++;
-        }
+
+    for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
+
+      auto& rof{rofs[iROF]};
+      tracks = timeFrame->getTracks(iROF);
+      trackLabels = timeFrame->getTracksLabel(iROF);
+      auto number{tracks.size()};
+      auto first{allTracks.size()};
+      int offset = -rof.getFirstEntry(); // cluster entry!!!
+      rof.setFirstEntry(first);
+      rof.setNEntries(number);
+
+      if (tracks.size()) {
+        irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1);
       }
-      assert(ncl == nclf);
-      allTracks.emplace_back(trc);
+      std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
+      // Some conversions that needs to be moved in the tracker internals
+      for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
+        auto& trc{tracks[iTrk]};
+        trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
+        int ncl = trc.getNumberOfClusters(), nclf = 0;
+        for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
+          auto clid = trc.getClusterIndex(ic);
+          if (clid >= 0) {
+            allClusIdx.push_back(clid);
+            nclf++;
+          }
+        }
+        assert(ncl == nclf);
+        allTracks.emplace_back(trc);
+      }
     }
-  }
-
-  LOG(info) << "ITSTracker pushed " << allTracks.size() << " tracks";
-  if (mIsMC) {
-    LOG(info) << "ITSTracker pushed " << allTrackLabels.size() << " track labels";
-
-    pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
-    pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
+    LOGP(info, "ITSTracker pushed {} and {} vertices", allTracks.size(), vertices.size());
+    if (mIsMC) {
+      LOGP(info, "ITSTracker pushed {} track labels", allTrackLabels.size());
+      pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
+      pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
+    }
   }
   mTimer.Stop();
+}
+
+///_______________________________________
+void TrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
+{
+  pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+}
+
+///_______________________________________
+void TrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated";
+    setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
+  }
 }
 
 void TrackerDPL::endOfStream(EndOfStreamContext& ec)
@@ -348,6 +363,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, const std::string& trModeS, o2::gpu
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("cldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);

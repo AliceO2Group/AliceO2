@@ -19,10 +19,11 @@
 #include "MCHRawDecoder/DataDecoder.h"
 
 #include <fstream>
-#include <FairMQLogger.h>
+#include <FairLogger.h>
 #include "Headers/RAWDataHeader.h"
 #include "CommonConstants/LHCConstants.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "Framework/Logger.h"
 #include "MCHRawDecoder/ErrorCodes.h"
@@ -37,7 +38,6 @@ namespace raw
 {
 
 using namespace o2;
-//using namespace o2::framework;
 using namespace o2::mch::mapping;
 using RDH = o2::header::RDHAny;
 
@@ -241,8 +241,8 @@ bool DataDecoder::TimeFrameStartRecord::check(int32_t orbit, uint32_t bc, int32_
 DataDecoder::DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler,
                          uint32_t sampaBcOffset,
                          std::string mapCRUfile, std::string mapFECfile,
-                         bool ds2manu, bool verbose, bool useDummyElecMap)
-  : mChannelHandler(channelHandler), mRdhHandler(rdhHandler), mSampaTimeOffset(sampaBcOffset), mMapCRUfile(mapCRUfile), mMapFECfile(mapFECfile), mDs2manu(ds2manu), mDebug(verbose), mUseDummyElecMap(useDummyElecMap)
+                         bool ds2manu, bool verbose, bool useDummyElecMap, TimeRecoMode timeRecoMode)
+  : mChannelHandler(channelHandler), mRdhHandler(rdhHandler), mSampaTimeOffset(sampaBcOffset), mMapCRUfile(mapCRUfile), mMapFECfile(mapFECfile), mDs2manu(ds2manu), mDebug(verbose), mUseDummyElecMap(useDummyElecMap), mTimeRecoMode(timeRecoMode)
 {
   init();
 }
@@ -612,11 +612,15 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
     updateMergerRecord(mergerChannelId, mergerBoardId, mergerChannelBitmask, mDigits.size() - 1);
   };
 
-  auto errorHandler = [&](DsElecId dsId,
+  auto errorHandler = [&](DsElecId dsElecId,
                           int8_t chip,
                           uint32_t error) {
-    std::string msg = fmt::format("{} chip {:2d} error {:4d} ({})", asString(dsId), chip, error, errorCodeAsString(error));
+    std::string msg = fmt::format("{} chip {:2d} error {:4d} ({})", asString(dsElecId), chip, error, errorCodeAsString(error));
     mErrorMap[msg]++;
+
+    auto solarId = dsElecId.solarId();
+    auto dsId = dsElecId.elinkId();
+    mErrors.emplace_back(o2::mch::DecoderError(solarId, dsId, chip, error));
   };
 
   patchPage(page, mDebug);
@@ -648,39 +652,8 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
 
 //_________________________________________________________________________________________________
 
-int32_t DataDecoder::getDigitTime(uint32_t orbitStart, uint32_t bcStart, uint32_t orbitDigit, uint32_t bcDigit)
-{
-  // We use the difference of orbits values to estimate the minimum and maximum allowed
-  // difference in bunch crossings
-  int64_t dOrbit = static_cast<int64_t>(orbitDigit) - static_cast<int64_t>(orbitStart);
-
-  // Digits might be sent out later than the orbit in which they were recorded.
-  // We account for this by allowing an extra -3 / +10 orbits when converting the
-  // difference from orbit numbers to bunch crossings.
-  int64_t dBcMin = (dOrbit - 50) * bcInOrbit;
-  int64_t dBcMax = (dOrbit + 3) * bcInOrbit;
-
-  // Difference in bunch crossing values
-  int64_t dBc = static_cast<int64_t>(bcDigit) - static_cast<int64_t>(bcStart);
-
-  if (dBc < dBcMin) {
-    // the difference is too small, so we assume that it needs to be
-    // incremented by one rollover factor
-    dBc += bcRollOver;
-  } else if (dBc > dBcMax) {
-    // the difference is too big, so we assume that it needs to be
-    // decremented by one rollover factor
-    dBc -= bcRollOver;
-  }
-
-  return static_cast<int32_t>(dBc);
-}
-
-//_________________________________________________________________________________________________
-
 bool DataDecoder::getTimeFrameStartRecord(const RawDigit& digit, uint32_t& orbitTF, uint32_t& bcTF)
 {
-  static constexpr uint32_t bcInOrbit = o2::constants::lhc::LHCMaxBunches;
   static constexpr uint32_t twentyBitsAtOne = 0xFFFFF;
 
   // first orbit of the current TF
@@ -714,7 +687,7 @@ bool DataDecoder::getTimeFrameStartRecord(const RawDigit& digit, uint32_t& orbit
 
   if (orbitHBP != orbitTF) {
     // we correct the BC from the last received HB packet, if it was recorded from an older TF
-    bcTF += (orbitTF - orbitHBP) * bcInOrbit;
+    bcTF += (orbitTF - orbitHBP) * mBcInOrbit;
     // only keep 20 bits
     bcTF &= twentyBitsAtOne;
 
@@ -728,10 +701,39 @@ bool DataDecoder::getTimeFrameStartRecord(const RawDigit& digit, uint32_t& orbit
 
 //_________________________________________________________________________________________________
 
-void DataDecoder::computeDigitsTime()
+int32_t DataDecoder::getDigitTimeHBPackets(uint32_t orbitStart, uint32_t bcStart, uint32_t orbitDigit, uint32_t bcDigit)
+{
+  // We use the difference of orbits values to estimate the minimum and maximum allowed
+  // difference in bunch crossings
+  int64_t dOrbit = static_cast<int64_t>(orbitDigit) - static_cast<int64_t>(orbitStart);
+
+  // Digits might be sent out later than the orbit in which they were recorded.
+  // We account for this by allowing an extra -3 / +10 orbits when converting the
+  // difference from orbit numbers to bunch crossings.
+  int64_t dBcMin = (dOrbit - 50) * bcInOrbit;
+  int64_t dBcMax = (dOrbit + 3) * bcInOrbit;
+
+  // Difference in bunch crossing values
+  int64_t dBc = static_cast<int64_t>(bcDigit) - static_cast<int64_t>(bcStart);
+
+  if (dBc < dBcMin) {
+    // the difference is too small, so we assume that it needs to be
+    // incremented by one rollover factor
+    dBc += bcRollOver;
+  } else if (dBc > dBcMax) {
+    // the difference is too big, so we assume that it needs to be
+    // decremented by one rollover factor
+    dBc -= bcRollOver;
+  }
+
+  return static_cast<int32_t>(dBc);
+}
+
+//_________________________________________________________________________________________________
+
+void DataDecoder::computeDigitsTimeHBPackets()
 {
   static constexpr int32_t timeInvalid = DataDecoder::tfTimeInvalid;
-  constexpr int BCINORBIT = o2::constants::lhc::LHCMaxBunches;
 
   auto setDigitTime = [&](Digit& d, int32_t tfTime) {
     d.setTime(tfTime);
@@ -752,11 +754,113 @@ void DataDecoder::computeDigitsTime()
       int solar = info.solar;
       int ds = info.ds;
       int chip = info.chip;
-      tfTime = DataDecoder::getDigitTime(orbitTF, bcTF, orbitDigit, bcDigit);
+      tfTime = DataDecoder::getDigitTimeHBPackets(orbitTF, bcTF, orbitDigit, bcDigit);
     }
 
     setDigitTime(d, tfTime);
     info.tfTime = tfTime;
+  }
+}
+
+//_________________________________________________________________________________________________
+
+int32_t DataDecoder::getDigitTimeBCRst(uint32_t orbitStart, uint32_t bcStart, uint32_t orbitDigit, uint32_t bcDigit)
+{
+  // We use the difference of orbits values to estimate the minimum and maximum allowed
+  // difference in bunch crossings
+  int64_t dOrbitRDH = static_cast<int64_t>(orbitDigit) - static_cast<int64_t>(orbitStart);
+
+  // Difference in bunch crossing values
+  int64_t dBc = static_cast<int64_t>(bcDigit) - static_cast<int64_t>(bcStart);
+  int64_t dOrbitSampa = dBc / mBcInOrbit;
+
+  if (dOrbitSampa > (dOrbitRDH + 1)) {
+    // The orbit inferred from the SAMPA BC is larger than the one from the RDH
+    // We interpret this as due to SAMPA packets generated before the BC reset is applied at the beginning of the TF
+    dBc -= mBcInOrbit * mOrbitsInTF;
+  }
+
+  return static_cast<int32_t>(dBc);
+}
+
+//_________________________________________________________________________________________________
+
+void DataDecoder::computeDigitsTimeBCRst()
+{
+  static constexpr int32_t timeInvalid = DataDecoder::tfTimeInvalid;
+
+  auto setDigitTime = [&](Digit& d, int32_t tfTime) {
+    d.setTime(tfTime);
+  };
+
+  for (auto& digit : mDigits) {
+    auto& d = digit.digit;
+    auto& info = digit.info;
+
+    uint32_t orbitTF = mFirstOrbitInTF;
+    uint32_t bcTF = 0;
+    int32_t tfTime = timeInvalid;
+
+    auto orbitDigit = info.orbit;
+    auto bcDigit = info.getBXTime();
+
+    tfTime = DataDecoder::getDigitTimeBCRst(orbitTF, bcTF, orbitDigit, bcDigit);
+
+    tfTime -= mSampaTimeOffset;
+
+    if (mDebug && tfTime < (-2 * mBcInOrbit)) {
+      int solar = info.solar;
+      int ds = info.ds;
+      int chip = info.chip;
+      std::cout << fmt::format("Out-of-time digit: S{} DS{} CHIP{}  TF {}/{}  DIGIT {}/{}  TIME {}",
+                               solar, ds, chip, orbitTF, bcTF, orbitDigit, bcDigit, tfTime)
+                << std::endl;
+    }
+
+    setDigitTime(d, tfTime);
+    info.tfTime = tfTime;
+  }
+}
+
+//_________________________________________________________________________________________________
+
+void DataDecoder::checkDigitsTime(int minDigitOrbitAccepted, int maxDigitOrbitAccepted)
+{
+  if (maxDigitOrbitAccepted < 0) {
+    maxDigitOrbitAccepted = mOrbitsInTF - 1;
+  }
+
+  for (auto& digit : mDigits) {
+    auto& d = digit.digit;
+    auto& info = digit.info;
+    auto tfTime = d.getTime();
+    if (tfTime == DataDecoder::tfTimeInvalid) {
+      // add invalid digit time error
+      mErrors.emplace_back(o2::mch::DecoderError(info.solar, info.ds, info.chip, ErrorInvalidDigitTime));
+    } else {
+      auto orbit = tfTime / o2::constants::lhc::LHCMaxBunches;
+      if (orbit < minDigitOrbitAccepted || orbit > maxDigitOrbitAccepted) {
+        // add bad digit time error
+        mErrors.emplace_back(o2::mch::DecoderError(info.solar, info.ds, info.chip, ErrorBadDigitTime));
+      }
+    }
+  }
+}
+
+//_________________________________________________________________________________________________
+
+void DataDecoder::computeDigitsTime()
+{
+  switch (mTimeRecoMode) {
+    case TimeRecoMode::HBPackets:
+      computeDigitsTimeHBPackets();
+      break;
+    case TimeRecoMode::BCReset:
+      computeDigitsTimeBCRst();
+      break;
+    default:
+      LOGP(error, "Digit time reconstruction mode undefined");
+      break;
   }
 }
 
@@ -827,6 +931,9 @@ void DataDecoder::init()
   initFee2SolarMapper(mMapCRUfile);
   initElec2DetMapper(mMapFECfile);
 
+  mOrbitsInTF = o2::raw::HBFUtils::Instance().getNOrbitsPerTF();
+  mBcInOrbit = o2::constants::lhc::LHCMaxBunches;
+
   mTimeFrameStartRecords.resize(sReadoutChipsNum);
   std::fill(mTimeFrameStartRecords.begin(), mTimeFrameStartRecords.end(), TimeFrameStartRecord());
 
@@ -842,6 +949,7 @@ void DataDecoder::reset()
 {
   mDigits.clear();
   mOrbits.clear();
+  mErrors.clear();
   memset(mMergerRecordsReady.data(), 0, sizeof(uint64_t) * mMergerRecordsReady.size());
 }
 

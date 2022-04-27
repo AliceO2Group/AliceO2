@@ -37,11 +37,9 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
   int ntrP = mTracksPool[POS].size(), ntrN = mTracksPool[NEG].size(), iThread = 0;
   mV0sTmp[0].clear();
   mCascadesTmp[0].clear();
-
 #ifdef WITH_OPENMP
-  omp_set_num_threads(mNThreads);
   int dynGrp = std::min(4, std::max(1, mNThreads / 2));
-#pragma omp parallel for schedule(dynamic, dynGrp)
+#pragma omp parallel for schedule(dynamic, dynGrp) num_threads(mNThreads)
 #endif
   for (int itp = 0; itp < ntrP; itp++) {
     auto& seedP = mTracksPool[POS][itp];
@@ -65,7 +63,6 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
       checkV0(seedP, seedN, itp, itn, iThread);
     }
   }
-
   // sort V0s and Cascades in vertex id
   struct vid {
     int thrID;

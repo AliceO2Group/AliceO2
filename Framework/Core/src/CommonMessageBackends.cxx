@@ -41,20 +41,38 @@
 namespace o2::framework
 {
 
-struct EndOfStreamContext;
-struct ProcessingContext;
+class EndOfStreamContext;
+class ProcessingContext;
+
+o2::framework::ServiceSpec CommonMessageBackends::fairMQDeviceProxy()
+{
+  return ServiceSpec{
+    .name = "fairmq-device-proxy",
+    .init = [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+      auto* proxy = new FairMQDeviceProxy();
+      return ServiceHandle{.hash = TypeIdHelpers::uniqueId<FairMQDeviceProxy>(), .instance = proxy, .kind = ServiceKind::Serial};
+    },
+    .start = [](ServiceRegistry& services, void* instance) {
+      auto* proxy = static_cast<FairMQDeviceProxy*>(instance);
+      auto& outputs = services.get<DeviceSpec const>().outputs;
+      auto& inputs = services.get<DeviceSpec const>().inputs;
+      auto* device = services.get<RawDeviceService>().device();
+      proxy->bindRoutes(outputs, inputs, *device); },
+  };
+}
 
 o2::framework::ServiceSpec CommonMessageBackends::fairMQBackendSpec()
 {
   return ServiceSpec{
     .name = "fairmq-backend",
     .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
-      auto& device = services.get<RawDeviceService>();
-      auto context = new MessageContext(FairMQDeviceProxy{device.device()});
+      auto& proxy = services.get<FairMQDeviceProxy>();
+      auto context = new MessageContext(proxy);
       auto& spec = services.get<DeviceSpec const>();
+      auto& dataSender = services.get<DataSender>();
 
-      auto dispatcher = [&device](FairMQParts&& parts, std::string const& channel, unsigned int index) {
-        device.device()->Send(parts, channel, index);
+      auto dispatcher = [&dataSender](FairMQParts&& parts, ChannelIndex channelIndex, unsigned int) {
+        dataSender.send(parts, channelIndex);
       };
 
       auto matcher = [policy = spec.dispatchPolicy](o2::header::DataHeader const& header) {
@@ -67,7 +85,7 @@ o2::framework::ServiceSpec CommonMessageBackends::fairMQBackendSpec()
       if (spec.dispatchPolicy.action == DispatchPolicy::DispatchOp::WhenReady) {
         context->init(DispatchControl{dispatcher, matcher});
       }
-      return ServiceHandle{TypeIdHelpers::uniqueId<MessageContext>(), context};
+      return ServiceHandle{.hash = TypeIdHelpers::uniqueId<MessageContext>(), .instance = context, .kind = ServiceKind::Serial};
     },
     .configure = CommonServices::noConfiguration(),
     .preProcessing = CommonMessageBackendsHelpers<MessageContext>::clearContext(),

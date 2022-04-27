@@ -63,6 +63,7 @@ struct DeviceContext {
   ComputingQuotaEvaluator* quotaEvaluator = nullptr;
   DataProcessingStats* stats = nullptr;
   ComputingQuotaStats* quotaStats = nullptr;
+  uv_timer_t* gracePeriodTimer = nullptr;
   int expectedRegionCallbacks = 0;
   int exitTransitionTimeout = 0;
 };
@@ -158,7 +159,6 @@ class DataProcessingDevice : public FairMQDevice
   std::function<void(RuntimeErrorRef e, InputRecord& record)> mErrorHandling;
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
   ServiceRegistry& mServiceRegistry;
-  TimingInfo mTimingInfo;
   DataAllocator mAllocator;
   DataRelayer* mRelayer = nullptr;
   /// Expiration handler

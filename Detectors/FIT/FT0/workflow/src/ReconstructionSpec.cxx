@@ -38,9 +38,13 @@ void ReconstructionDPL::init(InitContext& ic)
 
 void ReconstructionDPL::run(ProcessingContext& pc)
 {
+  const auto ref = pc.inputs().getFirstValid(true);
+  auto creationTime =
+    o2::framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(ref)->creation;
   auto& mCCDBManager = o2::ccdb::BasicCCDBManager::instance();
   mCCDBManager.setURL(mCCDBpath);
-  LOG(info) << " set-up CCDB " << mCCDBpath;
+  mCCDBManager.setTimestamp(creationTime);
+  LOG(debug) << " set-up CCDB " << mCCDBpath << " creationTime " << creationTime;
   mTimer.Start(false);
   mRecPoints.clear();
   auto digits = pc.inputs().get<gsl::span<o2::ft0::Digit>>("digits");

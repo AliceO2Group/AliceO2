@@ -11,19 +11,22 @@
 
 #include "Framework/Output.h"
 #include "Framework/MessageContext.h"
+#include "Framework/OutputRoute.h"
 #include "fairmq/FairMQDevice.h"
 
 namespace o2::framework
 {
 
-FairMQMessagePtr MessageContext::createMessage(const std::string& channel, int index, size_t size)
+FairMQMessagePtr MessageContext::createMessage(RouteIndex routeIndex, int index, size_t size)
 {
-  return proxy().getDevice()->NewMessageFor(channel, 0, size, fair::mq::Alignment{64});
+  auto* transport = mProxy.getOutputTransport(routeIndex);
+  return transport->CreateMessage(size, fair::mq::Alignment{64});
 }
 
-FairMQMessagePtr MessageContext::createMessage(const std::string& channel, int index, void* data, size_t size, fairmq_free_fn* ffn, void* hint)
+FairMQMessagePtr MessageContext::createMessage(RouteIndex routeIndex, int index, void* data, size_t size, fairmq_free_fn* ffn, void* hint)
 {
-  return proxy().getDevice()->NewMessageFor(channel, 0, data, size, ffn, hint);
+  auto* transport = mProxy.getOutputTransport(routeIndex);
+  return transport->CreateMessage(data, size, ffn, hint);
 }
 
 o2::header::DataHeader* MessageContext::findMessageHeader(const Output& spec)
@@ -62,7 +65,6 @@ o2::framework::DataProcessingHeader* MessageContext::findMessageDataProcessingHe
 
 o2::header::Stack* MessageContext::findMessageHeaderStack(const Output& spec)
 {
-  std::pair<o2::header::DataHeader*, o2::framework::DataProcessingHeader*> h{};
   for (auto it = mMessages.rbegin(); it != mMessages.rend(); ++it) {
     const auto* hd = (*it)->header();
     if (hd->dataOrigin == spec.origin && hd->dataDescription == spec.description && hd->subSpecification == spec.subSpec) {
@@ -78,12 +80,32 @@ o2::header::Stack* MessageContext::findMessageHeaderStack(const Output& spec)
   return nullptr;
 }
 
+int MessageContext::countDeviceOutputs(bool excludeDPLOrigin)
+{
+  // If we dispatched some messages before the end of the callback
+  // we need to account for them as well.
+  int noutputs = mDidDispatch ? 1 : 0;
+  mDidDispatch = false;
+  constexpr o2::header::DataOrigin DataOriginDPL{"DPL"};
+  for (auto it = mMessages.rbegin(); it != mMessages.rend(); ++it) {
+    if (!excludeDPLOrigin || (*it)->header()->dataOrigin != DataOriginDPL) {
+      noutputs++;
+    }
+  }
+  for (auto it = mScheduledMessages.rbegin(); it != mScheduledMessages.rend(); ++it) {
+    if (!excludeDPLOrigin || (*it)->header()->dataOrigin != DataOriginDPL) {
+      noutputs++;
+    }
+  }
+  return noutputs;
+}
+
 int64_t MessageContext::addToCache(std::unique_ptr<FairMQMessage>& toCache)
 {
   auto&& cached = toCache->GetTransport()->CreateMessage();
   cached->Copy(*toCache);
   // The pointer is immutable!
-  int64_t cacheId = (int64_t)toCache->GetData();
+  auto cacheId = (int64_t)toCache->GetData();
   mMessageCache.insert({cacheId, std::move(cached)});
   return cacheId;
 }

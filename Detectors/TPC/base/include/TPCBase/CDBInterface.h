@@ -45,6 +45,13 @@ enum class CDBType {
   CalPadGainFull,     ///< Full pad gain calibration
   CalPadGainResidual, ///< ResidualpPad gain calibration (e.g. from tracks)
   CalLaserTracks,     ///< Laser track calibration data
+  CalTimeGain,        ///< Gain variation over time
+  CalGas,             ///< DCS gas measurements
+  CalTemperature,     ///< DCS temperature measurements
+  CalHV,              ///< DCS HV measurements
+  CalTopologyGain,    ///< Q cluster topology correction
+                      ///
+  ConfigFEEPad,       ///< FEE pad-by-pad configuration map
                       ///
   ParDetector,        ///< Parameter for Detector
   ParElectronics,     ///< Parameter for Electronics
@@ -68,6 +75,13 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalPadGainFull, "TPC/Calib/PadGainFull"},
   {CDBType::CalPadGainResidual, "TPC/Calib/PadGainResidual"},
   {CDBType::CalLaserTracks, "TPC/Calib/LaserTracks"},
+  {CDBType::CalTimeGain, "TPC/Calib/TimeGain"},
+  {CDBType::CalGas, "TPC/Calib/Gas"},
+  {CDBType::CalTemperature, "TPC/Calib/Temperature"},
+  {CDBType::CalHV, "TPC/Calib/HV"},
+  {CDBType::CalTopologyGain, "TPC/Calib/TopologyGain"},
+  //
+  {CDBType::ConfigFEEPad, "TPC/Config/FEEPad"},
   //
   {CDBType::ParDetector, "TPC/Parameter/Detector"},
   {CDBType::ParElectronics, "TPC/Parameter/Electronics"},
@@ -120,6 +134,9 @@ class CDBInterface
   /// otherwise the object will be loaded first depending on the configuration
   /// \return noise object
   const CalPad& getNoise();
+
+  /// Return the zero suppression threshold map
+  const CalPad& getZeroSuppressionThreshold();
 
   /// Return the gain map object
   ///
@@ -187,6 +204,9 @@ class CDBInterface
   /// \param default switch if to use default values
   void setUseDefaults(bool defaults = true) { mUseDefaults = defaults; }
 
+  /// return defaults usage
+  bool getUseDefaults() const { return mUseDefaults; }
+
   /// set CDB time stamp for object retrieval
   void setTimeStamp(long time)
   {
@@ -206,6 +226,7 @@ class CDBInterface
   {
     mPedestals.reset();
     mNoise.reset();
+    mZeroSuppression.reset();
     mGainMap.reset();
   }
 
@@ -213,9 +234,10 @@ class CDBInterface
   CDBInterface() = default;
 
   // ===| Pedestal and noise |==================================================
-  std::unique_ptr<CalPad> mPedestals; ///< Pedestal object
-  std::unique_ptr<CalPad> mNoise;     ///< Noise object
-  std::unique_ptr<CalPad> mGainMap;   ///< Gain map object
+  std::unique_ptr<CalPad> mPedestals;       ///< Pedestal object
+  std::unique_ptr<CalPad> mNoise;           ///< Noise object
+  std::unique_ptr<CalPad> mZeroSuppression; ///< Noise object
+  std::unique_ptr<CalPad> mGainMap;         ///< Gain map object
 
   // ===| switches and parameters |=============================================
   bool mUseDefaults = false; ///< use defaults instead of CCDB
@@ -230,6 +252,7 @@ class CDBInterface
   void loadGainMapFromFile();          ///< load gain map from mGainmapFileName
   void createDefaultPedestals();       ///< creation of default pedestals if requested
   void createDefaultNoise();           ///< creation of default noise if requested
+  void createDefaultZeroSuppression(); ///< creation of default noise if requested
   void createDefaultGainMap();         ///< creation of default gain map if requested
 
   template <typename T>
@@ -286,6 +309,11 @@ class CDBStorage
     mCCDB.init(url.data());
   }
 
+  void clearMetaData()
+  {
+    mMetaData.clear();
+  }
+
   void setResponsible(std::string_view responsible)
   {
     mMetaData["Responsible"] = responsible;
@@ -316,11 +344,19 @@ class CDBStorage
     mMetaData[o2::base::NameConf::CCDBRunTag.data()] = std::to_string(run);
   }
 
+  const auto& getMetaData() const { return mMetaData; }
+
+  void setSimulate(bool sim = true) { mSimulate = sim; }
+
+  bool getSimulate() const { return mSimulate; }
+
   template <typename T>
   void storeObject(T* obj, CDBType const type, MetaData_t const& metadata, long start, long end)
   {
     if (checkMetaData(metadata)) {
-      mCCDB.storeAsTFileAny(obj, CDBTypeMap.at(type), metadata, start, end);
+      if (!mSimulate) {
+        mCCDB.storeAsTFileAny(obj, CDBTypeMap.at(type), metadata, start, end);
+      }
       printObjectSummary(typeid(obj).name(), type, metadata, start, end);
     } else {
       LOGP(error, "Meta data not set properly, object will not be stored");
@@ -333,9 +369,11 @@ class CDBStorage
     storeObject(obj, type, mMetaData, start, end);
   }
 
-  void uploadNoiseAndPedestal(std::string_view fileName, long first = -1, long last = 99999999999999);
-  void uploadGainMap(std::string_view fileName, bool isFull = true, long first = -1, long last = 99999999999999);
-  void uploadPulserOrCEData(CDBType type, std::string_view fileName, long first = -1, long last = 99999999999999);
+  void uploadNoiseAndPedestal(std::string_view fileName, long first = -1, long last = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  void uploadGainMap(std::string_view fileName, bool isFull = true, long first = -1, long last = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  void uploadPulserOrCEData(CDBType type, std::string_view fileName, long first = -1, long last = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  void uploadFEEConfigPad(std::string_view fileName, long first = -1, long last = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  void uploadTimeGain(std::string_view fileName, long first = -1, long last = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
 
  private:
   bool checkMetaData(MetaData_t metaData) const;
@@ -344,6 +382,7 @@ class CDBStorage
 
   o2::ccdb::CcdbApi mCCDB;
   MetaData_t mMetaData;
+  bool mSimulate = false;
 };
 
 } // namespace o2::tpc

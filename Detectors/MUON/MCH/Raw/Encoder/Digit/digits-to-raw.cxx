@@ -137,7 +137,8 @@ int main(int argc, char* argv[])
 
   // here we implicitely assume that this digits-to-raw is only called for
   // one timeframe so it's easy to detect the TF start...
-  uint32_t firstOrbitOfRun = o2::raw::HBFUtils::Instance().orbitFirst;
+  // RS: why do you need such assumption? In general, it is not correct
+  uint32_t firstOrbitOfRun = o2::raw::HBFUtils::Instance().getFirstSampledTFIR().orbit; // RS note that this is not anymore 1st orbit of the run but of the 1st filled TF
   auto dsElecIds = opts.dummyElecMap ? getAllDs<ElectronicMapperDummy>() : getAllDs<ElectronicMapperGenerated>();
   dre.addHeartbeats(dsElecIds, firstOrbitOfRun);
 

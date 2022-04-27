@@ -29,7 +29,7 @@ class CalibratorPadGainTracks : public o2::calibration::TimeSlotCalibration<Cali
   using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<CalibPadGainTracksBase>;
   using TFinterval = std::vector<std::pair<TFType, TFType>>;
-  using CalibVector = std::vector<CalPad>; // extracted gain map
+  using CalibVector = std::vector<std::unordered_map<std::string, CalPad>>; // extracted gain map
 
  public:
   /// construcor

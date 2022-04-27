@@ -17,7 +17,7 @@
 #include "Framework/Configurable.h"
 #include "Framework/RunningWorkflowInfo.h"
 #include "Framework/CallbackService.h"
-#include <FairMQDevice.h>
+#include <fairmq/Device.h>
 
 #include <iostream>
 #include <chrono>
@@ -47,9 +47,10 @@ void customize(std::vector<SendingPolicy>& policies)
 {
   policies.push_back(SendingPolicy{
     .matcher = DeviceMatchers::matchByName("A"),
-    .send = [](FairMQDevice& device, FairMQParts& parts, std::string const& channel) {
+    .send = [](FairMQDeviceProxy& proxy, FairMQParts& parts, ChannelIndex channelIndex) {
       LOG(info) << "A custom policy for sending invoked!";
-      device.Send(parts, channel, 0);
+      auto* channel = proxy.getOutputChannel(channelIndex);
+      channel->Send(parts, 0);
     }});
 }
 
@@ -61,6 +62,7 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
     srand(getpid());
     LOG(info) << "There are " << runningWorkflow.devices.size() << "  devices in the workflow";
     return adaptStateless([what, minDelay](DataAllocator& outputs, RawDeviceService& device) {
+      LOGP(info, "Invoked {}", what);
       device.device()->WaitFor(std::chrono::milliseconds(minDelay));
       auto& bData = outputs.make<int>(OutputRef{what}, 1);
     });
@@ -70,36 +72,38 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
 // This is how you can define your processing in a declarative way
 WorkflowSpec defineDataProcessing(ConfigContext const& specs)
 {
-  return WorkflowSpec{
-    {"A",
-     Inputs{},
-     {OutputSpec{{"a1"}, "TST", "A1"},
-      OutputSpec{{"a2"}, "TST", "A2"}},
-     AlgorithmSpec{adaptStateless(
-       [](DataAllocator& outputs, RawDeviceService& device, DataTakingContext& context) {
-         device.device()->WaitFor(std::chrono::seconds(rand() % 2));
-         auto& aData = outputs.make<int>(OutputRef{"a1"}, 1);
-         auto& bData = outputs.make<int>(OutputRef{"a2"}, 1);
-       })},
-     {ConfigParamSpec{"some-device-param", VariantType::Int, 1, {"Some device parameter"}}}},
-    {"B",
-     {InputSpec{"x", "TST", "A1", Lifetime::Timeframe, {ConfigParamSpec{"somestring", VariantType::String, "", {"Some input param"}}}}},
-     {OutputSpec{{"b1"}, "TST", "B1"}},
-     simplePipe("b1", 5000)},
-    {"C",
-     Inputs{InputSpec{"x", "TST", "A2"}},
-     Outputs{OutputSpec{{"c1"}, "TST", "C1"}},
-     simplePipe("c1", 5000)},
-    {"D",
-     Inputs{
-       InputSpec{"a", "TST", "A1"},
-       InputSpec{"b", "TST", "B1"},
-       InputSpec{"c", "TST", "C1"},
-     },
-     Outputs{},
-     AlgorithmSpec{adaptStateless([](InputRecord& inputs) {
-       auto ref = inputs.get("b");
-       auto header = o2::header::get<const DataProcessingHeader*>(ref.header);
-       LOG(info) << header->startTime;
-     })}}};
+  DataProcessorSpec a{
+    .name = "A",
+    .outputs = {OutputSpec{{"a1"}, "TST", "A1"},
+                OutputSpec{{"a2"}, "TST", "A2"}},
+    .algorithm = AlgorithmSpec{adaptStateless(
+      [](DataAllocator& outputs, RawDeviceService& device, DataTakingContext& context) {
+        device.device()->WaitFor(std::chrono::seconds(rand() % 2));
+        auto& aData = outputs.make<int>(OutputRef{"a1"}, 1);
+        auto& bData = outputs.make<int>(OutputRef{"a2"}, 1);
+      })},
+    .options = {ConfigParamSpec{"some-device-param", VariantType::Int, 1, {"Some device parameter"}}}};
+  DataProcessorSpec b{
+    .name = "B",
+    .inputs = {InputSpec{"x", "TST", "A1", Lifetime::Timeframe, {ConfigParamSpec{"somestring", VariantType::String, "", {"Some input param"}}}}},
+    .outputs = {OutputSpec{{"b1"}, "TST", "B1"}},
+    .algorithm = simplePipe("b1", 1000)};
+  DataProcessorSpec c{.name = "C",
+                      .inputs = {InputSpec{"x", "TST", "A2"}},
+                      .outputs = {OutputSpec{{"c1"}, "TST", "C1"}},
+                      .algorithm = simplePipe("c1", 2000)};
+  DataProcessorSpec d{.name = "D",
+                      .inputs = {InputSpec{"a", "TST", "A1"},
+                                 InputSpec{"b", "TST", "B1"},
+                                 InputSpec{"c", "TST", "C1"}},
+                      .algorithm = AlgorithmSpec{adaptStateless(
+                        [](InputRecord& inputs) {
+                          auto ref = inputs.get("b");
+                          auto header = o2::header::get<const DataProcessingHeader*>(ref.header);
+                          LOG(info) << "Start time: " << header->startTime;
+                        })}};
+
+  return workflow::concat(WorkflowSpec{a},
+                          workflow::combine("combined", {b, c}, false),
+                          WorkflowSpec{d});
 }

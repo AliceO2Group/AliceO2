@@ -15,7 +15,7 @@
 #include "Framework/ServiceRegistry.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/Logger.h"
-#include "DataProcessingHelpers.h"
+#include "Framework/DataProcessingHelpers.h"
 #include <string>
 #include <string_view>
 #include <regex>
@@ -75,6 +75,13 @@ void ControlService::notifyStreamingState(StreamingState state)
     default:
       throw std::runtime_error("Unknown streaming state");
   }
+  mDriverClient.flushPending();
+}
+
+void ControlService::notifyDeviceState(std::string currentState)
+{
+  std::scoped_lock lock(mMutex);
+  mDriverClient.tell(fmt::format("CONTROL_ACTION: NOTIFY_DEVICE_STATE {}", currentState));
   mDriverClient.flushPending();
 }
 

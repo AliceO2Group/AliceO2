@@ -14,14 +14,12 @@
 /// @since  2021-02-01
 /// @brief  End-chain alignment volume in detector branch, where the actual measurement is done.
 
-#include <cstdio>
-#include <TClonesArray.h>
-
 #include "Align/AlignableSensor.h"
 #include "Framework/Logger.h"
 #include "Align/AlignmentPoint.h"
 #include "Align/AlignableDetector.h"
 #include "DetectorsBase/GeometryManager.h"
+#include <vector>
 
 ClassImp(o2::align::AlignableSensor);
 
@@ -436,7 +434,7 @@ int AlignableSensor::finalizeStat(DOFStatistics& st)
 }
 
 //_________________________________________________________________
-void AlignableSensor::updateL2GRecoMatrices(const TClonesArray* algArr, const TGeoHMatrix* cumulDelta)
+void AlignableSensor::updateL2GRecoMatrices(const std::vector<o2::detectors::AlignParam>& algArr, const TGeoHMatrix* cumulDelta)
 {
   // recreate mMatL2GReco matrices from ideal L2G matrix and alignment objects
   // used during data reconstruction.

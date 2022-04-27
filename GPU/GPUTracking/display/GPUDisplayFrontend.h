@@ -16,36 +16,62 @@
 #define GPUDISPLAYFRONTEND_H
 
 #include "GPUCommonDef.h"
+#include "GPUDisplayInterface.h"
+#include <memory>
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 class GPUReconstruction;
 class GPUDisplay;
 class GPUDisplayBackend;
+class GPUDisplayGUIWrapper;
 
-class GPUDisplayFrontend
+class GPUDisplayFrontend : public GPUDisplayFrontendInterface
 {
   friend class GPUDisplay;
 
  public:
   GPUDisplayFrontend() = default;
-  virtual ~GPUDisplayFrontend() = default;
+  ~GPUDisplayFrontend() override;
+
+  enum frontendTypes {
+    TYPE_INVALID = -1,
+    TYPE_WIN32 = 0,
+    TYPE_X11 = 1,
+    TYPE_GLUT = 2,
+    TYPE_GLFW = 3,
+    TYPE_WAYLAND = 4
+  };
 
   // Compile time minimum version defined in GPUDisplay.h, keep in sync!
   static constexpr int GL_MIN_VERSION_MAJOR = 4;
   static constexpr int GL_MIN_VERSION_MINOR = 5;
 
   virtual int StartDisplay() = 0;                                                                                            // Start the display. This function returns, and should spawn a thread that runs the display, and calls InitDisplay
-  virtual void DisplayExit() = 0;                                                                                            // Stop the display. Display thread should call ExitDisplay and the function returns after the thread has terminated
+  void DisplayExit() override = 0;                                                                                           // Stop the display. Display thread should call ExitDisplay and the function returns after the thread has terminated
   virtual void SwitchFullscreen(bool set) = 0;                                                                               // Toggle full-screen mode
   virtual void ToggleMaximized(bool set) = 0;                                                                                // Maximize window
   virtual void SetVSync(bool enable) = 0;                                                                                    // Enable / disable vsync
-  virtual bool EnableSendKey();                                                                                              // Request external keys (e.g. from terminal)
+  bool EnableSendKey() override;                                                                                             // Request external keys (e.g. from terminal)
   virtual void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) = 0; // Print text on the display (needs the backend to build the font)
-
+  GPUDisplayBackend* backend();
   static GPUDisplayFrontend* getFrontend(const char* type);
+  virtual void getSize(int& width, int& height) { width = height = 0; }
+  virtual int getVulkanSurface(void* instance, void* surface) { return 1; }
+  virtual unsigned int getReqVulkanExtensions(const char**& p) { return 0; };
+
+  int getDisplayControl() const override { return mDisplayControl; }
+  int getSendKey() const override { return mSendKey; }
+  int getNeedUpdate() const override { return mNeedUpdate; }
+  void setDisplayControl(int v) override { mDisplayControl = v; }
+  void setSendKey(int v) override { mSendKey = v; }
+  void setNeedUpdate(int v) override { mNeedUpdate = v; }
+
+  frontendTypes frontendType() const { return mFrontendType; }
+  const char* frontendName() const override { return mFrontendName; }
+
+  int startGUI();
+  void stopGUI();
 
   // volatile variables to exchange control informations between display and backend
   volatile int mDisplayControl = 0; // Control for next event (=1) or quit (=2)
@@ -57,7 +83,7 @@ class GPUDisplayFrontend
   static void* FrontendThreadWrapper(void*);
 
   static constexpr int INIT_WIDTH = 1024, INIT_HEIGHT = 768;                           // Initial window size, before maximizing
-  static constexpr const char* GL_WINDOW_NAME = "GPU CA TPC Standalone Event Display"; // Title of event display set by backend
+  static constexpr const char* DISPLAY_WINDOW_NAME = "GPU CA Standalone Event Display"; // Title of event display set by backend
   // Constant key codes for special mKeys (to unify different treatment in X11 / Windows / GLUT / etc.)
   static constexpr int KEY_UP = 1;
   static constexpr int KEY_DOWN = 2;
@@ -93,26 +119,32 @@ class GPUDisplayFrontend
   bool mMouseDn = false;          // Mouse button down
   bool mMouseDnR = false;         // Right mouse button down
   float mMouseDnX, mMouseDnY;     // X/Y position where mouse button was pressed
-  float mouseMvX, mouseMvY;       // Current mouse pointer position
+  float mMouseMvX, mMouseMvY;     // Current mouse pointer position
   int mMouseWheel = 0;            // Incremental value of mouse wheel, ca +/- 100 per wheel tick
   bool mKeys[256] = {false};      // Array of mKeys currently pressed
   bool mKeysShift[256] = {false}; // Array whether shift was held during key-press
   int mDisplayHeight = INIT_HEIGHT;
   int mDisplayWidth = INIT_WIDTH;
+  int mCanDrawText = 0; // 1 = in compat mode, 2 = with shader
 
   int mMaxFPSRate = 0; // run at highest possible frame rate, do not sleep in between frames
 
   GPUDisplay* mDisplay = nullptr;        // Ptr to display, not owning, set by display when it connects to backend
   GPUDisplayBackend* mBackend = nullptr; // Ptr to backend, not owning
 
+  frontendTypes mFrontendType = TYPE_INVALID;
+  const char* mFrontendName = nullptr;
+
+  std::unique_ptr<GPUDisplayGUIWrapper> mGUI;
+
   void HandleKey(unsigned char key);                                    // Callback for handling key presses
-  int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f); // Callback to draw the GL scene
+  int DrawGLScene();                                                    // Callback to draw the GL scene
   void HandleSendKey();                                                 // Optional callback to handle key press from external source (e.g. stdin by default)
-  void ReSizeGLScene(int width, int height);                            // Callback when GL window is resized
+  void ResizeScene(int width, int height);                              // Callback when GL window is resized
   int InitDisplay(bool initFailure = false);                            // Callback to initialize the GL Display (to be called in StartDisplay)
   void ExitDisplay();                                                   // Callback to clean up the GL Display
+  int& drawTextFontSize();
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

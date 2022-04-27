@@ -34,7 +34,8 @@ DataSourceOffline::DataSourceOffline(std::string const aodCoverterPath, std::str
   std::string const batch = hideGui ? "-b" : "";
   std::string command = fmt::format("{} {} --aod-file {} --jsons-folder \"{}\"", aodCoverterPath, batch, file, path);
 
-  std::system(command.c_str());
+  auto retVal = std::system(command.c_str());
+  (void)retVal;
 }
 
 } // namespace event_visualisation

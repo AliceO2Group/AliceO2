@@ -411,6 +411,43 @@ struct FourierCoeff {
   ClassDefNV(FourierCoeff, 1)
 };
 
+template <typename T>
+struct Enable_enum_class_bitfield {
+  static constexpr bool value = false;
+};
+
+// operator overload for allowing bitfiedls with enum
+template <typename T>
+typename std::enable_if<std::is_enum<T>::value && Enable_enum_class_bitfield<T>::value, T>::type
+  operator&(T lhs, T rhs)
+{
+  typedef typename std::underlying_type<T>::type integer_type;
+  return static_cast<T>(static_cast<integer_type>(lhs) & static_cast<integer_type>(rhs));
+}
+
+template <typename T>
+typename std::enable_if<std::is_enum<T>::value && Enable_enum_class_bitfield<T>::value, T>::type
+  operator|(T lhs, T rhs)
+{
+  typedef typename std::underlying_type<T>::type integer_type;
+  return static_cast<T>(static_cast<integer_type>(lhs) | static_cast<integer_type>(rhs));
+}
+
+enum class PadFlags : unsigned short {
+  flagGoodPad = 1 << 0,      ///< flag for a good pad binary 0001
+  flagDeadPad = 1 << 1,      ///< flag for a dead pad binary 0010
+  flagUnknownPad = 1 << 2,   ///< flag for unknown status binary 0100
+  flagSaturatedPad = 1 << 3, ///< flag for saturated status binary 0100
+  flagHighPad = 1 << 4,      ///< flag for pad with extremly high IDC value
+  flagLowPad = 1 << 5,       ///< flag for pad with extremly low IDC value
+  flagSkip = 1 << 6          ///< flag for defining a pad which is just ignored during the calculation of I1 and IDCDelta
+};
+
+template <>
+struct Enable_enum_class_bitfield<PadFlags> {
+  static constexpr bool value = true;
+};
+
 } // namespace tpc
 } // namespace o2
 

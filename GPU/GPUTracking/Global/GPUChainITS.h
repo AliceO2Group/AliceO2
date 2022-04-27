@@ -46,12 +46,13 @@ class GPUChainITS : public GPUChain
 
   o2::its::TrackerTraits* GetITSTrackerTraits();
   o2::its::VertexerTraits* GetITSVertexerTraits();
+  o2::its::TimeFrame* GetITSTimeframe();
 
  protected:
   GPUChainITS(GPUReconstruction* rec, unsigned int maxTracks = GPUCA_MAX_ITS_FIT_TRACKS);
   std::unique_ptr<o2::its::TrackerTraits> mITSTrackerTraits;
   std::unique_ptr<o2::its::VertexerTraits> mITSVertexerTraits;
-
+  std::unique_ptr<o2::its::TimeFrame> mITSTimeFrame;
   unsigned int mMaxTracks;
 };
 } // namespace GPUCA_NAMESPACE::gpu

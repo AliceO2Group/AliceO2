@@ -24,6 +24,7 @@
 #include "EMCALBase/Geometry.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "EMCALCalib/TimeCalibrationParams.h"
+#include "EMCALCalibration/EMCALCalibParams.h"
 
 #include "Framework/Logger.h"
 #include "CommonUtils/MemFileHelper.h"
@@ -62,6 +63,7 @@ class EMCALTimeCalibData
   {
     // boost histogram with amplitude vs. cell ID, specify the range and binning of the amplitude axis
     mTimeHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(par.mTimeBins, par.mTimeRange.at(0), par.mTimeRange.at(1), "t (ns)"), boost::histogram::axis::integer<>(0, NCELLS, "CELL ID"));
+    LOG(debug) << "initialize time histogram with " << NCELLS << " cells";
   }
 
   ~EMCALTimeCalibData() = default;
@@ -78,15 +80,16 @@ class EMCALTimeCalibData
   /// \brief Print a useful message about the container.
   void print();
 
+  /// \brief Set number of events available for calibration
+  void setNEvents(int nevt) { mEvents = nevt; }
+  /// \brief Add number of events available for calibration
+  void AddEvents(int nevt) { mEvents += nevt; }
   /// \brief Get number of events currently available for calibration
   int getNEvents() const { return mEvents; }
 
   /// \brief Get current histogram
   boostHisto& getHisto() { return mTimeHisto; }
   const boostHisto& getHisto() const { return mTimeHisto; }
-
-  /// \brief Set number of events available for calibration
-  void setNEvents(int ne) { mEvents = ne; }
 
   void PrintStream(std::ostream& stream) const;
 

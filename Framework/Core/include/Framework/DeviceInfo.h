@@ -60,6 +60,10 @@ struct DeviceInfo {
   bool readyToQuit = false;
   /// The current state of the device, as reported by it
   StreamingState streamingState = StreamingState::Streaming;
+  /// The current state of the device, as reported by it
+  /// Use fair::mq::GetState() to have the enum value.
+  /// @return a string from one of fair::mq::GetStateName
+  std::string deviceState;
   /// Index for a particular relayer.
   Metric2DViewIndex dataRelayerViewIndex;
   /// Index for the variables of a given relayer.

@@ -13,6 +13,7 @@
 /// \brief Implementation of the MaterialManager class
 
 #include "DetectorsBase/MaterialManager.h"
+#include "DetectorsBase/MaterialManagerParam.h"
 #include "TVirtualMC.h"
 #include "TString.h" // for TString
 #include <TGeoMedium.h>
@@ -26,8 +27,39 @@
 #endif
 #include <cassert>
 #include <set>
+#include "rapidjson/document.h"
+#include "rapidjson/istreamwrapper.h"
+#include "rapidjson/ostreamwrapper.h"
+#include "rapidjson/prettywriter.h"
 
 using namespace o2::base;
+namespace rj = rapidjson;
+
+namespace
+{
+/// helper to read/write cuts and processes from/to JSON
+template <typename K, typename V>
+void writeSingleJSONParamBatch(std::unordered_map<K, const char*> const& idToName, std::map<K, V> const& valMap, V defaultValue, rapidjson::Value& parent, rapidjson::Document::AllocatorType& a)
+{
+  for (auto& itName : idToName) {
+    auto itVal = valMap.find(itName.first);
+    if (itVal != valMap.end()) {
+      parent.AddMember(rj::Value(itName.second, std::strlen(itName.second), a), rj::Value(itVal->second), a);
+      continue;
+    }
+    parent.AddMember(rj::Value(itName.second, std::strlen(itName.second), a), rj::Value(defaultValue), a);
+  }
+}
+
+/// specific names of keys wo expect and write in cut and process JSON files
+static constexpr const char* jsonKeyID = "local_id";
+static constexpr const char* jsonKeyIDGlobal = "global_id";
+static constexpr const char* jsonKeyDefault = "default";
+static constexpr const char* jsonKeyCuts = "cuts";
+static constexpr const char* jsonKeyProcesses = "processes";
+static constexpr const char* jsonKeyEnableSpecialCuts = "enableSpecialCuts";
+static constexpr const char* jsonKeyEnableSpecialProcesses = "enableSpecialProcesses";
+} // namespace
 
 const std::unordered_map<EProc, const char*> MaterialManager::mProcessIDToName = {
   {EProc::kPAIR, "PAIR"},
@@ -178,12 +210,16 @@ void MaterialManager::Cut(ESpecial special, int globalindex, ECut cut, Float_t v
     return;
   }
   if (special == ESpecial::kFALSE) {
-    mDefaultCutMap[cut] = val;
+    auto ins = mDefaultCutMap.insert({cut, val});
+    if (ins.second) {
+      TVirtualMC::GetMC()->SetCut(it->second, val);
+    }
     /// Explicit template definition to cover this which differs from global cut setting
-    TVirtualMC::GetMC()->SetCut(it->second, val);
   } else if (mApplySpecialCuts) {
-    mMediumCutMap[globalindex][cut] = val;
-    TVirtualMC::GetMC()->Gstpar(globalindex, it->second, val);
+    auto ins = mMediumCutMap[globalindex].insert({cut, val});
+    if (ins.second) {
+      TVirtualMC::GetMC()->Gstpar(globalindex, it->second, val);
+    }
   }
 }
 
@@ -198,12 +234,16 @@ void MaterialManager::Process(ESpecial special, int globalindex, EProc process, 
     return;
   }
   if (special == ESpecial::kFALSE) {
-    mDefaultProcessMap[process] = val;
+    auto ins = mDefaultProcessMap.insert({process, val});
+    if (ins.second) {
+      TVirtualMC::GetMC()->SetProcess(it->second, val);
+    }
     /// Explicit template definition to cover this which differs from global process setting
-    TVirtualMC::GetMC()->SetProcess(it->second, val);
   } else if (mApplySpecialProcesses) {
-    mMediumProcessMap[globalindex][process] = val;
-    TVirtualMC::GetMC()->Gstpar(globalindex, it->second, val);
+    auto ins = mMediumProcessMap[globalindex].insert({process, val});
+    if (ins.second) {
+      TVirtualMC::GetMC()->Gstpar(globalindex, it->second, val);
+    }
   }
 }
 
@@ -326,6 +366,169 @@ TGeoMedium* MaterialManager::getTGeoMedium(const char* mediumname)
   return med;
 }
 
+void MaterialManager::loadCutsAndProcessesFromJSON(ESpecial special, std::string const& filename)
+{
+  const std::string filenameIn = filename.empty() ? o2::MaterialManagerParam::Instance().inputFile : filename;
+  if (filenameIn.empty()) {
+    return;
+  }
+  std::ifstream is(filenameIn);
+  if (!is.is_open()) {
+    LOG(error) << "Cannot open file " << filenameIn;
+    return;
+  }
+  auto digestCutsFromJSON = [this](int globalindex, rj::Value& cuts) {
+    auto special = globalindex < 0 ? ESpecial::kFALSE : ESpecial::kTRUE;
+    for (auto& cut : cuts.GetObject()) {
+      auto name = cut.name.GetString();
+      bool found = false;
+      for (auto& cn : mCutIDToName) {
+        if (std::strcmp(name, cn.second) == 0) {
+          Cut(special, globalindex, cn.first, cut.value.GetFloat());
+          found = true;
+        }
+      }
+      if (!found) {
+        LOG(warn) << "Unknown cut parameter " << name;
+      }
+    }
+  };
+  auto digestProcessesFromJSON = [this](int globalindex, rj::Value& processes) {
+    auto special = globalindex < 0 ? ESpecial::kFALSE : ESpecial::kTRUE;
+    for (auto& proc : processes.GetObject()) {
+      auto name = proc.name.GetString();
+      for (auto& pn : mProcessIDToName) {
+        if (std::strcmp(name, pn.second) == 0) {
+          Process(special, globalindex, pn.first, proc.value.GetInt());
+        }
+      }
+    }
+  };
+
+  rj::IStreamWrapper isw(is);
+  rj::Document d;
+  d.ParseStream(isw);
+
+  if (special == ESpecial::kFALSE && d.HasMember(jsonKeyDefault)) {
+    // defaults
+    auto& defaultParams = d[jsonKeyDefault];
+    if (defaultParams.HasMember(jsonKeyCuts)) {
+      digestCutsFromJSON(-1, defaultParams[jsonKeyCuts]);
+    }
+    if (defaultParams.HasMember(jsonKeyProcesses)) {
+      digestProcessesFromJSON(-1, defaultParams[jsonKeyProcesses]);
+    }
+  } else if (special == ESpecial::kTRUE) {
+    // read whether to apply special cuts and processes at all
+    if (d.HasMember(jsonKeyEnableSpecialCuts)) {
+      enableSpecialCuts(d[jsonKeyEnableSpecialCuts].GetBool());
+    }
+    if (d.HasMember(jsonKeyEnableSpecialProcesses)) {
+      enableSpecialProcesses(d[jsonKeyEnableSpecialProcesses].GetBool());
+    }
+    // special
+    for (auto& m : d.GetObject()) {
+      if (m.name.GetString()[0] == '\0' || !m.value.IsArray()) {
+        // do not parse anything with empty key, these at the most meant to be comments
+        continue;
+      }
+      for (auto& batch : m.value.GetArray()) {
+        if (std::strcmp(m.name.GetString(), jsonKeyDefault) == 0) {
+          // don't do defaults here
+          continue;
+        }
+        // set via their global indices
+        auto index = getMediumID(m.name.GetString(), batch[jsonKeyID].GetInt());
+        if (index < 0) {
+          continue;
+        }
+        if (batch.HasMember(jsonKeyCuts)) {
+          digestCutsFromJSON(index, batch[jsonKeyCuts]);
+        }
+        if (batch.HasMember(jsonKeyProcesses)) {
+          digestProcessesFromJSON(index, batch[jsonKeyProcesses]);
+        }
+      }
+    }
+  }
+}
+
+void MaterialManager::writeCutsAndProcessesToJSON(std::string const& filename)
+{
+  const std::string filenameOut = filename.empty() ? o2::MaterialManagerParam::Instance().outputFile : filename;
+  if (filenameOut.empty()) {
+    return;
+  }
+
+  // write parameters as global AND module specific
+  std::ofstream os(filenameOut);
+  if (!os.is_open()) {
+    LOG(error) << "Cannot create file " << filenameOut;
+    return;
+  }
+
+  rj::Document d;
+  rj::Document::AllocatorType& a = d.GetAllocator();
+  d.SetObject();
+
+  // add each local medium with params per module
+  for (auto& itMed : mMediumMap) {
+    // prepare array for module
+    rj::Value toAdd(rj::kArrayType);
+    // extract each medium's local and global index
+    for (auto& locToGlob : itMed.second) {
+      auto globalindex = locToGlob.second;
+      auto itCut = mMediumCutMap.find(globalindex);
+      auto itProc = mMediumProcessMap.find(globalindex);
+      // prepare a batch summarising localID, globaldID, cuts and processes
+      rj::Value oLoc(rj::kObjectType);
+      // IDs
+      oLoc.AddMember(rj::Value(jsonKeyID, std::strlen(jsonKeyID), a), rj::Value(locToGlob.first), a);
+      oLoc.AddMember(rj::Value(jsonKeyIDGlobal, std::strlen(jsonKeyIDGlobal)), rj::Value(locToGlob.second), a);
+      // add medium and material name
+      auto mediumIt = mTGeoMediumMap.find({itMed.first, locToGlob.first});
+      const char* medName = mediumIt->second->GetName();
+      const char* matName = mediumIt->second->GetMaterial()->GetName();
+      // not using variables for key names cause they are only written for info but not read
+      oLoc.AddMember(rj::Value("medium_name", 11, a), rj::Value(medName, std::strlen(medName), a), a);
+      oLoc.AddMember(rj::Value("material_name", 13, a), rj::Value(matName, std::strlen(matName), a), a);
+      // prepare for cuts
+      if (itCut != mMediumCutMap.end()) {
+        rj::Value cutMap(rj::kObjectType);
+        writeSingleJSONParamBatch(mCutIDToName, itCut->second, -1.f, cutMap, a);
+        oLoc.AddMember(rj::Value(jsonKeyCuts, std::strlen(jsonKeyCuts), a), cutMap, a);
+      }
+      // prepare for processes
+      if (itProc != mMediumProcessMap.end()) {
+        rj::Value procMap(rj::kObjectType);
+        writeSingleJSONParamBatch(mProcessIDToName, itProc->second, -1, procMap, a);
+        oLoc.AddMember(rj::Value(jsonKeyProcesses, std::strlen(jsonKeyProcesses), a), procMap, a);
+      }
+      // append this medium to module array
+      toAdd.PushBack(oLoc, a);
+    }
+    // append the entire module array
+    d.AddMember(rj::Value(itMed.first.c_str(), itMed.first.size(), a), toAdd, a);
+  }
+  // also add default parameters
+  rj::Value cutMapDef(rj::kObjectType);
+  rj::Value procMapDef(rj::kObjectType);
+  writeSingleJSONParamBatch(mCutIDToName, mDefaultCutMap, -1.f, cutMapDef, a);
+  writeSingleJSONParamBatch(mProcessIDToName, mDefaultProcessMap, -1, procMapDef, a);
+  rj::Value defaultParams(rj::kObjectType);
+  defaultParams.AddMember(rj::Value(jsonKeyCuts, std::strlen(jsonKeyCuts), a), cutMapDef, a);
+  defaultParams.AddMember(rj::Value(jsonKeyProcesses, std::strlen(jsonKeyProcesses), a), procMapDef, a);
+  d.AddMember(rj::Value(jsonKeyDefault, std::strlen(jsonKeyDefault), a), defaultParams, a);
+
+  d.AddMember(rj::Value(jsonKeyEnableSpecialCuts, std::strlen(jsonKeyEnableSpecialCuts), a), rj::Value(mApplySpecialCuts), a);
+  d.AddMember(rj::Value(jsonKeyEnableSpecialProcesses, std::strlen(jsonKeyEnableSpecialProcesses), a), rj::Value(mApplySpecialProcesses), a);
+  // now write to file
+  rj::OStreamWrapper osw(os);
+  rj::PrettyWriter<rj::OStreamWrapper> writer(osw);
+  writer.SetIndent(' ', 2);
+  d.Accept(writer);
+}
+
 void MaterialManager::loadCutsAndProcessesFromFile(const char* modname, const char* filename)
 {
   // Implementation of a method to set cuts and processes as done in AliRoot.
@@ -446,6 +649,8 @@ void MaterialManager::SpecialProcess(const char* modname, int localindex, EProc 
   int globalindex = getMediumID(modname, localindex);
   if (globalindex != -1) {
     Process(ESpecial::kTRUE, globalindex, parID, val);
+  } else {
+    LOG(warn) << "SpecialProcess: NO GLOBALINDEX FOUND FOR " << modname << " " << localindex;
   }
 }
 

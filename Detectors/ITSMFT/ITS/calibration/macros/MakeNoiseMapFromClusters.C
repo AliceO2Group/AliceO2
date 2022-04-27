@@ -12,10 +12,12 @@
 #include "DataFormatsITSMFT/ClusterPattern.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-
+#include "CCDB/BasicCCDBManager.h"
+#include "CCDB/CCDBTimeStampUtils.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 #endif
 
-void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", bool only1pix = false, float probT = 3e-6, std::string output = "noise.root", std::string dict = "ITSdictionary.bin")
+void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", bool only1pix = false, float probT = 3e-6, std::string output = "noise.root", long timestamp = 0)
 {
   TFile out(output.data(), "new");
   if (!out.IsOpen()) {
@@ -50,17 +52,16 @@ void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", bool only1p
   clusTree->SetBranchAddress("ITSClustersROF", &rofVec);
 
   o2::its::NoiseCalibrator calib(only1pix, probT);
-  try {
-    calib.loadDictionary(dict.data());
-  } catch (std::runtime_error) {
-    LOG(error) << "Cannot load the dictionary file: " << dict << " !";
-    LOG(info) << "Assuming that cluster shapes are not encoded...";
-  }
+  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+  mgr.setURL("http://alice-ccdb.cern.ch");
+  mgr.setTimestamp(timestamp ? timestamp : o2::ccdb::getCurrentTimestamp());
+
+  calib.setClusterDictionary(mgr.get<o2::itsmft::TopologyDictionary>("ITS/Calib/ClusterDictionary"));
 
   auto nevents = clusTree->GetEntries();
   for (int n = 0; n < nevents; n++) {
     clusTree->GetEntry(n);
-    calib.processTimeFrame(*clusters, *patternsPtr, *rofVec);
+    calib.processTimeFrameClusters(*clusters, *patternsPtr, *rofVec);
   }
   calib.finalize();
 

@@ -38,14 +38,17 @@
 #include "ArrowSupport.h"
 #include "DPLMonitoringBackend.h"
 #include "TDatabasePDG.h"
+#include "Headers/STFHeader.h"
+#include "Headers/DataHeader.h"
 
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
 #include <Monitoring/MonitoringFactory.h>
 #include <InfoLogger/InfoLogger.hxx>
 
-#include <FairMQDevice.h>
+#include <fairmq/Device.h>
 #include <fairmq/shmem/Monitor.h>
+#include <fairmq/shmem/Common.h>
 #include <options/FairMQProgOptions.h>
 
 #include <cstdlib>
@@ -99,6 +102,7 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
       assert(registry.get<DeviceSpec const>().name.empty() == false);
       monitoring->addGlobalTag("dataprocessor_id", registry.get<DeviceSpec const>().id);
       monitoring->addGlobalTag("dataprocessor_name", registry.get<DeviceSpec const>().name);
+      monitoring->addGlobalTag("dpl_instance", options.GetPropertyAsString("shm-segment-id"));
       return ServiceHandle{TypeIdHelpers::uniqueId<Monitoring>(), service};
     },
     .configure = noConfiguration(),
@@ -276,24 +280,43 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
     .name = "infologger",
     .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto infoLoggerMode = options.GetPropertyAsString("infologger-mode");
+      auto infoLoggerSeverity = options.GetPropertyAsString("infologger-severity");
+      if (infoLoggerSeverity.empty() == false && options.GetPropertyAsString("infologger-mode") == "") {
+        LOGP(info, "Using O2_INFOLOGGER_MODE=infoLoggerD since infologger-severity is set");
+        infoLoggerMode = "infoLoggerD";
+      }
       if (infoLoggerMode != "") {
         setenv("O2_INFOLOGGER_MODE", infoLoggerMode.c_str(), 1);
       }
       char const* infoLoggerEnv = getenv("O2_INFOLOGGER_MODE");
       if (infoLoggerEnv == nullptr || strcmp(infoLoggerEnv, "none") == 0) {
-        return ServiceHandle{TypeIdHelpers::uniqueId<MissingService>(), nullptr};
+        return ServiceHandle{.hash = TypeIdHelpers::uniqueId<MissingService>(),
+                             .instance = nullptr,
+                             .kind = ServiceKind::Serial,
+                             .name = "infologger"};
       }
-      auto infoLoggerService = new InfoLogger;
+      InfoLogger* infoLoggerService = nullptr;
+      try {
+        infoLoggerService = new InfoLogger;
+      } catch (...) {
+        LOGP(error, "Unable to initialise InfoLogger with O2_INFOLOGGER_MODE={}.", infoLoggerMode);
+        return ServiceHandle{.hash = TypeIdHelpers::uniqueId<MissingService>(),
+                             .instance = nullptr,
+                             .kind = ServiceKind::Serial,
+                             .name = "infologger"};
+      }
       auto infoLoggerContext = &services.get<InfoLoggerContext>();
       infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, std::string("dpl/") + services.get<DeviceSpec const>().name);
       infoLoggerContext->setField(InfoLoggerContext::FieldName::System, std::string("DPL"));
       infoLoggerService->setContext(*infoLoggerContext);
 
-      auto infoLoggerSeverity = options.GetPropertyAsString("infologger-severity");
       if (infoLoggerSeverity != "") {
         fair::Logger::AddCustomSink("infologger", infoLoggerSeverity, createInfoLoggerSinkHelper(infoLoggerService, infoLoggerContext));
       }
-      return ServiceHandle{TypeIdHelpers::uniqueId<InfoLogger>(), infoLoggerService};
+      return ServiceHandle{.hash = TypeIdHelpers::uniqueId<InfoLogger>(),
+                           .instance = infoLoggerService,
+                           .kind = ServiceKind::Serial,
+                           .name = "infologger"};
     },
     .configure = noConfiguration(),
     .kind = ServiceKind::Serial};
@@ -380,8 +403,9 @@ o2::framework::ServiceSpec CommonServices::timesliceIndex()
   return ServiceSpec{
     .name = "timesliceindex",
     .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+      auto& spec = services.get<DeviceSpec const>();
       return ServiceHandle{TypeIdHelpers::uniqueId<TimesliceIndex>(),
-                           new TimesliceIndex(InputRouteHelpers::maxLanes(services.get<DeviceSpec const>().inputs))};
+                           new TimesliceIndex(InputRouteHelpers::maxLanes(spec.inputs), spec.inputChannels.size())};
     },
     .configure = noConfiguration(),
     .kind = ServiceKind::Serial};
@@ -433,17 +457,74 @@ o2::framework::ServiceSpec CommonServices::tracingSpec()
 {
   return ServiceSpec{
     .name = "tracing",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
-      return ServiceHandle{TypeIdHelpers::uniqueId<TracingInfrastructure>(), new TracingInfrastructure()};
+    .init = [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+      return ServiceHandle{.hash = TypeIdHelpers::uniqueId<TracingInfrastructure>(),
+                           .instance = new TracingInfrastructure(),
+                           .kind = ServiceKind::Serial};
     },
     .configure = noConfiguration(),
     .preProcessing = [](ProcessingContext&, void* service) {
-      TracingInfrastructure* t = reinterpret_cast<TracingInfrastructure*>(service);
+      auto* t = reinterpret_cast<TracingInfrastructure*>(service);
       t->processingCount += 1; },
     .postProcessing = [](ProcessingContext&, void* service) {
-      TracingInfrastructure* t = reinterpret_cast<TracingInfrastructure*>(service);
+      auto* t = reinterpret_cast<TracingInfrastructure*>(service);
       t->processingCount += 1; },
     .kind = ServiceKind::Serial};
+}
+
+struct CCDBSupport {
+};
+
+// CCDB Support service
+o2::framework::ServiceSpec CommonServices::ccdbSupportSpec()
+{
+  return ServiceSpec{
+    .name = "ccdb-support",
+    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+      // iterate on all the outputs matchers
+      auto& spec = services.get<DeviceSpec const>();
+      for (auto& output : spec.outputs) {
+        if (DataSpecUtils::match(output.matcher, ConcreteDataTypeMatcher{"FLP", "DISTSUBTIMEFRAME"})) {
+          LOGP(debug, "Optional inputs support enabled");
+          return ServiceHandle{.hash = TypeIdHelpers::uniqueId<CCDBSupport>(), .instance = new CCDBSupport, .kind = ServiceKind::Serial};
+        }
+      }
+      return ServiceHandle{.hash = TypeIdHelpers::uniqueId<CCDBSupport>(), .instance = nullptr, .kind = ServiceKind::Serial};
+    },
+    .configure = noConfiguration(),
+    .postProcessing = [](ProcessingContext& pc, void* service) {
+      if (!service) {
+        return;
+      }
+      if (pc.services().get<DeviceState>().streaming == StreamingState::EndOfStreaming) {
+        if (pc.outputs().countDeviceOutputs(true) == 0) {
+          LOGP(debug, "We are in EoS w/o outputs, do not automatically add DISTSUBTIMEFRAME to outgoing messages");
+          return;
+        }
+      }
+      const auto ref = pc.inputs().getFirstValid(true);
+      const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      const auto* dph = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
+
+      // For any output that is a FLP/DISTSUBTIMEFRAME with subspec != 0,
+      // we create a new message.
+      InputSpec matcher{"matcher", ConcreteDataTypeMatcher{"FLP", "DISTSUBTIMEFRAME"}};
+      for (auto& output : pc.services().get<DeviceSpec const>().outputs) {
+        if ((output.timeslice % output.maxTimeslices) != 0) {
+          continue;
+        }
+        if (DataSpecUtils::match(output.matcher, ConcreteDataTypeMatcher{"FLP", "DISTSUBTIMEFRAME"})) {
+          auto concrete = DataSpecUtils::asConcreteDataMatcher(output.matcher);
+          if (concrete.subSpec == 0) {
+            continue;
+          }
+          auto& stfDist = pc.outputs().make<o2::header::STFHeader>(Output{concrete.origin, concrete.description, concrete.subSpec, output.matcher.lifetime});
+          stfDist.id = dph->startTime;
+          stfDist.firstOrbit = dh->firstTForbit;
+          stfDist.runNumber = dh->runNumber;
+        }
+      } },
+    .kind = ServiceKind::Global};
 }
 
 // FIXME: allow configuring the default number of threads per device
@@ -490,9 +571,19 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
   // FIXME: Ugly, but we do it only every 5 seconds...
   if (spec.name == "readout-proxy") {
     auto device = registry.get<RawDeviceService>().device();
+    long freeMemory = -1;
     try {
-      stats.availableManagedShm.store(Monitor::GetFreeMemory(SessionId{device->fConfig->GetProperty<std::string>("session")}, runningWorkflow.shmSegmentId));
+      freeMemory = Monitor::GetFreeMemory(ShmId{makeShmIdStr(device->fConfig->GetProperty<uint64_t>("shmid"))}, runningWorkflow.shmSegmentId);
     } catch (...) {
+    }
+    if (freeMemory == -1) {
+      try {
+        freeMemory = Monitor::GetFreeMemory(SessionId{device->fConfig->GetProperty<std::string>("session")}, runningWorkflow.shmSegmentId);
+      } catch (...) {
+      }
+    }
+    if (freeMemory != -1) {
+      stats.availableManagedShm.store(freeMemory);
     }
   }
 
@@ -657,9 +748,11 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     parallelSpec(),
     callbacksSpec(),
     dataRelayer(),
+    CommonMessageBackends::fairMQDeviceProxy(),
     dataSender(),
     dataProcessingStats(),
     objectCache(),
+    ccdbSupportSpec(),
     CommonMessageBackends::fairMQBackendSpec(),
     ArrowSupport::arrowBackendSpec(),
     CommonMessageBackends::stringBackendSpec(),

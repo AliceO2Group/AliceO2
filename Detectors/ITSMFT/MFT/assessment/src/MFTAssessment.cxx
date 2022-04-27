@@ -28,19 +28,8 @@ void MFTAssessment::init(bool finalizeAnalysis)
 {
   mFinalizeAnalysis = finalizeAnalysis;
   createHistos();
-  //get geometry
-  o2::base::GeometryManager::loadGeometry("", true);
-
-  //load the cluster dictionary
-  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath);
-  if (o2::utils::Str::pathExists(dictFile)) {
-    mDictionary.readBinaryFile(dictFile);
-    LOG(info) << "MFTAssessment running with a provided dictionary: " << dictFile;
-    printf("DictPath is %s\n", dictPath.c_str());
-  } else {
-    LOG(fatal) << "Dictionary " << dictFile << " is absent, MFTAssessment expects cluster patterns";
-  }
+  // get geometry
+  o2::base::GeometryManager::loadGeometry();
 
   mUnusedChips.fill(true);
 }
@@ -94,6 +83,8 @@ void MFTAssessment::reset()
 
   if (mUseMC) {
     mMFTTrackables.clear();
+    mTrueTracksMap.clear();
+    mTrackableTracksMap.clear();
 
     mHistPhiRecVsPhiGen->Reset();
     mHistEtaRecVsEtaGen->Reset();
@@ -292,7 +283,7 @@ void MFTAssessment::createHistos()
 //__________________________________________________________
 void MFTAssessment::runASyncQC(o2::framework::ProcessingContext& ctx)
 {
-  mNumberTFs++; //TF Counter
+  mNumberTFs++; // TF Counter
 
   // get tracks
   mMFTTracks = ctx.inputs().get<gsl::span<o2::mft::TrackMFT>>("tracks");
@@ -333,7 +324,7 @@ void MFTAssessment::runASyncQC(o2::framework::ProcessingContext& ctx)
     auto clsLayer = mMFTChipMapper.chip2Layer(oneCluster.getChipID());
     mMFTClsXYinLayer[clsLayer]->Fill(globalCluster.getX(), globalCluster.getY());
 
-    mUnusedChips[oneCluster.getChipID()] = false; //this chipID is used
+    mUnusedChips[oneCluster.getChipID()] = false; // this chipID is used
   }
 
   // fill the tracks histogram
@@ -362,7 +353,7 @@ void MFTAssessment::runASyncQC(o2::framework::ProcessingContext& ctx)
     auto ncls = oneTrack.getNumberOfPoints();
     auto offset = oneTrack.getExternalClusterIndexOffset();
 
-    for (int icls = 0; icls < ncls; ++icls) //cluster loop
+    for (int icls = 0; icls < ncls; ++icls) // cluster loop
     {
 
       auto clsEntry = mMFTTrackClusIdx[offset + icls];
@@ -426,9 +417,9 @@ void MFTAssessment::processGeneratedTracks()
 {
   for (auto src = 0; src < mcReader.getNSources(); src++) {
     for (Int_t event = 0; event < mcReader.getNEvents(src); event++) {
+      auto evh = mcReader.getMCEventHeader(src, event);
       const auto& mcTracks = mcReader.getTracks(src, event);
       for (const auto& mcParticle : mcTracks) {
-        auto evh = mcReader.getMCEventHeader(src, event);
         addMCParticletoHistos(&mcParticle, kGen, evh);
       } // mcTracks
       mcReader.releaseTracksForSourceAndEvent(src, event);
@@ -460,6 +451,13 @@ void MFTAssessment::processTrackables()
     }
   } // loop on clusters
 
+  // Identify trackables
+  mTrackableTracksMap.resize(mcReader.getNSources());
+  auto src = 0;
+  for (auto& map : mTrackableTracksMap) {
+    map.resize(mcReader.getNEvents(src++));
+  }
+
   for (auto& trackClsInDisk : mcTrackHasClusterInMFTDisks) {
     auto& clsdisk = trackClsInDisk.second;
     auto nMFTDisks = 0;
@@ -468,13 +466,21 @@ void MFTAssessment::processTrackables()
     }
     if (nMFTDisks >= 4) {
       mMFTTrackables[trackClsInDisk.first] = true;
-      auto const* mcParticle = mcReader.getTrack(trackClsInDisk.first);
-      srcID = trackClsInDisk.first.getSourceID();
-      evnID = trackClsInDisk.first.getEventID();
-      auto evH = mcReader.getMCEventHeader(srcID, evnID);
-      addMCParticletoHistos(mcParticle, kTrackable, evH);
+      mTrackableTracksMap[trackClsInDisk.first.getSourceID()][trackClsInDisk.first.getEventID()].push_back(trackClsInDisk.first);
     }
   }
+
+  // Process trackables
+  for (auto src = 0; src < mcReader.getNSources(); src++) {
+    for (Int_t event = 0; event < mcReader.getNEvents(src); event++) {
+      auto evH = mcReader.getMCEventHeader(src, event);
+      for (auto& trackable : mTrackableTracksMap[src][event]) {
+        auto const* mcParticle = mcReader.getTrack(trackable);
+        addMCParticletoHistos(mcParticle, kTrackable, evH);
+      }
+      mcReader.releaseTracksForSourceAndEvent(src, event);
+    } // events
+  }   // sources
 }
 
 //__________________________________________________________
@@ -498,83 +504,99 @@ void MFTAssessment::addMCParticletoHistos(const MCTrack* mcTr, const int TrackTy
 }
 
 //__________________________________________________________
-void MFTAssessment::processRecoAndTrueTracks()
+void MFTAssessment::processRecoTracks()
 {
-  auto trkId = 0;
+  // For this moment this is used for MC-based assessment, but could be merged into runASyncQC(...)
   for (auto mftTrack : mMFTTracks) {
-    auto pt_Rec = mftTrack.getPt();
-    auto invQPt_Rec = mftTrack.getInvQPt();
-    auto invQPt_Seed = mftTrack.getInvQPtSeed();
-    auto eta_Rec = std::abs(mftTrack.getEta());
-    auto phi_Rec = mftTrack.getPhi();
-    auto nClusters = mftTrack.getNumberOfPoints();
-    auto Chi2_Rec = mftTrack.getTrackChi2();
+    const auto& pt_Rec = mftTrack.getPt();
+    const auto& invQPt_Rec = mftTrack.getInvQPt();
+    const auto& invQPt_Seed = mftTrack.getInvQPtSeed();
+    const auto& eta_Rec = std::abs(mftTrack.getEta());
+    const auto& phi_Rec = mftTrack.getPhi();
+    const auto& nClusters = mftTrack.getNumberOfPoints();
+    const auto& Chi2_Rec = mftTrack.getTrackChi2();
     int Q_Rec = mftTrack.getCharge();
 
-    auto TrackType = kReco;
-    mHistPtVsEta[TrackType]->Fill(eta_Rec, pt_Rec);
-    mHistPhiVsEta[TrackType]->Fill(eta_Rec, phi_Rec);
-    mHistPhiVsPt[TrackType]->Fill(pt_Rec, phi_Rec);
+    mHistPtVsEta[kReco]->Fill(eta_Rec, pt_Rec);
+    mHistPhiVsEta[kReco]->Fill(eta_Rec, phi_Rec);
+    mHistPhiVsPt[kReco]->Fill(pt_Rec, phi_Rec);
+  }
+}
 
-    auto trackLabel = mMFTTrackLabels[trkId];
-    if (trackLabel.isCorrect()) {
-      TrackType = kRecoTrue;
-      auto evH = mcReader.getMCEventHeader(trackLabel.getSourceID(), trackLabel.getEventID());
+//__________________________________________________________
+void MFTAssessment::processTrueTracks()
+{
+  fillTrueRecoTracksMap();
+  for (auto src = 0; src < mcReader.getNSources(); src++) {
+    for (Int_t event = 0; event < mcReader.getNEvents(src); event++) {
+      auto evH = mcReader.getMCEventHeader(src, event);
       auto zVtx = evH.GetZ();
 
-      auto const* mcParticle = mcReader.getTrack(trackLabel);
-      auto etaGen = std::abs(mcParticle->GetEta());
-      auto phiGen = TMath::ATan2(mcParticle->Py(), mcParticle->Px());
-      auto ptGen = mcParticle->GetPt();
-      auto vxGen = mcParticle->GetStartVertexCoordinatesX();
-      auto vyGen = mcParticle->GetStartVertexCoordinatesY();
-      auto vzGen = mcParticle->GetStartVertexCoordinatesZ();
-      auto tanlGen = mcParticle->Pz() / mcParticle->GetPt();
+      for (const auto& trueMFTTrackID : mTrueTracksMap[src][event]) {
+        auto mftTrack = mMFTTracks[trueMFTTrackID];
+        const auto& trackLabel = mMFTTrackLabels[trueMFTTrackID];
+        if (trackLabel.isCorrect()) {
+          auto const* mcParticle = mcReader.getTrack(trackLabel);
+          auto pdgcode_MC = mcParticle->GetPdgCode();
+          int Q_Gen;
+          if (TDatabasePDG::Instance()->GetParticle(pdgcode_MC)) {
+            Q_Gen = TDatabasePDG::Instance()->GetParticle(pdgcode_MC)->Charge() / 3;
+          } else {
+            continue;
+          }
 
-      auto pdgcode_MC = mcParticle->GetPdgCode();
-      int Q_Gen;
-      if (TDatabasePDG::Instance()->GetParticle(pdgcode_MC)) {
-        Q_Gen = TDatabasePDG::Instance()->GetParticle(pdgcode_MC)->Charge() / 3;
-      } else {
-        continue;
+          auto etaGen = std::abs(mcParticle->GetEta());
+          auto phiGen = TMath::ATan2(mcParticle->Py(), mcParticle->Px());
+          auto ptGen = mcParticle->GetPt();
+          auto vxGen = mcParticle->GetStartVertexCoordinatesX();
+          auto vyGen = mcParticle->GetStartVertexCoordinatesY();
+          auto vzGen = mcParticle->GetStartVertexCoordinatesZ();
+          auto tanlGen = mcParticle->Pz() / mcParticle->GetPt();
+          auto invQPtGen = 1.0 * Q_Gen / ptGen;
+
+          mftTrack.propagateToZ(vzGen, mBz);
+          const auto& pt_Rec = mftTrack.getPt();
+          const auto& invQPt_Rec = mftTrack.getInvQPt();
+          const auto& invQPt_Seed = mftTrack.getInvQPtSeed();
+          const auto& eta_Rec = std::abs(mftTrack.getEta());
+          const auto& phi_Rec = mftTrack.getPhi();
+          const auto& nClusters = mftTrack.getNumberOfPoints();
+          const auto& Chi2_Rec = mftTrack.getTrackChi2();
+          int Q_Rec = mftTrack.getCharge();
+          // Residuals at vertex
+          auto x_res = mftTrack.getX() - vxGen;
+          auto y_res = mftTrack.getY() - vyGen;
+          auto eta_res = mftTrack.getEta() - etaGen;
+          auto phi_res = mftTrack.getPhi() - phiGen;
+          auto tanl_res = mftTrack.getTanl() - tanlGen;
+          auto invQPt_res = invQPt_Rec - invQPtGen;
+          mHistPtVsEta[kRecoTrue]->Fill(eta_Rec, pt_Rec);
+          mHistPhiVsEta[kRecoTrue]->Fill(eta_Rec, phi_Rec);
+          mHistPhiVsPt[kRecoTrue]->Fill(pt_Rec, phi_Rec);
+          mHistZvtxVsEta[kRecoTrue]->Fill(eta_Rec, zVtx);
+          mHistPhiRecVsPhiGen->Fill(phiGen, phi_Rec);
+          mHistEtaRecVsEtaGen->Fill(etaGen, eta_Rec);
+          /// Reco assessment histos
+          auto d_Charge = Q_Rec - Q_Gen;
+          mChargeMatchEff->Fill(!d_Charge, ptGen);
+
+          mTH3Histos[kTH3TrackDeltaXVertexPtEta]->Fill(ptGen, etaGen, 1e4 * x_res);
+          mTH3Histos[kTH3TrackDeltaYVertexPtEta]->Fill(ptGen, etaGen, 1e4 * y_res);
+          mTH3Histos[kTH3TrackDeltaXDeltaYEta]->Fill(etaGen, 1e4 * x_res, 1e4 * y_res);
+          mTH3Histos[kTH3TrackDeltaXDeltaYPt]->Fill(ptGen, 1e4 * x_res, 1e4 * y_res);
+          mTH3Histos[kTH3TrackXPullPtEta]->Fill(ptGen, etaGen, x_res / sqrt(mftTrack.getCovariances()(0, 0)));
+          mTH3Histos[kTH3TrackYPullPtEta]->Fill(ptGen, etaGen, y_res / sqrt(mftTrack.getCovariances()(1, 1)));
+          mTH3Histos[kTH3TrackPhiPullPtEta]->Fill(ptGen, etaGen, phi_res / sqrt(mftTrack.getCovariances()(2, 2)));
+          mTH3Histos[kTH3TrackTanlPullPtEta]->Fill(ptGen, etaGen, tanl_res / sqrt(mftTrack.getCovariances()(3, 3)));
+          mTH3Histos[kTH3TrackInvQPtPullPtEta]->Fill(ptGen, etaGen, invQPt_res / sqrt(mftTrack.getCovariances()(4, 4)));
+          mTH3Histos[kTH3TrackInvQPtResolutionPtEta]->Fill(ptGen, etaGen, (invQPt_Rec - invQPtGen) / invQPtGen);
+          mTH3Histos[kTH3TrackInvQPtResSeedPtEta]->Fill(ptGen, etaGen, (invQPt_Seed - invQPtGen) / invQPtGen);
+          mTH3Histos[kTH3TrackReducedChi2PtEta]->Fill(ptGen, etaGen, Chi2_Rec / (2 * nClusters - 5)); // 5: number of fitting parameters
+        }
       }
-      auto invQPtGen = 1.0 * Q_Gen / ptGen;
-      mftTrack.propagateToZ(vzGen, mBz);
-
-      // Residuals at vertex
-      auto x_res = mftTrack.getX() - vxGen;
-      auto y_res = mftTrack.getY() - vyGen;
-      auto eta_res = mftTrack.getEta() - etaGen;
-      auto phi_res = mftTrack.getPhi() - phiGen;
-      auto tanl_res = mftTrack.getTanl() - tanlGen;
-      auto invQPt_res = invQPt_Rec - invQPtGen;
-      mHistPtVsEta[TrackType]->Fill(eta_Rec, pt_Rec);
-      mHistPhiVsEta[TrackType]->Fill(eta_Rec, phi_Rec);
-      mHistPhiVsPt[TrackType]->Fill(pt_Rec, phi_Rec);
-      mHistZvtxVsEta[TrackType]->Fill(eta_Rec, zVtx);
-
-      mHistPhiRecVsPhiGen->Fill(phiGen, phi_Rec);
-      mHistEtaRecVsEtaGen->Fill(etaGen, eta_Rec);
-
-      /// Reco assessment histos
-      auto d_Charge = Q_Rec - Q_Gen;
-      mChargeMatchEff->Fill(!d_Charge, ptGen);
-
-      mTH3Histos[kTH3TrackDeltaXVertexPtEta]->Fill(ptGen, etaGen, 1e4 * x_res);
-      mTH3Histos[kTH3TrackDeltaYVertexPtEta]->Fill(ptGen, etaGen, 1e4 * y_res);
-      mTH3Histos[kTH3TrackDeltaXDeltaYEta]->Fill(etaGen, 1e4 * x_res, 1e4 * y_res);
-      mTH3Histos[kTH3TrackDeltaXDeltaYPt]->Fill(ptGen, 1e4 * x_res, 1e4 * y_res);
-      mTH3Histos[kTH3TrackXPullPtEta]->Fill(ptGen, etaGen, x_res / sqrt(mftTrack.getCovariances()(0, 0)));
-      mTH3Histos[kTH3TrackYPullPtEta]->Fill(ptGen, etaGen, y_res / sqrt(mftTrack.getCovariances()(1, 1)));
-      mTH3Histos[kTH3TrackPhiPullPtEta]->Fill(ptGen, etaGen, phi_res / sqrt(mftTrack.getCovariances()(2, 2)));
-      mTH3Histos[kTH3TrackTanlPullPtEta]->Fill(ptGen, etaGen, tanl_res / sqrt(mftTrack.getCovariances()(3, 3)));
-      mTH3Histos[kTH3TrackInvQPtPullPtEta]->Fill(ptGen, etaGen, invQPt_res / sqrt(mftTrack.getCovariances()(4, 4)));
-      mTH3Histos[kTH3TrackInvQPtResolutionPtEta]->Fill(ptGen, etaGen, (invQPt_Rec - invQPtGen) / invQPtGen);
-      mTH3Histos[kTH3TrackInvQPtResSeedPtEta]->Fill(ptGen, etaGen, (invQPt_Seed - invQPtGen) / invQPtGen);
-      mTH3Histos[kTH3TrackReducedChi2PtEta]->Fill(ptGen, etaGen, Chi2_Rec / (2 * nClusters - 5)); // 5: number of fitting parameters
-    }
-    trkId++;
-  }
+      mcReader.releaseTracksForSourceAndEvent(src, event);
+    } // events
+  }   // sources
 }
 
 //__________________________________________________________
@@ -651,6 +673,10 @@ void MFTAssessment::getHistos(TObjArray& objar)
 
     for (auto& h : mTH3Histos) {
       objar.Add(h.get());
+    }
+
+    if (mFinalizeAnalysis) {
+      objar.Add(mHistVxtOffsetProjection.get());
     }
 
     objar.Add(mChargeMatchEff.get());
@@ -864,6 +890,9 @@ bool MFTAssessment::loadHistos()
 //__________________________________________________________
 void MFTAssessment::finalizeAnalysis()
 {
+  mHistVxtOffsetProjection = std::unique_ptr<TH2F>((TH2F*)mTH3Histos[kTH3TrackDeltaXDeltaYEta]->Project3D("colz yz"));
+  mHistVxtOffsetProjection->SetNameTitle("Vertex_XY_OffSet", "Track-MC_Vertex Offset");
+  mHistVxtOffsetProjection->SetOption("COLZ");
 
   if (mFinalizeAnalysis) {
     std::vector<float> ptList({.5, 1.5, 5., 10., 15., 18.0});

@@ -15,9 +15,10 @@
 #define O2_ITS_NOISECALIBRATORSPEC
 
 #include <string>
-
+#include <TStopwatch.h>
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 //#define TIME_SLOT_CALIBRATION
 #ifdef TIME_SLOT_CALIBRATION
@@ -39,21 +40,32 @@ namespace its
 class NoiseCalibratorSpec : public Task
 {
  public:
-  NoiseCalibratorSpec() = default;
+  NoiseCalibratorSpec(bool useClusters = false, std::shared_ptr<o2::base::GRPGeomRequest> req = {}) : mUseClusters(useClusters), mCCDBRequest(req)
+  {
+    mTimer.Stop();
+  }
   ~NoiseCalibratorSpec() override = default;
 
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(EndOfStreamContext& ec) final;
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
   void sendOutput(DataAllocator& output);
+  void updateTimeDependentParams(ProcessingContext& pc);
   std::unique_ptr<CALIBRATOR> mCalibrator = nullptr;
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
+  size_t mDataSizeStat = 0;
+  size_t mNClustersProc = 0;
+  int mValidityDays = 3;
+  bool mUseClusters = false;
+  TStopwatch mTimer{};
 };
 
 /// create a processor spec
 /// run ITS noise calibration
-DataProcessorSpec getNoiseCalibratorSpec();
+DataProcessorSpec getNoiseCalibratorSpec(bool useClusters);
 
 } // namespace its
 } // namespace o2

@@ -12,20 +12,22 @@
 o2_add_library(
   MIDWorkflow
   TARGETVARNAME targetName
-  SOURCES src/ClusterizerMCSpec.cxx
-          src/ClusterizerSpec.cxx
+  SOURCES src/ClusterizerSpec.cxx
+          src/ColumnDataSpecsUtils.cxx
           src/DecodedDataAggregatorSpec.cxx
           src/DigitReaderSpec.cxx
           src/EntropyDecoderSpec.cxx
           src/EntropyEncoderSpec.cxx
+          src/FetToDeadSpec.cxx
           src/MaskHandlerSpec.cxx
           src/MaskMakerSpec.cxx
+          src/ChannelCalibratorSpec.cxx
           src/RawCheckerSpec.cxx
           src/RawDecoderSpec.cxx
           src/RawGBTDecoderSpec.cxx
           src/RawInputSpecHandler.cxx
           src/RawWriterSpec.cxx
-          src/TrackerMCSpec.cxx
+          src/TimingSpec.cxx
           src/TrackerSpec.cxx
           src/TrackReaderSpec.cxx
           src/ZeroSuppressionSpec.cxx
@@ -39,6 +41,7 @@ o2_add_library(
     O2::DPLUtils
     O2::SimulationDataFormat
     O2::DataFormatsMID
+    O2::MIDCalibration
     O2::MIDClustering
     O2::MIDCTF
     O2::MIDFiltering
@@ -99,4 +102,10 @@ o2_add_executable(
   decoded-digits-writer-workflow
   COMPONENT_NAME mid
   SOURCES src/decoded-digits-writer-workflow.cxx
+  PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
+
+o2_add_executable(
+  calibration-workflow
+  COMPONENT_NAME mid
+  SOURCES src/calibration-workflow.cxx
   PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)

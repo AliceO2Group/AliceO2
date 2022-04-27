@@ -64,7 +64,7 @@ class TOFCalibInfoSlot
 
 class TOFCalibCollector final : public o2::calibration::TimeSlotCalibration<o2::dataformats::CalibInfoTOF, o2::tof::TOFCalibInfoSlot>
 {
-  using TFType = uint64_t;
+  using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<o2::tof::TOFCalibInfoSlot>;
 
  public:

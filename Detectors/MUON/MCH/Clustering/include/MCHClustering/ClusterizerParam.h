@@ -13,8 +13,8 @@
 /// \brief Configurable parameters for MCH clustering
 /// \author Philippe Pillot, Subatech
 
-#ifndef ALICEO2_MCH_CLUSTERIZERPARAM_H_
-#define ALICEO2_MCH_CLUSTERIZERPARAM_H_
+#ifndef O2_MCH_CLUSTERIZERPARAM_H_
+#define O2_MCH_CLUSTERIZERPARAM_H_
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
@@ -47,4 +47,4 @@ struct ClusterizerParam : public o2::conf::ConfigurableParamHelper<ClusterizerPa
 } // namespace mch
 } // end namespace o2
 
-#endif // ALICEO2_MCH_CLUSTERIZERPARAM_H_
+#endif // O2_MCH_CLUSTERIZERPARAM_H_

@@ -15,7 +15,35 @@
 #include "GPUDisplayFrontend.h"
 #include "GPUDisplay.h"
 
+#ifdef _WIN32
+#include "GPUDisplayFrontendWindows.h"
+#elif defined(GPUCA_BUILD_EVENT_DISPLAY_X11)
+#include "GPUDisplayFrontendX11.h"
+#endif
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_GLFW
+#include "GPUDisplayFrontendGlfw.h"
+#endif
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_GLUT
+#include "GPUDisplayFrontendGlut.h"
+#endif
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_WAYLAND
+#include "GPUDisplayFrontendWayland.h"
+#endif
+
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_QT
+#include "GPUDisplayGUIWrapper.h"
+#else
+namespace GPUCA_NAMESPACE::gpu
+{
+class GPUDisplayGUIWrapper
+{
+};
+} // namespace GPUCA_NAMESPACE::gpu
+#endif
+
 using namespace GPUCA_NAMESPACE::gpu;
+
+GPUDisplayFrontend::~GPUDisplayFrontend() = default;
 
 void* GPUDisplayFrontend::FrontendThreadWrapper(void* ptr)
 {
@@ -36,53 +64,90 @@ void GPUDisplayFrontend::HandleSendKey()
 }
 
 void GPUDisplayFrontend::HandleKey(unsigned char key) { mDisplay->HandleKey(key); }
-int GPUDisplayFrontend::DrawGLScene(bool mixAnimation, float animateTime) { return mDisplay->DrawGLScene(mixAnimation, animateTime); }
-void GPUDisplayFrontend::ReSizeGLScene(int width, int height)
+int GPUDisplayFrontend::DrawGLScene() { return mDisplay->DrawGLScene(); }
+void GPUDisplayFrontend::ResizeScene(int width, int height)
 {
   mDisplayHeight = height;
   mDisplayWidth = width;
-  mDisplay->ReSizeGLScene(width, height);
+  mDisplay->ResizeScene(width, height);
 }
 int GPUDisplayFrontend::InitDisplay(bool initFailure) { return mDisplay->InitDisplay(initFailure); }
-void GPUDisplayFrontend::ExitDisplay() { return mDisplay->ExitDisplay(); }
+void GPUDisplayFrontend::ExitDisplay()
+{
+  mDisplay->ExitDisplay();
+  stopGUI();
+  mGUI.reset(nullptr);
+}
 bool GPUDisplayFrontend::EnableSendKey() { return true; }
 
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
-#ifdef _WIN32
-#include "GPUDisplayFrontendWindows.h"
-#else
-#ifdef GPUCA_STANDALONE
-#include "GPUDisplayFrontendX11.h"
+void GPUDisplayFrontend::stopGUI()
+{
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_QT
+  if (mGUI) {
+    mGUI->stop();
+  }
 #endif
-#include "GPUDisplayFrontendGlfw.h"
+}
+
+int GPUDisplayFrontend::startGUI()
+{
+  int retVal = 1;
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_QT
+  if (!mGUI) {
+    mGUI.reset(new GPUDisplayGUIWrapper);
+  }
+  if (!mGUI->isRunning()) {
+    mGUI->start();
+  } else {
+    mGUI->focus();
+  }
 #endif
-#ifdef GPUCA_STANDALONE
-#include "GPUDisplayFrontendGlut.h"
-#endif
-#endif
+  return retVal;
+}
 
 GPUDisplayFrontend* GPUDisplayFrontend::getFrontend(const char* type)
 {
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
-#ifdef _WIN32
-  if (strcmp(type, "windows") == 0) {
-    return new GPUDisplayFrontendWindows;
-  }
-#else
-#ifdef GPUCA_STANDALONE
-  if (strcmp(type, "x11") == 0) {
-    return new GPUDisplayFrontendX11;
-  }
-#endif
-  if (strcmp(type, "glfw") == 0) {
+#if !defined(GPUCA_STANDALONE) && defined(GPUCA_BUILD_EVENT_DISPLAY_GLFW)
+  if (strcmp(type, "glfw") == 0 || strcmp(type, "auto") == 0) {
     return new GPUDisplayFrontendGlfw;
-  }
+  } else
 #endif
-#ifdef GPUCA_STANDALONE
-  if (strcmp(type, "glut") == 0) {
+#ifdef _WIN32
+  if (strcmp(type, "windows") == 0 || strcmp(type, "auto") == 0) {
+    return new GPUDisplayFrontendWindows;
+  } else
+#elif defined(GPUCA_BUILD_EVENT_DISPLAY_X11)
+  if (strcmp(type, "x11") == 0 || strcmp(type, "auto") == 0) {
+    return new GPUDisplayFrontendX11;
+  } else
+#endif
+#if defined(GPUCA_STANDALONE) && defined(GPUCA_BUILD_EVENT_DISPLAY_GLFW)
+  if (strcmp(type, "glfw") == 0 || strcmp(type, "auto") == 0) {
+    return new GPUDisplayFrontendGlfw;
+  } else
+#endif
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_WAYLAND
+  if (strcmp(type, "wayland") == 0 || (strcmp(type, "auto") == 0 && getenv("XDG_SESSION_TYPE") && strcmp(getenv("XDG_SESSION_TYPE"), "wayland") == 0)) {
+    return new GPUDisplayFrontendWayland;
+  } else
+#endif
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_GLUT
+  if (strcmp(type, "glut") == 0 || strcmp(type, "auto") == 0) {
     return new GPUDisplayFrontendGlut;
+  } else
+#endif
+  {
+    GPUError("Requested frontend not available");
   }
-#endif
-#endif
   return nullptr;
+}
+
+GPUDisplayBackend* GPUDisplayFrontend::backend()
+{
+  return mDisplay->backend();
+}
+
+int& GPUDisplayFrontend::drawTextFontSize()
+{
+  return mDisplay->drawTextFontSize();
 }

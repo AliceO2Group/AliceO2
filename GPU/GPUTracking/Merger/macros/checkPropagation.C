@@ -4,6 +4,7 @@
 #include "TMath.h"
 #include "TCanvas.h"
 #include "TH1F.h"
+#include "GPUCommonConstants.h"
 #include "GPUO2Interface.h"
 #include "GPUTPCGMPhysicalTrackModel.h"
 #endif
@@ -141,7 +142,7 @@ int checkPropagation()
 
         double cs = TMath::Cos(alpha);
         double sn = TMath::Sin(alpha);
-        const double kCLight = 0.000299792458;
+        const double kCLight = o2::gpu::gpu_common_constants::kCLight;
         double b[3] = {(B[0] * cs - B[1] * sn) / kCLight, (B[0] * sn + B[1] * cs) / kCLight, B[2] / kCLight};
         err = err & !t0.PropagateToBxByBz(xRow, b);
         // err = err & !t0.PropagateTo( xRow, b[2] );

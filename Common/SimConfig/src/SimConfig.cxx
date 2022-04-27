@@ -17,6 +17,7 @@
 #include <thread>
 #include <cmath>
 #include <chrono>
+#include <regex>
 
 using namespace o2::conf;
 namespace bpo = boost::program_options;
@@ -48,12 +49,13 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "chunkSize", bpo::value<unsigned int>()->default_value(500), "max size of primary chunk (subevent) distributed by server")(
     "chunkSizeI", bpo::value<int>()->default_value(-1), "internalChunkSize")(
     "seed", bpo::value<int>()->default_value(-1), "initial seed (default: -1 random)")(
-    "field", bpo::value<std::string>()->default_value("-5"), "L3 field rounded to kGauss, allowed values +-2,+-5 and 0; +-<intKGaus>U for uniform field ")(
+    "field", bpo::value<std::string>()->default_value("-5"), "L3 field rounded to kGauss, allowed values +-2,+-5 and 0; +-<intKGaus>U for uniform field; \"ccdb\" for taking it from CCDB ")(
     "nworkers,j", bpo::value<int>()->default_value(nsimworkersdefault), "number of parallel simulation workers (only for parallel mode)")(
     "noemptyevents", "only writes events with at least one hit")(
-    "CCDBUrl", bpo::value<std::string>()->default_value("ccdb-test.cern.ch:8080"), "URL for CCDB to be used.")(
+    "CCDBUrl", bpo::value<std::string>()->default_value("http://alice-ccdb.cern.ch"), "URL for CCDB to be used.")(
     "timestamp", bpo::value<uint64_t>(), "global timestamp value in ms (for anchoring) - default is now")(
-    "asservice", bpo::value<bool>()->default_value(false), "run in service/server mode");
+    "asservice", bpo::value<bool>()->default_value(false), "run in service/server mode")(
+    "noGeant", bpo::bool_switch(), "prohibits any Geant transport/physics (by using tight cuts)");
 }
 
 bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& vm)
@@ -99,18 +101,13 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   readoutDetectors.clear();
 
   auto isDet = [](std::string const& s) {
-    auto d = DetID::nameToID(s.c_str());
-#ifdef ENABLE_UPGRADES
-    return d >= DetID::First && d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3;
-#else
-    return d >= DetID::First;
-#endif
+    return DetID::nameToID(s.c_str()) >= DetID::First;
   };
 
   if (enableReadout.empty()) {
     // if no readout explicitly given, use all detectors from active modules
     for (auto& am : activeModules) {
-      if (!isDet(am) || std::find(disableReadout.begin(), disableReadout.end(), am) != disableReadout.end()) {
+      if (!isDet(am)) {
         // either we found a passive module or one with disabled readout ==> skip
         continue;
       }
@@ -118,15 +115,29 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
     }
   } else {
     for (auto& er : enableReadout) {
-      if (!isDet(er) || std::find(disableReadout.begin(), disableReadout.end(), er) != disableReadout.end()) {
+      if (!isDet(er)) {
         // either we found a passive module or one with disabled readout ==> skip
-        continue;
+        LOG(fatal) << "Enabled readout for " << er << " which is not a detector.";
       }
-      readoutDetectors.emplace_back(er);
       if (std::find(activeModules.begin(), activeModules.end(), er) == activeModules.end()) {
         // add to active modules if not yet there
-        activeModules.emplace_back(er);
+        LOG(fatal) << "Module " << er << " not constructed and cannot be used for readout (make sure it is contained in -m option).";
       }
+      readoutDetectors.emplace_back(er);
+    }
+  }
+  for (auto& dr : disableReadout) {
+    if (!isDet(dr)) {
+      // either we found a passive module or one with disabled readout ==> skip
+      LOG(fatal) << "Disabled readout for " << dr << " which is not a detector.";
+    }
+    if (std::find(activeModules.begin(), activeModules.end(), dr) == activeModules.end()) {
+      // add to active modules if not yet there
+      LOG(fatal) << "Module " << dr << " not constructed, makes no sense to disable its readout (make sure it is contained in -m option).";
+    }
+    auto iter = std::find(readoutDetectors.begin(), readoutDetectors.end(), dr);
+    if (iter != readoutDetectors.end()) {
+      readoutDetectors.erase(iter);
     }
   }
 
@@ -154,11 +165,27 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   }
   mConfigData.mCCDBUrl = vm["CCDBUrl"].as<std::string>();
   mConfigData.mAsService = vm["asservice"].as<bool>();
+  mConfigData.mNoGeant = vm["noGeant"].as<bool>();
   if (vm.count("noemptyevents")) {
     mConfigData.mFilterNoHitEvents = true;
   }
-  mConfigData.mField = std::stoi((vm["field"].as<std::string>()).substr(0, (vm["field"].as<std::string>()).rfind("U")));
-  mConfigData.mUniformField = (vm["field"].as<std::string>()).find("U") != std::string::npos;
+
+  // analyse field options
+  // either: "ccdb" or +-2[U],+-5[U] and 0[U]; +-<intKGaus>U
+  auto& fieldstring = vm["field"].as<std::string>();
+  std::regex re("(ccdb)|([+-]?[250]U?)");
+  if (!std::regex_match(fieldstring, re)) {
+    LOG(error) << "Invalid field option";
+    return false;
+  }
+  if (fieldstring == "ccdb") {
+    mConfigData.mFieldMode = SimFieldMode::kCCDB;
+  } else if (fieldstring.find("U") != std::string::npos) {
+    mConfigData.mFieldMode = SimFieldMode::kUniform;
+  }
+  if (fieldstring != "ccdb") {
+    mConfigData.mField = std::stoi((vm["field"].as<std::string>()).substr(0, (vm["field"].as<std::string>()).rfind("U")));
+  }
   return true;
 }
 

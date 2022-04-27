@@ -23,8 +23,11 @@ namespace zdc
 
 struct ChannelSimCondition {
   using Histo = std::vector<float>;
-
-  static constexpr float ShapeBinWidth = 25. / NTimeBinsPerBC / 200; // Note: we don't use here correct BC spaces
+  // Note: we don't use here correct BC spacing.
+  // Shapes were measured with digitizer synchronized to a 100 MHz clock
+  // As soon as we will have shapes acquired with the production digitizer we
+  // will need to replace 25 with o2::constants::lhc::LHCBunchSpacingNS
+  static constexpr float ShapeBinWidth = 25. / NTimeBinsPerBC / 200;
   static constexpr float ShapeBinWidthInv = 1. / ShapeBinWidth;
 
   Histo shape;

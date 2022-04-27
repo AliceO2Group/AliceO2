@@ -16,10 +16,12 @@
 #define ALICEO2_TPC_CALIBDEDXCORRECTION_H_
 
 #include "GPUCommonDef.h"
+#include "GPUCommonMath.h"
 #include "GPUCommonRtypes.h"
 
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <string_view>
+#include <algorithm>
 #endif
 
 // o2 includes
@@ -31,8 +33,9 @@ namespace o2::tpc
 class CalibdEdxCorrection
 {
  public:
-  constexpr static int paramSize = 6;
-  constexpr static int fitSize = 288;
+  static constexpr int FitSize = 288; ///< Number of fitted corrections
+  static constexpr int ParamSize = 8; ///< Number of params per fit
+
 #if !defined(GPUCA_ALIGPUCODE)
   CalibdEdxCorrection()
   {
@@ -44,35 +47,39 @@ class CalibdEdxCorrection
 #endif
   ~CalibdEdxCorrection() CON_DEFAULT;
 
-  GPUd() float getCorrection(const StackID& stack, ChargeType charge, float z = 0, float tgl = 0) const
+  GPUd() float getCorrection(const StackID& stack, ChargeType charge, float tgl = 0, float snp = 0) const
   {
     // by default return 1 if no correction was loaded
     if (mDims < 0) {
       return 1;
     }
 
-    const auto& p = mParams[stackIndex(stack, charge)];
-    float corr = p[0];
-
+    tgl = o2::gpu::CAMath::Abs(tgl);
+    auto p = mParams[stackIndex(stack, charge)];
+    float result = p[0];
+    // Tgl part
     if (mDims > 0) {
-      corr += p[1] * z + p[2] * z * z;
-      if (mDims > 1) {
-        corr += p[3] * tgl + p[4] * z * tgl + p[5] * tgl * tgl;
-      }
+      result += tgl * (p[1] + tgl * (p[2] + tgl * (p[3] + tgl * p[4])));
     }
-
-    return corr;
+    // Snp and cross terms
+    if (mDims > 1) {
+      result += snp * (p[5] + snp * p[6] + tgl * p[7]);
+    }
+    return result;
   }
 
 #if !defined(GPUCA_GPUCODE)
-  float getChi2(const StackID& stack, ChargeType charge) const
+  const float* getParams(const StackID& stack, ChargeType charge) const
   {
-    return mChi2[stackIndex(stack, charge)];
+    return mParams[stackIndex(stack, charge)];
   }
+  float getChi2(const StackID& stack, ChargeType charge) const { return mChi2[stackIndex(stack, charge)]; }
+  int getEntries(const StackID& stack, ChargeType charge) const { return mEntries[stackIndex(stack, charge)]; }
   int getDims() const { return mDims; }
 
-  void setParams(const StackID& stack, ChargeType charge, const float* params) { std::copy(params, params + paramSize, mParams[stackIndex(stack, charge)]); }
+  void setParams(const StackID& stack, ChargeType charge, const float* params) { std::copy(params, params + ParamSize, mParams[stackIndex(stack, charge)]); }
   void setChi2(const StackID& stack, ChargeType charge, float chi2) { mChi2[stackIndex(stack, charge)] = chi2; }
+  void setEntries(const StackID& stack, ChargeType charge, int entries) { mEntries[stackIndex(stack, charge)] = entries; }
   void setDims(int dims) { mDims = dims; }
 
   void clear();
@@ -84,14 +91,15 @@ class CalibdEdxCorrection
  private:
   GPUd() static int stackIndex(const StackID& stack, ChargeType charge)
   {
-    return stack.index() + charge * SECTORSPERSIDE * SIDES * GEMSTACKSPERSECTOR;
+    return stack.getIndex() + charge * SECTORSPERSIDE * SIDES * GEMSTACKSPERSECTOR;
   }
 
-  float mParams[fitSize][paramSize];
-  float mChi2[fitSize];
+  float mParams[FitSize][ParamSize];
+  float mChi2[FitSize];
+  int mEntries[FitSize];
   int mDims{-1}; ///< Fit dimension
 
-  ClassDefNV(CalibdEdxCorrection, 1);
+  ClassDefNV(CalibdEdxCorrection, 2);
 };
 
 } // namespace o2::tpc

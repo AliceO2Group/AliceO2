@@ -12,11 +12,14 @@
 #include <cmath>
 #include <regex>
 #include <string>
+#include <string_view>
 #include <fmt/format.h>
 #include <fmt/printf.h>
 
 #include "TSystem.h"
 #include "TObject.h"
+#include "TClass.h"
+#include "TKey.h"
 #include "TObjArray.h"
 #include "TCanvas.h"
 #include "TH1.h"
@@ -66,7 +69,6 @@ TH1* utils::getBinInfoXY(int& binx, int& biny, float& bincx, float& bincy)
   biny = h->GetYaxis()->FindBin(y);
   bincx = h->GetXaxis()->GetBinCenter(binx);
   bincy = h->GetYaxis()->GetBinCenter(biny);
-  //printf("binx, biny: %d %d\n",binx,biny);
 
   return h;
 }
@@ -101,7 +103,6 @@ void utils::addFECInfo()
   }
   const int nPads = mapper.getNumberOfPadsInRowROC(roc, row);
   const int pad = cpad + nPads / 2;
-  //printf("row %d, cpad %d, pad %d, nPads %d\n", row, cpad, pad, nPads);
   if (pad < 0 || pad >= (int)nPads) {
     return;
   }
@@ -158,6 +159,8 @@ void utils::saveCanvas(TCanvas& c, std::string_view outDir, std::string_view typ
 
 std::vector<CalPad*> utils::readCalPads(const std::string_view fileName, const std::vector<std::string>& calPadNames)
 {
+  using CalPadMapType = std::unordered_map<std::string, CalPad>;
+
   std::vector<CalPad*> calPads(calPadNames.size());
 
   std::unique_ptr<TFile> file(TFile::Open(fileName.data()));
@@ -165,8 +168,18 @@ std::vector<CalPad*> utils::readCalPads(const std::string_view fileName, const s
     return calPads;
   }
 
-  for (size_t iCalPad = 0; iCalPad < calPadNames.size(); ++iCalPad) {
-    file->GetObject(calPadNames[iCalPad].data(), calPads[iCalPad]);
+  // check if we have a map of calPads
+  auto firstKey = (TKey*)file->GetListOfKeys()->At(0);
+  const auto clMap = TClass::GetClass(typeid(CalPadMapType));
+  if (std::string_view(firstKey->GetClassName()) == std::string_view(clMap->GetName())) {
+    auto calPadMap = firstKey->ReadObject<CalPadMapType>();
+    for (size_t iCalPad = 0; iCalPad < calPadNames.size(); ++iCalPad) {
+      calPads[iCalPad] = &calPadMap->at(calPadNames[iCalPad]);
+    }
+  } else {
+    for (size_t iCalPad = 0; iCalPad < calPadNames.size(); ++iCalPad) {
+      file->GetObject(calPadNames[iCalPad].data(), calPads[iCalPad]);
+    }
   }
 
   return calPads;

@@ -47,6 +47,8 @@ std::ostream& operator<<(std::ostream& stream, const EMCALChannelData& emcdata)
 //_____________________________________________
 void EMCALChannelData::fill(const gsl::span<const o2::emcal::Cell> data)
 {
+  //the fill function is called once per event
+  mEvents++;
   for (auto cell : data) {
     Double_t cellEnergy = cell.getEnergy();
     Int_t id = cell.getTower();
@@ -69,17 +71,17 @@ void EMCALChannelData::merge(const EMCALChannelData* prev)
 //_____________________________________________
 bool EMCALChannelData::hasEnoughData() const
 {
-  // true if we have enough data, also want to check for the sync trigger
-  // this is stil to be finalized, simply a skeletron for now
-
-  // if we have the sync trigger, finalize the slot anyway
-
-  //finalizeOldestSlot(Slot& slot);
-
-  // TODO: use event counter here to specify the value of enough
-  // guess and then adjust number of events as needed
-  // checking mEvents
-  bool enough;
+  bool enough = false;
+  double entries = boost::histogram::algorithm::sum(mEsumHisto);
+  LOG(debug) << "entries: " << entries << " needed: " << EMCALCalibParams::Instance().minNEntries << "  mEvents = " << mEvents;
+  // use enrties in histogram for calibration
+  if (!EMCALCalibParams::Instance().useNEventsForCalib && entries > EMCALCalibParams::Instance().minNEntries) {
+    enough = true;
+  }
+  // use number of events (from emcal trigger record) for calibration
+  if (EMCALCalibParams::Instance().useNEventsForCalib && mEvents > EMCALCalibParams::Instance().minNEvents) {
+    enough = true;
+  }
 
   return enough;
 }

@@ -184,8 +184,13 @@ struct WorkflowHelpers {
   static void addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
                                         std::vector<InputSpec> requestedInputs,
                                         DataProcessorSpec& publisher);
-  static void addMissingOutputsToCreator(std::vector<InputSpec>&& requestedSpecials,
+  static void addMissingOutputsToSpawner(std::vector<OutputSpec> const& providedSpecials,
+                                         std::vector<InputSpec> const& requestedSpecials,
                                          std::vector<InputSpec>& requestedAODs,
+                                         DataProcessorSpec& publisher);
+  static void addMissingOutputsToBuilder(std::vector<InputSpec> const& requestedSpecials,
+                                         std::vector<InputSpec>& requestedAODs,
+                                         std::vector<InputSpec>& requestedDYNs,
                                          DataProcessorSpec& publisher);
 
   // Final adjustments to @a workflow after service devices have been injected.

@@ -24,9 +24,13 @@
 #include "Framework/Output.h"
 #include "Framework/Task.h"
 #include "DataFormatsMID/Cluster.h"
+#include "DataFormatsMID/ROFRecord.h"
 #include "DataFormatsMID/Track.h"
-#include "MIDTracking/Tracker.h"
+#include "DataFormatsMID/MCClusterLabel.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "MIDTracking/HitMapBuilder.h"
+#include "MIDTracking/Tracker.h"
+#include "MIDSimulation/TrackLabeler.h"
 #include "CommonUtils/NameConf.h"
 
 namespace of = o2::framework;
@@ -38,6 +42,9 @@ namespace mid
 class TrackerDeviceDPL
 {
  public:
+  TrackerDeviceDPL(bool isMC) : mIsMC(isMC) {}
+  ~TrackerDeviceDPL() = default;
+
   void init(o2::framework::InitContext& ic)
   {
 
@@ -45,16 +52,21 @@ class TrackerDeviceDPL
       o2::base::GeometryManager::loadGeometry();
     }
 
-    mTracker = std::make_unique<Tracker>(createTransformationFromManager(gGeoManager));
+    auto keepAll = !ic.options().get<bool>("mid-tracker-keep-best");
 
-    if (!mTracker->init(true)) {
+    auto geoTrans = createTransformationFromManager(gGeoManager);
+
+    mTracker = std::make_unique<Tracker>(geoTrans);
+    if (!mTracker->init(keepAll)) {
       LOG(error) << "Initialization of MID tracker device failed";
     }
+
+    mHitMapBuilder = std::make_unique<HitMapBuilder>(geoTrans);
 
     auto stop = [this]() {
       LOG(info) << "Capacities: ROFRecords: " << mTracker->getTrackROFRecords().capacity() << "  tracks: " << mTracker->getTracks().capacity() << "  clusters: " << mTracker->getClusters().capacity();
       double scaleFactor = 1.e6 / mNROFs;
-      LOG(info) << "Processing time / " << mNROFs << " ROFs: full: " << mTimer.count() * scaleFactor << " us  tracking: " << mTimerAlgo.count() * scaleFactor << " us";
+      LOG(info) << "Processing time / " << mNROFs << " ROFs: full: " << mTimer.count() * scaleFactor << " us  tracking: " << mTimerTracker.count() * scaleFactor << " us  hitMapBuilder: " << mTimerBuilder.count() << " us";
     };
     ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);
   }
@@ -63,18 +75,30 @@ class TrackerDeviceDPL
   {
     auto tStart = std::chrono::high_resolution_clock::now();
 
-    auto msg = pc.inputs().get("mid_clusters");
-    gsl::span<const Cluster> clusters = of::DataRefUtils::as<const Cluster>(msg);
+    auto clusters = pc.inputs().get<gsl::span<Cluster>>("mid_clusters");
 
-    auto msgROF = pc.inputs().get("mid_clusters_rof");
-    gsl::span<const ROFRecord> inROFRecords = of::DataRefUtils::as<const ROFRecord>(msgROF);
+    auto inROFRecords = pc.inputs().get<gsl::span<ROFRecord>>("mid_clusters_rof");
 
     auto tAlgoStart = std::chrono::high_resolution_clock::now();
     mTracker->process(clusters, inROFRecords);
-    mTimerAlgo += std::chrono::high_resolution_clock::now() - tAlgoStart;
+    mTimerTracker += std::chrono::high_resolution_clock::now() - tAlgoStart;
 
-    pc.outputs().snapshot(of::Output{"MID", "TRACKS", 0, of::Lifetime::Timeframe}, mTracker->getTracks());
-    LOG(debug) << "Sent " << mTracker->getTracks().size() << " tracks.";
+    tAlgoStart = std::chrono::high_resolution_clock::now();
+    std::vector<Track> tracks = mTracker->getTracks();
+    mHitMapBuilder->process(tracks, clusters);
+    mTimerBuilder += std::chrono::high_resolution_clock::now() - tAlgoStart;
+
+    if (mIsMC) {
+      std::unique_ptr<const o2::dataformats::MCTruthContainer<MCClusterLabel>> labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<MCClusterLabel>*>("mid_clusterlabels");
+      mTrackLabeler.process(mTracker->getClusters(), tracks, *labels);
+      pc.outputs().snapshot(of::Output{"MID", "TRACKLABELS", 0, of::Lifetime::Timeframe}, mTrackLabeler.getTracksLabels());
+      LOG(debug) << "Sent " << mTrackLabeler.getTracksLabels().getIndexedSize() << " indexed tracks.";
+      pc.outputs().snapshot(of::Output{"MID", "TRCLUSLABELS", 0, of::Lifetime::Timeframe}, mTrackLabeler.getTrackClustersLabels());
+      LOG(debug) << "Sent " << mTrackLabeler.getTrackClustersLabels().getIndexedSize() << " indexed track clusters.";
+    }
+
+    pc.outputs().snapshot(of::Output{"MID", "TRACKS", 0, of::Lifetime::Timeframe}, tracks);
+    LOG(debug) << "Sent " << tracks.size() << " tracks.";
     pc.outputs().snapshot(of::Output{"MID", "TRACKCLUSTERS", 0, of::Lifetime::Timeframe}, mTracker->getClusters());
     LOG(debug) << "Sent " << mTracker->getClusters().size() << " track clusters.";
 
@@ -88,13 +112,17 @@ class TrackerDeviceDPL
   }
 
  private:
+  bool mIsMC = false;
+  TrackLabeler mTrackLabeler{};
   std::unique_ptr<Tracker> mTracker{nullptr};
-  std::chrono::duration<double> mTimer{0};     ///< full timer
-  std::chrono::duration<double> mTimerAlgo{0}; ///< algorithm timer
-  unsigned int mNROFs{0};                      /// Total number of processed ROFs
+  std::unique_ptr<HitMapBuilder> mHitMapBuilder{nullptr};
+  std::chrono::duration<double> mTimer{0};        ///< full timer
+  std::chrono::duration<double> mTimerTracker{0}; ///< tracker timer
+  std::chrono::duration<double> mTimerBuilder{0}; ///< hit map builder timer
+  unsigned int mNROFs{0};                         /// Total number of processed ROFs
 };
 
-framework::DataProcessorSpec getTrackerSpec()
+framework::DataProcessorSpec getTrackerSpec(bool isMC)
 {
   std::vector<of::InputSpec> inputSpecs{of::InputSpec{"mid_clusters", "MID", "CLUSTERS"}, of::InputSpec{"mid_clusters_rof", "MID", "CLUSTERSROF"}};
 
@@ -104,12 +132,19 @@ framework::DataProcessorSpec getTrackerSpec()
     of::OutputSpec{"MID", "TRACKROFS"},
     of::OutputSpec{"MID", "TRCLUSROFS"}};
 
+  if (isMC) {
+    inputSpecs.emplace_back(of::InputSpec{"mid_clusterlabels", "MID", "CLUSTERSLABELS"});
+
+    outputSpecs.emplace_back(of::OutputSpec{"MID", "TRACKLABELS"});
+    outputSpecs.emplace_back(of::OutputSpec{"MID", "TRCLUSLABELS"});
+  }
+
   return of::DataProcessorSpec{
     "MIDTracker",
     {inputSpecs},
     {outputSpecs},
-    of::adaptFromTask<o2::mid::TrackerDeviceDPL>(),
-    of::Options{}};
+    of::adaptFromTask<o2::mid::TrackerDeviceDPL>(isMC),
+    of::Options{{"mid-tracker-keep-best", of::VariantType::Bool, false, {"Keep only best track (default is keep all)"}}}};
 }
 } // namespace mid
 } // namespace o2

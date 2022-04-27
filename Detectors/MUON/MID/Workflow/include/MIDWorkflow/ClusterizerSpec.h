@@ -18,13 +18,14 @@
 #define O2_MID_CLUSTERIZERSPEC_H
 
 #include "Framework/DataProcessorSpec.h"
+#include <string_view>
 
 namespace o2
 {
 namespace mid
 {
-framework::DataProcessorSpec getClusterizerSpec();
+framework::DataProcessorSpec getClusterizerSpec(bool isMC, std::string_view inDataDesc, std::string_view inRofDesc, std::string_view inLabelsDesc);
 }
 } // namespace o2
 
-#endif //O2_MID_CLUSTERIZERSPEC_H
+#endif // O2_MID_CLUSTERIZERSPEC_H

@@ -64,7 +64,7 @@ void RawWriter::init()
         break;
       case FileFor_t::kLink:
         // Pileup simulation based on DigitsWriteoutBuffer (EMCAL-681) - AliceO2 – H. Hassan
-        rawfilename += fmt::format("/EMC_alio2-cr1-flp{:d}_crorc{:d}_lnk{:d}.raw", flpID, crorc, link);
+        rawfilename += fmt::format("/EMC_alio2-cr1-flp{:d}_crorc{:d}_{:d}.raw", flpID, crorc, link);
         break;
     }
     mRawWriter->registerLink(iddl, crorc, link, 0, rawfilename.data());

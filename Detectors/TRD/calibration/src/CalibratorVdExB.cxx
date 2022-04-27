@@ -171,7 +171,7 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
   ccdb.storeAsTFileAny(&calObject, "TRD/Calib/CalVdriftExB", metadata, timeStamp, timeStampEnd);
 }
 
-Slot& CalibratorVdExB::emplaceNewSlot(bool front, uint64_t tStart, uint64_t tEnd)
+Slot& CalibratorVdExB::emplaceNewSlot(bool front, TFType tStart, TFType tEnd)
 {
   auto& container = getSlots();
   auto& slot = front ? container.emplace_front(tStart, tEnd) : container.emplace_back(tStart, tEnd);

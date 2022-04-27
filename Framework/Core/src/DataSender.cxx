@@ -17,6 +17,8 @@
 #include "Framework/Monitoring.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/LifetimeHelpers.h"
+#include "Framework/TimesliceIndex.h"
+#include "Framework/DomainInfoHeader.h"
 
 #include <fairmq/Device.h>
 
@@ -45,7 +47,7 @@ std::vector<size_t>
 
 DataSender::DataSender(ServiceRegistry& registry,
                        SendingPolicy const& policy)
-  : mContext{registry.get<RawDeviceService>().device()},
+  : mProxy{registry.get<FairMQDeviceProxy>()},
     mRegistry{registry},
     mSpec{registry.get<DeviceSpec const>()},
     mDistinctRoutesIndex{createDistinctOutputRouteIndex(mSpec.outputs)},
@@ -69,16 +71,45 @@ DataSender::DataSender(ServiceRegistry& registry,
   }
 }
 
-std::unique_ptr<FairMQMessage> DataSender::create()
+std::unique_ptr<FairMQMessage> DataSender::create(RouteIndex routeIndex)
 {
-  FairMQDevice* device = (FairMQDevice*)mContext;
-  return device->NewMessage();
+  return mProxy.getOutputTransport(routeIndex)->CreateMessage();
 }
 
-void DataSender::send(FairMQParts& parts, std::string const& channel)
+void DataSender::send(FairMQParts& parts, ChannelIndex channelIndex)
 {
-  FairMQDevice* device = (FairMQDevice*)mContext;
-  mPolicy.send(*device, parts, channel);
+  mPolicy.send(mProxy, parts, channelIndex);
+
+  /// We also always propagate the information about what is the oldest possible
+  /// timeslice that can be sent from this device.
+  /// FIXME: do it at a different level?
+  /// FIXME: throttling this information?
+  /// FIXME: do it only if it changes?
+  TimesliceIndex& index = mRegistry.get<TimesliceIndex>();
+
+  auto oldest = index.getOldestPossibleOutput();
+  if (oldest.timeslice.value == -1) {
+    return;
+  }
+  auto* channel = mProxy.getOutputChannel(channelIndex);
+
+  FairMQParts oldestParts;
+  FairMQMessagePtr payload(channel->Transport()->CreateMessage());
+  DomainInfoHeader dih;
+  dih.oldestPossibleTimeslice = oldest.timeslice.value;
+  auto channelAlloc = o2::pmr::getTransportAllocator(channel->Transport());
+  auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dih});
+  // sigh... See if we can avoid having it const by not
+  // exposing it to the user in the first place.
+  oldestParts.AddPart(std::move(header));
+  oldestParts.AddPart(std::move(payload));
+  LOGP(debug, "Notifying {} {} about oldest possible timeslice being {} from {} #{}",
+       channelIndex.value,
+       channel->GetName(),
+       oldest.timeslice.value,
+       oldest.channel.value == -1 ? "slot" : " input channel",
+       oldest.channel.value == -1 ? oldest.slot.index : oldest.channel.value);
+  channel->Send(oldestParts);
 }
 
 } // namespace o2::framework

@@ -39,18 +39,17 @@ class TPCVDriftTglCalibSpec : public Task
 
   void run(ProcessingContext& pc) final
   {
-    auto tfcounter = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->startTime;
     auto data = pc.inputs().get<gsl::span<o2::dataformats::Pair<float, float>>>("input");
-    LOG(info) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
-    mCalibrator->process(tfcounter, data);
+    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
+    LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() << " tracks";
+    mCalibrator->process(data);
     sendOutput(pc.outputs());
   }
 
   void endOfStream(EndOfStreamContext& ec) final
   {
     LOG(info) << "Finalizing calibration";
-    constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
-    mCalibrator->checkSlotsToFinalize(INFINITE_TF);
+    mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
     sendOutput(ec.outputs());
   }
 

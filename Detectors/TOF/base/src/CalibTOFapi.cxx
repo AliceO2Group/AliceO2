@@ -43,16 +43,22 @@ CalibTOFapi::CalibTOFapi(const std::string url)
 }
 
 //______________________________________________________________________
-
 void CalibTOFapi::readActiveMap()
+{
+  auto& mgr = CcdbManager::instance();
+  long timems = long(mTimeStamp) * 1000;
+  LOG(info) << "TOF get active map with timestamp (ms) = " << timems;
+  auto fee = mgr.getForTimeStamp<TOFFEElightInfo>("TOF/Calib/FEELIGHT", timems);
+  loadActiveMap(fee);
+}
+
+//______________________________________________________________________
+void CalibTOFapi::loadActiveMap(TOFFEElightInfo* fee)
 {
   // getting the active TOF map
   memset(mIsOffCh, false, Geo::NCHANNELS);
 
-  auto& mgr = CcdbManager::instance();
-  long timems = long(mTimeStamp) * 1000;
-  auto fee = mgr.getForTimeStamp<TOFFEElightInfo>("TOF/Calib/FEELIGHT", timems);
-  if (mLHCphase) {
+  if (fee) {
     LOG(info) << "read Active map (TOFFEELIGHT) for TOF ";
     for (int ich = 0; ich < TOFFEElightInfo::NCHANNELS; ich++) {
       //printf("%d) Enabled= %d\n",ich,fee->mChannelEnabled[ich]);
@@ -74,6 +80,7 @@ void CalibTOFapi::readLHCphase()
 
   auto& mgr = CcdbManager::instance();
   long timems = long(mTimeStamp) * 1000;
+  LOG(info) << "TOF get LHCphase with timestamp (ms) = " << timems;
   mLHCphase = mgr.getForTimeStamp<LhcPhase>("TOF/Calib/LHCphase", timems);
   if (mLHCphase) {
     LOG(info) << "read LHCphase for TOF " << mLHCphase->getLHCphase(mTimeStamp);
@@ -92,6 +99,7 @@ void CalibTOFapi::readTimeSlewingParam()
 
   auto& mgr = CcdbManager::instance();
   long timems = long(mTimeStamp) * 1000;
+  LOG(info) << "TOF get time calibrations with timestamp (ms) = " << timems;
   mSlewParam = mgr.getForTimeStamp<SlewParam>("TOF/Calib/ChannelCalib", timems);
   if (mSlewParam) {
     LOG(info) << "read TimeSlewingParam for TOF";
@@ -104,17 +112,24 @@ void CalibTOFapi::readTimeSlewingParam()
 
 void CalibTOFapi::readDiagnosticFrequencies()
 {
+  auto& mgr = CcdbManager::instance();
+  long timems = long(mTimeStamp) * 1000;
+  LOG(info) << "TOF get Diagnostics with timestamp (ms) = " << timems;
+  mDiaFreq = mgr.getForTimeStamp<Diagnostic>("TOF/Calib/Diagnostic", timems);
+
+  loadDiagnosticFrequencies();
+}
+//______________________________________________________________________
+
+void CalibTOFapi::loadDiagnosticFrequencies()
+{
+  mDiaFreq->print();
+
   static const int NCH_PER_CRATE = Geo::NSTRIPXSECTOR * Geo::NPADS;
   // getting the Diagnostic Frequency calibration
   // needed for simulation
 
   memset(mIsNoisy, false, Geo::NCHANNELS);
-
-  auto& mgr = CcdbManager::instance();
-  long timems = long(mTimeStamp) * 1000;
-  mDiaFreq = mgr.getForTimeStamp<Diagnostic>("TOF/Calib/Diagnostic", timems);
-
-  //  mDiaFreq->print();
 
   resetDia();
 

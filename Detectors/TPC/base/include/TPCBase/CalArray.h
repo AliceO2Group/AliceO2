@@ -122,6 +122,9 @@ class CalArray
   /// Divide this by other channel by channel
   const CalArray& operator/=(const CalArray& other);
 
+  /// check for equality
+  bool operator==(const CalArray& other) const;
+
   /// Add value to all channels
   const CalArray& operator+=(const T& val);
 
@@ -191,7 +194,7 @@ template <class T>
 inline void CalArray<T>::setValue(const size_t row, const size_t pad, const T& value)
 {
   /// \todo might need check for row, pad or position limits
-  static const auto& mapper = Mapper::instance();
+  const auto& mapper = Mapper::instance();
   size_t position = mapper.getPadNumber(mPadSubset, mPadSubsetNumber, row, pad);
   setValue(position, value);
 }
@@ -201,7 +204,7 @@ template <class T>
 inline const T CalArray<T>::getValue(const size_t row, const size_t pad) const
 {
   /// \todo might need check for row, pad or position limits
-  static const auto& mapper = Mapper::instance();
+  const auto& mapper = Mapper::instance();
   size_t position = mapper.getPadNumber(mPadSubset, mPadSubsetNumber, row, pad);
   return getValue(position);
 }
@@ -265,6 +268,18 @@ inline const CalArray<T>& CalArray<T>::operator/=(const CalArray<T>& other)
     }
   }
   return *this;
+}
+
+//______________________________________________________________________________
+template <class T>
+inline bool CalArray<T>::operator==(const CalArray<T>& other) const
+{
+  if (!((mPadSubset == other.mPadSubset) && (mPadSubsetNumber == other.mPadSubsetNumber))) {
+    LOG(error) << "pad subset type of the objects it not compatible";
+    return false;
+  }
+  bool isSame = (mData == other.mData);
+  return isSame;
 }
 
 //______________________________________________________________________________

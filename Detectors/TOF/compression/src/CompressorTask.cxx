@@ -21,6 +21,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/InputRecordWalker.h"
+#include "CommonUtils/VerbosityConfig.h"
 
 #include <fairmq/FairMQDevice.h>
 
@@ -68,6 +69,44 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
   std::map<int, std::vector<o2::framework::DataRef>> subspecPartMap;
   std::map<int, int> subspecBufferSize;
 
+  // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
+  // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
+  {
+    auto& inputs = pc.inputs();
+    static size_t contDeadBeef = 0; // number of times 0xDEADBEEF was seen continuously
+    std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{"TOF", "RAWDATA", 0xDEADBEEF}}};
+    for (const auto& ref : InputRecordWalker(inputs, dummy)) {
+      const auto* dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      auto payloadSize = DataRefUtils::getPayloadSize(ref);
+      if (payloadSize == 0) {
+        auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
+        if (++contDeadBeef <= maxWarn) {
+          LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+               dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
+               contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
+        }
+        // send empty message with DEADBEEF subspec
+        const auto* dph = o2::framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(ref);
+        o2::header::DataHeader emptyDH("CRAWDATA", "TOF", 0xdeadbeef, 0, 0, 1);
+        emptyDH.runNumber = dh->runNumber;
+        emptyDH.payloadSerializationMethod = o2::header::gSerializationMethodNone;
+        emptyDH.firstTForbit = dh->firstTForbit;
+        emptyDH.tfCounter = dh->tfCounter;
+
+        o2::header::Stack emptyStack{emptyDH, o2::framework::DataProcessingHeader{dph->startTime, dph->duration, dph->creation}};
+
+        auto headerMessage = device->NewMessage(emptyStack.size());
+        auto payloadMessage = device->NewMessage(0);
+        std::memcpy(headerMessage->GetData(), emptyStack.data(), emptyStack.size());
+        partsOut.AddPart(std::move(headerMessage));
+        partsOut.AddPart(std::move(payloadMessage));
+        device->Send(partsOut, fairMQChannel);
+        return;
+      }
+    }
+    contDeadBeef = 0; // if good data, reset the counter
+  }
+
   /** loop over inputs routes **/
   std::vector<InputSpec> sel{InputSpec{"filter", ConcreteDataTypeMatcher{"TOF", "RAWDATA"}}};
   for (const auto& ref : InputRecordWalker(pc.inputs(), sel)) {
@@ -81,6 +120,7 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
 
     /** store parts in map **/
     auto headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    auto payloadInSize = DataRefUtils::getPayloadSize(ref);
     auto subspec = headerIn->subSpecification;
     subspecPartMap[subspec].push_back(ref);
 
@@ -88,7 +128,7 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
     if (!subspecBufferSize.count(subspec)) {
       subspecBufferSize[subspec] = 0;
     }
-    subspecBufferSize[subspec] += headerIn->payloadSize;
+    subspecBufferSize[subspec] += payloadInSize;
     //  }
   }
 
@@ -118,7 +158,7 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
       auto headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       auto dataProcessingHeaderIn = DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(ref);
       auto payloadIn = ref.payload;
-      auto payloadInSize = headerIn->payloadSize;
+      auto payloadInSize = DataRefUtils::getPayloadSize(ref);
 
       /** prepare compressor **/
       mCompressor.setDecoderBuffer(payloadIn);

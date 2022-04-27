@@ -19,8 +19,9 @@
 #include <TMessage.h>
 #include <TObjArray.h>
 #include <TStreamerInfo.h>
-#include <gsl/gsl_util>
+#include <gsl/util>
 #include <gsl/span>
+#include <gsl/narrow>
 #include <memory>
 #include <mutex>
 #include <cstddef>

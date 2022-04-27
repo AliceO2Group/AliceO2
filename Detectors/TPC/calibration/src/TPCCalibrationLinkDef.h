@@ -46,12 +46,12 @@
 #pragma link C++ class o2::tpc::IDCAverageGroupBase<o2::tpc::IDCAverageGroupTPC> + ;
 #pragma link C++ class o2::tpc::IDCFactorization +;
 #pragma link C++ struct o2::tpc::IDCDelta<float> +;
-#pragma link C++ struct o2::tpc::IDCDelta<unsigned short> +;
-#pragma link C++ struct o2::tpc::IDCDelta<unsigned char> +;
+#pragma link C++ struct o2::tpc::IDCDelta < unsigned short> + ;
+#pragma link C++ struct o2::tpc::IDCDelta < unsigned char> + ;
 #pragma link C++ struct o2::tpc::IDCDeltaCompressionFactors +;
 #pragma link C++ struct o2::tpc::IDCDeltaContainer<float> +;
-#pragma link C++ struct o2::tpc::IDCDeltaContainer<unsigned short> +;
-#pragma link C++ struct o2::tpc::IDCDeltaContainer<unsigned char> +;
+#pragma link C++ struct o2::tpc::IDCDeltaContainer < unsigned short> + ;
+#pragma link C++ struct o2::tpc::IDCDeltaContainer < unsigned char> + ;
 #pragma link C++ class o2::tpc::IDCDeltaCompressionHelper<short> +;
 #pragma link C++ class o2::tpc::IDCDeltaCompressionHelper<char> +;
 #pragma link C++ struct o2::tpc::IDCZero +;

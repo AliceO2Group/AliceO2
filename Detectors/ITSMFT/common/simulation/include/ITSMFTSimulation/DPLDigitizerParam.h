@@ -46,6 +46,8 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   float IBVbb = 3.0; ///< back bias absolute value for ITS Inner Barrel (in Volt)
   float OBVbb = 3.0; ///< back bias absolute value for ITS Outter Barrel (in Volt)
 
+  std::string noiseFilePath{}; ///< optional noise masks file path. FIXME to be removed once switch to CCDBFetcher
+
   // boilerplate stuff + make principal key
   O2ParamDef(DPLDigitizerParam, getParamName().data());
 

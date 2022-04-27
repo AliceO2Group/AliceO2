@@ -41,6 +41,7 @@ struct GPUTPCCFChainContext {
     unsigned char* zsDevice;
   };
 
+  unsigned int zsVersion;
   std::vector<FragmentData> fragmentData;
   unsigned int nPagesTotal;
   unsigned int nPagesSectorMax;

@@ -14,8 +14,8 @@
  * @author  Andrea Ferrero, CEE-Saclay
  */
 
-#ifndef ALICEO2_MCH_BASE_DECODERERROR_H_
-#define ALICEO2_MCH_BASE_DECODERERROR_H_
+#ifndef O2_MCH_BASE_DECODERERROR_H_
+#define O2_MCH_BASE_DECODERERROR_H_
 
 #include "Rtypes.h"
 
@@ -31,7 +31,7 @@ class DecoderError
  public:
   DecoderError() = default;
 
-  DecoderError(int solarid, int dsid, int chip, uint32_t error) : mSolarID(solarid), mChipID(dsid * 2 + chip), mError(error) {}
+  DecoderError(int solarid, int dsid, int chip, uint32_t error) : mSolarID(solarid), mChipID(dsid * 2 + (chip % 2)), mError(error) {}
   ~DecoderError() = default;
 
   uint16_t getSolarID() const { return mSolarID; }
@@ -50,4 +50,4 @@ class DecoderError
 
 } //namespace mch
 } //namespace o2
-#endif // ALICEO2_MCH_BASE_DECODERERROR_H_
+#endif // O2_MCH_BASE_DECODERERROR_H_

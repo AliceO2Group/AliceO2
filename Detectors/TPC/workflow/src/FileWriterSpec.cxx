@@ -22,7 +22,7 @@
 
 #include "TTree.h"
 
-#include <FairMQDevice.h>
+#include <fairmq/Device.h>
 #include "Framework/Task.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/ControlService.h"

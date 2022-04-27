@@ -18,6 +18,7 @@
 #include <TGNumberEntry.h>
 #include <TGLabel.h>
 #include <TTimer.h>
+#include <TGDoubleSlider.h>
 #include <TASImage.h>
 #include <EventVisualisationBase/DataSourceOnline.h>
 #include <EventVisualisationView/EventManagerFrame.h>
@@ -28,6 +29,7 @@
 #include <chrono>
 #include <thread>
 #include <filesystem>
+#include <cassert>
 
 std::mutex mtx; // mutex for critical section
 
@@ -38,6 +40,13 @@ namespace o2
   namespace event_visualisation
   {
 
+  EventManagerFrame* EventManagerFrame::mInstance = nullptr;
+  EventManagerFrame& EventManagerFrame::getInstance()
+  {
+    assert(mInstance != nullptr);
+    return *mInstance;
+  }
+
   EventManagerFrame::~EventManagerFrame()
   {
     this->StopTimer();
@@ -46,6 +55,7 @@ namespace o2
   EventManagerFrame::EventManagerFrame(o2::event_visualisation::EventManager& eventManager)
     : TGMainFrame(gClient->GetRoot(), 400, 100, kVerticalFrame)
   {
+    mInstance = this;
     mEventManager = &eventManager;
     this->mTimer = new TTimer(); // Auto-load time in seconds
     this->mTime = 2;
@@ -82,6 +92,12 @@ namespace o2
       b->Connect("Clicked()", cls, this, "DoOnlineMode()");
       b = EventManagerFrame::makeButton(f, "Saved", 2 * width);
       b->Connect("Clicked()", cls, this, "DoSavedMode()");
+
+      f->AddFrame(infoLabel, new TGLayoutHints(kLHintsNormal, 5, 10, 4, 0));
+      this->mTimeFrameSlider = EventManagerFrame::makeSlider(f, "Time", 8 * width);
+      makeSliderRangeEntries(f, 30, this->mTimeFrameSliderMin, "Display the minimum value of the time",
+                             this->mTimeFrameSliderMax, "Display the maximum value of the time");
+      this->mTimeFrameSlider->Connect("PositionChanged()", cls, this, "DoTimeFrameSliderChanged()");
     }
     SetCleanup(kDeepCleanup);
     Layout();
@@ -94,8 +110,6 @@ namespace o2
   {
     TGTextButton* b = new TGTextButton(p, txt);
 
-    //b->SetFont("-adobe-helvetica-bold-r-*-*-48-*-*-*-*-*-iso8859-1");
-
     if (width > 0) {
       b->SetWidth(width);
       b->ChangeOptions(b->GetOptions() | kFixedWidth);
@@ -104,13 +118,67 @@ namespace o2
     return b;
   }
 
+  TGDoubleHSlider* EventManagerFrame::makeSlider(TGCompositeFrame* p, const char* txt, Int_t width,
+                                                 Int_t lo, Int_t ro, Int_t to, Int_t bo)
+  {
+    TGCompositeFrame* sliderFrame = new TGCompositeFrame(p, width, 20, kHorizontalFrame);
+    TGLabel* sliderLabel = new TGLabel(sliderFrame, txt);
+    sliderFrame->AddFrame(sliderLabel,
+                          new TGLayoutHints(kLHintsCenterY | kLHintsLeft, 2, 2, 2, 2));
+    TGDoubleHSlider* slider = new TGDoubleHSlider(sliderFrame, width - 80, kDoubleScaleBoth);
+    slider->SetRange(0, MaxRange);
+    slider->SetPosition(0, MaxRange);
+    sliderFrame->AddFrame(slider, new TGLayoutHints(kLHintsLeft));
+    p->AddFrame(sliderFrame, new TGLayoutHints(kLHintsTop, lo, ro, to, bo));
+    return slider;
+  }
+
+  void EventManagerFrame::makeSliderRangeEntries(TGCompositeFrame* parent, int height,
+                                                 TGNumberEntryField*& minEntry, const TString& minToolTip,
+                                                 TGNumberEntryField*& maxEntry, const TString& maxToolTip)
+  {
+    TGCompositeFrame* frame = new TGCompositeFrame(parent, 80, height, kHorizontalFrame);
+
+    minEntry = new TGNumberEntryField(frame, -1, 0., TGNumberFormat::kNESRealThree,
+                                      TGNumberFormat::kNEAAnyNumber);
+    minEntry->SetToolTipText(minToolTip.Data());
+    minEntry->Resize(100, height);
+    minEntry->SetState(false);
+    frame->AddFrame(minEntry, new TGLayoutHints(kLHintsLeft, 0, 0, 0, 0));
+
+    maxEntry = new TGNumberEntryField(frame, -1, 0., TGNumberFormat::kNESRealThree,
+                                      TGNumberFormat::kNEAAnyNumber);
+    maxEntry->SetToolTipText(maxToolTip.Data());
+    maxEntry->Resize(100, height);
+    maxEntry->SetState(false);
+    frame->AddFrame(maxEntry, new TGLayoutHints(kLHintsLeft, 0, 0, 0, 0));
+    parent->AddFrame(frame, new TGLayoutHints(kLHintsTop, 5, 0, 0, 0));
+  }
+
+  void EventManagerFrame::updateGUI()
+  {
+    this->mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
+    this->mTimeFrameSliderMin->SetNumber(mEventManager->getDataSource()->getTimeFrameMinTrackTime());
+    this->mTimeFrameSliderMax->SetNumber(mEventManager->getDataSource()->getTimeFrameMaxTrackTime());
+  }
+
+  void EventManagerFrame::DoTimeFrameSliderChanged()
+  {
+    if (not setInTick()) {
+      return;
+    }
+    this->mEventManager->CurrentEvent();
+    this->updateGUI();
+    clearInTick();
+  }
+
   void EventManagerFrame::DoFirstEvent()
   {
     if (not setInTick()) {
       return;
     }
     mEventManager->GotoEvent(0);
-    mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
+    this->updateGUI();
     clearInTick();
   }
 
@@ -120,7 +188,7 @@ namespace o2
       return;
     }
     mEventManager->PrevEvent();
-    mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
+    this->updateGUI();
     clearInTick();
   }
 
@@ -130,7 +198,7 @@ namespace o2
       return;
     }
     mEventManager->NextEvent();
-    mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
+    this->updateGUI();
     clearInTick();
   }
 
@@ -140,7 +208,7 @@ namespace o2
       return;
     }
     mEventManager->GotoEvent(-1); /// -1 means last available
-    mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
+    this->updateGUI();
     clearInTick();
   }
 
@@ -464,6 +532,16 @@ namespace o2
     CopyImage(scaledImage, image, offsetWidth, offsetHeight, 0, 0, scaleWidth, scaleHeight);
 
     return scaledImage;
+  }
+
+  float EventManagerFrame::getMinTimeFrameSliderValue() const
+  {
+    return mTimeFrameSlider->GetMinPosition();
+  }
+
+  float EventManagerFrame::getMaxTimeFrameSliderValue() const
+  {
+    return mTimeFrameSlider->GetMaxPosition();
   }
 
   } // namespace event_visualisation

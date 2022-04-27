@@ -28,6 +28,10 @@ o2_add_dpl_workflow(diamond-workflow
                   SOURCES src/o2DiamondWorkflow.cxx
                   COMPONENT_NAME TestWorkflows)
 
+o2_add_dpl_workflow(diamond-workflow-leaky
+                  SOURCES src/o2DiamondWorkflowLeaky.cxx
+                  COMPONENT_NAME TestWorkflows)
+
 o2_add_dpl_workflow(output-wildcard-workflow
                   SOURCES src/o2OutputWildcardWorkflow.cxx
                   COMPONENT_NAME TestWorkflows)
@@ -77,6 +81,14 @@ o2_add_dpl_workflow(ccdb-fetch-to-timeframe
 
 o2_add_dpl_workflow(simple-source
                   SOURCES src/o2SimpleSource.cxx
+                  COMPONENT_NAME TestWorkflows)
+
+o2_add_dpl_workflow(simple-fairmq-source
+                  SOURCES src/o2SimpleFairMQSource.cxx
+                  COMPONENT_NAME TestWorkflows)
+
+o2_add_dpl_workflow(simple-fairmq-sink
+                  SOURCES src/o2SimpleFairMQSink.cxx
                   COMPONENT_NAME TestWorkflows)
 
 o2_add_dpl_workflow(simple-sink

@@ -31,7 +31,7 @@ struct CommonServices {
   template <typename I, typename T>
   static ServiceInit simpleServiceInit()
   {
-    return [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    return [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
       return ServiceHandle{TypeIdHelpers::uniqueId<I>(), new T, ServiceKind::Serial, typeid(T).name()};
     };
   }
@@ -40,7 +40,7 @@ struct CommonServices {
   template <typename I, typename T>
   static ServiceInit singletonServiceInit()
   {
-    return [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    return [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
       return ServiceHandle{TypeIdHelpers::uniqueId<I>(), T::instance(), ServiceKind::Serial, typeid(T).name()};
     };
   }
@@ -65,10 +65,12 @@ struct CommonServices {
   static ServiceSpec dataRelayer();
   static ServiceSpec dataSender();
   static ServiceSpec tracingSpec();
+  static ServiceSpec summaryServiceSpec();
   static ServiceSpec threadPool(int numWorkers);
   static ServiceSpec dataProcessingStats();
   static ServiceSpec objectCache();
   static ServiceSpec timingInfoSpec();
+  static ServiceSpec ccdbSupportSpec();
 
   static std::vector<ServiceSpec> defaultServices(int numWorkers = 0);
   static std::vector<ServiceSpec> requiredServices();

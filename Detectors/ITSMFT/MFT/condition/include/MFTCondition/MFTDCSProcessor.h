@@ -122,7 +122,7 @@ void MFTDCSProcessor::prepareCCDBobjectInfo(T& obj, CcdbObjectInfo& info, const 
   info.setObjectType(clName);
   info.setFileName(flName);
   info.setStartValidityTimestamp(tf);
-  info.setEndValidityTimestamp(99999999999999);
+  info.setEndValidityTimestamp(o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
   info.setMetaData(md);
 }
 

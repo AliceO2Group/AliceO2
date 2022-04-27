@@ -21,6 +21,7 @@
 #include "EMCALCalibration/EMCALTimeCalibData.h"
 #include "EMCALCalibration/EMCALChannelData.h"
 #include "EMCALCalibration/EMCALCalibExtractor.h"
+#include "EMCALCalibration/EMCALCalibParams.h"
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
 #include "DataFormatsEMCAL/Cell.h"
@@ -39,6 +40,8 @@
 #include <array>
 #include <boost/histogram.hpp>
 
+using boostHisto2d = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
+
 namespace o2
 {
 namespace emcal
@@ -49,7 +52,7 @@ namespace emcal
 template <typename DataInput, typename DataOutput, typename HistContainer>
 class EMCALChannelCalibrator : public o2::calibration::TimeSlotCalibration<o2::emcal::Cell, DataInput>
 {
-  using TFType = uint64_t;
+  using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<DataInput>;
   using Cell = o2::emcal::Cell;
   using CcdbObjectInfo = o2::ccdb::CcdbObjectInfo;
@@ -71,17 +74,24 @@ class EMCALChannelCalibrator : public o2::calibration::TimeSlotCalibration<o2::e
   void setIsTest(bool isTest) { mTest = isTest; }
   bool isTest() const { return mTest; }
 
+  ///\brief Set path to local root file for storage of calibration histograms
+  void setLocalStorePath(const std::string path) { namePathStoreLocal = path; }
+  std::string getLocalStorePath() const { return namePathStoreLocal; }
+
   const CcdbObjectInfoVector& getInfoVector() const { return mInfoVector; }
   const std::vector<DataOutput>& getOutputVector() const { return mCalibObjectVector; }
 
-  // Configure the calibrator
-  EMCALCalibExtractor* getCalibExtractor() const { return mCalibrator.get(); }
+  /// \brief Configure the calibrator
+  std::shared_ptr<EMCALCalibExtractor> getCalibExtractor() { return mCalibrator; } // return shared pointer!
+  /// \brief setter for mCalibrator
+  void SetCalibExtractor(std::shared_ptr<EMCALCalibExtractor> extr) { mCalibrator = extr; };
 
  private:
   int mNBins = 0;     ///< bins of the histogram for passing
   float mRange = 0.;  ///< range of the histogram for passing
   bool mTest = false; ///< flag to be used when running in test mode: it simplify the processing (e.g. does not go through all channels)
   std::shared_ptr<EMCALCalibExtractor> mCalibrator;
+  std::string namePathStoreLocal;
 
   // output
   CcdbObjectInfoVector mInfoVector; // vector of CCDB Infos , each element is filled with the CCDB description of the accompanying TimeSlewing object
@@ -95,6 +105,8 @@ template <typename DataInput, typename DataOutput, typename HistContainer>
 void EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::initOutput()
 {
   mInfoVector.clear();
+  mCalibObjectVector.clear();
+  // mNEvents = 0;
   return;
 }
 
@@ -102,9 +114,7 @@ void EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::initOutput()
 template <typename DataInput, typename DataOutput, typename HistContainer>
 bool EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::hasEnoughData(const o2::calibration::TimeSlot<DataInput>& slot) const
 {
-
   const DataInput* c = slot.getContainer();
-  LOG(info) << "Checking statistics";
   return (mTest ? true : c->hasEnoughData());
 }
 
@@ -112,6 +122,7 @@ bool EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::hasEnoughData
 template <typename DataInput, typename DataOutput, typename HistContainer>
 void EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::finalizeSlot(o2::calibration::TimeSlot<DataInput>& slot)
 {
+
   // Extract results for the single slot
   DataInput* c = slot.getContainer();
   LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
@@ -122,15 +133,31 @@ void EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::finalizeSlot(
     // for the CCDB entry
     auto clName = o2::utils::MemFileHelper::getClassName(bcm);
     auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-    mInfoVector.emplace_back(CalibDB::getCDBPathBadChannelMap(), clName, flName, md, slot.getTFStart(), 99999999999999);
+    mInfoVector.emplace_back(CalibDB::getCDBPathBadChannelMap(), clName, flName, md, slot.getStartTimeMS(), o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
     mCalibObjectVector.push_back(bcm);
   } else if constexpr (std::is_same<DataInput, o2::emcal::EMCALTimeCalibData>::value) {
     auto tcd = mCalibrator->calibrateTime(c->getHisto());
+
     // for the CCDB entry
     auto clName = o2::utils::MemFileHelper::getClassName(slot);
     auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-    mInfoVector.emplace_back(CalibDB::getCDBPathTimeCalibrationParams(), clName, flName, md, slot.getTFStart(), 99999999999999);
+
+    //prepareCCDBobjectInfo
+    mInfoVector.emplace_back(CalibDB::getCDBPathTimeCalibrationParams(), clName, flName, md, slot.getStartTimeMS(), o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
     mCalibObjectVector.push_back(tcd);
+
+    if (namePathStoreLocal.find(".root") != std::string::npos) {
+      TFile fLocalStorage(namePathStoreLocal.c_str(), "update");
+      fLocalStorage.cd();
+      TH1F* histTCparams = (TH1F*)tcd.getHistogramRepresentation(false);
+      std::string nameTCHist = "TCParams_" + std::to_string(slot.getStartTimeMS());
+      histTCparams->Write(nameTCHist.c_str(), TObject::kOverwrite);
+
+      TH2F hCalibHist = o2::utils::TH2FFromBoost(c->getHisto());
+      std::string nameTCInputHist = "TimeVsCellID_" + std::to_string(slot.getStartTimeMS());
+      hCalibHist.Write(nameTCInputHist.c_str(), TObject::kOverwrite);
+      fLocalStorage.Close();
+    }
   }
 }
 

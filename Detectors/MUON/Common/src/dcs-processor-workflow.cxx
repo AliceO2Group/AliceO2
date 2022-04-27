@@ -22,6 +22,7 @@
 #include "aliasFixer.h"
 #include "subsysname.h"
 #include <array>
+#include <chrono>
 #include <gsl/span>
 #include <iostream>
 #include <unordered_map>
@@ -64,7 +65,7 @@ o2::ccdb::CcdbObjectInfo createDefaultInfo(const char* path)
   info.setObjectType(clName);
   info.setFileName(flName);
   info.setStartValidityTimestamp(0);
-  info.setEndValidityTimestamp(99999999999999);
+  info.setEndValidityTimestamp(o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
   std::map<std::string, std::string> md;
   info.setMetaData(md);
   return info;
@@ -80,47 +81,31 @@ std::array<o2::ccdb::CcdbObjectInfo, NOBJECTS> info{createDefaultInfo("MID/Calib
 
 std::array<DPMAP, NOBJECTS> dataPoints;
 
-int t0{-1};
+uint64_t t0{0};
 
 /*
-* Send a DPMAP to the output.
-*
-* @param dpmap a map of string to vector of DataPointValue
-* @param output a DPL data allocator
-* @param info a CCDB object info describing the dpmap
-* @param reason (optional, can be empty) a string description why the dpmap
-* was ready to be shipped (e.g. big enough, long enough, end of process, etc...)
+* Return the data point values with min and max timestamps
 */
-void sendOutput(const DPMAP& dpmap, o2::framework::DataAllocator& output, o2::ccdb::CcdbObjectInfo info, const std::string& reason)
+std::pair<DPVAL, DPVAL> computeTimeRange(const DPMAP& dpmap)
 {
-  if (dpmap.empty()) {
-    // we do _not_ write empty objects
-    return;
-  }
-  auto md = info.getMetaData();
-  md["upload reason"] = reason;
-  info.setMetaData(md);
-  auto image = o2::ccdb::CcdbApi::createObjectImage(&dpmap, &info);
-  LOG(info) << "Sending object " << info.getPath() << "/"
-            << info.getFileName() << " of size " << image->size()
-            << " bytes, valid for " << info.getStartValidityTimestamp()
-            << " : " << info.getEndValidityTimestamp()
-            << " | reason: " << reason;
-  output.snapshot(o2::framework::Output{Utils::gDataOriginCDBPayload, CCDBOBJ, 0}, *image.get());
-  output.snapshot(o2::framework::Output{Utils::gDataOriginCDBWrapper, CCDBOBJ, 0}, info);
-}
+  DPVAL dmin, dmax;
+  uint64_t minTime{std::numeric_limits<uint64_t>::max()};
+  uint64_t maxTime{0};
 
-/*
-* Implementation of DPL end of stream callback.
-*
-* We send the remaining datapoints at the end of the processing.
-*/
-void endOfStream(o2::framework::EndOfStreamContext& eosc)
-{
-  LOG(debug) << "This is the end. Must write what we have left ?\n";
-  for (auto i = 0; i < NOBJECTS; i++) {
-    sendOutput(dataPoints[i], eosc.outputs(), info[i], "end of stream");
+  for (auto did : dpmap) {
+    for (auto d : did.second) {
+      const auto ts = d.get_epoch_time();
+      if (ts < minTime) {
+        dmin = d;
+        minTime = ts;
+      }
+      if (ts > maxTime) {
+        dmax = d;
+        maxTime = ts;
+      }
+    }
   }
+  return std::make_pair(dmin, dmax);
 }
 
 /*
@@ -144,16 +129,73 @@ size_t computeSize(const DPMAP& dpmap)
 */
 int computeDuration(const DPMAP& dpmap)
 {
-  uint64_t minTime{std::numeric_limits<uint64_t>::max()};
-  uint64_t maxTime{0};
+  auto range = computeTimeRange(dpmap);
+  return static_cast<int>((range.second.get_epoch_time() - range.first.get_epoch_time()) / 1000);
+}
 
-  for (auto did : dpmap) {
-    for (auto d : did.second) {
-      minTime = std::min(minTime, d.get_epoch_time());
-      maxTime = std::max(maxTime, d.get_epoch_time());
-    }
+/*
+* Send a DPMAP to the output.
+*
+* @param dpmap a map of string to vector of DataPointValue
+* @param output a DPL data allocator
+* @param info a CCDB object info describing the dpmap
+* @param reason (optional, can be empty) a string description why the dpmap
+* was ready to be shipped (e.g. big enough, long enough, end of process, etc...)
+*/
+void sendOutput(const DPMAP& dpmap,
+                o2::framework::DataAllocator& output,
+                o2::ccdb::CcdbObjectInfo info,
+                const std::string& reason,
+                uint64_t startOfValidity)
+{
+  if (dpmap.empty()) {
+    // we do _not_ write empty objects
+    return;
   }
-  return static_cast<int>((maxTime - minTime) / 1000);
+
+  auto duration = computeDuration(dpmap);
+  if (duration < 10) {
+    // we do _not_ write objects with a duration below 10 seconds
+    return;
+  }
+  //info.setStartValidityTimestamp(startOfValidity);
+  auto range = computeTimeRange(dpmap);
+  info.setStartValidityTimestamp(range.first.get_epoch_time());
+  info.setEndValidityTimestamp(range.second.get_epoch_time());
+
+  auto md = info.getMetaData();
+  md["upload-reason"] = reason;
+  md["nof-datapoints"] = fmt::format("{}", dpmap.size());
+  size_t nofValues = 0;
+  for (auto did : dpmap) {
+    nofValues += did.second.size();
+  }
+  md["nof-datapoint-values"] = fmt::format("{}", nofValues);
+  md["datapoint-value-first-time"] = range.first.get_timestamp()->c_str();
+  md["datapoint-value-last-time"] = range.second.get_timestamp()->c_str();
+  info.setMetaData(md);
+
+  auto image = o2::ccdb::CcdbApi::createObjectImage(&dpmap, &info);
+  LOG(info) << "Sending object " << info.getPath() << "/"
+            << info.getFileName() << " of size " << image->size()
+            << " bytes, valid for " << info.getStartValidityTimestamp()
+            << " : " << info.getEndValidityTimestamp()
+            << " | reason: " << reason;
+  output.snapshot(o2::framework::Output{Utils::gDataOriginCDBPayload, CCDBOBJ, 0}, *image.get());
+  output.snapshot(o2::framework::Output{Utils::gDataOriginCDBWrapper, CCDBOBJ, 0}, info);
+}
+
+/*
+* Implementation of DPL end of stream callback.
+*
+* We send the remaining datapoints at the end of the processing.
+*/
+void endOfStream(o2::framework::EndOfStreamContext& eosc)
+{
+  LOG(debug) << "This is the end. Must write what we have left ?\n";
+  for (auto i = 0; i < NOBJECTS; i++) {
+    sendOutput(dataPoints[i], eosc.outputs(), info[i], "end of stream", t0);
+  }
 }
 
 /*
@@ -195,17 +237,6 @@ std::tuple<bool, std::string> needOutput(const DPMAP& dpmap, int maxSize, int ma
   return {complete && (bigEnough || longEnough), reason};
 }
 
-o2::ccdb::CcdbObjectInfo addTFInfo(o2::ccdb::CcdbObjectInfo inf,
-                                   uint64_t t0, uint64_t t1)
-{
-  auto md = inf.getMetaData();
-  md["tf range"] = fmt::format("{}-{}", t0, t1);
-  inf.setMetaData(md);
-  inf.setStartValidityTimestamp(t0);
-  //inf.setEndValidityTimestamp(t1);
-  return inf;
-}
-
 /*
 * Process the datapoints received.
 *
@@ -229,9 +260,9 @@ void processDataPoints(o2::framework::ProcessingContext& pc,
                        std::array<int, NOBJECTS> maxDuration)
 {
 
-  auto tfid = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
-  if (t0 < 0) {
-    t0 = tfid;
+  auto creationTime = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->creation;
+  if (t0 <= 0) {
+    t0 = creationTime;
   }
   auto dps = pc.inputs().get<gsl::span<o2::dcs::DataPointCompositeObject>>("input");
   for (auto dp : dps) {
@@ -245,9 +276,8 @@ void processDataPoints(o2::framework::ProcessingContext& pc,
   for (auto i = 0; i < NOBJECTS; i++) {
     auto [shouldOutput, reason] = needOutput(dataPoints[i], maxSize[i], maxDuration[i]);
     if (shouldOutput) {
-      auto inf = addTFInfo(info[i], t0, tfid);
-      sendOutput(dataPoints[i], pc.outputs(), inf, reason);
-      t0 = tfid;
+      sendOutput(dataPoints[i], pc.outputs(), info[i], reason, t0);
+      t0 = creationTime;
       dataPoints[i].clear(); //FIXME: here the clear should be more clever and keep at least one value per dp ?
     }
   }

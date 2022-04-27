@@ -26,6 +26,9 @@ namespace vertexing
 struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParams> {
   static constexpr float kDefTukey = 5.0f; ///< def.value for tukey constant
 
+  float sysErrY2 = 0.; ///< systematic error on track Y error
+  float sysErrZ2 = 0.; ///< systematic error on track Z error
+
   // DBSCAN clustering settings
   float dbscanMaxDist2 = 9.;   ///< distance^2 cut (eps^2).
   float dbscanDeltaT = 10.;    ///< abs. time difference cut, should be >= ITS ROF duration if ITS SA tracks used

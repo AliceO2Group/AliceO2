@@ -58,7 +58,7 @@ MEM_CLASS_PRE23()
 GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThreads*/, int /*iBlock*/, int /*iThread*/, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & s, GPUTPCThreadMemory& GPUrestrict() r, GPUconstantref() MEM_LG2(GPUTPCTracker) & GPUrestrict() tracker, MEM_LG3(GPUTPCTrackParam) & GPUrestrict() tParam, calink* rowHits)
 {
   // reconstruction of tracklets, tracklet store step
-  if (r.mNHits == 0 || (r.mNHits < GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(tParam.QPt() * tracker.Param().par.qptB5Scaler) || !CheckCov(tParam) || CAMath::Abs(tParam.GetQPt()) > tracker.Param().rec.maxTrackQPt)) {
+  if (r.mNHits == 0 || (r.mNHits < GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(tParam.QPt() * tracker.Param().par.qptB5Scaler) || !CheckCov(tParam) || CAMath::Abs(tParam.GetQPt() * tracker.Param().par.qptB5Scaler) > tracker.Param().rec.maxTrackQPtB5)) {
     return;
   }
 
@@ -71,9 +71,9 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThr
   unsigned int hitout = CAMath::AtomicAdd(tracker.NRowHits(), nHits);
   if (itrout >= tracker.NMaxTracklets() || hitout + nHits > tracker.NMaxRowHits()) {
     if (itrout >= tracker.NMaxTracklets()) {
-      tracker.raiseError(GPUErrors::ERROR_TRACKLET_OVERFLOW, itrout, tracker.NMaxTracklets());
+      tracker.raiseError(GPUErrors::ERROR_TRACKLET_OVERFLOW, tracker.ISlice(), itrout, tracker.NMaxTracklets());
     } else {
-      tracker.raiseError(GPUErrors::ERROR_TRACKLET_HIT_OVERFLOW, hitout + nHits, tracker.NMaxRowHits());
+      tracker.raiseError(GPUErrors::ERROR_TRACKLET_HIT_OVERFLOW, tracker.ISlice(), hitout + nHits, tracker.NMaxRowHits());
     }
     CAMath::AtomicExch(tracker.NTracklets(), 0u);
     if (hitout + nHits > tracker.NMaxRowHits()) {

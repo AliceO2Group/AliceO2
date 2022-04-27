@@ -75,8 +75,6 @@ class DPLRawParser
   // this is a dummy default buffer used to initialize the RawParser in the iterator
   // constructor
   static constexpr o2::header::RAWDataHeaderV4 initializer = o2::header::RAWDataHeaderV4{};
-  template <typename T>
-  using IteratorBase = std::iterator<std::forward_iterator_tag, T>;
 
   /// Iterator implementation
   /// Supports the following operations:
@@ -85,13 +83,14 @@ class DPLRawParser
   /// - member function data() returns pointer to payload at current position
   /// - member function size() return size of payload at current position
   template <typename T>
-  class Iterator : public IteratorBase<T>
+  class Iterator
   {
    public:
+    using iterator_category = std::forward_iterator_tag;
     using self_type = Iterator;
-    using value_type = typename IteratorBase<T>::value_type;
-    using reference = typename IteratorBase<T>::reference;
-    using pointer = typename IteratorBase<T>::pointer;
+    using value_type = T;
+    using reference = T&;
+    using pointer = T*;
     // the iterator over the input channels
     using input_iterator = decltype(std::declval<InputRecord>().begin());
     // the parser type

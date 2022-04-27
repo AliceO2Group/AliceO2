@@ -9,6 +9,12 @@
 
 if [ -z "$SHMSIZE" ]; then export SHMSIZE=10000000000; fi
 
+# default run number
+runNumDef=300000
+
+# default time stamp
+startTimeDef=$(($(date +%s%N)/1000000))
+
 # default number of events
 nevPP=10
 nevPbPb=10
@@ -40,7 +46,7 @@ tpcLanes=""
 
 Usage()
 {
-  echo "Usage: ${0##*/} [-s system /pp[Def] or pbpb/] [-r IR(kHz) /Def = $intRatePP(pp)/$intRatePbPb(pbpb)] [-n Number of events /Def = $nevPP(pp) or $nevPbPb(pbpb)/] [-e TGeant3|TGeant4] [-f fromstage sim|digi|reco /Def = sim]"
+  echo "Usage: ${0##*/} [-s system /pp[Def] or pbpb/] [-r IR(kHz) /Def = $intRatePP(pp)/$intRatePbPb(pbpb)] [-n Number of events /Def = $nevPP(pp) or $nevPbPb(pbpb)/] [-e TGeant3|TGeant4] [-t startTime/Def = $startTimeDef] [-run runNumber/Def = $runNumDef] [-f fromstage sim|digi|reco /Def = sim]"
   exit
 }
 
@@ -54,6 +60,8 @@ while [ $# -gt 0 ] ; do
     -f) fromstage=$2; shift 2 ;;
     -j) simWorker="-j $2"; shift 2 ;;
     -l) tpcLanes="--tpc-lanes $2"; shift 2 ;;
+    -t) startTime=$2; shift 2 ;;
+    -run) runNumber=$2; shift 2 ;;
     -h) Usage ;;
     *) echo "Wrong input"; Usage;
   esac
@@ -74,6 +82,9 @@ else
     echo "Wrong collision system $collSyst provided, should be pp or pbpb"
     Usage
 fi
+
+[[ -z $startTime ]] && startTime=$startTimeDef
+[[ -z $runNumber ]] && runNumber=$runNumDef
 
 dosim="0"
 dodigi="0"
@@ -110,7 +121,7 @@ fi
 if [ "$dodigi" == "1" ]; then
   echo "Running digitization for $intRate kHz interaction rate"
   intRate=$((1000*(intRate)));
-  taskwrapper digi.log o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate $tpcLanes
+  taskwrapper digi.log o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate $tpcLanes --configKeyValues \""HBFUtils.startTime=$startTime;HBFUtils.runNumber=$runNumber;"\"
   echo "Return status of digitization: $?"
   # existing checks
   #root -b -q O2/Detectors/ITSMFT/ITS/macros/test/CheckDigits.C+
@@ -127,7 +138,7 @@ if [ "$doreco" == "1" ]; then
 
   echo "Running TPC reco flow"
   #needs TPC digitized data
-  taskwrapper tpcreco.log o2-tpc-reco-workflow $gloOpt --input-type digits --output-type clusters,tracks,send-clusters-per-sector  --configKeyValues "GPU_rec.maxTrackQPt=20"
+  taskwrapper tpcreco.log o2-tpc-reco-workflow $gloOpt --input-type digits --output-type clusters,tracks,send-clusters-per-sector  --configKeyValues "GPU_rec.maxTrackQPtB5=20"
   echo "Return status of tpcreco: $?"
 
   echo "Running ITS reco flow"

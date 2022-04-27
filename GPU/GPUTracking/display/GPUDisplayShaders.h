@@ -36,11 +36,54 @@ void main()
   static constexpr const char* fragmentShader = R"(
 #version 450 core
 out vec4 fragColor;
-uniform vec3 color;
+uniform vec4 color;
 
 void main()
 {
-    fragColor = vec4(color.x, color.y, color.z, 1.f);
+  fragColor = vec4(color.x, color.y, color.z, 1.f);
+}
+)";
+
+  static constexpr const char* vertexShaderTexture = R"(
+#version 450 core
+layout (location = 0) in vec4 vertex;
+out vec2 TexCoords;
+
+uniform mat4 projection;
+
+void main()
+{
+  gl_Position = projection * vec4(vertex.xy, 0.0, 1.0);
+  TexCoords = vertex.zw;
+}
+)";
+
+  static constexpr const char* fragmentShaderTexture = R"(
+#version 450 core
+in vec2 TexCoords;
+out vec4 color;
+
+uniform sampler2D tex;
+uniform float alpha;
+
+void main()
+{
+    color = vec4(texture(tex, TexCoords).rgb, alpha);
+}
+)";
+
+  static constexpr const char* fragmentShaderText = R"(
+#version 450 core
+in vec2 TexCoords;
+out vec4 color;
+
+uniform sampler2D text;
+uniform vec4 textColor;
+
+void main()
+{
+  vec4 sampled = vec4(1.0, 1.0, 1.0, texture(text, TexCoords).r);
+  color = textColor * sampled;
 }
 )";
 };

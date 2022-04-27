@@ -17,6 +17,8 @@
 #include "TPCFastTransformQA.h"
 #include "TPCFastTransformManager.h"
 #include "TPCFastTransform.h"
+#include "GPUCommonLogger.h"
+
 #include "AliTPCTransform.h"
 #include "AliTPCParam.h"
 #include "AliTPCRecoParam.h"
@@ -67,7 +69,7 @@ int TPCFastTransformQA::doQA(const TPCFastTransform& fastTransform)
     double nCalls1 = 0;
     double sum1 = 0;
     for (Int_t iSec = 0; iSec < 1; iSec++) {
-      cout << "Measure original transformation time for TPC sector " << iSec << " .." << endl;
+      LOG(info) << "Measure original transformation time for TPC sector " << iSec << " ..";
       int nRows = tpcParam->GetNRow(iSec);
       for (int iRow = 0; iRow < nRows; iRow++) {
         Int_t nPads = tpcParam->GetNPads(iSec, iRow);
@@ -88,7 +90,7 @@ int TPCFastTransformQA::doQA(const TPCFastTransform& fastTransform)
     double nCalls2 = 0;
     double sum2 = 0;
     for (Int_t iSec = 0; iSec < 1; iSec++) {
-      cout << "Measure fast transformation time for TPC sector " << iSec << " .." << endl;
+      LOG(info) << "Measure fast transformation time for TPC sector " << iSec << " ..";
       int nRows = tpcParam->GetNRow(iSec);
       for (int iRow = 0; iRow < nRows; iRow++) {
         Int_t nPads = tpcParam->GetNPads(iSec, iRow);
@@ -105,16 +107,16 @@ int TPCFastTransformQA::doQA(const TPCFastTransform& fastTransform)
       }
     }
     timer2.Stop();
-    cout << "nCalls1 = " << nCalls1 << endl;
-    cout << "nCalls2 = " << nCalls2 << endl;
-    cout << "Orig transformation    : " << timer1.RealTime() * 1.e9 / nCalls1 << " ns / call" << endl;
-    cout << "Fast transformation    : " << timer2.RealTime() * 1.e9 / nCalls2 << " ns / call" << endl;
+    LOG(info) << "nCalls1 = " << nCalls1;
+    LOG(info) << "nCalls2 = " << nCalls2;
+    LOG(info) << "Orig transformation    : " << timer1.RealTime() * 1.e9 / nCalls1 << " ns / call";
+    LOG(info) << "Fast transformation    : " << timer2.RealTime() * 1.e9 / nCalls2 << " ns / call";
 
-    cout << "Fast Transformation speedup: " << 1. * timer1.RealTime() / timer2.RealTime() * nCalls2 / nCalls1 << endl;
+    LOG(info) << "Fast Transformation speedup: " << 1. * timer1.RealTime() / timer2.RealTime() * nCalls2 / nCalls1;
 
     int size = sizeof(fastTransform) + fastTransform.getFlatBufferSize();
-    cout << "Fast Transformation memory usage: " << size / 1000. / 1000. << " MB" << endl;
-    cout << "ignore this " << sum1 << " " << sum2 << endl;
+    LOG(info) << "Fast Transformation memory usage: " << size / 1000. / 1000. << " MB";
+    LOG(info) << "ignore this " << sum1 << " " << sum2;
   }
 
   if (1) {
@@ -128,7 +130,7 @@ int TPCFastTransformQA::doQA(const TPCFastTransform& fastTransform)
     for (Int_t iSec = 0; iSec < 1; iSec++) {
       int nRows = tpcParam->GetNRow(iSec);
       for (int iRow = 0; iRow < nRows; iRow++) {
-        cout << "Write fastTransform QA for TPC sector " << iSec << ", row " << iRow << " .." << endl;
+        LOG(info) << "Write fastTransform QA for TPC sector " << iSec << ", row " << iRow << " ..";
         Int_t nPads = tpcParam->GetNPads(iSec, iRow);
         int slice = 0, slicerow = 0;
         AliHLTTPCGeometry::Sector2Slice(slice, slicerow, iSec, iRow);

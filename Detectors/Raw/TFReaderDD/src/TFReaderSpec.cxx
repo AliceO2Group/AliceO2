@@ -20,6 +20,7 @@
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
+#include "Headers/DataHeaderHelpers.h"
 
 #include "DetectorsCommonDataFormats/DetID.h"
 #include <TStopwatch.h>
@@ -133,21 +134,35 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
     }
   };
 
-  auto findOutputChannel = [&ctx, this](o2h::DataHeader& h) {
+  auto findOutputChannel = [&ctx, this](o2h::DataHeader& h, size_t tslice) {
     if (!this->mInput.rawChannelConfig.empty()) {
       return std::string{this->mInput.rawChannelConfig};
     } else {
-      auto outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
+      auto& outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
       for (auto& oroute : outputRoutes) {
         LOG(debug) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
-        if (o2f::DataSpecUtils::match(oroute.matcher, h.dataOrigin, h.dataDescription, h.subSpecification) && ((h.tfCounter % oroute.maxTimeslices) == oroute.timeslice)) {
+        if (o2f::DataSpecUtils::match(oroute.matcher, h.dataOrigin, h.dataDescription, h.subSpecification) && ((tslice % oroute.maxTimeslices) == oroute.timeslice)) {
           LOG(debug) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
           return std::string{oroute.channel};
         }
       }
     }
-    LOGP(error, "Failed to find output channel for {}/{}/{} @ timeslice {}", h.dataOrigin.str, h.dataDescription.str, h.subSpecification, h.tfCounter);
+    auto& outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
+    LOGP(error, "Failed to find output channel for {}/{}/{} @ timeslice {}", h.dataOrigin, h.dataDescription, h.subSpecification, h.tfCounter);
+    for (auto& oroute : outputRoutes) {
+      LOGP(info, "Available route  route {}", o2f::DataSpecUtils::describe(oroute.matcher));
+    }
     return std::string{};
+  };
+  auto setTimingInfo = [&ctx](TFMap& msgMap) {
+    auto& timingInfo = ctx.services().get<TimingInfo>();
+    const auto* dataptr = (*msgMap.begin()->second.get())[0].GetData();
+    const auto* hd0 = o2h::get<o2h::DataHeader*>(dataptr);
+    const auto* dph = o2h::get<o2f::DataProcessingHeader*>(dataptr);
+    timingInfo.firstTFOrbit = hd0->firstTForbit;
+    timingInfo.creation = dph->creation;
+    timingInfo.tfCounter = hd0->tfCounter;
+    timingInfo.runNumber = hd0->runNumber;
   };
 
   auto addMissingParts = [this, &findOutputChannel](TFMap& msgMap) {
@@ -165,7 +180,8 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
       outHeader.payloadSerializationMethod = o2h::gSerializationMethodNone;
       outHeader.firstTForbit = hd0->firstTForbit;
       outHeader.tfCounter = hd0->tfCounter;
-      const auto fmqChannel = findOutputChannel(outHeader);
+      outHeader.runNumber = hd0->runNumber;
+      const auto fmqChannel = findOutputChannel(outHeader, dph->startTime);
       if (fmqChannel.empty()) { // no output channel
         continue;
       }
@@ -196,6 +212,8 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
         LOG(error) << "Builder provided nullptr TF pointer";
         continue;
       }
+      setTimingInfo(*tfPtr.get());
+
       if (mInput.sendDummyForMissing) {
         for (auto& msgIt : *tfPtr.get()) { // complete with empty output for the specs which were requested but not seen in the data
           acknowledgeOutput(*msgIt.second.get());
@@ -311,7 +329,7 @@ void TFReaderSpec::TFBuilder()
           std::this_thread::sleep_for(sleepTime);
           continue;
         }
-        auto tf = reader.read(mDevice, mOutputRoutes, mInput.rawChannelConfig, mInput.verbosity);
+        auto tf = reader.read(mDevice, mOutputRoutes, mInput.rawChannelConfig, mInput.sup0xccdb, mInput.verbosity);
         if (tf) {
           mTFBuilderCounter++;
         }
@@ -328,7 +346,7 @@ void TFReaderSpec::TFBuilder()
       }
     } /*catch (...) {
       LOGP(error, "Error when building {}-th TF from file {}", locID, tfFileName);
-      mFileFetcher->popFromQueue(mFileFetcher->getNLoops() >= mInput.maxLoops); // remove faile TF file
+      mFileFetcher->popFromQueue(mFileFetcher->getNLoops() >= mInput.maxLoops); // remove failed TF file
     } */
   }
 }
@@ -386,8 +404,10 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
         }
       }
     }
-
     spec.outputs.emplace_back(o2f::OutputSpec{{"stfDist"}, o2h::gDataOriginFLP, o2h::gDataDescriptionDISTSTF, 0});
+    if (!rinp.sup0xccdb) {
+      spec.outputs.emplace_back(o2f::OutputSpec{{"stfDistCCDB"}, o2h::gDataOriginFLP, o2h::gDataDescriptionDISTSTF, 0xccdb});
+    }
   } else {
     auto nameStart = rinp.rawChannelConfig.find("name=");
     if (nameStart == std::string::npos) {

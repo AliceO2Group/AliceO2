@@ -9,14 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <TRandom.h>
+#include <cmath>
+#include <numeric>
 #include "FV0Simulation/Digitizer.h"
+#include "FV0Simulation/FV0DigParam.h"
 #include "FV0Base/Geometry.h"
 #include "FV0Base/Constants.h"
 #include "TF1Convolution.h"
-
-#include <TRandom.h>
-#include <algorithm>
-#include <numeric>
 
 ClassImp(o2::fv0::Digitizer);
 
@@ -81,7 +81,7 @@ void Digitizer::init()
 }
 
 void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
-                        std::vector<o2::fv0::BCData>& digitsBC,
+                        std::vector<o2::fv0::Digit>& digitsBC,
                         std::vector<o2::fv0::ChannelData>& digitsCh,
                         std::vector<o2::fv0::DetTrigInput>& digitsTrig,
                         o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>& labels)
@@ -201,11 +201,12 @@ void Digitizer::createPulse(float mipFraction, int parID, const double hitTime,
   }
 }
 
-void Digitizer::flush(std::vector<o2::fv0::BCData>& digitsBC,
+void Digitizer::flush(std::vector<o2::fv0::Digit>& digitsBC,
                       std::vector<o2::fv0::ChannelData>& digitsCh,
                       std::vector<o2::fv0::DetTrigInput>& digitsTrig,
                       o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>& labels)
 {
+  ++mEventId;
   while (!mCache.empty()) {
     auto const& bc = mCache.front();
     if (mIntRecord.differenceInBC(bc) > NBC2Cache) { // Build events that are separated by NBC2Cache BCs from current BC
@@ -218,7 +219,7 @@ void Digitizer::flush(std::vector<o2::fv0::BCData>& digitsBC,
 }
 
 void Digitizer::storeBC(const BCCache& bc,
-                        std::vector<o2::fv0::BCData>& digitsBC,
+                        std::vector<o2::fv0::Digit>& digitsBC,
                         std::vector<o2::fv0::ChannelData>& digitsCh,
                         std::vector<o2::fv0::DetTrigInput>& digitsTrig,
                         o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>& labels)
@@ -226,8 +227,9 @@ void Digitizer::storeBC(const BCCache& bc,
 {
   size_t const nBC = digitsBC.size();   // save before digitsBC is being modified
   size_t const first = digitsCh.size(); // save before digitsCh is being modified
-  size_t nStored = 0;
+  int8_t nFiredCells = 0;
   double totalChargeAllRing = 0;
+  double avgTime = 0;
   double nSignalInner = 0;
   double nSignalOuter = 0;
 
@@ -256,9 +258,11 @@ void Digitizer::storeBC(const BCCache& bc,
     }
     cfdZero *= DP::INV_TIME_PER_TDCCHANNEL;
 
-    digitsCh.emplace_back(iPmt, std::lround(cfdZero), std::lround(totalCharge));
-    ++nStored;
+    int chain = (std::rand() % 2) ? 1 : 0;
+    digitsCh.emplace_back(iPmt, std::lround(cfdZero), std::lround(totalCharge), chain);
+    ++nFiredCells;
     //---trigger---
+    avgTime += cfdZero;
     if (iPmt < 24) {
       nSignalInner++;
     } else {
@@ -267,23 +271,27 @@ void Digitizer::storeBC(const BCCache& bc,
   }
   // save BC information for the CFD detector
   mLastBCCache = bc;
-  if (nStored < 1) {
+  if (nFiredCells < 1) {
     return;
   }
   totalChargeAllRing *= DP::INV_CHARGE_PER_ADC;
+  avgTime /= nFiredCells;
   //LOG(info)<<"Total charge ADC " <<totalChargeAllRing ;
   ///Triggers for FV0
-  bool isMinBias, isMinBiasInner, isMinBiasOuter, isHighMult, isDummy;
-  isMinBias = nStored > 0;
-  isMinBiasInner = nSignalInner > 0; //ring 1,2 and 3
-  isMinBiasOuter = nSignalOuter > 0; //ring 4 and 5
-  isHighMult = totalChargeAllRing > FV0DigParam::Instance().adcChargeHighMultTh;
-  isDummy = false;
+  bool isA, isAIn, isAOut, isCen, isSCen;
+  isA = nFiredCells > 0;
+  isAIn = nSignalInner > 0;  // ring 1,2 and 3
+  isAOut = nSignalOuter > 0; // ring 4 and 5
+  isCen = totalChargeAllRing > FV0DigParam::Instance().adcChargeCenThr;
+  isSCen = totalChargeAllRing > FV0DigParam::Instance().adcChargeSCenThr;
 
   Triggers triggers;
-  triggers.setTriggers(isMinBias, isMinBiasInner, isMinBiasOuter, isHighMult, isDummy, nStored, totalChargeAllRing);
-  digitsBC.emplace_back(first, nStored, bc, triggers);
-  digitsTrig.emplace_back(bc, isMinBias, isMinBiasInner, isMinBiasOuter, isHighMult, isDummy);
+  const int unused = 0;
+  const bool unusedBitsInSim = false; // bits related to laser and data validity
+  triggers.setTriggers(isA, isAIn, isAOut, isCen, isSCen, nFiredCells, (int8_t)unused,
+                       (int32_t)std::round(totalChargeAllRing), (int32_t)unused, (int16_t)std::round(avgTime), (int16_t)unused, unusedBitsInSim, unusedBitsInSim, unusedBitsInSim);
+  digitsBC.emplace_back(first, nFiredCells, bc, triggers, mEventId - 1);
+  digitsTrig.emplace_back(bc, isA, isAIn, isAOut, isCen, isSCen);
   for (auto const& lbl : bc.labels) {
     labels.addElement(nBC, lbl);
   }
@@ -306,7 +314,7 @@ Int_t Digitizer::SimulateLightYield(Int_t pmt, Int_t nPhot) const
   return n;
 }
 //---------------------------------------------------------------------------
-Float_t Digitizer::IntegrateCharge(const ChannelBCDataF& pulse) const
+Float_t Digitizer::IntegrateCharge(const ChannelDigitF& pulse) const
 {
   int const chargeIntMin = FV0DigParam::Instance().isIntegrateFull ? 0 : (FV0DigParam::Instance().avgCfdTimeForMip - 6.0) / mBinSize;                //Charge integration offset (cfd mean time - 6 ns)
   int const chargeIntMax = FV0DigParam::Instance().isIntegrateFull ? mNTimeBinsPerBC : (FV0DigParam::Instance().avgCfdTimeForMip + 14.0) / mBinSize; //Charge integration offset (cfd mean time + 14 ns)
@@ -320,7 +328,7 @@ Float_t Digitizer::IntegrateCharge(const ChannelBCDataF& pulse) const
   return totalCharge;
 }
 //---------------------------------------------------------------------------
-Float_t Digitizer::SimulateTimeCfd(int& startIndex, const ChannelBCDataF& pulseLast, const ChannelBCDataF& pulse) const
+Float_t Digitizer::SimulateTimeCfd(int& startIndex, const ChannelDigitF& pulseLast, const ChannelDigitF& pulse) const
 {
   Float_t timeCfd = -1024.0f;
 
@@ -427,3 +435,5 @@ bool Digitizer::isRing5(int detID)
     return false;
   }
 }
+
+O2ParamImpl(FV0DigParam);

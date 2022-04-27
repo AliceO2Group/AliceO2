@@ -20,6 +20,7 @@
 #include "ZDCBase/Constants.h"
 #include "MathUtils/Cartesian.h"
 #include <Rtypes.h>
+#include <gsl/span>
 #include <array>
 #include <vector>
 #include <map>
@@ -35,47 +36,85 @@ namespace zdc
 using FirstEntry = int;
 using NElem = int;
 
-struct RecEventFlat { //NOLINT: false positive in clang-tidy !!
+struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   o2::InteractionRecord ir;
-  uint32_t channels = 0;                           /// pattern of channels acquired
-  uint32_t triggers = 0;                           /// pattern of channels with autotrigger bit
-  std::map<uint8_t, float> ezdc;                   /// signal in ZDCs
-  std::vector<int16_t> TDCVal[NTDCChannels];       /// TdcChannels
-  std::vector<int16_t> TDCAmp[NTDCChannels];       /// TdcAmplitudes
-  std::vector<o2::zdc::BCRecData>* mRecBC;         //! Interaction record and references to data
-  std::vector<o2::zdc::ZDCEnergy>* mEnergy;        //! ZDC energy
-  std::vector<o2::zdc::ZDCTDCData>* mTDCData;      //! ZDC TDC
-  std::vector<uint16_t>* mInfo;                    //! Event quality information
-  uint64_t mEntry = 0;                             //! Current entry
-  uint64_t mNEntries = 0;                          //! Number of entries
-  FirstEntry mFirstE = 0;                          //! First energy
-  FirstEntry mFirstT = 0;                          //! First TDC
-  FirstEntry mFirstI = 0;                          //! First info
-  FirstEntry mStopE = 0;                           //! Last + 1 energy
-  FirstEntry mStopT = 0;                           //! Last + 1 TDC
-  FirstEntry mStopI = 0;                           //! Last + 1 info
-  NElem mNE = 0;                                   //! N energy
-  NElem mNT = 0;                                   //! N TDC
-  NElem mNI = 0;                                   //! N info
-  o2::zdc::BCRecData mCurB;                        //! Current BC
-  std::array<bool, NChannels> tdcPedEv = {0};      /// Event pedestal for TDC
-  std::array<bool, NChannels> tdcPedOr = {0};      /// Orbit pedestal for TDC
-  std::array<bool, NChannels> tdcPedQC = {0};      /// QC pedestal for TDC
-  std::array<bool, NChannels> tdcPedMissing = {0}; /// Missing pedestal for ADC
-  std::array<bool, NChannels> adcPedEv = {0};      /// Event pedestal for ADC
-  std::array<bool, NChannels> adcPedOr = {0};      /// Orbit pedestal for ADC
-  std::array<bool, NChannels> adcPedQC = {0};      /// QC pedestal for ADC
-  std::array<bool, NChannels> adcPedMissing = {0}; /// Missing pedestal for ADC
-  uint8_t mVerbosity = DbgZero;                    //! Verbosity level
-  uint32_t mTriggerMask = 0;                       //! Trigger mask for printout
+  uint32_t channels = 0;                         /// pattern of channels acquired
+  uint32_t ezdcDecoded = 0;                      /// pattern of decoded energies
+  uint32_t triggers = 0;                         /// pattern of channels with autotrigger bit
+  std::map<uint8_t, float> ezdc;                 /// signal in ZDCs
+  std::vector<float> TDCVal[NTDCChannels];       /// TDC values
+  std::vector<float> TDCAmp[NTDCChannels];       /// TDC signal amplitudes
+  std::vector<bool> TDCPile[NTDCChannels];       /// TDC pile-up correction flag (TODO)
+  gsl::span<const o2::zdc::BCRecData> mRecBC;    //! Interaction record and references to data
+  gsl::span<const o2::zdc::ZDCEnergy> mEnergy;   //! ZDC energy
+  gsl::span<const o2::zdc::ZDCTDCData> mTDCData; //! ZDC TDC
+  gsl::span<const uint16_t> mInfo;               //! Event quality information
+  std::vector<uint16_t> mDecodedInfo;            //! Event quality information (decoded)
+  uint64_t mEntry = 0;                           //! Current entry
+  uint64_t mNEntries = 0;                        //! Number of entries
+  FirstEntry mFirstE = 0;                        //! First energy
+  FirstEntry mFirstT = 0;                        //! First TDC
+  FirstEntry mFirstI = 0;                        //! First info
+  FirstEntry mStopE = 0;                         //! Last + 1 energy
+  FirstEntry mStopT = 0;                         //! Last + 1 TDC
+  FirstEntry mStopI = 0;                         //! Last + 1 info
+  NElem mNE = 0;                                 //! N energy
+  NElem mNT = 0;                                 //! N TDC
+  NElem mNI = 0;                                 //! N info
+  std::array<bool, NChannels> isBeg{};           //! Beginning of sequence
+  std::array<bool, NChannels> isEnd{};           //! End of sequence
+  o2::zdc::BCRecData mCurB;                      //! Current BC
 
-  void init(std::vector<o2::zdc::BCRecData>* RecBC, std::vector<o2::zdc::ZDCEnergy>* Energy, std::vector<o2::zdc::ZDCTDCData>* TDCData, std::vector<uint16_t>* Info);
+  // Reconstruction messages
+  std::array<bool, NChannels> genericE{};       ///  0 Generic error
+  std::array<bool, NChannels> tdcPedEv{};       /// -- Event pedestal for TDC
+  std::array<bool, NChannels> tdcPedOr{};       /// -- Orbit pedestal for TDC
+  std::array<bool, NChannels> tdcPedQC{};       ///  1 QC pedestal for TDC
+  std::array<bool, NChannels> tdcPedMissing{};  ///  2 Missing pedestal for ADC
+  std::array<bool, NChannels> adcPedEv{};       /// -- Event pedestal for ADC
+  std::array<bool, NChannels> adcPedOr{};       ///  3 Orbit pedestal for ADC
+  std::array<bool, NChannels> adcPedQC{};       ///  4 QC pedestal for ADC
+  std::array<bool, NChannels> adcPedMissing{};  ///  5 Missing pedestal for ADC
+  std::array<bool, NChannels> offPed{};         ///  6 Anomalous offset from pedestal info
+  std::array<bool, NChannels> pilePed{};        ///  7 Pile-up detection from pedestal info
+  std::array<bool, NChannels> pileTM{};         ///  8 Pile-up detection from TM trigger bit
+  std::array<bool, NChannels> adcMissingwTDC{}; ///  9 Missing ADC even if TDC is present
+  std::array<bool, NChannels> tdcPileEvC{};     /// 10 TDC in-bunch pile-up corrected
+  std::array<bool, NChannels> tdcPileEvE{};     /// 11 TDC in-bunch pile-up error
+  std::array<bool, NChannels> tdcPileM1C{};     /// 12 TDC pile-up in bunch -1 corrected
+  std::array<bool, NChannels> tdcPileM1E{};     /// 13 TDC pile-up in bunch -1 error
+  std::array<bool, NChannels> tdcPileM2C{};     /// 14 TDC pile-up in bunch -2 corrected
+  std::array<bool, NChannels> tdcPileM2E{};     /// 15 TDC pile-up in bunch -2 error
+  std::array<bool, NChannels> tdcPileM3C{};     /// 16 TDC pile-up in bunch -3 corrected
+  std::array<bool, NChannels> tdcPileM3E{};     /// 17 TDC pile-up in bunch -3 error
+  std::array<bool, NChannels> tdcSigE{};        /// 18 Missing TDC signal correction
+  // End_of_messages
+
+  void clearBitmaps();
+
+  uint8_t mVerbosity = DbgZero; //! Verbosity level
+  uint32_t mTriggerMask = 0;    //! Trigger mask for printout
+
+  void init(const std::vector<o2::zdc::BCRecData>* RecBC, const std::vector<o2::zdc::ZDCEnergy>* Energy, const std::vector<o2::zdc::ZDCTDCData>* TDCData, const std::vector<uint16_t>* Info);
+  void init(const gsl::span<const o2::zdc::BCRecData> RecBC, const gsl::span<const o2::zdc::ZDCEnergy> Energy, const gsl::span<const o2::zdc::ZDCTDCData> TDCData, const gsl::span<const uint16_t> Info);
 
   int next();
 
   inline NElem getNEnergy() const
   {
     return mNE;
+  }
+
+  inline bool getEnergy(int32_t i, uint8_t& key, float& val) const
+  {
+    if (i < mNE) {
+      auto it = ezdc.begin();
+      std::advance(it, i);
+      key = it->first;
+      val = it->second;
+      return true;
+    }
+    return false;
   }
 
   inline NElem getNTDC() const
@@ -86,6 +125,11 @@ struct RecEventFlat { //NOLINT: false positive in clang-tidy !!
   inline NElem getNInfo() const
   {
     return mNI;
+  }
+
+  const std::vector<uint16_t>& getDecodedInfo()
+  {
+    return mDecodedInfo;
   }
 
   float tdcV(uint8_t ich, uint64_t ipos) const
@@ -171,6 +215,7 @@ struct RecEventFlat { //NOLINT: false positive in clang-tidy !!
   void decodeMapInfo(uint32_t ch, uint16_t code);
 
   void print() const;
+  void printDecodedMessages() const;
   ClassDefNV(RecEventFlat, 1);
 };
 

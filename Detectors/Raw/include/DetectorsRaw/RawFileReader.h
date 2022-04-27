@@ -42,6 +42,7 @@ struct ReaderInp {
   size_t spSize = 1024L * 1024L;
   size_t bufferSize = 1024L * 1024L;
   int loop = 1;
+  int runNumber = 0;
   uint32_t delay_us = 0;
   uint32_t errMap = 0xffffffff;
   uint32_t minTF = 0;
@@ -51,6 +52,7 @@ struct ReaderInp {
   bool cache = false;
   bool autodetectTF0 = false;
   bool preferCalcTF = false;
+  bool sup0xccdb = false;
 };
 
 class RawFileReader
@@ -118,7 +120,7 @@ class RawFileReader
     true,  // ErrWrongNumberOfTF
     true,  // ErrHBFJump
     false, // ErrNoSuperPageForTF
-    true,  // ErrNoSOX
+    false, // ErrNoSOX
     true,  // ErrMismatchTF
   };
   //================================================================================
@@ -248,6 +250,7 @@ class RawFileReader
   void setCheckErrors(uint32_t m = 0xffffffff) { mCheckErrors = m & ((0x1 << NErrorsDefined) - 1); }
   int getVerbosity() const { return mVerbosity; }
   uint32_t getCheckErrors() const { return mCheckErrors; }
+  bool isProcessingStopped() const { return mStopProcessing; }
 
   void setNominalSPageSize(int n = 0x1 << 20) { mNominalSPageSize = n > (0x1 << 15) ? n : (0x1 << 15); }
   int getNominalSPageSize() const { return mNominalSPageSize; }
@@ -313,6 +316,7 @@ class RawFileReader
   long int mPosInFile = 0;                                          //! current position in the file
   bool mMultiLinkFile = false;                                      //! was > than 1 link seen in the file?
   bool mCacheData = false;                                          //! cache data to block after 1st scan (may require excessive memory, use with care)
+  bool mStopProcessing = false;                                     //! stop processing after error
   uint32_t mCheckErrors = 0;                                        //! mask for errors to check
   FirstTFDetection mFirstTFAutodetect = FirstTFDetection::Disabled; //!
   bool mPreferCalculatedTFStart = false;                            //! prefer TFstart calculated via HBFUtils

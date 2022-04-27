@@ -24,7 +24,7 @@ BOOST_AUTO_TEST_CASE(TestSorting)
   BOOST_CHECK_EQUAL(result.error, ""); // not an error
 
   result = CCDBHelpers::parseRemappings("https");
-  BOOST_CHECK_EQUAL(result.error, "URL should start with either / or http:// / https://");
+  BOOST_CHECK_EQUAL(result.error, "URL should start with either http:// or https:// or file://");
 
   result = CCDBHelpers::parseRemappings("https://alice.cern.ch:8000");
   BOOST_CHECK_EQUAL(result.error, "Expecting at least one target path, missing `='?");
@@ -36,16 +36,16 @@ BOOST_AUTO_TEST_CASE(TestSorting)
   BOOST_CHECK_EQUAL(result.error, "Empty target");
 
   result = CCDBHelpers::parseRemappings("https://alice.cern.ch:8000=/foo/bar,/foo/bar;");
-  BOOST_CHECK_EQUAL(result.error, "URL should start with either / or http:// / https://");
+  BOOST_CHECK_EQUAL(result.error, "URL should start with either http:// or https:// or file://");
 
-  result = CCDBHelpers::parseRemappings("https://alice.cern.ch:8000=/foo/bar,/foo/barbar;/user/test=/foo/barr");
+  result = CCDBHelpers::parseRemappings("https://alice.cern.ch:8000=/foo/bar,/foo/barbar;file://user/test=/foo/barr");
   BOOST_CHECK_EQUAL(result.error, "");
   BOOST_CHECK_EQUAL(result.remappings.size(), 3);
   BOOST_CHECK_EQUAL(result.remappings["/foo/bar"], "https://alice.cern.ch:8000");
   BOOST_CHECK_EQUAL(result.remappings["/foo/barbar"], "https://alice.cern.ch:8000");
-  BOOST_CHECK_EQUAL(result.remappings["/foo/barr"], "/user/test");
+  BOOST_CHECK_EQUAL(result.remappings["/foo/barr"], "file://user/test");
 
-  result = CCDBHelpers::parseRemappings("https://alice.cern.ch:8000=/foo/bar;/user/test=/foo/bar");
+  result = CCDBHelpers::parseRemappings("https://alice.cern.ch:8000=/foo/bar;file://user/test=/foo/bar");
   BOOST_CHECK_EQUAL(result.remappings.size(), 1);
   BOOST_CHECK_EQUAL(result.error, "Path /foo/bar requested more than once.");
 }

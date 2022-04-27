@@ -57,8 +57,10 @@ class STFDecoder : public Task
   void run(ProcessingContext& pc) final;
   void endOfStream(EndOfStreamContext& ec) final { finalize(); }
   void stop() final { finalize(); }
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
+  void updateTimeDependentParams(ProcessingContext& pc);
   void finalize();
   std::unique_ptr<o2::itsmft::Clusterer> setupClusterer(const std::string& dictName);
   TStopwatch mTimer;
@@ -69,6 +71,8 @@ class STFDecoder : public Task
   bool mUnmutExtraLanes = false;
   bool mFinalizeDone = false;
   bool mAllowReporting = true;
+  bool mApplyNoiseMap = true;
+  bool mUseClusterDictionary = true;
   int mDumpOnError = 0;
   int mNThreads = 1;
   int mVerbosity = 0;
@@ -80,8 +84,6 @@ class STFDecoder : public Task
   size_t mEstNROF = 0;
   std::string mInputSpec;
   std::string mSelfName;
-  std::string mDictName;
-  std::string mNoiseName;
   std::unique_ptr<RawPixelDecoder<Mapping>> mDecoder;
   std::unique_ptr<Clusterer> mClusterer;
 };

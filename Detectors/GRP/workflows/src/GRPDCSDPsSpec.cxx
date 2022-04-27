@@ -78,22 +78,22 @@ void GRPDCSDPsDataProcessor::init(o2::framework::InitContext& ic)
                                                         "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_downstream", "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_upstream"};
 
     for (const auto& i : aliasesBFieldDouble) {
-      vect.emplace_back(i, o2::dcs::RAW_DOUBLE);
+      vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
     }
     for (const auto& i : aliasesBFieldBool) {
-      vect.emplace_back(i, o2::dcs::RAW_BOOL);
+      vect.emplace_back(i, o2::dcs::DPVAL_BOOL);
     }
     for (const auto& i : aliasesEnvVar) {
-      vect.emplace_back(i, o2::dcs::RAW_DOUBLE);
+      vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
     }
     for (const auto& i : aliasesLHCIFDouble) {
-      vect.emplace_back(i, o2::dcs::RAW_DOUBLE);
+      vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
     }
     for (const auto& i : aliasesLHCIFCollimators) {
-      vect.emplace_back(i, o2::dcs::RAW_DOUBLE);
+      vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
     }
     for (const auto& i : aliasesLHCIFString) {
-      vect.emplace_back(i, o2::dcs::RAW_STRING);
+      vect.emplace_back(i, o2::dcs::DPVAL_STRING);
     }
   }
 

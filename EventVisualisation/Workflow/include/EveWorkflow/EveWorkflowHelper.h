@@ -98,20 +98,21 @@ class EveWorkflowHelper
   std::unique_ptr<gpu::TPCFastTransform> mTPCFastTransform;
 
  public:
-  using AODFullTracks = soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra>;
-  using AODFullTrack = AODFullTracks::iterator;
+  using AODBarrelTracks = soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra>;
+  using AODBarrelTrack = AODBarrelTracks::iterator;
+
+  using AODForwardTracks = soa::Join<aod::FwdTracks, aod::FwdTracksCov>;
+  using AODForwardTrack = AODForwardTracks::iterator;
+
+  using AODMFTTracks = aod::MFTTracks;
+  using AODMFTTrack = AODMFTTracks::iterator;
 
   EveWorkflowHelper();
   static std::vector<PNT> getTrackPoints(const o2::track::TrackPar& trc, float minR, float maxR, float maxStep, float minZ = -25000, float maxZ = 25000);
   void selectTracks(const CalibObjectsConst* calib, GID::mask_t maskCl,
                     GID::mask_t maskTrk, GID::mask_t maskMatch);
   void addTrackToEvent(const o2::track::TrackParCov& tr, GID gid, float trackTime, float dz, GID::Source source = GID::NSources);
-  void draw(const std::string& jsonPath, int numberOfFiles, int numberOfTracks,
-            o2::dataformats::GlobalTrackID::mask_t trkMask,
-            o2::dataformats::GlobalTrackID::mask_t clMask,
-            o2::header::DataHeader::RunNumberType runNumber,
-            o2::framework::DataProcessingHeader::CreationTime creation,
-            float mWorkflowVersion);
+  void draw(int numberOfTracks);
   void drawTPC(GID gid, float trackTime);
   void drawITS(GID gid, float trackTime);
   void drawMFT(GID gid, float trackTime);
@@ -124,7 +125,8 @@ class EveWorkflowHelper
   void drawTPCTRDTOF(GID gid, float trackTime);
   void drawTPCTRD(GID gid, float trackTime);
   void drawTPCTOF(GID gid, float trackTime);
-  void drawAOD(AODFullTrack const& track, float trackTime);
+  void drawAODBarrel(AODBarrelTrack const& track, float trackTime);
+  void drawAODMFT(AODMFTTrack const& track, float trackTime);
   void drawITSClusters(GID gid, float trackTime);
   void drawTPCClusters(GID gid, float trackTime);
   void drawMFTClusters(GID gid, float trackTime);
@@ -133,9 +135,12 @@ class EveWorkflowHelper
   void drawTRDClusters(const o2::trd::TrackTRD& trc, float trackTime);
   void drawTOFClusters(GID gid, float trackTime);
   void drawPoint(float x, float y, float z, float trackTime) { mEvent.addCluster(x, y, z, trackTime); }
-  void prepareITSClusters(const o2::itsmft::TopologyDictionary& dict); // fills mITSClustersArray
-  void prepareMFTClusters(const o2::itsmft::TopologyDictionary& dict); // fills mMFTClustersArray
+  void prepareITSClusters(const o2::itsmft::TopologyDictionary* dict); // fills mITSClustersArray
+  void prepareMFTClusters(const o2::itsmft::TopologyDictionary* dict); // fills mMFTClustersArray
   void clear() { mEvent.clear(); }
+  bool isEmpty() { return mEvent.isEmpty(); }
+
+  GID::Source detectorMapToGIDSource(uint8_t dm);
 
   void save(const std::string& jsonPath,
             int numberOfFiles,

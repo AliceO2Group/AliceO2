@@ -76,6 +76,7 @@ struct TrackingParameters {
   float CellDeltaTanLambdaSigma = 0.007f;
   /// Fitter parameters
   bool UseMatBudLUT = false;
+  unsigned long MaxMemory = 12000000000UL;
   std::array<float, 2> FitIterationMaxChi2 = {50, 20};
 };
 
@@ -98,8 +99,8 @@ struct VertexingParameters {
   int ZBins{256};
   int PhiBins{128};
 
-  float zCut = 0.002f;   //0.002f
-  float phiCut = 0.005f; //0.005f
+  float zCut = 0.002f;   // 0.002f
+  float phiCut = 0.005f; // 0.005f
   float pairCut = 0.04f;
   float clusterCut = 0.8f;
   float histPairCut = 0.04f;

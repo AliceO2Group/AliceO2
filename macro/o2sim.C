@@ -35,7 +35,25 @@
 #endif
 #include "migrateSimFiles.C"
 
-FairRunSim* o2sim_init(bool asservice)
+void check_notransport()
+{
+  // Sometimes we just want to inspect
+  // the generator kinematics and prohibit any transport.
+
+  // We allow users to give the noGeant option. In this case
+  // we set the geometry cuts to almost zero. Other adjustments (disable physics procs) could
+  // be done on top.
+  // This is merely offered for user convenience as it can be done from outside as well.
+  auto& confref = o2::conf::SimConfig::Instance();
+  if (confref.isNoGeant()) {
+    LOG(info) << "Initializing without Geant transport by applying very tight geometry cuts";
+    o2::conf::ConfigurableParam::setValue("SimCutParams", "maxRTracking", 0.0000001);    // 1 nanometer of tracking
+    o2::conf::ConfigurableParam::setValue("SimCutParams", "maxAbsZTracking", 0.0000001); // 1 nanometer of tracking
+    // TODO: disable physics processes for material sitting at the vertex
+  }
+}
+
+FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
 {
   auto& confref = o2::conf::SimConfig::Instance();
   // initialize CCDB service
@@ -49,6 +67,8 @@ FairRunSim* o2sim_init(bool asservice)
     LOG(info) << "Initialized CCDB Manager at URL: " << ccdbmgr.getURL();
     LOG(info) << "Initialized CCDB Manager with timestamp : " << ccdbmgr.getTimestamp();
   }
+
+  check_notransport();
 
   // update the parameters from an INI/JSON file, if given (overrides code-based version)
   o2::conf::ConfigurableParam::updateFromFile(confref.getConfigFile());
@@ -64,7 +84,7 @@ FairRunSim* o2sim_init(bool asservice)
   LOG(info) << "RNG INITIAL SEED " << seed;
 
   auto genconfig = confref.getGenerator();
-  FairRunSim* run = new o2::steer::O2RunSim(asservice);
+  FairRunSim* run = new o2::steer::O2RunSim(asservice, evalmat);
   run->SetImportTGeoToVMC(false); // do not import TGeo to VMC since the latter is built together with TGeo
   run->SetSimSetup([confref]() { o2::SimSetup::setup(confref.getMCEngine().c_str()); });
   run->SetRunId(confref.getTimestamp());
@@ -238,9 +258,9 @@ void o2sim_run(FairRunSim* run, bool asservice)
 }
 
 // asservice: in a parallel device-based context?
-void o2sim(bool asservice = false)
+void o2sim(bool asservice = false, bool evalmat = false)
 {
-  auto run = o2sim_init(asservice);
+  auto run = o2sim_init(asservice, evalmat);
   o2sim_run(run, asservice);
   delete run;
 }

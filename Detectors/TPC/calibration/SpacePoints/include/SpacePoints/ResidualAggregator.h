@@ -45,7 +45,7 @@ struct ResidualsContainer {
   void fillStatisticsBranches();
   uint64_t getNEntries() const { return nResidualsTotal; }
 
-  void fill(const gsl::span<const TrackResiduals::UnbinnedResid> data);
+  void fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const TrackResiduals::UnbinnedResid> data);
   void merge(ResidualsContainer* prev);
   void print();
 
@@ -78,7 +78,7 @@ class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<Tra
   bool hasEnoughData(const Slot& slot) const final;
   void initOutput() final;
   void finalizeSlot(Slot& slot) final;
-  Slot& emplaceNewSlot(bool front, uint64_t tStart, uint64_t tEnd) final;
+  Slot& emplaceNewSlot(bool front, TFType tStart, TFType tEnd) final;
 
  private:
   TrackResiduals mTrackResiduals; ///< providing the functionality for voxel binning of the residuals

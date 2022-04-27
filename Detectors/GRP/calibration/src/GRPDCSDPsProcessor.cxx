@@ -103,13 +103,13 @@ int GRPDCSDPsProcessor::processDP(const DPCOM& dpcom)
   const auto& type = dpid.get_type();
   auto& val = dpcom.data;
   if (mVerbose) {
-    if (type == RAW_DOUBLE) {
+    if (type == DPVAL_DOUBLE) {
       LOG(info);
       LOG(info) << "Processing DP = " << dpcom << ", with double value = " << o2::dcs::getValue<double>(dpcom);
-    } else if (type == RAW_BOOL) {
+    } else if (type == DPVAL_BOOL) {
       LOG(info);
       LOG(info) << "Processing DP = " << dpcom << ", with bool value = " << o2::dcs::getValue<bool>(dpcom);
-    } else if (type == RAW_STRING) {
+    } else if (type == DPVAL_STRING) {
       LOG(info);
       LOG(info) << "Processing DP = " << dpcom << ", with string value = " << o2::dcs::getValue<std::string>(dpcom);
     }
@@ -194,7 +194,9 @@ void GRPDCSDPsProcessor::processCollimators(const DPCOM& dpcom)
   processPair(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_upstream", mCollimators.mleft_upstream, mUpdateCollimators);
   processPair(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_downstream", mCollimators.mright_downstream, mUpdateCollimators);
   processPair(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_upstream", mCollimators.mright_upstream, mUpdateCollimators);
-  LOG(info) << "update collimators = " << mUpdateCollimators;
+  if (mVerbose) {
+    LOG(info) << "update collimators = " << mUpdateCollimators;
+  }
   return;
 }
 
@@ -209,7 +211,9 @@ void GRPDCSDPsProcessor::processEnvVar(const DPCOM& dpcom)
   processPair(dpcom, "CavernAtmosPressure", mEnvVars.mCavernAtmosPressure, mUpdateEnvVars);
   processPair(dpcom, "SurfaceAtmosPressure", mEnvVars.mSurfaceAtmosPressure, mUpdateEnvVars);
   processPair(dpcom, "CavernAtmosPressure2", mEnvVars.mCavernAtmosPressure2, mUpdateEnvVars);
-  LOG(info) << "update env vars = " << mUpdateEnvVars;
+  if (mVerbose) {
+    LOG(info) << "update env vars = " << mUpdateEnvVars;
+  }
   return;
 }
 
@@ -398,7 +402,7 @@ void GRPDCSDPsProcessor::updateMagFieldCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mMagField, mccdbMagFieldInfo, "GLO/Config/GRPMagField", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mMagField, mccdbMagFieldInfo, "GLO/Config/GRPMagField", md, mStartValidity, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
   return;
 }
 
@@ -414,7 +418,7 @@ void GRPDCSDPsProcessor::updateLHCIFInfoCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mLHCInfo, mccdbLHCIFInfo, "GLO/Config/LHCIF", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mLHCInfo, mccdbLHCIFInfo, "GLO/Config/LHCIF", md, mStartValidity, mStartValidity + 3 * 24L * 3600000); // valid for 3 days
   return;
 }
 
@@ -430,7 +434,7 @@ void GRPDCSDPsProcessor::updateEnvVarsCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbEnvVarsInfo, "GLO/Config/EnvVars", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbEnvVarsInfo, "GLO/Config/EnvVars", md, mStartValidity, mStartValidity + 3 * 24L * 3600000); // valid for 3 days
   return;
 }
 
@@ -446,6 +450,6 @@ void GRPDCSDPsProcessor::updateCollimatorsCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbCollimatorsInfo, "GLO/Config/Collimators", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbCollimatorsInfo, "GLO/Config/Collimators", md, mStartValidity, mStartValidity + 3 * 24L * 3600000); // valid for 3 days
   return;
 }

@@ -28,6 +28,7 @@
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 
 #include <unordered_map>
+#include <numeric>
 
 using namespace o2::framework;
 using namespace o2::dataformats;
@@ -155,5 +156,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
 
-  return std::move(specs);
+  return specs;
 }

@@ -32,11 +32,17 @@ std::vector<std::string> listFiles(std::string const& dir, std::string const& se
   std::regex str_expr(rs);
 
   for (auto& p : std::filesystem::directory_iterator(dir)) {
-    if (!p.is_directory()) {
-      auto fn = p.path().filename().string();
-      if (regex_match(fn, str_expr)) {
-        filenames.push_back(p.path().string());
+    try {
+      if (!p.is_directory()) {
+        auto fn = p.path().filename().string();
+        if (regex_match(fn, str_expr)) {
+          filenames.push_back(p.path().string());
+        }
       }
+    } catch (...) {
+      // problem listing some file, just ignore continue
+      // with next one
+      continue;
     }
   }
   return filenames;

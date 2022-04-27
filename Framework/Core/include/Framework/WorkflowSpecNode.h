@@ -8,8 +8,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef O2_FRAMEWORK_WORKFLOWSPEC_H_
-#define O2_FRAMEWORK_WORKFLOWSPEC_H_
+#ifndef O2_FRAMEWORK_WORKFLOWSPECNODE_H_
+#define O2_FRAMEWORK_WORKFLOWSPECNODE_H_
 #include "Framework/DataProcessorSpec.h"
 #include <vector>
 
@@ -19,4 +19,4 @@ struct WorkflowSpecNode {
   std::vector<DataProcessorSpec>& specs;
 };
 } // namespace o2::framework
-#endif // O2_FRAMEWORK_WORKFLOWSPEC_H_
+#endif // O2_FRAMEWORK_WORKFLOWSPECNODE_H_

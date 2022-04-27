@@ -27,6 +27,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/CompletionPolicyHelpers.h"
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
@@ -35,6 +36,12 @@ using DetID = o2::detectors::DetID;
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
   o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
+
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*primary-vertex-writer.*"));
 }
 
 // we need to add workflow options before including Framework/runDataProcessing
@@ -61,8 +68,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
 
-  GID::mask_t allowedSourcesPV = GID::getSourcesMask("ITS,ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF");
-  GID::mask_t allowedSourcesVT = GID::getSourcesMask("ITS,MFT,TPC,ITS-TPC,MCH,MFT-MCH,TPC-TOF,TPC-TRD,ITS-TPC-TRD,ITS-TPC-TOF");
+  GID::mask_t allowedSourcesPV = GID::getSourcesMask("ITS,ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
+  GID::mask_t allowedSourcesVT = GID::getSourcesMask("ITS,MFT,TPC,MCH,MFT-MCH,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
 
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));

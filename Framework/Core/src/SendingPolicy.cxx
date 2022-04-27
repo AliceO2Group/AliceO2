@@ -11,6 +11,9 @@
 
 #include "Framework/SendingPolicy.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/DataRefUtils.h"
+#include "Framework/DataProcessingHeader.h"
+#include "Headers/STFHeader.h"
 #include "DeviceSpecHelpers.h"
 #include <fairmq/Device.h>
 
@@ -23,11 +26,15 @@ std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
 {
   return {SendingPolicy{
             .name = "dispatcher",
-            .matcher = [](DeviceSpec const& spec, ConfigContext const& ctx) { return spec.name == "Dispatcher" || DeviceSpecHelpers::hasLabel(spec, "Dispatcher"); },
-            .send = [](FairMQDevice& device, FairMQParts& parts, std::string const& channel) { device.Send(parts, channel, 0, -1); }},
+            .matcher = [](DeviceSpec const& spec, ConfigContext const&) { return spec.name == "Dispatcher" || DeviceSpecHelpers::hasLabel(spec, "Dispatcher"); },
+            .send = [](FairMQDeviceProxy& proxy, FairMQParts& parts, ChannelIndex channelIndex) {
+              auto *channel = proxy.getOutputChannel(channelIndex);
+              channel->Send(parts, -1); }},
           SendingPolicy{
             .name = "default",
-            .matcher = [](DeviceSpec const& spec, ConfigContext const& ctx) { return true; },
-            .send = [](FairMQDevice& device, FairMQParts& parts, std::string const& channel) { device.Send(parts, channel, 0); }}};
+            .matcher = [](DeviceSpec const&, ConfigContext const&) { return true; },
+            .send = [](FairMQDeviceProxy& proxy, FairMQParts& parts, ChannelIndex channelIndex) { 
+              auto *channel = proxy.getOutputChannel(channelIndex);
+              channel->Send(parts); }}};
 }
 } // namespace o2::framework

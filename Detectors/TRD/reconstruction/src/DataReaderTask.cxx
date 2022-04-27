@@ -21,6 +21,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/InputRecordWalker.h"
+#include "Framework/DataRefUtils.h"
 #include "CommonUtils/VerbosityConfig.h"
 
 #include "DataFormatsTRD/Constants.h"
@@ -232,11 +233,12 @@ bool DataReaderTask::isTimeFrameEmpty(ProcessingContext& pc)
   static size_t contDeadBeef = 0; // number of times 0xDEADBEEF was seen continuously
   for (const auto& ref : o2::framework::InputRecordWalker(pc.inputs(), {dummy})) {
     const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-    if (dh->payloadSize == 0) {
+    auto payloadSize = o2::framework::DataRefUtils::getPayloadSize(ref);
+    if (payloadSize == 0) {
       auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
       if (++contDeadBeef <= maxWarn) {
         LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
-             dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,
+             dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
              contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
       }
       return true;
@@ -264,18 +266,18 @@ void DataReaderTask::run(ProcessingContext& pc)
     auto inputprocessingstart = std::chrono::high_resolution_clock::now(); // measure total processing time
     const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     tfCount = dh->tfCounter;
-    if (mVerbose) {
-      LOGP(info, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : ",
-           dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
-    }
     auto payloadIn = ref.payload;
-    auto payloadInSize = dh->payloadSize;
+    auto payloadInSize = DataRefUtils::getPayloadSize(ref);
+    if (mHeaderVerbose) {
+      LOGP(info, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : ",
+           dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadInSize);
+    }
     if (!mCompressedData) { //we have raw data coming in from flp
       if (mVerbose) {
         LOG(info) << " parsing non compressed data in the data reader task with a payload of " << payloadInSize << " payload size";
       }
-      //          LOG(info) << "start of data is at ref.payload=0x"<< std::hex << " dh->payloadSize:0x" << dh->payloadSize <<" dh->headerSize:0x" <<dh->headerSize;
-      total1 += dh->payloadSize;
+      //          LOG(info) << "start of data is at ref.payload=0x"<< std::hex << " payloadSize:0x" << payloadInSize <<" dh->headerSize:0x" <<dh->headerSize;
+      total1 += payloadInSize;
       total2 += dh->headerSize;
       //          LOG(info) << "start of data is at ref.payload=0x"<< std::hex << " total1:0x" << total1 <<" total2:0x" <<total2;
       mReader.setDataBuffer(payloadIn);

@@ -42,7 +42,7 @@ class TFDispatcher : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
     mMaxTF = ic.options().get<int64_t>("max-timeframes");
-    mMinSize = ic.options().get<int64_t>("min-number-of-info");
+    mMinSize = ic.options().get<int>("min-number-of-info");
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -221,7 +221,7 @@ DataProcessorSpec getTFDispatcherSpec(int slot, int ngen, int nlanes, int latenc
     Outputs{{{"output"}, "TOF", "DATASIZE"}},
     AlgorithmSpec{adaptFromTask<o2::calibration::TFDispatcher>(slot, ngen, nlanes, latency)},
     Options{{"max-timeframes", VariantType::Int64, 99999999999ll, {"max TimeFrames to generate"}},
-            {"min-number-of-info", VariantType::Int64, 99999999999ll, {"min number of Info (CalibTOFInfo, or Diagnostic) to generate"}}}};
+            {"min-number-of-info", VariantType::Int, 9999, {"min number of Info (CalibTOFInfo, or Diagnostic) to generate"}}}};
 }
 
 DataProcessorSpec getTFProcessorCalibInfoTOFSpec(int latency, int latencyRMS)

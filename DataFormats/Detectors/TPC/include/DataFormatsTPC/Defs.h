@@ -57,6 +57,8 @@ enum GEMstack { IROCgem = 0,
                 OROC2gem = 2,
                 OROC3gem = 3 };
 constexpr unsigned short GEMSTACKSPERSECTOR = 4;
+constexpr unsigned short GEMSPERSTACK = 4;
+constexpr unsigned short GEMSTACKSPERSIDE = 144;
 
 /// Definition of the different pad subsets
 enum class PadSubset : char {
@@ -78,9 +80,14 @@ struct StackID {
   GEMstack type{};
 
   /// Single number identification for the stacks
-  GPUdi() int index() const
+  GPUdi() int getIndex() const
   {
     return sector + type * SECTORSPERSIDE * SIDES;
+  }
+  GPUdi() void setIndex(int index)
+  {
+    sector = index % (SECTORSPERSIDE * SIDES);
+    type = static_cast<GEMstack>((index / (SECTORSPERSIDE * SIDES)) % GEMSTACKSPERSECTOR);
   }
 };
 

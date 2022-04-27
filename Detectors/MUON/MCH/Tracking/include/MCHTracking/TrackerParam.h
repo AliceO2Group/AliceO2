@@ -13,8 +13,8 @@
 /// \brief Configurable parameters for MCH tracking
 /// \author Philippe Pillot, Subatech
 
-#ifndef ALICEO2_MCH_TRACKERPARAM_H_
-#define ALICEO2_MCH_TRACKERPARAM_H_
+#ifndef O2_MCH_TRACKERPARAM_H_
+#define O2_MCH_TRACKERPARAM_H_
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
@@ -42,10 +42,12 @@ struct TrackerParam : public o2::conf::ConfigurableParamHelper<TrackerParam> {
   bool moreCandidates = false; ///< find more track candidates starting from 1 cluster in each of station (1..) 4 and 5
   bool refineTracks = true;    ///< refine the tracks in the end using cluster resolution
 
+  std::size_t maxCandidates = 100000; ///< maximum number of track candidates above which the tracking abort
+
   O2ParamDef(TrackerParam, "MCHTracking");
 };
 
 } // namespace mch
 } // end namespace o2
 
-#endif // ALICEO2_MCH_TRACKERPARAM_H_
+#endif // O2_MCH_TRACKERPARAM_H_

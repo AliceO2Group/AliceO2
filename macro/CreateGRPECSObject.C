@@ -15,6 +15,7 @@
 #include <chrono>
 #include "DataFormatsParameters/GRPECSObject.h"
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "CommonUtils/NameConf.h"
 #include "CCDB/CcdbApi.h"
 
 #endif
@@ -27,13 +28,13 @@ using GRPECSObject = o2::parameters::GRPECSObject;
 // Simple macro to exemplify how to fill a GRPECS object (GRP object containing the information that come from ECS)
 
 // The list of detectors in the readout, read-out continuously, or in the trigger are passed as DetID::mask_it; this is a std::bitset<32>, with the following meaning per bit:
-// {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", "CTP"}
+// {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "TST", "CTP"}
 
 // e.g.
 /*
  .L CreateGRPECSObject.C+
- std::time_t tStart = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count()
- std::time_t tEnd = (tStart + 60 * 60 * 24 * 365) * 1000; // 1 year validity, just an example
+ std::time_t tStart = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()
+ std::time_t tEnd = tStart + 60 * 60 * 24 * 365 * 1000; // 1 year validity, just an example
  o2::detectors::DetID::mask_t detsRO = o2::detectors::DetID::getMask("ITS, TPC, TRD, TOF, CPV, PHS, EMC, MID, MFT, MCH, FT0, FV0, FDD, CTP");
  o2::detectors::DetID::mask_t detsContRO = o2::detectors::DetID::getMask("TOF, TPC, ITS")
  o2::detectors::DetID::mask_t detsTrig = o2::detectors::DetID::getMask("FV0")
@@ -45,6 +46,7 @@ void CreateGRPECSObject(timePoint start, uint32_t nHBPerTF, DetID::mask_t detsRe
 
   GRPECSObject grpecs;
   grpecs.setTimeStart(start);
+  grpecs.setTimeEnd(end);
   grpecs.setNHBFPerTF(nHBPerTF);
   grpecs.setDetsReadOut(detsReadout);
   grpecs.setDetsContinuousReadOut(detsContinuousRO);
@@ -59,7 +61,9 @@ void CreateGRPECSObject(timePoint start, uint32_t nHBPerTF, DetID::mask_t detsRe
   metadata[o2::base::NameConf::CCDBRunTag.data()] = std::to_string(run);
   //long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
   if (end < 0) {
-    end = (start + 60 * 60 * 10) * 1000; // start + 10h, in ms
+    end = (start + 60 * 60 * 10 * 1000); // start + 10h, in ms
+  } else {
+    end += 2 * 60 * 60 * 1000; // 2h in ms
   }
-  api.storeAsTFileAny(&grpecs, "GLO/Config/GRPECS", metadata, start * 1000, end); // making it 1-year valid to be sure we have something
+  api.storeAsTFileAny(&grpecs, "GLO/Config/GRPECS", metadata, start - 1000, end);
 }

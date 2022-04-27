@@ -9,27 +9,34 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "TString.h"
 #include "Framework/Logger.h"
 #include "DataFormatsZDC/RecEventFlat.h"
 
 using namespace o2::zdc;
 
-void RecEventFlat::init(std::vector<o2::zdc::BCRecData>* RecBC, std::vector<o2::zdc::ZDCEnergy>* Energy, std::vector<o2::zdc::ZDCTDCData>* TDCData, std::vector<uint16_t>* Info)
+void RecEventFlat::init(const std::vector<o2::zdc::BCRecData>* RecBC, const std::vector<o2::zdc::ZDCEnergy>* Energy, const std::vector<o2::zdc::ZDCTDCData>* TDCData, const std::vector<uint16_t>* Info)
+{
+  mRecBC = *RecBC;
+  mEnergy = *Energy;
+  mTDCData = *TDCData;
+  mInfo = *Info;
+  mEntry = 0;
+  mNEntries = mRecBC.size();
+}
+
+void RecEventFlat::init(const gsl::span<const o2::zdc::BCRecData> RecBC, const gsl::span<const o2::zdc::ZDCEnergy> Energy, const gsl::span<const o2::zdc::ZDCTDCData> TDCData, const gsl::span<const uint16_t> Info)
 {
   mRecBC = RecBC;
   mEnergy = Energy;
   mTDCData = TDCData;
   mInfo = Info;
   mEntry = 0;
-  mNEntries = mRecBC->size();
+  mNEntries = mRecBC.size();
 }
 
-int RecEventFlat::next()
+void RecEventFlat::clearBitmaps()
 {
-  if (mEntry >= mNEntries) {
-    return 0;
-  }
-
   tdcPedEv.fill(false);
   tdcPedOr.fill(false);
   tdcPedQC.fill(false);
@@ -38,6 +45,33 @@ int RecEventFlat::next()
   adcPedOr.fill(false);
   adcPedQC.fill(false);
   adcPedMissing.fill(false);
+  adcMissingwTDC.fill(false);
+  offPed.fill(false);
+  pilePed.fill(false);
+  pileTM.fill(false);
+  tdcPileEvC.fill(false);
+  tdcPileEvE.fill(false);
+  tdcPileM1C.fill(false);
+  tdcPileM1E.fill(false);
+  tdcPileM2C.fill(false);
+  tdcPileM2E.fill(false);
+  tdcPileM3C.fill(false);
+  tdcPileM3E.fill(false);
+  // End_of_messages
+  // Other bitmaps
+  isBeg.fill(false);
+  isEnd.fill(false);
+}
+
+int RecEventFlat::next()
+{
+  ezdcDecoded = 0;
+  if (mEntry >= mNEntries) {
+    return 0;
+  }
+  // Reconstruction messages
+  clearBitmaps();
+  // Channel data
   ezdc.clear();
   for (int itdc = 0; itdc < NTDCChannels; itdc++) {
     TDCVal[itdc].clear();
@@ -45,7 +79,7 @@ int RecEventFlat::next()
   }
 
   // Get References
-  mCurB = mRecBC->at(mEntry);
+  mCurB = mRecBC[mEntry];
   mCurB.getRef(mFirstE, mNE, mFirstT, mNT, mFirstI, mNI);
   mStopE = mFirstE + mNE;
   mStopT = mFirstT + mNT;
@@ -56,11 +90,12 @@ int RecEventFlat::next()
   triggers = mCurB.triggers;
 
   // Decode event info
+  mDecodedInfo.clear();
   int infoState = 0;
   uint16_t code = 0;
   uint32_t map = 0;
   for (int i = mFirstI; i < mStopI; i++) {
-    uint16_t info = mInfo->at(i);
+    uint16_t info = mInfo[i];
     if (infoState == 0) {
       if (info & 0x8000) {
         LOGF(error, "Inconsistent info stream at word %d: 0x%4u", i, info);
@@ -98,19 +133,27 @@ int RecEventFlat::next()
 
   // Decode energy
   for (int i = mFirstE; i < mStopE; i++) {
-    auto myenergy = mEnergy->at(i);
+    auto myenergy = mEnergy[i];
     auto ch = myenergy.ch();
     ezdc[ch] = myenergy.energy();
     // Assign implicit event info
     if (adcPedOr[ch] == false && adcPedQC[ch] == false && adcPedMissing[ch] == false) {
       adcPedEv[ch] = true;
     }
+    ezdcDecoded |= (0x1 << ch);
   }
+
   // Decode TDCs
   for (int i = mFirstT; i < mStopT; i++) {
-    auto mytdc = mTDCData->at(i);
+    auto mytdc = mTDCData[i];
     auto ch = mytdc.ch();
     if (ch < NTDCChannels) {
+      if (mytdc.isBeg()) {
+        isBeg[ch] = true;
+      }
+      if (mytdc.isEnd()) {
+        isEnd[ch] = true;
+      }
       TDCVal[ch].push_back(mytdc.val);
       TDCAmp[ch].push_back(mytdc.amp);
       // Assign implicit event info
@@ -142,21 +185,71 @@ void RecEventFlat::decodeInfo(uint8_t ch, uint16_t code)
     printf("%9u.%04u Info: ch=%2d (%s) code=%-4u (%s)\n", ir.orbit, ir.bc, ch, ch < NChannels ? ChannelNames[ch].data() : "N.D.",
            code, code < MsgEnd ? MsgText[code].data() : "undefined");
   }
-  if (code == MsgTDCPedQC) {
-    tdcPedQC[ch] = true;
+  // Reconstruction messages
+  switch (code) {
+    case MsgGeneric:
+      genericE[ch] = true;
+      break;
+    case MsgTDCPedQC:
+      tdcPedQC[ch] = true;
+      break;
+    case MsgTDCPedMissing:
+      tdcPedMissing[ch] = true;
+      break;
+    case MsgADCPedOr:
+      adcPedOr[ch] = true;
+      break;
+    case MsgADCPedQC:
+      adcPedQC[ch] = true;
+      break;
+    case MsgADCPedMissing:
+      adcPedMissing[ch] = true;
+      break;
+    case MsgOffPed:
+      offPed[ch] = true;
+      break;
+    case MsgPilePed:
+      pilePed[ch] = true;
+      break;
+    case MsgPileTM:
+      pileTM[ch] = true;
+      break;
+    case MsgADCMissingwTDC:
+      adcMissingwTDC[ch] = true;
+      break;
+    case MsgTDCPileEvC:
+      tdcPileEvC[ch] = true;
+      break;
+    case MsgTDCPileEvE:
+      tdcPileEvE[ch] = true;
+      break;
+    case MsgTDCPileM1C:
+      tdcPileM1C[ch] = true;
+      break;
+    case MsgTDCPileM1E:
+      tdcPileM1E[ch] = true;
+      break;
+    case MsgTDCPileM2C:
+      tdcPileM2C[ch] = true;
+      break;
+    case MsgTDCPileM2E:
+      tdcPileM2E[ch] = true;
+      break;
+    case MsgTDCPileM3C:
+      tdcPileM3C[ch] = true;
+      break;
+    case MsgTDCPileM3E:
+      tdcPileM3E[ch] = true;
+      break;
+    case MsgTDCSigE:
+      tdcSigE[ch] = true;
+      break;
+      // End_of_messages
+    default:
+      LOG(error) << "Not managed info code: " << code;
+      return;
   }
-  if (code == MsgTDCPedMissing) {
-    tdcPedMissing[ch] = true;
-  }
-  if (code == MsgADCPedOr) {
-    adcPedOr[ch] = true;
-  }
-  if (code == MsgADCPedQC) {
-    adcPedQC[ch] = true;
-  }
-  if (code == MsgADCPedMissing) {
-    adcPedMissing[ch] = true;
-  }
+  mDecodedInfo.emplace_back((code & 0x03ff) | ((ch & 0x1f) << 10));
 }
 
 void RecEventFlat::print() const
@@ -207,4 +300,48 @@ void RecEventFlat::print() const
     }
   }
   printf("]\n");
+}
+
+void RecEventFlat::printDecodedMessages() const
+{
+  const std::array<bool, NChannels>* maps[MsgEnd];
+  maps[0] = &genericE;
+  maps[1] = &tdcPedQC;
+  maps[2] = &tdcPedMissing;
+  maps[3] = &adcPedOr;
+  maps[4] = &adcPedQC;
+  maps[5] = &adcPedMissing;
+  maps[6] = &offPed;
+  maps[7] = &pilePed;
+  maps[8] = &pileTM;
+  maps[9] = &adcMissingwTDC;
+  maps[10] = &tdcPileEvC;
+  maps[11] = &tdcPileEvE;
+  maps[12] = &tdcPileM1C;
+  maps[13] = &tdcPileM1E;
+  maps[14] = &tdcPileM2C;
+  maps[15] = &tdcPileM2E;
+  maps[16] = &tdcPileM3C;
+  maps[17] = &tdcPileM3E;
+  maps[18] = &tdcSigE;
+  // End_of_messages
+
+  for (int32_t imsg = 0; imsg < MsgEnd; imsg++) {
+    TString msg = TString::Format("%-30s:", MsgText[imsg].data());
+    if (maps[imsg] == nullptr) {
+      continue;
+    }
+    bool found = false;
+    for (int32_t isig = 0; isig < NChannels; isig++) {
+      if (maps[imsg]->at(isig) == true) {
+        found = true;
+        msg += TString::Format(" %s", ChannelNames[isig].data());
+      } else {
+        msg += "     ";
+      }
+    }
+    if (found) {
+      printf("%u.%04u Info %s\n", ir.orbit, ir.bc, msg.Data());
+    }
+  }
 }

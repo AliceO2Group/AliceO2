@@ -14,11 +14,11 @@
 #ifndef O2_DEVICES_PRIMSERVDEVICE_H_
 #define O2_DEVICES_PRIMSERVDEVICE_H_
 
-#include <FairMQDevice.h>
-#include <FairMQTransportFactory.h>
+#include <fairmq/Device.h>
+#include <fairmq/TransportFactory.h>
 #include <FairPrimaryGenerator.h>
 #include <Generators/GeneratorFactory.h>
-#include <FairMQMessage.h>
+#include <fairmq/Message.h>
 #include <SimulationDataFormat/Stack.h>
 #include <SimulationDataFormat/MCEventHeader.h>
 #include <TMessage.h>
@@ -29,7 +29,8 @@
 #include <SimConfig/SimConfig.h>
 #include <CommonUtils/ConfigurableParam.h>
 #include <CommonUtils/RngHelper.h>
-#include "Field/MagneticField.h"
+#include <DetectorsBase/SimFieldUtils.h>
+#include <Field/MagneticField.h>
 #include <TGeoGlobalMagField.h>
 #include <typeinfo>
 #include <thread>
@@ -41,6 +42,7 @@
 #include "PrimaryServerState.h"
 #include "SimPublishChannelHelper.h"
 #include <chrono>
+#include <CCDB/BasicCCDBManager.h>
 
 namespace o2
 {
@@ -73,11 +75,13 @@ class O2PrimaryServerDevice final : public FairMQDevice
     TStopwatch timer;
     timer.Start();
     const auto& conf = mSimConfig;
+    auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
+    ccdbmgr.setURL(conf.getConfigData().mCCDBUrl);
+    ccdbmgr.setTimestamp(conf.getTimestamp());
 
     // init magnetic field as it might be needed by the generator
     if (TGeoGlobalMagField::Instance()->GetField() == nullptr) {
-      auto field = o2::field::MagneticField::createNominalField(conf.getConfigData().mField, conf.getConfigData().mUniformField);
-      TGeoGlobalMagField::Instance()->SetField(field);
+      TGeoGlobalMagField::Instance()->SetField(o2::base::SimFieldUtils::createMagField());
       TGeoGlobalMagField::Instance()->Lock();
     }
 

@@ -54,20 +54,20 @@ void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<
 
   int nset = ((ntracks - 1) / ntracksinset) + 1;
   LOG(debug) << "nset " << nset;
-  int ntrackUsed = ntracks;
-  LOG(debug) << "ntrackUsed " << ntrackUsed;
+  int ntrackUsable = ntracks;
+  LOG(debug) << "ntrackUsable " << ntrackUsable;
 
   if (nset > maxNumberOfSets) {
     nset = maxNumberOfSets;
     LOG(debug) << "resetting nset " << nset;
-    ntrackUsed = nmaxtracksinset * nset;
-    LOG(debug) << "resetting ntrackUsed " << ntrackUsed;
+    ntrackUsable = nmaxtracksinset * nset;
+    LOG(debug) << "resetting ntrackUsable " << ntrackUsable;
   }
 
   // list of tracks in set
   std::vector<int> trackInSet[maxNumberOfSets];
 
-  for (int i = 0; i < ntrackUsed; i++) {
+  for (int i = 0; i < ntrackUsable; i++) {
     int iset = i % nset;
 
     trackInSet[iset].push_back(i);
@@ -93,8 +93,8 @@ void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<
         LOG(debug) << "Using hypothesis: " << hypo[itrk] << " tofSignal: " << ctrack.mSignal << " exp. time: " << ctrack.expTimes[hypo[itrk]] << " exp. sigma: " << ctrack.expSigma[hypo[itrk]];
         LOG(debug) << "0= " << ctrack.expTimes[0] << " +- " << ctrack.expSigma[0] << " 1= " << ctrack.expTimes[1] << " +- " << ctrack.expSigma[1] << " 2= " << ctrack.expTimes[2] << " +- " << ctrack.expSigma[2];
 
-        evtime.weights[index] = 1. / (ctrack.expSigma[hypo[itrk]] * ctrack.expSigma[hypo[itrk]]);
-        evtime.tracktime[index] = ctrack.mSignal - ctrack.expTimes[hypo[itrk]];
+        evtime.mWeights[index] = 1. / (ctrack.expSigma[hypo[itrk]] * ctrack.expSigma[hypo[itrk]]);
+        evtime.mTrackTimes[index] = ctrack.mSignal - ctrack.expTimes[hypo[itrk]];
       }
     }
     LOG(debug) << "iset " << iset << " did not have good status";
@@ -102,12 +102,14 @@ void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<
 
   // do average among all tracks
   float finalTime = 0, allweights = 0;
-  for (int i = 0; i < evtime.weights.size(); i++) {
-    if (evtime.weights[i] < weightLimit) {
+  int ntrackUsed = 0;
+  for (int i = 0; i < evtime.mWeights.size(); i++) {
+    if (evtime.mWeights[i] < weightLimit) {
       continue;
     }
-    allweights += evtime.weights[i];
-    finalTime += evtime.tracktime[i] * evtime.weights[i];
+    ntrackUsed++;
+    allweights += evtime.mWeights[i];
+    finalTime += evtime.mTrackTimes[i] * evtime.mWeights[i];
   }
 
   if (allweights < weightLimit) {
@@ -115,9 +117,9 @@ void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<
     return;
   }
 
-  evtime.eventTime = finalTime / allweights;
-  evtime.eventTimeError = sqrt(1. / allweights);
-  evtime.eventTimeMultiplicity = ntracks;
+  evtime.mEventTime = finalTime / allweights;
+  evtime.mEventTimeError = sqrt(1. / allweights);
+  evtime.mEventTimeMultiplicity = ntrackUsed;
 }
 
 void computeEvTimeFast(const std::vector<eventTimeTrack>& tracks, const std::vector<int>& trkIndex, eventTimeContainer& evtime)
@@ -139,17 +141,17 @@ void computeEvTimeFast(const std::vector<eventTimeTrack>& tracks, const std::vec
   int ntracksinset = std::min(ntracks, nmaxtracksinset);
 
   int nset = ((ntracks - 1) / ntracksinset) + 1;
-  int ntrackUsed = ntracks;
+  int ntrackUsable = ntracks;
 
   if (nset > maxNumberOfSets) {
     nset = maxNumberOfSets;
-    ntrackUsed = nmaxtracksinset * nset;
+    ntrackUsable = nmaxtracksinset * nset;
   }
 
   // list of tracks in set
   std::vector<int> trackInSet[maxNumberOfSets];
 
-  for (int i = 0; i < ntrackUsed; i++) {
+  for (int i = 0; i < ntrackUsable; i++) {
     int iset = i % nset;
 
     trackInSet[iset].push_back(i);
@@ -174,20 +176,22 @@ void computeEvTimeFast(const std::vector<eventTimeTrack>& tracks, const std::vec
         LOG(debug) << "Using hypothesis: " << hypo[itrk] << " tofSignal: " << ctrack.mSignal << " exp. time: " << ctrack.expTimes[hypo[itrk]] << " exp. sigma: " << ctrack.expSigma[hypo[itrk]];
         LOG(debug) << "0= " << ctrack.expTimes[0] << " +- " << ctrack.expSigma[0] << " 1= " << ctrack.expTimes[1] << " +- " << ctrack.expSigma[1] << " 2= " << ctrack.expTimes[2] << " +- " << ctrack.expSigma[2];
 
-        evtime.weights[index] = 1. / (ctrack.expSigma[hypo[itrk]] * ctrack.expSigma[hypo[itrk]]);
-        evtime.tracktime[index] = ctrack.mSignal - ctrack.expTimes[hypo[itrk]];
+        evtime.mWeights[index] = 1. / (ctrack.expSigma[hypo[itrk]] * ctrack.expSigma[hypo[itrk]]);
+        evtime.mTrackTimes[index] = ctrack.mSignal - ctrack.expTimes[hypo[itrk]];
       }
     }
   } // end loop in set
 
   // do average among all tracks
   float finalTime = 0, allweights = 0;
-  for (int i = 0; i < evtime.weights.size(); i++) {
-    if (evtime.weights[i] < weightLimit) {
+  int ntrackUsed = 0;
+  for (int i = 0; i < evtime.mWeights.size(); i++) {
+    if (evtime.mWeights[i] < weightLimit) {
       continue;
     }
-    allweights += evtime.weights[i];
-    finalTime += evtime.tracktime[i] * evtime.weights[i];
+    ntrackUsed++;
+    allweights += evtime.mWeights[i];
+    finalTime += evtime.mTrackTimes[i] * evtime.mWeights[i];
   }
 
   if (allweights < weightLimit) {
@@ -195,9 +199,9 @@ void computeEvTimeFast(const std::vector<eventTimeTrack>& tracks, const std::vec
     return;
   }
 
-  evtime.eventTime = finalTime / allweights;
-  evtime.eventTimeError = sqrt(1. / allweights);
-  evtime.eventTimeMultiplicity = ntracks;
+  evtime.mEventTime = finalTime / allweights;
+  evtime.mEventTimeError = sqrt(1. / allweights);
+  evtime.mEventTimeMultiplicity = ntrackUsed;
 }
 
 int getStartTimeInSet(const std::vector<eventTimeTrack>& tracks, std::vector<int>& trackInSet, unsigned long& bestComb)

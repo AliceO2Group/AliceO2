@@ -61,7 +61,7 @@ namespace detail
 void timer_callback(uv_timer_t* handle)
 {
   // We simply wake up the event loop. Nothing to be done here.
-  DeviceState* state = (DeviceState*)handle->data;
+  auto* state = (DeviceState*)handle->data;
   state->loopReason |= DeviceState::TIMER_EXPIRED;
   state->loopReason |= DeviceState::DATA_INCOMING;
 }
@@ -69,7 +69,7 @@ void timer_callback(uv_timer_t* handle)
 void signal_callback(uv_signal_t* handle, int)
 {
   // We simply wake up the event loop. Nothing to be done here.
-  DeviceState* state = (DeviceState*)handle->data;
+  auto* state = (DeviceState*)handle->data;
   state->loopReason |= DeviceState::SIGNAL_ARRIVED;
   state->loopReason |= DeviceState::DATA_INCOMING;
 }
@@ -89,13 +89,20 @@ struct ExpirationHandlerHelpers {
       // We create a timer to wake us up. Notice the actual
       // timeslot creation and record expiration still happens
       // in a synchronous way.
-      uv_timer_t* timer = (uv_timer_t*)(malloc(sizeof(uv_timer_t)));
+      auto* timer = (uv_timer_t*)(malloc(sizeof(uv_timer_t)));
       timer->data = &state;
       uv_timer_init(state.loop, timer);
       uv_timer_start(timer, detail::timer_callback, period / 1000, period / 1000);
       state.activeTimers.push_back(timer);
 
       return LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds(period));
+    };
+  }
+
+  static RouteConfigurator::CreationConfigurator loopEventDrivenConfigurator(InputSpec const& matcher)
+  {
+    return [matcher](DeviceState& state, ServiceRegistry&, ConfigParamRegistry const&) {
+      return LifetimeHelpers::uvDrivenCreation(DeviceState::LoopReason::OOB_ACTIVITY, state);
     };
   }
 
@@ -111,13 +118,20 @@ struct ExpirationHandlerHelpers {
       // We create a timer to wake us up. Notice the actual
       // timeslot creation and record expiration still happens
       // in a synchronous way.
-      uv_signal_t* sh = (uv_signal_t*)(malloc(sizeof(uv_signal_t)));
+      auto* sh = (uv_signal_t*)(malloc(sizeof(uv_signal_t)));
       uv_signal_init(state.loop, sh);
       sh->data = &state;
       uv_signal_start(sh, detail::signal_callback, SIGUSR1);
       state.activeSignals.push_back(sh);
 
       return LifetimeHelpers::enumDrivenCreation(start, stop, step, inputTimeslice, maxInputTimeslices, 1);
+    };
+  }
+
+  static RouteConfigurator::CreationConfigurator oobDrivenConfigurator()
+  {
+    return [](DeviceState& state, ServiceRegistry&, ConfigParamRegistry const&) {
+      return LifetimeHelpers::uvDrivenCreation(DeviceState::LoopReason::OOB_ACTIVITY, state);
     };
   }
 
@@ -170,16 +184,24 @@ struct ExpirationHandlerHelpers {
 
   static RouteConfigurator::CreationConfigurator fairmqDrivenConfiguration(InputSpec const& spec, int inputTimeslice, int maxInputTimeslices)
   {
-    return [spec, inputTimeslice, maxInputTimeslices](DeviceState& state, ServiceRegistry& services, ConfigParamRegistry const& options) {
-      std::string channelNameOption = std::string{"out-of-band-channel-name-"} + spec.binding;
-      auto channelName = options.get<std::string>(channelNameOption.c_str());
+    return [spec, inputTimeslice, maxInputTimeslices](DeviceState& state, ServiceRegistry& services, ConfigParamRegistry const&) {
+      // std::string channelNameOption = std::string{"out-of-band-channel-name-"} + spec.binding;
+      // auto channelName = options.get<std::string>(channelNameOption.c_str());
+      std::string channelName = "upstream";
+      for (auto& meta : spec.metadata) {
+        if (meta.name != "channel-name") {
+          continue;
+        }
+        channelName = meta.defaultValue.get<std::string>();
+      }
+
       auto device = services.get<RawDeviceService>().device();
       auto& channel = device->fChannels[channelName];
 
       // We assume there is always a ZeroMQ socket behind.
       int zmq_fd = 0;
       size_t zmq_fd_len = sizeof(zmq_fd);
-      uv_poll_t* poller = (uv_poll_t*)malloc(sizeof(uv_poll_t));
+      auto* poller = (uv_poll_t*)malloc(sizeof(uv_poll_t));
       channel[0].GetSocket().GetOption("fd", &zmq_fd, &zmq_fd_len);
       if (zmq_fd == 0) {
         throw runtime_error_f("Cannot get file descriptor for channel %s", channelName.c_str());
@@ -198,9 +220,7 @@ struct ExpirationHandlerHelpers {
 
   static RouteConfigurator::DanglingConfigurator danglingOutOfBandConfigurator()
   {
-    return [](DeviceState&, ConfigParamRegistry const& options) {
-      // If the entry is there it means that something awoke
-      // the loop, so we can materialise it immediately.
+    return [](DeviceState&, ConfigParamRegistry const&) {
       return LifetimeHelpers::expireAlways();
     };
   }
@@ -229,14 +249,14 @@ struct ExpirationHandlerHelpers {
 
   static RouteConfigurator::DanglingConfigurator danglingTimerConfigurator(InputSpec const& matcher)
   {
-    return [matcher](DeviceState&, ConfigParamRegistry const& options) {
+    return [matcher](DeviceState&, ConfigParamRegistry const&) {
       return LifetimeHelpers::expireAlways();
     };
   }
 
   static RouteConfigurator::DanglingConfigurator danglingEnumerationConfigurator(InputSpec const& matcher)
   {
-    return [matcher](DeviceState&, ConfigParamRegistry const& options) {
+    return [matcher](DeviceState&, ConfigParamRegistry const&) {
       return LifetimeHelpers::expireAlways();
     };
   }
@@ -248,7 +268,20 @@ struct ExpirationHandlerHelpers {
       throw runtime_error("InputSpec for Timers must be fully qualified");
     }
     // We copy the matcher to avoid lifetime issues.
-    return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
+    return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const&) {
+      // Timers do not have any orbit associated to them
+      return LifetimeHelpers::enumerate(matcher, sourceChannel, 0, 0);
+    };
+  }
+
+  static RouteConfigurator::ExpirationConfigurator expiringOOBConfigurator(InputSpec const& spec, std::string const& sourceChannel)
+  {
+    auto m = std::get_if<ConcreteDataMatcher>(&spec.matcher);
+    if (m == nullptr) {
+      throw runtime_error("InputSpec for OOB must be fully qualified");
+    }
+    // We copy the matcher to avoid lifetime issues.
+    return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const&) {
       // Timers do not have any orbit associated to them
       return LifetimeHelpers::enumerate(matcher, sourceChannel, 0, 0);
     };
@@ -276,7 +309,7 @@ struct ExpirationHandlerHelpers {
     return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::expireNever(); };
   }
 
-  static RouteConfigurator::ExpirationConfigurator expiringTransientConfigurator(InputSpec const& matcher)
+  static RouteConfigurator::ExpirationConfigurator expiringTransientConfigurator(InputSpec const&)
   {
     return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::fetchFromObjectRegistry(); };
   }
@@ -288,9 +321,9 @@ struct ExpirationHandlerHelpers {
   }
 
   /// This will always exipire an optional record when no data is received.
-  static RouteConfigurator::DanglingConfigurator danglingOptionalConfigurator()
+  static RouteConfigurator::DanglingConfigurator danglingOptionalConfigurator(std::vector<InputRoute> const& routes)
   {
-    return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::expireAlways(); };
+    return [routes](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::expireIfPresent(routes, ConcreteDataMatcher{"FLP", "DISTSUBTIMEFRAME", 0}); };
   }
 
   /// When the record expires, simply create a dummy entry.
@@ -298,13 +331,13 @@ struct ExpirationHandlerHelpers {
   {
     try {
       ConcreteDataMatcher concrete = DataSpecUtils::asConcreteDataMatcher(spec);
-      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
+      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const&) {
         return LifetimeHelpers::dummy(concrete, sourceChannel);
       };
     } catch (...) {
       ConcreteDataTypeMatcher dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
       ConcreteDataMatcher concrete{dataType.origin, dataType.description, 0xdeadbeef};
-      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
+      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const&) {
         return LifetimeHelpers::dummy(concrete, sourceChannel);
       };
       // We copy the matcher to avoid lifetime issues.
@@ -404,6 +437,58 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
     device.maxInputTimeslices = processor.maxInputTimeslices;
     device.resource = {acceptedOffer};
     device.labels = processor.labels;
+    /// If any of the inputs or outputs are "Lifetime::OutOfBand"
+    /// create the associated channels.
+    //
+    // for (auto& input : processor.inputs) {
+    //  if (input.lifetime != Lifetime::OutOfBand) {
+    //    continue;
+    //  }
+    //  InputChannelSpec extraInputChannelSpec{
+    //    .name = "upstream",
+    //    .type = ChannelType::Pair,
+    //    .method = ChannelMethod::Bind,
+    //    .hostname = "localhost",
+    //    .port = 33000,
+    //    .protocol = ChannelProtocol::IPC,
+    //  };
+    //  for (auto& meta : input.metadata) {
+    //    if (meta.name == "name") {
+    //      extraInputChannelSpec.name = meta.defaultValue.get<std::string>();
+    //    }
+    //    if (meta.name == "port") {
+    //      extraInputChannelSpec.port = meta.defaultValue.get<int32_t>();
+    //    }
+    //    if (meta.name == "address") {
+    //      extraInputChannelSpec.hostname = meta.defaultValue.get<std::string>();
+    //    }
+    //  }
+    //  device.inputChannels.push_back(extraInputChannelSpec);
+    //}
+    for (auto& output : processor.outputs) {
+      if (output.lifetime != Lifetime::OutOfBand) {
+        continue;
+      }
+      OutputChannelSpec extraOutputChannelSpec{
+        .name = "downstream",
+        .type = ChannelType::Pair,
+        .method = ChannelMethod::Connect,
+        .hostname = "localhost",
+        .port = 33000,
+        .protocol = ChannelProtocol::IPC};
+      for (auto& meta : output.metadata) {
+        if (meta.name == "channel-name") {
+          extraOutputChannelSpec.name = meta.defaultValue.get<std::string>();
+        }
+        if (meta.name == "port") {
+          extraOutputChannelSpec.port = meta.defaultValue.get<int32_t>();
+        }
+        if (meta.name == "address") {
+          extraOutputChannelSpec.hostname = meta.defaultValue.get<std::string>();
+        }
+      }
+      device.outputChannels.push_back(extraOutputChannelSpec);
+    }
     devices.push_back(device);
     return devices.size() - 1;
   };
@@ -432,7 +517,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
     }
     DeviceConnectionId id{edge.producer, edge.consumer, edge.timeIndex, edge.producerTimeIndex, channel.port};
     connections.push_back(id);
-    return std::move(channel);
+    return channel;
   };
 
   auto isDifferentDestinationDeviceReferredBy = [&actions](size_t ei) { return actions[ei].requiresNewChannel; };
@@ -443,8 +528,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
   // devices. Whether or not this is the case was previously computed
   // in the action.requiresNewChannel field.
   auto createChannelForDeviceEdge = [&devices, &logicalEdges, &channelFromDeviceEdgeAndPort,
-                                     &outputsMatchers, &deviceIndex,
-                                     &workflow](size_t di, size_t ei, ComputingOffer& offer) {
+                                     &deviceIndex](size_t di, size_t ei, ComputingOffer& offer) {
     auto& device = devices[di];
     auto& edge = logicalEdges[ei];
 
@@ -712,59 +796,6 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
       edge.producerTimeIndex,
       std::nullopt};
 
-    switch (consumer.inputs[edge.consumerInputIndex].lifetime) {
-      case Lifetime::OutOfBand:
-        route.configurator = {
-          .creatorConfigurator = ExpirationHandlerHelpers::fairmqDrivenConfiguration(inputSpec, consumerDevice.inputTimesliceId, consumerDevice.maxInputTimeslices),
-          .danglingConfigurator = ExpirationHandlerHelpers::danglingOutOfBandConfigurator(),
-          .expirationConfigurator = ExpirationHandlerHelpers::expiringOutOfBandConfigurator(inputSpec)};
-        break;
-        //      case Lifetime::Condition:
-        //        route.configurator = {
-        //          ExpirationHandlerHelpers::dataDrivenConfigurator(),
-        //          ExpirationHandlerHelpers::danglingConditionConfigurator(),
-        //          ExpirationHandlerHelpers::expiringConditionConfigurator(inputSpec, sourceChannel)};
-        //        break;
-      case Lifetime::QA:
-        route.configurator = {
-          ExpirationHandlerHelpers::dataDrivenConfigurator(),
-          ExpirationHandlerHelpers::danglingQAConfigurator(),
-          ExpirationHandlerHelpers::expiringQAConfigurator()};
-        break;
-      case Lifetime::Timer:
-        route.configurator = {
-          ExpirationHandlerHelpers::timeDrivenConfigurator(inputSpec),
-          ExpirationHandlerHelpers::danglingTimerConfigurator(inputSpec),
-          ExpirationHandlerHelpers::expiringTimerConfigurator(inputSpec, sourceChannel)};
-        break;
-      case Lifetime::Enumeration:
-        route.configurator = {
-          ExpirationHandlerHelpers::enumDrivenConfigurator(inputSpec, consumerDevice.inputTimesliceId, consumerDevice.maxInputTimeslices),
-          ExpirationHandlerHelpers::danglingEnumerationConfigurator(inputSpec),
-          ExpirationHandlerHelpers::expiringEnumerationConfigurator(inputSpec, sourceChannel)};
-        break;
-      case Lifetime::Signal:
-        route.configurator = {
-          ExpirationHandlerHelpers::signalDrivenConfigurator(inputSpec, consumerDevice.inputTimesliceId, consumerDevice.maxInputTimeslices),
-          ExpirationHandlerHelpers::danglingEnumerationConfigurator(inputSpec),
-          ExpirationHandlerHelpers::expiringEnumerationConfigurator(inputSpec, sourceChannel)};
-        break;
-      case Lifetime::Transient:
-        route.configurator = {
-          ExpirationHandlerHelpers::dataDrivenConfigurator(),
-          ExpirationHandlerHelpers::danglingTransientConfigurator(),
-          ExpirationHandlerHelpers::expiringTransientConfigurator(inputSpec)};
-        break;
-      case Lifetime::Optional:
-        route.configurator = {
-          ExpirationHandlerHelpers::createOptionalConfigurator(),
-          ExpirationHandlerHelpers::danglingOptionalConfigurator(),
-          ExpirationHandlerHelpers::expiringOptionalConfigurator(inputSpec, sourceChannel)};
-        break;
-      default:
-        break;
-    }
-
     // In case we have wildcards, we must make sure that some other edge
     // produced the same route, i.e. has the same matcher.  Without this,
     // otherwise, we would end up with as many input routes as the outputs that
@@ -812,6 +843,72 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     }
     appendInputRouteToDestDeviceChannel(edge, consumerDevice, channel);
   }
+
+  // Bind the expiration mechanism to the input routes
+  for (auto& device : devices) {
+    for (auto& route : device.inputs) {
+      switch (route.matcher.lifetime) {
+        case Lifetime::OutOfBand:
+          route.configurator = {
+            .name = "oob",
+            .creatorConfigurator = ExpirationHandlerHelpers::loopEventDrivenConfigurator(route.matcher),
+            .danglingConfigurator = ExpirationHandlerHelpers::danglingOutOfBandConfigurator(),
+            .expirationConfigurator = ExpirationHandlerHelpers::expiringOOBConfigurator(route.matcher, route.sourceChannel)};
+          break;
+          //      case Lifetime::Condition:
+          //        route.configurator = {
+          //          ExpirationHandlerHelpers::dataDrivenConfigurator(),
+          //          ExpirationHandlerHelpers::danglingConditionConfigurator(),
+          //          ExpirationHandlerHelpers::expiringConditionConfigurator(inputSpec, sourceChannel)};
+          //        break;
+        case Lifetime::QA:
+          route.configurator = {
+            .name = "qa",
+            .creatorConfigurator = ExpirationHandlerHelpers::dataDrivenConfigurator(),
+            .danglingConfigurator = ExpirationHandlerHelpers::danglingQAConfigurator(),
+            .expirationConfigurator = ExpirationHandlerHelpers::expiringQAConfigurator()};
+          break;
+        case Lifetime::Timer:
+          route.configurator = {
+            .name = "timer",
+            .creatorConfigurator = ExpirationHandlerHelpers::timeDrivenConfigurator(route.matcher),
+            .danglingConfigurator = ExpirationHandlerHelpers::danglingTimerConfigurator(route.matcher),
+            .expirationConfigurator = ExpirationHandlerHelpers::expiringTimerConfigurator(route.matcher, route.sourceChannel)};
+          break;
+        case Lifetime::Enumeration:
+          route.configurator = {
+            .name = "enumeration",
+            .creatorConfigurator = ExpirationHandlerHelpers::enumDrivenConfigurator(route.matcher, device.inputTimesliceId, device.maxInputTimeslices),
+            .danglingConfigurator = ExpirationHandlerHelpers::danglingEnumerationConfigurator(route.matcher),
+            .expirationConfigurator = ExpirationHandlerHelpers::expiringEnumerationConfigurator(route.matcher, route.sourceChannel)};
+          break;
+        case Lifetime::Signal:
+          route.configurator = {
+            .name = "signal",
+            .creatorConfigurator = ExpirationHandlerHelpers::signalDrivenConfigurator(route.matcher, device.inputTimesliceId, device.maxInputTimeslices),
+            .danglingConfigurator = ExpirationHandlerHelpers::danglingEnumerationConfigurator(route.matcher),
+            .expirationConfigurator = ExpirationHandlerHelpers::expiringEnumerationConfigurator(route.matcher, route.sourceChannel)};
+          break;
+        case Lifetime::Transient:
+          route.configurator = {
+            .name = "transient",
+            .creatorConfigurator = ExpirationHandlerHelpers::dataDrivenConfigurator(),
+            .danglingConfigurator = ExpirationHandlerHelpers::danglingTransientConfigurator(),
+            .expirationConfigurator = ExpirationHandlerHelpers::expiringTransientConfigurator(route.matcher)};
+          break;
+        case Lifetime::Optional:
+          route.configurator = {
+            .name = "optional",
+            .creatorConfigurator = ExpirationHandlerHelpers::createOptionalConfigurator(),
+            .danglingConfigurator = ExpirationHandlerHelpers::danglingOptionalConfigurator(device.inputs),
+            .expirationConfigurator = ExpirationHandlerHelpers::expiringOptionalConfigurator(route.matcher, route.sourceChannel)};
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
   if (acceptedOffer.hostname != "") {
     resourceManager.notifyAcceptedOffer(acceptedOffer);
   }
@@ -1153,7 +1250,9 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     ConfigParamsHelper::dpl2BoostOptions(spec.options, od);
     od.add_options()(name, bpo::value<std::string>());
     ConfigParamsHelper::dpl2BoostOptions(workflowOptions, foDesc);
-    foDesc.add(getForwardedDeviceOptions());
+    auto forwardedOptions = getForwardedDeviceOptions();
+    /// Add to foDesc the options which are not already there
+    foDesc.add(forwardedOptions);
 
     // has option --session been specified on the command line?
     bool haveSessionArg = false;
@@ -1181,7 +1280,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
       }
 
       /// Add libSegFault to the stack if provided.
-      if (varmap.count("stacktrace-on-signal") && varmap["stacktrace-on-signal"].as<std::string>() != "none") {
+      if (varmap.count("stacktrace-on-signal") && varmap["stacktrace-on-signal"].as<std::string>() != "none" && varmap["stacktrace-on-signal"].as<std::string>() != "simple") {
         char const* preload = getenv("LD_PRELOAD");
         if (preload == nullptr || strcmp(preload, "libSegFault.so") == 0) {
           tmpEnv.push_back("LD_PRELOAD=libSegFault.so");
@@ -1268,7 +1367,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
             // multitoken, zero_token and composing
             // currently only the simple case is supported
             assert(semantic->min_tokens() <= 1);
-            //assert(semantic->max_tokens() && semantic->min_tokens());
+            // assert(semantic->max_tokens() && semantic->min_tokens());
             if (semantic->min_tokens() > 0) {
               std::string stringRep;
               if (auto v = boost::any_cast<std::string>(&varit.second.value())) {
@@ -1381,8 +1480,9 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("shm-no-cleanup", bpo::value<std::string>()->default_value("false"), "no shm cleanup")                                                                          //
     ("shmid", bpo::value<std::string>(), "shmid")                                                                                                                    //
     ("environment", bpo::value<std::string>(), "comma separated list of environment variables to set for the device")                                                //
-    ("stacktrace-on-signal", bpo::value<std::string>()->default_value("all"),                                                                                        //
-     "dump stacktrace on specified signal(s) (any of `all`, `segv`, `bus`, `ill`, `abrt`, `fpe`, `sys`.)")                                                           //
+    ("stacktrace-on-signal", bpo::value<std::string>()->default_value("simple"),                                                                                     //
+     "dump stacktrace on specified signal(s) (any of `all`, `segv`, `bus`, `ill`, `abrt`, `fpe`, `sys`.)"                                                            //
+     "Use `simple` to dump only the main thread in a reliable way")                                                                                                  //
     ("post-fork-command", bpo::value<std::string>(), "post fork command to execute (e.g. numactl {pid}")                                                             //
     ("session", bpo::value<std::string>(), "unique label for the shared memory session")                                                                             //
     ("network-interface", bpo::value<std::string>(), "network interface to which to bind tpc fmq ports without specified address")                                   //
@@ -1392,6 +1492,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                                                                                //
     ("infologger-mode", bpo::value<std::string>(), "O2_INFOLOGGER_MODE override")                                                                                    //
     ("infologger-severity", bpo::value<std::string>(), "minimun FairLogger severity which goes to info logger")                                                      //
+    ("dpl-tracing-flags", bpo::value<std::string>(), "pipe separated list of events to trace")                                                                       //
     ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)");                                                             //
 
   return forwardedDeviceOptions;

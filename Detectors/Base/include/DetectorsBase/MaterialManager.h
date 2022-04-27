@@ -133,6 +133,8 @@ class MaterialManager
 
   /// load cuts and process flags from a data file (like AliRoot did)
   void loadCutsAndProcessesFromFile(const char* modname, const char* filename);
+  void loadCutsAndProcessesFromJSON(ESpecial special = ESpecial::kFALSE, std::string const& filename = "");
+  void writeCutsAndProcessesToJSON(std::string const& filename = "");
 
   /// Set flags whether to use special cuts and process settings
   void enableSpecialProcesses(bool val = true) { mApplySpecialProcesses = val; }

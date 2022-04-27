@@ -66,6 +66,7 @@ class MFTDCSDataProcessor : public o2::framework::Task
       LOG(error) << "MFT DPs update interval set to zero seconds --> changed to 60";
       mDPsUpdateInterval = 60;
     }
+    LOG(info) << "mDPsUpdateInterval " << mDPsUpdateInterval << "[sec.]";
 
     bool useCCDBtoConfigure = ic.options().get<bool>("use-ccdb-to-configure");
 
@@ -115,7 +116,7 @@ class MFTDCSDataProcessor : public o2::framework::Task
 
       std::vector<std::string> expaliases = o2::dcs::expandAliases(aliases);
       for (const auto& i : expaliases) {
-        vect.emplace_back(i, o2::dcs::RAW_DOUBLE);
+        vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
       }
     }
 
@@ -147,8 +148,6 @@ class MFTDCSDataProcessor : public o2::framework::Task
 
     auto timeNow = HighResClock::now();
     Duration elapsedTime = timeNow - mTimer; // in seconds
-
-    LOG(info) << "mDPsUpdateInterval " << mDPsUpdateInterval << "[sec.]";
 
     if (elapsedTime.count() >= mDPsUpdateInterval) {
       sendDPsoutput(pc.outputs());

@@ -24,9 +24,7 @@
 #include "ReconstructionDataFormats/TrackUtils.h"
 #include "MathUtils/Primitive2D.h"
 
-namespace o2
-{
-namespace track
+namespace o2::track
 {
 
 using SMatrix55Sym = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
@@ -79,13 +77,14 @@ class TrackParFwd
   Double_t getInvQPt() const { return mParameters(4); } // return Inverse charged pt
   Double_t getPt() const { return TMath::Abs(1.f / mParameters(4)); }
   Double_t getInvPt() const { return TMath::Abs(mParameters(4)); }
-  Double_t getPx() const { return TMath::Cos(getPhi()) * getPt(); } // return px
-  Double_t getPy() const { return TMath::Sin(getPhi()) * getPt(); } // return py
-  Double_t getPz() const { return getTanl() * getPt(); } // return pz
+  Double_t getPx() const { return TMath::Cos(getPhi()) * getPt(); }                   // return px
+  Double_t getPy() const { return TMath::Sin(getPhi()) * getPt(); }                   // return py
+  Double_t getPz() const { return getTanl() * getPt(); }                              // return pz
   Double_t getP() const { return getPt() * TMath::Sqrt(1. + getTanl() * getTanl()); } // return total momentum
   Double_t getInverseMomentum() const { return 1.f / getP(); }
 
-  Double_t getEta() const { return -TMath::Log(TMath::Tan((TMath::PiOver2() - TMath::ATan(getTanl())) / 2)); } // return total momentum
+  Double_t getTheta() const { return TMath::PiOver2() - TMath::ATan(getTanl()); }
+  Double_t getEta() const { return -TMath::Log(TMath::Tan(getTheta() / 2)); } // return total momentum
 
   Double_t getCurvature(double b) const
   {
@@ -180,7 +179,6 @@ class TrackParCovFwd : public TrackParFwd
   ClassDefNV(TrackParCovFwd, 1);
 };
 
-} // namespace track
-} // namespace o2
+} // namespace o2::track
 
 #endif

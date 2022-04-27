@@ -184,7 +184,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
   // option to use/not use CCDB for TOF
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-tof", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
-  workflowOptions.push_back(ConfigParamSpec{"timestamp-tof", o2::framework::VariantType::Int, 0, {"timestamp in seconds"}});
+  workflowOptions.push_back(ConfigParamSpec{"ccdb-tof-sa", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects via CCDBManager (standalone)"}});
 
   // option to use or not use the Trap Simulator after digitisation (debate of digitization or reconstruction is for others)
   workflowOptions.push_back(ConfigParamSpec{"disable-trd-trapsim", VariantType::Bool, false, {"disable the trap simulation of the TRD"}});
@@ -218,6 +218,8 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
                     const auto orbitFirst = hbfu.orbitFirst;
                     dh.firstTForbit = offset + increment * dh.tfCounter;
                     LOG(info) << "Setting firstTFOrbit to " << dh.firstTForbit;
+                    dh.runNumber = hbfu.runNumber;
+                    LOG(info) << "Setting runNumber to " << dh.runNumber;
                     dph.creation = startTime + (dh.firstTForbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
                     LOG(info) << "Setting timeframe creation time to " << dph.creation;
                   });
@@ -427,6 +429,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // we expect that digitizers do not play with the manager themselves
   // this will only be needed until digitizers take CCDB objects via DPL mechanism
   o2::ccdb::BasicCCDBManager::instance().setTimestamp(hbfu.startTime);
+  // activate caching
+  o2::ccdb::BasicCCDBManager::instance().setCaching(true);
+  // without this, caching does not seem to work
+  o2::ccdb::BasicCCDBManager::instance().setLocalObjectValidityChecking(true);
 
   // update the digitization configuration with the right geometry file
   // we take the geometry from the first simPrefix (could actually check if they are
@@ -545,11 +551,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // the TOF part
   if (isEnabled(o2::detectors::DetID::TOF)) {
     auto useCCDB = configcontext.options().get<bool>("use-ccdb-tof");
+    auto CCDBsa = configcontext.options().get<bool>("ccdb-tof-sa");
     auto ccdb_url_tof = o2::base::NameConf::getCCDBServer();
-    auto timestamp = configcontext.options().get<int>("timestamp-tof");
+    auto timestamp = o2::raw::HBFUtils::Instance().startTime / 1000;
     detList.emplace_back(o2::detectors::DetID::TOF);
     // connect the TOF digitization
-    specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB, mctruth, ccdb_url_tof.c_str(), timestamp));
+    // printf("TOF Setting: use-ccdb = %d ---- ccdb url=%s  ----   timestamp=%ld\n", useCCDB, ccdb_url_tof.c_str(), timestamp);
+
+    if (CCDBsa) {
+      useCCDB = true;
+    }
+    specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB, mctruth, ccdb_url_tof.c_str(), timestamp, CCDBsa));
     // add TOF digit writer
     specs.emplace_back(o2::tof::getTOFDigitWriterSpec(mctruth));
   }
@@ -668,7 +680,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::ctp::getDigitWriterSpec(false));
   }
   // GRP updater: must come after all detectors since requires their list
-  specs.emplace_back(o2::parameters::getGRPUpdaterSpec(grpfile, detList));
+  if (!configcontext.options().get<bool>("only-context")) {
+    specs.emplace_back(o2::parameters::getGRPUpdaterSpec(grpfile, detList));
+  }
 
   // The SIM Reader. NEEDS TO BE LAST
   specs[0] = o2::steer::getSimReaderSpec({firstOtherChannel, fanoutsize}, simPrefixes, tpcsectors);

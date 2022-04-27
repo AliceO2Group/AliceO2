@@ -39,11 +39,15 @@ void TOFDiagnosticCalibrator::finalizeSlot(Slot& slot)
   LOG(info) << "Finalizing slot";
   diag->print();
   std::map<std::string, std::string> md;
+  if (mRunNumber > -1) {
+    md["runNumber"] = std::to_string(mRunNumber);
+  }
+
   auto clName = o2::utils::MemFileHelper::getClassName(*diag);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
 
-  uint64_t starting = slot.getTFStart() * TFlength;
-  uint64_t stopping = slot.getTFEnd() * TFlength;
+  uint64_t starting = slot.getTFStart() * TFlength - 10000; // start 10 seconds before
+  uint64_t stopping = slot.getTFEnd() * TFlength + 10000;   // stop 10 seconds after
   LOG(info) << "starting = " << starting * 1E-3 << " - stopping = " << stopping * 1E-3;
   mccdbInfoVector.emplace_back("TOF/Calib/Diagnostic", clName, flName, md, starting, stopping);
   mDiagnosticVector.emplace_back(*diag);

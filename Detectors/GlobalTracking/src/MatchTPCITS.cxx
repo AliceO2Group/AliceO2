@@ -534,7 +534,7 @@ bool MatchTPCITS::prepareITSData()
   const auto patterns = inp.getITSClustersPatterns();
   auto pattIt = patterns.begin();
   mITSClustersArray.reserve(clusITS.size());
-  o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, *mITSDict);
+  o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mITSDict);
   if (mMCTruthON) {
     mITSClsLabels = inp.mcITSClusters.get();
   }
@@ -559,12 +559,12 @@ bool MatchTPCITS::prepareITSData()
 
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mITSTrackROFRec[irof];
-    int nBC = rofRec.getBCData().differenceInBC(mStartIR);
-    if (nBC < 0) {
+    auto nBC = rofRec.getBCData().differenceInBC(mStartIR);
+    if (uint64_t(nBC) > 256 * uint64_t(o2::constants::lhc::LHCMaxBunches)) { // RS: fixme: use real NHBFPerTF from GRP
       if (++errCount < MaxErrors2Report) {
-        LOG(error) << "ITS ROF start " << rofRec.getBCData() << " precedes TF 1st orbit " << mStartIR;
+        LOG(alarm) << "ITS ROF start " << rofRec.getBCData() << " does not match to TF with 1st orbit " << mStartIR;
       }
-      continue;
+      return false;
     }
     float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
     float tMax = (nBC + mITSROFrameLengthInBC) * o2::constants::lhc::LHCBunchSpacingMUS;

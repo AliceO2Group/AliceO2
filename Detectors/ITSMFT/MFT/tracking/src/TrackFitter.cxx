@@ -123,8 +123,7 @@ bool TrackFitter<T>::initTrack(T& track, bool outward)
     auto deltaY = track.getYCoordinates()[1] - track.getYCoordinates()[0];
     auto deltaZ = track.getZCoordinates()[1] - track.getZCoordinates()[0];
     auto deltaR = TMath::Sqrt(deltaX * deltaX + deltaY * deltaY);
-    auto tanl0 = 0.5 * TMath::Sqrt2() * (deltaZ / deltaR) *
-                 TMath::Sqrt(TMath::Sqrt((invQPt0 * deltaR * k) * (invQPt0 * deltaR * k) + 1) + 1);
+    auto tanl0 = -std::abs(deltaZ / deltaR);
 
     // Compute phi at the last cluster using two last clusters
     deltaX = track.getXCoordinates()[first_cls] - track.getXCoordinates()[next_cls];
@@ -155,14 +154,13 @@ bool TrackFitter<T>::initTrack(T& track, bool outward)
     }
 
     SMatrix55Sym lastParamCov;
-    float qptsigma = TMath::Max(std::abs(track.getInvQPt()), .5);
-    float tanlsigma = TMath::Max(std::abs(track.getTanl()), .5);
+    float tanlsigma = std::abs(track.getTanl());
 
-    lastParamCov(0, 0) = 1;                              // <X,X>
-    lastParamCov(1, 1) = 1;                              // <Y,X>
-    lastParamCov(2, 2) = TMath::Pi() * TMath::Pi() / 16; // <PHI,X>
-    lastParamCov(3, 3) = 10 * tanlsigma * tanlsigma;     // <TANL,X>
-    lastParamCov(4, 4) = 10 * qptsigma * qptsigma;       // <INVQPT,X>
+    lastParamCov(0, 0) = 1.;                              // <X,X>
+    lastParamCov(1, 1) = 1.;                              // <Y,Y>
+    lastParamCov(2, 2) = TMath::Pi() * TMath::Pi() / 16.; // <PHI,PHI>
+    lastParamCov(3, 3) = 1.;                              // <TANL,TANL>
+    lastParamCov(4, 4) = 10. * tanlsigma;                 // <INVQPT,INVQPT>
 
     track.setCovariances(lastParamCov);
     track.setTrackChi2(0.);
@@ -297,7 +295,7 @@ bool TrackFitter<T>::propagateToNextClusterWithMCS(T& track, double z, int& star
   using o2::mft::constants::LayerZPosition;
   auto startingZ = track.getZ();
 
-  //https://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c
+  // https://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c
   auto signum = [](auto a) {
     return (0 < a) - (a < 0);
   };
@@ -422,12 +420,12 @@ Double_t invQPtFromFCF(const T& track, Double_t bFieldZ, Double_t& sigmainvqptsq
   std::vector<double> zVal(nPoints);
   std::vector<double> xErr(nPoints);
   std::vector<double> yErr(nPoints);
-  std::vector<double> uVal(nPoints - 1);
-  std::vector<double> vVal(nPoints - 1);
-  std::vector<double> vErr(nPoints - 1);
-  std::vector<double> fweight(nPoints - 1);
-  std::vector<double> Rn(nPoints - 1);
-  std::vector<double> Pn(nPoints - 1);
+  std::vector<double> uVal(nPoints);
+  std::vector<double> vVal(nPoints);
+  std::vector<double> vErr(nPoints);
+  std::vector<double> fweight(nPoints);
+  std::vector<double> Rn(nPoints);
+  std::vector<double> Pn(nPoints);
   Double_t A, Aerr, B, Berr, x2, y2, invx2y2, a, b, r, sigmaRsq, u2, sigma;
   Double_t F0, F1, F2, F3, F4, SumSRn, SumSPn, SumRn, SumUPn, SumRP;
 
@@ -438,55 +436,27 @@ Double_t invQPtFromFCF(const T& track, Double_t bFieldZ, Double_t& sigmainvqptsq
     xErr[np] = SigmasX2[np];
     yErr[np] = SigmasY2[np];
     if (np > 0) {
-      xVal[np] = xPositions[np] - xVal[0];
-      yVal[np] = yPositions[np] - yVal[0];
-      xErr[np] *= std::sqrt(2.);
-      yErr[np] *= std::sqrt(2.);
+      xVal[np] = xPositions[np] - xPositions[0] + xVal[0];
+      yVal[np] = yPositions[np] - yPositions[0] + yVal[0];
     } else {
-      xVal[np] = 0.;
+      xVal[np] = .00001;
       yVal[np] = 0.;
     }
     zVal[np] = zPositions[np];
   }
-  for (int i = 0; i < (nPoints - 1); i++) {
-    x2 = xVal[i + 1] * xVal[i + 1];
-    y2 = yVal[i + 1] * yVal[i + 1];
+  for (int i = 0; i < nPoints; i++) {
+    x2 = xVal[i] * xVal[i];
+    y2 = yVal[i] * yVal[i];
     invx2y2 = 1. / (x2 + y2);
-    uVal[i] = xVal[i + 1] * invx2y2;
-    vVal[i] = yVal[i + 1] * invx2y2;
-    vErr[i] = std::sqrt(8. * xErr[i + 1] * xErr[i + 1] * x2 * y2 + 2. * yErr[i + 1] * yErr[i + 1] * (x2 - y2) * (x2 - y2)) * invx2y2 * invx2y2;
-    u2 = uVal[i] * uVal[i];
-    fweight[i] = 1. / vErr[i];
-    F0 += fweight[i];
-    F1 += fweight[i] * uVal[i];
-    F2 += fweight[i] * u2;
-    F3 += fweight[i] * uVal[i] * u2;
-    F4 += fweight[i] * u2 * u2;
-  }
-
-  double Rn_det1 = F2 * F4 - F3 * F3;
-  double Rn_det2 = F1 * F4 - F2 * F3;
-  double Rn_det3 = F1 * F3 - F2 * F2;
-  double Pn_det1 = Rn_det2;
-  double Pn_det2 = F0 * F4 - F2 * F2;
-  double Pn_det3 = F0 * F3 - F1 * F2;
-
-  for (int j = 0; j < (nPoints - 1); j++) {
-    Rn[j] = fweight[j] * (Rn_det1 - uVal[j] * Rn_det2 + uVal[j] * uVal[j] * Rn_det3);
-    SumSRn += Rn[j] * Rn[j] * vErr[j] * vErr[j];
-    SumRn += Rn[j];
-
-    Pn[j] = fweight[j] * (-Pn_det1 + uVal[j] * Pn_det2 - uVal[j] * uVal[j] * Pn_det3);
-    SumSPn += Pn[j] * Pn[j] * vErr[j] * vErr[j];
-    SumUPn += uVal[j] * Pn[j];
-
-    SumRP += Rn[j] * Pn[j] * vErr[j] * vErr[j] * vErr[j];
+    uVal[i] = xVal[i] * invx2y2;
+    vVal[i] = yVal[i] * invx2y2;
+    vErr[i] = std::sqrt(8. * xErr[i] * xErr[i] * x2 * y2 + 2. * yErr[i] * yErr[i] * (x2 - y2) * (x2 - y2)) * invx2y2 * invx2y2;
   }
 
   Double_t invqpt_fcf;
   Int_t qfcf;
   //  chi2 = 0.;
-  if (LinearRegression((nPoints - 1), uVal, vVal, vErr, B, Berr, A, Aerr)) {
+  if (LinearRegression(nPoints, uVal, vVal, vErr, B, Berr, A, Aerr)) {
     // v = a * u + b
     // circle passing through (0,0):
     // (x - rx)^2 + (y - ry)^2 = r^2
@@ -512,31 +482,7 @@ Double_t invQPtFromFCF(const T& track, Double_t bFieldZ, Double_t& sigmainvqptsq
     Double_t ryRot = a * sinSlope - b * cosSlope;
     qfcf = (ryRot > 0.) ? -1 : +1;
 
-    Double_t alpha = 2.0 * std::abs(TMath::ATan2(rxRot, ryRot));
-    Double_t x0 = xVal[0], y0 = yVal[0], z0 = zVal[0];
-    Double_t dxyz2 = (x - x0) * (x - x0) + (y - y0) * (y - y0) + (z - z0) * (z - z0);
-    Double_t cst = 1000.;
-    Double_t c_alpha = cst * alpha;
-    Double_t p, pt, pz;
-    pt = 1. / invpt;
-    p = std::sqrt(dxyz2) / c_alpha;
-    pz = std::sqrt(p * p - pt * pt);
-
     invqpt_fcf = qfcf * invpt;
-
-    //error calculations:
-    double invA2 = 1. / (A * A);
-
-    double sigmaAsq = SumSRn / (SumRn * SumRn);
-    double sigmaBsq = SumSPn / (SumUPn * SumUPn);
-    double sigmaAB = SumRP / (SumRn * SumUPn);
-
-    double sigmaasq_FCF = TMath::Abs(0.25 * invA2 * invA2 * (B * B * sigmaAsq + A * A * sigmaBsq - A * B * sigmaAB));
-    double sigmabsq_FCF = TMath::Abs(0.25 * invA2 * invA2 * sigmaAsq);
-    double sigma2R = invR * invR * (b * b * sigmaasq_FCF + a * a * sigmabsq_FCF + 2 * a * b * TMath::Sqrt(sigmaasq_FCF) * TMath::Sqrt(sigmabsq_FCF));
-
-    sigmainvqptsq = sigma2R * invpt * invpt * invR * invR;
-
   } else { // the linear regression failed...
     LOG(warn) << "LinearRegression failed!";
     invqpt_fcf = 1. / 100.;

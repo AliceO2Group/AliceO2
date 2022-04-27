@@ -113,7 +113,7 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
   auto rdh = mDecoderRDH;
 
   /** check that we got the first RDH open **/
-  if (rdh->stop || rdh->pageCnt != 0) {
+  if (!rdh || rdh->stop || rdh->pageCnt != 0) {
     std::cout << colorRed
               << "[FATAL] this does not look like the first RDH in the HBF"
               << colorReset

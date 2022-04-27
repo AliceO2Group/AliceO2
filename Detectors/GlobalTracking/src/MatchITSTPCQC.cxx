@@ -16,10 +16,12 @@
 #include "ReconstructionDataFormats/TrackParametrization.h"
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "SimulationDataFormat/MCUtils.h"
 #include <algorithm>
 #include "TGraphAsymmErrors.h"
 
 using namespace o2::globaltracking;
+using namespace o2::mcutils;
 using MCTrack = o2::MCTrackT<float>;
 
 MatchITSTPCQC::~MatchITSTPCQC()
@@ -162,7 +164,6 @@ void MatchITSTPCQC::initDataRequest()
 void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
 {
   static int evCount = 0;
-  mSelectedTPCtracks.clear();
   mRecoCont.collectData(ctx, *mDataRequest.get());
   mTPCTracks = mRecoCont.getTPCTracks();
   mITSTPCTracks = mRecoCont.getTPCITSTracks();
@@ -171,10 +172,11 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
   LOG(debug) << "****** Number of found TPC    tracks = " << mTPCTracks.size();
 
   // cache selection for TPC tracks
+  std::vector<bool> isTPCTrackSelectedEntry(mTPCTracks.size(), false);
   for (auto itrk = 0; itrk < mTPCTracks.size(); ++itrk) {
     auto const& trkTpc = mTPCTracks[itrk];
     if (selectTrack(trkTpc)) {
-      mSelectedTPCtracks.push_back(itrk);
+      isTPCTrackSelectedEntry[itrk] = true;
     }
   }
 
@@ -184,11 +186,14 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     for (auto itrk = 0; itrk < mITSTPCTracks.size(); ++itrk) {
       auto const& trk = mITSTPCTracks[itrk];
       auto idxTrkTpc = trk.getRefTPC().getIndex();
-      if (std::any_of(mSelectedTPCtracks.begin(), mSelectedTPCtracks.end(), [idxTrkTpc](int el) { return el == idxTrkTpc; })) {
+      if (isTPCTrackSelectedEntry[idxTrkTpc] == true) {
         auto lbl = mRecoCont.getTrackMCLabel({(unsigned int)(itrk), GID::Source::ITSTPC});
         if (mMapLabels.find(lbl) == mMapLabels.end()) {
-          auto const* mcParticle = mcReader.getTrack(lbl);
-          if (isPhysicalPrimary(mcParticle)) {
+          int source = lbl.getSourceID();
+          int event = lbl.getEventID();
+          const std::vector<o2::MCTrack>& pcontainer = mcReader.getTracks(source, event);
+          const o2::MCTrack& p = pcontainer[lbl.getTrackID()];
+          if (MCTrackNavigator::isPhysicalPrimary(p, pcontainer)) {
             mMapLabels.insert({lbl, {itrk, true}});
           } else {
             mMapLabels.insert({lbl, {itrk, false}});
@@ -230,7 +235,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     }
     auto const& trkTpc = mTPCTracks[trk.getRefTPC()];
     auto idxTrkTpc = trk.getRefTPC().getIndex();
-    if (std::any_of(mSelectedTPCtracks.begin(), mSelectedTPCtracks.end(), [idxTrkTpc](int el) { return el == idxTrkTpc; })) {
+    if (isTPCTrackSelectedEntry[idxTrkTpc] == true) {
       if (!mUseMC) {
         mPt->Fill(trkTpc.getPt());
         mPhi->Fill(trkTpc.getPhi());
@@ -251,15 +256,18 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     // track with the highest number of TPC clusters
     for (auto itrk = 0; itrk < mTPCTracks.size(); ++itrk) {
       auto const& trk = mTPCTracks[itrk];
-      if (std::any_of(mSelectedTPCtracks.begin(), mSelectedTPCtracks.end(), [itrk](int el) { return el == itrk; })) {
+      if (isTPCTrackSelectedEntry[itrk] == true) {
         auto lbl = mRecoCont.getTrackMCLabel({(unsigned int)(itrk), GID::Source::TPC});
         if (mMapLabels.find(lbl) != mMapLabels.end()) {
           // the track was already added to the denominator
           continue;
         }
         if (mMapTPCLabels.find(lbl) == mMapTPCLabels.end()) {
-          o2::MCTrack const* mcParticle = mcReader.getTrack(lbl);
-          if (isPhysicalPrimary(mcParticle)) {
+          int source = lbl.getSourceID();
+          int event = lbl.getEventID();
+          const std::vector<o2::MCTrack>& pcontainer = mcReader.getTracks(source, event);
+          const o2::MCTrack& p = pcontainer[lbl.getTrackID()];
+          if (MCTrackNavigator::isPhysicalPrimary(p, pcontainer)) {
             mMapTPCLabels.insert({lbl, {itrk, true}});
           } else {
             mMapTPCLabels.insert({lbl, {itrk, false}});
@@ -289,7 +297,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     // if we are in data, we loop over all tracks (no check on the label)
     for (int itrk = 0; itrk < mTPCTracks.size(); ++itrk) {
       auto const& trk = mTPCTracks[itrk];
-      if (std::any_of(mSelectedTPCtracks.begin(), mSelectedTPCtracks.end(), [itrk](int el) { return el == itrk; })) {
+      if (isTPCTrackSelectedEntry[itrk] == true) {
         mPtTPC->Fill(trk.getPt());
         mPhiTPC->Fill(trk.getPhi());
         ++mNTPCSelectedTracks;
@@ -403,13 +411,4 @@ void MatchITSTPCQC::getHistos(TObjArray& objar)
   objar.Add(mChi2Matching);
   objar.Add(mChi2Refit);
   objar.Add(mTimeResVsPt);
-}
-
-//__________________________________________________________
-
-bool MatchITSTPCQC::isPhysicalPrimary(o2::MCTrack const* mcTrk)
-{
-  // decide if the MC particle is a physical primary or not
-
-  return true;
 }

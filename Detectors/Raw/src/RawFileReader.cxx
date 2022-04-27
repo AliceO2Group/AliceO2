@@ -590,7 +590,14 @@ bool RawFileReader::preprocessFile(int ifl)
         lID = getLinkLocalID(rdh, mCurrentFileID);
       }
       bool newSPage = lID != lIDPrev;
-      mLinksData[lID].preprocessCRUPage(rdh, newSPage);
+      try {
+        mLinksData[lID].preprocessCRUPage(rdh, newSPage);
+      } catch (...) {
+        LOG(error) << "Corrupted data, abandoning processing";
+        mStopProcessing = true;
+        break;
+      }
+
       if (mLinksData[lID].nTimeFrames && (mLinksData[lID].nTimeFrames - 1 > mMaxTFToRead)) { // limit reached, discard the last read
         mLinksData[lID].nTimeFrames--;
         mLinksData[lID].blocks.pop_back();
@@ -706,6 +713,10 @@ bool RawFileReader::init()
       mEmpty = false;
     }
   }
+  if (mStopProcessing) {
+    LOG(error) << "Abandoning processing due to corrupted data";
+    return false;
+  }
   mOrderedIDs.resize(mLinksData.size());
   for (int i = mLinksData.size(); i--;) {
     mOrderedIDs[i] = i;
@@ -766,11 +777,10 @@ o2h::DataOrigin RawFileReader::getDataOrigin(const std::string& ors)
 {
   constexpr int NGoodOrigins = 20;
   constexpr std::array<o2h::DataOrigin, NGoodOrigins> goodOrigins{
-    o2h::gDataOriginFLP, o2h::gDataOriginACO, o2h::gDataOriginCPV, o2h::gDataOriginCTP, o2h::gDataOriginEMC,
+    o2h::gDataOriginFLP, o2h::gDataOriginTST, o2h::gDataOriginCPV, o2h::gDataOriginCTP, o2h::gDataOriginEMC,
     o2h::gDataOriginFT0, o2h::gDataOriginFV0, o2h::gDataOriginFDD, o2h::gDataOriginHMP, o2h::gDataOriginITS,
     o2h::gDataOriginMCH, o2h::gDataOriginMFT, o2h::gDataOriginMID, o2h::gDataOriginPHS, o2h::gDataOriginTOF,
-    o2h::gDataOriginTPC, o2h::gDataOriginTRD, o2h::gDataOriginZDC,
-    "TST"};
+    o2h::gDataOriginTPC, o2h::gDataOriginTRD, o2h::gDataOriginZDC};
 
   for (auto orgood : goodOrigins) {
     if (ors == orgood.as<std::string>()) {

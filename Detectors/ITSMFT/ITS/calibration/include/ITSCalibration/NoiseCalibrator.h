@@ -18,6 +18,7 @@
 
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/NoiseMap.h"
+#include "ITSMFTReconstruction/PixelData.h"
 #include "gsl/span"
 
 namespace o2
@@ -45,25 +46,38 @@ class NoiseCalibrator
 
   void setThreshold(unsigned int t) { mThreshold = t; }
 
-  bool processTimeFrame(gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
-                        gsl::span<const unsigned char> const& patterns,
-                        gsl::span<const o2::itsmft::ROFRecord> const& rofs);
+  bool processTimeFrameClusters(gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
+                                gsl::span<const unsigned char> const& patterns,
+                                gsl::span<const o2::itsmft::ROFRecord> const& rofs);
+
+  bool processTimeFrameDigits(gsl::span<const o2::itsmft::Digit> const& digits,
+                              gsl::span<const o2::itsmft::ROFRecord> const& rofs);
 
   void finalize();
 
-  void loadDictionary(std::string fname)
-  {
-    mDict.readFromFile(fname);
-  }
+  void setNThreads(int n) { mNThreads = n > 0 ? n : 1; }
+
+  void setClusterDictionary(const o2::itsmft::TopologyDictionary* d) { mDict = d; }
+
   const o2::itsmft::NoiseMap& getNoiseMap() const { return mNoiseMap; }
 
+  void setInstanceID(size_t i) { mInstanceID = i; }
+  void setNInstances(size_t n) { mNInstances = n; }
+  auto getInstanceID() const { return mInstanceID; }
+  auto getNInstances() const { return mNInstances; }
+
  private:
-  o2::itsmft::TopologyDictionary mDict;
+  const o2::itsmft::TopologyDictionary* mDict = nullptr;
   o2::itsmft::NoiseMap mNoiseMap{24120};
   float mProbabilityThreshold = 3e-6f;
   unsigned int mThreshold = 100;
   unsigned int mNumberOfStrobes = 0;
   bool m1pix = true;
+  int mNThreads = 1;
+  size_t mInstanceID = 0; // pipeline instance
+  size_t mNInstances = 1; // total number of pipelines
+  std::vector<int> mChipIDs;
+  std::vector<std::vector<o2::itsmft::PixelData>> mChipHits;
 };
 
 } // namespace its

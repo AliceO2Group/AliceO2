@@ -242,18 +242,13 @@ void PedestalCalibrator::initOutput()
   mPedEfficienciesVec.clear();
 }
 //___________________________________________________________________
-void PedestalCalibrator::finalizeSlot(TimeSlot& slot)
+void PedestalCalibrator::finalizeSlot(PedestalTimeSlot& slot)
 {
-  auto& cpvParams = o2::cpv::CPVSimParams::Instance();
-  auto& toleratedChannelEfficiencyLow = cpvParams.mPedClbToleratedChannelEfficiencyLow;
-  auto& toleratedChannelEfficiencyHigh = cpvParams.mPedClbToleratedChannelEfficiencyHigh;
-  auto& nSigmasZS = cpvParams.mZSnSigmas;
-
   PedestalCalibData* calibData = slot.getContainer();
   LOG(info) << "PedestalCalibrator::finalizeSlot() : finalizing slot "
             << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with " << calibData->mNEvents << " events.";
 
-  o2::cpv::Geometry geo; // CPV geometry object
+  //o2::cpv::Geometry geo; // CPV geometry object
 
   // o2::cpv::Pedestals - calibration object used at reconstruction
   // and efficiencies vector
@@ -270,7 +265,7 @@ void PedestalCalibrator::finalizeSlot(TimeSlot& slot)
   int addr, adrThr;
   float sigma, efficiency;
 
-  for (int i = 0; i < geo.kNCHANNELS; i++) {
+  for (int i = 0; i < Geometry::kNCHANNELS; i++) {
     // Pedestals
     ped = std::floor(calibData->mPedestalSpectra[i].getPedestalValue()) + 1;
     sigma = calibData->mPedestalSpectra[i].getPedestalRMS();
@@ -287,12 +282,12 @@ void PedestalCalibrator::finalizeSlot(TimeSlot& slot)
     }
 
     // FEE Thresholds
-    threshold = ped + std::floor(sigma * nSigmasZS) + 1;
+    threshold = ped + std::floor(sigma * mZSnSigmas) + 1;
     if (threshold > 511) {
       threshold = 511; // set maximum threshold for suspisious channels
       highPedChannels.push_back(i);
     }
-    geo.absIdToHWaddress(i, ccId, dil, gas, pad);
+    Geometry::absIdToHWaddress(i, ccId, dil, gas, pad);
     addr = ccId * 4 * 5 * 64 + dil * 5 * 64 + gas * 64 + pad;
     adrThr = (addr << 16) + threshold;
     // to read back: addr = (adrThr >> 16); threshold = (adrThr & 0xffff)
@@ -333,7 +328,7 @@ void PedestalCalibrator::finalizeSlot(TimeSlot& slot)
   mCcdbInfoHighPedChannelsVec.emplace_back("CPV/PedestalRun/HighPedChannels", className, fileName, metaData, timeStamp, timeStamp + 31536000000); // one year validity time (in milliseconds!)
 }
 //___________________________________________________________________
-TimeSlot& PedestalCalibrator::emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend)
+PedestalTimeSlot& PedestalCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType tend)
 {
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);

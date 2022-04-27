@@ -77,13 +77,11 @@ class MatchITSTPCQC
   void getHistos(TObjArray& objar);
   void setSources(GID::mask_t src) { mSrc = src; }
   void setUseMC(bool b) { mUseMC = b; }
+  bool getUseMC() const { return mUseMC; }
   void deleteHistograms();
   void setGRPFileName(std::string fn) { mGRPFileName = fn; }
   void setGeomFileName(std::string fn) { mGeomFileName = fn; }
   void setBz(float bz) { mBz = bz; }
-
-  // MC level selection
-  bool isPhysicalPrimary(MCTrack const* mcTrk);
 
   // track selection
   bool selectTrack(o2::tpc::TrackTPC const& track);
@@ -110,14 +108,13 @@ class MatchITSTPCQC
   bool mUseMC = false;
   std::string mGRPFileName = "o2sim_grp.root";
   std::string mGeomFileName = "o2sim_geometry.root";
-  float mBz = 0; ///< nominal Bz
+  float mBz = 0;                                              ///< nominal Bz
   std::unordered_map<o2::MCCompLabel, LblInfo> mMapLabels;    // map with labels that have been found for the matched ITSTPC tracks; key is the label,
                                                               // value is the LbLinfo with the id of the track with the highest pT found with that label so far,
                                                               // and the flag to say if it is a physical primary or not
   std::unordered_map<o2::MCCompLabel, LblInfo> mMapTPCLabels; // map with labels that have been found for the unmatched TPC tracks; key is the label,
                                                               // value is the LblInfo with the id of the track with the highest number of TPC clusters found
                                                               // with that label so far, and the flag to say if it is a physical primary or not
-  std::vector<int> mSelectedTPCtracks;                        // vector with indices of selected TPC tracks
   o2::steer::MCKinematicsReader mcReader;                     // reader of MC information
 
   TH1F* mPtTPC = nullptr;
@@ -149,7 +146,6 @@ class MatchITSTPCQC
 
   ClassDefNV(MatchITSTPCQC, 1);
 };
-
 } // namespace globaltracking
 } // namespace o2
 

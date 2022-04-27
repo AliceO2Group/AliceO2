@@ -13,18 +13,23 @@
 #include <string>
 #include <cstdlib>
 #include <unistd.h>
+#include <fmt/format.h>
 
 namespace
 {
 std::string defaultIPCFolder()
 {
 #ifdef __linux__
+  char const* channelPrefix = getenv("ALIEN_PROC_ID");
+  if (channelPrefix) {
+    return fmt::format("@dpl_{}_", channelPrefix);
+  }
   return "@";
 #else
   /// Find out a place where we can write the sockets
   char const* channelPrefix = getenv("TMPDIR");
   if (channelPrefix) {
-    return std::string(channelPrefix);
+    return {channelPrefix};
   }
   return access("/tmp", W_OK) == 0 ? "/tmp" : ".";
 #endif

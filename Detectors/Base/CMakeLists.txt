@@ -13,6 +13,7 @@ o2_add_library(DetectorsBase
                SOURCES src/Detector.cxx
                        src/GeometryManager.cxx
                        src/MaterialManager.cxx
+                       src/MaterialManagerParam.cxx
                        src/Propagator.cxx
                        src/MatLayerCyl.cxx
                        src/MatLayerCylSet.cxx
@@ -20,6 +21,9 @@ o2_add_library(DetectorsBase
                        src/BaseDPLDigitizer.cxx
                        src/CTFCoderBase.cxx
                        src/Aligner.cxx
+                       src/SimFieldUtils.cxx
+                       src/TFIDInfoHelper.cxx
+                       src/GRPGeomHelper.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::CommonUtils
                                      O2::DetectorsCommonDataFormats
@@ -41,12 +45,14 @@ o2_target_root_dictionary(DetectorsBase
                           HEADERS include/DetectorsBase/Detector.h
                                   include/DetectorsBase/GeometryManager.h
                                   include/DetectorsBase/MaterialManager.h
+                                  include/DetectorsBase/MaterialManagerParam.h
                                   include/DetectorsBase/Propagator.h
                                   include/DetectorsBase/Ray.h
                                   include/DetectorsBase/MatCell.h
                                   include/DetectorsBase/MatLayerCyl.h
                                   include/DetectorsBase/MatLayerCylSet.h
-                                  include/DetectorsBase/Aligner.h)
+                                  include/DetectorsBase/Aligner.h
+                                  include/DetectorsBase/SimFieldUtils.h)
 
 if(BUILD_SIMULATION)
   o2_add_test(

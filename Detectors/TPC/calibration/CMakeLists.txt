@@ -82,11 +82,6 @@ o2_target_root_dictionary(TPCCalibration
                                   include/TPCCalibration/IDCDrawHelper.h
                                   include/TPCCalibration/CalibratorPadGainTracks.h)
 
-o2_add_executable(dcs-sim-workflow
-                  COMPONENT_NAME tpc
-                  SOURCES testWorkflow/tpc-dcs-sim-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::DCStestWorkflow)
-
 o2_add_test_root_macro(macro/comparePedestalsAndNoise.C
                        PUBLIC_LINK_LIBRARIES O2::TPCBase
                        LABELS tpc)
@@ -113,9 +108,6 @@ o2_add_test_root_macro(macro/dumpDigits.C
                        ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 o2_add_test_root_macro(macro/preparePedestalFiles.C
                        PUBLIC_LINK_LIBRARIES O2::TPCCalibration
-                       LABELS tpc)
-o2_add_test_root_macro(macro/makeTPCCCDBEntryForDCS.C
-                       PUBLIC_LINK_LIBRARIES O2::DetectorsDCS
                        LABELS tpc)
 
 o2_add_test(IDCFourierTransform

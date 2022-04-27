@@ -53,7 +53,9 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"display-tracks", VariantType::String, "TPC,ITS,ITS-TPC,TPC-TRD,ITS-TPC-TRD,TPC-TOF,ITS-TPC-TOF", {"comma-separated list of tracks to display"}},
     {"read-from-files", o2::framework::VariantType::Bool, false, {"comma-separated list of tracks to display"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"Disable root input overriding read-from-files"}},
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
+    {"skipOnEmptyInput", o2::framework::VariantType::Bool, false, {"Just don't run the ED when no input is provided"}},
+    {"no-empty-output", o2::framework::VariantType::Bool, false, {"don't create files with no tracks/clusters"}}};
 
   std::swap(workflowOptions, options);
 }
@@ -80,6 +82,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
     return; // skip this run - it is too often
   }
   this->mTimeStamp = currentTime;
+  updateTimeDependentParams(pc);
 
   EveWorkflowHelper helper;
   helper.getRecoContainer().collectData(pc, *mDataRequest);
@@ -92,13 +95,36 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
   const auto* dph = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
 
-  helper.draw(this->mJsonPath, this->mNumberOfFiles, this->mNumberOfTracks, this->mTrkMask, this->mClMask, dh->runNumber, dph->creation, this->mWorkflowVersion);
+  helper.draw(this->mNumberOfTracks);
+
+  if (!(this->mNoEmptyOutput && helper.isEmpty())) {
+    helper.save(this->mJsonPath, this->mNumberOfFiles, this->mTrkMask, this->mClMask, this->mWorkflowVersion, dh->runNumber, dph->creation);
+  }
+
   auto endTime = std::chrono::high_resolution_clock::now();
   LOGP(info, "Visualization of TF:{} at orbit {} took {} s.", dh->tfCounter, dh->firstTForbit, std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
 }
 
 void O2DPLDisplaySpec::endOfStream(EndOfStreamContext& ec)
 {
+}
+
+void O2DPLDisplaySpec::updateTimeDependentParams(ProcessingContext& pc)
+{
+  // pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldictITS"); // called by the RecoContainer
+  // pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldictMFT"); // called by the RecoContainer
+}
+
+void O2DPLDisplaySpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    LOG(info) << "ITS cluster dictionary updated";
+    mData.setITSDict((const o2::itsmft::TopologyDictionary*)obj);
+  }
+  if (matcher == ConcreteDataMatcher("MFT", "CLUSDICT", 0)) {
+    LOG(info) << "MFT cluster dictionary updated";
+    mData.setMFTDict((const o2::itsmft::TopologyDictionary*)obj);
+  }
 }
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
@@ -112,8 +138,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   bool useMC = cfgc.options().get<bool>("enable-mc") && !cfgc.options().get<bool>("disable-mc");
 
-  char hostname[HOST_NAME_MAX];
-  gethostname(hostname, HOST_NAME_MAX);
+  char hostname[_POSIX_HOST_NAME_MAX];
+  gethostname(hostname, _POSIX_HOST_NAME_MAX);
   bool eveHostNameMatch = eveHostName.empty() || eveHostName == hostname;
 
   int eveDDSColIdx = cfgc.options().get<int>("eve-dds-collection-index");
@@ -138,6 +164,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   GlobalTrackID::mask_t srcTrk = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-tracks")) & allowedTracks;
   GlobalTrackID::mask_t srcCl = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-clusters")) & allowedClusters;
   if (!srcTrk.any() && !srcCl.any()) {
+    if (cfgc.options().get<bool>("skipOnEmptyInput")) {
+      LOG(info) << "No valid inputs for event display, disabling event display";
+      return std::move(specs);
+    }
     throw std::runtime_error("No input configured");
   }
   std::shared_ptr<DataRequest> dataRequest = std::make_shared<DataRequest>();
@@ -148,11 +178,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     InputHelper::addInputSpecs(cfgc, specs, srcCl, srcTrk, srcTrk, useMC);
   }
 
+  auto noEmptyFiles = cfgc.options().get<bool>("no-empty-output");
+
   specs.emplace_back(DataProcessorSpec{
     "o2-eve-display",
     dataRequest->inputs,
     {},
-    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, jsonFolder, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch)}});
+    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, jsonFolder, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, noEmptyFiles)}});
 
   return std::move(specs);
 }

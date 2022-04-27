@@ -139,7 +139,7 @@ to create an out-of-band channel as specified in `channel-configuration` and hen
 Sometimes it's handy to customise or generalise the workflow creation based on
 external inputs. For example you might want to change the number of workers for
 a given task or disable part of the topology if a given detector should not be
-enabled. 
+enabled.
 
 This can be done by implementing the function:
 
@@ -147,7 +147,7 @@ This can be done by implementing the function:
 void customize(std::vector<o2::framework::ConfigParamSpec> &workflowOptions)
 ```
 
-**before** including the `Framework/runDataProcessing.h` (this will most likely 
+**before** including the `Framework/runDataProcessing.h` (this will most likely
 change in the future). Each ConfigParamSpec will be added to the configuration
 mechanism (e.g. the command line options) allowing you to modify them. Such options
 will then be made available at workflow creation time via the `ConfigContext`
@@ -164,7 +164,7 @@ by some other data processor before the computation declared in yours can happen
 Sometimes it's however desirable to customise such a behavior, so that some action
 on the record can happen even if it's not complete. For example you might want
 to start computing some quantity as a given message arrives and then complete the
-computation once the record is complete. This is done by specifying by customising 
+computation once the record is complete. This is done by specifying by customising
 the data processing CompletionPolicy. This can be done using the usual **Customization
 mechanism** where a:
 
@@ -180,7 +180,7 @@ expressed by a `CompletionOp` to take on a given input record.
 
 Possible actions include:
 
-* `CompletionPolicy::CompletionOp::Consume`: run the data processing callback and 
+* `CompletionPolicy::CompletionOp::Consume`: run the data processing callback and
   mark the available fields in the input as consumed.
 * `CompletionPolicy::CompletionOp::Process`: run the data processing callback, but do
   not consume the field, which will be available when the next message for the field
@@ -207,13 +207,13 @@ customize(std::vector<o2::framework::ChannelConfigurationPolicy> &policies)
 ```
 
 **before** including `Framework/runDataProcessing.h` (this will most likely
-change in the future). You can then extend the policies vector with your own 
+change in the future). You can then extend the policies vector with your own
 `ChannelConfigurationPolicy`. For each device to device edge, the system will
 invoke the `ChannelConfigurationPolicy::match` callback with the ids of the
 producer and of the consumer as arguments. If the callback returns `true`,
 the `ChannelConfigurationPolicy::modifyInput` and
-`ChannelConfigurationPolicy::modifyOutput` will be invoked passing the input and 
-output channel associated to the two devices, giving the opportunity to modify 
+`ChannelConfigurationPolicy::modifyOutput` will be invoked passing the input and
+output channel associated to the two devices, giving the opportunity to modify
 the matching channels.
 
 ## Getting objects from the CCDB
@@ -235,7 +235,7 @@ If the timestamp is not specified, DPL will look it up in the `DataProcessingHea
 ## Lifetime support
 
 While initially foreseen in the design, Lifetime for Inputs / Outputs has not
-yet being implemented correctly. However, once that happens, the following behaviors 
+yet being implemented correctly. However, once that happens, the following behaviors
 will be implemented (naming foreseen to change). Once implemented it will be possible
 to specify the following Lifetime types:
 
@@ -391,10 +391,10 @@ or with a constructor using only 3 arguments (without the default value).
 E.g.
 ```cpp
   { {"opt1", VariantType::String, "def1", {"Command line option 1"}},    // constructor with default value def1
-    {"opt2", VariantType::Int, {"Command line option 2"}},               // constructor without default value  
+    {"opt2", VariantType::Int, {"Command line option 2"}},               // constructor without default value
     {"opt3", VariantType::Float, 10., {"Command line option 3"}} }
 ```
-    
+
 (the available VariantType are listed in Framework/Variant.h).
 
 The options are internally filled into an object of type ConfigParamRegistry and forwarded to the InitCallback of the respective AlgorithmSpec as part of the argument of type InitContext. The ConfigParamRegistry is finally accessed with InitContext::options().
@@ -405,7 +405,7 @@ ConfigParamRegistry opts = ic.options();  // with InitContext ic;
 ```
 
 
-ConfigParamRegistry has the two methods `isSet(key)` and `get<T>(key)`.  
+ConfigParamRegistry has the two methods `isSet(key)` and `get<T>(key)`.
 
 To read the option value use the `get<T>` method with the appropriate type `T`, e.g.
 
@@ -433,7 +433,7 @@ By default DPL exposes the following metrics to the back-end specified with:
 
 * `malformed_inputs`: number of messages which did not match the O2 DataModel
 * `dropped_computations`: number of messages which DPL could not process
-* `dropped_incoming_messages`: number of messages which DPL could 
+* `dropped_incoming_messages`: number of messages which DPL could
                              not accept in its own queue.
 * `relayed_messages`: number of messages received by DPL.
 
@@ -448,9 +448,9 @@ By default DPL exposes the following metrics to the back-end specified with:
 * `last_processing_rate_mb_s`: at what rate the last message was processed
 * `min_input_latency_ms`: the shortest it took for any message to be processed by this dataprocessor (since created)
 * `max_input_latency_ms`: the maximum it took for any message to be processed by this dataprocessor (since created)
-* `input_rate_mb_s`: 
+* `input_rate_mb_s`:
 
-Moreover if you specify `--resources-monitoring <poll-interval>` the 
+Moreover if you specify `--resources-monitoring <poll-interval>` the
 process monitoring metrics described at:
 
 <https://github.com/AliceO2Group/Monitoring/#process-monitoring>

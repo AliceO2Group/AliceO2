@@ -36,7 +36,7 @@ void Digitizer::addStrip(const Mapping::MpStripIndex& stripIndex, int cathode, i
     }
   }
 
-  mDigits.emplace_back(ColumnDataMC{(uint8_t)deId, (uint8_t)stripIndex.column});
+  mDigits.emplace_back(ColumnData{(uint8_t)deId, (uint8_t)stripIndex.column});
   mDigits.back().addStrip(stripIndex.strip, cathode, stripIndex.line);
 }
 
@@ -136,7 +136,7 @@ bool Digitizer::hitToDigits(const Hit& hit)
 }
 
 //______________________________________________________________________________
-void Digitizer::process(const std::vector<Hit>& hits, std::vector<ColumnDataMC>& digitStore, o2::dataformats::MCTruthContainer<MCLabel>& mcContainer)
+void Digitizer::process(const std::vector<Hit>& hits, std::vector<ColumnData>& digitStore, o2::dataformats::MCTruthContainer<MCLabel>& mcContainer)
 {
   /// Generate digits from a vector of hits
   digitStore.clear();
@@ -159,7 +159,7 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<ColumnDataMC>&
 }
 
 //______________________________________________________________________________
-bool Digitizer::getLabelLimits(int cathode, const ColumnDataMC& col, int& firstStrip, int& lastStrip) const
+bool Digitizer::getLabelLimits(int cathode, const ColumnData& col, int& firstStrip, int& lastStrip) const
 {
   /// Gets the label limits
   int nLines = (cathode == 0) ? 4 : 1;

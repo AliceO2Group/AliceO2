@@ -7,5 +7,7 @@
 This is a top page for the TOF detector documentation.
 
 <!-- doxy
+* \subpage refDetectorsTOFcalibration
+* \subpage refDetectorsTOFsimulation
 * \subpage refDetectorsTOFtestWorkflow
 /doxy -->

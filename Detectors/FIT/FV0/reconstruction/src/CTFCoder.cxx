@@ -29,7 +29,7 @@ void CTFCoder::appendToTree(TTree& tree, CTF& ec)
 ///___________________________________________________________________________________
 // extract and decode data from the tree
 void CTFCoder::readFromTree(TTree& tree, int entry,
-                            std::vector<BCData>& digitVec, std::vector<ChannelData>& channelVec)
+                            std::vector<Digit>& digitVec, std::vector<ChannelData>& channelVec)
 {
   assert(entry >= 0 && entry < tree.GetEntries());
   CTF ec;
@@ -38,7 +38,7 @@ void CTFCoder::readFromTree(TTree& tree, int entry,
 }
 
 ///________________________________
-void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const BCData>& digitVec, const gsl::span<const ChannelData>& channelVec)
+void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digitVec, const gsl::span<const ChannelData>& channelVec)
 {
   // convert digits/channel to their compressed version
   cd.clear();
@@ -48,8 +48,8 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const BCData>& dig
   const auto& dig0 = digitVec[0];
   cd.header.det = mDet;
   cd.header.nTriggers = digitVec.size();
-  cd.header.firstOrbit = dig0.ir.orbit;
-  cd.header.firstBC = dig0.ir.bc;
+  cd.header.firstOrbit = dig0.mIntRecord.orbit;
+  cd.header.firstBC = dig0.mIntRecord.bc;
 
   cd.trigger.resize(cd.header.nTriggers);
   cd.bcInc.resize(cd.header.nTriggers);
@@ -68,16 +68,16 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const BCData>& dig
     const auto chanels = digit.getBunchChannelData(channelVec); // we assume the channels are sorted
 
     // fill trigger info
-    cd.trigger[idig] = digit.getTriggers().triggerSignals;
-    if (prevOrbit == digit.ir.orbit) {
-      cd.bcInc[idig] = digit.ir.bc - prevBC;
+    cd.trigger[idig] = digit.getTriggers().getTriggersignals();
+    if (prevOrbit == digit.mIntRecord.orbit) {
+      cd.bcInc[idig] = digit.mIntRecord.bc - prevBC;
       cd.orbitInc[idig] = 0;
     } else {
-      cd.bcInc[idig] = digit.ir.bc;
-      cd.orbitInc[idig] = digit.ir.orbit - prevOrbit;
+      cd.bcInc[idig] = digit.mIntRecord.bc;
+      cd.orbitInc[idig] = digit.mIntRecord.orbit - prevOrbit;
     }
-    prevBC = digit.ir.bc;
-    prevOrbit = digit.ir.orbit;
+    prevBC = digit.mIntRecord.bc;
+    prevOrbit = digit.mIntRecord.orbit;
     // fill channels info
     cd.nChan[idig] = chanels.size();
     if (!cd.nChan[idig]) {
@@ -86,11 +86,11 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const BCData>& dig
     }
     uint8_t prevChan = 0;
     for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
-      assert(prevChan <= chanels[ic].pmtNumber);
-      cd.idChan[ccount] = chanels[ic].pmtNumber - prevChan;
-      cd.time[ccount] = chanels[ic].time;        // make sure it fits to short!!!
-      cd.charge[ccount] = chanels[ic].chargeAdc; // make sure we really need short!!!
-      prevChan = chanels[ic].pmtNumber;
+      assert(prevChan <= chanels[ic].ChId);
+      cd.idChan[ccount] = chanels[ic].ChId - prevChan;
+      cd.time[ccount] = chanels[ic].CFDTime;
+      cd.charge[ccount] = chanels[ic].QTCAmpl;
+      prevChan = chanels[ic].ChId;
       ccount++;
     }
   }

@@ -215,7 +215,7 @@ bool MatchGlobalFwd::prepareMFTData()
   const auto patterns = inp.getMFTClustersPatterns();
   auto pattIt = patterns.begin();
   mMFTClusters.reserve(clusMFT.size());
-  o2::mft::ioutils::convertCompactClusters(clusMFT, pattIt, mMFTClusters, *mMFTDict);
+  o2::mft::ioutils::convertCompactClusters(clusMFT, pattIt, mMFTClusters, mMFTDict);
 
   // Load MFT tracks
   mMFTTracks = inp.getMFTTracks();

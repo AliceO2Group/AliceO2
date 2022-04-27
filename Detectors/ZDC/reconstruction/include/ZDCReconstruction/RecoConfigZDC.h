@@ -31,10 +31,16 @@ struct RecoConfigZDC {
   std::array<bool, NTDCChannels> bitset = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Set bits in coincidence
   void setBit(uint32_t ibit, bool val = true);
 
+  // Signal processing
+  bool low_pass_filter = true; // Low pass filtering
+  bool corr_signal = true;     // TDC signal correction
+  bool corr_background = true; // TDC pile-up correction
+
   // TDC
   int tdc_search[NTDCChannels] = {250, 250, 250, 250, 250, 250, 250, 250, 250, 250}; // Search zone for a TDC signal ideally 2.5 ns (units of ~10 ps)
   void setSearch(uint32_t ich, int val);
   int getSearch(uint32_t ich) const;
+  bool extendedSearch = true;
 
   // Charge integration
   // Beginning and end of integration range: signal
@@ -44,6 +50,12 @@ struct RecoConfigZDC {
   Int_t beg_ped_int[NChannels] = {DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange};
   Int_t end_ped_int[NChannels] = {DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange};
   void setIntegration(uint32_t ich, int beg, int end, int beg_ped, int end_ped);
+  // Pedestal thresholds for pile-up detection
+  // Default value ADCRange will never allow to revert to orbit pedestal and will never identify pile-up
+  // Values <=0 will identify all events as pile-up and use always orbit pedestal
+  float ped_thr_hi[NChannels] = {ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange};
+  float ped_thr_lo[NChannels] = {ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange};
+  void setPedThreshold(int32_t ich, float high, float low);
 
   void print();
 

@@ -50,6 +50,7 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   int LUTbinsZ = -1;
   float diamondPos[3] = {0.f, 0.f, 0.f};
   bool useDiamond = false;
+  unsigned long maxMemory = 0;
 
   O2ParamDef(TrackerParamConfig, "ITSCATrackerParam");
 };

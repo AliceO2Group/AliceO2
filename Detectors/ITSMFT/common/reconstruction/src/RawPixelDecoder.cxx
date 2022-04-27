@@ -16,6 +16,7 @@
 #include "ITSMFTReconstruction/RawPixelDecoder.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "Framework/InputRecordWalker.h"
+#include "Framework/DataRefUtils.h"
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/VerbosityConfig.h"
 #include <filesystem>
@@ -83,9 +84,8 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
   int nLinksWithData = 0, nru = mRUDecodeVec.size();
   do {
 #ifdef WITH_OPENMP
-    omp_set_num_threads(mNThreads);
-#pragma omp parallel for schedule(dynamic) reduction(+ \
-                                                     : nLinksWithData, mNChipsFiredROF, mNPixelsFiredROF)
+#pragma omp parallel for schedule(dynamic) num_threads(mNThreads) reduction(+ \
+                                                                            : nLinksWithData, mNChipsFiredROF, mNPixelsFiredROF)
 #endif
     for (int iru = 0; iru < nru; iru++) {
       nLinksWithData += decodeNextTrigger(iru);
@@ -184,11 +184,12 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
     std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{origin, datadesc, 0xDEADBEEF}}};
     for (const auto& ref : InputRecordWalker(inputs, dummy)) {
       const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      if (dh->payloadSize == 0) {
+      auto payloadSize = o2::framework::DataRefUtils::getPayloadSize(ref);
+      if (payloadSize == 0) {
         auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
         if (++contDeadBeef <= maxWarn) {
           LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
-               dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,
+               dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
                contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
         }
         return;
@@ -431,10 +432,10 @@ void RawPixelDecoder<Mapping>::produceRawDataDumps(int dump, const o2::header::D
           if (entry >= lnk.rawData.getNPieces()) {
             allHBFs = true;
             entry = 0;
-            fnm = fmt::format("rawdump_{}_run{}_tf_orb{}_full_feeID{:#06x}.raw",
+            fnm = fmt::format("{}{}rawdump_{}_run{}_tf_orb{}_full_feeID{:#06x}.raw", mRawDumpDirectory, mRawDumpDirectory.empty() ? "" : "/",
                               Mapping::getName(), dh->runNumber, dh->firstTForbit, lnk.feeID);
           } else {
-            fnm = fmt::format("rawdump_{}_run{}_tf_orb{}_hbf_orb{}_feeID{:#06x}.raw",
+            fnm = fmt::format("{}{}rawdump_{}_run{}_tf_orb{}_hbf_orb{}_feeID{:#06x}.raw", mRawDumpDirectory, mRawDumpDirectory.empty() ? "" : "/",
                               Mapping::getName(), dh->runNumber, dh->firstTForbit, it.second, lnk.feeID);
           }
           std::ofstream ostrm(fnm, std::ios::binary);

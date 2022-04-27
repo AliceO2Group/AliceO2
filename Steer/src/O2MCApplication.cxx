@@ -10,16 +10,17 @@
 // or submit itself to any jurisdiction.
 
 #include <Steer/O2MCApplication.h>
-#include <FairMQChannel.h>
-#include <FairMQMessage.h>
-#include <FairMQDevice.h>
-#include <FairMQParts.h>
+#include <fairmq/Channel.h>
+#include <fairmq/Message.h>
+#include <fairmq/Device.h>
+#include <fairmq/Parts.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <TMessage.h>
 #include <sstream>
 #include <SimConfig/SimConfig.h>
 #include <DetectorsBase/Detector.h>
 #include "DetectorsBase/Aligner.h"
+#include "DetectorsBase/MaterialManager.h"
 #include <CommonUtils/ShmManager.h>
 #include <cassert>
 #include <SimulationDataFormat/MCEventHeader.h>
@@ -122,7 +123,12 @@ void O2MCApplicationBase::ConstructGeometry()
 
 void O2MCApplicationBase::InitGeometry()
 {
+  // load special cuts which might be given from the outside first.
+  auto& matMgr = o2::base::MaterialManager::Instance();
+  matMgr.loadCutsAndProcessesFromJSON(o2::base::MaterialManager::ESpecial::kTRUE);
+  // During the following, FairModule::SetSpecialPhysicsCuts will be called for each module
   FairMCApplication::InitGeometry();
+  matMgr.writeCutsAndProcessesToJSON();
   // now the sensitive volumes are set up in fVolMap and we can query them
   for (auto e : fVolMap) {
     // since fVolMap contains multiple entries (if multiple copies), this may

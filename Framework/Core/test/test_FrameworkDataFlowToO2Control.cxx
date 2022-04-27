@@ -134,6 +134,7 @@ const std::vector expectedTasks{
   R"EXPECTED(name: A
 defaults:
   log_task_output: none
+  exit_transition_timeout: 15
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
     {{ dpl_command }} | bcsadc/foo
@@ -155,11 +156,15 @@ bind:
 command:
   shell: true
   log: "{{ log_task_output }}"
-  env: ["O2_DETECTOR={{ detector }}"]
+  env:
+    - O2_DETECTOR={{ detector }}
+    - O2_PARTITION={{ environment_id }}
   user: "{{ user }}"
   value: "{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}"
   arguments:
     - "-b"
+    - "--exit-transition-timeout"
+    - "'{{ exit_transition_timeout }}'"
     - "--monitoring-backend"
     - "'{{ monitoring_dpl_url }}'"
     - "--session"
@@ -203,13 +208,14 @@ command:
     - "--shm-zero-segment"
     - "'false'"
     - "--stacktrace-on-signal"
-    - "'all'"
+    - "'simple'"
     - "--timeframes-rate-limit"
     - "'0'"
 )EXPECTED",
   R"EXPECTED(name: B
 defaults:
   log_task_output: none
+  exit_transition_timeout: 15
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
     {{ dpl_command }} | foo
@@ -231,11 +237,15 @@ bind:
 command:
   shell: true
   log: "{{ log_task_output }}"
-  env: ["O2_DETECTOR={{ detector }}"]
+  env:
+    - O2_DETECTOR={{ detector }}
+    - O2_PARTITION={{ environment_id }}
   user: "{{ user }}"
   value: "{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}"
   arguments:
     - "-b"
+    - "--exit-transition-timeout"
+    - "'{{ exit_transition_timeout }}'"
     - "--monitoring-backend"
     - "'{{ monitoring_dpl_url }}'"
     - "--session"
@@ -279,13 +289,14 @@ command:
     - "--shm-zero-segment"
     - "'false'"
     - "--stacktrace-on-signal"
-    - "'all'"
+    - "'simple'"
     - "--timeframes-rate-limit"
     - "'0'"
 )EXPECTED",
   R"EXPECTED(name: C
 defaults:
   log_task_output: none
+  exit_transition_timeout: 15
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
     {{ dpl_command }} | foo
@@ -307,11 +318,15 @@ bind:
 command:
   shell: true
   log: "{{ log_task_output }}"
-  env: ["O2_DETECTOR={{ detector }}"]
+  env:
+    - O2_DETECTOR={{ detector }}
+    - O2_PARTITION={{ environment_id }}
   user: "{{ user }}"
   value: "{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}"
   arguments:
     - "-b"
+    - "--exit-transition-timeout"
+    - "'{{ exit_transition_timeout }}'"
     - "--monitoring-backend"
     - "'{{ monitoring_dpl_url }}'"
     - "--session"
@@ -355,13 +370,14 @@ command:
     - "--shm-zero-segment"
     - "'false'"
     - "--stacktrace-on-signal"
-    - "'all'"
+    - "'simple'"
     - "--timeframes-rate-limit"
     - "'0'"
 )EXPECTED",
   R"EXPECTED(name: D
 defaults:
   log_task_output: none
+  exit_transition_timeout: 15
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
     {{ dpl_command }} | foo
@@ -382,11 +398,15 @@ bind:
 command:
   shell: true
   log: "{{ log_task_output }}"
-  env: ["O2_DETECTOR={{ detector }}"]
+  env:
+    - O2_DETECTOR={{ detector }}
+    - O2_PARTITION={{ environment_id }}
   user: "{{ user }}"
   value: "{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}"
   arguments:
     - "-b"
+    - "--exit-transition-timeout"
+    - "'{{ exit_transition_timeout }}'"
     - "--monitoring-backend"
     - "'{{ monitoring_dpl_url }}'"
     - "--session"
@@ -430,7 +450,7 @@ command:
     - "--shm-zero-segment"
     - "'false'"
     - "--stacktrace-on-signal"
-    - "'all'"
+    - "'simple'"
     - "--timeframes-rate-limit"
     - "'0'"
     - "--a-param"

@@ -13,7 +13,6 @@
 /// \author David Rohr
 
 #include "GPUDisplay.h"
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -48,6 +47,7 @@ const char* HelpText[] = {
   "[o] / [p] / [O] / [P]         Save / restore current camera position / Animation path",
   "[h]                           Print Help",
   "[H]                           Show info texts",
+  "[q] / [Q]                     Start / Stop Qt GUI",
   "[w] / [s] / [a] / [d]         Zoom / Strafe Left and Right",
   "[pgup] / [pgdn]               Strafe up / down",
   "[e] / [f]                     Rotate left / right",
@@ -79,6 +79,7 @@ void GPUDisplay::PrintHelp()
 void GPUDisplay::HandleKey(unsigned char key)
 {
   GPUSettingsDisplayHeavy oldCfgH = mCfgH;
+  GPUSettingsDisplayLight oldCfgL = mCfgL;
   GPUSettingsDisplayRenderer oldCfgR = mCfgR;
   if (key == 'n') {
     mFrontend->mDisplayControl = 1;
@@ -242,13 +243,13 @@ void GPUDisplay::HandleKey(unsigned char key)
   } else if (key == 'D') {
     mCfgL.depthBuffer ^= true;
     SetInfo("Depth buffer (z-buffer, %u bits) %s", mBackend->DepthBits(), mCfgL.depthBuffer ? "enabled" : "disabled");
-    setDepthBuffer();
+    mBackend->setDepthBuffer();
   } else if (key == 'W') {
     mCfgR.drawQualityMSAA *= 2;
     if (mCfgR.drawQualityMSAA < 2) {
       mCfgR.drawQualityMSAA = 2;
     }
-    if (mCfgR.drawQualityMSAA > 16) {
+    if (mCfgR.drawQualityMSAA > 16 || mCfgR.drawQualityMSAA > mBackend->getMaxMSAA()) {
       mCfgR.drawQualityMSAA = 0;
     }
     SetInfo("Multisampling anti-aliasing factor set to %d", mCfgR.drawQualityMSAA);
@@ -341,11 +342,11 @@ void GPUDisplay::HandleKey(unsigned char key)
     mCfgH.drawTracksAndFilter ^= 1;
     SetInfo("Track filter: %s", mCfgH.drawTracksAndFilter ? "AND" : "OR");
   } else if (key == 't') {
-    GPUInfo("Taking screenshot");
     static int nScreenshot = 1;
     char fname[32];
     sprintf(fname, "screenshot%d.bmp", nScreenshot++);
-    DoScreenshot(fname);
+    mRequestScreenshot = true;
+    mScreenshotFile = fname;
     SetInfo("Taking screenshot (%s)", fname);
   } else if (key == 'Z') {
     mCfgR.screenshotScaleFactor += 1;
@@ -354,10 +355,10 @@ void GPUDisplay::HandleKey(unsigned char key)
     }
     SetInfo("Screenshot scaling factor set to %d", mCfgR.screenshotScaleFactor);
   } else if (key == 'y' || key == 'T') {
-    if ((mAnimateScreenshot = (key == 'T'))) {
-      mAnimationExport++;
-    }
     if (mAnimateVectors[0].size() > 1) {
+      if ((mAnimateScreenshot = (key == 'T'))) {
+        mAnimationExport++;
+      }
       startAnimation();
       SetInfo("Starting Animation", 1);
     } else {
@@ -455,6 +456,12 @@ void GPUDisplay::HandleKey(unsigned char key)
   } else if (key == 'h') {
     PrintHelp();
     SetInfo("Showing help text", 1);
+  } else if (key == 'q') {
+    SetInfo("Starting GUI", 1);
+    mFrontend->startGUI();
+  } else if (key == 'Q') {
+    SetInfo("Stopping GUI", 1);
+    mFrontend->stopGUI();
   }
   /*
   else if (key == '^')
@@ -465,13 +472,18 @@ void GPUDisplay::HandleKey(unsigned char key)
   */
 
   if (memcmp((void*)&oldCfgH, (void*)&mCfgH, sizeof(mCfgH)) != 0) {
-    mUpdateDLList = true;
+    mUpdateEventData = true;
   }
-  if (oldCfgR.drawQualityMSAA != mCfgR.drawQualityMSAA || oldCfgR.drawQualityDownsampleFSAA != mCfgR.drawQualityDownsampleFSAA) {
-    UpdateOffscreenBuffers();
+  if (memcmp((void*)&oldCfgL, (void*)&mCfgL, sizeof(mCfgL)) != 0 || memcmp((void*)&oldCfgR, (void*)&mCfgR, sizeof(mCfgR)) != 0) {
+    mUpdateDrawCommands = true;
   }
+  if (oldCfgR.drawQualityMSAA != mCfgR.drawQualityMSAA || oldCfgR.drawQualityDownsampleFSAA != mCfgR.drawQualityDownsampleFSAA || oldCfgL.depthBuffer != mCfgL.depthBuffer || oldCfgR.screenshotScaleFactor != mCfgR.screenshotScaleFactor) {
+    mUpdateRenderPipeline = true;
+  }
+
   if (oldCfgR.drawQualityVSync != mCfgR.drawQualityVSync) {
     mFrontend->SetVSync(mCfgR.drawQualityVSync);
+    mBackend->SetVSync(mCfgR.drawQualityVSync);
   }
   if (oldCfgR.fullScreen != mCfgR.fullScreen) {
     mFrontend->SwitchFullscreen(mCfgR.fullScreen);
@@ -483,7 +495,7 @@ void GPUDisplay::HandleKey(unsigned char key)
     mFrontend->mMaxFPSRate = mCfgR.maxFPSRate;
   }
   if (oldCfgR.useGLIndirectDraw != mCfgR.useGLIndirectDraw) {
-    mUpdateDLList = true;
+    mUpdateEventData = true;
   }
 }
 
@@ -505,8 +517,6 @@ void GPUDisplay::HandleSendKey(int key)
 void GPUDisplay::PrintGLHelpText(float colorValue)
 {
   for (unsigned int i = 0; i < sizeof(HelpText) / sizeof(HelpText[0]); i++) {
-    mFrontend->OpenGLPrint(HelpText[i], 40.f, 35 + 20 * (1 + i), colorValue, colorValue, colorValue, mInfoHelpTimer.GetCurrentElapsedTime() >= 5 ? (6 - mInfoHelpTimer.GetCurrentElapsedTime()) : 1, false);
+    OpenGLPrint(HelpText[i], 40.f, 35 + std::max(20, mDrawTextFontSize + 4) * (1 + i), colorValue, colorValue, colorValue, mInfoHelpTimer.GetCurrentElapsedTime() >= 5 ? (6 - mInfoHelpTimer.GetCurrentElapsedTime()) : 1, false);
   }
 }
-
-#endif

@@ -48,6 +48,7 @@
 
 #include <regex>
 #include <algorithm>
+#include <numeric>
 
 using namespace o2::framework;
 using namespace o2::gpu;
@@ -84,16 +85,6 @@ void TRDGlobalTracking::init(InitContext& ic)
     LOG(info) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
   }
 
-  // this is a hack to provide ITS dictionary from the local file, in general will be provided by the framework from CCDB
-  auto dictFile = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictFile);
-  if (o2::utils::Str::pathExists(dictFile)) {
-    mITSDict.readFromFile(dictFile);
-    LOG(info) << "Matching is running with a provided ITS dictionary: " << dictFile;
-  } else {
-    LOG(info) << "Dictionary " << dictFile << " is absent, Matching expects ITS cluster patterns";
-  }
-
   //-------- init GPU reconstruction --------//
   GPURecoStepConfiguration cfgRecoStep;
   cfgRecoStep.steps = GPUDataTypes::RecoStep::NoRecoStep;
@@ -101,6 +92,7 @@ void TRDGlobalTracking::init(InitContext& ic)
   cfgRecoStep.outputs.clear();
   mRec = GPUReconstruction::CreateInstance("CPU", true);
   mRec->SetSettings(o2::base::Propagator::Instance()->getNominalBz(), &cfgRecoStep);
+  mRec->GetNonConstParam().rec.trd.useExternalO2DefaultPropagator = true;
 
   mChainTracking = mRec->AddChain<GPUChainTracking>();
 
@@ -129,10 +121,13 @@ void TRDGlobalTracking::init(InitContext& ic)
   mTimer.Reset();
 }
 
-void TRDGlobalTracking::updateTimeDependentParams()
+void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
 {
   // strictly speaking, one should do this only in case of the CCDB objects update
   // TODO: add CCDB interface
+
+  // pc.inputs().get<TopologyDictionary*>("cldict"); // called by the RecoContainer to trigger finaliseCCDB
+
   auto& elParam = o2::tpc::ParameterElectronics::Instance();
   auto& gasParam = o2::tpc::ParameterGas::Instance();
   mTPCTBinMUS = elParam.ZbinWidth;
@@ -259,7 +254,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   }
 
   mTracker->Reset();
-  updateTimeDependentParams();
+  updateTimeDependentParams(pc);
   mRec->PrepareEvent();
   mRec->SetupGPUProcessor(mTracker, true);
 
@@ -617,6 +612,14 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards)
     }
   }
   return true;
+}
+
+void TRDGlobalTracking::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated";
+    mITSDict = (const o2::itsmft::TopologyDictionary*)obj;
+  }
 }
 
 void TRDGlobalTracking::endOfStream(EndOfStreamContext& ec)

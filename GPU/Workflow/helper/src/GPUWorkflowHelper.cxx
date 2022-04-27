@@ -39,7 +39,7 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
         const auto& patterns = recoCont.getITSClustersPatterns();
         auto pattIt = patterns.begin();
         retVal->ITSClustersArray.reserve(clusITS.size());
-        o2::its::ioutils::convertCompactClusters(clusITS, pattIt, retVal->ITSClustersArray, *calib->itsPatternDict);
+        o2::its::ioutils::convertCompactClusters(clusITS, pattIt, retVal->ITSClustersArray, calib->itsPatternDict);
         ioPtr.itsClusters = retVal->ITSClustersArray.data();
       }
       ioPtr.nItsClusters = clusITS.size();
@@ -225,5 +225,5 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
   ioPtr.globalTracks = retVal->globalTracks.data();
   ioPtr.globalTrackTimes = retVal->globalTrackTimes.data();
 
-  return std::move(retVal);
+  return retVal;
 }

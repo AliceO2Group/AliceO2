@@ -248,6 +248,12 @@ struct AnalysisDataProcessorBuilder {
     (invokeProcess<o2::framework::has_type_at_v<T>(pack<T...>{})>(task, inputs, std::get<T>(processTuple), infos), ...);
   }
 
+  template <typename... As>
+  static void overwriteInternalIndices(std::tuple<As...>& dest, std::tuple<As...> const& src)
+  {
+    (std::get<As>(dest).bindInternalIndicesTo(&std::get<As>(src)), ...);
+  }
+
   template <typename Task, typename R, typename C, typename Grouping, typename... Associated>
   static void invokeProcess(Task& task, InputRecord& inputs, R (C::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo>& infos)
   {
@@ -316,10 +322,8 @@ struct AnalysisDataProcessorBuilder {
         associatedTables);
 
       // GroupedCombinations bound separately, as they should be set once for all associated tables
-      auto hashes = std::get<0>(associatedTables);
-      auto realAssociated = tuple_tail(associatedTables);
-      homogeneous_apply_refs([&groupingTable, &hashes, &realAssociated](auto& t) {
-        GroupedCombinationManager<std::decay_t<decltype(t)>>::setGroupedCombination(t, hashes, groupingTable, realAssociated);
+      homogeneous_apply_refs([&groupingTable, &associatedTables](auto& t) {
+        GroupedCombinationManager<std::decay_t<decltype(t)>>::setGroupedCombination(t, groupingTable, associatedTables);
         return true;
       },
                              task);
@@ -329,7 +333,7 @@ struct AnalysisDataProcessorBuilder {
         auto slicer = GroupSlicer(groupingTable, associatedTables);
         for (auto& slice : slicer) {
           auto associatedSlices = slice.associatedTables();
-
+          overwriteInternalIndices(associatedSlices, associatedTables);
           std::apply(
             [&](auto&&... x) {
               (binder(x), ...);
@@ -347,7 +351,7 @@ struct AnalysisDataProcessorBuilder {
         }
       } else {
         // non-grouping case
-
+        overwriteInternalIndices(associatedTables, associatedTables);
         // bind partitions and grouping table
         homogeneous_apply_refs([&groupingTable](auto& x) {
           PartitionManager<std::decay_t<decltype(x)>>::bindExternalIndices(x, &groupingTable);

@@ -8,16 +8,19 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_FAIRMQDEVICEPROXY_H
-#define FRAMEWORK_FAIRMQDEVICEPROXY_H
+#ifndef O2_FRAMEWORK_FAIRMQDEVICEPROXY_H_
+#define O2_FRAMEWORK_FAIRMQDEVICEPROXY_H_
 
 #include <memory>
 
+#include "Framework/RoutingIndices.h"
+#include "Framework/RouteState.h"
+#include "Framework/OutputRoute.h"
+#include "Framework/InputRoute.h"
 #include <fairmq/FwdDecls.h>
+#include <vector>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 /// Helper class to hide FairMQDevice headers in the DataAllocator header.
 /// This is done because FairMQDevice brings in a bunch of boost.mpl /
@@ -25,29 +28,43 @@ namespace framework
 class FairMQDeviceProxy
 {
  public:
-  FairMQDeviceProxy(FairMQDevice* device)
-    : mDevice{device}
-  {
-  }
+  FairMQDeviceProxy() = default;
+  FairMQDeviceProxy(FairMQDeviceProxy const&) = delete;
+  void bindRoutes(std::vector<OutputRoute> const& outputs, std::vector<InputRoute> const& inputs, FairMQDevice& device);
 
-  /// To be used in DataAllocator.cxx to avoid reimplenting any device
-  /// API.
-  FairMQDevice* getDevice()
-  {
-    return mDevice;
-  }
+  /// Retrieve the transport associated to a given route.
+  fair::mq::TransportFactory* getOutputTransport(RouteIndex routeIndex) const;
+  /// Retrieve the transport associated to a given route.
+  fair::mq::TransportFactory* getInputTransport(RouteIndex routeIndex) const;
+  /// ChannelIndex from a given channel name
+  ChannelIndex getOutputChannelIndexByName(std::string const& channelName) const;
+  /// ChannelIndex from a given channel name
+  ChannelIndex getInputChannelIndexByName(std::string const& channelName) const;
+  /// ChannelIndex from a RouteIndex
+  ChannelIndex getOutputChannelIndex(RouteIndex routeIndex) const;
+  ChannelIndex getInputChannelIndex(RouteIndex routeIndex) const;
+  /// Retrieve the channel associated to a given output route.
+  fair::mq::Channel* getInputChannel(ChannelIndex channelIndex) const;
+  fair::mq::Channel* getOutputChannel(ChannelIndex channelIndex) const;
 
-  /// Looks like what we really need in the headers is just the transport.
-  FairMQTransportFactory* getTransport();
-  FairMQTransportFactory* getTransport(const std::string& channel, int index = 0);
-  std::unique_ptr<FairMQMessage> createMessage() const;
-  std::unique_ptr<FairMQMessage> createMessage(const size_t size) const;
+  std::unique_ptr<FairMQMessage> createOutputMessage(RouteIndex routeIndex) const;
+  std::unique_ptr<FairMQMessage> createOutputMessage(RouteIndex routeIndex, const size_t size) const;
+
+  std::unique_ptr<FairMQMessage> createInputMessage(RouteIndex routeIndex) const;
+  std::unique_ptr<FairMQMessage> createInputMessage(RouteIndex routeIndex, const size_t size) const;
+  size_t getNumOutputChannels() const { return mOutputChannels.size(); }
+  size_t getNumInputChannels() const { return mInputChannels.size(); }
 
  private:
-  FairMQDevice* mDevice;
+  std::vector<RouteState> mOutputRoutes;
+  std::vector<fair::mq::Channel*> mOutputChannels;
+  std::vector<std::string> mOutputChannelNames;
+
+  std::vector<RouteState> mInputRoutes;
+  std::vector<fair::mq::Channel*> mInputChannels;
+  std::vector<std::string> mInputChannelNames;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_FAIRMQDEVICEPROXY_H
+#endif // O2_FRAMEWORK_FAIRMQDEVICEPROXY_H_

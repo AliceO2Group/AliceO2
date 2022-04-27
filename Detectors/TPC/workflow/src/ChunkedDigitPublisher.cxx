@@ -19,6 +19,8 @@
 #include "Framework/DataAllocator.h"
 #include "Framework/ControlService.h"
 #include "DataFormatsTPC/Digit.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "TPCSimulation/CommonMode.h"
 #include "DetectorsBase/Detector.h"
 #include <SimulationDataFormat/MCCompLabel.h>
@@ -34,6 +36,7 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include <numeric>
 #include <TROOT.h>
 #ifdef NDEBUG
 #undef NDEBUG
@@ -48,6 +51,11 @@ using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
 using namespace o2::framework;
 using namespace o2::header;
+
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
@@ -65,6 +73,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
   // option to disable MC truth
   workflowOptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable  mc-truth"}});
+  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}});
 }
 
 // ------------------------------------------------------------------
@@ -274,6 +283,8 @@ DataProcessorSpec getSpec(std::vector<int> const& laneConfiguration, std::vector
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+
   auto numlanes = configcontext.options().get<int>("tpc-lanes");
   bool mctruth = !configcontext.options().get<bool>("disable-mc");
   auto tpcsectors = o2::RangeTokenizer::tokenize<int>(configcontext.options().get<std::string>("tpc-sectors"));
@@ -281,5 +292,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   std::vector<int> lanes(numlanes);
   std::iota(lanes.begin(), lanes.end(), 0);
   specs.emplace_back(o2::tpc::getSpec(lanes, tpcsectors, mctruth));
+
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
   return specs;
 }

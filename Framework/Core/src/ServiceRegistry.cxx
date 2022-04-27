@@ -80,34 +80,34 @@ void ServiceRegistry::bindService(ServiceSpec const& spec, void* service)
   static TracyLockableN(std::mutex, bindMutex, "bind mutex");
   std::scoped_lock<LockableBase(std::mutex)> lock(bindMutex);
   if (spec.preProcessing) {
-    mPreProcessingHandles.push_back(ServiceProcessingHandle{spec.preProcessing, service});
+    mPreProcessingHandles.push_back(ServiceProcessingHandle{spec, spec.preProcessing, service});
   }
   if (spec.postProcessing) {
-    mPostProcessingHandles.push_back(ServiceProcessingHandle{spec.postProcessing, service});
+    mPostProcessingHandles.push_back(ServiceProcessingHandle{spec, spec.postProcessing, service});
   }
   if (spec.preDangling) {
-    mPreDanglingHandles.push_back(ServiceDanglingHandle{spec.preDangling, service});
+    mPreDanglingHandles.push_back(ServiceDanglingHandle{spec, spec.preDangling, service});
   }
   if (spec.postDangling) {
-    mPostDanglingHandles.push_back(ServiceDanglingHandle{spec.postDangling, service});
+    mPostDanglingHandles.push_back(ServiceDanglingHandle{spec, spec.postDangling, service});
   }
   if (spec.preEOS) {
-    mPreEOSHandles.push_back(ServiceEOSHandle{spec.preEOS, service});
+    mPreEOSHandles.push_back(ServiceEOSHandle{spec, spec.preEOS, service});
   }
   if (spec.postEOS) {
-    mPostEOSHandles.push_back(ServiceEOSHandle{spec.postEOS, service});
+    mPostEOSHandles.push_back(ServiceEOSHandle{spec, spec.postEOS, service});
   }
   if (spec.postDispatching) {
-    mPostDispatchingHandles.push_back(ServiceDispatchingHandle{spec.postDispatching, service});
+    mPostDispatchingHandles.push_back(ServiceDispatchingHandle{spec, spec.postDispatching, service});
   }
   if (spec.start) {
-    mPreStartHandles.push_back(ServiceStartHandle{spec.start, service});
+    mPreStartHandles.push_back(ServiceStartHandle{spec, spec.start, service});
   }
   if (spec.stop) {
-    mPostStopHandles.push_back(ServiceStopHandle{spec.stop, service});
+    mPostStopHandles.push_back(ServiceStopHandle{spec, spec.stop, service});
   }
   if (spec.exit) {
-    mPreExitHandles.push_back(ServiceExitHandle{spec.exit, service});
+    mPreExitHandles.push_back(ServiceExitHandle{spec, spec.exit, service});
   }
 }
 
@@ -137,6 +137,7 @@ void ServiceRegistry::preDanglingCallbacks(DanglingContext& danglingContext)
 void ServiceRegistry::postDanglingCallbacks(DanglingContext& danglingContext)
 {
   for (auto postDanglingHandle : mPostDanglingHandles) {
+    LOGP(debug, "Doing postDanglingCallback for service {}", postDanglingHandle.spec.name);
     postDanglingHandle.callback(danglingContext, postDanglingHandle.service);
   }
 }

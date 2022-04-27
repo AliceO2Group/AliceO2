@@ -454,12 +454,13 @@ static void BM_ASoAHelpersCombGenSimplePairsSameCategories(benchmark::State& sta
 
   using Test = o2::soa::Table<test::X>;
   Test tests{table};
+  NoBinningPolicy<test::X> noBinning;
 
   int64_t count = 0;
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : combinations(CombinationsBlockUpperSameIndexPolicy("x", 2, -1, tests, tests))) {
+    for (auto& comb : combinations(CombinationsBlockUpperSameIndexPolicy(noBinning, 2, -1, tests, tests))) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -486,12 +487,13 @@ static void BM_ASoAHelpersCombGenSimpleFivesSameCategories(benchmark::State& sta
 
   using Test = o2::soa::Table<test::X>;
   Test tests{table};
+  NoBinningPolicy<test::X> noBinning;
 
   int64_t count = 0;
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : combinations(CombinationsBlockUpperSameIndexPolicy("x", 5, -1, tests, tests, tests, tests, tests))) {
+    for (auto& comb : combinations(CombinationsBlockUpperSameIndexPolicy(noBinning, 5, -1, tests, tests, tests, tests, tests))) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -518,12 +520,13 @@ static void BM_ASoAHelpersCombGenSimplePairsCategories(benchmark::State& state)
 
   using Test = o2::soa::Table<test::X>;
   Test tests{table};
+  NoBinningPolicy<test::X> noBinning;
 
   int64_t count = 0;
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : combinations(CombinationsBlockUpperIndexPolicy("x", 2, -1, tests, tests))) {
+    for (auto& comb : combinations(CombinationsBlockUpperIndexPolicy(noBinning, 2, -1, tests, tests))) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -550,12 +553,13 @@ static void BM_ASoAHelpersCombGenSimpleFivesCategories(benchmark::State& state)
 
   using Test = o2::soa::Table<test::X>;
   Test tests{table};
+  NoBinningPolicy<test::X> noBinning;
 
   int64_t count = 0;
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : combinations(CombinationsBlockUpperIndexPolicy("x", 2, -1, tests, tests, tests, tests, tests))) {
+    for (auto& comb : combinations(CombinationsBlockUpperIndexPolicy(noBinning, 2, -1, tests, tests, tests, tests, tests))) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -587,12 +591,13 @@ static void BM_ASoAHelpersCombGenCollisionsPairsSameCategories(benchmark::State&
   auto table = builder.finalize();
 
   o2::aod::Collisions collisions{table};
+  NoBinningPolicy<o2::aod::collision::NumContrib> noBinning;
 
   int64_t count = 0;
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : combinations(CombinationsBlockUpperSameIndexPolicy("fNumContrib", 2, -1, collisions, collisions))) {
+    for (auto& comb : combinations(CombinationsBlockUpperSameIndexPolicy(noBinning, 2, -1, collisions, collisions))) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -624,12 +629,13 @@ static void BM_ASoAHelpersCombGenCollisionsFivesSameCategories(benchmark::State&
   auto table = builder.finalize();
 
   o2::aod::Collisions collisions{table};
+  NoBinningPolicy<o2::aod::collision::NumContrib> noBinning;
 
   int64_t count = 0;
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : combinations(CombinationsBlockUpperSameIndexPolicy("fNumContrib", 5, -1, collisions, collisions, collisions, collisions, collisions))) {
+    for (auto& comb : combinations(CombinationsBlockUpperSameIndexPolicy(noBinning, 5, -1, collisions, collisions, collisions, collisions, collisions))) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -661,12 +667,13 @@ static void BM_ASoAHelpersCombGenCollisionsPairsCategories(benchmark::State& sta
   auto table = builder.finalize();
 
   o2::aod::Collisions collisions{table};
+  NoBinningPolicy<o2::aod::collision::NumContrib> noBinning;
 
   int64_t count = 0;
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : combinations(CombinationsBlockUpperIndexPolicy("fNumContrib", 2, -1, collisions, collisions))) {
+    for (auto& comb : combinations(CombinationsBlockUpperIndexPolicy(noBinning, 2, -1, collisions, collisions))) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -698,12 +705,13 @@ static void BM_ASoAHelpersCombGenCollisionsFivesCategories(benchmark::State& sta
   auto table = builder.finalize();
 
   o2::aod::Collisions collisions{table};
+  NoBinningPolicy<o2::aod::collision::NumContrib> noBinning;
 
   int64_t count = 0;
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : combinations(CombinationsBlockUpperIndexPolicy("fNumContrib", 5, -1, collisions, collisions, collisions, collisions, collisions))) {
+    for (auto& comb : combinations(CombinationsBlockUpperIndexPolicy(noBinning, 5, -1, collisions, collisions, collisions, collisions, collisions))) {
       count++;
     }
     benchmark::DoNotOptimize(count);

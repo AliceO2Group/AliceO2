@@ -45,6 +45,8 @@
 #include "GPUMemorySizeScalers.h"
 
 #include "utils/strtag.h"
+#include "utils/qlibload.h"
+
 #define GPUCA_LOGGING_PRINTF
 #include "GPULogging.h"
 
@@ -124,6 +126,11 @@ void GPUReconstruction::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* tr
   if (vertexerTraits) {
     vertexerTraits->reset(new o2::its::VertexerTraits);
   }
+}
+
+void GPUReconstruction::GetITSTimeframe(std::unique_ptr<o2::its::TimeFrame>* timeFrame)
+{
+  timeFrame->reset(new o2::its::TimeFrame);
 }
 
 int GPUReconstruction::SetNOMPThreads(int n)
@@ -326,6 +333,9 @@ int GPUReconstruction::InitPhaseBeforeDevice()
 
   mDeviceMemorySize = mHostMemorySize = 0;
   for (unsigned int i = 0; i < mChains.size(); i++) {
+    if (mChains[i]->EarlyConfigure()) {
+      return 1;
+    }
     mChains[i]->RegisterPermanentMemoryAndProcessors();
     size_t memPrimary, memPageLocked;
     mChains[i]->MemorySize(memPrimary, memPageLocked);
@@ -699,17 +709,19 @@ void GPUReconstruction::ResetRegisteredMemoryPointers(short ires)
 {
   GPUMemoryResource* res = &mMemoryResources[ires];
   if (!(res->mType & GPUMemoryResource::MEMORY_EXTERNAL) && (res->mType & GPUMemoryResource::MEMORY_HOST)) {
-    if (res->mReuse >= 0) {
-      res->SetPointers(mMemoryResources[res->mReuse].mPtr);
-    } else {
-      res->SetPointers(res->mPtr);
+    void* basePtr = res->mReuse >= 0 ? mMemoryResources[res->mReuse].mPtr : res->mPtr;
+    size_t size = (char*)res->SetPointers(basePtr) - (char*)basePtr;
+    if (basePtr && size > std::max(res->mSize, res->mOverrideSize)) {
+      std::cout << "Updated pointers exceed available memory size: " << size << " > " << std::max(res->mSize, res->mOverrideSize) << " - host - " << res->mName << "\n";
+      throw std::bad_alloc();
     }
   }
   if (IsGPU() && (res->mType & GPUMemoryResource::MEMORY_GPU)) {
-    if (res->mReuse >= 0) {
-      res->SetDevicePointers(mMemoryResources[res->mReuse].mPtrDevice);
-    } else {
-      res->SetDevicePointers(res->mPtrDevice);
+    void* basePtr = res->mReuse >= 0 ? mMemoryResources[res->mReuse].mPtrDevice : res->mPtrDevice;
+    size_t size = (char*)res->SetDevicePointers(basePtr) - (char*)basePtr;
+    if (basePtr && size > std::max(res->mSize, res->mOverrideSize)) {
+      std::cout << "Updated pointers exceed available memory size: " << size << " > " << std::max(res->mSize, res->mOverrideSize) << " - GPU - " << res->mName << "\n";
+      throw std::bad_alloc();
     }
   }
 }
@@ -1123,7 +1135,7 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const GPUSettingsDeviceBack
   if (retVal == nullptr) {
     if (cfg.forceDeviceType) {
       GPUError("Error: Could not load GPUReconstruction for specified device: %s (%u)", GPUDataTypes::DEVICE_TYPE_NAMES[type], type);
-    } else {
+    } else if (type != DeviceType::CPU) {
       GPUError("Could not load GPUReconstruction for device type %s (%u), falling back to CPU version", GPUDataTypes::DEVICE_TYPE_NAMES[type], type);
       GPUSettingsDeviceBackend cfg2 = cfg;
       cfg2.deviceType = DeviceType::CPU;
@@ -1136,6 +1148,24 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const GPUSettingsDeviceBack
   return retVal;
 }
 
+bool GPUReconstruction::CheckInstanceAvailable(DeviceType type)
+{
+  if (type == DeviceType::CPU) {
+    return true;
+  } else if (type == DeviceType::CUDA) {
+    return sLibCUDA->LoadLibrary() == 0;
+  } else if (type == DeviceType::HIP) {
+    return sLibHIP->LoadLibrary() == 0;
+  } else if (type == DeviceType::OCL) {
+    return sLibOCL->LoadLibrary() == 0;
+  } else if (type == DeviceType::OCL2) {
+    return sLibOCL2->LoadLibrary() == 0;
+  } else {
+    GPUError("Error: Invalid device type %u", type);
+    return false;
+  }
+}
+
 GPUReconstruction* GPUReconstruction::CreateInstance(const char* type, bool forceType, GPUReconstruction* master)
 {
   DeviceType t = GPUDataTypes::GetDeviceType(type);
@@ -1145,28 +1175,6 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const char* type, bool forc
   }
   return CreateInstance(t, forceType, master);
 }
-
-#ifdef _WIN32
-#define LIBRARY_EXTENSION ".dll"
-#define LIBRARY_TYPE HMODULE
-#define LIBRARY_LOAD(name) LoadLibraryEx(name, nullptr, nullptr)
-#define LIBRARY_CLOSE FreeLibrary
-#define LIBRARY_FUNCTION GetProcAddress
-#else
-#define LIBRARY_EXTENSION ".so"
-#define LIBRARY_TYPE void*
-#define LIBRARY_LOAD(name) dlopen(name, RTLD_NOW)
-#define LIBRARY_CLOSE dlclose
-#define LIBRARY_FUNCTION dlsym
-#endif
-
-#if defined(GPUCA_ALIROOT_LIB)
-#define LIBRARY_PREFIX "Ali"
-#elif defined(GPUCA_O2_LIB)
-#define LIBRARY_PREFIX "O2"
-#else
-#define LIBRARY_PREFIX ""
-#endif
 
 std::shared_ptr<GPUReconstruction::LibraryLoader> GPUReconstruction::sLibCUDA(new GPUReconstruction::LibraryLoader("lib" LIBRARY_PREFIX "GPUTracking"
                                                                                                                    "CUDA" LIBRARY_EXTENSION,

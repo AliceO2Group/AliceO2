@@ -46,6 +46,12 @@ o2_add_executable(
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsRaw O2::DPLUtils Boost::program_options)
 
+o2_add_executable(
+        dump-pages-workflow
+        SOURCES src/dump-pages-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsRaw O2::DPLUtils Boost::program_options)
+
 # to be deprecated : use DevIO/digits-writer instead
 o2_add_executable(
         digits-sink-workflow
@@ -95,7 +101,8 @@ o2_add_executable(
         digits-to-preclusters-workflow
         SOURCES src/digits-to-preclusters-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHMappingImpl4)
+        # PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHMappingImpl4)
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHMappingImpl3)
 
 o2_add_executable(
         digits-reader-workflow
@@ -119,7 +126,14 @@ o2_add_executable(
         preclusters-to-clusters-original-workflow
         SOURCES src/preclusters-to-clusters-original-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHClustering O2::MCHMappingImpl4)
+        # PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHClustering O2::MCHMappingImp4)
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHClustering O2::MCHMappingImpl3)
+
+o2_add_executable(
+        preclusters-to-clusters-gem-workflow
+        SOURCES src/preclusters-to-clusters-GEM-workflow.cxx src/ClusterFinderGEMSpec.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHClusteringGEM O2::MCHMappingImpl3)
 
 o2_add_executable(
         clusters-sink-workflow

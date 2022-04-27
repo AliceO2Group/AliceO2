@@ -14,8 +14,8 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#ifndef ALICEO2_MCH_TRACKFITTER_H_
-#define ALICEO2_MCH_TRACKFITTER_H_
+#ifndef O2_MCH_TRACKFITTER_H_
+#define O2_MCH_TRACKFITTER_H_
 
 #include "DataFormatsMCH/Cluster.h"
 #include "MCHTracking/Track.h"
@@ -97,4 +97,4 @@ inline void TrackFitter::setChamberResolution(double ex, double ey)
 } // namespace mch
 } // namespace o2
 
-#endif // ALICEO2_MCH_TRACKFITTER_H_
+#endif // O2_MCH_TRACKFITTER_H_

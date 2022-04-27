@@ -15,6 +15,7 @@
  */
 
 #include "DPLUtils/DPLRawParser.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsMCH/Digit.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DigitFileFormat.h"
@@ -28,6 +29,7 @@
 #include "Framework/Output.h"
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
+#include "Framework/CompletionPolicyHelpers.h"
 #include "MCHRawDecoder/OrbitInfo.h"
 #include <fstream>
 #include <iostream>
@@ -46,6 +48,15 @@ constexpr const char* OPTNAME_NO_FILE = "no-file";
 constexpr const char* OPTNAME_BINARY_FORMAT = "binary-file-format";
 constexpr const char* OPTNAME_WITHOUT_ORBITS = "without-orbits";
 constexpr const char* OPTNAME_MAX_SIZE = "max-size";
+
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:MCH|mch).*[W,w]riter.*"));
+}
+
+template <typename T>
+using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 
 class DigitsSinkTask : public io::DigitIOBaseTask
 {
@@ -142,6 +153,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
                                ConfigParamSpec::HelpString{"do not expect, in addition to digits and rofs, to get Orbits at the input"});
   workflowOptions.emplace_back(ConfigParamSpec{"input-digits-data-description", VariantType::String, "DIGITS", {"description string for the input digits data"}});
   workflowOptions.emplace_back(ConfigParamSpec{"input-digitrofs-data-description", VariantType::String, "DIGITROFS", {"description string for the input digit rofs data"}});
+  workflowOptions.emplace_back(ConfigParamSpec{"enable-root-output", VariantType::Bool, false, {"output in Root format"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -169,13 +181,27 @@ WorkflowSpec defineDataProcessing(const ConfigContext& cc)
     {OPTNAME_MAX_SIZE, VariantType::Int, std::numeric_limits<int>::max(), {"max output size (in KB)"}}};
   options.insert(options.end(), commonOptions.begin(), commonOptions.end());
 
-  DataProcessorSpec producer{
-    "mch-digits-writer",
-    Inputs{o2::framework::select(input.c_str())},
-    Outputs{},
-    AlgorithmSpec{adaptFromTask<DigitsSinkTask>(withOrbits)},
-    options};
-  specs.push_back(producer);
+  Inputs inputs{o2::framework::select(input.c_str())};
+  const char* specName = "mch-digits-writer";
+
+  if (!cc.options().get<bool>("enable-root-output")) {
+    DataProcessorSpec producer{
+      specName,
+      inputs,
+      Outputs{},
+      AlgorithmSpec{adaptFromTask<DigitsSinkTask>(withOrbits)},
+      options};
+    specs.push_back(producer);
+  } else {
+    auto rofs = std::find_if(inputs.begin(), inputs.end(), [](const InputSpec& is) { return is.binding == "rofs"; });
+    auto digits = std::find_if(inputs.begin(), inputs.end(), [](const InputSpec& is) { return is.binding == "digits"; });
+    DataProcessorSpec producer = MakeRootTreeWriterSpec(specName,
+                                                        "mchdigits.root",
+                                                        MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree MCH Digits"},
+                                                        BranchDefinition<std::vector<ROFRecord>>{InputSpec{*rofs}, "rofs"},
+                                                        BranchDefinition<std::vector<Digit>>{InputSpec{*digits}, "digits"})();
+    specs.push_back(producer);
+  }
 
   return specs;
 }

@@ -498,7 +498,7 @@ std::vector<TrackITSExt> CookedTracker::trackInThread(Int_t first, Int_t last)
 
 void CookedTracker::process(gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
                             gsl::span<const unsigned char>::iterator& pattIt,
-                            const o2::itsmft::TopologyDictionary& dict,
+                            const o2::itsmft::TopologyDictionary* dict,
                             TrackInserter& inserter,
                             o2::itsmft::ROFRecord& rof)
 {
@@ -525,15 +525,15 @@ void CookedTracker::process(gsl::span<const o2::itsmft::CompClusterExt> const& c
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
       sigmaY2 = gSigma2; //dict.getErr2X(pattID);
       sigmaZ2 = gSigma2; //dict.getErr2Z(pattID);
-      if (!dict.isGroup(pattID)) {
-        locXYZ = dict.getClusterCoordinates(comp);
+      if (!dict->isGroup(pattID)) {
+        locXYZ = dict->getClusterCoordinates(comp);
       } else {
         o2::itsmft::ClusterPattern patt(pattIt);
-        locXYZ = dict.getClusterCoordinates(comp, patt);
+        locXYZ = dict->getClusterCoordinates(comp, patt);
       }
     } else {
       o2::itsmft::ClusterPattern patt(pattIt);
-      locXYZ = dict.getClusterCoordinates(comp, patt, false);
+      locXYZ = dict->getClusterCoordinates(comp, patt, false);
     }
     auto sensorID = comp.getSensorID();
     // Inverse transformation to the local --> tracking

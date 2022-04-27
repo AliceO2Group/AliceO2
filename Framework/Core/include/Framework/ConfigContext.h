@@ -14,9 +14,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ServiceRegistry.h"
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// This is the context class for information which are available at
@@ -27,12 +25,12 @@ class ConfigContext
  public:
   ConfigContext(ConfigParamRegistry& options, int argc, char** argv) : mOptions{options}, mArgc{argc}, mArgv{argv} {}
 
-  ConfigParamRegistry& options() const { return mOptions; }
+  [[nodiscard]] ConfigParamRegistry& options() const { return mOptions; }
 
-  bool helpOnCommandLine() const;
+  [[nodiscard]] bool helpOnCommandLine() const;
 
-  int argc() const { return mArgc; }
-  char* const* const argv() const { return mArgv; }
+  [[nodiscard]] int argc() const { return mArgc; }
+  [[nodiscard]] char* const* argv() const { return mArgv; }
 
  private:
   ConfigParamRegistry& mOptions;
@@ -41,7 +39,6 @@ class ConfigContext
   char** mArgv = nullptr;
 };
 
-} // namespace framework
 } // namespace o2
 
 #endif

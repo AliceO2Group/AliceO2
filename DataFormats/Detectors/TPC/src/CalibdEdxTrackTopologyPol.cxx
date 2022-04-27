@@ -42,6 +42,13 @@ void CalibdEdxTrackTopologyPol::cloneFromObject(const CalibdEdxTrackTopologyPol&
   mMaxSinPhi = obj.mMaxSinPhi;
   mThresholdMin = obj.mThresholdMin;
   mThresholdMax = obj.mThresholdMax;
+  mQTotMin = obj.mQTotMin;
+  mQTotMax = obj.mQTotMax;
+
+  for (int i = 0; i < FFits; ++i) {
+    mScalingFactorsqTot[i] = obj.mScalingFactorsqTot[i];
+    mScalingFactorsqMax[i] = obj.mScalingFactorsqMax[i];
+  }
 }
 
 void CalibdEdxTrackTopologyPol::moveBufferTo(char* newFlatBufferPtr)
@@ -124,9 +131,18 @@ void CalibdEdxTrackTopologyPol::construct()
   }
 }
 
+void CalibdEdxTrackTopologyPol::setDefaultPolynomials()
+{
+  for (int i = 0; i < FFits; ++i) {
+    mCalibPolsqTot[i].setParam(0, 1);
+    mCalibPolsqMax[i].setParam(0, 1);
+  }
+  construct();
+}
+
 void CalibdEdxTrackTopologyPol::writeToFile(TFile& outf, const char* name) const
 {
-  CalibdEdxTrackTopologyPolContainer cont(mMaxTanTheta, mMaxSinPhi, mThresholdMin, mThresholdMax);
+  CalibdEdxTrackTopologyPolContainer cont(mMaxTanTheta, mMaxSinPhi, mThresholdMin, mThresholdMax, mQTotMin, mQTotMax);
   cont.mCalibPols.reserve(FFits);
 
   for (const auto& par : mCalibPolsqTot) {
@@ -137,13 +153,27 @@ void CalibdEdxTrackTopologyPol::writeToFile(TFile& outf, const char* name) const
     cont.mCalibPols.emplace_back(par.getContainer());
   }
 
+  for (const auto par : mScalingFactorsqTot) {
+    cont.mScalingFactorsqTot.emplace_back(par);
+  }
+
+  for (const auto par : mScalingFactorsqMax) {
+    cont.mScalingFactorsqMax.emplace_back(par);
+  }
+
   outf.WriteObject(&cont, name);
 }
 
 void CalibdEdxTrackTopologyPol::setFromContainer(const CalibdEdxTrackTopologyPolContainer& container)
 {
   if (2 * FFits != container.mCalibPols.size()) {
-    LOGP(info, fmt::format("wrong number of polynomials stored! this {} container {}", 2 * FFits, container.mCalibPols.size()));
+    LOGP(warning, fmt::format("wrong number of polynomials stored! this {} container {}", 2 * FFits, container.mCalibPols.size()));
+    return;
+  }
+
+  const auto nFacCont = container.mScalingFactorsqMax.size() + container.mScalingFactorsqTot.size();
+  if (2 * FFits != nFacCont) {
+    LOGP(warning, fmt::format("wrong number of scaling factors stored! this {} container {}", 2 * FFits, nFacCont));
     return;
   }
 
@@ -159,6 +189,14 @@ void CalibdEdxTrackTopologyPol::setFromContainer(const CalibdEdxTrackTopologyPol
   mMaxSinPhi = container.mMaxSinPhi;
   mThresholdMin = container.mThresholdMin;
   mThresholdMax = container.mThresholdMax;
+  mQTotMin = container.mQTotMin;
+  mQTotMax = container.mQTotMax;
+
+  for (int i = 0; i < FFits; ++i) {
+    mScalingFactorsqTot[i] = container.mScalingFactorsqTot[i];
+    mScalingFactorsqMax[i] = container.mScalingFactorsqMax[i];
+  }
+  construct();
 }
 
 void CalibdEdxTrackTopologyPol::loadFromFile(const char* fileName, const char* name)
@@ -168,7 +206,6 @@ void CalibdEdxTrackTopologyPol::loadFromFile(const char* fileName, const char* n
   inpf.GetObject(name, polTmp);
   if (polTmp) {
     setFromContainer(*polTmp);
-    construct();
     delete polTmp;
   } else {
     LOGP(info, fmt::format("couldnt load object {} from input file", name));
@@ -189,7 +226,7 @@ void CalibdEdxTrackTopologyPol::setPolynomialsFromFile(TFile& inpf)
 std::string CalibdEdxTrackTopologyPol::getPolyName(const int region, const ChargeType charge)
 {
   const std::string typeName[2] = {"qMax", "qTot"};
-  const std::string polname = fmt::format("spline_{}_region{}", typeName[charge], region).data();
+  const std::string polname = fmt::format("polynomial_{}_region{}", typeName[charge], region).data();
   return polname;
 }
 

@@ -89,7 +89,11 @@ int GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutp
     return (1);
   }
   if (mConfig->configInterface.dumpEvents) {
+    if (mConfig->configProcessing.doublePipeline) {
+      throw std::runtime_error("Cannot dump events in double pipeline mode");
+    }
     static int nEvent = 0;
+    mChain->DoQueuedCalibUpdates(-1);
     mChain->ClearIOPointers();
     mChain->mIOPtrs = *data;
 
@@ -178,5 +182,6 @@ std::unique_ptr<o2::tpc::CalibdEdxContainer> GPUO2Interface::getCalibdEdxContain
 
 int GPUO2Interface::UpdateCalibration(const GPUCalibObjectsConst& newCalib)
 {
-  return 1;
+  mChain->SetUpdateCalibObjects(newCalib);
+  return 0;
 }

@@ -58,25 +58,8 @@ if(OPENCL2_ENABLED_AMD) # BUILD OpenCL2 binaries for AMD target
     IMPLICIT_DEPENDS CXX ${CL_SRC}
     COMMAND_EXPAND_LISTS)
 
-  # cmake-format: off
-  add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.amd.S
-      COMMAND cat ${GPUDIR}/utils/include.S | sed "s/FILENAMEMOD/_makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_amd/g" | sed "s,FILENAMENORMAL,${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCL2Code.amd,g" > ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.amd.S
-      MAIN_DEPENDENCY ${GPUDIR}/utils/include.S
-  )
-  # cmake-format: on
-
-  # make cmake compile the assembler file, add proper dependency on included
-  # binary code
-  set_source_files_properties(
-    ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.amd.S
-    PROPERTIES
-    LANGUAGE
-    ASM
-    OBJECT_DEPENDS
-    "${CL_BIN}.amd;${GPUDIR}/utils/include.S")
-
-  set(SRCS ${SRCS} ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.amd.S)
+  create_binary_resource(${CL_BIN}.amd ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.amd.o)
+  set(SRCS ${SRCS} ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.amd.o)
 endif()
 
 if(OPENCL2_ENABLED_SPIRV) # BUILD OpenCL2 intermediate code for SPIR-V target
@@ -99,25 +82,8 @@ if(OPENCL2_ENABLED_SPIRV) # BUILD OpenCL2 intermediate code for SPIR-V target
       COMMAND ${LLVM_SPIRV} ${CL_BIN}.bc -o=${CL_BIN}.spirv
       MAIN_DEPENDENCY ${CL_BIN}.bc)
 
-  # cmake-format: off
-  add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.spirv.S
-      COMMAND cat ${GPUDIR}/utils/include.S | sed "s/FILENAMEMOD/_makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_spirv/g" | sed "s,FILENAMENORMAL,${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCL2Code.spirv,g" > ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.spirv.S
-      MAIN_DEPENDENCY ${GPUDIR}/utils/include.S
-  )
-  # cmake-format: on
-
-  # make cmake compile the assembler file, add proper dependency on included
-  # binary code
-  set_source_files_properties(
-    ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.spirv.S
-    PROPERTIES
-    LANGUAGE
-    ASM
-    OBJECT_DEPENDS
-    "${CL_BIN}.spirv;${GPUDIR}/utils/include.S")
-
-  set(SRCS ${SRCS} ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.spirv.S)
+  create_binary_resource(${CL_BIN}.spirv ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.spirv.o)
+  set(SRCS ${SRCS} ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.spirv.o)
 endif()
 
 if(OPENCL2_ENABLED) # BUILD OpenCL2 source code for runtime compilation target
@@ -131,25 +97,8 @@ if(OPENCL2_ENABLED) # BUILD OpenCL2 source code for runtime compilation target
       IMPLICIT_DEPENDS CXX ${CL_SRC}
       COMMAND_EXPAND_LISTS)
 
-  # cmake-format: off
-  add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.src.S
-      COMMAND cat ${GPUDIR}/utils/include.S | sed "s/FILENAMEMOD/_makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_src/g" | sed "s,FILENAMENORMAL,${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCL2Code.src,g" > ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.src.S
-      MAIN_DEPENDENCY ${GPUDIR}/utils/include.S
-  )
-  # cmake-format: on
-
-  # make cmake compile the assembler file, add proper dependency on included
-  # binary code
-  set_source_files_properties(
-    ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.src.S
-    PROPERTIES
-    LANGUAGE
-    ASM
-    OBJECT_DEPENDS
-    "${CL_BIN}.src;${GPUDIR}/utils/include.S")
-
-  set(SRCS ${SRCS} ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.src.S)
+  create_binary_resource(${CL_BIN}.src ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.src.o)
+  set(SRCS ${SRCS} ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.src.o)
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")

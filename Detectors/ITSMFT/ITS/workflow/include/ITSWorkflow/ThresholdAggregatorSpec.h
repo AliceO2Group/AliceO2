@@ -22,7 +22,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Task.h"
-#include <FairMQDevice.h>
+#include <fairmq/Device.h>
 
 #include <ITSMFTReconstruction/RawPixelDecoder.h> //o2::itsmft::RawPixelDecoder
 
@@ -80,9 +80,9 @@ class ITSThresholdAggregator : public Task
   char mFitType;
 
   std::string mLHCPeriod;
-  //Ccdb url for ccdb upload withing the wf
+  // Ccdb url for ccdb upload withing the wf
   std::string mCcdbUrl = "";
-  //Run number
+  // Run number
   int mRunNumber = -1;
 };
 

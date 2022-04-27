@@ -20,11 +20,11 @@
 #include "DataFormatsMID/Cluster.h"
 #include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/Track.h"
+#include "MIDBase/HitFinder.h"
 #include "MIDBase/Mapping.h"
 #include "MIDBase/GeometryTransformer.h"
 #include "MIDSimulation/ChamberResponseParams.h"
 #include "MIDSimulation/ClusterLabeler.h"
-#include "MIDSimulation/ColumnDataMC.h"
 #include "MIDSimulation/Digitizer.h"
 #include "MIDSimulation/DigitsMerger.h"
 #include "MIDSimulation/Hit.h"
@@ -35,7 +35,6 @@
 #include "MIDClustering/PreClusterizer.h"
 #include "MIDTracking/Tracker.h"
 #include "MIDTestingSimTools/TrackGenerator.h"
-#include "MIDTestingSimTools/HitFinder.h"
 
 namespace o2
 {
@@ -89,7 +88,6 @@ struct SimClustering {
   SimClustering() : correlation(), preClusterizer(), clusterizer(), preClusterHelper(), preClusterLabeler(), clusterLabeler()
   {
     correlation.clear();
-    preClusterizer.init();
     clusterizer.init([&](size_t baseIndex, size_t relatedIndex) { correlation.push_back({baseIndex, relatedIndex}); });
   }
 };
@@ -301,9 +299,9 @@ BOOST_DATA_TEST_CASE(MID_DigitMerger, boost::unit_test::data::make(getDEList()),
 {
   // Test the merging of the MC digits
   size_t nEvents = 20;
-  std::vector<std::vector<ColumnDataMC>> digitsCollection;
+  std::vector<std::vector<ColumnData>> digitsCollection;
   std::vector<o2::dataformats::MCTruthContainer<MCLabel>> mcContainerCollection;
-  std::vector<ColumnDataMC> digits;
+  std::vector<ColumnData> digits;
   o2::dataformats::MCTruthContainer<MCLabel> mcContainer;
   std::vector<ROFRecord> rofRecords;
   for (size_t ievent = 0; ievent < nEvents; ++ievent) {
@@ -335,7 +333,7 @@ BOOST_DATA_TEST_CASE(MID_Digitizer, boost::unit_test::data::make(getDEList()), d
 {
   // In this test we generate hits, digitize them and test that the MC labels are correctly assigned
   auto hits = generateHits(10, deId, simBase.mapping, simBase.geoTrans);
-  std::vector<ColumnDataMC> digitStoreMC;
+  std::vector<ColumnData> digitStoreMC;
   o2::dataformats::MCTruthContainer<MCLabel> digitLabelsMC;
   std::vector<ROFRecord> rofRecords;
   simDigitizer.digitizer.process(hits, digitStoreMC, digitLabelsMC);
@@ -391,7 +389,7 @@ BOOST_DATA_TEST_CASE(MID_SingleCluster, boost::unit_test::data::make(getDEList()
   // are the same for both.
   // Otherwise we can have from 1 to 3 clusters produced.
 
-  std::vector<ColumnDataMC> digitStoreMC;
+  std::vector<ColumnData> digitStoreMC;
   o2::dataformats::MCTruthContainer<MCLabel> digitLabelsMC;
   std::vector<ROFRecord> rofRecords;
 
@@ -432,7 +430,7 @@ BOOST_DATA_TEST_CASE(MID_SimClusters, boost::unit_test::data::make(getDEList()),
   // In this test, we generate few hits, reconstruct the clusters
   // and verify that the MC labels are correctly assigned to the clusters
 
-  std::vector<ColumnDataMC> digitStoreMC, digitsAccum;
+  std::vector<ColumnData> digitStoreMC, digitsAccum;
   o2::dataformats::MCTruthContainer<MCLabel> digitLabelsMC, digitLabelsAccum;
   std::vector<ROFRecord> digitsROF;
   std::vector<std::vector<Hit>> hitsCollection;
@@ -506,7 +504,7 @@ BOOST_DATA_TEST_CASE(MID_SimTracks, boost::unit_test::data::make({1, 2, 3, 4, 5,
   // The aim of this test is to check that the algorithms work.
   // The tracking performance and tuning of the MC will be done in the future via dedicated studies.
 
-  std::vector<ColumnDataMC> digitStoreMC, digitsAccum;
+  std::vector<ColumnData> digitStoreMC, digitsAccum;
   o2::dataformats::MCTruthContainer<MCLabel> digitLabelsMC, digitLabelsAccum;
   std::vector<ROFRecord> digitsROF;
   std::vector<std::vector<GenTrack>> genTrackCollection;

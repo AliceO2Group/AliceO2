@@ -44,16 +44,16 @@ AltroDecoderError::ErrorType_t AltroDecoder::decode(RawReaderMemory& rawreader, 
     mRCUTrailer.constructFromRawPayload(tmp);
   } catch (RCUTrailer::Error& e) {
     LOG(error) << "RCU trailer error " << (int)e.getErrorType();
-    mOutputHWErrors.emplace_back(mddl, kGeneralSRUErr, static_cast<char>(e.getErrorType())); //assign general SRU header errors to non-existing FEE 15
+    mOutputHWErrors.emplace_back(mddl, kGeneralSRUErr, static_cast<char>(e.getErrorType())); // assign general SRU header errors to non-existing FEE 15
     return AltroDecoderError::RCU_TRAILER_ERROR;
   }
 
-  //TODO  checkRCUTrailer();
+  // TODO  checkRCUTrailer();
   try {
     readChannels(payloadwords, rawFitter, currentCellContainer, currentTRUContainer);
   } catch (AltroDecoderError::ErrorType_t e) {
     LOG(error) << "Altro decoding error " << e;
-    mOutputHWErrors.emplace_back(mddl, kGeneralTRUErr, static_cast<char>(e)); //assign general SRU header errors to non-existing FEE 16
+    mOutputHWErrors.emplace_back(mddl, kGeneralTRUErr, static_cast<char>(e)); // assign general SRU header errors to non-existing FEE 16
     return e;
   }
   return AltroDecoderError::kOK;
@@ -64,20 +64,20 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
 {
   int currentpos = 0;
 
-  int payloadend = buffer.size() - mRCUTrailer.getTrailerSize(); //mRCUTrailer.getPayloadSize() was not updated in case of merged pages.
+  int payloadend = buffer.size() - mRCUTrailer.getTrailerSize(); // mRCUTrailer.getPayloadSize() was not updated in case of merged pages.
   while (currentpos < payloadend) {
     auto currentword = buffer[currentpos++];
     ChannelHeader header = {currentword};
     if (header.mMark != 1) {
       if (currentword != 0) {
         LOG(error) << "Channel header mark not found, header word " << currentword;
-        short fec = header.mHardwareAddress >> 7 & 0xf; //try to extract FEE number from header
+        short fec = header.mHardwareAddress >> 7 & 0xf; // try to extract FEE number from header
         short branch = header.mHardwareAddress >> 11 & 0x1;
         if (fec > 14) {
           fec = kGeneralSRUErr;
         }
         fec += kGeneralTRUErr * branch;
-        mOutputHWErrors.emplace_back(mddl, fec, 5); //5: channel header error
+        mOutputHWErrors.emplace_back(mddl, fec, 5); // 5: channel header error
       }
       continue;
     }
@@ -85,13 +85,13 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
     int numberofwords = (header.mPayloadSize + 2) / 3;
     if (numberofwords > payloadend - currentpos) {
       LOG(error) << "Channel payload " << numberofwords << " larger than left in total " << payloadend - currentpos;
-      short fec = header.mHardwareAddress >> 7 & 0xf; //try to extract FEE number from header
+      short fec = header.mHardwareAddress >> 7 & 0xf; // try to extract FEE number from header
       short branch = header.mHardwareAddress >> 11 & 0x1;
       if (fec > 14) {
         fec = kGeneralSRUErr;
       }
       fec += kGeneralTRUErr * branch;
-      mOutputHWErrors.emplace_back(mddl, fec, 6); //6: channel payload error
+      mOutputHWErrors.emplace_back(mddl, fec, 6); // 6: channel payload error
       continue;
     }
     mBunchwords.clear();
@@ -102,13 +102,13 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
         LOG(error) << "Unexpected end of payload in altro channel payload! FEE=" << mddl
                    << ", Address=0x" << std::hex << header.mHardwareAddress << ", word=0x" << currentword << std::dec;
         currentpos--;
-        short fec = header.mHardwareAddress >> 7 & 0xf; //try to extract FEE number from header
+        short fec = header.mHardwareAddress >> 7 & 0xf; // try to extract FEE number from header
         short branch = header.mHardwareAddress >> 11 & 0x1;
         if (fec > 14) {
           fec = kGeneralSRUErr;
         }
         fec += kGeneralTRUErr * branch;
-        mOutputHWErrors.emplace_back(mddl, fec, 6); //6: channel payload error
+        mOutputHWErrors.emplace_back(mddl, fec, 6); // 6: channel payload error
         break;
       }
       mBunchwords.push_back((currentword >> 20) & 0x3FF);
@@ -130,67 +130,66 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
     Mapping::CaloFlag caloFlag;
     if (!hwToAbsAddress(header.mHardwareAddress, absId, caloFlag)) {
       // do not decode, skip to hext channel
-      short fec = header.mHardwareAddress >> 7 & 0xf; //try to extract FEE number from header
+      short fec = header.mHardwareAddress >> 7 & 0xf; // try to extract FEE number from header
       short branch = header.mHardwareAddress >> 11 & 0x1;
       if (fec > 14) {
         fec = kGeneralSRUErr;
       }
       fec += kGeneralTRUErr * branch;
-      mOutputHWErrors.emplace_back(mddl, fec, 7); //7: wrong hw address
+      mOutputHWErrors.emplace_back(mddl, fec, 7); // 7: wrong hw address
       continue;
     }
 
-    //Get time and amplitude
-    if (caloFlag != Mapping::kTRU) { //HighGain or LowGain
+    // Get time and amplitude
+    if (caloFlag != Mapping::kTRU) { // HighGain or LowGain
       // decode bunches
       int currentsample = 0;
       while (currentsample < header.mPayloadSize) {
         int bunchlength = mBunchwords[currentsample] - 2, // remove words for bunchlength and starttime
           starttime = mBunchwords[currentsample + 1];
         if (bunchlength < 0) {                            // corrupted data,
-          short fec = header.mHardwareAddress >> 7 & 0xf; //try to extract FEE number from header
+          short fec = header.mHardwareAddress >> 7 & 0xf; // try to extract FEE number from header
           short branch = header.mHardwareAddress >> 11 & 0x1;
           fec += kGeneralTRUErr * branch;
-          mOutputHWErrors.emplace_back(mddl, fec, 6); //6: channel payload error
+          mOutputHWErrors.emplace_back(mddl, fec, 6); // 6: channel payload error
           break;
         }
-        //extract sample properties
+        // extract sample properties
         CaloRawFitter::FitStatus fitResult = rawFitter->evaluate(gsl::span<uint16_t>(&mBunchwords[currentsample + 2], std::min((unsigned long)bunchlength, mBunchwords.size() - currentsample - 2)));
         currentsample += bunchlength + 2;
-        //set output cell
-        // if (fitResult == CaloRawFitter::FitStatus::kNoTime) { //Time evaluation error occured: should we add this err to list?
-        //   short fec = header.mHardwareAddress >> 7 & 0xf;     //try to extract FEE number from header
-        //   short branch = header.mHardwareAddress >> 11 & 0x1;
-        //   if (fec > 14) {
-        //     fec = kGeneralSRUErr;
-        //   }
-        //   fec += kGeneralTRUErr * branch;
-        //   mOutputHWErrors.emplace_back(mddl, fec, 8); //8: time calculation failed
-        // }
-        if (!rawFitter->isOverflow()) { //Overflow is will show wrong chi2
+        // set output cell
+        //  if (fitResult == CaloRawFitter::FitStatus::kNoTime) { //Time evaluation error occured: should we add this err to list?
+        //    short fec = header.mHardwareAddress >> 7 & 0xf;     //try to extract FEE number from header
+        //    short branch = header.mHardwareAddress >> 11 & 0x1;
+        //    if (fec > 14) {
+        //      fec = kGeneralSRUErr;
+        //    }
+        //    fec += kGeneralTRUErr * branch;
+        //    mOutputHWErrors.emplace_back(mddl, fec, 8); //8: time calculation failed
+        //  }
+        if (!rawFitter->isOverflow() && rawFitter->getChi2() > 0) { // Overflow is will show wrong chi2
           short chiAddr = absId;
           chiAddr |= caloFlag << 14;
           mOutputFitChi.emplace_back(chiAddr);
-          mOutputFitChi.emplace_back(short(rawFitter->getChi2()));
+          mOutputFitChi.emplace_back(short(5 * rawFitter->getChi2())); // 0.2 accuracy
         }
-
         if (fitResult == CaloRawFitter::FitStatus::kOK || fitResult == CaloRawFitter::FitStatus::kNoTime) {
           if (!mPedestalRun) {
             if (caloFlag == Mapping::kHighGain && !rawFitter->isOverflow()) {
               currentCellContainer.emplace_back(absId, rawFitter->getAmp(),
-                                                (rawFitter->getTime() + starttime) * o2::phos::PHOSSimParams::Instance().mTimeTick * 1.e-9, (ChannelType_t)caloFlag);
+                                                (rawFitter->getTime() + starttime - bunchlength - mPreSamples) * o2::phos::PHOSSimParams::Instance().mTimeTick * 1.e-9, (ChannelType_t)caloFlag);
             }
             if (caloFlag == Mapping::kLowGain) {
               currentCellContainer.emplace_back(absId, rawFitter->getAmp(),
-                                                (rawFitter->getTime() + starttime) * o2::phos::PHOSSimParams::Instance().mTimeTick * 1.e-9, (ChannelType_t)caloFlag);
+                                                (rawFitter->getTime() + starttime - bunchlength - mPreSamples) * o2::phos::PHOSSimParams::Instance().mTimeTick * 1.e-9, (ChannelType_t)caloFlag);
             }
-          } else { //pedestal, to store RMS, scale in by 1.e-7 to fit range
+          } else { // pedestal, to store RMS, scale in by 1.e-7 to fit range
             currentCellContainer.emplace_back(absId, rawFitter->getAmp(), 1.e-7 * rawFitter->getTime(), (ChannelType_t)caloFlag);
           }
-        }  //Successful fit
-      }    //Bunched of a channel
-    }      //HG or LG channel
-    else { //TRU channel
+        }  // Successful fit
+      }    // Bunched of a channel
+    }      // HG or LG channel
+    else { // TRU channel
       // Channels in TRU:
       // There are 112 readout channels and 12 channels reserved for production flags:
       //  Channels 0-111: channel data readout
@@ -201,20 +200,20 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
       } else {
         readTRUFlags(header.mHardwareAddress, header.mPayloadSize);
       }
-    } //TRU channel
+    } // TRU channel
   }
 
-  //Scan Flags and trigger cells and left only good
-  //if trigger cell exists and  the trigger flag true -add it
+  // Scan Flags and trigger cells and left only good
+  // if trigger cell exists and  the trigger flag true -add it
   bool is4x4Trigger = mTRUFlags[Mapping::NTRUReadoutChannels];
   for (auto rit = currentTRUContainer.rbegin(); rit != currentTRUContainer.rend(); rit++) {
-    if (mTRUFlags[rit->getTRUId()]) { //there is corresponding flag
+    if (mTRUFlags[rit->getTRUId()]) { // there is corresponding flag
       if (is4x4Trigger) {
         rit->setType(ChannelType_t::TRU4x4);
       } else {
         rit->setType(ChannelType_t::TRU2x2);
       }
-    } else { //will be removed later
+    } else { // will be removed later
       rit->setEnergy(0);
     }
   }
@@ -222,7 +221,7 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
 
 bool AltroDecoder::hwToAbsAddress(short hwAddr, short& absId, Mapping::CaloFlag& caloFlag)
 {
-  //check hardware address and convert to absId and caloFlag
+  // check hardware address and convert to absId and caloFlag
 
   if (mddl < 0 || mddl > o2::phos::Mapping::NDDL) {
     return (char)4;
@@ -238,7 +237,7 @@ bool AltroDecoder::hwToAbsAddress(short hwAddr, short& absId, Mapping::CaloFlag&
     fec = kGeneralSRUErr;
     mOutputHWErrors.emplace_back(mddl, fec + branch * kGeneralTRUErr, 2);
   } else {
-    if (fec != 0 && (chip < 0 || chip > 4 || chip == 1)) { //Do not check for TRU (fec=0)
+    if (fec != 0 && (chip < 0 || chip > 4 || chip == 1)) { // Do not check for TRU (fec=0)
       e2 = 3;
       mOutputHWErrors.emplace_back(mddl, fec + branch * kGeneralTRUErr, 3);
     }
@@ -248,10 +247,10 @@ bool AltroDecoder::hwToAbsAddress(short hwAddr, short& absId, Mapping::CaloFlag&
     return false;
   }
 
-  //correct hw address, try to convert
+  // correct hw address, try to convert
   Mapping::ErrorStatus s = Mapping::Instance()->hwToAbsId(mddl, hwAddr, absId, caloFlag);
   if (s != Mapping::ErrorStatus::kOK) {
-    mOutputHWErrors.emplace_back(mddl, branch * kGeneralTRUErr + kGeneralSRUErr, 4); //4: error in mapping
+    mOutputHWErrors.emplace_back(mddl, branch * kGeneralTRUErr + kGeneralSRUErr, 4); // 4: error in mapping
     return false;
   }
   return true;
@@ -262,7 +261,7 @@ void AltroDecoder::readTRUDigits(short absId, int payloadSize, std::vector<o2::p
   int currentsample = 0;
   while (currentsample < payloadSize) {
     int bunchlength = mBunchwords[currentsample] - 2;                           // remove words for bunchlength and starttime
-    if (bunchlength < 0) {                                                      //corrupted sample: add error and ignore the reast of bunchwords
+    if (bunchlength < 0) {                                                      // corrupted sample: add error and ignore the reast of bunchwords
       mOutputHWErrors.emplace_back(mddl, kGeneralTRUErr, static_cast<char>(1)); // 1: wrong TRU header
       return;
     }
@@ -279,7 +278,7 @@ void AltroDecoder::readTRUDigits(short absId, int payloadSize, std::vector<o2::p
       }
       timeBin++;
     }
-    truContainer.emplace_back(absId + 14337 + 1, smax, tmax * 1.e-9, TRU2x2); //add TRU cells
+    truContainer.emplace_back(absId + 14337 + 1, smax, tmax * 1.e-9, TRU2x2); // add TRU cells
   }
 }
 void AltroDecoder::readTRUFlags(short hwAddress, int payloadSize)
@@ -298,7 +297,7 @@ void AltroDecoder::readTRUFlags(short hwAddress, int payloadSize)
   while (currentsample < payloadSize) {
     int bunchlength = mBunchwords[currentsample] - 2; // remove words for bunchlength and starttime
     int timeBin = mBunchwords[currentsample + 1];
-    if (bunchlength < 0) {                                                      //corrupted sample: add error and ignore the reast of bunchwords
+    if (bunchlength < 0) {                                                      // corrupted sample: add error and ignore the reast of bunchwords
       mOutputHWErrors.emplace_back(mddl, kGeneralTRUErr, static_cast<char>(1)); // 1: wrong TRU header
       return;
     }
@@ -324,7 +323,7 @@ void AltroDecoder::readTRUFlags(short hwAddress, int payloadSize)
         if (hwAddress < 128) {
           channel = (hwAddress - Mapping::NTRUBranchReadoutChannels) * kWordLength + bitIndex;
         } else {
-          channel = 112 + (hwAddress - 2048 - Mapping::NTRUBranchReadoutChannels) * kWordLength + bitIndex; //branch 0
+          channel = 112 + (hwAddress - 2048 - Mapping::NTRUBranchReadoutChannels) * kWordLength + bitIndex; // branch 0
         }
         mTRUFlags[channel] = mTRUFlags[channel] | (a & (1 << bitIndex));
       } // Bits in one word

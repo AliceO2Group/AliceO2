@@ -12,7 +12,7 @@
 using DetID = o2::detectors::DetID;
 
 // upload dummy alignment objects to CCDB
-void UploadDummyAlignment(const std::string& ccdbHost = "http://ccdb-test.cern.ch:8080", long tmin = 0, long tmax = -1, DetID::mask_t msk = DetID::FullMask)
+void UploadDummyAlignment(const std::string& ccdbHost = "http://ccdb-test.cern.ch:8080", long tmin = 1, long tmax = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP, DetID::mask_t msk = DetID::FullMask)
 {
   DetID::mask_t dets = msk & DetID::FullMask & (~DetID::getMask(DetID::CTP));
   LOG(info) << "Mask = " << dets;
@@ -27,6 +27,7 @@ void UploadDummyAlignment(const std::string& ccdbHost = "http://ccdb-test.cern.c
     map<string, string> metadata; // can be empty
     DetID det(id);
     metadata["comment"] = fmt::format("Empty alignment object for {}", det.getName());
+    metadata["default"] = "true"; // tag default objects
     api.storeAsTFileAny(&params, o2::base::DetectorNameConf::getAlignmentPath(det), metadata, tmin, tmax);
     LOG(info) << "Uploaded dummy alignment for " << det.getName();
   }

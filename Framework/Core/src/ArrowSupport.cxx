@@ -416,29 +416,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
       auto reader = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-reader"; });
       auto writer = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-writer"; });
       std::vector<InputSpec> requestedAODs;
-
-      if (spawner != workflow.end()) {
-        std::vector<InputSpec> requestedDYNs;
-        // collect currently requested DYNs
-        for (auto& d : workflow) {
-          if (d.name == spawner->name) {
-            continue;
-          }
-          for (auto const& i : d.inputs) {
-            if (DataSpecUtils::partialMatch(i, header::DataOrigin{"DYN"})) {
-              auto copy = i;
-              DataSpecUtils::updateInputList(requestedDYNs, std::move(copy));
-            }
-          }
-        }
-        // recreate inputs and outputs
-        spawner->outputs.clear();
-        spawner->inputs.clear();
-        // replace AlgorithmSpec
-        // FIXME: it should be made more generic, so it does not need replacement...
-        spawner->algorithm = readers::AODReaderHelpers::aodSpawnerCallback(requestedDYNs);
-        WorkflowHelpers::addMissingOutputsToCreator(std::move(requestedDYNs), requestedAODs, *spawner);
-      }
+      std::vector<InputSpec> requestedDYNs;
+      std::vector<OutputSpec> providedDYNs;
 
       if (builder != workflow.end()) {
         // collect currently requested IDXs
@@ -460,10 +439,41 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         // replace AlgorithmSpec
         //  FIXME: it should be made more generic, so it does not need replacement...
         builder->algorithm = readers::AODReaderHelpers::indexBuilderCallback(requestedIDXs);
-        WorkflowHelpers::addMissingOutputsToCreator(std::move(requestedIDXs), requestedAODs, *builder);
+        WorkflowHelpers::addMissingOutputsToBuilder(requestedIDXs, requestedAODs, requestedDYNs, *builder);
       }
 
-      if (reader != workflow.end() && (spawner != workflow.end() || builder != workflow.end())) {
+      if (spawner != workflow.end()) {
+        // collect currently requested DYNs
+        for (auto& d : workflow) {
+          if (d.name == spawner->name) {
+            continue;
+          }
+          for (auto const& i : d.inputs) {
+            if (DataSpecUtils::partialMatch(i, header::DataOrigin{"DYN"})) {
+              auto copy = i;
+              DataSpecUtils::updateInputList(requestedDYNs, std::move(copy));
+            }
+          }
+          for (auto const& o : d.outputs) {
+            if (DataSpecUtils::partialMatch(o, header::DataOrigin{"DYN"})) {
+              providedDYNs.emplace_back(o);
+            }
+          }
+        }
+        // recreate inputs and outputs
+        spawner->outputs.clear();
+        spawner->inputs.clear();
+        // replace AlgorithmSpec
+        // FIXME: it should be made more generic, so it does not need replacement...
+        spawner->algorithm = readers::AODReaderHelpers::aodSpawnerCallback(requestedDYNs);
+        WorkflowHelpers::addMissingOutputsToSpawner(providedDYNs, requestedDYNs, requestedAODs, *spawner);
+      }
+
+      if (writer != workflow.end()) {
+        workflow.erase(writer);
+      }
+
+      if (reader != workflow.end()) {
         // If reader and/or builder were adjusted, remove unneeded outputs
         // update currently requested AODs
         for (auto& d : workflow) {
@@ -482,10 +492,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         reader->outputs.erase(o_end, reader->outputs.end());
       }
 
-      if (writer != workflow.end()) {
-        workflow.erase(writer);
-      }
-        // replace writer as some outputs may have become dangling and some are now consumed
+      // replace writer as some outputs may have become dangling and some are now consumed
       auto [outputsInputs, isDangling] = WorkflowHelpers::analyzeOutputs(workflow);
 
       // create DataOutputDescriptor

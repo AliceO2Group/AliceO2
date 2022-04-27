@@ -194,6 +194,13 @@ The writer will create a new CRU page with provided payload equipping it with th
 For further details see  ``ITSMFT/common/simulation/MC2RawEncoder`` class and the macro
 `Detectors/ITSMFT/ITS/macros/test/run_digi2rawVarPage_its.C` to steer the MC to raw data conversion.
 
+* Update: Use flag HBFUtils.obligatorySOR to start raw data from TF with SOX.
+
+If the HBFUtils.obligatorySOR==false (default) the MC->Raw converted data will start from the 1st TF containing data (i.e. corresponding to HBFUtils.firstOrbitSampled),
+the SOX in the RDH will be set only if this TF coincides with the 1st TF of the Run (defined by the HBFUtils.orbitFirst).
+With HBFUtils.obligatorySOR==true old behaviour will be preserved: the raw data will start from TF with HBFUtils.orbitFirst with SOX always set and for CRU detectors all HBFs/TFs between HBFUtils.orbitFirst and 1st non-empty HBF will be
+filled by dummy RDHs.
+
 ## RawFileReader
 
 A class for parsing raw data file(s) with "variable-size" CRU format.

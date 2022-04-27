@@ -18,6 +18,7 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataProcessingHeader.h"
 #include <fairmq/FairMQDevice.h>
+#include <mutex>
 
 #if __linux__
 #include <sys/mman.h>
@@ -176,15 +177,18 @@ Stack SubTimeFrameFileReader::getHeaderStack(std::size_t& pOrigsize)
 }
 
 std::uint64_t SubTimeFrameFileReader::sStfId = 0; // TODO: add id to files metadata
+std::uint32_t sRunNumber = 0;                     // TODO: add id to files metadata
+std::uint32_t sFirstTForbit = 0;                  // TODO: add id to files metadata
+std::mutex stfMtx;
 
 std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* device, const std::vector<o2f::OutputRoute>& outputRoutes,
-                                                               const std::string& rawChannel, int verbosity)
+                                                               const std::string& rawChannel, bool sup0xccdb, int verbosity)
 {
   std::unique_ptr<MessagesPerRoute> messagesPerRoute = std::make_unique<MessagesPerRoute>();
   auto& msgMap = *messagesPerRoute.get();
   assert(device);
   std::unordered_map<o2::header::DataHeader, std::pair<std::string, bool>> channelsMap;
-  auto findOutputChannel = [&outputRoutes, &rawChannel, &channelsMap](const o2::header::DataHeader* h) -> const std::string& {
+  auto findOutputChannel = [&outputRoutes, &rawChannel, &channelsMap](const o2::header::DataHeader* h, size_t tslice) -> const std::string& {
     if (!rawChannel.empty()) {
       return rawChannel;
     }
@@ -193,7 +197,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
       chFromMap.second = true;                          // flag that it was already checked
       for (auto& oroute : outputRoutes) {
         LOG(debug) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
-        if (o2f::DataSpecUtils::match(oroute.matcher, h->dataOrigin, h->dataDescription, h->subSpecification) && ((h->tfCounter % oroute.maxTimeslices) == oroute.timeslice)) {
+        if (o2f::DataSpecUtils::match(oroute.matcher, h->dataOrigin, h->dataDescription, h->subSpecification) && ((tslice % oroute.maxTimeslices) == oroute.timeslice)) {
           LOG(debug) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
           chFromMap.first = oroute.channel;
           break;
@@ -221,6 +225,8 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
     return nullptr;
   }
   auto tfID = sStfId++;
+  uint32_t runNumberFallBack = sRunNumber;
+  uint32_t firstTForbitFallBack = sFirstTForbit;
   std::size_t lMetaHdrStackSize = 0;
   const DataHeader* lStfMetaDataHdr = nullptr;
   SubTimeFrameFileMeta lStfFileMeta;
@@ -241,7 +247,6 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
     mFileMap.close();
     return nullptr;
   }
-
   lStfMetaDataHdr = o2::header::DataHeader::Get(lMetaHdrStack.first());
   if (!read_advance(&lStfFileMeta, sizeof(SubTimeFrameFileMeta))) {
     return nullptr;
@@ -323,6 +328,9 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
       stfHeader.id = lDataHeader->tfCounter;
       stfHeader.runNumber = lDataHeader->runNumber;
       stfHeader.firstOrbit = lDataHeader->firstTForbit;
+      std::lock_guard<std::mutex> lock(stfMtx);
+      sRunNumber = stfHeader.runNumber;
+      sFirstTForbit = stfHeader.firstOrbit;
     }
 
     const std::uint64_t lDataSize = lDataHeader->payloadSize;
@@ -338,7 +346,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
 #ifdef _RUN_TIMING_MEASUREMENT_
     findChanSW.Start(false);
 #endif
-    const auto& fmqChannel = findOutputChannel(lDataHeader);
+    const auto& fmqChannel = findOutputChannel(lDataHeader, tfID);
 #ifdef _RUN_TIMING_MEASUREMENT_
     findChanSW.Stop();
 #endif
@@ -390,33 +398,43 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
     LOG(error) << "FileRead: Read more data than it is indicated in the META header!";
     return nullptr;
   }
-
   // add TF acknowledge part
-  o2::header::DataHeader stfDistDataHeader(o2::header::gDataDescriptionDISTSTF, o2::header::gDataOriginFLP, 0, sizeof(STFHeader), 0, 1);
-  stfDistDataHeader.payloadSerializationMethod = o2::header::gSerializationMethodNone;
-  stfDistDataHeader.firstTForbit = stfHeader.firstOrbit;
-  stfDistDataHeader.runNumber = stfHeader.runNumber;
-  stfDistDataHeader.tfCounter = stfHeader.id;
-  stfHeader.id = tfID;
-  const auto fmqChannel = findOutputChannel(&stfDistDataHeader);
-  if (!fmqChannel.empty()) { // no output channel
-    auto fmqFactory = device->GetChannel(fmqChannel, 0).Transport();
-    o2::header::Stack headerStackSTF{stfDistDataHeader, o2f::DataProcessingHeader{tfID, 1, lStfFileMeta.mWriteTimeMs}};
-    if (verbosity > 0) {
-      printStack(headerStackSTF);
-    }
-    auto hdMessageSTF = fmqFactory->CreateMessage(headerStackSTF.size(), fair::mq::Alignment{64});
-    auto plMessageSTF = fmqFactory->CreateMessage(stfDistDataHeader.payloadSize, fair::mq::Alignment{64});
-    memcpy(hdMessageSTF->GetData(), headerStackSTF.data(), headerStackSTF.size());
-    memcpy(plMessageSTF->GetData(), &stfHeader, sizeof(STFHeader));
-#ifdef _RUN_TIMING_MEASUREMENT_
-    addPartSW.Start(false);
-#endif
-    addPart(std::move(hdMessageSTF), std::move(plMessageSTF), fmqChannel);
-#ifdef _RUN_TIMING_MEASUREMENT_
-    addPartSW.Stop();
-#endif
+  // in case of empty TF fall-back to previous runNumber and fistTForbit
+  if (stfHeader.runNumber == -1u) {
+    stfHeader.runNumber = runNumberFallBack;
+    stfHeader.firstOrbit = firstTForbitFallBack;
+    LOGP(info, "Empty TF#{}, fallback to previous runNumber:{} firstTForbit:{}", tfID, stfHeader.runNumber, stfHeader.firstOrbit);
   }
+
+  unsigned stfSS[2] = {0, 0xccdb};
+  for (int iss = 0; iss < (sup0xccdb ? 1 : 2); iss++) {
+    o2::header::DataHeader stfDistDataHeader(o2::header::gDataDescriptionDISTSTF, o2::header::gDataOriginFLP, stfSS[iss], sizeof(STFHeader), 0, 1);
+    stfDistDataHeader.payloadSerializationMethod = o2::header::gSerializationMethodNone;
+    stfDistDataHeader.firstTForbit = stfHeader.firstOrbit;
+    stfDistDataHeader.runNumber = stfHeader.runNumber;
+    stfDistDataHeader.tfCounter = stfHeader.id;
+    stfHeader.id = tfID;
+    const auto fmqChannel = findOutputChannel(&stfDistDataHeader, tfID);
+    if (!fmqChannel.empty()) { // no output channel
+      auto fmqFactory = device->GetChannel(fmqChannel, 0).Transport();
+      o2::header::Stack headerStackSTF{stfDistDataHeader, o2f::DataProcessingHeader{tfID, 1, lStfFileMeta.mWriteTimeMs}};
+      if (verbosity > 0) {
+        printStack(headerStackSTF);
+      }
+      auto hdMessageSTF = fmqFactory->CreateMessage(headerStackSTF.size(), fair::mq::Alignment{64});
+      auto plMessageSTF = fmqFactory->CreateMessage(stfDistDataHeader.payloadSize, fair::mq::Alignment{64});
+      memcpy(hdMessageSTF->GetData(), headerStackSTF.data(), headerStackSTF.size());
+      memcpy(plMessageSTF->GetData(), &stfHeader, sizeof(STFHeader));
+#ifdef _RUN_TIMING_MEASUREMENT_
+      addPartSW.Start(false);
+#endif
+      addPart(std::move(hdMessageSTF), std::move(plMessageSTF), fmqChannel);
+#ifdef _RUN_TIMING_MEASUREMENT_
+      addPartSW.Stop();
+#endif
+    }
+  }
+
 #ifdef _RUN_TIMING_MEASUREMENT_
   readSW.Stop();
   LOG(info) << "TF creation time: CPU: " << readSW.CpuTime() << " Wall: " << readSW.RealTime() << " s";

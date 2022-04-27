@@ -15,6 +15,7 @@ o2_add_library(DataFormatsMCH
                        src/CTF.cxx
                        src/ROFRecord.cxx
                        src/Cluster.cxx
+                       src/DsChannelId.cxx
             PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
                                      O2::DetectorsCommonDataFormats)
 

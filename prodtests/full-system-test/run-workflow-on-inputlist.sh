@@ -17,7 +17,7 @@ if [[ $2 != "LOCAL" && ! -f $2 ]]; then
   exit 1
 fi
 
-for i in EXTINPUT CTFINPUT RAWTFINPUT; do
+for i in EXTINPUT CTFINPUT RAWTFINPUT DIGITINPUT; do
   [[ ! -z ${!i} ]] && { echo "$i must not be set!"; exit 1; }
 done
 
@@ -65,6 +65,8 @@ elif [[ $1 == "CTF" ]]; then
   export CTFINPUT=1
 elif [[ $1 == "TF" ]]; then
   export RAWTFINPUT=1
+elif [[ $1 == "MC" ]]; then
+  export DIGITINPUT=1
 else
   echo "ERROR: Unsupported mode $1 requested"
   exit 1

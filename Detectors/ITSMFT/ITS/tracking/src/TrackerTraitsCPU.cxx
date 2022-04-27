@@ -170,6 +170,9 @@ void TrackerTraitsCPU::computeLayerTracklets()
           }
         }
       }
+      if (!tf->checkMemory(mTrkParams.MaxMemory)) {
+        return;
+      }
     }
   }
   /// Cold code, fixups
@@ -302,6 +305,9 @@ void TrackerTraitsCPU::computeLayerCells()
     }
     if (iLayer > 0) {
       tf->getCellsLookupTable()[iLayer - 1].resize(currentLayerTrackletsNum + 1, tf->getCells()[iLayer].size());
+    }
+    if (!tf->checkMemory(mTrkParams.MaxMemory)) {
+      return;
     }
   }
 

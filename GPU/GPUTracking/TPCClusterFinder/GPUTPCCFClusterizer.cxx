@@ -75,10 +75,10 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
   if (idx >= clusternum || fragment.isOverlap(pos.time())) {
     return;
   }
-  pc.finalize(pos, charge, fragment.start);
+  pc.finalize(pos, charge, fragment.start, clusterer.Param().tpcGeometry);
 
   tpc::ClusterNative myCluster;
-  pc.toNative(pos, charge, calib.tpc.cfMinSplitNum, myCluster);
+  pc.toNative(pos, charge, calib.tpc.cfMinSplitNum, myCluster, clusterer.Param().tpcGeometry);
 
   bool aboveQTotCutoff = (myCluster.qTot > calib.tpc.cfQTotCutoff);
 
@@ -260,7 +260,7 @@ GPUd() uint GPUTPCCFClusterizer::sortIntoBuckets(processorType& clusterer, const
   if (index < maxElemsPerBucket) {
     buckets[maxElemsPerBucket * row + index] = cluster;
   } else {
-    clusterer.raiseError(GPUErrors::ERROR_CF_ROW_CLUSTER_OVERFLOW, index, maxElemsPerBucket);
+    clusterer.raiseError(GPUErrors::ERROR_CF_ROW_CLUSTER_OVERFLOW, clusterer.mISlice * 1000 + row, index, maxElemsPerBucket);
     CAMath::AtomicExch(&elemsInBucket[row], maxElemsPerBucket);
   }
   return index;

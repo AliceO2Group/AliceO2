@@ -24,8 +24,7 @@
 using namespace o2::zdc;
 using namespace std;
 
-void CreateModuleConfig(long tmin = 0, long tmax = -1,
-                        std::string ccdbHost = "http://ccdb-test.cern.ch:8080")
+void CreateModuleConfig(long tmin = 0, long tmax = -1, std::string ccdbHost = "")
 {
 
   ModuleConfig conf;
@@ -131,7 +130,17 @@ void CreateModuleConfig(long tmin = 0, long tmax = -1,
 
   o2::ccdb::CcdbApi api;
   map<string, string> metadata; // can be empty
-  api.init(ccdbHost.c_str());   // or http://localhost:8080 for a local installation
+  if (ccdbHost.size() == 0 || ccdbHost == "external") {
+    ccdbHost = "http://alice-ccdb.cern.ch:8080";
+  } else if (ccdbHost == "internal") {
+    ccdbHost = "http://o2-ccdb.internal/";
+  } else if (ccdbHost == "test") {
+    ccdbHost = "http://ccdb-test.cern.ch:8080";
+  } else if (ccdbHost == "local") {
+    ccdbHost = "http://localhost:8080";
+  }
+  api.init(ccdbHost.c_str());
+  LOG(info) << "CCDB server: " << api.getURL();
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(&conf, CCDBPathConfigModule, metadata, tmin, tmax);
 

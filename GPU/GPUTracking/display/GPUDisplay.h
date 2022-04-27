@@ -18,38 +18,7 @@
 #include "GPUSettings.h"
 #include "GPUDisplayFrontend.h"
 #include "GPUDisplayBackend.h"
-
-#ifndef GPUCA_BUILD_EVENT_DISPLAY
-
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
-{
-class GPUDisplay
-{
- public:
-  GPUDisplay(void* frontend, void* chain, void* qa, const char* backend = "", const void* param = nullptr, const void* calib = nullptr, const void* config = nullptr) {}
-  ~GPUDisplay() = default;
-  GPUDisplay(const GPUDisplay&) = delete;
-
-  int StartDisplay() { return 1; }
-  void ShowNextEvent(const GPUTrackingInOutPointers* ptrs = nullptr) {}
-  void WaitForNextEvent() {}
-  void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster) {}
-
-  void HandleKey(unsigned char key) {}
-  int DrawGLScene(bool mixAnimation = false, float mAnimateTime = -1.f) { return 1; }
-  void HandleSendKey(int key) {}
-  int InitDisplay(bool initFailure = false) { return 1; }
-  void ExitDisplay() {}
-  void ReSizeGLScene(int width, int height, bool init = false) {}
-
-  const GPUDisplayBackend* backend() const { return nullptr; }
-};
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
-
-#else
+#include "GPUDisplayInterface.h"
 
 #include "GPUChainTracking.h"
 #include "../utils/vecpod.h"
@@ -68,32 +37,33 @@ class GPUTPCTracker;
 struct GPUParam;
 class GPUQA;
 
-class GPUDisplay
+class GPUDisplay : public GPUDisplayInterface
 {
  public:
-  GPUDisplay(GPUDisplayFrontend* frontend, GPUChainTracking* chain, GPUQA* qa, const char* backend = "opengl", const GPUParam* param = nullptr, const GPUCalibObjectsConst* calib = nullptr, const GPUSettingsDisplay* config = nullptr);
-  ~GPUDisplay() = default;
+  GPUDisplay(GPUDisplayFrontend* frontend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param = nullptr, const GPUCalibObjectsConst* calib = nullptr, const GPUSettingsDisplay* config = nullptr);
   GPUDisplay(const GPUDisplay&) = delete;
+  ~GPUDisplay() override = default;
 
-  int StartDisplay();
-  void ShowNextEvent(const GPUTrackingInOutPointers* ptrs = nullptr);
-  void WaitForNextEvent();
-  void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster);
+  int StartDisplay() override;
+  void ShowNextEvent(const GPUTrackingInOutPointers* ptrs = nullptr) override;
+  void WaitForNextEvent() override;
+  void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster) override;
 
   void HandleKey(unsigned char key);
-  int DrawGLScene(bool mixAnimation = false, float mAnimateTime = -1.f);
+  int DrawGLScene();
   void HandleSendKey(int key);
   int InitDisplay(bool initFailure = false);
   void ExitDisplay();
-  void ReSizeGLScene(int width, int height, bool init = false);
+  void ResizeScene(int width, int height, bool init = false);
 
   const GPUSettingsDisplayRenderer& cfgR() const { return mCfgR; }
   const GPUSettingsDisplayLight& cfgL() const { return mCfgL; }
-  int renderWidth() const { return mRenderwidth; }
-  int renderHeight() const { return mRenderheight; }
-  int screenWidth() const { return mScreenwidth; }
-  int screenHeight() const { return mScreenheight; }
+  const GPUSettingsDisplayHeavy& cfgH() const { return mCfgH; }
+  const GPUSettingsDisplay& cfg() const { return mConfig; }
   bool useMultiVBO() const { return mUseMultiVBO; }
+  int updateDrawCommands() const { return mUpdateDrawCommands; }
+  int updateRenderPipeline() const { return mUpdateRenderPipeline; }
+  GPUDisplayBackend* backend() const { return mBackend.get(); }
   vecpod<int>* vertexBufferStart() { return mVertexBufferStart; }
   const vecpod<unsigned int>* vertexBufferCount() const { return mVertexBufferCount; }
   struct vtx {
@@ -101,6 +71,10 @@ class GPUDisplay
     vtx(float a, float b, float c) : x(a), y(b), z(c) {}
   };
   vecpod<vtx>* vertexBuffer() { return mVertexBuffer; }
+  const GPUParam* param() { return mParam; }
+  GPUDisplayFrontend* frontend() { return mFrontend; }
+  bool drawTextInCompatMode() const { return mDrawTextInCompatMode; }
+  int& drawTextFontSize() { return mDrawTextFontSize; }
 
  private:
   static constexpr int NSLICES = GPUChainTracking::NSLICES;
@@ -166,14 +140,18 @@ class GPUDisplay
     bool mVerbose = false;
   };
 
-  int DrawGLScene_internal(bool mixAnimation, float mAnimateTime);
+  void DrawGLScene_internal(float animateTime = -1.f, bool renderToMixBuffer = false);
+  void DrawGLScene_updateEventData();
+  void DrawGLScene_cameraAndAnimation(float animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix);
+  size_t DrawGLScene_updateVertexList();
+  void DrawGLScene_drawCommands();
   int InitDisplay_internal();
   int getNumThreads();
   void disableUnsupportedOptions();
   int buildTrackFilter();
   const GPUTPCTracker& sliceTracker(int iSlice);
   const GPUTRDTrackerGPU& trdTracker();
-  const GPUTRDGeometry& trdGeometry();
+  const GPUTRDGeometry* trdGeometry();
   const GPUTrackingInOutPointers* mIOPtrs = nullptr;
   void insertVertexList(std::pair<vecpod<int>*, vecpod<unsigned int>*>& vBuf, size_t first, size_t last);
   void insertVertexList(int iSlice, size_t first, size_t last);
@@ -209,10 +187,6 @@ class GPUDisplay
   void SetColorGridTRD();
   void SetColorMarked();
   void SetCollisionColor(int col);
-  void setQuality();
-  void setDepthBuffer();
-  void setFrameBuffer(int updateCurrent = -1, unsigned int newID = 0);
-  void UpdateOffscreenBuffers(bool clean = false);
   void updateConfig();
   void drawPointLinestrip(int iSlice, int cid, int id, int id_limit = TRACK_TYPE_ID_LIMIT);
   vboList DrawClusters(int iSlice, int select, unsigned int iCol);
@@ -229,10 +203,11 @@ class GPUDisplay
   void DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, std::array<vecpod<int>, 2>& trackList, threadVertexBuffer& threadBuffer);
   vboList DrawGrid(const GPUTPCTracker& tracker);
   vboList DrawGridTRD(int sector);
-  void DoScreenshot(char* filename, float mAnimateTime = -1.f);
+  void DoScreenshot(const char* filename, std::vector<char>& pixels, float animateTime = -1.f);
   void PrintHelp();
   void createQuaternionFromMatrix(float* v, const float* mat);
   void drawVertices(const vboList& v, const GPUDisplayBackend::drawType t);
+  void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true);
 
   GPUDisplayFrontend* mFrontend = nullptr;
   std::unique_ptr<GPUDisplayBackend> mBackend;
@@ -246,19 +221,19 @@ class GPUDisplay
   GPUQA* mQA;
   qSem mSemLockDisplay;
 
+  bool mDrawTextInCompatMode = false;
+  int mDrawTextFontSize = 0;
+
   int mNDrawCalls = 0;
 
   bool mUseMultiVBO = false;
 
-  std::array<float, 3> mDrawColor = {};
+  std::array<float, 4> mDrawColor = {1.f, 1.f, 1.f, 1.f};
 
   int mTestSetting = 0;
 
   float mAngleRollOrigin = -1e9;
   float mMaxClusterZ = -1;
-
-  int mScreenwidth = GPUDisplayFrontend::INIT_WIDTH, mScreenheight = GPUDisplayFrontend::INIT_HEIGHT;
-  int mRenderwidth = GPUDisplayFrontend::INIT_WIDTH, mRenderheight = GPUDisplayFrontend::INIT_HEIGHT;
 
   hmm_mat4 mViewMatrix, mModelMatrix;
   float* const mViewMatrixP = &mViewMatrix.Elements[0][0];
@@ -273,10 +248,6 @@ class GPUDisplay
   vecpod<vtx> mVertexBuffer[NSLICES];
   vecpod<int> mVertexBufferStart[NSLICES];
   vecpod<unsigned int> mVertexBufferCount[NSLICES];
-
-  vecpod<unsigned int> mMainBufferStack{0};
-  GPUDisplayBackend::GLfb mMixBuffer;
-  GPUDisplayBackend::GLfb mOffscreenBuffer, mOffscreenBufferNoMSAA;
 
   std::unique_ptr<float4[]> mGlobalPosPtr;
   std::unique_ptr<float4[]> mGlobalPosPtrTRD;
@@ -301,8 +272,10 @@ class GPUDisplay
   std::vector<bool> mTrackFilter;
   bool mUpdateTrackFilter = false;
 
-  int mGlDLrecent = 0;
-  volatile int mUpdateDLList = 0;
+  int mUpdateVertexLists = 1;
+  int mUpdateEventData = 0;
+  int mUpdateDrawCommands = 1;
+  int mUpdateRenderPipeline = 0;
   volatile int mResetScene = 0;
 
   int mAnimate = 0;
@@ -334,9 +307,13 @@ class GPUDisplay
   vecpod<vboList> mGlDLPoints[NSLICES][N_POINTS_TYPE];
   vboList mGlDLGrid[NSLICES];
   vboList mGlDLGridTRD[NSLICES / 2];
+
+  bool mRequestScreenshot = false;
+  std::string mScreenshotFile;
+
+  float mYFactor = 1.0f;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#endif
 #endif

@@ -25,7 +25,7 @@ void MultivariatePolynomialHelper<0, 0>::print() const
 {
   const auto terms = getTerms();
   std::string formula = "";
-  for (int i = 0; i < terms.size() - 1; ++i) {
+  for (int i = 0; i < (int)terms.size() - 1; ++i) {
     formula += fmt::format("{} + ", terms[i]);
   }
   formula += terms.back();

@@ -13,26 +13,19 @@
 /// \brief Implementation of the FV0 reconstruction task
 
 #include "FV0Reconstruction/BaseRecoTask.h"
-#include "FairLogger.h" // for LOG
 #include "DataFormatsFV0/RecPoints.h"
 #include "FV0Base/Geometry.h"
 #include "FV0Simulation/FV0DigParam.h"
 #include "FV0Simulation/DigitizationConstant.h"
-#include "FV0Simulation/FV0DigParam.h"
 #include <DataFormatsFV0/ChannelData.h>
-#include <DataFormatsFV0/BCData.h>
-#include <cmath>
-#include <bitset>
-#include <cassert>
-#include <iostream>
-#include <algorithm>
+#include <DataFormatsFV0/Digit.h>
 #include <CommonDataFormat/InteractionRecord.h>
 #include <Framework/Logger.h>
 
 using namespace o2::fv0;
 using RP = o2::fv0::RecPoints;
 
-RP BaseRecoTask::process(o2::fv0::BCData const& bcd,
+RP BaseRecoTask::process(o2::fv0::Digit const& bcd,
                          gsl::span<const o2::fv0::ChannelData> inChData,
                          gsl::span<o2::fv0::ChannelDataFloat> outChData)
 {
@@ -51,21 +44,19 @@ RP BaseRecoTask::process(o2::fv0::BCData const& bcd,
   int nch = inChData.size();
   for (int ich = 0; ich < nch; ich++) {
     LOG(debug) << "  channel " << ich << " / " << nch;
-    int offsetChannel = getChannelOffset(inChData[ich].pmtNumber);
+    int offsetChannel = getChannelOffset(inChData[ich].ChId);
 
-    outChData[ich] = o2::fv0::ChannelDataFloat{inChData[ich].pmtNumber,
-                                               (inChData[ich].time - offsetChannel) * DigitizationConstant::TIME_PER_TDCCHANNEL,
-                                               (double)inChData[ich].chargeAdc * o2::fv0::FV0DigParam::Instance().adcChannelsPerMilivolt,
+    outChData[ich] = o2::fv0::ChannelDataFloat{inChData[ich].ChId,
+                                               (inChData[ich].CFDTime - offsetChannel) * DigitizationConstant::TIME_PER_TDCCHANNEL,
+                                               (double)inChData[ich].QTCAmpl * o2::fv0::FV0DigParam::Instance().adcChannelsPerMilivolt,
                                                0}; // Fill with ADC number once implemented
-
     //  only signals with amplitude participate in collision time
     if (outChData[ich].charge > 0) {
       sideAtimeFirst = std::min(static_cast<Double_t>(sideAtimeFirst), outChData[ich].time);
       sideAtimeAvg += outChData[ich].time;
       ndigitsA++;
     }
-    const float chargeThreshold = 10; // TODO: move to digitization parameters or constants and adjust to reasonable value
-    if (outChData[ich].charge > 0) {
+    if (outChData[ich].charge > o2::fv0::FV0DigParam::Instance().chargeThrForMeanTime) {
       sideAtimeAvgSelected += outChData[ich].time;
       ndigitsASelected++;
     }

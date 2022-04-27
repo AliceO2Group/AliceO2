@@ -104,10 +104,10 @@ bool NoiseSlotCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClust
 }
 
 // Functions overloaded from the calibration framework
-bool NoiseSlotCalibrator::process(calibration::TFType tf, const gsl::span<const o2::itsmft::CompClusterExt> data)
+bool NoiseSlotCalibrator::process(const gsl::span<const o2::itsmft::CompClusterExt> data)
 {
   LOG(warning) << "Only 1-pix noise calibraton is possible !";
-  return calibration::TimeSlotCalibration<o2::itsmft::CompClusterExt, o2::itsmft::NoiseMap>::process(tf, data);
+  return calibration::TimeSlotCalibration<o2::itsmft::CompClusterExt, o2::itsmft::NoiseMap>::process(data);
 }
 
 // Functions required by the calibration framework

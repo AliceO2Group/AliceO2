@@ -118,6 +118,9 @@ class SAMPAProcessing
   /// \return Noise on the channel of interest
   float getNoise(const int sector, const int globalPadInSector);
 
+  /// Get the zero suppression threshold for a given channel
+  float getZeroSuppression(const int sector, const int globalPadInSector) const;
+
   /// Get the pedestal for a given channel
   /// \param cru CRU of the channel of interest
   /// \param padPos PadPos of the channel of interest
@@ -127,11 +130,12 @@ class SAMPAProcessing
  private:
   SAMPAProcessing();
 
-  const ParameterGas* mGasParam;         ///< Caching of the parameter class to avoid multiple CDB calls
-  const ParameterDetector* mDetParam;    ///< Caching of the parameter class to avoid multiple CDB calls
-  const ParameterElectronics* mEleParam; ///< Caching of the parameter class to avoid multiple CDB calls
-  const CalPad* mNoiseMap;               ///< Caching of the parameter class to avoid multiple CDB calls
-  const CalPad* mPedestalMap;            ///< Caching of the parameter class to avoid multiple CDB calls
+  const ParameterGas* mGasParam;             ///< Caching of the parameter class to avoid multiple CDB calls
+  const ParameterDetector* mDetParam;        ///< Caching of the parameter class to avoid multiple CDB calls
+  const ParameterElectronics* mEleParam;     ///< Caching of the parameter class to avoid multiple CDB calls
+  const CalPad* mNoiseMap;                   ///< Caching of the parameter class to avoid multiple CDB calls
+  const CalPad* mPedestalMap;                ///< Caching of the parameter class to avoid multiple CDB calls
+  const CalPad* mZeroSuppression;            ///< Caching of the parameter class to avoid multiple CDB calls
   math_utils::RandomRing<> mRandomNoiseRing; ///< Ring with random number for noise
 };
 
@@ -158,11 +162,23 @@ inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, cons
       return getADCSaturation(signal);
       break;
     }
+    case DigitzationMode::ZeroSuppression: {
+      signal -= commonMode;
+      signal += noise;
+      signal += pedestal;
+      const float signalSubtractPedestal = getADCSaturation(signal) - pedestal;
+      const float zeroSuppression = getZeroSuppression(sector, globalPadInSector);
+      if (signalSubtractPedestal < zeroSuppression) {
+        return 0.f;
+      }
+      return signalSubtractPedestal;
+      break;
+    }
     case DigitzationMode::SubtractPedestal: {
       signal -= commonMode;
       signal += noise;
       signal += pedestal;
-      float signalSubtractPedestal = getADCSaturation(signal) - pedestal;
+      const float signalSubtractPedestal = getADCSaturation(signal) - pedestal;
       return signalSubtractPedestal;
       break;
     }
@@ -237,6 +253,11 @@ inline float SAMPAProcessing::getTimeBinTime(float time) const
 inline float SAMPAProcessing::getNoise(const int sector, const int globalPadInSector)
 {
   return mRandomNoiseRing.getNextValue() * mNoiseMap->getValue(sector, globalPadInSector);
+}
+
+inline float SAMPAProcessing::getZeroSuppression(const int sector, const int globalPadInSector) const
+{
+  return mZeroSuppression->getValue(sector, globalPadInSector);
 }
 
 inline float SAMPAProcessing::getPedestal(const int sector, const int globalPadInSector) const

@@ -77,6 +77,17 @@ void createGRPECSObject(const std::string& dataPeriod,
     // long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     api.storeAsTFileAny(&grpecs, "GLO/Config/GRPECS", metadata, tstart, tendVal); // making it 1-year valid to be sure we have something
     LOGP(info, "Uploaded to {}/{} with validity {}:{}", ccdbServer, "GLO/Config/GRPECS", tstart, tendVal);
+    // also storing the RCT/Info/RunInformation entry in case the run type is PHYSICS and if we are at the end of run
+    if (runType == GRPECSObject::RunType::PHYSICS && tend < tstart) {
+      char tempChar;
+      std::map<std::string, std::string> mdRCT;
+      mdRCT["SOR"] = std::to_string(tstart);
+      mdRCT["EOR"] = std::to_string(tend);
+      long startValRCT = (long)run;
+      long endValRCT = (long)(run + 1);
+      api.storeAsBinaryFile(&tempChar, sizeof(tempChar), "tmp.dat", "char", "RCT/Info/RunInformation", mdRCT, startValRCT, endValRCT);
+      LOGP(info, "Uploaded RCT object to {}/{} with validity {}:{}", ccdbServer, "RCT/Info/RunInformation", startValRCT, endValRCT);
+    }
   } else { // write a local file
     auto fname = o2::base::NameConf::getGRPECSFileName();
     TFile grpF(fname.c_str(), "recreate");

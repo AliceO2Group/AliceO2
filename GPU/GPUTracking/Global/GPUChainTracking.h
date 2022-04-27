@@ -55,7 +55,7 @@ namespace gpu
 {
 //class GPUTRDTrackerGPU;
 class GPUTPCGPUTracker;
-class GPUDisplay;
+class GPUDisplayInterface;
 class GPUQA;
 class GPUTPCClusterStatistics;
 class GPUTRDGeometry;
@@ -73,6 +73,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void RegisterPermanentMemoryAndProcessors() override;
   void RegisterGPUProcessors() override;
   int Init() override;
+  int EarlyConfigure() override;
   int PrepareEvent() override;
   int Finalize() override;
   int RunChain() override;
@@ -81,6 +82,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   bool SupportsDoublePipeline() override { return true; }
   int FinalizePipelinedProcessing() override;
   void ClearErrorCodes();
+  void DoQueuedCalibUpdates(int stream); // Forces doing queue calib updates, don't call when you are not sure you are allowed to do so!
 
   // Structures for input and output data
   GPUTrackingInOutPointers& mIOPtrs;
@@ -138,7 +140,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int ConvertNativeToClusterData();
   void ConvertNativeToClusterDataLegacy();
   void ConvertRun2RawToNative();
-  void ConvertZSEncoder(bool zs12bit);
+  void ConvertZSEncoder(int version);
   void ConvertZSFilter(bool zs12bit);
 
   // Getters for external usage of tracker classes
@@ -147,7 +149,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   const GPUTPCTracker* GetTPCSliceTrackers() const { return processors()->tpcTrackers; }
   const GPUTPCGMMerger& GetTPCMerger() const { return processors()->tpcMerger; }
   GPUTPCGMMerger& GetTPCMerger() { return processors()->tpcMerger; }
-  GPUDisplay* GetEventDisplay() { return mEventDisplay.get(); }
+  GPUDisplayInterface* GetEventDisplay() { return mEventDisplay.get(); }
   const GPUQA* GetQA() const { return mQA.get(); }
   GPUQA* GetQA() { return mQA.get(); }
   int ForceInitQA();
@@ -184,7 +186,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void SetO2Propagator(const o2::base::Propagator* prop) { processors()->calibObjects.o2Propagator = prop; }
   void SetCalibObjects(const GPUCalibObjectsConst& obj) { processors()->calibObjects = obj; }
   void SetCalibObjects(const GPUCalibObjects& obj) { memcpy((void*)&processors()->calibObjects, (const void*)&obj, sizeof(obj)); }
-  void SetDefaultO2PropagatorForGPU();
+  void SetUpdateCalibObjects(const GPUCalibObjectsConst& obj);
+  void SetDefaultInternalO2Propagator(bool useGPUField);
   void LoadClusterErrors();
   void SetOutputControlCompressedClusters(GPUOutputControl* v) { mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::compressedClusters)] = v; }
   void SetOutputControlClustersNative(GPUOutputControl* v) { mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clustersNative)] = v; }
@@ -206,6 +209,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     short mMemoryResFlat = -1;
     void* SetPointersFlatObjects(void* mem);
   };
+  void UpdateGPUCalibObjects(int stream);
+  void UpdateGPUCalibObjectsPtrs(int stream);
 
   struct eventStruct // Must consist only of void* ptr that will hold the GPU event ptrs!
   {
@@ -247,7 +252,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   // Display / QA
   bool mDisplayRunning = false;
-  std::unique_ptr<GPUDisplay> mEventDisplay;
+  std::unique_ptr<GPUDisplayInterface> mEventDisplay;
   std::unique_ptr<GPUQA> mQA;
   std::unique_ptr<GPUTPCClusterStatistics> mCompressionStatistics;
 
@@ -265,6 +270,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   // (Ptrs to) configuration objects
   std::unique_ptr<GPUTPCCFChainContext> mCFContext;
   bool mTPCSliceScratchOnStack = false;
+  GPUCalibObjectsConst mNewCalibObjects;
+  bool mUpdateNewCalibObjects = false;
 
   // Upper bounds for memory allocation
   unsigned int mMaxTPCHits = 0;

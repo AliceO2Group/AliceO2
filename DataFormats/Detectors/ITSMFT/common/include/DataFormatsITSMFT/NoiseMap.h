@@ -20,7 +20,7 @@
 #include <cassert>
 #include <vector>
 #include <map>
-
+#include "Framework/Logger.h"
 #include "gsl/span"
 
 namespace o2
@@ -55,7 +55,7 @@ class NoiseMap
   /// Get the noise level for this pixels
   float getNoiseLevel(int chip, int row, int col) const
   {
-    assert(chip > (int)mNoisyPixels.size());
+    assert(chip < (int)mNoisyPixels.size());
     const auto keyIt = mNoisyPixels[chip].find(getKey(row, col));
     if (keyIt != mNoisyPixels[chip].end()) {
       return keyIt->second;
@@ -65,7 +65,7 @@ class NoiseMap
 
   void increaseNoiseCount(int chip, int row, int col)
   {
-    assert(chip > (int)mNoisyPixels.size());
+    assert(chip < (int)mNoisyPixels.size());
     mNoisyPixels[chip][getKey(row, col)]++;
   }
 

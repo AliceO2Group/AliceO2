@@ -39,6 +39,7 @@ namespace its
 {
 class TrackerTraits;
 class VertexerTraits;
+class TimeFrame;
 } // namespace its
 } // namespace o2
 
@@ -115,6 +116,7 @@ class GPUReconstruction
   static GPUReconstruction* CreateInstance(DeviceType type = DeviceType::CPU, bool forceType = true, GPUReconstruction* master = nullptr);
   static GPUReconstruction* CreateInstance(int type, bool forceType, GPUReconstruction* master = nullptr) { return CreateInstance((DeviceType)type, forceType, master); }
   static GPUReconstruction* CreateInstance(const char* type, bool forceType, GPUReconstruction* master = nullptr);
+  static bool CheckInstanceAvailable(DeviceType type);
 
   // Helpers for kernel launches
   template <class T, int I = 0>
@@ -221,6 +223,7 @@ class GPUReconstruction
 
   // Helpers to fetch processors from other shared libraries
   virtual void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits);
+  virtual void GetITSTimeframe(std::unique_ptr<o2::its::TimeFrame>* timeFrame);
   bool slavesExist() { return mSlaves.size() || mMaster; }
 
   // Getters / setters for parameters
@@ -236,6 +239,7 @@ class GPUReconstruction
   void SetSettings(const GPUSettingsGRP* grp, const GPUSettingsRec* rec = nullptr, const GPUSettingsProcessing* proc = nullptr, const GPURecoStepConfiguration* workflow = nullptr);
   void SetResetTimers(bool reset) { mProcessingSettings.resetTimers = reset; } // May update also after Init()
   void SetDebugLevelTmp(int level) { mProcessingSettings.debugLevel = level; } // Temporarily, before calling SetSettings()
+  GPUParam& GetNonConstParam() { return mHostConstantMem->param; }             // Kind of hack, but needed for manual updates after SetSettings(), if the default configKeyValues parsing for SetSettings() is used.
   void UpdateGRPSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p = nullptr);
   void SetOutputControl(const GPUOutputControl& v) { mOutputControl = v; }
   void SetOutputControl(void* ptr, size_t size);

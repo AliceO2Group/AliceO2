@@ -14,6 +14,7 @@
 #include "Framework/ChannelSpec.h"
 #include <iosfwd>
 #include <string_view>
+#include <vector>
 
 namespace o2::framework
 {
@@ -22,8 +23,18 @@ namespace o2::framework
 struct FairMQChannelConfigParser {
   virtual void beginChannel() {}
   virtual void endChannel() {}
-  virtual void property(std::string_view key, std::string_view value) {}
+  virtual void property(std::string_view /* key */, std::string_view /* value */) {}
   virtual void error() {}
+};
+
+/// A parser which creates an OutputChannelSpec from the --channel-config
+struct OutputChannelSpecConfigParser : FairMQChannelConfigParser {
+  void beginChannel() override;
+  void endChannel() override;
+  void property(std::string_view /* key */, std::string_view /* value */) override;
+  void error() override;
+  std::vector<OutputChannelSpec> specs;
+  int channelCount = 0;
 };
 
 /// A few helpers to convert enums to their actual representation in

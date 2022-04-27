@@ -107,6 +107,8 @@ class AltroDecoder
   /// \brief Get list of hw errors found in decoding
   const std::vector<o2::phos::RawReaderError>& hwerrors() { return mOutputHWErrors; }
 
+  const std::vector<short>& chi2list() { return mOutputFitChi; }
+
   /// \brief Get reference to the RCU trailer object
   /// \return reference to the RCU trailers vector
   const RCUTrailer& getRCUTrailer() const { return mRCUTrailer; }
@@ -122,26 +124,29 @@ class AltroDecoder
   }
   void setCombineHGLG(bool a) { mCombineGHLG = a; }
 
+  void setPresamples(int ps) { mPreSamples = ps; }
+
  private:
   static constexpr int kGeneralSRUErr = 15; ///< Non-existing FEE card to store general SRU errors
   static constexpr int kGeneralTRUErr = 16; ///< Non-existing FEE card to store general TRU errors
-  //check and convert HW address to absId and caloFlag
+  // check and convert HW address to absId and caloFlag
   bool hwToAbsAddress(short hwaddress, short& absId, Mapping::CaloFlag& caloFlag);
-  //read trigger digits
+  // read trigger digits
   void readTRUDigits(short absId, int payloadSize, std::vector<o2::phos::Cell>& truContainer);
-  //read trigger summary tables
+  // read trigger summary tables
   void readTRUFlags(short hwAddress, int payloadSize);
 
   bool mCombineGHLG = true;                                ///< Combine or not HG and LG channels (def: combine, LED runs: not combine)
   bool mPedestalRun = false;                               ///< Analyze pedestal run (calculate pedestal mean and RMS)
   short mddl;                                              ///< Current DDL
+  short mPreSamples = 0;                                   ///< Number of pre-samples in time calculation
   std::vector<uint16_t> mBunchwords;                       ///< (transient) bunch of samples for current channel
   std::vector<o2::phos::RawReaderError> mOutputHWErrors;   ///< Errors occured in reading data
   std::vector<short> mOutputFitChi;                        ///< Raw sample fit quality
   std::bitset<Mapping::NTRUReadoutChannels + 2> mTRUFlags; ///< trigger summary table
   RCUTrailer mRCUTrailer;                                  ///< RCU trailer
 
-  ClassDefNV(AltroDecoder, 1);
+  ClassDefNV(AltroDecoder, 2);
 };
 
 } // namespace phos

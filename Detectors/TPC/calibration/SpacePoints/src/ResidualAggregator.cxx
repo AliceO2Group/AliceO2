@@ -91,7 +91,7 @@ void ResidualsContainer::fillStatisticsBranches()
   treeOutStats->Fill();
 }
 
-void ResidualsContainer::fill(const gsl::span<const TrackResiduals::UnbinnedResid> data)
+void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const TrackResiduals::UnbinnedResid> data)
 {
   // receives large vector of unbinned residuals and fills the sector-wise vectors
   // with binned residuals and statistics
@@ -199,7 +199,7 @@ void ResidualAggregator::finalizeSlot(Slot& slot)
   cont->fileOut.reset();
 }
 
-Slot& ResidualAggregator::emplaceNewSlot(bool front, uint64_t tStart, uint64_t tEnd)
+Slot& ResidualAggregator::emplaceNewSlot(bool front, TFType tStart, TFType tEnd)
 {
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tStart, tEnd) : cont.emplace_back(tStart, tEnd);

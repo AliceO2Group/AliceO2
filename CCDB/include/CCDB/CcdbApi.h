@@ -76,6 +76,12 @@ class CcdbApi //: public DatabaseInterface
   std::string const& getURL() const { return mUrl; }
 
   /**
+   * Check if we are in a snapshot mode
+   *
+   */
+  bool isSnapshotMode() const { return mInSnapshotMode; }
+
+  /**
    * Create a binary image of the arbitrary type object, if CcdbObjectInfo pointer is provided, register there
    *
    * the assigned object class name and the filename
@@ -468,7 +474,7 @@ class CcdbApi //: public DatabaseInterface
   static TClass* tinfo2TClass(std::type_info const& tinfo);
 
   // split string on delimiters and return tokens as vector
-  std::vector<std::string> splitString(std::string string, const char* delimiters);
+  std::vector<std::string> splitString(const std::string& str, const char* delimiters);
 
   typedef size_t (*CurlWriteCallback)(void*, size_t, size_t, void*);
 
@@ -496,6 +502,12 @@ class CcdbApi //: public DatabaseInterface
   void initHostsPool(std::string hosts);
 
   std::string getHostUrl(int hostIndex) const;
+
+  /**
+   * Function to check the keys for metadata
+   * see https://developers.cloudflare.com/rules/transform/request-header-modification/reference/header-format/
+   */
+  void checkMetadataKeys(std::map<std::string, std::string> const& metadata) const;
 
   /// Base URL of the CCDB (with port)
   std::string mUrl{};

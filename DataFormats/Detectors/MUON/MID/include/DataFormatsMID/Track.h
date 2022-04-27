@@ -36,6 +36,10 @@ class Track
   /// Gets the track z position
   float getPositionZ() const { return mPosition[2]; }
 
+  /// Ses the track position
+  /// \param xPos x position
+  /// \param yPos y position
+  /// \param zPos z position
   void setPosition(float xPos, float yPos, float zPos);
 
   /// Gets the track x direction
@@ -45,6 +49,10 @@ class Track
   /// Gets the track z direction
   float getDirectionZ() const { return mDirection[2]; }
 
+  /// Ses the track direction
+  /// \param xDir x direction
+  /// \param yDir y direction
+  /// \param zDir z direction
   void setDirection(float xDir, float yDir, float zDir);
 
   enum class CovarianceParamIndex : int {
@@ -63,22 +71,43 @@ class Track
   {
     return mCovarianceParameters[static_cast<int>(covParam)];
   }
-  void setCovarianceParameters(float xErr2, float yErr2, float slopeXErr2, float slopeYErr2, float covXSlopeX,
-                               float covYSlopeY);
+
+  /// Sets the covariance parameters
+  /// \param xErr2 Variance on x position
+  /// \param yErr2 Variance on y position
+  /// \param slopeXErr2 Variance on x slope
+  /// \param slopeYErr2 Variance on y slope
+  /// \param covXSlopeX Covariance on x position and slope
+  /// \param covYSlopeY Covariance on y position and slope
+  void setCovarianceParameters(float xErr2, float yErr2, float slopeXErr2, float slopeYErr2, float covXSlopeX, float covYSlopeY);
 
   /// Sets the covariance matrix
+  /// \param covParam array with the covariance parameters
   void setCovarianceParameters(const std::array<float, 6>& covParam) { mCovarianceParameters = covParam; }
 
   /// Checks if covariance is set
   bool isCovarianceSet() { return (mCovarianceParameters[0] != 0.); }
 
+  /// Propagates the track parameter to z position with a linear extrapolation
+  /// \param zPosition Z position
+  /// \return false if the track parameters were already at the required z
   bool propagateToZ(float zPosition);
 
   /// Gets the matched clusters without bound checking
+  /// \param chamber Chamber ID (from 0 to 3)
   int getClusterMatchedUnchecked(int chamber) const { return mClusterMatched[chamber]; }
+  /// Gets the matched clusters
+  /// \param chamber Chamber ID (from 0 to 3)
   int getClusterMatched(int chamber) const;
+
   /// Sets the matched clusters without bound checking
+  /// \param chamber Chamber ID (from 0 to 3)
+  /// \param id Cluster ID
   void setClusterMatchedUnchecked(int chamber, int id) { mClusterMatched[chamber] = id; }
+
+  /// Sets the matched clusters
+  /// \param chamber Chamber ID (from 0 to 3)
+  /// \param id Cluster ID
   void setClusterMatched(int chamber, int id);
 
   /// Returns the chi2 of the track
@@ -92,17 +121,70 @@ class Track
   /// Returns the normalized chi2 of the track
   float getChi2OverNDF() const { return mChi2 / static_cast<float>(mNDF); }
 
+  /// Check if tracks are compatible within uncertainties
+  /// \param track Track for which compatibility is checked
+  /// \param chi2Cut Chi2 cut for the comparison
   bool isCompatible(const Track& track, float chi2Cut) const;
 
+  /// Sets the fired chamber
+  /// \param chamber Chamber ID (from 0 to 3)
+  /// \param cathode Cathode (0 or 1)
+  void setFiredChamber(int chamber, int cathode) { mEfficiencyWord |= 1 << (4 * cathode + chamber); }
+
+  /// Is fired chamber
+  /// \param chamber Chamber ID (from 0 to 3)
+  /// \param cathode Cathode (0 or 1)
+  /// \return true if the chamber was fired
+  bool isFiredChamber(int chamber, int cathode) const { return mEfficiencyWord & (1 << (4 * cathode + chamber)); }
+
+  /// Gets hit map
+  uint8_t getHitMap() const { return mEfficiencyWord & 0xFF; }
+
+  /// Gets the word allowing to compute the chamber efficiency
+  uint32_t getEfficiencyWord() const { return mEfficiencyWord; }
+
+  /// Sets the fired local board for efficiency calculation
+  /// \param locId local board ID in the range 1-234
+  void setFiredLocalBoard(int locId) { setEfficiencyWord(8, 0xFF, locId); }
+
+  /// Gets the fired local board for efficiency calculation
+  int getFiredLocalBoard() const { return (mEfficiencyWord >> 8) & 0xFF; }
+
+  /// Sets the fired detection element ID for efficiency calculation
+  /// \param deId detection element ID in the range 1-234
+  void setFiredDeId(int deId) { setEfficiencyWord(16, 0xFF, deId); }
+
+  /// Gets the fired detection element ID for efficiency calculation
+  int getFiredDeId() const { return (mEfficiencyWord >> 16) & 0xFF; }
+
+  /// Sets the flag for efficiency calculation
+  /// \param effFlag efficiency flag
+  void setEfficiencyFlag(int effFlag) { setEfficiencyWord(24, 0xF, effFlag); }
+
+  /// Gets the flag for efficiency calculation
+  /// \return
+  /// \li \c 0 track cannot be used for efficiency calculation
+  /// \li \c 1 track can be used to estimate chamber efficiency
+  /// \li \c 2 track can be used to estimate detection element efficiency
+  /// \li \c 3 track can be used to estimate local board efficiency
+  int getEfficiencyFlag() const { return (mEfficiencyWord >> 24) & 0xF; }
+
+  /// Overload ostream operator for MID track
   friend std::ostream& operator<<(std::ostream& stream, const Track& track);
 
  private:
+  /// Set portions of the efficiency word
+  /// \param pos Position in the word
+  /// \param mask Maximum size of the bits
+  /// \param value Value to be set
+  void setEfficiencyWord(int pos, int mask, int value);
   std::array<float, 3> mPosition = {};             ///< Position
   std::array<float, 3> mDirection = {};            ///< Direction
   std::array<float, 6> mCovarianceParameters = {}; ///< Covariance parameters
   std::array<int, 4> mClusterMatched = {};         ///< Matched cluster index
   float mChi2 = 0.;                                ///< Chi2 of track
   int mNDF = 0;                                    ///< Number of chi2 degrees of freedom
+  uint32_t mEfficiencyWord = 0;                    ///< Efficiency word
 
   ClassDefNV(Track, 1);
 };

@@ -15,7 +15,6 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
-#include "ITSWorkflow/IRFrameReaderSpec.h"
 #include "MFTWorkflow/TrackReaderSpec.h"
 #include "TPCReaderWorkflow/TrackReaderSpec.h"
 #include "TPCReaderWorkflow/ClusterReaderSpec.h"
@@ -27,6 +26,7 @@
 #include "GlobalTrackingWorkflowReaders/PrimaryVertexReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/SecondaryVertexReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/TrackCosmicsReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/IRFrameReaderSpec.h"
 #include "TOFWorkflowIO/ClusterReaderSpec.h"
 #include "TOFWorkflowIO/TOFMatchedReaderSpec.h"
 #include "FT0Workflow/RecPointReaderSpec.h"
@@ -37,6 +37,7 @@
 #include "TRDWorkflowIO/TRDTrackReaderSpec.h"
 #include "CTPWorkflowIO/DigitReaderSpec.h"
 #include "MCHWorkflow/TrackReaderSpec.h"
+#include "MCHWorkflow/ClusterReaderSpec.h"
 #include "MIDWorkflow/TrackReaderSpec.h"
 #include "PHOSWorkflow/ReaderSpec.h"
 #include "CPVWorkflow/ReaderSpec.h"
@@ -155,6 +156,10 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
     specs.emplace_back(o2::emcal::getCellReaderSpec(maskTracksMC[GID::EMC] || maskClustersMC[GID::EMC]));
   }
 
+  if (maskClusters[GID::MCH]) {
+    specs.emplace_back(o2::mch::getClusterReaderSpec(maskClustersMC[GID::MCH], "mch-global-cluster-reader", true, false));
+  }
+
   return 0;
 }
 
@@ -194,6 +199,6 @@ int InputHelper::addInputSpecsIRFramesITS(const o2::framework::ConfigContext& co
   if (configcontext.options().get<bool>("disable-root-input")) {
     return 0;
   }
-  specs.emplace_back(o2::its::getIRFrameReaderSpec());
+  specs.emplace_back(o2::globaltracking::getIRFrameReaderSpec("ITS", 0, "its-irframe-reader", "o2_its_irframe.root"));
   return 0;
 }

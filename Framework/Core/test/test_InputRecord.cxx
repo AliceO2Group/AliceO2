@@ -24,7 +24,7 @@ using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
 using Stack = o2::header::Stack;
 
-bool any_exception(RuntimeErrorRef const& ex) { return true; }
+bool any_exception(RuntimeErrorRef const&) { return true; }
 
 BOOST_AUTO_TEST_CASE(TestInputRecord)
 {
@@ -38,7 +38,9 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
     return InputRoute{
       spec,
       i++,
-      source};
+      source,
+      0,
+      std::nullopt};
   };
 
   /// FIXME: keep it simple and simply use the constructor...
@@ -57,9 +59,9 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
   BOOST_CHECK_EXCEPTION(emptyRecord.get("x"), RuntimeErrorRef, any_exception);
   BOOST_CHECK_EXCEPTION(emptyRecord.get("y"), RuntimeErrorRef, any_exception);
   BOOST_CHECK_EXCEPTION(emptyRecord.get("z"), RuntimeErrorRef, any_exception);
-  BOOST_CHECK_EXCEPTION(emptyRecord.getByPos(0), RuntimeErrorRef, any_exception);
-  BOOST_CHECK_EXCEPTION(emptyRecord.getByPos(1), RuntimeErrorRef, any_exception);
-  BOOST_CHECK_EXCEPTION(emptyRecord.getByPos(2), RuntimeErrorRef, any_exception);
+  BOOST_CHECK_EXCEPTION((void)emptyRecord.getByPos(0), RuntimeErrorRef, any_exception);
+  BOOST_CHECK_EXCEPTION((void)emptyRecord.getByPos(1), RuntimeErrorRef, any_exception);
+  BOOST_CHECK_EXCEPTION((void)emptyRecord.getByPos(2), RuntimeErrorRef, any_exception);
   // Then we actually check with a real set of inputs.
 
   std::vector<void*> inputs;
@@ -102,14 +104,13 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
   BOOST_CHECK_NO_THROW(record.get("z"));
   auto ref00 = record.get("x");
   auto ref10 = record.get("y");
-  auto ref20 = record.get("z");
   BOOST_CHECK_EXCEPTION(record.get("err"), RuntimeErrorRef, any_exception);
 
   // Or we can get it positionally
   BOOST_CHECK_NO_THROW(record.get("x"));
   auto ref01 = record.getByPos(0);
   auto ref11 = record.getByPos(1);
-  BOOST_CHECK_EXCEPTION(record.getByPos(10), RuntimeErrorRef, any_exception);
+  BOOST_CHECK_EXCEPTION((void)record.getByPos(10), RuntimeErrorRef, any_exception);
 
   // This should be exactly the same pointers
   BOOST_CHECK_EQUAL(ref00.header, ref01.header);

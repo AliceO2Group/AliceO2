@@ -14,8 +14,8 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#ifndef ALICEO2_MCH_PRECLUSTER_H_
-#define ALICEO2_MCH_PRECLUSTER_H_
+#ifndef O2_MCH_PRECLUSTER_H_
+#define O2_MCH_PRECLUSTER_H_
 
 #include <iostream>
 
@@ -42,4 +42,4 @@ struct PreCluster {
 } // namespace mch
 } // namespace o2
 
-#endif // ALICEO2_MCH_PRECLUSTER_H_
+#endif // O2_MCH_PRECLUSTER_H_
