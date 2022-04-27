@@ -17,7 +17,7 @@
 #include "MIDRaw/ELinkDataShaper.h"
 
 #include "CommonConstants/LHCConstants.h"
-// #define ORBITFROMMIDRO
+#include "CommonConstants/Triggers.h"
 
 namespace o2
 {
@@ -43,27 +43,33 @@ ELinkDataShaper::ELinkDataShaper(bool isDebugMode, bool isLoc, uint8_t uniqueId,
   mLocalToBCSelfTrig = mElectronicsDelay.localToBC;
   if (!isLoc) {
     mLocalToBCSelfTrig -= electronicsDelay.localToReg;
-    mElectronicsDelay.calibToFET += electronicsDelay.localToReg;
   }
+  mElectronicsDelay.calibToFET += mLocalToBCSelfTrig;
 }
 
-void ELinkDataShaper::set(uint32_t orbit)
+void ELinkDataShaper::set(uint32_t orbit, uint32_t trigger)
 {
   /// Sets the orbit and the output data vectors
-  mRDHOrbit = orbit;
 
   if (mIR.isDummy()) {
+    // First initialization
     mIR.bc = 0;
-// The reset changes depending on the way we synch with the orbit
-// (see processOrbitTrigger for details)
-// FIXME: pick one of the two
-#ifdef ORBITFROMMIDRO
-    mIR.orbit = orbit - 1; // with orbit increase
-#else
-    mIR.orbit = orbit;   // with reset to RDH
-#endif
+    mIR.orbit = orbit - 1;
     mMaxBunches = constants::lhc::LHCMaxBunches;
+  } else if ((trigger & o2::trigger::TF || trigger & o2::trigger::SOT) && mRDHOrbit != orbit) {
+    // At TF limit, the CRU UL ensures that the first event is the answer of the electronics to a HB trigger,
+    // so it is the right time to synch with the orbit in the RDH.
+    // This also allows to consistently run on EPNs, since EPN receive packets of TFs
+    // and the orbit is not consecutive from one packet to the other.
+    // Notice that we subtract 1 to the orbit value, since the TF starts with the answer to a HB trigger,
+    // and the value will be therefore correctly incremented.
+    // Notice also that we might receive several RDH pages
+    // (at least two since there is always an empty stop page),
+    // but we want to set the orbit only for the first one.
+    // The easiest way to do it is to check that the current orbit differs from the last saved RDH orbit.
+    mIR.orbit = orbit - 1;
   }
+  mRDHOrbit = orbit;
 }
 
 bool ELinkDataShaper::checkLoc(const ELinkDecoder& decoder)
@@ -99,27 +105,16 @@ EventType ELinkDataShaper::processCalibrationTrigger(const InteractionRecord& ir
   return EventType::Calib;
 }
 
-void ELinkDataShaper::processOrbitTrigger(uint16_t localClock, uint8_t triggerWord)
+void ELinkDataShaper::processHBTrigger(uint16_t localClock, uint8_t triggerWord)
 {
-  /// Processes the orbit trigger event
+  /// Processes the HB trigger event
 
   // The local clock is reset: we are now in synch with the new HB
-  // We have two ways to account for the orbit change:
-  // - increase the orbit counter by 1 for this e-link
-  //   (CAVEAT: synch is lost if we lose some orbit)
-  // - set the orbit to the one found in RDH
-  //   (CAVEAT: synch is lost if we have lot of data, spanning over two orbits)
-  // FIXME: pick one of the two
-#ifdef ORBITFROMMIDRO
-  ++mIR.orbit; // orbit increase
-#else
-  mIR.orbit = mRDHOrbit; // reset to RDH
-#endif
-  if ((triggerWord & raw::sSOX) == 0) {
-    // The clock counter starts from 0, so the total number of bunches
-    // between two orbit triggers is the last clock value + 1
-    mMaxBunches = localClock + 1;
-  }
+  ++mIR.orbit;
+  // The local clock value in an answer to the orbit trigger corresponds to the number of clocks elapsed since last reset.
+  // Since the HB trigger is reset at each orbit, this corresponds to the number of bunches.
+  // We need to add one because the local clock starts from 0.
+  mMaxBunches = localClock + 1;
 }
 
 bool ELinkDataShaper::processTrigger(const ELinkDecoder& decoder, EventType& eventType, InteractionRecord& ir)
@@ -149,10 +144,9 @@ bool ELinkDataShaper::processTrigger(const ELinkDecoder& decoder, EventType& eve
   eventType = EventType::Standard;
 
   if (decoder.getTriggerWord() & raw::sORB) {
-    // This is the answer to an orbit trigger
-    processOrbitTrigger(localClock, decoder.getTriggerWord());
+    // This is the answer to an HB trigger
+    processHBTrigger(localClock, decoder.getTriggerWord());
   }
-  applyElectronicsDelay(ir.orbit, ir.bc, mElectronicsDelay.localToBC, mMaxBunches);
 
   if (decoder.getTriggerWord() & raw::sCALIBRATE) {
     // This is an answer to a calibration trigger
