@@ -234,9 +234,6 @@ class Detector : public o2::base::DetImpl<Detector>
   fastsim::processors::StandardScaler mClassifierScaler;
   fastsim::processors::StandardScaler mModelScaler;
 
-  // Noise vector - will be generate once for whole simulation
-  std::vector<float> mNoise;
-
   // container for fastsim model responses
   using FastSimResults = std::vector<std::array<long, 5>>;
   FastSimResults mFastSimResults;
