@@ -22,6 +22,14 @@
 #include "Framework/DataProcessorSpec.h"
 #include "CCDB/BasicCCDBManager.h"
 
+
+/*
+https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/GRP/workflows/include/GRPWorkflows/GRPDCSDPsSpec.h
+https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/TOF/calibration/testWorkflow/TOFDCSDataProcessorSpec.h
+https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/EMCAL/workflow/include/EMCALWorkflow/EMCALDCSDataProcessorSpec.h
+https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/ITSMFT/MFT/condition/testWorkflow/MFTDCSDataProcessorSpec.h
+*/
+
 using namespace o2::framework;
 
 namespace o2
