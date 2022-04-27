@@ -1,0 +1,37 @@
+String aliases for HMPID
+
+
+/*
+ Strings for HMPID_ID =  "HMP_DET",
+  %-signs are omitted when counting character position in string
+ 
+ temp-out TEMP_OUT_ID: 
+ Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iOut_Temp",iCh,iCh,iRad) 
+  
+ temp-in TEMP_IN_ID: 
+ Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iIn_Temp",iCh,iCh,iRad) 
+ 
+ Environment pressure ENV_PRESS_ID: 
+ "HMP_DET/HMP_ENV/HMP_ENV_PENV.actual.value" 
+ 
+ Chamber pressure CH_PRESS_ID: 
+ Form("HMP_DET/HMP_MP%i/HMP_MP%i_GAS/HMP_MP%i_GAS_PMWPC.actual.value",iCh,iCh,iCh)
+ 
+ High Voltage HV_ID:  
+ Form("HMP_DET/HMP_MP%i/HMP_MP%i_PW/HMP_MP%i_SEC%i/  HMP_MP%i_SEC%i_HV.actual.vMon",iCh,iCh,iCh,iSec,iCh,iSec)
+*/
+     
+
+  /*  Strings for HMPID-IR IDs "HMP_DET/HMP_INFR"
+	waveLenght WAVE_LEN_ID : 
+		Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.waveLenght",i));
+      	argonReference ARGON_REF_ID:
+      		Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonReference",i)
+      	argonCell ARGON_CELL_ID:
+      		Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/		HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonCell)
+      	c6f14Cell FREON_CELL_ID:
+      		Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Cell)
+      	c6f14Reference FREON_REF_ID:
+      		Form(HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Reference) 
+*/
+     
