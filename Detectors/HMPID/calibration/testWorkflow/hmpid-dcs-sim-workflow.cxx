@@ -46,6 +46,10 @@ o2::framework::WorkflowSpec defineDataProcessing(ConfigContext const& config)
   std::vector<o2::dcs::test::HintType> dphints;
   // ===| CH4 PRESSURE values (mbar) |============================
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMPID_CH4_PRESSURE", 980., 1040.});
+//EF is this the correct one?: 
+
+//  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMP_DET/HMP_MP1/HMP_MP1_GAS/HMP_MP1_GAS_PMWPC.actual.value", 980., 1040.});
+
 
   // ==| Temperature C6F14 IN/OUT / RADIATORS  (C) |=================================
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMPID_C6F14_RADIATOR0_IN_TEMPERATURE", 25., 27.});

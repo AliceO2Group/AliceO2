@@ -29,16 +29,6 @@
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"
 
-
-
-/*
-https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/GRP/workflows/src/GRPDCSDPsSpec.cxx
-https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/TOF/calibration/testWorkflow/TOFDCSDataProcessorSpec.h
-https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/EMCAL/workflow/include/EMCALWorkflow/EMCALDCSDataProcessorSpec.h
-https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/ITSMFT/MFT/condition/testWorkflow/MFTDCSDataProcessorSpec.h
-*/
-
-
 using namespace o2::framework;
 
 namespace o2
@@ -88,7 +78,7 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
       }
     } else {
       LOG(info) << "Configuring via hardcoded strings";
-      std::vector<std::string> aliases = {"tof_hv_vp_[00..89]" /*, INSERT HMPID ALIASES*/};
+      std::vector<std::string> aliases = {"tof_hv_vp_[00..89]", "tof_hv_vn_[00..89]", "tof_hv_ip_[00..89]", "tof_hv_in_[00..89]"};
       std::vector<std::string> expaliases = o2::dcs::expandAliases(aliases);
       
       for (const auto& i : expaliases) {
@@ -140,7 +130,6 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
     
     
     // as of now, the finalize-function processes both RefIndex and ChargeCut
-    // process fetched datapoints:
     mProcessor->finalize(); // finalize, in HMPID-function
     
     //sendChargeThresOutput(pc.outputs()); // should be in run ??
