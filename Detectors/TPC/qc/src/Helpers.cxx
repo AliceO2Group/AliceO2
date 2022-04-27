@@ -11,11 +11,7 @@
 
 #include <cassert>
 
-//root includes
-#include "TH1F.h"
-#include "TH2F.h"
-
-//o2 includes
+// o2 includes
 #include "TPCQC/Helpers.h"
 #include "TPCBase/Mapper.h"
 #include "TPCBase/ROC.h"
@@ -74,10 +70,32 @@ void helpers::setStyleHistogram2D(std::vector<TH2F>& histos)
 }
 
 //______________________________________________________________________________
+void helpers::setStyleHistogram(TH1& histo)
+{
+  // common and 1D case
+  histo.SetStats(1);
+  // 2D case
+  if (histo.InheritsFrom(TH2::Class())) {
+    histo.SetOption("colz");
+    histo.SetStats(0);
+    histo.SetMinimum(0.9);
+  }
+}
+
+//______________________________________________________________________________
+void helpers::setStyleHistogramsInMap(std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>>& mapOfvectors)
+{
+  for (const auto& keyValue : mapOfvectors) {
+    for (auto& hist : keyValue.second) {
+      helpers::setStyleHistogram(*hist);
+    }
+  }
+}
+
+//______________________________________________________________________________
 bool helpers::newZSCalib(const o2::tpc::CalDet<float>& refPedestal, const o2::tpc::CalDet<float>& refNoise, const o2::tpc::CalDet<float>& pedestal)
 {
   const o2::tpc::Mapper& mapper = o2::tpc::Mapper::instance();
-
   o2::tpc::CalDet<float> diffCalDet = refPedestal - pedestal;
 
   for (o2::tpc::ROC roc; !roc.looped(); ++roc) {
