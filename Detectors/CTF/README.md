@@ -40,10 +40,9 @@ By default only CTFs will written. If the upstream entropy compression is perfor
 `--output-type both` (will store both dictionaries and CTF). This is the only valid mode for dictionaries creation (if one requests dictionary creation but the compression was done with external dictionaries, the newly created dictionaries will be empty).
 In the dictionaries creation mode their data are accumulated over all CTFs procssed. User may request periodic (and incremental) saving of dictionaries after every `N` TFs processed by passing `--save-dict-after <N>` option.
 
-Option `--ctf-dict-dir <dir>` can be provided to indicate the (existing) directory where the dictionary will be stored.
+Option `--ctf-dict-dir <dir>` can be provided to indicate the directory where the dictionary will be stored.
 
-The external dictionaries created by the `o2-ctf-writer-workflow` containes a TTree (one for all participating detectos or single file per detector if `--dict-per-det` was provided). Since the TTrees cannot be used with CcdbAPI, one can
-run the macro `O2/Detectors/CTF/utils/CTFdict2CCDBfiles.C` (installed to $O2_ROOT/share/macro/CTFdict2CCDBfiles.C) which extracts the dictionary for every detector into separate file containing plain `vector<char>`. These files can be directly
+The external dictionaries created by the `o2-ctf-writer-workflow` containes a TTree (one for all participating detectos) and separate dictionaries per detector which can be uploaded to the CCDB. The per-detector dictionaries compatible with CCDB can be also extracted from the common TTree-based dictionary file using the macro `O2/Detectors/CTF/utils/CTFdict2CCDBfiles.C` (installed to $O2_ROOT/share/macro/CTFdict2CCDBfiles.C) which extracts the dictionary for every detector into separate file containing plain `vector<char>`. These per-detector files can be directly
 uploaded to CCDB and accessed via `CcdbAPI` (the reference of the vector should be provided to corresponding detector CTFCoder::createCoders method to build the run-time dictionary). These files can be also used as per-detector command-line
 parameters, on the same footing as tree-based dictionaries, e.g.
 ```
