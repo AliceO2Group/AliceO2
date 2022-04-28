@@ -42,7 +42,7 @@ namespace o2::framework
 {
 
 struct InputSpec;
-struct InputSpan;
+class InputSpan;
 class CallbackService;
 
 /// @class InputRecord
