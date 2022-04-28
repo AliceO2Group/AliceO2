@@ -178,7 +178,7 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
   }
 
   /// This should post a message on the queue...
-  SubscribeToNewTransition("dpl", [wakeHandle = mAwakeHandle, deviceContext = &mDeviceContext](fair::mq::Transition t) {
+  SubscribeToNewTransition("dpl", [wakeHandle = mAwakeHandle](fair::mq::Transition t) {
     int res = uv_async_send(wakeHandle);
     if (res < 0) {
       LOG(error) << "Unable to notify subscription";
@@ -441,7 +441,6 @@ void DataProcessingDevice::initPollers()
 {
   // We add a timer only in case a channel poller is not there.
   if ((mStatefulProcess != nullptr) || (mStatelessProcess != nullptr)) {
-    int ci = 0;
     for (auto& [channelName, channel] : fChannels) {
       InputChannelInfo* channelInfo;
       for (size_t ci = 0; ci < mDeviceContext.spec->inputChannels.size(); ++ci) {
@@ -612,8 +611,7 @@ void DataProcessingDevice::InitTask()
   mDeviceContext.exitTransitionTimeout = std::stoi(fConfig->GetValue<std::string>("exit-transition-timeout"));
 
   for (auto& channel : fChannels) {
-    channel.second.at(0).Transport()->SubscribeToRegionEvents([this,
-                                                               &context = mDeviceContext,
+    channel.second.at(0).Transport()->SubscribeToRegionEvents([&context = mDeviceContext,
                                                                &registry = mServiceRegistry,
                                                                &pendingRegionInfos = mPendingRegionInfos,
                                                                &regionInfoMutex = mRegionInfoMutex](FairMQRegionInfo info) {
@@ -1222,7 +1220,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
     return results;
   };
 
-  auto reportError = [&registry = *context.registry, &context](const char* message) {
+  auto reportError = [&registry = *context.registry](const char* message) {
     registry.get<DataProcessingStats>().errorCount++;
   };
 
@@ -1282,7 +1280,6 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
           auto headerIndex = input.position;
           auto payloadIndex = input.position + 1;
           assert(payloadIndex < parts.Size());
-          auto dh = o2::header::get<DataHeader*>(parts.At(headerIndex)->GetData());
           // FIXME: the message with the end of stream cannot contain
           //        split parts.
           parts.At(headerIndex).reset(nullptr);
@@ -1298,7 +1295,6 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
           auto headerIndex = input.position;
           auto payloadIndex = input.position + 1;
           assert(payloadIndex < parts.Size());
-          auto dh = o2::header::get<DataHeader*>(parts.At(headerIndex)->GetData());
           // FIXME: the message with the end of stream cannot contain
           //        split parts.
           parts.At(headerIndex).reset(nullptr);
@@ -1310,7 +1306,6 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
       }
     }
     auto it = std::remove_if(parts.fParts.begin(), parts.fParts.end(), [](auto& msg) -> bool { return msg.get() == nullptr; });
-    auto r = std::distance(it, parts.fParts.end());
     parts.fParts.erase(it, parts.end());
     if (parts.fParts.size()) {
       LOG(debug) << parts.fParts.size() << " messages backpressured";
@@ -1615,8 +1610,6 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         if (cachedForwardingChoice == -1) {
           continue;
         }
-
-        auto& forward = spec->forwards[cachedForwardingChoice];
 
         if (copy) {
           auto&& newHeader = header->GetTransport()->CreateMessage();

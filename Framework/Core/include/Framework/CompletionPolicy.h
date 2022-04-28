@@ -24,7 +24,7 @@ namespace o2::framework
 struct DeviceSpec;
 struct InputRecord;
 struct InputSpan;
-struct DataRelayer;
+class DataRelayer;
 
 /// Policy to describe what to do for a matching DeviceSpec
 /// whenever a new message arrives. The InputRecord being passed to

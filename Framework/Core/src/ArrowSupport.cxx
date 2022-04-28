@@ -42,8 +42,8 @@
 namespace o2::framework
 {
 
-struct EndOfStreamContext;
-struct ProcessingContext;
+class EndOfStreamContext;
+class ProcessingContext;
 
 enum struct RateLimitingState {
   UNKNOWN = 0,                   // No information received yet.

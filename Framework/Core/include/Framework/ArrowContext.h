@@ -54,10 +54,10 @@ class ArrowContext
                  std::function<void(std::shared_ptr<FairMQResizableBuffer>)> finalize,
                  RouteIndex routeIndex)
   {
-    mMessages.push_back(std::move(MessageRef{std::move(header),
-                                             std::move(buffer),
-                                             std::move(finalize),
-                                             routeIndex}));
+    mMessages.push_back(MessageRef{std::move(header),
+                                   std::move(buffer),
+                                   std::move(finalize),
+                                   routeIndex});
   }
 
   Messages::iterator begin()
