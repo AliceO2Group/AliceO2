@@ -73,8 +73,6 @@ class TrackCuts
           (!(const_cast<o2::tpc::TrackTPC&>(tpcTrk).propagateParamToDCA(v, mBz, &dca, mDCACut)) ||
            std::abs(dca[0]) > mDCACutY)) {
         return false;
-      } else {
-        return true;
       }
     } else if (contributorsGID[GIndex::Source::TRD].isIndexSet()) {
       const auto& trdTrk = data.getTrack<o2::trd::TrackTRD>(contributorsGID[GID::TRD]);
