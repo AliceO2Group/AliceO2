@@ -57,7 +57,7 @@ std::vector<std::string> listFiles(std::string const& searchpattern)
 
 void createDirectoriesIfAbsent(std::string const& path)
 {
-  if (!std::filesystem::create_directories(path) && !std::filesystem::is_directory(path)) {
+  if (!path.empty() && !std::filesystem::create_directories(path) && !std::filesystem::is_directory(path)) {
     throw std::runtime_error(fmt::format("Failed to create {} directory", path));
   }
 }

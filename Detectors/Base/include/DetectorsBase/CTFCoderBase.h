@@ -53,7 +53,7 @@ class CTFCoderBase
   std::vector<char> readDictionaryFromFile(const std::string& dictPath, bool mayFail = false);
 
   template <typename CTF>
-  void createCodersFromFile(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op);
+  void createCodersFromFile(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op, bool mayFail = false);
 
   template <typename S>
   void createCoder(OpType op, const o2::rans::RenormedFrequencyTable& renormedFrequencyTable, int slot)
@@ -123,9 +123,8 @@ bool CTFCoderBase::readFromTree(TTree& tree, const std::string brname, T& dest, 
 
 ///________________________________
 template <typename CTF>
-void CTFCoderBase::createCodersFromFile(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op)
+void CTFCoderBase::createCodersFromFile(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op, bool mayFail)
 {
-  bool mayFail = true;
   auto buff = readDictionaryFromFile<CTF>(dictPath, mayFail);
   if (!buff.size()) {
     if (mayFail) {
