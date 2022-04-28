@@ -117,7 +117,9 @@ class EveWorkflowHelper
 
   using FilterSet = std::bitset<Filter::NFilters>;
 
-  EveWorkflowHelper(const FilterSet& enabledFilters = {}, std::size_t maxNTracks = -1);
+  using TBracket = o2::math_utils::Bracketf_t;
+
+  EveWorkflowHelper(const FilterSet& enabledFilters = {}, std::size_t maxNTracks = -1, const TBracket& timeBracket = {});
   static std::vector<PNT> getTrackPoints(const o2::track::TrackPar& trc, float minR, float maxR, float maxStep, float minZ = -25000, float maxZ = 25000);
   void selectTracks(const CalibObjectsConst* calib, GID::mask_t maskCl,
                     GID::mask_t maskTrk, GID::mask_t maskMatch);
@@ -162,6 +164,7 @@ class EveWorkflowHelper
 
   FilterSet mEnabledFilters;
   std::size_t mMaxNTracks;
+  TBracket mTimeBracket;
   o2::globaltracking::RecoContainer mRecoCont;
   o2::globaltracking::RecoContainer& getRecoContainer() { return mRecoCont; }
   TracksSet mTrackSet;
