@@ -57,12 +57,17 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const boost::p
 void DataSampling::DoGenerateInfrastructure(Dispatcher& dispatcher, WorkflowSpec& workflow, const boost::property_tree::ptree& policiesTree, size_t threads, const std::string& host)
 {
   LOG(debug) << "Generating Data Sampling infrastructure...";
+  std::set<std::string> ids; // keep track of the ids we have met so far
 
   for (auto&& policyConfig : policiesTree) {
 
     // We don't want the Dispatcher to exit due to one faulty Policy
     try {
       auto policy = DataSamplingPolicy::fromConfiguration(policyConfig.second);
+      if (ids.count(policy.getName()) == 1) {
+        LOG(error) << "A policy with the same id has already been encountered (" + policy.getName() + ")";
+      }
+      ids.insert(policy.getName());
       std::vector<std::string> machines;
       if (policyConfig.second.count("machines") > 0) {
         for (const auto& machine : policyConfig.second.get_child("machines")) {
