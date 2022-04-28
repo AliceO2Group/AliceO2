@@ -44,30 +44,30 @@ class TrackCuts
     auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
     auto src = trackIndex.getSource();                       // make selections depending on track source
     if (contributorsGID[GIndex::Source::ITS].isIndexSet()) { // ITS tracks selection
+      isBarrelTrack = true;
       const auto& itsTrk = data.getITSTrack(contributorsGID[GID::ITS]);
       int ITSnClusters = itsTrk.getNClusters();
       float ITSchi2 = itsTrk.getChi2();
       float itsChi2NCl = ITSnClusters != 0 ? ITSchi2 / (float)ITSnClusters : 0;
       uint8_t itsClusterMap = itsTrk.getPattern();
-      if (itsTrk.getPt() >= mMinPt && itsTrk.getPt() <= mMaxPt &&
-          itsTrk.getEta() >= mMinEta && itsTrk.getEta() <= mMaxEta &&
-          ITSnClusters >= mMinNClustersITS &&
-          itsChi2NCl <= mMaxChi2PerClusterITS &&
-          TrackMethods::FulfillsITSHitRequirements(itsClusterMap, mRequiredITSHits)) {
-        return true;
-      } else {
+      if (isBarrelTrack == false ||
+          ITSnClusters <= mMinNClustersITS ||
+          itsChi2NCl >= mMaxChi2PerClusterITS ||
+          TrackMethods::FulfillsITSHitRequirements(itsClusterMap, mRequiredITSHits) == false) {
         return false;
       }
     } else if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
+      isBarrelTrack = true;
       const auto& tpcTrk = data.getTPCTrack(contributorsGID[GID::TPC]);
-      uint8_t tpcNClsShared, tpcNClsFound, tpcNClsCrossed, tpcNClsFindable, tpcChi2NCl;
+      // uint8_t tpcNClsShared, tpcNClsFound, tpcNClsCrossed, tpcNClsFindable, tpcChi2NCl;
       // tpcNClsFindable = tpcTrk.getNClusters();
       // tpcChi2NCl = tpcTrk.getNClusters() ? tpcTrk.getChi2() / tpcTrk.getNClusters() : 0;
       // o2::TrackMethods::countTPCClusters(tpcTrk, data.getTPCTracksClusterRefs(), data.clusterShMapTPC, data.getTPCClusters(), tpcNClsShared, tpcNClsFound, tpcNClsCrossed);
       // double tpcCrossedRowsOverFindableCls = tpcNClsCrossed / tpcNClsFindable;
       math_utils::Point3D<float> v{};
       std::array<float, 2> dca;
-      if (tpcTrk.getPt() < mPtTPCCut ||
+      if (isBarrelTrack == false ||
+          tpcTrk.getPt() < mPtTPCCut ||
           std::abs(tpcTrk.getEta()) > mEtaTPCCut ||
           tpcTrk.getNClusters() < mNTPCClustersCut ||
           (!(const_cast<o2::tpc::TrackTPC&>(tpcTrk).propagateParamToDCA(v, mBz, &dca, mDCACut)) ||
@@ -98,6 +98,7 @@ class TrackCuts
   }
 
  private:
+  bool isBarrelTrack = false; // all barrel tracks must have either ITS or TPC contribution
   // cut values
   float mPtTPCCut = 0.1f;
   float mEtaTPCCut = 1.4f;
