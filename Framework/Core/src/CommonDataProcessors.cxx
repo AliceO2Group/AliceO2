@@ -34,6 +34,7 @@
 #include "Framework/TableTreeHelpers.h"
 #include "Framework/StringHelpers.h"
 #include "Framework/ChannelSpec.h"
+#include "ChannelSpecHelpers.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/RuntimeError.h"
 #include <Monitoring/Monitoring.h>
@@ -525,7 +526,7 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
       });
     })},
     .options = rateLimitingIPCID != -1 ? std::vector<ConfigParamSpec>{{"channel-config", VariantType::String, // raw input channel
-                                                                       "name=metric-feedback,type=push,method=bind,address=ipc://@metric-feedback-" + std::to_string(rateLimitingIPCID) + ",transport=shmem,rateLogging=0",
+                                                                       "name=metric-feedback,type=push,method=bind,address=ipc://" + ChannelSpecHelpers::defaultIPCFolder() + "metric-feedback-" + std::to_string(rateLimitingIPCID) + ",transport=shmem,rateLogging=0",
                                                                        {"Out-of-band channel config"}}}
                                        : std::vector<ConfigParamSpec>()
 
