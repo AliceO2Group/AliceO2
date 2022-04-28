@@ -33,8 +33,6 @@ using namespace o2::event_visualisation;
 void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
                                      GID::mask_t maskCl, GID::mask_t maskTrk, GID::mask_t maskMatch)
 {
-  using TBracket = o2::math_utils::Bracketf_t;
-
   std::vector<TBracket> itsROFBrackets;
 
   if (mEnabledFilters.test(Filter::ITSROF)) {
@@ -102,6 +100,10 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
     }
 
     auto bracket = correctTrackTime(trk, time, terr);
+
+    if (mEnabledFilters.test(Filter::TimeBracket) && mTimeBracket.getOverlap(bracket).isInvalid()) {
+      return true;
+    }
 
     if (mEnabledFilters.test(Filter::ITSROF) && !isInsideITSROF(bracket)) {
       return true;
@@ -642,7 +644,7 @@ void EveWorkflowHelper::drawTRDClusters(const o2::trd::TrackTRD& tpcTrdTrack, fl
   }
 }
 
-EveWorkflowHelper::EveWorkflowHelper(const FilterSet& enabledFilters, std::size_t maxNTracks) : mEnabledFilters(enabledFilters), mMaxNTracks(maxNTracks)
+EveWorkflowHelper::EveWorkflowHelper(const FilterSet& enabledFilters, std::size_t maxNTracks, const TBracket& timeBracket) : mEnabledFilters(enabledFilters), mMaxNTracks(maxNTracks), mTimeBracket(timeBracket)
 {
   o2::mch::TrackExtrap::setField();
   this->mMFTGeom = o2::mft::GeometryTGeo::Instance();
