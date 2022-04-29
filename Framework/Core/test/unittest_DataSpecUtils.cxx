@@ -347,3 +347,117 @@ BOOST_AUTO_TEST_CASE(Includes)
   BOOST_CHECK(!DataSpecUtils::includes(inputsFromQuery[0], inputsFromQuery[1]));
   BOOST_CHECK(!DataSpecUtils::includes(inputsFromQuery[1], inputsFromQuery[0]));
 }
+
+BOOST_AUTO_TEST_CASE(optionalConcreteDataMatcherFrom)
+{
+  using namespace data_matcher;
+
+  // the standard structure of fully qualified data descriptor
+  DataDescriptorMatcher matcher1{
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{"TPC"},
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      DescriptionValueMatcher{"CLUSTERS"},
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        SubSpecificationTypeValueMatcher{1},
+        std::make_unique<DataDescriptorMatcher>(
+          DataDescriptorMatcher::Op::Just,
+          StartTimeValueMatcher(ContextRef{ContextPos::STARTTIME_POS}))))};
+
+  // also fully qualified, but interchanged components
+  DataDescriptorMatcher matcher2{
+    DataDescriptorMatcher::Op::And,
+    DescriptionValueMatcher{"CLUSTERS"},
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      OriginValueMatcher{"TPC"},
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        SubSpecificationTypeValueMatcher{1},
+        std::make_unique<DataDescriptorMatcher>(
+          DataDescriptorMatcher::Op::Just,
+          StartTimeValueMatcher(ContextRef{ContextPos::STARTTIME_POS}))))};
+
+  // matcher with no unique subSpec
+  DataDescriptorMatcher matcher3{
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{"TPC"},
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      DescriptionValueMatcher{"CLUSTERS"},
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        std::make_unique<DataDescriptorMatcher>(
+          DataDescriptorMatcher::Op::Not,
+          SubSpecificationTypeValueMatcher{0}),
+        std::make_unique<DataDescriptorMatcher>(
+          DataDescriptorMatcher::Op::Just,
+          StartTimeValueMatcher(ContextRef{ContextPos::STARTTIME_POS}))))};
+
+  // another matcher with no unique subSpec
+  DataDescriptorMatcher matcher4{
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{"TPC"},
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      DescriptionValueMatcher{"CLUSTERS"},
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        std::make_unique<DataDescriptorMatcher>(
+          DataDescriptorMatcher::Op::Or,
+          SubSpecificationTypeValueMatcher{0},
+          SubSpecificationTypeValueMatcher{1}),
+        std::make_unique<DataDescriptorMatcher>(
+          DataDescriptorMatcher::Op::Just,
+          StartTimeValueMatcher(ContextRef{ContextPos::STARTTIME_POS}))))};
+
+  // unique origin and description only
+  DataDescriptorMatcher matcher5{
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{"TPC"},
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      DescriptionValueMatcher{"CLUSTERS"},
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        SubSpecificationTypeValueMatcher{ContextRef{2}},
+        std::make_unique<DataDescriptorMatcher>(
+          DataDescriptorMatcher::Op::Just,
+          StartTimeValueMatcher(ContextRef{ContextPos::STARTTIME_POS}))))};
+
+  // no subspec in the matcher
+  DataDescriptorMatcher matcher6{
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{"TPC"},
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      DescriptionValueMatcher{"CLUSTERS"},
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        ConstantValueMatcher{true},
+        std::make_unique<DataDescriptorMatcher>(
+          DataDescriptorMatcher::Op::Just,
+          StartTimeValueMatcher(ContextRef{ContextPos::STARTTIME_POS}))))};
+
+  DataDescriptorMatcher matcher7 = DataSpecUtils::dataDescriptorMatcherFrom(ConcreteDataMatcher{"ITS", "RAWDATA", 0});
+  DataDescriptorMatcher matcher8 = DataSpecUtils::dataDescriptorMatcherFrom(ConcreteDataTypeMatcher{"ITS", "RAWDATA"});
+
+  auto check = [](DataDescriptorMatcher const& matcher, bool expectConcreteDataMatcher, ConcreteDataMatcher compare = {"", "", 0}) {
+    auto concrete = DataSpecUtils::optionalConcreteDataMatcherFrom(matcher);
+    BOOST_CHECK_EQUAL(concrete.has_value(), expectConcreteDataMatcher);
+    if (concrete.has_value()) {
+      BOOST_CHECK(*concrete == compare);
+    }
+  };
+
+  check(matcher1, true, ConcreteDataMatcher{"TPC", "CLUSTERS", 1});
+  check(matcher2, true, ConcreteDataMatcher{"TPC", "CLUSTERS", 1});
+  check(matcher3, false);
+  check(matcher4, false);
+  check(matcher5, false);
+  check(matcher6, false);
+  check(matcher7, true, ConcreteDataMatcher{"ITS", "RAWDATA", 0});
+  check(matcher8, false);
+}
