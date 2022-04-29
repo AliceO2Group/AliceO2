@@ -86,9 +86,7 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
       for (const auto& i : expaliases) {
         vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
       }
-      //std::vector<std::string> aliasesInt = {"TOF_FEACSTATUS_[00..71]"};
-      //std::vector<std::string> expaliasesInt = o2::dcs::expandAliases(aliasesInt);
-      //for (const auto& i : expaliasesInt) {  vect.emplace_back(i, o2::dcs::DPVAL_INT);}
+
     } // end else 
 
     LOG(info) << "Listing Data Points for HMPID:";
