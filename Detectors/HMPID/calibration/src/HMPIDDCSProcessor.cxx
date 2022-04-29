@@ -351,13 +351,13 @@ void HMPIDDCSProcessor::finalizeEnvPressure() // after run is finished,
 { 
 	// if environment-pressure has entries 
 	if(pEnv.size() != 0){ 
-		TGraph *pGrPenv=new TGraph; 
 
 		auto minTime = HMPIDDCSTime::getMinTime(pEnv);
 		if(minTime < mTimeQThresh.first) mTimeQThresh.first = minTime;
 		auto maxTime = HMPIDDCSTime::getMaxTime(pEnv);
 		if(maxTime > mTimeQThresh.last) mTimeQThresh.last = maxTime;
 
+		TGraph *pGrPenv=new TGraph; 
 		for(DPCOM dp : pEnv){
 			pGrPenv->SetPoint(cntEnvPressure++,dp.data.get_epoch_time(),o2::dcs::getValue<double>(dp));
 		}
