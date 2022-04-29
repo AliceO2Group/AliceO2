@@ -74,7 +74,7 @@ void TestDataReader::init(InitContext& ic)
   mFolderNames = GetFName(mWorkDir);
 
   cout << "NFolder = " << mFolderNames.size() << endl;
-  for (int i = 0; i < mFolderNames.size(); i++) {
+  for (size_t i = 0; i < mFolderNames.size(); i++) {
 
     cout << "FDN = " << mFolderNames[i] << endl;
 
@@ -82,7 +82,7 @@ void TestDataReader::init(InitContext& ic)
 
     cout << "FDN File Size = " << mFileNames[i].size() << endl;
 
-    for (int j = 0; j < mFileNames[i].size(); j++) {
+    for (size_t j = 0; j < mFileNames[i].size(); j++) {
 
       cout << "FDN File = " << mFileNames[i][j] << endl;
     }
@@ -116,7 +116,7 @@ void TestDataReader::run(ProcessingContext& pc)
 
   //Defining all local variables
   int j = 0;
-  int NEventPre;
+  int NEventPre = 0;
   int NEvent;
   double PercentDone = 0;
   int ErrorDetcted;
@@ -130,7 +130,7 @@ void TestDataReader::run(ProcessingContext& pc)
   // Get folders in working directory, put all files in a vector
   mNowFolderNames = GetFName(mWorkDir);
   cout << "Now NFolder = " << mNowFolderNames.size() << endl;
-  for (int i = 0; i < mNowFolderNames.size(); i++) {
+  for (size_t i = 0; i < mNowFolderNames.size(); i++) {
     mNowFileNames.push_back(GetFName(mNowFolderNames[i]));
   }
 
@@ -180,7 +180,7 @@ void TestDataReader::run(ProcessingContext& pc)
 
   LOG(debug) << "Get IN LOOP";
   // Checking for new files, extract them into new vector
-  for (int i = 0; i < mFolderNames.size(); i++) {
+  for (size_t i = 0; i < mFolderNames.size(); i++) {
     std::set_difference(mNowFileNames[i].begin(), mNowFileNames[i].end(), mFileNames[i].begin(), mFileNames[i].end(), std::inserter(mDiffFileNamePush, mDiffFileNamePush.begin()));
     mDiffFileNames.push_back(mDiffFileNamePush);
     cout << "Difference File Size Between New and Initial Runs " << mDiffFileNames[i].size() << endl;
@@ -191,7 +191,7 @@ void TestDataReader::run(ProcessingContext& pc)
   LOG(debug) << "DONE GRABING Existing";
 
   //Getting the new files from new folders that does not exist in the previous cycle
-  for (int i = mFolderNames.size(); i < mNowFolderNames.size(); i++) {
+  for (size_t i = mFolderNames.size(); i < mNowFolderNames.size(); i++) {
     mDiffFileNames.push_back(mNowFileNames[i]);
     cout << "New File Size Between New and Initial Runs " << mDiffFileNames[i].size() << endl;
   }
@@ -206,13 +206,13 @@ void TestDataReader::run(ProcessingContext& pc)
 
   //Start Decoding New Files by loop through the new file vector
 
-  for (int i = 0; i < mNowFolderNames.size(); i++) {
+  for (size_t i = 0; i < mNowFolderNames.size(); i++) {
 
     LOG(debug) << "i = " << i << "    mDiffFileNames[i].size() = " << mDiffFileNames[i].size();
 
     //Getting the folder name ID
 
-    int pos = mNowFolderNames[i].find_last_of("/");
+    size_t pos = mNowFolderNames[i].find_last_of("/");
 
     if (pos != string::npos) {
       mRunID = mNowFolderNames[i].substr(pos + 1);
