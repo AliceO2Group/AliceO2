@@ -282,7 +282,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         LOGP(info, "The following route is a condition {}", route.matcher);
         for (auto& metadata : route.matcher.metadata) {
           if (metadata.type == VariantType::String) {
-            LOGP(info, "- {}: {}", metadata.name, metadata.defaultValue);
+            LOGP(info, "- {}: {}", metadata.name, metadata.defaultValue.asString());
           }
         }
       }
