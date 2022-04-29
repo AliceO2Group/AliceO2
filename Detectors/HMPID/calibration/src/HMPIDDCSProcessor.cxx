@@ -81,14 +81,14 @@ void HMPIDDCSProcessor::process(const gsl::span<const DPCOM> dps)
     const auto ir_id = alias.substr(0,16);
 
     // check if given dp is from HMPID
-    	    // check first if IR:
-	    if (ir_id == IR_ID) {
-		processIR(dp); 
-	    } // if not IR, check if other DP in HMPID (pressure, temp, HV): 
-	    else if (detector_id==HMPID_ID){
-		processHMPID(dp); 
-	    }  else  LOG(debug) << "Unknown data point: {}"<< alias;
-  }
+    // check first if IR:
+    if (ir_id == IR_ID) {
+	processIR(dp); 
+    } // if not IR, check if other DP in HMPID (pressure, temp, HV): 
+    else if (detector_id==HMPID_ID){
+	processHMPID(dp); 
+    }  else  LOG(debug) << "Unknown data point: {}"<< alias;
+    }
 }	
 
 // if the string of the dp contains the HMPID-specifier "HMP_DET",
