@@ -20,6 +20,7 @@
 #include "DataFormatsFV0/Digit.h"
 #include "DataFormatsFV0/ChannelData.h"
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "FV0Simulation/FV0DigParam.h"
 #include "DetectorsBase/CTFCoderBase.h"
 
 class TTree;
@@ -68,12 +69,12 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const g
     MD::EENCODE, // BLC_bcInc
     MD::EENCODE, // BLC_orbitInc
     MD::EENCODE, // BLC_nChan
-
     MD::EENCODE, // BLC_idChan
-    MD::EENCODE, // BLC_time
-    MD::EENCODE, // BLC_charge
+    MD::EENCODE, // BLC_cfdTime
+    MD::EENCODE, // BLC_qtcAmpl
     // extra slot was added in the end
-    MD::EENCODE // BLC_trigger
+    MD::EENCODE, // BLC_trigger
+    MD::EENCODE  // BLC_qtcChain
   };
   CompressedDigits cd;
   compress(cd, digitVec, channelVec);
@@ -95,13 +96,12 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const g
   ENCODEFV0(cd.bcInc,     CTF::BLC_bcInc,    0);
   ENCODEFV0(cd.orbitInc,  CTF::BLC_orbitInc, 0);
   ENCODEFV0(cd.nChan,     CTF::BLC_nChan,    0);
-
   ENCODEFV0(cd.idChan ,   CTF::BLC_idChan,   0);
-  ENCODEFV0(cd.time,      CTF::BLC_time,     0);
-  ENCODEFV0(cd.charge,    CTF::BLC_charge,   0);
-  //
+  ENCODEFV0(cd.cfdTime,   CTF::BLC_cfdTime,  0);
+  ENCODEFV0(cd.qtcAmpl,   CTF::BLC_qtcAmpl,  0);
   // extra slot was added in the end
   ENCODEFV0(cd.trigger,   CTF::BLC_trigger,  0);
+  ENCODEFV0(cd.qtcChain,  CTF::BLC_qtcChain, 0);
   // clang-format on
   CTF::get(buff.data())->print(getPrefix(), mVerbosity);
 }
@@ -119,16 +119,18 @@ void CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec)
   DECODEFV0(cd.bcInc,     CTF::BLC_bcInc);
   DECODEFV0(cd.orbitInc,  CTF::BLC_orbitInc);
   DECODEFV0(cd.nChan,     CTF::BLC_nChan);
-
   DECODEFV0(cd.idChan,    CTF::BLC_idChan);
-  DECODEFV0(cd.time,      CTF::BLC_time);
-  DECODEFV0(cd.charge,    CTF::BLC_charge);
-
+  DECODEFV0(cd.cfdTime,   CTF::BLC_cfdTime);
+  DECODEFV0(cd.qtcAmpl,   CTF::BLC_qtcAmpl);
   // extra slot was added in the end
   DECODEFV0(cd.trigger,   CTF::BLC_trigger);
-  // triggers were added later, in old data they are absent:
+  DECODEFV0(cd.qtcChain,  CTF::BLC_qtcChain);
+  // triggers and qtcChain were added later, in old data they are absent:
   if (cd.trigger.empty()) {
     cd.trigger.resize(cd.header.nTriggers);
+  }
+  if (cd.qtcChain.empty()) {
+    cd.qtcChain.resize(cd.cfdTime.size());
   }
   // clang-format on
   //
@@ -155,7 +157,8 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
     } else {
       ir.bc += cd.bcInc[idig];
     }
-    int triggerGate = 153; // TODO: Add to FV0DgiParam (following FT0)
+    const auto& params = FV0DigParam::Instance();
+    int triggerGate = params.mTime_trg_gate;
     firstEntry = channelVec.size();
     uint8_t chID = 0;
     int8_t nChanA = 0, nChanC = 0;
@@ -163,7 +166,7 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
     int16_t timeA = 0, timeC = Triggers::DEFAULT_TIME;
     for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
       auto icc = channelVec.size();
-      const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.time[icc], cd.charge[icc], -1); // TODO: MS: modify the CTF format and fill the chain correctly, not with -1
+      const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.cfdTime[icc], cd.qtcAmpl[icc], cd.qtcChain[icc]);
       if (std::abs(chan.CFDTime) < triggerGate) {
         amplA += chan.QTCAmpl;
         timeA += chan.CFDTime;
