@@ -264,9 +264,9 @@ class HMPIDDCSProcessor{
 		// constExpression string-literals to assign DPs to the correct method: =================================================================
 		
 			// check if IR or other HMPID specifciation
-			static constexpr auto IR_ID{"HMP_DET/HMP_INFR"sv};
 			static constexpr auto HMPID_ID{"HMP_DET"sv};
-		
+			static constexpr auto IR_ID{"HMP_DET/HMP_INFR"sv};
+
 			// HMPID-temp, HV, pressure IDs (HMPID_ID{"HMP_DET"sv};)
 			static constexpr auto TEMP_OUT_ID{"Out_Temp"sv};
 			static constexpr auto TEMP_IN_ID{"In_Temp"sv};
