@@ -42,7 +42,7 @@ struct FT0DigParam : o2::conf::ConfigurableParamHelper<FT0DigParam> {
   float mCharge2amp = 0.22;
   float mNoiseVar = 0.1;                               // noise level
   float mNoisePeriod = 1 / 0.9;                        // GHz low frequency noise period;
-  static constexpr short mTime_trg_gate = 153;         // #channels as in TCM as in Pilot beams
+  static constexpr short mTime_trg_gate = 153;         // #channels as in TCM as in Pilot beams ('OR gate' setting in TCM tab in ControlServer)
   static constexpr float mAmpThresholdForReco = 5;     // only channels with amplitude higher will participate in calibration and collision time: 0.3 MIP
   static constexpr short mTimeThresholdForReco = 1000; // only channels with time below will participate in calibration and collision time
 
