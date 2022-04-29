@@ -352,7 +352,6 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
 
 void AODProducerWorkflowDPL::fillIndexTablesPerCollision(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices)
 {
-  //  for (int src = GIndex::NSources; src--;) {
   for (int src : {GIndex::Source::MFTMCH, GIndex::Source::MCH, GIndex::Source::MFT}) {
     int start = trackRef.getFirstEntryOfSource(src);
     int end = start + trackRef.getEntriesOfSource(src);
