@@ -149,7 +149,7 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
   //
   bool mDisableQED = false;
-  bool mUseCCDB = false;
+  bool mUseCCDB = true;
   std::vector<TChain*> mSimChains;
 };
 
