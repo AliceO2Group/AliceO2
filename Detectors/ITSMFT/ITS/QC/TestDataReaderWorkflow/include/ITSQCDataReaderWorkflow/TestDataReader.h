@@ -85,7 +85,7 @@ class TestDataReader : public Task
 
   ChipPixelData* mChipData = nullptr;
   std::string mInputName = "Split9.bin";
-  int mIndexPush;
+  size_t mIndexPush;
   //  int mPixelSize;
   std::vector<int> mNDigits;
   std::vector<std::string> mFolderNames;
