@@ -469,6 +469,7 @@ void HMPIDDCSProcessor::finalizeTempInEntry(Int_t iCh,Int_t iRad) // after run i
 
 void HMPIDDCSProcessor::finalize() // after run is finished, 
 { 
+	finalizeEnvPressure();
 	for(Int_t iCh=0;iCh<7;iCh++){
 		finalizeChPressureEntry(iCh);
 		for(Int_t iRad=0;iRad<3;iRad++){
