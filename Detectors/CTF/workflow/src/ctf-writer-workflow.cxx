@@ -14,6 +14,7 @@
 #include "Framework/Logger.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/InputSpec.h"
 #include "CommonUtils/NameConf.h"
 #include "CTFWorkflow/CTFWriterSpec.h"
@@ -37,6 +38,12 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"ctf-writer-verbosity", VariantType::Int, 0, {"verbosity level (0: summary per detector, 1: summary per block"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
   std::swap(workflowOptions, options);
+}
+
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:CTF|ctf).*[W,w]riter.*"));
 }
 
 // ------------------------------------------------------------------

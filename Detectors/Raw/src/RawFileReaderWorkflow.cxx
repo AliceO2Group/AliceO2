@@ -18,8 +18,10 @@
 #include "Framework/ControlService.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Framework/DataProcessingHelpers.h"
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
+#include "Framework/DomainInfoHeader.h"
 
 #include "DetectorsRaw/RawFileReader.h"
 #include "DetectorsRaw/RDHUtils.h"
@@ -206,8 +208,8 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
   auto tfID = mReader->getNextTFToRead();
   int nlinks = mReader->getNLinks();
 
-  if (tfID > mMaxTFID) {
-    if (!mReader->isEmpty() && --mLoop) {
+  if (tfID > mMaxTFID || mReader->isProcessingStopped()) {
+    if (!mReader->isProcessingStopped() && !mReader->isEmpty() && --mLoop) {
       mLoopsDone++;
       tfID = 0;
       LOG(info) << "Starting new loop " << mLoopsDone << " from the beginning of data";
@@ -351,7 +353,10 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
 
   mSentSize += tfSize;
   mSentMessages += tfNParts;
-
+  for (auto& msgIt : messagesPerRoute) {
+    auto& channel = device->GetChannel(msgIt.first, 0);
+    o2::framework::DataProcessingHelpers::sendOldestPossibleTimeframe(channel, mTFCounter);
+  }
   mReader->setNextTFToRead(++tfID);
   ++mTFCounter;
 }

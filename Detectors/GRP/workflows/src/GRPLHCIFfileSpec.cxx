@@ -25,7 +25,6 @@
 #include <cstdint>
 
 using namespace o2::framework;
-using TFType = uint64_t;
 using HighResClock = std::chrono::high_resolution_clock;
 using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
 using GRPLHCIFData = o2::parameters::GRPLHCIFData;
@@ -211,7 +210,7 @@ void GRPLHCIFfileProcessor::sendOutput(DataAllocator& output, long start, const 
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   std::map<std::string, std::string> md;
   md.emplace("created_by", "dpl");
-  o2::ccdb::CcdbObjectInfo info("GLO/Config/GRPLHCIFData", clName, flName, md, start, o2::calibration::Utils::INFINITE_TIME);
+  o2::ccdb::CcdbObjectInfo info("GLO/Config/GRPLHCIFData", clName, flName, md, start, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&lhcifdata, &info);
   LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();

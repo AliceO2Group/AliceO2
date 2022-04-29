@@ -92,7 +92,7 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
   using DetType = CalDet<T>;
   using CalType = CalArray<T>;
 
-  static const Mapper& mapper = Mapper::instance();
+  const Mapper& mapper = Mapper::instance();
 
   // ===| name and title |======================================================
   std::string title = calDet.getName();
@@ -216,7 +216,7 @@ TCanvas* painter::draw(const CalArray<T>& calArray)
 template <class T>
 void painter::fillHistogram2D(TH2& h2D, const CalDet<T>& calDet, Side side)
 {
-  static const Mapper& mapper = Mapper::instance();
+  const Mapper& mapper = Mapper::instance();
 
   for (ROC roc; !roc.looped(); ++roc) {
     if (roc.side() != side) {
@@ -242,7 +242,7 @@ void painter::fillHistogram2D(TH2& h2D, const CalDet<T>& calDet, Side side)
 template <class T>
 void painter::fillHistogram2D(TH2& h2D, const CalArray<T>& calArray)
 {
-  static const Mapper& mapper = Mapper::instance();
+  const Mapper& mapper = Mapper::instance();
 
   const size_t position = calArray.getPadSubsetNumber();
   const PadSubset padSubset = calArray.getPadSubset();
@@ -283,7 +283,7 @@ TH2* painter::getHistogram2D(const CalDet<T>& calDet, Side side)
 template <class T>
 TH2* painter::getHistogram2D(const CalArray<T>& calArray)
 {
-  static const Mapper& mapper = Mapper::instance();
+  const Mapper& mapper = Mapper::instance();
 
   const size_t position = calArray.getPadSubsetNumber();
   const PadSubset padSubset = calArray.getPadSubset();
@@ -472,7 +472,7 @@ TH2Poly* painter::makeSideHist(Side side)
 template <class T>
 void painter::fillPoly2D(TH2Poly& h2D, const CalDet<T>& calDet, Side side)
 {
-  static const Mapper& mapper = Mapper::instance();
+  const Mapper& mapper = Mapper::instance();
 
   int bin = 1;
   for (const auto& calROC : calDet.getData()) {
@@ -595,7 +595,7 @@ void painter::drawSectorsXY(Side side, int sectorLineColor, int sectorTextColor)
 
 void painter::drawSectorLocalPadNumberPoly(short padTextColor, float lineScalePS)
 {
-  static const Mapper& mapper = Mapper::instance();
+  const Mapper& mapper = Mapper::instance();
   const auto coords = getPadCoordinatesSector();
   TLatex lat;
   lat.SetTextAlign(12);
@@ -619,7 +619,7 @@ void painter::drawSectorLocalPadNumberPoly(short padTextColor, float lineScalePS
 
 void painter::drawSectorInformationPoly(short regionLineColor, short rowTextColor)
 {
-  static const Mapper& mapper = Mapper::instance();
+  const Mapper& mapper = Mapper::instance();
 
   TLatex lat;
   lat.SetTextColor(rowTextColor);

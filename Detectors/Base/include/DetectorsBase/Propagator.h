@@ -33,6 +33,7 @@ namespace o2
 namespace parameters
 {
 class GRPObject;
+class GRPMagField;
 }
 
 namespace dataformats
@@ -120,6 +121,7 @@ class PropagatorImpl
   PropagatorImpl& operator=(PropagatorImpl&&) = delete;
 
   // Bz at the origin
+  GPUd() void updateField();
   GPUd() value_type getNominalBz() const { return mBz; }
   GPUd() void setTGeoFallBackAllowed(bool v) { mTGeoFallBackAllowed = v; }
   GPUd() bool isTGeoFallBackAllowed() const { return mTGeoFallBackAllowed; }
@@ -137,6 +139,7 @@ class PropagatorImpl
     static PropagatorImpl instance(uninitialized);
     return &instance;
   }
+  static int initFieldFromGRP(const o2::parameters::GRPMagField* grp, bool verbose = false);
 
   static int initFieldFromGRP(const o2::parameters::GRPObject* grp, bool verbose = false);
   static int initFieldFromGRP(const std::string grpFileName = "", bool verbose = false);

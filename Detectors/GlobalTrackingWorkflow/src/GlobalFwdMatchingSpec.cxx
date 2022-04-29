@@ -31,6 +31,9 @@
 #include "GlobalTracking/MatchGlobalFwd.h"
 #include "GlobalTrackingWorkflow/GlobalFwdMatchingSpec.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
+#include "DetectorsBase/Propagator.h"
+#include "TGeoGlobalMagField.h"
+#include "Field/MagneticField.h"
 
 using namespace o2::framework;
 using MCLabelsTr = gsl::span<const o2::MCCompLabel>;
@@ -55,7 +58,7 @@ class GlobalFwdMatchingDPL : public Task
  private:
   std::shared_ptr<DataRequest> mDataRequest;
   bool mMatchRootOutput = false;
-  o2::globaltracking::MatchGlobalFwd mMatching; // Forward matching engine
+  o2::globaltracking::MatchGlobalFwd mMatching;             // Forward matching engine
   const o2::itsmft::TopologyDictionary* mMFTDict = nullptr; // cluster patterns dictionary
 
   bool mUseMC = true;
@@ -66,7 +69,14 @@ void GlobalFwdMatchingDPL::init(InitContext& ic)
 {
   //-------- init geometry and field --------//
   o2::base::GeometryManager::loadGeometry();
-  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
+  const auto grp = o2::parameters::GRPObject::loadFrom();
+  o2::base::Propagator::initFieldFromGRP(grp);
+  auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+  double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
+  auto Bz = field->getBz(centerMFT);
+  LOG(info) << "Setting Global forward matching Bz = " << Bz;
+  mMatching.setBz(Bz);
+
   mMatching.setMFTTriggered(!grp->isDetContinuousReadOut(o2::detectors::DetID::MFT));
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
   if (mMatching.isMFTTriggered()) {

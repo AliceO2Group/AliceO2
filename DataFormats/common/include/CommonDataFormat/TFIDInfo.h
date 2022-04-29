@@ -14,17 +14,35 @@
 
 #include <Rtypes.h>
 
-namespace o2::dataformats
+namespace o2
+{
+namespace framework
+{
+class ProcessingContext;
+}
+namespace dataformats
 {
 struct TFIDInfo { // helper info to patch DataHeader
 
-  uint32_t firstTForbit = -1;
-  uint32_t tfCounter = -1;
-  uint32_t runNumber = -1;
+  uint32_t firstTForbit = -1U;
+  uint32_t tfCounter = -1U;
+  uint32_t runNumber = -1U;
+  uint32_t startTime = -1U; // same as timeslot
+  uint64_t creation = -1UL;
 
-  bool isDummy() { return tfCounter == -1; }
-  ClassDefNV(TFIDInfo, 1);
+  bool isDummy() { return tfCounter == -1U; }
+  void fill(uint32_t firstTForbit_, uint32_t tfCounter_, uint32_t runNumber_, uint32_t startTime_, uint64_t creation_)
+  {
+    firstTForbit = firstTForbit_;
+    tfCounter = tfCounter_;
+    runNumber = runNumber_;
+    startTime = startTime_;
+    creation = creation_;
+  }
+
+  ClassDefNV(TFIDInfo, 2);
 };
-} // namespace o2::dataformats
+} // namespace dataformats
+} // namespace o2
 
 #endif

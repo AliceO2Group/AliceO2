@@ -399,7 +399,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   }
 
   // create header
-  CTFHeader header{mRun, dph->creation, dh->firstTForbit};
+  CTFHeader header{mRun, dph->creation, dh->firstTForbit, dh->tfCounter};
   size_t szCTF = 0;
   szCTF += processDet<o2::itsmft::CTF>(pc, DetID::ITS, header, mCTFTreeOut.get());
   szCTF += processDet<o2::itsmft::CTF>(pc, DetID::MFT, header, mCTFTreeOut.get());

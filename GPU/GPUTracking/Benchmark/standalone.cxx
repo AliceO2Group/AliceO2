@@ -526,10 +526,10 @@ int LoadEvent(int iEvent, int x)
       return 1;
     }
     if (zsFilter) {
-      chainTracking->ConvertZSFilter(configStandalone.zs12bit);
+      chainTracking->ConvertZSFilter(configStandalone.zsVersion >= 2);
     }
     if (encodeZS) {
-      chainTracking->ConvertZSEncoder(configStandalone.zs12bit);
+      chainTracking->ConvertZSEncoder(configStandalone.zsVersion);
     }
   }
   if (!configStandalone.runTransformation) {

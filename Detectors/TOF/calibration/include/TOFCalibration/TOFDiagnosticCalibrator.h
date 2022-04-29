@@ -24,7 +24,7 @@ namespace tof
 
 class TOFDiagnosticCalibrator final : public o2::calibration::TimeSlotCalibration<o2::tof::Diagnostic, o2::tof::Diagnostic>
 {
-  using TFType = uint64_t;
+  using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<o2::tof::Diagnostic>;
   using CcdbObjectInfo = o2::ccdb::CcdbObjectInfo;
   using CcdbObjectInfoVector = std::vector<CcdbObjectInfo>;

@@ -26,6 +26,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "TPCBase/CDBInterface.h"
 #include "TPCWorkflow/ProcessingHelpers.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 
@@ -35,10 +36,12 @@ namespace o2::tpc
 class CalibratorPadGainTracksDevice : public Task
 {
  public:
+  CalibratorPadGainTracksDevice(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
   void init(framework::InitContext& ic) final
   {
-    const int slotLength = ic.options().get<int>("tf-per-slot");
-    const int maxDelay = ic.options().get<int>("max-delay");
+    o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
+    const auto slotLength = ic.options().get<uint32_t>("tf-per-slot");
+    const auto maxDelay = ic.options().get<uint32_t>("max-delay");
     const int minEntries = ic.options().get<int>("min-entries");
     const bool debug = ic.options().get<bool>("file-dump");
     const auto lowTrunc = ic.options().get<float>("lowTrunc");
@@ -56,16 +59,22 @@ class CalibratorPadGainTracksDevice : public Task
     mWriteToDB = mDBapi.isHostReachable() ? true : false;
   }
 
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
+  {
+    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+  }
+
   void run(ProcessingContext& pc) final
   {
-    const auto tfcounter = o2::header::get<DataProcessingHeader*>(pc.inputs().get("gainhistos").header)->startTime;
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     const auto histomaps = pc.inputs().get<CalibPadGainTracksBase::DataTHistos*>("gainhistos");
-    mCalibrator->process(tfcounter, *histomaps.get());
+    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
+    mCalibrator->process(*histomaps.get());
     const auto& infoVec = mCalibrator->getTFinterval();
-    LOGP(info, "Created {} objects for TF {}", infoVec.size(), tfcounter);
+    LOGP(info, "Created {} objects for TF {}", infoVec.size(), mCalibrator->getCurrentTFInfo().tfCounter);
 
     if (mCalibrator->hasCalibrationData()) {
-      mRunNumber = processing_helpers::getRunNumber(pc);
+      mRunNumber = mCalibrator->getCurrentTFInfo().runNumber;
       sendOutput(pc.outputs());
     }
   }
@@ -73,8 +82,7 @@ class CalibratorPadGainTracksDevice : public Task
   void endOfStream(EndOfStreamContext& eos) final
   {
     LOGP(info, "Finalizing calibration");
-    constexpr calibration::TFType INFINITE_TF = 0xffffffffffffffff;
-    mCalibrator->checkSlotsToFinalize(INFINITE_TF);
+    mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
     sendOutput(eos.outputs());
   }
 
@@ -98,6 +106,7 @@ class CalibratorPadGainTracksDevice : public Task
   }
 
   std::unique_ptr<CalibratorPadGainTracks> mCalibrator; ///< calibrator object for creating the pad-by-pad gain map
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   bool mWriteToDB{};                                    ///< flag if writing to CCDB will be done
   o2::ccdb::CcdbApi mDBapi;                             ///< API for storing the gain map in the CCDB
   std::map<std::string, std::string> mMetadata;         ///< meta data of the stored object in CCDB
@@ -108,17 +117,23 @@ class CalibratorPadGainTracksDevice : public Task
 o2::framework::DataProcessorSpec getTPCCalibPadGainTracksSpec()
 {
   std::vector<OutputSpec> outputs;
+  std::vector<InputSpec> inputs{{"gainhistos", "TPC", "TRACKGAINHISTOS"}};
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
+                                                                true,                           // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
   return DataProcessorSpec{
     "tpc-calibrator-gainmap-tracks",
-    Inputs{
-      InputSpec{"gainhistos", "TPC", "TRACKGAINHISTOS"},
-    },
+    inputs,
     outputs,
-    adaptFromTask<CalibratorPadGainTracksDevice>(),
+    adaptFromTask<CalibratorPadGainTracksDevice>(ccdbRequest),
     Options{
       {"ccdb-uri", VariantType::String, o2::base::NameConf::getCCDBServer(), {"URI for the CCDB access."}},
-      {"tf-per-slot", VariantType::Int, 100, {"number of TFs per calibration time slot"}},
-      {"max-delay", VariantType::Int, 3, {"number of slots in past to consider"}},
+      {"tf-per-slot", VariantType::UInt32, 100u, {"number of TFs per calibration time slot"}},
+      {"max-delay", VariantType::UInt32, 3u, {"number of slots in past to consider"}},
       {"min-entries", VariantType::Int, 50, {"minimum entries per pad-by-pad histogram which are required"}},
       {"lowTrunc", VariantType::Float, 0.05f, {"lower truncation range for calculating the rel gain"}},
       {"upTrunc", VariantType::Float, 0.6f, {"upper truncation range for calculating the rel gain"}},

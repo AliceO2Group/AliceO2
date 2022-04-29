@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include <TRandom.h>
+#include <cmath>
 #include <numeric>
 #include "FV0Simulation/Digitizer.h"
 #include "FV0Simulation/FV0DigParam.h"
@@ -226,7 +227,7 @@ void Digitizer::storeBC(const BCCache& bc,
 {
   size_t const nBC = digitsBC.size();   // save before digitsBC is being modified
   size_t const first = digitsCh.size(); // save before digitsCh is being modified
-  size_t nFiredCells = 0;
+  int8_t nFiredCells = 0;
   double totalChargeAllRing = 0;
   double avgTime = 0;
   double nSignalInner = 0;
@@ -285,7 +286,10 @@ void Digitizer::storeBC(const BCCache& bc,
   isSCen = totalChargeAllRing > FV0DigParam::Instance().adcChargeSCenThr;
 
   Triggers triggers;
-  triggers.setTriggers(isA, isAIn, isAOut, isCen, isSCen, nFiredCells, totalChargeAllRing, avgTime);
+  const int unused = 0;
+  const bool unusedBitsInSim = false; // bits related to laser and data validity
+  triggers.setTriggers(isA, isAIn, isAOut, isCen, isSCen, nFiredCells, (int8_t)unused,
+                       (int32_t)std::round(totalChargeAllRing), (int32_t)unused, (int16_t)std::round(avgTime), (int16_t)unused, unusedBitsInSim, unusedBitsInSim, unusedBitsInSim);
   digitsBC.emplace_back(first, nFiredCells, bc, triggers, mEventId - 1);
   digitsTrig.emplace_back(bc, isA, isAIn, isAOut, isCen, isSCen);
   for (auto const& lbl : bc.labels) {

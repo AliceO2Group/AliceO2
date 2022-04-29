@@ -691,19 +691,31 @@ using FT0 = FT0s::iterator;
 
 namespace fdd
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                      //! BC index
-DECLARE_SOA_COLUMN(AmplitudeA, amplitudeA, float[4]);  //!
-DECLARE_SOA_COLUMN(AmplitudeC, amplitudeC, float[4]);  //!
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                     //! BC index
+DECLARE_SOA_COLUMN(AmplitudeA, amplitudeA, float[4]); //! Amplitude in adjacent pairs A-side
+DECLARE_SOA_COLUMN(AmplitudeC, amplitudeC, float[4]); //! Amplitude in adjacent pairs C-side
+
+DECLARE_SOA_COLUMN(ChargeA, chargeA, int16_t[8]); //! Amplitude per channel A-side
+DECLARE_SOA_COLUMN(ChargeC, chargeC, int16_t[8]); //! Amplitude per channel C-side
+
 DECLARE_SOA_COLUMN(TimeA, timeA, float);               //!
 DECLARE_SOA_COLUMN(TimeC, timeC, float);               //!
 DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint8_t); //!
 } // namespace fdd
 
-DECLARE_SOA_TABLE(FDDs, "AOD", "FDD", //!
+DECLARE_SOA_TABLE(FDDs_000, "AOD", "FDD", //! FDD table, version 000
                   o2::soa::Index<>, fdd::BCId,
                   fdd::AmplitudeA, fdd::AmplitudeC,
                   fdd::TimeA, fdd::TimeC,
                   fdd::TriggerMask);
+
+DECLARE_SOA_TABLE(FDDs_001, "AOD", "FDD_001", //! FDD table, version 001
+                  o2::soa::Index<>, fdd::BCId,
+                  fdd::ChargeA, fdd::ChargeC,
+                  fdd::TimeA, fdd::TimeC,
+                  fdd::TriggerMask);
+
+using FDDs = FDDs_001; //! this defines the current default version
 using FDD = FDDs::iterator;
 
 namespace v0

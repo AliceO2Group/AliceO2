@@ -102,6 +102,7 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
       assert(registry.get<DeviceSpec const>().name.empty() == false);
       monitoring->addGlobalTag("dataprocessor_id", registry.get<DeviceSpec const>().id);
       monitoring->addGlobalTag("dataprocessor_name", registry.get<DeviceSpec const>().name);
+      monitoring->addGlobalTag("dpl_instance", options.GetPropertyAsString("shm-segment-id"));
       return ServiceHandle{TypeIdHelpers::uniqueId<Monitoring>(), service};
     },
     .configure = noConfiguration(),
@@ -402,8 +403,9 @@ o2::framework::ServiceSpec CommonServices::timesliceIndex()
   return ServiceSpec{
     .name = "timesliceindex",
     .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+      auto& spec = services.get<DeviceSpec const>();
       return ServiceHandle{TypeIdHelpers::uniqueId<TimesliceIndex>(),
-                           new TimesliceIndex(InputRouteHelpers::maxLanes(services.get<DeviceSpec const>().inputs))};
+                           new TimesliceIndex(InputRouteHelpers::maxLanes(spec.inputs), spec.inputChannels.size())};
     },
     .configure = noConfiguration(),
     .kind = ServiceKind::Serial};

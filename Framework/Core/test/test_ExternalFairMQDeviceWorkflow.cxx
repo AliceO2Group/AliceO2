@@ -227,7 +227,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
         createSequence(nPayloads, DataHeader{"DATA", "TST", 0});
       }
       // using utility from ExternalFairMQDeviceProxy
-      o2::framework::sendOnChannel(device, messages, *channelName);
+      o2::framework::sendOnChannel(device, messages, *channelName, (size_t)-1);
 
       if (++(*counter) >= nRolls) {
         // send the end of stream signal, this is transferred by the proxies
@@ -250,7 +250,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
           out.AddPart(std::move(headerMessage));
           // add empty payload message
           out.AddPart(std::move(device.NewMessageFor(*channelName, 0, 0)));
-          o2::framework::sendOnChannel(device, out, *channelName);
+          o2::framework::sendOnChannel(device, out, *channelName, (size_t)-1);
         }
       }
     };
@@ -395,7 +395,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
         output.AddPart(std::move(inputs.At(msgidx)));
       }
     }
-    o2::framework::sendOnChannel(device, output, channelName);
+    o2::framework::sendOnChannel(device, output, channelName, (size_t)-1);
   };
 
   // we use the same spec to build the configuration string, ideally we would have some helpers

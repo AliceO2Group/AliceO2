@@ -89,6 +89,7 @@ class CTFReaderSpec : public o2::framework::Task
   std::unique_ptr<TFile> mCTFFile;
   std::unique_ptr<TTree> mCTFTree;
   bool mRunning = false;
+  bool mUseLocalTFCounter = false;
   int mCTFCounter = 0;
   int mNFailedFiles = 0;
   int mFilesRead = 0;
@@ -134,6 +135,7 @@ void CTFReaderSpec::stopReader()
 void CTFReaderSpec::init(InitContext& ic)
 {
   mInput.ctfIDs = o2::RangeTokenizer::tokenize<int>(ic.options().get<std::string>("select-ctf-ids"));
+  mUseLocalTFCounter = ic.options().get<bool>("local-tf-counter");
   mRunning = true;
   mFileFetcher = std::make_unique<o2::utils::FileFetcher>(mInput.inpdata, mInput.tffileRegex, mInput.remoteRegex, mInput.copyCmd);
   mFileFetcher->setMaxFilesInQueue(mInput.maxFileCache);
@@ -230,12 +232,16 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
     tryToFixCTFHeader(ctfHeader);
   }
 
+  if (mUseLocalTFCounter) {
+    ctfHeader.tfCounter = mCTFCounter;
+  }
+
   LOG(info) << ctfHeader;
 
   auto& timingInfo = pc.services().get<TimingInfo>();
   timingInfo.firstTFOrbit = ctfHeader.firstTForbit;
   timingInfo.creation = ctfHeader.creationTime;
-  timingInfo.tfCounter = mCTFCounter;
+  timingInfo.tfCounter = ctfHeader.tfCounter;
   timingInfo.runNumber = ctfHeader.run;
 
   // send CTF Header
@@ -310,7 +316,7 @@ void CTFReaderSpec::setMessageHeader(ProcessingContext& pc, const CTFHeader& ctf
   }
   auto dh = const_cast<o2::header::DataHeader*>(o2::header::get<o2::header::DataHeader*>(stack));
   dh->firstTForbit = ctfHeader.firstTForbit;
-  dh->tfCounter = mCTFCounter;
+  dh->tfCounter = ctfHeader.tfCounter;
   dh->runNumber = uint32_t(ctfHeader.run);
   auto dph = const_cast<o2::framework::DataProcessingHeader*>(o2::header::get<o2::framework::DataProcessingHeader*>(stack));
   dph->creation = ctfHeader.creationTime;
@@ -400,7 +406,8 @@ DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
     Inputs{},
     outputs,
     AlgorithmSpec{adaptFromTask<CTFReaderSpec>(inp)},
-    Options{{"select-ctf-ids", VariantType::String, "", {"comma-separated list CTF IDs to inject (from cumulative counter of CTFs seen)"}}}};
+    Options{{"select-ctf-ids", VariantType::String, "", {"comma-separated list CTF IDs to inject (from cumulative counter of CTFs seen)"}},
+            {"local-tf-counter", VariantType::Bool, false, {"reassign header.tfCounter from local TF counter"}}}};
 }
 
 } // namespace ctf

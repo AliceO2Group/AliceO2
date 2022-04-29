@@ -19,13 +19,13 @@ namespace o2::framework
 
 FairMQMessagePtr MessageContext::createMessage(RouteIndex routeIndex, int index, size_t size)
 {
-  auto* transport = mProxy.getTransport(routeIndex);
+  auto* transport = mProxy.getOutputTransport(routeIndex);
   return transport->CreateMessage(size, fair::mq::Alignment{64});
 }
 
 FairMQMessagePtr MessageContext::createMessage(RouteIndex routeIndex, int index, void* data, size_t size, fairmq_free_fn* ffn, void* hint)
 {
-  auto* transport = mProxy.getTransport(routeIndex);
+  auto* transport = mProxy.getOutputTransport(routeIndex);
   return transport->CreateMessage(data, size, ffn, hint);
 }
 

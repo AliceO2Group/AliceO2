@@ -65,7 +65,7 @@ o2::ccdb::CcdbObjectInfo createDefaultInfo(const char* path)
   info.setObjectType(clName);
   info.setFileName(flName);
   info.setStartValidityTimestamp(0);
-  info.setEndValidityTimestamp(99999999999999);
+  info.setEndValidityTimestamp(o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
   std::map<std::string, std::string> md;
   info.setMetaData(md);
   return info;

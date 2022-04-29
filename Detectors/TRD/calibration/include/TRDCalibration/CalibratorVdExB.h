@@ -58,7 +58,7 @@ class CalibratorVdExB final : public o2::calibration::TimeSlotCalibration<o2::tr
   bool hasEnoughData(const Slot& slot) const final { return slot.getContainer()->getNEntries() >= mMinEntries; }
   void initOutput() final;
   void finalizeSlot(Slot& slot) final;
-  Slot& emplaceNewSlot(bool front, uint64_t tStart, uint64_t tEnd) final;
+  Slot& emplaceNewSlot(bool front, TFType tStart, TFType tEnd) final;
 
   void initProcessing();
 

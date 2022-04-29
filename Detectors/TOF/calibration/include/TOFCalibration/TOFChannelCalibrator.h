@@ -139,7 +139,7 @@ class TOFChannelData
 template <class T>
 class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T, o2::tof::TOFChannelData>
 {
-  using TFType = uint64_t;
+  using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<o2::tof::TOFChannelData>;
   using CalibTOFapi = o2::tof::CalibTOFapi;
   using TimeSlewing = o2::dataformats::CalibTimeSlewingParamTOF;

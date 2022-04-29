@@ -41,7 +41,12 @@ uint64_t processing_helpers::getRunNumber(ProcessingContext& pc)
     auto runNStr = pc.services().get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", NAStr);
     if (runNStr != NAStr) {
       size_t nc = 0;
-      auto runNProp = std::stol(runNStr, &nc);
+      long runNProp = 0;
+      try {
+        runNProp = std::stol(runNStr, &nc);
+      } catch (...) {
+        nc = (size_t)-1; // makes the next check fail if stol throws when it cannot parse the number
+      }
       if (nc != runNStr.size()) {
         LOGP(error, "Property runNumber={} is provided but is not a number, ignoring", runNStr);
       } else {

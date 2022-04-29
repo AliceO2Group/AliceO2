@@ -55,7 +55,7 @@ class RecPoints
                              TimeSelectedMean };
   RecPoints() = default;
   RecPoints(const std::array<short, 3>& collisiontime, int first, int ne,
-            o2::InteractionRecord iRec, o2::fv0::Triggers triggers)
+            o2::InteractionRecord iRec, o2::fit::Triggers triggers)
     : mCollisionTimePs(collisiontime)
   {
     mRef.setFirstEntry(first);
@@ -72,7 +72,7 @@ class RecPoints
   bool isValidTime(TimeTypeIndex type) const { return getCollisionTime(type) < sDummyCollissionTime; }
   void setCollisionTime(Float_t time, TimeTypeIndex type) { mCollisionTimePs[type] = time; }
 
-  o2::fv0::Triggers getTrigger() const { return mTriggers; }
+  o2::fit::Triggers getTrigger() const { return mTriggers; }
   o2::InteractionRecord getInteractionRecord() const { return mIntRecord; };
   gsl::span<const ChannelDataFloat> getBunchChannelData(const gsl::span<const ChannelDataFloat> tfdata) const;
   short static constexpr sDummyCollissionTime = 32767;
@@ -80,7 +80,7 @@ class RecPoints
  private:
   o2::dataformats::RangeReference<int, int> mRef;
   o2::InteractionRecord mIntRecord;
-  o2::fv0::Triggers mTriggers;                                                                                // pattern of triggers  in this BC
+  o2::fit::Triggers mTriggers;                                                                                // pattern of triggers  in this BC
   std::array<short, 3> mCollisionTimePs = {sDummyCollissionTime, sDummyCollissionTime, sDummyCollissionTime}; // in picoseconds
 
   ClassDefNV(RecPoints, 1);

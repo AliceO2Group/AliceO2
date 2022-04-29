@@ -82,7 +82,7 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
     uint32_t syncOffset = header.syncOffsetBC;
 
     if (useTimeBin) {
-      const uint32_t timebinHeader = (header.syncOffsetCRUCycles << 8) | header.syncOffsetBC;
+      const uint32_t timebinHeader = (header.syncOffsetCRUCyclesOrLink << 8) | header.syncOffsetBC;
       if (syncOffsetLinks[tpcGlobalLinkID] == 0) {
         syncOffsetLinks[tpcGlobalLinkID] = (bunchCrossingHeader + maxBunches - (timebinHeader * 8) % maxBunches) % maxBunches % 16;
       }

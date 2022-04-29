@@ -10,9 +10,29 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/CallbacksPolicy.h"
 #include "DataGeneratorSpec.h"
 
 using namespace o2::framework;
+
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  policies.push_back(o2::framework::CallbacksPolicy{
+    [](o2::framework::DeviceSpec const& spec, o2::framework::ConfigContext const& context) -> bool {
+      return spec.name == "calib-tf-dispatcher"; // apply policy only to the upstream device
+    },
+    [](o2::framework::CallbackService& service, o2::framework::InitContext& context) {
+      const auto& hbfu = o2::raw::HBFUtils::Instance();
+      long startTime = hbfu.startTime > 0 ? hbfu.startTime : std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      service.set(o2::framework::CallbackService::Id::NewTimeslice,
+                  [startTime](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) {
+                    const auto& hbfu = o2::raw::HBFUtils::Instance();
+                    dh.firstTForbit = hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit + int64_t(hbfu.nHBFPerTF) * dh.tfCounter;
+                    dh.runNumber = hbfu.runNumber;
+                    dph.creation = startTime + (dh.firstTForbit - hbfu.orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
+                  });
+    }});
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
@@ -24,6 +44,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"pressure", o2::framework::VariantType::Float, 1.f, {"generation / processing rate factor"}});
   workflowOptions.push_back(ConfigParamSpec{"mean-latency", o2::framework::VariantType::Int, 1000, {"mean latency of the processor in microseconds"}});
   workflowOptions.push_back(ConfigParamSpec{"latency-spread", o2::framework::VariantType::Int, 100, {"latency gaussian RMS of the processor in microseconds"}});
+  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}});
 }
 
 // ------------------------------------------------------------------
@@ -33,6 +54,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto nlanes = std::max(1, configcontext.options().get<int>("lanes"));
   auto ngen = std::max(1, configcontext.options().get<int>("gen-norm"));
   auto slot = std::max(0, configcontext.options().get<int>("gen-slot"));

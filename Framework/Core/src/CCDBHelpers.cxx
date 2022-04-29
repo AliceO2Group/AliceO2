@@ -211,6 +211,10 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
         // FIXME: I should send a dummy message.
         continue;
       }
+      // printing in case we find a default entry
+      if (headers.find("default") != headers.end()) {
+        LOGP(detail, "******** Default entry used for {} ********", path);
+      }
       if (etag.empty()) {
         helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
         auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodCCDB);
@@ -285,6 +289,12 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
 
       return adaptStateless([helper](DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo) {
         static Long64_t orbitResetTime = -1;
+        static size_t lastTimeUsed = -1;
+        if (timingInfo.creation & DataProcessingHeader::DUMMY_CREATION_TIME_OFFSET) {
+          LOGP(error, "Dummy creation time is not supported for CCDB objects. Setting creation to last one used.");
+          timingInfo.creation = lastTimeUsed;
+        }
+        lastTimeUsed = timingInfo.creation;
         // Fetch the CCDB object for the CTP
         {
           // FIXME: this (the static) is needed because for now I cannot get

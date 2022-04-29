@@ -55,6 +55,7 @@ class TrackFinderOriginal
   std::list<Track>::iterator findTrackCandidates(int ch1, int ch2, bool skipUsedPairs = false);
   bool areUsed(const Cluster& cl1, const Cluster& cl2);
   void createTrack(const Cluster& cl1, const Cluster& cl2);
+  std::list<Track>::iterator addTrack(const std::list<Track>::iterator& pos, const Track& track);
   bool isAcceptable(const TrackParam& param) const;
   void removeDuplicateTracks();
   void removeConnectedTracks(int stMin, int stMax);

@@ -54,7 +54,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"read-from-files", o2::framework::VariantType::Bool, false, {"comma-separated list of tracks to display"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"Disable root input overriding read-from-files"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
-    {"skipOnEmptyInput", o2::framework::VariantType::Bool, false, {"Just don't run the ED when no input is provided"}}};
+    {"skipOnEmptyInput", o2::framework::VariantType::Bool, false, {"Just don't run the ED when no input is provided"}},
+    {"no-empty-output", o2::framework::VariantType::Bool, false, {"don't create files with no tracks/clusters"}}};
 
   std::swap(workflowOptions, options);
 }
@@ -94,7 +95,12 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
   const auto* dph = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
 
-  helper.draw(this->mJsonPath, this->mNumberOfFiles, this->mNumberOfTracks, this->mTrkMask, this->mClMask, dh->runNumber, dph->creation, this->mWorkflowVersion);
+  helper.draw(this->mNumberOfTracks);
+
+  if (!(this->mNoEmptyOutput && helper.isEmpty())) {
+    helper.save(this->mJsonPath, this->mNumberOfFiles, this->mTrkMask, this->mClMask, this->mWorkflowVersion, dh->runNumber, dph->creation);
+  }
+
   auto endTime = std::chrono::high_resolution_clock::now();
   LOGP(info, "Visualization of TF:{} at orbit {} took {} s.", dh->tfCounter, dh->firstTForbit, std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
 }
@@ -132,8 +138,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   bool useMC = cfgc.options().get<bool>("enable-mc") && !cfgc.options().get<bool>("disable-mc");
 
-  char hostname[HOST_NAME_MAX];
-  gethostname(hostname, HOST_NAME_MAX);
+  char hostname[_POSIX_HOST_NAME_MAX];
+  gethostname(hostname, _POSIX_HOST_NAME_MAX);
   bool eveHostNameMatch = eveHostName.empty() || eveHostName == hostname;
 
   int eveDDSColIdx = cfgc.options().get<int>("eve-dds-collection-index");
@@ -172,11 +178,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     InputHelper::addInputSpecs(cfgc, specs, srcCl, srcTrk, srcTrk, useMC);
   }
 
+  auto noEmptyFiles = cfgc.options().get<bool>("no-empty-output");
+
   specs.emplace_back(DataProcessorSpec{
     "o2-eve-display",
     dataRequest->inputs,
     {},
-    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, jsonFolder, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch)}});
+    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, jsonFolder, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, noEmptyFiles)}});
 
   return std::move(specs);
 }

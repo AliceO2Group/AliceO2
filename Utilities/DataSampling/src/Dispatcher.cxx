@@ -23,6 +23,9 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Monitoring.h"
 #include "Framework/DataRefUtils.h"
+#include "Framework/FairMQDeviceProxy.h"
+#include "Framework/DataProcessingHelpers.h"
+#include "Framework/DataRelayer.h"
 
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
@@ -123,6 +126,10 @@ void Dispatcher::run(ProcessingContext& ctx)
   if (ctx.inputs().isValid("timer-stats")) {
     reportStats(ctx.services().get<Monitoring>());
   }
+  auto& proxy = ctx.services().get<FairMQDeviceProxy>();
+  auto& relayer = ctx.services().get<DataRelayer>();
+  auto timeslice = relayer.getOldestPossibleOutput().timeslice.value;
+  DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, timeslice);
 }
 
 void Dispatcher::reportStats(Monitoring& monitoring) const

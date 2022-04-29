@@ -72,7 +72,7 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
     const auto chanels = digit.getBunchChannelData(channelVec); // we assume the channels are sorted
 
     // fill trigger info
-    cd.trigger[idig] = digit.getTriggers().triggersignals;
+    cd.trigger[idig] = digit.getTriggers().getTriggersignals();
     cd.eventStatus[idig] = digit.getEventStatusWord();
     if (prevOrbit == digit.getOrbit()) {
       cd.bcInc[idig] = digit.getBC() - prevBC;
@@ -91,7 +91,6 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
     }
     uint8_t prevChan = 0;
     for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
-      assert(prevChan <= chanels[ic].ChId);
       cd.idChan[ccount] = chanels[ic].ChId - prevChan;
       cd.qtcChain[ccount] = chanels[ic].ChainQTC;
       cd.cfdTime[ccount] = chanels[ic].CFDTime;

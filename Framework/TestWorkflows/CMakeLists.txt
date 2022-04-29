@@ -28,6 +28,10 @@ o2_add_dpl_workflow(diamond-workflow
                   SOURCES src/o2DiamondWorkflow.cxx
                   COMPONENT_NAME TestWorkflows)
 
+o2_add_dpl_workflow(diamond-workflow-leaky
+                  SOURCES src/o2DiamondWorkflowLeaky.cxx
+                  COMPONENT_NAME TestWorkflows)
+
 o2_add_dpl_workflow(output-wildcard-workflow
                   SOURCES src/o2OutputWildcardWorkflow.cxx
                   COMPONENT_NAME TestWorkflows)

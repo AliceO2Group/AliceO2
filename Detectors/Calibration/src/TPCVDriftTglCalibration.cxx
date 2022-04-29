@@ -79,10 +79,10 @@ void TPCVDriftTglCalibration::finalizeSlot(Slot& slot)
   auto clName = o2::utils::MemFileHelper::getClassName(mVDPerSlot.back());
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   std::map<std::string, std::string> md;
-  mCCDBInfoPerSlot.emplace_back("TPC/Calib/VDriftTgl", clName, flName, md, slot.getTFStart(), 99999999999999);
-  LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with " << cont->entries << " entries :"
-            << " dTgl vs Tgl_ITS offset:" << offs << "+-" << offsErr << " Slope: " << slope << "+-" << slopErr
-            << " -> VD corr factor = " << corrFact << "+-" << corrFactErr;
+  mCCDBInfoPerSlot.emplace_back("TPC/Calib/VDriftTgl", clName, flName, md,
+                                slot.getStartTimeMS() - 10 * o2::ccdb::CcdbObjectInfo::SECOND, slot.getEndTimeMS() + o2::ccdb::CcdbObjectInfo::MONTH);
+  LOGP(info, "Finalize slot {}({})<=TF<={}({}) with {} entries | dTgl vs Tgl_ITS offset: {}+-{} Slope: {}+-{} -> VD corr factor = {}+-{}", slot.getTFStart(), slot.getStartTimeMS(),
+       slot.getTFEnd(), slot.getEndTimeMS(), cont->entries, offs, offsErr, slope, slopErr, corrFact, corrFactErr);
 }
 
 //_____________________________________________

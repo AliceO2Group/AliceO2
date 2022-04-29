@@ -197,16 +197,16 @@ void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, 
   auto& cdb = CDBInterface::instance();
   cdb.setUseDefaults();
 
-  const static Mapper& mapper = Mapper::instance();
+  const Mapper& mapper = Mapper::instance();
 
-  static GEMAmplification& gemAmplification = GEMAmplification::instance();
+  GEMAmplification& gemAmplification = GEMAmplification::instance();
   gemAmplification.updateParameters();
 
-  static ElectronTransport& electronTransport = ElectronTransport::instance();
+  ElectronTransport& electronTransport = ElectronTransport::instance();
   electronTransport.updateParameters();
 
   auto& eleParam = ParameterElectronics::Instance();
-  static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
+  SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
   sampaProcessing.updateParameters();
 
   const int nShapedPoints = eleParam.NShapedPoints;

@@ -30,12 +30,19 @@ namespace o2::mch::calibration
 
 void BadChannelCalibrationDevice::init(o2::framework::InitContext& ic)
 {
+  o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
   mLoggingInterval = ic.options().get<int>("logging-interval") * 1000;
 
   mCalibrator = std::make_unique<o2::mch::calibration::BadChannelCalibrator>();
-  mCalibrator->setSlotLength(std::numeric_limits<uint64_t>::max());
+  mCalibrator->setSlotLength(o2::calibration::INFINITE_TF);
   mCalibrator->setUpdateAtTheEndOfRunOnly();
   mTimeStamp = std::numeric_limits<uint64_t>::max();
+}
+
+//_________________________________________________________________
+void BadChannelCalibrationDevice::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
 }
 
 void BadChannelCalibrationDevice::logStats(size_t dataSize)
@@ -64,15 +71,11 @@ void BadChannelCalibrationDevice::logStats(size_t dataSize)
 
 void BadChannelCalibrationDevice::run(o2::framework::ProcessingContext& pc)
 {
-  const o2::framework::DataProcessingHeader* header = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("digits").header);
-  if (!header) {
-    return;
-  }
-
-  mTimeStamp = std::min(mTimeStamp, header->creation);
-
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
+  mTimeStamp = std::min(mTimeStamp, mCalibrator->getCurrentTFInfo().creation);
   auto data = pc.inputs().get<gsl::span<o2::mch::calibration::PedestalDigit>>("digits");
-  mCalibrator->process(header->startTime, data);
+  mCalibrator->process(data);
 
   std::string reason;
   if (mCalibrator->readyToSend(reason)) {
@@ -89,7 +92,7 @@ ccdb::CcdbObjectInfo createCcdbInfo(const T& object, uint64_t timeStamp, std::st
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   std::map<std::string, std::string> md;
   md["upload-reason"] = reason;
-  return o2::ccdb::CcdbObjectInfo("MCH/BadChannelCalib", clName, flName, md, timeStamp, 99999999999999);
+  return o2::ccdb::CcdbObjectInfo("MCH/BadChannelCalib", clName, flName, md, timeStamp, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
 }
 
 void BadChannelCalibrationDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
@@ -144,8 +147,7 @@ void BadChannelCalibrationDevice::sendOutput(o2::framework::DataAllocator& outpu
   auto reason_with_entries = fmt::format("{} ; nentries = {}", reason, nentries);
 
   LOGP(info, "sendOutput: {}", reason_with_entries);
-  constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
-  mCalibrator->checkSlotsToFinalize(INFINITE_TF);
+  mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
 
   // send regular bad channel object to subspec 0. This regular object
   // is meant for O2 consumption (in reconstruction and/or simulation)

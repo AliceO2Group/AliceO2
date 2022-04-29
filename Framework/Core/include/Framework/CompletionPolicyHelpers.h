@@ -32,6 +32,16 @@ struct CompletionPolicyHelpers {
   {
     return consumeWhenAll("consume-all", matcher);
   }
+
+  /// as consumeWhenAll, but ensures that records are processed with incremental timeSlice (DataHeader::startTime)
+  static CompletionPolicy consumeWhenAllOrdered(const char* name, CompletionPolicy::Matcher matcher);
+  /// Default matcher applies for all devices
+  static CompletionPolicy consumeWhenAllOrdered(CompletionPolicy::Matcher matcher = [](auto const&) -> bool { return true; })
+  {
+    return consumeWhenAllOrdered("consume-all-ordered", matcher);
+  }
+  static CompletionPolicy consumeWhenAllOrdered(std::string matchName);
+
   /// When any of the parts of the record have been received, consume them.
   static CompletionPolicy consumeWhenAny(const char* name, CompletionPolicy::Matcher matcher);
   /// Default matcher applies for all devices

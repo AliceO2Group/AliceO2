@@ -19,6 +19,7 @@
 #include "CPVCalibration/PedestalCalibrator.h"
 #include "DataFormatsCPV/Digit.h"
 #include "DataFormatsCPV/TriggerRecord.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 
@@ -29,9 +30,11 @@ namespace calibration
 class CPVPedestalCalibratorSpec : public o2::framework::Task
 {
  public:
+  CPVPedestalCalibratorSpec(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
   //_________________________________________________________________
   void init(o2::framework::InitContext& ic) final
   {
+    o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     uint64_t slotL = ic.options().get<uint64_t>("tf-per-slot");
     uint64_t delay = ic.options().get<uint64_t>("max-delay");
     uint64_t updateInterval = ic.options().get<uint64_t>("updateInterval");
@@ -49,10 +52,19 @@ class CPVPedestalCalibratorSpec : public o2::framework::Task
     LOG(info) << "updateInterval = " << updateInterval;
     LOG(info) << "updateAtTheEndOfRunOnly = " << updateAtTheEndOfRunOnly;
   }
+
+  //_________________________________________________________________
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
+  {
+    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+  }
+
   //_________________________________________________________________
   void run(o2::framework::ProcessingContext& pc) final
   {
-    auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("digits").header)->startTime;
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
+    TFType tfcounter = mCalibrator->getCurrentTFInfo().startTime;
     auto&& digits = pc.inputs().get<gsl::span<o2::cpv::Digit>>("digits");
     auto&& trigrecs = pc.inputs().get<gsl::span<o2::cpv::TriggerRecord>>("trigrecs");
     LOG(info) << "Processing TF " << tfcounter << " with " << digits.size() << " digits in " << trigrecs.size() << " trigger records.";
@@ -64,7 +76,7 @@ class CPVPedestalCalibratorSpec : public o2::framework::Task
       auto&& digitsInOneEvent = digits.subspan((*trigrec).getFirstEntry(), (*trigrec).getNumberOfObjects());
       if ((trigrec + 1) == trigrecs.end()) { //last event in current TF, let's process corresponding TimeSlot
         //LOG(info) << "last event, I call mCalibrator->process()";
-        mCalibrator->process(tfcounter, digitsInOneEvent); //fill TimeSlot with digits from 1 event and check slots for finalization
+        mCalibrator->process(digitsInOneEvent); // fill TimeSlot with digits from 1 event and check slots for finalization
       } else {
         slotTF.getContainer()->fill(digitsInOneEvent); //fill TimeSlot with digits from 1 event
       }
@@ -81,6 +93,7 @@ class CPVPedestalCalibratorSpec : public o2::framework::Task
 
  private:
   std::unique_ptr<o2::cpv::PedestalCalibrator> mCalibrator;
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
 
   void sendOutput(DataAllocator& output)
   {
@@ -135,6 +148,7 @@ class CPVPedestalCalibratorSpec : public o2::framework::Task
   }
 }; // class CPVPedestalCalibratorSpec
 } // namespace calibration
+
 namespace framework
 {
 DataProcessorSpec getCPVPedestalCalibratorSpec()
@@ -153,19 +167,25 @@ DataProcessorSpec getCPVPedestalCalibratorSpec()
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_DeadChnls"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_HighThrs"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_HighThrs"}, Lifetime::Sporadic);
-
+  std::vector<InputSpec> inputs{{"digits", "CPV", "DIGITS"},
+                                {"trigrecs", "CPV", "DIGITTRIGREC"}};
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
+                                                                true,                           // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
   return DataProcessorSpec{
     "cpv-pedestal-calibration",
-    Inputs{
-      {"digits", "CPV", "DIGITS"},
-      {"trigrecs", "CPV", "DIGITTRIGREC"}},
+    inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>()},
+    AlgorithmSpec{adaptFromTask<device>(ccdbRequest)},
     Options{
-      {"tf-per-slot", VariantType::UInt64, (uint64_t)std::numeric_limits<long>::max(), {"number of TFs per calibration time slot"}},
-      {"max-delay", VariantType::UInt64, uint64_t(1000), {"number of slots in past to consider"}},
+      {"tf-per-slot", VariantType::UInt32, o2::calibration::INFINITE_TF, {"number of TFs per calibration time slot, if 0: finalize once statistics is reached"}},
+      {"max-delay", VariantType::UInt32, 1000u, {"number of slots in past to consider"}},
       {"updateAtTheEndOfRunOnly", VariantType::Bool, false, {"finalize the slots and prepare the CCDB entries only at the end of the run."}},
-      {"updateInterval", VariantType::UInt64, (uint64_t)10, {"try to finalize the slot (and produce calibration) when the updateInterval has passed.\n To be used together with tf-per-slot = std::numeric_limits<long>::max()"}}}};
+      {"updateInterval", VariantType::UInt32, 10u, {"try to finalize the slot (and produce calibration) when the updateInterval has passed.\n To be used together with tf-per-slot = 0"}}}};
 }
 } // namespace framework
 } // namespace o2

@@ -114,6 +114,32 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAll(const char* name, Compl
   return CompletionPolicy{name, matcher, callback};
 }
 
+CompletionPolicy CompletionPolicyHelpers::consumeWhenAllOrdered(const char* name, CompletionPolicy::Matcher matcher)
+{
+  auto nextTimeSlice = std::make_shared<long int>(0);
+  auto callback = [nextTimeSlice](InputSpan const& inputs) -> CompletionPolicy::CompletionOp {
+    for (auto& input : inputs) {
+      if (input.header == nullptr) {
+        return CompletionPolicy::CompletionOp::Wait;
+      }
+      if (framework::DataRefUtils::isValid(input) && framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(input)->startTime != *nextTimeSlice) {
+        return CompletionPolicy::CompletionOp::Wait;
+      }
+    }
+    (*nextTimeSlice)++;
+    return CompletionPolicy::CompletionOp::ConsumeAndRescan;
+  };
+  return CompletionPolicy{name, matcher, callback};
+}
+
+CompletionPolicy CompletionPolicyHelpers::consumeWhenAllOrdered(std::string matchName)
+{
+  auto matcher = [matchName](DeviceSpec const& device) -> bool {
+    return std::regex_match(device.name.begin(), device.name.end(), std::regex(matchName));
+  };
+  return consumeWhenAllOrdered(matcher);
+}
+
 CompletionPolicy CompletionPolicyHelpers::consumeExistingWhenAny(const char* name, CompletionPolicy::Matcher matcher)
 {
   return CompletionPolicy{

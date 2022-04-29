@@ -20,7 +20,7 @@
 BOOST_AUTO_TEST_CASE(TestBasics)
 {
   using namespace o2::framework;
-  TimesliceIndex index{1};
+  TimesliceIndex index{1, 1};
   TimesliceSlot slot;
 
   BOOST_REQUIRE_EQUAL(index.size(), 0);
@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(TestBasics)
 BOOST_AUTO_TEST_CASE(TestLRUReplacement)
 {
   using namespace o2::framework;
-  TimesliceIndex index{1};
+  TimesliceIndex index{1, 1};
   index.resize(3);
   data_matcher::VariableContext context;
 
@@ -98,4 +98,66 @@ BOOST_AUTO_TEST_CASE(TestLRUReplacement)
     BOOST_CHECK_EQUAL(slot.index, TimesliceSlot::INVALID);
     BOOST_CHECK(action == TimesliceIndex::ActionTaken::Wait);
   }
+}
+
+/// A test to check the calculations of the oldest possible
+/// timeslice in the index.
+BOOST_AUTO_TEST_CASE(TestOldestPossibleTimeslice)
+{
+  using namespace o2::framework;
+  TimesliceIndex index{2, 2};
+
+  index.resize(3);
+
+  data_matcher::VariableContext context;
+  {
+    context.put({0, uint64_t{9}});
+    context.commit();
+    auto [action, slot] = index.replaceLRUWith(context, {9});
+    index.markAsDirty(slot, true);
+    auto oldest = index.setOldestPossibleInput({9}, {0});
+    for (size_t i = 0; i < 3; ++i) {
+      bool invalidated = index.validateSlot(TimesliceSlot{i}, oldest.timeslice);
+      std::cout << "Slot " << i << " valid: " << invalidated << std::endl;
+    }
+    index.updateOldestPossibleOutput();
+    BOOST_CHECK_EQUAL(slot.index, 1);
+    BOOST_CHECK(action == TimesliceIndex::ActionTaken::ReplaceUnused);
+  }
+  {
+    context.put({0, uint64_t{10}});
+    context.commit();
+    auto [action, slot] = index.replaceLRUWith(context, {10});
+    index.markAsDirty(slot, true);
+    auto oldest = index.setOldestPossibleInput({10}, {1});
+    for (size_t i = 0; i < 3; ++i) {
+      bool invalidated = index.validateSlot(TimesliceSlot{i}, oldest.timeslice);
+    }
+    BOOST_CHECK_EQUAL(slot.index, 0);
+    BOOST_CHECK(action == TimesliceIndex::ActionTaken::ReplaceUnused);
+  }
+
+  BOOST_CHECK_EQUAL(index.getOldestPossibleInput().timeslice.value, 9);
+  BOOST_CHECK_EQUAL(index.getOldestPossibleOutput().timeslice.value, 0);
+  auto oldest = index.setOldestPossibleInput({10}, {0});
+  for (size_t i = 0; i < 3; ++i) {
+    bool invalidated = index.validateSlot(TimesliceSlot{i}, oldest.timeslice);
+  }
+  index.updateOldestPossibleOutput();
+  BOOST_CHECK_EQUAL(index.getOldestPossibleInput().timeslice.value, 10);
+  BOOST_CHECK_EQUAL(index.getOldestPossibleOutput().timeslice.value, 9);
+  oldest = index.setOldestPossibleInput({11}, {1});
+  for (size_t i = 0; i < 3; ++i) {
+    bool invalidated = index.validateSlot(TimesliceSlot{i}, oldest.timeslice);
+  }
+  index.updateOldestPossibleOutput();
+  BOOST_CHECK_EQUAL(index.getOldestPossibleInput().timeslice.value, 10);
+  BOOST_CHECK_EQUAL(index.getOldestPossibleOutput().timeslice.value, 9);
+  // We fake the fact that we have processed the slot 0;
+  index.markAsDirty({1}, false);
+  index.updateOldestPossibleOutput();
+  BOOST_CHECK_EQUAL(index.getOldestPossibleOutput().timeslice.value, 9);
+  index.markAsInvalid({1});
+  index.updateOldestPossibleOutput();
+  BOOST_CHECK_EQUAL(index.getOldestPossibleOutput().timeslice.value, 10);
 }

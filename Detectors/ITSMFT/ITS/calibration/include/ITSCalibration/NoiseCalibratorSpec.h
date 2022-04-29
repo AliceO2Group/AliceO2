@@ -18,6 +18,7 @@
 #include <TStopwatch.h>
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 //#define TIME_SLOT_CALIBRATION
 #ifdef TIME_SLOT_CALIBRATION
@@ -39,7 +40,7 @@ namespace its
 class NoiseCalibratorSpec : public Task
 {
  public:
-  NoiseCalibratorSpec(bool useClusters = false) : mUseClusters(useClusters)
+  NoiseCalibratorSpec(bool useClusters = false, std::shared_ptr<o2::base::GRPGeomRequest> req = {}) : mUseClusters(useClusters), mCCDBRequest(req)
   {
     mTimer.Stop();
   }
@@ -54,6 +55,7 @@ class NoiseCalibratorSpec : public Task
   void sendOutput(DataAllocator& output);
   void updateTimeDependentParams(ProcessingContext& pc);
   std::unique_ptr<CALIBRATOR> mCalibrator = nullptr;
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   size_t mDataSizeStat = 0;
   size_t mNClustersProc = 0;
   int mValidityDays = 3;

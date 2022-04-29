@@ -15,7 +15,7 @@
 #include "Framework/ServiceRegistry.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/Logger.h"
-#include "DataProcessingHelpers.h"
+#include "Framework/DataProcessingHelpers.h"
 #include <string>
 #include <string_view>
 #include <regex>

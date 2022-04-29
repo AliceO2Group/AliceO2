@@ -62,7 +62,7 @@ class NoiseCalibrator final : public o2::calibration::TimeSlotCalibration<o2::cp
   }
   void initOutput() final;
   void finalizeSlot(NoiseTimeSlot& slot) final;
-  NoiseTimeSlot& emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend) final;
+  NoiseTimeSlot& emplaceNewSlot(bool front, TFType tstart, TFType tend) final;
 
  private:
   std::unique_ptr<std::vector<float>> mPedEfficiencies = nullptr;

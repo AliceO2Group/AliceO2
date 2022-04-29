@@ -1015,12 +1015,14 @@ void AODProducerWorkflowDPL::fillCaloTable(TEventHandler* caloEventHandler, cons
                      caloType); // 1 = emcal, -1 = undefined, 0 = phos
 
       // todo: fix dummy values in CellHelper when it is clear what is filled for trigger information
-      caloCellTRGTableCursor(0,
-                             bcID,
-                             CellHelper::getFastOrAbsID(cell),
-                             CellHelper::getLnAmplitude(cell),
-                             CellHelper::getTriggerBits(cell),
-                             caloType);
+      if (CellHelper::isTRU(cell)) { // Write only trigger cells into this table
+        caloCellTRGTableCursor(0,
+                               bcID,
+                               CellHelper::getFastOrAbsID(cell),
+                               CellHelper::getLnAmplitude(cell),
+                               CellHelper::getTriggerBits(cell),
+                               caloType);
+      }
     }
   }
 }
@@ -1167,7 +1169,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
   auto& cascadesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CASCADE_001"});
   auto& collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
-  auto& fddBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FDD"});
+  auto& fddBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FDD_001"});
   auto& ft0Builder = pc.outputs().make<TableBuilder>(Output{"AOD", "FT0"});
   auto& fv0aBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0A"});
   auto& fwdTracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FWDTRACK"});
@@ -1273,7 +1275,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                aAmplitudes,
                aChannels,
                truncateFloatFraction(fv0RecPoint.getCollisionGlobalMeanTime() * 1E-3, mV0Time), // ps to ns
-               fv0RecPoint.getTrigger().triggersignals);
+               fv0RecPoint.getTrigger().getTriggersignals());
   }
 
   for (auto zdcRecData : zdcBCRecData) {
@@ -1395,21 +1397,22 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   // vector of FDD amplitudes
-  int nFDDChannels = o2::fdd::Nchannels;
+  int16_t aFDDAmplitudesA[8] = {0u};
+  int16_t aFDDAmplitudesC[8] = {0u};
   // filling FDD table
   for (const auto& fddRecPoint : fddRecPoints) {
-    std::vector<float> vFDDAmplitudes(nFDDChannels, 0.);
-    const auto channelData = fddRecPoint.getBunchChannelData(fddChData);
-    // TODO: switch to calibrated amplitude
-    for (const auto& channel : channelData) {
-      vFDDAmplitudes[channel.mPMNumber] = channel.mChargeADC; // amplitude, mV
+    for (int i = 0; i < 8; i++) {
+      aFDDAmplitudesA[i] = 0;
+      aFDDAmplitudesC[i] = 0;
     }
 
-    float aFDDAmplitudesA[4];
-    float aFDDAmplitudesC[4];
-    for (int i = 0; i < 4; i++) {
-      aFDDAmplitudesC[i] = truncateFloatFraction((vFDDAmplitudes[i] + vFDDAmplitudes[i + 4]) * 0.5, mFDDAmplitude);
-      aFDDAmplitudesA[i] = truncateFloatFraction((vFDDAmplitudes[i + 8] + vFDDAmplitudes[i + 12]) * 0.5, mFDDAmplitude);
+    const auto channelData = fddRecPoint.getBunchChannelData(fddChData);
+    for (const auto& channel : channelData) {
+      if (channel.mPMNumber < 8) {
+        aFDDAmplitudesC[channel.mPMNumber] = channel.mChargeADC; // amplitude
+      } else {
+        aFDDAmplitudesA[channel.mPMNumber - 8] = channel.mChargeADC; // amplitude
+      }
     }
 
     uint64_t globalBC = fddRecPoint.getInteractionRecord().toLong();
@@ -1427,7 +1430,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
               aFDDAmplitudesC,
               truncateFloatFraction(fddRecPoint.getCollisionTimeA() * 1E-3, mFDDTime), // ps to ns
               truncateFloatFraction(fddRecPoint.getCollisionTimeC() * 1E-3, mFDDTime), // ps to ns
-              fddRecPoint.getTrigger().triggersignals);
+              fddRecPoint.getTrigger().getTriggersignals());
   }
 
   // filling FT0 table
@@ -1469,7 +1472,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
               aChannelsC,
               truncateFloatFraction(ft0RecPoint.getCollisionTimeA() * 1E-3, mT0Time), // ps to ns
               truncateFloatFraction(ft0RecPoint.getCollisionTimeC() * 1E-3, mT0Time), // ps to ns
-              ft0RecPoint.getTrigger().triggersignals);
+              ft0RecPoint.getTrigger().getTriggersignals());
   }
 
   if (mUseMC) {
@@ -1741,7 +1744,7 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
     auto tofSignal = (tofMatch.getSignal() - exp) * 1e-3; // time in ns wrt TF start
     setTrackTime(tofSignal, 0.2, true);                   // FIXME: calculate actual resolution (if possible?)
   }
-  if (contributorsGID[GIndex::Source::TRD].isIndexSet()) { // ITS-TPC-TRD-TOF, TPC-TRD-TOF, TPC-TRD, ITS-TPC-TRD
+  if (contributorsGID[GIndex::Source::TRD].isIndexSet()) {                                        // ITS-TPC-TRD-TOF, TPC-TRD-TOF, TPC-TRD, ITS-TPC-TRD
     const auto& trdOrig = data.getTrack<o2::trd::TrackTRD>(contributorsGID[GIndex::Source::TRD]); // refitted TRD trac
     extraInfoHolder.trdChi2 = trdOrig.getChi2();
     extraInfoHolder.trdPattern = getTRDPattern(trdOrig);
@@ -1950,7 +1953,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2cascade_001"}, "AOD", "CASCADE_001", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2collision"}, "AOD", "COLLISION", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2fdd"}, "AOD", "FDD", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2fdd_001"}, "AOD", "FDD_001", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2ft0"}, "AOD", "FT0", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2fv0a"}, "AOD", "FV0A", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2fwdtrack"}, "AOD", "FWDTRACK", 0, Lifetime::Timeframe);

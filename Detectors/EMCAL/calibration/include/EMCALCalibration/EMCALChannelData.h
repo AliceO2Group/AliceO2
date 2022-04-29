@@ -24,6 +24,7 @@
 // #include "EMCALCalib/BadChannelMap.h"
 // #include "EMCALCalib/TimeCalibrationParams.h"
 #include "EMCALCalibration/EMCALCalibExtractor.h"
+#include "EMCALCalibration/EMCALCalibParams.h"
 #include "DataFormatsEMCAL/Cell.h"
 #include "EMCALBase/Geometry.h"
 // #include "CCDB/CcdbObjectInfo.h"
@@ -84,8 +85,10 @@ class EMCALChannelData
   void fill(const gsl::span<const o2::emcal::Cell> data);
   /// \brief Merge the data of two slots.
   void merge(const EMCALChannelData* prev);
-  int findBin(float v) const;
-  bool hasEnoughData(const int minNEntries) const;
+  // int findBin(float v) const;
+  /// \brief Check if enough stataistics was accumulated to perform calibration
+  bool hasEnoughData() const;
+  /// \brief Get current calibration histogram
   boostHisto& getHisto() { return mHisto; }
   const boostHisto& getHisto() const { return mHisto; }
 
@@ -102,13 +105,13 @@ class EMCALChannelData
   void setNbins(int nb) { mNBins = nb; }
 
   int getNEvents() const { return mEvents; }
-  void setNEvents(int ne) { mEvents = ne; }
+  void setNEvents(int nevt) { mEvents = nevt; }
 
  private:
   float mRange = 0.35; // looked at old QA plots where max was 0.35 GeV, might need to be changed
   int mNBins = 1000;
   boostHisto mHisto;
-  int mEvents = 1;
+  int mEvents = 0;
   boostHisto mEsumHisto;                                ///< contains the average energy per hit for each cell
   boostHisto mEsumHistoScaled;                          ///< contains the average energy (scaled) per hit for each cell
   boostHisto mCellAmplitude;                            ///< is the input for the calibration, hist of cell E vs. ID

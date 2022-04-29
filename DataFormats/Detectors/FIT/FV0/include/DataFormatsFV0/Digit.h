@@ -19,6 +19,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "DataFormatsFV0/ChannelData.h"
+#include "DataFormatsFIT/Triggers.h"
 #include <Rtypes.h>
 #include <gsl/span>
 #include <bitset>
@@ -31,65 +32,7 @@ namespace o2
 namespace fv0
 {
 class ChannelData;
-
-struct Triggers {
-  enum { bitA,
-         bitAIn = 1,
-         bitC = 1, // alias of bitAIn - needed to be compatible with common-for-FIT raw reader
-         bitAOut = 2,
-         bitVertex = 2, // alias of bitAOut - needed to be compatible with common-for-FIT raw reader
-         bitCen,
-         bitSCen,
-         bitLaser };
-  uint8_t triggersignals = 0; // V0 trigger signals
-  int8_t nChanA = 0;          // number of fired channels A side
-  int8_t nChanC = 0;          // TODO: MS: unused in FV0
-  int32_t amplA = -5000;      // sum amplitude A side
-  int32_t amplC = -5000;      // TODO: MS: unused in FV0
-  int16_t timeA = -5000;      // average time A side
-  int16_t timeC = -5000;      // TODO: MS: unused in FV0
-  Triggers() = default;
-  Triggers(uint8_t signals, int8_t chanA, int32_t aamplA, int16_t atimeA)
-  {
-    triggersignals = signals;
-    nChanA = chanA;
-    amplA = aamplA;
-    timeA = atimeA;
-  }
-  bool getOrA() const { return (triggersignals & (1 << bitA)) != 0; }
-  bool getOrAIn() const { return (triggersignals & (1 << bitAIn)) != 0; }
-  bool getOrAOut() const { return (triggersignals & (1 << bitAOut)) != 0; }
-  bool getCen() const { return (triggersignals & (1 << bitCen)) != 0; }
-  bool getSCen() const { return (triggersignals & (1 << bitSCen)) != 0; }
-  bool getLaserBit() const { return (triggersignals & (1 << bitLaser)) != 0; }
-
-  // TODO: MS: temporary aliases to keep DigitBlockFIT.h working (treat FV0 as FT0/FDD)
-  bool getOrC() const { return getOrAIn(); }
-  bool getVertex() const { return getOrAOut(); }
-
-  void setTriggers(Bool_t isA, Bool_t isAIn, Bool_t isAOut, Bool_t isCnt, Bool_t isSCnt, int8_t chanA, int32_t aamplA,
-                   int16_t atimeA, Bool_t isLaser = kFALSE)
-  {
-    triggersignals = (isA << bitA) | (isAIn << bitAIn) | (isAOut << bitAOut) | (isCnt << bitCen) | (isSCnt << bitSCen) | (isLaser << bitLaser);
-    nChanA = chanA;
-    amplA = aamplA;
-    timeA = atimeA;
-  }
-  void cleanTriggers()
-  {
-    triggersignals = 0;
-    nChanA = 0;
-    amplA = -5000;
-    timeA = -5000;
-  }
-  bool operator==(Triggers const& other) const
-  {
-    return std::tie(triggersignals, nChanA, amplA, timeA) ==
-           std::tie(other.triggersignals, other.nChanA, other.amplA, other.timeA);
-  }
-  void printLog() const;
-  ClassDefNV(Triggers, 2);
-};
+using Triggers = o2::fit::Triggers;
 
 struct DetTrigInput {
   static constexpr char sChannelNameDPL[] = "TRIGGERINPUT";
@@ -114,10 +57,8 @@ struct Digit {
   static constexpr char sChannelNameDPL[] = "DIGITSBC";
   static constexpr char sDigitName[] = "Digit";
   static constexpr char sDigitBranchName[] = "FV0DigitBC";
-  /// we are going to refer to at most 48 channels, so 6 bits for the number of channels and 26 for the reference
-  o2::dataformats::RangeRefComp<6> ref;
-  Triggers mTriggers{}; // pattern of triggers  in this BC
-
+  o2::dataformats::RangeReference<int, int> ref{};
+  Triggers mTriggers{};               // pattern of triggers  in this BC
   o2::InteractionRecord mIntRecord{}; // Interaction record (orbit, bc)
   int mEventID = 0;
   Digit() = default;
@@ -149,7 +90,7 @@ struct Digit {
     return std::tie(ref, mTriggers, mIntRecord) == std::tie(other.ref, other.mTriggers, other.mIntRecord);
   }
   void printLog() const;
-  ClassDefNV(Digit, 2);
+  ClassDefNV(Digit, 3);
 };
 
 // For TCM extended mode (calibration mode), TCMdataExtended digit
@@ -165,6 +106,7 @@ struct TriggersExt {
   void printLog() const;
   ClassDefNV(TriggersExt, 1);
 };
+
 } // namespace fv0
 } // namespace o2
 

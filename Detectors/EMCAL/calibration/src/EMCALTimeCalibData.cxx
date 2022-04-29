@@ -56,22 +56,17 @@ void EMCALTimeCalibData::merge(const EMCALTimeCalibData* prev)
   mTimeHisto += prev->getHisto();
 }
 //_____________________________________________
-bool EMCALTimeCalibData::hasEnoughData(int minNEntries) const
+bool EMCALTimeCalibData::hasEnoughData() const
 {
-  // true if we have enough data, also want to check for the sync trigger
-  // this is stil to be finalized, simply a skeletron for now
-
-  // if we have the sync trigger, finalize the slot anyway
-
-  //finalizeOldestSlot(Slot& slot);
-
-  // TODO: use event counter here to specify the value of enough
-  // guess and then adjust number of events as needed
-  // checking mEvents
   bool enough = false;
   double entries = boost::histogram::algorithm::sum(mTimeHisto);
-  LOG(debug) << "entries: " << entries << " needed: " << minNEntries;
-  if (entries > minNEntries) {
+  LOG(debug) << "entries: " << entries << " needed: " << EMCALCalibParams::Instance().minNEntries << "  mEvents = " << mEvents;
+  // use enrties in histogram for calibration
+  if (!EMCALCalibParams::Instance().useNEventsForCalib && entries > EMCALCalibParams::Instance().minNEntries) {
+    enough = true;
+  }
+  // use number of events (from emcal trigger record) for calibration
+  if (EMCALCalibParams::Instance().useNEventsForCalib && mEvents > EMCALCalibParams::Instance().minNEvents) {
     enough = true;
   }
 
@@ -80,6 +75,9 @@ bool EMCALTimeCalibData::hasEnoughData(int minNEntries) const
 //_____________________________________________
 void EMCALTimeCalibData::fill(const gsl::span<const o2::emcal::Cell> data)
 {
+  // the fill function is called once per event
+  mEvents++;
+
   for (auto cell : data) {
     double cellEnergy = cell.getEnergy();
     double cellTime = cell.getTimeStamp();
