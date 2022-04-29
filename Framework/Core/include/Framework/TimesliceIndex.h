@@ -16,6 +16,7 @@
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/RoutingIndices.h"
 #include "Framework/ServiceHandle.h"
+#include "Framework/TimesliceSlot.h"
 
 #include <cstdint>
 #include <vector>
@@ -24,20 +25,6 @@
 namespace o2::framework
 {
 
-struct TimesliceId {
-  static constexpr uint64_t INVALID = -1;
-  size_t value;
-  static bool isValid(TimesliceId const& timeslice);
-};
-
-struct TimesliceSlot {
-  static constexpr uint64_t INVALID = -1;
-  static constexpr uint64_t ANY = -2;
-  size_t index;
-  static bool isValid(TimesliceSlot const& slot);
-  bool operator==(const TimesliceSlot that) const;
-  bool operator!=(const TimesliceSlot that) const;
-};
 
 /// This class keeps the information relative to a given slot in the cache, in
 /// particular which variables are associated to it (and indirectly which

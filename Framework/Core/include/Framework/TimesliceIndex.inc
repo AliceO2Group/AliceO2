@@ -17,21 +17,6 @@ inline TimesliceIndex::TimesliceIndex(size_t maxLanes, size_t maxChannels)
   mOldestPossibleTimeslices.resize(maxChannels);
 }
 
-inline bool TimesliceId::isValid(TimesliceId const& timeslice) { return timeslice.value != INVALID; }
-inline bool TimesliceSlot::isValid(TimesliceSlot const& slot) { return slot.index != INVALID; }
-
-inline bool TimesliceSlot::operator==(const TimesliceSlot that) const
-{
-  return index == that.index ||
-         (index == TimesliceSlot::ANY && TimesliceSlot::INVALID != that.index) ||
-         (index != TimesliceSlot::INVALID && TimesliceSlot::ANY == that.index);
-}
-
-inline bool TimesliceSlot::operator!=(const TimesliceSlot that) const
-{
-  return !(*this == that);
-}
-
 inline void TimesliceIndex::resize(size_t s)
 {
   mVariables.resize(s);
