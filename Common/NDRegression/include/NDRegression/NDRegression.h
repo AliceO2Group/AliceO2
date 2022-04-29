@@ -67,6 +67,33 @@ class NDRegression : public TNamed
   Bool_t MakeRobustStatistic(TVectorD& values, TVectorD& errors, TObjArray& pointArray, TObjArray& kernelArrayI2, Int_t& nvarFormula, Double_t weightCut, Double_t robustFraction);
 
   // Bool_t MakeFit(TTree * tree , const char *formulaVal, const char * formulaVar, const char*selection, const char * formulaKernel,  const char * dimensionFormula, Double_t weightCut=0.00001, Int_t entries=1000000000, Bool_t useBinNorm=kTRUE);
+  
+  static Double_t GetCorrND(Double_t index, Double_t par0);
+  static Double_t GetCorrND(Double_t index, Double_t par0, Double_t par1);
+  static Double_t GetCorrND(Double_t index, Double_t par0, Double_t par1,                     Double_t par2);
+  static Double_t GetCorrND(Double_t index, Double_t par0, Double_t par1,                     Double_t par2, Double_t par3);
+  static Double_t GetCorrNDError(Double_t index, Double_t par0);
+  static Double_t GetCorrNDError(Double_t index, Double_t par0, Double_t par1);
+  static Double_t GetCorrNDError(Double_t index, Double_t par0, Double_t par1,                          Double_t par2);
+  static Double_t GetCorrNDError(Double_t index, Double_t par0, Double_t par1,                                 Double_t par2, Double_t par3);
+  Double_t Eval(Double_t *point);
+  Double_t EvalError(Double_t *point);
+
+  // function to access the Local Regression from the TFormula
+  static void AddVisualCorrection(NDRegression *corr,
+                                  Int_t position = 0);
+  static Int_t GetVisualCorrectionIndex(const char *corName);
+  Int_t GetVisualCorrectionIndex() {
+    return GetVisualCorrectionIndex(GetName());
+  }
+  static NDRegression *GetVisualCorrection(Int_t position);
+  static NDRegression *GetVisualCorrection(const char *corName) {
+    return (fgVisualCorrection == NULL)
+               ? 0
+               : (NDRegression *)fgVisualCorrection->FindObject(
+                     corName);
+  }
+  static TObjArray *GetVisualCorrections() { return fgVisualCorrection; }
 
  protected:
   shared_ptr<TreeStreamRedirector> fStreamer; // ! streamer to keep - test intermediate data
@@ -78,6 +105,7 @@ class NDRegression : public TNamed
 
   TMatrixD* fLocalRobustStat; // local robust statistic
 
+  Int_t fNParameters; // number of local parameters to fit
   Int_t* fBinIndex;     //[fNParameters] working arrays current bin index
   Double_t* fBinCenter; //[fNParameters] working current local variables - bin center
   Double_t* fBinDelta;  //[fNParameters] working current local variables - bin delta
@@ -88,11 +116,18 @@ class NDRegression : public TNamed
   Double_t fRobustFractionLTS; //  fraction of data used for the robust mean and robust rms estimator (LTS https://en.wikipedia.org/wiki/Least_trimmed_squares)
   Double_t fRobustRMSLTSCut;   //  cut on the robust RMS  |value-localmean|<fRobustRMSLTSCut*localRMS
 
+  Bool_t fUseBinNorm; //  switch make polynom  in units of bins (kTRUE)  or  in
+                      //  natural units (kFALSE)
+  static TObjArray
+      *fgVisualCorrection;     ///< array of orrection for visualization
  private:
   NDRegression& operator=(const NDRegression&);
   NDRegression(const NDRegression&);
   ClassDef(o2::nd_regression::NDRegression, 1);
 };
+
+
+
 
 } // namespace nd_regression
 } // namespace o2

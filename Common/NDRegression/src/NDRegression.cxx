@@ -16,7 +16,13 @@ using namespace o2::nd_regression;
 
 ClassImp(o2::nd_regression::NDRegression);
 
-NDRegression::NDRegression(const char* name, const char* title) : TNamed(name, title) {}
+TObjArray *NDRegression::fgVisualCorrection = 0;
+
+NDRegression::NDRegression(const char* name, const char* title) : TNamed(name, title)
+{
+  if (!fgVisualCorrection)
+    fgVisualCorrection = new TObjArray;
+}
 
 Bool_t NDRegression::init()
 {
@@ -255,7 +261,7 @@ Bool_t NDRegression::MakeFit(TTree* tree, const char* formulaVal, const char* fo
     ::Error("NDRegression::MakeFit", "Kernel width not specified\n");
     return kFALSE;
   }
-  // fUseBinNorm = useBinNorm;
+  fUseBinNorm = useBinNorm;
   //
   // fInputTree = tree; // should be better TRef?
   // fFormulaVal = new TObjString(formulaVal);
@@ -282,7 +288,7 @@ Bool_t NDRegression::MakeFit(TTree* tree, const char* formulaVal, const char* fo
     ::Error("NDRegression::MakeFit", "Variable/Kernel mismath\n");
     return kFALSE;
   }
-  // fNParameters = nvarFormula;
+  fNParameters = nvarFormula;
 
   //
   // 2.) Load input data
@@ -466,6 +472,45 @@ Bool_t NDRegression::MakeFit(TTree* tree, const char* formulaVal, const char* fo
   return kTRUE;
 }
 
+Int_t NDRegression::GetVisualCorrectionIndex(const char *corName) {
+  //
+  return TMath::Hash(corName) % 1000000; /// BUGGY hash in the TMath
+  // return TString(corName).Hash()%1000000; /// also buggy - even more clashes
+}
+
+
+void NDRegression::AddVisualCorrection(NDRegression *corr,
+                                       Int_t position) {
+  /// make correction available for visualization using
+  /// TFormula, TFX and TTree::Draw
+  /// important in order to check corrections and also compute dervied variables
+  /// e.g correction partial derivatives
+  ///
+  /// NOTE - class is not owner of correction
+  if (position == 0) {
+    position = GetVisualCorrectionIndex(corr->GetName());
+  }
+
+  if (!fgVisualCorrection)
+    fgVisualCorrection = new TObjArray(1000000);
+  if (position >= fgVisualCorrection->GetEntriesFast())
+    fgVisualCorrection->Expand((position + 10) * 2);
+  if (fgVisualCorrection->At(position) != NULL) {
+    ::Error("NDRegression::AddVisualCorrection",
+            "Correction %d already defined Old: %s New: %s", position,
+            fgVisualCorrection->At(position)->GetName(), corr->GetName());
+  }
+  fgVisualCorrection->AddAt(corr, position);
+}
+
+NDRegression *
+NDRegression::GetVisualCorrection(Int_t position) {
+  /// Get visula correction registered at index=position
+  return fgVisualCorrection
+             ? (NDRegression *)fgVisualCorrection->At(position)
+             : 0;
+}
+
 Double_t NDRegression::GetCorrND(Double_t index, Double_t par0)
 {
   //
@@ -492,6 +537,7 @@ Double_t NDRegression::GetCorrND(Double_t index, Double_t par0,
                                  Double_t par1)
 {
   //
+
   //
   NDRegression* corr =
     (NDRegression*)fgVisualCorrection->At(index);
@@ -513,65 +559,142 @@ Double_t NDRegression::GetCorrNDError(Double_t index, Double_t par0,
   return corr->EvalError(par);
 }
 
-void PlotData(TH1F* hData, TString xTitle = "xTitle", TString yTitle = "yTitle", Color_t color = kBlack, TString zTitle = "zTitle", Double_t rms = 999999., Double_t eRms = 0., Double_t mean = 999999., Double_t eMean = 0.)
-{
-  //
-  //
-  gStyle->SetPadRightMargin(0.05);
-  gStyle->SetPadTopMargin(0.05);
-  gStyle->SetPadLeftMargin(0.14);
-  gStyle->SetPadBottomMargin(0.12);
-  gStyle->SetPadTickX(1);
-  gStyle->SetPadTickY(1);
-  gStyle->SetPadGridX(1);
-  gStyle->SetPadGridY(1);
-  gStyle->SetOptStat(0);
-  //
-  if (color == (kRed + 2)) {
-    hData->SetMarkerStyle(20);
-  }
-  if (color == (kBlue + 2)) {
-    hData->SetMarkerStyle(21);
-  }
-  if (color == (kGreen + 2)) {
-    hData->SetMarkerStyle(22);
-    hData->SetMarkerSize(1.3);
-  }
 
-  hData->SetMarkerColor(color);
-  hData->SetLineColor(color);
-  hData->GetXaxis()->SetTitle(xTitle.Data());
-  hData->GetYaxis()->SetTitle(yTitle.Data());
-  hData->GetZaxis()->SetTitle(zTitle.Data());
-  hData->GetXaxis()->SetTitleOffset(1.2);
-  hData->GetXaxis()->SetTitleSize(0.05);
-  hData->GetYaxis()->SetTitleOffset(1.3);
-  hData->GetYaxis()->SetTitleSize(0.05);
-  hData->GetXaxis()->SetLabelSize(0.035);
-  hData->GetYaxis()->SetLabelSize(0.035);
-  hData->GetXaxis()->SetDecimals();
-  hData->GetYaxis()->SetDecimals();
-  hData->GetZaxis()->SetDecimals();
-  hData->Sumw2();
-  hData->Draw("pe1");
-
-  if (mean != 999999.) {
-    TPaveText* text1 = new TPaveText(0.21, 0.82, 0.51, 0.92, "NDC");
-    text1->SetTextFont(43);
-    text1->SetTextSize(30.);
-    text1->SetBorderSize(1);
-    text1->SetFillColor(kWhite);
-    text1->AddText(Form("Mean: %0.2f #pm %0.2f", mean, eMean));
-    text1->AddText(Form("RMS: %0.2f #pm %0.2f", rms, eRms));
-    text1->Draw();
-  }
-  if (rms != 999999. && mean == 999999.) {
-    TPaveText* text1 = new TPaveText(0.21, 0.87, 0.51, 0.92, "NDC");
-    text1->SetTextFont(43);
-    text1->SetTextSize(30.);
-    text1->SetBorderSize(1);
-    text1->SetFillColor(kWhite);
-    text1->AddText(Form("RMS: %0.2f", rms));
-    text1->Draw();
-  }
+Double_t NDRegression::GetCorrND(Double_t index, Double_t par0,
+                                         Double_t par1, Double_t par2) {
+  //
+  //
+  NDRegression *corr =
+      (NDRegression *)fgVisualCorrection->At(index);
+  if (!corr)
+    return 0;
+  Double_t par[3] = {par0, par1, par2};
+  return corr->Eval(par);
 }
+
+Double_t NDRegression::GetCorrNDError(Double_t index, Double_t par0,
+                                              Double_t par1, Double_t par2) {
+  //
+  //
+  NDRegression *corr =
+      (NDRegression *)fgVisualCorrection->At(index);
+  if (!corr)
+    return 0;
+  Double_t par[3] = {par0, par1, par2};
+  return corr->EvalError(par);
+}
+
+Double_t NDRegression::GetCorrND(Double_t index, Double_t par0,
+                                         Double_t par1, Double_t par2,
+                                         Double_t par3) {
+  //
+  //
+  NDRegression *corr =
+      (NDRegression *)fgVisualCorrection->At(index);
+  if (!corr)
+    return 0;
+  Double_t par[4] = {par0, par1, par2, par3};
+  return corr->Eval(par);
+}
+
+Double_t NDRegression::GetCorrNDError(Double_t index, Double_t par0,
+                                              Double_t par1, Double_t par2,
+                                              Double_t par3) {
+  //
+  //
+  NDRegression *corr =
+      (NDRegression *)fgVisualCorrection->At(index);
+  if (!corr)
+    return 0;
+  Double_t par[4] = {par0, par1, par2, par3};
+  return corr->EvalError(par);
+}
+
+
+Double_t NDRegression::Eval(Double_t *point) {
+  //
+  //
+  //
+  const Double_t almost0 = 0.00000001;
+  // backward compatibility
+  if (!fBinWidth) {
+    fBinWidth = new Double_t[fHistPoints->GetNdimensions()];
+  }
+
+  for (Int_t iDim = 0; iDim < fNParameters; iDim++) {
+    if (point[iDim] <= fHistPoints->GetAxis(iDim)->GetXmin())
+      point[iDim] = fHistPoints->GetAxis(iDim)->GetXmin() +
+                    almost0 * fHistPoints->GetAxis(iDim)->GetBinWidth(0);
+    if (point[iDim] >= fHistPoints->GetAxis(iDim)->GetXmax())
+      point[iDim] = fHistPoints->GetAxis(iDim)->GetXmax() -
+                    almost0 * fHistPoints->GetAxis(iDim)->GetBinWidth(0);
+  }
+
+  Int_t ibin = fHistPoints->GetBin(point);
+  Bool_t rangeOK = kTRUE;
+  if (ibin >= fLocalFitParam->GetEntriesFast()) {
+    rangeOK = kFALSE;
+  } else {
+    if (fLocalFitParam->UncheckedAt(ibin) == NULL) {
+      rangeOK = kFALSE;
+    }
+  }
+  if (!rangeOK)
+    return 0;
+
+  fHistPoints->GetBinContent(ibin, fBinIndex);
+  for (Int_t idim = 0; idim < fNParameters; idim++) {
+    fBinCenter[idim] =
+        fHistPoints->GetAxis(idim)->GetBinCenter(fBinIndex[idim]);
+    fBinWidth[idim] = fHistPoints->GetAxis(idim)->GetBinWidth(fBinIndex[idim]);
+  }
+  TVectorD &vecParam = *((TVectorD *)fLocalFitParam->At(ibin));
+  Double_t value = vecParam[0];
+  if (!rangeOK)
+    return value;
+  if (fUseBinNorm) {
+    for (Int_t ipar = 0; ipar < fNParameters; ipar++) {
+      Double_t delta = (point[ipar] - fBinCenter[ipar]) / fBinWidth[ipar];
+      value +=
+          (vecParam[1 + 2 * ipar] + vecParam[1 + 2 * ipar + 1] * delta) * delta;
+    }
+  } else {
+    for (Int_t ipar = 0; ipar < fNParameters; ipar++) {
+      Double_t delta = (point[ipar] - fBinCenter[ipar]);
+      value +=
+          (vecParam[1 + 2 * ipar] + vecParam[1 + 2 * ipar + 1] * delta) * delta;
+    }
+  }
+  return value;
+}
+
+Double_t NDRegression::EvalError(Double_t *point) {
+  //
+  //
+  //
+  if (fLocalFitCovar == NULL) {
+    ::Error("NDRegression::EvalError",
+            "Covariance matrix not available");
+    return 0;
+  }
+  for (Int_t iDim = 0; iDim < fNParameters; iDim++) {
+    if (point[iDim] < fHistPoints->GetAxis(iDim)->GetXmin())
+      point[iDim] = fHistPoints->GetAxis(iDim)->GetXmin();
+    if (point[iDim] > fHistPoints->GetAxis(iDim)->GetXmax())
+      point[iDim] = fHistPoints->GetAxis(iDim)->GetXmax();
+  }
+
+  Int_t ibin = fHistPoints->GetBin(point);
+  if (fLocalFitParam->At(ibin) == NULL)
+    return 0;
+  fHistPoints->GetBinContent(ibin, fBinIndex);
+  for (Int_t idim = 0; idim < fNParameters; idim++) {
+    fBinCenter[idim] =
+        fHistPoints->GetAxis(idim)->GetBinCenter(fBinIndex[idim]);
+  }
+  TMatrixD &vecCovar = *((TMatrixD *)fLocalFitCovar->At(ibin));
+  // TVectorD &vecQuality = *((TVectorD*)fLocalFitQuality->At(ibin));
+  Double_t value = TMath::Sqrt(vecCovar(0, 0)); // fill covariance to be used
+  return value;
+}
+

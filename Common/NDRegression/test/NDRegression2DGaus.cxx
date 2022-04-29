@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test NDRegression2DIdeal
+#define BOOST_TEST_MODULE Test NDRegression2DGaus
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
@@ -100,15 +100,11 @@ void PlotData(TH1F* hData, TString xTitle = "xTitle", TString yTitle = "yTitle",
   }
 }
 
-
-BOOST_AUTO_TEST_CASE(NDRegression2DIdeal_test)
+BOOST_AUTO_TEST_CASE(NDRegression2DGaus_test)
 {
-  auto pfitNDIdeal = make_unique<NDRegression>("pfitNDIdeal", "pfitNDIdeal");
-  auto pfitNDIdeal2 = make_unique<NDRegression>("pfitNDIdeal2", "pfitNDIdeal2");
+  auto pfitNDGaus0 = make_unique<NDRegression>("pfitNDGaus0", "pfitNDGaus0");
 
-  auto success = pfitNDIdeal->init();
-  BOOST_CHECK(success == true);
-  success = pfitNDIdeal2->init();
+  auto success = pfitNDGaus0->init();
   BOOST_CHECK(success == true);
 
   //
@@ -118,8 +114,7 @@ BOOST_AUTO_TEST_CASE(NDRegression2DIdeal_test)
   Double_t err = 0.1;
 
   o2::utils::TreeStreamRedirector pcstreamIn("fitNDLocalTestInput.root", "recreate");
-  auto pcstreamOutIdeal = make_shared<o2::utils::TreeStreamRedirector>("fitNDLocalTestOutputIdeal.root", "recreate");
-  auto pcstreamOutIdeal2 = make_shared<o2::utils::TreeStreamRedirector>("fitNDLocalTestOutputIdeal2.root", "recreate");
+  auto pcstreamOutGaus0 = make_shared<o2::utils::TreeStreamRedirector>("fitNDLocalTestOutputGaus0.root", "recreate");
 
   Double_t* xyz = new Double_t[ndim];
   Double_t* sxyz = new Double_t[ndim];
@@ -165,24 +160,18 @@ BOOST_AUTO_TEST_CASE(NDRegression2DIdeal_test)
   auto treeIn = (TTree*)(inpf.GetFile()->Get("testInput"));
   BOOST_CHECK(treeIn);
 
-  pfitNDIdeal->SetStreamer(pcstreamOutIdeal);
-  pfitNDIdeal2->SetStreamer(pcstreamOutIdeal2);
+  pfitNDGaus0->SetStreamer(pcstreamOutGaus0);
 
   
-  success = pfitNDIdeal->SetHistogram((THn*)((hN->Clone())));
-  BOOST_CHECK(success);
-  success = pfitNDIdeal2->SetHistogram((THn*)((hN->Clone())));
+  success = pfitNDGaus0->SetHistogram((THn*)((hN->Clone())));
   BOOST_CHECK(success);
 
-  success = pfitNDIdeal->MakeFit(treeIn, "val:err", "xyz0:xyz1", "Entry$%2==1", "0.02:0.02", "2:2", 0.0001);
-  BOOST_CHECK(success);
-  success = pfitNDIdeal2->MakeFit(treeIn, "val:err", "xyz0:xyz1","Entry$%2==1", "0.08:0.08","2:2",0.0001);  // sample Gaussian1
+  success = pfitNDGaus0->MakeFit(treeIn, "val+noise:err", "xyz0:xyz1","Entry$%2==1", "0.02:0.02","2:2",0.0001);  // sample Gaussian1
   BOOST_CHECK(success);
 
   std::cout << "Now drawing...\n";
 
-  pfitNDIdeal->AddVisualCorrection(pfitNDIdeal.get(),1);
-  pfitNDIdeal2->AddVisualCorrection(pfitNDIdeal2.get(),2);
+  pfitNDGaus0->AddVisualCorrection(pfitNDGaus0.get(),1);
 
   TObjArray * array = NDRegression::GetVisualCorrections();
   for (Int_t i=0; i<array->GetEntries(); i++){
@@ -192,40 +181,36 @@ BOOST_AUTO_TEST_CASE(NDRegression2DIdeal_test)
     Int_t hashIndex = regression->GetVisualCorrectionIndex();
     treeIn->SetAlias( regression->GetName(), TString::Format("o2::nd_regression::NDRegression::GetCorrND(%d,xyz0,xyz1+0)",hashIndex).Data());
   }
-  pcstreamOutIdeal.reset();
-  pcstreamOutIdeal2.reset();
+  pcstreamOutGaus0.reset();
   std::cout << "Entries: " << array->GetEntries() << std::endl;
 
   
-  TCanvas * canvasIdeal = new TCanvas("canvasIdeal","canvasIdeal",800,800);
+  TCanvas * canvasGaus = new TCanvas("canvasGaus","canvasGaus",800,800);
   treeIn->Draw("val>>inputData(71,-1.1,2.1)","","");
   TH1F   *inputData = (TH1F*)gPad->GetPrimitive("inputData");
-  treeIn->Draw("(o2::nd_regression::NDRegression::GetCorrND(1,xyz0,xyz1))>>ideal(71,-1.1,2.1)","","");
+  treeIn->Draw("(o2::nd_regression::NDRegression::GetCorrND(1,xyz0,xyz1))>>gaus(71,-1.1,2.1)","","");
   // treeIn->Draw("(o2::nd_regression::NDRegression::GetCorrND(3,xyz0,xyz1)-o2::nd_regression::NDRegression::GetCorrND(2,xyz0,xyz1))/sqrt(o2::nd_regression::NDRegression::GetCorrNDError(3,xyz0,xyz1)**2+o2::nd_regression::NDRegression::GetCorrNDError(2,xyz0,xyz1)**2)>>ideal(401,-20.5,20.5)","","");
-  TH1F   *ideal = (TH1F*)gPad->GetPrimitive("ideal");
-  Double_t meanIdeal = treeIn->GetHistogram()->GetMean();
-  Double_t meanIdealErr = treeIn->GetHistogram()->GetMeanError();
-  Double_t rmsIdeal = treeIn->GetHistogram()->GetRMS();
-  Double_t rmsIdealErr = treeIn->GetHistogram()->GetRMSError();
-  if (TMath::Abs(meanIdeal) <10*meanIdealErr) {
-    ::Info( "NDRegression2DIdealTest","mean pull OK %3.3f\t+-%3.3f", meanIdeal, meanIdealErr);
+  TH1F   *gaus = (TH1F*)gPad->GetPrimitive("gaus");
+  Double_t meanGaus = treeIn->GetHistogram()->GetMean();
+  Double_t meanGausErr = treeIn->GetHistogram()->GetMeanError();
+  Double_t rmsGaus = treeIn->GetHistogram()->GetRMS();
+  Double_t rmsGausErr = treeIn->GetHistogram()->GetRMSError();
+  if (TMath::Abs(meanGaus) <10*meanGausErr) {
+    ::Info( "NDRegression2DGausTest","mean pull OK %3.3f\t+-%3.3f", meanGaus, meanGausErr);
   }else{
-    ::Error( "NDRegressionTest","mean pull NOT OK %3.3f\t+-%3.3f", meanIdeal, meanIdealErr);
+    ::Error( "NDRegressionTest","mean pull NOT OK %3.3f\t+-%3.3f", meanGaus, meanGausErr);
   }
-  if (rmsIdeal<1+rmsIdealErr) {
-    ::Info( "NDRegressionTest"," rms pull OK %3.3f\t+-%3.3f", rmsIdeal, rmsIdealErr);
+  if (rmsGaus<1+rmsGausErr) {
+    ::Info( "NDRegressionTest"," rms pull OK %3.3f\t+-%3.3f", rmsGaus, rmsGausErr);
   }else{
-    ::Error( "NDRegressionTest"," rms pull NOT OK %3.3f\t+-%3.3f", rmsIdeal, rmsIdealErr);
+    ::Error( "NDRegressionTest"," rms pull NOT OK %3.3f\t+-%3.3f", rmsGaus, rmsGausErr);
   }
-  treeIn->Draw("(o2::nd_regression::NDRegression::GetCorrND(2,xyz0,xyz1))>>ideal2(71,-1.1,2.1)","","");
-  TH1F   *ideal2 = (TH1F*)gPad->GetPrimitive("ideal2");
   
   
   
   inputData->Draw("same");
-  PlotData(ideal,"Ideal","counts (arb. units)",kRed+2,"zTitle",rmsIdeal,rmsIdealErr,meanIdeal,meanIdealErr);
-  PlotData(ideal2,"Ideal","counts (arb. units)",kGreen+2,"zTitle");
-  canvasIdeal->SaveAs("NDRegressionTest.canvasIdealTest.png");
+  PlotData(gaus,"Gaus","counts (arb. units)",kRed+2,"zTitle",rmsGaus,rmsGausErr,meanGaus,meanGausErr);
+  canvasGaus->SaveAs("NDRegressionTest.canvasGausTest.png");
 
   inpf.Close();
 }

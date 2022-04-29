@@ -37,3 +37,9 @@ o2_add_test(
   COMPONENT_NAME NDRegression
   PUBLIC_LINK_LIBRARIES O2::NDRegression
   LABELS init tfile ttree histo makefit)
+o2_add_test(
+  NDRegression2DGaus
+  SOURCES test/NDRegression2DGaus.cxx
+  COMPONENT_NAME NDRegression
+  PUBLIC_LINK_LIBRARIES O2::NDRegression
+  LABELS init tfile ttree histo makefit)
