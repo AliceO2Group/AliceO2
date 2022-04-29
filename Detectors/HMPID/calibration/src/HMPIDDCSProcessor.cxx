@@ -577,10 +577,7 @@ void HMPIDDCSProcessor::fill_InTemperature(const DPCOM& dpcom)
 	  {		
 		auto chNum = subStringToInt(aliasStr,  startI_chamberTemp,  startI_chamberTemp);
 		auto radNum = subStringToInt(aliasStr,  startI_radiatorTemp,  startI_radiatorTemp);
-		if(type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
-	  	{	
 		tempIn[3*chNum+radNum].push_back( dpcom); 
-		}
 	}
 }	
 	
