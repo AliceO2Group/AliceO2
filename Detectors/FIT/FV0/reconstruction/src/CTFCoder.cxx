@@ -14,6 +14,7 @@
 /// \brief class for entropy encoding/decoding of FV0 digits data
 
 #include "FV0Reconstruction/CTFCoder.h"
+#include "FV0Simulation/FV0DigParam.h"
 #include "CommonUtils/StringUtils.h"
 #include <TTree.h>
 
@@ -48,8 +49,9 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
   const auto& dig0 = digitVec[0];
   cd.header.det = mDet;
   cd.header.nTriggers = digitVec.size();
-  cd.header.firstOrbit = dig0.mIntRecord.orbit;
-  cd.header.firstBC = dig0.mIntRecord.bc;
+  cd.header.firstOrbit = dig0.getOrbit();
+  cd.header.firstBC = dig0.getBC();
+  cd.header.triggerGate = FV0DigParam::Instance().mTime_trg_gate;
 
   cd.trigger.resize(cd.header.nTriggers);
   cd.bcInc.resize(cd.header.nTriggers);
@@ -57,8 +59,9 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
   cd.nChan.resize(cd.header.nTriggers);
 
   cd.idChan.resize(channelVec.size());
-  cd.time.resize(channelVec.size());
-  cd.charge.resize(channelVec.size());
+  cd.qtcChain.resize(channelVec.size());
+  cd.cfdTime.resize(channelVec.size());
+  cd.qtcAmpl.resize(channelVec.size());
 
   uint16_t prevBC = cd.header.firstBC;
   uint32_t prevOrbit = cd.header.firstOrbit;
@@ -69,15 +72,15 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
 
     // fill trigger info
     cd.trigger[idig] = digit.getTriggers().getTriggersignals();
-    if (prevOrbit == digit.mIntRecord.orbit) {
-      cd.bcInc[idig] = digit.mIntRecord.bc - prevBC;
+    if (prevOrbit == digit.getOrbit()) {
+      cd.bcInc[idig] = digit.getBC() - prevBC;
       cd.orbitInc[idig] = 0;
     } else {
-      cd.bcInc[idig] = digit.mIntRecord.bc;
-      cd.orbitInc[idig] = digit.mIntRecord.orbit - prevOrbit;
+      cd.bcInc[idig] = digit.getBC();
+      cd.orbitInc[idig] = digit.getOrbit() - prevOrbit;
     }
-    prevBC = digit.mIntRecord.bc;
-    prevOrbit = digit.mIntRecord.orbit;
+    prevBC = digit.getBC();
+    prevOrbit = digit.getOrbit();
     // fill channels info
     cd.nChan[idig] = chanels.size();
     if (!cd.nChan[idig]) {
@@ -88,8 +91,9 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
     for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
       assert(prevChan <= chanels[ic].ChId);
       cd.idChan[ccount] = chanels[ic].ChId - prevChan;
-      cd.time[ccount] = chanels[ic].CFDTime;
-      cd.charge[ccount] = chanels[ic].QTCAmpl;
+      cd.qtcChain[ccount] = chanels[ic].ChainQTC;
+      cd.cfdTime[ccount] = chanels[ic].CFDTime;
+      cd.qtcAmpl[ccount] = chanels[ic].QTCAmpl;
       prevChan = chanels[ic].ChId;
       ccount++;
     }
@@ -103,16 +107,17 @@ void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBa
   CompressedDigits cd; // just to get member types
 #define MAKECODER(part, slot) createCoder<decltype(part)::value_type>(op, ctf.getFrequencyTable(slot), int(slot))
   // clang-format off
-  MAKECODER(cd.bcInc,     CTF::BLC_bcInc);
-  MAKECODER(cd.orbitInc,  CTF::BLC_orbitInc);
-  MAKECODER(cd.nChan,     CTF::BLC_nChan);
+  MAKECODER(cd.bcInc,        CTF::BLC_bcInc);
+  MAKECODER(cd.orbitInc,     CTF::BLC_orbitInc);
+  MAKECODER(cd.nChan,        CTF::BLC_nChan);
 
-  MAKECODER(cd.idChan,    CTF::BLC_idChan);
-  MAKECODER(cd.time,      CTF::BLC_time);
-  MAKECODER(cd.charge,    CTF::BLC_charge);
+  MAKECODER(cd.idChan,       CTF::BLC_idChan);
+  MAKECODER(cd.cfdTime,      CTF::BLC_cfdTime);
+  MAKECODER(cd.qtcAmpl,      CTF::BLC_qtcAmpl);
   //
-  // extra slot was added in the end
+  // extra slots were added in the end
   MAKECODER(cd.trigger,   CTF::BLC_trigger);
+  MAKECODER(cd.qtcChain,  CTF::BLC_qtcChain);
   // clang-format on
 }
 
@@ -125,14 +130,15 @@ size_t CTFCoder::estimateCompressedSize(const CompressedDigits& cd)
 #define VTP(vec) typename std::remove_reference<decltype(vec)>::type::value_type
 #define ESTSIZE(vec, slot) mCoders[int(slot)] ?                         \
   rans::calculateMaxBufferSize(vec.size(), reinterpret_cast<const o2::rans::LiteralEncoder64<VTP(vec)>*>(mCoders[int(slot)].get())->getAlphabetRangeBits(), sizeof(VTP(vec)) ) : vec.size()*sizeof(VTP(vec))
-  sz += ESTSIZE(cd.trigger,   CTF::BLC_trigger);
-  sz += ESTSIZE(cd.bcInc,     CTF::BLC_bcInc);
-  sz += ESTSIZE(cd.orbitInc,  CTF::BLC_orbitInc);
-  sz += ESTSIZE(cd.nChan,     CTF::BLC_nChan);
+  sz += ESTSIZE(cd.trigger,      CTF::BLC_trigger);
+  sz += ESTSIZE(cd.bcInc,        CTF::BLC_bcInc);
+  sz += ESTSIZE(cd.orbitInc,     CTF::BLC_orbitInc);
+  sz += ESTSIZE(cd.nChan,        CTF::BLC_nChan);
 
-  sz += ESTSIZE(cd.idChan,    CTF::BLC_idChan);
-  sz += ESTSIZE(cd.time,      CTF::BLC_time);
-  sz += ESTSIZE(cd.charge,    CTF::BLC_charge);
+  sz += ESTSIZE(cd.idChan,       CTF::BLC_idChan);
+  sz += ESTSIZE(cd.qtcChain,     CTF::BLC_qtcChain);
+  sz += ESTSIZE(cd.cfdTime,      CTF::BLC_cfdTime);
+  sz += ESTSIZE(cd.qtcAmpl,      CTF::BLC_qtcAmpl);
   // clang-format on
 
   LOG(info) << "Estimated output size is " << sz << " bytes";
