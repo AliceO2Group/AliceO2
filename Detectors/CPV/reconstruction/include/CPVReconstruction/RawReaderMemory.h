@@ -115,7 +115,7 @@ class RawReaderMemory
   gsl::span<const char> mRawMemoryBuffer; ///< Memory block with multiple DMA pages
   o2::header::RDHAny mRawHeader;          ///< Raw header
   std::vector<char> mRawPayload;          ///< Raw payload (can consist of multiple pages)
-  int mCurrentPosition = 0;               ///< Current page in file
+  unsigned int mCurrentPosition = 0;      ///< Current page in file
   bool mRawHeaderInitialized = false;     ///< RDH for current page initialized
   bool mPayloadInitialized = false;       ///< Payload for current page initialized
   uint32_t mCurrentHBFOrbit = 0;          ///< Current orbit of HBF

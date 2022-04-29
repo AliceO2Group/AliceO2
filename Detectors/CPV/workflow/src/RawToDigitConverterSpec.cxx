@@ -79,7 +79,6 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
 
   // Cache digits from bunch crossings as the component reads timeframes from many links consecutively
   std::map<o2::InteractionRecord, std::shared_ptr<std::vector<o2::cpv::Digit>>> digitBuffer; // Internal digit buffer
-  int firstEntry = 0;
   mOutputHWErrors.clear();
 
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
@@ -212,7 +211,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       // Loop over all the BCs
       for (auto itBCRecords : decoder.getBCRecords()) {
         currentIR.bc = itBCRecords.bc;
-        for (int iDig = itBCRecords.firstDigit; iDig <= itBCRecords.lastDigit; iDig++) {
+        for (unsigned int iDig = itBCRecords.firstDigit; iDig <= itBCRecords.lastDigit; iDig++) {
           auto adch = digilets[iDig];
           auto found = digitBuffer.find(currentIR);
           if (found == digitBuffer.end()) {

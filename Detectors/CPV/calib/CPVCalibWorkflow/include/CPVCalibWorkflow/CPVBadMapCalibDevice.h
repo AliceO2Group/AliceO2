@@ -34,7 +34,7 @@ class CPVBadMapCalibDevice : public o2::framework::Task
 {
 
  public:
-  explicit CPVBadMapCalibDevice(bool useCCDB, bool forceUpdate, std::string path, short m) : mUseCCDB(useCCDB), mForceUpdate(forceUpdate), mPath(path), mMethod(m) {}
+  explicit CPVBadMapCalibDevice(bool useCCDB, bool forceUpdate, std::string path, short m) : mUseCCDB(useCCDB), mForceUpdate(forceUpdate), mUpdateCCDB(true), mMethod(m), mPath(path) {}
   void init(o2::framework::InitContext& ic) final;
 
   void run(o2::framework::ProcessingContext& pc) final;

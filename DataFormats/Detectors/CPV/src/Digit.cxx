@@ -19,7 +19,7 @@ using namespace o2::cpv;
 ClassImp(Digit);
 
 Digit::Digit(unsigned short absId, float amplitude, int label)
-  : DigitBase(0), mAmplitude(amplitude), mAbsId(absId), mLabel(label)
+  : DigitBase(0), mAbsId(absId), mLabel(label), mAmplitude(amplitude)
 {
 }
 bool Digit::canAdd(const Digit other) const
@@ -35,7 +35,7 @@ Digit& Digit::operator+=(const Digit& other)
     mLabel = other.mLabel;
   } else {
     if (mLabel != other.mLabel && other.mLabel != -1) {
-      //if Label indexes are different, something wrong
+      // if Label indexes are different, something wrong
       LOG(error) << "Adding digits with different references to Labels:" << mLabel << " and " << other.mLabel;
     }
   }

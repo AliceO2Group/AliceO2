@@ -56,12 +56,12 @@ Hit& Hit::operator+=(const Hit& rhs)
 
 Hit Hit::operator+(const Hit& rhs) const
 {
-  Hit result(*this);
+  Hit result = *this;
   if (rhs.GetEnergyLoss() > result.GetEnergyLoss()) {
     result.SetTime(rhs.GetTime());
   }
   result.SetEnergyLoss(result.GetEnergyLoss() + rhs.GetEnergyLoss());
-  return *this;
+  return result;
 }
 
 std::ostream& operator<<(std::ostream& stream, const Hit& p)

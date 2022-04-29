@@ -23,9 +23,9 @@ using namespace o2::phos;
 BadChannelsMap::BadChannelsMap(int /*dummy*/)
 {
 
-  //Mark few channels as bad for test peurposes
+  // Mark few channels as bad for test peurposes
   for (short i = 0; i < 56; i++) {
-    //module 2
+    // module 2
     short channelID = 3584 + i * 57;
     mBadCells.set(channelID - OFFSET);
     channelID = 3640 + i * 55;
@@ -33,7 +33,7 @@ BadChannelsMap::BadChannelsMap(int /*dummy*/)
   }
 
   for (short i = 0; i < 16; i++) {
-    //module 3
+    // module 3
     int channelID = 8972 + i * 57;
     mBadCells.set(channelID - OFFSET);
     channelID = 8092 + i * 57;
@@ -81,7 +81,7 @@ void BadChannelsMap::PrintStream(std::ostream& stream) const
 {
   // first sort bad channel IDs
   stream << "Number of bad cells:  " << mBadCells.count() << "\n";
-  for (int cellID = 0; cellID < mBadCells.size(); cellID++) {
+  for (std::size_t cellID = 0; cellID < mBadCells.size(); cellID++) {
     if (mBadCells.test(cellID)) {
       stream << cellID + OFFSET << "\n";
     }

@@ -94,7 +94,7 @@ class Geometry
   static unsigned short getTotalNPads() { return kNCHANNELS; }
   static bool IsPadExists(unsigned short absId)
   {
-    return absId >= 0 && absId < getTotalNPads();
+    return absId < getTotalNPads();
   } // TODO: evaluate from real geometry
 
   // Pad map per 3Gassiplex

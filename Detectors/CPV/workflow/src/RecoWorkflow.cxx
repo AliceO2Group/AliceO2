@@ -86,7 +86,7 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
 
   // //Raw to ....
   if (inputType == InputType::Raw) {
-    //no explicit raw reader
+    // no explicit raw reader
 
     if (isEnabled(OutputType::Digits)) {
       specs.emplace_back(o2::cpv::reco_workflow::getRawToDigitConverterSpec(askSTFDist, isPedestal, useBadChannelMap, useGainCalibration));
@@ -119,7 +119,7 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
     }
   }
 
-  return std::move(specs);
+  return specs;
 }
 
 } // namespace reco_workflow

@@ -19,15 +19,15 @@ using namespace o2::phos;
 ClassImp(Digit);
 
 Digit::Digit(short absId, float amplitude, float time, int label)
-  : DigitBase(time), mAmplitude(amplitude), mTime(time), mAbsId(absId), mLabel(label)
+  : DigitBase(time), mIsHighGain(true), mAbsId(absId), mLabel(label), mAmplitude(amplitude), mTime(time)
 {
 }
 Digit::Digit(short truId, float amplitude, float time, bool isTrigger2x2, int /*dummy*/)
-  : DigitBase(time), mAmplitude(amplitude), mTime(time), mAbsId(truId + NREADOUTCHANNELS), mLabel(-1)
+  : DigitBase(time), mIsHighGain(true), mAbsId(truId + NREADOUTCHANNELS), mLabel(-1), mAmplitude(amplitude), mTime(time)
 {
   setHighGain(isTrigger2x2);
 }
-Digit::Digit(const Hit& hit, int label) : mAbsId(hit.GetDetectorID()), mAmplitude(hit.GetEnergyLoss()), mTime(hit.GetTime()), mLabel(label)
+Digit::Digit(const Hit& hit, int label) : mIsHighGain(true), mAbsId(hit.GetDetectorID()), mLabel(label), mAmplitude(hit.GetEnergyLoss()), mTime(hit.GetTime())
 {
 }
 void Digit::fillFromHit(const Hit& hit)
@@ -55,7 +55,7 @@ Digit& Digit::operator+=(const Digit& other)
     mLabel = other.mLabel;
   } else {
     if (mLabel != other.mLabel && other.mLabel != -1) {
-      //if Label indexes are different, something wrong
+      // if Label indexes are different, something wrong
       LOG(error) << "Adding digits with different references to Labels:" << mLabel << " and " << other.mLabel;
     }
   }

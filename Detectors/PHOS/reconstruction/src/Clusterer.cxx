@@ -34,6 +34,18 @@ void Clusterer::initialize()
   }
   mFirstElememtInEvent = 0;
   mLastElementInEvent = -1;
+  LOG(info) << "Clusterizer parameters";
+  const PHOSSimParams& sp = o2::phos::PHOSSimParams::Instance();
+  LOG(info) << "mLogWeight = " << sp.mLogWeight;
+  LOG(info) << "mDigitMinEnergy = " << sp.mDigitMinEnergy;
+  LOG(info) << "mClusteringThreshold = " << sp.mClusteringThreshold;
+  LOG(info) << "mLocalMaximumCut = " << sp.mLocalMaximumCut;
+  LOG(info) << "mUnfoldMaxSize = " << sp.mUnfoldMaxSize;
+  LOG(info) << "mUnfoldClusters = " << sp.mUnfoldClusters;
+  LOG(info) << "mUnfogingEAccuracy = " << sp.mUnfogingEAccuracy;
+  LOG(info) << "mUnfogingXZAccuracy = " << sp.mUnfogingXZAccuracy;
+  LOG(info) << "mUnfogingChi2Accuracy = " << sp.mUnfogingChi2Accuracy;
+  LOG(info) << "mNMaxIterations = " << sp.mNMaxIterations;
 }
 //____________________________________________________________________________
 void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRecord> dtr,
@@ -289,7 +301,7 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
       mzB[iclu] = 0;
     }
     // Fill matrix and vector
-    for (int idig = firstCE; idig < lastCE; idig++) {
+    for (uint32_t idig = firstCE; idig < lastCE; idig++) {
       CluElement& ce = cluelements[idig];
       double sumA = 0.;
       for (int iclu = nMax; iclu--;) {
@@ -365,8 +377,8 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
     if (bk.Decompose()) {
       if (bk.Solve(C)) {
         for (int iclu = 0; iclu < nMax; iclu++) {
-          double eOld = meMax[iclu];
           meMax[iclu] = C(iclu);
+          // double eOld = meMax[iclu];
           // insuficientAccuracy|=fabs(meMax[iclu]-eOld)> meMax[iclu]*o2::phos::PHOSSimParams::Instance().mUnfogingEAccuracy ;
         }
       } else {
@@ -384,7 +396,7 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
     // copy cluElements to the final list
     int start = cluelements.size();
     int nce = 0;
-    for (int idig = firstCE; idig < lastCE; idig++) {
+    for (uint32_t idig = firstCE; idig < lastCE; idig++) {
       float eDigit = eInClusters[idig - firstCE][iclu];
       CluElement& el = cluelements[idig];
       float ei = el.energy * mProp[(idig - firstCE) * nMax + iclu];
@@ -639,7 +651,7 @@ char Clusterer::getNumberOfLocalMax(Cluster& clu, std::vector<CluElement>& cluel
 
   LOG(debug) << "mIsLocalMax size=" << mIsLocalMax.size();
   for (uint32_t i = iFirst; i < iLast - 1; i++) {
-    for (int j = i + 1; j < iLast; j++) {
+    for (uint32_t j = i + 1; j < iLast; j++) {
 
       if (Geometry::areNeighbours(cluel[i].absId, cluel[j].absId) == 1) {
         if (cluel[i].energy > cluel[j].energy) {
@@ -661,7 +673,7 @@ char Clusterer::getNumberOfLocalMax(Cluster& clu, std::vector<CluElement>& cluel
 
   LOG(debug) << " Filled mIsLocalMax";
   int iDigitN = 0;
-  for (int i = 0; i < mIsLocalMax.size(); i++) {
+  for (std::size_t i = 0; i < mIsLocalMax.size(); i++) {
     if (mIsLocalMax[i]) {
       mMaxAt[iDigitN] = i + iFirst;
       iDigitN++;
