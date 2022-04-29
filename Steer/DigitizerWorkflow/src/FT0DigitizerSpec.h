@@ -19,11 +19,7 @@ namespace o2
 namespace ft0
 {
 
-<<<<<<< HEAD
 o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel, bool mctruth = true, bool useCCDB = true);
-=======
-o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel, bool mctruth = true, bool useCCDB = false);
->>>>>>> CCDB in digitization
 
 } // namespace ft0
 } // end namespace o2
