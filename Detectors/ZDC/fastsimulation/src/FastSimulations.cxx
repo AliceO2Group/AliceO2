@@ -57,8 +57,9 @@ void NeuralFastSimulation::setInputOutputData()
   // shape has to be figured out by library. In C++ this is illegal
   for (auto& shape : mInputShapes) {
     for (auto& elem : shape) {
-      if (elem < 0)
+      if (elem < 0) {
         elem = mBatchSize;
+      }
     }
   }
 }
