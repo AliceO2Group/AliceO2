@@ -102,7 +102,7 @@ void NoiseCalibrator::finalizeSlot(NoiseTimeSlot& slot)
   // check dead channels
   if (mDeadChannels) {
     LOG(info) << "NoiseCalibrator::finalizeSlot() : checking dead channels";
-    for (int i = 0; i < mDeadChannels.get()->size(); i++) {
+    for (unsigned int i = 0; i < mDeadChannels.get()->size(); i++) {
       badMapBool[(*mDeadChannels.get())[i]] = true;
     }
   }
@@ -110,7 +110,7 @@ void NoiseCalibrator::finalizeSlot(NoiseTimeSlot& slot)
   // check channels with very high pedestal value (> 511)
   if (mHighPedChannels) {
     LOG(info) << "NoiseCalibrator::finalizeSlot() : checking high ped channels";
-    for (int i = 0; i < mHighPedChannels.get()->size(); i++) {
+    for (unsigned int i = 0; i < mHighPedChannels.get()->size(); i++) {
       badMapBool[(*mHighPedChannels.get())[i]] = true;
     }
   }
@@ -146,5 +146,5 @@ NoiseTimeSlot& NoiseCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType
   return slot;
 }
 //_____________________________________________________________________________
-} //end namespace cpv
-} //end namespace o2
+} // end namespace cpv
+} // end namespace o2

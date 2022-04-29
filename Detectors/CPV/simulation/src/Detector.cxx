@@ -123,13 +123,13 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   // ported from AliRoot 2019
   // ------------------------------------------------------------------------
 
-  //analyze only charged
+  // analyze only charged
   if (fMC->TrackCharge() == 0) {
     fMC->SetMaxStep(1.e10);
     return false;
   }
 
-  if (!fMC->IsTrackEntering()) { //simulate once per track
+  if (!fMC->IsTrackEntering()) { // simulate once per track
     return false;
   }
 
@@ -156,7 +156,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   auto& cpvparam = o2::cpv::CPVSimParams::Instance();
   // Digitize the current CPV hit:
   // find pad response
-  float hitX = xyzd[0]; //hit coordinate in daugter frame
+  float hitX = xyzd[0]; // hit coordinate in daugter frame
   float hitZ = xyzd[2]; // z-coordinate of track in daugter frame
   float pX = pd[0];
   float pZ = pd[2];
@@ -241,7 +241,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     float xcell = xhit / cpvparam.mPadSizeX;
     if (zcell <= 0 || xcell <= 0 ||
         zcell >= cpvparam.mnCellZ || xcell >= cpvparam.mnCellX) {
-      return true; //beyond CPV
+      return true; // beyond CPV
     }
     int izcell = (int)zcell;
     int ixcell = (int)xcell;
@@ -367,8 +367,6 @@ void Detector::ConstructGeometry()
 
   // --- Position  CPV modules in ALICE setup ---
   int idrotm[5];
-  int iXYZ, iAngle;
-  char im[5];
   for (int iModule = 0; iModule < 5; iModule++) {
     if (!mActiveModule[iModule]) {
       continue;
@@ -383,8 +381,8 @@ void Detector::ConstructGeometry()
     fMC->Gspos("CPV", iModule, "barrel", pos[0], pos[1] + 30., pos[2], idrotm[iModule], "ONLY");
   }
 
-  //start filling CPV moodules
-  // Gassiplex board
+  // start filling CPV moodules
+  //  Gassiplex board
   par[0] = geomParams->GetGassiplexChipSize(0) / 2.;
   par[1] = geomParams->GetGassiplexChipSize(1) / 2.;
   par[2] = geomParams->GetGassiplexChipSize(2) / 2.;
@@ -499,8 +497,8 @@ void Detector::CreateMaterials()
   //  float aCO[2] = {12.0, 16.0} ;
   // float zCO[2] = {6.0, 8.0} ;
   //  float wCO[2] = {1.0, 2.0} ;
-  float dCO = 0.001977; //Co2 density
-  float dAr = 0.001782; //Argon density
+  float dCO = 0.001977; // Co2 density
+  float dAr = 0.001782; // Argon density
 
   float arContent = 0.80; // Ar-content of the ArCO2-mixture
   float aArCO[3] = {39.948, 12.0, 16.0};

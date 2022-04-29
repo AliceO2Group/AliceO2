@@ -35,7 +35,7 @@ void FullCluster::addDigit(short digitIndex, float energy, int label)
   Geometry::absIdToRelPosInModule(digitIndex, x, z);
 
   mElementList.emplace_back(digitIndex, energy, x, z, label);
-  mEnergy += energy; //To be updated when calculate cluster properties.
+  mEnergy += energy; // To be updated when calculate cluster properties.
   mMulDigit++;
 }
 //____________________________________________________________________________
@@ -54,7 +54,7 @@ void FullCluster::purify()
 
   std::vector<CluElement>::iterator itEl = mElementList.begin();
   while (itEl != mElementList.end()) {
-    if ((*itEl).energy < threshold) { //very rare case
+    if ((*itEl).energy < threshold) { // very rare case
       itEl = mElementList.erase(itEl);
     } else {
       ++itEl;
@@ -83,7 +83,7 @@ void FullCluster::purify()
           break;
         }
       }
-      if (!hasNeighbours) { //Isolated digits are rare
+      if (!hasNeighbours) { // Isolated digits are rare
         it = mElementList.erase(it);
         --mMulDigit;
       } else {
@@ -167,7 +167,7 @@ char FullCluster::getNumberOfLocalMax(gsl::span<int> maxAt) const
     }   // digit j
   }     // digit i
 
-  int iDigitN = 0;
+  unsigned int iDigitN = 0;
   for (int i = mMulDigit; i--;) {
     if (isLocalMax[i]) {
       maxAt[iDigitN] = i;

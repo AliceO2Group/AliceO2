@@ -155,7 +155,7 @@ void PHOSEnergyCalibDevice::fillOutputTree()
     LOG(info) << " Create new branch";
     br = mTreeOut->Branch("PHOSCalib", &pptr);
   }
-  int res = mTreeOut->Fill();
+  mTreeOut->Fill();
   br->ResetAddress();
 }
 
