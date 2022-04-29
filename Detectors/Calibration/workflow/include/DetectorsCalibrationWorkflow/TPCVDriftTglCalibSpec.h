@@ -9,11 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MEANVERTEX_CALIB_DEVICE_H
-#define O2_MEANVERTEX_CALIB_DEVICE_H
+#ifndef O2_TPCVDRIFTTGL_CALIB_DEVICE_H
+#define O2_TPCVDRIFTTGL_CALIB_DEVICE_H
 
-/// @file   MeanVertexCalibratorSpec.h
-/// @brief  Device to calibrate MeanVertex
+/// @file   TPCVDriftTglCalibratorSpec.h
+/// @brief  Device to calibrate vdrift with tg_lambda
 
 #include "Framework/DataProcessorSpec.h"
 
@@ -21,7 +21,6 @@ namespace o2::calibration
 {
 
 o2::framework::DataProcessorSpec getTPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, float dtglMax, size_t slotL, size_t minEnt);
-
 }
 
 #endif

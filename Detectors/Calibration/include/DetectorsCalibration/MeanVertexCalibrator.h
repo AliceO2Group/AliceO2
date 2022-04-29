@@ -65,6 +65,9 @@ class MeanVertexCalibrator final : public o2::calibration::TimeSlotCalibration<o
   const CcdbObjectInfoVector& getMeanVertexObjectInfoVector() const { return mInfoVector; }
   CcdbObjectInfoVector& getMeanVertexObjectInfoVector() { return mInfoVector; }
 
+  void useVerboseMode(bool flag) { mVerbose = flag; }
+  bool getVerboseMode() const { return mVerbose; }
+
  private:
   int mMinEntries = 0;
   int mNBinsX = 0;
@@ -92,6 +95,7 @@ class MeanVertexCalibrator final : public o2::calibration::TimeSlotCalibration<o
   std::deque<MeanVertexData> mTmpMVdataDq;                             // This is the vector of Mean Vertex data to be used for the simple
                                                                        // moving average
   MeanVertexData mSMAdata;                                             // This is to do the SMA when we keep the histos
+  bool mVerbose = false;                                               // Whether to log in verbose mode
 
   ClassDefOverride(MeanVertexCalibrator, 1);
 };
