@@ -69,6 +69,20 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
       aliases.insert(aliases.end(), tempOutString.begin(), tempOutString.end()); 
       aliases.insert(aliases.end(), tempInString.begin(), tempInString.end()); 
       aliases.insert(aliases.end(), highVoltageString.begin(), highVoltageString.end()); 
+      
+      for(int i = 0; i < 30; i++)
+      {
+        waveLenghtString.push_back(Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.waveLenght",i));
+        argonReferenceString.push_back(Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonReference",i));
+        argonCellString.push_back(Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonCell",i));
+        c6f14CellString.push_back(Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Cell",i));
+        c6f14ReferenceString.push_back(Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Reference",i)); 
+      }  
+      aliases.insert(aliases.end(), waveLenghtString.begin(), waveLenghtString.end()); 
+      aliases.insert(aliases.end(), argonReferenceString.begin(), argonReferenceString.end()); 
+      aliases.insert(aliases.end(), argonCellString.begin(), argonCellString.end()); 
+      aliases.insert(aliases.end(), c6f14CellString.begin(), c6f14CellString.end()); 
+      aliases.insert(aliases.end(), c6f14ReferenceString.begin(), c6f14ReferenceString.end()); 
   }
 
 
@@ -76,6 +90,7 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
  
   std::vector<std::string> aliases;
   std::vector<std::string> tempInString, tempOutString, chamberPressureString, highVoltageString;
+  std::vector<std::string> waveLenghtString, argonReferenceString, argonCellString, c6f14CellString, c6f14ReferenceString;
 
  
   std::unique_ptr<HMPIDDCSProcessor> mProcessor;
