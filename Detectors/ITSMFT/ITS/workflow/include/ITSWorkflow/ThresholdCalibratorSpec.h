@@ -44,6 +44,9 @@
 #include "CommonUtils/MemFileHelper.h"
 #include "DataFormatsDCS/DCSConfigObject.h"
 
+// ITS-specific confDB map for chips
+#include "ITSWorkflow/ChipDBmap.h"
+
 // ROOT includes
 #include "TTree.h"
 #include "TH1F.h"
@@ -228,6 +231,10 @@ class ITSThresholdCalibrator : public Task
   // Chip mod selector and chip mod base for parallel chip access
   int mChipModSel = 0;
   int mChipModBase = 1;
+
+  // map to get confDB id
+  o2::its::ChipDBmap mConfDBmap;
+  short int mConfDBv;
 };
 
 // Create a processor spec
