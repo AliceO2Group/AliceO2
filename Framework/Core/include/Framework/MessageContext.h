@@ -503,7 +503,7 @@ class MessageContext
             outputsPerChannel[mProxy.getOutputChannelIndex(message->route()).value].AddPart(std::move(part));
           }
         }
-        for (size_t ci = 0; ci < mProxy.getNumOutputChannels(); ++ci) {
+        for (int ci = 0; ci < (int)mProxy.getNumOutputChannels(); ++ci) {
           auto& parts = outputsPerChannel[ci];
           if (parts.Size() == 0) {
             continue;
