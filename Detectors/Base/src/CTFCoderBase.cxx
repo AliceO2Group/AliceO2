@@ -14,8 +14,12 @@
 /// \author ruben.shahoyan@cern.ch
 
 #include "DetectorsBase/CTFCoderBase.h"
+#include "Framework/ControlService.h"
+#include "Framework/ProcessingContext.h"
+#include "Framework/InputRecord.h"
 
 using namespace o2::ctf;
+using namespace o2::framework;
 
 void CTFCoderBase::checkDictVersion(const CTFDictHeader& h) const
 {
@@ -23,5 +27,12 @@ void CTFCoderBase::checkDictVersion(const CTFDictHeader& h) const
     if (h.isValidDictTimeStamp() && h != mExtHeader) {
       throw std::runtime_error(fmt::format("Mismatch in {} CTF dictionary: need {}, provided {}", mDet.getName(), h.asString(), mExtHeader.asString()));
     }
+  }
+}
+
+void CTFCoderBase::updateTimeDependentParams(ProcessingContext& pc)
+{
+  if (mLoadDictFromCCDB) {
+    pc.inputs().get<std::vector<char>*>("ctfdict"); // just to trigger the finaliseCCDB
   }
 }
