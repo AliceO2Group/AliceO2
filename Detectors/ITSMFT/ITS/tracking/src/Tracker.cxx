@@ -49,7 +49,7 @@ Tracker::~Tracker() = default;
 void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::function<void(std::string s)> error)
 {
   double total{0};
-  for (int iteration = 0; iteration < mTrkParams.size(); ++iteration) {
+  for (int iteration = 0; iteration < (int)mTrkParams.size(); ++iteration) {
     mTraits->UpdateTrackingParameters(mTrkParams[iteration]);
 
     total += evaluateTask(&Tracker::initialiseTimeFrame, "Timeframe initialisation",
@@ -298,7 +298,7 @@ void Tracker::findTracks()
     }
 
     /// From primary vertex context index to event index (== the one used as input of the tracking code)
-    for (int iC{0}; iC < clusters.size(); iC++) {
+    for (size_t iC{0}; iC < clusters.size(); iC++) {
       if (clusters[iC] != constants::its::UnusedIndex) {
         clusters[iC] = mTimeFrame->getClusters()[iC][clusters[iC]].clusterId;
       }
@@ -576,7 +576,7 @@ void Tracker::computeTracksMClabels()
     for (auto& track : mTimeFrame->getTracks(iROF)) {
       std::vector<std::pair<MCCompLabel, size_t>> occurrences;
       occurrences.clear();
-      bool isFakeTrack{false};
+      // bool isFakeTrack{false};
 
       for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
         const int index = track.getClusterIndex(iCluster);

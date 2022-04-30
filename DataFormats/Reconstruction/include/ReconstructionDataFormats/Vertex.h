@@ -143,8 +143,8 @@ class Vertex : public VertexBase
   GPUd() void setTimeStamp(const Stamp& v) { mTimeStamp = v; }
 
  protected:
-  float mChi2 = 0;           ///< chi2 or quality of tracks to vertex attachment
   ushort mNContributors = 0; ///< N contributors
+  float mChi2 = 0;           ///< chi2 or quality of tracks to vertex attachment
   ushort mBits = 0;          ///< bit field for flags
   Stamp mTimeStamp;          ///< vertex time-stamp
 

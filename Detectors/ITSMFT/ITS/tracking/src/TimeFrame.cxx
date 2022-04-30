@@ -223,7 +223,7 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
     mBogusClusters.resize(trkParam.NLayers, 0);
     mLines.clear();
     mTrackletClusters.clear();
-    for (unsigned int iLayer{0}; iLayer < std::min((int)mClusters.size(), maxLayers); ++iLayer) {
+    for (int iLayer{0}; iLayer < std::min((int)mClusters.size(), maxLayers); ++iLayer) {
       if (mClusters[iLayer].size()) {
         continue;
       }
@@ -243,7 +243,7 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
     std::vector<int> clsPerBin(trkParam.PhiBins * trkParam.ZBins, 0);
     for (int rof{0}; rof < mNrof; ++rof) {
       mIndexTables[rof].resize(trkParam.TrackletsPerRoad(), std::vector<int>(trkParam.ZBins * trkParam.PhiBins + 1, 0));
-      if (mMultiplicityCutMask.size() == mNrof && !mMultiplicityCutMask[rof]) {
+      if ((int)mMultiplicityCutMask.size() == mNrof && !mMultiplicityCutMask[rof]) {
         continue;
       }
       for (int iLayer{0}; iLayer < std::min(trkParam.NLayers, maxLayers); ++iLayer) {
@@ -298,14 +298,14 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
           for (unsigned int iB{0}; iB < clsPerBin.size(); ++iB) {
             mIndexTables[rof][iLayer - 1][iB] = lutPerBin[iB];
           }
-          for (auto iB{clsPerBin.size()}; iB < (int)mIndexTables[rof][iLayer - 1].size(); iB++) {
+          for (auto iB{clsPerBin.size()}; iB < mIndexTables[rof][iLayer - 1].size(); iB++) {
             mIndexTables[rof][iLayer - 1][iB] = clustersNum;
           }
         } else { // LUTs on layer 0 are only for vertexer
           for (unsigned int iB{0}; iB < clsPerBin.size(); ++iB) {
             mIndexTablesL0[rof][iB] = lutPerBin[iB];
           }
-          for (auto iB{clsPerBin.size()}; iB < (int)mIndexTablesL0[rof].size(); iB++) {
+          for (auto iB{clsPerBin.size()}; iB < mIndexTablesL0[rof].size(); iB++) {
             mIndexTablesL0[rof][iB] = clustersNum;
           }
         }
@@ -337,17 +337,17 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
     }
   }
 
-  for (unsigned int iLayer{0}; iLayer < std::min((int)mTracklets.size(), maxLayers); ++iLayer) {
+  for (int iLayer{0}; iLayer < std::min((int)mTracklets.size(), maxLayers); ++iLayer) {
     mTracklets[iLayer].clear();
     mTrackletLabels[iLayer].clear();
-    if (iLayer < mCells.size()) {
+    if (iLayer < (int)mCells.size()) {
       mCells[iLayer].clear();
       mTrackletsLookupTable[iLayer].clear();
       mTrackletsLookupTable[iLayer].resize(mClusters[iLayer + 1].size(), 0);
       mCellLabels[iLayer].clear();
     }
 
-    if (iLayer < mCells.size() - 1) {
+    if (iLayer < (int)mCells.size() - 1) {
       mCellsLookupTable[iLayer].clear();
       mCellsNeighbours[iLayer].clear();
     }
@@ -395,7 +395,7 @@ void TimeFrame::checkTrackletLUTs()
       prev = currentId;
       if (iLayer > 0) {
         auto& lut{getTrackletsLookupTable()[iLayer - 1]};
-        if (iTracklet >= lut[currentId + 1] || iTracklet < lut[currentId]) {
+        if (iTracklet >= (uint32_t)(lut[currentId + 1]) || iTracklet < (uint32_t)(lut[currentId])) {
           std::cout << "LUT broken: " << iLayer - 1 << "\t" << currentId << "\t" << iTracklet << std::endl;
         }
       }
