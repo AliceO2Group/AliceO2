@@ -107,7 +107,7 @@ void RecoGeomHelper::RecoLayer::init()
   for (int ich = 0; ich < nCh; ich++) {
     int chipID = chip0 + ich, lay, sta, ssta, mod, chipInMod;
     gm->getChipId(chipID, lay, sta, ssta, mod, chipInMod);
-    int ladID = sta, chipInLadder = nChMod - chipInMod - 1; // count from negative to positive Z, contrary to official chips numbering
+    int ladID = sta/*,chipInLadder = nChMod - chipInMod - 1*/; // count from negative to positive Z, contrary to official chips numbering
     if (nHStaves > 1) {                                     // OB
       int modUpper = chipInMod / nChModH;
       ladID = sta * 4 + ssta * 2 + modUpper; // OB module covers 2 "ladders"
