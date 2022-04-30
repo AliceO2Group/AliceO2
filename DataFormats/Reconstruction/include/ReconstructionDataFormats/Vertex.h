@@ -122,7 +122,7 @@ class Vertex : public VertexBase
   GPUhdDefault() Vertex() = default;
   GPUhdDefault() ~Vertex() = default;
   GPUd() Vertex(const math_utils::Point3D<float>& pos, const gpu::gpustd::array<float, kNCov>& cov, ushort nCont, float chi2)
-    : VertexBase(pos, cov), mNContributors(nCont), mChi2(chi2)
+    : VertexBase(pos, cov), mChi2(chi2), mNContributors(nCont)
   {
   }
 
@@ -143,8 +143,8 @@ class Vertex : public VertexBase
   GPUd() void setTimeStamp(const Stamp& v) { mTimeStamp = v; }
 
  protected:
-  ushort mNContributors = 0; ///< N contributors
   float mChi2 = 0;           ///< chi2 or quality of tracks to vertex attachment
+  ushort mNContributors = 0; ///< N contributors
   ushort mBits = 0;          ///< bit field for flags
   Stamp mTimeStamp;          ///< vertex time-stamp
 

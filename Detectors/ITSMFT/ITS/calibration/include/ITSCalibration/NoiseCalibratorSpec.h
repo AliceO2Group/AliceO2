@@ -40,7 +40,7 @@ namespace its
 class NoiseCalibratorSpec : public Task
 {
  public:
-  NoiseCalibratorSpec(bool useClusters = false, std::shared_ptr<o2::base::GRPGeomRequest> req = {}) : mUseClusters(useClusters), mCCDBRequest(req)
+  NoiseCalibratorSpec(bool useClusters = false, std::shared_ptr<o2::base::GRPGeomRequest> req = {}) : mCCDBRequest(req), mUseClusters(useClusters)
   {
     mTimer.Stop();
   }
@@ -55,7 +55,6 @@ class NoiseCalibratorSpec : public Task
   void sendOutput(DataAllocator& output);
   void updateTimeDependentParams(ProcessingContext& pc);
   std::unique_ptr<CALIBRATOR> mCalibrator = nullptr;
-  bool mUseClusters = false;
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   size_t mDataSizeStat = 0;
   size_t mNClustersProc = 0;
@@ -66,6 +65,7 @@ class NoiseCalibratorSpec : public Task
 =======
 >>>>>>> 4e296e3b521... Fix some ITS related files
   TStopwatch mTimer{};
+  bool mUseClusters = false;
 };
 
 /// create a processor spec
