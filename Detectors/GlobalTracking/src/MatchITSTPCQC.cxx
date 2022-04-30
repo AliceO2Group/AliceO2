@@ -99,7 +99,7 @@ bool MatchITSTPCQC::init()
   Double_t xlogminPt = TMath::Log10(xminPt);
   Double_t xlogmaxPt = TMath::Log10(xmaxPt);
   Double_t dlogxPt = (xlogmaxPt - xlogminPt) / nbinsPt;
-  Double_t yPt = (xlogmaxPt - xlogminPt) / nbinsPt;
+  // Double_t yPt = (xlogmaxPt - xlogminPt) / nbinsPt;
   for (int i = 0; i <= nbinsPt; i++) {
     Double_t xlogPt = xlogminPt + i * dlogxPt;
     xbinsPt[i] = TMath::Exp(TMath::Log(10) * xlogPt);
@@ -175,7 +175,8 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
   // cache selection for TPC tracks
   std::vector<bool> isTPCTrackSelectedEntry(mTPCTracks.size(), false);
   TrackCuts cuts;
-  for (auto itrk = 0; itrk < mTPCTracks.size(); ++itrk) {
+
+  for (size_t itrk = 0; itrk < mTPCTracks.size(); ++itrk) {
     auto const& trkTpc = mTPCTracks[itrk];
     // if (selectTrack(trkTpc)) {
     //   isTPCTrackSelectedEntry[itrk] = true;
@@ -189,7 +190,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
   // numerator + eta, chi2...
   if (mUseMC) {
     mMapLabels.clear();
-    for (auto itrk = 0; itrk < mITSTPCTracks.size(); ++itrk) {
+    for (size_t itrk = 0; itrk < mITSTPCTracks.size(); ++itrk) {
       auto const& trk = mITSTPCTracks[itrk];
       auto idxTrkTpc = trk.getRefTPC().getIndex();
       if (isTPCTrackSelectedEntry[idxTrkTpc] == true) {
@@ -260,7 +261,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     mMapTPCLabels.clear();
     // filling the map where we store for each MC label, the track id of the reconstructed
     // track with the highest number of TPC clusters
-    for (auto itrk = 0; itrk < mTPCTracks.size(); ++itrk) {
+    for (size_t itrk = 0; itrk < mTPCTracks.size(); ++itrk) {
       auto const& trk = mTPCTracks[itrk];
       if (isTPCTrackSelectedEntry[itrk] == true) {
         auto lbl = mRecoCont.getTrackMCLabel({(unsigned int)(itrk), GID::Source::TPC});
@@ -301,7 +302,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     }
   } else {
     // if we are in data, we loop over all tracks (no check on the label)
-    for (int itrk = 0; itrk < mTPCTracks.size(); ++itrk) {
+    for (size_t itrk = 0; itrk < mTPCTracks.size(); ++itrk) {
       auto const& trk = mTPCTracks[itrk];
       if (isTPCTrackSelectedEntry[itrk] == true) {
         mPtTPC->Fill(trk.getPt());
@@ -376,8 +377,8 @@ void MatchITSTPCQC::finalize()
     }
   }
 
-  float scaleFactTPC = 1. / mNTPCSelectedTracks;
-  float scaleFactITSTPC = 1. / mNITSTPCSelectedTracks;
+  // float scaleFactTPC = 1. / mNTPCSelectedTracks;
+  // float scaleFactITSTPC = 1. / mNITSTPCSelectedTracks;
   /*
   mPtTPC->Scale(scaleFactTPC);
   mPt->Scale(scaleFactITSTPC);
