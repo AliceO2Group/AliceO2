@@ -48,7 +48,7 @@ class Smoother
   bool smoothTrack();
 
  private:
-  size_t mLayerToSmooth;                       // Layer to compute smoothing optimization
+  size_t mLayerToSmooth;                    // Layer to compute smoothing optimization
   float mBz;                                // Magnetic field along Z
   bool mInitStatus;                         // State after the initialization
   o2::base::PropagatorF::MatCorrType mCorr; // Type of correction to use

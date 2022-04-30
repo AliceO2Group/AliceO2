@@ -98,7 +98,6 @@ bool MatchITSTPCQC::init()
   Double_t xlogminPt = TMath::Log10(xminPt);
   Double_t xlogmaxPt = TMath::Log10(xmaxPt);
   Double_t dlogxPt = (xlogmaxPt - xlogminPt) / nbinsPt;
-  // Double_t yPt = (xlogmaxPt - xlogminPt) / nbinsPt;
   for (int i = 0; i <= nbinsPt; i++) {
     Double_t xlogPt = xlogminPt + i * dlogxPt;
     xbinsPt[i] = TMath::Exp(TMath::Log(10) * xlogPt);
@@ -183,7 +182,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
   // numerator + eta, chi2...
   if (mUseMC) {
     mMapLabels.clear();
-    for (size_t itrk = 0; itrk < mITSTPCTracks.size(); ++itrk) {
+    for (int itrk = 0; itrk < static_cast<int>(mITSTPCTracks.size()); ++itrk) {
       auto const& trk = mITSTPCTracks[itrk];
       auto idxTrkTpc = trk.getRefTPC().getIndex();
       if (isTPCTrackSelectedEntry[idxTrkTpc] == true) {
@@ -254,7 +253,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     mMapTPCLabels.clear();
     // filling the map where we store for each MC label, the track id of the reconstructed
     // track with the highest number of TPC clusters
-    for (size_t itrk = 0; itrk < mTPCTracks.size(); ++itrk) {
+    for (int itrk = 0; itrk < static_cast<int>(mTPCTracks.size()); ++itrk) {
       auto const& trk = mTPCTracks[itrk];
       if (isTPCTrackSelectedEntry[itrk] == true) {
         auto lbl = mRecoCont.getTrackMCLabel({(unsigned int)(itrk), GID::Source::TPC});
@@ -370,8 +369,6 @@ void MatchITSTPCQC::finalize()
     }
   }
 
-  // float scaleFactTPC = 1. / mNTPCSelectedTracks;
-  // float scaleFactITSTPC = 1. / mNITSTPCSelectedTracks;
   /*
   mPtTPC->Scale(scaleFactTPC);
   mPt->Scale(scaleFactITSTPC);

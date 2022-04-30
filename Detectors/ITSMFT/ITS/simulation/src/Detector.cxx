@@ -107,11 +107,8 @@ static void configITS(Detector* its)
     {-1, 34.24, -1, 7., 4.29, 42}, // 42 was 88
     {-1, 39.20, -1, 7., 3.75, 48}  // 48 was 100
   };
-  // const int nChipsPerModule = 7;  // For OB: how many chips in a row
-  // const double zChipGap = 0.01;   // For OB: gap in Z between chips
-  // const double zModuleGap = 0.01; // For OB: gap in Z between modules
 
-  double /*dzLr,*/ rLr, phi0, turbo;
+  double rLr, phi0, turbo;
   int nStaveLr, nModPerStaveLr;
 
   its->setStaveModelIB(o2::its::Detector::kIBModel4);
@@ -352,9 +349,6 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     fMC->CurrentVolOffID(5, halfbarrel);
     int chipindex = mGeometryTGeo->getChipIndex(lay, halfbarrel, stave, halfstave, module, chipinmodule);
 
-    // Hit* p = addHit(stack->GetCurrentTrackNumber(), chipindex, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
-    //                 mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), positionStop.T(),
-    //                 mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart, status);
     // p->SetTotalEnergy(vmc->Etot());
 
     // RS: not sure this is needed

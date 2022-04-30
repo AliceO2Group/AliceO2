@@ -576,7 +576,6 @@ void Tracker::computeTracksMClabels()
     for (auto& track : mTimeFrame->getTracks(iROF)) {
       std::vector<std::pair<MCCompLabel, size_t>> occurrences;
       occurrences.clear();
-      // bool isFakeTrack{false};
 
       for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
         const int index = track.getClusterIndex(iCluster);

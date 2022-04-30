@@ -204,7 +204,6 @@ bool Smoother<D>::testCluster(const int clusterId, const ROframe& event)
                                           o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
                                           o2::base::PropagatorImpl<float>::MAX_STEP,
                                           mCorr);
-  // bool testStatus = statusOutw && statusInw;
   if (!(statusOutw && statusInw)) {
     LOG(warning) << "Failed propagation in smoother!";
     return false;
