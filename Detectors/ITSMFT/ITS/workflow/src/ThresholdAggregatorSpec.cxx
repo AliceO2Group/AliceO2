@@ -132,7 +132,7 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
   std::string file_name = "calib_scan_" + name_str + ".root";
   info.setFileName(file_name);
 
-  if (!ec) { // send to ccdb-populator wf only if there is an EndOfStreamContext
+  if (ec) { // send to ccdb-populator wf only if there is an EndOfStreamContext
     LOG(info) << "Class Name: " << class_name << " | File Name: " << file_name
               << "\nSending to ccdb-populator the object " << info.getPath() << "/" << info.getFileName()
               << " of size " << image->size() << " bytes, valid for "
