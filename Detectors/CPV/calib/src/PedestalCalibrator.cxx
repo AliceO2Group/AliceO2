@@ -75,8 +75,10 @@ void PedestalSpectrum::analyze()
   // -------------------------------------------------------------------------->
   // 0            10            ^  20             30               ADC amplitude
   //                       tolerated gap
+  //
   // we want to find all the peaks, determine their mean and rms
   // and mean and rms of all the distribution
+  // pedestal is calculated from peak with most of statistics in it
   std::vector<uint16_t> peakLowEdge, peakHighEdge;
   peakLowEdge.push_back(mSpectrumContainer.begin()->first);
   peakHighEdge.push_back((--mSpectrumContainer.end())->first);
@@ -94,7 +96,7 @@ void PedestalSpectrum::analyze()
     totalSumA += iAmpl->first * iAmpl->second;
     totalSumA2 += (iAmpl->first * iAmpl->first) * iAmpl->second;
 
-    if (iNextAmpl != mSpectrumContainer.end()) {                    //is iAmpl not the last bin?
+    if (iNextAmpl != mSpectrumContainer.end()) {                    // is iAmpl not the last bin?
       if ((iNextAmpl->first - iAmpl->first) > mToleratedGapWidth) { // let's consider |bin1-bin2|<=5 belong to same peak
         // firts, save peak low and high edge (just for the future cases)
         peakHighEdge.push_back(iAmpl->first);
@@ -107,7 +109,7 @@ void PedestalSpectrum::analyze()
         peakSumA2 = 0.;
         peakCounts = 0;
       }
-    } else { //this is last bin
+    } else { // this is last bin
       peakHighEdge.push_back(iAmpl->first);
       mMeanOfPeaks.push_back(peakSumA / peakCounts);
       mRMSOfPeaks.push_back(sqrt(peakSumA2 / peakCounts - mMeanOfPeaks.back() * mMeanOfPeaks.back()));
@@ -120,20 +122,19 @@ void PedestalSpectrum::analyze()
   mRMSOfPeaks.push_back(sqrt(totalSumA2 / totalCounts - mMeanOfPeaks.back() * mMeanOfPeaks.back()));
   mPeakCounts.push_back(totalCounts);
 
-  //final decision on pedestal value and RMS
-  if (mNPeaks == 1) { //everything seems to be good
+  // final decision on pedestal value and RMS
+  if (mNPeaks == 1) { // everything seems to be good
     mPedestalValue = mMeanOfPeaks.back();
     mPedestalRMS = mRMSOfPeaks.back();
-    if ((mPedestalRMS > mSuspiciousPedestalRMS) && ((mPedestalValue + mPedestalRMS * mZSnSigmas) < peakHighEdge.back())) {
-      mPedestalRMS = (peakHighEdge.back() - mPedestalValue) / mZSnSigmas;
+  } else if (mNPeaks > 1) { // there are some problems with several pedestal peaks
+    uint16_t iPeakWithMaxStat = 0;
+    for (auto i = 0; i < mNPeaks; i++) { // find peak with max statistics
+      if (mPeakCounts[iPeakWithMaxStat] < mPeakCounts[i]) {
+        iPeakWithMaxStat = i;
+      }
     }
-  } else if (mNPeaks > 1) {                        // there are some problems with several pedestal peaks
-    mPedestalValue = mMeanOfPeaks.at(mNPeaks - 1); //  mean of last peak
-    //mPedestalValue = mMeanOfPeaks.back();
-    mPedestalRMS = mRMSOfPeaks.back(); // total RMS of distribution
-    if ((mPedestalValue + mPedestalRMS * mZSnSigmas) < peakHighEdge.back()) {
-      mPedestalRMS = (peakHighEdge.back() - mPedestalValue) / mZSnSigmas;
-    }
+    mPedestalValue = mMeanOfPeaks[iPeakWithMaxStat]; //  mean of peak with max statistics
+    mPedestalRMS = mRMSOfPeaks[iPeakWithMaxStat];    // RMS of peak with max statistics
   }
   mIsAnalyzed = true;
 }
@@ -248,7 +249,7 @@ void PedestalCalibrator::finalizeSlot(PedestalTimeSlot& slot)
   LOG(info) << "PedestalCalibrator::finalizeSlot() : finalizing slot "
             << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with " << calibData->mNEvents << " events.";
 
-  //o2::cpv::Geometry geo; // CPV geometry object
+  // o2::cpv::Geometry geo; // CPV geometry object
 
   // o2::cpv::Pedestals - calibration object used at reconstruction
   // and efficiencies vector
@@ -298,6 +299,7 @@ void PedestalCalibrator::finalizeSlot(PedestalTimeSlot& slot)
   mPedEfficienciesVec.push_back(efficiencies);
   mDeadChannelsVec.push_back(deadChannels);
   mThresholdsFEEVec.push_back(thresholdsFEE);
+  mThresholdsFEEVec.push_back(thresholdsFEE); // push same FEE thresholds 2 times so one of it goes to ccdb with subspec 0 and another with subspec 1 (for normal and DCS ccdb population)
   mHighPedChannelsVec.push_back(highPedChannels);
 
   // metadata for o2::cpv::Pedestals
@@ -321,6 +323,8 @@ void PedestalCalibrator::finalizeSlot(PedestalTimeSlot& slot)
   className = o2::utils::MemFileHelper::getClassName(thresholdsFEE);
   fileName = o2::ccdb::CcdbApi::generateFileName(className);
   mCcdbInfoThresholdsFEEVec.emplace_back("CPV/PedestalRun/FEEThresholds", className, fileName, metaData, timeStamp, timeStamp + 31536000000); // one year validity time (in milliseconds!)
+  // push same FEE thresholds 2 times so one of it goes to ccdb with subspec 0 and another with subspec 1 (for normal and DCS ccdb population)
+  mCcdbInfoThresholdsFEEVec.emplace_back("CPV/PedestalRun/FEEThresholds", className, fileName, metaData, timeStamp, timeStamp + 31536000000);
 
   // metadata for high pedestal (> 511) channels
   className = o2::utils::MemFileHelper::getClassName(highPedChannels);
@@ -336,5 +340,5 @@ PedestalTimeSlot& PedestalCalibrator::emplaceNewSlot(bool front, TFType tstart, 
   return slot;
 }
 //___________________________________________________________________
-} //end namespace cpv
-} //end namespace o2
+} // end namespace cpv
+} // end namespace o2
