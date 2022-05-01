@@ -18,6 +18,7 @@
 #include "ITSSimulation/Detector.h"
 #include "ITSSimulation/V3Layer.h"
 #include "ITSSimulation/V3Services.h"
+#include "ITSSimulation/V3Cage.h"
 
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
@@ -510,6 +511,9 @@ void Detector::createMaterials()
   // Rohacell
   o2::base::Detector::Mixture(32, "ROHACELL$", aRohac, zRohac, dRohac, -4, wRohac);
   o2::base::Detector::Medium(32, "ROHACELL$", 32, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  // Carbon prepreg (Cage)
+  o2::base::Detector::Material(33, "M46J6K$", 12.0107, 6, 1.84, 999, 999);
+  o2::base::Detector::Medium(33, "M46J6K$", 33, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
   // PEEK CF30
   o2::base::Detector::Mixture(19, "PEEKCF30$", aPEEK, zPEEK, dPEEK, -3, wPEEK);
@@ -884,13 +888,17 @@ void Detector::constructDetectorGeometry()
     mGeometry[j]->createLayer(dest);
   }
 
-  // Finally create the services
+  // Now create the services
   mServicesGeometry = new V3Services();
 
   createInnerBarrelServices(wrapVols[0]);
   createMiddlBarrelServices(wrapVols[1]);
   createOuterBarrelServices(wrapVols[2]);
   createOuterBarrelSupports(vITSV);
+
+  // Finally create and place the cage
+  V3Cage* cagePtr = new V3Cage();
+  cagePtr->createAndPlaceCage(vALIC); // vALIC = barrel
 
   delete[] wrapVols; // delete pointer only, not the volumes
 }
