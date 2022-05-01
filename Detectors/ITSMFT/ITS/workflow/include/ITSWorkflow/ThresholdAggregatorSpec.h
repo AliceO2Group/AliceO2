@@ -74,6 +74,7 @@ class ITSThresholdAggregator : public Task
   bool mStopped = false;
 
   o2::dcs::DCSconfigObject_t tuningMerge;
+  o2::dcs::DCSconfigObject_t chipDoneMerge;
   short int mRunType = -1;
   // Either "T" for threshold, "V" for VCASN, or "I" for ITHR
   char mScanType = 'n';

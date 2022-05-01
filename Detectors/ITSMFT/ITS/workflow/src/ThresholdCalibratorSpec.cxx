@@ -12,6 +12,7 @@
 /// @file   ThresholdCalibratorSpec.cxx
 
 #include "ITSWorkflow/ThresholdCalibratorSpec.h"
+#include "CommonUtils/FileSystemUtils.h"
 
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -141,13 +142,8 @@ void ITSThresholdCalibrator::initThresholdTree(bool recreate /*=true*/)
 
   // Create output directory to store output
   std::string dir = this->mOutputDir + fmt::format("{}_{}/", this->mEnvironmentID, this->mRunNumber);
-  if (!std::filesystem::exists(dir)) {
-    if (!std::filesystem::create_directories(dir)) {
-      throw std::runtime_error("Failed to create " + dir + " directory");
-    } else {
-      LOG(info) << "Created " << dir << " directory for threshold output";
-    }
-  }
+  o2::utils::createDirectoriesIfAbsent(dir);
+  LOG(info) << "Created " << dir << " directory for ROOT trees output";
 
   std::string filename = dir + std::to_string(this->mRunNumber) + '_' +
                          std::to_string(this->mFileNumber) + '_' + this->mHostname + "_modSel" + std::to_string(mChipModSel) + ".root.part";
@@ -653,10 +649,9 @@ bool ITSThresholdCalibrator::isScanFinished(const short int& chipID, const short
   // Require that the last entry has at least half the number of expected hits
   short int col = 0; // Doesn't matter which column
   short int chg = (mScanType == 'I' || mScanType == 'D' || mScanType == 'A') ? 0 : (*(this->N_RANGE) - 1);
-  int check = (mScanType == 'D' || mScanType == 'A') ? N_INJ : N_INJ - 2; // TODO: -2 is a temporary safety factor
 
   // check 2 pixels in case one of them is dead
-  return ((this->mPixelHits[chipID][row][col][chg] >= check || this->mPixelHits[chipID][row][col + 100][chg] >= check) && (!mCheckCw || cwcnt == N_INJ - 1));
+  return ((this->mPixelHits[chipID][row][col][chg] >= N_INJ || this->mPixelHits[chipID][row][col + 100][chg] >= N_INJ) && (!mCheckCw || cwcnt == N_INJ - 1));
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -861,7 +856,7 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
       // check collected chips in previous loop on digits
       for (auto& chipID : mChips) {
         // count the zeros
-        if (!this->mCheckEos && !this->mRunTypeUp) {
+        if (!this->mRunTypeUp) {
           this->mRunTypeChip[chipID]++;
         }
         // check forbidden rows
@@ -876,19 +871,35 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
           mForbiddenRows[chipID].push_back(row); // due to the loose cut in isScanFinished, extra hits may come for this deleted row. In this way the row is ignored afterwards
         }
       }
+
+      for (auto& chipID : mChips) {
+        if (mRunTypeChip[chipID] == N_INJ) {
+          this->addDatabaseEntry(chipID, "", 0, 0, 0, 0, 0, true); // output for QC (mainly)
+        }
+      }
     } // if (charge)
   }   // for (ROFs)
 
   if (!(this->mCheckEos) && !(this->mRunTypeUp)) {
-    LOG(info) << "Shipping DCSconfigObject_t, run type, scan type and fit type to aggregator from run function (no endOfStream will be used!)";
     this->finalize(nullptr);
+    LOG(info) << "Shipping all outputs to aggregator (no endOfStream will be used!)";
     pc.outputs().snapshot(Output{"ITS", "TSTR", (unsigned int)mChipModSel}, this->mTuning);
     pc.outputs().snapshot(Output{"ITS", "RUNT", (unsigned int)mChipModSel}, this->mRunType);
     pc.outputs().snapshot(Output{"ITS", "SCANT", (unsigned int)mChipModSel}, this->mScanType);
     pc.outputs().snapshot(Output{"ITS", "FITT", (unsigned int)mChipModSel}, this->mFitType);
     pc.outputs().snapshot(Output{"ITS", "CONFDBV", (unsigned int)mChipModSel}, this->mConfDBv);
+    pc.outputs().snapshot(Output{"ITS", "QCSTR", (unsigned int)mChipModSel}, this->mChipDoneQc);
     // reset the DCSconfigObject_t before next ship out
-    this->mTuning.clear();
+    mTuning.clear();
+    mChipDoneQc.clear();
+  } else if (mCheckEos) {
+    pc.outputs().snapshot(Output{"ITS", "TSTR", (unsigned int)mChipModSel}, this->mTuning); // dummy here
+    pc.outputs().snapshot(Output{"ITS", "RUNT", (unsigned int)mChipModSel}, this->mRunType);
+    pc.outputs().snapshot(Output{"ITS", "SCANT", (unsigned int)mChipModSel}, this->mScanType);
+    pc.outputs().snapshot(Output{"ITS", "FITT", (unsigned int)mChipModSel}, this->mFitType);
+    pc.outputs().snapshot(Output{"ITS", "CONFDBV", (unsigned int)mChipModSel}, this->mConfDBv);
+    pc.outputs().snapshot(Output{"ITS", "QCSTR", (unsigned int)mChipModSel}, this->mChipDoneQc);
+    mChipDoneQc.clear();
   }
 
   return;
@@ -908,7 +919,7 @@ void ITSThresholdCalibrator::findAverage(const std::array<int, 5>& data, float& 
 //////////////////////////////////////////////////////////////////////////////
 void ITSThresholdCalibrator::addDatabaseEntry(
   const short int& chipID, const char* name, const short int& avgT,
-  const float& rmsT, const short int& avgN, const float& rmsN, bool status)
+  const float& rmsT, const short int& avgN, const float& rmsN, bool status, bool isQC)
 {
   // Obtain specific chip information from the chip ID (layer, stave, ...)
   int lay, sta, ssta, mod, chipInMod; // layer, stave, sub stave, module, chip
@@ -916,6 +927,14 @@ void ITSThresholdCalibrator::addDatabaseEntry(
 
   char stave[6];
   sprintf(stave, "L%d_%02d", lay, sta);
+
+  if (isQC) {
+    o2::dcs::addConfigItem(this->mChipDoneQc, "Stave", std::string(stave));
+    o2::dcs::addConfigItem(this->mChipDoneQc, "Hs_pos", std::to_string(ssta));
+    o2::dcs::addConfigItem(this->mChipDoneQc, "Hic_Pos", std::to_string(mod));
+    o2::dcs::addConfigItem(this->mChipDoneQc, "ChipID", std::to_string(chipInMod));
+    return;
+  }
 
   // Get ConfDB id for the chip chipID
   std::string hs = ssta == 0 ? "L" : "U";
@@ -991,6 +1010,7 @@ void ITSThresholdCalibrator::sendToAggregator(EndOfStreamContext* ec)
     ec->outputs().snapshot(Output{"ITS", "SCANT", (unsigned int)mChipModSel}, this->mScanType);
     ec->outputs().snapshot(Output{"ITS", "FITT", (unsigned int)mChipModSel}, this->mFitType);
     ec->outputs().snapshot(Output{"ITS", "CONFDBV", (unsigned int)mChipModSel}, this->mConfDBv);
+    ec->outputs().snapshot(Output{"ITS", "QCSTR", (unsigned int)mChipModSel}, this->mChipDoneQc);
   }
   return;
 }
@@ -1005,14 +1025,14 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
     name = "VCASN";
     auto it = this->mThresholds.cbegin();
     while (it != this->mThresholds.cend()) {
-      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ - 2) { // TODO: -2 is a safety factor, to be modified once THR scan is stable enough
+      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ) {
         ++it;
         continue;
       }
       float avgT, rmsT, avgN, rmsN;
       this->findAverage(it->second, avgT, rmsT, avgN, rmsN);
       bool status = (this->mX[0] < avgT && avgT < this->mX[*(this->N_RANGE) - 1]);
-      this->addDatabaseEntry(it->first, name, (short int)avgT, rmsT, (short int)avgN, rmsN, status);
+      this->addDatabaseEntry(it->first, name, (short int)avgT, rmsT, (short int)avgN, rmsN, status, false);
       if (!this->mCheckEos) {
         this->mRunTypeChip[it->first] = 0; // so that this chip will never appear again in the DCSconfigObject_t
         it = this->mThresholds.erase(it);
@@ -1026,14 +1046,14 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
     name = "ITHR";
     auto it = this->mThresholds.cbegin();
     while (it != this->mThresholds.cend()) {
-      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ - 2) { // TODO: -2 is a safety factor, to be modified once THR scan is stable enough
+      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ) {
         ++it;
         continue;
       }
       float avgT, rmsT, avgN, rmsN;
       this->findAverage(it->second, avgT, rmsT, avgN, rmsN);
       bool status = (this->mX[0] < avgT && avgT < this->mX[*(this->N_RANGE) - 1]);
-      this->addDatabaseEntry(it->first, name, (short int)avgT, rmsT, (short int)avgN, rmsN, status);
+      this->addDatabaseEntry(it->first, name, (short int)avgT, rmsT, (short int)avgN, rmsN, status, false);
       if (!this->mCheckEos) {
         this->mRunTypeChip[it->first] = 0; // so that this chip will never appear again in the DCSconfigObject_t
         it = this->mThresholds.erase(it);
@@ -1047,14 +1067,14 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
     name = "THR";
     auto it = this->mThresholds.cbegin();
     while (it != this->mThresholds.cend()) {
-      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ - 2) { // TODO: -2 is a safety factor, to be modified once THR scan is stable enough
+      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ) {
         ++it;
         continue;
       }
       float avgT, rmsT, avgN, rmsN;
       this->findAverage(it->second, avgT, rmsT, avgN, rmsN);
       bool status = (this->mX[0] < avgT && avgT < this->mX[*(this->N_RANGE) - 1] * 10);
-      this->addDatabaseEntry(it->first, name, (short int)avgT, rmsT, (short int)avgN, rmsN, status);
+      this->addDatabaseEntry(it->first, name, (short int)avgT, rmsT, (short int)avgN, rmsN, status, false);
       if (!this->mCheckEos) {
         this->mRunTypeChip[it->first] = 0; // so that this chip will never appear again in the DCSconfigObject_t
         it = this->mThresholds.erase(it);
@@ -1091,7 +1111,7 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
         ++it;
         continue;
       }
-      this->addDatabaseEntry(it->first, name, 0, 0, 0, 0, 0); // all zeros are not used here
+      this->addDatabaseEntry(it->first, name, 0, 0, 0, 0, 0, false); // all zeros are not used here
       if (this->mVerboseOutput) {
         LOG(info) << "Chip " << it->first << " done";
       }
@@ -1152,6 +1172,7 @@ DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
   outputs.emplace_back("ITS", "SCANT", inpConf.chipModSel);
   outputs.emplace_back("ITS", "FITT", inpConf.chipModSel);
   outputs.emplace_back("ITS", "CONFDBV", inpConf.chipModSel);
+  outputs.emplace_back("ITS", "QCSTR", inpConf.chipModSel);
 
   return DataProcessorSpec{
     "its-calibrator_" + std::to_string(inpConf.chipModSel),

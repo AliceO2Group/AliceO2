@@ -49,6 +49,7 @@ void ITSThresholdAggregator::run(ProcessingContext& pc)
   std::vector<InputSpec>
     filter = {
       {"check", ConcreteDataTypeMatcher{"ITS", "TSTR"}},
+      {"check", ConcreteDataTypeMatcher{"ITS", "QCSTR"}},
       {"check", ConcreteDataTypeMatcher{"ITS", "RUNT"}},
       {"check", ConcreteDataTypeMatcher{"ITS", "SCANT"}},
       {"check", ConcreteDataTypeMatcher{"ITS", "FITT"}},
@@ -75,7 +76,19 @@ void ITSThresholdAggregator::run(ProcessingContext& pc)
       // Merge all strings coming from several sources (EPN)
       std::copy(tunString.begin(), tunString.end(), std::back_inserter(tuningMerge));
     }
+    if (DataRefUtils::match(inputRef, "chipdonestring")) {
+      // Read strings with list of completed chips
+      const auto chipDoneString = pc.inputs().get<gsl::span<char>>(inputRef);
+      // Merge all strings coming from several sources (EPN)
+      std::copy(chipDoneString.begin(), chipDoneString.end(), std::back_inserter(chipDoneMerge));
+    }
   } // end for inputRef
+
+  if (mVerboseOutput) {
+    LOG(info) << "Chips completed: ";
+    std::string tmpString(chipDoneMerge.begin(), chipDoneMerge.end());
+    LOG(info) << tmpString;
+  }
 
   return;
 }
@@ -83,7 +96,9 @@ void ITSThresholdAggregator::run(ProcessingContext& pc)
 //////////////////////////////////////////////////////////////////////////////
 void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
 {
-  LOGF(info, "endOfStream report:", mSelfName);
+  if (ec) {
+    LOGF(info, "endOfStream report:", mSelfName);
+  }
 
   // Below is CCDB stuff
   long tstart = o2::ccdb::getCurrentTimestamp();
@@ -117,7 +132,7 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
   std::string file_name = "calib_scan_" + name_str + ".root";
   info.setFileName(file_name);
 
-  if (ec) { // send to ccdb-populator wf only if there is an EndOfStreamContext
+  if (!ec) { // send to ccdb-populator wf only if there is an EndOfStreamContext
     LOG(info) << "Class Name: " << class_name << " | File Name: " << file_name
               << "\nSending to ccdb-populator the object " << info.getPath() << "/" << info.getFileName()
               << " of size " << image->size() << " bytes, valid for "
@@ -218,6 +233,7 @@ DataProcessorSpec getITSThresholdAggregatorSpec()
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("tunestring", ConcreteDataTypeMatcher{"ITS", "TSTR"});
+  inputs.emplace_back("chipdonestring", ConcreteDataTypeMatcher{"ITS", "QCSTR"});
   inputs.emplace_back("runtype", ConcreteDataTypeMatcher{"ITS", "RUNT"});
   inputs.emplace_back("scantype", ConcreteDataTypeMatcher{"ITS", "SCANT"});
   inputs.emplace_back("fittype", ConcreteDataTypeMatcher{"ITS", "FITT"});
