@@ -451,22 +451,22 @@ fi
 # Entropy encoding / ctf creation workflows - disabled in async mode
 if has_processing_step ENTROPY_ENCODER && [[ ! -z "$WORKFLOW_DETECTORS_CTF" ]] && [[ $WORKFLOW_DETECTORS_CTF != "NONE" ]]; then
   # Entropy encoder workflows
-  has_detector_ctf MFT && add_W o2-itsmft-entropy-encoder-workflow "--runmft true --pipeline $(get_N mft-entropy-encoder MFT CTF 1)"
-  has_detector_ctf FT0 && add_W o2-ft0-entropy-encoder-workflow "--pipeline $(get_N ft0-entropy-encoder FT0 CTF 1)"
-  has_detector_ctf FV0 && add_W o2-fv0-entropy-encoder-workflow "--pipeline $(get_N fv0-entropy-encoder FV0 CTF 1)"
-  has_detector_ctf MID && add_W o2-mid-entropy-encoder-workflow "--pipeline $(get_N mid-entropy-encoder MID CTF 1)"
-  has_detector_ctf MCH && add_W o2-mch-entropy-encoder-workflow "--pipeline $(get_N mch-entropy-encoder MCH CTF 1)"
-  has_detector_ctf PHS && add_W o2-phos-entropy-encoder-workflow "--pipeline $(get_N phos-entropy-encoder PHS CTF 1)"
-  has_detector_ctf CPV && add_W o2-cpv-entropy-encoder-workflow "--pipeline $(get_N cpv-entropy-encoder CPV CTF 1)"
-  has_detector_ctf EMC && add_W o2-emcal-entropy-encoder-workflow "--pipeline $(get_N emcal-entropy-encoder EMC CTF 1)"
-  has_detector_ctf ZDC && add_W o2-zdc-entropy-encoder-workflow "--pipeline $(get_N zdc-entropy-encoder ZDC CTF 1)"
-  has_detector_ctf FDD && add_W o2-fdd-entropy-encoder-workflow "--pipeline $(get_N fdd-entropy-encoder FDD CTF 1)"
-  has_detector_ctf HMP && add_W o2-hmpid-entropy-encoder-workflow "--pipeline $(get_N hmpid-entropy-encoder HMP CTF 1)"
-  has_detector_ctf TOF && add_W o2-tof-entropy-encoder-workflow "--pipeline $(get_N tof-entropy-encoder TOF CTF 1)"
-  has_detector_ctf ITS && add_W o2-itsmft-entropy-encoder-workflow "--pipeline $(get_N its-entropy-encoder ITS CTF 1)"
-  has_detector_ctf TRD && add_W o2-trd-entropy-encoder-workflow "--pipeline $(get_N trd-entropy-encoder TRD CTF 1 TRDENT)"
-  has_detector_ctf TPC && add_W o2-tpc-reco-workflow "--input-type compressed-clusters-flat --output-type encoded-clusters,disable-writer --pipeline $(get_N tpc-entropy-encoder TPC CTF 1 TPCENT)"
-  has_detector_ctf CTP && add_W o2-ctp-entropy-encoder-workflow "--pipeline $(get_N its-entropy-encoder CTP CTF 1)"
+  has_detector_ctf MFT && add_W o2-itsmft-entropy-encoder-workflow "--mem-factor ${MFT_ENC_MEMFACT:-1.5} --runmft true --pipeline $(get_N mft-entropy-encoder MFT CTF 1)"
+  has_detector_ctf FT0 && add_W o2-ft0-entropy-encoder-workflow "--mem-factor ${FT0_ENC_MEMFACT:-1.5} --pipeline $(get_N ft0-entropy-encoder FT0 CTF 1)"
+  has_detector_ctf FV0 && add_W o2-fv0-entropy-encoder-workflow "--mem-factor ${FV0_ENC_MEMFACT:-1.5} --pipeline $(get_N fv0-entropy-encoder FV0 CTF 1)"
+  has_detector_ctf MID && add_W o2-mid-entropy-encoder-workflow "--mem-factor ${MID_ENC_MEMFACT:-1.5} --pipeline $(get_N mid-entropy-encoder MID CTF 1)"
+  has_detector_ctf MCH && add_W o2-mch-entropy-encoder-workflow "--mem-factor ${MCH_ENC_MEMFACT:-1.5} --pipeline $(get_N mch-entropy-encoder MCH CTF 1)"
+  has_detector_ctf PHS && add_W o2-phos-entropy-encoder-workflow "--mem-factor ${PHS_ENC_MEMFACT:-1.5} --pipeline $(get_N phos-entropy-encoder PHS CTF 1)"
+  has_detector_ctf CPV && add_W o2-cpv-entropy-encoder-workflow "--mem-factor ${CPV_ENC_MEMFACT:-1.5} --pipeline $(get_N cpv-entropy-encoder CPV CTF 1)"
+  has_detector_ctf EMC && add_W o2-emcal-entropy-encoder-workflow "--mem-factor ${EMC_ENC_MEMFACT:-1.5} --pipeline $(get_N emcal-entropy-encoder EMC CTF 1)"
+  has_detector_ctf ZDC && add_W o2-zdc-entropy-encoder-workflow "--mem-factor ${ZDC_ENC_MEMFACT:-1.5} --pipeline $(get_N zdc-entropy-encoder ZDC CTF 1)"
+  has_detector_ctf FDD && add_W o2-fdd-entropy-encoder-workflow "--mem-factor ${FDD_ENC_MEMFACT:-1.5} --pipeline $(get_N fdd-entropy-encoder FDD CTF 1)"
+  has_detector_ctf HMP && add_W o2-hmpid-entropy-encoder-workflow "--mem-factor ${HMP_ENC_MEMFACT:-1.5} --pipeline $(get_N hmpid-entropy-encoder HMP CTF 1)"
+  has_detector_ctf TOF && add_W o2-tof-entropy-encoder-workflow "--mem-factor ${TOF_ENC_MEMFACT:-1.5} --pipeline $(get_N tof-entropy-encoder TOF CTF 1)"
+  has_detector_ctf ITS && add_W o2-itsmft-entropy-encoder-workflow "--mem-factor ${ITS_ENC_MEMFACT:-1.5} --pipeline $(get_N its-entropy-encoder ITS CTF 1)"
+  has_detector_ctf TRD && add_W o2-trd-entropy-encoder-workflow "--mem-factor ${TRD_ENC_MEMFACT:-1.5} --pipeline $(get_N trd-entropy-encoder TRD CTF 1 TRDENT)"
+  has_detector_ctf TPC && add_W o2-tpc-reco-workflow "--mem-factor ${TPC_ENC_MEMFACT:-1.} --input-type compressed-clusters-flat --output-type encoded-clusters,disable-writer --pipeline $(get_N tpc-entropy-encoder TPC CTF 1 TPCENT)"
+  has_detector_ctf CTP && add_W o2-ctp-entropy-encoder-workflow "--mem-factor ${CTP_ENC_MEMFACT:-1.5} --pipeline $(get_N its-entropy-encoder CTP CTF 1)"
 
   if [[ $CREATECTFDICT == 1 && $WORKFLOWMODE == "run" ]] ; then
     [[ -f $CTF_DICT ]] && rm -f $CTF_DICT
