@@ -210,11 +210,11 @@ class HMPIDDCSProcessor{
 	        
 	 	// Chamber Pressures
 		//HMP_DET/HMP_MP0/HMP_MP0_GAS/HMP_MP0_GAS_PMWPC.actual.value 
-		std::size_t startI_chamberPressure = 14,
+		std::size_t startI_chamberPressure = 14;
 		
 		// High Voltage
 		//HMP_DET/HMP_MP0/HMP_MP0_PW/HMP_MP0_SEC0/HMP_MP0_SEC0_HV.actual.vMon
-		std::size_t startI_chamberHV = 14, 
+		std::size_t startI_chamberHV = 14; 
 		std::size_t startI_sectorHV = 38;	//HMP_DET/HMP_MP0/HMP_MP0_PW/HMP_MP0_SEC0
 	
 		// Temperatures
