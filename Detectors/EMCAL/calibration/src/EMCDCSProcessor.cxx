@@ -30,7 +30,7 @@
 
 #include <map>
 #include <iterator>
-#include "EMCALCalib/EMCDCSProcessor.h"
+#include "EMCALCalibration/EMCDCSProcessor.h"
 
 using namespace o2::dcs;
 using namespace o2::emcal;
@@ -109,7 +109,7 @@ int EMCDCSProcessor::processDP(const DPCOM& dp)
   if ((type == DPVAL_INT) || (type == DPVAL_UINT)) // FEE config params and STU_TRU error counters
   {
     auto& dpval_prev = mapFEEcfg[dpid];
-    if (dpval_prev.size() == 0 || val.get_epoch_time() != dpval_prev.back().get_epoch_time()) //compate the time stamps
+    if (dpval_prev.size() == 0 || val.get_epoch_time() != dpval_prev.back().get_epoch_time()) // compate the time stamps
     {
       dpval_prev.push_back(val); // do we need to archive them all?????
       mUpdateFEEcfg = true;
@@ -120,7 +120,7 @@ int EMCDCSProcessor::processDP(const DPCOM& dp)
   } else if (type == DPVAL_DOUBLE) { // ELMB data
     FillElmbDP(dp);
   }
-  //printPDCOM(dp);
+  // printPDCOM(dp);
 
   return 0;
 }
@@ -134,7 +134,7 @@ void EMCDCSProcessor::FillElmbDP(const DPCOM& dpcom)
   std::string alias(dpid.get_alias());
 
   auto& dpval = dpcom.data;
-  auto val = o2::dcs::getValue<double>(dpcom); //dpval.payload_pt1;
+  auto val = o2::dcs::getValue<double>(dpcom); // dpval.payload_pt1;
 
   std::size_t index;
   int iPT = -1;

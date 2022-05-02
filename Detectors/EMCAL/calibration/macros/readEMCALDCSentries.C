@@ -16,7 +16,7 @@
 #include "CCDB/CcdbApi.h"
 #include "DetectorsDCS/DataPointIdentifier.h"
 #include "EMCALCalib/ElmbData.h"
-#include "EMCALCalib/EMCDCSProcessor.h"
+#include "EMCALCalibration/EMCDCSProcessor.h"
 
 //#include <string>
 //#include <unordered_map>
