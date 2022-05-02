@@ -5,7 +5,15 @@
 MYDIR="$(dirname $(realpath $0))"
 source $MYDIR/setenv.sh
 
-if [ -z $FILEWORKDIRRUN ]; then FILEWORKDIRRUN=$FILEWORKDIR; fi              # directory where to find the run-related files (grp, collision context)
+if [[ -z $FILEWORKDIRRUN ]]; then FILEWORKDIRRUN=$FILEWORKDIR; fi              # directory where to find the run-related files (grp, collision context)
+
+if [[ $EPNSYNCMODE == 0 ]]; then
+  alien-token-info >& /dev/null
+  if [[ $? != 0 ]]; then
+    echo "No alien token present" 1>&2
+    exit 1
+  fi
+fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 #Some additional settings used in this workflow
