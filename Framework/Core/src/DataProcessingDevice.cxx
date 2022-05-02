@@ -1326,7 +1326,14 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
     return;
   }
   if (oldestPossibleTimeslice != (size_t)-1) {
-    context.relayer->setOldestPossibleInput({oldestPossibleTimeslice}, info.id);
+    TimesliceIndex& timesliceIndex = context.registry->get<TimesliceIndex>();
+    auto r = timesliceIndex.setOldestPossibleInput({oldestPossibleTimeslice}, info.id);
+    timesliceIndex.updateOldestPossibleOutput();
+    auto& proxy = context.registry->get<FairMQDeviceProxy>();
+    auto oldestPossibleOutput = context.relayer->getOldestPossibleOutput();
+    LOGP(detail, "Broadcasting possible output {}", oldestPossibleOutput.timeslice.value);
+    context.registry->get<CallbackService>()(CallbackService::Id::DomainInfoUpdated, *(context.registry), (size_t)oldestPossibleOutput.timeslice.value);
+    DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
   }
   handleValidMessages(*inputTypes);
   return;

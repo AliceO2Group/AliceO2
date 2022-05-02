@@ -86,6 +86,7 @@ void DataSender::send(FairMQParts& parts, ChannelIndex channelIndex)
   /// FIXME: throttling this information?
   /// FIXME: do it only if it changes?
   TimesliceIndex& index = mRegistry.get<TimesliceIndex>();
+  index.updateOldestPossibleOutput();
 
   auto oldest = index.getOldestPossibleOutput();
   if (oldest.timeslice.value == -1) {
