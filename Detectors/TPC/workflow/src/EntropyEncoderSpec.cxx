@@ -89,7 +89,7 @@ DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile)
     inputs,
     Outputs{{"TPC", "CTFDATA", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(inputFromFile)},
-    Options{{"ctf-dict", VariantType::String, "", {"CTF dictionary: empty=CCDB, none=no external dictionary otherwise: local filename"}},
+    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
             {"no-ctf-columns-combining", VariantType::Bool, false, {"Do not combine correlated columns in CTF"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
 }

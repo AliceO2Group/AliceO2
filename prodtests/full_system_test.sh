@@ -158,13 +158,14 @@ if [ $ENABLE_GPU_TEST != "0" ]; then
 fi
 STAGES+=" ASYNC"
 
-# give a possibility to run the FST with external existing dictionary (i.e. with CREATECTFDICT=0 full_system_test.sh)
+# Give a possibility to run the FST with external existing dictionary (i.e. with CREATECTFDICT=0 full_system_test.sh)
+# In order to use CCDB dictionaries, pass CTFDICTFILE=ccdb CREATECTFDICT=0
 [[ ! -z "$CREATECTFDICT" ]] && SYNCMODEDOCTFDICT="$CREATECTFDICT" || SYNCMODEDOCTFDICT=1
 
 # this is default local tree-based CTF dictionary file
 [[ -z "$CTFDICTFILE" ]] && CTFDICTFILE="ctf_dictionary.root"
 
-# if dictionary creation is requested, the encoders should not use any external dictionary, neither local one (--ctf-dict <file>) not from CCDB (--ctf-dict "")
+# if dictionary creation is requested, the encoders should not use any external dictionary, neither the local one (--ctf-dict <file>) nor from the CCDB (empty or --ctf-dict "ccdb")
 [[ "$SYNCMODEDOCTFDICT" = "1" ]] && USECTFDICTFILE="none" || USECTFDICTFILE="$CTFDICTFILE"
 export ARGS_EXTRA_PROCESS_o2_itsmft_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
 export ARGS_EXTRA_PROCESS_o2_ft0_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"

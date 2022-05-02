@@ -16,6 +16,7 @@
 #include <vector>
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "DetectorsBase/CTFCoderBase.h"
 #include "CommonUtils/NameConf.h"
 
@@ -86,12 +87,16 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
     outputs.emplace_back(OutputSpec{header::gDataOriginMID, "DATAROF", subSpec});
   }
 
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("ctf", "MID", "CTFDATA", sspec, Lifetime::Timeframe);
+  inputs.emplace_back("ctfdict", "MID", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("MID/Calib/CTFDictionary"));
+
   return DataProcessorSpec{
     "mid-entropy-decoder",
-    Inputs{InputSpec{"ctf", "MID", "CTFDATA", sspec, Lifetime::Timeframe}},
+    inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
-    Options{{"ctf-dict", VariantType::String, "", {"CTF dictionary: empty=CCDB, none=no external dictionary otherwise: local filename"}}}};
+    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}}}};
 }
 
 } // namespace mid

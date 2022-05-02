@@ -222,7 +222,7 @@ void CTFCoderBase::init(o2::framework::InitContext& ic)
     setMemMarginFactor(ic.options().get<float>("mem-factor"));
   }
   auto dict = ic.options().get<std::string>("ctf-dict");
-  if (dict.empty()) { // load from CCDB
+  if (dict.empty() || dict == "ccdb") { // load from CCDB
     mLoadDictFromCCDB = true;
   } else {
     if (dict != "none") { // none means per-CTF dictionary will created on the fly
