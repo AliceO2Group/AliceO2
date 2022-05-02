@@ -84,7 +84,9 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
             fitResults.setTime(0.);
           }
         } catch (CaloRawFitter::RawFitterError_t& fiterror) {
-          LOG(error) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
+          if (fiterror != CaloRawFitter::RawFitterError_t::BUNCH_NOT_OK) {
+            LOG(error) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
+          }
         }
 
         mOutputCells.emplace_back(tower, fitResults.getAmp() * CONVADCGEV, fitResults.getTime(), channelData.mChanType);
