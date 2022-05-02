@@ -203,24 +203,9 @@ void VertexerTraits::computeTracklets()
   std::vector<o2::its::Cluster> clus2(0);
   tr_tre->Branch("Tracklets0", &trkl_vec_0);
   tr_tre->Branch("Tracklets1", &trkl_vec_1);
-  // tr_tre->Branch("clusters0", &clus0);
-  // tr_tre->Branch("clusters1", &clus1);
-  // tr_tre->Branch("clusters2", &clus2);
   for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
     trkl_vec_0.clear();
     trkl_vec_1.clear();
-    // clus0.clear();
-    // clus1.clear();
-    // clus2.clear();
-    // for (auto& cl : mTimeFrame->getClustersOnLayer(rofId, 0)) {
-    //   clus0.push_back(cl);
-    // }
-    // for (auto& cl : mTimeFrame->getClustersOnLayer(rofId, 1)) {
-    //   clus1.push_back(cl);
-    // }
-    // for (auto& cl : mTimeFrame->getClustersOnLayer(rofId, 2)) {
-    //   clus2.push_back(cl);
-    // }
     for (auto& tr : mTimeFrame->getFoundTracklets(rofId, 0)) {
       trkl_vec_0.push_back(tr);
     }

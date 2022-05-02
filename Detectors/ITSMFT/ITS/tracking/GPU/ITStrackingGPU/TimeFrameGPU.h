@@ -150,7 +150,7 @@ inline unsigned char* TimeFrameGPU<NLayers>::getDeviceUsedTracklets(const int ro
     LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
     return nullptr;
   }
-  return mUsedTracklets.get() + mROframesClusters[1][rofId];
+  return mUsedTracklets.get() + mROframesClusters[1][rofId] * mConfig.maxTrackletsPerCluster;
 }
 
 template <int NLayers>
