@@ -48,17 +48,17 @@ if (OpenMP_CXX_FOUND)
     target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
-o2_add_executable(dcs-sim-workflow2 # run with o2-hmpid-dcs-data-workflow
+o2_add_executable(dcs-sim-workflow # run with o2-hmpid-dcs-sim-workflow
                    COMPONENT_NAME hmpid # adds hmpid to the above command
-                   SOURCES testWorkflow/hmpid-dcs-data-workflow.cxx
+                   SOURCES testWorkflow/hmpid-dcs-sim-workflow.cxx
                    PUBLIC_LINK_LIBRARIES O2::Framework
 					 O2::HMPIDCalibration
 					 O2::DetectorsCalibration
 					 O2::DCStestWorkflow)
 
-o2_add_executable(dcs-sim-workflow # run with o2-hmpid-dcs-sim-workflow
+o2_add_executable(dcs-workflow # run with o2-hmpid-dcs-data-workflow
                    COMPONENT_NAME hmpid # adds hmpid to the above command
-                   SOURCES testWorkflow/hmpid-dcs-sim-workflow.cxx
+                   SOURCES testWorkflow/hmpid-dcs-data-workflow.cxx
                    PUBLIC_LINK_LIBRARIES O2::Framework
 					 O2::DetectorsCalibration
 					 O2::HMPIDCalibration
