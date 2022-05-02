@@ -204,7 +204,7 @@ TGeoVolume* V3Cage::createCageCover(const TGeoManager* mgr)
   coverCoreVol->SetFillColor(kYellow);
   coverCoreVol->SetLineColor(kYellow);
 
-  coverVol->AddNode(coverCoreVol, 1, 0);
+  coverVol->AddNode(coverCoreVol, 1, nullptr);
 
   // Finally return the cover volume
   return coverVol;
