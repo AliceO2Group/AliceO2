@@ -40,7 +40,7 @@
 namespace o2::framework
 {
 
-class Output;
+struct Output;
 
 class MessageContext
 {

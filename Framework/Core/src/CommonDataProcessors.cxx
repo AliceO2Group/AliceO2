@@ -28,6 +28,7 @@
 #include "Framework/Logger.h"
 #include "Framework/OutputSpec.h"
 #include "Framework/RawDeviceService.h"
+#include "Framework/TimesliceIndex.h"
 #include "Framework/Variant.h"
 #include "../../../Algorithm/include/Algorithm/HeaderStack.h"
 #include "Framework/OutputObjHeader.h"
@@ -508,19 +509,19 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
     .name = "internal-dpl-injected-dummy-sink",
     .inputs = danglingOutputInputs,
     .algorithm = AlgorithmSpec{adaptStateful([](CallbackService& callbacks) {
-      auto dataConsumed = [](ServiceRegistry& services) {
-        services.get<DataProcessingStats>().consumedTimeframes++;
+      auto domainInfoUpdated = [](ServiceRegistry& services, size_t timeslice) {
+        auto& timesliceIndex = services.get<TimesliceIndex>();
         auto device = services.get<RawDeviceService>().device();
         auto channel = device->fChannels.find("metric-feedback");
         if (channel != device->fChannels.end()) {
           FairMQMessagePtr payload(device->NewMessage());
-          int64_t* consumed = (int64_t*)malloc(sizeof(int64_t));
-          *consumed = services.get<DataProcessingStats>().consumedTimeframes;
+          size_t* consumed = (size_t*)malloc(sizeof(size_t));
+          *consumed = timesliceIndex.getOldestPossibleOutput().timeslice.value;
           payload->Rebuild(consumed, sizeof(int64_t), nullptr, nullptr);
           channel->second[0].Send(payload);
         }
       };
-      callbacks.set(CallbackService::Id::DataConsumed, dataConsumed);
+      callbacks.set(CallbackService::Id::DomainInfoUpdated, domainInfoUpdated);
 
       return adaptStateless([]() {
       });

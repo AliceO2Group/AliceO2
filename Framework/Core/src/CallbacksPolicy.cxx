@@ -33,13 +33,17 @@ CallbacksPolicy epnProcessReporting()
     .policy = [](CallbackService& callbacks, InitContext& context) -> void {
       callbacks.set(CallbackService::Id::PreProcessing, [](ServiceRegistry& registry, int op) {
         auto& info = registry.get<TimingInfo>();
-        LOGP(info, "Processing timeslice:{}, tfCounter:{}, firstTFOrbit:{}, action:{}",
-             info.timeslice, info.tfCounter, info.firstTFOrbit, op);
+        if ((int)info.firstTFOrbit != -1) {
+          LOGP(info, "Processing timeslice:{}, tfCounter:{}, firstTFOrbit:{}, action:{}",
+               info.timeslice, info.tfCounter, info.firstTFOrbit, op);
+        }
       });
       callbacks.set(CallbackService::Id::PostProcessing, [](ServiceRegistry& registry, int op) {
         auto& info = registry.get<TimingInfo>();
-        LOGP(info, "Done processing timeslice:{}, tfCounter:{}, firstTFOrbit:{}, action:{}",
-             info.timeslice, info.tfCounter, info.firstTFOrbit, op);
+        if ((int)info.firstTFOrbit != -1) {
+          LOGP(info, "Done processing timeslice:{}, tfCounter:{}, firstTFOrbit:{}, action:{}",
+               info.timeslice, info.tfCounter, info.firstTFOrbit, op);
+        }
       });
     }};
 }

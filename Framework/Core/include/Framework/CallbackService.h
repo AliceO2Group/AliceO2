@@ -73,7 +73,11 @@ class CallbackService
     PreProcessing,
     /// Invoked after the processing callback,
     PostProcessing,
-    CCDBDeserialised
+    /// Invoked whenever an object from CCDB is deserialised via ROOT.
+    /// Use this to finalise the initialisation of the object.
+    CCDBDeserialised,
+    /// Invoked when new domain info is available
+    DomainInfoUpdated
   };
 
   using StartCallback = std::function<void()>;
@@ -88,21 +92,23 @@ class CallbackService
   using PreProcessingCallback = std::function<void(ServiceRegistry&, int)>;
   using PostProcessingCallback = std::function<void(ServiceRegistry&, int)>;
   using CCDBDeserializedCallback = std::function<void(ConcreteDataMatcher&, void*)>;
+  using DomainInfoUpdatedCallback = std::function<void(ServiceRegistry&, size_t timeslice)>;
 
-  using Callbacks = CallbackRegistry<Id,                                                              //
-                                     RegistryPair<Id, Id::Start, StartCallback>,                      //
-                                     RegistryPair<Id, Id::Stop, StopCallback>,                        //
-                                     RegistryPair<Id, Id::Reset, ResetCallback>,                      //
-                                     RegistryPair<Id, Id::Idle, IdleCallback>,                        //
-                                     RegistryPair<Id, Id::ClockTick, ClockTickCallback>,              //
-                                     RegistryPair<Id, Id::DataConsumed, DataConsumedCallback>,        //
-                                     RegistryPair<Id, Id::EndOfStream, EndOfStreamCallback>,          //
-                                     RegistryPair<Id, Id::RegionInfoCallback, RegionInfoCallback>,    //
-                                     RegistryPair<Id, Id::NewTimeslice, NewTimesliceCallback>,        //
-                                     RegistryPair<Id, Id::PreProcessing, PreProcessingCallback>,      //
-                                     RegistryPair<Id, Id::PostProcessing, PostProcessingCallback>,    //
-                                     RegistryPair<Id, Id::CCDBDeserialised, CCDBDeserializedCallback> //
-                                     >;                                                               //
+  using Callbacks = CallbackRegistry<Id,                                                                //
+                                     RegistryPair<Id, Id::Start, StartCallback>,                        //
+                                     RegistryPair<Id, Id::Stop, StopCallback>,                          //
+                                     RegistryPair<Id, Id::Reset, ResetCallback>,                        //
+                                     RegistryPair<Id, Id::Idle, IdleCallback>,                          //
+                                     RegistryPair<Id, Id::ClockTick, ClockTickCallback>,                //
+                                     RegistryPair<Id, Id::DataConsumed, DataConsumedCallback>,          //
+                                     RegistryPair<Id, Id::EndOfStream, EndOfStreamCallback>,            //
+                                     RegistryPair<Id, Id::RegionInfoCallback, RegionInfoCallback>,      //
+                                     RegistryPair<Id, Id::NewTimeslice, NewTimesliceCallback>,          //
+                                     RegistryPair<Id, Id::PreProcessing, PreProcessingCallback>,        //
+                                     RegistryPair<Id, Id::PostProcessing, PostProcessingCallback>,      //
+                                     RegistryPair<Id, Id::CCDBDeserialised, CCDBDeserializedCallback>,  //
+                                     RegistryPair<Id, Id::DomainInfoUpdated, DomainInfoUpdatedCallback> //
+                                     >;                                                                 //
 
   // set callback for specified processing step
   template <typename U>
