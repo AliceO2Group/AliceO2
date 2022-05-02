@@ -15,6 +15,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "EMCALWorkflow/EntropyDecoderSpec.h"
 
 using namespace o2::framework;
@@ -75,12 +76,16 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
     OutputSpec{{"triggers"}, "EMC", "CELLSTRGR", 0, Lifetime::Timeframe},
     OutputSpec{{"cells"}, "EMC", "CELLS", 0, Lifetime::Timeframe}};
 
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("ctf", "EMC", "CTFDATA", sspec, Lifetime::Timeframe);
+  inputs.emplace_back("ctfdict", "EMC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("EMC/Calib/CTFDictionary"));
+
   return DataProcessorSpec{
     "emcal-entropy-decoder",
-    Inputs{InputSpec{"ctf", "EMC", "CTFDATA", sspec, Lifetime::Timeframe}},
+    inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
-    Options{{"ctf-dict", VariantType::String, "", {"CTF dictionary: empty=CCDB, none=no external dictionary otherwise: local filename"}}}};
+    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}}}};
 }
 
 } // namespace emcal

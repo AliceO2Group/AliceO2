@@ -15,6 +15,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "HMPIDWorkflow/EntropyDecoderSpec.h"
 #include "HMPIDReconstruction/CTFCoder.h"
 #include <TStopwatch.h>
@@ -92,12 +93,16 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
     OutputSpec{{"triggers"}, "HMP", "INTRECORDS", 0, Lifetime::Timeframe},
     OutputSpec{{"digits"}, "HMP", "DIGITS", 0, Lifetime::Timeframe}};
 
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("ctf", "HMP", "CTFDATA", sspec, Lifetime::Timeframe);
+  inputs.emplace_back("ctfdict", "HMP", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("HMP/Calib/CTFDictionary"));
+
   return DataProcessorSpec{
     "hmpid-entropy-decoder",
-    Inputs{InputSpec{"ctf", "HMP", "CTFDATA", sspec, Lifetime::Timeframe}},
+    inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
-    Options{{"ctf-dict", VariantType::String, "", {"CTF dictionary: empty=CCDB, none=no external dictionary otherwise: local filename"}}}};
+    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}}}};
 }
 
 } // namespace hmpid

@@ -129,7 +129,7 @@ DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, int verbosi
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(orig, verbosity, getDigits)},
     Options{
-      {"ctf-dict", VariantType::String, "", {"CTF dictionary: empty=CCDB, none=no external dictionary otherwise: local filename"}},
+      {"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
       {"mask-noise", VariantType::Bool, false, {"apply noise mask to digits or clusters (involves reclusterization)"}},
       {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}}}};
 }

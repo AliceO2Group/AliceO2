@@ -15,6 +15,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "TRDWorkflow/EntropyDecoderSpec.h"
 #include "TRDReconstruction/CTFCoder.h"
 #include <TStopwatch.h>
@@ -95,12 +96,16 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
     OutputSpec{{"tracklets"}, "TRD", "TRACKLETS", 0, Lifetime::Timeframe},
     OutputSpec{{"digits"}, "TRD", "DIGITS", 0, Lifetime::Timeframe}};
 
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("ctf", "TRD", "CTFDATA", sspec, Lifetime::Timeframe);
+  inputs.emplace_back("ctfdict", "TRD", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CTFDictionary"));
+
   return DataProcessorSpec{
     "trd-entropy-decoder",
-    Inputs{InputSpec{"ctf", "TRD", "CTFDATA", sspec, Lifetime::Timeframe}},
+    inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
-    Options{{"ctf-dict", VariantType::String, "", {"CTF dictionary: empty=CCDB, none=no external dictionary otherwise: local filename"}}}};
+    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}}}};
 }
 
 } // namespace trd

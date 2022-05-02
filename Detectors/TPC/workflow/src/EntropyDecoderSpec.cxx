@@ -15,6 +15,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "DataFormatsTPC/CompressedClusters.h"
 #include "TPCWorkflow/EntropyDecoderSpec.h"
 
@@ -64,12 +65,16 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 
 DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
 {
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("ctf", "TPC", "CTFDATA", sspec, Lifetime::Timeframe);
+  inputs.emplace_back("ctfdict", "TPC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TPC/Calib/CTFDictionary"));
+
   return DataProcessorSpec{
     "tpc-entropy-decoder",
-    Inputs{InputSpec{"ctf", "TPC", "CTFDATA", sspec, Lifetime::Timeframe}},
+    inputs,
     Outputs{OutputSpec{{"output"}, "TPC", "COMPCLUSTERSFLAT", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
-    Options{{"ctf-dict", VariantType::String, "", {"CTF dictionary: empty=CCDB, none=no external dictionary otherwise: local filename"}}}};
+    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}}}};
 }
 
 } // namespace tpc

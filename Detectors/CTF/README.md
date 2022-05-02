@@ -65,7 +65,7 @@ o2-ctf-reader-workflow --onlyDet ITS --ctf-input o2_ctf_0000000000.root  | o2-it
 
 The option are:
 ```
---ctf-input arg (=none)
+--ctf-input arg (=ccdb)
 ```
 inptu data (obligatort): comma-separated list of CTF  files and/or files with list of data files and/or directories containing files
 
@@ -154,7 +154,7 @@ Since the time needed for the creation of dictionary and encoder/decoder may exc
 to create in a separate pass a dictionary stored in the CTF-like object and use it for further encoding/decoding.
 
 The option `--ctf-dict <OPT>` steers in all detectors entropy encoders the fething of the entropy dictionary. The choices for OPT are:
-1) `""`: empty string leads to using CCDB objec fetching by the DPL CCDB service (default)
+1) `"ccdb"` (or empty string): leads to using CCDB objec fetching by the DPL CCDB service (default)
 
 2) `<filename>`: use the dictionary from provided file (either tree-based format or flat one in CCDB format)
 
