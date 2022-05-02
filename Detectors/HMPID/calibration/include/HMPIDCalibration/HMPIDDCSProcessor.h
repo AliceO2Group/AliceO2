@@ -129,7 +129,7 @@ class HMPIDDCSProcessor{
 
 
 		// convert char or substring to int (i.e. fetch int in string/char) 
-		int subStringToInt(std::string inputString, std::size_t startIndex, std::size_t endIndex);
+		int subStringToInt(std::string inputString, std::size_t startIndex);
 		
 		// determine if string of DP has substring corresponding to HMPID-IR or other HMPID specifications: 
 		void processIR(DPCOM dp);    // if it mathces IR_ID = "HMP_DET/HMP_INFR"
@@ -207,11 +207,20 @@ class HMPIDDCSProcessor{
 
 
  		// indexes for getting chamber-numbers etc ==================================================================================================
-		std::size_t startI_chamberPressure = 14, endI_chamberPressure = 6;
-		std::size_t startI_chamberHV = 14, endI_chamberHV = 6;
-		std::size_t startI_sectorHV = 38, endI_sectorHV = 51;
-		std::size_t startI_chamberTemp = 14, endI_chamberTemp = 22;
-		std::size_t startI_radiatorTemp = 51;
+	        
+	 	// Chamber Pressures
+		//HMP_DET/HMP_MP0/HMP_MP0_GAS/HMP_MP0_GAS_PMWPC.actual.value 
+		std::size_t startI_chamberPressure = 14,
+		
+		// High Voltage
+		//HMP_DET/HMP_MP0/HMP_MP0_PW/HMP_MP0_SEC0/HMP_MP0_SEC0_HV.actual.vMon
+		std::size_t startI_chamberHV = 14, 
+		std::size_t startI_sectorHV = 38;	//HMP_DET/HMP_MP0/HMP_MP0_PW/HMP_MP0_SEC0
+	
+		// Temperatures
+		//HMP_DET/HMP_MP0/HMP_MP0_LIQ_LOOP.actual.sensors.Rad0In_Temp 
+		std::size_t startI_chamberTemp = 14; //HMP_DET/HMP_MP0
+		std::size_t startI_radiatorTemp = 51; //HMP_DET/HMP_MP0/HMP_MP0_LIQ_LOOP.actual.sensors.Rad0 
  
 
 		uint64_t tempFirstTime, tempLastTime; 
