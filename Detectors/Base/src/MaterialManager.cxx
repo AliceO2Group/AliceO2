@@ -96,6 +96,20 @@ const std::unordered_map<ECut, const char*> MaterialManager::mCutIDToName = {
 // Constructing a map between module names and local material density values
 void MaterialManager::createDensityMap()
 {
+  auto& globalDensityFactor = o2::conf::SimMaterialParams::Instance().globalDensityFactor;
+  if (globalDensityFactor < 0) {
+    LOG(fatal) << "Negative value "
+               << globalDensityFactor
+               << " found for global material density!\n";
+  }
+  std::vector<std::string> allModuleNames = {
+    "ABSO", "CAVE", "COMP", "DIPO", "FRAME", "HALL", "MAG", "PIPE",
+    "SHIL", "CPV", "EMC", "FDD", "FT0", "FV0", "HMP", "ITS",
+    "MCH", "MFT", "MID", "PHS", "TOF", "TPC", "TRD", "ZDC",
+    "ALPIDE", "IT3", "TRK", "FT3", "A3IP"};
+  for (std::size_t i = 0; i < allModuleNames.size(); i++) {
+    mDensityMap[allModuleNames[i]] = globalDensityFactor;
+  }
   std::string token;
   std::istringstream input(
     o2::conf::SimMaterialParams::Instance().localDensityFactor);
@@ -105,20 +119,6 @@ void MaterialManager::createDensityMap()
     std::size_t pos = token.find(':');
     inputModuleNames.push_back(token.substr(0, pos));
     inputDensityValues.push_back(token.substr(pos + 1));
-  }
-  std::vector<std::string> allModuleNames = {
-    "ABSO", "CAVE", "COMP", "DIPO", "FRAME", "HALL", "MAG", "PIPE",
-    "SHIL", "CPV", "EMC", "FDD", "FT0", "FV0", "HMP", "ITS",
-    "MCH", "MFT", "MID", "PHS", "TOF", "TPC", "TRD", "ZDC",
-    "ALPIDE", "IT3", "TRK", "FT3", "A3IP"};
-  if (o2::conf::SimMaterialParams::Instance().globalDensityFactor < 0) {
-    LOG(fatal) << "Negative value "
-               << o2::conf::SimMaterialParams::Instance().globalDensityFactor
-               << " found for global material density!\n";
-  }
-  for (std::size_t i = 0; i < allModuleNames.size(); i++) {
-    mDensityMap[allModuleNames[i]] =
-      o2::conf::SimMaterialParams::Instance().globalDensityFactor;
   }
   for (std::size_t i = 0; i < inputModuleNames.size(); i++) {
     if (std::find(allModuleNames.begin(), allModuleNames.end(),
