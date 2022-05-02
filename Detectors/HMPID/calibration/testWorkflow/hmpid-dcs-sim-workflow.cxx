@@ -45,29 +45,55 @@ o2::framework::WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   std::vector<o2::dcs::test::HintType> dphints;
   // ===| CH4 PRESSURE values (mbar) |============================
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMPID_CH4_PRESSURE", 980., 1040.});
-//EF is this the correct one?: 
 
-//  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMP_DET/HMP_MP1/HMP_MP1_GAS/HMP_MP1_GAS_PMWPC.actual.value", 980., 1040.});
+// environment pressure 
+dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMP_DET/HMP_ENV/HMP_ENV_PENV.actual.value", 980., 1040.});
+
+
+      for(int iCh = 0; iCh < 6; iCh++)
+      {
+	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{Form("HMP_DET/HMP_MP%i/HMP_MP%i_GAS/HMP_MP%i_GAS_PMWPC.actual.value",iCh,iCh,iCh), 980., 1040.});
+
+
+           for(int iRad = 0; iRad < 3; iRad++)
+           {  
+		   		 
+		dphints.emplace_back(o2::dcs::test::DataPointHint<double>{Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iIn_Temp",iCh,iCh,iRad),25., 27.});
+		dphints.emplace_back(o2::dcs::test::DataPointHint<double>{Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iOut_Temp",iCh,iCh,iRad),25., 27.});
+
+           }        
+           for(int iSec = 0; iSec < 3; iSec++)
+           {  
+		dphints.emplace_back(o2::dcs::test::DataPointHint<double>{Form("HMP_DET/HMP_MP%i/HMP_MP%i_PW/HMP_MP%i_SEC%i/HMP_MP%i_SEC%i_HV.actual.vMon",iCh,iCh,iCh,iSec,iCh,iSec), 2400., 2500.});
+           } 
+      }
+
+  
+  
+     // string for DPs of Refractive Index Parameters =============================================================
+
+  
+      for(int i = 0; i < 30; i++)
+      {
+        Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.waveLenght",i);
+        Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonReference",i);
+        Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonCell",i);
+        Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Cell",i);
+        Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Reference",i); 
+      }  
+
+
+
+
+
+
 
 
   // ==| Temperature C6F14 IN/OUT / RADIATORS  (C) |=================================
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMPID_C6F14_RADIATOR0_IN_TEMPERATURE", 25., 27.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMPID_C6F14_RADIATOR0_OUT_TEMPERATURE", 25., 27.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMPID_C6F14_RADIATOR1_IN_TEMPERATURE", 25., 27.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMPID_C6F14_RADIATOR1_OUT_TEMPERATURE", 25., 27.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMPID_C6F14_RADIATOR2_IN_TEMPERATURE", 25., 27.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMPID_C6F14_RADIATOR2_OUT_TEMPERATURE", 25., 27.});
+ 
 
   // ===| HV / SECTORS (V) |=========================================================
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMPID_HV_RADIATOR0_SECTOR0", 2400., 2500.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMPID_HV_RADIATOR0_SECTOR1", 2400., 2500.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMPID_HV_RADIATOR1_SECTOR0", 2400., 2500.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMPID_HV_RADIATOR1_SECTOR1", 2400., 2500.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMPID_HV_RADIATOR2_SECTOR0", 2400., 2500.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMPID_HV_RADIATOR2_SECTOR1", 2400., 2500.});
-
-
+  
 
   WorkflowSpec specs;
   specs.emplace_back(o2::dcs::test::getDCSRandomDataGeneratorSpec(dphints, "HMPID"));
