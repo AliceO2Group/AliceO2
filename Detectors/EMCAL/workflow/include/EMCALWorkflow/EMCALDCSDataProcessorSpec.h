@@ -23,7 +23,7 @@
 #include "DetectorsDCS/DataPointCompositeObject.h"
 #include "DetectorsDCS/DeliveryType.h"
 #include "DetectorsDCS/AliasExpander.h"
-#include "EMCALCalib/EMCDCSProcessor.h"
+#include "EMCALCalibration/EMCDCSProcessor.h"
 #include "DetectorsCalibration/Utils.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/BasicCCDBManager.h"
