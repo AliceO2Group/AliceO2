@@ -530,7 +530,7 @@ void HMPIDDCSProcessor::fillChamberPressures(const DPCOM& dpcom)
   {
 
  	// find chamber number:  
-	auto chNum = subStringToInt(aliasStr, startI_chamberPressure, startI_chamberPressure);
+	auto chNum = subStringToInt(aliasStr, startI_chamberPressure);
 	pChamber[chNum].push_back(dpcom);
   } else LOG(debug)<< "Not correct specification for Environment-pressure DP: {}"<< aliasStr;
 }
@@ -560,8 +560,8 @@ void HMPIDDCSProcessor::fillHV(const DPCOM& dpcom)
 
   if(type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
   { 	
-	auto chNum = subStringToInt(aliasStr, startI_chamberHV,  startI_chamberHV);
-	auto secNum = subStringToInt(aliasStr,  startI_sectorHV,  startI_sectorHV);
+	auto chNum = subStringToInt(aliasStr, startI_chamberHV);
+	auto secNum = subStringToInt(aliasStr,  startI_sectorHV);
 	dpcomHV[6*chNum+secNum].push_back(dpcom);
   } else LOG(debug)<< "Not correct datatype for HV DP: {}"<< aliasStr;	
 }
@@ -576,8 +576,8 @@ void HMPIDDCSProcessor::fill_InTemperature(const DPCOM& dpcom)
 	
 	  if(type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
 	  {		
-		auto chNum = subStringToInt(aliasStr,  startI_chamberTemp,  startI_chamberTemp);
-		auto radNum = subStringToInt(aliasStr,  startI_radiatorTemp,  startI_radiatorTemp);
+		auto chNum = subStringToInt(aliasStr,  startI_chamberTemp);
+		auto radNum = subStringToInt(aliasStr,  startI_radiatorTemp);
 		tempIn[3*chNum+radNum].push_back( dpcom); 
 	}
 }	
@@ -592,8 +592,8 @@ void HMPIDDCSProcessor::fill_OutTemperature(const DPCOM& dpcom)
 	
   if(type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
   {		
-	auto chNum = subStringToInt(aliasStr,  startI_chamberTemp,  startI_chamberTemp);
-	auto radNum = subStringToInt(aliasStr,  startI_radiatorTemp,  startI_radiatorTemp);	
+	auto chNum = subStringToInt(aliasStr,  startI_chamberTemp);
+	auto radNum = subStringToInt(aliasStr,  startI_radiatorTemp);	
        	tempOut[3*chNum+radNum].push_back(dpcom);
   }
 }
@@ -616,7 +616,7 @@ uint64_t HMPIDDCSProcessor::processFlags(const uint64_t flags, const char* pid)
   return 0;
 }	
 	
-int HMPIDDCSProcessor::subStringToInt(std::string inputString, std::size_t startIndex, std::size_t endIndex)
+int HMPIDDCSProcessor::subStringToInt(std::string inputString, std::size_t startIndex)
 { 
   	char stringPos = inputString.at(startIndex);
   	return ((int)stringPos) - ((int)'0');
