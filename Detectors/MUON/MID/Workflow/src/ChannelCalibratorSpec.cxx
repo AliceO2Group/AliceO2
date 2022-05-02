@@ -134,8 +134,6 @@ class ChannelCalibratorDeviceDPL
 
 of::DataProcessorSpec getChannelCalibratorSpec(const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks)
 {
-  constexpr int64_t INFINITE_TF = 0xffffffffffffffff;
-
   std::vector<of::InputSpec> inputSpecs;
   inputSpecs.emplace_back("mid_noise", header::gDataOriginMID, "NOISE");
   inputSpecs.emplace_back("mid_noise_rof", header::gDataOriginMID, "NOISEROF");
@@ -161,7 +159,7 @@ of::DataProcessorSpec getChannelCalibratorSpec(const FEEIdConfig& feeIdConfig, c
     of::AlgorithmSpec{of::adaptFromTask<o2::mid::ChannelCalibratorDeviceDPL>(feeIdConfig, crateMasks, ccdbRequest)},
     of::Options{
       {"mid-mask-threshold", of::VariantType::Double, 0.9, {"Tolerated occupancy before producing a map"}},
-      {"tf-per-slot", of::VariantType::UInt32, INFINITE_TF, {"number of TFs per calibration time slot"}},
+      {"tf-per-slot", of::VariantType::UInt32, ChannelCalibrator::INFINITE_TF, {"number of TFs per calibration time slot"}},
       {"max-delay", of::VariantType::UInt32, 0u, {"number of slots in past to consider"}}}};
 }
 } // namespace mid
