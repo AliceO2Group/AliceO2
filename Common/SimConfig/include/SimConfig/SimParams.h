@@ -41,6 +41,7 @@ struct SimCutParams : public o2::conf::ConfigurableParamHelper<SimCutParams> {
 // parameter influencing material manager
 struct SimMaterialParams : public o2::conf::ConfigurableParamHelper<SimMaterialParams> {
   float globalDensityFactor = 1.f;
+  std::string localDensityFactor;
 
   O2ParamDef(SimMaterialParams, "SimMaterialParams");
 };
