@@ -19,7 +19,6 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "TRDBase/Geometry.h"
 #include "TRDBase/PadPlane.h"
-#include "CCDB/BasicCCDBManager.h"
 #include "CommonUtils/NameConf.h"
 #include <fairlogger/Logger.h>
 
@@ -34,12 +33,6 @@ void TrackBasedCalib::reset()
 void TrackBasedCalib::init()
 {
   mRecoParam.setBfield(o2::base::Propagator::Instance()->getNominalBz());
-  auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
-  ccdbmgr.setURL(o2::base::NameConf::getCCDBServer());
-  mNoiseCalib = ccdbmgr.get<o2::trd::NoiseStatusMCM>("TRD/Calib/NoiseMapMCM");
-  if (!mNoiseCalib) {
-    LOG(error) << "Map of noisy MCMs not available";
-  }
 }
 
 void TrackBasedCalib::setInput(const o2::globaltracking::RecoContainer& input)
