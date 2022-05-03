@@ -129,7 +129,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     return bcd;
   };
 
-  // ITS-TPC-TRD-TOF
+  //  ITS-TPC-TRD-TOF
   {
 
     if (matchesITSTPCTRDTOF.size() && (!tofClusters.size() || !tracksITSTPCTRD.size())) {
@@ -144,7 +144,6 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
       float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
       const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
       if (creator(tracksITSTPCTRD[gidx.getIndex()], {i, GTrackID::ITSTPCTRDTOF}, timeTOFMUS, timeErr)) {
-        // flagUsed2(i, GTrackID::TOF); // flag used TOF match // TODO might be not needed
         flagUsed(gidx); // flag used ITS-TPC-TRD tracks
       }
     }
@@ -159,17 +158,12 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     }
     for (unsigned i = 0; i < matchesTPCTRDTOF.size(); i++) {
       const auto& match = matchesTPCTRDTOF[i];
-      auto gidx = match.getTrackRef(); // this should be corresponding ITS-TPC-TRD track
-      if (isUsed(gidx)) {
-        continue;
-      }
-      // no need to check isUsed: by construction this ITS-TPC-TRD was not used elsewhere
+      auto gidx = match.getTrackRef(); // this should be corresponding TPC-TRD track
       const auto& tofCl = tofClusters[match.getTOFClIndex()];
       float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
       const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
       if (creator(tracksTPCTRD[gidx.getIndex()], {i, GTrackID::TPCTRDTOF}, timeTOFMUS, timeErr)) {
-        // flagUsed2(i, GTrackID::TOF); // flag used TOF match // TODO might be not needed
-        flagUsed(gidx); // flag used ITS-TPC tracks
+        flagUsed(gidx); // flag used TPC-TRD tracks
       }
     }
   }
@@ -188,14 +182,13 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
           continue;
         }
         if (creator(trc, {i, GTrackID::ITSTPCTRD}, t0, 1e-3)) { // assign 1ns error to BC
-          flagUsed2(i, GTrackID::ITSTPCTRD);                    // flag itself (is it needed?)
           flagUsed(trc.getRefGlobalTrackId());                  // flag seeding ITS-TPC track
         }
       }
     }
   }
 
-  // ITS-TPC-TOF matches, thes are just MatchInfoTOF objects, pointing on ITS-TPC match and TOF cl.
+  // ITS-TPC-TOF matches, these are just MatchInfoTOF objects, pointing on ITS-TPC match and TOF cl.
   {
 
     if (matchesITSTPCTOF.size() && (!tofClusters.size() || !tracksTPCITS.size())) {
@@ -213,7 +206,6 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
       float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
       const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
       if (creator(tracksTPCITS[gidx.getIndex()], {i, GTrackID::ITSTPCTOF}, timeTOFMUS, timeErr)) {
-        // flagUsed2(i, GTrackID::TOF); // flag used TOF match // TODO might be not needed
         flagUsed(gidx); // flag used ITS-TPC tracks
       }
     }
@@ -233,14 +225,13 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
           continue;
         }
         if (creator(trc, {i, GTrackID::TPCTRD}, t0, 1e-3)) { // assign 1ns error to BC
-          flagUsed2(i, GTrackID::TPCTRD);                    // flag itself (is it needed?)
           flagUsed(trc.getRefGlobalTrackId());               // flag seeding TPC track
         }
       }
     }
   }
 
-  // ITS-TPC matches, may refer to ITS, TPC (TODO: something else?) tracks
+  // ITS-TPC matches
   {
     for (unsigned i = 0; i < tracksTPCITS.size(); i++) {
       const auto& matchTr = tracksTPCITS[i];
@@ -250,14 +241,13 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
         continue;
       }
       if (creator(matchTr, {i, GTrackID::ITSTPC}, matchTr.getTimeMUS().getTimeStamp(), matchTr.getTimeMUS().getTimeStampError())) {
-        flagUsed2(i, GTrackID::ITSTPC);
         flagUsed(matchTr.getRefITS()); // flag used ITS tracks or AB tracklets (though the latter is not really necessary)
         flagUsed(matchTr.getRefTPC()); // flag used TPC tracks
       }
     }
   }
 
-  // TPC-TOF matches, may refer to TPC (TODO: something else?) tracks
+  // TPC-TOF matches
   {
     if (matchesTPCTOF.size() && !tracksTPCTOF.size()) {
       throw std::runtime_error(fmt::format("TPC-TOF matched tracks ({}) require TPCTOF matches ({}) and TPCTOF tracks ({})",
@@ -266,7 +256,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     for (unsigned i = 0; i < matchesTPCTOF.size(); i++) {
       const auto& match = matchesTPCTOF[i];
       const auto& gidx = match.getTrackRef(); // TPC track global idx
-      if (isUsed(gidx)) {                     // is TPC track already used
+      if (isUsed(gidx)) {                     // flag used TPC tracks
         continue;
       }
       const auto& trc = tracksTPCTOF[i];
@@ -295,9 +285,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
         continue;
       }
       const auto& trc = tracksTPC[i];
-      if (creator(trc, {i, GTrackID::TPC}, trc.getTime0() + 0.5 * (trc.getDeltaTFwd() - trc.getDeltaTBwd()), 0.5 * (trc.getDeltaTFwd() + trc.getDeltaTBwd()))) {
-        flagUsed2(i, GTrackID::TPC); // flag used TPC tracks
-      }
+      creator(trc, {i, GTrackID::TPC}, trc.getTime0() + 0.5 * (trc.getDeltaTFwd() - trc.getDeltaTBwd()), 0.5 * (trc.getDeltaTFwd() + trc.getDeltaTBwd()));
     }
   }
 
@@ -315,9 +303,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
         }
         GTrackID gidITS(it, GTrackID::ITS);
         const auto& trc = tracksITS[it];
-        if (creator(trc, gidITS, t0, 0.5)) {
-          flagUsed2(it, GTrackID::ITS);
-        }
+        creator(trc, gidITS, t0, 0.5);
       }
     }
   }
@@ -336,9 +322,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
         }
         GTrackID gidMFT(it, GTrackID::MFT);
         const auto& trc = tracksMFT[it];
-        if (creator(trc, gidMFT, t0, 0.5)) {
-          flagUsed2(it, GTrackID::MFT);
-        }
+        creator(trc, gidMFT, t0, 0.5);
       }
     }
   }
@@ -361,9 +345,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
         }
         GTrackID gidMCH(idx, GTrackID::MCH);
         const auto& trc = tracksMCH[idx];
-        if (creator(trc, gidMCH, t0, t0err)) {
-          flagUsed2(idx, GTrackID::MCH);
-        }
+        creator(trc, gidMCH, t0, t0err);
       }
     }
   }
@@ -387,9 +369,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
         }
         GTrackID gidMID(idx, GTrackID::MID);
         const auto& trc = tracksMID[idx];
-        if (creator(trc, gidMID, t0, t0err)) {
-          flagUsed2(idx, GTrackID::MID);
-        }
+        creator(trc, gidMID, t0, t0err);
       }
     }
   }
