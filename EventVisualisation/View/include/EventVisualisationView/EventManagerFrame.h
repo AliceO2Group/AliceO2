@@ -97,4 +97,4 @@ class EventManagerFrame : public TGMainFrame
 } // namespace event_visualisation
 } // namespace o2
 
-#endif //ALICE_O2_EVENTVISUALISATION_EVENTMANAGERFRAME_H
+#endif // ALICE_O2_EVENTVISUALISATION_EVENTMANAGERFRAME_H

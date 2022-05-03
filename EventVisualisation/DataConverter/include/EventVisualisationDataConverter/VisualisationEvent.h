@@ -119,7 +119,7 @@ class VisualisationEvent
 
   o2::header::DataHeader::RunNumberType getRunNumber() const { return this->mRunNumber; }
   void setRunNumber(o2::header::DataHeader::RunNumberType runNumber) { this->mRunNumber = runNumber; }
-  
+
   o2::header::DataHeader::TForbitType getFirstTForbit() const { return this->mFirstTForbit; }
   void setFirstTForbit(o2::header::DataHeader::TForbitType firstTForbit) { this->mFirstTForbit = firstTForbit; }
 

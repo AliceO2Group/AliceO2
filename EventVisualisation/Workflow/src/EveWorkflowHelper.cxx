@@ -170,7 +170,7 @@ void EveWorkflowHelper::draw()
 void EveWorkflowHelper::save(const std::string& jsonPath, int numberOfFiles,
                              o2::dataformats::GlobalTrackID::mask_t trkMask, o2::dataformats::GlobalTrackID::mask_t clMask,
                              float workflowVersion, o2::header::DataHeader::RunNumberType runNumber, o2::header::DataHeader::TForbitType firstTForbit,
-							 o2::framework::DataProcessingHeader::CreationTime creation)
+                             o2::framework::DataProcessingHeader::CreationTime creation)
 {
   mEvent.setWorkflowVersion(workflowVersion);
   mEvent.setRunNumber(runNumber);

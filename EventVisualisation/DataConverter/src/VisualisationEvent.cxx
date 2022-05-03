@@ -184,14 +184,13 @@ void VisualisationEvent::fromJson(std::string json)
     runNumber = jsonRunNumber.GetInt();
   }
   this->setRunNumber(runNumber);
-  
+
   o2::header::DataHeader::TForbitType firstTForbit = 0;
   if (tree.HasMember("firstTForbit")) {
     rapidjson::Value& jsonFirstTForbit = tree["firstTForbit"];
     firstTForbit = jsonFirstTForbit.GetInt();
   }
   this->setFirstTForbit(firstTForbit);
-
 
   auto collisionTime = "not specified";
   if (tree.HasMember("collisionTime")) {
@@ -247,9 +246,9 @@ bool VisualisationEvent::fromFile(std::string fileName)
   inFile.open(fileName);
 
   std::stringstream strStream;
-  strStream << inFile.rdbuf(); //read the file
+  strStream << inFile.rdbuf(); // read the file
   inFile.close();
-  std::string str = strStream.str(); //str holds the content of the file
+  std::string str = strStream.str(); // str holds the content of the file
   fromJson(str);
   return true;
 }
