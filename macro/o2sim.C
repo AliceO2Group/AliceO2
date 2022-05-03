@@ -22,6 +22,9 @@
 #include <TStopwatch.h>
 #include <memory>
 #include "DataFormatsParameters/GRPObject.h"
+#include "DataFormatsParameters/GRPECSObject.h"
+#include "DataFormatsParameters/GRPMagField.h"
+#include "DataFormatsParameters/GRPLHCIFData.h"
 #include "FairParRootFileIo.h"
 #include "FairSystemInfo.h"
 #include <SimSetup/SimSetup.h>
@@ -189,6 +192,7 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
   rtdb->print();
   o2::PDG::addParticlesToPdgDataBase(0);
 
+  long runStart = confref.getTimestamp(); // this will signify "time of this MC" (might not coincide with start of Run)
   {
     // store GRPobject
     o2::parameters::GRPObject grp;
@@ -221,8 +225,57 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
     TFile grpF(grpfilename.c_str(), "recreate");
     grpF.WriteObjectAny(&grp, grp.Class(), o2::base::NameConf::CCDBOBJECT.data());
   }
+  // create GRPECS object
+  {
+    o2::parameters::GRPECSObject grp;
+    grp.setRun(run->GetRunId());
+    grp.setTimeStart(runStart);
+    grp.setTimeEnd(runStart + 3600000);
+    grp.setNHBFPerTF(128); // might be overridden later
+    grp.setDetsReadOut(readoutDetMask);
+    if (isReadout("CTP")) {
+      grp.addDetReadOut(o2::detectors::DetID::CTP);
+    }
+    grp.setIsMC(true);
+    grp.setRunType(o2::parameters::GRPECSObject::PHYSICS);
+    // grp.setDataPeriod("mc"); // decide what to put here
+    std::string grpfilename = o2::base::NameConf::getGRPECSFileName(confref.getOutPrefix());
+    TFile grpF(grpfilename.c_str(), "recreate");
+    grpF.WriteObjectAny(&grp, grp.Class(), o2::base::NameConf::CCDBOBJECT.data());
+  }
+  // create GRPMagField object
+  {
+    o2::parameters::GRPMagField grp;
+    auto field = dynamic_cast<o2::field::MagneticField*>(run->GetField());
+    if (!field) {
+      LOGP(fatal, "Failed to get magnetic field from the FairRunSim");
+    }
+    o2::units::Current_t currDip = field->getCurrentDipole();
+    o2::units::Current_t currL3 = field->getCurrentSolenoid();
+    grp.setL3Current(currL3);
+    grp.setDipoleCurrent(currDip);
+    grp.setFieldUniformity(field->IsUniform());
 
-  // todo: save beam information in the grp
+    std::string grpfilename = o2::base::NameConf::getGRPMagFieldFileName(confref.getOutPrefix());
+    TFile grpF(grpfilename.c_str(), "recreate");
+    grpF.WriteObjectAny(&grp, grp.Class(), o2::base::NameConf::CCDBOBJECT.data());
+  }
+  // create GRPLHCIF object (just a placeholder, bunch filling will be set in digitization)
+  {
+    o2::parameters::GRPLHCIFData grp;
+    // eventually we need to set the beam info from the generator, at the moment put some plausible values
+    grp.setFillNumberWithTime(runStart, 0);         // RS FIXME
+    grp.setInjectionSchemeWithTime(runStart, "");   // RS FIXME
+    grp.setBeamEnergyPerZWithTime(runStart, 6.8e3); // RS FIXME
+    grp.setAtomicNumberB1WithTime(runStart, 1.);    // RS FIXME
+    grp.setAtomicNumberB2WithTime(runStart, 1.);    // RS FIXME
+    grp.setCrossingAngleWithTime(runStart, 0.);     // RS FIXME
+    grp.setBeamAZ();
+
+    std::string grpfilename = o2::base::NameConf::getGRPLHCIFFileName(confref.getOutPrefix());
+    TFile grpF(grpfilename.c_str(), "recreate");
+    grpF.WriteObjectAny(&grp, grp.Class(), o2::base::NameConf::CCDBOBJECT.data());
+  }
 
   // print summary about cuts and processes used
   auto& matmgr = o2::base::MaterialManager::Instance();
