@@ -75,6 +75,8 @@ void EventManager::displayCurrentEvent()
     for (int i = 0; i < EVisualisationDataType::NdataTypes; ++i) {
       MultiView::getInstance()->registerElement(dataTypeLists[i]);
     }
+
+    MultiView::getInstance()->getAnnotation()->SetText(TString::Format("Run: %d", displayList[0].first.getRunNumber()));
   }
   MultiView::getInstance()->redraw3D();
 }
@@ -169,12 +171,12 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
   for (size_t i = 0; i < trackCount; ++i) {
     VisualisationTrack track = event.getTrack(i);
     TEveRecTrackD t;
-    //double* p = track.getMomentum();
-    //t.fP = {p[0], p[1], p[2]};
+    // double* p = track.getMomentum();
+    // t.fP = {p[0], p[1], p[2]};
     t.fSign = track.getCharge() > 0 ? 1 : -1;
     auto* vistrack = new TEveTrack(&t, &TEveTrackPropagator::fgDefault);
     vistrack->SetLineColor(kMagenta);
-    //vistrack->SetName(detectorName + " track: " + i);
+    // vistrack->SetName(detectorName + " track: " + i);
     vistrack->SetName(track.getGIDAsString().c_str());
     size_t pointCount = track.getPointCount();
     vistrack->Reset(pointCount);
