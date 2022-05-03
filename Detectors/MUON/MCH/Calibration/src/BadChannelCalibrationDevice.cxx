@@ -92,7 +92,8 @@ ccdb::CcdbObjectInfo createCcdbInfo(const T& object, uint64_t timeStamp, std::st
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   std::map<std::string, std::string> md;
   md["upload-reason"] = reason;
-  return o2::ccdb::CcdbObjectInfo("MCH/BadChannelCalib", clName, flName, md, timeStamp, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  constexpr auto fiveDays = 5 * o2::ccdb::CcdbObjectInfo::DAY;
+  return o2::ccdb::CcdbObjectInfo("MCH/Calib/BadChannel", clName, flName, md, timeStamp, timeStamp + fiveDays);
 }
 
 void BadChannelCalibrationDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
