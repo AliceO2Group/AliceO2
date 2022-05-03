@@ -619,9 +619,12 @@ uint64_t HMPIDDCSProcessor::processFlags(const uint64_t flags, const char* pid)
 int HMPIDDCSProcessor::subStringToInt(std::string inputString, std::size_t startIndex)
 { 
   	char stringPos = inputString.at(startIndex);
-  	return ((int)stringPos) - ((int)'0');
+	int charInt = ((int)stringPos) - ((int)'0');
+	if(charInt < 10 && charInt >= 0) return charInt;
+  	else return -1;
 }	
 	
 }	// end namespace
+
 
 
