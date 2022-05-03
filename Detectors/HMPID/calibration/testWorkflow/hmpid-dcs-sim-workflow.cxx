@@ -44,7 +44,6 @@ o2::framework::WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const auto maxChambers = std::min(config.options().get<int>("max-chambers"), 6);
 
   std::vector<o2::dcs::test::HintType> dphints;
-  // ===| CH4 PRESSURE values (mbar) |============================
 
 // ==| Environment Pressure  (mBar) |=================================
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMP_DET/HMP_ENV/HMP_ENV_PENV.actual.value", 980., 1040.});
@@ -52,7 +51,7 @@ o2::framework::WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
       for(int iCh = 0; iCh < 7; iCh++)
       {
-    	// ==| Chamber Pressures  (mBar?) |=================================
+    	// ==|(CH4) Chamber Pressures  (mBar?) |=================================
 	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{Form("HMP_DET/HMP_MP%i/HMP_MP%i_GAS/HMP_MP%i_GAS_PMWPC.actual.value",iCh,iCh,iCh), 980., 1040.});
 
 	    // ==| Temperature C6F14 IN/OUT / RADIATORS  (C) |=================================
@@ -86,15 +85,6 @@ o2::framework::WorkflowSpec defineDataProcessing(ConfigContext const& config)
       }  
 
 
-
-
-
-
-
-
- 
-
-  
 
   WorkflowSpec specs;
   specs.emplace_back(o2::dcs::test::getDCSRandomDataGeneratorSpec(dphints, "HMPID"));
