@@ -94,21 +94,13 @@ const std::unordered_map<ECut, const char*> MaterialManager::mCutIDToName = {
   {ECut::kTOFMAX, "TOFMAX"}};
 
 // Constructing a map between module names and local material density values
-void MaterialManager::createDensityMap()
+void MaterialManager::initDensityMap()
 {
   auto& globalDensityFactor = o2::conf::SimMaterialParams::Instance().globalDensityFactor;
   if (globalDensityFactor < 0) {
     LOG(fatal) << "Negative value "
                << globalDensityFactor
                << " found for global material density!\n";
-  }
-  std::vector<std::string> allModuleNames = {
-    "ABSO", "CAVE", "COMP", "DIPO", "FRAME", "HALL", "MAG", "PIPE",
-    "SHIL", "CPV", "EMC", "FDD", "FT0", "FV0", "HMP", "ITS",
-    "MCH", "MFT", "MID", "PHS", "TOF", "TPC", "TRD", "ZDC",
-    "ALPIDE", "IT3", "TRK", "FT3", "A3IP"};
-  for (std::size_t i = 0; i < allModuleNames.size(); i++) {
-    mDensityMap[allModuleNames[i]] = globalDensityFactor;
   }
   std::string token;
   std::istringstream input(
@@ -121,11 +113,6 @@ void MaterialManager::createDensityMap()
     inputDensityValues.push_back(token.substr(pos + 1));
   }
   for (std::size_t i = 0; i < inputModuleNames.size(); i++) {
-    if (std::find(allModuleNames.begin(), allModuleNames.end(),
-                  inputModuleNames[i]) == allModuleNames.end()) {
-      LOG(fatal) << "Module name " << inputModuleNames[i]
-                 << " does not match the name of existing modules!\n";
-    }
     if (std::stof(inputDensityValues[i]) < 0) {
       LOG(fatal) << "Negative value " << std::stof(inputDensityValues[i])
                  << " found for material density in module "
@@ -133,13 +120,24 @@ void MaterialManager::createDensityMap()
     }
     mDensityMap[inputModuleNames[i]] = std::stof(inputDensityValues[i]);
   }
+  mDensityMapInitialized = true;
+}
+
+float MaterialManager::getDensity(std::string const& modname) {
+  if (!mDensityMapInitialized) {
+     initDensityMap();
+  }
+  if (mDensityMap.find(modname) != mDensityMap.end()) {
+    return mDensityMap[modname];
+  }
+  return o2::conf::SimMaterialParams::Instance().globalDensityFactor;
 }
 
 void MaterialManager::Material(const char* modname, Int_t imat, const char* name, Float_t a, Float_t z, Float_t dens,
                                Float_t radl, Float_t absl, Float_t* buf, Int_t nwbuf)
 {
   TString uniquename = modname;
-  auto& densityFactor = mDensityMap[modname];
+  auto densityFactor = getDensity(modname);
   uniquename.Append("_");
   uniquename.Append(name);
   if (TVirtualMC::GetMC()) {
@@ -174,7 +172,7 @@ void MaterialManager::Mixture(const char* modname, Int_t imat, const char* name,
                               Int_t nlmat, Float_t* wmat)
 {
   TString uniquename = modname;
-  auto& densityFactor = mDensityMap[modname];
+  auto densityFactor = getDensity(modname);
   uniquename.Append("_");
   uniquename.Append(name);
 

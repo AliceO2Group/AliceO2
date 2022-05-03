@@ -209,11 +209,13 @@ class MaterialManager
   static void printContainingMedia(std::string const& volumename);
 
  private:
+  MaterialManager() = default;
+ 
+  bool mDensityMapInitialized = false;
   std::unordered_map<std::string, float> mDensityMap;
 
-  void createDensityMap();
-
-  MaterialManager() { createDensityMap(); }
+  void initDensityMap();
+  float getDensity(std::string const& modname);
 
   // Hide details by providing these private methods so it cannot happen that special settings
   // are applied as default settings by accident using a boolean flag
