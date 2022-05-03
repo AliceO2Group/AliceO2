@@ -105,6 +105,14 @@ class VisualisationEvent
     return mTracks.size();
   }
 
+  // Returns number of tracks with ITS contribution (including standalone)
+  size_t getITSTrackCount() const
+  {
+    return std::count_if(mTracks.begin(), mTracks.end(), [](const auto& t) {
+      return o2::dataformats::GlobalTrackID{0, t.getSource()}.includesDet(o2::detectors::DetID::ITS);
+    });
+  }
+
   // Clears event from stored data (tracks, collisions)
   void clear()
   {
@@ -125,8 +133,6 @@ class VisualisationEvent
 
   float getMinTimeOfTracks() const { return this->mMinTimeOfTracks; }
   float getMaxTimeOfTracks() const { return this->mMaxTimeOfTracks; } /// maximum time of tracks in the event
-
-  bool isEmpty() const { return getTrackCount() == 0 && getClusterCount() == 0; }
 
  private:
   float mMinTimeOfTracks;                           /// minimum time of tracks in the event

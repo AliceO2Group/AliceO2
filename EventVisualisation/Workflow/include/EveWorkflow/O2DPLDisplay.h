@@ -50,8 +50,8 @@ class O2DPLDisplaySpec : public o2::framework::Task
   O2DPLDisplaySpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t trkMask,
                    o2::dataformats::GlobalTrackID::mask_t clMask,
                    std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, const std::string& jsonPath,
-                   std::chrono::milliseconds timeInterval, int numberOfFiles, int numberOfTracks, bool eveHostNameMatch, bool noEmptyOutput, bool filterITSROF, bool filterTime, const EveWorkflowHelper::TBracket& timeBracket)
-    : mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest), mJsonPath(jsonPath), mTimeInteval(timeInterval), mNumberOfFiles(numberOfFiles), mNumberOfTracks(numberOfTracks), mEveHostNameMatch(eveHostNameMatch), mNoEmptyOutput(noEmptyOutput), mFilterITSROF(filterITSROF), mFilterTime(filterTime), mTimeBracket(timeBracket)
+                   std::chrono::milliseconds timeInterval, int numberOfFiles, int numberOfTracks, bool eveHostNameMatch, int minITSTracks, int minTracks, bool filterITSROF, bool filterTime, const EveWorkflowHelper::TBracket& timeBracket)
+    : mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest), mJsonPath(jsonPath), mTimeInterval(timeInterval), mNumberOfFiles(numberOfFiles), mNumberOfTracks(numberOfTracks), mEveHostNameMatch(eveHostNameMatch), mMinITSTracks(minITSTracks), mMinTracks(minTracks), mFilterITSROF(filterITSROF), mFilterTime(filterTime), mTimeBracket(timeBracket)
   {
     this->mTimeStamp = std::chrono::high_resolution_clock::now() - timeInterval; // first run meets condition
   }
@@ -66,12 +66,14 @@ class O2DPLDisplaySpec : public o2::framework::Task
 
   bool mUseMC = false;
   bool mEveHostNameMatch;                   // empty or correct hostname
+  int mMinITSTracks;                        // minimum number of ITS tracks to produce a file
+  int mMinTracks;                           // minimum number of all tracks to produce a file
   bool mNoEmptyOutput;                      // don't create files with no tracks/clusters
   bool mFilterITSROF;                       // don't display tracks outside ITS readout frame
   bool mFilterTime;                         // don't display tracks outside [min, max] range in TF time
   EveWorkflowHelper::TBracket mTimeBracket; // [min, max] range in TF time for the filter
   std::string mJsonPath;                    // folder where files are stored
-  std::chrono::milliseconds mTimeInteval;   // minimal interval between files in milliseconds
+  std::chrono::milliseconds mTimeInterval;  // minimal interval between files in milliseconds
   int mNumberOfFiles;                       // maximum number of files in folder - newer replaces older
   int mNumberOfTracks;                      // maximum number of track in single file (0 means no limit)
   std::chrono::time_point<std::chrono::high_resolution_clock> mTimeStamp;
