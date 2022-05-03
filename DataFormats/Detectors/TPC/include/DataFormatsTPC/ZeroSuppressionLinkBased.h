@@ -16,7 +16,11 @@
 #ifndef ALICEO2_DATAFORMATSTPC_ZeroSuppressionLinkBased_H
 #define ALICEO2_DATAFORMATSTPC_ZeroSuppressionLinkBased_H
 
+#include "GPUCommonDef.h"
+
+#ifndef GPUCA_GPUCODE
 #include <bitset>
+#endif
 
 namespace o2
 {
@@ -27,6 +31,7 @@ namespace zerosupp_link_based
 
 static constexpr uint32_t DataWordSizeBits = 128;                   ///< size of header word and data words in bits
 static constexpr uint32_t DataWordSizeBytes = DataWordSizeBits / 8; ///< size of header word and data words in bytes
+static constexpr uint32_t ChannelPerTBHeader = 80;
 
 /// common header definition of the zero suppressed link based data
 struct CommonHeader {
@@ -60,6 +65,9 @@ struct CommonHeader {
   bool isTriggerInfo() const { return (magicWord == MagicWordTrigger); }
   bool isTriggerInfoV2() const { return (magicWord == MagicWordTriggerV2); }
 };
+
+// GPU Code only requires header definition
+#ifndef GPUCA_GPUCODE
 
 /// header definition of the zero suppressed link based data format
 struct Header final : public CommonHeader {
@@ -273,6 +281,9 @@ struct TriggerContainer {
 
   uint32_t getTriggerType() const { return triggerInfo.getTriggerType(); }
 };
+
+#endif // !defined(GPUCA_GPUCODE)
+
 } // namespace zerosupp_link_based
 } // namespace tpc
 } // namespace o2

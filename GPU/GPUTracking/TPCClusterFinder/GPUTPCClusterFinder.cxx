@@ -90,6 +90,7 @@ void* GPUTPCClusterFinder::SetPointersScratch(void* mem)
   computePointerWithAlignment(mem, mPpeakMap, TPCMapMemoryLayout<decltype(*mPpeakMap)>::items());
   computePointerWithAlignment(mem, mPbuf, mBufSize * mNBufs);
   computePointerWithAlignment(mem, mPclusterByRow, GPUCA_ROW_COUNT * mNMaxClusterPerRow);
+
   return mem;
 }
 

@@ -457,9 +457,6 @@ void zsEncoderRow::decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const z
 
 #ifdef GPUCA_O2_LIB
 struct zsEncoderImprovedLinkBased : public zsEncoder {
-  static constexpr bool TIGHTLY_PACKED = false;
-  static constexpr unsigned int SAMPLESPER64BIT = 64 / TPCZSHDRV2::TPC_ZS_NBITS_V3; // 5 12-bit samples with 4 bit padding per 64 bit word for non-TIGHTLY_PACKED data
-
   TPCZSHDRV2* hdr = nullptr;
   int inverseChannelMapping[5][32];
   int nSamples = 0;
@@ -545,10 +542,10 @@ bool zsEncoderImprovedLinkBased::checkInput(std::vector<o2::tpc::Digit>& tmpBuff
   if (!finishPage) {
     unsigned int sizeChk = (unsigned int)(pagePtr - reinterpret_cast<unsigned char*>(page));
     sizeChk += sizeof(o2::tpc::zerosupp_link_based::CommonHeader);
-    if (TIGHTLY_PACKED) {
+    if (TPCZSHDRV2::TIGHTLY_PACKED_V3) {
       sizeChk += (nSamples * TPCZSHDRV2::TPC_ZS_NBITS_V3 + 127) / 128 * 16;
     } else {
-      sizeChk += (nSamples + 2 * SAMPLESPER64BIT - 1) / (2 * SAMPLESPER64BIT) * 16;
+      sizeChk += (nSamples + 2 * TPCZSHDRV2::SAMPLESPER64BIT - 1) / (2 * TPCZSHDRV2::SAMPLESPER64BIT) * 16;
     }
     if (sizeChk > TPCZSHDR::TPC_ZS_PAGE_SIZE) {
       finishPage = true;
@@ -574,19 +571,19 @@ unsigned int zsEncoderImprovedLinkBased::encodeSequence(std::vector<o2::tpc::Dig
   tbHdr->fecInPartition = link;
   hdr->nTimeBins = tmpBuffer[k].getTimeStamp() - firstTimebinInPage + 1;
   hdr->nTimebinHeaders++;
-  if (TIGHTLY_PACKED) {
+  if (TPCZSHDRV2::TIGHTLY_PACKED_V3) {
     tbHdr->numWordsPayload = (nSamples * TPCZSHDRV2::TPC_ZS_NBITS_V3 + 127) / 128; // tightly packed ADC samples
     unsigned int tmp = 0;
     unsigned int tmpIn = nSamples;
     ZSstreamOut(adcValues.data(), tmpIn, pagePtr, tmp, encodeBits);
   } else {
-    tbHdr->numWordsPayload = (nSamples + 2 * SAMPLESPER64BIT - 1) / (2 * SAMPLESPER64BIT);
+    tbHdr->numWordsPayload = (nSamples + 2 * TPCZSHDRV2::SAMPLESPER64BIT - 1) / (2 * TPCZSHDRV2::SAMPLESPER64BIT);
     unsigned long* payloadPtr = (unsigned long*)pagePtr;
     for (unsigned int i = 0; i < 2 * tbHdr->numWordsPayload; i++) {
       payloadPtr[i] = 0;
     }
     for (unsigned int i = 0; i < nSamples; i++) {
-      payloadPtr[i / SAMPLESPER64BIT] |= ((unsigned long)adcValues[i]) << ((i % SAMPLESPER64BIT) * TPCZSHDRV2::TPC_ZS_NBITS_V3);
+      payloadPtr[i / TPCZSHDRV2::SAMPLESPER64BIT] |= ((unsigned long)adcValues[i]) << ((i % TPCZSHDRV2::SAMPLESPER64BIT) * TPCZSHDRV2::TPC_ZS_NBITS_V3);
     }
   }
   pagePtr += tbHdr->numWordsPayload * 16;
@@ -670,7 +667,7 @@ void zsEncoderImprovedLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputB
     const auto& bitmask = tbHdr->getChannelBits();
     int nADC = bitmask.count();
     std::vector<unsigned short> decBuffer(nADC);
-    if (TIGHTLY_PACKED) {
+    if (TPCZSHDRV2::TIGHTLY_PACKED_V3) {
       unsigned int byte = 0, bits = 0, posXbits = 0;
       while (posXbits < nADC) {
         byte |= *(adcData++) << bits;
@@ -684,7 +681,7 @@ void zsEncoderImprovedLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputB
     } else {
       const unsigned long* adcData64 = (const unsigned long*)adcData;
       for (int j = 0; j < nADC; j++) {
-        decBuffer[j] = (adcData64[j / SAMPLESPER64BIT] >> ((j % SAMPLESPER64BIT) * TPCZSHDRV2::TPC_ZS_NBITS_V3)) & mask;
+        decBuffer[j] = (adcData64[j / TPCZSHDRV2::SAMPLESPER64BIT] >> ((j % TPCZSHDRV2::SAMPLESPER64BIT) * TPCZSHDRV2::TPC_ZS_NBITS_V3)) & mask;
       }
     }
     for (int j = 0, k = 0; j < bitmask.size(); j++) {

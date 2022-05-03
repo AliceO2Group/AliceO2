@@ -15,6 +15,7 @@
 #include "GPUTPCCFChargeMapFiller.h"
 #include "ChargePos.h"
 #include "DataFormatsTPC/Digit.h"
+#include "TPCPadGainCalib.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::tpccf;
