@@ -92,15 +92,27 @@ struct WritingCursor<soa::Table<PC...>> {
   int64_t mCount = -1;
 };
 
-template <typename T>
-struct Produces {
-  static_assert(always_static_assert_v<T>, "Type must be a o2::soa::Table");
-};
-
 /// This helper class allows you to declare things which will be created by a
 /// given analysis task. Notice how the actual cursor is implemented by the
 /// means of the WritingCursor helper class, from which produces actually
 /// derives.
+template <typename T>
+struct Produces : WritingCursor<typename soa::PackToTable<typename T::table_t::persistent_columns_t>::table> {
+  using table_t = T;
+  using metadata = typename aod::MetadataTrait<T>::metadata;
+
+  // @return the associated OutputSpec
+  OutputSpec const spec()
+  {
+    return OutputSpec{OutputLabel{metadata::tableLabel()}, metadata::origin(), metadata::description()};
+  }
+
+  OutputRef ref()
+  {
+    return OutputRef{metadata::tableLabel(), 0};
+  }
+};
+
 template <template <typename...> class T, typename... C>
 struct Produces<T<C...>> : WritingCursor<typename soa::PackToTable<typename T<C...>::table_t::persistent_columns_t>::table> {
   using table_t = soa::Table<C...>;
