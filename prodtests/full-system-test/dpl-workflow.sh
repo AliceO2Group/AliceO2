@@ -5,8 +5,6 @@
 MYDIR="$(dirname $(realpath $0))"
 source $MYDIR/setenv.sh
 
-if [[ -z $FILEWORKDIRRUN ]]; then FILEWORKDIRRUN=$FILEWORKDIR; fi              # directory where to find the run-related files (grp, collision context)
-
 if [[ $EPNSYNCMODE == 0 ]]; then
   alien-token-info >& /dev/null
   if [[ $? != 0 ]]; then
@@ -78,25 +76,15 @@ fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Set general arguments
-ARGS_ALL="--session ${OVERRIDE_SESSION:-default} --severity $SEVERITY --shm-segment-id $NUMAID --shm-segment-size $SHMSIZE $ARGS_ALL_EXTRA --early-forward-policy noraw"
-ARGS_ALL_CONFIG="NameConf.mDirGeom=$FILEWORKDIR;NameConf.mDirMatLUT=$FILEWORKDIR;NameConf.mDirCollContext=$FILEWORKDIRRUN;NameConf.mDirGRP=$FILEWORKDIRRUN;keyval.input_dir=$FILEWORKDIR;keyval.output_dir=/dev/null;$ALL_EXTRA_CONFIG"
-if [[ $EPNSYNCMODE == 1 ]]; then
-  ARGS_ALL+=" --infologger-severity $INFOLOGGER_SEVERITY"
-  ARGS_ALL+=" --monitoring-backend influxdb-unix:///tmp/telegraf.sock --resources-monitoring 15"
-  ARGS_ALL_CONFIG+="NameConf.mCCDBServer=$GEN_TOPO_EPN_CCDB_SERVER;"
-elif [[ "0$ENABLE_METRICS" != "01" ]]; then
-  ARGS_ALL+=" --monitoring-backend no-op://"
-fi
-( [[ $EXTINPUT == 1 ]] || [[ $NUMAGPUIDS != 0 ]] ) && ARGS_ALL+=" --no-cleanup"
+source $MYDIR/getCommonArgs.sh
+
+[[ -z $SHM_MANAGER_SHMID ]] && ( [[ $EXTINPUT == 1 ]] || [[ $NUMAGPUIDS != 0 ]] ) && ARGS_ALL+=" --no-cleanup"
 ( [[ $GPUTYPE != "CPU" ]] || [[ $OPTIMIZED_PARALLEL_ASYNC != 0 ]] ) && ARGS_ALL+=" --shm-mlock-segment-on-creation 1"
-[[ $SHMTHROW == 0 ]] && ARGS_ALL+=" --shm-throw-bad-alloc 0"
 [[ ! -z $SHM_MANAGER_SHMID ]] && ARGS_ALL+=" --shm-no-cleanup on --shmid $SHM_MANAGER_SHMID"
-[[ $NORATELOG == 1 ]] && ARGS_ALL+=" --fairmq-rate-logging 0"
 if [[ $EPNSYNCMODE == 1 ]] || type numactl >/dev/null 2>&1 && [[ `numactl -H | grep "node . size" | wc -l` -ge 2 ]]; then
   [[ $NUMAGPUIDS != 0 ]] && ARGS_ALL+=" --child-driver 'numactl --membind $NUMAID --cpunodebind $NUMAID'"
 fi
 [[ ! -z $TIMEFRAME_RATE_LIMIT ]] && [[ $TIMEFRAME_RATE_LIMIT != 0 ]] && ARGS_ALL+=" --timeframes-rate-limit $TIMEFRAME_RATE_LIMIT --timeframes-rate-limit-ipcid $NUMAID"
-
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Set some individual workflow arguments depending on configuration
