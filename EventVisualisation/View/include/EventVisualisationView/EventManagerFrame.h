@@ -13,7 +13,7 @@
 /// \brief GUI (bottom buttons) for visualisation
 /// \author julian.myrcha@cern.ch
 /// \author p.nowakowski@cern.ch
-/// \author m.chwasiuk@cern.ch
+/// \author m.chwesiuk@cern.ch
 
 #ifndef ALICE_O2_EVENTVISUALISATION_EVENTMANAGERFRAME_H
 #define ALICE_O2_EVENTVISUALISATION_EVENTMANAGERFRAME_H

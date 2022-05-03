@@ -119,6 +119,9 @@ class VisualisationEvent
 
   o2::header::DataHeader::RunNumberType getRunNumber() const { return this->mRunNumber; }
   void setRunNumber(o2::header::DataHeader::RunNumberType runNumber) { this->mRunNumber = runNumber; }
+  
+  o2::header::DataHeader::TForbitType getFirstTForbit() const { return this->mFirstTForbit; }
+  void setFirstTForbit(o2::header::DataHeader::TForbitType firstTForbit) { this->mFirstTForbit = firstTForbit; }
 
   std::string getCollisionTime() const { return this->mCollisionTime; }
   void setCollisionTime(std::string collisionTime) { this->mCollisionTime = collisionTime; }
@@ -129,18 +132,19 @@ class VisualisationEvent
   bool isEmpty() const { return getTrackCount() == 0 && getClusterCount() == 0; }
 
  private:
-  float mMinTimeOfTracks;                           /// minimum time of tracks in the event
-  float mMaxTimeOfTracks;                           /// maximum time of tracks in the event
-  float mWorkflowVersion;                           /// workflow version used to generate this Event
-  std::string mWorkflowParameters;                  /// workflow parameters used to generate this Event
-  int mEventNumber;                                 /// event number in file
-  o2::header::DataHeader::RunNumberType mRunNumber; /// run number
-  double mEnergy;                                   /// energy of the collision
-  int mMultiplicity;                                /// number of particles reconstructed
-  std::string mCollidingSystem;                     /// colliding system (e.g. proton-proton)
-  std::string mCollisionTime;                       /// collision timestamp
-  std::vector<VisualisationTrack> mTracks;          /// an array of visualisation tracks
-  std::vector<VisualisationCluster> mClusters;      /// an array of visualisation clusters
+  float mMinTimeOfTracks;                            /// minimum time of tracks in the event
+  float mMaxTimeOfTracks;                            /// maximum time of tracks in the event
+  float mWorkflowVersion;                            /// workflow version used to generate this Event
+  std::string mWorkflowParameters;                   /// workflow parameters used to generate this Event
+  int mEventNumber;                                  /// event number in file
+  o2::header::DataHeader::RunNumberType mRunNumber;  /// run number
+  o2::header::DataHeader::TForbitType mFirstTForbit; /// first orbit in time frame
+  double mEnergy;                                    /// energy of the collision
+  int mMultiplicity;                                 /// number of particles reconstructed
+  std::string mCollidingSystem;                      /// colliding system (e.g. proton-proton)
+  std::string mCollisionTime;                        /// collision timestamp
+  std::vector<VisualisationTrack> mTracks;           /// an array of visualisation tracks
+  std::vector<VisualisationCluster> mClusters;       /// an array of visualisation clusters
 };
 
 } // namespace event_visualisation

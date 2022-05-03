@@ -160,6 +160,7 @@ class EveWorkflowHelper
             o2::dataformats::GlobalTrackID::mask_t clMask,
             float workflowVersion,
             o2::header::DataHeader::RunNumberType runNumber,
+			o2::header::DataHeader::TForbitType firstTForbit,
             o2::framework::DataProcessingHeader::CreationTime creationTime);
 
   FilterSet mEnabledFilters;

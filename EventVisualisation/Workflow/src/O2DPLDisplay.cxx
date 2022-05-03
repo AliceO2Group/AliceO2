@@ -115,7 +115,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   helper.draw();
 
   if (!(this->mNoEmptyOutput && helper.isEmpty())) {
-    helper.save(this->mJsonPath, this->mNumberOfFiles, this->mTrkMask, this->mClMask, this->mWorkflowVersion, dh->runNumber, dph->creation);
+    helper.save(this->mJsonPath, this->mNumberOfFiles, this->mTrkMask, this->mClMask, this->mWorkflowVersion, dh->runNumber, dh->firstTForbit, dph->creation);
   }
 
   auto endTime = std::chrono::high_resolution_clock::now();

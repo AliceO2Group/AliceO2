@@ -106,6 +106,7 @@ std::string VisualisationEvent::toJson()
   // compatibility verification
   tree.AddMember("fileVersion", rapidjson::Value().SetInt(JSON_FILE_VERSION), allocator);
   tree.AddMember("runNumber", rapidjson::Value().SetInt(this->mRunNumber), allocator);
+  tree.AddMember("firstTForbit", rapidjson::Value().SetInt(this->mFirstTForbit), allocator);
   tree.AddMember("collisionTime", rapidjson::Value().SetString(this->mCollisionTime.c_str(), this->mCollisionTime.size()), allocator);
   tree.AddMember("workflowVersion", rapidjson::Value().SetFloat(this->mWorkflowVersion), allocator);
   tree.AddMember("workflowParameters", rapidjson::Value().SetString(this->mWorkflowParameters.c_str(), this->mWorkflowParameters.size()), allocator);
@@ -159,6 +160,8 @@ VisualisationEvent::VisualisationEvent(const VisualisationEvent& source, EVisual
       this->mClusters.push_back(*it);
     }
   }
+  this->mRunNumber = source.getRunNumber();
+  this->mFirstTForbit = source.getFirstTForbit();
 }
 
 void VisualisationEvent::fromJson(std::string json)
@@ -181,6 +184,14 @@ void VisualisationEvent::fromJson(std::string json)
     runNumber = jsonRunNumber.GetInt();
   }
   this->setRunNumber(runNumber);
+  
+  o2::header::DataHeader::TForbitType firstTForbit = 0;
+  if (tree.HasMember("firstTForbit")) {
+    rapidjson::Value& jsonFirstTForbit = tree["firstTForbit"];
+    firstTForbit = jsonFirstTForbit.GetInt();
+  }
+  this->setFirstTForbit(firstTForbit);
+
 
   auto collisionTime = "not specified";
   if (tree.HasMember("collisionTime")) {
