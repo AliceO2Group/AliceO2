@@ -210,7 +210,7 @@ class MaterialManager
 
  private:
   MaterialManager() = default;
- 
+
   bool mDensityMapInitialized = false;
   std::unordered_map<std::string, float> mDensityMap;
 

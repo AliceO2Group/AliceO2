@@ -123,9 +123,10 @@ void MaterialManager::initDensityMap()
   mDensityMapInitialized = true;
 }
 
-float MaterialManager::getDensity(std::string const& modname) {
+float MaterialManager::getDensity(std::string const& modname)
+{
   if (!mDensityMapInitialized) {
-     initDensityMap();
+    initDensityMap();
   }
   if (mDensityMap.find(modname) != mDensityMap.end()) {
     return mDensityMap[modname];
