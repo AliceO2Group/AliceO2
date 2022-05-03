@@ -22,61 +22,22 @@ if [[ -z $CTF_METAFILES_DIR ]];        then CTF_METAFILES_DIR="/dev/null"; fi  #
 if [[ -z $RECO_NUM_NODES_WORKFLOW ]];  then RECO_NUM_NODES_WORKFLOW=250; fi    # Number of EPNs running this workflow in parallel, to increase multiplicities if necessary, by default assume we are 1 out of 250 servers
 if [[ -z $CTF_MINSIZE ]];              then CTF_MINSIZE="2000000000"; fi        # accumulate CTFs until file size reached
 if [[ -z $CTF_MAX_PER_FILE ]];         then CTF_MAX_PER_FILE="10000"; fi       # but no more than given number of CTFs per file
-if [[ -z $IS_SIMULATED_DATA ]];        then IS_SIMULATED_DATA=1; fi            # processing simulated data
-
-if [[ $SYNCMODE == 1 ]]; then
-  if [[ -z "${WORKFLOW_DETECTORS_MATCHING+x}" ]]; then export WORKFLOW_DETECTORS_MATCHING="ITSTPC,ITSTPCTRD,ITSTPCTOF,ITSTPCTRDTOF,PRIMVTX"; fi # Select matchings that are enabled in sync mode
-else
-  if [[ -z "${WORKFLOW_DETECTORS_MATCHING+x}" ]]; then export WORKFLOW_DETECTORS_MATCHING="ALL"; fi # All matching / vertexing enabled in async mode
-fi
 
 workflow_has_parameter CTF && export SAVECTF=1
 workflow_has_parameter GPU && { export GPUTYPE=HIP; export NGPUS=4; }
 
-[[ -z $ITS_STROBE ]] && ITS_STROBE="891"
-[[ -z $MFT_STROBE ]] && MFT_STROBE="198"
-
-MID_FEEID_MAP="$FILEWORKDIR/mid-feeId_mapper.txt"
 NITSDECTHREADS=2
 NMFTDECTHREADS=2
-# FIXME: multithreading in the itsmft reconstruction does not work
-#        on macOS.
+# FIXME: multithreading in the itsmft reconstruction does not work on macOS.
 if [[ $(uname) == "Darwin" ]]; then
     NITSDECTHREADS=1
     NMFTDECTHREADS=1
 fi
 
-ITSMFT_STROBES=""
-[[ -z $ITS_STROBE ]] && ITSMFT_STROBES+="ITSAlpideParam.roFrameLengthInBC=$ITS_STROBE;"
-[[ -z $MFT_STROBE ]] && ITSMFT_STROBES+="MFTAlpideParam.roFrameLengthInBC=$MFT_STROBE;"
-
-LIST_OF_ASYNC_RECO_STEPS="MID MCH MFT FDD FV0 ZDC"
-
-DISABLE_DIGIT_ROOT_INPUT="--disable-root-input"
-DISABLE_DIGIT_CLUSTER_INPUT="--clusters-from-upstream"
-
-# ---------------------------------------------------------------------------------------------------------------------
-# Set active reconstruction steps (defaults added according to SYNCMODE)
-
-has_processing_step()
-{
-  [[ $WORKFLOW_EXTRA_PROCESSING_STEPS =~ (^|,)"$1"(,|$) ]]
-}
-
-for i in `echo $LIST_OF_GLORECO | sed "s/,/ /g"`; do
-  has_processing_step MATCH_$i && add_comma_separated WORKFLOW_DETECTORS_MATCHING $i # Enable extra matchings requested via WORKFLOW_EXTRA_PROCESSING_STEPS
-done
-if [[ $SYNCMODE == 1 ]]; then # Add default steps for synchronous mode
-  add_comma_separated WORKFLOW_EXTRA_PROCESSING_STEPS ENTROPY_ENCODER
-else # Add default steps for async mode
-  for i in $LIST_OF_ASYNC_RECO_STEPS; do
-    has_detector_reco $i && add_comma_separated WORKFLOW_EXTRA_PROCESSING_STEPS ${i}_RECO
-  done
-fi
-
 # ---------------------------------------------------------------------------------------------------------------------
 # Set general arguments
 source $MYDIR/getCommonArgs.sh
+source $MYDIR/workflow-setup.sh
 
 [[ -z $SHM_MANAGER_SHMID ]] && ( [[ $EXTINPUT == 1 ]] || [[ $NUMAGPUIDS != 0 ]] ) && ARGS_ALL+=" --no-cleanup"
 ( [[ $GPUTYPE != "CPU" ]] || [[ $OPTIMIZED_PARALLEL_ASYNC != 0 ]] ) && ARGS_ALL+=" --shm-mlock-segment-on-creation 1"
@@ -202,57 +163,12 @@ fi
 [[ $IS_SIMULATED_DATA == "1" ]] && EMCRAW2C_CONFIG+=" --no-mergeHGLG"
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Assemble matching sources
-TRD_SOURCES=
-TOF_SOURCES=
-TRACK_SOURCES=
-has_detectors_reco ITS TPC && has_detector_matching ITSTPC && add_comma_separated TRACK_SOURCES "ITS-TPC"
-has_detectors_reco TPC TRD && has_detector_matching TPCTRD && { add_comma_separated TRD_SOURCES TPC; add_comma_separated TRACK_SOURCES "TPC-TRD"; }
-has_detectors_reco ITS TPC TRD && has_detector_matching ITSTPCTRD && { add_comma_separated TRD_SOURCES ITS-TPC; add_comma_separated TRACK_SOURCES "ITS-TPC-TRD"; }
-has_detectors_reco TPC TOF && has_detector_matching TPCTOF && { add_comma_separated TOF_SOURCES TPC; add_comma_separated TRACK_SOURCES "TPC-TOF"; }
-has_detectors_reco ITS TPC TOF && has_detector_matching ITSTPCTOF && { add_comma_separated TOF_SOURCES ITS-TPC; add_comma_separated TRACK_SOURCES "ITS-TPC-TOF"; }
-has_detectors_reco TPC TRD TOF && has_detector_matching TPCTRDTOF && { add_comma_separated TOF_SOURCES TPC-TRD; add_comma_separated TRACK_SOURCES "TPC-TRD-TOF"; }
-has_detectors_reco ITS TPC TRD TOF && has_detector_matching ITSTPCTRDTOF && { add_comma_separated TOF_SOURCES ITS-TPC-TRD; add_comma_separated TRACK_SOURCES "ITS-TPC-TRD-TOF"; }
-has_detectors_reco MFT MCH && has_detector_matching MFTMCH && add_comma_separated TRACK_SOURCES "MFT-MCH"
-has_detectors_reco MCH MID && has_detector_matching MCHMID && add_comma_separated TRACK_SOURCES "MCH-MID"
-for det in `echo $LIST_OF_DETECTORS | sed "s/,/ /g"`; do
-  if [[ $LIST_OF_ASYNC_RECO_STEPS =~ (^| )${det}( |$) ]]; then
-    has_detector ${det} && has_processing_step ${det}_RECO && add_comma_separated TRACK_SOURCES "$det"
-  else
-    has_detector_reco $det && add_comma_separated TRACK_SOURCES "$det"
-  fi
-done
-[[ -z $VERTEXING_SOURCES ]] && VERTEXING_SOURCES="$TRACK_SOURCES"
-PVERTEX_CONFIG="--vertexing-sources $VERTEXING_SOURCES --vertex-track-matching-sources $VERTEXING_SOURCES"
-
-# this option requires well calibrated timing beween different detectors, at the moment suppress it
-#has_detector_reco FT0 && PVERTEX_CONFIG+=" --validate-with-ft0"
-
-# ---------------------------------------------------------------------------------------------------------------------
 # Process multiplicities
 
 # Helper function to apply scaling factors for process type (RAW/CTF/REST) and detector, or override multiplicity set for individual process externally.
 N_F_REST=$MULTIPLICITY_FACTOR_REST
 N_F_RAW=$MULTIPLICITY_FACTOR_RAWDECODERS
 N_F_CTF=$MULTIPLICITY_FACTOR_CTFENCODERS
-get_N() # USAGE: get_N [processor-name] [DETECTOR_NAME] [RAW|CTF|REST] [threads, to be used for process scaling. 0 = do not scale this one process] [optional name [FOO] of variable "$N_[FOO]" with default, default = 1]
-{
-  local NAME_FACTOR="N_F_$3"
-  local NAME_DET="MULTIPLICITY_FACTOR_DETECTOR_$2"
-  local NAME_PROC="MULTIPLICITY_FACTOR_PROCESS_${1//-/_}"
-  local NAME_DEFAULT="N_$5"
-  local MULT=${!NAME_PROC:-$((${!NAME_FACTOR} * ${!NAME_DET:-1} * ${!NAME_DEFAULT:-1}))}
-  if [[ "0$GEN_TOPO_AUTOSCALE_PROCESSES" == "01" && $4 != 0 ]]; then
-    echo $1:\$\(\(\($MULT*\$AUTOSCALE_PROCESS_FACTOR/100\) \< 16 ? \($MULT*\$AUTOSCALE_PROCESS_FACTOR/100\) : 16\)\)
-  else
-    echo $1:$MULT
-  fi
-}
-
-math_max()
-{
-  echo $(($1 > $2 ? $1 : $2))
-}
 
 N_TPCTRK=$NGPUS
 if [[ $OPTIMIZED_PARALLEL_ASYNC != 0 ]]; then
@@ -303,22 +219,10 @@ elif [[ $EPNPIPELINES != 0 ]]; then
 fi
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Helper to add binaries to workflow adding automatic and custom arguments
+# Start of workflow command generation
+
 WORKFLOW= # Make sure we start with an empty workflow
 [[ "0$GEN_TOPO_ONTHEFLY" == "01" ]] && WORKFLOW="echo '{}' | "
-
-add_W() # Add binarry to workflow command USAGE: add_W [BINARY] [COMMAND_LINE_OPTIONS] [CONFIG_KEY_VALUES] [Add ARGS_ALL_CONFIG, optional, default = 1]
-{
-  local NAME_PROC_ARGS="ARGS_EXTRA_PROCESS_${1//-/_}"
-  local NAME_PROC_CONFIG="CONFIG_EXTRA_PROCESS_${1//-/_}"
-  local KEY_VALUES=
-  [[ "0$4" != "00" ]] && KEY_VALUES+="$ARGS_ALL_CONFIG;"
-  [[ ! -z "$3" ]] && KEY_VALUES+="$3;"
-  [[ ! -z ${!NAME_PROC_CONFIG} ]] && KEY_VALUES+="${!NAME_PROC_CONFIG};"
-  [[ ! -z "$KEY_VALUES" ]] && KEY_VALUES="--configKeyValues \"$KEY_VALUES\""
-  WORKFLOW+="$1 $ARGS_ALL $2 ${!NAME_PROC_ARGS} $KEY_VALUES | "
-}
-
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Input workflow
