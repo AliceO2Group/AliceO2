@@ -35,12 +35,12 @@
 #include "Framework/Output.h"
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
-#include "Framework/DataProcessorSpec.h"
-#include "Framework/runDataProcessing.h"
 
 #include "DPLUtils/DPLRawParser.h"
 #include "Headers/RAWDataHeader.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include "DetectorsRaw/HBFUtils.h"
+#include "CommonDataFormat/TFIDInfo.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -188,6 +188,17 @@ class FileReaderTask
       this->mInputFile.close();
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
+
+    const auto& hbfu = o2::raw::HBFUtils::Instance();
+    if (hbfu.runNumber != 0) {
+      mTFIDInfo.runNumber = hbfu.runNumber;
+    }
+    if (hbfu.orbitFirst != 0) {
+      mTFIDInfo.firstTForbit = hbfu.orbitFirst;
+    }
+    if (hbfu.startTime != 0) {
+      mTFIDInfo.creation = hbfu.startTime;
+    }
   }
 
   void printHBF(char* framePtr, size_t frameSize)
@@ -470,9 +481,11 @@ class FileReaderTask
   //_________________________________________________________________________________________________
   void run(framework::ProcessingContext& pc)
   {
+    setMessageHeader(pc, mTFIDInfo);
+
     if (mFullTF) {
       sendTF(pc);
-      //pc.services().get<ControlService>().endOfStream();
+      // pc.services().get<ControlService>().endOfStream();
       return;
     }
 
@@ -571,6 +584,24 @@ class FileReaderTask
     } // while (true)
   }
 
+  void setMessageHeader(ProcessingContext& pc, const o2::dataformats::TFIDInfo& tfid) const
+  {
+    auto& timingInfo = pc.services().get<TimingInfo>();
+    if (tfid.firstTForbit != -1U) {
+      timingInfo.firstTFOrbit = tfid.firstTForbit;
+    }
+    if (tfid.tfCounter != -1U) {
+      timingInfo.tfCounter = tfid.tfCounter;
+    }
+    if (tfid.runNumber != -1U) {
+      timingInfo.runNumber = tfid.runNumber;
+    }
+    if (tfid.creation != -1U) {
+      timingInfo.creation = tfid.creation;
+    }
+    // LOGP(info, "TimingInfo set to : firstTFOrbit {}, tfCounter {}, runNumber {}, creatio {}",  timingInfo.firstTFOrbit, timingInfo.tfCounter, timingInfo.runNumber, timingInfo.creation);
+  }
+
  private:
   std::ifstream mInputFile{}; ///< input file
   int mFrameMax;              ///< number of frames to process
@@ -580,6 +611,7 @@ class FileReaderTask
   bool mSaveTF;               ///< save individual time frames to file
   int mOverlap;               ///< overlap between contiguous TimeFrames
   bool mPrint = false;        ///< print debug messages
+  o2::dataformats::TFIDInfo mTFIDInfo{}; // struct to modify output headers
 };
 
 //_________________________________________________________________________________________________
@@ -589,7 +621,7 @@ o2::framework::DataProcessorSpec getFileReaderSpec(const char* specName)
   return DataProcessorSpec{
     specName,
     Inputs{},
-    Outputs{OutputSpec{"RDT", "RAWDATA", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{"RDT", "RAWDATA", 0, Lifetime::Sporadic}},
     AlgorithmSpec{adaptFromTask<FileReaderTask>()},
     Options{{"infile", VariantType::String, "", {"input file name"}},
             {"nframes", VariantType::Int, -1, {"number of frames to process"}},
@@ -606,11 +638,21 @@ o2::framework::DataProcessorSpec getFileReaderSpec(const char* specName)
 } // end namespace mch
 } // end namespace o2
 
+// we need to add workflow options before including Framework/runDataProcessing
+void customize(std::vector<ConfigParamSpec>& workflowOptions)
+{
+  std::vector<ConfigParamSpec> options{{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+  workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
+}
+
+#include "Framework/runDataProcessing.h"
+
 using namespace o2;
 using namespace o2::framework;
 
-WorkflowSpec defineDataProcessing(const ConfigContext&)
+WorkflowSpec defineDataProcessing(const ConfigContext& cfgc)
 {
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   WorkflowSpec specs;
 
   // The producer to generate some data in the workflow
